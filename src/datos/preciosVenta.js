@@ -215,5 +215,38 @@ export function precioPorUsuarioAppLT(cfg) {
     porU = tabla[a] + ((tabla[b] - tabla[a]) * (n - a)) / (b - a);
   }
   const fl = FACTOR_LARGO[cfg.largoMM] ?? 1;
-  return { lista: Math.round(porU * fl * n), porUsuario: Math.round(porU * fl), derivado: fl !== 1 };
+  const base = porU * fl * n;
+  return { lista: Math.round(base + extrasAppLT(cfg, n)), porUsuario: Math.round(porU * fl), derivado: fl !== 1 };
+}
+
+// ---------------------------------------------------------------------------
+//  LO QUE LA ESCALERA POR USUARIO NO SABE, Y SE ESTABA REGALANDO
+//
+//  La escalera cobra (módulo × usuarios) y nada más. Como manda sobre el modelo,
+//  todo lo que el vendedor le active a una banca App LT sin ancla exacta —biombos
+//  laterales, divisores entre puestos, el material del biombo— salía en CERO: el
+//  despiece los sumaba al costo y el precio ni se enteraba. Auditado el
+//  2026-08-16: 104 de 562 opciones del catálogo no movían un peso.
+//
+//  Los dos recargos NO son inventados: salen de restar dos renglones del MISMO
+//  presupuesto, que es la única forma limpia de saber cuánto vale una opción.
+//    · LATERALES  — BMU 225080025, módulo 3000×1200 de 4 usuarios:
+//                   $25,980 con laterales − $22,590 sin ellos = $3,390 de lista
+//                   por los DOS. En precio 2: 3,390 ÷ 0.60 = $5,650.
+//    · DIVISORES  — 226030018, banca de 3 usuarios 3600×600, áreas "3U A" y
+//                   "3U B": $37,960 − $26,760 = $11,200 de precio 2 por los dos
+//                   divisores de esa corrida, o sea $5,600 cada uno (n−1 por
+//                   corrida). Confirmado mirando los renders de las dos áreas.
+//  Los laterales son SIEMPRE dos (cierran los extremos), no crecen con la corrida.
+// ---------------------------------------------------------------------------
+const EXTRA_LATERALES = 5650;        // precio 2, por el par
+const EXTRA_DIVISOR = 5600;          // precio 2, por divisor
+function extrasAppLT(cfg, usuarios) {
+  let extra = 0;
+  if (cfg.laterales) extra += EXTRA_LATERALES;
+  if (cfg.divisores && usuarios > 1) {
+    const pares = cfg.producto === 'banca_doble' ? Math.max(1, Math.round(usuarios / 2)) : usuarios;
+    extra += EXTRA_DIVISOR * Math.max(0, pares - 1) * (cfg.producto === 'banca_doble' ? 2 : 1);
+  }
+  return extra;
 }
