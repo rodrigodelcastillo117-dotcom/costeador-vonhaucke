@@ -260,10 +260,28 @@ describe('15. Fraccion de hoja (aprovechamiento)', () => {
 //  Comprobaciones extra: numeros reales del master (1.2 y 1.3)
 // ===========================================================================
 describe('Comprobaciones contra los numeros reales del master', () => {
-  it('el costo hora de taller da 40.60 (1.2)', () => {
-    const { horaNominal, horaTaller } = calcularCostoHora(PARAMETROS_DEFAULT);
+  // La nómina real YA NO vive en PARAMETROS_DEFAULT: iba como literal y Vite la
+  // publicaba dentro del HTML público (auditoría 2026-08-16). Ahora la carga
+  // Dirección desde la bóveda. La comprobación del master sigue viva, pero con
+  // los números como DATO DE PRUEBA — este archivo no entra al paquete que se
+  // publica, así que aquí no se filtran.
+  it('el costo hora de taller da 40.60 con la nómina del master (1.2)', () => {
+    const nominaDelMaster = {
+      ...PARAMETROS_DEFAULT,
+      nominaSemanalTotal: 423660, nominaSemanalDirecta: 215167,
+      personasTotal: 183, operativos: 138,
+    };
+    const { horaNominal, horaTaller } = calcularCostoHora(nominaDelMaster);
     expect(horaNominal).toBeCloseTo(32.48, 2);
     expect(horaTaller).toBeCloseTo(40.60, 2);
+  });
+
+  it('la nómina NO viaja en el paquete público', () => {
+    // Si alguien vuelve a escribir un número real en PARAMETROS_DEFAULT, se
+    // publica en dist/index.html sin que nadie lo note. Esta prueba lo caza.
+    for (const k of ['nominaSemanalTotal', 'nominaSemanalDirecta', 'personasTotal', 'operativos']) {
+      expect(PARAMETROS_DEFAULT[k]).toBe(0);
+    }
   });
   it('la mano de obra del App LT (6.36 h) da ~258 (1.3)', () => {
     const r = calcular(escritorioAppLT, 1, INSUMOS);

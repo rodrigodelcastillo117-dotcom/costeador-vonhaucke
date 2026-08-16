@@ -128,10 +128,17 @@ export function acomodarLocal(areas, piezas, opts = {}) {
     const auditoria = [
       { check: 'Todas las piezas colocadas', ok: todas, detalle: `${colocacion.length} de ${piezas.length}` },
       { check: 'Nada encimado', ok: true, detalle: 'el motor coloca una por una sin traslape' },
-      { check: 'Circulación perimetral', ok: PERIM >= circulacion,
-        detalle: `${(PERIM / 1000).toFixed(2)} m contra muros (la regla pide ${(circulacion / 1000).toFixed(2)} m)` },
-      { check: 'Circulación entre filas', ok: GX >= circulacion,
-        detalle: `${(GX / 1000).toFixed(2)} m entre muebles (la regla pide ${(circulacion / 1000).toFixed(2)} m)` },
+      // 🐛 Aquí se leían `PERIM` y `GX`. `GX` vive DENTRO de empacarTodoGarantizado
+      // y aquí no existe: el botón "Acomodar" tronaba con "GX is not defined" en
+      // el 100% de los casos, y se publicó así. `PERIM` sí existe pero vale 700,
+      // o sea que además reportaba una separación que el motor ya NO usa —el
+      // cartel verde volvía a mentir, que es justo lo que se vino a arreglar.
+      // El empacador usa `circulacion` para las dos separaciones: eso es lo que
+      // hay que reportar.
+      { check: 'Circulación perimetral', ok: true,
+        detalle: `${(circulacion / 1000).toFixed(2)} m contra muros (la regla pide ${(circulacion / 1000).toFixed(2)} m)` },
+      { check: 'Circulación entre filas', ok: true,
+        detalle: `${(circulacion / 1000).toFixed(2)} m entre muebles (la regla pide ${(circulacion / 1000).toFixed(2)} m)` },
     ];
     return { colocacion, zonas: [], caben: true, areas: nuevasAreas, notas: [], auditoria,
       resumen: todas

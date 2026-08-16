@@ -64,10 +64,15 @@ describe('puertas', () => {
     }
   });
 
-  it('dice honestamente que no pudo comprobar la circulación sin puertas', () => {
+  // Esta prueba se llamaba "dice honestamente" y exigía... una PALOMITA VERDE
+  // para algo que el propio texto decía que no se pudo comprobar. O sea que
+  // certificaba la mentira. Lo honesto es que salga como AVISO: el proyectista
+  // tiene que enterarse de que ese punto quedó sin revisar.
+  it('sin puertas NO da por buena la circulación: lo marca como no comprobado', () => {
     const r = acomodarEnForma(cuarto(6000, 5000), [pieza('g1', 900, 450, 'guarda')]);
     const check = r.auditoria.find((x) => x.check === 'Se llega caminando desde la puerta');
-    expect(check.detalle).toMatch(/sin puertas/);
+    expect(check.detalle).toMatch(/no se pudo comprobar/);
+    expect(check.ok).toBe(false);   // nada de palomita verde para lo no revisado
   });
 
   it('comprueba que se llega caminando a cada mueble', () => {

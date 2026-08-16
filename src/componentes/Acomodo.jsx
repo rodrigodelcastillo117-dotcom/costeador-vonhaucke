@@ -279,7 +279,15 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
     return () => window.removeEventListener('keydown', k);
   });
 
-  const editarColocacion = (fn) => setPlan((pl) => (pl ? { ...pl, colocacion: fn(pl.colocacion || []) } : pl));
+  const editarColocacion = (fn) => setPlan((pl) => {
+    if (!pl) return pl;
+    // 🐛 La auditoría se calculaba UNA vez y esto no la tocaba: al vaciar el
+    // plano seguía diciendo "✓ Todas las piezas colocadas · 17 de 17" mientras
+    // arriba decía "faltan 17 por colocar". Ahora, en cuanto el proyectista
+    // mueve algo, la revisión queda marcada como VENCIDA: sigue a la vista lo
+    // que decía, pero se dice que ya no vale.
+    return { ...pl, colocacion: fn(pl.colocacion || []), auditoriaVencida: true };
+  });
 
   // Poner en el plano lo que traigo en la mano, o mover lo que está seleccionado.
   function soltarEn(area, x, y, idArrastrado) {
@@ -623,11 +631,19 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
 
           {plan.auditoria?.length > 0 && (
             <div className="voni-audit no-imprimir">
-              <div className="voni-audit-t">Voni revisó:</div>
-              <div className="voni-audit-grid">
+              <div className="voni-audit-t">
+                {plan.auditoriaVencida ? 'Voni revisó ANTES de que movieras:' : 'Voni revisó:'}
+              </div>
+              {plan.auditoriaVencida && (
+                <p className="ayuda" style={{ margin: '2px 0 6px' }}>
+                  Movieron muebles después de esta revisión, así que ya no vale.
+                  Toca <strong>“Que lo acomode Voni otra vez”</strong> para que la vuelva a hacer.
+                </p>
+              )}
+              <div className="voni-audit-grid" style={plan.auditoriaVencida ? { opacity: 0.45 } : undefined}>
                 {plan.auditoria.map((a, k) => (
-                  <span className={`voni-check ${a.ok ? 'ok' : 'warn'}`} key={k}>
-                    <b>{a.ok ? '✓' : '⚠'}</b> {a.check}{a.detalle ? <em> · {a.detalle}</em> : null}
+                  <span className={`voni-check ${plan.auditoriaVencida ? 'warn' : (a.ok ? 'ok' : 'warn')}`} key={k}>
+                    <b>{plan.auditoriaVencida ? '·' : (a.ok ? '✓' : '⚠')}</b> {a.check}{a.detalle ? <em> · {a.detalle}</em> : null}
                   </span>
                 ))}
               </div>

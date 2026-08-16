@@ -747,7 +747,7 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 .prop-precio-u { font-size: 13px; color: var(--gris); margin-top: 3px; }
 .prop-cant { flex: none; }
 .prop-cant .masmenos, .prop-cant.masmenos { gap: 6px; }
-.prop-cant button { width: 38px !important; height: 38px !important; font-size: 18px !important; }
+.prop-cant button { width: 44px !important; height: 44px !important; font-size: 18px !important; }
 .prop-cant .valor { font-size: 16px !important; min-width: 2ch; }
 .prop-cant-print { font-weight: 700; }
 .prop-importe { flex: none; margin-left: auto; min-width: 110px; text-align: right;
@@ -799,7 +799,7 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 .propx-sub { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
 .propx-unit { color: var(--gris); font-size: 13px; }
 .propx-cant { flex: none; text-align: center; min-width: 58px; }
-.propx-cant-n { display: block; font-family: var(--display); font-weight: 800; font-size: 22px; color: var(--tinta); line-height: 1; }
+.propx-cant-n { display: block; font-family: var(--display); font-weight: 800; font-size: 17px; color: var(--tinta); line-height: 1; }
 .propx-cant-l { font-size: 11px; color: var(--gris); text-transform: uppercase; letter-spacing: .08em; }
 .propx-importe { flex: none; min-width: 120px; text-align: right; font-family: var(--mono); font-weight: 700; font-size: 17px; color: var(--tinta); font-variant-numeric: tabular-nums; }
 
@@ -815,7 +815,12 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 .propx-tot-row b { color: var(--tinta); font-family: var(--mono); }
 .propx-tot-grand { display: flex; justify-content: space-between; gap: 30px; align-items: center; margin-top: 8px; padding: 13px 18px; background: var(--tinta); color: #fff; border-radius: 12px; }
 .propx-tot-grand span { font-family: var(--display); font-weight: 800; letter-spacing: .06em; }
-.propx-tot-grand b { font-family: var(--mono); font-size: 20px; }
+/* EL NÚMERO QUE DECIDE LA VENTA TIENE QUE SER EL MÁS GRANDE DE LA HOJA.
+   Medido el 2026-08-16: en una propuesta de $298,996 el elemento más grande de
+   la pantalla era el botón "−" de restar cantidad (26 px). El TOTAL medía 20 y
+   la CANTIDAD 22. El ojo del cliente iba al botón de restar. */
+.propx-tot-grand b { font-family: var(--mono); font-size: 38px; line-height: 1; letter-spacing: -.01em; }
+@media (max-width: 640px) { .propx-tot-grand b { font-size: 30px; } }
 .propx-tot-anticipo { margin-top: 8px; font-size: 12.5px; color: var(--gris); text-align: right; }
 .propx-tot-anticipo b { color: var(--tinta); }
 
@@ -1411,8 +1416,12 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
   }
   /* 2 · La fila de muebles de Voni no envolvía: el botón "Quitar" salía casi
      100 px fuera de la pantalla y no se podía tocar. */
-  .voni-fila { flex-wrap: wrap; gap: 8px 12px; }
+  .voni-fila { flex-wrap: wrap; gap: 8px 12px; align-items: flex-start; }
   .voni-fila-precio { min-width: 0; }
+  /* 🐛 En celular esta columna colapsaba a 22 px y el nombre del mueble se
+     imprimía EN VERTICAL, letra por letra. Con 60% de base se lleva su renglón
+     completo y los controles se van abajo, que es como se lee bien. */
+  .voni-fila > div:first-child { flex: 1 1 60%; min-width: 190px; }
   /* 3 · Cualquier tabla ancha (precios de material, tablero) se desliza dentro
      de su propia caja en vez de arrastrar la página entera. */
   .tarjeta table { display: block; width: 100%; overflow-x: auto; }

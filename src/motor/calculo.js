@@ -12,11 +12,24 @@
 //  interfaz; aqui viven solo los numeros.
 // -----------------------------------------------------------------------------
 export const PARAMETROS_DEFAULT = {
-  // NOMINA - valores reales verificados (master 1.2)
-  nominaSemanalTotal: 423660,
-  nominaSemanalDirecta: 215167,
-  personasTotal: 183,
-  operativos: 138,
+  // ⚠️ LA NÓMINA REAL NO VIVE AQUÍ, Y NO PUEDE.
+  //
+  // Auditoría del 2026-08-16: estos cuatro números estaban escritos como
+  // literales ($423,660 de nómina semanal, 183 personas, 138 operativos) y Vite
+  // los cocina dentro de `dist/index.html`, que es EL ÚNICO archivo que sirve la
+  // URL pública. Comprobado con un `curl` a la app en vivo: ahí estaban, sin
+  // necesidad de entrar. Toda la bóveda de Dirección protegía ese dato en la
+  // base y el compilador lo publicaba por la puerta de atrás.
+  //
+  // Quedan en CERO. Los de verdad los carga Dirección desde la tabla `direccion`
+  // (ver almacen.js y PARAMS_SENSIBLES), que sí pide sesión y rol. Con estos en
+  // cero el costo por hora sale de `costoHoraArea`, que es el camino que usa el
+  // modelo Intelisis —el bueno— y no cambia ningún precio de los que se cotizan
+  // hoy. Si alguien vuelve a escribir un número real aquí, lo publica.
+  nominaSemanalTotal: 0,
+  nominaSemanalDirecta: 0,
+  personasTotal: 0,
+  operativos: 0,
   jornadaSemanal: 48,
   eficienciaReal: 80,          // % - dato supuesto, confirmar con Produccion
   costoHora: 40.60,            // calculado, editable

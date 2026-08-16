@@ -408,7 +408,9 @@ export function acomodarEnForma(area, piezas) {
     { check: 'Puertas libres', ok: true, detalle: puertas.length ? `${puertas.length} puerta(s) con su barrido despejado` : 'el plano no traía puertas' },
     circ
       ? { check: 'Se llega caminando desde la puerta', ok: circ.ok, detalle: circ.ok ? 'todos los muebles tienen acceso' : `${circ.n} mueble(s) sin paso desde la puerta` }
-      : { check: 'Se llega caminando desde la puerta', ok: true, detalle: 'sin puertas en el plano, no se pudo comprobar' },
+      // ⚠️ Esto llevaba `ok: true` y pintaba palomita VERDE para algo que
+      // literalmente dice que NO se pudo comprobar. Ahora sale como aviso.
+      : { check: 'Se llega caminando desde la puerta', ok: false, detalle: 'el plano no traía puertas: no se pudo comprobar' },
     { check: 'Espacio todavía disponible', ok: true, detalle: `${((libres * CELDA * CELDA) / 1e6).toFixed(1)} m² libres` },
   ];
   return { colocacion, fuera, auditoria };

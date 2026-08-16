@@ -24,8 +24,12 @@ function estadoInicial() {
     piezas,
     cotizacion: { cliente: '', folio: '', fecha: '2026-08-11', partidas: [] },
     historial: [], // costeos guardados, alimentan el Tablero
-    // Numeros de los estados financieros, para el contexto del Tablero (7.1)
-    finanzas: { margenBruto: 29.2, utilidadOperacion: -16153298, ingresos: 74767782 },
+    // ⚠️ LOS ESTADOS FINANCIEROS TAMPOCO PUEDEN VIVIR AQUÍ. Iban como literales
+    // (ingresos $74.7M, utilidad de operación −$16.15M) y acababan dentro del
+    // HTML público. Van vacíos: Dirección los carga desde la tabla `direccion`,
+    // que sí pide sesión y rol. El Tablero enseña "sin datos" hasta entonces,
+    // que es infinitamente mejor que publicarlos.
+    finanzas: { margenBruto: null, utilidadOperacion: null, ingresos: null },
     // Candado de Direccion (candado.js). cifrado=true una vez que ponen PIN.
     dir: { cifrado: false, blob: null },
     onboardingVisto: false, // la guia de bienvenida se muestra solo la 1a vez
