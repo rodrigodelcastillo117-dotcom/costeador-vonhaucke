@@ -1,0 +1,181 @@
+// ============================================================================
+//  Edge Function: generar-render
+//  Genera un RENDER fotorrealista de un mueble a partir de la descripción del
+//  usuario (lo que escribe/costea), con estilo Von Haucke. Usa Google Gemini
+//  (modelo de imagen). Devuelve { ok, dataUrl }. Requiere GEMINI_API_KEY.
+// ============================================================================
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+// Modelo de imagen de Gemini (nano-banana). Cambiar aquí si se quiere otro.
+const MODEL = "gemini-2.5-flash-image";
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  if (req.method !== "POST") return json({ ok: false, error: "Usa POST" }, 405);
+
+  const key = Deno.env.get("GEMINI_API_KEY");
+  if (!key) return json({ ok: false, error: "Falta GEMINI_API_KEY en el proyecto (Supabase → Edge Functions → Secrets)." }, 500);
+
+  let body: any;
+  try { body = await req.json(); } catch { return json({ ok: false, error: "JSON invalido" }, 400); }
+  const { descripcion = "", materiales = [], medidas = "", tipo = "", imagen = "", imagenes = [], mediaType = "image/jpeg", modo = "render", aspecto = "" } = body || {};
+  if (!descripcion.trim() && !imagen) return json({ ok: false, error: "Escribe una descripción del mueble para generar el render." }, 400);
+  if (modo === "staging" && !imagen) return json({ ok: false, error: "Sube una foto del espacio para amueblarlo." }, 400);
+
+  const mats = Array.isArray(materiales) && materiales.length ? materiales.join(", ") : "";
+  // RECETA FIJA DE CATÁLOGO: idéntica para los ~67 productos, para que la
+  // colección se vea como UNA sola sesión de fotos y no 67 imágenes sueltas.
+  // La escenografia (fondo, sombra, encuadre) NO la decide el modelo: se pide
+  // fondo PLANO y el encuadre/sombra se arman despues, iguales para los 67.
+  const RECETA_CATALOGO =
+    "Background: seamless warm off-white studio sweep (#F4F1EC), smooth subtle falloff, no visible horizon line, " +
+    "no wall/floor separation, no props, nothing else in frame. " +
+    "LIGHTING: large softbox key from the front-upper-left, gentle fill from the right, and a discreet rim light that " +
+    "separates the frame from the background. Rich but gentle contrast, deep blacks that stay open, neutral white balance. " +
+    "GROUNDING: a soft, believable contact shadow directly under the piece, darkest at the feet and fading outward. " +
+    "The furniture must SIT on the surface, never float. " +
+    "CAMERA: same 3/4 viewpoint as the reference, 50mm lens at eye level slightly above the top, no wide-angle distortion. " +
+    "Framing: the COMPLETE piece fully visible and centered with comfortable margins, nothing cropped, tack-sharp. " +
+    "Editorial furniture photography of Herman Miller / Vitra catalogue quality. " +
+    "No people, no text, no watermark, no logos, no dimension lines, no chairs or monitors unless part of the product.";
+
+  const prompt = modo === "catalogo"
+    ? // CATÁLOGO: la FOTO manda la forma; el texto sólo manda material y luz.
+      // Probado 2026-08-16: si el texto describe la geometría ("patas tipo U"),
+      // le GANA a la foto y Gemini cambia el mueble — salió un marco cerrado
+      // donde la foto tenía poste cuadrado. Por eso la orden es explícita:
+      // ante cualquier contradicción, manda la imagen.
+      "Re-photograph the EXACT object in the reference image as a premium studio catalog shot. " +
+      "THE REFERENCE IMAGE IS THE ONLY SOURCE OF TRUTH FOR SHAPE. " +
+      "STEP 1 — before drawing anything, LOOK at the reference and identify the leg system: is each support a SINGLE " +
+      "SQUARE POST going straight down to a floor leveller, or a CLOSED LOOP / O-frame, or an inverted U-frame, or a " +
+      "T-base? Count how many supports there are and where they sit. " +
+      "STEP 2 — reproduce THAT leg system exactly, with the same count and the same position. Never substitute a closed " +
+      "loop frame for square posts, or the other way around: that is the single most common mistake and it makes the " +
+      "render show a product we do not sell. " +
+      "Copy the rest of the geometry part by part too: the same panels, the same overhangs, the same proportions and the " +
+      "same configuration. If any words below seem to describe a different shape, IGNORE THE WORDS and follow the image. " +
+      "Do not add, remove, restyle or re-engineer any part. Only the photography and the finish quality change. " +
+      `Product for context only (never for shape): ${descripcion} ` +
+      (medidas ? `It should read at its true proportions: ${medidas}. ` : "") +
+      (mats ? `Real materials: ${mats}. ` : "") +
+      "FINISH, at the real Von Haucke quality: warm natural oak melamine with fine visible grain and a soft satin sheen; " +
+      "steel in deep charcoal (#3C3E42) powder coat with a fine matte texture; crisp ABS edge banding catching a thin highlight. " +
+      RECETA_CATALOGO
+    : modo === "staging"
+    ? // STAGING VIRTUAL: amueblar una foto real del espacio del cliente
+      "You are given a photograph of a real, empty (or semi-empty) office space. " +
+      "Furnish it realistically with the following Von Haucke office furniture, KEEPING the room's architecture, walls, windows, doors, floor, ceiling, perspective, camera angle and lighting EXACTLY as in the photo. Only ADD furniture; do not change the room. " +
+      `Furniture to place: ${descripcion}. ` +
+      "Place it sensibly with realistic circulation and spacing. Von Haucke aesthetic: warm oak melamine tops, charcoal powder-coated steel, acoustic felt privacy screens, ergonomic chairs, tasteful plants. " +
+      "Photorealistic, natural integration, correct perspective and shadows consistent with the room's light. No text, no watermark, no logos, no people."
+    : modo === "acomodo"
+    ? // ACOMODO REAL → FOTO. La imagen de referencia es el isométrico que dibuja
+      // la app con el acomodo EXACTO que calculó el motor: cuántos muebles, en
+      // qué filas, en qué cuarto. Gemini no debe inventar una oficina bonita:
+      // debe FOTOGRAFIAR ESA. Mismo principio que el catálogo — el dibujo manda
+      // la geometría, el modelo manda el realismo.
+      "The reference image is an isometric DIAGRAM of a real office layout that has already been engineered: " +
+      "every desk, bench, storage unit and meeting table is exactly where it must be. " +
+      "Turn this diagram into a PHOTOREALISTIC architectural interior render of that SAME office. " +
+      "LAYOUT IS LOCKED: keep the identical room shape and proportions, the identical number of workstations and rows, " +
+      "the identical position and orientation of every piece, and the identical circulation aisles. Do not add furniture, " +
+      "do not remove furniture, do not rearrange anything, do not invent extra rooms. Count the rows and match them. " +
+      `What is in the space: ${descripcion}. ` +
+      (medidas ? `Space: ${medidas}. ` : "") +
+      "Render it as a PREMIUM ARCHITECTURAL DOLLHOUSE VISUALIZATION — a cutaway 3/4 aerial view of the whole floor, the " +
+      "kind an architecture studio presents to a client. This is deliberately a beautiful 3D visualization, not a photograph: " +
+      "keep the clean cutaway walls and the full-floor overview, but raise the craft to studio quality. " +
+      "The diagram is only the layout instruction: its flat colours, outlines, grid and ANY TEXT WRITTEN ON THE FLOOR must " +
+      "NOT appear. Never draw text, labels or dimensions anywhere in the image. " +
+      "MATERIALS, physically based: warm oak melamine desktops with visible grain; charcoal powder-coated steel frames with a " +
+      "fine matte texture; acoustic felt privacy screens in muted grey-blue; light polished concrete or pale oak floor; clean " +
+      "white walls with a subtle skirting; real glass partitions with slim mullions where the diagram shows them. " +
+      "POPULATE IT so it reads as a working office, WITHOUT changing the layout: a black ergonomic mesh task chair tucked at " +
+      "every work position, a monitor on an arm at each desk, occasional keyboards, mugs, notebooks and small plants, a few " +
+      "larger planters in the circulation, linear ceiling light fixtures. " +
+      "LIGHTING: soft global illumination with warm daylight raking in from one side, gentle ambient occlusion in every corner " +
+      "and under every piece, soft contact shadows so nothing floats, subtle bounced colour from the wood. " +
+      "CAMERA: elevated 3/4 aerial matching the diagram angle, slight natural perspective (not flat isometric), level horizon, " +
+      "no barrel distortion, the ENTIRE floor plate visible and centred with comfortable margins. " +
+      "Clean, bright, aspirational, restrained palette. Corona / V-Ray quality architectural visualization. " +
+      "No text, no watermark, no logos, no dimension lines, no grid, no people."
+    : modo === "oficina"
+    ? // OFICINA COMPLETA: generar la escena interior amueblada con lo cotizado
+      "Photorealistic wide-angle interior architectural render of a modern corporate office, professionally furnished with the following Von Haucke office furniture, laid out with realistic circulation, aisles and zoning: " +
+      `${descripcion}. ` +
+      (medidas ? `Space context: ${medidas}. ` : "") +
+      "Von Haucke Mexican modern aesthetic: warm oak melamine desktops, charcoal powder-coated steel frames, acoustic felt privacy screens, black ergonomic mesh chairs, glass-walled meeting room, polished concrete or light wood floor, floor-to-ceiling windows with soft natural daylight, tasteful plants. " +
+      (Array.isArray(imagenes) && imagenes.length ? "IMPORTANT: use the EXACT furniture pieces shown in the reference images — these are the real Von Haucke products; match their design, wood tone, frames and proportions. " : "") +
+      "Editorial architectural photography, eye-level 3/4 wide angle, elegant, bright, aspirational, high-end. No text, no watermark, no logos, no visible people."
+    : imagen
+    ? // RENDER a partir de una FOTO de referencia (fidelidad al producto real)
+      "Using the reference image as the exact model, produce a clean, professional PHOTOREALISTIC studio product render of the SAME piece of office furniture. " +
+      "Keep its exact design, proportions, configuration and materials as in the reference; do not invent a different product. " +
+      `Context: ${descripcion}. ` +
+      "Present it as a high-end catalog shot: 3/4 angle, soft seamless warm-neutral studio background, gentle soft floor shadow, realistic materials, sharp focus, bright even lighting. " +
+      "No people, no text, no watermark, no logos, no measurement overlays. Single hero object, centered."
+    : // RENDER de producto standalone (solo texto)
+      "Professional photorealistic product render of a single piece of premium office furniture, for a high-end catalog. " +
+      `The furniture: ${descripcion}. ` +
+      (tipo ? `Type: ${tipo}. ` : "") +
+      (mats ? `Materials: ${mats}. ` : "") +
+      (medidas ? `Approximate dimensions: ${medidas}. ` : "") +
+      "Von Haucke Mexican modern office aesthetic: warm oak melamine surfaces, charcoal powder-coated steel, elegant and minimal. " +
+      "Studio product photography, 3/4 angle, soft seamless warm-neutral background, gentle soft shadow on the floor, realistic materials and reflections, sharp focus, bright even lighting. " +
+      "No people, no text, no watermark, no logos, no measurements overlay. Single hero object, centered.";
+
+  const parts: any[] = [{ text: prompt }];
+  if (imagen) parts.push({ inlineData: { mimeType: mediaType, data: imagen } });
+  if (Array.isArray(imagenes)) for (const im of imagenes.slice(0, 6)) if (im) parts.push({ inlineData: { mimeType: "image/jpeg", data: im } });
+
+  // Proporción fija: sin esto Gemini copia el formato de la foto de referencia y
+  // el catálogo sale con 67 formatos distintos.
+  const ar = aspecto || (modo === "catalogo" ? "4:3" : modo === "oficina" ? "16:9" : "");
+  const generationConfig: any = { responseModalities: ["IMAGE"] };
+  if (ar) generationConfig.imageConfig = { aspectRatio: ar };
+
+  const apiBody = { contents: [{ role: "user", parts }], generationConfig };
+
+  let data: any;
+  try {
+    const r = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,
+      { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(apiBody) },
+    );
+    data = await r.json();
+  } catch (e) {
+    return json({ ok: false, error: "No se pudo llamar a Gemini: " + String(e) }, 502);
+  }
+
+  if (data?.error) {
+    const m = data.error?.message || "";
+    if (/quota|billing|free_tier|limit: 0/i.test(m)) {
+      return json({ ok: false, error: "El render con IA (modelo de imágenes de Gemini) requiere activar facturación en Google — es de pago (~US$0.04 por render). Actívala en Google AI Studio / Google Cloud (Billing) y vuelve a intentar." }, 200);
+    }
+    if (/API key|API_KEY|invalid|permission|PERMISSION/i.test(m)) {
+      return json({ ok: false, error: "La API key de Gemini no es válida o no tiene permiso para imágenes. Revisa GEMINI_API_KEY en Supabase → Edge Functions → Secrets." }, 200);
+    }
+    return json({ ok: false, error: m || "Error de la API de Gemini" }, 502);
+  }
+
+  const outParts = data?.candidates?.[0]?.content?.parts || [];
+  const img = outParts.find((p: any) => p.inlineData?.data || p.inline_data?.data);
+  const inline = img?.inlineData || img?.inline_data;
+  if (!inline?.data) {
+    const bloqueo = data?.promptFeedback?.blockReason;
+    return json({ ok: false, error: bloqueo ? `La imagen fue bloqueada (${bloqueo}). Ajusta la descripción.` : "Gemini no devolvió una imagen. Reintenta o cambia la descripción." }, 200);
+  }
+  const mime = inline.mimeType || inline.mime_type || "image/png";
+  return json({ ok: true, dataUrl: `data:${mime};base64,${inline.data}` });
+});
+
+function json(obj: unknown, status = 200) {
+  return new Response(JSON.stringify(obj), { status, headers: { ...CORS, "content-type": "application/json" } });
+}

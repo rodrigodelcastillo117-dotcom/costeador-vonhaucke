@@ -1,0 +1,163 @@
+import { describe, it, expect, beforeAll } from 'vitest';
+import { configDesde } from './lineas.js';
+
+// ---------------------------------------------------------------------------
+//  LO QUE NO EXISTE YA NO SE SUSTITUYE EN SILENCIO (auditoría de Voni, 2026-08-16).
+//  Si Voni pedía "bench de 8 usuarios" y ese producto sólo existe de 2 o de 6,
+//  la app cotizaba DOS y no decía nada: el vendedor pedía 8 puestos y se llevaba
+//  el precio de 2. Es el peor tipo de error —silencioso y caro—, y por eso estas
+//  pruebas son de las que no se deben borrar.
+// ---------------------------------------------------------------------------
+const PRODUCTO = {
+  id: 'bench',
+  selects: [{ key: 'usuarios', label: 'Usuarios', opciones: [{ id: '2' }, { id: '6' }] }],
+  largos: [1200, 1500, 1800],
+};
+
+describe('configuración que no existe', () => {
+  it('toma el valor MÁS CERCANO, no el primero de la lista', () => {
+    const avisos = [];
+    const c = configDesde(PRODUCTO, { usuarios: '8' }, avisos);
+    expect(c.usuarios).toBe('6');          // no '2'
+  });
+
+  it('AVISA de lo que ajustó', () => {
+    const avisos = [];
+    configDesde(PRODUCTO, { usuarios: '8' }, avisos);
+    expect(avisos).toHaveLength(1);
+    expect(avisos[0]).toMatch(/8/);
+    expect(avisos[0]).toMatch(/6/);
+  });
+
+  it('no avisa cuando lo pedido SÍ existe', () => {
+    const avisos = [];
+    const c = configDesde(PRODUCTO, { usuarios: '6', largoMM: 1500 }, avisos);
+    expect(c.usuarios).toBe('6');
+    expect(c.largoMM).toBe(1500);
+    expect(avisos).toHaveLength(0);
+  });
+
+  it('una medida rara cae en la más cercana y lo dice', () => {
+    const avisos = [];
+    const c = configDesde(PRODUCTO, { largoMM: 1600 }, avisos);
+    expect(c.largoMM).toBe(1500);
+    expect(avisos.join(' ')).toMatch(/1600/);
+  });
+
+  it('con texto basura no truena: usa el primero y avisa', () => {
+    const avisos = [];
+    const c = configDesde(PRODUCTO, { usuarios: 'banana' }, avisos);
+    expect(c.usuarios).toBe('2');
+    expect(avisos).toHaveLength(1);
+  });
+
+  it('sin pasarle `avisos` se comporta como siempre', () => {
+    expect(() => configDesde(PRODUCTO, { usuarios: '8' })).not.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+//  BENCH CON MÁS PUESTOS DE LOS QUE OFRECE EL PRODUCTO (Rodrigo, 2026-08-16):
+//  "si tenemos el precio de 6 usuarios, divide entre 6: eso da cuánto es por
+//  usuario. Si son 8, precio de 1 usuario × 8."
+//  Antes se cotizaba OTRA cosa (2 o 6 puestos) y el cliente recibía el precio de
+//  algo que no pidió.
+// ---------------------------------------------------------------------------
+describe('cotizar más puestos de los que arma el producto', () => {
+  let costearItem, estado;
+  beforeAll(async () => {
+    const ln = await import('./lineas.js');
+    const ins = await import('./insumos.js');
+    const mc = await import('../motor/calculo.js');
+    costearItem = ln.costearItem;
+    estado = { insumos: ins.mapaInsumos(ins.INSUMOS_SEMILLA), parametros: mc.PARAMETROS_DEFAULT, piezas: {} };
+  });
+  const bench = (u) => costearItem(estado, {
+    ruta: 'rio', producto: 'bench_recto_doble', cantidad: 1,
+    seleccion: [{ clave: 'usuarios', valor: String(u) }, { clave: 'largo', valor: '1500' }],
+  });
+
+  // 2026-08-16: Río ya arma 4/8/10/12 usuarios de verdad (antes sólo 2 y 6, y el
+  // ancla del papel —bench doble de 8— era inalcanzable). Con la corrida real, el
+  // precio POR PUESTO BAJA al alargarla, que es justo lo que hacen los
+  // presupuestos: la estructura de los extremos se reparte entre más gente.
+  it('el precio por puesto BAJA al alargar la corrida, y nunca se dispara', () => {
+    const p6 = bench(6).precioUnitario / 6;
+    const p8 = bench(8).precioUnitario / 8;
+    const p12 = bench(12).precioUnitario / 12;
+    expect(p8).toBeLessThan(p6);
+    expect(p12).toBeLessThan(p8);
+    expect(p12).toBeGreaterThan(p6 * 0.6);   // baja, pero no se desploma
+  });
+
+  // El escalón sigue existiendo para lo que de verdad no se arma: 20 usuarios no
+  // es una opción de ningún bench, y ahí el precio por puesto sí debe mantenerse.
+  it('pedir muchos más puestos de los que existen se cotiza por puesto', () => {
+    const veinte = bench(20);
+    const p12 = bench(12).precioUnitario / 12;
+    expect(veinte.precioUnitario / 20).toBeCloseTo(p12, 0);
+  });
+
+  it('cotizar 8 cuesta MÁS que cotizar 6, no menos', () => {
+    expect(bench(8).precioUnitario).toBeGreaterThan(bench(6).precioUnitario);
+  });
+
+  it('la huella crece con los puestos', () => {
+    expect(bench(12).w).toBeGreaterThan(bench(8).w);
+    expect(bench(8).w).toBeGreaterThan(bench(6).w);
+  });
+
+  it('el nombre dice los puestos que se cotizaron', () => {
+    expect(bench(8).nombre).toMatch(/8/);
+  });
+
+  it('avisa que se cotizó a partir de otro escalón', () => {
+    expect(bench(20).avisos.join(' ')).toMatch(/por puesto/);
+    expect(bench(6).avisos).toHaveLength(0);
+    expect(bench(8).avisos).toHaveLength(0);   // 8 ya es una opción real
+  });
+});
+
+// ---------------------------------------------------------------------------
+//  HUELLAS (auditoría de Voni, 2026-08-16). La pieza de MÁS ÁREA del despiece no
+//  es la huella: en un mueble de caja es el cuerpo desarrollado (costados, fondo
+//  y entrepaños en un solo tablero). La credenza Cirque salía de 1.80 × 1.50 m
+//  de fondo cuando mide 0.60, y con eso el acomodo reserva metro y medio de paso
+//  y dice que no cabe. El sillón Pac salía en 0 × 0 y ni se dibujaba.
+// ---------------------------------------------------------------------------
+describe('huella de cada mueble', () => {
+  let costearItem, catalogoIA, estado;
+  beforeAll(async () => {
+    const ln = await import('./lineas.js');
+    const ins = await import('./insumos.js');
+    const mc = await import('../motor/calculo.js');
+    costearItem = ln.costearItem; catalogoIA = ln.catalogoIA;
+    estado = { insumos: ins.mapaInsumos(ins.INSUMOS_SEMILLA), parametros: mc.PARAMETROS_DEFAULT, piezas: {} };
+  });
+
+  it('la credenza mide 0.60 de fondo, no 1.50', () => {
+    const c = costearItem(estado, { ruta: 'cirque', producto: 'credenza', cantidad: 1, seleccion: [{ clave: 'medida', valor: '1800' }] });
+    expect(c.w).toBe(1800);
+    expect(c.d).toBe(600);
+  });
+
+  it('un sillón sin medidas en el despiece las saca de su nombre', () => {
+    const c = costearItem(estado, { ruta: 'pac', producto: 'sillon', cantidad: 1, seleccion: [] });
+    expect(c.w).toBeGreaterThan(0);
+    expect(c.d).toBeGreaterThan(0);
+  });
+
+  it('NINGUNO de los 118 productos queda sin huella o con un fondo imposible', () => {
+    const cat = catalogoIA();
+    const malas = [];
+    for (const ruta of Object.keys(cat)) {
+      for (const p of cat[ruta].productos || []) {
+        let c; try { c = costearItem(estado, { ruta, producto: p.id, cantidad: 1, seleccion: [] }); } catch (e) { continue; }
+        if (!c) continue;
+        if (!c.w || !c.d) malas.push(`${ruta}/${p.id} sin huella`);
+        else if (Math.min(c.w, c.d) > 1500) malas.push(`${ruta}/${p.id} fondo ${Math.min(c.w, c.d)} mm`);
+      }
+    }
+    expect(malas).toEqual([]);
+  });
+});

@@ -1,0 +1,204 @@
+// ============================================================================
+//  NUBE - datos compartidos en Supabase.
+//  Los precios, recetas, parametros y la nomina (cifrada) viven en un solo
+//  renglon. Cuando alguien lo actualiza, a todos se les propaga en vivo.
+//  Si no hay internet, la app sigue con lo local (ver almacen.js).
+// ============================================================================
+import { createClient } from '@supabase/supabase-js';
+
+const URL = 'https://mtuvnbgljwbsaizjjgzs.supabase.co';
+const LLAVE = 'sb_publishable_lDPhCTatyJ2cap3FNEGs7A_uPapgg6y';
+
+export const nube = createClient(URL, LLAVE, {
+  auth: { persistSession: true, autoRefreshToken: true },
+  realtime: { params: { eventsPerSecond: 2 } },
+});
+
+// Campos que se comparten (el resto es de cada quien: cotizacion, historial...)
+export const CAMPOS_COMPARTIDOS = ['insumos', 'piezas', 'parametros', 'dir', 'finanzas'];
+
+export function soloCompartido(estado) {
+  const c = {};
+  for (const k of CAMPOS_COMPARTIDOS) if (estado[k] !== undefined) c[k] = estado[k];
+  return c;
+}
+
+export async function leerConfig() {
+  const { data, error } = await nube.from('config').select('datos').eq('id', 'vonhaucke').single();
+  if (error) throw error;
+  return data?.datos || {};
+}
+
+export async function escribirConfig(datosCompartidos) {
+  const { error } = await nube
+    .from('config')
+    .update({ datos: datosCompartidos, actualizado: new Date().toISOString() })
+    .eq('id', 'vonhaucke');
+  if (error) throw error;
+}
+
+// ---- Sesion / acceso (control de quien entra) ----
+// --- BOVEDA DE DIRECCION -----------------------------------------------------
+// Nomina y estados financieros. La base solo entrega esta tabla a quien tiene
+// rol 'direccion' (se resuelve por el correo del que entro). Si un vendedor la
+// pide, no obtiene nada: no es que se le esconda en pantalla, es que no le llega.
+export async function leerDireccion() {
+  const { data, error } = await nube.from('direccion').select('datos').eq('id', 1).maybeSingle();
+  if (error) return null;
+  return data?.datos || null;
+}
+
+export async function escribirDireccion(datos) {
+  const { error } = await nube.from('direccion').upsert({ id: 1, datos, actualizado: new Date().toISOString() });
+  if (error) throw error;
+}
+
+export async function sesionActual() {
+  const { data } = await nube.auth.getSession();
+  return data.session || null;
+}
+export function alCambiarSesion(cb) {
+  const { data } = nube.auth.onAuthStateChange((evento, s) => cb(s || null, evento));
+  return () => { try { data.subscription.unsubscribe(); } catch (e) {} };
+}
+export async function entrar(email, password) {
+  const { data, error } = await nube.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  return data.session;
+}
+export async function salir() { try { await nube.auth.signOut(); } catch (e) {} }
+
+// El usuario cambia SU propia contraseña (ya está autenticado).
+// Manda el correo para restablecer la contraseña. El enlace regresa a la app
+// con una sesión de recuperación: ahí se pone la nueva SIN pedir la anterior
+// (justo porque no la recuerda).
+export async function pedirRecuperacion(email) {
+  const { error } = await nube.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+  if (error) return { ok: false, error: error.message || 'No se pudo enviar el correo.' };
+  return { ok: true };
+}
+
+// Re-autentica al usuario con su contraseña ACTUAL. Sin esto, cualquiera que
+// se encuentre una sesión abierta puede cambiar la clave y quedarse la cuenta.
+export async function verificarContrasena(email, actual) {
+  const { error } = await nube.auth.signInWithPassword({ email, password: actual });
+  return !error;
+}
+
+// Cierra la sesión en los DEMÁS dispositivos, no en éste.
+export async function cerrarOtrasSesiones() {
+  try { await nube.auth.signOut({ scope: 'others' }); return true; } catch (e) { return false; }
+}
+
+export async function cambiarContrasena(nueva) {
+  const { error } = await nube.auth.updateUser({ password: nueva });
+  if (error) return { ok: false, error: error.message || 'No se pudo cambiar la contraseña.' };
+  return { ok: true };
+}
+
+// Devuelve el permiso del correo (rol/nombre) o null si no esta en la lista.
+export async function miPermiso(email) {
+  const { data } = await nube.from('permitidos').select('rol, nombre').eq('email', email).maybeSingle();
+  return data || null;
+}
+export async function listaPermitidos() {
+  const { data } = await nube.from('permitidos').select('email, nombre, rol, creado');
+  // ALFABÉTICA por nombre (Rodrigo, 2026-08-16). Antes salían por fecha de alta,
+  // así que buscar a alguien en la lista era leerla entera. Se ordena aquí y no
+  // en la pantalla para que cualquiera que pida la lista la reciba ya ordenada,
+  // y así quien se dé de alta después cae solo en su lugar.
+  return (data || []).sort((a, b) =>
+    (a.nombre || a.email || '').localeCompare(b.nombre || b.email || '', 'es', { sensitivity: 'base' }));
+}
+// Administrar usuarios (solo Direccion): crear / eliminar via la funcion segura.
+export async function adminUsuarios(accion, payload) {
+  const s = await sesionActual();
+  const r = await fetch(`${URL}/functions/v1/usuarios`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${s?.access_token || ''}` },
+    body: JSON.stringify({ accion, ...payload }),
+  });
+  return r.json();
+}
+
+// Analiza una imagen (render/foto) con IA y devuelve un despiece propuesto.
+// La función 'analizar-mueble' (mega analizador COO/DFM) llama a Claude (visión)
+// con verify_jwt: manda la sesión del usuario. Devuelve { ok, propuesta } con
+// { piezas, informe (Markdown), descripcionCliente, materiales, ... } o { ok:false, error }.
+export async function analizarRender(catalogo, image, mediaType) {
+  const { data, error } = await nube.functions.invoke('analizar-mueble', {
+    body: { catalogo, image, mediaType },
+  });
+  if (error) {
+    // El cuerpo de error de la función suele venir en error.context
+    let msg = error.message || 'No se pudo analizar la imagen.';
+    try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
+    return { ok: false, error: msg };
+  }
+  return data;
+}
+
+// Cotizador conversacional: texto natural -> items estructurados (Claude).
+export async function cotizarTexto(texto, catalogo) {
+  const { data, error } = await nube.functions.invoke('cotizar-texto', {
+    body: { texto, catalogo },
+  });
+  if (error) {
+    let msg = error.message || 'No se pudo interpretar el texto.';
+    try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
+    return { ok: false, error: msg };
+  }
+  return data;
+}
+
+// Acomodo de mobiliario en una o varias áreas (Claude propone posiciones).
+export async function acomodarEspacio(areas, piezas) {
+  const { data, error } = await nube.functions.invoke('acomodar-espacio', {
+    body: { areas, piezas },
+  });
+  if (error) {
+    let msg = error.message || 'No se pudo acomodar el espacio.';
+    try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
+    return { ok: false, error: msg };
+  }
+  return data;
+}
+
+// Lee un plano (imagen) y devuelve las áreas con medidas (Claude visión).
+export async function leerPlano(image, mediaType, refMM) {
+  const { data, error } = await nube.functions.invoke('leer-plano', {
+    body: { image, mediaType, refMM },
+  });
+  if (error) {
+    let msg = error.message || 'No se pudo leer el plano.';
+    try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
+    return { ok: false, error: msg };
+  }
+  return data;
+}
+
+// Genera un render fotorrealista del mueble descrito (Gemini). extra: {materiales, medidas, tipo, imagen, mediaType}.
+export async function generarRender(descripcion, extra = {}) {
+  const { data, error } = await nube.functions.invoke('generar-render', {
+    body: { descripcion, ...extra },
+  });
+  if (error) {
+    let msg = error.message || 'No se pudo generar el render.';
+    try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
+    return { ok: false, error: msg };
+  }
+  return data;
+}
+
+// Llama cb(datosCompartidos) cada vez que alguien mas actualiza la config.
+export function suscribirConfig(cb) {
+  const canal = nube
+    .channel('config-vonhaucke')
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'config', filter: 'id=eq.vonhaucke' },
+      (payload) => cb(payload.new?.datos)
+    )
+    .subscribe();
+  return () => { try { nube.removeChannel(canal); } catch (e) {} };
+}

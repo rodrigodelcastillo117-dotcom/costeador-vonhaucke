@@ -1,0 +1,24 @@
+# Dependencias y compilados: se regeneran con `npm install` y `npm run build`
+node_modules/
+dist/
+
+# macOS
+.DS_Store
+
+# Estado local del CLI de Supabase (apunta al proyecto enlazado, no va al historial)
+supabase/.temp/
+
+# Secretos — NUNCA. Aquí hoy no hay ninguno y así se queda.
+.env
+.env.*
+*.pem
+*.key
+
+# El scratchpad pesa 153 MB de renders, fotos y videos. Se ignora TODO salvo los
+# scripts, que sí valen: son las herramientas de verificación y calibración
+# (valida_*, mide_*, barrido_*, genera_*) y sin ellas no se puede rehacer una
+# calibración ni comprobar un precio contra el papel.
+scratchpad/*
+!scratchpad/*.mjs
+!scratchpad/*.py
+!scratchpad/*.md

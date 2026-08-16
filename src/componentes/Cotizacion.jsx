@@ -1,0 +1,465 @@
+// ============================================================================
+//  COTIZACION  ·  Mis números (interno) / Propuesta al cliente (premium).
+//  Al IMPRIMIR siempre sale la propuesta al cliente (nunca la tabla interna),
+//  con cantidad visible y diseño editorial Von Haucke (68 años).
+// ============================================================================
+import { useState, useMemo } from 'react';
+import MarcaLogo from './MarcaLogo.jsx';
+import { resumenPorArea, especificacion } from '../datos/resumen.js';
+import { descargarPropuesta, cargarFotos } from '../datos/pdfPropuesta.js';
+import EditarPartida, { sePuedeEditar } from './EditarPartida.jsx';
+import { pesos, pct, colorMargen, selloPartida } from '../util.js';
+import { imagenProducto, heroLinea } from '../datos/imagenes.js';
+import { expandirPiezas, mapaPiezas } from '../datos/espacio.js';
+import { generarRender } from '../nube.js';
+import PlanoAcomodo from './PlanoAcomodo.jsx';
+
+// El render IA de la partida manda; si no, la foto de catálogo.
+const fotoPartida = (pt) =>
+  pt.render || (pt.ruta ? imagenProducto(pt.ruta, pt.productoId) || heroLinea(pt.ruta) : null);
+
+export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr }) {
+  const [vistaClienteManual, setVistaClienteManual] = useState(false);
+  const vistaCliente = soloVentas || vistaClienteManual;
+  const setVistaCliente = setVistaClienteManual;
+  const cot = estado.cotizacion;
+  const partidas = cot.partidas || [];
+
+  const setCot = (parcial) => setEstado({ ...estado, cotizacion: { ...cot, ...parcial } });
+
+  // Adjuntar render 3D del acomodo (reescala para no inflar el estado)
+  const subirRender = (file) => {
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 1400; let w = img.width, h = img.height;
+        const sc = Math.min(1, max / Math.max(w, h)); w = Math.round(w * sc); h = Math.round(h * sc);
+        const c = document.createElement('canvas'); c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        setCot({ acomodo: { ...(cot.acomodo || {}), render3d: c.toDataURL('image/jpeg', 0.85) } });
+      };
+      img.src = r.result;
+    };
+    r.readAsDataURL(file);
+  };
+  const quitarRender = () => { const a = { ...(cot.acomodo || {}) }; delete a.render3d; setCot({ acomodo: a }); };
+
+  // --- Renders de calidad con IA (Gemini) ---
+  const [genPart, setGenPart] = useState(null); // id de partida en proceso
+  const [genOficina, setGenOficina] = useState(false);
+  const [errGen, setErrGen] = useState('');
+  const [editando, setEditando] = useState(null);   // índice de la partida que se edita
+
+  async function renderPartida(i) {
+    const pt = partidas[i]; if (!pt) return;
+    setErrGen(''); setGenPart(pt.id);
+    try {
+      const r = await generarRender(pt.nombre || 'mueble de oficina', { tipo: pt.ruta || '' });
+      if (r?.ok) setPartida(i, { render: r.dataUrl }); else setErrGen(r?.error || 'No se pudo generar el render.');
+    } catch (e) { setErrGen('No se pudo conectar.'); }
+    finally { setGenPart(null); }
+  }
+  async function renderTodas() {
+    setErrGen('');
+    const ps = partidas.slice();
+    for (let i = 0; i < ps.length; i++) {
+      if (ps[i].render) continue;
+      setGenPart(ps[i].id);
+      try { const r = await generarRender(ps[i].nombre || 'mueble', { tipo: ps[i].ruta || '' }); if (r?.ok) ps[i] = { ...ps[i], render: r.dataUrl }; else if (r?.error) setErrGen(r.error); } catch (e) {}
+    }
+    setGenPart(null); setCot({ partidas: ps });
+  }
+  async function urlABase64(url) {
+    try { const r = await fetch(url); const b = await r.blob(); return await new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.onerror = () => res(null); fr.readAsDataURL(b); }); } catch (e) { return null; }
+  }
+  async function renderOficina() {
+    setErrGen(''); setGenOficina(true);
+    try {
+      const lista = partidas.map((p) => `${p.cantidad}× ${p.nombre}`).join(', ') || 'mobiliario de oficina Von Haucke';
+      const ctx = cot.acomodo?.areas?.length ? `${cot.acomodo.areas.length} área(s) de trabajo` : '';
+      // Fotos reales de los productos cotizados → referencia (específico a las líneas VH).
+      const urls = [...new Set(partidas.map((p) => fotoPartida(p)).filter(Boolean))].slice(0, 6);
+      const imagenes = (await Promise.all(urls.map(urlABase64))).filter(Boolean);
+      const r = await generarRender(lista, { modo: 'oficina', medidas: ctx, imagenes });
+      if (r?.ok) setCot({ acomodo: { ...(cot.acomodo || {}), render3d: r.dataUrl } }); else setErrGen(r?.error || 'No se pudo generar la oficina.');
+    } catch (e) { setErrGen('No se pudo conectar.'); }
+    finally { setGenOficina(false); }
+  }
+
+  // DESCARGAR de verdad: se genera el archivo y se baja. Antes esto abría el
+  // diálogo de impresión y dejaba al vendedor buscando "Guardar como PDF" en un
+  // menú del navegador — Rodrigo: "me manda a imprimir, no lo descarga".
+  const [pdfErr, setPdfErr] = useState('');
+  const [bajandoPDF, setBajandoPDF] = useState(false);
+  async function descargarPDF() {
+    setPdfErr(''); setBajandoPDF(true);
+    try {
+      // Los renders se traen ANTES de armar el documento: si se dibujara sin
+      // esperarlos, el PDF saldría con los recuadros vacíos.
+      const fotos = await cargarFotos(partidas, fotoPartida);
+      descargarPropuesta({
+        cot, partidas, resumen, especificacion, nPzas, fotos,
+        totales: { precioLista, descuento, descuentoPct, subtotal, contingencia, contingenciaPct,
+          iva, ivaPct: estado.parametros.ivaPorcentaje, total },
+      });
+    } catch (e) {
+      // Si algo falla, queda el camino de siempre en vez de dejarlo sin nada.
+      setPdfErr('No se pudo generar el archivo; se abrirá la impresión para guardarlo como PDF.');
+      imprimir();
+    } finally { setBajandoPDF(false); }
+  }
+
+  // Imprimir: nombra el archivo, y espera que las fotos (remotas) decodifiquen
+  // antes de imprimir para que NUNCA salga una partida sin imagen en el PDF.
+  async function imprimir() {
+    const prev = document.title;
+    document.title = ['Propuesta', cot.folio, cot.cliente].filter(Boolean).join(' ').trim() || 'Propuesta Von Haucke';
+    try {
+      const imgs = Array.from(document.querySelectorAll('.cot-cliente img'));
+      await Promise.all(imgs.map((im) => (im.decode ? im.decode().catch(() => {}) : Promise.resolve())));
+    } catch (e) { /* seguir de todas formas */ }
+    window.print();
+    setTimeout(() => { document.title = prev; }, 800);
+  }
+  const setPartida = (i, parcial) => { const ps = partidas.slice(); ps[i] = { ...ps[i], ...parcial }; setCot({ partidas: ps }); };
+  const quitar = (i) => setCot({ partidas: partidas.filter((_, j) => j !== i) });
+
+  // El acomodo dice qué mueble quedó en qué cuarto; con eso el resumen reparte
+  // el importe por área. Si todavía no hay acomodo, sale una sola agrupación
+  // ("Sin ubicar") en vez de mentir con áreas inventadas.
+  const resumen = useMemo(() => resumenPorArea(partidas, estado.cotizacion?.acomodo), [partidas, estado.cotizacion?.acomodo]);
+
+  const precioLista = partidas.reduce((a, p) => a + p.precioUnitario * p.cantidad, 0);
+  const descuentoPct = cot.descuentoPct ?? estado.parametros.descuentoPorcentaje ?? 0;
+  const descuento = precioLista * (descuentoPct / 100);
+  const subtotal = precioLista - descuento;
+  const contingenciaPct = cot.contingenciaPct ?? estado.parametros.contingenciaPorcentaje ?? 0;
+  const contingencia = subtotal * (contingenciaPct / 100);
+  const baseGravable = subtotal + contingencia;
+  const iva = baseGravable * (estado.parametros.ivaPorcentaje / 100);
+  const total = baseGravable + iva;
+  const costoTotal = partidas.reduce((a, p) => a + (p.costoUnitario || 0) * p.cantidad, 0);
+  const utilidadTotal = baseGravable - costoTotal;
+  const anticipoPct = estado.parametros.anticipoPorcentaje ?? 50;
+  const anticipo = total * (anticipoPct / 100);
+  const minMarkup = estado.parametros.minMarkupLinea ?? 45;
+  const factorDesc = 1 - descuentoPct / 100;
+  const markupPartida = (pt) => (pt.costoUnitario > 0 ? ((pt.precioUnitario * factorDesc - pt.costoUnitario) / pt.costoUnitario) * 100 : null);
+  const bajoPiso = (pt) => { const m = markupPartida(pt); return m != null && m < minMarkup; };
+  const nBajoPiso = partidas.filter(bajoPiso).length;
+  const conCosto = partidas.filter((p) => p.costoUnitario > 0 && !p.deBanco);
+  const dMaxPartida = (p) => 100 * (1 - (p.costoUnitario * (1 + minMarkup / 100)) / p.precioUnitario);
+  const descuentoMax = conCosto.length ? Math.max(0, Math.floor(Math.min(...conCosto.map(dMaxPartida)))) : null;
+
+  const nPzas = partidas.reduce((a, p) => a + p.cantidad, 0);
+
+  return (
+    <div className="contenido cotizacion-pg">
+      {/* Editor de datos (solo pantalla) */}
+      <div className="tarjeta no-imprimir">
+        <div style={{ marginBottom: 12 }}><MarcaLogo alto={42} /></div>
+        <div className="form-3">
+          <div><label className="etiqueta">Cliente</label><input type="text" value={cot.cliente} onChange={(e) => setCot({ cliente: e.target.value })} /></div>
+          <div><label className="etiqueta">Folio</label><input type="text" value={cot.folio} onChange={(e) => setCot({ folio: e.target.value })} /></div>
+          <div><label className="etiqueta">Fecha</label><input type="text" value={cot.fecha} onChange={(e) => setCot({ fecha: e.target.value })} /></div>
+        </div>
+      </div>
+
+      {editando != null && partidas[editando] && (
+        <EditarPartida
+          estado={estado}
+          partida={partidas[editando]}
+          onCerrar={() => setEditando(null)}
+          onGuardar={(nueva) => { setPartida(editando, nueva); setEditando(null); }}
+        />
+      )}
+
+      {/* Controles (no imprimen) — mínimos y claros */}
+      <div className="cot-acciones no-imprimir">
+        {!soloVentas && (
+          <div className="segmento" role="group" aria-label="Cómo ver la cotización">
+            <button className={!vistaCliente ? 'on' : ''} onClick={() => setVistaCliente(false)}>Mis números</button>
+            <button className={vistaCliente ? 'on' : ''} onClick={() => setVistaCliente(true)}>Como la ve el cliente</button>
+          </div>
+        )}
+        <button className="boton tinta cot-pdf" onClick={descargarPDF} disabled={bajandoPDF}>
+          {bajandoPDF ? 'Armando el PDF…' : 'Descargar PDF'}
+        </button>
+        <button className="boton fantasma no-imprimir" style={{ minHeight: 42 }} onClick={imprimir}>Imprimir</button>
+      </div>
+
+      {partidas.length === 0 ? (
+        <div className="tarjeta" style={{ textAlign: 'center', padding: '40px 22px' }}>
+          <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><MarcaLogo alto={40} /></div>
+          <h3 style={{ marginBottom: 6 }}>Tu propuesta está en blanco</h3>
+          <p className="ayuda columna-texto" style={{ margin: '0 auto 18px' }}>Agrega los muebles del proyecto y aquí armamos una propuesta con fotos, plano y precios, lista para el cliente.</p>
+          {onIr && (
+            <div className="fila-botones" style={{ justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <button className="boton primario" onClick={() => onIr('cotizarIA')}>Cotizar con IA</button>
+              <button className="boton" onClick={() => onIr('voni')}>Abrir Voni</button>
+              <button className="boton" onClick={() => onIr('banco')}>Del banco de precios</button>
+            </div>
+          )}
+        </div>
+      ) : (<>
+
+        {/* ---------- VENDEDOR · lista simple: solo precio, sin costo ni margen ---------- */}
+        {soloVentas && (
+          <div className="tarjeta no-imprimir">
+            <h3 style={{ marginBottom: 2 }}>Muebles de la propuesta</h3>
+            <p className="ayuda" style={{ marginTop: 0, marginBottom: 10 }}>Ajusta cantidades o quita lo que no va. El cliente ve la propuesta de abajo.</p>
+            {partidas.map((pt, i) => (
+              <div className="vt-fila" key={pt.id}>
+                <div className="vt-nombre">{pt.nombre}</div>
+                <span className="masmenos">
+                  <button style={{ width: 44, height: 44 }} onClick={() => setPartida(i, { cantidad: Math.max(1, pt.cantidad - 1) })} aria-label="Menos">−</button>
+                  <span className="valor">{pt.cantidad}</span>
+                  <button style={{ width: 44, height: 44 }} onClick={() => setPartida(i, { cantidad: pt.cantidad + 1 })} aria-label="Más">+</button>
+                </span>
+                <span className="vt-importe">{pesos(pt.precioUnitario * pt.cantidad)}</span>
+                {sePuedeEditar(pt) && (
+                  <button className="icono-btn" title="Editar medidas, acabado y cantidad" aria-label={`Editar ${pt.nombre}`} onClick={() => setEditando(i)}>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                  </button>
+                )}
+                <button className="boton fantasma vt-quitar" onClick={() => quitar(i)}>Quitar</button>
+              </div>
+            ))}
+            {onIr && (
+              <div className="fila-botones" style={{ gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+                <button className="boton" onClick={() => onIr('cotizarIA')}>Agregar más muebles</button>
+                <button className="boton" onClick={() => onIr('acomodo')}>Acomodar en el espacio</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ---------- INTERNA · Mis números (nunca imprime) ---------- */}
+        {!vistaCliente && (
+          <div className="tarjeta cot-interna no-imprimir">
+            <div className="tablewrap solo-escritorio">
+              <table className="datos">
+                <thead><tr>
+                  <th>Concepto</th><th className="num">Cant.</th><th className="num">Precio</th>
+                  <th className="num">Costo</th><th className="num">Utilidad</th><th className="num">Margen</th><th className="num">Importe</th><th></th>
+                </tr></thead>
+                <tbody>
+                  {partidas.map((pt, i) => {
+                    const sinCosto = pt.margen == null || pt.deBanco;
+                    const bajo = !sinCosto && pt.margen < estado.parametros.margenMinimo;
+                    const util = (pt.precioUnitario - (pt.costoUnitario || 0)) * pt.cantidad;
+                    const s = selloPartida(pt);
+                    return (
+                      <tr key={pt.id} style={bajo ? { background: '#fbeceb' } : undefined}>
+                        <td>{pt.nombre} <span className={`sello sello-${s.tipo}`} title={s.nota}>{s.texto}</span>
+                          {bajo && <div className="ayuda rojo">Debajo del mínimo de {estado.parametros.margenMinimo}%</div>}</td>
+                        <td className="num"><span className="masmenos"><button onClick={() => setPartida(i, { cantidad: Math.max(1, pt.cantidad - 1) })}>−</button><span className="valor">{pt.cantidad}</span><button onClick={() => setPartida(i, { cantidad: pt.cantidad + 1 })}>+</button></span></td>
+                        <td className="num">{pesos(pt.precioUnitario)}</td>
+                        <td className="num">{sinCosto ? '—' : pesos(pt.costoUnitario)}</td>
+                        <td className="num">{sinCosto ? '—' : pesos(util)}</td>
+                        <td className="num">{sinCosto ? '—' : <span className={`semaforo ${colorMargen(pt.margen)}`}>{pct(pt.margen)}</span>}</td>
+                        <td className="num">{pesos(pt.precioUnitario * pt.cantidad)}</td>
+                        <td><button className="boton fantasma" style={{ minHeight: 40, padding: '0 12px' }} onClick={() => quitar(i)}>Quitar</button></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {/* tarjetas móviles */}
+            <div className="solo-movil">
+              {partidas.map((pt, i) => {
+                const sinCosto = pt.margen == null || pt.deBanco;
+                const util = (pt.precioUnitario - (pt.costoUnitario || 0)) * pt.cantidad;
+                return (
+                  <div className="cot-card" key={pt.id}>
+                    <div className="cot-nombre">{pt.nombre}</div>
+                    <div className="cot-linea">
+                      <span className="masmenos"><button style={{ width: 44, height: 44 }} onClick={() => setPartida(i, { cantidad: Math.max(1, pt.cantidad - 1) })}>−</button><span className="valor">{pt.cantidad}</span><button style={{ width: 44, height: 44 }} onClick={() => setPartida(i, { cantidad: pt.cantidad + 1 })}>+</button></span>
+                      <span className="cot-importe">{pesos(pt.precioUnitario * pt.cantidad)}</span>
+                    </div>
+                    <div className="cot-datos"><span>Precio c/u: <b>{pesos(pt.precioUnitario)}</b></span><span>Costo: {sinCosto ? '—' : pesos(pt.costoUnitario)}</span><span>Utilidad: {sinCosto ? '—' : pesos(util)}</span></div>
+                    <button className="boton fantasma" style={{ minHeight: 44, marginTop: 10 }} onClick={() => quitar(i)}>Quitar</button>
+                  </div>
+                );
+              })}
+            </div>
+            {nBajoPiso > 0 && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">Con {descuentoPct}% de descuento, {nBajoPiso} partida(s) quedan por debajo del mínimo de línea ({minMarkup}%). Requiere visto bueno de Dirección.</span></div>}
+          </div>
+        )}
+
+        {/* Controles comerciales (no imprimen) */}
+        <div className="tarjeta no-imprimir" style={{ display: 'grid', gap: 10 }}>
+          <div className="fila-botones" style={{ justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <label className="etiqueta" style={{ margin: 0 }}>Descuento de proyecto (%)</label>
+            <input type="number" className="numero" style={{ width: 90 }} min="0" max="60" value={descuentoPct} onChange={(e) => setCot({ descuentoPct: parseFloat(e.target.value) || 0 })} />
+            {!soloVentas && descuentoMax != null && <button className="boton fantasma" style={{ minHeight: 40, padding: '0 12px' }} onClick={() => setCot({ descuentoPct: descuentoMax })} title={`Máximo sin bajar del piso de ${minMarkup}%`}>Máx. rentable: {descuentoMax}%</button>}
+          </div>
+          <div className="fila-botones" style={{ justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <label className="etiqueta" style={{ margin: 0 }}>Contingencia obra a la medida (%)</label>
+            <input type="number" className="numero" style={{ width: 90 }} min="0" max="50" value={contingenciaPct} onChange={(e) => setCot({ contingenciaPct: parseFloat(e.target.value) || 0 })} />
+          </div>
+          {soloVentas && nBajoPiso > 0 && <div className="alerta roja"><span className="texto">Este descuento deja {nBajoPiso} partida(s) por debajo del margen permitido. Requiere visto bueno de Dirección.</span></div>}
+        </div>
+
+        {/* Renders con IA (no imprimen) */}
+        <div className="tarjeta no-imprimir" style={{ display: 'grid', gap: 10 }}>
+          <div><strong>Imágenes de la propuesta</strong> <span className="ayuda" style={{ display: 'inline' }}>· las genera la IA, estilo Von Haucke</span></div>
+          <div className="fila-botones" style={{ gap: 10, flexWrap: 'wrap' }}>
+            <button className="boton" style={{ minHeight: 46 }} disabled={genPart != null || genOficina} onClick={renderTodas}>
+              {genPart != null ? 'Generando muebles…' : 'Una foto de cada mueble'}
+            </button>
+            <button className="boton" style={{ minHeight: 46 }} disabled={genOficina || genPart != null} onClick={renderOficina}>
+              {genOficina ? 'Generando oficina…' : 'Una imagen de la oficina completa'}
+            </button>
+            {onIr && partidas.length > 0 && <button className="boton" style={{ minHeight: 46 }} onClick={() => onIr('acomodo')}>Ver el acomodo en 3D</button>}
+          </div>
+          {(genOficina || genPart != null) && (
+            <div className="render-gen" style={{ position: 'relative', height: 90 }}><span className="render-gen-spin" /><span>{genOficina ? 'Creando el render de la oficina… (10–20 s)' : 'Generando renders de los muebles…'}</span></div>
+          )}
+          {cot.acomodo?.render3d && !genOficina && (
+            <div>
+              <img src={cot.acomodo.render3d} alt="Render de oficina" style={{ width: '100%', maxWidth: 360, borderRadius: 10, border: '1px solid var(--linea)', display: 'block' }} />
+              <div className="ayuda verde" style={{ marginTop: 4 }}>Listo: ya aparece en la propuesta y en el PDF.</div>
+              <button className="boton fantasma" style={{ minHeight: 40, padding: '0 12px', marginTop: 6 }} onClick={quitarRender}>Quitar esta imagen</button>
+            </div>
+          )}
+          <label className="enlace-sutil" style={{ cursor: 'pointer' }}>
+            {cot.acomodo?.render3d ? 'o subir otra imagen mía' : 'o subir una imagen mía'}
+            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => subirRender(e.target.files?.[0])} />
+          </label>
+          {errGen && <div className="alerta roja"><span className="texto">{errGen}</span></div>}
+        </div>
+
+        {/* ---------- CLIENTE · Propuesta premium (SIEMPRE imprime) ---------- */}
+        <div className={`cot-cliente ${vistaCliente ? 'activa' : ''}`}>
+          {/* Portada */}
+          <section className="propx-cover">
+            <div className="propx-cover-top">
+              <MarcaLogo alto={52} />
+              <span className="propx-sello">Más de 68 años de oficio</span>
+            </div>
+            <div className="propx-cover-rule" />
+            <div className="propx-cover-doc">Propuesta de mobiliario</div>
+            <h1 className="propx-cover-tit">{cot.cliente ? `Preparada para ${cot.cliente}` : 'Propuesta para su proyecto'}</h1>
+            <div className="propx-cover-meta">
+              {cot.folio && <><span>Folio <b>{cot.folio}</b></span><span className="propx-dot">·</span></>}
+              {cot.fecha && <><span>Fecha <b>{cot.fecha}</b></span><span className="propx-dot">·</span></>}
+              <span><b>{partidas.length}</b> líneas · <b>{nPzas}</b> piezas</span>
+              <span className="propx-dot">·</span><span>Vigencia <b>15 días hábiles</b></span>
+            </div>
+          </section>
+
+          {/* RESUMEN POR ÁREA. Rodrigo: "que haga un resumen con precios de lo
+              que es, ejemplo Sala Operativa (que son 15 benchs), que ponga la
+              especificación y el TOTAL DE ESA ÁREA". Es como se lee un proyecto
+              de oficina: el cliente decide por área, no pieza por pieza. */}
+          {/* Si NO hay acomodo, el resumen sería un solo bloque llamado "Sin
+              ubicar en el plano" con TODO el proyecto dentro: al cliente eso no
+              le dice nada y encima suena a error. En ese caso no se enseña. */}
+          {resumen.length > 0 && !(resumen.length === 1 && resumen[0].sinUbicar) && (
+            <section className="propx-resumen">
+              <h2 className="propx-res-tit">Resumen del proyecto</h2>
+              {resumen.map((b, i) => (
+                <div className="propx-res-area" key={i}>
+                  <div className="propx-res-cab">
+                    <div>
+                      <div className="propx-res-nom">{b.nombre}</div>
+                      <div className="propx-res-esp">
+                        {b.m2 > 0 && <>{b.m2} m² · </>}{especificacion(b)}
+                      </div>
+                    </div>
+                    <div className="propx-res-tot">{pesos(b.total)}</div>
+                  </div>
+                  <ul className="propx-res-lista">
+                    {b.renglones.map((r, k) => (
+                      <li key={k}>
+                        <span className="propx-res-cant">{r.cantidad}</span>
+                        <span className="propx-res-item">{r.nombre}</span>
+                        <span className="propx-res-imp">{pesos(r.importe)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </section>
+          )}
+
+          {/* Renglones con foto */}
+          <section className="propx-items">
+            {partidas.map((pt) => {
+              const foto = fotoPartida(pt);
+              const s = selloPartida(pt);
+              return (
+                <article className="propx-item" key={pt.id}>
+                  {foto
+                    ? <img className="propx-foto" src={foto} alt={pt.nombre} decoding="sync" />
+                    : <div className="propx-foto sin" />}
+                  <div className="propx-info">
+                    <div className="propx-nombre">{pt.nombre}</div>
+                    {/* El sello NO va en el documento del cliente (Rodrigo,
+                        2026-08-16): es una señal interna para el vendedor, y
+                        leer "sujeto a confirmación" en 5 de 6 renglones debilita
+                        la propuesta. Sigue visible en "Mis números". */}
+                    <div className="propx-sub"><span className="propx-unit">{pesos(pt.precioUnitario)} c/u</span></div>
+                  </div>
+                  <div className="propx-cant"><span className="propx-cant-n">{pt.cantidad}</span><span className="propx-cant-l">{pt.cantidad === 1 ? 'pza' : 'pzas'}</span></div>
+                  <div className="propx-importe">{pesos(pt.precioUnitario * pt.cantidad)}</div>
+                </article>
+              );
+            })}
+          </section>
+
+          {/* Distribución en el espacio */}
+          {(cot.acomodo?.plan || cot.acomodo?.render3d) && (
+            <section className="propx-acomodo">
+              <h2 className="propx-h2">Distribución en el espacio</h2>
+              {cot.acomodo?.render3d && (
+                <figure className="propx-render3d">
+                  <img src={cot.acomodo.render3d} alt="Vista 3D del acomodo" />
+                  <figcaption>Vista 3D de referencia del acomodo con mobiliario Von Haucke</figcaption>
+                </figure>
+              )}
+              {/* El plano SVG solo si NO hay render de IA (el render Gemini manda). */}
+              {cot.acomodo?.plan && !cot.acomodo?.render3d && (
+                <PlanoAcomodo areas={cot.acomodo.areas} plan={cot.acomodo.plan} byId={mapaPiezas(expandirPiezas(partidas))} modo="iso" />
+              )}
+            </section>
+          )}
+
+          {/* Totales */}
+          <section className="propx-tot">
+            <div className="propx-tot-box">
+              <div className="propx-tot-row"><span>Precio de lista</span><b>{pesos(precioLista)}</b></div>
+              {descuento > 0 && <div className="propx-tot-row"><span>Descuento {descuentoPct}%</span><b className="rojo">− {pesos(descuento)}</b></div>}
+              <div className="propx-tot-row"><span>Subtotal</span><b>{pesos(subtotal)}</b></div>
+              {contingencia > 0 && <div className="propx-tot-row"><span>Contingencia {contingenciaPct}%</span><b>{pesos(contingencia)}</b></div>}
+              <div className="propx-tot-row"><span>IVA {estado.parametros.ivaPorcentaje}%</span><b>{pesos(iva)}</b></div>
+              <div className="propx-tot-grand"><span>TOTAL</span><b>{pesos(total)}</b></div>
+              <div className="propx-tot-anticipo">Anticipo {anticipoPct}%: <b>{pesos(anticipo)}</b> · Saldo contra entrega: <b>{pesos(total - anticipo)}</b></div>
+            </div>
+          </section>
+
+          {/* Condiciones + sellos + pie */}
+          <section className="propx-cond">
+            {/* Sin sellos en el documento del cliente. */}
+            <p><b>Condiciones.</b> Vigencia de esta propuesta: 15 días hábiles. Anticipo {anticipoPct}% y {100 - anticipoPct}% contra entrega. Flete en CDMX/área metropolitana 3%, foráneo por evento. Instalación y maniobras por separado. Empaque según proyecto. Tiempo de entrega según programa. Precios en pesos mexicanos más IVA, sujetos a cambio sin previo aviso.</p>
+            <div className="propx-firma">
+              <div className="propx-firma-linea"><span>Aceptación de conformidad</span></div>
+              <div className="propx-firma-linea"><span>Nombre y firma · Fecha</span></div>
+            </div>
+            <div className="propx-pie">
+              <MarcaLogo alto={30} />
+              <div className="propx-pie-legal">
+                <b>Aparatos Electromecánicos Von Haucke, S.A. de C.V.</b>
+                <span>Tel. (55) 5999 9200 · www.vonhaucke.mx · Más de 68 años fabricando mobiliario de oficina en México.</span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </>)}
+    </div>
+  );
+}

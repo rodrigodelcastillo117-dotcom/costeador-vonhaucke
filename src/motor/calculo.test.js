@@ -1,0 +1,272 @@
+import { describe, it, expect } from 'vitest';
+import {
+  comprar,
+  calcular,
+  piezasPorTablero,
+  precioDe,
+  calcularCostoHora,
+  PARAMETROS_DEFAULT,
+} from './calculo.js';
+
+// ---------------------------------------------------------------------------
+//  Insumos de prueba
+// ---------------------------------------------------------------------------
+const melamina = {
+  id: 'melamina-19',
+  nombre: 'Melamina 19 mm',
+  clase: 'directa',
+  precio: 320,
+  mermaCorte: 6,
+  formato: { tipo: 'tablero', medida: 2.9768, largoMM: 2440, anchoMM: 1220 },
+};
+
+const ptr = {
+  id: 'ptr',
+  nombre: 'Tubo / PTR',
+  clase: 'directa',
+  precio: 42,
+  mermaCorte: 5,
+  formato: { tipo: 'tramo', medida: 6 },
+};
+
+const tapacanto = {
+  id: 'tapacanto',
+  nombre: 'Tapacanto',
+  clase: 'directa',
+  precio: 10,
+  mermaCorte: 4,
+  inventario: true,
+  formato: { tipo: 'rollo', medida: 50 },
+};
+
+const corredera = {
+  id: 'corredera',
+  nombre: 'Corredera',
+  clase: 'indirecta',
+  precio: 95,
+  mermaCorte: 0,
+};
+
+const INSUMOS = {
+  'melamina-19': melamina,
+  ptr,
+  tapacanto,
+  corredera,
+};
+
+// ---------------------------------------------------------------------------
+//  Piezas de prueba
+// ---------------------------------------------------------------------------
+// Escritorio App LT. La cubierta (1.30 m2 neta) esta calibrada para que la
+// 7a pieza abra un tablero nuevo: es el escalon de lote del master (6.8).
+const escritorioAppLT = {
+  id: 'escritorio-app-lt-160',
+  nombre: 'Escritorio App LT 1.60 x 0.70',
+  componentes: [
+    { insumoId: 'melamina-19', nombre: 'Cubierta', cantidad: 1.30 },
+    { insumoId: 'corredera', nombre: 'Correderas cajonera', cantidad: 2 },
+  ],
+  horas: { pm: 4.77, pintura: 0.04, acabados: 0.61, carpinteria: 0.94, tapiceria: 0 },
+  modoManoObra: 'horas',
+  preparacionHoras: 0,
+};
+
+// Eclipse Cantilever: 72.17 h medidas, casi todo carpinteria. Revienta el %.
+const eclipseCantilever = {
+  id: 'eclipse-cantilever',
+  nombre: 'Eclipse Cantilever',
+  componentes: [
+    { insumoId: 'melamina-19', nombre: 'Cubierta chapa', cantidad: 2.2 },
+    { insumoId: 'corredera', nombre: 'Correderas', cantidad: 4 },
+  ],
+  horas: { pm: 0.68, pintura: 0.04, acabados: 0.20, carpinteria: 67.51, tapiceria: 3.74 },
+  modoManoObra: 'horas',
+  preparacionHoras: 0,
+};
+
+// ===========================================================================
+//  LAS 12 PRUEBAS DEL MASTER (seccion 10)
+// ===========================================================================
+
+// 1. Compra por formato
+describe('1. Compra por formato completo', () => {
+  it('no existe medio tablero', () => {
+    expect(comprar(melamina, 3.22, 1).unidades).toBe(2);
+    expect(comprar(melamina, 3.22, 1).comprado).toBeCloseTo(5.9536, 4);
+  });
+  it('PTR en tramos de 6 m', () => {
+    expect(comprar(ptr, 6.02, 1).unidades).toBe(2);
+  });
+});
+
+// 2. Inventario no redondea
+describe('2. Inventario no redondea', () => {
+  it('el sobrante se guarda', () => {
+    expect(comprar(tapacanto, 11.43, 1).unidades).toBeNull();
+  });
+});
+
+// 3. Escalones de lote - el costo por pieza SUBE de 6 a 7
+describe('3. Escalones de lote', () => {
+  it('la 7a pieza abre tablero nuevo y sube el costo unitario', () => {
+    const c6 = calcular(escritorioAppLT, 6, INSUMOS);
+    const c7 = calcular(escritorioAppLT, 7, INSUMOS);
+    expect(c7.costoUnitario).toBeGreaterThan(c6.costoUnitario);
+  });
+});
+
+// 4. Acomodo en tablero
+describe('4. Acomodo en tablero (rejilla)', () => {
+  it('1.60 x 0.70 -> 1 pieza (62% merma)', () => {
+    expect(piezasPorTablero(1600, 700)).toBe(1);
+  });
+  it('1.20 x 0.60 -> 4 piezas (3% merma)', () => {
+    expect(piezasPorTablero(1200, 600)).toBe(4);
+  });
+  it('3.00 x 0.90 -> no cabe', () => {
+    expect(piezasPorTablero(3000, 900)).toBe(0);
+  });
+});
+
+// 5. La veta reduce el acomodo
+describe('5. La veta reduce el acomodo', () => {
+  it('con veta caben menos o igual', () => {
+    expect(piezasPorTablero(1600, 700, { veta: true })).toBeLessThanOrEqual(
+      piezasPorTablero(1600, 700, { veta: false })
+    );
+  });
+});
+
+// 6. Directa e indirecta no se mezclan
+describe('6. Directa + indirecta = total', () => {
+  it('las clases suman el material total', () => {
+    const r = calcular(escritorioAppLT, 1, INSUMOS);
+    expect(r.materialDirecto + r.materialIndirecto).toBeCloseTo(r.materialTotal, 6);
+  });
+});
+
+// 7. Los dos modos de mano de obra coinciden con el factor equivalente
+describe('7. Puente entre modos de mano de obra', () => {
+  it('por horas y por porcentaje coinciden usando el factor equivalente', () => {
+    const porHoras = calcular({ ...escritorioAppLT, modoManoObra: 'horas' }, 1, INSUMOS);
+    const porPct = calcular(
+      {
+        ...escritorioAppLT,
+        modoManoObra: 'porcentaje',
+        factorDirecta: porHoras.factorEquivalente,
+        factorIndirecta: PARAMETROS_DEFAULT.factorManoObraIndirecta,
+      },
+      1,
+      INSUMOS
+    );
+    expect(Math.abs(porHoras.manoObra - porPct.manoObra)).toBeLessThan(1);
+  });
+});
+
+// 8. El Eclipse revienta el porcentaje
+describe('8. El Eclipse revienta el porcentaje', () => {
+  it('factor equivalente arriba de 99%', () => {
+    expect(calcular(eclipseCantilever, 1, INSUMOS).factorEquivalente).toBeGreaterThan(99);
+  });
+});
+
+// 9. Los indirectos van sobre material DIRECTO
+describe('9. Indirectos de fabrica sobre material directo', () => {
+  it('indirectos = material directo * 34%', () => {
+    const r = calcular(escritorioAppLT, 1, INSUMOS);
+    expect(r.indirectosFabrica).toBeCloseTo(r.materialDirecto * 0.34, 6);
+  });
+});
+
+// 10. El margen es sobre precio, no sobre costo
+describe('10. Margen sobre precio', () => {
+  it('1000 al 30% -> 1428.57', () => {
+    expect(precioDe(1000, 30)).toBeCloseTo(1428.57, 2);
+  });
+});
+
+// 11. Preparacion se reparte entre el lote
+describe('11. Preparacion se reparte entre el lote', () => {
+  it('cuesta mas por pieza en lote de 1 que de 20', () => {
+    const c1 = calcular({ ...escritorioAppLT, preparacionHoras: 8 }, 1, INSUMOS);
+    const c20 = calcular({ ...escritorioAppLT, preparacionHoras: 8 }, 20, INSUMOS);
+    expect(c1.costoUnitario).toBeGreaterThan(c20.costoUnitario);
+  });
+});
+
+// 12. Cero no truena
+describe('12. Cero no truena', () => {
+  it('pieza sin componentes cuesta 0', () => {
+    expect(calcular({ componentes: [] }, 1, INSUMOS).costoUnitario).toBe(0);
+  });
+});
+
+// 13. El retazo: una pieza chica del mismo material cae en el sobrante y NO
+//     compra su propio tablero.
+describe('13. El faldon cae en el retazo de la cubierta', () => {
+  const cubierta = { insumoId: 'melamina-19', nombre: 'Cubierta', cantidad: 1.12, largoMM: 1600, anchoMM: 700, piezas: 1 };
+  const faldon = { insumoId: 'melamina-19', nombre: 'Faldon', cantidad: 0.32 };
+  it('cubierta sola compra 1 tablero', () => {
+    const r = calcular({ componentes: [cubierta], modoManoObra: 'porcentaje' }, 1, INSUMOS);
+    expect(r.detalleInsumos[0].unidades).toBe(1);
+  });
+  it('cubierta + faldon del mismo material siguen siendo 1 tablero', () => {
+    const r = calcular({ componentes: [cubierta, faldon], modoManoObra: 'porcentaje' }, 1, INSUMOS);
+    const melamina = r.detalleInsumos.find((d) => d.insumoId === 'melamina-19');
+    expect(melamina.unidades).toBe(1);
+  });
+});
+
+// 14. La rejilla: las piezas grandes no cruzan tablero. 6 cubiertas de 1.60x0.70
+//     necesitan 6 tableros (1 por pieza), no 3 por area.
+describe('14. Piezas grandes no cruzan tablero', () => {
+  const cubierta = { insumoId: 'melamina-19', nombre: 'Cubierta', cantidad: 1.12, largoMM: 1600, anchoMM: 700, piezas: 1 };
+  it('6 cubiertas de 1.60x0.70 = 6 tableros', () => {
+    const r = calcular({ componentes: [cubierta], modoManoObra: 'porcentaje' }, 6, INSUMOS);
+    expect(r.detalleInsumos[0].unidades).toBe(6);
+  });
+});
+
+// 15. Costeo por FRACCION de hoja (rendimiento sobre el aprovechamiento).
+//     El insumo con fraccion:true NO compra hoja entera: cobra la fraccion
+//     consumida ajustada por el aprovechamiento (Rodrigo 2026-08-12).
+describe('15. Fraccion de hoja (aprovechamiento)', () => {
+  const melaminaHoja = {
+    id: 'melamina-hoja', clase: 'directa', precio: 950, unidad: 'hoja',
+    fraccion: true, formato: { tipo: 'tablero', medida: 2.9768, largoMM: 2440, anchoMM: 1220 },
+  };
+  const INS = { 'melamina-hoja': melaminaHoja };
+  const pieza = { componentes: [{ insumoId: 'melamina-hoja', nombre: 'Cubierta', cantidad: 1.0 }], modoManoObra: 'porcentaje' };
+
+  it('cobra la fraccion, no la hoja entera', () => {
+    const r = calcular(pieza, 1, INS); // aprovechamiento default 80%
+    // 1.0 m2 / (2.9768 m2 * 0.80) = 0.4199 hoja
+    expect(r.detalleInsumos[0].unidades).toBeCloseTo(0.4199, 3);
+    expect(r.detalleInsumos[0].costo).toBeCloseTo(0.4199 * 950, 0);
+    expect(r.materialDirecto).toBeLessThan(950); // NO compra hoja entera
+  });
+  it('mejor aprovechamiento => menor costo', () => {
+    const c80 = calcular(pieza, 1, INS, { aprovechamientoCorte: 80 }).materialDirecto;
+    const c90 = calcular(pieza, 1, INS, { aprovechamientoCorte: 90 }).materialDirecto;
+    expect(c90).toBeLessThan(c80);
+  });
+  it('una pieza chica no dispara una hoja completa', () => {
+    const chica = { componentes: [{ insumoId: 'melamina-hoja', nombre: 'Ceja', cantidad: 0.1 }], modoManoObra: 'porcentaje' };
+    expect(calcular(chica, 1, INS).materialDirecto).toBeLessThan(60);
+  });
+});
+
+// ===========================================================================
+//  Comprobaciones extra: numeros reales del master (1.2 y 1.3)
+// ===========================================================================
+describe('Comprobaciones contra los numeros reales del master', () => {
+  it('el costo hora de taller da 40.60 (1.2)', () => {
+    const { horaNominal, horaTaller } = calcularCostoHora(PARAMETROS_DEFAULT);
+    expect(horaNominal).toBeCloseTo(32.48, 2);
+    expect(horaTaller).toBeCloseTo(40.60, 2);
+  });
+  it('la mano de obra del App LT (6.36 h) da ~258 (1.3)', () => {
+    const r = calcular(escritorioAppLT, 1, INSUMOS);
+    expect(r.manoObra).toBeCloseTo(258, 0);
+  });
+});

@@ -1,0 +1,526 @@
+// ============================================================================
+//  COSTEADOR - la pantalla principal de trabajo (master 7.2)
+//  Dos columnas en >=1000px; una sola abajo, con barra fija que muestra el costo.
+// ============================================================================
+import { useMemo, useState } from 'react';
+import { calcular, precioDe, sugerenciaLote, sugerenciaMedida, costoNetoComponente, netoComponente, PARAMETROS_DEFAULT } from '../motor/calculo.js';
+import { SECCIONES } from '../datos/insumos.js';
+import { AREAS_LABEL } from '../datos/areas.js';
+import { recetaBench } from '../datos/bench.js';
+import HojaCosto from './HojaCosto.jsx';
+import FichaPDF from './FichaPDF.jsx';
+import MiniRender, { tipoDeMueble, dimsDeMueble } from './MiniRender.jsx';
+import { generarRender } from '../nube.js';
+import { pesos, pct, pct1, colorMerma } from '../util.js';
+
+const ATAJOS = [
+  { nombre: 'Muy facil', v: 30 },
+  { nombre: 'Facil', v: 40 },
+  { nombre: 'Estandar', v: 55 },
+  { nombre: 'Dificil', v: 70 },
+  { nombre: 'Muy dificil', v: 90 },
+];
+
+export function parametrosEfectivos(estado, costeo) {
+  return {
+    ...estado.parametros,
+    factorIndirectosFabrica: costeo.factorIndirectosFabrica ?? estado.parametros.factorIndirectosFabrica,
+    mermaProceso: costeo.mermaProceso ?? estado.parametros.mermaProceso,
+    empaquePorPieza: costeo.empaquePorPieza ?? estado.parametros.empaquePorPieza,
+  };
+}
+
+// Nadie escribe "1500" cuando piensa en una cubierta de 1.50 m. Al teclear 1.50
+// en un campo de milímetros, la app calculaba 1.5 mm × 0.9 mm = 0.00 m² y
+// devolvía $0 SIN DECIR NADA: el vendedor cree que la app está rota.
+// El umbral son 10, no 50: en metros toda pieza real cae entre 0.05 y ~6
+// (una cubierta de 3.60 m es de las más largas), y en milímetros ninguna baja
+// de 10 mm. Con 50 se convertía una pieza legítima de 45 mm en 45 metros.
+// Se corrige al salir del campo (nunca mientras teclea, o "1500" se rompería
+// en el primer dígito) y SIEMPRE se avisa qué se entendió.
+const MM_MINIMO = 10;
+export const pareceMetros = (v) => Number(v) > 0 && Number(v) < MM_MINIMO;
+export const aMilimetros = (v) => (pareceMetros(v) ? Math.round(Number(v) * 1000) : Number(v) || 0);
+
+export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizacion, onGuardarPieza }) {
+  const [abiertas, setAbiertas] = useState({ cubiertas: true });
+  const [fichaAbierta, setFichaAbierta] = useState(false);
+  const [generando, setGenerando] = useState(false);
+  const [errRender, setErrRender] = useState('');
+  const insumos = estado.insumos;
+
+  const piezaVirtual = {
+    nombre: costeo.nombre,
+    componentes: costeo.componentes,
+    horas: costeo.horas,
+    modoManoObra: costeo.modoManoObra,
+    factorDirecta: costeo.factorDirecta,
+    factorIndirecta: costeo.factorIndirecta,
+    preparacionHoras: costeo.preparacionHoras,
+  };
+  const par = parametrosEfectivos(estado, costeo);
+  const resultado = useMemo(
+    () => calcular(piezaVirtual, costeo.piezas, insumos, par),
+    [costeo, insumos, estado.parametros]
+  );
+  const margen = costeo.margen ?? estado.parametros.margenObjetivo ?? 40;
+  const precio = precioDe(resultado.costoUnitario, margen);
+  const bajoMinimo = margen < estado.parametros.margenMinimo;
+  const sugerencia = useMemo(
+    () => sugerenciaLote(piezaVirtual, costeo.piezas, insumos, par),
+    [costeo, insumos, estado.parametros]
+  );
+
+  // --- helpers de estado ---
+  const set = (parcial) => setCosteo({ ...costeo, ...parcial });
+
+  // --- Render de calidad con IA (Gemini), inspirado en lo que se costea ---
+  function descripcionParaRender() {
+    const mats = [...new Set(costeo.componentes.map((c) => c.nombre).filter(Boolean))].slice(0, 6);
+    let med = '', mayor = 0;
+    for (const c of costeo.componentes) {
+      if (c.largoMM && c.anchoMM && c.largoMM * c.anchoMM > mayor) { mayor = c.largoMM * c.anchoMM; med = `${(c.largoMM / 1000).toFixed(2)} x ${(c.anchoMM / 1000).toFixed(2)} m`; }
+    }
+    return { descripcion: costeo.descripcionCliente || costeo.nombre || 'mueble de oficina', materiales: mats, medidas: med, tipo: tipoDeMueble(costeo) };
+  }
+  async function generarRenderIA() {
+    setErrRender(''); setGenerando(true);
+    try {
+      const d = descripcionParaRender();
+      const r = await generarRender(d.descripcion, { materiales: d.materiales, medidas: d.medidas, tipo: d.tipo });
+      if (!r || !r.ok) { setErrRender(r?.error || 'No se pudo generar el render.'); return; }
+      set({ imagen: r.dataUrl });
+    } catch (e) { setErrRender('No se pudo conectar. Vuelve a intentar.'); }
+    finally { setGenerando(false); }
+  }
+
+  function toggleInsumo(ins) {
+    const existe = costeo.componentes.find((c) => c.insumoId === ins.id);
+    if (existe) {
+      set({ componentes: costeo.componentes.filter((c) => c.insumoId !== ins.id) });
+    } else {
+      set({
+        componentes: [
+          ...costeo.componentes,
+          { insumoId: ins.id, nombre: ins.nombre, cantidad: 1 },
+        ],
+      });
+    }
+  }
+
+  function setCantidad(i, valor) {
+    const comps = costeo.componentes.slice();
+    comps[i] = { ...comps[i], cantidad: valor };
+    set({ componentes: comps });
+  }
+
+  // --- Despiece "pieza por medidas" (costear desde cero) ---
+  // Un material es "por área" (se mete con largo×ancho) si es tablero o se
+  // cobra por m2 (cristal/acrílico). Lo demás va por su cantidad (m, pza, kg).
+  const esArea = (ins) => !!ins && (ins.formato?.tipo === 'tablero' || ins.unidad === 'm2');
+
+  function agregarPieza() {
+    set({ componentes: [...costeo.componentes, { nombre: '', insumoId: '', cantidad: 1, piezas: 1 }] });
+  }
+  function quitarPieza(i) {
+    set({ componentes: costeo.componentes.filter((_, j) => j !== i) });
+  }
+  function setPieza(i, parcial) {
+    const comps = costeo.componentes.slice();
+    comps[i] = { ...comps[i], ...parcial };
+    set({ componentes: comps });
+  }
+  function onMaterial(i, insumoId) {
+    const ins = insumos[insumoId];
+    const comps = costeo.componentes.slice();
+    const prev = comps[i];
+    const patch = { insumoId, nombre: prev.nombre || (ins ? ins.nombre : '') };
+    if (!esArea(ins)) { patch.largoMM = undefined; patch.anchoMM = undefined; } // material no dimensional
+    comps[i] = { ...prev, ...patch };
+    set({ componentes: comps });
+  }
+  // Costo neto de una pieza, respetando fracción de hoja (para el subtotal por pieza)
+  function costoPieza(c, ins, n) {
+    const neto = netoComponente(c, n);
+    const precio = ins.precio ?? ins.precioBase ?? 0;
+    if (ins.formato && ins.fraccion) {
+      const aprov = (par.aprovechamientoCorte || 100) / 100;
+      return (neto / (ins.formato.medida * aprov)) * precio;
+    }
+    return neto * precio;
+  }
+
+  // Bench modular (8.5): al cambiar el numero de personas se rearma la receta
+  function setPersonasBench(personas) {
+    const bench = { ...costeo.bench, personas: Math.max(2, personas) };
+    const b = recetaBench(bench);
+    set({
+      bench,
+      benchDescripcion: b.descripcion,
+      componentes: b.componentes,
+      horas: b.horas,
+      nombre: (costeo.linea ? costeo.linea + ' — ' : '') + `Bench ${b.personas} usuarios`,
+    });
+  }
+
+  const subtotalSeccion = (secId) =>
+    resultado.detalleInsumos
+      .filter((c) => c.seccion === secId)
+      .reduce((a, c) => a + c.costo, 0);
+
+  // Lista de compra: solo insumos con formato (unidades != null), ya agregados
+  const listaCompra = resultado.detalleInsumos.filter((c) => c.unidades != null && c.unidades > 0);
+
+  // Medida que rinde mejor (6.9): para componentes con dimensiones y mal aprovechamiento
+  const sugerenciasMedida = costeo.componentes
+    .map((c, i) => {
+      if (!c.largoMM || !c.anchoMM) return null;
+      const ins = insumos[c.insumoId];
+      if (!ins?.formato) return null;
+      const s = sugerenciaMedida(c.largoMM, c.anchoMM, ins, estado.parametros);
+      if (!s.mejor || s.actual < 1) return null;
+      const areaAct = (c.largoMM / 1000) * (c.anchoMM / 1000);
+      const areaNueva = (s.mejor.largoMM / 1000) * (s.mejor.anchoMM / 1000);
+      const precio = ins.precio ?? ins.precioBase ?? 0;
+      const costoAct = (ins.formato.medida / s.actual) * precio;
+      const costoNuevo = (ins.formato.medida / s.mejor.piezasPorTablero) * precio;
+      return { i, nombre: c.nombre, ...s, costoAct, costoNuevo, mejora: costoAct - costoNuevo };
+    })
+    .filter(Boolean);
+
+  function aplicarMedida(i, largoMM, anchoMM) {
+    const comps = costeo.componentes.slice();
+    comps[i] = { ...comps[i], largoMM, anchoMM };
+    set({ componentes: comps });
+  }
+
+  return (
+    <div className="dos-col">
+      {/* ------------------ COLUMNA IZQUIERDA ------------------ */}
+      <div>
+        {/* 1. Que estas costeando */}
+        <div className="tarjeta">
+          <label className="etiqueta" htmlFor="nom-pieza">Que estas costeando</label>
+          <input id="nom-pieza" type="text" value={costeo.nombre}
+            placeholder="Nombre del mueble" onChange={(e) => set({ nombre: e.target.value })} />
+          {costeo.linea && <div className="ayuda">Linea: <strong>{costeo.linea}</strong></div>}
+          <div className="espacio" />
+          <label className="etiqueta">Cuantas piezas</label>
+          <div className="masmenos">
+            <button aria-label="menos" onClick={() => set({ piezas: Math.max(1, costeo.piezas - 1) })}>−</button>
+            <span className="valor">{costeo.piezas}</span>
+            <button aria-label="mas" onClick={() => set({ piezas: costeo.piezas + 1 })}>+</button>
+          </div>
+        </div>
+
+        {/* Bench modular (8.5) - solo si viene del generador */}
+        {costeo.bench && (
+          <div className="tarjeta">
+            <h2>Bench modular</h2>
+            <label className="etiqueta">Cuantas personas (siempre en par)</label>
+            <div className="masmenos">
+              <button aria-label="menos personas" onClick={() => setPersonasBench(costeo.bench.personas - 2)}>−</button>
+              <span className="valor">{costeo.bench.personas}</span>
+              <button aria-label="mas personas" onClick={() => setPersonasBench(costeo.bench.personas + 2)}>+</button>
+            </div>
+            <p className="ayuda columna-texto" style={{ marginTop: 10 }}>{costeo.benchDescripcion}</p>
+          </div>
+        )}
+
+        {/* 2. El despiece — pieza por medidas (costear desde cero) */}
+        <div className="tarjeta">
+          <h2>El despiece — las piezas del mueble</h2>
+          <p className="ayuda columna-texto">Agrega cada pieza: ponle nombre, escoge de qué es y su medida. Las medidas van NETAS (de la pieza terminada); la app calcula el área, la fracción de hoja y la merma sola.</p>
+
+          {costeo.componentes.map((c, i) => {
+            const ins = insumos[c.insumoId];
+            const area = esArea(ins);
+            const cnt = c.piezas || 1;
+            const m2 = area && c.largoMM && c.anchoMM ? (c.largoMM / 1000) * (c.anchoMM / 1000) * cnt : 0;
+            const fmt = ins?.formato;
+            const aprov = (par.aprovechamientoCorte || 100) / 100;
+            const fraccion = ins?.fraccion && fmt?.medida ? m2 / (fmt.medida * aprov) : 0;
+            return (
+              <div className="pieza" key={i}>
+                <div className="pieza-head">
+                  <input className="pieza-nom" placeholder="Nombre de la pieza (ej. Cubierta)" value={c.nombre || ''}
+                    onChange={(e) => setPieza(i, { nombre: e.target.value })} />
+                  <select className="pieza-mat" value={c.insumoId || ''} onChange={(e) => onMaterial(i, e.target.value)}>
+                    <option value="">— ¿de qué es? —</option>
+                    {SECCIONES.map((sec) => (
+                      <optgroup label={sec.nombre} key={sec.id}>
+                        {Object.values(insumos).filter((x) => x.seccion === sec.id).map((x) => (
+                          <option value={x.id} key={x.id}>{x.nombre}</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                  <button className="pieza-x" onClick={() => quitarPieza(i)} aria-label="quitar pieza">×</button>
+                </div>
+
+                {ins && (
+                  <div className="pieza-med">
+                    {area ? (
+                      <>
+                        <label>Largo mm<input type="number" className="numero" min="0" value={c.largoMM || ''}
+                          placeholder="1500"
+                          onChange={(e) => setPieza(i, { largoMM: parseFloat(e.target.value) || 0 })}
+                          onBlur={(e) => { const v = parseFloat(e.target.value); if (pareceMetros(v)) setPieza(i, { largoMM: aMilimetros(v) }); }} /></label>
+                        <span className="por">×</span>
+                        <label>Ancho mm<input type="number" className="numero" min="0" value={c.anchoMM || ''}
+                          placeholder="600"
+                          onChange={(e) => setPieza(i, { anchoMM: parseFloat(e.target.value) || 0 })}
+                          onBlur={(e) => { const v = parseFloat(e.target.value); if (pareceMetros(v)) setPieza(i, { anchoMM: aMilimetros(v) }); }} /></label>
+                        <span className="por">×</span>
+                        <label>Cant<input type="number" className="numero" min="1" value={cnt}
+                          onChange={(e) => setPieza(i, { piezas: parseInt(e.target.value) || 1 })} /></label>
+                      </>
+                    ) : (
+                      <label>Cantidad ({ins.unidad})<input type="number" className="numero" step="0.01" min="0" value={c.cantidad}
+                        onChange={(e) => setCantidad(i, parseFloat(e.target.value) || 0)} /></label>
+                    )}
+                    <span className="pieza-sub">{pesos(costoPieza(c, ins, costeo.piezas))}</span>
+                  </div>
+                )}
+                {area && m2 > 0 && (
+                  <div className="pieza-calc">
+                    = {m2.toFixed(2)} m²{fraccion > 0 && <> · <strong>{fraccion.toFixed(2)} de hoja</strong></>}
+                    {' '}<span className="gris">({ins.clase === 'indirecta' ? 'comprado' : 'fabricado'})</span>
+                  </div>
+                )}
+                {area && (pareceMetros(c.largoMM) || pareceMetros(c.anchoMM)) && (
+                  <div className="alerta ambar" style={{ marginTop: 6 }}>
+                    <span className="texto">
+                      Esas medidas están en <strong>milímetros</strong>: {c.largoMM} × {c.anchoMM} mm no llega ni a un centímetro.
+                      ¿Querías {(aMilimetros(c.largoMM) / 1000).toFixed(2)} × {(aMilimetros(c.anchoMM) / 1000).toFixed(2)} m?
+                    </span>
+                    <button className="boton" style={{ minHeight: 36 }}
+                      onClick={() => setPieza(i, { largoMM: aMilimetros(c.largoMM), anchoMM: aMilimetros(c.anchoMM) })}>
+                      Usar {aMilimetros(c.largoMM)} × {aMilimetros(c.anchoMM)} mm
+                    </button>
+                  </div>
+                )}
+                {area && c.largoMM > 0 && c.anchoMM > 0 && costoPieza(c, ins, costeo.piezas) <= 0 && (
+                  <div className="alerta ambar" style={{ marginTop: 6 }}>
+                    <span className="texto">Esta pieza no está costando nada. Revisa la medida o el precio del material: una pieza en $0 se lleva la cotización entera.</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          <button className="boton fantasma grande" onClick={agregarPieza}>+ Agregar pieza</button>
+        </div>
+
+        {/* 3. Desperdicio y lista de compra */}
+        <div className="tarjeta">
+          <h2>Desperdicio y lista de compra</h2>
+          {listaCompra.length === 0 && <p className="ayuda">Aun no hay materiales que se compren por tablero o tramo.</p>}
+          {listaCompra.map((c) => {
+            const ins = insumos[c.insumoId];
+            const fmt = ins.formato;
+            // Tablero y lamina se compran por hoja: mostrar tambien la fraccion de hoja (levantamiento Rafa §1)
+            const porHoja = fmt && (fmt.tipo === 'tablero' || fmt.tipo === 'lamina') && fmt.medida > 0;
+            const fraccion = porHoja ? c.neto / fmt.medida : 0;
+            return (
+              <div className="renglon-insumo" key={c.insumoId + c.nombre}>
+                <span className="nom">
+                  {c.nombre}
+                  <div className="ayuda">
+                    neto {c.neto.toFixed(2)} {ins.unidad}
+                    {porHoja && <> <strong>≈ {fraccion.toFixed(2)} de hoja</strong></>}
+                    {' '}→ comprar {c.unidades} {fmt?.corto || 'u'}{c.unidades > 1 ? 's' : ''} ({c.comprado.toFixed(2)} {ins.unidad})
+                  </div>
+                </span>
+                <span className={`semaforo ${colorMerma(c.pct)}`}>{pct(c.pct)}</span>
+                <span className="sub">{pesos(c.desperdicio)}</span>
+              </div>
+            );
+          })}
+          {resultado.desperdicio > 0 && (
+            <div className="fila-botones" style={{ justifyContent: 'space-between', marginTop: 10 }}>
+              <strong>SE VA AL BOTE DE BASURA</strong>
+              <strong className="dinero rojo">{pesos(resultado.desperdicio)}</strong>
+            </div>
+          )}
+          {sugerencia && (
+            <div className="alerta ambar" style={{ marginTop: 12 }}>
+              <span className="texto">
+                Si en vez de {costeo.piezas} haces {sugerencia.piezas}, cada pieza baja a {pesos(sugerencia.costoUnitario)} — {pesos(sugerencia.ahorroPorPieza)} menos.
+              </span>
+              <button className="boton" onClick={() => set({ piezas: sugerencia.piezas })}>Cambiar a {sugerencia.piezas}</button>
+            </div>
+          )}
+
+          {/* Medida que rinde mejor (6.9) */}
+          {sugerenciasMedida.map((s) => (
+            <div className="alerta ambar" style={{ marginTop: 12 }} key={s.i}>
+              <span className="texto">
+                Esta pieza de {(s.actual === 1) ? 'solo deja 1 pieza' : `${s.actual} piezas`} por tablero. Si el cliente acepta{' '}
+                <strong>{(s.mejor.largoMM / 1000).toFixed(2)} × {(s.mejor.anchoMM / 1000).toFixed(2)}</strong>, caben {s.mejor.piezasPorTablero} por tablero y el material baja de {pesos(s.costoAct)} a {pesos(s.costoNuevo)} por pieza.
+              </span>
+              <button className="boton" onClick={() => aplicarMedida(s.i, s.mejor.largoMM, s.mejor.anchoMM)}>
+                Usar {(s.mejor.largoMM / 1000).toFixed(2)}×{(s.mejor.anchoMM / 1000).toFixed(2)}
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* 4. Mano de obra */}
+        <div className="tarjeta">
+          <h2>Mano de obra</h2>
+          <div className="fila-botones">
+            <button className={`boton ${costeo.modoManoObra === 'horas' ? 'primario' : 'fantasma'}`}
+              onClick={() => set({ modoManoObra: 'horas' })}>Por horas medidas</button>
+            <button className={`boton ${costeo.modoManoObra === 'porcentaje' ? 'primario' : 'fantasma'}`}
+              onClick={() => set({ modoManoObra: 'porcentaje' })}>Por porcentaje</button>
+          </div>
+
+          {costeo.modoManoObra === 'horas' ? (
+            <div style={{ marginTop: 14 }}>
+              {Object.entries(AREAS_LABEL).map(([area, label]) => {
+                const h = costeo.horas?.[area] || 0;
+                const costoArea = estado.parametros.usarCostoPorArea
+                  ? (estado.parametros.costoHoraArea[area] || estado.parametros.costoHora)
+                  : estado.parametros.costoHora;
+                return (
+                  <div className="renglon-insumo" key={area}>
+                    <span className="nom">{label}</span>
+                    <input type="number" className="numero" step="0.01" min="0" value={h}
+                      onChange={(e) => set({ horas: { ...costeo.horas, [area]: parseFloat(e.target.value) || 0 } })} />
+                    <span className="sub">{pesos(h * costoArea)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{ marginTop: 14 }}>
+              <label className="etiqueta">Factor de material directo</label>
+              <div className="masmenos" style={{ marginBottom: 8 }}>
+                <input type="range" min="1" max="99" value={costeo.factorDirecta ?? 55}
+                  onChange={(e) => set({ factorDirecta: parseInt(e.target.value) })} style={{ flex: 1 }} />
+                <span className="valor">{costeo.factorDirecta ?? 55}%</span>
+              </div>
+              <div className="chips">
+                {ATAJOS.map((a) => (
+                  <button key={a.v} className={`chip ${(costeo.factorDirecta ?? 55) === a.v ? 'on' : ''}`}
+                    onClick={() => set({ factorDirecta: a.v })}>{a.nombre} {a.v}</button>
+                ))}
+              </div>
+              <div className="espacio" />
+              <label className="etiqueta">Factor de material indirecto</label>
+              <div className="masmenos">
+                <input type="range" min="0" max="40" value={costeo.factorIndirecta ?? 12}
+                  onChange={(e) => set({ factorIndirecta: parseInt(e.target.value) })} style={{ flex: 1 }} />
+                <span className="valor">{costeo.factorIndirecta ?? 12}%</span>
+              </div>
+            </div>
+          )}
+
+          {/* Puente entre modos (6.4) */}
+          <PuenteModos resultado={resultado} costeo={costeo} set={set} />
+        </div>
+
+        {/* 5. Preparacion, empaque, merma */}
+        <div className="tarjeta">
+          <h2>Preparacion, empaque y merma</h2>
+          <label className="etiqueta">Horas de arranque del lote (preparacion)</label>
+          <input type="number" className="numero" min="0" step="0.5" value={costeo.preparacionHoras || 0}
+            onChange={(e) => set({ preparacionHoras: parseFloat(e.target.value) || 0 })} />
+          <div className="ayuda">Se reparte entre todas las piezas del lote. Un mismo mueble cuesta mas en un lote de 2 que en uno de 50.</div>
+          <div className="espacio" />
+          <label className="etiqueta">Empaque por pieza ($)</label>
+          <input type="number" className="numero" min="0" value={costeo.empaquePorPieza ?? estado.parametros.empaquePorPieza}
+            onChange={(e) => set({ empaquePorPieza: parseFloat(e.target.value) || 0 })} />
+          <div className="espacio" />
+          <label className="etiqueta">Merma de proceso (%)</label>
+          <input type="number" className="numero" min="0" max="50" value={costeo.mermaProceso ?? estado.parametros.mermaProceso}
+            onChange={(e) => set({ mermaProceso: parseFloat(e.target.value) || 0 })} />
+          <div className="ayuda">Porcentaje de piezas que se rehacen.</div>
+        </div>
+
+        {/* 6. Gastos de fabrica */}
+        <div className="tarjeta">
+          <h2>Gastos de fabrica</h2>
+          <label className="etiqueta">Porcentaje sobre material directo</label>
+          <input type="number" className="numero" min="0" max="100"
+            value={costeo.factorIndirectosFabrica ?? estado.parametros.factorIndirectosFabrica}
+            onChange={(e) => set({ factorIndirectosFabrica: parseFloat(e.target.value) || 0 })} />
+          <div className="ayuda">Renta, luz, sueldos de oficina, herramienta y desperdicio. Va sobre la materia prima directa, no sobre el costo total.</div>
+        </div>
+      </div>
+
+      {/* ------------------ COLUMNA DERECHA ------------------ */}
+      <div className="pegado no-imprimir">
+        <div className="tarjeta" style={{ padding: 12, marginBottom: 16 }}>
+          <div className="ficha-render" style={{ aspectRatio: '5 / 4', position: 'relative' }}>
+            {generando
+              ? <div className="render-gen"><span className="render-gen-spin" /><span>Generando render…</span></div>
+              : costeo.imagen
+                ? <img src={costeo.imagen} alt={costeo.nombre || 'Render'} className="ficha-foto" />
+                : <MiniRender tipo={tipoDeMueble(costeo)} w={dimsDeMueble(costeo).w} d={dimsDeMueble(costeo).d} />}
+          </div>
+          <button className="boton primario" style={{ width: '100%', marginTop: 10 }} disabled={generando} onClick={generarRenderIA}>
+            {generando ? 'Generando…' : costeo.imagen ? 'Regenerar render con IA' : 'Generar render con IA'}
+          </button>
+          {costeo.imagen && !generando && <button className="boton fantasma" style={{ width: '100%', marginTop: 8 }} onClick={() => set({ imagen: undefined })}>Quitar render</button>}
+          {errRender && <div className="alerta roja" style={{ marginTop: 8 }}><span className="texto">{errRender}</span></div>}
+          <div className="ayuda" style={{ marginTop: 8, textAlign: 'center' }}>{costeo.imagen ? 'Render IA · aparece en la ficha del cliente' : (costeo.nombre || 'Vista del mueble')}</div>
+        </div>
+        <HojaCosto resultado={resultado} insumos={insumos} pieza={piezaVirtual} parametros={estado.parametros} />
+
+        <div className="tarjeta roja" style={{ marginTop: 16 }}>
+          <label className="etiqueta">Cuanto quieres ganar</label>
+          <div className="masmenos" style={{ marginBottom: 10 }}>
+            <input type="range" min="0" max="70" value={margen}
+              onChange={(e) => set({ margen: parseInt(e.target.value) })} style={{ flex: 1 }} />
+            <span className="valor">{margen}%</span>
+          </div>
+          <div className="precio-grande">{pesos(precio)}</div>
+          <div className="ayuda">Precio por pieza con {margen}% de margen.</div>
+          {bajoMinimo && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">Debajo del minimo de {estado.parametros.margenMinimo}%.</span></div>}
+          <div className="espacio" />
+          <button className="boton primario grande" onClick={() => onAgregarCotizacion(resultado, precio, margen)}>Agregar a la cotizacion</button>
+          <div className="espacio" />
+          <button className="boton grande" onClick={() => onGuardarPieza(resultado)}>Guardar como pieza</button>
+          <div className="espacio" />
+          <button className="boton grande" onClick={() => setFichaAbierta(true)}>Ver ficha PDF</button>
+        </div>
+      </div>
+
+      {fichaAbierta && (
+        <FichaPDF estado={estado} costeo={costeo} cantidad={costeo.piezas} precioUnitario={precio} onCerrar={() => setFichaAbierta(false)} />
+      )}
+
+      {/* Barra fija inferior para pantallas angostas */}
+      <div className="barra-fija no-imprimir">
+        <span>Cuesta hacer 1 pieza <strong className="mono">{pesos(resultado.costoUnitario)}</strong></span>
+        <span className="precio-grande">{pesos(precio)}</span>
+      </div>
+    </div>
+  );
+}
+
+// Puente entre horas y porcentaje (6.4)
+function PuenteModos({ resultado, costeo, set }) {
+  const fe = resultado.factorEquivalente;
+  if (!isFinite(fe) || resultado.materialDirecto <= 0) return null;
+  if (costeo.modoManoObra !== 'horas') {
+    return <div className="ayuda" style={{ marginTop: 12 }}>Con estas horas, el factor equivalente seria {pct1(fe)} sobre material directo.</div>;
+  }
+  if (fe > 99) {
+    return (
+      <div className="alerta ambar" style={{ marginTop: 12 }}>
+        <span className="texto">Con porcentaje esta pieza necesitaria {pct(fe)} — arriba del tope de 99%. Aqui hay que costearla por horas.</span>
+      </div>
+    );
+  }
+  return (
+    <div className="alerta ambar" style={{ marginTop: 12 }}>
+      <span className="texto">Con horas, esta pieza equivale a {pct(fe)} de factor.</span>
+      <button className="boton" onClick={() => set({ modoManoObra: 'porcentaje', factorDirecta: Math.round(fe) })}>
+        Usar {Math.round(fe)}% y volver a porcentaje
+      </button>
+    </div>
+  );
+}

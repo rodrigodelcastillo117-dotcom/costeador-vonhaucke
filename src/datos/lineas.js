@@ -1,0 +1,404 @@
+// ============================================================================
+//  REGISTRO CENTRAL DE LÍNEAS  (para el cotizador con IA y usos compartidos)
+//  Mapea cada ruta -> { titulo, productos, generar }. Además expone:
+//   - catalogoIA(): esquema compacto de TODAS las líneas/productos/opciones
+//     para que Claude mapee lenguaje natural -> {ruta, producto, seleccion}.
+//   - configDesde(producto, seleccion): arma el config EXACTO que espera el
+//     generador (misma lógica que CosteadorLinea) para costear igual que la app.
+// ============================================================================
+import { APPLT_PRODUCTOS, generarAppLT } from './applt.js';
+import { APP_PRODUCTOS, generarApp } from './app.js';
+import { ECLIPSE_PRODUCTOS, generarEclipse } from './eclipse.js';
+import { PEBBLE_PRODUCTOS, generarPebble } from './pebble.js';
+import { PRIVACY4_PRODUCTOS, generarPrivacy4 } from './privacy4.js';
+import { RIO_PRODUCTOS, generarRio } from './rio.js';
+import { TEAMSPACE2_PRODUCTOS, generarTeamspace2 } from './teamspace2.js';
+import { TETRIS_PRODUCTOS, generarTetris } from './tetris.js';
+import { ARLEQUIN_PRODUCTOS, generarArlequin } from './arlequin.js';
+import { PAC_PRODUCTOS, generarPac } from './pac.js';
+import { VIA_PRODUCTOS, generarVia } from './via.js';
+import { DRIFT_PRODUCTOS, generarDrift } from './drift.js';
+import { FLEX_PRODUCTOS, generarFlex } from './flex.js';
+import { MOX_PRODUCTOS, generarMox } from './mox.js';
+import { MODULOR_PRODUCTOS, generarModulor } from './modulor.js';
+import { LUNA_PRODUCTOS, generarLuna } from './luna.js';
+import { ACCENTS_PRODUCTOS, generarAccents } from './accents.js';
+import { ERGO4_PRODUCTOS, generarErgo4 } from './ergo4.js';
+import { SPINE_PRODUCTOS, generarSpine } from './spine.js';
+import { ANTEO_PRODUCTOS, generarAnteo } from './anteo.js';
+import { ALBA_PRODUCTOS, generarAlba } from './alba.js';
+import { FEATHER_PRODUCTOS, generarFeather } from './feather.js';
+import { WORKLOUNGE_PRODUCTOS, generarWorklounge } from './worklounge.js';
+import { CIRQUE_PRODUCTOS, generarCirque } from './cirque.js';
+import { calcular, precioDe, precioVenta } from '../motor/calculo.js';
+import { buscarPrecioVenta, costoImplicito, precioDeLista } from './preciosVenta.js';
+import { factorDeLinea } from './factoresLinea.js';
+import { precioPorUsuarioAppLT } from './preciosVenta.js';
+import { tipoDe, huellaReal, HUELLA } from './espacio.js';
+import { BANCO } from './banco.js';
+
+export const LINEAS_REG = {
+  applt: { titulo: 'App LT', productos: APPLT_PRODUCTOS, generar: generarAppLT },
+  app: { titulo: 'App', productos: APP_PRODUCTOS, generar: generarApp },
+  via: { titulo: 'Vía', productos: VIA_PRODUCTOS, generar: generarVia },
+  rio: { titulo: 'Río', productos: RIO_PRODUCTOS, generar: generarRio },
+  feather: { titulo: 'Feather', productos: FEATHER_PRODUCTOS, generar: generarFeather },
+  cirque: { titulo: 'Cirque', productos: CIRQUE_PRODUCTOS, generar: generarCirque },
+  spine: { titulo: 'Spine', productos: SPINE_PRODUCTOS, generar: generarSpine },
+  ergo4: { titulo: 'Ergonova 4', productos: ERGO4_PRODUCTOS, generar: generarErgo4 },
+  alba: { titulo: 'Alba', productos: ALBA_PRODUCTOS, generar: generarAlba },
+  eclipse: { titulo: 'Eclipse', productos: ECLIPSE_PRODUCTOS, generar: generarEclipse },
+  drift: { titulo: 'Eclipse Drift', productos: DRIFT_PRODUCTOS, generar: generarDrift },
+  luna: { titulo: 'Luna', productos: LUNA_PRODUCTOS, generar: generarLuna },
+  // Flex tenía su pantalla en App.jsx pero NO estaba en el registro, así que no
+  // salía en el catálogo ni la alcanzaba la escalera de precios por línea.
+  flex: { titulo: 'Flex', productos: FLEX_PRODUCTOS, generar: generarFlex },
+  anteo: { titulo: 'Anteo', productos: ANTEO_PRODUCTOS, generar: generarAnteo },
+  mox: { titulo: 'Mox', productos: MOX_PRODUCTOS, generar: generarMox },
+  modulor: { titulo: 'Modulor', productos: MODULOR_PRODUCTOS, generar: generarModulor },
+  tetris: { titulo: 'Tetris', productos: TETRIS_PRODUCTOS, generar: generarTetris },
+  arlequin: { titulo: 'Arlequín', productos: ARLEQUIN_PRODUCTOS, generar: generarArlequin },
+  pac: { titulo: 'Pac', productos: PAC_PRODUCTOS, generar: generarPac },
+  worklounge: { titulo: 'Work Lounge', productos: WORKLOUNGE_PRODUCTOS, generar: generarWorklounge },
+  pebble: { titulo: 'Pebble', productos: PEBBLE_PRODUCTOS, generar: generarPebble },
+  accents: { titulo: 'Accents', productos: ACCENTS_PRODUCTOS, generar: generarAccents },
+  teamspace2: { titulo: 'TeamSpace II', productos: TEAMSPACE2_PRODUCTOS, generar: generarTeamspace2 },
+  privacy4: { titulo: 'Privacy 4', productos: PRIVACY4_PRODUCTOS, generar: generarPrivacy4 },
+};
+
+// --- Arma el config EXACTO que espera el generador (idéntico a CosteadorLinea) --
+// `seleccion` = objeto con llaves sueltas (largoMM/fondoMM/diametroMM/usuarios/
+// largoLateralMM/biombo/finish/<selectKey>/<checkKey>). Valores faltantes -> default.
+// ⚠️ LO QUE NO SE PIDE, SE SUSTITUYE — Y ANTES SE HACÍA EN SILENCIO.
+//  Auditoría 2026-08-16: si Voni pedía "bench de 8 usuarios" y ese producto sólo
+//  existe de 2 o de 6, la app cotizaba **2 usuarios** sin decir nada. El vendedor
+//  pedía 8 puestos y se llevaba el precio de 2. Igual con "99 usuarios", con un
+//  largo de 7777 mm o con texto basura: todo caía al primer valor de la lista.
+//  Dos cambios:
+//   1) se ajusta al valor VÁLIDO MÁS CERCANO, no al primero de la lista
+//      (8 usuarios → 6, no → 2);
+//   2) cada ajuste se APUNTA en `avisos` para poder enseñarlo en pantalla.
+//  `avisos` es opcional: si no se pasa, se comporta como siempre.
+export function configDesde(producto, seleccion = {}, avisos = null) {
+  const s = seleccion || {};
+  const anota = (que, pedido, usado) => {
+    // Sólo si de verdad pidió algo: cuando no especifica, el default no es un
+    // ajuste que haya que avisarle.
+    const pidio = pedido != null && String(pedido) !== '' && String(pedido) !== 'NaN' && String(pedido) !== 'undefined';
+    if (avisos && pidio && String(pedido) !== String(usado)) {
+      avisos.push(`Pediste ${que} "${pedido}" y ese producto no lo tiene: se cotizó "${usado}".`);
+    }
+  };
+  // El más cercano de la lista, que para una medida es lo que un vendedor
+  // esperaría: si pide 1.60 y hay 1.50 y 1.80, quiere el de 1.50, no el primero.
+  const cercano = (arr, val, def) => {
+    if (!arr) return undefined;
+    if (arr.includes(val)) return val;
+    if (!Number.isFinite(val)) return def;
+    return arr.reduce((a, b) => (Math.abs(b - val) < Math.abs(a - val) ? b : a), arr[0]);
+  };
+  const pick = (arr, val, def, que) => {
+    const r = cercano(arr, val, def);
+    anota(que, s[que], r);
+    return r;
+  };
+  const largo = producto.largos ? pick(producto.largos, Number(s.largoMM), producto.largos[1] || producto.largos[0], 'largoMM') : undefined;
+  const fondo = producto.fondos ? pick(producto.fondos, Number(s.fondoMM), producto.fondos[0], 'fondoMM') : undefined;
+  const diam = producto.diametros ? pick(producto.diametros, Number(s.diametroMM), producto.diametros[0], 'diametroMM') : undefined;
+  const usuarios = producto.usuarios ? pick(producto.usuarios, Number(s.usuarios), producto.usuarios[0], 'usuarios') : undefined;
+  const lateral = producto.largosLateral ? pick(producto.largosLateral, Number(s.largoLateralMM), producto.largosLateral[0], 'largoLateralMM') : undefined;
+  const sels = {};
+  for (const sel of producto.selects || []) {
+    const ids = sel.opciones.map((o) => o.id);
+    let usado;
+    if (ids.includes(s[sel.key])) usado = s[sel.key];
+    else {
+      // Si las opciones son NÚMEROS (usuarios, medidas), se toma la más
+      // cercana: pedir 8 usuarios donde hay 2 y 6 debe dar 6, no 2. Antes caía
+      // siempre al primero de la lista y un bench de 8 se cotizaba como de 2.
+      const num = Number(s[sel.key]);
+      const todosNum = ids.every((x) => !Number.isNaN(Number(x)));
+      usado = (todosNum && Number.isFinite(num))
+        ? ids.reduce((a, b) => (Math.abs(Number(b) - num) < Math.abs(Number(a) - num) ? b : a), ids[0])
+        : sel.opciones[0].id;
+    }
+    anota(sel.label || sel.key, s[sel.key], usado);
+    sels[sel.key] = usado;
+  }
+  const checks = {};
+  for (const ch of producto.checks || []) checks[ch.key] = !!s[ch.key];
+  const finish = s.finish || (producto.finishes ? producto.finishes[0].id : 'ABS');
+  const biombo = producto.biombo ? (s.biombo || null) : undefined;
+  return {
+    producto: producto.id,
+    largoMM: largo, fondoMM: fondo, diametroMM: diam, usuarios, largoLateralMM: lateral,
+    biombo, finish, ...sels, ...checks,
+  };
+}
+
+// --- Huella (footprint) del mueble: la pieza de ÁREA más grande (cubierta) -------
+// Devuelve {w, d} en mm para dibujar el mueble a escala en el plano.
+//  ⚠️ LA PIEZA MÁS GRANDE NO ES LA HUELLA. En un mueble de caja (credenza,
+//  archivero, librero) la pieza de más área del despiece es el CUERPO —costados,
+//  fondo y entrepaños desarrollados en un solo tablero—, y eso da un fondo
+//  imposible: la credenza Cirque salía de 1.80 × 1.50 m cuando mide 0.60 de
+//  fondo. Con esa huella el acomodo reserva metro y medio de paso y dice que no
+//  cabe. La huella de un mueble de caja es su CUBIERTA.
+//  Y si el despiece no trae medidas (un sillón es bastidor, espuma y tela), se
+//  lee del nombre, que sí las dice: "Sillón Pac 1 plaza (0.60×0.60 m)".
+const FONDO_MAX = 1500;   // más de 1.5 m de fondo no es un mueble, es un error
+
+export function footprintDe(componentes, nombre = '') {
+  const conMedida = (componentes || []).filter((c) => c.largoMM && c.anchoMM);
+  // 1) La cubierta, si el despiece la nombra.
+  const cubierta = conMedida.find((c) => /cubierta|tapa|cubiert|superficie/i.test(c.nombre || ''));
+  if (cubierta) return { w: cubierta.largoMM, d: cubierta.anchoMM };
+  // 2) La pieza de más área con un FONDO creíble.
+  let w = 0, d = 0, area = 0;
+  for (const c of conMedida) {
+    const fondo = Math.min(c.largoMM, c.anchoMM);
+    if (fondo > FONDO_MAX) continue;
+    const a = c.largoMM * c.anchoMM;
+    if (a > area) { area = a; w = c.largoMM; d = c.anchoMM; }
+  }
+  if (w && d) return { w, d };
+  // 3) Del nombre: "(0.60×0.60 m)" o "1.20 × 0.75 m".
+  const m = String(nombre).match(/(\d+(?:\.\d+)?)\s*[×xX]\s*(\d+(?:\.\d+)?)\s*m\b/);
+  if (m) return { w: Math.round(parseFloat(m[1]) * 1000), d: Math.round(parseFloat(m[2]) * 1000) };
+  // 4) Última opción: la más grande aunque el fondo no cuadre, como antes.
+  for (const c of conMedida) {
+    const a = c.largoMM * c.anchoMM;
+    if (a > area) { area = a; w = c.largoMM; d = c.anchoMM; }
+  }
+  return { w, d };
+}
+
+// --- Cuesta un item de la IA con el MOTOR (idéntico a CosteadorLinea) -----------
+// item = { ruta, producto, seleccion:[{clave,valor}], cantidad }
+// Devuelve datos listos para armar una partida, o null si no se pudo resolver.
+
+// Los generadores nombran las bancas con la medida de UN PUESTO ("Banca doble
+// 6 puestos · 1.20×0.75 m"), y se lee como si el mueble entero midiera eso.
+// Un bench de 6 personas ocupa 3.60 × 1.50 m. Se le agrega el total.
+function nombreConBloque(nombre, ruta, w, d) {
+  const tipo = tipoDe({ ruta, nombre });
+  const [bw, bd] = huellaReal(nombre, w, d, tipo);
+  if (bw === w && bd === d) return { nombre, w, d };
+  const m = (v) => (v / 1000).toFixed(2);
+  return { nombre: `${nombre} · ocupa ${m(bw)} × ${m(bd)} m`, w: bw, d: bd };
+}
+
+// EL PRECIO DE UNA PIEZA, igual que en la pantalla de cotizar de línea:
+//   1) si el catálogo tiene el PRECIO REAL de esa configuración, ese manda;
+//   2) si el generador declara modelo 'intelisis' (cascada real de planta), se
+//      usa esa cascada;
+//   3) si no, el modelo clásico de siempre.
+function precioDePieza(estado, ruta, g, pieza, cantidad, config) {
+  const esIntelisis = g.modeloCosteo === 'intelisis';
+  const par = esIntelisis
+    ? { ...estado.parametros, modeloCosteo: 'intelisis', usarCostoPorArea: true, ...(g.parModelo || {}) }
+    : estado.parametros;
+  const piezaFull = { ...pieza, modeloCosteo: g.modeloCosteo, factorDirecta: g.factorDirecta, factorIndirecta: g.factorIndirecta };
+  const resultado = calcular(piezaFull, cantidad, estado.insumos, par);
+  const margen = estado.parametros.margenObjetivo ?? 50;
+  // El modelo Intelisis y el price-book hablan en "precio 2", que Von Haucke
+  // nunca cotiza: siempre se le quita el 40% para llegar al precio de lista.
+  // El modelo clásico no pasa por ahí (ya sale de costo × margen), así que no
+  // se le aplica: descontarlo dos veces le comería el margen.
+  const precioModelo = esIntelisis
+    ? precioDeLista(precioVenta(resultado.costoUnitario, par).lista)
+    : precioDe(resultado.costoUnitario, margen);
+  const real = buscarPrecioVenta(ruta, config);
+  // Algunos generadores declaran un factor de calibración (Anteo escritorio:
+  // inox + contrapeso + mármol sin MP cargada). Sólo afecta al modelo: si hay
+  // precio real del papel, ése manda y no se toca.
+  const factor = (g.factorPrecio || 1) * factorDeLinea(ruta, config?.producto);
+  // Bancas App LT: precio por usuario (ver preciosVenta.js). Es el arreglo del
+  // error que estaba abierto —banca doble 1.50 de 10 usuarios salía 45% arriba
+  // del precio real— porque el price-book sólo tiene anclas a módulo 1.20.
+  const porUsuario = !real && ruta === 'applt' ? precioPorUsuarioAppLT(config) : null;
+  const precio = real ? precioDeLista(real.lista) : (porUsuario ? porUsuario.lista : precioModelo * factor);
+  const costo = real ? costoImplicito(real.lista)
+    : (porUsuario ? costoImplicito(porUsuario.lista / (1 - 0.40)) : resultado.costoUnitario * factor);
+  return { resultado, margen, precio, costo, real: !!real && !real.heredada };
+}
+
+export function costearItem(estado, item) {
+  const L = LINEAS_REG[item.ruta];
+  if (!L) return null;
+  const prod = L.productos.find((p) => p.id === item.producto);
+  if (!prod) return null;
+  const sel = {};
+  for (const par of item.seleccion || []) {
+    if (!par || !par.clave) continue;
+    const esCheck = (prod.checks || []).some((c) => c.key === par.clave);
+    sel[par.clave] = esCheck ? /^(si|sí|true|1|x)$/i.test(String(par.valor)) : par.valor;
+  }
+  // Los avisos viajan con el renglón: es lo que permite que la pantalla diga
+  // "pediste 8 usuarios y se cotizaron 6" en vez de callárselo.
+  const avisos = [];
+  const config = configDesde(prod, sel, avisos);
+  let g;
+  try { g = L.generar(config); } catch (e) { return null; }
+  const pieza = {
+    nombre: g.nombre, componentes: g.componentes, horas: g.horas,
+    modoManoObra: g.modoManoObra, factorDirecta: g.factorDirecta, factorIndirecta: g.factorIndirecta,
+  };
+  const cantidad = Math.max(1, Math.round(Number(item.cantidad) || 1));
+  // MISMO camino de precio que la pantalla de "cotizar de línea". Antes esto
+  // usaba siempre el modelo clásico y NO consultaba el catálogo de precios
+  // reales: por eso una banca App LT de 4 usuarios salía en $8,269 cuando su
+  // lista real es $26,800.
+  const pr = precioDePieza(estado, item.ruta, g, pieza, cantidad, config);
+  const resultado = pr.resultado;
+  const margen = pr.margen;
+  let precio = pr.precio;
+
+  // ---- BENCH CON MÁS PUESTOS DE LOS QUE OFRECE EL PRODUCTO ------------------
+  //  Rodrigo (2026-08-16): "si tenemos el precio de 6 usuarios, divide entre 6:
+  //  eso da cuánto es por usuario. Si son 8, precio de 1 usuario × 8."
+  //  Es la regla correcta y la misma que ya usa App LT. Antes, pedir 8 puestos
+  //  donde el producto sólo tiene 2 y 6 cotizaba OTRA cosa —2 o 6 puestos— y el
+  //  cliente recibía un precio que no era el de lo que pidió. Ahora se cotizan
+  //  los 8: se toma el precio del escalón más cercano, se divide entre sus
+  //  usuarios y se multiplica por los que de verdad se necesitan.
+  const pedidos = Number(sel.usuarios);
+  const usados = Number(config.usuarios ?? sel.usuarios);
+  let escalado = null;
+  if (Number.isFinite(pedidos) && Number.isFinite(usados) && usados > 0 && pedidos > 0 && pedidos !== usados) {
+    const porUsuario = precio / usados;
+    precio = porUsuario * pedidos;
+    escalado = { pedidos, usados, porUsuario };
+    // El aviso de "no lo tiene" ya no aplica: sí se cotizó lo que pidieron.
+    for (let k = avisos.length - 1; k >= 0; k--) if (/usuario/i.test(avisos[k])) avisos.splice(k, 1);
+    avisos.push(`Este producto se arma de ${usados} puestos: se cotizaron ${pedidos} a ${Math.round(porUsuario).toLocaleString('es-MX')} pesos por puesto.`);
+  }
+  let fp = footprintDe(g.componentes, g.nombre);
+  // Último recurso: la huella típica de su tipo. Un sofá que no trae medidas en
+  // el despiece ni en el nombre salía en 0 × 0, y una pieza sin huella el plano
+  // ni la dibuja ni la puede acomodar.
+  if (!fp.w || !fp.d) {
+    const [hw, hd] = HUELLA[tipoDe({ ruta: item.ruta, nombre: g.nombre })] || HUELLA.mueble;
+    fp = { w: hw, d: hd };
+  }
+  // OJO CON EL ORDEN: `nombreConBloque` vuelve a leer los puestos DEL NOMBRE
+  // para armar la huella del bloque. Si primero se le cambia el nombre a "8
+  // puestos" y se le pasa el ancho ya escalado, la expande otra vez y la huella
+  // sale disparatada (12 puestos daban 3 m). Por eso se arma con el nombre y el
+  // ancho ORIGINALES, y el escalado se aplica DESPUÉS, sobre el resultado.
+  const nb = nombreConBloque(g.nombre, item.ruta, fp.w, fp.d);
+  if (escalado) {
+    const k = escalado.pedidos / escalado.usados;
+    nb.w = Math.round(nb.w * k);
+    // Y el nombre dice los puestos que se cotizaron, no los del escalón.
+    const re = new RegExp(`\\b${escalado.usados}\\s*(u\\b|usuarios?|puestos?)`, 'i');
+    nb.nombre = re.test(nb.nombre)
+      ? nb.nombre.replace(re, `${escalado.pedidos} $1`)
+      : `${nb.nombre} · ${escalado.pedidos} puestos`;
+    // La medida que trae el nombre ("ocupa 4.50 × 1.20 m") también cambia.
+    nb.nombre = nb.nombre.replace(/ocupa\s+[\d.]+\s*×/, `ocupa ${(nb.w / 1000).toFixed(2)} ×`);
+  }
+  return {
+    ruta: item.ruta, linea: L.titulo, producto: prod.id, nombre: nb.nombre,
+    cantidad, costoUnitario: pr.costo, precioUnitario: precio, margen, pieza,
+    w: nb.w, d: nb.d, config,
+    // ¿El precio salió de un presupuesto real o del modelo? El sello de la
+    // propuesta depende de esto, no de una lista de líneas escrita a mano.
+    precioReal: pr.real,
+    // Lo que se AJUSTÓ de lo que pidió Voni, para poder decirlo en pantalla.
+    avisos,
+  };
+}
+
+// --- Recostear una partida con una CONFIG ya armada (editar un mueble) ---------
+// Devuelve los campos que cambian al tocar medidas/acabados, o null si la
+// línea/producto ya no existe.
+export function costearConfig(estado, ruta, productoId, config, cantidad = 1) {
+  const L = LINEAS_REG[ruta];
+  if (!L) return null;
+  const prod = L.productos.find((p) => p.id === productoId);
+  if (!prod) return null;
+  const cfg = configDesde(prod, config);
+  let g;
+  try { g = L.generar(cfg); } catch (e) { return null; }
+  const pieza = {
+    nombre: g.nombre, componentes: g.componentes, horas: g.horas,
+    modoManoObra: g.modoManoObra, factorDirecta: g.factorDirecta, factorIndirecta: g.factorIndirecta,
+  };
+  const n = Math.max(1, Math.round(Number(cantidad) || 1));
+  const pr = precioDePieza(estado, ruta, g, pieza, n, cfg);
+  const resultado = pr.resultado;
+  const margen = pr.margen;
+  const fp = footprintDe(g.componentes, g.nombre);
+  const nb = nombreConBloque(g.nombre, ruta, fp.w, fp.d);
+  return {
+    nombre: nb.nombre, config: cfg, cantidad: n,
+    costoUnitario: pr.costo, precioUnitario: pr.precio,
+    margen, w: nb.w, d: nb.d,
+    // Igual que costearItem: sin esto, una partida editada perdía el sello
+    // "Firme" aunque su precio siguiera saliendo de un presupuesto real.
+    precioReal: pr.real,
+  };
+}
+
+// Datos del producto para pintar los controles de edición.
+export function productoDe(ruta, productoId) {
+  const L = LINEAS_REG[ruta];
+  if (!L) return null;
+  const prod = L.productos.find((p) => p.id === productoId);
+  return prod ? { producto: prod, linea: L.titulo } : null;
+}
+
+// --- Esquema compacto para la IA: qué puede pedir de cada línea/producto --------
+// ============================================================================
+//  EL CATÁLOGO QUE VE VONI
+//
+//  Rodrigo (2026-08-16): "¿sabe los precios Voni? Los tienes guardados, debería
+//  poder seleccionar de ahí. Y sí hay sillería: todos los presupuestos que te he
+//  mandado traen sillería con precios."
+//
+//  Tenía razón en las dos. El BANCO DE PRECIOS tiene 221 piezas con precio REAL
+//  de presupuestos cerrados —53 de ellas sillería— y Voni no veía ninguna:
+//  sólo recibía las 24 líneas de generador, que no incluyen sillas. Por eso
+//  contestaba "no hay sillería en el catálogo", que era verdad de la app y
+//  mentira del negocio, y dejaba fuera un pedazo grande de cada proyecto.
+//  Ahora recibe las dos cosas, y del banco recibe además el PRECIO, así que
+//  puede elegir con criterio de presupuesto en vez de a ciegas.
+// ============================================================================
+export function catalogoIA() {
+  const out = {};
+  for (const [ruta, L] of Object.entries(LINEAS_REG)) {
+    out[ruta] = {
+      titulo: L.titulo,
+      productos: L.productos.map((p) => {
+        const params = {};
+        if (p.largos) params.largoMM = p.largos;
+        if (p.fondos && p.fondos.length > 1) params.fondoMM = p.fondos;
+        if (p.diametros) params.diametroMM = p.diametros;
+        if (p.usuarios) params.usuarios = p.usuarios;
+        if (p.largosLateral) params.largoLateralMM = p.largosLateral;
+        if (p.biombo) params.biombo = [null, 'cristal', 'melamina'];
+        for (const sel of p.selects || []) params[sel.key] = sel.opciones.map((o) => o.id);
+        if (p.finishes) params.finish = p.finishes.map((f) => f.id);
+        const checks = (p.checks || []).map((c) => c.key);
+        return { id: p.id, nombre: p.nombre, params, checks };
+      }),
+    };
+  }
+  // El banco va como una "línea" más, con precio real por pieza. Se recorta a lo
+  // esencial: el prompt ya pesa 21 KB y no hace falta mandarle la descripción
+  // completa de cada mueble para que sepa elegir.
+  out.__banco = {
+    titulo: 'Banco de precios (piezas con PRECIO REAL de presupuestos cerrados)',
+    nota: 'Estas NO se configuran: se piden por id y cantidad. Aquí está la sillería.',
+    piezas: BANCO.map((b) => ({
+      id: b.id,
+      nombre: b.nombre,
+      categoria: b.categoria,
+      precio: b.precio,
+      ...(b.medidas ? { medidas: b.medidas } : {}),
+      ...(b.usuarios ? { usuarios: b.usuarios } : {}),
+    })),
+  };
+  return out;
+}
