@@ -29,6 +29,11 @@ node scripts/revisa-precios.mjs || {
 }
 
 echo "→ Corriendo las pruebas del motor…"
+node scripts/revisa-jerarquia.mjs >/dev/null || {
+  echo "✗ NO SE PUBLICA: una línea se salió de su jerarquía (la barata cotizando"
+  echo "  arriba de la cara, o al revés). Corre: node scripts/revisa-jerarquia.mjs"
+  exit 1
+}
 node scripts/revisa-alcanzables.mjs >/dev/null || {
   echo "✗ NO SE PUBLICA: hay precios reales sembrados en configuraciones que la"
   echo "  pantalla no puede armar. Corre: node scripts/revisa-alcanzables.mjs"

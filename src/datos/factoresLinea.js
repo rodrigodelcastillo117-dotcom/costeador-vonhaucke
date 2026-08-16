@@ -42,21 +42,146 @@ export const OBJETIVO_LINEA = {
   luna: 2.80,
 };
 
-// Lo que cotizaba cada línea ANTES de esta calibración, medido sobre un
-// escritorio/bench comparable y expresado en múltiplos de App LT. Queda escrito
-// para poder rehacer la cuenta y para ver de dónde salió cada factor.
-const MEDIDO_ANTES = {
-  applt: 1.00, feather: 0.85, flex: 0.336, via: 1.32,
-  app: 1.00, rio: 0.95, alba: 0.54, cirque: 0.51, luna: 2.24,
-};
+// ============================================================================
+//  ⚠️ POR FAMILIA, NO POR LÍNEA (2026-08-16)
+//
+//  Antes había UN factor por línea, despejado con UNA sola medición hecha sobre
+//  un ESCRITORIO. Auditado producto por producto, el resultado fue contundente:
+//  el escritorio cerraba contra su objetivo en 8 de 8 líneas y el BENCH fallaba
+//  en 7 de 7. Los peores:
+//        Flex   objetivo 1.07 · escritorio 1.25 ✓ · bench 3.39 ✗  (la línea BARATA)
+//        Vía    objetivo 1.09 · escritorio 1.06 ✓ · bench 2.18 ✗
+//        Alba   objetivo 1.55 · escritorio 1.64 ✓ · bench 0.62 ✗  (al revés)
+//
+//  La razón es de oficio, no de código: una banca comparte estructura entre dos
+//  hileras y un escritorio no. El mismo múltiplo no puede servir para los dos.
+//
+//  ESTA TABLA NO SE ESCRIBE A MANO. La regenera `scripts/calibra-jerarquia.mjs`,
+//  que mide el modelo CRUDO (sin factores) contra App LT:
+//        node scripts/calibra-jerarquia.mjs --escribe
+//  Las familias cuyo precio sale de un PRESUPUESTO REAL no entran: el papel ya
+//  manda sobre el modelo y meterle factor sería moverle a un dato duro.
+// ============================================================================
+export const FAMILIAS = ['bench', 'escritorio', 'juntas', 'guarda'];
 
-// factor = objetivo ÷ lo que cotizaba. Se calcula aquí para que no haya números
-// mágicos sueltos: cambiar el objetivo recalcula el factor solo.
+// A qué familia pertenece un producto. Cada línea los nombra distinto, así que
+// se decide por lo que el mueble HACE, no por su id.
+export function familiaDe(productoId, nombre = '') {
+  const t = `${productoId} ${nombre}`.toLowerCase();
+  if (/banca|bench|estacion|teamspace/.test(t)) return 'bench';
+  if (/junta|mesa_circ|mesa circular|consejo/.test(t)) return 'juntas';
+  if (/credenza|archivero|guarda|librero|pedestal|rodante|gaveta/.test(t)) return 'guarda';
+  return 'escritorio';
+}
+
+/* CALIBRA:INICIO */
+export const MEDIDO_ANTES = {
+  "applt": {
+    "bench": 1,
+    "escritorio": 1,
+    "juntas": 1
+  },
+  "app": {
+    "bench": 1,
+    "escritorio": 1,
+    "juntas": 1
+  },
+  "via": {
+    "bench": 2.637,
+    "escritorio": 1.278
+  },
+  "rio": {
+    "bench": 1.068
+  },
+  "feather": {
+    "bench": 0.939,
+    "escritorio": 0.893
+  },
+  "cirque": {
+    "bench": 0.385,
+    "escritorio": 0.512,
+    "juntas": 0.583
+  },
+  "spine": {
+    "escritorio": 0.489
+  },
+  "ergo4": {
+    "bench": 1.632,
+    "escritorio": 2.802
+  },
+  "alba": {
+    "bench": 0.215,
+    "escritorio": 0.572,
+    "juntas": 0.868
+  },
+  "eclipse": {
+    "escritorio": 4.425,
+    "juntas": 1.13
+  },
+  "drift": {
+    "escritorio": 1.057
+  },
+  "luna": {
+    "escritorio": 2.454,
+    "juntas": 3.309
+  },
+  "flex": {
+    "bench": 1.066,
+    "escritorio": 0.394
+  },
+  "anteo": {
+    "escritorio": 10.809,
+    "juntas": 1.408
+  },
+  "modulor": {
+    "escritorio": 0.368
+  },
+  "tetris": {
+    "escritorio": 0.713
+  },
+  "arlequin": {
+    "escritorio": 0.226
+  },
+  "pac": {
+    "escritorio": 0.812
+  },
+  "worklounge": {
+    "escritorio": 0.72
+  },
+  "pebble": {
+    "escritorio": 0.331
+  },
+  "accents": {
+    "bench": 0.572,
+    "escritorio": 0.111
+  },
+  "teamspace2": {
+    "escritorio": 0.56
+  },
+  "privacy4": {
+    "escritorio": 1.307
+  }
+};
+/* CALIBRA:FIN */
+
+// factor = objetivo ÷ lo que cotiza el modelo crudo EN ESA FAMILIA. Si la
+// familia no está medida, cae al promedio de la línea; si la línea no tiene
+// objetivo comercial, no se toca nada.
+export function factorFamilia(ruta, familia) {
+  const obj = OBJETIVO_LINEA[ruta];
+  if (!obj) return 1;
+  const fila = MEDIDO_ANTES[ruta] || {};
+  let antes = fila[familia];
+  if (antes == null) {
+    const vals = Object.values(fila).filter((v) => v > 0);
+    antes = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 1;
+  }
+  return antes > 0 ? Math.round((obj / antes) * 1000) / 1000 : 1;
+}
+
+// Se conserva para lo que todavía lo lee y para comparar de un vistazo.
 export const FACTOR_LINEA = Object.fromEntries(
-  Object.entries(OBJETIVO_LINEA).map(([ruta, obj]) => {
-    const antes = MEDIDO_ANTES[ruta] || 1;
-    return [ruta, Math.round((obj / antes) * 1000) / 1000];
-  }),
+  Object.keys(OBJETIVO_LINEA).map((r) => [r, factorFamilia(r, 'escritorio')]),
 );
 
 // ---- AJUSTE FINO POR PRODUCTO ---------------------------------------------
@@ -83,5 +208,9 @@ export const AJUSTE_PRODUCTO = {
   // revés de la realidad, porque Luna es la más cara de las dos.
 };
 
-export const factorDeLinea = (ruta, producto) =>
-  (FACTOR_LINEA[ruta] || 1) * (AJUSTE_PRODUCTO[`${ruta}.${producto}`] ?? 1);
+export const factorDeLinea = (ruta, producto) => {
+  // La bandera la pone `scripts/calibra-jerarquia.mjs` para medir el modelo
+  // desnudo. Sin ella, calibrar sería medirse a sí mismo.
+  if (globalThis.__SIN_FACTOR_LINEA) return 1;
+  return factorFamilia(ruta, familiaDe(producto)) * (AJUSTE_PRODUCTO[`${ruta}.${producto}`] ?? 1);
+};
