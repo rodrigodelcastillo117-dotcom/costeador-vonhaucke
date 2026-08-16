@@ -13,6 +13,7 @@
 // ============================================================================
 import { useEffect, useState } from 'react';
 import { todasLasReglas, cargarReglas, guardarRegla, borrarRegla, REGLAS_DEFAULT } from '../datos/reglas.js';
+import { cargarAprendizajes, aprendizajes as leerAprendizajes, olvidar, marcarComoRegla } from '../datos/aprendizaje.js';
 
 const AMBITOS = {
   acomodo: 'Acomodo en el espacio',
@@ -31,11 +32,14 @@ export default function Reglas({ puedeEditar = false }) {
   const [error, setError] = useState('');
   const [nueva, setNueva] = useState(null);
   const [editando, setEditando] = useState(null);
+  const [aprendido, setAprendido] = useState([]);
 
   async function refrescar() {
     setCargando(true);
     await cargarReglas();
     setReglas(todasLasReglas());
+    await cargarAprendizajes();
+    setAprendido(leerAprendizajes());
     setCargando(false);
   }
   useEffect(() => { refrescar(); }, []);
@@ -43,7 +47,11 @@ export default function Reglas({ puedeEditar = false }) {
   async function guardar(r) {
     setError('');
     if (!r.texto?.trim()) { setError('Escribe la regla con tus palabras.'); return; }
-    try { await guardarRegla(r); setNueva(null); setEditando(null); await refrescar(); }
+    try {
+      await guardarRegla(r);
+      if (r._deAprendizaje) await marcarComoRegla(r._deAprendizaje, r.clave || r.texto.slice(0, 40));
+      setNueva(null); setEditando(null); await refrescar();
+    }
     catch (e) { setError('No se pudo guardar: ' + (e?.message || e)); }
   }
   async function borrar(id) {
@@ -77,6 +85,44 @@ export default function Reglas({ puedeEditar = false }) {
           <button className="boton primario" style={{ minHeight: 44 }} onClick={() => setNueva(vacia())}>
             + Enseñarle una regla
           </button>
+        )}
+        {/* LO QUE VONI APRENDIÓ SOLA. Distinto de una regla: una regla la dicta la
+            Dirección y no caduca; una lección la produce un vendedor al corregir a
+            Voni en un proyecto y se puede quitar de un clic si salió mala. Se
+            muestran aquí para que nada de lo que Voni "sabe" sea invisible. */}
+        {!cargando && aprendido.length > 0 && (
+          <div style={{ marginTop: 22 }}>
+            <h3 style={{ marginBottom: 4 }}>Lo que ha aprendido sola</h3>
+            <p className="ayuda columna-texto">
+              Cada vez que alguien le aclara algo, Voni lo guarda y lo toma en cuenta en el siguiente
+              pedido, sin que nadie tenga que aprobarlo. Si una lección salió mal, quítasela.
+              Si es de las que valen para siempre, conviértela en regla.
+            </p>
+            <ul className="lista-reglas" style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 8 }}>
+              {aprendido.map((a) => (
+                <li key={a.id} className="tarjeta" style={{ padding: 12, display: 'grid', gap: 6 }}>
+                  <div>{a.texto}</div>
+                  <div className="ayuda">
+                    {new Date(a.creado).toLocaleDateString('es-MX')}
+                    {(a.veces || 1) > 1 && <> · <strong>corregida {a.veces} veces</strong></>}
+                    {a.regla_clave && <> · ya es regla</>}
+                  </div>
+                  {puedeEditar && (
+                    <div className="fila-botones" style={{ gap: 8 }}>
+                      <button className="boton fantasma" style={{ minHeight: 40 }}
+                        onClick={() => setNueva({ ...vacia(), texto: a.texto, ambito: 'cotizacion', _deAprendizaje: a.id })}>
+                        Convertirla en regla
+                      </button>
+                      <button className="boton fantasma" style={{ minHeight: 40 }}
+                        onClick={async () => { if (confirm('¿Que Voni olvide esta lección?')) { await olvidar(a.id); setAprendido(leerAprendizajes()); } }}>
+                        Que la olvide
+                      </button>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
         {nueva && <Editor r={nueva} setR={setNueva} onGuardar={() => guardar(nueva)} onCancelar={() => setNueva(null)} />}
       </div>

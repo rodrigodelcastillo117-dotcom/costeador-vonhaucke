@@ -14,6 +14,14 @@ import { useMemo, useRef, useState } from 'react';
 import { catalogoIA, costearItem } from '../datos/lineas.js';
 import { BANCO } from '../datos/banco.js';
 import { cotizarTexto } from '../nube.js';
+import { anotar } from '../datos/aprendizaje.js';
+
+// Un pedido puede traer párrafos; la lección se guarda con una pista corta para
+// que se entienda al leerla en pantalla sin volver a abrir el proyecto.
+const resumenCorto = (t) => {
+  const s = String(t || '').replace(/\s+/g, ' ').trim();
+  return s.length > 90 ? s.slice(0, 90) + '…' : s;
+};
 import Cargando from './Cargando.jsx';
 
 // Un botón que dice "Ejemplo 1" no le dice nada a nadie: se nombran por el
@@ -101,10 +109,22 @@ export default function CotizadorIA({ estado, onAgregarItems, onIr, verCotizacio
 
   // Voni pregunta y aquí se le contesta: la respuesta se pega al pedido
   // original (no hay que repetirlo) y se rehace la lista.
+  //
+  // Y AQUÍ ES DONDE VONI APRENDE. Esta aclaración es la corrección más valiosa
+  // que existe —el vendedor está diciendo con sus palabras qué le faltó
+  // entender— y hasta hoy se pegaba a un useState y moría al recargar la
+  // página. Ahora se guarda, y viaja de vuelta dentro del siguiente pedido.
   async function responder() {
     const r = respuesta.trim();
     if (!r) return;
     const nuevo = `${texto.trim()}\n\nAclaraciones: ${r}`;
+    // No se espera: aprender no puede hacerle esperar un segundo al vendedor.
+    anotar({
+      tipo: 'aclaracion',
+      pedido: texto.trim(),
+      texto: `Si el pedido se parece a "${resumenCorto(texto)}", ten en cuenta desde el principio: ${r}`,
+      usuario: estado?.usuario?.correo || null,
+    });
     setTexto(nuevo);
     await interpretar(nuevo);
   }

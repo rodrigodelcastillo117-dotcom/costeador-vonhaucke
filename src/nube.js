@@ -5,6 +5,7 @@
 //  Si no hay internet, la app sigue con lo local (ver almacen.js).
 // ============================================================================
 import { reglasTexto } from './datos/reglas.js';
+import { aprendizajesTexto } from './datos/aprendizaje.js';
 import { createClient } from '@supabase/supabase-js';
 
 const URL = 'https://mtuvnbgljwbsaizjjgzs.supabase.co';
@@ -144,7 +145,7 @@ export async function cotizarTexto(texto, catalogo) {
   // Las reglas de oficio que Rodrigo dicta en "Lo que Voni sabe" viajan CON el
   // pedido. Sin esta línea la pantalla enseñaba reglas que el modelo nunca veía.
   const { data, error } = await nube.functions.invoke('cotizar-texto', {
-    body: { texto, catalogo, reglas: reglasTexto('cotizacion') },
+    body: { texto, catalogo, reglas: reglasTexto('cotizacion'), aprendizajes: aprendizajesTexto() },
   });
   if (error) {
     let msg = error.message || 'No se pudo interpretar el texto.';

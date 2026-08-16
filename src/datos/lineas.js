@@ -150,8 +150,15 @@ const FONDO_MAX = 1500;   // más de 1.5 m de fondo no es un mueble, es un error
 
 export function footprintDe(componentes, nombre = '') {
   const conMedida = (componentes || []).filter((c) => c.largoMM && c.anchoMM);
-  // 1) La cubierta, si el despiece la nombra.
-  const cubierta = conMedida.find((c) => /cubierta|tapa|cubiert|superficie/i.test(c.nombre || ''));
+  // 1) La cubierta, si el despiece la nombra. OJO: `.find()` devolvía la PRIMERA
+  //    que pegara con el patrón, y "tapa registrable" pega — mide 152 mm y le
+  //    ganaba a la "Cubierta" de 1200. Resultado: una mesa de juntas de 1.80 m
+  //    dibujada de 15 cm, que el acomodo mete en cualquier rendija.
+  //    Se toma la de MÁS ÁREA, y una "cubierta" siempre le gana a una "tapa".
+  const mayorPor = (re) => (componentes || [])
+    .filter((c) => c.largoMM && c.anchoMM && re.test(c.nombre || ''))
+    .sort((a, b) => b.largoMM * b.anchoMM - a.largoMM * a.anchoMM)[0];
+  const cubierta = mayorPor(/cubierta|cubiert|superficie/i) || mayorPor(/tapa/i);
   if (cubierta) return { w: cubierta.largoMM, d: cubierta.anchoMM };
   // 2) La pieza de más área con un FONDO creíble.
   let w = 0, d = 0, area = 0;

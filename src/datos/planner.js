@@ -8,6 +8,7 @@
 // ============================================================================
 
 import { acomodarEnForma } from './malla.js';
+import { regla } from './reglas.js';
 
 const PERIM = 700;      // circulación perimetral contra muro (paso)
 const WALL = 60;        // holgura mínima al muro para guardas (pegadas)
@@ -112,14 +113,23 @@ export function acomodarLocal(areas, piezas, opts = {}) {
     const { out, W, L } = empacarTodoGarantizado(base, piezas, true);
     const colocacion = out.map((o) => ({ id: o.id, area: 0, x: o.x, y: o.y, rot: o.rot }));
     const nuevasAreas = [{ nombre: base.nombre || 'Mi espacio', ancho: W, largo: L }];
+    // Esto ERA una constante de cuatro `ok: true` escritos a mano. Con el plano
+    // vacío seguía diciendo "✓ 17 de 17 colocadas". Un cartel verde que miente es
+    // peor que no tener cartel: el proyectista no tiene cómo saber que miente.
+    const todas = colocacion.length === piezas.length;
+    const circulacion = regla('circulacion_min') ?? 900;
     const auditoria = [
-      { check: 'Todas las piezas colocadas', ok: true, detalle: `${colocacion.length} de ${piezas.length}` },
-      { check: 'Nada encimado', ok: true, detalle: 'garantizado por el motor' },
-      { check: 'Circulación entre filas', ok: true, detalle: `${(1.1).toFixed(2)} m` },
-      { check: 'Circulación perimetral', ok: true, detalle: `${(PERIM / 1000).toFixed(1)} m contra muros` },
+      { check: 'Todas las piezas colocadas', ok: todas, detalle: `${colocacion.length} de ${piezas.length}` },
+      { check: 'Nada encimado', ok: true, detalle: 'el motor coloca una por una sin traslape' },
+      { check: 'Circulación perimetral', ok: PERIM >= circulacion,
+        detalle: `${(PERIM / 1000).toFixed(2)} m contra muros (la regla pide ${(circulacion / 1000).toFixed(2)} m)` },
+      { check: 'Circulación entre filas', ok: GX >= circulacion,
+        detalle: `${(GX / 1000).toFixed(2)} m entre muebles (la regla pide ${(circulacion / 1000).toFixed(2)} m)` },
     ];
     return { colocacion, zonas: [], caben: true, areas: nuevasAreas, notas: [], auditoria,
-      resumen: `Los ${piezas.length} muebles quedan acomodados por zonas, con pasillos y circulación. Todo cabe.` };
+      resumen: todas
+        ? `Los ${piezas.length} muebles quedan acomodados por zonas, con pasillos y circulación.`
+        : `Se acomodaron ${colocacion.length} de ${piezas.length} muebles. Los demás no cupieron.` };
   }
 
   // ---- PLANO REAL DE VARIOS CUARTOS ----

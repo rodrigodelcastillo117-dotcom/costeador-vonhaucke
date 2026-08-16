@@ -50,6 +50,7 @@ import Login from './componentes/Login.jsx';
 import Usuarios from './componentes/Usuarios.jsx';
 import Reglas from './componentes/Reglas.jsx';
 import { cargarReglas } from './datos/reglas.js';
+import { cargarAprendizajes } from './datos/aprendizaje.js';
 import { cargar, guardar, PARAMS_SENSIBLES } from './almacen.js';
 import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso } from './nube.js';
 import { calcular } from './motor/calculo.js';
@@ -240,6 +241,7 @@ export default function App() {
     // si la base no contesta se queda con los mismos valores por omisión en vez
     // de inventarse otros.
     cargarReglas();
+    cargarAprendizajes();   // lo que Voni ya aprendió, para que no lo vuelva a preguntar
     return () => { vivo = false; };
   }, [sesion]);
 

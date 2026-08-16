@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
 
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, error: "JSON invalido" }, 400); }
-  const { texto, catalogo, reglas } = body || {};
+  const { texto, catalogo, reglas, aprendizajes } = body || {};
   if (!texto || !String(texto).trim()) return json({ ok: false, error: "Falta el texto a cotizar." }, 400);
   if (!catalogo) return json({ ok: false, error: "Falta el catalogo." }, 400);
 
@@ -114,6 +114,16 @@ Deno.serve(async (req) => {
       ? "\n\nREGLAS DE LA CASA (las dicta la Direccion de Von Haucke y MANDAN sobre " +
         "cualquier criterio anterior; si alguna contradice lo de arriba, obedece esta y " +
         "dilo en 'nota'):\n" + reglas.join("\n") + "\n"
+      : "") +
+    // LO QUE YA TE CORRIGIERON. Cada vez que un vendedor aclara algo que Voni no
+    // entendio, esa leccion queda guardada y vuelve aqui dentro del siguiente
+    // pedido. Es como aprende sin que nadie tenga que aprobar nada: rapido y
+    // reversible. Van DESPUES de las reglas de la casa porque pesan menos: una
+    // leccion es la experiencia de un vendedor, una regla es la voz de Direccion.
+    (Array.isArray(aprendizajes) && aprendizajes.length
+      ? "\n\nLO QUE YA TE CORRIGIERON ANTES (aprende de esto y NO lo vuelvas a " +
+        "repetir; si algo de aqui no aplica a este pedido, ignoralo y ya):\n" +
+        aprendizajes.join("\n") + "\n"
       : "") +
     "\nCATALOGO (JSON: ruta -> {titulo, productos:[{id, nombre, params:{clave:[valores permitidos]}, checks:[nombres]}]}):\n" +
     JSON.stringify(catalogo);
