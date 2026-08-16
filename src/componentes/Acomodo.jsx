@@ -509,8 +509,15 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
     // proyectista mira otras dos cosas: cuántos PUESTOS quedaron y cuántos m²
     // hay por persona (7–10 m² es lo normal en oficina).
     const colocadasIds = new Set((plan.colocacion || []).map((c) => c.id));
+    // Una banca DOBLE (fondo ≥ 1000 mm) sienta a dos personas de frente por cada
+    // columna: cuenta doble. Antes se dividía sólo el largo entre 1.50 y salía la
+    // mitad de los puestos reales.
     const puestos = piezas.filter((p) => p.tipo === 'escritorio' && colocadasIds.has(p.id))
-      .reduce((n, p) => n + Math.max(1, Math.round(Math.max(p.w, p.d) / 1500)), 0);
+      .reduce((n, p) => {
+        const largo = Math.max(p.w, p.d), fondo = Math.min(p.w, p.d);
+        const columnas = Math.max(1, Math.round(largo / 1500));
+        return n + columnas * (fondo >= 1000 ? 2 : 1);
+      }, 0);
     const sinColocar = piezas.length - colocadasIds.size;
     const areaPiso = areasMM.reduce((s, a) => s + a.ancho * a.largo, 0) / 1e6;   // m²
     // "Todo cabe" tiene que significar TODO: antes decía que sí mientras el

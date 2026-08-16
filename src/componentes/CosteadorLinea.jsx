@@ -231,7 +231,9 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
             <div className="ayuda" style={{ color: '#9a6a00' }}>≈ Estimado por el modelo{esIntelisis ? ' (Intelisis)' : ''} — aún sin precio real de esta config</div>
           )}
           <div className="ayuda gris" style={{ fontSize: 11 }}>
-            Precio de lista (el precio 2 ya lleva su 40%); el descuento de proyecto va aparte.{!soloVentas && <> Costo: <strong className="mono">{pesos(costoModulo)}</strong></>}
+            {soloVentas
+              ? <>Éste es el <strong>precio de venta</strong>. El descuento de proyecto se aplica al final, en la cotización.</>
+              : <>Precio de lista (el precio 2 ya lleva su 40%); el descuento de proyecto va aparte. Costo: <strong className="mono">{pesos(costoModulo)}</strong></>}
           </div>
           {addons.length > 0 && (
             <div style={{ marginTop: 10, borderTop: '1px solid rgba(0,0,0,.1)', paddingTop: 8 }}>

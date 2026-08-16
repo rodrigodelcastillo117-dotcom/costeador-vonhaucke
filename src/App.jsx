@@ -459,11 +459,11 @@ export default function App() {
   function onGuardarPieza(resultado) {
     const id = costeo.piezaId || idNuevo('pieza');
     const pieza = { ...costeo, id, piezaId: id, costoUnitario: resultado?.costoUnitario ?? null };
-    setEstado((e) => {
-      const previas = e.piezas || [];
-      const sinLaVieja = previas.filter((x) => (x.id || x.piezaId) !== id);
-      return { ...e, piezas: [...sinLaVieja, pieza] };
-    });
+    // `estado.piezas` es un OBJETO id→pieza (ver almacen.js), no un arreglo.
+    // Antes esto hacía `.filter()` encima y tronaba con "previas.filter is not a
+    // function": el botón de guardar un especial NUNCA funcionó, y el mensaje de
+    // error decía "No perdiste nada" cuando en realidad se perdía todo.
+    setEstado((e) => ({ ...e, piezas: { ...(e.piezas || {}), [id]: pieza } }));
     setCosteo((c) => ({ ...c, piezaId: id }));
     mostrarAviso(`Guardada la pieza: ${pieza.nombre || 'sin nombre'}`);
   }

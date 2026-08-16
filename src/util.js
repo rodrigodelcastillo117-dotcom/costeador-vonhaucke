@@ -15,6 +15,82 @@ export function pct(n) {
   return Math.round(n) + '%';
 }
 
+// Lee un porcentaje TECLEADO por una persona y lo devuelve seguro.
+// Nace de tres cosas reales que se cachan auditando la pantalla de cotización:
+//   · el `max` de un <input type=number> NO impide teclear: con 999 salía una
+//     propuesta con TOTAL NEGATIVO y se descargaba sin chistar;
+//   · un número negativo se convertía en un RECARGO invisible, porque el renglón
+//     que lo explica sólo se pinta cuando el descuento es mayor que cero;
+//   · "12,5" con coma —como escribe cualquiera en México— se volvía 0% callado.
+export function leePct(valor, maximo = 100) {
+  const n = parseFloat(String(valor).replace(',', '.'));
+  if (!isFinite(n)) return 0;
+  return Math.min(maximo, Math.max(0, n));
+}
+
+// ---------------------------------------------------------------------------
+//  BUSCADOR — pensado para cómo teclea un vendedor, no para cómo guarda la base.
+//
+//  Lo que estaba roto y se midió sobre el banco real:
+//    "bench 6 lugares" → 0 · "mesa juntas" → 0 · "archivero 2 cajones" → 0
+//    "arlequin" → 0 y "arlequín" → 0 · "1200 x 600" → 0 (sólo con el signo ×)
+//    "rio" → 82 resultados basura, porque "rio" vive dentro de "escrito-rio-",
+//            y la línea Río ni aparecía.
+//  Causa: se buscaba la frase PEGADA contra el texto crudo. Dos palabras y ya
+//  no encontraba nada.
+//
+//  Ahora: sin acentos, cada palabra por separado y TODAS tienen que aparecer.
+//  Las palabras cortas (≤3 letras, como "rio" o "app") sólo valen si son
+//  palabra completa; así "rio" deja de traer los 82 escritorios.
+// ---------------------------------------------------------------------------
+export function sinAcentos(s) {
+  return String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+
+// Un vendedor no escribe como está guardada la base. Dice "6 lugares" y en el
+// papel dice "6 usuarios"; dice "1.20" y la base guarda "1200 mm"; dice "juntas"
+// y el renglón dice "junta". Cada palabra de la consulta se abre a sus sinónimos
+// y basta con que pegue UNO. Esta tabla se alimenta de lo que él teclea, no de
+// lo que el sistema guarda: si vuelve a fallar una búsqueda, se agrega aquí.
+const SINONIMOS = {
+  lugar: ['usuario', 'puesto'], lugares: ['usuarios', 'puestos'],
+  puesto: ['usuario', 'lugar'], puestos: ['usuarios', 'lugares'],
+  persona: ['usuario'], personas: ['usuarios'],
+  junta: ['juntas', 'reunion', 'sala'], juntas: ['junta', 'reunion', 'sala'],
+  cajonera: ['gaveta', 'pedestal'], gaveta: ['cajonera', 'pedestal'],
+  archivero: ['archivo'], credenza: ['guarda'],
+  banca: ['bench'], bench: ['banca'],
+  mampara: ['biombo'], biombo: ['mampara', 'semimampara'],
+  escritorio: ['modulo'], silla: ['silleria'], sillon: ['silleria', 'sofa'],
+  recepcion: ['recepciones'], privado: ['gerente', 'gerencial', 'direccion'],
+};
+
+// "1.20" y "1.5" son la misma medida que "1200" y "1500" en la base.
+function enMilimetros(w) {
+  const m = /^(\d)\.(\d{1,2})$/.exec(w);
+  if (!m) return null;
+  return String(Math.round(parseFloat(w) * 1000));
+}
+
+export function palabrasBusqueda(consulta) {
+  // La "×" del papel y la "x" del teclado son la misma cosa para quien busca.
+  return sinAcentos(consulta).replace(/×/g, 'x').split(/[^a-z0-9.]+/).filter(Boolean);
+}
+
+export function coincide(consulta, ...campos) {
+  const ws = palabrasBusqueda(consulta);
+  if (!ws.length) return true;
+  const heno = sinAcentos(campos.filter(Boolean).join(' ')).replace(/×/g, 'x');
+  const pega = (w) => (w.length <= 3
+    ? new RegExp(`(^|[^a-z0-9])${w}([^a-z0-9]|$)`).test(heno)
+    : heno.includes(w));
+  return ws.every((w) => {
+    const mm = enMilimetros(w);
+    const opciones = [w, ...(SINONIMOS[w] || []), ...(mm ? [mm] : [])];
+    return opciones.some(pega);
+  });
+}
+
 export function pct1(n) {
   if (n == null || isNaN(n) || !isFinite(n)) return '0%';
   return n.toFixed(1) + '%';

@@ -4,6 +4,7 @@
 //  renglon. Cuando alguien lo actualiza, a todos se les propaga en vivo.
 //  Si no hay internet, la app sigue con lo local (ver almacen.js).
 // ============================================================================
+import { reglasTexto } from './datos/reglas.js';
 import { createClient } from '@supabase/supabase-js';
 
 const URL = 'https://mtuvnbgljwbsaizjjgzs.supabase.co';
@@ -140,8 +141,10 @@ export async function analizarRender(catalogo, image, mediaType) {
 
 // Cotizador conversacional: texto natural -> items estructurados (Claude).
 export async function cotizarTexto(texto, catalogo) {
+  // Las reglas de oficio que Rodrigo dicta en "Lo que Voni sabe" viajan CON el
+  // pedido. Sin esta línea la pantalla enseñaba reglas que el modelo nunca veía.
   const { data, error } = await nube.functions.invoke('cotizar-texto', {
-    body: { texto, catalogo },
+    body: { texto, catalogo, reglas: reglasTexto('cotizacion') },
   });
   if (error) {
     let msg = error.message || 'No se pudo interpretar el texto.';

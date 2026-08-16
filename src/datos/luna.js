@@ -175,7 +175,9 @@ export function generarLuna(config) {
       cubierta(comp, Lc, 600, acab, 'Cubierta credenza baja');
       faldon(comp, Lc, 680, acab, 'Faldón credenza baja'); // faldón credenza baja alto 68 cm
       // Riel deslizador: lámina negra cal.14 + MDF 28 (LUCR7 / LUCR8).
-      comp.push({ insumoId: LAMINA14, nombre: 'Riel deslizador (lámina cal.14 + MDF 28)', cantidad: 1, largoMM: Lc, anchoMM: 640 });
+      // ⚠️ UNIDAD: la lámina se compra por KG (formato en kg + fraccion), no por m².
+      // Pasarle largoMM/anchoMM la cobraba 14.9x barata. 14.92 kg/m² es el cal.14.
+      comp.push({ insumoId: LAMINA14, nombre: 'Riel deslizador (lámina cal.14 + MDF 28)', cantidad: (Lc / 1000) * 0.640 * 14.92 });
       comp.push({ insumoId: LAMINA, nombre: 'Ducto credenza (LUDU1500, lámina cal.20)', cantidad: 3 });
       claves.push('LUCR' + idxCred(Lc) + 'IN', sufCubC, 'LUFA' + idxFa(Lc) + 'CR' + acab.sufFald,
         'LUCR' + idxFa(Lc), 'LUDU1500');

@@ -5,7 +5,7 @@
 import { useState, useMemo } from 'react';
 import { BANCO, BANCO_CATEGORIAS, BANCO_FUENTES, BANCO_LINEAS } from '../datos/banco.js';
 import { CATALOGO_INDEX, CATALOGO_LINEAS } from '../datos/catalogoIndex.js';
-import { pesos } from '../util.js';
+import { pesos, coincide} from '../util.js';
 
 export default function Banco({ onAgregar, onIr }) {
   const [busca, setBusca] = useState('');
@@ -22,8 +22,7 @@ export default function Banco({ onAgregar, onIr }) {
       if (!q) return true;
       // Se busca por TODO lo que un vendedor recuerda: línea, clave de sistema,
       // medidas, y también la redacción literal del presupuesto.
-      return `${p.nombre} ${p.descripcion || ''} ${p.clave || ''} ${p.medidas || ''} ${p.material || ''} ${p.linea || ''}`
-        .toLowerCase().includes(q);
+      return coincide(q, p.nombre, p.descripcion, p.clave, p.medidas, p.material, p.linea, p.categoria);
     });
   }, [q, cat, linea]);
 
@@ -37,7 +36,7 @@ export default function Banco({ onAgregar, onIr }) {
   const catalogo = useMemo(() => CATALOGO_INDEX.filter((p) => {
     if (linea !== 'todas' && p.linea !== linea) return false;
     if (!q) return true;
-    return `${p.linea} ${p.nombre} ${p.medidas} ${p.opciones} ${p.claves}`.toLowerCase().includes(q);
+    return coincide(q, p.linea, p.nombre, p.medidas, p.opciones, p.claves);
   }), [q, linea]);
   const catPorLinea = {};
   for (const p of catalogo) (catPorLinea[p.linea] ||= []).push(p);

@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
 
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, error: "JSON invalido" }, 400); }
-  const { texto, catalogo } = body || {};
+  const { texto, catalogo, reglas } = body || {};
   if (!texto || !String(texto).trim()) return json({ ok: false, error: "Falta el texto a cotizar." }, 400);
   if (!catalogo) return json({ ok: false, error: "Falta el catalogo." }, 400);
 
@@ -104,7 +104,18 @@ Deno.serve(async (req) => {
     "8) JERARQUIA DE LINEAS OPERATIVAS, de mas premium a mas economica: CIRQUE > RIO > APP LT. " +
     "Si el texto no dice el nivel, usa App LT (la de volumen) y menciona en 'nota' que existe la " +
     "version premium.\n\n" +
-    "CATALOGO (JSON: ruta -> {titulo, productos:[{id, nombre, params:{clave:[valores permitidos]}, checks:[nombres]}]}):\n" +
+    // REGLAS DEL OFICIO — las dicta Rodrigo desde la pantalla "Lo que Voni sabe"
+    // (tabla `reglas` en Supabase). Hasta el 2026-08-16 esta tabla NO llegaba a
+    // ningun modelo: `reglasTexto()` estaba exportada y no la llamaba nadie, asi
+    // que la pantalla enseñaba reglas que Voni no sabia. Van al FINAL y con
+    // prioridad explicita para que ganen sobre lo de arriba: son la voz del
+    // dueño del negocio y se actualizan sin volver a publicar nada.
+    (Array.isArray(reglas) && reglas.length
+      ? "\n\nREGLAS DE LA CASA (las dicta la Direccion de Von Haucke y MANDAN sobre " +
+        "cualquier criterio anterior; si alguna contradice lo de arriba, obedece esta y " +
+        "dilo en 'nota'):\n" + reglas.join("\n") + "\n"
+      : "") +
+    "\nCATALOGO (JSON: ruta -> {titulo, productos:[{id, nombre, params:{clave:[valores permitidos]}, checks:[nombres]}]}):\n" +
     JSON.stringify(catalogo);
 
   const apiBody = {

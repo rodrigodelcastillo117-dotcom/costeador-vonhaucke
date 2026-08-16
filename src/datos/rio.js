@@ -412,7 +412,13 @@ function addBiombo(comp, claves, familia, largo, biomboId, permiteLP) {
     : SUF_BIOC[nearest(largo, [900, 1050, 1200, 1500, 1800, 2000])];
   const key = `${familia}${suf}${b.suf}`;
   const alto = familia === 'RIBIOP' ? 827 : (familia === 'RIBIO' ? 400 : 560);
-  comp.push({ insumoId: b.insumo, nombre: `Biombo ${familia === 'RIBIOP' ? 'faldón' : (familia === 'RIBIO' ? 'curvo' : 'recto')} ${b.label} (${key})`, cantidad: 1, largoMM: largo, anchoMM: alto });
+  // ⚠️ UNIDAD: el acrílico y el PET se costean por ÁREA (largo×alto), pero la
+  // LÁMINA PERFORADA se compra por KG. Pasarle largoMM/anchoMM la dejaba 7.2x
+  // barata y ningún revisor lo veía, porque el precio del insumo sí está bien:
+  // lo que estaba mal era CÓMO lo consume el despiece.
+  const nomBio = `Biombo ${familia === 'RIBIOP' ? 'faldón' : (familia === 'RIBIO' ? 'curvo' : 'recto')} ${b.label} (${key})`;
+  if (b.insumo === LAMINA) comp.push({ insumoId: LAMINA, nombre: nomBio, cantidad: (largo / 1000) * (alto / 1000) * 7.16 });
+  else comp.push({ insumoId: b.insumo, nombre: nomBio, cantidad: 1, largoMM: largo, anchoMM: alto });
   comp.push({ insumoId: 'lamina-20', nombre: 'Faldón/soportes metálicos biombo (lámina)', cantidad: 0.2 * (largo / 1000) * 7.16 });
   if (curva) comp.push({ insumoId: CURVADO, nombre: `Ruteado + canteado en curva — biombo (${key})`, cantidad: Math.round(2 * arco(largo)) / 1000 });
   claves.push(key);

@@ -8,7 +8,7 @@ import MarcaLogo from './MarcaLogo.jsx';
 import { resumenPorArea, especificacion } from '../datos/resumen.js';
 import { descargarPropuesta, cargarFotos } from '../datos/pdfPropuesta.js';
 import EditarPartida, { sePuedeEditar } from './EditarPartida.jsx';
-import { pesos, pct, colorMargen, selloPartida } from '../util.js';
+import { pesos, pct, leePct, colorMargen, selloPartida } from '../util.js';
 import { imagenProducto, heroLinea } from '../datos/imagenes.js';
 import { expandirPiezas, mapaPiezas } from '../datos/espacio.js';
 import { generarRender } from '../nube.js';
@@ -294,12 +294,20 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         <div className="tarjeta no-imprimir" style={{ display: 'grid', gap: 10 }}>
           <div className="fila-botones" style={{ justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <label className="etiqueta" style={{ margin: 0 }}>Descuento de proyecto (%)</label>
-            <input type="number" className="numero" style={{ width: 90 }} min="0" max="60" value={descuentoPct} onChange={(e) => setCot({ descuentoPct: parseFloat(e.target.value) || 0 })} />
+            <input type="number" className="numero" style={{ width: 90 }} min="0" max="60" value={descuentoPct} onChange={(e) => setCot({ descuentoPct: leePct(e.target.value, 60) })} />
             {!soloVentas && descuentoMax != null && <button className="boton fantasma" style={{ minHeight: 40, padding: '0 12px' }} onClick={() => setCot({ descuentoPct: descuentoMax })} title={`Máximo sin bajar del piso de ${minMarkup}%`}>Máx. rentable: {descuentoMax}%</button>}
+          </div>
+          {/* Rodrigo, 2026-08-16: "el precio que tenemos ya es precio de lista, es el de
+              venta con el 40%". O sea que este campo NO es el 40% — va ENCIMA. Sin
+              decirlo, un vendedor cree que está aplicando el descuento de siempre y en
+              realidad está regalando margen por segunda vez. */}
+          <div className="ayuda" style={{ textAlign: 'right', marginTop: -4 }}>
+            Los precios de arriba <strong>ya son de venta</strong> (el 40% ya está aplicado).
+            Lo que escribas aquí se descuenta <strong>encima</strong> de eso.
           </div>
           <div className="fila-botones" style={{ justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <label className="etiqueta" style={{ margin: 0 }}>Contingencia obra a la medida (%)</label>
-            <input type="number" className="numero" style={{ width: 90 }} min="0" max="50" value={contingenciaPct} onChange={(e) => setCot({ contingenciaPct: parseFloat(e.target.value) || 0 })} />
+            <input type="number" className="numero" style={{ width: 90 }} min="0" max="50" value={contingenciaPct} onChange={(e) => setCot({ contingenciaPct: leePct(e.target.value, 50) })} />
           </div>
           {soloVentas && nBajoPiso > 0 && <div className="alerta roja"><span className="texto">Este descuento deja {nBajoPiso} partida(s) por debajo del margen permitido. Requiere visto bueno de Dirección.</span></div>}
         </div>
