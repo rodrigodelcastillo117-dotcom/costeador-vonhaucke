@@ -100,7 +100,7 @@ export const INSUMOS_SEMILLA = [
   // obra; se calibró contra el ancla real de Río (226060050, bench doble
   // 4800×1200 8 usuarios). Se sustituye por horas medidas en cuanto llegue una
   // orden de producción de Río con sus tiempos por centro.
-  ins({ id: 'curvado', nombre: 'Ruteado CNC + canteado en curva (por metro de arco)', seccion: 'cubiertas', precio: 80, unidad: 'm', clase: 'directa', nota: 'Operación, no material. Calibrado, no medido: falta orden de producción de Río.' }),
+  ins({ id: 'curvado', nombre: 'Trabajo extra por ser curvo (por metro)', seccion: 'cubiertas', precio: 80, unidad: 'm', clase: 'directa', nota: 'Operación, no material. Calibrado, no medido: falta orden de producción de Río.' }),
 
   // ---- ESTRUCTURA METALICA ----
   // Laminas: precio POR HOJA (1.22x2.44), costeo por FRACCION de hoja. El consumo

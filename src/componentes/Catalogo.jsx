@@ -8,7 +8,7 @@ import { FAMILIAS, MUEBLES, LINEAS, lineasDeMueble, REGLAS_LINEA } from '../dato
 import { PIEZAS_SEMILLA } from '../datos/piezas.js';
 import { recetaBench } from '../datos/bench.js';
 import { calcular } from '../motor/calculo.js';
-import { pesos, idNuevo } from '../util.js';
+import { pesos, idNuevo, coincide } from '../util.js';
 
 // Busca receta semilla para una linea+mueble
 function recetaDe(lineaId, muebleId) {
@@ -23,6 +23,10 @@ function costoDeLinea(lineaId, muebleId, estado) {
 
 export default function Catalogo({ estado, onCargar, soloVentas = false }) {
   const [familiaAbierta, setFamiliaAbierta] = useState(null);
+  // Los 7 proyectistas que van a usar esto dijeron lo mismo en el levantamiento:
+  // prefieren UNA LISTA CON BUSCADOR a navegar por menús. El catálogo no tenía
+  // buscador; había que adivinar en qué familia guardamos cada mueble.
+  const [busca, setBusca] = useState('');
   const [mueble, setMueble] = useState(null); // {muebleId, familiaId}
   // En modo Ventas se muestra el precio recomendado (margen objetivo), nunca el costo.
   const margenObjetivo = estado.parametros.margenObjetivo ?? 40;
@@ -59,7 +63,7 @@ export default function Catalogo({ estado, onCargar, soloVentas = false }) {
               <div className="ayuda">{linea.que}{REGLAS_LINEA[linea.id]?.nota ? ' · ' + REGLAS_LINEA[linea.id].nota : ''}</div>
             </div>
             {costo != null ? <div className="dinero">{pesos(aMostrar(costo))}</div> : <span className="etiqueta-dato supuesto">sin receta</span>}
-            <button className="boton primario" onClick={() => cargar(linea, mueble.muebleId, mueble.familiaId, estado, onCargar)}>{soloVentas ? 'Agregar' : 'Usar'}</button>
+            <button className="boton primario" onClick={() => cargar(linea, mueble.muebleId, mueble.familiaId, estado, onCargar)}>{soloVentas ? 'Configurar →' : 'Usar'}</button>
           </div>
         ))}
       </div>
@@ -70,8 +74,34 @@ export default function Catalogo({ estado, onCargar, soloVentas = false }) {
   return (
     <div className="contenido">
       <h2>Catálogo</h2>
-      <p className="ayuda columna-texto">Escoge la familia, luego el mueble, luego la línea. Se carga en el Costeador.</p>
-      {FAMILIAS.map((fam) => {
+      <p className="ayuda columna-texto">Busca el mueble por su nombre, o ábrelo por familia. Se carga en el Costeador.</p>
+      <input
+        type="search" className="campo" value={busca} onChange={(e) => setBusca(e.target.value)}
+        placeholder="Busca como se te ocurra: bench, archivero 2 cajones, mesa juntas, recepción…"
+        style={{ marginBottom: 14, minHeight: 46 }}
+      />
+      {busca.trim() && (() => {
+        // Buscando NO se navega por familias: sale la lista plana, que es lo que
+        // pidieron. Se busca por el nombre del mueble Y por el de su familia,
+        // porque un proyectista escribe "guarda" tanto como "archivero".
+        const hits = [];
+        for (const fam of FAMILIAS) for (const m of fam.muebles)
+          if (coincide(busca, MUEBLES[m], fam.nombre)) hits.push({ m, fam });
+        return (
+          <div className="tarjeta" style={{ marginBottom: 16 }}>
+            <div className="ayuda" style={{ marginBottom: 8 }}>
+              {hits.length ? `${hits.length} mueble(s)` : 'Nada con esas palabras. Prueba con menos: "archivero", "bench", "junta".'}
+            </div>
+            {hits.map(({ m, fam }) => (
+              <div className="renglon-insumo" key={fam.id + m}>
+                <span className="nom"><strong>{MUEBLES[m]}</strong> <span className="gris">· {fam.nombre} · {lineasDeMueble(m).length} líneas</span></span>
+                <button className="boton" onClick={() => setMueble({ muebleId: m, familiaId: fam.id })}>Ver líneas</button>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+      {!busca.trim() && FAMILIAS.map((fam) => {
         const abierta = familiaAbierta === fam.id;
         return (
           <div className={`plegable ${abierta ? 'conContenido' : ''}`} key={fam.id}>

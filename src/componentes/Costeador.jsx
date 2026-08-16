@@ -229,7 +229,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
 
         {/* 2. El despiece — pieza por medidas (costear desde cero) */}
         <div className="tarjeta">
-          <h2>El despiece — las piezas del mueble</h2>
+          <h2>De qué está hecho — pieza por pieza</h2>
           <p className="ayuda columna-texto">Agrega cada pieza: ponle nombre, escoge de qué es y su medida. Las medidas van NETAS (de la pieza terminada); la app calcula el área, la fracción de hoja y la merma sola.</p>
 
           {costeo.componentes.map((c, i) => {

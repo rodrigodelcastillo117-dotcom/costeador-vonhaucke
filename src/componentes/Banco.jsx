@@ -56,7 +56,7 @@ export default function Banco({ onAgregar, onIr }) {
         <div className="alerta ambar" style={{ marginTop: 10, marginBottom: 12 }}>
           <span className="texto">Estos precios <strong>ya traen el descuento del proyecto de donde salieron</strong>. Si a tu propuesta le vas a aplicar otro descuento, revísalos: se descontarían dos veces.</span>
         </div>
-        <input type="text" placeholder="Buscar por línea, clave o medida: App LT, TATO84812, 1200 × 600, archivero…"
+        <input type="text" placeholder="Busca como se te ocurra: bench 6 lugares, archivero 2 cajones, 1200 x 600, App LT…"
           value={busca} onChange={(e) => setBusca(e.target.value)} style={{ fontSize: 18 }} />
         <label className="etiqueta" style={{ marginTop: 14 }}>Línea</label>
         <div className="chips">

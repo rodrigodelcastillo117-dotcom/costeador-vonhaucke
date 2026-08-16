@@ -52,7 +52,7 @@ export default class SinPantallaBlanca extends Component {
         <div className="tarjeta">
           <h2 style={{ marginTop: 0 }}>Esta pantalla se atoró</h2>
           <p className="ayuda columna-texto">
-            No perdiste nada: tu cotización sigue guardada. Puedes volver al inicio y entrar por otro
+            Tu cotización sigue guardada, pero lo que estabas haciendo en esta pantalla no se guardó. Puedes volver al inicio y entrar por otro
             lado. Si te vuelve a pasar, cópiame el detalle de abajo y lo arreglo con eso.
           </p>
           <div className="fila-botones" style={{ gap: 8, marginTop: 12, flexWrap: 'wrap' }}>

@@ -112,7 +112,7 @@ export default function HojaCosto({ resultado, insumos, pieza, parametros = PARA
 
       <hr className="doble" />
       <div className="fila total">
-        <span>CUESTA HACER 1 PIEZA</span>
+        <span>NOS CUESTA FABRICARLO</span>
         <span className="val">{pesos(resultado.costoUnitario)}</span>
       </div>
       {resultado.piezas > 1 && (

@@ -106,7 +106,7 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
       <div>
         <div className="tarjeta">
           <h2>{titulo}</h2>
-          <p className="ayuda columna-texto">Escoge el producto y la medida. El sistema arma el despiece con la guía oficial y te da el costo real.</p>
+          <p className="ayuda columna-texto">Escoge el producto y la medida. El sistema arma la lista de piezas con la guía oficial y te da el costo real.</p>
           <label className="etiqueta">Producto</label>
           <div className="chips" style={{ marginBottom: 14 }}>
             {productos.map((p) => <button key={p.id} className={`chip ${prodId === p.id ? 'on' : ''}`} onClick={() => elegirProducto(p.id)}>{p.nombre}</button>)}
@@ -228,7 +228,7 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
               {real.nota && <div className="ayuda ambar-txt" style={{ color: '#9a6a00', fontWeight: 600 }}>Ojo: {real.nota}</div>}
             </>
           ) : (
-            <div className="ayuda" style={{ color: '#9a6a00' }}>≈ Estimado por el modelo{esIntelisis ? ' (Intelisis)' : ''} — aún sin precio real de esta config</div>
+            <div className="ayuda" style={{ color: '#9a6a00' }}>≈ Precio calculado — todavía no hemos vendido esta medida</div>
           )}
           <div className="ayuda gris" style={{ fontSize: 11 }}>
             {soloVentas

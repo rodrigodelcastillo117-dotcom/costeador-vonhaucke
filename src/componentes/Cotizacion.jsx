@@ -124,7 +124,11 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
     setTimeout(() => { document.title = prev; }, 800);
   }
   const setPartida = (i, parcial) => { const ps = partidas.slice(); ps[i] = { ...ps[i], ...parcial }; setCot({ partidas: ps }); };
-  const quitar = (i) => setCot({ partidas: partidas.filter((_, j) => j !== i) });
+  const quitar = (i) => {
+    const pt = partidas[i];
+    if (!confirm(`¿Quitar "${pt?.nombre || 'este renglón'}" de la cotización?`)) return;
+    setCot({ partidas: partidas.filter((_, j) => j !== i) });
+  };
 
   // El acomodo dice qué mueble quedó en qué cuarto; con eso el resumen reparte
   // el importe por área. Si todavía no hay acomodo, sale una sola agrupación
@@ -306,7 +310,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
             Lo que escribas aquí se descuenta <strong>encima</strong> de eso.
           </div>
           <div className="fila-botones" style={{ justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <label className="etiqueta" style={{ margin: 0 }}>Contingencia obra a la medida (%)</label>
+            <label className="etiqueta" style={{ margin: 0 }}>Imprevistos de obra (%)</label>
             <input type="number" className="numero" style={{ width: 90 }} min="0" max="50" value={contingenciaPct} onChange={(e) => setCot({ contingenciaPct: leePct(e.target.value, 50) })} />
           </div>
           {soloVentas && nBajoPiso > 0 && <div className="alerta roja"><span className="texto">Este descuento deja {nBajoPiso} partida(s) por debajo del margen permitido. Requiere visto bueno de Dirección.</span></div>}
@@ -453,7 +457,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           {/* Condiciones + sellos + pie */}
           <section className="propx-cond">
             {/* Sin sellos en el documento del cliente. */}
-            <p><b>Condiciones.</b> Vigencia de esta propuesta: 15 días hábiles. Anticipo {anticipoPct}% y {100 - anticipoPct}% contra entrega. Flete en CDMX/área metropolitana 3%, foráneo por evento. Instalación y maniobras por separado. Empaque según proyecto. Tiempo de entrega según programa. Precios en pesos mexicanos más IVA, sujetos a cambio sin previo aviso.</p>
+            <p><b>Condiciones.</b> Vigencia de esta propuesta: 15 días hábiles. Anticipo {anticipoPct}% y {100 - anticipoPct}% contra entrega. Flete en CDMX/área metropolitana 3%, foráneo por evento. Instalación y maniobras por separado. Empaque según proyecto. Tiempo de entrega según programa. Precios en pesos mexicanos. El total de esta propuesta YA incluye IVA. Sujetos a cambio sin previo aviso.</p>
             <div className="propx-firma">
               <div className="propx-firma-linea"><span>Aceptación de conformidad</span></div>
               <div className="propx-firma-linea"><span>Nombre y firma · Fecha</span></div>
