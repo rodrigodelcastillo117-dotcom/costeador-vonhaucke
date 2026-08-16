@@ -495,12 +495,44 @@ export default function App() {
     agregarItemsProyecto(costados, opts);
   }
 
+  // ---------------------------------------------------------------------------
+  //  EL SEMÁFORO DE MARGEN ESTABA MUERTO PARA TODO LO DEL BANCO
+  //  Las piezas del banco entraban con `costoUnitario: 0` y `margen: null`, así
+  //  que el piso de utilidad NUNCA se calculaba para ellas — y el banco es donde
+  //  vive la SILLERÍA, que es lo más caro de un proyecto. Un vendedor podía
+  //  descontar sobre eso sin que se encendiera una sola alerta.
+  //
+  //  El costo se DERIVA de dos cosas que ya sabemos con certeza:
+  //   · Rodrigo (2026-08-16): "el precio que tenemos ya es precio de lista, es el
+  //     de venta con el 40%" → para MUEBLE, precio 2 = precio ÷ 0.60.
+  //   · La sillería NUNCA lleva ese 40% (verificado: 31 de 31 renglones de
+  //     226030018 salen sin descuento) → para SILLA, precio 2 = el precio tal cual.
+  //  De ahí, costo = precio 2 ÷ 3.6, que es la cascada de Von Haucke.
+  //
+  //  ⚠️ ES DERIVADO, NO MEDIDO. La sillería es comprada-revendida y lleva otra
+  //  utilidad; su costo real es más alto que esta cuenta y el margen que se
+  //  muestre para ella sale optimista. Sirve para que la alerta EXISTA —hoy no
+  //  existía— y se sustituye en cuanto Compras dé el costo real de la silla.
+  // ---------------------------------------------------------------------------
+  const costoDeBanco = (item) => {
+    const p = Number(item?.precio) || 0;
+    if (!p) return 0;
+    const esSilleria = item?.categoria === 'Sillería';
+    const precio2 = esSilleria ? p : p / 0.60;
+    return Math.round(costoImplicito(precio2));
+  };
+  const margenDeBanco = (item) => {
+    const c = costoDeBanco(item), p = Number(item?.precio) || 0;
+    return p > 0 && c > 0 ? Math.round(((p - c) / p) * 100) : null;
+  };
+
   // Banco de precios -> agrega una partida con el precio real ya cotizado.
   function agregarDeBanco(item, cantidad) {
     const nombre = item.medidas ? `${item.nombre} (${item.medidas})` : item.nombre;
     const partida = {
       id: idNuevo('p'), piezaId: item.id, nombre,
-      cantidad, costoUnitario: 0, precioUnitario: item.precio, margen: null, deBanco: true,
+      cantidad, costoUnitario: costoDeBanco(item), precioUnitario: item.precio,
+      margen: margenDeBanco(item), deBanco: true,
     };
     setEstado((e) => ({
       ...e,

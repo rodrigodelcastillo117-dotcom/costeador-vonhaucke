@@ -101,8 +101,11 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
       const fotos = await cargarFotos(partidas, fotoPartida);
       descargarPropuesta({
         cot, partidas, resumen, especificacion, nPzas, fotos,
+        piezas: expandirPiezas(partidas),
         totales: { precioLista, descuento, descuentoPct, subtotal, contingencia, contingenciaPct,
-          iva, ivaPct: estado.parametros.ivaPorcentaje, total },
+          maniobras, maniobrasPct, flete, fletePct,
+          iva, ivaPct: estado.parametros.ivaPorcentaje, total,
+          anticipoPct, anticipo, cliente: cot.cliente, folio: cot.folio },
       });
     } catch (e) {
       // Si algo falla, queda el camino de siempre en vez de dejarlo sin nada.
@@ -141,7 +144,15 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   const subtotal = precioLista - descuento;
   const contingenciaPct = cot.contingenciaPct ?? estado.parametros.contingenciaPorcentaje ?? 0;
   const contingencia = subtotal * (contingenciaPct / 100);
-  const baseGravable = subtotal + contingencia;
+  // MANIOBRAS Y FLETE: renglones REALES de los presupuestos de Von Haucke que la
+  // app no cobraba —sólo los mencionaba en letra chica al pie—. Ésa es la
+  // discusión más cara que existe con un cliente cuando la obra ya está entregada.
+  // Van sobre el subtotal ya descontado, igual que en el papel.
+  const maniobrasPct = cot.maniobrasPct ?? estado.parametros.maniobrasPorcentaje ?? 0;
+  const maniobras = subtotal * (maniobrasPct / 100);
+  const fletePct = cot.fletePct ?? estado.parametros.fletePorcentaje ?? 0;
+  const flete = subtotal * (fletePct / 100);
+  const baseGravable = subtotal + contingencia + maniobras + flete;
   const iva = baseGravable * (estado.parametros.ivaPorcentaje / 100);
   const total = baseGravable + iva;
   const costoTotal = partidas.reduce((a, p) => a + (p.costoUnitario || 0) * p.cantidad, 0);
@@ -313,6 +324,17 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
             <label className="etiqueta" style={{ margin: 0 }}>Imprevistos de obra (%)</label>
             <input type="number" className="numero" style={{ width: 90 }} min="0" max="50" value={contingenciaPct} onChange={(e) => setCot({ contingenciaPct: leePct(e.target.value, 50) })} />
           </div>
+          <div className="fila-botones" style={{ justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <label className="etiqueta" style={{ margin: 0 }}>Maniobras e instalación (%)</label>
+            <input type="number" className="numero" style={{ width: 90 }} min="0" max="30" value={maniobrasPct} onChange={(e) => setCot({ maniobrasPct: leePct(e.target.value, 30) })} />
+          </div>
+          <div className="ayuda" style={{ textAlign: 'right', marginTop: -4 }}>
+            3% es lo estándar (así lo imprimen tus presupuestos). Sube con elevador, horario inhábil o acarreo largo.
+          </div>
+          <div className="fila-botones" style={{ justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <label className="etiqueta" style={{ margin: 0 }}>Flete (%)</label>
+            <input type="number" className="numero" style={{ width: 90 }} min="0" max="30" value={fletePct} onChange={(e) => setCot({ fletePct: leePct(e.target.value, 30) })} />
+          </div>
           {soloVentas && nBajoPiso > 0 && <div className="alerta roja"><span className="texto">Este descuento deja {nBajoPiso} partida(s) por debajo del margen permitido. Requiere visto bueno de Dirección.</span></div>}
         </div>
 
@@ -447,7 +469,9 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
               <div className="propx-tot-row"><span>Precio de lista</span><b>{pesos(precioLista)}</b></div>
               {descuento > 0 && <div className="propx-tot-row"><span>Descuento {descuentoPct}%</span><b className="rojo">− {pesos(descuento)}</b></div>}
               <div className="propx-tot-row"><span>Subtotal</span><b>{pesos(subtotal)}</b></div>
-              {contingencia > 0 && <div className="propx-tot-row"><span>Contingencia {contingenciaPct}%</span><b>{pesos(contingencia)}</b></div>}
+              {contingencia > 0 && <div className="propx-tot-row"><span>Imprevistos de obra {contingenciaPct}%</span><b>{pesos(contingencia)}</b></div>}
+              {maniobras > 0 && <div className="propx-tot-row"><span>Maniobras e instalación {maniobrasPct}%</span><b>{pesos(maniobras)}</b></div>}
+              {flete > 0 && <div className="propx-tot-row"><span>Flete {fletePct}%</span><b>{pesos(flete)}</b></div>}
               <div className="propx-tot-row"><span>IVA {estado.parametros.ivaPorcentaje}%</span><b>{pesos(iva)}</b></div>
               <div className="propx-tot-grand"><span>TOTAL</span><b>{pesos(total)}</b></div>
               <div className="propx-tot-anticipo">Anticipo {anticipoPct}%: <b>{pesos(anticipo)}</b> · Saldo contra entrega: <b>{pesos(total - anticipo)}</b></div>
@@ -457,7 +481,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           {/* Condiciones + sellos + pie */}
           <section className="propx-cond">
             {/* Sin sellos en el documento del cliente. */}
-            <p><b>Condiciones.</b> Vigencia de esta propuesta: 15 días hábiles. Anticipo {anticipoPct}% y {100 - anticipoPct}% contra entrega. Flete en CDMX/área metropolitana 3%, foráneo por evento. Instalación y maniobras por separado. Empaque según proyecto. Tiempo de entrega según programa. Precios en pesos mexicanos. El total de esta propuesta YA incluye IVA. Sujetos a cambio sin previo aviso.</p>
+            <p><b>Condiciones.</b> Vigencia de esta propuesta: 15 días hábiles. Anticipo {anticipoPct}% y {100 - anticipoPct}% contra entrega. {maniobras > 0 ? 'Las maniobras e instalación ya están incluidas arriba; ' : 'Instalación y maniobras por separado. '}{flete > 0 ? 'el flete al área metropolitana también. Foráneo se cotiza por evento. ' : 'Flete foráneo por evento. '}Empaque según proyecto. Tiempo de entrega según programa. Precios en pesos mexicanos. El total de esta propuesta YA incluye IVA. Sujetos a cambio sin previo aviso.</p>
             <div className="propx-firma">
               <div className="propx-firma-linea"><span>Aceptación de conformidad</span></div>
               <div className="propx-firma-linea"><span>Nombre y firma · Fecha</span></div>

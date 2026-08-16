@@ -68,7 +68,14 @@ function guardasAMuro(cola, W, out, { desde = PERIM } = {}) {
 // y (si ajustar) crece el largo del espacio hasta que entra TODO. Sin encimados,
 // sin salirse. Usado por el flujo 1-clic (un solo espacio auto-dimensionado).
 function empacarTodoGarantizado(base, piezas, ajustar) {
-  const PER = 700, GX = 160;
+  // ⚠️ ESTO IGNORABA LA REGLA DE LA CASA. Estaban puestos a 700 y 160 mm mientras
+  // la tabla `reglas` pide 900 de circulación, y el panel presumía "✓ Circulación
+  // perimetral · 0.7 m" como si estuviera bien. Seis archiveros quedaban a 16 cm
+  // uno de otro: por ahí no pasa una persona con una caja.
+  // Ahora los dos salen de la regla, así que Rodrigo la cambia desde "Lo que Voni
+  // sabe" y el acomodo obedece sin tocar código.
+  const CIRC = regla('circulacion_min') ?? 900;
+  const PER = CIRC, GX = CIRC;
   const rowGap = (t) => (t === 'escritorio' ? 1100 : t === 'juntas' ? 1200 : t === 'asiento' ? 850 : 700);
   const orden = ['guarda', 'juntas', 'escritorio', 'mesa', 'asiento', 'mampara', 'mueble'];
   const grupos = orden

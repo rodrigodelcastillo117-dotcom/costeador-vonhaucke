@@ -60,6 +60,22 @@ export const PARAMETROS_DEFAULT = {
   anticipoPorcentaje: 50,      // condicion comercial default (Rafa 12.2: 50/50)
   contingenciaPorcentaje: 0,   // colchon obra a la medida (Rafa 11.5: sugerido 10-15%)
   descuentoPorcentaje: 0,      // descuento de proyecto por volumen (Ventas)
+  // MANIOBRAS — instalación y acarreo. Es un renglón REAL de los presupuestos de
+  // Von Haucke y la app no lo cobraba: sólo lo mencionaba en letra chica al pie,
+  // que es la discusión más cara que existe con un cliente al final de la obra.
+  // El 3% sale del papel, no de una suposición: NDT 226020037 lo imprime con
+  // todas sus letras — "Maniobras 3% $75,795.27" sobre $2,526,509, exacto — y
+  // Fuerza Especial da 3.4%. Se dispara con condiciones difíciles: Unión de
+  // Crédito llegó a 22% con instalación en horario inhábil, por elevador y
+  // acarreo de más de 100 m. Por eso es editable por proyecto.
+  maniobrasPorcentaje: 3,
+  // FLETE en el área metropolitana. ⚠️ AQUÍ HAY UN DESACUERDO SIN CERRAR:
+  // Rodrigo (2026-08-16) dice 10%; el levantamiento con Miguel y Rogelio dejó
+  // 3%; y NINGÚN presupuesto de los 9 imprime un porcentaje de flete (el 3% que
+  // aparecía en las condiciones de la app estaba escrito como flete, pero el 3%
+  // del papel es de MANIOBRAS, que es otra cosa). Queda el número de Rodrigo,
+  // en un solo lugar y editable, hasta que él lo confirme contra Logística.
+  fletePorcentaje: 10,
 };
 
 const AREAS = ['pm', 'carpinteria', 'pintura', 'acabados', 'tapiceria', 'otros'];
