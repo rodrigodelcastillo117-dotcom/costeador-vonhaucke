@@ -239,8 +239,15 @@ export function precioPorUsuarioAppLT(cfg) {
 //                   corrida). Confirmado mirando los renders de las dos áreas.
 //  Los laterales son SIEMPRE dos (cierran los extremos), no crecen con la corrida.
 // ---------------------------------------------------------------------------
-const EXTRA_LATERALES = 5650;        // precio 2, por el par
-const EXTRA_DIVISOR = 5600;          // precio 2, por divisor
+// ⚠️ UNIDAD. La escalera devuelve PRECIO DE LISTA (a 1200/6u da $17,598, que es
+// el ancla de papel de $17,600), NO precio 2. Estos recargos se escribieron en
+// precio 2 y se estaban sumando encima de una base neta: cobraban un 67% de más.
+// Van en la misma unidad que la base, que es como salen del papel:
+//   · LATERALES  BMU 225080025, 3000×1200 4u: $25,980 con - $22,590 sin = $3,390
+//   · DIVISOR    226030018, "3U A" vs "3U B": ($37,960 - $26,760) × 0.60 = $6,720
+//                por los DOS de esa corrida → $3,360 cada uno.
+const EXTRA_LATERALES = 3390;        // precio de LISTA, por el par
+const EXTRA_DIVISOR = 3360;          // precio de LISTA, por divisor
 function extrasAppLT(cfg, usuarios) {
   let extra = 0;
   if (cfg.laterales) extra += EXTRA_LATERALES;
