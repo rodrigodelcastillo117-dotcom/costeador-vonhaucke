@@ -73,3 +73,65 @@ export function m2QueNecesita(piezas) {
   const foot = piezas.reduce((s, p) => s + (p.w || 1000) * (p.d || 700), 0) / 1e6;  // m²
   return Math.ceil(foot / 0.35);
 }
+
+
+// ============================================================================
+//  DEL PROGRAMA A LOS CUARTOS
+//
+//  Rodrigo: "¿espacio incluye cuántos privados, cuántas salas de juntas?".
+//  Sí, y ahí va la respuesta: un privado ES UN CUARTO —tiene muros, tiene
+//  metros, es parte del plano—; un operativo es una PERSONA, ocupa un pedazo
+//  del open space. Prueba de que va aquí: si subes el plano real, los privados
+//  vienen del plano, no los tecleas.
+//
+//  ⚠️ ESTO ARREGLA ALGO GRANDE. Hasta hoy, decir "400 m²" creaba UN SOLO
+//  RECTÁNGULO, y por eso el 3D se veía como una bodega: no había cuartos, había
+//  un galerón. Con los cuartos de verdad, el acomodo tiene dónde repartir, las
+//  reglas de oficio funcionan (las sillas de visita a los privados, la gaveta
+//  con su escritorio), el 3D se ve como una oficina y el render tiene cuartos
+//  que fotografiar. Un cambio, cuatro cosas.
+// ============================================================================
+
+// Medidas de oficio, para no preguntar lo que se puede proponer.
+export const M2_PRIVADO = 12;              // oficina cerrada de un directivo
+export const M2_POR_PAX_JUNTAS = 2.5;      // mesa + silla + paso, por persona
+export const M2_RECEPCION = 15;
+export const M2_BREAK = 20;
+
+export const m2Juntas = (pax) => Math.max(12, Math.round((pax || 0) * M2_POR_PAX_JUNTAS));
+
+/**
+ * Las ÁREAS de un piso a partir del programa. Lo que sobra después de los
+ * cuartos cerrados es el OPEN SPACE, que es donde van los operativos.
+ * @returns {{areas: Array, openM2: number, cerradoM2: number}}
+ */
+export function cuartosDePrograma({
+  m2 = 200, privados = 0, m2Privado = M2_PRIVADO,
+  juntas = 0, paxJuntas = 12, recepcion = false, breakRoom = false,
+} = {}) {
+  const total = limpiaM2(m2);
+  const areas = [];
+  const conMedida = (nombre, metros) => {
+    const m = Math.max(4, Math.round(metros));
+    areas.push({ nombre, ...ladosDe(m), m2: m });
+  };
+
+  const mJuntas = m2Juntas(paxJuntas);
+  const cerrado = privados * m2Privado + juntas * mJuntas
+    + (recepcion ? M2_RECEPCION : 0) + (breakRoom ? M2_BREAK : 0);
+  // Lo que queda para trabajar. Si los cuartos se comieron todo, se avisa
+  // arriba (en la pantalla) en vez de inventar un open space de 0.
+  const open = Math.max(0, total - cerrado);
+
+  if (open >= 6) conMedida(`Open space (${Math.round(open)} m²)`, open);
+  for (let i = 0; i < privados; i++) conMedida(`Privado ${i + 1}`, m2Privado);
+  for (let i = 0; i < juntas; i++) {
+    conMedida(juntas === 1 ? `Sala de juntas (${paxJuntas} personas)` : `Sala de juntas ${i + 1} (${paxJuntas} personas)`, mJuntas);
+  }
+  if (recepcion) conMedida('Recepción', M2_RECEPCION);
+  if (breakRoom) conMedida('Break room', M2_BREAK);
+
+  // Sin nada, al menos el espacio completo: nunca se devuelve vacío.
+  if (!areas.length) conMedida(`Mi espacio (${total} m²)`, total);
+  return { areas, openM2: open, cerradoM2: cerrado };
+}

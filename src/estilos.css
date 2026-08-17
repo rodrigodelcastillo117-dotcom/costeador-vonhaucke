@@ -1619,3 +1619,12 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 .prog-resumen span { font-size: 13px; color: var(--gris); line-height: 1.45; }
 .prog-o { text-align: center; font-size: 12px; color: var(--gris); text-transform: uppercase;
   letter-spacing: .08em; margin: 14px 0 8px; }
+
+/* Los cuartos que va generando el programa, y el aviso de canceles. */
+.cuartos-lista { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.cuarto-chip { display: inline-flex; gap: 6px; align-items: baseline; font-size: 12.5px;
+  background: #f3efe8; border: 1px solid var(--linea); border-radius: 999px; padding: 5px 11px; }
+.cuarto-chip em { font-style: normal; color: var(--gris); }
+.cancel-aviso { display: flex; flex-direction: column; gap: 5px; margin-top: 12px;
+  padding: 12px 14px; border-radius: 12px; background: #fdf7ec; border: 1px solid #e6c893;
+  font-size: 14px; line-height: 1.45; }
