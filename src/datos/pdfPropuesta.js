@@ -88,50 +88,69 @@ export function acortarNombre(nombre, cabe) {
 //  Una propuesta de mobiliario no compite sólo por precio: compite por quién la
 //  manda. Los textos son los de la presentación oficial de la casa.
 // ============================================================================
-function hojaMarca(doc, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA, { nueva = true } = {}) {
+function hojaMarca(doc, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA, { nueva = true, marca = null } = {}) {
   // Como PORTADA no abre hoja (ya está la primera del documento); a la mitad sí.
   if (nueva) doc.addPage();
-  let y = M.arriba;
-  doc.setFillColor(...ROJO); doc.rect(M.izq, y, ANCHO, 2.4, 'F');
-  y += 16;
 
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(...GRIS);
-  doc.text('QUIÉNES SOMOS', M.izq, y);
-  y += 12;
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(19); doc.setTextColor(...TINTA);
-  const lead = doc.splitTextToSize(
-    'Somos los pioneros en el diseño y la producción de sistemas modulares para oficina en México.',
-    ANCHO - 20);
-  doc.text(lead, M.izq, y);
-  y += lead.length * 8 + 6;
+  // ⚠️ ESTA HOJA ERA PURO TEXTO Y RODRIGO LA MANDÓ REHACER (2026-08-17):
+  // *"es pura letra, no me motiva, se ve cero profesional, ni moderno, ni factor
+  // wow"*. Y luego mandó su material oficial —"Ventajas vonhaucke", con foto de
+  // fondo y bloques de color— diciendo *"esto podría estar en la portada"*.
+  // Así que esta hoja es ESA: los cinco argumentos de la casa, con sus textos
+  // tal como él los tiene, sobre la foto. No es decoración: es lo que sostiene
+  // el precio cuando el cliente compara.
+  const VENT = [
+    ['Diseño de clase mundial', 'Empresas de clase mundial con diseño de clase mundial', [138, 160, 205]],
+    ['Innovativo · Planeado para el futuro', 'Para atraer y retener personal de talento', [240, 214, 122]],
+    ['Imagen corporativa', 'Refleja la solidez e importancia de la empresa', [238, 176, 128]],
+    ['Wellness', 'El bienestar de las personas es la parte central del proyecto', [150, 190, 225]],
+    ['Sustentable', 'Libre de emisiones · Materiales reciclables · Iluminación eficiente', [166, 206, 143]],
+  ];
 
+  // Foto de fondo a sangre, aclarada con un velo blanco para que el texto se lea.
+  const foto = marca?.portada || null;
+  if (foto) {
+    try {
+      doc.addImage(foto, 'JPEG', 0, 0, A4.w, A4.h);
+      doc.setFillColor(255, 255, 255);
+      doc.setGState(new doc.GState({ opacity: 0.82 }));
+      doc.rect(0, 0, A4.w, A4.h, 'F');
+      doc.setGState(new doc.GState({ opacity: 1 }));
+    } catch (e) { /* sin foto, la hoja sigue igual de legible */ }
+  }
+
+  // Banda roja con el título, como en su material.
+  doc.setFillColor(...ROJO); doc.rect(0, 14, A4.w, 20, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(20); doc.setTextColor(255, 255, 255);
+  doc.text('Ventajas Vonhaucke', M.izq, 27.5);
+
+  let y = 46;
   doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5); doc.setTextColor(...GRIS);
   const sub = doc.splitTextToSize(
-    'Más de 68 años fabricando en México. La colección Vonhaucke es lo último en diseño, ' +
-    'funcionalidad y sustentabilidad a nivel internacional, y detrás de cada proyecto hay una ' +
-    'planta propia: nosotros diseñamos, fabricamos, entregamos e instalamos.', ANCHO - 14);
+    'Más de 68 años fabricando en México. La colección Vonhaucke es lo último en diseño, '
+    + 'funcionalidad y sustentabilidad a nivel internacional, y detrás de cada proyecto hay una '
+    + 'planta propia: nosotros diseñamos, fabricamos, entregamos e instalamos.', ANCHO);
   doc.text(sub, M.izq, y);
-  y += sub.length * 5.6 + 12;
+  y += sub.length * 5.6 + 8;
 
-  // Cuatro ventajas en cuadrícula 2×2.
-  const VENT = [
-    ['Diseño de clase mundial', 'Empresas de clase mundial merecen espacios a su altura.'],
-    ['Bienestar de las personas', 'Ergonomía, acústica y luz pensadas para quien pasa ahí el día.'],
-    ['Sustentable', 'Materiales reciclables, libre de emisiones, iluminación eficiente.'],
-    ['Imagen corporativa', 'El espacio comunica la solidez de la empresa antes que nadie hable.'],
-  ];
-  const colW = (ANCHO - 10) / 2;
-  for (let i = 0; i < VENT.length; i++) {
-    const cx = M.izq + (i % 2) * (colW + 10);
-    const cy = y + Math.floor(i / 2) * 34;
-    doc.setDrawColor(...ROJO); doc.setLineWidth(1.4);
-    doc.line(cx, cy, cx, cy + 20);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...TINTA);
-    doc.text(VENT[i][0], cx + 5, cy + 5);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...GRIS);
-    doc.text(doc.splitTextToSize(VENT[i][1], colW - 8), cx + 5, cy + 12);
-  }
-  y += 34 * 2 + 8;
+  // Los cinco bloques de color, en dos hileras (3 + 2) como su lámina.
+  const dibujaBloque = (v, x, yy, w, h) => {
+    doc.setFillColor(...v[2]);
+    doc.setGState(new doc.GState({ opacity: 0.55 }));
+    doc.rect(x, yy, w, h, 'F');
+    doc.setGState(new doc.GState({ opacity: 1 }));
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5); doc.setTextColor(...TINTA);
+    const tit = doc.splitTextToSize(v[0], w - 10);
+    doc.text(tit, x + w / 2, yy + 10, { align: 'center' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.8); doc.setTextColor(60, 55, 52);
+    doc.text(doc.splitTextToSize(v[1], w - 12), x + w / 2, yy + 12 + tit.length * 5, { align: 'center' });
+  };
+  const hueco = 7;
+  const w3 = (ANCHO - hueco * 2) / 3, alto = 44;
+  for (let i = 0; i < 3; i++) dibujaBloque(VENT[i], M.izq + i * (w3 + hueco), y, w3, alto);
+  const w2 = (ANCHO - hueco) / 2;
+  for (let i = 3; i < 5; i++) dibujaBloque(VENT[i], M.izq + (i - 3) * (w2 + hueco), y + alto + hueco, w2, alto);
+  y += alto * 2 + hueco * 2 + 12;
 
   doc.setDrawColor(...LINEA); doc.setLineWidth(0.2);
   doc.line(M.izq, y, A4.w - M.der, y); y += 8;
@@ -139,9 +158,9 @@ function hojaMarca(doc, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA, { nueva = true }
   doc.text('ADEMÁS DEL MOBILIARIO', M.izq, y); y += 7;
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...TINTA);
   doc.text(doc.splitTextToSize(
-    'Acabados arquitectónicos  ·  Cancelería y muros  ·  Almacenamiento  ·  Reconfiguraciones  ·  ' +
-    'Mudanzas estratégicas  ·  Asesoría en planeación de espacios  ·  Servicio post-venta  ·  ' +
-    'Soluciones financieras vh-renting', ANCHO), M.izq, y);
+    'Acabados arquitectónicos  ·  Cancelería y muros  ·  Almacenamiento  ·  Reconfiguraciones  ·  '
+    + 'Mudanzas estratégicas  ·  Asesoría en planeación de espacios  ·  Servicio post-venta  ·  '
+    + 'Soluciones financieras vh-renting', ANCHO), M.izq, y);
 }
 
 // ============================================================================
@@ -393,7 +412,7 @@ function hojaCuartos(doc, { cuartos, escenas, pie }, A4, M, ANCHO, ROJO, TINTA, 
   return true;
 }
 
-export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, nPzas, fotos = {}, piezas = [], cuartos = [] }) {
+export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, nPzas, fotos = {}, piezas = [], cuartos = [], marca = null }) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   let y = M.arriba;
 
@@ -418,20 +437,57 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
     doc.line(M.izq, y, A4.w - M.der, y);
   };
 
-  // ---- HOJA 1: QUIÉNES SOMOS ----------------------------------------------
-  // Rodrigo: "la página 3 está ahí de la nada, debería ser la 1". Quién manda la
-  // propuesta se dice ANTES del precio, no a la mitad del documento. Una
-  // propuesta de mobiliario no compite sólo por precio: compite por quién la
-  // manda, y 68 años de planta propia son un argumento de venta.
-  hojaMarca(doc, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA, { nueva: false });
-  pie(); doc.addPage(); y = M.arriba;
+  // El hero se decide ANTES de dibujar: manda la vista del acomodo de ESTE
+  // proyecto, luego la foto de un área suya, y si no hay ninguna la foto de la
+  // casa. Va A SANGRE arriba de todo — es la portada, no un encabezado.
+  const escenas = (cot?.acomodo?.escenas || []).filter((e) => e?.img);
+  const hero = cot?.acomodo?.render3d || escenas[0]?.img || marca?.portada || null;
 
-  // ---- PORTADA -------------------------------------------------------------
+  // ---- HOJA 1: LA PORTADA ---------------------------------------------------
+  // ⚠️ EL ORDEN CAMBIÓ (2026-08-17). "Quiénes somos" era la hoja 1 y es PURO
+  // TEXTO: Rodrigo abrió el PDF y dijo *"no viene ninguna imagen, ningún logo,
+  // es pura letra, no me motiva, se ve cero profesional… el cierre es
+  // importante"*. La primera hoja es lo primero que ve el cliente: va la
+  // PORTADA, con el logo, una foto y su nombre. "Quiénes somos" pasa a la 2, que
+  // sigue siendo ANTES del precio —que es lo que se cuidaba cuando se subió—.
+  // ⚠️ LA FOTO VA A SANGRE (2026-08-17). Rodrigo abrió el PDF: *"es pura letra,
+  // no me motiva, se ve cero profesional, ni moderno, ni factor wow. El cierre
+  // es importante"*. Una imagen metida en la caja de texto se lee como un
+  // documento; una que toca los cuatro bordes se lee como una PORTADA. Si no
+  // hay ninguna imagen, la banda va en tinta con el nombre encima: sigue
+  // pareciendo portada y no media hoja en blanco.
+  const ALTO_BANDA = 118;
+  if (hero) {
+    try {
+      doc.addImage(hero, 'JPEG', 0, 0, A4.w, ALTO_BANDA);
+    } catch (e) {
+      doc.setFillColor(...TINTA); doc.rect(0, 0, A4.w, ALTO_BANDA, 'F');
+    }
+  } else {
+    doc.setFillColor(...TINTA); doc.rect(0, 0, A4.w, ALTO_BANDA, 'F');
+  }
+  // Filo rojo de la casa cerrando la banda.
+  doc.setFillColor(...ROJO); doc.rect(0, ALTO_BANDA - 3, A4.w, 3, 'F');
+  y = ALTO_BANDA + 16;
+
   doc.setFillColor(...ROJO);
   doc.rect(M.izq, y, ANCHO, 2.4, 'F');
   y += 12;
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(26); doc.setTextColor(...ROJO);
-  doc.text('Vonhaucke', M.izq, y);
+  // El logo de verdad si se pudo bajar; si no, el wordmark tipográfico.
+  if (marca?.logo) {
+    try {
+      const props = doc.getImageProperties(marca.logo);
+      const altoLogo = 11;
+      const anchoLogo = Math.min(62, (props.width / props.height) * altoLogo);
+      doc.addImage(marca.logo, 'PNG', M.izq, y - 8.5, anchoLogo, altoLogo);
+    } catch (e) {
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(26); doc.setTextColor(...ROJO);
+      doc.text('Vonhaucke', M.izq, y);
+    }
+  } else {
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(26); doc.setTextColor(...ROJO);
+    doc.text('Vonhaucke', M.izq, y);
+  }
   doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...ROJO);
   doc.text('MÁS DE 68 AÑOS DE OFICIO', A4.w - M.der, y - 3, { align: 'right' });
   y += 8; regla(0.6, ROJO); y += 10;
@@ -454,15 +510,7 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
     'Vigencia 15 días hábiles',
   ].filter(Boolean).join('   ·   ');
   doc.text(T(meta), M.izq, y);
-  // ---- LA PORTADA TIENE QUE ENSEÑAR EL PROYECTO ----------------------------
-  // Rodrigo: "la portada del PDF no tiene imágenes reales". Y era literal: media
-  // hoja en blanco debajo del nombre del cliente. Una propuesta de mobiliario
-  // que no enseña un mueble compite sólo por precio.
-  // El orden es el de la fidelidad: primero la vista del acomodo de ESTE
-  // proyecto, luego las fotos de sus áreas, y si no hay ninguna, los renders de
-  // los muebles que se están cotizando —que sí son reales, del catálogo—.
-  const escenas = (cot?.acomodo?.escenas || []).filter((e) => e?.img);
-  const hero = cot?.acomodo?.render3d || escenas[0]?.img || null;
+  // El pie de la foto de portada (la foto ya se dibujó a sangre arriba).
   if (hero) {
     y += 8;
     try {
@@ -475,7 +523,9 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
       doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...GRIS);
       doc.text(T(cot?.acomodo?.render3d
         ? 'Imagen de referencia del acomodo propuesto.'
-        : `Así se vería ${escenas[0]?.nombre || 'el área'}, con el mobiliario de esta propuesta.`), M.izq, y);
+        : escenas[0]?.img
+          ? `Así se vería ${escenas[0]?.nombre || 'el área'}, con el mobiliario de esta propuesta.`
+          : 'Mobiliario Vonhaucke, fabricado en México.'), M.izq, y);
       y += 6;
     } catch (e) { /* si la imagen no se pudo dibujar, la hoja sigue igual */ }
   }
@@ -516,7 +566,13 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
       y += altoU * k + 8;
     }
   }
-  y += 12;
+  // ---- HOJA 2: QUIÉNES SOMOS ------------------------------------------------
+  // Baja de la 1 a la 2 —la 1 ahora es la portada, con logo y foto— pero sigue
+  // yendo ANTES del precio, que es lo que se cuidaba cuando se subió: quién
+  // manda la propuesta se dice antes de cuánto cuesta.
+  pie();
+  hojaMarca(doc, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA, { nueva: true, marca });
+  pie(); doc.addPage(); y = M.arriba;
 
   // ---- RESUMEN POR ÁREA ----------------------------------------------------
   // Igual que en pantalla: un resumen que sólo dice "Sin ubicar en el plano"
@@ -750,4 +806,35 @@ export function descargarPropuesta(datos) {
     .filter(Boolean).join(' ').replace(/[\\/:*?"<>|]/g, '').trim() || 'Propuesta Vonhaucke';
   doc.save(`${nombre}.pdf`);
   return `${nombre}.pdf`;
+}
+
+// ⚠️ LA PRIMERA HOJA ES EL CIERRE (Rodrigo, 2026-08-17): *"en la primera página
+// no viene ninguna imagen, ningún logo de Vonhaucke. Es pura letra, no me
+// motiva, se ve cero profesional, ni moderno, ni factor wow. El cierre es
+// importante"*. El logo y una foto de marca viven en el bucket `app/marca`;
+// aquí se bajan a base64 para poder meterlos en el PDF. Si la red falla, la
+// portada sale sin ellos pero NO se cae: una propuesta sin logo es fea, una
+// propuesta que truena no se manda.
+const MARCA = 'https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/app/marca';
+const aDataURL = async (url) => {
+  try {
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const b = await r.blob();
+    return await new Promise((res) => {
+      const fr = new FileReader();
+      fr.onload = () => res(String(fr.result));
+      fr.onerror = () => res(null);
+      fr.readAsDataURL(b);
+    });
+  } catch (e) { return null; }
+};
+
+/** Logo y foto de portada de la casa, listos para el PDF. */
+export async function cargarMarca() {
+  const [logo, portada] = await Promise.all([
+    aDataURL(`${MARCA}/logo.png`),
+    aDataURL(`${MARCA}/showroom.jpg`),
+  ]);
+  return { logo, portada };
 }

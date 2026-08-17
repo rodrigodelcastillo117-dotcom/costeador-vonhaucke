@@ -52,6 +52,7 @@ const doc = propuestaPDF({
   cot, partidas, resumen: resumenPorArea(partidas, acomodo), especificacion,
   cuartos: listaPorCuarto(partidas, acomodo),
   totales, nPzas: partidas.reduce((s, p) => s + p.cantidad, 0), fotos, piezas,
+  marca: { logo: null, portada: JPG },
 });
 const buf = Buffer.from(doc.output('arraybuffer'));
 const salida = process.argv[2] || 'propuesta.pdf';

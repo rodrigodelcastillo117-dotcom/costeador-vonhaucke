@@ -1718,3 +1718,22 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
   background: #fdf3e7; border: 1px solid #eccfa6; color: #7a4a12;
   font-size: 13.5px; line-height: 1.5;
 }
+
+/* LA BARRA DE ACCIONES DE LA PROPUESTA, PEGADA ABAJO. Rodrigo: "tengo que subir
+   TODOOO para encontrar los botones de descargar pdf o imprimir". Estaban
+   arriba del documento: en una propuesta de 3 pantallas eso es un viaje cada
+   vez. Pegada abajo se llega desde cualquier parte, y al imprimir desaparece
+   (`no-imprimir`). */
+.cot-acciones-fija {
+  position: sticky; bottom: 0; z-index: 20;
+  margin-top: 18px; padding: 12px 14px;
+  background: rgba(247,245,242,.94); backdrop-filter: blur(8px);
+  border-top: 1px solid var(--linea); border-radius: 12px 12px 0 0;
+  box-shadow: 0 -6px 20px rgba(30,27,26,.07);
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+}
+.cot-acciones-fija .cot-pdf { margin-left: auto; }
+@media (max-width: 560px) {
+  .cot-acciones-fija { gap: 8px; }
+  .cot-acciones-fija .cot-pdf, .cot-acciones-fija .boton.fantasma { flex: 1 1 auto; }
+}

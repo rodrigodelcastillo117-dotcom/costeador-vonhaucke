@@ -3,11 +3,11 @@
 //  Al IMPRIMIR siempre sale la propuesta al cliente (nunca la tabla interna),
 //  con cantidad visible y diseño editorial Von Haucke (68 años).
 // ============================================================================
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import MarcaLogo from './MarcaLogo.jsx';
 import { resumenPorArea, especificacion } from '../datos/resumen.js';
 import { listaPorCuarto } from '../datos/porCuarto.js';
-import { descargarPropuesta, cargarFotos } from '../datos/pdfPropuesta.js';
+import { descargarPropuesta, cargarFotos, cargarMarca } from '../datos/pdfPropuesta.js';
 import EditarPartida, { sePuedeEditar } from './EditarPartida.jsx';
 import { pesos, pct, leePct, colorMargen, selloPartida } from '../util.js';
 import { imagenPartida } from '../datos/imagenes.js';
@@ -52,6 +52,12 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   const [genPart, setGenPart] = useState(null); // id de partida en proceso
   const [genOficina, setGenOficina] = useState(false);
   const [errGen, setErrGen] = useState('');
+  // La propuesta ABRE ARRIBA. Se llegaba a ella con el scroll de la pantalla
+  // anterior, o sea a media hoja, y había que subir todo para orientarse.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.querySelector('.contenido')?.scrollTo?.(0, 0);
+  }, []);
   const [editando, setEditando] = useState(null);   // índice de la partida que se edita
 
   async function renderPartida(i) {
@@ -100,9 +106,11 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
     try {
       // Los renders se traen ANTES de armar el documento: si se dibujara sin
       // esperarlos, el PDF saldría con los recuadros vacíos.
-      const fotos = await cargarFotos(partidas, fotoPartida);
+      // El logo y la foto de la casa van en la MISMA espera que las fotos: la
+      // portada sin logo es justo lo que Rodrigo no quiere volver a ver.
+      const [fotos, marca] = await Promise.all([cargarFotos(partidas, fotoPartida), cargarMarca()]);
       descargarPropuesta({
-        cot, partidas, resumen, especificacion, nPzas, fotos,
+        cot, partidas, resumen, especificacion, nPzas, fotos, marca,
         piezas: expandirPiezas(partidas),
         // La hoja "Qué va en cada área", en palabras y con las gavetas: el
         // plano no las puede enseñar porque viven debajo de la cubierta.
@@ -220,8 +228,15 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         />
       )}
 
-      {/* Controles (no imprimen) — mínimos y claros */}
-      <div className="cot-acciones no-imprimir">
+      {/* ⚠️ LOS BOTONES VAN ABAJO Y SE QUEDAN (2026-08-17). Rodrigo: *"me pone
+          hasta abajo, tengo que subir TODOOO para encontrar los botones de
+          descargar pdf o imprimir. Debería abrir hasta arriba, así bajas para
+          ver la propuesta, y abajo que estén los botones"*. Eran dos problemas
+          juntos: la pantalla abría a media propuesta (el scroll de la pantalla
+          anterior) y los controles estaban ARRIBA. Ahora la barra se queda
+          pegada abajo —se llega a ella desde cualquier parte, sin scroll— y la
+          propuesta abre en la primera línea. */}
+      <div className="cot-acciones cot-acciones-fija no-imprimir">
         {!soloVentas && (
           <div className="segmento" role="group" aria-label="Cómo ver la cotización">
             <button className={!vistaCliente ? 'on' : ''} onClick={() => setVistaCliente(false)}>Mis números</button>
