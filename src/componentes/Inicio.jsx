@@ -116,7 +116,7 @@ function BarraVolver({ titulo, sub, onVolver }) {
   );
 }
 
-export default function Inicio({ estado, onIr, veCostos = false, esDireccion = false, vista: vistaProp, setVista: setVistaProp }) {
+export default function Inicio({ estado, onIr, veCostos = false, esDireccion = false, vista: vistaProp, setVista: setVistaProp, onDescartar }) {
   const [vistaLocal, setVistaLocal] = useState('home');
   const vista = vistaProp ?? vistaLocal;         // controlado por App (para "Atrás"); local en preview
   const setVista = setVistaProp ?? setVistaLocal;
@@ -165,14 +165,27 @@ export default function Inicio({ estado, onIr, veCostos = false, esDireccion = f
 
         {/* En qué vas: retomar es más común que empezar de cero. */}
         {nPartidas > 0 && (
-          <button className="retomar" onClick={() => onIr('cotizacion')}>
-            <span className="retomar-txt">
-              <span className="retomar-lbl">Vas a la mitad</span>
-              <strong>{cot.cliente ? cot.cliente : 'Cotización sin nombre'} · {nPartidas} mueble{nPartidas === 1 ? '' : 's'}</strong>
-              {totalCot > 0 && <span className="retomar-n">{pesos(totalCot)}</span>}
-            </span>
-            <span className="retomar-cta">Seguir <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
-          </button>
+          <div className="retomar-fila">
+            <button className="retomar" onClick={() => onIr('cotizacion')}>
+              <span className="retomar-txt">
+                <span className="retomar-lbl">Vas a la mitad</span>
+                <strong>{cot.cliente ? cot.cliente : 'Cotización sin nombre'} · {nPartidas} mueble{nPartidas === 1 ? '' : 's'}</strong>
+                {totalCot > 0 && <span className="retomar-n">{pesos(totalCot)}</span>}
+              </span>
+              <span className="retomar-cta">Seguir <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
+            </button>
+            {/* Empezar de cero SIN quitar mueble por mueble. Con 34 partidas
+                eran 34 "quitar" MÁS 34 confirmaciones. Aquí es UNA. */}
+            {onDescartar && (
+              <button className="retomar-tirar" title="Borrar esta cotización y empezar de cero"
+                onClick={() => {
+                  if (!confirm(`¿Descartar esta cotización completa?\n\nSe borran ${nPartidas} mueble${nPartidas === 1 ? '' : 's'} y el acomodo del plano. No se puede deshacer.`)) return;
+                  onDescartar();
+                }}>
+                Descartar todo
+              </button>
+            )}
+          </div>
         )}
 
         {/* Voni va al frente: es el camino que entrega la propuesta completa.

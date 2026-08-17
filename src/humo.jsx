@@ -195,8 +195,15 @@ const costeo = {
 const PANTALLAS = [
   ['Login', <Login onEntrar={nada} onRecuperar={nada} />],
   ['Cambiar contraseña', <CambiarContrasena email="x@vonhaucke.mx" onListo={nada} onCancelar={nada} />],
-  ['Inicio', <Inicio estado={estado} onIr={nada} veCostos esDireccion vista="menu" setVista={nada} />],
-  ['Inicio · cotizar de línea', <Inicio estado={estado} onIr={nada} veCostos esDireccion vista="linea" setVista={nada} />],
+  // ⚠️ PUNTO CIEGO QUE ESTUVO AQUÍ (2026-08-17): estas dos entradas pasaban
+  // `vista="menu"` y `vista="linea"`, nombres que quedaron viejos tras un
+  // renombre — `Inicio` sólo reconoce 'home' y 'cotizar'. Las dos caían al mismo
+  // `else` y pintaban "Cotizar de línea" DOS veces, así que **la pantalla Home y
+  // el panel Cotizar no se probaban nunca**. Salió al buscar un botón nuevo que
+  // sí existía y no aparecía por ningún lado.
+  ['Inicio', <Inicio estado={estado} onIr={nada} veCostos esDireccion vista="home" setVista={nada} onDescartar={nada} />],
+  ['Inicio · panel cotizar', <Inicio estado={estado} onIr={nada} veCostos esDireccion vista="cotizar" setVista={nada} />],
+  ['Inicio · cotizar de línea', <Inicio estado={estado} onIr={nada} veCostos esDireccion vista="cotizarlinea" setVista={nada} />],
   ['Guía', <Guia primeraVez={false} onIr={nada} onCerrar={nada} estado={estado} rol="ventas" />],
   ['Voni', <Voni estado={estado} setEstado={nada} soloVentas={false} veCostos paso={1} setPaso={nada} onAgregarItems={nada} onGuardarAcomodo={nada} onIr={nada} />],
   ['Cotizar con IA', <CotizadorIA estado={estado} onAgregarItems={nada} onIr={nada} verCotizacion />],

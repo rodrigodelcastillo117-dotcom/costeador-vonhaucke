@@ -182,6 +182,17 @@ export default function App() {
   const [voniPaso, setVoniPaso] = useState(1); // paso actual del asistente Voni (persiste al navegar)
 
   // Navegacion con historial: irA empuja el estado actual; atras lo restaura.
+  // DESCARTAR EL PROYECTO DE UN GOLPE. Rodrigo: "si le pico al botón de 'vas a
+  // la mitad' debería haber un botón de eliminar todo; si no, tengo que picarle
+  // quitar y abre un pop up que dice quitar, entonces es tardado".
+  // Con 34 muebles eso son 34 "quitar" MÁS 34 confirmaciones. Empezar de cero es
+  // UNA decisión: se borra la cotización completa —partidas y acomodo— con UNA
+  // confirmación.
+  const descartarProyecto = () => setEstado((e) => ({
+    ...e,
+    cotizacion: { ...e.cotizacion, partidas: [], acomodo: null },
+  }));
+
   function irA(tab) {
     if (tab === pestania) return;
     setNav((s) => [...s, { pestania, inicioVista }]);
@@ -661,7 +672,7 @@ export default function App() {
             estado={estado} rol={esDireccion ? 'direccion' : esDiseno ? 'diseno' : 'ventas'} />
         )}
         {pestania === 'inicio' && (
-          <div className="contenido"><Inicio estado={estado} onIr={irA} veCostos={veCostos} esDireccion={esDireccion} vista={inicioVista} setVista={setInicioVista} /></div>
+          <div className="contenido"><Inicio estado={estado} onIr={irA} veCostos={veCostos} esDireccion={esDireccion} vista={inicioVista} setVista={setInicioVista} onDescartar={descartarProyecto} /></div>
         )}
         {pestania === 'asistente' && (
           <div className="contenido"><Asistente estado={estado} onAgregarPartida={agregarDesdeAsistente} onIr={irA} soloVentas={esVendedor} /></div>

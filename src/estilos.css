@@ -1527,3 +1527,13 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 .paleta-cab { margin: 0 0 8px; font-size: 15px; position: sticky; top: 0; background: var(--papel, #fff);
   padding: 4px 0; z-index: 2; border-bottom: 1px solid var(--linea); }
 @media (min-width: 860px) { .paleta-col + .paleta-col { border-left: 1px solid var(--linea); padding-left: 22px; } }
+
+/* "Vas a la mitad" + su botón de descartar. Empezar de cero no puede costar
+   34 clics de "quitar" con 34 confirmaciones: es UNA decisión, un botón. */
+.retomar-fila { display: flex; align-items: stretch; gap: 10px; }
+.retomar-fila .retomar { flex: 1; min-width: 0; }
+.retomar-tirar { flex: 0 0 auto; border: 1px solid var(--linea); background: transparent;
+  border-radius: 12px; padding: 0 16px; min-height: 44px; cursor: pointer;
+  color: var(--gris); font-weight: 600; font-size: 14px; }
+.retomar-tirar:hover { border-color: var(--rojo); color: var(--rojo); }
+@media (max-width: 560px) { .retomar-fila { flex-direction: column; } .retomar-tirar { min-height: 46px; } }
