@@ -12,6 +12,7 @@ import { imagenProducto, imagenPartida, heroLinea } from '../datos/imagenes.js';
 import { acomodarLocal } from '../datos/planner.js';
 import { enderezar } from '../datos/orientacion.js';
 import { esSillaDeTrabajo } from '../datos/planner.js';
+import { rellenar } from '../datos/rellenar.js';
 
 // Para la paleta, SILLA es todo lo que se sienta: la operativa, la de visita y
 // también el sillón y el banco. Rodrigo lo pidió partido en dos: "lado
@@ -123,6 +124,8 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
   const [errStaging, setErrStaging] = useState('');
   const [dibujando, setDibujando] = useState(false);  // lienzo "dibuja tu oficina"
   const archivoRef = useRef(null);                    // el <input file> del plano
+  // La oferta de "¿las pongo todas?" tras colocar UNA a mano.
+  const [oferta, setOferta] = useState(null);   // {ids, piezaId, area, nombre}
   const [planReal, setPlanReal] = useState(!!guardadoPrevio?.planReal);   // áreas de plano/dibujo real → no crecer
   const [dibujoMeta, setDibujoMeta] = useState({});   // {alto, columnas, escaleras, dobles[]}
 
@@ -366,7 +369,38 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
       return [...sin, { ...puesto, rot: enderezar(puesto, p, a, vecinos).rot }];
     });
     setEnLaMano(null); setSelPieza(id); setGuardado(false);
+    // ¿QUEDAN MÁS IGUALES SIN PONER? Entonces se ofrece ponerlas todas aquí.
+    // Rodrigo: "poner los escritorios y sillas tú mismo está tedioso; si ve que
+    // puse 1 silla WIN en el operativo, que me pregunte si relleno todas".
+    // El proyectista no quiere colocar 27 sillas: quiere DECIDIR que las 27 van
+    // en el operativo. Una decisión, no veintisiete arrastres.
+    const g = agrupadas.find((x) => x.ids.includes(id));
+    const faltan = (g?.ids || []).filter((x) => x !== id);
+    setOferta(faltan.length ? { ids: faltan, piezaId: id, area, nombre: p.nombre } : null);
   }
+  // Poner de un golpe TODAS las que faltan del mismo producto, en el cuarto
+  // donde acaba de poner la primera. Las sillas se sientan en los puestos que
+  // estén vacíos; lo que sobra se acomoda en el hueco libre. Nada se encima, y
+  // lo que no quepa se dice —no se pierde en silencio—.
+  function rellenarTodas() {
+    if (!oferta) return;
+    const pieza = byId[oferta.piezaId];
+    const area = areasMM[oferta.area];
+    if (!pieza || !area) { setOferta(null); return; }
+    recordar();
+    let puestas = 0;
+    editarColocacion((cs) => {
+      const nuevas = rellenar({ ids: oferta.ids, pieza, area, iArea: oferta.area, colocadas: cs, byId });
+      puestas = nuevas.length;
+      return [...cs.filter((c) => !nuevas.some((n) => n.id === c.id)), ...nuevas];
+    });
+    setGuardado(false);
+    setOferta(null);
+    if (puestas < oferta.ids.length) {
+      setError(`Cabían ${puestas} de ${oferta.ids.length}. Las demás se quedan en la lista: ponlas en otro cuarto o hazle más espacio a éste.`);
+    }
+  }
+
   // Cada toque gira 90°: cuatro toques dan la vuelta completa. Antes sólo
   // alternaba 0/90 y, además, el dibujo no cambiaba de frente — por eso el
   // mueble "salía viendo" siempre igual por más que lo giraras.
@@ -584,8 +618,33 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
   async function renderOficina() {
     setErrStaging(''); setStaging(true);
     try {
-      const lista = partidas.map((p) => `${p.cantidad}× ${p.nombre}`).join(', ') || 'mobiliario de oficina Von Haucke';
-      const layout = areas.map((a) => `${a.nombre} ${a.ancho}×${a.largo}m`).join('; ');
+      // 🐛 ESTE RENDER NO SABÍA TU ACOMODO. Rodrigo, comparando su planta con el
+      // render: "¿se te hace que se parecen???". No se parecían en nada, y por
+      // una razón simple: aquí se le mandaba al modelo la LISTA DE COMPRAS y el
+      // tamaño de los cuartos, y NUNCA el dibujo. Con eso, Gemini se inventaba
+      // una oficina bonita: le puso mesa redonda a una sala de juntas que está
+      // VACÍA, mostrador a una recepción VACÍA, y veinte bancas donde hay dos.
+      // Ahora se le manda (a) el DIBUJO del acomodo —el mismo isométrico limpio
+      // que ya usan los renders por cuarto— y (b) qué hay REALMENTE en cada
+      // cuarto según `plan.colocacion`, diciendo con todas sus letras cuáles
+      // están vacíos.
+      const porArea = new Map();
+      for (const c of (plan?.colocacion || [])) {
+        const p = byId[c.id]; if (!p) continue;
+        const m = porArea.get(c.area) || new Map();
+        m.set(p.nombre, (m.get(p.nombre) || 0) + 1);
+        porArea.set(c.area, m);
+      }
+      const layout = areas.map((a, i) => {
+        const m = porArea.get(i);
+        const que = m && m.size
+          ? [...m.entries()].map(([n, k]) => `${k}× ${n}`).join(' + ')
+          : 'EMPTY, no furniture at all';
+        return `${a.nombre} (${a.ancho}×${a.largo}m): ${que}`;
+      }).join('; ');
+      const lista = plan?.colocacion?.length
+        ? 'Reproduce EXACTLY this layout, room by room. Do not add furniture that is not listed, and leave empty rooms empty.'
+        : (partidas.map((p) => `${p.cantidad}× ${p.nombre}`).join(', ') || 'mobiliario de oficina Von Haucke');
       const ex = [];
       if (dibujoMeta.columnas) ex.push(`${dibujoMeta.columnas} structural column(s)`);
       if (dibujoMeta.escaleras) ex.push(`${dibujoMeta.escaleras} staircase(s)`);
@@ -595,7 +654,25 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
       const urls = [...new Set(partidas.map(imagenPartida).filter(Boolean))].slice(0, 6);
       const u2b = async (url) => { try { const rr = await fetch(url); const b = await rr.blob(); return await new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.onerror = () => res(null); fr.readAsDataURL(b); }); } catch (e) { return null; } };
       const imagenes = (await Promise.all(urls.map(u2b))).filter(Boolean);
-      const r = await generarRender(desc, { modo: 'oficina', medidas: `${areas.length} área(s), altura ${dibujoMeta.alto || 2.7} m`, imagenes });
+      // El DIBUJO del acomodo, que es lo que faltaba. Es el mismo isométrico
+      // limpio (sin etiquetas ni rejilla) que ya se le manda a cada cuarto: con
+      // etiquetas, el modelo copia el texto del piso dentro de la foto.
+      const svgIso = isoLimpioRef.current?.querySelector('svg.plano');
+      const dibujo = svgIso ? await isoAJpeg(svgIso, 1280) : null;
+      // ⚠️ Y EL MODO. `oficina` le pide al modelo, con todas sus letras,
+      // "laid out with realistic circulation, aisles and zoning" — o sea:
+      // ACOMÓDALO TÚ. Por eso inventaba una oficina bonita que no era la de
+      // Rodrigo. El modo `acomodo` ya existe en la edge function y dice lo
+      // contrario: "LAYOUT IS LOCKED… do not add furniture, do not remove
+      // furniture, do not rearrange anything… count the rows and match them",
+      // y espera justo el isométrico como referencia. Con dibujo se usa ése;
+      // sin dibujo no hay acomodo que respetar y se cae a `oficina`.
+      const r = await generarRender(desc, {
+        modo: dibujo ? 'acomodo' : 'oficina',
+        ...(dibujo ? { imagen: dibujo, mediaType: 'image/jpeg' } : {}),
+        medidas: `${areas.length} área(s) · ${layout} · altura ${dibujoMeta.alto || 2.7} m`,
+        imagenes,
+      });
       if (!r || !r.ok) { setErrStaging(r?.error || 'No se pudo generar la oficina.'); return; }
       setStagingUrl(r.dataUrl);
     } catch (e) { setErrStaging('No se pudo conectar.'); }
@@ -941,6 +1018,22 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
                   ))}
               </div>
               {enLaMano && <div className="alerta verde" style={{ marginTop: 10 }}><span className="texto">Ahora toca el plano donde va <strong>{byId[enLaMano]?.nombre}</strong>.</span></div>}
+              {oferta && (
+                <div className="alerta ambar" style={{ marginTop: 10 }}>
+                  <span className="texto">
+                    Quedan <strong>{oferta.ids.length}</strong> {oferta.nombre} sin poner.
+                    ¿Las pongo todas en <strong>{areas[oferta.area]?.nombre || 'este cuarto'}</strong>?
+                    <span className="fila-botones" style={{ gap: 8, marginTop: 8 }}>
+                      <button className="boton primario" style={{ minHeight: 42 }} onClick={rellenarTodas}>
+                        Sí, ponlas todas aquí
+                      </button>
+                      <button className="boton fantasma" style={{ minHeight: 42 }} onClick={() => setOferta(null)}>
+                        No, yo las pongo
+                      </button>
+                    </span>
+                  </span>
+                </div>
+              )}
             </div>
           )}
           {/* Copia OCULTA del isométrico sin etiquetas ni rejilla: es la que se

@@ -182,6 +182,9 @@ const PREFERENCIA = {
   // 3D: "las sillas las puso en el baño; las sillas van en los operativos y
   // escritorios"—. Se separan por el nombre, que es lo que traen del banco.
   silla:      ['open', 'general', 'privado', 'juntas', 'recepcion', 'lounge'],
+  // REGLA DE RODRIGO: "las de VISITA casi siempre van en los privados".
+  // Son las dos sillas que están del otro lado del escritorio del director.
+  visita:     ['privado', 'juntas', 'recepcion', 'general', 'open', 'lounge'],
   asiento:    ['lounge', 'recepcion', 'general', 'open'],
   mesa:       ['lounge', 'recepcion', 'general', 'open'],
   mueble:     ['general', 'open', 'lounge', 'recepcion'],
@@ -200,6 +203,8 @@ const LOUNGE = /sill[oó]n|sof[aá]|puff|pouf|banqueta|\bbanco\b|otomana|love\s?
 export const esSillaDeTrabajo = (p) => (
   p?.tipo === 'asiento' && /\bsillas?\b/i.test(p.nombre || '') && !LOUNGE.test(p.nombre || '')
 );
+// Y dentro de las sillas, la de VISITA tiene su propio destino.
+export const esSillaDeVisita = (p) => esSillaDeTrabajo(p) && /visita|espera|confidente/i.test(p.nombre || '');
 
 const cabeEn = (p, a) => {
   const holgura = 400;
@@ -246,8 +251,11 @@ function acomodarPorCuartos(areas, piezas) {
       // Un escritorio por privado antes de meter dos en el mismo: si hay dos
       // oficinas, no se llena una y se deja la otra vacía.
       if (repartirEnPrivados && x.rol === 'privado' && y.rol === 'privado') {
-        const nx = x.asignadas.filter((q) => q.tipo === 'escritorio').length;
-        const ny = y.asignadas.filter((q) => q.tipo === 'escritorio').length;
+        // Se cuenta lo MISMO que se está repartiendo: escritorios cuando son
+        // escritorios, sillas cuando son sillas. Contando siempre escritorios,
+        // las diez sillas de visita caían todas en la misma oficina.
+        const cuenta = (c) => c.asignadas.filter((q) => q.tipo === tipo).length;
+        const nx = cuenta(x), ny = cuenta(y);
         if (nx !== ny) return nx - ny;
       }
       if (preferirConEscritorios) {
@@ -266,11 +274,17 @@ function acomodarPorCuartos(areas, piezas) {
     });
     for (const p of lote) {
       const silla = tipo === 'asiento' && esSillaDeTrabajo(p);
+      const visita = silla && esSillaDeVisita(p);
       const orden = tipo === 'escritorio' && esBench(p) ? PREFERENCIA.bench
-        : silla ? PREFERENCIA.silla
+        : silla ? (visita ? PREFERENCIA.visita : PREFERENCIA.silla)
           : (PREFERENCIA[tipo] || PREFERENCIA.mueble);
-      // La silla sigue al escritorio igual que la gaveta: va donde está la gente.
-      const candidatos = ordenar(orden, tipo === 'guarda' || silla, tipo === 'escritorio' && !esBench(p));
+      // La silla OPERATIVA sigue al escritorio, igual que la gaveta: va donde
+      // está la gente. La de VISITA no: si también siguiera al escritorio se
+      // iría al open space —que es el cuarto con más escritorios— y ahí no
+      // recibe nadie. Va al privado, y REPARTIDA: dos por oficina, no diez en la
+      // primera. Medido antes de esto: las 10 de visita en el Área Operativa.
+      const candidatos = ordenar(orden, tipo === 'guarda' || (silla && !visita),
+        (tipo === 'escritorio' && !esBench(p)) || visita);
       // Se busca el primer cuarto de la preferencia donde la pieza QUEPA
       // físicamente y todavía haya área libre estimada.
       const dest = candidatos.find((c) => cabeEn(p, c.a) && c.libre > (p.w * p.d) / 1e6 * 1.35);
