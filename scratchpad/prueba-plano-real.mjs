@@ -16,6 +16,8 @@ const aMM = (areas) => areas.map((a) => ({
   ...(Number.isFinite(a.x) && Number.isFinite(a.y) ? { x: Math.round(a.x * 1000), y: Math.round(a.y * 1000) } : {}),
   ancho: Math.round((a.ancho || 0) * 1000),
   largo: Math.round((a.largo || 0) * 1000),
+  ...(a.dentroDe ? { dentroDe: a.dentroDe } : {}),
+  ...(a.contiene ? { contiene: a.contiene } : {}),
   ...(a.poly ? { poly: a.poly.map(([x, y]) => [Math.round(x * 1000), Math.round(y * 1000)]) } : {}),
   ...(a.obstaculos?.length ? { obstaculos: a.obstaculos.map((o) => ({ x: Math.round(o.x * 1000), y: Math.round(o.y * 1000), w: Math.round(o.w * 1000), h: Math.round(o.h * 1000), tipo: o.tipo })) } : {}),
   ...(a.puertas?.length ? { puertas: a.puertas.map((p) => ({ x: Math.round(p.x * 1000), y: Math.round(p.y * 1000), ancho: Math.round(p.ancho * 1000) })) } : {}),

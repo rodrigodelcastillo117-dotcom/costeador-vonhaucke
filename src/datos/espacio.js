@@ -129,11 +129,20 @@ export function huellaReal(nombre, w, d, tipo) {
 // Cuántas piezas se van DEBAJO del escritorio (no se acomodan, no ocupan piso).
 // Se cuentan para poder decirlo en pantalla en vez de desaparecerlas en silencio.
 export function contarBajoEscritorio(partidas) {
-  return (partidas || []).reduce((s, pt) => s + (vaBajoEscritorio(pt) ? Math.max(1, Math.min(pt.cantidad || 1, 30)) : 0), 0);
+  return (partidas || []).reduce((s, pt) => s + (vaBajoEscritorio(pt) ? Math.max(1, Math.min(pt.cantidad || 1, 300)) : 0), 0);
 }
 
+// ⚠️ LOS TOPES ERAN 30 POR PARTIDA Y 60 EN TOTAL, Y RECORTABAN EN SILENCIO
+// (2026-08-17). El plano real de Rodrigo pide **48 operativos**: la app dibujaba
+// **30 sillas** y no lo decía en ningún lado — ni una nota, ni el cartel de la
+// auditoría, que además contaba "N de M" sobre el M YA RECORTADO, así que decía
+// "todas colocadas" mintiendo. Un proyecto de oficina de verdad pasa de 60
+// piezas fácil (48 sillas + 48 gavetas + 8 bancas + 5 privados + juntas).
+// Se suben a un número que no estorbe a un proyecto real, y se mantiene un tope
+// sólo como freno contra un error de dedo (una cantidad de 99,999).
+const TOPE_PARTIDA = 300;
 // Expande las partidas de la cotización a piezas individuales (máx `tope`).
-export function expandirPiezas(partidas, tope = 60) {
+export function expandirPiezas(partidas, tope = 600) {
   const out = [];
   for (const pt of partidas || []) {
     if (vaBajoEscritorio(pt)) continue;      // va bajo la cubierta: no pide piso
@@ -145,7 +154,7 @@ export function expandirPiezas(partidas, tope = 60) {
     if (tipo === 'guarda' || tipo === 'mampara') ({ w, d } = enderezarAlto(w, d, tipo));
     // Bench/sofá multi-posición: expandir al bloque real (ej. "6 puestos").
     [w, d] = huellaReal(pt.nombre, w, d, tipo);
-    const n = Math.max(1, Math.min(pt.cantidad || 1, 30));
+    const n = Math.max(1, Math.min(pt.cantidad || 1, TOPE_PARTIDA));
     for (let k = 0; k < n && out.length < tope; k++) {
       // ruta/productoId viajan para poder pintar el RENDER del catálogo en la
       // paleta: se arrastra el mueble con su foto, no un rectángulo de color.

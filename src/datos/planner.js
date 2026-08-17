@@ -127,8 +127,7 @@ function sentarSillas(colocacion, piezas, areas) {
   // enfrente. El puesto está dentro de la holgura que el escritorio ya reservó,
   // así que sentarla ahí no le quita espacio a nadie.
   const yaPuesta = new Set(colocacion.map((c) => c.id));
-  const sinLugar = piezas.filter((p) => !yaPuesta.has(p.id)
-    && esSillaDeTrabajo(p) && !esSillaDeVisita(p));
+  const sinLugar = piezas.filter((p) => !yaPuesta.has(p.id) && esSillaOperativa(p));
   const huella = (c) => {
     const p = byId[c.id]; if (!p) return null;
     const { pw, ph } = dimsPieza(p, c.rot || 0);
@@ -144,11 +143,12 @@ function sentarSillas(colocacion, piezas, areas) {
     const enArea = out.filter((c) => c.area === i);
     // La de VISITA no se sienta en el puesto: va del otro lado del escritorio,
     // y ésa es otra regla. Aquí sólo la operativa.
-    const sillas = enArea.filter((c) => {
-      const p = byId[c.id];
-      return esSillaDeTrabajo(p) && !esSillaDeVisita(p);
-    });
-    if (!sillas.length) continue;
+    const sillas = enArea.filter((c) => esSillaOperativa(byId[c.id]) || esSillaDirectiva(byId[c.id]));
+    // ⚠️ Se salía del cuarto cuando no había NINGUNA silla ya puesta en él, y
+    // por eso nunca llegaba a las de `sinLugar`: en el plano real, con las
+    // sillas fuera del reparto, las 48 se quedaban sin colocar aunque hubiera
+    // 48 puestos libres. Basta con que haya sillas de UNO de los dos lados.
+    if (!sillas.length && !sinLugar.length) continue;
     const escritorios = enArea
       .filter((c) => byId[c.id]?.tipo === 'escritorio')
       .map((c) => ({ c, h: huella(c) })).filter((e) => e.h);
@@ -201,7 +201,14 @@ export function acomodarLocal(areas, piezas, opts = {}) {
     ...r, colocacion, caben,
     auditoria: (r.auditoria || []).map((a) => (a.check === 'Todas las piezas colocadas'
       ? { ...a, ok: caben, detalle: `${colocacion.length} de ${piezas.length}` } : a)),
-    notas: caben ? (r.notas || []).filter((n) => !/no caben en el plano/i.test(n)) : r.notas,
+    // ⚠️ LA NOTA TAMBIÉN MIENTE SI NO SE REHACE. Se escribe ANTES de sentar las
+    // sillas, con el conteo de ese momento: decía "48 piezas no caben" con 91
+    // de 92 ya colocadas. Se quita la vieja SIEMPRE y se vuelve a escribir con
+    // el número de verdad.
+    notas: [
+      ...(r.notas || []).filter((n) => !/no caben en el plano/i.test(n)),
+      ...(caben ? [] : [`${piezas.length - colocacion.length} pieza(s) no caben en el plano. Quita muebles o usa otra área.`]),
+    ],
     resumen: caben
       ? `Los ${piezas.length} muebles quedan acomodados, con cada silla en su puesto.`
       : `Caben ${colocacion.length} de ${piezas.length}.`,
@@ -290,6 +297,14 @@ const PREFERENCIA = {
   // REGLA DE RODRIGO: "las de VISITA casi siempre van en los privados".
   // Son las dos sillas que están del otro lado del escritorio del director.
   visita:     ['privado', 'juntas', 'recepcion', 'general', 'open', 'lounge'],
+  // ⚠️ NO TODA SILLA DE TRABAJO ES OPERATIVA (2026-08-17). La DIRECTIVA es la
+  // del director: va en su privado, con su escritorio. La de JUNTAS va en la
+  // sala. Sin separarlas, las dos caían en el saco de "operativa" —que ya no
+  // se reparte por cuarto porque sigue a su banca— y acababan sentadas en un
+  // bench del open space. Medido en el plano real: 4 sillas directivas en el
+  // Área Op. 8 y las de juntas repartidas por los privados.
+  directiva:  ['privado', 'general', 'juntas', 'open'],
+  juntasSilla: ['juntas', 'general', 'privado', 'open', 'lounge'],
   asiento:    ['lounge', 'recepcion', 'general', 'open'],
   mesa:       ['lounge', 'recepcion', 'general', 'open'],
   mueble:     ['general', 'open', 'lounge', 'recepcion'],
@@ -310,11 +325,26 @@ export const esSillaDeTrabajo = (p) => (
 );
 // Y dentro de las sillas, la de VISITA tiene su propio destino.
 export const esSillaDeVisita = (p) => esSillaDeTrabajo(p) && /visita|espera|confidente/i.test(p.nombre || '');
+// La del director (va en su privado) y la de la sala de juntas. Ninguna de las
+// dos "sigue a un bench": tienen cuarto propio, como la de visita.
+export const esSillaDirectiva = (p) => esSillaDeTrabajo(p) && /directiv|ejecutiv|presiden|gerencial/i.test(p.nombre || '');
+export const esSillaDeJuntas = (p) => esSillaDeTrabajo(p) && /junta|consejo|board/i.test(p.nombre || '');
+// Sólo la OPERATIVA se sienta en un bench: es la única sin cuarto propio.
+export const esSillaOperativa = (p) => esSillaDeTrabajo(p)
+  && !esSillaDeVisita(p) && !esSillaDirectiva(p) && !esSillaDeJuntas(p);
 
 const cabeEn = (p, a) => {
   const holgura = 400;
-  return (p.w + holgura <= a.ancho && p.d + holgura <= a.largo)
-      || (p.d + holgura <= a.ancho && p.w + holgura <= a.largo);
+  const entra = (w, d, hw, hd) => w + hw <= a.ancho && d + hd <= a.largo;
+  if (entra(p.w, p.d, holgura, holgura) || entra(p.d, p.w, holgura, holgura)) return true;
+  // ⚠️ CIRCULACIÓN POR FUERA (Rodrigo, 2026-08-17), la misma regla que en
+  // `malla.js`. Este filtro decide qué cuartos son CANDIDATOS, y pedía 400 mm
+  // por los cuatro lados: una banca de 4.5 m en una isla de 4.5 m daba
+  // "no cabe", así que **las 8 islas del plano real nunca fueron candidatas** y
+  // las bancas acababan en los privados y en la recepción. La isla no tiene
+  // muros: el mueble la llena a lo largo y se camina por el pasillo de fuera.
+  const largo = Math.max(p.w, p.d), corto = Math.min(p.w, p.d);
+  return entra(largo, corto, 0, holgura) || entra(corto, largo, holgura, 0);
 };
 
 // El rol de un cuarto sale, en este orden: de lo que el usuario declaró
@@ -322,6 +352,28 @@ const cabeEn = (p, a) => {
 // se DEDUCE por tamaño. Sin esto, un plano dibujado no tiene privados ni open
 // space y todos los muebles se amontonan en el cuarto más grande.
 function rolCuarto(a, todos) {
+  // ⚠️ EL PASILLO SE LLEVABA TODO (2026-08-17). En el plano real de Rodrigo el
+  // lector marca `tipo:'open'` **tanto al pasillo (321 m²) como a las 8 islas**,
+  // y aquí se devolvía `a.tipo` sin más → ganaba el más grande y **las 8 islas
+  // quedaban vacías**, con 30 sillas y 5 sillas directivas tiradas en el
+  // corredor.
+  // ⚠️ Y NO SE ADIVINA POR EL NOMBRE. El primer intento fue un
+  // /pasillo|circulación/, que se rompe con el plano que llame distinto a sus
+  // cuartos. El dato real ya viene del lector: un cuarto que CONTIENE zonas
+  // (`contiene`) es el espacio donde ellas viven, o sea la circulación; lo que
+  // se amuebla son las zonas. Se comprueba que las hijas de verdad sirvan para
+  // amueblar: si no, el padre sigue siendo el que recibe los muebles.
+  if (a.contiene > 0) {
+    const zonas = todos.filter((x) => x !== a && x.dentroDe === a.nombre
+      && rolCuartoBase(x, todos) !== 'servicio');
+    if (zonas.length) return 'servicio';
+  }
+  return rolCuartoBase(a, todos);
+}
+
+// El criterio de siempre, sin la regla del anidamiento (se separa para poder
+// preguntarle por las hijas sin caer en recursión infinita).
+function rolCuartoBase(a, todos) {
   if (a.tipo) return a.tipo;
   const porNombre = rolArea(a.nombre);
   if (porNombre !== 'general') return porNombre;
@@ -347,6 +399,12 @@ function acomodarPorCuartos(areas, piezas) {
 
   // --- Reparto: por tipo, en el orden en que un proyectista lo decidiría ---
   const sobran = [];
+  // Con escritorios en el proyecto, la silla operativa NO se reparte por cuarto:
+  // se sienta en su puesto al final. Se define aquí porque también hay que
+  // dejarla fuera de la SEGUNDA PASADA, que si no la recoge y la mete en el
+  // primer privado con hueco (medido: 6 sillas operativas en el Privado 1).
+  const hayEscritorios = piezas.some((q) => q.tipo === 'escritorio');
+  const sinCuartoPropio = (p) => hayEscritorios && esSillaOperativa(p);
   for (const tipo of ORDEN_TIPOS) {
     const lote = piezas.filter((p) => (p.tipo || 'mueble') === tipo).sort((a, b) => (b.w * b.d) - (a.w * a.d));
     if (!lote.length) continue;
@@ -355,7 +413,14 @@ function acomodarPorCuartos(areas, piezas) {
       // llenar un privado vacío.
       // Un escritorio por privado antes de meter dos en el mismo: si hay dos
       // oficinas, no se llena una y se deja la otra vacía.
-      if (repartirEnPrivados && x.rol === 'privado' && y.rol === 'privado') {
+      // ⚠️ TAMBIÉN ENTRE ZONAS DECLARADAS (2026-08-17). Esto sólo valía para
+      // privados. En el plano real de Rodrigo hay 8 islas iguales de 4.5 × 3.5 m
+      // y el reparto medía por ÁREA: 15.75 m² "aguantan" dos bancas de 5.4 m²,
+      // así que metía 2 por isla —y sólo cabe UNA—. Las otras 4 rebotaban a la
+      // segunda pasada y acababan en la RECEPCIÓN y en los privados, con 4 islas
+      // vacías. Es la misma idea que ya estaba escrita para los privados y para
+      // los pisos: llenar cada zona una vez antes de doblar en la misma.
+      if (repartirEnPrivados && x.rol === y.rol) {
         // Se cuenta lo MISMO que se está repartiendo: escritorios cuando son
         // escritorios, sillas cuando son sillas. Contando siempre escritorios,
         // las diez sillas de visita caían todas en la misma oficina.
@@ -380,16 +445,35 @@ function acomodarPorCuartos(areas, piezas) {
     for (const p of lote) {
       const silla = tipo === 'asiento' && esSillaDeTrabajo(p);
       const visita = silla && esSillaDeVisita(p);
+      // ⚠️ LA SILLA OPERATIVA NO TIENE CUARTO PROPIO: pertenece a un escritorio.
+      // Repartirla por área la mandaba a donde hubiera metros libres —5 en la
+      // Sala de Juntas 2, 7 en un privado— lejos de cualquier puesto. Se sale
+      // del reparto y la coloca `sentarSillas`, que la sienta en su puesto
+      // dondequiera que haya quedado su banca. Lo que no alcance puesto se
+      // reporta como no colocado, que es la verdad.
+      if (sinCuartoPropio(p)) { sobran.push(p); continue; }
       const orden = tipo === 'escritorio' && esBench(p) ? PREFERENCIA.bench
-        : silla ? (visita ? PREFERENCIA.visita : PREFERENCIA.silla)
+        : silla ? (visita ? PREFERENCIA.visita
+          : esSillaDirectiva(p) ? PREFERENCIA.directiva
+            : esSillaDeJuntas(p) ? PREFERENCIA.juntasSilla : PREFERENCIA.silla)
           : (PREFERENCIA[tipo] || PREFERENCIA.mueble);
       // La silla OPERATIVA sigue al escritorio, igual que la gaveta: va donde
       // está la gente. La de VISITA no: si también siguiera al escritorio se
       // iría al open space —que es el cuarto con más escritorios— y ahí no
       // recibe nadie. Va al privado, y REPARTIDA: dos por oficina, no diez en la
       // primera. Medido antes de esto: las 10 de visita en el Área Operativa.
+      // ⚠️ LAS BANCAS TAMBIÉN SE REPARTEN (2026-08-17). Decía `!esBench(p)`:
+      // pensado para UN open space, donde las bancas forman hileras y repartir
+      // no aplica. Pero el plano real trae 8 ISLAS iguales, y sin repartir el
+      // reparto medía por área —15.75 m² "aguantan" dos bancas de 5.4— y metía
+      // 2 por isla cuando sólo cabe UNA: 4 islas vacías y las bancas sobrantes
+      // en la recepción. Con un solo cuarto esto no hace nada (no hay entre qué
+      // repartir), así que la planta abierta se comporta igual que antes.
+      // Y las MESAS DE JUNTAS igual: con 2 salas, una en cada una — antes las
+      // dos caían en la Sala 1 y la Sala 2 quedaba vacía.
       const candidatos = ordenar(orden, tipo === 'guarda' || (silla && !visita),
-        (tipo === 'escritorio' && !esBench(p)) || visita);
+        tipo === 'escritorio' || tipo === 'juntas' || visita
+        || esSillaDirectiva(p) || esSillaDeJuntas(p));
       // Se busca el primer cuarto de la preferencia donde la pieza QUEPA
       // físicamente y todavía haya área libre estimada.
       const dest = candidatos.find((c) => cabeEn(p, c.a) && c.libre > (p.w * p.d) / 1e6 * 1.35);
@@ -415,7 +499,7 @@ function acomodarPorCuartos(areas, piezas) {
       if (!restantes.length) break;
       const yaPuestas = colocacion.filter((k) => k.area === c.i).map((k) => k.id);
       const ocupadas = c.asignadas.filter((p) => yaPuestas.includes(p.id));
-      const intento = [...ocupadas, ...restantes.filter((p) => cabeEn(p, c.a))];
+      const intento = [...ocupadas, ...restantes.filter((p) => !sinCuartoPropio(p) && cabeEn(p, c.a))];
       if (intento.length === ocupadas.length) continue;
       const r = acomodarEnForma(c.a, intento);
       const puestas = new Set(r.colocacion.map((k) => k.id));

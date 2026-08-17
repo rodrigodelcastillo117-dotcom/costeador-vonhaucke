@@ -68,6 +68,12 @@ function aMM(areas) {
   return areas.map((a) => ({
     nombre: a.nombre,
     ...(a.tipo ? { tipo: a.tipo } : {}),
+    // El anidamiento viaja SIN convertir (son nombres y una cuenta, no medidas).
+    // Es lo que distingue una ZONA dibujada dentro del open space de un CUARTO
+    // con muros: sin esto el motor amuebla el pasillo y el 3D le pone muros a
+    // las islas.
+    ...(a.dentroDe ? { dentroDe: a.dentroDe } : {}),
+    ...(a.contiene ? { contiene: a.contiene } : {}),
     // El PISO viaja: es lo que hace que el 3D apile la torre en vez de
     // acostar los pisos uno junto a otro.
     ...(Number.isFinite(a.nivel) ? { nivel: a.nivel } : {}),

@@ -632,6 +632,14 @@ function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = fa
 
   // --- muros: sólo en los bordes LEJANOS del contorno (los cercanos, abiertos) ---
   areas.forEach((a, i) => {
+    // ⚠️ UNA ZONA NO ES UN CUARTO (2026-08-17). Rodrigo subió su plano y el 3D
+    // le dibujó MUROS a las 8 islas operativas, que en el plano son zonas
+    // punteadas dentro del open space —el propio lector lo dice: "sin muros
+    // divisorios"—. Se veían 8 cubículos cerrados donde hay una planta abierta.
+    // `dentroDe` viene del lector (`planoLeido.js`): un cuarto que está DENTRO
+    // de otro no tiene muros propios; los que se ven son los del que lo
+    // contiene. Se dibuja su piso, pero no se le levantan paredes.
+    if (a.dentroDe) return;
     const pts = contorno(a, offs[i]);
     const n = pts.length;
     const cx = pts.reduce((s, p) => s + p[0], 0) / n, cy = pts.reduce((s, p) => s + p[1], 0) / n;

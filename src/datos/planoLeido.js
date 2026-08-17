@@ -164,7 +164,20 @@ export function areasDeLectura(lectura) {
   // punto desde el que se mide si se LLEGA caminando a cada mueble.
   const puertas = (lectura?.puertas || []).filter((p) => Number.isFinite(p?.x) && Number.isFinite(p?.y));
 
-  const areas = crudas.map(({ a, pts }) => {
+  // ⚠️ EL ANIDAMIENTO SE CALCULABA Y SE TIRABA (2026-08-17). `anidamientos` ya
+  // sabe qué cuarto está dentro de cuál, pero eso sólo se usaba para poner
+  // obstáculos y no salía de aquí. Sin el dato, el motor no distinguía una ZONA
+  // (las 8 islas del plano de Rodrigo, dibujadas punteadas dentro del open
+  // space) de un CUARTO con muros, y el 3D le dibujaba muros a las islas.
+  // Ahora cada área dice de quién es hija (`dentroDe`) y cuántas hijas tiene
+  // (`contiene`). Con eso:
+  //   · una zona con `dentroDe` NO lleva muros — no es un cuarto,
+  //   · su padre es CIRCULACIÓN: lo amueblado va en las zonas, no en el pasillo.
+  const nombreDe = (i) => crudas[i].a.nombre || 'Área';
+  const padreDe = new Map();
+  for (const [h, p] of padre) padreDe.set(nombreDe(h), nombreDe(p));
+
+  const areas = crudas.map(({ a, pts }, idx) => {
     const b = bbox(pts);
     const obst = (hijos.get(a.nombre) || []).map((hp) => {
       const hb = bbox(hp);
@@ -187,6 +200,8 @@ export function areasDeLectura(lectura) {
     return {
       nombre: a.nombre || 'Área',
       ...(a.tipo ? { tipo: a.tipo } : {}),
+      ...(padreDe.has(nombreDe(idx)) ? { dentroDe: padreDe.get(nombreDe(idx)) } : {}),
+      ...((hijos.get(a.nombre) || []).length ? { contiene: (hijos.get(a.nombre) || []).length } : {}),
       x: m(b.x), y: m(b.y),
       ancho: m(b.x2 - b.x), largo: m(b.y2 - b.y),
       poly: pts.map(([px, py]) => [m(px - b.x), m(py - b.y)]),

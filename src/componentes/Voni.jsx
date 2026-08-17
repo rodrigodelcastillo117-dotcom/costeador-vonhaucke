@@ -26,11 +26,17 @@ const PASOS = [
   { n: 4, clave: 'propuesta', titulo: 'Propuesta', desc: 'Lista para el cliente.' },
 ];
 
-function Pasos({ paso, setPaso, puedeAvanzar }) {
+// ⚠️ UN PASO SE PALOMEA SÓLO SI DE VERDAD SE HIZO (2026-08-17). Decía
+// `p.n < paso ? 'hecho'`: cualquier paso que quedara atrás salía palomeado.
+// Rodrigo subió su plano —que salta al paso 3 para leerlo— y **"Muebles" le
+// apareció hecho sin haberle preguntado nada**. Un cartel verde que miente es
+// peor que no tenerlo: le dice al proyectista que ya escogió muebles.
+function Pasos({ paso, setPaso, puedeAvanzar, hechoPaso }) {
   return (
     <div className="voni-pasos no-imprimir">
       {PASOS.map((p, i) => {
-        const estado = p.n === paso ? 'activo' : p.n < paso ? 'hecho' : 'pend';
+        const hecho = p.n < paso && (hechoPaso ? hechoPaso(p.n) : true);
+        const estado = p.n === paso ? 'activo' : hecho ? 'hecho' : 'pend';
         // Solo puedes saltar a un paso ya alcanzado (o al siguiente si hay muebles).
         const habilitado = p.n <= paso || (p.n === paso + 1 && puedeAvanzar);
         return (
@@ -109,7 +115,10 @@ export default function Voni({
         </div>
       </div>
 
-      <Pasos paso={paso} setPaso={setPaso} puedeAvanzar={paso === 1 || hay} />
+      <Pasos paso={paso} setPaso={setPaso} puedeAvanzar={paso === 1 || hay}
+        hechoPaso={(n) => (n === 1 ? !!(estado.cotizacion?.acomodo?.areasM?.length || estado.cotizacion?.acomodo?.areas?.length)
+          : n === 2 ? hay
+            : n === 3 ? !!estado.cotizacion?.acomodo?.plan : true)} />
 
       {/* ---------------- PASO 1 · ESPACIO ---------------- */}
       {paso === 1 && (

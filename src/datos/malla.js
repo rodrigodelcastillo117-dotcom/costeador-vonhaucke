@@ -209,15 +209,28 @@ const ANCLA = {
 //   así el archivero acaba junto al escritorio al que sirve y no en la otra
 //   punta del cuarto.
 function buscarHueco(malla, w, d, ancla, holgura, refs = [], pegadaARef = false) {
-  const opciones = w === d ? [[w, d, 0]] : [[w, d, 0], [d, w, 90]];
+  // ⚠️ LA HOLGURA PUEDE SER DISTINTA POR EJE (2026-08-17). Rodrigo: *"la
+  // circulación va por fuera, y normalmente se presta para que los benchs vayan
+  // frente a frente"*. En una isla declarada (4.5 × 3.5 m) la banca mide
+  // EXACTAMENTE los 4.5 m de la isla: a lo LARGO no puede pedir ni un
+  // milímetro, pero a lo ANCHO necesita los 660 mm por lado donde se sientan
+  // las dos hileras. Con una holgura sola para los dos ejes no hay número que
+  // sirva: o no cabe, o cabe pegada arriba y la hilera de enfrente se queda
+  // fuera del cuarto. `holgura` acepta un número (los dos ejes) o
+  // { largo, ancho } referido a w y d de la pieza SIN girar.
+  const hL = typeof holgura === 'object' ? (holgura.largo ?? 0) : holgura;
+  const hA = typeof holgura === 'object' ? (holgura.ancho ?? 0) : holgura;
+  // Al girar 90° los ejes se intercambian, y la holgura tiene que girar con
+  // ellos: si no, la banca girada pediría el paso del lado equivocado.
+  const opciones = w === d ? [[w, d, 0, hL, hA]] : [[w, d, 0, hL, hA], [d, w, 90, hA, hL]];
   // 'libre' conserva el barrido de siempre: es lo que forma las hileras de
   // bancas en la planta abierta, y ahí cambiarlo sería empeorarlo.
   if (ancla === 'libre') {
-    for (const [pw, ph, rot] of opciones) {
-      const iw = celdas(pw + holgura), jh = celdas(ph + holgura);
+    for (const [pw, ph, rot, hx, hy] of opciones) {
+      const iw = celdas(pw + hx), jh = celdas(ph + hy);
       for (let j = 0; j <= malla.cy - jh; j++) {
         for (let i = 0; i <= malla.cx - iw; i++) {
-          if (malla.libre(i, j, iw, jh)) return { i, j, iw, jh, x: i * CELDA, y: j * CELDA, rot, w: pw, d: ph, lado: null };
+          if (malla.libre(i, j, iw, jh)) return { i, j, iw, jh, x: i * CELDA, y: j * CELDA, rot, w: pw, d: ph, hx, hy, lado: null };
         }
       }
     }
@@ -227,8 +240,8 @@ function buscarHueco(malla, w, d, ancla, holgura, refs = [], pegadaARef = false)
   const cxm = malla.cx / 2, cym = malla.cy / 2;
   const diag = Math.hypot(malla.cx, malla.cy) || 1;
   let mejor = null, mejorP = -Infinity;
-  for (const [pw, ph, rot] of opciones) {
-    const iw = celdas(pw + holgura), jh = celdas(ph + holgura);
+  for (const [pw, ph, rot, hx, hy] of opciones) {
+    const iw = celdas(pw + hx), jh = celdas(ph + hy);
     for (let j = 0; j <= malla.cy - jh; j++) {
       for (let i = 0; i <= malla.cx - iw; i++) {
         if (!malla.libre(i, j, iw, jh)) continue;
@@ -260,7 +273,7 @@ function buscarHueco(malla, w, d, ancla, holgura, refs = [], pegadaARef = false)
           // `hacia` = de qué lado del hueco está el mueble al que acompaña, para
           // recorrerse hasta él en vez de quedar centrado con su holgura de por
           // medio: eso era lo que dejaba la gaveta a 80 cm del escritorio.
-          mejor = { i, j, iw, jh, x: i * CELDA, y: j * CELDA, rot, w: pw, d: ph,
+          mejor = { i, j, iw, jh, x: i * CELDA, y: j * CELDA, rot, w: pw, d: ph, hx, hy,
             lado: ladoMayor(c, iw, jh), hacia: refs.length ? haciaRef(i, j, iw, jh, refs) : null };
         }
       }
@@ -332,6 +345,23 @@ export function acomodarEnForma(area, piezas) {
     // por no colocada: más vale ponerla suelta y decirlo que perderla.
     let h = buscarHueco(malla, p.w, p.d, ancla, holgura, refs, acompania && refs.length > 0);
     if (!h && acompania && refs.length) h = buscarHueco(malla, p.w, p.d, ancla, holgura, refs, false);
+    // ⚠️ LA CIRCULACIÓN VA POR FUERA DE LA ISLA (Rodrigo, 2026-08-17).
+    // Su plano de prueba declara 8 islas de 4.5 × 3.5 m, y la banca de 6
+    // usuarios mide 4.5 m: con la holgura completa **no cabe en su propia
+    // isla**, y las 8 islas salían VACÍAS. Pero la isla no tiene muros — es una
+    // zona dibujada dentro del open space— así que el pasillo de alrededor ES
+    // la circulación. Dentro, sólo hace falta el paso donde SE SIENTA la gente.
+    // Sólo aplica cuando el cuarto es del tamaño del mueble (una isla), no en
+    // una planta abierta, donde la holgura completa sí cabe y sigue mandando.
+    if (!h) {
+      const cuartoChico = Math.max(p.w, p.d) + holgura > Math.max(area.ancho || 0, area.largo || 0);
+      if (cuartoChico) {
+        // A lo largo, cero. A lo ancho, la holgura entera: ahí van las hileras
+        // enfrentadas, que es como se amuebla un bench.
+        const porFuera = p.w >= p.d ? { largo: 0, ancho: holgura } : { largo: holgura, ancho: 0 };
+        h = buscarHueco(malla, p.w, p.d, ancla, porFuera, refs, false);
+      }
+    }
     if (!h) { fuera.push(p.id); continue; }
     malla.ocupar(h.i, h.j, h.iw, h.jh);
     // El frente ya NO se decide aquí: se endereza toda la colocación al final,
@@ -344,19 +374,22 @@ export function acomodarEnForma(area, piezas) {
     // que dos cuartos vecinos —que comparten la línea del muro, porque en el
     // modelo el muro no tiene espesor— acabaran con muebles tocándose a través
     // de la pared.
-    const pegado = Math.min(ZOCALO, holgura / 2);
-    let x = h.x + holgura / 2, y = h.y + holgura / 2;
+    // El hueco reservó SU holgura, que puede ser distinta por eje: se centra
+    // con la de cada uno, no con una sola.
+    const hx = h.hx ?? 0, hy = h.hy ?? 0;
+    const pegadoX = Math.min(ZOCALO, hx / 2), pegadoY = Math.min(ZOCALO, hy / 2);
+    let x = h.x + hx / 2, y = h.y + hy / 2;
     // Eje Y: manda el muro; si no hay muro, se recorre hacia el mueble que
     // acompaña. Eje X igual. Antes sólo se ajustaba UN eje, así que una gaveta
     // pegada al muro de arriba se quedaba centrada en x y lejos del escritorio.
-    if (h.lado === 'arriba') y = h.y + pegado;
-    else if (h.lado === 'abajo') y = h.y + holgura - pegado;
+    if (h.lado === 'arriba') y = h.y + pegadoY;
+    else if (h.lado === 'abajo') y = h.y + hy - pegadoY;
     else if (h.hacia?.y === 'arriba') y = h.y;
-    else if (h.hacia?.y === 'abajo') y = h.y + holgura;
-    if (h.lado === 'izq') x = h.x + pegado;
-    else if (h.lado === 'der') x = h.x + holgura - pegado;
+    else if (h.hacia?.y === 'abajo') y = h.y + hy;
+    if (h.lado === 'izq') x = h.x + pegadoX;
+    else if (h.lado === 'der') x = h.x + hx - pegadoX;
     else if (h.hacia?.x === 'izq') x = h.x;
-    else if (h.hacia?.x === 'der') x = h.x + holgura;
+    else if (h.hacia?.x === 'der') x = h.x + hx;
     colocacion.push({ id: p.id, x: Math.round(x), y: Math.round(y), rot: h.rot, contra: h.lado || null });
     if (p.tipo === 'escritorio') estaciones.push({ i: h.i, j: h.j, iw: h.iw, jh: h.jh });
   }
