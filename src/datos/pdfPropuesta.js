@@ -41,6 +41,49 @@ const T = (v) => String(v ?? '')
 
 
 // ============================================================================
+/**
+ * Acortar el nombre de un mueble PARA EL CLIENTE, sin partir palabras.
+ *
+ * ⚠️ Los nombres se arman en lenguaje de taller y crecen POR LA COLA:
+ *     "Banca doble APP LT 1.50 · 6 usuarios, biombos laterales"
+ *     "Eclipse · Escritorio directivo 2.10 m mano derecha"
+ * Cortarlos a la brava dejaba «Banca doble APP LT 1.50 · 6 usuarios, bio...» y
+ * «Eclipse · Escritorio directivo 2.10 m mano...» en la leyenda del plano —en el
+ * documento que recibe el cliente—, que se lee como un error del sistema.
+ * Se quita en dos tiempos:
+ *   1. Lo que va tras una COMA: eso es lista de accesorios ("…, biombos
+ *      laterales"), la parte que de verdad sobra.
+ *   2. Palabras ENTERAS desde el final, con puntos suspensivos.
+ *
+ * ⚠️ NO se corta por el "·". Se intentó y salió peor: el "·" separa la LÍNEA
+ * del producto ("Eclipse · Escritorio directivo 2.10 m mano derecha"), así que
+ * quitar la cola dejaba **"Eclipse"** a secas — el cliente ya no sabe qué
+ * mueble es. Vale más "Eclipse · Escritorio directivo 2.10 m…" que un nombre
+ * corto y vacío.
+ *
+ * @param cabe (texto) => bool — si el texto YA con su cola entra en la columna
+ */
+export function acortarNombre(nombre, cabe) {
+  const entero = String(nombre ?? '').trim();
+  if (cabe(entero)) return entero;
+  // 1) La lista de accesorios que va tras la coma.
+  let s = entero;
+  while (s.includes(',')) {
+    const corto = s.slice(0, s.lastIndexOf(',')).trim();
+    if (corto.split(/\s+/).length < 3) break;   // no dejarlo en un muñón
+    s = corto;
+    if (cabe(s)) return s;
+  }
+  // 2) Palabras enteras desde el final. Nunca se parte una palabra a la mitad.
+  const pal = s.split(/\s+/);
+  while (pal.length > 2) {
+    pal.pop();
+    const t = pal.join(' ').replace(/[·,\s]+$/, '');
+    if (cabe(t + '…')) return t + '…';
+  }
+  return s;
+}
+
 //  HOJA DE MARCA — el intro tipo Von Haucke
 //  Una propuesta de mobiliario no compite sólo por precio: compite por quién la
 //  manda. Los textos son los de la presentación oficial de la casa.
@@ -245,9 +288,7 @@ function hojaPlano(doc, { acomodo, partidas, piezas }, A4, M, ANCHO, ROJO, TINTA
     // Antes se tomaba splitTextToSize(...)[0] y la leyenda quedaba cortada a la
     // mitad de la palabra: «... (2». Se recorta el NOMBRE y el conteo va entero.
     const cola = `  (${veces} en el plano)`;
-    let nom = T(pt.nombre);
-    while (nom.length > 8 && doc.getTextWidth(nom + cola) > colW - 12) nom = nom.slice(0, -2);
-    if (nom !== T(pt.nombre)) nom = nom.trimEnd() + '...';
+    const nom = acortarNombre(T(pt.nombre), (t) => doc.getTextWidth(t + cola) <= colW - 12);
     doc.text(nom + cola, cx + 7, ly);
     col = 1 - col;
     if (col === 0) ly += 5.4;
@@ -339,10 +380,8 @@ function hojaCuartos(doc, { cuartos, escenas, pie }, A4, M, ANCHO, ROJO, TINTA, 
       // decir en tres palabras; el nombre del producto es lo que el cliente
       // necesita para pedirlo.
       let nota = r.nota ? `  (${r.nota})` : '';
-      let nom = T(r.nombre);
-      if (r.nota && doc.getTextWidth(nom + nota) > anchoTexto - 12) nota = '  (bajo la cubierta)';
-      while (nom.length > 8 && doc.getTextWidth(nom + nota) > anchoTexto - 12) nom = nom.slice(0, -2);
-      if (nom !== T(r.nombre)) nom = nom.trimEnd() + '...';
+      if (r.nota && doc.getTextWidth(T(r.nombre) + nota) > anchoTexto - 12) nota = '  (bajo la cubierta)';
+      const nom = acortarNombre(T(r.nombre), (t) => doc.getTextWidth(t + nota) <= anchoTexto - 12);
       doc.text(nom + T(nota), M.izq + 10, ly);
       ly += 5;
     }

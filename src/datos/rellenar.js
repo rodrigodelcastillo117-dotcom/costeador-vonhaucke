@@ -29,6 +29,54 @@ const huellaDe = (c, byId) => {
 const LADO = { 0: [0, 1], 90: [-1, 0], 180: [0, -1], 270: [1, 0] };
 
 /**
+ * Dónde van las sillas de UN escritorio o banca ya colocado.
+ *
+ * ⚠️ VIVE AQUÍ Y SE EXPORTA A PROPÓSITO (2026-08-17). Esta regla —"una silla va
+ * pegada a su escritorio"— sólo la aplicaba el camino MANUAL. El motor
+ * automático (`acomodarLocal`) no la tenía, así que en el plano que recibe el
+ * cliente las 12 sillas operativas quedaban regadas a **1.8–5.5 m** de su
+ * banca. Medido: 0 de 14 sillas a menos de 300 mm de una superficie de trabajo.
+ * Que la regla exista en dos copias es cómo se vuelven a separar, así que hay
+ * UNA sola y la usan los dos.
+ *
+ * @param c colocación del escritorio: { rot }
+ * @param h su huella ya girada: { x, y, w, d }
+ * @param pw,ph medidas de la silla
+ * @returns [{x,y}] esquina superior izquierda de cada silla, en orden del puesto 1 al n
+ */
+export function puestosDe(c, h, pw, ph) {
+  // ⚠️ LA HILERA CORRE POR EL LADO LARGO Y UNA BANCA DOBLE TIENE GENTE DE LOS
+  // DOS LADOS. Estas dos reglas ya estaban escritas en el dibujo 3D
+  // (`PlanoAcomodo.jsx`: `bench = F > 1000`, `n = round(L/1500)`) y aquí no:
+  // por eso una banca doble de 6 usuarios sólo ofrecía 3 puestos, y la mitad de
+  // las sillas se quedaba sin sentar. Si el plano y el 3D no cuentan igual, uno
+  // de los dos le miente al proyectista.
+  const horiz = h.w >= h.d;
+  const L = horiz ? h.w : h.d;          // a lo largo de la hilera
+  const F = horiz ? h.d : h.w;          // de una hilera a la otra
+  const n = Math.max(1, Math.round(L / 1500));   // puestos POR hilera
+  const doble = F > 1000;               // bench doble: dos hileras enfrentadas
+  const [ux, uy] = LADO[((c.rot || 0) % 360 + 360) % 360] || LADO[0];
+  const perp = horiz ? uy : ux;         // hacia dónde se sienta el de "acá"
+  const salto = F / 2 + (horiz ? ph : pw) * 0.6;
+  const out = [];
+  // Primero la hilera del lado donde manda la orientación, luego la de enfrente:
+  // así un escritorio suelto se comporta EXACTAMENTE igual que antes.
+  for (const signo of doble ? [perp, -perp] : [perp]) {
+    for (let k = 0; k < n; k++) {
+      const u = (L * (k + 0.5)) / n;
+      const cx = horiz ? h.x + u : h.x + h.w / 2;
+      const cy = horiz ? h.y + h.d / 2 : h.y + u;
+      out.push({
+        x: Math.round(cx + (horiz ? 0 : signo * salto) - pw / 2),
+        y: Math.round(cy + (horiz ? signo * salto : 0) - ph / 2),
+      });
+    }
+  }
+  return out;
+}
+
+/**
  * Dónde poner `ids` piezas iguales dentro de `area`, sin encimar nada.
  * @returns [{id, area, x, y, rot}] — puede devolver menos si ya no cabe.
  */
@@ -59,19 +107,9 @@ export function rellenar({ ids, pieza, area, iArea, colocadas, byId }) {
       .map((c) => ({ c, h: huellaDe(c, byId) })).filter((e) => e.h);
     for (const { c, h } of escritorios) {
       if (!cola.length) break;
-      // Cuántos puestos tiene: una banca de 7.5 m son 5, un escritorio es 1.
-      const largo = Math.max(h.w, h.d);
-      const n = Math.max(1, Math.round(largo / 1500));
-      const horiz = h.w >= h.d;
-      const [ux, uy] = LADO[((c.rot || 0) % 360 + 360) % 360] || LADO[0];
-      for (let k = 0; k < n && cola.length; k++) {
-        const u = (largo * (k + 0.5)) / n;
-        // centro del puesto, y la silla corrida hacia el lado donde se sienta
-        const cx = horiz ? h.x + u : h.x + h.w / 2;
-        const cy = horiz ? h.y + h.d / 2 : h.y + u;
-        const sx = cx + ux * (horiz ? h.w * 0 : h.w / 2 + pw * 0.6) - pw / 2;
-        const sy = cy + uy * (horiz ? h.d / 2 + ph * 0.6 : 0) - ph / 2;
-        if (meter(cola[0], sx, sy)) cola.shift();
+      for (const s of puestosDe(c, h, pw, ph)) {
+        if (!cola.length) break;
+        if (meter(cola[0], s.x, s.y)) cola.shift();
       }
     }
   }

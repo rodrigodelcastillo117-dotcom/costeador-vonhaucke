@@ -10,6 +10,8 @@
 import { acomodarEnForma } from './malla.js';
 import { regla } from './reglas.js';
 import { enderezarTodo } from './orientacion.js';
+import { puestosDe } from './rellenar.js';
+import { dimsPieza } from './espacio.js';
 
 const PERIM = 700;      // circulación perimetral contra muro (paso)
 const WALL = 60;        // holgura mínima al muro para guardas (pegadas)
@@ -103,7 +105,110 @@ function empacarTodoGarantizado(base, piezas, ajustar) {
   return { out, W: Math.round(W), L: Math.round(L) };
 }
 
+/**
+ * ⚠️ LA SILLA SE SIENTA EN SU PUESTO (2026-08-17). Los tres caminos del motor
+ * empacaban las sillas como si fueran cajas: en el plano que se le entrega al
+ * cliente las 12 sillas operativas quedaban de **1.8 a 5.5 m** de la banca a la
+ * que pertenecen (medido: 0 de 14 a menos de 300 mm de una superficie de
+ * trabajo). Nadie construye una oficina así, y es el dibujo que sostiene la
+ * propuesta.
+ *
+ * Se hace al FINAL y MOVIENDO lo ya colocado, no cambiando el empacador: así el
+ * reparto por cuarto, la forma real y los obstáculos siguen intactos, y si una
+ * silla no puede sentarse (el puesto choca con algo o se sale) **se queda donde
+ * estaba**. Mover una silla es gratis: no cambia qué cabe, sólo dónde se ve.
+ */
+function sentarSillas(colocacion, piezas, areas) {
+  const byId = Object.fromEntries(piezas.map((p) => [p.id, p]));
+  // ⚠️ Y TAMBIÉN SE COLOCAN LAS QUE NO CUPIERON. El empacador le aparta piso
+  // PROPIO a cada silla (450 mm de holgura cada una) aunque la silla vaya a
+  // terminar metida bajo su cubierta: la cuenta DOS VECES. Medido en 12×8 m con
+  // 4 bancas dobles: reportaba "no caben 7 sillas" con 24 puestos libres
+  // enfrente. El puesto está dentro de la holgura que el escritorio ya reservó,
+  // así que sentarla ahí no le quita espacio a nadie.
+  const yaPuesta = new Set(colocacion.map((c) => c.id));
+  const sinLugar = piezas.filter((p) => !yaPuesta.has(p.id)
+    && esSillaDeTrabajo(p) && !esSillaDeVisita(p));
+  const huella = (c) => {
+    const p = byId[c.id]; if (!p) return null;
+    const { pw, ph } = dimsPieza(p, c.rot || 0);
+    return { x: c.x, y: c.y, w: pw, d: ph };
+  };
+  const choca = (a, b, h = 0) => (
+    a.x < b.x + b.w + h && a.x + a.w + h > b.x && a.y < b.y + b.d + h && a.y + a.d + h > b.y
+  );
+  const out = colocacion.map((c) => ({ ...c }));
+
+  for (let i = 0; i < areas.length; i++) {
+    const A = areas[i]; if (!A) continue;
+    const enArea = out.filter((c) => c.area === i);
+    // La de VISITA no se sienta en el puesto: va del otro lado del escritorio,
+    // y ésa es otra regla. Aquí sólo la operativa.
+    const sillas = enArea.filter((c) => {
+      const p = byId[c.id];
+      return esSillaDeTrabajo(p) && !esSillaDeVisita(p);
+    });
+    if (!sillas.length) continue;
+    const escritorios = enArea
+      .filter((c) => byId[c.id]?.tipo === 'escritorio')
+      .map((c) => ({ c, h: huella(c) })).filter((e) => e.h);
+    if (!escritorios.length) continue;
+
+    // Todo lo que NO es una silla por sentar estorba y no se mueve.
+    const fijas = enArea.filter((c) => !sillas.includes(c)).map(huella).filter(Boolean);
+    const puestas = [];
+    // Primero las sillas que YA están en este cuarto (moverlas es gratis), y si
+    // se acaban, las que no cupieron en ningún lado.
+    const libres = [...sillas];
+    for (const { c, h } of escritorios) {
+      const s0 = byId[libres[0]?.id] || sinLugar[0];
+      if (!s0) break;
+      const { pw, ph } = dimsPieza(s0, 0);
+      for (const s of puestosDe(c, h, pw, ph)) {
+        if (!libres.length && !sinLugar.length) break;
+        const caja = { x: s.x, y: s.y, w: pw, d: ph };
+        const dentro = caja.x >= 0 && caja.y >= 0
+          && caja.x + caja.w <= (A.ancho || 0) && caja.y + caja.d <= (A.largo || 0);
+        if (!dentro) continue;
+        if (fijas.some((v) => choca(caja, v, 0))) continue;
+        if (puestas.some((v) => choca(caja, v, 40))) continue;
+        if (libres.length) {
+          const silla = libres.shift();
+          silla.x = caja.x; silla.y = caja.y; silla.rot = 0;
+        } else {
+          const nueva = sinLugar.shift();
+          out.push({ id: nueva.id, area: i, x: caja.x, y: caja.y, rot: 0, contra: null });
+        }
+        puestas.push(caja);
+      }
+      if (!libres.length && !sinLugar.length) break;
+    }
+  }
+  return out;
+}
+
 export function acomodarLocal(areas, piezas, opts = {}) {
+  const r = acomodarLocalBase(areas, piezas, opts);
+  // Un solo punto de salida: los tres caminos de abajo pasan por aquí, así que
+  // la regla no se puede quedar fuera de uno de ellos (que es lo que pasó).
+  const colocacion = sentarSillas(r.colocacion, piezas, r.areas || areas);
+  if (colocacion.length === r.colocacion.length) return { ...r, colocacion };
+  // Si se sentaron sillas que el empacador había dado por no-cabidas, el conteo
+  // cambia y hay que rehacer lo que se le enseña al proyectista. Un cartel que
+  // dice "no caben 7" cuando ya están puestas es de los que hacen desconfiar.
+  const caben = colocacion.length === piezas.length;
+  return {
+    ...r, colocacion, caben,
+    auditoria: (r.auditoria || []).map((a) => (a.check === 'Todas las piezas colocadas'
+      ? { ...a, ok: caben, detalle: `${colocacion.length} de ${piezas.length}` } : a)),
+    notas: caben ? (r.notas || []).filter((n) => !/no caben en el plano/i.test(n)) : r.notas,
+    resumen: caben
+      ? `Los ${piezas.length} muebles quedan acomodados, con cada silla en su puesto.`
+      : `Caben ${colocacion.length} de ${piezas.length}.`,
+  };
+}
+
+function acomodarLocalBase(areas, piezas, opts = {}) {
   // ---- Plano REAL dibujado: formas no rectangulares y/o obstáculos ----
   // Cuando el lienzo entrega la geometría de verdad (una L, columnas, una
   // escalera) el empacador por filas ya no sirve: se usa la malla, que respeta

@@ -32,11 +32,36 @@ const PEGADA = 6;                // celdas (60 cm): hasta aquí una gaveta cuent
 //  Los números salen de las REGLAS de Von Haucke (tabla `reglas`), no de aquí:
 //  Rodrigo dictó "mínimo 90 cm libres para que pase una persona" y esa regla
 //  tiene que mandar en el motor, no quedarse escrita en una junta.
-const usoDe = (tipo) => {
+const usoDe = (tipo, p) => {
   const circ = regla('circulacion_min');            // 900 mm por omisión
   if (tipo === 'juntas') return regla('holgura_juntas');
   if (tipo === 'guarda') return regla('holgura_guarda');
-  if (tipo === 'escritorio') return Math.max(1000, circ);   // silla + paso detrás
+  if (tipo === 'escritorio') {
+    // ⚠️ UNA BANCA DOBLE TIENE GENTE DE LOS DOS LADOS (2026-08-17). La holgura
+    // se reparte MEDIA POR LADO, así que los 1000 de aquí abajo dejan 500 mm
+    // —y una silla mide 600—. Con vecinos no se nota (500+500 = un pasillo de
+    // 1000), pero contra un MURO no hay con quién compartir: medido, las dos
+    // bancas del open space quedaban a 500 mm del muro y los 3 puestos de la
+    // hilera de enfrente caían FUERA del cuarto (y = −160). Media banca de 6
+    // usuarios era inservible, y el cliente lo recibía dibujado así.
+    // Una banca doble se reconoce por el fondo, igual que en el dibujo 3D
+    // (`PlanoAcomodo.jsx`: `bench = F > 1000`).
+    // 1320 = 660 por lado, y 660 es EXACTAMENTE lo que pide una silla: 600 de
+    // silla + los 60 que la separan de la cubierta. No es un número redondo a
+    // ojo, es el barrido (`scratchpad/mide-cabida.mjs`), sillas sentadas /
+    // cabida contra el motor publicado:
+    //     1200 → 3/14 sentadas   (no alcanza para la silla)
+    //     1320 → 12/14 sentadas  · misma cabida que el motor publicado
+    //     1400 → 12/14 sentadas  · misma cabida
+    //     1600 → 12/14 sentadas  · PIERDE cabida (6 bancas en 15×10: 34/38)
+    //     1800 → 12/14 sentadas  · pierde mucha (22/38)
+    // Y 660+660 = 1320 también deja que dos bancas vecinas se sienten espalda
+    // con espalda (600+600) compartiendo el pasillo, que es para lo que existe
+    // el reparto "medio por lado".
+    const doble = p && Math.min(p.w ?? 0, p.d ?? 0) > 1000;
+    if (doble) return 1320;
+    return Math.max(1000, circ);                    // silla + paso detrás
+  }
   if (tipo === 'mampara') return 200;
   // Los demás comparten pasillo con su vecino: medio de la circulación por lado.
   return Math.max(400, circ / 2);
@@ -293,7 +318,7 @@ export function acomodarEnForma(area, piezas) {
 
   const colocacion = [], fuera = [], estaciones = [];
   for (const p of cola) {
-    const holgura = usoDe(p.tipo);
+    const holgura = usoDe(p.tipo, p);
     // Una banca de varios puestos NO se recarga: forma hileras con pasillo, que
     // es como se amuebla una planta abierta.
     const esBloque = p.tipo === 'escritorio' && Math.max(p.w, p.d) >= 2500;

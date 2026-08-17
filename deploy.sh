@@ -42,7 +42,23 @@ node scripts/revisa-alcanzables.mjs >/dev/null || {
 npm test --silent >/dev/null 2>&1 || { echo "✗ NO SE PUBLICA: fallan las pruebas del motor."; exit 1; }
 
 echo "→ Compilando…"
-npm run build >/dev/null || { echo "✗ falló el build"; exit 1; }
+# ⚠️ EL EXIT CODE NO ALCANZA (2026-08-17). `npm run build` sale con **código 0**
+# aunque esbuild grite: así se publicó y vivió meses una llave `}` suelta que se
+# imprimía en la hoja de costo de las 24 líneas ("The character } is not valid
+# inside a JSX element"). El aviso salía en CADA build y nadie lo leía.
+# Un build limpio de este proyecto escribe **0 bytes en stderr** —medido—, así
+# que cualquier cosa ahí es un defecto del código. Se filtran sólo los avisos
+# del propio npm, que no hablan del código.
+ERRBUILD=$(mktemp)
+npm run build >/dev/null 2>"$ERRBUILD" || { echo "✗ falló el build"; cat "$ERRBUILD"; rm -f "$ERRBUILD"; exit 1; }
+RUIDO=$(grep -v -E '^\s*$|^npm (notice|warn|WARN)' "$ERRBUILD" || true)
+rm -f "$ERRBUILD"
+if [ -n "$RUIDO" ]; then
+  echo "✗ NO SE PUBLICA: el build compiló pero avisó de algo en el código."
+  echo "  (un build limpio no escribe nada aquí; esto SÍ se ve en pantalla)"
+  echo "$RUIDO"
+  exit 1
+fi
 LOCAL=$(wc -c < dist/index.html | tr -d ' ')
 echo "  build listo: $LOCAL bytes"
 
