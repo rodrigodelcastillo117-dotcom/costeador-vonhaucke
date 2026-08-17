@@ -1704,3 +1704,17 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 .cancel-aviso { display: flex; flex-direction: column; gap: 5px; margin-top: 12px;
   padding: 12px 14px; border-radius: 12px; background: #fdf7ec; border: 1px solid #e6c893;
   font-size: 14px; line-height: 1.45; }
+
+/* El programa que salió DEL PLANO, arriba del cuestionario: lo que la app leyó
+   sola. Y el aviso de cuando el largo por puesto no le da a las islas —el
+   error que dejaba todo "sin ubicar en el plano". */
+.prog-plano {
+  margin: 10px 0 4px; padding: 10px 12px; border-radius: 10px;
+  background: #eef4ef; border: 1px solid #cfe0d4; font-size: 13.5px; line-height: 1.5;
+}
+.prog-plano span { color: var(--gris); }
+.prog-aviso {
+  margin: 8px 0 4px; padding: 10px 12px; border-radius: 10px;
+  background: #fdf3e7; border: 1px solid #eccfa6; color: #7a4a12;
+  font-size: 13.5px; line-height: 1.5;
+}

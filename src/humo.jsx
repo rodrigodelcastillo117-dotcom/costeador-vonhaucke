@@ -197,6 +197,22 @@ const costeo = {
 // botones "Subir el plano" y "Dibujar la oficina" sólo hacían `setPaso(3)`:
 // brincaban al acomodo sin abrir nada. Rodrigo lo cazó usándola, no la prueba.
 // Con estado propio, el camino se puede CAMINAR aquí.
+// Las áreas del plano REAL de Rodrigo, para poder caminar el cuestionario ya
+// lleno (8 islas de 4.5 × 3.5, 5 privados, 2 salas, recepción).
+const AREAS_PLANO = [
+  { nombre: 'Privado 1', tipo: 'privado', ancho: 4.5, largo: 5 },
+  { nombre: 'Privado 2', tipo: 'privado', ancho: 3.5, largo: 6 },
+  { nombre: 'Privado 3', tipo: 'privado', ancho: 5, largo: 5 },
+  { nombre: 'Privado 4', tipo: 'privado', ancho: 4, largo: 5.5 },
+  { nombre: 'Privado 5', tipo: 'privado', ancho: 5, largo: 5.5 },
+  { nombre: 'Sala Juntas 1', tipo: 'juntas', ancho: 7, largo: 6 },
+  { nombre: 'Sala Juntas 2', tipo: 'juntas', ancho: 7, largo: 5 },
+  { nombre: 'Recepcion', tipo: 'recepcion', ancho: 7, largo: 8 },
+  { nombre: 'Pasillo de circulacion', tipo: 'open', ancho: 23, largo: 14, contiene: 8 },
+  ...[1,2,3,4,5,6,7,8].map((n) => ({ nombre: 'Area Op. ' + n, tipo: 'open', ancho: 4.5, largo: 3.5, dentroDe: 'Pasillo de circulacion' })),
+];
+const estadoConPlano = { ...estado, cotizacion: { ...estado.cotizacion, acomodo: { areasM: AREAS_PLANO } } };
+
 function VoniVivo() {
   const [paso, setPaso] = useState(1);
   return <Voni estado={estado} setEstado={nada} soloVentas={false} veCostos
@@ -222,6 +238,7 @@ const PANTALLAS = [
   // nunca se probaba el cuestionario de botones (ni el resto del paso).
   ['Voni · paso 2 muebles', <Voni estado={estado} setEstado={nada} soloVentas={false} veCostos paso={2} setPaso={nada} onAgregarItems={nada} onGuardarAcomodo={nada} onIr={nada} />],
   ['Voni vivo (se camina)', <VoniVivo />],
+  ['Programa con plano', <CotizadorIA estado={estadoConPlano} onAgregarItems={nada} onIr={nada} conPrograma />],
   ['Cotizar con IA', <CotizadorIA estado={estado} onAgregarItems={nada} onIr={nada} verCotizacion />],
   ['Asistente', <Asistente estado={estado} onAgregarPartida={nada} onModoAvanzado={nada} onIr={nada} />],
   ['Asistente especial', <AsistenteEspecial estado={estado} onVerDetalle={nada} onInicio={nada} />],

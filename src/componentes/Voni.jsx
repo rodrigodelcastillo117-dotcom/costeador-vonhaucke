@@ -79,6 +79,13 @@ export default function Voni({
   const archivoRef = useRef(null);
   const [planoInicial, setPlanoInicial] = useState(null);
   const [abrirDibujo, setAbrirDibujo] = useState(false);
+  // ⚠️ EL PLANO SE LEE EN EL PASO 3, PERO EL ORDEN ES 1→2→3 (2026-08-17).
+  // Rodrigo: *"se sigue pasando cuando subo un pdf al paso 3, no al 2. Debería
+  // ser: subir pdf, ¿cuántos muebles?"*. El aparato que sabe leer el plano vive
+  // en `Acomodo` (paso 3), así que se va allá **de paso**: en cuanto el plano
+  // queda leído y guardado, si todavía no hay muebles, se regresa al paso 2.
+  // Así el proyectista ve Espacio ✓ → Muebles, que es el camino que acordamos.
+  const [volverAMuebles, setVolverAMuebles] = useState(false);
   const [confVaciar, setConfVaciar] = useState(false);
   const [editando, setEditando] = useState(null);   // índice de la partida que se edita
   const vaciar = () => { setCot({ partidas: [], acomodo: null }); setConfVaciar(false); };
@@ -136,7 +143,7 @@ export default function Voni({
             onChange={(e) => {
               const f = e.target.files?.[0]; e.target.value = '';
               if (!f) return;              // canceló el diálogo: quedarse en el paso 1
-              setPlanoInicial(f); setPaso(3);
+              setPlanoInicial(f); setVolverAMuebles(true); setPaso(3);
             }}
           />
           <EmpezarEspacio
@@ -255,7 +262,15 @@ export default function Voni({
           </div>
           <Acomodo
             estado={estado}
-            onGuardarAcomodo={onGuardarAcomodo}
+            onGuardarAcomodo={(d, silencioso) => {
+              onGuardarAcomodo?.(d, silencioso);
+              // El plano ya quedó leído y guardado. Si todavía no hay muebles,
+              // el siguiente paso NO es acomodar: es decir qué lleva.
+              if (volverAMuebles && !hay && d?.areasM?.length) {
+                setVolverAMuebles(false);
+                setPaso(2);
+              }
+            }}
             onIr={(r) => setPaso(r === 'cotizacion' ? 4 : 2)}
             planoInicial={planoInicial}
             abrirDibujo={abrirDibujo}

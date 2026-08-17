@@ -146,8 +146,13 @@ export default function CotizadorIA({ estado, onAgregarItems, onIr, verCotizacio
         {/* El cuestionario de botones va ARRIBA del recuadro: es el camino de
             quien empieza de cero. El texto se queda para quien ya tiene el
             correo del cliente que pegar. Misma Voni, dos entradas. */}
+        {/* `areasPlano`: las áreas del plano que ya se leyó en el paso 1. Con
+            ellas el cuestionario llega LLENO en vez de en blanco. */}
         {conPrograma && (
-          <ProgramaProyecto cargando={cargando} onArmar={(frase) => { setTexto(frase); interpretar(frase); }} />
+          <ProgramaProyecto
+            cargando={cargando}
+            areasPlano={estado.cotizacion?.acomodo?.areasM || null}
+            onArmar={(frase) => { setTexto(frase); interpretar(frase); }} />
         )}
         {conPrograma && <div className="prog-o">o escríbelo / pégalo</div>}
         <textarea

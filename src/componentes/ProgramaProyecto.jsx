@@ -17,7 +17,8 @@
 //  los botones sirven cuando empiezas de cero, en una junta, en el celular —
 //  y además NO TE PUEDEN MALENTENDER, que es lo que un párrafo sí puede.
 // ============================================================================
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { programaDelPlano, resumenDelPlano } from '../datos/programaDelPlano.js';
 
 // Las líneas que de verdad se ofrecen para cada cosa. No son las 24: son las
 // que un proyectista pone en cada tipo de espacio.
@@ -73,12 +74,26 @@ export function fraseDe(p) {
   return t.join(', ') + '.';
 }
 
-export default function ProgramaProyecto({ onArmar, cargando = false }) {
+export default function ProgramaProyecto({ onArmar, cargando = false, areasPlano = null }) {
+  // ⚠️ EL CUESTIONARIO LLEGABA EN BLANCO AUNQUE HUBIERA PLANO (2026-08-17).
+  // Rodrigo: *"yo tuve que poner TODAS LAS CANTIDADES, no tuvo criterio"*. El
+  // plano ya dice cuántas islas hay, de qué tamaño, cuántos privados y cuántas
+  // salas: se propone y él corrige. Sin plano, todo queda en cero como antes.
+  const delPlano = useMemo(
+    () => programaDelPlano(areasPlano || [], { largoPuesto: 1500 }),
+    [areasPlano],
+  );
   const [p, setP] = useState({
-    operativos: 0, largoPuesto: 1500, lineaOperativos: 'applt', sillaOperativa: 'WIN',
-    privados: 0, largoPrivado: 2100, credenza: true, lineaPrivados: 'eclipse', sillaVisita: 'CONCERTO',
-    juntas: 0, recepcion: false, guardas: 0,
+    operativos: delPlano.operativos, largoPuesto: 1500, lineaOperativos: 'applt', sillaOperativa: 'WIN',
+    privados: delPlano.privados, largoPrivado: 2100, credenza: true, lineaPrivados: 'eclipse', sillaVisita: 'CONCERTO',
+    juntas: delPlano.juntas, recepcion: delPlano.recepcion, guardas: delPlano.guardas,
   });
+  // El aviso se recalcula con el largo que él escoja: si se pasa a 1.80, tiene
+  // que enterarse AHÍ de que sus islas ya no dan para 48.
+  const avisoLargo = useMemo(
+    () => programaDelPlano(areasPlano || [], { largoPuesto: p.largoPuesto }).avisos,
+    [areasPlano, p.largoPuesto],
+  );
   // Acepta un valor o una función, como `setState`: los ± mandan función.
   const set = (k) => (v) => setP((x) => ({ ...x, [k]: typeof v === 'function' ? v(x[k]) : v }));
   const hay = p.operativos > 0 || p.privados > 0 || p.juntas > 0 || p.recepcion || p.guardas > 0;
@@ -92,6 +107,13 @@ export default function ProgramaProyecto({ onArmar, cargando = false }) {
         Contesta con los botones. Si prefieres escribirlo —o ya tienes el correo del cliente para
         pegar— usa el recuadro de abajo: es la misma Voni.
       </p>
+      {delPlano.hayPlano && (
+        <div className="prog-plano">
+          <strong>{resumenDelPlano(delPlano)}</strong>
+          <span> Ya lo llené con eso; cambia lo que quieras.</span>
+        </div>
+      )}
+      {avisoLargo.map((a, i) => <div key={i} className="prog-aviso">⚠ {a}</div>)}
 
       <div className="prog-fila">
         <div className="prog-et"><strong>Operativos</strong><span>puestos en bench</span></div>

@@ -19,8 +19,10 @@ const AISLE = 1100;     // pasillo entre filas de estaciones / islas
 const GAP = 140;        // separación entre piezas contiguas en una fila
 const MEET_CLR = 950;   // paso alrededor de la mesa de juntas
 
-// Clasifica un cuarto por su nombre.
-function rolArea(nombre) {
+// Clasifica un cuarto por su nombre. Se EXPORTA para que el programa del plano
+// use el mismo criterio que el acomodo: si difieren, la app propone un programa
+// para unos cuartos y lo acomoda en otros.
+export function rolArea(nombre) {
   const s = (nombre || '').toLowerCase();
   if (/ba[ñn]|w\.?c|sanit|toilet|n[úu]cleo|ducto|escaler|core|cocin|kitchen/.test(s)) return 'servicio';
   if (/jun|consejo|board/.test(s)) return 'juntas';
