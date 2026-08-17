@@ -4,6 +4,8 @@
 //  generador al elegir el producto; los tipos SIN render caen al isométrico.
 //  Archivos en bucket público 'app', prefijo: catalogo/<ruta>/<clave>.jpg
 // ============================================================================
+import { fotoSilla } from './imagenesSilleria.js';
+
 const BASE = 'https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/app/catalogo';
 const u = (ruta, clave) => `${BASE}/${ruta}/${clave}.jpg`;
 
@@ -50,6 +52,22 @@ export const USAR_RENDER_IA = true;
 
 export const imagenProducto = (linea, prodId) =>
   (USAR_RENDER_IA && renderIA(linea, prodId)) || fotoProducto(linea, prodId);
+
+/**
+ * La imagen de UNA PARTIDA de la cotización, venga de donde venga. Es la que
+ * deben usar todas las pantallas.
+ * ⚠️ Existe porque la SILLERÍA no tiene línea —es comprada-revendida— y todas
+ * las pantallas preguntaban `pt.ruta ? imagenProducto(...) : null`. Con eso,
+ * cada silla del banco salía como un cuadro gris en la propuesta del cliente,
+ * en la paleta del acomodo y en el PDF. Ahora, si no hay línea, se busca su
+ * foto de presupuesto por MODELO.
+ */
+export const imagenPartida = (pt) => (
+  pt?.render
+  || (pt?.ruta ? imagenProducto(pt.ruta, pt.productoId) : null)
+  || fotoSilla(pt)
+  || (pt?.ruta ? heroLinea(pt.ruta) : null)
+);
 
 // <<< RENDER_IA generado por scratchpad/aplicar_manifiesto.mjs — no editar a mano
 // Render de catálogo por producto: se generó con Gemini usando la FOTO REAL como

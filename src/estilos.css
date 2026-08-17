@@ -1509,3 +1509,9 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
   display: grid; place-items: center; width: 100%; aspect-ratio: 4 / 3;
   background: var(--papel); border-radius: 8px; font-size: 30px;
 }
+
+/* La foto de la silla en el banco de precios. Chica y cuadrada: es para
+   reconocerla de un vistazo, no para lucirla. */
+.banco-foto { width: 62px; height: 62px; object-fit: contain; border-radius: 8px;
+  background: #fff; border: 1px solid var(--linea); flex: 0 0 auto; margin-right: 12px; }
+@media (max-width: 560px) { .banco-foto { width: 52px; height: 52px; margin-right: 9px; } }

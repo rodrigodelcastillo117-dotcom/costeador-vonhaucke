@@ -72,6 +72,22 @@ if [ "${1:-}" = "renders" ]; then
   printf "\n  imágenes: %d subidas, %d fallidas\n" "$ok" "$mal"
 fi
 
+if [ "${1:-}" = "sillas" ]; then
+  # Fotos de sillería sacadas de los presupuestos reales (ver
+  # src/datos/imagenesSilleria.js). El nombre del archivo ES el modelo.
+  echo "→ Subiendo fotos de sillería…"
+  ok=0; mal=0
+  for f in scratchpad/silleria/*.jpg; do
+    [ -e "$f" ] || continue
+    b=$(basename "$f")
+    code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$OBJ/app/silleria/$b" \
+      -H "apikey: $LLAVE" -H "Authorization: Bearer $LLAVE" \
+      -H "Content-Type: image/jpeg" -H "x-upsert: true" --data-binary "@$f")
+    if [ "$code" = "200" ]; then ok=$((ok+1)); printf "."; else mal=$((mal+1)); printf "\n  ✗ %s -> %s\n" "$b" "$code"; fi
+  done
+  printf "\n  sillas: %d subidas, %d fallidas\n" "$ok" "$mal"
+fi
+
 echo "→ Publicando la app…"
 code=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "$OBJ/app/index.html" \
   -H "apikey: $LLAVE" -H "Authorization: Bearer $LLAVE" \

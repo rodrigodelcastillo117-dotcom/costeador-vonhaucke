@@ -9,14 +9,14 @@ import { resumenPorArea, especificacion } from '../datos/resumen.js';
 import { descargarPropuesta, cargarFotos } from '../datos/pdfPropuesta.js';
 import EditarPartida, { sePuedeEditar } from './EditarPartida.jsx';
 import { pesos, pct, leePct, colorMargen, selloPartida } from '../util.js';
-import { imagenProducto, heroLinea } from '../datos/imagenes.js';
+import { imagenPartida } from '../datos/imagenes.js';
 import { expandirPiezas, mapaPiezas } from '../datos/espacio.js';
 import { generarRender } from '../nube.js';
 import PlanoAcomodo from './PlanoAcomodo.jsx';
 
-// El render IA de la partida manda; si no, la foto de catálogo.
-const fotoPartida = (pt) =>
-  pt.render || (pt.ruta ? imagenProducto(pt.ruta, pt.productoId) || heroLinea(pt.ruta) : null);
+// El render IA de la partida manda; si no, la foto de catálogo; y si es una
+// silla del banco (que no tiene línea), su foto de presupuesto.
+const fotoPartida = imagenPartida;
 
 export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr }) {
   const [vistaClienteManual, setVistaClienteManual] = useState(false);

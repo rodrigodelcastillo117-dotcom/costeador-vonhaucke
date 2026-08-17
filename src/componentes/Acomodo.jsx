@@ -8,7 +8,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { acomodarEspacio, leerPlano, generarRender } from '../nube.js';
 import { TIPOS, dimsPieza, expandirPiezas, mapaPiezas, contarBajoEscritorio } from '../datos/espacio.js';
-import { imagenProducto, heroLinea } from '../datos/imagenes.js';
+import { imagenProducto, imagenPartida, heroLinea } from '../datos/imagenes.js';
 import { acomodarLocal } from '../datos/planner.js';
 import { enderezar } from '../datos/orientacion.js';
 import { escenasDeAcomodo, lineasDeEscena, tipoDeEscena } from '../datos/escenas.js';
@@ -578,7 +578,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
       if (dibujoMeta.dobles?.length) ex.push(`double-height ceiling in ${dibujoMeta.dobles.join(', ')}`);
       const extras = ex.length ? ` The space has ${ex.join(', ')}; keep furniture clear of columns and stairs.` : '';
       const desc = `${lista}. Layout: ${layout}.${extras}`;
-      const urls = [...new Set(partidas.map((p) => (p.ruta ? imagenProducto(p.ruta, p.productoId) || heroLinea(p.ruta) : null)).filter(Boolean))].slice(0, 6);
+      const urls = [...new Set(partidas.map(imagenPartida).filter(Boolean))].slice(0, 6);
       const u2b = async (url) => { try { const rr = await fetch(url); const b = await rr.blob(); return await new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.onerror = () => res(null); fr.readAsDataURL(b); }); } catch (e) { return null; } };
       const imagenes = (await Promise.all(urls.map(u2b))).filter(Boolean);
       const r = await generarRender(desc, { modo: 'oficina', medidas: `${areas.length} área(s), altura ${dibujoMeta.alto || 2.7} m`, imagenes });
@@ -886,7 +886,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
               <div className="paleta">
                 {agrupadas.map((g) => {
                   const p = g.muestra;
-                  const img = p.ruta && p.productoId ? imagenProducto(p.ruta, p.productoId) : null;
+                  const img = imagenPartida(p);
                   const enMano = g.ids.includes(enLaMano);
                   return (
                     <button key={g.clave} className={`paleta-item ${enMano ? 'on' : ''}`}

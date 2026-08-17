@@ -6,6 +6,7 @@ import { useState, useMemo } from 'react';
 import { BANCO_CATEGORIAS, BANCO_FUENTES, BANCO_LINEAS, bancoUnico } from '../datos/banco.js';
 import { CATALOGO_INDEX, CATALOGO_LINEAS } from '../datos/catalogoIndex.js';
 import { pesos, coincide} from '../util.js';
+import { fotoSilla } from '../datos/imagenesSilleria.js';
 
 export default function Banco({ onAgregar, onIr }) {
   const [busca, setBusca] = useState('');
@@ -90,6 +91,10 @@ export default function Banco({ onAgregar, onIr }) {
           <h3>{c}</h3>
           {porCat[c].map((p) => (
             <div className="banco-item" key={p.id}>
+              {/* La foto sale del PRESUPUESTO donde se vendió esa silla. Sin
+                  ella, elegir sillería era leer claves: "WIN" y "WIN-CAB" no se
+                  distinguen en texto, y en la foto se ve la cabecera. */}
+              {fotoSilla(p) && <img className="banco-foto" src={fotoSilla(p)} alt="" loading="lazy" />}
               <div className="banco-info">
                 <div className="banco-nombre">
                   {p.nombre}{p.usuarios ? <span className="gris"> · {p.usuarios} usuario{p.usuarios > 1 ? 's' : ''}</span> : ''}
