@@ -3,7 +3,7 @@
 //  precio ya cotizado. Pensado para armar proyectos grandes rápido.
 // ============================================================================
 import { useState, useMemo } from 'react';
-import { BANCO, BANCO_CATEGORIAS, BANCO_FUENTES, BANCO_LINEAS } from '../datos/banco.js';
+import { BANCO_CATEGORIAS, BANCO_FUENTES, BANCO_LINEAS, bancoUnico } from '../datos/banco.js';
 import { CATALOGO_INDEX, CATALOGO_LINEAS } from '../datos/catalogoIndex.js';
 import { pesos, coincide} from '../util.js';
 
@@ -16,7 +16,7 @@ export default function Banco({ onAgregar, onIr }) {
 
   const q = busca.trim().toLowerCase();
   const lista = useMemo(() => {
-    return BANCO.filter((p) => {
+    return bancoUnico().filter((p) => {
       if (cat !== 'todas' && p.categoria !== cat) return false;
       if (linea !== 'todas' && p.linea !== linea) return false;
       if (!q) return true;

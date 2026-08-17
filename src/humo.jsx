@@ -23,6 +23,7 @@ import Inicio from './componentes/Inicio.jsx';
 import Asistente from './componentes/Asistente.jsx';
 import AsistenteEspecial from './componentes/AsistenteEspecial.jsx';
 import Banco from './componentes/Banco.jsx';
+import Archivo from './componentes/Archivo.jsx';
 import Catalogo from './componentes/Catalogo.jsx';
 import Costeador from './componentes/Costeador.jsx';
 import CosteadorLinea from './componentes/CosteadorLinea.jsx';
@@ -202,6 +203,10 @@ const PANTALLAS = [
   ['Asistente', <Asistente estado={estado} onAgregarPartida={nada} onModoAvanzado={nada} onIr={nada} />],
   ['Asistente especial', <AsistenteEspecial estado={estado} onVerDetalle={nada} onInicio={nada} />],
   ['Banco de precios', <Banco onAgregar={nada} onIr={nada} />],
+  // El archivo de presupuestos: monta contra la nube, así que en la prueba de
+  // humo se ve el estado "cargando/vacío". Lo que se comprueba aquí es que la
+  // pantalla MONTA y no tumba la app cuando no hay sesión.
+  ['Presupuestos que ya hicimos', <Archivo estado={estado} onAbrir={nada} />],
   ['Catálogo', <Catalogo estado={estado} onCargar={nada} soloVentas={false} />],
   ['Costear especial', <Costeador estado={estado} costeo={costeo} setCosteo={nada} onAgregarCotizacion={nada} onGuardarPieza={nada} />],
   ['Propuesta (mis números)', <Cotizacion estado={estado} setEstado={nada} soloVentas={false} onIr={nada} />],

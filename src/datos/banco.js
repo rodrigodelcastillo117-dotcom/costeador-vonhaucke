@@ -366,3 +366,82 @@ export const BANCO_FUENTES = {
   '225120019': 'PrestigeMotors · dic 2025',
   '225080025': 'Módulo App LT 4U · mar 2026',
 };
+
+
+// ============================================================================
+//  EL MISMO MUEBLE, DOS VECES
+//
+//  Rodrigo, viendo su cotización: "volvió a duplicar las sillas CONCERTO, ¿por
+//  qué?". No era la agrupación de partidas —esos dos renglones tenían nombre y
+//  precio DISTINTOS, así que juntarlos habría sido inventar—: era el banco.
+//  La misma silla CONCERTO estaba cargada dos veces, de dos presupuestos, a
+//  $5,470 y $5,140. Voni ve las dos y pide las dos.
+//
+//  Se detectan con EVIDENCIA DURA, no por parecido de nombre:
+//    a) misma CLAVE del ERP  → es literalmente el mismo artículo
+//    b) sillería con el mismo MODELO (CONCERTO, WIN, GAMMA-E…) → la misma silla
+//
+//  ⚠️ Y NO SE FUSIONA A CIEGAS. Si los precios difieren más de 25% casi nunca es
+//  el mismo mueble con otra fecha: es otro producto que se llama parecido. Caso
+//  real: "silla EJECUTIVA" aparece a $6,480 y a $22,198 — 3.4× — y son dos
+//  sillas distintas. Ésas se quedan separadas a propósito.
+//
+//  Del grupo se queda el precio MÁS RECIENTE, y los otros viajan en
+//  `otrosPrecios` para poder enseñar el historial sin ensuciar la lista.
+// ============================================================================
+
+// Mes de cada presupuesto, para saber cuál manda. Sale del texto de BANCO_FUENTES.
+const MES_FUENTE = {
+  '225120019': '2025-12', '226010047': '2026-01', '225080025': '2026-03',
+  '2508040': '2026-03', '226030004': '2026-03', '226030018': '2026-05',
+  '226050047': '2026-05', '226050048': '2026-05', '226060050': '2026-06',
+  '226030134': '2026-06', '226020037': '2026-07',
+};
+const fechaDe = (p) => MES_FUENTE[p.fuente] || '0000-00';
+
+const sinAcentos = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+const GENERICAS = new Set(['SILLA', 'SILLON', 'BANCO', 'VISITA', 'OPERATIVA', 'ALTO', 'PARA', 'CON',
+  'SIN', 'PTS', 'MODELO', 'BASE', 'BRAZOS', 'RODANTE', 'TAPIZADO', 'PUFF', 'SOFA', 'BANQUETA', 'DIRECTIVA']);
+
+function modeloDeSilla(p) {
+  const t = (sinAcentos(p.nombre).match(/\b[A-Z][A-Z0-9-]{2,}\b/g) || []).filter((x) => !GENERICAS.has(x));
+  return t[0] || null;
+}
+
+/** La llave con la que dos renglones son el MISMO artículo, o null si no aplica. */
+export function llaveArticulo(p) {
+  // ⚠️ EN SILLERÍA MANDA EL MODELO, NO LA CLAVE. La clave es un código de
+  // variante (`CONCERTO-BNENRTAT` = tal tapiz, tal estructura) y no todos los
+  // presupuestos la imprimen. Si se pregunta primero por la clave, la MISMA
+  // silla CONCERTO cae en dos llaves distintas —una por clave y otra por
+  // modelo— y sigue duplicada, que es justo lo que Rodrigo vio en pantalla.
+  if (p.categoria === 'Sillería') { const m = modeloDeSilla(p); if (m) return `silla:${m}`; }
+  if (p.clave) return `clave:${p.clave}`;
+  return null;
+}
+
+/** El banco sin duplicados: lo que ve el vendedor y lo que ve Voni. */
+export function bancoUnico(lista = BANCO) {
+  const grupos = new Map();
+  const sueltos = [];
+  for (const p of lista) {
+    const k = llaveArticulo(p);
+    if (!k) { sueltos.push(p); continue; }
+    if (!grupos.has(k)) grupos.set(k, []);
+    grupos.get(k).push(p);
+  }
+  const out = [...sueltos];
+  for (const v of grupos.values()) {
+    if (v.length === 1) { out.push(v[0]); continue; }
+    const precios = v.map((x) => x.precio).filter((x) => x > 0);
+    const disp = Math.max(...precios) / Math.min(...precios);
+    if (disp > 1.25) { out.push(...v); continue; }   // no es el mismo mueble: se dejan
+    const orden = v.slice().sort((a, b) => fechaDe(b).localeCompare(fechaDe(a)));
+    const manda = orden[0];
+    out.push({
+      ...manda,
+      otrosPrecios: orden.slice(1).map((x) => ({ precio: x.precio, fuente: x.fuente, mes: fechaDe(x) })),
+    });
+  }
+  return out;
+}

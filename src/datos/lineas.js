@@ -35,7 +35,7 @@ import { buscarPrecioVenta, costoImplicito, precioDeLista } from './preciosVenta
 import { factorDeLinea } from './factoresLinea.js';
 import { precioPorUsuarioAppLT } from './preciosVenta.js';
 import { tipoDe, huellaReal, HUELLA } from './espacio.js';
-import { BANCO } from './banco.js';
+import { BANCO, bancoUnico } from './banco.js';
 
 export const LINEAS_REG = {
   applt: { titulo: 'App LT', productos: APPLT_PRODUCTOS, generar: generarAppLT },
@@ -398,7 +398,10 @@ export function catalogoIA() {
   out.__banco = {
     titulo: 'Banco de precios (piezas con PRECIO REAL de presupuestos cerrados)',
     nota: 'Estas NO se configuran: se piden por id y cantidad. Aquí está la sillería.',
-    piezas: BANCO.map((b) => ({
+    // ⚠️ SIN DUPLICADOS. Con el banco crudo, la misma silla CONCERTO estaba dos
+    // veces (de dos presupuestos, a $5,470 y $5,140) y Voni pedía las dos: dos
+    // renglones en la cotización para una sola silla. Rodrigo lo vio en pantalla.
+    piezas: bancoUnico().map((b) => ({
       id: b.id,
       nombre: b.nombre,
       categoria: b.categoria,

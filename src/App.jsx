@@ -46,11 +46,13 @@ import { FEATHER_PRODUCTOS, generarFeather } from './datos/feather.js';
 import { WORKLOUNGE_PRODUCTOS, generarWorklounge } from './datos/worklounge.js';
 import { CIRQUE_PRODUCTOS, generarCirque } from './datos/cirque.js';
 import Banco from './componentes/Banco.jsx';
+import Archivo from './componentes/Archivo.jsx';
 import Login from './componentes/Login.jsx';
 import Usuarios from './componentes/Usuarios.jsx';
 import Reglas from './componentes/Reglas.jsx';
 import { cargarReglas } from './datos/reglas.js';
 import { cargarAprendizajes } from './datos/aprendizaje.js';
+import { guardarCotizacion } from './datos/cotizaciones.js';
 import { cargar, guardar, PARAMS_SENSIBLES } from './almacen.js';
 import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso } from './nube.js';
 import { calcular } from './motor/calculo.js';
@@ -66,6 +68,7 @@ const NOMBRE_VISTA = {
   voni: 'Voni · asistente de proyecto',
   asistente: 'Cotizar un mueble',
   banco: 'Banco de precios',
+  archivo: 'Presupuestos que ya hicimos',
   applt: 'Costeador APP LT',
   app: 'Costeador App',
   eclipse: 'Costeador Eclipse',
@@ -244,6 +247,32 @@ export default function App() {
     cargarAprendizajes();   // lo que Voni ya aprendió, para que no lo vuelva a preguntar
     return () => { vivo = false; };
   }, [sesion]);
+
+  // ---------------------------------------------------------------------------
+  //  LA COTIZACIÓN VIAJA CON EL USUARIO, NO CON EL APARATO
+  //  Rodrigo: "si lo hago con mi usuario en mi celular, no me lo pone en la
+  //  computadora, como si fueran 2 diferentes". Vivía en localStorage. Ahora se
+  //  guarda sola en la nube, con el correo de quien entró.
+  //
+  //  Se guarda con RETRASO (1.5 s desde el último cambio) y NO en cada tecla:
+  //  un vendedor escribiendo el nombre del cliente dispararía una escritura por
+  //  letra. Y nunca bloquea: si la nube falla, se sigue cotizando igual y se
+  //  reintenta al siguiente cambio.
+  //
+  //  ⚠️ A PROPÓSITO NO SE SOBRESCRIBE lo que estás editando con lo que venga de
+  //  otro aparato. Eso borraría trabajo sin avisar. Lo de los otros aparatos
+  //  aparece en "Mis cotizaciones" y se abre a mano.
+  const idCotizacion = useRef(null);
+  useEffect(() => {
+    if (!sesion?.user?.email) return;
+    const n = estado.cotizacion?.partidas?.length || 0;
+    if (!n) return;
+    const t = setTimeout(async () => {
+      const id = await guardarCotizacion(estado, sesion.user.email, idCotizacion.current);
+      if (id) idCotizacion.current = id;
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [estado.cotizacion, sesion]);
 
   const accesoOk = !!sesion && !!permiso;
   const esDireccion = permiso?.rol === 'direccion';
@@ -638,6 +667,33 @@ export default function App() {
           <div className="contenido"><Asistente estado={estado} onAgregarPartida={agregarDesdeAsistente} onIr={irA} soloVentas={esVendedor} /></div>
         )}
         {pestania === 'banco' && <Banco onAgregar={agregarDeBanco} onIr={irA} />}
+        {pestania === 'archivo' && (
+          <Archivo
+            estado={estado}
+            onAbrir={(c) => {
+              // Abrir un presupuesto viejo trae SUS renglones al proyecto actual.
+              // Se pregunta antes si ya hay algo cargado: reemplazar sin avisar es
+              // perder trabajo, que es justo lo que veníamos arreglando.
+              const hay = (estado.cotizacion?.partidas || []).length;
+              if (hay && !confirm(`Tienes ${hay} mueble(s) en el proyecto actual. ¿Los reemplazo con este presupuesto?`)) return;
+              idCotizacion.current = c.id;   // seguir editando ESE, no crear otro
+              setEstado((e) => ({
+                ...e,
+                cotizacion: {
+                  ...e.cotizacion,
+                  cliente: c.cliente || '', folio: c.folio || '',
+                  partidas: c.partidas || [], acomodo: c.acomodo || null,
+                  descuentoPct: c.totales?.descuentoPct ?? e.cotizacion.descuentoPct,
+                  contingenciaPct: c.totales?.contingenciaPct ?? e.cotizacion.contingenciaPct,
+                  maniobrasPct: c.totales?.maniobrasPct ?? e.cotizacion.maniobrasPct,
+                  fletePct: c.totales?.fletePct ?? e.cotizacion.fletePct,
+                },
+              }));
+              irA('cotizacion');
+              mostrarAviso(`Abierto: ${c.cliente || 'sin cliente'}`);
+            }}
+          />
+        )}
         {pestania === 'applt' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador APP LT" productos={APPLT_PRODUCTOS} generar={generarAppLT} onAgregar={agregarDesdeAsistente} onAgregarModulo={agregarModuloAddons} /></div>}
         {pestania === 'app' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador App" productos={APP_PRODUCTOS} generar={generarApp} onAgregar={agregarDesdeAsistente} /></div>}
         {pestania === 'eclipse' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Eclipse" productos={ECLIPSE_PRODUCTOS} generar={generarEclipse} onAgregar={agregarDesdeAsistente} /></div>}
