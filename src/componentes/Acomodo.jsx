@@ -405,16 +405,12 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
   // dibujar una oficina genérica. Aquí se le manda, por cada cuarto: el DIBUJO
   // de ese cuarto (geometría), los RENDERS REALES de sus muebles (fidelidad) y
   // la línea, el acabado y las medidas (el texto).
-  // ⚠️ CANDADO: la tarjeta de escenas necesita el modo `escena` de la edge
-  // function `generar-render`, que ya está ESCRITO en supabase/functions pero
-  // TODAVÍA NO DESPLEGADO. Con la versión que hay arriba, un `modo: 'escena'`
-  // cae a la rama de "render de producto" y devolvería la foto de un mueble
-  // suelto en vez de la habitación. Antes que enseñar un botón que entrega algo
-  // equivocado, no se enseña. Se prende con:
-  //     deploy_edge_function('generar-render')  →  ESCENAS_LISTAS = true
-  const ESCENAS_LISTAS = false;
+  // El modo `escena` de `generar-render` está desplegado (v17) y probado contra
+  // la función en vivo: devuelve una fotografía a nivel de ojo, 3:2, de UN
+  // cuarto, con el lenguaje Von Haucke y la geometría del diagrama respetada.
+  // La prueba está en `scratchpad/` y se puede repetir con curl.
   const escenas = useMemo(
-    () => (ESCENAS_LISTAS ? escenasDeAcomodo(partidas, { areas: areasMM, plan }) : []),
+    () => escenasDeAcomodo(partidas, { areas: areasMM, plan }),
     [partidas, areasMM, plan],
   );
   const escenasRef = useRef({});                 // areaIndex -> nodo con su isométrico
@@ -848,7 +844,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <strong>Cómo se vería cada área</strong>
                 <span className="ayuda" style={{ display: 'inline' }}>
-                  · una foto por cuarto, con TUS muebles y TU acomodo
+                  · una foto por cuarto, con tus muebles y tu acomodo
                 </span>
               </div>
               <p className="ayuda columna-texto" style={{ marginTop: 4 }}>
@@ -860,7 +856,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
                   disabled={genEscena != null} onClick={generarTodasLasEscenas}>
                   {genEscena != null
                     ? `Generando ${escenas.find((e) => e.areaIndex === genEscena)?.nombre || ''}…`
-                    : Object.keys(imgEscena).length ? 'Volver a generar' : `Generar las ${escenas.length} áreas`}
+                    : Object.keys(imgEscena).length ? 'Volver a generar' : (escenas.length === 1 ? 'Generar la imagen del área' : `Generar las ${escenas.length} áreas`)}
                 </button>
                 {Object.keys(imgEscena).length > 0 && onGuardarAcomodo && (
                   <button className="boton" style={{ minHeight: 44 }}
