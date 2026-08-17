@@ -9,6 +9,7 @@
 
 import { acomodarEnForma } from './malla.js';
 import { regla } from './reglas.js';
+import { enderezarTodo } from './orientacion.js';
 
 const PERIM = 700;      // circulación perimetral contra muro (paso)
 const WALL = 60;        // holgura mínima al muro para guardas (pegadas)
@@ -118,8 +119,14 @@ export function acomodarLocal(areas, piezas, opts = {}) {
   if (opts.ajustar && areas.length <= 1) {
     const base = areas[0] || { nombre: 'Mi espacio', ancho: 8000, largo: 6000 };
     const { out, W, L } = empacarTodoGarantizado(base, piezas, true);
-    const colocacion = out.map((o) => ({ id: o.id, area: 0, x: o.x, y: o.y, rot: o.rot }));
-    const nuevasAreas = [{ nombre: base.nombre || 'Mi espacio', ancho: W, largo: L }];
+    const nuevasAreas = [{ nombre: base.nombre || 'Mi espacio', ancho: W, largo: L, ...(base.puertas ? { puertas: base.puertas } : {}) }];
+    // Este camino —el más usado, el de un clic— NUNCA aplicó la regla del
+    // frente: el empacador gira las piezas sólo para que quepan. Se endereza al
+    // final, ya con el ancho y el largo definitivos.
+    const colocacion = enderezarTodo(
+      out.map((o) => ({ id: o.id, area: 0, x: o.x, y: o.y, rot: o.rot })),
+      Object.fromEntries(piezas.map((p) => [p.id, p])), nuevasAreas,
+    );
     // Esto ERA una constante de cuatro `ok: true` escritos a mano. Con el plano
     // vacío seguía diciendo "✓ 17 de 17 colocadas". Un cartel verde que miente es
     // peor que no tener cartel: el proyectista no tiene cómo saber que miente.

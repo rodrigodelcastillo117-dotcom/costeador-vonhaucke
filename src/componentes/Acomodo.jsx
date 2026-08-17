@@ -10,11 +10,13 @@ import { acomodarEspacio, leerPlano, generarRender } from '../nube.js';
 import { TIPOS, dimsPieza, expandirPiezas, mapaPiezas, contarBajoEscritorio } from '../datos/espacio.js';
 import { imagenProducto, heroLinea } from '../datos/imagenes.js';
 import { acomodarLocal } from '../datos/planner.js';
+import { enderezar } from '../datos/orientacion.js';
 import { escenasDeAcomodo, lineasDeEscena, tipoDeEscena } from '../datos/escenas.js';
 import { LINEAS_REG } from '../datos/lineas.js';
 import { areasDeLectura, revisarAreas } from '../datos/planoLeido.js';
 import PlanoAcomodo from './PlanoAcomodo.jsx';
 import DibujarPlano from './DibujarPlano.jsx';
+import EmpezarEspacio from './EmpezarEspacio.jsx';
 import Cargando from './Cargando.jsx';
 
 // Un dibujo para lo que no tiene foto. Las sillas del banco vienen de
@@ -70,14 +72,6 @@ function aMM(areas) {
   }));
 }
 
-// Sugiere un espacio del tamaño del proyecto (huella total ÷ ocupación objetivo).
-function areaSugerida(piezas) {
-  const foot = piezas.reduce((s, p) => s + (p.w || 1000) * (p.d || 700), 0); // mm²
-  const room = Math.max(foot / 0.28, 32e6); // mín 32 m²; ~28% de ocupación
-  const ancho = Math.sqrt(room * 1.5), largo = room / ancho;
-  const r = (mm) => Math.max(4, Math.round((mm / 1000) * 2) / 2);
-  return { nombre: 'Mi espacio', ancho: r(ancho), largo: r(largo) };
-}
 
 export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
   const partidas = (estado.cotizacion?.partidas) || [];
@@ -102,7 +96,12 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
           ...(a.obstaculos ? { obstaculos: a.obstaculos.map((o) => ({ x: o.x / 1000, y: o.y / 1000, w: o.w / 1000, h: o.h / 1000, tipo: o.tipo })) } : {}),
           ...(a.puertas ? { puertas: a.puertas.map((p) => ({ x: p.x / 1000, y: p.y / 1000, ancho: p.ancho / 1000 })) } : {}),
         }))
-        : [areaSugerida(expandirPiezas(partidas))]
+        // ⚠️ ANTES AQUÍ SE INVENTABA EL ESPACIO. Salía "Mi espacio 13 × 14.03 m"
+        // —un rectángulo del tamaño justo de los muebles— y la app acomodaba
+        // encima sin preguntar. Rodrigo: "que primero REALMENTE sea el plano que
+        // quieres; si no hay, que mínimo pregunte cuántos m²". Ahora se arranca
+        // VACÍO y manda `EmpezarEspacio`.
+        : []
   ));
   const [modo, setModo] = useState('iso');
   const [cargando, setCargando] = useState('');   // '' | 'acomodo' | 'plano'
@@ -114,6 +113,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
   const [stagingUrl, setStagingUrl] = useState(() => guardadoPrevio?.render3d || '');   // resultado (foto amueblada)
   const [errStaging, setErrStaging] = useState('');
   const [dibujando, setDibujando] = useState(false);  // lienzo "dibuja tu oficina"
+  const archivoRef = useRef(null);                    // el <input file> del plano
   const [planReal, setPlanReal] = useState(!!guardadoPrevio?.planReal);   // áreas de plano/dibujo real → no crecer
   const [dibujoMeta, setDibujoMeta] = useState({});   // {alto, columnas, escaleras, dobles[]}
 
@@ -162,13 +162,17 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
   const autoRef = useRef(false);
   useEffect(() => {
     if (autoRef.current || piezas.length === 0) return;
+    // Sin espacio todavía no hay nada que acomodar: primero contesta dónde va.
+    if (!areas.length) return;
     autoRef.current = true;
     // Si vuelves a entrar y ya tenías un acomodo guardado, NO se re-acomoda:
     // borrar el trabajo del proyectista "para empezar de cero" es justo lo que
     // Rodrigo estaba sufriendo.
     if (guardadoPrevio?.plan?.colocacion?.length) return;
     acomodar();
-  }, [piezas]);
+    // `areas` va en las dependencias porque el acomodo ya NO arranca al entrar:
+    // arranca en cuanto el proyectista contesta dónde va el proyecto.
+  }, [piezas, areas]);
 
   // ---- GUARDADO SOLO ------------------------------------------------------
   // Cada cambio del plano o de las áreas se escribe en la propuesta, sin avisos
@@ -331,7 +335,21 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
     editarColocacion((cs) => {
       const sin = cs.filter((c) => c.id !== id);
       const antes = cs.find((c) => c.id === id);
-      return [...sin, { id, area, x: cx, y: cy, rot: antes?.rot || 0 }];
+      const puesto = { id, area, x: cx, y: cy, rot: antes?.rot || 0 };
+      // REGLA DE LA CASA, también cuando lo pones TÚ: el que se sienta ahí mira
+      // a la puerta y nunca al muro. Se corrige el GIRO, nunca el lugar: "que
+      // me deje ponerlo donde yo quiera" — el lugar es suyo, el frente es la
+      // regla. Y si después le da a "girar", ese giro manda hasta el próximo
+      // arrastre.
+      const a = areasMM[area];
+      if (!a) return [...sin, puesto];
+      const vecinos = sin.filter((c) => c.area === area).map((c) => {
+        const q = byId[c.id]; if (!q) return null;
+        const { pw, ph } = dimsPieza(q, c.rot || 0);
+        return { x: c.x, y: c.y, w: pw, d: ph };
+      }).filter(Boolean);
+      const bien = enderezar(puesto, p, a, vecinos);
+      return [...sin, { ...puesto, rot: bien.rot }];
     });
     setEnLaMano(null); setSelPieza(id); setGuardado(false);
   }
@@ -651,15 +669,31 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
       {dibujando && <DibujarPlano onListo={usarDibujo} onCancelar={() => setDibujando(false)} />}
       <div className="tarjeta no-imprimir" style={dibujando ? { display: 'none' } : undefined}>
         <button className="boton fantasma" style={{ minHeight: 40, marginBottom: 10 }} onClick={() => onIr('cotizacion')}>← Volver a la cotización</button>
+        {/* El selector de archivo vive AQUÍ y no dentro del panel de áreas,
+            porque `EmpezarEspacio` lo dispara cuando todavía no hay ninguna. */}
+        <input ref={archivoRef} type="file" accept="image/*,application/pdf,.pdf" style={{ display: 'none' }} onChange={subirPlano} />
         <h2>Tu espacio en 3D</h2>
         <p className="ayuda columna-texto">
-          Ya acomodamos los <strong>{piezas.length}</strong> muebles de tu cotización en un espacio a escala (abajo, en 3D).
-          Ajusta las medidas o <strong>sube tu plano real</strong> y vuelve a acomodar; luego guárdalo en la propuesta.
+          {/* No decir "ya acomodamos" antes de tener dónde: era el mismo vicio
+              de inventarse el espacio, ahora en el texto. */}
+          {areas.length
+            ? <>Ya acomodamos los <strong>{piezas.length}</strong> muebles de tu cotización en un espacio a escala (abajo, en 3D).
+              Ajusta las medidas o <strong>sube tu plano real</strong> y vuelve a acomodar; luego guárdalo en la propuesta.</>
+            : <>Tu cotización trae <strong>{piezas.length}</strong> muebles. Dinos dónde van y los acomodamos a escala.</>}
           {bajoEscritorio > 0 && <> Aparte van <strong>{bajoEscritorio}</strong> {bajoEscritorio === 1 ? 'gaveta' : 'gavetas'} debajo de la cubierta: se cobran, pero <strong>no ocupan piso</strong>, por eso no se dibujan sueltas.</>}
         </p>
 
         {piezas.length === 0 ? (
           <div className="alerta ambar"><span className="texto">Tu cotización está vacía. Agrega muebles primero (Cotizar con IA) y regresa.</span></div>
+        ) : !areas.length ? (
+          // Todavía no sabemos dónde va: se PREGUNTA, no se inventa.
+          <EmpezarEspacio
+            piezas={piezas}
+            subiendo={!!cargando}
+            onDibujar={() => setDibujando(true)}
+            onSubirPlano={() => archivoRef.current?.click()}
+            onListo={(nuevas) => { setAreas(nuevas); setPlanReal(false); }}
+          />
         ) : (
           <>
             {/* Áreas */}

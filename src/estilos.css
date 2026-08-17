@@ -878,6 +878,26 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
    esconde es el peor de todos —cotizar 2 puestos cuando pidieron 8—. */
 .ia-aviso { font-size: 13px; color: var(--rojo); margin-top: 3px; line-height: 1.4; }
 
+/* ---- "¿Dónde va a ir esto?": los tres caminos y los m² ---- */
+.empezar { background: var(--papel, #fff); }
+.empezar-caminos { display: grid; gap: 10px; margin: 14px 0 4px; }
+@media (min-width: 720px) { .empezar-caminos { grid-template-columns: repeat(3, 1fr); } }
+/* Botones altos, con el qué arriba y el por qué abajo: se eligen de un vistazo. */
+.empezar-camino { min-height: 78px; display: flex; flex-direction: column; align-items: flex-start;
+  justify-content: center; gap: 3px; text-align: left; padding: 12px 14px; height: 100%; line-height: 1.3; }
+.empezar-camino b { font-size: 15px; }
+.empezar-camino span { font-size: 13px; font-weight: 400; opacity: 0.78; white-space: normal; }
+.empezar-m2 { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--linea); }
+.empezar-m2 h3 { margin: 0 0 8px; }
+.empezar-barra { display: block; margin: 14px 0 10px; }
+.empezar-barra input[type="range"] { width: 100%; height: 34px; accent-color: var(--rojo); }
+.empezar-resumen { margin-top: 16px; padding: 12px 14px; border-radius: 12px;
+  background: #f3efe8; border: 1px solid var(--linea); }
+.empezar-resumen.apretado { background: #fdf3e3; border-color: #e6c893; }
+.empezar-total { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.empezar-total b { font-family: var(--display); font-size: 26px; }
+.empezar-total span { font-size: 13px; color: var(--gris); }
+
 /* ---- Acomodo: plano a escala ---- */
 .plano-wrap { width: 100%; background: #efeae3; border: 1px solid var(--linea); border-radius: 12px;
   padding: 12px; margin-top: 12px; overflow: hidden; }

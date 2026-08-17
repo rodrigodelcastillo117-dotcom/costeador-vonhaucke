@@ -16,8 +16,8 @@
 //  Todo en mm, coordenadas locales al área (origen arriba-izquierda).
 // ============================================================================
 
-import { frenteDe } from './espacio.js';
 import { regla } from './reglas.js';
+import { enderezarTodo } from './orientacion.js';
 
 export const CELDA = 100;        // 10 cm por celda
 const PASO_OBST = 250;           // no pegar muebles a una columna/escalera
@@ -252,31 +252,6 @@ function separacion(i, j, iw, jh, r) {
   return Math.hypot(dx, dy);
 }
 
-// Las puertas del cuarto, en mm locales.
-const puertasDe = (area) => (area.puertas || []).filter((p) => Number.isFinite(p?.x) && Number.isFinite(p?.y));
-
-// REGLA: el escritorio mira a la puerta. Con el mueble ya colocado, el giro
-// sólo puede ser `rot` o `rot+180` (los otros dos cambiarían la huella y ya no
-// cabría). Se elige el que pone la silla del lado de la puerta; si el cuarto no
-// tiene puerta puesta, se deja como estaba y NO se inventa un frente.
-function mirandoA(h, puertas, rot) {
-  if (!puertas.length) return rot;
-  const cx = h.x + h.w / 2, cy = h.y + h.d / 2;
-  const pu = puertas.reduce((mejor, p) =>
-    (!mejor || Math.hypot(p.x - cx, p.y - cy) < Math.hypot(mejor.x - cx, mejor.y - cy) ? p : mejor), null);
-  const dx = pu.x - cx, dy = pu.y - cy;
-  // Dirección en la que queda la silla para cada giro posible.
-  const dir = { abajo: [0, 1], izq: [-1, 0], arriba: [0, -1], der: [1, 0] };
-  const opciones = [rot % 360, (rot + 180) % 360];
-  let mejor = rot, mejorP = -Infinity;
-  for (const r of opciones) {
-    const [ux, uy] = dir[frenteDe(r)];
-    const p = (ux * dx + uy * dy) / (Math.hypot(dx, dy) || 1);   // coseno del ángulo
-    if (p > mejorP) { mejorP = p; mejor = r; }
-  }
-  return mejor;
-}
-
 // De qué lado queda el mueble al que acompaña, por eje ({x:'izq'|'der'|null, y:…}).
 function haciaRef(i, j, iw, jh, refs) {
   let mejor = null, dmin = Infinity;
@@ -334,11 +309,10 @@ export function acomodarEnForma(area, piezas) {
     if (!h && acompania && refs.length) h = buscarHueco(malla, p.w, p.d, ancla, holgura, refs, false);
     if (!h) { fuera.push(p.id); continue; }
     malla.ocupar(h.i, h.j, h.iw, h.jh);
-    // REGLA DE RODRIGO: "los escritorios siempre viendo a la puerta". El giro
-    // no cambia la huella (0 y 180 miden igual, 90 y 270 también), así que se
-    // elige el frente DESPUÉS de colocar, sin mover nada: de las dos opciones
-    // compatibles se toma la que mira hacia la puerta del cuarto.
-    if (p.tipo === 'escritorio' && !esBloque) h.rot = mirandoA(h, puertasDe(area), h.rot);
+    // El frente ya NO se decide aquí: se endereza toda la colocación al final,
+    // con las coordenadas definitivas y en un solo lugar (`orientacion.js`).
+    // Aquí se decidía con la posición de la MALLA, antes de pegar el mueble al
+    // muro, y encima al revés (ponía la silla del lado de la puerta).
     // El hueco reservó la holgura alrededor. Si el mueble se recarga contra un
     // muro, se PEGA a ese lado en vez de quedar centrado: la silla necesita el
     // paso por delante, la espalda no. Se deja un ZÓCALO: pegarlo a cero hacía
@@ -397,6 +371,13 @@ export function acomodarEnForma(area, piezas) {
     });
     circ = { ok: sinPaso.length === 0, n: sinPaso.length };
   }
+
+  // REGLA DE RODRIGO, al final y sobre las coordenadas definitivas: "siempre
+  // viendo hacia la puerta, nunca hacia la pared".
+  const byId = Object.fromEntries(piezas.map((p) => [p.id, p]));
+  const orientada = enderezarTodo(colocacion.map((c) => ({ ...c, area: 0 })), byId, [area])
+    .map(({ area: _a, ...c }) => c);
+  orientada.forEach((c, i) => Object.assign(colocacion[i], c));
 
   const libres = malla.bloq.reduce((n, v) => n + (v ? 0 : 1), 0);
   const auditoria = [
