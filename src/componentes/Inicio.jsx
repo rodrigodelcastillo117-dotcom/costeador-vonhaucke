@@ -117,6 +117,8 @@ export default function Inicio({ estado, onIr, veCostos = false, esDireccion = f
   const grupoAbierto = grupoProp !== undefined ? grupoProp : grupoLocal;
   const setGrupoAbierto = setGrupoProp ?? setGrupoLocal;
   const nPartidas = estado.cotizacion?.partidas?.length || 0;
+  // Las PIEZAS de verdad, que es lo que el cliente cuenta con los ojos.
+  const nPzasRetomar = (estado.cotizacion?.partidas || []).reduce((a, p) => a + (p.cantidad || 0), 0);
   // La pantalla de líneas se usa en 2 modos, según la vista: 'costear' (producción)
   // o 'cotizarlinea' (cotizar de línea). Se codifica en la vista para que App la persista.
   const modoCostear = vista === 'costear';
@@ -169,7 +171,10 @@ export default function Inicio({ estado, onIr, veCostos = false, esDireccion = f
             <button className="retomar" onClick={() => onIr('cotizacion')}>
               <span className="retomar-txt">
                 <span className="retomar-lbl">Vas a la mitad</span>
-                <strong>{cot.cliente ? cot.cliente : 'Cotización sin nombre'} · {nPartidas} mueble{nPartidas === 1 ? '' : 's'}</strong>
+                {/* ⚠️ DECÍA "6 MUEBLES" CON 17 PIEZAS (2026-08-17): contaba
+                    RENGLONES. El vendedor le dice al cliente "seis muebles" con
+                    $228,102 enfrente y el precio suena carísimo. */}
+                <strong>{cot.cliente ? cot.cliente : 'Cotización sin nombre'} · {nPzasRetomar} pieza{nPzasRetomar === 1 ? '' : 's'} en {nPartidas} {nPartidas === 1 ? 'renglón' : 'renglones'}</strong>
                 {totalCot > 0 && <span className="retomar-n">{pesos(totalCot)}</span>}
               </span>
               <span className="retomar-cta">Seguir <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
@@ -292,7 +297,7 @@ export default function Inicio({ estado, onIr, veCostos = false, esDireccion = f
           <Tarjeta icono="banco" titulo="Banco de precios" desc="Productos reales con su precio. Búscalos y agrégalos." onClick={() => onIr('banco')} />
           <Tarjeta icono="banco" titulo="Presupuestos que ya hicimos" desc="Todo lo cotizado, de todos los aparatos. Búscalo y ábrelo otra vez." onClick={() => onIr('archivo')} />
           <Tarjeta icono="especial" titulo="Cotizar especial (a la medida)" desc={veCostos ? 'Producto nuevo: se costea y se cotiza.' : 'A la medida. Diseño lo costea; tú lo cotizas.'} onClick={() => onIr(veCostos ? 'costeador' : 'asistente')} />
-          <Tarjeta icono="documento" titulo="Mis cotizaciones" desc={nPartidas > 0 ? `Tienes ${nPartidas} en la lista. Descuento, ver o imprimir.` : 'Ver e imprimir para el cliente.'} onClick={() => onIr('cotizacion')} />
+          <Tarjeta icono="documento" titulo="Mis cotizaciones" desc={nPartidas > 0 ? `${nPartidas} ${nPartidas === 1 ? 'renglón' : 'renglones'} en la lista. Descuento, ver o imprimir.` : 'Ver e imprimir para el cliente.'} onClick={() => onIr('cotizacion')} />
           <Tarjeta icono="despiece" titulo="Acomodo en el espacio (IA)" desc={nPartidas > 0 ? 'Define el área o sube tu plano; la IA los acomoda y verifica que caben.' : 'Primero agrega muebles; luego la IA los acomoda en tu espacio.'} onClick={() => onIr('acomodo')} />
         </div>
       </div>

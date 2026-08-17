@@ -427,7 +427,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           <div className="fila-botones" style={{ justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <label className="etiqueta" style={{ margin: 0 }}>Descuento de proyecto (%)</label>
             <CampoPct valor={descuentoPct} max={60} onCambio={(v) => setCot({ descuentoPct: v })} />
-            {!soloVentas && descuentoMax != null && <button className="boton fantasma" style={{ minHeight: 40, padding: '0 12px' }} onClick={() => setCot({ descuentoPct: descuentoMax })} title={`Máximo sin bajar del piso de ${minMarkup}%`}>Máx. rentable: {descuentoMax}%</button>}
+            {!soloVentas && descuentoMax != null && <button className="boton fantasma" style={{ minHeight: 40, padding: '0 12px' }} onClick={() => setCot({ descuentoPct: descuentoMax })} title={`Máximo sin bajar del piso de ${minMarkup}% SOBRE COSTO (markup). Ojo: ${minMarkup}% sobre costo equivale a ${Math.round(100 * (minMarkup / (100 + minMarkup)))}% de margen sobre precio, que es otra cuenta.`}>Máx. rentable: {descuentoMax}%</button>}
           </div>
           {/* Rodrigo, 2026-08-16: "el precio que tenemos ya es precio de lista, es el de
               venta con el 40%". O sea que este campo NO es el 40% — va ENCIMA. Sin
@@ -583,9 +583,21 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           {/* Totales */}
           <section className="propx-tot">
             <div className="propx-tot-box">
-              <div className="propx-tot-row"><span>Precio de lista</span><b>{pesos(precioLista)}</b></div>
+              {/* ⚠️ DECÍA "PRECIO DE LISTA" (2026-08-17). En el idioma de los
+                  presupuestos de esta casa, "precio de lista" es el BRUTO, el de
+                  ANTES del −40%… y estos precios YA traen el 40% aplicado (lo
+                  dice la propia app dos cuadros arriba). Cualquier comprador con
+                  oficio lee "precio de lista" y su siguiente frase es "¿y mi
+                  descuento de lista?". El PDF ya lo llamaba bien. Ahora los dos
+                  documentos dicen lo mismo. */}
+              <div className="propx-tot-row"><span>Suma de los renglones</span><b>{pesos(precioLista)}</b></div>
               {descuento > 0 && <div className="propx-tot-row"><span>Descuento {descuentoPct}%</span><b className="rojo">− {pesos(descuento)}</b></div>}
-              <div className="propx-tot-row"><span>Subtotal</span><b>{pesos(subtotal)}</b></div>
+              {/* Sin descuento, "Subtotal" imprimía EXACTAMENTE el mismo número
+                  que el renglón de arriba: dos renglones idénticos justo donde el
+                  cliente baja la vista a buscar el precio. Se lee como si se
+                  hubiera caído el descuento. Igual que en el PDF: sólo aparece
+                  cuando de verdad hay algo que restar. */}
+              {descuento > 0 && <div className="propx-tot-row"><span>Subtotal</span><b>{pesos(subtotal)}</b></div>}
               {contingencia > 0 && <div className="propx-tot-row"><span>Imprevistos de obra {contingenciaPct}%</span><b>{pesos(contingencia)}</b></div>}
               {maniobras > 0 && <div className="propx-tot-row"><span>Maniobras e instalación {maniobrasPct}%</span><b>{pesos(maniobras)}</b></div>}
               {flete > 0 && <div className="propx-tot-row"><span>Flete {fletePct}%</span><b>{pesos(flete)}</b></div>}
@@ -598,7 +610,11 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           {/* Condiciones + sellos + pie */}
           <section className="propx-cond">
             {/* Sin sellos en el documento del cliente. */}
-            <p><b>Condiciones.</b> Vigencia de esta propuesta: 15 días hábiles. Anticipo {anticipoPct}% y {100 - anticipoPct}% contra entrega. {maniobras > 0 ? 'Las maniobras e instalación ya están incluidas arriba; ' : 'Instalación y maniobras por separado. '}{flete > 0 ? 'el flete al área metropolitana también. Foráneo se cotiza por evento. ' : 'Flete foráneo por evento. '}Empaque según proyecto. Tiempo de entrega según programa. Precios en pesos mexicanos. El total de esta propuesta YA incluye IVA. Sujetos a cambio sin previo aviso.</p>
+            <p><b>Condiciones.</b> Vigencia de esta propuesta: 15 días hábiles. Anticipo {anticipoPct}% y {100 - anticipoPct}% contra entrega. {/* ⚠️ ESTO SE CONTRADECÍA CON LA ESCALERA (2026-08-17). El documento cobra
+                  un renglón visible "Flete 10% $22,810" y aquí abajo decía "está
+                  incluido": el cliente lee o una cosa o la otra, y de ahí sale a
+                  pedir descuento. Ahora dice DÓNDE está cobrado, que es la verdad. */}
+              {maniobras > 0 ? `Las maniobras e instalación están cobradas en su renglón (${maniobrasPct}%). ` : 'Instalación y maniobras se cotizan por separado. '}{flete > 0 ? `El flete al área metropolitana está cobrado en su renglón (${fletePct}%); foráneo se cotiza por evento. ` : 'Flete foráneo por evento. '}Empaque según proyecto. Tiempo de entrega según programa. Precios en pesos mexicanos. El total de esta propuesta YA incluye IVA. Sujetos a cambio sin previo aviso.</p>
             <div className="propx-firma">
               <div className="propx-firma-linea"><span>Aceptación de conformidad</span></div>
               <div className="propx-firma-linea"><span>Nombre y firma · Fecha</span></div>
