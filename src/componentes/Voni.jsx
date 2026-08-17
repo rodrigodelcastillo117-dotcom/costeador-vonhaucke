@@ -123,7 +123,13 @@ export default function Voni({
                   const s = selloPartida(pt);
                   return (
                     <div className="voni-fila" key={pt.id}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                      {/* 🐛 Esto traía `style={{ flex: 1, minWidth: 0 }}` EN LÍNEA,
+                          que le gana a cualquier hoja de estilos. En el celular la
+                          columna se encogía a 22 px y el nombre del mueble salía
+                          EN VERTICAL, letra por letra, 345 px hacia abajo. Rodrigo
+                          lo vio en su teléfono. Ahora es una clase, para que el
+                          CSS pueda darle su renglón completo en pantalla chica. */}
+                      <div className="voni-fila-nom">
                         <div className="voni-fila-t">{pt.nombre}</div>
                         {/* Sello y confianza en su propia fila: dentro del
                             nombre se encimaban al saltar de renglón. */}

@@ -480,12 +480,37 @@ export default function App() {
   // `opts.reemplaza` = id del lote anterior de la IA. Al volver a interpretar
   // (por ejemplo tras contestarle a Voni) hay que QUITAR lo que puso la vez
   // pasada; si no, los muebles se agregan dos veces.
+  // Dos renglones del MISMO mueble al mismo precio son un solo renglón con más
+  // piezas. Rodrigo lo vio en su teléfono: la silla ALPHA aparecía dos veces, una
+  // con 6 y otra con 12, porque Voni la pidió para dos áreas distintas. Un
+  // presupuesto de Von Haucke nunca repite un renglón idéntico: lo suma.
+  // Se agrupa por lo que de verdad lo hace el mismo mueble —nombre, precio,
+  // producto y configuración—, nunca por nombre solo: dos muebles que se llaman
+  // igual con distinto acabado SÍ son renglones distintos.
+  const mismoRenglon = (a, b) =>
+    a.nombre === b.nombre &&
+    Math.round(a.precioUnitario || 0) === Math.round(b.precioUnitario || 0) &&
+    (a.piezaId || null) === (b.piezaId || null) &&
+    (a.ruta || null) === (b.ruta || null) &&
+    (a.productoId || null) === (b.productoId || null) &&
+    JSON.stringify(a.config || null) === JSON.stringify(b.config || null);
+
+  function juntarIguales(lista) {
+    const out = [];
+    for (const p of lista) {
+      const ya = out.find((q) => mismoRenglon(q, p));
+      if (ya) ya.cantidad = (ya.cantidad || 0) + (p.cantidad || 0);
+      else out.push({ ...p });
+    }
+    return out;
+  }
+
   function agregarItemsProyecto(costados, opts = {}) {
     const partidas = partidasDeItemsIA(costados).map((p) => ({ ...p, loteIA: opts.lote || null }));
     setEstado((e) => {
       const previas = e.cotizacion.partidas || [];
       const base = opts.reemplaza ? previas.filter((p) => p.loteIA !== opts.reemplaza) : previas;
-      return { ...e, cotizacion: { ...e.cotizacion, partidas: [...base, ...partidas] } };
+      return { ...e, cotizacion: { ...e.cotizacion, partidas: juntarIguales([...base, ...partidas]) } };
     });
     mostrarAviso(`¡Listo! ${partidas.length} mueble(s) en tu proyecto`);
   }

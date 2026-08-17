@@ -932,6 +932,10 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 /* Lista de muebles del proyecto */
 .voni-lista { display: flex; flex-direction: column; }
 .voni-fila { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--papel); }
+/* El nombre del mueble: en pantalla ancha comparte renglón con los controles;
+   en celular se lleva el renglón COMPLETO y los controles bajan. Sin esto la
+   columna se encoge hasta desaparecer y el texto sale en vertical. */
+.voni-fila-nom { flex: 1 1 auto; min-width: 200px; }
 .voni-fila-t { font-weight: 600; color: var(--tinta); }
 .voni-fila-precio { font-weight: 700; min-width: 90px; text-align: right; }
 .voni-omitir { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -1418,10 +1422,10 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
      100 px fuera de la pantalla y no se podía tocar. */
   .voni-fila { flex-wrap: wrap; gap: 8px 12px; align-items: flex-start; }
   .voni-fila-precio { min-width: 0; }
-  /* 🐛 En celular esta columna colapsaba a 22 px y el nombre del mueble se
-     imprimía EN VERTICAL, letra por letra. Con 60% de base se lleva su renglón
-     completo y los controles se van abajo, que es como se lee bien. */
-  .voni-fila > div:first-child { flex: 1 1 60%; min-width: 190px; }
+  /* 🐛 En celular esta columna colapsaba a 22 px y el nombre del mueble salía
+     EN VERTICAL, letra por letra. Se lleva el renglón COMPLETO y los controles
+     bajan, que es como se lee. `100%` y no `60%`: con 60% todavía cabía al lado. */
+  .voni-fila-nom { flex: 1 1 100%; min-width: 0; }
   /* 3 · Cualquier tabla ancha (precios de material, tablero) se desliza dentro
      de su propia caja en vez de arrastrar la página entera. */
   .tarjeta table { display: block; width: 100%; overflow-x: auto; }
