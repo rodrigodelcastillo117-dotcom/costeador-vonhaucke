@@ -96,10 +96,19 @@ Deno.serve(async (req) => {
       "NOT appear. Never draw text, labels or dimensions anywhere in the image. " +
       "MATERIALS, physically based: warm oak melamine desktops with visible grain; charcoal powder-coated steel frames with a " +
       "fine matte texture; acoustic felt privacy screens in muted grey-blue; light polished concrete or pale oak floor; clean " +
-      "white walls with a subtle skirting; real glass partitions with slim mullions where the diagram shows them. " +
-      "POPULATE IT so it reads as a working office, WITHOUT changing the layout: a black ergonomic mesh task chair tucked at " +
-      "every work position, a monitor on an arm at each desk, occasional keyboards, mugs, notebooks and small plants, a few " +
-      "larger planters in the circulation, linear ceiling light fixtures. " +
+      "white walls with a subtle skirting. Draw glass partitions ONLY where the diagram actually shows one. " +
+      // ⚠️ AQUÍ SE CONTRADECÍA SOLO (2026-08-17). Arriba decía "LAYOUT IS LOCKED,
+      // do not add furniture" y aquí le PEDÍA plantas, macetas grandes,
+      // luminarias lineales y mamparas de cristal. Rodrigo comparó su dibujo de
+      // 3 muebles contra el render: "no se parece nada, agregó cosas, no sé de
+      // dónde" — y venían de este renglón. Ahora sólo se permite lo que va
+      // ENCIMA de un mueble que YA está en el dibujo; nada que ocupe piso.
+      "ON TOP of the furniture that is already in the diagram you may add small desktop items: a task chair tucked at each " +
+      "work position, a monitor at each desk, a keyboard, a mug or a notebook. NOTHING ELSE. " +
+      "DO NOT ADD ANY OBJECT THAT STANDS ON THE FLOOR and is not in the diagram: no extra desks, no pedestals or drawer " +
+      "units, no cabinets, no plants or planters, no poufs or armchairs, no rugs, no glass partitions, no pendant lamps, " +
+      "no reception counters. If a room in the diagram is empty, RENDER IT EMPTY — an empty room is the correct answer, " +
+      "not a mistake to fix. Count the pieces in the diagram and render exactly that many. " +
       "LIGHTING: soft global illumination with warm daylight raking in from one side, gentle ambient occlusion in every corner " +
       "and under every piece, soft contact shadows so nothing floats, subtle bounced colour from the wood. " +
       "CAMERA: elevated 3/4 aerial matching the diagram angle, slight natural perspective (not flat isometric), level horizon, " +
@@ -135,8 +144,12 @@ Deno.serve(async (req) => {
       "MATERIALS, physically based: warm oak melamine tops with visible grain, charcoal powder-coated steel with a fine matte " +
       "texture, acoustic felt screens in muted tones, real glass with slim mullions, pale oak or polished concrete floor, " +
       "clean white walls with a subtle skirting. " +
-      "POPULATE it so it reads as a working office WITHOUT changing the layout: a black ergonomic mesh chair at every work " +
-      "position, a monitor on an arm at each desk, a few mugs, notebooks and plants, linear ceiling lights. " +
+      // Mismo arreglo que en `acomodo`: se permite lo que va ENCIMA del mueble,
+      // nunca un mueble nuevo. Un cuarto vacío se dibuja VACÍO.
+      "ON TOP of the furniture already in the diagram you may add: a task chair at each work position, a monitor at each " +
+      "desk, a mug or a notebook. DO NOT ADD anything that stands on the floor and is not in the diagram: no extra desks, " +
+      "no pedestals, no cabinets, no plants or planters, no poufs, no rugs, no partitions that the diagram does not show. " +
+      "If the room is empty in the diagram, render it EMPTY. " +
       "LIGHTING: soft global illumination, warm daylight raking from a window wall on one side, gentle ambient occlusion in " +
       "every corner and under every piece, soft contact shadows so nothing floats. " +
       "CAMERA: EYE LEVEL, about 1.6 m from the floor, wide angle around 24 mm, standing just inside the room looking across " +
