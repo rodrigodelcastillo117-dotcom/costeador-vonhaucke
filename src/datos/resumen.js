@@ -17,8 +17,28 @@
 //  suposición.
 // ============================================================================
 
+import { vaBajoEscritorio, tipoDe } from './espacio.js';
+
 // De `p12-3` a `p12`: el id de pieza que arma `expandirPiezas`.
 const partidaDe = (idPieza) => String(idPieza).replace(/-\d+$/, '');
+
+// Reparte una cantidad ENTERA entre varios cuartos, en proporción a un peso, y
+// sin perder ni inventar una sola pieza (método del resto mayor). Si se
+// redondeara cada parte por su cuenta, 4 gavetas entre 3 y 1 escritorios darían
+// 3 + 1 = 4 unas veces y 3 + 2 = 5 otras: el total de la propuesta dejaría de
+// cuadrar con la suma de las áreas.
+export function repartirEntero(cantidad, pesos) {
+  const suma = pesos.reduce((s, p) => s + p, 0);
+  if (!suma || !cantidad) return pesos.map(() => 0);
+  const exacto = pesos.map((p) => (cantidad * p) / suma);
+  const parte = exacto.map(Math.floor);
+  let faltan = cantidad - parte.reduce((s, n) => s + n, 0);
+  const orden = exacto
+    .map((v, i) => ({ i, resto: v - Math.floor(v) }))
+    .sort((a, b) => b.resto - a.resto || a.i - b.i);
+  for (let k = 0; faltan > 0; k = (k + 1) % orden.length, faltan--) parte[orden[k].i]++;
+  return parte;
+}
 
 const m2De = (a) => {
   if (!a) return 0;
@@ -59,13 +79,52 @@ export function resumenPorArea(partidas, acomodo) {
     m.set(pid, (m.get(pid) || 0) + 1);
   }
 
+  // ---- LAS GAVETAS TAMBIÉN ESTÁN EN UN CUARTO ------------------------------
+  // Una gaveta rodante no se dibuja porque vive DEBAJO de la cubierta, pero no
+  // está en el limbo: está bajo los escritorios de su cuarto. Antes caían todas
+  // en "Sin ubicar en el plano", y el cliente leía que 25 gavetas no tenían
+  // lugar. Se reparten siguiendo a los escritorios que sí se colocaron.
+  const escritoriosPorArea = new Map();
+  for (const c of colocacion) {
+    const p = porPartida[partidaDe(c.id)];
+    if (!p || tipoDe(p) !== 'escritorio') continue;
+    const k = c.area ?? 0;
+    escritoriosPorArea.set(k, (escritoriosPorArea.get(k) || 0) + 1);
+  }
+  const colocadasPorPartida = {};
+  for (const c of colocacion) {
+    const pid = partidaDe(c.id);
+    colocadasPorPartida[pid] = (colocadasPorPartida[pid] || 0) + 1;
+  }
+  const areasConEscritorio = [...escritoriosPorArea.keys()].sort((a, b) => a - b);
+  const bajoCubierta = new Map();      // area -> pid -> cuántas
+  const repartidas = {};               // pid -> cuántas quedaron ubicadas así
+  if (areasConEscritorio.length) {
+    for (const p of partidas) {
+      if (!vaBajoEscritorio(p)) continue;
+      const falta = (p.cantidad || 0) - (colocadasPorPartida[p.id] || 0);
+      if (falta <= 0) continue;
+      const trozos = repartirEntero(falta, areasConEscritorio.map((k) => escritoriosPorArea.get(k)));
+      areasConEscritorio.forEach((k, j) => {
+        if (!trozos[j]) return;
+        if (!bajoCubierta.has(k)) bajoCubierta.set(k, new Map());
+        bajoCubierta.get(k).set(p.id, trozos[j]);
+        if (!cuenta.has(k)) cuenta.set(k, new Map());
+      });
+      repartidas[p.id] = falta;
+    }
+  }
+
   const bloques = [];
   for (const [i, m] of [...cuenta.entries()].sort((a, b) => a[0] - b[0])) {
     const a = areas[i];
-    const renglones = [...m.entries()].map(([pid, cantidad]) => {
+    const bajo = bajoCubierta.get(i) || new Map();
+    const renglones = [...m.entries(), ...bajo.entries()].map(([pid, cantidad]) => {
       const p = porPartida[pid];
       return {
         nombre: p.nombre, cantidad,
+        // Se dice con todas sus letras dónde está: no ocupa piso, va abajo.
+        bajoCubierta: bajo.has(pid) && !m.has(pid),
         unitario: p.precioUnitario || 0,
         importe: (p.precioUnitario || 0) * cantidad,
       };
@@ -79,16 +138,11 @@ export function resumenPorArea(partidas, acomodo) {
     });
   }
 
-  // Lo que la cotización trae pero el acomodo no colocó (o piezas que no piden
-  // piso, como las gavetas rodantes). Se dice en vez de desaparecerlo: si no,
-  // los totales por área no suman el total de la propuesta y nadie sabe por qué.
-  const colocadasPorPartida = {};
-  for (const c of colocacion) {
-    const pid = partidaDe(c.id);
-    colocadasPorPartida[pid] = (colocadasPorPartida[pid] || 0) + 1;
-  }
+  // Lo que la cotización trae pero el acomodo no colocó NI pudo ubicar bajo una
+  // cubierta. Se dice en vez de desaparecerlo: si no, los totales por área no
+  // suman el total de la propuesta y nadie sabe por qué.
   const sueltas = partidas
-    .map((p) => ({ p, falta: (p.cantidad || 0) - (colocadasPorPartida[p.id] || 0) }))
+    .map((p) => ({ p, falta: (p.cantidad || 0) - (colocadasPorPartida[p.id] || 0) - (repartidas[p.id] || 0) }))
     .filter((r) => r.falta > 0)
     .map(({ p, falta }) => ({
       nombre: p.nombre, cantidad: falta,

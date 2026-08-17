@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { huellaReal, expandirPiezas } from './espacio.js';
+import { huellaReal, expandirPiezas, tipoDe } from './espacio.js';
 
 // ---------------------------------------------------------------------------
 //  LA HUELLA DE LAS BANCAS SE CALCULABA DOS VECES (2026-08-16).
@@ -56,5 +56,24 @@ describe('expandirPiezas con la cotización real', () => {
       expect(p.w).toBe(7500);
       expect(p.d).toBe(1200);
     }
+  });
+});
+
+// ⚠️ EL BIOMBO ES UN ACCESORIO, NO UN TIPO DE MUEBLE. Salió armando el PDF de
+// prueba: una "Banca doble con biombos laterales" caía en la regla de mamparas,
+// y `enderezarAlto` le dejaba 80 mm de fondo — un bench de 6 usuarios dibujado
+// como un muro de 4.50 × 0.08 m. Ningún producto del catálogo se llama así hoy,
+// pero los nombres que escribe Voni desde el texto del cliente sí pueden.
+describe('el biombo del bench no lo convierte en mampara', () => {
+  it('una banca con biombos sigue siendo escritorio', () => {
+    expect(tipoDe({ ruta: 'applt', nombre: 'Banca doble APP LT 1.50 · 6 usuarios, biombos laterales' })).toBe('escritorio');
+    expect(tipoDe({ ruta: 'alba', nombre: 'Escritorio Alba 1.80 con biombo de cristal' })).toBe('escritorio');
+  });
+
+  it('y un biombo de verdad sigue siendo mampara', () => {
+    expect(tipoDe({ ruta: 'via', nombre: 'Biombo' })).toBe('mampara');
+    expect(tipoDe({ ruta: 'spine', nombre: 'Biombo para ducto' })).toBe('mampara');
+    expect(tipoDe({ ruta: 'accents', nombre: 'Semimampara / biombo divisor' })).toBe('mampara');
+    expect(tipoDe({ ruta: 'privacy4', nombre: 'Muro / Panel' })).toBe('mampara');
   });
 });

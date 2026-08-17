@@ -89,19 +89,6 @@ function Tarjeta({ icono, titulo, desc, onClick, destacada = false, roja = false
   );
 }
 
-// Tarjeta grande de acción (home). Con `avatar` muestra una imagen en vez del ícono.
-function Accion({ icono, avatar, kicker, titulo, desc, onClick, tono, cta = 'Entrar' }) {
-  return (
-    <button className={'accion accion-' + (tono || 'claro')} onClick={onClick}>
-      <span className={avatar ? 'accion-avatar' : 'accion-icono'}>{avatar || <Icono nombre={icono} tam={26} />}</span>
-      <span className="accion-kicker">{kicker}</span>
-      <span className="accion-titulo">{titulo}</span>
-      <span className="accion-desc">{desc}</span>
-      <span className="accion-cta">{cta} <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
-    </button>
-  );
-}
-
 function BarraVolver({ titulo, sub, onVolver }) {
   return (
     <div className="panel-cab">
@@ -213,21 +200,40 @@ export default function Inicio({ estado, onIr, veCostos = false, esDireccion = f
           <span className="voni-principal-cta">Empezar <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
         </button>
 
-        <div className="inicio-o"><span>o si prefieres escoger tú</span></div>
-
-        <div className="acciones-grid">
-          <Accion
-            tono="oscuro" icono="documento" kicker="Vender" titulo="Cotizar"
-            desc="Escoge de línea, del banco de precios, o pide un especial a la medida."
-            onClick={() => setVista('cotizar')}
-          />
-          {veCostos && (
-            <Accion
-              tono="claro" icono="despiece" kicker="Producción" titulo="Costear"
-              desc="Cuánto cuesta fabricar. Escoge la línea, o cuesta con IA desde un render."
-              onClick={() => setVista('costear')}
-            />
-          )}
+        {/* ⚠️ ESTO ERAN DOS TARJETONES DEL MISMO TAMAÑO QUE VONI (2026-08-17).
+            Con tres puertas grandes al mismo nivel, Rodrigo entró por la
+            equivocada: "de verdad imposible, yo me sé la app y no pude". El mapa
+            que acordamos es de UNA puerta y dos herramientas:
+              · Voni = EL CAMINO (arriba, grande).
+              · Cotizar de línea = el destornillador: ajustar y vender piezas.
+              · Banco de precios = la memoria de lo ya vendido.
+            Por eso lo de abajo son ATAJOS, no acciones: letra chica, en una
+            tira, y van DIRECTO a su pantalla (antes había que pasar por el
+            panel "Cotizar" para llegar a cotizar de línea). */}
+        <div className="atajos-bloque">
+          <div className="atajos-lbl">¿Ya sabes qué quieres? Ve directo</div>
+          <div className="atajos">
+            <button className="atajo" onClick={() => setVista('cotizarlinea')}>
+              Cotizar de línea <span>un mueble, con su precio</span>
+            </button>
+            <button className="atajo" onClick={() => onIr('banco')}>
+              Banco de precios <span>lo ya vendido, con precio real</span>
+            </button>
+            <button className="atajo" onClick={() => onIr('archivo')}>
+              Presupuestos que ya hicimos <span>ábrelos otra vez</span>
+            </button>
+            <button className="atajo" onClick={() => onIr(veCostos ? 'costeador' : 'asistente')}>
+              Especial a la medida <span>lo que no está en catálogo</span>
+            </button>
+            {veCostos && (
+              <button className="atajo" onClick={() => setVista('costear')}>
+                Costear <span>cuánto cuesta fabricarlo</span>
+              </button>
+            )}
+            <button className="atajo atajo-mas" onClick={() => setVista('cotizar')}>
+              Ver todo lo de cotizar →
+            </button>
+          </div>
         </div>
 
         {/* Lo que TÚ más cotizas, a un toque. La app lo aprende sola. */}
@@ -278,7 +284,9 @@ export default function Inicio({ estado, onIr, veCostos = false, esDireccion = f
       <BarraVolver
         titulo={modoCostear ? 'Costear' : 'Cotizar de línea'}
         sub={modoCostear ? 'Busca el mueble y te doy el costo real de fabricarlo.' : 'Escribe el mueble que necesitas y te lo configuro. O búscalo por línea, abajo.'}
-        onVolver={() => setVista(modoCostear ? 'home' : 'cotizar')}
+        // Decía "Inicio" y regresaba al panel de Cotizar. Ahora que se llega
+        // aquí de un toque desde el home, el botón hace lo que dice.
+        onVolver={() => setVista('home')}
       />
 
       {/* Atajo: cotizar de línea es uno por uno. Si son varios muebles, la IA los mete de un jalón. */}

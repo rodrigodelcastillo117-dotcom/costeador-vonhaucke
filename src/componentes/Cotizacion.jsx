@@ -6,6 +6,7 @@
 import { useState, useMemo } from 'react';
 import MarcaLogo from './MarcaLogo.jsx';
 import { resumenPorArea, especificacion } from '../datos/resumen.js';
+import { listaPorCuarto } from '../datos/porCuarto.js';
 import { descargarPropuesta, cargarFotos } from '../datos/pdfPropuesta.js';
 import EditarPartida, { sePuedeEditar } from './EditarPartida.jsx';
 import { pesos, pct, leePct, colorMargen, selloPartida } from '../util.js';
@@ -103,6 +104,9 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
       descargarPropuesta({
         cot, partidas, resumen, especificacion, nPzas, fotos,
         piezas: expandirPiezas(partidas),
+        // La hoja "Qué va en cada área", en palabras y con las gavetas: el
+        // plano no las puede enseñar porque viven debajo de la cubierta.
+        cuartos: listaPorCuarto(partidas, estado.cotizacion?.acomodo),
         totales: { precioLista, descuento, descuentoPct, subtotal, contingencia, contingenciaPct,
           maniobras, maniobrasPct, flete, fletePct,
           iva, ivaPct: estado.parametros.ivaPorcentaje, total,

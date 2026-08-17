@@ -41,7 +41,14 @@ export function vaBajoEscritorio(pt) {
 export function tipoDe(pt) {
   const s = sinAcento((pt.ruta || '') + ' ' + (pt.nombre || ''));
   // El orden importa: lo más específico primero.
-  if (/mampara|privacy|muro|biombo|lambrin/.test(s)) return 'mampara';
+  // ⚠️ PERO UNA BANCA CON BIOMBOS SIGUE SIENDO UNA BANCA. El biombo es un
+  // ACCESORIO del bench (App LT lo ofrece como "Biombos laterales"), y si el
+  // nombre lo menciona, esta regla convertía el bench en mampara: `enderezarAlto`
+  // le dejaba 80 mm de fondo y una banca de 6 usuarios se dibujaba como un muro
+  // de 4.50 × 0.08 m. Hoy ningún producto del catálogo se llama así, pero los
+  // nombres que escribe Voni desde el texto del cliente sí pueden.
+  const esMueble = /escritorio|bench|banca|estacion|mesa|credenza|archiv|gaveta|librero/.test(s);
+  if (!esMueble && /mampara|privacy|muro|biombo|lambrin/.test(s)) return 'mampara';
   if (/credenza|guarda|archiv|gaveta|armario|librero|locker|torre|modulor|mox|cajon/.test(s)) return 'guarda';
   if (/soporte de pantalla|teamspace ii/.test(s)) return 'mueble';   // accesorio, no mesa de juntas
   // Redondas de colaboración (circular, "Olga", mesa de trabajo) van a altura de

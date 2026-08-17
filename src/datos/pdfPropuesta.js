@@ -256,7 +256,92 @@ function hojaPlano(doc, { acomodo, partidas, piezas }, A4, M, ANCHO, ROJO, TINTA
   return true;
 }
 
-export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, nPzas, fotos = {}, piezas = [] }) {
+// ============================================================================
+//  QUÉ VA EN CADA CUARTO — la hoja que se lee sin saber leer un plano
+//  Rodrigo: "que diga por escrito qué va en cada cuarto (con gavetas y sillas)".
+//  El plano de la hoja anterior enseña DÓNDE; ésta dice QUÉ, en español, e
+//  incluye lo que el dibujo no puede enseñar: las gavetas viven debajo de la
+//  cubierta y no se dibujan nunca.
+//  Si el proyectista generó las fotos por área, cada cuarto sale con la suya:
+//  es la diferencia entre una lista y una propuesta.
+// ============================================================================
+function hojaCuartos(doc, { cuartos, escenas }, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA) {
+  const bloques = (cuartos || []).filter((c) => c.renglones?.length);
+  if (!bloques.length) return false;
+  const imgDe = (nombre) => (escenas || []).find((e) => e.nombre === nombre && e.img)?.img || null;
+
+  doc.addPage();
+  let y = M.arriba;
+  doc.setFillColor(...ROJO); doc.rect(M.izq, y, ANCHO, 2.4, 'F');
+  y += 14;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(...TINTA);
+  doc.text('Qué va en cada área', M.izq, y); y += 7;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...GRIS);
+  doc.text('Lo mismo del plano, en palabras.', M.izq, y);
+  y += 10;
+
+  const FOTO = 62;                       // ancho de la foto del área, si la hay
+  for (const c of bloques) {
+    const img = imgDe(c.nombre);
+    const anchoTexto = img ? ANCHO - FOTO - 8 : ANCHO;
+    const altoFoto = img ? FOTO * (2 / 3) : 0;         // las escenas salen 3:2
+    const alto = Math.max(14 + c.renglones.length * 5, altoFoto + 6);
+    if (y + alto > A4.h - M.abajo) { doc.addPage(); y = M.arriba; }
+
+    if (img) {
+      try {
+        doc.addImage(img, 'JPEG', M.izq + anchoTexto + 8, y, FOTO, altoFoto);
+        doc.setDrawColor(...LINEA); doc.setLineWidth(0.25);
+        doc.rect(M.izq + anchoTexto + 8, y, FOTO, altoFoto);
+      } catch (e) { /* sin foto, con su lista completa igual */ }
+    }
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(...TINTA);
+    doc.text(T(c.nombre), M.izq, y + 4);
+    // ⚠️ El ancho se mide con la fuente del TÍTULO, no con la del metraje: si se
+    // mide después de cambiar a 9 pt, sale más corto y los metros se imprimen
+    // ENCIMA del nombre del cuarto ("Open space96 m²").
+    const anchoNom = doc.getTextWidth(T(c.nombre));
+    if (c.m2 > 0 && !/m²|m2/.test(c.nombre)) {
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...GRIS);
+      doc.text(`${c.m2} m²`, M.izq + anchoNom + 4, y + 4);
+    }
+    let ly = y + 9;
+    if (c.titular) {
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...GRIS);
+      const t = doc.splitTextToSize(T(c.titular), anchoTexto);
+      doc.text(t.slice(0, 2), M.izq, ly);
+      ly += Math.min(t.length, 2) * 4 + 1;
+    }
+    for (const r of c.renglones) {
+      if (ly > A4.h - M.abajo - 4) break;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...TINTA);
+      doc.text(String(r.cantidad), M.izq + 6, ly, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...(r.bajoCubierta ? GRIS : TINTA));
+      // El nombre entero no cabe: se recorta el NOMBRE, nunca la nota — que es
+      // justo lo que explica por qué esa pieza no aparece en el dibujo.
+      // Con la foto al lado, la columna se angosta y la nota larga se comía el
+      // nombre ("Gaveta rodante M..."). Primero se acorta la NOTA, que se puede
+      // decir en tres palabras; el nombre del producto es lo que el cliente
+      // necesita para pedirlo.
+      let nota = r.nota ? `  (${r.nota})` : '';
+      let nom = T(r.nombre);
+      if (r.nota && doc.getTextWidth(nom + nota) > anchoTexto - 12) nota = '  (bajo la cubierta)';
+      while (nom.length > 8 && doc.getTextWidth(nom + nota) > anchoTexto - 12) nom = nom.slice(0, -2);
+      if (nom !== T(r.nombre)) nom = nom.trimEnd() + '...';
+      doc.text(nom + T(nota), M.izq + 10, ly);
+      ly += 5;
+    }
+    y = Math.max(ly, y + altoFoto) + 5;
+    doc.setDrawColor(...LINEA); doc.setLineWidth(0.2);
+    doc.line(M.izq, y - 2.5, A4.w - M.der, y - 2.5);
+    y += 3;
+  }
+  return true;
+}
+
+export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, nPzas, fotos = {}, piezas = [], cuartos = [] }) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   let y = M.arriba;
 
@@ -317,7 +402,15 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
     'Vigencia 15 días hábiles',
   ].filter(Boolean).join('   ·   ');
   doc.text(T(meta), M.izq, y);
-  const hero = cot?.acomodo?.render3d || null;
+  // ---- LA PORTADA TIENE QUE ENSEÑAR EL PROYECTO ----------------------------
+  // Rodrigo: "la portada del PDF no tiene imágenes reales". Y era literal: media
+  // hoja en blanco debajo del nombre del cliente. Una propuesta de mobiliario
+  // que no enseña un mueble compite sólo por precio.
+  // El orden es el de la fidelidad: primero la vista del acomodo de ESTE
+  // proyecto, luego las fotos de sus áreas, y si no hay ninguna, los renders de
+  // los muebles que se están cotizando —que sí son reales, del catálogo—.
+  const escenas = (cot?.acomodo?.escenas || []).filter((e) => e?.img);
+  const hero = cot?.acomodo?.render3d || escenas[0]?.img || null;
   if (hero) {
     y += 8;
     try {
@@ -328,9 +421,48 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
       doc.rect(M.izq, y, ANCHO, altoHero);
       y += altoHero + 3;
       doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...GRIS);
-      doc.text('Imagen de referencia del acomodo propuesto.', M.izq, y);
+      doc.text(T(cot?.acomodo?.render3d
+        ? 'Imagen de referencia del acomodo propuesto.'
+        : `Así se vería ${escenas[0]?.nombre || 'el área'}, con el mobiliario de esta propuesta.`), M.izq, y);
       y += 6;
     } catch (e) { /* si la imagen no se pudo dibujar, la hoja sigue igual */ }
+  }
+
+  // La tira de abajo: las áreas si las hay, si no los muebles del proyecto.
+  const tira = escenas.length > (hero === escenas[0]?.img ? 1 : 0)
+    ? escenas.slice(hero === escenas[0]?.img ? 1 : 0, 4).map((e) => ({ img: e.img, pie: e.nombre, prop: 2 / 3 }))
+    : [...new Set(partidas.map((p) => fotos?.[p.id]).filter(Boolean))]
+      .slice(0, 4)
+      .map((img, i) => ({ img, pie: partidas.find((p) => fotos?.[p.id] === img)?.nombre || '', prop: 0.75 }));
+  if (tira.length) {
+    y += 6;
+    // ⚠️ ALTURA FIJA, ANCHO SEGÚN LA PROPORCIÓN. Repartiendo el ancho entre las
+    // que haya, UNA sola foto se dibujaba como un bloque gris de media hoja: dos
+    // muebles pueden compartir render y el `Set` deja una. Una tira es una tira
+    // aunque traiga una sola imagen.
+    const hueco = 6;
+    const altoU = 30;
+    const anchos = tira.map((t) => altoU / t.prop);
+    const total = anchos.reduce((s, w) => s + w, 0) + hueco * (tira.length - 1);
+    const k = total > ANCHO ? ANCHO / total : 1;
+    if (y + altoU * k + 10 < A4.h - M.abajo) {
+      let x = M.izq;
+      tira.forEach((t, i) => {
+        const w = anchos[i] * k, h = altoU * k;
+        try {
+          doc.addImage(t.img, 'JPEG', x, y, w, h);
+          doc.setDrawColor(...LINEA); doc.setLineWidth(0.25);
+          doc.rect(x, y, w, h);
+        } catch (e) { /* una foto que no entra no tumba la portada */ }
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(...GRIS);
+        let pie = T(t.pie);
+        while (pie.length > 6 && doc.getTextWidth(pie) > w) pie = pie.slice(0, -2);
+        if (pie !== T(t.pie)) pie = pie.trimEnd() + '...';
+        doc.text(pie, x, y + h + 3.4);
+        x += w + hueco * k;
+      });
+      y += altoU * k + 8;
+    }
   }
   y += 12;
 
@@ -339,6 +471,12 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
   // no es un resumen por área, es ruido. Se omite.
   const hayAreas = resumen?.length && !(resumen.length === 1 && resumen[0].sinUbicar);
   if (hayAreas) {
+    // ⚠️ EL TÍTULO NO SE QUEDA SOLO. Cabía justo al final de la portada y el
+    // primer bloque se iba a la hoja siguiente: quedaba "Resumen del proyecto"
+    // rotulando media hoja en blanco. Es la misma enfermedad que Rodrigo cazó
+    // con el TOTAL ("se corta en otra hoja, está siniestro"): un encabezado
+    // sólo se imprime si abajo de él va a caber algo.
+    sitio(26 + (resumen[0]?.renglones?.length || 0) * 5);
     doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(...TINTA);
     doc.text('Resumen del proyecto', M.izq, y);
     y += 3; regla(); y += 7;
@@ -387,6 +525,9 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
   pie();
   const hayPlano = hojaPlano(doc, { acomodo: cot.acomodo, partidas, piezas }, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA);
   if (hayPlano) pie();
+  // Y luego, en palabras: qué va en cada área (con las gavetas, que el plano no
+  // puede enseñar porque viven debajo de la cubierta).
+  if (hojaCuartos(doc, { cuartos, escenas }, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA)) pie();
   // El detalle abre su propia hoja más abajo: aquí NO se agrega una, o sale en blanco.
 
   // ---- DETALLE, EN HOJA APARTE --------------------------------------------

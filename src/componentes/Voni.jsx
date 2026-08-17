@@ -10,8 +10,9 @@ import Acomodo from './Acomodo.jsx';
 import Cotizacion from './Cotizacion.jsx';
 import VoniAvatar from './VoniAvatar.jsx';
 import { pesos, selloPartida } from '../util.js';
-import EditarPartida, { sePuedeEditar } from './EditarPartida.jsx';
+import EditarPartida from './EditarPartida.jsx';
 import EmpezarEspacio from './EmpezarEspacio.jsx';
+import EstoEntendi from './EstoEntendi.jsx';
 
 // ⚠️ EL ESPACIO VA PRIMERO (2026-08-17). Antes era: muebles → espacio →
 // propuesta, y eso obliga a COTIZAR A CIEGAS: escoges los muebles sin saber
@@ -65,8 +66,6 @@ export default function Voni({
   const hay = partidas.length > 0;
 
   const setCot = (parcial) => setEstado((e) => ({ ...e, cotizacion: { ...e.cotizacion, ...parcial } }));
-  const setCant = (i, cant) => setCot({ partidas: partidas.map((p, j) => (j === i ? { ...p, cantidad: Math.max(1, cant) } : p)) });
-  const quitar = (i) => setCot({ partidas: partidas.filter((_, j) => j !== i) });
   const [confVaciar, setConfVaciar] = useState(false);
   const [editando, setEditando] = useState(null);   // índice de la partida que se edita
   const vaciar = () => { setCot({ partidas: [], acomodo: null }); setConfVaciar(false); };
@@ -151,47 +150,21 @@ export default function Voni({
               </p>
             ) : (
               <div className="voni-lista" style={{ marginTop: 10 }}>
-                {partidas.map((pt, i) => {
-                  const s = selloPartida(pt);
-                  return (
-                    <div className="voni-fila" key={pt.id}>
-                      {/* 🐛 Esto traía `style={{ flex: 1, minWidth: 0 }}` EN LÍNEA,
-                          que le gana a cualquier hoja de estilos. En el celular la
-                          columna se encogía a 22 px y el nombre del mueble salía
-                          EN VERTICAL, letra por letra, 345 px hacia abajo. Rodrigo
-                          lo vio en su teléfono. Ahora es una clase, para que el
-                          CSS pueda darle su renglón completo en pantalla chica. */}
-                      <div className="voni-fila-nom">
-                        <div className="voni-fila-t">{pt.nombre}</div>
-                        {/* Sello y confianza en su propia fila: dentro del
-                            nombre se encimaban al saltar de renglón. */}
-                        <div className="ia-meta">
-                          <span className={`sello sello-${s.tipo}`} title={s.nota}>{s.texto}</span>
-                          {pt.confianza && pt.confianza !== 'alta' && <span className={`ia-badge ${pt.confianza}`}>confianza {pt.confianza}</span>}
-                        </div>
-                        {pt.nota && <div className="ia-nota">{pt.nota}</div>}
-                        {/* AJUSTES: lo que la app tuvo que cambiar de lo que
-                            pidió Voni. Va en rojo y por renglón porque antes se
-                            hacía callado: pedías 8 puestos y te cotizaba 2. */}
-                        {(pt.avisos || []).map((a, k) => (
-                          <div className="ia-aviso" key={k}>⚠ {a}</div>
-                        ))}
-                      </div>
-                      <span className="masmenos" title="Cantidad">
-                        <button onClick={() => setCant(i, pt.cantidad - 1)}>−</button>
-                        <span className="valor">{pt.cantidad}</span>
-                        <button onClick={() => setCant(i, pt.cantidad + 1)}>+</button>
-                      </span>
-                      <div className="voni-fila-precio mono">{pesos(pt.precioUnitario * pt.cantidad)}</div>
-                      {sePuedeEditar(pt) && (
-                        <button className="icono-btn" title="Editar medidas, acabado y cantidad" aria-label={`Editar ${pt.nombre}`} onClick={() => setEditando(i)}>
-                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
-                        </button>
-                      )}
-                      <button className="boton fantasma" style={{ minHeight: 38, padding: '0 10px' }} onClick={() => quitar(i)}>Quitar</button>
-                    </div>
-                  );
-                })}
+                {/* ⚠️ ANTES AQUÍ IBA LA LISTA CRUDA: veinte renglones de catálogo
+                    con clave y acabado, en el orden en que los escupió el modelo.
+                    Revisar eso no es revisar el proyecto — nadie cacha ahí que
+                    pidió 21 lugares y le cotizaron 14 sillas. `EstoEntendi` es
+                    LA MISMA lista (el ± cambia la partida de verdad), agrupada
+                    por lo que cada cosa ES y con lo que no cuadra hasta arriba.
+                    Rodrigo: "el paso 'esto entendí', la lista corregible ANTES
+                    de acomodar". */}
+                <EstoEntendi
+                  partidas={partidas}
+                  areasM={estado.cotizacion?.acomodo?.areasM || []}
+                  onCantidad={(id, n) => setCot({ partidas: partidas.map((p) => (p.id === id ? { ...p, cantidad: Math.max(1, n) } : p)) })}
+                  onQuitar={(id) => setCot({ partidas: partidas.filter((p) => p.id !== id) })}
+                  onEditar={(id) => setEditando(partidas.findIndex((p) => p.id === id))}
+                />
                 <hr />
                 <div className="fila" style={{ justifyContent: 'flex-end', gap: 20 }}>
                   <span className="ayuda">Precio de lista</span>
@@ -209,10 +182,16 @@ export default function Voni({
             )}
 
             <div style={{ display: 'grid', gap: 10, marginTop: 14 }}>
+              {/* El botón es la APROBACIÓN de la lectura de arriba, no un
+                  "siguiente" cualquiera: lo que aprueba es lo que se acomoda.
+                  Y decía "Continuar al espacio" cuando el espacio es el paso 1
+                  desde que se invirtió el orden: lo que sigue es el acomodo. */}
               <button className="boton primario grande" style={{ width: '100%' }} disabled={!hay} onClick={() => setPaso(3)}>
-                Continuar al espacio →
+                Sí, así es — acomódalo →
               </button>
-              <button className="boton grande" style={{ width: '100%' }} disabled={!hay} onClick={() => setPaso(3)} title="Sáltate el acomodo y ve directo a la propuesta">
+              {/* 🐛 Este decía "ir directo a la propuesta" y mandaba al ACOMODO
+                  (paso 3), que es justo lo que el vendedor quería saltarse. */}
+              <button className="boton grande" style={{ width: '100%' }} disabled={!hay} onClick={() => setPaso(4)} title="Sáltate el acomodo y ve directo a la propuesta">
                 No necesito acomodo, ir directo a la propuesta
               </button>
             </div>

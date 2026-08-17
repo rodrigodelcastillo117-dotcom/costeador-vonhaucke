@@ -10,6 +10,8 @@ import { acomodarEspacio, leerPlano, generarRender } from '../nube.js';
 import { TIPOS, dimsPieza, expandirPiezas, mapaPiezas, contarBajoEscritorio } from '../datos/espacio.js';
 import { imagenProducto, imagenPartida, heroLinea } from '../datos/imagenes.js';
 import { acomodarLocal } from '../datos/planner.js';
+import { reacomodar, fijasDe } from '../datos/reacomodar.js';
+import { listaPorCuarto, textoPorCuarto } from '../datos/porCuarto.js';
 import { enderezar } from '../datos/orientacion.js';
 import { esSillaDeTrabajo } from '../datos/planner.js';
 import { rellenar } from '../datos/rellenar.js';
@@ -160,11 +162,24 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
 
   // Acomodo DETERMINISTA (instantáneo). Con un solo espacio, GARANTIZA que todo
   // cabe (ajusta el tamaño); con plano multi-cuarto, respeta las medidas reales.
-  function acomodar() {
+  //
+  // ⚠️ Y RESPETA LO QUE PUSISTE A MANO. Rodrigo: "que al volver a armar NO se
+  // borre lo que edité a mano". Antes esto devolvía un plano nuevo desde cero y
+  // se llevaba media hora de trabajo por delante. Ahora lo movido con el dedo se
+  // le entrega al motor como espacio ocupado y él acomoda alrededor
+  // (`reacomodar.js`). `deCero` es la puerta de salida explícita.
+  function acomodar({ deCero = false } = {}) {
     setError(''); setGuardado(false);
+    // Volver a acomodar SIEMPRE se puede deshacer, se pida desde donde se pida.
+    // (En el primer acomodo no hay nada que recordar: no se ensucia el historial.)
+    if (plan?.colocacion?.length) recordar();
     try {
-      const auto = !planReal && areasMM.length <= 1;
-      const r = acomodarLocal(areasMM, piezas, { ajustar: auto });
+      const hayMano = fijasDe(plan?.colocacion, piezas).length > 0;
+      const auto = !planReal && areasMM.length <= 1 && (deCero || !hayMano);
+      const r = reacomodar({
+        areas: areasMM, piezas, colocacion: plan?.colocacion || [], byId,
+        ajustar: auto, respetarManual: !deCero,
+      });
       setPlan(r);
       if (auto && r.areas?.length) setAreas(r.areas.map((a) => ({ nombre: a.nombre, ancho: +(a.ancho / 1000).toFixed(2), largo: +(a.largo / 1000).toFixed(2) })));
     } catch (e) { setError('No se pudo acomodar: ' + String(e?.message || e)); }
@@ -286,6 +301,18 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
   const vencida = !!plan?.auditoriaVencida ||
     (!!plan?.auditoria?.length && (plan.colocacion || []).length !== piezas.length);
 
+  // Cuántos muebles puso el proyectista con su propia mano. Es lo que el motor
+  // NO va a tocar la próxima vez que se acomode.
+  const nAMano = useMemo(() => fijasDe(plan?.colocacion, piezas).length, [plan, piezas]);
+
+  // La lista escrita de qué quedó en cada cuarto (con gavetas y sillas).
+  const porCuarto = useMemo(
+    () => (plan ? listaPorCuarto(partidas, { areas: areasMM, plan }) : []),
+    [partidas, areasMM, plan],
+  );
+  const [copiado, setCopiado] = useState(false);
+  useEffect(() => { if (copiado) { const t = setTimeout(() => setCopiado(false), 2200); return () => clearTimeout(t); } }, [copiado]);
+
   const agrupadas = useMemo(() => {
     const m = new Map();
     for (const p of pendientes) {
@@ -352,7 +379,9 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
       // a 90° soltado cerca del muro derecho se salía del dibujo.
       const { pw, ph } = dimsPieza(p, rot);
       const tope = (v, largo, dentro) => Math.max(0, Math.min(Math.round(v - largo / 2), Math.max(0, (dentro || 0) - largo)));
-      const puesto = { id, area, x: tope(x, pw, a?.ancho), y: tope(y, ph, a?.largo), rot };
+      // `manual: true` = "esto lo decidí yo". Es lo que hace que volver a
+      // acomodar NO se lo lleve por delante (ver `reacomodar.js`).
+      const puesto = { id, area, x: tope(x, pw, a?.ancho), y: tope(y, ph, a?.largo), rot, manual: true };
       if (!a) return [...sin, puesto];
       // ⚠️ EL GIRO AUTOMÁTICO **SÓLO AL PONERLO LA PRIMERA VEZ**.
       // La regla de la casa (mirar a la puerta, nunca al muro) sirve para que el
@@ -390,7 +419,10 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
     recordar();
     let puestas = 0;
     editarColocacion((cs) => {
-      const nuevas = rellenar({ ids: oferta.ids, pieza, area, iArea: oferta.area, colocadas: cs, byId });
+      // Van marcadas como puestas a mano: fue UNA decisión del proyectista
+      // ("las 27 sillas van en el operativo"), aunque las coloque el motor.
+      const nuevas = rellenar({ ids: oferta.ids, pieza, area, iArea: oferta.area, colocadas: cs, byId })
+        .map((n) => ({ ...n, manual: true }));
       puestas = nuevas.length;
       return [...cs.filter((c) => !nuevas.some((n) => n.id === c.id)), ...nuevas];
     });
@@ -404,7 +436,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
   // Cada toque gira 90°: cuatro toques dan la vuelta completa. Antes sólo
   // alternaba 0/90 y, además, el dibujo no cambiaba de frente — por eso el
   // mueble "salía viendo" siempre igual por más que lo giraras.
-  const girar = (id = selPieza) => id && (recordar(), true) && editarColocacion((cs) => cs.map((c) => (c.id === id ? { ...c, rot: ((c.rot || 0) + 90) % 360 } : c)));
+  const girar = (id = selPieza) => id && (recordar(), true) && editarColocacion((cs) => cs.map((c) => (c.id === id ? { ...c, rot: ((c.rot || 0) + 90) % 360, manual: true } : c)));
   const quitar = (id = selPieza) => { if (!id) return; recordar(); editarColocacion((cs) => cs.filter((c) => c.id !== id)); setSelPieza(null); };
 
   // ---- ELEMENTOS DEL PLANO puestos a mano -------------------------------
@@ -816,7 +848,11 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
                 Subir plano (PDF o foto)
                 <input type="file" accept="image/*,application/pdf,.pdf" style={{ display: 'none' }} onChange={subirPlano} />
               </label>
-              <button className="boton primario" style={{ minHeight: 50, marginLeft: 'auto' }} onClick={acomodar}>Acomodar</button>
+              {/* `onClick={acomodar}` le pasaba el EVENTO del clic como opciones:
+                  funcionaba de milagro (`deCero` salía undefined). Explícito. */}
+              <button className="boton primario" style={{ minHeight: 50, marginLeft: 'auto' }}
+                title={nAMano ? `Acomoda lo que falta sin mover los ${nAMano} que pusiste tú.` : undefined}
+                onClick={() => acomodar()}>Acomodar</button>
               <button className="boton fantasma" style={{ minHeight: 50 }} onClick={acomodarIA} title="Alterna con IA (el acomodo normal ya es automático)">Con IA</button>
             </div>
             {notaPlano && <div className="alerta ambar" style={{ marginTop: 10 }}><span className="texto">{notaPlano}</span></div>}
@@ -952,14 +988,34 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
                   onClick={() => { recordar(); editarColocacion(() => []); setSelPieza(null); setEnLaMano(null); setGuardado(false); }}>
                   Vaciar el plano y acomodar yo
                 </button>
-                <button className="boton fantasma" style={{ minHeight: 40 }} onClick={() => { acomodar(); setSelPieza(null); setEnLaMano(null); }}>
-                  Que lo acomode Voni otra vez
+                <button className="boton fantasma" style={{ minHeight: 40 }}
+                  title={nAMano ? `Acomoda lo que falta SIN mover los ${nAMano} que pusiste tú.` : 'Acomoda todo con el motor.'}
+                  onClick={() => { acomodar(); setSelPieza(null); setEnLaMano(null); }}>
+                  {nAMano ? 'Acomodar el resto (sin mover lo mío)' : 'Que lo acomode Voni otra vez'}
                 </button>
+                {/* La puerta de salida, explícita y con aviso: si no existe, la
+                    única forma de empezar de cero es vaciar el plano a mano. */}
+                {nAMano > 0 && (
+                  <button className="boton fantasma" style={{ minHeight: 40 }}
+                    title="Vuelve a acomodar TODO con el motor, incluidos los muebles que moviste."
+                    onClick={() => {
+                      if (!confirm(`¿Acomodar todo de cero?\n\nSe pierden los ${nAMano} mueble(s) que acomodaste a mano.`)) return;
+                      acomodar({ deCero: true }); setSelPieza(null); setEnLaMano(null);
+                    }}>
+                    Acomodar todo de cero
+                  </button>
+                )}
                 <button className="boton fantasma" style={{ minHeight: 40 }} disabled={!hayQueDeshacer} onClick={deshacer}>
                   ↶ Deshacer
                 </button>
                 <span className="ayuda">{(plan?.colocacion || []).length} en el plano · {pendientes.length} por poner</span>
               </div>
+              {nAMano > 0 && (
+                <div className="ayuda verde" style={{ marginTop: -4, marginBottom: 10 }}>
+                  ✓ <strong>{nAMano}</strong> {nAMano === 1 ? 'mueble está' : 'muebles están'} donde tú {nAMano === 1 ? 'lo pusiste' : 'los pusiste'}.
+                  Al volver a acomodar, ahí se {nAMano === 1 ? 'queda' : 'quedan'}.
+                </div>
+              )}
               {selPieza && (
                 <div className="fila-botones" style={{ gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
                   <span className="ayuda">Seleccionado: <strong>{byId[selPieza]?.nombre}</strong> · los botones están sobre el mueble</span>
@@ -1036,6 +1092,53 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
               )}
             </div>
           )}
+          {/* QUÉ VA EN CADA CUARTO, POR ESCRITO (Rodrigo, 2026-08-17).
+              El 3D enseña dónde queda cada mueble, pero nadie lee un isométrico
+              por teléfono ni lo pega en un correo. Y hay dos cosas que el dibujo
+              NO PUEDE decir: las gavetas —viven bajo la cubierta, no se
+              dibujan— y cuántas sillas quedaron en cada cuarto. */}
+          {porCuarto.length > 0 && (
+            <div className="tarjeta" style={{ marginTop: 14 }}>
+              <div className="fila" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                <h3 style={{ margin: 0 }}>Qué va en cada cuarto</h3>
+                <button className="boton fantasma no-imprimir" style={{ minHeight: 42 }}
+                  onClick={() => {
+                    const t = textoPorCuarto(porCuarto, { cliente: estado.cotizacion?.cliente || '' });
+                    navigator.clipboard?.writeText(t).then(
+                      () => setCopiado(true),
+                      () => setError('No se pudo copiar. Selecciona el texto a mano.'),
+                    );
+                  }}>
+                  {copiado ? '✓ Copiado' : 'Copiar la lista'}
+                </button>
+              </div>
+              <p className="ayuda columna-texto" style={{ marginTop: 2 }}>
+                Lo mismo que está en el plano, en palabras. Va tal cual en la propuesta del cliente.
+              </p>
+              <div className="cuartos-lista">
+                {porCuarto.map((c, i) => (
+                  <div className="cuarto-bloque" key={i}>
+                    <div className="cuarto-cab">
+                      <strong>{c.nombre}</strong>
+                      {/* El nombre del espacio de un clic ya trae los metros
+                          ("Mi espacio (400 m²)"): repetirlos se lee a tropezones. */}
+                      {c.m2 > 0 && !/m²|m2/.test(c.nombre) && <span className="gris"> · {c.m2} m²</span>}
+                      {c.titular && <div className="ayuda" style={{ marginTop: 2 }}>{c.titular}</div>}
+                    </div>
+                    <ul className="cuarto-renglones">
+                      {c.renglones.map((r, k) => (
+                        <li key={k} className={r.bajoCubierta ? 'bajo' : undefined}>
+                          <span className="cuarto-n">{r.cantidad}</span>
+                          <span>{r.nombre}{r.nota && <em className="gris"> — {r.nota}</em>}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Copia OCULTA del isométrico sin etiquetas ni rejilla: es la que se
               le manda a Gemini. Si se le manda la visible, el modelo copia el
               texto del piso dentro de la foto. */}
