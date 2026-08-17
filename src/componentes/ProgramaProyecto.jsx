@@ -18,7 +18,7 @@
 //  y además NO TE PUEDEN MALENTENDER, que es lo que un párrafo sí puede.
 // ============================================================================
 import { useState, useMemo } from 'react';
-import { programaDelPlano, resumenDelPlano } from '../datos/programaDelPlano.js';
+import { programaDelPlano, resumenDelPlano, avisosDeSala } from '../datos/programaDelPlano.js';
 
 // Las líneas que de verdad se ofrecen para cada cosa. No son las 24: son las
 // que un proyectista pone en cada tipo de espacio.
@@ -94,6 +94,9 @@ export default function ProgramaProyecto({ onArmar, cargando = false, areasPlano
     () => programaDelPlano(areasPlano || [], { largoPuesto: p.largoPuesto }).avisos,
     [areasPlano, p.largoPuesto],
   );
+  // Lo de la sala se recalcula con lo que ÉL pidió: si pone 4 donde caben 8, se
+  // le dice — y se le ofrece la credenza que cabe en lo que sobra.
+  const avisoSala = useMemo(() => avisosDeSala(delPlano, p.juntas), [delPlano, p.juntas]);
   // Acepta un valor o una función, como `setState`: los ± mandan función.
   const set = (k) => (v) => setP((x) => ({ ...x, [k]: typeof v === 'function' ? v(x[k]) : v }));
   const hay = p.operativos > 0 || p.privados > 0 || p.juntas > 0 || p.recepcion || p.guardas > 0;
@@ -113,7 +116,7 @@ export default function ProgramaProyecto({ onArmar, cargando = false, areasPlano
           <span> Ya lo llené con eso; cambia lo que quieras.</span>
         </div>
       )}
-      {avisoLargo.map((a, i) => <div key={i} className="prog-aviso">⚠ {a}</div>)}
+      {[...avisoLargo, ...avisoSala].map((a, i) => <div key={i} className="prog-aviso">⚠ {a}</div>)}
 
       <div className="prog-fila">
         <div className="prog-et"><strong>Operativos</strong><span>puestos en bench</span></div>

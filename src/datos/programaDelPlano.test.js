@@ -4,7 +4,7 @@
 //  El plano de prueba: 8 islas de 4.5 × 3.5 m, 5 privados, 2 salas, recepción.
 // ============================================================================
 import { describe, it, expect } from 'vitest';
-import { programaDelPlano, puestosPorIsla, resumenDelPlano } from './programaDelPlano.js';
+import { programaDelPlano, puestosPorIsla, resumenDelPlano, avisosDeSala } from './programaDelPlano.js';
 
 const isla = (n) => ({ nombre: `Área Op. ${n}`, tipo: 'open', ancho: 4.5, largo: 3.5, dentroDe: 'Pasillo' });
 const PLANO = [
@@ -74,5 +74,40 @@ describe('programaDelPlano', () => {
     expect(t).toMatch(/48 operativos en 8 zonas de 6/);
     expect(t).toMatch(/5 privados/);
     expect(t).toMatch(/recepción/);
+  });
+});
+
+describe('la sala de juntas: se propone, no se impone', () => {
+  const SALAS = [
+    { nombre: 'Sala Juntas 1', tipo: 'juntas', ancho: 7, largo: 6 },   // 42 m²
+    { nombre: 'Sala Juntas 2', tipo: 'juntas', ancho: 7, largo: 5 },   // 35 m²
+  ];
+  const pr = programaDelPlano(SALAS, {});
+
+  it('siempre en PAR: 8, no 9', () => {
+    // Rodrigo lo dictó: la gente se sienta enfrentada, un impar deja un lugar
+    // suelto. 35 m² / 4 = 8.75 -> 8, nunca 9.
+    expect(pr.salas).toEqual([10, 8]);
+    expect(pr.salas.every((n) => n % 2 === 0)).toBe(true);
+  });
+
+  it('si pide MENOS de lo que cabe, lo avisa sin cambiárselo', () => {
+    const av = avisosDeSala(pr, 4).join(' | ');
+    expect(av).toMatch(/podríamos meter una sala para 8/);
+    expect(av).toMatch(/pediste 4/);
+  });
+
+  it('y ofrece la credenza con el lugar que sobra', () => {
+    expect(avisosDeSala(pr, 4).join(' | ')).toMatch(/credenza/);
+    // Con la sala llena ya no sobra: no se ofrece por ofrecer.
+    expect(avisosDeSala(pr, 10).join(' | ')).not.toMatch(/Sala Juntas 1 sobra/);
+  });
+
+  it('si pide MÁS de lo que cabe, se lo dice', () => {
+    expect(avisosDeSala(pr, 14).join(' | ')).toMatch(/da para 10 personas, y pediste 14/);
+  });
+
+  it('sin plano no dice nada de salas', () => {
+    expect(avisosDeSala(programaDelPlano([], {}), 8)).toEqual([]);
   });
 });

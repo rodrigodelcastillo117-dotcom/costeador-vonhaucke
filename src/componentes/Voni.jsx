@@ -12,6 +12,8 @@ import VoniAvatar from './VoniAvatar.jsx';
 import { pesos, selloPartida } from '../util.js';
 import EditarPartida from './EditarPartida.jsx';
 import EmpezarEspacio from './EmpezarEspacio.jsx';
+import { leerPlanoDeArchivo } from '../datos/leerPlanoArchivo.js';
+import Cargando from './Cargando.jsx';
 import EstoEntendi from './EstoEntendi.jsx';
 
 // ⚠️ EL ESPACIO VA PRIMERO (2026-08-17). Antes era: muebles → espacio →
@@ -47,7 +49,10 @@ function Pasos({ paso, setPaso, puedeAvanzar, hechoPaso }) {
             onClick={() => habilitado && setPaso(p.n)}
           >
             <span className="voni-paso-num">
-              {p.n < paso
+              {/* ⚠️ EL SÍMBOLO TAMBIÉN, NO SÓLO EL COLOR. La primera vez sólo se
+                  arregló la clase CSS y la palomita seguía dibujándose porque
+                  esto miraba `p.n < paso`. Rodrigo la seguía viendo en Muebles. */}
+              {hecho
                 ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7" /></svg>
                 : p.n}
             </span>
@@ -77,15 +82,28 @@ export default function Voni({
   // el navegador sólo abre el diálogo si el clic salió del dedo, así que no se
   // puede abrir "al llegar" al paso 3.
   const archivoRef = useRef(null);
-  const [planoInicial, setPlanoInicial] = useState(null);
   const [abrirDibujo, setAbrirDibujo] = useState(false);
-  // ⚠️ EL PLANO SE LEE EN EL PASO 3, PERO EL ORDEN ES 1→2→3 (2026-08-17).
-  // Rodrigo: *"se sigue pasando cuando subo un pdf al paso 3, no al 2. Debería
-  // ser: subir pdf, ¿cuántos muebles?"*. El aparato que sabe leer el plano vive
-  // en `Acomodo` (paso 3), así que se va allá **de paso**: en cuanto el plano
-  // queda leído y guardado, si todavía no hay muebles, se regresa al paso 2.
-  // Así el proyectista ve Espacio ✓ → Muebles, que es el camino que acordamos.
-  const [volverAMuebles, setVolverAMuebles] = useState(false);
+  // ⚠️ EL PLANO SE LEE **AQUÍ, EN EL PASO 1** (2026-08-17). Antes el lector sólo
+  // existía dentro de `Acomodo` (paso 3), así que subir el PDF te empujaba al 3
+  // y el paso 2 se lo saltaba. Rodrigo, tres veces: *"me sigue mandando al paso
+  // 3, nunca he llegado al 2"*, *"debería ser paso 1, paso 2, paso 3, paso 4"*.
+  // Mi primer intento fue rebotar de regreso desde el 3 con una condición: mala
+  // idea, dependía de que el guardado automático disparara. Ahora el paso 1 lo
+  // lee solo (`leerPlanoDeArchivo`) y **el 3 ni se toca**.
+  const [leyendoPlano, setLeyendoPlano] = useState(false);
+  const [errorPlano, setErrorPlano] = useState('');
+  const [notaPlano, setNotaPlano] = useState('');
+
+  async function subirPlanoAqui(file) {
+    setErrorPlano(''); setNotaPlano(''); setLeyendoPlano(true);
+    const r = await leerPlanoDeArchivo(file);
+    setLeyendoPlano(false);
+    if (!r.ok) { setErrorPlano(r.error); return; }
+    if (r.nota) setNotaPlano(r.nota);
+    if (!r.areas.length) return;        // no se reconoció nada: que lo intente de nuevo
+    onGuardarAcomodo?.({ areasM: r.areas, areas: null, plan: null, planReal: true });
+    setPaso(2);                          // el siguiente paso es QUÉ LLEVA, no acomodar
+  }
   const [confVaciar, setConfVaciar] = useState(false);
   const [editando, setEditando] = useState(null);   // índice de la partida que se edita
   const vaciar = () => { setCot({ partidas: [], acomodo: null }); setConfVaciar(false); };
@@ -143,11 +161,16 @@ export default function Voni({
             onChange={(e) => {
               const f = e.target.files?.[0]; e.target.value = '';
               if (!f) return;              // canceló el diálogo: quedarse en el paso 1
-              setPlanoInicial(f); setVolverAMuebles(true); setPaso(3);
+              subirPlanoAqui(f);
             }}
           />
+          {leyendoPlano && <Cargando voni titulo="Voni está leyendo el plano"
+            mensajes={['Midiendo los cuartos…', 'Sacando las áreas…', 'Contando privados y salas…']} />}
+          {errorPlano && <div className="alerta roja" style={{ marginTop: 12 }}><span className="texto">{errorPlano}</span></div>}
+          {notaPlano && !errorPlano && <div className="tarjeta" style={{ marginTop: 12 }}>{notaPlano}</div>}
           <EmpezarEspacio
             piezas={[]}
+            subiendo={leyendoPlano}
             onSubirPlano={() => archivoRef.current?.click()}
             onDibujar={() => { setAbrirDibujo(true); setPaso(3); }}
             onListo={(areas) => { onGuardarAcomodo?.({ areasM: areas, areas: null, plan: null, planReal: false }); setPaso(2); }}
@@ -262,19 +285,10 @@ export default function Voni({
           </div>
           <Acomodo
             estado={estado}
-            onGuardarAcomodo={(d, silencioso) => {
-              onGuardarAcomodo?.(d, silencioso);
-              // El plano ya quedó leído y guardado. Si todavía no hay muebles,
-              // el siguiente paso NO es acomodar: es decir qué lleva.
-              if (volverAMuebles && !hay && d?.areasM?.length) {
-                setVolverAMuebles(false);
-                setPaso(2);
-              }
-            }}
+            onGuardarAcomodo={onGuardarAcomodo}
             onIr={(r) => setPaso(r === 'cotizacion' ? 4 : 2)}
-            planoInicial={planoInicial}
             abrirDibujo={abrirDibujo}
-            onConsumido={() => { setPlanoInicial(null); setAbrirDibujo(false); }}
+            onConsumido={() => setAbrirDibujo(false)}
           />
         </>
       )}

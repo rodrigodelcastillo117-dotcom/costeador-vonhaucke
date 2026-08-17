@@ -50,8 +50,19 @@ export function puestosPorIsla(area, largoPuestoMM = 1500) {
   return porHilera * 2;
 }
 
-/** Personas que caben en una sala de juntas de `m2`. ~4 m² por persona con su paso. */
-export const personasEnSala = (m2) => Math.max(4, Math.round((m2 || 0) / 4));
+// ⚠️ UNA SALA DE JUNTAS SIEMPRE VA EN PAR (Rodrigo, 2026-08-17): "8, no 9".
+// La gente se sienta enfrentada a los dos lados de la mesa, así que un número
+// impar deja una silla sola en la cabecera o un lugar vacío. Se redondea HACIA
+// ABAJO al par: más vale prometer 8 que no quepan 9.
+const M2_POR_PERSONA = 4;        // con su paso alrededor de la mesa
+export const personasEnSala = (m2) => Math.max(4, 2 * Math.floor((m2 || 0) / M2_POR_PERSONA / 2));
+
+// ¿Sobra lugar en la sala para una credenza? Rodrigo: "me hubiera gustado que
+// me propusiera, si es que hay espacio, una credenza para guardar cosas o poner
+// café, galletas y refrescos". Es un mueble contra el muro: pide poco, pero
+// pide. Se ofrece sólo cuando de verdad sobra, no siempre.
+const M2_CREDENZA = 4;
+export const cabeCredenza = (m2, personas) => (m2 || 0) - (personas || 0) * M2_POR_PERSONA >= M2_CREDENZA;
 
 /**
  * Programa propuesto a partir de las áreas del plano.
@@ -90,13 +101,28 @@ export function programaDelPlano(areas, opts = {}) {
     if (zonas.length) {
       const con150 = islasA.reduce((s, a) => s + puestosPorIsla(a, 1500), 0);
       if (largoPuesto > 1500 && con150 > operativos) {
-        avisos.push(`Con ${(largoPuesto / 1000).toFixed(2)} m por puesto caben ${operativos} en tus ${islasA.length} islas. Con 1.50 m serían ${con150}.`);
+        // ⚠️ EL AVISO TIENE QUE ENSEÑAR LA CUENTA, NO EL RESULTADO. Rodrigo:
+        // *"¿por qué con 1.8 caben 32 pero con 1.5 caben 48? No entiendo esa
+        // lógica"*. Y tenía razón: decir el número sin la división obliga a
+        // creerle a la app. Lo que pasa es que la isla no es múltiplo del
+        // puesto y el pedazo que sobra no alcanza para sentar a nadie.
+        const A = islasA[0];
+        const L = Math.max(A.ancho || 0, A.largo || 0);
+        const lp = largoPuesto / 1000;
+        const porHilera = Math.floor(L / lp);
+        const sobra = L - porHilera * lp;
+        avisos.push(
+          `Tus islas miden ${L.toFixed(2)} m de largo: con ${lp.toFixed(2)} m por puesto caben `
+          + `${porHilera} por hilera${sobra > 0.05 ? ` y sobran ${sobra.toFixed(2)} m que no alcanzan para otro` : ''}. `
+          + `Son ${operativos} en total. Con 1.50 m caben ${Math.floor(L / 1.5)} por hilera y serían ${con150}.`,
+        );
       }
       if (!operativos) avisos.push(`Las zonas de trabajo del plano son chicas para un puesto de ${(largoPuesto / 1000).toFixed(2)} m.`);
     }
   }
 
-  const salas = salasA.map((a) => personasEnSala((a.ancho || 0) * (a.largo || 0)));
+  const m2Salas = salasA.map((a) => (a.ancho || 0) * (a.largo || 0));
+  const salas = m2Salas.map(personasEnSala);
   // REGLA DE OFICIO: un archivero por persona sentada. Con el plano de Rodrigo da
   // 48 + 5 = 53, que es exactamente lo que él tecleó a mano.
   const guardas = operativos + privados.length;
@@ -108,6 +134,7 @@ export function programaDelPlano(areas, opts = {}) {
     salas,
     recepcion,
     guardas,
+    salasInfo: salasA.map((a, i) => ({ nombre: a.nombre, m2: m2Salas[i], caben: salas[i] })),
     islas: islasA.length,
     porIsla,
     avisos,
@@ -124,4 +151,30 @@ export function resumenDelPlano(pr) {
   if (pr.salas.length) t.push(`${pr.salas.length} ${pr.salas.length === 1 ? 'sala' : 'salas'} de juntas (${pr.salas.join(' y ')})`);
   if (pr.recepcion) t.push('recepción');
   return t.length ? `Del plano: ${t.join(' · ')}.` : '';
+}
+
+/**
+ * Lo que hay que DECIRLE de la sala de juntas, según lo que él pidió.
+ *
+ * ⚠️ SE PROPONE, NO SE IMPONE (Rodrigo, 2026-08-17): *"que me avise y me diga:
+ * por el espacio podríamos meter una sala de juntas para 8 personas… pero en
+ * este caso yo pedí una de 4"*. La app no le corrige el 4 por la espalda: le
+ * dice lo que cabe y él decide. Y de ahí sale lo otro que pidió: si pide menos
+ * de lo que cabe, **sobra lugar para una credenza** — café, galletas, refrescos
+ * y guardado.
+ */
+export function avisosDeSala(pr, personasPedidas) {
+  const out = [];
+  const n = personasPedidas || 0;
+  if (!pr?.hayPlano || !n) return out;
+  for (const s of pr.salasInfo || []) {
+    const m2 = Math.round(s.m2);
+    if (n > s.caben) {
+      out.push(`${s.nombre} mide ${m2} m²: da para ${s.caben} personas, y pediste ${n}. Va a quedar apretada.`);
+      continue;
+    }
+    if (n < s.caben) out.push(`Por el espacio de ${s.nombre} (${m2} m²) podríamos meter una sala para ${s.caben}; pediste ${n}.`);
+    if (cabeCredenza(s.m2, n)) out.push(`En ${s.nombre} sobra lugar para una credenza: guardado, café, galletas y refrescos.`);
+  }
+  return out;
 }
