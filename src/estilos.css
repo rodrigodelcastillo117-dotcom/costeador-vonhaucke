@@ -1452,3 +1452,9 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 .paleta-item img { width: 100%; aspect-ratio: 4/3; object-fit: contain; background: #f6f3ee; border-radius: 6px; }
 .paleta-color { width: 100%; aspect-ratio: 4/3; border-radius: 6px; display: block; }
 .paleta-t { font-size: 12.5px; font-weight: 600; line-height: 1.25; }
+
+
+/* Una foto por área del proyecto. En celular van una debajo de otra: a 375 px
+   dos columnas dejan cada render en 160 px y no se distingue un mueble. */
+.escenas-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+@media (max-width: 640px) { .escenas-grid { grid-template-columns: 1fr; } }

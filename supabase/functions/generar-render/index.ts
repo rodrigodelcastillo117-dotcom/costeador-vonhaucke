@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
 
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, error: "JSON invalido" }, 400); }
-  const { descripcion = "", materiales = [], medidas = "", tipo = "", imagen = "", imagenes = [], mediaType = "image/jpeg", modo = "render", aspecto = "" } = body || {};
+  const { descripcion = "", materiales = [], medidas = "", tipo = "", imagen = "", imagenes = [], mediaType = "image/jpeg", modo = "render", aspecto = "", cuarto = "", lineas = [] } = body || {};
   if (!descripcion.trim() && !imagen) return json({ ok: false, error: "Escribe una descripción del mueble para generar el render." }, 400);
   if (modo === "staging" && !imagen) return json({ ok: false, error: "Sube una foto del espacio para amueblarlo." }, 400);
 
@@ -106,6 +106,44 @@ Deno.serve(async (req) => {
       "no barrel distortion, the ENTIRE floor plate visible and centred with comfortable margins. " +
       "Clean, bright, aspirational, restrained palette. Corona / V-Ray quality architectural visualization. " +
       "No text, no watermark, no logos, no dimension lines, no grid, no people."
+    : modo === "escena"
+    ? // UNA ESCENA POR CUARTO, A NIVEL DE OJO.
+      // Nace de lo que Rodrigo vio en su telefono: el render salia SIEMPRE igual
+      // y no ponia Eclipse ni nada del proyecto, porque al modelo solo se le
+      // mandaba una lista de texto. Aqui recibe TRES cosas del proyecto real:
+      //   1) el DIBUJO del acomodo de ESE cuarto (referencia de geometria)
+      //   2) los RENDERS DE CATALOGO de los muebles que van ahi (fidelidad)
+      //   3) la linea, el acabado y las medidas reales (el texto)
+      // Y a nivel de OJO, no vista aerea: la vista cenital de todo el piso se
+      // lee siempre como maqueta 3D. Una habitacion a la altura de la mirada es
+      // lo unico que llega a parecer fotografia.
+      "You are producing ONE photorealistic architectural interior photograph of a SINGLE room of a real office project. " +
+      (cuarto ? `The room is a ${cuarto}. ` : "") +
+      "The FIRST reference image is an isometric DIAGRAM of that exact room, already engineered: it tells you the room " +
+      "proportions, how many pieces of furniture there are, where each one sits and how they are oriented. " +
+      "LAYOUT IS LOCKED: same room shape, same number of workstations and units, same positions, same orientations, same " +
+      "aisles. Do not add furniture, do not remove furniture, do not rearrange, do not invent extra rooms or doors. " +
+      "The diagram's flat colours, outlines, grid and ANY TEXT must NOT appear in your image. " +
+      (Array.isArray(imagenes) && imagenes.length
+        ? "The REMAINING reference images are the ACTUAL Von Haucke products specified for this room. Reproduce THOSE pieces: " +
+          "their exact silhouette, leg system, frame, edge profile, wood tone and proportions. Do not substitute a generic " +
+          "desk or a different design — a client will compare this image against the product sheet. "
+        : "") +
+      `What is in this room: ${descripcion}. ` +
+      (Array.isArray(lineas) && lineas.length ? `Von Haucke product line(s): ${lineas.join(", ")}. ` : "") +
+      (medidas ? `Room size: ${medidas}. ` : "") +
+      "MATERIALS, physically based: warm oak melamine tops with visible grain, charcoal powder-coated steel with a fine matte " +
+      "texture, acoustic felt screens in muted tones, real glass with slim mullions, pale oak or polished concrete floor, " +
+      "clean white walls with a subtle skirting. " +
+      "POPULATE it so it reads as a working office WITHOUT changing the layout: a black ergonomic mesh chair at every work " +
+      "position, a monitor on an arm at each desk, a few mugs, notebooks and plants, linear ceiling lights. " +
+      "LIGHTING: soft global illumination, warm daylight raking from a window wall on one side, gentle ambient occlusion in " +
+      "every corner and under every piece, soft contact shadows so nothing floats. " +
+      "CAMERA: EYE LEVEL, about 1.6 m from the floor, wide angle around 24 mm, standing just inside the room looking across " +
+      "it so the whole arrangement reads in one frame. Vertical lines perfectly vertical, level horizon, no barrel " +
+      "distortion, no tilt. This must look like a photograph taken by an architectural photographer, NOT like a 3D " +
+      "visualization and NOT like an aerial dollhouse view. " +
+      "Editorial, bright, restrained, aspirational. No text, no watermark, no logos, no dimension lines, no people."
     : modo === "oficina"
     ? // OFICINA COMPLETA: generar la escena interior amueblada con lo cotizado
       "Photorealistic wide-angle interior architectural render of a modern corporate office, professionally furnished with the following Von Haucke office furniture, laid out with realistic circulation, aisles and zoning: " +
@@ -137,7 +175,7 @@ Deno.serve(async (req) => {
 
   // Proporción fija: sin esto Gemini copia el formato de la foto de referencia y
   // el catálogo sale con 67 formatos distintos.
-  const ar = aspecto || (modo === "catalogo" ? "4:3" : modo === "oficina" ? "16:9" : "");
+  const ar = aspecto || (modo === "catalogo" ? "4:3" : modo === "oficina" ? "16:9" : modo === "escena" ? "3:2" : "");
   const generationConfig: any = { responseModalities: ["IMAGE"] };
   if (ar) generationConfig.imageConfig = { aspectRatio: ar };
 

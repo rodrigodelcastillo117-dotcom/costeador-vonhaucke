@@ -10,6 +10,8 @@ import { acomodarEspacio, leerPlano, generarRender } from '../nube.js';
 import { TIPOS, dimsPieza, expandirPiezas, mapaPiezas, contarBajoEscritorio } from '../datos/espacio.js';
 import { imagenProducto, heroLinea } from '../datos/imagenes.js';
 import { acomodarLocal } from '../datos/planner.js';
+import { escenasDeAcomodo, lineasDeEscena, tipoDeEscena } from '../datos/escenas.js';
+import { LINEAS_REG } from '../datos/lineas.js';
 import { areasDeLectura, revisarAreas } from '../datos/planoLeido.js';
 import PlanoAcomodo from './PlanoAcomodo.jsx';
 import DibujarPlano from './DibujarPlano.jsx';
@@ -394,6 +396,31 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
   // es la del cliente.
   const isoLimpioRef = useRef(null);   // la copia SIN etiquetas: es la que se manda
   const [realista, setRealista] = useState('');
+
+  // ---- UNA ESCENA POR CUARTO -----------------------------------------------
+  // Rodrigo, probándola en el celular: "el render sale así siempre, no pone
+  // Eclipse ni nada que realmente debería; debería generar render de los
+  // privados también, tomando en cuenta el plano".
+  // El render de antes recibía UNA lista de texto y nada más, así que sólo podía
+  // dibujar una oficina genérica. Aquí se le manda, por cada cuarto: el DIBUJO
+  // de ese cuarto (geometría), los RENDERS REALES de sus muebles (fidelidad) y
+  // la línea, el acabado y las medidas (el texto).
+  // ⚠️ CANDADO: la tarjeta de escenas necesita el modo `escena` de la edge
+  // function `generar-render`, que ya está ESCRITO en supabase/functions pero
+  // TODAVÍA NO DESPLEGADO. Con la versión que hay arriba, un `modo: 'escena'`
+  // cae a la rama de "render de producto" y devolvería la foto de un mueble
+  // suelto en vez de la habitación. Antes que enseñar un botón que entrega algo
+  // equivocado, no se enseña. Se prende con:
+  //     deploy_edge_function('generar-render')  →  ESCENAS_LISTAS = true
+  const ESCENAS_LISTAS = false;
+  const escenas = useMemo(
+    () => (ESCENAS_LISTAS ? escenasDeAcomodo(partidas, { areas: areasMM, plan }) : []),
+    [partidas, areasMM, plan],
+  );
+  const escenasRef = useRef({});                 // areaIndex -> nodo con su isométrico
+  const [imgEscena, setImgEscena] = useState({});// areaIndex -> dataUrl
+  const [genEscena, setGenEscena] = useState(null);
+  const [errEscena, setErrEscena] = useState('');
   // ---- ACOMODO A MANO ------------------------------------------------------
   // Voni entiende el pedido y lo cotiza; DÓNDE va cada mueble lo sabe el
   // proyectista, no la máquina. El auto-acomodo se queda como punto de partida
@@ -444,6 +471,60 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
     } catch (e) {
       setErrStaging('No se pudo generar la vista realista: ' + String(e?.message || e));
     } finally { setGenerandoReal(false); }
+  }
+
+  // Trae el render de catálogo de una pieza como base64, para mandárselo al
+  // modelo como referencia del producto REAL.
+  async function fotoDeProducto(ruta, productoId) {
+    const url = ruta ? (imagenProducto(ruta, productoId) || heroLinea(ruta)) : null;
+    if (!url) return null;
+    try {
+      const r = await fetch(url); const b = await r.blob();
+      return await new Promise((res) => {
+        const fr = new FileReader();
+        fr.onload = () => res(String(fr.result).split(',')[1]);
+        fr.onerror = () => res(null);
+        fr.readAsDataURL(b);
+      });
+    } catch (e) { return null; }
+  }
+
+  // Genera la escena de UN cuarto. Se hace de uno en uno —no en paralelo— porque
+  // cada llamada tarda y en el celular disparar cinco a la vez las tumba.
+  async function generarEscena(esc) {
+    const nodo = escenasRef.current[esc.areaIndex];
+    const svg = nodo?.querySelector('svg.plano');
+    if (!svg) return { ok: false, error: 'No se pudo leer el dibujo de ' + esc.nombre };
+    const dibujo = await isoAJpeg(svg, 1024);
+    // Los renders de los muebles de ESTE cuarto, los más presentes primero.
+    const fotos = [];
+    for (const p of esc.piezas.slice(0, 5)) {
+      const f = await fotoDeProducto(p.ruta, p.productoId);
+      if (f) fotos.push(f);
+    }
+    return generarRender(esc.descripcion, {
+      modo: 'escena',
+      imagen: dibujo, mediaType: 'image/jpeg',
+      imagenes: fotos,
+      cuarto: tipoDeEscena(esc.nombre),
+      lineas: lineasDeEscena(esc).map((r) => (LINEAS_REG?.[r]?.titulo || r)),
+      medidas: `${(esc.anchoMM / 1000).toFixed(2)} × ${(esc.largoMM / 1000).toFixed(2)} m (${esc.m2} m2)`,
+    });
+  }
+
+  async function generarTodasLasEscenas() {
+    setErrEscena('');
+    for (const esc of escenas) {
+      setGenEscena(esc.areaIndex);
+      try {
+        const r = await generarEscena(esc);
+        if (r?.ok) setImgEscena((m) => ({ ...m, [esc.areaIndex]: r.dataUrl }));
+        else setErrEscena(r?.error || `No se pudo generar ${esc.nombre}.`);
+      } catch (e) {
+        setErrEscena(`No se pudo generar ${esc.nombre}: ${String(e?.message || e)}`);
+      }
+    }
+    setGenEscena(null);
   }
 
   // Render fotorrealista de la oficina desde las áreas/dibujo (sin foto real).
@@ -744,10 +825,66 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
           <div ref={isoLimpioRef} style={{ position: 'absolute', left: -99999, top: 0, width: 1280 }} aria-hidden="true">
             <PlanoAcomodo areas={areasMM} plan={plan} byId={byId} modo="iso" limpio />
           </div>
+          {/* Y una copia oculta POR CUARTO: de ahí sale el dibujo que se le manda
+              al modelo para que la escena sea de ESE cuarto y no de una oficina
+              genérica. Cada una lleva sólo su área y sólo sus muebles. */}
+          {escenas.map((esc) => (
+            <div key={esc.areaIndex} aria-hidden="true"
+              ref={(n) => { if (n) escenasRef.current[esc.areaIndex] = n; }}
+              style={{ position: 'absolute', left: -99999, top: 0, width: 1024 }}>
+              <PlanoAcomodo areas={esc.recorte.areas} plan={esc.recorte.plan} byId={byId} modo="iso" limpio />
+            </div>
+          ))}
           {realista && (
             <div style={{ marginTop: 12 }}>
               <img src={realista} alt="Vista realista del acomodo" style={{ width: '100%', borderRadius: 12, border: '1px solid var(--linea)' }} />
               <div className="ayuda gris">Generada con IA a partir de tu acomodo: respeta cuántos muebles hay y dónde van.</div>
+            </div>
+          )}
+
+          {/* UNA FOTO POR CUARTO — lo que pidió Rodrigo */}
+          {escenas.length > 0 && (
+            <div className="tarjeta no-imprimir" style={{ marginTop: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <strong>Cómo se vería cada área</strong>
+                <span className="ayuda" style={{ display: 'inline' }}>
+                  · una foto por cuarto, con TUS muebles y TU acomodo
+                </span>
+              </div>
+              <p className="ayuda columna-texto" style={{ marginTop: 4 }}>
+                A cada imagen se le manda el dibujo de ese cuarto, los renders reales de los muebles que
+                pusiste ahí y su línea. Por eso sale tu proyecto y no una oficina cualquiera.
+              </p>
+              <div className="fila-botones" style={{ gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                <button className="boton primario" style={{ minHeight: 44 }}
+                  disabled={genEscena != null} onClick={generarTodasLasEscenas}>
+                  {genEscena != null
+                    ? `Generando ${escenas.find((e) => e.areaIndex === genEscena)?.nombre || ''}…`
+                    : Object.keys(imgEscena).length ? 'Volver a generar' : `Generar las ${escenas.length} áreas`}
+                </button>
+                {Object.keys(imgEscena).length > 0 && onGuardarAcomodo && (
+                  <button className="boton" style={{ minHeight: 44 }}
+                    onClick={() => { onGuardarAcomodo({ areas: areasMM, plan, escenas: escenas.map((e) => ({ nombre: e.nombre, m2: e.m2, img: imgEscena[e.areaIndex] || null })).filter((e) => e.img) }); setGuardado(true); }}>
+                    Guardar en la propuesta
+                  </button>
+                )}
+              </div>
+              {errEscena && <div className="alerta roja" style={{ marginTop: 8 }}><span className="texto">{errEscena}</span></div>}
+              <div className="escenas-grid" style={{ marginTop: 10 }}>
+                {escenas.map((esc) => (
+                  <figure key={esc.areaIndex} style={{ margin: 0 }}>
+                    {imgEscena[esc.areaIndex]
+                      ? <img src={imgEscena[esc.areaIndex]} alt={`Vista de ${esc.nombre}`}
+                          style={{ width: '100%', borderRadius: 12, border: '1px solid var(--linea)', display: 'block' }} />
+                      : <div style={{ width: '100%', aspectRatio: '3 / 2', borderRadius: 12, border: '1px dashed var(--linea)', display: 'grid', placeItems: 'center', background: 'var(--papel)' }}>
+                          <span className="ayuda">{genEscena === esc.areaIndex ? 'Generando…' : 'Sin generar'}</span>
+                        </div>}
+                    <figcaption className="ayuda" style={{ marginTop: 4 }}>
+                      <strong>{esc.nombre}</strong> · {esc.m2} m² · {esc.piezas.reduce((n, p) => n + p.cantidad, 0)} muebles
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
             </div>
           )}
 
