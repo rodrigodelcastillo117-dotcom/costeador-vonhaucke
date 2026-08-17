@@ -25,7 +25,18 @@
      sistema por si algo falla. La monoespaciada alinea las columnas de dinero. */
   --sans: "Inter", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --display: "Archivo", "Inter", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --mono: "Roboto Mono", "SF Mono", "Menlo", "Consolas", ui-monospace, monospace;
+  /* ⚠️ EL DELATOR #1 DE "HECHO POR IA" (2026-08-18). Todo el dinero de la app
+     iba en Roboto Mono, y **su cero viene CRUZADO** — medido a píxeles: 272 en
+     el centro del cero contra 47 de Inter. Un total de $299 mil con los ceros
+     tachados se lee a herramienta de programador, no a presupuesto de una casa
+     con 65 años. Y el PDF ya iba en otra fuente, así que la pantalla y el
+     documento ni siquiera parecían de la misma empresa.
+     Inter también está incrustada aquí (fuentes.css) y trae CIFRAS TABULARES,
+     que es lo único que de verdad hacía falta de la monoespaciada: que las
+     columnas de dinero alineen. Se cambia en un solo lugar y baja a los 28
+     selectores que usan var(--mono). El nombre de la variable se queda: lo que
+     promete es "columnas que alinean", y eso lo sigue cumpliendo. */
+  --mono: "Inter", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -38,6 +49,10 @@ html, body {
   font-family: var(--sans);
   font-size: 17px;             /* texto general - nunca menos (3.3) */
   line-height: 1.45;
+  /* Cifras de ancho fijo en TODA la app. Es lo que hacía la monoespaciada por
+     las columnas de dinero; puesto aquí, ninguna tabla se descuadra aunque su
+     selector se haya quedado sin `font-variant-numeric` (había 6 así). */
+  font-variant-numeric: tabular-nums;
   -webkit-text-size-adjust: 100%;
   overflow-x: clip;            /* jamas scroll horizontal (2 prohibido), sin romper sticky */
 }

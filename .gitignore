@@ -2,6 +2,10 @@
 node_modules/
 dist/
 
+# El grafo del código que arma Graphify (`graphify update .`). Se regenera en
+# 3.5 s y su caché trae rutas absolutas de esta Mac: no va al historial.
+graphify-out/
+
 # macOS
 .DS_Store
 

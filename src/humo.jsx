@@ -10,7 +10,7 @@
 //  El recuadro de arriba dice cuántas montaron y cuántas fallaron. Verde = se
 //  puede publicar.
 // ============================================================================
-import { useState, Component } from 'react';
+import { useState, Component, createRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import './estilos.css';
 import './fuentes.css';
@@ -266,8 +266,17 @@ const PANTALLAS = [
   ['Tablero', <Tablero estado={estado} irA={nada} puedeVerDireccion onDireccion={null} />],
   ['Usuarios', <Usuarios />],
   ['Lo que Voni sabe', <Reglas puedeEditar />],
-  ['Ficha PDF', <FichaPDF costeo={costeo} resultado={null} estado={estado} />],
-  ['Informe IA', <InformeIA texto={'## Prueba\n- uno\n- dos'} />],
+  // ⚠️ Estas dos entradas estaban MINTIENDO (cazado el 2026-08-18):
+  //   · a la Ficha se le pasaba `resultado={null}`, un prop que NO EXISTE en su
+  //     firma, y NO se le pasaba `precioUnitario` — así que se probaba siempre
+  //     con la ficha en $0 y nada del bloque de dinero quedaba cubierto.
+  //   · a InformeIA se le pasaba `texto`, y el componente recibe `{ informe }`.
+  //     `partirSecciones(undefined)` devuelve [] y el componente sale con
+  //     `return null`: CERO tarjetas, y arriba decía "1 de 1 montan bien".
+  // Un prop con el nombre equivocado NO truena en React: por eso, además de
+  // corregirlos, hay que MEDIR el DOM (ver `Red`, más abajo).
+  ['Ficha PDF', <FichaPDF estado={estado} costeo={costeo} cantidad={2} precioUnitario={41439} onCerrar={nada} />],
+  ['Informe IA', <InformeIA informe={'## Prueba\n- uno\n- dos'} />],
   ['MiniRender', <MiniRender tipo="escritorio" w={1500} d={600} />],
   // Las 24 pantallas de línea: es donde estuvo el bug.
   ...Object.entries(LINEAS_REG).map(([ruta, L]) => [
@@ -277,18 +286,57 @@ const PANTALLAS = [
   ]),
 ];
 
+// ============================================================================
+//  EL PUNTO CIEGO QUE ESTA PRUEBA TENÍA (cerrado el 2026-08-18)
+//  ---------------------------------------------------------------------------
+//  Hasta hoy el conteo era `ok = VISIBLES.length - fallos.length`, y `fallos`
+//  SÓLO crecía cuando un componente TRONABA. Una pantalla que pinta `null` —
+//  porque le llega el prop con otro nombre y su contenido sale vacío — contaba
+//  como "monta bien" y el recuadro salía VERDE.
+//  Pasó de verdad con `<InformeIA texto={...}/>` cuando el componente recibe
+//  `{ informe }`: 0 tarjetas en pantalla y arriba "1 de 1 pantallas montan bien".
+//  La prueba que presumía cerrar el punto ciego LO TENÍA.
+//  Ahora se mide lo que quedó en el DOM: **una pantalla en blanco es un FALLO.**
+//  Verificado que ningún componente pinta por portal (`createPortal`: 0 usos),
+//  así que medir dentro de la caja de cada pantalla no da falsas alarmas.
+// ============================================================================
+//  Los umbrales van MEDIDOS, no a ojo (2026-08-18, las 53 pantallas):
+//  la más flaca que es legítima es "Lo que Voni sabe" con 6 elementos, y
+//  "MiniRender" pinta 13 elementos con CERO caracteres porque es un dibujo SVG.
+//  Por eso la condición es Y (pocos elementos **y** poco texto): con O,
+//  MiniRender daría falsa alarma en cada corrida y el aviso se volvería ruido
+//  que nadie mira. Con 3 hay margen de sobra contra el suelo real de 6, y el
+//  caso que importa — `return null` → 0 elementos — cae siempre.
+const MIN_ELEMENTOS = 3;    // menos nodos que esto es una pantalla en blanco
+const MIN_TEXTO = 12;       // caracteres visibles
+const ESPERA_ASYNC = 2000;  // ms — margen para las que cargan solas
+
 // Red por pantalla: una que truene no se lleva a las demás.
 class Red extends Component {
-  constructor(p) { super(p); this.state = { error: null }; }
+  constructor(p) { super(p); this.state = { error: null }; this.caja = createRef(); }
   static getDerivedStateFromError(error) { return { error }; }
   componentDidCatch(error) { this.props.onFallo?.(this.props.titulo, error); }
+  componentDidMount() { this.reloj = setTimeout(() => this.medir(), ESPERA_ASYNC); }
+  componentWillUnmount() { clearTimeout(this.reloj); }
+
+  medir() {
+    if (this.state.error) return;            // ya se contó como fallo que truena
+    const caja = this.caja.current;
+    if (!caja) return;
+    const elementos = caja.querySelectorAll('*').length;
+    const texto = (caja.textContent || '').trim().length;
+    if (elementos < MIN_ELEMENTOS && texto < MIN_TEXTO) {
+      this.props.onVacia?.(this.props.titulo, `pintó ${elementos} elementos y ${texto} caracteres`);
+    }
+  }
+
   render() {
     if (this.state.error) {
       return <div className="alerta roja"><span className="texto">
         <strong>{this.props.titulo}</strong> — {String(this.state.error?.message || this.state.error)}
       </span></div>;
     }
-    return this.props.children;
+    return <div ref={this.caja}>{this.props.children}</div>;
   }
 }
 
@@ -302,23 +350,31 @@ const VISIBLES = SOLO
 
 function Humo() {
   const [fallos, setFallos] = useState([]);
+  const [vacias, setVacias] = useState([]);
   const anota = (titulo, error) => setFallos((f) => (f.some((x) => x.titulo === titulo) ? f : [...f, { titulo, error: String(error?.message || error) }]));
-  const ok = VISIBLES.length - fallos.length;
+  // Una pantalla vacía NO truena: se detecta midiendo el DOM. Se cuenta aparte
+  // de las que truenan porque el síntoma es distinto y la causa también
+  // (casi siempre un prop con el nombre equivocado).
+  const anotaVacia = (titulo, detalle) => setVacias((v) => (v.some((x) => x.titulo === titulo) ? v : [...v, { titulo, detalle }]));
+  const malas = fallos.length + vacias.length;
+  const ok = VISIBLES.length - malas;
   return (
     <>
       <div className="contenido">
-        <div className={`alerta ${fallos.length ? 'roja' : 'verde'}`} style={{ position: 'sticky', top: 0, zIndex: 50 }}>
+        <div className={`alerta ${malas ? 'roja' : 'verde'}`} style={{ position: 'sticky', top: 0, zIndex: 50 }}>
           <span className="texto">
             <strong>{ok} de {VISIBLES.length} pantallas montan bien.</strong>
             {SOLO && <> (filtrando por “{SOLO}”)</>}
-            {fallos.length > 0 && <> Fallan: {fallos.map((f) => f.titulo).join(', ')}</>}
+            {fallos.length > 0 && <> <strong>Truenan:</strong> {fallos.map((f) => f.titulo).join(', ')}.</>}
+            {vacias.length > 0 && <> <strong>Salen EN BLANCO</strong> (montan sin quejarse y no pintan nada — casi
+              siempre un prop mal nombrado): {vacias.map((v) => `${v.titulo} (${v.detalle})`).join(', ')}.</>}
           </span>
         </div>
       </div>
       {VISIBLES.map(([titulo, el]) => (
         <div key={titulo} style={{ borderTop: '3px solid var(--rojo)', marginTop: 24, paddingTop: 8 }}>
           <div className="contenido"><h3 style={{ margin: 0 }}>{titulo}</h3></div>
-          <Red titulo={titulo} onFallo={anota}>{el}</Red>
+          <Red titulo={titulo} onFallo={anota} onVacia={anotaVacia}>{el}</Red>
         </div>
       ))}
     </>

@@ -35,7 +35,12 @@ function archivos(dir) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, e.name);
     if (e.isDirectory()) out.push(...archivos(p));
-    else if (/\.jsx?$/.test(e.name)) out.push(p);
+    // Las PRUEBAS no son pantallas, y algunas citan código como TEXTO a
+    // propósito, para vigilar que no se vuelva a escribir de cierta forma
+    // (leeNumero.test.js contiene la cadena "<CampoM2 valor={m2} onCambio={setM2} />").
+    // Sin excluirlas, esas citas se leen como props inexistentes y este
+    // guardián —que BLOQUEA el deploy— truena con hallazgos falsos.
+    else if (/\.jsx?$/.test(e.name) && !/\.test\.jsx?$/.test(e.name)) out.push(p);
   }
   return out;
 }

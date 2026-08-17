@@ -5,6 +5,8 @@ import {
   piezasPorTablero,
   precioDe,
   calcularCostoHora,
+  netoComponente,
+  costoNetoComponente,
   PARAMETROS_DEFAULT,
 } from './calculo.js';
 
@@ -286,5 +288,42 @@ describe('Comprobaciones contra los numeros reales del master', () => {
   it('la mano de obra del App LT (6.36 h) da ~258 (1.3)', () => {
     const r = calcular(escritorioAppLT, 1, INSUMOS);
     expect(r.manoObra).toBeCloseTo(258, 0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+//  NADA NEGATIVO LLEGA A SER DINERO
+//  El caso real: en el Asistente especial, `-500` en el largo de una cubierta
+//  daba "Precio de lista $-636", sin aviso y con el botón de cotizar encendido.
+//  El `min="0"` del <input type=number> NO impide teclear, y hay ~30 campos así
+//  en 5 pantallas: por eso se guarda el EMBUDO, no cada campo.
+// ---------------------------------------------------------------------------
+describe('nada negativo llega a ser dinero', () => {
+  const cubierta = { nombre: 'Cubierta', insumoId: 'melamina-19', largoMM: 1500, anchoMM: 600, piezas: 1 };
+
+  it('un largo negativo NO produce área negativa', () => {
+    expect(netoComponente({ ...cubierta, largoMM: -500 })).toBe(0);
+    expect(netoComponente({ ...cubierta, anchoMM: -600 })).toBe(0);
+  });
+
+  it('un largo negativo NO produce COSTO negativo — que es lo que se veía', () => {
+    const costo = costoNetoComponente({ ...cubierta, largoMM: -500 }, melamina);
+    expect(costo).toBe(0);
+    expect(costo).toBeGreaterThanOrEqual(0);
+  });
+
+  it('unas piezas negativas tampoco', () => {
+    expect(netoComponente({ ...cubierta, piezas: -3 })).toBe(0);
+    expect(netoComponente(cubierta, -3)).toBe(0);
+  });
+
+  it('una cantidad negativa de insumo suelto tampoco', () => {
+    expect(netoComponente({ nombre: 'Bisagra', insumoId: 'x', cantidad: -8 })).toBe(0);
+  });
+
+  it('pero lo bueno sigue saliendo igual — esto no es una red que apague todo', () => {
+    // 1.5 m × 0.6 m = 0.9 m². Si esta prueba cambia, el arreglo se pasó de listo.
+    expect(netoComponente(cubierta)).toBeCloseTo(0.9, 6);
+    expect(netoComponente({ ...cubierta, piezas: 2 }, 3)).toBeCloseTo(5.4, 6);
   });
 });

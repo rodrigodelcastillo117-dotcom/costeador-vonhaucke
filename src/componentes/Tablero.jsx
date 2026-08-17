@@ -92,7 +92,7 @@ export default function Tablero({ estado, irA, puedeVerDireccion = true, onDirec
       ))}
 
       {h.length === 0 && (
-        <div className="tarjeta"><p className="ayuda">Aun no hay costeos guardados. Ve al Costeador, calcula una pieza y agregala a la cotizacion o guardala: aqui apareceran los numeros.</p></div>
+        <div className="tarjeta"><p className="ayuda">Aún no hay costeos guardados. Ve al Costeador, calcula una pieza y agrégala a la cotización o guárdala: aquí aparecerán los números.</p></div>
       )}
 
       {h.length > 0 && (

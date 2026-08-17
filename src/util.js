@@ -28,6 +28,33 @@ export function leePct(valor, maximo = 100) {
   return Math.min(maximo, Math.max(0, n));
 }
 
+// Hermano de `leePct` para enteros con piso Y techo (metros cuadrados, piezas,
+// plazos). Es la MISMA lección, aprendida dos veces y cara las dos:
+//
+//   · 2026-08-17, los porcentajes: "12.5" de descuento terminaba en el TOPE.
+//   · 2026-08-18, los metros: en el Acomodo, teclear "350" NO daba 350.
+//     `limpiaM2` acotaba en CADA tecla contra un piso de 20:
+//         3 → Math.max(20, 3) = 20   (el campo se rellena solo)
+//         5 → "205"                   (la tecla se pega detrás del 20 que salió)
+//         0 → "2050"
+//     y borrar todo para reescribir era imposible: `Number('') || 0` = 0, y el
+//     piso lo devolvía a 20. Cualquier medida fuera de los 8 botones típicos
+//     quedaba fuera del alcance del proyectista.
+//
+// LA REGLA, y por eso vive aquí y no dentro de una pantalla: **acotar es algo
+// que se hace cuando la persona TERMINÓ de escribir, nunca por tecla.** Mientras
+// escribe, el campo guarda su texto tal cual — es lo que hacen `CampoPct`
+// (Cotizacion.jsx) y `CampoM2` (EmpezarEspacio.jsx).
+//
+// `siVacio` existe porque un campo vacío no siempre vale el piso.
+export function leeNumero(txt, min, max, siVacio = min) {
+  const limpio = String(txt ?? '').trim().replace(/,/g, '');
+  if (limpio === '') return siVacio;
+  const n = Number(limpio);
+  if (!isFinite(n)) return siVacio;
+  return Math.min(max, Math.max(min, Math.round(n)));
+}
+
 // ---------------------------------------------------------------------------
 //  BUSCADOR — pensado para cómo teclea un vendedor, no para cómo guarda la base.
 //

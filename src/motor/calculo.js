@@ -198,12 +198,26 @@ export function precioDeInsumo(insumo, par = PARAMETROS_DEFAULT) {
 //  Si trae medidas (largoMM/anchoMM) es area en m2; si no, es su cantidad neta.
 //  Siempre multiplicado por las piezas del componente y por el lote.
 // -----------------------------------------------------------------------------
+// ⚠️ NADA NEGATIVO LLEGA A SER DINERO (2026-08-18). Un agente cazó que en el
+// Asistente especial, teclear `-500` en el largo de una cubierta daba
+// **"Precio de lista $-636"**, sin un solo aviso y con el botón de cotizar
+// encendido. La causa NO estaba en esa pantalla: el `min="0"` de un
+// <input type=number> **no impide teclear** —la misma lección que ya está
+// escrita arriba en `leePct`— y hay ~30 campos así repartidos en 5 pantallas.
+// Parchar los 30 deja el hueco abierto en el 31.
+//
+// Por eso se tapa AQUÍ, que es el embudo por donde pasa TODO el dinero
+// (`costoNetoComponente`, `calcular`, Costeador.jsx:144, AsistenteEspecial.jsx:102):
+// una medida o una cantidad negativa vale CERO, nunca menos. Un mueble puede
+// costar cero —todavía no lo capturas—; jamás puede costar menos que nada.
+const noNegativo = (x) => (Number.isFinite(x) && x > 0 ? x : 0);
+
 export function netoComponente(comp, n = 1) {
-  const piezasComp = (comp.piezas || 1) * n;
+  const piezasComp = noNegativo((comp.piezas || 1) * n);
   if (comp.largoMM && comp.anchoMM) {
-    return (comp.largoMM / 1000) * (comp.anchoMM / 1000) * piezasComp; // m2
+    return (noNegativo(comp.largoMM) / 1000) * (noNegativo(comp.anchoMM) / 1000) * piezasComp; // m2
   }
-  return (comp.cantidad || 0) * n;
+  return noNegativo((comp.cantidad || 0) * n);
 }
 
 // Costo NETO de material de un componente (area x precio, antes de redondear a

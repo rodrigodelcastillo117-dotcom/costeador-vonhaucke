@@ -329,7 +329,14 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                   <div className="ayuda">
                     neto {c.neto.toFixed(2)} {ins.unidad}
                     {porHoja && <> <strong>≈ {fraccion.toFixed(2)} de hoja</strong></>}
-                    {' '}→ comprar {c.unidades} {fmt?.corto || 'u'}{c.unidades > 1 ? 's' : ''} ({c.comprado.toFixed(2)} {ins.unidad})
+                    {/* ⚠️ Aquí salía `comprar 0.37792260145122275 tablero` (2026-08-18).
+                        El motor NO está mal: para un material con `fraccion` sí se
+                        compra 0.38 de hoja, y `comprar()` devuelve la fracción a
+                        propósito. Lo que estaba mal era imprimirla CRUDA — 17
+                        decimales en la pantalla donde el proyectista trabaja.
+                        Entero cuando son tableros, 2 decimales cuando es fracción. */}
+                    {' '}→ comprar {Number.isInteger(c.unidades) ? c.unidades : c.unidades.toFixed(2)}
+                    {' '}{fmt?.corto || 'u'}{c.unidades > 1 ? 's' : ''} ({c.comprado.toFixed(2)} {ins.unidad})
                   </div>
                 </span>
                 <span className={`semaforo ${colorMerma(c.pct)}`}>{pct(c.pct)}</span>
@@ -480,7 +487,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
           <div className="ayuda">Precio por pieza con {margen}% de margen.</div>
           {bajoMinimo && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">Debajo del minimo de {estado.parametros.margenMinimo}%.</span></div>}
           <div className="espacio" />
-          <button className="boton primario grande" onClick={() => onAgregarCotizacion(resultado, precio, margen)}>Agregar a la cotizacion</button>
+          <button className="boton primario grande" onClick={() => onAgregarCotizacion(resultado, precio, margen)}>Agregar a la cotización</button>
           <div className="espacio" />
           <button className="boton grande" onClick={() => onGuardarPieza(resultado)}>Guardar como pieza</button>
           <div className="espacio" />

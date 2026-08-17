@@ -10,8 +10,45 @@
 //  no hay nada— los metros cuadrados. Y los m² se piden como se hablan en una
 //  llamada: 50 · 100 · 200 · 400 …, o corriendo la barra, o escribiéndolos.
 // ============================================================================
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { M2_TIPICOS, M2_MIN, M2_MAX, areasDeM2, totalM2, limpiaM2, ladosDe, m2QueNecesita, cuartosDePrograma, M2_PRIVADO, m2Juntas } from '../datos/espacioNuevo.js';
+import { leeNumero } from '../util.js';
+
+// ⚠️ NO SE PODÍA TECLEAR UNA MEDIDA (2026-08-18). El campo era controlado y
+// pasaba por `limpiaM2` en CADA pulsación, contra un piso de 20 m². Tecla por
+// tecla, escribiendo "350":
+//     3 → 20  (¡el campo se rellena solo!) · 5 → 205 · 0 → 2050
+// Y borrarlo para reescribir era imposible: `Number('') || 0` = 0 y el piso lo
+// regresaba a 20. Resultado: sólo se podían usar los 8 botones típicos, y una
+// oficina de 350 m² —una medida perfectamente normal— no se podía capturar.
+// Muerde por DOS caminos: Acomodo.jsx:854 y Voni.jsx:171.
+// Es el MISMO bug que el de los porcentajes y se cura igual: mientras escribes,
+// el campo guarda TU TEXTO; se acota al salir del campo o con Enter.
+// La regla vive en `leeNumero` (util.js).
+function CampoM2({ valor, onCambio }) {
+  const [txt, setTxt] = useState(String(valor));
+  const [escribiendo, setEscribiendo] = useState(false);
+  // Si el valor cambia desde afuera (los botones típicos, la barra) y no estoy
+  // escribiendo, el campo se pone al día.
+  useEffect(() => { if (!escribiendo) setTxt(String(valor)); }, [valor, escribiendo]);
+  const cerrar = () => {
+    setEscribiendo(false);
+    // Si lo dejó vacío o ilegible, se queda como estaba: NO se inventa un 20.
+    const n = leeNumero(txt, M2_MIN, M2_MAX, valor);
+    setTxt(String(n));
+    if (n !== valor) onCambio(n);
+  };
+  return (
+    <input
+      id="m2-exacto" type="text" inputMode="numeric" className="numero" style={{ width: 110 }}
+      value={txt}
+      onFocus={() => setEscribiendo(true)}
+      onChange={(e) => { setEscribiendo(true); setTxt(e.target.value); }}
+      onBlur={cerrar}
+      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+    />
+  );
+}
 
 const PISOS = [
   { v: 0.5, t: 'Medio piso' },
@@ -101,14 +138,16 @@ export default function EmpezarEspacio({ piezas = [], onListo, onSubirPlano, onD
           </div>
 
           <label className="empezar-barra">
+            {/* La barra SÍ puede acotar en cada movimiento: un `range` nunca
+                produce un valor fuera de min/max, así que no hay nada que
+                pelear con lo que el usuario teclea. */}
             <input type="range" min={M2_MIN} max={M2_MAX} step={10} value={m2}
               onChange={(e) => setM2(limpiaM2(e.target.value))} aria-label="Metros cuadrados por piso" />
           </label>
 
           <div className="fila-botones" style={{ alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <label className="ayuda" htmlFor="m2-exacto">O escríbelos:</label>
-            <input id="m2-exacto" type="number" inputMode="numeric" min={M2_MIN} max={M2_MAX}
-              value={m2} onChange={(e) => setM2(limpiaM2(e.target.value))} style={{ width: 110 }} />
+            <CampoM2 valor={m2} onCambio={setM2} />
             <span className="ayuda">m² por piso</span>
           </div>
 

@@ -117,7 +117,7 @@ export default function Catalogo({ estado, onCargar, soloVentas = false }) {
                   return (
                     <div className="renglon-insumo" key={m}>
                       <span className="nom"><strong>{MUEBLES[m]}</strong> <span className="gris">· {nLineas} lineas</span></span>
-                      <button className="boton" onClick={() => setMueble({ muebleId: m, familiaId: fam.id })}>Ver lineas</button>
+                      <button className="boton" onClick={() => setMueble({ muebleId: m, familiaId: fam.id })}>Ver líneas</button>
                     </div>
                   );
                 })}
