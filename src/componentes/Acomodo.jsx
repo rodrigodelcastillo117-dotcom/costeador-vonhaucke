@@ -839,9 +839,13 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
               <button className="boton fantasma" style={{ minHeight: 44 }}
                 title="Volver a la pregunta del principio: plano, dibujo o metros cuadrados."
                 onClick={() => {
-                  if (!confirm('¿Empezar el espacio otra vez? Se borran las áreas y el acomodo que tienes.')) return;
+                  if (!confirm('¿Empezar el espacio otra vez? Se borran las áreas, el acomodo y las imágenes que tienes.')) return;
                   recordar(); setAreas([]); setPlan(null); setPlanReal(false);
                   setNotaPlano(''); setGuardado(false); autoRef.current = false;
+                  // Las imágenes eran del espacio VIEJO: dejarlas puestas mete
+                  // en la portada del PDF una oficina que ya no existe.
+                  setStagingUrl(''); setRealista(''); setImgEscena({});
+                  onGuardarAcomodo?.({ render3d: '', escenas: [] }, true);
                 }}>Cambiar el espacio</button>
               <button className="boton" style={{ minHeight: 44 }} onClick={() => setDibujando(true)}>Dibujar mi oficina</button>
               <label className="boton fantasma" style={{ minHeight: 44, display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }} title="PDF (de AutoCAD/SketchUp), foto o captura de croquis.">
@@ -1104,7 +1108,13 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
                 <button className="boton fantasma no-imprimir" style={{ minHeight: 42 }}
                   onClick={() => {
                     const t = textoPorCuarto(porCuarto, { cliente: estado.cotizacion?.cliente || '' });
-                    navigator.clipboard?.writeText(t).then(
+                    // ⚠️ `navigator.clipboard?.writeText(t).then(...)` truena:
+                    // el `?.` devuelve undefined y el `.then` se lo come. Y
+                    // `navigator.clipboard` NO existe fuera de https (un celular
+                    // entrando por IP a la red de la oficina, por ejemplo).
+                    const p = navigator.clipboard?.writeText(t);
+                    if (!p) { setError('Tu navegador no deja copiar aquí. Selecciona el texto a mano.'); return; }
+                    p.then(
                       () => setCopiado(true),
                       () => setError('No se pudo copiar. Selecciona el texto a mano.'),
                     );

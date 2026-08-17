@@ -70,6 +70,16 @@ export default function Voni({
   const [editando, setEditando] = useState(null);   // índice de la partida que se edita
   const vaciar = () => { setCot({ partidas: [], acomodo: null }); setConfVaciar(false); };
 
+  // El espacio, SIEMPRE en metros. `areasM` es lo normal, pero hay guardados
+  // viejos que sólo traen `areas` en milímetros: sin este respaldo, "esto
+  // entendí" decía "todavía no me dijiste dónde va el proyecto" con el espacio
+  // ya contestado, que es peor que no decir nada.
+  const areasDelProyecto = useMemo(() => {
+    const ac = cot.acomodo || {};
+    if (ac.areasM?.length) return ac.areasM;
+    return (ac.areas || []).map((a) => ({ ...a, ancho: (a.ancho || 0) / 1000, largo: (a.largo || 0) / 1000 }));
+  }, [cot.acomodo]);
+
   const totalLista = useMemo(() => partidas.reduce((a, p) => a + p.precioUnitario * p.cantidad, 0), [partidas]);
   const nEstimados = partidas.filter((p) => selloPartida(p).tipo === 'estimado').length;
 
@@ -160,7 +170,7 @@ export default function Voni({
                     de acomodar". */}
                 <EstoEntendi
                   partidas={partidas}
-                  areasM={estado.cotizacion?.acomodo?.areasM || []}
+                  areasM={areasDelProyecto}
                   onCantidad={(id, n) => setCot({ partidas: partidas.map((p) => (p.id === id ? { ...p, cantidad: Math.max(1, n) } : p)) })}
                   onQuitar={(id) => setCot({ partidas: partidas.filter((p) => p.id !== id) })}
                   onEditar={(id) => setEditando(partidas.findIndex((p) => p.id === id))}

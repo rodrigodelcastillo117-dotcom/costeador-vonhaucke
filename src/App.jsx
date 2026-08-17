@@ -204,6 +204,19 @@ export default function App() {
   // (no líneas), y al tocar uno hay que abrir su línea CON ESE PRODUCTO YA
   // ESCOGIDO. Sin esto el vendedor caía en la línea con el primer producto de la
   // lista y tenía que volver a buscar el chip: el toque que se quería ahorrar.
+  // ⚠️ EL ACOMODO SE GUARDA MEZCLANDO, NO REEMPLAZANDO.
+  // Esto escribía `acomodo: datos` tal cual, y `datos` cambia según QUIÉN
+  // guarda: el guardado automático manda `areasM` y `planReal`; el botón
+  // "Guardar en la propuesta" manda sólo `areas` y `plan`; el de las escenas
+  // manda `escenas`. Cada uno le borraba al otro lo suyo — se perdían los
+  // metros del espacio (y el paso "esto entendí" volvía a decir "todavía no me
+  // dijiste dónde va"), se perdía `planReal` de un plano REAL subido, y se
+  // perdía el render de la portada del PDF.
+  function guardarAcomodo(datos, silencioso) {
+    setEstado((e) => ({ ...e, cotizacion: { ...e.cotizacion, acomodo: { ...(e.cotizacion?.acomodo || {}), ...datos } } }));
+    if (!silencioso) mostrarAviso('Acomodo guardado en la propuesta');
+  }
+
   function irA(tab, productoInicial = null) {
     setProdInicial(productoInicial);
     if (tab === pestania) return;
@@ -766,12 +779,12 @@ export default function App() {
             estado={estado} setEstado={setEstado} soloVentas={esVendedor} veCostos={veCostos}
             paso={voniPaso} setPaso={setVoniPaso}
             onAgregarItems={agregarItemsProyecto}
-            onGuardarAcomodo={(datos, silencioso) => { setEstado((e) => ({ ...e, cotizacion: { ...e.cotizacion, acomodo: datos } })); if (!silencioso) mostrarAviso('Acomodo guardado en la propuesta'); }}
+            onGuardarAcomodo={guardarAcomodo}
             onIr={irA}
           />
         )}
         {pestania === 'contrasena' && <CambiarContrasena email={sesion?.user?.email} recuperacion={recuperando} onListo={() => { setRecuperando(false); irInicio(); }} />}
-        {pestania === 'acomodo' && <Acomodo estado={estado} onIr={irA} onGuardarAcomodo={(datos, silencioso) => { setEstado((e) => ({ ...e, cotizacion: { ...e.cotizacion, acomodo: datos } })); if (!silencioso) mostrarAviso('Acomodo guardado en la propuesta'); }} />}
+        {pestania === 'acomodo' && <Acomodo estado={estado} onIr={irA} onGuardarAcomodo={guardarAcomodo} />}
         {pestania === 'precios' && (veCostos
           ? <Precios estado={estado} setEstado={setEstado} puedeVerDireccion={desbloqueado} onDireccion={null} />
           : <div className="contenido"><div className="tarjeta"><p className="ayuda">Los precios de materiales son costos y solo los ven Diseño y Dirección.</p></div></div>

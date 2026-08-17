@@ -265,9 +265,16 @@ function hojaPlano(doc, { acomodo, partidas, piezas }, A4, M, ANCHO, ROJO, TINTA
 //  Si el proyectista generó las fotos por área, cada cuarto sale con la suya:
 //  es la diferencia entre una lista y una propuesta.
 // ============================================================================
-function hojaCuartos(doc, { cuartos, escenas }, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA) {
+function hojaCuartos(doc, { cuartos, escenas, pie }, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA) {
   const bloques = (cuartos || []).filter((c) => c.renglones?.length);
-  if (!bloques.length) return false;
+  // ⚠️ SIN ACOMODO NO HAY ÁREAS QUE CONTAR. El vendedor que toca "no necesito
+  // acomodo, ir directo a la propuesta" tiene UN bloque, "Sin ubicar en el
+  // plano", con todo adentro: una hoja entera titulada "Qué va en cada área"
+  // para decirle al cliente que nada tiene área. Mejor no imprimirla.
+  if (!bloques.length || (bloques.length === 1 && bloques[0].sinUbicar)) return false;
+  // Y cuando SÍ hay áreas, lo que quedó fuera se dice con un nombre que un
+  // cliente entienda, no con lenguaje de plano.
+  const titulo = (c) => (c.sinUbicar ? 'Sin área asignada' : c.nombre);
   const imgDe = (nombre) => (escenas || []).find((e) => e.nombre === nombre && e.img)?.img || null;
 
   doc.addPage();
@@ -286,7 +293,10 @@ function hojaCuartos(doc, { cuartos, escenas }, A4, M, ANCHO, ROJO, TINTA, GRIS,
     const anchoTexto = img ? ANCHO - FOTO - 8 : ANCHO;
     const altoFoto = img ? FOTO * (2 / 3) : 0;         // las escenas salen 3:2
     const alto = Math.max(14 + c.renglones.length * 5, altoFoto + 6);
-    if (y + alto > A4.h - M.abajo) { doc.addPage(); y = M.arriba; }
+    // ⚠️ `pie()` ANTES de cada hoja nueva: sin esto, las hojas de en medio de
+    // esta sección salían SIN el pie y SIN número de página. Sólo la última lo
+    // recibía, del que llama.
+    if (y + alto > A4.h - M.abajo) { pie(); doc.addPage(); y = M.arriba; }
 
     if (img) {
       try {
@@ -297,11 +307,11 @@ function hojaCuartos(doc, { cuartos, escenas }, A4, M, ANCHO, ROJO, TINTA, GRIS,
     }
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(...TINTA);
-    doc.text(T(c.nombre), M.izq, y + 4);
+    doc.text(T(titulo(c)), M.izq, y + 4);
     // ⚠️ El ancho se mide con la fuente del TÍTULO, no con la del metraje: si se
     // mide después de cambiar a 9 pt, sale más corto y los metros se imprimen
     // ENCIMA del nombre del cuarto ("Open space96 m²").
-    const anchoNom = doc.getTextWidth(T(c.nombre));
+    const anchoNom = doc.getTextWidth(T(titulo(c)));
     if (c.m2 > 0 && !/m²|m2/.test(c.nombre)) {
       doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...GRIS);
       doc.text(`${c.m2} m²`, M.izq + anchoNom + 4, y + 4);
@@ -314,7 +324,10 @@ function hojaCuartos(doc, { cuartos, escenas }, A4, M, ANCHO, ROJO, TINTA, GRIS,
       ly += Math.min(t.length, 2) * 4 + 1;
     }
     for (const r of c.renglones) {
-      if (ly > A4.h - M.abajo - 4) break;
+      // ⚠️ NADA SE CAE EN SILENCIO. Aquí había un `break`: un cuarto con muchos
+      // renglones perdía los últimos y el cliente recibía su lista incompleta
+      // sin que nada lo dijera. Si ya no cabe, se abre hoja y se sigue.
+      if (ly > A4.h - M.abajo - 6) { pie(); doc.addPage(); y = M.arriba; ly = y + 4; }
       doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...TINTA);
       doc.text(String(r.cantidad), M.izq + 6, ly, { align: 'right' });
       doc.setFont('helvetica', 'normal');
@@ -527,7 +540,7 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
   if (hayPlano) pie();
   // Y luego, en palabras: qué va en cada área (con las gavetas, que el plano no
   // puede enseñar porque viven debajo de la cubierta).
-  if (hojaCuartos(doc, { cuartos, escenas }, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA)) pie();
+  if (hojaCuartos(doc, { cuartos, escenas, pie }, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA)) pie();
   // El detalle abre su propia hoja más abajo: aquí NO se agrega una, o sale en blanco.
 
   // ---- DETALLE, EN HOJA APARTE --------------------------------------------
