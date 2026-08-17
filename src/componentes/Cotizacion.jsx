@@ -20,6 +20,42 @@ import PlanoAcomodo from './PlanoAcomodo.jsx';
 // silla del banco (que no tiene línea), su foto de presupuesto.
 const fotoPartida = imagenPartida;
 
+
+// ⚠️ UN PORCENTAJE NO SE PUEDE TECLEAR SI SE LIMPIA EN CADA TECLA (2026-08-17).
+// El campo era controlado y pasaba por `leePct` en CADA pulsación. Medido tecla
+// por tecla escribiendo "12.5" en el descuento (máximo 60... y en maniobras, con
+// máximo 30):
+//     1 → 1 · 2 → 12 · . → 12  (¡el punto se lo traga!) · 5 → 125 → TOPE
+// O sea que **un 12.5% de descuento terminaba en el máximo**, y "0.5" quedaba en
+// 5. Es dinero, y lo teclea el vendedor ENFRENTE DEL CLIENTE.
+// El arreglo: mientras escribes, el campo guarda TU TEXTO tal cual y no se
+// recalcula nada; al salir del campo (o al dar Enter) se lee, se acota y se
+// normaliza. Así se puede escribir "12.5", borrar todo para reescribir, o dejar
+// un punto a medias sin que el número salte solo.
+function CampoPct({ valor, max, onCambio, ancho = 90 }) {
+  const [txt, setTxt] = useState(String(valor));
+  const [escribiendo, setEscribiendo] = useState(false);
+  // Si el valor cambia desde afuera (se abrió otra cotización) y no estoy
+  // escribiendo, el campo se pone al día.
+  useEffect(() => { if (!escribiendo) setTxt(String(valor)); }, [valor, escribiendo]);
+  const cerrar = () => {
+    setEscribiendo(false);
+    const n = leePct(txt, max);
+    setTxt(String(n));
+    if (n !== valor) onCambio(n);
+  };
+  return (
+    <input
+      type="text" inputMode="decimal" className="numero" style={{ width: ancho }}
+      value={txt}
+      onFocus={() => setEscribiendo(true)}
+      onChange={(e) => { setEscribiendo(true); setTxt(e.target.value); }}
+      onBlur={cerrar}
+      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+    />
+  );
+}
+
 export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr }) {
   const [vistaClienteManual, setVistaClienteManual] = useState(false);
   const vistaCliente = soloVentas || vistaClienteManual;
@@ -380,7 +416,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         <div className="tarjeta no-imprimir" style={{ display: 'grid', gap: 10 }}>
           <div className="fila-botones" style={{ justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <label className="etiqueta" style={{ margin: 0 }}>Descuento de proyecto (%)</label>
-            <input type="number" className="numero" style={{ width: 90 }} min="0" max="60" value={descuentoPct} onChange={(e) => setCot({ descuentoPct: leePct(e.target.value, 60) })} />
+            <CampoPct valor={descuentoPct} max={60} onCambio={(v) => setCot({ descuentoPct: v })} />
             {!soloVentas && descuentoMax != null && <button className="boton fantasma" style={{ minHeight: 40, padding: '0 12px' }} onClick={() => setCot({ descuentoPct: descuentoMax })} title={`Máximo sin bajar del piso de ${minMarkup}%`}>Máx. rentable: {descuentoMax}%</button>}
           </div>
           {/* Rodrigo, 2026-08-16: "el precio que tenemos ya es precio de lista, es el de
@@ -393,18 +429,18 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           </div>
           <div className="fila-botones" style={{ justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <label className="etiqueta" style={{ margin: 0 }}>Imprevistos de obra (%)</label>
-            <input type="number" className="numero" style={{ width: 90 }} min="0" max="50" value={contingenciaPct} onChange={(e) => setCot({ contingenciaPct: leePct(e.target.value, 50) })} />
+            <CampoPct valor={contingenciaPct} max={50} onCambio={(v) => setCot({ contingenciaPct: v })} />
           </div>
           <div className="fila-botones" style={{ justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <label className="etiqueta" style={{ margin: 0 }}>Maniobras e instalación (%)</label>
-            <input type="number" className="numero" style={{ width: 90 }} min="0" max="30" value={maniobrasPct} onChange={(e) => setCot({ maniobrasPct: leePct(e.target.value, 30) })} />
+            <CampoPct valor={maniobrasPct} max={30} onCambio={(v) => setCot({ maniobrasPct: v })} />
           </div>
           <div className="ayuda" style={{ textAlign: 'right', marginTop: -4 }}>
             3% es lo estándar (así lo imprimen tus presupuestos). Sube con elevador, horario inhábil o acarreo largo.
           </div>
           <div className="fila-botones" style={{ justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <label className="etiqueta" style={{ margin: 0 }}>Flete (%)</label>
-            <input type="number" className="numero" style={{ width: 90 }} min="0" max="30" value={fletePct} onChange={(e) => setCot({ fletePct: leePct(e.target.value, 30) })} />
+            <CampoPct valor={fletePct} max={30} onCambio={(v) => setCot({ fletePct: v })} />
           </div>
           {soloVentas && nBajoPiso > 0 && <div className="alerta roja"><span className="texto">Este descuento deja {nBajoPiso} partida(s) por debajo del margen permitido. Requiere visto bueno de Dirección.</span></div>}
         </div>
