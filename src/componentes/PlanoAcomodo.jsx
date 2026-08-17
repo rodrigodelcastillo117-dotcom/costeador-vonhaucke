@@ -196,7 +196,13 @@ export default function PlanoAcomodo({
   // Cuánto hay que arrastrar para que cuente como MOVER y no como tocar. Va
   // contra el viewBox, no contra los metros del cuarto, para que sean siempre
   // los mismos poquitos píxeles en pantalla — el temblor normal del dedo.
-  const MOVIO = (totalW + 2 * pad) / 260;
+  // ⚠️ SENSIBILIDAD. Este umbral sólo sirve para distinguir un TOQUE de un
+  // ARRASTRE; no debe impedir mover poquito. Estaba en /260, que en un plano de
+  // 20 m son 8 CENTÍMETROS: correr un escritorio 5 cm era imposible, el mueble
+  // se regresaba solo. Rodrigo: "que me deje ponerlo donde yo quiera".
+  // Ahora /900 (≈2 cm en ese mismo plano), con un piso de 15 mm para que el
+  // temblor del dedo no cuente como arrastre.
+  const MOVIO = Math.max(15, (totalW + 2 * pad) / 900);
 
   function tomar(ev, tipo, id, area, x, y) {
     if (!editable) return;

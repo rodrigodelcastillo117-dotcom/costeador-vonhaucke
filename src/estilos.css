@@ -1458,3 +1458,21 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
    dos columnas dejan cada render en 160 px y no se distingue un mueble. */
 .escenas-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
 @media (max-width: 640px) { .escenas-grid { grid-template-columns: 1fr; } }
+
+
+/* La cuenta de cuántos faltan de ese producto, encima de su tarjeta en la
+   paleta. Antes había una tarjeta por pieza (44 sillas sueltas) y no se podía
+   saber cuántas te faltaban de cada cosa. */
+.paleta-item { position: relative; }
+.paleta-n {
+  position: absolute; top: 6px; right: 6px; min-width: 26px; height: 26px;
+  display: grid; place-items: center; padding: 0 6px;
+  background: var(--rojo); color: #fff; border-radius: 999px;
+  font-family: var(--mono); font-weight: 700; font-size: 13px; line-height: 1;
+}
+/* Para lo que no tiene foto de catálogo (la sillería del banco): un dibujo, no
+   un cuadro de color plano que no dice nada. */
+.paleta-glifo {
+  display: grid; place-items: center; width: 100%; aspect-ratio: 4 / 3;
+  background: var(--papel); border-radius: 8px; font-size: 30px;
+}

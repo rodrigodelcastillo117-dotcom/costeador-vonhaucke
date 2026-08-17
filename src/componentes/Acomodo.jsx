@@ -17,6 +17,12 @@ import PlanoAcomodo from './PlanoAcomodo.jsx';
 import DibujarPlano from './DibujarPlano.jsx';
 import Cargando from './Cargando.jsx';
 
+// Un dibujo para lo que no tiene foto. Las sillas del banco vienen de
+// presupuestos y no traen render de catálogo: antes se pintaba un CUADRADO CAFÉ
+// plano y era imposible saber qué era. Un glifo no es una foto, pero al menos
+// dice "esto es una silla".
+const GLIFO = { asiento: '🪑', escritorio: '▬', juntas: '▭', guarda: '▤', mampara: '▐', mesa: '▭', mueble: '▢' };
+
 // Reduce una imagen a base64 jpeg (máx 1600 px) para mandarla a la IA.
 function imagenABase64(file, max = 1600) {
   return new Promise((resolve, reject) => {
@@ -254,6 +260,25 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
   // Piezas que TODAVÍA no están en el plano: son las de la paleta.
   const colocadas = new Set((plan?.colocacion || []).map((c) => c.id));
   const pendientes = piezas.filter((p) => !colocadas.has(p.id));
+  // Las pendientes AGRUPADAS por producto, conservando el orden en que se
+  // pidieron. `ids` es la lista de las que faltan de ese producto: su largo es
+  // la cuenta que se enseña y baja sola conforme se van colocando.
+  // La revisión de Voni está VENCIDA si movieron algo después, o si la cuenta que
+  // ella reportó ya no coincide con la realidad de ahora (se agregaron muebles a
+  // la cotización después de acomodar). Sin esto la tarjeta decía "faltan 8" y
+  // "✓ 36 de 36" al mismo tiempo.
+  const vencida = !!plan?.auditoriaVencida ||
+    (!!plan?.auditoria?.length && (plan.colocacion || []).length !== piezas.length);
+
+  const agrupadas = useMemo(() => {
+    const m = new Map();
+    for (const p of pendientes) {
+      const clave = `${p.nombre}|${p.w}x${p.d}`;
+      if (!m.has(clave)) m.set(clave, { clave, muestra: p, ids: [] });
+      m.get(clave).ids.push(p.id);
+    }
+    return [...m.values()];
+  }, [pendientes]);
 
   // ---- DESHACER ----------------------------------------------------------
   // Rodrigo: "si le pico rápido, se borran los muebles que estaba acomodando".
@@ -706,21 +731,26 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
           )}
           {plan.resumen && <p className="ayuda" style={{ marginTop: 4 }}>{plan.resumen}</p>}
 
+          {/* 🐛 La tarjeta se contradecía a sí misma: arriba "⚠ Faltan 8 mueble(s)"
+              y abajo "✓ Todas las piezas colocadas · 36 de 36". La revisión se
+              hizo cuando había 36 piezas; después se agregaron más y nadie la
+              volvió a correr. Si la cuenta viva no coincide con la guardada, la
+              revisión está VENCIDA — y eso se dice, no se esconde. */}
           {plan.auditoria?.length > 0 && (
             <div className="voni-audit no-imprimir">
               <div className="voni-audit-t">
-                {plan.auditoriaVencida ? 'Voni revisó ANTES de que movieras:' : 'Voni revisó:'}
+                {vencida ? 'Voni revisó ANTES de que cambiaras el proyecto:' : 'Voni revisó:'}
               </div>
-              {plan.auditoriaVencida && (
+              {vencida && (
                 <p className="ayuda" style={{ margin: '2px 0 6px' }}>
-                  Movieron muebles después de esta revisión, así que ya no vale.
+                  El proyecto cambió después de esta revisión, así que ya no vale.
                   Toca <strong>“Que lo acomode Voni otra vez”</strong> para que la vuelva a hacer.
                 </p>
               )}
-              <div className="voni-audit-grid" style={plan.auditoriaVencida ? { opacity: 0.45 } : undefined}>
+              <div className="voni-audit-grid" style={vencida ? { opacity: 0.45 } : undefined}>
                 {plan.auditoria.map((a, k) => (
-                  <span className={`voni-check ${plan.auditoriaVencida ? 'warn' : (a.ok ? 'ok' : 'warn')}`} key={k}>
-                    <b>{plan.auditoriaVencida ? '·' : (a.ok ? '✓' : '⚠')}</b> {a.check}{a.detalle ? <em> · {a.detalle}</em> : null}
+                  <span className={`voni-check ${vencida ? 'warn' : (a.ok ? 'ok' : 'warn')}`} key={k}>
+                    <b>{vencida ? '·' : (a.ok ? '✓' : '⚠')}</b> {a.check}{a.detalle ? <em> · {a.detalle}</em> : null}
                   </span>
                 ))}
               </div>
@@ -798,14 +828,38 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
                   <span className="ayuda">Seleccionado: <strong>{byId[selPieza]?.nombre}</strong> · los botones están sobre el mueble</span>
                 </div>
               )}
+              {/* AGRUPADA POR PRODUCTO, CON SU CUENTA. Rodrigo, acomodando a mano:
+                  "deberían salir los muebles que pediste... si pides 6, que salga
+                  escritorio Eclipse ×6, y como vas colocando va bajando; ejemplo
+                  muevo uno y ya sale ×5, para que no puedas pasarte de los que
+                  pediste". Antes se pintaba UNA TARJETA POR PIEZA: 44 tarjetas de
+                  sillas idénticas, imposible de usar y sin forma de saber cuántas
+                  te faltan de cada cosa. */}
+              {/* Rodrigo: "en caso que quieras agregar más, que salga un botón que
+                  diga agregar otro producto". La paleta sólo tiene lo que ya se
+                  cotizó —eso es a propósito, para no pasarte de lo que pediste—
+                  así que para meter algo nuevo hay que ir por él al catálogo. */}
+              {onIr && (
+                <div className="fila-botones" style={{ gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+                  <button className="boton fantasma" style={{ minHeight: 44 }} onClick={() => onIr('banco')}>
+                    + Agregar otro producto
+                  </button>
+                  <span className="ayuda" style={{ display: 'inline' }}>
+                    Aquí sólo salen los muebles que ya cotizaste, para que no te pases de la cuenta.
+                  </span>
+                </div>
+              )}
               <div className="paleta">
-                {pendientes.map((p) => {
+                {agrupadas.map((g) => {
+                  const p = g.muestra;
                   const img = p.ruta && p.productoId ? imagenProducto(p.ruta, p.productoId) : null;
+                  const enMano = g.ids.includes(enLaMano);
                   return (
-                    <button key={p.id} className={`paleta-item ${enLaMano === p.id ? 'on' : ''}`}
-                      onClick={() => { setEnLaMano(p.id); setSelPieza(null); }}>
+                    <button key={g.clave} className={`paleta-item ${enMano ? 'on' : ''}`}
+                      onClick={() => { setEnLaMano(g.ids[0]); setSelPieza(null); }}>
                       {img ? <img src={img} alt="" loading="lazy" />
-                        : <span className="paleta-color" style={{ background: TIPOS[p.tipo]?.color || '#999' }} />}
+                        : <span className={`paleta-glifo tipo-${p.tipo}`} aria-hidden="true">{GLIFO[p.tipo] || '▭'}</span>}
+                      <span className="paleta-n">{g.ids.length}</span>
                       <span className="paleta-t">{p.nombre}</span>
                       <span className="ayuda gris">{(p.w / 1000).toFixed(2)} × {(p.d / 1000).toFixed(2)} m</span>
                     </button>
