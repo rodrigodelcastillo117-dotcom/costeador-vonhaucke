@@ -129,7 +129,7 @@ export default function Voni({
               <p className="voni-globo">¡Hola! Soy <b>Voni</b>. Cuéntame qué necesita tu cliente —en palabras normales— y te armo el proyecto: muebles, acomodo y propuesta.</p>
             </div>
           )}
-          <CotizadorIA estado={estado} onAgregarItems={agregarEnProyecto} onIr={onIr} />
+          <CotizadorIA estado={estado} onAgregarItems={agregarEnProyecto} onIr={onIr} conPrograma />
 
           <div className="tarjeta">
             <div className="fila" style={{ justifyContent: 'space-between', alignItems: 'center' }}>

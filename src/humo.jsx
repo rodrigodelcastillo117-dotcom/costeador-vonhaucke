@@ -206,6 +206,9 @@ const PANTALLAS = [
   ['Inicio · cotizar de línea', <Inicio estado={estado} onIr={nada} veCostos esDireccion vista="cotizarlinea" setVista={nada} />],
   ['Guía', <Guia primeraVez={false} onIr={nada} onCerrar={nada} estado={estado} rol="ventas" />],
   ['Voni', <Voni estado={estado} setEstado={nada} soloVentas={false} veCostos paso={1} setPaso={nada} onAgregarItems={nada} onGuardarAcomodo={nada} onIr={nada} />],
+  // El paso 2 va aparte: `paso` lo manda App, así que con uno solo montado
+  // nunca se probaba el cuestionario de botones (ni el resto del paso).
+  ['Voni · paso 2 muebles', <Voni estado={estado} setEstado={nada} soloVentas={false} veCostos paso={2} setPaso={nada} onAgregarItems={nada} onGuardarAcomodo={nada} onIr={nada} />],
   ['Cotizar con IA', <CotizadorIA estado={estado} onAgregarItems={nada} onIr={nada} verCotizacion />],
   ['Asistente', <Asistente estado={estado} onAgregarPartida={nada} onModoAvanzado={nada} onIr={nada} />],
   ['Asistente especial', <AsistenteEspecial estado={estado} onVerDetalle={nada} onInicio={nada} />],

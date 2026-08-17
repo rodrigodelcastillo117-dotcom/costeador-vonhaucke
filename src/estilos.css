@@ -1602,3 +1602,20 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 .confianza.baja  .confianza-barra span { background: var(--rojo); }
 .confianza-txt { min-width: 0; font-size: 14px; line-height: 1.45; }
 @media print { .confianza { display: none !important; } }
+
+/* El programa del proyecto, con botones. Una fila por tipo de espacio: el
+   nombre a la izquierda, el ± a la derecha, y las opciones sólo cuando hay. */
+.programa { margin-bottom: 14px; }
+.prog-fila { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--linea); }
+.prog-fila:first-of-type { border-top: none; }
+.prog-et { display: flex; flex-direction: column; line-height: 1.25; flex: 1; min-width: 0; }
+.prog-et strong { font-size: 16px; }
+.prog-et span { font-size: 12px; color: var(--gris); }
+.prog-sub { padding: 2px 0 12px 2px; border-left: 2px solid var(--linea); padding-left: 12px; margin-bottom: 4px; }
+.prog-sub .etiqueta { margin-top: 10px; }
+.prog-resumen { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: #f3efe8;
+  border: 1px solid var(--linea); display: flex; flex-direction: column; gap: 4px; }
+.prog-resumen b { font-family: var(--display); font-size: 20px; }
+.prog-resumen span { font-size: 13px; color: var(--gris); line-height: 1.45; }
+.prog-o { text-align: center; font-size: 12px; color: var(--gris); text-transform: uppercase;
+  letter-spacing: .08em; margin: 14px 0 8px; }

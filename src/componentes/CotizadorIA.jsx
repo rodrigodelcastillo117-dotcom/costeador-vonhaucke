@@ -14,6 +14,7 @@ import { useMemo, useRef, useState } from 'react';
 import { catalogoIA, costearItem } from '../datos/lineas.js';
 import { BANCO } from '../datos/banco.js';
 import { cotizarTexto } from '../nube.js';
+import ProgramaProyecto from './ProgramaProyecto.jsx';
 import { anotar } from '../datos/aprendizaje.js';
 
 // Un pedido puede traer párrafos; la lección se guarda con una pista corta para
@@ -32,7 +33,7 @@ const EJEMPLOS = [
   { n: 'Bench + guardas', t: '20 escritorios operativos App LT de 1.50 con faldón, 20 gavetas rodantes y 8 sillones Pac.' },
 ];
 
-export default function CotizadorIA({ estado, onAgregarItems, onIr, verCotizacion = false }) {
+export default function CotizadorIA({ estado, onAgregarItems, onIr, verCotizacion = false, conPrograma = false }) {
   const [texto, setTexto] = useState('');
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
@@ -142,6 +143,13 @@ export default function CotizadorIA({ estado, onAgregarItems, onIr, verCotizacio
         <p className="ayuda columna-texto" style={{ marginTop: 0 }}>
           Escríbelo en palabras normales, como te lo pidieron. Lo convierto en muebles de nuestras líneas, con su precio.
         </p>
+        {/* El cuestionario de botones va ARRIBA del recuadro: es el camino de
+            quien empieza de cero. El texto se queda para quien ya tiene el
+            correo del cliente que pegar. Misma Voni, dos entradas. */}
+        {conPrograma && (
+          <ProgramaProyecto cargando={cargando} onArmar={(frase) => { setTexto(frase); interpretar(frase); }} />
+        )}
+        {conPrograma && <div className="prog-o">o escríbelo / pégalo</div>}
         <textarea
           className="ia-textarea"
           rows={4}
