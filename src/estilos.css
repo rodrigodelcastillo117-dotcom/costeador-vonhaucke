@@ -1515,3 +1515,15 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 .banco-foto { width: 62px; height: 62px; object-fit: contain; border-radius: 8px;
   background: #fff; border: 1px solid var(--linea); flex: 0 0 auto; margin-right: 12px; }
 @media (max-width: 560px) { .banco-foto { width: 52px; height: 52px; margin-right: 9px; } }
+
+/* ---- Paleta partida: MUEBLES a la izquierda, SILLAS a la derecha ----
+   En un proyecto real las sillas son la mitad de las tarjetas; revueltas con
+   los escritorios hay que cazarlas. Separadas, cada mano busca en su lado.
+   En celular se apilan, pero con su encabezado, así que se siguen leyendo
+   como dos grupos y no como una tira larga. */
+.paleta-dos { display: grid; gap: 16px; margin-top: 4px; }
+@media (min-width: 860px) { .paleta-dos { grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; } }
+.paleta-col { min-width: 0; }
+.paleta-cab { margin: 0 0 8px; font-size: 15px; position: sticky; top: 0; background: var(--papel, #fff);
+  padding: 4px 0; z-index: 2; border-bottom: 1px solid var(--linea); }
+@media (min-width: 860px) { .paleta-col + .paleta-col { border-left: 1px solid var(--linea); padding-left: 22px; } }

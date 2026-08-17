@@ -257,13 +257,19 @@ export default function PlanoAcomodo({
       else onTocarElemento?.(a.id);
       return;
     }
-    const svg = ev.currentTarget;
-    const q = aPlano(ev, svg);
-    if (!q) return;
-    const i = areaDe(q.x, q.y);
-    if (i == null) return;                 // soltado fuera de todo cuarto: no se mueve
+    // ⚠️ EL CUARTO LO DECIDE DÓNDE QUEDA EL MUEBLE, NO DÓNDE ESTÁ EL DEDO.
+    // Aquí estaba el "no me deja ponerlo donde yo quiero" de Rodrigo: se
+    // preguntaba por `q` —la punta del dedo—, y al correr un escritorio hacia
+    // arriba el dedo se sale del cuarto y cae en el de al lado (o en ninguno).
+    // Si caía en ninguno, el movimiento SE IGNORABA y el mueble se regresaba
+    // solito. Y si caía en el cuarto vecino, se le restaba el origen del cuarto
+    // EQUIVOCADO y el mueble aterrizaba pegado a un muro que no era.
+    const d = a.tipo === 'pieza' ? anchoDe(a.id) : { w: 0, h: 0 };
+    const cx = a.x + d.w / 2, cy = a.y + d.h / 2;      // centro del mueble
+    const i = areaDe(cx, cy) ?? areaDe(a.x, a.y) ?? a.area;
+    if (i == null || !areas[i]) return;
     const x = Math.round(a.x - offs[i].x), y = Math.round(a.y - offs[i].y);
-    if (a.tipo === 'pieza') onSoltarEn?.(i, x + anchoDe(a.id).w / 2, y + anchoDe(a.id).h / 2, a.id);
+    if (a.tipo === 'pieza') onSoltarEn?.(i, x + d.w / 2, y + d.h / 2, a.id);
     else onMoverElemento?.(a.id, i, x, y);
   }
 
@@ -474,6 +480,16 @@ function unCuartoDeVuelta(areas, offs, coloc, byId) {
   return { areas: areas2, offs: offs2, coloc: coloc2 };
 }
 
+// Qué FAMILIA de asiento es, para dibujarlo distinto. Sale del nombre, que es
+// lo que traen las piezas del banco de precios.
+function familiaAsiento(p) {
+  const n = (p?.nombre || '').toLowerCase();
+  if (/sill[oó]n|sof[aá]|puff|pouf|love\s?seat|otomana/.test(n)) return 'sillon';
+  if (/\bbanco\b|banqueta|alto/.test(n)) return 'banco';
+  if (/visita|espera|plegable|junta/.test(n)) return 'visita';
+  return 'operativa';
+}
+
 // ---- ISOMÉTRICO (3D) ----
 // Orden de dibujo (algoritmo del pintor): se ordenan UNIDADES completas —un
 // mueble entero, un tramo de muro, una columna— por su esquina MÁS CERCANA
@@ -676,7 +692,7 @@ function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = fa
     out.push(cuboide(r[0], r[1], r[2], r[3], 450, 950, shadeHex(MAT.chair, 1.06), key + 'r'));
   };
 
-  const mueble = (x, y, w, d, tipo, key) => {
+  const mueble = (x, y, w, d, tipo, key, familia = null) => {
     const H = altoTipo(tipo);
     const atras = [], cuerpo = [], frente = [];   // se concatenan en ese orden
     // ⚠️ LA HILERA CORRE POR EL LADO LARGO, y el mueble puede venir GIRADO.
@@ -735,8 +751,43 @@ function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = fa
       cuerpo.push(cuboide(x, y, w, d, 0, H - 26, MAT.white, key + 'c'));
       cuerpo.push(cuboide(x - 10, y - 10, w + 20, d + 20, H - 26, H, MAT.oak, key + 't', { topFill: 'url(#pa-oak)' }));
     } else if (tipo === 'asiento') {
-      cuerpo.push(cuboide(x + w * 0.08, y + d * 0.08, w * 0.84, d * 0.84, 0, 430, MAT.chair, key + 's'));
-      cuerpo.push(cuboide(x + w * 0.08, y + d * 0.08, w * 0.84, 110, 430, 810, shadeHex(MAT.chair, 1.12), key + 'r'));
+      // ⚠️ NO TODOS LOS ASIENTOS SON EL MISMO CAJÓN. Rodrigo: "no sé cuáles
+      // sillas son las gamma, las alpha, las concerto, las win; deberían verse
+      // diferentes". Distinguir DOS MODELOS de silla operativa en un isométrico
+      // esquemático no es honesto —para eso está la foto real en la paleta—,
+      // pero las FAMILIAS sí se leen a simple vista y son las que importan al
+      // ver la planta: operativa de 5 puntas, visita de 4 patas, banco alto y
+      // sillón. Antes las cuatro eran el mismo bloque gris.
+      const fam = familia || 'operativa';
+      if (fam === 'sillon') {                          // volumen tapizado, con brazos
+        cuerpo.push(cuboide(x, y + d * 0.06, w, d * 0.88, 0, 380, MAT.chair, key + 's'));
+        cuerpo.push(cuboide(x, y + d * 0.06, w, 150, 380, 760, shadeHex(MAT.chair, 1.12), key + 'r'));
+        cuerpo.push(cuboide(x, y + d * 0.06, 130, d * 0.88, 380, 600, shadeHex(MAT.chair, 0.94), key + 'b1'));
+        cuerpo.push(cuboide(x + w - 130, y + d * 0.06, 130, d * 0.88, 380, 600, shadeHex(MAT.chair, 0.94), key + 'b2'));
+      } else if (fam === 'banco') {                    // alto, patas y asiento chico
+        const s = Math.min(w, d) * 0.62;
+        const bx = x + (w - s) / 2, by = y + (d - s) / 2;
+        for (const [dx, dy] of [[0, 0], [s - 70, 0], [0, s - 70], [s - 70, s - 70]]) {
+          cuerpo.push(cuboide(bx + dx, by + dy, 70, 70, 0, 720, shadeHex(MAT.chair, 0.8), `${key}p${dx}${dy}`));
+        }
+        cuerpo.push(cuboide(bx, by, s, s, 720, 800, MAT.chair, key + 's'));
+        cuerpo.push(cuboide(bx, by, s, 80, 800, 1080, shadeHex(MAT.chair, 1.12), key + 'r'));
+      } else if (fam === 'visita') {                   // 4 patas finas, sin base de estrella
+        const s = Math.min(w, d) * 0.72;
+        const bx = x + (w - s) / 2, by = y + (d - s) / 2;
+        for (const [dx, dy] of [[0, 0], [s - 60, 0], [0, s - 60], [s - 60, s - 60]]) {
+          cuerpo.push(cuboide(bx + dx, by + dy, 60, 60, 0, 430, shadeHex(MAT.chair, 0.78), `${key}p${dx}${dy}`));
+        }
+        cuerpo.push(cuboide(bx, by, s, s, 430, 500, MAT.chair, key + 's'));
+        cuerpo.push(cuboide(bx, by, s, 90, 500, 900, shadeHex(MAT.chair, 1.12), key + 'r'));
+      } else {                                         // operativa: pistón + base de estrella
+        const s = Math.min(w, d) * 0.74;
+        const bx = x + (w - s) / 2, by = y + (d - s) / 2;
+        cuerpo.push(cuboide(bx + s * 0.2, by + s * 0.2, s * 0.6, s * 0.6, 0, 90, shadeHex(MAT.chair, 0.72), key + 'e'));
+        cuerpo.push(cuboide(bx + s * 0.42, by + s * 0.42, s * 0.16, s * 0.16, 90, 430, shadeHex(MAT.chair, 0.66), key + 'p'));
+        cuerpo.push(cuboide(bx, by, s, s, 430, 510, MAT.chair, key + 's'));
+        cuerpo.push(cuboide(bx, by, s, 100, 510, 1010, shadeHex(MAT.chair, 1.12), key + 'r'));
+      }
     } else if (tipo === 'mampara') {
       cuerpo.push(cuboide(x, y, w, Math.max(60, d), 0, H, MAT.glass, key + 'm', { glass: true }));
     } else {
@@ -749,9 +800,9 @@ function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = fa
     const p = byId[c.id]; if (!p) return null;
     const ox = offs[c.area]?.x ?? 0, oy = offs[c.area]?.y ?? 0;
     const { pw, ph } = dimsPieza(p, c.rot);
-    return { key: c.id, x: ox + c.x, y: oy + c.y, pw, ph, tipo: p.tipo, niv: nivelDe(c.area) };
+    return { key: c.id, x: ox + c.x, y: oy + c.y, pw, ph, tipo: p.tipo, familia: familiaAsiento(p), niv: nivelDe(c.area) };
   }).filter(Boolean);
-  piezas.forEach((pz) => unidad(pz.x + pz.pw + pz.y + pz.ph, <g key={pz.key}>{mueble(pz.x, pz.y, pz.pw, pz.ph, pz.tipo, pz.key)}</g>, pz.niv));
+  piezas.forEach((pz) => unidad(pz.x + pz.pw + pz.y + pz.ph, <g key={pz.key}>{mueble(pz.x, pz.y, pz.pw, pz.ph, pz.tipo, pz.key, pz.familia)}</g>, pz.niv));
 
   unidades.sort((a, b) => a.z - b.z);
 

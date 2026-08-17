@@ -11,6 +11,12 @@ import { TIPOS, dimsPieza, expandirPiezas, mapaPiezas, contarBajoEscritorio } fr
 import { imagenProducto, imagenPartida, heroLinea } from '../datos/imagenes.js';
 import { acomodarLocal } from '../datos/planner.js';
 import { enderezar } from '../datos/orientacion.js';
+import { esSillaDeTrabajo } from '../datos/planner.js';
+
+// Para la paleta, SILLA es todo lo que se sienta: la operativa, la de visita y
+// también el sillón y el banco. Rodrigo lo pidió partido en dos: "lado
+// izquierdo TODOS los muebles sin sillas, y lado derecho todas las sillas".
+const esSilla = (p) => p?.tipo === 'asiento' || esSillaDeTrabajo(p);
 import { escenasDeAcomodo, lineasDeEscena, tipoDeEscena } from '../datos/escenas.js';
 import { LINEAS_REG } from '../datos/lineas.js';
 import { areasDeLectura, revisarAreas } from '../datos/planoLeido.js';
@@ -332,27 +338,32 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
     if (!id) return;
     recordar();
     const p = byId[id]; if (!p) return;
-    // Se suelta por el CENTRO: es donde el dedo cree que está el mueble.
-    const cx = Math.max(0, Math.round(x - (p.w || 0) / 2));
-    const cy = Math.max(0, Math.round(y - (p.d || 0) / 2));
     editarColocacion((cs) => {
       const sin = cs.filter((c) => c.id !== id);
       const antes = cs.find((c) => c.id === id);
-      const puesto = { id, area, x: cx, y: cy, rot: antes?.rot || 0 };
-      // REGLA DE LA CASA, también cuando lo pones TÚ: el que se sienta ahí mira
-      // a la puerta y nunca al muro. Se corrige el GIRO, nunca el lugar: "que
-      // me deje ponerlo donde yo quiera" — el lugar es suyo, el frente es la
-      // regla. Y si después le da a "girar", ese giro manda hasta el próximo
-      // arrastre.
+      const rot = antes?.rot || 0;
       const a = areasMM[area];
+      // Se suelta por el CENTRO: es donde el dedo cree que está el mueble.
+      // Y se topa DENTRO del cuarto por los cuatro lados, con las medidas ya
+      // giradas. Antes sólo se topaba en 0 con las medidas SIN girar: un mueble
+      // a 90° soltado cerca del muro derecho se salía del dibujo.
+      const { pw, ph } = dimsPieza(p, rot);
+      const tope = (v, largo, dentro) => Math.max(0, Math.min(Math.round(v - largo / 2), Math.max(0, (dentro || 0) - largo)));
+      const puesto = { id, area, x: tope(x, pw, a?.ancho), y: tope(y, ph, a?.largo), rot };
       if (!a) return [...sin, puesto];
+      // ⚠️ EL GIRO AUTOMÁTICO **SÓLO AL PONERLO LA PRIMERA VEZ**.
+      // La regla de la casa (mirar a la puerta, nunca al muro) sirve para que el
+      // mueble caiga bien puesto de entrada. Pero si el proyectista ya lo tenía
+      // en el plano y lo está CORRIENDO, voltearlo es pelearse con él: acomoda,
+      // la app le cambia el frente, y siente que no lo deja. "Que me deje
+      // ponerlo donde yo quiera". Si lo mueve, manda él.
+      if (antes) return [...sin, puesto];
       const vecinos = sin.filter((c) => c.area === area).map((c) => {
         const q = byId[c.id]; if (!q) return null;
-        const { pw, ph } = dimsPieza(q, c.rot || 0);
-        return { x: c.x, y: c.y, w: pw, d: ph };
+        const { pw: vw, ph: vh } = dimsPieza(q, c.rot || 0);
+        return { x: c.x, y: c.y, w: vw, d: vh };
       }).filter(Boolean);
-      const bien = enderezar(puesto, p, a, vecinos);
-      return [...sin, { ...puesto, rot: bien.rot }];
+      return [...sin, { ...puesto, rot: enderezar(puesto, p, a, vecinos).rot }];
     });
     setEnLaMano(null); setSelPieza(id); setGuardado(false);
   }
@@ -711,6 +722,18 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
             ))}
             <div className="fila-botones" style={{ gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
               <button className="boton fantasma" style={{ minHeight: 44 }} onClick={addArea}>+ Agregar área</button>
+              {/* Rodrigo: "nunca me preguntó cuántos metros era mi oficina, me
+                  volvió a poner un plano al azar". El plano venía guardado de
+                  antes, pero NO HABÍA CÓMO VOLVER A LA PREGUNTA: una vez que
+                  hay áreas, la pantalla del principio ya no se ve nunca.
+                  Esto es la puerta de regreso. */}
+              <button className="boton fantasma" style={{ minHeight: 44 }}
+                title="Volver a la pregunta del principio: plano, dibujo o metros cuadrados."
+                onClick={() => {
+                  if (!confirm('¿Empezar el espacio otra vez? Se borran las áreas y el acomodo que tienes.')) return;
+                  recordar(); setAreas([]); setPlan(null); setPlanReal(false);
+                  setNotaPlano(''); setGuardado(false); autoRef.current = false;
+                }}>Cambiar el espacio</button>
               <button className="boton" style={{ minHeight: 44 }} onClick={() => setDibujando(true)}>Dibujar mi oficina</button>
               <label className="boton fantasma" style={{ minHeight: 44, display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }} title="PDF (de AutoCAD/SketchUp), foto o captura de croquis.">
                 Subir plano (PDF o foto)
@@ -886,22 +909,36 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
                   </span>
                 </div>
               )}
-              <div className="paleta">
-                {agrupadas.map((g) => {
-                  const p = g.muestra;
-                  const img = imagenPartida(p);
-                  const enMano = g.ids.includes(enLaMano);
-                  return (
-                    <button key={g.clave} className={`paleta-item ${enMano ? 'on' : ''}`}
-                      onClick={() => { setEnLaMano(g.ids[0]); setSelPieza(null); }}>
-                      {img ? <img src={img} alt="" loading="lazy" />
-                        : <span className={`paleta-glifo tipo-${p.tipo}`} aria-hidden="true">{GLIFO[p.tipo] || '▭'}</span>}
-                      <span className="paleta-n">{g.ids.length}</span>
-                      <span className="paleta-t">{p.nombre}</span>
-                      <span className="ayuda gris">{(p.w / 1000).toFixed(2)} × {(p.d / 1000).toFixed(2)} m</span>
-                    </button>
-                  );
-                })}
+              {/* MUEBLES A LA IZQUIERDA, SILLAS A LA DERECHA (Rodrigo, 2026-08-17).
+                  Todo revuelto en una sola tira obliga a cazar la silla entre
+                  los escritorios, y en un proyecto de verdad las sillas son la
+                  mitad de las tarjetas. Separadas, cada mano busca en su lado. */}
+              <div className="paleta-dos">
+                {[['Muebles', agrupadas.filter((g) => !esSilla(g.muestra))],
+                  ['Sillas', agrupadas.filter((g) => esSilla(g.muestra))]]
+                  .filter(([, gs]) => gs.length)
+                  .map(([titulo, gs]) => (
+                    <div className="paleta-col" key={titulo}>
+                      <h4 className="paleta-cab">{titulo} <span className="gris">· {gs.reduce((n, g) => n + g.ids.length, 0)}</span></h4>
+                      <div className="paleta">
+                        {gs.map((g) => {
+                          const p = g.muestra;
+                          const img = imagenPartida(p);
+                          const enMano = g.ids.includes(enLaMano);
+                          return (
+                            <button key={g.clave} className={`paleta-item ${enMano ? 'on' : ''}`}
+                              onClick={() => { setEnLaMano(g.ids[0]); setSelPieza(null); }}>
+                              {img ? <img src={img} alt="" loading="lazy" />
+                                : <span className={`paleta-glifo tipo-${p.tipo}`} aria-hidden="true">{GLIFO[p.tipo] || '▭'}</span>}
+                              <span className="paleta-n">{g.ids.length}</span>
+                              <span className="paleta-t">{p.nombre}</span>
+                              <span className="ayuda gris">{(p.w / 1000).toFixed(2)} × {(p.d / 1000).toFixed(2)} m</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
               </div>
               {enLaMano && <div className="alerta verde" style={{ marginTop: 10 }}><span className="texto">Ahora toca el plano donde va <strong>{byId[enLaMano]?.nombre}</strong>.</span></div>}
             </div>

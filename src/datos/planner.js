@@ -176,6 +176,12 @@ const PREFERENCIA = {
   // no es destino de una guarda: una sala de juntas no tiene a quién servir.
   guarda:     ['open', 'general', 'privado'],
   mampara:    ['open', 'general', 'privado'],
+  // ⚠️ UNA SILLA DE TRABAJO NO ES UN SILLÓN. El tipo `asiento` mete en el mismo
+  // saco la silla operativa y el sofá del lounge, y con eso las 27 sillas de un
+  // proyecto real se fueron TODAS al "Break Room & Baños" —Rodrigo lo vio en el
+  // 3D: "las sillas las puso en el baño; las sillas van en los operativos y
+  // escritorios"—. Se separan por el nombre, que es lo que traen del banco.
+  silla:      ['open', 'general', 'privado', 'juntas', 'recepcion', 'lounge'],
   asiento:    ['lounge', 'recepcion', 'general', 'open'],
   mesa:       ['lounge', 'recepcion', 'general', 'open'],
   mueble:     ['general', 'open', 'lounge', 'recepcion'],
@@ -186,6 +192,14 @@ const ORDEN_TIPOS = ['juntas', 'escritorio', 'guarda', 'mampara', 'asiento', 'me
 // Un bench (bloque de varios puestos) se comporta distinto a un escritorio
 // suelto para decidir a qué cuarto va.
 const esBench = (p) => p.tipo === 'escritorio' && Math.max(p.w, p.d) >= 2500;
+
+// SILLA DE TRABAJO vs MUEBLE DE LOUNGE. Las dos llegan como `tipo: 'asiento'`.
+// Una "Silla operativa · WIN" va con los escritorios; un "Sillón", un "Sofá",
+// un "Puff" o un "Banco" alto sí son del lounge o de la recepción.
+const LOUNGE = /sill[oó]n|sof[aá]|puff|pouf|banqueta|\bbanco\b|otomana|love\s?seat/i;
+export const esSillaDeTrabajo = (p) => (
+  p?.tipo === 'asiento' && /\bsillas?\b/i.test(p.nombre || '') && !LOUNGE.test(p.nombre || '')
+);
 
 const cabeEn = (p, a) => {
   const holgura = 400;
@@ -251,8 +265,12 @@ function acomodarPorCuartos(areas, piezas) {
       return rx !== ry ? rx - ry : y.m2 - x.m2;
     });
     for (const p of lote) {
-      const orden = tipo === 'escritorio' && esBench(p) ? PREFERENCIA.bench : (PREFERENCIA[tipo] || PREFERENCIA.mueble);
-      const candidatos = ordenar(orden, tipo === 'guarda', tipo === 'escritorio' && !esBench(p));
+      const silla = tipo === 'asiento' && esSillaDeTrabajo(p);
+      const orden = tipo === 'escritorio' && esBench(p) ? PREFERENCIA.bench
+        : silla ? PREFERENCIA.silla
+          : (PREFERENCIA[tipo] || PREFERENCIA.mueble);
+      // La silla sigue al escritorio igual que la gaveta: va donde está la gente.
+      const candidatos = ordenar(orden, tipo === 'guarda' || silla, tipo === 'escritorio' && !esBench(p));
       // Se busca el primer cuarto de la preferencia donde la pieza QUEPA
       // físicamente y todavía haya área libre estimada.
       const dest = candidatos.find((c) => cabeEn(p, c.a) && c.libre > (p.w * p.d) / 1e6 * 1.35);
