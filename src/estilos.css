@@ -1172,9 +1172,14 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 }
 .vt-fila:first-of-type { border-top: 0; }
 .vt-nombre { flex: 1 1 220px; min-width: 0; font-weight: 600; font-size: 14px; }
+/* Precio unitario y total, cada uno con su rótulo chico arriba para que el
+   vendedor no los confunda. El unitario en peso normal, el total en negrita:
+   el que manda es el total, pero el unitario es el que el cliente pregunta. */
+.vt-unit { font-family: var(--display); font-weight: 500; font-size: 15px; min-width: 92px; text-align: right; color: var(--carbon); }
 .vt-importe { font-family: var(--display); font-weight: 700; font-size: 16px; min-width: 110px; text-align: right; }
+.vt-rot { display: block; font-family: var(--sans); font-weight: 600; font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: var(--gris); }
 .vt-quitar { min-height: 40px; padding: 0 12px; }
-@media (max-width: 560px) { .vt-importe { margin-left: auto; } }
+@media (max-width: 560px) { .vt-unit { margin-left: auto; } }
 
 .enlace-sutil {
   display: inline-block; font-size: 12.5px; color: var(--gris);

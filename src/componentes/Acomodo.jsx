@@ -817,11 +817,47 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     return {
       ok: problemas.length === 0 && sinColocar === 0,
       problemas: problemas.slice(0, 10), nProblemas: problemas.length,
+      // Contados aparte porque las palomitas de abajo los necesitan por
+      // separado, y `problemas` va recortado a 10 para la lista de pantalla.
+      nEncimados: enc.size, nFuera: new Set(fuera).size,
       puestos, sinColocar,
       m2Persona: puestos ? Math.round((areaPiso / puestos) * 10) / 10 : null,
       areaPiso: Math.round(areaPiso),
     };
   }, [plan, byId, areasMM, piezas]);
+
+  // ============================================================================
+  //  LA PALOMITA QUE MIENTE (2026-08-18)
+  //  ---------------------------------------------------------------------------
+  //  "Voni revisó ✓" pintaba VERDE en cosas que nadie había comprobado: en
+  //  `planner.js:535-536` y `malla.js:442-443` esos checks van escritos
+  //  `ok: true` a mano. No son mediciones, son afirmaciones SOBRE EL ALGORITMO
+  //  ("la malla no reutiliza celdas"), que valen mientras el algoritmo sea el
+  //  único que toca el plano — y deja de valer en cuanto alguien acomoda A MANO,
+  //  que es justo lo que hace el proyectista.
+  //  Y lo peor: la medición de verdad YA EXISTÍA aquí arriba (`chequeo`, que
+  //  compara caja contra caja) y la pantalla enseñaba la otra.
+  //  Aquí se cruzan: lo que se puede medir, se mide; lo que no, se dice.
+  // ============================================================================
+  const auditoriaMedida = useMemo(() => {
+    const base = plan?.auditoria || [];
+    if (!chequeo) return base;
+    return base.map((a) => {
+      if (/encimad/i.test(a.check)) {
+        return { ...a, ok: chequeo.nEncimados === 0,
+          detalle: chequeo.nEncimados
+            ? `medido: ${chequeo.nEncimados} mueble(s) se encavalgan`
+            : 'medido: ningún par de muebles se traslapa' };
+      }
+      if (/dentro de su cuarto|fuera de la forma/i.test(a.check)) {
+        return { ...a, ok: chequeo.nFuera === 0,
+          detalle: chequeo.nFuera
+            ? `medido: ${chequeo.nFuera} mueble(s) se salen de su área`
+            : 'medido: todos caen dentro de su área' };
+      }
+      return a;
+    });
+  }, [plan, chequeo]);
 
   if (cargando === 'acomodo') return <Cargando voni titulo="Voni está acomodando el espacio" mensajes={['Midiendo las áreas…', 'Asignando muebles a cada cuarto…', 'Dejando circulaciones…', 'Verificando que todo quepa…']} />;
   if (cargando === 'plano') return <Cargando voni titulo="Voni está leyendo el plano" mensajes={['Reconociendo muros…', 'Midiendo los cuartos…', 'Sacando las áreas…']} />;
@@ -966,7 +1002,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
                 </p>
               )}
               <div className="voni-audit-grid" style={vencida ? { opacity: 0.45 } : undefined}>
-                {plan.auditoria.map((a, k) => (
+                {auditoriaMedida.map((a, k) => (
                   <span className={`voni-check ${vencida ? 'warn' : (a.ok ? 'ok' : 'warn')}`} key={k}>
                     <b>{vencida ? '·' : (a.ok ? '✓' : '⚠')}</b> {a.check}{a.detalle ? <em> · {a.detalle}</em> : null}
                   </span>

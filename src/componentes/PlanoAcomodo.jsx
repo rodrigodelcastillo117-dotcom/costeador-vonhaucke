@@ -170,6 +170,26 @@ export default function PlanoAcomodo({
   const pad = 700;
   const fs = Math.max(190, Math.min(totalW, totalH) / 22);
 
+  // ⚠️ LOS TÍTULOS DE ÁREA SE ENCIMABAN (2026-08-18). Rodrigo mandó un plano
+  // donde "ZONA ABIERTA / PRIVADO 1 / PRIVADO 2 / PRIVADO 3" salían escritos
+  // uno ENCIMA del otro, ilegibles, y además pisaban los muebles. Cada
+  // etiqueta se pintaba en la esquina de su área sin fondo; cuando dos áreas
+  // arrancan cerca (un cuarto pegado a otro, o dentro del open space), los
+  // textos caían en el mismo punto.
+  // Dos arreglos: (1) el HALO blanco (abajo, como ya hace el modo 3D) para que
+  // se lean sobre lo que sea; (2) aquí, empujar hacia abajo la etiqueta que
+  // caería casi encima de otra ya colocada, para que no se apilen.
+  const etiquetaY = (() => {
+    const puestas = [];
+    return areas.map((_, i) => {
+      const x = offs[i].x + 140;
+      let y = offs[i].y + fs + 120;
+      while (puestas.some((p) => Math.abs(p.x - x) < fs * 7 && Math.abs(p.y - y) < fs * 1.2)) y += fs * 1.3;
+      puestas.push({ x, y });
+      return y;
+    });
+  })();
+
   // Pantalla -> coordenadas del plano (mm). Sirve igual para mouse y para dedo.
   function aPlano(ev, svg) {
     const p = svg.createSVGPoint();
@@ -330,8 +350,10 @@ export default function PlanoAcomodo({
             {a.poly && a.poly.length >= 3
               ? <polygon points={a.poly.map(([px, py]) => `${offs[i].x + px},${offs[i].y + py}`).join(' ')} fill="#fdfcfa" stroke="#33302c" strokeWidth="34" strokeLinejoin="round" />
               : <rect x={offs[i].x} y={offs[i].y} width={a.ancho} height={a.largo} fill="#fdfcfa" stroke="#33302c" strokeWidth="34" />}
-            {/* La etiqueta va DENTRO del cuarto: con las áreas pegadas, arriba se encimaba. */}
-            <text x={offs[i].x + 140} y={offs[i].y + fs + 120} fontSize={fs} fill="#3b3733" fontWeight="700">{etiqueta(a.nombre, a.ancho, fs)}</text>
+            {/* La etiqueta va DENTRO del cuarto, con halo blanco para que se lea
+                sobre muebles o muros, y con la Y ya des-encimada (ver etiquetaY). */}
+            <text x={offs[i].x + 140} y={etiquetaY[i]} fontSize={fs} fontWeight="700"
+              fill="#3b3733" stroke="#fdfcfa" strokeWidth={fs * 0.3} strokeLinejoin="round" paintOrder="stroke">{etiqueta(a.nombre, a.ancho, fs)}</text>
             {/* Columnas y escaleras: lo que el motor dejó libre a propósito.
                 Los huecos de 'cuarto' (una sala dentro del open space) y de
                 'puerta' NO se dibujan: son instrucciones para no amueblar ahí,

@@ -315,12 +315,18 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
             {partidas.map((pt, i) => (
               <div className="vt-fila" key={pt.id}>
                 <div className="vt-nombre">{pt.nombre}</div>
+                {/* El vendedor ve TRES cosas y nada más: precio unitario,
+                    cantidad y total. Nunca costo, utilidad ni margen —Rodrigo,
+                    2026-08-18: "ellos precio unitario, cantidad y total". Antes
+                    esta fila sólo enseñaba el total, y el unitario —el número
+                    que el cliente pregunta primero— no salía por ningún lado. */}
+                <span className="vt-unit"><span className="vt-rot">c/u</span>{pesos(pt.precioUnitario)}</span>
                 <span className="masmenos">
                   <button style={{ width: 44, height: 44 }} onClick={() => setPartida(i, { cantidad: Math.max(1, pt.cantidad - 1) })} aria-label="Menos">−</button>
                   <span className="valor">{pt.cantidad}</span>
                   <button style={{ width: 44, height: 44 }} onClick={() => setPartida(i, { cantidad: pt.cantidad + 1 })} aria-label="Más">+</button>
                 </span>
-                <span className="vt-importe">{pesos(pt.precioUnitario * pt.cantidad)}</span>
+                <span className="vt-importe"><span className="vt-rot">total</span>{pesos(pt.precioUnitario * pt.cantidad)}</span>
                 {sePuedeEditar(pt) && (
                   <button className="icono-btn" title="Editar medidas, acabado y cantidad" aria-label={`Editar ${pt.nombre}`} onClick={() => setEditando(i)}>
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
