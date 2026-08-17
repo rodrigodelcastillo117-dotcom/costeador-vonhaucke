@@ -241,6 +241,11 @@ function acomodarPorCuartos(areas, piezas) {
         const ey = y.asignadas.filter((q) => q.tipo === 'escritorio').length;
         if (ex !== ey) return ey - ex;
       }
+      // ENTRE PISOS SE REPARTE PAREJO. El desempate normal es "el cuarto más
+      // grande primero", y con tres plantas IGUALES eso metía los 17 muebles en
+      // la primera y dejaba dos vacías. Un cliente con tres pisos quiere ver sus
+      // tres pisos amueblados, no uno lleno y dos de bodega.
+      if (Number.isFinite(x.a.nivel) && Number.isFinite(y.a.nivel) && x.libre !== y.libre) return y.libre - x.libre;
       const px = orden.indexOf(x.rol), py = orden.indexOf(y.rol);
       const rx = px === -1 ? 99 : px, ry = py === -1 ? 99 : py;
       return rx !== ry ? rx - ry : y.m2 - x.m2;

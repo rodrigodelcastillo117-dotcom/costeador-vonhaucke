@@ -30,9 +30,14 @@ export default function EmpezarEspacio({ piezas = [], onListo, onSubirPlano, onD
   const areas = areasDeM2(m2, pisos);
   const necesita = m2QueNecesita(piezas);
   const lados = ladosDe(pisos <= 0.5 ? m2 / 2 : m2);
-  // Aviso, NO bloqueo: es su proyecto y él sabe. Pero decirlo antes de mandar
+  // Avisos, NO bloqueos: es su proyecto y él sabe. Pero decirlo antes de mandar
   // la propuesta vale más que descubrirlo con el cliente enfrente.
   const apretado = piezas.length > 0 && total < necesita;
+  // Y el aviso al revés, que es el que faltaba: con 1,200 m² para lo que ocupa
+  // 93, los pisos salen vacíos en el 3D y parece que la app falló. No falló —
+  // sobra espacio— pero eso hay que decirlo ANTES, no dejar que lo descubra
+  // viendo tres plantas desiertas.
+  const sobrado = piezas.length > 0 && total > necesita * 2.5;
 
   return (
     <div className="tarjeta empezar">
@@ -104,6 +109,13 @@ export default function EmpezarEspacio({ piezas = [], onListo, onSubirPlano, onD
               <p className="ayuda" style={{ margin: 0 }}>
                 ⚠️ Con {total} m² va apretado para lo que llevas cotizado (pide unos {necesita} m²).
                 Puedes seguir: lo acomodamos y te decimos qué no cupo.
+              </p>
+            )}
+            {sobrado && (
+              <p className="ayuda" style={{ margin: 0 }}>
+                Con {total.toLocaleString('es-MX')} m² <strong>te va a sobrar espacio</strong>: lo que
+                llevas cotizado ocupa unos {necesita} m². Se va a ver bastante piso vacío en el 3D —
+                que está bien si el cliente va a crecer, y si no, quizá falta cotizar.
               </p>
             )}
           </div>

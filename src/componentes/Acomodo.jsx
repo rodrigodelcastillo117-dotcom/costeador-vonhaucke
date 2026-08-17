@@ -59,6 +59,9 @@ function aMM(areas) {
   return areas.map((a) => ({
     nombre: a.nombre,
     ...(a.tipo ? { tipo: a.tipo } : {}),
+    // El PISO viaja: es lo que hace que el 3D apile la torre en vez de
+    // acostar los pisos uno junto a otro.
+    ...(Number.isFinite(a.nivel) ? { nivel: a.nivel } : {}),
     // x/y sólo existen si el cuarto tiene posición REAL (plano subido o
     // dibujado); sin ellas el plano se reacomoda en una cuadrícula inventada.
     ...(Number.isFinite(a.x) && Number.isFinite(a.y) ? { x: Math.round(a.x * 1000), y: Math.round(a.y * 1000) } : {}),

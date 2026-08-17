@@ -49,9 +49,12 @@ export function areasDeM2(m2PorPiso, pisos = 1) {
   const enteros = Math.max(1, Math.round(n));
   const m2 = limpiaM2(m2PorPiso);
   const { ancho, largo } = ladosDe(m2);
+  // `nivel` es lo que hace que el 3D los APILE en vez de acostarlos uno junto a
+  // otro. Con un solo piso no se pone: no hay torre que dibujar.
   return Array.from({ length: enteros }, (_, i) => ({
     nombre: enteros === 1 ? `Mi espacio (${m2} m²)` : `Piso ${i + 1} (${m2} m²)`,
     ancho, largo, m2,
+    ...(enteros > 1 ? { nivel: i } : {}),
   }));
 }
 

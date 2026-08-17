@@ -34,7 +34,20 @@ function contorno(a, off) {
 
 // Coloca las áreas. Con coordenadas reales (plano dibujado) las respeta; sin
 // ellas empaca por repisas PEGADAS —comparten muro— para que sea una planta.
+// ¿Es un edificio de varios PISOS? Entonces no se acuestan uno junto al otro:
+// el piso 2 va ENCIMA del 1. Ver `apilado` en PlanoIso.
+export const hayNiveles = (areas) => areas?.some((a) => (a.nivel || 0) > 0);
+
 function layoutAreas(areas) {
+  // Los pisos comparten la MISMA planta: se separan por altura, no de lado.
+  if (hayNiveles(areas)) {
+    const offs = areas.map(() => ({ x: 0, y: 0 }));
+    return {
+      offs, reales: false,
+      totalW: Math.max(...areas.map((a) => a.ancho || 0)),
+      totalH: Math.max(...areas.map((a) => a.largo || 0)),
+    };
+  }
   const reales = areas.length > 0 && areas.every((a) => Number.isFinite(a.x) && Number.isFinite(a.y));
   if (reales) {
     const minX = Math.min(...areas.map((a) => a.x)), minY = Math.min(...areas.map((a) => a.y));
@@ -481,6 +494,26 @@ function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = fa
     ({ areas, offs, coloc } = unCuartoDeVuelta(areas, offs, coloc, byId));
   }
 
+  // ---- PISOS APILADOS (2026-08-17) ------------------------------------------
+  // Rodrigo: "en un edificio el piso 2 va ENCIMA del 1". Antes se dibujaban
+  // acostados uno junto al otro, como tres bodegas en un terreno.
+  // Cada piso se dibuja EXACTAMENTE igual —misma planta, mismas coordenadas— y
+  // se sube en pantalla con un `translate`. Se sube MÁS que el alto del propio
+  // dibujo, así que es una AXONOMÉTRICA DESPIEZADA: los pisos se leen como una
+  // torre, pero ninguno le tapa el interior al de abajo. Un edificio pegado se
+  // ve como edificio y no se ve NADA adentro, que es justo lo que se quiere
+  // enseñar.
+  const nivelDe = (i) => areas[i]?.nivel || 0;
+  const niveles = [...new Set(areas.map((_, i) => nivelDe(i)))].sort((a, b) => a - b);
+  const planW = Math.max(1, ...areas.map((a, i) => (offs[i]?.x || 0) + (a.ancho || 0)));
+  const planH = Math.max(1, ...areas.map((a, i) => (offs[i]?.y || 0) + (a.largo || 0)));
+  // La separación es EXACTAMENTE el alto en pantalla de una planta más sus
+  // muros, y un pelo más. Menos, y el piso de arriba le tapa el fondo al de
+  // abajo —que es lo único que se quiere enseñar—. Mucho más, y dejan de leerse
+  // como un edificio y parecen tres dibujos sueltos.
+  const SEP = (planW + planH) * S + ALTO_MURO * 1.12;
+  const subir = (n) => n * SEP;
+
   const P = (x, y, z = 0) => [(x - y) * C, (x + y) * S - z];
   const pts2d = (pts) => pts.map((p) => p.join(',')).join(' ');
 
@@ -488,8 +521,12 @@ function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = fa
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   const push = ([X, Y]) => { minX = Math.min(minX, X); maxX = Math.max(maxX, X); minY = Math.min(minY, Y); maxY = Math.max(maxY, Y); };
   areas.forEach((a, i) => {
+    // Cada piso se sube en pantalla, así que el encuadre lo tiene que incluir:
+    // si no, la torre se sale por arriba del dibujo.
+    const sube = subir(nivelDe(i));
     contorno(a, offs[i]).forEach(([x, y]) => {
-      push(P(x - MURO, y - MURO, -LOSA)); push(P(x + MURO, y + MURO, -LOSA)); push(P(x, y, ALTO_MURO));
+      const alto = ([X, Y]) => [X, Y - sube];
+      push(alto(P(x - MURO, y - MURO, -LOSA))); push(alto(P(x + MURO, y + MURO, -LOSA))); push(alto(P(x, y, ALTO_MURO)));
     });
   });
   const escala = Math.max(1, maxX - minX);
@@ -574,8 +611,8 @@ function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = fa
   };
 
   // ------- UNIDADES: se juntan y se ordenan de lejos a cerca ------------------
-  const unidades = [];  // { z: profundidad, el }
-  const unidad = (z, el) => unidades.push({ z, el });
+  const unidades = [];  // { z: profundidad, el, niv }
+  const unidad = (z, el, niv = 0) => unidades.push({ z, el, niv });
 
   // --- muros: sólo en los bordes LEJANOS del contorno (los cercanos, abiertos) ---
   areas.forEach((a, i) => {
@@ -612,7 +649,7 @@ function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = fa
           {linea(P(x1, y1, 0), P(x2, y2, 0), 0.55)}
           {linea(P(x1, y1, ALTO_MURO), P(x2, y2, ALTO_MURO), 1)}
           {linea(P(x1 + nx * MURO, y1 + ny * MURO, ALTO_MURO), P(x2 + nx * MURO, y2 + ny * MURO, ALTO_MURO), 1)}
-        </g>);
+        </g>, nivelDe(i));
       }
     }
     // columnas y escaleras del plano real
@@ -620,7 +657,7 @@ function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = fa
       const ox = offs[i].x + o.x, oy = offs[i].y + o.y;
       const alto = o.tipo === 'escalera' ? 450 : ALTO_MURO;
       const col = o.tipo === 'escalera' ? MAT.escalera : MAT.columna;
-      unidad(ox + o.w + oy + o.h, cuboide(ox, oy, o.w, o.h, 0, alto, col, `ob${i}-${k}`));
+      unidad(ox + o.w + oy + o.h, cuboide(ox, oy, o.w, o.h, 0, alto, col, `ob${i}-${k}`), nivelDe(i));
     });
   });
 
@@ -712,9 +749,9 @@ function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = fa
     const p = byId[c.id]; if (!p) return null;
     const ox = offs[c.area]?.x ?? 0, oy = offs[c.area]?.y ?? 0;
     const { pw, ph } = dimsPieza(p, c.rot);
-    return { key: c.id, x: ox + c.x, y: oy + c.y, pw, ph, tipo: p.tipo };
+    return { key: c.id, x: ox + c.x, y: oy + c.y, pw, ph, tipo: p.tipo, niv: nivelDe(c.area) };
   }).filter(Boolean);
-  piezas.forEach((pz) => unidad(pz.x + pz.pw + pz.y + pz.ph, <g key={pz.key}>{mueble(pz.x, pz.y, pz.pw, pz.ph, pz.tipo, pz.key)}</g>));
+  piezas.forEach((pz) => unidad(pz.x + pz.pw + pz.y + pz.ph, <g key={pz.key}>{mueble(pz.x, pz.y, pz.pw, pz.ph, pz.tipo, pz.key)}</g>, pz.niv));
 
   unidades.sort((a, b) => a.z - b.z);
 
@@ -809,10 +846,17 @@ function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = fa
           </filter>
         </defs>
         <rect x={minX - pad} y={minY - pad} width={(maxX - minX) + 2 * pad} height={(maxY - minY) + 2 * pad} fill="url(#pa-bg)" />
-        {escenario}
-        <g filter="url(#pa-soft)" opacity="0.32">{piezas.map(sombra)}</g>
-        {unidades.map((u, i) => <g key={i}>{u.el}</g>)}
-        {!limpio && etiquetas}
+        {/* UN GRUPO POR PISO. Cada uno lleva el mismo dibujo, corrido hacia
+            arriba; de abajo hacia arriba, para que el de encima se pinte
+            después. Sin varios pisos esto es un solo grupo sin mover nada. */}
+        {niveles.map((n) => (
+          <g key={'niv' + n} transform={n ? `translate(0 ${-subir(n)})` : undefined}>
+            {escenario.filter((_, i) => nivelDe(i) === n)}
+            <g filter="url(#pa-soft)" opacity="0.32">{piezas.filter((pz) => pz.niv === n).map(sombra)}</g>
+            {unidades.filter((u) => u.niv === n).map((u, i) => <g key={i}>{u.el}</g>)}
+            {!limpio && etiquetas.filter((_, i) => nivelDe(i) === n)}
+          </g>
+        ))}
       </svg>
     </div>
   );
