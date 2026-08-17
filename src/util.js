@@ -140,7 +140,7 @@ const SIN_CALIBRAR = 'Esta línea todavía no tiene precios reales cargados y su
 export function selloPartida(pt) {
   if (!pt) return { tipo: 'estimado', texto: 'Estimado', nota: SIN_CALIBRAR };
   if (pt.deBanco) return { tipo: 'firme', texto: 'Firme', nota: 'Precio real del banco de precios (salió de un proyecto cerrado).' };
-  if (pt.precioReal) return { tipo: 'firme', texto: 'Firme', nota: 'Precio de lista real, tomado de un presupuesto cerrado de Von Haucke.' };
+  if (pt.precioReal) return { tipo: 'firme', texto: 'Firme', nota: 'Precio de lista real, tomado de un presupuesto cerrado de Vonhaucke.' };
   if (pt.ruta && RUTAS_CALIBRADAS.has(pt.ruta)) return { tipo: 'calibrado', texto: 'Calibrado', nota: 'Lo calculó el modelo, pero esta línea está contrastada contra presupuestos reales (±7%). No es un precio del papel.' };
   return { tipo: 'estimado', texto: 'Estimado', nota: SIN_CALIBRAR };
 }

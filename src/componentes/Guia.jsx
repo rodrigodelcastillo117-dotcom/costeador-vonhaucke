@@ -62,7 +62,7 @@ function manual({ margenObjetivo, minMarkup, margenMinimo }) {
     {
       id: 'empezar', titulo: 'Empezar aquí', v: 'todos',
       temas: [
-        { t: '¿Qué es esta app?', r: 'Convierte lo que pide un cliente en una propuesta con precios de Von Haucke.',
+        { t: '¿Qué es esta app?', r: 'Convierte lo que pide un cliente en una propuesta con precios de Vonhaucke.',
           d: 'Tiene las 24 líneas del catálogo con sus medidas, acabados y precios. Arma la cotización, acomoda los muebles en el espacio del cliente y genera el PDF que se entrega. Lo que antes eran tres archivos y varias llamadas, aquí es una sola pantalla.' },
         { t: 'Todo se guarda solo', r: 'No hay botón de guardar. Nunca pierdes trabajo.',
           d: 'Puedes cerrar la app a media cotización y al volver está igual. El punto de la barra de arriba te dice cómo está guardando en este momento.', demo: 'conexion' },

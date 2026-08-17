@@ -123,7 +123,7 @@ export default function Banco({ onAgregar, onIr }) {
         <div className="tarjeta">
           <h3>Catálogo completo · las 23 líneas</h3>
           <p className="ayuda columna-texto">
-            Todo lo que Von Haucke fabrica, sacado de las guías oficiales con sus medidas y claves reales.
+            Todo lo que Vonhaucke fabrica, sacado de las guías oficiales con sus medidas y claves reales.
             Aquí el precio lo calcula el modelo y es un <strong>rango</strong> según cómo lo configures:
             entra a la línea y ármalo a la medida para tener el precio exacto.
           </p>

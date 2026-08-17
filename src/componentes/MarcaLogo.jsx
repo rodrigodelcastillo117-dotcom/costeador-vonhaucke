@@ -7,7 +7,7 @@ export default function MarcaLogo({ alto = 40, className = '' }) {
   return (
     <img
       src={MARCA_LOGO_URL}
-      alt="Von Haucke"
+      alt="Vonhaucke"
       className={`marca-logo ${className}`.trim()}
       style={{ height: alto, width: 'auto', display: 'block' }}
     />

@@ -123,7 +123,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   // antes de imprimir para que NUNCA salga una partida sin imagen en el PDF.
   async function imprimir() {
     const prev = document.title;
-    document.title = ['Propuesta', cot.folio, cot.cliente].filter(Boolean).join(' ').trim() || 'Propuesta Von Haucke';
+    document.title = ['Propuesta', cot.folio, cot.cliente].filter(Boolean).join(' ').trim() || 'Propuesta Vonhaucke';
     try {
       const imgs = Array.from(document.querySelectorAll('.cot-cliente img'));
       await Promise.all(imgs.map((im) => (im.decode ? im.decode().catch(() => {}) : Promise.resolve())));
@@ -396,7 +396,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
 
         {/* Renders con IA (no imprimen) */}
         <div className="tarjeta no-imprimir" style={{ display: 'grid', gap: 10 }}>
-          <div><strong>Imágenes de la propuesta</strong> <span className="ayuda" style={{ display: 'inline' }}>· las genera la IA, estilo Von Haucke</span></div>
+          <div><strong>Imágenes de la propuesta</strong> <span className="ayuda" style={{ display: 'inline' }}>· las genera la IA, estilo Vonhaucke</span></div>
           <div className="fila-botones" style={{ gap: 10, flexWrap: 'wrap' }}>
             <button className="boton" style={{ minHeight: 46 }} disabled={genPart != null || genOficina} onClick={renderTodas}>
               {genPart != null ? 'Generando muebles…' : 'Una foto de cada mueble'}
@@ -509,7 +509,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
               {cot.acomodo?.render3d && (
                 <figure className="propx-render3d">
                   <img src={cot.acomodo.render3d} alt="Vista 3D del acomodo" />
-                  <figcaption>Vista 3D de referencia del acomodo con mobiliario Von Haucke</figcaption>
+                  <figcaption>Vista 3D de referencia del acomodo con mobiliario Vonhaucke</figcaption>
                 </figure>
               )}
               {/* El plano SVG solo si NO hay render de IA (el render Gemini manda). */}

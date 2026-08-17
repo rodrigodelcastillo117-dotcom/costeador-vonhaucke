@@ -107,7 +107,7 @@ function hojaMarca(doc, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA, { nueva = true }
 
   doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5); doc.setTextColor(...GRIS);
   const sub = doc.splitTextToSize(
-    'Más de 68 años fabricando en México. La colección vonhaucke es lo último en diseño, ' +
+    'Más de 68 años fabricando en México. La colección Vonhaucke es lo último en diseño, ' +
     'funcionalidad y sustentabilidad a nivel internacional, y detrás de cada proyecto hay una ' +
     'planta propia: nosotros diseñamos, fabricamos, entregamos e instalamos.', ANCHO - 14);
   doc.text(sub, M.izq, y);
@@ -404,7 +404,7 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
     doc.setDrawColor(...LINEA); doc.setLineWidth(0.2);
     doc.line(M.izq, A4.h - M.abajo + 6, A4.w - M.der, A4.h - M.abajo + 6);
     doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...GRIS);
-    doc.text('Von Haucke · mobiliario de oficina hecho en México', M.izq, A4.h - M.abajo + 11);
+    doc.text('Vonhaucke · mobiliario de oficina hecho en México', M.izq, A4.h - M.abajo + 11);
     doc.text(`${p}`, A4.w - M.der, A4.h - M.abajo + 11, { align: 'right' });
   };
   // Salto de página cuando lo que sigue ya no cabe. Sin esto los renglones se
@@ -431,7 +431,7 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
   doc.rect(M.izq, y, ANCHO, 2.4, 'F');
   y += 12;
   doc.setFont('helvetica', 'bold'); doc.setFontSize(26); doc.setTextColor(...ROJO);
-  doc.text('vonhaucke', M.izq, y);
+  doc.text('Vonhaucke', M.izq, y);
   doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...ROJO);
   doc.text('MÁS DE 68 AÑOS DE OFICIO', A4.w - M.der, y - 3, { align: 'right' });
   y += 8; regla(0.6, ROJO); y += 10;
@@ -747,7 +747,7 @@ export async function cargarFotos(partidas, urlDe) {
 export function descargarPropuesta(datos) {
   const doc = propuestaPDF(datos);
   const nombre = ['Propuesta', datos.cot.folio, datos.cot.cliente]
-    .filter(Boolean).join(' ').replace(/[\\/:*?"<>|]/g, '').trim() || 'Propuesta Von Haucke';
+    .filter(Boolean).join(' ').replace(/[\\/:*?"<>|]/g, '').trim() || 'Propuesta Vonhaucke';
   doc.save(`${nombre}.pdf`);
   return `${nombre}.pdf`;
 }

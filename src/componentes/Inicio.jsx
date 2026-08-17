@@ -158,9 +158,9 @@ export default function Inicio({ estado, onIr, veCostos = false, esDireccion = f
     return (
       <div className="inicio">
         <div className="inicio-hero">
-          <div className="inicio-overline">Von Haucke · Más de 68 años de oficio</div>
+          <div className="inicio-overline">Vonhaucke · Más de 68 años de oficio</div>
           <h1 className="inicio-titulo">Empecemos tu propuesta</h1>
-          <div className="inicio-lead">Cotiza, acomoda y presenta con mobiliario Von Haucke, en minutos.</div>
+          <div className="inicio-lead">Cotiza, acomoda y presenta con mobiliario Vonhaucke, en minutos.</div>
         </div>
 
         {/* En qué vas: retomar es más común que empezar de cero. */}

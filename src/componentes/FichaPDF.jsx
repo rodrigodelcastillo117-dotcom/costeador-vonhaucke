@@ -73,7 +73,7 @@ export default function FichaPDF({ estado, costeo, cantidad = 1, precioUnitario 
 
   async function imprimir() {
     const prev = document.title;
-    document.title = ['Cotización', cot.folio, costeo.nombre || cot.cliente].filter(Boolean).join(' ').trim() || 'Cotización Von Haucke';
+    document.title = ['Cotización', cot.folio, costeo.nombre || cot.cliente].filter(Boolean).join(' ').trim() || 'Cotización Vonhaucke';
     try {
       const imgs = Array.from(document.querySelectorAll('.ficha-pdf img'));
       await Promise.all(imgs.map((im) => (im.decode ? im.decode().catch(() => {}) : Promise.resolve())));

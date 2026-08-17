@@ -69,7 +69,7 @@ export default function Reglas({ puedeEditar = false }) {
       <div className="tarjeta">
         <h2 style={{ marginTop: 0 }}>Lo que Voni sabe</h2>
         <p className="ayuda columna-texto">
-          Las reglas de oficio de Von Haucke. Voni y el motor las aplican solos: las que tienen un
+          Las reglas de oficio de Vonhaucke. Voni y el motor las aplican solos: las que tienen un
           número lo usan al acomodar y al costear, y las demás se le explican con palabras.
           Lo que dictes aquí queda guardado y se usa en todos los proyectos, no sólo en éste.
         </p>

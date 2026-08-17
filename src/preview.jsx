@@ -157,7 +157,7 @@ function Enc() {
         <div className="marca">
           <Logo alto={40} />
           <div>
-            <div className="nombre">Von Haucke</div>
+            <div className="nombre">Vonhaucke</div>
             <div className="anios">68 AÑOS · MOBILIARIO DE OFICINA</div>
           </div>
         </div>
