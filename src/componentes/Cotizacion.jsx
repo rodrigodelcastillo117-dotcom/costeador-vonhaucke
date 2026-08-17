@@ -264,26 +264,6 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         />
       )}
 
-      {/* ⚠️ LOS BOTONES VAN ABAJO Y SE QUEDAN (2026-08-17). Rodrigo: *"me pone
-          hasta abajo, tengo que subir TODOOO para encontrar los botones de
-          descargar pdf o imprimir. Debería abrir hasta arriba, así bajas para
-          ver la propuesta, y abajo que estén los botones"*. Eran dos problemas
-          juntos: la pantalla abría a media propuesta (el scroll de la pantalla
-          anterior) y los controles estaban ARRIBA. Ahora la barra se queda
-          pegada abajo —se llega a ella desde cualquier parte, sin scroll— y la
-          propuesta abre en la primera línea. */}
-      <div className="cot-acciones cot-acciones-fija no-imprimir">
-        {!soloVentas && (
-          <div className="segmento" role="group" aria-label="Cómo ver la cotización">
-            <button className={!vistaCliente ? 'on' : ''} onClick={() => setVistaCliente(false)}>Mis números</button>
-            <button className={vistaCliente ? 'on' : ''} onClick={() => setVistaCliente(true)}>Como la ve el cliente</button>
-          </div>
-        )}
-        <button className="boton tinta cot-pdf" onClick={descargarPDF} disabled={bajandoPDF}>
-          {bajandoPDF ? 'Armando el PDF…' : 'Descargar PDF'}
-        </button>
-        <button className="boton fantasma no-imprimir" style={{ minHeight: 42 }} onClick={imprimir}>Imprimir</button>
-      </div>
 
       {/* ⚠️ QUÉ TAN FIRME ES ESTE NÚMERO — INTERNO, NUNCA se imprime.
           Medido: de las 24 líneas sólo 4 tienen precio real de venta (applt,
@@ -365,13 +345,26 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
               <table className="datos">
                 <thead><tr>
                   <th>Concepto</th><th className="num">Cant.</th><th className="num">Precio</th>
-                  <th className="num">Costo</th><th className="num">Utilidad</th><th className="num">Margen</th><th className="num">Importe</th><th></th>
+                  <th className="num">Costo</th><th className="num">Utilidad</th><th className="num">Margen</th><th className="num">Importe</th><th></th><th></th>
                 </tr></thead>
                 <tbody>
                   {partidas.map((pt, i) => {
                     const sinCosto = pt.margen == null || pt.deBanco;
-                    const bajo = !sinCosto && pt.margen < estado.parametros.margenMinimo;
+                    const margenReal = pt.costoUnitario != null && pt.precioUnitario
+                      ? ((pt.precioUnitario - pt.costoUnitario) / pt.precioUnitario) * 100 : pt.margen;
+                    const bajo = !sinCosto && margenReal < estado.parametros.margenMinimo;
                     const util = (pt.precioUnitario - (pt.costoUnitario || 0)) * pt.cantidad;
+                    // ⚠️ EL MARGEN SE SACA DE LOS NÚMEROS DE ESTA MISMA FILA
+                    // (2026-08-17). Se pintaba `pt.margen` GUARDADO, y en un
+                    // renglón con precio real calibrado eso ya no corresponde a
+                    // su precio: la banca App LT imprimía precio $41,439, costo
+                    // $19,185 y margen **50%**, cuando esos dos números dan
+                    // **53.7%**. Es la columna con la que el vendedor decide
+                    // cuánto puede regalar, y el semáforo de "debajo del mínimo"
+                    // usa el mismo número: un renglón calibrado podía pintarse
+                    // verde estando abajo del piso, o al revés.
+                    const margenFila = sinCosto ? null
+                      : ((pt.precioUnitario - (pt.costoUnitario || 0)) / (pt.precioUnitario || 1)) * 100;
                     const s = selloPartida(pt);
                     return (
                       <tr key={pt.id} style={bajo ? { background: '#fbeceb' } : undefined}>
@@ -381,8 +374,25 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                         <td className="num">{pesos(pt.precioUnitario)}</td>
                         <td className="num">{sinCosto ? '—' : pesos(pt.costoUnitario)}</td>
                         <td className="num">{sinCosto ? '—' : pesos(util)}</td>
-                        <td className="num">{sinCosto ? '—' : <span className={`semaforo ${colorMargen(pt.margen)}`}>{pct(pt.margen)}</span>}</td>
+                        <td className="num">{sinCosto ? '—' : <span className={`semaforo ${colorMargen(margenFila)}`}>{pct(margenFila)}</span>}</td>
                         <td className="num">{pesos(pt.precioUnitario * pt.cantidad)}</td>
+                        {/* ⚠️ AQUÍ NO HABÍA CÓMO EDITAR (2026-08-17). El lápiz
+                            estaba escrito SÓLO dentro del bloque `soloVentas`, o
+                            sea que en el rol de Dirección/Diseño —el que usa
+                            Rodrigo— corregir una partida era IMPOSIBLE desde la
+                            propuesta: había que quitarla, salir, volver a la
+                            línea, reconfigurarla y regresar. **11 toques, y el
+                            renglón quedaba fuera de orden al final de la lista.**
+                            Con el lápiz son 3, y `EditarPartida` ya existía y ya
+                            recotiza en vivo: nomás no estaba enchufado. */}
+                        <td className="num">
+                          {sePuedeEditar(pt) && (
+                            <button className="icono-btn" title="Editar medidas, acabado y cantidad"
+                              aria-label={`Editar ${pt.nombre}`} onClick={() => setEditando(i)}>
+                              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                            </button>
+                          )}
+                        </td>
                         <td><button className="boton fantasma" style={{ minHeight: 40, padding: '0 12px' }} onClick={() => quitar(i)}>Quitar</button></td>
                       </tr>
                     );
@@ -602,6 +612,35 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
             </div>
           </section>
         </div>
+      {/* ⚠️ LOS BOTONES VAN ABAJO Y SE QUEDAN (2026-08-17). Rodrigo: *"me pone
+          hasta abajo, tengo que subir TODOOO para encontrar los botones de
+          descargar pdf o imprimir. Debería abrir hasta arriba, así bajas para
+          ver la propuesta, y abajo que estén los botones"*. Eran dos problemas
+          juntos: la pantalla abría a media propuesta (el scroll de la pantalla
+          anterior) y los controles estaban ARRIBA. La propuesta ya abre en la
+          primera línea.
+          ⚠️ Y EL PRIMER ARREGLO DE LA BARRA ESTUVO MAL: se dejó donde estaba —
+          arriba del documento— con `sticky; bottom: 0`. **Sticky-bottom sólo
+          pega mientras el elemento va POR DELANTE en el scroll**; en cuanto lo
+          rebasas se va con la página. Medido: en un documento de 3,142 px la
+          barra desaparecía a los 570 px y ya no volvía, así que abajo —viendo
+          el TOTAL con el cliente— había que subir 2,600 px para hallar
+          "Descargar PDF". Y con ella se iba el interruptor que ESCONDE mis
+          costos. Ahora el bloque vive al FINAL del documento, que es donde
+          Rodrigo lo pidió, y ahí el sticky sí lo mantiene pegado todo el
+          recorrido. */}
+      <div className="cot-acciones cot-acciones-fija no-imprimir">
+        {!soloVentas && (
+          <div className="segmento" role="group" aria-label="Cómo ver la cotización">
+            <button className={!vistaCliente ? 'on' : ''} onClick={() => setVistaCliente(false)}>Mis números</button>
+            <button className={vistaCliente ? 'on' : ''} onClick={() => setVistaCliente(true)}>Como la ve el cliente</button>
+          </div>
+        )}
+        <button className="boton tinta cot-pdf" onClick={descargarPDF} disabled={bajandoPDF}>
+          {bajandoPDF ? 'Armando el PDF…' : 'Descargar PDF'}
+        </button>
+        <button className="boton fantasma no-imprimir" style={{ minHeight: 42 }} onClick={imprimir}>Imprimir</button>
+      </div>
       </>)}
     </div>
   );
