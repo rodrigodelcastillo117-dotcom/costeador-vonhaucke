@@ -882,6 +882,19 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 .plano-wrap { width: 100%; background: #efeae3; border: 1px solid var(--linea); border-radius: 12px;
   padding: 12px; margin-top: 12px; overflow: hidden; }
 .plano { width: 100%; height: auto; display: block; max-height: 72vh; }
+
+/* ---- Vista 3D: mandos y alto real ----
+   El isométrico es un rombo MUY ancho; con `height:auto` en un celular de 375 px
+   quedaba de ~190 px de alto —una estampilla dentro de una caja enorme— y encima
+   no se podía tocar. Ahora tiene alto propio y se acerca, se corre y se gira. */
+/* El alto sale de `aspect-ratio` en línea (la proporción real del dibujo). */
+.plano-iso { height: auto; min-height: 210px; max-height: 78vh; user-select: none; }
+.iso-mandos { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.iso-mando { min-height: 42px; padding: 0 14px; font-weight: 700; }
+.iso-pista { flex: 1 1 100%; }
+@media (min-width: 700px) { .iso-pista { flex: 0 1 auto; margin-left: 4px; } }
+/* En papel no hay dedos: se imprime el dibujo y nada más. */
+@media print { .plano-iso { height: auto; min-height: 0; } }
 .plano-leyenda { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; }
 .leg { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--gris); }
 .leg-color { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }

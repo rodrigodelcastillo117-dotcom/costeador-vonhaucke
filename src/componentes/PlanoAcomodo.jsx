@@ -415,13 +415,72 @@ const MAT = {
   losa: '#D9D2C7', columna: '#BFB8AD', escalera: '#CFC7BA', pantalla: '#33383F',
 };
 
+// ============================================================================
+//  GIRAR LA VISTA — un cuarto de vuelta a la ESCENA (2026-08-17)
+//  Rodrigo, probando en su celular: "puse ver el acomodo en 3D y no pude hacer
+//  nada". Y tenía razón: un isométrico fijo enseña siempre la MISMA esquina, y
+//  los muros lejanos tapan justo la mitad que quieres ver.
+//
+//  ⚠️ SE GIRA EL MUNDO, NO LA CÁMARA. Girar la proyección parece más barato y
+//  está mal: el orden de dibujo sale de `x + y` y la cara "de frente" de cada
+//  mueble es su lado `y + d`; las dos cosas se calcularían sobre coordenadas
+//  viejas y la escena saldría con los muebles atravesados. Girando los DATOS,
+//  todo lo de abajo sigue siendo correcto sin tocar una línea.
+//
+//  La vuelta es (x, y) → (maxY − y, x): el rectángulo (x,y,w,h) queda en
+//  (maxY−y−h, x) midiendo (h, w), y la pieza se lleva su rot +90°.
+// ============================================================================
+function unCuartoDeVuelta(areas, offs, coloc, byId) {
+  let maxY = 0;
+  areas.forEach((a, i) => contorno(a, offs[i]).forEach(([, y]) => { maxY = Math.max(maxY, y); }));
+  const R = (x, y) => [maxY - y, x];
+
+  const areas2 = [], offs2 = [];
+  areas.forEach((a, i) => {
+    const abs = contorno(a, offs[i]).map(([x, y]) => R(x, y));
+    const ox = Math.min(...abs.map((p) => p[0])), oy = Math.min(...abs.map((p) => p[1]));
+    const rel = abs.map(([x, y]) => [x - ox, y - oy]);
+    const obstaculos = (a.obstaculos || []).map((o) => {
+      const [rx, ry] = R(offs[i].x + o.x, offs[i].y + o.y + o.h);
+      return { ...o, x: rx - ox, y: ry - oy, w: o.h, h: o.w };
+    });
+    areas2.push({
+      ...a, poly: rel, obstaculos,
+      ancho: Math.max(...rel.map((p) => p[0])), largo: Math.max(...rel.map((p) => p[1])),
+    });
+    offs2.push({ x: ox, y: oy });
+  });
+
+  const coloc2 = coloc.map((c) => {
+    const p = byId[c.id];
+    const ph = p ? dimsPieza(p, c.rot).ph : 0;
+    const o = offs[c.area] || { x: 0, y: 0 }, o2 = offs2[c.area] || { x: 0, y: 0 };
+    const [rx, ry] = R(o.x + c.x, o.y + c.y + ph);
+    return { ...c, x: rx - o2.x, y: ry - o2.y, rot: ((c.rot || 0) + 90) % 360 };
+  });
+  return { areas: areas2, offs: offs2, coloc: coloc2 };
+}
+
 // ---- ISOMÉTRICO (3D) ----
 // Orden de dibujo (algoritmo del pintor): se ordenan UNIDADES completas —un
 // mueble entero, un tramo de muro, una columna— por su esquina MÁS CERCANA
 // (x+w + y+d). Dentro de un mueble el orden lo pone la mano (patas → cubierta →
 // monitor → silla de enfrente): ordenar pieza por pieza rompía los monitores,
 // que quedaban debajo de su propia cubierta.
-function PlanoIso({ areas, offs, coloc, byId, limpio = false }) {
+function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = false }) {
+  // La vista: cuántos cuartos de vuelta, cuánto acercamiento y a dónde se
+  // corrió. Vive AQUÍ y no en el papá porque nadie más la necesita.
+  const [giro, setGiro] = useState(0);
+  const [vista, setVista] = useState({ z: 1, dx: 0, dy: 0 });
+  const dedos = useRef(new Map());     // punteros activos (dedo o mouse)
+  const pellizco = useRef(null);       // distancia entre dos dedos al empezar
+  const cajaRef = useRef(null);
+
+  let areas = areas0, offs = offs0, coloc = coloc0;
+  for (let g = 0; g < (giro % 4); g++) {
+    ({ areas, offs, coloc } = unCuartoDeVuelta(areas, offs, coloc, byId));
+  }
+
   const P = (x, y, z = 0) => [(x - y) * C, (x + y) * S - z];
   const pts2d = (pts) => pts.map((p) => p.join(',')).join(' ');
 
@@ -437,7 +496,62 @@ function PlanoIso({ areas, offs, coloc, byId, limpio = false }) {
   const LW = escala / 620;                    // grosor de línea ≈ 1 px en pantalla
   const BLUR = escala / 150;                  // difuminado de sombra a escala real
   const pad = escala * 0.045;
-  const vb = `${minX - pad} ${minY - pad} ${(maxX - minX) + 2 * pad} ${(maxY - minY) + 2 * pad}`;
+  // Encuadre COMPLETO (zoom 1) y encuadre de la vista. El acercamiento se hace
+  // estrechando el viewBox, no escalando el SVG: así las líneas no engordan y
+  // el dibujo no se pixelea por más que te acerques.
+  const W0 = (maxX - minX) + 2 * pad, H0 = (maxY - minY) + 2 * pad;
+  const cx0 = minX - pad + W0 / 2, cy0 = minY - pad + H0 / 2;
+  // La caja toma la PROPORCIÓN del dibujo, no una altura fija. Es la única
+  // manera de que no sobre hueco arriba y abajo sin recortarle la oficina al
+  // cliente: un isométrico es un rombo ancho, y en una caja vertical de celular
+  // o flota en el hueco o se le corta una esquina. Que quepa entero y que el
+  // acercamiento lo ponga él.
+  const proporcion = `${W0} / ${H0}`;
+  const z = vista.z;
+  const vw = W0 / z, vh = H0 / z;
+  const vb = `${cx0 - vw / 2 + vista.dx} ${cy0 - vh / 2 + vista.dy} ${vw} ${vh}`;
+
+  // ---- acercar / correr con el dedo ----------------------------------------
+  // `setPointerCapture` es lo que hace que el arrastre no se pierda cuando el
+  // dedo se sale del dibujo, que es lo que pasa siempre en un celular.
+  const mundoPorPx = () => vw / (cajaRef.current?.getBoundingClientRect().width || 1);
+  const acercar = (f, cen) => setVista((v) => {
+    const z = Math.max(1, Math.min(9, v.z * f));
+    if (z === v.z) return v;
+    // Con un centro dado (dos dedos, o la rueda) se acerca HACIA ese punto: sin
+    // esto el zoom se va siempre al centro y nunca llegas a lo que quieres ver.
+    if (!cen) return { ...v, z };
+    const k = 1 / v.z - 1 / z;   // el desplazamiento va en unidades del MUNDO
+    return { z, dx: v.dx + cen.x * W0 * k, dy: v.dy + cen.y * H0 * k };
+  });
+  const centrado = (ev) => {
+    const r = cajaRef.current?.getBoundingClientRect();
+    if (!r) return null;
+    return { x: (ev.clientX - r.left) / r.width - 0.5, y: (ev.clientY - r.top) / r.height - 0.5 };
+  };
+  const abajo = (ev) => {
+    dedos.current.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    ev.currentTarget.setPointerCapture?.(ev.pointerId);
+    if (dedos.current.size === 2) {
+      const [a, b] = [...dedos.current.values()];
+      pellizco.current = Math.hypot(a.x - b.x, a.y - b.y) || null;
+    }
+  };
+  const mueve = (ev) => {
+    const antes = dedos.current.get(ev.pointerId);
+    if (!antes) return;
+    dedos.current.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    if (dedos.current.size >= 2) {
+      const [a, b] = [...dedos.current.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pellizco.current && d > 0) { acercar(d / pellizco.current, null); pellizco.current = d; }
+      return;
+    }
+    const k = mundoPorPx();
+    setVista((v) => ({ ...v, dx: v.dx - (ev.clientX - antes.x) * k, dy: v.dy - (ev.clientY - antes.y) * k }));
+  };
+  const arriba = (ev) => { dedos.current.delete(ev.pointerId); if (dedos.current.size < 2) pellizco.current = null; };
+  const rueda = (ev) => { acercar(Math.exp(-ev.deltaY / 420), centrado(ev)); };
 
   const poly = (pts, fill, stroke, op = 1, k) =>
     <polygon key={k} points={pts2d(pts)} fill={fill} stroke={stroke} strokeWidth={LW} strokeLinejoin="round" fillOpacity={op} />;
@@ -511,50 +625,71 @@ function PlanoIso({ areas, offs, coloc, byId, limpio = false }) {
   });
 
   // --- muebles: cada uno es UNA unidad; adentro el orden es explícito ---------
-  const silla = (out, cx, cy, haciaSur, key) => {
+  // `lado` = de qué lado le queda el RESPALDO ('n','s','e','o'). Antes era un
+  // booleano norte/sur y por eso toda silla de un mueble girado se sentaba de
+  // lado: el respaldo seguía cruzado a lo ancho aunque la mesa corriera a lo alto.
+  const silla = (out, cx, cy, lado, key) => {
     const W = 520, D = 520;
     out.push(cuboide(cx - 70, cy - 70, 140, 140, 0, 370, shadeHex(MAT.chair, 0.72), key + 'p'));
     out.push(cuboide(cx - W / 2, cy - D / 2, W, D, 370, 450, MAT.chair, key + 'a'));
-    const ry = haciaSur ? cy + D / 2 - 90 : cy - D / 2;
-    out.push(cuboide(cx - W / 2 + 40, ry, W - 80, 90, 450, 950, shadeHex(MAT.chair, 1.06), key + 'r'));
+    const r = lado === 's' ? [cx - W / 2 + 40, cy + D / 2 - 90, W - 80, 90]
+      : lado === 'n' ? [cx - W / 2 + 40, cy - D / 2, W - 80, 90]
+        : lado === 'e' ? [cx + W / 2 - 90, cy - D / 2 + 40, 90, D - 80]
+          : [cx - W / 2, cy - D / 2 + 40, 90, D - 80];
+    out.push(cuboide(r[0], r[1], r[2], r[3], 450, 950, shadeHex(MAT.chair, 1.06), key + 'r'));
   };
 
   const mueble = (x, y, w, d, tipo, key) => {
     const H = altoTipo(tipo);
     const atras = [], cuerpo = [], frente = [];   // se concatenan en ese orden
+    // ⚠️ LA HILERA CORRE POR EL LADO LARGO, y el mueble puede venir GIRADO.
+    // Antes los puestos se contaban con `w` a secas: una banca de 10 usuarios
+    // puesta a 90° (o vista con la oficina girada) se dibujaba como una banca
+    // de UNO —un monitor y dos sillas en una cubierta de 7.5 m—. Aquí se mide
+    // por el lado largo y se traduce (a lo largo, a lo ancho) → (x, y).
+    const horiz = w >= d;
+    const L = horiz ? w : d;          // a lo largo de la hilera
+    const F = horiz ? d : w;          // de una hilera a la otra
+    const caja = (u, v, du, dv, z0, z1, col, k, opts) => (horiz
+      ? cuboide(x + u, y + v, du, dv, z0, z1, col, k, opts)
+      : cuboide(x + v, y + u, dv, du, z0, z1, col, k, opts));
+    const pt = (u, v) => (horiz ? [x + u, y + v] : [x + v, y + u]);
+    const LEJOS = horiz ? 'n' : 'o';  // dónde le queda el respaldo al de allá
+    const CERCA = horiz ? 's' : 'e';  // y al de acá
+
     if (tipo === 'escritorio') {
-      const bench = d > 1000;                       // bench doble: dos hileras enfrentadas
-      const n = Math.max(1, Math.round(w / 1500));  // puestos por hilera
-      const mw = Math.min(520, (w / n) * 0.42);   // el monitor es acento, no protagonista
+      const bench = F > 1000;                       // bench doble: dos hileras enfrentadas
+      const n = Math.max(1, Math.round(L / 1500));  // puestos por hilera
+      const mw = Math.min(520, (L / n) * 0.42);     // el monitor es acento, no protagonista
       for (let k = 0; k < n; k++) {
-        const cx = x + (w * (k + 0.5)) / n;
+        const u = (L * (k + 0.5)) / n;
         // En un bench doble hay gente de los dos lados; en un escritorio suelto,
         // sólo de frente. La silla de atrás va ANTES del mueble (queda detrás).
-        if (bench) silla(atras, cx, y - 340, false, `${key}s1${k}`);
-        silla(frente, cx, y + d + 330, true, `${key}s2${k}`);
+        if (bench) silla(atras, ...pt(u, -340), LEJOS, `${key}s1${k}`);
+        silla(frente, ...pt(u, F + 330), CERCA, `${key}s2${k}`);
       }
-      cuerpo.push(cuboide(x + 40, y + 50, 80, d - 100, 0, H - 30, MAT.charcoal, key + 'lz'));
-      cuerpo.push(cuboide(x + w - 120, y + 50, 80, d - 100, 0, H - 30, MAT.charcoal, key + 'ld'));
-      cuerpo.push(cuboide(x, y, w, d, H - 30, H, MAT.oak, key + 't', { topFill: 'url(#pa-oak)' }));
+      cuerpo.push(caja(40, 50, 80, F - 100, 0, H - 30, MAT.charcoal, key + 'lz'));
+      cuerpo.push(caja(L - 120, 50, 80, F - 100, 0, H - 30, MAT.charcoal, key + 'ld'));
+      cuerpo.push(caja(0, 0, L, F, H - 30, H, MAT.oak, key + 't', { topFill: 'url(#pa-oak)' }));
       for (let k = 0; k < n; k++) {
-        const cx = x + (w * (k + 0.5)) / n;
-        if (bench) cuerpo.push(cuboide(cx - mw / 2, y + d * 0.28, mw, 45, H, H + 360, MAT.pantalla, `${key}m1${k}`));
-        else cuerpo.push(cuboide(cx - mw / 2, y + 120, mw, 45, H, H + 360, MAT.pantalla, `${key}m${k}`));
+        const u = (L * (k + 0.5)) / n;
+        if (bench) cuerpo.push(caja(u - mw / 2, F * 0.28, mw, 45, H, H + 360, MAT.pantalla, `${key}m1${k}`));
+        else cuerpo.push(caja(u - mw / 2, 120, mw, 45, H, H + 360, MAT.pantalla, `${key}m${k}`));
       }
       if (bench) {
-        cuerpo.push(cuboide(x + 50, y + d / 2 - 25, w - 100, 50, H, H + 370, MAT.felt, key + 'b'));
+        cuerpo.push(caja(50, F / 2 - 25, L - 100, 50, H, H + 370, MAT.felt, key + 'b'));
         for (let k = 0; k < n; k++) {
-          const cx = x + (w * (k + 0.5)) / n;
-          cuerpo.push(cuboide(cx - mw / 2, y + d * 0.72 - 50, mw, 45, H, H + 360, MAT.pantalla, `${key}m2${k}`));
+          const u = (L * (k + 0.5)) / n;
+          cuerpo.push(caja(u - mw / 2, F * 0.72 - 50, mw, 45, H, H + 360, MAT.pantalla, `${key}m2${k}`));
         }
       }
     } else if (tipo === 'juntas' || tipo === 'mesa') {
       if (tipo === 'juntas') {                       // las sillas alrededor son lo que la hace leer como junta
-        const n = Math.max(2, Math.round(w / 800));
+        const n = Math.max(2, Math.round(L / 800));
         for (let k = 0; k < n; k++) {
-          const cx = x + (w * (k + 0.5)) / n;
-          silla(atras, cx, y - 350, false, `${key}sa${k}`);
-          silla(frente, cx, y + d + 350, true, `${key}sb${k}`);
+          const u = (L * (k + 0.5)) / n;
+          silla(atras, ...pt(u, -350), LEJOS, `${key}sa${k}`);
+          silla(frente, ...pt(u, F + 350), CERCA, `${key}sb${k}`);
         }
       }
       cuerpo.push(cuboide(x + w * 0.34, y + d * 0.30, w * 0.32, d * 0.40, 0, H - 30, MAT.charcoal, key + 'p'));
@@ -634,9 +769,27 @@ function PlanoIso({ areas, offs, coloc, byId, limpio = false }) {
     return <polygon key={'s' + pz.key} points={pts2d(pts)} fill="#2b2620" />;
   };
 
+  // Los mandos van ARRIBA del dibujo y son botones grandes: en el celular hay
+  // que poder acercar sin pellizcar, y "girar" no se adivina con un gesto.
+  const mando = (t, onClick, titulo) => (
+    <button type="button" className="boton fantasma iso-mando" onClick={onClick} title={titulo} aria-label={titulo}>{t}</button>
+  );
+
   return (
     <div className="plano-wrap plano-wrap-3d">
-      <svg className="plano" viewBox={vb} preserveAspectRatio="xMidYMid meet">
+      {!limpio && (
+        <div className="iso-mandos no-imprimir">
+          {mando('↻ Girar', () => setGiro((g) => (g + 1) % 4), 'Ver la oficina desde la otra esquina')}
+          {mando('＋', () => acercar(1.45, null), 'Acercar')}
+          {mando('－', () => acercar(1 / 1.45, null), 'Alejar')}
+          {mando('Centrar', () => setVista({ z: 1, dx: 0, dy: 0 }), 'Volver a ver todo')}
+          <span className="ayuda iso-pista">Arrástralo con el dedo · pellizca para acercar</span>
+        </div>
+      )}
+      <svg className="plano plano-iso" viewBox={vb} preserveAspectRatio="xMidYMid meet"
+        ref={cajaRef} onPointerDown={abajo} onPointerMove={mueve}
+        onPointerUp={arriba} onPointerCancel={arriba} onWheel={rueda}
+        style={{ aspectRatio: proporcion, touchAction: 'none', cursor: dedos.current.size ? 'grabbing' : 'grab' }}>
         <defs>
           <radialGradient id="pa-bg" cx="50%" cy="24%" r="88%">
             <stop offset="0%" stopColor="#ffffff" />

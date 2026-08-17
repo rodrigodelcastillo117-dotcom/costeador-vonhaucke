@@ -252,21 +252,30 @@ class Red extends Component {
   }
 }
 
+// Para AUDITAR una pantalla sola hay que poder aislarla: con las 49 apiladas,
+// los modales de una tapan a la de al lado y los clics caen en la pantalla
+// equivocada.  →  humo.html?solo=acomodo   (busca por pedazo del título)
+const SOLO = new URLSearchParams(location.search).get('solo')?.toLowerCase() || '';
+const VISIBLES = SOLO
+  ? PANTALLAS.filter(([t]) => t.toLowerCase().includes(SOLO))
+  : PANTALLAS;
+
 function Humo() {
   const [fallos, setFallos] = useState([]);
   const anota = (titulo, error) => setFallos((f) => (f.some((x) => x.titulo === titulo) ? f : [...f, { titulo, error: String(error?.message || error) }]));
-  const ok = PANTALLAS.length - fallos.length;
+  const ok = VISIBLES.length - fallos.length;
   return (
     <>
       <div className="contenido">
         <div className={`alerta ${fallos.length ? 'roja' : 'verde'}`} style={{ position: 'sticky', top: 0, zIndex: 50 }}>
           <span className="texto">
-            <strong>{ok} de {PANTALLAS.length} pantallas montan bien.</strong>
+            <strong>{ok} de {VISIBLES.length} pantallas montan bien.</strong>
+            {SOLO && <> (filtrando por “{SOLO}”)</>}
             {fallos.length > 0 && <> Fallan: {fallos.map((f) => f.titulo).join(', ')}</>}
           </span>
         </div>
       </div>
-      {PANTALLAS.map(([titulo, el]) => (
+      {VISIBLES.map(([titulo, el]) => (
         <div key={titulo} style={{ borderTop: '3px solid var(--rojo)', marginTop: 24, paddingTop: 8 }}>
           <div className="contenido"><h3 style={{ margin: 0 }}>{titulo}</h3></div>
           <Red titulo={titulo} onFallo={anota}>{el}</Red>

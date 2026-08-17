@@ -333,6 +333,24 @@ export const BANCO = [
     material: 'Estructura 4 pts, relieve capitonado, tela gris', precio: 14890, fuente: '2508040' },
 ];
 
+// ---------------------------------------------------------------------------
+//  "CAB" EN LA CLAVE = CON CABECERA  (lo dictó Rodrigo, 2026-08-17)
+//  Por qué existe esto: en pantalla salían "Silla operativa · WIN" a $5,210 y
+//  "Silla operativa · WIN-CAB" a $5,900 y NADA decía en qué se diferencian.
+//  El vendedor lee dos precios para lo que parece la misma silla. La diferencia
+//  es la CABECERA, y ahora se dice con todas sus letras.
+//  DOS CANDADOS, porque "CAB" también aparece dentro de códigos que no son
+//  cabecera (`LEGCAB08060099` es un GABINETE): sólo se toca (a) sillería, y
+//  (b) claves donde CAB va al FINAL (`-CAB`, `-CABF`).
+//  ⚠️ El sufijo NO se borra de la clave: la clave es lo que se le pide a
+//  Compras. Sólo se explica en el nombre que ve la gente.
+// ---------------------------------------------------------------------------
+export const conCabecera = (p) => p.categoria === 'Sillería' && /-CABF?$/.test(p.clave || '');
+
+for (const p of BANCO) {
+  if (conCabecera(p) && !/cabecera/i.test(p.nombre)) p.nombre = `${p.nombre} · con cabecera`;
+}
+
 // Agrupador de categorias para la pantalla, en orden
 export const BANCO_CATEGORIAS = [
   'Operativos / Bench',
@@ -403,9 +421,20 @@ const sinAcentos = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u03
 const GENERICAS = new Set(['SILLA', 'SILLON', 'BANCO', 'VISITA', 'OPERATIVA', 'ALTO', 'PARA', 'CON',
   'SIN', 'PTS', 'MODELO', 'BASE', 'BRAZOS', 'RODANTE', 'TAPIZADO', 'PUFF', 'SOFA', 'BANQUETA', 'DIRECTIVA']);
 
+// El MODELO, sin el sufijo de cabecera: `WIN-CAB` y `WIN` son el modelo WIN.
+// El sufijo no se pierde, se muda a la segunda mitad de la llave (ver abajo).
 function modeloDeSilla(p) {
   const t = (sinAcentos(p.nombre).match(/\b[A-Z][A-Z0-9-]{2,}\b/g) || []).filter((x) => !GENERICAS.has(x));
-  return t[0] || null;
+  return t[0] ? t[0].replace(/-CABF?$/, '') : null;
+}
+
+// ¿Trae cabecera? Se le pregunta a las TRES fuentes porque cada presupuesto lo
+// escribe donde se le ocurre: unos en la clave (`-CAB`, `-CABF`), otros sólo en
+// el nombre, otros nada más en la descripción del material.
+function tieneCabecera(p) {
+  if (/-CABF?$/.test(p.clave || '')) return true;
+  if (/-CABF?\b/.test(sinAcentos(p.nombre))) return true;
+  return /cabecera/i.test(p.material || '') || /cabecera/i.test(p.nombre || '');
 }
 
 /** La llave con la que dos renglones son el MISMO artículo, o null si no aplica. */
@@ -415,7 +444,17 @@ export function llaveArticulo(p) {
   // presupuestos la imprimen. Si se pregunta primero por la clave, la MISMA
   // silla CONCERTO cae en dos llaves distintas —una por clave y otra por
   // modelo— y sigue duplicada, que es justo lo que Rodrigo vio en pantalla.
-  if (p.categoria === 'Sillería') { const m = modeloDeSilla(p); if (m) return `silla:${m}`; }
+  //
+  // ⚠️ Y LA CABECERA PARTE LA LLAVE EN DOS. Lo dictó Rodrigo: "la que dice CAB
+  // TIENE CABECERA, por eso diferente precio". Si la cabecera no entra en la
+  // llave pasan las dos desgracias a la vez: WIN ($5,210) y WIN-CAB ($5,900) se
+  // fusionan y se pierde una silla que sí existe; y al revés, la MISMA silla
+  // C4-EL-BNF con cabecera —cargada de tres presupuestos como `-CAB`, `-CABF` y
+  // a secas— queda triplicada en pantalla a $1,950 y $2,405.
+  if (p.categoria === 'Sillería') {
+    const m = modeloDeSilla(p);
+    if (m) return `silla:${m}:${tieneCabecera(p) ? 'cab' : 'sin'}`;
+  }
   if (p.clave) return `clave:${p.clave}`;
   return null;
 }
