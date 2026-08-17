@@ -11,11 +11,18 @@ import Cotizacion from './Cotizacion.jsx';
 import VoniAvatar from './VoniAvatar.jsx';
 import { pesos, selloPartida } from '../util.js';
 import EditarPartida, { sePuedeEditar } from './EditarPartida.jsx';
+import EmpezarEspacio from './EmpezarEspacio.jsx';
 
+// ⚠️ EL ESPACIO VA PRIMERO (2026-08-17). Antes era: muebles → espacio →
+// propuesta, y eso obliga a COTIZAR A CIEGAS: escoges los muebles sin saber
+// dónde van y hasta el final descubres si caben. Rodrigo: "nunca preguntó
+// planos antes de ponerlos". Preguntando el espacio primero, el paso de muebles
+// ya puede decir "con esto vas apretado" MIENTRAS decides, que es cuando sirve.
 const PASOS = [
-  { n: 1, clave: 'muebles', titulo: 'Muebles', desc: '¿Qué lleva el proyecto?' },
-  { n: 2, clave: 'espacio', titulo: 'Espacio', desc: '¿Dónde van?' },
-  { n: 3, clave: 'propuesta', titulo: 'Propuesta', desc: 'Lista para el cliente.' },
+  { n: 1, clave: 'espacio', titulo: 'Espacio', desc: '¿Dónde va el proyecto?' },
+  { n: 2, clave: 'muebles', titulo: 'Muebles', desc: '¿Qué lleva?' },
+  { n: 3, clave: 'acomodo', titulo: 'Acomodo', desc: 'Dónde va cada cosa.' },
+  { n: 4, clave: 'propuesta', titulo: 'Propuesta', desc: 'Lista para el cliente.' },
 ];
 
 function Pasos({ paso, setPaso, puedeAvanzar }) {
@@ -86,10 +93,35 @@ export default function Voni({
         </div>
       </div>
 
-      <Pasos paso={paso} setPaso={setPaso} puedeAvanzar={hay} />
+      <Pasos paso={paso} setPaso={setPaso} puedeAvanzar={paso === 1 || hay} />
 
-      {/* ---------------- PASO 1 · MUEBLES ---------------- */}
+      {/* ---------------- PASO 1 · ESPACIO ---------------- */}
       {paso === 1 && (
+        <>
+          <div className="voni-saludo">
+            <VoniAvatar tam={64} variante="cara" anim="bob" />
+            <p className="voni-globo">
+              ¡Hola! Soy <b>Voni</b>. Empecemos por dónde va el proyecto: así, mientras escoges los
+              muebles, te voy diciendo si caben.
+            </p>
+          </div>
+          <EmpezarEspacio
+            piezas={[]}
+            onSubirPlano={() => setPaso(3)}
+            onDibujar={() => setPaso(3)}
+            onListo={(areas) => { onGuardarAcomodo?.({ areasM: areas, areas: null, plan: null, planReal: false }); setPaso(2); }}
+          />
+          <div className="tarjeta no-imprimir voni-omitir">
+            <span className="ayuda">¿Todavía no sabes el espacio?</span>
+            <button className="boton fantasma" style={{ minHeight: 42 }} onClick={() => setPaso(2)}>
+              Empezar por los muebles →
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* ---------------- PASO 2 · MUEBLES ---------------- */}
+      {paso === 2 && (
         <>
           {!hay && (
             <div className="voni-saludo">
@@ -177,7 +209,7 @@ export default function Voni({
             )}
 
             <div style={{ display: 'grid', gap: 10, marginTop: 14 }}>
-              <button className="boton primario grande" style={{ width: '100%' }} disabled={!hay} onClick={() => setPaso(2)}>
+              <button className="boton primario grande" style={{ width: '100%' }} disabled={!hay} onClick={() => setPaso(3)}>
                 Continuar al espacio →
               </button>
               <button className="boton grande" style={{ width: '100%' }} disabled={!hay} onClick={() => setPaso(3)} title="Sáltate el acomodo y ve directo a la propuesta">
@@ -200,28 +232,28 @@ export default function Voni({
         />
       )}
 
-      {/* ---------------- PASO 2 · ESPACIO ---------------- */}
-      {paso === 2 && (
+      {/* ---------------- PASO 3 · ACOMODO ---------------- */}
+      {paso === 3 && (
         <>
           <div className="tarjeta no-imprimir voni-omitir">
             <span className="ayuda">¿No tienes planos ni medidas del lugar?</span>
-            <button className="boton fantasma" style={{ minHeight: 42 }} onClick={() => setPaso(3)}>Omitir el acomodo, ir a la propuesta →</button>
+            <button className="boton fantasma" style={{ minHeight: 42 }} onClick={() => setPaso(4)}>Omitir el acomodo, ir a la propuesta →</button>
           </div>
           <Acomodo
             estado={estado}
             onGuardarAcomodo={onGuardarAcomodo}
-            onIr={(r) => setPaso(r === 'cotizacion' ? 3 : 1)}
+            onIr={(r) => setPaso(r === 'cotizacion' ? 4 : 2)}
           />
         </>
       )}
 
-      {/* ---------------- PASO 3 · PROPUESTA ---------------- */}
-      {paso === 3 && (
+      {/* ---------------- PASO 4 · PROPUESTA ---------------- */}
+      {paso === 4 && (
         <Cotizacion
           estado={estado}
           setEstado={setEstado}
           soloVentas={soloVentas}
-          onIr={(r) => setPaso(r === 'acomodo' ? 2 : 3)}
+          onIr={(r) => setPaso(r === 'acomodo' ? 3 : 4)}
         />
       )}
     </div>
