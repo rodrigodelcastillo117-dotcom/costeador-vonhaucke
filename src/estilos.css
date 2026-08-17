@@ -559,8 +559,12 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 .exito .palomita { font-size: 64px; line-height: 1; }
 
 /* ---- Aviso flotante (toast) ---- */
+/* ⚠️ EL TOAST TAPABA LA BARRA DE COMPRA. Medido: el toast (z-60, 102 px de
+   alto en un celular de 375) se plantaba sobre el +/− de cantidad —41 px de
+   solape— y durante 2.6 s no se podía subir la cantidad ni ver el precio.
+   Ahora sube por encima de la barra en vez de encimarse. */
 .toast {
-  position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
+  position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); transform: translateX(-50%);
   background: var(--verde); color: #fff; font-weight: 700; font-size: 17px;
   padding: 14px 24px; border-radius: 999px; z-index: 60; box-shadow: 0 6px 20px rgba(0,0,0,.18);
 }
@@ -1073,8 +1077,43 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 .tarjeta.agregado-ok strong { font-family: var(--display); font-size: 16.5px; color: #0b5c54; }
 .agregado-ok .texto { font-size: 13px; color: var(--tinta); }
 
-/* Barra fija de compra (celular): precio + cantidad + agregar, sin scrollear. */
-.barra-compra { display: none; }
+/* Barra fija de compra: precio + cuenta + cantidad + agregar, sin scrollear.
+   ⚠️ ESTABA SÓLO EN CELULAR. En escritorio el botón "Agregar a la cotización"
+   caía a 1,700 px —1.9 pantallas abajo— porque el `sticky` de la columna
+   derecha no funciona en NINGUNA de las 24 líneas: la columna mide 1,534–2,998
+   px contra un viewport de 900. Ahora la barra va en los dos tamaños. */
+.barra-compra {
+  display: flex; align-items: center; gap: 12px;
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  padding: 10px 20px calc(10px + env(safe-area-inset-bottom));
+  background: rgba(255,255,255,.97); border-top: 1px solid var(--linea);
+  box-shadow: 0 -6px 20px rgba(0,0,0,.10);
+}
+.dos-col-costeo { padding-bottom: 88px; }
+.bc-precio { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.bc-monto { font-family: var(--display); font-weight: 700; font-size: 19px; color: var(--tinta); }
+.bc-nota { font-size: 11px; color: var(--gris); }
+.bc-mm { margin-left: auto; }
+/* La CUENTA de lo que llevas. Da un brinco cada vez que sube: es la única
+   señal de que el "Agregar" hizo algo, y vive donde está el dedo. */
+.bc-cuenta { display: inline-flex; align-items: baseline; gap: 6px; cursor: pointer;
+  border: 1px solid var(--linea); background: #f3efe8; border-radius: 999px;
+  padding: 7px 14px; min-height: 42px; animation: bc-brinco .45s ease; }
+.bc-cuenta b { font-family: var(--display); font-size: 17px; color: var(--rojo); }
+.bc-cuenta span { font-size: 12px; color: var(--gris); }
+@keyframes bc-brinco { 0% { transform: scale(1); } 45% { transform: scale(1.18); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .bc-cuenta { animation: none; } }
+@media (max-width: 560px) { .bc-cuenta span { display: none; } .bc-cuenta { padding: 7px 12px; } }
+
+/* Despiece y hoja de costo, cerrados: eran el 46% del alto de la pantalla. */
+.detalle-taller { border: 1px solid var(--linea); border-radius: 14px; background: var(--papel, #fff); margin-bottom: 12px; }
+.detalle-taller > summary { cursor: pointer; padding: 14px 16px; font-weight: 700; font-size: 15px; list-style: none; }
+.detalle-taller > summary::-webkit-details-marker { display: none; }
+.detalle-taller > summary::after { content: '▾'; float: right; color: var(--gris); }
+.detalle-taller[open] > summary::after { content: '▴'; }
+.detalle-taller[open] > summary { border-bottom: 1px solid var(--linea); }
+.detalle-taller > *:not(summary) { margin: 12px; }
+
 @media (max-width: 900px) {
   .barra-compra {
     display: flex; align-items: center; gap: 10px;
@@ -1537,3 +1576,18 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
   color: var(--gris); font-weight: 600; font-size: 14px; }
 .retomar-tirar:hover { border-color: var(--rojo); color: var(--rojo); }
 @media (max-width: 560px) { .retomar-fila { flex-direction: column; } .retomar-tirar { min-height: 46px; } }
+
+/* Resultados de PRODUCTO. Van arriba de las líneas porque es lo que la gente
+   busca: nadie quiere "la línea Eclipse", quiere "una mesa de juntas". */
+.hallados { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.hallados-cab { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--gris); padding: 4px 2px; }
+.hallado { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer;
+  background: var(--papel, #fff); border: 1px solid var(--linea); border-radius: 12px;
+  padding: 12px 14px; min-height: 58px; }
+.hallado:hover { border-color: var(--rojo); }
+.hallado-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.hallado-txt strong { font-size: 15px; color: var(--tinta); }
+.hallado-linea { font-size: 12px; color: var(--gris); }
+.hallado-cta { flex: 0 0 auto; font-size: 13px; font-weight: 700; color: var(--rojo); }
+@media (max-width: 480px) { .hallado-cta { font-size: 0; } .hallado-cta::after { content: '→'; font-size: 18px; } }

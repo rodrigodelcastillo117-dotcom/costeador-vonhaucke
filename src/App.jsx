@@ -176,6 +176,13 @@ export default function App() {
   const [estado, setEstado] = useState(cargar);
   const [pestania, setPestania] = useState('inicio');
   const [inicioVista, setInicioVista] = useState('home'); // sub-vista del Inicio (home/costear/cotizar)
+  const [prodInicial, setProdInicial] = useState(null);   // producto que pidió el buscador
+  // ⚠️ LA BÚSQUEDA Y EL ACORDEÓN VIVEN AQUÍ, NO EN `Inicio`. App DESMONTA
+  // Inicio al navegar, así que cada "Atrás" repliega el acordeón y borra lo que
+  // habías tecleado. Eran 2 toques de castigo por CADA producto extra: escoger
+  // 3 costaba 15 toques en vez de 9.
+  const [inicioQ, setInicioQ] = useState('');
+  const [inicioGrupo, setInicioGrupo] = useState(null);
   const [nav, setNav] = useState([]);                     // historial para "Atrás"
   const [costeo, setCosteo] = useState(costeoEnBlanco);
   const [aviso, setAviso] = useState(''); // toast "¡Listo!"
@@ -193,7 +200,12 @@ export default function App() {
     cotizacion: { ...e.cotizacion, partidas: [], acomodo: null },
   }));
 
-  function irA(tab) {
+  // ⚠️ `irA` ahora acepta un PRODUCTO. El buscador de Inicio devuelve productos
+  // (no líneas), y al tocar uno hay que abrir su línea CON ESE PRODUCTO YA
+  // ESCOGIDO. Sin esto el vendedor caía en la línea con el primer producto de la
+  // lista y tenía que volver a buscar el chip: el toque que se quería ahorrar.
+  function irA(tab, productoInicial = null) {
+    setProdInicial(productoInicial);
     if (tab === pestania) return;
     setNav((s) => [...s, { pestania, inicioVista }]);
     setPestania(tab);
@@ -672,7 +684,7 @@ export default function App() {
             estado={estado} rol={esDireccion ? 'direccion' : esDiseno ? 'diseno' : 'ventas'} />
         )}
         {pestania === 'inicio' && (
-          <div className="contenido"><Inicio estado={estado} onIr={irA} veCostos={veCostos} esDireccion={esDireccion} vista={inicioVista} setVista={setInicioVista} onDescartar={descartarProyecto} /></div>
+          <div className="contenido"><Inicio estado={estado} onIr={irA} veCostos={veCostos} esDireccion={esDireccion} vista={inicioVista} setVista={setInicioVista} onDescartar={descartarProyecto} q={inicioQ} setQ={setInicioQ} grupoAbierto={inicioGrupo} setGrupoAbierto={setInicioGrupo} /></div>
         )}
         {pestania === 'asistente' && (
           <div className="contenido"><Asistente estado={estado} onAgregarPartida={agregarDesdeAsistente} onIr={irA} soloVentas={esVendedor} /></div>
@@ -705,30 +717,30 @@ export default function App() {
             }}
           />
         )}
-        {pestania === 'applt' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador APP LT" productos={APPLT_PRODUCTOS} generar={generarAppLT} onAgregar={agregarDesdeAsistente} onAgregarModulo={agregarModuloAddons} /></div>}
-        {pestania === 'app' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador App" productos={APP_PRODUCTOS} generar={generarApp} onAgregar={agregarDesdeAsistente} /></div>}
-        {pestania === 'eclipse' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Eclipse" productos={ECLIPSE_PRODUCTOS} generar={generarEclipse} onAgregar={agregarDesdeAsistente} /></div>}
-        {pestania === 'pebble' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Pebble" productos={PEBBLE_PRODUCTOS} generar={generarPebble} onAgregar={agregarDesdeAsistente} /></div>}
-        {pestania === 'privacy4' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Privacy 4" productos={PRIVACY4_PRODUCTOS} generar={generarPrivacy4} onAgregar={agregarDesdeAsistente} /></div>}
-        {pestania === 'rio' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Río" productos={RIO_PRODUCTOS} generar={generarRio} onAgregar={agregarDesdeAsistente} /></div>}
-        {pestania === 'teamspace2' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador TeamSpace II" productos={TEAMSPACE2_PRODUCTOS} generar={generarTeamspace2} onAgregar={agregarDesdeAsistente} /></div>}
-        {pestania === 'tetris' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Tetris" productos={TETRIS_PRODUCTOS} generar={generarTetris} onAgregar={agregarDesdeAsistente} /></div>}
-        {pestania === 'arlequin' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Arlequín" productos={ARLEQUIN_PRODUCTOS} generar={generarArlequin} onAgregar={agregarDesdeAsistente} /></div>}
-        {pestania === 'pac' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Pac" productos={PAC_PRODUCTOS} generar={generarPac} onAgregar={agregarDesdeAsistente} /></div>}
-        {pestania === 'via' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Vía" productos={VIA_PRODUCTOS} generar={generarVia} onAgregar={agregarDesdeAsistente} /></div>}
-        {pestania === 'drift' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Eclipse Drift" productos={DRIFT_PRODUCTOS} generar={generarDrift} onAgregar={agregarDesdeAsistente} /></div>}
-        {pestania === 'flex' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Flex" productos={FLEX_PRODUCTOS} generar={generarFlex} onAgregar={agregarDesdeAsistente} /></div>}
-        {pestania === 'mox' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Mox" productos={MOX_PRODUCTOS} generar={generarMox} onAgregar={agregarDesdeAsistente} /></div>}
-        {pestania === 'modulor' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Modulor" productos={MODULOR_PRODUCTOS} generar={generarModulor} onAgregar={agregarDesdeAsistente} /></div>}
-        {pestania === 'luna' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Luna" productos={LUNA_PRODUCTOS} generar={generarLuna} onAgregar={agregarDesdeAsistente} /></div>}
-        {pestania === 'accents' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Accents" productos={ACCENTS_PRODUCTOS} generar={generarAccents} onAgregar={agregarDesdeAsistente} /></div>}
-        {pestania === 'ergo4' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Ergonova 4" productos={ERGO4_PRODUCTOS} generar={generarErgo4} onAgregar={agregarDesdeAsistente} /></div>}
-        {pestania === 'spine' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Spine" productos={SPINE_PRODUCTOS} generar={generarSpine} onAgregar={agregarDesdeAsistente} /></div>}
-        {pestania === 'anteo' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Anteo" productos={ANTEO_PRODUCTOS} generar={generarAnteo} onAgregar={agregarDesdeAsistente} /></div>}
-        {pestania === 'alba' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Alba" productos={ALBA_PRODUCTOS} generar={generarAlba} onAgregar={agregarDesdeAsistente} /></div>}
-        {pestania === 'feather' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Feather" productos={FEATHER_PRODUCTOS} generar={generarFeather} onAgregar={agregarDesdeAsistente} /></div>}
-        {pestania === 'worklounge' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Work Lounge" productos={WORKLOUNGE_PRODUCTOS} generar={generarWorklounge} onAgregar={agregarDesdeAsistente} /></div>}
-        {pestania === 'cirque' && <div className="contenido"><CosteadorLinea onIr={irA} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Cirque" productos={CIRQUE_PRODUCTOS} generar={generarCirque} onAgregar={agregarDesdeAsistente} /></div>}
+        {pestania === 'applt' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador APP LT" productos={APPLT_PRODUCTOS} generar={generarAppLT} onAgregar={agregarDesdeAsistente} onAgregarModulo={agregarModuloAddons} /></div>}
+        {pestania === 'app' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador App" productos={APP_PRODUCTOS} generar={generarApp} onAgregar={agregarDesdeAsistente} /></div>}
+        {pestania === 'eclipse' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Eclipse" productos={ECLIPSE_PRODUCTOS} generar={generarEclipse} onAgregar={agregarDesdeAsistente} /></div>}
+        {pestania === 'pebble' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Pebble" productos={PEBBLE_PRODUCTOS} generar={generarPebble} onAgregar={agregarDesdeAsistente} /></div>}
+        {pestania === 'privacy4' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Privacy 4" productos={PRIVACY4_PRODUCTOS} generar={generarPrivacy4} onAgregar={agregarDesdeAsistente} /></div>}
+        {pestania === 'rio' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Río" productos={RIO_PRODUCTOS} generar={generarRio} onAgregar={agregarDesdeAsistente} /></div>}
+        {pestania === 'teamspace2' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador TeamSpace II" productos={TEAMSPACE2_PRODUCTOS} generar={generarTeamspace2} onAgregar={agregarDesdeAsistente} /></div>}
+        {pestania === 'tetris' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Tetris" productos={TETRIS_PRODUCTOS} generar={generarTetris} onAgregar={agregarDesdeAsistente} /></div>}
+        {pestania === 'arlequin' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Arlequín" productos={ARLEQUIN_PRODUCTOS} generar={generarArlequin} onAgregar={agregarDesdeAsistente} /></div>}
+        {pestania === 'pac' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Pac" productos={PAC_PRODUCTOS} generar={generarPac} onAgregar={agregarDesdeAsistente} /></div>}
+        {pestania === 'via' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Vía" productos={VIA_PRODUCTOS} generar={generarVia} onAgregar={agregarDesdeAsistente} /></div>}
+        {pestania === 'drift' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Eclipse Drift" productos={DRIFT_PRODUCTOS} generar={generarDrift} onAgregar={agregarDesdeAsistente} /></div>}
+        {pestania === 'flex' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Flex" productos={FLEX_PRODUCTOS} generar={generarFlex} onAgregar={agregarDesdeAsistente} /></div>}
+        {pestania === 'mox' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Mox" productos={MOX_PRODUCTOS} generar={generarMox} onAgregar={agregarDesdeAsistente} /></div>}
+        {pestania === 'modulor' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Modulor" productos={MODULOR_PRODUCTOS} generar={generarModulor} onAgregar={agregarDesdeAsistente} /></div>}
+        {pestania === 'luna' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Luna" productos={LUNA_PRODUCTOS} generar={generarLuna} onAgregar={agregarDesdeAsistente} /></div>}
+        {pestania === 'accents' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Accents" productos={ACCENTS_PRODUCTOS} generar={generarAccents} onAgregar={agregarDesdeAsistente} /></div>}
+        {pestania === 'ergo4' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Ergonova 4" productos={ERGO4_PRODUCTOS} generar={generarErgo4} onAgregar={agregarDesdeAsistente} /></div>}
+        {pestania === 'spine' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Spine" productos={SPINE_PRODUCTOS} generar={generarSpine} onAgregar={agregarDesdeAsistente} /></div>}
+        {pestania === 'anteo' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Anteo" productos={ANTEO_PRODUCTOS} generar={generarAnteo} onAgregar={agregarDesdeAsistente} /></div>}
+        {pestania === 'alba' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Alba" productos={ALBA_PRODUCTOS} generar={generarAlba} onAgregar={agregarDesdeAsistente} /></div>}
+        {pestania === 'feather' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Feather" productos={FEATHER_PRODUCTOS} generar={generarFeather} onAgregar={agregarDesdeAsistente} /></div>}
+        {pestania === 'worklounge' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Work Lounge" productos={WORKLOUNGE_PRODUCTOS} generar={generarWorklounge} onAgregar={agregarDesdeAsistente} /></div>}
+        {pestania === 'cirque' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Cirque" productos={CIRQUE_PRODUCTOS} generar={generarCirque} onAgregar={agregarDesdeAsistente} /></div>}
         {pestania === 'especial' && (veCostos
           ? <div className="contenido"><AsistenteEspecial estado={estado} onVerDetalle={(bor) => { setCosteo({ ...costeoEnBlanco(), ...bor }); setPestania('costeador'); }} onInicio={() => setPestania('inicio')} /></div>
           : <div className="contenido"><div className="tarjeta"><p className="ayuda">Costear desde cero es para Diseño y Dirección.</p></div></div>

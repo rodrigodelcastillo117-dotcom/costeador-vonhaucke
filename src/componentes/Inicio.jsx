@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 import Icono from './Iconos.jsx';
 import VoniAvatar from './VoniAvatar.jsx';
 import { heroLinea } from '../datos/imagenes.js';
+import { buscarProductos } from '../datos/buscarProducto.js';
 import { pesos } from '../util.js';
 
 // --- Catálogo de líneas para COSTEAR, agrupado por familia ---
@@ -116,16 +117,28 @@ function BarraVolver({ titulo, sub, onVolver }) {
   );
 }
 
-export default function Inicio({ estado, onIr, veCostos = false, esDireccion = false, vista: vistaProp, setVista: setVistaProp, onDescartar }) {
+export default function Inicio({ estado, onIr, veCostos = false, esDireccion = false, vista: vistaProp, setVista: setVistaProp, onDescartar, q: qProp, setQ: setQProp, grupoAbierto: grupoProp, setGrupoAbierto: setGrupoProp }) {
   const [vistaLocal, setVistaLocal] = useState('home');
   const vista = vistaProp ?? vistaLocal;         // controlado por App (para "Atrás"); local en preview
   const setVista = setVistaProp ?? setVistaLocal;
-  const [q, setQ] = useState('');
-  const [grupoAbierto, setGrupoAbierto] = useState(null); // acordeón: todos plegados al inicio
+  // La búsqueda y el acordeón los MANDA App cuando existe (para que sobrevivan
+  // al "Atrás"); local sólo en la prueba de humo y el preview.
+  const [qLocal, setQLocal] = useState('');
+  const [grupoLocal, setGrupoLocal] = useState(null);
+  const q = qProp ?? qLocal;
+  const setQ = setQProp ?? setQLocal;
+  const grupoAbierto = grupoProp !== undefined ? grupoProp : grupoLocal;
+  const setGrupoAbierto = setGrupoProp ?? setGrupoLocal;
   const nPartidas = estado.cotizacion?.partidas?.length || 0;
   // La pantalla de líneas se usa en 2 modos, según la vista: 'costear' (producción)
   // o 'cotizarlinea' (cotizar de línea). Se codifica en la vista para que App la persista.
   const modoCostear = vista === 'costear';
+
+  // ⚠️ EL BUSCADOR AHORA BUSCA PRODUCTOS, NO LÍNEAS. Medido antes: "mesa de
+  // juntas" daba 0 resultados aunque 8 líneas la tienen, y "silla" daba 0.
+  // Ahora son 156 productos (los 118 de línea + la sillería del banco) y al
+  // tocar uno se abre su línea CON ESE PRODUCTO YA ESCOGIDO.
+  const productosHallados = useMemo(() => buscarProductos(q), [q]);
 
   const lineasFiltradas = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -247,8 +260,8 @@ export default function Inicio({ estado, onIr, veCostos = false, esDireccion = f
         <div className="inicio-botones">
           <Tarjeta roja icono="especial" titulo="Cotizar con IA" desc="Escribe lo que pide el cliente y la IA arma la cotización completa, con precios." onClick={() => onIr('cotizarIA')} />
           {veCostos
-            ? <Tarjeta destacada icono="despiece" titulo="Cotizar de línea" desc="Escoge la línea → el tipo de mueble → la variante, y te doy el precio. Las 24 líneas." onClick={() => setVista('cotizarlinea')} />
-            : <Tarjeta destacada icono="escritorio" titulo="Cotizar de línea" desc="Escoge la línea → el mueble → la variante, y te doy el precio. Las 24 líneas." onClick={() => setVista('cotizarlinea')} />}
+            ? <Tarjeta destacada icono="despiece" titulo="Cotizar de línea" desc="Escribe el mueble que necesitas —silla WIN, mesa de juntas, archivero— y te doy el precio." onClick={() => setVista('cotizarlinea')} />
+            : <Tarjeta destacada icono="escritorio" titulo="Cotizar de línea" desc="Escribe el mueble que necesitas —silla WIN, mesa de juntas, archivero— y te doy el precio." onClick={() => setVista('cotizarlinea')} />}
           <Tarjeta icono="banco" titulo="Banco de precios" desc="Productos reales con su precio. Búscalos y agrégalos." onClick={() => onIr('banco')} />
           <Tarjeta icono="banco" titulo="Presupuestos que ya hicimos" desc="Todo lo cotizado, de todos los aparatos. Búscalo y ábrelo otra vez." onClick={() => onIr('archivo')} />
           <Tarjeta icono="especial" titulo="Cotizar especial (a la medida)" desc={veCostos ? 'Producto nuevo: se costea y se cotiza.' : 'A la medida. Diseño lo costea; tú lo cotizas.'} onClick={() => onIr(veCostos ? 'costeador' : 'asistente')} />
@@ -264,11 +277,18 @@ export default function Inicio({ estado, onIr, veCostos = false, esDireccion = f
     <div className="inicio">
       <BarraVolver
         titulo={modoCostear ? 'Costear' : 'Cotizar de línea'}
-        sub={modoCostear ? 'Escoge la línea. Producto → medida → opciones → costo real.' : 'Escoge la línea → producto → variante, y te doy el precio.'}
+        sub={modoCostear ? 'Busca el mueble y te doy el costo real de fabricarlo.' : 'Escribe el mueble que necesitas y te lo configuro. O búscalo por línea, abajo.'}
         onVolver={() => setVista(modoCostear ? 'home' : 'cotizar')}
       />
 
       {/* Atajo: cotizar de línea es uno por uno. Si son varios muebles, la IA los mete de un jalón. */}
+      <div className="buscador">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
+        <input type="text" value={q} onChange={(e) => setQ(e.target.value)}
+          placeholder="¿Qué mueble necesitas? (silla WIN, mesa de juntas, archivero…)" />
+        {q && <button className="buscador-x" onClick={() => setQ('')} aria-label="Limpiar">×</button>}
+      </div>
+
       {!modoCostear && (
         <div className="atajo-ia">
           <div className="atajo-ia-txt">
@@ -286,15 +306,27 @@ export default function Inicio({ estado, onIr, veCostos = false, esDireccion = f
         </div>
       )}
 
-      <div className="buscador">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
-        <input type="text" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar línea… (ej. Eclipse, bench, tapizado)" autoFocus />
-        {q && <button className="buscador-x" onClick={() => setQ('')} aria-label="Limpiar">×</button>}
-      </div>
 
-      {Object.keys(grupos).length === 0 && <div className="ayuda" style={{ padding: '8px 2px' }}>Nada encontrado. Prueba otra palabra.</div>}
+      {q && productosHallados.length > 0 && (
+        <div className="hallados">
+          <div className="hallados-cab">{productosHallados.length} producto{productosHallados.length === 1 ? '' : 's'}</div>
+          {productosHallados.map((r) => (
+            <button key={r.ruta + ':' + r.productoId} className="hallado"
+              onClick={() => (r.banco ? onIr('banco') : onIr(r.ruta, r.productoId))}>
+              <span className="hallado-txt">
+                <strong>{r.nombre}</strong>
+                <span className="hallado-linea">{r.linea}</span>
+              </span>
+              <span className="hallado-cta">{r.banco ? 'Ver en el banco →' : 'Configurar →'}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
-      {q ? (
+      {q && productosHallados.length === 0 && Object.keys(grupos).length === 0
+        && <div className="ayuda" style={{ padding: '8px 2px' }}>Nada encontrado. Prueba otra palabra.</div>}
+
+      {q && Object.keys(grupos).length > 0 ? (
         <div className="inicio-botones">
           {Object.values(grupos).flat().map((l) => (
             <Tarjeta key={l.ruta} icono={l.icono} imagen={heroLinea(l.ruta)} titulo={l.titulo} desc={l.desc} onClick={() => onIr(l.ruta)} />

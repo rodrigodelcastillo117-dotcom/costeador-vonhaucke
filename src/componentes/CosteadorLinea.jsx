@@ -15,8 +15,12 @@ import { precioPorUsuarioAppLT } from '../datos/preciosVenta.js';
 import HojaCosto from './HojaCosto.jsx';
 import FichaPDF from './FichaPDF.jsx';
 
-export default function CosteadorLinea({ estado, titulo, productos, generar, onAgregar, onAgregarModulo, linea, soloVentas = false, onIr }) {
-  const [prodId, setProdId] = useState(productos[0].id);
+export default function CosteadorLinea({ estado, titulo, productos, generar, onAgregar, onAgregarModulo, linea, soloVentas = false, onIr, productoInicial = null }) {
+  // Si vienes del buscador ("mesa de juntas" → Eclipse · Mesa de juntas), se
+  // abre en ESE producto. Si no existe en esta línea, el primero de siempre.
+  const [prodId, setProdId] = useState(
+    () => (productos.some((p) => p.id === productoInicial) ? productoInicial : productos[0].id),
+  );
   const prod = productos.find((p) => p.id === prodId) || productos[0];
   const foto = imagenProducto(linea, prodId);
   const fichaMed = fichaRender(linea, prodId);   // medidas del render de referencia
@@ -182,7 +186,16 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
 
       {/* DERECHA */}
       <div className="pegado">
+        {/* ⚠️ ESTO ERA EL 46% DEL ALTO DE LA PANTALLA, Y IBA EN MEDIO DEL CAMINO.
+            Medido en App LT: 1,499 px de despiece + hoja de costo ENTRE los
+            chips de configuración y el precio. La pantalla completa daba 4
+            pantallas de scroll en un celular, y Eclipse 7. Rodrigo: "si quiero
+            agregar un producto me manda a una página gigante".
+            Sigue estando TODO —es lo que hace creíble el precio— pero CERRADO:
+            quien lo necesita lo abre. App LT baja a ~2.2 pantallas. */}
         {!soloVentas && (
+          <details className="detalle-taller">
+            <summary>Ver despiece y hoja de costo</summary>
         <div className="tarjeta">
           <h3 style={{ marginBottom: 4 }}>{g.nombre}</h3>
           {g.claves?.length > 0 && <div className="ayuda" style={{ marginBottom: 10 }}>Claves: <span className="mono">{g.claves.join(' · ')}</span></div>}
@@ -205,9 +218,10 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
           {g.electricos?.length > 0 && <div className="ayuda" style={{ marginTop: 8 }}>Eléctrico (aparte): {g.electricos.join(' · ')}</div>}
           <div className="ayuda gris" style={{ marginTop: 8, fontSize: 11 }}>{g.nota}</div>
         </div>
-        )}
 
-        {!soloVentas && <HojaCosto resultado={resultado} insumos={estado.insumos} pieza={pieza} parametros={par} />}
+        <HojaCosto resultado={resultado} insumos={estado.insumos} pieza={pieza} parametros={par} />}
+          </details>
+        )}
 
         <div className="tarjeta roja" style={{ marginTop: 14 }}>
           <div className="fila" style={{ alignItems: 'center' }}>
@@ -255,6 +269,15 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
             <div className="agregado-ok">
               <span className="texto">Agregado: {ultimo}. Puedes seguir escogiendo y se van sumando.</span>
               {onIr && <button className="boton" style={{ minHeight: 44, marginTop: 8, width: '100%' }} onClick={() => onIr('cotizacion')}>Ver mi cotización ({nEnCot})</button>}
+              {/* ⚠️ EL ESPACIO SE PREGUNTABA AL FINAL DE TODO. El botón que lleva
+                  a "¿Dónde va a ir esto?" vivía a 3,185 px del final de la
+                  propuesta: el penúltimo elemento del flujo. Así escoges los
+                  muebles a ciegas y sólo después descubres si caben. Al PRIMER
+                  mueble ya se ofrece, que es cuando todavía sirve para decidir. */}
+              {onIr && nEnCot === 1 && (
+                <button className="boton fantasma" style={{ minHeight: 44, marginTop: 8, width: '100%' }}
+                  onClick={() => onIr('acomodo')}>¿Dónde van? Define el espacio →</button>
+              )}
             </div>
           )}
           <div className="espacio" />
@@ -264,10 +287,21 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
 
       {/* Barra fija (celular): precio + cantidad + agregar, sin bajar la página */}
       <div className="barra-compra no-imprimir">
+        {/* ⚠️ AQUÍ SE PERDÍA RODRIGO. Tocabas "Agregar" y el viewport no cambiaba
+            NI UN PÍXEL: la barra quedaba idéntica y la única confirmación vivía
+            3,329 px más abajo —cuatro pantallas por debajo del pliegue—. "Escogí
+            3 y no pude". Ahora la cuenta vive AQUÍ, donde está el dedo, y da un
+            brinco cada vez que sube. */}
         <div className="bc-precio">
           <span className="bc-monto">{pesos((precio + totalAddons) * cantidad)}</span>
           <span className="bc-nota">{real ? 'Precio de lista real' : 'Precio estimado'}</span>
         </div>
+        {nEnCot > 0 && onIr && (
+          <button className="bc-cuenta" key={nEnCot} onClick={() => onIr('cotizacion')}
+            title="Ver tu cotización">
+            <b>{nEnCot}</b><span>en tu cotización</span>
+          </button>
+        )}
         <span className="masmenos bc-mm">
           <button onClick={() => setCantidad((n) => Math.max(1, n - 1))} aria-label="Menos">−</button>
           <span className="valor">{cantidad}</span>
