@@ -45,8 +45,9 @@ const T = (v) => String(v ?? '')
 //  Una propuesta de mobiliario no compite sólo por precio: compite por quién la
 //  manda. Los textos son los de la presentación oficial de la casa.
 // ============================================================================
-function hojaMarca(doc, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA) {
-  doc.addPage();
+function hojaMarca(doc, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA, { nueva = true } = {}) {
+  // Como PORTADA no abre hoja (ya está la primera del documento); a la mitad sí.
+  if (nueva) doc.addPage();
   let y = M.arriba;
   doc.setFillColor(...ROJO); doc.rect(M.izq, y, ANCHO, 2.4, 'F');
   y += 16;
@@ -144,11 +145,28 @@ function hojaPlano(doc, { acomodo, partidas, piezas }, A4, M, ANCHO, ROJO, TINTA
   doc.text('El número de cada círculo es el mismo del detalle de la página siguiente.', M.izq, y);
   y += 8;
 
+  // ⚠️ EL PLANO SE SALÍA DE LA HOJA. `totalW`/`totalH` se medían sólo con
+  // `ancho`/`largo`, pero un cuarto puede empezar en un `x` NEGATIVO respecto al
+  // mínimo, y sobre todo los MUEBLES sobresalen del rectángulo de su cuarto. En
+  // el PDF de Rodrigo el Área Operativa, la Sala de Juntas y la Recepción
+  // quedaban fuera del papel por la izquierda. Ahora la caja se mide con TODO lo
+  // que se va a dibujar —cuartos y muebles— y se escala contra eso.
+  let bx0 = 0, by0 = 0, bx1 = totalW, by1 = totalH;
+  for (const c of coloc) {
+    const pz = (piezas || []).find((q) => q.id === c.id); const o = offs[c.area ?? 0];
+    if (!pz || !o) continue;
+    const girado = (c.rot || 0) % 180 !== 0;
+    const pw = girado ? pz.d : pz.w, ph = girado ? pz.w : pz.d;
+    bx0 = Math.min(bx0, o.x + c.x); by0 = Math.min(by0, o.y + c.y);
+    bx1 = Math.max(bx1, o.x + c.x + pw); by1 = Math.max(by1, o.y + c.y + ph);
+  }
+  const cajaW = Math.max(1, bx1 - bx0), cajaH = Math.max(1, by1 - by0);
+
   // Escala para que el plano quepa en el ancho útil y en el alto disponible.
   const altoDisp = A4.h - M.abajo - y - 62;   // se reserva sitio para la leyenda
-  const esc = Math.min(ANCHO / totalW, altoDisp / totalH);
-  const X0 = M.izq + (ANCHO - totalW * esc) / 2;
-  const Y0 = y;
+  const esc = Math.min(ANCHO / cajaW, altoDisp / cajaH);
+  const X0 = M.izq + (ANCHO - cajaW * esc) / 2 - bx0 * esc;
+  const Y0 = y - by0 * esc;
   const px = (mm) => X0 + mm * esc;
   const py = (mm) => Y0 + mm * esc;
 
@@ -263,6 +281,14 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
     doc.line(M.izq, y, A4.w - M.der, y);
   };
 
+  // ---- HOJA 1: QUIÉNES SOMOS ----------------------------------------------
+  // Rodrigo: "la página 3 está ahí de la nada, debería ser la 1". Quién manda la
+  // propuesta se dice ANTES del precio, no a la mitad del documento. Una
+  // propuesta de mobiliario no compite sólo por precio: compite por quién la
+  // manda, y 68 años de planta propia son un argumento de venta.
+  hojaMarca(doc, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA, { nueva: false });
+  pie(); doc.addPage(); y = M.arriba;
+
   // ---- PORTADA -------------------------------------------------------------
   doc.setFillColor(...ROJO);
   doc.rect(M.izq, y, ANCHO, 2.4, 'F');
@@ -345,40 +371,19 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
     }
   }
 
-  // ---- TOTALES (cierran la HOJA 1, junto al resumen) -----------------------
-  // Rodrigo: "resumen con precios y final + poner la suma que da más IVA".
-  // El cliente ve en una sola hoja qué se le propone por área y cuánto es en
-  // total; el desglose pieza por pieza va después.
+  // ⚠️ AQUÍ HABÍA UN SEGUNDO JUEGO DE TOTALES (2026-08-17).
+  // El documento imprimía Subtotal · Maniobras · Flete · IVA · TOTAL **dos
+  // veces**: aquí y otra vez en la hoja de condiciones. Rodrigo: "se corta el
+  // total en otra hoja, está siniestro". Y era peor que feo: el resumen se
+  // desbordaba y el TOTAL caía SOLO en una hoja con 80% en blanco.
+  // Los totales van UNA vez, al final, junto a las condiciones de pago — que es
+  // donde un cliente los busca y donde tienen que estar para firmarse.
   y += 4;
-  sitio(46);
-  regla(); y += 7;
-  const fila = (et, val, fuerte = false) => {
-    doc.setFont('helvetica', fuerte ? 'bold' : 'normal');
-    doc.setFontSize(fuerte ? 12 : 10);
-    doc.setTextColor(...(fuerte ? TINTA : GRIS));
-    doc.text(et, A4.w - M.der - 46, y, { align: 'right' });
-    doc.setTextColor(...TINTA);
-    doc.text(pesos(val), A4.w - M.der, y, { align: 'right' });
-    y += fuerte ? 8 : 6;
-  };
-  // ⚠️ Aquí vivía el mismo error que en la hoja de detalle: se imprimían
-  // Subtotal e IVA y se saltaban maniobras y flete, así que la cuenta a la vista
-  // NO daba el TOTAL de abajo. Quien recibe una propuesta suma con calculadora.
-  if (totales.descuento > 0) { fila('Precio de lista', totales.precioLista); fila(`Descuento ${totales.descuentoPct}%`, -totales.descuento); }
-  fila('Subtotal', totales.subtotal);
-  if (totales.contingencia > 0) fila(`Imprevistos de obra ${totales.contingenciaPct}%`, totales.contingencia);
-  if (totales.maniobras > 0) fila(`Maniobras e instalación ${totales.maniobrasPct}%`, totales.maniobras);
-  if (totales.flete > 0) fila(`Flete ${totales.fletePct}%`, totales.flete);
-  fila(`IVA ${totales.ivaPct}%`, totales.iva);
-  y += 1; regla(); y += 8;
-  fila('TOTAL', totales.total, true);
 
-  // ---- HOJA DE MARCA + HOJA DEL PLANO --------------------------------------
-  // Van entre el resumen y el detalle: primero quién manda la propuesta, luego
-  // dónde va cada cosa, y sólo después el precio pieza por pieza. Es el orden en
-  // que un cliente lee una propuesta, no el orden en que la armamos nosotros.
-  pie();
-  hojaMarca(doc, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA);
+  // ---- HOJA DEL PLANO ------------------------------------------------------
+  // La hoja de marca YA NO va aquí: se movió al principio. Rodrigo: "la página
+  // 3 está ahí de la nada, debería ser la 1". Tenía razón — quién eres se dice
+  // ANTES de dar precios, no a la mitad del documento.
   pie();
   const hayPlano = hojaPlano(doc, { acomodo: cot.acomodo, partidas, piezas }, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA);
   if (hayPlano) pie();

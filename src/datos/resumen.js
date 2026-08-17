@@ -35,7 +35,16 @@ const m2De = (a) => {
 
 export function resumenPorArea(partidas, acomodo) {
   const colocacion = acomodo?.plan?.colocacion || [];
-  const areas = acomodo?.areas || [];
+  // ⚠️ DE DÓNDE SALEN LOS NOMBRES DE LOS CUARTOS.
+  // En el PDF de Rodrigo salían "Área 7", "Área 8", "Área 9" al lado de
+  // "Oficina 4" y "Oficina 5": el acomodo guardado traía MENOS áreas que las que
+  // referencia la colocación, así que `areas[7]` era `undefined` y se inventaba
+  // un nombre. Un cliente leyendo "Área 8" en su propuesta no sabe qué cuarto es.
+  // Se toma la lista que de verdad cubra los índices colocados.
+  const maxI = colocacion.reduce((m, c) => Math.max(m, c.area ?? 0), -1);
+  const cubre = (as) => Array.isArray(as) && as.length > maxI && as.every((a) => a);
+  const areas = [acomodo?.areas, acomodo?.plan?.areas, acomodo?.areasM]
+    .find(cubre) || acomodo?.areas || [];
   if (!partidas?.length) return [];
 
   const porPartida = Object.fromEntries(partidas.map((p) => [p.id, p]));
@@ -62,7 +71,7 @@ export function resumenPorArea(partidas, acomodo) {
       };
     }).sort((x, y) => y.importe - x.importe);
     bloques.push({
-      nombre: a?.nombre || `Área ${i + 1}`,
+      nombre: a?.nombre || 'Sin ubicar en el plano',
       tipo: a?.tipo || null,
       m2: Math.round(m2De(a) * 10) / 10,
       renglones,

@@ -7,6 +7,7 @@
 import { useEffect } from 'react';
 import MarcaLogo from './MarcaLogo.jsx';
 import MiniRender, { tipoDeMueble, dimsDeMueble } from './MiniRender.jsx';
+import { imagenProducto, heroLinea } from '../datos/imagenes.js';
 import { pesos } from '../util.js';
 import { LINEAS } from '../datos/catalogo.js';
 
@@ -111,11 +112,25 @@ export default function FichaPDF({ estado, costeo, cantidad = 1, precioUnitario 
 
         {/* Producto: imagen del cliente (si subió render) o render isométrico + especificacion */}
         <section className="ficha-producto">
-          <div className={'ficha-render' + (costeo.imagen ? ' ficha-render-foto' : '')}>
-            {costeo.imagen
-              ? <img src={costeo.imagen} alt={costeo.nombre || 'Mueble'} className="ficha-foto" />
-              : <MiniRender tipo={tipo} w={dims.w} d={dims.d} />}
-          </div>
+          {/* 🐛 LA FICHA ENSEÑABA EL MONITO, TENIENDO EL RENDER REAL.
+              Rodrigo: "¿qué es ese render? Ya tenemos fotos, renders más
+              bonitos, todo. O sea, ¿qué es eso?". Tenía razón: `costeo` trae
+              `ruta` y `productoId` desde el primer día, y aun así se caía al
+              glifo esquemático —un escritorito gris que además dibuja igual un
+              bench curvo de 6 usuarios que un archivero—. El orden correcto es:
+              la imagen que subió el cliente, si no el RENDER de catálogo, si no
+              la portada de la línea, y sólo si no hay nada, el monito. */}
+          {(() => {
+            const real = costeo.imagen
+              || (costeo.ruta ? imagenProducto(costeo.ruta, costeo.productoId) || heroLinea(costeo.ruta) : null);
+            return (
+              <div className={'ficha-render' + (real ? ' ficha-render-foto' : '')}>
+                {real
+                  ? <img src={real} alt={costeo.nombre || 'Mueble'} className="ficha-foto" />
+                  : <MiniRender tipo={tipo} w={dims.w} d={dims.d} />}
+              </div>
+            );
+          })()}
           <div className="ficha-info">
             {costeo.linea && <div className="ficha-linea">Línea {costeo.linea}</div>}
             <h1 className="ficha-nombre">{costeo.nombre || 'Mueble a la medida'}</h1>
