@@ -468,7 +468,18 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
   }
   // Filo rojo de la casa cerrando la banda.
   doc.setFillColor(...ROJO); doc.rect(0, ALTO_BANDA - 3, A4.w, 3, 'F');
-  y = ALTO_BANDA + 16;
+  // ⚠️ LA LEYENDA DE LA FOTO VA AQUÍ, PEGADA A SU FOTO (2026-08-17). Se quedó
+  // al final de la hoja cuando la foto se subió a sangre, y ahí chocaba con el
+  // PIE DE PÁGINA: los dos textos se imprimían encimados en el mismo renglón.
+  if (hero) {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...GRIS);
+    doc.text(T(cot?.acomodo?.render3d
+      ? 'Imagen de referencia del acomodo propuesto.'
+      : escenas[0]?.img
+        ? `Así se vería ${escenas[0]?.nombre || 'el área'}, con el mobiliario de esta propuesta.`
+        : 'Mobiliario Vonhaucke, fabricado en México.'), M.izq, ALTO_BANDA + 6);
+  }
+  y = ALTO_BANDA + 18;
 
   doc.setFillColor(...ROJO);
   doc.rect(M.izq, y, ANCHO, 2.4, 'F');
@@ -510,25 +521,10 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
     'Vigencia 15 días hábiles',
   ].filter(Boolean).join('   ·   ');
   doc.text(T(meta), M.izq, y);
-  // El pie de la foto de portada (la foto ya se dibujó a sangre arriba).
-  if (hero) {
-    y += 8;
-    try {
-      // 16:9 a todo el ancho útil. Marco fino para que no flote.
-      const altoHero = ANCHO * 0.5;
-      doc.addImage(hero, 'JPEG', M.izq, y, ANCHO, altoHero);
-      doc.setDrawColor(...LINEA); doc.setLineWidth(0.3);
-      doc.rect(M.izq, y, ANCHO, altoHero);
-      y += altoHero + 3;
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...GRIS);
-      doc.text(T(cot?.acomodo?.render3d
-        ? 'Imagen de referencia del acomodo propuesto.'
-        : escenas[0]?.img
-          ? `Así se vería ${escenas[0]?.nombre || 'el área'}, con el mobiliario de esta propuesta.`
-          : 'Mobiliario Vonhaucke, fabricado en México.'), M.izq, y);
-      y += 6;
-    } catch (e) { /* si la imagen no se pudo dibujar, la hoja sigue igual */ }
-  }
+  // ⚠️ LA FOTO GRANDE YA SE DIBUJÓ A SANGRE ARRIBA, CON SU LEYENDA. Aquí se
+  // volvía a dibujar dentro de la caja de texto: la portada salía con la MISMA
+  // imagen dos veces y la segunda leyenda chocaba con el pie de página.
+  y += 6;
 
   // La tira de abajo: las áreas si las hay, si no los muebles del proyecto.
   const tira = escenas.length > (hero === escenas[0]?.img ? 1 : 0)
@@ -706,8 +702,19 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
     totales.maniobras > 0 ? [`Maniobras e instalación ${totales.maniobrasPct}%`, totales.maniobras, false] : null,
     totales.flete > 0 ? [`Flete ${totales.fletePct}%`, totales.flete, false] : null,
     [`IVA ${totales.ivaPct}%`, totales.iva, false],
-    ['TOTAL', totales.total, true],
   ].filter(Boolean);
+  // ⚠️ EL TOTAL SE ARMA CON LOS RENGLONES QUE SE IMPRIMEN, NO CON EL FLOTANTE
+  // (2026-08-17). Cada renglón se redondea al pintarlo y el TOTAL venía sin
+  // redondear: en la hoja de la FIRMA los renglones sumaban $305,160 y el total
+  // decía $305,161. **Un peso, en el documento que el cliente firma.** Un
+  // cliente que suma con la calculadora encuentra eso en diez segundos y ya no
+  // te cree ningún otro número. Se suman los MISMOS pesos que se ven, así que
+  // el papel cuadra siempre; la diferencia contra el flotante nunca pasa de un
+  // peso por renglón y va donde tiene que ir: en el total impreso.
+  const totalImpreso = escalera
+    .filter(([et]) => et !== 'Subtotal')       // el subtotal es un parcial, no suma
+    .reduce((a, [, monto]) => a + Math.round(monto), 0);
+  escalera.push(['TOTAL', totalImpreso, true]);
   if (y + 8 * escalera.length + 12 > A4.h - M.abajo) { pie(); doc.addPage(); y = M.arriba; }
   regla(0.5, TINTA); y += 7;
   for (const [etiqueta, monto, fuerte] of escalera) {
@@ -723,7 +730,10 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
   // El anticipo va aquí porque es la condición que decide si se firma o no.
   if (totales.anticipoPct) {
     doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...GRIS);
-    doc.text(`Anticipo ${totales.anticipoPct}%: ${pesos(totales.anticipo)}  ·  Saldo contra entrega: ${pesos(totales.total - totales.anticipo)}`,
+    // Del total IMPRESO, no del flotante: si no, anticipo + saldo no dan el total
+    // que está tres renglones arriba, y es el renglón que decide la firma.
+    const antImpreso = Math.round(totalImpreso * (totales.anticipoPct / 100));
+    doc.text(`Anticipo ${totales.anticipoPct}%: ${pesos(antImpreso)}  ·  Saldo contra entrega: ${pesos(totalImpreso - antImpreso)}`,
       A4.w - M.der, y, { align: 'right' });
     y += 8;
   }
@@ -745,7 +755,11 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
       ? 'Las maniobras e instalación ya están incluidas en el total. Maniobras foráneas se cotizan por evento.'
       : 'Instalación y maniobras se cotizan por separado.',
     'Tiempo de entrega a convenir según disponibilidad de materiales.',
-    'Empaque según proyecto. Los importes por área son informativos y suman el total.',
+    // ⚠️ ESTA NOTA ERA FALSA (2026-08-17). Decía que los importes por área
+    // "suman el total", y no: suman la SUMA DE LOS RENGLONES ($273,888), que es
+    // antes del descuento, maniobras, flete e IVA. El total es $305,160. Decirle
+    // al cliente que sume algo que no da es regalarle una razón para desconfiar.
+    'Empaque según proyecto. Los importes por área suman la lista de renglones, antes de descuento, maniobras, flete e IVA.',
     'En maderas y mármoles puede haber variación de color y veta por naturaleza del material.',
   ].filter(Boolean);
   for (const c of cond) { sitio(5); doc.text('· ' + c, M.izq, y); y += 5; }
