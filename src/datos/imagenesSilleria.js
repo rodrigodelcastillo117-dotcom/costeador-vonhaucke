@@ -23,6 +23,13 @@ export const SILLAS_CON_FOTO = new Set([
   'C4-EM-BNF', 'DELTA', 'DEX', 'ENERGY', 'GAMMA-E', 'GAMMA-TAP', 'KASIA',
   'LESSIL35001205', 'RE-NUTABA', 'RE-NUTABG', 'RE570CBT', 'RE570GT',
   'RE570RNBT', 'RE571C', 'RE571CT', 'SONATA-SB', 'WIN', 'WIN-CAB',
+  // Estas dos las mandó Rodrigo a mano (2026-08-17): sus presupuestos no las
+  // traían con foto clara. ALPHA es la directiva de malla con cabecera y base
+  // de aluminio pulido; CONCERTO la de visita de 4 patas cromadas.
+  // ⚠️ CONCERTO va por NOMBRE, no por clave: su clave es `CONCERTO-BNENRTAT`
+  // —un código de variante de tapiz— y así la foto sirve para cualquier
+  // CONCERTO que llegue de otro presupuesto con otra clave.
+  'ALPHA', 'CONCERTO',
 ]);
 
 const sinAcentos = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
