@@ -219,7 +219,7 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
           <div className="ayuda gris" style={{ marginTop: 8, fontSize: 11 }}>{g.nota}</div>
         </div>
 
-        <HojaCosto resultado={resultado} insumos={estado.insumos} pieza={pieza} parametros={par} />}
+        <HojaCosto resultado={resultado} insumos={estado.insumos} pieza={pieza} parametros={par} />
           </details>
         )}
 

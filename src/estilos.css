@@ -1359,6 +1359,28 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
   border-radius: 999px; background: rgba(255,255,255,.14); font-family: var(--display); font-weight: 700; font-size: 14px;
 }
 
+/* LAS DOS PUERTAS, DEL MISMO TAMAÑO. Vender y costear son los dos trabajos del
+   negocio; ninguno es el atajo del otro. Lado a lado en escritorio, apiladas en
+   celular. `align-items: stretch` para que midan igual aunque un texto sea más
+   largo — si una queda más chica, deja de leerse como "igual de importante". */
+.puertas { display: flex; align-items: stretch; gap: 14px; }
+.puertas > button { flex: 1 1 0; min-width: 0; }
+
+/* Costear es la contraparte clara de Voni: mismo tamaño y misma estructura,
+   pero en papel con el rojo de la casa, para que se distinga de un vistazo
+   cuál es vender y cuál es producir. */
+.costear-principal {
+  display: flex; align-items: center; gap: 18px; width: 100%; text-align: left; cursor: pointer;
+  padding: 22px 24px; border-radius: 18px;
+  background: var(--papel); border: 2px solid var(--rojo);
+  color: var(--tinta); box-shadow: 0 10px 30px rgba(30,27,26,.10);
+}
+.costear-principal:hover { background: #fff; box-shadow: 0 14px 38px rgba(30,27,26,.16); }
+.costear-principal:focus-visible { outline: 3px solid var(--foco); outline-offset: 3px; }
+.costear-principal .voni-principal-av { color: var(--rojo); display: flex; }
+.costear-principal .voni-principal-k { color: var(--rojo); opacity: 1; }
+.costear-principal .voni-principal-cta { background: var(--rojo); color: #fff; }
+
 .inicio-o { display: flex; align-items: center; gap: 14px; margin: 22px 0 14px; color: var(--gris); font-size: 13px; }
 .inicio-o::before, .inicio-o::after { content: ''; flex: 1; height: 1px; background: var(--linea); }
 
@@ -1393,11 +1415,14 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 .favorita:hover { border-color: var(--linea-fuerte); background: #faf8f6; }
 .favorita:focus-visible { outline: 3px solid var(--foco); outline-offset: 2px; }
 
+@media (max-width: 900px) { .puertas { flex-direction: column; } }
+
 @media (max-width: 640px) {
-  .voni-principal { flex-direction: column; align-items: stretch; text-align: center; gap: 14px; padding: 20px 18px; }
+  .voni-principal, .costear-principal { flex-direction: column; align-items: stretch; text-align: center; gap: 14px; padding: 20px 18px; }
   .voni-principal-av { align-self: center; }
   .voni-principal-txt { align-items: center; }
   .voni-principal-cta { justify-content: center; }
+  .costear-principal .voni-principal-av { justify-content: center; }
   .retomar { flex-direction: column; align-items: stretch; }
   .retomar-cta { justify-content: center; }
 }

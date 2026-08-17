@@ -85,7 +85,7 @@ function aMM(areas) {
 }
 
 
-export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
+export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial = null, abrirDibujo = false, onConsumido }) {
   const partidas = (estado.cotizacion?.partidas) || [];
   // LO QUE YA HABÍAS ACOMODADO. Rodrigo: "si me salgo, no se guarda el acomodo
   // que yo tenía cuando regreso a la cotización… ni el plano se guarda".
@@ -234,7 +234,29 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
 
   async function subirPlano(e) {
     const file = e.target.files?.[0]; e.target.value = '';
+    await procesarPlano(file);
+  }
+
+  // ⚠️ SEPARADO DEL `onChange` A PROPÓSITO (2026-08-17). El paso 1 de Voni ya
+  // trae el archivo escogido allá —el clic al `<input>` tiene que salir del
+  // dedo del usuario, si no el navegador bloquea el diálogo— y entra aquí con
+  // el File en la mano, sin evento. Antes los botones "Subir el plano" y
+  // "Dibujar la oficina" de Voni sólo hacían `setPaso(3)`: brincaban al
+  // acomodo sin abrir nada. Rodrigo: "no me abre algo para subir el plano".
+  async function procesarPlano(file) {
     if (!file) return;
+    // ⚠️ AutoCAD NO se lee hoy, y hay que DECIRLO. Quien lee el plano es un
+    // modelo que MIRA la hoja; un .dwg es binario y un .dxf es texto de
+    // geometría, así que mandárselo devuelve basura o nada. Decir "no se pudo
+    // leer" sería mentir por omisión: el proyectista pensaría que su plano está
+    // mal. Se le dice qué hacer, que en AutoCAD son dos clics.
+    if (/\.(dwg|dxf)$/i.test(file.name)) {
+      setCargando('');
+      setError('Todavía no leo archivos de AutoCAD (.dwg / .dxf). Expórtalo a PDF desde AutoCAD '
+        + '(Imprimir → PDF) o mándame una captura de pantalla del plano: eso sí lo leo, y con las '
+        + 'cotas a la vista sale igual de exacto.');
+      return;
+    }
     setError(''); setNotaPlano(''); setCargando('plano');
     try {
       const esPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
@@ -268,6 +290,19 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
       }
     } catch (err) { setCargando(''); setError('No se pudo procesar la imagen.'); }
   }
+
+  // Lo que Voni escogió en el paso 1 se ATIENDE AL ENTRAR aquí. Va con
+  // guardia: es una acción que se hace UNA vez, no en cada repintado, y el
+  // padre lo limpia con `onConsumido` para que volver al paso 3 no lo repita.
+  const yaAtendido = useRef(false);
+  useEffect(() => {
+    if (yaAtendido.current) return;
+    if (!planoInicial && !abrirDibujo) return;
+    yaAtendido.current = true;
+    if (abrirDibujo) setDibujando(true);
+    else procesarPlano(planoInicial);
+    onConsumido?.();
+  }, [planoInicial, abrirDibujo]);
 
   // El usuario dibujó su oficina → usar esas áreas reales y amueblar.
   function usarDibujo(areasDib, meta) {
@@ -794,7 +829,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
         <button className="boton fantasma" style={{ minHeight: 40, marginBottom: 10 }} onClick={() => onIr('cotizacion')}>← Volver a la cotización</button>
         {/* El selector de archivo vive AQUÍ y no dentro del panel de áreas,
             porque `EmpezarEspacio` lo dispara cuando todavía no hay ninguna. */}
-        <input ref={archivoRef} type="file" accept="image/*,application/pdf,.pdf" style={{ display: 'none' }} onChange={subirPlano} />
+        <input ref={archivoRef} type="file" accept="image/*,application/pdf,.pdf,.dwg,.dxf" style={{ display: 'none' }} onChange={subirPlano} />
         <h2>Tu espacio en 3D</h2>
         <p className="ayuda columna-texto">
           {/* No decir "ya acomodamos" antes de tener dónde: era el mismo vicio
@@ -850,7 +885,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo }) {
               <button className="boton" style={{ minHeight: 44 }} onClick={() => setDibujando(true)}>Dibujar mi oficina</button>
               <label className="boton fantasma" style={{ minHeight: 44, display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }} title="PDF (de AutoCAD/SketchUp), foto o captura de croquis.">
                 Subir plano (PDF o foto)
-                <input type="file" accept="image/*,application/pdf,.pdf" style={{ display: 'none' }} onChange={subirPlano} />
+                <input type="file" accept="image/*,application/pdf,.pdf,.dwg,.dxf" style={{ display: 'none' }} onChange={subirPlano} />
               </label>
               {/* `onClick={acomodar}` le pasaba el EVENTO del clic como opciones:
                   funcionaba de milagro (`deCero` salía undefined). Explícito. */}

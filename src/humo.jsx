@@ -191,6 +191,18 @@ const costeo = {
   modoManoObra: 'porcentaje', horas: {}, factorDirecta: 55, factorIndirecta: 12, margen: 50,
 };
 
+// ⚠️ VONI CON `paso` DE VERDAD (2026-08-17). Las entradas de abajo lo montan
+// con `setPaso={nada}`, así que el paso NUNCA cambia y todo lo que se prueba es
+// que la pantalla pinta. Por eso pasó desapercibido que en el paso 1 los
+// botones "Subir el plano" y "Dibujar la oficina" sólo hacían `setPaso(3)`:
+// brincaban al acomodo sin abrir nada. Rodrigo lo cazó usándola, no la prueba.
+// Con estado propio, el camino se puede CAMINAR aquí.
+function VoniVivo() {
+  const [paso, setPaso] = useState(1);
+  return <Voni estado={estado} setEstado={nada} soloVentas={false} veCostos
+    paso={paso} setPaso={setPaso} onAgregarItems={nada} onGuardarAcomodo={nada} onIr={nada} />;
+}
+
 // Cada pantalla con los props que de verdad pide.
 const PANTALLAS = [
   ['Login', <Login onEntrar={nada} onRecuperar={nada} />],
@@ -209,6 +221,7 @@ const PANTALLAS = [
   // El paso 2 va aparte: `paso` lo manda App, así que con uno solo montado
   // nunca se probaba el cuestionario de botones (ni el resto del paso).
   ['Voni · paso 2 muebles', <Voni estado={estado} setEstado={nada} soloVentas={false} veCostos paso={2} setPaso={nada} onAgregarItems={nada} onGuardarAcomodo={nada} onIr={nada} />],
+  ['Voni vivo (se camina)', <VoniVivo />],
   ['Cotizar con IA', <CotizadorIA estado={estado} onAgregarItems={nada} onIr={nada} verCotizacion />],
   ['Asistente', <Asistente estado={estado} onAgregarPartida={nada} onModoAvanzado={nada} onIr={nada} />],
   ['Asistente especial', <AsistenteEspecial estado={estado} onVerDetalle={nada} onInicio={nada} />],

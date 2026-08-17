@@ -78,7 +78,7 @@ export default function EmpezarEspacio({ piezas = [], onListo, onSubirPlano, onD
       <div className="empezar-caminos">
         <button className="boton primario empezar-camino" onClick={onSubirPlano} disabled={subiendo}>
           <b>Subir el plano del cliente</b>
-          <span>PDF o foto. Es lo que da el acomodo exacto.</span>
+          <span>PDF, foto o captura. Es lo que da el acomodo exacto. (De AutoCAD, expórtalo a PDF.)</span>
         </button>
         <button className="boton empezar-camino" onClick={onDibujar} disabled={subiendo}>
           <b>Dibujar la oficina</b>

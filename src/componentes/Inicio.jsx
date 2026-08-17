@@ -188,8 +188,15 @@ export default function Inicio({ estado, onIr, veCostos = false, esDireccion = f
           </div>
         )}
 
-        {/* Voni va al frente: es el camino que entrega la propuesta completa.
-            Quien ya sabe qué quiere tiene su atajo abajo, sin estorbarle. */}
+        {/* ⚠️ LAS DOS PUERTAS GRANDES (Rodrigo, 2026-08-17): "lo principal de la
+            app es COSTEAR bien, rápido y eficaz, y para vendedores poder
+            cotizar". Son los DOS trabajos del negocio, así que van del mismo
+            tamaño y lado a lado, no uno grande y el otro de atajo:
+              · Voni    = vender (el vendedor describe y sale la propuesta).
+              · Costear = producir (Dirección/Diseño saca el costo real).
+            Costear sólo aparece con `veCostos`: el vendedor no ve costos, y
+            para él la única puerta grande es Voni. */}
+        <div className="puertas">
         <button className="voni-principal" onClick={() => onIr('voni')}>
           <span className="voni-principal-av"><VoniAvatar tam={64} variante="cara" /></span>
           <span className="voni-principal-txt">
@@ -199,6 +206,24 @@ export default function Inicio({ estado, onIr, veCostos = false, esDireccion = f
           </span>
           <span className="voni-principal-cta">Empezar <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
         </button>
+
+        {veCostos && (
+          <button className="costear-principal" onClick={() => setVista('costear')}>
+            <span className="voni-principal-av" aria-hidden="true">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="4" y="2.5" width="16" height="19" rx="2.5" />
+                <path d="M7.5 6.5h9M7.5 11h3M13 11h3.5M7.5 15h3M13 15v3.5M7.5 18.5h3" />
+              </svg>
+            </span>
+            <span className="voni-principal-txt">
+              <span className="voni-principal-k">Costear</span>
+              <strong>¿Cuánto nos cuesta fabricarlo?</strong>
+              <span>El costo real de producción: material, mano de obra e indirectos, pieza por pieza. Es de donde sale el precio de todo lo demás.</span>
+            </span>
+            <span className="voni-principal-cta">Costear <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
+          </button>
+        )}
+        </div>
 
         {/* ⚠️ ESTO ERAN DOS TARJETONES DEL MISMO TAMAÑO QUE VONI (2026-08-17).
             Con tres puertas grandes al mismo nivel, Rodrigo entró por la
@@ -225,11 +250,7 @@ export default function Inicio({ estado, onIr, veCostos = false, esDireccion = f
             <button className="atajo" onClick={() => onIr(veCostos ? 'costeador' : 'asistente')}>
               Especial a la medida <span>lo que no está en catálogo</span>
             </button>
-            {veCostos && (
-              <button className="atajo" onClick={() => setVista('costear')}>
-                Costear <span>cuánto cuesta fabricarlo</span>
-              </button>
-            )}
+            {/* Costear ya NO vive aquí: subió a puerta grande, arriba. */}
             <button className="atajo atajo-mas" onClick={() => setVista('cotizar')}>
               Ver todo lo de cotizar →
             </button>

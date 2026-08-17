@@ -4,7 +4,7 @@
 //  IA, Acomodo, Propuesta al cliente) en un solo flujo guiado, con sello
 //  Firme/Estimado por renglón y "no tengo planos" siempre a la mano.
 // ============================================================================
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import CotizadorIA from './CotizadorIA.jsx';
 import Acomodo from './Acomodo.jsx';
 import Cotizacion from './Cotizacion.jsx';
@@ -66,6 +66,13 @@ export default function Voni({
   const hay = partidas.length > 0;
 
   const setCot = (parcial) => setEstado((e) => ({ ...e, cotizacion: { ...e.cotizacion, ...parcial } }));
+  // El plano que el proyectista escoge en el PASO 1 viaja al paso 3, donde vive
+  // el aparato que sabe leerlo. El `<input type="file">` tiene que estar AQUÍ:
+  // el navegador sólo abre el diálogo si el clic salió del dedo, así que no se
+  // puede abrir "al llegar" al paso 3.
+  const archivoRef = useRef(null);
+  const [planoInicial, setPlanoInicial] = useState(null);
+  const [abrirDibujo, setAbrirDibujo] = useState(false);
   const [confVaciar, setConfVaciar] = useState(false);
   const [editando, setEditando] = useState(null);   // índice de la partida que se edita
   const vaciar = () => { setCot({ partidas: [], acomodo: null }); setConfVaciar(false); };
@@ -114,10 +121,19 @@ export default function Voni({
               muebles, te voy diciendo si caben.
             </p>
           </div>
+          <input
+            ref={archivoRef} type="file" style={{ display: 'none' }}
+            accept="image/*,application/pdf,.pdf,.dwg,.dxf"
+            onChange={(e) => {
+              const f = e.target.files?.[0]; e.target.value = '';
+              if (!f) return;              // canceló el diálogo: quedarse en el paso 1
+              setPlanoInicial(f); setPaso(3);
+            }}
+          />
           <EmpezarEspacio
             piezas={[]}
-            onSubirPlano={() => setPaso(3)}
-            onDibujar={() => setPaso(3)}
+            onSubirPlano={() => archivoRef.current?.click()}
+            onDibujar={() => { setAbrirDibujo(true); setPaso(3); }}
             onListo={(areas) => { onGuardarAcomodo?.({ areasM: areas, areas: null, plan: null, planReal: false }); setPaso(2); }}
           />
           <div className="tarjeta no-imprimir voni-omitir">
@@ -232,6 +248,9 @@ export default function Voni({
             estado={estado}
             onGuardarAcomodo={onGuardarAcomodo}
             onIr={(r) => setPaso(r === 'cotizacion' ? 4 : 2)}
+            planoInicial={planoInicial}
+            abrirDibujo={abrirDibujo}
+            onConsumido={() => { setPlanoInicial(null); setAbrirDibujo(false); }}
           />
         </>
       )}
