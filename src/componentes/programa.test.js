@@ -29,8 +29,27 @@ describe('la frase que se le entrega a Voni', () => {
     expect(fraseDe({ ...BASE, privados: 2, credenza: false })).not.toMatch(/credenza/);
   });
 
-  it('la sala de juntas trae sus sillas', () => {
-    expect(fraseDe({ ...BASE, juntas: 12 })).toMatch(/sala de juntas para 12 personas con sus 12 sillas/);
+  it('la sala de juntas PIDE SU MESA y sus sillas', () => {
+    // ⚠️ CAMBIÓ A PROPÓSITO (2026-08-17). Decía "para 12 personas con sus 12
+    // sillas" y Voni armaba las sillas pero NINGUNA MESA: en el plano real las
+    // dos salas salían vacías y Rodrigo: *"tampoco veo las salas de juntas"*.
+    // No es que no se dibujaran — es que la mesa no existía en la lista.
+    const f = fraseDe({ ...BASE, juntas: 12 });
+    expect(f).toMatch(/sala de juntas para 12 personas/);
+    expect(f).toMatch(/mesa de juntas/);
+    expect(f).toMatch(/12 sillas/);
+  });
+
+  it('con varias salas del plano, pide una mesa POR SALA', () => {
+    const f = fraseDe({ ...BASE, juntas: 10, salas: [10, 8] });
+    expect(f).toMatch(/2 salas de juntas \(para 10 y 8 personas\)/);
+    expect(f).toMatch(/cada una con su mesa de juntas/);
+  });
+
+  it('con islas del plano, dice CÓMO partir los puestos', () => {
+    // Sin esto Voni armó 4 bancas de 12 usuarios (10.80 m) para islas de 4.50 m.
+    const f = fraseDe({ ...BASE, operativos: 48, islas: 8, porIsla: 6 });
+    expect(f).toMatch(/48 lugares de trabajo repartidos en 8 bancas de 6 usuarios/);
   });
 
   it('lo que vale cero no se dice', () => {

@@ -61,14 +61,29 @@ const Chips = ({ ops, valor, set }) => (
 export function fraseDe(p) {
   const t = [];
   if (p.operativos > 0) {
-    t.push(`${p.operativos} lugares de trabajo en bench de la línea ${p.lineaOperativos} de ${(p.largoPuesto / 1000).toFixed(2)} m por puesto`);
+    // ⚠️ HAY QUE DECIRLE CÓMO PARTIRLOS (2026-08-17). Con "48 lugares de trabajo"
+    // a secas, Voni armó **4 bancas de 12 usuarios de 10.80 m** — y las islas del
+    // plano miden 4.50 m: no cabía ninguna y las 8 islas quedaron VACÍAS. El
+    // número de puestos no basta; el que manda es el TAMAÑO DE LA ISLA.
+    const enIslas = p.islas > 0 && p.porIsla > 0;
+    t.push(enIslas
+      ? `${p.operativos} lugares de trabajo repartidos en ${p.islas} bancas de ${p.porIsla} usuarios cada una, de la línea ${p.lineaOperativos} de ${(p.largoPuesto / 1000).toFixed(2)} m por puesto`
+      : `${p.operativos} lugares de trabajo en bench de la línea ${p.lineaOperativos} de ${(p.largoPuesto / 1000).toFixed(2)} m por puesto`);
     t.push(`${p.operativos} sillas operativas ${p.sillaOperativa}`);
   }
   if (p.privados > 0) {
     t.push(`${p.privados} oficinas privadas, cada una con escritorio ejecutivo de la línea ${p.lineaPrivados} de ${(p.largoPrivado / 1000).toFixed(2)} m${p.credenza ? ' y su credenza' : ''}`);
     t.push(`${p.privados} sillas directivas y ${p.privados * 2} sillas de visita ${p.sillaVisita}`);
   }
-  if (p.juntas > 0) t.push(`una sala de juntas para ${p.juntas} personas con sus ${p.juntas} sillas`);
+  // ⚠️ UNA MESA POR SALA. Voni no armó NINGUNA mesa de juntas con la frase
+  // vieja, y por eso las salas del plano salían vacías: no es que no se
+  // dibujaran, es que no existían en la lista. Cuando el plano trae varias
+  // salas se piden todas, cada una con su mesa y sus sillas.
+  if (p.salas?.length > 1) {
+    t.push(`${p.salas.length} salas de juntas (para ${p.salas.join(' y ')} personas), cada una con su mesa de juntas y sus sillas`);
+  } else if (p.juntas > 0) {
+    t.push(`una sala de juntas para ${p.juntas} personas con su mesa de juntas y sus ${p.juntas} sillas`);
+  }
   if (p.recepcion) t.push('una recepción con su mostrador');
   if (p.guardas > 0) t.push(`${p.guardas} archiveros`);
   return t.join(', ') + '.';
@@ -87,6 +102,9 @@ export default function ProgramaProyecto({ onArmar, cargando = false, areasPlano
     operativos: delPlano.operativos, largoPuesto: 1500, lineaOperativos: 'applt', sillaOperativa: 'WIN',
     privados: delPlano.privados, largoPrivado: 2100, credenza: true, lineaPrivados: 'eclipse', sillaVisita: 'CONCERTO',
     juntas: delPlano.juntas, recepcion: delPlano.recepcion, guardas: delPlano.guardas,
+    // Del plano, para que la FRASE pueda decir cómo partir los puestos y cuántas
+    // salas hay. Sin plano vienen en cero y la frase sale como siempre.
+    islas: delPlano.islas, porIsla: delPlano.porIsla, salas: delPlano.salas,
   });
   // El aviso se recalcula con el largo que él escoja: si se pasa a 1.80, tiene
   // que enterarse AHÍ de que sus islas ya no dan para 48.

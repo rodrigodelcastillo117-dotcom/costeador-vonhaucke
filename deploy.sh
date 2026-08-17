@@ -41,6 +41,22 @@ node scripts/revisa-alcanzables.mjs >/dev/null || {
 }
 npm test --silent >/dev/null 2>&1 || { echo "✗ NO SE PUBLICA: fallan las pruebas del motor."; exit 1; }
 
+# ⚠️ EL GUARDIÁN DEL PLANO DE RODRIGO (2026-08-17). Rodrigo, después de reportar
+# cinco cosas seguidas: "¿cómo le podemos hacer para que ya quede esto? Ya me
+# cansé". La causa era de método: cada arreglo se verificaba POR SEPARADO, así
+# que al caminar el camino entero salía la siguiente pieza rota. Esto corre el
+# CAMINO COMPLETO con su plano real y exige el resultado que él aceptaría:
+# las 8 islas con su banca y sus sillas, cada sala con su mesa, la recepción con
+# su mostrador, el pasillo vacío, nada encimado y nada sin colocar.
+# Va aparte de `npm test` A PROPÓSITO: si truena, el mensaje tiene que decir
+# QUÉ del plano se rompió, no "fallan las pruebas".
+echo "→ Caminando el plano de prueba de punta a punta…"
+npx vitest run src/datos/planoDeRodrigo.test.js --silent >/dev/null 2>&1 || {
+  echo "✗ NO SE PUBLICA: el plano de prueba ya no sale bien."
+  npx vitest run src/datos/planoDeRodrigo.test.js 2>&1 | grep -E '×|→' | head -12
+  exit 1
+}
+
 echo "→ Compilando…"
 # ⚠️ EL EXIT CODE NO ALCANZA (2026-08-17). `npm run build` sale con **código 0**
 # aunque esbuild grite: así se publicó y vivió meses una llave `}` suelta que se

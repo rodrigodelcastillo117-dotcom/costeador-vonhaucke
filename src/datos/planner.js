@@ -290,6 +290,8 @@ const PREFERENCIA = {
   // no es destino de una guarda: una sala de juntas no tiene a quién servir.
   guarda:     ['open', 'general', 'privado'],
   mampara:    ['open', 'general', 'privado'],
+  // El mostrador va en la RECEPCIÓN. Obvio, pero hasta hoy no existía el tipo.
+  recepcion:  ['recepcion', 'general', 'open'],
   // ⚠️ UNA SILLA DE TRABAJO NO ES UN SILLÓN. El tipo `asiento` mete en el mismo
   // saco la silla operativa y el sofá del lounge, y con eso las 27 sillas de un
   // proyecto real se fueron TODAS al "Break Room & Baños" —Rodrigo lo vio en el
@@ -311,7 +313,7 @@ const PREFERENCIA = {
   mesa:       ['lounge', 'recepcion', 'general', 'open'],
   mueble:     ['general', 'open', 'lounge', 'recepcion'],
 };
-const ORDEN_TIPOS = ['juntas', 'escritorio', 'guarda', 'mampara', 'asiento', 'mesa', 'mueble'];
+const ORDEN_TIPOS = ['juntas', 'recepcion', 'escritorio', 'guarda', 'mampara', 'asiento', 'mesa', 'mueble'];
 
 // Un bench de 8 puestos no cabe en un privado de 3×4 aunque "sobre" área.
 // Un bench (bloque de varios puestos) se comporta distinto a un escritorio
@@ -501,7 +503,19 @@ function acomodarPorCuartos(areas, piezas) {
       if (!restantes.length) break;
       const yaPuestas = colocacion.filter((k) => k.area === c.i).map((k) => k.id);
       const ocupadas = c.asignadas.filter((p) => yaPuestas.includes(p.id));
-      const intento = [...ocupadas, ...restantes.filter((p) => !sinCuartoPropio(p) && cabeEn(p, c.a))];
+      // ⚠️ LA SEGUNDA PASADA IGNORABA LA PREFERENCIA (2026-08-17). Metía lo que
+      // fuera donde cupiera: medido con la lista real de Rodrigo, **21
+      // archiveros en la Sala de Juntas 1 y 14 en la Sala 2**. Y la regla de la
+      // casa ya lo prohibía: "las gavetas SIEMPRE van pegadas a los escritorios
+      // u operativos. Nunca sueltas y NUNCA en sala de juntas". Aquí se respeta:
+      // un cuarto que NO está en la preferencia de la pieza no la recibe ni de
+      // rebote. Más vale reportar que no cupo que dibujar un disparate.
+      const permite = (p) => {
+        const pref = p.tipo === 'escritorio' && esBench(p) ? PREFERENCIA.bench
+          : (PREFERENCIA[p.tipo] || PREFERENCIA.mueble);
+        return pref.includes(c.rol);
+      };
+      const intento = [...ocupadas, ...restantes.filter((p) => !sinCuartoPropio(p) && permite(p) && cabeEn(p, c.a))];
       if (intento.length === ocupadas.length) continue;
       const r = acomodarEnForma(c.a, intento);
       const puestas = new Set(r.colocacion.map((k) => k.id));

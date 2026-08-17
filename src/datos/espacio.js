@@ -10,13 +10,15 @@ export const TIPOS = {
   asiento: { label: 'Asientos', color: '#b8862f', alto: 450 },
   mesa: { label: 'Mesas', color: '#4b8b5a', alto: 550 },
   mampara: { label: 'Mamparas', color: '#7a7570', alto: 1500 },
+  recepcion: { label: 'Recepción', color: '#7a5c9a', alto: 1100 },
   mueble: { label: 'Otros', color: '#9a908a', alto: 700 },
 };
 
 // Huella por defecto si la partida no trae medida (mm).
 export const HUELLA = {
   escritorio: [1500, 750], juntas: [2400, 1200], guarda: [900, 450],
-  asiento: [600, 600], mesa: [900, 900], mampara: [1600, 80], mueble: [800, 600],
+  asiento: [600, 600], mesa: [900, 900], mampara: [1600, 80],
+  recepcion: [2400, 800], mueble: [800, 600],
 };
 
 // Quita acentos: los nombres reales traen "Estación", "Sofá", "Mampara…" y las
@@ -56,7 +58,13 @@ export function tipoDe(pt) {
   if (/junta|consejo|teamspace|mesa circular|circular "olga"|mesa de trabajo/.test(s)) return 'juntas';
   // OJO: en Von Haucke "banca" = bench de ESCRITORIOS (no un asiento). Va antes
   // que la regla de asientos y antes que la de mesas.
-  if (/escritorio|bench|banca|estacion|operativo|recepcion|ducto|qvadrat|cantilever/.test(s)) return 'escritorio';
+  // ⚠️ EL MOSTRADOR DE RECEPCIÓN NO ES UN ESCRITORIO (2026-08-17). Caía en
+  // 'escritorio', y como un escritorio suelto prefiere el PRIVADO, el mostrador
+  // se fue a la oficina del director: medido en el plano real de Rodrigo, la
+  // "Recepción" acabó en el Privado 5 y la recepción quedó sin mostrador.
+  // Tiene su propio tipo para poder mandarlo a su cuarto.
+  if (/recepcion|mostrador|lobby/.test(s)) return 'recepcion';
+  if (/escritorio|bench|banca|estacion|operativo|ducto|qvadrat|cantilever/.test(s)) return 'escritorio';
   if (/mesa|pebble|accent|apoyo|centro|spoon|repisa/.test(s)) return 'mesa';
   if (/sill|pouf|sofa|taburete|lounge|pac|tetris|arlequin|bricks|ding/.test(s)) return 'asiento';
   if (/app|cirque|feather|via|drift|eclipse|luna|alba|anteo|spine|ergo|rio/.test(s)) return 'escritorio';
