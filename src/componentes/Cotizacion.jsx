@@ -10,6 +10,7 @@ import { descargarPropuesta, cargarFotos } from '../datos/pdfPropuesta.js';
 import EditarPartida, { sePuedeEditar } from './EditarPartida.jsx';
 import { pesos, pct, leePct, colorMargen, selloPartida } from '../util.js';
 import { imagenPartida } from '../datos/imagenes.js';
+import { confianzaDe, textoConfianza } from '../datos/confianza.js';
 import { expandirPiezas, mapaPiezas } from '../datos/espacio.js';
 import { generarRender } from '../nube.js';
 import PlanoAcomodo from './PlanoAcomodo.jsx';
@@ -228,6 +229,33 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         </button>
         <button className="boton fantasma no-imprimir" style={{ minHeight: 42 }} onClick={imprimir}>Imprimir</button>
       </div>
+
+      {/* ⚠️ QUÉ TAN FIRME ES ESTE NÚMERO — INTERNO, NUNCA se imprime.
+          Medido: de las 24 líneas sólo 4 tienen precio real de venta (applt,
+          río, modulor, mox); las otras 20 salen del modelo. Y en la propuesta
+          los dos renglones se ven IDÉNTICOS, así que nadie sabe cuál puede
+          defender enfrente del cliente. Esto no inventa precisión: la mide.
+          Y de paso dice de qué línea urge conseguir un presupuesto cerrado —
+          que es el trabajo que de verdad sube la exactitud. */}
+      {!soloVentas && partidas.length > 0 && (() => {
+        const c = confianzaDe(partidas);
+        return (
+          <div className={`confianza no-imprimir ${c.pct >= 60 ? 'ok' : c.pct >= 25 ? 'media' : 'baja'}`}>
+            <div className="confianza-barra"><span style={{ width: `${c.pct}%` }} /></div>
+            <div className="confianza-txt">
+              <strong>{c.pct}% del precio sale de proyectos ya cerrados.</strong>{' '}
+              <span className="gris">{textoConfianza(c)}</span>
+              {c.lineasFlojas.length > 0 && (
+                <div className="ayuda" style={{ marginTop: 4 }}>
+                  Lo calcula el modelo en: {c.lineasFlojas.slice(0, 4).map((l) => l.linea).join(' · ')}
+                  {c.lineasFlojas.length > 4 ? ` y ${c.lineasFlojas.length - 4} más` : ''}.
+                  {' '}Con un presupuesto cerrado de <strong>{c.lineasFlojas[0].linea}</strong> se ancla lo más caro.
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {partidas.length === 0 ? (
         <div className="tarjeta" style={{ textAlign: 'center', padding: '40px 22px' }}>

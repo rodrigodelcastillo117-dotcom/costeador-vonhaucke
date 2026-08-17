@@ -1591,3 +1591,14 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 .hallado-linea { font-size: 12px; color: var(--gris); }
 .hallado-cta { flex: 0 0 auto; font-size: 13px; font-weight: 700; color: var(--rojo); }
 @media (max-width: 480px) { .hallado-cta { font-size: 0; } .hallado-cta::after { content: '→'; font-size: 18px; } }
+
+/* Qué tan firme es el número. Interno: nunca se imprime. */
+.confianza { display: flex; gap: 12px; align-items: flex-start; margin: 0 0 14px;
+  padding: 12px 14px; border-radius: 12px; border: 1px solid var(--linea); background: #f6f4f0; }
+.confianza-barra { flex: 0 0 74px; height: 8px; border-radius: 999px; background: #e2ddd4;
+  overflow: hidden; margin-top: 6px; }
+.confianza-barra span { display: block; height: 100%; border-radius: 999px; background: var(--verde); }
+.confianza.media .confianza-barra span { background: #d79a3a; }
+.confianza.baja  .confianza-barra span { background: var(--rojo); }
+.confianza-txt { min-width: 0; font-size: 14px; line-height: 1.45; }
+@media print { .confianza { display: none !important; } }
