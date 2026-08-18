@@ -107,7 +107,12 @@ export default function Voni({
   }
   const [confVaciar, setConfVaciar] = useState(false);
   const [editando, setEditando] = useState(null);   // índice de la partida que se edita
-  const vaciar = () => { setCot({ partidas: [], acomodo: null }); setConfVaciar(false); };
+  // El paso 2 son DOS pantallas, no una página larga: 'describe' (la charla con
+  // Voni) y 'revisa' ("Esto entendí"). Antes se apilaban y la revisión —lo más
+  // importante— quedaba al fondo de un scroll de cañón que nadie bajaba
+  // (Rodrigo, 2026-08-18). Ahora se ven una a la vez.
+  const [revisar, setRevisar] = useState(false);
+  const vaciar = () => { setCot({ partidas: [], acomodo: null }); setConfVaciar(false); setRevisar(false); };
 
   // El espacio, SIEMPRE en metros. `areasM` es lo normal, pero hay guardados
   // viejos que sólo traen `areas` en milímetros: sin este respaldo, "esto
@@ -185,8 +190,8 @@ export default function Voni({
         </>
       )}
 
-      {/* ---------------- PASO 2 · MUEBLES ---------------- */}
-      {paso === 2 && (
+      {/* --------- PASO 2a · CUÉNTAME (la charla con Voni, sola) --------- */}
+      {paso === 2 && !revisar && (
         <>
           {!hay && (
             <div className="voni-saludo">
@@ -195,6 +200,28 @@ export default function Voni({
             </div>
           )}
           <CotizadorIA estado={estado} onAgregarItems={agregarEnProyecto} onIr={onIr} conPrograma />
+
+          {/* EL PUENTE A LA REVISIÓN. Antes "Esto entendí" vivía al fondo de esta
+              misma página: había que bajar un cañón de scroll y nadie llegaba
+              (Rodrigo, 2026-08-18). Ahora la revisión es su propia pantalla y
+              este botón grande es la única puerta: imposible no verla. */}
+          {hay && (
+            <div className="tarjeta voni-puente">
+              <span className="ayuda">Voni ya armó <strong>{partidas.length}</strong> {partidas.length === 1 ? 'mueble' : 'muebles'} · {pesos(totalLista)}</span>
+              <button className="boton primario grande" style={{ width: '100%' }} onClick={() => setRevisar(true)}>
+                Revisar lo que entendí ({partidas.length}) →
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* --------- PASO 2b · ESTO ENTENDÍ (la lista corregible, sola) --------- */}
+      {paso === 2 && revisar && (
+        <>
+          <button className="boton fantasma btn-atras" style={{ minHeight: 42 }} onClick={() => setRevisar(false)}>
+            ‹ Volver a describir o agregar más
+          </button>
 
           <div className="tarjeta">
             <div className="fila" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
@@ -211,19 +238,10 @@ export default function Voni({
 
             {!hay ? (
               <p className="ayuda" style={{ marginTop: 8 }}>
-                Aún no hay muebles. Descríbele a Voni lo que pide el cliente aquí arriba, o agrégalos
-                de línea, del banco o como especial desde el menú de Cotizar.
+                Ya no hay muebles. <button className="enlace" onClick={() => setRevisar(false)}>Volver a describirle a Voni</button> o agrégalos de línea.
               </p>
             ) : (
               <div className="voni-lista" style={{ marginTop: 10 }}>
-                {/* ⚠️ ANTES AQUÍ IBA LA LISTA CRUDA: veinte renglones de catálogo
-                    con clave y acabado, en el orden en que los escupió el modelo.
-                    Revisar eso no es revisar el proyecto — nadie cacha ahí que
-                    pidió 21 lugares y le cotizaron 14 sillas. `EstoEntendi` es
-                    LA MISMA lista (el ± cambia la partida de verdad), agrupada
-                    por lo que cada cosa ES y con lo que no cuadra hasta arriba.
-                    Rodrigo: "el paso 'esto entendí', la lista corregible ANTES
-                    de acomodar". */}
                 <EstoEntendi
                   partidas={partidas}
                   areasM={areasDelProyecto}
@@ -255,15 +273,9 @@ export default function Voni({
             )}
 
             <div style={{ display: 'grid', gap: 10, marginTop: 14 }}>
-              {/* El botón es la APROBACIÓN de la lectura de arriba, no un
-                  "siguiente" cualquiera: lo que aprueba es lo que se acomoda.
-                  Y decía "Continuar al espacio" cuando el espacio es el paso 1
-                  desde que se invirtió el orden: lo que sigue es el acomodo. */}
               <button className="boton primario grande" style={{ width: '100%' }} disabled={!hay} onClick={() => setPaso(3)}>
                 Sí, así es — acomódalo →
               </button>
-              {/* 🐛 Este decía "ir directo a la propuesta" y mandaba al ACOMODO
-                  (paso 3), que es justo lo que el vendedor quería saltarse. */}
               <button className="boton grande" style={{ width: '100%' }} disabled={!hay} onClick={() => setPaso(4)} title="Sáltate el acomodo y ve directo a la propuesta">
                 No necesito acomodo, ir directo a la propuesta
               </button>
