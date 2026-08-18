@@ -65,7 +65,8 @@ export const INSUMOS_SEMILLA = [
   tablero({ id: 'melamina-16-color', nombre: 'Melamina de COLOR / madera 16 mm', precio: 685, articulo: 'MVLMAG01280500 AGLOMERADO MELAMINA DOS CARAS 4x8 16 mm', fuente: FUENTE_ERP }),
     tablero({ id: 'melamina-19', nombre: 'Melamina BLANCA / EcoLegno 19 mm', precio: 544, articulo: 'Aglomerado con melamina blanca 4x8 19 mm', fuente: FUENTE_COMPRAS }),
   tablero({ id: 'melamina-19-color', nombre: 'Melamina de COLOR / madera 19 mm', precio: 665, articulo: 'MVLMAG01280600 AGLOMERADO MELAMINA DOS CARAS 4x8 19 mm', fuente: FUENTE_ERP }),
-  tablero({ id: 'melamina-28', nombre: 'Melamina ABS 28 mm (cubierta APP LT)', precio: 1335.6 }),   // INCIERTO: tablero grueso nicho
+  tablero({ id: 'melamina-28', nombre: 'Melamina ABS 28 mm (cubierta APP LT)', precio: 1335.6,
+    articulo: 'AGLOMERADO MELAMINA DOS CARAS 4x8 28 mm', fuente: FUENTE_ERP }),   // = última compra 2026-08-07 ($1335.6); rango por color $842-$1336
   tablero({ id: 'melamina-9', nombre: 'Melamina 9 mm (biombo)', precio: 648.9 }),
   tablero({ id: 'aglomerado', nombre: 'Aglomerado', precio: 344 }),
   tablero({ id: 'mdf-16', nombre: 'MDF 16 mm', precio: 372 }),
@@ -81,7 +82,9 @@ export const INSUMOS_SEMILLA = [
   tablero({ id: 'chapa-antracite', nombre: 'Chapa de madera ANTRACITE LEGACY', precio: 803.74, veta: true,
     articulo: 'Chapa de madera ANTRACITE LEGACY ($270 el m2)', fuente: FUENTE_COMPRAS }),
   tablero({ id: 'chapa-walnut', nombre: 'Chapa Walnut Burl (poro sellado)', precio: 716, veta: true }),
-  tablero({ id: 'laminado', nombre: 'Laminado plastico / Ecolegno (HPL)', precio: 405.6 }),          // INCIERTO: casi todo "por cotizar"
+  tablero({ id: 'laminado', nombre: 'Laminado plastico / Ecolegno (HPL)', precio: 405.6,
+    articulo: 'LAMINADO PLASTICO MARKET GRADE ACABADO BLANCO 4x8', fuente: FUENTE_ERP }),   // = base blanco 2026-07-03 ($405.6); colores premium (Navy, etc.) $680-$920
+
   tablero({ id: 'membrana-pvc', nombre: 'Membrana PVC (termoformado)', precio: 700 }),              // INCIERTO: se vende por ml/m2/rollo
   tablero({ id: 'faldon-melamina', nombre: 'Faldon melamina', precio: 665 }),
   ins({ id: 'faldon-abs', nombre: 'Conducto faldon ABS (App LT)', seccion: 'cubiertas', precio: 180, unidad: 'pza', clase: 'indirecta' }),
