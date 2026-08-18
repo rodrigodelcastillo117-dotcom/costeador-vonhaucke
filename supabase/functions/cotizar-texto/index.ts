@@ -41,6 +41,7 @@ const SCHEMA = {
           etiqueta: { type: "string", description: "Como lo describirias en 1 linea (ej. 'Bench Cirque 1.20 m, 6 puestos, melamina')." },
           confianza: { type: "string", enum: ["alta", "media", "baja"] },
           nota: { type: "string", description: "Supuestos que tomaste o por que dudas. Vacio si todo claro." },
+          sugerido: { type: "boolean", description: "true SOLO si TU lo propones como acompañante (silla, gaveta, mesa de una sala), no si el usuario lo pidio explicito. Default false." },
         },
         required: ["ruta", "producto", "cantidad", "seleccion", "etiqueta", "confianza", "nota"],
       },
@@ -59,6 +60,7 @@ const SCHEMA = {
           cantidad: { type: "number" },
           etiqueta: { type: "string", description: "Como lo describirias en 1 linea." },
           nota: { type: "string", description: "Por que la elegiste. Vacio si es obvio." },
+          sugerido: { type: "boolean", description: "true SOLO si TU la propones como acompañante (ej. sillas para los puestos/la sala), no si el usuario la pidio explicito. Default false." },
         },
         required: ["id", "cantidad", "etiqueta", "nota"],
       },
@@ -103,7 +105,22 @@ Deno.serve(async (req) => {
     "acabado premium, elige lo de mayor precio. Di en 'nota' por que elegiste esa.\n" +
     "8) JERARQUIA DE LINEAS OPERATIVAS, de mas premium a mas economica: CIRQUE > RIO > APP LT. " +
     "Si el texto no dice el nivel, usa App LT (la de volumen) y menciona en 'nota' que existe la " +
-    "version premium.\n\n" +
+    "version premium.\n" +
+    "9) PROPON LOS ACOMPAÑANTES NATURALES de cada mueble, como renglones APARTE con sugerido:true " +
+    "(el vendedor los revisa y quita lo que no va; NO infles cantidades):\n" +
+    "   - cada PUESTO OPERATIVO / ESCRITORIO -> una SILLA operativa del banco (una por puesto). Si es " +
+    "escritorio con guarda o el texto lo insinua, agrega tambien una GAVETA/pedestal (una por escritorio).\n" +
+    "   - cada SALA / MESA DE JUNTAS o de CONSEJO -> las SILLAS de junta que le tocan (una por lugar segun " +
+    "la medida: ~1 por cada 600 mm de perimetro util, minimo la capacidad que menciona el texto).\n" +
+    "   - RECEPCION -> una o dos sillas de visita o un banco alto.\n" +
+    "   Marca cada acompañante con sugerido:true y explica en 'nota' de que pieza es acompañante " +
+    "(ej. 'Sugerido: silla para los 6 puestos').\n" +
+    "10) OFRECE OPCIONES DE SILLA: cuando propongas sillas, menciona en 'nota' (o en 'preguntas' si de " +
+    "verdad hace falta decidir) 2-3 modelos del banco de distinto precio (economica / media / premium) " +
+    "usando la jerarquia de precio, para que el vendedor elija. Elige una por default y dilo.\n" +
+    "11) Los acompañantes NO cambian lo que el cliente pidio explicito: van SIEMPRE con sugerido:true y en " +
+    "cantidad sensata (una silla por puesto, una gaveta por escritorio, sillas = lugares de la mesa). Si " +
+    "dudas de si agregar un acompañante, mejor propon el mas obvio (la silla) y deja el resto como pregunta.\n\n" +
     // REGLAS DEL OFICIO — las dicta Rodrigo desde la pantalla "Lo que Voni sabe"
     // (tabla `reglas` en Supabase). Hasta el 2026-08-16 esta tabla NO llegaba a
     // ningun modelo: `reglasTexto()` estaba exportada y no la llamaba nadie, asi

@@ -66,7 +66,7 @@ export default function CotizadorIA({ estado, onAgregarItems, onIr, verCotizacio
         const c = costearItem(estado, { ...it, cantidad });
         // `avisos` son los ajustes que la app le hizo a lo que pidió Voni (pediste 8
         // usuarios y ese producto sólo tiene 6). Antes se hacían en silencio.
-        if (c) costados.push({ ...c, nota: it.nota || null, confianza: it.confianza || null, avisos: c.avisos || [] });
+        if (c) costados.push({ ...c, nota: it.nota || null, confianza: it.confianza || null, avisos: c.avisos || [], sugerido: !!it.sugerido });
         else sinCostear.push(it.etiqueta || it.producto || 'un mueble');
       }
       // PIEZAS DEL BANCO DE PRECIOS (sillería, complementos). No se cuestan: su
@@ -80,7 +80,7 @@ export default function CotizadorIA({ estado, onAgregarItems, onIr, verCotizacio
           piezaId: pieza.id, nombre: pieza.medidas ? `${pieza.nombre} (${pieza.medidas})` : pieza.nombre,
           cantidad, costoUnitario: 0, precioUnitario: pieza.precio, margen: null,
           deBanco: true, precioReal: true,
-          nota: b.nota || null, confianza: 'alta', avisos: [],
+          nota: b.nota || null, confianza: 'alta', avisos: [], sugerido: !!b.sugerido,
         });
       }
       if (costados.length) {

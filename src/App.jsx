@@ -431,6 +431,8 @@ export default function App() {
       // El artículo del catálogo con el que casó (para el piso de descuento) y,
       // si hay varias terminaciones, las opciones para que el vendedor elija.
       catalogo: c.catalogo || null, variantes: c.variantes || null,
+      // ¿Voni lo PROPUSO como acompañante (silla, gaveta…) o lo pidió el cliente?
+      sugerido: !!c.sugerido,
     }));
   }
 

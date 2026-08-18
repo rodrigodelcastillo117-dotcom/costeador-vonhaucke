@@ -750,6 +750,9 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 .ia-precio { min-width: 120px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
 .ia-badge.media { color: #7a5f1f; background: #f7f0dd; border-color: var(--ambar); }
 .ia-badge.baja { color: #8a2b25; background: #fbeceb; border-color: var(--rojo, #D02E26); }
+/* Acompañante que PROPUSO Voni (silla, gaveta, mesa de la sala): en verde, para
+   que se distinga de lo que pidió el cliente y el vendedor decida si va. */
+.ia-badge.sugerido { color: var(--verde); background: #e9f4f1; border-color: var(--verde); }
 .lista-ia { margin: 8px 0 0 18px; font-size: 14px; color: var(--gris); }
 .lista-ia li { margin-bottom: 4px; }
 

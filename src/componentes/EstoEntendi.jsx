@@ -66,6 +66,9 @@ export default function EstoEntendi({
                   <div className="ia-meta">
                     <span className={`sello sello-${s.tipo}`} title={s.nota}>{s.texto}</span>
                     {pt.confianza && pt.confianza !== 'alta' && <span className={`ia-badge ${pt.confianza}`}>confianza {pt.confianza}</span>}
+                    {/* Voni lo PROPUSO (silla, gaveta, mesa de la sala); no lo
+                        pidió el cliente. Se marca para que el vendedor decida. */}
+                    {pt.sugerido && <span className="ia-badge sugerido" title="Voni lo propuso como acompañante. Quítalo si no va.">sugerido</span>}
                   </div>
                   {pt.nota && <div className="ia-nota">{pt.nota}</div>}
                   {/* Los AJUSTES que la app tuvo que hacerle a lo que pidió Voni
