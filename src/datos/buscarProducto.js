@@ -21,6 +21,7 @@
 // ============================================================================
 import { LINEAS_REG } from './lineas.js';
 import { bancoUnico } from './banco.js';
+import { PRECIOS_LINEA } from './preciosLinea.js';
 
 const sinAcentos = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -61,6 +62,25 @@ const SILLAS = bancoUnico()
     busca: sinAcentos([p.nombre, p.clave, p.material, 'silla silleria banco de precios'].join(' ')),
   }));
 
+// ⚠️ LOS ARTÍCULOS DEL CATÁLOGO OFICIAL (Excel de Rodrigo, 1713 con precio real).
+// Rodrigo: "con estos precios ya podríamos cotizar perfectamente DE LÍNEA y el
+// producto si coincide". Los muebles individuales se cotizan por artículo EXACTO
+// (escritorio, credenza, archivero…), así que entran al buscador con su Precio
+// Lista real y, al tocarlos, se agregan a la cotización sin configurar nada.
+// Salen DESPUÉS de los productos configurables (que son los genéricos a la
+// medida), para no tapar la búsqueda del que arma algo nuevo.
+const ARTICULOS = PRECIOS_LINEA.map((a) => ({
+  ruta: a.ruta,
+  linea: a.ln,
+  articulo: true,
+  clave: a.c,
+  productoId: a.c,
+  nombre: a.d,
+  precio: a.l,            // Precio Lista: el que manda al cotizar
+  full: a.f, minimo: a.m, // por si se cotiza en base FULL o se topa al piso
+  busca: sinAcentos([a.d, a.c, a.cc, a.ln].join(' ')),
+}));
+
 /** Los 118 productos de las 24 líneas + la sillería del banco. */
 export const PRODUCTOS_INDEX = Object.entries(LINEAS_REG).flatMap(([ruta, L]) =>
   (L.productos || []).map((p) => ({
@@ -82,12 +102,13 @@ export function buscarProductos(q, tope = 24) {
   const t = sinAcentos(q).trim();
   if (!t) return [];
   const palabras = t.split(/\s+/).filter(Boolean);
-  const hit = PRODUCTOS_INDEX.filter((p) => palabras.every((w) => p.busca.includes(w)));
-  return hit
+  const casa = (arr) => arr
+    .filter((p) => palabras.every((w) => p.busca.includes(w)))
     .sort((a, b) => {
       const ap = sinAcentos(a.nombre).startsWith(palabras[0]) ? 0 : 1;
       const bp = sinAcentos(b.nombre).startsWith(palabras[0]) ? 0 : 1;
       return ap !== bp ? ap - bp : a.nombre.localeCompare(b.nombre);
-    })
-    .slice(0, tope);
+    });
+  // Configurables + banco primero; artículos exactos del catálogo después.
+  return casa(PRODUCTOS_INDEX).concat(casa(ARTICULOS)).slice(0, tope);
 }

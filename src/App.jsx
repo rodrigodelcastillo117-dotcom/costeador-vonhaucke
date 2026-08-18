@@ -630,6 +630,26 @@ export default function App() {
     }));
   }
 
+  // Un ARTÍCULO del catálogo oficial (Excel de Rodrigo): precio de venta REAL,
+  // sin costo/despiece (es un producto terminado con Precio Lista). Se agrega
+  // directo desde el buscador de Inicio, como el banco pero de línea propia.
+  // Sin margen -> cuenta como `sinCosto`: el vendedor ve sólo precio; Dirección
+  // ve "—" en costo/utilidad, que es la verdad (el catálogo no trae costo).
+  function agregarArticuloLinea(r) {
+    if (!r || !(r.precio > 0)) return;
+    const partida = {
+      id: idNuevo('p'), piezaId: `linea-${r.clave}`, nombre: r.nombre,
+      ruta: r.ruta || null, productoId: r.clave, claveLinea: r.clave,
+      cantidad: 1, costoUnitario: null, precioUnitario: r.precio,
+      margen: null, deLinea: true,
+    };
+    setEstado((e) => ({
+      ...e,
+      cotizacion: { ...e.cotizacion, partidas: [...(e.cotizacion.partidas || []), partida] },
+    }));
+    mostrarAviso(`Agregado: ${r.nombre}`);
+  }
+
   const nPartidas = estado.cotizacion?.partidas?.length || 0;
 
   // ---- Puerta de acceso ----
@@ -697,7 +717,7 @@ export default function App() {
             estado={estado} rol={esDireccion ? 'direccion' : esDiseno ? 'diseno' : 'ventas'} />
         )}
         {pestania === 'inicio' && (
-          <div className="contenido"><Inicio estado={estado} onIr={irA} veCostos={veCostos} esDireccion={esDireccion} vista={inicioVista} setVista={setInicioVista} onDescartar={descartarProyecto} q={inicioQ} setQ={setInicioQ} grupoAbierto={inicioGrupo} setGrupoAbierto={setInicioGrupo} /></div>
+          <div className="contenido"><Inicio estado={estado} onIr={irA} onAgregarArticulo={agregarArticuloLinea} veCostos={veCostos} esDireccion={esDireccion} vista={inicioVista} setVista={setInicioVista} onDescartar={descartarProyecto} q={inicioQ} setQ={setInicioQ} grupoAbierto={inicioGrupo} setGrupoAbierto={setInicioGrupo} /></div>
         )}
         {pestania === 'asistente' && (
           <div className="contenido"><Asistente estado={estado} onAgregarPartida={agregarDesdeAsistente} onIr={irA} soloVentas={esVendedor} /></div>

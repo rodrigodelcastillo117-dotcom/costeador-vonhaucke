@@ -104,7 +104,7 @@ function BarraVolver({ titulo, sub, onVolver }) {
   );
 }
 
-export default function Inicio({ estado, onIr, veCostos = false, esDireccion = false, vista: vistaProp, setVista: setVistaProp, onDescartar, q: qProp, setQ: setQProp, grupoAbierto: grupoProp, setGrupoAbierto: setGrupoProp }) {
+export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = false, esDireccion = false, vista: vistaProp, setVista: setVistaProp, onDescartar, q: qProp, setQ: setQProp, grupoAbierto: grupoProp, setGrupoAbierto: setGrupoProp }) {
   const [vistaLocal, setVistaLocal] = useState('home');
   const vista = vistaProp ?? vistaLocal;         // controlado por App (para "Atrás"); local en preview
   const setVista = setVistaProp ?? setVistaLocal;
@@ -346,12 +346,14 @@ export default function Inicio({ estado, onIr, veCostos = false, esDireccion = f
           <div className="hallados-cab">{productosHallados.length} producto{productosHallados.length === 1 ? '' : 's'}</div>
           {productosHallados.map((r) => (
             <button key={r.ruta + ':' + r.productoId} className="hallado"
-              onClick={() => (r.banco ? onIr('banco') : onIr(r.ruta, r.productoId))}>
+              onClick={() => (r.articulo ? onAgregarArticulo?.(r) : r.banco ? onIr('banco') : onIr(r.ruta, r.productoId))}>
               <span className="hallado-txt">
                 <strong>{r.nombre}</strong>
-                <span className="hallado-linea">{r.linea}</span>
+                {/* Un ARTÍCULO del catálogo trae su Precio Lista real: se muestra
+                    junto a la línea y al tocarlo se agrega directo, sin configurar. */}
+                <span className="hallado-linea">{r.linea}{r.articulo ? ` · ${pesos(r.precio)}` : ''}</span>
               </span>
-              <span className="hallado-cta">{r.banco ? 'Ver en el banco →' : 'Configurar →'}</span>
+              <span className="hallado-cta">{r.articulo ? 'Agregar →' : r.banco ? 'Ver en el banco →' : 'Configurar →'}</span>
             </button>
           ))}
         </div>

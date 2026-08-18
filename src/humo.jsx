@@ -177,6 +177,13 @@ const PARTIDAS = [
    "plazas": "1",
    "placa": false
   }
+ },
+ {
+  // Partida de ARTÍCULO DE CATÁLOGO (deLinea): precio real del Excel, SIN costo
+  // ni despiece. Así se ve un renglón agregado desde el buscador de Inicio.
+  "id": "p7", "piezaId": "linea-ECARS86P", "nombre": "ARCHIVERO DIRECTOR CON 6 PUERTAS VERTICALES · MODELO ECLIPSE",
+  "ruta": "eclipse", "productoId": "ECARS86P", "claveLinea": "ECARS86P",
+  "cantidad": 1, "costoUnitario": null, "precioUnitario": 69340, "margen": null, "deLinea": true
  }
 ];
 const partida = PARTIDAS[0];
