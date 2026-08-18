@@ -515,7 +515,24 @@ function acomodarPorCuartos(areas, piezas) {
           : (PREFERENCIA[p.tipo] || PREFERENCIA.mueble);
         return pref.includes(c.rol);
       };
-      const intento = [...ocupadas, ...restantes.filter((p) => !sinCuartoPropio(p) && permite(p) && cabeEn(p, c.a))];
+      // ⚠️ LAS GAVETAS SE REPARTEN, NO SE AMONTONAN (2026-08-18). Rodrigo:
+      // "las sillas y gavetas nunca se ponen bien". Medido con su plano (5
+      // privados con escritorio + 5 archiveros): la 2ª pasada metía LOS CINCO
+      // en el primer cuarto con hueco —el Privado 1—, a 0.8–3.0 m de cualquier
+      // escritorio, y las otras cuatro oficinas sin su archivero. La regla de la
+      // casa ("gaveta pegada a su escritorio") ya valía en la 1ª pasada pero
+      // aquí se perdía. Ahora un cuarto toma a lo más tantas gavetas nuevas como
+      // estaciones (escritorios/bancas) tenga todavía SIN gaveta: la suya, y no
+      // dobla hasta que las demás oficinas tengan la propia.
+      let cupoGuarda = ocupadas.filter((p) => p.tipo === 'escritorio').length
+        - ocupadas.filter((p) => p.tipo === 'guarda').length;
+      const nuevas = restantes.filter((p) => !sinCuartoPropio(p) && permite(p) && cabeEn(p, c.a))
+        .filter((p) => {
+          if (p.tipo !== 'guarda') return true;      // sólo las gavetas se racionan
+          if (cupoGuarda <= 0) return false;
+          cupoGuarda -= 1; return true;
+        });
+      const intento = [...ocupadas, ...nuevas];
       if (intento.length === ocupadas.length) continue;
       const r = acomodarEnForma(c.a, intento);
       const puestas = new Set(r.colocacion.map((k) => k.id));
