@@ -36,6 +36,7 @@ import { factorDeLinea } from './factoresLinea.js';
 import { precioPorUsuarioAppLT } from './preciosVenta.js';
 import { tipoDe, huellaReal, HUELLA } from './espacio.js';
 import { BANCO, bancoUnico } from './banco.js';
+import { resolverArticuloCatalogo } from './resolverArticulo.js';
 
 export const LINEAS_REG = {
   applt: { titulo: 'App LT', productos: APPLT_PRODUCTOS, generar: generarAppLT },
@@ -305,6 +306,34 @@ export function costearItem(estado, item) {
     // La medida que trae el nombre ("ocupa 4.50 × 1.20 m") también cambia.
     nb.nombre = nb.nombre.replace(/ocupa\s+[\d.]+\s*×/, `ocupa ${(nb.w / 1000).toFixed(2)} ×`);
   }
+  // ---- EL CATÁLOGO OFICIAL MANDA -------------------------------------------
+  //  Rodrigo (2026-08-18): "que Voni utilice esos precios para todo". Cuando el
+  //  item coincide con un artículo del catálogo (mueble completo: escritorio,
+  //  credenza, archivero, mesa…), su Precio Lista REAL sustituye al calculado
+  //  —que salía ±, y en escritorios directivos hasta 4× por debajo—. El
+  //  benching y lo no mapeado caen a 'ninguno' y se quedan con el cálculo.
+  let catalogo = null;
+  let variantes = null;
+  const res = resolverArticuloCatalogo({ ruta: item.ruta, producto: prod.id, config });
+  if (res.estado !== 'ninguno' && res.articulo && res.articulo.lista > 0) {
+    const a = res.articulo;
+    precio = a.lista;                       // el de lista es el que se cotiza
+    catalogo = { clave: a.clave, lista: a.lista, full: a.full, minimo: a.minimo };
+    // Cuando hay varias variantes (misma medida/mano, distinta terminación),
+    // Voni NO elige: se lleva el base y ADJUNTA las opciones para que el
+    // vendedor toque la correcta en la pantalla (decisión de Rodrigo).
+    if (res.estado === 'varios') variantes = res.candidatos.slice(0, 8);
+    // Con precio de lista real, el costo se deja IMPLÍCITO (mismo criterio que
+    // el price-book): así Dirección sigue viendo una utilidad coherente.
+    return {
+      ruta: item.ruta, linea: L.titulo, producto: prod.id, nombre: nb.nombre,
+      cantidad, costoUnitario: costoImplicito(a.lista), precioUnitario: precio, margen, pieza,
+      w: nb.w, d: nb.d, config,
+      precioReal: true, catalogo, variantes,
+      avisos,
+    };
+  }
+
   return {
     ruta: item.ruta, linea: L.titulo, producto: prod.id, nombre: nb.nombre,
     cantidad, costoUnitario: pr.costo, precioUnitario: precio, margen, pieza,
@@ -338,6 +367,21 @@ export function costearConfig(estado, ruta, productoId, config, cantidad = 1) {
   const margen = pr.margen;
   const fp = footprintDe(g.componentes, g.nombre);
   const nb = nombreConBloque(g.nombre, ruta, fp.w, fp.d);
+  // El catálogo manda AQUÍ también: si el vendedor cambia la medida/acabado y la
+  // nueva config casa con un artículo real, su Precio Lista sustituye al modelo
+  // (y se recalculan las variantes de la nueva medida). Sin esto, editar un
+  // mueble le tiraba el precio de lista de vuelta al calculado.
+  const res = resolverArticuloCatalogo({ ruta, producto: productoId, config: cfg });
+  if (res.estado !== 'ninguno' && res.articulo && res.articulo.lista > 0) {
+    const a = res.articulo;
+    return {
+      nombre: nb.nombre, config: cfg, cantidad: n,
+      costoUnitario: costoImplicito(a.lista), precioUnitario: a.lista,
+      margen, w: nb.w, d: nb.d, precioReal: true,
+      catalogo: { clave: a.clave, lista: a.lista, full: a.full, minimo: a.minimo },
+      variantes: res.estado === 'varios' ? res.candidatos.slice(0, 8) : null,
+    };
+  }
   return {
     nombre: nb.nombre, config: cfg, cantidad: n,
     costoUnitario: pr.costo, precioUnitario: pr.precio,
@@ -345,6 +389,8 @@ export function costearConfig(estado, ruta, productoId, config, cantidad = 1) {
     // Igual que costearItem: sin esto, una partida editada perdía el sello
     // "Firme" aunque su precio siguiera saliendo de un presupuesto real.
     precioReal: pr.real,
+    // Sin match del catálogo: se limpia cualquier variante vieja de la partida.
+    catalogo: null, variantes: null,
   };
 }
 

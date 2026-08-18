@@ -15,6 +15,7 @@ import EmpezarEspacio from './EmpezarEspacio.jsx';
 import { leerPlanoDeArchivo } from '../datos/leerPlanoArchivo.js';
 import Cargando from './Cargando.jsx';
 import EstoEntendi from './EstoEntendi.jsx';
+import { costoImplicito } from '../datos/preciosVenta.js';
 
 // ⚠️ EL ESPACIO VA PRIMERO (2026-08-17). Antes era: muebles → espacio →
 // propuesta, y eso obliga a COTIZAR A CIEGAS: escoges los muebles sin saber
@@ -229,6 +230,13 @@ export default function Voni({
                   onCantidad={(id, n) => setCot({ partidas: partidas.map((p) => (p.id === id ? { ...p, cantidad: Math.max(1, n) } : p)) })}
                   onQuitar={(id) => setCot({ partidas: partidas.filter((p) => p.id !== id) })}
                   onEditar={(id) => setEditando(partidas.findIndex((p) => p.id === id))}
+                  onVariante={(id, art) => setCot({ partidas: partidas.map((p) => (p.id === id ? {
+                    ...p,
+                    precioUnitario: art.lista,
+                    costoUnitario: costoImplicito(art.lista),   // que Dirección siga viendo utilidad coherente
+                    precioReal: true,
+                    catalogo: { clave: art.clave, lista: art.lista, full: art.full, minimo: art.minimo },
+                  } : p)) })}
                 />
                 <hr />
                 <div className="fila" style={{ justifyContent: 'flex-end', gap: 20 }}>

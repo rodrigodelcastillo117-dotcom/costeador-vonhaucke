@@ -16,8 +16,16 @@ import { loQueEntendi } from '../datos/entendido.js';
 import { pesos, selloPartida } from '../util.js';
 import { sePuedeEditar } from './EditarPartida.jsx';
 
+// La descripción del catálogo es larga y termina en la clave ("... -- ECCR82DCH").
+// Para el vendedor basta lo que distingue una variante de otra (ecopiel,
+// papelero…), sin el ruido de MODELO/medidas repetidas.
+const cortito = (d) => {
+  const s = String(d || '').split('--')[0].replace(/\s+/g, ' ').trim();
+  return s.length > 68 ? s.slice(0, 68) + '…' : s;
+};
+
 export default function EstoEntendi({
-  partidas = [], areasM = [], onCantidad, onQuitar, onEditar,
+  partidas = [], areasM = [], onCantidad, onQuitar, onEditar, onVariante,
 }) {
   const r = loQueEntendi(partidas, areasM);
   const porId = Object.fromEntries(partidas.map((p) => [p.id, p]));
@@ -64,6 +72,25 @@ export default function EstoEntendi({
                       (pediste 8 puestos y ese producto sólo tiene 6). En rojo y
                       por renglón: antes se hacían callado. */}
                   {(pt.avisos || []).map((a, k) => <div className="ia-aviso" key={k}>⚠ {a}</div>)}
+                  {/* VARIAS TERMINACIONES en el catálogo a esta medida (ecopiel,
+                      papelero…). Voni NO elige por el vendedor: le muestra las
+                      opciones con su precio real y él toca la correcta. Decisión
+                      de Rodrigo, 2026-08-18: "cero sorpresas". */}
+                  {pt.variantes && pt.variantes.length > 1 && onVariante && (
+                    <details className="ee-variantes">
+                      <summary>{pt.variantes.length} variantes en catálogo · elige la terminación</summary>
+                      <div className="ee-variantes-lista">
+                        {pt.variantes.map((v) => (
+                          <button type="button" key={v.clave}
+                            className={`ee-variante${pt.catalogo?.clave === v.clave ? ' sel' : ''}`}
+                            onClick={() => onVariante(pt.id, v)}>
+                            <span className="ee-variante-d">{cortito(v.descripcion)}</span>
+                            <span className="ee-variante-p mono">{pesos(v.lista)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </details>
+                  )}
                 </div>
                 <span className="masmenos" title="Cantidad">
                   <button onClick={() => onCantidad(pt.id, (pt.cantidad || 1) - 1)}>−</button>

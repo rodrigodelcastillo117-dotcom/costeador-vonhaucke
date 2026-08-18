@@ -148,6 +148,10 @@ export default function EditarPartida({ estado, partida, onGuardar, onCerrar }) 
               nombre: nuevo.nombre, config: nuevo.config, cantidad: cant,
               costoUnitario: nuevo.costoUnitario, precioUnitario: nuevo.precioUnitario,
               margen: nuevo.margen, w: nuevo.w, d: nuevo.d,
+              precioReal: !!nuevo.precioReal,
+              // El artículo del catálogo de la NUEVA medida (o null si dejó de
+              // casar): así el piso y las variantes siguen a lo que quedó.
+              catalogo: nuevo.catalogo || null, variantes: nuevo.variantes || null,
               // Ya lo revisó una persona: la nota y la confianza de la IA sobran.
               nota: null, confianza: null,
             })}>Guardar cambios</button>

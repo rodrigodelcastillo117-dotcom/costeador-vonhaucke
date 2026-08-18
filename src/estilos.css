@@ -1757,3 +1757,27 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
   .cot-acciones-fija { gap: 8px; }
   .cot-acciones-fija .cot-pdf, .cot-acciones-fija .boton.fantasma { flex: 1 1 auto; }
 }
+
+/* ------------------------------------------------------------------------- */
+/*  VARIANTES DEL CATÁLOGO en "Esto entendí": cuando un mueble casa con       */
+/*  varias terminaciones (ecopiel, papelero…), Voni las muestra con su precio */
+/*  real y el vendedor elige. Decisión de Rodrigo (2026-08-18): cero sorpresas.*/
+.ee-variantes { margin-top: 6px; }
+.ee-variantes > summary {
+  cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--verde);
+  list-style: none; display: inline-flex; align-items: center; gap: 4px;
+}
+.ee-variantes > summary::-webkit-details-marker { display: none; }
+.ee-variantes > summary::before { content: "▸"; font-size: 10px; }
+.ee-variantes[open] > summary::before { content: "▾"; }
+.ee-variantes-lista { display: grid; gap: 4px; margin-top: 6px; }
+.ee-variante {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  width: 100%; text-align: left; padding: 7px 10px; cursor: pointer;
+  border: 1.5px solid var(--linea); border-radius: 7px; background: var(--blanco);
+  color: var(--tinta); font: inherit;
+}
+.ee-variante:hover { border-color: var(--tinta); background: rgba(30,27,26,.03); }
+.ee-variante.sel { border-color: var(--verde); box-shadow: 0 0 0 2px rgba(15,118,110,.14); }
+.ee-variante-d { font-size: 12.5px; color: var(--gris); line-height: 1.3; }
+.ee-variante-p { font-size: 13px; font-weight: 700; white-space: nowrap; }

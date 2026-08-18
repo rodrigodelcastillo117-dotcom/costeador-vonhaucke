@@ -43,6 +43,7 @@ import CambiarContrasena from './componentes/CambiarContrasena.jsx';
 import FichaPDF from './componentes/FichaPDF.jsx';
 import InformeIA from './componentes/InformeIA.jsx';
 import MiniRender from './componentes/MiniRender.jsx';
+import { resolverArticuloCatalogo } from './datos/resolverArticulo.js';
 
 const nada = () => {};
 const insumos = mapaInsumos(INSUMOS_SEMILLA);
@@ -184,7 +185,23 @@ const PARTIDAS = [
   "id": "p7", "piezaId": "linea-ECARS86P", "nombre": "ARCHIVERO DIRECTOR CON 6 PUERTAS VERTICALES · MODELO ECLIPSE",
   "ruta": "eclipse", "productoId": "ECARS86P", "claveLinea": "ECARS86P",
   "cantidad": 1, "costoUnitario": null, "precioUnitario": 69340, "margen": null, "deLinea": true
- }
+ },
+ // Partida que armó VONI y casó con VARIAS terminaciones del catálogo (mismo
+ // escritorio 2.40 D chapa: base, ecopiel, papelero…). El vendedor elige la
+ // correcta con el selector de "Esto entendí". Se arma con datos REALES del
+ // catálogo para que la prueba de humo ejercite el precio de lista y el picker.
+ (() => {
+   const r = resolverArticuloCatalogo({ ruta: 'eclipse', producto: 'escritorio', config: { largoMM: 2400, mano: 'D', finish: 'chapa' } });
+   const a = r.articulo;
+   return {
+     id: 'p8', piezaId: 'linea-escritorio', nombre: 'Eclipse Escritorio Directivo 2.40 m · mano Derecha',
+     ruta: 'eclipse', productoId: 'escritorio', cantidad: 2,
+     costoUnitario: null, precioUnitario: a.lista, margen: null, precioReal: true,
+     config: { producto: 'escritorio', largoMM: 2400, finish: 'chapa', mano: 'D' },
+     catalogo: { clave: a.clave, lista: a.lista, full: a.full, minimo: a.minimo },
+     variantes: r.candidatos.slice(0, 8),
+   };
+ })(),
 ];
 const partida = PARTIDAS[0];
 const estado = {
