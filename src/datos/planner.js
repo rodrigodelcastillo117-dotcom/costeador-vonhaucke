@@ -289,6 +289,12 @@ const PREFERENCIA = {
   // operativos. Nunca sueltas y NUNCA en sala de juntas." Por eso 'juntas' ya
   // no es destino de una guarda: una sala de juntas no tiene a quién servir.
   guarda:     ['open', 'general', 'privado'],
+  // La CREDENZA no es una gaveta suelta: es el mueble bajo que va DETRÁS del
+  // escritorio del director, en su privado. Por eso prefiere 'privado' (donde
+  // están los directivos) y se reparte una por oficina, como el escritorio.
+  // Antes caía en 'guarda' → open primero → las 5 credenzas al open space,
+  // ninguna en su privado, y varias flotando a media planta (Rodrigo lo vio).
+  credenza:   ['privado', 'general', 'open'],
   mampara:    ['open', 'general', 'privado'],
   // El mostrador va en la RECEPCIÓN. Obvio, pero hasta hoy no existía el tipo.
   recepcion:  ['recepcion', 'general', 'open'],
@@ -456,11 +462,14 @@ function acomodarPorCuartos(areas, piezas) {
       // dondequiera que haya quedado su banca. Lo que no alcance puesto se
       // reporta como no colocado, que es la verdad.
       if (sinCuartoPropio(p)) { sobran.push(p); continue; }
+      // La credenza va con el director, en su privado (no es un archivero suelto).
+      const credenza = tipo === 'guarda' && /credenza|lateral|bajo\b/i.test(p.nombre || '');
       const orden = tipo === 'escritorio' && esBench(p) ? PREFERENCIA.bench
         : silla ? (visita ? PREFERENCIA.visita
           : esSillaDirectiva(p) ? PREFERENCIA.directiva
             : esSillaDeJuntas(p) ? PREFERENCIA.juntasSilla : PREFERENCIA.silla)
-          : (PREFERENCIA[tipo] || PREFERENCIA.mueble);
+          : credenza ? PREFERENCIA.credenza
+            : (PREFERENCIA[tipo] || PREFERENCIA.mueble);
       // La silla OPERATIVA sigue al escritorio, igual que la gaveta: va donde
       // está la gente. La de VISITA no: si también siguiera al escritorio se
       // iría al open space —que es el cuarto con más escritorios— y ahí no
@@ -475,8 +484,11 @@ function acomodarPorCuartos(areas, piezas) {
       // repartir), así que la planta abierta se comporta igual que antes.
       // Y las MESAS DE JUNTAS igual: con 2 salas, una en cada una — antes las
       // dos caían en la Sala 1 y la Sala 2 quedaba vacía.
-      const candidatos = ordenar(orden, tipo === 'guarda' || (silla && !visita),
-        tipo === 'escritorio' || tipo === 'juntas' || visita
+      // OJO: la credenza NO usa "preferir el cuarto con más escritorios" — eso la
+      // mandaba al open (que tiene los 5 benches) por encima de su preferencia de
+      // privado. Sigue su orden (privado primero) y se reparte una por oficina.
+      const candidatos = ordenar(orden, (tipo === 'guarda' && !credenza) || (silla && !visita),
+        tipo === 'escritorio' || tipo === 'juntas' || visita || credenza
         || esSillaDirectiva(p) || esSillaDeJuntas(p));
       // Se busca el primer cuarto de la preferencia donde la pieza QUEPA
       // físicamente y todavía haya área libre estimada.
