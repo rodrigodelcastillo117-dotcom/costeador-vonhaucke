@@ -74,6 +74,17 @@ export function familiaDe(productoId, nombre = '') {
   return 'escritorio';
 }
 
+// ⚠️ 2026-08-19: SÓLO la fila "alba" de aquí abajo se remidió a mano (no con
+// `--escribe`, que reescribe las 21 líneas de un jalón). `alba.js` fijaba un
+// blend de mano de obra plano en TODO producto Alba y nunca dejaba correr su
+// fórmula real por tipo de material (formulaAlba.js, commit 5966d59) — el
+// "modelo crudo" que esta tabla mide cambió al quitarle ese blend, así que su
+// fila quedó desactualizada. Correr `--escribe` sin filtro removidió las
+// otras 20 líneas también, movió números que nadie pidió tocar hoy y hasta
+// borró filas de productos que no encontró (app.escritorio, eclipse, tetris)
+// — esa corrida se descartó. Si otra línea necesita remedirse, hazlo con
+// intención y revisa el diff completo antes de guardarlo: no es un botón que
+// se aprieta de pasada.
 /* CALIBRA:INICIO */
 export const MEDIDO_ANTES = {
   "applt": {
@@ -110,9 +121,9 @@ export const MEDIDO_ANTES = {
     "escritorio": 2.802
   },
   "alba": {
-    "bench": 0.215,
-    "escritorio": 0.572,
-    "juntas": 0.868
+    "bench": 0.296,
+    "escritorio": 1.008,
+    "juntas": 1.121
   },
   "eclipse": {
     "escritorio": 4.425,
@@ -197,12 +208,15 @@ export const FACTOR_LINEA = Object.fromEntries(
 export const AJUSTE_PRODUCTO = {
   'cirque.credenza': 0.31,    // contrastado contra la credenza Modulor real
   'cirque.recepcion': 0.31,
-  // Alba: el ×2.87 que necesita su escritorio mandaba su mesa de juntas de 3.60
-  // a $52,389, cuando una mesa REAL de 3.60 × 1.20 con caja eléctrica cuesta
-  // $20,510 (Tradeco). Encontrado corriendo Voni de punta a punta, no leyendo
-  // código: el modelo cotizaba 2.5× arriba y nadie lo veía.
-  'alba.mesa_juntas': 0.39,
-  'alba.teamspace': 0.55,     // misma familia de cubiertas grandes
+  // ⚠️ 'alba.mesa_juntas'/'alba.teamspace' VIVIERON AQUÍ (quitados 2026-08-19).
+  // Se calibraron contra el modelo CRUDO roto (ver la nota junto a la fila
+  // "alba" de MEDIDO_ANTES, arriba). Con la fórmula real ya puesta y esa fila
+  // remedida, el factor POR FAMILIA ya lleva sola la mesa de juntas cerca de
+  // su objetivo — el 0.39 que aquí vivía la aplastaba a $6,096 (30% de los
+  // $20,510 reales de Tradeco que originalmente motivaron el ajuste). Sin
+  // ancla de papel para 'teamspace', se quita también: su único sustento era
+  // "misma familia que mesa_juntas". Si vuelve a desviarse con datos reales
+  // nuevos, se repone aquí con SU propio número, no adivinado.
   // Luna NO lleva ajuste: su factor es apenas 1.25, no desborda nada. Se probó
   // con 0.55 y dejaba su credenza en $5,972, por debajo de la de Cirque — al
   // revés de la realidad, porque Luna es la más cara de las dos.
