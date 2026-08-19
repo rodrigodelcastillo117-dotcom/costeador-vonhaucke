@@ -36,7 +36,10 @@ const LINEA_PRIVADOS = [
   { ruta: 'luna', nombre: 'Luna' }, { ruta: 'drift', nombre: 'Eclipse Drift' },
   { ruta: 'anteo', nombre: 'Anteo' },
 ];
-const SILLA_OPERATIVA = ['WIN', 'WIN-CAB', 'GAMMA-E', 'DEX', 'C4-EM-BNF'];
+// C4-EM-BNF (sin cabecera) es la que más se vende para operativos (Rodrigo,
+// 2026-08-19); C4-EL-BNF-CAB es su misma familia con cabecera — mismo patrón
+// que WIN/WIN-CAB, ambas seleccionables aparte.
+const SILLA_OPERATIVA = ['WIN', 'WIN-CAB', 'GAMMA-E', 'DEX', 'C4-EM-BNF', 'C4-EL-BNF-CAB'];
 const SILLA_VISITA = ['CONCERTO', 'DELTA', 'SONATA', 'RE570GT'];
 // ⚠️ 2026-08-18: la frase pedía "sillas directivas" SIN modelo — quien la
 // traduce a catálogo no tenía con qué anclar una silla ejecutiva específica y

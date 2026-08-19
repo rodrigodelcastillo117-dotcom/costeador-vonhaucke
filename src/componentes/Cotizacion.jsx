@@ -118,7 +118,10 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
     for (let i = 0; i < ps.length; i++) {
       if (ps[i].render) continue;
       setGenPart(ps[i].id);
-      try { const r = await generarRender(ps[i].nombre || 'mueble', { tipo: ps[i].ruta || '' }); if (r?.ok) ps[i] = { ...ps[i], render: r.dataUrl }; else if (r?.error) setErrGen(r.error); } catch (e) {}
+      // ⚠️ CATCH VACÍO, INCONSISTENTE CON renderPartida (auditoría 2026-08-19):
+      // si truena la red a media tanda, esa pieza se quedaba sin imagen y sin
+      // aviso — la versión de "un solo render" (arriba) sí avisa.
+      try { const r = await generarRender(ps[i].nombre || 'mueble', { tipo: ps[i].ruta || '' }); if (r?.ok) ps[i] = { ...ps[i], render: r.dataUrl }; else if (r?.error) setErrGen(r.error); } catch (e) { setErrGen('No se pudo conectar.'); }
     }
     setGenPart(null); setCot({ partidas: ps });
   }

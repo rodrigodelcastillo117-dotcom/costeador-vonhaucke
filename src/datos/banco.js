@@ -189,10 +189,16 @@ export const BANCO = [
   { id: 'p9-silla-de-visita-concerto-5470', categoria: 'Sillería', tipo: 'silla', usuarios: 1, nombre: "Silla de visita · CONCERTO", descripcion: "Silla base de 4 puntos, con brazos modelo concerto estructura negra, br…", material: "tela, estructura negra, brazos negros", precio: 5470, fuente: '225080025', clave: 'CONCERTO-BNENRTAT' },
   { id: 'p9-silla-ejecutiva-energy-6480', categoria: 'Sillería', tipo: 'silla', nombre: "Silla ejecutiva · ENERGY", descripcion: "Silla ejecutiva modelo energy ehite con respaldo alto de 4 posiciones d…", material: "base 5 puntos aluminio pulido, descansabrazos 4D, soporte lumbar ajustable, cabecera ajustable, white (docume…", precio: 6480, fuente: '226060050' },
   { id: 'p9-silla-ejecutiva-22198', categoria: 'Sillería', tipo: 'silla', nombre: "Silla ejecutiva", descripcion: "Silla ejecutiva ergohuman", material: "malla, base de aluminio, marco y malla gris", precio: 22198, fuente: '226030134', clave: 'RM-9100-GR' },
-  { id: 'p9-silla-operativa-c4-em-bnf-1595', categoria: 'Sillería', tipo: 'silla', usuarios: 1, nombre: "Silla operativa · C4-EM-BNF", descripcion: "Silla operativa, con brazos, rodante modelo c4-em-bnf mecanismos de ele…", material: "nailon, mesh 109, tela, base negra de nailon, tapizado en tela, brazos fijos, mecanismo de elevación, mecanis…", precio: 1595, fuente: '226050047' },
+  // ⚠️ CONSOLIDADO (Rodrigo, 2026-08-19): había 4 renglones para el mismo par
+  // de sillas C4 (sin/con cabecera), con nombres IDÉNTICOS entre sí a precios
+  // distintos ($1,595/$1,850 sin cabecera; $1,950/$2,405 con cabecera) — Voni
+  // no tenía forma de saber cuál de los dos escoger para el mismo modelo.
+  // "Es la que más vendemos para operativos": queda UN renglón por variante,
+  // al precio de LISTA (el más alto, no un mínimo de negociación) — para
+  // C4-EL-BNF-CAB el precio de lista lo confirman DOS documentos distintos
+  // por separado (225080025 y 2508040), ambos en $2,405.
   { id: 'p9-silla-operativa-c4-em-bnf-1850', categoria: 'Sillería', tipo: 'silla', nombre: "Silla operativa · C4-EM-BNF", descripcion: "Silla operativa, con brazos, rodante modelo c4-em-bnf mecanismos de ele…", material: "respaldo en mesh 109, asiento tapizado en tela WT805, base de nailon 5 puntos, negro, mecanismos de elevacion…", precio: 1850, fuente: '225120019', clave: 'LESSIL35007228' },
-  { id: 'p9-silla-operativa-c4-el-bnf-1950', categoria: 'Sillería', tipo: 'silla', nombre: "Silla operativa · C4-EL-BNF", descripcion: "Silla operativa, con brazos, rodante modelo c4-el-bnf mecanismos de ele…", material: "base de nailon 5 puntos, mesh 109, tela WT805, MESH 109, TELA WT805, base negra, cabecera, rodajas, brazos fi…", precio: 1950, fuente: '226030134', clave: 'C4-EL-BNF-CABF' },
-  { id: 'p9-silla-operativa-c4-el-bnf-2405', categoria: 'Sillería', tipo: 'silla', usuarios: 1, nombre: "Silla operativa · C4-EL-BNF", descripcion: "Silla operativa, con brazos, rodante modelo c4-el-bnf mecanismos de ele…", material: "mesh 109, tela WT805, nailon, negro, cabecera", precio: 2405, fuente: '225080025', clave: 'C4-EL-BNF-CAB' },
+  { id: 'p9-silla-operativa-c4-el-bnf-cab-2405', categoria: 'Sillería', tipo: 'silla', usuarios: 1, nombre: "Silla operativa · C4-EL-BNF-CAB (con cabecera)", descripcion: "Silla operativa, con brazos, rodante modelo c4-el-bnf, con cabecera, mecanismos de ele…", material: "mesh 109, tela WT805, nailon, negro, cabecera", precio: 2405, fuente: '225080025', clave: 'C4-EL-BNF-CAB' },
   { id: 'p9-silla-operativa-esp-ohe-63-2870', categoria: 'Sillería', tipo: 'silla', nombre: "Silla operativa · ESP-OHE-63", descripcion: "Silla operativa, con brazos, rodante de modelo esp-ohe-63 estructura de…", material: "respaldo mesh negro, asiento tapizado en tela negra, negro, estructura 5 puntos giratoria, brazos ajustables …", precio: 2870, fuente: '225120019', clave: 'LESSIL35001205' },
   { id: 'p9-silla-operativa-gamma-e-3990', categoria: 'Sillería', tipo: 'silla', usuarios: 1, nombre: "Silla operativa · GAMMA-E", descripcion: "Silla operativa, con brazos, rodante modelo gamma-e con mecanismo recli…", material: "polipropileno, mesh negro GT-27, tela, tapizado en tela, brazos, mecanismo reclinable, ajuste de altura, roda…", precio: 3990, fuente: '226050047' },
   { id: 'p9-silla-operativa-gamma-e-4140', categoria: 'Sillería', tipo: 'silla', usuarios: 1, nombre: "Silla operativa · GAMMA-E", descripcion: "Silla operativa, con brazos, rodante modelo gamma-e con mecanismo recli…", material: "polipropileno TF-15ZB, mesh negro GT-27, tela HM-38, negro", precio: 4140, fuente: '225080025', clave: 'GAMMA-E' },
@@ -325,8 +331,6 @@ export const BANCO = [
     material: 'Sin brazos, respaldo y asiento en polipropileno', precio: 2420, fuente: '2508040' },
   { id: 'silla-etivtui', categoria: 'Sillería', tipo: 'silla', nombre: 'Silla de visita ETIVTUI',
     material: 'Sin brazos, base tubular, respaldo y asiento tapizado en tela', precio: 1111, fuente: '2508040' },
-  { id: 'silla-c4-el-bnf', categoria: 'Sillería', tipo: 'silla', nombre: 'Silla operativa C4-EL-BNF-CAB',
-    material: 'Con brazos, elevación y reclinación, cabecera, respaldo mesh, tela', precio: 2405, fuente: '2508040' },
   { id: 'sofa-gala', categoria: 'Sillería', tipo: 'silla', nombre: 'Sofá individual GALA',
     material: 'Estructura fija 4 pts, poliuretano tapizado tela gris', precio: 5920, fuente: '2508040' },
   { id: 'sofa-2plazas', categoria: 'Sillería', tipo: 'silla', linea: 'Work Lounge', nombre: 'Sofá 2 plazas WLOHM-31003',

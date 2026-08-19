@@ -127,9 +127,15 @@ export function textoDe(c) {
   return `${c.cliente || ''} ${c.folio || ''} ${nombres}`.toLowerCase();
 }
 
-/** La deja fuera del archivo sin borrarla: el historial no se destruye. */
+/** La deja fuera del archivo sin borrarla: el historial no se destruye.
+ * ⚠️ EL CATCH VACÍO ESCONDÍA EL ERROR (auditoría 2026-08-19). Igual que
+ * `listarCotizaciones` arriba: si el update fallaba (red, RLS), "Sacar de la
+ * lista" no hacía nada y la tarjeta seguía apareciendo tras `refrescar()` —
+ * parecía un bug de UI cuando era un error de base de datos escondido a
+ * propósito. Ahora se propaga; Archivo.jsx ya tiene su try/catch para esto. */
 export async function archivarCotizacion(id) {
-  try { await nube.from('cotizaciones').update({ activa: false }).eq('id', id); } catch (e) {}
+  const { error } = await nube.from('cotizaciones').update({ activa: false }).eq('id', id);
+  if (error) throw error;
 }
 
 // ---------------------------------------------------------------------------

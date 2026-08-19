@@ -99,7 +99,8 @@ export default function Archivo({ estado, onAbrir }) {
                   <button className="boton fantasma" style={{ minHeight: 44 }}
                     onClick={async () => {
                       if (!confirm(`¿Sacar de la lista el presupuesto de ${c.cliente || 'sin cliente'}? No se borra, sólo deja de aparecer.`)) return;
-                      await archivarCotizacion(c.id); refrescar();
+                      try { await archivarCotizacion(c.id); refrescar(); }
+                      catch (e) { setError('No se pudo sacar de la lista. Revisa tu internet y vuelve a intentar.'); }
                     }}>Sacar de la lista</button>
                 </div>
               </div>

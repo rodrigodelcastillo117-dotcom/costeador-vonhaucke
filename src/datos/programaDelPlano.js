@@ -143,6 +143,17 @@ export function programaDelPlano(areas, opts = {}) {
 
   const m2Salas = salasA.map((a) => (a.ancho || 0) * (a.largo || 0));
   const salas = m2Salas.map(personasEnSala);
+  // ⚠️ "0 m²: da para 4 personas" ERA UNA CONTRADICCIÓN MUDA (auditoría
+  // 2026-08-19). `personasEnSala` siempre pone un piso de 4 (Rodrigo: una
+  // sala de juntas real nunca es para menos), pero eso NO distingue "sala
+  // chica de verdad" de "el plano no trajo medida" — antes la app presentaba
+  // el piso como si fuera un cálculo legítimo. Ahora, cuando el área da 0, se
+  // dice con todas sus letras que la lectura falló, no sólo el número.
+  salasA.forEach((a, i) => {
+    if (!(m2Salas[i] > 0)) {
+      avisos.push(`No pude leer bien las medidas de "${a.nombre || 'una sala'}" (salió en 0 m²) — revisa el plano o corrígela a mano.`);
+    }
+  });
   // REGLA DE OFICIO: un archivero por persona sentada. Con el plano de Rodrigo da
   // 48 + 5 = 53, que es exactamente lo que él tecleó a mano.
   const guardas = operativos + privados.length;

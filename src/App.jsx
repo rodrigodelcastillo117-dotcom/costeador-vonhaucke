@@ -255,10 +255,14 @@ export default function App() {
 
   const [mostrarGuia, setMostrarGuia] = useState(() => !cargar().onboardingVisto);
 
+  // ⚠️ `setPestania` DIRECTO NO EMPUJA AL HISTORIAL (auditoría 2026-08-19). La
+  // Guía promete "nada se descompone por navegar de más — siempre hay Atrás".
+  // Pero saltar de pestaña así (sin pasar por `irA`) deja "Atrás" sin saber de
+  // dónde venías: toca "Atrás" y te salta una pantalla entera sin avisar.
   function cerrarGuia(tab) {
     setEstado((e) => ({ ...e, onboardingVisto: true }));
     setMostrarGuia(false);
-    if (tab) setPestania(tab);
+    if (tab) irA(tab);
   }
 
   // ---- Sesion / acceso (control de quien entra) ----
@@ -826,11 +830,11 @@ export default function App() {
         {pestania === 'worklounge' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Work Lounge" productos={WORKLOUNGE_PRODUCTOS} generar={generarWorklounge} onAgregar={agregarDesdeAsistente} /></div>}
         {pestania === 'cirque' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Cirque" productos={CIRQUE_PRODUCTOS} generar={generarCirque} onAgregar={agregarDesdeAsistente} /></div>}
         {pestania === 'especial' && (veCostos
-          ? <div className="contenido"><AsistenteEspecial estado={estado} onVerDetalle={(bor) => { setCosteo({ ...costeoEnBlanco(), ...bor }); setPestania('costeador'); }} onInicio={() => setPestania('inicio')} /></div>
+          ? <div className="contenido"><AsistenteEspecial estado={estado} onVerDetalle={(bor) => { setCosteo({ ...costeoEnBlanco(), ...bor }); irA('costeador'); }} onInicio={irInicio} /></div>
           : <div className="contenido"><div className="tarjeta"><p className="ayuda">Costear desde cero es para Diseño y Dirección.</p></div></div>
         )}
         {pestania === 'tablero' && (esDireccion
-          ? <Tablero estado={estado} irA={setPestania} puedeVerDireccion={desbloqueado} onDireccion={null} />
+          ? <Tablero estado={estado} irA={irA} puedeVerDireccion={desbloqueado} onDireccion={null} />
           : <div className="contenido"><div className="tarjeta"><p className="ayuda">El tablero del negocio es de Dirección.</p></div></div>
         )}
         {pestania === 'costeador' && (veCostos

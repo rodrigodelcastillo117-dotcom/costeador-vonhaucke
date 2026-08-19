@@ -10,7 +10,7 @@
 //  pasaba al agregar. Ahora se revisa UNA sola vez, en la lista de siempre,
 //  donde ya se puede cambiar la cantidad y quitar lo que no va.
 // ============================================================================
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { catalogoIA, costearItem } from '../datos/lineas.js';
 import { BANCO } from '../datos/banco.js';
 import { cotizarTexto } from '../nube.js';
@@ -53,6 +53,22 @@ export default function CotizadorIA({
   // Id del último lote que puso la IA en el proyecto. Al volver a interpretar
   // se reemplaza ese lote en vez de agregar encima (si no, se duplica todo).
   const lote = useRef(null);
+  // ⚠️ "AGREGUÉ N MUEBLES" SE QUEDABA VIEJO (auditoría 2026-08-19). `resultado`
+  // es estado local: si el vendedor borra o cambia renglones desde el Paso 4
+  // (Cotizacion.jsx) y regresa aquí, esta tarjeta seguía narrando la cantidad
+  // vieja mientras la lista real de abajo ya mostraba otra — dos tarjetas
+  // contradiciéndose. No se intenta PREDECIR el conteo nuevo (onAgregarItems
+  // no siempre suma: a veces reemplaza un lote) — más simple y robusto: se
+  // marca "acabo de interpretar yo" antes de tocar las partidas, y si el
+  // conteo cambia SIN esa marca, es que cambió por fuera → se esconde el
+  // resumen viejo en vez de seguir mintiendo.
+  const acabaDeInterpretar = useRef(false);
+  const partidasActuales = estado.cotizacion?.partidas?.length || 0;
+  useEffect(() => {
+    if (acabaDeInterpretar.current) { acabaDeInterpretar.current = false; return; }
+    setResultado(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [partidasActuales]);
 
   // El modelo ya empieza su resumen con "Entendí"; la pantalla no lo repite.
   const limpiarResumen = (r) => String(r || '').replace(/^\s*(entend[íi]|entiendo)\s*(que\s+)?:?\s*/i, '');
@@ -93,6 +109,9 @@ export default function CotizadorIA({
           nota: b.nota || null, confianza: 'alta', avisos: [], sugerido: !!b.sugerido,
         });
       }
+      // Se marca ANTES de tocar las partidas: el useEffect de arriba compara
+      // contra esta marca para saber que el cambio que viene fue nuestro.
+      acabaDeInterpretar.current = true;
       if (costados.length) {
         const nuevoLote = `ia-${Date.now()}`;
         onAgregarItems(costados, { lote: nuevoLote, reemplaza: lote.current });

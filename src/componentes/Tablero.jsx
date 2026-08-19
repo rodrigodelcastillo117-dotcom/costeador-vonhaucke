@@ -171,18 +171,30 @@ export default function Tablero({ estado, irA, puedeVerDireccion = true, onDirec
         </>
       )}
 
-      {/* Franja inferior: salud del negocio - SOLO DIRECCION */}
+      {/* Franja inferior: salud del negocio - SOLO DIRECCION
+          ⚠️ ANTES NEGABA ACCESO A QUIEN SÍ LO TIENE (auditoría 2026-08-19).
+          `puedeVerDireccion` es true todo el tiempo que este Tablero está
+          montado (App.jsx sólo lo monta si `esDireccion`), así que el ÚNICO
+          motivo real por el que estos números no se ven es que
+          `estado.finanzas` TODAVÍA no cargó. Antes eso se confundía con "no
+          tienes acceso" — Dirección entraba y por un instante veía el mismo
+          candado que un vendedor. Ahora "cargando" y "sin acceso" son dos
+          mensajes distintos. */}
       <div className="tarjeta">
         <h3>La salud del negocio</h3>
-        {puedeVerDireccion && estado.finanzas ? (
-          <>
-            <div className="fila-botones" style={{ gap: 30 }}>
-              <div><div className="rotulo gris">Margen bruto del periodo</div><strong className="mono" style={{ fontSize: 22 }}>{pct1(estado.finanzas.margenBruto)}</strong></div>
-              <div><div className="rotulo gris">Utilidad de operacion</div><strong className="mono" style={{ fontSize: 22 }}>{pesos(estado.finanzas.utilidadOperacion)}</strong></div>
-            </div>
-            <p className="ayuda columna-texto" style={{ marginTop: 10 }}>Con la utilidad operativa actual, un error de costeo del 10% se come todo el margen.</p>
-            <p className="ayuda ambar">Estos numeros vienen de los estados financieros; hay que confirmar cual documento es el bueno (pregunta 14.2 del master) antes de tomarlos como definitivos.</p>
-          </>
+        {puedeVerDireccion ? (
+          estado.finanzas ? (
+            <>
+              <div className="fila-botones" style={{ gap: 30 }}>
+                <div><div className="rotulo gris">Margen bruto del periodo</div><strong className="mono" style={{ fontSize: 22 }}>{pct1(estado.finanzas.margenBruto)}</strong></div>
+                <div><div className="rotulo gris">Utilidad de operacion</div><strong className="mono" style={{ fontSize: 22 }}>{pesos(estado.finanzas.utilidadOperacion)}</strong></div>
+              </div>
+              <p className="ayuda columna-texto" style={{ marginTop: 10 }}>Con la utilidad operativa actual, un error de costeo del 10% se come todo el margen.</p>
+              <p className="ayuda ambar">Estos numeros vienen de los estados financieros; hay que confirmar cual documento es el bueno (pregunta 14.2 del master) antes de tomarlos como definitivos.</p>
+            </>
+          ) : (
+            <p className="ayuda">Cargando los números financieros…</p>
+          )
         ) : (
           <div className="alerta ambar" style={{ marginTop: 4 }}>
             <Icono nombre="candado" tam={16} />

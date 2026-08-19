@@ -608,7 +608,12 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
       doc.setFontSize(12);
       doc.text(pesos(b.total), A4.w - M.der, y, { align: 'right' });
       y += 5;
-      const esp = [b.m2 > 0 ? `${b.m2} m²` : null, especificacion(b)].filter(Boolean).join(' · ');
+      // ⚠️ SIN T() AQUÍ (auditoría 2026-08-19): especificacion(b) concatena
+      // nombres de partida crudos — un nombre editado a mano con guión largo,
+      // comillas curvas o puntos suspensivos (normal al copiar de Word) salía
+      // como basura tipográfica SOLO en este renglón; el resto del documento
+      // (detalle, leyenda del plano) ya pasa por el saneador.
+      const esp = [b.m2 > 0 ? `${b.m2} m²` : null, T(especificacion(b))].filter(Boolean).join(' · ');
       if (esp) {
         doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...GRIS);
         const lineas = doc.splitTextToSize(esp, ANCHO - 30);
