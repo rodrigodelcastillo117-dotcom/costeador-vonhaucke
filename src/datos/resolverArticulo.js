@@ -151,7 +151,7 @@ const incluyeAlguna = (d, palabras) => palabras.some((p) => d.includes(p));
 const OTRA_MARCA = {
   app: [/\bALBA\b/, /\bCIRQUE\b/, /\bR[IÍ]O\b/, /\bPEBBLES?\b/, /\bECLIPSE\b/, /\bLUNA\b/, /\bANTEO\b/, /\bMODULOR\b/, /\bTETRIS\b/, /\bARLEQU[IÍ]N\b/],
 };
-function esDeOtraMarca(desc, ruta) {
+export function esDeOtraMarca(desc, ruta) {
   const patrones = OTRA_MARCA[ruta];
   if (!patrones) return false;
   return patrones.some((re) => re.test(norm(desc)));

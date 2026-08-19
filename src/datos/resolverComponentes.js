@@ -14,8 +14,16 @@
 //  así que el match vive dentro de la ruta.
 //
 //  Capa PURA. Se prueba offline contra el catálogo real.
+//
+//  Rodrigo (2026-08-19): mismo bug de la pestaña "APP" que se arregló en
+//  `resolverArticulo.js` (ver su comentario ⚠️ 2026-08-19) también vivía aquí:
+//  el pool de abajo solo filtraba por `ruta`, así que una CONDUCTO/CUBIERTA
+//  de CIRQUE (o ALBA/RÍO/PEBBLE) mal etiquetada `ruta:"app"` podía ganarle a
+//  la pieza real de App por ser más barata. Se reusa `esDeOtraMarca` en vez de
+//  duplicar la lista de regexes — un solo lugar que mantener.
 // ============================================================================
 import { PRECIOS_LINEA } from './preciosLinea.js';
+import { esDeOtraMarca } from './resolverArticulo.js';
 
 const norm = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
 
@@ -71,7 +79,7 @@ const TOL_MM = 60;   // tolerancia de medida (mm): "1500" casa con 1450–1560.
 export function casarComponente(ruta, comp) {
   const tipo = tipoComponente(comp.nombre);
   if (!tipo) return null;
-  let pool = PRECIOS_LINEA.filter((a) => a.ruta === ruta && norm(a.d).startsWith(tipo));
+  let pool = PRECIOS_LINEA.filter((a) => a.ruta === ruta && !esDeOtraMarca(a.d, ruta) && norm(a.d).startsWith(tipo));
   if (!pool.length) return null;
   const largo = Number(comp.largoMM) || null;
   if (largo) {
