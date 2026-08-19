@@ -204,10 +204,22 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   const baseGravable = subtotal + contingencia + maniobras + flete;
   const iva = baseGravable * (estado.parametros.ivaPorcentaje / 100);
   const total = baseGravable + iva;
+  // ⚠️ EL TOTAL QUE SE VE EN PANTALLA PODÍA DIFERIR $1 DEL QUE SALE EN EL PDF
+  // (2026-08-19). pdfPropuesta.js ya arregló esto el 2026-08-17 sumando los
+  // RENGLONES YA REDONDEADOS (cada `pesos()` de la escalera es un Math.round
+  // independiente) en vez del total crudo sin redondear — pero acá, en
+  // pantalla, seguía usando el float `total`. Un cliente que ve la pantalla y
+  // luego recibe el PDF de la MISMA cotización podía ver dos números
+  // distintos. Se replica aquí el mismo cálculo: la suma de lo que el
+  // vendedor YA VE redondeado renglón por renglón, no el total sin redondear.
+  const totalRedondeado = Math.round(precioLista) - Math.round(descuento) + Math.round(contingencia)
+    + Math.round(maniobras) + Math.round(flete) + Math.round(iva);
   const costoTotal = partidas.reduce((a, p) => a + (p.costoUnitario || 0) * p.cantidad, 0);
   const utilidadTotal = baseGravable - costoTotal;
   const anticipoPct = estado.parametros.anticipoPorcentaje ?? 50;
-  const anticipo = total * (anticipoPct / 100);
+  // Del total YA redondeado, no del crudo — si no, anticipo + saldo no dan el
+  // TOTAL que está impreso tres renglones arriba.
+  const anticipo = Math.round(totalRedondeado * (anticipoPct / 100));
   const minMarkup = estado.parametros.minMarkupLinea ?? 45;
   const factorDesc = 1 - descuentoPct / 100;
   const markupPartida = (pt) => (pt.costoUnitario > 0 ? ((pt.precioUnitario * factorDesc - pt.costoUnitario) / pt.costoUnitario) * 100 : null);
@@ -608,8 +620,8 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
               {maniobras > 0 && <div className="propx-tot-row"><span>Maniobras e instalación {maniobrasPct}%</span><b>{pesos(maniobras)}</b></div>}
               {flete > 0 && <div className="propx-tot-row"><span>Flete {fletePct}%</span><b>{pesos(flete)}</b></div>}
               <div className="propx-tot-row"><span>IVA {estado.parametros.ivaPorcentaje}%</span><b>{pesos(iva)}</b></div>
-              <div className="propx-tot-grand"><span>TOTAL</span><b>{pesos(total)}</b></div>
-              <div className="propx-tot-anticipo">Anticipo {anticipoPct}%: <b>{pesos(anticipo)}</b> · Saldo contra entrega: <b>{pesos(total - anticipo)}</b></div>
+              <div className="propx-tot-grand"><span>TOTAL</span><b>{pesos(totalRedondeado)}</b></div>
+              <div className="propx-tot-anticipo">Anticipo {anticipoPct}%: <b>{pesos(anticipo)}</b> · Saldo contra entrega: <b>{pesos(totalRedondeado - anticipo)}</b></div>
             </div>
           </section>
 
