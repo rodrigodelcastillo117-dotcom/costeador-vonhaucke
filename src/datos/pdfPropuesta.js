@@ -568,13 +568,19 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
   // manda la propuesta se dice antes de cuánto cuesta.
   pie();
   hojaMarca(doc, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA, { nueva: true, marca });
-  pie(); doc.addPage(); y = M.arriba;
 
   // ---- RESUMEN POR ÁREA ----------------------------------------------------
   // Igual que en pantalla: un resumen que sólo dice "Sin ubicar en el plano"
   // no es un resumen por área, es ruido. Se omite.
   const hayAreas = resumen?.length && !(resumen.length === 1 && resumen[0].sinUbicar);
   if (hayAreas) {
+    // ⚠️ LA HOJA SE ABRE AQUÍ ADENTRO, NO ANTES (2026-08-19). Antes el
+    // `doc.addPage()` estaba pegado a `hojaMarca()`, sin importar si `hayAreas`
+    // iba a ser cierto: un proyecto sin acomodo (sin áreas) abría esta hoja
+    // igual y no dibujaba NADA en ella — "hoja 3 del PDF viene en blanco
+    // completamente" (Rodrigo). Misma lección que ya aplican `hojaPlano` y
+    // `hojaCuartos` más abajo: la hoja se abre pegada a su contenido, no antes.
+    pie(); doc.addPage(); y = M.arriba;
     // ⚠️ EL TÍTULO NO SE QUEDA SOLO. Cabía justo al final de la portada y el
     // primer bloque se iba a la hoja siguiente: quedaba "Resumen del proyecto"
     // rotulando media hoja en blanco. Es la misma enfermedad que Rodrigo cazó

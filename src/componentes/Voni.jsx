@@ -4,7 +4,7 @@
 //  IA, Acomodo, Propuesta al cliente) en un solo flujo guiado, con sello
 //  Firme/Estimado por renglón y "no tengo planos" siempre a la mano.
 // ============================================================================
-import { useMemo, useState, useRef } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import CotizadorIA from './CotizadorIA.jsx';
 import Acomodo from './Acomodo.jsx';
 import Cotizacion from './Cotizacion.jsx';
@@ -114,6 +114,16 @@ export default function Voni({
   const [revisar, setRevisar] = useState(false);
   const vaciar = () => { setCot({ partidas: [], acomodo: null }); setConfVaciar(false); setRevisar(false); };
 
+  // Cada pantalla de Voni (cambio de paso, o el sub-paso 2a/2b) empieza
+  // ARRIBA. Sin esto, llegar al paso 2 podía abrir donde se había quedado el
+  // scroll de la pantalla anterior — mismo patrón que ya usan App.jsx:346 y
+  // Cotizacion.jsx:95-96 (window Y el contenedor `.contenido`, por si el
+  // navegador está haciendo scroll ahí en vez de en `window`).
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.querySelector('.contenido')?.scrollTo?.(0, 0);
+  }, [paso, revisar]);
+
   // El espacio, SIEMPRE en metros. `areasM` es lo normal, pero hay guardados
   // viejos que sólo traen `areas` en milímetros: sin este respaldo, "esto
   // entendí" decía "todavía no me dijiste dónde va el proyecto" con el espacio
@@ -190,9 +200,18 @@ export default function Voni({
         </>
       )}
 
-      {/* --------- PASO 2a · CUÉNTAME (la charla con Voni, sola) --------- */}
-      {paso === 2 && !revisar && (
-        <>
+      {/* --------- PASO 2a · CUÉNTAME (la charla con Voni, sola) ---------
+          ⚠️ SE OCULTA, NO SE DEJA DE RENDERIZAR (2026-08-19). Antes este
+          bloque completo dependía de `!revisar`, así que al abrir "Revisar
+          lo que entendí" y volver, React desmontaba `CotizadorIA` —y con él
+          `ProgramaProyecto`— y remontaba uno nuevo: los contadores +/- que ya
+          habías llenado volvían a cero y el texto que ibas escribiendo se
+          perdía, aunque los muebles YA agregados seguían a salvo en el
+          proyecto (Rodrigo: "lo lleno... y lo puso otra vez en cero"). Ahora
+          sigue montado siempre que estás en el paso 2; solo se esconde con
+          CSS mientras `revisar` está activo. */}
+      {paso === 2 && (
+        <div style={{ display: revisar ? 'none' : undefined }}>
           {!hay && (
             <div className="voni-saludo">
               <VoniAvatar tam={64} variante="cara" anim="bob" />
@@ -213,7 +232,7 @@ export default function Voni({
               </button>
             </div>
           )}
-        </>
+        </div>
       )}
 
       {/* --------- PASO 2b · ESTO ENTENDÍ (la lista corregible, sola) --------- */}

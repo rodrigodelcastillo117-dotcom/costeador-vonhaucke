@@ -9,7 +9,8 @@ import { resumenPorArea, especificacion } from '../datos/resumen.js';
 import { listaPorCuarto } from '../datos/porCuarto.js';
 import { descargarPropuesta, cargarFotos, cargarMarca } from '../datos/pdfPropuesta.js';
 import EditarPartida, { sePuedeEditar } from './EditarPartida.jsx';
-import { pesos, pct, leePct, colorMargen, selloPartida } from '../util.js';
+import { pesos, leePct, selloPartida } from '../util.js';
+import { senalesCotizacion } from '../datos/senales.js';
 import { imagenPartida } from '../datos/imagenes.js';
 import { confianzaDe, textoConfianza } from '../datos/confianza.js';
 import { expandirPiezas, mapaPiezas } from '../datos/espacio.js';
@@ -230,6 +231,10 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   const descuentoMax = conCosto.length ? Math.max(0, Math.floor(Math.min(...conCosto.map(dMaxPartida)))) : null;
 
   const nPzas = partidas.reduce((a, p) => a + p.cantidad, 0);
+  // Voni Cerebro, Fase 1: señales determinísticas (sin IA) sobre ESTA
+  // cotización — mismo umbral y mismo cálculo de margen que ya usa la tabla
+  // de abajo, nada más juntado en un resumen (src/datos/senales.js).
+  const senalesProyecto = senalesCotizacion(partidas, estado.parametros.margenMinimo);
 
   return (
     <div className="contenido cotizacion-pg">
@@ -359,11 +364,18 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         {/* ---------- INTERNA · Mis números (nunca imprime) ---------- */}
         {!vistaCliente && (
           <div className="tarjeta cot-interna no-imprimir">
+            {senalesProyecto.length > 0 && (
+              <div style={{ display: 'grid', gap: 8, marginBottom: 14 }}>
+                {senalesProyecto.map((s, i) => (
+                  <div className={`alerta ${s.tipo}`} key={i}><span className="texto">{s.texto}</span></div>
+                ))}
+              </div>
+            )}
             <div className="tablewrap solo-escritorio">
               <table className="datos">
                 <thead><tr>
                   <th>Concepto</th><th className="num">Cant.</th><th className="num">Precio</th>
-                  <th className="num">Costo</th><th className="num">Utilidad</th><th className="num">Margen</th><th className="num">Importe</th><th></th><th></th>
+                  <th className="num">Costo</th><th className="num">Utilidad</th><th className="num">Importe</th><th></th><th></th>
                 </tr></thead>
                 <tbody>
                   {partidas.map((pt, i) => {
@@ -372,17 +384,6 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                       ? ((pt.precioUnitario - pt.costoUnitario) / pt.precioUnitario) * 100 : pt.margen;
                     const bajo = !sinCosto && margenReal < estado.parametros.margenMinimo;
                     const util = (pt.precioUnitario - (pt.costoUnitario || 0)) * pt.cantidad;
-                    // ⚠️ EL MARGEN SE SACA DE LOS NÚMEROS DE ESTA MISMA FILA
-                    // (2026-08-17). Se pintaba `pt.margen` GUARDADO, y en un
-                    // renglón con precio real calibrado eso ya no corresponde a
-                    // su precio: la banca App LT imprimía precio $41,439, costo
-                    // $19,185 y margen **50%**, cuando esos dos números dan
-                    // **53.7%**. Es la columna con la que el vendedor decide
-                    // cuánto puede regalar, y el semáforo de "debajo del mínimo"
-                    // usa el mismo número: un renglón calibrado podía pintarse
-                    // verde estando abajo del piso, o al revés.
-                    const margenFila = sinCosto ? null
-                      : ((pt.precioUnitario - (pt.costoUnitario || 0)) / (pt.precioUnitario || 1)) * 100;
                     const s = selloPartida(pt);
                     return (
                       <tr key={pt.id} style={bajo ? { background: '#fbeceb' } : undefined}>
@@ -392,7 +393,6 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                         <td className="num">{pesos(pt.precioUnitario)}</td>
                         <td className="num">{sinCosto ? '—' : pesos(pt.costoUnitario)}</td>
                         <td className="num">{sinCosto ? '—' : pesos(util)}</td>
-                        <td className="num">{sinCosto ? '—' : <span className={`semaforo ${colorMargen(margenFila)}`}>{pct(margenFila)}</span>}</td>
                         <td className="num">{pesos(pt.precioUnitario * pt.cantidad)}</td>
                         {/* ⚠️ AQUÍ NO HABÍA CÓMO EDITAR (2026-08-17). El lápiz
                             estaba escrito SÓLO dentro del bloque `soloVentas`, o

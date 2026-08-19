@@ -1,0 +1,59 @@
+// ============================================================================
+//  SEÑALES · la capa determinística del "cerebro" de Voni (Fase 1 del plan
+//  "Voni Cerebro"). Son cuentas sobre datos reales, no algo que un modelo
+//  interprete: mismo margen por renglón que ya se ve en Cotizacion.jsx, mismo
+//  sello Firme/Calibrado/Estimado que ya usa Voni. Cero riesgo de que se
+//  invente una cifra de negocio, porque no hay modelo de lenguaje aquí — eso
+//  es la Fase 2 (narrar estas señales con la voz de Voni), que las recibe ya
+//  calculadas y nunca las recalcula por su cuenta.
+// ============================================================================
+import { selloPartida } from '../util.js';
+
+// Señales de UNA cotización — el lente "auditor de este proyecto" (Voni,
+// Paso 4 · Propuesta). `partidas` es `cot.partidas`; `margenMinimo` viene de
+// `estado.parametros.margenMinimo` (mismo umbral que ya usa Cotizacion.jsx
+// para pintar de rojo un renglón).
+export function senalesCotizacion(partidas = [], margenMinimo = 40) {
+  const lista = [];
+  if (!partidas.length) return lista;
+
+  const sellos = partidas.map((p) => selloPartida(p));
+  const nEstimado = sellos.filter((s) => s.tipo === 'estimado').length;
+
+  if (nEstimado > 0) {
+    lista.push({
+      tipo: 'ambar',
+      texto: `${nEstimado} de ${partidas.length} ${nEstimado === 1 ? 'renglón trae precio' : 'renglones traen precio'} estimado (línea sin calibrar). Sirve para dar una idea; pídele a Diseño que lo confirme antes de comprometerlo con el cliente.`,
+    });
+  }
+
+  // Mismo cálculo de margen por renglón que Cotizacion.jsx (margenFila,
+  // línea ~384-385): (precio - costo) / precio, sobre lo que SÍ trae costo
+  // real (nunca piezas de banco, que vienen de un presupuesto cerrado).
+  const conCosto = partidas.filter((p) => p.costoUnitario > 0 && !p.deBanco);
+  const bajoMinimo = conCosto.filter((p) => {
+    const margen = ((p.precioUnitario - p.costoUnitario) / (p.precioUnitario || 1)) * 100;
+    return margen < margenMinimo;
+  });
+  if (bajoMinimo.length) {
+    lista.push({
+      tipo: 'roja',
+      texto: `${bajoMinimo.length} ${bajoMinimo.length === 1 ? 'renglón queda' : 'renglones quedan'} por debajo del margen mínimo de ${margenMinimo}%.`,
+    });
+  }
+
+  return lista;
+}
+
+// Señales del catálogo de insumos — cuántos no traen registrado de dónde
+// salió su precio. Hoy esa cuenta solo la sabía `scripts/revisa-precios.mjs`
+// corriendo aparte; aquí se vuelve una señal viva dentro de la app.
+export function senalesInsumos(insumos = []) {
+  if (!insumos.length) return [];
+  const sinFuente = insumos.filter((i) => !i.fuente);
+  if (!sinFuente.length) return [];
+  return [{
+    tipo: 'ambar',
+    texto: `${sinFuente.length} de ${insumos.length} insumos no traen registrado de dónde salió su precio.`,
+  }];
+}
