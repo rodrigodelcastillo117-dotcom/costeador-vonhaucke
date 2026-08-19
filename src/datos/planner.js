@@ -374,8 +374,13 @@ function rolCuarto(a, todos) {
   // se amuebla son las zonas. Se comprueba que las hijas de verdad sirvan para
   // amueblar: si no, el padre sigue siendo el que recibe los muebles.
   if (a.contiene > 0) {
+    // ⚠️ 2026-08-18: era `!== 'servicio'` — cualquier hijo amueblable (incluida
+    // una sala de juntas anidada) volvía "servicio" (nunca amueblado) al padre.
+    // Sólo debe pasar eso cuando el hijo es OTRA área abierta (isla): esa sí es
+    // la señal real de "este cuarto es el pasillo que envuelve a las islas". Un
+    // cuarto cerrado (juntas/privado) anidado no vuelve pasillo al que lo rodea.
     const zonas = todos.filter((x) => x !== a && x.dentroDe === a.nombre
-      && rolCuartoBase(x, todos) !== 'servicio');
+      && rolCuartoBase(x, todos) === 'open');
     if (zonas.length) return 'servicio';
   }
   return rolCuartoBase(a, todos);

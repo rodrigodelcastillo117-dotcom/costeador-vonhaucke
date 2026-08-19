@@ -86,7 +86,15 @@ export function programaDelPlano(areas, opts = {}) {
   // Las islas: zonas de trabajo dentro de otro espacio. Si el plano no las
   // declara, el open space entero es una sola "isla".
   const zonas = lista.filter((a) => esZona(a) && rolDe(a) === 'open');
-  const abiertos = lista.filter((a) => !esZona(a) && rolDe(a) === 'open' && !a.contiene);
+  // ⚠️ 2026-08-18: un área operativa que CONTIENE una sala de juntas circular
+  // (dentroDe) se excluía de `abiertos` igual que si contuviera islas — y como
+  // la sala de juntas no es una zona 'open', tampoco entraba a `zonas`. El área
+  // desaparecía entera: 0 operativos, aunque el plano sí pedía 90 personas ahí.
+  // Sólo hay que excluir al padre cuando lo que contiene son ISLAS abiertas
+  // (`zonas`) — un cuarto cerrado anidado (junta/privado) no vuelve pasillo al
+  // que lo rodea.
+  const nombresConIslas = new Set(zonas.map((z) => z.dentroDe));
+  const abiertos = lista.filter((a) => !esZona(a) && rolDe(a) === 'open' && !nombresConIslas.has(a.nombre));
   const islasA = zonas.length ? zonas : abiertos;
 
   const avisos = [];

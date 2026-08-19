@@ -34,6 +34,24 @@ const LINEA_PRIVADOS = [
 ];
 const SILLA_OPERATIVA = ['WIN', 'WIN-CAB', 'GAMMA-E', 'DEX', 'C4-EM-BNF'];
 const SILLA_VISITA = ['CONCERTO', 'DELTA', 'SONATA', 'RE570GT'];
+// ⚠️ 2026-08-18: la frase pedía "sillas directivas" SIN modelo — quien la
+// traduce a catálogo no tenía con qué anclar una silla ejecutiva específica y
+// caía en una genérica (a veces hasta una operativa de bench). Van del
+// catálogo real: 'ALPHA' es "Silla directiva ALPHA" ($11,950); 'ENERGY' es
+// "Silla ejecutiva · ENERGY" ($6,480, más económica). NINGUNA es "Gamma": esa
+// está catalogada como silla OPERATIVA (de bench), no ejecutiva.
+const SILLA_DIRECTIVA = ['ALPHA', 'ENERGY'];
+// ⚠️ 2026-08-18: "sus N sillas" de la sala de juntas SIN modelo — la IA podía
+// elegir cualquier silla, y el motor de acomodo (`esSillaDeJuntas` en
+// planner.js) SOLO reconoce nombres con "junta/consejo/board", que NINGÚN
+// modelo del catálogo trae. Sin ese match caía al último recurso
+// (PREFERENCIA.silla, que prioriza el open space) y la sala de juntas se
+// quedaba sin sillas. El catálogo real tampoco tiene una "silla de junta"
+// dedicada — lo que SÍ hay es "silla de visita", y esas SÍ clasifican
+// (`esSillaDeVisita`, PREFERENCIA.visita = privado primero, JUNTAS después):
+// pedir un modelo de visita explícito para la sala hace que las que sobren de
+// los privados caigan ahí en vez de perderse. Mismo catálogo que SILLA_VISITA.
+const SILLA_JUNTAS = SILLA_VISITA;
 
 // ⚠️ LA CUENTA SUBE CON FUNCIÓN, NO CON EL VALOR DE ESTE RENDER.
 // Con `set(v + 1)`, veinte toques rápidos al + valen UNO: los veinte leen el
@@ -73,16 +91,16 @@ export function fraseDe(p) {
   }
   if (p.privados > 0) {
     t.push(`${p.privados} oficinas privadas, cada una con escritorio ejecutivo de la línea ${p.lineaPrivados} de ${(p.largoPrivado / 1000).toFixed(2)} m${p.credenza ? ' y su credenza' : ''}`);
-    t.push(`${p.privados} sillas directivas y ${p.privados * 2} sillas de visita ${p.sillaVisita}`);
+    t.push(`${p.privados} sillas directivas ${p.sillaDirectiva} y ${p.privados * 2} sillas de visita ${p.sillaVisita}`);
   }
   // ⚠️ UNA MESA POR SALA. Voni no armó NINGUNA mesa de juntas con la frase
   // vieja, y por eso las salas del plano salían vacías: no es que no se
   // dibujaran, es que no existían en la lista. Cuando el plano trae varias
   // salas se piden todas, cada una con su mesa y sus sillas.
   if (p.salas?.length > 1) {
-    t.push(`${p.salas.length} salas de juntas (para ${p.salas.join(' y ')} personas), cada una con su mesa de juntas y sus sillas`);
+    t.push(`${p.salas.length} salas de juntas (para ${p.salas.join(' y ')} personas), cada una con su mesa de juntas y sus sillas de visita ${p.sillaJuntas}`);
   } else if (p.juntas > 0) {
-    t.push(`una sala de juntas para ${p.juntas} personas con su mesa de juntas y sus ${p.juntas} sillas`);
+    t.push(`una sala de juntas para ${p.juntas} personas con su mesa de juntas y sus ${p.juntas} sillas de visita ${p.sillaJuntas}`);
   }
   if (p.recepcion) t.push('una recepción con su mostrador');
   if (p.guardas > 0) t.push(`${p.guardas} archiveros`);
@@ -100,8 +118,9 @@ export default function ProgramaProyecto({ onArmar, cargando = false, areasPlano
   );
   const [p, setP] = useState({
     operativos: delPlano.operativos, largoPuesto: 1500, lineaOperativos: 'applt', sillaOperativa: 'WIN',
-    privados: delPlano.privados, largoPrivado: 2100, credenza: true, lineaPrivados: 'eclipse', sillaVisita: 'CONCERTO',
-    juntas: delPlano.juntas, recepcion: delPlano.recepcion, guardas: delPlano.guardas,
+    privados: delPlano.privados, largoPrivado: 2100, credenza: true, lineaPrivados: 'eclipse',
+    sillaDirectiva: 'ALPHA', sillaVisita: 'CONCERTO',
+    juntas: delPlano.juntas, sillaJuntas: 'SONATA', recepcion: delPlano.recepcion, guardas: delPlano.guardas,
     // Del plano, para que la FRASE pueda decir cómo partir los puestos y cuántas
     // salas hay. Sin plano vienen en cero y la frase sale como siempre.
     islas: delPlano.islas, porIsla: delPlano.porIsla, salas: delPlano.salas,
@@ -161,6 +180,8 @@ export default function ProgramaProyecto({ onArmar, cargando = false, areasPlano
           <Chips ops={['1800', '2100', '2400']} valor={String(p.largoPrivado)} set={(v) => set('largoPrivado')(+v)} />
           <label className="etiqueta">Línea</label>
           <Chips ops={LINEA_PRIVADOS} valor={p.lineaPrivados} set={set('lineaPrivados')} />
+          <label className="etiqueta">Silla directiva</label>
+          <Chips ops={SILLA_DIRECTIVA} valor={p.sillaDirectiva} set={set('sillaDirectiva')} />
           <label className="etiqueta">Silla de visita <span className="gris">· van 2 por privado</span></label>
           <Chips ops={SILLA_VISITA} valor={p.sillaVisita} set={set('sillaVisita')} />
           <label className="chk" style={{ marginTop: 8 }}>
@@ -174,6 +195,12 @@ export default function ProgramaProyecto({ onArmar, cargando = false, areasPlano
         <div className="prog-et"><strong>Sala de juntas</strong><span>para cuántas personas</span></div>
         <Mm v={p.juntas} set={set('juntas')} paso={2} />
       </div>
+      {p.juntas > 0 && (
+        <div className="prog-sub">
+          <label className="etiqueta">Silla</label>
+          <Chips ops={SILLA_JUNTAS} valor={p.sillaJuntas} set={set('sillaJuntas')} />
+        </div>
+      )}
 
       <div className="prog-fila">
         <div className="prog-et"><strong>Archiveros</strong><span>guarda suelta</span></div>

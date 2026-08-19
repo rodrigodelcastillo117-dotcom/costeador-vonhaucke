@@ -253,7 +253,11 @@ export function costearItem(estado, item) {
   const avisos = [];
   const config = configDesde(prod, sel, avisos);
   let g;
-  try { g = L.generar(config); } catch (e) { return null; }
+  // ⚠️ 2026-08-18: el catch tragaba `e` entero — un renglón desaparecía en
+  // "sinCostear" con una etiqueta genérica y nadie (ni Rodrigo ni quien
+  // depura) podía saber POR QUÉ. Se deja en consola: no cambia el contrato
+  // (sigue devolviendo null), sólo deja de ser un error mudo.
+  try { g = L.generar(config); } catch (e) { console.warn(`costearItem: no se pudo generar "${prod?.nombre || item?.producto}"`, e); return null; }
   const pieza = {
     nombre: g.nombre, componentes: g.componentes, horas: g.horas,
     modoManoObra: g.modoManoObra, factorDirecta: g.factorDirecta, factorIndirecta: g.factorIndirecta,
