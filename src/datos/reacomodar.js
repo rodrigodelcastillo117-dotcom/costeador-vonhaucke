@@ -17,7 +17,7 @@
 //  soltar con el dedo, al girar y al "ponlas todas aquí"). El marcador viaja
 //  dentro del plan, así que sobrevive a guardar, salir y volver.
 // ============================================================================
-import { acomodarLocal } from './planner.js';
+import { acomodarLocal, sentarSillas } from './planner.js';
 import { dimsPieza } from './espacio.js';
 
 // Qué colocaciones cuentan como "puestas a mano": las marcadas Y que todavía
@@ -58,7 +58,18 @@ export function reacomodar({ areas, piezas, colocacion = [], byId, ajustar = fal
   // Con muebles ya puestos NO se re-dimensiona el espacio: crecer el cuarto
   // debajo de un acomodo hecho a mano mueve el suelo bajo los pies.
   const r = acomodarLocal(areasConFijos, resto, { ajustar: false });
-  const puestas = [...fijas, ...(r.colocacion || [])];
+  // ⚠️ LA SILLA NO ENCUENTRA EL ESCRITORIO QUE PUSISTE A MANO. `acomodarLocal`
+  // ya sienta cada silla junto a su escritorio (`sentarSillas`, planner.js),
+  // pero sólo ve lo que le tocó acomodar A ÉL (`resto`): un escritorio fijo
+  // viaja como OBSTÁCULO en `areasConFijos`, no como una colocación, así que
+  // para esa llamada no existe ningún escritorio en ese cuarto. Medido: mover un
+  // escritorio con el dedo y agregar su silla a la cotización → la silla se
+  // acomodaba contra el muro opuesto, a metros del escritorio al que pertenece,
+  // en vez de quedar pegada a él como en cualquier otro camino del motor.
+  // Se vuelve a sentar sobre el resultado YA COMBINADO (fijo + nuevo), con la
+  // lista COMPLETA de piezas y las áreas de verdad: ahí el escritorio manual sí
+  // aparece como colocación y es candidato para sentar su silla.
+  const puestas = sentarSillas([...fijas, ...(r.colocacion || [])], piezas, areas);
   const caben = puestas.length === (piezas || []).length;
 
   // La auditoría del motor contó SÓLO lo que le tocó acomodar ("12 de 12"

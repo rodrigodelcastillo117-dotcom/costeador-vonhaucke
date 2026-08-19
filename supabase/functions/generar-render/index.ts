@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
 
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, error: "JSON invalido" }, 400); }
-  const { descripcion = "", materiales = [], medidas = "", tipo = "", imagen = "", imagenes = [], mediaType = "image/jpeg", modo = "render", aspecto = "", cuarto = "", lineas = [] } = body || {};
+  const { descripcion = "", materiales = [], medidas = "", tipo = "", imagen = "", imagenes = [], mediaType = "image/jpeg", modo = "render", aspecto = "", cuarto = "", lineas = [], conteoPiso = null } = body || {};
   if (!descripcion.trim() && !imagen) return json({ ok: false, error: "Escribe una descripción del mueble para generar el render." }, 400);
   if (modo === "staging" && !imagen) return json({ ok: false, error: "Sube una foto del espacio para amueblarlo." }, 400);
 
@@ -189,41 +189,109 @@ Deno.serve(async (req) => {
   // Proporción fija: sin esto Gemini copia el formato de la foto de referencia y
   // el catálogo sale con 67 formatos distintos.
   const ar = aspecto || (modo === "catalogo" ? "4:3" : modo === "oficina" ? "16:9" : modo === "escena" ? "3:2" : "");
-  const generationConfig: any = { responseModalities: ["IMAGE"] };
-  if (ar) generationConfig.imageConfig = { aspectRatio: ar };
+  const imageGenConfig: any = { responseModalities: ["IMAGE"] };
+  if (ar) imageGenConfig.imageConfig = { aspectRatio: ar };
 
-  const apiBody = { contents: [{ role: "user", parts }], generationConfig };
-
-  let data: any;
-  try {
-    const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,
-      { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(apiBody) },
-    );
-    data = await r.json();
-  } catch (e) {
-    return json({ ok: false, error: "No se pudo llamar a Gemini: " + String(e) }, 502);
+  // Una sola llamada a Gemini, con el manejo de error (cuota, API key, bloqueo
+  // de seguridad) centralizado: antes vivía una sola vez porque sólo había una
+  // llamada; ahora la verificación de conteo (abajo) necesita llamar varias
+  // veces con la MISMA lógica de error.
+  // Forma de retorno FIJA (nunca una unión de shapes distintos): así `r.error`
+  // y `r.data` se pueden leer siempre, sin que TypeScript se queje de que uno
+  // de los dos "no existe" en la otra rama.
+  async function llamarGemini(contents: any[], generationConfig: any): Promise<{ error: string | null; data: any }> {
+    let data: any;
+    try {
+      const r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,
+        { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ contents, generationConfig }) },
+      );
+      data = await r.json();
+    } catch (e) {
+      return { error: "No se pudo llamar a Gemini: " + String(e), data: null };
+    }
+    if (data?.error) {
+      const m = data.error?.message || "";
+      if (/quota|billing|free_tier|limit: 0/i.test(m)) {
+        return { error: "El render con IA (modelo de imágenes de Gemini) requiere activar facturación en Google — es de pago (~US$0.04 por render). Actívala en Google AI Studio / Google Cloud (Billing) y vuelve a intentar.", data: null };
+      }
+      if (/API key|API_KEY|invalid|permission|PERMISSION/i.test(m)) {
+        return { error: "La API key de Gemini no es válida o no tiene permiso para imágenes. Revisa GEMINI_API_KEY en Supabase → Edge Functions → Secrets.", data: null };
+      }
+      return { error: m || "Error de la API de Gemini", data: null };
+    }
+    return { error: null, data };
   }
 
-  if (data?.error) {
-    const m = data.error?.message || "";
-    if (/quota|billing|free_tier|limit: 0/i.test(m)) {
-      return json({ ok: false, error: "El render con IA (modelo de imágenes de Gemini) requiere activar facturación en Google — es de pago (~US$0.04 por render). Actívala en Google AI Studio / Google Cloud (Billing) y vuelve a intentar." }, 200);
-    }
-    if (/API key|API_KEY|invalid|permission|PERMISSION/i.test(m)) {
-      return json({ ok: false, error: "La API key de Gemini no es válida o no tiene permiso para imágenes. Revisa GEMINI_API_KEY en Supabase → Edge Functions → Secrets." }, 200);
-    }
-    return json({ ok: false, error: m || "Error de la API de Gemini" }, 502);
-  }
-
-  const outParts = data?.candidates?.[0]?.content?.parts || [];
-  const img = outParts.find((p: any) => p.inlineData?.data || p.inline_data?.data);
-  const inline = img?.inlineData || img?.inline_data;
+  const r1 = await llamarGemini([{ role: "user", parts }], imageGenConfig);
+  if (r1.error) return json({ ok: false, error: r1.error }, 502);
+  let outParts = r1.data?.candidates?.[0]?.content?.parts || [];
+  let img = outParts.find((p: any) => p.inlineData?.data || p.inline_data?.data);
+  let inline = img?.inlineData || img?.inline_data;
   if (!inline?.data) {
-    const bloqueo = data?.promptFeedback?.blockReason;
+    const bloqueo = r1.data?.promptFeedback?.blockReason;
     return json({ ok: false, error: bloqueo ? `La imagen fue bloqueada (${bloqueo}). Ajusta la descripción.` : "Gemini no devolvió una imagen. Reintenta o cambia la descripción." }, 200);
   }
-  const mime = inline.mimeType || inline.mime_type || "image/png";
+  let mime = inline.mimeType || inline.mime_type || "image/png";
+
+  // ⚠️ VERIFICACIÓN DEL CONTEO (2026-08-19), sólo en `acomodo`/`escena` con
+  // `conteoPiso` (cuántas piezas DE PISO —sin sillas— debe tener la imagen).
+  // Rodrigo comparó su plano, contado a mano, contra la foto: "sigue
+  // inventando escritorios". El texto del prompt ya pedía "LAYOUT IS LOCKED,
+  // no inventes muebles" y no bastaba: Gemini no respeta de forma confiable un
+  // conteo exacto de objetos repetidos por más fuerte que se lo pidas EN
+  // PALABRAS. La única manera honesta de no mentirle al cliente es no confiar
+  // en la primera pasada: se le pide al MISMO modelo que CUENTE lo que acaba
+  // de dibujar, y si no da el número exacto, se le manda a REHACER la imagen
+  // completa señalándole el error. Si tras los reintentos sigue sin dar, se
+  // devuelve un ERROR en vez de una foto que ya sabemos que está mal —enseñarle
+  // al cliente un render con escritorios de más es peor que no tener foto—.
+  const conteoEsperado = Number(conteoPiso);
+  const verificable = (modo === "acomodo" || modo === "escena") && Number.isFinite(conteoEsperado) && conteoEsperado > 0;
+  if (verificable) {
+    const textConfig = { responseModalities: ["TEXT"] };
+    const MAX_INTENTOS = 2;   // 1 imagen inicial + 1 rehecha; más que eso es mucho tiempo y costo por render
+    let contents: any[] = [{ role: "user", parts }, { role: "model", parts: [{ inlineData: { mimeType: mime, data: inline.data } }] }];
+    for (let intento = 1; intento <= MAX_INTENTOS; intento++) {
+      const preguntaConteo =
+        "Count ONLY the floor-standing furniture pieces visible in the image you just produced: desks, benches, " +
+        "storage units, meeting tables, privacy screens — anything that stands directly on the floor. Do NOT count " +
+        "chairs, monitors, mugs, notebooks or anything sitting on top of another piece. " +
+        "Answer with ONLY the total number, digits only, no words, no punctuation.";
+      contents = [...contents, { role: "user", parts: [{ text: preguntaConteo }] }];
+      const rc = await llamarGemini(contents, textConfig);
+      // Si el contador falla (cuota, red), se entrega la imagen que ya hay: un
+      // error del CONTADOR no tiene por qué tumbar un render que sí se generó.
+      if (rc.error) break;
+      const textoConteo = (rc.data?.candidates?.[0]?.content?.parts || []).map((p: any) => p.text || "").join("").trim();
+      const numConteo = parseInt((textoConteo.match(/\d+/) || [])[0] || "", 10);
+      contents = [...contents, { role: "model", parts: [{ text: textoConteo || "?" }] }];
+      if (Number.isFinite(numConteo) && numConteo === conteoEsperado) break;   // cuadra: esta imagen se queda
+      if (intento === MAX_INTENTOS) {
+        return json({
+          ok: false,
+          error: `No se pudo generar una foto con el conteo exacto de muebles (salieron ${Number.isFinite(numConteo) ? numConteo : "?"} de ${conteoEsperado} esperados). Usa el plano, que sí es exacto, o vuelve a intentar.`,
+        }, 200);
+      }
+      const correccion =
+        `You just counted ${Number.isFinite(numConteo) ? numConteo : "an incorrect number of"} floor-standing pieces, but EXACTLY ${conteoEsperado} are required — not one more, not one less. ` +
+        "Regenerate the ENTIRE image from scratch: same room, same camera angle, same materials and lighting, but fix the count of floor-standing furniture so it is exactly correct. " +
+        "If there were too many, remove the extras completely — do not just shrink or hide them. If there were too few, add the missing ones in the empty floor space, matching the style of the rest.";
+      contents = [...contents, { role: "user", parts: [{ text: correccion }] }];
+      const ri = await llamarGemini(contents, imageGenConfig);
+      if (ri.error) return json({ ok: false, error: ri.error }, 502);
+      outParts = ri.data?.candidates?.[0]?.content?.parts || [];
+      img = outParts.find((p: any) => p.inlineData?.data || p.inline_data?.data);
+      inline = img?.inlineData || img?.inline_data;
+      if (!inline?.data) {
+        const bloqueo = ri.data?.promptFeedback?.blockReason;
+        return json({ ok: false, error: bloqueo ? `La imagen fue bloqueada (${bloqueo}). Ajusta la descripción.` : "Gemini no devolvió una imagen al corregir el conteo." }, 200);
+      }
+      mime = inline.mimeType || inline.mime_type || "image/png";
+      contents = [...contents, { role: "model", parts: [{ inlineData: { mimeType: mime, data: inline.data } }] }];
+    }
+  }
+
   return json({ ok: true, dataUrl: `data:${mime};base64,${inline.data}` });
 });
 

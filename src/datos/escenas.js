@@ -22,6 +22,7 @@
 //  Este archivo NO habla con la nube ni con el navegador: sólo prepara datos, y
 //  por eso se puede probar. La llamada vive en la pantalla.
 // ============================================================================
+import { tipoDe } from './espacio.js';
 
 // El id de una pieza colocada es `<idPartida>-<n>`. Igual que en resumen.js.
 const partidaDe = (idPieza) => String(idPieza).replace(/-\d+$/, '');
@@ -65,11 +66,17 @@ export function escenasDeAcomodo(partidas, acomodo) {
     const piezas = [...m.entries()]
       .map(([pid, cantidad]) => {
         const p = porId[pid];
-        return { id: pid, nombre: p.nombre, cantidad, ruta: p.ruta || null, productoId: p.productoId || null };
+        return { id: pid, nombre: p.nombre, cantidad, ruta: p.ruta || null, productoId: p.productoId || null, tipo: tipoDe(p) };
       })
       // Lo grande primero: es lo que define la escena y lo que el modelo debe
       // acertar. Si hay que recortar la lista, que se caigan los accesorios.
       .sort((a, b) => b.cantidad - a.cantidad);
+
+    // Cuántas piezas DE PISO (todo menos sillas) tiene que tener la foto, ni
+    // una más ni una menos. Las sillas se dejan fuera a propósito: el prompt ya
+    // le pide al modelo poner "una silla en cada puesto" por su cuenta —contarlas
+    // aquí lo obligaría a acertar un número que él mismo decide cómo repartir.
+    const pisoTotal = piezas.reduce((s, p) => (p.tipo === 'asiento' ? s : s + p.cantidad), 0);
 
     escenas.push({
       areaIndex: i,
@@ -78,6 +85,7 @@ export function escenasDeAcomodo(partidas, acomodo) {
       largoMM: area.largo,
       m2: Math.round(((area.ancho || 0) * (area.largo || 0)) / 1e6 * 10) / 10,
       piezas,
+      pisoTotal,
       // El recorte para dibujar SÓLO este cuarto: el área en el origen y su
       // colocación reindexada a 0. Así se puede rasterizar el isométrico de una
       // sola habitación en vez del piso completo.

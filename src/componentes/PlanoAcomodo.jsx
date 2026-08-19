@@ -14,6 +14,7 @@
 // ============================================================================
 import { useState, useRef } from 'react';
 import { colorTipo, altoTipo, dimsPieza, frenteDe } from '../datos/espacio.js';
+import { dentroPoly } from '../datos/malla.js';
 
 const C = Math.cos(Math.PI / 6), S = Math.sin(Math.PI / 6); // iso 30°
 const MURO = 130;        // grosor de muro (mm)
@@ -200,12 +201,30 @@ export default function PlanoAcomodo({
     return { x: q.x, y: q.y };
   }
   // ¿En qué área cayó el toque? Se necesita para guardar la pieza en su cuarto.
+  // ⚠️ EL CUARTO ANIDADO PERDÍA CONTRA EL QUE LO RODEA (plano orgánico,
+  // 2026-08-18). Antes se devolvía la PRIMERA área cuya CAJA envolvente
+  // contenía el punto, sin mirar su forma real. En un plano con una sala
+  // redonda en medio del open space (el caso que motivó `planoLeido.js`),
+  // soltar la mesa de juntas EN EL CENTRO de la sala la registraba en el open
+  // space: su caja también cubre ese punto y aparece primero en la lista. El
+  // mueble se ve bien —cae donde tocaste— pero queda contado en el cuarto
+  // equivocado, y de ahí sale el resumen por área de la propuesta
+  // (`resumen.js`): el cliente recibe una cotización que le cobra la mesa y
+  // las sillas dentro de "Open space" con la sala de juntas vacía y sin
+  // costo. Ahora se prefiere la área MÁS CHICA que de verdad contiene el
+  // punto —dentro de su polígono si lo tiene, no sólo de su rectángulo—: la
+  // sala anidada, al ser más chica que lo que la rodea, gana siempre que el
+  // punto caiga dentro de ella.
   function areaDe(x, y) {
+    let mejor = null, mejorSup = Infinity;
     for (let i = 0; i < areas.length; i++) {
-      const o = offs[i];
-      if (x >= o.x && x <= o.x + areas[i].ancho && y >= o.y && y <= o.y + areas[i].largo) return i;
+      const o = offs[i], a = areas[i];
+      if (x < o.x || x > o.x + a.ancho || y < o.y || y > o.y + a.largo) continue;
+      if (a.poly && a.poly.length >= 3 && !dentroPoly(a.poly, x - o.x, y - o.y)) continue;
+      const sup = a.ancho * a.largo;
+      if (sup < mejorSup) { mejorSup = sup; mejor = i; }
     }
-    return null;
+    return mejor;
   }
   function soltar(ev) {
     if (!editable || !onSoltarEn) return;

@@ -846,9 +846,15 @@ const aDataURL = async (url) => {
 
 /** Logo y foto de portada de la casa, listos para el PDF. */
 export async function cargarMarca() {
+  // ⚠️ `showroom.jpg` es el maqueteado de SketchUp de antes de tener fotos: un
+  // cuarto gris con muebles de bloques de colores, cero "factor wow". La foto
+  // REAL del lounge/showroom VH (la misma que ya usa la ficha de una pieza,
+  // `PORTADA_VH` en FichaPDF.jsx) vive en `lounge-vh.jpg`. La portada de la
+  // propuesta seguía cayendo en la vieja porque esta ruta nunca se actualizó
+  // cuando se subió la foto real.
   const [logo, portada] = await Promise.all([
     aDataURL(`${MARCA}/logo.png`),
-    aDataURL(`${MARCA}/showroom.jpg`),
+    aDataURL(`${MARCA}/lounge-vh.jpg`),
   ]);
   return { logo, portada };
 }

@@ -669,6 +669,10 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       cuarto: tipoDeEscena(esc.nombre),
       lineas: lineasDeEscena(esc).map((r) => (LINEAS_REG?.[r]?.titulo || r)),
       medidas: `${(esc.anchoMM / 1000).toFixed(2)} × ${(esc.largoMM / 1000).toFixed(2)} m (${esc.m2} m2)`,
+      // Cuántas piezas de PISO (sin sillas) tiene que tener la foto exacto. La
+      // nube se lo cuenta a la imagen que generó y, si no da, la vuelve a hacer
+      // —Gemini no siempre respeta "no inventes muebles" a la primera—.
+      conteoPiso: esc.pisoTotal,
     });
   }
 
@@ -740,9 +744,16 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       // furniture, do not rearrange anything… count the rows and match them",
       // y espera justo el isométrico como referencia. Con dibujo se usa ése;
       // sin dibujo no hay acomodo que respetar y se cae a `oficina`.
+      // Cuántas piezas de PISO (sin sillas) tiene que tener la foto exacto, para
+      // que la nube verifique el conteo antes de dármela por buena. Sólo aplica
+      // en modo `acomodo`: en `oficina` (sin dibujo) no hay layout fijo que
+      // exigir —el modelo está armando el suyo—.
+      const pisoTotal = dibujo
+        ? (plan?.colocacion || []).reduce((n, c) => (byId[c.id]?.tipo === 'asiento' ? n : n + 1), 0)
+        : undefined;
       const r = await generarRender(desc, {
         modo: dibujo ? 'acomodo' : 'oficina',
-        ...(dibujo ? { imagen: dibujo, mediaType: 'image/jpeg' } : {}),
+        ...(dibujo ? { imagen: dibujo, mediaType: 'image/jpeg', conteoPiso: pisoTotal } : {}),
         medidas: `${areas.length} área(s) · ${layout} · altura ${dibujoMeta.alto || 2.7} m`,
         imagenes,
       });

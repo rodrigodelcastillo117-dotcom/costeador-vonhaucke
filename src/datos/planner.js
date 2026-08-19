@@ -119,8 +119,15 @@ function empacarTodoGarantizado(base, piezas, ajustar) {
  * reparto por cuarto, la forma real y los obstáculos siguen intactos, y si una
  * silla no puede sentarse (el puesto choca con algo o se sale) **se queda donde
  * estaba**. Mover una silla es gratis: no cambia qué cabe, sólo dónde se ve.
+ *
+ * ⚠️ SE EXPORTA para que `reacomodar.js` la vuelva a correr sobre el resultado
+ * YA COMBINADO (lo fijo a mano + lo que acomodó el motor). Aquí adentro sólo ve
+ * los escritorios que le tocó acomodar A ÉL: un escritorio puesto a mano por el
+ * proyectista le llega disfrazado de OBSTÁCULO (`reacomodar.js`), no como una
+ * colocación, así que nunca aparece en `escritorios` y sus sillas nuevas se
+ * quedan sin ancla — acomodadas como mueble suelto contra cualquier muro.
  */
-function sentarSillas(colocacion, piezas, areas) {
+export function sentarSillas(colocacion, piezas, areas) {
   const byId = Object.fromEntries(piezas.map((p) => [p.id, p]));
   // ⚠️ Y TAMBIÉN SE COLOCAN LAS QUE NO CUPIERON. El empacador le aparta piso
   // PROPIO a cada silla (450 mm de holgura cada una) aunque la silla vaya a
@@ -145,7 +152,15 @@ function sentarSillas(colocacion, piezas, areas) {
     const enArea = out.filter((c) => c.area === i);
     // La de VISITA no se sienta en el puesto: va del otro lado del escritorio,
     // y ésa es otra regla. Aquí sólo la operativa.
-    const sillas = enArea.filter((c) => esSillaOperativa(byId[c.id]) || esSillaDirectiva(byId[c.id]));
+    // ⚠️ UNA SILLA `manual: true` NO SE VUELVE A SENTAR (2026-08-19). Desde que
+    // `reacomodar.js` corre esta función sobre el resultado YA COMBINADO (fijo +
+    // nuevo) para que una silla nueva SÍ encuentre el escritorio que el
+    // proyectista puso a mano, una silla que ÉL YA HABÍA sentado a mano quedaba
+    // igual de "sillas por acomodar" que cualquier otra y se movía a donde este
+    // criterio prefiriera — justo lo que `reacomodar.js` existe para evitar.
+    // Se excluye aquí: cae a `fijas` (abajo) y sigue contando como obstáculo,
+    // así nadie se le encima, pero nadie la mueve.
+    const sillas = enArea.filter((c) => !c.manual && (esSillaOperativa(byId[c.id]) || esSillaDirectiva(byId[c.id])));
     // ⚠️ Se salía del cuarto cuando no había NINGUNA silla ya puesta en él, y
     // por eso nunca llegaba a las de `sinLugar`: en el plano real, con las
     // sillas fuera del reparto, las 48 se quedaban sin colocar aunque hubiera

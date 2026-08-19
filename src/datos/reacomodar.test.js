@@ -98,3 +98,37 @@ describe('re-acomodar respetando lo puesto a mano', () => {
     expect(r.fijas).toBe(0);
   });
 });
+
+// ============================================================================
+//  LA SILLA NUEVA SÍ ENCUENTRA EL ESCRITORIO PUESTO A MANO
+//  `acomodarLocal` sienta cada silla junto a su escritorio, pero sólo ve lo que
+//  le toca acomodar a él: un escritorio fijo le llega disfrazado de obstáculo,
+//  no como colocación, así que antes de este arreglo una silla agregada después
+//  de mover su escritorio con el dedo se iba a acomodar como mueble suelto
+//  contra cualquier muro, lejos de su escritorio.
+// ============================================================================
+describe('re-acomodar sienta la silla junto al escritorio puesto a mano', () => {
+  const AREA1 = [{ nombre: 'Privado 1', ancho: 4000, largo: 4000 }];
+  const ESCRITORIO = { id: 'esc1', nombre: 'Escritorio APP LT 1.50 x 0.75', w: 1500, d: 750, tipo: 'escritorio' };
+  const SILLA = { id: 'silla1', nombre: 'Silla operativa WIN', w: 600, d: 600, tipo: 'asiento' };
+
+  it('una silla NUEVA (sin manual) se sienta pegada al escritorio que ya está fijo', () => {
+    const colocacionPrevia = [{ id: 'esc1', area: 0, x: 500, y: 500, rot: 0, manual: true }];
+    const r = reacomodar({ areas: AREA1, piezas: [ESCRITORIO, SILLA], colocacion: colocacionPrevia, ajustar: false });
+    const silla = r.colocacion.find((c) => c.id === 'silla1');
+    expect(silla).toBeTruthy();
+    // Pegada (< 100 mm de holgura) al escritorio, no tirada contra otro muro.
+    const cerca = Math.abs(silla.x - 500) < 1000 && Math.abs(silla.y - 1250) < 1000;
+    expect(cerca).toBe(true);
+  });
+
+  it('una silla que YA estaba puesta a mano no se mueve, aunque el escritorio también sea manual', () => {
+    const colocacionPrevia = [
+      { id: 'esc1', area: 0, x: 500, y: 500, rot: 0, manual: true },
+      { id: 'silla1', area: 0, x: 3000, y: 3000, rot: 0, manual: true },
+    ];
+    const r = reacomodar({ areas: AREA1, piezas: [ESCRITORIO, SILLA], colocacion: colocacionPrevia, ajustar: false });
+    const silla = r.colocacion.find((c) => c.id === 'silla1');
+    expect([silla.x, silla.y, silla.rot]).toEqual([3000, 3000, 0]);
+  });
+});
