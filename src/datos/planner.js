@@ -403,7 +403,17 @@ function rolCuarto(a, todos) {
 
 // El criterio de siempre, sin la regla del anidamiento (se separa para poder
 // preguntarle por las hijas sin caer en recursión infinita).
-function rolCuartoBase(a, todos) {
+// ⚠️ SE EXPORTA para que `programaDelPlano.js` clasifique los cuartos con el
+// MISMO criterio que el acomodo (el propio encabezado de ese archivo lo pide:
+// "si difirieran, la app propondría un programa para unos cuartos y lo
+// acomodaría en otros"). Antes `programaDelPlano.js` sólo probaba `a.tipo` y
+// `rolArea(a.nombre)`, sin el respaldo por TAMAÑO de aquí abajo: un cuarto que
+// el lector de planos deja sin `tipo` (pasa cuando el modelo no está seguro) y
+// con un nombre genérico ("Sala 12", sin ninguna palabra clave) caía en
+// 'general' y desaparecía del programa entero — 0 privados, 0 operativos, 0
+// salas — exactamente aunque el mismo cuarto SÍ se amueble bien en el acomodo,
+// porque `rolCuarto` de aquí arriba sí tiene este respaldo.
+export function rolCuartoBase(a, todos) {
   if (a.tipo) return a.tipo;
   const porNombre = rolArea(a.nombre);
   if (porNombre !== 'general') return porNombre;

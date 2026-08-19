@@ -17,12 +17,24 @@
 //
 //  Todo en METROS (es lo que devuelve `areasDeLectura` y lo que guarda `areasM`).
 // ============================================================================
-import { rolArea } from './planner.js';
+import { rolCuartoBase } from './planner.js';
 
-// El rol de un cuarto: lo que declaró el lector, o su nombre. Mismo criterio que
-// usa el acomodo — si difirieran, la app propondría un programa para unos
-// cuartos y lo acomodaría en otros.
-export const rolDe = (a) => a?.tipo || rolArea(a?.nombre);
+// El rol de un cuarto: lo que declaró el lector, su nombre, o —si ninguno de
+// los dos dice nada, "Sala 12" sin `tipo`— su TAMAÑO. Mismo criterio que usa el
+// acomodo (`rolCuartoBase`, `planner.js`) y no una copia recortada de él: antes
+// esto era sólo `a.tipo || rolArea(a.nombre)`, sin el respaldo por tamaño, y un
+// cuarto sin `tipo` y de nombre genérico se perdía en 'general' — el programa
+// completo salía en ceros para ESE cuarto aunque el acomodo sí lo amueblara.
+// `todos` es la lista completa del plano: el respaldo por tamaño necesita
+// comparar contra el cuarto más grande para saber cuál es la planta libre.
+//
+// ⚠️ `rolCuartoBase` espera MILÍMETROS (así trabaja el acomodo); este archivo
+// entero trabaja en METROS (ver el encabezado, arriba). Pasarle los metros tal
+// cual no truena — silenciosamente hace que TODO cuarto salga "m2 ≈ 0" y caiga
+// siempre en 'servicio', el mismo cuarto que en el acomodo real sí se amuebla.
+// Se convierte aquí, en la frontera, para que el resto del archivo siga en m.
+const aMM = (a) => (a ? { ...a, ancho: (a.ancho || 0) * 1000, largo: (a.largo || 0) * 1000 } : a);
+export const rolDe = (a, todos) => rolCuartoBase(aMM(a), (todos && todos.length ? todos : [a]).map(aMM));
 
 // Una ZONA es un área dibujada DENTRO de otra (las islas punteadas del open
 // space). Un CUARTO tiene muros propios.
@@ -80,12 +92,12 @@ export function programaDelPlano(areas, opts = {}) {
   };
   if (!lista.length) return vacio;
 
-  const privados = lista.filter((a) => rolDe(a) === 'privado');
-  const salasA = lista.filter((a) => rolDe(a) === 'juntas');
-  const recepcion = lista.some((a) => rolDe(a) === 'recepcion');
+  const privados = lista.filter((a) => rolDe(a, lista) === 'privado');
+  const salasA = lista.filter((a) => rolDe(a, lista) === 'juntas');
+  const recepcion = lista.some((a) => rolDe(a, lista) === 'recepcion');
   // Las islas: zonas de trabajo dentro de otro espacio. Si el plano no las
   // declara, el open space entero es una sola "isla".
-  const zonas = lista.filter((a) => esZona(a) && rolDe(a) === 'open');
+  const zonas = lista.filter((a) => esZona(a) && rolDe(a, lista) === 'open');
   // ⚠️ 2026-08-18: un área operativa que CONTIENE una sala de juntas circular
   // (dentroDe) se excluía de `abiertos` igual que si contuviera islas — y como
   // la sala de juntas no es una zona 'open', tampoco entraba a `zonas`. El área
@@ -94,7 +106,7 @@ export function programaDelPlano(areas, opts = {}) {
   // (`zonas`) — un cuarto cerrado anidado (junta/privado) no vuelve pasillo al
   // que lo rodea.
   const nombresConIslas = new Set(zonas.map((z) => z.dentroDe));
-  const abiertos = lista.filter((a) => !esZona(a) && rolDe(a) === 'open' && !nombresConIslas.has(a.nombre));
+  const abiertos = lista.filter((a) => !esZona(a) && rolDe(a, lista) === 'open' && !nombresConIslas.has(a.nombre));
   const islasA = zonas.length ? zonas : abiertos;
 
   const avisos = [];

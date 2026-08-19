@@ -111,3 +111,29 @@ describe('la sala de juntas: se propone, no se impone', () => {
     expect(avisosDeSala(programaDelPlano([], {}), 8)).toEqual([]);
   });
 });
+
+// ============================================================================
+//  UN CUARTO SIN `tipo` Y DE NOMBRE GENÉRICO SE CLASIFICA POR TAMAÑO
+//  Igual que el acomodo real (`rolCuartoBase`, planner.js): cuando el lector no
+//  está seguro del tipo y el nombre no trae ninguna palabra clave ("Sala 12"),
+//  el cuarto no debe desaparecer del programa — se clasifica por su tamaño,
+//  relativo al más grande del plano.
+// ============================================================================
+describe('rolDe: respaldo por tamaño cuando no hay tipo ni nombre reconocible', () => {
+  const AREAS = [
+    { nombre: 'Sala 12', ancho: 20, largo: 15 },   // 300 m² · la más grande -> open
+    { nombre: 'Sala 7', ancho: 3, largo: 2.5 },     // 7.5 m² -> privado
+    { nombre: 'Sala 3', ancho: 2, largo: 2 },       // 4 m² -> servicio (no amuebla)
+  ];
+
+  it('el open space genérico sí cuenta como zona de trabajo', () => {
+    const pr = programaDelPlano(AREAS, { largoPuesto: 1500 });
+    expect(pr.islas).toBe(1);
+    expect(pr.operativos).toBeGreaterThan(0);
+  });
+
+  it('el cuarto chico genérico sí cuenta como privado', () => {
+    const pr = programaDelPlano(AREAS, { largoPuesto: 1500 });
+    expect(pr.privados).toBe(1);
+  });
+});
