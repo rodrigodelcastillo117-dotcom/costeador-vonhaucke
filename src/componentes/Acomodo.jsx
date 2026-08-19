@@ -14,7 +14,7 @@ import { reacomodar, fijasDe } from '../datos/reacomodar.js';
 import { listaPorCuarto, textoPorCuarto } from '../datos/porCuarto.js';
 import { enderezar } from '../datos/orientacion.js';
 import { esSillaDeTrabajo } from '../datos/planner.js';
-import { rellenar } from '../datos/rellenar.js';
+import { rellenar, puestosDeclarados } from '../datos/rellenar.js';
 
 // Para la paleta, SILLA es todo lo que se sienta: la operativa, la de visita y
 // también el sillón y el banco. Rodrigo lo pidió partido en dos: "lado
@@ -817,6 +817,11 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     // mitad de los puestos reales.
     const puestos = piezas.filter((p) => p.tipo === 'escritorio' && colocadasIds.has(p.id))
       .reduce((n, p) => {
+        // El nombre manda cuando declara los puestos ("6 usuarios"): contar por
+        // ancho/1.50 asume 1.50 m por puesto, y una banca con puesto más angosto
+        // (Cirque: 1.20 m) salía subcontada — mismo motivo que `rellenar.js`.
+        const declarados = puestosDeclarados(p.nombre);
+        if (declarados) return n + declarados;
         const largo = Math.max(p.w, p.d), fondo = Math.min(p.w, p.d);
         const columnas = Math.max(1, Math.round(largo / 1500));
         return n + columnas * (fondo >= 1000 ? 2 : 1);

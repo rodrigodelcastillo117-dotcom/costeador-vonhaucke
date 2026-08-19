@@ -28,6 +28,23 @@ const huellaDe = (c, byId) => {
 // El lado por donde se sienta la gente, para dejar ahí la silla.
 const LADO = { 0: [0, 1], 90: [-1, 0], 180: [0, -1], 270: [1, 0] };
 
+const sinAcento = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+// ⚠️ L/1500 ES UN ESTIMADO, NO LA CUENTA REAL (2026-08-19). Asume que cada
+// puesto mide 1.50 m, pero `huellaReal` (espacio.js) arma el bloque con el
+// ANCHO REAL del puesto —Cirque mide 1.20 m—: "Banca doble 6 puestos" a 1.20
+// da un bloque de 3.60 × 1.50 m, y 3.60 / 1.50 redondea a 2 columnas: sólo 4
+// de los 6 puestos comprados quedaban sentados, y las 2 sillas que sobraban
+// se iban al hueco libre del cuarto en vez de a su banca —justo lo que
+// `sentarSillas` existe para evitar—. El nombre YA DICE los puestos de
+// verdad (mismo patrón que usa `huellaReal` para armar el bloque): si lo
+// dice, manda sobre el estimado geométrico.
+export function puestosDeclarados(nombre) {
+  const s = sinAcento(nombre);
+  const m = /(\d+)\s*(?:puesto|plaza|persona|posicion|usuario)s?\b/.exec(s) || /(\d+)\s*u\b(?!\w)/.exec(s);
+  return m ? Math.max(1, +m[1]) : null;
+}
+
 /**
  * Dónde van las sillas de UN escritorio o banca ya colocado.
  *
@@ -42,9 +59,11 @@ const LADO = { 0: [0, 1], 90: [-1, 0], 180: [0, -1], 270: [1, 0] };
  * @param c colocación del escritorio: { rot }
  * @param h su huella ya girada: { x, y, w, d }
  * @param pw,ph medidas de la silla
+ * @param nombreMueble nombre de la partida del escritorio/banca, para leer los
+ *   puestos declarados ("6 puestos") cuando el puesto real no mide 1.50 m.
  * @returns [{x,y}] esquina superior izquierda de cada silla, en orden del puesto 1 al n
  */
-export function puestosDe(c, h, pw, ph) {
+export function puestosDe(c, h, pw, ph, nombreMueble = null) {
   // ⚠️ LA HILERA CORRE POR EL LADO LARGO Y UNA BANCA DOBLE TIENE GENTE DE LOS
   // DOS LADOS. Estas dos reglas ya estaban escritas en el dibujo 3D
   // (`PlanoAcomodo.jsx`: `bench = F > 1000`, `n = round(L/1500)`) y aquí no:
@@ -54,8 +73,12 @@ export function puestosDe(c, h, pw, ph) {
   const horiz = h.w >= h.d;
   const L = horiz ? h.w : h.d;          // a lo largo de la hilera
   const F = horiz ? h.d : h.w;          // de una hilera a la otra
-  const n = Math.max(1, Math.round(L / 1500));   // puestos POR hilera
   const doble = F > 1000;               // bench doble: dos hileras enfrentadas
+  const declarados = puestosDeclarados(nombreMueble);
+  // El nombre manda cuando lo dice (ver nota arriba de `puestosDeclarados`);
+  // L/1500 se queda sólo como respaldo para lo que no declara puestos.
+  const n = declarados ? Math.max(1, doble ? Math.ceil(declarados / 2) : declarados)
+    : Math.max(1, Math.round(L / 1500));   // puestos POR hilera
   const [ux, uy] = LADO[((c.rot || 0) % 360 + 360) % 360] || LADO[0];
   const perp = horiz ? uy : ux;         // hacia dónde se sienta el de "acá"
   const salto = F / 2 + (horiz ? ph : pw) * 0.6;
@@ -107,7 +130,7 @@ export function rellenar({ ids, pieza, area, iArea, colocadas, byId }) {
       .map((c) => ({ c, h: huellaDe(c, byId) })).filter((e) => e.h);
     for (const { c, h } of escritorios) {
       if (!cola.length) break;
-      for (const s of puestosDe(c, h, pw, ph)) {
+      for (const s of puestosDe(c, h, pw, ph, byId[c.id]?.nombre)) {
         if (!cola.length) break;
         if (meter(cola[0], s.x, s.y)) cola.shift();
       }

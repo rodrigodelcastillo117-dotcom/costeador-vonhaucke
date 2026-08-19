@@ -181,7 +181,7 @@ export function sentarSillas(colocacion, piezas, areas) {
       const s0 = byId[libres[0]?.id] || sinLugar[0];
       if (!s0) break;
       const { pw, ph } = dimsPieza(s0, 0);
-      for (const s of puestosDe(c, h, pw, ph)) {
+      for (const s of puestosDe(c, h, pw, ph, byId[c.id]?.nombre)) {
         if (!libres.length && !sinLugar.length) break;
         const caja = { x: s.x, y: s.y, w: pw, d: ph };
         const dentro = caja.x >= 0 && caja.y >= 0

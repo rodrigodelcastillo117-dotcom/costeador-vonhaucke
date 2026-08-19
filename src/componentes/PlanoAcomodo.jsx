@@ -741,7 +741,7 @@ function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = fa
     out.push(cuboide(r[0], r[1], r[2], r[3], 450, 950, shadeHex(MAT.chair, 1.06), key + 'r'));
   };
 
-  const mueble = (x, y, w, d, tipo, key, familia = null) => {
+  const mueble = (x, y, w, d, tipo, key, familia = null, sillasReales = false) => {
     const H = altoTipo(tipo);
     const atras = [], cuerpo = [], frente = [];   // se concatenan en ese orden
     // ⚠️ LA HILERA CORRE POR EL LADO LARGO, y el mueble puede venir GIRADO.
@@ -763,7 +763,15 @@ function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = fa
       const bench = F > 1000;                       // bench doble: dos hileras enfrentadas
       const n = Math.max(1, Math.round(L / 1500));  // puestos por hilera
       const mw = Math.min(520, (L / n) * 0.42);     // el monitor es acento, no protagonista
-      for (let k = 0; k < n; k++) {
+      // ⚠️ NO DUPLICAR LA SILLA (2026-08-19). Esta silla de aquí es DECORATIVA
+      // —existe desde el primer build, para que un escritorio nunca se vea
+      // "pelón"—. Pero desde que `sentarSillas`/`rellenar.js` sientan la silla
+      // REAL comprada por el cliente pegada a su escritorio, las dos quedaban
+      // a ~30 mm una de la otra: el mismo puesto salía con DOS sillas
+      // encimadas en el isométrico, y ésa es la imagen que se manda de
+      // referencia al render con IA. Si ya hay una silla real cerca de este
+      // mueble, la decorativa sobra: se calla y deja que se vea la de verdad.
+      if (!sillasReales) for (let k = 0; k < n; k++) {
         const u = (L * (k + 0.5)) / n;
         // En un bench doble hay gente de los dos lados; en un escritorio suelto,
         // sólo de frente. La silla de atrás va ANTES del mueble (queda detrás).
@@ -849,9 +857,19 @@ function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = fa
     const p = byId[c.id]; if (!p) return null;
     const ox = offs[c.area]?.x ?? 0, oy = offs[c.area]?.y ?? 0;
     const { pw, ph } = dimsPieza(p, c.rot);
-    return { key: c.id, x: ox + c.x, y: oy + c.y, pw, ph, tipo: p.tipo, familia: familiaAsiento(p), niv: nivelDe(c.area) };
+    return { key: c.id, x: ox + c.x, y: oy + c.y, pw, ph, tipo: p.tipo, familia: familiaAsiento(p), niv: nivelDe(c.area), area: c.area ?? 0 };
   }).filter(Boolean);
-  piezas.forEach((pz) => unidad(pz.x + pz.pw + pz.y + pz.ph, <g key={pz.key}>{mueble(pz.x, pz.y, pz.pw, pz.ph, pz.tipo, pz.key, pz.familia)}</g>, pz.niv));
+  // Centros de las sillas REALES (compradas y ya sentadas por `sentarSillas`/
+  // `rellenar.js`), para no dibujarle a un escritorio su silla decorativa
+  // encima de la de verdad. 900 mm es el margen con el que esas dos funciones
+  // sientan una silla "pegada" a su puesto (ver `PEGADA`/`salto` allá).
+  const centrosAsiento = piezas.filter((pz) => pz.tipo === 'asiento')
+    .map((pz) => ({ x: pz.x + pz.pw / 2, y: pz.y + pz.ph / 2, area: pz.area }));
+  const MARGEN_SILLA = 900;
+  const tieneSillaReal = (pz) => centrosAsiento.some((s) => s.area === pz.area
+    && s.x >= pz.x - MARGEN_SILLA && s.x <= pz.x + pz.pw + MARGEN_SILLA
+    && s.y >= pz.y - MARGEN_SILLA && s.y <= pz.y + pz.ph + MARGEN_SILLA);
+  piezas.forEach((pz) => unidad(pz.x + pz.pw + pz.y + pz.ph, <g key={pz.key}>{mueble(pz.x, pz.y, pz.pw, pz.ph, pz.tipo, pz.key, pz.familia, pz.tipo === 'escritorio' && tieneSillaReal(pz))}</g>, pz.niv));
 
   unidades.sort((a, b) => a.z - b.z);
 
