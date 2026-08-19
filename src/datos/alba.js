@@ -493,7 +493,20 @@ export function generarAlba(config) {
   return aplicarColor({
     producto: c.producto, nombre: res.nombre, tipoRender: res.tipoRender,
     componentes: comp, claves, electricos,
-    modoManoObra: 'porcentaje', factorDirecta: 38, factorIndirecta: 12,
+    // ⚠️ 2026-08-19: aquí vivían `factorDirecta: 38, factorIndirecta: 12` — un
+    // blend PLANO igual para cubierta/metal/cristal. El guardián de jerarquía
+    // (scripts/revisa-jerarquia.mjs) cazó la mesa de juntas de Alba a 0.42× de
+    // su objetivo: es metal/acometida en su mayoría, y el 38/12 plano la
+    // subvalúa contra lo que SÍ le toca por `formulaAlba.js` (metal: 20% MO +
+    // GI 3×MO = 80% de recargo, contra el 50% del blend). La fórmula de Alba
+    // por tipo de material (commit 5966d59) YA estaba escrita y probada al
+    // centavo (`formulaAlba.test.js`, `calculo.test.js`), pero nunca llegaba a
+    // un Alba real: `calculo.js` sólo la usa cuando la pieza NO trae
+    // `factorDirecta`/`factorIndirecta` fijos (`usaFactoresExplicitos`), y
+    // esta función se los fijaba SIEMPRE. Se quitan para que el "enchufe" sea
+    // de verdad — `modoManoObra: 'porcentaje'` basta para que
+    // `manoObraGiAlba()` calcule por tipo de insumo.
+    modoManoObra: 'porcentaje',
     nota: 'Alba (Fase A): dimensiones y claves reales de la guia GE_Alba (ESP-DCC-IDP-003 v3). ' +
       'Cubiertas con acabado ABS/CH/TF/HPELABS (Ecolegno=laminado); faldones Ecolegno=HPABS. ' +
       'MP estimada: faldon con bastidor -> faldon-abs; patas/estructuras/bastidores/rieles metalicos -> ' +

@@ -26,3 +26,5 @@ scratchpad/*
 !scratchpad/*.mjs
 !scratchpad/*.py
 !scratchpad/*.md
+.vercel
+.env*
