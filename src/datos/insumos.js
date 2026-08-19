@@ -70,15 +70,29 @@ export const INSUMOS_SEMILLA = [
   tablero({ id: 'melamina-16-color', nombre: 'Melamina de COLOR / madera 16 mm', precio: 685, articulo: 'MVLMAG01280500 AGLOMERADO MELAMINA DOS CARAS 4x8 16 mm', fuente: FUENTE_ERP }),
     tablero({ id: 'melamina-19', nombre: 'Melamina BLANCA / EcoLegno 19 mm', precio: 544, articulo: 'Aglomerado con melamina blanca 4x8 19 mm', fuente: FUENTE_COMPRAS }),
   tablero({ id: 'melamina-19-color', nombre: 'Melamina de COLOR / madera 19 mm', precio: 665, articulo: 'MVLMAG01280600 AGLOMERADO MELAMINA DOS CARAS 4x8 19 mm', fuente: FUENTE_ERP }),
+  // ⚠️ Este precio es el de WALNUT (opción B709), NO un "generico cualquier
+  // color": confirmado 2026-08-18 contra 'Costos de Materia Prima Ultima
+  // Compra al 10082026.xlsx' (Luis Daniel) — ese archivo trae Opción/Opción
+  // Descripción por color, y B709 WALNUT es la que dio $1335.6 el 2026-08-07.
+  // El archivo tiene 80+ colores de esta MISMA hoja (MVLMAG01280800); usar uno
+  // solo como "el" precio de melamina-28 es arbitrario mientras la app no
+  // pida color. Queda así porque cambiarlo afecta a Alba/Cirque/Ergo4/Pebble/
+  // Privacy4/Rio/Spine/Via a la vez — no se toca sin decidirlo aparte.
   tablero({ id: 'melamina-28', nombre: 'Melamina ABS 28 mm (cubierta APP LT)', precio: 1335.6,
-    articulo: 'AGLOMERADO MELAMINA DOS CARAS 4x8 28 mm', fuente: FUENTE_ERP }),   // = última compra 2026-08-07 ($1335.6); rango por color $842-$1336
-  // Mismo material, color IVORY (b717) verificado renglón a renglón contra el
-  // T.D.C. real de Alba — NO reemplaza a 'melamina-28' (ese sigue siendo el
-  // generico de última compra, cualquier color; éste es el dato con el que
-  // Alba costeó su ejemplo). Lo usa el despiece de App LT para cuadrar contra
-  // su T.D.C.; otras líneas siguen con 'melamina-28'.
-  tablero({ id: 'melamina-28-ivory', nombre: 'Melamina ABS 28 mm, IVORY (T.D.C. Alba)', precio: 1195.2,
-    articulo: 'MVLMAG01280800 AGLOMERADO MELAMINA DOS CARAS b717 IVORY', fuente: FUENTE_ALBA_TDC }),
+    articulo: 'MVLMAG01280800 AGLOMERADO MELAMINA DOS CARAS, opcion B709 WALNUT', fuente: FUENTE_ERP }),
+  // Mismo material, color IVORY (opción B717) — NO reemplaza a 'melamina-28'
+  // (ese sigue siendo el que usan las otras 8 líneas; éste solo lo usa App LT
+  // para cuadrar contra el T.D.C. real de Alba, que costeó en IVORY).
+  // $1122.30 es la ÚLTIMA COMPRA de B717 IVORY en 'Costos de Materia Prima
+  // Ultima Compra al 10082026.xlsx' (Luis Daniel, snapshot más reciente que el
+  // T.D.C. de Alba, que traía $1195.2 del 2026-02-20 — IVORY se movió entre
+  // esa compra y la del 2026-04-28). Un solo dato de última compra, no el
+  // promedio anual que pide la regla §1 de Alba — falta la serie de compras
+  // de ESTE color específico (Compras la tiene, no está en ninguno de los dos
+  // archivos que sí tengo: uno da historial sin color, el otro da color sin
+  // historial).
+  tablero({ id: 'melamina-28-ivory', nombre: 'Melamina ABS 28 mm, IVORY (T.D.C. Alba)', precio: 1122.3,
+    articulo: 'MVLMAG01280800 AGLOMERADO MELAMINA DOS CARAS, opcion B717 IVORY', fuente: FUENTE_ALBA_TDC }),
   // Perfil de canto de aluminio (App LT: cubierta "CON TAPA REGISTRABLE
   // METALICA" trae este perfil, no el tapacanto PVC generico). $/m real del
   // explosivo de Alba.
