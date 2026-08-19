@@ -258,8 +258,22 @@ function comprarInsumo(insumo, comps, n, par) {
     if (c.largoMM && c.anchoMM && insumo.formato) {
       const ppt = piezasPorTablero(c.largoMM, c.anchoMM, { ...par, veta: insumo.veta });
       const piezasComp = (c.piezas || 1) * n;
+      // ⚠️ 2026-08-19: una pieza que NO cabe en ningun tablero (ppt=0 — más
+      // grande que el formato completo, p.ej. una cubierta cuadrada de 1.50 m
+      // en tablero de 1.22 x 2.44) se marcaba "no cabe" pero SU AREA SE
+      // PERDIA: no sumaba a `hojasExactas` (solo lo hacen las que sí caben) ni
+      // a `netoSinMedida` (solo lo hacen las que no traen medida), así que el
+      // costeo por FRACCION de hoja (abajo) la cobraba a **CERO** — material
+      // real, gratis. Cazado en Cirque "Mesa de juntas cuadrada 1.50 m" y en
+      // Eclipse Qvadrat/mesa_juntas (1.50/1.80 m): costo $0, desperdicio
+      // NEGATIVO. Aquí no se resuelve el problema de fondo (esa pieza de
+      // verdad no sale de un tablero solo; en taller se une o se pide un
+      // formato especial) — eso es un dato de producción, no algo que el
+      // motor pueda inventar — pero cobrarla en CERO es peor que aproximarla:
+      // cae al mismo % de aprovechamiento generico que una pieza sin medida,
+      // que es lo más parecido a "no se de la rejilla real" que ya existe.
       if (ppt > 0) { tablerosRejilla += Math.ceil(piezasComp / ppt - 1e-9); hojasExactas += piezasComp / ppt; }
-      else hayPiezaQueNoCabe = true;
+      else { hayPiezaQueNoCabe = true; netoSinMedida += netoC; }
     } else {
       netoSinMedida += netoC;
     }
@@ -289,7 +303,7 @@ function comprarInsumo(insumo, comps, n, par) {
       costo: hojas * precio,
       desperdicio: (comprado - neto) * precioUnidad,
       pct: comprado > 0 ? ((comprado - neto) / comprado) * 100 : 0,
-      precio, noCabe: false, fraccion: true,
+      precio, noCabe: hayPiezaQueNoCabe, fraccion: true,
     };
   }
 
