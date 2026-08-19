@@ -11,6 +11,10 @@ import { imagenProducto, heroLinea } from '../datos/imagenes.js';
 import { pesos } from '../util.js';
 import { LINEAS } from '../datos/catalogo.js';
 
+// Foto real del lounge/showroom VH (2026-08-18, la mandó Rodrigo). Portada de
+// marca en TODA ficha, fija — no es un render de producto ni depende del costeo.
+const PORTADA_VH = 'https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/app/marca/lounge-vh.jpg';
+
 // Arma la especificacion legible a partir del costeo (componentes + insumos)
 function especificacion(costeo, insumos) {
   const comps = costeo.componentes || [];
@@ -90,6 +94,13 @@ export default function FichaPDF({ estado, costeo, cantidad = 1, precioUnitario 
       </div>
 
       <div className="ficha-pdf">
+        {/* Foto real del showroom VH (lounge) — portada de marca, 2026-08-18.
+            No es un producto ni depende del costeo: es la cara de "esto es
+            Von Haucke de verdad", igual en cada ficha. */}
+        <div className="ficha-banner">
+          <img src={PORTADA_VH} alt="Showroom Von Haucke" />
+        </div>
+
         {/* Encabezado de marca */}
         <header className="ficha-head">
           <div className="ficha-marca">

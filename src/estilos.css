@@ -674,6 +674,8 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
   font-family: var(--sans);
   display: flex; flex-direction: column;
 }
+.ficha-banner { margin: 0 0 14px; border-radius: 8px; overflow: hidden; }
+.ficha-banner img { width: 100%; height: 130px; object-fit: cover; display: block; }
 .ficha-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--carbon); padding-bottom: 14px; }
 .ficha-marca { display: flex; align-items: center; gap: 12px; }
 .ficha-wordmark { font-family: var(--display); font-weight: 800; font-size: 30px; letter-spacing: -0.04em; line-height: 1; }
