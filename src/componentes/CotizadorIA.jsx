@@ -33,7 +33,17 @@ const EJEMPLOS = [
   { n: 'Bench + guardas', t: '20 escritorios operativos App LT de 1.50 con faldón, 20 gavetas rodantes y 8 sillones Pac.' },
 ];
 
-export default function CotizadorIA({ estado, onAgregarItems, onIr, verCotizacion = false, conPrograma = false }) {
+// `pantalla`: 'todo' (de siempre) | 'formulario' (solo contadores+texto,
+// sin resultado) | 'resultado' (solo "Agregué N muebles" + preguntas, sin el
+// formulario) — Voni.jsx la usa para partir esto en DOS pantallas (el
+// contador de Rodrigo, no el motor: sigue siendo UN interpretar() y UN
+// estado, sólo cambia qué parte se dibuja). `onListo`: se llama justo
+// después de un interpretar() que sí agregó muebles, para que Voni.jsx
+// pueda saltar solo a la pantalla de "esto entendí" sin un clic de más.
+export default function CotizadorIA({
+  estado, onAgregarItems, onIr, verCotizacion = false, conPrograma = false,
+  pantalla = 'todo', onListo,
+}) {
   const [texto, setTexto] = useState('');
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
@@ -101,6 +111,11 @@ export default function CotizadorIA({ estado, onAgregarItems, onIr, verCotizacio
         sinCostear,
       });
       setRespuesta('');
+      // Un solo clic ("Armar el proyecto") te lleva a la pantalla de "esto
+      // entendí" — Rodrigo: "7 clicks que no valen la pena. debería ser 1".
+      // Sólo si de verdad agregó algo: si no pudo armar nada, mejor que se
+      // quede viendo el mensaje y el formulario para volver a intentar.
+      if (costados.length) onListo?.();
     } catch (e) {
       setError('No se pudo conectar con el asistente. Revisa tu internet y vuelve a intentar.');
     } finally {
@@ -136,45 +151,51 @@ export default function CotizadorIA({ estado, onAgregarItems, onIr, verCotizacio
     ? resultado.preguntas.length + resultado.noEncontrado.length + resultado.sinCostear.length
     : 0;
 
+  const conFormulario = pantalla !== 'resultado';
+  const conResultado = pantalla !== 'formulario';
+
   return (
     <div className="contenido" style={{ maxWidth: 900, paddingLeft: 0, paddingRight: 0 }}>
-      <div className="tarjeta">
-        <h3 style={{ marginBottom: 4 }}>¿Qué necesita tu cliente?</h3>
-        <p className="ayuda columna-texto" style={{ marginTop: 0 }}>
-          Escríbelo en palabras normales, como te lo pidieron. Lo convierto en muebles de nuestras líneas, con su precio.
-        </p>
-        {/* El cuestionario de botones va ARRIBA del recuadro: es el camino de
-            quien empieza de cero. El texto se queda para quien ya tiene el
-            correo del cliente que pegar. Misma Voni, dos entradas. */}
-        {/* `areasPlano`: las áreas del plano que ya se leyó en el paso 1. Con
-            ellas el cuestionario llega LLENO en vez de en blanco. */}
-        {conPrograma && (
-          <ProgramaProyecto
-            cargando={cargando}
-            areasPlano={estado.cotizacion?.acomodo?.areasM || null}
-            onArmar={(frase) => { setTexto(frase); interpretar(frase); }} />
-        )}
-        {conPrograma && <div className="prog-o">o escríbelo / pégalo</div>}
-        <textarea
-          className="ia-textarea"
-          rows={4}
-          placeholder="Ej. 20 lugares de trabajo en bench de 1.50, 2 escritorios ejecutivos de 2.10 con su credenza y una mesa de juntas para 8."
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-        />
-        <div className="chips" style={{ marginTop: 8 }}>
-          {EJEMPLOS.map((ej) => (
-            <button key={ej.n} className="chip" onClick={() => setTexto(ej.t)} title="Usar este ejemplo">{ej.n}</button>
-          ))}
+      {conFormulario && (
+        <div className="tarjeta">
+          <h3 style={{ marginBottom: 4 }}>¿Qué necesita tu cliente?</h3>
+          <p className="ayuda columna-texto" style={{ marginTop: 0 }}>
+            Escríbelo en palabras normales, como te lo pidieron. Lo convierto en muebles de nuestras líneas, con su precio.
+          </p>
+          {/* El cuestionario de botones va ARRIBA del recuadro: es el camino de
+              quien empieza de cero. El texto se queda para quien ya tiene el
+              correo del cliente que pegar. Misma Voni, dos entradas. */}
+          {/* `areasPlano`: las áreas del plano que ya se leyó en el paso 1. Con
+              ellas el cuestionario llega LLENO en vez de en blanco. */}
+          {conPrograma && (
+            <ProgramaProyecto
+              cargando={cargando}
+              areasPlano={estado.cotizacion?.acomodo?.areasM || null}
+              onArmar={(frase) => { setTexto(frase); interpretar(frase); }} />
+          )}
+          {conPrograma && <div className="prog-o">o escríbelo / pégalo</div>}
+          <textarea
+            className="ia-textarea"
+            rows={4}
+            placeholder="Ej. 20 lugares de trabajo en bench de 1.50, 2 escritorios ejecutivos de 2.10 con su credenza y una mesa de juntas para 8."
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+          />
+          <div className="chips" style={{ marginTop: 8 }}>
+            {EJEMPLOS.map((ej) => (
+              <button key={ej.n} className="chip" onClick={() => setTexto(ej.t)} title="Usar este ejemplo">{ej.n}</button>
+            ))}
+          </div>
+          <div className="espacio" />
+          <button className="boton primario grande" style={{ width: '100%' }} onClick={() => interpretar()} disabled={!texto.trim()}>
+            {resultado ? 'Volver a interpretar' : 'Armar la lista de muebles'}
+          </button>
         </div>
-        <div className="espacio" />
-        <button className="boton primario grande" style={{ width: '100%' }} onClick={() => interpretar()} disabled={!texto.trim()}>
-          {resultado ? 'Volver a interpretar' : 'Armar la lista de muebles'}
-        </button>
-        {error && <div className="alerta roja" style={{ marginTop: 12 }}><span className="texto">{error}</span></div>}
-      </div>
+      )}
 
-      {resultado && (
+      {error && <div className="alerta roja" style={{ marginTop: 12 }}><span className="texto">{error}</span></div>}
+
+      {conResultado && resultado && (
         <div className={`tarjeta ${resultado.agregados ? 'agregado-ok' : ''}`}>
           {resultado.agregados > 0 ? (
             <>
@@ -198,7 +219,7 @@ export default function CotizadorIA({ estado, onAgregarItems, onIr, verCotizacio
         </div>
       )}
 
-      {avisos > 0 && (
+      {conResultado && avisos > 0 && (
         <div className="tarjeta">
           {resultado.preguntas.length > 0 && (
             <>
