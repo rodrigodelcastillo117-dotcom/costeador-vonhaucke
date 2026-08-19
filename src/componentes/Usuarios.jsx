@@ -67,9 +67,13 @@ export default function Usuarios({ onAviso, miCorreo = '' }) {
 
   async function eliminar(correo) {
     setPorBorrar(null);
-    await adminUsuarios('eliminar', { email: correo });
-    onAviso && onAviso('Persona dada de baja. Ya no puede entrar.');
-    recargar();
+    const r = await adminUsuarios('eliminar', { email: correo });
+    if (r.ok) {
+      onAviso && onAviso('Persona dada de baja. Ya no puede entrar.');
+      recargar();
+    } else {
+      setError('No se pudo quitar a la persona. ' + (r.error || ''));
+    }
   }
 
   // ⚠️ "SOLO REQUIERO UN EXCEL CON SUS CONTRASEÑAS" (Rodrigo, 2026-08-19, el

@@ -41,8 +41,19 @@ Deno.serve(async (req) => {
     const accion = body.accion;
 
     // Bootstrap: crear el primer admin si aun no hay ningun usuario.
+    // ⚠️ 2026-08-19 (hallazgo de auditoría, GRAVE): esta rama NO pide sesión —
+    // así tiene que ser, es la que crea a la primera Dirección cuando la app
+    // está vacía. Su ÚNICO candado es "listUsers() dice que hay 0 usuarios". El
+    // bug de Pedro Rivero de hoy (4 campos NULL en auth.users) probó que
+    // listUsers() puede FALLAR y devolver undefined — y `lista?.users?.length
+    // || 0` convierte ese error silenciosamente en "0 usuarios", abriendo la
+    // puerta a crear una cuenta con la contraseña que sea para CUALQUIER correo
+    // que ya esté en `permitidos` como 'direccion' (los correos de la empresa
+    // siguen un patrón adivinable). Ahora, si listUsers() falla, se corta aquí
+    // en vez de tratar el error como "está vacío".
     if (accion === "bootstrap") {
-      const { data: lista } = await admin.auth.admin.listUsers();
+      const { data: lista, error: errLista } = await admin.auth.admin.listUsers();
+      if (errLista) return json({ error: "no-se-pudo-verificar" }, 500);
       if ((lista?.users?.length || 0) > 0) return json({ error: "ya-inicializado" }, 400);
       const { data: perm } = await admin.from("permitidos").select("rol").eq("email", body.email).single();
       if (perm?.rol !== "direccion") return json({ error: "no-permitido" }, 403);
@@ -72,10 +83,18 @@ Deno.serve(async (req) => {
       // quedaba) — Rodrigo necesitaba reemitir credenciales para gente que ya
       // estaba en la lista pero nunca había entrado. Ahora, si ya existía, se le
       // FIJA la contraseña nueva con updateUserById en vez de dejarla como estaba.
+      // ⚠️ 2026-08-19 (hallazgo de auditoría): si listUsers() falla aquí, ANTES
+      // esto seguía de largo como si la contraseña sí se hubiera fijado —
+      // guardaba la nueva en `credenciales_temporales` y el Excel entregaba una
+      // contraseña que en realidad NUNCA se puso. Ahora, si no se puede
+      // verificar, se corta con error en vez de mentir con un "ok".
       if (yaExistia) {
-        const { data: lista } = await admin.auth.admin.listUsers();
+        const { data: lista, error: errLista } = await admin.auth.admin.listUsers();
+        if (errLista) return json({ error: "no-se-pudo-verificar" }, 500);
         const u = lista?.users?.find((x) => x.email === email);
-        if (u) await admin.auth.admin.updateUserById(u.id, { password: body.password });
+        if (!u) return json({ error: "no-se-encontro-la-cuenta" }, 404);
+        const { error: errPass } = await admin.auth.admin.updateUserById(u.id, { password: body.password });
+        if (errPass) return json({ error: errPass.message }, 400);
       }
       await admin.from("permitidos").upsert({ email, nombre: body.nombre || null, rol: body.rol || "vendedor" });
       // La contraseña que se acaba de fijar (nueva o de alta) queda guardada
@@ -115,9 +134,20 @@ Deno.serve(async (req) => {
         const { count } = await admin.from("permitidos").select("email", { count: "exact", head: true }).eq("rol", "direccion");
         if ((count || 0) <= 1) return json({ error: "es-el-unico-direccion" }, 400);
       }
-      const { data: lista } = await admin.auth.admin.listUsers();
+      // ⚠️ 2026-08-19 (hallazgo de auditoría): si listUsers() falla, ANTES esto
+      // borraba igual el renglón de `permitidos` y avisaba "ya no puede
+      // entrar" — pero la cuenta de Auth se quedaba VIVA, con su contraseña de
+      // siempre funcionando: la persona pierde acceso a la app (RLS por
+      // `permitidos`), no la cuenta. Ahora se corta con error si no se puede
+      // verificar, y la pantalla (Usuarios.jsx) ya revisa `r.ok` antes de decir
+      // "listo".
+      const { data: lista, error: errLista } = await admin.auth.admin.listUsers();
+      if (errLista) return json({ error: "no-se-pudo-verificar" }, 500);
       const target = lista?.users?.find((x) => x.email === email);
-      if (target) await admin.auth.admin.deleteUser(target.id);
+      if (target) {
+        const { error: errDel } = await admin.auth.admin.deleteUser(target.id);
+        if (errDel) return json({ error: errDel.message }, 400);
+      }
       await admin.from("permitidos").delete().eq("email", email);
       return json({ ok: true }, 200);
     }
