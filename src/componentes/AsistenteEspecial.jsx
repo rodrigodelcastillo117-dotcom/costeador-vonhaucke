@@ -79,7 +79,13 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
   const par = { ...estado.parametros };
   const esArea = (ins) => !!ins && (ins.formato?.tipo === 'tablero' || ins.unidad === 'm2');
 
-  const resultado = useMemo(() => calcular(b, b.piezas, insumos, par), [b, insumos]);
+  // ⚠️ Faltaba `estado.parametros` en las dependencias: si Dirección cambia un
+  // parámetro (margen, factor de indirectos, costo por hora…) mientras alguien
+  // sigue parado en este asistente, el costo se quedaba congelado con los
+  // parámetros de cuando se abrió la pantalla hasta el próximo cambio de pieza.
+  // Costeador.jsx y CosteadorLinea.jsx ya traen `estado.parametros`/`par` en su
+  // lista; a éste se le había quedado fuera.
+  const resultado = useMemo(() => calcular(b, b.piezas, insumos, par), [b, insumos, estado.parametros]);
   const precio = precioDe(resultado.costoUnitario, b.margen);
 
   // --- despiece ---

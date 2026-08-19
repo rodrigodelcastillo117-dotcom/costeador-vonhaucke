@@ -1724,8 +1724,14 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 .prog-o { text-align: center; font-size: 12px; color: var(--gris); text-transform: uppercase;
   letter-spacing: .08em; margin: 14px 0 8px; }
 
-/* Los cuartos que va generando el programa, y el aviso de canceles. */
-.cuartos-lista { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+/* Los cuartos que va generando el programa, y el aviso de canceles.
+   ⚠️ Este selector ERA `.cuartos-lista`, el MISMO nombre que usa Acomodo.jsx
+   para su lista de cuartos IMPRESA (grid de tarjetas `.cuarto-bloque`, arriba
+   en este archivo). Misma especificidad, sin media query: por orden de
+   cascada este bloque —pensado para los chips de aquí abajo— ganaba SIEMPRE
+   y le imponía `display:flex` a la lista que se imprime para el cliente,
+   aplastando su `display:grid` de tarjetas. Se renombra para no chocar. */
+.cuartos-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
 .cuarto-chip { display: inline-flex; gap: 6px; align-items: baseline; font-size: 12.5px;
   background: #f3efe8; border: 1px solid var(--linea); border-radius: 999px; padding: 5px 11px; }
 .cuarto-chip em { font-style: normal; color: var(--gris); }

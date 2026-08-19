@@ -39,7 +39,19 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
   const [checks, setChecks] = useState({});
   const [gavetas, setGavetas] = useState(0);
   const defSels = (p) => Object.fromEntries((p.selects || []).map((s) => [s.key, s.opciones[0].id]));
-  const [sels, setSels] = useState(() => defSels(productos[0]));
+  // ⚠️ Este default vivía en `productos[0]` (el PRIMER producto de la línea),
+  // no en `prod` (el que de verdad abre la pantalla cuando llegas del buscador
+  // con `productoInicial`). Todos los demás valores de arriba (largo, fondo,
+  // diámetro, usuarios, lateral) sí usan `prod` — sólo `sels` se quedó atrás.
+  // Con dos productos de la MISMA línea que usan la misma llave de `select`
+  // pero con opciones distintas —Modulor "gaveta" (tipo: rodante/pedestal/
+  // bajocosto) y "cojín" (tipo: gaveta395/archivero760/…)— el valor por
+  // omisión de "gaveta" ('rodante') se colaba en "cojín", que no lo reconoce
+  // ('rodante' no es ninguna de sus opciones). El generador de Modulor hace
+  // `T = MAPA[tipo]` sin verificar que exista, así que `T.w` tronaba con
+  // TypeError apenas se entraba a Cojín desde el buscador — pantalla rota,
+  // no en blanco gracias a SinPantallaBlanca, pero rota igual.
+  const [sels, setSels] = useState(() => defSels(prod));
   const [cantidad, setCantidad] = useState(1);
   const [ficha, setFicha] = useState(false);
   const [ultimo, setUltimo] = useState('');   // último mueble agregado (confirmación en la misma pantalla)

@@ -14,8 +14,13 @@ export default function Precios({ estado, setEstado, puedeVerDireccion = true, o
   const { horaNominal, horaTaller, horasHombre } = calcularCostoHora(p);
 
   const setParam = (k, v) => setEstado({ ...estado, parametros: { ...p, [k]: v } });
+  // ⚠️ Aquí quedaba escrito a mano '2026-08-11' — la fecha en que se tecleó
+  // esta línea, no la de HOY. Cada vez que alguien actualizaba un precio, el
+  // sello de "actualizado" quedaba fijo en ese día del pasado, así que junto
+  // con `diasDesde` (ver util.js) el precio que ACABABAS de capturar ya
+  // aparecía con días de antigüedad — y ese hueco crece cada día que pasa.
   const setPrecio = (id, precio) =>
-    setEstado({ ...estado, insumos: { ...estado.insumos, [id]: { ...estado.insumos[id], precio, actualizado: '2026-08-11' } } });
+    setEstado({ ...estado, insumos: { ...estado.insumos, [id]: { ...estado.insumos[id], precio, actualizado: new Date().toISOString().slice(0, 10) } } });
 
   async function alImportar(e) {
     const f = e.target.files?.[0];

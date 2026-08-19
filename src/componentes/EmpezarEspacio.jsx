@@ -209,7 +209,7 @@ export default function EmpezarEspacio({ piezas = [], onListo, onSubirPlano, onD
           <label className="chk"><input type="checkbox" checked={breakRoom} onChange={(e) => setBreakRoom(e.target.checked)} /><span>Break room</span></label>
 
           {hayCuartos && (
-            <div className="cuartos-lista">
+            <div className="cuartos-chips">
               {cuartos.map((a, i) => (
                 <span className="cuarto-chip" key={i}>{a.nombre.replace(/\s*\([^)]*\)/, '')} <em>{a.m2} m²</em></span>
               ))}

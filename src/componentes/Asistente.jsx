@@ -99,7 +99,10 @@ export default function Asistente({ estado, onAgregarPartida, onModoAvanzado, on
   }
 
   function empezarDeNuevo() {
-    setFamilia(null); setMueble(null); setCosteo(null); setCantidad(1); setMargen(30); setVerDetalle(false); setPaso('familia');
+    // El margen vuelve al objetivo configurado (el mismo con el que arranca la
+    // pantalla), no a un 30% fijo que podía no ser ni "Normal" para esta casa
+    // si Dirección cambió el margen objetivo.
+    setFamilia(null); setMueble(null); setCosteo(null); setCantidad(1); setMargen(margenObjetivo); setVerDetalle(false); setPaso('familia');
   }
 
   const esBench = !!costeo?.bench;

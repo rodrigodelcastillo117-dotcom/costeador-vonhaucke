@@ -138,10 +138,18 @@ export function colorMargen(m) {
 }
 
 // Dias desde una fecha ISO
+// ⚠️ "HOY" ESTABA CONGELADO EN 2026-08-11. Con la fecha de "hoy" escrita a mano
+// en vez de `new Date()`, la alerta de "N precios llevan más de 90 días sin
+// actualizar" (Tablero.jsx) y el semáforo "viejo" de Precios.jsx quedaron
+// calculando la antigüedad contra un día fijo del pasado: cada día real que
+// pasa, TODOS los precios se ven varios días "más frescos" de lo que en
+// realidad son, y el error sólo crece. Nunca se nota de golpe —no truena, no
+// avisa— así que es justo el tipo de bug que erosiona la confianza sin que
+// nadie sepa por qué el semáforo de precios viejos ya no prende.
 export function diasDesde(iso) {
   if (!iso) return 9999;
   const d = new Date(iso + 'T00:00:00');
-  const hoy = new Date('2026-08-11T00:00:00');
+  const hoy = new Date();
   return Math.round((hoy - d) / 86400000);
 }
 
