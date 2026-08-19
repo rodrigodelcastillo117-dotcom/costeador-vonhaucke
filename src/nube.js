@@ -46,7 +46,7 @@ export async function escribirConfig(datosCompartidos) {
 // pide, no obtiene nada: no es que se le esconda en pantalla, es que no le llega.
 export async function leerDireccion() {
   const { data, error } = await nube.from('direccion').select('datos').eq('id', 1).maybeSingle();
-  if (error) return null;
+  if (error) { console.error('leerDireccion:', error); return null; }
   return data?.datos || null;
 }
 
@@ -98,9 +98,15 @@ export async function cambiarContrasena(nueva) {
   return { ok: true };
 }
 
-// Devuelve el permiso del correo (rol/nombre) o null si no esta en la lista.
+// Devuelve el permiso del correo (rol/nombre) o null si de verdad no esta en
+// la lista. Si la CONSULTA falla (red, RLS) se LANZA en vez de devolver null:
+// null es "no tienes acceso" y se enseña como tal en App.jsx ("Pídele a
+// Dirección que te dé de alta"), un mensaje FALSO para alguien que sí está
+// dado de alta pero pescó un error de red. Quien llama distingue los dos
+// casos con try/catch (antes no se podía: los dos volvían null).
 export async function miPermiso(email) {
-  const { data } = await nube.from('permitidos').select('rol, nombre').eq('email', email).maybeSingle();
+  const { data, error } = await nube.from('permitidos').select('rol, nombre').eq('email', email).maybeSingle();
+  if (error) throw error;
   return data || null;
 }
 // Las contraseñas temporales que se han ido dando de alta (solo Dirección las
@@ -110,12 +116,14 @@ export async function miPermiso(email) {
 // en ese excel automáticamente". El guardado ya pasa solo (edge function
 // `usuarios`, acción `crear`); esto es sólo la lectura para exportarlo.
 export async function credencialesTemporales() {
-  const { data } = await nube.from('credenciales_temporales').select('email, nombre, rol, password_temporal, actualizado');
+  const { data, error } = await nube.from('credenciales_temporales').select('email, nombre, rol, password_temporal, actualizado');
+  if (error) console.error('credencialesTemporales:', error);
   return (data || []).sort((a, b) =>
     (a.nombre || a.email || '').localeCompare(b.nombre || b.email || '', 'es', { sensitivity: 'base' }));
 }
 export async function listaPermitidos() {
-  const { data } = await nube.from('permitidos').select('email, nombre, rol, creado');
+  const { data, error } = await nube.from('permitidos').select('email, nombre, rol, creado');
+  if (error) console.error('listaPermitidos:', error);
   // ALFABÉTICA por nombre (Rodrigo, 2026-08-16). Antes salían por fecha de alta,
   // así que buscar a alguien en la lista era leerla entera. Se ordena aquí y no
   // en la pantalla para que cualquiera que pida la lista la reciba ya ordenada,

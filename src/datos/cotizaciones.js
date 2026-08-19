@@ -106,15 +106,19 @@ export async function guardarCotizacion(estado, usuario, id = null) {
  * de en cuál de los tres estaba.
  */
 export async function listarCotizaciones({ q = '', limite = 60 } = {}) {
-  try {
-    let sel = nube.from('cotizaciones').select('*').eq('activa', true)
-      .order('actualizado', { ascending: false }).limit(limite);
-    const { data, error } = await sel;
-    if (error || !data) return [];
-    const t = String(q || '').trim().toLowerCase();
-    if (!t) return data;
-    return data.filter((c) => textoDe(c).includes(t));
-  } catch (e) { return []; }
+  let sel = nube.from('cotizaciones').select('*').eq('activa', true)
+    .order('actualizado', { ascending: false }).limit(limite);
+  const { data, error } = await sel;
+  // ⚠️ ANTES un error de la consulta (red, RLS) devolvía `[]` igual que un
+  // archivo legítimamente vacío: Archivo.jsx ya tiene su propio try/catch
+  // esperando justo esto (setError('No se pudo leer el archivo.')), pero como
+  // aquí nunca se lanzaba nada, esa pantalla de error jamás se veía — el
+  // vendedor sólo leía "Todavía no hay presupuestos guardados", que es falso
+  // cuando en realidad la consulta se cayó.
+  if (error) throw error;
+  const t = String(q || '').trim().toLowerCase();
+  if (!t) return data || [];
+  return (data || []).filter((c) => textoDe(c).includes(t));
 }
 
 /** Todo lo que se puede buscar de una cotización, en un solo texto. */

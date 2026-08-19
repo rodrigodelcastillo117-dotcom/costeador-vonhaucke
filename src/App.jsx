@@ -53,7 +53,7 @@ import Reglas from './componentes/Reglas.jsx';
 import { cargarReglas } from './datos/reglas.js';
 import { cargarAprendizajes } from './datos/aprendizaje.js';
 import { guardarCotizacion } from './datos/cotizaciones.js';
-import { cargar, guardar, PARAMS_SENSIBLES } from './almacen.js';
+import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
 import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso } from './nube.js';
 import { calcular } from './motor/calculo.js';
 import { idNuevo } from './util.js';
@@ -239,10 +239,19 @@ export default function App() {
   }
   function irInicio() { setNav([]); setInicioVista('home'); setPestania('inicio'); }
 
-  function mostrarAviso(texto) {
+  function mostrarAviso(texto, ms = 2600) {
     setAviso(texto);
-    setTimeout(() => setAviso(''), 2600);
+    setTimeout(() => setAviso(''), ms);
   }
+
+  // ⚠️ Si `cargar()` no pudo leer lo guardado (localStorage dañado), antes la
+  // app arrancaba en blanco sin decir nada — el vendedor descubría que "perdió
+  // todo" horas después, si acaso. Un toast más largo que el normal (10 s, no
+  // 2.6 s): esto no es un "¡Listo!", es avisar que se perdió trabajo.
+  useEffect(() => {
+    const razon = razonDeArranqueEnBlanco();
+    if (razon) mostrarAviso(razon, 10000);
+  }, []);
 
   const [mostrarGuia, setMostrarGuia] = useState(() => !cargar().onboardingVisto);
 
@@ -254,7 +263,7 @@ export default function App() {
 
   // ---- Sesion / acceso (control de quien entra) ----
   const [sesion, setSesion] = useState(undefined); // undefined=revisando, null=sin sesion, obj=adentro
-  const [permiso, setPermiso] = useState(undefined); // undefined=revisando, null=sin acceso, {rol,nombre}
+  const [permiso, setPermiso] = useState(undefined); // undefined=revisando, null=sin acceso, 'error'=no se pudo consultar, {rol,nombre}
   const [errorEntrar, setErrorEntrar] = useState('');
   const [recuperando, setRecuperando] = useState(false); // llegó por el enlace de recuperación
 
@@ -274,7 +283,15 @@ export default function App() {
     if (sesion === undefined) return;
     if (!sesion) { setPermiso(undefined); return; }
     let vivo = true;
-    miPermiso(sesion.user.email).then((p) => { if (vivo) setPermiso(p); });
+    // Si la consulta del permiso falla (red, RLS), `miPermiso` ahora lanza en
+    // vez de devolver null: null significa "no estás en la lista" y NO es lo
+    // mismo que "no se pudo consultar". Sin este catch, alguien de la casa con
+    // acceso de verdad vería "Todavía no tienes acceso" por un simple error de
+    // red — justo el mensaje que le dice, falsamente, que le pida de alta a
+    // Dirección otra vez.
+    miPermiso(sesion.user.email)
+      .then((p) => { if (vivo) setPermiso(p); })
+      .catch((e) => { console.error('miPermiso:', e); if (vivo) setPermiso('error'); });
     // Las REGLAS DE OFICIO se bajan al entrar: la circulación de 90 cm, las
     // sillas de visita, el margen mínimo. El motor las consulta en caliente, y
     // si la base no contesta se queda con los mismos valores por omisión en vez
@@ -310,7 +327,10 @@ export default function App() {
     return () => clearTimeout(t);
   }, [estado.cotizacion, sesion]);
 
-  const accesoOk = !!sesion && !!permiso;
+  // permiso === 'error' (no se pudo consultar) NO cuenta como acceso: sin este
+  // descarte, el efecto de sincronización con la nube (más abajo, depende de
+  // accesoOk) arrancaría igual que si el permiso sí se hubiera confirmado.
+  const accesoOk = !!sesion && !!permiso && permiso !== 'error';
   const esDireccion = permiso?.rol === 'direccion';
   const esDiseno = permiso?.rol === 'diseno';
   // Diseno y Direccion ven costos (para despiece). Todo lo demas es vendedor: solo precio recomendado.
@@ -342,6 +362,7 @@ export default function App() {
   const ultimoCompartido = useRef('');     // JSON de lo ultimo compartido, para no reescribir igual
   const timerNube = useRef(null);
   const ultimoDireccion = useRef('');   // firma de la boveda, para no reescribir igual
+  const avisoGuardadoLocal = useRef(false); // ya se avisó que localStorage no guarda (no repetir en cada tecla)
 
   // Al entrar (con sesion valida): traer la config de la nube y suscribirse.
   useEffect(() => {
@@ -394,7 +415,17 @@ export default function App() {
 
   // Guardado automatico: local siempre; lo compartido va a la nube (si cambio).
   useEffect(() => {
-    guardar(estado); // localStorage: respaldo y datos de cada quien
+    // ⚠️ `guardar()` puede fallar (cuota llena, modo privado que bloquea
+    // localStorage) y antes eso pasaba callado: "Guardado automático en cada
+    // cambio" es la promesa de 4.5 "Nada se pierde", así que si esta
+    // computadora dejó de cumplirla hay que decirlo, no fingir que se guardó.
+    // Una sola vez por sesión: si sigue roto, no tiene caso repetirlo en cada
+    // tecla — y la cotización SIGUE viajando a la nube si hay sesión, así que
+    // no todo se pierde.
+    if (!guardar(estado) && !avisoGuardadoLocal.current) {
+      avisoGuardadoLocal.current = true;
+      mostrarAviso('Esta computadora no está guardando tus cambios localmente (memoria llena o modo privado). Si tienes sesión, sigue viajando a la nube.', 8000);
+    }
     if (aplicandoRemoto.current) { aplicandoRemoto.current = false; return; }
     const comp = compartidoSeguro(estado);
     const f = firma(comp);
@@ -663,6 +694,21 @@ export default function App() {
   }
   if (!sesion) {
     return <Login onEntrar={hacerLogin} />;
+  }
+  if (permiso === 'error') {
+    // No es "no tienes acceso": es que la consulta del permiso falló (red,
+    // RLS). Decirlo distinto importa — lo otro manda a alguien con acceso de
+    // verdad a pedirle de alta a Dirección por un error que no es suyo.
+    return (
+      <div className="contenido" style={{ maxWidth: 460, marginTop: 40 }}>
+        <div className="tarjeta">
+          <h2>No se pudo verificar tu acceso</h2>
+          <p className="ayuda columna-texto">Hubo un problema consultando tus permisos. Revisa tu internet y vuelve a intentar.</p>
+          <button className="boton" onClick={() => window.location.reload()}>Reintentar</button>
+          <button className="boton fantasma" onClick={hacerLogout}>Salir</button>
+        </div>
+      </div>
+    );
   }
   if (!permiso) {
     return (

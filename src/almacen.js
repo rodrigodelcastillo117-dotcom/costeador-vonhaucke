@@ -22,7 +22,11 @@ function estadoInicial() {
     parametros: { ...PARAMETROS_DEFAULT },
     insumos: mapaInsumos(INSUMOS_SEMILLA),
     piezas,
-    cotizacion: { cliente: '', folio: '', fecha: '2026-08-11', partidas: [] },
+    // ⚠️ Traía '2026-08-11' escrito a mano: el día que se tecleó esta línea, no
+    // el de HOY. Es la fecha que se IMPRIME en la propuesta (Cotizacion.jsx,
+    // FichaPDF.jsx, pdfPropuesta.js) — cualquier proyecto nuevo salía fechado
+    // en el pasado hasta que el vendedor lo notara y lo corrigiera a mano.
+    cotizacion: { cliente: '', folio: '', fecha: new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }), partidas: [] },
     historial: [], // costeos guardados, alimentan el Tablero
     // ⚠️ LOS ESTADOS FINANCIEROS TAMPOCO PUEDEN VIVIR AQUÍ. Iban como literales
     // (ingresos $74.7M, utilidad de operación −$16.15M) y acababan dentro del
@@ -43,11 +47,25 @@ export function reunirSensibles(estado) {
   return { nomina, finanzas: estado.finanzas };
 }
 
+// ⚠️ SI `cargar()` FALLA, App.jsx arranca con `estadoInicial()` como si fuera
+// la primera vez que alguien abre la app — la cotización, los insumos con
+// precios propios, el historial, todo. Antes eso pasaba en silencio: nada le
+// avisaba al vendedor que perdió su trabajo, y el siguiente `guardar()`
+// automático (cada cambio, ver App.jsx) sobreescribía lo que hubiera quedado
+// en localStorage con el estado en blanco, VOLVIENDO IRRECUPERABLE lo que a
+// lo mejor sólo tenía un byte corrupto. Ahora: 1) lo crudo se respalda bajo
+// otra clave ANTES de darlo por perdido, por si se puede rescatar a mano, y
+// 2) se deja una razón que App.jsx puede leer para avisar en pantalla en vez
+// de arrancar como si nada.
+let razonArranqueEnBlanco = null;
+export const razonDeArranqueEnBlanco = () => razonArranqueEnBlanco;
+
 // Lee del almacen y rellena lo que falte con el estado inicial (para no romper
 // si se agregan campos nuevos entre versiones).
 export function cargar() {
+  let crudo = null;
   try {
-    const crudo = localStorage.getItem(CLAVE);
+    crudo = localStorage.getItem(CLAVE);
     if (!crudo) return estadoInicial();
     const guardado = JSON.parse(crudo);
     const base = estadoInicial();
@@ -71,6 +89,11 @@ export function cargar() {
     }
     return est;
   } catch (e) {
+    console.error('almacen.cargar: no se pudo leer lo guardado, se arranca en blanco', e);
+    if (crudo) {
+      try { localStorage.setItem(CLAVE + '-dañado-' + Date.now(), crudo); } catch (e2) { /* si ni esto se puede, no hay más que hacer */ }
+    }
+    razonArranqueEnBlanco = 'No se pudieron leer tus datos guardados en esta computadora (se quedó un respaldo dañado, revísalo con Dirección). Arrancaste en blanco.';
     return estadoInicial();
   }
 }
@@ -87,6 +110,10 @@ export function guardar(estado) {
     localStorage.setItem(CLAVE, JSON.stringify(aGuardar));
     return true;
   } catch (e) {
+    // Puede fallar por cuota llena o por modo privado que bloquea localStorage.
+    // El llamador (App.jsx) decide cómo avisarlo; aquí sólo se deja de mentir
+    // devolviendo `true`.
+    console.error('almacen.guardar: no se pudo guardar en esta computadora', e);
     return false;
   }
 }
