@@ -37,7 +37,10 @@ export function generarApp(config) {
   g.componentes = g.componentes.map((c) => {
     const comp = { ...c };
     // Acabado chapa: la cubierta cambia de melamina 28mm a chapa de madera.
-    if (finish === 'chapa' && comp.insumoId === 'melamina-28') comp.insumoId = 'chapa-madera';
+    // `startsWith`, no `===`: generarAppLT ya reescribió el id al color elegido
+    // (ej. 'melamina-28-ivory') antes de que este código lo vea — comparar
+    // exacto contra 'melamina-28' nunca matcheaba desde que existe el color.
+    if (finish === 'chapa' && comp.insumoId?.startsWith('melamina-28')) comp.insumoId = 'chapa-madera';
     comp.nombre = comp.nombre.replace(/\(AT/g, '(CI');
     if (finish === 'chapa') comp.nombre = comp.nombre.replace('ABSOPG', 'CHOPG');
     return comp;

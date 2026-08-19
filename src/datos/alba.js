@@ -13,6 +13,9 @@
 //  FASE A: dimensiones reales de la guia; MP estimada (falta lista real).
 // ============================================================================
 
+import { aplicarColor } from './colorMelamina.js';
+import { coloresDe } from './acabados.js';
+
 const CANTO = 'tapacanto';
 const PATA = 'pata-metalica', PINTURA = 'pintura-electrostatica';
 const CAJA = 'caja-electrica', ACOMETIDA = 'acometida';
@@ -41,7 +44,7 @@ const FINISHES = [
 // ---------------------------------------------------------------------------
 //  PRODUCTOS
 // ---------------------------------------------------------------------------
-export const ALBA_PRODUCTOS = [
+const ALBA_PRODUCTOS_BASE = [
   {
     id: 'escritorio', nombre: 'Escritorio',
     selects: [
@@ -110,6 +113,16 @@ export const ALBA_PRODUCTOS = [
     finishes: FINISHES,
   },
 ];
+// Colores reales de melamina para el selector. Alba varia el espesor segun
+// pieza (cubInsumo(): thick<=19 -> melamina-19, si no -> melamina-28) — p.ej.
+// el escritorio recta 1500mm usa melamina-19 (thick:18), mientras el resto de
+// SUS PROPIAS combinaciones (1800/diagonal/trapecio) y TODOS los demas
+// productos (mesa_juntas, bench, olga_ligera, olga, teamspace, mesa_alta) usan
+// siempre thick:28 -> melamina-28. Espesor 28mm es el predominante en todo el
+// catalogo Alba, asi que se usa como default razonable para los chips de color
+// de los 7 productos (no hay por-producto exacto porque el espesor real
+// depende de la combinacion de selects elegida en runtime, no del producto).
+export const ALBA_PRODUCTOS = ALBA_PRODUCTOS_BASE.map((p) => ({ ...p, colores: coloresDe('melamina-28') }));
 
 // ---------------------------------------------------------------------------
 //  Helpers de despiece
@@ -477,7 +490,7 @@ export function generarAlba(config) {
   else if (c.producto === 'mesa_alta') res = generarMesaAlta(c, comp, claves, electricos);
   else res = generarEscritorio(c, comp, claves, electricos);
 
-  return {
+  return aplicarColor({
     producto: c.producto, nombre: res.nombre, tipoRender: res.tipoRender,
     componentes: comp, claves, electricos,
     modoManoObra: 'porcentaje', factorDirecta: 38, factorIndirecta: 12,
@@ -488,5 +501,5 @@ export function generarAlba(config) {
       'cristal laminado Olga -> cristal-templado-12; librero MOLIPR75 -> torre; archivero MOAC75 -> archivo-lateral; ' +
       'zoclo/cubierta auxiliar Modulor -> melamina board. Falta calibrar con lista de MP real y desarrollo exacto ' +
       'de patas Alba, cubiertas diagonal/trapecio, benches segmentados y cubiertas circulares Olga.',
-  };
+  }, c);
 }

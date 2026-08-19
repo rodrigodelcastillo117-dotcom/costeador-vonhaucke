@@ -9,6 +9,9 @@
 //  y toda configuración cierra con tapas laterales. Claves reales SP*. MP metálica
 //  estimada (lámina cal.20 + pintura electrostática); cubiertas/biombos por área.
 // ============================================================================
+import { aplicarColor } from './colorMelamina.js';
+import { coloresDe } from './acabados.js';
+
 const LAMINA = 'lamina-20', PINTURA = 'pintura-electrostatica', CANTO = 'tapacanto';
 const PATA = 'pata-metalica', NIVEL = 'nivelador', TORN = 'tornilleria';
 const ACRIL = 'acrilico', PET = 'pet-acustico', CAJA = 'caja-electrica', ACOMETIDA = 'acometida', BYRNE = 'byrne-phase2';
@@ -42,7 +45,7 @@ const CUBIDX = { 1200: '24', 1500: '25' };
 const UNION = { escuadra: 'SPPATUEM', T: 'SPPATUTM', cruz: 'SPPATUCM' };
 const UNION_LABEL = { escuadra: 'escuadra', T: '“T”', cruz: 'cruz' };
 
-export const SPINE_PRODUCTOS = [
+const SPINE_PRODUCTOS_BASE = [
   {
     id: 'ducto', nombre: 'Ducto individual',
     selects: [{ key: 'largo', label: 'Largo', opciones: LARGOS }, MATERIAL, LADO],
@@ -70,6 +73,10 @@ export const SPINE_PRODUCTOS = [
     finishes: FINISHES,
   },
 ];
+// Colores reales de melamina 28mm (catálogo de acabados) para el selector. El
+// finish 'ABS' (Melamina ABS) es el que usa ese insumo base en ACAB; los otros
+// finishes (Ecolegno/Termoformado/Chapa) no tienen catálogo de color propio.
+export const SPINE_PRODUCTOS = SPINE_PRODUCTOS_BASE.map((p) => ({ ...p, colores: coloresDe('melamina-28') }));
 
 // Estructura metálica del ducto (spine). Con soporte biombo (SPDUH##) o sin él
 // (SPDUHSB##). Lámina cal.20 desarrollada + pintura + tornillería con imanes IM175.
@@ -209,7 +216,7 @@ export function generarSpine(config) {
     nombre = `Spine · Configuración ${nom} · ${totalDuctos} ductos ${mm(largo).toFixed(2)} m`;
   }
 
-  return {
+  return aplicarColor({
     producto: c.producto, nombre, componentes: comp, claves, electricos,
     modoManoObra: 'porcentaje', factorDirecta: 38, factorIndirecta: 12,
     nota: 'Spine (Fase A): sistema modular que se arma por DUCTOS + PATAS (las cubiertas ' +
@@ -222,5 +229,5 @@ export function generarSpine(config) {
       'imanes IM175 ×8/ducto). Sin insumoId exacto: imán IM175, niveladores TO38112CNIC y tornillería ' +
       'allen se agrupan en "tornilleria"/"nivelador"; Ecolegno HPELABS se costea como "laminado". ' +
       'Falta calibrar con lista de MP real y desarrollo exacto de ducto/tapas/patas por clave.',
-  };
+  }, c);
 }

@@ -22,6 +22,9 @@
 //  FASE A: dimensiones reales de la guía; MP estimada (calibrar con lista real).
 // ============================================================================
 
+import { aplicarColor } from './colorMelamina.js';
+import { coloresDe } from './acabados.js';
+
 // --- Insumos (SOLO ids válidos de insumo_ids.txt) ---
 const MEL28 = 'melamina-28', CHAPA = 'chapa-madera', TF = 'membrana-pvc';
 const CANTO = 'tapacanto', LAMINA = 'lamina-20', PTR = 'ptr';
@@ -84,7 +87,7 @@ const LARGOS_EST = [
 const BIOMBOS_2 = [{ id: 'AC', label: 'Acrílico' }, { id: 'PT', label: 'Panel acústico' }];
 const BIOMBOS_3 = [{ id: 'AC', label: 'Acrílico' }, { id: 'PT', label: 'Panel acústico' }, { id: 'LP', label: 'Lámina perforada' }];
 
-export const RIO_PRODUCTOS = [
+const RIO_PRODUCTOS_BASE = [
   {
     id: 'bench_recto_sencillo', nombre: 'Bench recto sencillo',
     selects: [
@@ -168,6 +171,8 @@ export const RIO_PRODUCTOS = [
     checks: [{ key: 'pantalla', label: 'Pantalla 55" + soporte CPPMT55' }],
   },
 ];
+// Colores reales de melamina 28mm (catálogo de acabados) para el selector.
+export const RIO_PRODUCTOS = RIO_PRODUCTOS_BASE.map((p) => ({ ...p, colores: coloresDe('melamina-28') }));
 
 const num = (v, def) => parseInt(v, 10) || def;
 const nearest = (v, keys) => keys.reduce((a, b) => (Math.abs(b - v) < Math.abs(a - v) ? b : a));
@@ -439,9 +444,9 @@ function nombreProducto(c) {
 }
 
 function armar(tipoRender, nombre, componentes, claves, electricos, c, nota) {
-  return {
+  return aplicarColor({
     producto: c.producto, nombre, componentes, claves, electricos,
     modoManoObra: 'porcentaje', factorDirecta: 38, factorIndirecta: 12,
     nota,
-  };
+  }, c);
 }

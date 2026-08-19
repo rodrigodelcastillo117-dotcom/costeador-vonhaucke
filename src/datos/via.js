@@ -15,6 +15,9 @@
 //  FASE A: estructura + dimensiones reales de la guía; MP estimada (calibrar).
 // ============================================================================
 
+import { aplicarColor } from './colorMelamina.js';
+import { coloresDe } from './acabados.js';
+
 const CANTO = 'tapacanto';
 const LAMINA = 'lamina-20';          // lámina cal.20 (kg ≈ área_m² × 7.16)
 const CARCASA = 'melamina-16';       // cuerpo oculto de cajas (guardas)
@@ -63,7 +66,7 @@ const IDX_FRONTAL = { 880: '3', 1180: '4', 1480: '5' };
 // Cubierta Cirque CICE: dígito ancho + dígito fondo (600 = "2")
 const IDX_CUB = { 1200: '4', 1500: '5' };
 
-export const VIA_PRODUCTOS = [
+const VIA_PRODUCTOS_BASE = [
   {
     id: 'escritorio', nombre: 'Escritorio sencillo',
     selects: [
@@ -129,6 +132,11 @@ export const VIA_PRODUCTOS = [
     checks: [{ key: 'cableada', label: 'Cableada (VISOCAELC)' }],
   },
 ];
+// Colores reales de melamina 28mm (catálogo de acabados) para el selector.
+// Se usa 'melamina-28' (ACAB.ABS.insumo) porque es el insumo de TODAS las caras
+// visibles con acabado seleccionable (cubierta, frentes, puertas, librero) —
+// la carcasa oculta en melamina-16 (CARCASA) no lleva color, es guarda interna.
+export const VIA_PRODUCTOS = VIA_PRODUCTOS_BASE.map((p) => ({ ...p, colores: coloresDe('melamina-28') }));
 
 // ---------------------------------------------------------------------------
 //  Sub-ensambles reutilizables
@@ -326,9 +334,9 @@ export function generarVia(config) {
     nombre = `Vía · Caja eléctrica ${c.cableada ? 'cableada (VISOCAELC)' : 'sin cablear (VIMOSOCUSAC)'}`;
   }
 
-  return {
+  return aplicarColor({
     producto: c.producto, nombre, componentes: comp, claves, electricos,
     modoManoObra: 'porcentaje', factorDirecta: 38, factorIndirecta: 12,
     nota: 'Vía (Fase A): línea de bajo costo (madera + metal). Estructura y dimensiones reales de la guía GE_Vía v3. MP estimada — calibrar con lista real. Materiales sin insumoId exacto (aproximados): patas App/Cirque CIPMCBD720/CIPMBD720 → pata-metalica; cubierta Cirque CICE → tablero de acabado; soportes Accents ACHERFI/D10M y conectores VICOB0877/VICOBIO/CONECY → escuadra/lámina/caja-electrica; sistema corredizo SCMD30 → riel; chapa cocol CHPM4105 → cerradura; piezas Byrne BE52413/BE52418/BE52426/BE52463/BE52490 → caja-electrica/arnés/contacto/chicote.',
-  };
+  }, c);
 }

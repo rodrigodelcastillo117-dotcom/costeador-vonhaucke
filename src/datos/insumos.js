@@ -8,6 +8,11 @@
 //  clase directa/indirecta segun 6.3. Von Haucke NO usa cromo: usa EcoCrom.
 // ============================================================================
 
+// acabados.js NO importa de aquí (evita un ciclo que Vitest no resuelve bien
+// en cuanto hay más de un punto de entrada al grafo) — arma sus insumos con
+// la misma forma que producen tablero()/ins(), documentado ahí mismo.
+import { insumosDeAcabadosMelamina, insumosDeAcabadosPintura } from './acabados.js';
+
 const HOY = '2026-08-12';
 
 // De dónde salió el precio. Sin esto, un número en la app no se puede volver a
@@ -22,8 +27,9 @@ export const FUENTE_ERP = 'ERP, ultima compra';
 // su propia regla de sourcing (falta esa serie completa, la tiene Compras).
 export const FUENTE_ALBA_TDC = 'T.D.C. de Alba (Explo_MP), verificado 2026-08-18 — un lote, no promedio anual';
 
-// Atajo para no repetir campos
-function ins(o) {
+// Atajo para no repetir campos. Exportado: lo reusa acabados.js para generar
+// insumos de color con la misma forma exacta que estos, sin duplicar la logica.
+export function ins(o) {
   return {
     unidad: 'm2',
     clase: 'directa',
@@ -40,7 +46,7 @@ function ins(o) {
 
 // TABLERO: se compra POR HOJA (1.22x2.44) y se costea por FRACCION de hoja
 // (rendimiento), ajustada por el aprovechamiento. El 'precio' es POR HOJA.
-function tablero(o) {
+export function tablero(o) {
   return ins({ seccion: 'cubiertas', unidad: 'hoja', formato: TABLERO, fraccion: true, mermaCorte: 6, ...o });
 }
 
@@ -80,19 +86,10 @@ export const INSUMOS_SEMILLA = [
   // Privacy4/Rio/Spine/Via a la vez — no se toca sin decidirlo aparte.
   tablero({ id: 'melamina-28', nombre: 'Melamina ABS 28 mm (cubierta APP LT)', precio: 1335.6,
     articulo: 'MVLMAG01280800 AGLOMERADO MELAMINA DOS CARAS, opcion B709 WALNUT', fuente: FUENTE_ERP }),
-  // Mismo material, color IVORY (opción B717) — NO reemplaza a 'melamina-28'
-  // (ese sigue siendo el que usan las otras 8 líneas; éste solo lo usa App LT
-  // para cuadrar contra el T.D.C. real de Alba, que costeó en IVORY).
-  // $1122.30 es la ÚLTIMA COMPRA de B717 IVORY en 'Costos de Materia Prima
-  // Ultima Compra al 10082026.xlsx' (Luis Daniel, snapshot más reciente que el
-  // T.D.C. de Alba, que traía $1195.2 del 2026-02-20 — IVORY se movió entre
-  // esa compra y la del 2026-04-28). Un solo dato de última compra, no el
-  // promedio anual que pide la regla §1 de Alba — falta la serie de compras
-  // de ESTE color específico (Compras la tiene, no está en ninguno de los dos
-  // archivos que sí tengo: uno da historial sin color, el otro da color sin
-  // historial).
-  tablero({ id: 'melamina-28-ivory', nombre: 'Melamina ABS 28 mm, IVORY (T.D.C. Alba)', precio: 1122.3,
-    articulo: 'MVLMAG01280800 AGLOMERADO MELAMINA DOS CARAS, opcion B717 IVORY', fuente: FUENTE_ALBA_TDC }),
+  // ⚠️ 2026-08-18: el insumo manual 'melamina-28-ivory' que vivía aquí (mismo
+  // precio, $1122.30) ahora lo genera `acabados.js` (catálogo completo de
+  // colores, 81 en melamina + 18 en pintura, del mismo archivo de Luis
+  // Daniel) — ver `insumosDeAcabadosMelamina()` más abajo. No se repite aquí.
   // Perfil de canto de aluminio (App LT: cubierta "CON TAPA REGISTRABLE
   // METALICA" trae este perfil, no el tapacanto PVC generico). $/m real del
   // explosivo de Alba.
@@ -268,6 +265,13 @@ export const INSUMOS_SEMILLA = [
   ins({ id: 'anodizado', nombre: 'Anodizado', seccion: 'acabados', precio: 45, unidad: 'm' }),
   ins({ id: 'acab-satinado', nombre: 'Acabado satinado (cristal)', seccion: 'acabados', precio: 120 }),
   ins({ id: 'serigrafia', nombre: 'Serigrafia (cristal)', seccion: 'acabados', precio: 150 }),
+
+  // ---- ACABADOS POR COLOR (melamina + pintura, catalogo real) ----
+  // 2026-08-18: 81 colores de melamina + 18 de pintura, del mismo archivo del
+  // ERP que calibro los precios de arriba, filtrados a compra en los ultimos
+  // 2 anios. Ver src/datos/acabados.js — ahi vive el dato, aqui solo se suma.
+  ...insumosDeAcabadosMelamina(),
+  ...insumosDeAcabadosPintura(),
 ];
 
 // Etiquetas legibles de cada seccion (5.2)

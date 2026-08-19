@@ -16,6 +16,9 @@
 //  escuadra) por falta de insumo exacto de extrusión / tapa fundida P4.
 // ============================================================================
 
+import { aplicarColor } from './colorMelamina.js';
+import { coloresDe } from './acabados.js';
+
 const mm = (v) => v / 1000;
 const num = (v, def) => parseInt(v) || def;
 
@@ -48,7 +51,7 @@ const hCode = (H) => String(Math.round(H / 10));
 // Postes universales, mocheta y perfil "U" sólo existen en 230 / 250 / 280.
 const nodeCode = (H) => (H <= 2300 ? '230' : H <= 2500 ? '250' : '280');
 
-export const PRIVACY4_PRODUCTOS = [
+const PRIVACY4_PRODUCTOS_BASE = [
   {
     id: 'muro', nombre: 'Muro / Panel',
     selects: [
@@ -80,6 +83,8 @@ export const PRIVACY4_PRODUCTOS = [
     checks: [{ key: 'acustico', label: 'Aislamiento acústico' }],
   },
 ];
+// Colores reales de melamina 28mm (catálogo de acabados) para el selector.
+export const PRIVACY4_PRODUCTOS = PRIVACY4_PRODUCTOS_BASE.map((p) => ({ ...p, colores: coloresDe('melamina-28') }));
 
 export function generarPrivacy4(config) {
   const c = {
@@ -179,9 +184,9 @@ export function generarPrivacy4(config) {
     electricos.push('Contactos / controles de aire / seguridad / iluminación (voz-datos, aparte)');
   }
 
-  return {
+  return aplicarColor({
     producto: c.producto, nombre, componentes: comp, claves, electricos,
     modoManoObra: 'porcentaje', factorDirecta: 38, factorIndirecta: 12,
     nota: 'Privacy 4 (Fase A): sistema de muros móviles y lambrines. Claves reales de la guía GE_Privacy4_2025_09_09 (cristales P4CR, postes P4EPIN/P4EPRE, gajos P4JUG/P4GC, puerta P4CAPDCO/P4CAPICO, rieles P4JUR, guías P4GUIN/P4RSUP, perfil U P4PEUALU, largueros P4LARMS, postes universales P4POUN, mocheta P4AJMSCRS, remates P4REIN/P4REMESUP...). Estructura metálica (postes, rieles, largueros, perfil U, mocheta, tapas de remate) estimada vía perfil-aluminio / escuadra por falta de insumo exacto de extrusión y tapa fundida P4; pizarrón sin insumo propio → melamina-28. Falta calibrar con lista de MP real (cristal, aluminio, gajos por acabado).',
-  };
+  }, c);
 }

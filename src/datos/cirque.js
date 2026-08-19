@@ -14,6 +14,10 @@
 // que con un solo factor la mesa de juntas queda algo arriba de 4×.
 // Es calibración, no dato: se borra en cuanto haya precios reales de Cirque.
 // El ajuste de Cirque vive ahora en `factoresLinea.js` (escalera de líneas).
+
+import { aplicarColor } from './colorMelamina.js';
+import { coloresDe } from './acabados.js';
+
 const CANTO = 'tapacanto', PTR = 'ptr', LAMINA = 'lamina-20';
 const PINTURA = 'pintura-electrostatica';
 const ACOMETIDA = 'acometida', CAJA = 'caja-electrica';
@@ -43,7 +47,7 @@ const SEMIMAT = { key: 'semimat', label: 'Semimampara', opciones: [
   { id: 'serig', label: 'Cristal serigrafiado' }, { id: 'tela', label: 'Tela pinchable' },
 ] };
 
-export const CIRQUE_PRODUCTOS = [
+const CIRQUE_PRODUCTOS_BASE = [
   {
     id: 'escritorio', nombre: 'Escritorio',
     selects: [{ key: 'largo', label: 'Largo', opciones: [{ id: '1200', label: '1.20 m' }, { id: '1500', label: '1.50 m' }, { id: '1800', label: '1.80 m' }, { id: '2100', label: '2.10 m' }, { id: '2400', label: '2.40 m' }] }, SEMIMAT],
@@ -98,6 +102,10 @@ export const CIRQUE_PRODUCTOS = [
     checks: [{ key: 'gajoAcrilico', label: 'Gajo acrílico (curva)' }, { key: 'electrico', label: 'Acometida' }],
   },
 ];
+// Colores reales de melamina 28mm (catálogo de acabados) para el selector.
+// Todos los finishes 'ABS' de Cirque (cubiertas, credenza, barra, etc.) resuelven
+// a 'melamina-28' vía ACAB — mismo insumo base en todos los productos de la línea.
+export const CIRQUE_PRODUCTOS = CIRQUE_PRODUCTOS_BASE.map((p) => ({ ...p, colores: coloresDe('melamina-28') }));
 
 // --- Claves reales ---------------------------------------------------------
 // Escritorio: CICE + [dígito ancho = round(largo/300)] + [fondo: 600->'2', 750->'75', 900->'3'] + acabado.
@@ -308,9 +316,9 @@ export function generarCirque(config) {
     tipoRender = 'guarda';
   }
 
-  return {
+  return aplicarColor({
     producto: c.producto, nombre, componentes: comp, claves, electricos,
     modoManoObra: 'porcentaje', factorDirecta: 38, factorIndirecta: 12,
     nota: 'Cirque (Fase A): benching insignia GE_Cirque. Escritorios/bancas/estaciones 120° con clave real CICE/CICUB/CIBIES/CIBDES y semimampara CICR/CISMO por material (transp/satin/serig/tela). Mesas de juntas cuadradas (CICUMJ/CIMJ) y circulares (CICUMJC/CIMJBE) en melamina/cristal/mármol; barras CIMAB4-7 (cubierta CICUMAB/CICUCRMA, cristal satinado); credenzas CICRE62/72/82; recepción curva como ensamble multipieza (CIRECUCC/CIREESC/CIRERECCCR) y recta con cristal de transacción 1719×539. MP estimada: sin lista real, cristal laminado usa cristal-templado-12 y tela usa frente-tela+bastidor-mampara (no hay insumoId exacto). Falta calibrar desarrollo de lámina de estructuras/gajos y áreas circulares con lista de MP real.',
-  };
+  }, c);
 }

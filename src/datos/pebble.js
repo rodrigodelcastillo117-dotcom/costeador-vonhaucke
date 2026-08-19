@@ -4,6 +4,9 @@
 //  (melamina ABS, chapa CH, cristal satinado, mármol Carrara). Base metálica.
 //  Claves ACCUBTP.. / ACCUBOV.. / ACBASMPTP..M.
 // ============================================================================
+import { aplicarColor } from './colorMelamina.js';
+import { coloresDe } from './acabados.js';
+
 const CANTO = 'tapacanto';
 const PTR = 'ptr';
 
@@ -29,7 +32,7 @@ const MATERIAL = {
 // Base por altura (metal). Estimado de PTR por su geometría (guía p6).
 const BASE_PTR = { H35: 2.0, H45: 2.4, H55: 2.8 };
 
-export const PEBBLE_PRODUCTOS = [
+const PEBBLE_PRODUCTOS_BASE = [
   {
     id: 'mesa', nombre: 'Mesa de apoyo',
     selects: [
@@ -39,6 +42,9 @@ export const PEBBLE_PRODUCTOS = [
     finishes: [{ id: 'ABS', label: 'Melamina ABS' }, { id: 'TF', label: 'Termoformado' }, { id: 'chapa', label: 'Chapa' }, { id: 'walnut', label: 'Walnut Burl' }, { id: 'ecolegno', label: 'Ecolegno' }, { id: 'cristal', label: 'Cristal satinado' }, { id: 'cristalLam', label: 'Cristal laminado' }, { id: 'marmol', label: 'Mármol Carrara' }, { id: 'ecomarmol', label: 'Ecomármol' }, { id: 'arabescato', label: 'Arabescato (elíptica)' }],
   },
 ];
+// Colores reales de melamina 28mm (catálogo de acabados) para el selector —
+// el finish 'ABS' (por default) usa melamina-28 como insumo base.
+export const PEBBLE_PRODUCTOS = PEBBLE_PRODUCTOS_BASE.map((p) => ({ ...p, colores: coloresDe('melamina-28') }));
 
 export function generarPebble(config) {
   const c = { forma: 'pebble', altura: 'H45', finish: 'ABS', ...config };
@@ -53,7 +59,7 @@ export function generarPebble(config) {
   const baseClave = `${f.baseClave}${alturaNum}M`;
   comp.push({ insumoId: PTR, nombre: `Base metálica ${c.altura} (${baseClave})`, cantidad: BASE_PTR[c.altura] || 2.4 });
 
-  return {
+  return aplicarColor({
     producto: 'mesa',
     nombre: `Pebble ${f.nombre} ${c.altura} · ${m.label}`,
     componentes: comp,
@@ -63,5 +69,5 @@ export function generarPebble(config) {
     horas: { pm: 0.5, carpinteria: 3, pintura: 1, acabados: 2, tapiceria: 0 },
     factorDirecta: 35, factorIndirecta: 12,
     nota: 'Pebble: cubierta por forma/material + base metálica (estimada). Exacto con lista de MP (melamina/chapa/cristal/mármol) + sub-despiece de la base.',
-  };
+  }, c);
 }

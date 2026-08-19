@@ -10,6 +10,9 @@
 //  gajo E4CACI/CACM/CACC, poste E4PO.., semimampara E4SCT.., repisa E4REP..).
 //  FASE A: dimensiones reales de la guía; MP estimada (falta lista de MP real).
 // ============================================================================
+import { aplicarColor } from './colorMelamina.js';
+import { coloresDe } from './acabados.js';
+
 const KG20 = 7.16;                     // lámina cal.20: kg ≈ m² × 7.16
 const laminaKg = (m2) => m2 * KG20;
 const mm = (v) => (v / 1000);
@@ -64,7 +67,7 @@ const BIOMBOS = [{ id: 'transparente', label: 'Cristal transparente' }, { id: 's
 const ALTURAS = [{ id: '1225', label: '1.225 m (con zoclos)' }, { id: '1000', label: '1.00 m' }, { id: '750', label: '0.75 m' }, { id: '665', label: '0.665 m' }];
 const LARGOS = [{ id: '900', label: '0.90 m' }, { id: '1200', label: '1.20 m' }, { id: '1500', label: '1.50 m' }, { id: '1800', label: '1.80 m' }];
 
-export const ERGO4_PRODUCTOS = [
+const ERGO4_PRODUCTOS_BASE = [
   {
     id: 'banca_sencilla', nombre: 'Banca sencilla',
     selects: [
@@ -115,6 +118,11 @@ export const ERGO4_PRODUCTOS = [
     checks: [{ key: 'electrico', label: 'Electrificación (Byrne)' }],
   },
 ];
+// Colores reales de melamina 28mm (catálogo de acabados) para el selector.
+// El finish ABS de CUBIERTA (ACAB.ABS) y el de REPISA (REP_ACAB.ABS) usan
+// ambos 'melamina-28' — sin ambigüedad de espesor. Los gajos (GAJO_ACAB) no
+// tienen opción ABS: usan lámina/tela/chapa/termoformado, materiales aparte.
+export const ERGO4_PRODUCTOS = ERGO4_PRODUCTOS_BASE.map((p) => ({ ...p, colores: coloresDe('melamina-28') }));
 
 // --- Cubierta rectangular (con gromets e insertos) --------------------------
 function cubierta(comp, claves, largo, fondo, acab, n) {
@@ -278,9 +286,9 @@ export function generarErgo4(config) {
     nombre = `Ergonova 4 · Banca ${doble ? 'doble' : 'sencilla'} ${nUs} puestos ${mm(largo).toFixed(2)} m · ${a.label}`;
   }
 
-  return {
+  return aplicarColor({
     producto: c.producto, nombre, componentes: comp, claves, electricos,
     modoManoObra: 'porcentaje', factorDirecta: 38, factorIndirecta: 12,
     nota: 'Ergonova 4 (Fase A): sistema de mamparas metálicas (benching). Dimensiones y claves REALES por componente de la guía GE_Ergonova 4 (ESP-DCC-IDP-003 v3): cubierta E4MC.., estructura de mampara E4EMPI/EMNI/MNM/MNC (4 alturas 1225/1000/750/665), gajos clipados E4CACI/CACM/CACC por acabado L/TF/CH/T, semimampara de cristal templado 9mm E4SCT.. (biombo obligatorio, alto 234mm sobre riel E4TSMA), postes E4PO.., repisa de recepción E4REP.., remates E4RA. MP estimada: gajo lámina→frente-metal, gajo tela→frente-tela, gajo TF→membrana-pvc; estructura/postes→ptr+lamina-20+pintura Cradel; riel/tapa/soporte cristal→perfil-aluminio; patas y soportes de mesa→pata-metalica; gromets→pasacables; grapas→tornilleria. Falta calibrar con lista de MP real + desarrollo exacto de troqueles, gajos superior/inferior partidos y omegas de refuerzo por clave.',
-  };
+  }, c);
 }

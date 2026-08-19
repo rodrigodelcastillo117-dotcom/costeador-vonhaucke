@@ -32,6 +32,10 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
   const [largoLateral, setLargoLateral] = useState(prod.largosLateral?.[0] || 1050);
   const [biombo, setBiombo] = useState(null);
   const [finish, setFinish] = useState('ABS');
+  // Color de melamina (catálogo real, ver acabados.js). `null` = sin elegir:
+  // cada línea cae en su propio default (App LT → ivory; las demás, el
+  // genérico compartido de siempre) — no se fuerza un color aquí.
+  const [color, setColor] = useState(null);
   const [checks, setChecks] = useState({});
   const [gavetas, setGavetas] = useState(0);
   const defSels = (p) => Object.fromEntries((p.selects || []).map((s) => [s.key, s.opciones[0].id]));
@@ -51,11 +55,11 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
     if (p.diametros) setDiametro(p.diametros[0]);
     if (p.usuarios) setUsuarios(p.usuarios[0]);
     if (p.largosLateral) setLargoLateral(p.largosLateral[0]);
-    setBiombo(null); setChecks({}); setSels(defSels(p)); setGavetas(0);
+    setBiombo(null); setChecks({}); setSels(defSels(p)); setGavetas(0); setColor(null);
   }
 
-  const config = { producto: prodId, largoMM: largo, fondoMM: fondo, diametroMM: diametro, usuarios, largoLateralMM: largoLateral, biombo, finish, gavetas, ...sels, ...checks };
-  const g = useMemo(() => generar(config), [prodId, largo, fondo, diametro, usuarios, largoLateral, biombo, finish, gavetas, sels, checks]);
+  const config = { producto: prodId, largoMM: largo, fondoMM: fondo, diametroMM: diametro, usuarios, largoLateralMM: largoLateral, biombo, finish, color, gavetas, ...sels, ...checks };
+  const g = useMemo(() => generar(config), [prodId, largo, fondo, diametro, usuarios, largoLateral, biombo, finish, color, gavetas, sels, checks]);
   // Modelo de costeo: si el generador lo declara 'intelisis' (App LT), usa la cascada
   // real (tarifas de planta + precioVenta lista); si no, el clásico (margen sobre precio).
   const esIntelisis = g.modeloCosteo === 'intelisis';
@@ -142,7 +146,7 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
           ))}
         </div>
 
-        {(prod.biombo || prod.finishes || (prod.checks && prod.checks.length > 0)) && (
+        {(prod.biombo || prod.finishes || prod.colores || (prod.checks && prod.checks.length > 0)) && (
           <div className="tarjeta">
             <h3>Opciones</h3>
             {prod.finishes && (
@@ -150,6 +154,17 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
                 <label className="etiqueta">Acabado</label>
                 <div className="chips" style={{ marginBottom: 8 }}>
                   {prod.finishes.map((f) => <button key={f.id} className={`chip ${finish === f.id ? 'on' : ''}`} onClick={() => setFinish(f.id)}>{f.label}</button>)}
+                </div>
+              </>
+            )}
+            {/* Color de melamina: solo si la línea trae catálogo Y (no hay
+                acabado, o el acabado elegido sigue siendo melamina — con
+                chapa el color de melamina no aplica). */}
+            {prod.colores && (!prod.finishes || finish === 'ABS') && (
+              <>
+                <label className="etiqueta">Color</label>
+                <div className="chips" style={{ marginBottom: 8 }}>
+                  {prod.colores.map((c) => <button key={c.id} className={`chip ${(color || prod.colores[0].id) === c.id ? 'on' : ''}`} onClick={() => setColor(c.id)}>{c.label}</button>)}
                 </div>
               </>
             )}

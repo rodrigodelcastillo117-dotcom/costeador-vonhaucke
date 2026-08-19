@@ -102,6 +102,9 @@ export default function EditarPartida({ estado, partida, onGuardar, onCerrar }) 
             <Chips key={s.key} etiqueta={s.label} opciones={s.opciones} valor={cfg[s.key]} alElegir={(v) => set(s.key, v)} />
           ))}
           {prod.finishes && <Chips etiqueta="Acabado" opciones={prod.finishes} valor={cfg.finish} alElegir={(v) => set('finish', v)} />}
+          {prod.colores && (!prod.finishes || cfg.finish === 'ABS') && (
+            <Chips etiqueta="Color" opciones={prod.colores} valor={cfg.color || prod.colores[0].id} alElegir={(v) => set('color', v)} />
+          )}
           {prod.biombo && (
             <div className="ed-campo">
               <label className="etiqueta">Biombo</label>

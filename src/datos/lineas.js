@@ -129,11 +129,17 @@ export function configDesde(producto, seleccion = {}, avisos = null) {
   const checks = {};
   for (const ch of producto.checks || []) checks[ch.key] = !!s[ch.key];
   const finish = s.finish || (producto.finishes ? producto.finishes[0].id : 'ABS');
+  // Color de melamina (catálogo real, ver acabados.js). A propósito SIN
+  // default forzado aquí: si nadie eligió, se deja `undefined` y cada
+  // generador decide (App LT cae en 'ivory' adentro de generarAppLT; las
+  // demás líneas se quedan en su color genérico compartido de siempre).
+  // Forzar aquí el primero de la lista pisaría ese default por línea.
+  const color = producto.colores ? (s.color || undefined) : undefined;
   const biombo = producto.biombo ? (s.biombo || null) : undefined;
   return {
     producto: producto.id,
     largoMM: largo, fondoMM: fondo, diametroMM: diam, usuarios, largoLateralMM: lateral,
-    biombo, finish, ...sels, ...checks,
+    biombo, finish, color, ...sels, ...checks,
   };
 }
 

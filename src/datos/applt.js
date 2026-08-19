@@ -20,6 +20,9 @@
 //  Precios: por ahora estimados; se vuelven exactos con la lista de MP.
 // ============================================================================
 
+import { aplicarColor } from './colorMelamina.js';
+import { coloresDe } from './acabados.js';
+
 const H_PATA = 0.72;   // altura de trabajo (m)
 
 // -------- Insumos base (existen en insumos.js) --------
@@ -29,7 +32,10 @@ const H_PATA = 0.72;   // altura de trabajo (m)
 // cubierta App LT ("CON TAPA REGISTRABLE METALICA" en el catálogo), que antes
 // no se cobraba. Con esto la cubierta cuadra a -1.5% del T.D.C. real (antes
 // -9.6%/+9%, según la fórmula de aprovechamiento). Ver costeador-formula-alba.
-const MELAMINA = 'melamina-28-ivory';
+// El id BASE es 'melamina-28' (genérico, el que comparten las otras 8 líneas)
+// — `generarAppLT` lo reescribe a IVORY por default vía `aplicarColor` más
+// abajo, sin tocar el precio genérico compartido.
+const MELAMINA = 'melamina-28';
 const MELAMINA9 = 'melamina-9';
 const CANTO = 'perfil-canto-applt';
 const TAPA_REGISTRABLE = 'tapa-registrable-applt';
@@ -122,7 +128,9 @@ const CHK_LAT = { key: 'laterales', label: 'Biombos laterales (cierre de extremo
 // divisores perpendiculares entre puestos (área "3U B"). La descripción escrita
 // es idéntica en las dos; la diferencia sólo se ve en la imagen.
 const CHK_DIV = { key: 'divisores', label: 'Divisores entre puestos' };
-export const APPLT_PRODUCTOS = [
+// Colores reales de melamina 28mm (catálogo de acabados, ver colorMelamina.js)
+// para el selector — todos los productos App LT tienen cubierta de melamina.
+const APPLT_PRODUCTOS_BASE = [
   { id: 'escritorio', nombre: 'Escritorio', largos: [1200, 1500, 1800, 2100, 2400], fondos: [600, 750, 900], checks: [CHK_FAL, CHK_ELE] },
   { id: 'escritorio_l', nombre: 'Escritorio en L', largos: [1500, 1800, 2100, 2400], fondos: [600, 750, 900], largosLateral: [900, 1050, 1200], checks: [CHK_FAL, CHK_ELE] },
   // El largo es el MÓDULO POR USUARIO, no el largo total. 1050 existe en los
@@ -134,6 +142,15 @@ export const APPLT_PRODUCTOS = [
   { id: 'mesa_juntas', nombre: 'Mesa de juntas', largos: [1200, 1500, 1800, 2100, 2400], fondos: [1200], checks: [CHK_ELE] },
   { id: 'mesa_circular', nombre: 'Mesa circular', diametros: [1200, 1500, 1800, 2100, 2400], checks: [] },
 ];
+// IVORY primero: es el default real de generarAppLT (verificado contra el
+// T.D.C. de Alba) — la UI asume "el primero de la lista = default" (mismo
+// patrón que `finishes[0]`), así que el orden aquí tiene que coincidir.
+const COLORES_APPLT = (() => {
+  const lista = coloresDe('melamina-28') || [];
+  const i = lista.findIndex((c) => c.id === 'ivory');
+  return i > 0 ? [lista[i], ...lista.slice(0, i), ...lista.slice(i + 1)] : lista;
+})();
+export const APPLT_PRODUCTOS = APPLT_PRODUCTOS_BASE.map((p) => ({ ...p, colores: COLORES_APPLT }));
 
 // ============================================================================
 //  Helpers de despiece
@@ -213,7 +230,10 @@ function hBiombo(clave) { return HORAS_CLAVE[clave] || { acabados: 0.34 }; }
 //  config: { producto, largoMM, fondoMM, diametroMM, usuarios, faldon, biombo:'cristal'|'melamina'|null, electrico }
 // ============================================================================
 export function generarAppLT(config) {
-  const c = { fondoMM: 600, faldon: false, biombo: null, usuarios: 2, electrico: false, ...config };
+  // Default 'ivory': es el color con el que Von Haucke costeó y verificó su
+  // T.D.C. real (ver costeador-formula-alba, memoria) — sin color explícito,
+  // App LT sigue cotizando en IVORY, no en el genérico compartido 'melamina-28'.
+  const c = { fondoMM: 600, faldon: false, biombo: null, usuarios: 2, electrico: false, color: 'ivory', ...config };
   const comp = [];
   const claves = [];
   const electricos = [];
@@ -324,7 +344,7 @@ export function generarAppLT(config) {
     }
   }
 
-  return {
+  return aplicarColor({
     producto: c.producto, nombre, componentes: comp,
     claves: [...new Set(claves.filter(Boolean))],
     electricos: [...new Set(electricos)],
@@ -335,7 +355,7 @@ export function generarAppLT(config) {
     horas: H,
     factorDirecta: 35, factorIndirecta: 12, // respaldo si se fuerza modo porcentaje
     nota: 'Costo REAL: material a última compra del ERP + horas medidas por centro (UE Intelisis) + cascada ×1.30 (gastos op) → ×1.20 (utilidad) → ×3 (lista). Precio de LISTA (bruto); el descuento de proyecto va aparte. Biombo PET/electrificación/pedestal ya costeados. Calibrado vs presupuestos reales (MAE ~4%).',
-  };
+  }, c);
 }
 
 function addBiombo(comp, claves, L, tipo, n) {
