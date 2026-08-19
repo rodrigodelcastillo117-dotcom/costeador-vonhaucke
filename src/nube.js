@@ -103,6 +103,17 @@ export async function miPermiso(email) {
   const { data } = await nube.from('permitidos').select('rol, nombre').eq('email', email).maybeSingle();
   return data || null;
 }
+// Las contraseñas temporales que se han ido dando de alta (solo Dirección las
+// lee — RLS). Sirve para el Excel de "Descargar credenciales": Rodrigo, dando
+// de alta a su equipo el mismo día que se lo iba a enseñar: "solo requiero un
+// excel con sus contraseñas, y cada vez que demos de alta a alguien, se guarde
+// en ese excel automáticamente". El guardado ya pasa solo (edge function
+// `usuarios`, acción `crear`); esto es sólo la lectura para exportarlo.
+export async function credencialesTemporales() {
+  const { data } = await nube.from('credenciales_temporales').select('email, nombre, rol, password_temporal, actualizado');
+  return (data || []).sort((a, b) =>
+    (a.nombre || a.email || '').localeCompare(b.nombre || b.email || '', 'es', { sensitivity: 'base' }));
+}
 export async function listaPermitidos() {
   const { data } = await nube.from('permitidos').select('email, nombre, rol, creado');
   // ALFABÉTICA por nombre (Rodrigo, 2026-08-16). Antes salían por fecha de alta,

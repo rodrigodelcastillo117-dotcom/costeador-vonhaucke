@@ -60,9 +60,33 @@ Deno.serve(async (req) => {
     if (yo?.rol !== "direccion") return json({ error: "solo-direccion" }, 403);
 
     if (accion === "crear") {
-      const { error } = await admin.auth.admin.createUser({ email: body.email, password: body.password, email_confirm: true });
-      if (error && !String(error.message).toLowerCase().includes("already")) return json({ error: error.message }, 400);
-      await admin.from("permitidos").upsert({ email: body.email, nombre: body.nombre || null, rol: body.rol || "vendedor" });
+      const email = String(body.email || "").trim().toLowerCase();
+      const { error } = await admin.auth.admin.createUser({ email, password: body.password, email_confirm: true });
+      let yaExistia = false;
+      if (error) {
+        if (!String(error.message).toLowerCase().includes("already")) return json({ error: error.message }, 400);
+        yaExistia = true;
+      }
+      // ⚠️ 2026-08-19: "DAR DE ALTA" A UN CORREO QUE YA TENÍA CUENTA le dejaba SU
+      // contraseña vieja intacta (createUser falla con "already" y ahí se
+      // quedaba) — Rodrigo necesitaba reemitir credenciales para gente que ya
+      // estaba en la lista pero nunca había entrado. Ahora, si ya existía, se le
+      // FIJA la contraseña nueva con updateUserById en vez de dejarla como estaba.
+      if (yaExistia) {
+        const { data: lista } = await admin.auth.admin.listUsers();
+        const u = lista?.users?.find((x) => x.email === email);
+        if (u) await admin.auth.admin.updateUserById(u.id, { password: body.password });
+      }
+      await admin.from("permitidos").upsert({ email, nombre: body.nombre || null, rol: body.rol || "vendedor" });
+      // La contraseña que se acaba de fijar (nueva o de alta) queda guardada
+      // para el Excel de "Descargar credenciales" — Rodrigo: "cada vez que demos
+      // de alta a alguien, que se guarde en ese excel automáticamente".
+      if (body.password) {
+        await admin.from("credenciales_temporales").upsert({
+          email, nombre: body.nombre || null, rol: body.rol || "vendedor",
+          password_temporal: body.password, actualizado: new Date().toISOString(),
+        });
+      }
       return json({ ok: true }, 200);
     }
 

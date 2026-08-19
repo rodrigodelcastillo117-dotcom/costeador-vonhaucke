@@ -2,7 +2,7 @@
 //  USUARIOS - solo Direccion. Da de alta y de baja a quien puede entrar.
 // ============================================================================
 import { useEffect, useState } from 'react';
-import { listaPermitidos, adminUsuarios } from '../nube.js';
+import { listaPermitidos, adminUsuarios, credencialesTemporales } from '../nube.js';
 
 // Qué ve cada rol. Se enseña en pantalla porque mover a alguien de rol le ABRE
 // o le CIERRA datos de verdad (nómina, financieros, costos), no es una etiqueta.
@@ -72,6 +72,37 @@ export default function Usuarios({ onAviso, miCorreo = '' }) {
     recargar();
   }
 
+  // ⚠️ "SOLO REQUIERO UN EXCEL CON SUS CONTRASEÑAS" (Rodrigo, 2026-08-19, el
+  // mismo día que le iba a enseñar el costeador a su equipo). El guardado ya
+  // pasa solo —la función `usuarios` escribe en `credenciales_temporales` cada
+  // vez que se da de alta o se reemite una contraseña—; esto sólo lo baja como
+  // archivo. CSV, no .xlsx real: Excel lo abre directo con doble clic (es lo
+  // que la gente de aquí entiende por "un excel"), y así no hay que sumarle una
+  // librería nueva al bundle de un solo archivo. `﻿` al frente es el BOM
+  // que hace que Excel lea los acentos bien en vez de mostrar basura.
+  const [descargando, setDescargando] = useState(false);
+  async function descargarCredenciales() {
+    setDescargando(true);
+    try {
+      const filas = await credencialesTemporales();
+      if (!filas.length) { onAviso && onAviso('Todavía no hay contraseñas temporales guardadas.'); return; }
+      const csv = ['Nombre,Correo,Entra como,Contraseña temporal,Actualizado']
+        .concat(filas.map((f) => {
+          const et = ROLES.find((r) => r.id === f.rol)?.et || f.rol || '';
+          const cuando = f.actualizado ? new Date(f.actualizado).toLocaleString('es-MX') : '';
+          const csv1 = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+          return [f.nombre, f.email, et, f.password_temporal, cuando].map(csv1).join(',');
+        }))
+        .join('\r\n');
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `credenciales-costeador-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } finally { setDescargando(false); }
+  }
+
   return (
     <div className="contenido">
       <h2>Quién puede entrar</h2>
@@ -112,7 +143,15 @@ export default function Usuarios({ onAviso, miCorreo = '' }) {
 
       {/* Lista */}
       <div className="tarjeta">
-        <h3>Lista de acceso ({lista.length})</h3>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+          <h3 style={{ margin: 0 }}>Lista de acceso ({lista.length})</h3>
+          <button className="boton fantasma no-imprimir" disabled={descargando} onClick={descargarCredenciales}>
+            {descargando ? 'Preparando…' : 'Descargar credenciales (Excel)'}
+          </button>
+        </div>
+        <p className="ayuda gris no-imprimir" style={{ marginTop: 4 }}>
+          Contraseñas temporales de cada alta o reemisión — se guardan solas, esto solo las baja.
+        </p>
         {cargando ? <p className="ayuda">Cargando...</p> : (
           <div className="tablewrap"><table className="datos">
             <thead><tr><th>Nombre</th><th>Correo</th><th>Entra como</th><th className="no-imprimir"></th></tr></thead>
