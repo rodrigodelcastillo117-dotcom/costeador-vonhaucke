@@ -12,9 +12,10 @@ import EditarPartida, { sePuedeEditar } from './EditarPartida.jsx';
 import { pesos, leePct, selloPartida } from '../util.js';
 import { senalesCotizacion } from '../datos/senales.js';
 import { imagenPartida } from '../datos/imagenes.js';
+import VoniAvatar from './VoniAvatar.jsx';
 import { confianzaDe, textoConfianza } from '../datos/confianza.js';
 import { expandirPiezas, mapaPiezas } from '../datos/espacio.js';
-import { generarRender } from '../nube.js';
+import { generarRender, analizarNegocio } from '../nube.js';
 import PlanoAcomodo from './PlanoAcomodo.jsx';
 
 // El render IA de la partida manda; si no, la foto de catálogo; y si es una
@@ -63,6 +64,11 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   const setVistaCliente = setVistaClienteManual;
   const cot = estado.cotizacion;
   const partidas = cot.partidas || [];
+  // Voni Cerebro, Fase 2: la narración con IA es UN clic, nunca automática —
+  // cada llamada a Claude cuesta.
+  const [voniCargando, setVoniCargando] = useState(false);
+  const [voniMensaje, setVoniMensaje] = useState('');
+  const [voniError, setVoniError] = useState('');
 
   const setCot = (parcial) => setEstado({ ...estado, cotizacion: { ...cot, ...parcial } });
 
@@ -235,6 +241,13 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   // cotización — mismo umbral y mismo cálculo de margen que ya usa la tabla
   // de abajo, nada más juntado en un resumen (src/datos/senales.js).
   const senalesProyecto = senalesCotizacion(partidas, estado.parametros.margenMinimo);
+  const preguntarleAVoni = async () => {
+    setVoniCargando(true); setVoniError(''); setVoniMensaje('');
+    const r = await analizarNegocio(senalesProyecto, 'cotizacion');
+    setVoniCargando(false);
+    if (!r?.ok) { setVoniError(r?.error || 'No se pudo conectar con Voni.'); return; }
+    setVoniMensaje(r.propuesta?.mensaje || '');
+  };
 
   return (
     <div className="contenido cotizacion-pg">
@@ -371,6 +384,22 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                 ))}
               </div>
             )}
+            {/* Voni Cerebro, Fase 2: la narración con IA sobre las señales de
+                arriba — no recalcula nada, solo las explica. Un clic, nunca
+                automática (cada llamada a Claude cuesta). */}
+            <div style={{ marginBottom: 14 }}>
+              <button className="boton fantasma" style={{ minHeight: 40, padding: '0 14px' }}
+                disabled={voniCargando} onClick={preguntarleAVoni}>
+                {voniCargando ? 'Voni está pensando…' : 'Pregúntale a Voni'}
+              </button>
+              {voniMensaje && (
+                <div className="tarjeta" style={{ marginTop: 10, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                  <VoniAvatar tam={32} variante="cara" />
+                  <span className="texto">{voniMensaje}</span>
+                </div>
+              )}
+              {voniError && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">{voniError}</span></div>}
+            </div>
             <div className="tablewrap solo-escritorio">
               <table className="datos">
                 <thead><tr>

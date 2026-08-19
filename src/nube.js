@@ -200,6 +200,22 @@ export async function leerPlano(image, mediaType, refMM) {
   return data;
 }
 
+// La voz de Voni sobre señales YA CALCULADAS (Fase 2 de "Voni Cerebro",
+// src/datos/senales.js) — nunca manda datos crudos, solo el resumen
+// determinístico que ya se armó en el cliente. `alcance`: 'cotizacion' o
+// 'negocio' (este último trae candado de rol del lado del servidor).
+export async function analizarNegocio(senales, alcance = 'cotizacion') {
+  const { data, error } = await nube.functions.invoke('analizar-negocio', {
+    body: { senales, alcance, reglas: reglasTexto('negocio'), aprendizajes: aprendizajesTexto() },
+  });
+  if (error) {
+    let msg = error.message || 'No se pudo conectar con Voni.';
+    try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
+    return { ok: false, error: msg };
+  }
+  return data;
+}
+
 // Genera un render fotorrealista del mueble descrito (Gemini). extra: {materiales, medidas, tipo, imagen, mediaType}.
 export async function generarRender(descripcion, extra = {}) {
   const { data, error } = await nube.functions.invoke('generar-render', {
