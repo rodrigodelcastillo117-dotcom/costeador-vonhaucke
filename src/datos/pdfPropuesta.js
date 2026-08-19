@@ -171,7 +171,7 @@ function hojaMarca(doc, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA, { nueva = true, 
 //  lleva el número de partida, y ese número es el que aparece en el detalle —
 //  así el cliente cruza plano y precio sin preguntarle a nadie.
 // ============================================================================
-function hojaPlano(doc, { acomodo, partidas, piezas }, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA) {
+function hojaPlano(doc, { acomodo, partidas, piezas }, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA, pie) {
   const areas = acomodo?.areas || [];
   const coloc = acomodo?.plan?.colocacion || [];
   if (!areas.length || !coloc.length) return false;
@@ -299,6 +299,17 @@ function hojaPlano(doc, { acomodo, partidas, piezas }, A4, M, ANCHO, ROJO, TINTA
   let col = 0;
   for (const [n, veces] of [...usados.entries()].sort((a, b) => a[0] - b[0])) {
     const pt = (partidas || [])[n - 1]; if (!pt) continue;
+    // ⚠️ NADA SE CAE EN SILENCIO (auditoría 2026-08-19). Antes, si la leyenda
+    // no cabía, simplemente dejaba de imprimir renglones (`break`) — el plano
+    // seguía mostrando círculos numerados sin su explicación. Mismo criterio
+    // que ya usa `hojaCuartos` tres funciones abajo: si no cabe, se abre hoja
+    // y se sigue, nunca se corta.
+    if (ly > A4.h - M.abajo - 4) {
+      pie?.(); doc.addPage(); ly = M.arriba;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...GRIS);
+      doc.text('QUÉ ES CADA NÚMERO (continuación)', M.izq, ly); ly += 6;
+      col = 0;
+    }
     const cx = M.izq + col * (colW + 8);
     doc.setFillColor(...ROJO); doc.circle(cx + 2.4, ly - 1.2, 2.4, 'F');
     doc.setFont('helvetica', 'bold'); doc.setFontSize(5.6); doc.setTextColor(255, 255, 255);
@@ -311,7 +322,6 @@ function hojaPlano(doc, { acomodo, partidas, piezas }, A4, M, ANCHO, ROJO, TINTA
     doc.text(nom + cola, cx + 7, ly);
     col = 1 - col;
     if (col === 0) ly += 5.4;
-    if (ly > A4.h - M.abajo - 4) break;
   }
   return true;
 }
@@ -633,7 +643,7 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
   // 3 está ahí de la nada, debería ser la 1". Tenía razón — quién eres se dice
   // ANTES de dar precios, no a la mitad del documento.
   pie();
-  const hayPlano = hojaPlano(doc, { acomodo: cot.acomodo, partidas, piezas }, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA);
+  const hayPlano = hojaPlano(doc, { acomodo: cot.acomodo, partidas, piezas }, A4, M, ANCHO, ROJO, TINTA, GRIS, LINEA, pie);
   if (hayPlano) pie();
   // Y luego, en palabras: qué va en cada área (con las gavetas, que el plano no
   // puede enseñar porque viven debajo de la cubierta).
@@ -702,7 +712,13 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
   y += 2;
   const escalera = [
     ['Suma de los renglones', totales.precioLista, false],
-    totales.descuento > 0 ? [`Descuento de proyecto ${totales.descuentoPct}%`, -totales.descuento, false] : null,
+    // ⚠️ Math.round(-x) NO ES -Math.round(x) (auditoría 2026-08-19). JS
+    // redondea los .5 hacia +Infinito: Math.round(-27388.5) da -27388, pero
+    // -Math.round(27388.5) da -27389 — un peso de diferencia contra la
+    // pantalla (Cotizacion.jsx:222, que SÍ hace -Math.round(descuento)) cada
+    // vez que el descuento cae justo en .50 (pasa seguido con 10%/15% redondos).
+    // Se pre-redondea aquí, en positivo, ANTES de negar — igual que pantalla.
+    totales.descuento > 0 ? [`Descuento de proyecto ${totales.descuentoPct}%`, -Math.round(totales.descuento), false] : null,
     totales.descuento > 0 ? ['Subtotal', totales.subtotal, false] : null,
     totales.contingencia > 0 ? [`Imprevistos de obra ${totales.contingenciaPct}%`, totales.contingencia, false] : null,
     totales.maniobras > 0 ? [`Maniobras e instalación ${totales.maniobrasPct}%`, totales.maniobras, false] : null,

@@ -243,10 +243,19 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   const senalesProyecto = senalesCotizacion(partidas, estado.parametros.margenMinimo);
   const preguntarleAVoni = async () => {
     setVoniCargando(true); setVoniError(''); setVoniMensaje('');
-    const r = await analizarNegocio(senalesProyecto, 'cotizacion');
-    setVoniCargando(false);
-    if (!r?.ok) { setVoniError(r?.error || 'No se pudo conectar con Voni.'); return; }
-    setVoniMensaje(r.propuesta?.mensaje || '');
+    // ⚠️ SIN try/catch, EL BOTÓN SE QUEDABA "PENSANDO…" PARA SIEMPRE (auditoría
+    // 2026-08-19). `analizarNegocio()` normalmente resuelve con {ok:false} en
+    // vez de lanzar, pero si algo lanza de verdad (JSON no serializable,
+    // cliente mal inicializado), `setVoniCargando(false)` nunca corría.
+    try {
+      const r = await analizarNegocio(senalesProyecto, 'cotizacion');
+      if (!r?.ok) { setVoniError(r?.error || 'No se pudo conectar con Voni.'); return; }
+      setVoniMensaje(r.propuesta?.mensaje || '');
+    } catch (e) {
+      setVoniError('No se pudo conectar con Voni.');
+    } finally {
+      setVoniCargando(false);
+    }
   };
 
   return (

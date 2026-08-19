@@ -132,14 +132,24 @@ export async function listaPermitidos() {
     (a.nombre || a.email || '').localeCompare(b.nombre || b.email || '', 'es', { sensitivity: 'base' }));
 }
 // Administrar usuarios (solo Direccion): crear / eliminar via la funcion segura.
+// ⚠️ SIN try/catch NI REVISAR r.ok, LOS BOTONES DE Usuarios.jsx SE QUEDABAN
+// "cargando" PARA SIEMPRE (auditoría 2026-08-19) — justo el día que se dio de
+// alta a todo el equipo, si la red fallaba a media alta. Mismo contrato
+// {ok, error} que ya usan todas las demás funciones de este archivo.
 export async function adminUsuarios(accion, payload) {
-  const s = await sesionActual();
-  const r = await fetch(`${URL}/functions/v1/usuarios`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${s?.access_token || ''}` },
-    body: JSON.stringify({ accion, ...payload }),
-  });
-  return r.json();
+  try {
+    const s = await sesionActual();
+    const r = await fetch(`${URL}/functions/v1/usuarios`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${s?.access_token || ''}` },
+      body: JSON.stringify({ accion, ...payload }),
+    });
+    const j = await r.json().catch(() => null);
+    if (!r.ok) return { ok: false, error: j?.error || `Error del servidor (${r.status}).` };
+    return j?.ok === false ? j : { ok: true, ...j };
+  } catch (e) {
+    return { ok: false, error: 'No se pudo conectar. Revisa tu internet y vuelve a intentar.' };
+  }
 }
 
 // Analiza una imagen (render/foto) con IA y devuelve un despiece propuesto.

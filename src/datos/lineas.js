@@ -349,7 +349,13 @@ export function costearItem(estado, item) {
     // el price-book): así Dirección sigue viendo una utilidad coherente.
     return {
       ruta: item.ruta, linea: L.titulo, producto: prod.id, nombre: nb.nombre,
-      cantidad, costoUnitario: costoImplicito(a.lista), precioUnitario: precio, margen, pieza,
+      // ⚠️ COSTO SUBESTIMADO ~40-50% (auditoría 2026-08-19). `costoImplicito()`
+      // espera PRECIO 2 (divide entre 3.6) — pero `a.lista` aquí es Precio
+      // LISTA, ya con el descuento real del artículo aplicado (47%-60%, no un
+      // 40% fijo: verificado contra 500 artículos reales del catálogo). Usar
+      // `a.full` (el Precio 2 real de CADA artículo, ya viene en los datos)
+      // en vez de aproximar con un descuento fijo.
+      costoUnitario: costoImplicito(a.full || a.lista), precioUnitario: precio, margen, pieza,
       w: nb.w, d: nb.d, config,
       precioReal: true, catalogo, variantes,
       avisos,
@@ -398,7 +404,7 @@ export function costearConfig(estado, ruta, productoId, config, cantidad = 1) {
     const a = res.articulo;
     return {
       nombre: nb.nombre, config: cfg, cantidad: n,
-      costoUnitario: costoImplicito(a.lista), precioUnitario: a.lista,
+      costoUnitario: costoImplicito(a.full || a.lista), precioUnitario: a.lista,
       margen, w: nb.w, d: nb.d, precioReal: true,
       catalogo: { clave: a.clave, lista: a.lista, full: a.full, minimo: a.minimo },
       variantes: res.estado === 'varios' ? res.candidatos.slice(0, 8) : null,

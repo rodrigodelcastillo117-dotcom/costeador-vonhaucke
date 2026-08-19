@@ -1,12 +1,46 @@
 // ============================================================================
 //  PRECIOS - precios de insumos, calculadora de costo hora y parametros (7.5)
 // ============================================================================
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { SECCIONES } from '../datos/insumos.js';
 import { calcularCostoHora } from '../motor/calculo.js';
 import Icono from './Iconos.jsx';
 import { exportar, importar, restablecerPrecios } from '../almacen.js';
 import { pesos2, pct, diasDesde } from '../util.js';
+
+// ⚠️ ESTOS CAMPOS SE VOLVÍAN $0 EN VIVO, PARA TODO EL EQUIPO, EN CADA TECLA
+// (auditoría 2026-08-19). `type="number"` con `onChange={... parseFloat(v)||0}`
+// escribe a `estado` (y de ahí a Supabase, compartido) en CADA tecla —
+// borrar el campo para reescribir un precio (gesto normal) pasaba por un
+// instante en blanco, `parseFloat('')` es NaN, `NaN||0` es 0: ese cero se
+// subía de inmediato. Mismo patrón que ya resolvieron `CampoPct`
+// (Cotizacion.jsx) y `CampoM2` (EmpezarEspacio.jsx) para exactamente este
+// problema: se escribe libre mientras el campo tiene el foco, y sólo se
+// valida/confirma al salir (`onBlur`) — nunca a medio tecleo. Si al salir
+// quedó vacío o inválido, se REGRESA al valor anterior, nunca a 0.
+function CampoNumero({ valor, min = 0, max = 99999999, onCambio, ancho = 110, clase = 'numero' }) {
+  const [txt, setTxt] = useState(String(valor));
+  const [escribiendo, setEscribiendo] = useState(false);
+  useEffect(() => { if (!escribiendo) setTxt(String(valor)); }, [valor, escribiendo]);
+  const cerrar = () => {
+    setEscribiendo(false);
+    const limpio = String(txt ?? '').trim().replace(',', '.');
+    const num = limpio === '' ? NaN : Number(limpio);
+    const n = Number.isFinite(num) ? Math.min(max, Math.max(min, num)) : valor;
+    setTxt(String(n));
+    if (n !== valor) onCambio(n);
+  };
+  return (
+    <input
+      type="text" inputMode="decimal" className={clase} style={{ maxWidth: ancho, width: ancho }}
+      value={txt}
+      onFocus={() => setEscribiendo(true)}
+      onChange={(e) => { setEscribiendo(true); setTxt(e.target.value); }}
+      onBlur={cerrar}
+      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+    />
+  );
+}
 
 export default function Precios({ estado, setEstado, puedeVerDireccion = true, onDireccion }) {
   const archivoRef = useRef();
@@ -51,19 +85,19 @@ export default function Precios({ estado, setEstado, puedeVerDireccion = true, o
         <h2>Costo hora de taller</h2>
         <div className="renglon-insumo">
           <span className="nom">Nomina semanal de planta <span className="gris">solo areas productivas</span></span>
-          <input type="number" className="numero" value={p.nominaSemanalDirecta} onChange={(e) => setParam('nominaSemanalDirecta', parseFloat(e.target.value) || 0)} />
+          <CampoNumero valor={p.nominaSemanalDirecta} onCambio={(n) => setParam('nominaSemanalDirecta', n)} />
         </div>
         <div className="renglon-insumo">
           <span className="nom">Operativos en planta</span>
-          <input type="number" className="numero" value={p.operativos} onChange={(e) => setParam('operativos', parseInt(e.target.value) || 1)} />
+          <CampoNumero valor={p.operativos} min={1} onCambio={(n) => setParam('operativos', n)} />
         </div>
         <div className="renglon-insumo">
           <span className="nom">Horas por semana</span>
-          <input type="number" className="numero" value={p.jornadaSemanal} onChange={(e) => setParam('jornadaSemanal', parseFloat(e.target.value) || 1)} />
+          <CampoNumero valor={p.jornadaSemanal} min={1} onCambio={(n) => setParam('jornadaSemanal', n)} />
         </div>
         <div className="renglon-insumo">
           <span className="nom">Eficiencia real <span className="etiqueta-dato supuesto">valor supuesto</span></span>
-          <input type="number" className="numero" value={p.eficienciaReal} onChange={(e) => setParam('eficienciaReal', parseFloat(e.target.value) || 1)} />
+          <CampoNumero valor={p.eficienciaReal} min={1} onCambio={(n) => setParam('eficienciaReal', n)} />
         </div>
         <hr />
         <div className="fila-botones" style={{ justifyContent: 'space-between' }}>
@@ -88,35 +122,35 @@ export default function Precios({ estado, setEstado, puedeVerDireccion = true, o
         <div className="dos-col" style={{ gridTemplateColumns: '1fr 1fr' }}>
           <div>
             <label className="etiqueta">Gastos de fabrica (% sobre material directo)</label>
-            <input type="number" className="numero" value={p.factorIndirectosFabrica} onChange={(e) => setParam('factorIndirectosFabrica', parseFloat(e.target.value) || 0)} />
+            <CampoNumero valor={p.factorIndirectosFabrica} max={1000} onCambio={(n) => setParam('factorIndirectosFabrica', n)} />
           </div>
           <div>
             <label className="etiqueta">Margen minimo (%)</label>
-            <input type="number" className="numero" value={p.margenMinimo} onChange={(e) => setParam('margenMinimo', parseFloat(e.target.value) || 0)} />
+            <CampoNumero valor={p.margenMinimo} max={100} onCambio={(n) => setParam('margenMinimo', n)} />
           </div>
           <div>
             <label className="etiqueta">Margen de lista (% sobre precio)</label>
-            <input type="number" className="numero" value={p.margenObjetivo ?? 50} onChange={(e) => setParam('margenObjetivo', parseFloat(e.target.value) || 0)} />
+            <CampoNumero valor={p.margenObjetivo ?? 50} max={100} onCambio={(n) => setParam('margenObjetivo', n)} />
           </div>
           <div>
             <label className="etiqueta">Mínimo de línea (% utilidad sobre costo)</label>
-            <input type="number" className="numero" value={p.minMarkupLinea ?? 45} onChange={(e) => setParam('minMarkupLinea', parseFloat(e.target.value) || 0)} />
+            <CampoNumero valor={p.minMarkupLinea ?? 45} max={1000} onCambio={(n) => setParam('minMarkupLinea', n)} />
           </div>
           <div>
             <label className="etiqueta">Anticipo (%)</label>
-            <input type="number" className="numero" value={p.anticipoPorcentaje ?? 50} onChange={(e) => setParam('anticipoPorcentaje', parseFloat(e.target.value) || 0)} />
+            <CampoNumero valor={p.anticipoPorcentaje ?? 50} max={100} onCambio={(n) => setParam('anticipoPorcentaje', n)} />
           </div>
           <div>
             <label className="etiqueta">Factor mano de obra directa (%)</label>
-            <input type="number" className="numero" value={p.factorManoObraDirecta} onChange={(e) => setParam('factorManoObraDirecta', parseFloat(e.target.value) || 0)} />
+            <CampoNumero valor={p.factorManoObraDirecta} max={1000} onCambio={(n) => setParam('factorManoObraDirecta', n)} />
           </div>
           <div>
             <label className="etiqueta">Factor mano de obra indirecta (%)</label>
-            <input type="number" className="numero" value={p.factorManoObraIndirecta} onChange={(e) => setParam('factorManoObraIndirecta', parseFloat(e.target.value) || 0)} />
+            <CampoNumero valor={p.factorManoObraIndirecta} max={1000} onCambio={(n) => setParam('factorManoObraIndirecta', n)} />
           </div>
           <div>
             <label className="etiqueta">Aprovechamiento de hoja (%)</label>
-            <input type="number" className="numero" value={p.aprovechamientoCorte ?? 80} onChange={(e) => setParam('aprovechamientoCorte', parseFloat(e.target.value) || 1)} />
+            <CampoNumero valor={p.aprovechamientoCorte ?? 80} min={1} max={100} onCambio={(n) => setParam('aprovechamientoCorte', n)} />
             <div className="ayuda">Cuánto de cada hoja se aprovecha. Tableros y láminas se costean por fracción de hoja sobre este %: a menor aprovechamiento, mayor costo.</div>
           </div>
         </div>
@@ -160,8 +194,8 @@ export default function Precios({ estado, setEstado, puedeVerDireccion = true, o
                       </td>
                       <td>{ins.unidad}</td>
                       <td className="num">
-                        <input type="number" className={`numero ${capturado ? 'capturado' : ''}`} style={{ maxWidth: 120 }}
-                          value={ins.precio} onChange={(e) => setPrecio(ins.id, parseFloat(e.target.value) || 0)} />
+                        <CampoNumero valor={ins.precio} ancho={120} clase={`numero ${capturado ? 'capturado' : ''}`}
+                          onCambio={(n) => setPrecio(ins.id, n)} />
                       </td>
                       <td>{viejo ? <span className="semaforo ambar">{dias} días</span> : <span className="gris">{ins.actualizado}</span>}</td>
                     </tr>

@@ -47,7 +47,12 @@ const LINEAS = [
 // `soloCostos: true` = sólo Diseño y Dirección. A un vendedor NO se le muestran:
 // antes las veía, las tocaba y caía en una pantalla que sólo le decía que no.
 const HERRAMIENTAS = [
-  { ruta: 'catalogo', titulo: 'Otra línea de catálogo', desc: 'Un mueble de catálogo con su despiece y costo.', icono: 'catalogo' },
+  // ⚠️ SIN soloCostos SE COLABA A LOS VENDEDORES (auditoría 2026-08-19). Esta
+  // ficha no lo llevaba, aunque su botón ("Configurar →") manda a 'costeador'
+  // — que SÍ es soloCostos: un vendedor la veía, la tocaba, y caía en la
+  // pantalla que sólo le dice que no. Exactamente lo que este comentario de
+  // arriba dice que ya se había corregido.
+  { ruta: 'catalogo', titulo: 'Otra línea de catálogo', desc: 'Un mueble de catálogo con su despiece y costo.', icono: 'catalogo', soloCostos: true },
   { ruta: 'costeador', titulo: 'Despiece libre (avanzado)', desc: 'Arma el despiece a mano en una sola pantalla.', icono: 'despiece', soloCostos: true },
   { ruta: 'precios', titulo: 'Precios de materiales', desc: 'Ver o actualizar lo que cuesta cada material.', icono: 'precios', soloCostos: true },
   // Las reglas de oficio: lo que Voni da por sabido al acomodar y al costear.

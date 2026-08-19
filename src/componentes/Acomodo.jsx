@@ -164,7 +164,27 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     return nuevo;
   }));
   const addArea = () => setAreas((as) => [...as, { nombre: `Privado ${as.length}`, ancho: 3.5, largo: 4 }]);
-  const delArea = (i) => setAreas((as) => as.filter((_, j) => j !== i));
+  // ⚠️ BORRAR UN ÁREA CORROMPÍA `plan.colocacion` (auditoría 2026-08-19).
+  // `colocacion` guarda a qué cuarto pertenece cada mueble por ÍNDICE
+  // numérico (`c.area`). Esto sólo recortaba `areas`: los muebles del área
+  // siguiente quedaban apuntando al cuarto QUE AHORA ES OTRO (los índices se
+  // recorrieron), y los de después del área borrada quedaban fuera de rango
+  // — desaparecían del plano sin avisar, sin contar como "sin colocar", y ni
+  // "Acomodar otra vez" los reparaba si estaban fijados a mano. Ahora se
+  // reindexa `plan.colocacion` en el mismo golpe: lo que estaba EN el área
+  // borrada vuelve a "sin colocar" (no se pierde, se puede volver a acomodar);
+  // lo que estaba en áreas de después se corre un índice para seguir
+  // apuntando a SU cuarto real.
+  const delArea = (i) => {
+    setAreas((as) => as.filter((_, j) => j !== i));
+    setPlan((p) => {
+      if (!p?.colocacion?.length) return p;
+      const colocacion = p.colocacion
+        .filter((c) => (c.area ?? 0) !== i)
+        .map((c) => ((c.area ?? 0) > i ? { ...c, area: c.area - 1 } : c));
+      return { ...p, colocacion };
+    });
+  };
 
   // Acomodo DETERMINISTA (instantáneo). Con un solo espacio, GARANTIZA que todo
   // cabe (ajusta el tamaño); con plano multi-cuarto, respeta las medidas reales.
@@ -898,6 +918,20 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
             : <>Tu cotización trae <strong>{piezas.length}</strong> muebles. Dinos dónde van y los acomodamos a escala.</>}
           {bajoEscritorio > 0 && <> Aparte van <strong>{bajoEscritorio}</strong> {bajoEscritorio === 1 ? 'gaveta' : 'gavetas'} debajo de la cubierta: se cobran, pero <strong>no ocupan piso</strong>, por eso no se dibujan sueltas.</>}
         </p>
+        {/* ⚠️ ANTES EL CARTEL DE ARRIBA MENTÍA (auditoría 2026-08-19): decía
+            "ya acomodamos TODOS" usando el número YA RECORTADO por el tope de
+            `expandirPiezas`, sin ninguna señal de que faltaba algo. Con un
+            proyecto de cientos de piezas, el proyectista no tenía forma de
+            enterarse. Ahora, si de verdad se recortó, se dice con todas sus
+            letras — no se cobra menos (el precio sigue viniendo de `partidas`
+            completo), sólo el DIBUJO deja algunas piezas fuera. */}
+        {piezas.truncado && (
+          <div className="alerta ambar">
+            <span className="texto">
+              Tu proyecto trae <strong>{piezas.truncado.real}</strong> piezas para acomodar, y este plano sólo dibuja las primeras <strong>{piezas.truncado.mostrado}</strong> — es demasiado para dibujar todas a la vez. El precio y la cotización SÍ incluyen las {piezas.truncado.real}; sólo el dibujo del plano se recorta.
+            </span>
+          </div>
+        )}
 
         {piezas.length === 0 ? (
           <div className="alerta ambar"><span className="texto">Tu cotización está vacía. Agrega muebles primero (Cotizar con IA) y regresa.</span></div>

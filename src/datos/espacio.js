@@ -152,6 +152,7 @@ const TOPE_PARTIDA = 300;
 // Expande las partidas de la cotización a piezas individuales (máx `tope`).
 export function expandirPiezas(partidas, tope = 600) {
   const out = [];
+  let real = 0;
   for (const pt of partidas || []) {
     if (vaBajoEscritorio(pt)) continue;      // va bajo la cubierta: no pide piso
     const tipo = tipoDe(pt);
@@ -163,12 +164,24 @@ export function expandirPiezas(partidas, tope = 600) {
     // Bench/sofá multi-posición: expandir al bloque real (ej. "6 puestos").
     [w, d] = huellaReal(pt.nombre, w, d, tipo);
     const n = Math.max(1, Math.min(pt.cantidad || 1, TOPE_PARTIDA));
+    // ⚠️ EL RECORTE SEGUÍA SIENDO SILENCIOSO (auditoría 2026-08-19). Los topes
+    // ya subieron una vez (30→300, 60→600) para no estorbar a un proyecto
+    // real, pero si un proyecto GRANDE (cientos de puestos) los alcanza otra
+    // vez, no había nota ni aviso — y el cartel de Acomodo.jsx usaba
+    // `piezas.length` (YA RECORTADO) como si fuera el total real, diciendo
+    // "ya acomodamos todos" cuando no era cierto. Se cuenta el total SIN
+    // recortar aquí mismo, para que quien llame pueda comparar y avisar.
+    real += Math.max(1, pt.cantidad || 1);
     for (let k = 0; k < n && out.length < tope; k++) {
       // ruta/productoId viajan para poder pintar el RENDER del catálogo en la
       // paleta: se arrastra el mueble con su foto, no un rectángulo de color.
       out.push({ id: `${pt.id}-${k + 1}`, nombre: pt.nombre, w, d, tipo, ruta: pt.ruta || null, productoId: pt.productoId || null });
     }
   }
+  // Va colgado del arreglo (no cambia el contrato: sigue siendo un arreglo de
+  // piezas para quien no le importe) para que Acomodo.jsx pueda avisar si el
+  // total real es mayor al que de verdad se dibujó.
+  if (real > out.length) out.truncado = { real, mostrado: out.length };
   return out;
 }
 
