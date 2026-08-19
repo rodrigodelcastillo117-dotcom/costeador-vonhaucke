@@ -509,7 +509,7 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
   doc.setFont('helvetica', 'bold'); doc.setFontSize(21); doc.setTextColor(...TINTA);
   // OJO: se mide cuántos renglones ocupa de verdad. Antes se avanzaban 9 mm
   // fijos y con una razón social larga el nombre caía encima del folio.
-  const tituloCliente = cot.cliente ? `Preparada para ${cot.cliente}` : 'Propuesta para su proyecto';
+  const tituloCliente = cot.cliente ? `Preparada para ${T(cot.cliente)}` : 'Propuesta para su proyecto';
   const renglonesTitulo = doc.splitTextToSize(tituloCliente, ANCHO);
   doc.text(renglonesTitulo, M.izq, y);
   y += 9 + (renglonesTitulo.length - 1) * 8.5;
@@ -588,7 +588,7 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
     for (const b of resumen) {
       sitio(16 + b.renglones.length * 5);
       doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...TINTA);
-      doc.text(b.nombre, M.izq, y);
+      doc.text(T(b.nombre), M.izq, y);
       doc.setFontSize(12);
       doc.text(pesos(b.total), A4.w - M.der, y, { align: 'right' });
       y += 5;
@@ -605,7 +605,7 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
         sitio(6);
         doc.setFont('helvetica', 'normal');
         doc.text(String(r.cantidad), M.izq + 2, y);
-        doc.text(doc.splitTextToSize(r.nombre, ANCHO - 46)[0], M.izq + 10, y);
+        doc.text(doc.splitTextToSize(T(r.nombre), ANCHO - 46)[0], M.izq + 10, y);
         doc.text(pesos(r.importe), A4.w - M.der, y, { align: 'right' });
         y += 5;
       }
@@ -667,7 +667,7 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
 
   for (const pt of partidas) {
     // 8 mm de aire contra la columna del render: a 4 mm el texto se veía pegado.
-    const nombre = doc.splitTextToSize(pt.nombre || '', COL.desc - 8);
+    const nombre = doc.splitTextToSize(T(pt.nombre || ''), COL.desc - 8);
     const img = fotos?.[pt.id] || null;
     const altoFila = Math.max(nombre.length * 4.4 + 4, img ? 25 : 11);
     if (y + altoFila > A4.h - M.abajo) { pie(); doc.addPage(); y = M.arriba; encabezado(); }
