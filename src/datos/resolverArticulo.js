@@ -134,6 +134,29 @@ function finishNorm(finish) {
 
 const incluyeAlguna = (d, palabras) => palabras.some((p) => d.includes(p));
 
+// ⚠️ 2026-08-19: EL EXCEL TRAE UNA PESTAÑA "APP" QUE NO ES SÓLO APP.
+// `preciosLinea.js` se autogenera por PESTAÑA del Excel (ver su encabezado):
+// cada fila hereda `ruta` de en qué pestaña vivía, no de qué marca dice su
+// propia descripción. Medido: de 113 filas con `ruta:"app"`, 63 (56%) son en
+// realidad ALBA, CIRQUE, RÍO o PEBBLE — cayeron ahí porque esa pestaña mezcla
+// varias líneas. Encontrado porque el guardián de jerarquía cazó "App
+// escritorio 0.41×": el resolvedor encontró "ESCRITORIO PEBBLES... $2,470" con
+// `ruta:"app"` y lo dio por el precio real de un escritorio App — un escritorio
+// PEBBLE de otra marca, no de App. `preciosLinea.js` dice "NO editar a mano",
+// así que el arreglo va aquí: si la descripción del artículo nombra OTRA línea
+// que no es la pedida, no es candidato, sin importar qué `ruta` traiga la fila.
+// Lista corta a propósito — las marcas cuyo nombre es una palabra reconocible
+// que no se confunde con texto normal de una descripción (evita "vía"/"flex"
+// sueltos por ahora; si aparece contaminación de esas, se añaden con cuidado).
+const OTRA_MARCA = {
+  app: [/\bALBA\b/, /\bCIRQUE\b/, /\bR[IÍ]O\b/, /\bPEBBLES?\b/, /\bECLIPSE\b/, /\bLUNA\b/, /\bANTEO\b/, /\bMODULOR\b/, /\bTETRIS\b/, /\bARLEQU[IÍ]N\b/],
+};
+function esDeOtraMarca(desc, ruta) {
+  const patrones = OTRA_MARCA[ruta];
+  if (!patrones) return false;
+  return patrones.some((re) => re.test(norm(desc)));
+}
+
 /**
  * El largo pedido, en mm. Las líneas no usan la misma clave (eclipse `largoMM`,
  * cirque `medida`, rio `largo`), así que se prueban todas. Un valor chico
@@ -192,6 +215,7 @@ export function resolverArticuloCatalogo(item) {
   // 1) Pool de la línea, filtrado por TIPO (sustantivo al frente + requiere/excluye).
   let pool = PRECIOS_LINEA.filter((a) => {
     if (a.ruta !== item.ruta) return false;
+    if (esDeOtraMarca(a.d, item.ruta)) return false;
     const d = norm(a.d);
     if (!sustantivoAlFrente(a.d, tipo.sustantivo)) return false;
     if (tipo.requiere && !incluyeAlguna(d, tipo.requiere)) return false;
