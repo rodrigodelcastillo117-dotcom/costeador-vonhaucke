@@ -121,13 +121,31 @@ if [ "${1:-}" = "sillas" ]; then
 fi
 
 echo "→ Publicando la app…"
-code=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "$OBJ/app/index.html" \
-  -H "apikey: $LLAVE" -H "Authorization: Bearer $LLAVE" \
-  -H "Content-Type: text/html" -H "x-upsert: true" --data-binary "@dist/index.html")
-[ "$code" = "200" ] || { echo "✗ la subida devolvió $code (¿están puestas las policies?)"; exit 1; }
+# ⚠️ 2026-08-19: EL SITIO YA NO SE SIRVE DESDE SUPABASE. Vivía de un PUT aquí a
+# `app/index.html` porque el proyecto de Vercel no tenía build propio
+# (`framework: null`) — Vercel sólo hacía de dominio/proxy. Desde que se corrió
+# `vercel --prod` real (2026-08-19), el alias de producción quedó apuntando al
+# build DE VERCEL, y ese PUT a Supabase deja de llegar a lo que el cliente ve
+# aunque devuelva 200. El publish de verdad es `vercel --prod`.
+# Con el token en `.vercel/claude-token` (gitignorado) se corre sin pedir
+# login — así Claude puede publicar solo, sin terminal del lado de Rodrigo. Si
+# el token no está (Rodrigo corriendo esto a mano, sin haberlo configurado), se
+# cae al PUT viejo con una advertencia: peor es no publicar nada.
+if [ -f .vercel/claude-token ]; then
+  TOK=$(cat .vercel/claude-token)
+  SALIDA=$(npx vercel --prod --token="$TOK" --yes 2>&1)
+  echo "$SALIDA" | grep -q '"readyState":\s*"READY"' || { echo "✗ el deploy de Vercel no quedó READY:"; echo "$SALIDA"; exit 1; }
+  echo "  vercel --prod: listo"
+else
+  echo "  (sin .vercel/claude-token: publicando por el camino viejo a Supabase — puede que ya no sirva al dominio real)"
+  code=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "$OBJ/app/index.html" \
+    -H "apikey: $LLAVE" -H "Authorization: Bearer $LLAVE" \
+    -H "Content-Type: text/html" -H "x-upsert: true" --data-binary "@dist/index.html")
+  [ "$code" = "200" ] || { echo "✗ la subida devolvió $code (¿están puestas las policies?)"; exit 1; }
+fi
 
 echo "→ Verificando en vivo…"
-sleep 2
+sleep 3
 REMOTO=$(curl -s "$VIVO" -o /tmp/vh_vivo.html -w "%{size_download}")
 if [ "$REMOTO" = "$LOCAL" ]; then
   echo "✓ EN VIVO — $REMOTO bytes, igual al build local"
