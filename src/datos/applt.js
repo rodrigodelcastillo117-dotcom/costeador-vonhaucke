@@ -23,9 +23,16 @@
 const H_PATA = 0.72;   // altura de trabajo (m)
 
 // -------- Insumos base (existen en insumos.js) --------
-const MELAMINA = 'melamina-28';
+// 2026-08-18: verificado renglón a renglón contra el T.D.C. real de Alba
+// (área de estimaciones) — melamina color IVORY, perfil de canto de aluminio
+// (no tapacanto PVC genérico) y la tapa registrable metálica que trae TODA
+// cubierta App LT ("CON TAPA REGISTRABLE METALICA" en el catálogo), que antes
+// no se cobraba. Con esto la cubierta cuadra a -1.5% del T.D.C. real (antes
+// -9.6%/+9%, según la fórmula de aprovechamiento). Ver costeador-formula-alba.
+const MELAMINA = 'melamina-28-ivory';
 const MELAMINA9 = 'melamina-9';
-const CANTO = 'tapacanto';
+const CANTO = 'perfil-canto-applt';
+const TAPA_REGISTRABLE = 'tapa-registrable-applt';
 const PTR = 'ptr';                    // proxy para todo metal formado lineal
 const CRISTAL6 = 'cristal-templado-6';
 const PET = 'pet-acustico';
@@ -135,7 +142,13 @@ const perimetro = (lMM, aMM) => (2 * (lMM + aMM)) / 1000; // m
 function cubierta(nombre, insumoId, largoMM, anchoMM, cant = 1) {
   return [
     { insumoId, nombre, cantidad: cant, largoMM, anchoMM },
-    { insumoId: CANTO, nombre: `Canto ABS 4 lados · ${nombre}`, cantidad: perimetro(largoMM, anchoMM) * cant },
+    { insumoId: CANTO, nombre: `Canto perfil aluminio 4 lados · ${nombre}`, cantidad: perimetro(largoMM, anchoMM) * cant },
+    // Herraje fijo por cubierta (no escala con el tamaño): del T.D.C. de Alba.
+    // ⚠️ el nombre NO empieza con "Tapa" a propósito: tipoComponente() (en
+    // resolverComponentes.js) clasifica ese prefijo como pieza de catálogo a
+    // cotizar aparte, y esto es un herraje interno ya costeado por material,
+    // no una pieza del price-book.
+    { insumoId: TAPA_REGISTRABLE, nombre: `Herraje de registro metalico · ${nombre}`, cantidad: cant },
   ];
 }
 const pataPTR = (claro) => 2 * H_PATA + claro / 1000;   // m de PTR por pata U

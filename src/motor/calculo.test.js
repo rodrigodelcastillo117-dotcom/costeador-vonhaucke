@@ -291,6 +291,103 @@ describe('Comprobaciones contra los numeros reales del master', () => {
   });
 });
 
+// ===========================================================================
+//  LA FORMULA DE ALBA, ENCHUFADA (2026-08-18) — motor/formulaAlba.js
+//  Sin horas medidas y sin factores fijados a mano (el caso de ESTIMACION,
+//  que es el de Alba), el modo clasico ya no usa 17%/12%/34% planos: usa
+//  MO%+GI por tipo de material. formulaAlba.test.js ya prueba la formula
+//  PURA contra el T.D.C. real; esto prueba el ENCHUFE — que calcular()
+//  llega al mismo numero — y que horas medidas / factores a mano siguen
+//  intactos (no los toca la formula de Alba).
+// ===========================================================================
+describe('La formula de Alba enchufada en calcular() (sin horas, sin factores fijos)', () => {
+  // Insumo sintetico a $1/unidad: 'cantidad' ES el costo de material, para
+  // comparar centavo a centavo contra los renglones reales del T.D.C.
+  const INS_ALBA = {
+    'x-cubierta': { id: 'x-cubierta', nombre: 'Cubierta melamina', seccion: 'cubiertas', clase: 'directa', precio: 1 },
+    'x-metal': { id: 'x-metal', nombre: 'Estructura metalica', seccion: 'metal', clase: 'directa', precio: 1 },
+    'x-cristal': { id: 'x-cristal', nombre: 'Biombo de cristal', seccion: 'mamparas', clase: 'directa', precio: 1 },
+  };
+  const piezaDe = (insumoId, material) => ({
+    componentes: [{ insumoId, nombre: 'Pieza', cantidad: material }],
+    modoManoObra: 'porcentaje',
+  });
+
+  it('cubierta ATCUBS44ABS: mat 381.84 -> MO 57.28, GI 171.84, fab 610.96 (15% MO)', () => {
+    const r = calcular(piezaDe('x-cubierta', 381.84), 1, INS_ALBA);
+    expect(r.manoObra).toBeCloseTo(57.28, 1);
+    expect(r.indirectosFabrica).toBeCloseTo(171.84, 1);
+    expect(r.costoFabricacion).toBeCloseTo(610.96, 1);
+  });
+
+  it('metal ATOM3: mat 46.67 -> MO 9.33, GI 27.99, fab 83.99 (20% MO, GI 3xMO)', () => {
+    const r = calcular(piezaDe('x-metal', 46.67), 1, INS_ALBA);
+    expect(r.manoObra).toBeCloseTo(9.33, 1);
+    expect(r.indirectosFabrica).toBeCloseTo(27.99, 1);
+    expect(r.costoFabricacion).toBeCloseTo(83.99, 1);
+  });
+
+  it('cristal ATBIOCRT4: mat 717.67 -> MO 7.18, GI 35.88, fab 760.73 (1% MO, GI 5% mat)', () => {
+    const r = calcular(piezaDe('x-cristal', 717.67), 1, INS_ALBA);
+    expect(r.manoObra).toBeCloseTo(7.18, 1);
+    expect(r.indirectosFabrica).toBeCloseTo(35.88, 1);
+    expect(r.costoFabricacion).toBeCloseTo(760.73, 1);
+  });
+
+  it('con horas medidas, sigue el 34% viejo — Alba es solo para estimacion sin horas', () => {
+    const pieza = {
+      componentes: [{ insumoId: 'x-metal', nombre: 'Pieza', cantidad: 1000 }],
+      modoManoObra: 'horas',
+      horas: { pm: 1, carpinteria: 0, pintura: 0, acabados: 0, tapiceria: 0, otros: 0 },
+    };
+    const r = calcular(pieza, 1, INS_ALBA);
+    expect(r.indirectosFabrica).toBeCloseTo(1000 * 0.34, 6);
+  });
+
+  it('con factores fijados a mano (el puente 6.4), sigue la formula vieja', () => {
+    const pieza = {
+      componentes: [{ insumoId: 'x-metal', nombre: 'Pieza', cantidad: 1000 }],
+      modoManoObra: 'porcentaje', factorDirecta: 17, factorIndirecta: 12,
+    };
+    const r = calcular(pieza, 1, INS_ALBA);
+    expect(r.manoObra).toBeCloseTo(170, 6);           // 17% de 1000, formula vieja
+    expect(r.indirectosFabrica).toBeCloseTo(340, 6);  // 34% viejo tambien
+  });
+});
+
+// ===========================================================================
+//  LA FRACCION DE HOJA ES EL ACOMODO REAL, NO UN % SUPUESTO (2026-08-18)
+//  Cazado validando contra el T.D.C. de Alba: una pieza con MEDIDA conocida
+//  cobra la fraccion del acomodo en rejilla (piezasPorTablero, prueba 4), no
+//  el area entre (hoja x 80% de aprovechamiento). Antes de este fix, la
+//  cubierta de Alba (1.20x0.60, 4 por tablero) se cobraba a 0.30 de hoja en
+//  vez de 0.25 — que es justo lo que trae su explosivo real.
+// ===========================================================================
+describe('La fraccion de hoja usa el acomodo real cuando la pieza trae medida', () => {
+  const melaminaHoja = {
+    id: 'melamina-hoja', clase: 'directa', precio: 1000, unidad: 'hoja',
+    fraccion: true, formato: { tipo: 'tablero', medida: 2.9768, largoMM: 2440, anchoMM: 1220 },
+  };
+  const INS = { 'melamina-hoja': melaminaHoja };
+
+  it('1.20 x 0.60 (4 por tablero) cobra 0.25 de hoja, no 0.30 (80% generico)', () => {
+    const pieza = {
+      componentes: [{ insumoId: 'melamina-hoja', nombre: 'Cubierta', largoMM: 1200, anchoMM: 600, piezas: 1 }],
+      modoManoObra: 'porcentaje',
+    };
+    const r = calcular(pieza, 1, INS);
+    expect(r.detalleInsumos[0].unidades).toBeCloseTo(0.25, 4);
+    expect(r.materialDirecto).toBeCloseTo(250, 2); // 0.25 x 1000
+  });
+
+  it('una pieza SIN medida sigue con el % de aprovechamiento generico (sin cambios)', () => {
+    const pieza = { componentes: [{ insumoId: 'melamina-hoja', nombre: 'Retazo', cantidad: 1.0 }], modoManoObra: 'porcentaje' };
+    const r = calcular(pieza, 1, INS);
+    // 1.0 m2 / (2.9768 m2 x 80% aprovechamiento) = 0.4199 hoja — el comportamiento de siempre.
+    expect(r.detalleInsumos[0].unidades).toBeCloseTo(0.4199, 3);
+  });
+});
+
 // ---------------------------------------------------------------------------
 //  NADA NEGATIVO LLEGA A SER DINERO
 //  El caso real: en el Asistente especial, `-500` en el largo de una cubierta

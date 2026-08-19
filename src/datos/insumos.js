@@ -16,6 +16,11 @@ const HOY = '2026-08-12';
 // lo que permite recalibrar solo la próxima vez.
 export const FUENTE_COMPRAS = 'Compras, lista del 2026-08-14';
 export const FUENTE_ERP = 'ERP, ultima compra';
+// Explosivo real de Alba (area de estimaciones): T.D.C. "ejemplo bench sencillo
+// con guardas", hoja (Explo_MP). Es un solo color/lote (IVORY b717/c717,
+// compras entre 2025-12 y 2026-04) — NO el promedio anual por color que pide
+// su propia regla de sourcing (falta esa serie completa, la tiene Compras).
+export const FUENTE_ALBA_TDC = 'T.D.C. de Alba (Explo_MP), verificado 2026-08-18 — un lote, no promedio anual';
 
 // Atajo para no repetir campos
 function ins(o) {
@@ -67,6 +72,28 @@ export const INSUMOS_SEMILLA = [
   tablero({ id: 'melamina-19-color', nombre: 'Melamina de COLOR / madera 19 mm', precio: 665, articulo: 'MVLMAG01280600 AGLOMERADO MELAMINA DOS CARAS 4x8 19 mm', fuente: FUENTE_ERP }),
   tablero({ id: 'melamina-28', nombre: 'Melamina ABS 28 mm (cubierta APP LT)', precio: 1335.6,
     articulo: 'AGLOMERADO MELAMINA DOS CARAS 4x8 28 mm', fuente: FUENTE_ERP }),   // = última compra 2026-08-07 ($1335.6); rango por color $842-$1336
+  // Mismo material, color IVORY (b717) verificado renglón a renglón contra el
+  // T.D.C. real de Alba — NO reemplaza a 'melamina-28' (ese sigue siendo el
+  // generico de última compra, cualquier color; éste es el dato con el que
+  // Alba costeó su ejemplo). Lo usa el despiece de App LT para cuadrar contra
+  // su T.D.C.; otras líneas siguen con 'melamina-28'.
+  tablero({ id: 'melamina-28-ivory', nombre: 'Melamina ABS 28 mm, IVORY (T.D.C. Alba)', precio: 1195.2,
+    articulo: 'MVLMAG01280800 AGLOMERADO MELAMINA DOS CARAS b717 IVORY', fuente: FUENTE_ALBA_TDC }),
+  // Perfil de canto de aluminio (App LT: cubierta "CON TAPA REGISTRABLE
+  // METALICA" trae este perfil, no el tapacanto PVC generico). $/m real del
+  // explosivo de Alba.
+  ins({ id: 'perfil-canto-applt', nombre: 'Perfil de canto aluminio (App LT)', seccion: 'cubiertas',
+    precio: 15.12, unidad: 'm', formato: ROLLO100, mermaCorte: 4, inventario: true,
+    articulo: 'MVLPPC00501505 PERFIL DE CANTO ANCHO 32mm', fuente: FUENTE_ALBA_TDC }),
+  // Bundle fijo por cubierta App LT: la tapa registrable metalica (2 piezas
+  // de lamina negra + pintura) + chapacinta del borde de la tapa + su
+  // tornilleria. No escala con el tamaño de la cubierta (es un herraje de
+  // acceso a cableado, no material de superficie) — del explosivo de Alba:
+  // 9.43+3.09+1.2 (lamina+pintura) + 5.46 (chapacinta) + 1.16+0.68+1.78
+  // (pija+rondana+tornillo) = 22.80.
+  ins({ id: 'tapa-registrable-applt', nombre: 'Tapa registrable metalica + herraje (App LT)', seccion: 'cubiertas',
+    precio: 22.80, unidad: 'pza', clase: 'directa',
+    articulo: 'Bundle: 2x LAMINA NEGRA + PINTURA + CHAPACINTA + PIJA/RONDANA/TORNILLO', fuente: FUENTE_ALBA_TDC }),
   tablero({ id: 'melamina-9', nombre: 'Melamina 9 mm (biombo)', precio: 648.9 }),
   tablero({ id: 'aglomerado', nombre: 'Aglomerado', precio: 344 }),
   tablero({ id: 'mdf-16', nombre: 'MDF 16 mm', precio: 372 }),

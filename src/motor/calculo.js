@@ -5,6 +5,7 @@
 //  ni se "mejoran". Este archivo NO depende de React y debe estar cubierto
 //  por pruebas (calculo.test.js).
 // ============================================================================
+import { costoAlba, tipoAlba } from './formulaAlba.js';
 
 // -----------------------------------------------------------------------------
 //  Parametros de planta por defecto (master 5.6). Una sola configuracion global.
@@ -243,6 +244,12 @@ function comprarInsumo(insumo, comps, n, par) {
   let conCorte = 0;
   let tablerosRejilla = 0;
   let hayPiezaQueNoCabe = false;
+  // Para el costeo por FRACCION de hoja (abajo): la fraccion REAL de las
+  // piezas con medida conocida es la del acomodo en rejilla (piezasPorTablero,
+  // 6.9), no un % de aprovechamiento generico. Lo sin medida (canto suelto,
+  // retazos) no tiene de donde sacar su rejilla, y sigue con el generico.
+  let hojasExactas = 0;
+  let netoSinMedida = 0;
 
   for (const c of comps) {
     const netoC = netoComponente(c, n);
@@ -251,20 +258,30 @@ function comprarInsumo(insumo, comps, n, par) {
     if (c.largoMM && c.anchoMM && insumo.formato) {
       const ppt = piezasPorTablero(c.largoMM, c.anchoMM, { ...par, veta: insumo.veta });
       const piezasComp = (c.piezas || 1) * n;
-      if (ppt > 0) tablerosRejilla += Math.ceil(piezasComp / ppt - 1e-9);
+      if (ppt > 0) { tablerosRejilla += Math.ceil(piezasComp / ppt - 1e-9); hojasExactas += piezasComp / ppt; }
       else hayPiezaQueNoCabe = true;
+    } else {
+      netoSinMedida += netoC;
     }
   }
 
   // FRACCION DE HOJA (rendimiento). No se redondea a formato entero: se cobra
-  // solo la fraccion de hoja que consume la pieza, ajustada por el
-  // APROVECHAMIENTO (el retazo restante se usa en otros productos). El precio
-  // del insumo se captura POR HOJA. Vale para tableros (m2) y laminas (kg):
-  // 'neto' y 'formato.medida' viven en la misma unidad.
+  // solo la fraccion de hoja que consume la pieza. El precio del insumo se
+  // captura POR HOJA. Vale para tableros (m2) y laminas (kg): 'neto' y
+  // 'formato.medida' viven en la misma unidad.
+  // ⚠️ 2026-08-18: las piezas con MEDIDA conocida cobran la fraccion REAL del
+  // acomodo en rejilla (hojasExactas, arriba), no un % de aprovechamiento
+  // generico. Antes una cubierta de 1.20x0.60 (4 por tablero, prueba 4) se
+  // cobraba a 0.30 de hoja (80% de aprovechamiento supuesto) en vez de 0.25
+  // (lo que de verdad rinde) — 20% de material de mas. Se cazó comparando
+  // contra el T.D.C. real de Alba (formulaAlba.js): su explosivo trae 0.25
+  // hoja para esa misma cubierta, exacto. Lo SIN medida (canto suelto,
+  // retazos) no tiene rejilla que calcular, y sigue con el % de
+  // aprovechamiento — es lo unico que se puede hacer sin conocer la pieza.
   if (insumo.formato && insumo.fraccion) {
     const aprov = par.aprovechamientoCorte > 0 ? par.aprovechamientoCorte / 100 : 1;
     const areaFmt = insumo.formato.medida;
-    const hojas = neto / (areaFmt * aprov);        // fraccion de hoja (rendimiento)
+    const hojas = hojasExactas + netoSinMedida / (areaFmt * aprov); // fraccion real de hoja
     const comprado = hojas * areaFmt;              // consumo cargado (incluye scrap de aprovechamiento)
     const precioUnidad = precio / areaFmt;         // precio por m2/kg equivalente
     return {
@@ -324,6 +341,25 @@ function gifPorHoras(horas, piezas, par) {
 }
 
 // -----------------------------------------------------------------------------
+//  FORMULA DE ALBA (estimaciones, 2026-08-18) — MO% y GI por tipo de material
+//  (ver motor/formulaAlba.js). Se aplica por GRUPO DE INSUMO, el mismo
+//  agrupado que ya usa el despiece para comprar (detalleInsumos): cada grupo
+//  ya trae su seccion/nombre, que es lo que tipoAlba() necesita para
+//  clasificar cubierta/metal/cristal/general.
+// -----------------------------------------------------------------------------
+function manoObraGiAlba(detalleInsumos) {
+  let mo = 0;
+  let gi = 0;
+  for (const d of detalleInsumos) {
+    const tipo = tipoAlba({ seccion: d.seccion, nombre: d.nombre });
+    const r = costoAlba(d.costo, tipo);
+    mo += r.mo;
+    gi += r.gi;
+  }
+  return { mo, gi };
+}
+
+// -----------------------------------------------------------------------------
 //  6.5  Cadena completa del costo.
 //       calcular(pieza, piezas, insumos, parametros)
 //       - insumos: mapa id -> insumo (o el componente trae component.insumo)
@@ -375,12 +411,28 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
 
   // --- Mano de obra (por lote) ---
   const modo = pieza.modoManoObra || 'porcentaje';
+  // ⚠️ FORMULA DE ALBA (2026-08-18, motor/formulaAlba.js): sin horas medidas
+  // y sin factores fijados a mano (el caso de ESTIMACION, que es el de Alba
+  // -area de estimaciones-, antes de que exista una orden con horas reales),
+  // MO y GI ya NO son 17%/12%/34% planos: son MO% por TIPO de material
+  // (cubierta 15%, cristal 1%, lo demas 20%) y GI = 3xMO (5% del material en
+  // cristal). Verificado al centavo contra su T.D.C. real. Si hay horas
+  // medidas, o si la pieza fija sus propios factorDirecta/factorIndirecta (el
+  // puente 6.4), esos mandan: son datos mas finos que la formula de
+  // estimacion, y no hay motivo para pisarlos.
+  const usaFactoresExplicitos = pieza.factorDirecta != null || pieza.factorIndirecta != null;
   const factorDirecta = pieza.factorDirecta != null ? pieza.factorDirecta : par.factorManoObraDirecta;
   const factorIndirecta = pieza.factorIndirecta != null ? pieza.factorIndirecta : par.factorManoObraIndirecta;
+  const usaFormulaAlba = modo !== 'horas' && !usaFactoresExplicitos;
 
   let manoObra;
+  let giAlba = 0; // solo tiene sentido si usaFormulaAlba (ver "Clasico" abajo)
   if (modo === 'horas') {
     manoObra = manoObraPorHoras(pieza.horas, n, par);
+  } else if (usaFormulaAlba) {
+    const alba = manoObraGiAlba(detalleInsumos);
+    manoObra = alba.mo;
+    giAlba = alba.gi;
   } else {
     manoObra =
       materialDirecto * (factorDirecta / 100) +
@@ -390,10 +442,11 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
   // Puente entre los dos modos (6.4): que % equivaldrian las horas medidas
   let factorEquivalente = 0;
   if (materialDirecto > 0) {
-    factorEquivalente =
-      ((manoObra / n - (materialIndirecto / n) * (factorIndirecta / 100)) /
-        (materialDirecto / n)) *
-      100;
+    factorEquivalente = usaFormulaAlba
+      ? (manoObra / materialDirecto) * 100
+      : ((manoObra / n - (materialIndirecto / n) * (factorIndirecta / 100)) /
+          (materialDirecto / n)) *
+        100;
   }
 
   // --- Resto de la cadena (6.5) ---
@@ -413,8 +466,11 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     gastosOperacion = costoFabricacion * (par.gastosOperacionPct / 100);
     costoLote = costoFabricacion + gastosOperacion;              // = "Costo Total" Intelisis
   } else {
-    // Clasico (master 6.5): indirectos = 34% sobre material DIRECTO, sin gastos operacion.
-    indirectosFabrica = materialDirecto * (par.factorIndirectosFabrica / 100);
+    // Clasico (master 6.5), sin gastos operacion. Con horas medidas o con
+    // factores fijados a mano: indirectos = 34% sobre material DIRECTO
+    // (formula historica). En estimacion pura (usaFormulaAlba): los
+    // indirectos son los de Alba, 3xMO por tipo de material (giAlba, arriba).
+    indirectosFabrica = usaFormulaAlba ? giAlba : materialDirecto * (par.factorIndirectosFabrica / 100);
     gastosOperacion = 0;
     costoFabricacion = costoDirecto + indirectosFabrica;
     costoLote = costoFabricacion;
