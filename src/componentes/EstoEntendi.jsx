@@ -24,30 +24,41 @@ const cortito = (d) => {
   return s.length > 68 ? s.slice(0, 68) + '…' : s;
 };
 
+// `soloGrupo`: clave de UN grupo (Voni Cerebro, rediseño del Paso 2 — el
+// wizard "1.1 Puestos, 1.2 Privados…" en Voni.jsx). Con esto puesto,
+// EstoEntendi renderiza SOLO ese grupo y se calla el encabezado/titular/
+// avisos (son cosas del proyecto completo, no de un grupo — el wizard las
+// muestra aparte, en su propio paso final). Sin `soloGrupo` (el uso de
+// siempre, la pantalla completa "Esto entendí"), nada cambia.
 export default function EstoEntendi({
-  partidas = [], areasM = [], onCantidad, onQuitar, onEditar, onVariante,
+  partidas = [], areasM = [], onCantidad, onQuitar, onEditar, onVariante, soloGrupo = null,
 }) {
   const r = loQueEntendi(partidas, areasM);
   const porId = Object.fromEntries(partidas.map((p) => [p.id, p]));
+  const grupos = soloGrupo ? r.grupos.filter((g) => g.clave === soloGrupo) : r.grupos;
 
   return (
     <>
-      <div className="ee-cab">
-        <h3 style={{ margin: 0 }}>Esto entendí</h3>
-        {r.titular && <div className="ee-titular">{r.titular}</div>}
-      </div>
-      <p className="ayuda columna-texto" style={{ marginTop: 2 }}>
-        Revísalo aquí, que es donde se corrige de un toque. Lo que apruebes es lo que voy a acomodar.
-      </p>
+      {!soloGrupo && (
+        <>
+          <div className="ee-cab">
+            <h3 style={{ margin: 0 }}>Esto entendí</h3>
+            {r.titular && <div className="ee-titular">{r.titular}</div>}
+          </div>
+          <p className="ayuda columna-texto" style={{ marginTop: 2 }}>
+            Revísalo aquí, que es donde se corrige de un toque. Lo que apruebes es lo que voy a acomodar.
+          </p>
 
-      {/* Lo que no cuadra va ARRIBA. Abajo de veinte renglones no lo lee nadie. */}
-      {r.avisos.map((a, k) => (
-        <div className={`alerta ${a.tono}`} key={k} style={{ marginTop: 8 }}>
-          <span className="texto">{a.texto}</span>
-        </div>
-      ))}
+          {/* Lo que no cuadra va ARRIBA. Abajo de veinte renglones no lo lee nadie. */}
+          {r.avisos.map((a, k) => (
+            <div className={`alerta ${a.tono}`} key={k} style={{ marginTop: 8 }}>
+              <span className="texto">{a.texto}</span>
+            </div>
+          ))}
+        </>
+      )}
 
-      {r.grupos.map((g) => (
+      {grupos.map((g) => (
         <div className="ee-grupo" key={g.clave}>
           <div className="ee-grupo-cab">
             <span className="ee-grupo-t">{g.titulo}</span>

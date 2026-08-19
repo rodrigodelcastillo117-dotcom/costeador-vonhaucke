@@ -16,6 +16,7 @@ import { leerPlanoDeArchivo } from '../datos/leerPlanoArchivo.js';
 import Cargando from './Cargando.jsx';
 import EstoEntendi from './EstoEntendi.jsx';
 import { costoImplicito } from '../datos/preciosVenta.js';
+import { loQueEntendi } from '../datos/entendido.js';
 
 // ⚠️ EL ESPACIO VA PRIMERO (2026-08-17). Antes era: muebles → espacio →
 // propuesta, y eso obliga a COTIZAR A CIEGAS: escoges los muebles sin saber
@@ -107,14 +108,18 @@ export default function Voni({
   }
   const [confVaciar, setConfVaciar] = useState(false);
   const [editando, setEditando] = useState(null);   // índice de la partida que se edita
-  // El paso 2 son DOS pantallas, no una página larga: 'describe' (la charla con
-  // Voni) y 'revisa' ("Esto entendí"). Antes se apilaban y la revisión —lo más
-  // importante— quedaba al fondo de un scroll de cañón que nadie bajaba
-  // (Rodrigo, 2026-08-18). Ahora se ven una a la vez.
-  const [revisar, setRevisar] = useState(false);
-  const vaciar = () => { setCot({ partidas: [], acomodo: null }); setConfVaciar(false); setRevisar(false); };
+  // El paso 2 tiene TRES pantallas, no una página larga: 'describir' (la
+  // charla con Voni), 'grupos' (confirma de a poco, "1.1 Puestos…", "1.2
+  // Privados…") y 'revisar' ("Esto entendí" completo, para quien prefiere
+  // verlo todo junto). Antes sólo eran dos y "Esto entendí" aventaba los N
+  // renglones de un jalón — Rodrigo: "se pierde lo que ya llené" al ir y
+  // volver, y no había manera de confirmar de a poco antes de acomodar.
+  // `indiceGrupo` sólo importa mientras `subpaso2 === 'grupos'`.
+  const [subpaso2, setSubpaso2] = useState('describir');
+  const [indiceGrupo, setIndiceGrupo] = useState(0);
+  const vaciar = () => { setCot({ partidas: [], acomodo: null }); setConfVaciar(false); setSubpaso2('describir'); };
 
-  // Cada pantalla de Voni (cambio de paso, o el sub-paso 2a/2b) empieza
+  // Cada pantalla de Voni (cambio de paso, o el sub-paso 2a/2b/2c) empieza
   // ARRIBA. Sin esto, llegar al paso 2 podía abrir donde se había quedado el
   // scroll de la pantalla anterior — mismo patrón que ya usan App.jsx:346 y
   // Cotizacion.jsx:95-96 (window Y el contenedor `.contenido`, por si el
@@ -122,7 +127,7 @@ export default function Voni({
   useEffect(() => {
     window.scrollTo(0, 0);
     document.querySelector('.contenido')?.scrollTo?.(0, 0);
-  }, [paso, revisar]);
+  }, [paso, subpaso2, indiceGrupo]);
 
   // El espacio, SIEMPRE en metros. `areasM` es lo normal, pero hay guardados
   // viejos que sólo traen `areas` en milímetros: sin este respaldo, "esto
@@ -209,9 +214,9 @@ export default function Voni({
           perdía, aunque los muebles YA agregados seguían a salvo en el
           proyecto (Rodrigo: "lo lleno... y lo puso otra vez en cero"). Ahora
           sigue montado siempre que estás en el paso 2; solo se esconde con
-          CSS mientras `revisar` está activo. */}
+          CSS mientras `subpaso2` no es 'describir'. */}
       {paso === 2 && (
-        <div style={{ display: revisar ? 'none' : undefined }}>
+        <div style={{ display: subpaso2 === 'describir' ? undefined : 'none' }}>
           {!hay && (
             <div className="voni-saludo">
               <VoniAvatar tam={64} variante="cara" anim="bob" />
@@ -223,22 +228,100 @@ export default function Voni({
           {/* EL PUENTE A LA REVISIÓN. Antes "Esto entendí" vivía al fondo de esta
               misma página: había que bajar un cañón de scroll y nadie llegaba
               (Rodrigo, 2026-08-18). Ahora la revisión es su propia pantalla y
-              este botón grande es la única puerta: imposible no verla. */}
+              este botón grande es la única puerta: imposible no verla.
+              El botón grande va grupo por grupo (2026-08-19); "Ver todo junto"
+              es la salida rápida para quien ya sabe lo que quiere. */}
           {hay && (
             <div className="tarjeta voni-puente">
               <span className="ayuda">Voni ya armó <strong>{partidas.length}</strong> {partidas.length === 1 ? 'mueble' : 'muebles'} · {pesos(totalLista)}</span>
-              <button className="boton primario grande" style={{ width: '100%' }} onClick={() => setRevisar(true)}>
+              <button className="boton primario grande" style={{ width: '100%' }}
+                onClick={() => { setIndiceGrupo(0); setSubpaso2('grupos'); }}>
                 Revisar lo que entendí ({partidas.length}) →
+              </button>
+              <button className="boton fantasma" style={{ minHeight: 40 }} onClick={() => setSubpaso2('revisar')}>
+                Ver todo junto
               </button>
             </div>
           )}
         </div>
       )}
 
+      {/* --------- PASO 2c · UNO A LA VEZ (grupo por grupo) ---------
+          Rediseño del Paso 2 (Rodrigo, 2026-08-19): en vez de aventar los N
+          renglones juntos en una sola pantalla, Voni los confirma de a poco
+          —"Paso 1.1 Puestos de trabajo", "Paso 1.2 Privados"…— reusando el
+          MISMO EstoEntendi de siempre (con `soloGrupo`), sólo que un grupo a
+          la vez. Al terminar el último grupo, dice lo que no cuadra ENTRE
+          grupos (faltan sillas, hay privados vacíos…) antes de acomodar —
+          eso es lo que `entendido.avisos` ya calculaba, sólo que antes vivía
+          escondido al fondo de una pantalla larga. */}
+      {paso === 2 && subpaso2 === 'grupos' && (() => {
+        const entendido = loQueEntendi(partidas, areasDelProyecto);
+        const grupos = entendido.grupos;
+        const i = Math.min(indiceGrupo, grupos.length);
+        const grupoActual = grupos[i];
+        return (
+          <>
+            <button className="boton fantasma btn-atras" style={{ minHeight: 42 }}
+              onClick={() => (i === 0 ? setSubpaso2('describir') : setIndiceGrupo(i - 1))}>
+              ‹ {i === 0 ? 'Volver a describir o agregar más' : 'Grupo anterior'}
+            </button>
+
+            <div className="tarjeta">
+              {grupoActual ? (
+                <>
+                  <div className="ayuda" style={{ marginBottom: 4 }}>Paso 1.{i + 1} de {grupos.length}</div>
+                  <div className="voni-lista">
+                    <EstoEntendi
+                      partidas={partidas} areasM={areasDelProyecto} soloGrupo={grupoActual.clave}
+                      onCantidad={(id, n) => setCot({ partidas: partidas.map((p) => (p.id === id ? { ...p, cantidad: Math.max(1, n) } : p)) })}
+                      onQuitar={(id) => setCot({ partidas: partidas.filter((p) => p.id !== id) })}
+                      onEditar={(id) => setEditando(partidas.findIndex((p) => p.id === id))}
+                      onVariante={(id, art) => setCot({ partidas: partidas.map((p) => (p.id === id ? {
+                        ...p,
+                        precioUnitario: art.lista,
+                        costoUnitario: costoImplicito(art.lista),
+                        precioReal: true,
+                        catalogo: { clave: art.clave, lista: art.lista, full: art.full, minimo: art.minimo },
+                      } : p)) })}
+                    />
+                  </div>
+                  <button className="boton primario grande" style={{ width: '100%', marginTop: 14 }}
+                    onClick={() => setIndiceGrupo(i + 1)}>
+                    Sí, así es →
+                  </button>
+                </>
+              ) : (
+                <>
+                  <h3 style={{ marginTop: 0 }}>¿Ya quedó?</h3>
+                  {entendido.avisos.length > 0 ? (
+                    <div style={{ display: 'grid', gap: 8 }}>
+                      {entendido.avisos.map((a, k) => (
+                        <div className={`alerta ${a.tono}`} key={k}><span className="texto">{a.texto}</span></div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="ayuda">Ya revisaste todo. {pesos(totalLista)} de precio de lista.</p>
+                  )}
+                  <div style={{ display: 'grid', gap: 10, marginTop: 14 }}>
+                    <button className="boton primario grande" style={{ width: '100%' }} disabled={!hay} onClick={() => setPaso(3)}>
+                      Sí, así es — acomódalo →
+                    </button>
+                    <button className="boton grande" style={{ width: '100%' }} disabled={!hay} onClick={() => setPaso(4)} title="Sáltate el acomodo y ve directo a la propuesta">
+                      No necesito acomodo, ir directo a la propuesta
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </>
+        );
+      })()}
+
       {/* --------- PASO 2b · ESTO ENTENDÍ (la lista corregible, sola) --------- */}
-      {paso === 2 && revisar && (
+      {paso === 2 && subpaso2 === 'revisar' && (
         <>
-          <button className="boton fantasma btn-atras" style={{ minHeight: 42 }} onClick={() => setRevisar(false)}>
+          <button className="boton fantasma btn-atras" style={{ minHeight: 42 }} onClick={() => setSubpaso2('describir')}>
             ‹ Volver a describir o agregar más
           </button>
 
@@ -257,7 +340,7 @@ export default function Voni({
 
             {!hay ? (
               <p className="ayuda" style={{ marginTop: 8 }}>
-                Ya no hay muebles. <button className="enlace" onClick={() => setRevisar(false)}>Volver a describirle a Voni</button> o agrégalos de línea.
+                Ya no hay muebles. <button className="enlace" onClick={() => setSubpaso2('describir')}>Volver a describirle a Voni</button> o agrégalos de línea.
               </p>
             ) : (
               <div className="voni-lista" style={{ marginTop: 10 }}>
