@@ -291,6 +291,18 @@ export function costearItem(estado, item) {
     for (let k = avisos.length - 1; k >= 0; k--) if (/usuario/i.test(avisos[k])) avisos.splice(k, 1);
     avisos.push(`Este producto se arma de ${usados} puestos: se cotizaron ${pedidos} a ${Math.round(porUsuario).toLocaleString('es-MX')} pesos por puesto.`);
   }
+  // ⚠️ CANDADO CONTRA "cantidad = total de gente" EN VEZ DE "cantidad = bancas"
+  // (2026-08-19). Rodrigo: "multiplico 30 usuarios por 12. eso esta mal" — la
+  // IA pidió usuarios:12 (opción YA válida, sin escalar arriba) con
+  // cantidad:30, y eso cobró y contó 30 BANCAS de 12 (360 personas, 12× el
+  // precio) en vez de 1 banca de 30 personas. Se corrigió el prompt de Voni,
+  // pero un candado de CÓDIGO no depende de que la IA se acuerde la próxima
+  // vez: si el producto tiene 'usuarios' y no hubo escalado (porque el número
+  // pedido YA calzaba con una opción del catálogo) pero cantidad > 1, es
+  // EXACTAMENTE la mezcla ambigua que causó el sobrecobro — se avisa siempre.
+  if (!escalado && config.usuarios && cantidad > 1) {
+    avisos.push(`Esto se cotiza como ${cantidad} bancas SEPARADAS de ${config.usuarios} usuarios cada una (${cantidad * config.usuarios} personas en total, ${cantidad}× el precio de una banca). Si en realidad pediste ${cantidad} PERSONAS y no ${cantidad} bancas, corrige la cantidad a 1.`);
+  }
   let fp = footprintDe(g.componentes, g.nombre);
   // Último recurso: la huella típica de su tipo. Un sofá que no trae medidas en
   // el despiece ni en el nombre salía en 0 × 0, y una pieza sin huella el plano

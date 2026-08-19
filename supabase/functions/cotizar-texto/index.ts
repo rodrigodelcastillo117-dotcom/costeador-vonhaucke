@@ -92,7 +92,15 @@ Deno.serve(async (req) => {
     "1) Usa SOLO 'ruta' y 'producto' que existan en el catalogo (claves e ids EXACTOS). Si piden algo que no existe, ponlo en 'noEncontrado' y NO lo inventes como item.\n" +
     "2) En 'seleccion' cada 'clave' debe ser una de las de 'params' del producto y el 'valor' uno de los permitidos (para dimensiones el valor es el numero como texto, ej. '1200'). Para 'checks' (lista de nombres) agrega el par {clave:<nombre>, valor:'si'} SOLO si el usuario lo pide activado.\n" +
     "3) Si no especifican una opcion, ELIGE un default sensato (medida mas comun, acabado melamina/ABS) y dilo breve en 'nota'; no llenes 'preguntas' con todo, solo lo esencial que cambie el precio de forma importante.\n" +
-    "4) Respeta cantidades del texto (ej. '15 estaciones' -> cantidad 15). Un renglon por tipo/config distinta.\n" +
+    "4) Respeta cantidades del texto (ej. '15 estaciones' -> cantidad 15). Un renglon por tipo/config distinta. " +
+    "EXCEPCION CRITICA (bancas/bench con parametro 'usuarios'): el numero de personas va COMPLETO en " +
+    "seleccion.usuarios (aunque sea mayor al maximo del catalogo -- el sistema cobra por puesto al escalon " +
+    "mas cercano), y 'cantidad' se queda en 1 (UNA banca continua para esas personas). 'cantidad' > 1 en un " +
+    "producto con 'usuarios' significa VARIAS bancas SEPARADAS (ej. '3 filas de 10' -> cantidad:3, " +
+    "usuarios:10), nunca el total de gente. Poner el total de gente en 'cantidad' junto con un 'usuarios' " +
+    "valido COBRA Y CUENTA MAL por error (ej. 30 personas con usuarios:12 y cantidad:30 cobra y cuenta como " +
+    "360 puestos, no 30 -- 12 veces de mas). '30 puestos en bench de 1.50' -> UN renglon: " +
+    "seleccion:[{clave:'usuarios',valor:'30'}], cantidad:1.\n" +
     "5) Se practico: mejor un item con supuestos marcados (confianza media/baja + nota) que dejar todo en preguntas. Termina SIEMPRE el JSON.\n" +
     "6) EL CATALOGO TIENE DOS PARTES:\n" +
     "   a) las LINEAS (se configuran con params): escritorios, bancas, mesas, guardas, recepciones.\n" +

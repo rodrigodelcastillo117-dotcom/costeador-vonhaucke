@@ -119,6 +119,50 @@ describe('cotizar más puestos de los que arma el producto', () => {
 });
 
 // ---------------------------------------------------------------------------
+//  "cantidad" NO ES "total de gente" (Rodrigo, 2026-08-19, encontrado en
+//  producción): "30 puestos en bench App LT" se cotizó con usuarios:12
+//  (opción válida, sin escalar) y cantidad:30 — eso cobró y contó 30 BANCAS
+//  de 12 (360 personas, 12× el precio) en vez de UNA banca de 30 personas.
+//  El escalón (arriba) ya cobra bien cuando usuarios:30/cantidad:1; esta
+//  prueba cubre la mezcla ambigua que causó el sobrecobro real.
+// ---------------------------------------------------------------------------
+describe('candado: cantidad de bancas vs. total de gente', () => {
+  let costearItem, estado;
+  beforeAll(async () => {
+    const ln = await import('./lineas.js');
+    const ins = await import('./insumos.js');
+    const mc = await import('../motor/calculo.js');
+    costearItem = ln.costearItem;
+    estado = { insumos: ins.mapaInsumos(ins.INSUMOS_SEMILLA), parametros: mc.PARAMETROS_DEFAULT, piezas: {} };
+  });
+  const item = (usuarios, cantidad) => costearItem(estado, {
+    ruta: 'applt', producto: 'banca_doble', cantidad,
+    seleccion: [{ clave: 'usuarios', valor: String(usuarios) }, { clave: 'largoMM', valor: '1500' }],
+  });
+
+  it('30 personas correctamente (usuarios:30, cantidad:1): sin aviso de candado, precio de UNA banca escalada', () => {
+    const c = item(30, 1);
+    expect(c.avisos.join(' ')).not.toMatch(/bancas SEPARADAS/);
+    expect(c.nombre).toMatch(/30/);
+  });
+
+  it('la mezcla ambigua (usuarios:12 válido + cantidad:30) avisa del sobrecobro, no lo esconde', () => {
+    const correcto = item(30, 1);
+    const ambiguo = item(12, 30);
+    expect(ambiguo.avisos.join(' ')).toMatch(/bancas SEPARADAS/);
+    expect(ambiguo.avisos.join(' ')).toMatch(/360/);
+    // Y de verdad cobra 12× lo que cobra la forma correcta — el aviso no es
+    // cosmético, hay dinero real de diferencia.
+    expect(ambiguo.precioUnitario * ambiguo.cantidad)
+      .toBeCloseTo(correcto.precioUnitario * correcto.cantidad * 12, -2);
+  });
+
+  it('cantidad:1 con usuarios válido nunca avisa (caso normal, un solo bench)', () => {
+    expect(item(12, 1).avisos.join(' ')).not.toMatch(/bancas SEPARADAS/);
+  });
+});
+
+// ---------------------------------------------------------------------------
 //  HUELLAS (auditoría de Voni, 2026-08-16). La pieza de MÁS ÁREA del despiece no
 //  es la huella: en un mueble de caja es el cuerpo desarrollado (costados, fondo
 //  y entrepaños en un solo tablero). La credenza Cirque salía de 1.80 × 1.50 m

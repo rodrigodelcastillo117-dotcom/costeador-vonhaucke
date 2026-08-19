@@ -27,7 +27,11 @@ const LINEA_OPERATIVOS = [
   { ruta: 'rio', nombre: 'Río' }, { ruta: 'cirque', nombre: 'Cirque' },
   { ruta: 'via', nombre: 'Vía' }, { ruta: 'flex', nombre: 'Flex' },
 ];
+// 2026-08-19, Rodrigo: agrega App/App LT como opción de escritorio para
+// privados — ambas ya tienen producto 'escritorio' real en el catálogo
+// (hasta 2.40 m, con faldón y eléctrico), sólo no estaban en esta lista.
 const LINEA_PRIVADOS = [
+  { ruta: 'applt', nombre: 'App LT' }, { ruta: 'app', nombre: 'App' },
   { ruta: 'eclipse', nombre: 'Eclipse' }, { ruta: 'alba', nombre: 'Alba' },
   { ruta: 'luna', nombre: 'Luna' }, { ruta: 'drift', nombre: 'Eclipse Drift' },
   { ruta: 'anteo', nombre: 'Anteo' },
