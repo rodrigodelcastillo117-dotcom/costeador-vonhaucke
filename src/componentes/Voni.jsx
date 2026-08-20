@@ -16,6 +16,7 @@ import { leerPlanoDeArchivo } from '../datos/leerPlanoArchivo.js';
 import Cargando from './Cargando.jsx';
 import EstoEntendi from './EstoEntendi.jsx';
 import { costoImplicito } from '../datos/preciosVenta.js';
+import ConfirmarCandado from './ConfirmarCandado.jsx';
 
 // ⚠️ EL ESPACIO VA PRIMERO (2026-08-17). Antes era: muebles → espacio →
 // propuesta, y eso obliga a COTIZAR A CIEGAS: escoges los muebles sin saber
@@ -107,6 +108,7 @@ export default function Voni({
   }
   const [confVaciar, setConfVaciar] = useState(false);
   const [editando, setEditando] = useState(null);   // índice de la partida que se edita
+  const [confirmarCandado, setConfirmarCandado] = useState(null);   // null | paso destino
   // El paso 2 tiene DOS pantallas: 'describir' (contadores + "o escríbelo/
   // pégalo") y 'revisar' ("Agregué N muebles" + la lista completa editable +
   // preguntas para afinar, todo junto). Un solo "Armar el proyecto" te lleva
@@ -138,6 +140,16 @@ export default function Voni({
 
   const totalLista = useMemo(() => partidas.reduce((a, p) => a + p.precioUnitario * p.cantidad, 0), [partidas]);
   const nEstimados = partidas.filter((p) => selloPartida(p).tipo === 'estimado').length;
+
+  // Candado de cantidad/usuarios (decisión de Rodrigo, 2026-08-20): antes de
+  // salir del paso 2, si hay algo que huele al sobrecobro de 12× o a un
+  // pedido de más de 14 usuarios, pide confirmación explícita en vez de
+  // dejar pasar de largo un aviso que se puede ignorar. Se recalcula contra
+  // las `partidas` de AHORA mismo, no algo que se guardó una vez.
+  function avanzarConCandado(destino) {
+    if (partidas.some((p) => p.candadoUsuarios || p.requiereProyectista)) setConfirmarCandado(destino);
+    else setPaso(destino);
+  }
 
   // CotizadorIA agrega renglones; en Voni no navegamos fuera: agregamos y, si el
   // botón fue "agregar y acomodar", saltamos al paso 2.
@@ -299,16 +311,24 @@ export default function Voni({
             )}
 
             <div style={{ display: 'grid', gap: 10, marginTop: 14 }}>
-              <button className="boton primario grande" style={{ width: '100%' }} disabled={!hay} onClick={() => setPaso(3)}>
+              <button className="boton primario grande" style={{ width: '100%' }} disabled={!hay} onClick={() => avanzarConCandado(3)}>
                 Sí, así es — acomódalo →
               </button>
-              <button className="boton grande" style={{ width: '100%' }} disabled={!hay} onClick={() => setPaso(4)} title="Sáltate el acomodo y ve directo a la propuesta">
+              <button className="boton grande" style={{ width: '100%' }} disabled={!hay} onClick={() => avanzarConCandado(4)} title="Sáltate el acomodo y ve directo a la propuesta">
                 No necesito acomodo, ir directo a la propuesta
               </button>
             </div>
           </div>
           )}
         </>
+      )}
+
+      {confirmarCandado != null && (
+        <ConfirmarCandado
+          partidas={partidas}
+          onConfirmar={() => { const destino = confirmarCandado; setConfirmarCandado(null); setPaso(destino); }}
+          onCancelar={() => setConfirmarCandado(null)}
+        />
       )}
 
       {editando != null && partidas[editando] && (

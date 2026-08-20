@@ -10,13 +10,14 @@ import { listaPorCuarto } from '../datos/porCuarto.js';
 import { descargarPropuesta, cargarFotos, cargarMarca } from '../datos/pdfPropuesta.js';
 import EditarPartida, { sePuedeEditar } from './EditarPartida.jsx';
 import { pesos, leePct, selloPartida } from '../util.js';
-import { senalesCotizacion } from '../datos/senales.js';
+import { senalesCotizacion, senalesInsumos } from '../datos/senales.js';
 import { imagenPartida } from '../datos/imagenes.js';
 import VoniAvatar from './VoniAvatar.jsx';
 import { confianzaDe, textoConfianza } from '../datos/confianza.js';
 import { expandirPiezas, mapaPiezas } from '../datos/espacio.js';
 import { generarRender, analizarNegocio } from '../nube.js';
 import PlanoAcomodo from './PlanoAcomodo.jsx';
+import ConfirmarCandado from './ConfirmarCandado.jsx';
 
 // El render IA de la partida manda; si no, la foto de catálogo; y si es una
 // silla del banco (que no tiene línea), su foto de presupuesto.
@@ -147,6 +148,17 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   // menú del navegador — Rodrigo: "me manda a imprimir, no lo descarga".
   const [pdfErr, setPdfErr] = useState('');
   const [bajandoPDF, setBajandoPDF] = useState(false);
+  // Punto de corte real del candado (Rodrigo, 2026-08-20): a diferencia del
+  // aviso temprano en Voni (que se puede saltar sin querer), esto es lo que
+  // de verdad produce algo que llega al cliente — sin importar por cuál
+  // camino entró la partida (Voni, Cotizar de línea, lo que sea).
+  const [accionPendiente, setAccionPendiente] = useState(null); // null | () => void
+  function conCandado(fn) {
+    return () => {
+      if (partidas.some((p) => p.candadoUsuarios || p.requiereProyectista)) setAccionPendiente(() => fn);
+      else fn();
+    };
+  }
   async function descargarPDF() {
     setPdfErr(''); setBajandoPDF(true);
     try {
@@ -244,6 +256,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   // cotización — mismo umbral y mismo cálculo de margen que ya usa la tabla
   // de abajo, nada más juntado en un resumen (src/datos/senales.js).
   const senalesProyecto = senalesCotizacion(partidas, estado.parametros.margenMinimo);
+  const senalesInsumosProyecto = senalesInsumos(Object.values(estado.insumos || {}), estado.parametros);
   const preguntarleAVoni = async () => {
     setVoniCargando(true); setVoniError(''); setVoniMensaje('');
     // ⚠️ SIN try/catch, EL BOTÓN SE QUEDABA "PENSANDO…" PARA SIEMPRE (auditoría
@@ -389,9 +402,9 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         {/* ---------- INTERNA · Mis números (nunca imprime) ---------- */}
         {!vistaCliente && (
           <div className="tarjeta cot-interna no-imprimir">
-            {senalesProyecto.length > 0 && (
+            {(senalesProyecto.length > 0 || senalesInsumosProyecto.length > 0) && (
               <div style={{ display: 'grid', gap: 8, marginBottom: 14 }}>
-                {senalesProyecto.map((s, i) => (
+                {[...senalesProyecto, ...senalesInsumosProyecto].map((s, i) => (
                   <div className={`alerta ${s.tipo}`} key={i}><span className="texto">{s.texto}</span></div>
                 ))}
               </div>
@@ -711,11 +724,18 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
             <button className={vistaCliente ? 'on' : ''} onClick={() => setVistaCliente(true)}>Como la ve el cliente</button>
           </div>
         )}
-        <button className="boton tinta cot-pdf" onClick={descargarPDF} disabled={bajandoPDF}>
+        <button className="boton tinta cot-pdf" onClick={conCandado(descargarPDF)} disabled={bajandoPDF}>
           {bajandoPDF ? 'Armando el PDF…' : 'Descargar PDF'}
         </button>
-        <button className="boton fantasma no-imprimir" style={{ minHeight: 42 }} onClick={imprimir}>Imprimir</button>
+        <button className="boton fantasma no-imprimir" style={{ minHeight: 42 }} onClick={conCandado(imprimir)}>Imprimir</button>
       </div>
+      {accionPendiente && (
+        <ConfirmarCandado
+          partidas={partidas}
+          onConfirmar={() => { const fn = accionPendiente; setAccionPendiente(null); fn(); }}
+          onCancelar={() => setAccionPendiente(null)}
+        />
+      )}
       </>)}
     </div>
   );

@@ -443,8 +443,24 @@ export function acomodarEnForma(area, piezas) {
     { check: 'Nada encimado', ok: true, detalle: 'la malla no reutiliza celdas' },
     { check: 'Nada fuera de la forma del plano', ok: true, detalle: 'sólo se ocupan celdas dentro del polígono' },
     { check: 'Columnas y escaleras libres', ok: true, detalle: `${(area.obstaculos || []).length} obstáculo(s), ${PASO_OBST / 1000} m de paso` },
-    { check: 'Espacio de uso respetado', ok: true, detalle: `silla/paso: escritorio ${USO.escritorio / 1000} m, juntas ${USO.juntas / 1000} m, guarda ${USO.guarda / 1000} m` },
-    { check: 'Puertas libres', ok: true, detalle: puertas.length ? `${puertas.length} puerta(s) con su barrido despejado` : 'el plano no traía puertas' },
+    // ⚠️ `USO` SE DEFINE Y NUNCA SE USA PARA RESERVAR NADA (2026-08-20) — se lee
+    // aquí mismo para imprimir la cifra y en ningún otro lado del empacador, así
+    // que "respetado" no describe nada que de verdad se haya comprobado. Qué
+    // significa "respetado" (¿sólo contra muros? ¿contra cualquier vecino?) no
+    // está definido en el código; inventar esa regla ahora sería peor que
+    // dejarlo marcado como pendiente — se avisa honesto, no se finge el check.
+    { check: 'Espacio de uso respetado', ok: false,
+      detalle: `silla/paso definido (escritorio ${USO.escritorio / 1000} m, juntas ${USO.juntas / 1000} m, guarda ${USO.guarda / 1000} m) pero no se compara contra el acomodo: no se pudo comprobar` },
+    // ⚠️ "CON SU BARRIDO DESPEJADO" NO SE VERIFICABA NUNCA (2026-08-20). `puertas`
+    // sólo trae un punto x,y — se usa como semilla para el BFS de "se llega
+    // caminando" (abajo), pero el plano no captura ancho, sentido de abertura
+    // ni radio de barrido de ninguna puerta, así que no hay con qué comprobar
+    // esto. Se avisa igual que "Se llega caminando" ya avisa cuando no puede
+    // comprobar: honesto en vez de una palomita verde inventada.
+    { check: 'Puertas libres', ok: false,
+      detalle: puertas.length
+        ? `${puertas.length} puerta(s): el plano no captura su barrido, no se pudo comprobar`
+        : 'el plano no traía puertas: no se pudo comprobar' },
     circ
       ? { check: 'Se llega caminando desde la puerta', ok: circ.ok, detalle: circ.ok ? 'todos los muebles tienen acceso' : `${circ.n} mueble(s) sin paso desde la puerta` }
       // ⚠️ Esto llevaba `ok: true` y pintaba palomita VERDE para algo que

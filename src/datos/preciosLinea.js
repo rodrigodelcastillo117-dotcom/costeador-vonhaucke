@@ -298,6 +298,12 @@ export const PRECIOS_LINEA = [
   {"c":"BD480ABS2BC172","cc":"BD480ABS2BC172","d":"BANCA DOBLE DE 4800 X 744 X 1400 mm MODELO ALBA CON ESTRUCTURA METALICA Y CUBIERTAS; EN MELAMINA CANTO ABS -- BD480ABS2BC172","t":"Normal","f":106770,"l":64150,"m":44840,"ln":"ALBA","ruta":"alba"},
   {"c":"BSFISMTC105ABS","cc":"BSFISMTC105ABS","d":"MESA DE TRABAJO CIRCULAR DE Ø 1050 X 741 mm MODELO ALBA CON MULTICONTACTO \"LUMSPLIT2C\", BASE METALICA COLOR NEGRO Y CUBIERTA; EN MELAMINA CON CANTOS ABS COLOR WALNUT -- BSFISMTC105ABS","t":"Normal","f":5570,"l":2990,"m":2340,"ln":"ALBA","ruta":"alba"},
   {"c":"HOESAC42ABS","cc":"HOESAC42ABS","d":"ESCRITORIO ALBA RECTANGULAR DE 1200 X 770 X 600 MM MARCA VONHAUCKE CON CUBIERTA EN MELAMINA Y CANTOS ABS EN GREY, BASE METALICA -- HOESAC42ABS","t":"Normal","f":1380,"l":1380,"m":1380,"ln":"ALBA","ruta":"alba"},
+  // ⚠️ PARCHE A MANO (Rodrigo, 2026-08-20) — mismo caso que C0000000000273
+  // arriba: no está en el Excel fuente todavía, se pierde si se regenera sin
+  // agregarla antes. Solo "Precio Lista" ($2,108.32) está confirmado. La
+  // descripción del catálogo dice "OBSOLETO" pero el estatus es "ALTA" —
+  // Rodrigo confirmó agregarla de todos modos.
+  {"c":"HOESAC42ABSO","cc":"HOESAC42ABSO","d":"ESCRITORIO ALBA RECTANGULAR DE 1200 X 770 X 600 MM MARCA VONHAUCKE CON CUBIERTA EN MELAMINA Y CANTOS ABS EN GREY, BASE METALICA -- HOESAC42ABS OBSOLETO","t":"Normal","f":2108.32,"l":2108.32,"m":2108.32,"ln":"ALBA","ruta":"alba"},
   // ⚠️ PARCHE A MANO (Rodrigo, 2026-08-19) — mismo caso que C0000000000273
   // arriba: no está en el Excel fuente todavía, se pierde si se regenera sin
   // agregarla antes. Solo "Precio Lista" ($3,660) está confirmado.

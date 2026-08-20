@@ -300,8 +300,23 @@ export function costearItem(estado, item) {
   // vez: si el producto tiene 'usuarios' y no hubo escalado (porque el número
   // pedido YA calzaba con una opción del catálogo) pero cantidad > 1, es
   // EXACTAMENTE la mezcla ambigua que causó el sobrecobro — se avisa siempre.
-  if (!escalado && config.usuarios && cantidad > 1) {
+  // Ahora además queda marcado como dato (`candadoUsuarios`), no sólo como
+  // texto, para que la pantalla pueda EXIGIR una confirmación explícita antes
+  // de imprimir/avanzar, no solo mostrar un aviso que se puede ignorar.
+  const candadoUsuarios = !escalado && !!config.usuarios && cantidad > 1;
+  if (candadoUsuarios) {
     avisos.push(`Esto se cotiza como ${cantidad} bancas SEPARADAS de ${config.usuarios} usuarios cada una (${cantidad * config.usuarios} personas en total, ${cantidad}× el precio de una banca). Si en realidad pediste ${cantidad} PERSONAS y no ${cantidad} bancas, corrige la cantidad a 1.`);
+  }
+  // ⚠️ TECHO DE CORDURA EN USUARIOS (2026-08-20, decisión de Rodrigo: "normalmente
+  // se manejan en pares, nunca he visto uno de más de 14; en ese caso se tiene
+  // que cotizar con un proyectista"). No topa el precio ni lo esconde — arriba de
+  // este umbral la extrapolación automática deja de ser confiable (nadie ha
+  // armado uno así de grande) y se marca para que un humano lo revise antes de
+  // que llegue al cliente, mismo mecanismo del candado de arriba.
+  const MAX_USUARIOS_AUTOMATICO = 14;
+  const requiereProyectista = Number.isFinite(pedidos) && pedidos > MAX_USUARIOS_AUTOMATICO;
+  if (requiereProyectista) {
+    avisos.push(`Más de ${MAX_USUARIOS_AUTOMATICO} puestos no se cotiza automático: pide que un proyectista lo revise antes de mandarlo al cliente. Este precio es solo de referencia.`);
   }
   let fp = footprintDe(g.componentes, g.nombre);
   // Último recurso: la huella típica de su tipo. Un sofá que no trae medidas en
@@ -358,7 +373,7 @@ export function costearItem(estado, item) {
       costoUnitario: costoImplicito(a.full || a.lista), precioUnitario: precio, margen, pieza,
       w: nb.w, d: nb.d, config,
       precioReal: true, catalogo, variantes,
-      avisos,
+      avisos, candadoUsuarios, requiereProyectista,
     };
   }
 
@@ -370,7 +385,7 @@ export function costearItem(estado, item) {
     // propuesta depende de esto, no de una lista de líneas escrita a mano.
     precioReal: pr.real,
     // Lo que se AJUSTÓ de lo que pidió Voni, para poder decirlo en pantalla.
-    avisos,
+    avisos, candadoUsuarios, requiereProyectista,
   };
 }
 

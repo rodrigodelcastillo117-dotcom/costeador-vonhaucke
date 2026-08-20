@@ -160,6 +160,49 @@ describe('candado: cantidad de bancas vs. total de gente', () => {
   it('cantidad:1 con usuarios válido nunca avisa (caso normal, un solo bench)', () => {
     expect(item(12, 1).avisos.join(' ')).not.toMatch(/bancas SEPARADAS/);
   });
+
+  // La condición ahora también viaja como dato (`candadoUsuarios`), no sólo
+  // como texto del aviso — así la pantalla puede exigir confirmación sin
+  // tener que parsear español.
+  it('candadoUsuarios es true exactamente en la mezcla ambigua, false en los casos normales', () => {
+    expect(item(12, 30).candadoUsuarios).toBe(true);
+    expect(item(30, 1).candadoUsuarios).toBe(false);
+    expect(item(12, 1).candadoUsuarios).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+//  TECHO DE CORDURA EN USUARIOS (Rodrigo, 2026-08-20): "normalmente se
+//  manejan en pares, nunca he visto uno de más de 14; en ese caso se tiene
+//  que cotizar con un proyectista". No topa el precio (sigue siendo la mejor
+//  referencia disponible) ni bloquea el renglón — lo marca para que un
+//  humano lo revise antes de llegar al cliente.
+// ---------------------------------------------------------------------------
+describe('techo de cordura: pedidos de más de 14 usuarios', () => {
+  let costearItem, estado;
+  beforeAll(async () => {
+    const ln = await import('./lineas.js');
+    const ins = await import('./insumos.js');
+    const mc = await import('../motor/calculo.js');
+    costearItem = ln.costearItem;
+    estado = { insumos: ins.mapaInsumos(ins.INSUMOS_SEMILLA), parametros: mc.PARAMETROS_DEFAULT, piezas: {} };
+  });
+  const item = (usuarios) => costearItem(estado, {
+    ruta: 'applt', producto: 'banca_doble', cantidad: 1,
+    seleccion: [{ clave: 'usuarios', valor: String(usuarios) }, { clave: 'largoMM', valor: '1500' }],
+  });
+
+  it('14 o menos: no requiere proyectista', () => {
+    expect(item(14).requiereProyectista).toBe(false);
+    expect(item(12).requiereProyectista).toBe(false);
+  });
+
+  it('más de 14: requiere proyectista, pero sigue trayendo un precio de referencia', () => {
+    const c = item(30);
+    expect(c.requiereProyectista).toBe(true);
+    expect(c.avisos.join(' ')).toMatch(/proyectista/);
+    expect(c.precioUnitario).toBeGreaterThan(0);
+  });
 });
 
 // ---------------------------------------------------------------------------

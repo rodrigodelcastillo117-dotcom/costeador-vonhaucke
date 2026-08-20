@@ -379,16 +379,20 @@ export default function App() {
         aplicandoRemoto.current = true;
         ultimoCompartido.current = firma(datos);
         setEstado((e) => aplicarCompartido(e, datos));
+        setNubeEstado('conectado');
       } else {
-        // Nube vacia: subir la semilla para inicializarla.
+        // Nube vacia: subir la semilla para inicializarla. El punto "En
+        // línea" solo debe encenderse si esta subida inicial de verdad
+        // funcionó, no solo porque la lectura anterior no truene.
         setEstado((e) => {
           const comp = compartidoSeguro(e);
           ultimoCompartido.current = firma(comp);
-          escribirConfig(comp).catch(() => {});
+          escribirConfig(comp)
+            .then(() => { if (vivo) setNubeEstado('conectado'); })
+            .catch(() => { if (vivo) setNubeEstado('sin-conexion'); });
           return e;
         });
       }
-      setNubeEstado('conectado');
     }).catch(() => { if (vivo) setNubeEstado('sin-conexion'); });
 
     // Boveda de Direccion. A quien no es direccion la base no le devuelve
@@ -400,7 +404,9 @@ export default function App() {
         aplicandoRemoto.current = true;
         setEstado((e) => aplicarDireccion(e, d));
         ultimoDireccion.current = firmaDir(soloDireccion(aplicarDireccion(estado, d)));
-      }).catch(() => {});
+      }).catch(() => {
+        if (vivo) mostrarAviso('No se pudo cargar la información financiera de Dirección. Reintenta o revisa tu conexión.', 6000);
+      });
     } else {
       setEstado((e) => limpiarSensibles(e));
     }
@@ -468,6 +474,13 @@ export default function App() {
       catalogo: c.catalogo || null, variantes: c.variantes || null,
       // ¿Voni lo PROPUSO como acompañante (silla, gaveta…) o lo pidió el cliente?
       sugerido: !!c.sugerido,
+      // Se perdían al reconstruir la partida desde cero: sin esto, ni los
+      // avisos de costearItem() llegaban a pantalla (EstoEntendi.jsx ya los
+      // esperaba, pero `avisos` nunca venía) ni el candado podía sobrevivir
+      // hasta el punto donde de verdad hace falta bloquear (Imprimir).
+      avisos: c.avisos || [],
+      candadoUsuarios: !!c.candadoUsuarios,
+      requiereProyectista: !!c.requiereProyectista,
     }));
   }
 
@@ -504,6 +517,12 @@ export default function App() {
       margen: Number.isFinite(margen) ? margen : null,
       config: costeo.config || null,
       precioReal: !!costeo.precioReal,
+      // Mismo candado que ya trae `costearItem()` (camino de Voni) — este
+      // camino manual ("Cotizar de línea") lo armaba sin pasar por ahí, así
+      // que hasta hoy no detectaba NADA de esto (hueco real, más allá de lo
+      // que cubrió la auditoría original).
+      candadoUsuarios: !!(costeo.config?.usuarios && n > 1),
+      requiereProyectista: !!(costeo.config?.usuarios && Number(costeo.config.usuarios) > 14),
     };
   }
 

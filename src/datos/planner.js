@@ -91,12 +91,24 @@ function empacarTodoGarantizado(base, piezas, ajustar) {
   let W = Math.max(base.ancho || 0, minDimMax + 2 * PER, 6000);
   const out = [];
   let x = PER, y = PER, rowH = 0, lastT = null;
+  // ⚠️ `rowGap(tipo)` es una tabla FIJA (700-1200 mm) que no lee `circulacion_min`
+  // en absoluto — a diferencia de PER/GX (arriba), que sí salen de la regla. Con
+  // el default de 900 mm, un cuarto con asientos o "mueble" genérico separa filas
+  // a 850/700 mm real, MENOS que la regla, y el cartel decía "✓ Circulación entre
+  // filas" con la cifra de la regla, no la real (2026-08-20). Se guarda el
+  // mínimo real usado para que el cartel pueda comparar contra la regla en vez
+  // de asumir que siempre se cumple.
+  let minEntreFilas = Infinity;
   for (const g of grupos) {
     for (const p of g) {
       let w = p.w, d = p.d, rot = 0;
       if (w > W - 2 * PER && d <= W - 2 * PER) { [w, d] = [d, w]; rot = 90; }
       const cambioTipo = lastT && lastT !== p.tipo && x > PER;
-      if (cambioTipo || (x > PER && x + w > W - PER)) { x = PER; y += rowH + rowGap(p.tipo); rowH = 0; }
+      if (cambioTipo || (x > PER && x + w > W - PER)) {
+        const gap = rowGap(p.tipo);
+        minEntreFilas = Math.min(minEntreFilas, gap);
+        x = PER; y += rowH + gap; rowH = 0;
+      }
       out.push({ id: p.id, x, y, rot });
       x += w + GX; rowH = Math.max(rowH, d); lastT = p.tipo;
     }
@@ -104,7 +116,7 @@ function empacarTodoGarantizado(base, piezas, ajustar) {
   const fondo = y + rowH + PER;
   let L = base.largo || 0;
   if (ajustar) L = Math.max(L, fondo);
-  return { out, W: Math.round(W), L: Math.round(L) };
+  return { out, W: Math.round(W), L: Math.round(L), minEntreFilas };
 }
 
 /**
@@ -189,11 +201,22 @@ export function sentarSillas(colocacion, piezas, areas) {
         if (!dentro) continue;
         if (fijas.some((v) => choca(caja, v, 0))) continue;
         if (puestas.some((v) => choca(caja, v, 40))) continue;
+        // ⚠️ CADA CAJA DE ESTA FILA SE ARMÓ DEL TAMAÑO DE `s0` (2026-08-20).
+        // Si la fila trae sillas de más de un SKU (proyecto real: económica +
+        // premium mezcladas), sacar la que sea de `libres`/`sinLugar` sin
+        // fijarse en su tamaño metía una silla de OTRA medida en una caja que
+        // no es la suya. Se prefiere la que YA calza con esta caja; solo se
+        // cae a otra medida cuando se acaban las de ese tamaño (no se
+        // inventa hueco nuevo: `puestosDe` sigue siendo uniforme por fila).
         if (libres.length) {
-          const silla = libres.shift();
+          let idx = libres.findIndex((cc) => { const d = dimsPieza(byId[cc.id], 0); return d.pw === pw && d.ph === ph; });
+          if (idx === -1) idx = 0;
+          const silla = libres.splice(idx, 1)[0];
           silla.x = caja.x; silla.y = caja.y; silla.rot = 0;
         } else {
-          const nueva = sinLugar.shift();
+          let idx = sinLugar.findIndex((cc) => { const d = dimsPieza(cc, 0); return d.pw === pw && d.ph === ph; });
+          if (idx === -1) idx = 0;
+          const nueva = sinLugar.splice(idx, 1)[0];
           out.push({ id: nueva.id, area: i, x: caja.x, y: caja.y, rot: 0, contra: null });
         }
         puestas.push(caja);
@@ -247,7 +270,7 @@ function acomodarLocalBase(areas, piezas, opts = {}) {
   // ---- Flujo 1-CLIC: un espacio auto-dimensionado, TODO cabe garantizado ----
   if (opts.ajustar && areas.length <= 1) {
     const base = areas[0] || { nombre: 'Mi espacio', ancho: 8000, largo: 6000 };
-    const { out, W, L } = empacarTodoGarantizado(base, piezas, true);
+    const { out, W, L, minEntreFilas } = empacarTodoGarantizado(base, piezas, true);
     const nuevasAreas = [{ nombre: base.nombre || 'Mi espacio', ancho: W, largo: L, ...(base.puertas ? { puertas: base.puertas } : {}) }];
     // Este camino —el más usado, el de un clic— NUNCA aplicó la regla del
     // frente: el empacador gira las piezas sólo para que quepan. Se endereza al
@@ -273,8 +296,11 @@ function acomodarLocalBase(areas, piezas, opts = {}) {
       // hay que reportar.
       { check: 'Circulación perimetral', ok: true,
         detalle: `${(circulacion / 1000).toFixed(2)} m contra muros (la regla pide ${(circulacion / 1000).toFixed(2)} m)` },
-      { check: 'Circulación entre filas', ok: true,
-        detalle: `${(circulacion / 1000).toFixed(2)} m entre muebles (la regla pide ${(circulacion / 1000).toFixed(2)} m)` },
+      (minEntreFilas === Infinity || minEntreFilas >= circulacion)
+        ? { check: 'Circulación entre filas', ok: true,
+            detalle: `${(circulacion / 1000).toFixed(2)} m entre muebles (la regla pide ${(circulacion / 1000).toFixed(2)} m)` }
+        : { check: 'Circulación entre filas', ok: false,
+            detalle: `${(minEntreFilas / 1000).toFixed(2)} m entre muebles: por debajo de los ${(circulacion / 1000).toFixed(2)} m que pide la regla` },
     ];
     return { colocacion, zonas: [], caben: true, areas: nuevasAreas, notas: [], auditoria,
       resumen: todas

@@ -8,6 +8,7 @@
 //  calculadas y nunca las recalcula por su cuenta.
 // ============================================================================
 import { selloPartida } from '../util.js';
+import { precioDeInsumo } from '../motor/calculo.js';
 
 // Señales de UNA cotización — el lente "auditor de este proyecto" (Voni,
 // Paso 4 · Propuesta). `partidas` es `cot.partidas`; `margenMinimo` viene de
@@ -48,12 +49,22 @@ export function senalesCotizacion(partidas = [], margenMinimo = 40) {
 // Señales del catálogo de insumos — cuántos no traen registrado de dónde
 // salió su precio. Hoy esa cuenta solo la sabía `scripts/revisa-precios.mjs`
 // corriendo aparte; aquí se vuelve una señal viva dentro de la app.
-export function senalesInsumos(insumos = []) {
+export function senalesInsumos(insumos = [], par) {
   if (!insumos.length) return [];
   const sinFuente = insumos.filter((i) => !i.fuente);
   if (!sinFuente.length) return [];
-  return [{
+  const lista = [{
     tipo: 'ambar',
     texto: `${sinFuente.length} de ${insumos.length} insumos no traen registrado de dónde salió su precio.`,
   }];
+  // De esos sin fuente, cuántos además se están costeando en $0 en vivo —
+  // no solo falta la procedencia del precio, falta el precio mismo.
+  const enCero = sinFuente.filter((i) => precioDeInsumo(i, par) === 0);
+  if (enCero.length) {
+    lista.push({
+      tipo: 'roja',
+      texto: `${enCero.length} ${enCero.length === 1 ? 'insumo se está costeando' : 'insumos se están costeando'} en $0: sin precio capturado y sin fuente.`,
+    });
+  }
+  return lista;
 }
