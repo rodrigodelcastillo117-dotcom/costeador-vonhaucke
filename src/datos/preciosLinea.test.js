@@ -10,8 +10,12 @@ import { PRECIOS_LINEA, articuloPorClave, precioListaDe, pisoDe } from './precio
 import { LINEAS_REG } from './lineas.js';
 
 describe('catálogo de precios de línea', () => {
-  it('trae los 1713 artículos del Excel', () => {
-    expect(PRECIOS_LINEA.length).toBe(1713);
+  // 1713 del Excel original + 2 parches a mano que Rodrigo confirmó el
+  // 2026-08-19 (escritorios Alba que todavía no están en el Excel fuente —
+  // ver los comentarios "PARCHE A MANO" en preciosLinea.js). Si este número
+  // vuelve a moverse sin querer, esta prueba lo cacha.
+  it('trae los 1715 artículos (1713 del Excel + 2 parches a mano confirmados)', () => {
+    expect(PRECIOS_LINEA.length).toBe(1715);
   });
 
   it('cada clave ERP es única (se puede indexar sin choque)', () => {
