@@ -26,13 +26,14 @@ live en costeador-vonhaucke.vercel.app.
 | ID | Estado | Nota verificada |
 |---|---|---|
 | Cantidad no se pierde (Voni/catálogo/banco) | ✅ | `costearItem()` perdía `cantidad` en la rama de match de catálogo → arreglado + piso defensivo en `partidasDeItemsIA`. Test `lineas.test.js` "P0 nunca pierde la cantidad". |
-| Separar precio vs costo vs derivado vs desconocido | 🔧 | Ya existen `deBanco`, `costoDerivado`, y `sinCosto` (Cotizacion muestra `≈` y no finge margen). **Falta** unificarlos en un solo `estadoFuenteCosto: real\|estimado\|derivado\|desconocido` y que los **agregados** (utilidad total) excluyan/distingan derivados. |
+| Separar precio vs costo vs derivado vs desconocido | ✅ | `claseCosto(pt)` en util.js = una sola verdad (`real\|derivado\|desconocido`), usada en tabla y tarjetas móviles (antes duplicado). Nunca margen sobre costo 0/proxy. La utilidad AGREGADA no se muestra (variables muertas, no es bug vivo). Tests `util.test.js`. |
+| No emitir con cantidad/precio inválidos | ✅ | `problemasDeEmision(partidas)` en senales.js bloquea "Descargar PDF"/"Imprimir" y muestra el motivo cuando un renglón no tiene cantidad>0 o precio>0. NO bloquea por costo desconocido con precio real (pieza de banco es vendible). Tests `senales.test.js`. |
 | Cálculo de dinero centralizado, cuadra al centavo | ✅ | **Nuevo `src/datos/totales.js` = autoridad única.** Antes la escalera estaba en 3 lados; el total GUARDADO era la suma cruda sin descuento/IVA. Ahora pantalla, PDF y guardado usan la misma función; el Archivo muestra el total emitido real. Tests `totales.test.js` (9) + `cotizaciones.test.js` corregido. FIX-05/CST-02. |
 | Margen mínimo 25 vs 40 | ✅ | Unificado a **25** (decisión de Rodrigo) en `reglas.js`, `calculo.js`, `senales.js`, `Guia.jsx`. Pendiente: que Dirección lo apruebe como política versionada (ver Fase 1 → reglas). |
 | **Costos fuera del alcance de Ventas (FIX-06)** | ⛔ | **CONFIRMADO real en RLS:** `config` (insumos con costos + parametros con márgenes) es legible por todo autenticado (`config_leer → puede_entrar()`); `cotizaciones` embebe `costoUnitario`. **Arreglo correcto = mover costeo al servidor (CST-01) + partir config + RLS + probar 3 roles.** Bloqueado por: (a) arquitectura cliente-side actual necesita costos en el navegador; (b) no hay sesiones reales de Ventas/Diseño/Dirección para probar sin romper al equipo. |
 | Proteger `generar-render` y funciones IA | ⬜/❓ | Sigue sin verify_jwt. El mandato pide protegerla; Rodrigo dijo antes "déjala". **Conflicto de instrucciones → requiere confirmación** antes de tocar (podría romper renders). |
 | Revisar funciones SECURITY DEFINER | ✅ | **Migración `revoke_anon_execute_security_definer_helpers` aplicada.** `es_direccion()`, `puede_editar_config()`, `puede_entrar()` ya NO son ejecutables por `anon` (advisor `anon_security_definer_function_executable` desaparecido); se conserva `authenticated` porque RLS las necesita (verificado: `auth_exec=true, anon_exec=false`; lectura de config intacta). La variante `authenticated` del advisor es el uso correcto y esperado. |
-| `aprendizajes` abierto a todos | ⬜ | RLS: lectura/escritura/update `true` para todo autenticado. Cualquier usuario puede alterar aprendizajes. A cerrar a diseño/dirección. |
+| `aprendizajes` abierto a todos | ⛔ | RLS lectura/escritura/update `true`. **NO es un win simple:** `anotar()` es auto-aprendizaje (cualquier usuario que corrige a Voni inserta/incrementa) y el cliente LEE los aprendizajes para armar el prompt de Voni. Cerrarlo rompe el bucle. Hacerlo bien = políticas por-columna (permitir INSERT/UPDATE de `veces`, restringir `activo`/`regla_clave` a dirección) + pruebas de rol. Mismo bloqueo que FIX-06. |
 | Contraseñas recuperables / leaked-pw protection | 🚫 | Fuera de alcance por exclusión. `credenciales_temporales` ya está cerrado a `es_direccion()`. |
 
 ## Fase 2 — Fuente de verdad del costo
@@ -73,6 +74,13 @@ Tacton/Fusion. **Estado:** ⬜ requiere el motor calibrado y usuarios reales.
 3. **`generar-render`** — confirmar si se protege (conflicto: mandato sí, Rodrigo antes "déjala").
 4. **Política de márgenes/indirectos** — Dirección/Finanzas aprueban 25% y la base de indirectos.
 
-## Próxima acción concreta (no bloqueada, code-only, verificable)
-Unificar `estadoFuenteCosto` (Fase 1) + hacer que la **utilidad agregada** de la
-cotización excluya/distinga costos derivados y desconocidos — hoy los mezcla.
+## Estado al 2026-09-24 (fin de la tanda autónoma)
+**La Fase 1 "proteger la emisión" está esencialmente completa en código/DB.** Lo
+que resta del mandato ya NO es code-only: depende de datos del ERP (Fases 2/4),
+de sesiones reales de los 3 roles para tocar acceso a costos (FIX-06/aprendizajes),
+o de decisiones de Dirección (política de márgenes/indirectos). Ver "Bloqueos".
+
+Próximos frentes cuando se desatore algo:
+- Llega 1 bloque del ERP → ingester + calibración de esa familia (Fase 2).
+- Branch de Supabase + 3 usuarios de prueba → ejecutar FIX-06 (DISENO-COSTEO-SERVIDOR.md).
+- Dirección aprueba política → versionar reglas aprobadas vs propuestas (FIX-10).
