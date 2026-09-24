@@ -15,9 +15,9 @@ live en costeador-vonhaucke.vercel.app.
 > credenciales temporales. Riesgos ahí se documentan como 🚫, sin exponer secretos.
 
 > **Realidad operativa:** el deploy es `npx vercel --prod` directo desde la Mac
-> (no auto-deploy por git). **Git está bloqueado** (`sudo xcodebuild -license
-> accept` pendiente, requiere password del usuario) → **0 commits**; todo lo
-> "hecho" está DESPLEGADO pero sin historial en git. Este es el bloqueo #0.
+> (no auto-deploy por git; no hay remoto, es trunk local en `main`). Git estuvo
+> bloqueado por la licencia de Xcode; **desbloqueado el 2026-09-24** y todo el
+> trabajo desplegado quedó commiteado (`82da6bd` código, `0a2e268` docs).
 
 ---
 
@@ -31,7 +31,7 @@ live en costeador-vonhaucke.vercel.app.
 | Margen mínimo 25 vs 40 | ✅ | Unificado a **25** (decisión de Rodrigo) en `reglas.js`, `calculo.js`, `senales.js`, `Guia.jsx`. Pendiente: que Dirección lo apruebe como política versionada (ver Fase 1 → reglas). |
 | **Costos fuera del alcance de Ventas (FIX-06)** | ⛔ | **CONFIRMADO real en RLS:** `config` (insumos con costos + parametros con márgenes) es legible por todo autenticado (`config_leer → puede_entrar()`); `cotizaciones` embebe `costoUnitario`. **Arreglo correcto = mover costeo al servidor (CST-01) + partir config + RLS + probar 3 roles.** Bloqueado por: (a) arquitectura cliente-side actual necesita costos en el navegador; (b) no hay sesiones reales de Ventas/Diseño/Dirección para probar sin romper al equipo. |
 | Proteger `generar-render` y funciones IA | ⬜/❓ | Sigue sin verify_jwt. El mandato pide protegerla; Rodrigo dijo antes "déjala". **Conflicto de instrucciones → requiere confirmación** antes de tocar (podría romper renders). |
-| Revisar funciones SECURITY DEFINER | 🔧 | Advisor confirma `es_direccion()`, `puede_editar_config()`, `puede_entrar()` ejecutables por anon/authenticated vía RPC. Solo devuelven booleanos del propio rol → riesgo bajo, pero conviene `REVOKE EXECUTE` a anon. Migración pequeña, no rompe la app (el cliente no las llama por RPC, las usa RLS). Candidato seguro. |
+| Revisar funciones SECURITY DEFINER | ✅ | **Migración `revoke_anon_execute_security_definer_helpers` aplicada.** `es_direccion()`, `puede_editar_config()`, `puede_entrar()` ya NO son ejecutables por `anon` (advisor `anon_security_definer_function_executable` desaparecido); se conserva `authenticated` porque RLS las necesita (verificado: `auth_exec=true, anon_exec=false`; lectura de config intacta). La variante `authenticated` del advisor es el uso correcto y esperado. |
 | `aprendizajes` abierto a todos | ⬜ | RLS: lectura/escritura/update `true` para todo autenticado. Cualquier usuario puede alterar aprendizajes. A cerrar a diseño/dirección. |
 | Contraseñas recuperables / leaked-pw protection | 🚫 | Fuera de alcance por exclusión. `credenciales_temporales` ya está cerrado a `es_direccion()`. |
 
@@ -66,7 +66,7 @@ Tacton/Fusion. **Estado:** ⬜ requiere el motor calibrado y usuarios reales.
 ---
 
 ## Bloqueos exactos (para desatorar)
-0. **Git** — `sudo xcodebuild -license accept` (password de Rodrigo). Sin esto, 0 historial.
+0. ~~**Git**~~ ✅ resuelto 2026-09-24 (licencia Xcode aceptada; trabajo commiteado).
 1. **FIX-06 / CST-01** — decidir mover costeo a servidor; y conseguir sesiones de
    prueba de los 3 roles antes de tocar RLS/acceso.
 2. **Datos ERP (Intelisis)** — export de `EXPORT-ERP-INTELISIS.md` (Rafa/Compras/Producción).
