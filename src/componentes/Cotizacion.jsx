@@ -9,7 +9,7 @@ import { resumenPorArea, especificacion } from '../datos/resumen.js';
 import { listaPorCuarto } from '../datos/porCuarto.js';
 import { descargarPropuesta, cargarFotos, cargarMarca } from '../datos/pdfPropuesta.js';
 import EditarPartida, { sePuedeEditar } from './EditarPartida.jsx';
-import { pesos, leePct, selloPartida } from '../util.js';
+import { pesos, leePct, selloPartida, claseCosto } from '../util.js';
 import { senalesCotizacion, senalesInsumos, problemasDeEmision } from '../datos/senales.js';
 import { totalesCotizacion } from '../datos/totales.js';
 import { imagenPartida } from '../datos/imagenes.js';
@@ -421,7 +421,8 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                   {partidas.map((pt, i) => {
                     // costo $0 = costo DESCONOCIDO, no margen del 100% (audit
                     // externo 2026-09-24): nunca presentar margen sobre costo 0/proxy.
-                    const sinCosto = pt.margen == null || pt.deBanco || !(pt.costoUnitario > 0);
+                    const cc = claseCosto(pt);
+                    const sinCosto = cc.sinCosto;
                     const margenReal = pt.costoUnitario != null && pt.precioUnitario
                       ? ((pt.precioUnitario - pt.costoUnitario) / pt.precioUnitario) * 100 : pt.margen;
                     const bajo = !sinCosto && margenReal < estado.parametros.margenMinimo;
@@ -433,8 +434,8 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                           {bajo && <div className="ayuda rojo">Debajo del mínimo de {estado.parametros.margenMinimo}%</div>}</td>
                         <td className="num"><span className="masmenos"><button onClick={() => setPartida(i, { cantidad: Math.max(1, pt.cantidad - 1) })}>−</button><span className="valor">{pt.cantidad}</span><button onClick={() => setPartida(i, { cantidad: pt.cantidad + 1 })}>+</button></span></td>
                         <td className="num">{pesos(pt.precioUnitario)}</td>
-                        <td className="num" title={pt.costoDerivado ? 'Costo aproximado (derivado del precio, no del despiece real)' : undefined}>{sinCosto ? '—' : (pt.costoDerivado ? '≈ ' : '') + pesos(pt.costoUnitario)}</td>
-                        <td className="num">{sinCosto ? '—' : (pt.costoDerivado ? '≈ ' : '') + pesos(util)}</td>
+                        <td className="num" title={cc.aprox ? 'Costo aproximado (derivado del precio, no del despiece real)' : undefined}>{sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos(pt.costoUnitario)}</td>
+                        <td className="num">{sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos(util)}</td>
                         <td className="num">{pesos(pt.precioUnitario * pt.cantidad)}</td>
                         {/* ⚠️ AQUÍ NO HABÍA CÓMO EDITAR (2026-08-17). El lápiz
                             estaba escrito SÓLO dentro del bloque `soloVentas`, o
@@ -463,7 +464,8 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
             {/* tarjetas móviles */}
             <div className="solo-movil">
               {partidas.map((pt, i) => {
-                const sinCosto = pt.margen == null || pt.deBanco || !(pt.costoUnitario > 0);
+                const cc = claseCosto(pt);
+                const sinCosto = cc.sinCosto;
                 const util = (pt.precioUnitario - (pt.costoUnitario || 0)) * pt.cantidad;
                 return (
                   <div className="cot-card" key={pt.id}>
@@ -472,7 +474,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                       <span className="masmenos"><button style={{ width: 44, height: 44 }} onClick={() => setPartida(i, { cantidad: Math.max(1, pt.cantidad - 1) })}>−</button><span className="valor">{pt.cantidad}</span><button style={{ width: 44, height: 44 }} onClick={() => setPartida(i, { cantidad: pt.cantidad + 1 })}>+</button></span>
                       <span className="cot-importe">{pesos(pt.precioUnitario * pt.cantidad)}</span>
                     </div>
-                    <div className="cot-datos"><span>Precio c/u: <b>{pesos(pt.precioUnitario)}</b></span><span>Costo: {sinCosto ? '—' : pesos(pt.costoUnitario)}</span><span>Utilidad: {sinCosto ? '—' : pesos(util)}</span></div>
+                    <div className="cot-datos"><span>Precio c/u: <b>{pesos(pt.precioUnitario)}</b></span><span>Costo: {sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos(pt.costoUnitario)}</span><span>Utilidad: {sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos(util)}</span></div>
                     <button className="boton fantasma" style={{ minHeight: 44, marginTop: 10 }} onClick={() => quitar(i)}>Quitar</button>
                   </div>
                 );

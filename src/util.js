@@ -179,3 +179,21 @@ export function selloPartida(pt) {
   if (pt.ruta && RUTAS_CALIBRADAS.has(pt.ruta)) return { tipo: 'calibrado', texto: 'Calibrado', nota: 'Lo calculó el modelo, pero esta línea está contrastada contra presupuestos reales (±7%). No es un precio del papel.' };
   return { tipo: 'estimado', texto: 'Estimado', nota: SIN_CALIBRAR };
 }
+
+// CLASE DE COSTO de una partida — una sola verdad para "¿de dónde salió este
+// costo?" (mandato Fase 1: separar costo real, derivado y desconocido). Antes
+// esta lógica vivía repetida como `sinCosto`/`costoDerivado` en varios lugares
+// de Cotizacion. NUNCA se presenta margen sobre un costo 0/proxy como si fuera
+// medido (auditoría externa 2026-09-24).
+//   'desconocido' → no hay costo medido: pieza de banco (precio real, costo que
+//                   no se conoce), o costoUnitario ausente/0. Se muestra "—".
+//   'derivado'    → hay un número pero es proxy del precio (precio/3.6), no del
+//                   despiece real. Se muestra con "≈".
+//   'real'        → costo calculado del despiece/insumos. Se muestra tal cual.
+export function claseCosto(pt) {
+  if (!pt || pt.deBanco || pt.margen == null || !(pt.costoUnitario > 0)) {
+    return { clase: 'desconocido', sinCosto: true, aprox: false };
+  }
+  if (pt.costoDerivado) return { clase: 'derivado', sinCosto: false, aprox: true };
+  return { clase: 'real', sinCosto: false, aprox: false };
+}
