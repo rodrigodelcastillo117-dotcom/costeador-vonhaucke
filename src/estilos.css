@@ -185,6 +185,7 @@ input.capturado { border-color: var(--verde); }
 }
 .chip.on { background: var(--rojo); border-color: var(--rojo); color: var(--blanco); }
 .chip .marca-chip { font-weight: 800; }
+.chip-swatch { width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(0,0,0,.18); flex-shrink: 0; }
 
 /* ---- Secciones plegables (3.5) ---- */
 .plegable { border: 1px solid var(--linea); border-radius: 6px; margin-bottom: 10px; overflow: hidden; background: var(--blanco); }

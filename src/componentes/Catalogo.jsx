@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { FAMILIAS, MUEBLES, LINEAS, lineasDeMueble, REGLAS_LINEA } from '../datos/catalogo.js';
 import { PIEZAS_SEMILLA } from '../datos/piezas.js';
 import { recetaBench } from '../datos/bench.js';
-import { calcular } from '../motor/calculo.js';
+import { calcular, modeloParaPieza } from '../motor/calculo.js';
 import { pesos, idNuevo, coincide } from '../util.js';
 
 // Busca receta semilla para una linea+mueble
@@ -18,7 +18,8 @@ function recetaDe(lineaId, muebleId) {
 function costoDeLinea(lineaId, muebleId, estado) {
   const receta = recetaDe(lineaId, muebleId);
   if (!receta) return null;
-  return calcular(receta, 1, estado.insumos, estado.parametros).costoUnitario;
+  const { par } = modeloParaPieza(estado.parametros, receta);
+  return calcular(receta, 1, estado.insumos, par).costoUnitario;
 }
 
 export default function Catalogo({ estado, onCargar, soloVentas = false }) {
@@ -186,6 +187,7 @@ function cargar(linea, muebleId, familiaId, estado, onCargar) {
       componentes: aplicarReglas(receta.componentes, linea.id, estado.insumos),
       modoManoObra: receta.modoManoObra || 'horas',
       horas: { ...(receta.horas || {}) },
+      modeloCosteo: receta.modeloCosteo, parModelo: receta.parModelo,
       factorDirecta: receta.factorDirecta ?? 55,
       factorIndirecta: receta.factorIndirecta ?? 12,
       preparacionHoras: receta.preparacionHoras || 0,

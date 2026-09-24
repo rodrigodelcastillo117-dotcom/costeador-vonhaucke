@@ -219,7 +219,7 @@ export default function Guia({ onIr, onCerrar, primeraVez, estado, rol = 'ventas
   const p = estado?.parametros || {};
   const margenObjetivo = p.margenObjetivo ?? 50;
   const minMarkup = p.minMarkupLinea ?? 45;
-  const margenMinimo = p.margenMinimo ?? 40;
+  const margenMinimo = p.margenMinimo ?? 25;
   const cfg = { margenObjetivo, minMarkup, margenMinimo };
 
   const secciones = useMemo(() => {

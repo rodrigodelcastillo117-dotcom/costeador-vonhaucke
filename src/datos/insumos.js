@@ -21,6 +21,12 @@ const HOY = '2026-08-12';
 // lo que permite recalibrar solo la próxima vez.
 export const FUENTE_COMPRAS = 'Compras, lista del 2026-08-14';
 export const FUENTE_ERP = 'ERP, ultima compra';
+export const FUENTE_SONARA = 'Lista_de_precios_Sonara_2025 (Rafa Carranza, 2026-08-24) — precio de lista, mas IVA, sin empaque/envio';
+// T.D.C. real de la banca doble Aeropuerto CDMX (C-CO-510R), Rafa 2026-09-24.
+// Fuente de items de metal/electrico que el catalogo no tenia. La UNIDAD de los
+// tubos de 4" se tomo como en el T.D.C. (consumo x precio); confirmar con Rafa
+// el formato de compra real (tramo/metro) antes de usarlos en volumen.
+export const FUENTE_TDC_BANCA = 'T.D.C. banca C-CO-510R (Aeropuerto CDMX), Rafa 2026-09-24';
 // Explosivo real de Alba (area de estimaciones): T.D.C. "ejemplo bench sencillo
 // con guardas", hoja (Explo_MP). Es un solo color/lote (IVORY b717/c717,
 // compras entre 2025-12 y 2026-04) — NO el promedio anual por color que pide
@@ -52,10 +58,15 @@ export function tablero(o) {
 
 // Formatos de compra (8.6)
 const TABLERO = { tipo: 'tablero', nombre: 'tablero 1.22 x 2.44', corto: 'tablero', medida: 2.9768, largoMM: 2440, anchoMM: 1220 };
+// LAMINA: 'medida' EN KG por hoja. Las líneas (Río, Cirque, Drift, Ergo4,
+// Accents, Feather, Flex) la consumen con cantidad en kg. En el Costeador
+// manual, Rafa la captura por FRACCION DE HOJA directa (comp.hojas), no en kg
+// ni por Largo x Ancho — ver netoComponente()/comprarInsumo() y la decisión
+// Rafa §1 (2026-09-23).
 const LAMINA18 = { tipo: 'lamina', nombre: 'lamina 1.22 x 2.44', corto: 'lamina', medida: 28.4 };
 const LAMINA20 = { tipo: 'lamina', nombre: 'lamina 1.22 x 2.44', corto: 'lamina', medida: 21.3 };
 const LAMINA22 = { tipo: 'lamina', nombre: 'lamina 1.22 x 2.44', corto: 'lamina', medida: 17.7 };
-// Calibres mas gruesos (kg por hoja 1.22x2.44) — pedidos en levantamiento Rafa
+// Calibres mas gruesos, pedidos en levantamiento Rafa §1.
 const LAMINA14 = { tipo: 'lamina', nombre: 'lamina 1.22 x 2.44', corto: 'lamina', medida: 44.4 };
 const LAMINA12 = { tipo: 'lamina', nombre: 'lamina 1.22 x 2.44', corto: 'lamina', medida: 62.2 };
 const LAMINA10 = { tipo: 'lamina', nombre: 'lamina 1.22 x 2.44', corto: 'lamina', medida: 79.9 };
@@ -235,6 +246,14 @@ export const INSUMOS_SEMILLA = [
   // Aquí va POR METRO como los demás tubos: dos convenciones distintas para el
   // mismo material es justo como se cuela un error de unidad.
   ins({ id: 'ptr-3-14', nombre: 'PTR 3" x 1 1/2" cal. 14', seccion: 'metal', precio: 73.33, unidad: 'm', formato: TRAMO6, mermaCorte: 6, articulo: 'PTR 3 x 1 1/2 cal. 14 ($440 el tramo de 6 m)', fuente: FUENTE_COMPRAS }),
+  // Tubos estructurales de 4" (T.D.C. banca aeropuerto): el catalogo no los
+  // tenia y las piezas de metal custom los usan. Se capturan por CONSUMO como
+  // en el T.D.C. (0.333 x $1,020). unidad 'tramo' sin formato = costo directo
+  // consumo x precio; confirmar formato de compra real con Rafa.
+  ins({ id: 'ptr-redondo-4', nombre: 'Tubo redondo 4" cal. 14', seccion: 'metal', precio: 1020, unidad: 'tramo', articulo: 'Tubular redondo acero al carbon 4" cal 14', fuente: FUENTE_TDC_BANCA }),
+  ins({ id: 'ptr-cuadrado-4', nombre: 'Perfil cuadrado 4" cal. 14', seccion: 'metal', precio: 1400, unidad: 'tramo', articulo: 'Perfil cuadrado acero al carbon 4" cal 14', fuente: FUENTE_TDC_BANCA }),
+  ins({ id: 'multicontactos-bari', nombre: 'Multicontactos modelo Bari', seccion: 'electrico', precio: 887, unidad: 'pza', clase: 'indirecta', articulo: 'Multicontactos Bari (2 pzas en la banca doble)', fuente: FUENTE_TDC_BANCA }),
+  ins({ id: 'pegado-chapa', nombre: 'Pegado de chapa (operación)', seccion: 'cubiertas', precio: 300, unidad: 'op', clase: 'directa', articulo: 'Pegado de chapa por pieza', fuente: FUENTE_TDC_BANCA }),
   // Cubre cantos GRUESOS (2 mm) de la lista de Compras. Se agregan aparte del
   // tapacanto delgado que ya existía: son materiales distintos, no el mismo
   // con otro precio. Cuál usa cada línea lo tiene que decir Rodrigo.
@@ -272,6 +291,40 @@ export const INSUMOS_SEMILLA = [
   // 2 anios. Ver src/datos/acabados.js — ahi vive el dato, aqui solo se suma.
   ...insumosDeAcabadosMelamina(),
   ...insumosDeAcabadosPintura(),
+
+  // ---- ECOACUSTIC (paneles de fieltro PET, Sonara) ----
+  // Von Haucke NO fabrica este panel: lo COMPRA ya terminado por SKU/tamaño a
+  // Sonara y solo agrega instalación/herrajes. El precio es el de lista de
+  // Sonara (más IVA, sin empaque/envío — se cotiza aparte por proyecto).
+  // Fuente: "Lista_de_precios_Sonara_2025" (Rafa Carranza, 2026-08-24).
+  ins({ id: 'eco-panel-liso-9', nombre: 'EcoAcustic Panel liso sin corte 9 mm (1.22×2.44 m)', seccion: 'ecoacustic', precio: 1880, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-panel-liso-12', nombre: 'EcoAcustic Panel liso sin corte 12 mm (solo Gris/Gris Espacial/Gris Plateado)', seccion: 'ecoacustic', precio: 2570, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-corte-linea-9', nombre: 'EcoAcustic Panel con corte de línea 9 mm (Mamparas/Celosía/U/V)', seccion: 'ecoacustic', precio: 2935, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-corte-linea-12', nombre: 'EcoAcustic Panel con corte de línea 12 mm (solo Negro/Gris/Gris Espacial/Gris Plateado)', seccion: 'ecoacustic', precio: 3725, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-shapes-30', nombre: 'EcoAcustic Shapes 30 cm (paquete 4: hexágono/triángulo/cuadrado/círculo)', seccion: 'ecoacustic', precio: 370, unidad: 'paquete', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-shapes-60', nombre: 'EcoAcustic Shapes 60 cm (paquete 4: hexágono/triángulo/cuadrado/círculo)', seccion: 'ecoacustic', precio: 1465, unidad: 'paquete', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-shapes-rect-30', nombre: 'EcoAcustic Shapes rectángulo 1.20×0.30 m (paquete de 4)', seccion: 'ecoacustic', precio: 1465, unidad: 'paquete', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-shapes-rect-60', nombre: 'EcoAcustic Shapes rectángulo 1.20×0.60 m (paquete de 4)', seccion: 'ecoacustic', precio: 2935, unidad: 'paquete', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-custom-a-9', nombre: 'EcoAcustic Custom grado A, 9 mm', seccion: 'ecoacustic', precio: 3355, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-custom-a-12', nombre: 'EcoAcustic Custom grado A, 12 mm (solo Gris/Gris Espacial/Gris Plateado)', seccion: 'ecoacustic', precio: 4145, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-custom-b-9', nombre: 'EcoAcustic Custom grado B, 9 mm', seccion: 'ecoacustic', precio: 3920, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-custom-b-12', nombre: 'EcoAcustic Custom grado B, 12 mm (solo Gris/Gris Espacial/Gris Plateado)', seccion: 'ecoacustic', precio: 4670, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-custom-c-9', nombre: 'EcoAcustic Custom grado C, 9 mm', seccion: 'ecoacustic', precio: 4700, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-custom-d-9', nombre: 'EcoAcustic Custom grado D, 9 mm', seccion: 'ecoacustic', precio: 5875, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-flex', nombre: 'EcoAcustic Flex (por m², solo Negro/Camello/Gris/Gris Espacial/Gris Plateado)', seccion: 'ecoacustic', precio: 450, unidad: 'm2', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-flex-corte', nombre: 'EcoAcustic Flex con corte (por m², mismos colores)', seccion: 'ecoacustic', precio: 780, unidad: 'm2', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-lambrin', nombre: 'EcoAcustic Lambrín 1.20×2.40 m (tiras MDF + chapa fórmica)', seccion: 'ecoacustic', precio: 4685, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-ranurado-v', nombre: 'EcoAcustic Panel doble ranurado en V, cortes de línea', seccion: 'ecoacustic', precio: 4815, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-impreso', nombre: 'EcoAcustic Panel impreso 1.20×2.40 m, 9 mm', seccion: 'ecoacustic', precio: 3500, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-impreso-corte', nombre: 'EcoAcustic Panel impreso con corte recto', seccion: 'ecoacustic', precio: 3825, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-susp-sacc003-120', nombre: 'EcoAcustic Panel suspendido SACC003, Ø1.20 m (sin herrajes)', seccion: 'ecoacustic', precio: 2935, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-susp-sacc003-240', nombre: 'EcoAcustic Panel suspendido SACC003, Ø2.40 m (sin herrajes)', seccion: 'ecoacustic', precio: 5870, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-susp-sacc004-120', nombre: 'EcoAcustic Panel suspendido SACC004, 1.20×1.20 m (sin herrajes)', seccion: 'ecoacustic', precio: 2935, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-susp-sacc004-240', nombre: 'EcoAcustic Panel suspendido SACC004, 2.40×2.40 m (sin herrajes)', seccion: 'ecoacustic', precio: 8805, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-susp-sacc005-120', nombre: 'EcoAcustic Panel suspendido SACC005, 1.20×1.20 m (sin herrajes)', seccion: 'ecoacustic', precio: 2935, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-susp-sacc005-240', nombre: 'EcoAcustic Panel suspendido SACC005, 2.40×2.40 m (sin herrajes)', seccion: 'ecoacustic', precio: 8805, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-susp-sacc006', nombre: 'EcoAcustic Panel suspendido SACC006, 8 tiras 1.20×0.30 m (sin herrajes)', seccion: 'ecoacustic', precio: 2935, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
+  ins({ id: 'eco-herraje-colgante', nombre: 'EcoAcustic Herraje de sujeción a techo (horizontal o vertical)', seccion: 'ecoacustic', precio: 245, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
 ];
 
 // Etiquetas legibles de cada seccion (5.2)
@@ -284,6 +337,7 @@ export const SECCIONES = [
   { id: 'herrajes', nombre: 'Herrajes' },
   { id: 'tapiceria', nombre: 'Tapiceria' },
   { id: 'acabados', nombre: 'Acabados y pintura' },
+  { id: 'ecoacustic', nombre: 'EcoAcustic (paneles Sonara)' },
 ];
 
 // Mapa id -> insumo, util para el motor

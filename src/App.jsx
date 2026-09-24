@@ -55,7 +55,7 @@ import { cargarAprendizajes } from './datos/aprendizaje.js';
 import { guardarCotizacion } from './datos/cotizaciones.js';
 import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
 import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso } from './nube.js';
-import { calcular } from './motor/calculo.js';
+import { calcular, modeloParaPieza } from './motor/calculo.js';
 import { idNuevo } from './util.js';
 import { costoImplicito, precioDeLista } from './datos/preciosVenta.js';
 
@@ -272,7 +272,21 @@ export default function App() {
   const [recuperando, setRecuperando] = useState(false); // llegó por el enlace de recuperación
 
   useEffect(() => {
-    sesionActual().then((s) => setSesion(s));
+    // ⚠️ SIN ESTO, UN sesionActual() COLGADO DEJABA LA PANTALLA EN "Un
+    // momento…" PARA SIEMPRE (2026-08-20, reportado por un usuario en Safari).
+    // `sesionActual()` no tenía `.catch()` ni límite de tiempo: si getSession()
+    // de Supabase se cuelga (red lenta, algo que el navegador bloquea), `sesion`
+    // se queda en `undefined` y la puerta de acceso (línea ~715) no sale nunca
+    // de "Un momento…" — que a primera vista, con letra chica y gris, se ve
+    // igual que una pantalla en blanco. Si no resuelve en 8s, se cae a "sin
+    // sesión" (manda a Login, con algo que hacer) en vez de colgarse; si la
+    // sesión SÍ era válida, `alCambiarSesion` la corrige sola en cuanto
+    // Supabase conteste, sin que el usuario haga nada.
+    let resuelto = false;
+    sesionActual()
+      .then((s) => { resuelto = true; setSesion(s); })
+      .catch(() => { resuelto = true; setSesion(null); });
+    const limite = setTimeout(() => { if (!resuelto) setSesion(null); }, 8000);
     // Si llega por el enlace de "olvidé mi contraseña", Supabase avisa con
     // PASSWORD_RECOVERY: se le manda directo a poner una nueva, y ahí NO se le
     // pide la anterior (justo porque no la recuerda).
@@ -280,7 +294,7 @@ export default function App() {
       setSesion(s);
       if (evento === 'PASSWORD_RECOVERY') { setRecuperando(true); setPestania('contrasena'); }
     });
-    return off;
+    return () => { clearTimeout(limite); off(); };
   }, []);
 
   useEffect(() => {
@@ -466,7 +480,11 @@ export default function App() {
     return costados.map((c) => ({
       id: idNuevo('p'), piezaId: `linea-${c.producto}`, nombre: c.nombre,
       ruta: c.ruta || null, productoId: c.producto || null, w: c.w || null, d: c.d || null,
-      cantidad: c.cantidad, costoUnitario: c.costoUnitario, precioUnitario: c.precioUnitario, margen: c.margen,
+      // `|| 1`: piso de seguridad. Una partida FIRME siempre es ≥1 pieza; si por
+      // cualquier ruta llegara sin cantidad, jamás debe guardarse en 0 (los
+      // totales hacen precio × (cantidad||0) y perderían el renglón). No inventa
+      // cantidades de borradores viejos —eso se recupera aparte— solo evita el $0.
+      cantidad: c.cantidad || 1, costoUnitario: c.costoUnitario, precioUnitario: c.precioUnitario, margen: c.margen,
       nota: c.nota || null, confianza: c.confianza || null, config: c.config || null,
       precioReal: !!c.precioReal,   // manda el sello Firme/Calibrado/Estimado
       // El artículo del catálogo con el que casó (para el piso de descuento) y,
@@ -481,6 +499,15 @@ export default function App() {
       avisos: c.avisos || [],
       candadoUsuarios: !!c.candadoUsuarios,
       requiereProyectista: !!c.requiereProyectista,
+      // ⚠️ `deBanco` DEBE sobrevivir el mapeo (audit externo 2026-09-24). Sin él,
+      // una pieza del banco (precio real de proyecto cerrado, SIN costo de
+      // fabricación conocido) llegaba como precioReal:true / costo 0, y la
+      // pantalla le pintaba un MARGEN FALSO del 100% en vez de "costo
+      // desconocido". Con la marca, el sello y el margen la tratan como banco.
+      deBanco: !!c.deBanco,
+      // Costo DERIVADO del precio (≈ precio/3.6), no de un despiece real: la
+      // pantalla muestra su margen como aproximado, no medido (audit 2026-09-24).
+      costoDerivado: !!c.costoDerivado,
     }));
   }
 
@@ -501,7 +528,7 @@ export default function App() {
     const n = Math.max(1, Number(cantidad) || 1);
     let costo = costoUnitario;
     if (!Number.isFinite(costo)) {
-      try { costo = calcular(costeo, n, estado.insumos, estado.parametros).costoUnitario; }
+      try { costo = calcular(costeo, n, estado.insumos, modeloParaPieza(estado.parametros, costeo).par).costoUnitario; }
       catch (e) { costo = Number.isFinite(margen) ? precioUnitario * (1 - margen / 100) : 0; }
     }
     return {

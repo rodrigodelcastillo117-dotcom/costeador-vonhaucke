@@ -12,6 +12,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { costearConfig, productoDe } from '../datos/lineas.js';
 import { imagenProducto } from '../datos/imagenes.js';
+import { hexDeColor } from '../datos/coloresHex.js';
 import { pesos } from '../util.js';
 
 export const sePuedeEditar = (pt) => !!(pt && pt.ruta && pt.productoId && !pt.deBanco);
@@ -64,14 +65,20 @@ export default function EditarPartida({ estado, partida, onGuardar, onCerrar }) 
   const foto = imagenProducto(partida.ruta, partida.productoId);
   const cambioPrecio = nuevo.precioUnitario - (partida.precioUnitario || 0);
 
-  const Chips = ({ etiqueta, opciones, valor, alElegir, fmt }) => (
+  const Chips = ({ etiqueta, opciones, valor, alElegir, fmt, conSwatch }) => (
     <div className="ed-campo">
       <label className="etiqueta">{etiqueta}</label>
       <div className="chips">
         {opciones.map((o) => {
           const id = typeof o === 'object' ? o.id : o;
           const txt = typeof o === 'object' ? o.label : (fmt ? fmt(o) : o);
-          return <button key={id} className={`chip ${valor === id ? 'on' : ''}`} onClick={() => alElegir(id)}>{txt}</button>;
+          const hex = conSwatch && hexDeColor(id);
+          return (
+            <button key={id} className={`chip ${valor === id ? 'on' : ''}`} onClick={() => alElegir(id)}>
+              {hex && <span className="chip-swatch" style={{ background: hex }} />}
+              {txt}
+            </button>
+          );
         })}
       </div>
     </div>
@@ -103,7 +110,7 @@ export default function EditarPartida({ estado, partida, onGuardar, onCerrar }) 
           ))}
           {prod.finishes && <Chips etiqueta="Acabado" opciones={prod.finishes} valor={cfg.finish} alElegir={(v) => set('finish', v)} />}
           {prod.colores && (!prod.finishes || cfg.finish === 'ABS') && (
-            <Chips etiqueta="Color" opciones={prod.colores} valor={cfg.color || prod.colores[0].id} alElegir={(v) => set('color', v)} />
+            <Chips etiqueta="Color" opciones={prod.colores} valor={cfg.color || prod.colores[0].id} alElegir={(v) => set('color', v)} conSwatch />
           )}
           {prod.biombo && (
             <div className="ed-campo">

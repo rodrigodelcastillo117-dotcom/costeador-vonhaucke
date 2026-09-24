@@ -3,7 +3,8 @@
 //  Dos columnas en >=1000px; una sola abajo, con barra fija que muestra el costo.
 // ============================================================================
 import { useMemo, useState } from 'react';
-import { calcular, precioDe, sugerenciaLote, sugerenciaMedida, costoNetoComponente, netoComponente, PARAMETROS_DEFAULT } from '../motor/calculo.js';
+import { calcular, precioDe, precioVenta, sugerenciaLote, sugerenciaMedida, costoNetoComponente, netoComponente, PARAMETROS_DEFAULT, modeloParaPieza, SIN_MO_SECCIONES } from '../motor/calculo.js';
+import { precioDeLista } from '../datos/preciosVenta.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { AREAS_LABEL } from '../datos/areas.js';
 import { recetaBench } from '../datos/bench.js';
@@ -54,21 +55,29 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     componentes: costeo.componentes,
     horas: costeo.horas,
     modoManoObra: costeo.modoManoObra,
+    modeloCosteo: costeo.modeloCosteo,
     factorDirecta: costeo.factorDirecta,
     factorIndirecta: costeo.factorIndirecta,
     preparacionHoras: costeo.preparacionHoras,
   };
-  const par = parametrosEfectivos(estado, costeo);
+  const parBase = parametrosEfectivos(estado, costeo);
+  // Modelo de costeo (clásico vs Intelisis): mismo patrón que ya usan
+  // CosteadorLinea.jsx/lineas.js:precioDePieza(). No-op hoy — `costeo` en
+  // esta pantalla nunca nace de una pieza de línea, siempre en blanco, desde
+  // AsistenteEspecial o desde Catálogo (ninguno declara modeloCosteo todavía).
+  const { par, esIntelisis } = modeloParaPieza(parBase, piezaVirtual);
   const resultado = useMemo(
     () => calcular(piezaVirtual, costeo.piezas, insumos, par),
-    [costeo, insumos, estado.parametros]
+    [costeo, insumos, par]
   );
   const margen = costeo.margen ?? estado.parametros.margenObjetivo ?? 40;
-  const precio = precioDe(resultado.costoUnitario, margen);
+  const precio = esIntelisis
+    ? precioDeLista(precioVenta(resultado.costoUnitario, par).lista)
+    : precioDe(resultado.costoUnitario, margen);
   const bajoMinimo = margen < estado.parametros.margenMinimo;
   const sugerencia = useMemo(
     () => sugerenciaLote(piezaVirtual, costeo.piezas, insumos, par),
-    [costeo, insumos, estado.parametros]
+    [costeo, insumos, par]
   );
 
   // --- helpers de estado ---
@@ -118,6 +127,9 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   // Un material es "por área" (se mete con largo×ancho) si es tablero o se
   // cobra por m2 (cristal/acrílico). Lo demás va por su cantidad (m, pza, kg).
   const esArea = (ins) => !!ins && (ins.formato?.tipo === 'tablero' || ins.unidad === 'm2');
+  // Lámina/tablero se pueden capturar por FRACCION DE HOJA directa (Rafa §1):
+  // el estimador escribe "0.8 de hoja" y el costo es fraccion x precio_hoja.
+  const esFraccionHoja = (ins) => !!ins && ins.fraccion && (ins.formato?.tipo === 'lamina' || ins.formato?.tipo === 'tablero');
 
   function agregarPieza() {
     set({ componentes: [...costeo.componentes, { nombre: '', insumoId: '', cantidad: 1, piezas: 1 }] });
@@ -136,11 +148,16 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     const prev = comps[i];
     const patch = { insumoId, nombre: prev.nombre || (ins ? ins.nombre : '') };
     if (!esArea(ins)) { patch.largoMM = undefined; patch.anchoMM = undefined; } // material no dimensional
+    if (!esFraccionHoja(ins)) patch.hojas = undefined; // material que no es por fracción de hoja
     comps[i] = { ...prev, ...patch };
     set({ componentes: comps });
   }
   // Costo neto de una pieza, respetando fracción de hoja (para el subtotal por pieza)
   function costoPieza(c, ins, n) {
+    if (c.hojas != null && ins.formato) {
+      const precioH = ins.precio ?? ins.precioBase ?? 0;
+      return Math.max(0, c.hojas) * n * precioH;
+    }
     const neto = netoComponente(c, n);
     const precio = ins.precio ?? ins.precioBase ?? 0;
     if (ins.formato && ins.fraccion) {
@@ -239,7 +256,8 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             const m2 = area && c.largoMM && c.anchoMM ? (c.largoMM / 1000) * (c.anchoMM / 1000) * cnt : 0;
             const fmt = ins?.formato;
             const aprov = (par.aprovechamientoCorte || 100) / 100;
-            const fraccion = ins?.fraccion && fmt?.medida ? m2 / (fmt.medida * aprov) : 0;
+            const fraccion = ins?.fraccion && fmt?.medida && area ? m2 / (fmt.medida * aprov) : 0;
+            const porHojaDir = esFraccionHoja(ins);
             return (
               <div className="pieza" key={i}>
                 <div className="pieza-head">
@@ -275,11 +293,20 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                         <label>Cant<input type="number" className="numero" min="1" value={cnt}
                           onChange={(e) => setPieza(i, { piezas: parseInt(e.target.value) || 1 })} /></label>
                       </>
+                    ) : porHojaDir ? (
+                      <label>Fracción de hoja<input type="number" className="numero" step="0.01" min="0" value={c.hojas ?? ''}
+                        placeholder="0.8"
+                        onChange={(e) => setPieza(i, { hojas: parseFloat(e.target.value) || 0, cantidad: undefined })} /></label>
                     ) : (
                       <label>Cantidad ({ins.unidad})<input type="number" className="numero" step="0.01" min="0" value={c.cantidad}
                         onChange={(e) => setCantidad(i, parseFloat(e.target.value) || 0)} /></label>
                     )}
                     <span className="pieza-sub">{pesos(costoPieza(c, ins, costeo.piezas))}</span>
+                  </div>
+                )}
+                {porHojaDir && c.hojas > 0 && (
+                  <div className="pieza-calc">
+                    = {c.hojas} de hoja {ins.formato?.corto || ''} <span className="gris">(fracción directa, sin merma · {ins.clase === 'indirecta' ? 'comprado' : 'fabricado'})</span>
                   </div>
                 )}
                 {area && m2 > 0 && (
@@ -373,6 +400,8 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
           ))}
         </div>
 
+        <ConfianzaCosteo resultado={resultado} insumos={insumos} />
+
         {/* 4. Mano de obra */}
         <div className="tarjeta">
           <h2>Mano de obra</h2>
@@ -421,6 +450,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                   onChange={(e) => set({ factorIndirecta: parseInt(e.target.value) })} style={{ flex: 1 }} />
                 <span className="valor">{costeo.factorIndirecta ?? 12}%</span>
               </div>
+              <GuiaManoObra resultado={resultado} />
             </div>
           )}
 
@@ -474,7 +504,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
           {errRender && <div className="alerta roja" style={{ marginTop: 8 }}><span className="texto">{errRender}</span></div>}
           <div className="ayuda" style={{ marginTop: 8, textAlign: 'center' }}>{costeo.imagen ? 'Render IA · aparece en la ficha del cliente' : (costeo.nombre || 'Vista del mueble')}</div>
         </div>
-        <HojaCosto resultado={resultado} insumos={insumos} pieza={piezaVirtual} parametros={estado.parametros} />
+        <HojaCosto resultado={resultado} insumos={insumos} pieza={piezaVirtual} parametros={par} />
 
         <div className="tarjeta roja" style={{ marginTop: 16 }}>
           <label className="etiqueta">Cuanto quieres ganar</label>
@@ -509,6 +539,72 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
 }
 
 // Puente entre horas y porcentaje (6.4)
+// Confianza del costeo (2026-09-24): qué parte del material se para sobre
+// precios con FUENTE verificada vs precios sin confirmar. La herramienta más
+// real no finge precisión: la revela. No cambia ningún costo, solo lo audita.
+function ConfianzaCosteo({ resultado, insumos }) {
+  const det = (resultado.detalleInsumos || []).filter((d) => (d.costo || 0) > 0);
+  const matTot = det.reduce((a, d) => a + d.costo, 0);
+  if (matTot <= 0) return null;
+  const conFuente = det.filter((d) => insumos[d.insumoId]?.fuente).reduce((a, d) => a + d.costo, 0);
+  const pctV = Math.round((conFuente / matTot) * 100);
+  const sinFuente = det.filter((d) => !insumos[d.insumoId]?.fuente);
+  const palabra = pctV >= 80 ? 'sólido' : pctV >= 50 ? 'parcial' : 'flojo';
+  return (
+    <div className="tarjeta">
+      <h2>Confianza del costeo</h2>
+      <div className="ayuda">
+        <strong>{pctV}%</strong> del material viene de precios con fuente verificada — respaldo <strong>{palabra}</strong>.
+      </div>
+      {sinFuente.length > 0 && (
+        <div className="alerta ambar" style={{ marginTop: 8 }}>
+          <span className="texto">
+            {sinFuente.length} {sinFuente.length === 1 ? 'material usa precio' : 'materiales usan precio'} SIN
+            fuente confirmada: {sinFuente.map((d) => d.nombre).slice(0, 4).join(', ')}{sinFuente.length > 4 ? '…' : ''}.
+            Ese pedazo del costo no es 100% de fiar hasta calibrarlo contra una compra o un T.D.C. real.
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Guía honesta del factor de mano de obra (2026-09-24). NO inventa el factor
+// "correcto" (con un solo ejemplo real sería sobreajustar). Hace dos cosas:
+//  1) muestra la MO en pesos y como % del costo, para que el estimador vea si
+//     el factor que eligió es absurdo (caso banca: 55% daba MO = 43% del costo);
+//  2) avisa cuando la pieza es de METAL o mucho COMPRADO — ahí el % sobre
+//     material sobreestima la MO (el metal caro y lo comprado no llevan tanto
+//     trabajo por peso), y sugiere capturar horas medidas.
+function GuiaManoObra({ resultado }) {
+  const matTot = resultado.materialTotal || 0;
+  const det = resultado.detalleInsumos || [];
+  if (matTot <= 0) return null;
+  const share = (pred) => det.filter(pred).reduce((a, d) => a + (d.costo || 0), 0) / matTot;
+  const metal = share((d) => d.seccion === 'metal');
+  const comprado = share((d) => SIN_MO_SECCIONES.has(d.seccion));
+  const moShare = resultado.costoFabricacion > 0 ? resultado.manoObra / resultado.costoFabricacion : 0;
+  const mezclaFloja = metal + comprado > 0.5; // el % sobre material predice mal la MO
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      <div className="ayuda">
+        Con este factor, la mano de obra es <strong>{pesos(resultado.manoObra)}</strong> — {pct(moShare * 100)} del costo de fabricar.
+      </div>
+      {mezclaFloja && (
+        <div className="alerta ambar" style={{ marginTop: 8 }}>
+          <span className="texto">
+            Esta pieza es {pct(metal * 100)} metal y {pct(comprado * 100)} comprado. El factor se cobra
+            sobre el material, y ahí <strong>suele inflar la mano de obra</strong> (el metal caro
+            y lo comprado no llevan tanto trabajo por peso). Si puedes, captúrala <strong>por horas
+            medidas</strong> — o baja el factor. En una banca de metal real la MO fue ~15%, no 55%.
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PuenteModos({ resultado, costeo, set }) {
   const fe = resultado.factorEquivalente;
   if (!isFinite(fe) || resultado.materialDirecto <= 0) return null;

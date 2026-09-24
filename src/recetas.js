@@ -53,6 +53,7 @@ export function construirCosteo(linea, muebleId, estado) {
       ...BASE, piezaId: receta.id, nombre: receta.nombre, linea: linea.nombre,
       componentes: aplicarReglas(receta.componentes, linea.id, estado.insumos),
       modoManoObra: receta.modoManoObra || 'horas', horas: { ...(receta.horas || {}) },
+      modeloCosteo: receta.modeloCosteo, parModelo: receta.parModelo,
       factorDirecta: receta.factorDirecta ?? 55, factorIndirecta: receta.factorIndirecta ?? 12,
       preparacionHoras: receta.preparacionHoras || 0,
     };

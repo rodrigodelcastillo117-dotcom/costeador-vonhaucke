@@ -8,7 +8,7 @@ import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, Cell,
 } from 'recharts';
-import { calcular } from '../motor/calculo.js';
+import { calcular, modeloParaPieza } from '../motor/calculo.js';
 import { pesos, pct1, colorMargen, diasDesde } from '../util.js';
 
 export default function Tablero({ estado, irA, puedeVerDireccion = true, onDireccion }) {
@@ -52,9 +52,10 @@ export default function Tablero({ estado, irA, puedeVerDireccion = true, onDirec
   // Costo por pieza segun el lote (grafica 3), para la ultima pieza
   const curvaLote = useMemo(() => {
     if (!estado.ultimaPieza) return [];
+    const { par } = modeloParaPieza(estado.parametros, estado.ultimaPieza.pieza);
     const pts = [];
     for (let k = 1; k <= 20; k++) {
-      pts.push({ lote: k, costo: Math.round(calcular(estado.ultimaPieza.pieza, k, estado.insumos, estado.parametros).costoUnitario) });
+      pts.push({ lote: k, costo: Math.round(calcular(estado.ultimaPieza.pieza, k, estado.insumos, par).costoUnitario) });
     }
     return pts;
   }, [estado.ultimaPieza, estado.insumos, estado.parametros]);

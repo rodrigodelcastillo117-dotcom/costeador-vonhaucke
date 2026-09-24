@@ -7,7 +7,8 @@ import { FAMILIAS, MUEBLES, lineasDeMueble } from '../datos/catalogo.js';
 import Icono from './Iconos.jsx';
 import { construirCosteo } from '../recetas.js';
 import { recetaBench } from '../datos/bench.js';
-import { calcular, precioDe } from '../motor/calculo.js';
+import { calcular, precioDe, precioVenta, modeloParaPieza } from '../motor/calculo.js';
+import { precioDeLista } from '../datos/preciosVenta.js';
 import { pesos } from '../util.js';
 import HojaCosto from './HojaCosto.jsx';
 import FichaPDF from './FichaPDF.jsx';
@@ -23,8 +24,16 @@ const GANAR = [
 function piezaDe(c) {
   return {
     nombre: c.nombre, componentes: c.componentes, horas: c.horas, modoManoObra: c.modoManoObra,
+    modeloCosteo: c.modeloCosteo,
     factorDirecta: c.factorDirecta, factorIndirecta: c.factorIndirecta, preparacionHoras: c.preparacionHoras,
   };
+}
+
+// Precio según el modelo de la pieza (clásico vs Intelisis) — mismo patrón
+// que ya usan Costeador.jsx/CosteadorLinea.jsx/lineas.js:precioDePieza().
+// No-op hoy: ninguna receta de PIEZAS_SEMILLA declara modeloCosteo todavía.
+function precioSegunModelo(costoUnitario, par, esIntelisis, margen) {
+  return esIntelisis ? precioDeLista(precioVenta(costoUnitario, par).lista) : precioDe(costoUnitario, margen);
 }
 
 export default function Asistente({ estado, onAgregarPartida, onModoAvanzado, onIr, soloVentas = false }) {
@@ -50,8 +59,9 @@ export default function Asistente({ estado, onAgregarPartida, onModoAvanzado, on
     const conPrecio = lineas.map((l) => {
       const c = construirCosteo(l, mueble, estado);
       const tieneReceta = c.componentes.length > 0;
-      const r = tieneReceta ? calcular(piezaDe(c), 1, estado.insumos, estado.parametros) : null;
-      return { linea: l, costeo: c, precio: r ? precioDe(r.costoUnitario, margenObjetivo) : null, tieneReceta };
+      const { par, esIntelisis } = modeloParaPieza(estado.parametros, c);
+      const r = tieneReceta ? calcular(piezaDe(c), 1, estado.insumos, par) : null;
+      return { linea: l, costeo: c, precio: r ? precioSegunModelo(r.costoUnitario, par, esIntelisis, margenObjetivo) : null, tieneReceta };
     });
     conPrecio.sort((a, b) => {
       if (a.precio != null && b.precio != null) return a.precio - b.precio;
@@ -63,11 +73,15 @@ export default function Asistente({ estado, onAgregarPartida, onModoAvanzado, on
   }, [mueble, estado.insumos, estado.parametros]);
 
   // Resultado del costeo actual
+  const { par: parCosteo, esIntelisis: costeoEsIntelisis } = useMemo(
+    () => modeloParaPieza(estado.parametros, costeo || {}),
+    [estado.parametros, costeo]
+  );
   const resultado = useMemo(() => {
     if (!costeo) return null;
-    return calcular(piezaDe(costeo), cantidad, estado.insumos, estado.parametros);
-  }, [costeo, cantidad, estado.insumos, estado.parametros]);
-  const precio = resultado ? precioDe(resultado.costoUnitario, margenEfectivo) : 0;
+    return calcular(piezaDe(costeo), cantidad, estado.insumos, parCosteo);
+  }, [costeo, cantidad, estado.insumos, parCosteo]);
+  const precio = resultado ? precioSegunModelo(resultado.costoUnitario, parCosteo, costeoEsIntelisis, margenEfectivo) : 0;
 
   function escogerFamilia(f) { setFamilia(f); setPaso('mueble'); setAvisoOpcion(''); }
   function escogerMueble(m) { setMueble(m); setPaso('opcion'); setAvisoOpcion(''); }
@@ -228,7 +242,7 @@ export default function Asistente({ estado, onAgregarPartida, onModoAvanzado, on
               <div style={{ textAlign: 'center', margin: '16px 0' }}>
                 <button className="boton fantasma" onClick={() => setVerDetalle((v) => !v)}>{verDetalle ? 'Ocultar el detalle' : 'Ver el detalle de dónde sale'}</button>
               </div>
-              {verDetalle && <HojaCosto resultado={resultado} insumos={estado.insumos} pieza={piezaDe(costeo)} parametros={estado.parametros} />}
+              {verDetalle && <HojaCosto resultado={resultado} insumos={estado.insumos} pieza={piezaDe(costeo)} parametros={parCosteo} />}
             </>
           )}
 

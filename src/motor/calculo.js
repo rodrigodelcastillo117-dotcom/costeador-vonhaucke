@@ -7,6 +7,13 @@
 // ============================================================================
 import { costoAlba, tipoAlba } from './formulaAlba.js';
 
+// Secciones cuyo material se COMPRA ya hecho y solo se instala: NO llevan mano
+// de obra de fabricacion (decision Rafa/Rodrigo, 2026-09-23 — caso banca
+// aeropuerto: los multicontactos Bari no deben cargar MO). Electrico y guardas
+// ya armadas y paneles EcoAcustic entran; pintura/tela/tapiceria NO (esas si
+// llevan MO real). Ajustable aqui si cambia el criterio.
+export const SIN_MO_SECCIONES = new Set(['electrico', 'guardas', 'ecoacustic']);
+
 // -----------------------------------------------------------------------------
 //  Parametros de planta por defecto (master 5.6). Una sola configuracion global.
 //  Los "valores supuestos" (eficiencia, aprovechamiento) se marcan aparte en la
@@ -67,7 +74,7 @@ export const PARAMETROS_DEFAULT = {
   // OTROS
   mermaProceso: 0,             // % de piezas que se rehacen
   empaquePorPieza: 0,
-  margenMinimo: 40,            // % (sobre precio) - aviso interno del costeo
+  margenMinimo: 25,            // % (sobre precio) - aviso interno del costeo (Rodrigo 2026-09-24: el mínimo real es 25, no 40)
   margenObjetivo: 50,          // % (sobre precio) -> PRECIO DE LISTA. Se descuenta desde aqui (Rodrigo 2026-08-12)
   minMarkupLinea: 45,          // % utilidad MINIMA sobre COSTO (markup) en LINEA. Piso al descontar (Miguel/Rodrigo)
   ivaPorcentaje: 16,
@@ -223,7 +230,13 @@ export function netoComponente(comp, n = 1) {
 
 // Costo NETO de material de un componente (area x precio, antes de redondear a
 // tablero). Sirve para mostrar el subtotal por renglon en la interfaz.
+// FRACCION DE HOJA DIRECTA (Rafa §1, 2026-09-23): si el componente trae
+// `comp.hojas`, el estimador ya dio la fraccion de hoja que rinde (como el
+// T.D.C. real) — el costo es fraccion x precio_hoja, sin merma inventada.
 export function costoNetoComponente(comp, insumo, n = 1, par = PARAMETROS_DEFAULT) {
+  if (comp.hojas != null && insumo?.formato) {
+    return noNegativo(comp.hojas * n) * precioDeInsumo(insumo, par);
+  }
   return netoComponente(comp, n) * precioDeInsumo(insumo, par);
 }
 
@@ -251,7 +264,18 @@ function comprarInsumo(insumo, comps, n, par) {
   let hojasExactas = 0;
   let netoSinMedida = 0;
 
+  // FRACCION DE HOJA DIRECTA (Rafa §1, 2026-09-23): un componente con
+  // `comp.hojas` ya trae la fraccion de hoja que rinde (juicio del estimador,
+  // como el T.D.C. real). No pasa por el nesteo ni por el % de aprovechamiento:
+  // su costo es fraccion x precio_hoja, SIN merma inventada. Es la unica forma
+  // de acertar piezas de metal irregulares (asiento perforado, tubular curvo)
+  // que un nesteo de rectangulos infla muchisimo (banca aeropuerto: 73.7% de
+  // merma falsa). Se acumula aparte y se suma al final.
+  let hojasDirectas = 0;
+  const medidaFmt = insumo.formato ? insumo.formato.medida : 0;
+
   for (const c of comps) {
+    if (c.hojas != null && insumo.formato) { hojasDirectas += noNegativo(c.hojas) * n; continue; }
     const netoC = netoComponente(c, n);
     neto += netoC;
     conCorte += netoC * factorMerma;
@@ -292,40 +316,62 @@ function comprarInsumo(insumo, comps, n, par) {
   // hoja para esa misma cubierta, exacto. Lo SIN medida (canto suelto,
   // retazos) no tiene rejilla que calcular, y sigue con el % de
   // aprovechamiento — es lo unico que se puede hacer sin conocer la pieza.
+  // Suma la parte de FRACCION DE HOJA DIRECTA (sin merma) a un resultado base.
+  const conHojas = (R) => {
+    if (hojasDirectas <= 0) return R;
+    const netoT = R.neto + hojasDirectas * medidaFmt;
+    const compradoT = (R.comprado || 0) + hojasDirectas * medidaFmt;
+    return {
+      ...R,
+      neto: netoT,
+      comprado: compradoT,
+      unidades: (R.unidades || 0) + hojasDirectas,
+      costo: R.costo + hojasDirectas * precio,
+      pct: compradoT > 0 ? ((compradoT - netoT) / compradoT) * 100 : 0,
+      fraccion: true,
+    };
+  };
+
   if (insumo.formato && insumo.fraccion) {
     const aprov = par.aprovechamientoCorte > 0 ? par.aprovechamientoCorte / 100 : 1;
     const areaFmt = insumo.formato.medida;
     const hojas = hojasExactas + netoSinMedida / (areaFmt * aprov); // fraccion real de hoja
     const comprado = hojas * areaFmt;              // consumo cargado (incluye scrap de aprovechamiento)
     const precioUnidad = precio / areaFmt;         // precio por m2/kg equivalente
-    return {
+    return conHojas({
       neto, comprado, unidades: hojas, formato: insumo.formato,
       costo: hojas * precio,
       desperdicio: (comprado - neto) * precioUnidad,
       pct: comprado > 0 ? ((comprado - neto) / comprado) * 100 : 0,
       precio, noCabe: hayPiezaQueNoCabe, fraccion: true,
-    };
+    });
+  }
+
+  // Solo componentes de fraccion de hoja (sin piezas de area/cantidad): p.ej.
+  // una lamina capturada 100% por fraccion en el Costeador manual.
+  if (hojasDirectas > 0 && neto === 0 && conCorte === 0) {
+    return conHojas({ neto: 0, comprado: 0, unidades: 0, formato: insumo.formato, costo: 0, desperdicio: 0, pct: 0, precio, noCabe: false });
   }
 
   // Sin formato, o material de inventario: el sobrante se guarda, no se redondea
   if (!insumo.formato || insumo.inventario) {
-    return {
+    return conHojas({
       neto, comprado: conCorte, unidades: null, costo: conCorte * precio,
       desperdicio: (conCorte - neto) * precio,
       pct: conCorte > 0 ? ((conCorte - neto) / conCorte) * 100 : 0,
       precio, noCabe: false,
-    };
+    });
   }
 
   const porArea = Math.ceil(conCorte / insumo.formato.medida - 1e-9);
   const unidades = Math.max(tablerosRejilla, porArea);
   const comprado = unidades * insumo.formato.medida;
-  return {
+  return conHojas({
     neto, comprado, unidades, formato: insumo.formato, costo: comprado * precio,
     desperdicio: (comprado - neto) * precio,
     pct: comprado > 0 ? ((comprado - neto) / comprado) * 100 : 0,
     precio, noCabe: hayPiezaQueNoCabe,
-  };
+  });
 }
 
 // -----------------------------------------------------------------------------
@@ -400,6 +446,7 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
 
   let materialDirecto = 0;
   let materialIndirecto = 0;
+  let materialSinMO = 0;   // comprado ya hecho, solo se instala: NO lleva mano de obra
   let desperdicioTotal = 0;
   const detalleInsumos = [];
 
@@ -408,6 +455,12 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     const r = comprarInsumo(insumo, comps, n, par);
     if (insumo.clase === 'indirecta') materialIndirecto += r.costo;
     else materialDirecto += r.costo;
+    // MO NO sobre lo comprado (Rafa/Rodrigo, 2026-09-23): los componentes que
+    // Von Haucke compra YA HECHOS y solo instala —electrico, guardas armadas,
+    // paneles EcoAcustic— no llevan mano de obra de fabricacion. Se restan de
+    // la base de MO abajo. Pintura/tela/tapiceria NO entran aqui: esas SI
+    // llevan mano de obra real (pintar, tapizar).
+    if (SIN_MO_SECCIONES.has(insumo.seccion)) materialSinMO += r.costo;
     desperdicioTotal += r.desperdicio;
     detalleInsumos.push({
       insumoId: id,
@@ -448,9 +501,13 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     manoObra = alba.mo;
     giAlba = alba.gi;
   } else {
+    // MO NO sobre lo comprado: los componentes de SIN_MO_SECCIONES (comprados
+    // ya hechos, solo se instalan) salen de la base de mano de obra. Son clase
+    // 'indirecta', asi que se restan de esa base.
+    const baseIndirectaMO = Math.max(0, materialIndirecto - materialSinMO);
     manoObra =
       materialDirecto * (factorDirecta / 100) +
-      materialIndirecto * (factorIndirecta / 100);
+      baseIndirectaMO * (factorIndirecta / 100);
   }
 
   // Puente entre los dos modos (6.4): que % equivaldrian las horas medidas
@@ -527,6 +584,26 @@ export function precioDe(costoUnitario, margen) {
 
 export function utilidadDe(costoUnitario, margen) {
   return precioDe(costoUnitario, margen) - costoUnitario;
+}
+
+// ⚠️ ESTA FUSIÓN VIVÍA DUPLICADA (2026-08-20): `lineas.js:precioDePieza()` y
+// `CosteadorLinea.jsx` la reimplementaban cada quien por su lado, y otros 6
+// sitios que llaman `calcular()`/`precioVenta()` directo (Costeador.jsx,
+// Tablero.jsx, Asistente.jsx, AsistenteEspecial.jsx, Catalogo.jsx, el
+// respaldo de App.jsx) no la aplicaban en absoluto — si una pieza fuera de
+// App LT algún día declarara `modeloCosteo:'intelisis'` con tarifas reales
+// calibradas, solo 2 de 8 pantallas la habrían tratado bien. Sin esto,
+// `calcular()` YA lee `pieza.modeloCosteo` sola, pero `precioVenta()` sólo
+// lee `par.modeloCosteo` — por eso hace falta empujar el modelo Y las
+// tarifas de la pieza hacia los PARÁMETROS antes de llamar a cualquiera de
+// las dos. Hoy es un no-op fuera de App LT/App: ninguna otra pieza declara
+// `modeloCosteo` todavía.
+export function modeloParaPieza(parametrosBase, pieza) {
+  const esIntelisis = pieza?.modeloCosteo === 'intelisis';
+  const par = esIntelisis
+    ? { ...parametrosBase, modeloCosteo: 'intelisis', usarCostoPorArea: true, ...(pieza.parModelo || {}) }
+    : parametrosBase;
+  return { par, esIntelisis };
 }
 
 // Precio segun el modelo activo. En 'intelisis' el costoUnitario YA es el

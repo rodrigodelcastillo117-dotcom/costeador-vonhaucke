@@ -20,6 +20,7 @@
 //  a otro costo no es un precio: es un recuerdo.
 // ============================================================================
 import { nube } from '../nube.js';
+import { totalesCotizacion } from './totales.js';
 
 // ---------------------------------------------------------------------------
 //  HUELLA DE LA MATERIA PRIMA
@@ -57,7 +58,11 @@ export function mpCambio(cot, insumosHoy) {
 export function paraGuardar(estado, usuario) {
   const cot = estado?.cotizacion || {};
   const partidas = cot.partidas || [];
-  const total = partidas.reduce((a, p) => a + (p.precioUnitario || 0) * (p.cantidad || 0), 0);
+  // La MISMA escalera de dinero que ve el cliente en pantalla y firma en el PDF
+  // (src/datos/totales.js), no una suma cruda aparte. Antes aquí se guardaba
+  // `Math.round(Σ precio×cantidad)` —la suma de renglones SIN descuento, maniobras,
+  // flete ni IVA—, así que el número del Archivo no era el total emitido. FIX-05.
+  const t = totalesCotizacion(partidas, cot, estado?.parametros || {});
   return {
     folio: cot.folio || null,
     cliente: cot.cliente || null,
@@ -65,13 +70,24 @@ export function paraGuardar(estado, usuario) {
     estado: cot.estadoComercial || 'borrador',
     partidas,
     acomodo: cot.acomodo || null,
+    // Se guarda el desglose completo, no solo los pct: así una reimpresión o el
+    // Archivo reproducen el total al peso sin recalcular con parámetros de hoy.
     totales: {
-      descuentoPct: cot.descuentoPct ?? null,
-      contingenciaPct: cot.contingenciaPct ?? null,
-      maniobrasPct: cot.maniobrasPct ?? null,
-      fletePct: cot.fletePct ?? null,
+      descuentoPct: t.descuentoPct,
+      contingenciaPct: t.contingenciaPct,
+      maniobrasPct: t.maniobrasPct,
+      fletePct: t.fletePct,
+      ivaPct: t.ivaPct,
+      precioLista: Math.round(t.precioLista),
+      descuento: Math.round(t.descuento),
+      subtotal: Math.round(t.subtotal),
+      contingencia: Math.round(t.contingencia),
+      maniobras: Math.round(t.maniobras),
+      flete: Math.round(t.flete),
+      iva: Math.round(t.iva),
+      total: t.totalRedondeado,
     },
-    total: Math.round(total),
+    total: t.totalRedondeado,
     piezas: partidas.reduce((a, p) => a + (p.cantidad || 0), 0),
     huella_mp: huellaMP(estado?.insumos),
   };

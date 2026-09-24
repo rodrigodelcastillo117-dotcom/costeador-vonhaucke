@@ -8,6 +8,7 @@ import {
   netoComponente,
   costoNetoComponente,
   PARAMETROS_DEFAULT,
+  modeloParaPieza,
 } from './calculo.js';
 
 // ---------------------------------------------------------------------------
@@ -256,6 +257,73 @@ describe('15. Fraccion de hoja (aprovechamiento)', () => {
     const chica = { componentes: [{ insumoId: 'melamina-hoja', nombre: 'Ceja', cantidad: 0.1 }], modoManoObra: 'porcentaje' };
     expect(calcular(chica, 1, INS).materialDirecto).toBeLessThan(60);
   });
+
+});
+
+// FRACCION DE HOJA DIRECTA (Rafa §1, 2026-09-23). El estimador captura "0.8 de
+// hoja cal 10" (comp.hojas) igual que el T.D.C. real, en vez de nestear
+// rectangulos —imposible de acertar en metal irregular, que inflaba la merma
+// (banca aeropuerto: 73.7% de merma falsa). Costo = fraccion x precio_hoja, sin
+// merma inventada, sin tocar las lineas que usan lamina en kg.
+describe('16. Fracción de hoja directa (comp.hojas)', () => {
+  const cal10 = {
+    id: 'lam10', clase: 'directa', precio: 2016.8, unidad: 'hoja',
+    fraccion: true, formato: { tipo: 'lamina', corto: 'cal10', medida: 79.9 },
+  };
+  const INS = { lam10: cal10 };
+
+  it('0.8 de hoja = 0.8 x precio_hoja, exacto, con CERO desperdicio', () => {
+    const pieza = { componentes: [{ insumoId: 'lam10', nombre: 'Asiento', hojas: 0.8 }], modoManoObra: 'porcentaje' };
+    const r = calcular(pieza, 1, INS);
+    expect(r.detalleInsumos[0].costo).toBeCloseTo(0.8 * 2016.8, 2); // 1613.44
+    expect(r.detalleInsumos[0].desperdicio).toBe(0);
+    expect(r.materialTotal).toBeCloseTo(1613.44, 2);
+  });
+
+  it('el kg crudo de las líneas (cantidad) sigue intacto', () => {
+    const pieza = { componentes: [{ insumoId: 'lam10', nombre: 'Est.', cantidad: 40 }], modoManoObra: 'porcentaje' };
+    const r = calcular(pieza, 1, INS); // 40 kg / (79.9 kg/hoja x 0.8 aprov) x precio
+    expect(r.detalleInsumos[0].costo).toBeGreaterThan(0);
+    expect(r.detalleInsumos[0].fraccion).toBe(true);
+  });
+
+  it('escala con el lote: 2 piezas = doble hojas y doble costo', () => {
+    const pieza = { componentes: [{ insumoId: 'lam10', nombre: 'Asiento', hojas: 0.8 }], modoManoObra: 'porcentaje' };
+    const r1 = calcular(pieza, 1, INS);
+    const r2 = calcular(pieza, 2, INS);
+    expect(r2.materialTotal).toBeCloseTo(r1.materialTotal * 2, 2);
+  });
+});
+
+// MO NO sobre lo comprado (Rafa/Rodrigo, 2026-09-23). Lo que Von Haucke compra
+// ya hecho y solo instala (electrico, guardas armadas, EcoAcustic) no lleva
+// mano de obra de fabricacion. Pintura/tela/tapiceria SI la llevan.
+describe('17. Mano de obra no se cobra sobre lo comprado', () => {
+  const INS = {
+    metal:   { id: 'metal', nombre: 'Metal', clase: 'directa', seccion: 'metal', precio: 100, unidad: 'kg' },
+    bari:    { id: 'bari', nombre: 'Bari', clase: 'indirecta', seccion: 'electrico', precio: 887, unidad: 'pza' },
+    pintura: { id: 'pintura', nombre: 'Pintura', clase: 'indirecta', seccion: 'acabados', precio: 200, unidad: 'kg' },
+  };
+
+  it('un componente eléctrico comprado no suma mano de obra', () => {
+    const pieza = {
+      modoManoObra: 'porcentaje', factorDirecta: 55, factorIndirecta: 12,
+      componentes: [
+        { insumoId: 'metal', cantidad: 50 },   // $5000 fabricado -> 55% = 2750
+        { insumoId: 'bari', cantidad: 2 },      // $1774 comprado -> 0
+        { insumoId: 'pintura', cantidad: 1 },   // $200 acabado -> 12% = 24
+      ],
+    };
+    expect(calcular(pieza, 1, INS).manoObra).toBeCloseTo(2750 + 24, 2);
+  });
+
+  it('sin el eléctrico, la MO no cambia (era 0 de todos modos)', () => {
+    const con = calcular({ modoManoObra: 'porcentaje', factorDirecta: 55, factorIndirecta: 12,
+      componentes: [{ insumoId: 'metal', cantidad: 50 }, { insumoId: 'bari', cantidad: 2 }] }, 1, INS);
+    const sin = calcular({ modoManoObra: 'porcentaje', factorDirecta: 55, factorIndirecta: 12,
+      componentes: [{ insumoId: 'metal', cantidad: 50 }] }, 1, INS);
+    expect(con.manoObra).toBeCloseTo(sin.manoObra, 2);
+  });
 });
 
 // ===========================================================================
@@ -422,5 +490,37 @@ describe('nada negativo llega a ser dinero', () => {
     // 1.5 m × 0.6 m = 0.9 m². Si esta prueba cambia, el arreglo se pasó de listo.
     expect(netoComponente(cubierta)).toBeCloseTo(0.9, 6);
     expect(netoComponente({ ...cubierta, piezas: 2 }, 3)).toBeCloseTo(5.4, 6);
+  });
+});
+
+// ---------------------------------------------------------------------------
+//  modeloParaPieza() — la fusión que antes vivía duplicada en lineas.js y
+//  CosteadorLinea.jsx (2026-08-20). No debe inventar nada nuevo, solo
+//  reflejar exactamente lo que las dos implementaciones ya hacían.
+// ---------------------------------------------------------------------------
+describe('modeloParaPieza()', () => {
+  const base = { modeloCosteo: 'clasico', margenObjetivo: 50 };
+
+  it('pieza clásica: el mismo objeto de parámetros, sin copiar nada', () => {
+    const { par, esIntelisis } = modeloParaPieza(base, { modoManoObra: 'porcentaje' });
+    expect(par).toBe(base);
+    expect(esIntelisis).toBe(false);
+  });
+
+  it('pieza sin modeloCosteo: igual que clásica, sin importar qué diga par.modeloCosteo global', () => {
+    const { par, esIntelisis } = modeloParaPieza({ ...base, modeloCosteo: 'intelisis' }, {});
+    expect(esIntelisis).toBe(false);
+    expect(par.modeloCosteo).toBe('intelisis'); // no se toca lo que ya traía parametrosBase
+  });
+
+  it('pieza intelisis: fusiona modeloCosteo, usarCostoPorArea, y las tarifas de parModelo', () => {
+    const parModelo = { costoHoraArea: { carpinteria: 54.55 }, costoHoraGIF: { carpinteria: 190.82 }, utilidadPct: 20 };
+    const { par, esIntelisis } = modeloParaPieza(base, { modeloCosteo: 'intelisis', parModelo });
+    expect(esIntelisis).toBe(true);
+    expect(par.modeloCosteo).toBe('intelisis');
+    expect(par.usarCostoPorArea).toBe(true);
+    expect(par.costoHoraArea).toEqual(parModelo.costoHoraArea);
+    expect(par.utilidadPct).toBe(20);
+    expect(par.margenObjetivo).toBe(50); // lo demás de parametrosBase sigue ahí
   });
 });

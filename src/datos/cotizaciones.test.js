@@ -50,9 +50,15 @@ describe('lo que se guarda', () => {
     },
   };
 
-  it('calcula total y piezas', () => {
+  it('guarda el total EMITIDO (con descuento e IVA), no la suma cruda de renglones', () => {
     const f = paraGuardar(estado, 'rodrigo@vonhaucke.mx');
-    expect(f.total).toBe(2 * 17600 + 12 * 5210);
+    // Suma de renglones 97,720 · −15% descuento → 83,062 subtotal · +16% IVA
+    // → 96,352 redondeado. ANTES aquí se guardaba 97,720 —la suma sin descuento
+    // ni IVA—, así que el número del Archivo NO era el que el cliente firmaba.
+    // Este test codificaba ese bug; ahora exige el total emitido real. FIX-05.
+    expect(f.total).toBe(96352);
+    expect(f.total).not.toBe(2 * 17600 + 12 * 5210); // ya no es la suma cruda
+    expect(f.totales.total).toBe(96352);             // el desglose cuadra con el total
     expect(f.piezas).toBe(14);
     expect(f.usuario).toBe('rodrigo@vonhaucke.mx');
   });

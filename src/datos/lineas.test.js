@@ -247,4 +247,20 @@ describe('huella de cada mueble', () => {
     }
     expect(malas).toEqual([]);
   });
+
+  // P0 (audit externo 2026-09-24): la rama de coincidencia con catálogo (precio
+  // REAL) omitía `cantidad`, y los totales hacen precio × (cantidad||0) → el
+  // renglón se perdía ($0). Ninguna rama de costearItem debe soltar la cantidad.
+  it('P0: costearItem NUNCA pierde la cantidad (ni en la rama de catálogo)', () => {
+    const cat = catalogoIA();
+    const malas = [];
+    for (const ruta of Object.keys(cat)) {
+      for (const p of cat[ruta].productos || []) {
+        let c; try { c = costearItem(estado, { ruta, producto: p.id, cantidad: 3, seleccion: [] }); } catch (e) { continue; }
+        if (!c) continue;
+        if (c.cantidad !== 3) malas.push(`${ruta}/${p.id} cantidad=${c.cantidad}${c.precioReal ? ' (catálogo)' : ''}`);
+      }
+    }
+    expect(malas).toEqual([]);
+  });
 });

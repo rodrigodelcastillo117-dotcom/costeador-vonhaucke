@@ -5,7 +5,7 @@
 //  este mismo despiece leyendo una imagen con IA).
 // ============================================================================
 import { useMemo, useState } from 'react';
-import { calcular, precioDe, netoComponente } from '../motor/calculo.js';
+import { calcular, precioDe, netoComponente, modeloParaPieza } from '../motor/calculo.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos } from '../util.js';
 import { analizarRender } from '../nube.js';
@@ -76,7 +76,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
   });
   const set = (parcial) => setB((prev) => ({ ...prev, ...parcial }));
 
-  const par = { ...estado.parametros };
+  const { par } = modeloParaPieza(estado.parametros, b);
   const esArea = (ins) => !!ins && (ins.formato?.tipo === 'tablero' || ins.unidad === 'm2');
 
   // ⚠️ Faltaba `estado.parametros` en las dependencias: si Dirección cambia un

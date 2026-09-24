@@ -224,8 +224,16 @@ export const FICHA_RENDER = {
   'privacy4/lambrin': { w: 0, d: 0, alto: 0, tipo: '', medidas: '' },
 };
 
+// Solo cuenta como render real el que se generó A PARTIR de la foto real de
+// ESA pieza. 51 de 118 productos nunca tuvieron foto propia; para esos, el
+// batch generó la imagen con la foto de OTRO mueble hermano de la línea como
+// referencia de estilo y le pidió a la IA inventar la forma desde el nombre y
+// las medidas — no corresponde al mueble real (hallazgo de Edgar Serna en
+// Eclipse: credenza, credenza_modulable, credenza_vertical, gaveta,
+// mesa_regulable). Sin foto propia de respaldo, cae a heroLinea() vía
+// imagenPartida() en vez de mostrar una pieza fabricada como si fuera real.
 export const renderIA = (ruta, prodId) =>
-  (RENDER_IA[ruta] || []).includes(prodId) ? `${RENDER_IA_BASE}/${ruta}/${prodId}.jpg` : null;
+  (RENDER_IA[ruta] || []).includes(prodId) && fotoProducto(ruta, prodId) ? `${RENDER_IA_BASE}/${ruta}/${prodId}.jpg` : null;
 
 export const fichaRender = (ruta, prodId) => FICHA_RENDER[`${ruta}/${prodId}`] || null;
 // >>> fin RENDER_IA

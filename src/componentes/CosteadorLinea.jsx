@@ -5,13 +5,11 @@
 //  Data-driven: agregar una línea nueva es solo pasar sus datos + generador.
 // ============================================================================
 import { useMemo, useState } from 'react';
-import { calcular, precioDe, precioVenta } from '../motor/calculo.js';
 import { pesos } from '../util.js';
 import { imagenProducto, fichaRender } from '../datos/imagenes.js';
-import { footprintDe } from '../datos/lineas.js';
-import { buscarPrecioVenta, costoImplicito, precioDeLista } from '../datos/preciosVenta.js';
-import { factorDeLinea } from '../datos/factoresLinea.js';
-import { precioPorUsuarioAppLT } from '../datos/preciosVenta.js';
+import { hexDeColor } from '../datos/coloresHex.js';
+import { footprintDe, precioDePieza } from '../datos/lineas.js';
+import { buscarPrecioVenta, precioDeLista } from '../datos/preciosVenta.js';
 import HojaCosto from './HojaCosto.jsx';
 import FichaPDF from './FichaPDF.jsx';
 
@@ -72,16 +70,8 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
 
   const config = { producto: prodId, largoMM: largo, fondoMM: fondo, diametroMM: diametro, usuarios, largoLateralMM: largoLateral, biombo, finish, color, gavetas, ...sels, ...checks };
   const g = useMemo(() => generar(config), [prodId, largo, fondo, diametro, usuarios, largoLateral, biombo, finish, color, gavetas, sels, checks]);
-  // Modelo de costeo: si el generador lo declara 'intelisis' (App LT), usa la cascada
-  // real (tarifas de planta + precioVenta lista); si no, el clásico (margen sobre precio).
   const esIntelisis = g.modeloCosteo === 'intelisis';
-  const par = useMemo(() => (esIntelisis ? { ...estado.parametros, modeloCosteo: 'intelisis', usarCostoPorArea: true, ...(g.parModelo || {}) } : estado.parametros), [esIntelisis, estado.parametros, g.parModelo]);
   const pieza = { nombre: g.nombre, componentes: g.componentes, horas: g.horas, modoManoObra: g.modoManoObra, modeloCosteo: g.modeloCosteo, factorDirecta: g.factorDirecta, factorIndirecta: g.factorIndirecta };
-  const resultado = useMemo(() => calcular(pieza, cantidad, estado.insumos, par), [g, cantidad, estado.insumos, par]);
-  // Von Haucke nunca cotiza el "precio 2": siempre lleva −40% para llegar al
-  // precio de lista. Aplica al modelo Intelisis y al price-book; el modelo
-  // clásico ya sale de costo × margen y no pasa por ahí.
-  const precioModelo = esIntelisis ? precioDeLista(precioVenta(resultado.costoUnitario, par).lista) : precioDe(resultado.costoUnitario, margen);
   // Precio de venta REAL (price-book) si existe esta config; si no, el modelo.
   // 🐛 2026-08-16: a esta lista de dependencias le faltaban `sels` y `checks`, y
   // eso se ve nada más ejercitando la pantalla. Al marcar "Biombos laterales" el
@@ -90,15 +80,19 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
   // presupuesto. Cualquier opción que viva en un select o en una casilla —
   // laterales, divisores, el modelo de archivero Modulor, los frentes de la
   // gaveta Mox— tiene que estar aquí o su ancla de papel es inalcanzable en vivo.
+  // Se sigue calculando aparte de `precioDePieza()` porque acá hace falta el
+  // objeto completo (`real.fuente`, `real.nota`, `real.incluyeElectrico`), no
+  // sólo el precio que ese helper ya deriva de él.
   const real = useMemo(() => buscarPrecioVenta(linea, config), [linea, prodId, largo, fondo, usuarios, biombo, sels, checks]);
-  const factor = (g.factorPrecio || 1) * factorDeLinea(linea, prodId);
-  // Las bancas App LT se cobran POR USUARIO (Rodrigo, 2026-08-16): la escalera
-  // sale de presupuestos cerrados y manda sobre el modelo, que venía ~20%
-  // arriba. Si hay precio REAL de esta configuración exacta, ése sigue mandando.
-  const porUsuario = !real && linea === 'applt' ? precioPorUsuarioAppLT(config) : null;
-  const precio = real ? precioDeLista(real.lista) : (porUsuario ? porUsuario.lista : precioModelo * factor);
-  const costoModulo = real ? costoImplicito(real.lista)
-    : (porUsuario ? costoImplicito(porUsuario.lista / (1 - 0.40)) : resultado.costoUnitario * factor);
+  // Modelo de costeo (clásico vs Intelisis), precio real del price-book,
+  // precio por usuario y el factor de calibración: toda esa cascada vive en
+  // `precioDePieza()` (lineas.js) — la MISMA que usa Voni. Antes estaba
+  // reimplementada aquí aparte (2026-08-20: de-duplicado, ver comentario en
+  // `modeloParaPieza()` en motor/calculo.js).
+  const { resultado, precio, costo: costoModulo, par } = useMemo(
+    () => precioDePieza(estado, linea, g, pieza, cantidad, config),
+    [g, cantidad, estado.insumos, estado.parametros, linea, config]
+  );
   // Add-ons: si el módulo real YA incluye eléctrico, no lo cobres otra vez.
   const addons = (g.addons || []).filter((a) => !(real?.incluyeElectrico && a.id === 'electrico'));
   const totalAddons = addons.reduce((s, a) => s + precioDeLista(a.lista) * (a.cantidad || 1), 0);
@@ -176,7 +170,15 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
               <>
                 <label className="etiqueta">Color</label>
                 <div className="chips" style={{ marginBottom: 8 }}>
-                  {prod.colores.map((c) => <button key={c.id} className={`chip ${(color || prod.colores[0].id) === c.id ? 'on' : ''}`} onClick={() => setColor(c.id)}>{c.label}</button>)}
+                  {prod.colores.map((c) => {
+                    const hex = hexDeColor(c.id);
+                    return (
+                      <button key={c.id} className={`chip ${(color || prod.colores[0].id) === c.id ? 'on' : ''}`} onClick={() => setColor(c.id)}>
+                        {hex && <span className="chip-swatch" style={{ background: hex }} />}
+                        {c.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </>
             )}

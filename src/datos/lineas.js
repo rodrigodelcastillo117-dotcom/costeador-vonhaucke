@@ -30,7 +30,8 @@ import { ALBA_PRODUCTOS, generarAlba } from './alba.js';
 import { FEATHER_PRODUCTOS, generarFeather } from './feather.js';
 import { WORKLOUNGE_PRODUCTOS, generarWorklounge } from './worklounge.js';
 import { CIRQUE_PRODUCTOS, generarCirque } from './cirque.js';
-import { calcular, precioDe, precioVenta } from '../motor/calculo.js';
+import { ECOACUSTIC_PRODUCTOS, generarEcoAcustic } from './ecoacustic.js';
+import { calcular, precioDe, precioVenta, modeloParaPieza } from '../motor/calculo.js';
 import { buscarPrecioVenta, costoImplicito, precioDeLista } from './preciosVenta.js';
 import { factorDeLinea } from './factoresLinea.js';
 import { precioPorUsuarioAppLT } from './preciosVenta.js';
@@ -65,6 +66,7 @@ export const LINEAS_REG = {
   accents: { titulo: 'Accents', productos: ACCENTS_PRODUCTOS, generar: generarAccents },
   teamspace2: { titulo: 'TeamSpace II', productos: TEAMSPACE2_PRODUCTOS, generar: generarTeamspace2 },
   privacy4: { titulo: 'Privacy 4', productos: PRIVACY4_PRODUCTOS, generar: generarPrivacy4 },
+  ecoacustic: { titulo: 'EcoAcustic', productos: ECOACUSTIC_PRODUCTOS, generar: generarEcoAcustic },
 };
 
 // --- Arma el config EXACTO que espera el generador (idéntico a CosteadorLinea) --
@@ -207,11 +209,8 @@ function nombreConBloque(nombre, ruta, w, d) {
 //   2) si el generador declara modelo 'intelisis' (cascada real de planta), se
 //      usa esa cascada;
 //   3) si no, el modelo clásico de siempre.
-function precioDePieza(estado, ruta, g, pieza, cantidad, config) {
-  const esIntelisis = g.modeloCosteo === 'intelisis';
-  const par = esIntelisis
-    ? { ...estado.parametros, modeloCosteo: 'intelisis', usarCostoPorArea: true, ...(g.parModelo || {}) }
-    : estado.parametros;
+export function precioDePieza(estado, ruta, g, pieza, cantidad, config) {
+  const { par, esIntelisis } = modeloParaPieza(estado.parametros, g);
   const piezaFull = { ...pieza, modeloCosteo: g.modeloCosteo, factorDirecta: g.factorDirecta, factorIndirecta: g.factorIndirecta };
   const resultado = calcular(piezaFull, cantidad, estado.insumos, par);
   const margen = estado.parametros.margenObjetivo ?? 50;
@@ -234,7 +233,7 @@ function precioDePieza(estado, ruta, g, pieza, cantidad, config) {
   const precio = real ? precioDeLista(real.lista) : (porUsuario ? porUsuario.lista : precioModelo * factor);
   const costo = real ? costoImplicito(real.lista)
     : (porUsuario ? costoImplicito(porUsuario.lista / (1 - 0.40)) : resultado.costoUnitario * factor);
-  return { resultado, margen, precio, costo, real: !!real && !real.heredada };
+  return { resultado, margen, precio, costo, real: !!real && !real.heredada, par };
 }
 
 export function costearItem(estado, item) {
@@ -364,6 +363,12 @@ export function costearItem(estado, item) {
     // el price-book): así Dirección sigue viendo una utilidad coherente.
     return {
       ruta: item.ruta, linea: L.titulo, producto: prod.id, nombre: nb.nombre,
+      // ⚠️ `cantidad` DEBE IR AQUÍ. Sin él, la rama de catálogo (la de PRECIO
+      // REAL) devolvía la partida sin cantidad y los totales la multiplicaban
+      // por `cantidad || 0` = $0 — se perdía el renglón entero (audit externo
+      // 2026-09-24, P0: 10 partidas firmes sin cantidad en cotizaciones reales).
+      // La rama de precio calculado (abajo) siempre la traía; esta la olvidaba.
+      cantidad,
       // ⚠️ COSTO SUBESTIMADO ~40-50% (auditoría 2026-08-19). `costoImplicito()`
       // espera PRECIO 2 (divide entre 3.6) — pero `a.lista` aquí es Precio
       // LISTA, ya con el descuento real del artículo aplicado (47%-60%, no un
@@ -371,6 +376,10 @@ export function costearItem(estado, item) {
       // `a.full` (el Precio 2 real de CADA artículo, ya viene en los datos)
       // en vez de aproximar con un descuento fijo.
       costoUnitario: costoImplicito(a.full || a.lista), precioUnitario: precio, margen, pieza,
+      // El costo aquí es DERIVADO del precio (costoImplicito ≈ precio/3.6), no de
+      // un despiece real. Se marca para NO presentar su margen como medido
+      // (audit 2026-09-24): la pantalla lo muestra con "≈".
+      costoDerivado: true,
       w: nb.w, d: nb.d, config,
       precioReal: true, catalogo, variantes,
       avisos, candadoUsuarios, requiereProyectista,

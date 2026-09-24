@@ -32,7 +32,7 @@ export const REGLAS_DEFAULT = {
   l_contra_muro: 1,
   sillas_visita_privado: 2,
   descuento_precio2: 40,
-  margen_min: 40,
+  margen_min: 25,
 };
 
 // Caché en memoria: el motor consulta esto en caliente, dentro de bucles.

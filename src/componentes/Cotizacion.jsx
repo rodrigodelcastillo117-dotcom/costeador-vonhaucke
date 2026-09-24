@@ -11,6 +11,7 @@ import { descargarPropuesta, cargarFotos, cargarMarca } from '../datos/pdfPropue
 import EditarPartida, { sePuedeEditar } from './EditarPartida.jsx';
 import { pesos, leePct, selloPartida } from '../util.js';
 import { senalesCotizacion, senalesInsumos } from '../datos/senales.js';
+import { totalesCotizacion } from '../datos/totales.js';
 import { imagenPartida } from '../datos/imagenes.js';
 import VoniAvatar from './VoniAvatar.jsx';
 import { confianzaDe, textoConfianza } from '../datos/confianza.js';
@@ -175,7 +176,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         cuartos: listaPorCuarto(partidas, estado.cotizacion?.acomodo),
         totales: { precioLista, descuento, descuentoPct, subtotal, contingencia, contingenciaPct,
           maniobras, maniobrasPct, flete, fletePct,
-          iva, ivaPct: estado.parametros.ivaPorcentaje, total,
+          iva, ivaPct, total,
           anticipoPct, anticipo, cliente: cot.cliente, folio: cot.folio },
       });
     } catch (e) {
@@ -209,39 +210,20 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   // ("Sin ubicar") en vez de mentir con áreas inventadas.
   const resumen = useMemo(() => resumenPorArea(partidas, estado.cotizacion?.acomodo), [partidas, estado.cotizacion?.acomodo]);
 
-  const precioLista = partidas.reduce((a, p) => a + p.precioUnitario * p.cantidad, 0);
-  const descuentoPct = cot.descuentoPct ?? estado.parametros.descuentoPorcentaje ?? 0;
-  const descuento = precioLista * (descuentoPct / 100);
-  const subtotal = precioLista - descuento;
-  const contingenciaPct = cot.contingenciaPct ?? estado.parametros.contingenciaPorcentaje ?? 0;
-  const contingencia = subtotal * (contingenciaPct / 100);
-  // MANIOBRAS Y FLETE: renglones REALES de los presupuestos de Von Haucke que la
-  // app no cobraba —sólo los mencionaba en letra chica al pie—. Ésa es la
-  // discusión más cara que existe con un cliente cuando la obra ya está entregada.
-  // Van sobre el subtotal ya descontado, igual que en el papel.
-  const maniobrasPct = cot.maniobrasPct ?? estado.parametros.maniobrasPorcentaje ?? 0;
-  const maniobras = subtotal * (maniobrasPct / 100);
-  const fletePct = cot.fletePct ?? estado.parametros.fletePorcentaje ?? 0;
-  const flete = subtotal * (fletePct / 100);
-  const baseGravable = subtotal + contingencia + maniobras + flete;
-  const iva = baseGravable * (estado.parametros.ivaPorcentaje / 100);
-  const total = baseGravable + iva;
-  // ⚠️ EL TOTAL QUE SE VE EN PANTALLA PODÍA DIFERIR $1 DEL QUE SALE EN EL PDF
-  // (2026-08-19). pdfPropuesta.js ya arregló esto el 2026-08-17 sumando los
-  // RENGLONES YA REDONDEADOS (cada `pesos()` de la escalera es un Math.round
-  // independiente) en vez del total crudo sin redondear — pero acá, en
-  // pantalla, seguía usando el float `total`. Un cliente que ve la pantalla y
-  // luego recibe el PDF de la MISMA cotización podía ver dos números
-  // distintos. Se replica aquí el mismo cálculo: la suma de lo que el
-  // vendedor YA VE redondeado renglón por renglón, no el total sin redondear.
-  const totalRedondeado = Math.round(precioLista) - Math.round(descuento) + Math.round(contingencia)
-    + Math.round(maniobras) + Math.round(flete) + Math.round(iva);
+  // TODA la escalera de dinero —suma, descuento, subtotal, imprevistos, maniobras,
+  // flete, IVA, total, anticipo— sale de UNA sola función (src/datos/totales.js),
+  // la misma que guarda cotizaciones.js y con la que se arma el PDF. Antes esto
+  // se calculaba inline aquí, otra vez en el PDF y de forma DISTINTA (sin IVA ni
+  // descuento) al guardar: tres números para el mismo folio. `totalRedondeado` =
+  // suma de los renglones ya redondeados al peso = lo que el cliente ve y firma
+  // (el PDF cuadra al peso porque suma esos mismos renglones); `total` es el
+  // flotante, uso interno. MANIOBRAS/FLETE van sobre el subtotal ya descontado,
+  // igual que en el papel de Von Haucke.
+  const { precioLista, descuentoPct, descuento, subtotal, contingenciaPct, contingencia,
+    maniobrasPct, maniobras, fletePct, flete, ivaPct, iva, baseGravable, total, totalRedondeado,
+    anticipoPct, anticipo } = totalesCotizacion(partidas, cot, estado.parametros);
   const costoTotal = partidas.reduce((a, p) => a + (p.costoUnitario || 0) * p.cantidad, 0);
   const utilidadTotal = baseGravable - costoTotal;
-  const anticipoPct = estado.parametros.anticipoPorcentaje ?? 50;
-  // Del total YA redondeado, no del crudo — si no, anticipo + saldo no dan el
-  // TOTAL que está impreso tres renglones arriba.
-  const anticipo = Math.round(totalRedondeado * (anticipoPct / 100));
   const minMarkup = estado.parametros.minMarkupLinea ?? 45;
   const factorDesc = 1 - descuentoPct / 100;
   const markupPartida = (pt) => (pt.costoUnitario > 0 ? ((pt.precioUnitario * factorDesc - pt.costoUnitario) / pt.costoUnitario) * 100 : null);
@@ -433,7 +415,9 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                 </tr></thead>
                 <tbody>
                   {partidas.map((pt, i) => {
-                    const sinCosto = pt.margen == null || pt.deBanco;
+                    // costo $0 = costo DESCONOCIDO, no margen del 100% (audit
+                    // externo 2026-09-24): nunca presentar margen sobre costo 0/proxy.
+                    const sinCosto = pt.margen == null || pt.deBanco || !(pt.costoUnitario > 0);
                     const margenReal = pt.costoUnitario != null && pt.precioUnitario
                       ? ((pt.precioUnitario - pt.costoUnitario) / pt.precioUnitario) * 100 : pt.margen;
                     const bajo = !sinCosto && margenReal < estado.parametros.margenMinimo;
@@ -445,8 +429,8 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                           {bajo && <div className="ayuda rojo">Debajo del mínimo de {estado.parametros.margenMinimo}%</div>}</td>
                         <td className="num"><span className="masmenos"><button onClick={() => setPartida(i, { cantidad: Math.max(1, pt.cantidad - 1) })}>−</button><span className="valor">{pt.cantidad}</span><button onClick={() => setPartida(i, { cantidad: pt.cantidad + 1 })}>+</button></span></td>
                         <td className="num">{pesos(pt.precioUnitario)}</td>
-                        <td className="num">{sinCosto ? '—' : pesos(pt.costoUnitario)}</td>
-                        <td className="num">{sinCosto ? '—' : pesos(util)}</td>
+                        <td className="num" title={pt.costoDerivado ? 'Costo aproximado (derivado del precio, no del despiece real)' : undefined}>{sinCosto ? '—' : (pt.costoDerivado ? '≈ ' : '') + pesos(pt.costoUnitario)}</td>
+                        <td className="num">{sinCosto ? '—' : (pt.costoDerivado ? '≈ ' : '') + pesos(util)}</td>
                         <td className="num">{pesos(pt.precioUnitario * pt.cantidad)}</td>
                         {/* ⚠️ AQUÍ NO HABÍA CÓMO EDITAR (2026-08-17). El lápiz
                             estaba escrito SÓLO dentro del bloque `soloVentas`, o
@@ -475,7 +459,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
             {/* tarjetas móviles */}
             <div className="solo-movil">
               {partidas.map((pt, i) => {
-                const sinCosto = pt.margen == null || pt.deBanco;
+                const sinCosto = pt.margen == null || pt.deBanco || !(pt.costoUnitario > 0);
                 const util = (pt.precioUnitario - (pt.costoUnitario || 0)) * pt.cantidad;
                 return (
                   <div className="cot-card" key={pt.id}>

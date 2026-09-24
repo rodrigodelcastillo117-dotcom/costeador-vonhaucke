@@ -14,7 +14,7 @@ import { precioDeInsumo } from '../motor/calculo.js';
 // Paso 4 · Propuesta). `partidas` es `cot.partidas`; `margenMinimo` viene de
 // `estado.parametros.margenMinimo` (mismo umbral que ya usa Cotizacion.jsx
 // para pintar de rojo un renglón).
-export function senalesCotizacion(partidas = [], margenMinimo = 40) {
+export function senalesCotizacion(partidas = [], margenMinimo = 25) {
   const lista = [];
   if (!partidas.length) return lista;
 
