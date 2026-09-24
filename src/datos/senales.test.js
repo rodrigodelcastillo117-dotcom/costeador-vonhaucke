@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { senalesCotizacion, senalesInsumos } from './senales.js';
+import { senalesCotizacion, senalesInsumos, problemasDeEmision } from './senales.js';
 
 describe('senalesCotizacion', () => {
   it('sin partidas, no hay señales', () => {
@@ -58,5 +58,38 @@ describe('senalesInsumos', () => {
   it('no avisa si todos traen fuente', () => {
     const insumos = [{ id: 'a', fuente: 'compras' }, { id: 'b', fuente: 'erp' }];
     expect(senalesInsumos(insumos)).toEqual([]);
+  });
+});
+
+describe('problemasDeEmision', () => {
+  it('renglones completos: se puede emitir', () => {
+    const p = [{ nombre: 'Banca', cantidad: 2, precioUnitario: 17600 }];
+    expect(problemasDeEmision(p)).toEqual([]);
+  });
+
+  it('bloquea un renglón sin cantidad', () => {
+    const p = [{ nombre: 'Banca', precioUnitario: 17600 }];
+    const probs = problemasDeEmision(p);
+    expect(probs.length).toBe(1);
+    expect(probs[0]).toContain('cantidad');
+  });
+
+  it('bloquea cantidad 0 y precio 0 (no son números válidos para emitir)', () => {
+    const p = [{ nombre: 'X', cantidad: 0, precioUnitario: 0 }];
+    expect(problemasDeEmision(p).length).toBe(2); // cantidad y precio
+  });
+
+  it('bloquea un renglón sin precio aunque tenga cantidad', () => {
+    const p = [{ nombre: 'Especial', cantidad: 3 }];
+    expect(problemasDeEmision(p)[0]).toContain('precio');
+  });
+
+  it('una pieza de banco con precio real SÍ se puede emitir (costo desconocido no bloquea)', () => {
+    const p = [{ nombre: 'Silla banco', cantidad: 4, precioUnitario: 5210, deBanco: true, costoUnitario: 0 }];
+    expect(problemasDeEmision(p)).toEqual([]);
+  });
+
+  it('usa un nombre de respaldo cuando el renglón no tiene nombre', () => {
+    expect(problemasDeEmision([{ precioUnitario: 100 }])[0]).toContain('Renglón 1');
   });
 });

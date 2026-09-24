@@ -46,6 +46,23 @@ export function senalesCotizacion(partidas = [], margenMinimo = 25) {
   return lista;
 }
 
+// PROBLEMAS QUE BLOQUEAN LA EMISIÓN (mandato Fase 1: "bloquea únicamente la
+// emisión que dependería de inventar un número"). Un renglón que llega al PDF
+// del cliente DEBE tener cantidad positiva y precio positivo; sin eso el total
+// es una mentira (cantidad ausente cuenta como 0 → renglón invisible en la suma;
+// precio 0 → se regala). NO se bloquea por costo desconocido: una pieza de banco
+// con precio real histórico y costo desconocido SÍ es vendible (así se decidió).
+// Devuelve [] cuando se puede emitir; si trae algo, la UI no debe emitir.
+export function problemasDeEmision(partidas = []) {
+  const problemas = [];
+  partidas.forEach((p, i) => {
+    const etq = p.nombre || `Renglón ${i + 1}`;
+    if (!(p.cantidad > 0)) problemas.push(`"${etq}" no tiene una cantidad válida.`);
+    if (!(p.precioUnitario > 0)) problemas.push(`"${etq}" no tiene un precio válido.`);
+  });
+  return problemas;
+}
+
 // Señales del catálogo de insumos — cuántos no traen registrado de dónde
 // salió su precio. Hoy esa cuenta solo la sabía `scripts/revisa-precios.mjs`
 // corriendo aparte; aquí se vuelve una señal viva dentro de la app.

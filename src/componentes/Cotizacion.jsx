@@ -10,7 +10,7 @@ import { listaPorCuarto } from '../datos/porCuarto.js';
 import { descargarPropuesta, cargarFotos, cargarMarca } from '../datos/pdfPropuesta.js';
 import EditarPartida, { sePuedeEditar } from './EditarPartida.jsx';
 import { pesos, leePct, selloPartida } from '../util.js';
-import { senalesCotizacion, senalesInsumos } from '../datos/senales.js';
+import { senalesCotizacion, senalesInsumos, problemasDeEmision } from '../datos/senales.js';
 import { totalesCotizacion } from '../datos/totales.js';
 import { imagenPartida } from '../datos/imagenes.js';
 import VoniAvatar from './VoniAvatar.jsx';
@@ -154,8 +154,12 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   // de verdad produce algo que llega al cliente — sin importar por cuál
   // camino entró la partida (Voni, Cotizar de línea, lo que sea).
   const [accionPendiente, setAccionPendiente] = useState(null); // null | () => void
+  // No se puede emitir con un renglón sin cantidad o sin precio: sería inventar
+  // un número en el documento que llega al cliente (mandato Fase 1).
+  const probEmision = problemasDeEmision(partidas);
   function conCandado(fn) {
     return () => {
+      if (probEmision.length) { setPdfErr('No se puede emitir: ' + probEmision[0]); return; }
       if (partidas.some((p) => p.candadoUsuarios || p.requiereProyectista)) setAccionPendiente(() => fn);
       else fn();
     };
@@ -708,11 +712,17 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
             <button className={vistaCliente ? 'on' : ''} onClick={() => setVistaCliente(true)}>Como la ve el cliente</button>
           </div>
         )}
-        <button className="boton tinta cot-pdf" onClick={conCandado(descargarPDF)} disabled={bajandoPDF}>
+        <button className="boton tinta cot-pdf" onClick={conCandado(descargarPDF)} disabled={bajandoPDF || probEmision.length > 0} title={probEmision.length ? probEmision[0] : undefined}>
           {bajandoPDF ? 'Armando el PDF…' : 'Descargar PDF'}
         </button>
-        <button className="boton fantasma no-imprimir" style={{ minHeight: 42 }} onClick={conCandado(imprimir)}>Imprimir</button>
+        <button className="boton fantasma no-imprimir" style={{ minHeight: 42 }} onClick={conCandado(imprimir)} disabled={probEmision.length > 0} title={probEmision.length ? probEmision[0] : undefined}>Imprimir</button>
       </div>
+      {probEmision.length > 0 && (
+        <div className="aviso rojo no-imprimir" style={{ marginTop: 8 }}>
+          No se puede emitir todavía: {probEmision[0]}
+          {probEmision.length > 1 && ` (y ${probEmision.length - 1} más)`}
+        </div>
+      )}
       {accionPendiente && (
         <ConfirmarCandado
           partidas={partidas}
