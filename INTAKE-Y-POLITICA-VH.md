@@ -29,6 +29,21 @@ Por cada pieza/artículo:
   500-749 · 750-1000 · pieza única. Precio por rango en **PM / PL / P2** +
   **Costo de fabricación**.
 
+### Respuestas de Rafa (2026-09-30) — confirmaciones clave
+- La estructura "se compone de" es correcta. **En cada parte lo que se le envía a
+  Alba es la CANTIDAD DE MATERIAL A CONSUMIR** (lámina, tubular, tablero en
+  melamina o chapa, cristales, correderas, cerraduras, etc.). → El intake ES un
+  **despiece por consumo**. Esto valida la dirección de la app (costear desde el
+  consumo / fracción de hoja).
+- Los acabados salen del **catálogo de acabados**. Un **acabado especial** se pide
+  con previa cotización, o se toma un precio comercial de internet. → El catálogo
+  Op es la lista maestra; los especiales son ad-hoc, no de catálogo.
+- **PM / PL / P2 no son costos distintos: son precios con distintos FACTORES DE
+  UTILIDAD** que aplica Alba sobre el mismo costo.
+- **FLUJO REAL: primero el COSTEO, después el desarrollo.** El desarrollo se pide
+  con base en los consumos del costeo. → El costeo (desde consumos) es el artefacto
+  primario; la app debe centrarse en eso y de ahí derivar todo lo demás.
+
 ## 2) Política de precios (archivo de Alba) — `standard_line`
 Factores por tipo de producto (columnas del REG-DCC-IDP-032):
 
