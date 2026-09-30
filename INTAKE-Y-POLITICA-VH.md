@@ -96,6 +96,21 @@ sobre material, Indirecto = factor sobre MO):
 ($1,180×3 = $3,540 ≈ $3,576 real). La banca tiene MO≈15.5% del material (no 20%),
 probablemente por ser costeo anterior/especial; el copete es el método vigente.
 
+**Confirmado contra la hoja madre `info_t_d_c` (2026-09-30):** todo el T.D.C. se
+concentra ahí; REG-DCC-IDP-031/032 jalan de esa hoja (vía `INDIRECTO($D$28)`).
+La cascada coincide con lo derivado: material → mano_de_obra → gasto_indirecto →
+fabricación → (prototipo) → precio_mínimo → comercial → distribuidor → precio por
+volumen alto/intermedio/bajo → descuentos. Datos extra que trae la hoja madre
+(para calibración futura, NO usados aún):
+- **Factores por MODELO** (columnas CG/CH): gamma 21.5, hamilton, hudson, java,
+  pac, win 14.25, silla, pupitre… el % de MO/indirecto **varía por modelo**
+  (rango ~14–21.5%). El 0.20 fijo es el default correcto para producto nuevo sin
+  modelo; si se quiere fidelidad por modelo, hay que cargar esta tabla.
+- **Tiers de línea** con sus propios factores: standard_line (el usado aquí),
+  high_end_line, flagship_line, seating_and_lounge_line, + variantes "especial".
+- **Familias de operación** por material y etapa: fab./acá./ens. de madera, metal,
+  tapizado, acrílico, empaque, embalaje (útil para desglosar MO por operación).
+
 **Estructura del despiece (hoja Explo_MP):** por artículo — familia_de_operación,
 articulo (clave ERP), descripción, opción, unidad, fecha_última_compra,
 costo_última_compra, **consumo_unitario**, costo_unitario (= consumo × costo).
