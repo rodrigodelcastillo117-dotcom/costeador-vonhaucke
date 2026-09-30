@@ -59,20 +59,47 @@ Factores por tipo de producto (columnas del REG-DCC-IDP-032):
 Diferenciación clara: **fabricado carga más indirecto que compra-venta** (1.45 vs
 1.25). La app hoy usa **34% plano** para todo — por eso subestima lo fabricado.
 
-## 3) ⚠️ DISCREPANCIA ABIERTA — no tocar el motor hasta resolverla
-Rodrigo dijo "indirecto = MO × 1.45". Pero contra la banca real C-CO-510R
-(la única T.D.C. LLENA que tenemos):
-- MO real $1,180 × 1.45 = **$1,711** ≠ indirectos reales **$3,576**.
-- Lo que SÍ cuadra: indirectos ≈ **MO × 3** ($1,180×3 = $3,540, dentro de 1%).
-- Y la política trae un "3" en la columna de mano de obra.
+## 3) ✅ FÓRMULA DERIVADA Y VERIFICADA AL CENTAVO (T.D.C. llena de Alba, 2026-09-30)
+Alba mandó `C-CO-516R ... ejercicio.xlsx` — el T.D.C. LLENO con despiece + resultado.
+De ahí se derivó la fórmula real y se verificó exacta contra el número de Alba.
 
-O sea el Excel guardó los VALORES, no las FÓRMULAS, y el encadenamiento no es
-obvio. **Antes de cambiar `calculo.js` hay que fijar la fórmula exacta**, con una
-de dos:
-1. Rafa/Alba confirman textual cómo se encadenan costo_producto / mano_de_obra /
-   gasto_indirecto / precio_mín / comercial.
-2. O nos pasan **una T.D.C. YA LLENA** de un mueble fabricado (ideal el copete
-   C-CO-516R con sus $), y yo derivo y verifico la fórmula contra ese número.
+**Copete id_01 (mueble fabricado, volumen 750-1000):**
+- Material = Σ(consumo_unitario × costo_última_compra) = **$460.57**
+  (tubular 183.62 + bisagras 66.06 + lám cal14 22.51 + lám cal18 13.93 +
+   tornillo 100 + tuerca 2.64 + pintura 60.06 + empaque 11.75 = 460.57 exacto)
+- Mano de obra = **$92.11 = material × 0.20**  ✅ exacto
+- Gasto indirecto = **$276.33 = mano de obra × 3**  ✅ exacto
+- **Costo de fabricación = $829.01 = material + MO + indirecto = material × 1.80** ✅
+
+**Fórmula de costo por tipo** (factores de la política `standard_line`; MO = factor
+sobre material, Indirecto = factor sobre MO):
+
+| Tipo | MO (× material) | Indirecto (× MO) |
+|---|---|---|
+| mueble_fabricado | 0.20 | 3 |
+| componente_fabricado | 0.15 | 3 |
+| mueble_compra_venta | 0.01 | 0.05 |
+| componente_compra_venta | 0.05 | 0.05 |
+| accesorio_compra_venta | 0.01 | 0.05 |
+| servicio_directo | 0.10 | 3 |
+
+**Precio (nivel × volumen)** sobre el costo de fabricación:
+- precio_mínimo = costo_fab × factor_volumen
+  (mueble_fabricado: 1.55 alto / 1.95 intermedio / 2.35 bajo)
+- precio_lista = precio_mínimo ÷ 0.7
+- precio_2     = precio_mínimo ÷ 0.42
+- Verificado: 829.01 × 1.55 = 1285 (→ $1,290) · ÷0.7 = $1,850 · ÷0.42 = $3,080.
+- Factores de volumen: compra_venta 1.4/1.8/2.2; accesorio 1.4/1.45/1.5;
+  servicio 1.2/1.2/1.2.
+
+**Consistencia con la banca C-CO-510R:** indirecto = MO×3 también cuadra
+($1,180×3 = $3,540 ≈ $3,576 real). La banca tiene MO≈15.5% del material (no 20%),
+probablemente por ser costeo anterior/especial; el copete es el método vigente.
+
+**Estructura del despiece (hoja Explo_MP):** por artículo — familia_de_operación,
+articulo (clave ERP), descripción, opción, unidad, fecha_última_compra,
+costo_última_compra, **consumo_unitario**, costo_unitario (= consumo × costo).
+Es exactamente el modelo de la app (fracción de hoja / consumo).
 
 ## 4) Plan "todo" (en cuanto se fije la fórmula del punto 3)
 1. **Motor:** indirecto/MO diferenciado por tipo (fabricado 1.45/×3 · compra-venta
