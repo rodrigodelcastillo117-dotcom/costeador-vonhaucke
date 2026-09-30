@@ -4,6 +4,7 @@ import { SECCIONES } from '../datos/insumos.js';
 import { horasTotales } from '../datos/ue.js';
 import { precioDe, precioVenta, PARAMETROS_DEFAULT } from '../motor/calculo.js';
 import { precioDeLista } from '../datos/preciosVenta.js';
+import { preciosVH } from '../datos/politicaVH.js';
 
 export default function HojaCosto({ resultado, insumos, pieza, parametros = PARAMETROS_DEFAULT }) {
   if (!resultado) return null;
@@ -38,6 +39,13 @@ export default function HojaCosto({ resultado, insumos, pieza, parametros = PARA
   ].filter((s) => s.v > 0);
   const totSeg = segs.reduce((a, s) => a + s.v, 0) || 1;
   const margenReal = precioLista > 0 ? (utilidad / precioLista) * 100 : 0;
+
+  // Escalón de precios por volumen (T.D.C. de Alba), sobre el costo de fabricación.
+  const nivelesVolumen = [
+    { volumen: 'alto', etq: 'Alto (mucho vol.)' },
+    { volumen: 'intermedio', etq: 'Intermedio' },
+    { volumen: 'bajo', etq: 'Bajo (pocas pzas)' },
+  ].map((t) => ({ ...t, ...preciosVH(costoFabricacion, { tipo: 'mueble_fabricado', volumen: t.volumen }) }));
 
   return (
     <div className="hoja">
@@ -126,6 +134,31 @@ export default function HojaCosto({ resultado, insumos, pieza, parametros = PARA
       <div className="fila"><span>Precio mínimo <span className="gris">(línea, {minMarkup}% s/costo)</span></span><span className="val">{pesos(precioMinimo)}</span></div>
       <div className="fila total"><span>Precio de lista <span className="gris">{intelisis ? '(×3)' : `(${margenObjetivo}%)`}</span></span><span className="val">{pesos(precioLista)}</span></div>
       <div className="ayuda" style={{ marginTop: 4 }}>Se cotiza de la lista hacia abajo con descuento; el mínimo es el piso.</div>
+
+      {/* Precios por volumen — método T.D.C. de Alba (REG-DCC-IDP-031), verificado
+          al centavo contra el copete C-CO-516R. precio_mínimo = costo × factor de
+          volumen; lista = mín/0.7; precio_2 = mín/0.42. A mayor volumen, menor
+          factor → menor precio. Aplica a mueble fabricado (el costo de arriba). */}
+      <hr className="doble" />
+      <div className="fila"><strong>Precios por volumen</strong><span className="gris">método Vonhaucke</span></div>
+      <table className="hoja-vol" style={{ width: '100%', fontSize: '0.85em', borderCollapse: 'collapse', marginTop: 4 }}>
+        <thead>
+          <tr style={{ textAlign: 'right', color: '#8A8178' }}>
+            <th style={{ textAlign: 'left' }}>Volumen</th><th>Mínimo</th><th>Lista</th><th>Precio 2</th>
+          </tr>
+        </thead>
+        <tbody>
+          {nivelesVolumen.map((r) => (
+            <tr key={r.volumen} style={{ textAlign: 'right' }}>
+              <td style={{ textAlign: 'left' }}>{r.etq}</td>
+              <td>{pesos(r.precioMin)}</td>
+              <td>{pesos(r.precioLista)}</td>
+              <td>{pesos(r.precio2)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="ayuda" style={{ marginTop: 4 }}>Sobre el costo de fabricación de arriba. A más volumen, más barato.</div>
     </div>
   );
 }
