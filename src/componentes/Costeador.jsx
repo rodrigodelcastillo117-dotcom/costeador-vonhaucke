@@ -518,7 +518,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
           {errRender && <div className="alerta roja" style={{ marginTop: 8 }}><span className="texto">{errRender}</span></div>}
           <div className="ayuda" style={{ marginTop: 8, textAlign: 'center' }}>{costeo.imagen ? 'Render IA · aparece en la ficha del cliente' : (costeo.nombre || 'Vista del mueble')}</div>
         </div>
-        <HojaCosto resultado={resultado} insumos={insumos} pieza={piezaVirtual} parametros={par} tipo={costeo.tipoProducto} />
+        <HojaCosto resultado={resultado} insumos={insumos} pieza={piezaVirtual} parametros={par} tipo={costeo.tipoProducto} mostrarVolumen={true} />
 
         <div className="tarjeta roja" style={{ marginTop: 16 }}>
           <label className="etiqueta">Cuanto quieres ganar</label>

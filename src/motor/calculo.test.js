@@ -524,3 +524,21 @@ describe('modeloParaPieza()', () => {
     expect(par.margenObjetivo).toBe(50); // lo demás de parametrosBase sigue ahí
   });
 });
+
+// Producto NUEVO de cero (estimación pura = fórmula de Alba): bloquea que el
+// costeo siga el método real de Vonhaucke — MO 20% del material, indirecto 3×MO,
+// costo = material×1.8. Verificado al centavo contra la T.D.C. del copete
+// C-CO-516R de Alba (2026-09-30). Si esto cambia, el costeo dejó de cuadrar con Alba.
+describe('producto nuevo (fórmula Alba): MO 20% + indirecto 3×MO', () => {
+  const insumos = { gen: { id: 'gen', nombre: 'Material generico', seccion: 'general', precio: 100, unidad: 'pza', clase: 'directa' } };
+  const pieza = { nombre: 'Mueble nuevo', componentes: [{ insumoId: 'gen', cantidad: 10 }] };
+
+  it('indirecto es exactamente 3× la mano de obra y costo = material×1.8', () => {
+    const r = calcular(pieza, 1, insumos);
+    expect(r.materialTotal).toBeCloseTo(1000, 2);
+    expect(r.manoObra).toBeCloseTo(200, 2);          // 20% del material
+    expect(r.indirectosFabrica).toBeCloseTo(600, 2); // 3× la MO
+    expect(r.indirectosFabrica).toBeCloseTo(r.manoObra * 3, 6);
+    expect(r.costoUnitario).toBeCloseTo(1800, 2);    // material × 1.8
+  });
+});

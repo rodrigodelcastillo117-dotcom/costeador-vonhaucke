@@ -6,7 +6,7 @@ import { precioDe, precioVenta, PARAMETROS_DEFAULT } from '../motor/calculo.js';
 import { precioDeLista } from '../datos/preciosVenta.js';
 import { preciosVH } from '../datos/politicaVH.js';
 
-export default function HojaCosto({ resultado, insumos, pieza, parametros = PARAMETROS_DEFAULT, tipo = 'mueble_fabricado' }) {
+export default function HojaCosto({ resultado, insumos, pieza, parametros = PARAMETROS_DEFAULT, tipo = 'mueble_fabricado', mostrarVolumen = false }) {
   if (!resultado) return null;
 
   const intelisis = resultado.modeloCosteo === 'intelisis';
@@ -138,27 +138,32 @@ export default function HojaCosto({ resultado, insumos, pieza, parametros = PARA
       {/* Precios por volumen — método T.D.C. de Alba (REG-DCC-IDP-031), verificado
           al centavo contra el copete C-CO-516R. precio_mínimo = costo × factor de
           volumen; lista = mín/0.7; precio_2 = mín/0.42. A mayor volumen, menor
-          factor → menor precio. Aplica a mueble fabricado (el costo de arriba). */}
-      <hr className="doble" />
-      <div className="fila"><strong>Precios por volumen</strong><span className="gris">método Vonhaucke</span></div>
-      <table className="hoja-vol" style={{ width: '100%', fontSize: '0.85em', borderCollapse: 'collapse', marginTop: 4 }}>
-        <thead>
-          <tr style={{ textAlign: 'right', color: '#8A8178' }}>
-            <th style={{ textAlign: 'left' }}>Volumen</th><th>Mínimo</th><th>Lista</th><th>Precio 2</th>
-          </tr>
-        </thead>
-        <tbody>
-          {nivelesVolumen.map((r) => (
-            <tr key={r.volumen} style={{ textAlign: 'right' }}>
-              <td style={{ textAlign: 'left' }}>{r.etq}</td>
-              <td>{pesos(r.precioMin)}</td>
-              <td>{pesos(r.precioLista)}</td>
-              <td>{pesos(r.precio2)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="ayuda" style={{ marginTop: 4 }}>Sobre el costo de fabricación de arriba. A más volumen, más barato.</div>
+          factor → menor precio. SOLO en el Costeador de producto nuevo: en las
+          líneas de catálogo el precio ya está calibrado y este escalón confundiría. */}
+      {mostrarVolumen && (
+        <>
+          <hr className="doble" />
+          <div className="fila"><strong>Precios por volumen</strong><span className="gris">método Vonhaucke</span></div>
+          <table className="hoja-vol" style={{ width: '100%', fontSize: '0.85em', borderCollapse: 'collapse', marginTop: 4 }}>
+            <thead>
+              <tr style={{ textAlign: 'right', color: '#8A8178' }}>
+                <th style={{ textAlign: 'left' }}>Volumen</th><th>Mínimo</th><th>Lista</th><th>Precio 2</th>
+              </tr>
+            </thead>
+            <tbody>
+              {nivelesVolumen.map((r) => (
+                <tr key={r.volumen} style={{ textAlign: 'right' }}>
+                  <td style={{ textAlign: 'left' }}>{r.etq}</td>
+                  <td>{pesos(r.precioMin)}</td>
+                  <td>{pesos(r.precioLista)}</td>
+                  <td>{pesos(r.precio2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="ayuda" style={{ marginTop: 4 }}>Sobre el costo de fabricación de arriba. A más volumen, más barato.</div>
+        </>
+      )}
     </div>
   );
 }
