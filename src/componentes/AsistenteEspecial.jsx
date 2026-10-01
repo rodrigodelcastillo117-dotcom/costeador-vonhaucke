@@ -9,6 +9,7 @@ import { calcular, precioDe, netoComponente, modeloParaPieza } from '../motor/ca
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos } from '../util.js';
 import { analizarRender } from '../nube.js';
+import { abrirPdf, paginaAImagen } from '../datos/pdfImagen.js';
 import Cargando from './Cargando.jsx';
 import Markdown from './Markdown.jsx';
 import InformeIA from './InformeIA.jsx';
@@ -82,6 +83,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
   const [errorIA, setErrorIA] = useState('');
   const [preguntasIA, setPreguntasIA] = useState([]);
   const [analisis, setAnalisis] = useState(null); // {descripcionCliente, materiales, mejoras, fallasProbables, aprovechamiento}
+  const [pdfSel, setPdfSel] = useState(null); // selector de hoja de plano multipágina: {doc, numPaginas, pagina, preview}
   const [b, setB] = useState({
     nombre: '', piezas: 1, componentes: [], imagen: null, descripcionCliente: '',
     modoManoObra: 'porcentaje', factorDirecta: 55, factorIndirecta: 12,
@@ -123,59 +125,99 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
     return neto * p;
   }
 
-  // Sube un render → la IA propone el despiece → pre-llena las piezas
+  // Analiza una imagen (base64) con la IA y pre-llena las piezas. Centraliza lo
+  // que comparten el render, la imagen y las hojas de PDF. Devuelve true si ok.
+  async function analizarYLlenar(base64, mediaType, dataUrl) {
+    const catalogo = Object.values(insumos).map((x) => ({ id: x.id, nombre: x.nombre, seccion: x.seccion, unidad: x.unidad }));
+    const res = await analizarRender(catalogo, base64, mediaType);
+    if (!res?.ok) { setErrorIA(res?.error || 'No se pudo analizar.'); return false; }
+    const p = res.propuesta || {};
+    const comps = (p.piezas || []).map((z) => {
+      const existe = !!insumos[z.insumoId];
+      const base = { nombre: z.nombre || 'Pieza', insumoId: existe ? z.insumoId : '', cantidad: z.cantidad || 1, piezas: 1, iaNota: z.nota || '', iaConf: z.confianza || '' };
+      if (z.forma === 'area') { base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1; }
+      return base;
+    });
+    setB((prev) => ({ ...prev, nombre: prev.nombre || p.producto || '', componentes: comps, imagen: dataUrl || null, descripcionCliente: p.descripcionCliente || '', materiales: Array.isArray(p.materiales) ? p.materiales : [] }));
+    setAnalisis({
+      descripcionCliente: p.descripcionCliente || '',
+      materiales: Array.isArray(p.materiales) ? p.materiales : [],
+      informe: p.informe || '',
+      volumenAsumido: p.volumenAsumido || '',
+      confianzaGeneral: p.confianzaGeneral || '',
+    });
+    setPreguntasIA(Array.isArray(p.preguntas) ? p.preguntas : []);
+    setPaso(1);
+    return true;
+  }
+
+  // Sube render/plano → la IA propone el despiece. Un PDF multipágina abre el
+  // selector de hoja; si pdf.js falla, cae a mandar el PDF crudo (como antes).
   async function onImagen(e) {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    // Tope de tamaño: un archivo gigante tronaría la función. Mejor avisar.
-    const MAX_MB = 32; // límite de PDF que acepta la IA (Claude: 32 MB / 100 págs)
+    const MAX_MB = 50; // el PDF se lee local y se manda SOLO una hoja (chica)
     if (file.size > MAX_MB * 1024 * 1024) {
       setErrorIA(`El archivo pesa ${(file.size / 1048576).toFixed(0)} MB (máximo ${MAX_MB} MB). `
-        + 'Comprime el PDF, o sube solo la hoja del mueble como imagen (captura de pantalla).');
+        + 'Comprímelo o sube la hoja del mueble como imagen.');
       return;
     }
     setErrorIA(''); setAnalizando(true);
     try {
-      // Imagen → se encoge; PDF (plano) → va tal cual como documento. El thumbnail
-      // solo aplica a imágenes (un data:application/pdf no se ve como <img>).
-      let base64, mediaType, dataUrl;
       if (esPDF(file)) {
-        base64 = await archivoABase64(file); mediaType = 'application/pdf'; dataUrl = '';
-      } else {
-        const r = await reducirImagen(file); base64 = r.base64; mediaType = r.mediaType;
-        dataUrl = `data:${mediaType};base64,${base64}`;
+        // Abre el PDF en el navegador y manda SOLO la hoja del mueble como imagen
+        // (lo que la IA sí lee bien). Si pdf.js falla → PDF crudo (como antes).
+        try {
+          const doc = await abrirPdf(file);
+          if (doc.numPaginas > 1) {
+            const preview = await paginaAImagen(doc, 1, 1400);
+            setPdfSel({ doc, numPaginas: doc.numPaginas, pagina: 1, preview });
+            setAnalizando(false);
+            return; // espera a que elija la hoja
+          }
+          const dataUrl = await paginaAImagen(doc, 1);
+          await analizarYLlenar(dataUrl.split(',')[1], 'image/jpeg', dataUrl);
+          return;
+        } catch (ePdf) {
+          const base64 = await archivoABase64(file);
+          const ok = await analizarYLlenar(base64, 'application/pdf', '');
+          if (!ok && file.size > 8 * 1024 * 1024) {
+            setErrorIA('El plano es pesado o de varias páginas. Sube SOLO la hoja del mueble como imagen (captura de pantalla).');
+          }
+          return;
+        }
       }
-      const catalogo = Object.values(insumos).map((x) => ({ id: x.id, nombre: x.nombre, seccion: x.seccion, unidad: x.unidad }));
-      const res = await analizarRender(catalogo, base64, mediaType);
-      if (!res?.ok) {
-        // Un PDF grande/multipágina (planos de varias hojas) es demasiado para la IA
-        // de un jalón. Un PDF de 1 página o una imagen de la hoja SÍ funcionan.
-        const pistaPdf = esPDF(file) && file.size > 8 * 1024 * 1024
-          ? ' El plano parece pesado o de varias páginas. Sube SOLO la hoja del mueble: como imagen (captura de pantalla) o un PDF de esa página. Así la IA lo lee bien.'
-          : '';
-        setErrorIA((res?.error || 'No se pudo analizar.') + pistaPdf);
-        return;
-      }
-      const p = res.propuesta || {};
-      const comps = (p.piezas || []).map((z) => {
-        const existe = !!insumos[z.insumoId];
-        const base = { nombre: z.nombre || 'Pieza', insumoId: existe ? z.insumoId : '', cantidad: z.cantidad || 1, piezas: 1, iaNota: z.nota || '', iaConf: z.confianza || '' };
-        if (z.forma === 'area') { base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1; }
-        return base;
-      });
-      setB((prev) => ({ ...prev, nombre: prev.nombre || p.producto || '', componentes: comps, imagen: dataUrl, descripcionCliente: p.descripcionCliente || '', materiales: Array.isArray(p.materiales) ? p.materiales : [] }));
-      setAnalisis({
-        descripcionCliente: p.descripcionCliente || '',
-        materiales: Array.isArray(p.materiales) ? p.materiales : [],
-        informe: p.informe || '',
-        volumenAsumido: p.volumenAsumido || '',
-        confianzaGeneral: p.confianzaGeneral || '',
-      });
-      setPreguntasIA(Array.isArray(p.preguntas) ? p.preguntas : []);
-      setPaso(1);
+      const r = await reducirImagen(file);
+      await analizarYLlenar(r.base64, r.mediaType, `data:${r.mediaType};base64,${r.base64}`);
     } catch (err) {
       setErrorIA(String(err?.message || err));
+    } finally {
+      setAnalizando(false);
+    }
+  }
+
+  // Cambia la hoja mostrada en el selector de PDF (actualiza el preview).
+  async function verPaginaPdf(n) {
+    if (!pdfSel) return;
+    const pagina = Math.max(1, Math.min(pdfSel.numPaginas, n));
+    if (pagina === pdfSel.pagina) return;
+    try {
+      const preview = await paginaAImagen(pdfSel.doc, pagina, 1400);
+      setPdfSel((s) => (s ? { ...s, pagina, preview } : s));
+    } catch { /* deja el preview actual */ }
+  }
+
+  // Analiza la hoja elegida del PDF (rasterizada a imagen).
+  async function analizarPaginaPdf() {
+    if (!pdfSel) return;
+    const sel = pdfSel;
+    setPdfSel(null); setErrorIA(''); setAnalizando(true);
+    try {
+      const dataUrl = await paginaAImagen(sel.doc, sel.pagina);
+      await analizarYLlenar(dataUrl.split(',')[1], 'image/jpeg', dataUrl);
+    } catch (err) {
+      setErrorIA('No se pudo procesar esa hoja. Intenta subirla como imagen (captura de pantalla).');
     } finally {
       setAnalizando(false);
     }
@@ -186,7 +228,32 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
   if (analizando) {
     return (
       <div className="asistente">
-        <Cargando titulo="Analizando el render con IA" />
+        <Cargando titulo="Analizando con IA" />
+      </div>
+    );
+  }
+
+  // Selector de hoja: un plano en PDF trae varias páginas (varios muebles/vistas).
+  // Se elige la hoja del mueble a costear y solo esa se manda a la IA (como imagen).
+  if (pdfSel) {
+    return (
+      <div className="asistente">
+        <div className="pregunta">Tu plano tiene {pdfSel.numPaginas} páginas</div>
+        <div className="pregunta-sub">Elige la hoja del mueble que vas a costear.</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '12px 0', flexWrap: 'wrap' }}>
+          <button className="boton" onClick={() => verPaginaPdf(pdfSel.pagina - 1)} disabled={pdfSel.pagina <= 1}>‹ Anterior</button>
+          <strong>Página {pdfSel.pagina} de {pdfSel.numPaginas}</strong>
+          <button className="boton" onClick={() => verPaginaPdf(pdfSel.pagina + 1)} disabled={pdfSel.pagina >= pdfSel.numPaginas}>Siguiente ›</button>
+        </div>
+        {pdfSel.preview && (
+          <img src={pdfSel.preview} alt={`Página ${pdfSel.pagina}`}
+            style={{ maxWidth: '100%', border: '1px solid rgba(0,0,0,.18)', borderRadius: 8, display: 'block' }} />
+        )}
+        <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
+          <button className="boton primario grande" onClick={analizarPaginaPdf}>Analizar esta hoja</button>
+          <button className="boton" onClick={() => setPdfSel(null)}>Cancelar</button>
+        </div>
+        {errorIA && <div className="alerta roja" style={{ marginTop: 12 }}><span className="texto">{errorIA}</span></div>}
       </div>
     );
   }
