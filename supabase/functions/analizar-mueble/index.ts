@@ -77,7 +77,12 @@ Deno.serve(async (req) => {
     "C) MEDIDAS — LO MAS IMPORTANTE PARA EL COSTO: si el plano trae COTAS escritas (numeros de medida, tabla de dimensiones, 'vista frontal/lateral/superior'), USALAS TAL CUAL en largoMM/anchoMM de cada pieza. NO estimes tamanos a ojo si estan escritos — un plano tecnico casi siempre trae las medidas, leelas. Se CONSERVADOR y CONSISTENTE: no infles areas ni cantidades; una pieza se cuenta UNA sola vez aunque aparezca en varias vistas. Solo si NO hay ninguna cota, asume estandares (altura 720-750 mm), marca confianza 'baja' y en 'preguntas' pide 1 medida de referencia.\n" +
     "D) VOLUMEN: declara 'volumenAsumido' (prototipo vs corrida) — flat-pack y herramentales solo valen a volumen.\n" +
     "E) ANTI-ALUCINACION: si dudas de un material, ofrece 2 opciones con su trade-off en el informe. Nunca inventes.\n" +
-    "F) CLIENTE vs INTERNO: 'informe' es para Produccion/Diseno (tecnico). 'descripcionCliente' y 'materiales' son para el CLIENTE: sin jerga ni claves.\n\n" +
+    "F) CLIENTE vs INTERNO: 'informe' es para Produccion/Diseno (tecnico). 'descripcionCliente' y 'materiales' son para el CLIENTE: sin jerga ni claves.\n" +
+    "G) EXACTITUD DE CANTIDADES (lo que mas se te escapa):\n" +
+    "   · BUNDLES/KITS = cantidad 1. Un 'kit de iluminacion LED' que alimenta varias charolas/zonas es UN kit (cantidad 1), NO uno por charola. Solo pon >1 si el plano lista kits FISICAMENTE separados. Lo mismo para arnes, fuente, chicote: cuenta el conjunto una vez.\n" +
+    "   · NO DUPLIQUES la superficie: si un tablero es MELAMINA/LAMINADO de COLOR (ej. 'MDF melamina Walnut', 'MDF con laminado nogal'), usa el tablero YA laminado (mdf-...-walnut) — ese precio YA incluye las dos caras. NO sumes aparte una hoja de 'laminado' como pieza extra: eso cuenta la superficie dos veces. Solo factura laminado/chapa por separado si es un enchapado sobre un nucleo que ya costeaste crudo.\n" +
+    "   · UNA PIEZA, UNA VEZ: el mismo panel que sale en vista frontal, lateral y superior es UNA pieza. Agrupa piezas identicas en un solo renglon con su 'cantidad'.\n" +
+    "   · AUTO-VERIFICA antes de responder: relee tus 'piezas' y pregunta '¿esta cantidad sale de una cota o la supuse?'. Si la supusiste, baja la 'confianza' a 'media' o 'baja' para que el humano la revise. Mejor conservador y marcado que inflado.\n\n" +
     "El 'informe' (Markdown) DEBE traer las 8 secciones con los titulos EXACTOS del schema (las 7 de la auditoria + '## 🎯 Top 3 Acciones' al final), con la tabla BOM en markdown. SE CONCISO: viñetas cortas, no ensayos; maximo ~3-5 puntos por seccion; tabla BOM breve. Prioriza claridad y termina SIEMPRE el JSON.\n\n" +
     "DESPIECE 'piezas' (para el motor): tableros/cristal forma='area' con largoMM/anchoMM; metal/canto/tela forma='lineal' (metros); herrajes/comprados forma='pieza'.\n" +
     "FRACCION DE HOJA (clave para que el costo cuadre): en cada pieza forma='area' da ADEMAS 'hojas' = la fraccion de hoja estandar que consume el TOTAL (pieza x cantidad). El motor cuesta hojas x precio_de_hoja; si solo mandas area, el costo oscila. Piensa cuantas piezas caben en una hoja 1.22x2.44 (tablero) o 3x10 ft (lamina) y saca la fraccion. SE CONSERVADOR: no infles; ante la duda, menos hojas, no mas.\n" +
@@ -98,6 +103,8 @@ Deno.serve(async (req) => {
   const apiBody = {
     model: "claude-opus-5",
     max_tokens: imgs.length > 1 ? 16000 : 8000, // varias hojas → más espacio de salida
+    // effort 'medium': 'high' sobre 9 hojas rebasa el limite de 150s de la edge
+    // function (timeout = sin resultado). Las reglas de exactitud (G) hacen el trabajo.
     output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } },
     system,
     messages: [{
