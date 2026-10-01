@@ -169,6 +169,20 @@ export async function analizarRender(catalogo, image, mediaType) {
   return data;
 }
 
+// Varias HOJAS del MISMO mueble (plano multipágina rasterizado a imágenes). La IA
+// las integra en un solo despiece. Mismo retorno que analizarRender.
+export async function analizarRenderImagenes(catalogo, imagenes) {
+  const { data, error } = await nube.functions.invoke('analizar-mueble', {
+    body: { catalogo, imagenes },
+  });
+  if (error) {
+    let msg = error.message || 'No se pudo analizar el plano.';
+    try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
+    return { ok: false, error: msg };
+  }
+  return data;
+}
+
 // Cotizador conversacional: texto natural -> items estructurados (Claude).
 export async function cotizarTexto(texto, catalogo) {
   // Las reglas de oficio que Rodrigo dicta en "Lo que Voni sabe" viajan CON el

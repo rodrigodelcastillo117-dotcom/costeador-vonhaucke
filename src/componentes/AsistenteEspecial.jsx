@@ -8,8 +8,8 @@ import { useMemo, useState } from 'react';
 import { calcular, precioDe, netoComponente, modeloParaPieza } from '../motor/calculo.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos } from '../util.js';
-import { analizarRender } from '../nube.js';
-import { abrirPdf, paginaAImagen } from '../datos/pdfImagen.js';
+import { analizarRender, analizarRenderImagenes } from '../nube.js';
+import { abrirPdf, paginaAImagen, todasLasPaginas } from '../datos/pdfImagen.js';
 import Cargando from './Cargando.jsx';
 import Markdown from './Markdown.jsx';
 import InformeIA from './InformeIA.jsx';
@@ -127,9 +127,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
 
   // Analiza una imagen (base64) con la IA y pre-llena las piezas. Centraliza lo
   // que comparten el render, la imagen y las hojas de PDF. Devuelve true si ok.
-  async function analizarYLlenar(base64, mediaType, dataUrl) {
-    const catalogo = Object.values(insumos).map((x) => ({ id: x.id, nombre: x.nombre, seccion: x.seccion, unidad: x.unidad }));
-    const res = await analizarRender(catalogo, base64, mediaType);
+  const catalogoIA = () => Object.values(insumos).map((x) => ({ id: x.id, nombre: x.nombre, seccion: x.seccion, unidad: x.unidad }));
+
+  function aplicarPropuesta(res, dataUrl) {
     if (!res?.ok) { setErrorIA(res?.error || 'No se pudo analizar.'); return false; }
     const p = res.propuesta || {};
     const comps = (p.piezas || []).map((z) => {
@@ -149,6 +149,15 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
     setPreguntasIA(Array.isArray(p.preguntas) ? p.preguntas : []);
     setPaso(1);
     return true;
+  }
+
+  // Una imagen (render/hoja). Devuelve true si ok.
+  async function analizarYLlenar(base64, mediaType, dataUrl) {
+    return aplicarPropuesta(await analizarRender(catalogoIA(), base64, mediaType), dataUrl);
+  }
+  // Varias hojas del mismo mueble (plano multipágina).
+  async function analizarImagenes(imagenes, dataUrlPreview) {
+    return aplicarPropuesta(await analizarRenderImagenes(catalogoIA(), imagenes), dataUrlPreview);
   }
 
   // Sube render/plano → la IA propone el despiece. Un PDF multipágina abre el
@@ -208,7 +217,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
     } catch { /* deja el preview actual */ }
   }
 
-  // Analiza la hoja elegida del PDF (rasterizada a imagen).
+  // Analiza SOLO la hoja elegida del PDF (rasterizada a imagen).
   async function analizarPaginaPdf() {
     if (!pdfSel) return;
     const sel = pdfSel;
@@ -218,6 +227,22 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
       await analizarYLlenar(dataUrl.split(',')[1], 'image/jpeg', dataUrl);
     } catch (err) {
       setErrorIA('No se pudo procesar esa hoja. Intenta subirla como imagen (captura de pantalla).');
+    } finally {
+      setAnalizando(false);
+    }
+  }
+
+  // Analiza TODAS las hojas juntas (un mismo mueble repartido en varias páginas:
+  // vista general + detalle por parte). La IA las integra en un solo despiece.
+  async function analizarTodasPdf() {
+    if (!pdfSel) return;
+    const sel = pdfSel;
+    setPdfSel(null); setErrorIA(''); setAnalizando(true);
+    try {
+      const imgs = await todasLasPaginas(sel.doc, 1600);
+      await analizarImagenes(imgs, sel.preview);
+    } catch (err) {
+      setErrorIA('No se pudieron procesar las hojas. Intenta subir la hoja principal como imagen.');
     } finally {
       setAnalizando(false);
     }
@@ -239,7 +264,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
     return (
       <div className="asistente">
         <div className="pregunta">Tu plano tiene {pdfSel.numPaginas} páginas</div>
-        <div className="pregunta-sub">Elige la hoja del mueble que vas a costear.</div>
+        <div className="pregunta-sub">Si es UN mueble repartido en varias hojas (general + detalle por parte), analízalas <strong>juntas</strong> para un costeo completo. Si cada hoja es un mueble distinto, analiza <strong>solo una</strong>.</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '12px 0', flexWrap: 'wrap' }}>
           <button className="boton" onClick={() => verPaginaPdf(pdfSel.pagina - 1)} disabled={pdfSel.pagina <= 1}>‹ Anterior</button>
           <strong>Página {pdfSel.pagina} de {pdfSel.numPaginas}</strong>
@@ -250,8 +275,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
             style={{ maxWidth: '100%', border: '1px solid rgba(0,0,0,.18)', borderRadius: 8, display: 'block' }} />
         )}
         <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
-          <button className="boton primario grande" onClick={analizarPaginaPdf}>Analizar esta hoja</button>
-          <button className="boton" onClick={() => setPdfSel(null)}>Cancelar</button>
+          <button className="boton primario grande" onClick={analizarTodasPdf}>Analizar las {pdfSel.numPaginas} hojas juntas (un mueble)</button>
+          <button className="boton grande" onClick={analizarPaginaPdf}>Solo esta hoja</button>
+          <button className="boton fantasma" onClick={() => setPdfSel(null)}>Cancelar</button>
         </div>
         {errorIA && <div className="alerta roja" style={{ marginTop: 12 }}><span className="texto">{errorIA}</span></div>}
       </div>

@@ -57,3 +57,17 @@ export async function paginaAImagen(docWrap, n, maxPx = 2000) {
   await page.render({ canvasContext: ctx, viewport: vp }).promise;
   return canvas.toDataURL('image/jpeg', 0.85); // data URL completo
 }
+
+/**
+ * Rasteriza TODAS las hojas a base64 JPEG (sin el prefijo data:), para mandar
+ * un plano multipágina (un mismo mueble repartido en varias hojas) a la IA.
+ * maxPx algo menor por hoja para que el total no pese de más.
+ */
+export async function todasLasPaginas(docWrap, maxPx = 1600) {
+  const out = [];
+  for (let n = 1; n <= docWrap.numPaginas; n++) {
+    const dataUrl = await paginaAImagen(docWrap, n, maxPx);
+    out.push(dataUrl.split(',')[1]);
+  }
+  return out;
+}
