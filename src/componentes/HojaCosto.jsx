@@ -6,7 +6,7 @@ import { precioDe, precioVenta, PARAMETROS_DEFAULT } from '../motor/calculo.js';
 import { precioDeLista } from '../datos/preciosVenta.js';
 import { preciosVH } from '../datos/politicaVH.js';
 
-export default function HojaCosto({ resultado, insumos, pieza, parametros = PARAMETROS_DEFAULT }) {
+export default function HojaCosto({ resultado, insumos, pieza, parametros = PARAMETROS_DEFAULT, tipo = 'mueble_fabricado' }) {
   if (!resultado) return null;
 
   const intelisis = resultado.modeloCosteo === 'intelisis';
@@ -45,7 +45,7 @@ export default function HojaCosto({ resultado, insumos, pieza, parametros = PARA
     { volumen: 'alto', etq: 'Alto (mucho vol.)' },
     { volumen: 'intermedio', etq: 'Intermedio' },
     { volumen: 'bajo', etq: 'Bajo (pocas pzas)' },
-  ].map((t) => ({ ...t, ...preciosVH(costoFabricacion, { tipo: 'mueble_fabricado', volumen: t.volumen }) }));
+  ].map((t) => ({ ...t, ...preciosVH(costoFabricacion, { tipo, volumen: t.volumen }) }));
 
   return (
     <div className="hoja">

@@ -228,6 +228,20 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             <span className="valor">{costeo.piezas}</span>
             <button aria-label="mas" onClick={() => set({ piezas: costeo.piezas + 1 })}>+</button>
           </div>
+          <div className="espacio" />
+          {/* Tipo de producto (política T.D.C. de Alba): define los factores de
+              precio por volumen. Fabricado = lo hace Von Haucke; compra-venta =
+              se compra ya hecho y casi no lleva utilidad de fabricación. */}
+          <label className="etiqueta" htmlFor="tipo-prod">Tipo de producto</label>
+          <select id="tipo-prod" value={costeo.tipoProducto || 'mueble_fabricado'}
+            onChange={(e) => set({ tipoProducto: e.target.value })}>
+            <option value="mueble_fabricado">Mueble fabricado (lo hacemos nosotros)</option>
+            <option value="componente_fabricado">Componente fabricado</option>
+            <option value="mueble_compra_venta">Mueble de compra-venta (ya hecho)</option>
+            <option value="componente_compra_venta">Componente de compra-venta</option>
+            <option value="accesorio_compra_venta">Accesorio (compra-venta)</option>
+            <option value="servicio_directo">Servicio</option>
+          </select>
         </div>
 
         {/* Bench modular (8.5) - solo si viene del generador */}
@@ -504,7 +518,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
           {errRender && <div className="alerta roja" style={{ marginTop: 8 }}><span className="texto">{errRender}</span></div>}
           <div className="ayuda" style={{ marginTop: 8, textAlign: 'center' }}>{costeo.imagen ? 'Render IA · aparece en la ficha del cliente' : (costeo.nombre || 'Vista del mueble')}</div>
         </div>
-        <HojaCosto resultado={resultado} insumos={insumos} pieza={piezaVirtual} parametros={par} />
+        <HojaCosto resultado={resultado} insumos={insumos} pieza={piezaVirtual} parametros={par} tipo={costeo.tipoProducto} />
 
         <div className="tarjeta roja" style={{ marginTop: 16 }}>
           <label className="etiqueta">Cuanto quieres ganar</label>
