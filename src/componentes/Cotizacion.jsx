@@ -60,7 +60,7 @@ function CampoPct({ valor, max, onCambio, ancho = 90 }) {
   );
 }
 
-export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr }) {
+export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr, onEmitida }) {
   const [vistaClienteManual, setVistaClienteManual] = useState(false);
   const vistaCliente = soloVentas || vistaClienteManual;
   const setVistaCliente = setVistaClienteManual;
@@ -183,6 +183,8 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           iva, ivaPct, total,
           anticipoPct, anticipo, cliente: cot.cliente, folio: cot.folio },
       });
+      // Emitido con éxito: congela la revisión (evidencia de lo ofrecido).
+      onEmitida?.();
     } catch (e) {
       // Si algo falla, queda el camino de siempre en vez de dejarlo sin nada.
       setPdfErr('No se pudo generar el archivo; se abrirá la impresión para guardarlo como PDF.');
@@ -201,6 +203,8 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
     } catch (e) { /* seguir de todas formas */ }
     window.print();
     setTimeout(() => { document.title = prev; }, 800);
+    // Imprimir también es emitir: congela la revisión (dedup si no cambió nada).
+    onEmitida?.();
   }
   const setPartida = (i, parcial) => { const ps = partidas.slice(); ps[i] = { ...ps[i], ...parcial }; setCot({ partidas: ps }); };
   const quitar = (i) => {

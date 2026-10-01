@@ -15,6 +15,7 @@
 // ============================================================================
 import { useEffect, useState } from 'react';
 import { listarCotizaciones, archivarCotizacion, mpCambio } from '../datos/cotizaciones.js';
+import { listarRevisiones } from '../datos/revisiones.js';
 import { pesos, coincide } from '../util.js';
 
 const fechaCorta = (iso) => {
@@ -103,11 +104,43 @@ export default function Archivo({ estado, onAbrir }) {
                       catch (e) { setError('No se pudo sacar de la lista. Revisa tu internet y vuelve a intentar.'); }
                     }}>Sacar de la lista</button>
                 </div>
+                <Emisiones cotizacionId={c.id} folio={c.folio} />
               </div>
             );
           })}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Historial de EMISIONES de una cotización: lo que de verdad se le ofreció al
+// cliente, conservado (fecha + responsable + total), sin poder borrarse ni
+// editarse. Carga bajo demanda para no pegarle a la nube por cada tarjeta.
+function Emisiones({ cotizacionId, folio }) {
+  const [abierto, setAbierto] = useState(false);
+  const [revs, setRevs] = useState(null); // null = aún no cargado
+  async function abrir() {
+    setAbierto(true);
+    if (revs === null) setRevs(await listarRevisiones(cotizacionId, folio));
+  }
+  if (!abierto) {
+    return (
+      <button className="boton fantasma" style={{ minHeight: 36, marginTop: 6, fontSize: 13 }} onClick={abrir}>
+        Ver emisiones
+      </button>
+    );
+  }
+  if (revs === null) return <div className="ayuda" style={{ marginTop: 6 }}>Cargando emisiones…</div>;
+  if (!revs.length) return <div className="ayuda" style={{ marginTop: 6 }}>Todavía no se ha emitido (no hay PDF ni impresión guardada).</div>;
+  return (
+    <div style={{ marginTop: 6, display: 'grid', gap: 3 }}>
+      <div className="ayuda" style={{ fontWeight: 700 }}>{revs.length} emisión(es) conservada(s):</div>
+      {revs.map((r) => (
+        <div key={r.id} className="ayuda" style={{ opacity: 0.9 }}>
+          Rev. {r.revision} · {fechaCorta(r.emitida_en)} · {r.usuario || 'autor desconocido'} · {pesos(r.total)}
+        </div>
+      ))}
     </div>
   );
 }

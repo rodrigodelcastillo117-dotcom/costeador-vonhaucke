@@ -53,6 +53,7 @@ import Reglas from './componentes/Reglas.jsx';
 import { cargarReglas } from './datos/reglas.js';
 import { cargarAprendizajes } from './datos/aprendizaje.js';
 import { guardarCotizacion } from './datos/cotizaciones.js';
+import { guardarRevision } from './datos/revisiones.js';
 import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
 import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso } from './nube.js';
 import { calcular, modeloParaPieza, componentesSinMaterial } from './motor/calculo.js';
@@ -344,6 +345,19 @@ export default function App() {
     }, 1500);
     return () => clearTimeout(t);
   }, [estado.cotizacion, sesion]);
+
+  // AL EMITIR (PDF/impresión): se asegura de guardar la cotización viva y congela
+  // una REVISIÓN inmutable de lo ofrecido (evidencia con fecha y responsable). No
+  // duplica si no cambió nada; nunca rompe la emisión si la nube falla.
+  async function onEmitida() {
+    if (!sesion?.user?.email) return;
+    try {
+      const id = await guardarCotizacion(estado, sesion.user.email, idCotizacion.current);
+      if (id) idCotizacion.current = id;
+      const r = await guardarRevision(estado, idCotizacion.current);
+      if (r?.nueva) mostrarAviso(`Revisión ${r.revision} guardada — se conservó lo que se emitió.`);
+    } catch (e) { /* conservar la evidencia no puede tumbar la emisión */ }
+  }
 
   // permiso === 'error' (no se pudo consultar) NO cuenta como acceso: sin este
   // descarte, el efecto de sincronización con la nube (más abajo, depende de
@@ -907,7 +921,7 @@ export default function App() {
           : <div className="contenido"><div className="tarjeta"><p className="ayuda">El modo avanzado y el costo de fabricación son para Diseño y Dirección. Usa <strong>Cotizar un mueble</strong> para el precio recomendado.</p></div></div>
         )}
         {pestania === 'catalogo' && <Catalogo estado={estado} onCargar={onElegirDelCatalogo} soloVentas={esVendedor} />}
-        {pestania === 'cotizacion' && <Cotizacion estado={estado} setEstado={setEstado} soloVentas={esVendedor} onIr={irA} />}
+        {pestania === 'cotizacion' && <Cotizacion estado={estado} setEstado={setEstado} soloVentas={esVendedor} onIr={irA} onEmitida={onEmitida} />}
         {pestania === 'cotizarIA' && <div className="contenido"><CotizadorIA estado={estado} onAgregarItems={agregarItemsIA} onIr={irA} verCotizacion /></div>}
         {pestania === 'voni' && (
           <Voni
