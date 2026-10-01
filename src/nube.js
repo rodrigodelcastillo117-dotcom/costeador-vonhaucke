@@ -269,6 +269,36 @@ export async function generarRender(descripcion, extra = {}) {
   return data;
 }
 
+// --- SHADOW costear-servidor (Fase 3) ----------------------------------------
+// Llama al motor autoritativo del servidor con el JWT real del usuario. El servidor
+// resuelve rol/costos server-side e ignora lo que mande el browser. Fire-and-forget.
+export async function costearServidor(pieza, cantidad = 1) {
+  const { data, error } = await nube.functions.invoke('costear-servidor', {
+    body: { pieza, cantidad },
+  });
+  if (error) {
+    let msg = error.message || 'No se pudo costear en el servidor.';
+    let status = error.context?.status;
+    try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
+    return { ok: false, error: msg, status };
+  }
+  return data;
+}
+
+// Registra la comparación cliente vs servidor SIN datos sensibles (ni tokens ni passwords).
+// Nunca lanza: el shadow jamás debe romper el flujo del usuario.
+export async function registrarSombra(reg) {
+  try { await nube.from('shadow_costeo').insert(reg); } catch (e) { /* shadow silencioso */ }
+}
+
+// hash corto y estable del input (djb2) para correlacionar cliente/servidor sin guardar el BOM.
+export function hashInput(obj) {
+  const t = JSON.stringify(obj ?? {});
+  let h = 5381;
+  for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) >>> 0;
+  return 'in' + h.toString(36);
+}
+
 // Llama cb(datosCompartidos) cada vez que alguien mas actualiza la config.
 export function suscribirConfig(cb) {
   const canal = nube

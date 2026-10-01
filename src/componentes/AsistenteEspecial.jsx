@@ -4,11 +4,11 @@
 //  Es la Fase 1 del flujo "render → preguntas → costo" (la Fase 2 pre-llena
 //  este mismo despiece leyendo una imagen con IA).
 // ============================================================================
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { calcular, precioDe, netoComponente, modeloParaPieza } from '../motor/calculo.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos } from '../util.js';
-import { analizarRender, analizarRenderImagenes, verificarDespiece } from '../nube.js';
+import { analizarRender, analizarRenderImagenes, verificarDespiece, costearServidor, registrarSombra, hashInput } from '../nube.js';
 import { abrirPdf, paginaAImagen, todasLasPaginas } from '../datos/pdfImagen.js';
 import Cargando from './Cargando.jsx';
 import Markdown from './Markdown.jsx';
@@ -103,6 +103,39 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
   // lista; a éste se le había quedado fuera.
   const resultado = useMemo(() => calcular(b, b.piezas, insumos, par), [b, insumos, estado.parametros]);
   const precio = precioDe(resultado.costoUnitario, b.margen);
+
+  // --- SHADOW (Fase 3): compara en paralelo el motor del servidor (JWT real, rol/costos
+  // server-side) contra el resultado del cliente y lo registra. Fire-and-forget, debounced,
+  // dedup por input: NUNCA bloquea ni cambia lo que ve el usuario. El usuario sigue viendo `precio`.
+  const sombraRef = useRef('');
+  useEffect(() => {
+    if (!(b.componentes?.length) || !(resultado.costoUnitario > 0)) return;
+    const pieza = { ...b, modeloCosteo: estado.parametros?.modeloCosteo };
+    const h = hashInput({ c: b.componentes, n: b.piezas, m: b.margen });
+    if (sombraRef.current === h) return; // ya comparado este input
+    const t = setTimeout(async () => {
+      sombraRef.current = h;
+      try {
+        const srv = await costearServidor(pieza, b.piezas);
+        const precioSrv = srv?.precioVenta ?? null;
+        await registrarSombra({
+          input_hash: h,
+          motor_version: srv?.versionMotor || null,
+          version_catalogo: srv?.versionCatalogo || null,
+          estado_servidor: srv?.estado || (srv?.ok === false ? 'error' : null),
+          http_status: srv?.status ?? (srv?.ok ? 200 : null),
+          precio_cliente: Math.round(precio),
+          precio_servidor: precioSrv,
+          costo_cliente: Math.round(resultado.costoUnitario),
+          costo_servidor: srv?.costo?.costoUnitario ?? null,
+          diff: precioSrv != null ? Math.round(precio) - precioSrv : null,
+          campos_recibidos: srv && typeof srv === 'object' ? Object.keys(srv) : null,
+          nota: b.nombre || null,
+        });
+      } catch (e) { /* shadow silencioso: jamás rompe el flujo */ }
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [b, resultado.costoUnitario, precio, estado.parametros]);
 
   // --- despiece ---
   function agregarParte(p) {
