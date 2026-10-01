@@ -180,6 +180,10 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
       descargarPropuesta({
         cot, partidas, resumen, especificacion, nPzas, fotos, marca,
         piezas: expandirPiezas(partidas),
+        // Si NO se registró la emisión, el PDF sale MARCADO como borrador: no se
+        // entrega al cliente un documento que parezca definitivo sin evidencia
+        // conservada (audit 2026-10-01).
+        borrador: !reg?.ok,
         // La hoja "Qué va en cada área", en palabras y con las gavetas: el
         // plano no las puede enseñar porque viven debajo de la cubierta.
         cuartos: listaPorCuarto(partidas, estado.cotizacion?.acomodo),
@@ -199,6 +203,13 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   // Imprimir: nombra el archivo, y espera que las fotos (remotas) decodifiquen
   // antes de imprimir para que NUNCA salga una partida sin imagen en el PDF.
   async function imprimir() {
+    // Misma regla que el PDF (audit 2026-10-01): conservar la evidencia ANTES de
+    // una salida definitiva. Si no se registró, NO se imprime como definitiva.
+    const reg = onEmitida ? await onEmitida() : { ok: false };
+    if (!reg?.ok) {
+      setPdfErr('No se registró la emisión: no se imprime como definitiva. Usa "Descargar PDF" (sale marcado como borrador) o revisa tu conexión y reintenta.');
+      return;
+    }
     const prev = document.title;
     document.title = ['Propuesta', cot.folio, cot.cliente].filter(Boolean).join(' ').trim() || 'Propuesta Vonhaucke';
     try {

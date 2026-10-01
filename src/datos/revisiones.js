@@ -31,8 +31,15 @@ export function snapshotEmitido(estado) {
   return paraGuardar(estado);
 }
 
-// Firma estable del CONTENIDO ofrecido. Si cambia cualquier renglón, cantidad,
-// precio, descuento o total, cambia el hash → es una emisión distinta. djb2.
+// ¿La emisión quedó REGISTRADA (definitiva)? Si no, el documento que salga debe
+// marcarse como borrador y no presentarse como definitivo (audit 2026-10-01).
+export function esDefinitiva(reg) {
+  return !!(reg && reg.ok);
+}
+
+// Firma LOCAL del contenido (diagnóstico/pruebas). ⚠️ El servidor recalcula la
+// suya canónica en `emitir_revision` y es la que manda para deduplicar: esta ya
+// NO se envía. Si cambia renglón/cantidad/precio/total, cambia. djb2.
 export function hashContenido(snap) {
   const base = {
     partidas: (snap?.partidas || []).map((p) => ({
@@ -64,11 +71,11 @@ export async function guardarRevision(estado, cotizacionId) {
     if (!cotizacionId) return { ok: false, motivo: 'sin-cotizacion' }; // sin vínculo no hay emisión definitiva
     const snap = snapshotEmitido(estado);
     if (!snap || !(snap.partidas || []).length) return { ok: false, motivo: 'vacia' };
-    const hash = hashContenido(snap);
+    // El SERVIDOR calcula el hash y el total desde el snapshot (no confía en el
+    // cliente): un hash viejo/incorrecto no puede ocultar un cambio. Solo se le
+    // manda el contenido conservado.
     const { data, error } = await nube.rpc('emitir_revision', {
       p_cotizacion_id: cotizacionId,
-      p_total: snap.total || 0,
-      p_hash: hash,
       p_snapshot: snap,
     });
     if (error) return { ok: false, motivo: error.message || 'rpc' };

@@ -841,9 +841,34 @@ export async function cargarFotos(partidas, urlDe) {
 }
 
 // Genera y DESCARGA el archivo. Devuelve el nombre por si hay que decirlo.
+// Sella cada página con "BORRADOR · NO REGISTRADO" en diagonal, tenue, para que
+// el documento NO pueda confundirse con una emisión definitiva.
+function marcarBorrador(doc) {
+  try {
+    const n = doc.getNumberOfPages();
+    const w = doc.internal.pageSize.getWidth();
+    const h = doc.internal.pageSize.getHeight();
+    for (let i = 1; i <= n; i++) {
+      doc.setPage(i);
+      if (doc.saveGraphicsState) doc.saveGraphicsState();
+      if (doc.setGState) doc.setGState(new doc.GState({ opacity: 0.16 }));
+      doc.setTextColor(200, 0, 0);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(46);
+      doc.text('BORRADOR · NO REGISTRADO', w / 2, h / 2, { align: 'center', angle: 32 });
+      if (doc.restoreGraphicsState) doc.restoreGraphicsState();
+    }
+  } catch (e) { /* si el sello falla, el nombre del archivo ya dice BORRADOR */ }
+}
+
 export function descargarPropuesta(datos) {
   const doc = propuestaPDF(datos);
-  const nombre = ['Propuesta', datos.cot.folio, datos.cot.cliente]
+  // Si la emisión NO quedó registrada, el documento sale MARCADO como borrador en
+  // TODAS las páginas: el cliente no debe recibir algo que parezca definitivo sin
+  // evidencia conservada (audit 2026-10-01). Un banner solo se ve en la pantalla
+  // del vendedor; esta marca viaja con el PDF.
+  if (datos.borrador) marcarBorrador(doc);
+  const nombre = [datos.borrador ? 'BORRADOR' : null, 'Propuesta', datos.cot.folio, datos.cot.cliente]
     .filter(Boolean).join(' ').replace(/[\\/:*?"<>|]/g, '').trim() || 'Propuesta Vonhaucke';
   doc.save(`${nombre}.pdf`);
   return `${nombre}.pdf`;

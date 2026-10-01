@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { snapshotEmitido, hashContenido, guardarRevision } from './revisiones.js';
+import { snapshotEmitido, hashContenido, guardarRevision, esDefinitiva } from './revisiones.js';
 
 const estado = (over = {}) => ({
   insumos: {},
@@ -48,5 +48,16 @@ describe('guardarRevision exige vínculo estable (cotizacion_id)', () => {
     const r = await guardarRevision(estado(), null);
     expect(r.ok).toBe(false);
     expect(r.motivo).toBe('sin-cotizacion');
+  });
+});
+
+describe('esDefinitiva — un documento sin registro NO es definitivo', () => {
+  it('registro ok → definitiva', () => {
+    expect(esDefinitiva({ ok: true, revision: 1 })).toBe(true);
+  });
+  it('registro fallido o ausente → NO definitiva (sale como borrador)', () => {
+    expect(esDefinitiva({ ok: false, motivo: 'rpc' })).toBe(false);
+    expect(esDefinitiva(null)).toBe(false);
+    expect(esDefinitiva(undefined)).toBe(false);
   });
 });
