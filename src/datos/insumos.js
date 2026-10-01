@@ -32,6 +32,11 @@ export const FUENTE_TDC_BANCA = 'T.D.C. banca C-CO-510R (Aeropuerto CDMX), Rafa 
 // compras entre 2025-12 y 2026-04) — NO el promedio anual por color que pide
 // su propia regla de sourcing (falta esa serie completa, la tiene Compras).
 export const FUENTE_ALBA_TDC = 'T.D.C. de Alba (Explo_MP), verificado 2026-08-18 — un lote, no promedio anual';
+// Materiales reales del Exhibidor Alpura (retail), de la T.D.C. C-CO-517R que
+// mandó Rafa (Explo_MP, costo_última_compra del ERP). Precios de REFERENCIA de
+// esa T.D.C. para reproducir su costeo al centavo; cuando Compras dé precios más
+// frescos se actualizan marcándolo como corrida de actualización.
+export const FUENTE_TDC_ALPURA = 'T.D.C. Exhibidor Alpura C-CO-517R (Rafa/Alba, 2026-09-22) — costo última compra ERP';
 
 // Atajo para no repetir campos. Exportado: lo reusa acabados.js para generar
 // insumos de color con la misma forma exacta que estos, sin duplicar la logica.
@@ -70,6 +75,13 @@ const LAMINA22 = { tipo: 'lamina', nombre: 'lamina 1.22 x 2.44', corto: 'lamina'
 const LAMINA14 = { tipo: 'lamina', nombre: 'lamina 1.22 x 2.44', corto: 'lamina', medida: 44.4 };
 const LAMINA12 = { tipo: 'lamina', nombre: 'lamina 1.22 x 2.44', corto: 'lamina', medida: 62.2 };
 const LAMINA10 = { tipo: 'lamina', nombre: 'lamina 1.22 x 2.44', corto: 'lamina', medida: 79.9 };
+// Lámina formato 3' x 10' (retail/exhibidores, T.D.C. Alpura): se compra y costea
+// por HOJA, con fracción de hoja directa. `medida` = KG por hoja (igual que las
+// láminas 4x8), por calibre: el área 3x10 (2.787 m²) × el peso/m² de cada calibre
+// (de las láminas existentes: cal20 7.16, cal14 14.9, cal12 20.9 kg/m²).
+const LAMINA3X10_20 = { tipo: 'lamina', nombre: 'lamina 3 x 10 ft', corto: '3x10', medida: 19.95, largoMM: 3048, anchoMM: 914 };
+const LAMINA3X10_14 = { tipo: 'lamina', nombre: 'lamina 3 x 10 ft', corto: '3x10', medida: 41.5, largoMM: 3048, anchoMM: 914 };
+const LAMINA3X10_12 = { tipo: 'lamina', nombre: 'lamina 3 x 10 ft', corto: '3x10', medida: 58.3, largoMM: 3048, anchoMM: 914 };
 const TRAMO6 = { tipo: 'tramo', nombre: 'tramo de 6 m', corto: 'tramo', medida: 6 };
 const ROLLO50 = { tipo: 'rollo', nombre: 'rollo de 50 m', corto: 'rollo', medida: 50 };
 // Los cubre cantos gruesos vienen en rollos más largos (así los surte Compras).
@@ -325,6 +337,57 @@ export const INSUMOS_SEMILLA = [
   ins({ id: 'eco-susp-sacc005-240', nombre: 'EcoAcustic Panel suspendido SACC005, 2.40×2.40 m (sin herrajes)', seccion: 'ecoacustic', precio: 8805, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
   ins({ id: 'eco-susp-sacc006', nombre: 'EcoAcustic Panel suspendido SACC006, 8 tiras 1.20×0.30 m (sin herrajes)', seccion: 'ecoacustic', precio: 2935, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
   ins({ id: 'eco-herraje-colgante', nombre: 'EcoAcustic Herraje de sujeción a techo (horizontal o vertical)', seccion: 'ecoacustic', precio: 245, unidad: 'pza', clase: 'indirecta', fuente: FUENTE_SONARA }),
+
+  // ---- RETAIL / EXHIBIDORES (T.D.C. Alpura C-CO-517R, Rafa/Alba) ---------------
+  // Materiales reales de exhibidores de piso, con su precio de última compra del
+  // ERP. Se agregan APARTE de los de oficina/línea (no los tocan) para que la IA
+  // tenga a qué mapear un plano retail y el costo cuadre con la T.D.C. real.
+  // MDF melamina DOS caras con laminado nogal (Walnut) — distinto del MDF natural.
+  tablero({ id: 'mdf-16-walnut', nombre: 'MDF melamina 2 caras 16 mm Walnut (nogal)', precio: 693.9,
+    articulo: 'MVLMMD01280500 MDF MELAMINA DOS CARAS 4x8 16 mm, opcion B709 WALNUT', fuente: FUENTE_TDC_ALPURA }),
+  tablero({ id: 'mdf-25-walnut', nombre: 'MDF melamina 2 caras 25 mm Walnut (nogal)', precio: 1250,
+    articulo: 'MVLMMD01280700 MDF MELAMINA DOS CARAS 4x8 25 mm, opcion B709 WALNUT', fuente: FUENTE_TDC_ALPURA }),
+  tablero({ id: 'laminado-walnut', nombre: 'Laminado plastico 4x8 Walnut (nogal)', precio: 641.59,
+    articulo: 'MVLMLP00280000 LAMINADO PLASTICO 4x8, opcion B709 WALNUT', fuente: FUENTE_TDC_ALPURA }),
+  // Acrilico FABRICADO (se corta y trabaja): material al 20%, no el 1% del vidrio.
+  ins({ id: 'acrilico-cristal-3', nombre: 'Acrilico cristal 3 mm (hoja 4x6)', seccion: 'mamparas', unidad: 'hoja', fraccion: true, mermaCorte: 6, precio: 900,
+    articulo: 'MLEPAC00711600 ACRILICO CRISTAL 4x6 3 mm', fuente: FUENTE_TDC_ALPURA }),
+  ins({ id: 'acrilico-traslucido-3', nombre: 'Acrilico traslucido 3 mm (hoja 4x8)', seccion: 'mamparas', unidad: 'hoja', fraccion: true, mermaCorte: 6, precio: 964,
+    articulo: 'MLEPAT00641600 ACRILICO TRASLUCIDO Z2 4x8 3 mm', fuente: FUENTE_TDC_ALPURA }),
+  // Perfil de canto ABS (distinto del tapacanto delgado y del perfil de aluminio).
+  ins({ id: 'canto-abs-22', nombre: 'Perfil de canto ABS 22 mm Walnut', seccion: 'cubiertas', unidad: 'm', formato: ROLLO100, mermaCorte: 4, inventario: true, precio: 20.64,
+    articulo: 'MVLPPC00491505 PERFIL DE CANTO ABS 22 x 2 mm', fuente: FUENTE_TDC_ALPURA }),
+  ins({ id: 'canto-abs-32', nombre: 'Perfil de canto ABS 32 mm Walnut', seccion: 'cubiertas', unidad: 'm', formato: ROLLO100, mermaCorte: 4, inventario: true, precio: 22.58,
+    articulo: 'MVLPPC00501505 PERFIL DE CANTO ABS 32 x 2 mm', fuente: FUENTE_TDC_ALPURA }),
+  // Tubos estructurales por fraccion de tramo de 6 m (como ptr-redondo-4).
+  ins({ id: 'tubular-redondo-34', nombre: 'Tubular redondo 3/4" cal. 18 (tramo 6 m)', seccion: 'metal', unidad: 'tramo', precio: 138.4,
+    articulo: 'MVLSTU02060401 TUBULAR REDONDO 3/4 cal 18, 6000 mm', fuente: FUENTE_TDC_ALPURA }),
+  ins({ id: 'pulido-redondo-14', nombre: 'Pulido redondo 1/4" (tramo 6 m)', seccion: 'metal', unidad: 'tramo', precio: 30.25,
+    articulo: 'MVLSPU02030001 PULIDO REDONDO 1/4, 6000 mm', fuente: FUENTE_TDC_ALPURA }),
+  // Láminas formato 3x10 (retail): precio POR HOJA, costeo por fracción de hoja.
+  ins({ id: 'lamina-3x10-20', nombre: 'Lamina negra 3x10 cal. 20', seccion: 'metal', unidad: 'hoja', formato: LAMINA3X10_20, fraccion: true, mermaCorte: 8, precio: 449.06,
+    articulo: 'MVLSLA05260502 LAMINA NEGRA 3x10 cal 20 acero 1008', fuente: FUENTE_TDC_ALPURA }),
+  ins({ id: 'lamina-3x10-14', nombre: 'Lamina negra 3x10 cal. 14', seccion: 'metal', unidad: 'hoja', formato: LAMINA3X10_14, fraccion: true, mermaCorte: 8, precio: 849.5,
+    articulo: 'MVLSLA05260202 LAMINA NEGRA 3x10 cal 14 acero 1008', fuente: FUENTE_TDC_ALPURA }),
+  ins({ id: 'lamina-3x10-12', nombre: 'Lamina negra 3x10 cal. 12', seccion: 'metal', unidad: 'hoja', formato: LAMINA3X10_12, fraccion: true, mermaCorte: 8, precio: 1116.28,
+    articulo: 'MVLSLA05261002 LAMINA NEGRA 3x10 cal 12 acero 1008', fuente: FUENTE_TDC_ALPURA }),
+  // Pintura en polvo NEGRO mate (la que ya existe es blanca, en USD).
+  ins({ id: 'pintura-polvo-negro', nombre: 'Pintura en polvo negro mate 8 (Vitracoat)', seccion: 'acabados', unidad: 'kg', clase: 'indirecta', precio: 120.68,
+    articulo: 'MVLQPP00000000 PINTURA EN POLVO negro mate 8 Vitracoat', fuente: FUENTE_TDC_ALPURA }),
+  // Nivelador grande del exhibidor (distinto del conico 3/8 chico que ya existe).
+  ins({ id: 'nivelador-plataforma', nombre: 'Tornillo nivelador 3/8 plataforma 1 1/2" cromado', seccion: 'herrajes', unidad: 'pza', clase: 'indirecta', precio: 41.63,
+    articulo: 'MVLUTO15181009 TORNILLO NIVELADOR 3/8 x 1 1/2 plataforma cromado', fuente: FUENTE_TDC_ALPURA }),
+
+  // ---- GRAFICOS E ILUMINACION (comprado ya hecho = compra-venta, MO 1% / GI 5%) -
+  // Son el "id_02 compra-venta" de la T.D.C.: no llevan mano de obra de fabricacion.
+  ins({ id: 'kit-led-5000k', nombre: 'Kit iluminacion LED 5000 K (tiras + fuente + arnes)', seccion: 'graficos', unidad: 'pza', clase: 'indirecta', precio: 3200,
+    articulo: 'MDMEKT01000032 KIT DE ILUMINACION LED 5000 K con arnes, fuente y clavija', fuente: FUENTE_TDC_ALPURA }),
+  ins({ id: 'logo-acrilico-iluminado', nombre: 'Logotipo acrilico iluminado con perfil de aluminio', seccion: 'graficos', unidad: 'pza', clase: 'indirecta', precio: 900,
+    articulo: 'MDMPLO03030003 LOGOTIPO acrilico blanco con perfil aluminio', fuente: FUENTE_TDC_ALPURA }),
+  ins({ id: 'impresion-estireno-g', nombre: 'Impresion en estireno cal 20 con arte (grande)', seccion: 'graficos', unidad: 'pza', clase: 'indirecta', precio: 348,
+    articulo: 'MDMPIM01020101 IMPRESION EN ESTIRENO 1640 x 375 cal 20', fuente: FUENTE_TDC_ALPURA }),
+  ins({ id: 'impresion-estireno-ch', nombre: 'Impresion en estireno cal 20 con arte (chica)', seccion: 'graficos', unidad: 'pza', clase: 'indirecta', precio: 172,
+    articulo: 'MDMPIM01010101 IMPRESION EN ESTIRENO 1100 x 230 cal 20', fuente: FUENTE_TDC_ALPURA }),
 ];
 
 // Etiquetas legibles de cada seccion (5.2)
@@ -338,6 +401,7 @@ export const SECCIONES = [
   { id: 'tapiceria', nombre: 'Tapiceria' },
   { id: 'acabados', nombre: 'Acabados y pintura' },
   { id: 'ecoacustic', nombre: 'EcoAcustic (paneles Sonara)' },
+  { id: 'graficos', nombre: 'Graficos e iluminacion (retail)' },
 ];
 
 // Mapa id -> insumo, util para el motor

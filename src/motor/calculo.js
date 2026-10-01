@@ -18,7 +18,7 @@ export const MOTOR_VERSION = '2026-10-01';
 // aeropuerto: los multicontactos Bari no deben cargar MO). Electrico y guardas
 // ya armadas y paneles EcoAcustic entran; pintura/tela/tapiceria NO (esas si
 // llevan MO real). Ajustable aqui si cambia el criterio.
-export const SIN_MO_SECCIONES = new Set(['electrico', 'guardas', 'ecoacustic']);
+export const SIN_MO_SECCIONES = new Set(['electrico', 'guardas', 'ecoacustic', 'graficos']);
 
 // -----------------------------------------------------------------------------
 //  Parametros de planta por defecto (master 5.6). Una sola configuracion global.
@@ -417,7 +417,12 @@ function manoObraGiAlba(detalleInsumos) {
   let mo = 0;
   let gi = 0;
   for (const d of detalleInsumos) {
-    const tipo = tipoAlba({ seccion: d.seccion, nombre: d.nombre });
+    // Lo COMPRADO ya hecho (eléctrico, guardas, ecoacústic, gráficos: kit LED,
+    // logos, impresiones) es compra-venta: MO 1% / GI 5%, igual que el id_02 de
+    // la T.D.C. real. Lo demás se clasifica por su material (fabricado).
+    const tipo = SIN_MO_SECCIONES.has(d.seccion)
+      ? 'compraventa'
+      : tipoAlba({ seccion: d.seccion, nombre: d.nombre });
     const r = costoAlba(d.costo, tipo);
     mo += r.mo;
     gi += r.gi;

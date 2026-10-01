@@ -76,7 +76,7 @@ describe('Exhibidor Alpura id_01: el motor cuadra con la T.D.C. real de Alba', (
     ['TORNILLO ALLEN 1/4', 14.4], ['PIJA 8x1 1/2', 14], ['PIJA FIJADORA 8x1/2', 2.2],
     ['PIJA 8x3/4', 9.5], ['empaque jgo', 225.99],
   ];
-  it('material 7695.65 → MO 1539.13 · GI 4617.39 · fab 13852.17', () => {
+  it('id_01 fabricado: material 7695.65 → MO 1539.13 · GI 4617.39 · fab 13852.17', () => {
     let mat = 0, mo = 0, gi = 0;
     for (const [nombre, c] of ID01) {
       const r = costoAlba(c, tipoAlba({ nombre }));
@@ -86,5 +86,21 @@ describe('Exhibidor Alpura id_01: el motor cuadra con la T.D.C. real de Alba', (
     expect(mo).toBeCloseTo(1539.13, 0);
     expect(gi).toBeCloseTo(4617.39, 0);
     expect(mat + mo + gi).toBeCloseTo(13852.17, 0);
+  });
+
+  // id_02 "logos + kit LED": COMPRA-VENTA (comprado ya hecho, MO 1% / GI 5%).
+  it('id_02 compra-venta: material 4620 → MO 46.20 · GI 231 · fab 4897.20', () => {
+    const ID02 = 4620; // logo 900 + impresion 348 + impresion 172 + kit LED 3200
+    const r = costoAlba(ID02, 'compraventa');
+    expect(r.mo).toBeCloseTo(46.20, 1);
+    expect(r.gi).toBeCloseTo(231, 0);
+    expect(r.fab).toBeCloseTo(4897.20, 0);
+  });
+
+  it('producto completo ENTCBCALP = id_01 + id_02 = fab 18749.37', () => {
+    let f = 0;
+    for (const [nombre, c] of ID01) f += costoAlba(c, tipoAlba({ nombre })).fab;
+    f += costoAlba(4620, 'compraventa').fab;
+    expect(f).toBeCloseTo(18749.37, 0);
   });
 });

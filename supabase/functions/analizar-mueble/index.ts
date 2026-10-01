@@ -33,10 +33,11 @@ const SCHEMA = {
           largoMM: { type: "number" },
           anchoMM: { type: "number" },
           cantidad: { type: "number" },
+          hojas: { type: "number", description: "Para forma='area' (tableros/laminas/acrilicos): FRACCION DE HOJA estandar que consume el TOTAL de esta pieza x cantidad (1 = una hoja entera 1.22x2.44 de tablero, o 3x10 de lamina). Es lo que el motor usa para costear; estimala conservadora a partir de las cotas. 0 si no aplica (lineal/pieza)." },
           confianza: { type: "string", enum: ["alta", "media", "baja"] },
           nota: { type: "string" },
         },
-        required: ["nombre", "insumoId", "forma", "largoMM", "anchoMM", "cantidad", "confianza", "nota"],
+        required: ["nombre", "insumoId", "forma", "largoMM", "anchoMM", "cantidad", "hojas", "confianza", "nota"],
       },
     },
     descripcionCliente: { type: "string", description: "Para el CLIENTE, sin jerga: que es, de que esta hecho, medidas aprox, para que sirve. 2-4 frases." },
@@ -78,7 +79,9 @@ Deno.serve(async (req) => {
     "E) ANTI-ALUCINACION: si dudas de un material, ofrece 2 opciones con su trade-off en el informe. Nunca inventes.\n" +
     "F) CLIENTE vs INTERNO: 'informe' es para Produccion/Diseno (tecnico). 'descripcionCliente' y 'materiales' son para el CLIENTE: sin jerga ni claves.\n\n" +
     "El 'informe' (Markdown) DEBE traer las 8 secciones con los titulos EXACTOS del schema (las 7 de la auditoria + '## 🎯 Top 3 Acciones' al final), con la tabla BOM en markdown. SE CONCISO: viñetas cortas, no ensayos; maximo ~3-5 puntos por seccion; tabla BOM breve. Prioriza claridad y termina SIEMPRE el JSON.\n\n" +
-    "DESPIECE 'piezas' (para el motor): tableros/cristal forma='area' con largoMM/anchoMM; metal/canto/tela forma='lineal' (metros); herrajes/comprados forma='pieza'.\n\n" +
+    "DESPIECE 'piezas' (para el motor): tableros/cristal forma='area' con largoMM/anchoMM; metal/canto/tela forma='lineal' (metros); herrajes/comprados forma='pieza'.\n" +
+    "FRACCION DE HOJA (clave para que el costo cuadre): en cada pieza forma='area' da ADEMAS 'hojas' = la fraccion de hoja estandar que consume el TOTAL (pieza x cantidad). El motor cuesta hojas x precio_de_hoja; si solo mandas area, el costo oscila. Piensa cuantas piezas caben en una hoja 1.22x2.44 (tablero) o 3x10 ft (lamina) y saca la fraccion. SE CONSERVADOR: no infles; ante la duda, menos hojas, no mas.\n" +
+    "RETAIL / EXHIBIDORES: si es un exhibidor/mueble de tienda, mapea a los materiales retail del catalogo cuando existan (kit LED 5000K, MDF Walnut 16/25 mm, laminado Walnut, acrilico cristal/traslucido, perfil de canto ABS, logotipo acrilico, impresion en estireno). El KIT LED y los graficos/logos/impresiones son COMPRADOS ya hechos (seccion 'graficos'): van forma='pieza', NO llevan hojas.\n\n" +
     "CATALOGO DE MATERIALES (id — nombre [seccion, unidad]):\n" + cat;
 
   // Bloques de imagen: varias HOJAS (plano multipágina) → varias imagenes; si no,

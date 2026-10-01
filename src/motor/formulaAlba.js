@@ -19,7 +19,11 @@
 // ============================================================================
 
 // % de mano de obra sobre el material, por tipo (criterio de Alba 2026).
-export const MO_PCT = { cubierta: 15, metal: 20, madera: 20, cristal: 1, general: 20 };
+// `compraventa` = material COMPRADO ya hecho que solo se traslada/instala (kit LED,
+// logos impresos, gráficos, guardas armadas): MO 1% y GI 5% del material, igual que
+// el biombo de cristal. Es el "id_02 compra-venta" de la T.D.C. real (verificado:
+// logos $4,620 → MO $46.20 (1%), GI $231 (5%), fab $4,897.20).
+export const MO_PCT = { cubierta: 15, metal: 20, madera: 20, cristal: 1, compraventa: 1, general: 20 };
 
 // Clasifica un producto/material al tipo de Alba. `seccion`/`nombre` vienen del
 // insumo o la pieza. El cristal manda (su cuenta es distinta); luego cubierta;
@@ -54,7 +58,9 @@ export function costoAlba(material, tipo = 'general') {
   const mo = mat * (moPct / 100);
   // Metal/madera: los indirectos van SOBRE la mano de obra (3×). Cristal: 5% del
   // material (compra-venta, sin transformación).
-  const gi = tipo === 'cristal' ? mat * 0.05 : mo * 3;
+  // Cristal y compra-venta: GI = 5% del material (solo traslado/movimiento, sin
+  // transformación). Metal/madera/cubierta/general: GI = 3 × MO.
+  const gi = (tipo === 'cristal' || tipo === 'compraventa') ? mat * 0.05 : mo * 3;
   const fab = mat + mo + gi;
   return { material: mat, mo, gi, fab, tipo, moPct };
 }

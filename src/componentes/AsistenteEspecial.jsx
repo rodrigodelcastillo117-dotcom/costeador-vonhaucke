@@ -135,7 +135,12 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
     const comps = (p.piezas || []).map((z) => {
       const existe = !!insumos[z.insumoId];
       const base = { nombre: z.nombre || 'Pieza', insumoId: existe ? z.insumoId : '', cantidad: z.cantidad || 1, piezas: 1, iaNota: z.nota || '', iaConf: z.confianza || '' };
-      if (z.forma === 'area') { base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1; }
+      if (z.forma === 'area') {
+        base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
+        // La IA ya estimó la fracción de hoja que rinde: el motor la usa directa
+        // (hojas × precio) en vez de re-nestear áreas, que es lo que oscilaba.
+        if (z.hojas > 0) base.hojas = z.hojas;
+      }
       return base;
     });
     setB((prev) => ({ ...prev, nombre: prev.nombre || p.producto || '', componentes: comps, imagen: dataUrl || null, descripcionCliente: p.descripcionCliente || '', materiales: Array.isArray(p.materiales) ? p.materiales : [] }));
