@@ -58,8 +58,10 @@ Deno.serve(async (req) => {
 
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, error: "JSON invalido" }, 400); }
-  const { image, mediaType = "image/jpeg", catalogo } = body || {};
-  if (!image) return json({ ok: false, error: "Falta la imagen (base64)." }, 400);
+  const { image, imagenes, mediaType = "image/jpeg", catalogo } = body || {};
+  // `imagenes` = varias HOJAS del MISMO mueble (plano multipágina rasterizado).
+  const imgs = Array.isArray(imagenes) ? imagenes.filter((x: any) => typeof x === "string" && x) : [];
+  if (!image && !imgs.length) return json({ ok: false, error: "Falta la imagen (base64)." }, 400);
 
   const cat = Array.isArray(catalogo)
     ? catalogo.map((c: any) => `${c.id} — ${c.nombre} [${c.seccion}, ${c.unidad}]`).join("\n")
@@ -79,22 +81,25 @@ Deno.serve(async (req) => {
     "DESPIECE 'piezas' (para el motor): tableros/cristal forma='area' con largoMM/anchoMM; metal/canto/tela forma='lineal' (metros); herrajes/comprados forma='pieza'.\n\n" +
     "CATALOGO DE MATERIALES (id — nombre [seccion, unidad]):\n" + cat;
 
+  // Bloques de imagen: varias HOJAS (plano multipágina) → varias imagenes; si no,
+  // una sola (PDF crudo = documento; imagen/render = imagen). Mismo patron que leer-plano.
+  const bloquesImagen = imgs.length
+    ? imgs.map((b64: string) => ({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } }))
+    : [mediaType === "application/pdf"
+        ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: image } }
+        : { type: "image", source: { type: "base64", media_type: mediaType, data: image } }];
+  const textoTarea = imgs.length > 1
+    ? `Te doy ${imgs.length} HOJAS del MISMO mueble (vista general + detalle por parte). Intégralas en UN SOLO despiece/BOM y una sola auditoria — NO las trates como muebles distintos. Usa las cotas y especificaciones de TODAS las hojas.`
+    : "Realiza la Auditoria Tecnica, BOM y Estrategia de Industrializacion completa de este mueble.";
+
   const apiBody = {
     model: "claude-opus-5",
-    max_tokens: 8000,
+    max_tokens: imgs.length > 1 ? 16000 : 8000, // varias hojas → más espacio de salida
     output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } },
     system,
     messages: [{
       role: "user",
-      content: [
-        // Un PDF (plano) se manda como DOCUMENTO; una imagen/render como imagen.
-        // Mismo patron que leer-plano. Asi se pueden costear planos en PDF, que es
-        // como llegan muchos (Rodrigo, 2026-09-30).
-        mediaType === "application/pdf"
-          ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: image } }
-          : { type: "image", source: { type: "base64", media_type: mediaType, data: image } },
-        { type: "text", text: "Realiza la Auditoria Tecnica, BOM y Estrategia de Industrializacion completa de este mueble." },
-      ],
+      content: [...bloquesImagen, { type: "text", text: textoTarea }],
     }],
   };
 
