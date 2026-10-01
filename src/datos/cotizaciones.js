@@ -21,6 +21,7 @@
 // ============================================================================
 import { nube } from '../nube.js';
 import { totalesCotizacion } from './totales.js';
+import { MOTOR_VERSION } from '../motor/calculo.js';
 
 // ---------------------------------------------------------------------------
 //  HUELLA DE LA MATERIA PRIMA
@@ -28,26 +29,65 @@ import { totalesCotizacion } from './totales.js';
 //  cualquiera, cambia la huella. No es criptografía: es una firma para saber
 //  "esto se coteó con otros precios".
 // ---------------------------------------------------------------------------
-export function huellaMP(insumos) {
+// Prefijo de versión de la huella. Si el FORMATO de la huella cambia (como ahora,
+// que pasó de solo `id:precio` a materia prima + parámetros + versión de motor),
+// se sube: así `mpCambio` sabe que una huella vieja NO es comparable con una nueva
+// y responde "no se sabe" en vez de gritar "cambió" para todo el archivo histórico.
+const HUELLA_VER = 'mp2';
+
+// Parámetros que ALTERAN EL COSTO calculado (no el precio de venta): si se mueve
+// cualquiera, una cotización vieja ya no se costeó con las mismas bases. El margen
+// NO entra aquí (afecta precio, no costo); la huella es sobre el costo/materia prima.
+const PARAMS_COSTO = [
+  'tipoCambio', 'mermaProceso', 'factorManoObraDirecta', 'factorManoObraIndirecta',
+  'factorIndirectosFabrica', 'gastosOperacionPct', 'modeloCosteo',
+  'kerfMM', 'recorteOrillaMM', 'aprovechamientoCorte',
+];
+
+export function huellaMP(insumos, par) {
   const lista = insumos && typeof insumos === 'object'
     ? Object.values(insumos)
     : Array.isArray(insumos) ? insumos : [];
   if (!lista.length) return '';
-  const txt = lista
+  const fmt = (f) => (f && typeof f === 'object' ? JSON.stringify(f) : String(f ?? ''));
+  // Por insumo: NO solo el precio. Un cambio de unidad, moneda, formato de compra
+  // o merma de corte mueve el costo real igual que un cambio de precio (audit
+  // 2026-10-01): capturar la chapa por m² en vez de por hoja la dejaba 3× barata
+  // sin que la huella se enterara. Ahora sí se entera.
+  const mp = lista
     .filter((i) => i && i.id)
-    .map((i) => `${i.id}:${Number(i.precio) || 0}`)
+    .map((i) => [
+      i.id,
+      Number(i.precio) || 0,
+      i.unidad || '',
+      i.moneda || (i.usd ? 'usd' : ''),
+      fmt(i.formato),
+      Number(i.mermaCorte) || 0,
+    ].join(':'))
     .sort()
     .join('|');
+  // Parámetros de costo + versión del motor: si la FÓRMULA cambia, la huella cambia.
+  const p = par && typeof par === 'object' ? par : {};
+  const parTxt = PARAMS_COSTO.map((k) => `${k}=${p[k] ?? ''}`).join(',');
+  const txt = `${MOTOR_VERSION}#${parTxt}#${mp}`;
   // djb2 — corto, determinista y suficiente para detectar un cambio.
   let h = 5381;
   for (let k = 0; k < txt.length; k++) h = ((h << 5) + h + txt.charCodeAt(k)) >>> 0;
-  return `mp${h.toString(36)}-${lista.length}`;
+  return `${HUELLA_VER}:${h.toString(36)}-${lista.length}`;
 }
 
-/** ¿La cotización se costeó con otros precios de materia prima que los de hoy? */
-export function mpCambio(cot, insumosHoy) {
-  if (!cot?.huella_mp) return null;          // no se sabe: no se afirma que cambió
-  return cot.huella_mp !== huellaMP(insumosHoy);
+/**
+ * ¿La cotización se costeó con otras bases (precios/unidades/formatos/mermas/
+ * parámetros/motor) que las de hoy? Devuelve true/false solo si la huella guardada
+ * es del MISMO formato que la de hoy; si es de un formato viejo (no comparable) o
+ * no hay huella, devuelve null = "no se sabe" (NUNCA se afirma un cambio falso, ni
+ * se recalcula en silencio una cotización ya emitida — audit 2026-10-01).
+ */
+export function mpCambio(cot, insumosHoy, parHoy) {
+  const h = cot?.huella_mp;
+  if (!h) return null;                               // no se sabe
+  if (!String(h).startsWith(HUELLA_VER + ':')) return null; // formato viejo: incomparable
+  return h !== huellaMP(insumosHoy, parHoy);
 }
 
 // ---------------------------------------------------------------------------
@@ -89,7 +129,7 @@ export function paraGuardar(estado, usuario) {
     },
     total: t.totalRedondeado,
     piezas: partidas.reduce((a, p) => a + (p.cantidad || 0), 0),
-    huella_mp: huellaMP(estado?.insumos),
+    huella_mp: huellaMP(estado?.insumos, estado?.parametros),
   };
 }
 
@@ -160,10 +200,10 @@ export async function archivarCotizacion(id) {
 //  cotizaciones enteras: el prompt tiene que seguir cabiendo y lo que importa es
 //  "este mueble ya se vendió a este precio, y si la MP cambió, ojo".
 // ---------------------------------------------------------------------------
-export function referenciasParaVoni(cotizaciones, insumosHoy, tope = 40) {
+export function referenciasParaVoni(cotizaciones, insumosHoy, tope = 40, parHoy) {
   const vistos = new Map();
   for (const c of cotizaciones || []) {
-    const viejo = mpCambio(c, insumosHoy);
+    const viejo = mpCambio(c, insumosHoy, parHoy);
     for (const p of c.partidas || []) {
       if (!p.nombre || !p.precioUnitario) continue;
       const k = p.nombre;

@@ -69,7 +69,7 @@ export default function Archivo({ estado, onAbrir }) {
           {vistas.map((c) => {
             // ⚠️ La condición que puso Rodrigo: un precio viejo sólo se reusa si
             // la materia prima no se movió desde entonces.
-            const movio = mpCambio(c, estado?.insumos);
+            const movio = mpCambio(c, estado?.insumos, estado?.parametros);
             return (
               <div key={c.id} className="tarjeta" style={{ padding: 12, display: 'grid', gap: 6 }}>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>

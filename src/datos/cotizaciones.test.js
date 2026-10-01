@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { huellaMP, mpCambio, paraGuardar, textoDe, referenciasParaVoni, referenciasTexto } from './cotizaciones.js';
+import { problemasDeEmision } from './senales.js';
 
 const insumos = { a: { id: 'a', precio: 100 }, b: { id: 'b', precio: 250.5 } };
 const insumosOtro = { a: { id: 'a', precio: 110 }, b: { id: 'b', precio: 250.5 } };
@@ -22,6 +23,24 @@ describe('huella de la materia prima', () => {
     expect(huellaMP(null)).toBe('');
     expect(huellaMP({})).toBe('');
   });
+
+  // Audit 2026-10-01: la huella ya no es solo id:precio. Un cambio de unidad,
+  // merma o formato mueve el costo real igual que el precio, y la huella lo capta.
+  it('un cambio de UNIDAD mueve la huella aunque el precio sea el mismo', () => {
+    const porHoja = { a: { id: 'a', precio: 100, unidad: 'hoja' } };
+    const porM2 = { a: { id: 'a', precio: 100, unidad: 'm2' } };
+    expect(huellaMP(porHoja)).not.toBe(huellaMP(porM2));
+  });
+
+  it('un cambio de MERMA de corte mueve la huella', () => {
+    const m4 = { a: { id: 'a', precio: 100, mermaCorte: 4 } };
+    const m8 = { a: { id: 'a', precio: 100, mermaCorte: 8 } };
+    expect(huellaMP(m4)).not.toBe(huellaMP(m8));
+  });
+
+  it('un cambio de PARÁMETRO de costo (tipo de cambio) mueve la huella', () => {
+    expect(huellaMP(insumos, { tipoCambio: 17.5 })).not.toBe(huellaMP(insumos, { tipoCambio: 20 }));
+  });
 });
 
 describe('¿cambió la materia prima desde que se cotizó?', () => {
@@ -35,6 +54,14 @@ describe('¿cambió la materia prima desde que se cotizó?', () => {
     // Es la diferencia entre "sé que cambió" y "no sé". Decir que cambió cuando
     // no se sabe manda al vendedor a recotizar de más.
     expect(mpCambio({}, insumos)).toBe(null);
+  });
+
+  it('una huella de FORMATO VIEJO no es comparable: devuelve null, no "cambió"', () => {
+    // Audit 2026-10-01: al enriquecer la huella no se puede comparar una vieja
+    // (mp…) contra una nueva (mp2:…) — sería una falsa alarma para TODO el archivo
+    // histórico. Se responde "no se sabe", nunca se recalcula a ciegas.
+    const vieja = { huella_mp: 'mp1a2b3c-2' };
+    expect(mpCambio(vieja, insumos)).toBe(null);
   });
 });
 
@@ -107,5 +134,43 @@ describe('lo que Voni usa como referencia', () => {
     const muchas = [{ actualizado: '2026-08-01', huella_mp: huellaMP(insumos),
       partidas: Array.from({ length: 200 }, (_, i) => ({ nombre: `Mueble ${i}`, precioUnitario: 100 + i, cantidad: 1 })) }];
     expect(referenciasParaVoni(muchas, insumos, 40).length).toBeLessThanOrEqual(40);
+  });
+});
+
+// Audit 2026-10-01: el bloqueo por costeo incompleto DEBE sobrevivir guardar→recuperar
+// (el borrador se guarda, pero no se puede emitir hasta asignar material). Esto prueba
+// la persistencia sin depender de subir un plano real.
+describe('el bloqueo por material inexistente sobrevive guardar y recuperar', () => {
+  const estadoBorrador = {
+    insumos,
+    cotizacion: {
+      cliente: 'Prueba', estadoComercial: 'borrador',
+      partidas: [{
+        id: 'p1', nombre: 'Exhibidor Alpura', cantidad: 1, precioUnitario: 20000,
+        piezasSinMaterial: 1, nombresSinMaterial: ['Acometida'],
+      }],
+    },
+  };
+
+  it('se guarda el borrador CON el rastro de las piezas sin material', () => {
+    const guardado = paraGuardar(estadoBorrador, 'rodrigo@vonhaucke.mx');
+    expect(guardado.estado).toBe('borrador');          // el borrador SÍ se guarda
+    expect(guardado.partidas[0].piezasSinMaterial).toBe(1);
+    expect(guardado.partidas[0].nombresSinMaterial).toEqual(['Acometida']);
+  });
+
+  it('al recuperarlo sigue bloqueada la emisión', () => {
+    const guardado = paraGuardar(estadoBorrador, 'rodrigo@vonhaucke.mx');
+    // Recuperar = cargar las partidas tal cual (App.jsx: `partidas: c.partidas || []`).
+    const recuperado = guardado.partidas;
+    const probs = problemasDeEmision(recuperado);
+    expect(probs.length).toBe(1);
+    expect(probs[0]).toContain('sin material');
+  });
+
+  it('al asignar un material válido se desbloquea', () => {
+    // Asignado el material, el motor ya no reporta ignorados (piezasSinMaterial 0).
+    const corregido = [{ id: 'p1', nombre: 'Exhibidor Alpura', cantidad: 1, precioUnitario: 20000, piezasSinMaterial: 0 }];
+    expect(problemasDeEmision(corregido)).toEqual([]);
   });
 });

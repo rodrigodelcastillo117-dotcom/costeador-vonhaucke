@@ -7,6 +7,12 @@
 // ============================================================================
 import { costoAlba, tipoAlba } from './formulaAlba.js';
 
+// VERSIÓN DEL MOTOR — entra en la huella de cada cotización (cotizaciones.js:
+// huellaMP) para que, si la FÓRMULA cambia (no solo un precio), una cotización
+// vieja se marque "calculada con otro motor" en vez de reusarse a ciegas.
+// ⚠️ SÚBELA cuando cambie cómo se calcula el costo (factores, cascada, nesting).
+export const MOTOR_VERSION = '2026-10-01';
+
 // Secciones cuyo material se COMPRA ya hecho y solo se instala: NO llevan mano
 // de obra de fabricacion (decision Rafa/Rodrigo, 2026-09-23 — caso banca
 // aeropuerto: los multicontactos Bari no deben cargar MO). Electrico y guardas
