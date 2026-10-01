@@ -291,6 +291,28 @@ export async function registrarSombra(reg) {
   try { await nube.from('shadow_costeo').insert(reg); } catch (e) { /* shadow silencioso */ }
 }
 
+// --- RENDER V1: subir imagen a Storage (NO base64 en JSON) + guardar metadata ---
+// Convierte un dataUrl base64 a Blob y lo sube al bucket 'renders'. Devuelve {ok, path, url}.
+export async function subirRender(dataUrl, path) {
+  try {
+    const [cab, b64] = String(dataUrl).split(',');
+    const mime = (cab.match(/data:(.*?);/) || [])[1] || 'image/png';
+    const bin = atob(b64); const u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    const { error } = await nube.storage.from('renders').upload(path, u8, { contentType: mime, upsert: true });
+    if (error) return { ok: false, error: error.message };
+    const { data } = nube.storage.from('renders').getPublicUrl(path);
+    return { ok: true, path, url: data?.publicUrl || null };
+  } catch (e) { return { ok: false, error: String(e) }; }
+}
+
+// Guarda la metadata del render (técnico, sin base64). Devuelve {ok, id}.
+export async function guardarRender(meta) {
+  const { data, error } = await nube.from('renders').insert(meta).select('id').maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, id: data?.id };
+}
+
 // hash corto y estable del input (djb2) para correlacionar cliente/servidor sin guardar el BOM.
 export function hashInput(obj) {
   const t = JSON.stringify(obj ?? {});
