@@ -350,13 +350,16 @@ export default function App() {
   // una REVISIÓN inmutable de lo ofrecido (evidencia con fecha y responsable). No
   // duplica si no cambió nada; nunca rompe la emisión si la nube falla.
   async function onEmitida() {
-    if (!sesion?.user?.email) return;
+    if (!sesion?.user?.email) return { ok: false, motivo: 'sin-sesion' };
     try {
       const id = await guardarCotizacion(estado, sesion.user.email, idCotizacion.current);
       if (id) idCotizacion.current = id;
       const r = await guardarRevision(estado, idCotizacion.current);
-      if (r?.nueva) mostrarAviso(`Revisión ${r.revision} guardada — se conservó lo que se emitió.`);
-    } catch (e) { /* conservar la evidencia no puede tumbar la emisión */ }
+      if (r?.ok && r.nueva) mostrarAviso(`Revisión ${r.revision} guardada — se conservó lo que se emitió.`);
+      return r || { ok: false, motivo: 'desconocido' };
+    } catch (e) {
+      return { ok: false, motivo: String(e?.message || e) };
+    }
   }
 
   // permiso === 'error' (no se pudo consultar) NO cuenta como acceso: sin este

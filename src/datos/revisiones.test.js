@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { snapshotEmitido, hashContenido } from './revisiones.js';
+import { snapshotEmitido, hashContenido, guardarRevision } from './revisiones.js';
 
 const estado = (over = {}) => ({
   insumos: {},
@@ -40,5 +40,13 @@ describe('hashContenido — detecta cambios reales, ignora re-emisiones idéntic
     const a = snapshotEmitido(estado());
     const b = snapshotEmitido(estado({ descuentoPct: 15 }));
     expect(hashContenido(a)).not.toBe(hashContenido(b));
+  });
+});
+
+describe('guardarRevision exige vínculo estable (cotizacion_id)', () => {
+  it('sin cotizacionId no registra emisión definitiva (folio no basta)', async () => {
+    const r = await guardarRevision(estado(), null);
+    expect(r.ok).toBe(false);
+    expect(r.motivo).toBe('sin-cotizacion');
   });
 });

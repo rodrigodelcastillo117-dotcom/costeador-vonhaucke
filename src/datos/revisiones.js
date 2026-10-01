@@ -51,36 +51,30 @@ export function hashContenido(snap) {
   return `rev${h.toString(36)}`;
 }
 
-// Guarda una revisión de lo emitido. Dedup por hash contra la última. Devuelve
-// { revision, nueva } o null si no se pudo (sin tumbar la emisión).
+// Conserva una revisión de lo emitido, de forma ATÓMICA y con AUTORIZACIÓN, vía la
+// RPC `emitir_revision` (audit backend 2026-10-01). La RPC: exige cotizacion_id
+// (vínculo estable; el folio no basta por duplicados históricos), verifica que el
+// usuario tenga acceso a ESA cotización (no solo ser autor), serializa emisiones
+// simultáneas (advisory lock) y dedup contra la última (re-emitir idéntico no
+// crea revisión). Autor/folio/cliente los pone el servidor, no el cliente.
+// Devuelve { ok, revision, nueva } o { ok:false, motivo } — SIN lanzar: quien
+// llama decide si el documento es definitivo (ok) o solo un borrador no registrado.
 export async function guardarRevision(estado, cotizacionId) {
   try {
+    if (!cotizacionId) return { ok: false, motivo: 'sin-cotizacion' }; // sin vínculo no hay emisión definitiva
     const snap = snapshotEmitido(estado);
-    if (!snap || !(snap.partidas || []).length) return null; // nada que conservar
+    if (!snap || !(snap.partidas || []).length) return { ok: false, motivo: 'vacia' };
     const hash = hashContenido(snap);
-
-    // ¿La última revisión de esta cotización es idéntica? No dupliques.
-    let q = nube.from('cotizaciones_revisiones').select('revision, hash').order('revision', { ascending: false }).limit(1);
-    q = cotizacionId ? q.eq('cotizacion_id', cotizacionId) : q.eq('folio', snap.folio || '');
-    const { data: ultima } = await q;
-    const prev = ultima && ultima[0];
-    if (prev && prev.hash === hash) return { revision: prev.revision, nueva: false };
-
-    const fila = {
-      cotizacion_id: cotizacionId || null,
-      folio: snap.folio || null,
-      cliente: snap.cliente || null,
-      revision: (prev?.revision || 0) + 1,
-      total: snap.total || 0,
-      hash,
-      snapshot: snap,
-      // `usuario` (responsable) lo pone el trigger desde el JWT; no se manda aquí.
-    };
-    const { data, error } = await nube.from('cotizaciones_revisiones').insert(fila).select('revision').single();
-    if (error) return null;
-    return { revision: data.revision, nueva: true };
+    const { data, error } = await nube.rpc('emitir_revision', {
+      p_cotizacion_id: cotizacionId,
+      p_total: snap.total || 0,
+      p_hash: hash,
+      p_snapshot: snap,
+    });
+    if (error) return { ok: false, motivo: error.message || 'rpc' };
+    return { ok: true, revision: data?.revision, nueva: !!data?.nueva };
   } catch (e) {
-    return null; // conservar evidencia es secundario; emitir es el trabajo
+    return { ok: false, motivo: String(e?.message || e) };
   }
 }
 

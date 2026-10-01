@@ -172,6 +172,11 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
       // El logo y la foto de la casa van en la MISMA espera que las fotos: la
       // portada sin logo es justo lo que Rodrigo no quiere volver a ver.
       const [fotos, marca] = await Promise.all([cargarFotos(partidas, fotoPartida), cargarMarca()]);
+      // Evidencia PRIMERO (audit 2026-10-01): se conserva la revisión ANTES de
+      // entregar el documento. El contenido que se congela es el mismo que se
+      // dibuja abajo. Si no se pudo registrar, el PDF sale pero se avisa que NO es
+      // una emisión definitiva.
+      const reg = onEmitida ? await onEmitida() : { ok: false };
       descargarPropuesta({
         cot, partidas, resumen, especificacion, nPzas, fotos, marca,
         piezas: expandirPiezas(partidas),
@@ -183,8 +188,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           iva, ivaPct, total,
           anticipoPct, anticipo, cliente: cot.cliente, folio: cot.folio },
       });
-      // Emitido con éxito: congela la revisión (evidencia de lo ofrecido).
-      onEmitida?.();
+      if (!reg?.ok) setPdfErr('⚠️ Se generó el PDF, pero NO se registró la emisión (su evidencia no quedó conservada): NO cuenta como emisión definitiva. Revisa tu conexión e inténtalo de nuevo.');
     } catch (e) {
       // Si algo falla, queda el camino de siempre en vez de dejarlo sin nada.
       setPdfErr('No se pudo generar el archivo; se abrirá la impresión para guardarlo como PDF.');
@@ -203,8 +207,9 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
     } catch (e) { /* seguir de todas formas */ }
     window.print();
     setTimeout(() => { document.title = prev; }, 800);
-    // Imprimir también es emitir: congela la revisión (dedup si no cambió nada).
-    onEmitida?.();
+    // Abrir el diálogo de impresión NO prueba que se imprimió ni que el cliente
+    // recibió algo (audit 2026-10-01): aquí NO se registra una revisión. La
+    // emisión definitiva (con evidencia conservada) es "Descargar PDF".
   }
   const setPartida = (i, parcial) => { const ps = partidas.slice(); ps[i] = { ...ps[i], ...parcial }; setCot({ partidas: ps }); };
   const quitar = (i) => {
