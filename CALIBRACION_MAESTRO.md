@@ -239,7 +239,7 @@ Carpintería/benching 36–38/12 · Ejecutivas (Drift/Luna/Anteo) 40–42/15 · 
 ## PARTE 7 — Pendientes de app / operación
 - Default de acabado en `CosteadorLinea` es `'ABS'` fijo → en líneas cuyo primer acabado no es ABS cae en el fallback del generador. Convendría respetar el primer `finish` del producto.
 - Pantalla "cambiar contraseña" (9 usuarios con pass temporal).
-- Blindar edge function `costear-vision` (hoy acepta la publishable key pública) + cargar créditos Anthropic para "subir render → IA".
+- `costear-vision`: código muerto RETIRADO del repo el 2026-09-30 (nadie la llamaba; la activa es `analizar-mueble`). **PENDIENTE: la función sigue DESPLEGADA en Supabase** (se dejó por si un build viejo de Storage la usa) — blindarla o borrarla cuando se confirme que ningún canal legacy la llama.
 - **Riesgo vivo:** con Fase A la app cotiza estimado y a veces sub-valuado; avisar a vendedores o poner colchón (margen/aprovechamiento) hasta calibrar.
 
 ---
