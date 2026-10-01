@@ -183,6 +183,22 @@ export async function analizarRenderImagenes(catalogo, imagenes) {
   return data;
 }
 
+// SEGUNDA PASADA (verificadora): la IA recibe su propio despiece + las mismas hojas
+// y lo CRITICA contra las cotas (infla/baja/duplica/inventa), lo corrige y llena el
+// 'razonamiento' de consumo por pieza. Si falla, se devuelve la propuesta original
+// (la verificación es una mejora, no un requisito — nunca deja al usuario sin nada).
+export async function verificarDespiece(catalogo, imagenes, propuesta) {
+  try {
+    const { data, error } = await nube.functions.invoke('analizar-mueble', {
+      body: { catalogo, imagenes, revisar: propuesta },
+    });
+    if (error || !data?.ok) return { ok: true, propuesta, verificado: false };
+    return { ...data, verificado: true };
+  } catch (e) {
+    return { ok: true, propuesta, verificado: false };
+  }
+}
+
 // Cotizador conversacional: texto natural -> items estructurados (Claude).
 export async function cotizarTexto(texto, catalogo) {
   // Las reglas de oficio que Rodrigo dicta en "Lo que Voni sabe" viajan CON el

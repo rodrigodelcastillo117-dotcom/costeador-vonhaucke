@@ -8,7 +8,7 @@ import { useMemo, useState } from 'react';
 import { calcular, precioDe, netoComponente, modeloParaPieza } from '../motor/calculo.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos } from '../util.js';
-import { analizarRender, analizarRenderImagenes } from '../nube.js';
+import { analizarRender, analizarRenderImagenes, verificarDespiece } from '../nube.js';
 import { abrirPdf, paginaAImagen, todasLasPaginas } from '../datos/pdfImagen.js';
 import Cargando from './Cargando.jsx';
 import Markdown from './Markdown.jsx';
@@ -80,6 +80,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
   const insumos = estado.insumos;
   const [paso, setPaso] = useState(0);
   const [analizando, setAnalizando] = useState(false);
+  const [verificando, setVerificando] = useState(false); // 2ª pasada: la IA critica su propio despiece
   const [errorIA, setErrorIA] = useState('');
   const [preguntasIA, setPreguntasIA] = useState([]);
   const [analisis, setAnalisis] = useState(null); // {descripcionCliente, materiales, mejoras, fallasProbables, aprovechamiento}
@@ -134,7 +135,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
     const p = res.propuesta || {};
     const comps = (p.piezas || []).map((z) => {
       const existe = !!insumos[z.insumoId];
-      const base = { nombre: z.nombre || 'Pieza', insumoId: existe ? z.insumoId : '', cantidad: z.cantidad || 1, piezas: 1, iaNota: z.nota || '', iaConf: z.confianza || '' };
+      const base = { nombre: z.nombre || 'Pieza', insumoId: existe ? z.insumoId : '', cantidad: z.cantidad || 1, piezas: 1, iaNota: z.nota || '', iaConf: z.confianza || '', iaRazon: z.razonamiento || '' };
       if (z.forma === 'area') {
         base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
         // La IA ya estimó la fracción de hoja que rinde: el motor la usa directa
@@ -156,13 +157,24 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
     return true;
   }
 
-  // Una imagen (render/hoja). Devuelve true si ok.
+  // Una imagen (render/hoja). Paso 1: analiza. Paso 2 (solo imágenes, no PDF crudo):
+  // la IA verifica su propio despiece contra las cotas. Devuelve true si ok.
   async function analizarYLlenar(base64, mediaType, dataUrl) {
-    return aplicarPropuesta(await analizarRender(catalogoIA(), base64, mediaType), dataUrl);
+    const v1 = await analizarRender(catalogoIA(), base64, mediaType);
+    if (!v1?.ok || mediaType === 'application/pdf') return aplicarPropuesta(v1, dataUrl);
+    setVerificando(true);
+    const v2 = await verificarDespiece(catalogoIA(), [base64], v1.propuesta);
+    setVerificando(false);
+    return aplicarPropuesta(v2, dataUrl);
   }
-  // Varias hojas del mismo mueble (plano multipágina).
+  // Varias hojas del mismo mueble (plano multipágina). Paso 1 analiza, paso 2 verifica.
   async function analizarImagenes(imagenes, dataUrlPreview) {
-    return aplicarPropuesta(await analizarRenderImagenes(catalogoIA(), imagenes), dataUrlPreview);
+    const v1 = await analizarRenderImagenes(catalogoIA(), imagenes);
+    if (!v1?.ok) return aplicarPropuesta(v1, dataUrlPreview);
+    setVerificando(true);
+    const v2 = await verificarDespiece(catalogoIA(), imagenes, v1.propuesta);
+    setVerificando(false);
+    return aplicarPropuesta(v2, dataUrlPreview);
   }
 
   // Sube render/plano → la IA propone el despiece. Un PDF multipágina abre el
@@ -258,7 +270,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
   if (analizando) {
     return (
       <div className="asistente">
-        <Cargando titulo="Analizando con IA" />
+        <Cargando titulo={verificando ? 'Verificando el despiece contra las cotas…' : 'Analizando con IA'} />
       </div>
     );
   }
@@ -413,6 +425,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
                   </div>
                 )}
                 {area && m2 > 0 && <div className="pieza-calc">= {m2.toFixed(2)} m² <span className="gris">({ins.clase === 'indirecta' ? 'comprado' : 'fabricado'})</span></div>}
+                {c.iaRazon && <div className="pieza-calc"><span className="gris">📐 Consumo IA: {c.iaRazon}</span></div>}
                 {c.iaNota && <div className="pieza-calc"><span className="gris">IA{c.iaConf ? ` · ${c.iaConf}` : ''}: {c.iaNota}</span></div>}
               </div>
             );

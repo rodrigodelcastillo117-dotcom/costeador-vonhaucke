@@ -36,8 +36,9 @@ const SCHEMA = {
           hojas: { type: "number", description: "Para forma='area' (tableros/laminas/acrilicos): FRACCION DE HOJA estandar que consume el TOTAL de esta pieza x cantidad (1 = una hoja entera 1.22x2.44 de tablero, o 3x10 de lamina). Es lo que el motor usa para costear; estimala conservadora a partir de las cotas. 0 si no aplica (lineal/pieza)." },
           confianza: { type: "string", enum: ["alta", "media", "baja"] },
           nota: { type: "string" },
+          razonamiento: { type: "string", description: "COMO saliste de las COTAS a esta cantidad/hojas, en una linea: cota usada → tamano de pieza → cuantas caben por hoja → fraccion. Ej: 'copete 120x55 cm (cota frontal); 3 piezas por hoja 1.22x2.44 → 0.35 hoja x 2 = 0.7 hojas'. Si lo SUPUSISTE sin cota, dilo ('supuesto, sin cota')." },
         },
-        required: ["nombre", "insumoId", "forma", "largoMM", "anchoMM", "cantidad", "hojas", "confianza", "nota"],
+        required: ["nombre", "insumoId", "forma", "largoMM", "anchoMM", "cantidad", "hojas", "confianza", "nota", "razonamiento"],
       },
     },
     descripcionCliente: { type: "string", description: "Para el CLIENTE, sin jerga: que es, de que esta hecho, medidas aprox, para que sirve. 2-4 frases." },
@@ -59,7 +60,10 @@ Deno.serve(async (req) => {
 
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, error: "JSON invalido" }, 400); }
-  const { image, imagenes, mediaType = "image/jpeg", catalogo } = body || {};
+  const { image, imagenes, mediaType = "image/jpeg", catalogo, revisar } = body || {};
+  // `revisar` = una propuesta previa (paso 1). Si viene, esta llamada es la SEGUNDA
+  // pasada: la IA critica su propio despiece contra las cotas y lo corrige.
+  const esRevision = !!(revisar && Array.isArray(revisar.piezas) && revisar.piezas.length);
   // `imagenes` = varias HOJAS del MISMO mueble (plano multipágina rasterizado).
   const imgs = Array.isArray(imagenes) ? imagenes.filter((x: any) => typeof x === "string" && x) : [];
   if (!image && !imgs.length) return json({ ok: false, error: "Falta la imagen (base64)." }, 400);
@@ -87,7 +91,14 @@ Deno.serve(async (req) => {
     "DESPIECE 'piezas' (para el motor): tableros/cristal forma='area' con largoMM/anchoMM; metal/canto/tela forma='lineal' (metros); herrajes/comprados forma='pieza'.\n" +
     "FRACCION DE HOJA (clave para que el costo cuadre): en cada pieza forma='area' da ADEMAS 'hojas' = la fraccion de hoja estandar que consume el TOTAL (pieza x cantidad). El motor cuesta hojas x precio_de_hoja; si solo mandas area, el costo oscila. Piensa cuantas piezas caben en una hoja 1.22x2.44 (tablero) o 3x10 ft (lamina) y saca la fraccion. SE CONSERVADOR: no infles; ante la duda, menos hojas, no mas.\n" +
     "RETAIL / EXHIBIDORES: si es un exhibidor/mueble de tienda, mapea a los materiales retail del catalogo cuando existan (kit LED 5000K, MDF Walnut 16/25 mm, laminado Walnut, acrilico cristal/traslucido, perfil de canto ABS, logotipo acrilico, impresion en estireno). El KIT LED y los graficos/logos/impresiones son COMPRADOS ya hechos (seccion 'graficos'): van forma='pieza', NO llevan hojas.\n\n" +
-    "CATALOGO DE MATERIALES (id — nombre [seccion, unidad]):\n" + cat;
+    "CATALOGO DE MATERIALES (id — nombre [seccion, unidad]):\n" + cat +
+    (esRevision
+      ? "\n\n⚠️ MODO VERIFICACION (segunda pasada): abajo viene un despiece que TU generaste de este MISMO plano. Tu tarea ahora es AUDITARLO contra las COTAS escritas y CORREGIRLO, no rehacerlo desde cero:\n" +
+        "  · Pieza por pieza: ¿la cantidad y las 'hojas' salen de una COTA escrita o se supusieron? Corrige las infladas, las bajas, las DUPLICADAS y las inventadas.\n" +
+        "  · Verifica BUNDLES (kit LED = 1, no uno por charola), que NO se duplique superficie (tablero melamina ya laminado, no + hoja de laminado aparte) y que cada pieza se cuente UNA vez.\n" +
+        "  · Llena 'razonamiento' en CADA pieza con la derivacion desde las cotas; baja 'confianza' en las que sigan siendo supuestas.\n" +
+        "  · Devuelve el despiece COMPLETO corregido (TODAS las piezas), mismo schema."
+      : "");
 
   // Bloques de imagen: varias HOJAS (plano multipágina) → varias imagenes; si no,
   // una sola (PDF crudo = documento; imagen/render = imagen). Mismo patron que leer-plano.
@@ -96,9 +107,15 @@ Deno.serve(async (req) => {
     : [mediaType === "application/pdf"
         ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: image } }
         : { type: "image", source: { type: "base64", media_type: mediaType, data: image } }];
-  const textoTarea = imgs.length > 1
+  let textoTarea = imgs.length > 1
     ? `Te doy ${imgs.length} HOJAS del MISMO mueble (vista general + detalle por parte). Intégralas en UN SOLO despiece/BOM y una sola auditoria — NO las trates como muebles distintos. Usa las cotas y especificaciones de TODAS las hojas.`
     : "Realiza la Auditoria Tecnica, BOM y Estrategia de Industrializacion completa de este mueble.";
+  if (esRevision) {
+    const previo = (revisar.piezas || []).map((p: any) =>
+      `- ${p.cantidad}x ${p.nombre} [${p.insumoId || 'SIN MATERIAL'}] ${p.forma} ${p.largoMM || 0}x${p.anchoMM || 0} hojas=${p.hojas ?? 0} (${p.confianza})`
+    ).join("\n");
+    textoTarea = `VERIFICA Y CORRIGE este despiece que generaste de este MISMO plano, contra las COTAS escritas (lee de nuevo las hojas). Devuelve el despiece COMPLETO corregido con 'razonamiento' por pieza:\n\n${previo}`;
+  }
 
   const apiBody = {
     model: "claude-opus-5",
