@@ -26,7 +26,13 @@ export const MO_PCT = { cubierta: 15, metal: 20, madera: 20, cristal: 1, general
 // luego metal; lo demás cae en 'general' (20% MO, GI 3×MO), como madera.
 export function tipoAlba({ seccion, nombre, material } = {}) {
   const t = String([seccion, nombre, material].filter(Boolean).join(' ')).toLowerCase();
-  if (/cristal|vidrio|templado/.test(t)) return 'cristal';
+  // El 1%/5% es SOLO para el VIDRIO de compra-venta (biombo de cristal, templado):
+  // se compra y solo se traslada/instala. El ACRÍLICO "cristal" (claro/traslúcido)
+  // es un material FABRICADO que se corta y trabaja → va como 'general' (20%/×3).
+  // Reconciliado AL CENTAVO con la T.D.C. real del Exhibidor Alpura (Alba costeó su
+  // acrílico cristal al 20%): sin esta exclusión el costo de fabricación salía
+  // $317 por debajo de su número real (2026-10-01).
+  if (/cristal|vidrio|templado/.test(t) && !/acr[ií]lico/.test(t)) return 'cristal';
   // Las PIEZAS de metal mandan sobre la palabra "cubierta": un "omega PARA
   // cubierta" o una "pata" es metal (20% MO), no la cubierta misma (15%).
   // ⚠️ "melamina" contiene "lamina": la lámina de acero se pide con lookbehind

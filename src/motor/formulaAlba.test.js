@@ -49,4 +49,42 @@ describe('costoAlba reproduce el T.D.C. real de Alba al centavo', () => {
     expect(tipoAlba({ nombre: 'Biombo divisor de cristal' })).toBe('cristal');
     expect(tipoAlba({ nombre: 'Cubierta rectangular melamina', seccion: 'cubiertas' })).toBe('cubierta');
   });
+
+  it('el VIDRIO compra-venta es cristal, pero el ACRÍLICO fabricado NO', () => {
+    // El biombo/vidrio de compra-venta se queda en 1%/5%…
+    expect(tipoAlba({ nombre: 'Biombo de cristal templado' })).toBe('cristal');
+    expect(tipoAlba({ nombre: 'Vidrio 6mm' })).toBe('cristal');
+    // …pero el acrílico "cristal"/traslúcido es material FABRICADO → general (20%).
+    expect(tipoAlba({ nombre: 'ACRILICO CRISTAL 3mm' })).toBe('general');
+    expect(tipoAlba({ nombre: 'ACRILICO TRASLUCIDO Z2 3mm' })).toBe('general');
+  });
+});
+
+// Ancla de validación (audit 2026-10-01): el despiece REAL del Exhibidor Alpura
+// (C-CO-517R, Rafa/Alba), bloque id_01 "componentes" (fabricado). Pasado por la
+// fórmula del motor debe dar el MISMO costo de fabricación que la T.D.C. de Alba,
+// al centavo. Es el "paso 1" (despiece real → motor, sin IA) de la validación.
+describe('Exhibidor Alpura id_01: el motor cuadra con la T.D.C. real de Alba', () => {
+  const ID01 = [
+    ['PERFIL DE CANTO ABS 22mm', 618.58], ['MDF MELAMINA 16mm Walnut', 2594.49],
+    ['LAMINA NEGRA cal 20', 470.17], ['PINTURA EN POLVO', 64.81], ['PIJA 8x5/8', 15.36],
+    ['PIJA 8x1/2', 5.76], ['LAMINA NEGRA cal 14', 91.75], ['PULIDO REDONDO 1/4', 18.57],
+    ['TUERCA 3/8', 3.54], ['MDF MELAMINA 25mm Walnut', 1935], ['LAMINADO PLASTICO 4x8', 162.96],
+    ['PERFIL DE CANTO ABS 32mm', 205.3], ['TAQUETE 8', 48.3], ['TUERCA INSERTO 1/4', 29.04],
+    ['TUBULAR REDONDO 3/4 cal18', 38.34], ['LAMINA NEGRA cal 12', 10.05], ['MDF NATURAL 16mm', 21.95],
+    ['TORNILLO NIVELADOR 3/8', 249.78], ['ACRILICO CRISTAL 3mm', 428.4], ['ACRILICO TRASLUCIDO 3mm', 417.41],
+    ['TORNILLO ALLEN 1/4', 14.4], ['PIJA 8x1 1/2', 14], ['PIJA FIJADORA 8x1/2', 2.2],
+    ['PIJA 8x3/4', 9.5], ['empaque jgo', 225.99],
+  ];
+  it('material 7695.65 → MO 1539.13 · GI 4617.39 · fab 13852.17', () => {
+    let mat = 0, mo = 0, gi = 0;
+    for (const [nombre, c] of ID01) {
+      const r = costoAlba(c, tipoAlba({ nombre }));
+      mat += c; mo += r.mo; gi += r.gi;
+    }
+    expect(mat).toBeCloseTo(7695.65, 1);
+    expect(mo).toBeCloseTo(1539.13, 0);
+    expect(gi).toBeCloseTo(4617.39, 0);
+    expect(mat + mo + gi).toBeCloseTo(13852.17, 0);
+  });
 });
