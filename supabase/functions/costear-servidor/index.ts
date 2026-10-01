@@ -99,7 +99,39 @@ Deno.serve(async (req) => {
   const warnings: string[] = [];
   if (faltan.length) warnings.push(`${faltan.length} pieza(s) sin material en el catálogo: ${faltan.join(", ")}`);
   if (!(r.costoUnitario > 0)) warnings.push("Costo calculado en 0 — revisa el despiece.");
-  const estado = (faltan.length || !(r.costoUnitario > 0)) ? "incompleto" : "certificado";
+
+  // --- EVIDENCIA desde catalogo_vigente (el costo sigue saliendo de config-legado;
+  //     catalogo_vigente aporta SOLO el estado de evidencia por insumo usado). Aditivo. ---
+  const usados: string[] = [...new Set((r.detalleInsumos || []).map((d: any) => d.insumoId).filter(Boolean))];
+  const evMap: Record<string, any> = {};
+  let versionCatalogo = "sin-catalogo";
+  try {
+    if (usados.length) {
+      const { data: evid } = await svc.from("catalogo_vigente")
+        .select("insumo_id, estado, certificable, requiere_validacion_compras")
+        .in("insumo_id", usados);
+      for (const e of evid || []) evMap[e.insumo_id] = e;
+    }
+    const { count: nAprob } = await svc.from("insumo_precios")
+      .select("id", { count: "exact", head: true }).eq("estado", "aprobado");
+    versionCatalogo = `cat-ap${nAprob ?? ""}-${hashConfig(usados)}`;
+  } catch (_e) { /* catalogo_vigente puede no existir aún: no bloquea el costeo legado */ }
+
+  const noCertificados = usados.filter((id) => !evMap[id] || !evMap[id].certificable);
+  const requierenValidacion = usados.filter((id) => evMap[id]?.requiere_validacion_compras);
+
+  // ESTADO (4 valores). El costo es legado (tiene precio), por eso 'bloqueado' solo
+  // aplicaría en modo costo-desde-catálogo (futuro); hoy: incompleto | preliminar | certificado.
+  let estado: "certificado" | "preliminar" | "incompleto" | "bloqueado";
+  if (faltan.length || !(r.costoUnitario > 0)) {
+    estado = "incompleto";
+  } else if (noCertificados.length === 0) {
+    estado = "certificado";
+  } else {
+    estado = "preliminar";
+    warnings.push(`Costo preliminar — ${noCertificados.length} de ${usados.length} insumo(s) sin precio certificado.`);
+    if (requierenValidacion.length) warnings.push(`${requierenValidacion.length} insumo(s) requieren validación de Compras.`);
+  }
 
   // Precio: margen del despiece u objetivo de la casa (clásico). El modelo
   // 'intelisis' (líneas App LT) se costea aún en cliente — se marca y se hará en
@@ -113,22 +145,30 @@ Deno.serve(async (req) => {
   const meta = {
     versionMotor: MOTOR_VERSION,
     versionConfig: hashConfig(datos),
+    versionCatalogo,
+    fuenteCosto: "config-legado", // el costo aún sale de config; catalogo_vigente solo certifica
     calculadoEn: new Date().toISOString(),
   };
+  // El precio se entrega mientras el cálculo sea posible (certificado o preliminar). El
+  // sistema debe OPERAR con preliminares; solo incompleto/bloqueado ocultan el precio.
+  const hayPrecio = estado === "certificado" || estado === "preliminar";
 
   // --- SALIDA POR CAPACIDAD ---
-  // Ventas: SOLO precio comercial. Ningún costo, margen, costoBase ni desglose,
-  // ni anidado en JSON. Si está incompleto, lo dice sin revelar números internos.
+  // Ventas: SOLO información comercial. Precio de venta + estado + warnings comerciales.
+  // JAMÁS costo base, precio de compra, proveedor, margen, factores ni config.
   if (!esDireccion && !esDiseno) {
+    const warnComercial = estado === "certificado" ? []
+      : estado === "preliminar" ? ["Precio preliminar: sujeto a confirmación de costos."]
+      : ["El costeo está incompleto; pídele a Diseño que lo complete antes de cotizar."];
     return json({
       ok: true, estado, piezas: n,
-      precioVenta: estado === "certificado" ? precioVenta : null,
-      ...meta,
-      warnings: estado === "certificado" ? [] : ["El costeo está incompleto; pídele a Diseño que lo complete antes de cotizar."],
+      precioVenta: hayPrecio ? precioVenta : null,
+      versionMotor: meta.versionMotor, versionCatalogo: meta.versionCatalogo, calculadoEn: meta.calculadoEn,
+      warnings: warnComercial,
     });
   }
 
-  // Diseño: + costo técnico y BOM (para despiece), SIN margen ni utilidad.
+  // Diseño: BOM + costo técnico, SIN información financiera (sin precioVenta, sin margen).
   const tecnico = {
     costoUnitario: Math.round(r.costoUnitario),
     materialTotal: Math.round(r.materialTotal),
@@ -137,13 +177,15 @@ Deno.serve(async (req) => {
     desperdicio: Math.round(r.desperdicio),
     detalleInsumos: (r.detalleInsumos || []).map((d: any) => ({
       insumoId: d.insumoId, nombre: d.nombre, seccion: d.seccion, costo: Math.round(d.costo || 0),
+      certificable: !!evMap[d.insumoId]?.certificable, evidencia: evMap[d.insumoId]?.estado || "sin-catalogo",
     })),
     componentesIgnorados: faltan,
   };
-  if (esDiseno) return json({ ok: true, estado, piezas: n, precioVenta, costo: tecnico, ...meta, warnings });
+  const evidencia = { usados: usados.length, certificados: usados.length - noCertificados.length, noCertificados: noCertificados.length };
+  if (esDiseno) return json({ ok: true, estado, piezas: n, costo: tecnico, evidencia, ...meta, warnings });
 
-  // Dirección: todo (incluye margen y desglose completo).
-  return json({ ok: true, estado, piezas: n, precioVenta, margen, costo: tecnico, desglose: r, ...meta, warnings });
+  // Dirección: todo (incluye precio, margen, desglose completo y evidencia).
+  return json({ ok: true, estado, piezas: n, precioVenta: hayPrecio ? precioVenta : null, margen, costo: tecnico, evidencia, desglose: r, ...meta, warnings });
 });
 
 function json(obj: unknown, status = 200) {
