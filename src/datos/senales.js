@@ -53,12 +53,24 @@ export function senalesCotizacion(partidas = [], margenMinimo = 25) {
 // precio 0 → se regala). NO se bloquea por costo desconocido: una pieza de banco
 // con precio real histórico y costo desconocido SÍ es vendible (así se decidió).
 // Devuelve [] cuando se puede emitir; si trae algo, la UI no debe emitir.
+// Además de cantidad/precio, se bloquea un COSTEO INCOMPLETO: una partida con
+// piezas cuyo material no existe en el catálogo se costeó en $0 por esas piezas
+// (motor: `componentesSinMaterial`), así que su costo —y por tanto su margen— es
+// mentira. El borrador SÍ se puede guardar; lo que no se puede es emitirlo al
+// cliente sin asignar o quitar esas piezas (audit 2026-10-01).
 export function problemasDeEmision(partidas = []) {
   const problemas = [];
   partidas.forEach((p, i) => {
     const etq = p.nombre || `Renglón ${i + 1}`;
     if (!(p.cantidad > 0)) problemas.push(`"${etq}" no tiene una cantidad válida.`);
     if (!(p.precioUnitario > 0)) problemas.push(`"${etq}" no tiene un precio válido.`);
+    const nSin = Number(p.piezasSinMaterial) || 0;
+    if (nSin > 0) {
+      const cuales = Array.isArray(p.nombresSinMaterial) && p.nombresSinMaterial.length
+        ? ` (${p.nombresSinMaterial.join(', ')})`
+        : '';
+      problemas.push(`"${etq}" tiene ${nSin} ${nSin === 1 ? 'pieza' : 'piezas'} sin material asignado${cuales}: se costea en $0. Asígnale material o quítala antes de emitir.`);
+    }
   });
   return problemas;
 }

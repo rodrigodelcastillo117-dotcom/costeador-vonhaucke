@@ -92,4 +92,17 @@ describe('problemasDeEmision', () => {
   it('usa un nombre de respaldo cuando el renglón no tiene nombre', () => {
     expect(problemasDeEmision([{ precioUnitario: 100 }])[0]).toContain('Renglón 1');
   });
+
+  it('bloquea un costeo incompleto: piezas sin material asignado', () => {
+    const p = [{ nombre: 'Exhibidor', cantidad: 1, precioUnitario: 20000, piezasSinMaterial: 2, nombresSinMaterial: ['Acometida', 'Arnés'] }];
+    const probs = problemasDeEmision(p);
+    expect(probs.length).toBe(1);
+    expect(probs[0]).toContain('sin material');
+    expect(probs[0]).toContain('Acometida');
+  });
+
+  it('un costeo completo (piezasSinMaterial 0) no se bloquea', () => {
+    const p = [{ nombre: 'Mesa', cantidad: 1, precioUnitario: 16000, piezasSinMaterial: 0 }];
+    expect(problemasDeEmision(p)).toEqual([]);
+  });
 });

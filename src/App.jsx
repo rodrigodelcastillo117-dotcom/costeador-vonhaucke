@@ -55,7 +55,7 @@ import { cargarAprendizajes } from './datos/aprendizaje.js';
 import { guardarCotizacion } from './datos/cotizaciones.js';
 import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
 import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso } from './nube.js';
-import { calcular, modeloParaPieza } from './motor/calculo.js';
+import { calcular, modeloParaPieza, componentesSinMaterial } from './motor/calculo.js';
 import { idNuevo } from './util.js';
 import { costoImplicito, precioDeLista } from './datos/preciosVenta.js';
 
@@ -478,7 +478,10 @@ export default function App() {
   // Convierte renglones costeados de la IA en partidas de cotización.
   function partidasDeItemsIA(costados) {
     return costados.map((c) => ({
-      id: idNuevo('p'), piezaId: `linea-${c.producto}`, nombre: c.nombre,
+      // Sin `producto` NO se arma `linea-undefined` (ese id falso hacía que dos
+      // muebles distintos sin clave se fundieran en un mismo renglón): sin clave,
+      // el piezaId queda null, que `mismoRenglon` ya maneja bien (audit 2026-10-01).
+      id: idNuevo('p'), piezaId: c.producto ? `linea-${c.producto}` : null, nombre: c.nombre,
       ruta: c.ruta || null, productoId: c.producto || null, w: c.w || null, d: c.d || null,
       // `|| 1`: piso de seguridad. Una partida FIRME siempre es ≥1 pieza; si por
       // cualquier ruta llegara sin cantidad, jamás debe guardarse en 0 (los
@@ -550,6 +553,9 @@ export default function App() {
       // que cubrió la auditoría original).
       candadoUsuarios: !!(costeo.config?.usuarios && n > 1),
       requiereProyectista: !!(costeo.config?.usuarios && Number(costeo.config.usuarios) > 14),
+      // Costeo incompleto: piezas del despiece sin material en el catálogo
+      // (se costean en $0). Bloquea la emisión, no el guardado.
+      ...(() => { const s = componentesSinMaterial(costeo.componentes, estado.insumos); return { piezasSinMaterial: s.length, nombresSinMaterial: s }; })(),
     };
   }
 
@@ -592,6 +598,12 @@ export default function App() {
   // blanco. `resultado` es el cálculo; el mueble en sí vive en `costeo`.
   function onAgregarCotizacion(resultado, precio, margen) {
     const n = Math.max(1, Number(costeo.piezas) || 1);
+    // Piezas sin material: el motor ya las reporta; si no vino el resultado, se
+    // deriva del despiece. Viaja con la partida para bloquear la emisión (no el
+    // guardado) hasta que se les asigne material.
+    const sinMat = Array.isArray(resultado?.componentesIgnorados)
+      ? resultado.componentesIgnorados
+      : componentesSinMaterial(costeo.componentes, estado.insumos);
     sumarPartidas([{
       id: idNuevo('p'),
       piezaId: costeo.piezaId || null,
@@ -604,6 +616,8 @@ export default function App() {
       precioUnitario: precio,
       margen: Number.isFinite(margen) ? margen : null,
       config: null,
+      piezasSinMaterial: sinMat.length,
+      nombresSinMaterial: sinMat,
     }]);
     mostrarAviso(`Agregado: ${costeo.nombre || 'mueble a la medida'}`);
   }
@@ -724,8 +738,8 @@ export default function App() {
   function agregarArticuloLinea(r) {
     if (!r || !(r.precio > 0)) return;
     const partida = {
-      id: idNuevo('p'), piezaId: `linea-${r.clave}`, nombre: r.nombre,
-      ruta: r.ruta || null, productoId: r.clave, claveLinea: r.clave,
+      id: idNuevo('p'), piezaId: r.clave ? `linea-${r.clave}` : null, nombre: r.nombre,
+      ruta: r.ruta || null, productoId: r.clave || null, claveLinea: r.clave || null,
       cantidad: 1, costoUnitario: null, precioUnitario: r.precio,
       margen: null, deLinea: true,
     };

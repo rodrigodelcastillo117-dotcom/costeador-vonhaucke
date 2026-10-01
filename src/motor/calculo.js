@@ -434,9 +434,13 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
   //  caiga en el retazo de la cubierta en vez de comprar su propio tablero.)
   const grupos = {};
   const orden = [];
+  // Piezas cuyo material no existe en el catálogo: el motor las ignora (antes en
+  // silencio) y se costean en $0. Las juntamos para que la UI marque el costeo
+  // como incompleto y bloquee la EMISIÓN (no el guardado del borrador).
+  const componentesIgnorados = [];
   for (const comp of componentes) {
     const insumo = insumos[comp.insumoId] || comp.insumo;
-    if (!insumo) continue; // insumo desconocido: se ignora (la UI lo advierte)
+    if (!insumo) { componentesIgnorados.push(comp.nombre || 'Pieza sin material'); continue; }
     if (!grupos[comp.insumoId]) {
       grupos[comp.insumoId] = { insumo, comps: [] };
       orden.push(comp.insumoId);
@@ -570,7 +574,19 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     costoLoteConMerma,
     costoUnitario,
     detalleInsumos,
+    componentesIgnorados,
   };
+}
+
+// Piezas cuyo material no existe en el catálogo (insumoId vacío, o un id que ya
+// no está): el motor las salta y se costean en $0. La UI usa esto para marcar el
+// costeo como INCOMPLETO y bloquear la emisión al cliente — nunca el guardado
+// del borrador (mandato audit 2026-10-01: "permitir guardar el borrador, marcar
+// exactamente qué falta y bloquear su emisión definitiva").
+export function componentesSinMaterial(componentes = [], insumos = {}) {
+  return componentes
+    .filter((c) => !(insumos[c?.insumoId] || c?.insumo))
+    .map((c) => c?.nombre || 'Pieza sin material');
 }
 
 // -----------------------------------------------------------------------------

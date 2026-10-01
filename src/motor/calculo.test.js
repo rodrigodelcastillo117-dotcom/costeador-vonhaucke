@@ -9,6 +9,7 @@ import {
   costoNetoComponente,
   PARAMETROS_DEFAULT,
   modeloParaPieza,
+  componentesSinMaterial,
 } from './calculo.js';
 
 // ---------------------------------------------------------------------------
@@ -540,5 +541,33 @@ describe('producto nuevo (fórmula Alba): MO 20% + indirecto 3×MO', () => {
     expect(r.indirectosFabrica).toBeCloseTo(600, 2); // 3× la MO
     expect(r.indirectosFabrica).toBeCloseTo(r.manoObra * 3, 6);
     expect(r.costoUnitario).toBeCloseTo(1800, 2);    // material × 1.8
+  });
+});
+
+describe('piezas sin material (costeo incompleto)', () => {
+  const insumos = { 'mdf-16': { id: 'mdf-16', nombre: 'MDF 16 mm', seccion: 'tableros', clase: 'directa', unidad: 'm2', precio: 450, formato: { largo: 2440, ancho: 1220 } } };
+
+  it('componentesSinMaterial lista las piezas cuyo insumo no existe', () => {
+    const comps = [
+      { nombre: 'Costado', insumoId: 'mdf-16', largoMM: 600, anchoMM: 400, cantidad: 2 },
+      { nombre: 'Acometida', insumoId: '', cantidad: 1 },
+      { nombre: 'Arnés', insumoId: 'no-existe', cantidad: 1 },
+    ];
+    expect(componentesSinMaterial(comps, insumos)).toEqual(['Acometida', 'Arnés']);
+  });
+
+  it('calcular() reporta componentesIgnorados y NO los suma al costo', () => {
+    const comps = [
+      { nombre: 'Costado', insumoId: 'mdf-16', largoMM: 600, anchoMM: 400, cantidad: 2 },
+      { nombre: 'Acometida', insumoId: '', cantidad: 1 },
+    ];
+    const r = calcular({ componentes: comps }, 1, insumos);
+    expect(r.componentesIgnorados).toEqual(['Acometida']); // la acometida (sin insumo) se reporta, no se suma
+  });
+
+  it('un despiece completo no reporta ignorados', () => {
+    const comps = [{ nombre: 'Costado', insumoId: 'mdf-16', largoMM: 600, anchoMM: 400, cantidad: 2 }];
+    expect(componentesSinMaterial(comps, insumos)).toEqual([]);
+    expect(calcular({ componentes: comps }, 1, insumos).componentesIgnorados).toEqual([]);
   });
 });
