@@ -148,7 +148,15 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
       }
       const catalogo = Object.values(insumos).map((x) => ({ id: x.id, nombre: x.nombre, seccion: x.seccion, unidad: x.unidad }));
       const res = await analizarRender(catalogo, base64, mediaType);
-      if (!res?.ok) { setErrorIA(res?.error || 'No se pudo analizar la imagen.'); return; }
+      if (!res?.ok) {
+        // Un PDF grande/multipágina (planos de varias hojas) es demasiado para la IA
+        // de un jalón. Un PDF de 1 página o una imagen de la hoja SÍ funcionan.
+        const pistaPdf = esPDF(file) && file.size > 8 * 1024 * 1024
+          ? ' El plano parece pesado o de varias páginas. Sube SOLO la hoja del mueble: como imagen (captura de pantalla) o un PDF de esa página. Así la IA lo lee bien.'
+          : '';
+        setErrorIA((res?.error || 'No se pudo analizar.') + pistaPdf);
+        return;
+      }
       const p = res.propuesta || {};
       const comps = (p.piezas || []).map((z) => {
         const existe = !!insumos[z.insumoId];
