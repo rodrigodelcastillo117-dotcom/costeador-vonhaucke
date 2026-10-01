@@ -31,6 +31,19 @@ function reducirImagen(file, lado = 1600) {
   });
 }
 
+// Un PDF (plano) va TAL CUAL a la IA, sin rasterizar: Claude lo lee como
+// documento y rasterizarlo perdería las cotas. Mismo patrón que leerPlanoArchivo.
+function archivoABase64(file) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(String(fr.result).split(',')[1]);
+    fr.onerror = () => reject(new Error('No se pudo leer el archivo.'));
+    fr.readAsDataURL(file);
+  });
+}
+
+const esPDF = (file) => file?.type === 'application/pdf' || /\.pdf$/i.test(file?.name || '');
+
 // Paleta de piezas comunes: al tocar una, se agrega al despiece con un material
 // por defecto y medidas de arranque. kind define cómo se mete (área/lineal/pieza).
 const PARTES = [
@@ -117,8 +130,15 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
     if (!file) return;
     setErrorIA(''); setAnalizando(true);
     try {
-      const { base64, mediaType } = await reducirImagen(file);
-      const dataUrl = `data:${mediaType};base64,${base64}`;
+      // Imagen → se encoge; PDF (plano) → va tal cual como documento. El thumbnail
+      // solo aplica a imágenes (un data:application/pdf no se ve como <img>).
+      let base64, mediaType, dataUrl;
+      if (esPDF(file)) {
+        base64 = await archivoABase64(file); mediaType = 'application/pdf'; dataUrl = '';
+      } else {
+        const r = await reducirImagen(file); base64 = r.base64; mediaType = r.mediaType;
+        dataUrl = `data:${mediaType};base64,${base64}`;
+      }
       const catalogo = Object.values(insumos).map((x) => ({ id: x.id, nombre: x.nombre, seccion: x.seccion, unidad: x.unidad }));
       const res = await analizarRender(catalogo, base64, mediaType);
       if (!res?.ok) { setErrorIA(res?.error || 'No se pudo analizar la imagen.'); return; }
@@ -174,12 +194,12 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
           <div className="pregunta-sub">Un producto nuevo, a la medida. No importa si nunca se ha hecho.</div>
 
           <div className="tarjeta" style={{ background: 'var(--panel)' }}>
-            <label className="etiqueta">Atajo: sube un render y lo analizo con IA</label>
-            <div className="ayuda">Propongo las piezas y medidas leyendo la imagen; tú las confirmas. La IA no inventa el precio — lo calcula el motor.</div>
+            <label className="etiqueta">Atajo: sube un render o plano (PDF) y lo analizo con IA</label>
+            <div className="ayuda">Propongo las piezas y medidas leyendo la imagen o el plano en PDF; tú las confirmas. La IA no inventa el precio — lo calcula el motor.</div>
             <div className="espacio" />
             <label className={'boton ' + (analizando ? 'fantasma' : 'primario')} style={{ display: 'inline-flex', cursor: analizando ? 'default' : 'pointer' }}>
-              {analizando ? 'Analizando el render…' : 'Subir render y analizar'}
-              <input type="file" accept="image/*" hidden disabled={analizando} onChange={onImagen} />
+              {analizando ? 'Analizando…' : 'Subir render o plano (PDF)'}
+              <input type="file" accept="image/*,application/pdf,.pdf" hidden disabled={analizando} onChange={onImagen} />
             </label>
             {errorIA && <div className="alerta roja" style={{ marginTop: 12 }}><span className="texto">{errorIA}</span></div>}
           </div>

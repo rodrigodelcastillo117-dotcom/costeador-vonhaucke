@@ -87,7 +87,12 @@ Deno.serve(async (req) => {
     messages: [{
       role: "user",
       content: [
-        { type: "image", source: { type: "base64", media_type: mediaType, data: image } },
+        // Un PDF (plano) se manda como DOCUMENTO; una imagen/render como imagen.
+        // Mismo patron que leer-plano. Asi se pueden costear planos en PDF, que es
+        // como llegan muchos (Rodrigo, 2026-09-30).
+        mediaType === "application/pdf"
+          ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: image } }
+          : { type: "image", source: { type: "base64", media_type: mediaType, data: image } },
         { type: "text", text: "Realiza la Auditoria Tecnica, BOM y Estrategia de Industrializacion completa de este mueble." },
       ],
     }],
