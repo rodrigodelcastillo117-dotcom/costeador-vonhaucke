@@ -129,10 +129,10 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
     e.target.value = '';
     if (!file) return;
     // Tope de tamaño: un archivo gigante tronaría la función. Mejor avisar.
-    const MAX_MB = 20;
+    const MAX_MB = 32; // límite de PDF que acepta la IA (Claude: 32 MB / 100 págs)
     if (file.size > MAX_MB * 1024 * 1024) {
       setErrorIA(`El archivo pesa ${(file.size / 1048576).toFixed(0)} MB (máximo ${MAX_MB} MB). `
-        + 'Comprime el PDF o sube solo la página del mueble (o una captura en imagen).');
+        + 'Comprime el PDF, o sube solo la hoja del mueble como imagen (captura de pantalla).');
       return;
     }
     setErrorIA(''); setAnalizando(true);
