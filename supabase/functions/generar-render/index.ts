@@ -82,9 +82,15 @@ Deno.serve(async (req) => {
       "the shape, the layout, the number of shelves/doors/niches or the proportions. Do not stylize away any structural element. " +
       `Product for context only (never for shape): ${descripcion} ` +
       (medidas ? `It should read at its true proportions: ${medidas}. ` : "") +
-      (mats ? `Real materials: ${mats}. ` : "") +
-      "FINISH, at the real Von Haucke quality: warm natural oak melamine with fine visible grain and a soft satin sheen; " +
-      "steel in deep charcoal (#3C3E42) powder coat with a fine matte texture; crisp ABS edge banding catching a thin highlight. " +
+      // ACABADO: si el plano/IA especifica materiales y colores, úsalos EXACTOS. Si NO, no inventes
+      // una madera/color: acabado neutro declarado, para que se note que el acabado está pendiente.
+      (mats
+        ? `FINISH — use EXACTLY the specified materials and colors: ${mats}. Render them physically-based and realistic ` +
+          "(wood grain, matte powder-coated steel, glass where indicated), honoring any color shown in the reference image. " +
+          "Do NOT substitute a different wood species, color or material. "
+        : "FINISH NOT SPECIFIED in the plano: render in a NEUTRAL light-grey matte finish with a neutral dark-grey frame and clear " +
+          "glass where the drawing shows it. DO NOT invent a specific wood species, brand color or decorative finish — keep it " +
+          "deliberately neutral so it is obvious the final finish is still pending. ") +
       RECETA_CATALOGO
     : modo === "staging"
     ? // STAGING VIRTUAL: amueblar una foto real del espacio del cliente

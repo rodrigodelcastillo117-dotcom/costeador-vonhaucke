@@ -210,7 +210,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
         aisladoDataUrl = r.dataUrl;
         const url = await persistir(r.dataUrl, 'aislado', tipo, ent.tipo);
         setRenders((s) => ({ ...s, aislado: url }));
-        if (fid === 'texto') setRenderMsg('Sin plano cargado: el aislado se generó por descripción (fidelidad limitada). Sube el plano para fidelidad exacta.');
+        const avisos = [];
+        if (fid === 'texto') avisos.push('Sin plano cargado: el aislado se generó por descripción (fidelidad limitada). Sube el plano para fidelidad exacta.');
+        // Si el plano no especifica materiales/colores, el render usa acabado NEUTRO (no lo inventa).
+        if (!materialesR.length) avisos.push('El plano no especifica acabado/color: el render usa un acabado neutro. Confirma los materiales arriba para ver el acabado real.');
+        if (avisos.length) setRenderMsg(avisos.join(' '));
       } else { setRenderMsg(r?.error || 'No se pudo generar el producto aislado.'); }
     } catch (e) { setRenderMsg('Error en producto aislado: ' + String(e)); }
 
@@ -601,6 +605,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
               </span>
               {fidelidad && fidelidad !== 'alta' && (
                 <span className="chip" style={{ background: '#8a2d00', color: '#fff', fontSize: 12 }}>FIDELIDAD LIMITADA</span>
+              )}
+              {(renders.aislado || renders.ambiente) && !materialesR.length && (
+                <span className="chip" style={{ background: '#8a2d00', color: '#fff', fontSize: 12 }}>ACABADO POR CONFIRMAR</span>
               )}
             </div>
             <p className="ayuda" style={{ margin: '6px 0' }}>El render ilustra el producto ya definido (medidas, materiales y despiece de arriba). No cambia el producto.</p>
