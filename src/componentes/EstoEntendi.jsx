@@ -15,6 +15,26 @@
 import { loQueEntendi } from '../datos/entendido.js';
 import { pesos, selloPartida } from '../util.js';
 import { sePuedeEditar } from './EditarPartida.jsx';
+import { flagActivo } from '../datos/flags.js';
+import { procedenciaDePartida, resumenProcedencia } from '../datos/provenance.js';
+
+// Color del pill de procedencia por tono (sin depender de CSS nuevo).
+const TONO_COLOR = {
+  ok: { bg: '#e6f4ea', fg: '#1e6b33' },
+  info: { bg: '#e8eef7', fg: '#274b7a' },
+  ambar: { bg: '#fdf7e6', fg: '#8a5a00' },
+  roja: { bg: '#fbe6e4', fg: '#9a2820' },
+};
+function PillProcedencia({ pt }) {
+  const pr = procedenciaDePartida(pt);
+  const c = TONO_COLOR[pr.tono] || TONO_COLOR.info;
+  return (
+    <span className="ia-badge" title={pr.motivo}
+      style={{ background: c.bg, color: c.fg, borderColor: 'transparent' }}>
+      {pr.etiqueta}
+    </span>
+  );
+}
 
 // La descripción del catálogo es larga y termina en la clave ("... -- ECCR82DCH").
 // Para el vendedor basta lo que distingue una variante de otra (ecopiel,
@@ -29,6 +49,8 @@ export default function EstoEntendi({
 }) {
   const r = loQueEntendi(partidas, areasM);
   const porId = Object.fromEntries(partidas.map((p) => [p.id, p]));
+  const voni2 = flagActivo('voni_v2');
+  const proc = voni2 ? resumenProcedencia(partidas) : null;
 
   return (
     <>
@@ -39,6 +61,17 @@ export default function EstoEntendi({
       <p className="ayuda columna-texto" style={{ marginTop: 2 }}>
         Revísalo aquí, que es donde se corrige de un toque. Lo que apruebes es lo que voy a acomodar.
       </p>
+
+      {/* Voni 2.0: de dónde salió cada cosa (procedencia). Resumen arriba. */}
+      {voni2 && proc && proc.total > 0 && (
+        <div className="ee-procedencia" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', margin: '6px 0 2px' }}>
+          {proc.conteo.CONFIRMADO > 0 && <span className="ia-badge" style={{ background: TONO_COLOR.ok.bg, color: TONO_COLOR.ok.fg, borderColor: 'transparent' }}>{proc.conteo.CONFIRMADO} confirmado{proc.conteo.CONFIRMADO === 1 ? '' : 's'}</span>}
+          {proc.conteo.INFERIDO > 0 && <span className="ia-badge" style={{ background: TONO_COLOR.info.bg, color: TONO_COLOR.info.fg, borderColor: 'transparent' }}>{proc.conteo.INFERIDO} inferido{proc.conteo.INFERIDO === 1 ? '' : 's'}</span>}
+          {proc.conteo.SUPUESTO > 0 && <span className="ia-badge" style={{ background: TONO_COLOR.ambar.bg, color: TONO_COLOR.ambar.fg, borderColor: 'transparent' }}>{proc.conteo.SUPUESTO} supuesto{proc.conteo.SUPUESTO === 1 ? '' : 's'}</span>}
+          {proc.conteo.SUGERIDO > 0 && <span className="ia-badge" style={{ background: TONO_COLOR.info.bg, color: TONO_COLOR.info.fg, borderColor: 'transparent' }}>{proc.conteo.SUGERIDO} sugerido{proc.conteo.SUGERIDO === 1 ? '' : 's'}</span>}
+          {proc.conteo.REQUIERE_DESARROLLO > 0 && <span className="ia-badge" style={{ background: TONO_COLOR.roja.bg, color: TONO_COLOR.roja.fg, borderColor: 'transparent' }}>{proc.conteo.REQUIERE_DESARROLLO} requiere{proc.conteo.REQUIERE_DESARROLLO === 1 ? '' : 'n'} desarrollo</span>}
+        </div>
+      )}
 
       {/* Lo que no cuadra va ARRIBA. Abajo de veinte renglones no lo lee nadie. */}
       {r.avisos.map((a, k) => (
@@ -65,6 +98,7 @@ export default function EstoEntendi({
                   <div className="voni-fila-t">{pt.nombre}</div>
                   <div className="ia-meta">
                     <span className={`sello sello-${s.tipo}`} title={s.nota}>{s.texto}</span>
+                    {voni2 && <PillProcedencia pt={pt} />}
                     {pt.confianza && pt.confianza !== 'alta' && <span className={`ia-badge ${pt.confianza}`}>confianza {pt.confianza}</span>}
                     {/* Voni lo PROPUSO (silla, gaveta, mesa de la sala); no lo
                         pidió el cliente. Se marca para que el vendedor decida. */}
