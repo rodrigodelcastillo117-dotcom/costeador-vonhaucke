@@ -144,13 +144,24 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
   const [renderMsg, setRenderMsg] = useState('');
   const [renderizando, setRenderizando] = useState(false);
   const [costoEstado, setCostoEstado] = useState(null); // 'certificado' | 'preliminar' | null
-  const [fidelidad, setFidelidad] = useState(null); // 'alta' (multi-vista) | 'media' (1 vista) | 'texto'
   const dimsR = useMemo(() => dimsDeMueble(b), [b]);
-  const materialesR = useMemo(() => {
-    if (Array.isArray(b.materiales) && b.materiales.length) return b.materiales;
-    const nombres = (b.componentes || []).map((c) => insumos[c.insumoId]?.nombre).filter(Boolean);
-    return [...new Set(nombres)].slice(0, 8);
-  }, [b, insumos]);
+  // PRECEDENCIA de materiales/acabado para el render: (1-3) selección/BOM del usuario = materiales
+  // de SUPERFICIE de los componentes que tiene/confirmó; (4) leyenda del plano (b.materiales de la
+  // IA); (5) ninguna. Una leyenda vieja del plano NUNCA pisa la selección explícita del usuario.
+  const matFinish = useMemo(() => {
+    const SUP = new Set(['cubiertas', 'mamparas', 'acabados', 'metal', 'tapiceria']);
+    const bom = [...new Set((b.componentes || []).map((c) => insumos[c.insumoId]).filter((x) => x && SUP.has(x.seccion)).map((x) => x.nombre))];
+    if (bom.length) return { lista: bom.slice(0, 8), fuente: 'seleccion' };
+    if (Array.isArray(b.materiales) && b.materiales.length) return { lista: b.materiales, fuente: 'plano' };
+    return { lista: [], fuente: 'ninguna' };
+  }, [b.componentes, b.materiales, insumos]);
+  const materialesR = matFinish.lista;
+  // Dos fidelidades SEPARADAS (no "alta" solo por existir plano):
+  //  GEOMÉTRICA: alta (plano con cotas/escala) · media (plano parcial, sin escala) · limitada (foto/texto)
+  //  ACABADO:    confirmado (material/color de fuente explícita) · pendiente (sin definir → neutro)
+  const geomFid = (Array.isArray(b.planos) && b.planos.length)
+    ? (analisis?.confianzaGeneral === 'alta' ? 'alta' : 'media') : 'limitada';
+  const acabadoFid = matFinish.fuente === 'ninguna' ? 'pendiente' : 'confirmado';
   // Falta información crítica para ilustrar fielmente: se avisa, NO se inventa.
   const faltaCritico = !b.nombre?.trim() || !(b.componentes?.length) || !(dimsR.w > 0);
 
@@ -189,12 +200,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
       + (materialesR.length ? ` Materiales y acabados: ${materialesR.join(', ')}.` : '')
       + (b.descripcionCliente ? ` Notas: ${b.descripcionCliente}.` : '');
     const ent = entornoDe();
-    // Páginas/vistas del plano (base64 raw). Varias = más fidelidad geométrica.
+    // Páginas/vistas del plano (base64 raw). La fidelidad (geomFid/acabadoFid) ya está derivada arriba.
     const paginas = Array.isArray(b.planos) ? b.planos.filter(Boolean) : [];
-    // Fidelidad por tener PLANO (fuente de verdad), no por número de archivos: un plano con
-    // varias vistas en 1 imagen ya es alta. Solo 'texto' (limitada) cuando no hay plano.
-    const fid = paginas.length ? 'alta' : 'texto';
-    setFidelidad(fid);
     // Elementos que el render DEBE conservar (los nombra el propio producto). No describe forma: refuerza fidelidad.
     const preservar = [b.nombre, b.descripcionCliente].filter(Boolean).join('. ').slice(0, 400);
 
@@ -211,9 +218,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
         const url = await persistir(r.dataUrl, 'aislado', tipo, ent.tipo);
         setRenders((s) => ({ ...s, aislado: url }));
         const avisos = [];
-        if (fid === 'texto') avisos.push('Sin plano cargado: el aislado se generó por descripción (fidelidad limitada). Sube el plano para fidelidad exacta.');
-        // Si el plano no especifica materiales/colores, el render usa acabado NEUTRO (no lo inventa).
-        if (!materialesR.length) avisos.push('El plano no especifica acabado/color: el render usa un acabado neutro. Confirma los materiales arriba para ver el acabado real.');
+        if (geomFid === 'limitada') avisos.push('Sin plano cargado: el aislado se generó por descripción (geometría limitada). Sube el plano para fidelidad exacta.');
+        else if (geomFid === 'media') avisos.push('Plano sin escala/cotas claras: geometría media. Da una medida de referencia o sube más vistas para subirla a alta.');
+        if (acabadoFid === 'pendiente') avisos.push('Acabado por confirmar: sin materiales/color definidos, el render usa un acabado neutro. Elige los materiales arriba para ver el acabado real.');
         if (avisos.length) setRenderMsg(avisos.join(' '));
       } else { setRenderMsg(r?.error || 'No se pudo generar el producto aislado.'); }
     } catch (e) { setRenderMsg('Error en producto aislado: ' + String(e)); }
@@ -603,12 +610,12 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
               <span className="chip" style={{ background: (costoEstado === 'certificado') ? 'var(--ok,#1a7f37)' : '#8a6d00', color: '#fff', fontSize: 12 }}>
                 {costoEstado === 'certificado' ? 'COSTO CERTIFICADO' : 'COSTO PRELIMINAR'}
               </span>
-              {fidelidad && fidelidad !== 'alta' && (
-                <span className="chip" style={{ background: '#8a2d00', color: '#fff', fontSize: 12 }}>FIDELIDAD LIMITADA</span>
-              )}
-              {(renders.aislado || renders.ambiente) && !materialesR.length && (
-                <span className="chip" style={{ background: '#8a2d00', color: '#fff', fontSize: 12 }}>ACABADO POR CONFIRMAR</span>
-              )}
+              <span className="chip" style={{ background: geomFid === 'alta' ? 'var(--ok,#1a7f37)' : geomFid === 'media' ? '#8a6d00' : '#8a2d00', color: '#fff', fontSize: 12 }}>
+                GEOMETRÍA: {geomFid === 'alta' ? 'ALTA' : geomFid === 'media' ? 'MEDIA' : 'LIMITADA'}
+              </span>
+              <span className="chip" style={{ background: acabadoFid === 'confirmado' ? 'var(--ok,#1a7f37)' : '#8a2d00', color: '#fff', fontSize: 12 }}>
+                ACABADO: {acabadoFid === 'confirmado' ? 'CONFIRMADO' : 'POR CONFIRMAR'}
+              </span>
             </div>
             <p className="ayuda" style={{ margin: '6px 0' }}>El render ilustra el producto ya definido (medidas, materiales y despiece de arriba). No cambia el producto.</p>
             {faltaCritico && (
