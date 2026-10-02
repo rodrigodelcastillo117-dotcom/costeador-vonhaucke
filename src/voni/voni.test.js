@@ -150,3 +150,18 @@ describe('VONI get_bom conectado a fuente autorizada (Residual 2)', () => {
     expect(r.ok).toBe(false);
   });
 });
+
+describe('VONI recuperación de fallos (FASE 11)', () => {
+  it('un proveedor que lanza NO truena: devuelve fallo_tool', async () => {
+    const provMalo = { get_project_context: async () => { throw new Error('supabase timeout'); } };
+    const r = await ejecutarTool('get_project_context', { user: USER, role: 'ventas' }, {}, provMalo);
+    expect(r.ok).toBe(false);
+    expect(r.error).toBe('fallo_tool');
+  });
+  it('responder no truena aunque todas las tools fallen', async () => {
+    const provMalo = new Proxy({}, { get: () => async () => { throw new Error('caída'); } });
+    const { respuesta } = await responder({ query: '¿está lista?', ctx: { user: USER, role: 'ventas', project_id: 1 }, prov: provMalo });
+    expect(respuesta).toBeTruthy();
+    expect(['OK', 'ATENCION', 'BLOQUEADO']).toContain(respuesta.estado);
+  });
+});
