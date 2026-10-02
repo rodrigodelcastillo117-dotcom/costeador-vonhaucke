@@ -13,6 +13,25 @@ import { costoAlba, tipoAlba } from './formulaAlba.js';
 // ⚠️ SÚBELA cuando cambie cómo se calcula el costo (factores, cascada, nesting).
 export const MOTOR_VERSION = '2026-10-01';
 
+// FÓRMULA OFICIAL de producto nuevo (cutover 2026-10-01). Von Haucke convierte el
+// BOM en costo con la fórmula de ALBA (MO% por tipo de material + GI; ver
+// formulaAlba.js), la ÚNICA que reproduce las referencias humanas (Alpura, bench
+// de Alba) al centavo y por categoría. Es la MISMA implementación que usan las
+// regresiones: `calcular()` la aplica cuando la pieza NO trae factores explícitos.
+export const FORMULA_ALBA_V1 = 'ALBA_V1';
+
+// Qué fórmula aplica una pieza, para etiquetar el costo (histórico vs vigente) sin
+// recalcular nada. Alba = sin factores a mano y sin horas; si trae factores fijos
+// es un costo heredado (legacy). No cambia ningún número: solo lo nombra.
+export function formulaDePieza(pieza = {}) {
+  if (pieza.modoManoObra === 'horas') return 'HORAS';
+  if (pieza.factorDirecta != null || pieza.factorIndirecta != null) {
+    if (Number(pieza.factorDirecta) === 55 && Number(pieza.factorIndirecta) === 12) return 'LEGACY_55';
+    return `FACTORES_${pieza.factorDirecta ?? '?'}_${pieza.factorIndirecta ?? '?'}`;
+  }
+  return FORMULA_ALBA_V1;
+}
+
 // Secciones cuyo material se COMPRA ya hecho y solo se instala: NO llevan mano
 // de obra de fabricacion (decision Rafa/Rodrigo, 2026-09-23 — caso banca
 // aeropuerto: los multicontactos Bari no deben cargar MO). Electrico y guardas

@@ -2,7 +2,7 @@
 import { pesos, pct1 } from '../util.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { horasTotales } from '../datos/ue.js';
-import { precioDe, precioVenta, PARAMETROS_DEFAULT } from '../motor/calculo.js';
+import { precioDe, precioVenta, PARAMETROS_DEFAULT, formulaDePieza, FORMULA_ALBA_V1, MOTOR_VERSION } from '../motor/calculo.js';
 import { precioDeLista } from '../datos/preciosVenta.js';
 import { preciosVH } from '../datos/politicaVH.js';
 
@@ -33,6 +33,10 @@ export default function HojaCosto({ resultado, insumos, pieza, parametros = PARA
   }
 
   const horas = horasTotales(pieza?.horas);
+  // Método de costeo (discreto): Alba V1 para producto nuevo; si la pieza trae factores
+  // a mano es un costo heredado. No cambia ningún número, solo lo nombra.
+  const formula = formulaDePieza(pieza || {});
+  const metodoEtq = formula === FORMULA_ALBA_V1 ? 'Alba V1' : formula === 'LEGACY_55' ? 'Legacy 55 (histórico)' : formula;
 
   // --- Desglose VISUAL: de qué se compone el precio (vivo) ---
   // Sin costo completo no hay utilidad real: el precio es "Pendiente", no un número.
@@ -56,6 +60,7 @@ export default function HojaCosto({ resultado, insumos, pieza, parametros = PARA
   return (
     <div className="hoja">
       <h3>HOJA DE COSTO</h3>
+      <div className="ayuda" style={{ marginTop: -4, marginBottom: 8, opacity: 0.75 }} title={`Motor ${MOTOR_VERSION}`}>Método de costeo: <strong>{metodoEtq}</strong> <span className="gris">· motor {MOTOR_VERSION}</span></div>
 
       {/* Desglose visual (vivo): así se compone el precio */}
       <div className="dvis">

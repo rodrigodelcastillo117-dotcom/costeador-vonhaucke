@@ -5,7 +5,7 @@
 //  este mismo despiece leyendo una imagen con IA).
 // ============================================================================
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { calcular, precioDe, netoComponente, modeloParaPieza, costeoEmitible, bomHash, diffBOM, aplicarDiffBOM, MOTOR_VERSION } from '../motor/calculo.js';
+import { calcular, precioDe, netoComponente, modeloParaPieza, costeoEmitible, bomHash, diffBOM, aplicarDiffBOM, MOTOR_VERSION, FORMULA_ALBA_V1, formulaDePieza } from '../motor/calculo.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos } from '../util.js';
 import { analizarRender, analizarRenderImagenes, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64 } from '../nube.js';
@@ -70,10 +70,6 @@ const PARTES = [
   { label: 'Espuma', material: 'espuma', kind: 'area', dims: [500, 500] },
 ];
 
-const DIFICULTAD = [
-  { nombre: 'Muy fácil', v: 30 }, { nombre: 'Fácil', v: 40 }, { nombre: 'Estándar', v: 55 },
-  { nombre: 'Difícil', v: 70 }, { nombre: 'Muy difícil', v: 90 },
-];
 
 const N_PASOS = 4;
 
@@ -131,9 +127,12 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   }, [preguntasIA]);
   const [analisis, setAnalisis] = useState(null); // {descripcionCliente, materiales, mejoras, fallasProbables, aprovechamiento}
   const [pdfSel, setPdfSel] = useState(null); // selector de hoja de plano multipágina: {doc, numPaginas, pagina, preview}
+  // CUTOVER A ALBA (2026-10-01): producto nuevo YA NO lleva factores a mano. Sin
+  // factorDirecta/factorIndirecta, calcular() aplica la fórmula de Alba (la misma de
+  // las regresiones). Ese era el override legacy 55/12/34 que vivía aquí.
   const [b, setB] = useState({
     nombre: '', piezas: 1, componentes: [], imagen: null, descripcionCliente: '',
-    modoManoObra: 'porcentaje', factorDirecta: 55, factorIndirecta: 12,
+    modoManoObra: 'porcentaje',
     margen: estado.parametros?.margenObjetivo ?? 50,
   });
   const set = (parcial) => setB((prev) => ({ ...prev, ...parcial }));
@@ -205,6 +204,10 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const [canonico, setCanonico] = useState(false);
   const [propuestaDiff, setPropuestaDiff] = useState(null); // {agregar,modificar,eliminar,motivo,iaComps} | null
   const [bomDirty, setBomDirty] = useState(false);          // canónico editado desde el último guardado
+  // Fórmula del snapshot reabierto (histórico). null = producto nuevo (vive en Alba).
+  // Si un expediente viejo se calculó con legacy55, se reabre reproduciendo ESE costo
+  // (no se recalcula solo con Alba); el usuario puede re-costear con Alba aparte.
+  const [formulaGuardada, setFormulaGuardada] = useState(null);
   const dimsR = useMemo(() => dimsDeMueble(b), [b]);
   // PRECEDENCIA de materiales/acabado para el render: (1-3) selección/BOM del usuario = materiales
   // de SUPERFICIE de los componentes que tiene/confirmó; (4) leyenda del plano (b.materiales de la
@@ -230,6 +233,10 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // su total es apenas un SUBTOTAL CONOCIDO, no se le pone precio ni se aprueba.
   const emision = costeoEmitible(resultado);
   const emitible = emision.emitible;
+  // Fórmula que está aplicando AHORA la pieza (Alba para producto nuevo; legacy solo
+  // si se reabrió un histórico sin re-costear). Para etiquetar el costo, no recalcula.
+  const formulaActual = formulaDePieza(b);
+  const esHistoricoLegacy = !!formulaGuardada && formulaActual !== FORMULA_ALBA_V1;
   // Render DESACTUALIZADO: el BOM cambió desde que se generó el render → el render ya no corresponde.
   const renderObsoleto = (renders.aislado || renders.ambiente) && renderHash && renderHash !== hashInput({ c: b.componentes });
   // Falta información crítica para ilustrar fielmente: se avisa, NO se inventa.
@@ -343,7 +350,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         // IDENTIDAD DE REVISIÓN congelada (audit 2026-10-01): mismo bom_hash + mismo
         // catálogo + mismo motor ⇒ mismo costo a centavos. Guardamos todo lo que define
         // esa identidad para poder reconstruir/verificar cualquier revisión.
-        costo: { costoUnitario: Math.round(resultado.costoUnitario), subtotalConocido: Math.round(emision.subtotalConocido), costoTotal: emitible ? Math.round(resultado.costoUnitario) : null, materialTotal: Math.round(resultado.materialTotal), manoObra: Math.round(resultado.manoObra), indirectosFabrica: Math.round(resultado.indirectosFabrica), precio: emitible ? Math.round(precio) : null, margen: b.margen, estado_costo: estadoCostoGuardar, pendientes: piezasSinMaterial, bom_hash: bomHash(b.componentes), analysis_id: b.analysisId ?? null, version_motor: MOTOR_VERSION, version_catalogo: 'config-legado', factorDirecta: b.factorDirecta, factorIndirecta: b.factorIndirecta, fecha: new Date().toISOString() },
+        costo: { costoUnitario: Math.round(resultado.costoUnitario), subtotalConocido: Math.round(emision.subtotalConocido), costoTotal: emitible ? Math.round(resultado.costoUnitario) : null, materialTotal: Math.round(resultado.materialTotal), manoObra: Math.round(resultado.manoObra), indirectosFabrica: Math.round(resultado.indirectosFabrica), precio: emitible ? Math.round(precio) : null, margen: b.margen, estado_costo: estadoCostoGuardar, pendientes: piezasSinMaterial, bom_hash: bomHash(b.componentes), analysis_id: b.analysisId ?? null, version_motor: MOTOR_VERSION, formula_version: formulaDePieza(b), version_catalogo: 'config-legado', factorDirecta: b.factorDirecta ?? null, factorIndirecta: b.factorIndirecta ?? null, fecha: new Date().toISOString() },
         confirmaciones: Object.entries(confirmadas).map(([question_key, v]) => ({ question_key, pregunta: v.pregunta, respuesta: v.respuesta })),
         plano_urls: planoUrls.length ? planoUrls : (expId ? undefined : []),
         render_aislado_url: soloHttp(renders.aislado), render_ambiente_url: soloHttp(renders.ambiente),
@@ -370,7 +377,16 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     if (!expedienteInicial) return;
     const e = expedienteInicial;
     const id = ++corrida.current;
-    setB((prev) => ({ ...prev, nombre: e.nombre || '', componentes: Array.isArray(e.bom) ? e.bom : [], piezas: 1, margen: e.costo?.margen ?? prev.margen, descripcionCliente: e.descripcion || '', materiales: Array.isArray(e.materiales) ? e.materiales : [], planos: [], imagen: null, analysisId: id }));
+    // CONSERVAR HISTÓRICO (cutover 2026-10-01): un expediente se reabre reproduciendo
+    // el costo con el que se guardó. Si fue ALBA_V1 → sin factores (vive en Alba). Si
+    // fue legacy (o un save viejo pre-cutover, sin marca) → con sus factores (55/12 por
+    // defecto), para que el número mostrado sea el histórico, NO un recálculo con Alba.
+    const c = e.costo || {};
+    const esAlbaGuardada = c.formula_version === FORMULA_ALBA_V1;
+    const factorDirectaHist = esAlbaGuardada ? undefined : (c.factorDirecta ?? 55);
+    const factorIndirectaHist = esAlbaGuardada ? undefined : (c.factorIndirecta ?? 12);
+    setFormulaGuardada(c.formula_version || formulaDePieza({ factorDirecta: factorDirectaHist, factorIndirecta: factorIndirectaHist }));
+    setB((prev) => ({ ...prev, nombre: e.nombre || '', componentes: Array.isArray(e.bom) ? e.bom : [], piezas: 1, margen: e.costo?.margen ?? prev.margen, descripcionCliente: e.descripcion || '', materiales: Array.isArray(e.materiales) ? e.materiales : [], planos: [], imagen: null, factorDirecta: factorDirectaHist, factorIndirecta: factorIndirectaHist, analysisId: id }));
     setExpId(e.id); setRevActual(e.revision || 1); setEtiquetasTxt((e.etiquetas || []).join(', ')); setEstadoExp(e.estado || 'borrador');
     setConfirmadas(Object.fromEntries((e.confirmaciones || []).map((c) => [c.question_key || ('k_' + kpreg(c.pregunta).replace(/\s+/g, '_')), { pregunta: c.pregunta, respuesta: c.respuesta }])));
     setRenders({ aislado: e.render_aislado_url || null, ambiente: e.render_ambiente_url || null });
@@ -481,7 +497,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     setErrorIA(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({}); setConfirmadas({}); setConfMsg('');
     setAnalisis(null); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg('');
     setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); setRenderHash(null); setRevActual(1); // nuevo producto = nuevo expediente
-    setCanonico(false); setPropuestaDiff(null); setBomDirty(false); // producto nuevo = sin BOM canónico
+    setCanonico(false); setPropuestaDiff(null); setBomDirty(false); setFormulaGuardada(null); // producto nuevo = sin BOM canónico, vive en Alba
     setB((prev) => ({ ...prev, nombre: '', componentes: [], imagen: null, planos: [], descripcionCliente: '', materiales: [], analysisId: id }));
     return id;
   }
@@ -574,6 +590,15 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   function rechazarDiff() {
     setPropuestaDiff(null);
     setConfMsg('Propuesta de la IA rechazada. El BOM canónico se mantiene.');
+  }
+
+  // RE-COSTEAR un histórico con el método vigente (Alba). No modifica la historia:
+  // quita los factores legacy → calcular() usa Alba en vivo, y marca la corrida como
+  // comparación/nueva revisión. El snapshot guardado (costoGuardado) sigue intacto.
+  function reCostearConAlba() {
+    set({ factorDirecta: undefined, factorIndirecta: undefined });
+    setFormulaGuardada(null); setBomDirty(true);
+    setConfMsg('Re-costeado con Alba V1 (método vigente). Es una comparación / nueva revisión; el costo histórico sigue guardado hasta que guardes.');
   }
 
   // Sube render/plano → la IA propone el despiece. Un PDF multipágina abre el
@@ -913,18 +938,18 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         </div>
       )}
 
-      {/* PASO 3 — Mano de obra */}
+      {/* PASO 3 — Mano de obra (fórmula ALBA V1). Ya NO se elige "dificultad": la
+          mano de obra y los indirectos salen del TIPO de material de cada partida
+          (método Von Haucke, calibrado al centavo contra las T.D.C. reales). */}
       {paso === 2 && (
         <div>
-          <div className="pregunta">¿Qué tan difícil es de fabricar?</div>
-          <div className="pregunta-sub">Esto define las horas de taller. En el detalle puedes meter horas exactas por proceso.</div>
-          <div className="ganar-botones">
-            {DIFICULTAD.map((d) => (
-              <button key={d.v} className={b.factorDirecta === d.v ? 'on' : ''} onClick={() => set({ factorDirecta: d.v })}>{d.nombre}</button>
-            ))}
+          <div className="pregunta">Mano de obra e indirectos</div>
+          <div className="pregunta-sub">Se calculan solos con la fórmula <strong>Alba V1</strong> (el método oficial de Von Haucke): un % de mano de obra por tipo de material e indirectos sobre eso. No hay que elegir dificultad.</div>
+          <div className="ayuda columna-texto" style={{ marginTop: 10 }}>
+            Cubiertas 15% MO · metal/madera/general 20% MO (indirectos ×3) · cristal y compra-venta 1% MO (indirectos 5%).
+            Verificado contra las hojas de costo reales de Alba (Alpura, bench) al centavo.
           </div>
-          <div className="espacio" />
-          <p className="ayuda columna-texto">Nota: para procesos especiales (curvo, termoformado, doblez, CNC) sube la dificultad — llevan más mano de obra.</p>
+          <div className="ayuda columna-texto" style={{ marginTop: 8 }}>Para costos con horas exactas por proceso, usa el Costeador detallado.</div>
         </div>
       )}
 
@@ -956,6 +981,16 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           <div className="ayuda columna-texto" style={{ textAlign: 'left' }}>
             Material {pesos(resultado.materialTotal)} · Mano de obra {pesos(resultado.manoObra)} · Fábrica {pesos(resultado.indirectosFabrica)}
           </div>
+          {/* Método de costeo — discreto. Alba V1 para producto nuevo; histórico legacy al reabrir. */}
+          <div className="ayuda columna-texto" style={{ textAlign: 'left', marginTop: 2, opacity: 0.8 }}>
+            Método de costeo: <strong>{formulaActual === FORMULA_ALBA_V1 ? 'Alba V1' : esHistoricoLegacy ? 'Legacy 55 (histórico)' : formulaActual}</strong>
+          </div>
+          {esHistoricoLegacy && (
+            <div className="alerta" style={{ marginTop: 8, textAlign: 'left', border: '1px solid #8a6d00', borderRadius: 8, padding: 10 }}>
+              <span className="texto">Costo histórico — calculado con <strong>Legacy55</strong>. No se recalcula solo. </span>
+              <button className="boton" style={{ marginTop: 6 }} onClick={reCostearConAlba}>Re-costear con método vigente (Alba V1)</button>
+            </div>
+          )}
           {costoGuardado && Math.abs((costoGuardado.costoUnitario || 0) - Math.round(resultado.costoUnitario)) > 0 && (
             <div className="ayuda columna-texto" style={{ textAlign: 'left', marginTop: 6 }}>
               Re-costeo con catálogo de hoy: guardado {pesos(costoGuardado.costoUnitario)} → hoy {pesos(resultado.costoUnitario)}
@@ -1048,7 +1083,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       ) : (
         <div className="fila-botones">
           <button className="boton primario grande" onClick={() => onVerDetalle(b)}>Ver detalle completo y cotizar</button>
-          <button className="boton grande" onClick={() => { setB({ nombre: '', piezas: 1, componentes: [], modoManoObra: 'porcentaje', factorDirecta: 55, factorIndirecta: 12, margen: b.margen }); setPaso(0); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({}); setConfirmadas({}); setConfMsg(''); setAnalisis(null); setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); setRenderHash(null); setRevActual(1); setCanonico(false); setPropuestaDiff(null); setBomDirty(false); corrida.current++; }}>Empezar otro</button>
+          <button className="boton grande" onClick={() => { setB({ nombre: '', piezas: 1, componentes: [], modoManoObra: 'porcentaje', margen: b.margen }); setPaso(0); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({}); setConfirmadas({}); setConfMsg(''); setAnalisis(null); setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); setRenderHash(null); setRevActual(1); setCanonico(false); setPropuestaDiff(null); setBomDirty(false); setFormulaGuardada(null); corrida.current++; }}>Empezar otro</button>
         </div>
       )}
     </div>
