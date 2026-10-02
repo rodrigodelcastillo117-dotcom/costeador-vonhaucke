@@ -83,6 +83,15 @@ export function aceptaCorrida(corridaId, actual) {
   return corridaId == null || corridaId === actual;
 }
 
+// Fusiona preguntas pendientes por question_key: conserva las actuales, agrega las nuevas, y NUNCA
+// incluye una cuya key ya está confirmada (aunque la IA reformule el texto). Autoridad = question_key.
+export function fusionarPreguntas(prev, incoming, confKeysSet, norm) {
+  const byKey = new Map();
+  for (const raw of (prev || [])) { const q = norm(raw); if (!confKeysSet.has(q.question_key)) byKey.set(q.question_key, q); }
+  for (const raw of (incoming || [])) { const q = norm(raw); if (!confKeysSet.has(q.question_key) && !byKey.has(q.question_key)) byKey.set(q.question_key, q); }
+  return [...byKey.values()];
+}
+
 export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBiblioteca, expedienteInicial }) {
   const insumos = estado.insumos;
   const [paso, setPaso] = useState(0);
@@ -412,12 +421,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     // AUTORIDAD = question_key. Fusiona las preguntas entrantes con las pendientes actuales por key,
     // y NUNCA reabre una ya contestada (aunque la IA la reformule). No "reemplaza" → acumula en un solo centro.
     const confKeys = new Set(Object.keys(yaConf || confirmadas));
-    setPreguntasIA((prev) => {
-      const byKey = new Map();
-      for (const raw of prev) { const q = normPreg(raw); if (!confKeys.has(q.question_key)) byKey.set(q.question_key, q); }
-      for (const raw of (Array.isArray(p.preguntas) ? p.preguntas : [])) { const q = normPreg(raw); if (!confKeys.has(q.question_key) && !byKey.has(q.question_key)) byKey.set(q.question_key, q); }
-      return [...byKey.values()];
-    });
+    setPreguntasIA((prev) => fusionarPreguntas(prev, Array.isArray(p.preguntas) ? p.preguntas : [], confKeys, normPreg));
     setPropuestaIA(p);        // guarda el despiece crudo para re-costear con las respuestas
     setRespuestas({});        // limpia respuestas previas
     // El despiece cambió: el render viejo ya no corresponde → se limpia para forzar uno nuevo.
