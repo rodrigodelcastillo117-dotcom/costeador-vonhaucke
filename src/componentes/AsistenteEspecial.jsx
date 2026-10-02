@@ -144,6 +144,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
   const [renderMsg, setRenderMsg] = useState('');
   const [renderizando, setRenderizando] = useState(false);
   const [costoEstado, setCostoEstado] = useState(null); // 'certificado' | 'preliminar' | null
+  const [fidelidad, setFidelidad] = useState(null); // 'alta' (multi-vista) | 'media' (1 vista) | 'texto'
   const dimsR = useMemo(() => dimsDeMueble(b), [b]);
   const materialesR = useMemo(() => {
     if (Array.isArray(b.materiales) && b.materiales.length) return b.materiales;
@@ -188,22 +189,27 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
       + (materialesR.length ? ` Materiales y acabados: ${materialesR.join(', ')}.` : '')
       + (b.descripcionCliente ? ` Notas: ${b.descripcionCliente}.` : '');
     const ent = entornoDe();
-    const refImg = b.imagen ? String(b.imagen).split(',')[1] : '';
-    const refMime = b.imagen ? ((String(b.imagen).match(/data:(.*?);/) || [])[1] || 'image/jpeg') : 'image/jpeg';
+    // Páginas/vistas del plano (base64 raw). Varias = más fidelidad geométrica.
+    const paginas = Array.isArray(b.planos) ? b.planos.filter(Boolean) : [];
+    const fid = paginas.length >= 2 ? 'alta' : paginas.length === 1 ? 'media' : 'texto';
+    setFidelidad(fid);
+    // Elementos que el render DEBE conservar (los nombra el propio producto). No describe forma: refuerza fidelidad.
+    const preservar = [b.nombre, b.descripcionCliente].filter(Boolean).join('. ').slice(0, 400);
 
-    // 1) PRODUCTO AISLADO — el PLANO es la fuente de verdad de la forma (modo catálogo).
+    // 1) PRODUCTO AISLADO — el PLANO (todas sus vistas) es la fuente de verdad de la forma (modo catálogo).
     //    Sin plano, cae a 'render' por texto (menos fiel, se avisa).
     let aisladoDataUrl = null;
     try {
-      const opt = b.imagen
-        ? { modo: 'catalogo', medidas, tipo, materiales: materialesR, imagen: refImg, mediaType: refMime }
+      const opt = paginas.length
+        ? { modo: 'catalogo', medidas, tipo, materiales: materialesR, imagen: paginas[0], mediaType: 'image/jpeg', imagenes: paginas.slice(1, 6), preservar }
         : { modo: 'render', medidas, tipo, materiales: materialesR };
       const r = await generarRender(texto, opt);
       if (r?.ok && r.dataUrl) {
         aisladoDataUrl = r.dataUrl;
         const url = await persistir(r.dataUrl, 'aislado', tipo, ent.tipo);
         setRenders((s) => ({ ...s, aislado: url }));
-        if (!b.imagen) setRenderMsg('Sin plano cargado: el producto aislado se generó por descripción (menos fiel). Sube el plano para fidelidad exacta.');
+        if (fid === 'texto') setRenderMsg('Sin plano cargado: el aislado se generó por descripción (fidelidad limitada). Sube el plano para fidelidad exacta.');
+        else if (fid === 'media') setRenderMsg('Fidelidad limitada: solo 1 vista del plano. Si tienes más vistas (frente, lateral, cortes), súbelas para mayor exactitud geométrica.');
       } else { setRenderMsg(r?.error || 'No se pudo generar el producto aislado.'); }
     } catch (e) { setRenderMsg('Error en producto aislado: ' + String(e)); }
 
@@ -250,7 +256,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
   // que comparten el render, la imagen y las hojas de PDF. Devuelve true si ok.
   const catalogoIA = () => Object.values(insumos).map((x) => ({ id: x.id, nombre: x.nombre, seccion: x.seccion, unidad: x.unidad }));
 
-  function aplicarPropuesta(res, dataUrl) {
+  function aplicarPropuesta(res, dataUrl, planos) {
     if (!res?.ok) { setErrorIA(res?.error || 'No se pudo analizar.'); return false; }
     const p = res.propuesta || {};
     const comps = (p.piezas || []).map((z) => {
@@ -264,7 +270,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
       }
       return base;
     });
-    setB((prev) => ({ ...prev, nombre: prev.nombre || p.producto || '', componentes: comps, imagen: dataUrl || null, descripcionCliente: p.descripcionCliente || '', materiales: Array.isArray(p.materiales) ? p.materiales : [] }));
+    // planos: TODAS las páginas/vistas del plano (base64 raw) para referencia múltiple del render.
+    const paginas = Array.isArray(planos) && planos.length ? planos : (dataUrl ? [String(dataUrl).split(',')[1]] : []);
+    setB((prev) => ({ ...prev, nombre: prev.nombre || p.producto || '', componentes: comps, imagen: dataUrl || null, planos: paginas, descripcionCliente: p.descripcionCliente || '', materiales: Array.isArray(p.materiales) ? p.materiales : [] }));
     setAnalisis({
       descripcionCliente: p.descripcionCliente || '',
       materiales: Array.isArray(p.materiales) ? p.materiales : [],
@@ -281,20 +289,20 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
   // la IA verifica su propio despiece contra las cotas. Devuelve true si ok.
   async function analizarYLlenar(base64, mediaType, dataUrl) {
     const v1 = await analizarRender(catalogoIA(), base64, mediaType);
-    if (!v1?.ok || mediaType === 'application/pdf') return aplicarPropuesta(v1, dataUrl);
+    if (!v1?.ok || mediaType === 'application/pdf') return aplicarPropuesta(v1, dataUrl, [base64]);
     setVerificando(true);
     const v2 = await verificarDespiece(catalogoIA(), [base64], v1.propuesta);
     setVerificando(false);
-    return aplicarPropuesta(v2, dataUrl);
+    return aplicarPropuesta(v2, dataUrl, [base64]);
   }
   // Varias hojas del mismo mueble (plano multipágina). Paso 1 analiza, paso 2 verifica.
   async function analizarImagenes(imagenes, dataUrlPreview) {
     const v1 = await analizarRenderImagenes(catalogoIA(), imagenes);
-    if (!v1?.ok) return aplicarPropuesta(v1, dataUrlPreview);
+    if (!v1?.ok) return aplicarPropuesta(v1, dataUrlPreview, imagenes);
     setVerificando(true);
     const v2 = await verificarDespiece(catalogoIA(), imagenes, v1.propuesta);
     setVerificando(false);
-    return aplicarPropuesta(v2, dataUrlPreview);
+    return aplicarPropuesta(v2, dataUrlPreview, imagenes);
   }
 
   // Sube render/plano → la IA propone el despiece. Un PDF multipágina abre el
@@ -590,6 +598,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
               <span className="chip" style={{ background: (costoEstado === 'certificado') ? 'var(--ok,#1a7f37)' : '#8a6d00', color: '#fff', fontSize: 12 }}>
                 {costoEstado === 'certificado' ? 'COSTO CERTIFICADO' : 'COSTO PRELIMINAR'}
               </span>
+              {fidelidad && fidelidad !== 'alta' && (
+                <span className="chip" style={{ background: '#8a2d00', color: '#fff', fontSize: 12 }}>FIDELIDAD LIMITADA</span>
+              )}
             </div>
             <p className="ayuda" style={{ margin: '6px 0' }}>El render ilustra el producto ya definido (medidas, materiales y despiece de arriba). No cambia el producto.</p>
             {faltaCritico && (
@@ -599,7 +610,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
             )}
             {renderMsg && <p className="ayuda" style={{ color: 'var(--alerta,#b22a22)' }}>{renderMsg}</p>}
             <button className="boton primario" disabled={faltaCritico || renderizando} onClick={generarRenders} style={{ marginTop: 6 }}>
-              {renderizando ? 'Generando…' : (renders.catalogo || renders.oficina) ? 'Regenerar render' : 'Generar render'}
+              {renderizando ? 'Generando…' : (renders.aislado || renders.ambiente) ? 'Regenerar render' : 'Generar render'}
             </button>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
               {['aislado', 'ambiente'].map((m) => (

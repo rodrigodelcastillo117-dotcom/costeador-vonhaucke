@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
 
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, error: "JSON invalido" }, 400); }
-  const { descripcion = "", materiales = [], medidas = "", tipo = "", imagen = "", imagenes = [], mediaType = "image/jpeg", modo = "render", aspecto = "", cuarto = "", lineas = [], conteoPiso = null, entorno = "" } = body || {};
+  const { descripcion = "", materiales = [], medidas = "", tipo = "", imagen = "", imagenes = [], mediaType = "image/jpeg", modo = "render", aspecto = "", cuarto = "", lineas = [], conteoPiso = null, entorno = "", preservar = "" } = body || {};
   if (!descripcion.trim() && !imagen) return json({ ok: false, error: "Escribe una descripción del mueble para generar el render." }, 400);
   if (modo === "staging" && !imagen) return json({ ok: false, error: "Sube una foto del espacio para amueblarlo." }, 400);
 
@@ -62,6 +62,16 @@ Deno.serve(async (req) => {
       "Copy the rest of the geometry part by part too: the same panels, the same overhangs, the same proportions and the " +
       "same configuration. If any words below seem to describe a different shape, IGNORE THE WORDS and follow the image. " +
       "Do not add, remove, restyle or re-engineer any part. Only the photography and the finish quality change. " +
+      // Varias vistas/páginas del plano: úsalas TODAS para reconstruir la geometría 3D completa.
+      ((Array.isArray(imagenes) && imagenes.length)
+        ? "You are given MULTIPLE reference views/pages of the SAME product (front, side, sections, details). Use ALL of them " +
+          "together to reconstruct one single coherent 3D object; they are the same piece from different angles, not different products. "
+        : "") +
+      // Elementos que DEBEN conservarse si aparecen en el plano (no omitirlos al embellecer).
+      (preservar ? `The product includes these elements that you MUST keep, in the same place and proportion as the reference: ${preservar}. Do not omit any of them. ` : "") +
+      // Prioridad explícita: fidelidad geométrica sobre belleza.
+      "PRIORITIZE GEOMETRIC ACCURACY OVER BEAUTIFICATION: an accurate but plain render is better than a pretty one that changes " +
+      "the shape, the layout, the number of shelves/doors/niches or the proportions. Do not stylize away any structural element. " +
       `Product for context only (never for shape): ${descripcion} ` +
       (medidas ? `It should read at its true proportions: ${medidas}. ` : "") +
       (mats ? `Real materials: ${mats}. ` : "") +
