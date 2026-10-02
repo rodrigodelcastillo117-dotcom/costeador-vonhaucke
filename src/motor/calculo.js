@@ -449,7 +449,13 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
   // silencio) y se costean en $0. Las juntamos para que la UI marque el costeo
   // como incompleto y bloquee la EMISIÓN (no el guardado del borrador).
   const componentesIgnorados = [];
+  // EXCLUIDA_CONFIRMADA (audit 2026-10-01): una partida que alguien DECIDIÓ no costear
+  // —"el equipo lo pone el cliente", "lo surte otra área"— vale $0 POR DECISIÓN, no por
+  // un hueco de datos. No cuenta como PENDIENTE_COSTO: no vuelve el costeo INCOMPLETO.
+  // Se registra aparte para dejar rastro de qué se excluyó y por qué.
+  const componentesExcluidos = [];
   for (const comp of componentes) {
+    if (comp.excluida) { componentesExcluidos.push(comp.nombre || 'Partida excluida'); continue; }
     const insumo = insumos[comp.insumoId] || comp.insumo;
     if (!insumo) { componentesIgnorados.push(comp.nombre || 'Pieza sin material'); continue; }
     if (!grupos[comp.insumoId]) {
@@ -586,7 +592,82 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     costoUnitario,
     detalleInsumos,
     componentesIgnorados,
+    componentesExcluidos,
   };
+}
+
+// -----------------------------------------------------------------------------
+//  FAIL-CLOSED (audit 2026-10-01). Un costo con partidas SIN material (huecos de
+//  datos, no decisiones) NO es emitible: su `costoUnitario` es apenas un SUBTOTAL
+//  CONOCIDO, nunca el costo total. Sobre él no se saca precio de lista, utilidad,
+//  precio mínimo ni precios por volumen. Esta función es el único juez de "¿se
+//  puede poner precio?" y la usan la UI y el guardado para no emitir en falso.
+//  Las EXCLUIDAS_CONFIRMADAS (comp.excluida) NO cuentan: son $0 por decisión.
+// -----------------------------------------------------------------------------
+export function costeoEmitible(resultado) {
+  const pendientes = (resultado && resultado.componentesIgnorados) || [];
+  return {
+    emitible: pendientes.length === 0,
+    pendientes,
+    subtotalConocido: (resultado && resultado.costoUnitario) || 0,
+    // costoTotal es null mientras haya pendientes: no hay un total que autorizar.
+    costoTotal: pendientes.length === 0 ? ((resultado && resultado.costoUnitario) || 0) : null,
+    estadoCosto: pendientes.length === 0 ? 'completo' : 'incompleto',
+  };
+}
+
+// -----------------------------------------------------------------------------
+//  BOM CANÓNICO (audit 2026-10-01). Firma estable y determinista de un despiece,
+//  para CONGELARLO por revisión y detectar si cambió. Dos despieces iguales dan
+//  la misma firma; cualquier cambio de pieza/material/medida/cantidad la cambia.
+//  No depende del orden en que vengan las piezas.
+// -----------------------------------------------------------------------------
+function firmaComponente(c = {}) {
+  // La identidad de una partida: su nombre + material + medidas/cantidad efectivas.
+  return [
+    String(c.nombre || '').trim().toLowerCase(),
+    String(c.insumoId || ''),
+    Number(c.largoMM || 0), Number(c.anchoMM || 0),
+    c.hojas != null ? Number(c.hojas) : '',
+    Number(c.cantidad || 0), Number(c.piezas || 1),
+    c.excluida ? 'X' : '',
+  ].join('|');
+}
+
+export function bomHash(componentes = []) {
+  const firmas = (componentes || []).map(firmaComponente).sort();
+  const s = firmas.join('§');
+  // FNV-1a de 32 bits en hex: barato, estable, suficiente para detectar cambios.
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+  }
+  return ('00000000' + h.toString(16)).slice(-8);
+}
+
+// -----------------------------------------------------------------------------
+//  PROPUESTA_DIFF (audit 2026-10-01). Diferencia entre el BOM canónico vigente y
+//  uno nuevo propuesto (por la IA al recalcular, p. ej.). Devuelve qué habría que
+//  agregar / modificar / eliminar. El BOM NO se reemplaza en silencio: un humano
+//  decide. La clave de identidad es el nombre de la partida (normalizado).
+// -----------------------------------------------------------------------------
+const claveBOM = (c = {}) => String(c.nombre || '').trim().toLowerCase();
+
+export function diffBOM(viejo = [], nuevo = []) {
+  const mapV = new Map((viejo || []).map((c) => [claveBOM(c), c]));
+  const mapN = new Map((nuevo || []).map((c) => [claveBOM(c), c]));
+  const agregar = [];
+  const modificar = [];
+  const eliminar = [];
+  for (const [k, c] of mapN) {
+    if (!mapV.has(k)) agregar.push(c);
+    else if (firmaComponente(mapV.get(k)) !== firmaComponente(c)) modificar.push({ antes: mapV.get(k), despues: c });
+  }
+  for (const [k, c] of mapV) {
+    if (!mapN.has(k)) eliminar.push(c);
+  }
+  return { agregar, modificar, eliminar, sinCambios: !agregar.length && !modificar.length && !eliminar.length };
 }
 
 // Piezas cuyo material no existe en el catálogo (insumoId vacío, o un id que ya

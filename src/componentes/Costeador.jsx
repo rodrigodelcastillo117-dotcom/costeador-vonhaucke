@@ -75,6 +75,10 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     ? precioDeLista(precioVenta(resultado.costoUnitario, par).lista)
     : precioDe(resultado.costoUnitario, margen);
   const bajoMinimo = margen < estado.parametros.margenMinimo;
+  // FAIL-CLOSED (audit 2026-10-01): con partidas sin costear no hay precio ni se
+  // puede emitir a la cotización. Solo se muestra el subtotal conocido.
+  const pendientesC = resultado.componentesIgnorados || [];
+  const incompletoC = pendientesC.length > 0;
   const sugerencia = useMemo(
     () => sugerenciaLote(piezaVirtual, costeo.piezas, insumos, par),
     [costeo, insumos, par]
@@ -527,15 +531,16 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
               onChange={(e) => set({ margen: parseInt(e.target.value) })} style={{ flex: 1 }} />
             <span className="valor">{margen}%</span>
           </div>
-          <div className="precio-grande">{pesos(precio)}</div>
-          <div className="ayuda">Precio por pieza con {margen}% de margen.</div>
-          {bajoMinimo && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">Debajo del minimo de {estado.parametros.margenMinimo}%.</span></div>}
+          <div className="precio-grande" style={incompletoC ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : pesos(precio)}</div>
+          <div className="ayuda">{incompletoC ? 'Sin precio: faltan partidas por costear.' : `Precio por pieza con ${margen}% de margen.`}</div>
+          {incompletoC && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">⚠ Costo INCOMPLETO — faltan por costear {pendientesC.length} partida(s): {pendientesC.slice(0, 6).join(', ')}{pendientesC.length > 6 ? '…' : ''}. No se puede cotizar ni emitir.</span></div>}
+          {!incompletoC && bajoMinimo && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">Debajo del minimo de {estado.parametros.margenMinimo}%.</span></div>}
           <div className="espacio" />
-          <button className="boton primario grande" onClick={() => onAgregarCotizacion(resultado, precio, margen)}>Agregar a la cotización</button>
+          <button className="boton primario grande" disabled={incompletoC} title={incompletoC ? 'No se puede cotizar un costo incompleto' : ''} onClick={() => !incompletoC && onAgregarCotizacion(resultado, precio, margen)}>Agregar a la cotización</button>
           <div className="espacio" />
           <button className="boton grande" onClick={() => onGuardarPieza(resultado)}>Guardar como pieza</button>
           <div className="espacio" />
-          <button className="boton grande" onClick={() => setFichaAbierta(true)}>Ver ficha PDF</button>
+          <button className="boton grande" disabled={incompletoC} title={incompletoC ? 'No se puede imprimir una ficha con precio incompleto' : ''} onClick={() => !incompletoC && setFichaAbierta(true)}>Ver ficha PDF</button>
         </div>
       </div>
 
@@ -545,8 +550,8 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
 
       {/* Barra fija inferior para pantallas angostas */}
       <div className="barra-fija no-imprimir">
-        <span>Cuesta hacer 1 pieza <strong className="mono">{pesos(resultado.costoUnitario)}</strong></span>
-        <span className="precio-grande">{pesos(precio)}</span>
+        <span>{incompletoC ? 'Subtotal conocido' : 'Cuesta hacer 1 pieza'} <strong className="mono">{pesos(resultado.costoUnitario)}</strong></span>
+        <span className="precio-grande" style={incompletoC ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : pesos(precio)}</span>
       </div>
     </div>
   );

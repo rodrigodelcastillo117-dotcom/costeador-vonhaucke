@@ -5,7 +5,7 @@
 //  este mismo despiece leyendo una imagen con IA).
 // ============================================================================
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { calcular, precioDe, netoComponente, modeloParaPieza } from '../motor/calculo.js';
+import { calcular, precioDe, netoComponente, modeloParaPieza, costeoEmitible } from '../motor/calculo.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos } from '../util.js';
 import { analizarRender, analizarRenderImagenes, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64 } from '../nube.js';
@@ -219,6 +219,10 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // INCOMPLETO: piezas del despiece SIN material en catálogo → se costean en $0 → el total sale BAJO.
   const piezasSinMaterial = resultado.componentesIgnorados || [];
   const costoIncompleto = piezasSinMaterial.length > 0;
+  // FAIL-CLOSED (audit 2026-10-01): si el costo está incompleto NO es emitible —
+  // su total es apenas un SUBTOTAL CONOCIDO, no se le pone precio ni se aprueba.
+  const emision = costeoEmitible(resultado);
+  const emitible = emision.emitible;
   // Render DESACTUALIZADO: el BOM cambió desde que se generó el render → el render ya no corresponde.
   const renderObsoleto = (renders.aislado || renders.ambiente) && renderHash && renderHash !== hashInput({ c: b.componentes });
   // Falta información crítica para ilustrar fielmente: se avisa, NO se inventa.
@@ -320,11 +324,16 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       }
       const soloHttp = (u) => (typeof u === 'string' && u.startsWith('http')) ? u : null;
       const etiquetas = etiquetasTxt.split(',').map((s) => s.trim()).filter(Boolean);
+      // FAIL-CLOSED al guardar: un costo incompleto NUNCA se guarda como APROBADO ni
+      // con un precio "oficial". Se degrada a borrador, estado_costo=incompleto y
+      // precio=null. Así la biblioteca no conserva un número de venta sin respaldo.
+      const estadoGuardar = emitible ? estadoExp : 'borrador';
+      const estadoCostoGuardar = !emitible ? 'incompleto' : (costoEstado || 'preliminar');
       const exp = {
-        nombre: b.nombre.trim(), etiquetas, estado: estadoExp,
+        nombre: b.nombre.trim(), etiquetas, estado: estadoGuardar,
         producto_tipo: tipoDeMueble(b), ancho_mm: dimsR.w, fondo_mm: dimsR.d, alto_mm: null,
         descripcion: b.descripcionCliente || null, materiales: materialesR, bom: b.componentes,
-        costo: { costoUnitario: Math.round(resultado.costoUnitario), materialTotal: Math.round(resultado.materialTotal), manoObra: Math.round(resultado.manoObra), indirectosFabrica: Math.round(resultado.indirectosFabrica), precio: Math.round(precio), margen: b.margen, estado_costo: costoEstado || 'preliminar', fecha: new Date().toISOString() },
+        costo: { costoUnitario: Math.round(resultado.costoUnitario), subtotalConocido: Math.round(emision.subtotalConocido), costoTotal: emitible ? Math.round(resultado.costoUnitario) : null, materialTotal: Math.round(resultado.materialTotal), manoObra: Math.round(resultado.manoObra), indirectosFabrica: Math.round(resultado.indirectosFabrica), precio: emitible ? Math.round(precio) : null, margen: b.margen, estado_costo: estadoCostoGuardar, pendientes: piezasSinMaterial, bom_hash: hashInput({ c: b.componentes }), fecha: new Date().toISOString() },
         confirmaciones: Object.entries(confirmadas).map(([question_key, v]) => ({ question_key, pregunta: v.pregunta, respuesta: v.respuesta })),
         plano_urls: planoUrls.length ? planoUrls : (expId ? undefined : []),
         render_aislado_url: soloHttp(renders.aislado), render_ambiente_url: soloHttp(renders.ambiente),
@@ -837,11 +846,26 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       {paso === 3 && (
         <div className="tarjeta-precio">
           <div className="ficha-linea">{b.nombre || 'Producto nuevo'}</div>
-          <div className="ayuda" style={{ margin: '6px 0' }}>Cuesta hacer 1 pieza</div>
-          <div className="precio-enorme" style={{ color: 'var(--tinta)', fontSize: 38 }}>{pesos(resultado.costoUnitario)}</div>
-          <div className="espacio" />
-          <div className="ayuda">Precio de lista ({b.margen}% margen)</div>
-          <div className="precio-enorme">{pesos(precio)}</div>
+          {emitible ? (
+            <>
+              <div className="ayuda" style={{ margin: '6px 0' }}>Cuesta hacer 1 pieza</div>
+              <div className="precio-enorme" style={{ color: 'var(--tinta)', fontSize: 38 }}>{pesos(resultado.costoUnitario)}</div>
+              <div className="espacio" />
+              <div className="ayuda">Precio de lista ({b.margen}% margen)</div>
+              <div className="precio-enorme">{pesos(precio)}</div>
+            </>
+          ) : (
+            // FAIL-CLOSED: hay partidas sin costear → NO hay costo total ni precio.
+            // Solo se muestra lo que sí se conoce; el total y el precio quedan "Pendiente".
+            <>
+              <div className="ayuda" style={{ margin: '6px 0' }}>Subtotal conocido (solo lo que ya tiene material)</div>
+              <div className="precio-enorme" style={{ color: 'var(--tinta)', fontSize: 34 }}>{pesos(emision.subtotalConocido)}</div>
+              <div className="espacio" />
+              <div className="ayuda">Costo total</div>
+              <div className="precio-enorme" style={{ color: '#b22a22' }}>Pendiente</div>
+              <div className="ayuda" style={{ color: '#b22a22', marginTop: 4 }}>No se calcula precio de lista hasta costear todo.</div>
+            </>
+          )}
           <div className="espacio" />
           <div className="ayuda columna-texto" style={{ textAlign: 'left' }}>
             Material {pesos(resultado.materialTotal)} · Mano de obra {pesos(resultado.manoObra)} · Fábrica {pesos(resultado.indirectosFabrica)}
@@ -855,7 +879,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
 
           {costoIncompleto && (
             <div className="alerta roja" style={{ marginTop: 10, textAlign: 'left' }}>
-              <span className="texto">⚠ <strong>Costo INCOMPLETO</strong> — por eso sale bajo: {piezasSinMaterial.length} pieza(s) sin material (se costean en $0): {piezasSinMaterial.slice(0, 6).join(', ')}{piezasSinMaterial.length > 6 ? '…' : ''}. Asígnales material en el despiece (arriba) para un costo real.</span>
+              <span className="texto">⚠ <strong>Costo INCOMPLETO</strong> — <strong>faltan por costear {piezasSinMaterial.length} partida(s)</strong>: {piezasSinMaterial.slice(0, 6).join(', ')}{piezasSinMaterial.length > 6 ? '…' : ''}. Asígnales material en el despiece (arriba) o márcalas como excluidas. Hasta entonces no hay costo total ni precio.</span>
             </div>
           )}
           {preguntasIA.length > 0 && (
@@ -914,8 +938,10 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
             <input type="text" value={etiquetasTxt} placeholder="Cabecera Soriana, Alpura, exhibidor, retail" onChange={(e) => setEtiquetasTxt(e.target.value)} style={{ width: '100%' }} />
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10, flexWrap: 'wrap' }}>
               <span className="ayuda">Estado:</span>
-              <button type="button" className={'chip' + (estadoExp === 'borrador' ? ' on' : '')} onClick={() => setEstadoExp('borrador')} style={{ cursor: 'pointer', background: estadoExp === 'borrador' ? 'var(--tinta,#2B2622)' : undefined, color: estadoExp === 'borrador' ? '#fff' : undefined }}>Borrador</button>
-              <button type="button" className={'chip' + (estadoExp === 'aprobado' ? ' on' : '')} onClick={() => setEstadoExp('aprobado')} style={{ cursor: 'pointer', background: estadoExp === 'aprobado' ? 'var(--ok,#1a7f37)' : undefined, color: estadoExp === 'aprobado' ? '#fff' : undefined }}>Aprobado</button>
+              <button type="button" className={'chip' + ((estadoExp === 'borrador' || !emitible) ? ' on' : '')} onClick={() => setEstadoExp('borrador')} style={{ cursor: 'pointer', background: (estadoExp === 'borrador' || !emitible) ? 'var(--tinta,#2B2622)' : undefined, color: (estadoExp === 'borrador' || !emitible) ? '#fff' : undefined }}>Borrador</button>
+              {/* FAIL-CLOSED: no se puede APROBAR un costo incompleto. Solo borrador. */}
+              <button type="button" disabled={!emitible} className={'chip' + ((estadoExp === 'aprobado' && emitible) ? ' on' : '')} onClick={() => emitible && setEstadoExp('aprobado')} title={emitible ? '' : 'No se puede aprobar: faltan partidas por costear'} style={{ cursor: emitible ? 'pointer' : 'not-allowed', opacity: emitible ? 1 : 0.5, background: (estadoExp === 'aprobado' && emitible) ? 'var(--ok,#1a7f37)' : undefined, color: (estadoExp === 'aprobado' && emitible) ? '#fff' : undefined }}>Aprobado</button>
+              {!emitible && <span className="ayuda" style={{ color: '#b22a22' }}>Incompleto → solo borrador</span>}
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
               <button className="boton primario" disabled={guardandoExp} onClick={guardarEnBiblioteca}>
