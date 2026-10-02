@@ -13,6 +13,8 @@ import FichaPDF from './FichaPDF.jsx';
 import MiniRender, { tipoDeMueble, dimsDeMueble } from './MiniRender.jsx';
 import { generarRender } from '../nube.js';
 import { pesos, pct, pct1, colorMerma } from '../util.js';
+import AnalisisEstructural from './AnalisisEstructural.jsx';
+import { flagActivo } from '../datos/flags.js';
 
 const ATAJOS = [
   { nombre: 'Muy facil', v: 30 },
@@ -226,6 +228,8 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     <div className="dos-col">
       {/* ------------------ COLUMNA IZQUIERDA ------------------ */}
       <div>
+        {/* N3 — análisis estructural (read-only, no toca el BOM certificado) */}
+        {flagActivo('costing_ai_v2') && <AnalisisEstructural costeo={costeo} />}
         {/* 1. Que estas costeando */}
         <div className="tarjeta">
           <label className="etiqueta" htmlFor="nom-pieza">Que estas costeando</label>
