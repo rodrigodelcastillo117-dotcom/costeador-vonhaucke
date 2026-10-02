@@ -15,7 +15,10 @@ export const listarContactos = (clienteId) => sel(nube.from('contactos').select(
 
 // ---- Proyectos -------------------------------------------------------------
 export const listarProyectos = () => sel(nube.from('proyectos').select('*').order('actualizado', { ascending: false }));
-export const obtenerProyecto = (id) => nube.from('proyectos').select('*').eq('id', id).maybeSingle();
+// Incluye el nombre del cliente por relación real (FK proyectos.cliente_id →
+// clientes.id). NO existe columna `cliente` en proyectos: el nombre se lee de
+// `proyecto.clientes?.nombre_comercial`. (H2 — fuente de verdad, sin duplicar.)
+export const obtenerProyecto = (id) => nube.from('proyectos').select('*, clientes(nombre_comercial)').eq('id', id).maybeSingle();
 export const crearProyecto = (p) => nube.from('proyectos').insert(p).select('*').maybeSingle();
 export const actualizarProyecto = (id, patch) =>
   nube.from('proyectos').update({ ...patch, actualizado: new Date().toISOString() }).eq('id', id);
@@ -30,6 +33,11 @@ export const listarCotizacionesDeProyecto = (proyectoId) =>
   sel(nube.from('cotizaciones').select('id,folio,folio_oficial,cliente,estado,total,actualizado,proyecto_id').eq('proyecto_id', proyectoId).eq('activa', true));
 // Lectura seller-safe de una cotización (Dirección ve completo; vendedor sanitizado).
 export const cotizacionSegura = (id) => nube.rpc('cotizacion_segura', { p_id: id });
+// H3 — el ACOMODO/layout vive en cotizaciones.acomodo (29/33 ya lo tienen), NO en
+// proyectos. Devuelve el acomodo de las cotizaciones activas del proyecto para que
+// la Solución lea su fuente real (no una columna inexistente de proyectos).
+export const acomodosDeProyecto = (proyectoId) =>
+  sel(nube.from('cotizaciones').select('id,folio,acomodo').eq('proyecto_id', proyectoId).eq('activa', true));
 
 // ---- Escenarios (N12) ------------------------------------------------------
 export const listarEscenarios = (proyectoId) =>

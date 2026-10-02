@@ -12,24 +12,18 @@
 import {
   obtenerProyecto, listarCotizacionesDeProyecto, cotizacionSegura, listarEscenarios,
   listarAprobaciones, listarActividades, listarRevisionesCotizacion, listarProyectos,
+  acomodosDeProyecto,
 } from '../datos/crm.js';
-import { construirScope, reconciliarScope, resumenReconciliacion } from '../datos/scopeModel.js';
-import { historial as historialRenders } from '../datos/renderEstado.js';
 import { hoyNecesitaAtencion, hechosDireccion } from '../datos/atencion.js';
 import { diffRevisiones } from '../datos/diffRevisiones.js';
 
 const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
 
-function reconDe(proy) {
-  if (!proy) return null;
-  if (proy.scope_zonas) {
-    const scope = construirScope(proy.scope_zonas);
-    return reconciliarScope(scope, { cotizadoPorZona: proy.cotizado_por_zona || {}, acomodadoPorZona: proy.acomodado_por_zona || {} });
-  }
-  if (proy.reconciliacion_zonas) return resumenReconciliacion(proy.reconciliacion_zonas);
-  return null;
-}
-
+// H3/punto 10: Voni compone de FUENTES REALES.
+//  - contexto comercial → proyectos (cliente por join clientes.nombre_comercial)
+//  - solución/layout/acomodo → cotizaciones.acomodo
+//  - reconciliación por zonas → NO existe fuente → null (no se fabrica)
+//  - renders técnicos → expediente/producto (no por proyecto) → no se expone aquí
 export const proveedorReal = {
   get_project_context: async (ctx) => {
     if (ctx.project_id == null) return null;
@@ -37,20 +31,12 @@ export const proveedorReal = {
     if (!p) return null;
     const { data: cots } = await listarCotizacionesDeProyecto(ctx.project_id);
     const total_actual = (cots || []).reduce((s, c) => s + num(c.total), 0);
-    return { id: p.id, nombre: p.nombre, cliente: p.cliente, etapa: p.etapa, vendedor: p.vendedor_responsable,
-      presupuesto: p.presupuesto, total_actual, proxima_accion: p.proxima_accion, fecha_proxima_accion: p.fecha_proxima_accion,
-      scope_zonas: p.scope_zonas, reconciliacion_zonas: p.reconciliacion_zonas, acomodo: p.acomodo, renders: p.renders };
+    return { id: p.id, nombre: p.nombre, cliente: p.clientes?.nombre_comercial || null, etapa: p.etapa,
+      vendedor: p.vendedor_responsable, presupuesto: p.presupuesto, total_actual,
+      proxima_accion: p.proxima_accion, fecha_proxima_accion: p.fecha_proxima_accion };
   },
-  get_scope: async (ctx) => {
-    if (ctx.project_id == null) return null;
-    const { data: p } = await obtenerProyecto(ctx.project_id);
-    return p?.scope_zonas ? construirScope(p.scope_zonas) : null;
-  },
-  get_reconciliation: async (ctx) => {
-    if (ctx.project_id == null) return null;
-    const { data: p } = await obtenerProyecto(ctx.project_id);
-    return reconDe(p);
-  },
+  get_scope: async () => null, // sin fuente de scope por zonas (no se fabrica)
+  get_reconciliation: async () => null, // sin fuente de reconciliación por zonas
   get_quote: async (ctx) => {
     if (ctx.quote_id == null) return null;
     const { data } = await cotizacionSegura(ctx.quote_id);
@@ -87,14 +73,12 @@ export const proveedorReal = {
   },
   get_layout: async (ctx) => {
     if (ctx.project_id == null) return null;
-    const { data: p } = await obtenerProyecto(ctx.project_id);
-    return { acomodo: p?.acomodo || null, warnings: (p?.acomodo?.warnings) || [] };
+    // Fuente real del layout: cotizaciones.acomodo (no una columna de proyectos).
+    const { data } = await acomodosDeProyecto(ctx.project_id);
+    const conAcomodo = (data || []).filter((c) => c.acomodo);
+    return { tieneAcomodo: conAcomodo.length > 0, cotizaciones: conAcomodo.map((c) => c.folio || `Cot ${c.id}`), warnings: [] };
   },
-  get_render_status: async (ctx) => {
-    if (ctx.project_id == null) return [];
-    const { data: p } = await obtenerProyecto(ctx.project_id);
-    return historialRenders(p?.renders || [], { bom_hash: p?.bom_hash, config_hash: p?.config_hash, layout_hash: p?.layout_hash });
-  },
+  get_render_status: async () => [], // renders técnicos viven en expediente/producto, no por proyecto
   get_next_actions: async () => {
     const { data: proyectos } = await listarProyectos();
     return (proyectos || []).filter((p) => !p.proxima_accion).map((p) => ({ titulo: p.nombre, detalle: 'Sin próxima acción' }));

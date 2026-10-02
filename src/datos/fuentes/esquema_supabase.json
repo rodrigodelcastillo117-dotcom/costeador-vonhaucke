@@ -1,0 +1,17 @@
+{
+  "_generado": "2026-10-02",
+  "_nota": "Snapshot de columnas reales de Supabase (information_schema). Fuente de verdad para el contract test DB<->frontend. Regenerar si el esquema cambia a propósito.",
+  "aprobaciones": ["id","cotizacion_id","revision_hash","estado","descuento_solicitado","motivo","solicitado_por","resuelto_por","creado","resuelto_en"],
+  "clientes": ["id","nombre_comercial","razon_social","rfc","industria","direccion","notas","activo","creado","actualizado","creado_por","actualizado_por"],
+  "contactos": ["id","cliente_id","nombre","puesto","email","telefono","activo","creado","actualizado"],
+  "cotizaciones": ["id","creado","actualizado","usuario","cliente","folio","estado","partidas","acomodo","totales","total","piezas","huella_mp","activa","folio_oficial","cliente_id","contacto_id","proyecto_id"],
+  "cotizaciones_revisiones": ["id","cotizacion_id","folio","cliente","revision","emitida_en","usuario","total","hash","snapshot","tipo"],
+  "escenarios": ["id","proyecto_id","cotizacion_id","nombre","tipo","total","seleccionado","creado","creado_por"],
+  "expediente_revisiones": ["id","expediente_id","rev","creado","creado_por","nombre","bom","costo","confirmaciones","materiales","plano_urls","render_aislado_url","render_ambiente_url","analysis_hash"],
+  "expedientes": ["id","creado","actualizado","creado_por","actualizado_por","nombre","etiquetas","estado","producto_tipo","ancho_mm","fondo_mm","alto_mm","descripcion","materiales","bom","costo","confirmaciones","plano_urls","render_aislado_url","render_ambiente_url","analysis_hash","revision"],
+  "lista_precio_items": ["id","lista_precio_id","producto_id","producto_version_id","variante_id","precio_lista","moneda","vigencia_desde","vigencia_hasta","creado","piso_minimo","provenance"],
+  "producto_versiones": ["id","producto_id","etiqueta","dimensiones","acabados_permitidos","atributos","expediente_id","bom_hash","estado_tecnico","formula_version","creado"],
+  "productos": ["id","codigo","nombre","familia","descripcion_comercial","source_type","source_ref","estado","activo","render_principal_url","ficha_tecnica","version_tecnica_vigente_id","creado","actualizado","creado_por","legacy_meta"],
+  "proyecto_actividades": ["id","proyecto_id","tipo","descripcion","fecha","creado_por","metadata"],
+  "proyectos": ["id","nombre","cliente_id","contacto_principal_id","vendedor_responsable","ubicacion","brief","presupuesto","moneda","fecha_objetivo","etapa","proxima_accion","fecha_proxima_accion","motivo_perdida","competidor","comentario_cierre","fecha_cierre","revision_ganadora_id","creado","actualizado","creado_por"]
+}

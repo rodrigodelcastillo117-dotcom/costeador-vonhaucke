@@ -1,0 +1,29 @@
+-- ============================================================================
+-- GOLDEN PROJECT QA — "Corporativo Reforma (DEMO QA)"  (ya APLICADO 2026-10-02)
+-- ----------------------------------------------------------------------------
+-- Sembrado para que el smoke recorra el ciclo comercial completo SIN mocks.
+-- Regla cumplida: NO se modificó ninguna de las 33 cotizaciones legacy. Se CLONÓ
+-- una cotización legacy que ya tenía `acomodo` en una cotización NUEVA marcada
+-- DEMO, y SÓLO esa copia se ligó al proyecto QA.
+--
+-- OJO: el preview comparte la MISMA base que producción, así que este proyecto
+-- DEMO también aparece en el "Archivo" del prod actual (marcado ⟪DEMO QA⟫).
+-- Es aditivo y REVERSIBLE con el rollback de abajo.
+--
+-- IDs creados: cliente_id=4, proyecto_id=3, cotizacion_id=48 (clon),
+--   + 1 escenario, 1 aprobación (PENDIENTE), 1 actividad.
+-- Enums respetados: proyectos.etapa='COTIZANDO', escenarios.tipo='recomendada',
+--   aprobaciones.estado='PENDIENTE', proyecto_actividades.tipo='NOTA'.
+--
+-- El bloque idempotente aplicado verifica por nombre/folio antes de insertar, así
+-- que re-ejecutarlo NO duplica.
+--
+-- ROLLBACK EXACTO (borra SÓLO lo DEMO; no toca legacy):
+--   delete from aprobaciones a using cotizaciones c
+--     where a.cotizacion_id=c.id and c.folio='DEMO-QA-REFORMA-01';
+--   delete from escenarios where cotizacion_id in (select id from cotizaciones where folio='DEMO-QA-REFORMA-01');
+--   delete from proyecto_actividades where proyecto_id=(select id from proyectos where nombre='Corporativo Reforma (DEMO QA)');
+--   delete from cotizaciones where folio='DEMO-QA-REFORMA-01';
+--   delete from proyectos where nombre='Corporativo Reforma (DEMO QA)';
+--   delete from clientes where nombre_comercial='⟪DEMO QA⟫ Corporativo Reforma';
+-- ============================================================================
