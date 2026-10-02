@@ -216,6 +216,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const geomFid = (Array.isArray(b.planos) && b.planos.length)
     ? (analisis?.confianzaGeneral === 'alta' ? 'alta' : 'media') : 'limitada';
   const acabadoFid = matFinish.fuente === 'ninguna' ? 'pendiente' : 'confirmado';
+  // INCOMPLETO: piezas del despiece SIN material en catálogo → se costean en $0 → el total sale BAJO.
+  const piezasSinMaterial = resultado.componentesIgnorados || [];
+  const costoIncompleto = piezasSinMaterial.length > 0;
   // Render DESACTUALIZADO: el BOM cambió desde que se generó el render → el render ya no corresponde.
   const renderObsoleto = (renders.aislado || renders.ambiente) && renderHash && renderHash !== hashInput({ c: b.componentes });
   // Falta información crítica para ilustrar fielmente: se avisa, NO se inventa.
@@ -789,6 +792,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                   </select>
                   <button className="pieza-x" onClick={() => quitarPieza(i)} aria-label="quitar">×</button>
                 </div>
+                {!ins && <div className="pieza-calc" style={{ color: 'var(--alerta,#b22a22)' }}>⚠ Sin material: se costea en $0. Elige de qué es.</div>}
                 {ins && (
                   <div className="pieza-med">
                     {area ? (
@@ -849,6 +853,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
             </div>
           )}
 
+          {costoIncompleto && (
+            <div className="alerta roja" style={{ marginTop: 10, textAlign: 'left' }}>
+              <span className="texto">⚠ <strong>Costo INCOMPLETO</strong> — por eso sale bajo: {piezasSinMaterial.length} pieza(s) sin material (se costean en $0): {piezasSinMaterial.slice(0, 6).join(', ')}{piezasSinMaterial.length > 6 ? '…' : ''}. Asígnales material en el despiece (arriba) para un costo real.</span>
+            </div>
+          )}
           {preguntasIA.length > 0 && (
             <div className="ayuda columna-texto" style={{ textAlign: 'left', marginTop: 8, color: '#8a6d00' }}>
               Costo preliminar — {preguntasIA.length} decisión(es) pendiente(s): {preguntasIA.map((q) => normPreg(q).pregunta).join(' · ')}. No es obligatorio; puedes cotizar así.
@@ -860,8 +869,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           <div style={{ borderTop: '1px solid var(--borde)', paddingTop: 14, textAlign: 'left' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <strong>Generar render</strong>
-              <span className="chip" style={{ background: (costoEstado === 'certificado') ? 'var(--ok,#1a7f37)' : '#8a6d00', color: '#fff', fontSize: 12 }}>
-                {costoEstado === 'certificado' ? 'COSTO CERTIFICADO' : 'COSTO PRELIMINAR'}
+              <span className="chip" style={{ background: costoIncompleto ? '#b22a22' : (costoEstado === 'certificado') ? 'var(--ok,#1a7f37)' : '#8a6d00', color: '#fff', fontSize: 12 }}>
+                {costoIncompleto ? 'COSTO INCOMPLETO' : costoEstado === 'certificado' ? 'COSTO CERTIFICADO' : 'COSTO PRELIMINAR'}
               </span>
               <span className="chip" style={{ background: geomFid === 'alta' ? 'var(--ok,#1a7f37)' : geomFid === 'media' ? '#8a6d00' : '#8a2d00', color: '#fff', fontSize: 12 }}>
                 GEOMETRÍA: {geomFid === 'alta' ? 'ALTA' : geomFid === 'media' ? 'MEDIA' : 'LIMITADA'}
