@@ -1,6 +1,6 @@
 // N4 — modelo de evidencia y contradicciones. Puro.
 import { describe, it, expect } from 'vitest';
-import { evidencia, resolverCampo, modeloEvidencia, FUENTES } from './evidencia.js';
+import { evidencia, resolverCampo, modeloEvidencia, contradiccionesDeLectura, FUENTES } from './evidencia.js';
 
 describe('evidencia', () => {
   it('asigna confianza por fuente', () => {
@@ -60,5 +60,26 @@ describe('modeloEvidencia', () => {
   });
   it('sin datos no truena', () => {
     expect(modeloEvidencia({}).requiereConfirmacion).toBe(false);
+  });
+});
+
+describe('N4 contradiccionesDeLectura (datos reales del edge)', () => {
+  it('área total: suma de cuartos vs envolvente discrepan → REQUIERE_CONFIRMACION', () => {
+    const lectura = {
+      envolvente: { ancho: 10, largo: 10 },           // 100 m²
+      areas: [{ nombre: 'Open', m2: 40 }, { nombre: 'Privados', m2: 20 }], // suma 60
+    };
+    const r = contradiccionesDeLectura(lectura);
+    expect(r.requiereConfirmacion).toBe(true);
+    expect(r.contradicciones[0].pregunta).toMatch(/área total/i);
+    expect(r.contradicciones[0].pregunta).toContain('60');
+    expect(r.contradicciones[0].pregunta).toContain('100');
+  });
+  it('coinciden dentro de tolerancia → sin contradicción', () => {
+    const lectura = { envolvente: { ancho: 10, largo: 10 }, areas: [{ m2: 98 }] };
+    expect(contradiccionesDeLectura(lectura).requiereConfirmacion).toBe(false);
+  });
+  it('sin envolvente no truena (fallback seguro)', () => {
+    expect(contradiccionesDeLectura({ areas: [{ m2: 50 }] }).requiereConfirmacion).toBe(false);
   });
 });

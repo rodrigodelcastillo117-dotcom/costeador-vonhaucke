@@ -990,6 +990,9 @@ export default function App() {
                 role: esDireccion ? 'direccion' : esDiseno ? 'diseno' : 'ventas',
                 route: pestania,
                 quote_id: estado?.cotizacion?.id ?? null,
+                // Fuente económica autorizada: SÓLO veCostos, y sólo el BOM del
+                // costeo actual (la tool igual bloquea a vendedor/cliente).
+                bom: veCostos ? (costeo?.componentes || null) : null,
                 clientSafe: false,
               }}
               onCerrar={() => setVoniAbierto(false)}

@@ -107,9 +107,15 @@ export const proveedorReal = {
     const { data: proyectos } = await listarProyectos();
     return hechosDireccion({ proyectos: proyectos || [], cotizaciones: [] });
   },
-  // Económicas: aún no cableadas a un costeo de proyecto en vivo (sin números falsos).
-  get_costing: async () => ({ disponible: false, nota: 'El costeo en vivo del proyecto se conecta desde el Costeador.' }),
-  get_bom: async () => ({ disponible: false, nota: 'El BOM certificado se consulta desde el Costeador.' }),
+  // Económicas: la fuente autorizada es el Costeador (veCostos). El host inyecta
+  // ctx.bom (componentes del costeo actual) / ctx.costing cuando aplica. La capa
+  // tools.js ya bloquea estas tools para vendedor/cliente. Sin números inventados.
+  get_bom: async (ctx) => (ctx.bom
+    ? { componentes: ctx.bom, contradicciones: [] }
+    : { disponible: false, nota: 'Abre el Costeador para ver el BOM certificado de una pieza.' }),
+  get_costing: async (ctx) => (ctx.costing
+    ? ctx.costing
+    : { disponible: false, nota: 'El costo se consolida por pieza en el Costeador; no hay un total de proyecto inventado aquí.' }),
   get_product: async () => null,
   search_products: async () => [],
 };

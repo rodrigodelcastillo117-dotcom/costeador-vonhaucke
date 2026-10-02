@@ -95,6 +95,42 @@ export function resolverCampo(campo, lecturas, opts = {}) {
 }
 
 /**
+ * N4 — Adapta la lectura de un plano (salida del edge `leer-plano`) al modelo de
+ * contradicciones, usando SÓLO datos que el edge ya entrega. Hoy detecta la
+ * contradicción de ÁREA TOTAL: la suma de los cuartos vs la envolvente del plano
+ * son dos lecturas independientes del mismo dato; si difieren, se emite una
+ * contradicción con las dos fuentes (REQUIERE_CONFIRMACION) en vez de elegir sola.
+ *
+ * La contradicción DIMENSIONAL por vista (elevación 1200 vs corte 1250) requiere
+ * que el edge devuelva medidas POR VISTA; eso es una extensión aditiva del
+ * esquema de `leer-plano` (no incluida aquí para no desplegar un cambio de modelo
+ * sin smoke). Mientras tanto, el fallback es seguro: no inventa, sólo usa lo real.
+ * @param {{areas?:Array, envolvente?:{ancho:number,largo:number}}} lectura
+ * @returns {{contradicciones:Array, requiereConfirmacion:boolean}}
+ */
+export function contradiccionesDeLectura(lectura = {}) {
+  const contradicciones = [];
+  const areas = Array.isArray(lectura.areas) ? lectura.areas : [];
+  const env = lectura.envolvente;
+
+  if (env && env.ancho > 0 && env.largo > 0 && areas.length) {
+    const areaEnvolvente = Math.round(env.ancho * env.largo);
+    // Sólo cuartos de primer nivel (no anidados) para no doble-contar.
+    const sumaCuartos = Math.round(
+      areas.filter((a) => !a.dentroDe).reduce((s, a) => s + (Number(a.m2) || (Number(a.ancho) * Number(a.largo)) || 0), 0),
+    );
+    if (sumaCuartos > 0) {
+      const r = resolverCampo('el área total del plano', [
+        { valor: sumaCuartos, fuente: FUENTES.INFERIDO_ESTRUCTURAL, origen: 'suma de cuartos' },
+        { valor: areaEnvolvente, fuente: FUENTES.VISIBLE_EN_PLANO, origen: 'envolvente del plano' },
+      ], { tolRel: 0.1, unidad: 'm²' });
+      if (r.contradiccion) contradicciones.push(r.contradiccion);
+    }
+  }
+  return { contradicciones, requiereConfirmacion: contradicciones.length > 0 };
+}
+
+/**
  * Resuelve varios campos. Devuelve el modelo con lo resuelto y la lista de
  * contradicciones (una pregunta por contradicción), sin duplicar preguntas.
  * @param {Object<string, Array>} camposLecturas  { campo: [lecturas...] }

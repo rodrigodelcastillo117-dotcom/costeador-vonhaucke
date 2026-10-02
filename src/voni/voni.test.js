@@ -129,3 +129,24 @@ describe('VONI QA funcional (una sola respuesta por pregunta)', () => {
     expect(inferirIntencion('¿estamos en budget?').intent).toBe('BUDGET');
   });
 });
+
+describe('VONI get_bom conectado a fuente autorizada (Residual 2)', () => {
+  const BOM = [{ nombre: 'MDF 18mm', cantidad: 2 }, { nombre: 'Canto PVC', cantidad: 6 }];
+  const prov = {
+    get_bom: async (c) => (c.bom ? { componentes: c.bom, contradicciones: [] } : { disponible: false }),
+  };
+  it('veCostos (diseño/dirección) recibe el BOM real inyectado', async () => {
+    const r = await ejecutarTool('get_bom', { user: USER, role: 'diseno', bom: BOM }, {}, prov);
+    expect(r.ok).toBe(true);
+    expect(r.data.componentes).toHaveLength(2);
+  });
+  it('vendedor queda BLOQUEADO aunque venga ctx.bom (lente != permiso)', async () => {
+    const r = await ejecutarTool('get_bom', { user: USER, role: 'ventas', bom: BOM }, {}, prov);
+    expect(r.ok).toBe(false);
+    expect(r.error).toBe('sin_permiso');
+  });
+  it('modo cliente no recibe BOM aunque sea dirección', async () => {
+    const r = await ejecutarTool('get_bom', { user: USER, role: 'direccion', clientSafe: true, bom: BOM }, {}, prov);
+    expect(r.ok).toBe(false);
+  });
+});

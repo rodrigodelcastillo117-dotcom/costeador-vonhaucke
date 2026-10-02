@@ -30,6 +30,11 @@ export function construirContexto(p = {}) {
     product_id: p.product_id ?? null,
     expediente_id: p.expediente_id ?? null,
     layout_id: p.layout_id ?? null,
+    // Fuentes económicas autorizadas inyectadas por el host SÓLO para veCostos
+    // (p.ej. el BOM del costeo actual). La capa tools.js igual bloquea estas
+    // tools para vendedor/cliente, así que esto nunca filtra economía.
+    bom: p.bom ?? null,
+    costing: p.costing ?? null,
   };
 }
 
