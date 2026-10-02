@@ -117,34 +117,45 @@ Deno.serve(async (req) => {
     textoTarea = `VERIFICA Y CORRIGE este despiece que generaste de este MISMO plano, contra las COTAS escritas (lee de nuevo las hojas). Devuelve el despiece COMPLETO corregido con 'razonamiento' por pieza:\n\n${previo}`;
   }
 
-  const apiBody = {
-    model: "claude-opus-5",
-    max_tokens: imgs.length > 1 ? 16000 : 8000, // varias hojas → más espacio de salida
-    // effort 'medium': 'high' sobre 9 hojas rebasa el limite de 150s de la edge
-    // function (timeout = sin resultado). Las reglas de exactitud (G) hacen el trabajo.
-    output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } },
-    system,
-    messages: [{
-      role: "user",
-      content: [...bloquesImagen, { type: "text", text: textoTarea }],
-    }],
-  };
-
-  let data: any;
-  try {
+  const contenido = [...bloquesImagen, { type: "text", text: textoTarea }];
+  const pedir = async (schema: any, sys: string, maxTok: number) => {
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify(apiBody),
+      body: JSON.stringify({
+        model: "claude-opus-5",
+        max_tokens: maxTok,
+        output_config: { effort: "medium", format: { type: "json_schema", schema } },
+        system: sys,
+        messages: [{ role: "user", content: contenido }],
+      }),
     });
-    data = await r.json();
-  } catch (e) {
-    return json({ ok: false, error: "No se pudo llamar a Claude: " + String(e) }, 502);
-  }
+    return await r.json();
+  };
+
+  // Presupuesto de salida amplio: un plano rico (varias vistas + despiece + razonamiento) excede
+  // 8000 tokens fácil. 16000 también para 1 imagen (1 imagen es rápida; el timeout de 150s aguanta).
+  const MAX_TOK = 16000;
+  let data: any;
+  try { data = await pedir(SCHEMA, system, MAX_TOK); }
+  catch (e) { return json({ ok: false, error: "No se pudo llamar a Claude: " + String(e) }, 502); }
 
   if (data?.type === "error") return json({ ok: false, error: data.error?.message || "Error de la API" }, 502);
   if (data?.stop_reason === "refusal") return json({ ok: false, error: "La IA no pudo analizar esta imagen." }, 200);
-  if (data?.stop_reason === "max_tokens") return json({ ok: false, error: "El analisis salio demasiado largo y se corto. Reintenta (ya lo ajustamos para que sea mas breve)." }, 200);
+
+  // REINTENTO COMPACTO: si aún se cortó, re-pide SIN el 'informe' (lo más pesado) y con
+  // razonamiento/nota breves, garantizando que el DESPIECE (lo que necesita el costeo y el
+  // render) regrese completo. El informe es secundario y puede quedar vacío.
+  if (data?.stop_reason === "max_tokens") {
+    const schemaCompacto = { ...SCHEMA, required: (SCHEMA.required as string[]).filter((k) => k !== "informe") };
+    const sysCompacto = system +
+      "\n\nIMPORTANTE: la respuesta anterior se CORTÓ por larga. Esta vez OMITE 'informe' (déjalo '' o muy corto), " +
+      "sé BREVE en 'razonamiento' y 'nota' (media línea cada uno) y ASEGÚRATE de CERRAR el JSON completo con TODO el despiece de piezas.";
+    try { data = await pedir(schemaCompacto, sysCompacto, MAX_TOK); }
+    catch (e) { return json({ ok: false, error: "No se pudo llamar a Claude: " + String(e) }, 502); }
+    if (data?.stop_reason === "max_tokens")
+      return json({ ok: false, error: "El plano es muy extenso y el despiece no cupo aun compactando. Sube menos hojas a la vez, o súbelo por partes." }, 200);
+  }
 
   const texto = (data?.content || []).find((b: any) => b.type === "text")?.text || "";
   let propuesta: any;
