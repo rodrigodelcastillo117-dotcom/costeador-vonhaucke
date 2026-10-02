@@ -1,6 +1,6 @@
 # SMOKE RUNBOOK — Von Haucke RC
 
-**Preview RC:** https://costeador-vonhaucke-73tv3qg08-rodrigos-eurotrip.vercel.app
+**Preview RC:** https://costeador-vonhaucke-7uheemtkn-rodrigos-eurotrip.vercel.app
 Abrir con `?ff=all` para ver todas las superficies. Producción NO tocada (alias intacto).
 
 **Golden Project QA (datos reales sembrados):**
