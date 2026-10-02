@@ -143,7 +143,8 @@ Deno.serve(async (req) => {
   if (resp.length) {
     const bloque = resp.map((r: any) => `- P: ${r.pregunta}\n  R: ${r.respuesta}`).join("\n");
     textoTarea += `\n\n⭐ RESPUESTAS CONFIRMADAS POR EL USUARIO (son VERDAD; tienen prioridad sobre cualquier supuesto tuyo). Ajusta el despiece en consecuencia y refleja el cambio en 'razonamiento'/'nota':\n${bloque}\n\n` +
-      "Aplica literalmente: si un EQUIPO lo suministra el cliente, quítalo del despiece o déjalo con insumoId='' y nota 'lo pone el cliente' (no lo costeamos); si unos frentes son FIJOS, elimina sus bisagras/jaladeras; si son ABATIBLES, inclúyelas; usa el CALIBRE/espesor que el usuario indique; si una gráfica/impresión la pone el cliente, no la costees; usa el NÚMERO DE PIEZAS/islas indicado para el volumen. NO inventes datos que el usuario no haya dado; si algo sigue sin definir, bájale la confianza y vuelve a preguntarlo en 'preguntas'.";
+      "Aplica literalmente: si un EQUIPO lo suministra el cliente, quítalo del despiece o déjalo con insumoId='' y nota 'lo pone el cliente' (no lo costeamos); si unos frentes son FIJOS, elimina sus bisagras/jaladeras; si son ABATIBLES, inclúyelas; usa el CALIBRE/espesor que el usuario indique; si una gráfica/impresión la pone el cliente, no la costees; usa el NÚMERO DE PIEZAS/islas indicado para el volumen. NO inventes datos que el usuario no haya dado.\n" +
+      "⛔ PREGUNTAS en esta pasada: el objetivo es CERRAR, no abrir más. Devuelve 'preguntas' = [] salvo que exista una duda NUEVA, crítica y que IMPIDA costear; en ese caso máximo 2. NUNCA repitas (ni reformules) una pregunta que ya está en RESPUESTAS CONFIRMADAS ni una que ya hiciste antes. Si el despiece ya es costeable, 'preguntas' DEBE ser [].";
   }
 
   const contenido = [...bloquesImagen, { type: "text", text: textoTarea }];

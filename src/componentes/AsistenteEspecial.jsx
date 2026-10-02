@@ -102,6 +102,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const normPreg = (p) => (typeof p === 'string'
     ? { pregunta: p, tipo: 'texto', opciones: [], impacto: 'medio', afecta: 'costo', supuesto: '' }
     : { tipo: 'texto', opciones: [], impacto: 'medio', afecta: 'costo', supuesto: '', ...p });
+  // Clave normalizada de una pregunta (sin acentos/puntuación) para deduplicar aunque cambie la redacción.
+  const kpreg = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
   // Si una pregunta reaparece en otra pasada, pre-llena con lo que ya contestaste (no re-escribir).
   useEffect(() => {
     if (!preguntasIA.length) return;
@@ -375,7 +377,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // que comparten el render, la imagen y las hojas de PDF. Devuelve true si ok.
   const catalogoIA = () => Object.values(insumos).map((x) => ({ id: x.id, nombre: x.nombre, seccion: x.seccion, unidad: x.unidad }));
 
-  function aplicarPropuesta(res, dataUrl, planos, nuevoAnalisis = false, corridaId = null) {
+  function aplicarPropuesta(res, dataUrl, planos, nuevoAnalisis = false, corridaId = null, yaConf = null) {
     // DESCARTE de respuesta async vieja: si ya empezó otra corrida (otro plano), ignórala.
     if (!aceptaCorrida(corridaId, corrida.current)) return false;
     if (!res?.ok) { setErrorIA(res?.error || 'No se pudo analizar.'); return false; }
@@ -403,7 +405,13 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       volumenAsumido: p.volumenAsumido || '',
       confianzaGeneral: p.confianzaGeneral || '',
     });
-    setPreguntasIA(Array.isArray(p.preguntas) ? p.preguntas : []);
+    // NUNCA re-mostrar una pregunta ya contestada (aunque la IA la reformule): filtro por clave normalizada.
+    const confSet = new Set(Object.keys(yaConf || confirmadas).map(kpreg));
+    const pregFiltradas = (Array.isArray(p.preguntas) ? p.preguntas : []).filter((q) => {
+      const t = typeof q === 'string' ? q : (q?.pregunta || '');
+      return t && !confSet.has(kpreg(t));
+    });
+    setPreguntasIA(pregFiltradas);
     setPropuestaIA(p);        // guarda el despiece crudo para re-costear con las respuestas
     setRespuestas({});        // limpia respuestas previas
     // El despiece cambió: el render viejo ya no corresponde → se limpia para forzar uno nuevo.
@@ -468,8 +476,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       let quien = null; try { quien = (await sesionActual())?.user?.email || null; } catch (_e) {}
       guardarConfirmaciones(traza.map((x) => ({ confirmado_por: quien, producto: b.nombre || null, pregunta: x.pregunta, respuesta: x.respuesta, valor_anterior: x.supuesto || null, afecta: x.afecta, impacto: x.impacto })));
       setConfirmadas(todas); // recordadas para pre-llenar si reaparecen
-      aplicarPropuesta(r, b.imagen, b.planos, false, corrida.current); // confirmado_usuario manda sobre el supuesto IA
-      const quedan = Array.isArray(r.propuesta?.preguntas) ? r.propuesta.preguntas.length : 0;
+      aplicarPropuesta(r, b.imagen, b.planos, false, corrida.current, todas); // confirmado_usuario manda sobre el supuesto IA
+      const confSet = new Set(Object.keys(todas).map(kpreg));
+      const quedan = (Array.isArray(r.propuesta?.preguntas) ? r.propuesta.preguntas : []).filter((q) => { const t = typeof q === 'string' ? q : (q?.pregunta || ''); return t && !confSet.has(kpreg(t)); }).length;
       setConfMsg(`✓ Guardé ${Object.keys(todas).length} respuesta(s) y recalculé el costo.` + (quedan ? ` Quedan ${quedan} por confirmar.` : ' Sin preguntas pendientes.'));
     } finally {
       setRespondiendo(false); setAnalizando(false); setVerificando(false);
