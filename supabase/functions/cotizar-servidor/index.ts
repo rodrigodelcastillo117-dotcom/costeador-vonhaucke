@@ -1,16 +1,26 @@
 // ============================================================================
-//  Edge Function: cotizar-servidor  (PRECIO COMERCIAL AUTORITATIVO — C3, v2)
+//  Edge Function: cotizar-servidor  (PRECIO COMERCIAL AUTORITATIVO — C3, v3)
 // ----------------------------------------------------------------------------
 //  El navegador manda INTENCIÓN; el SERVIDOR decide TODO el dinero.
 //  - Precio: resolver_precio_autorizado (Producto Maestro + Lista vigente).
 //  - Política (descuento máx sin aprobación): reglas_comerciales (DB, versionada).
 //  - Servicios: INTENCIÓN {tipo}; el importe lo resuelve el servidor desde config
 //    (maniobras/flete %). Un servicio sin tarifa autorizada => SERVICIO_PENDIENTE_PRECIO.
+//    Servicio con tipo DUPLICADO => se rechaza (nunca se cobra dos veces el mismo tipo).
 //  - Descuento: validación explícita (NaN/Inf/<0/>100 => rechazo). Un descuento
 //    válido por encima de política se CONSERVA tal cual + requiere_aprobacion (no clamp).
-//  - Emisión: cotizacion_emitible=false si CUALQUIER línea es inválida o hay servicio
-//    sin precio; entonces se reporta subtotal_conocido, NUNCA un total oficial engañoso.
-//  Respuesta FILTRADA POR ROL (vendedor: 0 economía interna). Rol del JWT.
+//  - version_id / variante_id: SOLO null/ausente significa "usar vigente/default".
+//    Si vienen en el request y son inválidos (0, negativo, NaN, Inf, texto) => RECHAZO.
+//  - Emisión: cotizacion_emitible=false si CUALQUIER línea es inválida, hay servicio
+//    sin precio o servicio duplicado; entonces subtotal_conocido, NUNCA total oficial.
+//    Si NO es emitible => estado_autorizacion = "bloqueada".
+//  Respuesta FILTRADA POR ROL:
+//    - vendedor: 0 economía interna (sin costo/margen/utilidad).
+//    - direccion: + costo_oficial_referencia/utilidad/margen por línea.
+//    - diseno: ESTRICTAMENTE TÉCNICO (producto/version/variante/cantidad + warnings);
+//      sin política comercial, sin lista, sin iva, sin estado de autorización.
+//  Rol del JWT.  v3: fixes A (version/variante estrictos), B (servicios dup),
+//  C (diseño técnico), D (estado bloqueada).
 // ============================================================================
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -33,6 +43,14 @@ function descuentoValido(x: unknown): number | null {
   const n = typeof x === "number" ? x : (typeof x === "string" && x.trim() !== "" ? Number(x) : NaN);
   if (!Number.isFinite(n) || n < 0 || n > 100) return null;
   return n;
+}
+// FIX A — Opcional estricto: ausente/null => null (usar default).
+//   Presente pero inválido => lanza REJECT (no se degrada silenciosamente a default).
+const REJECT = Symbol("reject");
+function opcionalEstricto(x: unknown): number | null | typeof REJECT {
+  if (x == null) return null;          // ausente / null => default
+  const n = posFinito(x);
+  return n == null ? REJECT : n;       // presente+inválido => rechazo
 }
 
 Deno.serve(async (req) => {
@@ -93,13 +111,18 @@ Deno.serve(async (req) => {
     const L = lineasIn[i] || {};
     const producto_id = posFinito(L.producto_id);
     const cantidad = posFinito(L.cantidad);
-    const version_id = L.version_id != null ? posFinito(L.version_id) : null;
-    const variante_id = L.variante_id != null ? posFinito(L.variante_id) : null;
+    // FIX A: version/variante estrictos cuando vienen en el request.
+    const version_opt = opcionalEstricto(L.version_id);
+    const variante_opt = opcionalEstricto(L.variante_id);
     const descuento = descuentoValido(L.descuento_solicitado);
 
     if (!producto_id) { lineas.push({ idx: i, ok: false, motivo: "producto_id_invalido" }); hayLineaInvalida = true; continue; }
     if (!cantidad) { lineas.push({ idx: i, ok: false, motivo: "cantidad_invalida" }); hayLineaInvalida = true; continue; }
+    if (version_opt === REJECT) { lineas.push({ idx: i, ok: false, motivo: "version_id_invalido" }); hayLineaInvalida = true; continue; }
+    if (variante_opt === REJECT) { lineas.push({ idx: i, ok: false, motivo: "variante_id_invalido" }); hayLineaInvalida = true; continue; }
     if (descuento == null) { lineas.push({ idx: i, ok: false, motivo: "descuento_invalido" }); hayLineaInvalida = true; continue; }
+    const version_id = version_opt as number | null;
+    const variante_id = variante_opt as number | null;
 
     const { data: res, error: resErr } = await svc.rpc("resolver_precio_autorizado", {
       p_producto_id: producto_id, p_version_id: version_id, p_variante_id: variante_id, p_fecha: fecha, p_moneda: moneda,
@@ -147,20 +170,30 @@ Deno.serve(async (req) => {
     lineas.push(base);
   }
 
-  // P0.3: SERVICIOS = intención; el importe lo decide el servidor. Nada de dinero del browser.
+  // P0.3 + FIX B: SERVICIOS = intención; el importe lo decide el servidor.
+  //   Nunca dinero del browser. Tipo DUPLICADO => rechazo (no se cobra dos veces).
   const serviciosIn = Array.isArray(body?.servicios) ? body.servicios : [];
   const servicios: any[] = [];
   let serviciosTotal = 0;
   let hayServicioPendiente = false;
+  let hayServicioDuplicado = false;
+  const tiposVistos = new Set<string>();
   for (const s of serviciosIn) {
-    const tipo = String(s?.tipo || "").toLowerCase();
+    const tipo = String(s?.tipo || "").toLowerCase().trim();
+    if (tipo && tiposVistos.has(tipo)) {
+      // FIX B: tipo repetido en el payload => rechazo explícito, sin cobrar de nuevo.
+      servicios.push({ tipo, importe: null, estado: "SERVICIO_DUPLICADO" });
+      hayServicioDuplicado = true;
+      continue;
+    }
+    if (tipo) tiposVistos.add(tipo);
     if (tipo === "maniobras" && maniobrasPct > 0) { const imp = Math.round(subtotal * maniobrasPct / 100); serviciosTotal += imp; servicios.push({ tipo, importe: imp, base: "subtotal", pct: maniobrasPct }); }
     else if (tipo === "flete" && fletePct > 0) { const imp = Math.round(subtotal * fletePct / 100); serviciosTotal += imp; servicios.push({ tipo, importe: imp, base: "subtotal", pct: fletePct }); }
     else { servicios.push({ tipo: tipo || "desconocido", importe: null, estado: "SERVICIO_PENDIENTE_PRECIO" }); hayServicioPendiente = true; requiereAprobacion = true; }
   }
 
-  // P0.4: emitible solo si NO hay líneas inválidas ni servicios sin precio.
-  const cotizacion_emitible = !hayLineaInvalida && !hayServicioPendiente;
+  // P0.4 + FIX B: emitible solo si NO hay líneas inválidas, servicios sin precio ni duplicados.
+  const cotizacion_emitible = !hayLineaInvalida && !hayServicioPendiente && !hayServicioDuplicado;
   const baseIva = subtotal + serviciosTotal;
   const iva = Math.round(baseIva * (ivaPct / 100));
   const total = baseIva + iva;
@@ -175,23 +208,33 @@ Deno.serve(async (req) => {
     } catch (_e) { /* */ }
   }
 
+  // FIX D: si NO es emitible => "bloqueada". Si es emitible pero requiere aprobación =>
+  //   "requiere_aprobacion". Si no => "autorizado".
+  const estado_autorizacion = !cotizacion_emitible ? "bloqueada" : (requiereAprobacion ? "requiere_aprobacion" : "autorizado");
+
+  // FIX C: DISEÑO estrictamente técnico. Sin política, sin lista, sin iva, sin economía,
+  //   sin estado de autorización comercial. Solo validez técnica + identidad de producto.
+  if (esDiseno) {
+    return json({
+      ok: true, rol, calculadoEn: new Date().toISOString(),
+      cotizacion_emitible,
+      lineas: lineas.map((l) => l.ok
+        ? { idx: l.idx, ok: true, producto_id: l.producto_id, version_id: l.version_id, variante_id: l.variante_id, cantidad: l.cantidad }
+        : { idx: l.idx, ok: false, motivo: l.motivo }),
+      servicios: servicios.map((s) => ({ tipo: s.tipo, estado: s.estado ?? "ok" })),
+    });
+  }
+
   const meta = {
     rol, calculadoEn: new Date().toISOString(),
     reglas_version: reglasVersion, descuento_max_sin_aprobacion: descuentoMax,
     lista: listaInfo, ivaPct,
   };
-  const estado_autorizacion = requiereAprobacion ? "requiere_aprobacion" : "autorizado";
   // Totales oficiales SOLO si emitible; si no, subtotal_conocido (no total oficial).
   const totales = cotizacion_emitible
     ? { emitible: true, subtotal, servicios: serviciosTotal, iva, total, moneda: moneda || "MXN" }
     : { emitible: false, subtotal_conocido: subtotal, servicios_conocidos: serviciosTotal, total_oficial: null, moneda: moneda || "MXN",
-        nota: "Cotización NO emitible: hay líneas inválidas o servicios sin precio autorizado." };
-
-  if (esDiseno) {
-    return json({ ok: true, rol, estado_autorizacion, cotizacion_emitible,
-      lineas: lineas.map((l) => l.ok ? { idx: l.idx, ok: true, producto_id: l.producto_id, version_id: l.version_id, variante_id: l.variante_id, cantidad: l.cantidad } : l),
-      ...meta });
-  }
+        nota: "Cotización NO emitible: hay líneas inválidas, servicios sin precio o servicios duplicados." };
 
   const lineasOut = lineas.map((l) => {
     if (!l.ok) return l;
