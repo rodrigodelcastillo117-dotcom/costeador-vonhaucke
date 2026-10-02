@@ -11,6 +11,8 @@ import { pesos } from '../../util.js';
 
 const dinero = (n) => (n == null || isNaN(n) || !isFinite(n) ? '—' : pesos(n));
 const TIPOS = [{ id: '', n: 'Todos' }, { id: 'linea', n: 'Línea' }, { id: 'banco', n: 'Banco' }, { id: 'expediente', n: 'Expediente' }];
+const FUENTE = { linea: 'Línea', banco: 'Banco', expediente: 'Expediente' };
+const fuente = (t) => FUENTE[t] || 'Catálogo';
 
 export default function ProductoMaestro({ soloVentas = false, veCostos = false }) {
   const [q, setQ] = useState('');
@@ -60,7 +62,7 @@ export default function ProductoMaestro({ soloVentas = false, veCostos = false }
         <div className="tarjeta" key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ flex: 1 }}>
             <strong>{p.nombre || p.codigo || `#${p.id}`}</strong>
-            <div className="ayuda">{p.source_type} · {p.codigo || 's/código'} · {p.familia || '—'} {p.activo === false ? '· INACTIVO' : ''}</div>
+            <div className="ayuda">{fuente(p.source_type)} · {p.codigo || 's/código'} · {p.familia || '—'} {p.activo === false ? '· Inactivo' : ''}</div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div className="dinero">{p.precioItem ? dinero(p.precioItem.precio_lista) : 'sin precio'}</div>
@@ -76,7 +78,7 @@ export default function ProductoMaestro({ soloVentas = false, veCostos = false }
             <strong>{sel.nombre || sel.codigo}</strong>
             <button className="boton fantasma" onClick={() => setSel(null)}>Cerrar ✕</button>
           </div>
-          <div className="ayuda">Código: {sel.codigo || '—'} · Fuente: {sel.source_type} · Estado: {sel.estado || '—'} · {sel.activo === false ? 'INACTIVO' : 'activo'}</div>
+          <div className="ayuda">Código: {sel.codigo || '—'} · Fuente: {fuente(sel.source_type)} · Estado: {sel.estado || '—'} · {sel.activo === false ? 'Inactivo' : 'Activo'}</div>
           <div className="ayuda">Precio autorizado: <strong>{sel.precioItem ? dinero(sel.precioItem.precio_lista) : '—'}</strong>
             {sel.precioItem && <> · vigente desde {sel.precioItem.vigencia_desde || '—'} · {sel.precioItem.moneda || 'MXN'}</>}</div>
           {!sel.precioItem && <div className="alerta ambar" style={{ marginTop: 6 }}><span className="texto">Este producto no tiene precio de lista vigente: no es cotizable hasta publicarlo.</span></div>}

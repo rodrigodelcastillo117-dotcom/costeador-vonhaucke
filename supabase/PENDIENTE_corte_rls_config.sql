@@ -21,3 +21,26 @@ alter policy config_leer on public.config using (public.puede_editar_config());
 -- ROLLBACK EXACTO (si algo falla):
 --   alter policy config_leer on public.config using (public.puede_entrar());
 -- ============================================================================
+--
+-- ============================================================================
+-- PENDIENTE (OPCIONAL) — endurecer lectura cruda de cotizaciones_revisiones.
+-- ----------------------------------------------------------------------------
+-- Estado actual (2026-10-02): la app ya NO lee la tabla cruda; el Diff (N16) usa
+-- el RPC `revisiones_seguras` (SECURITY DEFINER) que sanitiza el snapshot por rol.
+-- La policy `revisiones_lee` todavía permite que el DUEÑO (usuario = su email) lea
+-- su propio snapshot crudo por acceso directo a la tabla (API/DevTools). El snapshot
+-- contiene economía. Esto NO lo explota la app, pero para cierre total conviene
+-- cortar la lectura cruda a sólo veCostos y dejar el resto SÓLO por el RPC.
+--
+-- NO APLICAR hasta el smoke: igual que config, primero validar que el Diff del
+-- vendedor funciona vía `revisiones_seguras` en la rama desplegada.
+--
+-- APLICAR (opcional, tras smoke+deploy):
+--   alter policy revisiones_lee on public.cotizaciones_revisiones
+--     using (public.puede_editar_config());
+-- ROLLBACK EXACTO:
+--   alter policy revisiones_lee on public.cotizaciones_revisiones
+--     using ((usuario = (auth.jwt() ->> 'email')) OR public.puede_editar_config());
+-- NOTA: tras el corte, el vendedor deja de ver SUS revisiones por lectura directa;
+-- el Diff sigue funcionando porque `revisiones_seguras` es SECURITY DEFINER.
+-- ============================================================================
