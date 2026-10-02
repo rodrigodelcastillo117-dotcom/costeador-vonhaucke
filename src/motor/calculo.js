@@ -670,6 +670,22 @@ export function diffBOM(viejo = [], nuevo = []) {
   return { agregar, modificar, eliminar, sinCambios: !agregar.length && !modificar.length && !eliminar.length };
 }
 
+// Aplica un PROPUESTA_DIFF ya ACEPTADO por un humano al BOM canónico. Nunca se
+// llama en automático: solo cuando el usuario acepta los cambios. Las partidas
+// eliminadas salen, las modificadas se reemplazan por su versión 'despues' y las
+// agregadas se añaden. Devuelve el nuevo BOM (no muta el de entrada).
+export function aplicarDiffBOM(componentes = [], diff = {}) {
+  const elim = new Set((diff.eliminar || []).map(claveBOM));
+  const mod = new Map((diff.modificar || []).map((m) => {
+    const d = m && m.despues ? m.despues : m;
+    return [claveBOM(d), d];
+  }));
+  const base = (componentes || [])
+    .filter((c) => !elim.has(claveBOM(c)))
+    .map((c) => (mod.has(claveBOM(c)) ? { ...c, ...mod.get(claveBOM(c)) } : c));
+  return [...base, ...(diff.agregar || [])];
+}
+
 // Piezas cuyo material no existe en el catálogo (insumoId vacío, o un id que ya
 // no está): el motor las salta y se costean en $0. La UI usa esto para marcar el
 // costeo como INCOMPLETO y bloquear la emisión al cliente — nunca el guardado

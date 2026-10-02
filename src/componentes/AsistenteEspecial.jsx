@@ -5,7 +5,7 @@
 //  este mismo despiece leyendo una imagen con IA).
 // ============================================================================
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { calcular, precioDe, netoComponente, modeloParaPieza, costeoEmitible } from '../motor/calculo.js';
+import { calcular, precioDe, netoComponente, modeloParaPieza, costeoEmitible, bomHash, diffBOM, aplicarDiffBOM, MOTOR_VERSION } from '../motor/calculo.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos } from '../util.js';
 import { analizarRender, analizarRenderImagenes, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64 } from '../nube.js';
@@ -198,6 +198,13 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const [expMsg, setExpMsg] = useState('');
   const [costoGuardado, setCostoGuardado] = useState(null); // snapshot del costo al guardar (para Δ vs hoy)
   const [revActual, setRevActual] = useState(1);            // nº de revisión del expediente abierto
+  // BOM CANÓNICO (audit 2026-10-01): una vez que el despiece se "asienta" (sin
+  // preguntas pendientes), se CONGELA. A partir de ahí la IA ya no reemplaza el
+  // BOM en silencio: sus cambios llegan como PROPUESTA_DIFF que el usuario acepta
+  // o rechaza. Las ediciones manuales de Diseño sí cambian el canónico (y su hash).
+  const [canonico, setCanonico] = useState(false);
+  const [propuestaDiff, setPropuestaDiff] = useState(null); // {agregar,modificar,eliminar,motivo,iaComps} | null
+  const [bomDirty, setBomDirty] = useState(false);          // canónico editado desde el último guardado
   const dimsR = useMemo(() => dimsDeMueble(b), [b]);
   // PRECEDENCIA de materiales/acabado para el render: (1-3) selección/BOM del usuario = materiales
   // de SUPERFICIE de los componentes que tiene/confirmó; (4) leyenda del plano (b.materiales de la
@@ -333,7 +340,10 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         nombre: b.nombre.trim(), etiquetas, estado: estadoGuardar,
         producto_tipo: tipoDeMueble(b), ancho_mm: dimsR.w, fondo_mm: dimsR.d, alto_mm: null,
         descripcion: b.descripcionCliente || null, materiales: materialesR, bom: b.componentes,
-        costo: { costoUnitario: Math.round(resultado.costoUnitario), subtotalConocido: Math.round(emision.subtotalConocido), costoTotal: emitible ? Math.round(resultado.costoUnitario) : null, materialTotal: Math.round(resultado.materialTotal), manoObra: Math.round(resultado.manoObra), indirectosFabrica: Math.round(resultado.indirectosFabrica), precio: emitible ? Math.round(precio) : null, margen: b.margen, estado_costo: estadoCostoGuardar, pendientes: piezasSinMaterial, bom_hash: hashInput({ c: b.componentes }), fecha: new Date().toISOString() },
+        // IDENTIDAD DE REVISIÓN congelada (audit 2026-10-01): mismo bom_hash + mismo
+        // catálogo + mismo motor ⇒ mismo costo a centavos. Guardamos todo lo que define
+        // esa identidad para poder reconstruir/verificar cualquier revisión.
+        costo: { costoUnitario: Math.round(resultado.costoUnitario), subtotalConocido: Math.round(emision.subtotalConocido), costoTotal: emitible ? Math.round(resultado.costoUnitario) : null, materialTotal: Math.round(resultado.materialTotal), manoObra: Math.round(resultado.manoObra), indirectosFabrica: Math.round(resultado.indirectosFabrica), precio: emitible ? Math.round(precio) : null, margen: b.margen, estado_costo: estadoCostoGuardar, pendientes: piezasSinMaterial, bom_hash: bomHash(b.componentes), analysis_id: b.analysisId ?? null, version_motor: MOTOR_VERSION, version_catalogo: 'config-legado', factorDirecta: b.factorDirecta, factorIndirecta: b.factorIndirecta, fecha: new Date().toISOString() },
         confirmaciones: Object.entries(confirmadas).map(([question_key, v]) => ({ question_key, pregunta: v.pregunta, respuesta: v.respuesta })),
         plano_urls: planoUrls.length ? planoUrls : (expId ? undefined : []),
         render_aislado_url: soloHttp(renders.aislado), render_ambiente_url: soloHttp(renders.ambiente),
@@ -345,11 +355,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       if (expId) {
         const nuevaRev = revActual + 1;
         const r = await actualizarExpediente(expId, { ...exp, revision: nuevaRev, actualizado_por: quien });
-        if (r.ok) { await guardarRevisionExpediente(snap(expId, nuevaRev)); setRevActual(nuevaRev); setCostoGuardado(exp.costo); setExpMsg(`✓ Actualizado — revisión ${nuevaRev}`); }
+        if (r.ok) { await guardarRevisionExpediente(snap(expId, nuevaRev)); setRevActual(nuevaRev); setCostoGuardado(exp.costo); setBomDirty(false); setExpMsg(`✓ Actualizado — revisión ${nuevaRev}`); }
         else setExpMsg(r.error || 'No se pudo actualizar.');
       } else {
         const r = await guardarExpediente({ ...exp, plano_urls: planoUrls, revision: 1, creado_por: quien });
-        if (r.ok) { setExpId(r.id); await guardarRevisionExpediente(snap(r.id, 1)); setRevActual(1); setCostoGuardado(exp.costo); setExpMsg('✓ Guardado en la biblioteca'); }
+        if (r.ok) { setExpId(r.id); await guardarRevisionExpediente(snap(r.id, 1)); setRevActual(1); setCostoGuardado(exp.costo); setBomDirty(false); setExpMsg('✓ Guardado en la biblioteca'); }
         else setExpMsg(r.error || 'No se pudo guardar.');
       }
     } finally { setGuardandoExp(false); }
@@ -366,6 +376,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     setRenders({ aislado: e.render_aislado_url || null, ambiente: e.render_ambiente_url || null });
     setRenderHash(e.analysis_hash || null); // el render guardado corresponde a ese BOM (no marcar obsoleto al abrir)
     setCostoEstado(e.costo?.estado_costo || null); setCostoGuardado(e.costo || null); setExpMsg(''); setConfMsg(''); setPreguntasIA([]); setAnalisis(null);
+    // Un expediente guardado trae un BOM YA CONSOLIDADO: es canónico. Su hash debe
+    // coincidir con el guardado (misma identidad de revisión al cerrar/reabrir).
+    setCanonico(true); setPropuestaDiff(null); setBomDirty(false);
     setPaso(1);
     // Recupera el PLANO original de Storage como base64 → re-render conserva fidelidad geométrica.
     (async () => {
@@ -377,20 +390,24 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   }, [expedienteInicial]);
 
   // --- despiece ---
+  // EDICIÓN MANUAL (Diseño): cambia el BOM canónico de forma explícita. Precedencia
+  // máxima: una edición humana NO la puede revertir la IA en silencio (sus cambios
+  // van por PROPUESTA_DIFF). Sobre el canónico, cada edición ensucia la revisión.
+  const editarComponentes = (comps) => { set({ componentes: comps }); if (canonico) setBomDirty(true); };
   function agregarParte(p) {
     const comp = { nombre: p.label, insumoId: p.material, piezas: 1, cantidad: 1 };
     if (p.kind === 'area' && p.dims) { comp.largoMM = p.dims[0]; comp.anchoMM = p.dims[1]; }
-    set({ componentes: [...b.componentes, comp] });
+    editarComponentes([...b.componentes, comp]);
   }
   function setPieza(i, parcial) {
-    const comps = b.componentes.slice(); comps[i] = { ...comps[i], ...parcial }; set({ componentes: comps });
+    const comps = b.componentes.slice(); comps[i] = { ...comps[i], ...parcial }; editarComponentes(comps);
   }
-  function quitarPieza(i) { set({ componentes: b.componentes.filter((_, j) => j !== i) }); }
+  function quitarPieza(i) { editarComponentes(b.componentes.filter((_, j) => j !== i)); }
   function onMaterial(i, insumoId) {
     const ins = insumos[insumoId]; const comps = b.componentes.slice(); const prev = comps[i];
     const patch = { insumoId, nombre: prev.nombre || (ins ? ins.nombre : '') };
     if (!esArea(ins)) { patch.largoMM = undefined; patch.anchoMM = undefined; }
-    comps[i] = { ...prev, ...patch }; set({ componentes: comps });
+    comps[i] = { ...prev, ...patch }; editarComponentes(comps);
   }
   function costoPieza(c, ins) {
     const neto = netoComponente(c, b.piezas); const p = ins.precio ?? ins.precioBase ?? 0;
@@ -402,22 +419,26 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // que comparten el render, la imagen y las hojas de PDF. Devuelve true si ok.
   const catalogoIA = () => Object.values(insumos).map((x) => ({ id: x.id, nombre: x.nombre, seccion: x.seccion, unidad: x.unidad }));
 
+  // Mapea el despiece CRUDO de la IA a los `componentes` del motor. Única fuente de
+  // esta conversión (la usan aplicarPropuesta y el camino de PROPUESTA_DIFF).
+  const mapIaComps = (p) => (p?.piezas || []).map((z) => {
+    const existe = !!insumos[z.insumoId];
+    const base = { nombre: z.nombre || 'Pieza', insumoId: existe ? z.insumoId : '', cantidad: z.cantidad || 1, piezas: 1, iaNota: z.nota || '', iaConf: z.confianza || '', iaRazon: z.razonamiento || '' };
+    if (z.forma === 'area') {
+      base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
+      // La IA ya estimó la fracción de hoja que rinde: el motor la usa directa
+      // (hojas × precio) en vez de re-nestear áreas, que es lo que oscilaba.
+      if (z.hojas > 0) base.hojas = z.hojas;
+    }
+    return base;
+  });
+
   function aplicarPropuesta(res, dataUrl, planos, nuevoAnalisis = false, corridaId = null, yaConf = null) {
     // DESCARTE de respuesta async vieja: si ya empezó otra corrida (otro plano), ignórala.
     if (!aceptaCorrida(corridaId, corrida.current)) return false;
     if (!res?.ok) { setErrorIA(res?.error || 'No se pudo analizar.'); return false; }
     const p = res.propuesta || {};
-    const comps = (p.piezas || []).map((z) => {
-      const existe = !!insumos[z.insumoId];
-      const base = { nombre: z.nombre || 'Pieza', insumoId: existe ? z.insumoId : '', cantidad: z.cantidad || 1, piezas: 1, iaNota: z.nota || '', iaConf: z.confianza || '', iaRazon: z.razonamiento || '' };
-      if (z.forma === 'area') {
-        base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
-        // La IA ya estimó la fracción de hoja que rinde: el motor la usa directa
-        // (hojas × precio) en vez de re-nestear áreas, que es lo que oscilaba.
-        if (z.hojas > 0) base.hojas = z.hojas;
-      }
-      return base;
-    });
+    const comps = mapIaComps(p);
     // planos: TODAS las páginas/vistas del plano (base64 raw) para referencia múltiple del render.
     const paginas = Array.isArray(planos) && planos.length ? planos : (dataUrl ? [String(dataUrl).split(',')[1]] : []);
     // Un ANÁLISIS NUEVO (subiste otro plano) nombra el producto desde el plano, para que el nombre
@@ -433,7 +454,17 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     // AUTORIDAD = question_key. Fusiona las preguntas entrantes con las pendientes actuales por key,
     // y NUNCA reabre una ya contestada (aunque la IA la reformule). No "reemplaza" → acumula en un solo centro.
     const confKeys = new Set(Object.keys(yaConf || confirmadas));
-    setPreguntasIA((prev) => fusionarPreguntas(prev, Array.isArray(p.preguntas) ? p.preguntas : [], confKeys, normPreg));
+    const incoming = Array.isArray(p.preguntas) ? p.preguntas : [];
+    if (nuevoAnalisis) {
+      // Análisis nuevo: el centro de preguntas arranca limpio. Si la IA no abre
+      // ninguna pregunta, el BOM queda ASENTADO → se canoniza de una vez.
+      const fused = fusionarPreguntas([], incoming, confKeys, normPreg);
+      setPreguntasIA(fused);
+      setCanonico(fused.length === 0);
+      setPropuestaDiff(null); setBomDirty(false);
+    } else {
+      setPreguntasIA((prev) => fusionarPreguntas(prev, incoming, confKeys, normPreg));
+    }
     setPropuestaIA(p);        // guarda el despiece crudo para re-costear con las respuestas
     setRespuestas({});        // limpia respuestas previas
     // El despiece cambió: el render viejo ya no corresponde → se limpia para forzar uno nuevo.
@@ -450,6 +481,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     setErrorIA(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({}); setConfirmadas({}); setConfMsg('');
     setAnalisis(null); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg('');
     setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); setRenderHash(null); setRevActual(1); // nuevo producto = nuevo expediente
+    setCanonico(false); setPropuestaDiff(null); setBomDirty(false); // producto nuevo = sin BOM canónico
     setB((prev) => ({ ...prev, nombre: '', componentes: [], imagen: null, planos: [], descripcionCliente: '', materiales: [], analysisId: id }));
     return id;
   }
@@ -501,13 +533,47 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       let quien = null; try { quien = (await sesionActual())?.user?.email || null; } catch (_e) {}
       guardarConfirmaciones(traza.map((x) => ({ confirmado_por: quien, producto: b.nombre || null, pregunta: x.pregunta, respuesta: x.respuesta, valor_anterior: x.supuesto || null, afecta: x.afecta, impacto: x.impacto })));
       setConfirmadas(todas); // recordadas por key
-      aplicarPropuesta(r, b.imagen, b.planos, false, corrida.current, todas); // confirmado_usuario manda sobre el supuesto IA
       const confKeys = new Set(Object.keys(todas));
       const quedan = (Array.isArray(r.propuesta?.preguntas) ? r.propuesta.preguntas : []).filter((q) => !confKeys.has(normPreg(q).question_key)).length;
-      setConfMsg(`✓ Guardé ${Object.keys(todas).length} respuesta(s) y recalculé el costo.` + (quedan ? ` Quedan ${quedan} por confirmar.` : ' Sin preguntas pendientes.'));
+
+      if (!canonico) {
+        // PRE-CANÓNICO: el despiece aún se está asentando. La respuesta del usuario
+        // SÍ reconstruye el BOM (confirmado_usuario manda sobre el supuesto IA).
+        // Cuando ya no quedan preguntas, se CONSOLIDA el BOM canónico de la revisión.
+        aplicarPropuesta(r, b.imagen, b.planos, false, corrida.current, todas);
+        if (quedan === 0) { setCanonico(true); setPropuestaIA(r.propuesta || propuestaIA); }
+        setConfMsg(`✓ Guardé ${Object.keys(todas).length} respuesta(s) y recalculé el costo.` + (quedan ? ` Quedan ${quedan} por confirmar.` : ' BOM consolidado: sin preguntas pendientes.'));
+      } else {
+        // CANÓNICO: la salida de la IA NO reemplaza el BOM. Si propone cambios, se
+        // ofrecen como PROPUESTA_DIFF para que el usuario ACEPTE o RECHACE.
+        const iaComps = mapIaComps(r.propuesta || {});
+        const d = diffBOM(b.componentes, iaComps);
+        if (d.sinCambios) {
+          setConfMsg(`✓ Respuesta registrada. El BOM canónico no cambia (${bomHash(b.componentes)}).`);
+        } else {
+          setPropuestaDiff({ agregar: d.agregar, modificar: d.modificar, eliminar: d.eliminar, motivo: `Respuesta a: ${Object.values(ahora).map((v) => v.pregunta).join(' · ')}`, iaComps });
+          setConfMsg('La IA propone cambios al BOM canónico. Revísalos abajo y Acepta o Rechaza — no se aplican solos.');
+        }
+      }
     } finally {
       setRespondiendo(false); setAnalizando(false); setVerificando(false);
     }
+  }
+
+  // ACEPTAR la propuesta de la IA sobre el BOM canónico: aplica el diff, abre nueva
+  // revisión (hash nuevo, dirty) y marca el render obsoleto. Precedencia: una vez
+  // aplicado, es parte del canónico (editable luego a mano por Diseño).
+  function aceptarDiff() {
+    if (!propuestaDiff) return;
+    const comps = aplicarDiffBOM(b.componentes, propuestaDiff);
+    set({ componentes: comps });
+    setPropuestaDiff(null); setBomDirty(true);
+    setRenders({ aislado: null, ambiente: null }); setRenderMsg('');
+    setConfMsg('✓ Cambios aplicados al BOM. Es una nueva revisión: guarda para congelarla.');
+  }
+  function rechazarDiff() {
+    setPropuestaDiff(null);
+    setConfMsg('Propuesta de la IA rechazada. El BOM canónico se mantiene.');
   }
 
   // Sube render/plano → la IA propone el despiece. Un PDF multipágina abre el
@@ -692,10 +758,30 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
             <div style={{ border: '1px solid var(--borde)', borderRadius: 10, padding: 14, margin: '12px 0', background: 'var(--panel)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
                 <div style={{ fontWeight: 700 }}>Centro de confirmaciones</div>
-                <div className="ayuda">{Object.keys(confirmadas).length} confirmadas · {preguntasIA.length} pendientes</div>
+                <div className="ayuda" style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {Object.keys(confirmadas).length} confirmadas · {preguntasIA.length} pendientes
+                  {canonico && <span className="chip" style={{ background: 'var(--ok,#1a7f37)', color: '#fff', fontSize: 11 }} title="El despiece está congelado: la IA ya no lo reemplaza sola.">BOM consolidado {bomHash(b.componentes)}</span>}
+                  {bomDirty && <span className="chip" style={{ background: '#8a6d00', color: '#fff', fontSize: 11 }}>cambios sin guardar</span>}
+                </div>
               </div>
               <div className="ayuda" style={{ margin: '4px 0 8px' }}>Contesta lo que sepas: cada respuesta recalcula el costo y se recuerda. Las confirmadas no vuelven a preguntarse.</div>
               {confMsg && <div className="ayuda" style={{ marginBottom: 10, color: confMsg.startsWith('✓') ? 'var(--ok,#1a7f37)' : 'var(--alerta,#b22a22)' }}>{confMsg}</div>}
+
+              {/* PROPUESTA_DIFF: cambios que la IA sugiere al BOM YA canónico. No se
+                  aplican solos — el usuario ACEPTA o RECHAZA (precedencia del humano). */}
+              {propuestaDiff && (
+                <div className="alerta" style={{ border: '1px solid #8a6d00', background: 'var(--panel)', borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                  <div style={{ fontWeight: 700, marginBottom: 4 }}>La IA propone cambios al BOM</div>
+                  <div className="ayuda" style={{ marginBottom: 8 }}>{propuestaDiff.motivo}</div>
+                  {propuestaDiff.agregar.length > 0 && <div className="ayuda" style={{ color: '#1a7f37' }}>+ Agregar: {propuestaDiff.agregar.map((c) => c.nombre).join(', ')}</div>}
+                  {propuestaDiff.modificar.length > 0 && <div className="ayuda" style={{ color: '#8a6d00' }}>~ Modificar: {propuestaDiff.modificar.map((m) => m.despues?.nombre || m.antes?.nombre).join(', ')}</div>}
+                  {propuestaDiff.eliminar.length > 0 && <div className="ayuda" style={{ color: '#b22a22' }}>− Eliminar: {propuestaDiff.eliminar.map((c) => c.nombre).join(', ')}</div>}
+                  <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                    <button className="boton primario" onClick={aceptarDiff}>Aceptar cambios</button>
+                    <button className="boton" onClick={rechazarDiff}>Rechazar</button>
+                  </div>
+                </div>
+              )}
               {preguntasIA.map((raw, i) => {
                 const q = normPreg(raw);
                 const colImp = q.impacto === 'alto' ? '#8a2d00' : q.impacto === 'medio' ? '#8a6d00' : '#555';
@@ -962,7 +1048,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       ) : (
         <div className="fila-botones">
           <button className="boton primario grande" onClick={() => onVerDetalle(b)}>Ver detalle completo y cotizar</button>
-          <button className="boton grande" onClick={() => { setB({ nombre: '', piezas: 1, componentes: [], modoManoObra: 'porcentaje', factorDirecta: 55, factorIndirecta: 12, margen: b.margen }); setPaso(0); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({}); setConfirmadas({}); setConfMsg(''); setAnalisis(null); setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); setRenderHash(null); setRevActual(1); corrida.current++; }}>Empezar otro</button>
+          <button className="boton grande" onClick={() => { setB({ nombre: '', piezas: 1, componentes: [], modoManoObra: 'porcentaje', factorDirecta: 55, factorIndirecta: 12, margen: b.margen }); setPaso(0); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({}); setConfirmadas({}); setConfMsg(''); setAnalisis(null); setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); setRenderHash(null); setRevActual(1); setCanonico(false); setPropuestaDiff(null); setBomDirty(false); corrida.current++; }}>Empezar otro</button>
         </div>
       )}
     </div>
