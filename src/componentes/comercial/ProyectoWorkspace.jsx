@@ -15,6 +15,9 @@ import { accionesValidas, transicion } from '../../datos/aprobaciones.js';
 import { validarCierre, MOTIVOS_PERDIDA } from '../../datos/cierre.js';
 import { planValueEngineering } from '../../datos/valueEngineering.js';
 import { diffRevisiones } from '../../datos/diffRevisiones.js';
+import { construirScope, reconciliarScope, resumenReconciliacion } from '../../datos/scopeModel.js';
+import { historial as historialRenders, etiquetaEstado } from '../../datos/renderEstado.js';
+import { flagActivo } from '../../datos/flags.js';
 import PresentarCliente from './PresentarCliente.jsx';
 
 const dinero = (n) => (n == null || isNaN(n) || !isFinite(n) ? '—' : pesos(n));
@@ -68,6 +71,7 @@ export default function ProyectoWorkspace({ proyectoId, soloVentas = false, veCo
 
       <div className="chips" style={{ margin: '12px 0' }}>
         <Secc id="resumen">Resumen</Secc>
+        {(flagActivo('plan_analysis_v2') || flagActivo('layout_v2') || flagActivo('render_v2')) && <Secc id="solucion">Solución</Secc>}
         <Secc id="cotizacion">Cotización</Secc>
         <Secc id="escenarios">Escenarios</Secc>
         {veCostos && <Secc id="dealdesk">Deal Desk</Secc>}
@@ -78,6 +82,7 @@ export default function ProyectoWorkspace({ proyectoId, soloVentas = false, veCo
       </div>
 
       {seccion === 'resumen' && <Resumen proyecto={proyecto} cots={cots} totalActual={totalActual} />}
+      {seccion === 'solucion' && <Solucion proyecto={proyecto} onIr={onIr} />}
       {seccion === 'cotizacion' && <SeccionCotizaciones cots={cots} onIr={onIr} />}
       {seccion === 'escenarios' && <Escenarios proyectoId={proyectoId} />}
       {seccion === 'dealdesk' && veCostos && <DealDesk cots={cots} />}
@@ -105,6 +110,110 @@ function Resumen({ proyecto, cots, totalActual }) {
       <strong>Resumen</strong>
       <p className="ayuda" style={{ marginTop: 4 }}>{proyecto.brief || 'Sin brief capturado.'}</p>
       <div className="ayuda">Cotizaciones: {cots.length} · Total actual {dinero(totalActual)} · Objetivo {f(proyecto.fecha_objetivo)}</div>
+    </div>
+  );
+}
+
+// ---- SOLUCIÓN: alcance (N5) + layout (N6/N7) + renders (N8) ---------------
+const ESTADO_RECON = {
+  ok: { color: '#1e6b33', bg: '#e6f4ea', txt: '✓ Completo' },
+  falta: { color: '#9a2820', bg: '#fbe6e4', txt: '⚠ Falta' },
+  sobra: { color: '#8a5a00', bg: '#fdf7e6', txt: '⚠ Sobra' },
+  revisar: { color: '#274b7a', bg: '#e8eef7', txt: 'Revisar' },
+};
+
+function Reconciliacion({ proyecto }) {
+  // Fuente flexible: zonas de scope o de reconciliación ya calculadas.
+  const scope = proyecto.scope_zonas ? construirScope(proyecto.scope_zonas) : null;
+  const resumen = scope
+    ? reconciliarScope(scope, {
+      cotizadoPorZona: proyecto.cotizado_por_zona || {},
+      acomodadoPorZona: proyecto.acomodado_por_zona || {},
+    })
+    : (proyecto.reconciliacion_zonas ? resumenReconciliacion(proyecto.reconciliacion_zonas) : null);
+
+  if (!resumen || resumen.totalZonas === 0) {
+    return (
+      <div className="tarjeta">
+        <strong>Alcance por zona</strong>
+        <p className="ayuda" style={{ marginTop: 4 }}>
+          Aún no hay zonas de alcance para este proyecto. Interpreta un plano en Voni o dibújalo
+          para comparar lo <em>requerido</em> contra lo <em>cotizado</em> y lo <em>acomodado</em>.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="tarjeta">
+      <div className="fila" style={{ justifyContent: 'space-between' }}>
+        <strong>Alcance por zona</strong>
+        <span className={`ayuda`}>{resumen.ok}/{resumen.totalZonas} completas{resumen.hayDiscrepancia ? ' · hay pendientes' : ''}</span>
+      </div>
+      <div style={{ marginTop: 8, display: 'grid', gap: 8 }}>
+        {resumen.zonas.map((z, i) => {
+          const e = ESTADO_RECON[z.estado] || ESTADO_RECON.revisar;
+          return (
+            <div key={i} style={{ border: '1px solid #ece7df', borderRadius: 10, padding: '10px 12px' }}>
+              <div className="fila" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 700 }}>{z.nombre}</span>
+                <span style={{ background: e.bg, color: e.color, borderRadius: 999, padding: '2px 10px', fontSize: 12, fontWeight: 700 }}>{e.txt}</span>
+              </div>
+              <div className="ayuda" style={{ marginTop: 4, display: 'flex', gap: 14 }}>
+                <span>Requerido <strong>{z.requerido ?? '—'}</strong></span>
+                <span>Cotizado <strong>{z.cotizado ?? '—'}</strong></span>
+                <span>Acomodado <strong>{z.acomodado ?? '—'}</strong></span>
+                {z.faltaAcomodar ? <span style={{ color: '#9a2820' }}>{z.faltaAcomodar} sin acomodar</span> : null}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function RendersPanel({ proyecto }) {
+  const hashes = {
+    bom_hash: proyecto.bom_hash || null,
+    config_hash: proyecto.config_hash || null,
+    layout_hash: proyecto.layout_hash || null,
+  };
+  const lista = historialRenders(proyecto.renders || [], hashes);
+  if (!lista.length) {
+    return (
+      <div className="tarjeta">
+        <strong>Renders</strong>
+        <p className="ayuda" style={{ marginTop: 4 }}>Todavía no hay renders de este proyecto. Cuando se generen, aparecen aquí con su estado y versión.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="tarjeta">
+      <strong>Renders</strong>
+      <div style={{ marginTop: 8, display: 'grid', gap: 8 }}>
+        {lista.map((r) => (
+          <div key={r.render_id} className="fila" style={{ justifyContent: 'space-between', border: '1px solid #ece7df', borderRadius: 10, padding: '8px 12px' }}>
+            <span>{r.tipo === 'PRODUCTO' ? 'Producto' : 'Ambiente'} · {f(r.fecha)}{r.vigente ? ' · vigente' : ''}</span>
+            <span className={`ia-badge ${r.estado === 'DESACTUALIZADO' ? 'baja' : ''}`}>{etiquetaEstado(r.estado)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Solucion({ proyecto, onIr }) {
+  return (
+    <div style={{ display: 'grid', gap: 12 }}>
+      {flagActivo('plan_analysis_v2') && <Reconciliacion proyecto={proyecto} />}
+      {flagActivo('layout_v2') && (
+        <div className="tarjeta">
+          <strong>Distribución / layout</strong>
+          <p className="ayuda" style={{ marginTop: 4 }}>Acomoda el mobiliario en el plano (zonas, muros, puertas, columnas), con detección de choques y circulación.</p>
+          {onIr && <button className="boton" style={{ marginTop: 8 }} onClick={() => onIr('acomodo')}>Abrir acomodo ›</button>}
+        </div>
+      )}
+      {flagActivo('render_v2') && <RendersPanel proyecto={proyecto} />}
     </div>
   );
 }
