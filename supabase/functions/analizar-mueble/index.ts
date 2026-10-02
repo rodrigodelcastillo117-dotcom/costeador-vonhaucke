@@ -46,7 +46,23 @@ const SCHEMA = {
     volumenAsumido: { type: "string", description: "Volumen que asumiste para el analisis (ej. 'prototipo/1 pieza' o 'corrida 50+'). Afecta flat-pack y herramentales." },
     confianzaGeneral: { type: "string", enum: ["alta", "media", "baja"], description: "Confianza global del analisis (baja si no hay escala)." },
     informe: { type: "string", description: "Auditoria tecnica COMPLETA en Markdown con EXACTAMENTE estas secciones y titulos, en este orden: '## 📐 Resumen Tecnico y Medidas Generales', '## 📋 Tabla BOM' (tabla markdown: Pieza | Material | Calibre/Espesor | Medida | Acabado), '## ✂️ Analisis de Merma y Nesting' (cuantifica: merma % actual vs optimizada, piezas por tablero 1.22x2.44), '## ⚙️ Ruta de Produccion y Estandarizacion' (Corte->CNC->Doblez->Soldadura->Pintura->Tapiceria->Ensamble; cuello de botella; piezas universales izq/der), '## 💡 Ingenieria de Valor' (2 acciones para bajar >=15%, en % no en pesos), '## 📦 Estrategia Logistica (Flat-Pack)' (knock-down y densidad en contenedor 53ft), '## 🛡️ Refuerzos Estructurales (Contract/BIFMA)', '## 🎯 Top 3 Acciones' (ordenadas por impacto/esfuerzo). Cuantifica siempre (%, piezas/tablero, kg, horas). NUNCA precios en pesos." },
-    preguntas: { type: "array", items: { type: "string" }, description: "Lo esencial a confirmar para un costo real (incluye pedir 1 medida de referencia si no hay escala)." },
+    preguntas: {
+      type: "array",
+      description: "Confirmaciones ESENCIALES para cerrar el costo, como CONTROLES respondibles (no prosa). Máx 6, ordénalas por impacto. Cada una con el tipo de control adecuado y su supuesto actual.",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          pregunta: { type: "string", description: "La pregunta, corta y concreta." },
+          tipo: { type: "string", enum: ["radio", "select", "number", "texto"], description: "radio/select cuando hay opciones acotadas; number para cantidades; texto para abierto." },
+          opciones: { type: "array", items: { type: "string" }, description: "Opciones para radio/select (ej. ['Cliente','Von Haucke','Por definir']); [] si es number/texto." },
+          impacto: { type: "string", enum: ["alto", "medio", "bajo"], description: "Cuánto mueve el costo/el producto." },
+          afecta: { type: "string", enum: ["bom", "costo", "proceso", "render"], description: "Qué cambia la respuesta." },
+          supuesto: { type: "string", description: "Lo que ASUMISTE por ahora (el valor actual del despiece)." },
+        },
+        required: ["pregunta", "tipo", "opciones", "impacto", "afecta", "supuesto"],
+      },
+    },
   },
   required: ["producto", "tipo", "piezas", "descripcionCliente", "materiales", "volumenAsumido", "confianzaGeneral", "informe", "preguntas"],
 };
@@ -60,7 +76,11 @@ Deno.serve(async (req) => {
 
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, error: "JSON invalido" }, 400); }
-  const { image, imagenes, mediaType = "image/jpeg", catalogo, revisar } = body || {};
+  const { image, imagenes, mediaType = "image/jpeg", catalogo, revisar, respuestas } = body || {};
+  // respuestas = [{pregunta, respuesta}] que el usuario contestó a las preguntas de la IA.
+  const resp = Array.isArray(respuestas)
+    ? respuestas.filter((r: any) => r && r.respuesta && String(r.respuesta).trim())
+    : [];
   // `revisar` = una propuesta previa (paso 1). Si viene, esta llamada es la SEGUNDA
   // pasada: la IA critica su propio despiece contra las cotas y lo corrige.
   const esRevision = !!(revisar && Array.isArray(revisar.piezas) && revisar.piezas.length);
@@ -88,6 +108,7 @@ Deno.serve(async (req) => {
     "   · UNA PIEZA, UNA VEZ: el mismo panel que sale en vista frontal, lateral y superior es UNA pieza. Agrupa piezas identicas en un solo renglon con su 'cantidad'.\n" +
     "   · AUTO-VERIFICA antes de responder: relee tus 'piezas' y pregunta '¿esta cantidad sale de una cota o la supuse?'. Si la supusiste, baja la 'confianza' a 'media' o 'baja' para que el humano la revise. Mejor conservador y marcado que inflado.\n\n" +
     "El 'informe' (Markdown) DEBE traer las 8 secciones con los titulos EXACTOS del schema (las 7 de la auditoria + '## 🎯 Top 3 Acciones' al final), con la tabla BOM en markdown. SE CONCISO: viñetas cortas, no ensayos; maximo ~3-5 puntos por seccion; tabla BOM breve. Prioriza claridad y termina SIEMPRE el JSON.\n\n" +
+    "PREGUNTAS (confirmaciones): devuelve máx 6 como CONTROLES, ordenadas por impacto. Cada una con: 'tipo' (radio/select/number/texto), 'opciones' (para radio/select, ej. refrigerador→['Cliente','Von Haucke','Por definir']; frentes→['Abatibles','Fijos','Cajones']; PTR→['cal.14','cal.12','Otro']; gráfica→['Nosotros','Cliente','Solo montaje']), 'impacto' (alto/medio/bajo), 'afecta' (bom/costo/proceso/render) y 'supuesto' (lo que asumiste ahora). Pregunta SOLO lo que de verdad mueve el costo o cambia el producto (equipo comprado, frentes fijos vs abatibles, calibre, gráfica propia vs cliente, nº de islas, carga por repisa). NO prosa; son controles para contestar rápido.\n" +
     "DESPIECE 'piezas' (para el motor): tableros/cristal forma='area' con largoMM/anchoMM; metal/canto/tela forma='lineal' (metros); herrajes/comprados forma='pieza'.\n" +
     "FRACCION DE HOJA (clave para que el costo cuadre): en cada pieza forma='area' da ADEMAS 'hojas' = la fraccion de hoja estandar que consume el TOTAL (pieza x cantidad). El motor cuesta hojas x precio_de_hoja; si solo mandas area, el costo oscila. Piensa cuantas piezas caben en una hoja 1.22x2.44 (tablero) o 3x10 ft (lamina) y saca la fraccion. SE CONSERVADOR: no infles; ante la duda, menos hojas, no mas.\n" +
     "RETAIL / EXHIBIDORES: si es un exhibidor/mueble de tienda, mapea a los materiales retail del catalogo cuando existan (kit LED 5000K, MDF Walnut 16/25 mm, laminado Walnut, acrilico cristal/traslucido, perfil de canto ABS, logotipo acrilico, impresion en estireno). El KIT LED y los graficos/logos/impresiones son COMPRADOS ya hechos (seccion 'graficos'): van forma='pieza', NO llevan hojas.\n\n" +
@@ -115,6 +136,12 @@ Deno.serve(async (req) => {
       `- ${p.cantidad}x ${p.nombre} [${p.insumoId || 'SIN MATERIAL'}] ${p.forma} ${p.largoMM || 0}x${p.anchoMM || 0} hojas=${p.hojas ?? 0} (${p.confianza})`
     ).join("\n");
     textoTarea = `VERIFICA Y CORRIGE este despiece que generaste de este MISMO plano, contra las COTAS escritas (lee de nuevo las hojas). Devuelve el despiece COMPLETO corregido con 'razonamiento' por pieza:\n\n${previo}`;
+  }
+  // RESPUESTAS del usuario = VERDAD confirmada; sobrescriben supuestos de la IA.
+  if (resp.length) {
+    const bloque = resp.map((r: any) => `- P: ${r.pregunta}\n  R: ${r.respuesta}`).join("\n");
+    textoTarea += `\n\n⭐ RESPUESTAS CONFIRMADAS POR EL USUARIO (son VERDAD; tienen prioridad sobre cualquier supuesto tuyo). Ajusta el despiece en consecuencia y refleja el cambio en 'razonamiento'/'nota':\n${bloque}\n\n` +
+      "Aplica literalmente: si un EQUIPO lo suministra el cliente, quítalo del despiece o déjalo con insumoId='' y nota 'lo pone el cliente' (no lo costeamos); si unos frentes son FIJOS, elimina sus bisagras/jaladeras; si son ABATIBLES, inclúyelas; usa el CALIBRE/espesor que el usuario indique; si una gráfica/impresión la pone el cliente, no la costees; usa el NÚMERO DE PIEZAS/islas indicado para el volumen. NO inventes datos que el usuario no haya dado; si algo sigue sin definir, bájale la confianza y vuelve a preguntarlo en 'preguntas'.";
   }
 
   const contenido = [...bloquesImagen, { type: "text", text: textoTarea }];

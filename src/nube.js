@@ -199,6 +199,28 @@ export async function verificarDespiece(catalogo, imagenes, propuesta) {
   }
 }
 
+// Re-costea el despiece aplicando las RESPUESTAS del usuario a las preguntas de la IA
+// (verdad confirmada: sobrescribe supuestos). respuestas = [{pregunta, respuesta}].
+export async function responderDespiece(catalogo, imagenes, propuesta, respuestas) {
+  try {
+    const { data, error } = await nube.functions.invoke('analizar-mueble', {
+      body: { catalogo, imagenes, revisar: propuesta, respuestas },
+    });
+    if (error || !data?.ok) {
+      let msg = error?.message; try { const j = await error?.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
+      return { ok: false, error: msg || data?.error || 'No se pudo aplicar las respuestas.' };
+    }
+    return { ...data, verificado: true };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
+// Guarda la trazabilidad de confirmaciones del usuario (pregunta→respuesta, valor anterior, etc.).
+export async function guardarConfirmaciones(rows) {
+  try { if (Array.isArray(rows) && rows.length) await nube.from('confirmaciones').insert(rows); } catch (e) { /* no bloquea */ }
+}
+
 // Cotizador conversacional: texto natural -> items estructurados (Claude).
 export async function cotizarTexto(texto, catalogo) {
   // Las reglas de oficio que Rodrigo dicta en "Lo que Voni sabe" viajan CON el

@@ -8,7 +8,7 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import { calcular, precioDe, netoComponente, modeloParaPieza } from '../motor/calculo.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos } from '../util.js';
-import { analizarRender, analizarRenderImagenes, verificarDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, guardarRender } from '../nube.js';
+import { analizarRender, analizarRenderImagenes, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, guardarRender, guardarConfirmaciones, sesionActual } from '../nube.js';
 import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { abrirPdf, paginaAImagen, todasLasPaginas } from '../datos/pdfImagen.js';
 import Cargando from './Cargando.jsx';
@@ -84,6 +84,13 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
   const [verificando, setVerificando] = useState(false); // 2ª pasada: la IA critica su propio despiece
   const [errorIA, setErrorIA] = useState('');
   const [preguntasIA, setPreguntasIA] = useState([]);
+  const [propuestaIA, setPropuestaIA] = useState(null); // despiece crudo de la IA (para re-costear con respuestas)
+  const [respuestas, setRespuestas] = useState({});     // {idx: texto} respuestas del usuario a las preguntas
+  const [respondiendo, setRespondiendo] = useState(false);
+  // Normaliza una pregunta (compat: la IA vieja devolvía string; la nueva, objeto con tipo/impacto…).
+  const normPreg = (p) => (typeof p === 'string'
+    ? { pregunta: p, tipo: 'texto', opciones: [], impacto: 'medio', afecta: 'costo', supuesto: '' }
+    : { tipo: 'texto', opciones: [], impacto: 'medio', afecta: 'costo', supuesto: '', ...p });
   const [analisis, setAnalisis] = useState(null); // {descripcionCliente, materiales, mejoras, fallasProbables, aprovechamiento}
   const [pdfSel, setPdfSel] = useState(null); // selector de hoja de plano multipágina: {doc, numPaginas, pagina, preview}
   const [b, setB] = useState({
@@ -293,6 +300,10 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
       confianzaGeneral: p.confianzaGeneral || '',
     });
     setPreguntasIA(Array.isArray(p.preguntas) ? p.preguntas : []);
+    setPropuestaIA(p);        // guarda el despiece crudo para re-costear con las respuestas
+    setRespuestas({});        // limpia respuestas previas
+    // El despiece cambió: el render viejo ya no corresponde → se limpia para forzar uno nuevo.
+    setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg('');
     setPaso(1);
     return true;
   }
@@ -315,6 +326,31 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
     const v2 = await verificarDespiece(catalogoIA(), imagenes, v1.propuesta);
     setVerificando(false);
     return aplicarPropuesta(v2, dataUrlPreview, imagenes);
+  }
+
+  // Aplica las RESPUESTAS del usuario a las preguntas de la IA y re-costea el despiece.
+  // Las respuestas son VERDAD (sobrescriben supuestos): quita el equipo que pone el cliente,
+  // elimina bisagras si los frentes son fijos, usa el calibre indicado, etc.
+  async function aplicarRespuestas() {
+    if (respondiendo) return;
+    const resp = preguntasIA.map((q, i) => { const nq = normPreg(q); return { pregunta: nq.pregunta, respuesta: (respuestas[i] || '').trim(), supuesto: nq.supuesto, afecta: nq.afecta, impacto: nq.impacto }; }).filter((r) => r.respuesta);
+    if (!resp.length) { setErrorIA('Contesta al menos una confirmación para recalcular.'); return; }
+    const imgs = Array.isArray(b.planos) ? b.planos.filter(Boolean) : [];
+    if (!imgs.length) { setErrorIA('No tengo el plano en memoria para recalcular; vuelve a subirlo.'); return; }
+    setRespondiendo(true); setErrorIA(''); setAnalizando(true); setVerificando(true);
+    try {
+      const r = await responderDespiece(catalogoIA(), imgs, propuestaIA, resp.map((x) => ({ pregunta: x.pregunta, respuesta: x.respuesta })));
+      if (!r?.ok) { setErrorIA(r?.error || 'No se pudo recalcular con tus respuestas.'); return; }
+      // Trazabilidad: pregunta, respuesta, valor anterior (supuesto IA), quién, qué afecta.
+      let quien = null; try { quien = (await sesionActual())?.user?.email || null; } catch (_e) {}
+      guardarConfirmaciones(resp.map((x) => ({
+        confirmado_por: quien, producto: b.nombre || null, pregunta: x.pregunta,
+        respuesta: x.respuesta, valor_anterior: x.supuesto || null, afecta: x.afecta, impacto: x.impacto,
+      })));
+      aplicarPropuesta(r, b.imagen, b.planos); // re-llena despiece (confirmado_usuario manda sobre el supuesto IA)
+    } finally {
+      setRespondiendo(false); setAnalizando(false); setVerificando(false);
+    }
   }
 
   // Sube render/plano → la IA propone el despiece. Un PDF multipágina abre el
@@ -488,8 +524,44 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
           <div className="pregunta">¿De qué está hecho?</div>
           <div className="pregunta-sub">Toca las piezas que lleva. Luego ajusta su material y medida.</div>
           {preguntasIA.length > 0 && (
-            <div className="alerta ambar">
-              <span className="texto"><strong>Confirma (IA):</strong> {preguntasIA.join(' · ')}</span>
+            <div style={{ border: '1px solid var(--borde)', borderRadius: 10, padding: 14, margin: '12px 0', background: 'var(--panel)' }}>
+              <div style={{ fontWeight: 700, marginBottom: 2 }}>Confirmaciones para cerrar el costeo</div>
+              <div className="ayuda" style={{ marginBottom: 10 }}>Contesta lo que sepas: cada respuesta recalcula el despiece y el costo. Tu respuesta manda sobre el supuesto de la IA.</div>
+              {preguntasIA.map((raw, i) => {
+                const q = normPreg(raw);
+                const colImp = q.impacto === 'alto' ? '#8a2d00' : q.impacto === 'medio' ? '#8a6d00' : '#555';
+                const val = respuestas[i] || '';
+                const setVal = (v) => setRespuestas((s) => ({ ...s, [i]: v }));
+                return (
+                  <div key={i} style={{ borderTop: i ? '1px solid var(--borde)' : 'none', paddingTop: i ? 10 : 0, marginTop: i ? 10 : 0 }}>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 4 }}>
+                      <span className="chip" style={{ background: colImp, color: '#fff', fontSize: 11 }}>IMPACTO {q.impacto.toUpperCase()}</span>
+                      <span className="chip" style={{ fontSize: 11 }}>afecta: {q.afecta}</span>
+                      {val && <span className="chip" style={{ background: 'var(--ok,#1a7f37)', color: '#fff', fontSize: 11 }}>✓ confirmado</span>}
+                    </div>
+                    <div style={{ fontWeight: 600, marginBottom: 2 }}>{q.pregunta}</div>
+                    {q.supuesto && <div className="ayuda" style={{ marginBottom: 6 }}>Supuesto IA: {q.supuesto}</div>}
+                    {(q.tipo === 'radio' || q.tipo === 'select') && q.opciones?.length ? (
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        {q.opciones.map((op) => (
+                          <button key={op} type="button" className={'chip' + (val === op ? ' on' : '')}
+                            onClick={() => setVal(op)}
+                            style={{ cursor: 'pointer', background: val === op ? 'var(--tinta,#2B2622)' : undefined, color: val === op ? '#fff' : undefined }}>
+                            {op}
+                          </button>
+                        ))}
+                      </div>
+                    ) : q.tipo === 'number' ? (
+                      <input type="number" value={val} placeholder="Cantidad" onChange={(e) => setVal(e.target.value)} style={{ width: 160 }} />
+                    ) : (
+                      <input type="text" value={val} placeholder="Tu respuesta" onChange={(e) => setVal(e.target.value)} style={{ width: '100%' }} />
+                    )}
+                  </div>
+                );
+              })}
+              <button className="boton primario" disabled={respondiendo} onClick={aplicarRespuestas} style={{ marginTop: 12 }}>
+                {respondiendo ? 'Recalculando…' : 'Aplicar respuestas y recalcular'}
+              </button>
             </div>
           )}
 
@@ -648,7 +720,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
       ) : (
         <div className="fila-botones">
           <button className="boton primario grande" onClick={() => onVerDetalle(b)}>Ver detalle completo y cotizar</button>
-          <button className="boton grande" onClick={() => { setB({ nombre: '', piezas: 1, componentes: [], modoManoObra: 'porcentaje', factorDirecta: 55, factorIndirecta: 12, margen: b.margen }); setPaso(0); }}>Empezar otro</button>
+          <button className="boton grande" onClick={() => { setB({ nombre: '', piezas: 1, componentes: [], modoManoObra: 'porcentaje', factorDirecta: 55, factorIndirecta: 12, margen: b.margen }); setPaso(0); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({}); setAnalisis(null); }}>Empezar otro</button>
         </div>
       )}
     </div>
