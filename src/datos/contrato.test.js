@@ -55,6 +55,9 @@ describe('contrato explícito: lo que leen los componentes', () => {
       expect(cols('proyectos')).not.toContain(c);
     }
   });
+  it('proyectos: total_final SÍ existe (columna aditiva para monto ganado)', () => {
+    expect(cols('proyectos')).toContain('total_final');
+  });
   it('cotizaciones: el acomodo (layout) vive aquí (H3 fuente real)', () => {
     expect(cols('cotizaciones')).toContain('acomodo');
     expect(cols('cotizaciones')).toContain('cliente_id');
@@ -82,11 +85,9 @@ describe('contrato: mutaciones usan enums/columnas válidos (regresión B1/B2)',
     expect(wsSrc).not.toMatch(/tipo:\s*'nota'/);
     expect(wsSrc).toMatch(/tipo:\s*'NOTA'/);
   });
-  it('cierre NO escribe total_final en el UPDATE (columna inexistente) — B2', () => {
-    // El objeto de validación JS SÍ puede tener total_final; lo prohibido es en el
-    // UPDATE a proyectos (junto a etapa: 'GANADA'). El fix usa revision_ganadora_id.
+  it('cierre ganada escribe columnas reales (revision_ganadora_id + total_final) — B2/B3', () => {
     expect(wsSrc).toMatch(/etapa:\s*'GANADA'[^}]*revision_ganadora_id/);
-    expect(wsSrc).not.toMatch(/etapa:\s*'GANADA'[^}]*total_final/);
+    expect(wsSrc).toMatch(/etapa:\s*'GANADA'[^}]*total_final/); // columna aditiva ya existe
   });
   it('cierre usa etapas válidas GANADA/PERDIDA (mayúsculas)', () => {
     expect(wsSrc).toMatch(/etapa:\s*'GANADA'/);

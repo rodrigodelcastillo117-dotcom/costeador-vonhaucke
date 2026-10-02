@@ -360,16 +360,15 @@ function Cierre({ proyecto, cots, onCambio }) {
     const v = validarCierre(cierre);
     if (!v.ok) { setErr(v.errores); return; }
     setErr([]); setGuardando(true);
-    // proyectos NO tiene columna total_final; la "revisión ganadora" sí existe.
     await actualizarProyecto(proyecto.id, resultado === 'ganada'
-      ? { etapa: 'GANADA', fecha_cierre: cierre.fecha, revision_ganadora_id: proyecto.revision_ganadora_id || cierre.revision_aceptada }
+      ? { etapa: 'GANADA', fecha_cierre: cierre.fecha, revision_ganadora_id: proyecto.revision_ganadora_id || cierre.revision_aceptada, total_final: totalFinal }
       : { etapa: 'PERDIDA', motivo_perdida: motivo, comentario_cierre: detalle || null, fecha_cierre: new Date().toISOString().slice(0, 10) });
     setGuardando(false); onCambio?.();
   }
 
   if (['GANADA', 'PERDIDA'].includes(String(proyecto.etapa).toUpperCase())) {
     return <div className="tarjeta"><strong>Proyecto cerrado: {proyecto.etapa}</strong>
-      <div className="ayuda">{String(proyecto.etapa).toUpperCase() === 'PERDIDA' ? `Motivo: ${proyecto.motivo_perdida || '—'}` : `Total aceptado: ${dinero(totalFinal)}`} · {f(proyecto.fecha_cierre)}</div></div>;
+      <div className="ayuda">{String(proyecto.etapa).toUpperCase() === 'PERDIDA' ? `Motivo: ${proyecto.motivo_perdida || '—'}` : `Total aceptado: ${dinero(proyecto.total_final ?? totalFinal)}`} · {f(proyecto.fecha_cierre)}</div></div>;
   }
   return (
     <div className="tarjeta">
