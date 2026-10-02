@@ -53,6 +53,7 @@ const SCHEMA = {
         type: "object",
         additionalProperties: false,
         properties: {
+          question_key: { type: "string", description: "ID SEMÁNTICO ESTABLE en snake_case (NO depende del texto). Reusa el MISMO key para el mismo concepto siempre. Ej: equipo_refrigerador_responsable, frentes_inferiores_tipo, estructura_ptr_calibre, grafica_responsable, cantidad_islas, carga_repisa_kg, cantidad_cajones, cantidad_puertas." },
           pregunta: { type: "string", description: "La pregunta, corta y concreta." },
           tipo: { type: "string", enum: ["radio", "select", "number", "texto"], description: "radio/select cuando hay opciones acotadas; number para cantidades; texto para abierto." },
           opciones: { type: "array", items: { type: "string" }, description: "Opciones para radio/select (ej. ['Cliente','Von Haucke','Por definir']); [] si es number/texto." },
@@ -60,7 +61,7 @@ const SCHEMA = {
           afecta: { type: "string", enum: ["bom", "costo", "proceso", "render"], description: "Qué cambia la respuesta." },
           supuesto: { type: "string", description: "Lo que ASUMISTE por ahora (el valor actual del despiece)." },
         },
-        required: ["pregunta", "tipo", "opciones", "impacto", "afecta", "supuesto"],
+        required: ["question_key", "pregunta", "tipo", "opciones", "impacto", "afecta", "supuesto"],
       },
     },
   },
@@ -109,8 +110,9 @@ Deno.serve(async (req) => {
     "   · AUTO-VERIFICA antes de responder: relee tus 'piezas' y pregunta '¿esta cantidad sale de una cota o la supuse?'. Si la supusiste, baja la 'confianza' a 'media' o 'baja' para que el humano la revise. Mejor conservador y marcado que inflado.\n\n" +
     "El 'informe' (Markdown) DEBE traer las 8 secciones con los titulos EXACTOS del schema (las 7 de la auditoria + '## 🎯 Top 3 Acciones' al final), con la tabla BOM en markdown. SE CONCISO: viñetas cortas, no ensayos; maximo ~3-5 puntos por seccion; tabla BOM breve. Prioriza claridad y termina SIEMPRE el JSON.\n\n" +
     "PREGUNTAS (confirmaciones): devuelve máx 6 como CONTROLES, ordenadas por impacto. Cada una con: 'tipo' (radio/select/number/texto), 'opciones' (para radio/select, ej. refrigerador→['Cliente','Von Haucke','Por definir']; frentes→['Abatibles','Fijos','Cajones']; PTR→['cal.14','cal.12','Otro']; gráfica→['Nosotros','Cliente','Solo montaje']), 'impacto' (alto/medio/bajo), 'afecta' (bom/costo/proceso/render) y 'supuesto' (lo que asumiste ahora). Pregunta SOLO lo que de verdad mueve el costo o cambia el producto (equipo comprado, frentes fijos vs abatibles, calibre, gráfica propia vs cliente, nº de islas, carga por repisa). NO prosa; son controles para contestar rápido.\n" +
-    "  · UNA PREGUNTA = UN SOLO DATO. NUNCA juntes dos cantidades en una pregunta: '¿cuántos cajones y cuántas puertas?' con tipo=number está MAL (solo cabe un número). Si necesitas dos cantidades, haz DOS preguntas number ('¿cuántos cajones?' y '¿cuántas puertas?') o usa tipo='texto'.\n" +
-    "  · NO repitas una pregunta que ya venga contestada en RESPUESTAS CONFIRMADAS; si una respuesta ya resolvió el dato, quítala de 'preguntas'. Solo deja las que SIGAN abiertas.\n" +
+    "  · UNA PREGUNTA = UN SOLO DATO con su 'question_key' estable. NUNCA juntes dos cantidades: '¿cuántos cajones y cuántas puertas?' está MAL; son dos (cantidad_cajones, cantidad_puertas).\n" +
+    "  · DETECTA TODAS las confirmaciones críticas EN ESTA PRIMERA PASADA y devuélvelas JUNTAS. No las vayas soltando de a poco en pasadas siguientes.\n" +
+    "  · NO repitas una pregunta cuyo question_key ya venga en RESPUESTAS CONFIRMADAS.\n" +
     "DESPIECE 'piezas' (para el motor): tableros/cristal forma='area' con largoMM/anchoMM; metal/canto/tela forma='lineal' (metros); herrajes/comprados forma='pieza'.\n" +
     "FRACCION DE HOJA (clave para que el costo cuadre): en cada pieza forma='area' da ADEMAS 'hojas' = la fraccion de hoja estandar que consume el TOTAL (pieza x cantidad). El motor cuesta hojas x precio_de_hoja; si solo mandas area, el costo oscila. Piensa cuantas piezas caben en una hoja 1.22x2.44 (tablero) o 3x10 ft (lamina) y saca la fraccion. SE CONSERVADOR: no infles; ante la duda, menos hojas, no mas.\n" +
     "RETAIL / EXHIBIDORES: si es un exhibidor/mueble de tienda, mapea a los materiales retail del catalogo cuando existan (kit LED 5000K, MDF Walnut 16/25 mm, laminado Walnut, acrilico cristal/traslucido, perfil de canto ABS, logotipo acrilico, impresion en estireno). El KIT LED y los graficos/logos/impresiones son COMPRADOS ya hechos (seccion 'graficos'): van forma='pieza', NO llevan hojas.\n\n" +
@@ -137,7 +139,8 @@ Deno.serve(async (req) => {
     const previo = (revisar.piezas || []).map((p: any) =>
       `- ${p.cantidad}x ${p.nombre} [${p.insumoId || 'SIN MATERIAL'}] ${p.forma} ${p.largoMM || 0}x${p.anchoMM || 0} hojas=${p.hojas ?? 0} (${p.confianza})`
     ).join("\n");
-    textoTarea = `VERIFICA Y CORRIGE este despiece que generaste de este MISMO plano, contra las COTAS escritas (lee de nuevo las hojas). Devuelve el despiece COMPLETO corregido con 'razonamiento' por pieza:\n\n${previo}`;
+    textoTarea = `VERIFICA Y CORRIGE este despiece que generaste de este MISMO plano, contra las COTAS escritas (lee de nuevo las hojas). Devuelve el despiece COMPLETO corregido con 'razonamiento' por pieza:\n\n${previo}\n\n` +
+      "⛔ VERIFICACIÓN SILENCIOSA: 'preguntas' DEBE ser []. NO abras una ronda nueva de confirmaciones. Puedes corregir cantidades, detectar inconsistencias, bajar 'confianza' y dejar supuestos; si algo queda sin resolver, DÉJALO como supuesto (confianza baja) y NO preguntes. Solo excepción: un BLOQUEADOR DURO nuevo que impida calcular — máx 1, con question_key nuevo.";
   }
   // RESPUESTAS del usuario = VERDAD confirmada; sobrescriben supuestos de la IA.
   if (resp.length) {

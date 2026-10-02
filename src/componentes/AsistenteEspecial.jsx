@@ -99,19 +99,23 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // viejo (subiste otro producto mientras tanto), se DESCARTA (evita que A pise el estado de B).
   const corrida = useRef(0);
   // Normaliza una pregunta (compat: la IA vieja devolvía string; la nueva, objeto con tipo/impacto…).
-  const normPreg = (p) => (typeof p === 'string'
-    ? { pregunta: p, tipo: 'texto', opciones: [], impacto: 'medio', afecta: 'costo', supuesto: '' }
-    : { tipo: 'texto', opciones: [], impacto: 'medio', afecta: 'costo', supuesto: '', ...p });
-  // Clave normalizada de una pregunta (sin acentos/puntuación) para deduplicar aunque cambie la redacción.
+  // Clave normalizada de texto (fallback si no hay question_key).
   const kpreg = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  // Normaliza una pregunta; la AUTORIDAD es 'question_key' (ID semántico estable); si falta, kpreg(texto).
+  const normPreg = (p) => {
+    const base = (typeof p === 'string')
+      ? { pregunta: p, tipo: 'texto', opciones: [], impacto: 'medio', afecta: 'costo', supuesto: '' }
+      : { tipo: 'texto', opciones: [], impacto: 'medio', afecta: 'costo', supuesto: '', ...p };
+    return { ...base, question_key: base.question_key || 'k_' + kpreg(base.pregunta).replace(/\s+/g, '_') };
+  };
   // Si una pregunta reaparece en otra pasada, pre-llena con lo que ya contestaste (no re-escribir).
   useEffect(() => {
     if (!preguntasIA.length) return;
     setRespuestas((prev) => {
       const next = { ...prev };
-      preguntasIA.forEach((raw, i) => {
+      preguntasIA.forEach((raw) => {
         const q = normPreg(raw);
-        if ((next[i] == null || next[i] === '') && confirmadas[q.pregunta] != null) next[i] = confirmadas[q.pregunta];
+        if ((next[q.question_key] == null || next[q.question_key] === '') && confirmadas[q.question_key]) next[q.question_key] = confirmadas[q.question_key].respuesta;
       });
       return next;
     });
@@ -309,7 +313,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         producto_tipo: tipoDeMueble(b), ancho_mm: dimsR.w, fondo_mm: dimsR.d, alto_mm: null,
         descripcion: b.descripcionCliente || null, materiales: materialesR, bom: b.componentes,
         costo: { costoUnitario: Math.round(resultado.costoUnitario), materialTotal: Math.round(resultado.materialTotal), manoObra: Math.round(resultado.manoObra), indirectosFabrica: Math.round(resultado.indirectosFabrica), precio: Math.round(precio), margen: b.margen, estado_costo: costoEstado || 'preliminar', fecha: new Date().toISOString() },
-        confirmaciones: Object.entries(confirmadas).map(([pregunta, respuesta]) => ({ pregunta, respuesta })),
+        confirmaciones: Object.entries(confirmadas).map(([question_key, v]) => ({ question_key, pregunta: v.pregunta, respuesta: v.respuesta })),
         plano_urls: planoUrls.length ? planoUrls : (expId ? undefined : []),
         render_aislado_url: soloHttp(renders.aislado), render_ambiente_url: soloHttp(renders.ambiente),
         analysis_hash: hashInput({ c: b.componentes, n: b.piezas, m: b.margen }),
@@ -337,7 +341,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     const id = ++corrida.current;
     setB((prev) => ({ ...prev, nombre: e.nombre || '', componentes: Array.isArray(e.bom) ? e.bom : [], piezas: 1, margen: e.costo?.margen ?? prev.margen, descripcionCliente: e.descripcion || '', materiales: Array.isArray(e.materiales) ? e.materiales : [], planos: [], imagen: null, analysisId: id }));
     setExpId(e.id); setRevActual(e.revision || 1); setEtiquetasTxt((e.etiquetas || []).join(', ')); setEstadoExp(e.estado || 'borrador');
-    setConfirmadas(Object.fromEntries((e.confirmaciones || []).map((c) => [c.pregunta, c.respuesta])));
+    setConfirmadas(Object.fromEntries((e.confirmaciones || []).map((c) => [c.question_key || ('k_' + kpreg(c.pregunta).replace(/\s+/g, '_')), { pregunta: c.pregunta, respuesta: c.respuesta }])));
     setRenders({ aislado: e.render_aislado_url || null, ambiente: e.render_ambiente_url || null });
     setRenderHash(e.analysis_hash || null); // el render guardado corresponde a ese BOM (no marcar obsoleto al abrir)
     setCostoEstado(e.costo?.estado_costo || null); setCostoGuardado(e.costo || null); setExpMsg(''); setConfMsg(''); setPreguntasIA([]); setAnalisis(null);
@@ -405,13 +409,15 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       volumenAsumido: p.volumenAsumido || '',
       confianzaGeneral: p.confianzaGeneral || '',
     });
-    // NUNCA re-mostrar una pregunta ya contestada (aunque la IA la reformule): filtro por clave normalizada.
-    const confSet = new Set(Object.keys(yaConf || confirmadas).map(kpreg));
-    const pregFiltradas = (Array.isArray(p.preguntas) ? p.preguntas : []).filter((q) => {
-      const t = typeof q === 'string' ? q : (q?.pregunta || '');
-      return t && !confSet.has(kpreg(t));
+    // AUTORIDAD = question_key. Fusiona las preguntas entrantes con las pendientes actuales por key,
+    // y NUNCA reabre una ya contestada (aunque la IA la reformule). No "reemplaza" → acumula en un solo centro.
+    const confKeys = new Set(Object.keys(yaConf || confirmadas));
+    setPreguntasIA((prev) => {
+      const byKey = new Map();
+      for (const raw of prev) { const q = normPreg(raw); if (!confKeys.has(q.question_key)) byKey.set(q.question_key, q); }
+      for (const raw of (Array.isArray(p.preguntas) ? p.preguntas : [])) { const q = normPreg(raw); if (!confKeys.has(q.question_key) && !byKey.has(q.question_key)) byKey.set(q.question_key, q); }
+      return [...byKey.values()];
     });
-    setPreguntasIA(pregFiltradas);
     setPropuestaIA(p);        // guarda el despiece crudo para re-costear con las respuestas
     setRespuestas({});        // limpia respuestas previas
     // El despiece cambió: el render viejo ya no corresponde → se limpia para forzar uno nuevo.
@@ -440,7 +446,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     setVerificando(true);
     const v2 = await verificarDespiece(catalogoIA(), [base64], v1.propuesta);
     setVerificando(false);
-    return aplicarPropuesta(v2, dataUrl, [base64], true, corridaId);
+    // La verificación es SILENCIOSA: las confirmaciones salen de la 1ª pasada (v1), no de v2.
+    const merged = v2?.ok ? { ...v2, propuesta: { ...v2.propuesta, preguntas: (v2.propuesta?.preguntas?.length ? v2.propuesta.preguntas : (v1.propuesta?.preguntas || [])) } } : v2;
+    return aplicarPropuesta(merged, dataUrl, [base64], true, corridaId);
   }
   // Varias hojas del mismo mueble (plano multipágina). Paso 1 analiza, paso 2 verifica.
   async function analizarImagenes(imagenes, dataUrlPreview, corridaId) {
@@ -449,7 +457,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     setVerificando(true);
     const v2 = await verificarDespiece(catalogoIA(), imagenes, v1.propuesta);
     setVerificando(false);
-    return aplicarPropuesta(v2, dataUrlPreview, imagenes, true, corridaId);
+    const merged = v2?.ok ? { ...v2, propuesta: { ...v2.propuesta, preguntas: (v2.propuesta?.preguntas?.length ? v2.propuesta.preguntas : (v1.propuesta?.preguntas || [])) } } : v2;
+    return aplicarPropuesta(merged, dataUrlPreview, imagenes, true, corridaId);
   }
 
   // Aplica las RESPUESTAS del usuario a las preguntas de la IA y re-costea el despiece.
@@ -457,28 +466,28 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // elimina bisagras si los frentes son fijos, usa el calibre indicado, etc.
   async function aplicarRespuestas() {
     if (respondiendo) return;
-    // Lo contestado AHORA (por texto de pregunta) + traza de las nuevas.
+    // Contestado AHORA, indexado por question_key (autoridad, no por texto).
     const ahora = {}; const traza = [];
-    preguntasIA.forEach((raw, i) => {
-      const nq = normPreg(raw); const v = (respuestas[i] || '').trim();
-      if (v) { ahora[nq.pregunta] = v; traza.push({ pregunta: nq.pregunta, respuesta: v, supuesto: nq.supuesto, afecta: nq.afecta, impacto: nq.impacto }); }
+    preguntasIA.forEach((raw) => {
+      const nq = normPreg(raw); const v = String(respuestas[nq.question_key] ?? '').trim();
+      if (v) { ahora[nq.question_key] = { pregunta: nq.pregunta, respuesta: v }; traza.push({ pregunta: nq.pregunta, respuesta: v, supuesto: nq.supuesto, afecta: nq.afecta, impacto: nq.impacto }); }
     });
     if (!Object.keys(ahora).length) { setConfMsg('Contesta al menos una confirmación para recalcular.'); return; }
     const imgs = Array.isArray(b.planos) ? b.planos.filter(Boolean) : [];
     if (!imgs.length) { setConfMsg('No tengo el plano en memoria para recalcular; vuelve a subirlo.'); return; }
-    // ACUMULA con lo confirmado antes y manda TODO a la IA (para que no vuelva a preguntar lo mismo).
-    const todas = { ...confirmadas, ...ahora };
-    const respTodas = Object.entries(todas).map(([pregunta, respuesta]) => ({ pregunta, respuesta }));
+    // ACUMULA por key y manda TODO a la IA (para que no reabra una ronda).
+    const todas = { ...confirmadas, ...ahora }; // {question_key: {pregunta, respuesta}}
+    const respPayload = Object.entries(todas).map(([question_key, v]) => ({ question_key, pregunta: v.pregunta, respuesta: v.respuesta }));
     setRespondiendo(true); setConfMsg(''); setErrorIA(''); setAnalizando(true); setVerificando(true);
     try {
-      const r = await responderDespiece(catalogoIA(), imgs, propuestaIA, respTodas);
+      const r = await responderDespiece(catalogoIA(), imgs, propuestaIA, respPayload);
       if (!r?.ok) { setConfMsg(r?.error || 'No se pudo recalcular con tus respuestas.'); return; }
       let quien = null; try { quien = (await sesionActual())?.user?.email || null; } catch (_e) {}
       guardarConfirmaciones(traza.map((x) => ({ confirmado_por: quien, producto: b.nombre || null, pregunta: x.pregunta, respuesta: x.respuesta, valor_anterior: x.supuesto || null, afecta: x.afecta, impacto: x.impacto })));
-      setConfirmadas(todas); // recordadas para pre-llenar si reaparecen
+      setConfirmadas(todas); // recordadas por key
       aplicarPropuesta(r, b.imagen, b.planos, false, corrida.current, todas); // confirmado_usuario manda sobre el supuesto IA
-      const confSet = new Set(Object.keys(todas).map(kpreg));
-      const quedan = (Array.isArray(r.propuesta?.preguntas) ? r.propuesta.preguntas : []).filter((q) => { const t = typeof q === 'string' ? q : (q?.pregunta || ''); return t && !confSet.has(kpreg(t)); }).length;
+      const confKeys = new Set(Object.keys(todas));
+      const quedan = (Array.isArray(r.propuesta?.preguntas) ? r.propuesta.preguntas : []).filter((q) => !confKeys.has(normPreg(q).question_key)).length;
       setConfMsg(`✓ Guardé ${Object.keys(todas).length} respuesta(s) y recalculé el costo.` + (quedan ? ` Quedan ${quedan} por confirmar.` : ' Sin preguntas pendientes.'));
     } finally {
       setRespondiendo(false); setAnalizando(false); setVerificando(false);
@@ -674,10 +683,10 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
               {preguntasIA.map((raw, i) => {
                 const q = normPreg(raw);
                 const colImp = q.impacto === 'alto' ? '#8a2d00' : q.impacto === 'medio' ? '#8a6d00' : '#555';
-                const val = respuestas[i] || '';
-                const setVal = (v) => setRespuestas((s) => ({ ...s, [i]: v }));
+                const val = respuestas[q.question_key] ?? '';
+                const setVal = (v) => setRespuestas((s) => ({ ...s, [q.question_key]: v }));
                 return (
-                  <div key={i} style={{ borderTop: i ? '1px solid var(--borde)' : 'none', paddingTop: i ? 10 : 0, marginTop: i ? 10 : 0 }}>
+                  <div key={q.question_key} style={{ borderTop: i ? '1px solid var(--borde)' : 'none', paddingTop: i ? 10 : 0, marginTop: i ? 10 : 0 }}>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 4 }}>
                       <span className="chip" style={{ background: colImp, color: '#fff', fontSize: 11 }}>IMPACTO {q.impacto.toUpperCase()}</span>
                       <span className="chip" style={{ fontSize: 11 }}>afecta: {q.afecta}</span>
@@ -711,9 +720,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
               {Object.keys(confirmadas).length > 0 && (
                 <div style={{ borderTop: '1px solid var(--borde)', marginTop: 14, paddingTop: 10 }}>
                   <div style={{ fontWeight: 600, marginBottom: 6 }}>Confirmadas ✓</div>
-                  {Object.entries(confirmadas).map(([preg, resp]) => (
-                    <div key={preg} className="ayuda" style={{ marginBottom: 4 }}>
-                      <span style={{ color: 'var(--ok,#1a7f37)' }}>✓</span> {preg} → <strong>{resp}</strong>
+                  {Object.entries(confirmadas).map(([key, c]) => (
+                    <div key={key} className="ayuda" style={{ marginBottom: 4 }}>
+                      <span style={{ color: 'var(--ok,#1a7f37)' }}>✓</span> {c.pregunta} → <strong>{c.respuesta}</strong>
                     </div>
                   ))}
                 </div>
@@ -833,6 +842,12 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
             <div className="ayuda columna-texto" style={{ textAlign: 'left', marginTop: 6 }}>
               Re-costeo con catálogo de hoy: guardado {pesos(costoGuardado.costoUnitario)} → hoy {pesos(resultado.costoUnitario)}
               {' '}(Δ {pesos(Math.round(resultado.costoUnitario) - (costoGuardado.costoUnitario || 0))}). Guarda para actualizar el expediente.
+            </div>
+          )}
+
+          {preguntasIA.length > 0 && (
+            <div className="ayuda columna-texto" style={{ textAlign: 'left', marginTop: 8, color: '#8a6d00' }}>
+              Costo preliminar — {preguntasIA.length} decisión(es) pendiente(s): {preguntasIA.map((q) => normPreg(q).pregunta).join(' · ')}. No es obligatorio; puedes cotizar así.
             </div>
           )}
 
