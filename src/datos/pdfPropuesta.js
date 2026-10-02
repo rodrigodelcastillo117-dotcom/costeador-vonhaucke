@@ -17,6 +17,7 @@
 // que los vendedores abren en el celular, y el paquete completo de jsPDF le
 // sumaba ~800 KB al archivo. Aquí se paga sólo lo que se usa.
 import { jsPDF } from 'jspdf/dist/jspdf.es.min.js';
+import { sinEconomia, esClientSafe } from './economia.js';
 
 const A4 = { w: 210, h: 297 };
 const M = { izq: 16, der: 16, arriba: 16, abajo: 18 };
@@ -38,6 +39,19 @@ const T = (v) => String(v ?? '')
   .replace(/[\u2018\u2019]/g, "'")
   .replace(/[\u201C\u201D]/g, '"')
   .replace(/\u2026/g, '...');
+
+// Texto est\u00E1ndar Von Haucke. Overridable por propuesta (datos.garantia / .exclusiones).
+const GARANTIA_DEFAULT = [
+  'Garant\u00EDa de 12 meses en estructura met\u00E1lica y mecanismos (correderas, bisagras, pistones) por defectos de fabricaci\u00F3n, en condiciones normales de uso en oficina.',
+  'Cubiertas y superficies: 12 meses contra desprendimiento o delaminaci\u00F3n por defecto de f\u00E1brica.',
+  'La garant\u00EDa cubre reparaci\u00F3n o reposici\u00F3n de la pieza afectada; no incluye desinstalaci\u00F3n/reinstalaci\u00F3n por causas ajenas a la fabricaci\u00F3n.',
+];
+const EXCLUSIONES_DEFAULT = [
+  'Da\u00F1os por mal uso, sobrecarga, golpes, humedad, inmersi\u00F3n o exposici\u00F3n prolongada al sol.',
+  'Desgaste natural de tapicer\u00EDa y variaci\u00F3n de color/veta en maderas y m\u00E1rmoles (es propia del material).',
+  'Modificaciones, reparaciones o traslados hechos por terceros ajenos a Von Haucke.',
+  'Trabajos de alba\u00F1iler\u00EDa, el\u00E9ctricos, de voz/datos o de obra civil no incluidos expresamente en esta propuesta.',
+];
 
 
 // ============================================================================
@@ -422,7 +436,9 @@ function hojaCuartos(doc, { cuartos, escenas, pie }, A4, M, ANCHO, ROJO, TINTA, 
   return true;
 }
 
-export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, nPzas, fotos = {}, piezas = [], cuartos = [], marca = null }) {
+export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, nPzas, fotos = {}, piezas = [], cuartos = [], marca = null, garantia = null, exclusiones = null }) {
+  const GARANTIA = Array.isArray(garantia) && garantia.length ? garantia : (typeof garantia === 'string' && garantia.trim() ? [garantia] : GARANTIA_DEFAULT);
+  const EXCLUSIONES = Array.isArray(exclusiones) && exclusiones.length ? exclusiones : (typeof exclusiones === 'string' && exclusiones.trim() ? [exclusiones] : EXCLUSIONES_DEFAULT);
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   let y = M.arriba;
 
@@ -791,6 +807,26 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
   ].filter(Boolean);
   for (const c of cond) { sitio(5); doc.text('· ' + c, M.izq, y); y += 5; }
 
+  // ---- GARANTÍA ------------------------------------------------------------
+  // Un documento que el cliente firma debe decir qué cubre la garantía. Antes
+  // no estaba y abría la puerta a discusiones después de la entrega.
+  const bloqueTexto = (titulo, lineas) => {
+    y += 6;
+    sitio(10 + lineas.length * 5);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...TINTA);
+    doc.text(titulo, M.izq, y);
+    y += 6;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...GRIS);
+    for (const linea of lineas) {
+      const envuelto = doc.splitTextToSize('· ' + T(linea), ANCHO);
+      sitio(envuelto.length * 4.6);
+      doc.text(envuelto, M.izq, y);
+      y += envuelto.length * 4.6 + 0.8;
+    }
+  };
+  bloqueTexto('GARANTÍA', GARANTIA);
+  bloqueTexto('NO INCLUYE / EXCLUSIONES', EXCLUSIONES);
+
   // ---- ACEPTACIÓN — sin esto la propuesta no se puede firmar ----------------
   y += 8;
   sitio(34);
@@ -861,8 +897,54 @@ function marcarBorrador(doc) {
   } catch (e) { /* si el sello falla, el nombre del archivo ya dice BORRADOR */ }
 }
 
+// ============================================================================
+//  CLIENT-SAFE + SNAPSHOT INMUTABLE (N15)
+// ============================================================================
+// El PDF viaja al cliente: no puede llevar NI UNA clave económica interna.
+// `sinEconomia` quita recursivamente costo/margen/insumos/factores/horas/
+// proveedor; conserva precio/precioUnitario/importe/total (precio de venta).
+// Es defensivo: aunque la partida ya venga seller-safe, aquí se re-garantiza.
+export function partidasClientSafePDF(partidas) {
+  return (partidas || []).map((p) => sinEconomia(p));
+}
+
+// Arma los `datos` de la propuesta A PARTIR DEL SNAPSHOT INMUTABLE de una
+// revisión emitida (cotizaciones.paraGuardar): folio/cliente/partidas/acomodo/
+// totales/total/piezas. Garantiza que el PDF refleje exactamente lo que se
+// registró, no el estado vivo (que pudo cambiar después de emitir). El resultado
+// ya es client-safe (partidas sin economía).
+export function datosDesdeSnapshot(snapshot, extras = {}) {
+  const s = snapshot || {};
+  return {
+    cot: {
+      cliente: s.cliente ?? extras.cliente ?? '',
+      folio: s.folio ?? extras.folio ?? '',
+      fecha: extras.fecha ?? s.fecha ?? new Date().toISOString().slice(0, 10),
+      acomodo: s.acomodo ?? extras.acomodo ?? null,
+    },
+    partidas: partidasClientSafePDF(s.partidas),
+    totales: s.totales || {},
+    nPzas: s.piezas ?? (s.partidas || []).reduce((n, p) => n + (Number(p.cantidad) || 0), 0),
+    resumen: extras.resumen ?? [],
+    especificacion: extras.especificacion ?? (() => ''),
+    fotos: extras.fotos ?? {},
+    piezas: extras.piezas ?? [],
+    cuartos: extras.cuartos ?? [],
+    marca: extras.marca ?? null,
+    garantia: extras.garantia ?? null,
+    exclusiones: extras.exclusiones ?? null,
+    // El snapshot define si fue registrada: si no hay revisión, es borrador.
+    borrador: extras.borrador ?? false,
+  };
+}
+
 export function descargarPropuesta(datos) {
-  const doc = propuestaPDF(datos);
+  // Defensa en profundidad: el PDF nunca sale con economía interna aunque el
+  // llamador se equivoque. Sólo sanea las partidas (es donde viven los costos);
+  // totales/resumen sólo tienen precio de venta (claves permitidas).
+  const seguro = { ...datos, partidas: partidasClientSafePDF(datos.partidas) };
+  const doc = propuestaPDF(seguro);
+  datos = seguro;
   // Si la emisión NO quedó registrada, el documento sale MARCADO como borrador en
   // TODAS las páginas: el cliente no debe recibir algo que parezca definitivo sin
   // evidencia conservada (audit 2026-10-01). Un banner solo se ve en la pantalla

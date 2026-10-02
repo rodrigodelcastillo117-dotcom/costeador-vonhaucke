@@ -61,6 +61,7 @@ import { calcular, modeloParaPieza, componentesSinMaterial } from './motor/calcu
 import { idNuevo } from './util.js';
 import { costoImplicito, precioDeLista } from './datos/preciosVenta.js';
 import Comercial from './componentes/comercial/Comercial.jsx';
+import { flagActivo } from './datos/flags.js';
 
 // Rutas que son una línea de catálogo (para aprender cuáles usa cada quien).
 const RUTAS_LINEA = new Set(['applt', 'app', 'via', 'rio', 'feather', 'cirque', 'spine', 'ergo4', 'alba',
@@ -940,7 +941,10 @@ export default function App() {
         {pestania === 'catalogo' && <Catalogo estado={estado} onCargar={onElegirDelCatalogo} soloVentas={esVendedor} />}
         {pestania === 'cotizacion' && <Cotizacion estado={estado} setEstado={setEstado} soloVentas={esVendedor} onIr={irA} onEmitida={onEmitida} />}
         {pestania === 'cotizarIA' && <div className="contenido"><CotizadorIA estado={estado} onAgregarItems={agregarItemsIA} onIr={irA} verCotizacion soloVentas={esVendedor} /></div>}
-        {pestania === 'comercial' && <Comercial estado={estado} soloVentas={esVendedor} veCostos={veCostos} onIr={irA} />}
+        {pestania === 'comercial' && (flagActivo('commercial_v2')
+          ? <Comercial estado={estado} soloVentas={esVendedor} veCostos={veCostos} onIr={irA} />
+          : <div className="contenido"><div className="tarjeta"><p className="ayuda">El módulo comercial no está disponible en este momento.</p></div></div>
+        )}
         {pestania === 'voni' && (
           <Voni
             estado={estado} setEstado={setEstado} soloVentas={esVendedor} veCostos={veCostos}

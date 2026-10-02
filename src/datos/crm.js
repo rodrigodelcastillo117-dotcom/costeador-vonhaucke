@@ -52,5 +52,9 @@ export const resolverAprobacion = (id, estado, resuelto_por) =>
   nube.from('aprobaciones').update({ estado, resuelto_por, resuelto_en: new Date().toISOString() }).eq('id', id);
 
 // ---- Revisiones (para Diff N16) -------------------------------------------
+// Seller-safe: el RPC sanitiza el snapshot por rol (vendedor sin economía) y
+// aplica la misma visibilidad que la policy revisiones_lee. NO se lee la tabla
+// cruda (su snapshot contiene costos). Devuelve revision/total/hash/snapshot/
+// emitida_en/tipo ya filtrados.
 export const listarRevisionesCotizacion = (cotizacionId) =>
-  sel(nube.from('cotizaciones_revisiones').select('revision,total,hash,snapshot,creado,tipo').eq('cotizacion_id', cotizacionId).order('revision'));
+  sel(nube.rpc('revisiones_seguras', { p_cotizacion_id: cotizacionId }));
