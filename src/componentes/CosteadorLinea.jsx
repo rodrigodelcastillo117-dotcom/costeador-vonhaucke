@@ -10,6 +10,8 @@ import { imagenProducto, fichaRender } from '../datos/imagenes.js';
 import { hexDeColor } from '../datos/coloresHex.js';
 import { footprintDe, precioDePieza } from '../datos/lineas.js';
 import { buscarPrecioVenta, precioDeLista } from '../datos/preciosVenta.js';
+import { resolverArticuloCatalogo } from '../datos/resolverArticulo.js';
+import { autorizadoPorRef } from '../datos/precioAutorizado.js';
 import HojaCosto from './HojaCosto.jsx';
 import FichaPDF from './FichaPDF.jsx';
 
@@ -89,10 +91,23 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
   // `precioDePieza()` (lineas.js) — la MISMA que usa Voni. Antes estaba
   // reimplementada aquí aparte (2026-08-20: de-duplicado, ver comentario en
   // `modeloParaPieza()` en motor/calculo.js).
-  const { resultado, precio, costo: costoModulo, par } = useMemo(
-    () => precioDePieza(estado, linea, g, pieza, cantidad, config),
-    [g, cantidad, estado.insumos, estado.parametros, linea, config]
+  // MODO COMERCIAL (vendedor, seller-safe): el precio viene de Producto Maestro
+  // (Lista V1) por la clave del catálogo; NO se corre el motor de costo (no se lee
+  // insumos). Si la config no mapea a un artículo autorizado => fail-closed (sin precio).
+  const infoComercial = useMemo(() => {
+    if (!soloVentas) return null;
+    const res = resolverArticuloCatalogo({ ruta: linea, producto: prodId, config });
+    const clave = res && res.articulo && res.articulo.lista > 0 ? res.articulo.clave : null;
+    const a = clave ? autorizadoPorRef(clave) : null;
+    return a ? { precio: a.precio_lista, identidad: a } : { precio: null, identidad: null };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [soloVentas, linea, prodId, largo, fondo, diametro, usuarios, largoLateral, biombo, finish, color, gavetas, sels, checks]);
+  // MODO COSTEO (Diseño/Dirección): motor de costo como siempre. Para el vendedor NO se ejecuta.
+  const { resultado, precio: precioCalc, costo: costoModulo, par } = useMemo(
+    () => (soloVentas ? { resultado: null, precio: null, costo: null, par: null } : precioDePieza(estado, linea, g, pieza, cantidad, config)),
+    [g, cantidad, estado.insumos, estado.parametros, linea, config, soloVentas]
   );
+  const precio = soloVentas ? (infoComercial?.precio ?? null) : precioCalc;
   // Add-ons: si el módulo real YA incluye eléctrico, no lo cobres otra vez.
   const addons = (g.addons || []).filter((a) => !(real?.incluyeElectrico && a.id === 'electrico'));
   const totalAddons = addons.reduce((s, a) => s + precioDeLista(a.lista) * (a.cantidad || 1), 0);
@@ -100,10 +115,20 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
   // `precioReal` y `config` viajan con el costeo: el sello de la propuesta y el
   // botón de editar dependen de ellos. Sin esto, un módulo agregado desde aquí
   // salía como "Estimado" aunque su precio viniera de un presupuesto cerrado.
-  const costeoObj = { ...pieza, piezaId: `linea-${prodId}`, linea: titulo, ruta: linea, productoId: prodId, w: fp.w, d: fp.d, nombre: g.nombre, piezas: cantidad, precioReal: !!real, config };
+  const costeoBase = { piezaId: `linea-${prodId}`, linea: titulo, ruta: linea, productoId: prodId, w: fp.w, d: fp.d, nombre: g.nombre, piezas: cantidad, precioReal: !!real, config };
+  // Vendedor: el costeoObj NO lleva economía (factores/horas de `pieza`); lleva la
+  // identidad de Producto Maestro (Línea V2) para que la emisión revalide el precio.
+  const idv2 = infoComercial?.identidad || null;
+  const costeoObj = soloVentas
+    ? { ...costeoBase, componentes: g.componentes, sellerSafe: true,
+        ...(idv2 ? { source_type: 'linea', source_ref: idv2.source_ref, producto_id: idv2.producto_id, producto_version_id: idv2.producto_version_id, lista_precio_item_id: idv2.lista_precio_item_id, precio_lista_snapshot: idv2.precio_lista } : {}) }
+    : { ...pieza, ...costeoBase };
   function agregar() {
-    if (onAgregarModulo && (esIntelisis || addons.length || real)) onAgregarModulo(costeoObj, cantidad, precio, real ? null : (esIntelisis ? null : margen), costoModulo, addons);
-    else onAgregar(costeoObj, cantidad, precio, margen);
+    if (soloVentas && precio == null) return;   // fail-closed: no se agrega sin precio autorizado
+    const margenPartida = soloVentas ? null : margen;      // vendedor: nunca margen
+    const costoPartida = soloVentas ? null : costoModulo;  // vendedor: nunca costo
+    if (onAgregarModulo && (esIntelisis || addons.length || real)) onAgregarModulo(costeoObj, cantidad, precio, soloVentas ? null : (real ? null : (esIntelisis ? null : margen)), costoPartida, addons);
+    else onAgregar(costeoObj, cantidad, precio, margenPartida);
     setCantidad(1);
     setUltimo(g.nombre);
   }
@@ -261,8 +286,16 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
               <button style={{ width: 48, height: 48, fontSize: 20 }} onClick={() => setCantidad((n) => n + 1)}>+</button>
             </span>
           </div>
+          {soloVentas && precio == null ? (
+            <div className="alerta ambar" style={{ marginTop: 8 }}>
+              <span className="texto">Esta configuración no tiene <strong>precio autorizado</strong> en la Lista. Pídela como especial o a Diseño/Dirección para costeo (no se cotiza un precio no autorizado).</span>
+            </div>
+          ) : (
+          <>
           <div className="precio-grande" style={{ marginTop: 8 }}>{pesos(precio)}</div>
-          {real ? (
+          {soloVentas ? (
+            <div className="ayuda" style={{ color: 'var(--verde)', fontWeight: 600 }}>Precio de lista autorizado (Lista V1)</div>
+          ) : real ? (
             <>
               <div className="ayuda" style={{ color: 'var(--verde)', fontWeight: 600 }}>Precio de lista real · presupuesto {real.fuente}</div>
               {/* Qué trae ese precio adentro. La mesa de juntas 2.40 real YA
@@ -278,7 +311,9 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
               ? <>Éste es el <strong>precio de venta</strong>. El descuento de proyecto se aplica al final, en la cotización.</>
               : <>Precio de lista (el precio 2 ya lleva su 40%); el descuento de proyecto va aparte. Costo: <strong className="mono">{pesos(costoModulo)}</strong></>}
           </div>
-          {addons.length > 0 && (
+          </>
+          )}
+          {addons.length > 0 && precio != null && (
             <div style={{ marginTop: 10, borderTop: '1px solid rgba(0,0,0,.1)', paddingTop: 8 }}>
               {addons.map((a) => (
                 <div className="fila" key={a.id} style={{ justifyContent: 'space-between', fontSize: 13 }}>
@@ -293,7 +328,7 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
             </div>
           )}
           <div className="espacio" />
-          <button className="boton primario grande" onClick={agregar}>Agregar a la cotización</button>
+          <button className="boton primario grande" onClick={agregar} disabled={soloVentas && precio == null}>Agregar a la cotización</button>
           {ultimo && (
             <div className="agregado-ok">
               <span className="texto">Agregado: {ultimo}. Puedes seguir escogiendo y se van sumando.</span>

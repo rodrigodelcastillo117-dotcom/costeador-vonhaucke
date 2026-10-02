@@ -447,14 +447,17 @@ export default function App() {
       setEstado((e) => limpiarSensibles(e));
     }
 
-    const desuscribir = suscribirConfig((datos) => {
+    // La suscripción en vivo a `config` trae precios/costos de insumos: SOLO para
+    // quien ve costos (Dirección/Diseño). El vendedor no la necesita y, tras el
+    // cierre de RLS de config, tampoco podría leerla. Para el vendedor es no-op.
+    const desuscribir = veCostos ? suscribirConfig((datos) => {
       if (!datos || !datos.insumos) return;
       const f = firma(datos);
       if (f === ultimoCompartido.current) return; // es mi propio cambio, ignorar
       aplicandoRemoto.current = true;
       ultimoCompartido.current = f;
       setEstado((e) => aplicarCompartido(e, datos));
-    });
+    }) : () => {};
     return () => { vivo = false; desuscribir(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accesoOk]);

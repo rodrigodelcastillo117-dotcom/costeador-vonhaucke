@@ -21,6 +21,9 @@
 //      sin política comercial, sin lista, sin iva, sin estado de autorización.
 //  Rol del JWT.  v3: fixes A (version/variante estrictos), B (servicios dup),
 //  C (diseño técnico), D (estado bloqueada).
+//  v4: adaptador legacy -> Producto Maestro por source_type+source_ref (1 sola
+//  consulta, sin N+1); el navegador manda identidad comercial, el servidor resuelve
+//  producto_id. Ambiguo => identidad_ambigua; sin match => producto_no_resuelto.
 // ============================================================================
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -102,6 +105,36 @@ Deno.serve(async (req) => {
     if (Number.isFinite(Number(p.fletePorcentaje))) fletePct = Number(p.fletePorcentaje);
   } catch (_e) { /* defaults */ }
 
+  // v4 — ADAPTADOR LEGACY -> PRODUCTO MAESTRO (identidad por source_type+source_ref).
+  //  El navegador manda su identidad comercial (clave de línea = source_ref, o id de
+  //  banco = source_ref); el SERVIDOR resuelve producto_id. Se resuelve TODO en UNA
+  //  sola consulta (no N+1). Match por (source_type, source_ref) que es ÚNICO; varios
+  //  => identidad_ambigua; ninguno => producto_inexistente.
+  const refsPedidos = Array.from(new Set(
+    lineasIn.map((L: any) => (L && typeof L.source_ref === "string" && L.source_ref) ? L.source_ref : null).filter(Boolean)
+  )) as string[];
+  const idPorRef = new Map<string, { id: number; st: string }[]>();
+  if (refsPedidos.length) {
+    const { data: prods } = await svc.from("productos").select("id,source_type,source_ref").in("source_ref", refsPedidos);
+    for (const p of (prods || [])) {
+      const arr = idPorRef.get(p.source_ref) || [];
+      arr.push({ id: p.id, st: p.source_type });
+      idPorRef.set(p.source_ref, arr);
+    }
+  }
+  function resolverProductoId(L: any): number | null | "ambiguo" {
+    const directo = posFinito(L.producto_id);
+    if (directo) return directo;
+    const ref = (typeof L.source_ref === "string" && L.source_ref) ? L.source_ref : null;
+    if (!ref) return null;
+    let cands = idPorRef.get(ref) || [];
+    const st = typeof L.source_type === "string" ? L.source_type : null;
+    if (st) cands = cands.filter((c) => c.st === st);
+    if (cands.length === 1) return cands[0].id;
+    if (cands.length > 1) return "ambiguo";
+    return null;
+  }
+
   const lineas: any[] = [];
   let subtotal = 0;
   let requiereAprobacion = false;
@@ -109,14 +142,16 @@ Deno.serve(async (req) => {
 
   for (let i = 0; i < lineasIn.length; i++) {
     const L = lineasIn[i] || {};
-    const producto_id = posFinito(L.producto_id);
+    const pidResuelto = resolverProductoId(L);
+    if (pidResuelto === "ambiguo") { lineas.push({ idx: i, ok: false, motivo: "identidad_ambigua" }); hayLineaInvalida = true; continue; }
+    const producto_id = pidResuelto;
     const cantidad = posFinito(L.cantidad);
     // FIX A: version/variante estrictos cuando vienen en el request.
     const version_opt = opcionalEstricto(L.version_id);
     const variante_opt = opcionalEstricto(L.variante_id);
     const descuento = descuentoValido(L.descuento_solicitado);
 
-    if (!producto_id) { lineas.push({ idx: i, ok: false, motivo: "producto_id_invalido" }); hayLineaInvalida = true; continue; }
+    if (!producto_id) { lineas.push({ idx: i, ok: false, motivo: "producto_no_resuelto" }); hayLineaInvalida = true; continue; }
     if (!cantidad) { lineas.push({ idx: i, ok: false, motivo: "cantidad_invalida" }); hayLineaInvalida = true; continue; }
     if (version_opt === REJECT) { lineas.push({ idx: i, ok: false, motivo: "version_id_invalido" }); hayLineaInvalida = true; continue; }
     if (variante_opt === REJECT) { lineas.push({ idx: i, ok: false, motivo: "variante_id_invalido" }); hayLineaInvalida = true; continue; }

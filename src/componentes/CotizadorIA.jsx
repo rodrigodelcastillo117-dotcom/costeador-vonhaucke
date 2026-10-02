@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { catalogoIA, costearItem } from '../datos/lineas.js';
 import { BANCO } from '../datos/banco.js';
+import { autorizadoPorRef } from '../datos/precioAutorizado.js';
 import { cotizarTexto } from '../nube.js';
 import ProgramaProyecto from './ProgramaProyecto.jsx';
 import { anotar } from '../datos/aprendizaje.js';
@@ -118,7 +119,19 @@ export default function CotizadorIA({
           nota: b.nota || null, confianza: 'alta', avisos: [], sugerido: !!b.sugerido,
         };
         if (!soloVentas) { partidaBanco.costoUnitario = 0; partidaBanco.margen = null; }
-        else partidaBanco.sellerSafe = true;
+        else {
+          partidaBanco.sellerSafe = true;
+          // LÍNEA V2: identidad de Producto Maestro (banco: source_ref == id de la pieza).
+          const idv2 = autorizadoPorRef(pieza.id);
+          if (idv2) {
+            partidaBanco.source_type = 'banco';
+            partidaBanco.source_ref = idv2.source_ref;
+            partidaBanco.producto_id = idv2.producto_id;
+            partidaBanco.producto_version_id = idv2.producto_version_id;
+            partidaBanco.lista_precio_item_id = idv2.lista_precio_item_id;
+            partidaBanco.precio_lista_snapshot = idv2.precio_lista;
+          }
+        }
         costados.push(partidaBanco);
       }
       // Se marca ANTES de tocar las partidas: el useEffect de arriba compara

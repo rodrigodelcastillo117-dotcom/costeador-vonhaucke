@@ -91,6 +91,25 @@ describe('seller-safe: el vendedor no recibe economía interna', () => {
     if (!c.sinPrecioAutorizado) expect(c.precioUnitario).toBeGreaterThan(0);
     if (c.catalogo) expect(c.catalogo.full).toBeUndefined();   // 'full' = precio 2 (base de costo)
   });
+
+  it('LÍNEA V2: un item de catálogo resuelto trae identidad de Producto Maestro, y snapshot == precio mostrado', () => {
+    const cat = catalogoIA();
+    let conIdentidad = 0;
+    for (const ruta of Object.keys(cat)) {
+      if (ruta.startsWith('__')) continue;
+      for (const p of cat[ruta].productos || []) {
+        let c; try { c = costearItem(estado, { ruta, producto: p.id, cantidad: 1, seleccion: [] }, { soloVentas: true }); } catch (e) { continue; }
+        if (!c || c.sinPrecioAutorizado) continue;
+        if (c.producto_id != null) {
+          conIdentidad++;
+          expect(c.lista_precio_item_id).toBeTruthy();
+          expect(c.precio_lista_snapshot).toBe(c.precioUnitario);  // snapshot == precio mostrado (al peso)
+          expect(c.source_ref).toBeTruthy();
+        }
+      }
+    }
+    expect(conIdentidad).toBeGreaterThan(0);  // al menos algunos resuelven identidad V2
+  });
 });
 
 // ---------------------------------------------------------------------------

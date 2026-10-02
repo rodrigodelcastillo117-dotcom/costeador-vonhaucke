@@ -38,6 +38,7 @@ import { precioPorUsuarioAppLT } from './preciosVenta.js';
 import { tipoDe, huellaReal, HUELLA } from './espacio.js';
 import { BANCO, bancoUnico } from './banco.js';
 import { resolverArticuloCatalogo } from './resolverArticulo.js';
+import { autorizadoPorRef } from './precioAutorizado.js';
 
 export const LINEAS_REG = {
   applt: { titulo: 'App LT', productos: APPLT_PRODUCTOS, generar: generarAppLT },
@@ -263,6 +264,19 @@ function sinPrecioVendedor(base) {
     avisos: base.avisos || [], requiereProyectista: !!base.requiereProyectista,
   };
 }
+// LÍNEA V2: adjunta la identidad de Producto Maestro (producto_id/version/item +
+//   precio_lista_snapshot) para que la EMISIÓN la revalide server-side. `ref` es el
+//   source_ref (clave de línea = `c`, o id de banco). Sin match, deja la partida igual.
+function conIdentidadV2(p, sourceType, ref) {
+  const a = autorizadoPorRef(ref);
+  if (!a) return p;
+  return {
+    ...p,
+    source_type: sourceType, source_ref: a.source_ref,
+    producto_id: a.producto_id, producto_version_id: a.producto_version_id,
+    lista_precio_item_id: a.lista_precio_item_id, precio_lista_snapshot: a.precio_lista,
+  };
+}
 
 // `opciones.soloVentas=true` => salida SELLER-SAFE con fail-closed (sin economía,
 //  precio sólo si es AUTORIZADO). Sin la opción, el comportamiento es idéntico al de
@@ -416,8 +430,8 @@ export function costearItem(estado, item, opciones = {}) {
       precioReal: true, catalogo, variantes,
       avisos, candadoUsuarios, requiereProyectista,
     };
-    // Vendedor: precio AUTORIZADO del catálogo, pero sin economía interna.
-    return soloVentas ? sellerSafePartida(partidaCatalogo) : partidaCatalogo;
+    // Vendedor: precio AUTORIZADO del catálogo, con identidad Línea V2 y sin economía interna.
+    return soloVentas ? sellerSafePartida(conIdentidadV2(partidaCatalogo, 'linea', a.clave)) : partidaCatalogo;
   }
 
   const partidaModelo = {

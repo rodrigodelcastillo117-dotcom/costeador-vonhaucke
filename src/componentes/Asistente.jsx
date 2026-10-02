@@ -60,7 +60,9 @@ export default function Asistente({ estado, onAgregarPartida, onModoAvanzado, on
       const c = construirCosteo(l, mueble, estado);
       const tieneReceta = c.componentes.length > 0;
       const { par, esIntelisis } = modeloParaPieza(estado.parametros, c);
-      const r = tieneReceta ? calcular(piezaDe(c), 1, estado.insumos, par) : null;
+      // Seller-safe: el vendedor NO corre el motor de costo (insumos). El precio
+      // comercial lo da el flujo autorizado (Voni/Cotizador); aquí sólo navega.
+      const r = (tieneReceta && !soloVentas) ? calcular(piezaDe(c), 1, estado.insumos, par) : null;
       return { linea: l, costeo: c, precio: r ? precioSegunModelo(r.costoUnitario, par, esIntelisis, margenObjetivo) : null, tieneReceta };
     });
     conPrecio.sort((a, b) => {
@@ -78,9 +80,9 @@ export default function Asistente({ estado, onAgregarPartida, onModoAvanzado, on
     [estado.parametros, costeo]
   );
   const resultado = useMemo(() => {
-    if (!costeo) return null;
+    if (!costeo || soloVentas) return null;   // seller-safe: sin motor de costo para vendedor
     return calcular(piezaDe(costeo), cantidad, estado.insumos, parCosteo);
-  }, [costeo, cantidad, estado.insumos, parCosteo]);
+  }, [costeo, cantidad, estado.insumos, parCosteo, soloVentas]);
   const precio = resultado ? precioSegunModelo(resultado.costoUnitario, parCosteo, costeoEsIntelisis, margenEfectivo) : 0;
 
   function escogerFamilia(f) { setFamilia(f); setPaso('mueble'); setAvisoOpcion(''); }
@@ -120,6 +122,21 @@ export default function Asistente({ estado, onAgregarPartida, onModoAvanzado, on
   }
 
   const esBench = !!costeo?.bench;
+
+  // Seller-safe: el Asistente de costeo por pieza deriva precio del costo (insumos),
+  // así que para el VENDEDOR no se usa; se le dirige al flujo autorizado (Voni).
+  if (soloVentas) {
+    return (
+      <div className="asistente">
+        <div className="tarjeta">
+          <h3 style={{ marginTop: 0 }}>Para cotizar, usa Voni</h3>
+          <p className="ayuda columna-texto">El armado de cotizaciones con <strong>precio autorizado</strong> está en Voni / Cotizador. El asistente de costeo por pieza es para Diseño y Dirección.</p>
+          <div className="espacio" />
+          <button className="boton primario grande" style={{ width: '100%' }} onClick={() => onIr('voni')}>Ir a Voni →</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="asistente">

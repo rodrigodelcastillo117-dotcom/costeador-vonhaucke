@@ -38,7 +38,9 @@ export default function Catalogo({ estado, onCargar, soloVentas = false }) {
     const lineas = lineasDeMueble(mueble.muebleId);
     const conCosto = lineas.map((l) => ({
       linea: l,
-      costo: costoDeLinea(l.id, mueble.muebleId, estado),
+      // Vendedor (seller-safe): NO se corre el motor de costo (insumos). El precio
+      // AUTORIZADO aparece al configurar en el Costeador de línea; aquí sólo se navega.
+      costo: soloVentas ? null : costoDeLinea(l.id, mueble.muebleId, estado),
     }));
     // Ordenar: las que tienen costo, de menor a mayor; luego las de solo gama
     conCosto.sort((a, b) => {
@@ -63,7 +65,7 @@ export default function Catalogo({ estado, onCargar, soloVentas = false }) {
               </div>
               <div className="ayuda">{linea.que}{REGLAS_LINEA[linea.id]?.nota ? ' · ' + REGLAS_LINEA[linea.id].nota : ''}</div>
             </div>
-            {costo != null ? <div className="dinero">{pesos(aMostrar(costo))}</div> : <span className="etiqueta-dato supuesto">sin receta</span>}
+            {costo != null ? <div className="dinero">{pesos(aMostrar(costo))}</div> : <span className="etiqueta-dato supuesto">{soloVentas ? 'ver al configurar' : 'sin receta'}</span>}
             <button className="boton primario" onClick={() => cargar(linea, mueble.muebleId, mueble.familiaId, estado, onCargar)}>{soloVentas ? 'Configurar →' : 'Usar'}</button>
           </div>
         ))}

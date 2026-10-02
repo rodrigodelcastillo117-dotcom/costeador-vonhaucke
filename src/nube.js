@@ -25,10 +25,15 @@ export function soloCompartido(estado) {
   return c;
 }
 
+// El SERVIDOR decide qué config recibe cada rol (no el navegador): Dirección/Diseño
+// reciben la config COMPLETA (con costos, para despiece); el vendedor recibe la
+// versión SELLER-SAFE (sin precio/precioBase/proveedor de insumos, sin factores ni
+// economía). Ver RPC `config_para_rol` (SECURITY DEFINER, resuelve el rol por el JWT).
+// Así el costo NO viaja al navegador del vendedor por esta vía.
 export async function leerConfig() {
-  const { data, error } = await nube.from('config').select('datos').eq('id', 'vonhaucke').single();
+  const { data, error } = await nube.rpc('config_para_rol');
   if (error) throw error;
-  return data?.datos || {};
+  return data || {};
 }
 
 export async function escribirConfig(datosCompartidos) {
