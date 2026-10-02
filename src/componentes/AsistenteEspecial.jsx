@@ -8,7 +8,7 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import { calcular, precioDe, netoComponente, modeloParaPieza } from '../motor/calculo.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos } from '../util.js';
-import { analizarRender, analizarRenderImagenes, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, guardarRender, guardarConfirmaciones, sesionActual } from '../nube.js';
+import { analizarRender, analizarRenderImagenes, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano } from '../nube.js';
 import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { abrirPdf, paginaAImagen, todasLasPaginas } from '../datos/pdfImagen.js';
 import Cargando from './Cargando.jsx';
@@ -83,7 +83,7 @@ export function aceptaCorrida(corridaId, actual) {
   return corridaId == null || corridaId === actual;
 }
 
-export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
+export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBiblioteca, expedienteInicial }) {
   const insumos = estado.insumos;
   const [paso, setPaso] = useState(0);
   const [analizando, setAnalizando] = useState(false);
@@ -160,6 +160,13 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
   const [renderMsg, setRenderMsg] = useState('');
   const [renderizando, setRenderizando] = useState(false);
   const [costoEstado, setCostoEstado] = useState(null); // 'certificado' | 'preliminar' | null
+  // Biblioteca
+  const [etiquetasTxt, setEtiquetasTxt] = useState('');
+  const [estadoExp, setEstadoExp] = useState('borrador');
+  const [guardandoExp, setGuardandoExp] = useState(false);
+  const [expId, setExpId] = useState(null);
+  const [expMsg, setExpMsg] = useState('');
+  const [costoGuardado, setCostoGuardado] = useState(null); // snapshot del costo al guardar (para Δ vs hoy)
   const dimsR = useMemo(() => dimsDeMueble(b), [b]);
   // PRECEDENCIA de materiales/acabado para el render: (1-3) selección/BOM del usuario = materiales
   // de SUPERFICIE de los componentes que tiene/confirmó; (4) leyenda del plano (b.materiales de la
@@ -259,6 +266,57 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
     setRenderizando(false);
   }
 
+  // Guarda (o actualiza) el producto como EXPEDIENTE en la biblioteca: nombre, etiquetas, BOM,
+  // costo (snapshot con fecha), render y plano (a Storage). Editable luego por Diseño.
+  async function guardarEnBiblioteca() {
+    if (guardandoExp) return;
+    if (!b.nombre?.trim() || !(b.componentes?.length)) { setExpMsg('Falta nombre y despiece para guardar.'); return; }
+    setGuardandoExp(true); setExpMsg('');
+    try {
+      let quien = null; try { quien = (await sesionActual())?.user?.email || null; } catch (_e) {}
+      const base = `exp/${hashInput({ n: b.nombre, c: b.componentes })}`;
+      const planos = Array.isArray(b.planos) ? b.planos.filter(Boolean) : [];
+      const planoUrls = [];
+      for (let i = 0; i < Math.min(planos.length, 8); i++) {
+        const up = await subirPlano(planos[i], `${base}/plano-${i}-${Date.now()}.jpg`);
+        if (up.ok && up.url) planoUrls.push(up.url);
+      }
+      const soloHttp = (u) => (typeof u === 'string' && u.startsWith('http')) ? u : null;
+      const etiquetas = etiquetasTxt.split(',').map((s) => s.trim()).filter(Boolean);
+      const exp = {
+        nombre: b.nombre.trim(), etiquetas, estado: estadoExp,
+        producto_tipo: tipoDeMueble(b), ancho_mm: dimsR.w, fondo_mm: dimsR.d, alto_mm: null,
+        descripcion: b.descripcionCliente || null, materiales: materialesR, bom: b.componentes,
+        costo: { costoUnitario: Math.round(resultado.costoUnitario), materialTotal: Math.round(resultado.materialTotal), manoObra: Math.round(resultado.manoObra), indirectosFabrica: Math.round(resultado.indirectosFabrica), precio: Math.round(precio), margen: b.margen, estado_costo: costoEstado || 'preliminar', fecha: new Date().toISOString() },
+        confirmaciones: preguntasIA.map((q, i) => { const nq = normPreg(q); return { pregunta: nq.pregunta, respuesta: respuestas[i] || null }; }).filter((x) => x.respuesta),
+        plano_urls: planoUrls.length ? planoUrls : (expId ? undefined : []),
+        render_aislado_url: soloHttp(renders.aislado), render_ambiente_url: soloHttp(renders.ambiente),
+        analysis_hash: hashInput({ c: b.componentes, n: b.piezas, m: b.margen }),
+      };
+      if (planoUrls.length === 0 && !expId) exp.plano_urls = [];
+      if (exp.plano_urls === undefined) delete exp.plano_urls; // al actualizar sin planos nuevos, no pisa los guardados
+      if (expId) {
+        const r = await actualizarExpediente(expId, { ...exp, actualizado_por: quien });
+        setExpMsg(r.ok ? '✓ Actualizado en la biblioteca' : (r.error || 'No se pudo actualizar.'));
+      } else {
+        const r = await guardarExpediente({ ...exp, plano_urls: planoUrls, creado_por: quien });
+        if (r.ok) { setExpId(r.id); setExpMsg('✓ Guardado en la biblioteca'); } else setExpMsg(r.error || 'No se pudo guardar.');
+      }
+    } finally { setGuardandoExp(false); }
+  }
+
+  // Reabrir un expediente de la biblioteca: carga su BOM/costo/render como corrida nueva.
+  useEffect(() => {
+    if (!expedienteInicial) return;
+    const e = expedienteInicial;
+    const id = ++corrida.current;
+    setB((prev) => ({ ...prev, nombre: e.nombre || '', componentes: Array.isArray(e.bom) ? e.bom : [], piezas: 1, margen: e.costo?.margen ?? prev.margen, descripcionCliente: e.descripcion || '', materiales: Array.isArray(e.materiales) ? e.materiales : [], planos: [], imagen: null, analysisId: id }));
+    setExpId(e.id); setEtiquetasTxt((e.etiquetas || []).join(', ')); setEstadoExp(e.estado || 'borrador');
+    setRenders({ aislado: e.render_aislado_url || null, ambiente: e.render_ambiente_url || null });
+    setCostoEstado(e.costo?.estado_costo || null); setCostoGuardado(e.costo || null); setExpMsg(''); setPreguntasIA([]); setAnalisis(null);
+    setPaso(1);
+  }, [expedienteInicial]);
+
   // --- despiece ---
   function agregarParte(p) {
     const comp = { nombre: p.label, insumoId: p.material, piezas: 1, cantidad: 1 };
@@ -329,6 +387,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
     const id = ++corrida.current;
     setErrorIA(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({});
     setAnalisis(null); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg('');
+    setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); // nuevo producto = nuevo expediente
     setB((prev) => ({ ...prev, nombre: '', componentes: [], imagen: null, planos: [], descripcionCliente: '', materiales: [], analysisId: id }));
     return id;
   }
@@ -514,9 +573,12 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
           <span key={i} className={`punto ${i <= paso ? 'activo' : ''}`} />
         ))}
       </div>
-      <button className="boton fantasma" onClick={() => (paso === 0 ? onInicio() : setPaso(paso - 1))} style={{ marginBottom: 14 }}>
-        ‹ {paso === 0 ? 'Inicio' : 'Atrás'}
-      </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <button className="boton fantasma" onClick={() => (paso === 0 ? onInicio() : setPaso(paso - 1))}>
+          ‹ {paso === 0 ? 'Inicio' : 'Atrás'}
+        </button>
+        {onBiblioteca && <button className="boton" onClick={onBiblioteca}>📚 Biblioteca</button>}
+      </div>
 
       {/* PASO 1 — Identidad */}
       {paso === 0 && (
@@ -703,6 +765,12 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
           <div className="ayuda columna-texto" style={{ textAlign: 'left' }}>
             Material {pesos(resultado.materialTotal)} · Mano de obra {pesos(resultado.manoObra)} · Fábrica {pesos(resultado.indirectosFabrica)}
           </div>
+          {costoGuardado && Math.abs((costoGuardado.costoUnitario || 0) - Math.round(resultado.costoUnitario)) > 0 && (
+            <div className="ayuda columna-texto" style={{ textAlign: 'left', marginTop: 6 }}>
+              Re-costeo con catálogo de hoy: guardado {pesos(costoGuardado.costoUnitario)} → hoy {pesos(resultado.costoUnitario)}
+              {' '}(Δ {pesos(Math.round(resultado.costoUnitario) - (costoGuardado.costoUnitario || 0))}). Guarda para actualizar el expediente.
+            </div>
+          )}
 
           {/* RENDER V1 — ilustra el producto definido; no lo modifica */}
           <div className="espacio" />
@@ -740,6 +808,31 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
               ))}
             </div>
           </div>
+
+          {/* GUARDAR EN BIBLIOTECA */}
+          <div className="espacio" />
+          <div style={{ borderTop: '1px solid var(--borde)', paddingTop: 14, textAlign: 'left' }}>
+            <strong>Guardar en biblioteca</strong>
+            <p className="ayuda" style={{ margin: '6px 0' }}>Queda a la mano del equipo de Diseño, buscable por palabra clave, con plano, despiece, costo y render.</p>
+            <label className="etiqueta">Nombre</label>
+            <input type="text" value={b.nombre || ''} onChange={(e) => set({ nombre: e.target.value })} style={{ width: '100%' }} />
+            <div className="espacio" />
+            <label className="etiqueta">Palabras clave (separa con comas)</label>
+            <input type="text" value={etiquetasTxt} placeholder="Cabecera Soriana, Alpura, exhibidor, retail" onChange={(e) => setEtiquetasTxt(e.target.value)} style={{ width: '100%' }} />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10, flexWrap: 'wrap' }}>
+              <span className="ayuda">Estado:</span>
+              <button type="button" className={'chip' + (estadoExp === 'borrador' ? ' on' : '')} onClick={() => setEstadoExp('borrador')} style={{ cursor: 'pointer', background: estadoExp === 'borrador' ? 'var(--tinta,#2B2622)' : undefined, color: estadoExp === 'borrador' ? '#fff' : undefined }}>Borrador</button>
+              <button type="button" className={'chip' + (estadoExp === 'aprobado' ? ' on' : '')} onClick={() => setEstadoExp('aprobado')} style={{ cursor: 'pointer', background: estadoExp === 'aprobado' ? 'var(--ok,#1a7f37)' : undefined, color: estadoExp === 'aprobado' ? '#fff' : undefined }}>Aprobado</button>
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+              <button className="boton primario" disabled={guardandoExp} onClick={guardarEnBiblioteca}>
+                {guardandoExp ? 'Guardando…' : expId ? 'Actualizar en biblioteca' : 'Guardar en biblioteca'}
+              </button>
+              {expId && <button className="boton" disabled={guardandoExp} onClick={() => { setExpId(null); set({ nombre: (b.nombre || 'Producto') + ' (copia)' }); setCostoGuardado(null); setExpMsg('Duplicando: toca "Guardar en biblioteca" para crear la copia.'); }}>Duplicar</button>}
+              {onBiblioteca && <button className="boton" onClick={onBiblioteca}>📚 Ver biblioteca</button>}
+            </div>
+            {expMsg && <p className="ayuda" style={{ marginTop: 6, color: expMsg.startsWith('✓') ? 'var(--ok,#1a7f37)' : 'var(--alerta,#b22a22)' }}>{expMsg}</p>}
+          </div>
         </div>
       )}
 
@@ -750,7 +843,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
       ) : (
         <div className="fila-botones">
           <button className="boton primario grande" onClick={() => onVerDetalle(b)}>Ver detalle completo y cotizar</button>
-          <button className="boton grande" onClick={() => { setB({ nombre: '', piezas: 1, componentes: [], modoManoObra: 'porcentaje', factorDirecta: 55, factorIndirecta: 12, margen: b.margen }); setPaso(0); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({}); setAnalisis(null); }}>Empezar otro</button>
+          <button className="boton grande" onClick={() => { setB({ nombre: '', piezas: 1, componentes: [], modoManoObra: 'porcentaje', factorDirecta: 55, factorIndirecta: 12, margen: b.margen }); setPaso(0); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({}); setAnalisis(null); setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); corrida.current++; }}>Empezar otro</button>
         </div>
       )}
     </div>

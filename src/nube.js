@@ -335,6 +335,40 @@ export async function guardarRender(meta) {
   return { ok: true, id: data?.id };
 }
 
+// --- BIBLIOTECA DE EXPEDIENTES ------------------------------------------------
+// Sube una página de plano (base64 raw) a Storage; devuelve su URL pública.
+export async function subirPlano(base64, path) {
+  return subirRender('data:image/jpeg;base64,' + base64, path);
+}
+// Crea un expediente nuevo. Devuelve {ok,id}.
+export async function guardarExpediente(exp) {
+  const { data, error } = await nube.from('expedientes').insert(exp).select('id').maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, id: data?.id };
+}
+// Actualiza un expediente existente (edición del equipo de diseño).
+export async function actualizarExpediente(id, patch) {
+  const { error } = await nube.from('expedientes').update({ ...patch, actualizado: new Date().toISOString() }).eq('id', id);
+  return error ? { ok: false, error: error.message } : { ok: true };
+}
+// Lista expedientes (más recientes primero) y filtra por palabra clave (nombre o etiquetas) en cliente.
+export async function listarExpedientes(q) {
+  const { data, error } = await nube.from('expedientes')
+    .select('id,creado,actualizado,nombre,etiquetas,estado,producto_tipo,render_aislado_url,costo')
+    .order('creado', { ascending: false }).limit(80);
+  if (error) return { ok: false, error: error.message, items: [] };
+  const term = (q || '').trim().toLowerCase();
+  const items = term
+    ? (data || []).filter((x) => (x.nombre || '').toLowerCase().includes(term) || (x.etiquetas || []).some((t) => String(t).toLowerCase().includes(term)))
+    : (data || []);
+  return { ok: true, items };
+}
+// Trae un expediente completo (para reabrir/duplicar/re-costear).
+export async function obtenerExpediente(id) {
+  const { data, error } = await nube.from('expedientes').select('*').eq('id', id).maybeSingle();
+  return error ? { ok: false, error: error.message } : { ok: true, expediente: data };
+}
+
 // hash corto y estable del input (djb2) para correlacionar cliente/servidor sin guardar el BOM.
 export function hashInput(obj) {
   const t = JSON.stringify(obj ?? {});

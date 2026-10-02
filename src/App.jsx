@@ -20,6 +20,7 @@ import SinPantallaBlanca from './componentes/SinPantallaBlanca.jsx';
 import Inicio from './componentes/Inicio.jsx';
 import Asistente from './componentes/Asistente.jsx';
 import AsistenteEspecial from './componentes/AsistenteEspecial.jsx';
+import Biblioteca from './componentes/Biblioteca.jsx';
 import CosteadorLinea from './componentes/CosteadorLinea.jsx';
 import { APPLT_PRODUCTOS, generarAppLT } from './datos/applt.js';
 import { APP_PRODUCTOS, generarApp } from './datos/app.js';
@@ -177,6 +178,7 @@ export default function App() {
   const [estado, setEstado] = useState(cargar);
   const [pestania, setPestania] = useState('inicio');
   const [inicioVista, setInicioVista] = useState('home'); // sub-vista del Inicio (home/costear/cotizar)
+  const [expedienteAbierto, setExpedienteAbierto] = useState(null); // expediente de biblioteca a reabrir en el asistente
   const [prodInicial, setProdInicial] = useState(null);   // producto que pidió el buscador
   // ⚠️ LA BÚSQUEDA Y EL ACORDEÓN VIVEN AQUÍ, NO EN `Inicio`. App DESMONTA
   // Inicio al navegar, así que cada "Atrás" repliega el acordeón y borra lo que
@@ -907,8 +909,12 @@ export default function App() {
         {pestania === 'worklounge' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Work Lounge" productos={WORKLOUNGE_PRODUCTOS} generar={generarWorklounge} onAgregar={agregarDesdeAsistente} /></div>}
         {pestania === 'cirque' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Cirque" productos={CIRQUE_PRODUCTOS} generar={generarCirque} onAgregar={agregarDesdeAsistente} /></div>}
         {pestania === 'especial' && (veCostos
-          ? <div className="contenido"><AsistenteEspecial estado={estado} onVerDetalle={(bor) => { setCosteo({ ...costeoEnBlanco(), ...bor }); irA('costeador'); }} onInicio={irInicio} /></div>
+          ? <div className="contenido"><AsistenteEspecial estado={estado} onVerDetalle={(bor) => { setCosteo({ ...costeoEnBlanco(), ...bor }); irA('costeador'); }} onInicio={irInicio} onBiblioteca={() => irA('biblioteca')} expedienteInicial={expedienteAbierto} /></div>
           : <div className="contenido"><div className="tarjeta"><p className="ayuda">Costear desde cero es para Diseño y Dirección.</p></div></div>
+        )}
+        {pestania === 'biblioteca' && (veCostos
+          ? <div className="contenido"><Biblioteca onInicio={irInicio} onNuevo={() => { setExpedienteAbierto(null); irA('especial'); }} onAbrir={(exp) => { setExpedienteAbierto(exp); irA('especial'); }} /></div>
+          : <div className="contenido"><div className="tarjeta"><p className="ayuda">La biblioteca de productos es para Diseño y Dirección.</p></div></div>
         )}
         {pestania === 'tablero' && (esDireccion
           ? <Tablero estado={estado} irA={irA} puedeVerDireccion={desbloqueado} onDireccion={null} />
