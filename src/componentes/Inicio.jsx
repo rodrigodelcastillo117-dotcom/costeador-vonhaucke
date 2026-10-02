@@ -295,6 +295,7 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
       <div className="inicio">
         <BarraVolver titulo="Cotizar" sub="Arma el precio para el cliente." onVolver={() => setVista('home')} />
         <div className="inicio-botones">
+          <Tarjeta icono="archivo" titulo="Comercial · Proyectos" desc="Hoy, proyectos, catálogo y propuestas. Tu espacio de venta de principio a fin." onClick={() => onIr('comercial')} />
           <Tarjeta roja icono="especial" titulo="Cotizar con IA" desc="Escribe lo que pide el cliente y la IA arma la cotización completa, con precios." onClick={() => onIr('cotizarIA')} />
           {veCostos
             ? <Tarjeta destacada icono="despiece" titulo="Cotizar de línea" desc="Escribe el mueble que necesitas —silla WIN, mesa de juntas, archivero— y te doy el precio." onClick={() => setVista('cotizarlinea')} />
