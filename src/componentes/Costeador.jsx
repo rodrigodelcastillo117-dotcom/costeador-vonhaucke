@@ -79,6 +79,13 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   // puede emitir a la cotización. Solo se muestra el subtotal conocido.
   const pendientesC = resultado.componentesIgnorados || [];
   const incompletoC = pendientesC.length > 0;
+  // SIMULADOR vs OFICIAL (cutover 2026-10-02). El costo OFICIAL usa Alba (sin factores a
+  // mano y sin horas). En cuanto el usuario fija un factorDirecta/Indirecta o usa modo
+  // horas, está SIMULANDO: no es oficial y no puede emitir/cotizar/aprobar. Volver a
+  // Alba (botón) limpia los factores y restaura el costo certificado.
+  const esOficialAlba = costeo.modoManoObra !== 'horas' && costeo.factorDirecta == null && costeo.factorIndirecta == null;
+  const simulando = !esOficialAlba;
+  const volverAAlba = () => set({ modoManoObra: 'porcentaje', factorDirecta: null, factorIndirecta: null });
   const sugerencia = useMemo(
     () => sugerenciaLote(piezaVirtual, costeo.piezas, insumos, par),
     [costeo, insumos, par]
@@ -449,6 +456,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             </div>
           ) : (
             <div style={{ marginTop: 14 }}>
+              <div className="ayuda" style={{ marginBottom: 6, color: '#8a6d00' }}>Simulación manual (no oficial). El costo oficial se calcula con Alba V1; mover estos factores simula escenarios.</div>
               <label className="etiqueta">Factor de material directo</label>
               <div className="masmenos" style={{ marginBottom: 8 }}>
                 <input type="range" min="1" max="99" value={costeo.factorDirecta ?? 55}
@@ -525,6 +533,17 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
         <HojaCosto resultado={resultado} insumos={insumos} pieza={piezaVirtual} parametros={par} tipo={costeo.tipoProducto} mostrarVolumen={true} />
 
         <div className="tarjeta roja" style={{ marginTop: 16 }}>
+          {/* SIMULADOR vs OFICIAL: un costo oficial SIEMPRE es Alba. Con factores a mano
+              esto es una simulación y no puede emitir/cotizar. */}
+          {simulando ? (
+            <div className="alerta" style={{ border: '1px solid #8a6d00', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+              <div style={{ fontWeight: 700 }}>⚠ SIMULADOR — NO OFICIAL</div>
+              <div className="ayuda" style={{ margin: '4px 0 8px' }}>Los factores manuales NO modifican el costo certificado del expediente (Alba V1). No se puede cotizar, aprobar ni emitir desde aquí.</div>
+              <button className="boton" onClick={volverAAlba}>Volver al costo oficial (Alba V1)</button>
+            </div>
+          ) : (
+            <div className="ayuda" style={{ marginBottom: 10, opacity: 0.8 }}>Costo oficial — <strong>Alba V1</strong>.</div>
+          )}
           <label className="etiqueta">Cuanto quieres ganar</label>
           <div className="masmenos" style={{ marginBottom: 10 }}>
             <input type="range" min="0" max="70" value={margen}
@@ -536,11 +555,12 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
           {incompletoC && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">⚠ Costo INCOMPLETO — faltan por costear {pendientesC.length} partida(s): {pendientesC.slice(0, 6).join(', ')}{pendientesC.length > 6 ? '…' : ''}. No se puede cotizar ni emitir.</span></div>}
           {!incompletoC && bajoMinimo && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">Debajo del minimo de {estado.parametros.margenMinimo}%.</span></div>}
           <div className="espacio" />
-          <button className="boton primario grande" disabled={incompletoC} title={incompletoC ? 'No se puede cotizar un costo incompleto' : ''} onClick={() => !incompletoC && onAgregarCotizacion(resultado, precio, margen)}>Agregar a la cotización</button>
+          {/* Emisión OFICIAL solo cuando es Alba (no simulación) y el costo está completo. */}
+          <button className="boton primario grande" disabled={incompletoC || simulando} title={simulando ? 'Simulación: vuelve al costo oficial Alba para cotizar' : incompletoC ? 'No se puede cotizar un costo incompleto' : ''} onClick={() => !incompletoC && !simulando && onAgregarCotizacion(resultado, precio, margen)}>Agregar a la cotización</button>
           <div className="espacio" />
           <button className="boton grande" onClick={() => onGuardarPieza(resultado)}>Guardar como pieza</button>
           <div className="espacio" />
-          <button className="boton grande" disabled={incompletoC} title={incompletoC ? 'No se puede imprimir una ficha con precio incompleto' : ''} onClick={() => !incompletoC && setFichaAbierta(true)}>Ver ficha PDF</button>
+          <button className="boton grande" disabled={incompletoC || simulando} title={simulando ? 'Simulación: no emite ficha oficial' : incompletoC ? 'No se puede imprimir una ficha con precio incompleto' : ''} onClick={() => !incompletoC && !simulando && setFichaAbierta(true)}>Ver ficha PDF</button>
         </div>
       </div>
 
@@ -550,8 +570,8 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
 
       {/* Barra fija inferior para pantallas angostas */}
       <div className="barra-fija no-imprimir">
-        <span>{incompletoC ? 'Subtotal conocido' : 'Cuesta hacer 1 pieza'} <strong className="mono">{pesos(resultado.costoUnitario)}</strong></span>
-        <span className="precio-grande" style={incompletoC ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : pesos(precio)}</span>
+        <span>{simulando ? 'Simulación' : incompletoC ? 'Subtotal conocido' : 'Cuesta hacer 1 pieza'} <strong className="mono">{pesos(resultado.costoUnitario)}</strong></span>
+        <span className="precio-grande" style={(incompletoC || simulando) ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : simulando ? 'No oficial' : pesos(precio)}</span>
       </div>
     </div>
   );

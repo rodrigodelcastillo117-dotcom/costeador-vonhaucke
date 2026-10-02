@@ -1082,7 +1082,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         <button className="boton primario grande" disabled={!puedeSeguir} onClick={() => setPaso(paso + 1)}>Siguiente ›</button>
       ) : (
         <div className="fila-botones">
-          <button className="boton primario grande" onClick={() => onVerDetalle(b)}>Ver detalle completo y cotizar</button>
+          <button className="boton primario grande" onClick={() => onVerDetalle(b)}>Ver detalle completo (Alba V1)</button>
           <button className="boton grande" onClick={() => { setB({ nombre: '', piezas: 1, componentes: [], modoManoObra: 'porcentaje', margen: b.margen }); setPaso(0); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({}); setConfirmadas({}); setConfMsg(''); setAnalisis(null); setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); setRenderHash(null); setRevActual(1); setCanonico(false); setPropuestaDiff(null); setBomDirty(false); setFormulaGuardada(null); corrida.current++; }}>Empezar otro</button>
         </div>
       )}

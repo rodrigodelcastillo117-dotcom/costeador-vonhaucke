@@ -109,7 +109,10 @@ function costeoEnBlanco() {
   return {
     piezaId: null, nombre: '', linea: null, piezas: 1, componentes: [],
     modoManoObra: 'porcentaje', horas: { pm: 0, carpinteria: 0, pintura: 0, acabados: 0, tapiceria: 0 },
-    factorDirecta: 55, factorIndirecta: 12, preparacionHoras: 0, margen: 30,
+    // CUTOVER A ALBA (2026-10-02): el costo OFICIAL por defecto es Alba (sin factores a
+    // mano). El 55/12 legacy ya no se siembra: así "Ver detalle" de un producto Alba no
+    // se recostea en Legacy55. Mover un factor a mano = SIMULACIÓN no oficial (Costeador).
+    factorDirecta: null, factorIndirecta: null, preparacionHoras: 0, margen: 30,
   };
 }
 
@@ -909,7 +912,7 @@ export default function App() {
         {pestania === 'worklounge' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Work Lounge" productos={WORKLOUNGE_PRODUCTOS} generar={generarWorklounge} onAgregar={agregarDesdeAsistente} /></div>}
         {pestania === 'cirque' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Cirque" productos={CIRQUE_PRODUCTOS} generar={generarCirque} onAgregar={agregarDesdeAsistente} /></div>}
         {pestania === 'especial' && (veCostos
-          ? <div className="contenido"><AsistenteEspecial estado={estado} onVerDetalle={(bor) => { setCosteo({ ...costeoEnBlanco(), ...bor }); irA('costeador'); }} onInicio={irInicio} onBiblioteca={() => irA('biblioteca')} expedienteInicial={expedienteAbierto} /></div>
+          ? <div className="contenido"><AsistenteEspecial estado={estado} onVerDetalle={(bor) => { setCosteo({ ...costeoEnBlanco(), ...bor, factorDirecta: bor.factorDirecta ?? null, factorIndirecta: bor.factorIndirecta ?? null }); irA('costeador'); }} onInicio={irInicio} onBiblioteca={() => irA('biblioteca')} expedienteInicial={expedienteAbierto} /></div>
           : <div className="contenido"><div className="tarjeta"><p className="ayuda">Costear desde cero es para Diseño y Dirección.</p></div></div>
         )}
         {pestania === 'biblioteca' && (veCostos
