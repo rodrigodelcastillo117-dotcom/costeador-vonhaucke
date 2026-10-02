@@ -67,6 +67,14 @@ Deno.serve(async (req) => {
         ? "You are given MULTIPLE reference views/pages of the SAME product (front, side, sections, details). Use ALL of them " +
           "together to reconstruct one single coherent 3D object; they are the same piece from different angles, not different products. "
         : "") +
+      // El plano/hoja técnica trae varias vistas + cotas + textos + recuadro: hay que leerlo como
+      // ingeniería, NO copiarlo tal cual (si no, Gemini dibuja las líneas de cota o mezcla vistas).
+      "IF THE REFERENCE IS A TECHNICAL DRAWING / PLANO (orthographic views like 'vista frontal/lateral/superior' plus an " +
+      "isometric 3/4 view, with dimension lines, numbers, labels, a materials legend and a title block): read it as engineering. " +
+      "Use the ISOMETRIC 3/4 view as the PRIMARY shape reference, and the front/side/top views to get exact proportions and the " +
+      "configuration of every module, shelf, door, niche and light box. Then produce ONE realistic 3/4 studio PHOTO of the finished, " +
+      "built product. DO NOT draw any dimension lines, arrows, numbers, measurement text, labels, section marks, the title block, " +
+      "the material swatches or any 2D annotation — none of that appears on a real product. Reconstruct the REAL object, not the sheet. " +
       // Elementos que DEBEN conservarse si aparecen en el plano (no omitirlos al embellecer).
       (preservar ? `The product includes these elements that you MUST keep, in the same place and proportion as the reference: ${preservar}. Do not omit any of them. ` : "") +
       // Prioridad explícita: fidelidad geométrica sobre belleza.

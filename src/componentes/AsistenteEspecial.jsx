@@ -191,7 +191,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
     const ent = entornoDe();
     // Páginas/vistas del plano (base64 raw). Varias = más fidelidad geométrica.
     const paginas = Array.isArray(b.planos) ? b.planos.filter(Boolean) : [];
-    const fid = paginas.length >= 2 ? 'alta' : paginas.length === 1 ? 'media' : 'texto';
+    // Fidelidad por tener PLANO (fuente de verdad), no por número de archivos: un plano con
+    // varias vistas en 1 imagen ya es alta. Solo 'texto' (limitada) cuando no hay plano.
+    const fid = paginas.length ? 'alta' : 'texto';
     setFidelidad(fid);
     // Elementos que el render DEBE conservar (los nombra el propio producto). No describe forma: refuerza fidelidad.
     const preservar = [b.nombre, b.descripcionCliente].filter(Boolean).join('. ').slice(0, 400);
@@ -209,7 +211,6 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
         const url = await persistir(r.dataUrl, 'aislado', tipo, ent.tipo);
         setRenders((s) => ({ ...s, aislado: url }));
         if (fid === 'texto') setRenderMsg('Sin plano cargado: el aislado se generó por descripción (fidelidad limitada). Sube el plano para fidelidad exacta.');
-        else if (fid === 'media') setRenderMsg('Fidelidad limitada: solo 1 vista del plano. Si tienes más vistas (frente, lateral, cortes), súbelas para mayor exactitud geométrica.');
       } else { setRenderMsg(r?.error || 'No se pudo generar el producto aislado.'); }
     } catch (e) { setRenderMsg('Error en producto aislado: ' + String(e)); }
 
