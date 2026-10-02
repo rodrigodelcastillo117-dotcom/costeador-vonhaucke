@@ -77,6 +77,12 @@ const DIFICULTAD = [
 
 const N_PASOS = 4;
 
+// ¿Esta respuesta async pertenece a la corrida vigente? (anti-contaminación de estado entre
+// productos). corridaId null = llamada sin id (legado) → se acepta. Pura y testeable.
+export function aceptaCorrida(corridaId, actual) {
+  return corridaId == null || corridaId === actual;
+}
+
 export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
   const insumos = estado.insumos;
   const [paso, setPaso] = useState(0);
@@ -87,6 +93,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
   const [propuestaIA, setPropuestaIA] = useState(null); // despiece crudo de la IA (para re-costear con respuestas)
   const [respuestas, setRespuestas] = useState({});     // {idx: texto} respuestas del usuario a las preguntas
   const [respondiendo, setRespondiendo] = useState(false);
+  // analysis_id: cada plano nuevo es un EXPEDIENTE ATÓMICO. Si una respuesta async llega con un id
+  // viejo (subiste otro producto mientras tanto), se DESCARTA (evita que A pise el estado de B).
+  const corrida = useRef(0);
   // Normaliza una pregunta (compat: la IA vieja devolvía string; la nueva, objeto con tipo/impacto…).
   const normPreg = (p) => (typeof p === 'string'
     ? { pregunta: p, tipo: 'texto', opciones: [], impacto: 'medio', afecta: 'costo', supuesto: '' }
@@ -199,6 +208,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
 
   async function generarRenders() {
     if (faltaCritico || renderizando) return;
+    if (b.analysisId != null && b.analysisId !== corrida.current) return; // BOM/costo no son de la corrida vigente
     setRenderizando(true); setRenderMsg(''); setRenders({ aislado: null, ambiente: null });
     try { const srv = await costearServidor({ ...b }, b.piezas); if (srv?.estado) setCostoEstado(srv.estado); } catch (_e) {}
     const tipo = tipoDeMueble(b);
@@ -275,7 +285,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
   // que comparten el render, la imagen y las hojas de PDF. Devuelve true si ok.
   const catalogoIA = () => Object.values(insumos).map((x) => ({ id: x.id, nombre: x.nombre, seccion: x.seccion, unidad: x.unidad }));
 
-  function aplicarPropuesta(res, dataUrl, planos, nuevoAnalisis = false) {
+  function aplicarPropuesta(res, dataUrl, planos, nuevoAnalisis = false, corridaId = null) {
+    // DESCARTE de respuesta async vieja: si ya empezó otra corrida (otro plano), ignórala.
+    if (!aceptaCorrida(corridaId, corrida.current)) return false;
     if (!res?.ok) { setErrorIA(res?.error || 'No se pudo analizar.'); return false; }
     const p = res.propuesta || {};
     const comps = (p.piezas || []).map((z) => {
@@ -293,7 +305,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
     const paginas = Array.isArray(planos) && planos.length ? planos : (dataUrl ? [String(dataUrl).split(',')[1]] : []);
     // Un ANÁLISIS NUEVO (subiste otro plano) nombra el producto desde el plano, para que el nombre
     // NO se quede pegado de un producto anterior. Una re-corrida con respuestas conserva el nombre.
-    setB((prev) => ({ ...prev, nombre: nuevoAnalisis ? (p.producto || prev.nombre || '') : (prev.nombre || p.producto || ''), componentes: comps, imagen: dataUrl || null, planos: paginas, descripcionCliente: p.descripcionCliente || '', materiales: Array.isArray(p.materiales) ? p.materiales : [] }));
+    setB((prev) => ({ ...prev, nombre: nuevoAnalisis ? (p.producto || prev.nombre || '') : (prev.nombre || p.producto || ''), componentes: comps, imagen: dataUrl || null, planos: paginas, descripcionCliente: p.descripcionCliente || '', materiales: Array.isArray(p.materiales) ? p.materiales : [], analysisId: corrida.current }));
     setAnalisis({
       descripcionCliente: p.descripcionCliente || '',
       materiales: Array.isArray(p.materiales) ? p.materiales : [],
@@ -310,24 +322,35 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
     return true;
   }
 
+  // NUEVO EXPEDIENTE ATÓMICO: cada plano nuevo arranca una corrida y LIMPIA de inmediato todo el
+  // estado del producto anterior (nombre, análisis, BOM, costo, confirmaciones, render, warnings).
+  // Devuelve el id de corrida para amarrar nombre/BOM/costo/render y descartar respuestas viejas.
+  function nuevaCorrida() {
+    const id = ++corrida.current;
+    setErrorIA(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({});
+    setAnalisis(null); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg('');
+    setB((prev) => ({ ...prev, nombre: '', componentes: [], imagen: null, planos: [], descripcionCliente: '', materiales: [], analysisId: id }));
+    return id;
+  }
+
   // Una imagen (render/hoja). Paso 1: analiza. Paso 2 (solo imágenes, no PDF crudo):
   // la IA verifica su propio despiece contra las cotas. Devuelve true si ok.
-  async function analizarYLlenar(base64, mediaType, dataUrl) {
+  async function analizarYLlenar(base64, mediaType, dataUrl, corridaId) {
     const v1 = await analizarRender(catalogoIA(), base64, mediaType);
-    if (!v1?.ok || mediaType === 'application/pdf') return aplicarPropuesta(v1, dataUrl, [base64], true);
+    if (!v1?.ok || mediaType === 'application/pdf') return aplicarPropuesta(v1, dataUrl, [base64], true, corridaId);
     setVerificando(true);
     const v2 = await verificarDespiece(catalogoIA(), [base64], v1.propuesta);
     setVerificando(false);
-    return aplicarPropuesta(v2, dataUrl, [base64], true);
+    return aplicarPropuesta(v2, dataUrl, [base64], true, corridaId);
   }
   // Varias hojas del mismo mueble (plano multipágina). Paso 1 analiza, paso 2 verifica.
-  async function analizarImagenes(imagenes, dataUrlPreview) {
+  async function analizarImagenes(imagenes, dataUrlPreview, corridaId) {
     const v1 = await analizarRenderImagenes(catalogoIA(), imagenes);
-    if (!v1?.ok) return aplicarPropuesta(v1, dataUrlPreview, imagenes, true);
+    if (!v1?.ok) return aplicarPropuesta(v1, dataUrlPreview, imagenes, true, corridaId);
     setVerificando(true);
     const v2 = await verificarDespiece(catalogoIA(), imagenes, v1.propuesta);
     setVerificando(false);
-    return aplicarPropuesta(v2, dataUrlPreview, imagenes, true);
+    return aplicarPropuesta(v2, dataUrlPreview, imagenes, true, corridaId);
   }
 
   // Aplica las RESPUESTAS del usuario a las preguntas de la IA y re-costea el despiece.
@@ -349,7 +372,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
         confirmado_por: quien, producto: b.nombre || null, pregunta: x.pregunta,
         respuesta: x.respuesta, valor_anterior: x.supuesto || null, afecta: x.afecta, impacto: x.impacto,
       })));
-      aplicarPropuesta(r, b.imagen, b.planos); // re-llena despiece (confirmado_usuario manda sobre el supuesto IA)
+      aplicarPropuesta(r, b.imagen, b.planos, false, corrida.current); // re-llena despiece (confirmado_usuario manda sobre el supuesto IA)
     } finally {
       setRespondiendo(false); setAnalizando(false); setVerificando(false);
     }
@@ -378,22 +401,25 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
             const preview = await paginaAImagen(doc, 1, 1400);
             setPdfSel({ doc, numPaginas: doc.numPaginas, pagina: 1, preview });
             setAnalizando(false);
-            return; // espera a que elija la hoja
+            return; // espera a que elija la hoja (la corrida se abre al analizar)
           }
+          const cid = nuevaCorrida();
           const dataUrl = await paginaAImagen(doc, 1);
-          await analizarYLlenar(dataUrl.split(',')[1], 'image/jpeg', dataUrl);
+          await analizarYLlenar(dataUrl.split(',')[1], 'image/jpeg', dataUrl, cid);
           return;
         } catch (ePdf) {
+          const cid = nuevaCorrida();
           const base64 = await archivoABase64(file);
-          const ok = await analizarYLlenar(base64, 'application/pdf', '');
+          const ok = await analizarYLlenar(base64, 'application/pdf', '', cid);
           if (!ok && file.size > 8 * 1024 * 1024) {
             setErrorIA('El plano es pesado o de varias páginas. Sube SOLO la hoja del mueble como imagen (captura de pantalla).');
           }
           return;
         }
       }
+      const cid = nuevaCorrida();
       const r = await reducirImagen(file);
-      await analizarYLlenar(r.base64, r.mediaType, `data:${r.mediaType};base64,${r.base64}`);
+      await analizarYLlenar(r.base64, r.mediaType, `data:${r.mediaType};base64,${r.base64}`, cid);
     } catch (err) {
       setErrorIA(String(err?.message || err));
     } finally {
@@ -417,9 +443,10 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
     if (!pdfSel) return;
     const sel = pdfSel;
     setPdfSel(null); setErrorIA(''); setAnalizando(true);
+    const cid = nuevaCorrida();
     try {
       const dataUrl = await paginaAImagen(sel.doc, sel.pagina);
-      await analizarYLlenar(dataUrl.split(',')[1], 'image/jpeg', dataUrl);
+      await analizarYLlenar(dataUrl.split(',')[1], 'image/jpeg', dataUrl, cid);
     } catch (err) {
       setErrorIA('No se pudo procesar esa hoja. Intenta subirla como imagen (captura de pantalla).');
     } finally {
@@ -433,9 +460,10 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
     if (!pdfSel) return;
     const sel = pdfSel;
     setPdfSel(null); setErrorIA(''); setAnalizando(true);
+    const cid = nuevaCorrida();
     try {
       const imgs = await todasLasPaginas(sel.doc, 1600);
-      await analizarImagenes(imgs, sel.preview);
+      await analizarImagenes(imgs, sel.preview, cid);
     } catch (err) {
       setErrorIA('No se pudieron procesar las hojas. Intenta subir la hoja principal como imagen.');
     } finally {
@@ -448,7 +476,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
   if (analizando) {
     return (
       <div className="asistente">
-        <Cargando titulo={verificando ? 'Verificando el despiece contra las cotas…' : 'Analizando con IA'} />
+        <Cargando titulo={respondiendo ? 'Recalculando con tus respuestas…' : verificando ? 'Verificando el despiece contra las cotas…' : 'Analizando nuevo producto…'} />
       </div>
     );
   }
