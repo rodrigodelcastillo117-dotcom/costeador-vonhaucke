@@ -92,6 +92,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const [preguntasIA, setPreguntasIA] = useState([]);
   const [propuestaIA, setPropuestaIA] = useState(null); // despiece crudo de la IA (para re-costear con respuestas)
   const [respuestas, setRespuestas] = useState({});     // {idx: texto} respuestas del usuario a las preguntas
+  const [confirmadas, setConfirmadas] = useState({});   // {textoPregunta: respuesta} acumuladas entre pasadas
+  const [confMsg, setConfMsg] = useState('');           // feedback tras aplicar respuestas
   const [respondiendo, setRespondiendo] = useState(false);
   // analysis_id: cada plano nuevo es un EXPEDIENTE ATÓMICO. Si una respuesta async llega con un id
   // viejo (subiste otro producto mientras tanto), se DESCARTA (evita que A pise el estado de B).
@@ -100,6 +102,18 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const normPreg = (p) => (typeof p === 'string'
     ? { pregunta: p, tipo: 'texto', opciones: [], impacto: 'medio', afecta: 'costo', supuesto: '' }
     : { tipo: 'texto', opciones: [], impacto: 'medio', afecta: 'costo', supuesto: '', ...p });
+  // Si una pregunta reaparece en otra pasada, pre-llena con lo que ya contestaste (no re-escribir).
+  useEffect(() => {
+    if (!preguntasIA.length) return;
+    setRespuestas((prev) => {
+      const next = { ...prev };
+      preguntasIA.forEach((raw, i) => {
+        const q = normPreg(raw);
+        if ((next[i] == null || next[i] === '') && confirmadas[q.pregunta] != null) next[i] = confirmadas[q.pregunta];
+      });
+      return next;
+    });
+  }, [preguntasIA]);
   const [analisis, setAnalisis] = useState(null); // {descripcionCliente, materiales, mejoras, fallasProbables, aprovechamiento}
   const [pdfSel, setPdfSel] = useState(null); // selector de hoja de plano multipágina: {doc, numPaginas, pagina, preview}
   const [b, setB] = useState({
@@ -385,7 +399,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // Devuelve el id de corrida para amarrar nombre/BOM/costo/render y descartar respuestas viejas.
   function nuevaCorrida() {
     const id = ++corrida.current;
-    setErrorIA(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({});
+    setErrorIA(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({}); setConfirmadas({}); setConfMsg('');
     setAnalisis(null); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg('');
     setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); // nuevo producto = nuevo expediente
     setB((prev) => ({ ...prev, nombre: '', componentes: [], imagen: null, planos: [], descripcionCliente: '', materiales: [], analysisId: id }));
@@ -417,21 +431,28 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // elimina bisagras si los frentes son fijos, usa el calibre indicado, etc.
   async function aplicarRespuestas() {
     if (respondiendo) return;
-    const resp = preguntasIA.map((q, i) => { const nq = normPreg(q); return { pregunta: nq.pregunta, respuesta: (respuestas[i] || '').trim(), supuesto: nq.supuesto, afecta: nq.afecta, impacto: nq.impacto }; }).filter((r) => r.respuesta);
-    if (!resp.length) { setErrorIA('Contesta al menos una confirmación para recalcular.'); return; }
+    // Lo contestado AHORA (por texto de pregunta) + traza de las nuevas.
+    const ahora = {}; const traza = [];
+    preguntasIA.forEach((raw, i) => {
+      const nq = normPreg(raw); const v = (respuestas[i] || '').trim();
+      if (v) { ahora[nq.pregunta] = v; traza.push({ pregunta: nq.pregunta, respuesta: v, supuesto: nq.supuesto, afecta: nq.afecta, impacto: nq.impacto }); }
+    });
+    if (!Object.keys(ahora).length) { setConfMsg('Contesta al menos una confirmación para recalcular.'); return; }
     const imgs = Array.isArray(b.planos) ? b.planos.filter(Boolean) : [];
-    if (!imgs.length) { setErrorIA('No tengo el plano en memoria para recalcular; vuelve a subirlo.'); return; }
-    setRespondiendo(true); setErrorIA(''); setAnalizando(true); setVerificando(true);
+    if (!imgs.length) { setConfMsg('No tengo el plano en memoria para recalcular; vuelve a subirlo.'); return; }
+    // ACUMULA con lo confirmado antes y manda TODO a la IA (para que no vuelva a preguntar lo mismo).
+    const todas = { ...confirmadas, ...ahora };
+    const respTodas = Object.entries(todas).map(([pregunta, respuesta]) => ({ pregunta, respuesta }));
+    setRespondiendo(true); setConfMsg(''); setErrorIA(''); setAnalizando(true); setVerificando(true);
     try {
-      const r = await responderDespiece(catalogoIA(), imgs, propuestaIA, resp.map((x) => ({ pregunta: x.pregunta, respuesta: x.respuesta })));
-      if (!r?.ok) { setErrorIA(r?.error || 'No se pudo recalcular con tus respuestas.'); return; }
-      // Trazabilidad: pregunta, respuesta, valor anterior (supuesto IA), quién, qué afecta.
+      const r = await responderDespiece(catalogoIA(), imgs, propuestaIA, respTodas);
+      if (!r?.ok) { setConfMsg(r?.error || 'No se pudo recalcular con tus respuestas.'); return; }
       let quien = null; try { quien = (await sesionActual())?.user?.email || null; } catch (_e) {}
-      guardarConfirmaciones(resp.map((x) => ({
-        confirmado_por: quien, producto: b.nombre || null, pregunta: x.pregunta,
-        respuesta: x.respuesta, valor_anterior: x.supuesto || null, afecta: x.afecta, impacto: x.impacto,
-      })));
-      aplicarPropuesta(r, b.imagen, b.planos, false, corrida.current); // re-llena despiece (confirmado_usuario manda sobre el supuesto IA)
+      guardarConfirmaciones(traza.map((x) => ({ confirmado_por: quien, producto: b.nombre || null, pregunta: x.pregunta, respuesta: x.respuesta, valor_anterior: x.supuesto || null, afecta: x.afecta, impacto: x.impacto })));
+      setConfirmadas(todas); // recordadas para pre-llenar si reaparecen
+      aplicarPropuesta(r, b.imagen, b.planos, false, corrida.current); // confirmado_usuario manda sobre el supuesto IA
+      const quedan = Array.isArray(r.propuesta?.preguntas) ? r.propuesta.preguntas.length : 0;
+      setConfMsg(`✓ Guardé ${Object.keys(todas).length} respuesta(s) y recalculé el costo.` + (quedan ? ` Quedan ${quedan} por confirmar.` : ' Sin preguntas pendientes.'));
     } finally {
       setRespondiendo(false); setAnalizando(false); setVerificando(false);
     }
@@ -618,7 +639,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           {preguntasIA.length > 0 && (
             <div style={{ border: '1px solid var(--borde)', borderRadius: 10, padding: 14, margin: '12px 0', background: 'var(--panel)' }}>
               <div style={{ fontWeight: 700, marginBottom: 2 }}>Confirmaciones para cerrar el costeo</div>
-              <div className="ayuda" style={{ marginBottom: 10 }}>Contesta lo que sepas: cada respuesta recalcula el despiece y el costo. Tu respuesta manda sobre el supuesto de la IA.</div>
+              <div className="ayuda" style={{ marginBottom: 8 }}>Contesta lo que sepas: cada respuesta recalcula el despiece y el costo. Tu respuesta manda sobre el supuesto de la IA, y se recuerda si la pregunta reaparece.</div>
+              {confMsg && <div className="ayuda" style={{ marginBottom: 10, color: confMsg.startsWith('✓') ? 'var(--ok,#1a7f37)' : 'var(--alerta,#b22a22)' }}>{confMsg}</div>}
               {preguntasIA.map((raw, i) => {
                 const q = normPreg(raw);
                 const colImp = q.impacto === 'alto' ? '#8a2d00' : q.impacto === 'medio' ? '#8a6d00' : '#555';
@@ -644,7 +666,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                         ))}
                       </div>
                     ) : q.tipo === 'number' ? (
-                      <input type="number" value={val} placeholder="Cantidad" onChange={(e) => setVal(e.target.value)} style={{ width: 160 }} />
+                      <input type="text" inputMode="numeric" value={val} placeholder="Cantidad (ej. 2 — o '2 cajones, 1 puerta')" onChange={(e) => setVal(e.target.value)} style={{ width: '100%' }} />
                     ) : (
                       <input type="text" value={val} placeholder="Tu respuesta" onChange={(e) => setVal(e.target.value)} style={{ width: '100%' }} />
                     )}
@@ -843,7 +865,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       ) : (
         <div className="fila-botones">
           <button className="boton primario grande" onClick={() => onVerDetalle(b)}>Ver detalle completo y cotizar</button>
-          <button className="boton grande" onClick={() => { setB({ nombre: '', piezas: 1, componentes: [], modoManoObra: 'porcentaje', factorDirecta: 55, factorIndirecta: 12, margen: b.margen }); setPaso(0); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({}); setAnalisis(null); setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); corrida.current++; }}>Empezar otro</button>
+          <button className="boton grande" onClick={() => { setB({ nombre: '', piezas: 1, componentes: [], modoManoObra: 'porcentaje', factorDirecta: 55, factorIndirecta: 12, margen: b.margen }); setPaso(0); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({}); setConfirmadas({}); setConfMsg(''); setAnalisis(null); setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); corrida.current++; }}>Empezar otro</button>
         </div>
       )}
     </div>
