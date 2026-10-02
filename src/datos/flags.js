@@ -42,6 +42,20 @@ export const BASE = Object.freeze({
   layout_v2: true,
   // Render UX + versionado (STALE por hash). Capa de estado pura + UI.
   render_v2: true,
+
+  // ---- Nombres del prompt maestro (CIERRE TOTAL FINAL) ----
+  // Voni 2.0 cerebro transversal (core/tools/permisos/lentes/orquestador).
+  voni_2: true,
+  // N3 IA costeador: capa de análisis estructural conectada a la UI del Costeador.
+  costing_ai_v2: true,
+  // N4 lector de planos de mueble (extracción + evidencia + contradicciones).
+  plan_reader_v2: true,
+  // N5 alcance de edificio (ScopeModel) conectado a UI.
+  scope_v2: true,
+  // N7 editor libre de planos (undo/redo/zoom/pan/duplicar).
+  editor_v2: true,
+  // N15 PDF premium (propuesta desde snapshot inmutable).
+  proposal_v2: true,
 });
 
 export const NOMBRES_FLAG = Object.freeze(Object.keys(BASE));
@@ -54,6 +68,12 @@ export const DESCRIPCION_FLAG = Object.freeze({
   plan_analysis_v2: 'Análisis de planos (mueble y edificio) con evidencia',
   layout_v2: 'Layout / acomodo con colisiones y editor libre',
   render_v2: 'Renders con versionado y estado DESACTUALIZADO',
+  voni_2: 'Voni 2.0 — cerebro transversal (tools, permisos, lentes, orquestador)',
+  costing_ai_v2: 'N3 — análisis estructural del costeador (PROPUESTA_DIFF)',
+  plan_reader_v2: 'N4 — lectura de planos de mueble con evidencia',
+  scope_v2: 'N5 — alcance de edificio (ScopeModel) en UI',
+  editor_v2: 'N7 — editor libre de planos (undo/redo/zoom/pan)',
+  proposal_v2: 'N15 — PDF premium desde snapshot inmutable',
 });
 
 function leerStorage(storage) {

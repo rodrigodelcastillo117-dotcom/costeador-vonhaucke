@@ -4,8 +4,9 @@
 //  agregas puertas, y con eso el sistema acomoda los muebles de la cotización.
 //  Todo en METROS; snap a 0.5 m. Touch + mouse (pointer events).
 // ============================================================================
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { contornoDeTrazo, areaDe, SELLOS, pegarAVecinos } from '../datos/trazo.js';
+import { flagActivo, BASE } from '../datos/flags.js';
 
 const W = 22, H = 15;      // lienzo en metros
 const GRID = 0.5;          // snap
@@ -46,6 +47,48 @@ export default function DibujarPlano({ onListo, onCancelar }) {
   const [trazo, setTrazo] = useState(null);     // copia para dibujar
   const svgRef = useRef(null);
 
+  // ---- DESHACER / REHACER (N7) ---------------------------------------------
+  // El lienzo no tenía deshacer: un trazo mal cerrado o una escalera de más y no
+  // había vuelta atrás más que "Limpiar" (que borra TODO). Se guardan los
+  // arreglos dibujables (cuartos, puertas, columnas, escaleras) en una pila de
+  // pasado y otra de futuro. `recordar()` fotografía el estado ANTES de cada
+  // acción y corta la rama de rehacer. Gate `editor_v2`; si la flag no existe
+  // todavía, el editor lo trae prendido (no se toca flags.js).
+  const editorV2 = ('editor_v2' in BASE) ? flagActivo('editor_v2') : true;
+  const [pasado, setPasado] = useState([]);
+  const [futuro, setFuturo] = useState([]);
+  const snapEstado = () => ({ rooms, doors, cols, stairs });
+  const aplicarEstado = (s) => { setRooms(s.rooms); setDoors(s.doors); setCols(s.cols); setStairs(s.stairs); };
+  const recordar = () => { setPasado((p) => [...p.slice(-49), snapEstado()]); setFuturo([]); };
+  function deshacer() {
+    if (!pasado.length) return;
+    const ult = pasado[pasado.length - 1];
+    setFuturo((f) => [...f.slice(-49), snapEstado()]);
+    setPasado((p) => p.slice(0, -1));
+    aplicarEstado(ult);
+  }
+  function rehacer() {
+    if (!futuro.length) return;
+    const sig = futuro[futuro.length - 1];
+    setPasado((p) => [...p.slice(-49), snapEstado()]);
+    setFuturo((f) => f.slice(0, -1));
+    aplicarEstado(sig);
+  }
+  // Ctrl/Cmd+Z deshace; Ctrl/Cmd+Shift+Z rehace. No se roba la tecla a un campo
+  // de texto (ahí vale el deshacer propio del navegador).
+  useEffect(() => {
+    if (!editorV2) return;
+    const k = (e) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z') return;
+      const t = e.target;
+      if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+      e.preventDefault();
+      if (e.shiftKey) rehacer(); else deshacer();
+    };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  });
+
   // Área de un polígono (fórmula del agrimensor) y su caja envolvente.
   const areaPoly = (p) => Math.abs(p.reduce((s, [x, y], i) => {
     const [x2, y2] = p[(i + 1) % p.length];
@@ -58,6 +101,7 @@ export default function DibujarPlano({ onListo, onCancelar }) {
 
   function cerrarForma() {
     if (vertices.length < 3) return;
+    recordar();
     const c = cajaDe(vertices);
     setRooms((r) => [...r, { id: Date.now(), ...c, poly: vertices, nombre: `Área ${r.length + 1}`, tipo: tipoPorTamano(c.w, c.h), doble: false }]);
     setVertices([]);
@@ -91,6 +135,7 @@ export default function DibujarPlano({ onListo, onCancelar }) {
     if (tool.startsWith('sello:')) {
       const sel = SELLOS.find((q) => q.tipo === tool.slice(6));
       if (sel) {
+        recordar();
         setRooms((rs) => {
           const caja = pegarAVecinos({ x: snap(x - sel.w / 2), y: snap(y - sel.h / 2), w: sel.w, h: sel.h }, rs);
           const n = rs.filter((q) => q.tipo === sel.tipo).length + 1;
@@ -100,8 +145,8 @@ export default function DibujarPlano({ onListo, onCancelar }) {
       }
       return;
     }
-    if (tool === 'door') { setDoors((d) => [...d, { id: Date.now(), x, y }]); return; }
-    if (tool === 'columna') { setCols((c) => [...c, { id: Date.now(), x, y }]); return; }
+    if (tool === 'door') { recordar(); setDoors((d) => [...d, { id: Date.now(), x, y }]); return; }
+    if (tool === 'columna') { recordar(); setCols((c) => [...c, { id: Date.now(), x, y }]); return; }
     setDrag({ x0: x, y0: y, x1: x, y1: y, kind: tool });   // room | escalera
     try { e.target.setPointerCapture?.(e.pointerId); } catch (_) {}
   }
@@ -132,6 +177,7 @@ export default function DibujarPlano({ onListo, onCancelar }) {
       if (poly) {
         const c = cajaDe(poly);
         if (c.w >= 0.8 && c.h >= 0.8) {
+          recordar();
           setRooms((r) => [...r, { id: Date.now(), ...c, poly,
             nombre: `Área ${r.length + 1}`, tipo: tipoPorTamano(c.w, c.h), doble: false }]);
         }
@@ -141,13 +187,13 @@ export default function DibujarPlano({ onListo, onCancelar }) {
     if (!drag) return;
     const x = Math.min(drag.x0, drag.x1), y = Math.min(drag.y0, drag.y1);
     const w = Math.abs(drag.x1 - drag.x0), h = Math.abs(drag.y1 - drag.y0);
-    if (drag.kind === 'escalera') { if (w >= 0.8 && h >= 0.8) setStairs((s) => [...s, { id: Date.now(), x, y, w, h }]); }
-    else if (w >= 1 && h >= 1) setRooms((r) => [...r, { id: Date.now(), x, y, w, h, nombre: `Área ${r.length + 1}`, tipo: tipoPorTamano(w, h), doble: false }]);
+    if (drag.kind === 'escalera') { if (w >= 0.8 && h >= 0.8) { recordar(); setStairs((s) => [...s, { id: Date.now(), x, y, w, h }]); } }
+    else if (w >= 1 && h >= 1) { recordar(); setRooms((r) => [...r, { id: Date.now(), x, y, w, h, nombre: `Área ${r.length + 1}`, tipo: tipoPorTamano(w, h), doble: false }]); }
     setDrag(null);
   }
 
-  const setRoom = (id, campo, val) => setRooms((rs) => rs.map((r) => (r.id === id ? { ...r, [campo]: val } : r)));
-  const delRoom = (id) => setRooms((rs) => rs.filter((r) => r.id !== id));
+  const setRoom = (id, campo, val) => { recordar(); setRooms((rs) => rs.map((r) => (r.id === id ? { ...r, [campo]: val } : r))); };
+  const delRoom = (id) => { recordar(); setRooms((rs) => rs.filter((r) => r.id !== id)); };
   const totalM2 = rooms.reduce((a, r) => a + (r.poly ? areaPoly(r.poly) : r.w * r.h), 0);
 
   const dragRect = drag && { x: Math.min(drag.x0, drag.x1), y: Math.min(drag.y0, drag.y1), w: Math.abs(drag.x1 - drag.x0), h: Math.abs(drag.y1 - drag.y0) };
@@ -280,7 +326,9 @@ export default function DibujarPlano({ onListo, onCancelar }) {
         {vertices.length > 0 && vertices.length < 3 && <span className="ayuda">Marca al menos 3 esquinas…</span>}
         {vertices.length > 0 && <button className="boton fantasma" style={{ minHeight: 42 }} onClick={() => setVertices([])}>Descartar forma</button>}
         <span className="ayuda" style={{ marginLeft: 'auto' }}>{rooms.length} cuarto(s) · {totalM2.toFixed(1)} m²{cols.length ? ` · ${cols.length} col.` : ''}{stairs.length ? ` · ${stairs.length} escal.` : ''}</span>
-        {(rooms.length || cols.length || stairs.length || doors.length) > 0 && <button className="boton fantasma" style={{ minHeight: 42 }} onClick={() => { setRooms([]); setDoors([]); setCols([]); setStairs([]); setVertices([]); }}>Limpiar</button>}
+        {editorV2 && <button className="boton fantasma" style={{ minHeight: 42 }} disabled={!pasado.length} onClick={deshacer} title="Deshacer (Ctrl/Cmd+Z)">↶ Deshacer</button>}
+        {editorV2 && <button className="boton fantasma" style={{ minHeight: 42 }} disabled={!futuro.length} onClick={rehacer} title="Rehacer (Ctrl/Cmd+Shift+Z)">↷ Rehacer</button>}
+        {(rooms.length || cols.length || stairs.length || doors.length) > 0 && <button className="boton fantasma" style={{ minHeight: 42 }} onClick={() => { recordar(); setRooms([]); setDoors([]); setCols([]); setStairs([]); setVertices([]); }}>Limpiar</button>}
       </div>
 
       {rooms.length > 0 && (

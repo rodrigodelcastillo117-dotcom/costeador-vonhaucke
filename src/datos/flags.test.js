@@ -5,10 +5,11 @@ import { flagActivo, todasLasFlags, BASE, NOMBRES_FLAG } from './flags.js';
 const stor = (obj) => ({ getItem: (k) => (k === 'vh_flags' ? JSON.stringify(obj) : null) });
 
 describe('flags', () => {
-  it('BASE define las 6 flags esperadas', () => {
-    expect(NOMBRES_FLAG.slice().sort()).toEqual(
-      ['client_presentation_v2', 'commercial_v2', 'layout_v2', 'plan_analysis_v2', 'render_v2', 'voni_v2'],
-    );
+  it('BASE define las flags esperadas (incluye nombres del prompt maestro)', () => {
+    for (const n of ['commercial_v2', 'client_presentation_v2', 'voni_v2', 'plan_analysis_v2', 'layout_v2', 'render_v2',
+      'voni_2', 'costing_ai_v2', 'plan_reader_v2', 'scope_v2', 'editor_v2', 'proposal_v2']) {
+      expect(NOMBRES_FLAG).toContain(n);
+    }
   });
 
   it('sin overrides devuelve el valor BASE', () => {

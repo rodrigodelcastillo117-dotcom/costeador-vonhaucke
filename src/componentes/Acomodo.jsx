@@ -15,6 +15,8 @@ import { listaPorCuarto, textoPorCuarto } from '../datos/porCuarto.js';
 import { enderezar } from '../datos/orientacion.js';
 import { esSillaDeTrabajo } from '../datos/planner.js';
 import { rellenar, puestosDeclarados } from '../datos/rellenar.js';
+import { idNuevo } from '../util.js';
+import { flagActivo } from '../datos/flags.js';
 
 // Para la paleta, SILLA es todo lo que se sienta: la operativa, la de visita y
 // también el sillón y el banco. Rodrigo lo pidió partido en dos: "lado
@@ -137,7 +139,21 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   const [planReal, setPlanReal] = useState(!!guardadoPrevio?.planReal);   // áreas de plano/dibujo real → no crecer
   const [dibujoMeta, setDibujoMeta] = useState({});   // {alto, columnas, escaleras, dobles[]}
 
-  const piezas = useMemo(() => expandirPiezas(partidas), [partidas]);
+  const layoutV2 = flagActivo('layout_v2');
+  const piezasBase = useMemo(() => expandirPiezas(partidas), [partidas]);
+  // N6 DUPLICAR: copias que el proyectista hace a mano. Viven APARTE de la
+  // cotización —su id `dup-…` lo ignora `resumen.js` (`partidaDe`), así que NO
+  // tocan el costo— pero se suman a las piezas para que se dibujen, se puedan
+  // mover y SOBREVIVAN a un re-acomodo (quedan como "fijas").
+  const [duplicados, setDuplicados] = useState([]);
+  const idsDuplicados = useMemo(() => new Set(duplicados.map((d) => d.id)), [duplicados]);
+  const piezas = useMemo(() => {
+    if (!duplicados.length) return piezasBase;
+    const arr = [...piezasBase, ...duplicados];
+    // `truncado` va colgado del arreglo (ver expandirPiezas): se conserva.
+    if (piezasBase.truncado) arr.truncado = piezasBase.truncado;
+    return arr;
+  }, [piezasBase, duplicados]);
   // Las gavetas rodantes van bajo la cubierta: no se acomodan, pero se dicen.
   const bajoEscritorio = useMemo(() => contarBajoEscritorio(partidas), [partidas]);
   const byId = useMemo(() => mapaPiezas(piezas), [piezas]);
@@ -351,7 +367,10 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
 
   // Piezas que TODAVÍA no están en el plano: son las de la paleta.
   const colocadas = new Set((plan?.colocacion || []).map((c) => c.id));
-  const pendientes = piezas.filter((p) => !colocadas.has(p.id));
+  // Un duplicado NUNCA va a la paleta: es una copia ya puesta. Si se deshace o se
+  // quita, su objeto puede quedar colgado en `duplicados`, pero no debe reaparecer
+  // como "pendiente" (no existe en la cotización).
+  const pendientes = piezas.filter((p) => !colocadas.has(p.id) && !idsDuplicados.has(p.id));
   // Las pendientes AGRUPADAS por producto, conservando el orden en que se
   // pidieron. `ids` es la lista de las que faltan de ese producto: su largo es
   // la cuenta que se enseña y baja sola conforme se van colocando.
@@ -390,21 +409,41 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // muebles vecinos), acomodar a mano SIN deshacer es acomodar con miedo: un
   // resbalón te tira media hora de trabajo. Se guardan los últimos 40 pasos.
   const [historia, setHistoria] = useState([]);
-  const recordar = () => setHistoria((h) => [...h.slice(-39), { colocacion: plan?.colocacion || [], areas }]);
+  const [futuro, setFuturo] = useState([]);   // N7 REHACER: estados deshechos, listos para volver
+  const estadoActual = () => ({ colocacion: plan?.colocacion || [], areas });
+  // Guarda el estado ANTES de una acción nueva. Y corta la rama de rehacer: una
+  // acción nueva invalida lo que se había deshecho (como en cualquier editor).
+  const recordar = () => { setHistoria((h) => [...h.slice(-39), estadoActual()]); setFuturo([]); };
   const hayQueDeshacer = historia.length > 0;
+  const hayQueRehacer = futuro.length > 0;
   function deshacer() {
     if (!historia.length) return;
     const ult = historia[historia.length - 1];
+    const ahora = estadoActual();
     setHistoria((h) => h.slice(0, -1));
+    setFuturo((f) => [...f.slice(-39), ahora]);   // lo que había se puede rehacer
     setPlan((pl) => (pl ? { ...pl, colocacion: ult.colocacion } : pl));
     setAreas(ult.areas);
     setSelPieza(null); setSelEl(null); setEnLaMano(null); setGuardado(false);
   }
-  // Ctrl+Z / Cmd+Z, como en cualquier programa donde se dibuja.
+  function rehacer() {
+    if (!futuro.length) return;
+    const sig = futuro[futuro.length - 1];
+    const ahora = estadoActual();
+    setFuturo((f) => f.slice(0, -1));
+    setHistoria((h) => [...h.slice(-39), ahora]);  // y volver a deshacerlo
+    setPlan((pl) => (pl ? { ...pl, colocacion: sig.colocacion } : pl));
+    setAreas(sig.areas);
+    setSelPieza(null); setSelEl(null); setEnLaMano(null); setGuardado(false);
+  }
+  // Ctrl/Cmd+Z deshace; Ctrl/Cmd+Shift+Z rehace, como en cualquier editor.
   useEffect(() => {
     if (!aMano) return;
     const k = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); deshacer(); }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) rehacer(); else deshacer();
+      }
     };
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
@@ -499,6 +538,29 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // mueble "salía viendo" siempre igual por más que lo giraras.
   const girar = (id = selPieza) => id && (recordar(), true) && editarColocacion((cs) => cs.map((c) => (c.id === id ? { ...c, rot: ((c.rot || 0) + 90) % 360, manual: true } : c)));
   const quitar = (id = selPieza) => { if (!id) return; recordar(); editarColocacion((cs) => cs.filter((c) => c.id !== id)); setSelPieza(null); };
+
+  // N6 DUPLICAR: una copia del mueble seleccionado, corrida 30 cm para que no
+  // quede encima del original, marcada `manual: true` (la decidió el proyectista)
+  // y con un id NUEVO (`idNuevo('dup')`). La copia se agrega a `duplicados` para
+  // que exista en `byId`/`piezas` —se dibuja, se mueve y aguanta un re-acomodo—;
+  // su id `dup-…` NO es una partida, así que no toca el costo.
+  const duplicarPieza = (id = selPieza) => {
+    if (!id) return;
+    const orig = (plan?.colocacion || []).find((c) => c.id === id);
+    const base = byId[id];
+    if (!orig || !base) return;
+    recordar();
+    const nuevoId = idNuevo('dup');
+    setDuplicados((d) => [...d, { ...base, id: nuevoId }]);
+    const a = areasMM[orig.area];
+    const { pw, ph } = dimsPieza(base, orig.rot || 0);
+    const off = 300;   // 30 cm, para que la copia se vea aparte
+    const tope = (v, largo, dentro) => Math.max(0, Math.min(v, Math.max(0, (dentro || 0) - largo)));
+    const nx = tope((orig.x || 0) + off, pw, a?.ancho);
+    const ny = tope((orig.y || 0) + off, ph, a?.largo);
+    editarColocacion((cs) => [...cs, { ...orig, id: nuevoId, x: nx, y: ny, manual: true }]);
+    setSelPieza(nuevoId); setGuardado(false);
+  };
 
   // ---- ELEMENTOS DEL PLANO puestos a mano -------------------------------
   // Rodrigo: "el plano, nunca ponen puertas, ¿cómo las ponemos? Piensa en un
@@ -1079,10 +1141,12 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
 
           <PlanoAcomodo areas={areasMM} plan={plan} byId={byId} modo={modo}
             editable={aMano && modo === 'planta'} sel={selPieza}
+            hayEnMano={!!enLaMano}
             onTocarPieza={(id) => { setSelPieza(id); setSelEl(null); setEnLaMano(null); }}
             onSoltarEn={soltarEn}
             herramienta={herramienta} selEl={selEl}
             onGirar={girar} onQuitar={quitar}
+            onDuplicar={layoutV2 ? duplicarPieza : undefined}
             onPonerElemento={ponerElemento}
             onTocarElemento={(id) => { setSelEl(id); setSelPieza(null); setEnLaMano(null); }}
             onMoverElemento={moverElemento}
@@ -1093,7 +1157,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
               <h3 style={{ marginTop: 0 }}>Tus muebles</h3>
               <p className="ayuda columna-texto">
                 <strong>Arrastra</strong> los muebles con el dedo o el mouse. Tócalos una vez y te salen ahí mismo
-                los botones de <strong>girar</strong> (cada toque, 90°) y <strong>quitar</strong>.
+                los botones de <strong>girar</strong> (cada toque, 90°){layoutV2 ? <>, <strong>duplicar</strong></> : null} y <strong>quitar</strong>.
                 {pendientes.length === 0 && <> <strong>Ya están todos en el plano.</strong></>}
               </p>
               {/* Los planos reales casi nunca traen puertas dibujadas, y sin
@@ -1139,6 +1203,11 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
                 <button className="boton fantasma" style={{ minHeight: 40 }} disabled={!hayQueDeshacer} onClick={deshacer}>
                   ↶ Deshacer
                 </button>
+                {layoutV2 && (
+                  <button className="boton fantasma" style={{ minHeight: 40 }} disabled={!hayQueRehacer} onClick={rehacer}>
+                    ↷ Rehacer
+                  </button>
+                )}
                 <span className="ayuda">{(plan?.colocacion || []).length} en el plano · {pendientes.length} por poner</span>
               </div>
               {nAMano > 0 && (

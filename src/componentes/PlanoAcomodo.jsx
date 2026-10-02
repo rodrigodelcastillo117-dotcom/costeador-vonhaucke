@@ -12,9 +12,10 @@
 //     miran en contra de la cámara). Los cercanos quedan abiertos: así se ve
 //     adentro. Funciona igual en un rectángulo que en una planta en L.
 // ============================================================================
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { colorTipo, altoTipo, dimsPieza, frenteDe } from '../datos/espacio.js';
 import { dentroPoly } from '../datos/malla.js';
+import { flagActivo } from '../datos/flags.js';
 
 const C = Math.cos(Math.PI / 6), S = Math.sin(Math.PI / 6); // iso 30°
 const MURO = 130;        // grosor de muro (mm)
@@ -141,13 +142,16 @@ function Glifo({ x, y, w, h, tipo, col, rot = 0 }) {
 export default function PlanoAcomodo({
   areas, plan, byId, modo = 'planta', limpio = false,
   editable = false, sel = null, onTocarPieza, onSoltarEn,
+  // `hayEnMano` = el proyectista trae una pieza de la paleta lista para soltar.
+  // Sirve para decidir si un arrastre sobre el vacío COLOCA o PANEA (N6 zoom/pan).
+  hayEnMano = false,
   // --- edición v2 (2026-08-16) -------------------------------------------
   // Rodrigo: "¿por qué no es mejor ARRASTRAR el mueble, que picar y picar?" y
   // "deberías picarle al mueble y que te abra una mini pestaña que diga girar".
   // Tenía razón: tocar-y-tocar es un flujo de teclado numérico, no de plano.
   herramienta = null,      // elemento del menú que trae el cursor: 'puerta'|'muro'|'columna'|'escalera'
   selEl = null,            // elemento del plano seleccionado ("2:1")
-  onGirar, onQuitar,       // sobre la pieza seleccionada
+  onGirar, onQuitar, onDuplicar,   // sobre la pieza seleccionada (N6: duplicar)
   onPonerElemento,         // (area, x, y) con la herramienta activa
   onTocarElemento, onMoverElemento, onGirarElemento, onQuitarElemento,
 }) {
@@ -160,6 +164,62 @@ export default function PlanoAcomodo({
   // Cuándo apareció el menú de la pieza seleccionada, para no obedecer
   // un toque que cae sobre un botón que acaba de aparecer bajo el dedo.
   const selRef = useRef({ id: null, t: 0 });
+
+  // ---- ZOOM / PAN (N6) en la PLANTA (2D) -----------------------------------
+  // El 3D (PlanoIso) ya se acerca y se corre con el dedo; la planta —donde se
+  // acomoda a mano— no tenía forma de acercarse para atinarle a un mueble en un
+  // plano grande. Se acerca estrechando el viewBox (no escalando el SVG), igual
+  // que el 3D, así las líneas no engordan. El arrastre de muebles sigue intacto:
+  // `aPlano` mapea pantalla→mm con el CTM real del SVG, que ya incluye el zoom.
+  const svgRef = useRef(null);
+  const panRef = useRef(null);            // arrastre de PANEO en curso
+  const baseRef = useRef({ x: 0, y: 0, w: 1, h: 1 });   // encuadre completo (zoom 1)
+  const [vista, setVista] = useState({ z: 1, dx: 0, dy: 0 });
+  const [espacio, setEspacio] = useState(false);        // barra espaciadora oprimida
+  const espacioRef = useRef(false);
+  const zoomV2 = flagActivo('layout_v2');
+
+  // Barra espaciadora = modo paneo (como en cualquier editor). No se roba la
+  // tecla cuando se está escribiendo en un campo, ni en las copias 3D ocultas.
+  useEffect(() => {
+    if (modo === 'iso') return;
+    const esCampo = (t) => t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+    const abajo = (e) => {
+      if ((e.code === 'Space' || e.key === ' ') && !esCampo(e.target)) {
+        espacioRef.current = true; setEspacio(true); e.preventDefault();
+      }
+    };
+    const arriba = (e) => {
+      if (e.code === 'Space' || e.key === ' ') { espacioRef.current = false; setEspacio(false); }
+    };
+    window.addEventListener('keydown', abajo);
+    window.addEventListener('keyup', arriba);
+    return () => { window.removeEventListener('keydown', abajo); window.removeEventListener('keyup', arriba); };
+  }, [modo]);
+
+  // ctrl/cmd + rueda = acercar hacia el cursor. Va como listener no-pasivo para
+  // poder `preventDefault` (si no, el navegador hace zoom de toda la página).
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg || modo === 'iso') return;
+    const rueda = (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      const b = baseRef.current;
+      const r = svg.getBoundingClientRect();
+      const cx = (e.clientX - r.left) / r.width - 0.5;
+      const cy = (e.clientY - r.top) / r.height - 0.5;
+      setVista((v) => {
+        const z = Math.max(1, Math.min(8, v.z * Math.exp(-e.deltaY / 420)));
+        if (z === v.z) return v;
+        const k = 1 / v.z - 1 / z;        // desplazamiento en unidades del MUNDO
+        return { z, dx: v.dx + cx * b.w * k, dy: v.dy + cy * b.h * k };
+      });
+    };
+    svg.addEventListener('wheel', rueda, { passive: false });
+    return () => svg.removeEventListener('wheel', rueda);
+  }, [modo]);
+
   if (!areas?.length || !plan) return null;
   const { offs, totalW, totalH } = layoutAreas(areas);
   const coloc = plan.colocacion || [];
@@ -170,6 +230,43 @@ export default function PlanoAcomodo({
   // ---- PLANTA (2D) ----
   const pad = 700;
   const fs = Math.max(190, Math.min(totalW, totalH) / 22);
+
+  // Encuadre COMPLETO (zoom 1) y encuadre de la vista actual. El acercamiento
+  // estrecha el viewBox y lo centra en el punto al que se acercó (vista.dx/dy en
+  // mm). `baseRef` lo necesita el listener de la rueda, que vive fuera del render.
+  const baseX = -pad, baseY = -pad, baseW = totalW + 2 * pad, baseH = totalH + 2 * pad;
+  baseRef.current = { x: baseX, y: baseY, w: baseW, h: baseH };
+  const vbW = baseW / vista.z, vbH = baseH / vista.z;
+  const vbX = baseX + (baseW - vbW) / 2 + vista.dx;
+  const vbY = baseY + (baseH - vbH) / 2 + vista.dy;
+
+  // Botones de zoom (acercan/alejan al centro) y restablecer.
+  const zoomCentro = (f) => setVista((v) => {
+    const z = Math.max(1, Math.min(8, v.z * f));
+    return z === v.z ? v : { ...v, z };
+  });
+  const resetVista = () => setVista({ z: 1, dx: 0, dy: 0 });
+
+  // ¿Este gesto sobre el lienzo debe PANEAR en vez de colocar? Sí con la barra
+  // espaciadora, o cuando no hay nada que soltar (ni herramienta ni pieza en la
+  // mano): en ese caso soltar en el vacío hoy no hace nada, así que se repurposa
+  // para correr la vista sin pisar la colocación.
+  const puedePanear = (ev) => {
+    if (ev.button != null && ev.button !== 0) return false;
+    if (espacioRef.current) return true;
+    return !herramienta && !hayEnMano;
+  };
+  const mundoPorPx = () => (svgRef.current ? vbW / (svgRef.current.getBoundingClientRect().width || 1) : 1);
+  function iniciarPan(ev) {
+    const svg = svgRef.current; if (!svg) return;
+    try { svg.setPointerCapture?.(ev.pointerId); } catch (e) {}
+    panRef.current = { x0: ev.clientX, y0: ev.clientY, dx0: vista.dx, dy0: vista.dy, k: mundoPorPx() };
+  }
+  function panear(ev) {
+    const p = panRef.current; if (!p) return;
+    setVista((v) => ({ ...v, dx: p.dx0 - (ev.clientX - p.x0) * p.k, dy: p.dy0 - (ev.clientY - p.y0) * p.k }));
+  }
+  const finPan = () => { panRef.current = null; };
 
   // ⚠️ LOS TÍTULOS DE ÁREA SE ENCIMABAN (2026-08-18). Rodrigo mandó un plano
   // donde "ZONA ABIERTA / PRIVADO 1 / PRIVADO 2 / PRIVADO 3" salían escritos
@@ -347,22 +444,43 @@ export default function PlanoAcomodo({
 
   // Menú de la pieza/elemento seleccionado: sale PEGADO a él, no abajo en la
   // página. Rodrigo: "el botón de abajo está mal ahí".
-  const MenuPieza = ({ x, y, w, girar, quitar }) => (
-    <g>
-      <Boton cx={x + w / 2 - bt * 0.62} cy={y - bt * 0.75} txt="⟳" onClick={girar} />
-      <Boton cx={x + w / 2 + bt * 0.62} cy={y - bt * 0.75} txt="✕" onClick={quitar} fill="#6b645c" />
-    </g>
-  );
+  // Con `duplicar` (sólo muebles, N6) salen TRES botones; sin él, los dos de
+  // siempre —los elementos del plano (puerta, muro) no se duplican—.
+  const MenuPieza = ({ x, y, w, girar, quitar, duplicar }) => {
+    const cx = x + w / 2;
+    if (!duplicar) return (
+      <g>
+        <Boton cx={cx - bt * 0.62} cy={y - bt * 0.75} txt="⟳" onClick={girar} />
+        <Boton cx={cx + bt * 0.62} cy={y - bt * 0.75} txt="✕" onClick={quitar} fill="#6b645c" />
+      </g>
+    );
+    return (
+      <g>
+        <Boton cx={cx - bt * 1.15} cy={y - bt * 0.75} txt="⟳" onClick={girar} />
+        <Boton cx={cx} cy={y - bt * 0.75} txt="⧉" onClick={duplicar} fill="#2f6f4f" />
+        <Boton cx={cx + bt * 1.15} cy={y - bt * 0.75} txt="✕" onClick={quitar} fill="#6b645c" />
+      </g>
+    );
+  };
 
   return (
-    <div className="plano-wrap">
-      <svg className="plano" viewBox={`${-pad} ${-pad} ${totalW + 2 * pad} ${totalH + 2 * pad}`}
+    <div className="plano-wrap" style={{ position: 'relative' }}>
+      {/* Mandos de zoom (N6). También: ctrl/cmd+rueda acerca al cursor, la barra
+          espaciadora o un arrastre en el vacío corren la vista. */}
+      {zoomV2 && (
+        <div className="no-imprimir" style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, display: 'flex', gap: 6 }}>
+          <button type="button" className="boton fantasma" style={{ minHeight: 36, padding: '0 11px' }} onClick={() => zoomCentro(1.3)} title="Acercar" aria-label="Acercar">＋</button>
+          <button type="button" className="boton fantasma" style={{ minHeight: 36, padding: '0 11px' }} onClick={() => zoomCentro(1 / 1.3)} title="Alejar" aria-label="Alejar">－</button>
+          <button type="button" className="boton fantasma" style={{ minHeight: 36, padding: '0 11px' }} onClick={resetVista} title="Ver todo" aria-label="Ver todo">⤢</button>
+        </div>
+      )}
+      <svg className="plano" ref={svgRef} viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`}
         preserveAspectRatio="xMidYMid meet"
-        style={editable ? { cursor: herramienta ? 'copy' : 'crosshair', touchAction: 'none' } : undefined}
-        onPointerDown={editable ? soltar : undefined}
-        onPointerMove={editable ? mover : undefined}
-        onPointerUp={editable ? soltarArrastre : undefined}
-        onPointerCancel={editable ? () => { arrRef.current = null; setArr(null); } : undefined}>
+        style={{ cursor: espacio ? 'grab' : editable ? (herramienta ? 'copy' : 'crosshair') : 'default', touchAction: 'none' }}
+        onPointerDown={(e) => { if (puedePanear(e)) { iniciarPan(e); return; } if (editable) soltar(e); }}
+        onPointerMove={(e) => { if (panRef.current) { panear(e); return; } if (editable) mover(e); }}
+        onPointerUp={(e) => { if (panRef.current) { finPan(); return; } if (editable) soltarArrastre(e); }}
+        onPointerCancel={(e) => { if (panRef.current) { finPan(); return; } if (editable) { arrRef.current = null; setArr(null); } }}>
         {areas.map((a, i) => (
           <g key={'a' + i}>
             {/* Muro real: polígono si el plano dibujado no es un rectángulo. */}
@@ -452,7 +570,8 @@ export default function PlanoAcomodo({
               {/* El menú sale PEGADO al mueble. Cada toque en ⟳ gira 90°: cuatro
                   toques dan la vuelta completa. */}
               {activo && !arrastrando && (
-                <MenuPieza x={px} y={py} w={pw} girar={() => onGirar?.(c.id)} quitar={() => onQuitar?.(c.id)} />
+                <MenuPieza x={px} y={py} w={pw} girar={() => onGirar?.(c.id)} quitar={() => onQuitar?.(c.id)}
+                  duplicar={onDuplicar ? () => onDuplicar(c.id) : undefined} />
               )}
             </g>
           );

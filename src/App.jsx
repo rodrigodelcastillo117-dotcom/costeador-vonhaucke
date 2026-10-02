@@ -61,6 +61,7 @@ import { calcular, modeloParaPieza, componentesSinMaterial } from './motor/calcu
 import { idNuevo } from './util.js';
 import { costoImplicito, precioDeLista } from './datos/preciosVenta.js';
 import Comercial from './componentes/comercial/Comercial.jsx';
+import Voni2 from './componentes/Voni2.jsx';
 import { flagActivo } from './datos/flags.js';
 
 // Rutas que son una línea de catálogo (para aprender cuáles usa cada quien).
@@ -183,6 +184,7 @@ function aplicarDireccion(estado, datos) {
 export default function App() {
   const [estado, setEstado] = useState(cargar);
   const [pestania, setPestania] = useState('inicio');
+  const [voniAbierto, setVoniAbierto] = useState(false);
   const [inicioVista, setInicioVista] = useState('home'); // sub-vista del Inicio (home/costear/cotizar)
   const [expedienteAbierto, setExpedienteAbierto] = useState(null); // expediente de biblioteca a reabrir en el asistente
   const [prodInicial, setProdInicial] = useState(null);   // producto que pidió el buscador
@@ -968,6 +970,33 @@ export default function App() {
       </main>
 
       {aviso && <div className="toast" role="status" aria-live="polite">{aviso}</div>}
+
+      {/* VONI 2.0 — cerebro transversal. Lanzador flotante en cualquier ruta
+          (salvo login/cambio de contraseña). Respeta el rol real del usuario. */}
+      {permiso && permiso !== 'error' && pestania !== 'contrasena' && flagActivo('voni_2') && (
+        <>
+          <button
+            type="button"
+            aria-label="Abrir Voni"
+            onClick={() => setVoniAbierto(true)}
+            style={{ position: 'fixed', right: 18, bottom: 18, zIndex: 9000, width: 54, height: 54, borderRadius: 999,
+              background: '#b22a22', color: '#fff', border: 'none', boxShadow: '0 6px 18px rgba(0,0,0,.25)', fontWeight: 800, fontSize: 18, cursor: 'pointer' }}>
+            Voni
+          </button>
+          {voniAbierto && (
+            <Voni2
+              ctx={{
+                user: sesion?.user || { email: sesion?.user?.email || 'sesion' },
+                role: esDireccion ? 'direccion' : esDiseno ? 'diseno' : 'ventas',
+                route: pestania,
+                quote_id: estado?.cotizacion?.id ?? null,
+                clientSafe: false,
+              }}
+              onCerrar={() => setVoniAbierto(false)}
+            />
+          )}
+        </>
+      )}
     </div>
   );
 }
