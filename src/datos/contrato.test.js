@@ -75,3 +75,22 @@ describe('contrato explícito: lo que leen los componentes', () => {
     }
   });
 });
+
+describe('contrato: mutaciones usan enums/columnas válidos (regresión B1/B2)', () => {
+  const wsSrc = readFileSync(new URL('../componentes/comercial/ProyectoWorkspace.jsx', import.meta.url), 'utf8');
+  it('actividad usa tipo en MAYÚSCULAS (no "nota") — B1', () => {
+    expect(wsSrc).not.toMatch(/tipo:\s*'nota'/);
+    expect(wsSrc).toMatch(/tipo:\s*'NOTA'/);
+  });
+  it('cierre NO escribe total_final en el UPDATE (columna inexistente) — B2', () => {
+    // El objeto de validación JS SÍ puede tener total_final; lo prohibido es en el
+    // UPDATE a proyectos (junto a etapa: 'GANADA'). El fix usa revision_ganadora_id.
+    expect(wsSrc).toMatch(/etapa:\s*'GANADA'[^}]*revision_ganadora_id/);
+    expect(wsSrc).not.toMatch(/etapa:\s*'GANADA'[^}]*total_final/);
+  });
+  it('cierre usa etapas válidas GANADA/PERDIDA (mayúsculas)', () => {
+    expect(wsSrc).toMatch(/etapa:\s*'GANADA'/);
+    expect(wsSrc).toMatch(/etapa:\s*'PERDIDA'/);
+    expect(wsSrc).not.toMatch(/etapa:\s*'(ganada|perdida)'/);
+  });
+});

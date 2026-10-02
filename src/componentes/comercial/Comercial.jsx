@@ -7,7 +7,7 @@
 // ============================================================================
 import { useEffect, useMemo, useState } from 'react';
 import { pesos } from '../../util.js';
-import { listarProyectos } from '../../datos/crm.js';
+import { listarProyectos, crearCliente, crearProyecto } from '../../datos/crm.js';
 import { hoyNecesitaAtencion, hechosDireccion, proyectosSinProximaAccion } from '../../datos/atencion.js';
 import ProyectoWorkspace from './ProyectoWorkspace.jsx';
 import ProductoMaestro from './ProductoMaestro.jsx';
@@ -121,8 +121,54 @@ function Direccion() {
   );
 }
 
+// ---- Alta de proyecto (cliente + proyecto; usa mutaciones existentes) -------
+function NuevoProyecto({ usuario, onCreado }) {
+  const [abierto, setAbierto] = useState(false);
+  const [nombre, setNombre] = useState('');
+  const [cliente, setCliente] = useState('');
+  const [presupuesto, setPresupuesto] = useState('');
+  const [brief, setBrief] = useState('');
+  const [guardando, setGuardando] = useState(false);
+  const [err, setErr] = useState('');
+
+  async function crear() {
+    if (!nombre.trim() || !cliente.trim()) { setErr('Nombre del proyecto y cliente son obligatorios.'); return; }
+    setErr(''); setGuardando(true);
+    try {
+      const { data: cli, error: e1 } = await crearCliente({ nombre_comercial: cliente.trim(), activo: true, creado_por: usuario || null });
+      if (e1 || !cli) throw new Error('cliente');
+      const presup = presupuesto.trim() ? Number(String(presupuesto).replace(/[^0-9.]/g, '')) : null;
+      const { data: proy, error: e2 } = await crearProyecto({
+        nombre: nombre.trim(), cliente_id: cli.id, vendedor_responsable: usuario || 'sin-asignar',
+        presupuesto: Number.isFinite(presup) ? presup : null, brief: brief.trim() || null, moneda: 'MXN',
+      });
+      if (e2 || !proy) throw new Error('proyecto');
+      setAbierto(false); setNombre(''); setCliente(''); setPresupuesto(''); setBrief('');
+      onCreado?.(proy.id);
+    } catch (_e) {
+      setErr('No se pudo crear. Revisa los datos o tu conexión e intenta de nuevo.');
+    } finally { setGuardando(false); }
+  }
+
+  if (!abierto) return <button className="boton primario" style={{ marginBottom: 12 }} onClick={() => setAbierto(true)}>+ Nuevo proyecto</button>;
+  return (
+    <div className="tarjeta" style={{ marginBottom: 12 }}>
+      <strong>Nuevo proyecto</strong>
+      <input className="campo" style={{ marginTop: 8 }} placeholder="Nombre del proyecto *" value={nombre} onChange={(e) => setNombre(e.target.value)} />
+      <input className="campo" style={{ marginTop: 6 }} placeholder="Cliente *" value={cliente} onChange={(e) => setCliente(e.target.value)} />
+      <input className="campo" style={{ marginTop: 6 }} inputMode="numeric" placeholder="Presupuesto (opcional)" value={presupuesto} onChange={(e) => setPresupuesto(e.target.value)} />
+      <input className="campo" style={{ marginTop: 6 }} placeholder="Brief (opcional)" value={brief} onChange={(e) => setBrief(e.target.value)} />
+      {err && <div className="alerta roja" style={{ marginTop: 8 }}><span className="texto">{err}</span></div>}
+      <div className="fila" style={{ gap: 8, marginTop: 8 }}>
+        <button className="boton primario" disabled={guardando} onClick={crear}>{guardando ? 'Creando…' : 'Crear proyecto'}</button>
+        <button className="boton fantasma" disabled={guardando} onClick={() => { setAbierto(false); setErr(''); }}>Cancelar</button>
+      </div>
+    </div>
+  );
+}
+
 // ---- N10 PROYECTOS (lista) -------------------------------------------------
-function ListaProyectos({ onAbrir }) {
+function ListaProyectos({ onAbrir, usuario }) {
   const [estado, setEstado] = useState('cargando');
   const [proyectos, setProyectos] = useState([]);
   async function cargar() {
@@ -136,10 +182,11 @@ function ListaProyectos({ onAbrir }) {
 
   if (estado === 'cargando') return <Cargando que="Cargando proyectos…" />;
   if (estado === 'error') return <ErrorCard onReintentar={cargar} />;
-  if (!proyectos.length) return <Vacio titulo="Aún no hay proyectos" detalle="Crea un proyecto desde un cliente para empezar a cotizar." />;
   return (
     <div>
       <h3 style={{ marginTop: 0 }}>Proyectos</h3>
+      <NuevoProyecto usuario={usuario} onCreado={(id) => { cargar(); onAbrir(id); }} />
+      {!proyectos.length && <Vacio titulo="Aún no hay proyectos" detalle="Crea tu primer proyecto con el botón de arriba." />}
       {proyectos.map((p) => (
         <div className="tarjeta" key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ flex: 1 }}>
@@ -155,7 +202,7 @@ function ListaProyectos({ onAbrir }) {
 }
 
 // ---- SHELL -----------------------------------------------------------------
-export default function Comercial({ estado, soloVentas = false, veCostos = false, onIr }) {
+export default function Comercial({ estado, soloVentas = false, veCostos = false, onIr, usuario = null }) {
   const [vista, setVista] = useState('hoy');          // hoy | proyectos | proyecto | productos | direccion
   const [proyectoId, setProyectoId] = useState(null);
   const abrir = (id) => { setProyectoId(id); setVista('proyecto'); };
@@ -174,7 +221,7 @@ export default function Comercial({ estado, soloVentas = false, veCostos = false
       </div>
 
       {vista === 'hoy' && <Hoy onAbrirProyecto={abrir} />}
-      {vista === 'proyectos' && <ListaProyectos onAbrir={abrir} />}
+      {vista === 'proyectos' && <ListaProyectos onAbrir={abrir} usuario={usuario} />}
       {vista === 'productos' && <ProductoMaestro soloVentas={soloVentas} veCostos={veCostos} />}
       {vista === 'direccion' && veCostos && <Direccion />}
       {vista === 'proyecto' && proyectoId != null && (

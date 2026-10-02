@@ -944,7 +944,7 @@ export default function App() {
         {pestania === 'cotizacion' && <Cotizacion estado={estado} setEstado={setEstado} soloVentas={esVendedor} onIr={irA} onEmitida={onEmitida} />}
         {pestania === 'cotizarIA' && <div className="contenido"><CotizadorIA estado={estado} onAgregarItems={agregarItemsIA} onIr={irA} verCotizacion soloVentas={esVendedor} /></div>}
         {pestania === 'comercial' && (flagActivo('commercial_v2')
-          ? <Comercial estado={estado} soloVentas={esVendedor} veCostos={veCostos} onIr={irA} />
+          ? <Comercial estado={estado} soloVentas={esVendedor} veCostos={veCostos} onIr={irA} usuario={sesion?.user?.email || null} />
           : <div className="contenido"><div className="tarjeta"><p className="ayuda">El módulo comercial no está disponible en este momento.</p></div></div>
         )}
         {pestania === 'voni' && (

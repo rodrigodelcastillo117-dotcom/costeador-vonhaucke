@@ -316,7 +316,7 @@ function Actividad({ proyecto, onCambio }) {
   const [fecha, setFecha] = useState(proyecto.fecha_proxima_accion || '');
   async function cargar() { setEstado('cargando'); const { data, error } = await listarActividades(proyecto.id); if (error) { setEstado('error'); return; } setActs(data); setEstado('ok'); }
   useEffect(() => { cargar(); /* eslint-disable-next-line */ }, [proyecto.id]);
-  async function registrar() { if (!txt.trim()) return; await agregarActividad({ proyecto_id: proyecto.id, tipo: 'nota', descripcion: txt.trim(), fecha: new Date().toISOString() }); setTxt(''); cargar(); }
+  async function registrar() { if (!txt.trim()) return; await agregarActividad({ proyecto_id: proyecto.id, tipo: 'NOTA', descripcion: txt.trim(), fecha: new Date().toISOString() }); setTxt(''); cargar(); }
   async function guardarAccion() { await actualizarProyecto(proyecto.id, { proxima_accion: accion || null, fecha_proxima_accion: fecha || null }); onCambio?.(); }
   return (
     <div>
@@ -360,15 +360,16 @@ function Cierre({ proyecto, cots, onCambio }) {
     const v = validarCierre(cierre);
     if (!v.ok) { setErr(v.errores); return; }
     setErr([]); setGuardando(true);
+    // proyectos NO tiene columna total_final; la "revisión ganadora" sí existe.
     await actualizarProyecto(proyecto.id, resultado === 'ganada'
-      ? { etapa: 'GANADA', fecha_cierre: cierre.fecha, total_final: totalFinal }
+      ? { etapa: 'GANADA', fecha_cierre: cierre.fecha, revision_ganadora_id: proyecto.revision_ganadora_id || cierre.revision_aceptada }
       : { etapa: 'PERDIDA', motivo_perdida: motivo, comentario_cierre: detalle || null, fecha_cierre: new Date().toISOString().slice(0, 10) });
     setGuardando(false); onCambio?.();
   }
 
   if (['GANADA', 'PERDIDA'].includes(String(proyecto.etapa).toUpperCase())) {
     return <div className="tarjeta"><strong>Proyecto cerrado: {proyecto.etapa}</strong>
-      <div className="ayuda">{String(proyecto.etapa).toUpperCase() === 'PERDIDA' ? `Motivo: ${proyecto.motivo_perdida || '—'}` : `Total final: ${dinero(proyecto.total_final)}`} · {f(proyecto.fecha_cierre)}</div></div>;
+      <div className="ayuda">{String(proyecto.etapa).toUpperCase() === 'PERDIDA' ? `Motivo: ${proyecto.motivo_perdida || '—'}` : `Total aceptado: ${dinero(totalFinal)}`} · {f(proyecto.fecha_cierre)}</div></div>;
   }
   return (
     <div className="tarjeta">

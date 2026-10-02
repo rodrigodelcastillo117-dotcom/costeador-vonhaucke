@@ -19,14 +19,18 @@ export const listarProyectos = () => sel(nube.from('proyectos').select('*').orde
 // clientes.id). NO existe columna `cliente` en proyectos: el nombre se lee de
 // `proyecto.clientes?.nombre_comercial`. (H2 — fuente de verdad, sin duplicar.)
 export const obtenerProyecto = (id) => nube.from('proyectos').select('*, clientes(nombre_comercial)').eq('id', id).maybeSingle();
-export const crearProyecto = (p) => nube.from('proyectos').insert(p).select('*').maybeSingle();
+// etapa tiene CHECK (mayúsculas); default seguro NUEVO si no se especifica.
+export const crearProyecto = (p) => nube.from('proyectos').insert({ etapa: 'NUEVO', ...p }).select('*').maybeSingle();
 export const actualizarProyecto = (id, patch) =>
   nube.from('proyectos').update({ ...patch, actualizado: new Date().toISOString() }).eq('id', id);
 
 // ---- Actividades (timeline N17) -------------------------------------------
 export const listarActividades = (proyectoId) =>
   sel(nube.from('proyecto_actividades').select('*').eq('proyecto_id', proyectoId).order('fecha', { ascending: false }));
-export const agregarActividad = (a) => nube.from('proyecto_actividades').insert(a);
+// tipo tiene CHECK en MAYÚSCULAS (NOTA/LLAMADA/REUNION/EMAIL/...); se normaliza
+// para que un 'nota' en minúsculas no sea rechazado silenciosamente.
+export const agregarActividad = (a) =>
+  nube.from('proyecto_actividades').insert({ ...a, tipo: String(a.tipo || 'NOTA').toUpperCase() });
 
 // ---- Cotizaciones del proyecto --------------------------------------------
 export const listarCotizacionesDeProyecto = (proyectoId) =>
