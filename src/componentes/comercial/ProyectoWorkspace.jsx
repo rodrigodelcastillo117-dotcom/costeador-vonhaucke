@@ -59,7 +59,7 @@ export default function ProyectoWorkspace({ proyectoId, soloVentas = false, veCo
             <h2 style={{ margin: 0 }}>{proyecto.nombre || `Proyecto ${proyecto.id}`}</h2>
             <div className="ayuda">{proyecto.cliente || 'Cliente —'} · Vendedor {proyecto.vendedor_responsable || '—'} · Etapa <strong>{proyecto.etapa || '—'}</strong></div>
           </div>
-          <button className="boton primario" onClick={() => setPresentar(true)}>Presentar al cliente ▸</button>
+          {flagActivo('client_presentation_v2') && <button className="boton primario" onClick={() => setPresentar(true)}>Presentar al cliente ▸</button>}
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
           <KPI t="Total actual" v={dinero(totalActual)} />
@@ -71,7 +71,7 @@ export default function ProyectoWorkspace({ proyectoId, soloVentas = false, veCo
 
       <div className="chips" style={{ margin: '12px 0' }}>
         <Secc id="resumen">Resumen</Secc>
-        {(flagActivo('plan_analysis_v2') || flagActivo('layout_v2') || flagActivo('render_v2')) && <Secc id="solucion">Solución</Secc>}
+        {(flagActivo('scope_v2') || flagActivo('layout_v2') || flagActivo('render_v2')) && <Secc id="solucion">Solución</Secc>}
         <Secc id="cotizacion">Cotización</Secc>
         <Secc id="escenarios">Escenarios</Secc>
         {veCostos && <Secc id="dealdesk">Deal Desk</Secc>}
@@ -205,7 +205,7 @@ function RendersPanel({ proyecto }) {
 function Solucion({ proyecto, onIr }) {
   return (
     <div style={{ display: 'grid', gap: 12 }}>
-      {flagActivo('plan_analysis_v2') && <Reconciliacion proyecto={proyecto} />}
+      {flagActivo('scope_v2') && <Reconciliacion proyecto={proyecto} />}
       {flagActivo('layout_v2') && (
         <div className="tarjeta">
           <strong>Distribución / layout</strong>
