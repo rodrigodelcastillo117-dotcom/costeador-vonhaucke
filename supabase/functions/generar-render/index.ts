@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
 
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, error: "JSON invalido" }, 400); }
-  const { descripcion = "", materiales = [], medidas = "", tipo = "", imagen = "", imagenes = [], mediaType = "image/jpeg", modo = "render", aspecto = "", cuarto = "", lineas = [], conteoPiso = null } = body || {};
+  const { descripcion = "", materiales = [], medidas = "", tipo = "", imagen = "", imagenes = [], mediaType = "image/jpeg", modo = "render", aspecto = "", cuarto = "", lineas = [], conteoPiso = null, entorno = "" } = body || {};
   if (!descripcion.trim() && !imagen) return json({ ok: false, error: "Escribe una descripción del mueble para generar el render." }, 400);
   if (modo === "staging" && !imagen) return json({ ok: false, error: "Sube una foto del espacio para amueblarlo." }, 400);
 
@@ -157,6 +157,17 @@ Deno.serve(async (req) => {
       "distortion, no tilt. This must look like a photograph taken by an architectural photographer, NOT like a 3D " +
       "visualization and NOT like an aerial dollhouse view. " +
       "Editorial, bright, restrained, aspirational. No text, no watermark, no logos, no dimension lines, no people."
+    : modo === "ambiente"
+    ? // AMBIENTE DEL PRODUCTO: coloca el MISMO producto (imagen de referencia) en su entorno
+      // real. El entorno lo manda el cliente (supermercado/tienda para exhibidores, oficina
+      // para mobiliario, etc.) para que NO salga siempre una oficina.
+      "Place the EXACT product shown in the reference image into a realistic " + (entorno || "modern commercial") + " environment. " +
+      "The product is the hero of the scene and must keep its EXACT design, proportions, configuration, materials, finish and every element (shelves, doors, niches, light box, trays) as in the reference image. " +
+      "Do not redesign it, do not add or remove parts, do not change how many shelves/doors/niches it has. " +
+      `Product: ${descripcion}. ` +
+      (medidas ? `True proportions: ${medidas}. ` : "") +
+      "Photorealistic, correct perspective, natural lighting and contact shadows consistent with the environment, the product clearly visible and in context. " +
+      "No text, no watermark, no logos, no people standing in front of the product."
     : modo === "oficina"
     ? // OFICINA COMPLETA: generar la escena interior amueblada con lo cotizado
       "Photorealistic wide-angle interior architectural render of a modern corporate office, professionally furnished with the following Von Haucke office furniture, laid out with realistic circulation, aisles and zoning: " +

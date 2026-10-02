@@ -140,7 +140,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
 
   // --- RENDER V1 (Fase 6): ilustra el producto YA definido; NO lo define ni lo modifica. ---
   const PROMPT_VERSION = 'render-v1-2026-10-01';
-  const [renders, setRenders] = useState({ catalogo: null, oficina: null });
+  const [renders, setRenders] = useState({ aislado: null, ambiente: null });
   const [renderMsg, setRenderMsg] = useState('');
   const [renderizando, setRenderizando] = useState(false);
   const [costoEstado, setCostoEstado] = useState(null); // 'certificado' | 'preliminar' | null
@@ -153,38 +153,74 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
   // Falta información crítica para ilustrar fielmente: se avisa, NO se inventa.
   const faltaCritico = !b.nombre?.trim() || !(b.componentes?.length) || !(dimsR.w > 0);
 
+  // Infiere el ENTORNO real del producto (no siempre oficina): exhibidores/retail → tienda.
+  function entornoDe() {
+    const txt = `${b.nombre || ''} ${tipoDeMueble(b)} ${materialesR.join(' ')} ${b.descripcionCliente || ''}`.toLowerCase();
+    const retail = /alpura|exhibidor|exibidor|supermercado|tienda|abarrot|refriger|charola|anaquel|g[oó]ndola|retail|oxxo|punto de venta|display|bimbo|coca|sabritas|lala/.test(txt);
+    return retail
+      ? { tipo: 'retail', txt: 'modern supermarket / retail store aisle with product shelving, refrigerators and bright retail lighting, polished floor' }
+      : { tipo: 'oficina', txt: 'modern corporate office with warm oak furniture and natural daylight' };
+  }
+  // sube a Storage + guarda metadata; devuelve la URL para mostrar (o el dataUrl si Storage falla).
+  async function persistir(dataUrl, modo, tipo, entornoTipo) {
+    const path = `nuevo/${hashInput({ n: b.nombre, c: b.componentes })}/${modo}-${Date.now()}.png`;
+    const up = await subirRender(dataUrl, path);
+    if (up.ok) {
+      await guardarRender({
+        producto_nombre: b.nombre, producto_version: null, prompt_version: PROMPT_VERSION,
+        categoria: tipo, ancho_mm: dimsR.w, fondo_mm: dimsR.d, alto_mm: null, modo,
+        storage_path: up.path, storage_url: up.url,
+        inputs: { materiales: materialesR, notas: b.descripcionCliente || null, piezas: (b.componentes || []).length, entorno: entornoTipo || null },
+        costo_estado: costoEstado || 'preliminar', estado: 'preliminar',
+      });
+      return up.url;
+    }
+    return dataUrl; // fallback visual; NO se guarda base64 en metadata
+  }
+
   async function generarRenders() {
     if (faltaCritico || renderizando) return;
-    setRenderizando(true); setRenderMsg(''); setRenders({ catalogo: null, oficina: null });
-    // Badge de costo desde el servidor autoritativo (no bloquea el render).
+    setRenderizando(true); setRenderMsg(''); setRenders({ aislado: null, ambiente: null });
     try { const srv = await costearServidor({ ...b }, b.piezas); if (srv?.estado) setCostoEstado(srv.estado); } catch (_e) {}
     const tipo = tipoDeMueble(b);
     const medidas = `${dimsR.w}×${dimsR.d} mm`;
-    const base = `${b.nombre}. Mueble de oficina tipo ${tipo}. Medidas exactas ${medidas}.`
+    const texto = `${b.nombre}. Tipo ${tipo}. Medidas exactas ${medidas}.`
       + (materialesR.length ? ` Materiales y acabados: ${materialesR.join(', ')}.` : '')
-      + (b.descripcionCliente ? ` Notas: ${b.descripcionCliente}.` : '')
-      + ' Respeta EXACTAMENTE estas dimensiones, materiales, número de puertas/cajones y geometría; no agregues ni quites elementos.';
-    const salida = { catalogo: null, oficina: null };
-    for (const modo of ['catalogo', 'oficina']) {
-      try {
-        const r = await generarRender(base, { modo, medidas, tipo, materiales: materialesR });
-        if (!r?.ok || !r.dataUrl) { setRenderMsg(r?.error || 'No se pudo generar el render.'); continue; }
-        const path = `nuevo/${hashInput({ n: b.nombre, c: b.componentes })}/${modo}-${Date.now()}.png`;
-        const up = await subirRender(r.dataUrl, path);
-        const url = up.ok ? up.url : r.dataUrl; // si Storage falla, se muestra inline (no se guarda base64 en metadata)
-        salida[modo] = url;
-        setRenders({ ...salida });
-        if (up.ok) {
-          await guardarRender({
-            producto_nombre: b.nombre, producto_version: null, prompt_version: PROMPT_VERSION,
-            categoria: tipo, ancho_mm: dimsR.w, fondo_mm: dimsR.d, alto_mm: null, modo,
-            storage_path: up.path, storage_url: up.url,
-            inputs: { materiales: materialesR, notas: b.descripcionCliente || null, piezas: (b.componentes || []).length },
-            costo_estado: costoEstado || 'preliminar', estado: 'preliminar',
-          });
-        }
-      } catch (e) { setRenderMsg('No se pudo generar el render: ' + String(e)); }
-    }
+      + (b.descripcionCliente ? ` Notas: ${b.descripcionCliente}.` : '');
+    const ent = entornoDe();
+    const refImg = b.imagen ? String(b.imagen).split(',')[1] : '';
+    const refMime = b.imagen ? ((String(b.imagen).match(/data:(.*?);/) || [])[1] || 'image/jpeg') : 'image/jpeg';
+
+    // 1) PRODUCTO AISLADO — el PLANO es la fuente de verdad de la forma (modo catálogo).
+    //    Sin plano, cae a 'render' por texto (menos fiel, se avisa).
+    let aisladoDataUrl = null;
+    try {
+      const opt = b.imagen
+        ? { modo: 'catalogo', medidas, tipo, materiales: materialesR, imagen: refImg, mediaType: refMime }
+        : { modo: 'render', medidas, tipo, materiales: materialesR };
+      const r = await generarRender(texto, opt);
+      if (r?.ok && r.dataUrl) {
+        aisladoDataUrl = r.dataUrl;
+        const url = await persistir(r.dataUrl, 'aislado', tipo, ent.tipo);
+        setRenders((s) => ({ ...s, aislado: url }));
+        if (!b.imagen) setRenderMsg('Sin plano cargado: el producto aislado se generó por descripción (menos fiel). Sube el plano para fidelidad exacta.');
+      } else { setRenderMsg(r?.error || 'No se pudo generar el producto aislado.'); }
+    } catch (e) { setRenderMsg('Error en producto aislado: ' + String(e)); }
+
+    // 2) EN AMBIENTE — coloca el MISMO producto (usa el aislado ya renderizado como referencia,
+    //    o el plano) en su ENTORNO real inferido (supermercado para exhibidores, oficina si no).
+    try {
+      const prod = aisladoDataUrl || b.imagen;
+      const prodRaw = prod ? String(prod).split(',')[1] : '';
+      const prodMime = prod ? ((String(prod).match(/data:(.*?);/) || [])[1] || 'image/png') : 'image/png';
+      if (prodRaw) {
+        const r = await generarRender(texto, { modo: 'ambiente', medidas, tipo, materiales: materialesR, imagen: prodRaw, mediaType: prodMime, entorno: ent.txt });
+        if (r?.ok && r.dataUrl) {
+          const url = await persistir(r.dataUrl, 'ambiente', tipo, ent.tipo);
+          setRenders((s) => ({ ...s, ambiente: url }));
+        } else { setRenderMsg(r?.error || 'No se pudo generar el ambiente.'); }
+      }
+    } catch (e) { setRenderMsg('Error en ambiente: ' + String(e)); }
     setRenderizando(false);
   }
 
@@ -566,12 +602,12 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
               {renderizando ? 'Generando…' : (renders.catalogo || renders.oficina) ? 'Regenerar render' : 'Generar render'}
             </button>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
-              {['catalogo', 'oficina'].map((m) => (
+              {['aislado', 'ambiente'].map((m) => (
                 <div key={m}>
-                  <div className="ayuda" style={{ marginBottom: 4 }}>{m === 'catalogo' ? 'Producto aislado' : 'En ambiente'}</div>
+                  <div className="ayuda" style={{ marginBottom: 4 }}>{m === 'aislado' ? 'Producto aislado' : 'En ambiente'}</div>
                   {renders[m]
                     ? <img src={renders[m]} alt={m} style={{ width: '100%', borderRadius: 8, border: '1px solid var(--borde)' }} />
-                    : <div style={{ aspectRatio: '4/3', borderRadius: 8, border: '1px dashed var(--borde)', display: 'grid', placeItems: 'center' }}><span className="ayuda">—</span></div>}
+                    : <div style={{ aspectRatio: '4/3', borderRadius: 8, border: '1px dashed var(--borde)', display: 'grid', placeItems: 'center' }}><span className="ayuda">{renderizando ? '…' : '—'}</span></div>}
                 </div>
               ))}
             </div>
