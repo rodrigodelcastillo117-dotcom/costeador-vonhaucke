@@ -236,7 +236,39 @@ export function precioDePieza(estado, ruta, g, pieza, cantidad, config) {
   return { resultado, margen, precio, costo, real: !!real && !real.heredada, par };
 }
 
-export function costearItem(estado, item) {
+// --- SELLER-SAFE: el vendedor NUNCA recibe economía interna ------------------
+//  Principio #2 de VH: después del cutover, una partida que llega al vendedor no
+//  trae costo/margen/factores/horas por NINGUNA vía. `sellerSafePartida` quita esos
+//  campos y recorta `catalogo` a lo que sí puede ver (clave/lista/mínimo), y `pieza`
+//  a su estructura sin factores ni horas. No es ocultar en CSS: el dato no viaja.
+function sellerSafePartida(p) {
+  if (!p) return p;
+  const safe = { ...p, sellerSafe: true };
+  delete safe.costoUnitario; delete safe.margen; delete safe.costo; delete safe.costoDerivado;
+  if (safe.catalogo) safe.catalogo = { clave: safe.catalogo.clave, lista: safe.catalogo.lista, minimo: safe.catalogo.minimo };
+  if (safe.pieza) {
+    const { factorDirecta, factorIndirecta, horas, modoManoObra, preparacionHoras, ...pz } = safe.pieza;
+    safe.pieza = pz;
+  }
+  return safe;
+}
+// Fail-closed: cuando el precio del vendedor SÓLO podría salir del modelo de costo
+//  (no hay precio AUTORIZADO: ni catálogo, ni price-book), NO se inventa un número ni
+//  se muestra $0 — se devuelve una partida marcada "sin precio autorizado".
+function sinPrecioVendedor(base) {
+  return {
+    ruta: base.ruta, linea: base.linea, producto: base.producto, nombre: base.nombre,
+    cantidad: base.cantidad, w: base.w, d: base.d, config: base.config,
+    sinPrecioAutorizado: true, sellerSafe: true,
+    avisos: base.avisos || [], requiereProyectista: !!base.requiereProyectista,
+  };
+}
+
+// `opciones.soloVentas=true` => salida SELLER-SAFE con fail-closed (sin economía,
+//  precio sólo si es AUTORIZADO). Sin la opción, el comportamiento es idéntico al de
+//  siempre (Dirección/Diseño no cambian en absoluto).
+export function costearItem(estado, item, opciones = {}) {
+  const soloVentas = !!opciones.soloVentas;
   const L = LINEAS_REG[item.ruta];
   if (!L) return null;
   const prod = L.productos.find((p) => p.id === item.producto);
@@ -361,7 +393,7 @@ export function costearItem(estado, item) {
     if (res.estado === 'varios') variantes = res.candidatos.slice(0, 8);
     // Con precio de lista real, el costo se deja IMPLÍCITO (mismo criterio que
     // el price-book): así Dirección sigue viendo una utilidad coherente.
-    return {
+    const partidaCatalogo = {
       ruta: item.ruta, linea: L.titulo, producto: prod.id, nombre: nb.nombre,
       // ⚠️ `cantidad` DEBE IR AQUÍ. Sin él, la rama de catálogo (la de PRECIO
       // REAL) devolvía la partida sin cantidad y los totales la multiplicaban
@@ -384,9 +416,11 @@ export function costearItem(estado, item) {
       precioReal: true, catalogo, variantes,
       avisos, candadoUsuarios, requiereProyectista,
     };
+    // Vendedor: precio AUTORIZADO del catálogo, pero sin economía interna.
+    return soloVentas ? sellerSafePartida(partidaCatalogo) : partidaCatalogo;
   }
 
-  return {
+  const partidaModelo = {
     ruta: item.ruta, linea: L.titulo, producto: prod.id, nombre: nb.nombre,
     cantidad, costoUnitario: pr.costo, precioUnitario: precio, margen, pieza,
     w: nb.w, d: nb.d, config,
@@ -396,6 +430,10 @@ export function costearItem(estado, item) {
     // Lo que se AJUSTÓ de lo que pidió Voni, para poder decirlo en pantalla.
     avisos, candadoUsuarios, requiereProyectista,
   };
+  // FAIL-CLOSED para el vendedor: si el precio NO es autorizado (price-book), es
+  // un precio de MODELO derivado del costo => no se le entrega. Autorizado => OK sin economía.
+  if (soloVentas) return pr.real ? sellerSafePartida(partidaModelo) : sinPrecioVendedor(partidaModelo);
+  return partidaModelo;
 }
 
 // --- Recostear una partida con una CONFIG ya armada (editar un mueble) ---------

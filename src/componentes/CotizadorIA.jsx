@@ -42,7 +42,7 @@ const EJEMPLOS = [
 // pueda saltar solo a la pantalla de "esto entendí" sin un clic de más.
 export default function CotizadorIA({
   estado, onAgregarItems, onIr, verCotizacion = false, conPrograma = false,
-  pantalla = 'todo', onListo,
+  pantalla = 'todo', onListo, soloVentas = false,
 }) {
   const [texto, setTexto] = useState('');
   const [cargando, setCargando] = useState(false);
@@ -87,13 +87,20 @@ export default function CotizadorIA({
       // que se sigan viendo en la lista de muebles.
       const costados = [];
       const sinCostear = [];
+      const sinPrecio = [];   // vendedor: producto sin precio AUTORIZADO (fail-closed, nunca $0)
       for (const it of items) {
         const cantidad = Math.max(1, Math.round(Number(it.cantidad) || 1));
-        const c = costearItem(estado, { ...it, cantidad });
+        const c = costearItem(estado, { ...it, cantidad }, { soloVentas });
         // `avisos` son los ajustes que la app le hizo a lo que pidió Voni (pediste 8
         // usuarios y ese producto sólo tiene 6). Antes se hacían en silencio.
-        if (c) costados.push({ ...c, nota: it.nota || null, confianza: it.confianza || null, avisos: c.avisos || [], sugerido: !!it.sugerido });
-        else sinCostear.push(it.etiqueta || it.producto || 'un mueble');
+        if (c && c.sinPrecioAutorizado) {
+          // Fail-closed: no se arma un renglón con $0. Se avisa que requiere costeo.
+          sinPrecio.push(c.nombre || it.etiqueta || it.producto || 'un mueble');
+        } else if (c) {
+          costados.push({ ...c, nota: it.nota || null, confianza: it.confianza || null, avisos: c.avisos || [], sugerido: !!it.sugerido });
+        } else {
+          sinCostear.push(it.etiqueta || it.producto || 'un mueble');
+        }
       }
       // PIEZAS DEL BANCO DE PRECIOS (sillería, complementos). No se cuestan: su
       // precio viene de un presupuesto CERRADO, que manda sobre cualquier
@@ -102,12 +109,17 @@ export default function CotizadorIA({
         const pieza = BANCO.find((x) => x.id === b.id);
         if (!pieza) { sinCostear.push(b.etiqueta || b.id); continue; }
         const cantidad = Math.max(1, Math.round(Number(b.cantidad) || 1));
-        costados.push({
+        // Banco = precio REAL de presupuesto cerrado (no se cuesta). Para el vendedor
+        // NO se adjunta economía (ni siquiera costoUnitario:0, que dispararía el scanner).
+        const partidaBanco = {
           piezaId: pieza.id, nombre: pieza.medidas ? `${pieza.nombre} (${pieza.medidas})` : pieza.nombre,
-          cantidad, costoUnitario: 0, precioUnitario: pieza.precio, margen: null,
+          cantidad, precioUnitario: pieza.precio,
           deBanco: true, precioReal: true,
           nota: b.nota || null, confianza: 'alta', avisos: [], sugerido: !!b.sugerido,
-        });
+        };
+        if (!soloVentas) { partidaBanco.costoUnitario = 0; partidaBanco.margen = null; }
+        else partidaBanco.sellerSafe = true;
+        costados.push(partidaBanco);
       }
       // Se marca ANTES de tocar las partidas: el useEffect de arriba compara
       // contra esta marca para saber que el cambio que viene fue nuestro.
@@ -128,6 +140,7 @@ export default function CotizadorIA({
         preguntas: r.propuesta?.preguntas || [],
         noEncontrado: r.propuesta?.noEncontrado || [],
         sinCostear,
+        sinPrecio,
       });
       setRespuesta('');
       // Un solo clic ("Armar el proyecto") te lleva a la pantalla de "esto
@@ -167,7 +180,7 @@ export default function CotizadorIA({
   if (cargando) return <Cargando voni titulo="Voni está trabajando" mensajes={['Leyendo tu pedido…', 'Buscando en las 24 líneas…', 'Costeando cada mueble…', 'Armando la lista…']} />;
 
   const avisos = resultado
-    ? resultado.preguntas.length + resultado.noEncontrado.length + resultado.sinCostear.length
+    ? resultado.preguntas.length + resultado.noEncontrado.length + resultado.sinCostear.length + (resultado.sinPrecio?.length || 0)
     : 0;
 
   const conFormulario = pantalla !== 'resultado';
@@ -254,6 +267,11 @@ export default function CotizadorIA({
           {resultado.sinCostear.length > 0 && (
             <div className="alerta ambar" style={{ marginTop: 10 }}>
               <span className="texto">No pude costear: {resultado.sinCostear.join(' · ')}. Agrégalo de línea o pídelo como especial.</span>
+            </div>
+          )}
+          {resultado.sinPrecio?.length > 0 && (
+            <div className="alerta ambar" style={{ marginTop: 10 }}>
+              <span className="texto">Sin precio autorizado (requiere costeo de Diseño/Dirección): {resultado.sinPrecio.join(' · ')}. No se agregó para no cotizar un precio no autorizado.</span>
             </div>
           )}
           {resultado.preguntas.length > 0 && (

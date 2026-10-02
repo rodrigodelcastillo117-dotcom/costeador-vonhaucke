@@ -240,6 +240,7 @@ export default function Voni({
             estado={estado} onAgregarItems={agregarEnProyecto} onIr={onIr} conPrograma
             pantalla={subpaso2 === 'describir' ? 'formulario' : 'resultado'}
             onListo={() => setSubpaso2('revisar')}
+            soloVentas={soloVentas}
           />
 
           {/* Puente manual, por si vuelves a un proyecto que YA tenía muebles

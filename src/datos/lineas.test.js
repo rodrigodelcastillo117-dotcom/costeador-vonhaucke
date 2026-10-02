@@ -2,6 +2,98 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { configDesde } from './lineas.js';
 
 // ---------------------------------------------------------------------------
+//  SELLER-SAFE (C3.4 / Principio #2 VH): con `opciones.soloVentas`, costearItem
+//  NUNCA devuelve economía interna (costo/margen/factores/horas) y NUNCA inventa
+//  un precio de modelo: si el precio no es AUTORIZADO (catálogo/price-book), cae
+//  fail-closed (`sinPrecioAutorizado`), jamás $0 silencioso. Dirección/Diseño
+//  (sin la opción) conservan el comportamiento idéntico de siempre.
+// ---------------------------------------------------------------------------
+const CLAVES_ECONOMIA = /^(costo.*|margen|utilidad|materialtotal|manoobra|indirectos.*|precioproveedor|precioreal|costoderivado|factordirecta|factorindirecta|horas|preparacionhoras)$/;
+function escaneaEconomia(obj, hits = [], ruta = '') {
+  if (obj == null || typeof obj !== 'object') return hits;
+  if (Array.isArray(obj)) { obj.forEach((v, i) => escaneaEconomia(v, hits, `${ruta}[${i}]`)); return hits; }
+  for (const [k, v] of Object.entries(obj)) {
+    const norm = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+    // precioReal (bandera booleana "es de papel") NO es dinero; sólo se vigila como valor numérico.
+    if (CLAVES_ECONOMIA.test(norm) && norm !== 'precioreal') hits.push(`${ruta}.${k}`);
+    escaneaEconomia(v, hits, `${ruta}.${k}`);
+  }
+  return hits;
+}
+
+describe('seller-safe: el vendedor no recibe economía interna', () => {
+  let costearItem, catalogoIA, estado;
+  beforeAll(async () => {
+    const ln = await import('./lineas.js');
+    const ins = await import('./insumos.js');
+    const mc = await import('../motor/calculo.js');
+    costearItem = ln.costearItem; catalogoIA = ln.catalogoIA;
+    estado = { insumos: ins.mapaInsumos(ins.INSUMOS_SEMILLA), parametros: mc.PARAMETROS_DEFAULT, piezas: {} };
+  });
+
+  it('Dirección/Diseño (sin soloVentas): el comportamiento es idéntico (trae costoUnitario)', () => {
+    const c = costearItem(estado, { ruta: 'applt', producto: 'banca_doble', cantidad: 1, seleccion: [{ clave: 'usuarios', valor: '6' }, { clave: 'largoMM', valor: '1500' }] });
+    expect(c).toBeTruthy();
+    expect(c).toHaveProperty('costoUnitario');   // economía presente para veCostos
+  });
+
+  it('TODOS los productos en soloVentas: 0 keys de economía, y precio autorizado O fail-closed (nunca $0)', () => {
+    const cat = catalogoIA();
+    const fugas = [];
+    const silenciosos = [];
+    let evaluados = 0, conPrecio = 0, failClosed = 0;
+    for (const ruta of Object.keys(cat)) {
+      if (ruta.startsWith('__')) continue;           // __banco no pasa por costearItem
+      for (const p of cat[ruta].productos || []) {
+        let c; try { c = costearItem(estado, { ruta, producto: p.id, cantidad: 1, seleccion: [] }, { soloVentas: true }); } catch (e) { continue; }
+        if (!c) continue;
+        evaluados++;
+        const hits = escaneaEconomia(c);
+        if (hits.length) fugas.push(`${ruta}/${p.id}: ${hits.join(',')}`);
+        if (c.sinPrecioAutorizado) { failClosed++; }
+        else if (c.precioUnitario > 0) { conPrecio++; }
+        else { silenciosos.push(`${ruta}/${p.id} precio=${c.precioUnitario}`); }  // $0 o undefined: PROHIBIDO
+      }
+    }
+    expect(fugas).toEqual([]);         // Principio #2: cero economía interna
+    expect(silenciosos).toEqual([]);   // Principio #1: cero precio silencioso $0
+    expect(evaluados).toBeGreaterThan(50);
+    // Señal informativa: cuántos resuelven a precio autorizado vs fail-closed.
+    expect(conPrecio + failClosed).toBe(evaluados);
+  });
+
+  it('SIN insumos (vendedor real tras el cutover de config): sigue dando precio autorizado O fail-closed, nunca $0, 0 economía', () => {
+    const estadoVendedor = { insumos: {}, parametros: {}, piezas: {} };  // config_para_rol no manda costos
+    const cat = catalogoIA();
+    const fugas = [];
+    const silenciosos = [];
+    let evaluados = 0;
+    for (const ruta of Object.keys(cat)) {
+      if (ruta.startsWith('__')) continue;
+      for (const p of cat[ruta].productos || []) {
+        let c; try { c = costearItem(estadoVendedor, { ruta, producto: p.id, cantidad: 1, seleccion: [] }, { soloVentas: true }); } catch (e) { continue; }
+        if (!c) continue;
+        evaluados++;
+        if (escaneaEconomia(c).length) fugas.push(`${ruta}/${p.id}`);
+        if (!c.sinPrecioAutorizado && !(c.precioUnitario > 0)) silenciosos.push(`${ruta}/${p.id} precio=${c.precioUnitario}`);
+      }
+    }
+    expect(fugas).toEqual([]);
+    expect(silenciosos).toEqual([]);     // nunca $0 silencioso aunque no haya insumos
+    expect(evaluados).toBeGreaterThan(50);
+  });
+
+  it('un item de catálogo en soloVentas trae precio pero NO costo', () => {
+    const c = costearItem(estado, { ruta: 'applt', producto: 'banca_doble', cantidad: 1, seleccion: [{ clave: 'usuarios', valor: '6' }, { clave: 'largoMM', valor: '1200' }] }, { soloVentas: true });
+    expect(c.sellerSafe).toBe(true);
+    expect(c.costoUnitario).toBeUndefined();
+    expect(c.margen).toBeUndefined();
+    if (!c.sinPrecioAutorizado) expect(c.precioUnitario).toBeGreaterThan(0);
+    if (c.catalogo) expect(c.catalogo.full).toBeUndefined();   // 'full' = precio 2 (base de costo)
+  });
+});
+
+// ---------------------------------------------------------------------------
 //  LO QUE NO EXISTE YA NO SE SUSTITUYE EN SILENCIO (auditoría de Voni, 2026-08-16).
 //  Si Voni pedía "bench de 8 usuarios" y ese producto sólo existe de 2 o de 6,
 //  la app cotizaba DOS y no decía nada: el vendedor pedía 8 puestos y se llevaba

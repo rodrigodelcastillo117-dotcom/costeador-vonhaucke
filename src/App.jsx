@@ -934,7 +934,7 @@ export default function App() {
         )}
         {pestania === 'catalogo' && <Catalogo estado={estado} onCargar={onElegirDelCatalogo} soloVentas={esVendedor} />}
         {pestania === 'cotizacion' && <Cotizacion estado={estado} setEstado={setEstado} soloVentas={esVendedor} onIr={irA} onEmitida={onEmitida} />}
-        {pestania === 'cotizarIA' && <div className="contenido"><CotizadorIA estado={estado} onAgregarItems={agregarItemsIA} onIr={irA} verCotizacion /></div>}
+        {pestania === 'cotizarIA' && <div className="contenido"><CotizadorIA estado={estado} onAgregarItems={agregarItemsIA} onIr={irA} verCotizacion soloVentas={esVendedor} /></div>}
         {pestania === 'voni' && (
           <Voni
             estado={estado} setEstado={setEstado} soloVentas={esVendedor} veCostos={veCostos}
