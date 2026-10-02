@@ -33,4 +33,26 @@ describe('fusionarPreguntas — centro acumulativo por question_key', () => {
     const r = fusionarPreguntas([], [{ pregunta: '¿Cuántas puertas?' }], new Set(), norm);
     expect(r[0].question_key).toContain('puertas');
   });
+
+  // --- Casos exigidos por ChatGPT ---
+  it('A) key confirmada reformulada NO aparece (estructura_ptr_calibre=cal14)', () => {
+    const confirmadas = new Set(['estructura_ptr_calibre']);
+    const incoming = [{ question_key: 'estructura_ptr_calibre', pregunta: '¿Qué calibre de PTR usamos realmente?' }];
+    const r = fusionarPreguntas([], incoming, confirmadas, norm);
+    expect(r).toHaveLength(0);
+  });
+  it('B) pasada post-confirmación silenciosa (incoming=[]) no abre nada aunque la IA quisiera una key equivalente', () => {
+    // El edge, con QUESTION_KEYS YA RESUELTAS + preguntas=[], devuelve [] en recálculo. El front, ante [], no abre nada.
+    const confirmadas = new Set(['equipo_refrigerador_responsable']);
+    const r = fusionarPreguntas([], [], confirmadas, norm);
+    expect(r).toHaveLength(0);
+  });
+  it('C) 8 iniciales → responder 8 → recalcular → 0 pendientes', () => {
+    const iniciales = Array.from({ length: 8 }, (_, i) => ({ question_key: 'q' + i, pregunta: 'P' + i }));
+    const base = fusionarPreguntas([], iniciales, new Set(), norm);
+    expect(base).toHaveLength(8);
+    const todas = new Set(iniciales.map((q) => q.question_key)); // todas contestadas
+    const trasRecalculo = fusionarPreguntas(base, [], todas, norm); // recálculo silencioso
+    expect(trasRecalculo).toHaveLength(0);
+  });
 });

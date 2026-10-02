@@ -48,7 +48,7 @@ const SCHEMA = {
     informe: { type: "string", description: "Auditoria tecnica COMPLETA en Markdown con EXACTAMENTE estas secciones y titulos, en este orden: '## 📐 Resumen Tecnico y Medidas Generales', '## 📋 Tabla BOM' (tabla markdown: Pieza | Material | Calibre/Espesor | Medida | Acabado), '## ✂️ Analisis de Merma y Nesting' (cuantifica: merma % actual vs optimizada, piezas por tablero 1.22x2.44), '## ⚙️ Ruta de Produccion y Estandarizacion' (Corte->CNC->Doblez->Soldadura->Pintura->Tapiceria->Ensamble; cuello de botella; piezas universales izq/der), '## 💡 Ingenieria de Valor' (2 acciones para bajar >=15%, en % no en pesos), '## 📦 Estrategia Logistica (Flat-Pack)' (knock-down y densidad en contenedor 53ft), '## 🛡️ Refuerzos Estructurales (Contract/BIFMA)', '## 🎯 Top 3 Acciones' (ordenadas por impacto/esfuerzo). Cuantifica siempre (%, piezas/tablero, kg, horas). NUNCA precios en pesos." },
     preguntas: {
       type: "array",
-      description: "Confirmaciones ESENCIALES para cerrar el costo, como CONTROLES respondibles (no prosa). Máx 6, ordénalas por impacto. Cada una con el tipo de control adecuado y su supuesto actual.",
+      description: "Confirmaciones ESENCIALES para cerrar el costo, como CONTROLES respondibles (no prosa). MÁX 8 críticas, TODAS JUNTAS en esta pasada, ordenadas por impacto. Si hay más de 8 detalles MENORES, NO los preguntes: documéntalos como supuestos/warnings en 'informe'. Cada una con su tipo de control y su supuesto actual.",
       items: {
         type: "object",
         additionalProperties: false,
@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
     "   · UNA PIEZA, UNA VEZ: el mismo panel que sale en vista frontal, lateral y superior es UNA pieza. Agrupa piezas identicas en un solo renglon con su 'cantidad'.\n" +
     "   · AUTO-VERIFICA antes de responder: relee tus 'piezas' y pregunta '¿esta cantidad sale de una cota o la supuse?'. Si la supusiste, baja la 'confianza' a 'media' o 'baja' para que el humano la revise. Mejor conservador y marcado que inflado.\n\n" +
     "El 'informe' (Markdown) DEBE traer las 8 secciones con los titulos EXACTOS del schema (las 7 de la auditoria + '## 🎯 Top 3 Acciones' al final), con la tabla BOM en markdown. SE CONCISO: viñetas cortas, no ensayos; maximo ~3-5 puntos por seccion; tabla BOM breve. Prioriza claridad y termina SIEMPRE el JSON.\n\n" +
-    "PREGUNTAS (confirmaciones): devuelve máx 6 como CONTROLES, ordenadas por impacto. Cada una con: 'tipo' (radio/select/number/texto), 'opciones' (para radio/select, ej. refrigerador→['Cliente','Von Haucke','Por definir']; frentes→['Abatibles','Fijos','Cajones']; PTR→['cal.14','cal.12','Otro']; gráfica→['Nosotros','Cliente','Solo montaje']), 'impacto' (alto/medio/bajo), 'afecta' (bom/costo/proceso/render) y 'supuesto' (lo que asumiste ahora). Pregunta SOLO lo que de verdad mueve el costo o cambia el producto (equipo comprado, frentes fijos vs abatibles, calibre, gráfica propia vs cliente, nº de islas, carga por repisa). NO prosa; son controles para contestar rápido.\n" +
+    "PREGUNTAS (confirmaciones): devuelve MÁX 8 CRÍTICAS como CONTROLES, TODAS JUNTAS, ordenadas por impacto (más de 8 detalles menores NO se preguntan: van como supuestos/warnings). Cada una con: 'tipo' (radio/select/number/texto), 'opciones' (para radio/select, ej. refrigerador→['Cliente','Von Haucke','Por definir']; frentes→['Abatibles','Fijos','Cajones']; PTR→['cal.14','cal.12','Otro']; gráfica→['Nosotros','Cliente','Solo montaje']), 'impacto' (alto/medio/bajo), 'afecta' (bom/costo/proceso/render) y 'supuesto' (lo que asumiste ahora). Pregunta SOLO lo que de verdad mueve el costo o cambia el producto (equipo comprado, frentes fijos vs abatibles, calibre, gráfica propia vs cliente, nº de islas, carga por repisa). NO prosa; son controles para contestar rápido.\n" +
     "  · UNA PREGUNTA = UN SOLO DATO con su 'question_key' estable. NUNCA juntes dos cantidades: '¿cuántos cajones y cuántas puertas?' está MAL; son dos (cantidad_cajones, cantidad_puertas).\n" +
     "  · DETECTA TODAS las confirmaciones críticas EN ESTA PRIMERA PASADA y devuélvelas JUNTAS. No las vayas soltando de a poco en pasadas siguientes.\n" +
     "  · NO repitas una pregunta cuyo question_key ya venga en RESPUESTAS CONFIRMADAS.\n" +
@@ -142,12 +142,15 @@ Deno.serve(async (req) => {
     textoTarea = `VERIFICA Y CORRIGE este despiece que generaste de este MISMO plano, contra las COTAS escritas (lee de nuevo las hojas). Devuelve el despiece COMPLETO corregido con 'razonamiento' por pieza:\n\n${previo}\n\n` +
       "⛔ VERIFICACIÓN SILENCIOSA: 'preguntas' DEBE ser []. NO abras una ronda nueva de confirmaciones. Puedes corregir cantidades, detectar inconsistencias, bajar 'confianza' y dejar supuestos; si algo queda sin resolver, DÉJALO como supuesto (confianza baja) y NO preguntes. Solo excepción: un BLOQUEADOR DURO nuevo que impida calcular — máx 1, con question_key nuevo.";
   }
-  // RESPUESTAS del usuario = VERDAD confirmada; sobrescriben supuestos de la IA.
+  // RESPUESTAS del usuario = VERDAD confirmada; sobrescriben supuestos de la IA. La KEY viaja SIEMPRE.
   if (resp.length) {
-    const bloque = resp.map((r: any) => `- P: ${r.pregunta}\n  R: ${r.respuesta}`).join("\n");
-    textoTarea += `\n\n⭐ RESPUESTAS CONFIRMADAS POR EL USUARIO (son VERDAD; tienen prioridad sobre cualquier supuesto tuyo). Ajusta el despiece en consecuencia y refleja el cambio en 'razonamiento'/'nota':\n${bloque}\n\n` +
+    const bloque = resp.map((r: any) => `- KEY: ${r.question_key || "(sin key)"}\n  P: ${r.pregunta}\n  R: ${r.respuesta}`).join("\n");
+    const keys = resp.map((r: any) => r.question_key).filter(Boolean);
+    textoTarea += `\n\n⭐ RESPUESTAS CONFIRMADAS POR EL USUARIO (son VERDAD; prioridad sobre cualquier supuesto tuyo). Ajusta el despiece y refleja el cambio en 'razonamiento'/'nota':\n${bloque}\n\n` +
+      `QUESTION_KEYS YA RESUELTAS: [${keys.join(", ")}]\n` +
+      "Está PROHIBIDO devolver cualquiera de esas keys en 'preguntas'. También está PROHIBIDO crear una key NUEVA para volver a preguntar el MISMO concepto (ej. no inventes 'refrigerador_quien_suministra' si ya existe 'equipo_refrigerador_responsable').\n\n" +
       "Aplica literalmente: si un EQUIPO lo suministra el cliente, quítalo del despiece o déjalo con insumoId='' y nota 'lo pone el cliente' (no lo costeamos); si unos frentes son FIJOS, elimina sus bisagras/jaladeras; si son ABATIBLES, inclúyelas; usa el CALIBRE/espesor que el usuario indique; si una gráfica/impresión la pone el cliente, no la costees; usa el NÚMERO DE PIEZAS/islas indicado para el volumen. NO inventes datos que el usuario no haya dado.\n" +
-      "⛔ PREGUNTAS en esta pasada: el objetivo es CERRAR, no abrir más. Devuelve 'preguntas' = [] salvo que exista una duda NUEVA, crítica y que IMPIDA costear; en ese caso máximo 2. NUNCA repitas (ni reformules) una pregunta que ya está en RESPUESTAS CONFIRMADAS ni una que ya hiciste antes. Si el despiece ya es costeable, 'preguntas' DEBE ser [].";
+      "⛔ PREGUNTAS en esta pasada: 'preguntas' DEBE ser [] por defecto. SOLO puede aparecer UNA pregunta nueva si es un BLOQUEADOR DURO que (a) no podía conocerse razonablemente en la pasada inicial y (b) sin ese dato no se puede producir un costo responsable. Todo lo demás: supuesto / warning / confianza baja + costo preliminar. NO otra entrevista.";
   }
 
   const contenido = [...bloquesImagen, { type: "text", text: textoTarea }];
