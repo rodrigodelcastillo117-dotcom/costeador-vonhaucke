@@ -8,7 +8,7 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import { calcular, precioDe, netoComponente, modeloParaPieza } from '../motor/calculo.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos } from '../util.js';
-import { analizarRender, analizarRenderImagenes, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano } from '../nube.js';
+import { analizarRender, analizarRenderImagenes, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64 } from '../nube.js';
 import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { abrirPdf, paginaAImagen, todasLasPaginas } from '../datos/pdfImagen.js';
 import Cargando from './Cargando.jsx';
@@ -174,6 +174,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const [renderMsg, setRenderMsg] = useState('');
   const [renderizando, setRenderizando] = useState(false);
   const [costoEstado, setCostoEstado] = useState(null); // 'certificado' | 'preliminar' | null
+  const [renderHash, setRenderHash] = useState(null);   // hash del BOM cuando se generó el render (marca DESACTUALIZADO si cambia)
   // Biblioteca
   const [etiquetasTxt, setEtiquetasTxt] = useState('');
   const [estadoExp, setEstadoExp] = useState('borrador');
@@ -181,6 +182,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const [expId, setExpId] = useState(null);
   const [expMsg, setExpMsg] = useState('');
   const [costoGuardado, setCostoGuardado] = useState(null); // snapshot del costo al guardar (para Δ vs hoy)
+  const [revActual, setRevActual] = useState(1);            // nº de revisión del expediente abierto
   const dimsR = useMemo(() => dimsDeMueble(b), [b]);
   // PRECEDENCIA de materiales/acabado para el render: (1-3) selección/BOM del usuario = materiales
   // de SUPERFICIE de los componentes que tiene/confirmó; (4) leyenda del plano (b.materiales de la
@@ -199,6 +201,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const geomFid = (Array.isArray(b.planos) && b.planos.length)
     ? (analisis?.confianzaGeneral === 'alta' ? 'alta' : 'media') : 'limitada';
   const acabadoFid = matFinish.fuente === 'ninguna' ? 'pendiente' : 'confirmado';
+  // Render DESACTUALIZADO: el BOM cambió desde que se generó el render → el render ya no corresponde.
+  const renderObsoleto = (renders.aislado || renders.ambiente) && renderHash && renderHash !== hashInput({ c: b.componentes });
   // Falta información crítica para ilustrar fielmente: se avisa, NO se inventa.
   const faltaCritico = !b.nombre?.trim() || !(b.componentes?.length) || !(dimsR.w > 0);
 
@@ -277,6 +281,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         } else { setRenderMsg(r?.error || 'No se pudo generar el ambiente.'); }
       }
     } catch (e) { setRenderMsg('Error en ambiente: ' + String(e)); }
+    setRenderHash(hashInput({ c: b.componentes })); // amarra el render al BOM con que se generó
     setRenderizando(false);
   }
 
@@ -302,19 +307,23 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         producto_tipo: tipoDeMueble(b), ancho_mm: dimsR.w, fondo_mm: dimsR.d, alto_mm: null,
         descripcion: b.descripcionCliente || null, materiales: materialesR, bom: b.componentes,
         costo: { costoUnitario: Math.round(resultado.costoUnitario), materialTotal: Math.round(resultado.materialTotal), manoObra: Math.round(resultado.manoObra), indirectosFabrica: Math.round(resultado.indirectosFabrica), precio: Math.round(precio), margen: b.margen, estado_costo: costoEstado || 'preliminar', fecha: new Date().toISOString() },
-        confirmaciones: preguntasIA.map((q, i) => { const nq = normPreg(q); return { pregunta: nq.pregunta, respuesta: respuestas[i] || null }; }).filter((x) => x.respuesta),
+        confirmaciones: Object.entries(confirmadas).map(([pregunta, respuesta]) => ({ pregunta, respuesta })),
         plano_urls: planoUrls.length ? planoUrls : (expId ? undefined : []),
         render_aislado_url: soloHttp(renders.aislado), render_ambiente_url: soloHttp(renders.ambiente),
         analysis_hash: hashInput({ c: b.componentes, n: b.piezas, m: b.margen }),
       };
       if (planoUrls.length === 0 && !expId) exp.plano_urls = [];
       if (exp.plano_urls === undefined) delete exp.plano_urls; // al actualizar sin planos nuevos, no pisa los guardados
+      const snap = (eid, rev) => ({ expediente_id: eid, rev, creado_por: quien, nombre: exp.nombre, bom: exp.bom, costo: exp.costo, confirmaciones: exp.confirmaciones, materiales: exp.materiales, plano_urls: planoUrls, render_aislado_url: exp.render_aislado_url, render_ambiente_url: exp.render_ambiente_url, analysis_hash: exp.analysis_hash });
       if (expId) {
-        const r = await actualizarExpediente(expId, { ...exp, actualizado_por: quien });
-        setExpMsg(r.ok ? '✓ Actualizado en la biblioteca' : (r.error || 'No se pudo actualizar.'));
+        const nuevaRev = revActual + 1;
+        const r = await actualizarExpediente(expId, { ...exp, revision: nuevaRev, actualizado_por: quien });
+        if (r.ok) { await guardarRevisionExpediente(snap(expId, nuevaRev)); setRevActual(nuevaRev); setCostoGuardado(exp.costo); setExpMsg(`✓ Actualizado — revisión ${nuevaRev}`); }
+        else setExpMsg(r.error || 'No se pudo actualizar.');
       } else {
-        const r = await guardarExpediente({ ...exp, plano_urls: planoUrls, creado_por: quien });
-        if (r.ok) { setExpId(r.id); setExpMsg('✓ Guardado en la biblioteca'); } else setExpMsg(r.error || 'No se pudo guardar.');
+        const r = await guardarExpediente({ ...exp, plano_urls: planoUrls, revision: 1, creado_por: quien });
+        if (r.ok) { setExpId(r.id); await guardarRevisionExpediente(snap(r.id, 1)); setRevActual(1); setCostoGuardado(exp.costo); setExpMsg('✓ Guardado en la biblioteca'); }
+        else setExpMsg(r.error || 'No se pudo guardar.');
       }
     } finally { setGuardandoExp(false); }
   }
@@ -325,10 +334,19 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     const e = expedienteInicial;
     const id = ++corrida.current;
     setB((prev) => ({ ...prev, nombre: e.nombre || '', componentes: Array.isArray(e.bom) ? e.bom : [], piezas: 1, margen: e.costo?.margen ?? prev.margen, descripcionCliente: e.descripcion || '', materiales: Array.isArray(e.materiales) ? e.materiales : [], planos: [], imagen: null, analysisId: id }));
-    setExpId(e.id); setEtiquetasTxt((e.etiquetas || []).join(', ')); setEstadoExp(e.estado || 'borrador');
+    setExpId(e.id); setRevActual(e.revision || 1); setEtiquetasTxt((e.etiquetas || []).join(', ')); setEstadoExp(e.estado || 'borrador');
+    setConfirmadas(Object.fromEntries((e.confirmaciones || []).map((c) => [c.pregunta, c.respuesta])));
     setRenders({ aislado: e.render_aislado_url || null, ambiente: e.render_ambiente_url || null });
-    setCostoEstado(e.costo?.estado_costo || null); setCostoGuardado(e.costo || null); setExpMsg(''); setPreguntasIA([]); setAnalisis(null);
+    setRenderHash(e.analysis_hash || null); // el render guardado corresponde a ese BOM (no marcar obsoleto al abrir)
+    setCostoEstado(e.costo?.estado_costo || null); setCostoGuardado(e.costo || null); setExpMsg(''); setConfMsg(''); setPreguntasIA([]); setAnalisis(null);
     setPaso(1);
+    // Recupera el PLANO original de Storage como base64 → re-render conserva fidelidad geométrica.
+    (async () => {
+      const urls = Array.isArray(e.plano_urls) ? e.plano_urls.filter(Boolean) : [];
+      if (!urls.length) return;
+      const b64s = (await Promise.all(urls.slice(0, 8).map(urlABase64))).filter(Boolean);
+      if (b64s.length && corrida.current === id) setB((prev) => ({ ...prev, planos: b64s }));
+    })();
   }, [expedienteInicial]);
 
   // --- despiece ---
@@ -401,7 +419,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     const id = ++corrida.current;
     setErrorIA(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({}); setConfirmadas({}); setConfMsg('');
     setAnalisis(null); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg('');
-    setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); // nuevo producto = nuevo expediente
+    setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); setRenderHash(null); setRevActual(1); // nuevo producto = nuevo expediente
     setB((prev) => ({ ...prev, nombre: '', componentes: [], imagen: null, planos: [], descripcionCliente: '', materiales: [], analysisId: id }));
     return id;
   }
@@ -636,10 +654,13 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         <div>
           <div className="pregunta">¿De qué está hecho?</div>
           <div className="pregunta-sub">Toca las piezas que lleva. Luego ajusta su material y medida.</div>
-          {preguntasIA.length > 0 && (
+          {(preguntasIA.length > 0 || Object.keys(confirmadas).length > 0) && (
             <div style={{ border: '1px solid var(--borde)', borderRadius: 10, padding: 14, margin: '12px 0', background: 'var(--panel)' }}>
-              <div style={{ fontWeight: 700, marginBottom: 2 }}>Confirmaciones para cerrar el costeo</div>
-              <div className="ayuda" style={{ marginBottom: 8 }}>Contesta lo que sepas: cada respuesta recalcula el despiece y el costo. Tu respuesta manda sobre el supuesto de la IA, y se recuerda si la pregunta reaparece.</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
+                <div style={{ fontWeight: 700 }}>Centro de confirmaciones</div>
+                <div className="ayuda">{Object.keys(confirmadas).length} confirmadas · {preguntasIA.length} pendientes</div>
+              </div>
+              <div className="ayuda" style={{ margin: '4px 0 8px' }}>Contesta lo que sepas: cada respuesta recalcula el costo y se recuerda. Las confirmadas no vuelven a preguntarse.</div>
               {confMsg && <div className="ayuda" style={{ marginBottom: 10, color: confMsg.startsWith('✓') ? 'var(--ok,#1a7f37)' : 'var(--alerta,#b22a22)' }}>{confMsg}</div>}
               {preguntasIA.map((raw, i) => {
                 const q = normPreg(raw);
@@ -666,16 +687,28 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                         ))}
                       </div>
                     ) : q.tipo === 'number' ? (
-                      <input type="text" inputMode="numeric" value={val} placeholder="Cantidad (ej. 2 — o '2 cajones, 1 puerta')" onChange={(e) => setVal(e.target.value)} style={{ width: '100%' }} />
+                      <input type="number" inputMode="numeric" value={val} placeholder="Cantidad" onChange={(e) => setVal(e.target.value)} style={{ width: 160 }} />
                     ) : (
                       <input type="text" value={val} placeholder="Tu respuesta" onChange={(e) => setVal(e.target.value)} style={{ width: '100%' }} />
                     )}
                   </div>
                 );
               })}
-              <button className="boton primario" disabled={respondiendo} onClick={aplicarRespuestas} style={{ marginTop: 12 }}>
-                {respondiendo ? 'Recalculando…' : 'Aplicar respuestas y recalcular'}
-              </button>
+              {preguntasIA.length > 0 && (
+                <button className="boton primario" disabled={respondiendo} onClick={aplicarRespuestas} style={{ marginTop: 12 }}>
+                  {respondiendo ? 'Recalculando…' : 'Aplicar respuestas y recalcular'}
+                </button>
+              )}
+              {Object.keys(confirmadas).length > 0 && (
+                <div style={{ borderTop: '1px solid var(--borde)', marginTop: 14, paddingTop: 10 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 6 }}>Confirmadas ✓</div>
+                  {Object.entries(confirmadas).map(([preg, resp]) => (
+                    <div key={preg} className="ayuda" style={{ marginBottom: 4 }}>
+                      <span style={{ color: 'var(--ok,#1a7f37)' }}>✓</span> {preg} → <strong>{resp}</strong>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -808,6 +841,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
               <span className="chip" style={{ background: acabadoFid === 'confirmado' ? 'var(--ok,#1a7f37)' : '#8a2d00', color: '#fff', fontSize: 12 }}>
                 ACABADO: {acabadoFid === 'confirmado' ? 'CONFIRMADO' : 'POR CONFIRMAR'}
               </span>
+              {renderObsoleto && <span className="chip" style={{ background: '#b22a22', color: '#fff', fontSize: 12 }}>RENDER DESACTUALIZADO</span>}
             </div>
             <p className="ayuda" style={{ margin: '6px 0' }}>El render ilustra el producto ya definido (medidas, materiales y despiece de arriba). No cambia el producto.</p>
             {faltaCritico && (
@@ -865,7 +899,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       ) : (
         <div className="fila-botones">
           <button className="boton primario grande" onClick={() => onVerDetalle(b)}>Ver detalle completo y cotizar</button>
-          <button className="boton grande" onClick={() => { setB({ nombre: '', piezas: 1, componentes: [], modoManoObra: 'porcentaje', factorDirecta: 55, factorIndirecta: 12, margen: b.margen }); setPaso(0); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({}); setConfirmadas({}); setConfMsg(''); setAnalisis(null); setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); corrida.current++; }}>Empezar otro</button>
+          <button className="boton grande" onClick={() => { setB({ nombre: '', piezas: 1, componentes: [], modoManoObra: 'porcentaje', factorDirecta: 55, factorIndirecta: 12, margen: b.margen }); setPaso(0); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({}); setConfirmadas({}); setConfMsg(''); setAnalisis(null); setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); setRenderHash(null); setRevActual(1); corrida.current++; }}>Empezar otro</button>
         </div>
       )}
     </div>

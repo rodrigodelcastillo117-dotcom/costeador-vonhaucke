@@ -368,6 +368,23 @@ export async function obtenerExpediente(id) {
   const { data, error } = await nube.from('expedientes').select('*').eq('id', id).maybeSingle();
   return error ? { ok: false, error: error.message } : { ok: true, expediente: data };
 }
+// Guarda un snapshot INMUTABLE de revisión (no pisa el anterior).
+export async function guardarRevisionExpediente(row) {
+  try { await nube.from('expediente_revisiones').insert(row); } catch (e) { /* no bloquea */ }
+}
+// Historial de revisiones de un expediente (rev desc).
+export async function listarRevisiones(expedienteId) {
+  const { data, error } = await nube.from('expediente_revisiones')
+    .select('rev,creado,creado_por,costo').eq('expediente_id', expedienteId).order('rev', { ascending: false });
+  return error ? [] : (data || []);
+}
+// Descarga una imagen de Storage y la vuelve base64 raw (para re-render con el plano original).
+export async function urlABase64(url) {
+  try {
+    const r = await fetch(url); const b = await r.blob();
+    return await new Promise((res) => { const fr = new FileReader(); fr.onloadend = () => res(String(fr.result).split(',')[1] || null); fr.onerror = () => res(null); fr.readAsDataURL(b); });
+  } catch (e) { return null; }
+}
 
 // hash corto y estable del input (djb2) para correlacionar cliente/servidor sin guardar el BOM.
 export function hashInput(obj) {
