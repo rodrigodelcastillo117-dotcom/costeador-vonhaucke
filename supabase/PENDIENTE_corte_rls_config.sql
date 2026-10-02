@@ -1,0 +1,23 @@
+-- ============================================================================
+-- PENDIENTE — CORTE FINAL DE RLS DE CONFIG (cierre definitivo de la fuga de costo)
+-- ----------------------------------------------------------------------------
+-- NO APLICAR todavía. Aplicar SOLO cuando la rama c3.4-seller-safe esté DESPLEGADA
+-- en producción (porque el frontend desplegado hoy aún lee `config` directo; si se
+-- corta antes, el vendedor en vivo deja de poder leer config). Orden correcto:
+--
+--   1. Smoke por rol de la rama (ver reporte): vendedor NO recibe costo; Dirección OK.
+--   2. Merge c3.4-seller-safe -> main y `bash deploy.sh` (frontend usa config_para_rol).
+--   3. Aplicar ESTE corte (vía supabase MCP apply_migration o SQL editor).
+--   4. Verificar: un vendedor hace SELECT directo a config => 0 filas; config_para_rol OK.
+--
+-- Efecto: el vendedor ya NO puede leer `config` crudo por ninguna vía (Supabase/API/
+-- DevTools). Dirección/Diseño conservan acceso. Los Edge usan service role (bypass).
+-- config_para_rol() (SECURITY DEFINER) sigue entregando al vendedor la versión
+-- sanitizada. Aditivo/reversible.
+--
+-- APLICAR:
+alter policy config_leer on public.config using (public.puede_editar_config());
+--
+-- ROLLBACK EXACTO (si algo falla):
+--   alter policy config_leer on public.config using (public.puede_entrar());
+-- ============================================================================
