@@ -129,7 +129,7 @@ export default function CotizadorIA({
             partidaBanco.producto_id = idv2.producto_id;
             partidaBanco.producto_version_id = idv2.producto_version_id;
             partidaBanco.lista_precio_item_id = idv2.lista_precio_item_id;
-            partidaBanco.precio_lista_snapshot = idv2.precio_lista;
+            partidaBanco.precio_lista_snapshot = pieza.precio;  // precio de display (banco), no snapshot
           }
         }
         costados.push(partidaBanco);

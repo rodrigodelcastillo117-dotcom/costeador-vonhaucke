@@ -15,31 +15,34 @@
 // ============================================================================
 import fixture from './fuentes/producto_maestro.json';
 
-const PRECIO = fixture.precio_por_ref || {};
+// ⚠️ GATE 1 (autoridad monetaria): en RUNTIME el snapshot sólo aporta IDENTIDAD
+//   (source_ref -> producto_id / version_id / lista_precio_item_id). El PRECIO del
+//   snapshot (`precio_por_ref`) NO es autoridad del frontend: se usa SÓLO en pruebas
+//   (productoMaestro.test.js, que importa el JSON directo). El precio de DISPLAY sale
+//   del precio de lista autorizado del catálogo (preciosLinea `l` / banco.precio) y el
+//   precio OFICIAL lo calcula/valida el servidor (cotizar-servidor / emitir_revision_v2).
 const IDS = fixture.ids_por_ref || {};   // ref -> [producto_id, producto_version_id, lista_precio_item_id]
 
-/** Precio autorizado + identidad para un source_ref, o null si no hay match único con precio. */
+/** Identidad de Producto Maestro para un source_ref (SIN precio), o null si no hay match. */
 export function autorizadoPorRef(ref) {
   if (ref == null) return null;
   const key = String(ref);
-  const precio = PRECIO[key];
-  if (precio == null) return null;
-  const ids = IDS[key] || [];
+  const ids = IDS[key];
+  if (!ids) return null;
   return {
     source_ref: key,
-    precio_lista: precio,
     producto_id: ids[0] ?? null,
     producto_version_id: ids[1] ?? null,
     lista_precio_item_id: ids[2] ?? null,
   };
 }
 
-/** ¿Existe precio autorizado para este source_ref? */
-export function hayPrecioAutorizado(ref) {
-  return ref != null && PRECIO[String(ref)] != null;
+/** ¿Existe identidad de Producto Maestro para este source_ref? */
+export function hayIdentidad(ref) {
+  return ref != null && IDS[String(ref)] != null;
 }
 
 /** Cuántas identidades conoce el snapshot (diagnóstico). */
 export function totalAutorizados() {
-  return Object.keys(PRECIO).length;
+  return Object.keys(IDS).length;
 }

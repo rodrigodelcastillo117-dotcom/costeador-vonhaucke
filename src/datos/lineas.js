@@ -274,7 +274,10 @@ function conIdentidadV2(p, sourceType, ref) {
     ...p,
     source_type: sourceType, source_ref: a.source_ref,
     producto_id: a.producto_id, producto_version_id: a.producto_version_id,
-    lista_precio_item_id: a.lista_precio_item_id, precio_lista_snapshot: a.precio_lista,
+    lista_precio_item_id: a.lista_precio_item_id,
+    // snapshot = precio de DISPLAY autorizado (preciosLinea `l`), no el precio del snapshot.
+    // La emisión (emitir_revision_v2) lo revalida contra el servidor de todos modos.
+    precio_lista_snapshot: p.precioUnitario,
   };
 }
 

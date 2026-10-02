@@ -99,7 +99,9 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
     const res = resolverArticuloCatalogo({ ruta: linea, producto: prodId, config });
     const clave = res && res.articulo && res.articulo.lista > 0 ? res.articulo.clave : null;
     const a = clave ? autorizadoPorRef(clave) : null;
-    return a ? { precio: a.precio_lista, identidad: a } : { precio: null, identidad: null };
+    // precio de DISPLAY = precio de lista autorizado del catálogo (preciosLinea `l`);
+    // el snapshot sólo aporta IDENTIDAD (producto_id/version/item) para la emisión.
+    return clave ? { precio: res.articulo.lista, identidad: a } : { precio: null, identidad: null };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [soloVentas, linea, prodId, largo, fondo, diametro, usuarios, largoLateral, biombo, finish, color, gavetas, sels, checks]);
   // MODO COSTEO (Diseño/Dirección): motor de costo como siempre. Para el vendedor NO se ejecuta.
@@ -121,7 +123,7 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
   const idv2 = infoComercial?.identidad || null;
   const costeoObj = soloVentas
     ? { ...costeoBase, componentes: g.componentes, sellerSafe: true,
-        ...(idv2 ? { source_type: 'linea', source_ref: idv2.source_ref, producto_id: idv2.producto_id, producto_version_id: idv2.producto_version_id, lista_precio_item_id: idv2.lista_precio_item_id, precio_lista_snapshot: idv2.precio_lista } : {}) }
+        ...(idv2 ? { source_type: 'linea', source_ref: idv2.source_ref, producto_id: idv2.producto_id, producto_version_id: idv2.producto_version_id, lista_precio_item_id: idv2.lista_precio_item_id, precio_lista_snapshot: precio } : {}) }
     : { ...pieza, ...costeoBase };
   function agregar() {
     if (soloVentas && precio == null) return;   // fail-closed: no se agrega sin precio autorizado
