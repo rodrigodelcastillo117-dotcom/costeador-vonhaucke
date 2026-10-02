@@ -275,7 +275,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
   // que comparten el render, la imagen y las hojas de PDF. Devuelve true si ok.
   const catalogoIA = () => Object.values(insumos).map((x) => ({ id: x.id, nombre: x.nombre, seccion: x.seccion, unidad: x.unidad }));
 
-  function aplicarPropuesta(res, dataUrl, planos) {
+  function aplicarPropuesta(res, dataUrl, planos, nuevoAnalisis = false) {
     if (!res?.ok) { setErrorIA(res?.error || 'No se pudo analizar.'); return false; }
     const p = res.propuesta || {};
     const comps = (p.piezas || []).map((z) => {
@@ -291,7 +291,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
     });
     // planos: TODAS las páginas/vistas del plano (base64 raw) para referencia múltiple del render.
     const paginas = Array.isArray(planos) && planos.length ? planos : (dataUrl ? [String(dataUrl).split(',')[1]] : []);
-    setB((prev) => ({ ...prev, nombre: prev.nombre || p.producto || '', componentes: comps, imagen: dataUrl || null, planos: paginas, descripcionCliente: p.descripcionCliente || '', materiales: Array.isArray(p.materiales) ? p.materiales : [] }));
+    // Un ANÁLISIS NUEVO (subiste otro plano) nombra el producto desde el plano, para que el nombre
+    // NO se quede pegado de un producto anterior. Una re-corrida con respuestas conserva el nombre.
+    setB((prev) => ({ ...prev, nombre: nuevoAnalisis ? (p.producto || prev.nombre || '') : (prev.nombre || p.producto || ''), componentes: comps, imagen: dataUrl || null, planos: paginas, descripcionCliente: p.descripcionCliente || '', materiales: Array.isArray(p.materiales) ? p.materiales : [] }));
     setAnalisis({
       descripcionCliente: p.descripcionCliente || '',
       materiales: Array.isArray(p.materiales) ? p.materiales : [],
@@ -312,20 +314,20 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio }) {
   // la IA verifica su propio despiece contra las cotas. Devuelve true si ok.
   async function analizarYLlenar(base64, mediaType, dataUrl) {
     const v1 = await analizarRender(catalogoIA(), base64, mediaType);
-    if (!v1?.ok || mediaType === 'application/pdf') return aplicarPropuesta(v1, dataUrl, [base64]);
+    if (!v1?.ok || mediaType === 'application/pdf') return aplicarPropuesta(v1, dataUrl, [base64], true);
     setVerificando(true);
     const v2 = await verificarDespiece(catalogoIA(), [base64], v1.propuesta);
     setVerificando(false);
-    return aplicarPropuesta(v2, dataUrl, [base64]);
+    return aplicarPropuesta(v2, dataUrl, [base64], true);
   }
   // Varias hojas del mismo mueble (plano multipágina). Paso 1 analiza, paso 2 verifica.
   async function analizarImagenes(imagenes, dataUrlPreview) {
     const v1 = await analizarRenderImagenes(catalogoIA(), imagenes);
-    if (!v1?.ok) return aplicarPropuesta(v1, dataUrlPreview, imagenes);
+    if (!v1?.ok) return aplicarPropuesta(v1, dataUrlPreview, imagenes, true);
     setVerificando(true);
     const v2 = await verificarDespiece(catalogoIA(), imagenes, v1.propuesta);
     setVerificando(false);
-    return aplicarPropuesta(v2, dataUrlPreview, imagenes);
+    return aplicarPropuesta(v2, dataUrlPreview, imagenes, true);
   }
 
   // Aplica las RESPUESTAS del usuario a las preguntas de la IA y re-costea el despiece.
