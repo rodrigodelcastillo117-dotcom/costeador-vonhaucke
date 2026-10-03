@@ -73,8 +73,86 @@ export function validateStructuralGraph(graph) {
 }
 
 // ---------------------------------------------------------------------------
-//  LEVANTA el BOM (piezas de analizar-mueble / manual) a un StructuralGraph.
-//  Determinista: NO vuelve a llamar al LLM. Rol vía rolDe; relaciones por rol.
+//  CAMINO IDEAL: construye el grafo desde la SEMÁNTICA que ya entrega el
+//  intérprete canónico (analizar-mueble v17: design_intent + piezas con
+//  semantic_role/parent/relacion). NO re-interpreta con regex: usa el rol del
+//  LLM y sólo cae a rolDe() cuando una pieza no trae semantic_role. Determinista.
+//  `graphFromBom` (abajo) queda como PUENTE LEGACY para despieces viejos sin
+//  semántica.
+// ---------------------------------------------------------------------------
+const CONF_A_NUM = { alta: 0.9, media: 0.6, baja: 0.3 };
+const RELACION_A_TIPO = { soporta: 'supports', contiene: 'contains', conecta: 'connects', se_repite_con: 'repeats_with' };
+const norm = (s) => String(s || '').trim().toLowerCase();
+
+export function graphFromPropuesta(propuesta = {}) {
+  const piezas = Array.isArray(propuesta.piezas) ? propuesta.piezas.filter((p) => p && (p.nombre || p.insumoId)) : [];
+  const di = propuesta.design_intent && typeof propuesta.design_intent === 'object' ? propuesta.design_intent : {};
+  const nodes = piezas.map((p, i) => {
+    const role = p.semantic_role && String(p.semantic_role).trim() ? String(p.semantic_role).trim() : rolDe(p.nombre || p.insumoId || '');
+    const qty = Math.max(1, Math.round(Number(p.cantidad ?? p.piezas) || 1));
+    const geometry = (p.largoMM || p.anchoMM)
+      ? { type: 'panel', length_mm: p.largoMM ?? null, width_mm: p.anchoMM ?? null, height_mm: null, thickness_mm: null }
+      : { type: 'unknown', length_mm: null, width_mm: null, height_mm: null, thickness_mm: null };
+    const conf = CONF_A_NUM[norm(p.confianza)] ?? 0.5;
+    return {
+      id: `n${i + 1}_${role}`,
+      semantic_role: role,
+      parent_id: null,                    // se resuelve abajo por nombre
+      quantity: qty,
+      material_intent: null,
+      insumo_id: p.insumoId || null,
+      geometry,
+      orientation: null,
+      processes: [],
+      source: 'ai',
+      confidence: conf,
+      assumptions: [],
+      // Pide confirmación si no hay material o si el LLM no está seguro.
+      requires_confirmation: !p.insumoId || norm(p.confianza) === 'baja',
+      _nombre: p.nombre || '',
+      _parent: p.parent || '',
+      _rel: norm(p.relacion),
+      _relCon: p.relacion_con || '',
+    };
+  });
+  // Índice nombre→id para resolver parent/relacion_con (que vienen como NOMBRES).
+  const porNombre = new Map();
+  for (const n of nodes) if (n._nombre) porNombre.set(norm(n._nombre), n.id);
+  const relations = [];
+  for (const n of nodes) {
+    const pid = n._parent ? porNombre.get(norm(n._parent)) : null;
+    if (pid && pid !== n.id) n.parent_id = pid;
+    const tipo = RELACION_A_TIPO[n._rel];
+    const to = n._relCon ? porNombre.get(norm(n._relCon)) : null;
+    if (tipo && to && to !== n.id) relations.push({ type: tipo, from: n.id, to });
+    delete n._nombre; delete n._parent; delete n._rel; delete n._relCon;
+  }
+  const productType = norm(di.product_type) === 'desconocido' || !di.product_type
+    ? 'unknown'
+    : di.product_type;
+  const warnings = [];
+  if (productType === 'unknown') warnings.push('Estructura ambigua: define el tipo de mueble.');
+  const faltan = Array.isArray(di.missing_critical_data) ? di.missing_critical_data : [];
+  return {
+    schema_version: SCHEMA_VERSION,
+    design_intent: {
+      product_type: productType,
+      description: propuesta.descripcionCliente || '',
+      overall_dimensions: di.overall_dimensions ? { raw: String(di.overall_dimensions) } : {},
+      quantity: Math.max(1, Number(di.module_count) || 1),
+    },
+    nodes,
+    relations,
+    missing_critical_data: faltan,
+    warnings,
+    assumptions: Array.isArray(di.assumptions) ? di.assumptions : [],
+  };
+}
+
+// ---------------------------------------------------------------------------
+//  PUENTE LEGACY: levanta un BOM SIN semántica (despieces viejos o manuales)
+//  a un StructuralGraph. Determinista: NO llama al LLM. Rol vía rolDe();
+//  relaciones inferidas por rol. Para despieces nuevos usa graphFromPropuesta.
 // ---------------------------------------------------------------------------
 export function graphFromBom(piezas = [], meta = {}) {
   const lista = (Array.isArray(piezas) ? piezas : []).filter((p) => p && (p.nombre || p.insumoId));

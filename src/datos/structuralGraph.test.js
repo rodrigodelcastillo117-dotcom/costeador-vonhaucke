@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SCHEMA_VERSION, validateStructuralGraph, graphFromBom, structuralGraphToBom } from './structuralGraph.js';
+import { SCHEMA_VERSION, validateStructuralGraph, graphFromBom, graphFromPropuesta, structuralGraphToBom } from './structuralGraph.js';
 
 describe('validateStructuralGraph', () => {
   const base = () => ({
@@ -54,7 +54,7 @@ describe('graphFromBom — levanta el BOM a grafo (sin LLM)', () => {
     expect(validateStructuralGraph(g).ok).toBe(true);
   });
 
-  it('round-trip graphFromBom → structuralGraphToBom conserva trazabilidad', () => {
+  it('round-trip graphFromBom → structuralGraphToBom conserva trazabilidad (legacy)', () => {
     const piezas = [{ nombre: 'Cubierta', insumoId: 'melamina-28', largoMM: 1500, anchoMM: 600, piezas: 1 }];
     const g = graphFromBom(piezas, { tipo: 'escritorio', descripcion: 'escritorio' });
     const r = structuralGraphToBom(g);
@@ -62,5 +62,56 @@ describe('graphFromBom — levanta el BOM a grafo (sin LLM)', () => {
     expect(r.filas[0].insumoId).toBe('melamina-28');
     expect(r.filas[0].graph_node_id).toBe(g.nodes[0].id);
     expect(r.filas[0].semantic_role).toBe('cubierta');
+  });
+});
+
+describe('graphFromPropuesta — camino ideal: usa la semántica del LLM, no regex', () => {
+  const bancaAeropuerto = {
+    producto: 'Banca de aeropuerto 4 plazas',
+    descripcionCliente: 'Banca de espera de 4 plazas en aluminio con asientos y respaldos tapizados.',
+    design_intent: { product_type: 'banca de aeropuerto 4 plazas', module_count: 4, overall_dimensions: '2200x600x800', assumptions: ['aluminio estructural'], missing_critical_data: ['calibre del tubo'] },
+    piezas: [
+      { nombre: 'Travesaño estructural', insumoId: 'ptr', cantidad: 1, largoMM: 2200, anchoMM: 60, confianza: 'alta', semantic_role: 'estructura', parent: '', relacion: '', relacion_con: '' },
+      { nombre: 'Asiento', insumoId: 'espuma', cantidad: 4, largoMM: 500, anchoMM: 450, confianza: 'media', semantic_role: 'asiento', parent: '', relacion: 'soporta', relacion_con: '' },
+      { nombre: 'Respaldo', insumoId: 'espuma', cantidad: 4, largoMM: 500, anchoMM: 400, confianza: 'media', semantic_role: 'respaldo', parent: '', relacion: '', relacion_con: '' },
+      { nombre: 'Pata', insumoId: 'ptr', cantidad: 2, confianza: 'alta', semantic_role: 'pata', parent: '', relacion: 'soporta', relacion_con: 'Travesaño estructural' },
+    ],
+  };
+
+  it('usa semantic_role del LLM (no rolDe) y conserva design_intent', () => {
+    const g = graphFromPropuesta(bancaAeropuerto);
+    expect(validateStructuralGraph(g).ok).toBe(true);
+    expect(g.design_intent.product_type).toBe('banca de aeropuerto 4 plazas');
+    expect(g.design_intent.quantity).toBe(4);
+    expect(g.nodes.find((n) => n.semantic_role === 'asiento').quantity).toBe(4);
+    expect(g.nodes.find((n) => n.semantic_role === 'estructura')).toBeTruthy();
+  });
+
+  it('resuelve relacion_con por NOMBRE → relación válida en el grafo', () => {
+    const g = graphFromPropuesta(bancaAeropuerto);
+    const pata = g.nodes.find((n) => n.semantic_role === 'pata');
+    const trav = g.nodes.find((n) => n.semantic_role === 'estructura');
+    expect(g.relations.some((r) => r.type === 'supports' && r.from === pata.id && r.to === trav.id)).toBe(true);
+  });
+
+  it('confianza baja o sin material → requires_confirmation', () => {
+    const g = graphFromPropuesta({ design_intent: {}, piezas: [
+      { nombre: 'Cubierta', insumoId: '', largoMM: 1500, anchoMM: 600, confianza: 'baja', semantic_role: 'cubierta' },
+    ] });
+    expect(g.nodes[0].requires_confirmation).toBe(true);
+  });
+
+  it('pieza SIN semantic_role → cae a rolDe() (fallback)', () => {
+    const g = graphFromPropuesta({ design_intent: { product_type: 'escritorio' }, piezas: [
+      { nombre: 'Cubierta principal', insumoId: 'melamina-28', largoMM: 1500, anchoMM: 600, cantidad: 1, confianza: 'alta' },
+    ] });
+    expect(g.nodes[0].semantic_role).toBe('cubierta');
+    expect(validateStructuralGraph(g).ok).toBe(true);
+  });
+
+  it("product_type 'desconocido' → unknown + warning", () => {
+    const g = graphFromPropuesta({ design_intent: { product_type: 'desconocido' }, piezas: [{ nombre: 'x', insumoId: 'y', semantic_role: 'otro' }] });
+    expect(g.design_intent.product_type).toBe('unknown');
+    expect(g.warnings.length).toBeGreaterThan(0);
   });
 });
