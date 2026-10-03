@@ -20,6 +20,7 @@ export default function Login({ onEntrar }) {
   const [olvide, setOlvide] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  const [verPass, setVerPass] = useState(false);
 
   async function recuperar(e) {
     e.preventDefault();
@@ -78,11 +79,16 @@ export default function Login({ onEntrar }) {
           <form onSubmit={entrar}>
             <label className="etiqueta" htmlFor="email-login">Correo</label>
             <input id="email-login" type="email" inputMode="email" autoComplete="username" autoFocus value={email}
+              autoCapitalize="none" autoCorrect="off" spellCheck={false}
               onChange={(e) => { setEmail(e.target.value); setError(''); }} />
             <div className="espacio" />
             <label className="etiqueta" htmlFor="pass-login">Contraseña</label>
-            <input id="pass-login" type="password" autoComplete="current-password" value={pass}
+            <input id="pass-login" type={verPass ? 'text' : 'password'} autoComplete="current-password" value={pass}
+              autoCapitalize="none" autoCorrect="off" spellCheck={false}
               onChange={(e) => { setPass(e.target.value); setError(''); }} />
+            <label className="check" style={{ marginTop: 8 }}>
+              <input type="checkbox" checked={verPass} onChange={(e) => setVerPass(e.target.checked)} /> Ver contraseña
+            </label>
 
             {error && <div className="alerta roja" style={{ marginTop: 14 }}><span className="texto">{error}</span></div>}
 
