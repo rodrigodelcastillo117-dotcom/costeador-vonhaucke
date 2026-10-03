@@ -139,7 +139,12 @@ export function graphFromPropuesta(propuesta = {}) {
       product_type: productType,
       description: propuesta.descripcionCliente || '',
       overall_dimensions: di.overall_dimensions ? { raw: String(di.overall_dimensions) } : {},
+      // CAPACIDAD ≠ MÓDULOS ≠ ASIENTOS: se conservan por separado (una barra para
+      // 6 personas puede ser 1 módulo monolítico). `quantity` = módulos estructurales.
       quantity: Math.max(1, Number(di.module_count) || 1),
+      module_count: Math.max(1, Number(di.module_count) || 1),
+      seat_count: Math.max(0, Number(di.seat_count) || 0),
+      user_capacity: Math.max(0, Number(di.user_capacity) || 0),
     },
     nodes,
     relations,

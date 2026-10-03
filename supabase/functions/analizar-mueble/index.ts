@@ -28,7 +28,9 @@ const SCHEMA = {
         additionalProperties: false,
         properties: {
           nombre: { type: "string" },
-          insumoId: { type: "string", description: "id EXACTO del catalogo; '' si ninguno encaja" },
+          insumoId: { type: "string", description: "id EXACTO del catalogo cuando el material pedido ES de la MISMA familia que un insumo del catalogo. '' si el material pedido NO existe en el catalogo. NUNCA pongas el id de OTRA familia (p.ej. superficie solida -> NO uses un id de MDF/melamina/laminado): eso falsea el costo." },
+          material_solicitado: { type: "string", description: "El MATERIAL que realmente pidio el usuario, en palabras (p.ej. 'superficie solida azul', 'acero inoxidable 304', 'MDF 19 mm'). SIEMPRE llenalo con lo que el texto/imagen indica, aunque el catalogo no lo tenga. Es lo que permite detectar sustituciones indebidas." },
+          material_match: { type: "string", enum: ["EXACT", "NOT_AVAILABLE", "SUBSTITUTE_SUGGESTED"], description: "EXACT: el insumoId es de la MISMA familia que material_solicitado. NOT_AVAILABLE: el catalogo no tiene esa familia (insumoId=''). SUBSTITUTE_SUGGESTED: hay un material de otra familia que PODRIA servir pero NO lo aplicaste al id (insumoId='' y lo explicas en nota) — requiere confirmacion humana." },
           forma: { type: "string", enum: ["area", "lineal", "pieza"] },
           largoMM: { type: "number" },
           anchoMM: { type: "number" },
@@ -43,7 +45,7 @@ const SCHEMA = {
           relacion: { type: "string", enum: ["", "soporta", "contiene", "conecta", "se_repite_con"], description: "Relación física principal con 'relacion_con': una pata SOPORTA la cubierta; un cuerpo CONTIENE una gaveta; un conector CONECTA módulos; piezas que SE_REPITEN_CON un módulo. '' si no aplica." },
           relacion_con: { type: "string", description: "nombre de la otra pieza/módulo de la 'relacion' ('' si no aplica)." },
         },
-        required: ["nombre", "insumoId", "forma", "largoMM", "anchoMM", "cantidad", "hojas", "confianza", "nota", "razonamiento", "semantic_role"],
+        required: ["nombre", "insumoId", "material_solicitado", "material_match", "forma", "largoMM", "anchoMM", "cantidad", "hojas", "confianza", "nota", "razonamiento", "semantic_role"],
       },
     },
     descripcionCliente: { type: "string", description: "Para el CLIENTE, sin jerga: que es, de que esta hecho, medidas aprox, para que sirve. 2-4 frases." },
@@ -76,13 +78,15 @@ const SCHEMA = {
       additionalProperties: false,
       description: "La INTENCIÓN de diseño entendida como OBJETO: tipo, módulos, dimensiones globales, supuestos y datos críticos faltantes.",
       properties: {
-        product_type: { type: "string", description: "Tipo de mueble como objeto (ej. 'banca de aeropuerto 4 plazas', 'escritorio recto', 'credenza'). 'desconocido' SOLO si la info es genuinamente ambigua." },
-        module_count: { type: "number", description: "Cuántos módulos/unidades repetidas lo componen (ej. 4 plazas → 4). 1 si no aplica." },
+        product_type: { type: "string", description: "Tipo de mueble como objeto (ej. 'banca de aeropuerto 4 plazas', 'counter de check-in', 'barra alta comunal', 'armero', 'escritorio recto'). 'desconocido' SOLO si la info es genuinamente ambigua." },
+        module_count: { type: "number", description: "Cuántos MÓDULOS ESTRUCTURALES repetidos lo componen (cuerpos/unidades físicas que se fabrican y repiten). OJO: NO es la cantidad de personas. Una barra comunal MONOLÍTICA para 6 personas tiene module_count=1 (una sola estructura). Una banca modular de 4 plazas separadas puede tener module_count=4. Si no hay repetición modular clara, 1." },
+        seat_count: { type: "number", description: "Número de ASIENTOS físicos (sillas/plazas con asiento). 0 si el mueble no tiene asientos (counter, mostrador, armero, exhibidor)." },
+        user_capacity: { type: "number", description: "Cuántas PERSONAS puede usar/atender a la vez (p.ej. 'barra para 6 personas' → 6). Es capacidad de uso, NO módulos ni asientos. 0 si no aplica." },
         overall_dimensions: { type: "string", description: "Dimensiones globales aprox (LxAnxAl en mm) si se deducen; '' si no." },
         assumptions: { type: "array", items: { type: "string" }, description: "Supuestos que tomaste para entenderlo (material, escala, uso)." },
         missing_critical_data: { type: "array", items: { type: "string" }, description: "Datos críticos que faltan para costear con confianza." },
       },
-      required: ["product_type", "module_count", "overall_dimensions", "assumptions", "missing_critical_data"],
+      required: ["product_type", "module_count", "seat_count", "user_capacity", "overall_dimensions", "assumptions", "missing_critical_data"],
     },
   },
   required: ["producto", "tipo", "piezas", "descripcionCliente", "materiales", "volumenAsumido", "confianzaGeneral", "informe", "preguntas", "design_intent"],
@@ -116,9 +120,9 @@ Deno.serve(async (req) => {
   // Con imagen + texto: el texto es la INTENCIÓN del usuario; la imagen es evidencia geométrica.
   const soloTexto = !image && !imgs.length && !!desc;
 
-  const cat = Array.isArray(catalogo)
-    ? catalogo.map((c: any) => `${c.id} — ${c.nombre} [${c.seccion}, ${c.unidad}]`).join("\n")
-    : "(sin catalogo)";
+  // CATÁLOGO CANÓNICO server-side = AUTORIDAD. El catálogo que manda el cliente ya
+  // NO es autoridad: sólo se usa como PISTA para ids que el servidor aún no tenga.
+  const cat = await construirCatalogo(catalogo);
 
   const system =
     "Actua como el Director Operativo (COO), Jefe de Ingenieria de Producto y Experto en Costos de una fabrica de mobiliario de clase mundial (corporativo, hoteleria y retail; metalmecanica, CNC, pintura, tapiceria). Eres maestro en Lean Manufacturing, Design for Manufacturing (DFM) y optimizacion de recursos.\n\n" +
@@ -128,9 +132,14 @@ Deno.serve(async (req) => {
     "ALCANCE DE VON HAUCKE (lo que SÍ fabricamos — úsalo para INTERPRETAR, mapear materiales y no quedarte corto; NO es sólo mueble de oficina):\n" +
     "· PROCESOS/MATERIALES: metalmecánica (PTR, lámina doblada cal.10–22, acero inoxidable, aluminio, soldadura, corte CNC/láser); carpintería (MDF, melamina, aglomerado, madera sólida, chapa, laminado/HPL); SUPERFICIE SÓLIDA (solid surface tipo Corian/Krion/Staron: mineral, termoformable, SIN juntas — NO es melamina ni piedra); TERMOFORMADO (acrílico/PVC/membrana); cristal (templado/satinado/serigrafía); PANEL ACÚSTICO PET (Sonara); acabados (pintura en polvo/electrostática, anodizado, barniz, granallado); tapicería (espuma, tela, piel, ecopiel); eléctrico (módulos Byrne, charolas, contactos/USB, kits LED).\n" +
     "· MERCADOS/FAMILIAS: oficina/corporativo (escritorios, benches, estaciones, guardas: archiveros/credenzas/lockers/cajoneras, mamparas/divisores acústicos); hotelería (recepción, lobby, lounge, cabeceras y bases de cama); retail/comercial (exhibidores, islas, kioscos, vitrinas, góndolas, portamonitores/portapantallas); aeropuertos/transporte (mostradores de documentación/CHECK-IN, counters, bancas de espera, barras altas comunales con energía, señalización); farmacias (mostradores, góndolas, anaqueles, cajas); militar/gobierno (ARMEROS/racks de armas, lockers de seguridad, mobiliario institucional); mobiliario urbano/señalética (bolardos, señales, bases).\n" +
-    "REGLA DE MATERIAL: mapea la descripción al material y familia REALES. Si es superficie sólida, termoformado, PET, acero inoxidable, aluminio, cristal templado, etc., NÓMBRALO así y NO lo sustituyas por melamina. Si el material correcto no existe en el catálogo de abajo, déjalo con insumoId='' y descríbelo en 'nota' y en design_intent.missing_critical_data — NUNCA inventes un id de catálogo que no esté en la lista.\n\n" +
+    "POLÍTICA DE MATERIAL (CRÍTICA — el error más caro): SIEMPRE llena 'material_solicitado' con lo que el usuario pidió (p.ej. 'superficie sólida azul'). Luego:\n" +
+    "  · Si el catálogo tiene un insumo de la MISMA FAMILIA → ponlo en insumoId y material_match='EXACT'.\n" +
+    "  · Si el catálogo NO tiene esa familia → insumoId='' y material_match='NOT_AVAILABLE'. Descríbelo en 'nota' y en design_intent.missing_critical_data. NO lo costees con otra cosa.\n" +
+    "  · Si existe un material de OTRA familia que PODRÍA servir como sustituto → insumoId='' y material_match='SUBSTITUTE_SUGGESTED', y explica en 'nota' cuál sugieres y por qué (lo confirmará un humano).\n" +
+    "  ⛔ PROHIBIDO sustituir una familia por otra en silencio. Ejemplo real que NO debe repetirse: piden SUPERFICIE SÓLIDA (solid surface/Corian/Krion) y la cuelan como MDF+laminado HPL porque 'se parecen' — eso FALSEA el costo. Superficie sólida ≠ MDF ≠ melamina ≠ laminado ≠ piedra. Acero inoxidable ≠ lámina común. PET acústico ≠ MDF.\n" +
+    "  Un material NOT_AVAILABLE se queda SIN precio (pendiente de precio real); es MEJOR marcarlo pendiente que inventarlo con otra familia.\n\n" +
     "REGLAS CLAVE (mias, respetalas):\n" +
-    "A) ANCLA A NUESTROS DATOS: en 'piezas' usa materiales de nuestro catalogo (id EXACTO en insumoId). Si ninguno encaja EXACTO, usa el MAS CERCANO por tipo y espesor y dilo en nota — deja insumoId='' SOLO si de verdad no hay nada parecido (una pieza sin material se costea en $0 y descuadra el total). Usa formatos comerciales reales MX/Norteamerica (tablero 1.22x2.44 m, tubo 6 m, lamina 4x8/4x10 ft, tela ancho 1.40 m).\n" +
+    "A) ANCLA A NUESTROS DATOS respetando la POLÍTICA DE MATERIAL de arriba: en 'piezas' usa el id EXACTO del catálogo SÓLO si es de la misma familia que material_solicitado. Si no hay de esa familia, insumoId='' (NOT_AVAILABLE/SUBSTITUTE_SUGGESTED) — NUNCA uses el id 'más cercano' de otra familia. Un insumoId='' lo marca el sistema como pendiente (no se costea en $0 disfrazado). Usa formatos comerciales reales MX/Norteamerica (tablero 1.22x2.44 m, tubo 6 m, lamina 4x8/4x10 ft, tela ancho 1.40 m).\n" +
     "B) CUANTIFICA, no solo describas: merma % actual vs optimizada, piezas por tablero, kg de acero, horas por proceso, ahorro en % (NO en pesos).\n" +
     "C) MEDIDAS — LO MAS IMPORTANTE PARA EL COSTO: si el plano trae COTAS escritas (numeros de medida, tabla de dimensiones, 'vista frontal/lateral/superior'), USALAS TAL CUAL en largoMM/anchoMM de cada pieza. NO estimes tamanos a ojo si estan escritos — un plano tecnico casi siempre trae las medidas, leelas. Se CONSERVADOR y CONSISTENTE: no infles areas ni cantidades; una pieza se cuenta UNA sola vez aunque aparezca en varias vistas. Solo si NO hay ninguna cota, asume estandares (altura 720-750 mm), marca confianza 'baja' y en 'preguntas' pide 1 medida de referencia.\n" +
     "D) VOLUMEN: declara 'volumenAsumido' (prototipo vs corrida) — flat-pack y herramentales solo valen a volumen.\n" +
@@ -142,7 +151,8 @@ Deno.serve(async (req) => {
     "   · UNA PIEZA, UNA VEZ: el mismo panel que sale en vista frontal, lateral y superior es UNA pieza. Agrupa piezas identicas en un solo renglon con su 'cantidad'.\n" +
     "   · AUTO-VERIFICA antes de responder: relee tus 'piezas' y pregunta '¿esta cantidad sale de una cota o la supuse?'. Si la supusiste, baja la 'confianza' a 'media' o 'baja' para que el humano la revise. Mejor conservador y marcado que inflado.\n" +
     "H) MODELO ESTRUCTURAL (entiende el mueble como OBJETO, no como piezas sueltas):\n" +
-    "   · Rellena SIEMPRE 'design_intent' (product_type como objeto, module_count, overall_dimensions si se deduce, assumptions, missing_critical_data). Si de verdad no se puede saber qué es, product_type='desconocido' y pon la ambigüedad en missing_critical_data y en una 'pregunta'.\n" +
+    "   · Rellena SIEMPRE 'design_intent' (product_type como objeto, module_count, seat_count, user_capacity, overall_dimensions si se deduce, assumptions, missing_critical_data). Si de verdad no se puede saber qué es, product_type='desconocido' y pon la ambigüedad en missing_critical_data y en una 'pregunta'.\n" +
+    "   · CAPACIDAD ≠ MÓDULOS ≠ ASIENTOS (error frecuente): 'barra comunal para 6 personas' NO significa module_count=6. Si es una sola estructura monolítica, module_count=1 y user_capacity=6. Sólo pon module_count>1 si hay cuerpos/estructuras FÍSICAMENTE repetidos. seat_count es cuántos asientos físicos hay (0 si es counter/mostrador/armero/barra sin bancos). No conviertas 'lugares'/'personas' en módulos estructurales.\n" +
     "   · En CADA pieza rellena 'semantic_role' (su función estructural) y, cuando aplique, 'parent' (a qué módulo/cuerpo pertenece) y 'relacion'/'relacion_con' (pata SOPORTA cubierta; cuerpo CONTIENE gaveta; conector CONECTA módulos; piezas que SE_REPITEN_CON un módulo). Esto es lo que permite dibujar y validar el mueble; es tan importante como el BOM.\n" +
     "   · COHERENCIA DE CONJUNTO: si describen asientos, DEBE haber estructura que los soporte; si hay gaveta, un cuerpo que la contenga; si mencionan conectores cada N módulos, modela esa relación. No dejes partes 'flotando' sin rol ni relación.\n" +
     (soloTexto || !desc ? "" :
@@ -251,4 +261,64 @@ Deno.serve(async (req) => {
 
 function json(obj: unknown, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { ...CORS, "content-type": "application/json" } });
+}
+
+// Catálogo CANÓNICO desde la base (catalogo_vigente), con service role. Es la
+// autoridad: lo que el cliente mande sólo entra como "hint" para ids que el
+// servidor aún no tenga. Fail-open: si la BD no responde, usa las pistas del
+// cliente para no romper el análisis. Marca los insumos SIN precio certificado
+// (p.ej. superficie sólida recién dada de alta) para que la IA los trate como
+// pendientes de precio, no como inexistentes.
+async function construirCatalogo(clienteCat: any): Promise<string> {
+  const url = Deno.env.get("SUPABASE_URL");
+  const srv = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const lineasServidor: string[] = [];
+  const idsServidor = new Set<string>();
+  if (url && srv) {
+    const h = { apikey: srv, authorization: `Bearer ${srv}` };
+    try {
+      // 1) PRECIOS VIGENTES (lo que SÍ tiene precio certificado/propuesto).
+      const precios = new Map<string, { precio: any; unidad: string }>();
+      const rp = await fetch(
+        `${url}/rest/v1/catalogo_vigente?select=insumo_id,unidad_compra,precio`,
+        { headers: h },
+      );
+      if (rp.ok) {
+        for (const c of (await rp.json()) || []) {
+          if (c?.insumo_id) precios.set(c.insumo_id, { precio: c.precio, unidad: c.unidad_compra });
+        }
+      }
+      // 2) TODAS LAS DEFINICIONES ACTIVAS = autoridad de "qué materiales EXISTEN".
+      //    Una definición activa SIN precio vigente (p.ej. superficie sólida recién
+      //    dada de alta) se lista como SIN PRECIO CERTIFICADO — existe, pero su
+      //    precio está pendiente; NUNCA se costea en $0 ni se sustituye por otra.
+      const rc = await fetch(
+        `${url}/rest/v1/insumos_catalogo?select=id,nombre,seccion,unidad_costeo,activo&activo=eq.true&order=seccion`,
+        { headers: h },
+      );
+      if (rc.ok) {
+        for (const d of (await rc.json()) || []) {
+          if (!d?.id) continue;
+          idsServidor.add(d.id);
+          const p = precios.get(d.id);
+          const sinPrecio = !p || p.precio == null || Number(p.precio) <= 0;
+          const unidad = (p && p.unidad) || d.unidad_costeo || "m2";
+          lineasServidor.push(
+            `${d.id} — ${d.nombre} [${d.seccion}, ${unidad}]` +
+            (sinPrecio ? " (SIN PRECIO CERTIFICADO — pendiente de precio real)" : ""),
+          );
+        }
+      }
+    } catch (_) { /* fail-open a las pistas del cliente */ }
+  }
+  const hints: string[] = [];
+  if (Array.isArray(clienteCat)) {
+    for (const c of clienteCat) {
+      if (c?.id && !idsServidor.has(c.id)) {
+        hints.push(`${c.id} — ${c.nombre} [${c.seccion || "?"}, ${c.unidad || "?"}] (hint cliente, confirmar)`);
+      }
+    }
+  }
+  const todo = [...lineasServidor, ...hints];
+  return todo.length ? todo.join("\n") : "(sin catalogo)";
 }

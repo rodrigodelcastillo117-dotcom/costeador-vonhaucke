@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
     const bytes = imgs.reduce((s: number, i: any) => s + (typeof i === "string" ? i.length : 0), 0);
     if (bytes > 28_000_000) return json({ ok: false, code: "PAYLOAD_TOO_LARGE", error: "Las imágenes de referencia son demasiado grandes." }, 413);
   }
-  const { descripcion = "", materiales = [], medidas = "", tipo = "", spec = "", imagen = "", imagenes = [], mediaType = "image/jpeg", modo = "render", aspecto = "", cuarto = "", lineas = [], conteoPiso = null, entorno = "", preservar = "" } = body || {};
+  const { descripcion = "", materiales = [], medidas = "", tipo = "", spec = "", render_spec = null, imagen = "", imagenes = [], mediaType = "image/jpeg", modo = "render", aspecto = "", cuarto = "", lineas = [], conteoPiso = null, entorno = "", preservar = "" } = body || {};
   // MIME allowlist: sólo formatos de imagen/plano soportados (evita payloads raros).
   const MIME_OK = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
   if (imagen && mediaType && !MIME_OK.has(String(mediaType))) {
@@ -83,6 +83,11 @@ Deno.serve(async (req) => {
   if (modo === "staging" && !imagen) return json({ ok: false, error: "Sube una foto del espacio para amueblarlo." }, 400);
 
   const mats = Array.isArray(materiales) && materiales.length ? materiales.join(", ") : "";
+  // RENDER SPEC v1 (tipado): geometría BLOQUEADA (conteos que el modelo NO puede
+  // cambiar) + perfil visual derivado del contexto (NO siempre "oak + charcoal").
+  const rs = render_spec && typeof render_spec === "object" ? render_spec : null;
+  const lockedBlock = buildLockedBlock(rs);
+  const profileFinish = profileDefaultFinish(rs?.visual_profile);
   // RECETA FIJA DE CATÁLOGO: idéntica para los ~67 productos, para que la
   // colección se vea como UNA sola sesión de fotos y no 67 imágenes sueltas.
   // La escenografia (fondo, sombra, encuadre) NO la decide el modelo: se pide
@@ -265,18 +270,21 @@ Deno.serve(async (req) => {
       // ESTRUCTURA descritos MANDAN; la estética de la casa es sólo el default cuando
       // no se especifica nada (antes forzaba "roble/melamina" y pintaba roble aunque
       // pidieras "cubierta azul / superficie sólida").
-      "Professional, photorealistic STUDIO product render of a SINGLE piece of premium contract/office furniture, high-end catalog quality. " +
+      "Professional, photorealistic STUDIO product render of a SINGLE piece of premium contract furniture, high-end catalog quality. " +
       `The product: ${descripcion}. ` +
       (tipo ? `Furniture category (for context, not a literal shape): ${tipo}. ` : "") +
-      (spec
+      // GEOMETRÍA TIPADA Y BLOQUEADA (RenderSpecV1): si viene, MANDA sobre `spec`.
+      (lockedBlock || (spec
         ? `BUILD IT AS THIS EXACT OBJECT — ${spec} Honor this structure literally: the number of modules/seats, which parts support which, and how modules connect. Do NOT turn it into a plain desk. `
-        : "") +
+        : "")) +
       (mats
         ? `MATERIALS & FINISH — use EXACTLY these, physically-based and realistic; DO NOT substitute a different material, wood species or color: ${mats}. ` +
           "If the description gives a COLOR (e.g. 'azul'/blue), the surface MUST be that color. " +
           "If it says 'superficie sólida' / solid surface (Corian-like), render a seamless matte mineral-composite top, NOT wood melamine. " +
           "If it says 'lámina'/steel for the base, render folded powder-coated sheet-steel panels. Show the brand's red ABS edge ONLY if a red edge is mentioned. "
-        : "Finish (default only, nothing specified): Von Haucke Mexican modern aesthetic — warm oak melamine surfaces with charcoal powder-coated steel, elegant and minimal. ") +
+        // Default SÓLO si no hay materiales: usa el perfil visual del contexto, NO
+        // siempre "oak + charcoal" (eso contaminaba farmacia/militar/retail/aeropuerto).
+        : `Finish (default only, nothing specified): ${profileFinish}. `) +
       (medidas ? `True proportions: ${medidas}. ` : "") +
       RECETA_CATALOGO;
 
@@ -407,4 +415,43 @@ Deno.serve(async (req) => {
 
 function json(obj: unknown, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { ...CORS, "content-type": "application/json" } });
+}
+
+// LOCKED GEOMETRY: a partir del RenderSpecV1, un bloque que FIJA los conteos que
+// el modelo NO puede cambiar (módulos, asientos, cajones, puertas, patas,
+// pantallas, módulos eléctricos). El modelo decide luz/textura/fotografía; la
+// geometría viene del grafo confirmado.
+function buildLockedBlock(rs: any): string {
+  if (!rs || typeof rs !== "object") return "";
+  const c = rs.counts || {};
+  const n = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+  const partes: string[] = [];
+  if (rs.product_type && rs.product_type !== "unknown") partes.push(`product type = ${rs.product_type}`);
+  partes.push(`structural modules = ${Math.max(1, n(c.module_count))}`);
+  if (n(c.seat_count)) partes.push(`seats = ${n(c.seat_count)}`);
+  if (n(c.user_capacity)) partes.push(`user capacity (people) = ${n(c.user_capacity)} (this is NOT the number of modules)`);
+  if (n(c.drawer_count)) partes.push(`drawers = ${n(c.drawer_count)}`);
+  if (n(c.door_count)) partes.push(`doors = ${n(c.door_count)}`);
+  if (n(c.support_count)) partes.push(`supports/legs = ${n(c.support_count)}`);
+  if (n(c.screen_count)) partes.push(`monitor arms/screens = ${n(c.screen_count)}`);
+  if (n(c.electrical_module_count)) partes.push(`electrical/USB modules = ${n(c.electrical_module_count)}`);
+  const fin = Array.isArray(rs.finishes) && rs.finishes.length ? ` Finishes: ${rs.finishes.join("; ")}.` : "";
+  const locked = rs.locked_geometry === false ? "" :
+    " These counts are LOCKED: do NOT add or remove modules, seats, drawers, doors, legs or screens — only choose lighting, texture, depth and photography.";
+  return `BUILD IT AS THIS EXACT OBJECT (typed geometry) — ${partes.join("; ")}.${fin}${locked} Do NOT turn it into a plain desk. `;
+}
+
+// Acabado por defecto según el PERFIL VISUAL del contexto. Sólo se usa cuando NO
+// se especifican materiales. Evita pintar todo de "roble + acero carbón oficina".
+function profileDefaultFinish(profile?: string): string {
+  switch (profile) {
+    case "airport_checkin": return "clean white solid-surface top with brushed stainless steel base, bright neutral airport aesthetic";
+    case "pharmacy": return "white laminate surfaces with stainless-steel accents, clean clinical retail aesthetic";
+    case "military": return "matte dark powder-coated steel, utilitarian institutional aesthetic";
+    case "retail": return "warm wood veneer with matte black steel, premium retail display aesthetic";
+    case "hotel": return "warm wood veneer with soft brass accents, refined hospitality aesthetic";
+    case "kiosk": return "white composite with anodized aluminum, modern self-service aesthetic";
+    case "corporate": return "warm oak melamine surfaces with charcoal powder-coated steel, elegant and minimal";
+    default: return "neutral premium contract finish, elegant and minimal, true to the described materials";
+  }
 }

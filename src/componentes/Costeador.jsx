@@ -17,6 +17,7 @@ import AnalisisEstructural from './AnalisisEstructural.jsx';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
 import { aplicarPoliticaMaterial, MATCH } from '../datos/materialMatch.js';
+import { renderSpecFromGraph } from '../datos/renderSpec.js';
 import { flagActivo } from '../datos/flags.js';
 
 const ATAJOS = [
@@ -169,7 +170,12 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     setErrRender(''); setGenerando(true);
     try {
       const d = descripcionParaRender();
-      const r = await generarRender(d.descripcion, { materiales: d.materiales, medidas: d.medidas, tipo: d.tipo, spec: d.spec });
+      // RenderSpecV1 TIPADO desde el grafo confirmado (geometría bloqueada: el
+      // render no cambia módulos/asientos/cajones/pantallas). Es el camino ideal
+      // SemanticProposal→StructuralGraph→RenderSpec→generar-render; `spec` (string)
+      // se mantiene como respaldo legacy para el edge.
+      const render_spec = estructuraVoni ? renderSpecFromGraph(estructuraVoni, { materiales: d.materiales, descripcion: d.descripcion }) : null;
+      const r = await generarRender(d.descripcion, { materiales: d.materiales, medidas: d.medidas, tipo: d.tipo, spec: d.spec, render_spec });
       if (!r || !r.ok) { setErrRender(r?.error || 'No se pudo generar el render.'); return; }
       set({ imagen: r.dataUrl });
     } catch (e) { setErrRender('No se pudo conectar. Vuelve a intentar.'); }
