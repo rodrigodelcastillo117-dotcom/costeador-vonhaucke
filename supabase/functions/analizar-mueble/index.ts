@@ -37,8 +37,13 @@ const SCHEMA = {
           confianza: { type: "string", enum: ["alta", "media", "baja"] },
           nota: { type: "string" },
           razonamiento: { type: "string", description: "COMO saliste de las COTAS a esta cantidad/hojas, en una linea: cota usada → tamano de pieza → cuantas caben por hoja → fraccion. Ej: 'copete 120x55 cm (cota frontal); 3 piezas por hoja 1.22x2.44 → 0.35 hoja x 2 = 0.7 hojas'. Si lo SUPUSISTE sin cota, dilo ('supuesto, sin cota')." },
+          // --- SEMÁNTICA ESTRUCTURAL (para el modelo/grafo del mueble, NO para el precio) ---
+          semantic_role: { type: "string", description: "ROL estructural de la pieza (lo que HACE en el mueble, no su material): cubierta, faldon, lateral, gaveta, pata, respaldo, asiento, entrepano, puerta, conector, espuma, tapiz, herraje, estructura, u 'otro'. Obligatorio." },
+          parent: { type: "string", description: "nombre de la pieza/módulo que la CONTIENE o a la que pertenece ('' si es de primer nivel). Ej: una gaveta pertenece a un 'cuerpo'/'módulo'; un asiento a un 'módulo de plaza'." },
+          relacion: { type: "string", enum: ["", "soporta", "contiene", "conecta", "se_repite_con"], description: "Relación física principal con 'relacion_con': una pata SOPORTA la cubierta; un cuerpo CONTIENE una gaveta; un conector CONECTA módulos; piezas que SE_REPITEN_CON un módulo. '' si no aplica." },
+          relacion_con: { type: "string", description: "nombre de la otra pieza/módulo de la 'relacion' ('' si no aplica)." },
         },
-        required: ["nombre", "insumoId", "forma", "largoMM", "anchoMM", "cantidad", "hojas", "confianza", "nota", "razonamiento"],
+        required: ["nombre", "insumoId", "forma", "largoMM", "anchoMM", "cantidad", "hojas", "confianza", "nota", "razonamiento", "semantic_role"],
       },
     },
     descripcionCliente: { type: "string", description: "Para el CLIENTE, sin jerga: que es, de que esta hecho, medidas aprox, para que sirve. 2-4 frases." },
@@ -64,8 +69,23 @@ const SCHEMA = {
         required: ["question_key", "pregunta", "tipo", "opciones", "impacto", "afecta", "supuesto"],
       },
     },
+    // --- INTENCIÓN DE DISEÑO: qué es el mueble como OBJETO, no sólo sus piezas.
+    //     Es la base del modelo estructural (grafo) que reusa el cliente. ---
+    design_intent: {
+      type: "object",
+      additionalProperties: false,
+      description: "La INTENCIÓN de diseño entendida como OBJETO: tipo, módulos, dimensiones globales, supuestos y datos críticos faltantes.",
+      properties: {
+        product_type: { type: "string", description: "Tipo de mueble como objeto (ej. 'banca de aeropuerto 4 plazas', 'escritorio recto', 'credenza'). 'desconocido' SOLO si la info es genuinamente ambigua." },
+        module_count: { type: "number", description: "Cuántos módulos/unidades repetidas lo componen (ej. 4 plazas → 4). 1 si no aplica." },
+        overall_dimensions: { type: "string", description: "Dimensiones globales aprox (LxAnxAl en mm) si se deducen; '' si no." },
+        assumptions: { type: "array", items: { type: "string" }, description: "Supuestos que tomaste para entenderlo (material, escala, uso)." },
+        missing_critical_data: { type: "array", items: { type: "string" }, description: "Datos críticos que faltan para costear con confianza." },
+      },
+      required: ["product_type", "module_count", "overall_dimensions", "assumptions", "missing_critical_data"],
+    },
   },
-  required: ["producto", "tipo", "piezas", "descripcionCliente", "materiales", "volumenAsumido", "confianzaGeneral", "informe", "preguntas"],
+  required: ["producto", "tipo", "piezas", "descripcionCliente", "materiales", "volumenAsumido", "confianzaGeneral", "informe", "preguntas", "design_intent"],
 };
 
 Deno.serve(async (req) => {
@@ -77,7 +97,11 @@ Deno.serve(async (req) => {
 
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, error: "JSON invalido" }, 400); }
-  const { image, imagenes, mediaType = "image/jpeg", catalogo, revisar, respuestas } = body || {};
+  const { image, imagenes, mediaType = "image/jpeg", catalogo, revisar, respuestas, descripcion, texto: textoDesc, description } = body || {};
+  // DESCRIPCIÓN EN TEXTO (lo que el cliente escribe: "banca de aeropuerto de 4 plazas,
+  // aluminio, asiento y respaldo tapizados, conector cada 2 asientos"). Habilita el
+  // flujo describe→entiende sin imagen. Acotada para no reventar el prompt.
+  const desc = String(descripcion || textoDesc || description || "").trim().slice(0, 4000);
   // respuestas = [{pregunta, respuesta}] que el usuario contestó a las preguntas de la IA.
   const resp = Array.isArray(respuestas)
     ? respuestas.filter((r: any) => r && r.respuesta && String(r.respuesta).trim())
@@ -87,7 +111,10 @@ Deno.serve(async (req) => {
   const esRevision = !!(revisar && Array.isArray(revisar.piezas) && revisar.piezas.length);
   // `imagenes` = varias HOJAS del MISMO mueble (plano multipágina rasterizado).
   const imgs = Array.isArray(imagenes) ? imagenes.filter((x: any) => typeof x === "string" && x) : [];
-  if (!image && !imgs.length) return json({ ok: false, error: "Falta la imagen (base64)." }, 400);
+  if (!image && !imgs.length && !desc) return json({ ok: false, error: "Falta la imagen (base64) o una descripción del mueble." }, 400);
+  // MODO SÓLO-TEXTO: hay descripción y NO hay imagen/plano → se interpreta desde el texto.
+  // Con imagen + texto: el texto es la INTENCIÓN del usuario; la imagen es evidencia geométrica.
+  const soloTexto = !image && !imgs.length && !!desc;
 
   const cat = Array.isArray(catalogo)
     ? catalogo.map((c: any) => `${c.id} — ${c.nombre} [${c.seccion}, ${c.unidad}]`).join("\n")
@@ -95,7 +122,9 @@ Deno.serve(async (req) => {
 
   const system =
     "Actua como el Director Operativo (COO), Jefe de Ingenieria de Producto y Experto en Costos de una fabrica de mobiliario de clase mundial (corporativo, hoteleria y retail; metalmecanica, CNC, pintura, tapiceria). Eres maestro en Lean Manufacturing, Design for Manufacturing (DFM) y optimizacion de recursos.\n\n" +
-    "TAREA: te doy la imagen/render de un mueble. Haz una 'Auditoria Tecnica, Explosion de Materiales (BOM) y Estrategia de Industrializacion' exhaustiva para integrarla a nuestro sistema de costeo. La IA audita y propone; el MOTOR calcula el precio: TU NUNCA das precios en pesos.\n\n" +
+    (soloTexto
+      ? "TAREA: te doy una DESCRIPCION EN TEXTO de un mueble que el cliente quiere fabricar (no hay imagen). Interpretalo como OBJETO —que es, que modulos/partes lo componen y como se relacionan fisicamente— y haz la 'Auditoria Tecnica, Explosion de Materiales (BOM) y Estrategia de Industrializacion'. Donde el texto NO de una medida, asume un estandar razonable, MARCALO como supuesto (confianza 'baja') y pidelo en 'preguntas'. NO inventes datos como si fueran ciertos. La IA audita y propone; el MOTOR calcula el precio: TU NUNCA das precios en pesos.\n\n"
+      : "TAREA: te doy la imagen/render de un mueble. Haz una 'Auditoria Tecnica, Explosion de Materiales (BOM) y Estrategia de Industrializacion' exhaustiva para integrarla a nuestro sistema de costeo. La IA audita y propone; el MOTOR calcula el precio: TU NUNCA das precios en pesos.\n\n") +
     "REGLAS CLAVE (mias, respetalas):\n" +
     "A) ANCLA A NUESTROS DATOS: en 'piezas' usa materiales de nuestro catalogo (id EXACTO en insumoId). Si ninguno encaja EXACTO, usa el MAS CERCANO por tipo y espesor y dilo en nota — deja insumoId='' SOLO si de verdad no hay nada parecido (una pieza sin material se costea en $0 y descuadra el total). Usa formatos comerciales reales MX/Norteamerica (tablero 1.22x2.44 m, tubo 6 m, lamina 4x8/4x10 ft, tela ancho 1.40 m).\n" +
     "B) CUANTIFICA, no solo describas: merma % actual vs optimizada, piezas por tablero, kg de acero, horas por proceso, ahorro en % (NO en pesos).\n" +
@@ -107,7 +136,14 @@ Deno.serve(async (req) => {
     "   · BUNDLES/KITS = cantidad 1. Un 'kit de iluminacion LED' que alimenta varias charolas/zonas es UN kit (cantidad 1), NO uno por charola. Solo pon >1 si el plano lista kits FISICAMENTE separados. Lo mismo para arnes, fuente, chicote: cuenta el conjunto una vez.\n" +
     "   · NO DUPLIQUES la superficie: si un tablero es MELAMINA/LAMINADO de COLOR (ej. 'MDF melamina Walnut', 'MDF con laminado nogal'), usa el tablero YA laminado (mdf-...-walnut) — ese precio YA incluye las dos caras. NO sumes aparte una hoja de 'laminado' como pieza extra: eso cuenta la superficie dos veces. Solo factura laminado/chapa por separado si es un enchapado sobre un nucleo que ya costeaste crudo.\n" +
     "   · UNA PIEZA, UNA VEZ: el mismo panel que sale en vista frontal, lateral y superior es UNA pieza. Agrupa piezas identicas en un solo renglon con su 'cantidad'.\n" +
-    "   · AUTO-VERIFICA antes de responder: relee tus 'piezas' y pregunta '¿esta cantidad sale de una cota o la supuse?'. Si la supusiste, baja la 'confianza' a 'media' o 'baja' para que el humano la revise. Mejor conservador y marcado que inflado.\n\n" +
+    "   · AUTO-VERIFICA antes de responder: relee tus 'piezas' y pregunta '¿esta cantidad sale de una cota o la supuse?'. Si la supusiste, baja la 'confianza' a 'media' o 'baja' para que el humano la revise. Mejor conservador y marcado que inflado.\n" +
+    "H) MODELO ESTRUCTURAL (entiende el mueble como OBJETO, no como piezas sueltas):\n" +
+    "   · Rellena SIEMPRE 'design_intent' (product_type como objeto, module_count, overall_dimensions si se deduce, assumptions, missing_critical_data). Si de verdad no se puede saber qué es, product_type='desconocido' y pon la ambigüedad en missing_critical_data y en una 'pregunta'.\n" +
+    "   · En CADA pieza rellena 'semantic_role' (su función estructural) y, cuando aplique, 'parent' (a qué módulo/cuerpo pertenece) y 'relacion'/'relacion_con' (pata SOPORTA cubierta; cuerpo CONTIENE gaveta; conector CONECTA módulos; piezas que SE_REPITEN_CON un módulo). Esto es lo que permite dibujar y validar el mueble; es tan importante como el BOM.\n" +
+    "   · COHERENCIA DE CONJUNTO: si describen asientos, DEBE haber estructura que los soporte; si hay gaveta, un cuerpo que la contenga; si mencionan conectores cada N módulos, modela esa relación. No dejes partes 'flotando' sin rol ni relación.\n" +
+    (soloTexto || !desc ? "" :
+      "I) TEXTO + IMAGEN: el TEXTO es la INTENCIÓN del usuario; la IMAGEN/plano es la evidencia geométrica. Si se CONTRADICEN (el texto dice una cosa y la imagen otra), NO elijas en silencio: refléjalo como una 'pregunta' crítica (afecta='bom') con las dos lecturas.\n") +
+    "\n" +
     "El 'informe' (Markdown) DEBE traer las 8 secciones con los titulos EXACTOS del schema (las 7 de la auditoria + '## 🎯 Top 3 Acciones' al final), con la tabla BOM en markdown. SE CONCISO: viñetas cortas, no ensayos; maximo ~3-5 puntos por seccion; tabla BOM breve. Prioriza claridad y termina SIEMPRE el JSON.\n\n" +
     "PREGUNTAS (confirmaciones): devuelve MÁX 8 CRÍTICAS como CONTROLES, TODAS JUNTAS, ordenadas por impacto (más de 8 detalles menores NO se preguntan: van como supuestos/warnings). Cada una con: 'tipo' (radio/select/number/texto), 'opciones' (para radio/select, ej. refrigerador→['Cliente','Von Haucke','Por definir']; frentes→['Abatibles','Fijos','Cajones']; PTR→['cal.14','cal.12','Otro']; gráfica→['Nosotros','Cliente','Solo montaje']), 'impacto' (alto/medio/bajo), 'afecta' (bom/costo/proceso/render) y 'supuesto' (lo que asumiste ahora). Pregunta SOLO lo que de verdad mueve el costo o cambia el producto (equipo comprado, frentes fijos vs abatibles, calibre, gráfica propia vs cliente, nº de islas, carga por repisa). NO prosa; son controles para contestar rápido.\n" +
     "  · UNA PREGUNTA = UN SOLO DATO con su 'question_key' estable. NUNCA juntes dos cantidades: '¿cuántos cajones y cuántas puertas?' está MAL; son dos (cantidad_cajones, cantidad_puertas).\n" +
@@ -129,12 +165,20 @@ Deno.serve(async (req) => {
   // una sola (PDF crudo = documento; imagen/render = imagen). Mismo patron que leer-plano.
   const bloquesImagen = imgs.length
     ? imgs.map((b64: string) => ({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } }))
-    : [mediaType === "application/pdf"
-        ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: image } }
-        : { type: "image", source: { type: "base64", media_type: mediaType, data: image } }];
-  let textoTarea = imgs.length > 1
-    ? `Te doy ${imgs.length} HOJAS del MISMO mueble (vista general + detalle por parte). Intégralas en UN SOLO despiece/BOM y una sola auditoria — NO las trates como muebles distintos. Usa las cotas y especificaciones de TODAS las hojas.`
-    : "Realiza la Auditoria Tecnica, BOM y Estrategia de Industrializacion completa de este mueble.";
+    : image
+      ? [mediaType === "application/pdf"
+          ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: image } }
+          : { type: "image", source: { type: "base64", media_type: mediaType, data: image } }]
+      : []; // sólo-texto: sin bloques de imagen
+  let textoTarea = soloTexto
+    ? `DESCRIPCION DEL MUEBLE (en palabras del cliente):\n"${desc}"\n\nInterprétalo como OBJETO y realiza la Auditoria Tecnica, BOM y Estrategia completa. Rellena 'design_intent' y el 'semantic_role'/'relacion' de cada pieza. Marca como supuesto (confianza baja) y pregunta lo que el texto no especifique.`
+    : imgs.length > 1
+      ? `Te doy ${imgs.length} HOJAS del MISMO mueble (vista general + detalle por parte). Intégralas en UN SOLO despiece/BOM y una sola auditoria — NO las trates como muebles distintos. Usa las cotas y especificaciones de TODAS las hojas.`
+      : "Realiza la Auditoria Tecnica, BOM y Estrategia de Industrializacion completa de este mueble.";
+  // Texto + imagen: adjunta la intención del usuario como contexto (regla I del system).
+  if (!soloTexto && desc) {
+    textoTarea += `\n\nINTENCION DEL USUARIO (texto, prioriza como intención; la imagen es evidencia geométrica):\n"${desc}"`;
+  }
   if (esRevision) {
     const previo = (revisar.piezas || []).map((p: any) =>
       `- ${p.cantidad}x ${p.nombre} [${p.insumoId || 'SIN MATERIAL'}] ${p.forma} ${p.largoMM || 0}x${p.anchoMM || 0} hojas=${p.hojas ?? 0} (${p.confianza})`
