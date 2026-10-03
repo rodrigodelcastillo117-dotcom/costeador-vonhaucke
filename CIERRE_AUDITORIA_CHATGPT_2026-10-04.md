@@ -15,8 +15,17 @@
 - **Nota sobre "muchos deployments más nuevos que prod":** es **por diseño**. Los candados
   prohíben deploy a producción; cada avance va a la preview `vonhaucke-rc`. No es un bug.
 
-## VEREDICTO DEL MÉTODO DE COSTEO/COTIZACIÓN (lo que más te importa)
-**El método es correcto.** Evidencia:
+## VEREDICTO DEL MÉTODO DE COSTEO/COTIZACIÓN (corregido 2026-10-04)
+**Corrección de postura (tras crítica externa):** decir "el método es correcto" fue
+**demasiado fuerte**. Lo honesto es: el método está **implementado fielmente, es
+reproducible, está mucho mejor testeado y ahora es fail-closed**. Eso NO prueba que el
+MODELO sea económicamente óptimo en todo tipo de mueble — los golden tests congelan el
+comportamiento, no lo validan. La **heurística de Alba** (MO/GI como % del material) es un
+**estimador honesto**, no una autoridad final para especiales/premium: se demostró que un
+material 6× más caro infla la transformación 6× aunque la máquina tarde lo mismo. Falta
+validar Alba vs horas reales contra **T.D.C. reales** para cuantificar el sobrecosteo.
+
+Lo que **sí** está verificado:
 - El **cálculo** vive en `src/motor/calculo.js`, cubierto por pruebas **golden al centavo**
   (Alpura, Alba/bench, cutover). 603/603 pruebas verdes.
 - El **costeo LIVE es client-side** (motor en el navegador) con los **92 insumos curados de
@@ -38,7 +47,7 @@ autoridad de costo cuando el flujo migre a servidor) y **seguridad del path serv
 | ID | Sev | Hallazgo | Causa raíz | Superficie | Cambio | Prueba | Resultado |
 |----|-----|----------|-----------|-----------|--------|--------|-----------|
 | C-01 | P0 | Vendedor podía `select * from config` crudo y leer TODOS los costos/márgenes por API/DevTools | RLS `config_leer` = `puede_entrar()` (cualquiera) | DB RLS | `ALTER POLICY config_leer USING (puede_editar_config())` (migración reversible) | Policy verificada = `puede_editar_config`; front lee por RPC, realtime solo veCostos | **CERRADO** |
-| C-02 | P0 | Precio no finito podía llegar a UI/emisión (Infinity→JSON null = "válido + precio null") | `precioDe` devolvía Infinity con margen≥100% | motor + totales + senales | margen acotado <100%; costo no-finito→0; totales marca `hayLineaInvalida`; emisión exige `Number.isFinite` | +10 tests `dineroFinito.test.js` | **CERRADO** |
+| C-02 | P0 | Precio no finito / config financiera imposible | `precioDe` daba Infinity (margen≥100%); el 1er parche lo "arreglaba" a $0/capado = **fail-OPEN** | motor + totales + senales + UI | **Fail-CLOSED corregido 2026-10-04:** margen imposible/costo roto → **NaN que bloquea** (no capa ni inventa número); `totales` detecta NaN crudo y marca `hayLineaInvalida`; `problemasDeEmision` bloquea; Cotización muestra "Cálculo inválido", no un total barato | tests reescritos al contrato fail-closed | **CERRADO (revisado)** |
 | C-03 | P0 | Veta mal orientada → piezas largas "no caben" y se subcostean | largo de pieza alineado al lado corto del tablero | motor | veta alinea largo∥2440; +2 tests; `MOTOR_VERSION` 2026-10-03 | golden Alpura/Alba intactos | **CERRADO** (sesión previa) |
 | C-04 | P0 | App LT cotizaba melamina base ($1,335.6) en vez del ivory verificado ($1,122.3) | UI mandaba `color:null`, anulaba default del generador | `applt.js` + `CosteadorLinea` | `config.color||'ivory'`; chip resalta `colorEfectivo` | caract. 17491.39/8097.86; verificado en vivo | **CERRADO** (sesión previa) |
 | C-05 | P0 | Modulor cobraba cerradura/zoclo con casilla desmarcada | default del generador `true`, UI arrancaba {} | `modulor.js`+`CosteadorLinea` | casillas `def:true`, UI arranca desde default | 603/603 | **CERRADO** (sesión previa) |
