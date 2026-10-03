@@ -8,9 +8,10 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import { calcular, precioDe, netoComponente, modeloParaPieza, costeoEmitible, bomHash, diffBOM, aplicarDiffBOM, MOTOR_VERSION, FORMULA_ALBA_V1, formulaDePieza } from '../motor/calculo.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos } from '../util.js';
-import { analizarRender, analizarRenderImagenes, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64 } from '../nube.js';
+import { analizarRender, analizarRenderImagenes, analizarTexto, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64 } from '../nube.js';
 import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { revisarEstructura } from '../datos/revisionEstructural.js';
+import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { abrirPdf, paginaAImagen, todasLasPaginas } from '../datos/pdfImagen.js';
 import Cargando from './Cargando.jsx';
 import Markdown from './Markdown.jsx';
@@ -144,6 +145,14 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const revisionEstructural = useMemo(
     () => revisarEstructura({ componentes: b.componentes, descripcion: b.descripcionCliente }),
     [b.componentes, b.descripcionCliente],
+  );
+  // ESTRUCTURA QUE ENTENDIÓ VONI: el grafo construido desde la SEMÁNTICA del intérprete
+  // canónico (analizar-mueble: design_intent + semantic_role/relaciones). Es el mueble
+  // como OBJETO, no piezas sueltas. Null si la propuesta aún no trae design_intent
+  // (p. ej. un despiece viejo) → la UI simplemente no muestra el panel.
+  const estructuraVoni = useMemo(
+    () => (propuestaIA && propuestaIA.design_intent ? graphFromPropuesta(propuestaIA) : null),
+    [propuestaIA],
   );
 
   const { par } = modeloParaPieza(estado.parametros, b);
@@ -525,6 +534,27 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     return id;
   }
 
+  // DESCRIBE → VONI ENTIENDE: analiza la descripción en TEXTO (sin imagen) con el
+  // intérprete canónico (analizar-mueble, modo texto). Pre-llena el BOM y trae la
+  // estructura (design_intent + roles) para "Estructura propuesta". El motor costea;
+  // la IA no inventa precio.
+  async function analizarDescripcion() {
+    const desc = (b.descripcionCliente || '').trim();
+    if (desc.length < 8) { setErrorIA('Escribe una descripción un poco más completa (material, partes, uso) para que Voni la entienda.'); return; }
+    const id = nuevaCorrida();          // arranca corrida limpia (la descripción viaja aparte)
+    setErrorIA(''); setAnalizando(true);
+    try {
+      const res = await analizarTexto(catalogoIA(), desc);
+      const ok = aplicarPropuesta(res, null, [], true, id);   // mapea piezas, guarda propuesta (con design_intent), va a paso 1
+      // Si falló, no pierdas lo que el usuario escribió (nuevaCorrida lo había limpiado).
+      if (!ok && aceptaCorrida(id, corrida.current)) setB((prev) => ({ ...prev, descripcionCliente: desc }));
+    } catch (err) {
+      if (aceptaCorrida(id, corrida.current)) { setErrorIA(String(err?.message || err)); setB((prev) => ({ ...prev, descripcionCliente: desc })); }
+    } finally {
+      if (aceptaCorrida(id, corrida.current)) setAnalizando(false);
+    }
+  }
+
   // Una imagen (render/hoja). Paso 1: analiza. Paso 2 (solo imágenes, no PDF crudo):
   // la IA verifica su propio despiece contra las cotas. Devuelve true si ok.
   async function analizarYLlenar(base64, mediaType, dataUrl, corridaId) {
@@ -798,6 +828,18 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
             style={{ width: '100%', resize: 'vertical', padding: 10, borderRadius: 8, border: '1px solid var(--linea)', fontFamily: 'inherit', fontSize: 15 }} />
           <div className="ayuda">Material, estructura, acabados, detalles (conectores, patas, cajones…). Alimenta el render con IA y a Voni.</div>
           <div className="espacio" />
+          {/* DESCRIBE → VONI ENTIENDE: analiza SOLO el texto (sin imagen) y propone la
+              estructura + el despiece. Es el flujo que pidió Rodrigo: "describe el mueble
+              y que Voni ya tenga una idea". */}
+          <button
+            className={'boton ' + (analizando ? 'fantasma' : 'primario')}
+            disabled={analizando || (b.descripcionCliente || '').trim().length < 8}
+            onClick={analizarDescripcion}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            {analizando ? 'Voni está entendiendo…' : '🧠 Analizar con Voni'}
+          </button>
+          <div className="ayuda gris" style={{ fontSize: 11, marginTop: 4 }}>Voni interpreta tu descripción, propone las piezas y su estructura; tú confirmas. El precio lo calcula el motor.</div>
+          <div className="espacio" />
           <label className="etiqueta">¿Cuántas piezas iguales?</label>
           <div className="masmenos gigante">
             <button aria-label="menos" onClick={() => set({ piezas: Math.max(1, b.piezas - 1) })}>−</button>
@@ -824,6 +866,40 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                 </div>
               ))}
               <div className="ayuda gris" style={{ fontSize: 11, marginTop: 4 }}>Voni sólo propone y detecta; el costo lo calcula el motor.</div>
+            </div>
+          )}
+
+          {/* ESTRUCTURA PROPUESTA: el mueble como OBJETO según lo entendió Voni
+              (design_intent + roles + relaciones), para confirmar/corregir antes de
+              seguir. Viene de la semántica del intérprete canónico, no de regex. */}
+          {estructuraVoni && estructuraVoni.nodes.length > 0 && (
+            <div className="tarjeta" style={{ background: 'var(--panel)', borderLeft: '4px solid var(--acento, #3a6ea5)', margin: '12px 0' }}>
+              <div style={{ fontWeight: 700, marginBottom: 2 }}>🧠 Estructura que entendió Voni</div>
+              <div className="ayuda" style={{ marginBottom: 8 }}>
+                {estructuraVoni.design_intent.product_type === 'unknown'
+                  ? 'Voni no está segura de qué mueble es — confírmalo abajo.'
+                  : (<><b>{estructuraVoni.design_intent.product_type}</b>{estructuraVoni.design_intent.quantity > 1 ? ` · ${estructuraVoni.design_intent.quantity} módulos` : ''}{estructuraVoni.design_intent.overall_dimensions?.raw ? ` · ${estructuraVoni.design_intent.overall_dimensions.raw}` : ''}</>)}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                {estructuraVoni.nodes.map((n, i) => (
+                  <span key={i} className="chip" style={{ background: 'var(--fondo,#f3f3f3)', fontSize: 12 }} title={n.requires_confirmation ? 'Falta confirmar material' : ''}>
+                    {n.semantic_role}{n.quantity > 1 ? ` ×${n.quantity}` : ''}{n.requires_confirmation ? ' ⚠' : ''}
+                  </span>
+                ))}
+              </div>
+              {estructuraVoni.relations.length > 0 && (
+                <div className="ayuda gris" style={{ fontSize: 12, marginBottom: 6 }}>
+                  {estructuraVoni.relations.slice(0, 6).map((r, i) => {
+                    const rol = (id) => (estructuraVoni.nodes.find((n) => n.id === id) || {}).semantic_role || '?';
+                    const verbo = ({ supports: 'soporta', contains: 'contiene', connects: 'conecta', repeats_with: 'se repite con' })[r.type] || r.type;
+                    return <span key={i}>{i > 0 ? ' · ' : ''}{rol(r.from)} {verbo} {rol(r.to)}</span>;
+                  })}
+                </div>
+              )}
+              {Array.isArray(estructuraVoni.missing_critical_data) && estructuraVoni.missing_critical_data.length > 0 && (
+                <div className="ayuda" style={{ color: '#8a6d00', fontSize: 12 }}>Falta por definir: {estructuraVoni.missing_critical_data.join(' · ')}</div>
+              )}
+              <div className="ayuda gris" style={{ fontSize: 11, marginTop: 6 }}>Es lo que Voni entendió como objeto; confirma o corrige las piezas abajo. El precio lo calcula el motor.</div>
             </div>
           )}
           {(preguntasIA.length > 0 || Object.keys(confirmadas).length > 0) && (

@@ -209,6 +209,22 @@ export async function analizarRenderImagenes(catalogo, imagenes) {
   return data;
 }
 
+// SÓLO TEXTO: el cliente describe el mueble ("banca de aeropuerto 4 plazas, aluminio,
+// asiento y respaldo tapizados, conector cada 2 asientos") y la IA lo interpreta como
+// OBJETO (analizar-mueble v17, modo texto). Devuelve el MISMO { ok, propuesta } que la
+// ruta de imagen, ya con design_intent + semantic_role por pieza. Sin imagen.
+export async function analizarTexto(catalogo, descripcion) {
+  const { data, error } = await nube.functions.invoke('analizar-mueble', {
+    body: { catalogo, descripcion },
+  });
+  if (error) {
+    let msg = error.message || 'No se pudo interpretar la descripción.';
+    try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
+    return { ok: false, error: msg };
+  }
+  return data;
+}
+
 // SEGUNDA PASADA (verificadora): la IA recibe su propio despiece + las mismas hojas
 // y lo CRITICA contra las cotas (infla/baja/duplica/inventa), lo corrige y llena el
 // 'razonamiento' de consumo por pieza. Si falla, se devuelve la propuesta original
