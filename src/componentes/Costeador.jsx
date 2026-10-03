@@ -137,19 +137,32 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     : tipoDeMueble(costeo);
 
   // --- Render de calidad con IA (Gemini), inspirado en lo que se costea ---
+  // Resumen de ESTRUCTURA (lo que Voni entendió) para que el render arme el objeto
+  // correcto (no un escritorio genérico). En inglés corto, como el prompt del edge.
+  function specEstructura() {
+    const g = estructuraVoni;
+    if (!g || !g.nodes?.length) return '';
+    const di = g.design_intent || {};
+    const roles = g.nodes.map((n) => `${n.semantic_role}${n.quantity > 1 ? ` x${n.quantity}` : ''}`).join(', ');
+    const rol = (id) => (g.nodes.find((n) => n.id === id) || {}).semantic_role || '?';
+    const verbo = { supports: 'supports', contains: 'contains', connects: 'connects', repeats_with: 'repeats with' };
+    const rels = g.relations.slice(0, 6).map((r) => `${rol(r.from)} ${verbo[r.type] || r.type} ${rol(r.to)}`).join('; ');
+    return `${di.product_type || ''}${di.quantity > 1 ? `, ${di.quantity} modules` : ''}. Parts: ${roles}.${rels ? ` Structure: ${rels}.` : ''}`;
+  }
   function descripcionParaRender() {
-    const mats = [...new Set(costeo.componentes.map((c) => c.nombre).filter(Boolean))].slice(0, 6);
+    // Materiales REALES (nombre del insumo del catálogo), no las etiquetas de las piezas.
+    const mats = [...new Set(costeo.componentes.map((c) => insumos[c.insumoId]?.nombre).filter(Boolean))].slice(0, 8);
     let med = '', mayor = 0;
     for (const c of costeo.componentes) {
       if (c.largoMM && c.anchoMM && c.largoMM * c.anchoMM > mayor) { mayor = c.largoMM * c.anchoMM; med = `${(c.largoMM / 1000).toFixed(2)} x ${(c.anchoMM / 1000).toFixed(2)} m`; }
     }
-    return { descripcion: costeo.descripcionCliente || costeo.nombre || 'mueble de oficina', materiales: mats, medidas: med, tipo: tipoDeMueble(costeo) };
+    return { descripcion: costeo.descripcionCliente || costeo.nombre || 'mueble de oficina', materiales: mats, medidas: med, tipo: vistaTipo, spec: specEstructura() };
   }
   async function generarRenderIA() {
     setErrRender(''); setGenerando(true);
     try {
       const d = descripcionParaRender();
-      const r = await generarRender(d.descripcion, { materiales: d.materiales, medidas: d.medidas, tipo: d.tipo });
+      const r = await generarRender(d.descripcion, { materiales: d.materiales, medidas: d.medidas, tipo: d.tipo, spec: d.spec });
       if (!r || !r.ok) { setErrRender(r?.error || 'No se pudo generar el render.'); return; }
       set({ imagen: r.dataUrl });
     } catch (e) { setErrRender('No se pudo conectar. Vuelve a intentar.'); }

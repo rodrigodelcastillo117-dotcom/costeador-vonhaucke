@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     const bytes = imgs.reduce((s: number, i: any) => s + (typeof i === "string" ? i.length : 0), 0);
     if (bytes > 28_000_000) return json({ ok: false, code: "PAYLOAD_TOO_LARGE", error: "Las imágenes de referencia son demasiado grandes." }, 413);
   }
-  const { descripcion = "", materiales = [], medidas = "", tipo = "", imagen = "", imagenes = [], mediaType = "image/jpeg", modo = "render", aspecto = "", cuarto = "", lineas = [], conteoPiso = null, entorno = "", preservar = "" } = body || {};
+  const { descripcion = "", materiales = [], medidas = "", tipo = "", spec = "", imagen = "", imagenes = [], mediaType = "image/jpeg", modo = "render", aspecto = "", cuarto = "", lineas = [], conteoPiso = null, entorno = "", preservar = "" } = body || {};
   if (!descripcion.trim() && !imagen) return json({ ok: false, error: "Escribe una descripción del mueble para generar el render." }, 400);
   if (modo === "staging" && !imagen) return json({ ok: false, error: "Sube una foto del espacio para amueblarlo." }, 400);
 
@@ -236,15 +236,24 @@ Deno.serve(async (req) => {
       `Context: ${descripcion}. ` +
       "Present it as a high-end catalog shot: 3/4 angle, soft seamless warm-neutral studio background, gentle soft floor shadow, realistic materials, sharp focus, bright even lighting. " +
       "No people, no text, no watermark, no logos, no measurement overlays. Single hero object, centered."
-    : // RENDER de producto standalone (solo texto)
-      "Professional photorealistic product render of a single piece of premium office furniture, for a high-end catalog. " +
-      `The furniture: ${descripcion}. ` +
-      (tipo ? `Type: ${tipo}. ` : "") +
-      (mats ? `Materials: ${mats}. ` : "") +
-      (medidas ? `Approximate dimensions: ${medidas}. ` : "") +
-      "Von Haucke Mexican modern office aesthetic: warm oak melamine surfaces, charcoal powder-coated steel, elegant and minimal. " +
-      "Studio product photography, 3/4 angle, soft seamless warm-neutral background, gentle soft shadow on the floor, realistic materials and reflections, sharp focus, bright even lighting. " +
-      "No people, no text, no watermark, no logos, no measurements overlay. Single hero object, centered.";
+    : // RENDER de producto standalone (solo texto). Fidelidad: los MATERIALES y la
+      // ESTRUCTURA descritos MANDAN; la estética de la casa es sólo el default cuando
+      // no se especifica nada (antes forzaba "roble/melamina" y pintaba roble aunque
+      // pidieras "cubierta azul / superficie sólida").
+      "Professional, photorealistic STUDIO product render of a SINGLE piece of premium contract/office furniture, high-end catalog quality. " +
+      `The product: ${descripcion}. ` +
+      (tipo ? `Furniture category (for context, not a literal shape): ${tipo}. ` : "") +
+      (spec
+        ? `BUILD IT AS THIS EXACT OBJECT — ${spec} Honor this structure literally: the number of modules/seats, which parts support which, and how modules connect. Do NOT turn it into a plain desk. `
+        : "") +
+      (mats
+        ? `MATERIALS & FINISH — use EXACTLY these, physically-based and realistic; DO NOT substitute a different material, wood species or color: ${mats}. ` +
+          "If the description gives a COLOR (e.g. 'azul'/blue), the surface MUST be that color. " +
+          "If it says 'superficie sólida' / solid surface (Corian-like), render a seamless matte mineral-composite top, NOT wood melamine. " +
+          "If it says 'lámina'/steel for the base, render folded powder-coated sheet-steel panels. Show the brand's red ABS edge ONLY if a red edge is mentioned. "
+        : "Finish (default only, nothing specified): Von Haucke Mexican modern aesthetic — warm oak melamine surfaces with charcoal powder-coated steel, elegant and minimal. ") +
+      (medidas ? `True proportions: ${medidas}. ` : "") +
+      RECETA_CATALOGO;
 
   const parts: any[] = [{ text: prompt }];
   if (imagen) parts.push({ inlineData: { mimeType: mediaType, data: imagen } });
