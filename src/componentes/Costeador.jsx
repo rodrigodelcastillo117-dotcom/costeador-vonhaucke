@@ -130,6 +130,11 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     } catch (err) { setErrIA(String(err?.message || err)); }
     finally { setAnalizandoIA(false); }
   }
+  // Tipo para la "Vista del mueble": si Voni ya entendió el producto, usa ESE
+  // (lo más fiel a lo que describiste); si no, lo deduce del nombre+descripción.
+  const vistaTipo = (estructuraVoni?.design_intent?.product_type && estructuraVoni.design_intent.product_type !== 'unknown')
+    ? tipoDeMueble({ nombre: estructuraVoni.design_intent.product_type })
+    : tipoDeMueble(costeo);
 
   // --- Render de calidad con IA (Gemini), inspirado en lo que se costea ---
   function descripcionParaRender() {
@@ -608,7 +613,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
               ? <div className="render-gen"><span className="render-gen-spin" /><span>Generando render…</span></div>
               : costeo.imagen
                 ? <img src={costeo.imagen} alt={costeo.nombre || 'Render'} className="ficha-foto" />
-                : <MiniRender tipo={tipoDeMueble(costeo)} w={dimsDeMueble(costeo).w} d={dimsDeMueble(costeo).d} />}
+                : <MiniRender tipo={vistaTipo} w={dimsDeMueble(costeo).w} d={dimsDeMueble(costeo).d} />}
           </div>
           <button className="boton primario" style={{ width: '100%', marginTop: 10 }} disabled={generando} onClick={generarRenderIA}>
             {generando ? 'Generando…' : costeo.imagen ? 'Regenerar render con IA' : 'Generar render con IA'}

@@ -1,12 +1,24 @@
 // ============================================================================
 //  MiniRender — render ISOMÉTRICO paramétrico por tipo de mueble (no hay fotos).
 //  Dibuja el mueble en 3D a partir de sus MEDIDAS reales (largo×fondo×alto),
-//  con caras sombreadas y el rojo de marca como canto ABS. Escala solo.
+//  con caras SOMBREADAS CON DEGRADADO, sombra de piso suave y luz de borde, y el
+//  rojo de marca como canto ABS. Escala solo. El TIPO sale del nombre Y de la
+//  descripción, para que al describir el mueble el esquema cambie a lo entendido.
 // ============================================================================
+import { useId } from 'react';
 
-// Deduce el tipo a partir del nombre/linea del costeo
+// Aclara (amt>0) u oscurece (amt<0) un color hex — para generar degradados por cara.
+function hexLerp(hex, amt) {
+  const n = parseInt(String(hex).slice(1), 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const f = (c) => Math.max(0, Math.min(255, Math.round(c + amt * 255)));
+  return '#' + ((1 << 24) + (f(r) << 16) + (f(g) << 8) + f(b)).toString(16).slice(1);
+}
+
+// Deduce el tipo a partir del nombre/linea Y la descripción del costeo. Al escribir
+// "banca de aeropuerto…" el esquema deja de ser un escritorio genérico y pasa a banca.
 export function tipoDeMueble(costeo) {
-  const t = `${costeo?.nombre || ''} ${costeo?.linea || ''}`.toLowerCase();
+  const t = `${costeo?.nombre || ''} ${costeo?.linea || ''} ${costeo?.descripcionCliente || ''}`.toLowerCase();
   if (costeo?.bench || t.includes('bench') || t.includes('banca')) return 'bench';
   if (t.includes('estacion') || t.includes('estación') || t.includes(' en l') || t.includes('lateral') || t.includes('retorno')) return 'estacion';
   if (t.includes('escritorio')) return 'escritorio';
@@ -124,6 +136,9 @@ function modelo(tipo, w, d, h) {
 }
 
 export default function MiniRender({ tipo = 'escritorio', w = 1500, d = 600, h }) {
+  // id único por instancia: los degradados/filtros no deben colisionar si hay varios
+  // MiniRender en la misma página (p. ej. el catálogo).
+  const uid = 'mr' + useId().replace(/[^a-zA-Z0-9]/g, '');
   const H = h || ALTURA[tipo] || 750;
   const solids = modelo(tipo, Math.max(300, w), Math.max(300, d), H);
 
@@ -134,16 +149,38 @@ export default function MiniRender({ tipo = 'escritorio', w = 1500, d = 600, h }
   solids.forEach((s) => ['top', 'left', 'right'].forEach((f) => s.b[f].forEach((p) => pts.push(proj(p)))));
   const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
   const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-  const VW = 200, VH = 160, pad = 20;
+  const VW = 200, VH = 160, pad = 22;
   const sc = Math.min((VW - 2 * pad) / (maxX - minX || 1), (VH - 2 * pad) / (maxY - minY || 1));
   const ox = (VW - (maxX - minX) * sc) / 2, oy = (VH - (maxY - minY) * sc) / 2;
   const M = (p3) => { const [px, py] = proj(p3); return [ox + (px - minX) * sc, oy + (py - minY) * sc]; };
   const poly = (pts3) => pts3.map(M).map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
   const line = (a, b) => { const A = M(a), B = M(b); return `M${A[0].toFixed(1)} ${A[1].toFixed(1)} L${B[0].toFixed(1)} ${B[1].toFixed(1)}`; };
 
+  const defs = [];
   const el = [];
 
-  // Sombra de piso (asienta el objeto)
+  // Degradado vertical por cara: luz arriba, sombra abajo. Da volumen (deja de verse plano).
+  const faceFill = (key, mat, face) => {
+    const bc = (MAT[mat] || MAT.top)[face];
+    const id = `${uid}-${key}`;
+    const strong = face === 'top';
+    defs.push(
+      <linearGradient key={id} id={id} x1="0" y1="0" x2="0.3" y2="1">
+        <stop offset="0" stopColor={hexLerp(bc, strong ? 0.10 : 0.05)} />
+        <stop offset="1" stopColor={hexLerp(bc, strong ? -0.05 : -0.10)} />
+      </linearGradient>,
+    );
+    return `url(#${id})`;
+  };
+
+  // Sombra de piso SUAVE (blur) con degradado radial: asienta el objeto, se ve real.
+  defs.push(<filter key="soft" id={`${uid}-soft`} x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.8" /></filter>);
+  defs.push(
+    <radialGradient key="floor" id={`${uid}-floor`} cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stopColor="#282420" stopOpacity="0.20" />
+      <stop offset="1" stopColor="#282420" stopOpacity="0" />
+    </radialGradient>,
+  );
   const base = [];
   solids.forEach((s) => { const b = s.b.left, r = s.b.right; base.push(b[2], b[3], r[2], r[3]); });
   const bxs = base.map((p) => proj(p)[0]);
@@ -151,33 +188,37 @@ export default function MiniRender({ tipo = 'escritorio', w = 1500, d = 600, h }
   const groundPts = base.map(([x, y]) => proj([x, y, 0]));
   const gcx = ox + (cx - minX) * sc;
   const gcy = oy + (Math.max(...groundPts.map((p) => p[1])) - minY) * sc;
-  el.push(<ellipse key="sh" cx={gcx} cy={gcy - 2} rx={Math.max(28, (maxX - minX) * sc * 0.42)} ry={9} fill="rgba(40,36,32,.09)" />);
+  const grx = Math.max(30, (maxX - minX) * sc * 0.46);
+  el.push(<ellipse key="sh" cx={gcx} cy={gcy - 1} rx={grx} ry={10} fill={`url(#${uid}-floor)`} filter={`url(#${uid}-soft)`} />);
 
+  const STK = '#3b332d';
   // Caras (izq, der, sup) por sólido, en orden de arreglo (atrás→frente)
   solids.forEach((s, i) => {
-    const c = MAT[s.k] || MAT.top;
-    const op = s.k === 'glass' ? 0.86 : 1;
+    const op = s.k === 'glass' ? 0.8 : 1;
     ['left', 'right', 'top'].forEach((f) => {
-      el.push(<polygon key={`p${i}${f}`} points={poly(s.b[f])} fill={c[f]} fillOpacity={op} stroke={STROKE} strokeWidth={1.1} strokeLinejoin="round" />);
+      el.push(<polygon key={`p${i}${f}`} points={poly(s.b[f])} fill={faceFill(`${i}${f}`, s.k, f)} fillOpacity={op} stroke={STK} strokeOpacity={0.42} strokeWidth={0.7} strokeLinejoin="round" />);
     });
     // Puertas/entrepaños del gabinete
     if (s.doors) {
       const r = s.b.right; // cara frontal derecha
       const mid = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
-      el.push(<path key={`d${i}`} d={line(mid(r[0], r[3], 0.5), mid(r[1], r[2], 0.5))} stroke={STROKE} strokeWidth={0.9} fill="none" />);
+      el.push(<path key={`d${i}`} d={line(mid(r[0], r[3], 0.5), mid(r[1], r[2], 0.5))} stroke={STK} strokeOpacity={0.5} strokeWidth={0.8} fill="none" />);
       const h1 = mid(mid(r[0], r[1], 0.5), mid(r[3], r[2], 0.5), 0.28);
-      const P = M(h1); el.push(<circle key={`h${i}`} cx={P[0]} cy={P[1]} r={1.6} fill={STROKE} />);
+      const P = M(h1); el.push(<circle key={`h${i}`} cx={P[0]} cy={P[1]} r={1.6} fill={STK} fillOpacity={0.6} />);
     }
-    // Canto ABS rojo en los dos filos frontales de la cubierta
+    // Cubierta: luz de borde (rim) en las aristas traseras + canto ABS rojo en los frontales
     if (s.accent) {
-      const t = s.b.top; // [A,B,C,D] — esquina frontal = C (idx 2)
-      el.push(<path key={`a${i}1`} d={line(t[1], t[2])} stroke={RED} strokeWidth={1.8} strokeLinecap="round" fill="none" />);
-      el.push(<path key={`a${i}2`} d={line(t[3], t[2])} stroke={RED} strokeWidth={1.8} strokeLinecap="round" fill="none" />);
+      const t = s.b.top; // [A(atrás),B,C(frente),D]
+      el.push(<path key={`rim${i}a`} d={line(t[0], t[1])} stroke="#ffffff" strokeOpacity={0.5} strokeWidth={0.9} strokeLinecap="round" fill="none" />);
+      el.push(<path key={`rim${i}b`} d={line(t[0], t[3])} stroke="#ffffff" strokeOpacity={0.5} strokeWidth={0.9} strokeLinecap="round" fill="none" />);
+      el.push(<path key={`a${i}1`} d={line(t[1], t[2])} stroke={RED} strokeWidth={2} strokeLinecap="round" fill="none" />);
+      el.push(<path key={`a${i}2`} d={line(t[3], t[2])} stroke={RED} strokeWidth={2} strokeLinecap="round" fill="none" />);
     }
   });
 
   return (
     <svg viewBox="0 0 200 160" width="100%" height="100%" role="img" aria-label={`Render ${tipo} ${(w / 1000).toFixed(2)}×${(d / 1000).toFixed(2)}`}>
+      <defs>{defs}</defs>
       {el}
     </svg>
   );
