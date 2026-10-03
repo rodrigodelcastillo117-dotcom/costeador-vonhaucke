@@ -794,10 +794,13 @@ function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = fa
       {poly(lado, shadeHex(col, 0.9), shadeHex(col, 0.72), 0.34, 'l')}
       {poly(top, col, shadeHex(col, 0.78), 0.55, 't')}
     </g>;
+    // Más contraste entre caras = más volumen y materiales más "reales": el lado
+    // en sombra más oscuro, la cubierta más luminosa. Antes todo salía parejo y
+    // por eso se veía "plano".
     return <g key={key}>
-      {poly(lado, shadeHex(col, 0.80), shadeHex(col, 0.60), 1, 'l')}
-      {poly(frente, shadeHex(col, 0.91), shadeHex(col, 0.64), 1, 'f')}
-      {poly(top, opts.topFill || shadeHex(col, 1.07), shadeHex(col, 0.78), 1, 't')}
+      {poly(lado, shadeHex(col, 0.72), shadeHex(col, 0.54), 1, 'l')}
+      {poly(frente, shadeHex(col, 0.88), shadeHex(col, 0.60), 1, 'f')}
+      {poly(top, opts.topFill || shadeHex(col, 1.11), shadeHex(col, 0.82), 1, 't')}
     </g>;
   };
 
@@ -928,16 +931,23 @@ function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = fa
       cuerpo.push(caja(40, 50, 80, F - 100, 0, H - 30, MAT.charcoal, key + 'lz'));
       cuerpo.push(caja(L - 120, 50, 80, F - 100, 0, H - 30, MAT.charcoal, key + 'ld'));
       cuerpo.push(caja(0, 0, L, F, H - 30, H, MAT.oak, key + 't', { topFill: 'url(#pa-oak)' }));
+      // MONITOR realista: base sobre la cubierta + cuello + pantalla ELEVADA.
+      // Antes era un bloque negro pegado al escritorio —el detalle que más
+      // "cantaba" en el render—. Ahora se lee como un monitor de verdad.
+      const monitor = (u, v, kk) => {
+        cuerpo.push(caja(u - 130, v + 2, 260, 70, H, H + 16, shadeHex(MAT.pantalla, 1.5), kk + 'b'));       // base
+        cuerpo.push(caja(u - 28, v + 14, 56, 34, H + 16, H + 150, shadeHex(MAT.pantalla, 0.82), kk + 'n')); // cuello
+        cuerpo.push(caja(u - mw / 2, v, mw, 42, H + 140, H + 520, MAT.pantalla, kk + 's', { topFill: shadeHex(MAT.pantalla, 1.3) })); // pantalla
+      };
       for (let k = 0; k < n; k++) {
         const u = (L * (k + 0.5)) / n;
-        if (bench) cuerpo.push(caja(u - mw / 2, F * 0.28, mw, 45, H, H + 360, MAT.pantalla, `${key}m1${k}`));
-        else cuerpo.push(caja(u - mw / 2, 120, mw, 45, H, H + 360, MAT.pantalla, `${key}m${k}`));
+        monitor(u, bench ? F * 0.28 : 120, `${key}m${k}`);
       }
       if (bench) {
         cuerpo.push(caja(50, F / 2 - 25, L - 100, 50, H, H + 370, MAT.felt, key + 'b'));
         for (let k = 0; k < n; k++) {
           const u = (L * (k + 0.5)) / n;
-          cuerpo.push(caja(u - mw / 2, F * 0.72 - 50, mw, 45, H, H + 360, MAT.pantalla, `${key}m2${k}`));
+          monitor(u, F * 0.72 - 50, `${key}m2${k}`);
         }
       }
     } else if (tipo === 'juntas' || tipo === 'mesa') {
@@ -1134,8 +1144,8 @@ function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = fa
             <stop offset="100%" stopColor="#e3dcd1" />
           </radialGradient>
           <linearGradient id="pa-floor" x1="0" y1="0" x2="0.3" y2="1">
-            <stop offset="0%" stopColor="#f4efe6" />
-            <stop offset="100%" stopColor="#e2dacd" />
+            <stop offset="0%" stopColor="#f7f1e5" />
+            <stop offset="100%" stopColor="#e4d8c4" />
           </linearGradient>
           <linearGradient id="pa-oak" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor="#dcc290" />
