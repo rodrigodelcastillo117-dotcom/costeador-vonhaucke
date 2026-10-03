@@ -124,6 +124,28 @@ Archivos: `App.jsx` (+17), `Acomodo.jsx` (+17), `DibujarPlano.jsx` (+159),
   "¿está lista?" (detecta renglón sin precio) / "¿cabe?" (detecta sin acomodar).
 - En vivo (requiere login): `https://vonhaucke-rc.vercel.app` → cotización → "Acomodo en el espacio".
 
+## Auditoría exhaustiva (16 agentes) — hallazgos y estado
+
+**Veredicto de seguridad: NO hay fuga activa de costo/margen a vendedor/cliente en las PANTALLAS hoy.** Las listas blancas de presentación protegen. Lo demás son bugs funcionales o riesgos latentes/pre-existentes.
+
+### ✅ RESUELTO y desplegado (esta pasada)
+- Saneador de economía por subcadena (`economia.js`, `voni/permisos.js`) — cubre variantes (margenPct, detalleInsumos, componentes, factor*).
+- `guardarCotizacion` ya no finge éxito si falla el UPDATE (`cotizaciones.js`).
+- Propuesta Viva: inversión real (totalesCotizacion, IVA/descuento), null si hay sin-precio, no cuenta zonas `dentroDe`.
+- "Empezar de cero": reset de descuentos + candado de época vs. carrera de guardado (`App.jsx`).
+- Voni: no dice "Lista" con cotización vacía; `responder()` con try/catch; enrutador KNOWLEDGE menos tragón; `explicar()` por nombre; `esAMedida` sin "cabe"; gama sin falsos positivos.
+- `dimensionar a m²`: tope 50,000 + coma de miles.
+
+### ⚠️ PENDIENTE — núcleo de dinero/costeo (requiere pasada cuidadosa + verificar BD)
+- **Seller-safe (pre-existente, serio):** `EditarPartida`/`partidaDeCosteo`/add-ons/variantes escriben `costoUnitario`/BOM en el estado del VENDEDOR (navegador). La protección real hoy es el servidor (RLS/`cotizacion_segura`). Fix: pasar `soloVentas` y no escribir economía; red central `sinEconomia` al guardar si `!veCostos`.
+- **Descuento sin piso:** un vendedor puede dar hasta 60% sin alerta ni bloqueo (el piso vive en `catalogo.minimo`, no se usa). `Cotizacion.jsx`.
+- **Motor:** merma ≥100 → precio Infinity; `piezas` negativas → costo negativo; veta con eje invertido → subcosteo ~16% silencioso. `motor/calculo.js` (clamps).
+- **Costeo de línea:** el chip de COLOR resalta uno y cotiza la base (App LT/Alba); Modulor cotiza cerradura/zoclo con la casilla desmarcada; `finish` no se resetea al cambiar de producto. `CosteadorLinea.jsx` + generadores.
+- **Comercial:** el cierre "ganada" suma TODAS las cotizaciones y fabrica `revision_ganadora_id=1`; muchos botones (cierre, escenarios, aprobaciones) fallan en silencio; `resuelto_por:'direccion'` literal; `creado_por` sin pasar. `ProyectoWorkspace.jsx`/`crm.js`.
+- **Nube/auth:** un fallo transitorio de `miPermiso` reemplaza la app por "No se pudo verificar acceso"; sin timeouts globales; `cerrarOtrasSesiones` siempre dice éxito; `recuperando` no se limpia (riesgo: cambiar clave sin la actual); `otp_expired` sin mensaje. `nube.js`/`App.jsx`.
+- **Rutas a conectar:** `catalogo` y `reglas` ("Lo que Voni sabe") poco alcanzables — ubicarlas donde aporten.
+- **Verificar en BD (execute_sql):** FK de `proyectos.revision_ganadora_id`, CHECK de `escenarios.tipo` y `cotizaciones.estado`, tipo de `aprobaciones.resuelto_por`.
+
 ## Preguntas para el auditor (red-team)
 1. ¿Hay ALGUNA ruta por la que `PropuestaViva` o el 3D muestren costo/margen a un vendedor/cliente?
 2. ¿`descartarProyecto` puede perder trabajo o duplicar cotizaciones en la nube?
