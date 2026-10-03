@@ -963,6 +963,19 @@ function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = fa
       cuerpo.push(cuboide(x, y, w, d, H - 30, H, MAT.oak, key + 't', { topFill: 'url(#pa-oak)' }));
     } else if (tipo === 'guarda') {
       cuerpo.push(cuboide(x, y, w, d, 0, H - 26, MAT.white, key + 'c'));
+      // CAJONES: líneas en la cara de frente + jaladera, para que un archivero se
+      // lea como archivero y no como una caja blanca (antes era un bloque liso).
+      const nd = Math.max(2, Math.round((H - 26) / 360));
+      for (let k = 1; k < nd; k++) {
+        const zz = ((H - 26) * k) / nd;
+        const a = P(x, y + d, zz), b = P(x + w, y + d, zz);
+        cuerpo.push(<line key={`${key}dj${k}`} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke={shadeHex(MAT.white, 0.72)} strokeWidth={LW * 1.3} />);
+      }
+      for (let k = 0; k < nd; k++) {
+        const zz = ((H - 26) * (k + 0.5)) / nd;
+        const a = P(x + w * 0.40, y + d, zz), b = P(x + w * 0.60, y + d, zz);
+        cuerpo.push(<line key={`${key}dh${k}`} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke={shadeHex(MAT.white, 0.5)} strokeWidth={LW * 2.6} strokeLinecap="round" />);
+      }
       cuerpo.push(cuboide(x - 10, y - 10, w + 20, d + 20, H - 26, H, MAT.oak, key + 't', { topFill: 'url(#pa-oak)' }));
     } else if (tipo === 'asiento') {
       // ⚠️ NO TODOS LOS ASIENTOS SON EL MISMO CAJÓN. Rodrigo: "no sé cuáles
