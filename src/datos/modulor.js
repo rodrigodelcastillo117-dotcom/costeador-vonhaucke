@@ -45,7 +45,7 @@ export const MODULOR_PRODUCTOS = [
     id: 'gaveta', nombre: 'Gaveta',
     selects: [{ key: 'tipo', label: 'Tipo', opciones: [{ id: 'rodante', label: 'Rodante' }, { id: 'pedestal', label: 'Pedestal' }, { id: 'bajocosto', label: 'Bajo costo (frente corrido)' }] }],
     finishes: FIN_STD,
-    checks: [{ key: 'tapa', label: 'Cubierta (tapa)' }, { key: 'cojin', label: 'Tapa tipo cojín (tela)' }, { key: 'cerradura', label: 'Cerradura' }],
+    checks: [{ key: 'tapa', label: 'Cubierta (tapa)' }, { key: 'cojin', label: 'Tapa tipo cojín (tela)' }, { key: 'cerradura', label: 'Cerradura', def: true }],
   },
   {
     id: 'librero', nombre: 'Librero',
@@ -65,32 +65,32 @@ export const MODULOR_PRODUCTOS = [
       { id: 'puertas90', label: '0.90 · 2 puertas (MOAPCU3)' },
     ] }],
     finishes: FIN_STD,
-    checks: [{ key: 'cerradura', label: 'Cerradura' }, { key: 'cojin', label: 'Cojín superior (tela)' }],
+    checks: [{ key: 'cerradura', label: 'Cerradura', def: true }, { key: 'cojin', label: 'Cojín superior (tela)' }],
   },
   {
     id: 'archivero_lateral', nombre: 'Archivero registro lateral',
     selects: [{ key: 'modelo', label: 'Modelo', opciones: [
       { id: 'MOA1CA', label: 'MOA1CA' }, { id: 'MOA2CA', label: 'MOA2CA' }, { id: 'MOA1CC1ENSP', label: 'MOA1CC1ENSP (librero)' },
     ] }],
-    checks: [{ key: 'cojin', label: 'Cojín MOCCAA2 (tela)' }, { key: 'cerradura', label: 'Cerradura' }],
+    checks: [{ key: 'cojin', label: 'Cojín MOCCAA2 (tela)' }, { key: 'cerradura', label: 'Cerradura', def: true }],
   },
   {
     id: 'armario', nombre: 'Armario ropero',
     selects: [{ key: 'mano', label: 'Mano', opciones: [{ id: 'izquierdo', label: 'Izquierdo' }, { id: 'derecho', label: 'Derecho' }] }],
     finishes: FIN_STD,
-    checks: [{ key: 'cerradura', label: 'Cerradura' }],
+    checks: [{ key: 'cerradura', label: 'Cerradura', def: true }],
   },
   {
     id: 'torre', nombre: 'Torre (pedestal + nicho + armario)',
     selects: [{ key: 'mano', label: 'Configuración', opciones: [{ id: 'derecha', label: 'Derecha' }, { id: 'izquierda', label: 'Izquierda' }] }],
     finishes: FIN_STD,
-    checks: [{ key: 'tapa', label: 'Cubierta MOTO115 (tapa)' }, { key: 'cerradura', label: 'Cerraduras' }],
+    checks: [{ key: 'tapa', label: 'Cubierta MOTO115 (tapa)' }, { key: 'cerradura', label: 'Cerraduras', def: true }],
   },
   {
     id: 'locker', nombre: 'Locker (apilable, 3 guardas/unidad)',
     selects: [{ key: 'niveles', label: 'Niveles', opciones: [{ id: '1', label: '1' }, { id: '2', label: '2' }, { id: '3', label: '3' }] }],
     finishes: FIN_LOCKER,
-    checks: [{ key: 'zoclo', label: 'Zoclo (MOLOCKC43PTF-B)' }, { key: 'tapa', label: 'Cubierta (MOLOCKCU43)' }],
+    checks: [{ key: 'zoclo', label: 'Zoclo (MOLOCKC43PTF-B)', def: true }, { key: 'tapa', label: 'Cubierta (MOLOCKCU43)' }],
   },
   {
     id: 'wally', nombre: 'Wally (guarda compacta)',

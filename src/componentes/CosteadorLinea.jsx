@@ -36,7 +36,13 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
   // cada línea cae en su propio default (App LT → ivory; las demás, el
   // genérico compartido de siempre) — no se fuerza un color aquí.
   const [color, setColor] = useState(null);
-  const [checks, setChecks] = useState({});
+  // Casillas con su DEFAULT del producto (ch.def). Modulor incluye cerradura/zoclo
+  // por estándar (def:true): si aquí arrancan en {} la UI las muestra DESMARCADAS
+  // pero el generador, al no recibir la llave, aplica su default true y las COBRA.
+  // Arrancar desde los defaults = lo que se ve es lo que se cotiza, y desmarcar
+  // de verdad las quita (la llave viaja explícita en el config vía ...checks).
+  const defChecks = (p) => Object.fromEntries((p.checks || []).map((ch) => [ch.key, !!ch.def]));
+  const [checks, setChecks] = useState(() => defChecks(prod));
   const [gavetas, setGavetas] = useState(0);
   const defSels = (p) => Object.fromEntries((p.selects || []).map((s) => [s.key, s.opciones[0].id]));
   // ⚠️ Este default vivía en `productos[0]` (el PRIMER producto de la línea),
@@ -67,7 +73,11 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
     if (p.diametros) setDiametro(p.diametros[0]);
     if (p.usuarios) setUsuarios(p.usuarios[0]);
     if (p.largosLateral) setLargoLateral(p.largosLateral[0]);
-    setBiombo(null); setChecks({}); setSels(defSels(p)); setGavetas(0); setColor(null);
+    // finish también se resetea: si no, el acabado del producto anterior (p. ej.
+    // 'ecolegno') se quedaba pegado en uno nuevo que no lo ofrece y el despiece caía
+    // en una rama equivocada. Vuelve al primer acabado del producto (o 'ABS').
+    setFinish(p.finishes ? p.finishes[0].id : 'ABS');
+    setBiombo(null); setChecks(defChecks(p)); setSels(defSels(p)); setGavetas(0); setColor(null);
   }
 
   const config = { producto: prodId, largoMM: largo, fondoMM: fondo, diametroMM: diametro, usuarios, largoLateralMM: largoLateral, biombo, finish, color, gavetas, ...sels, ...checks };
