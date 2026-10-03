@@ -17,6 +17,23 @@ servido también por el dominio de producción. RC y PROD **no estaban aislados*
 deploy hecho con `--prod` (o promovido) y luego "aliased" a `vonhaucke-rc` sigue siendo
 un deployment `target=production`.
 
+## Actualización 2026-10-03 (segundo intento, verificado)
+Se intentó un deploy **`--prod=false`** y aun así Vercel lo marcó `target=production`
+y **movió automáticamente** los dominios de producción al nuevo deployment. Es decir:
+desde la CLI, este proyecto **promueve todo deploy a producción** (no respeta `--prod=false`
+para el aliasing de producción). Por eso la separación RC/PROD **no se puede garantizar sólo
+con flags de CLI**.
+
+**Mitigación aplicada:** tras cada deploy se **re-aliasan a mano** los dominios de producción
+al deployment baseline aprobado, dejando `vonhaucke-rc` en el nuevo. Estado actual:
+- `vonhaucke-rc.vercel.app` → `4pfj6zrvf` (trabajo nuevo de hoy).
+- `costeador-vonhaucke.vercel.app` (PROD) → `4a522agu4` (baseline previo, congelado).
+
+**Fix real pendiente (manual, Vercel dashboard/API):** configurar el proyecto para que
+los deploys de CLI sean *preview* por defecto (p.ej. conectar Git y fijar la Production
+Branch, o usar un proyecto Vercel separado para producción). Hasta entonces, **todo deploy
+debe ir seguido del re-alias manual de producción**, o se promueve sin querer.
+
 ## Definición de ambientes
 - **LOCAL** — `npm run dev` / `vite`. Nunca es autoridad.
 - **PREVIEW / RC** — deployment con `target=preview` (NO `--prod`). Alias: **sólo**
