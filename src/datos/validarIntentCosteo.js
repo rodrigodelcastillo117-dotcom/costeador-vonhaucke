@@ -17,7 +17,12 @@ const PROHIBIDOS = /^(margen|precio|preciobase|precioreal|preciounitario|costo|c
 
 // Campos permitidos por componente (allowlist). Cualquier otro se ignora al sanear;
 // pero un objeto `insumo` inline o un `precio` se RECHAZAN (no se ignoran en silencio).
-const COMP_PERMITIDOS = ['insumoId', 'cantidad', 'largoMM', 'anchoMM', 'piezas', 'hojas'];
+// `nombre` es TÉCNICO (etiqueta/trazabilidad: alimenta `componentesIgnorados` y el
+// desglose del motor), NO económico; se permite pero se coacciona a string y se acota.
+// Se EXCLUYE a propósito `excluida`: marcar una partida como $0 es una decisión
+// comercial que vive en la Cotización (con confirmación humana), no en la intención
+// cruda de costeo — dejar que el cliente la mande aquí sería una fuga fail-OPEN.
+const COMP_PERMITIDOS = ['insumoId', 'nombre', 'cantidad', 'largoMM', 'anchoMM', 'piezas', 'hojas'];
 
 function buscarProhibido(obj, ruta = '') {
   if (obj == null || typeof obj !== 'object') return null;
@@ -76,7 +81,12 @@ export function validarIntentCosteo(body) {
     }
     if (c.largoMM > 100000 || c.anchoMM > 100000) issues.push({ field: `componentes[${i}]`, msg: 'Dimensión fuera de rango razonable.' });
     const limpio = {};
-    for (const campo of COMP_PERMITIDOS) if (c[campo] != null) limpio[campo] = c[campo];
+    for (const campo of COMP_PERMITIDOS) {
+      if (c[campo] == null) continue;
+      // `nombre`: sólo string, acotado — nunca un objeto que se cuele como etiqueta.
+      if (campo === 'nombre') { if (typeof c.nombre === 'string') limpio.nombre = c.nombre.slice(0, 200); continue; }
+      limpio[campo] = c[campo];
+    }
     compsLimpios.push(limpio);
   });
 

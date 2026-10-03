@@ -44,6 +44,24 @@ describe('validarIntentCosteo — allowlist (rechaza dinero del cliente)', () =>
     expect(r.ok).toBe(false);
     expect(r.code).toBe('FORBIDDEN_FINANCIAL_FIELD');
   });
+
+  it('`nombre` (técnico) sobrevive el saneo, acotado a string', () => {
+    const r = validarIntentCosteo({ cantidad: 1, pieza: { componentes: [{ insumoId: 'x', nombre: 'Cubierta principal' }] } });
+    expect(r.ok).toBe(true);
+    expect(r.intent.pieza.componentes[0].nombre).toBe('Cubierta principal');
+  });
+
+  it('`nombre` objeto (inyección) se descarta, no rompe', () => {
+    const r = validarIntentCosteo({ cantidad: 1, pieza: { componentes: [{ insumoId: 'x', nombre: { toString: () => 'malo' } }] } });
+    expect(r.ok).toBe(true);
+    expect(r.intent.pieza.componentes[0].nombre).toBeUndefined();
+  });
+
+  it('`excluida` (decisión de $0) NO se cuela por la intención cruda', () => {
+    const r = validarIntentCosteo({ cantidad: 1, pieza: { componentes: [{ insumoId: 'x', excluida: true }] } });
+    expect(r.ok).toBe(true);
+    expect(r.intent.pieza.componentes[0].excluida).toBeUndefined();
+  });
 });
 
 describe('validarIntentCosteo — input inválido → INVALID_INPUT (no se cuela)', () => {

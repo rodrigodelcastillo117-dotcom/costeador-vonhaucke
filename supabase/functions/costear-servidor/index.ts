@@ -19,6 +19,10 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { calcular, modeloParaPieza, precioDe, PARAMETROS_DEFAULT, MOTOR_VERSION } from "../../../src/motor/calculo.js";
 import { INSUMOS_SEMILLA, mapaInsumos } from "../../../src/datos/insumos.js";
+// DTO ESTRICTO — la MISMA frontera que usa el cliente (sin duplicar lógica). Rechaza
+// cualquier campo económico (margen, precio, costo, insumo inline, factores,
+// modeloCosteo…) del body antes de tocar el motor. Ver src/datos/validarIntentCosteo.js.
+import { validarIntentCosteo } from "../../../src/datos/validarIntentCosteo.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -56,12 +60,17 @@ Deno.serve(async (req) => {
   if (!email) return json({ ok: false, error: "Sesión inválida." }, 401);
 
   let body: any;
-  try { body = await req.json(); } catch { return json({ ok: false, error: "JSON inválido" }, 400); }
-  const pieza = body?.pieza;
-  if (!pieza || !Array.isArray(pieza.componentes)) {
-    return json({ ok: false, error: "Falta 'pieza' con 'componentes'." }, 400);
-  }
-  const n = Math.max(1, Number(body?.cantidad) || Number(pieza.piezas) || 1);
+  try { body = await req.json(); } catch { return json({ ok: false, code: "INVALID_INPUT", error: "JSON inválido" }, 400); }
+
+  // --- DTO ESTRICTO (seguridad, misma frontera que el cliente) ---
+  // El navegador manda INTENCIÓN TÉCNICA; el DINERO lo decide el servidor. Esto cierra
+  // la fuga por la que `pieza.margen` del body movía el precio de venta, y rechaza
+  // insumo/precio/costo/factores/modeloCosteo inline en lugar de ignorarlos en silencio.
+  const v = validarIntentCosteo(body);
+  if (!v.ok) return json({ ok: false, code: v.code, issues: v.issues }, 400);
+  const intent = v.intent;
+  const pieza = intent.pieza;              // { componentes, horas? } — saneado, sin dinero ni modelo
+  const n = Math.max(1, Number(intent.cantidad) || 1);
 
   // --- Servidor autoritativo: rol + config NUNCA vienen del navegador ---
   const svc = createClient(URL, SERVICE);
@@ -133,13 +142,15 @@ Deno.serve(async (req) => {
     if (requierenValidacion.length) warnings.push(`${requierenValidacion.length} insumo(s) requieren validación de Compras.`);
   }
 
-  // Precio: margen del despiece u objetivo de la casa (clásico). El modelo
-  // 'intelisis' (líneas App LT) se costea aún en cliente — se marca y se hará en
-  // la fase de líneas; para productos nuevos (el caso de costear-servidor) es clásico.
-  const esIntelisis = pieza.modeloCosteo === "intelisis";
-  const margen = Number(pieza.margen ?? parametros.margenObjetivo ?? 40);
-  const precioVenta = Math.round(precioDe(r.costoUnitario, margen));
-  if (esIntelisis) warnings.push("Modelo 'intelisis' (línea): el precio de lista aún se calcula en cliente.");
+  // Precio: SIEMPRE con el margen OBJETIVO del servidor (config/params), NUNCA del
+  // body — el DTO ya rechazó cualquier `margen` del cliente. Modelo 'clásico' (Alba)
+  // para producto nuevo, que es el caso de costear-servidor; 'intelisis' (líneas App
+  // LT) se costea aún en cliente y queda fuera de esta superficie.
+  const margen = Number(parametros.margenObjetivo ?? 40);
+  // FAIL-CLOSED: precioDe devuelve NaN ante margen imposible (≥100/<0) o costo no
+  // finito. No se convierte en $0 ni se emite: precioVenta = null → sin precio.
+  const precioRaw = precioDe(r.costoUnitario, margen);
+  const precioVenta = Number.isFinite(precioRaw) ? Math.round(precioRaw) : null;
 
   // --- SNAPSHOT reproducible ---
   const meta = {
@@ -149,9 +160,10 @@ Deno.serve(async (req) => {
     fuenteCosto: "config-legado", // el costo aún sale de config; catalogo_vigente solo certifica
     calculadoEn: new Date().toISOString(),
   };
-  // El precio se entrega mientras el cálculo sea posible (certificado o preliminar). El
-  // sistema debe OPERAR con preliminares; solo incompleto/bloqueado ocultan el precio.
-  const hayPrecio = estado === "certificado" || estado === "preliminar";
+  // El precio se entrega mientras el cálculo sea posible (certificado o preliminar) Y
+  // el precio sea un número válido. El sistema debe OPERAR con preliminares; incompleto,
+  // bloqueado o un precio no finito (fail-closed) ocultan el precio.
+  const hayPrecio = (estado === "certificado" || estado === "preliminar") && precioVenta != null;
 
   // --- SALIDA POR CAPACIDAD ---
   // Ventas: SOLO información comercial. Precio de venta + estado + warnings comerciales.
