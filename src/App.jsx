@@ -536,7 +536,10 @@ export default function App() {
       // cualquier ruta llegara sin cantidad, jamás debe guardarse en 0 (los
       // totales hacen precio × (cantidad||0) y perderían el renglón). No inventa
       // cantidades de borradores viejos —eso se recupera aparte— solo evita el $0.
-      cantidad: c.cantidad || 1, costoUnitario: c.costoUnitario, precioUnitario: c.precioUnitario, margen: c.margen,
+      // VENDEDOR (seller-safe): la partida NO lleva economía en su estado (costo,
+      // margen, costoDerivado). El precio de venta sí (lo puede ver). Defensa en
+      // profundidad además del saneo por rol de las tools de Voni.
+      cantidad: c.cantidad || 1, costoUnitario: veCostos ? c.costoUnitario : null, precioUnitario: c.precioUnitario, margen: veCostos ? c.margen : null,
       nota: c.nota || null, confianza: c.confianza || null, config: c.config || null,
       precioReal: !!c.precioReal,   // manda el sello Firme/Calibrado/Estimado
       // El artículo del catálogo con el que casó (para el piso de descuento) y,
@@ -559,7 +562,7 @@ export default function App() {
       deBanco: !!c.deBanco,
       // Costo DERIVADO del precio (≈ precio/3.6), no de un despiece real: la
       // pantalla muestra su margen como aproximado, no medido (audit 2026-09-24).
-      costoDerivado: !!c.costoDerivado,
+      costoDerivado: veCostos ? !!c.costoDerivado : false,
     }));
   }
 
@@ -578,10 +581,20 @@ export default function App() {
   // El costo se recalcula si no vino: sin él, la utilidad y el semáforo mienten.
   function partidaDeCosteo(costeo, cantidad, precioUnitario, margen, costoUnitario) {
     const n = Math.max(1, Number(cantidad) || 1);
-    let costo = costoUnitario;
-    if (!Number.isFinite(costo)) {
-      try { costo = calcular(costeo, n, estado.insumos, modeloParaPieza(estado.parametros, costeo).par).costoUnitario; }
-      catch (e) { costo = Number.isFinite(margen) ? precioUnitario * (1 - margen / 100) : 0; }
+    // VENDEDOR (seller-safe): NO se corre el motor de costo en su navegador ni se
+    // siembra costo/margen en el estado. El precio sale del catálogo autorizado y la
+    // emisión revalida en el servidor por identidad (producto_id). Antes, si el
+    // costeo llegaba sin costo, este camino ejecutaba calcular() con estado.insumos y
+    // guardaba un costoUnitario REAL en la partida del vendedor (fuga client-side).
+    let costo = null;
+    let margenEf = null;
+    if (veCostos) {
+      costo = costoUnitario;
+      if (!Number.isFinite(costo)) {
+        try { costo = calcular(costeo, n, estado.insumos, modeloParaPieza(estado.parametros, costeo).par).costoUnitario; }
+        catch (e) { costo = Number.isFinite(margen) ? precioUnitario * (1 - margen / 100) : 0; }
+      }
+      margenEf = Number.isFinite(margen) ? margen : null;
     }
     return {
       id: idNuevo('p'),
@@ -593,7 +606,7 @@ export default function App() {
       cantidad: n,
       costoUnitario: costo,
       precioUnitario,
-      margen: Number.isFinite(margen) ? margen : null,
+      margen: margenEf,
       config: costeo.config || null,
       precioReal: !!costeo.precioReal,
       // Mismo candado que ya trae `costearItem()` (camino de Voni) — este
@@ -604,7 +617,12 @@ export default function App() {
       requiereProyectista: !!(costeo.config?.usuarios && Number(costeo.config.usuarios) > 14),
       // Costeo incompleto: piezas del despiece sin material en el catálogo
       // (se costean en $0). Bloquea la emisión, no el guardado.
-      ...(() => { const s = componentesSinMaterial(costeo.componentes, estado.insumos); return { piezasSinMaterial: s.length, nombresSinMaterial: s }; })(),
+      // Completitud del costeo (piezas sin material en catálogo) SOLO para quien
+      // ve costos: el vendedor no corre el motor y su emisión revalida por identidad
+      // de catálogo, no por BOM — correr esto sin insumos lo marcaría todo "sin material".
+      ...(veCostos
+        ? (() => { const s = componentesSinMaterial(costeo.componentes, estado.insumos); return { piezasSinMaterial: s.length, nombresSinMaterial: s }; })()
+        : { piezasSinMaterial: 0, nombresSinMaterial: [] }),
     };
   }
 
@@ -632,7 +650,8 @@ export default function App() {
       productoId: a.productoId || null,
       w: null, d: null,
       cantidad: (a.cantidad || 1) * n,
-      costoUnitario: costoImplicito(a.lista),
+      // Seller-safe: el vendedor no guarda costo (ni el derivado del precio).
+      costoUnitario: veCostos ? costoImplicito(a.lista) : null,
       precioUnitario: precioDeLista(a.lista),
       margen: null,
       config: null,

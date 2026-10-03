@@ -328,6 +328,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         <EditarPartida
           estado={estado}
           partida={partidas[editando]}
+          soloVentas={soloVentas}
           onCerrar={() => setEditando(null)}
           onGuardar={(nueva) => { setPartida(editando, nueva); setEditando(null); }}
         />

@@ -17,7 +17,7 @@ import { pesos } from '../util.js';
 
 export const sePuedeEditar = (pt) => !!(pt && pt.ruta && pt.productoId && !pt.deBanco);
 
-export default function EditarPartida({ estado, partida, onGuardar, onCerrar }) {
+export default function EditarPartida({ estado, partida, onGuardar, onCerrar, soloVentas = false }) {
   const info = useMemo(() => productoDe(partida.ruta, partida.productoId), [partida.ruta, partida.productoId]);
   const [cfg, setCfg] = useState(() => ({ ...(partida.config || {}), producto: partida.productoId }));
   const [cant, setCant] = useState(partida.cantidad || 1);
@@ -156,8 +156,11 @@ export default function EditarPartida({ estado, partida, onGuardar, onCerrar }) 
             <button className="boton primario" style={{ minHeight: 48 }} onClick={() => onGuardar({
               ...partida,
               nombre: nuevo.nombre, config: nuevo.config, cantidad: cant,
-              costoUnitario: nuevo.costoUnitario, precioUnitario: nuevo.precioUnitario,
-              margen: nuevo.margen, w: nuevo.w, d: nuevo.d,
+              // VENDEDOR (seller-safe): al guardar NO se siembra costo/margen en la
+              // partida (costearConfig los deriva/calcula, pero no deben vivir en el
+              // estado del vendedor). El precio de venta sí. El servidor revalida.
+              costoUnitario: soloVentas ? null : nuevo.costoUnitario, precioUnitario: nuevo.precioUnitario,
+              margen: soloVentas ? null : nuevo.margen, w: nuevo.w, d: nuevo.d,
               precioReal: !!nuevo.precioReal,
               // El artículo del catálogo de la NUEVA medida (o null si dejó de
               // casar): así el piso y las variantes siguen a lo que quedó.
