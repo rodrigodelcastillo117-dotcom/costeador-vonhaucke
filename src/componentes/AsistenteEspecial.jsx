@@ -10,6 +10,7 @@ import { SECCIONES } from '../datos/insumos.js';
 import { pesos } from '../util.js';
 import { analizarRender, analizarRenderImagenes, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64 } from '../nube.js';
 import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
+import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { abrirPdf, paginaAImagen, todasLasPaginas } from '../datos/pdfImagen.js';
 import Cargando from './Cargando.jsx';
 import Markdown from './Markdown.jsx';
@@ -136,6 +137,14 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     margen: estado.parametros?.margenObjetivo ?? 50,
   });
   const set = (parcial) => setB((prev) => ({ ...prev, ...parcial }));
+
+  // Razonamiento estructural (determinista): Voni lee el despiece como CONJUNTO y
+  // avisa de relaciones que no cuadran (gaveta sin cuerpo, faldón vertical, asientos
+  // sin estructura…). Propone/detecta; NO cambia costo ni medidas.
+  const revisionEstructural = useMemo(
+    () => revisarEstructura({ componentes: b.componentes, descripcion: b.descripcionCliente }),
+    [b.componentes, b.descripcionCliente],
+  );
 
   const { par } = modeloParaPieza(estado.parametros, b);
   const esArea = (ins) => !!ins && (ins.formato?.tipo === 'tablero' || ins.unidad === 'm2');
@@ -803,6 +812,20 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         <div>
           <div className="pregunta">¿De qué está hecho?</div>
           <div className="pregunta-sub">Toca las piezas que lleva. Luego ajusta su material y medida.</div>
+
+          {/* Voni razona el conjunto (no piezas sueltas): avisa de relaciones que no
+              cuadran. Determinista; propone/detecta, no cambia costo. */}
+          {(b.componentes || []).length > 0 && revisionEstructural.observaciones.some((o) => o.nivel !== 'info' ) && (
+            <div className="tarjeta" style={{ background: 'var(--panel)', borderLeft: '4px solid var(--ambar, #d8a800)', margin: '12px 0' }}>
+              <div style={{ fontWeight: 700, marginBottom: 6 }}>🧠 Voni revisó la estructura</div>
+              {revisionEstructural.observaciones.filter((o) => o.nivel !== 'info').map((o, i) => (
+                <div key={i} className="ayuda" style={{ marginBottom: 6, color: o.nivel === 'warning' ? '#8a6d00' : 'inherit' }}>
+                  {o.nivel === 'warning' ? '⚠ ' : '• '}{o.mensaje}
+                </div>
+              ))}
+              <div className="ayuda gris" style={{ fontSize: 11, marginTop: 4 }}>Voni sólo propone y detecta; el costo lo calcula el motor.</div>
+            </div>
+          )}
           {(preguntasIA.length > 0 || Object.keys(confirmadas).length > 0) && (
             <div style={{ border: '1px solid var(--borde)', borderRadius: 10, padding: 14, margin: '12px 0', background: 'var(--panel)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
