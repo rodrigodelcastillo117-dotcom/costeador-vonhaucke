@@ -233,7 +233,11 @@ export function generarAppLT(config) {
   // Default 'ivory': es el color con el que Von Haucke costeó y verificó su
   // T.D.C. real (ver costeador-formula-alba, memoria) — sin color explícito,
   // App LT sigue cotizando en IVORY, no en el genérico compartido 'melamina-28'.
-  const c = { fondoMM: 600, faldon: false, biombo: null, usuarios: 2, electrico: false, color: 'ivory', ...config };
+  // `color: config.color || 'ivory'` DESPUÉS del spread: la UI manda color:null
+  // cuando el usuario no ha elegido, y un `color:'ivory'` antes del spread quedaba
+  // ANULADO por ese null → App LT cotizaba el genérico base ($1,335.6) en vez del
+  // IVORY verificado contra el T.D.C. de Alba ($1,122.3). Así el vivo = el golden.
+  const c = { fondoMM: 600, faldon: false, biombo: null, usuarios: 2, electrico: false, ...config, color: config.color || 'ivory' };
   const comp = [];
   const claves = [];
   const electricos = [];

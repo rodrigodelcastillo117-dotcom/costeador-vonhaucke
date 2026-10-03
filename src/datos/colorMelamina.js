@@ -23,5 +23,9 @@ export function aplicarColor(resultado, config) {
     const idConColor = porColor && porColor[color];
     return idConColor ? { ...c, insumoId: idConColor } : c;
   });
+  // El color REALMENTE aplicado al despiece (el que se está cotizando). La UI lo
+  // usa para resaltar el chip correcto: antes resaltaba `colores[0]` aunque el
+  // generador cotizara otro color o el material base → mentira visual.
+  resultado.colorEfectivo = color;
   return resultado;
 }

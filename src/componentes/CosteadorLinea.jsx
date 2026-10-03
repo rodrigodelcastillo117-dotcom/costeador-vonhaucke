@@ -200,7 +200,7 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
                   {prod.colores.map((c) => {
                     const hex = hexDeColor(c.id);
                     return (
-                      <button key={c.id} className={`chip ${(color || prod.colores[0].id) === c.id ? 'on' : ''}`} onClick={() => setColor(c.id)}>
+                      <button key={c.id} className={`chip ${(color || g.colorEfectivo) === c.id ? 'on' : ''}`} onClick={() => setColor(c.id)}>
                         {hex && <span className="chip-swatch" style={{ background: hex }} />}
                         {c.label}
                       </button>

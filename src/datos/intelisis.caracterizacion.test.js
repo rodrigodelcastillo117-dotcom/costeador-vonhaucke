@@ -35,7 +35,13 @@ describe('App LT (modelo Intelisis) — mismos números después del refactor', 
       ruta: 'applt', producto: 'banca_sencilla', cantidad: 1,
       seleccion: [{ clave: 'usuarios', valor: '4' }, { clave: 'largoMM', valor: '1200' }],
     });
-    expect(r.precioUnitario).toBeCloseTo(18090.33, 1);
-    expect(r.costoUnitario).toBeCloseTo(8375.15, 1);
+    // 2026-10-03: antes 18090.33/8375.15. Esos números NO eran un no-op: salían de
+    // un bug — la UI/costearItem mandaba color:undefined y ANULABA el default 'ivory'
+    // de App LT, así que esta banca se costeaba en la melamina base genérica ($1,335.6,
+    // precio "arbitrario" según insumos.js) en vez del IVORY verificado al centavo
+    // contra el T.D.C. de Alba ($1,122.3). Corregido el default (applt.js), ahora
+    // coincide con el golden (applt.test.js) y con generarAppLT directo: todo IVORY.
+    expect(r.precioUnitario).toBeCloseTo(17491.39, 1);
+    expect(r.costoUnitario).toBeCloseTo(8097.86, 1);
   });
 });
