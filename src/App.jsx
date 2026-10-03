@@ -295,6 +295,7 @@ export default function App() {
   const [permiso, setPermiso] = useState(undefined); // undefined=revisando, null=sin acceso, 'error'=no se pudo consultar, {rol,nombre}
   const [errorEntrar, setErrorEntrar] = useState('');
   const [recuperando, setRecuperando] = useState(false); // llegó por el enlace de recuperación
+  const [avisoEnlace, setAvisoEnlace] = useState(''); // mensaje si el enlace de correo venía con error (p. ej. otp_expired)
 
   useEffect(() => {
     // ⚠️ SIN ESTO, UN sesionActual() COLGADO DEJABA LA PANTALLA EN "Un
@@ -307,6 +308,22 @@ export default function App() {
     // sesión" (manda a Login, con algo que hacer) en vez de colgarse; si la
     // sesión SÍ era válida, `alCambiarSesion` la corrige sola en cuanto
     // Supabase conteste, sin que el usuario haga nada.
+    // El enlace de correo (recuperación / confirmación) puede volver con error en
+    // el hash: #error=access_denied&error_code=otp_expired cuando el enlace caducó
+    // o ya se usó. Antes NO se decía nada: el usuario veía el Login normal sin pista
+    // de por qué su enlace no funcionó (justo lo que le pasó a Rodrigo). Lo leemos,
+    // mostramos un mensaje claro y limpiamos el hash para que no quede pegado.
+    try {
+      const h = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
+      const err = h.get('error') || h.get('error_code');
+      if (err) {
+        const code = h.get('error_code') || '';
+        setAvisoEnlace(/otp_expired|expired/i.test(code)
+          ? 'Tu enlace de recuperación caducó o ya se usó. Pide uno nuevo con "¿Olvidaste tu contraseña?".'
+          : (h.get('error_description') || 'El enlace de correo no es válido. Pide uno nuevo.').replace(/\+/g, ' '));
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    } catch (e) { /* hash raro: sin ruido */ }
     let resuelto = false;
     sesionActual()
       .then((s) => { resuelto = true; setSesion(s); })
@@ -332,9 +349,24 @@ export default function App() {
     // acceso de verdad vería "Todavía no tienes acceso" por un simple error de
     // red — justo el mensaje que le dice, falsamente, que le pida de alta a
     // Dirección otra vez.
-    miPermiso(sesion.user.email)
-      .then((p) => { if (vivo) setPermiso(p); })
-      .catch((e) => { console.error('miPermiso:', e); if (vivo) setPermiso('error'); });
+    // Auto-reintento ante fallo TRANSITORIO (red intermitente, token recién
+    // refrescado): un blip no debe reemplazar la app por "No se pudo verificar
+    // acceso" a media demo. Hasta 3 intentos con backoff; sólo entonces se rinde.
+    // Sigue siendo fail-closed: si de verdad no hay acceso (null) se respeta ya;
+    // sólo los ERRORES se reintentan, y nunca conceden acceso por sí solos.
+    (async () => {
+      for (let intento = 1; intento <= 3 && vivo; intento++) {
+        try {
+          const p = await miPermiso(sesion.user.email);
+          if (vivo) setPermiso(p);
+          return;
+        } catch (e) {
+          console.error(`miPermiso (intento ${intento}/3):`, e);
+          if (intento === 3) { if (vivo) setPermiso('error'); return; }
+          await new Promise((r) => setTimeout(r, 1200 * intento));
+        }
+      }
+    })();
     // Las REGLAS DE OFICIO se bajan al entrar: la circulación de 90 cm, las
     // sillas de visita, el margen mínimo. El motor las consulta en caliente, y
     // si la base no contesta se queda con los mismos valores por omisión en vez
@@ -825,7 +857,7 @@ export default function App() {
     return <div className="contenido" style={{ textAlign: 'center', marginTop: 70 }}><p className="gris">Un momento…</p></div>;
   }
   if (!sesion) {
-    return <Login onEntrar={hacerLogin} />;
+    return <Login onEntrar={hacerLogin} aviso={avisoEnlace} />;
   }
   if (permiso === 'error') {
     // No es "no tienes acceso": es que la consulta del permiso falló (red,
@@ -876,7 +908,7 @@ export default function App() {
             {esDireccion && (
               <button className="btn-enc" onClick={() => irA('usuarios')}>Usuarios</button>
             )}
-            <button className="btn-enc" onClick={() => irA('contrasena')}>Contraseña</button>
+            <button className="btn-enc" onClick={() => { setRecuperando(false); irA('contrasena'); }}>Contraseña</button>
             <button className="btn-enc" onClick={hacerLogout} title={sesion.user.email}>Salir</button>
           </div>
         </div>

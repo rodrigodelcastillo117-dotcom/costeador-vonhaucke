@@ -94,7 +94,13 @@ export async function verificarContrasena(email, actual) {
 
 // Cierra la sesión en los DEMÁS dispositivos, no en éste.
 export async function cerrarOtrasSesiones() {
-  try { await nube.auth.signOut({ scope: 'others' }); return true; } catch (e) { return false; }
+  // signOut DEVUELVE {error} (no lanza) cuando falla: el try/catch solo atrapaba
+  // excepciones, así que un fallo del servidor devolvía true igual -> la UI decía
+  // "cerré tus otras sesiones" sin haberlo hecho. Ahora se revisa el error real.
+  try {
+    const { error } = await nube.auth.signOut({ scope: 'others' });
+    return !error;
+  } catch (e) { return false; }
 }
 
 export async function cambiarContrasena(nueva) {
@@ -109,8 +115,23 @@ export async function cambiarContrasena(nueva) {
 // Dirección que te dé de alta"), un mensaje FALSO para alguien que sí está
 // dado de alta pero pescó un error de red. Quien llama distingue los dos
 // casos con try/catch (antes no se podía: los dos volvían null).
+// Timeout de cliente: una consulta que se cuelga (red intermitente, servidor sin
+// responder) dejaba al usuario atorado en "Un momento…" PARA SIEMPRE, porque la
+// promesa nunca resolvía. Con esto, a los 8 s lanza y el llamador (gate de acceso)
+// lo trata como error transitorio -> reintenta. Falla CERRADO: un timeout nunca
+// concede acceso, sólo deja de colgar.
+function conTimeout(promesa, ms = 8000, etiqueta = 'operación') {
+  return Promise.race([
+    promesa,
+    new Promise((_, rej) => setTimeout(() => rej(new Error(`Tiempo agotado (${etiqueta}).`)), ms)),
+  ]);
+}
+
 export async function miPermiso(email) {
-  const { data, error } = await nube.from('permitidos').select('rol, nombre').eq('email', email).maybeSingle();
+  const { data, error } = await conTimeout(
+    nube.from('permitidos').select('rol, nombre').eq('email', email).maybeSingle(),
+    8000, 'permiso',
+  );
   if (error) throw error;
   return data || null;
 }

@@ -13,7 +13,7 @@ import MarcaLogo from './MarcaLogo.jsx';
 const MARCA = 'https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/app/marca';
 const PORTADAS = [`${MARCA}/portada-1.jpg`, `${MARCA}/portada-2.jpg`, `${MARCA}/portada-3.jpg`];
 
-export default function Login({ onEntrar }) {
+export default function Login({ onEntrar, aviso = '' }) {
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
   const [error, setError] = useState('');
@@ -75,6 +75,8 @@ export default function Login({ onEntrar }) {
 
           <h2 className="entrada-h">Entrar</h2>
           <p className="ayuda" style={{ marginBottom: 18 }}>Usa el correo y la contraseña que te dio Dirección.</p>
+
+          {aviso && <div className="alerta" style={{ background: '#fdf3df', borderColor: 'var(--ambar)', color: '#7a5600', marginBottom: 14 }}><span className="texto">{aviso}</span></div>}
 
           <form onSubmit={entrar}>
             <label className="etiqueta" htmlFor="email-login">Correo</label>
