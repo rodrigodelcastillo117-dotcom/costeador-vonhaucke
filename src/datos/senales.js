@@ -62,8 +62,10 @@ export function problemasDeEmision(partidas = []) {
   const problemas = [];
   partidas.forEach((p, i) => {
     const etq = p.nombre || `Renglón ${i + 1}`;
-    if (!(p.cantidad > 0)) problemas.push(`"${etq}" no tiene una cantidad válida.`);
-    if (!(p.precioUnitario > 0)) problemas.push(`"${etq}" no tiene un precio válido.`);
+    // FINITO y positivo: `Infinity > 0` es true, así que un precio/cantidad Infinity
+    // (margen inválido, etc.) se colaba como "válido". Se exige Number.isFinite.
+    if (!(Number.isFinite(p.cantidad) && p.cantidad > 0)) problemas.push(`"${etq}" no tiene una cantidad válida.`);
+    if (!(Number.isFinite(p.precioUnitario) && p.precioUnitario > 0)) problemas.push(`"${etq}" no tiene un precio válido.`);
     const nSin = Number(p.piezasSinMaterial) || 0;
     if (nSin > 0) {
       const cuales = Array.isArray(p.nombresSinMaterial) && p.nombresSinMaterial.length
