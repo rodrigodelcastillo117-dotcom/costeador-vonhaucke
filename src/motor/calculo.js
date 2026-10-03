@@ -738,9 +738,14 @@ export function componentesSinMaterial(componentes = [], insumos = {}) {
 //  6.7  Precio de venta. El margen es sobre precio, no sobre costo.
 // -----------------------------------------------------------------------------
 export function precioDe(costoUnitario, margen) {
-  const m = margen / 100;
-  if (m >= 1) return Infinity; // margen 100% no tiene precio finito
-  return costoUnitario / (1 - m);
+  // Un precio NO FINITO jamás debe llegar al frontend/emisión (audit P1-08). Antes
+  // un margen ≥100% devolvía Infinity (y JSON.stringify(Infinity)=null → "estado
+  // válido + precio null"). El margen sobre precio se acota a <100% (0.99): un margen
+  // así de alto es inválido, y preferimos un precio finito muy alto (fail-closed,
+  // nunca sub-precio) a Infinity. Costo no finito → 0 (no contamina la cuenta).
+  const c = Number.isFinite(costoUnitario) ? costoUnitario : 0;
+  const m = Math.min(0.99, (Number(margen) || 0) / 100);
+  return c / (1 - m);
 }
 
 export function utilidadDe(costoUnitario, margen) {
@@ -772,8 +777,9 @@ export function modeloParaPieza(parametrosBase, pieza) {
 // precio lista = precio x factorPrecioLista. En 'clasico' usa margen sobre precio.
 export function precioVenta(costoUnitario, par = PARAMETROS_DEFAULT) {
   const p = { ...PARAMETROS_DEFAULT, ...par };
+  const costo = Number.isFinite(costoUnitario) ? costoUnitario : 0; // nunca propagar NaN/Infinity
   if (p.modeloCosteo === 'intelisis') {
-    const precio = costoUnitario * (1 + (p.utilidadPct || 0) / 100);
+    const precio = costo * (1 + (p.utilidadPct || 0) / 100);
     const lista = precio * (p.factorPrecioLista || 1);
     return { precio, lista, precioLista: lista };
   }

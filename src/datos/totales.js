@@ -24,8 +24,18 @@
 // prioridad de cada porcentaje es el mismo que ya usaba la pantalla:
 // lo capturado en la cotización → el default de parámetros → 0.
 export function totalesCotizacion(partidas = [], cot = {}, par = {}) {
-  const precioLista = partidas.reduce(
-    (a, p) => a + (p.precioUnitario || 0) * (p.cantidad || 0), 0);
+  // Red contra dinero no-finito (audit P1-08): una partida con precioUnitario
+  // Infinity/NaN (margen inválido, costo roto) habría hecho que TODO el total saliera
+  // Infinity/NaN. Aquí una línea no-finita aporta 0 a la suma y se marca en
+  // `hayLineaInvalida` para que la UI/emisión la trate como "sin precio" (fail-closed),
+  // nunca como un total roto en pantalla. El precio válido no cambia en nada.
+  let hayLineaInvalida = false;
+  const linea = (p) => {
+    const v = (p.precioUnitario || 0) * (p.cantidad || 0);
+    if (!Number.isFinite(v)) { hayLineaInvalida = true; return 0; }
+    return v;
+  };
+  const precioLista = partidas.reduce((a, p) => a + linea(p), 0);
 
   const descuentoPct = cot.descuentoPct ?? par.descuentoPorcentaje ?? 0;
   const descuento = precioLista * (descuentoPct / 100);
@@ -57,6 +67,6 @@ export function totalesCotizacion(partidas = [], cot = {}, par = {}) {
     precioLista, descuentoPct, descuento, subtotal,
     contingenciaPct, contingencia, maniobrasPct, maniobras, fletePct, flete,
     ivaPct, iva, baseGravable, total, totalRedondeado,
-    anticipoPct, anticipo,
+    anticipoPct, anticipo, hayLineaInvalida,
   };
 }
