@@ -40,6 +40,7 @@ export default function DibujarPlano({ onListo, onCancelar }) {
   const [tool, setTool] = useState('room');   // 'room' | 'forma' | 'door' | 'columna' | 'escalera'
   const [drag, setDrag] = useState(null);
   const [vertices, setVertices] = useState([]); // forma libre en construcción
+  const [cursor, setCursor] = useState(null);   // punta guía (rubber band) en modo 'forma'
   // El trazo se acumula en una REFERENCIA, no en estado: los eventos del dedo
   // llegan muy seguidos y con estado se pierden puntos (React no alcanza a
   // re-renderizar entre uno y otro). El estado es sólo para ir pintándolo.
@@ -104,7 +105,7 @@ export default function DibujarPlano({ onListo, onCancelar }) {
     recordar();
     const c = cajaDe(vertices);
     setRooms((r) => [...r, { id: Date.now(), ...c, poly: vertices, nombre: `Área ${r.length + 1}`, tipo: tipoPorTamano(c.w, c.h), doble: false }]);
-    setVertices([]);
+    setVertices([]); setCursor(null);
   }
 
   const toM = (e, conSnap = true) => {
@@ -116,13 +117,27 @@ export default function DibujarPlano({ onListo, onCancelar }) {
     return conSnap ? [snap(x), snap(y)] : [x, y];
   };
 
+  // ENDEREZADO para dibujar por esquinas: si la pared va casi recta respecto al
+  // punto anterior, se alinea sola (horizontal o vertical) para que las L y los
+  // rectángulos salgan limpios sin pelear con el pulso. Una diagonal CLARA se
+  // respeta tal cual — así se puede dibujar cualquier forma. Umbral 0.7 m.
+  const orto = (p, prev) => {
+    if (!prev) return p;
+    const dx = Math.abs(p[0] - prev[0]), dy = Math.abs(p[1] - prev[1]);
+    if (dx <= dy && dx < 0.7) return [prev[0], p[1]];   // pared vertical
+    if (dy < dx && dy < 0.7) return [p[0], prev[1]];    // pared horizontal
+    return p;                                           // diagonal libre
+  };
+  const dist2 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]); // largo de pared (m)
+
   function down(e) {
     e.preventDefault();
     const [x, y] = toM(e);
     if (tool === 'forma') {
       // Cerca del primer vértice = cerrar la forma.
       if (vertices.length >= 3 && Math.hypot(x - vertices[0][0], y - vertices[0][1]) < 0.8) { cerrarForma(); return; }
-      setVertices((v) => [...v, [x, y]]);
+      const pt = orto([x, y], vertices[vertices.length - 1]);   // pared recta si va casi alineada
+      setVertices((v) => [...v, pt]);
       return;
     }
     if (tool === 'mano') {
@@ -151,6 +166,9 @@ export default function DibujarPlano({ onListo, onCancelar }) {
     try { e.target.setPointerCapture?.(e.pointerId); } catch (_) {}
   }
   function move(e) {
+    // Modo 'forma': la punta guía sigue el cursor/dedo y muestra hacia dónde iría
+    // la pared, ya enderezada. (En móvil aparece al arrastrar; con mouse, siempre.)
+    if (tool === 'forma') { if (vertices.length) setCursor(orto(toM(e), vertices[vertices.length - 1])); return; }
     if (trazoRef.current) {
       const [x, y] = toM(e, false);
       // Sólo se apuntan los puntos que aportan: 5 cm de paso deja el trazo
@@ -288,7 +306,7 @@ export default function DibujarPlano({ onListo, onCancelar }) {
         {tool.startsWith('sello:') ? 'Toca el plano y el cuarto queda puesto, con su medida y su nombre. Se pega solo al cuarto de al lado para que compartan muro. Las medidas se corrigen abajo.'
           : tool === 'room' ? 'Un privado es un solo arrastre: aprieta y estira la caja. Cada cuadro de la rejilla es 1 m.'
           : tool === 'mano' ? 'Dibuja el contorno de corrido, sin soltar, como con un lápiz. Los muros que te salgan casi rectos se enderezan solos, las CURVAS se respetan, y el cuarto se cierra al volver cerca de donde empezaste.'
-          : tool === 'forma' ? 'Para trazar esquina por esquina, con precisión: toca cada esquina y cierra tocando otra vez la primera.'
+          : tool === 'forma' ? 'La forma más fácil para CUALQUIER forma (L, diagonal, lo que sea): toca esquina por esquina. Las paredes casi rectas se enderezan solas y verás la medida de cada una; la línea punteada te dice hacia dónde va la próxima. Cierra tocando otra vez el punto inicial.'
           : tool === 'door' ? 'Toca sobre una pared para poner una puerta.'
           : tool === 'columna' ? 'Toca donde haya una columna. El sistema NO pondrá muebles encima.'
           : 'Arrastra para marcar una escalera (zona que no se amuebla).'}
@@ -329,10 +347,23 @@ export default function DibujarPlano({ onListo, onCancelar }) {
             <text x={s.x + s.w / 2} y={s.y + s.h / 2} fontSize="0.3" fill="#746E68" textAnchor="middle">escalera</text>
           </g>
         ))}
-        {/* preview */}
+        {/* preview — dibujar por esquinas: paredes con su medida + línea guía */}
         {vertices.length > 0 && (
           <g>
             <polyline points={vertices.map(([x, y]) => `${x},${y}`).join(' ')} fill="rgba(178,42,34,0.10)" stroke="#B22A22" strokeWidth="0.1" strokeDasharray="0.3 0.2" />
+            {/* Medida de cada pared ya trazada */}
+            {vertices.slice(1).map((p, i) => {
+              const a = vertices[i], L = dist2(a, p);
+              return L > 0.3 ? <text key={'L' + i} x={(a[0] + p[0]) / 2} y={(a[1] + p[1]) / 2 - 0.12} fontSize="0.5" fill="#B22A22" fontWeight="700" textAnchor="middle" stroke="#fff" strokeWidth="0.16" paintOrder="stroke">{L.toFixed(1)} m</text> : null;
+            })}
+            {/* Línea guía (rubber band) hacia donde iría la próxima pared + medida */}
+            {cursor && (() => {
+              const last = vertices[vertices.length - 1], L = dist2(last, cursor);
+              return <g>
+                <line x1={last[0]} y1={last[1]} x2={cursor[0]} y2={cursor[1]} stroke="#B22A22" strokeWidth="0.08" strokeDasharray="0.2 0.15" strokeOpacity="0.7" />
+                {L > 0.3 && <text x={(last[0] + cursor[0]) / 2} y={(last[1] + cursor[1]) / 2 - 0.12} fontSize="0.5" fill="#B22A22" fontWeight="700" textAnchor="middle" stroke="#fff" strokeWidth="0.16" paintOrder="stroke">{L.toFixed(1)} m</text>}
+              </g>;
+            })()}
             {vertices.map(([x, y], i) => <circle key={i} cx={x} cy={y} r={i === 0 ? 0.28 : 0.18} fill={i === 0 ? '#B22A22' : '#fff'} stroke="#B22A22" strokeWidth="0.07" />)}
           </g>
         )}
@@ -354,7 +385,8 @@ export default function DibujarPlano({ onListo, onCancelar }) {
         <input type="number" className="numero" style={{ width: 80 }} min="2" max="6" step="0.1" value={alto} onChange={(e) => setAlto(parseFloat(e.target.value) || 2.7)} />
         {vertices.length >= 3 && <button className="boton primario" style={{ minHeight: 42 }} onClick={cerrarForma}>Cerrar forma ({vertices.length} esquinas)</button>}
         {vertices.length > 0 && vertices.length < 3 && <span className="ayuda">Marca al menos 3 esquinas…</span>}
-        {vertices.length > 0 && <button className="boton fantasma" style={{ minHeight: 42 }} onClick={() => setVertices([])}>Descartar forma</button>}
+        {vertices.length > 0 && <button className="boton fantasma" style={{ minHeight: 42 }} onClick={() => setVertices((v) => v.slice(0, -1))}>↶ Quitar último punto</button>}
+        {vertices.length > 0 && <button className="boton fantasma" style={{ minHeight: 42 }} onClick={() => { setVertices([]); setCursor(null); }}>Descartar forma</button>}
         <span className="ayuda" style={{ marginLeft: 'auto' }}>{rooms.length} cuarto(s) · {totalM2.toFixed(1)} m²{cols.length ? ` · ${cols.length} col.` : ''}{stairs.length ? ` · ${stairs.length} escal.` : ''}</span>
         {editorV2 && <button className="boton fantasma" style={{ minHeight: 42 }} disabled={!pasado.length} onClick={deshacer} title="Deshacer (Ctrl/Cmd+Z)">↶ Deshacer</button>}
         {editorV2 && <button className="boton fantasma" style={{ minHeight: 42 }} disabled={!futuro.length} onClick={rehacer} title="Rehacer (Ctrl/Cmd+Shift+Z)">↷ Rehacer</button>}
