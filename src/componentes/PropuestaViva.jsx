@@ -133,6 +133,11 @@ const CSS = `
   box-shadow:0 40px 90px -30px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.08), 0 0 120px -20px rgba(120,170,220,.25);}
 .pv-atardecer .pv-stage{box-shadow:0 40px 90px -30px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.08), 0 0 130px -20px rgba(240,170,90,.35);}
 .pv-stage .plano-wrap-3d{margin:0;}
+/* En "Atardecer" el render también se entibia (luz cálida de tarde), para que el
+   escenario no se vea frío contra el fondo ámbar. Solo presentación (filtro CSS),
+   reversible; no toca la geometría ni el 3D. */
+.pv-atardecer .pv-stage{filter:sepia(.16) saturate(1.08) brightness(1.02) hue-rotate(-6deg);transition:filter .6s ease;}
+.pv-showroom .pv-stage{transition:filter .6s ease;}
 .pv-vacio{padding:70px 24px;text-align:center;color:#6b645c;font-size:16px;}
 
 .pv-chips{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:18px 0 6px;max-width:1040px;}
