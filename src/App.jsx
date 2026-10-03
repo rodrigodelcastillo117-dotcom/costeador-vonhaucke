@@ -206,10 +206,19 @@ export default function App() {
   // Con 34 muebles eso son 34 "quitar" MÁS 34 confirmaciones. Empezar de cero es
   // UNA decisión: se borra la cotización completa —partidas y acomodo— con UNA
   // confirmación.
-  const descartarProyecto = () => setEstado((e) => ({
-    ...e,
-    cotizacion: { ...e.cotizacion, partidas: [], acomodo: null },
-  }));
+  const descartarProyecto = () => {
+    // EMPEZAR DE CERO = cotización NUEVA, no seguir editando la anterior.
+    // Antes sólo se vaciaban las partidas y el acomodo, pero `idCotizacion`
+    // seguía apuntando al registro viejo: la "nueva" cotización se guardaba
+    // ENCIMA de la anterior en la biblioteca, y cliente/folio quedaban pegados.
+    // Al soltar el id, el guardado automático crea un registro limpio.
+    idCotizacion.current = null;
+    setEstado((e) => ({
+      ...e,
+      cotizacion: { ...e.cotizacion, partidas: [], acomodo: null, cliente: '', folio: '' },
+    }));
+    mostrarAviso('Listo: empezaste una cotización nueva, desde cero.');
+  };
 
   // ⚠️ `irA` ahora acepta un PRODUCTO. El buscador de Inicio devuelve productos
   // (no líneas), y al tocar uno hay que abrir su línea CON ESE PRODUCTO YA

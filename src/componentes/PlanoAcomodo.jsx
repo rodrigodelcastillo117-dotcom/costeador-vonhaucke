@@ -592,7 +592,22 @@ const MAT = {
   oak: '#C6A971', charcoal: '#3C3E42', white: '#E8E4DD', felt: '#77838F',
   glass: '#A9C0CB', chair: '#8B909A', floor: '#E9E1D5', wall: '#F6F3EE',
   losa: '#D9D2C7', columna: '#BFB8AD', escalera: '#CFC7BA', pantalla: '#33383F',
+  // WOW (2026-10-03): vida y materiales de presentación — maceta y follaje para
+  // las plantas, para que la escena no se vea "pelona". Puramente decorativo.
+  maceta: '#B07A4D', hoja: '#6F9D63', hojaOsc: '#4E7A49',
 };
+
+// Color del TAPETE/alfombra por tipo de zona (o inferido del nombre, para que
+// también se vea en el banco de pruebas, donde las áreas no traen `tipo`).
+// null = sin tapete. Es presentación: no cambia nada del acomodo ni del costo.
+function colorZona(a) {
+  const t = a?.tipo || '';
+  const n = (a?.nombre || '').toLowerCase();
+  if (t === 'juntas' || /junta|consejo|board/.test(n)) return '#3F4A57';
+  if (t === 'lounge' || /lounge|comedor|caf|descanso|break/.test(n)) return '#B5765A';
+  if (t === 'recepcion' || /recep|lobby|entrada|vest/.test(n)) return '#9A4038';
+  return null;
+}
 
 // ============================================================================
 //  GIRAR LA VISTA — un cuarto de vuelta a la ESCENA (2026-08-17)
@@ -827,9 +842,22 @@ function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = fa
         // su contorno, el muro sale RAYADO. Se rellenan sin borde y se trazan
         // únicamente las aristas horizontales, que al ser colineales se unen.
         const linea = (a, b, op) => <line x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke={shadeHex(MAT.wall, tono * 0.74)} strokeWidth={LW} strokeOpacity={op} />;
+        // VENTANA / panel de vidrio en el muro (curtain-wall): da el look de una
+        // oficina real y el borde del tramo queda como mullion. Sólo en
+        // presentación (no en `limpio`, la imagen que va al render con IA), y
+        // sólo si el tramo es suficientemente ancho para que el panel se lea.
+        const segLen = Math.hypot(x2 - x1, y2 - y1);
+        const ux = dx / len, uy = dy / len;         // dirección del muro
+        const gi = 120;                             // inset del vidrio (deja el mullion)
+        const zv0 = ALTO_MURO * 0.22, zv1 = ALTO_MURO * 0.84;
+        const vidrio = [
+          P(x1 + ux * gi, y1 + uy * gi, zv0), P(x2 - ux * gi, y2 - uy * gi, zv0),
+          P(x2 - ux * gi, y2 - uy * gi, zv1), P(x1 + ux * gi, y1 + uy * gi, zv1),
+        ];
         unidad(Math.max(x1 + y1, x2 + y2), <g key={`w${i}-${k}-${t}`}>
           <polygon points={pts2d(cara)} fill={col} />
           <polygon points={pts2d(cap)} fill={shadeHex(MAT.wall, tono * 1.05)} />
+          {!limpio && segLen > 520 && <polygon points={pts2d(vidrio)} fill={MAT.glass} fillOpacity="0.5" stroke={shadeHex(MAT.glass, 0.72)} strokeWidth={LW} />}
           {linea(P(x1, y1, 0), P(x2, y2, 0), 0.55)}
           {linea(P(x1, y1, ALTO_MURO), P(x2, y2, ALTO_MURO), 1)}
           {linea(P(x1 + nx * MURO, y1 + ny * MURO, ALTO_MURO), P(x2 + nx * MURO, y2 + ny * MURO, ALTO_MURO), 1)}
@@ -990,6 +1018,32 @@ function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = fa
     && s.y >= pz.y - MARGEN_SILLA && s.y <= pz.y + pz.ph + MARGEN_SILLA);
   piezas.forEach((pz) => unidad(pz.x + pz.pw + pz.y + pz.ph, <g key={pz.key}>{mueble(pz.x, pz.y, pz.pw, pz.ph, pz.tipo, pz.key, pz.familia, pz.tipo === 'escritorio' && tieneSillaReal(pz))}</g>, pz.niv));
 
+  // PLANTAS de presentación: una en cada zona social (recepción, lounge, juntas),
+  // puesta en su esquina VISIBLE —la más cercana a la cámara— y metida hacia
+  // adentro para que no se encime con el muro. Son decorativas: dan vida a la
+  // escena sin tocar el acomodo real ni los costos. Entran como una unidad más,
+  // así que respetan el orden de profundidad (no tapan ni las tapa el muro).
+  if (!limpio) areas.forEach((a, i) => {
+    if (a.dentroDe || !colorZona(a)) return;
+    const pts = contorno(a, offs[i]);
+    const cxp = pts.reduce((s, p) => s + p[0], 0) / pts.length;
+    const cyp = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+    let esq = pts[0];
+    for (const p of pts) if (p[0] + p[1] > esq[0] + esq[1]) esq = p;
+    const vx = cxp - esq[0], vy = cyp - esq[1], vl = Math.hypot(vx, vy) || 1;
+    const px = esq[0] + (vx / vl) * 680, py = esq[1] + (vy / vl) * 680;
+    const base = P(px, py, 380);     // sale de la maceta
+    const copa = P(px, py, 1200);    // centro de la copa
+    const rF = Math.max(300, escala * 0.019);
+    unidad(px + py + 400, <g key={`planta${i}`}>
+      {cuboide(px - 170, py - 170, 340, 340, 0, 380, MAT.maceta, `maceta${i}`)}
+      <line x1={base[0]} y1={base[1]} x2={copa[0]} y2={copa[1]} stroke={MAT.hojaOsc} strokeWidth={LW * 2.4} />
+      <ellipse cx={copa[0] - rF * 0.46} cy={copa[1] + rF * 0.22} rx={rF * 0.72} ry={rF * 0.56} fill={MAT.hojaOsc} />
+      <ellipse cx={copa[0] + rF * 0.46} cy={copa[1] + rF * 0.16} rx={rF * 0.72} ry={rF * 0.56} fill={MAT.hoja} />
+      <ellipse cx={copa[0]} cy={copa[1] - rF * 0.34} rx={rF * 0.86} ry={rF * 0.62} fill={shadeHex(MAT.hoja, 1.08)} stroke={MAT.hojaOsc} strokeWidth={LW} />
+    </g>, nivelDe(i));
+  });
+
   unidades.sort((a, b) => a.z - b.z);
 
   // ------- piso: losa con espesor + rejilla de 1 m (da escala y aplomo) --------
@@ -1028,17 +1082,27 @@ function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = fa
         </g>
       </g>,
     );
+    // TAPETE de la zona (juntas / lounge / recepción): acento de color que
+    // "viste" el piso y hace que la planta se lea como un espacio diseñado, no
+    // como cajas sobre concreto. Va clipeado al cuarto y DEBAJO de los muebles.
+    const rugCol = colorZona(a);
+    const rug = (!limpio && rugCol) ? (() => {
+      const ix = (x1 - x0) * 0.16, iy = (y1 - y0) * 0.16;
+      const rp = [P(x0 + ix, y0 + iy), P(x1 - ix, y0 + iy), P(x1 - ix, y1 - iy), P(x0 + ix, y1 - iy)];
+      return <polygon points={pts2d(rp)} fill={rugCol} fillOpacity="0.44" stroke={shadeHex(rugCol, 0.82)} strokeWidth={LW * 1.6} strokeLinejoin="round" />;
+    })() : null;
     return <g key={'esc' + i}>
       <clipPath id={`pa-piso${i}`}><polygon points={pts2d(arriba)} /></clipPath>
       {canto}
       <polygon points={pts2d(arriba)} fill="url(#pa-floor)" stroke={shadeHex(MAT.floor, 0.84)} strokeWidth={LW * 1.4} strokeLinejoin="round" />
+      {rug && <g clipPath={`url(#pa-piso${i})`}>{rug}</g>}
       {!limpio && <g clipPath={`url(#pa-piso${i})`}>{rej}</g>}
     </g>;
   });
 
   // Sombra de contacto: la huella del mueble, corrida y difuminada.
   const sombra = (pz) => {
-    const o = 130;
+    const o = 165;
     const pts = [P(pz.x + o, pz.y + o), P(pz.x + pz.pw + o, pz.y + o), P(pz.x + pz.pw + o, pz.y + pz.ph + o), P(pz.x + o, pz.y + pz.ph + o)];
     return <polygon key={'s' + pz.key} points={pts2d(pts)} fill="#2b2620" />;
   };
@@ -1089,7 +1153,7 @@ function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = fa
         {niveles.map((n) => (
           <g key={'niv' + n} transform={n ? `translate(0 ${-subir(n)})` : undefined}>
             {escenario.filter((_, i) => nivelDe(i) === n)}
-            <g filter="url(#pa-soft)" opacity="0.32">{piezas.filter((pz) => pz.niv === n).map(sombra)}</g>
+            <g filter="url(#pa-soft)" opacity="0.4">{piezas.filter((pz) => pz.niv === n).map(sombra)}</g>
             {unidades.filter((u) => u.niv === n).map((u, i) => <g key={i}>{u.el}</g>)}
             {!limpio && etiquetas.filter((_, i) => nivelDe(i) === n)}
           </g>

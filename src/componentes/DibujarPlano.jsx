@@ -196,6 +196,25 @@ export default function DibujarPlano({ onListo, onCancelar }) {
   const delRoom = (id) => { recordar(); setRooms((rs) => rs.filter((r) => r.id !== id)); };
   const totalM2 = rooms.reduce((a, r) => a + (r.poly ? areaPoly(r.poly) : r.w * r.h), 0);
 
+  // ⚡ ARRANCAR EN 1 TOQUE. Dibujar desde cero intimida, y casi toda oficina es la
+  // misma receta: open space + sala de juntas + privados + recepción + lounge.
+  // Esto la deja lista para AJUSTAR —mover y estirar es mucho más fácil que trazar
+  // desde la nada—. Si ya había algo dibujado, se pregunta antes de reemplazar.
+  function plantillaOficina() {
+    if (rooms.length && !confirm('Esto reemplaza lo que tienes dibujado con una oficina típica. ¿Continuar?')) return;
+    recordar();
+    const b = Date.now();
+    setRooms([
+      { id: b + 1, x: 1, y: 1, w: 12, h: 8, nombre: 'Open space', tipo: 'open', doble: false },
+      { id: b + 2, x: 14, y: 1, w: 7, h: 5, nombre: 'Sala de juntas', tipo: 'juntas', doble: false },
+      { id: b + 3, x: 14, y: 7, w: 3.5, h: 3.5, nombre: 'Privado 1', tipo: 'privado', doble: false },
+      { id: b + 4, x: 17.5, y: 7, w: 3.5, h: 3.5, nombre: 'Privado 2', tipo: 'privado', doble: false },
+      { id: b + 5, x: 1, y: 10, w: 5, h: 4, nombre: 'Recepción', tipo: 'recepcion', doble: false },
+      { id: b + 6, x: 7, y: 10, w: 6, h: 4, nombre: 'Lounge / comedor', tipo: 'lounge', doble: false },
+    ]);
+    setDoors([]); setCols([]); setStairs([]); setVertices([]);
+  }
+
   const dragRect = drag && { x: Math.min(drag.x0, drag.x1), y: Math.min(drag.y0, drag.y1), w: Math.abs(drag.x1 - drag.x0), h: Math.abs(drag.y1 - drag.y0) };
 
   function listo() {
@@ -245,6 +264,11 @@ export default function DibujarPlano({ onListo, onCancelar }) {
           <button className={`boton ${tool === 'columna' ? 'primario' : 'fantasma'}`} style={{ minHeight: 42 }} onClick={() => setTool('columna')}>Columna</button>
           <button className={`boton ${tool === 'escalera' ? 'primario' : 'fantasma'}`} style={{ minHeight: 42 }} onClick={() => setTool('escalera')}>Escalera</button>
         </div>
+      </div>
+      {/* ⚡ ARRANQUE EN 1 TOQUE: la forma más fácil de empezar, sin trazar nada. */}
+      <div className="fila-botones" style={{ gap: 10, marginTop: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <button className="boton primario" style={{ minHeight: 46 }} onClick={plantillaOficina}>⚡ Empezar con oficina típica</button>
+        <span className="ayuda">Pone open space + sala de juntas + 2 privados + recepción + lounge. Luego mueves y ajustas lo que quieras.</span>
       </div>
       {/* SELLOS: un toque por cuarto. Es lo más rápido que hay para armar una
           planta de oficina, que casi siempre es "cinco privados, una sala de
@@ -316,7 +340,13 @@ export default function DibujarPlano({ onListo, onCancelar }) {
           <polyline points={trazo.map(([x, y]) => `${x},${y}`).join(' ')} fill="rgba(178,42,34,0.08)"
             stroke="#B22A22" strokeWidth="0.12" strokeLinecap="round" strokeLinejoin="round" />
         )}
-        {dragRect && dragRect.w > 0 && <rect x={dragRect.x} y={dragRect.y} width={dragRect.w} height={dragRect.h} fill="rgba(178,42,34,0.12)" stroke="#B22A22" strokeWidth="0.1" strokeDasharray="0.3 0.2" />}
+        {dragRect && dragRect.w > 0 && (
+          <g>
+            <rect x={dragRect.x} y={dragRect.y} width={dragRect.w} height={dragRect.h} fill="rgba(178,42,34,0.12)" stroke="#B22A22" strokeWidth="0.1" strokeDasharray="0.3 0.2" />
+            {/* Medida EN VIVO mientras arrastras: ya no hay que adivinar cuánto mide. */}
+            <text x={dragRect.x + dragRect.w / 2} y={dragRect.y + dragRect.h / 2} fontSize="0.62" fill="#B22A22" fontWeight="700" textAnchor="middle" stroke="#fff" strokeWidth="0.2" paintOrder="stroke">{dragRect.w.toFixed(1)} × {dragRect.h.toFixed(1)} m</text>
+          </g>
+        )}
       </svg>
 
       <div className="fila-botones" style={{ gap: 10, marginTop: 10, flexWrap: 'wrap', alignItems: 'center' }}>
