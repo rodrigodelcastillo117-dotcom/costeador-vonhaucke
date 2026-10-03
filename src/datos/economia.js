@@ -10,7 +10,13 @@
 //  (son precio de VENTA, que el cliente sí puede ver). Lo prohibido es el COSTO y
 //  sus derivados. `precioProveedor`/`precioReal` sí se bloquean.
 // ============================================================================
-const CLAVES_ECONOMIA = /^(costo.*|margen|utilidad|materialtotal|manoobra|indirectos.*|precioproveedor|precioreal|costoderivado|factordirecta|factorindirecta|factores?|horas|preparacionhoras|insumos?|costounitario|costolinea)$/;
+// Coincidencia por SUBCADENA (no exacta): las auditorías mostraron que la lista
+// anclada dejaba pasar variantes reales (margenPct, utilidadBruta, detalleInsumos,
+// manoDeObra, componentes, factorPrecioLista, gastosOperacion…). Esto SOLO se
+// aplica a salidas ya saneadas para vendedor/cliente (a Dirección/Diseño NO se le
+// aplica), así que ensanchar sólo puede ocultar MÁS costo, nunca precio de venta.
+// `precioUnitario`/`precioLista`/`precio`/`total` no contienen estos tokens.
+const CLAVES_ECONOMIA = /(costo|cogs|margen|utilidad|markup|manoobra|manodeobra|indirecto|proveedor|insumo|despiece|componentes|factor|preparacion|desperdicio|nomina|sueldo|salario|comision|ebitda|precioreal|preciocompra|precioderivado|materialdirecto|materialindirecto|materialtotal|gastosoperacion|horas)/;
 
 /** ¿La clave (normalizada) es economía interna? */
 export function esClaveEconomia(key) {

@@ -17,6 +17,7 @@ import { esSillaDeTrabajo } from '../datos/planner.js';
 import { rellenar, puestosDeclarados } from '../datos/rellenar.js';
 import { idNuevo } from '../util.js';
 import { flagActivo } from '../datos/flags.js';
+import { totalesCotizacion } from '../datos/totales.js';
 
 // Para la paleta, SILLA es todo lo que se sienta: la operativa, la de visita y
 // también el sillón y el banco. Rodrigo lo pidió partido en dos: "lado
@@ -647,7 +648,13 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   const [vivaAbierta, setVivaAbierta] = useState(false);
   // Inversión = precio al CLIENTE (precio × cantidad). Nunca costo ni margen:
   // esto se le enseña al cliente, así que es client-safe por construcción.
-  const inversionCliente = partidas.reduce((s, p) => s + (Number(p.precioUnitario) || 0) * (Number(p.cantidad) || 0), 0);
+  // Inversión REAL para la presentación: la autoridad de totales (descuento,
+  // imprevistos, maniobras, flete e IVA), no sólo precio de lista. Si hay partidas
+  // sin precio, se pasa null (Propuesta Viva oculta el chip) para no enseñar una
+  // cifra incompleta al cliente.
+  const haySinPrecio = partidas.some((p) => !(Number(p.precioUnitario) > 0));
+  const inversionCliente = haySinPrecio ? null
+    : totalesCotizacion(partidas, estado.cotizacion || {}, estado.parametros || {}).totalRedondeado;
   const clienteNombre = (estado.cotizacion?.cliente || '').trim();
 
   // ---- UNA ESCENA POR CUARTO -----------------------------------------------

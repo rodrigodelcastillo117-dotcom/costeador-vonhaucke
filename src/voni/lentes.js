@@ -31,6 +31,11 @@ export function lenteVentas(datos = {}, ctx = {}) {
       findings.push(afirmacion(`Faltan piezas en: ${faltan.map((z) => z.nombre).join(', ')}.`, TIPO_AFIRMACION.HECHO, { source_type: 'reconciliacion', confidence: 0.9 }));
     }
   }
+  // Cotización vacía: NO está lista. Antes, sin partidas no había bloqueo y Voni
+  // respondía "Lista para enviarse." sobre una cotización sin un solo mueble.
+  if (quote && Array.isArray(quote.partidas) && quote.partidas.length === 0) {
+    bloqueos.push(bloqueo('Cotización vacía', 'Aún no hay muebles: agrega al menos uno antes de enviar.', URGENCIA.BLOQUEANTE));
+  }
   if (quote && Array.isArray(quote.sinPrecio) && quote.sinPrecio.length) {
     bloqueos.push(bloqueo('Renglones sin precio autorizado', `${quote.sinPrecio.length} partida(s) sin precio; no se puede cotizar completo.`, URGENCIA.BLOQUEANTE));
   }

@@ -26,7 +26,10 @@ export function rolVeEconomia(role) {
 }
 
 // Campos que NUNCA salen en modo cliente, además de la economía interna.
-const PROHIBIDO_CLIENTE = /^(aprobaci.*|approval.*|notainterna.*|internal.*|interno.*|riesgo.*|margen|utilidad|costo.*|proveedor|cxp|cxc)$/;
+// Subcadena (no exacta): cubre variantes (aprobaciones, notasInternas, riesgoX…).
+// La economía ya la quita `sinEconomia` (segunda pasada en soloCliente); esto es
+// la capa extra de datos internos para modo cliente.
+const PROHIBIDO_CLIENTE = /(aprobaci|approval|notainterna|internal|interno|riesgo|margen|utilidad|costo|proveedor|cxp|cxc|markup|comision)/;
 
 function esClaveProhibidaCliente(key) {
   const norm = String(key).toLowerCase().replace(/[^a-z0-9]/g, '');

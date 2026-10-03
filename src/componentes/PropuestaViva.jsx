@@ -18,7 +18,9 @@ const dinero = (n) => (n == null || isNaN(n) || !isFinite(n) ? null : pesos(n));
 
 // Resumen honesto del proyecto a partir de lo que el motor ya acomodó.
 function resumen(areas, plan, byId) {
-  const a = Array.isArray(areas) ? areas : [];
+  // Las zonas DENTRO de otra (islas del open space en planos leídos) no cuentan
+  // como cuarto propio ni suman su m² — si no, se infla el total y baja el $/m².
+  const a = (Array.isArray(areas) ? areas : []).filter((r) => !r.dentroDe);
   const coloc = plan?.colocacion || [];
   const m2 = a.reduce((s, r) => {
     const base = r.poly && r.poly.length >= 3

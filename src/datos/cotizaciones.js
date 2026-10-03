@@ -147,7 +147,9 @@ export async function guardarCotizacion(estado, usuario, id = null) {
     if (id) {
       const { error } = await nube.from('cotizaciones')
         .update({ ...fila, actualizado: new Date().toISOString() }).eq('id', id);
-      return error ? id : id;
+      // Si el UPDATE falla (RLS, red, CHECK), NO fingir éxito: devolver null para
+      // que el llamador no crea que guardó. El id vivo lo conserva idCotizacion.
+      return error ? null : id;
     }
     const { data, error } = await nube.from('cotizaciones').insert(fila).select('id').single();
     return error ? null : data.id;

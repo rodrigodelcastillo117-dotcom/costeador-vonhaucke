@@ -71,7 +71,7 @@ export function inferirIntencion(query, ctx = {}) {
   }
   // CONOCIMIENTO DE PRODUCTO (qué línea sirve, materiales, a la medida). Va ANTES
   // que COSTING para que "¿qué mueble me sirve?" no se confunda con "costéame".
-  if (/\b(que linea|recomien|me sirve|sugier|de que esta|a la medida|material|acabado|que producto|catalogo|que mueble|sirve para|para (una|un) )\b/.test(q)) {
+  if (/(que linea|recomiend|sugier|me sirve|sirve para|de que est|a la medida|que producto|catalogo|que mueble)/.test(q)) {
     return { intent: 'KNOWLEDGE', modo, lentes: ['conocimiento'], tools: ['get_catalog_knowledge'] };
   }
   if (/\b(analiza este mueble|producto|mueble|costear|costo|fabricar|bom)\b/.test(q)) {
@@ -158,7 +158,8 @@ function respuestaConocimiento(k) {
  */
 export async function responder({ query, ctx = {}, prov = {}, intentForzado = null } = {}) {
   const t0 = Date.now();
-  const contexto = construirContexto(ctx);
+  try {
+  const contexto = construirContexto(ctx || {});
   const plan = intentForzado
     ? { intent: intentForzado, modo: MODOS.ANALIZAR, lentes: [lenteEfectiva(contexto.role).lente], tools: ['get_project_context', 'get_reconciliation'] }
     : inferirIntencion(query, contexto);
@@ -199,6 +200,15 @@ export async function responder({ query, ctx = {}, prov = {}, intentForzado = nu
   });
 
   return { respuesta, intent: plan.intent, modo: plan.modo, observabilidad: obs };
+  } catch (e) {
+    // "Nunca lanza": ante cualquier fallo inesperado responde DESCONOCIDO en vez de
+    // romper la UI, y NO afirma que algo esté "listo".
+    const respuesta = respuestaEstructurada({
+      que_paso: 'No pude revisar ahora.', por_que: String(e && e.message ? e.message : e).slice(0, 140),
+      estado: ESTADO.DESCONOCIDO, urgencia: URGENCIA.BAJA, evidencia: [], bloqueos: [], lentes: [],
+    });
+    return { respuesta, intent: 'ERROR', modo: MODOS.CONSULTAR, observabilidad: null };
+  }
 }
 
 // Sugerencias contextuales (3–5) por ruta/rol.
@@ -213,7 +223,7 @@ export function sugerencias(ctx = {}) {
   }
   if (r === 'direccion' || r === 'cfo') base.push('¿Qué necesita mi atención?');
   if (r === 'costeador' || r === 'diseno') base.push('Analiza este mueble');
-  base.push('¿Qué línea me sirve?');   // conocimiento de producto, útil para cualquiera
   if (!base.length) base.push('¿Qué necesita mi atención?', '¿Qué falta?');
+  base.push('¿Qué línea me sirve?');   // conocimiento de producto, útil para cualquiera
   return base.slice(0, 5);
 }

@@ -296,9 +296,13 @@ export default function DibujarPlano({ onListo, onCancelar }) {
   // por un factor lineal k = √(objetivo / actual), así el ÁREA total queda en el
   // objetivo y la forma que dibujaste se respeta igual.
   function dimensionarAM2() {
-    const objetivo = Number(String(metaM2).replace(/[^0-9.]/g, '')) || 0;
-    if (objetivo <= 0 || totalM2 <= 0) return;
+    // La coma se trata como separador de miles ("1,200" → 1200). Tope de 50,000 m²
+    // para que un typo enorme no genere miles de líneas y cuelgue el lienzo.
+    const bruto = Number(String(metaM2).replace(/,/g, '').replace(/[^0-9.]/g, '')) || 0;
+    const objetivo = Math.min(50000, bruto);
+    if (objetivo < 1 || totalM2 <= 0) return;
     const k = Math.sqrt(objetivo / totalM2);
+    if (!Number.isFinite(k) || k <= 0) return;
     const r1 = (v) => Math.round(v * 100) / 100;
     recordar();
     setRooms((rs) => rs.map((r) => ({

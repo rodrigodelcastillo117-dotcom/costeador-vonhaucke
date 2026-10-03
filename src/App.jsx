@@ -212,10 +212,15 @@ export default function App() {
     // seguía apuntando al registro viejo: la "nueva" cotización se guardaba
     // ENCIMA de la anterior en la biblioteca, y cliente/folio quedaban pegados.
     // Al soltar el id, el guardado automático crea un registro limpio.
+    epocaCot.current += 1;        // invalida cualquier guardado en vuelo
     idCotizacion.current = null;
     setEstado((e) => ({
       ...e,
-      cotizacion: { ...e.cotizacion, partidas: [], acomodo: null, cliente: '', folio: '' },
+      cotizacion: {
+        ...e.cotizacion, partidas: [], acomodo: null, cliente: '', folio: '',
+        // No arrastrar el descuento/ajustes del cliente anterior a la nueva.
+        descuentoPct: 0, contingenciaPct: 0, maniobrasPct: 0, fletePct: 0,
+      },
     }));
     mostrarAviso('Listo: empezaste una cotización nueva, desde cero.');
   };
@@ -354,13 +359,17 @@ export default function App() {
   //  otro aparato. Eso borraría trabajo sin avisar. Lo de los otros aparatos
   //  aparece en "Mis cotizaciones" y se abre a mano.
   const idCotizacion = useRef(null);
+  // Época de la cotización: sube al "empezar de cero". Un guardado en vuelo que
+  // resuelva DESPUÉS no debe restaurar el id viejo sobre la cotización nueva.
+  const epocaCot = useRef(0);
   useEffect(() => {
     if (!sesion?.user?.email) return;
     const n = estado.cotizacion?.partidas?.length || 0;
     if (!n) return;
     const t = setTimeout(async () => {
+      const epoca = epocaCot.current;
       const id = await guardarCotizacion(estado, sesion.user.email, idCotizacion.current);
-      if (id) idCotizacion.current = id;
+      if (id && epocaCot.current === epoca) idCotizacion.current = id;
     }, 1500);
     return () => clearTimeout(t);
   }, [estado.cotizacion, sesion]);
@@ -371,8 +380,9 @@ export default function App() {
   async function onEmitida() {
     if (!sesion?.user?.email) return { ok: false, motivo: 'sin-sesion' };
     try {
+      const epoca = epocaCot.current;
       const id = await guardarCotizacion(estado, sesion.user.email, idCotizacion.current);
-      if (id) idCotizacion.current = id;
+      if (id && epocaCot.current === epoca) idCotizacion.current = id;
       const r = await guardarRevision(estado, idCotizacion.current);
       if (r?.ok && r.nueva) mostrarAviso(`Revisión ${r.revision} guardada — se conservó lo que se emitió.`);
       return r || { ok: false, motivo: 'desconocido' };

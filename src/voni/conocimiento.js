@@ -30,7 +30,7 @@ const MUEBLE_SINON = [
 ];
 
 const gamaIntencion = (q) => {
-  if (/(ejecutiv|direcci|direcc|alta|premium|lujo|director|nogal|piel)/.test(q)) return 'alta';
+  if (/(ejecutiv|direcci|premium|lujo|director|nogal|piel|\balta\b)/.test(q)) return 'alta';
   if (/(econom|barat|bajo costo|accesible|operativ)/.test(q)) return 'baja';
   return null;
 };
@@ -70,14 +70,16 @@ export function recomendar(query) {
 /** Explica una línea por nombre o id. */
 export function explicar(nombreOId) {
   const q = norm(nombreOId);
-  const l = LINEAS.find((x) => x.id === q || norm(x.nombre) === q || (q.length >= 3 && norm(x.nombre).includes(q)));
+  // Busca la línea cuyo NOMBRE (o id) aparezca dentro de la frase: "¿de qué está
+  // hecha Alba?" encuentra Alba. Antes comparaba la frase completa contra el nombre.
+  const l = LINEAS.find((x) => x.id === q || norm(x.nombre) === q || q.includes(norm(x.nombre)));
   return l ? { id: l.id, nombre: l.nombre, que: l.que, gama: l.gama, fabrica: legibles(l.muebles || []) } : null;
 }
 
 /** Paquete de conocimiento para una consulta (lo usa la tool get_catalog_knowledge). */
 export function conocimientoDe(query) {
   const q = norm(query);
-  const esAMedida = /(a la medida|medida|custom|personaliz|especial|adaptar|cabe|dimension)/.test(q);
+  const esAMedida = /(a la medida|a medida|custom|personaliz|adaptar)/.test(q);
   const recomendaciones = recomendar(query);
   const linea = recomendaciones.length === 0 ? explicar(query) : null;
   return { principios: PRINCIPIOS, recomendaciones, linea, esAMedida };

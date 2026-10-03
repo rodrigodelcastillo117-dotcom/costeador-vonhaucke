@@ -22,6 +22,7 @@
 
 ## Resumen de commits
 ```
+f446579 Voni 2.0: conocimiento de producto Von Haucke (sabe de muebles)
 b658cf5 Conectar Voni 2.0 al TRABAJO VIVO (partidas + acomodo del flujo principal)
 dc8a3f6 Plano: auto-encuadre del lienzo + métricas $/m² y $/posición
 3ac0843 Dibujar plano: plantillas por giro + herramienta curva (óvalo)
@@ -97,6 +98,17 @@ Archivos: `App.jsx` (+17), `Acomodo.jsx` (+17), `DibujarPlano.jsx` (+159),
 - Resultado: en el flujo principal, "¿está lista?" detecta renglones sin precio
   (BLOQUEANTE) y "¿cabe?" detecta muebles sin acomodar. La salida sigue pasando por
   `sanitizarPorContexto` (rol/modo) en `tools.js`.
+### 8b. Voni 2.0 sabe de producto (`voni/conocimiento.js` NUEVO + tool `get_catalog_knowledge`)
+- Módulo determinista alimentado de `datos/catalogo.js` (LINEAS reales con `que`/`gama`/`muebles`).
+  Recomienda línea por tipo de mueble/zona, material y gama; conoce el principio
+  "casi todo A LA MEDIDA". Nueva tool `get_catalog_knowledge` (no económica) + intención
+  `KNOWLEDGE` en `nucleo.js` (responde directo, mismo contrato → UI sin cambios). La
+  `query` del usuario viaja en `args` a las tools.
+- **AUDITAR:** que no inventa productos/materiales (todo sale de `LINEAS`); que la
+  intención KNOWLEDGE no pise COSTING ni exponga economía; que `get_catalog_knowledge`
+  no filtre nada sensible (es catálogo público).
+
+### 8 (detalle crítico de la conexión viva)
 - **AUDITAR (crítico):** confirmar que `partidasLocales` NUNCA lleva `costoUnitario`
   ni `margen` (se arma en App.jsx sólo con 4 campos); que para vendedor/cliente el
   saneador de `tools.js` re-filtra; que la lente ≠ permiso sigue intacto (un vendedor
