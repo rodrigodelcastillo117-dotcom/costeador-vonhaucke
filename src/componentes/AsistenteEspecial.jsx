@@ -274,9 +274,23 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     try { const srv = await costearServidor({ ...b }, b.piezas); if (srv?.estado) setCostoEstado(srv.estado); } catch (_e) {}
     const tipo = tipoDeMueble(b);
     const medidas = `${dimsR.w}×${dimsR.d} mm`;
+    // DESPIECE → RENDER: la IA debe ENTENDER la estructura que armaste a mano
+    // (cubierta de mármol, lateral de MDF, gaveta de lámina…), no inventar una mesa
+    // genérica. Se le nombran las partes con su material y medida. Sin esto, el render
+    // sólo conocía tipo+materiales sueltos y salía un volumen cualquiera.
+    const despieceTxt = (b.componentes || [])
+      .filter((c) => c && (c.nombre || c.insumoId))
+      .map((c) => {
+        const mat = estado.insumos?.[c.insumoId]?.nombre || '';
+        const dim = (c.largoMM && c.anchoMM) ? ` ${c.largoMM}×${c.anchoMM} mm` : '';
+        const etq = c.nombre || mat || 'pieza';
+        return mat && mat !== etq ? `${etq} (${mat}${dim})` : `${etq}${dim}`;
+      })
+      .filter(Boolean).join('; ');
     const texto = `${b.nombre}. Tipo ${tipo}. Medidas exactas ${medidas}.`
-      + (materialesR.length ? ` Materiales y acabados: ${materialesR.join(', ')}.` : '')
-      + (b.descripcionCliente ? ` Notas: ${b.descripcionCliente}.` : '');
+      + (b.descripcionCliente ? ` Descripción: ${b.descripcionCliente}.` : '')
+      + (despieceTxt ? ` Partes que lo componen (respeta esta estructura): ${despieceTxt}.` : '')
+      + (materialesR.length ? ` Materiales y acabados: ${materialesR.join(', ')}.` : '');
     const ent = entornoDe();
     // Páginas/vistas del plano (base64 raw). La fidelidad (geomFid/acabadoFid) ya está derivada arriba.
     const paginas = Array.isArray(b.planos) ? b.planos.filter(Boolean) : [];
@@ -764,6 +778,16 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           <label className="etiqueta">O escríbelo tú</label>
           <input type="text" autoFocus placeholder="Ej. Mostrador de recepción curvo"
             value={b.nombre} onChange={(e) => set({ nombre: e.target.value })} />
+          <div className="espacio" />
+          {/* DESCRIBE EL MUEBLE: con esto la IA (render) y Voni ENTIENDEN qué es, de
+              qué material y cómo está hecho — no sólo el nombre. Entre más detalle,
+              mejor el render y las sugerencias. (Rodrigo: "que te pregunte qué mueble
+              es y tú lo describas".) */}
+          <label className="etiqueta">Descríbelo para que la IA lo entienda</label>
+          <textarea rows={3} placeholder="Ej. Sillas de espera de aeropuerto, estructura de aluminio, asiento y respaldo de hule espuma negra tapizado, conectores cada 2 asientos."
+            value={b.descripcionCliente || ''} onChange={(e) => set({ descripcionCliente: e.target.value })}
+            style={{ width: '100%', resize: 'vertical', padding: 10, borderRadius: 8, border: '1px solid var(--linea)', fontFamily: 'inherit', fontSize: 15 }} />
+          <div className="ayuda">Material, estructura, acabados, detalles (conectores, patas, cajones…). Alimenta el render con IA y a Voni.</div>
           <div className="espacio" />
           <label className="etiqueta">¿Cuántas piezas iguales?</label>
           <div className="masmenos gigante">
