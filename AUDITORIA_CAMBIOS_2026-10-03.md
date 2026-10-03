@@ -136,15 +136,26 @@ Archivos: `App.jsx` (+17), `Acomodo.jsx` (+17), `DibujarPlano.jsx` (+159),
 - Voni: no dice "Lista" con cotización vacía; `responder()` con try/catch; enrutador KNOWLEDGE menos tragón; `explicar()` por nombre; `esAMedida` sin "cabe"; gama sin falsos positivos.
 - `dimensionar a m²`: tope 50,000 + coma de miles.
 
-### ⚠️ PENDIENTE — núcleo de dinero/costeo (requiere pasada cuidadosa + verificar BD)
-- **Seller-safe (pre-existente, serio):** `EditarPartida`/`partidaDeCosteo`/add-ons/variantes escriben `costoUnitario`/BOM en el estado del VENDEDOR (navegador). La protección real hoy es el servidor (RLS/`cotizacion_segura`). Fix: pasar `soloVentas` y no escribir economía; red central `sinEconomia` al guardar si `!veCostos`.
-- **Descuento sin piso:** un vendedor puede dar hasta 60% sin alerta ni bloqueo (el piso vive en `catalogo.minimo`, no se usa). `Cotizacion.jsx`.
-- **Motor:** merma ≥100 → precio Infinity; `piezas` negativas → costo negativo; veta con eje invertido → subcosteo ~16% silencioso. `motor/calculo.js` (clamps).
-- **Costeo de línea:** el chip de COLOR resalta uno y cotiza la base (App LT/Alba); Modulor cotiza cerradura/zoclo con la casilla desmarcada; `finish` no se resetea al cambiar de producto. `CosteadorLinea.jsx` + generadores.
-- **Comercial:** el cierre "ganada" suma TODAS las cotizaciones y fabrica `revision_ganadora_id=1`; muchos botones (cierre, escenarios, aprobaciones) fallan en silencio; `resuelto_por:'direccion'` literal; `creado_por` sin pasar. `ProyectoWorkspace.jsx`/`crm.js`.
-- **Nube/auth:** un fallo transitorio de `miPermiso` reemplaza la app por "No se pudo verificar acceso"; sin timeouts globales; `cerrarOtrasSesiones` siempre dice éxito; `recuperando` no se limpia (riesgo: cambiar clave sin la actual); `otp_expired` sin mensaje. `nube.js`/`App.jsx`.
-- **Rutas a conectar:** `catalogo` y `reglas` ("Lo que Voni sabe") poco alcanzables — ubicarlas donde aporten.
-- **Verificar en BD (execute_sql):** FK de `proyectos.revision_ganadora_id`, CHECK de `escenarios.tipo` y `cotizaciones.estado`, tipo de `aprobaciones.resuelto_por`.
+### ✅ RESUELTO — segunda pasada (2026-10-03, pre-demo CEO) · desplegado a vonhaucke-rc
+Todo con `npx vitest run` → **593/593** (se agregaron 2 pruebas de veta) y build OK tras cada bloque.
+
+- **Motor (`motor/calculo.js`):**
+  - **Veta bien orientada:** `piezasPorTablero` alineaba el LARGO de la pieza con el lado CORTO del tablero. Ahora el largo va sobre el lado largo (2440, donde corre la veta). Una cubierta larga antes "no cabía" (0 piezas), caía al aprovechamiento genérico y se **subcosteaba**. +2 tests; `MOTOR_VERSION` → `2026-10-03`. Los golden Alpura/Alba/cutover **siguen al centavo**.
+  - **Clamps de input basura (no cambian ningún costo válido):** lote `NaN`/negativo/'' → `Number(piezas)||1` (antes `Math.max(1,NaN)=NaN` envenenaba todo el costo); merma acotada a `<95%` (merma ≥100% daba precio `Infinity`/negativo). Fail-closed hacia arriba.
+- **Costeo de línea (color):** App LT cotizaba la melamina base genérica ($1,335.6, "arbitraria") en vez del IVORY verificado ($1,122.3), porque la UI mandaba `color:null` y anulaba el default del generador. Corregido en `applt.js` (`config.color || 'ivory'`): **vivo = golden**. `aplicarColor` sella `colorEfectivo` y el chip resalta lo que DE VERDAD se cotiza (`CosteadorLinea.jsx`). Caracterización banca sencilla actualizada 18090.33/8375.15 → 17491.39/8097.86 (ivory correcto).
+- **Costeo de línea (casillas + finish):** Modulor cobraba cerradura/zoclo con la casilla **desmarcada** (el generador los incluye por default y la UI arrancaba en {}). Declaradas `def:true`; `CosteadorLinea` arranca los checks desde su default → lo que se ve = lo que se cotiza, y desmarcar sí lo quita. `finish` ahora se resetea al cambiar de producto.
+- **Descuento sin piso (seller-safe):** el piso usaba markup sobre COSTO, que el vendedor no tiene → `nBajoPiso` siempre 0 para ventas. Ahora, sin costo, el piso se mide contra `catalogo.minimo` (un **precio** piso, seller-safe; ya tratado así en `lineas.js:249`). `CosteadorLinea` lo propaga en la partida del vendedor; `Cotizacion.jsx` avisa "Requiere visto bueno de Dirección".
+- **Seller-safe (estado del navegador):** `partidaDeCosteo` ya NO corre el motor ni guarda `costoUnitario`/`margen` para `!veCostos`; `partidasDeItemsIA`, add-ons y `EditarPartida` tampoco siembran economía al vendedor. El precio de VENTA se conserva. Defensa en profundidad (RLS sigue siendo la autoridad).
+- **Comercial (`ProyectoWorkspace.jsx`):** cierre "ganada" ahora exige ELEGIR la cotización ganadora → `total_final` = su total (antes sumaba TODAS) y `revision_ganadora_id` = su id real (antes inventaba `1`). cerrar / resolver aprobación / crear-seleccionar escenario revisan el `{error}` de Supabase (antes fallo silencioso). `resuelto_por` = usuario real (correo), no el literal `'direccion'`.
+- **Nube/acceso (`nube.js` + `App.jsx`):** `miPermiso` con timeout 8s (ya no cuelga en "Un momento…"); gate con auto-reintento 3× (un blip de red no saca al usuario); `otp_expired` muestra mensaje claro en el Login y limpia el hash; `recuperando` se limpia al abrir "Contraseña" manual (cierra el hueco de cambiar clave sin la actual); `cerrarOtrasSesiones` revisa el error real.
+- **Rutas:** "Lo que Voni sabe" (`reglas`) ahora alcanzable por TODOS desde el pie del Inicio (antes sólo desde "Costear", que el vendedor no usa). Auditoría de rutas: ninguna pestaña huérfana.
+- **Propuesta Viva:** en "Atardecer" el render se entibia (luz de tarde cohesiva con el fondo ámbar). Solo presentación/CSS.
+
+**BD verificada (execute_sql, solo lectura):** `proyectos.revision_ganadora_id` es `bigint` SIN FK (apunta a `cotizaciones.id`); NO existe tabla `revisiones`; `escenarios.tipo` ∈ {esencial,recomendada,premium,custom}; `aprobaciones.estado` ∈ {PENDIENTE,APROBADA,RECHAZADA,CONTRAOFERTA}. Sin cambios de schema en esta pasada.
+
+### ⚠️ PENDIENTE (no bloqueante para el demo)
+- **Voni aprendizaje ↔ BD** (tabla aditiva que Rodrigo aprobó): NO iniciado — es función NUEVA y Rodrigo pidió "no más funciones" para el demo.
+- `creado_por` en escenarios/aprobaciones: el `resuelto_por` ya lleva al usuario; falta hilar `creado_por` al CREAR (menor).
 
 ## Preguntas para el auditor (red-team)
 1. ¿Hay ALGUNA ruta por la que `PropuestaViva` o el 3D muestren costo/margen a un vendedor/cliente?
