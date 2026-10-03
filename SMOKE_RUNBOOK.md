@@ -1,6 +1,9 @@
 # SMOKE RUNBOOK — Von Haucke RC
 
-**Preview RC:** https://costeador-vonhaucke-7uheemtkn-rodrigos-eurotrip.vercel.app
+**Preview RC (URL ESTABLE):** https://vonhaucke-rc.vercel.app  ← usa SIEMPRE esta.
+(Producción `costeador-vonhaucke.vercel.app` es la app VIEJA, intacta a propósito; NO tiene el trabajo nuevo.)
+Tras cada deploy nuevo, re-apuntar el alias:
+`npx vercel alias set <nuevo-deploy-url> vonhaucke-rc.vercel.app --token=$(cat .vercel/claude-token)`
 Abrir con `?ff=all` para ver todas las superficies. Producción NO tocada (alias intacto).
 
 **Golden Project QA (datos reales sembrados):**
