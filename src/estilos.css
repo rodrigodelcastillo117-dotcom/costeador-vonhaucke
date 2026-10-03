@@ -924,9 +924,12 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 .empezar-total span { font-size: 13px; color: var(--gris); }
 
 /* ---- Acomodo: plano a escala ---- */
-.plano-wrap { width: 100%; background: #efeae3; border: 1px solid var(--linea); border-radius: 12px;
-  padding: 12px; margin-top: 12px; overflow: hidden; }
+.plano-wrap { width: 100%; background: linear-gradient(180deg, #f4efe8, #e7e1d7); border: 1px solid var(--linea); border-radius: 16px;
+  padding: 14px; margin-top: 12px; overflow: hidden;
+  box-shadow: 0 18px 44px -26px rgba(30,27,26,.38), inset 0 1px 0 rgba(255,255,255,.65); }
 .plano { width: 100%; height: auto; display: block; max-height: 72vh; }
+/* El 3D se ve como una maqueta: esquinas redondeadas dentro del marco. */
+.plano-wrap-3d .plano-iso { border-radius: 10px; }
 
 /* ---- Vista 3D: mandos y alto real ----
    El isométrico es un rombo MUY ancho; con `height:auto` en un celular de 375 px
