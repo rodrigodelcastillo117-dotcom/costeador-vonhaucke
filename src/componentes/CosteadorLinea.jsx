@@ -111,7 +111,10 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
     const a = clave ? autorizadoPorRef(clave) : null;
     // precio de DISPLAY = precio de lista autorizado del catálogo (preciosLinea `l`);
     // el snapshot sólo aporta IDENTIDAD (producto_id/version/item) para la emisión.
-    return clave ? { precio: res.articulo.lista, identidad: a } : { precio: null, identidad: null };
+    // `minimo` = precio PISO autorizado (un precio, no un costo → seller-safe, igual
+    // que lo trata lineas.js:249). Viaja para que la cotización avise cuando un
+    // descuento deja la partida por debajo del piso, SIN exponer costo ni margen.
+    return clave ? { precio: res.articulo.lista, minimo: res.articulo.minimo ?? null, clave, identidad: a } : { precio: null, minimo: null, clave: null, identidad: null };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [soloVentas, linea, prodId, largo, fondo, diametro, usuarios, largoLateral, biombo, finish, color, gavetas, sels, checks]);
   // MODO COSTEO (Diseño/Dirección): motor de costo como siempre. Para el vendedor NO se ejecuta.
@@ -133,6 +136,8 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
   const idv2 = infoComercial?.identidad || null;
   const costeoObj = soloVentas
     ? { ...costeoBase, componentes: g.componentes, sellerSafe: true,
+        // Piso autorizado (precio mínimo) para la alerta de descuento. Seller-safe.
+        catalogo: infoComercial?.clave ? { clave: infoComercial.clave, lista: precio, minimo: infoComercial.minimo } : null,
         ...(idv2 ? { source_type: 'linea', source_ref: idv2.source_ref, producto_id: idv2.producto_id, producto_version_id: idv2.producto_version_id, lista_precio_item_id: idv2.lista_precio_item_id, precio_lista_snapshot: precio } : {}) }
     : { ...pieza, ...costeoBase };
   function agregar() {

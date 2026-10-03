@@ -251,7 +251,15 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   const minMarkup = estado.parametros.minMarkupLinea ?? 45;
   const factorDesc = 1 - descuentoPct / 100;
   const markupPartida = (pt) => (pt.costoUnitario > 0 ? ((pt.precioUnitario * factorDesc - pt.costoUnitario) / pt.costoUnitario) * 100 : null);
-  const bajoPiso = (pt) => { const m = markupPartida(pt); return m != null && m < minMarkup; };
+  // El vendedor NO tiene costo (seller-safe): su piso se mide contra el PRECIO
+  // MÍNIMO autorizado del catálogo (`catalogo.minimo`, un precio, no un costo). Si
+  // el precio ya con descuento cae por debajo de ese mínimo, requiere visto bueno.
+  const bajoPiso = (pt) => {
+    const m = markupPartida(pt);
+    if (m != null) return m < minMarkup;                 // Diseño/Dirección: markup sobre costo
+    const min = pt.catalogo?.minimo;                      // Vendedor: piso por precio mínimo
+    return min > 0 && (pt.precioUnitario * factorDesc) < min;
+  };
   const nBajoPiso = partidas.filter(bajoPiso).length;
   const conCosto = partidas.filter((p) => p.costoUnitario > 0 && !p.deBanco);
   const dMaxPartida = (p) => 100 * (1 - (p.costoUnitario * (1 + minMarkup / 100)) / p.precioUnitario);
