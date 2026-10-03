@@ -31,6 +31,55 @@ const tipoPorTamano = (w, h) => {
   return 'open';
 };
 
+// PLANTILLAS POR GIRO: un toque y la planta queda, lista para AJUSTAR o escalar
+// a tus m². Las medidas son el punto de partida; "Dimensionar a m²" las lleva a
+// tu tamaño real. Cada giro tiene su receta de cuartos.
+const PLANTILLAS = {
+  corporativo: { t: 'Corporativo', cuartos: [
+    { x: 1, y: 1, w: 12, h: 8, nombre: 'Open space', tipo: 'open' },
+    { x: 14, y: 1, w: 7, h: 5, nombre: 'Sala de juntas', tipo: 'juntas' },
+    { x: 14, y: 7, w: 3.5, h: 3.5, nombre: 'Privado 1', tipo: 'privado' },
+    { x: 17.5, y: 7, w: 3.5, h: 3.5, nombre: 'Privado 2', tipo: 'privado' },
+    { x: 1, y: 10, w: 5, h: 4, nombre: 'Recepción', tipo: 'recepcion' },
+    { x: 7, y: 10, w: 6, h: 4, nombre: 'Lounge / comedor', tipo: 'lounge' },
+  ] },
+  legal: { t: 'Despacho legal', cuartos: [
+    { x: 1, y: 1, w: 5, h: 4, nombre: 'Recepción', tipo: 'recepcion' },
+    { x: 7, y: 1, w: 4, h: 4, nombre: 'Privado 1', tipo: 'privado' },
+    { x: 11.5, y: 1, w: 4, h: 4, nombre: 'Privado 2', tipo: 'privado' },
+    { x: 16, y: 1, w: 4, h: 4, nombre: 'Privado 3', tipo: 'privado' },
+    { x: 7, y: 5.5, w: 4, h: 4, nombre: 'Privado 4', tipo: 'privado' },
+    { x: 11.5, y: 5.5, w: 4, h: 4, nombre: 'Privado 5', tipo: 'privado' },
+    { x: 16, y: 5.5, w: 5, h: 5, nombre: 'Sala de juntas', tipo: 'juntas' },
+    { x: 1, y: 6, w: 5, h: 4, nombre: 'Asistentes', tipo: 'open' },
+  ] },
+  startup: { t: 'Startup / tech', cuartos: [
+    { x: 1, y: 1, w: 13, h: 9, nombre: 'Open space', tipo: 'open' },
+    { x: 15, y: 1, w: 6, h: 5, nombre: 'Sala de juntas', tipo: 'juntas' },
+    { x: 15, y: 7, w: 6, h: 4, nombre: 'Lounge / comedor', tipo: 'lounge' },
+    { x: 1, y: 11, w: 3, h: 3, nombre: 'Cabina 1', tipo: 'privado' },
+    { x: 4.5, y: 11, w: 3, h: 3, nombre: 'Cabina 2', tipo: 'privado' },
+    { x: 8, y: 11, w: 6, h: 3, nombre: 'Recepción', tipo: 'recepcion' },
+  ] },
+  callcenter: { t: 'Call center', cuartos: [
+    { x: 1, y: 1, w: 15, h: 10, nombre: 'Open space', tipo: 'open' },
+    { x: 17, y: 1, w: 4, h: 4, nombre: 'Supervisión', tipo: 'privado' },
+    { x: 17, y: 6, w: 4, h: 4, nombre: 'Break room', tipo: 'lounge' },
+    { x: 1, y: 12, w: 6, h: 2.5, nombre: 'Recepción', tipo: 'recepcion' },
+  ] },
+};
+
+// Óvalo/curva como polígono: el modelo ya dibuja y acomoda polígonos, así que un
+// cuarto curvo (recepción redonda, sala oval) es sólo una elipse teselada. Da
+// las CURVAS que a veces tiene una oficina, sin pelear con el trazo a mano.
+const ovaloPoly = (x, y, w, h, n = 28) => {
+  const cx = x + w / 2, cy = y + h / 2, rx = w / 2, ry = h / 2;
+  return Array.from({ length: n }, (_, i) => {
+    const a = (i / n) * 2 * Math.PI;
+    return [Math.round((cx + rx * Math.cos(a)) * 100) / 100, Math.round((cy + ry * Math.sin(a)) * 100) / 100];
+  });
+};
+
 export default function DibujarPlano({ onListo, onCancelar }) {
   const [rooms, setRooms] = useState([]);
   const [doors, setDoors] = useState([]);
@@ -207,6 +256,7 @@ export default function DibujarPlano({ onListo, onCancelar }) {
     const x = Math.min(drag.x0, drag.x1), y = Math.min(drag.y0, drag.y1);
     const w = Math.abs(drag.x1 - drag.x0), h = Math.abs(drag.y1 - drag.y0);
     if (drag.kind === 'escalera') { if (w >= 0.8 && h >= 0.8) { recordar(); setStairs((s) => [...s, { id: Date.now(), x, y, w, h }]); } }
+    else if (drag.kind === 'ovalo') { if (w >= 1 && h >= 1) { recordar(); setRooms((r) => [...r, { id: Date.now(), x, y, w, h, poly: ovaloPoly(x, y, w, h), nombre: `Área ${r.length + 1}`, tipo: tipoPorTamano(w, h), doble: false }]); } }
     else if (w >= 1 && h >= 1) { recordar(); setRooms((r) => [...r, { id: Date.now(), x, y, w, h, nombre: `Área ${r.length + 1}`, tipo: tipoPorTamano(w, h), doble: false }]); }
     setDrag(null);
   }
@@ -219,18 +269,12 @@ export default function DibujarPlano({ onListo, onCancelar }) {
   // misma receta: open space + sala de juntas + privados + recepción + lounge.
   // Esto la deja lista para AJUSTAR —mover y estirar es mucho más fácil que trazar
   // desde la nada—. Si ya había algo dibujado, se pregunta antes de reemplazar.
-  function plantillaOficina() {
-    if (rooms.length && !confirm('Esto reemplaza lo que tienes dibujado con una oficina típica. ¿Continuar?')) return;
+  function plantilla(preset) {
+    const def = PLANTILLAS[preset]; if (!def) return;
+    if (rooms.length && !confirm('Esto reemplaza lo que tienes dibujado con una plantilla. ¿Continuar?')) return;
     recordar();
     const b = Date.now();
-    setRooms([
-      { id: b + 1, x: 1, y: 1, w: 12, h: 8, nombre: 'Open space', tipo: 'open', doble: false },
-      { id: b + 2, x: 14, y: 1, w: 7, h: 5, nombre: 'Sala de juntas', tipo: 'juntas', doble: false },
-      { id: b + 3, x: 14, y: 7, w: 3.5, h: 3.5, nombre: 'Privado 1', tipo: 'privado', doble: false },
-      { id: b + 4, x: 17.5, y: 7, w: 3.5, h: 3.5, nombre: 'Privado 2', tipo: 'privado', doble: false },
-      { id: b + 5, x: 1, y: 10, w: 5, h: 4, nombre: 'Recepción', tipo: 'recepcion', doble: false },
-      { id: b + 6, x: 7, y: 10, w: 6, h: 4, nombre: 'Lounge / comedor', tipo: 'lounge', doble: false },
-    ]);
+    setRooms(def.cuartos.map((c, i) => ({ id: b + i, poly: null, doble: false, ...c })));
     setDoors([]); setCols([]); setStairs([]); setVertices([]);
   }
 
@@ -303,12 +347,16 @@ export default function DibujarPlano({ onListo, onCancelar }) {
           <button className={`boton ${tool === 'door' ? 'primario' : 'fantasma'}`} style={{ minHeight: 42 }} onClick={() => setTool('door')}>Puerta</button>
           <button className={`boton ${tool === 'columna' ? 'primario' : 'fantasma'}`} style={{ minHeight: 42 }} onClick={() => setTool('columna')}>Columna</button>
           <button className={`boton ${tool === 'escalera' ? 'primario' : 'fantasma'}`} style={{ minHeight: 42 }} onClick={() => setTool('escalera')}>Escalera</button>
+          <button className={`boton ${tool === 'ovalo' ? 'primario' : 'fantasma'}`} style={{ minHeight: 42 }} onClick={() => setTool('ovalo')}>Curvo / óvalo</button>
         </div>
       </div>
-      {/* ⚡ ARRANQUE EN 1 TOQUE: la forma más fácil de empezar, sin trazar nada. */}
-      <div className="fila-botones" style={{ gap: 10, marginTop: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-        <button className="boton primario" style={{ minHeight: 46 }} onClick={plantillaOficina}>⚡ Empezar con oficina típica</button>
-        <span className="ayuda">Pone open space + sala de juntas + 2 privados + recepción + lounge. Luego mueves y ajustas lo que quieras.</span>
+      {/* ⚡ ARRANQUE EN 1 TOQUE: plantillas por giro, listas para ajustar o escalar. */}
+      <div className="fila-botones" style={{ gap: 8, marginTop: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <span className="ayuda"><strong>⚡ Empezar con una plantilla:</strong></span>
+        {Object.entries(PLANTILLAS).map(([k, def]) => (
+          <button key={k} className="boton primario" style={{ minHeight: 44 }} onClick={() => plantilla(k)}>{def.t}</button>
+        ))}
+        <span className="ayuda" style={{ flexBasis: '100%' }}>Un toque y la planta queda; luego muévela, ajústala o usa “Dimensionar a m²”.</span>
       </div>
       {/* SELLOS: un toque por cuarto. Es lo más rápido que hay para armar una
           planta de oficina, que casi siempre es "cinco privados, una sala de
@@ -331,6 +379,7 @@ export default function DibujarPlano({ onListo, onCancelar }) {
           : tool === 'forma' ? 'La forma más fácil para CUALQUIER forma (L, diagonal, lo que sea): toca esquina por esquina. Las paredes casi rectas se enderezan solas y verás la medida de cada una; la línea punteada te dice hacia dónde va la próxima. Cierra tocando otra vez el punto inicial.'
           : tool === 'door' ? 'Toca sobre una pared para poner una puerta.'
           : tool === 'columna' ? 'Toca donde haya una columna. El sistema NO pondrá muebles encima.'
+          : tool === 'ovalo' ? 'Arrastra para crear un cuarto CURVO (óvalo): recepción redonda o sala oval. Se amuebla igual que los demás.'
           : 'Arrastra para marcar una escalera (zona que no se amuebla).'}
       </p>
 
@@ -395,7 +444,9 @@ export default function DibujarPlano({ onListo, onCancelar }) {
         )}
         {dragRect && dragRect.w > 0 && (
           <g>
-            <rect x={dragRect.x} y={dragRect.y} width={dragRect.w} height={dragRect.h} fill="rgba(178,42,34,0.12)" stroke="#B22A22" strokeWidth="0.1" strokeDasharray="0.3 0.2" />
+            {drag?.kind === 'ovalo'
+              ? <ellipse cx={dragRect.x + dragRect.w / 2} cy={dragRect.y + dragRect.h / 2} rx={dragRect.w / 2} ry={dragRect.h / 2} fill="rgba(178,42,34,0.12)" stroke="#B22A22" strokeWidth="0.1" strokeDasharray="0.3 0.2" />
+              : <rect x={dragRect.x} y={dragRect.y} width={dragRect.w} height={dragRect.h} fill="rgba(178,42,34,0.12)" stroke="#B22A22" strokeWidth="0.1" strokeDasharray="0.3 0.2" />}
             {/* Medida EN VIVO mientras arrastras: ya no hay que adivinar cuánto mide. */}
             <text x={dragRect.x + dragRect.w / 2} y={dragRect.y + dragRect.h / 2} fontSize="0.62" fill="#B22A22" fontWeight="700" textAnchor="middle" stroke="#fff" strokeWidth="0.2" paintOrder="stroke">{dragRect.w.toFixed(1)} × {dragRect.h.toFixed(1)} m</text>
           </g>
