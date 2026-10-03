@@ -280,12 +280,14 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
           </div>
         )}
 
-        {esDireccion && (
-          <div className="inicio-pie">
-            <button className="enlace-pie" onClick={() => onIr('tablero')}>Ver el negocio (Dirección) →</button>
-            <button className="enlace-pie" onClick={() => onIr('usuarios')}>Usuarios y accesos →</button>
-          </div>
-        )}
+        <div className="inicio-pie">
+          {/* "Lo que Voni sabe" la leen TODOS (el motor aplica las reglas igual para
+              cualquier rol). Antes sólo se alcanzaba desde el panel Costear, que el
+              vendedor no usa -> para ventas quedaba huérfana. Aquí la ve cualquiera. */}
+          <button className="enlace-pie" onClick={() => onIr('reglas')}>Lo que Voni sabe →</button>
+          {esDireccion && <button className="enlace-pie" onClick={() => onIr('tablero')}>Ver el negocio (Dirección) →</button>}
+          {esDireccion && <button className="enlace-pie" onClick={() => onIr('usuarios')}>Usuarios y accesos →</button>}
+        </div>
       </div>
     );
   }
