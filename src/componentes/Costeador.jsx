@@ -15,6 +15,7 @@ import { generarRender, analizarTexto } from '../nube.js';
 import { pesos, pct, pct1, colorMerma } from '../util.js';
 import AnalisisEstructural from './AnalisisEstructural.jsx';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
+import { conAcompanantes } from '../datos/autoInsumos.js';
 import { flagActivo } from '../datos/flags.js';
 
 const ATAJOS = [
@@ -125,7 +126,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
       const res = await analizarTexto(catalogoIA(), desc);
       if (!res?.ok) { setErrIA(res?.error || 'No se pudo interpretar la descripción.'); return; }
       const p = res.propuesta || {};
-      set({ nombre: costeo.nombre || p.producto || '', descripcionCliente: p.descripcionCliente || desc, componentes: mapIaComps(p) });
+      set({ nombre: costeo.nombre || p.producto || '', descripcionCliente: p.descripcionCliente || desc, componentes: conAcompanantes(mapIaComps(p)) });
       setEstructuraVoni(p.design_intent ? graphFromPropuesta(p) : null);
     } catch (err) { setErrIA(String(err?.message || err)); }
     finally { setAnalizandoIA(false); }
@@ -175,10 +176,10 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
       set({ componentes: costeo.componentes.filter((c) => c.insumoId !== ins.id) });
     } else {
       set({
-        componentes: [
+        componentes: conAcompanantes([
           ...costeo.componentes,
           { insumoId: ins.id, nombre: ins.nombre, cantidad: 1 },
-        ],
+        ]),
       });
     }
   }
@@ -216,7 +217,8 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     if (!esArea(ins)) { patch.largoMM = undefined; patch.anchoMM = undefined; } // material no dimensional
     if (!esFraccionHoja(ins)) patch.hojas = undefined; // material que no es por fracción de hoja
     comps[i] = { ...prev, ...patch };
-    set({ componentes: comps });
+    // Adhesivo automático: elegir superficie sólida arrastra su adhesivo de uniones.
+    set({ componentes: conAcompanantes(comps) });
   }
   // Costo neto de una pieza, respetando fracción de hoja (para el subtotal por pieza)
   function costoPieza(c, ins, n) {

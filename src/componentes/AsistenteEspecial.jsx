@@ -12,6 +12,7 @@ import { analizarRender, analizarRenderImagenes, analizarTexto, verificarDespiec
 import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
+import { conAcompanantes } from '../datos/autoInsumos.js';
 import { abrirPdf, paginaAImagen, todasLasPaginas } from '../datos/pdfImagen.js';
 import Cargando from './Cargando.jsx';
 import Markdown from './Markdown.jsx';
@@ -486,7 +487,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     if (!aceptaCorrida(corridaId, corrida.current)) return false;
     if (!res?.ok) { setErrorIA(res?.error || 'No se pudo analizar.'); return false; }
     const p = res.propuesta || {};
-    const comps = mapIaComps(p);
+    const comps = conAcompanantes(mapIaComps(p));
     // planos: TODAS las páginas/vistas del plano (base64 raw) para referencia múltiple del render.
     const paginas = Array.isArray(planos) && planos.length ? planos : (dataUrl ? [String(dataUrl).split(',')[1]] : []);
     // Un ANÁLISIS NUEVO (subiste otro plano) nombra el producto desde el plano, para que el nombre
