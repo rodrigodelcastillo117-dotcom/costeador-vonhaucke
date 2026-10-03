@@ -42,6 +42,26 @@ Deno.serve(async (req) => {
   const svc = createClient(URL, SERVICE);
   const { data: permit } = await svc.from("permitidos").select("rol").eq("email", email).maybeSingle();
   if (!permit) return json({ ok: false, code: "FORBIDDEN", error: "Tu cuenta no está autorizada para generar renders." }, 403);
+  // CAPABILITY por rol (no basta con existir en permitidos): el render quema Gemini (de
+  // pago). Sólo roles con la capacidad pueden gastarlo; un rol futuro restringido NO.
+  const rol = String(permit.rol || "").toLowerCase();
+  const CAN_RENDER = new Set(["direccion", "diseno", "vendedor", "comercial", "ventas"]);
+  if (!CAN_RENDER.has(rol)) return json({ ok: false, code: "FORBIDDEN_CAPABILITY", error: "Tu rol no puede generar renders con IA." }, 403);
+  const requestId = crypto.randomUUID();
+  const t0 = Date.now();
+  // RATE LIMIT (protección de costo): por usuario y global, por hora. Cuenta intentos
+  // reales (render_eventos se inserta justo antes de llamar a Gemini). Degradación suave:
+  // si la tabla no responde, no se bloquea el render.
+  const LIMITE_USUARIO = 30, LIMITE_GLOBAL = 300;
+  try {
+    const desde = new Date(Date.now() - 3_600_000).toISOString();
+    const [u, g] = await Promise.all([
+      svc.from("render_eventos").select("id", { count: "exact", head: true }).eq("email", email).gte("created_at", desde),
+      svc.from("render_eventos").select("id", { count: "exact", head: true }).gte("created_at", desde),
+    ]);
+    if ((u.count ?? 0) >= LIMITE_USUARIO) return json({ ok: false, code: "RATE_LIMITED_USER", error: `Alcanzaste el límite de ${LIMITE_USUARIO} renders por hora. Intenta más tarde.` }, 429);
+    if ((g.count ?? 0) >= LIMITE_GLOBAL) return json({ ok: false, code: "RATE_LIMITED_GLOBAL", error: "Hay demasiados renders en curso ahora mismo. Intenta en un momento." }, 429);
+  } catch (_e) { /* no bloquear por fallo de telemetría */ }
 
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, error: "JSON invalido" }, 400); }
@@ -54,6 +74,11 @@ Deno.serve(async (req) => {
     if (bytes > 28_000_000) return json({ ok: false, code: "PAYLOAD_TOO_LARGE", error: "Las imágenes de referencia son demasiado grandes." }, 413);
   }
   const { descripcion = "", materiales = [], medidas = "", tipo = "", spec = "", imagen = "", imagenes = [], mediaType = "image/jpeg", modo = "render", aspecto = "", cuarto = "", lineas = [], conteoPiso = null, entorno = "", preservar = "" } = body || {};
+  // MIME allowlist: sólo formatos de imagen/plano soportados (evita payloads raros).
+  const MIME_OK = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
+  if (imagen && mediaType && !MIME_OK.has(String(mediaType))) {
+    return json({ ok: false, code: "UNSUPPORTED_MEDIA_TYPE", error: "Formato no soportado (usa JPG, PNG, WEBP o PDF)." }, 415);
+  }
   if (!descripcion.trim() && !imagen) return json({ ok: false, error: "Escribe una descripción del mueble para generar el render." }, 400);
   if (modo === "staging" && !imagen) return json({ ok: false, error: "Sube una foto del espacio para amueblarlo." }, 400);
 
@@ -275,13 +300,20 @@ Deno.serve(async (req) => {
   async function llamarGemini(contents: any[], generationConfig: any): Promise<{ error: string | null; data: any }> {
     let data: any;
     try {
-      const r = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,
-        { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ contents, generationConfig }) },
-      );
+      // TIMEOUT explícito (90 s): un render colgado no debe amarrar la función ni al usuario.
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), 90_000);
+      let r;
+      try {
+        r = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,
+          { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ contents, generationConfig }), signal: ac.signal },
+        );
+      } finally { clearTimeout(timer); }
       data = await r.json();
     } catch (e) {
-      return { error: "No se pudo llamar a Gemini: " + String(e), data: null };
+      const abortado = e instanceof Error && e.name === "AbortError";
+      return { error: abortado ? "El render tardó demasiado (timeout). Intenta de nuevo." : "No se pudo llamar a Gemini: " + String(e), data: null };
     }
     if (data?.error) {
       const m = data.error?.message || "";
@@ -296,8 +328,13 @@ Deno.serve(async (req) => {
     return { error: null, data };
   }
 
+  // TELEMETRÍA (auditoría + base del rate-limit): un renglón por intento REAL de render.
+  const imgsN = [imagen, ...(Array.isArray(imagenes) ? imagenes : [])].filter(Boolean).length;
+  const bytesN = [imagen, ...(Array.isArray(imagenes) ? imagenes : [])].filter(Boolean).reduce((s: number, i: any) => s + (typeof i === "string" ? i.length : 0), 0);
+  try { await svc.from("render_eventos").insert({ request_id: requestId, email, rol, modo, imagenes: imgsN, bytes: bytesN, ms: Date.now() - t0 }); } catch (_e) { /* best-effort */ }
+
   const r1 = await llamarGemini([{ role: "user", parts }], imageGenConfig);
-  if (r1.error) return json({ ok: false, error: r1.error }, 502);
+  if (r1.error) return json({ ok: false, code: "GEMINI_ERROR", error: r1.error, request_id: requestId }, 502);
   let outParts = r1.data?.candidates?.[0]?.content?.parts || [];
   let img = outParts.find((p: any) => p.inlineData?.data || p.inline_data?.data);
   let inline = img?.inlineData || img?.inline_data;
