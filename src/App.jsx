@@ -595,6 +595,9 @@ export default function App() {
       // Costo DERIVADO del precio (≈ precio/3.6), no de un despiece real: la
       // pantalla muestra su margen como aproximado, no medido (audit 2026-09-24).
       costoDerivado: veCostos ? !!c.costoDerivado : false,
+      // Piezas excluidas ($0 por decisión) también por el camino de la IA/Voni.
+      nombresExcluidos: Array.isArray(c.nombresExcluidos) ? c.nombresExcluidos
+        : (c.componentes || []).filter((x) => x && x.excluida).map((x) => x.nombre || 'Partida excluida'),
     }));
   }
 
@@ -655,6 +658,11 @@ export default function App() {
       ...(veCostos
         ? (() => { const s = componentesSinMaterial(costeo.componentes, estado.insumos); return { piezasSinMaterial: s.length, nombresSinMaterial: s }; })()
         : { piezasSinMaterial: 0, nombresSinMaterial: [] }),
+      // Piezas EXCLUIDAS ($0 por decisión: "lo pone el cliente / otra área"). No es
+      // economía (es una decisión del despiece) → viaja siempre, para que la
+      // cotización obligue a confirmarlas y el PDF imprima la cláusula. Sin esto, un
+      // clic apurado vende el mueble sin cristal/herrajes y nadie se entera.
+      nombresExcluidos: (costeo.componentes || []).filter((c) => c && c.excluida).map((c) => c.nombre || 'Partida excluida'),
     };
   }
 
@@ -704,6 +712,10 @@ export default function App() {
     const sinMat = Array.isArray(resultado?.componentesIgnorados)
       ? resultado.componentesIgnorados
       : componentesSinMaterial(costeo.componentes, estado.insumos);
+    // Piezas excluidas ($0 por decisión): el motor ya las reporta; si no, del despiece.
+    const excl = Array.isArray(resultado?.componentesExcluidos)
+      ? resultado.componentesExcluidos
+      : (costeo.componentes || []).filter((c) => c && c.excluida).map((c) => c.nombre || 'Partida excluida');
     sumarPartidas([{
       id: idNuevo('p'),
       piezaId: costeo.piezaId || null,
@@ -718,6 +730,7 @@ export default function App() {
       config: null,
       piezasSinMaterial: sinMat.length,
       nombresSinMaterial: sinMat,
+      nombresExcluidos: excl,
     }]);
     mostrarAviso(`Agregado: ${costeo.nombre || 'mueble a la medida'}`);
   }

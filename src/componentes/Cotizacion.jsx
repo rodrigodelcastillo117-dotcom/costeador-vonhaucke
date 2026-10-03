@@ -149,6 +149,10 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   // menú del navegador — Rodrigo: "me manda a imprimir, no lo descarga".
   const [pdfErr, setPdfErr] = useState('');
   const [bajandoPDF, setBajandoPDF] = useState(false);
+  // Guardrail de EXCLUSIONES (audit #3): piezas marcadas "$0 por decisión" (las pone
+  // el cliente/otra área). Hay que CONFIRMARLAS antes de emitir y escribirlas en el
+  // PDF — si no, un clic apurado vende el mueble sin cristal/herrajes en números rojos.
+  const [confirmoExcluidas, setConfirmoExcluidas] = useState(false);
   // Punto de corte real del candado (Rodrigo, 2026-08-20): a diferencia del
   // aviso temprano en Voni (que se puede saltar sin querer), esto es lo que
   // de verdad produce algo que llega al cliente — sin importar por cuál
@@ -157,9 +161,16 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   // No se puede emitir con un renglón sin cantidad o sin precio: sería inventar
   // un número en el documento que llega al cliente (mandato Fase 1).
   const probEmision = problemasDeEmision(partidas);
+  // Piezas excluidas de TODO el proyecto (únicas). Si hay, no se emite sin confirmar.
+  const excluidasProyecto = [...new Set(partidas.flatMap((p) => p.nombresExcluidos || []))];
+  const bloqueoExcluidas = excluidasProyecto.length > 0 && !confirmoExcluidas;
+  // Fail-closed: si cambia QUÉ piezas están excluidas, se re-exige la confirmación
+  // (no se arrastra un "confirmo" viejo sobre una lista distinta).
+  useEffect(() => { setConfirmoExcluidas(false); }, [excluidasProyecto.join('|')]);
   function conCandado(fn) {
     return () => {
       if (probEmision.length) { setPdfErr('No se puede emitir: ' + probEmision[0]); return; }
+      if (bloqueoExcluidas) { setPdfErr('Confirma las piezas excluidas antes de emitir.'); return; }
       if (partidas.some((p) => p.candadoUsuarios || p.requiereProyectista)) setAccionPendiente(() => fn);
       else fn();
     };
@@ -187,6 +198,8 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         // La hoja "Qué va en cada área", en palabras y con las gavetas: el
         // plano no las puede enseñar porque viven debajo de la cubierta.
         cuartos: listaPorCuarto(partidas, estado.cotizacion?.acomodo),
+        // Piezas excluidas (audit #3): se imprimen como cláusula explícita bajo el total.
+        exclusionesBOM: excluidasProyecto,
         totales: { precioLista, descuento, descuentoPct, subtotal, contingencia, contingenciaPct,
           maniobras, maniobrasPct, flete, fletePct,
           iva, ivaPct, total,
@@ -743,11 +756,23 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
             <button className={vistaCliente ? 'on' : ''} onClick={() => setVistaCliente(true)}>Como la ve el cliente</button>
           </div>
         )}
-        <button className="boton tinta cot-pdf" onClick={conCandado(descargarPDF)} disabled={bajandoPDF || probEmision.length > 0} title={probEmision.length ? probEmision[0] : undefined}>
+        <button className="boton tinta cot-pdf" onClick={conCandado(descargarPDF)} disabled={bajandoPDF || probEmision.length > 0 || bloqueoExcluidas} title={probEmision.length ? probEmision[0] : (bloqueoExcluidas ? 'Confirma las piezas excluidas' : undefined)}>
           {bajandoPDF ? 'Armando el PDF…' : 'Descargar PDF'}
         </button>
-        <button className="boton fantasma no-imprimir" style={{ minHeight: 42 }} onClick={conCandado(imprimir)} disabled={probEmision.length > 0} title={probEmision.length ? probEmision[0] : undefined}>Imprimir</button>
+        <button className="boton fantasma no-imprimir" style={{ minHeight: 42 }} onClick={conCandado(imprimir)} disabled={probEmision.length > 0 || bloqueoExcluidas} title={probEmision.length ? probEmision[0] : (bloqueoExcluidas ? 'Confirma las piezas excluidas' : undefined)}>Imprimir</button>
       </div>
+      {/* Guardrail de exclusiones (audit #3): bandera ámbar + confirmación obligatoria.
+          Sin marcar el checkbox, no se puede emitir; lo que se confirma se imprime en el PDF. */}
+      {excluidasProyecto.length > 0 && (
+        <div className="aviso ambar no-imprimir" style={{ marginTop: 8, background: '#fdf3df', border: '1px solid var(--ambar, #d8a800)', color: '#7a5600', borderRadius: 10, padding: 12 }}>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>⚠ Esta cotización NO incluye {excluidasProyecto.length} pieza(s) — corren por cuenta del cliente</div>
+          <div style={{ fontSize: 13, marginBottom: 8 }}>{excluidasProyecto.join(' · ')}</div>
+          <label className="check" style={{ display: 'flex', gap: 8, alignItems: 'flex-start', cursor: 'pointer', fontWeight: 600 }}>
+            <input type="checkbox" checked={confirmoExcluidas} onChange={(e) => setConfirmoExcluidas(e.target.checked)} />
+            <span>Confirmo que estas piezas NO están costeadas y las provee el cliente o un tercero.</span>
+          </label>
+        </div>
+      )}
       {probEmision.length > 0 && (
         <div className="aviso rojo no-imprimir" style={{ marginTop: 8 }}>
           No se puede emitir todavía: {probEmision[0]}

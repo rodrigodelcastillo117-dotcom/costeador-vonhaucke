@@ -436,7 +436,7 @@ function hojaCuartos(doc, { cuartos, escenas, pie }, A4, M, ANCHO, ROJO, TINTA, 
   return true;
 }
 
-export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, nPzas, fotos = {}, piezas = [], cuartos = [], marca = null, garantia = null, exclusiones = null }) {
+export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, nPzas, fotos = {}, piezas = [], cuartos = [], marca = null, garantia = null, exclusiones = null, exclusionesBOM = [] }) {
   const GARANTIA = Array.isArray(garantia) && garantia.length ? garantia : (typeof garantia === 'string' && garantia.trim() ? [garantia] : GARANTIA_DEFAULT);
   const EXCLUSIONES = Array.isArray(exclusiones) && exclusiones.length ? exclusiones : (typeof exclusiones === 'string' && exclusiones.trim() ? [exclusiones] : EXCLUSIONES_DEFAULT);
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -824,6 +824,13 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
       y += envuelto.length * 4.6 + 0.8;
     }
   };
+  // Cláusula de EXCLUSIONES DEL DESPIECE (audit #3): piezas marcadas $0 por decisión
+  // (las provee el cliente/un tercero). Explícito en el documento para que Von Haucke
+  // no termine pagando material que se asumió "va por fuera".
+  if (Array.isArray(exclusionesBOM) && exclusionesBOM.length) {
+    bloqueTexto('IMPORTANTE · PIEZAS NO INCLUIDAS (las provee el cliente o un tercero)',
+      [...exclusionesBOM, 'Von Haucke no cotiza ni suministra las piezas anteriores; su costo y colocación corren por cuenta del cliente.']);
+  }
   bloqueTexto('GARANTÍA', GARANTIA);
   bloqueTexto('NO INCLUYE / EXCLUSIONES', EXCLUSIONES);
 
