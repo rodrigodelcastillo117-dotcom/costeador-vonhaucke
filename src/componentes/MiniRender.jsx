@@ -19,13 +19,16 @@ function hexLerp(hex, amt) {
 // "banca de aeropuerto…" el esquema deja de ser un escritorio genérico y pasa a banca.
 export function tipoDeMueble(costeo) {
   const t = `${costeo?.nombre || ''} ${costeo?.linea || ''} ${costeo?.descripcionCliente || ''}`.toLowerCase();
-  if (costeo?.bench || t.includes('bench') || t.includes('banca')) return 'bench';
+  if (costeo?.bench || t.includes('bench') || t.includes('banca') || t.includes('barra') || t.includes('comunal') || t.includes('mesa bar')) return 'bench';
   if (t.includes('estacion') || t.includes('estación') || t.includes(' en l') || t.includes('lateral') || t.includes('retorno')) return 'estacion';
   if (t.includes('escritorio')) return 'escritorio';
-  if (t.includes('soporte') || t.includes('porta pantalla') || t.includes('teamspace ii')) return 'mampara';
+  if (t.includes('soporte') || t.includes('porta pantalla') || t.includes('portamonitor') || t.includes('portapantalla') || t.includes('bolardo') || t.includes('señal') || t.includes('senal') || t.includes('teamspace ii')) return 'mampara';
   if (t.includes('pebble') || t.includes('apoyo') || t.includes('accents') || t.includes('lateral de apoyo')) return 'mesita';
+  // Mostradores / counters / retail / gobierno: cuerpo tipo caja (lo más cercano al
+  // mostrador/kiosko/armero que tenemos como geometría). VH no es sólo oficina.
+  if (t.includes('mostrador') || t.includes('counter') || t.includes('check') || t.includes('recepci') || t.includes('caja') || t.includes('farmacia') || t.includes('armero') || t.includes('rack') || t.includes('locker') || t.includes('kiosko') || t.includes('kiosco') || t.includes('exhibidor') || t.includes('vitrina') || t.includes('góndola') || t.includes('gondola') || t.includes('isla') || t.includes('anaquel') || t.includes('estante')) return 'guarda';
   if (t.includes('mesa') || t.includes('teamspace') || t.includes('juntas') || t.includes('consejo') || t.includes('circular')) return 'mesa';
-  if (t.includes('credenza') || t.includes('archiv') || t.includes('cajoner') || t.includes('torre') || t.includes('guarda') || t.includes('gabinete') || t.includes('locker') || t.includes('librero') || t.includes('gaveta') || t.includes('armario') || t.includes('wally')) return 'guarda';
+  if (t.includes('credenza') || t.includes('archiv') || t.includes('cajoner') || t.includes('torre') || t.includes('guarda') || t.includes('gabinete') || t.includes('librero') || t.includes('gaveta') || t.includes('armario') || t.includes('wally')) return 'guarda';
   if (t.includes('mampara') || t.includes('divisor') || t.includes('muro') || t.includes('biombo') || t.includes('puerta') || t.includes('panel') || t.includes('privacy')) return 'mampara';
   if (t.includes('sillon') || t.includes('sillón') || t.includes('lounge') || t.includes('pouf') || t.includes('silla') || t.includes('banco') || t.includes('kasia')
     || t.includes('sofa') || t.includes('sofá') || t.includes('tetris') || t.includes('arlequ') || t.includes(' pac') || t.includes('taburete') || t.includes('ottoman')) return 'asiento';
