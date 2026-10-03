@@ -98,6 +98,18 @@ export default function DibujarPlano({ onListo, onCancelar }) {
   const [trazo, setTrazo] = useState(null);     // copia para dibujar
   const svgRef = useRef(null);
 
+  // AUTO-ENCUADRE: el lienzo CRECE para que siempre quepa el dibujo completo
+  // (p. ej. tras "Dimensionar a 800 m²", que lo hace más grande que 22×15 m).
+  // Mínimo el tamaño base. `toM`, la rejilla y el viewBox usan VW/VH (no W/H).
+  let _cw = 0, _ch = 0;
+  for (const r of rooms) {
+    if (r.poly) for (const [px, py] of r.poly) { _cw = Math.max(_cw, px); _ch = Math.max(_ch, py); }
+    else { _cw = Math.max(_cw, (r.x || 0) + (r.w || 0)); _ch = Math.max(_ch, (r.y || 0) + (r.h || 0)); }
+  }
+  for (const s of stairs) { _cw = Math.max(_cw, s.x + s.w); _ch = Math.max(_ch, s.y + s.h); }
+  const VW = Math.max(W, Math.ceil(_cw + 1));
+  const VH = Math.max(H, Math.ceil(_ch + 1));
+
   // ---- DESHACER / REHACER (N7) ---------------------------------------------
   // El lienzo no tenía deshacer: un trazo mal cerrado o una escalera de más y no
   // había vuelta atrás más que "Limpiar" (que borra TODO). Se guardan los
@@ -160,8 +172,8 @@ export default function DibujarPlano({ onListo, onCancelar }) {
 
   const toM = (e, conSnap = true) => {
     const r = svgRef.current.getBoundingClientRect();
-    const x = Math.max(0, Math.min(W, (e.clientX - r.left) / r.width * W));
-    const y = Math.max(0, Math.min(H, (e.clientY - r.top) / r.height * H));
+    const x = Math.max(0, Math.min(VW, (e.clientX - r.left) / r.width * VW));
+    const y = Math.max(0, Math.min(VH, (e.clientY - r.top) / r.height * VH));
     // El trazo a mano NO se ajusta a la cuadrícula: un snap de 50 cm convierte
     // cualquier curva en escalones, que es justo lo que hay que evitar.
     return conSnap ? [snap(x), snap(y)] : [x, y];
@@ -386,14 +398,14 @@ export default function DibujarPlano({ onListo, onCancelar }) {
       <svg
         ref={svgRef}
         className="dibujo-svg"
-        viewBox={`0 0 ${W} ${H}`}
+        viewBox={`0 0 ${VW} ${VH}`}
         preserveAspectRatio="xMidYMid meet"
         onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerLeave={up}
-        style={{ touchAction: 'none' }}
+        style={{ touchAction: 'none', width: '100%', height: 'auto', aspectRatio: `${VW} / ${VH}` }}
       >
-        {/* rejilla */}
-        {Array.from({ length: W + 1 }).map((_, i) => <line key={'v' + i} x1={i} y1={0} x2={i} y2={H} stroke={i % 5 === 0 ? '#cdc6be' : '#e8e3dc'} strokeWidth={i % 5 === 0 ? 0.04 : 0.02} />)}
-        {Array.from({ length: H + 1 }).map((_, i) => <line key={'h' + i} x1={0} y1={i} x2={W} y2={i} stroke={i % 5 === 0 ? '#cdc6be' : '#e8e3dc'} strokeWidth={i % 5 === 0 ? 0.04 : 0.02} />)}
+        {/* rejilla (hasta donde llega el dibujo, por el auto-encuadre) */}
+        {Array.from({ length: VW + 1 }).map((_, i) => <line key={'v' + i} x1={i} y1={0} x2={i} y2={VH} stroke={i % 5 === 0 ? '#cdc6be' : '#e8e3dc'} strokeWidth={i % 5 === 0 ? 0.04 : 0.02} />)}
+        {Array.from({ length: VH + 1 }).map((_, i) => <line key={'h' + i} x1={0} y1={i} x2={VW} y2={i} stroke={i % 5 === 0 ? '#cdc6be' : '#e8e3dc'} strokeWidth={i % 5 === 0 ? 0.04 : 0.02} />)}
         {/* cuartos */}
         {rooms.map((r) => (
           <g key={r.id}>

@@ -50,6 +50,10 @@ export default function PropuestaViva({ areas, plan, byId, nombre = 'Tu nueva of
     r.posiciones ? { k: `${r.posiciones}`, t: 'posiciones de trabajo' } : null,
     r.muebles ? { k: `${r.muebles}`, t: 'muebles Vonhaucke' } : null,
     inv ? { k: inv, t: 'inversión', destacado: true } : null,
+    // Métricas de decisión (CFO/CEO): precio por m² y por posición. Salen de la
+    // MISMA inversión al cliente — siguen siendo client-safe, no exponen costo.
+    inv && r.m2 ? { k: dinero(Math.round(inversion / r.m2)), t: 'por m²' } : null,
+    inv && r.posiciones ? { k: dinero(Math.round(inversion / r.posiciones)), t: 'por posición' } : null,
   ].filter(Boolean);
 
   return (
