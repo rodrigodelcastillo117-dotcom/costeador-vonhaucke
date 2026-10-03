@@ -26,7 +26,13 @@ const ROLES = [
   ['cristal', /\b(cristal|vidrio|templado)\b/i],
 ];
 
-function rolDe(nombre = '') {
+// STRUCTURAL_LINT: etiqueta interna. Esto es un guardrail determinista (regex/heurística),
+// NO el motor de comprensión del mueble (ese es analizar-mueble → structuralGraph).
+export const TIPO = 'STRUCTURAL_LINT';
+
+// Rol semántico de una pieza por su nombre. Exportado para que `structuralGraph.js`
+// reuse la MISMA detección (una sola fuente de roles, sin duplicar).
+export function rolDe(nombre = '') {
   for (const [rol, re] of ROLES) if (re.test(nombre)) return rol;
   return 'otro';
 }
