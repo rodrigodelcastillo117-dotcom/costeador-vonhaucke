@@ -8,6 +8,7 @@
 //  La IA audita y propone; el MOTOR calcula el precio. Requiere ANTHROPIC_API_KEY.
 // ============================================================================
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -99,6 +100,47 @@ Deno.serve(async (req) => {
   const key = Deno.env.get("ANTHROPIC_API_KEY");
   if (!key) return json({ ok: false, error: "Falta ANTHROPIC_API_KEY" }, 500);
 
+  // --- AUTH + CAPABILITY (cierra el endpoint caro): Anthropic es de pago; sin esto
+  //     cualquier sesión válida que conozca la URL podía quemarlo. verify_jwt=true en
+  //     el gateway + esta verificación interna (defensa en capas). ---
+  const URL = Deno.env.get("SUPABASE_URL");
+  const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const ANON = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!URL || !SERVICE) return json({ ok: false, error: "Falta configuración del servidor." }, 500);
+  const authHeader = req.headers.get("Authorization") || "";
+  if (!authHeader.startsWith("Bearer ")) return json({ ok: false, code: "UNAUTHENTICATED", error: "No autenticado." }, 401);
+  let email = "";
+  try {
+    const userClient = createClient(URL, ANON || SERVICE, { global: { headers: { Authorization: authHeader } } });
+    const { data: u } = await userClient.auth.getUser();
+    email = u?.user?.email || "";
+  } catch (_e) { email = ""; }
+  if (!email) return json({ ok: false, code: "UNAUTHENTICATED", error: "Sesión inválida." }, 401);
+  const svc = createClient(URL, SERVICE);
+  const { data: permit } = await svc.from("permitidos").select("rol").eq("email", email).maybeSingle();
+  if (!permit) return json({ ok: false, code: "FORBIDDEN", error: "Tu cuenta no está autorizada." }, 403);
+  // CAPABILITY ai.analyze por rol (no basta con existir en permitidos).
+  const rol = String(permit.rol || "").toLowerCase();
+  const CAN_ANALYZE = new Set(["direccion", "diseno", "vendedor", "comercial", "ventas"]);
+  if (!CAN_ANALYZE.has(rol)) return json({ ok: false, code: "FORBIDDEN_CAPABILITY", error: "Tu rol no puede usar el análisis con IA." }, 403);
+  const requestId = crypto.randomUUID();
+  const t0 = Date.now();
+  // RATE LIMIT (barrera de COSTO, FAIL-CLOSED ante error persistente del limiter):
+  // por usuario y global, por hora. Cuenta intentos reales (fila 'started' en ai_eventos).
+  const LIMITE_USUARIO = 40, LIMITE_GLOBAL = 400;
+  {
+    const desde = new Date(Date.now() - 3_600_000).toISOString();
+    const [u, g] = await Promise.all([
+      svc.from("ai_eventos").select("id", { count: "exact", head: true }).eq("fn", "analizar-mueble").eq("email", email).gte("created_at", desde),
+      svc.from("ai_eventos").select("id", { count: "exact", head: true }).eq("fn", "analizar-mueble").gte("created_at", desde),
+    ]);
+    // 5A: una barrera de costo NO puede ser best-effort. Si el limiter falla, NO
+    // quemamos Anthropic ilimitadamente: 503 explícito (fail-closed).
+    if (u.error || g.error) return json({ ok: false, code: "RATE_LIMITER_UNAVAILABLE", error: "No se pudo verificar el límite de uso. Reintenta en un momento." }, 503);
+    if ((u.count ?? 0) >= LIMITE_USUARIO) return json({ ok: false, code: "RATE_LIMITED_USER", error: `Alcanzaste el límite de ${LIMITE_USUARIO} análisis por hora.` }, 429);
+    if ((g.count ?? 0) >= LIMITE_GLOBAL) return json({ ok: false, code: "RATE_LIMITED_GLOBAL", error: "Demasiados análisis en curso ahora mismo. Intenta en un momento." }, 429);
+  }
+
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, error: "JSON invalido" }, 400); }
   const { image, imagenes, mediaType = "image/jpeg", catalogo, revisar, respuestas, descripcion, texto: textoDesc, description } = body || {};
@@ -116,9 +158,37 @@ Deno.serve(async (req) => {
   // `imagenes` = varias HOJAS del MISMO mueble (plano multipágina rasterizado).
   const imgs = Array.isArray(imagenes) ? imagenes.filter((x: any) => typeof x === "string" && x) : [];
   if (!image && !imgs.length && !desc) return json({ ok: false, error: "Falta la imagen (base64) o una descripción del mueble." }, 400);
+
+  // --- LÍMITES DE PAYLOAD + MIME (protección de costo e inputs manipulados) ---
+  const MIME_OK = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
+  if (image && !MIME_OK.has(String(mediaType))) return json({ ok: false, code: "UNSUPPORTED_MEDIA_TYPE", error: "Formato no soportado (usa JPG, PNG, WEBP o PDF)." }, 415);
+  const todasImgs = [image, ...imgs].filter((x: any) => typeof x === "string" && x);
+  if (todasImgs.length > 8) return json({ ok: false, code: "TOO_MANY_IMAGES", error: "Máximo 8 imágenes/hojas por análisis." }, 413);
+  // 5D: bytes REALES de base64 decodificado (no string.length).
+  const b64bytes = (s: string) => { const n = (s || "").length; const pad = s.endsWith("==") ? 2 : s.endsWith("=") ? 1 : 0; return Math.max(0, Math.floor(n * 3 / 4) - pad); };
+  const payloadBytes = todasImgs.reduce((a: number, s: string) => a + b64bytes(s), 0);
+  if (payloadBytes > 25_000_000) return json({ ok: false, code: "PAYLOAD_TOO_LARGE", error: "Las imágenes/hojas son demasiado grandes. Sube menos a la vez." }, 413);
+  if (resp.length > 40) return json({ ok: false, code: "TOO_MANY_ANSWERS", error: "Demasiadas respuestas en una pasada." }, 413);
+
   // MODO SÓLO-TEXTO: hay descripción y NO hay imagen/plano → se interpreta desde el texto.
   // Con imagen + texto: el texto es la INTENCIÓN del usuario; la imagen es evidencia geométrica.
   const soloTexto = !image && !imgs.length && !!desc;
+
+  // TELEMETRÍA (started): cuenta el intento para el rate limit y mide duración real.
+  // Un intento que falle queda 'started' (cuenta como intento, que es lo correcto
+  // para una barrera de costo). Se marca 'ok' sólo al cerrar bien.
+  const modoTel = soloTexto ? "texto" : esRevision ? "revision" : "imagen";
+  let evId: number | null = null;
+  try {
+    const { data: ev } = await svc.from("ai_eventos")
+      .insert({ request_id: requestId, fn: "analizar-mueble", email, rol, modo: modoTel, images_count: todasImgs.length, payload_bytes: payloadBytes, status: "started" })
+      .select("id").maybeSingle();
+    evId = (ev as any)?.id ?? null;
+  } catch (_e) { /* la telemetría no debe romper el análisis */ }
+  const cerrarTel = async (status: string, http: number, extra: Record<string, unknown> = {}) => {
+    if (evId == null) return;
+    try { await svc.from("ai_eventos").update({ status, http_status: http, finished_at: new Date().toISOString(), duration_ms: Date.now() - t0, ...extra }).eq("id", evId); } catch (_e) { /* noop */ }
+  };
 
   // CATÁLOGO CANÓNICO server-side = AUTORIDAD. El catálogo que manda el cliente ya
   // NO es autoridad: sólo se usa como PISTA para ids que el servidor aún no tenga.
@@ -256,7 +326,8 @@ Deno.serve(async (req) => {
   try { propuesta = JSON.parse(texto); }
   catch { return json({ ok: false, error: "La IA no devolvio un analisis valido (JSON incompleto). Reintenta." }, 200); }
 
-  return json({ ok: true, propuesta, uso: data?.usage || null });
+  await cerrarTel("ok", 200, { model_status: String(data?.stop_reason || "ok") });
+  return json({ ok: true, propuesta, uso: data?.usage || null, request_id: requestId });
 });
 
 function json(obj: unknown, status = 200) {

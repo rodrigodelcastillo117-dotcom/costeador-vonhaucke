@@ -53,15 +53,18 @@ Deno.serve(async (req) => {
   // reales (render_eventos se inserta justo antes de llamar a Gemini). Degradación suave:
   // si la tabla no responde, no se bloquea el render.
   const LIMITE_USUARIO = 30, LIMITE_GLOBAL = 300;
-  try {
+  {
     const desde = new Date(Date.now() - 3_600_000).toISOString();
     const [u, g] = await Promise.all([
       svc.from("render_eventos").select("id", { count: "exact", head: true }).eq("email", email).gte("created_at", desde),
       svc.from("render_eventos").select("id", { count: "exact", head: true }).gte("created_at", desde),
     ]);
+    // 5A: una barrera de COSTO no puede ser best-effort. Si el limiter falla, NO se
+    // quema Gemini ilimitadamente: 503 explícito (fail-closed).
+    if (u.error || g.error) return json({ ok: false, code: "RATE_LIMITER_UNAVAILABLE", error: "No se pudo verificar el límite de uso. Reintenta en un momento." }, 503);
     if ((u.count ?? 0) >= LIMITE_USUARIO) return json({ ok: false, code: "RATE_LIMITED_USER", error: `Alcanzaste el límite de ${LIMITE_USUARIO} renders por hora. Intenta más tarde.` }, 429);
     if ((g.count ?? 0) >= LIMITE_GLOBAL) return json({ ok: false, code: "RATE_LIMITED_GLOBAL", error: "Hay demasiados renders en curso ahora mismo. Intenta en un momento." }, 429);
-  } catch (_e) { /* no bloquear por fallo de telemetría */ }
+  }
 
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, error: "JSON invalido" }, 400); }
@@ -70,8 +73,15 @@ Deno.serve(async (req) => {
   {
     const imgs = [body?.imagen, ...(Array.isArray(body?.imagenes) ? body.imagenes : [])].filter(Boolean);
     if (imgs.length > 7) return json({ ok: false, code: "TOO_MANY_IMAGES", error: "Máximo 7 imágenes de referencia." }, 413);
-    const bytes = imgs.reduce((s: number, i: any) => s + (typeof i === "string" ? i.length : 0), 0);
-    if (bytes > 28_000_000) return json({ ok: false, code: "PAYLOAD_TOO_LARGE", error: "Las imágenes de referencia son demasiado grandes." }, 413);
+    // 5C: MIME del inline principal validado contra allowlist (la referencia se pasa a Gemini).
+    const MIME_OK = new Set(["image/jpeg", "image/png", "image/webp"]);
+    if (body?.imagen && !MIME_OK.has(String(body?.mediaType || "image/jpeg"))) {
+      return json({ ok: false, code: "UNSUPPORTED_MEDIA_TYPE", error: "Formato de imagen no soportado (usa JPG, PNG o WEBP)." }, 415);
+    }
+    // 5D: bytes REALES de base64 decodificado (no string.length).
+    const b64bytes = (s: string) => { const n = (s || "").length; const pad = s.endsWith("==") ? 2 : s.endsWith("=") ? 1 : 0; return Math.max(0, Math.floor(n * 3 / 4) - pad); };
+    const bytes = imgs.reduce((s: number, i: any) => s + (typeof i === "string" ? b64bytes(i) : 0), 0);
+    if (bytes > 21_000_000) return json({ ok: false, code: "PAYLOAD_TOO_LARGE", error: "Las imágenes de referencia son demasiado grandes." }, 413);
   }
   const { descripcion = "", materiales = [], medidas = "", tipo = "", spec = "", render_spec = null, imagen = "", imagenes = [], mediaType = "image/jpeg", modo = "render", aspecto = "", cuarto = "", lineas = [], conteoPiso = null, entorno = "", preservar = "" } = body || {};
   // MIME allowlist: sólo formatos de imagen/plano soportados (evita payloads raros).
