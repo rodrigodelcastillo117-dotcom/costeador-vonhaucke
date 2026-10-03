@@ -16,6 +16,7 @@ import { pesos, pct, pct1, colorMerma } from '../util.js';
 import AnalisisEstructural from './AnalisisEstructural.jsx';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
+import { aplicarPoliticaMaterial, MATCH } from '../datos/materialMatch.js';
 import { flagActivo } from '../datos/flags.js';
 
 const ATAJOS = [
@@ -110,8 +111,13 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   // que el Asistente especial). Un insumoId que no exista queda '' → el motor lo marca
   // como pendiente (fail-closed), nunca lo inventa.
   const mapIaComps = (p) => (p?.piezas || []).map((z) => {
-    const existe = !!insumos[z.insumoId];
-    const base = { nombre: z.nombre || 'Pieza', insumoId: existe ? z.insumoId : '', cantidad: z.cantidad || 1, piezas: 1, iaNota: z.nota || '', iaConf: z.confianza || '', iaRazon: z.razonamiento || '' };
+    // POLÍTICA DE MATERIAL: jamás sustituye solid surface por MDF/HPL en silencio.
+    // Sólo EXACT/EQUIVALENT_APPROVED conservan insumoId; una sustitución de otra
+    // familia o un material inexistente quedan '' + bandera `_match` para la UI
+    // (el motor los marca pendientes, nunca los costea en $0 disfrazados).
+    // `material_solicitado` lo da el analizador (v19+); si no viene, cae al nombre
+    // de la pieza, que ya suele traer el material ("Cubierta superficie sólida").
+    const base = aplicarPoliticaMaterial({ ...z, material_solicitado: z.material_solicitado || z.nombre }, (id) => insumos[id]);
     if (z.forma === 'area') { base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1; if (z.hojas > 0) base.hojas = z.hojas; }
     return base;
   });
@@ -407,6 +413,14 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                   </select>
                   <button className="pieza-x" onClick={() => quitarPieza(i)} aria-label="quitar pieza">×</button>
                 </div>
+
+                {c._match && (c._match.clase === MATCH.SUBSTITUTE_REQUIRES_CONFIRMATION || c._match.clase === MATCH.NOT_AVAILABLE) && (
+                  <div className="pieza-match-alerta" style={{ background: '#fff4e5', border: '1px solid #f0c38e', borderRadius: 8, padding: '6px 10px', margin: '6px 0', fontSize: 13, color: '#7a4a00' }}>
+                    ⚠️ {c._match.clase === MATCH.NOT_AVAILABLE ? 'Material pendiente de precio real' : 'Sustitución requiere confirmación'}
+                    {c._match.solicitado ? <> — pediste <b>{c._match.solicitado}</b>.</> : '.'}{' '}
+                    {c._match.motivo} Escoge el material arriba para costearlo (no se sustituye solo).
+                  </div>
+                )}
 
                 {ins && (
                   <div className="pieza-med">
