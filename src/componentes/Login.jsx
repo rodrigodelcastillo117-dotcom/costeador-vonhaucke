@@ -119,6 +119,11 @@ export default function Login({ onEntrar, aviso = '' }) {
           )}
 
           <p className="ayuda entrada-pie">¿No puedes entrar? Pídele a Dirección que te dé de alta.</p>
+          {/* Trazabilidad discreta: qué build/commit se está viendo (audit). Guardado
+              con typeof por si corre fuera del build (tests/dev sin define). */}
+          <p className="ayuda" style={{ textAlign: 'center', opacity: 0.4, fontSize: 11, marginTop: 10 }}>
+            {`v${typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'} · ${typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : 'dev'}`}
+          </p>
         </div>
       </div>
     </div>
