@@ -8,6 +8,7 @@ import { createRoot } from 'react-dom/client';
 import './estilos.css';
 import './fuentes.css';
 import PlanoAcomodo from './componentes/PlanoAcomodo.jsx';
+import PropuestaViva from './componentes/PropuestaViva.jsx';
 import CosteadorLinea from './componentes/CosteadorLinea.jsx';
 import Inicio from './componentes/Inicio.jsx';
 import Costeador from './componentes/Costeador.jsx';
@@ -165,13 +166,21 @@ function BancoCosteador() {
   </div>;
 }
 
+// Banco de pruebas de la LOCURA: Propuesta Viva (overlay a pantalla completa).
+function BancoViva() {
+  const [abierto, setAbierto] = useState(true);
+  if (!abierto) return <div className="contenido"><button className="boton primario" onClick={() => setAbierto(true)}>Abrir Propuesta Viva</button></div>;
+  return <PropuestaViva areas={ESCENA.areas} plan={ESCENA.plan} byId={ESCENA.byId}
+    nombre="Corporativo Reforma" cliente="Grupo Reforma" inversion={643247} onCerrar={() => setAbierto(false)} />;
+}
+
 // Selector de banco: 3D del acomodo · cotizar de línea · costear especial.
 function Bancos() {
   const [cual, setCual] = useState('plano');
-  const B = { plano: <Banco />, linea: <BancoLinea />, costeador: <BancoCosteador />, banco: <BancoPrecios onAgregar={() => {}} onIr={() => {}} /> };
+  const B = { plano: <Banco />, viva: <BancoViva />, linea: <BancoLinea />, costeador: <BancoCosteador />, banco: <BancoPrecios onAgregar={() => {}} onIr={() => {}} /> };
   return <>
     <div className="contenido"><div className="fila-botones" style={{ gap: 8, margin: '12px 0' }}>
-      {[['plano', 'Plano 3D'], ['linea', 'Cotizar de línea'], ['costeador', 'Costear especial'], ['banco', 'Banco de precios']].map(([k, t]) => (
+      {[['plano', 'Plano 3D'], ['viva', '✨ Propuesta Viva'], ['linea', 'Cotizar de línea'], ['costeador', 'Costear especial'], ['banco', 'Banco de precios']].map(([k, t]) => (
         <button key={k} className={`boton ${cual === k ? 'tinta' : 'fantasma'}`} onClick={() => setCual(k)}>{t}</button>
       ))}
     </div></div>
