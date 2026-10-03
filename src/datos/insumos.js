@@ -152,6 +152,20 @@ export const INSUMOS_SEMILLA = [
   ins({ id: 'marmol', nombre: 'Marmol (losa 20 mm)', seccion: 'cubiertas', precio: 2000, clase: 'indirecta' }),          // por m2
   ins({ id: 'marmol-premium', nombre: 'Marmol premium (Calacatta/Arabescato/Nero)', seccion: 'cubiertas', precio: 2800, clase: 'indirecta' }), // por m2
   ins({ id: 'cristal-satinado', nombre: 'Cristal satinado 9 mm', seccion: 'cubiertas', precio: 2130, clase: 'indirecta' }), // por m2
+  // SUPERFICIE SÓLIDA (solid surface tipo Corian/Krion/Staron): mineral termoformable,
+  // sin juntas. La FABRICAMOS (corte, termoformado, unión invisible) → clase 'directa'
+  // (lleva mano de obra de cubierta en Alba). Precio PROVISIONAL de mercado con −40% de
+  // distribuidor; PENDIENTE de que Compras lo certifique contra una compra real.
+  ins({ id: 'solid-surface', nombre: 'Superficie sólida (solid surface, Corian/Krion)', seccion: 'cubiertas', precio: 2400, clase: 'directa',
+    nota: 'Estimado de mercado −40% distribuidor; pendiente de certificación de Compras.',
+    fuente: 'Estimado de mercado (−40% distribuidor) 2026-10-03 — PENDIENTE Compras' }),
+  // PORTAMONITORES / brazos de pantalla (proveedor importado Loktec). Se COMPRAN ya
+  // hechos y solo se instalan → seccion 'electrico' (no cargan MO de fabricación) e
+  // 'indirecta'. Precio del PROVEEDOR en USD (ya es nuestro costo de distribuidor).
+  ins({ id: 'portamonitor-loktec-d7a', nombre: 'Portamonitor / brazo de pantalla Loktec D7A', seccion: 'electrico', precio: 25, moneda: 'USD', unidad: 'pza', clase: 'indirecta',
+    articulo: 'Brazo portamonitor Loktec modelo D7A', fuente: 'Proveedor Loktec (USD) — insumo importado' }),
+  ins({ id: 'portamonitor-loktec-ma8', nombre: 'Portamonitor / brazo de pantalla Loktec MA8', seccion: 'electrico', precio: 23, moneda: 'USD', unidad: 'pza', clase: 'indirecta',
+    articulo: 'Brazo portamonitor Loktec modelo MA8', fuente: 'Proveedor Loktec (USD) — insumo importado' }),
   ins({ id: 'tapacanto', nombre: 'Tapacanto PVC', seccion: 'cubiertas', precio: 3.04, unidad: 'm', formato: ROLLO50, mermaCorte: 4, inventario: true }),
   ins({ id: 'tapacanto-3mm', nombre: 'Tapacanto ABS 3 mm', seccion: 'cubiertas', precio: 15.99, unidad: 'm', formato: ROLLO50, mermaCorte: 4, inventario: true }),
   // ⚠️ NO ES UN MATERIAL: es una OPERACIÓN, cobrada por metro de canto curvo.
