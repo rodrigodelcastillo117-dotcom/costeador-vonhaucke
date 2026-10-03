@@ -11,7 +11,7 @@
 import { ejecutarTool } from './tools.js';
 import { correrLente } from './lentes.js';
 import { lenteEfectiva, rolVeEconomia } from './permisos.js';
-import { respuestaEstructurada, ESTADO, URGENCIA, confianzaDe } from './respuesta.js';
+import { respuestaEstructurada, ESTADO, URGENCIA, confianzaDe, afirmacion, TIPO_AFIRMACION } from './respuesta.js';
 import { registrar } from './observabilidad.js';
 
 export const MODOS = Object.freeze({ CONSULTAR: 'CONSULTAR', ANALIZAR: 'ANALIZAR', PROPONER: 'PROPONER' });
@@ -69,6 +69,11 @@ export function inferirIntencion(query, ctx = {}) {
   if (/\b(atencion|atenci[oó]n|hoy|que necesito|prioridad)\b/.test(q)) {
     return { intent: 'ATTENTION', modo, lentes: ['direccion'], tools: ['get_today_attention', 'get_direction_facts', 'get_approvals'] };
   }
+  // CONOCIMIENTO DE PRODUCTO (qué línea sirve, materiales, a la medida). Va ANTES
+  // que COSTING para que "¿qué mueble me sirve?" no se confunda con "costéame".
+  if (/\b(que linea|recomien|me sirve|sugier|de que esta|a la medida|material|acabado|que producto|catalogo|que mueble|sirve para|para (una|un) )\b/.test(q)) {
+    return { intent: 'KNOWLEDGE', modo, lentes: ['conocimiento'], tools: ['get_catalog_knowledge'] };
+  }
   if (/\b(analiza este mueble|producto|mueble|costear|costo|fabricar|bom)\b/.test(q)) {
     return { intent: 'COSTING_ANALYSIS', modo: MODOS.ANALIZAR, lentes: ['costeador'], tools: ['get_costing', 'get_bom', 'get_render_status'] };
   }
@@ -121,6 +126,31 @@ function sintetizar(intent, resultadosLente) {
   });
 }
 
+// Respuesta de CONOCIMIENTO de producto (catálogo Von Haucke). Mismo contrato.
+function respuestaConocimiento(k) {
+  if (!k) {
+    return respuestaEstructurada({ que_paso: 'No pude consultar el catálogo ahora.', estado: ESTADO.DESCONOCIDO, urgencia: URGENCIA.BAJA, lentes: ['conocimiento'], bloqueos: [], evidencia: [] });
+  }
+  const evidencia = (k.principios || []).map((p) => afirmacion(p, TIPO_AFIRMACION.HECHO, { source_type: 'catalogo' }));
+  let que_paso; let por_que = null;
+  if (k.recomendaciones && k.recomendaciones.length) {
+    que_paso = `Te sirve: ${k.recomendaciones.map((r) => r.nombre).join(', ')}.`;
+    por_que = k.recomendaciones.map((r) => `${r.nombre} — ${r.que} (${r.razones.join('; ')})`).join(' · ');
+    for (const r of k.recomendaciones) evidencia.push(afirmacion(`${r.nombre}: ${r.que}.`, TIPO_AFIRMACION.HECHO, { source_type: 'catalogo', confidence: 0.8 }));
+  } else if (k.linea) {
+    que_paso = `${k.linea.nombre}: ${k.linea.que}.`;
+    por_que = `Fabrica: ${(k.linea.fabrica || []).join(', ')}.`;
+  } else {
+    que_paso = 'Von Haucke fabrica casi todo a la medida. Dime el mueble o la zona (sala de juntas, privado, recepción, lounge…) y te recomiendo la línea.';
+  }
+  if (k.esAMedida) por_que = `${por_que ? `${por_que} · ` : ''}Sí: casi todo se hace a la medida (medidas y acabados); por eso cada pieza se costea por su despiece.`;
+  return respuestaEstructurada({
+    que_paso, por_que, confianza: confianzaDe(evidencia),
+    accion: 'Dime la zona o el mueble y lo aterrizo en tu cotización.',
+    evidencia, urgencia: URGENCIA.BAJA, estado: ESTADO.OK, lentes: ['conocimiento'], bloqueos: [],
+  });
+}
+
 /**
  * EL CEREBRO. Infiere intención, llama tools (con permisos/sanitización), corre
  * lentes y sintetiza UNA respuesta. Nunca lanza.
@@ -133,12 +163,22 @@ export async function responder({ query, ctx = {}, prov = {}, intentForzado = nu
     ? { intent: intentForzado, modo: MODOS.ANALIZAR, lentes: [lenteEfectiva(contexto.role).lente], tools: ['get_project_context', 'get_reconciliation'] }
     : inferirIntencion(query, contexto);
 
+  // CONOCIMIENTO DE PRODUCTO: responde directo desde el catálogo (sin lentes de
+  // readiness). Mantiene el MISMO contrato de respuesta, así la UI no cambia.
+  if (plan.intent === 'KNOWLEDGE') {
+    const res = await ejecutarTool('get_catalog_knowledge', contexto, { ...contexto, query }, prov);
+    const respuesta = respuestaConocimiento(res.ok ? res.data : null);
+    const obs = registrar({ ctx: contexto, intent: plan.intent, lentes: plan.lentes, tools: ['get_catalog_knowledge'], resultStatus: respuesta.estado, duration: Date.now() - t0 });
+    return { respuesta, intent: plan.intent, modo: plan.modo, observabilidad: obs };
+  }
+
   // Llamar tools (cada una con auth+permiso+sanitización). Las económicas que el
   // rol no puede ver simplemente fallan con sin_permiso y NO entran en `datos`.
+  // La consulta viaja en args (`query`) para las tools que la usan (conocimiento).
   const datos = {};
   const toolsLlamadas = [];
   for (const nombre of plan.tools) {
-    const res = await ejecutarTool(nombre, contexto, { ...contexto }, prov);
+    const res = await ejecutarTool(nombre, contexto, { ...contexto, query }, prov);
     toolsLlamadas.push(nombre);
     if (res.ok) datos[nombre] = res.data;
   }
@@ -173,6 +213,7 @@ export function sugerencias(ctx = {}) {
   }
   if (r === 'direccion' || r === 'cfo') base.push('¿Qué necesita mi atención?');
   if (r === 'costeador' || r === 'diseno') base.push('Analiza este mueble');
+  base.push('¿Qué línea me sirve?');   // conocimiento de producto, útil para cualquiera
   if (!base.length) base.push('¿Qué necesita mi atención?', '¿Qué falta?');
   return base.slice(0, 5);
 }

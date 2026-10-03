@@ -22,6 +22,7 @@
 
 ## Resumen de commits
 ```
+b658cf5 Conectar Voni 2.0 al TRABAJO VIVO (partidas + acomodo del flujo principal)
 dc8a3f6 Plano: auto-encuadre del lienzo + métricas $/m² y $/posición
 3ac0843 Dibujar plano: plantillas por giro + herramienta curva (óvalo)
 f115b43 Dibujar plano: "dibuja a ojo y yo lo mido" — escala al m² objetivo
@@ -85,13 +86,30 @@ Archivos: `App.jsx` (+17), `Acomodo.jsx` (+17), `DibujarPlano.jsx` (+159),
 
 ### 6. `estilos.css` — `.plano-wrap` marco premium (gradiente, sombra, radio, esquinas redondas del 3D). Solo visual.
 
-### 7. `plano.jsx` — harness dev-only: pestaña "Propuesta Viva" (NO entra al build).
+### 7. `plano.jsx` — harness dev-only: pestañas "Propuesta Viva" y "🧠 Voni 2.0" (NO entra al build).
+
+### 8. Voni 2.0 conectado al TRABAJO VIVO (`App.jsx` + `voni/nucleo.js` + `voni/proveedorReal.js`)
+- El host (`App.jsx`) inyecta por `ctx`: **`partidasLocales`** (partidas en pantalla
+  recortadas a seller-safe: nombre/cantidad/precio/sinPrecioAutorizado — SIN costo
+  ni margen) y **`acomodoLocal`** (geometría del acomodo, sin economía).
+- `construirContexto` (nucleo.js) los deja pasar; `get_quote` y `get_layout`
+  (proveedorReal.js) los usan como fuente VIVA cuando no hay ids de BD.
+- Resultado: en el flujo principal, "¿está lista?" detecta renglones sin precio
+  (BLOQUEANTE) y "¿cabe?" detecta muebles sin acomodar. La salida sigue pasando por
+  `sanitizarPorContexto` (rol/modo) en `tools.js`.
+- **AUDITAR (crítico):** confirmar que `partidasLocales` NUNCA lleva `costoUnitario`
+  ni `margen` (se arma en App.jsx sólo con 4 campos); que para vendedor/cliente el
+  saneador de `tools.js` re-filtra; que la lente ≠ permiso sigue intacto (un vendedor
+  pidiendo lente CFO NO ve economía). Revisar que no se rompió la ruta de BD
+  (project_id/quote_id) que ya existía.
 
 ## Cómo verificar
 - Pruebas: `npx vitest run` → 591/591.
 - Salud de todas las pantallas: `http://localhost:5173/humo.html` → "54 de 54 montan bien".
 - 3D y Propuesta Viva: `http://localhost:5173/plano.html`.
 - Editor de plano (plantillas, curva, dimensionar, esquina-por-esquina): `http://localhost:5173/humo.html?solo=dibujar`.
+- Voni 2.0 conectado: `http://localhost:5173/plano.html` → pestaña **🧠 Voni 2.0** →
+  "¿está lista?" (detecta renglón sin precio) / "¿cabe?" (detecta sin acomodar).
 - En vivo (requiere login): `https://vonhaucke-rc.vercel.app` → cotización → "Acomodo en el espacio".
 
 ## Preguntas para el auditor (red-team)
@@ -103,3 +121,6 @@ Archivos: `App.jsx` (+17), `Acomodo.jsx` (+17), `DibujarPlano.jsx` (+159),
 5. ¿Los `tipo` de las plantillas (`open/privado/juntas/recepcion/lounge`) son todos
    válidos para el motor de acomodo y el render? (Deben serlo.)
 6. ¿Algo de esto cambió el PRECIO, el costo o una fuente de verdad? (No debería.)
+7. ¿Puede `partidasLocales`/`acomodoLocal` (inyectados a Voni por ctx) filtrar costo,
+   margen o datos internos a un vendedor/cliente? ¿El saneador de `tools.js` los
+   re-filtra? ¿Se mantiene "lente ≠ permiso"?

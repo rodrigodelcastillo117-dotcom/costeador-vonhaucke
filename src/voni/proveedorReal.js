@@ -16,6 +16,7 @@ import {
 } from '../datos/crm.js';
 import { hoyNecesitaAtencion, hechosDireccion } from '../datos/atencion.js';
 import { diffRevisiones } from '../datos/diffRevisiones.js';
+import { conocimientoDe } from './conocimiento.js';
 
 const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
 
@@ -117,6 +118,9 @@ export const proveedorReal = {
   get_costing: async (ctx) => (ctx.costing
     ? ctx.costing
     : { disponible: false, nota: 'El costo se consolida por pieza en el Costeador; no hay un total de proyecto inventado aquí.' }),
+  // Conocimiento del catálogo Von Haucke (líneas, materiales, a la medida). Usa la
+  // consulta del usuario (args.query) para recomendar/explicar. No es económico.
+  get_catalog_knowledge: async (ctx, args) => conocimientoDe(args?.query || ''),
   get_product: async () => null,
   search_products: async () => [],
 };
