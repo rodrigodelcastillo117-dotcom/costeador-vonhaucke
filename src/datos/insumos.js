@@ -22,6 +22,10 @@ const HOY = '2026-08-12';
 export const FUENTE_COMPRAS = 'Compras, lista del 2026-08-14';
 export const FUENTE_ERP = 'ERP, ultima compra';
 export const FUENTE_SONARA = 'Lista_de_precios_Sonara_2025 (Rafa Carranza, 2026-08-24) — precio de lista, mas IVA, sin empaque/envio';
+// Superficie sólida: precio de MERCADO con −40% de distribuidor (volumen institucional
+// tipo ASUR), confirmado por Rodrigo 2026-10-03. Estimado de mercado, NO compra VH aún:
+// Compras lo afina al cerrar. Lista $14,500–17,500/placa (2.78 m²) −40% ≈ $3,130–3,780/m².
+export const FUENTE_SS = 'Mercado MX −40% distribuidor (Rodrigo 2026-10-03, volumen ASUR) — Compras afina';
 // T.D.C. real de la banca doble Aeropuerto CDMX (C-CO-510R), Rafa 2026-09-24.
 // Fuente de items de metal/electrico que el catalogo no tenia. La UNIDAD de los
 // tubos de 4" se tomo como en el T.D.C. (consumo x precio); confirmar con Rafa
@@ -154,11 +158,22 @@ export const INSUMOS_SEMILLA = [
   ins({ id: 'cristal-satinado', nombre: 'Cristal satinado 9 mm', seccion: 'cubiertas', precio: 2130, clase: 'indirecta' }), // por m2
   // SUPERFICIE SÓLIDA (solid surface tipo Corian/Krion/Staron): mineral termoformable,
   // sin juntas. La FABRICAMOS (corte, termoformado, unión invisible) → clase 'directa'
-  // (lleva mano de obra de cubierta en Alba). Precio PROVISIONAL de mercado con −40% de
-  // distribuidor; PENDIENTE de que Compras lo certifique contra una compra real.
-  ins({ id: 'solid-surface', nombre: 'Superficie sólida (solid surface, Corian/Krion)', seccion: 'cubiertas', precio: 2400, clase: 'directa',
-    nota: 'Estimado de mercado −40% distribuidor; pendiente de certificación de Compras.',
-    fuente: 'Estimado de mercado (−40% distribuidor) 2026-10-03 — PENDIENTE Compras' }),
+  // (lleva MO de cubierta en Alba). Precio por m² CALIBRADO al mercado MX: placa 0.76×3.66
+  // (2.78 m²) 12 mm, lista $14,500–17,500 −40% distribuidor = $8,700–10,500/placa →
+  // $3,130–3,780/m² (confirmado Rodrigo 2026-10-03, volumen ASUR). Compras afina al cerrar.
+  ins({ id: 'solid-surface', nombre: 'Superficie sólida 12 mm (solid surface, Corian/Krion)', seccion: 'cubiertas', precio: 3450, clase: 'directa',
+    nota: 'Precio de mercado −40% distribuidor (placa 2.78 m²). Pendiente de afinar con Compras.',
+    fuente: FUENTE_SS }),
+  // AZUL mineral oscuro (el de los counters de ASUR): color saturado/texturizado = grupo
+  // de precio intermedio-alto (pigmentos acrílicos + vaciado). Punta alta del rango.
+  ins({ id: 'solid-surface-azul', nombre: 'Superficie sólida 12 mm AZUL mineral (counters ASUR)', seccion: 'cubiertas', precio: 3800, clase: 'directa',
+    nota: 'Azul oscuro mineral (gama alta). Precio de mercado −40% distribuidor; Compras afina.',
+    fuente: FUENTE_SS }),
+  // Adhesivo acrílico IGUALADO al color (uniones invisibles). Consumo ALTO en barras
+  // largas con engrosados perimetrales — por eso va como insumo, no se regala.
+  ins({ id: 'adhesivo-solid-surface', nombre: 'Adhesivo acrílico solid surface (cartucho igualado)', seccion: 'cubiertas', precio: 1050, unidad: 'pza', clase: 'directa',
+    nota: 'Cartucho de pegamento acrílico original igualado al tono; alto consumo en engrosados.',
+    fuente: FUENTE_SS }),
   // PORTAMONITORES / brazos de pantalla (proveedor importado Loktec). Se COMPRAN ya
   // hechos y solo se instalan → seccion 'electrico' (no cargan MO de fabricación) e
   // 'indirecta'. Precio del PROVEEDOR en USD (ya es nuestro costo de distribuidor).
