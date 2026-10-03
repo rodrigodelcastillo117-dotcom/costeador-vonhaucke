@@ -26,6 +26,7 @@ import { escenasDeAcomodo, lineasDeEscena, tipoDeEscena } from '../datos/escenas
 import { LINEAS_REG } from '../datos/lineas.js';
 import { areasDeLectura, revisarAreas } from '../datos/planoLeido.js';
 import PlanoAcomodo from './PlanoAcomodo.jsx';
+import PropuestaViva from './PropuestaViva.jsx';
 import DibujarPlano from './DibujarPlano.jsx';
 import EmpezarEspacio from './EmpezarEspacio.jsx';
 import Cargando from './Cargando.jsx';
@@ -642,6 +643,12 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // es la del cliente.
   const isoLimpioRef = useRef(null);   // la copia SIN etiquetas: es la que se manda
   const [realista, setRealista] = useState('');
+  // ✨ PROPUESTA VIVA: el modo presentación cinematográfico para el cliente.
+  const [vivaAbierta, setVivaAbierta] = useState(false);
+  // Inversión = precio al CLIENTE (precio × cantidad). Nunca costo ni margen:
+  // esto se le enseña al cliente, así que es client-safe por construcción.
+  const inversionCliente = partidas.reduce((s, p) => s + (Number(p.precioUnitario) || 0) * (Number(p.cantidad) || 0), 0);
+  const clienteNombre = (estado.cotizacion?.cliente || '').trim();
 
   // ---- UNA ESCENA POR CUARTO -----------------------------------------------
   // Rodrigo, probándola en el celular: "el render sale así siempre, no pone
@@ -1134,11 +1141,21 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
             <button className="boton" style={{ minHeight: 42 }} disabled={generandoReal || !plan} onClick={vistaRealista}>
               {generandoReal ? 'Generando…' : realista ? 'Volver a generar' : 'Vista realista (IA)'}
             </button>
+            {/* ✨ PROPUESTA VIVA: presentación cinematográfica para el cliente. */}
+            <button className="boton primario" style={{ minHeight: 42 }} disabled={!plan || !areas.length} onClick={() => setVivaAbierta(true)}>
+              ✨ Propuesta Viva
+            </button>
             {onGuardarAcomodo && !guardado && <button className="boton" style={{ minHeight: 42, marginLeft: 'auto' }} onClick={guardarEnPropuesta}>Guardar en la propuesta</button>}
             {guardado && <button className="boton primario" style={{ minHeight: 42, marginLeft: 'auto' }} onClick={() => onIr('cotizacion')}>Ver cotización con el acomodo →</button>}
           </div>
           {guardado && <div className="ayuda verde no-imprimir" style={{ marginTop: 6 }}>✓ Guardado. Ya aparece en el PDF de la propuesta.</div>}
 
+          {vivaAbierta && (
+            <PropuestaViva areas={areasMM} plan={plan} byId={byId}
+              nombre={clienteNombre || 'Tu nueva oficina'} cliente={null}
+              inversion={inversionCliente > 0 ? inversionCliente : null}
+              onCerrar={() => setVivaAbierta(false)} />
+          )}
           <PlanoAcomodo areas={areasMM} plan={plan} byId={byId} modo={modo}
             editable={aMano && modo === 'planta'} sel={selPieza}
             hayEnMano={!!enLaMano}
