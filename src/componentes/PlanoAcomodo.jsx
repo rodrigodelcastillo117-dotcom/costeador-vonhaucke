@@ -882,13 +882,25 @@ function PlanoIso({ areas: areas0, offs: offs0, coloc: coloc0, byId, limpio = fa
   // lado: el respaldo seguía cruzado a lo ancho aunque la mesa corriera a lo alto.
   const silla = (out, cx, cy, lado, key) => {
     const W = 520, D = 520;
-    out.push(cuboide(cx - 70, cy - 70, 140, 140, 0, 370, shadeHex(MAT.chair, 0.72), key + 'p'));
-    out.push(cuboide(cx - W / 2, cy - D / 2, W, D, 370, 450, MAT.chair, key + 'a'));
+    // Antes: un poste + asiento + respaldo (se veía como un cubo). Ahora: base de
+    // estrella + pistón + asiento + BRAZOS + respaldo → se lee como silla de
+    // oficina de verdad. Los brazos van a los lados perpendiculares al respaldo.
+    out.push(cuboide(cx - 150, cy - 150, 300, 300, 0, 60, shadeHex(MAT.chair, 0.6), key + 'bs'));    // base ancha
+    out.push(cuboide(cx - 60, cy - 60, 120, 120, 60, 420, shadeHex(MAT.chair, 0.72), key + 'p'));     // pistón
+    out.push(cuboide(cx - W / 2, cy - D / 2, W, D, 420, 500, MAT.chair, key + 'a'));                   // asiento
+    const arm = 60, az0 = 500, az1 = 610;
+    if (lado === 's' || lado === 'n') {
+      out.push(cuboide(cx - W / 2, cy - D * 0.3, arm, D * 0.6, az0, az1, shadeHex(MAT.chair, 0.92), key + 'bl'));
+      out.push(cuboide(cx + W / 2 - arm, cy - D * 0.3, arm, D * 0.6, az0, az1, shadeHex(MAT.chair, 0.92), key + 'br'));
+    } else {
+      out.push(cuboide(cx - D * 0.3, cy - W / 2, D * 0.6, arm, az0, az1, shadeHex(MAT.chair, 0.92), key + 'bl'));
+      out.push(cuboide(cx - D * 0.3, cy + W / 2 - arm, D * 0.6, arm, az0, az1, shadeHex(MAT.chair, 0.92), key + 'br'));
+    }
     const r = lado === 's' ? [cx - W / 2 + 40, cy + D / 2 - 90, W - 80, 90]
       : lado === 'n' ? [cx - W / 2 + 40, cy - D / 2, W - 80, 90]
         : lado === 'e' ? [cx + W / 2 - 90, cy - D / 2 + 40, 90, D - 80]
           : [cx - W / 2, cy - D / 2 + 40, 90, D - 80];
-    out.push(cuboide(r[0], r[1], r[2], r[3], 450, 950, shadeHex(MAT.chair, 1.06), key + 'r'));
+    out.push(cuboide(r[0], r[1], r[2], r[3], 500, 1000, shadeHex(MAT.chair, 1.06), key + 'r'));         // respaldo
   };
 
   const mueble = (x, y, w, d, tipo, key, familia = null, sillasReales = false) => {
