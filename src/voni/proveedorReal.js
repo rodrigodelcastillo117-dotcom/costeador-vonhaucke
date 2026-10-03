@@ -38,6 +38,13 @@ export const proveedorReal = {
   get_scope: async () => null, // sin fuente de scope por zonas (no se fabrica)
   get_reconciliation: async () => null, // sin fuente de reconciliación por zonas
   get_quote: async (ctx) => {
+    // TRABAJO VIVO primero: lo que el vendedor tiene en pantalla (el host lo
+    // inyecta YA recortado a seller-safe). Así Voni analiza la cotización actual,
+    // no sólo lo guardado en la BD comercial.
+    if (Array.isArray(ctx.partidasLocales)) {
+      const partidas = ctx.partidasLocales;
+      return { partidas, sinPrecio: partidas.filter((x) => x && x.sinPrecioAutorizado) };
+    }
     if (ctx.quote_id == null) return null;
     const { data } = await cotizacionSegura(ctx.quote_id);
     const partidas = data?.partidas || data?.cotizacion?.partidas || [];
@@ -72,6 +79,16 @@ export const proveedorReal = {
     return data || [];
   },
   get_layout: async (ctx) => {
+    // ACOMODO VIVO: si el host inyecta el acomodo en pantalla (flujo principal),
+    // se lee de ahí. Sin economía (es pura geometría).
+    if (ctx.acomodoLocal != null || Array.isArray(ctx.partidasLocales)) {
+      const a = ctx.acomodoLocal || {};
+      const tiene = !!(a.plan && Array.isArray(a.plan.colocacion) && a.plan.colocacion.length);
+      const nPart = (ctx.partidasLocales || []).length;
+      const warnings = [];
+      if (nPart > 0 && !tiene) warnings.push('Hay muebles en la cotización pero aún no están acomodados en un plano.');
+      return { tieneAcomodo: tiene, cotizaciones: [], warnings };
+    }
     if (ctx.project_id == null) return null;
     // Fuente real del layout: cotizaciones.acomodo (no una columna de proyectos).
     const { data } = await acomodosDeProyecto(ctx.project_id);

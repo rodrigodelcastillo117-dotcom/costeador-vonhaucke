@@ -999,6 +999,18 @@ export default function App() {
                 role: esDireccion ? 'direccion' : esDiseno ? 'diseno' : 'ventas',
                 route: pestania,
                 quote_id: estado?.cotizacion?.id ?? null,
+                // CONEXIÓN CON EL TRABAJO VIVO: para que Voni analice lo que está
+                // en pantalla (no sólo lo guardado en la BD comercial). Las
+                // partidas van YA recortadas a seller-safe (nombre/cantidad/precio),
+                // NUNCA costo ni margen — fail-closed, aunque el saneador ya re-filtra.
+                partidasLocales: (estado.cotizacion?.partidas || []).map((p) => ({
+                  nombre: p.nombre,
+                  cantidad: p.cantidad,
+                  precioUnitario: p.precioUnitario,
+                  sinPrecioAutorizado: !(Number(p.precioUnitario) > 0),
+                })),
+                // Acomodo vivo (geometría, sin economía) para "¿cabe? ¿está acomodado?".
+                acomodoLocal: estado.cotizacion?.acomodo || null,
                 // Fuente económica autorizada: SÓLO veCostos, y sólo el BOM del
                 // costeo actual (la tool igual bloquea a vendedor/cliente).
                 bom: veCostos ? (costeo?.componentes || null) : null,

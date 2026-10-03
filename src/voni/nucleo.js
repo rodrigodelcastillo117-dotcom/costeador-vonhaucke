@@ -35,6 +35,11 @@ export function construirContexto(p = {}) {
     // tools para vendedor/cliente, así que esto nunca filtra economía.
     bom: p.bom ?? null,
     costing: p.costing ?? null,
+    // Trabajo VIVO del flujo principal (seller-safe + geometría del acomodo), para
+    // que Voni analice lo que está EN PANTALLA, no sólo lo guardado en la BD
+    // comercial. Si no se pasan aquí, el proveedor nunca los ve.
+    partidasLocales: p.partidasLocales ?? null,
+    acomodoLocal: p.acomodoLocal ?? null,
   };
 }
 
@@ -160,8 +165,10 @@ export async function responder({ query, ctx = {}, prov = {}, intentForzado = nu
 export function sugerencias(ctx = {}) {
   const base = [];
   const r = ctx.role || 'ventas';
-  if (ctx.project_id || ctx.quote_id) {
-    base.push('¿Está lista para enviarse?', '¿Qué falta?', '¿Estamos en budget?');
+  const hayTrabajo = ctx.project_id || ctx.quote_id || (ctx.partidasLocales && ctx.partidasLocales.length);
+  if (hayTrabajo) {
+    base.push('¿Está lista para enviarse?', '¿Qué falta?');
+    if (ctx.project_id || ctx.quote_id) base.push('¿Estamos en budget?');
     if (ctx.revision_id) base.push('¿Qué cambió entre revisiones?');
   }
   if (r === 'direccion' || r === 'cfo') base.push('¿Qué necesita mi atención?');

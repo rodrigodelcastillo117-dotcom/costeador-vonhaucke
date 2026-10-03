@@ -22,6 +22,7 @@
 
 ## Resumen de commits
 ```
+dc8a3f6 Plano: auto-encuadre del lienzo + métricas $/m² y $/posición
 3ac0843 Dibujar plano: plantillas por giro + herramienta curva (óvalo)
 f115b43 Dibujar plano: "dibuja a ojo y yo lo mido" — escala al m² objetivo
 65a2245 Dibujar plano: formas libres fáciles (medidas en vivo + guía + enderezado)
@@ -43,8 +44,10 @@ Archivos: `App.jsx` (+17), `Acomodo.jsx` (+17), `DibujarPlano.jsx` (+159),
 - Reusa `PlanoAcomodo` en modo iso. Muestra marca, ambiente Showroom/Atardecer,
   chips (zonas, m², posiciones, muebles, inversión).
 - **Inversión = Σ(precioUnitario × cantidad)** de las partidas (precio al cliente).
+- Métricas añadidas: **$/m²** y **$/posición** (derivadas de esa misma inversión).
 - **AUDITAR:** confirmar que es **client-safe** (nunca muestra costo/margen/insumos);
-  que `inversion` no filtre datos internos; que el resumen de m²/posiciones no mienta.
+  que `inversion`, $/m² y $/posición no filtren datos internos; que el resumen de
+  m²/posiciones no mienta.
 
 ### 2. `Acomodo.jsx` — botón "✨ Propuesta Viva" + reset "empezar de cero"
 - Botón que abre `PropuestaViva` con `areasMM`/`plan`/`byId` reales.
@@ -73,6 +76,9 @@ Archivos: `App.jsx` (+17), `Acomodo.jsx` (+17), `DibujarPlano.jsx` (+159),
 - **Esquina por esquina** mejorado: enderezado `orto()` (L limpias, diagonales libres),
   medida por pared, línea guía (rubber band) con medida, "quitar último punto".
 - **Herramienta curva/óvalo** (`ovaloPoly`): cuarto elíptico como polígono teselado.
+- **Auto-encuadre**: el lienzo crece (`VW`/`VH`, mínimo 22×15) para que el dibujo
+  completo siempre quepa tras "Dimensionar a m²"; `toM`, rejilla y viewBox usan
+  VW/VH y el SVG lleva aspect-ratio dinámico (clic sigue preciso).
 - **AUDITAR:** `dimensionarAM2` escala desde el origen (0,0) — con m² grandes el dibujo
   se sale del lienzo fijo 22×15 m (cosmético: los datos van correctos al 3D que escala);
   ¿conviene auto-encuadre? Revisar que `orto` no degenere un vértice sobre el anterior.

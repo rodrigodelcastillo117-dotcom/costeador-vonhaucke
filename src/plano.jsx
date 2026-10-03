@@ -9,6 +9,7 @@ import './estilos.css';
 import './fuentes.css';
 import PlanoAcomodo from './componentes/PlanoAcomodo.jsx';
 import PropuestaViva from './componentes/PropuestaViva.jsx';
+import Voni2 from './componentes/Voni2.jsx';
 import CosteadorLinea from './componentes/CosteadorLinea.jsx';
 import Inicio from './componentes/Inicio.jsx';
 import Costeador from './componentes/Costeador.jsx';
@@ -174,13 +175,26 @@ function BancoViva() {
     nombre="Corporativo Reforma" cliente="Grupo Reforma" inversion={643247} onCerrar={() => setAbierto(false)} />;
 }
 
+// Banco de pruebas de VONI 2.0 conectado al TRABAJO VIVO (partidas + acomodo por ctx).
+function BancoVoni() {
+  const ctx = {
+    user: { email: 'demo@vonhaucke.mx' }, role: 'ventas', route: 'cotizacion', clientSafe: false,
+    partidasLocales: [
+      { nombre: 'Escritorio App LT', cantidad: 10, precioUnitario: 8500, sinPrecioAutorizado: false },
+      { nombre: 'Mesa de juntas especial', cantidad: 1, precioUnitario: 0, sinPrecioAutorizado: true },
+    ],
+    acomodoLocal: null,
+  };
+  return <Voni2 ctx={ctx} onCerrar={() => {}} />;
+}
+
 // Selector de banco: 3D del acomodo · cotizar de línea · costear especial.
 function Bancos() {
   const [cual, setCual] = useState('plano');
-  const B = { plano: <Banco />, viva: <BancoViva />, linea: <BancoLinea />, costeador: <BancoCosteador />, banco: <BancoPrecios onAgregar={() => {}} onIr={() => {}} /> };
+  const B = { plano: <Banco />, viva: <BancoViva />, voni: <BancoVoni />, linea: <BancoLinea />, costeador: <BancoCosteador />, banco: <BancoPrecios onAgregar={() => {}} onIr={() => {}} /> };
   return <>
     <div className="contenido"><div className="fila-botones" style={{ gap: 8, margin: '12px 0' }}>
-      {[['plano', 'Plano 3D'], ['viva', '✨ Propuesta Viva'], ['linea', 'Cotizar de línea'], ['costeador', 'Costear especial'], ['banco', 'Banco de precios']].map(([k, t]) => (
+      {[['plano', 'Plano 3D'], ['viva', '✨ Propuesta Viva'], ['voni', '🧠 Voni 2.0'], ['linea', 'Cotizar de línea'], ['costeador', 'Costear especial'], ['banco', 'Banco de precios']].map(([k, t]) => (
         <button key={k} className={`boton ${cual === k ? 'tinta' : 'fantasma'}`} onClick={() => setCual(k)}>{t}</button>
       ))}
     </div></div>
