@@ -5,6 +5,7 @@
 //  (modelo de imagen). Devuelve { ok, dataUrl }. Requiere GEMINI_API_KEY.
 // ============================================================================
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -22,8 +23,36 @@ Deno.serve(async (req) => {
   const key = Deno.env.get("GEMINI_API_KEY");
   if (!key) return json({ ok: false, error: "Falta GEMINI_API_KEY en el proyecto (Supabase → Edge Functions → Secrets)." }, 500);
 
+  // --- AUTH (cierra el endpoint caro): usuario válido + permitido. El render usa
+  //     la llave Gemini (de pago); sin esto, cualquiera con la URL podía quemarla.
+  //     verify_jwt=true en el gateway + esta verificación interna (defensa en capas).
+  const URL = Deno.env.get("SUPABASE_URL");
+  const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const ANON = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!URL || !SERVICE) return json({ ok: false, error: "Falta configuración del servidor." }, 500);
+  const authHeader = req.headers.get("Authorization") || "";
+  if (!authHeader.startsWith("Bearer ")) return json({ ok: false, code: "UNAUTHENTICATED", error: "No autenticado." }, 401);
+  let email = "";
+  try {
+    const userClient = createClient(URL, ANON || SERVICE, { global: { headers: { Authorization: authHeader } } });
+    const { data: u } = await userClient.auth.getUser();
+    email = u?.user?.email || "";
+  } catch (_e) { email = ""; }
+  if (!email) return json({ ok: false, code: "UNAUTHENTICATED", error: "Sesión inválida." }, 401);
+  const svc = createClient(URL, SERVICE);
+  const { data: permit } = await svc.from("permitidos").select("rol").eq("email", email).maybeSingle();
+  if (!permit) return json({ ok: false, code: "FORBIDDEN", error: "Tu cuenta no está autorizada para generar renders." }, 403);
+
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, error: "JSON invalido" }, 400); }
+
+  // --- Límites de payload (protección de costo): nº de imágenes y tamaño total. ---
+  {
+    const imgs = [body?.imagen, ...(Array.isArray(body?.imagenes) ? body.imagenes : [])].filter(Boolean);
+    if (imgs.length > 7) return json({ ok: false, code: "TOO_MANY_IMAGES", error: "Máximo 7 imágenes de referencia." }, 413);
+    const bytes = imgs.reduce((s: number, i: any) => s + (typeof i === "string" ? i.length : 0), 0);
+    if (bytes > 28_000_000) return json({ ok: false, code: "PAYLOAD_TOO_LARGE", error: "Las imágenes de referencia son demasiado grandes." }, 413);
+  }
   const { descripcion = "", materiales = [], medidas = "", tipo = "", imagen = "", imagenes = [], mediaType = "image/jpeg", modo = "render", aspecto = "", cuarto = "", lineas = [], conteoPiso = null, entorno = "", preservar = "" } = body || {};
   if (!descripcion.trim() && !imagen) return json({ ok: false, error: "Escribe una descripción del mueble para generar el render." }, 400);
   if (modo === "staging" && !imagen) return json({ ok: false, error: "Sube una foto del espacio para amueblarlo." }, 400);
