@@ -258,7 +258,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   // igual que en el papel de Von Haucke.
   const { precioLista, descuentoPct, descuento, subtotal, contingenciaPct, contingencia,
     maniobrasPct, maniobras, fletePct, flete, ivaPct, iva, baseGravable, total, totalRedondeado,
-    anticipoPct, anticipo } = totalesCotizacion(partidas, cot, estado.parametros);
+    anticipoPct, anticipo, hayLineaInvalida } = totalesCotizacion(partidas, cot, estado.parametros);
   const costoTotal = partidas.reduce((a, p) => a + (p.costoUnitario || 0) * p.cantidad, 0);
   const utilidadTotal = baseGravable - costoTotal;
   const minMarkup = estado.parametros.minMarkupLinea ?? 45;
@@ -706,8 +706,17 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
               {maniobras > 0 && <div className="propx-tot-row"><span>Maniobras e instalación {maniobrasPct}%</span><b>{pesos(maniobras)}</b></div>}
               {flete > 0 && <div className="propx-tot-row"><span>Flete {fletePct}%</span><b>{pesos(flete)}</b></div>}
               <div className="propx-tot-row"><span>IVA {estado.parametros.ivaPorcentaje}%</span><b>{pesos(iva)}</b></div>
-              <div className="propx-tot-grand"><span>TOTAL</span><b>{pesos(totalRedondeado)}</b></div>
-              <div className="propx-tot-anticipo">Anticipo {anticipoPct}%: <b>{pesos(anticipo)}</b> · Saldo contra entrega: <b>{pesos(totalRedondeado - anticipo)}</b></div>
+              {/* Fail-closed: si un renglón tiene precio inválido (NaN/Infinity), NO se
+                  muestra un total barato falso — se marca inválido y la emisión ya está
+                  bloqueada (problemasDeEmision). */}
+              {hayLineaInvalida ? (
+                <div className="propx-tot-grand"><span>TOTAL</span><b style={{ color: '#b3261e' }}>⚠ Cálculo inválido</b></div>
+              ) : (
+                <>
+                  <div className="propx-tot-grand"><span>TOTAL</span><b>{pesos(totalRedondeado)}</b></div>
+                  <div className="propx-tot-anticipo">Anticipo {anticipoPct}%: <b>{pesos(anticipo)}</b> · Saldo contra entrega: <b>{pesos(totalRedondeado - anticipo)}</b></div>
+                </>
+              )}
             </div>
           </section>
 

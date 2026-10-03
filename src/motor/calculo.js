@@ -738,14 +738,15 @@ export function componentesSinMaterial(componentes = [], insumos = {}) {
 //  6.7  Precio de venta. El margen es sobre precio, no sobre costo.
 // -----------------------------------------------------------------------------
 export function precioDe(costoUnitario, margen) {
-  // Un precio NO FINITO jamás debe llegar al frontend/emisión (audit P1-08). Antes
-  // un margen ≥100% devolvía Infinity (y JSON.stringify(Infinity)=null → "estado
-  // válido + precio null"). El margen sobre precio se acota a <100% (0.99): un margen
-  // así de alto es inválido, y preferimos un precio finito muy alto (fail-closed,
-  // nunca sub-precio) a Infinity. Costo no finito → 0 (no contamina la cuenta).
-  const c = Number.isFinite(costoUnitario) ? costoUnitario : 0;
-  const m = Math.min(0.99, (Number(margen) || 0) / 100);
-  return c / (1 - m);
+  // FAIL-CLOSED DE DINERO (revisión 2026-10-04). Un margen sobre precio ≥100% (o <0,
+  // o NaN) es financieramente IMPOSIBLE: no existe un precio válido. Un costo no
+  // finito también invalida. En esos casos se devuelve **NaN como señal explícita de
+  // "cálculo inválido"** para que la UI y la emisión BLOQUEEN — el motor NO acota ni
+  // reinterpreta en silencio una configuración imposible (antes capaba a 99% o daba
+  // Infinity→$0, que es fail-OPEN: convertía un error en un número plausible/barato).
+  const m = Number(margen);
+  if (!Number.isFinite(costoUnitario) || !Number.isFinite(m) || m >= 100 || m < 0) return NaN;
+  return costoUnitario / (1 - m / 100);
 }
 
 export function utilidadDe(costoUnitario, margen) {
@@ -777,7 +778,10 @@ export function modeloParaPieza(parametrosBase, pieza) {
 // precio lista = precio x factorPrecioLista. En 'clasico' usa margen sobre precio.
 export function precioVenta(costoUnitario, par = PARAMETROS_DEFAULT) {
   const p = { ...PARAMETROS_DEFAULT, ...par };
-  const costo = Number.isFinite(costoUnitario) ? costoUnitario : 0; // nunca propagar NaN/Infinity
+  // Fail-closed: un costo no finito NO se convierte en $0 (eso sería un precio
+  // barato falso); se propaga como inválido (NaN) para que la UI/emisión bloqueen.
+  if (!Number.isFinite(costoUnitario)) return { precio: NaN, lista: NaN, precioLista: NaN };
+  const costo = costoUnitario;
   if (p.modeloCosteo === 'intelisis') {
     const precio = costo * (1 + (p.utilidadPct || 0) / 100);
     const lista = precio * (p.factorPrecioLista || 1);

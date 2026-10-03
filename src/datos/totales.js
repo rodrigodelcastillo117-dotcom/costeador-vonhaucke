@@ -31,7 +31,15 @@ export function totalesCotizacion(partidas = [], cot = {}, par = {}) {
   // nunca como un total roto en pantalla. El precio válido no cambia en nada.
   let hayLineaInvalida = false;
   const linea = (p) => {
-    const v = (p.precioUnitario || 0) * (p.cantidad || 0);
+    const pu = p.precioUnitario;
+    const c = p.cantidad;
+    // Un precio/cantidad PRESENTE pero no finito (NaN/Infinity) es INVÁLIDO, no 0.
+    // ⚠️ `NaN || 0` da 0 (NaN es falsy): sin este chequeo sobre el valor CRUDO, un
+    // precio corrupto se disfrazaba de $0 y la cotización salía artificialmente barata
+    // (fail-open). Se marca y la UI/emisión bloquean. Un precio AUSENTE (null/undefined)
+    // sí cuenta 0: es "sin precio" (lo atrapa problemasDeEmision), no "corrupto".
+    if ((pu != null && !Number.isFinite(pu)) || (c != null && !Number.isFinite(c))) { hayLineaInvalida = true; return 0; }
+    const v = (pu || 0) * (c || 0);
     if (!Number.isFinite(v)) { hayLineaInvalida = true; return 0; }
     return v;
   };

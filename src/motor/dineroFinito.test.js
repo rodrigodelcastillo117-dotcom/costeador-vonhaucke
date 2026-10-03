@@ -1,64 +1,83 @@
 // ============================================================================
-//  DINERO FINITO (audit P1-08). Un resultado monetario NO FINITO (Infinity/NaN)
-//  jamás debe salir del motor ni de la autoridad de totales: JSON.stringify lo
-//  volvería `null` y podría pasar como "estado válido + precio null". Estas
-//  pruebas fijan que todo precio/total es finito aun con input extremo o inválido.
+//  DINERO FAIL-CLOSED (revisión 2026-10-04, tras crítica externa).
+//  Regla corregida: el motor NO "arregla" en silencio una configuración financiera
+//  imposible. Un margen ≥100% / <0 / NaN o un costo no finito → **NaN (cálculo
+//  inválido)**, que la UI y la emisión BLOQUEAN. Un precio válido es finito.
+//  NUNCA se convierte un precio corrupto en un $0/número barato (eso sería fail-open).
 // ============================================================================
 import { describe, it, expect } from 'vitest';
 import { precioDe, precioVenta, utilidadDe } from './calculo.js';
 import { totalesCotizacion } from '../datos/totales.js';
+import { problemasDeEmision } from '../datos/senales.js';
 
-describe('precioDe nunca devuelve no-finito', () => {
-  it('margen 100% → finito (acotado, no Infinity)', () => {
-    const p = precioDe(1000, 100);
-    expect(Number.isFinite(p)).toBe(true);
-    expect(p).toBeGreaterThan(1000);
-  });
-  it('margen 150% → finito', () => {
-    expect(Number.isFinite(precioDe(1000, 150))).toBe(true);
-  });
-  it('costo NaN → finito (0)', () => {
-    expect(Number.isFinite(precioDe(NaN, 50))).toBe(true);
-  });
-  it('margen NaN → finito', () => {
-    expect(Number.isFinite(precioDe(1000, NaN))).toBe(true);
-  });
-  it('margen 50% normal sigue correcto (2000)', () => {
+describe('precioDe — válido→finito, inválido→NaN (bloquea, no inventa número)', () => {
+  it('margen 50% normal → 2000 (finito)', () => {
     expect(precioDe(1000, 50)).toBeCloseTo(2000, 6);
   });
-  it('utilidadDe tampoco es no-finito con margen 100%', () => {
-    expect(Number.isFinite(utilidadDe(1000, 100))).toBe(true);
+  it('margen 100% → NaN (imposible, no Infinity ni número capado)', () => {
+    expect(Number.isNaN(precioDe(1000, 100))).toBe(true);
+  });
+  it('margen 150% → NaN', () => {
+    expect(Number.isNaN(precioDe(1000, 150))).toBe(true);
+  });
+  it('margen negativo → NaN', () => {
+    expect(Number.isNaN(precioDe(1000, -10))).toBe(true);
+  });
+  it('margen NaN → NaN', () => {
+    expect(Number.isNaN(precioDe(1000, NaN))).toBe(true);
+  });
+  it('costo no finito → NaN', () => {
+    expect(Number.isNaN(precioDe(NaN, 50))).toBe(true);
+    expect(Number.isNaN(precioDe(Infinity, 50))).toBe(true);
+  });
+  it('utilidadDe hereda la invalidez (NaN) con margen imposible', () => {
+    expect(Number.isNaN(utilidadDe(1000, 100))).toBe(true);
   });
 });
 
-describe('precioVenta nunca devuelve no-finito', () => {
-  it('costo NaN (clasico) → precio finito', () => {
+describe('precioVenta — costo no finito → precio inválido (NaN), no $0', () => {
+  it('costo NaN (clásico) → NaN', () => {
     const r = precioVenta(NaN, { modeloCosteo: 'clasico', margenObjetivo: 50 });
-    expect(Number.isFinite(r.precio)).toBe(true);
-    expect(Number.isFinite(r.lista)).toBe(true);
+    expect(Number.isNaN(r.precio)).toBe(true);
   });
-  it('costo Infinity (intelisis) → precio finito', () => {
+  it('costo Infinity (intelisis) → NaN', () => {
     const r = precioVenta(Infinity, { modeloCosteo: 'intelisis', utilidadPct: 20, factorPrecioLista: 3 });
+    expect(Number.isNaN(r.precio)).toBe(true);
+  });
+  it('costo válido → precio finito', () => {
+    const r = precioVenta(1000, { modeloCosteo: 'clasico', margenObjetivo: 50 });
     expect(Number.isFinite(r.precio)).toBe(true);
   });
 });
 
-describe('totalesCotizacion nunca produce total no-finito', () => {
-  it('una partida con precio Infinity no rompe el total y se marca', () => {
-    const partidas = [
-      { precioUnitario: 1000, cantidad: 2 },      // 2000 válido
-      { precioUnitario: Infinity, cantidad: 1 },  // inválida → cuenta 0
-    ];
-    const t = totalesCotizacion(partidas, {}, {});
-    expect(Number.isFinite(t.total)).toBe(true);
-    expect(Number.isFinite(t.totalRedondeado)).toBe(true);
+describe('totalesCotizacion — una línea inválida se MARCA (no se disfraza de total barato)', () => {
+  it('línea con precio Infinity → hayLineaInvalida y no suma esa línea', () => {
+    const t = totalesCotizacion([
+      { precioUnitario: 1000, cantidad: 2 },
+      { precioUnitario: Infinity, cantidad: 1 },
+    ], {}, {});
     expect(t.hayLineaInvalida).toBe(true);
-    // El lista sólo contó la partida válida (2000), no Infinity.
     expect(t.precioLista).toBe(2000);
   });
-  it('partidas válidas → sin marca de línea inválida', () => {
+  it('línea con precio NaN → hayLineaInvalida', () => {
+    const t = totalesCotizacion([{ precioUnitario: NaN, cantidad: 1 }], {}, {});
+    expect(t.hayLineaInvalida).toBe(true);
+  });
+  it('partidas válidas → sin marca', () => {
     const t = totalesCotizacion([{ precioUnitario: 500, cantidad: 3 }], {}, {});
     expect(t.hayLineaInvalida).toBe(false);
     expect(t.precioLista).toBe(1500);
+  });
+});
+
+describe('problemasDeEmision — un precio inválido BLOQUEA la emisión (fail-closed)', () => {
+  it('precio NaN → bloqueado', () => {
+    expect(problemasDeEmision([{ nombre: 'X', cantidad: 1, precioUnitario: NaN }]).length).toBeGreaterThan(0);
+  });
+  it('precio Infinity → bloqueado', () => {
+    expect(problemasDeEmision([{ nombre: 'X', cantidad: 1, precioUnitario: Infinity }]).length).toBeGreaterThan(0);
+  });
+  it('precio y cantidad válidos → sin problema', () => {
+    expect(problemasDeEmision([{ nombre: 'X', cantidad: 2, precioUnitario: 1000 }]).length).toBe(0);
   });
 });
