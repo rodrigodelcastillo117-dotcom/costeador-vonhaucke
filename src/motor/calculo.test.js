@@ -139,6 +139,15 @@ describe('5. La veta reduce el acomodo', () => {
       piezasPorTablero(1600, 700, { veta: false })
     );
   });
+  // 2026-10-03: la veta se orienta bien (largo de la pieza ∥ veta = lado largo del
+  // tablero, 2440). Una cubierta larga SÍ cabe con veta; antes se rotaba al lado
+  // corto, "no cabía" (0) y se subcosteaba cayendo al aprovechamiento genérico.
+  it('una pieza larga (1.60 x 0.70) cabe con veta (1), no 0', () => {
+    expect(piezasPorTablero(1600, 700, { veta: true })).toBe(1);
+  });
+  it('una pieza muy larga (2.40 x 0.60) cabe con veta (1), no 0', () => {
+    expect(piezasPorTablero(2400, 600, { veta: true })).toBe(1);
+  });
 });
 
 // 6. Directa e indirecta no se mezclan

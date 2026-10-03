@@ -11,7 +11,7 @@ import { costoAlba, tipoAlba } from './formulaAlba.js';
 // huellaMP) para que, si la FÓRMULA cambia (no solo un precio), una cotización
 // vieja se marque "calculada con otro motor" en vez de reusarse a ciegas.
 // ⚠️ SÚBELA cuando cambie cómo se calcula el costo (factores, cascada, nesting).
-export const MOTOR_VERSION = '2026-10-01';
+export const MOTOR_VERSION = '2026-10-03';
 
 // FÓRMULA OFICIAL de producto nuevo (cutover 2026-10-01). Von Haucke convierte el
 // BOM en costo con la fórmula de ALBA (MO% por tipo de material + GI; ver
@@ -199,8 +199,17 @@ export function piezasPorTablero(largoMM, anchoMM, p = {}) {
   const A = par.tableroAnchoMM - 2 * par.recorteOrillaMM;
   const k = par.kerfMM;
 
-  const orientaciones = [[largoMM, anchoMM]];
-  if (!veta) orientaciones.push([anchoMM, largoMM]); // girar solo si no hay veta
+  // (a, b) = (dimensión a lo largo de A=ancho del tablero, dimensión a lo largo de
+  // L=largo del tablero). La VETA del tablero corre a lo largo de su lado largo (L,
+  // 2440); una pieza "con veta" debe llevar su LARGO alineado con esa veta → largoMM
+  // va sobre L, anchoMM sobre A → orientación [anchoMM, largoMM].
+  // ⚠️ 2026-10-03: estaba invertido ([largoMM, anchoMM]), que ponía el largo de la
+  // pieza sobre el lado CORTO del tablero. Una pieza larga (p. ej. 1.60 m) "no cabía"
+  // así, caía al aprovechamiento genérico y se SUBCOSTEABA. Sin veta se prueban las
+  // dos orientaciones (el orden no cambia el máximo).
+  const orientaciones = veta
+    ? [[anchoMM, largoMM]]
+    : [[largoMM, anchoMM], [anchoMM, largoMM]];
 
   let mejor = 0;
   for (const [a, b] of orientaciones) {
@@ -456,7 +465,11 @@ function manoObraGiAlba(detalleInsumos) {
 // -----------------------------------------------------------------------------
 export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETROS_DEFAULT) {
   const par = { ...PARAMETROS_DEFAULT, ...parametros };
-  const n = Math.max(1, piezas);
+  // n = tamaño de lote. Robusto ante basura: un lote NaN/negativo/vacío (p. ej.
+  // un <input> number que no impide teclear "abc" o "-3") valía NaN y envenenaba
+  // TODO el costo (cada cifra salía NaN, con el botón de cotizar encendido). Nunca
+  // menos de 1 pieza. `Number(piezas) || 1` neutraliza NaN/0/''; Math.max tapa negativos.
+  const n = Math.max(1, Number(piezas) || 1);
   const componentes = pieza.componentes || [];
 
   // --- Material: agrupar el despiece POR INSUMO y comprar formatos enteros ---
@@ -565,7 +578,12 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
   const empaque = (par.empaquePorPieza || 0) * n;
   const costoDirecto = materialTotal + manoObra + preparacion + empaque;
 
-  const merma = par.mermaProceso > 0 ? par.mermaProceso / 100 : 0;
+  // Merma de proceso (% de piezas que se rehacen). Se usa como divisor
+  // costoLote/(1-merma): una merma ≥100% dejaba (1-merma)≤0 y el costo salía
+  // Infinity/negativo (precio roto, sin aviso). Se acota a [0, 0.95): una merma
+  // así de alta es un dato inválido; preferimos un costo finito y CARO (fail-closed
+  // hacia arriba, nunca sub-precio) a una cifra rota propagándose por toda la app.
+  const merma = Math.min(0.95, par.mermaProceso > 0 ? par.mermaProceso / 100 : 0);
 
   // El modelo puede venir por PIEZA (p. ej. App LT) o global por parametros.
   const modeloCosteo = pieza.modeloCosteo || par.modeloCosteo;
