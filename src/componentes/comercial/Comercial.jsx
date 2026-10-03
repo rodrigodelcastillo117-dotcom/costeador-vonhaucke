@@ -226,7 +226,7 @@ export default function Comercial({ estado, soloVentas = false, veCostos = false
       {vista === 'direccion' && veCostos && <Direccion />}
       {vista === 'proyecto' && proyectoId != null && (
         <ProyectoWorkspace proyectoId={proyectoId} estado={estado} soloVentas={soloVentas} veCostos={veCostos}
-          onVolver={() => setVista('proyectos')} onIr={onIr} />
+          usuario={usuario} onVolver={() => setVista('proyectos')} onIr={onIr} />
       )}
     </div>
   );

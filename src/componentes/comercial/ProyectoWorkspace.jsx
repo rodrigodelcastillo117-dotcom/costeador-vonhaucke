@@ -21,7 +21,7 @@ import PresentarCliente from './PresentarCliente.jsx';
 const dinero = (n) => (n == null || isNaN(n) || !isFinite(n) ? '—' : pesos(n));
 const f = (iso) => (iso ? String(iso).slice(0, 10) : '—');
 
-export default function ProyectoWorkspace({ proyectoId, soloVentas = false, veCostos = false, onVolver, onIr }) {
+export default function ProyectoWorkspace({ proyectoId, soloVentas = false, veCostos = false, onVolver, onIr, usuario = null }) {
   const [estado, setEstado] = useState('cargando');
   const [proyecto, setProyecto] = useState(null);
   const [cots, setCots] = useState([]);
@@ -83,7 +83,7 @@ export default function ProyectoWorkspace({ proyectoId, soloVentas = false, veCo
       {seccion === 'solucion' && <Solucion proyecto={proyecto} cots={cots} onIr={onIr} />}
       {seccion === 'cotizacion' && <SeccionCotizaciones cots={cots} onIr={onIr} />}
       {seccion === 'escenarios' && <Escenarios proyectoId={proyectoId} />}
-      {seccion === 'dealdesk' && veCostos && <DealDesk cots={cots} />}
+      {seccion === 'dealdesk' && veCostos && <DealDesk cots={cots} usuario={usuario} />}
       {seccion === 've' && <ValueEngineeringPanel presupuesto={proyecto.presupuesto} total={totalActual} />}
       {seccion === 'diff' && <DiffPanel cots={cots} />}
       {seccion === 'actividad' && <Actividad proyecto={proyecto} onCambio={cargar} />}
@@ -197,10 +197,13 @@ function SeccionCotizaciones({ cots, onIr }) {
 function Escenarios({ proyectoId }) {
   const [estado, setEstado] = useState('cargando');
   const [esc, setEsc] = useState([]);
+  const [errAccion, setErrAccion] = useState('');
   async function cargar() { setEstado('cargando'); const { data, error } = await listarEscenarios(proyectoId); if (error) { setEstado('error'); return; } setEsc(data); setEstado('ok'); }
   useEffect(() => { cargar(); /* eslint-disable-next-line */ }, [proyectoId]);
-  async function nuevo(tipo) { await crearEscenario({ proyecto_id: proyectoId, nombre: tipo === 'custom' ? 'Nuevo escenario' : tipo, tipo }); cargar(); }
-  async function elegir(id) { await seleccionarEscenario(proyectoId, id); cargar(); }
+  // Se revisa el {error}: antes crear/seleccionar escenario fallaba en silencio
+  // (RLS, red) y el botón parecía no hacer nada.
+  async function nuevo(tipo) { setErrAccion(''); const { error } = (await crearEscenario({ proyecto_id: proyectoId, nombre: tipo === 'custom' ? 'Nuevo escenario' : tipo, tipo })) || {}; if (error) { setErrAccion(`No se pudo crear el escenario: ${error.message || 'error del servidor'}.`); return; } cargar(); }
+  async function elegir(id) { setErrAccion(''); const { error } = (await seleccionarEscenario(proyectoId, id)) || {}; if (error) { setErrAccion(`No se pudo seleccionar: ${error.message || 'error del servidor'}.`); return; } cargar(); }
   if (estado === 'cargando') return <div className="tarjeta"><span className="ayuda">Cargando escenarios…</span></div>;
   if (estado === 'error') return <div className="alerta roja"><span className="texto">No se pudieron cargar.</span> <button className="boton" onClick={cargar}>Reintentar</button></div>;
   return (
@@ -208,6 +211,7 @@ function Escenarios({ proyectoId }) {
       <div className="chips" style={{ marginBottom: 10 }}>
         {['esencial', 'recomendada', 'premium', 'custom'].map((t) => <button key={t} className="chip" onClick={() => nuevo(t)}>+ {t}</button>)}
       </div>
+      {errAccion && <div className="alerta roja" style={{ marginBottom: 10 }}><span className="texto">{errAccion}</span></div>}
       {esc.length === 0 ? <div className="tarjeta"><strong>Sin escenarios</strong><p className="ayuda">Crea Esencial / Recomendada / Premium dentro del mismo proyecto (no se clona).</p></div>
         : esc.map((e) => (
           <div className="tarjeta" key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -219,13 +223,23 @@ function Escenarios({ proyectoId }) {
   );
 }
 
-function DealDesk({ cots }) {
+function DealDesk({ cots, usuario = null }) {
   const [cotId, setCotId] = useState(cots[0]?.id ?? null);
   const [aprs, setAprs] = useState([]);
   const [estado, setEstado] = useState('cargando');
+  const [errAccion, setErrAccion] = useState('');
   async function cargar() { if (cotId == null) { setEstado('novacio'); return; } setEstado('cargando'); const { data, error } = await listarAprobaciones(cotId); if (error) { setEstado('error'); return; } setAprs(data); setEstado('ok'); }
   useEffect(() => { cargar(); /* eslint-disable-next-line */ }, [cotId]);
-  async function resolver(a, accion) { const destino = transicion(a.estado, accion); await resolverAprobacion(a.id, destino, 'direccion'); cargar(); }
+  // resuelto_por = QUIÉN resolvió (su correo), no el literal 'direccion' que borraba
+  // el rastro de quién aprobó/rechazó. Y se revisa el error: antes un fallo de RLS/red
+  // dejaba el botón "sin efecto" en silencio.
+  async function resolver(a, accion) {
+    setErrAccion('');
+    const destino = transicion(a.estado, accion);
+    const { error } = (await resolverAprobacion(a.id, destino, usuario || 'direccion')) || {};
+    if (error) { setErrAccion(`No se pudo ${accion.toLowerCase()}: ${error.message || 'error del servidor'}.`); return; }
+    cargar();
+  }
   if (!cots.length) return <div className="tarjeta"><strong>Sin cotizaciones</strong><p className="ayuda">El Deal Desk opera sobre una cotización.</p></div>;
   return (
     <div>
@@ -247,6 +261,7 @@ function DealDesk({ cots }) {
           </div>
         </div>
       ))}
+      {errAccion && <div className="alerta roja" style={{ marginTop: 8 }}><span className="texto">{errAccion}</span></div>}
       <p className="ayuda gris" style={{ fontSize: 11 }}>Resolver aprobaciones es exclusivo de Dirección (RLS). La aprobación se liga al hash de la revisión.</p>
     </div>
   );
@@ -348,22 +363,34 @@ function Cierre({ proyecto, cots, onCambio }) {
   const [resultado, setResultado] = useState('');
   const [motivo, setMotivo] = useState('');
   const [detalle, setDetalle] = useState('');
-  const [escenario, setEscenario] = useState('');
+  // Cuál cotización GANÓ. Se elige explícitamente: antes se sumaban TODAS las
+  // cotizaciones del proyecto como "total final" (infla el cierre con escenarios
+  // que no se vendieron) y se inventaba revision_ganadora_id=1 (un id que puede no
+  // existir). El ganador es UNA cotización real; su total es el total final.
+  const [ganadoraId, setGanadoraId] = useState(() => (proyecto.revision_ganadora_id ? String(proyecto.revision_ganadora_id) : ''));
   const [guardando, setGuardando] = useState(false);
   const [err, setErr] = useState([]);
-  const totalFinal = cots.reduce((s, c) => s + (Number(c.total) || 0), 0);
+  const cotGanadora = cots.find((c) => String(c.id) === String(ganadoraId)) || null;
+  const totalFinal = cotGanadora ? (Number(cotGanadora.total) || 0) : 0;
 
   async function cerrar() {
     const cierre = resultado === 'ganada'
-      ? { resultado, revision_aceptada: proyecto.revision_ganadora_id || 1, total_final: totalFinal, escenario: escenario || 'recomendada', fecha: new Date().toISOString().slice(0, 10) }
+      ? { resultado, revision_aceptada: cotGanadora ? cotGanadora.id : null, total_final: totalFinal,
+          escenario: cotGanadora ? (cotGanadora.folio_oficial || cotGanadora.folio || `Cotización ${cotGanadora.id}`) : '',
+          fecha: new Date().toISOString().slice(0, 10) }
       : { resultado, motivo, motivo_detalle: detalle };
     const v = validarCierre(cierre);
     if (!v.ok) { setErr(v.errores); return; }
     setErr([]); setGuardando(true);
-    await actualizarProyecto(proyecto.id, resultado === 'ganada'
-      ? { etapa: 'GANADA', fecha_cierre: cierre.fecha, revision_ganadora_id: proyecto.revision_ganadora_id || cierre.revision_aceptada, total_final: totalFinal }
-      : { etapa: 'PERDIDA', motivo_perdida: motivo, comentario_cierre: detalle || null, fecha_cierre: new Date().toISOString().slice(0, 10) });
-    setGuardando(false); onCambio?.();
+    // Se revisa el {error} que devuelve Supabase: antes el cierre se daba por hecho
+    // aunque el UPDATE fallara (RLS, red) -> el proyecto NO se cerraba y nadie se
+    // enteraba. Ahora, si falla, se dice y NO se refresca como si hubiera pasado.
+    const { error } = await actualizarProyecto(proyecto.id, resultado === 'ganada'
+      ? { etapa: 'GANADA', fecha_cierre: cierre.fecha, revision_ganadora_id: cotGanadora.id, total_final: totalFinal }
+      : { etapa: 'PERDIDA', motivo_perdida: motivo, comentario_cierre: detalle || null, fecha_cierre: new Date().toISOString().slice(0, 10) }) || {};
+    setGuardando(false);
+    if (error) { setErr([`No se pudo cerrar el proyecto: ${error.message || 'error del servidor'}. Intenta de nuevo.`]); return; }
+    onCambio?.();
   }
 
   if (['GANADA', 'PERDIDA'].includes(String(proyecto.etapa).toUpperCase())) {
@@ -378,8 +405,20 @@ function Cierre({ proyecto, cots, onCambio }) {
         <button className={`chip ${resultado === 'perdida' ? 'on' : ''}`} onClick={() => setResultado('perdida')}>Perdida</button>
       </div>
       {resultado === 'ganada' && (
-        <div className="ayuda">Total final {dinero(totalFinal)} · escenario:
-          <input className="campo" value={escenario} onChange={(e) => setEscenario(e.target.value)} placeholder="recomendada" style={{ marginTop: 6 }} /></div>
+        <div className="ayuda">
+          <div style={{ marginBottom: 6 }}>¿Cuál cotización ganó?</div>
+          {cots.length === 0
+            ? <div className="alerta roja"><span className="texto">Este proyecto no tiene cotizaciones. Crea y guarda la que se vendió antes de cerrarlo como ganada.</span></div>
+            : (
+              <select className="campo" value={ganadoraId} onChange={(e) => setGanadoraId(e.target.value)}>
+                <option value="">Elige la cotización aceptada…</option>
+                {cots.map((c) => (
+                  <option key={c.id} value={c.id}>{(c.folio_oficial || c.folio || `Cotización ${c.id}`)} · {dinero(Number(c.total) || 0)}</option>
+                ))}
+              </select>
+            )}
+          {cotGanadora && <div style={{ marginTop: 6 }}>Total final: <strong>{dinero(totalFinal)}</strong></div>}
+        </div>
       )}
       {resultado === 'perdida' && (
         <>
@@ -391,7 +430,7 @@ function Cierre({ proyecto, cots, onCambio }) {
         </>
       )}
       {err.length > 0 && <div className="alerta roja" style={{ marginTop: 8 }}><span className="texto">{err.join(' · ')}</span></div>}
-      {resultado && <button className="boton primario" style={{ marginTop: 10 }} onClick={cerrar} disabled={guardando}>{guardando ? 'Guardando…' : 'Confirmar cierre'}</button>}
+      {resultado && <button className="boton primario" style={{ marginTop: 10 }} onClick={cerrar} disabled={guardando || (resultado === 'ganada' && !cotGanadora) || (resultado === 'perdida' && !motivo)}>{guardando ? 'Guardando…' : 'Confirmar cierre'}</button>}
     </div>
   );
 }
