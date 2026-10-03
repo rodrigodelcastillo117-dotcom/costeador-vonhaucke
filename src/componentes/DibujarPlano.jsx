@@ -41,6 +41,7 @@ export default function DibujarPlano({ onListo, onCancelar }) {
   const [drag, setDrag] = useState(null);
   const [vertices, setVertices] = useState([]); // forma libre en construcción
   const [cursor, setCursor] = useState(null);   // punta guía (rubber band) en modo 'forma'
+  const [metaM2, setMetaM2] = useState('');     // "dibuja a ojo y yo lo mido": m² objetivo
   // El trazo se acumula en una REFERENCIA, no en estado: los eventos del dedo
   // llegan muy seguidos y con estado se pierden puntos (React no alcanza a
   // re-renderizar entre uno y otro). El estado es sólo para ir pintándolo.
@@ -233,6 +234,27 @@ export default function DibujarPlano({ onListo, onCancelar }) {
     setDoors([]); setCols([]); setStairs([]); setVertices([]);
   }
 
+  // 📐 "DIBUJA A OJO Y YO LO MIDO". Rodrigo: "yo pongo cuántos m² son aprox, yo
+  // dibujo la oficina y tú la dimensionas a esos m²". El dibujo se trata como
+  // PROPORCIONES: se escala TODO (cuartos, formas, puertas, columnas, escaleras)
+  // por un factor lineal k = √(objetivo / actual), así el ÁREA total queda en el
+  // objetivo y la forma que dibujaste se respeta igual.
+  function dimensionarAM2() {
+    const objetivo = Number(String(metaM2).replace(/[^0-9.]/g, '')) || 0;
+    if (objetivo <= 0 || totalM2 <= 0) return;
+    const k = Math.sqrt(objetivo / totalM2);
+    const r1 = (v) => Math.round(v * 100) / 100;
+    recordar();
+    setRooms((rs) => rs.map((r) => ({
+      ...r,
+      x: r1(r.x * k), y: r1(r.y * k), w: r1(r.w * k), h: r1(r.h * k),
+      poly: r.poly ? r.poly.map(([x, y]) => [r1(x * k), r1(y * k)]) : r.poly,
+    })));
+    setDoors((d) => d.map((o) => ({ ...o, x: r1(o.x * k), y: r1(o.y * k) })));
+    setCols((c) => c.map((o) => ({ ...o, x: r1(o.x * k), y: r1(o.y * k) })));
+    setStairs((s) => s.map((o) => ({ ...o, x: r1(o.x * k), y: r1(o.y * k), w: r1(o.w * k), h: r1(o.h * k) })));
+  }
+
   const dragRect = drag && { x: Math.min(drag.x0, drag.x1), y: Math.min(drag.y0, drag.y1), w: Math.abs(drag.x1 - drag.x0), h: Math.abs(drag.y1 - drag.y0) };
 
   function listo() {
@@ -379,6 +401,18 @@ export default function DibujarPlano({ onListo, onCancelar }) {
           </g>
         )}
       </svg>
+
+      {/* 📐 Dibuja a ojo y yo lo mido: escala TODO el dibujo al m² que digas. */}
+      <div className="fila-botones" style={{ gap: 10, marginTop: 12, alignItems: 'center', flexWrap: 'wrap', background: '#f3efe8', border: '1px solid var(--linea)', borderRadius: 12, padding: '10px 12px' }}>
+        <strong style={{ fontSize: 14 }}>📐 Dibuja a ojo y yo lo mido:</strong>
+        <label className="ayuda" htmlFor="meta-m2">¿Cuántos m² es (aprox)?</label>
+        <input id="meta-m2" type="text" inputMode="numeric" className="numero" style={{ width: 90 }} value={metaM2} placeholder="200"
+          onChange={(e) => setMetaM2(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') dimensionarAM2(); }} />
+        <button className="boton primario" style={{ minHeight: 42 }}
+          disabled={!rooms.length || !(Number(String(metaM2).replace(/[^0-9.]/g, '')) > 0)}
+          onClick={dimensionarAM2}>Dimensionar a esos m² →</button>
+        <span className="ayuda" style={{ marginLeft: 'auto' }}>Ahora mide: <strong>{totalM2.toFixed(1)} m²</strong></span>
+      </div>
 
       <div className="fila-botones" style={{ gap: 10, marginTop: 10, flexWrap: 'wrap', alignItems: 'center' }}>
         <label className="etiqueta" style={{ margin: 0 }}>Altura (m)</label>
