@@ -58,23 +58,46 @@ export function senalesCotizacion(partidas = [], margenMinimo = 25) {
 // (motor: `componentesSinMaterial`), así que su costo —y por tanto su margen— es
 // mentira. El borrador SÍ se puede guardar; lo que no se puede es emitirlo al
 // cliente sin asignar o quitar esas piezas (audit 2026-10-01).
-export function problemasDeEmision(partidas = []) {
-  const problemas = [];
+// FUENTE ÚNICA, ESTRUCTURADA de los bloqueos de emisión. Cada bloqueo trae por qué
+// importa y cómo corregirlo, para que la UI/Voni respondan "¿por qué no puedo emitir?"
+// de forma determinista (los bloqueos son dinero: NO los decide un LLM). `problemasDeEmision`
+// (abajo) deriva de aquí sus textos, para no tener dos definiciones que se desincronicen.
+export function bloqueosDeEmision(partidas = []) {
+  const b = [];
   partidas.forEach((p, i) => {
     const etq = p.nombre || `Renglón ${i + 1}`;
     // FINITO y positivo: `Infinity > 0` es true, así que un precio/cantidad Infinity
     // (margen inválido, etc.) se colaba como "válido". Se exige Number.isFinite.
-    if (!(Number.isFinite(p.cantidad) && p.cantidad > 0)) problemas.push(`"${etq}" no tiene una cantidad válida.`);
-    if (!(Number.isFinite(p.precioUnitario) && p.precioUnitario > 0)) problemas.push(`"${etq}" no tiene un precio válido.`);
+    if (!(Number.isFinite(p.cantidad) && p.cantidad > 0)) {
+      b.push({ code: 'CANTIDAD_INVALIDA', pieza: etq, nivel: 'blocker',
+        titulo: `"${etq}" no tiene una cantidad válida.`,
+        porque: 'Sin una cantidad positiva ese renglón no suma al total (cuenta como 0) y el total sería falso.',
+        corregir: `Pon una cantidad mayor a 0 en "${etq}".` });
+    }
+    if (!(Number.isFinite(p.precioUnitario) && p.precioUnitario > 0)) {
+      b.push({ code: 'PRECIO_INVALIDO', pieza: etq, nivel: 'blocker',
+        titulo: `"${etq}" no tiene un precio válido.`,
+        porque: 'Un precio en 0 o no finito (margen imposible, costo incompleto) regala el renglón o rompe el total.',
+        corregir: `Revisa el costeo de "${etq}": que su costo esté completo y el margen sea válido (<100%).` });
+    }
     const nSin = Number(p.piezasSinMaterial) || 0;
     if (nSin > 0) {
       const cuales = Array.isArray(p.nombresSinMaterial) && p.nombresSinMaterial.length
         ? ` (${p.nombresSinMaterial.join(', ')})`
         : '';
-      problemas.push(`"${etq}" tiene ${nSin} ${nSin === 1 ? 'pieza' : 'piezas'} sin material asignado${cuales}: se costea en $0. Asígnale material o quítala antes de emitir.`);
+      b.push({ code: 'SIN_MATERIAL', pieza: etq, nivel: 'blocker',
+        titulo: `"${etq}" tiene ${nSin} ${nSin === 1 ? 'pieza' : 'piezas'} sin material asignado${cuales}: se costea en $0. Asígnale material o quítala antes de emitir.`,
+        porque: 'Una pieza sin material se costea en $0, así que el costo y el margen de ese renglón son mentira.',
+        corregir: `Asígnale material${cuales || ' a esas piezas'} o quítalas de "${etq}".` });
     }
   });
-  return problemas;
+  return b;
+}
+
+// Lista de textos (compatibilidad): [] cuando se puede emitir; si trae algo, la UI no
+// debe emitir. Deriva de `bloqueosDeEmision` para mantener una sola definición.
+export function problemasDeEmision(partidas = []) {
+  return bloqueosDeEmision(partidas).map((x) => x.titulo);
 }
 
 // Señales del catálogo de insumos — cuántos no traen registrado de dónde

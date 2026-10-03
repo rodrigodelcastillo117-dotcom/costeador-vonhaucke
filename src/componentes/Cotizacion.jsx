@@ -11,6 +11,7 @@ import { descargarPropuesta, cargarFotos, cargarMarca } from '../datos/pdfPropue
 import EditarPartida, { sePuedeEditar } from './EditarPartida.jsx';
 import { pesos, leePct, selloPartida, claseCosto } from '../util.js';
 import { senalesCotizacion, senalesInsumos, problemasDeEmision } from '../datos/senales.js';
+import { porQueNoPuedoEmitir } from '../datos/voniContext.js';
 import { totalesCotizacion } from '../datos/totales.js';
 import { imagenPartida } from '../datos/imagenes.js';
 import VoniAvatar from './VoniAvatar.jsx';
@@ -153,6 +154,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   // el cliente/otra área). Hay que CONFIRMARLAS antes de emitir y escribirlas en el
   // PDF — si no, un clic apurado vende el mueble sin cristal/herrajes en números rojos.
   const [confirmoExcluidas, setConfirmoExcluidas] = useState(false);
+  const [verPorque, setVerPorque] = useState(false); // panel "¿por qué no puedo emitir?"
   // Punto de corte real del candado (Rodrigo, 2026-08-20): a diferencia del
   // aviso temprano en Voni (que se puede saltar sin querer), esto es lo que
   // de verdad produce algo que llega al cliente — sin importar por cuál
@@ -782,12 +784,31 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           </label>
         </div>
       )}
-      {probEmision.length > 0 && (
-        <div className="aviso rojo no-imprimir" style={{ marginTop: 8 }}>
-          No se puede emitir todavía: {probEmision[0]}
-          {probEmision.length > 1 && ` (y ${probEmision.length - 1} más)`}
-        </div>
-      )}
+      {probEmision.length > 0 && (() => {
+        const diag = porQueNoPuedoEmitir({ cotizacion: { partidas } });
+        return (
+          <div className="aviso rojo no-imprimir" style={{ marginTop: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+              <span><b>No se puede emitir todavía.</b> {diag.resumen}</span>
+              <button className="boton fantasma" style={{ minHeight: 32, fontSize: 13 }} onClick={() => setVerPorque((v) => !v)}>
+                {verPorque ? 'Ocultar' : '¿Por qué no puedo emitir?'}
+              </button>
+            </div>
+            {verPorque && (
+              <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
+                {diag.bloqueos.map((b, i) => (
+                  <div key={i} style={{ borderLeft: '3px solid #b3261e', paddingLeft: 10 }}>
+                    <div style={{ fontWeight: 700 }}>{b.titulo}</div>
+                    {b.porque && <div style={{ fontSize: 13, opacity: 0.9 }}>Por qué: {b.porque}</div>}
+                    {b.corregir && <div style={{ fontSize: 13 }}>✓ Cómo arreglarlo: {b.corregir}</div>}
+                  </div>
+                ))}
+                <div className="ayuda gris" style={{ fontSize: 11 }}>Voni lo detecta del costeo real; corrige esto y el botón de emitir se habilita solo.</div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
       {accionPendiente && (
         <ConfirmarCandado
           partidas={partidas}
