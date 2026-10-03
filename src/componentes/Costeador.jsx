@@ -11,9 +11,10 @@ import { recetaBench } from '../datos/bench.js';
 import HojaCosto from './HojaCosto.jsx';
 import FichaPDF from './FichaPDF.jsx';
 import MiniRender, { tipoDeMueble, dimsDeMueble } from './MiniRender.jsx';
-import { generarRender } from '../nube.js';
+import { generarRender, analizarTexto } from '../nube.js';
 import { pesos, pct, pct1, colorMerma } from '../util.js';
 import AnalisisEstructural from './AnalisisEstructural.jsx';
+import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { flagActivo } from '../datos/flags.js';
 
 const ATAJOS = [
@@ -50,6 +51,11 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   const [fichaAbierta, setFichaAbierta] = useState(false);
   const [generando, setGenerando] = useState(false);
   const [errRender, setErrRender] = useState('');
+  // DESCRIBE → VONI ENTIENDE (texto → analizar-mueble). Pre-llena el BOM y muestra la
+  // estructura que Voni entendió. No toca el costeo/dinero: el motor sigue costeando.
+  const [analizandoIA, setAnalizandoIA] = useState(false);
+  const [errIA, setErrIA] = useState('');
+  const [estructuraVoni, setEstructuraVoni] = useState(null);
   const insumos = estado.insumos;
 
   const piezaVirtual = {
@@ -95,6 +101,35 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
 
   // --- helpers de estado ---
   const set = (parcial) => setCosteo({ ...costeo, ...parcial });
+
+  // --- DESCRIBE → VONI ENTIENDE ---------------------------------------------
+  // Catálogo (sólo id/nombre/sección/unidad) para que la IA ancle insumoId; jamás precios.
+  const catalogoIA = () => Object.values(insumos).map((x) => ({ id: x.id, nombre: x.nombre, seccion: x.seccion, unidad: x.unidad }));
+  // Mapea el despiece CRUDO de la IA a los `componentes` del motor (misma conversión
+  // que el Asistente especial). Un insumoId que no exista queda '' → el motor lo marca
+  // como pendiente (fail-closed), nunca lo inventa.
+  const mapIaComps = (p) => (p?.piezas || []).map((z) => {
+    const existe = !!insumos[z.insumoId];
+    const base = { nombre: z.nombre || 'Pieza', insumoId: existe ? z.insumoId : '', cantidad: z.cantidad || 1, piezas: 1, iaNota: z.nota || '', iaConf: z.confianza || '', iaRazon: z.razonamiento || '' };
+    if (z.forma === 'area') { base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1; if (z.hojas > 0) base.hojas = z.hojas; }
+    return base;
+  });
+  async function analizarDescripcion() {
+    const desc = (costeo.descripcionCliente || '').trim();
+    if (desc.length < 8) { setErrIA('Describe el mueble (material, partes, uso) para que Voni lo entienda.'); return; }
+    // No destruyas trabajo manual sin avisar.
+    if ((costeo.componentes || []).some((c) => c.insumoId || c.nombre) &&
+        !window.confirm('Esto reemplazará las piezas actuales por lo que entienda Voni de tu descripción. ¿Seguir?')) return;
+    setErrIA(''); setAnalizandoIA(true);
+    try {
+      const res = await analizarTexto(catalogoIA(), desc);
+      if (!res?.ok) { setErrIA(res?.error || 'No se pudo interpretar la descripción.'); return; }
+      const p = res.propuesta || {};
+      set({ nombre: costeo.nombre || p.producto || '', descripcionCliente: p.descripcionCliente || desc, componentes: mapIaComps(p) });
+      setEstructuraVoni(p.design_intent ? graphFromPropuesta(p) : null);
+    } catch (err) { setErrIA(String(err?.message || err)); }
+    finally { setAnalizandoIA(false); }
+  }
 
   // --- Render de calidad con IA (Gemini), inspirado en lo que se costea ---
   function descripcionParaRender() {
@@ -236,6 +271,54 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
           <input id="nom-pieza" type="text" value={costeo.nombre}
             placeholder="Nombre del mueble" onChange={(e) => set({ nombre: e.target.value })} />
           {costeo.linea && <div className="ayuda">Linea: <strong>{costeo.linea}</strong></div>}
+
+          {/* DESCRIBE → VONI ENTIENDE: escribe qué es el mueble y Voni propone las piezas
+              y su estructura. (Rodrigo: "que te pregunte qué mueble es y tú lo describas".) */}
+          <div className="espacio" />
+          <label className="etiqueta" htmlFor="desc-voni">Descríbelo y Voni lo entiende</label>
+          <textarea id="desc-voni" rows={3}
+            placeholder="Ej. Banca de aeropuerto de 4 plazas, estructura de aluminio, asiento y respaldo de hule espuma tapizado, conector cada 2 asientos."
+            value={costeo.descripcionCliente || ''} onChange={(e) => set({ descripcionCliente: e.target.value })}
+            style={{ width: '100%', resize: 'vertical', padding: 10, borderRadius: 8, border: '1px solid var(--linea)', fontFamily: 'inherit', fontSize: 15 }} />
+          <div className="fila" style={{ gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+            <button className={'boton ' + (analizandoIA ? 'fantasma' : 'primario')}
+              disabled={analizandoIA || (costeo.descripcionCliente || '').trim().length < 8}
+              onClick={analizarDescripcion}>
+              {analizandoIA ? 'Voni está entendiendo…' : '🧠 Analizar con Voni'}
+            </button>
+            <span className="ayuda gris" style={{ fontSize: 12 }}>Propone piezas y estructura; tú confirmas. El precio lo calcula el motor.</span>
+          </div>
+          {errIA && <div className="alerta roja" style={{ marginTop: 8 }}><span className="texto">{errIA}</span></div>}
+          {estructuraVoni && estructuraVoni.nodes.length > 0 && (
+            <div className="tarjeta" style={{ background: 'var(--panel)', borderLeft: '4px solid var(--acento, #3a6ea5)', marginTop: 10 }}>
+              <div style={{ fontWeight: 700, marginBottom: 2 }}>🧠 Estructura que entendió Voni</div>
+              <div className="ayuda" style={{ marginBottom: 8 }}>
+                {estructuraVoni.design_intent.product_type === 'unknown'
+                  ? 'Voni no está segura de qué mueble es — ajústalo en las piezas.'
+                  : (<><b>{estructuraVoni.design_intent.product_type}</b>{estructuraVoni.design_intent.quantity > 1 ? ` · ${estructuraVoni.design_intent.quantity} módulos` : ''}{estructuraVoni.design_intent.overall_dimensions?.raw ? ` · ${estructuraVoni.design_intent.overall_dimensions.raw}` : ''}</>)}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                {estructuraVoni.nodes.map((n, i) => (
+                  <span key={i} className="chip" style={{ background: 'var(--fondo,#f3f3f3)', fontSize: 12 }} title={n.requires_confirmation ? 'Falta confirmar material' : ''}>
+                    {n.semantic_role}{n.quantity > 1 ? ` ×${n.quantity}` : ''}{n.requires_confirmation ? ' ⚠' : ''}
+                  </span>
+                ))}
+              </div>
+              {estructuraVoni.relations.length > 0 && (
+                <div className="ayuda gris" style={{ fontSize: 12, marginBottom: 6 }}>
+                  {estructuraVoni.relations.slice(0, 6).map((r, i) => {
+                    const rol = (id) => (estructuraVoni.nodes.find((n) => n.id === id) || {}).semantic_role || '?';
+                    const v = ({ supports: 'soporta', contains: 'contiene', connects: 'conecta', repeats_with: 'se repite con' })[r.type] || r.type;
+                    return <span key={i}>{i > 0 ? ' · ' : ''}{rol(r.from)} {v} {rol(r.to)}</span>;
+                  })}
+                </div>
+              )}
+              {Array.isArray(estructuraVoni.missing_critical_data) && estructuraVoni.missing_critical_data.length > 0 && (
+                <div className="ayuda" style={{ color: '#8a6d00', fontSize: 12 }}>Falta por definir: {estructuraVoni.missing_critical_data.join(' · ')}</div>
+              )}
+              <div className="ayuda gris" style={{ fontSize: 11, marginTop: 6 }}>Revisa/corrige las piezas abajo; el precio lo calcula el motor.</div>
+            </div>
+          )}
           <div className="espacio" />
           <label className="etiqueta">Cuantas piezas</label>
           <div className="masmenos">
