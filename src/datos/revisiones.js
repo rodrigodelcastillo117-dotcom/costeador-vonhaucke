@@ -90,11 +90,19 @@ export async function guardarRevision(estado, cotizacionId) {
 // embebido por si se quiere reimprimir una revisión vieja.
 export async function listarRevisiones(cotizacionId, folio) {
   try {
-    let q = nube.from('cotizaciones_revisiones')
+    // SELLER-SAFE: con id se usa el RPC `cotizacion_revisiones_seguras` (SECURITY
+    // DEFINER): Dirección ve el snapshot completo; vendedor/diseño lo reciben SIN
+    // economía. Nunca lectura RAW de la tabla para vendedores.
+    if (cotizacionId) {
+      const { data, error } = await nube.rpc('cotizacion_revisiones_seguras', { p_cotizacion_id: cotizacionId });
+      if (error || !Array.isArray(data)) return [];
+      return data;
+    }
+    // Sin id (sólo folio): metadata pública, SIN snapshot ni economía.
+    const { data, error } = await nube.from('cotizaciones_revisiones')
       .select('id, revision, emitida_en, usuario, total, folio, cliente')
+      .eq('folio', folio || '')
       .order('revision', { ascending: false });
-    q = cotizacionId ? q.eq('cotizacion_id', cotizacionId) : q.eq('folio', folio || '');
-    const { data, error } = await q;
     if (error || !data) return [];
     return data;
   } catch (e) {
