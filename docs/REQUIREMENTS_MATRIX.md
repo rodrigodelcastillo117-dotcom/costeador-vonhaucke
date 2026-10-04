@@ -58,9 +58,13 @@ Actualizar ANTES de implementar cualquier instrucción nueva. SHA ref: `198920c`
 | UI-002 | Dibujar legible en tema oscuro | ui | P1 | PASS | VH-009 |
 | UI-003 | Singular/plural en capa de presentación | ui | P2 | NOT_STARTED | VH-020 |
 | UI-004 | Todas las pantallas a nivel premium | ui | P1 | IN_PROGRESS | §69/70 barrido pendiente |
-| COCREATE-001 | Cocrear orquesta Costear+Cotizar sin duplicar | cocrear | P0 | NOT_STARTED | §9 |
-| COCREATE-002 | Test maestro integración (Rev1→Rev2→stale→reopen) | cocrear | P0 | NOT_STARTED | §44 addendum |
-| COCREATE-003 | Design DNA / ProductIntent / change-impact / A-B / history | cocrear | P1 | NOT_STARTED | §14-15-56-57-58 |
+| COCREATE-001 | Cocrear orquesta Costear+Cotizar sin duplicar | cocrear | P0 | PASS | `datos/cocrear.js`: orquestador puro idea→ProductSpec→costo(calcular)→cotización; `Cocrear.jsx` UI responsive wired (pestaña+Inicio). 20 tests + E2E navegador (Golden #1). No duplica motores. prod |
+| COCREATE-002 | Test maestro integración (Rev1→Rev2→stale→reopen) | cocrear | P0 | IN_PROGRESS | `estaStale()` por hash + test; falta reopen/persistencia DB |
+| COCREATE-003 | Design DNA / ProductIntent / change-impact / history | cocrear | P1 | IN_PROGRESS | ProductIntent determinista + ProjectDNA + change_set + historia hechos; change-impact/A-B pendiente |
+| COCREATE-004 | Clasificación LINE/CONFIGURED/DERIVED/NEW + linaje | cocrear | P0 | PASS | §17: `clasificarProducto` con parent/change_set; test Cirque config vs derivado |
+| COCREATE-005 | Manufacturabilidad honesta (Smart Locker REQUIRES_VALIDATION) | cocrear | P0 | PASS | §19: eléctrico/electrónico → REQUIRES_VALIDATION, la IA no lo vuelve PASS; test |
+| UI-005 | RESPONSIVE P0 (390/430/768/1024/1366/1440/1920; touch≥44px) | ui | P0 | IN_PROGRESS | Cocrear PASS (móvil 375px verificado); barrido Costear/Cotizar/Acomodo + floor editor pendiente |
+| LAYOUT-005 | Floor editor: UN piso (perímetro+particiones+zonas+puertas/bisagra+ventanas) | layout | P0 | NOT_STARTED | nueva UX §3 pegado; modelo FloorSpec v2 por construir |
 | PERF-001 | Archivo metadata-first (sin blobs) | perf | P1 | PASS | lista ligera (sesión previa) |
 | PERF-002 | Performance pantallas clave sin regresión | perf | P1 | NOT_VERIFIED | §111 |
 | VONI-001 | VoniContext estructurado + sanitizado server por rol | voni | P0 | IN_PROGRESS | permisos fail-closed; context pobre (no project_id) |
