@@ -2519,3 +2519,20 @@ input::placeholder, textarea::placeholder { color: #6f6961; }
   :root:not([data-theme="light"]) .cocrear-guardada { background: #221F1E; border-color: #3A3533; }
   :root:not([data-theme="light"]) .cocrear-guardada strong { color: #ECE9E4; }
 }
+
+/* INICIO · entrada a Cocrear desde el hero + imágenes de marca en las puertas */
+.inicio-hero-cta { display: inline-flex; align-items: center; gap: 8px; margin-top: 22px; padding: 13px 24px; min-height: 48px;
+  border: none; border-radius: 12px; background: #B42318; color: #fff; font-weight: 800; font-size: 15px; letter-spacing: .01em; cursor: pointer; transition: background .15s ease, transform .15s ease; }
+.inicio-hero-cta:hover { background: #991b14; transform: translateY(-1px); }
+.inicio-hero-cta:active { transform: translateY(0); }
+button.inicio-hero-foto { border: none; padding: 0; cursor: pointer; font: inherit; text-align: left; transition: transform .2s ease, box-shadow .2s ease; }
+button.inicio-hero-foto:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,0,0,.35); }
+/* Imagen de marca al fondo-derecha de las puertas (Cotizar/Costear), legible */
+.puertas .con-foto { position: relative; overflow: hidden; }
+.puertas .con-foto::after { content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 54%;
+  background-image: var(--puerta-foto); background-size: cover; background-position: center; opacity: .72;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 42%); mask-image: linear-gradient(to right, transparent, #000 42%);
+  transition: opacity .2s ease; pointer-events: none; }
+.puertas .con-foto:hover::after { opacity: .85; }
+.puertas .con-foto > * { position: relative; z-index: 1; }
+@media (max-width: 680px) { .puertas .con-foto::after { opacity: .4; width: 60%; } }

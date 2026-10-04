@@ -48,10 +48,7 @@ const LINEAS = [
 // `soloCostos: true` = sólo Diseño y Dirección. A un vendedor NO se le muestran:
 // antes las veía, las tocaba y caía en una pantalla que sólo le decía que no.
 const HERRAMIENTAS = [
-  // Cocrear: la mezcla de costear + cotizar. De una idea del cliente a una ficha
-  // de producto versionada, con costo honesto y lista (o no) para cotizar. Visible
-  // para todos; es seller-safe por dentro (el vendedor no ve costos).
-  { ruta: 'cocrear', titulo: 'Cocrear un producto', desc: 'De la idea del cliente a una ficha de producto: lo clasifica, lo costea y te dice qué falta para cotizar.', icono: 'acabado', destacada: true },
+  // (Cocrear NO vive aquí: se entra desde el hero "Cocreando tu espacio", no desde Costear.)
   // ⚠️ SIN soloCostos SE COLABA A LOS VENDEDORES (auditoría 2026-08-19). Esta
   // ficha no lo llevaba, aunque su botón ("Configurar →") manda a 'costeador'
   // — que SÍ es soloCostos: un vendedor la veía, la tocaba, y caía en la
@@ -179,12 +176,18 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
               <span><b>+118</b> PRODUCTOS</span>
               <span className="ds-live"><span className="ds-pulse" />MOTOR DE COSTEO · ACTIVO</span>
             </div>
+            {/* Entrada a COCREAR: la experiencia de co-diseño en vivo vive aquí,
+                en "Cocreando tu espacio" — no escondida dentro de Costear. */}
+            <button className="inicio-hero-cta" onClick={() => onIr('cocrear')}>
+              Cocrear un producto
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            </button>
           </div>
-          <div className="inicio-hero-foto" aria-hidden="true"
+          <button className="inicio-hero-foto" onClick={() => onIr('cocrear')} title="Entrar a Cocrear"
             style={{ backgroundImage: 'url(https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/app/marca/portada-1.jpg)' }}>
             <span className="inicio-hero-cota">3600 × 750 × 1050 MM</span>
             <span className="inicio-hero-tag">PROYECTO · ASUR T2</span>
-          </div>
+          </button>
         </div>
 
         {/* En qué vas: retomar es más común que empezar de cero. */}
@@ -224,7 +227,8 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
             Costear sólo aparece con `veCostos`: el vendedor no ve costos, y
             para él la única puerta grande es Voni. */}
         <div className="puertas">
-        <button className="voni-principal" onClick={() => onIr('voni')}>
+        <button className="voni-principal con-foto" onClick={() => onIr('voni')}
+          style={{ '--puerta-foto': `url(${heroLinea('cirque')})` }}>
           <span className="voni-principal-av"><VoniAvatar tam={64} variante="cara" /></span>
           <span className="voni-principal-txt">
             <span className="voni-principal-k">Empieza aquí</span>
@@ -235,7 +239,8 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
         </button>
 
         {veCostos && (
-          <button className="costear-principal" onClick={() => setVista('costear')}>
+          <button className="costear-principal con-foto" onClick={() => setVista('costear')}
+            style={{ '--puerta-foto': `url(${heroLinea('eclipse')})` }}>
             <span className="voni-principal-av" aria-hidden="true">
               <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="4" y="2.5" width="16" height="19" rx="2.5" />
