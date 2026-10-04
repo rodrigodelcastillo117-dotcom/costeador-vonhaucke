@@ -18,6 +18,7 @@ import { rellenar, puestosDeclarados } from '../datos/rellenar.js';
 import { idNuevo } from '../util.js';
 import { flagActivo } from '../datos/flags.js';
 import { totalesCotizacion } from '../datos/totales.js';
+import { estadoLayout } from '../datos/floorSpec.js';
 
 // Para la paleta, SILLA es todo lo que se sienta: la operativa, la de visita y
 // también el sillón y el banco. Rodrigo lo pidió partido en dos: "lado
@@ -710,6 +711,8 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   }
 
   async function vistaRealista() {
+    // Compuerta dura: no renderizar un acomodo incompleto como si fuera propuesta.
+    if (plan && !layoutListo) { setErrStaging(`No genero el render final de un acomodo incompleto (${motivoLayout}). Acomódalo bien primero (el 2D/3D de arriba sí lo puedes editar).`); return; }
     // Se lee SIEMPRE la copia limpia, no la visible: la visible puede estar en
     // modo Planta (sin isométrico) y además lleva las etiquetas del piso.
     const svg = isoLimpioRef.current?.querySelector('svg.plano');
@@ -789,6 +792,8 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
 
   // Render fotorrealista de la oficina desde las áreas/dibujo (sin foto real).
   async function renderOficina() {
+    // Compuerta dura: igual que vistaRealista, no se genera de un acomodo roto.
+    if (plan && !layoutListo) { setErrStaging(`No genero la oficina fotorrealista de un acomodo incompleto (${motivoLayout}). Acomódalo bien primero.`); return; }
     setErrStaging(''); setStaging(true);
     try {
       // 🐛 ESTE RENDER NO SABÍA TU ACOMODO. Rodrigo, comparando su planta con el
@@ -938,6 +943,26 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     };
   }, [plan, byId, areasMM, piezas]);
 
+  // ⚠️ COMPUERTA DURA (2026-10-04). Un render/propuesta OFICIAL no puede salir de un
+  // acomodo roto (piezas sin colocar, encimadas o fuera del plano): eso es justo lo
+  // "convincente pero incorrecto" que hay que impedir. Se mide con la capa
+  // determinista (floorSpec.estadoLayout). El 2D/3D EDITABLE sigue libre para poder
+  // trabajar y arreglar; sólo se bloquea el render fotorrealista final.
+  const layout = chequeo ? estadoLayout({
+    requested: piezas.length,
+    placed: Math.max(0, piezas.length - (chequeo.sinColocar || 0)),
+    unplaced: chequeo.sinColocar || 0,
+    excluded: 0,
+    colisiones: chequeo.nEncimados || 0,
+    fuera: chequeo.nFuera || 0,
+  }) : null;
+  const layoutListo = !plan || !chequeo ? false : layout.status === 'LAYOUT_VALID';
+  const motivoLayout = !layout ? '' : [
+    layout.unplaced > 0 ? `${layout.unplaced} sin colocar` : '',
+    layout.colisiones > 0 ? `${layout.colisiones} encimada(s)` : '',
+    layout.fuera > 0 ? `${layout.fuera} fuera del plano` : '',
+  ].filter(Boolean).join(' · ');
+
   // ============================================================================
   //  LA PALOMITA QUE MIENTE (2026-08-18)
   //  ---------------------------------------------------------------------------
@@ -1078,9 +1103,14 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
               {staging ? 'Generando…' : stagingUrl ? 'Probar con otra foto' : 'Subir foto y amueblar'}
               <input type="file" accept="image/*" style={{ display: 'none' }} onChange={amueblarFoto} disabled={staging} />
             </label>
-            <button className="boton" style={{ minHeight: 48 }} disabled={staging} onClick={renderOficina}>Render de mi oficina (IA)</button>
+            <button className="boton" style={{ minHeight: 48 }} disabled={staging || (plan && !layoutListo)} title={plan && !layoutListo ? `Acomodo incompleto (${motivoLayout})` : ''} onClick={renderOficina}>Render de mi oficina (IA)</button>
           </div>
           <div className="ayuda">O genera la oficina fotorrealista desde tus áreas/dibujo, sin foto.</div>
+          {plan && !layoutListo && (
+            <div className="alerta ambar" style={{ marginTop: 10 }}><span className="texto">
+              🔒 El render final está bloqueado hasta cerrar el acomodo: {motivoLayout}. (El 2D/3D de arriba sí lo puedes editar y reacomodar.)
+            </span></div>
+          )}
           {errStaging && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">{errStaging}</span></div>}
           {staging && <div className="render-gen" style={{ position: 'relative', height: 180, marginTop: 12 }}><span className="render-gen-spin" /><span>La IA está amueblando el espacio…</span></div>}
           {stagingUrl && !staging && (
@@ -1145,7 +1175,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
               {aMano ? 'Terminar de acomodar' : 'Acomodar a mano'}
             </button>
             <button className={`boton ${modo === 'iso' ? 'primario' : 'fantasma'}`} style={{ minHeight: 42 }} onClick={() => setModo('iso')}>Vista 3D</button>
-            <button className="boton" style={{ minHeight: 42 }} disabled={generandoReal || !plan} onClick={vistaRealista}>
+            <button className="boton" style={{ minHeight: 42 }} disabled={generandoReal || !plan || (plan && !layoutListo)} title={plan && !layoutListo ? `Acomodo incompleto (${motivoLayout})` : ''} onClick={vistaRealista}>
               {generandoReal ? 'Generando…' : realista ? 'Volver a generar' : 'Vista realista (IA)'}
             </button>
             {/* ✨ PROPUESTA VIVA: presentación cinematográfica para el cliente. */}
