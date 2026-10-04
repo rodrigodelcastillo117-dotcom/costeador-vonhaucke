@@ -19,6 +19,7 @@ import { idNuevo } from '../util.js';
 import { flagActivo } from '../datos/flags.js';
 import { totalesCotizacion } from '../datos/totales.js';
 import { estadoLayout, violacionesSemanticas } from '../datos/floorSpec.js';
+import { aMM, areasCanonicas, bloqueGeometria, cuantizar } from '../datos/floorPlan.js';
 
 // Para la paleta, SILLA es todo lo que se sienta: la operativa, la de visita y
 // también el sillón y el banco. Rodrigo lo pidió partido en dos: "lado
@@ -65,36 +66,8 @@ function archivoABase64(file) {
   });
 }
 
-// Metros -> mm, conservando la geometría. La FORMA (`poly`) y los huecos que no
-// se amueblan (`obstaculos`) viajan junto al tamaño: es lo que hace que el motor
-// respete una planta orgánica, esquive una columna y no meta muebles dentro de
-// la sala de juntas que está en medio del open space.
-function aMM(areas) {
-  return areas.map((a) => ({
-    nombre: a.nombre,
-    ...(a.tipo ? { tipo: a.tipo } : {}),
-    // El anidamiento viaja SIN convertir (son nombres y una cuenta, no medidas).
-    // Es lo que distingue una ZONA dibujada dentro del open space de un CUARTO
-    // con muros: sin esto el motor amuebla el pasillo y el 3D le pone muros a
-    // las islas.
-    ...(a.dentroDe ? { dentroDe: a.dentroDe } : {}),
-    ...(a.contiene ? { contiene: a.contiene } : {}),
-    // El PISO viaja: es lo que hace que el 3D apile la torre en vez de
-    // acostar los pisos uno junto a otro.
-    ...(Number.isFinite(a.nivel) ? { nivel: a.nivel } : {}),
-    // x/y sólo existen si el cuarto tiene posición REAL (plano subido o
-    // dibujado); sin ellas el plano se reacomoda en una cuadrícula inventada.
-    ...(Number.isFinite(a.x) && Number.isFinite(a.y) ? { x: Math.round(a.x * 1000), y: Math.round(a.y * 1000) } : {}),
-    ancho: Math.round((a.ancho || 0) * 1000),
-    largo: Math.round((a.largo || 0) * 1000),
-    ...(a.poly ? { poly: a.poly.map(([x, y]) => [Math.round(x * 1000), Math.round(y * 1000)]) } : {}),
-    ...(a.obstaculos?.length ? { obstaculos: a.obstaculos.map((o) => ({ x: Math.round(o.x * 1000), y: Math.round(o.y * 1000), w: Math.round(o.w * 1000), h: Math.round(o.h * 1000), tipo: o.tipo })) } : {}),
-    // Las puertas son el punto desde el que el motor comprueba que se LLEGUE
-    // caminando a cada mueble.
-    ...(a.puertas?.length ? { puertas: a.puertas.map((p) => ({ x: Math.round(p.x * 1000), y: Math.round(p.y * 1000), ancho: Math.round(p.ancho * 1000) })) } : {}),
-  }));
-}
-
+// aMM (metros→mm) y areasCanonicas (loader) viven en src/datos/floorPlan.js — el
+// contrato canónico único del plano. Aquí sólo se consumen.
 
 export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial = null, abrirDibujo = false, onConsumido }) {
   const partidas = (estado.cotizacion?.partidas) || [];
@@ -105,27 +78,9 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // perdía media hora de trabajo. Ahora se rescatan de la propuesta al entrar y
   // se guardan solos con cada cambio.
   const guardadoPrevio = estado.cotizacion?.acomodo || null;
-  const [areas, setAreas] = useState(() => (
-    guardadoPrevio?.areasM?.length
-      ? guardadoPrevio.areasM
-      : guardadoPrevio?.areas?.length
-        // Respaldo: si sólo hay la versión en mm (guardada antes de este
-        // arreglo), se convierte a metros para no perderla.
-        ? guardadoPrevio.areas.map((a) => ({
-          nombre: a.nombre, ...(a.tipo ? { tipo: a.tipo } : {}),
-          ...(Number.isFinite(a.x) ? { x: a.x / 1000, y: a.y / 1000 } : {}),
-          ancho: a.ancho / 1000, largo: a.largo / 1000,
-          ...(a.poly ? { poly: a.poly.map(([x, y]) => [x / 1000, y / 1000]) } : {}),
-          ...(a.obstaculos ? { obstaculos: a.obstaculos.map((o) => ({ x: o.x / 1000, y: o.y / 1000, w: o.w / 1000, h: o.h / 1000, tipo: o.tipo })) } : {}),
-          ...(a.puertas ? { puertas: a.puertas.map((p) => ({ x: p.x / 1000, y: p.y / 1000, ancho: p.ancho / 1000 })) } : {}),
-        }))
-        // ⚠️ ANTES AQUÍ SE INVENTABA EL ESPACIO. Salía "Mi espacio 13 × 14.03 m"
-        // —un rectángulo del tamaño justo de los muebles— y la app acomodaba
-        // encima sin preguntar. Rodrigo: "que primero REALMENTE sea el plano que
-        // quieres; si no hay, que mínimo pregunte cuántos m²". Ahora se arranca
-        // VACÍO y manda `EmpezarEspacio`.
-        : []
-  ));
+  // Rehidrata SIEMPRE por el loader canónico (areasM = verdad; mm legacy → metros;
+  // vacío → arranca en EmpezarEspacio, nunca inventa un rectángulo del tamaño justo).
+  const [areas, setAreas] = useState(() => areasCanonicas(guardadoPrevio));
   const [modo, setModo] = useState('iso');
   const [cargando, setCargando] = useState('');   // '' | 'acomodo' | 'plano'
   const [error, setError] = useState('');
@@ -256,7 +211,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     if (primerGuardado.current) { primerGuardado.current = false; return; }
     const t = setTimeout(() => {
       onGuardarAcomodo({
-        areas: aMM(areas), areasM: areas, plan, planReal,
+        ...bloqueGeometria(areas), plan, planReal,   // areasM (verdad) + areas mm en sync
         ...(dibujoMeta && Object.keys(dibujoMeta).length ? { dibujoMeta } : {}),
         ...(stagingUrl ? { render3d: stagingUrl } : {}),
       }, true);
@@ -316,7 +271,9 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       // otro (la sala circular en medio del open space) se le entrega al padre
       // como obstáculo, para que no le acomode muebles encima.
       const { areas: leidas } = areasDeLectura(lec);
-      if (leidas.length) { setAreas(leidas); setPlanReal(true); }
+      // MODO IA: al contrato canónico (1 mm) igual que dibujo y programa.
+      // recordar() ANTES para que el undo cruce el cambio de modo (gate undo/redo).
+      if (leidas.length) { recordar(); setAreas(cuantizar(leidas)); setPlanReal(true); }
       const notas = [];
       if (!lec.tieneCotas) notas.push('El plano no traía cotas: las medidas son estimadas, revísalas.');
       // La revisión se enseña ANTES que las notas del modelo: si el levantamiento
@@ -364,7 +321,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
         w: Math.round(o.w * 1000), h: Math.round(o.h * 1000), tipo: o.tipo,
       })),
     }));
-    setAreas(areasDib); setDibujoMeta(meta || {}); setPlanReal(true); setDibujando(false); setGuardado(false); setError('');
+    recordar(); setAreas(cuantizar(areasDib)); setDibujoMeta(meta || {}); setPlanReal(true); setDibujando(false); setGuardado(false); setError('');  // MODO DIBUJO: contrato canónico 1 mm + undo cruza modos
     try { setPlan(acomodarLocal(mm, piezas, { ajustar: false })); } catch (e) { setError('No se pudo acomodar: ' + String(e?.message || e)); }
   }
 
@@ -1050,7 +1007,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
             subiendo={!!cargando}
             onDibujar={() => setDibujando(true)}
             onSubirPlano={() => archivoRef.current?.click()}
-            onListo={(nuevas) => { setAreas(nuevas); setPlanReal(false); }}
+            onListo={(nuevas) => { recordar(); setAreas(cuantizar(nuevas)); setPlanReal(false); }}  /* MODO PROGRAMA: contrato canónico 1 mm + undo cruza modos */
           />
         ) : (
           <>

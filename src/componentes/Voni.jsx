@@ -13,6 +13,7 @@ import { pesos, selloPartida } from '../util.js';
 import EditarPartida from './EditarPartida.jsx';
 import EmpezarEspacio from './EmpezarEspacio.jsx';
 import { leerPlanoDeArchivo } from '../datos/leerPlanoArchivo.js';
+import { areasCanonicas, bloqueGeometria } from '../datos/floorPlan.js';
 import Cargando from './Cargando.jsx';
 import EstoEntendi from './EstoEntendi.jsx';
 import { costoImplicito } from '../datos/preciosVenta.js';
@@ -103,7 +104,7 @@ export default function Voni({
     if (!r.ok) { setErrorPlano(r.error); return; }
     if (r.nota) setNotaPlano(r.nota);
     if (!r.areas.length) return;        // no se reconoció nada: que lo intente de nuevo
-    onGuardarAcomodo?.({ areasM: r.areas, areas: null, plan: null, planReal: true });
+    onGuardarAcomodo?.({ ...bloqueGeometria(r.areas), plan: null, planReal: true });
     setPaso(2);                          // el siguiente paso es QUÉ LLEVA, no acomodar
   }
   const [confVaciar, setConfVaciar] = useState(false);
@@ -132,11 +133,8 @@ export default function Voni({
   // viejos que sólo traen `areas` en milímetros: sin este respaldo, "esto
   // entendí" decía "todavía no me dijiste dónde va el proyecto" con el espacio
   // ya contestado, que es peor que no decir nada.
-  const areasDelProyecto = useMemo(() => {
-    const ac = cot.acomodo || {};
-    if (ac.areasM?.length) return ac.areasM;
-    return (ac.areas || []).map((a) => ({ ...a, ancho: (a.ancho || 0) / 1000, largo: (a.largo || 0) / 1000 }));
-  }, [cot.acomodo]);
+  // Loader canónico único (floorPlan): areasM (verdad) o legacy mm→m, cuantizado 1 mm.
+  const areasDelProyecto = useMemo(() => areasCanonicas(cot.acomodo || {}), [cot.acomodo]);
 
   const totalLista = useMemo(() => partidas.reduce((a, p) => a + p.precioUnitario * p.cantidad, 0), [partidas]);
   const nEstimados = partidas.filter((p) => selloPartida(p).tipo === 'estimado').length;
@@ -203,7 +201,7 @@ export default function Voni({
             subiendo={leyendoPlano}
             onSubirPlano={() => archivoRef.current?.click()}
             onDibujar={() => { setAbrirDibujo(true); setPaso(3); }}
-            onListo={(areas) => { onGuardarAcomodo?.({ areasM: areas, areas: null, plan: null, planReal: false }); setPaso(2); }}
+            onListo={(areas) => { onGuardarAcomodo?.({ ...bloqueGeometria(areas), plan: null, planReal: false }); setPaso(2); }}
           />
           <div className="tarjeta no-imprimir voni-omitir">
             <span className="ayuda">¿Todavía no sabes el espacio?</span>
