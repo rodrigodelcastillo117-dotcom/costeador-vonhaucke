@@ -70,6 +70,7 @@ Actualizar ANTES de implementar cualquier instrucción nueva. SHA ref: `198920c`
 | PERF-002 | Performance pantallas clave sin regresión | perf | P1 | NOT_VERIFIED | §111 |
 | VONI-001 | VoniContext estructurado + sanitizado server por rol | voni | P0 | IN_PROGRESS | permisos fail-closed; context pobre (no project_id) |
 | VONI-002 | Voni no alucina acciones | voni | P0 | PASS | solo lectura, no afirma guardar |
-| VONI-003 | Voni con tools de acción (donde haya capability) | voni | P1 | NOT_STARTED | hoy 0 tools de escritura |
+| VONI-003 | Voni con tools de acción (donde haya capability) | voni | P1 | IN_PROGRESS | `voni.js` orquestador slice-1: understand estructurado→validadores deterministas→ToolRegistry (CREATE_REVISION+VERIFY)→dependency invalidation→REVIEW_PRODUCT; seller-safe; tool-failure honesto. 11 tests + E2E golden ("30cm más corta+cálida+review"). Motor determinista (costura para IA real). 868 verdes |
+| VONI-004 | Golden decisivo: 1 frase → 3 intenciones, aplica solo autorizado, crea Rev, stale | voni | P0 | PASS | E2E navegador: Rev2 2.40→2.10 nogal, review propuesta no aplicada, Costear misma revisión |
 | ADVERSARIAL-001 | Matriz hostil (§110) | qa | P0 | NOT_RUN | double-click/timeout/stale/etc. |
 | CROSS-001 | Integridad cruzada product_version_id | qa | P0 | NOT_STARTED | depende de ProductVersion universal |
