@@ -71,9 +71,13 @@ describe('programaDelPlano', () => {
 
   it('el resumen se lee en español', () => {
     const t = resumenDelPlano(programaDelPlano(PLANO, { largoPuesto: 1500 }));
-    expect(t).toMatch(/48 operativos en 8 zonas de 6/);
+    // Procedencia honesta: los puestos se ESTIMAN (confírmame), no se afirman "del plano".
+    expect(t).toMatch(/~?48 puestos operativos/);
+    expect(t).toMatch(/estim|confírmame/i);
     expect(t).toMatch(/5 privados/);
     expect(t).toMatch(/recepción/);
+    // Sillas/gavetas van como SUGERENCIA, no como detectado.
+    expect(t).toMatch(/sugiero|sugerido/i);
   });
 });
 

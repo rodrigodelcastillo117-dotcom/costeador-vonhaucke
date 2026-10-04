@@ -154,9 +154,32 @@ export function programaDelPlano(areas, opts = {}) {
       avisos.push(`No pude leer bien las medidas de "${a.nombre || 'una sala'}" (salió en 0 m²) — revisa el plano o corrígela a mano.`);
     }
   });
-  // REGLA DE OFICIO: un archivero por persona sentada. Con el plano de Rodrigo da
-  // 48 + 5 = 53, que es exactamente lo que él tecleó a mano.
-  const guardas = operativos + privados.length;
+  // SUGERENCIA DE OFICIO (no es "del plano"): acompañantes naturales de cada puesto.
+  // Rodrigo: "6 operativos con 6 lugares → el 90% de las veces vienen con sillas y
+  // gavetas para todos". Es una REGLA que se PROPONE y el usuario confirma, NUNCA un
+  // hecho detectado en el dibujo. Antes `guardas = operativos + privados` se
+  // presentaba como "del plano" → de ahí los "17 archiveros confirmados" que nadie
+  // dibujó. Ahora va etiquetado como sugerido.
+  const sugeridos = {
+    sillasOperativas: operativos,      // una silla por puesto
+    gavetas: operativos,               // una gaveta/pedestal por puesto
+    archiveros: privados.length,       // uno por privado (guarda de oficina cerrada)
+  };
+  const guardas = sugeridos.gavetas + sugeridos.archiveros;
+
+  // PROCEDENCIA de cada cantidad (disciplina CONFIRMADO/INFERIDO/SUGERIDO). La
+  // geometría de zonas se detecta; los PUESTOS se ESTIMAN por área (el plano no
+  // detecta sillas aún) y hay que confirmarlos; sillas/gavetas/archiveros se SUGIEREN.
+  const fuente = {
+    privados: 'detectado',     // zonas con muros propios en el plano
+    salas: 'detectado',
+    recepcion: 'detectado',
+    operativos: 'estimado',    // inferido por área de la zona operativa (confírmame)
+    sillasOperativas: 'sugerido',
+    gavetas: 'sugerido',
+    archiveros: 'sugerido',
+    guardas: 'sugerido',
+  };
 
   return {
     operativos,
@@ -165,6 +188,8 @@ export function programaDelPlano(areas, opts = {}) {
     salas,
     recepcion,
     guardas,
+    sugeridos,
+    fuente,
     salasInfo: salasA.map((a, i) => ({ nombre: a.nombre, m2: m2Salas[i], caben: salas[i] })),
     islas: islasA.length,
     porIsla,
@@ -173,15 +198,26 @@ export function programaDelPlano(areas, opts = {}) {
   };
 }
 
-/** Una línea en español de lo que se leyó, para enseñarla arriba del cuestionario. */
+/** Resumen HONESTO de lo que salió del plano, separando lo DETECTADO (geometría de
+ *  zonas), lo ESTIMADO (puestos inferidos por área — hay que confirmarlos) y lo
+ *  SUGERIDO (sillas/gavetas/archiveros que proponemos, no que estén dibujados).
+ *  Antes todo salía como "Del plano: …", incluidos 17 archiveros que nadie dibujó. */
 export function resumenDelPlano(pr) {
   if (!pr?.hayPlano) return '';
-  const t = [];
-  if (pr.operativos) t.push(`${pr.operativos} operativos en ${pr.islas} ${pr.islas === 1 ? 'zona' : 'zonas'} de ${pr.porIsla}`);
-  if (pr.privados) t.push(`${pr.privados} ${pr.privados === 1 ? 'privado' : 'privados'}`);
-  if (pr.salas.length) t.push(`${pr.salas.length} ${pr.salas.length === 1 ? 'sala' : 'salas'} de juntas (${pr.salas.join(' y ')})`);
-  if (pr.recepcion) t.push('recepción');
-  return t.length ? `Del plano: ${t.join(' · ')}.` : '';
+  const det = [];
+  if (pr.privados) det.push(`${pr.privados} ${pr.privados === 1 ? 'privado' : 'privados'}`);
+  if (pr.salas.length) det.push(`${pr.salas.length} ${pr.salas.length === 1 ? 'sala' : 'salas'} de juntas (${pr.salas.join(' y ')})`);
+  if (pr.recepcion) det.push('recepción');
+  const partes = [];
+  if (det.length) partes.push(`Del plano: ${det.join(' · ')}.`);
+  if (pr.operativos) partes.push(`Estimé ~${pr.operativos} puestos operativos por el área (confírmame el número).`);
+  const sug = pr.sugeridos || {};
+  const sugTxt = [];
+  if (sug.sillasOperativas) sugTxt.push(`${sug.sillasOperativas} sillas`);
+  if (sug.gavetas) sugTxt.push(`${sug.gavetas} gavetas`);
+  if (sug.archiveros) sugTxt.push(`${sug.archiveros} archivero(s) de privado`);
+  if (sugTxt.length) partes.push(`Te sugiero (ajústalo): ${sugTxt.join(' · ')}.`);
+  return partes.join(' ');
 }
 
 /**
