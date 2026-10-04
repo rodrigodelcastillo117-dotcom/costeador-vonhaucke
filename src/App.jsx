@@ -57,7 +57,7 @@ import { cargarAprendizajes } from './datos/aprendizaje.js';
 import { guardarCotizacion, cargarCotizacionCompleta } from './datos/cotizaciones.js';
 import { guardarRevision } from './datos/revisiones.js';
 import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
-import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso } from './nube.js';
+import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, cotizacionEmitible } from './nube.js';
 import { calcular, modeloParaPieza, componentesSinMaterial } from './motor/calculo.js';
 import { idNuevo } from './util.js';
 import { costoImplicito, precioDeLista } from './datos/preciosVenta.js';
@@ -411,6 +411,19 @@ export default function App() {
   // AL EMITIR (PDF/impresión): se asegura de guardar la cotización viva y congela
   // una REVISIÓN inmutable de lo ofrecido (evidencia con fecha y responsable). No
   // duplica si no cambió nada; nunca rompe la emisión si la nube falla.
+  // Gate de emisión AUTORITATIVO (server-side): guarda la cotización para tener id
+  // real y consulta `cotizacion_emitible`. Devuelve {ok, estado, motivos, economics}.
+  // Degrada suave: si no hay sesión o falla, no bloquea (el servidor re-gatea al emitir).
+  async function verificarEmision() {
+    if (!sesion?.user?.email) return { ok: false, estado: 'DESCONOCIDO', motivos: [] };
+    try {
+      const epoca = epocaCot.current;
+      const id = await guardarCotizacion(estado, sesion.user.email, idCotizacion.current);
+      if (id && epocaCot.current === epoca) idCotizacion.current = id;
+      return await cotizacionEmitible(idCotizacion.current);
+    } catch (e) { return { ok: false, estado: 'DESCONOCIDO', motivos: [], error: String(e?.message || e) }; }
+  }
+
   async function onEmitida() {
     if (!sesion?.user?.email) return { ok: false, motivo: 'sin-sesion' };
     try {
@@ -1040,7 +1053,7 @@ export default function App() {
           : <div className="contenido"><div className="tarjeta"><p className="ayuda">El modo avanzado y el costo de fabricación son para Diseño y Dirección. Usa <strong>Cotizar un mueble</strong> para el precio recomendado.</p></div></div>
         )}
         {pestania === 'catalogo' && <Catalogo estado={estado} onCargar={onElegirDelCatalogo} soloVentas={esVendedor} />}
-        {pestania === 'cotizacion' && <Cotizacion estado={estado} setEstado={setEstado} soloVentas={esVendedor} onIr={irA} onEmitida={onEmitida} />}
+        {pestania === 'cotizacion' && <Cotizacion estado={estado} setEstado={setEstado} soloVentas={esVendedor} onIr={irA} onEmitida={onEmitida} verificarEmision={verificarEmision} veCostos={veCostos} />}
         {pestania === 'cotizarIA' && <div className="contenido"><CotizadorIA estado={estado} onAgregarItems={agregarItemsIA} onIr={irA} verCotizacion soloVentas={esVendedor} /></div>}
         {pestania === 'comercial' && (flagActivo('commercial_v2')
           ? <Comercial estado={estado} soloVentas={esVendedor} veCostos={veCostos} onIr={irA} usuario={sesion?.user?.email || null} />

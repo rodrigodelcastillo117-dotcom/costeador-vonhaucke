@@ -61,7 +61,35 @@ function CampoPct({ valor, max, onCambio, ancho = 90 }) {
   );
 }
 
-export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr, onEmitida }) {
+// Traduce las razones del gate server-side a lenguaje humano SELLER-SAFE (sin cifras
+// de costo/margen). Códigos como "linea_3_costo_desconocido" → mensaje claro.
+function textoRazonEmision(code) {
+  const m = /^linea_(\d+)_(.+)$/.exec(String(code || ''));
+  const n = m ? m[1] : null;
+  const k = m ? m[2] : String(code || '');
+  const L = n ? `Línea ${n}: ` : '';
+  if (/costo_desconocido/.test(k)) return `${L}falta confirmar el costo con Diseño/Dirección.`;
+  if (/sin_product_version_id/.test(k)) return `${L}vuelve a agregarla desde su ficha (falta versión de producto).`;
+  if (/product_version_no_corresponde/.test(k)) return `${L}la versión de producto no corresponde; re-agrégala.`;
+  if (/precio_bajo_costo|margen_bajo/.test(k)) return `${L}requiere aprobación de Dirección.`;
+  if (/identidad_no_coincide|sin_correspondencia/.test(k)) return `${L}cambió desde lo guardado; guarda de nuevo.`;
+  if (/cantidad_invalida/.test(k)) return `${L}falta una cantidad válida.`;
+  if (/precio_invalido/.test(k)) return `${L}falta un precio válido.`;
+  if (/partidas_no_corresponden/.test(k)) return 'Guarda la cotización antes de emitir.';
+  if (/politica_comercial_sin_margen_minimo/.test(k)) return 'Falta configurar la política comercial (margen mínimo) — avisa a Dirección.';
+  if (/aprobacion_requerida/.test(k)) return 'Requiere aprobación de Dirección para este contenido.';
+  if (/sin_permiso|no_autorizado/.test(k)) return 'No tienes permiso para emitir esta cotización.';
+  if (/sin_guardar/.test(k)) return 'Guarda la cotización primero.';
+  return k;
+}
+const ESTADO_EMISION = {
+  ALLOWED: { tono: 'verde', titulo: 'Lista para emitir' },
+  ECONOMICS_INCOMPLETE: { tono: 'ambar', titulo: 'Faltan datos para cotizar (no es un error): resuélvelos para emitir' },
+  APPROVAL_REQUIRED: { tono: 'ambar', titulo: 'Requiere aprobación de Dirección antes de emitir' },
+  BLOCKED: { tono: 'rojo', titulo: 'No se puede emitir todavía' },
+};
+
+export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr, onEmitida, verificarEmision, veCostos = false }) {
   const [vistaClienteManual, setVistaClienteManual] = useState(false);
   const vistaCliente = soloVentas || vistaClienteManual;
   const setVistaCliente = setVistaClienteManual;
@@ -155,6 +183,8 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   // PDF — si no, un clic apurado vende el mueble sin cristal/herrajes en números rojos.
   const [confirmoExcluidas, setConfirmoExcluidas] = useState(false);
   const [verPorque, setVerPorque] = useState(false); // panel "¿por qué no puedo emitir?"
+  const [gate, setGate] = useState(null);            // resultado del gate server-side
+  const [gateCargando, setGateCargando] = useState(false);
   // Punto de corte real del candado (Rodrigo, 2026-08-20): a diferencia del
   // aviso temprano en Voni (que se puede saltar sin querer), esto es lo que
   // de verdad produce algo que llega al cliente — sin importar por cuál
@@ -170,13 +200,30 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   // (no se arrastra un "confirmo" viejo sobre una lista distinta).
   useEffect(() => { setConfirmoExcluidas(false); }, [excluidasProyecto.join('|')]);
   function conCandado(fn) {
-    return () => {
+    return async () => {
       if (probEmision.length) { setPdfErr('No se puede emitir: ' + probEmision[0]); return; }
       if (bloqueoExcluidas) { setPdfErr('Confirma las piezas excluidas antes de emitir.'); return; }
+      // GATE AUTORITATIVO server-side ANTES de emitir (costo/versión/margen/aprobación).
+      // Degrada: si el gate no está disponible (DESCONOCIDO) no bloquea — el servidor
+      // re-valida al registrar la emisión (fail-closed real vive en la DB).
+      if (verificarEmision) {
+        setGateCargando(true);
+        let g = null;
+        try { g = await verificarEmision(); } catch (e) { g = { estado: 'DESCONOCIDO' }; }
+        setGateCargando(false);
+        setGate(g);
+        if (g && g.estado && g.estado !== 'ALLOWED' && g.estado !== 'DESCONOCIDO') {
+          setVerPorque(true);
+          setPdfErr(`No se puede emitir: ${(ESTADO_EMISION[g.estado] || {}).titulo || g.estado}`);
+          return;
+        }
+      }
       if (partidas.some((p) => p.candadoUsuarios || p.requiereProyectista)) setAccionPendiente(() => fn);
       else fn();
     };
   }
+  // Razones del gate, traducidas y seller-safe (motivos duros + económicos).
+  const gateRazones = gate ? [...new Set([...(gate.motivos || []), ...(gate.economics || [])])].map(textoRazonEmision) : [];
   async function descargarPDF() {
     setPdfErr(''); setBajandoPDF(true);
     try {
@@ -779,7 +826,31 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           {bajandoPDF ? 'Armando el PDF…' : 'Descargar PDF'}
         </button>
         <button className="boton fantasma no-imprimir" style={{ minHeight: 42 }} onClick={conCandado(imprimir)} disabled={probEmision.length > 0 || bloqueoExcluidas} title={probEmision.length ? probEmision[0] : (bloqueoExcluidas ? 'Confirma las piezas excluidas' : undefined)}>Imprimir</button>
+        {verificarEmision && (
+          <button className="boton fantasma no-imprimir" style={{ minHeight: 42 }} disabled={gateCargando}
+            onClick={async () => { setGateCargando(true); try { setGate(await verificarEmision()); } catch { setGate({ estado: 'DESCONOCIDO' }); } setGateCargando(false); }}>
+            {gateCargando ? 'Verificando…' : 'Verificar emisión'}
+          </button>
+        )}
       </div>
+      {/* GATE DE EMISIÓN autoritativo (server-side). Explica el estado y QUÉ falta,
+          en lenguaje claro y seller-safe (sin cifras de costo/margen). */}
+      {gate && gate.estado && gate.estado !== 'DESCONOCIDO' && (() => {
+        const info = ESTADO_EMISION[gate.estado] || { tono: 'rojo', titulo: gate.estado };
+        const col = info.tono === 'verde' ? '#067647' : info.tono === 'ambar' ? '#B54708' : '#B42318';
+        const bg = info.tono === 'verde' ? '#ECFDF3' : info.tono === 'ambar' ? '#FFFAEB' : '#FEF3F2';
+        return (
+          <div className="no-imprimir" style={{ marginTop: 8, border: `1px solid ${col}33`, background: bg, borderRadius: 10, padding: 12, color: col }}>
+            <div style={{ fontWeight: 800 }}>{info.titulo}</div>
+            {gateRazones.length > 0 && (
+              <ul style={{ margin: '8px 0 0', paddingLeft: 18 }}>
+                {gateRazones.map((t, i) => <li key={i} style={{ fontSize: 13, margin: '2px 0' }}>{t}</li>)}
+              </ul>
+            )}
+            {gate.estado === 'ALLOWED' && <div style={{ fontSize: 13, marginTop: 4 }}>Todo en regla: puedes descargar el PDF definitivo.</div>}
+          </div>
+        );
+      })()}
       {/* Guardrail de exclusiones (audit #3): bandera ámbar + confirmación obligatoria.
           Sin marcar el checkbox, no se puede emitir; lo que se confirma se imprime en el PDF. */}
       {excluidasProyecto.length > 0 && (

@@ -446,6 +446,16 @@ export async function registrarProductoDesdeExpediente(expedienteId) {
   if (error) return { ok: false, error: error.message };
   return data;
 }
+
+// GATE DE EMISIÓN autoritativo (server-side). Devuelve { ok, estado, motivos[], economics[], hash }.
+// estado ∈ ALLOWED | ECONOMICS_INCOMPLETE | APPROVAL_REQUIRED | BLOCKED. Seller-safe
+// (no trae cifras de costo/margen, sólo razones). Degrada: si falla, { ok:false, estado:'DESCONOCIDO' }.
+export async function cotizacionEmitible(cotizacionId) {
+  if (!cotizacionId) return { ok: false, estado: 'SIN_GUARDAR', motivos: ['sin_guardar'] };
+  const { data, error } = await nube.rpc('cotizacion_emitible', { p_cotizacion_id: cotizacionId });
+  if (error || !data) return { ok: false, estado: 'DESCONOCIDO', motivos: [], error: error?.message };
+  return data;
+}
 // Descarga una imagen de Storage y la vuelve base64 raw (para re-render con el plano original).
 export async function urlABase64(url) {
   try {
