@@ -42,6 +42,50 @@ export function voniContext(estudio = {}, role = 'direccion') {
   return ctx;
 }
 
+// --- VONI COUNCIL · capa de razonamiento multi-modelo (edge). SÓLO propone/critica.
+//     Construye la petición { task, request, context, constraints, lenses } y resume
+//     la respuesta del council para la UI. NUNCA ejecuta: el validador determinista y
+//     el ToolRegistry son los únicos que aplican cambios.
+export function construirPeticionCouncil(message, u, ctx, constraints = []) {
+  const task = u.requested_changes.length ? 'interpret_change' : (u.wants_review ? 'review_product' : 'general');
+  return {
+    task,
+    request: message,
+    context: {
+      familia: ctx.familia, rev_actual: ctx.revActual, render_state: ctx.renderState,
+      spec_hash: ctx.specHash, historia_len: ctx.historiaLen,
+      requested_changes: u.requested_changes,
+      // cost_state SÓLO si el rol ve costos (ctx ya lo gatea); el server re-sanitiza.
+      cost_state: ctx.costState || null,
+    },
+    constraints,
+    lenses: u.lenses,
+  };
+}
+
+// Consolida la respuesta del council para la UI: estado, decisión, desacuerdo
+// explícito (jamás se oculta), recomendaciones/preguntas/bloqueos (ya seller-safe
+// server-side). Degrada a null si no hay council.
+export function resumenConsejo(council) {
+  if (!council || !council.council) return null;
+  const okOps = (council.opinions || []).filter((o) => o && o.ok && o.output);
+  const recs = okOps.flatMap((o) => o.output.recommendations || []);
+  const questions = okOps.flatMap((o) => o.output.questions || []);
+  const blockers = okOps.flatMap((o) => o.output.blockers || []);
+  return {
+    status: council.council.status,
+    decision: council.council.decision,
+    requires_confirmation: !!council.council.requires_confirmation,
+    disagreement: council.council.status === 'DISAGREEMENT',
+    modelos: okOps.length,   // modelos que respondieron OK (SINGLE_PROVIDER no trae provider_decisions)
+    provider_decisions: council.council.provider_decisions || [],
+    recommendations: recs.slice(0, 5),
+    questions: questions.slice(0, 5),
+    advertencias: blockers.slice(0, 5),   // advisory (no bloquean emisión; eso es determinista)
+    execution: council.execution || 'PROPOSAL_ONLY',
+  };
+}
+
 // --- LENS REGISTRY · qué lentes activar según la petición.
 export function seleccionarLentes(requested_changes = [], wants_review = false) {
   const L = new Set();
@@ -173,6 +217,24 @@ export async function voniTurno(message, { intentActual, role = 'direccion', too
   const ctx = voniContext(estudio, role);
   trace.push({ step: 'context', ok: true, veCostos: ctx.veCostos });
 
+  // COUNCIL · razonamiento multi-modelo (si el ToolRegistry lo inyecta). SÓLO PROPONE
+  // y CRITICA (execution: PROPOSAL_ONLY). Jamás aplica nada: el validador determinista
+  // y el ToolRegistry siguen siendo los únicos que ejecutan. El desacuerdo nunca se
+  // oculta. Degrada silenciosamente si el council no está disponible.
+  let council = null;
+  if (tools.COUNCIL) {
+    try {
+      const c = await tools.COUNCIL(construirPeticionCouncil(message, u, ctx));
+      if (c && c.ok !== false && c.council) {
+        council = resumenConsejo(c);
+        trace.push({ step: 'council', ok: true, status: council.status, decision: council.decision });
+        if (council.disagreement) trace.push({ step: 'council_disagreement', ok: true, providers: council.provider_decisions });
+      } else {
+        trace.push({ step: 'council', ok: false, error: c?.error || 'council no disponible' });
+      }
+    } catch (e) { trace.push({ step: 'council', ok: false, error: String(e?.message || e) }); }
+  }
+
   const applied = []; const stale = []; const blockers = []; let newRev = null;
 
   // EXECUTE · sólo lo autorizado (los cambios concretos). La review NO cambia nada.
@@ -219,5 +281,9 @@ export async function voniTurno(message, { intentActual, role = 'direccion', too
   }
 
   const response = construirRespuesta({ u, applied, newRev, stale, blockers, review });
-  return { ok: blockers.length === 0, understand: u, applied, newRev, stale, blockers, review, trace, response };
+  // El council viaja en la respuesta como PROPUESTA/CRÍTICA (nunca como acción
+  // ejecutada). La UI muestra recomendaciones, preguntas y, si hubo desacuerdo entre
+  // modelos, lo expone — no se resuelve en silencio.
+  if (council) response.council = council;
+  return { ok: blockers.length === 0, understand: u, applied, newRev, stale, blockers, review, council, trace, response };
 }

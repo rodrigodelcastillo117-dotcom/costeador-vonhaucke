@@ -2504,6 +2504,27 @@ input::placeholder, textarea::placeholder { color: #6f6961; }
 .cc-sug-conf { font-size: 10px; color: #98A2B3; text-transform: uppercase; }
 .cc-sug-why { font-size: 12px; color: #475467; margin: 4px 0 6px; }
 
+/* VONI Council · propuesta/crítica multi-modelo (nunca ejecuta). */
+.cc-council { margin: 8px 0 10px; border: 1px solid #D0D5DD; border-left: 3px solid #6941C6; border-radius: 12px; padding: 10px 12px; background: #FaF8FF; }
+.cc-council-disagree { border-left-color: #B54708; background: #FFFAEB; }
+.cc-council-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.cc-council-tag { font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #6941C6; }
+.cc-council-disagree .cc-council-tag { color: #B54708; }
+.cc-council-status { font-size: 10px; font-weight: 700; color: #667085; }
+.cc-council-warn { font-size: 12px; color: #7a3f0a; margin: 2px 0 6px; font-weight: 600; }
+.cc-council-list { margin: 4px 0; padding-left: 18px; }
+.cc-council-list li { font-size: 12px; color: #344054; margin: 3px 0; }
+.cc-council-q { margin: 4px 0; padding-left: 18px; }
+.cc-council-q li { font-size: 12px; color: #475467; font-style: italic; margin: 2px 0; }
+.cc-council-foot { font-size: 10.5px; color: #98A2B3; margin: 6px 0 0; }
+@media (prefers-color-scheme: dark) {
+  .cc-council { background: rgba(105,65,198,.1); border-color: rgba(255,255,255,.14); border-left-color: #9E77ED; }
+  .cc-council-disagree { background: rgba(224,169,59,.12); border-left-color: #d98a2b; }
+  .cc-council-tag { color: #c6b3f0; }
+  .cc-council-list li { color: #d9dde3; }
+  .cc-council-q li { color: #b0b6bf; }
+}
+
 .cc-bottom { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; margin-top: 14px; padding: 12px 14px; border: 1px solid #EAECF0; border-radius: 14px; background: #fff; }
 .cc-ready { display: flex; flex-wrap: wrap; gap: 6px; }
 .cc-ready-chip { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 3px 10px; }

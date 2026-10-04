@@ -481,6 +481,18 @@ export async function cotizacionEmitible(cotizacionId) {
   return data;
 }
 
+// VONI COUNCIL · capa de razonamiento multi-modelo (edge `voni-council`, JWT).
+// Recibe { task, request, context, constraints, lenses } y devuelve PROPUESTA/CRÍTICA
+// ({ council:{status,decision,...}, opinions:[...], execution:'PROPOSAL_ONLY' }). El
+// servidor sanitiza el contexto por rol. El front NUNCA ejecuta por esto; sólo propone.
+export async function voniCouncil(payload) {
+  try {
+    const { data, error } = await nube.functions.invoke('voni-council', { body: payload });
+    if (error) return { ok: false, error: error.message || String(error) };
+    return data || { ok: false, error: 'sin respuesta del council' };
+  } catch (e) { return { ok: false, error: String(e?.message || e) }; }
+}
+
 // RENDER CANÓNICO (lectura). Trae las filas de `renders` de UNAS revisiones exactas
 // (por producto_version_id) vía RPC SECURITY DEFINER `resolver_renders_canonicos`
 // (la tabla tiene RLS deny-all para el front). Devuelve { [versionId]: filas[] }; el

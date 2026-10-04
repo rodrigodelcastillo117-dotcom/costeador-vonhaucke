@@ -17,7 +17,7 @@ import {
   cocrearAExpediente, cocrearDeExpediente, cocrearPayload, hashEstable,
   DIMS_DEFAULT, MATERIALES_EDIT, FAMILIA, COCREO_STATUS, COST_STATUS,
 } from '../datos/cocrear.js';
-import { listarCocreaciones, guardarCocrearSeguro, cargarCocrearSeguro, registrarProductoDesdeExpediente, subirRenderCanonico } from '../nube.js';
+import { listarCocreaciones, guardarCocrearSeguro, cargarCocrearSeguro, registrarProductoDesdeExpediente, subirRenderCanonico, voniCouncil } from '../nube.js';
 import CocrearVisual from './CocrearVisual.jsx';
 import { parametrosEfectivos } from './Costeador.jsx';
 import { precioVenta } from '../motor/calculo.js';
@@ -79,6 +79,7 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
   const [propuestas, setPropuestas] = useState(null);
   const [nl, setNl] = useState('');
   const [vozMsg, setVozMsg] = useState('');
+  const [consejo, setConsejo] = useState(null);   // VONI Council: propuesta/crítica multi-modelo
   const [voniPensando, setVoniPensando] = useState(false);
   const [cotizadoHash, setCotizadoHash] = useState(null);  // hash de la rev agregada a cotización
   const [tecnico, setTecnico] = useState(false);
@@ -221,11 +222,15 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
         return { ok: true, rev: revSig, hash: h };
       },
       REVIEW_PRODUCT: async (it) => voniReview(construirProductSpec(it, extraerDNA(it), clasificarProducto(it, {}), { rev: rev || 1 })),
+      // COUNCIL: capa de razonamiento multi-modelo (edge). SÓLO propone/critica; el
+      // orquestador la gatea con el validador determinista antes de ejecutar nada.
+      COUNCIL: async (peticion) => voniCouncil(peticion),
     };
     const estudio = { spec, rev, historiaLen: historia.length, renderState: render ? (rStale ? 'stale' : 'ok') : 'none', costState: { cost_status: r?.costo?.cost_status } };
     try {
       const out = await voniTurno(frase, { intentActual: intent, role: soloVentas ? 'vendedor' : 'direccion', tools, estudio });
       setVozMsg(out.response.humano);
+      setConsejo(out.council || null);
       setPropuestas(out.understand.proposals || null);
       // Si el producto ya estaba en la cotización y cambió, avisar (revisión nueva).
       if (out.newRev && cotizadoHash) setCotizadoHash((prev) => prev); // mantiene; la UI compara hash abajo
@@ -507,6 +512,31 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
             <button type="button" className="boton cocrear-btn" onClick={enviarNL} disabled={!nl.trim() || voniPensando}>{voniPensando ? 'Pensando…' : 'Pedir a Voni'}</button>
           </div>
           {vozMsg && <p className="cc-voni-msg">{vozMsg}</p>}
+          {consejo && (
+            <div className={'cc-council' + (consejo.disagreement ? ' cc-council-disagree' : '')}>
+              <div className="cc-council-top">
+                <span className="cc-council-tag">Consejo VONI · {consejo.modelos || consejo.provider_decisions?.length || 0} {(consejo.modelos || consejo.provider_decisions?.length || 0) === 1 ? 'modelo' : 'modelos'}</span>
+                <span className="cc-council-status">{consejo.status}</span>
+              </div>
+              {/* El desacuerdo NUNCA se oculta: se muestra y se resuelve por validador/evidencia o preguntando. */}
+              {consejo.disagreement && (
+                <p className="cc-council-warn">Los modelos no coinciden ({(consejo.provider_decisions || []).map((p) => `${p.provider}:${p.decision}`).join(' · ')}). No se aplica nada por “mayoría”: decide el validador determinista o se pregunta.</p>
+              )}
+              {consejo.recommendations?.length > 0 && (
+                <ul className="cc-council-list">
+                  {consejo.recommendations.map((r, i) => (
+                    <li key={i}><strong>{r.category || 'IDEA'}:</strong> {r.what}{r.why ? ` — ${r.why}` : ''}{r.requires_validation ? ' (requiere validación)' : ''}</li>
+                  ))}
+                </ul>
+              )}
+              {consejo.questions?.length > 0 && (
+                <ul className="cc-council-q">
+                  {consejo.questions.map((q, i) => <li key={i}>¿{q.what || q}?</li>)}
+                </ul>
+              )}
+              <p className="cc-council-foot">Propuesta/crítica — no ejecuta. El cambio sólo se aplica si pasa el validador determinista.</p>
+            </div>
+          )}
           {cotizaDesactualizada && <p className="cocrear-nota-rojo">Nueva revisión disponible: la cotización usa una versión anterior. Agrégala de nuevo para actualizarla.</p>}
           {propuestas && (
             <div className="cc-propuestas">
