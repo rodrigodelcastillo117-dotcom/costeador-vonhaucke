@@ -517,7 +517,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                 <span className="nom">
                   {c.nombre}
                   <div className="ayuda">
-                    neto {c.neto.toFixed(2)} {ins.unidad}
+                    neto {c.neto.toFixed(2)} {porHoja ? 'm²' : ins.unidad}
                     {porHoja && <> <strong>≈ {fraccion.toFixed(2)} de hoja</strong></>}
                     {/* ⚠️ Aquí salía `comprar 0.37792260145122275 tablero` (2026-08-18).
                         El motor NO está mal: para un material con `fraccion` sí se
