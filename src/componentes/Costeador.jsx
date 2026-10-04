@@ -675,7 +675,12 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
           {errRender && <div className="alerta roja" style={{ marginTop: 8 }}><span className="texto">{errRender}</span></div>}
           <div className="ayuda" style={{ marginTop: 8, textAlign: 'center' }}>{costeo.imagen ? 'Render IA · aparece en la ficha del cliente' : (costeo.nombre || 'Vista del mueble')}</div>
         </div>
-        <HojaCosto resultado={resultado} insumos={insumos} pieza={piezaVirtual} parametros={par} tipo={costeo.tipoProducto} mostrarVolumen={true} />
+        {/* La hoja de costo DEBE usar el mismo margen que el precio de arriba: antes
+            tomaba `par.margenObjetivo` (p.ej. 40%) e ignoraba el slider `margen`
+            (default 30%), así que mostraba un "precio de lista" distinto al precio
+            grande para la MISMA pieza. Se le pasa el margen efectivo. (Para piezas
+            de catálogo/Intelisis la hoja usa la lista ×3 y este override no aplica.) */}
+        <HojaCosto resultado={resultado} insumos={insumos} pieza={piezaVirtual} parametros={{ ...par, margenObjetivo: margen }} tipo={costeo.tipoProducto} mostrarVolumen={true} />
 
         <div className="tarjeta roja" style={{ marginTop: 16 }}>
           {/* SIMULADOR vs OFICIAL: un costo oficial SIEMPRE es Alba. Con factores a mano
