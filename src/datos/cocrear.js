@@ -191,6 +191,9 @@ export function interpretarIntent(texto = '') {
   if (/electr[oó]nic|controlador|controller|touch|pantalla/.test(t)) caracteristicas.push('electronica');
   if (/cerradura|lock|chapa/.test(t)) caracteristicas.push('cerraduras');
   if (/ventilaci|ventilation/.test(t)) caracteristicas.push('ventilacion');
+  if (/cajon|gaveta|storage|almacen/.test(t)) caracteristicas.push('cajones');
+  if (/flotante|flote|suspend/.test(t)) caracteristicas.push('flotante');
+  if (/carga|cargador|celular|inalambric|wireless/.test(t)) caracteristicas.push('carga_inalambrica');
 
   // Capacidad (personas). Acepta dígito ("2") o número escrito ("dos").
   const NUM_TXT = { un: 1, uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, doce: 12 };

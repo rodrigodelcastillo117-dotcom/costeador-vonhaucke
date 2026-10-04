@@ -2492,3 +2492,18 @@ input::placeholder, textarea::placeholder { color: #6f6961; }
   :root:not([data-theme="light"]) .cc-sug { background: #1C1917; border-color: #3A3533; }
   :root:not([data-theme="light"]) .cc-voni-msg, :root:not([data-theme="light"]) .cc-sug-why { color: #B8B2AC; }
 }
+
+/* COCREAR · RENDER real (momento WOW) */
+.cc-render { margin-top: 12px; border: 1px solid #EAECF0; border-radius: 16px; background: #fff; padding: 12px; }
+.cc-render-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.cc-render-top strong { font-size: 14px; color: #1E1B1A; }
+.cc-render-out { display: flex; flex-direction: column; gap: 8px; }
+.cc-render-img { width: 100%; height: auto; border-radius: 12px; display: block; }
+.cc-render-img.stale { filter: grayscale(.5) opacity(.6); }
+.cc-render-stale { background: #FFFAEB; color: #B54708; border: 1px solid #B5470833; border-radius: 10px; padding: 8px 12px; font-size: 13px; font-weight: 600; }
+.cc-render-manifiesto { display: flex; flex-direction: column; gap: 4px; }
+.cc-render-badge { display: inline-block; align-self: flex-start; font-size: 11px; font-weight: 700; color: #B54708; background: #FFFAEB; border: 1px solid #B5470822; border-radius: 999px; padding: 2px 10px; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .cc-render { background: #221F1E; border-color: #3A3533; }
+  :root:not([data-theme="light"]) .cc-render-top strong { color: #ECE9E4; }
+}

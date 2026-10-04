@@ -1,0 +1,45 @@
+// ============================================================================
+//  RENDER PROMPT COMPILER · tests. El render se compila desde el ProductSpec
+//  EXACTO (geometría obligatoria), no de un prompt libre; y queda stale si el
+//  spec cambia. (contrato §4,§13-17)
+// ============================================================================
+import { describe, it, expect } from 'vitest';
+import { interpretarIntent, construirProductSpec, extraerDNA, clasificarProducto } from './cocrear.js';
+import { compileRenderPrompt, renderSpecDeProducto, renderStale, RENDER_PROMPT_VERSION } from './renderPrompt.js';
+
+const specDe = (texto, rev = 1) => { const i = interpretarIntent(texto); i.dimensiones = i.dimensiones || {}; return construirProductSpec(i, extraerDNA(i), clasificarProducto(i, {}), { rev }); };
+
+describe('RENDER PROMPT · deriva geometría del ProductSpec (no prompt libre)', () => {
+  it('recepción con iluminación ⇒ MANDATORY incluye LED; geometría bloqueada', () => {
+    const c = compileRenderPrompt(specDe('recepción curva 2.40 m nogal oscuro iluminación integrada'));
+    expect(c.version).toBe(RENDER_PROMPT_VERSION);
+    expect(c.render_spec.locked_geometry).toBe(true);
+    expect(c.render_spec.mandatory.join(' ')).toMatch(/LED/i);
+    expect(c.descripcion).toMatch(/MANDATORY FEATURES/);
+    expect(c.descripcion).toMatch(/curved/);
+    expect(c.materiales).toContain('nogal oscuro');
+  });
+
+  it('locker ⇒ door_count bloqueado derivado de medidas', () => {
+    const rs = renderSpecDeProducto(specDe('smart locker 1.80 m con cerraduras y pantalla'));
+    expect(rs.counts.door_count).toBeGreaterThan(0);
+    expect(rs.mandatory.join(' ')).toMatch(/locks/i);
+    expect(rs.counts.screen_count).toBe(1);
+    expect(rs.product_type).toMatch(/locker/);
+  });
+
+  it('el manifiesto `expected` lista geometría/acabado/features para validar fidelidad', () => {
+    const c = compileRenderPrompt(specDe('escritorio 1.80 m roble con cajones'));
+    expect(c.expected.features.join(' ')).toMatch(/drawers/i);
+    expect(c.expected.geometry).toHaveProperty('product_type');
+    expect(c.expected.finish.length).toBeGreaterThan(0);
+  });
+
+  it('cambiar el spec ⇒ el render anterior queda STALE (por hash)', () => {
+    const s1 = specDe('recepción 2.40 m nogal', 1);
+    const c1 = compileRenderPrompt(s1);
+    const s2 = specDe('recepción 2.80 m nogal', 2);
+    expect(renderStale(c1, s2)).toBe(true);
+    expect(renderStale(c1, s1)).toBe(false);
+  });
+});

@@ -19,6 +19,8 @@ import {
 import CocrearVisual from './CocrearVisual.jsx';
 import { parametrosEfectivos } from './Costeador.jsx';
 import { precioVenta } from '../motor/calculo.js';
+import { compileRenderPrompt, renderStale } from '../datos/renderPrompt.js';
+import { generarRender } from '../nube.js';
 
 const EJEMPLOS = [
   'Quiero una recepción cálida, premium, curva, 2.40 m, nogal oscuro, cubierta clara, iluminación integrada, para dos personas.',
@@ -76,6 +78,9 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
   const [vozMsg, setVozMsg] = useState('');
   const [tecnico, setTecnico] = useState(false);
   const [guardado, setGuardado] = useState(false);
+  const [render, setRender] = useState(null);       // { dataUrl, specHash, expected, version }
+  const [renderCargando, setRenderCargando] = useState(false);
+  const [renderError, setRenderError] = useState('');
   const draggingRef = useRef(false);
 
   const insumos = estado?.insumos || {};
@@ -144,6 +149,21 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
   const aplicarSugerencia = (s) => { if (s.accion?.addFeature) commit({ ...intent, caracteristicas: [...new Set([...(intent.caracteristicas || []), s.accion.addFeature])] }, s.accion.label); };
 
   const verRevision = (h) => commit(h.intent, `Volver a Rev ${h.rev}`);
+
+  // Render REAL: se compila desde el ProductSpec exacto (geometría bloqueada) y se
+  // ancla al hash del spec; si el diseño cambia, el render queda STALE.
+  const generar = async () => {
+    if (!spec) return;
+    setRenderCargando(true); setRenderError('');
+    try {
+      const c = compileRenderPrompt(spec, spec.dna);
+      const res = await generarRender(c.descripcion, { render_spec: c.render_spec, materiales: c.materiales, medidas: c.medidas, tipo: c.tipo, modo: c.modo, aspecto: c.aspecto });
+      if (res?.ok && res.dataUrl) setRender({ dataUrl: res.dataUrl, specHash: spec.hash, expected: c.expected, version: c.version });
+      else setRenderError(res?.error || 'No se pudo generar el render.');
+    } catch (e) { setRenderError(String(e?.message || e)); }
+    setRenderCargando(false);
+  };
+  const rStale = render && renderStale(render, spec);
 
   // A/B
   const compararAB = () => setComparA(JSON.parse(JSON.stringify(intent)));
@@ -277,6 +297,29 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
           ) : (
             <div className="cc-canvas-inner">
               <CocrearVisual spec={spec} />
+            </div>
+          )}
+          {/* RENDER REAL — el momento WOW (del ProductSpec exacto) */}
+          {!comparA && (
+            <div className="cc-render">
+              <div className="cc-render-top">
+                <strong>Render realista</strong>
+                <button type="button" className="boton cocrear-btn" onClick={generar} disabled={renderCargando}>
+                  {renderCargando ? 'Generando…' : (render ? 'Regenerar' : 'Ver cómo quedaría')}
+                </button>
+              </div>
+              {renderError && <p className="cocrear-nota-rojo">{renderError}</p>}
+              {render && (
+                <div className="cc-render-out">
+                  {rStale && <div className="cc-render-stale">El diseño cambió desde este render — está desactualizado. Regenéralo para verlo al día.</div>}
+                  <img className={'cc-render-img' + (rStale ? ' stale' : '')} src={render.dataUrl} alt={`Render de ${descripcionCorta(spec)}`} />
+                  <div className="cc-render-manifiesto">
+                    <span className="cc-render-badge">Pendiente de verificación visual de fidelidad</span>
+                    <p className="cocrear-ayuda">Lo que bloqueamos para este render: {render.expected.features.length ? render.expected.features.join(', ') + '. ' : ''}{render.expected.finish.join('; ')}.</p>
+                  </div>
+                </div>
+              )}
+              {!render && !renderCargando && <p className="cocrear-ayuda">El render sale del producto EXACTO que estás diseñando (medidas, material, forma, features). No es una imagen inventada.</p>}
             </div>
           )}
           {/* Historia visual */}
