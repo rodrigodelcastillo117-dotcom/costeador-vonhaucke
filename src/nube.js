@@ -414,6 +414,38 @@ export async function listarRevisiones(expedienteId) {
     .select('rev,creado,creado_por,costo').eq('expediente_id', expedienteId).order('rev', { ascending: false });
   return error ? [] : (data || []);
 }
+
+// --- COCREAR · RPCs SEGUROS (server-authority, seller-safe, revisiones inmutables).
+//     El backend valida rol/propiedad, despoja economía al vendedor y versiona.
+// Guarda/actualiza una co-creación. id=null crea; id crea una revisión nueva (rev+1)
+// salvo que el contenido sea idéntico (idempotente por hash). Devuelve {ok, expediente_id, revision, ...}.
+export async function guardarCocrearSeguro(expedienteId, payload) {
+  const { data, error } = await nube.rpc('guardar_cocrear_seguro', { p_expediente_id: expedienteId ?? null, p_payload: payload });
+  if (error) return { ok: false, error: error.message };
+  return data;
+}
+// Carga una co-creación completa (sin economía si el rol no la ve). {ok, id, cocrear, historia, ...}.
+export async function cargarCocrearSeguro(expedienteId) {
+  const { data, error } = await nube.rpc('cocrear_seguro', { p_expediente_id: expedienteId });
+  if (error) return { ok: false, error: error.message };
+  return data;
+}
+// Lista las CO-CREACIONES guardadas (expedientes con payload cocrear). RLS aplica
+// (Dirección/Diseño ven las suyas). Liviano: sin traer el jsonb completo.
+export async function listarCocreaciones(limite = 12) {
+  const { data, error } = await nube.from('expedientes')
+    .select('id,nombre,producto_tipo,estado,actualizado,creado')
+    .not('cocrear', 'is', null)
+    .order('actualizado', { ascending: false, nullsFirst: false }).limit(limite);
+  if (error) return { ok: false, error: error.message, items: [] };
+  return { ok: true, items: data || [] };
+}
+// Registra/reutiliza la ProductRevision canónica desde el expediente (una sola verdad de producto).
+export async function registrarProductoDesdeExpediente(expedienteId) {
+  const { data, error } = await nube.rpc('registrar_producto_desde_expediente', { p_expediente_id: expedienteId });
+  if (error) return { ok: false, error: error.message };
+  return data;
+}
 // Descarga una imagen de Storage y la vuelve base64 raw (para re-render con el plano original).
 export async function urlABase64(url) {
   try {

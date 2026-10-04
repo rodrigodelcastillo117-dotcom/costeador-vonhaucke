@@ -633,6 +633,25 @@ export function cocrearDeExpediente(expediente) {
   return { brief: c.brief || '', intent: c.intent, historia: Array.isArray(c.historia) ? c.historia : [], render: c.render || null };
 }
 
+// Payload jsonb para el RPC `guardar_cocrear_seguro` (server-authority). Incluye los
+// campos que el RPC extrae (nombre/familia/spec.dimensiones) + el estado completo.
+export function cocrearPayload(estado = {}) {
+  const intent = estado.intent || {};
+  const rev = (estado.historia?.length) || 1;
+  const spec = construirProductSpec(intent, extraerDNA(intent), clasificarProducto(intent, {}), { rev });
+  return {
+    version: COCREAR_PERSIST_VERSION,
+    nombre: descripcionCorta(spec),
+    familia: spec.familia,
+    spec: { familia: spec.familia, dimensiones: spec.dimensiones || {} },
+    brief: estado.brief || '',
+    intent,
+    historia: (estado.historia || []).map((h) => ({ rev: h.rev, label: h.label, intent: h.intent })),
+    render: estado.render ? { specHash: estado.render.specHash, expected: estado.render.expected } : null,
+    specHash: spec.hash,
+  };
+}
+
 // ---------------------------------------------------------------------------
 //  10) STALENESS · si el ProductSpec cambia (nueva rev), lo aguas-abajo
 //      (costo/render/cotización) queda OBSOLETO hasta recalcular (§3,§22).

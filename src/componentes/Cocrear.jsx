@@ -14,10 +14,10 @@ import React, { useMemo, useState, useRef } from 'react';
 import {
   interpretarIntent, cocrearDesdeIntent, construirProductSpec, extraerDNA, clasificarProducto,
   aplicarCambioTexto, sugerenciasVoni, descripcionCorta, lineaCocreada,
-  cocrearAExpediente, cocrearDeExpediente,
+  cocrearAExpediente, cocrearDeExpediente, cocrearPayload,
   DIMS_DEFAULT, MATERIALES_EDIT, FAMILIA, COCREO_STATUS, COST_STATUS,
 } from '../datos/cocrear.js';
-import { guardarExpediente, actualizarExpediente, listarExpedientes, obtenerExpediente, guardarRevisionExpediente } from '../nube.js';
+import { listarCocreaciones, guardarCocrearSeguro, cargarCocrearSeguro, registrarProductoDesdeExpediente } from '../nube.js';
 import CocrearVisual from './CocrearVisual.jsx';
 import { parametrosEfectivos } from './Costeador.jsx';
 import { precioVenta } from '../motor/calculo.js';
@@ -99,8 +99,8 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
     let vivo = true;
     (async () => {
       try {
-        const r = await listarExpedientes('');
-        if (vivo && r?.ok) setMisCocreaciones((r.items || []).filter((x) => x.estado === 'cocreacion' || (x.etiquetas || []).includes('cocrear')).slice(0, 8));
+        const r = await listarCocreaciones(8);
+        if (vivo && r?.ok) setMisCocreaciones(r.items || []);
       } catch { /* sin conexión: queda el draft local */ }
     })();
     return () => { vivo = false; };
@@ -164,26 +164,25 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
   };
   // GUARDAR REAL: persiste en Supabase (expedientes + revisiones inmutables),
   // reutilizando el modelo existente. Mantiene el draft local como respaldo offline.
+  // GUARDAR REAL vía RPC server-authority (guardar_cocrear_seguro): valida rol/
+  // propiedad, versiona inmutable (rev+1), despoja economía al vendedor. Draft local
+  // como respaldo offline. Devuelve el expediente_id canónico.
   const guardar = async () => {
     try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ brief: texto, historia })); } catch { /* noop */ }
     setGuardando(true);
     try {
-      const row = cocrearAExpediente({ brief: texto, intent, historia, render });
-      let id = expedienteId;
-      if (id) { await actualizarExpediente(id, row); }
-      else { const res = await guardarExpediente(row); if (res?.ok) { id = res.id; setExpedienteId(id); } else throw new Error(res?.error || 'no se pudo guardar'); }
-      // Snapshot INMUTABLE de la revisión actual (append-only).
-      if (id) await guardarRevisionExpediente({ expediente_id: id, rev, nombre: row.nombre, materiales: row.materiales, cocrear: { intent, label: historia[historia.length - 1]?.label || `Rev ${rev}`, specHash: spec?.hash } });
-      setGuardado(true);
+      const res = await guardarCocrearSeguro(expedienteId, cocrearPayload({ brief: texto, intent, historia, render }));
+      if (res?.ok) { if (res.expediente_id) setExpedienteId(res.expediente_id); setGuardado(true); }
+      else throw new Error(res?.error || 'no se pudo guardar');
     } catch (e) { setVozMsg('Guardado local OK; la nube falló: ' + String(e?.message || e)); setGuardado(true); }
     setGuardando(false);
   };
 
-  // REABRIR desde Supabase (persistencia real entre sesiones/dispositivos).
+  // REABRIR vía RPC seguro (cocrear_seguro): server-authority + seller-safe.
   const reabrir = async (id) => {
     try {
-      const res = await obtenerExpediente(id);
-      const est = res?.ok ? cocrearDeExpediente(res.expediente) : null;
+      const res = await cargarCocrearSeguro(id);
+      const est = res?.ok ? cocrearDeExpediente({ cocrear: res.cocrear }) : null;
       if (est?.intent) {
         setHistoria(est.historia.length ? est.historia : [{ rev: 1, label: 'Idea inicial', intent: est.intent }]);
         setIntent(est.intent); setTexto(est.brief || ''); setExpedienteId(id);
@@ -254,13 +253,21 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
   const compararAB = () => setComparA(JSON.parse(JSON.stringify(intent)));
   const elegir = (cualIntent, cual) => { commit(cualIntent, `Elegí opción ${cual}`); setComparA(null); };
 
-  const agregarACotizacion = () => {
+  const agregarACotizacion = async () => {
     if (!pipeline || !veCostos || pipeline.costo.official_cost == null || !onAgregar) return;
-    const costeo = { nombre: descripcionCorta(spec), componentes: spec.componentes, w: spec.dimensiones?.ancho_mm || null, d: null, productoId: null, precioReal: false, config: null };
+    // Una sola verdad de producto: antes de cotizar, el especial debe existir como
+    // ProductRevision canónica. Guarda (secure) y registra/reutiliza el producto.
+    let prodVersionId = null;
+    try {
+      const g = await guardarCocrearSeguro(expedienteId, cocrearPayload({ brief: texto, intent, historia, render }));
+      const id = g?.ok ? (g.expediente_id || expedienteId) : expedienteId;
+      if (id) { setExpedienteId(id); const reg = await registrarProductoDesdeExpediente(id); if (reg?.ok) prodVersionId = reg.producto_version_id || null; }
+    } catch { /* la cotización no se bloquea por la nube; el precio ya es honesto */ }
+    const costeo = { nombre: descripcionCorta(spec), componentes: spec.componentes, w: spec.dimensiones?.ancho_mm || null, d: null, productoId: null, productVersionId: prodVersionId, precioReal: false, config: null };
     const margen = Number.isFinite(par.margenObjetivo) ? par.margenObjetivo : 40;
     onAgregar(costeo, 1, precioVenta(pipeline.costo.official_cost, par).precio, margen);
     setCotizadoHash(spec.hash);   // la cotización queda PINNED a esta revisión (hash)
-    setVozMsg(`Agregado al proyecto: ${costeo.nombre} (Rev ${rev})`);
+    setVozMsg(`Agregado al proyecto: ${descripcionCorta(spec)} (Rev ${rev}${prodVersionId ? ' · v' + prodVersionId : ''})`);
   };
   // La cotización está pinned a una revisión anterior y el producto ya cambió.
   const cotizaDesactualizada = cotizadoHash && spec && cotizadoHash !== spec.hash;
