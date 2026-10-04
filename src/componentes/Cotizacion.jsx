@@ -207,7 +207,12 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           iva, ivaPct, total,
           anticipoPct, anticipo, cliente: cot.cliente, folio: cot.folio },
       });
-      if (!reg?.ok) setPdfErr('⚠️ Se generó el PDF, pero NO se registró la emisión (su evidencia no quedó conservada): NO cuenta como emisión definitiva. Revisa tu conexión e inténtalo de nuevo.');
+      if (!reg?.ok) {
+        const necesitaAprob = /aprobaci|politica|supera/i.test(reg?.motivo || '');
+        setPdfErr(necesitaAprob
+          ? '⚠️ Salió como BORRADOR: el descuento supera la política comercial y requiere APROBACIÓN DE DIRECCIÓN antes de emitirse en definitiva. No cuenta como emisión oficial.'
+          : '⚠️ Se generó el PDF, pero NO se registró la emisión (su evidencia no quedó conservada): NO cuenta como emisión definitiva. Revisa tu conexión e inténtalo de nuevo.');
+      }
     } catch (e) {
       // Si algo falla, queda el camino de siempre en vez de dejarlo sin nada.
       setPdfErr('No se pudo generar el archivo; se abrirá la impresión para guardarlo como PDF.');
@@ -222,7 +227,10 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
     // una salida definitiva. Si no se registró, NO se imprime como definitiva.
     const reg = onEmitida ? await onEmitida() : { ok: false };
     if (!reg?.ok) {
-      setPdfErr('No se registró la emisión: no se imprime como definitiva. Usa "Descargar PDF" (sale marcado como borrador) o revisa tu conexión y reintenta.');
+      const necesitaAprob = /aprobaci|politica|supera/i.test(reg?.motivo || '');
+      setPdfErr(necesitaAprob
+        ? 'No se imprime como definitiva: el descuento supera la política y requiere APROBACIÓN DE DIRECCIÓN. Mientras tanto usa "Descargar PDF" (sale como borrador).'
+        : 'No se registró la emisión: no se imprime como definitiva. Usa "Descargar PDF" (sale marcado como borrador) o revisa tu conexión y reintenta.');
       return;
     }
     const prev = document.title;
