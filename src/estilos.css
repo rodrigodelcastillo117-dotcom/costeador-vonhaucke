@@ -306,28 +306,43 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 
 /* ---- INICIO: editorial, tiles con icono de línea (sin emojis) ---- */
 .inicio { max-width: 940px; margin: 0 auto; padding: 8px 0 24px; }
-/* "Taller digital": retícula de plano técnico MUY sutil detrás del hero, que se
-   desvanece hacia abajo. Identidad Von Haucke sin volverse CAD ni meter ruido. */
-.inicio-hero { padding: 16px 0 14px; position: relative; overflow: hidden; }
+/* HERO "TALLER DIGITAL": panel de plano técnico. Retícula + cota + nodo de
+   origen, como un plano de fabricación Von Haucke. Identidad fuerte pero sobria
+   (no CAD, no ruido). Es lo primero que se ve: debe sentirse premium y propio. */
+.inicio-hero {
+  padding: 30px 30px 28px; position: relative; overflow: hidden; border-radius: 18px;
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(178,42,34,.06), transparent 55%),
+    linear-gradient(180deg, #FFFFFF 0%, var(--panel) 100%);
+  border: 1px solid var(--linea); box-shadow: var(--sombra); margin-bottom: 20px;
+}
+/* retícula de plano, se desvanece en diagonal para no competir con el texto */
 .inicio-hero::before {
   content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
   background-image:
-    linear-gradient(to right, rgba(30,27,26,.045) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(30,27,26,.045) 1px, transparent 1px);
-  background-size: 26px 26px;
-  -webkit-mask-image: linear-gradient(160deg, rgba(0,0,0,.9), rgba(0,0,0,0) 62%);
-  mask-image: linear-gradient(160deg, rgba(0,0,0,.9), rgba(0,0,0,0) 62%);
+    linear-gradient(to right, rgba(30,27,26,.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(30,27,26,.06) 1px, transparent 1px);
+  background-size: 28px 28px; background-position: -1px -1px;
+  -webkit-mask-image: linear-gradient(145deg, rgba(0,0,0,.85), rgba(0,0,0,0) 70%);
+  mask-image: linear-gradient(145deg, rgba(0,0,0,.85), rgba(0,0,0,0) 70%);
 }
-/* filete rojo de "cota" en la esquina — guiño industrial, no decorativo de más */
+/* nodo de origen (esquina sup-izq del plano): círculo + cruz de cota, en rojo */
 .inicio-hero::after {
-  content: ""; position: absolute; top: 0; left: 0; width: 44px; height: 3px;
-  background: var(--rojo); border-radius: 0 0 3px 3px; z-index: 1;
+  content: ""; position: absolute; top: 16px; right: 18px; width: 54px; height: 54px; z-index: 0; opacity: .5;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 7px, rgba(178,42,34,.55) 7px, rgba(178,42,34,.55) 8.5px, transparent 9px),
+    linear-gradient(to right, rgba(178,42,34,.55) 1.5px, transparent 1.5px) 50% 50% / 100% 1.5px no-repeat,
+    linear-gradient(to bottom, rgba(178,42,34,.55) 1.5px, transparent 1.5px) 50% 50% / 1.5px 100% no-repeat;
+  background-repeat: no-repeat;
 }
 .inicio-hero > * { position: relative; z-index: 1; }
-@media (prefers-reduced-motion: no-preference) {
-  .inicio-hero::before { animation: vh-plano-in .6s ease-out both; }
-}
-@keyframes vh-plano-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: no-preference) { .inicio-hero { animation: vh-plano-in .5s ease-out both; } }
+@keyframes vh-plano-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (max-width: 520px) { .inicio-hero { padding: 22px 18px 20px; } .inicio-hero::after { display: none; } }
+
+/* Overline como "etiqueta de plano": barra roja + texto, lo hace inconfundible. */
+.inicio-overline { display: inline-flex; align-items: center; gap: 9px; }
+.inicio-overline::before { content: ""; width: 22px; height: 3px; background: var(--rojo); border-radius: 2px; }
 .inicio-overline {
   font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
   color: var(--rojo); margin-bottom: 10px;
@@ -1820,3 +1835,70 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 .ee-variante.sel { border-color: var(--verde); box-shadow: 0 0 0 2px rgba(15,118,110,.14); }
 .ee-variante-d { font-size: 12.5px; color: var(--gris); line-height: 1.3; }
 .ee-variante-p { font-size: 13px; font-weight: 700; white-space: nowrap; }
+
+/* ==========================================================================
+   CAPA PREMIUM "TALLER DIGITAL" (2026-10-04) — eleva los PRIMITIVOS compartidos
+   para que TODA la app suba de nivel a la vez, sin tocar lógica ni medidas (solo
+   sombra/radio/gradiente/hover/press). Reversible: borrar este bloque entero.
+   Mantiene accesibilidad: no cambia min-height, font-size base ni áreas táctiles.
+   ========================================================================== */
+:root {
+  --ease: cubic-bezier(.2, .7, .2, 1);
+  --sombra-1: 0 1px 2px rgba(30,27,26,.05), 0 6px 16px -10px rgba(30,27,26,.14);
+  --sombra-2: 0 2px 6px rgba(30,27,26,.06), 0 18px 40px -20px rgba(30,27,26,.26);
+  --radio: 14px;
+}
+
+/* HEADER: barra "taller" — degradado de tinta, hairline rojo inferior y una
+   retícula de plano casi imperceptible. Se ve en TODAS las pantallas. */
+.encabezado {
+  background:
+    linear-gradient(180deg, #26221F 0%, var(--carbon) 100%);
+  border-bottom: 2px solid var(--rojo);
+  box-shadow: 0 1px 0 rgba(255,255,255,.04) inset, 0 6px 20px -12px rgba(0,0,0,.5);
+}
+.encabezado::after { content: none; }
+.marca .nombre { letter-spacing: -0.04em; }
+.conexion { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); padding: 6px 11px; border-radius: 999px; }
+.conexion .punto { box-shadow: 0 0 0 3px rgba(255,255,255,.06); }
+.btn-enc {
+  background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.14);
+  border-radius: 9px; transition: background .18s var(--ease), border-color .18s var(--ease), transform .06s var(--ease);
+}
+.btn-enc:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.28); }
+.btn-enc:active { transform: translateY(1px); }
+.btn-cot { transition: transform .06s var(--ease), box-shadow .18s var(--ease); }
+.btn-cot:hover { box-shadow: 0 6px 18px -8px rgba(178,42,34,.6); }
+
+/* TARJETAS: radio y sombra en capas; realce de borde superior (como canto de
+   material); profundiza en hover sin "saltar" (no cambia tamaño). */
+.tarjeta {
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-1);
+  transition: box-shadow .22s var(--ease), border-color .22s var(--ease);
+}
+.tarjeta:hover { box-shadow: var(--sombra-2); }
+.tarjeta.roja { box-shadow: 0 2px 6px rgba(178,42,34,.08), 0 18px 40px -20px rgba(178,42,34,.28); }
+
+/* BOTONES: primario con profundidad y elevación al hover; press táctil claro. */
+.boton { border-radius: 10px; transition: background .18s var(--ease), border-color .18s var(--ease), box-shadow .18s var(--ease), transform .08s var(--ease); }
+.boton.primario {
+  background: linear-gradient(180deg, #C1322A 0%, var(--rojo) 55%, var(--rojo-osc) 100%);
+  box-shadow: 0 1px 1px rgba(255,255,255,.18) inset, 0 8px 20px -10px rgba(178,42,34,.55);
+}
+.boton.primario:hover { transform: translateY(-1px); box-shadow: 0 1px 1px rgba(255,255,255,.2) inset, 0 12px 26px -10px rgba(178,42,34,.65); }
+.boton.primario:active { transform: translateY(0); }
+.boton.tinta { background: linear-gradient(180deg, #2a2624 0%, var(--tinta) 100%); box-shadow: 0 8px 20px -12px rgba(0,0,0,.5); }
+.boton.tinta:hover { transform: translateY(-1px); }
+
+/* CAMPOS: radio más suave y foco con anillo premium (doble: rojo tenue + tinta). */
+input[type="text"], input[type="number"], input[type="password"], input[type="email"],
+input[type="search"], input[type="tel"], input[type="date"], select, textarea { border-radius: 10px; }
+input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--foco), 0 0 0 1px var(--rojo) inset; }
+
+/* CHIPS: on con degradado de marca y leve relieve. */
+.chip { transition: background .18s var(--ease), border-color .18s var(--ease), box-shadow .18s var(--ease); }
+.chip.on { background: linear-gradient(180deg, #C1322A, var(--rojo)); box-shadow: 0 6px 16px -8px rgba(178,42,34,.55); }
+
+/* BOTÓN FLOTANTE DE VONI: que se sienta "vivo" y premium en todas las pantallas. */
+.voni-fab, .voni-flotante, .fab-voni { box-shadow: 0 10px 28px -8px rgba(178,42,34,.6) !important; }
