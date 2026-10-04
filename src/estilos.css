@@ -530,7 +530,7 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 /* ---- Panel de análisis de la IA ---- */
 .ia-analisis { display: flex; gap: 16px; background: var(--panel); border: 1px solid var(--linea); border-radius: 14px; padding: 16px; margin: 6px 0 18px; }
 @media (max-width: 640px) { .ia-analisis { flex-direction: column; } }
-.ia-thumb { flex: none; width: 160px; height: 130px; object-fit: contain; border-radius: 10px; border: 1px solid var(--linea); background: #fff; }
+.ia-thumb { flex: none; width: 160px; height: 130px; object-fit: contain; border-radius: 10px; border: 1px solid var(--linea); background: var(--blanco); }
 @media (max-width: 640px) { .ia-thumb { width: 100%; height: 180px; } }
 .ia-cuerpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 .ia-desc { margin: 0; font-size: 15.5px; line-height: 1.5; color: var(--tinta); }
@@ -642,7 +642,7 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 /* ---- Impresion: solo vista cliente, con encabezado (7.4) ---- */
 @media print {
   .encabezado, .no-imprimir, .barra-fija { display: none !important; }
-  body { background: #fff; font-size: 12pt; }
+  body { background: var(--blanco); font-size: 12pt; }
   .contenido { max-width: none; }
   .tarjeta, .hoja { border-color: #999; }
   /* Al imprimir siempre la tabla, nunca las tarjetas de celular */
@@ -715,7 +715,7 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 .ficha-pdf {
   width: 210mm; max-width: 100%;
   min-height: 297mm;
-  background: #fff; color: var(--carbon);
+  background: var(--blanco); color: var(--carbon);
   padding: 20mm 18mm;
   box-shadow: 0 10px 40px rgba(0,0,0,.35);
   font-family: var(--sans);
@@ -737,7 +737,7 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 
 .ficha-producto { display: grid; grid-template-columns: 200px 1fr; gap: 26px; padding: 26px 0; align-items: start; }
 .ficha-render { aspect-ratio: 5 / 4; background: linear-gradient(160deg, #faf9f8, #efece9); border: 1px solid var(--linea); border-radius: 8px; padding: 16px; display: flex; }
-.ficha-render-foto { padding: 0; overflow: hidden; background: #fff; }
+.ficha-render-foto { padding: 0; overflow: hidden; background: var(--blanco); }
 .ficha-foto { width: 100%; height: 100%; object-fit: contain; border-radius: 8px; display: block; }
 .ficha-linea { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--rojo); font-weight: 700; }
 .ficha-nombre { font-family: var(--display); font-size: 25px; line-height: 1.12; margin: 4px 0 6px; letter-spacing: -0.02em; }
@@ -778,7 +778,7 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
   body:has(.ficha-overlay) .ficha-overlay *,
   body.ficha-abierta .ficha-overlay,
   body.ficha-abierta .ficha-overlay * { visibility: visible; }
-  .ficha-overlay { position: absolute; inset: 0; padding: 0; background: #fff; display: block; }
+  .ficha-overlay { position: absolute; inset: 0; padding: 0; background: var(--blanco); display: block; }
   .ficha-controls { display: none !important; }
   .ficha-pdf { box-shadow: none; width: auto; min-height: 0; padding: 0; margin: 0; }
   @page { size: A4; margin: 14mm; }
@@ -848,7 +848,7 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 .cot-cliente { display: none; }
 .cot-cliente.activa { display: block; }
 
-.propx-cover { background: #fff; border: 1px solid var(--linea); border-top: 6px solid var(--rojo);
+.propx-cover { background: var(--blanco); border: 1px solid var(--linea); border-top: 6px solid var(--rojo);
   border-radius: 16px; padding: 36px 40px; margin-bottom: 16px; box-shadow: var(--sombra); break-inside: avoid; }
 .propx-cover-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
 .propx-sello { border: 1.5px solid var(--rojo); color: var(--rojo); border-radius: 999px; padding: 7px 16px;
@@ -861,9 +861,9 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 .propx-dot { color: var(--linea-fuerte); }
 
 .propx-items { border: 1px solid var(--linea); border-radius: 16px; overflow: hidden; margin-bottom: 16px; }
-.propx-item { display: flex; align-items: center; gap: 16px; padding: 14px 18px; border-bottom: 1px solid var(--linea); background: #fff; break-inside: avoid; }
+.propx-item { display: flex; align-items: center; gap: 16px; padding: 14px 18px; border-bottom: 1px solid var(--linea); background: var(--blanco); break-inside: avoid; }
 .propx-item:last-child { border-bottom: none; }
-.propx-foto { width: 128px; height: 92px; flex: none; border-radius: 10px; object-fit: contain; background: #fff; border: 1px solid var(--linea); padding: 4px; }
+.propx-foto { width: 128px; height: 92px; flex: none; border-radius: 10px; object-fit: contain; background: var(--blanco); border: 1px solid var(--linea); padding: 4px; }
 .propx-foto.sin { background: linear-gradient(135deg, var(--papel), #e7e1da); }
 .propx-info { flex: 1 1 auto; min-width: 0; }
 .propx-nombre { font-weight: 700; font-size: 15.5px; line-height: 1.3; color: var(--tinta); }
@@ -930,7 +930,7 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 }
 
 /* ---- Propuesta: RESUMEN POR ÁREA ---- */
-.propx-resumen { background: #fff; border: 1px solid var(--linea); border-radius: 16px;
+.propx-resumen { background: var(--blanco); border: 1px solid var(--linea); border-radius: 16px;
   padding: 24px 28px; margin-bottom: 16px; }
 .propx-res-tit { font-family: var(--display); font-weight: 800; font-size: 20px; margin: 0 0 14px; color: var(--tinta); }
 .propx-res-area { border-top: 1px solid var(--linea); padding: 12px 0; break-inside: avoid; }
@@ -1214,7 +1214,7 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
   min-height: 40px; padding: 0 16px; font-size: 13px; font-weight: 600; color: var(--gris);
   font-family: var(--display);
 }
-.segmento button.on { background: #fff; color: var(--tinta); box-shadow: 0 1px 3px rgba(0,0,0,.14); }
+.segmento button.on { background: var(--blanco); color: var(--tinta); box-shadow: 0 1px 3px rgba(0,0,0,.14); }
 .segmento button:focus-visible { outline: 3px solid var(--foco); outline-offset: 2px; }
 @media (max-width: 560px) {
   .cot-acciones { flex-direction: column; align-items: stretch; }
@@ -1249,7 +1249,7 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 .atajo-ia {
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
   margin-bottom: 14px; padding: 14px 16px; border-radius: 12px;
-  background: linear-gradient(180deg, #fff 0%, #faf7f4 100%); border: 1px solid var(--linea);
+  background: linear-gradient(180deg, var(--blanco) 0%, var(--panel) 100%); border: 1px solid var(--linea);
 }
 .atajo-ia-txt { display: flex; flex-direction: column; gap: 3px; flex: 1 1 260px; min-width: 0; }
 .atajo-ia-txt strong { font-family: var(--display); font-size: 15px; color: var(--tinta); }
@@ -1277,7 +1277,7 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 }
 .modal-x {
   flex: none; width: 44px; height: 44px; border-radius: 999px;
-  border: 1px solid var(--linea); background: #fff; color: var(--tinta);
+  border: 1px solid var(--linea); background: var(--blanco); color: var(--tinta);
   cursor: pointer; display: grid; place-items: center; align-self: flex-start;
 }
 .modal-x:hover { background: #f4f1ee; }
@@ -1363,7 +1363,7 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 
 .guia-pie {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-  padding: 14px 20px; border-top: 1px solid var(--linea); background: #faf8f6;
+  padding: 14px 20px; border-top: 1px solid var(--linea); background: var(--panel);
 }
 .guia-pie .ayuda { margin: 0; flex: 1; min-width: 180px; }
 .guia-pie .boton { min-height: 46px; }
@@ -1379,7 +1379,7 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 }
 
 /* Buscador e índice del manual. */
-.guia-buscar { display: flex; align-items: center; gap: 9px; margin: 12px 20px 0; padding: 0 12px; border: 1px solid var(--linea); border-radius: 10px; background: #fff; }
+.guia-buscar { display: flex; align-items: center; gap: 9px; margin: 12px 20px 0; padding: 0 12px; border: 1px solid var(--linea); border-radius: 10px; background: var(--blanco); }
 .guia-buscar svg { color: var(--gris); flex: none; }
 .guia-buscar input { flex: 1; border: 0; background: transparent; min-height: 44px; font-size: 14.5px; outline: none; padding: 0; }
 .guia-buscar input:focus { outline: none; }
@@ -1403,7 +1403,7 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 .retomar {
   display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
   margin-bottom: 16px; padding: 14px 18px; border-radius: 14px; cursor: pointer;
-  background: #fff; border: 1px solid var(--linea); border-left: 4px solid var(--verde);
+  background: var(--blanco); border: 1px solid var(--linea); border-left: 4px solid var(--verde);
   box-shadow: 0 2px 10px rgba(0,0,0,.05);
 }
 .retomar:hover { box-shadow: 0 5px 18px rgba(0,0,0,.09); }
@@ -1453,7 +1453,7 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
   background: var(--papel); border: 2px solid var(--rojo);
   color: var(--tinta); box-shadow: 0 10px 30px rgba(30,27,26,.10);
 }
-.costear-principal:hover { background: #fff; box-shadow: 0 14px 38px rgba(30,27,26,.16); }
+.costear-principal:hover { background: var(--blanco); box-shadow: 0 14px 38px rgba(30,27,26,.16); }
 .costear-principal:focus-visible { outline: 3px solid var(--foco); outline-offset: 3px; }
 .costear-principal .voni-principal-av { color: var(--rojo); display: flex; }
 .costear-principal .voni-principal-k { color: var(--rojo); opacity: 1; }
@@ -1476,7 +1476,7 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
   transition: border-color .14s ease, background .14s ease;
 }
 .atajo span { font-weight: 400; font-size: 12px; color: var(--gris); }
-.atajo:hover { border-color: var(--tinta); background: #fff; }
+.atajo:hover { border-color: var(--tinta); background: var(--blanco); }
 .atajo:focus-visible { outline: 3px solid var(--foco); outline-offset: 2px; }
 .atajo-mas { background: transparent; border-style: dashed; color: var(--gris); font-weight: 500; }
 @media (max-width: 520px) { .atajo { flex: 1 1 100%; } }
@@ -1487,10 +1487,10 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 .favoritas-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .favorita {
   min-height: 44px; padding: 0 16px; border-radius: 999px; cursor: pointer;
-  background: #fff; border: 1px solid var(--linea); color: var(--tinta);
+  background: var(--blanco); border: 1px solid var(--linea); color: var(--tinta);
   font-family: var(--display); font-weight: 600; font-size: 14px;
 }
-.favorita:hover { border-color: var(--linea-fuerte); background: #faf8f6; }
+.favorita:hover { border-color: var(--linea-fuerte); background: var(--panel); }
 .favorita:focus-visible { outline: 3px solid var(--foco); outline-offset: 2px; }
 
 /* En columna, flex:1 1 0 colapsaba las tarjetas a una tira: se fija basis auto. */
@@ -1577,17 +1577,17 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 /* ===== EDITAR UN MUEBLE ===== */
 .icono-btn {
   flex: none; width: 40px; height: 40px; border-radius: 10px; cursor: pointer;
-  border: 1px solid var(--linea); background: #fff; color: var(--gris);
+  border: 1px solid var(--linea); background: var(--blanco); color: var(--gris);
   display: grid; place-items: center;
 }
-.icono-btn:hover { border-color: var(--linea-fuerte); color: var(--tinta); background: #faf8f6; }
+.icono-btn:hover { border-color: var(--linea-fuerte); color: var(--tinta); background: var(--panel); }
 .icono-btn:focus-visible { outline: 3px solid var(--foco); outline-offset: 2px; }
 
 .ed-foto { height: 170px; border-radius: 12px; background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #f4f1ee; margin-bottom: 14px; }
 .ed-campo { margin-bottom: 12px; }
 .ed-campo .chips { margin-bottom: 0; }
 
-.ed-pie { border-top: 1px solid var(--linea); background: #faf8f6; padding: 14px 20px; display: grid; gap: 12px; }
+.ed-pie { border-top: 1px solid var(--linea); background: var(--panel); padding: 14px 20px; display: grid; gap: 12px; }
 .ed-resumen { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
 .ed-nombre { font-size: 13.5px; color: var(--gris); flex: 1; min-width: 180px; }
 .ed-precio { font-family: var(--display); font-weight: 700; font-size: 22px; color: var(--tinta); text-align: right; }
@@ -1707,7 +1707,7 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 /* La foto de la silla en el banco de precios. Chica y cuadrada: es para
    reconocerla de un vistazo, no para lucirla. */
 .banco-foto { width: 62px; height: 62px; object-fit: contain; border-radius: 8px;
-  background: #fff; border: 1px solid var(--linea); flex: 0 0 auto; margin-right: 12px; }
+  background: var(--blanco); border: 1px solid var(--linea); flex: 0 0 auto; margin-right: 12px; }
 @media (max-width: 560px) { .banco-foto { width: 52px; height: 52px; margin-right: 9px; } }
 
 /* ---- Paleta partida: MUEBLES a la izquierda, SILLAS a la derecha ----
@@ -2176,7 +2176,7 @@ body::after {
 .inicio-terminal .retomar-lbl { font-family: var(--mono2); color: var(--t-red); letter-spacing: .12em; }
 .inicio-terminal .retomar-txt strong { font-family: var(--grot); color: #fff; }
 .inicio-terminal .retomar-n { font-family: var(--mono2); color: var(--t-dim); }
-.inicio-terminal .retomar-cta { background: #fff; color: #0C0B0A; border-radius: 7px; }
+.inicio-terminal .retomar-cta { background: var(--blanco-puro); color: #0C0B0A; border-radius: 7px; }
 .inicio-terminal .retomar-tirar { color: var(--t-dim); border-color: var(--t-line); }
 
 /* PUERTAS (Voni / Costear) ---------------------------------------------- */
@@ -2186,7 +2186,7 @@ body::after {
 }
 .inicio-terminal .voni-principal-k, .inicio-terminal .costear-principal .voni-principal-k { font-family: var(--mono2); letter-spacing: .14em; opacity: .9; }
 .inicio-terminal .voni-principal-txt strong { font-family: var(--grot); color: #fff; }
-.inicio-terminal .voni-principal-cta { background: #fff; color: #0C0B0A; border-radius: 7px; backdrop-filter: none; }
+.inicio-terminal .voni-principal-cta { background: var(--blanco-puro); color: #0C0B0A; border-radius: 7px; backdrop-filter: none; }
 .inicio-terminal .costear-principal {
   background: var(--t-panel); border: 1px solid var(--t-line2); color: var(--t-txt); border-radius: 12px; box-shadow: 0 30px 60px -40px #000;
 }
@@ -2225,12 +2225,13 @@ body::after {
    oscura), aunque el app esté en oscuro. Se re-definen los tokens SÓLO dentro de
    estos contenedores (cascada CSS) y en @media print. NO tocar.
    ========================================================================== */
-.ficha-pdf, .hoja {
+.ficha-pdf, .hoja, .cot-cliente {
   --papel: #F3F1ED; --panel: #FFFFFF; --oscuro: #1E1B1A;
   --carbon: #1E1B1A; --tinta: #1E1B1A; --blanco: #FFFFFF; --blanco-puro: #FFFFFF;
   --linea: #E2DDD7; --linea-fuerte: #CDC6BE; --gris: #746E68;
-  background: #FFFFFF; color: #1E1B1A;
+  color: #1E1B1A;
 }
+.ficha-pdf, .hoja, .cot-cliente.activa { background: #FFFFFF; }
 @media print {
   :root {
     --papel: #FFFFFF; --panel: #FFFFFF; --oscuro: #1E1B1A;
