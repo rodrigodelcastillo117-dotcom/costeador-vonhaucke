@@ -84,7 +84,7 @@ export default function ProyectoWorkspace({ proyectoId, soloVentas = false, veCo
       {seccion === 'cotizacion' && <SeccionCotizaciones cots={cots} onIr={onIr} />}
       {seccion === 'escenarios' && <Escenarios proyectoId={proyectoId} />}
       {seccion === 'dealdesk' && veCostos && <DealDesk cots={cots} usuario={usuario} />}
-      {seccion === 've' && <ValueEngineeringPanel presupuesto={proyecto.presupuesto} total={totalActual} />}
+      {seccion === 've' && <ValueEngineeringPanel presupuesto={proyecto.presupuesto} total={totalActual} cots={cots} />}
       {seccion === 'diff' && <DiffPanel cots={cots} />}
       {seccion === 'actividad' && <Actividad proyecto={proyecto} onCambio={cargar} />}
       {seccion === 'cierre' && <Cierre proyecto={proyecto} cots={cots} onCambio={cargar} />}
@@ -267,8 +267,17 @@ function DealDesk({ cots, usuario = null }) {
   );
 }
 
-function ValueEngineeringPanel({ presupuesto, total }) {
+function ValueEngineeringPanel({ presupuesto, total, cots = [] }) {
   const plan = planValueEngineering(presupuesto, total, []);
+  // Las cotizaciones que más pesan son el lugar donde la ingeniería de valor rinde
+  // más. No inventamos ahorros en pesos (cada delta lo recalcula el servidor al
+  // editar la cotización); ordenamos por total y mostramos su peso real sobre la
+  // propuesta, para que Dirección sepa por dónde empezar a recortar.
+  const ranking = [...cots]
+    .filter((c) => Number(c.total) > 0)
+    .sort((a, b) => (Number(b.total) || 0) - (Number(a.total) || 0))
+    .slice(0, 5);
+  const sinPresupuesto = presupuesto == null;
   return (
     <div className="tarjeta">
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -276,12 +285,29 @@ function ValueEngineeringPanel({ presupuesto, total }) {
         <KPI t="Propuesta" v={dinero(total)} />
         <KPI t="Diferencia" v={plan.faltaBajar <= 0 ? '—' : dinero(plan.faltaBajar)} alerta={plan.faltaBajar > 0} />
       </div>
-      {plan.yaEnPresupuesto
-        ? <p className="ayuda" style={{ marginTop: 10 }}>La propuesta ya está dentro del presupuesto ✓</p>
-        : <>
-          <button className="boton primario" style={{ marginTop: 10 }} disabled>Buscar opciones para entrar en presupuesto</button>
-          <p className="ayuda gris" style={{ fontSize: 11, marginTop: 6 }}>El motor prioriza sustitución &gt; configuración &gt; acabado &gt; opcional &gt; descuento. Cada delta lo calcula el servidor (no la app). Recálculo en vivo: pendiente de smoke.</p>
-        </>}
+      {sinPresupuesto
+        ? <p className="ayuda" style={{ marginTop: 10 }}>Este proyecto aún no tiene presupuesto objetivo. Captúralo en los datos del proyecto para comparar la propuesta contra él.</p>
+        : plan.yaEnPresupuesto
+          ? <p className="ayuda" style={{ marginTop: 10 }}>La propuesta ya está dentro del presupuesto ✓</p>
+          : <>
+            <p className="ayuda" style={{ marginTop: 10 }}>
+              Faltan <strong>{dinero(plan.faltaBajar)}</strong> para entrar en presupuesto. Orden de palancas:
+              {' '}sustitución &gt; configuración &gt; acabado &gt; opcional &gt; descuento (el descuento va al final, y sobre el máx. rentable lo aprueba Dirección).
+            </p>
+            {ranking.length > 0 && <>
+              <div className="ayuda gris" style={{ fontSize: 11, marginTop: 8, marginBottom: 4 }}>Dónde rinde más (cotizaciones por peso):</div>
+              {ranking.map((c) => {
+                const peso = total > 0 ? Math.round((Number(c.total) || 0) / total * 100) : 0;
+                return (
+                  <div key={c.id} className="fila" style={{ justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderTop: '1px solid var(--linea, #333)' }}>
+                    <span className="texto" style={{ fontSize: 13 }}>{c.nombre || c.folio || `Cotización ${c.id}`}</span>
+                    <span className="ayuda" style={{ fontSize: 12 }}>{dinero(c.total)} · {peso}%</span>
+                  </div>
+                );
+              })}
+            </>}
+            <p className="ayuda gris" style={{ fontSize: 11, marginTop: 8 }}>Abre una cotización para sustituir material o configuración: el servidor (cotizar-servidor) recalcula el delta real de cada cambio — la app no inventa el ahorro.</p>
+          </>}
     </div>
   );
 }

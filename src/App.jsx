@@ -551,7 +551,14 @@ export default function App() {
     if (!ultimoDireccion.current) { ultimoDireccion.current = f; return; }
     if (f === ultimoDireccion.current) return;
     ultimoDireccion.current = f;
-    const t = setTimeout(() => { escribirDireccion(d).catch(() => {}); }, 800);
+    // Los precios/parámetros de Dirección son núcleo del costeo: si el guardado
+    // falla y nadie se entera, Dirección los ve en pantalla pero no quedan en la
+    // nube. Se refleja en el mismo indicador de conexión que el resto.
+    const t = setTimeout(() => {
+      escribirDireccion(d)
+        .then(() => setNubeEstado('conectado'))
+        .catch((e) => { console.error('[bóveda Dirección] no se guardó:', e); setNubeEstado('sin-conexion'); });
+    }, 800);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accesoOk, esDireccion, estado.parametros, estado.finanzas]);

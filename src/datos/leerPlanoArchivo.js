@@ -66,6 +66,10 @@ export async function leerPlanoDeArchivo(file) {
     if (lec.notas?.length) notas.push(...lec.notas);
     return { ok: true, areas, nota: notas.join(' ') };
   } catch (e) {
-    return { ok: false, error: 'No se pudo procesar el archivo.' };
+    // Leer un plano es tarea central: si falla, hay que dejar rastro para
+    // diagnosticar (antes se tragaba `e` y el mensaje genérico no decía nada).
+    console.error('[leerPlanoDeArchivo] falló:', e);
+    const detalle = e?.message ? ` (${e.message})` : '';
+    return { ok: false, error: `No se pudo procesar el archivo${detalle}. Verifica que sea un PDF o imagen legible del plano, o dibújalo.` };
   }
 }

@@ -291,7 +291,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     if (faltaCritico || renderizando) return;
     if (b.analysisId != null && b.analysisId !== corrida.current) return; // BOM/costo no son de la corrida vigente
     setRenderizando(true); setRenderMsg(''); setRenders({ aislado: null, ambiente: null });
-    try { const srv = await costearServidor({ ...b }, b.piezas); if (srv?.estado) setCostoEstado(srv.estado); } catch (_e) {}
+    try { const srv = await costearServidor({ ...b }, b.piezas); if (srv?.estado) setCostoEstado(srv.estado); }
+    catch (e) { console.warn('[generarRenders] re-costeo de servidor no disponible, sigo con el costo actual:', e); }
     const tipo = tipoDeMueble(b);
     const medidas = `${dimsR.w}×${dimsR.d} mm`;
     // DESPIECE → RENDER: la IA debe ENTENDER la estructura que armaste a mano
