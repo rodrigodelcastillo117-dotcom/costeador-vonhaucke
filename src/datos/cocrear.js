@@ -72,6 +72,40 @@ export const FAMILIA = Object.freeze({
   DESCONOCIDA: 'DESCONOCIDA',
 });
 
+// --- Opciones y defaults para el ESTUDIO EN VIVO (co-diseño con el cliente) ---
+// El cliente y Von Haucke ajustan estos ejes y ven el producto tomar forma.
+export const FAMILIAS_EDIT = [FAMILIA.RECEPCION, FAMILIA.ESCRITORIO, FAMILIA.MESA, FAMILIA.GUARDADO, FAMILIA.LOCKER, FAMILIA.DISPLAY];
+export const MATERIALES_EDIT = ['nogal', 'roble', 'encino', 'maple', 'laminado', 'solid_surface', 'cristal', 'metal', 'piedra'];
+export const TONOS_EDIT = [null, 'claro', 'oscuro'];
+export const FEATURES_EDIT = ['curva', 'iluminacion_integrada', 'cerraduras', 'electronica', 'ventilacion'];
+
+// Dimensiones por defecto por familia (mm) para el visual cuando el brief no las da.
+export const DIMS_DEFAULT = {
+  [FAMILIA.RECEPCION]: { ancho_mm: 2400, alto_mm: 1100, prof_mm: 700 },
+  [FAMILIA.ESCRITORIO]: { ancho_mm: 1500, alto_mm: 750, prof_mm: 700 },
+  [FAMILIA.MESA]: { ancho_mm: 2400, alto_mm: 740, prof_mm: 1100 },
+  [FAMILIA.GUARDADO]: { ancho_mm: 900, alto_mm: 1100, prof_mm: 450 },
+  [FAMILIA.LOCKER]: { ancho_mm: 1800, alto_mm: 1950, prof_mm: 500 },
+  [FAMILIA.DISPLAY]: { ancho_mm: 1200, alto_mm: 1800, prof_mm: 450 },
+  [FAMILIA.DESCONOCIDA]: { ancho_mm: 1500, alto_mm: 900, prof_mm: 600 },
+};
+
+const _hex = (h) => { const n = parseInt(h.replace('#', ''), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+const _rgb = ([r, g, b]) => '#' + [r, g, b].map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+const _mezclar = (a, b, t) => { const A = _hex(a), B = _hex(b); return _rgb(A.map((v, i) => v + (B[i] - v) * t)); };
+
+// Color de un material + tono, para el visual paramétrico (y, a futuro, el render).
+export function colorMaterial(material, tono) {
+  const base = {
+    nogal: '#6B4423', roble: '#B88A5A', encino: '#C9A06A', maple: '#D8B98A',
+    laminado: '#CBB79B', solid_surface: '#ECEAE6', cristal: '#AFC8D6',
+    metal: '#9AA0A6', piedra: '#C9C3B8',
+  }[material] || '#B89A7A';
+  if (tono === 'oscuro') return _mezclar(base, '#1E140C', 0.42);
+  if (tono === 'claro') return _mezclar(base, '#F6EFE6', 0.45);
+  return base;
+}
+
 // ---------------------------------------------------------------------------
 //  Hash estable (djb2 sobre JSON canónico con llaves ordenadas). Sirve para
 //  versionar el ProductSpec y detectar staleness aguas abajo.
@@ -371,11 +405,18 @@ export function descripcionCorta(spec) {
 //  9) ORQUESTADOR · corre el vertical slice y devuelve TODO el pipeline + una
 //     historia + los bloqueos reales + el estado global honesto.
 // ---------------------------------------------------------------------------
-export function cocrear(texto, { insumos = {}, par = {}, parent = null, rev = 1, componentes = [] } = {}) {
+export function cocrear(texto, opts = {}) {
+  return cocrearDesdeIntent(interpretarIntent(texto), opts);
+}
+
+// Variante que parte de un INTENT ya estructurado (el estudio en vivo edita el
+// intent con controles — medidas, material, forma, features — y recalcula sin
+// re-parsear texto). `cocrear(texto)` es azúcar sobre esto.
+export function cocrearDesdeIntent(intent, { insumos = {}, par = {}, parent = null, rev = 1, componentes = [] } = {}) {
   const historia = [];
   const paso = (nombre, estado) => historia.push({ paso: nombre, estado, ts: historia.length });
 
-  const intent = interpretarIntent(texto); paso('intent', intent.familia === FAMILIA.DESCONOCIDA ? 'parcial' : 'ok');
+  paso('intent', intent.familia === FAMILIA.DESCONOCIDA ? 'parcial' : 'ok');
   const dna = extraerDNA(intent); paso('dna', 'ok');
   const clasif = clasificarProducto(intent, { parent }); paso('clasificacion', clasif.clasificacion);
   const spec = construirProductSpec(intent, dna, clasif, { rev, componentes }); paso('product_spec', `rev${spec.rev}`);
@@ -404,6 +445,142 @@ export function cocrear(texto, { insumos = {}, par = {}, parent = null, rev = 1,
   const placement = { status: 'no_aplica' };
 
   return { intent, dna, clasificacion: clasif, spec, ingenieria, manufacturabilidad: mfg, costo, lineaCotizacion: linea, render, placement, status, blockers, historia };
+}
+
+// ---------------------------------------------------------------------------
+//  CAMBIOS EN LENGUAJE NATURAL · el cliente habla, el producto CAMBIA de verdad.
+//  Convierte "hazlo más largo / quiero nogal / ponle cajones / más elegante" en
+//  un cambio ESTRUCTURADO del intent. Si la intención es ambigua ("más elegante")
+//  NO cambia en silencio: devuelve 2-3 PROPUESTAS para que el cliente elija (§9,§10).
+// ---------------------------------------------------------------------------
+const _clon = (x) => JSON.parse(JSON.stringify(x));
+const _setTono = (intent, tono) => {
+  if (!intent.materiales?.length) intent.materiales = [{ material: 'laminado', tono: null }];
+  intent.materiales[0].tono = tono;
+};
+const _addFeat = (intent, f) => { intent.caracteristicas = [...new Set([...(intent.caracteristicas || []), f])]; };
+const _delFeat = (intent, f) => { intent.caracteristicas = (intent.caracteristicas || []).filter((c) => c !== f); };
+
+export function aplicarCambioTexto(intent, frase) {
+  const t = sinAcentos(frase);
+  const next = _clon(intent);
+  const dd = DIMS_DEFAULT[next.familia] || DIMS_DEFAULT[FAMILIA.DESCONOCIDA];
+  if (!next.dimensiones) next.dimensiones = { ancho_mm: dd.ancho_mm };
+  const cambios = [];
+
+  // --- Dimensión principal (ancho) ---
+  const cm = t.match(/(\d+(?:[.,]\d+)?)\s*(cm|mm|m)\b/);
+  const quiereMenos = /(corto|corta|angost|chic|peque|reduce|reducir|menos|acorta)/.test(t);
+  const quiereMas = /(larg|anch|grande|alarga|agranda|extiende|mas\s+espacio)/.test(t);
+  const anchoAct = next.dimensiones.ancho_mm || dd.ancho_mm;
+  if (cm) {
+    const delta = aMM(cm[1], cm[2]);
+    let nuevo = delta;                                    // "2.70 m" = set absoluto
+    if (quiereMenos) nuevo = Math.max(300, anchoAct - delta);
+    else if (quiereMas) nuevo = anchoAct + delta;
+    next.dimensiones.ancho_mm = nuevo;
+    cambios.push({ campo: 'dimension.ancho_mm', a: nuevo, tipo: 'dimensional' });
+  } else if (quiereMas) {
+    next.dimensiones.ancho_mm = Math.round(anchoAct * 1.12);
+    cambios.push({ campo: 'dimension.ancho_mm', a: next.dimensiones.ancho_mm, tipo: 'dimensional' });
+  } else if (quiereMenos) {
+    next.dimensiones.ancho_mm = Math.round(anchoAct * 0.88);
+    cambios.push({ campo: 'dimension.ancho_mm', a: next.dimensiones.ancho_mm, tipo: 'dimensional' });
+  }
+
+  // --- Material ---
+  for (const [mat, re] of MATERIALES_TXT) {
+    if (re.test(t)) {
+      const tono0 = next.materiales?.[0]?.tono || null;
+      next.materiales = [{ material: mat, tono: tono0 }, ...(next.materiales || []).slice(1)];
+      cambios.push({ campo: 'material', a: mat, tipo: 'material' });
+      break;
+    }
+  }
+  // --- Tono / color ---
+  if (/oscur|negr|dark/.test(t)) { _setTono(next, 'oscuro'); cambios.push({ campo: 'tono', a: 'oscuro', tipo: 'acabado' }); }
+  else if (/clar|blanc|light/.test(t)) { _setTono(next, 'claro'); cambios.push({ campo: 'tono', a: 'claro', tipo: 'acabado' }); }
+
+  // --- Forma ---
+  if (/curv|redonde|organ/.test(t)) { _addFeat(next, 'curva'); cambios.push({ campo: 'forma', a: 'curva', tipo: 'forma' }); }
+  if (/recto|recta|angular|cuadrad/.test(t)) { _delFeat(next, 'curva'); cambios.push({ campo: 'forma', a: 'recta', tipo: 'forma' }); }
+
+  // --- Features concretas ---
+  const feat = [
+    [/ilumina|\bluz\b|\bled\b|backlight/, 'iluminacion_integrada'],
+    [/cajon|gaveta|guardar|storage|almacen/, 'cajones'],
+    [/flotante|flote|suspend/, 'flotante'],
+    [/carga|cargar|celular|telefono|inalambric|wireless/, 'carga_inalambrica'],
+    [/cerradura|lock|chapa/, 'cerraduras'],
+    [/pantalla|screen|touch/, 'electronica'],
+    [/ventilaci/, 'ventilacion'],
+  ];
+  for (const [re, f] of feat) if (re.test(t)) { _addFeat(next, f); cambios.push({ campo: 'feature', a: f, tipo: 'feature' }); }
+  if (/sin\s+(cajon|gaveta)/.test(t)) { _delFeat(next, 'cajones'); cambios.push({ campo: 'feature', a: '-cajones', tipo: 'feature' }); }
+
+  // --- Intención ABSTRACTA sin cambio concreto → proponer caminos (no adivinar) ---
+  if (!cambios.length) {
+    const abstract = /(mas|más)?\s*(elegante|premium|ligero|liviano|moderno|sobrio|calid|limpio|minimal)/.test(t);
+    if (abstract) return { tipo: 'propuestas', propuestas: propuestasDeEstilo(t, intent) };
+    return { tipo: 'nada', intent, mensaje: 'No entendí un cambio concreto. Prueba: "más largo", "quiero nogal", "ponle cajones", "más elegante".' };
+  }
+  return { tipo: 'aplicado', intent: next, cambios };
+}
+
+// Rutas (2-3) para una intención abstracta. Cada una es un delta aplicable.
+function propuestasDeEstilo(t, intent) {
+  const rutas = [];
+  const base = () => _clon(intent);
+  if (/elegante|premium|calid/.test(t)) {
+    const a = base(); _addFeat(a, 'flotante'); _setTono(a, 'oscuro');
+    rutas.push({ id: 'escultorica', label: 'Más escultórica', detalle: 'Base retranqueada (flotante) + tono más profundo.', intent: a, impacto: 'visual' });
+    const b = base(); b.materiales = [{ material: 'nogal', tono: null }]; _addFeat(b, 'iluminacion_integrada');
+    rutas.push({ id: 'calida', label: 'Más cálida', detalle: 'Presencia de nogal + iluminación integrada.', intent: b, impacto: 'visual' });
+    const c = base(); _addFeat(c, 'curva');
+    rutas.push({ id: 'suave', label: 'Más suave', detalle: 'Radios más suaves (forma curva).', intent: c, impacto: 'visual' });
+  } else if (/ligero|liviano|limpio|minimal|sobrio/.test(t)) {
+    const a = base(); _addFeat(a, 'flotante');
+    rutas.push({ id: 'retranqueada', label: 'Base retranqueada', detalle: 'Efecto flotante, menor impacto económico.', intent: a, impacto: 'visual' });
+    const b = base(); b.materiales = [{ material: 'metal', tono: null }];
+    rutas.push({ id: 'metal', label: 'Estructura metálica delgada', detalle: 'Más limpio visualmente; costo mayor.', intent: b, impacto: 'costo' });
+    const c = base(); _setTono(c, 'claro');
+    rutas.push({ id: 'claro', label: 'Acabado más claro', detalle: 'Se percibe más ligero sin cambiar estructura.', intent: c, impacto: 'visual' });
+  } else {
+    const a = base(); _setTono(a, 'claro');
+    rutas.push({ id: 'claro', label: 'Más claro', detalle: 'Acabado claro.', intent: a, impacto: 'visual' });
+    const b = base(); _addFeat(b, 'curva');
+    rutas.push({ id: 'curva', label: 'Más suave', detalle: 'Forma curva.', intent: b, impacto: 'visual' });
+  }
+  return rutas;
+}
+
+// ---------------------------------------------------------------------------
+//  VONI PROACTIVO · revisa el diseño y propone mejoras HONESTAS (riesgo, valor,
+//  mantenimiento, decisiones faltantes). Determinista, con evidencia; nunca
+//  inventa vida útil ni certifica. También sabe decir "no cambiaría nada" (§45-51).
+// ---------------------------------------------------------------------------
+export function sugerenciasVoni(spec) {
+  const out = [];
+  const ancho = spec?.dimensiones?.ancho_mm || 0;
+  const feats = spec?.caracteristicas || [];
+  const fam = spec?.familia;
+
+  // Claro largo → riesgo de flexión (recepción/mesa/escritorio con cubierta).
+  if ([FAMILIA.RECEPCION, FAMILIA.MESA, FAMILIA.ESCRITORIO].includes(fam) && ancho >= 2600 && !feats.includes('refuerzo_inferior')) {
+    out.push({ tipo: 'riesgo', que: `Claro largo (${(ancho / 1000).toFixed(2)} m)`, porque: 'Una cubierta de ese claro puede flexionar con el tiempo.', impacto: 'estructural', confianza: 'media', accion: { addFeature: 'refuerzo_inferior', label: 'Evaluar refuerzo inferior' } });
+  }
+  // Locker: decisión de acceso + validación eléctrica.
+  if (fam === FAMILIA.LOCKER) {
+    if (!feats.includes('acceso_definido')) out.push({ tipo: 'decision', que: 'Falta definir el sistema de acceso', porque: 'Un locker inteligente necesita acceso (QR / RFID / cerradura autónoma).', impacto: 'funcional', confianza: 'alta', accion: { addFeature: 'acceso_definido', label: 'Definir acceso (RFID)' } });
+    out.push({ tipo: 'validacion', que: 'La parte eléctrica/electrónica requiere validación', porque: 'La IA no certifica electrónica; lo revisa ingeniería.', impacto: 'manufacturabilidad', confianza: 'alta', accion: null });
+  }
+  // Iluminación → registro de mantenimiento del driver.
+  if (feats.includes('iluminacion_integrada') && !feats.includes('registro_mantenimiento')) {
+    out.push({ tipo: 'mantenimiento', que: 'El driver LED necesita acceso de servicio', porque: 'Sin un registro de mantenimiento, cambiar el driver obliga a desarmar.', impacto: 'mantenimiento', confianza: 'media', accion: { addFeature: 'registro_mantenimiento', label: 'Agregar registro frontal' } });
+  }
+  // Guard de sobre-ingeniería: si no hay nada, dilo (no inventes mejoras).
+  if (!out.length) out.push({ tipo: 'ok', que: 'No recomiendo cambios estructurales', porque: 'El diseño actual es razonable para su uso previsto.', impacto: null, confianza: 'media', accion: null });
+  return out;
 }
 
 // ---------------------------------------------------------------------------

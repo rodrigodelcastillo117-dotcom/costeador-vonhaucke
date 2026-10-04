@@ -2382,3 +2382,113 @@ input::placeholder, textarea::placeholder { color: #6f6961; }
   :root:not([data-theme="light"]) .cocrear-top-inline { color: #ECE9E4; }
   :root:not([data-theme="light"]) .cocrear-dl dt { color: #9A938C; }
 }
+
+/* ============================================================================
+   COCREAR STUDIO · co-diseño en vivo. El PRODUCTO (canvas) es el protagonista.
+   Responsive P0: desktop 3 zonas; tablet/móvil apiladas con el canvas primero.
+   ============================================================================ */
+.cocrear-studio { max-width: 1280px; margin: 0 auto; padding: 0 16px 40px; }
+.cocrear-kicker { font-size: 12px; letter-spacing: .14em; font-weight: 700; color: #B42318; margin: 4px 0 6px; }
+.cocrear-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
+.cocrear-chip-ej { border: 1px solid #D0D5DD; background: #fff; color: #344054; border-radius: 999px; padding: 8px 14px; min-height: 40px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.cocrear-chip-ej:hover { border-color: #1E1B1A; }
+
+.cc-top { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; margin: 6px 0 12px; }
+.cc-top-id { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cc-top-nombre { font-size: 18px; color: #1E1B1A; }
+.cc-top-acciones { display: flex; gap: 8px; }
+
+.cc-grid { display: grid; grid-template-columns: 260px minmax(0, 1fr) 320px; gap: 14px; align-items: start; }
+.cc-panel { border: 1px solid #EAECF0; border-radius: 16px; background: #fff; padding: 14px; }
+.cc-panel-tit { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: #667085; margin: 0 0 12px; font-weight: 800; }
+
+.cc-ctrl { margin-bottom: 16px; }
+.cc-ctrl-lbl { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: #1E1B1A; margin-bottom: 8px; }
+.cc-ctrl-val { color: #B42318; }
+.cc-slider { width: 100%; height: 36px; accent-color: #B42318; }
+.cc-swatches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.cc-swatch { position: relative; height: 44px; border-radius: 10px; border: 2px solid transparent; cursor: pointer; overflow: hidden; }
+.cc-swatch.on { border-color: #1E1B1A; box-shadow: 0 0 0 2px #1E1B1A22; }
+.cc-swatch-lbl { position: absolute; left: 0; right: 0; bottom: 0; font-size: 10px; font-weight: 700; color: #fff; background: #0006; padding: 1px 2px; text-align: center; }
+.cc-seg { display: flex; gap: 0; border: 1px solid #D0D5DD; border-radius: 10px; overflow: hidden; }
+.cc-seg-b { flex: 1; min-height: 44px; border: none; background: #fff; color: #344054; font-weight: 700; font-size: 13px; cursor: pointer; }
+.cc-seg-b.on { background: #1E1B1A; color: #fff; }
+.cc-feats { display: flex; flex-wrap: wrap; gap: 6px; }
+.cc-feat { border: 1px solid #D0D5DD; background: #fff; color: #344054; border-radius: 999px; padding: 8px 12px; min-height: 40px; font-size: 12px; font-weight: 700; cursor: pointer; }
+.cc-feat.on { background: #ECFDF3; border-color: #067647; color: #067647; }
+
+.cc-canvas { display: flex; flex-direction: column; gap: 12px; }
+.cc-canvas-inner { background: linear-gradient(160deg, #FBFAF9, #F2EFEb); border: 1px solid #EAECF0; border-radius: 18px; padding: 10px; }
+.cocrear-visual-svg { width: 100%; height: auto; display: block; aspect-ratio: 4 / 3; }
+.cc-ab { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cc-ab-col { display: flex; flex-direction: column; gap: 8px; background: linear-gradient(160deg, #FBFAF9, #F2EFEb); border: 1px solid #EAECF0; border-radius: 16px; padding: 10px; }
+.cc-ab-tag { font-size: 12px; font-weight: 800; color: #667085; }
+.cc-historia { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px; }
+.cc-hist { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; border: 1px solid #EAECF0; background: #fff; border-radius: 10px; padding: 6px 10px; cursor: pointer; min-height: 44px; }
+.cc-hist.on { border-color: #1E1B1A; background: #FBFAF9; }
+.cc-hist-rev { font-size: 11px; font-weight: 800; color: #B42318; }
+.cc-hist-lbl { font-size: 11px; color: #667085; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.cc-nl { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.cc-nl-input { width: 100%; box-sizing: border-box; border: 1px solid #D0D5DD; border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 14px; min-height: 44px; }
+.cc-voni-msg { font-size: 13px; color: #344054; margin: 4px 0; }
+.cc-propuestas { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.cc-propuesta { text-align: left; border: 1px solid #D0D5DD; background: #fff; border-radius: 12px; padding: 10px 12px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+.cc-propuesta:hover { border-color: #1E1B1A; }
+.cc-propuesta strong { font-size: 13px; color: #1E1B1A; }
+.cc-propuesta span { font-size: 12px; color: #667085; }
+.cc-sugs { display: flex; flex-direction: column; gap: 8px; }
+.cc-sug { border: 1px solid #EAECF0; border-left: 3px solid #98A2B3; border-radius: 10px; padding: 8px 10px; background: #FCFCFD; }
+.cc-sug-rojo { border-left-color: #B42318; }
+.cc-sug-ambar { border-left-color: #B54708; }
+.cc-sug-verde { border-left-color: #067647; }
+.cc-sug-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.cc-sug-top strong { font-size: 13px; color: #1E1B1A; }
+.cc-sug-conf { font-size: 10px; color: #98A2B3; text-transform: uppercase; }
+.cc-sug-why { font-size: 12px; color: #475467; margin: 4px 0 6px; }
+
+.cc-bottom { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; margin-top: 14px; padding: 12px 14px; border: 1px solid #EAECF0; border-radius: 14px; background: #fff; }
+.cc-ready { display: flex; flex-wrap: wrap; gap: 6px; }
+.cc-ready-chip { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 3px 10px; }
+.cc-precio { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 14px; color: #1E1B1A; }
+.cc-tecnico { margin-top: 12px; }
+.cc-tecnico-toggle { background: none; border: none; color: #475467; font-weight: 700; font-size: 13px; cursor: pointer; padding: 6px 0; }
+.cc-tecnico-body { font-size: 13px; color: #344054; display: flex; flex-direction: column; gap: 6px; }
+.cc-tecnico-body p { margin: 0; }
+.cc-bom { margin-top: 8px; }
+
+/* ---- Tablet: Voni baja; decisiones y canvas lado a lado ---- */
+@media (max-width: 1080px) {
+  .cc-grid { grid-template-columns: minmax(0, 1fr); }
+  .cc-canvas { order: -1; }           /* el producto primero */
+  .cc-voni { order: 2; }
+}
+/* ---- Móvil: todo apilado, canvas primero, controles cómodos ---- */
+@media (max-width: 640px) {
+  .cc-swatches { grid-template-columns: repeat(3, 1fr); }
+  .cc-ab { grid-template-columns: 1fr; }
+  .cc-top-nombre { font-size: 15px; }
+}
+
+/* ---- Dark mode ---- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .cc-panel,
+  :root:not([data-theme="light"]) .cc-bottom,
+  :root:not([data-theme="light"]) .cc-nl-input,
+  :root:not([data-theme="light"]) .cocrear-input,
+  :root:not([data-theme="light"]) .cc-hist,
+  :root:not([data-theme="light"]) .cc-propuesta,
+  :root:not([data-theme="light"]) .cc-feat,
+  :root:not([data-theme="light"]) .cc-seg-b,
+  :root:not([data-theme="light"]) .cocrear-chip-ej { background: #221F1E; border-color: #3A3533; color: #ECE9E4; }
+  :root:not([data-theme="light"]) .cc-canvas-inner,
+  :root:not([data-theme="light"]) .cc-ab-col { background: linear-gradient(160deg, #26221F, #1C1917); border-color: #3A3533; }
+  :root:not([data-theme="light"]) .cc-top-nombre,
+  :root:not([data-theme="light"]) .cc-ctrl-lbl,
+  :root:not([data-theme="light"]) .cc-propuesta strong,
+  :root:not([data-theme="light"]) .cc-sug-top strong,
+  :root:not([data-theme="light"]) .cc-precio { color: #ECE9E4; }
+  :root:not([data-theme="light"]) .cc-seg-b.on { background: #ECE9E4; color: #1E1B1A; }
+  :root:not([data-theme="light"]) .cc-sug { background: #1C1917; border-color: #3A3533; }
+  :root:not([data-theme="light"]) .cc-voni-msg, :root:not([data-theme="light"]) .cc-sug-why { color: #B8B2AC; }
+}

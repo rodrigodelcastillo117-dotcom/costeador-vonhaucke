@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest';
 import {
   interpretarIntent, clasificarProducto, construirProductSpec, extraerDNA,
   costearSpec, lineaCocreada, manufacturabilidad, estadoIngenieria, cocrear, estaStale,
+  aplicarCambioTexto, sugerenciasVoni,
   CLASIFICACION, COST_STATUS, ENG_STATUS, MFG_STATUS, COCREO_STATUS, FAMILIA,
 } from './cocrear.js';
 
@@ -167,6 +168,55 @@ describe('COCREAR · orquestador end-to-end (Golden #1)', () => {
     expect(r.costo.official_cost).toBeGreaterThan(0);
     expect(r.status).toBe(COCREO_STATUS.READY);
     expect(r.lineaCotizacion.listaParaCotizar).toBe(true);
+  });
+});
+
+describe('COCREAR · cambios en lenguaje natural (co-diseño en vivo)', () => {
+  const intent = interpretarIntent('recepción 2.40 m laminado');
+
+  it('"hazla 30 cm más larga" ⇒ ancho +300 mm', () => {
+    const r = aplicarCambioTexto(intent, 'hazla 30 cm más larga');
+    expect(r.tipo).toBe('aplicado');
+    expect(r.intent.dimensiones.ancho_mm).toBe(2700);
+  });
+  it('"quiero nogal" ⇒ material nogal', () => {
+    const r = aplicarCambioTexto(intent, 'quiero nogal');
+    expect(r.intent.materiales[0].material).toBe('nogal');
+  });
+  it('"ponle cajones y luz" ⇒ features cajones + iluminación', () => {
+    const r = aplicarCambioTexto(intent, 'ponle cajones y luz');
+    expect(r.intent.caracteristicas).toContain('cajones');
+    expect(r.intent.caracteristicas).toContain('iluminacion_integrada');
+  });
+  it('"que parezca flotante" ⇒ feature flotante', () => {
+    expect(aplicarCambioTexto(intent, 'que parezca flotante').intent.caracteristicas).toContain('flotante');
+  });
+  it('"hazla más elegante" (ambiguo) ⇒ PROPUESTAS, no cambia en silencio', () => {
+    const r = aplicarCambioTexto(intent, 'hazla más elegante');
+    expect(r.tipo).toBe('propuestas');
+    expect(r.propuestas.length).toBeGreaterThanOrEqual(2);
+    expect(r.propuestas[0]).toHaveProperty('intent');
+  });
+  it('frase sin cambio concreto ⇒ no toca el producto', () => {
+    expect(aplicarCambioTexto(intent, 'gracias').tipo).toBe('nada');
+  });
+});
+
+describe('COCREAR · Voni proactivo (honesto, con evidencia)', () => {
+  const specDe = (texto) => { const i = interpretarIntent(texto); return construirProductSpec(i, extraerDNA(i), clasificarProducto(i, {}), { rev: 1 }); };
+
+  it('claro largo (2.80 m) ⇒ sugiere evaluar refuerzo', () => {
+    const s = sugerenciasVoni(specDe('recepción 2.80 m nogal'));
+    expect(s.some((x) => x.tipo === 'riesgo' && /refuerzo/i.test(x.accion?.label || ''))).toBe(true);
+  });
+  it('locker ⇒ pide definir acceso y marca validación eléctrica', () => {
+    const s = sugerenciasVoni(specDe('smart locker 1.80 m con cerraduras'));
+    expect(s.some((x) => x.tipo === 'decision')).toBe(true);
+    expect(s.some((x) => x.tipo === 'validacion')).toBe(true);
+  });
+  it('diseño simple ⇒ "no recomiendo cambios" (no sobre-ingeniería)', () => {
+    const s = sugerenciasVoni(specDe('mesa 1.20 m laminado'));
+    expect(s.some((x) => x.tipo === 'ok')).toBe(true);
   });
 });
 

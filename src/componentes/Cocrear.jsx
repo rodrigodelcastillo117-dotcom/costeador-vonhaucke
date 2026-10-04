@@ -1,199 +1,396 @@
 // ============================================================================
-//  COCREAR · la pantalla de co-creación. De la IDEA al PRODUCTO, con honestidad.
-//  Maneja el orquestador puro `datos/cocrear.js` (que a su vez ORQUESTA costear +
-//  cotizar). No duplica motores ni inventa: muestra, paso a paso, qué se entendió,
-//  cómo se clasificó, qué falta y por qué NO está listo todavía.
-//  Seller-safe: un vendedor nunca ve montos de costo, sólo el estado.
-//  Responsive (P0): una sola columna fluida; se usa igual en móvil, tablet y desktop.
+//  COCREAR STUDIO · co-diseño EN VIVO con el cliente.
+//  El cliente IMAGINA → VE → CAMBIA → COMPARA → DECIDE, y el producto evoluciona
+//  visualmente frente a él. VONI propone; Costear/Cotizar operan debajo (backstage).
+//  El protagonista es el PRODUCTO (canvas), no una tabla ni un formulario.
+//
+//  Loop: "¿Qué tienes en mente?" → Voni entiende → concepto visual → el cliente
+//  ajusta (controles o lenguaje natural) → el producto cambia de verdad (revisión)
+//  → Voni sugiere mejoras honestas → comparar A/B → historia → guardar.
+//
+//  Responsive P0 (móvil/tablet/desktop). Seller-safe. Determinista + instantáneo.
 // ============================================================================
-import React, { useMemo, useState } from 'react';
-import { cocrear, COCREO_STATUS, COST_STATUS } from '../datos/cocrear.js';
+import React, { useMemo, useState, useRef } from 'react';
+import {
+  interpretarIntent, cocrearDesdeIntent, construirProductSpec, extraerDNA, clasificarProducto,
+  aplicarCambioTexto, sugerenciasVoni, descripcionCorta, lineaCocreada,
+  DIMS_DEFAULT, MATERIALES_EDIT, FAMILIA, COCREO_STATUS, COST_STATUS,
+} from '../datos/cocrear.js';
+import CocrearVisual from './CocrearVisual.jsx';
 import { parametrosEfectivos } from './Costeador.jsx';
+import { precioVenta } from '../motor/calculo.js';
 
-const EJEMPLO = 'Quiero una recepción cálida, premium, curva, 2.40 m, nogal oscuro, cubierta clara, iluminación integrada y espacio para dos personas.';
+const EJEMPLOS = [
+  'Quiero una recepción cálida, premium, curva, 2.40 m, nogal oscuro, cubierta clara, iluminación integrada, para dos personas.',
+  'Necesito lockers inteligentes para aeropuerto, 1.80 m, con cerraduras y pantalla.',
+  'Un escritorio ejecutivo 1.80 m en nogal, con cajones y cargador de celular.',
+  'Un exhibidor de juguetes para tienda, 1.20 m, con iluminación.',
+];
 
-// Color de un estado (verde = ok, ámbar = parcial/estimado, rojo = bloqueo, gris = n/a).
-function tonoEstado(estado) {
-  const s = String(estado || '');
-  if (/READY|KNOWN|CAN_BUILD|VALIDATED|lista|ok/.test(s)) return 'verde';
-  if (/PARTIAL|ESTIMATED|PROPOSED|input_listo|parcial/.test(s)) return 'ambar';
-  if (/BLOCKED|REQUIRES_VALIDATION|PENDING|UNKNOWN|requiere|DRAFT/.test(s)) return 'rojo';
+const MATERIAL_LABEL = { nogal: 'Nogal', roble: 'Roble', encino: 'Encino', maple: 'Maple', laminado: 'Laminado', solid_surface: 'Solid surface', cristal: 'Cristal', metal: 'Metal', piedra: 'Piedra' };
+const FEATURE_LABEL = {
+  iluminacion_integrada: 'Iluminación', cajones: 'Cajones', flotante: 'Flotante', carga_inalambrica: 'Cargador',
+  cerraduras: 'Cerraduras', electronica: 'Pantalla/electrónica', ventilacion: 'Ventilación', curva: 'Curva',
+  refuerzo_inferior: 'Refuerzo inferior', registro_mantenimiento: 'Registro mant.', acceso_definido: 'Acceso definido', ruedas: 'Ruedas',
+};
+// Qué features ofrece el panel por familia (controles especializados, §8).
+const FEATURES_POR_FAMILIA = {
+  [FAMILIA.RECEPCION]: ['iluminacion_integrada', 'cajones', 'flotante', 'carga_inalambrica'],
+  [FAMILIA.ESCRITORIO]: ['cajones', 'carga_inalambrica', 'electronica', 'flotante'],
+  [FAMILIA.MESA]: ['iluminacion_integrada', 'carga_inalambrica'],
+  [FAMILIA.LOCKER]: ['cerraduras', 'electronica', 'ventilacion', 'acceso_definido'],
+  [FAMILIA.DISPLAY]: ['iluminacion_integrada', 'ruedas', 'cajones'],
+  [FAMILIA.GUARDADO]: ['cajones', 'cerraduras'],
+  [FAMILIA.DESCONOCIDA]: ['iluminacion_integrada', 'cajones'],
+};
+const RANGO_ANCHO = {
+  [FAMILIA.RECEPCION]: [1400, 4000], [FAMILIA.ESCRITORIO]: [1000, 2400], [FAMILIA.MESA]: [1200, 4000],
+  [FAMILIA.LOCKER]: [600, 3000], [FAMILIA.DISPLAY]: [600, 2400], [FAMILIA.GUARDADO]: [600, 2400], [FAMILIA.DESCONOCIDA]: [600, 3000],
+};
+
+const tono = (s) => {
+  const x = String(s || '');
+  if (/READY|KNOWN|CAN_BUILD|VALIDATED|ok|lista/.test(x)) return 'verde';
+  if (/PARTIAL|ESTIMATED|PROPOSED|parcial/.test(x)) return 'ambar';
+  if (/BLOCKED|REQUIRES_VALIDATION|PENDING|UNKNOWN|requiere|DRAFT/.test(x)) return 'rojo';
   return 'gris';
-}
-
+};
 const COLOR = { verde: '#067647', ambar: '#B54708', rojo: '#B42318', gris: '#667085' };
 const FONDO = { verde: '#ECFDF3', ambar: '#FFFAEB', rojo: '#FEF3F2', gris: '#F2F4F7' };
+const pesos = (n) => '$' + Number(n || 0).toLocaleString('es-MX', { maximumFractionDigits: 2 });
+const DRAFT_KEY = 'cocrear_draft_v1';
 
 function Badge({ children, estado }) {
-  const t = tonoEstado(estado ?? children);
-  return (
-    <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 999, fontSize: 12, fontWeight: 700,
-      color: COLOR[t], background: FONDO[t], border: `1px solid ${COLOR[t]}22`, whiteSpace: 'nowrap' }}>
-      {children}
-    </span>
-  );
+  const t = tono(estado ?? children);
+  return <span style={{ display: 'inline-block', padding: '2px 9px', borderRadius: 999, fontSize: 11, fontWeight: 700, color: COLOR[t], background: FONDO[t], border: `1px solid ${COLOR[t]}22`, whiteSpace: 'nowrap' }}>{children}</span>;
 }
 
-// Una tarjeta-paso del pipeline.
-function Paso({ titulo, estado, children }) {
-  return (
-    <div className="cocrear-paso">
-      <div className="cocrear-paso-top">
-        <h3 className="cocrear-paso-titulo">{titulo}</h3>
-        {estado != null && <Badge estado={estado}>{estado}</Badge>}
+export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar }) {
+  const [fase, setFase] = useState('inicio');
+  const [texto, setTexto] = useState('');
+  const [intent, setIntent] = useState(null);       // diseño vivo
+  const [historia, setHistoria] = useState([]);      // revisiones [{rev,intent,label}]
+  const [comparA, setComparA] = useState(null);      // snapshot para A/B
+  const [propuestas, setPropuestas] = useState(null);
+  const [nl, setNl] = useState('');
+  const [vozMsg, setVozMsg] = useState('');
+  const [tecnico, setTecnico] = useState(false);
+  const [guardado, setGuardado] = useState(false);
+  const draggingRef = useRef(false);
+
+  const insumos = estado?.insumos || {};
+  const par = useMemo(() => parametrosEfectivos(estado, { componentes: [] }).par || estado?.parametros || {}, [estado]);
+  const veCostos = !soloVentas;
+
+  const rev = historia.length;
+  const spec = useMemo(() => (intent ? construirProductSpec(intent, extraerDNA(intent), clasificarProducto(intent, {}), { rev: rev || 1 }) : null), [intent, rev]);
+  const pipeline = useMemo(() => (intent ? cocrearDesdeIntent(intent, { insumos, par, rev: rev || 1 }) : null), [intent, insumos, par, rev]);
+  const sugerencias = useMemo(() => (spec ? sugerenciasVoni(spec) : []), [spec]);
+
+  const hayDraft = useMemo(() => { try { return !!localStorage.getItem(DRAFT_KEY); } catch { return false; } }, [fase]);
+
+  // --- mutaciones ---
+  const commit = (next, label) => {
+    setIntent(next);
+    setHistoria((h) => [...h, { rev: h.length + 1, intent: JSON.parse(JSON.stringify(next)), label }]);
+    setGuardado(false);
+  };
+  const live = (next) => setIntent(next);  // durante drag: visual sigue, sin revisión
+
+  const empezar = (t) => {
+    const brief = (t ?? texto).trim();
+    if (!brief) return;
+    const it = interpretarIntent(brief);
+    // rellena dimensiones faltantes con defaults de la familia (para el visual).
+    const dd = DIMS_DEFAULT[it.familia] || DIMS_DEFAULT[FAMILIA.DESCONOCIDA];
+    it.dimensiones = { ...dd, ...(it.dimensiones || {}) };
+    setIntent(it);
+    setHistoria([{ rev: 1, intent: JSON.parse(JSON.stringify(it)), label: 'Idea inicial' }]);
+    setFase('studio'); setPropuestas(null); setVozMsg(''); setComparA(null);
+  };
+
+  const retomar = () => {
+    try {
+      const d = JSON.parse(localStorage.getItem(DRAFT_KEY));
+      if (d?.historia?.length) { setHistoria(d.historia); setIntent(d.historia[d.historia.length - 1].intent); setTexto(d.brief || ''); setFase('studio'); }
+    } catch { /* noop */ }
+  };
+  const guardar = () => {
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ brief: texto, historia })); setGuardado(true); } catch { setVozMsg('No se pudo guardar en este navegador.'); }
+  };
+
+  // Cambia una dimensión (vivo durante el drag, revisión al soltar).
+  const setAncho = (v, commitIt) => {
+    const next = { ...intent, dimensiones: { ...(intent.dimensiones || {}), ancho_mm: Number(v) } };
+    if (commitIt) commit(next, `Ancho ${(Number(v) / 1000).toFixed(2)} m`); else live(next);
+  };
+  const setMaterial = (mat) => commit({ ...intent, materiales: [{ material: mat, tono: intent.materiales?.[0]?.tono || null }, ...(intent.materiales || []).slice(1)] }, `Material: ${MATERIAL_LABEL[mat]}`);
+  const setTono = (tn) => { const m = [{ material: intent.materiales?.[0]?.material || 'laminado', tono: tn }, ...(intent.materiales || []).slice(1)]; commit({ ...intent, materiales: m }, `Tono: ${tn || 'natural'}`); };
+  const toggleFeature = (f) => {
+    const has = (intent.caracteristicas || []).includes(f);
+    const cs = has ? intent.caracteristicas.filter((c) => c !== f) : [...(intent.caracteristicas || []), f];
+    commit({ ...intent, caracteristicas: cs }, `${has ? 'Quitar' : 'Agregar'}: ${FEATURE_LABEL[f] || f}`);
+  };
+
+  const enviarNL = () => {
+    const frase = nl.trim(); if (!frase || !intent) return;
+    const res = aplicarCambioTexto(intent, frase);
+    setNl('');
+    if (res.tipo === 'aplicado') { commit(res.intent, frase); setPropuestas(null); setVozMsg(''); }
+    else if (res.tipo === 'propuestas') { setPropuestas(res.propuestas); setVozMsg('Veo varios caminos — elige uno:'); }
+    else { setVozMsg(res.mensaje || 'No entendí un cambio concreto.'); }
+  };
+  const elegirPropuesta = (p) => { commit(p.intent, p.label); setPropuestas(null); setVozMsg(''); };
+  const aplicarSugerencia = (s) => { if (s.accion?.addFeature) commit({ ...intent, caracteristicas: [...new Set([...(intent.caracteristicas || []), s.accion.addFeature])] }, s.accion.label); };
+
+  const verRevision = (h) => commit(h.intent, `Volver a Rev ${h.rev}`);
+
+  // A/B
+  const compararAB = () => setComparA(JSON.parse(JSON.stringify(intent)));
+  const elegir = (cualIntent, cual) => { commit(cualIntent, `Elegí opción ${cual}`); setComparA(null); };
+
+  const agregarACotizacion = () => {
+    if (!pipeline || !veCostos || pipeline.costo.official_cost == null || !onAgregar) return;
+    const costeo = { nombre: descripcionCorta(spec), componentes: spec.componentes, w: spec.dimensiones?.ancho_mm || null, d: null, productoId: null, precioReal: false, config: null };
+    const margen = Number.isFinite(par.margenObjetivo) ? par.margenObjetivo : 40;
+    onAgregar(costeo, 1, precioVenta(pipeline.costo.official_cost, par).precio, margen);
+    setVozMsg(`Agregado al proyecto: ${costeo.nombre}`);
+  };
+
+  // ---------- INICIO ----------
+  if (fase === 'inicio') {
+    return (
+      <div className="contenido cocrear-wrap">
+        <header className="cocrear-head">
+          <p className="cocrear-kicker">VON HAUCKE · COCREAR</p>
+          <h1 className="cocrear-h1">¿Qué tienes en mente?</h1>
+          <p className="cocrear-sub">Diséñalo con nosotros, en vivo. Describe tu idea y la vemos tomar forma — la cambias, la comparas y decides. Lo imaginamos contigo.</p>
+        </header>
+        <div className="tarjeta cocrear-entrada">
+          <textarea className="cocrear-textarea" value={texto} onChange={(e) => setTexto(e.target.value)} rows={3}
+            placeholder="Ej. Quiero una recepción curva, premium, en nogal, 2.40 m, para dos personas…" />
+          <div className="cocrear-chips">
+            {EJEMPLOS.map((e, i) => <button key={i} type="button" className="cocrear-chip-ej" onClick={() => { setTexto(e); }}>{e.split(',')[0]}</button>)}
+          </div>
+          <div className="cocrear-acciones">
+            <button type="button" className="boton cocrear-btn" onClick={() => empezar()} disabled={!texto.trim()}>Empezar a diseñar →</button>
+            {hayDraft && <button type="button" className="boton-fantasma cocrear-btn-sec" onClick={retomar}>Retomar lo último</button>}
+          </div>
+        </div>
       </div>
-      {children}
+    );
+  }
+
+  // ---------- STUDIO ----------
+  const r = pipeline;
+  const feats = intent.caracteristicas || [];
+  const rango = RANGO_ANCHO[intent.familia] || RANGO_ANCHO[FAMILIA.DESCONOCIDA];
+  const anchoMM = intent.dimensiones?.ancho_mm || (DIMS_DEFAULT[intent.familia] || DIMS_DEFAULT[FAMILIA.DESCONOCIDA]).ancho_mm;
+  const specA = comparA ? construirProductSpec(comparA, extraerDNA(comparA), clasificarProducto(comparA, {}), { rev: 'A' }) : null;
+
+  return (
+    <div className="contenido cocrear-studio">
+      {/* Barra superior: producto + versión + acciones */}
+      <div className="cc-top">
+        <div className="cc-top-id">
+          <button type="button" className="cocrear-chip-ej" onClick={() => setFase('inicio')}>‹ Nueva idea</button>
+          <strong className="cc-top-nombre">{descripcionCorta(spec)}</strong>
+          <Badge estado={`Rev ${rev}`}>Rev {rev}</Badge>
+        </div>
+        <div className="cc-top-acciones">
+          <button type="button" className="boton-fantasma cocrear-btn-sec" onClick={guardar}>{guardado ? '✓ Guardado' : 'Guardar'}</button>
+          {!comparA ? <button type="button" className="boton-fantasma cocrear-btn-sec" onClick={compararAB}>Comparar A/B</button>
+            : <button type="button" className="boton-fantasma cocrear-btn-sec" onClick={() => setComparA(null)}>Cancelar A/B</button>}
+        </div>
+      </div>
+
+      <div className="cc-grid">
+        {/* ---- DECISIONES ---- */}
+        <aside className="cc-panel cc-decisiones">
+          <h3 className="cc-panel-tit">Decisiones</h3>
+
+          <div className="cc-ctrl">
+            <label className="cc-ctrl-lbl">Ancho <span className="cc-ctrl-val">{(anchoMM / 1000).toFixed(2)} m</span></label>
+            <input type="range" className="cc-slider" min={rango[0]} max={rango[1]} step={50} value={anchoMM}
+              onChange={(e) => { draggingRef.current = true; setAncho(e.target.value, false); }}
+              onPointerUp={(e) => { draggingRef.current = false; setAncho(e.target.value, true); }}
+              onKeyUp={(e) => setAncho(e.target.value, true)} />
+          </div>
+
+          <div className="cc-ctrl">
+            <label className="cc-ctrl-lbl">Material</label>
+            <div className="cc-swatches">
+              {MATERIALES_EDIT.map((m) => {
+                const activo = (intent.materiales?.[0]?.material) === m;
+                return <button key={m} type="button" title={MATERIAL_LABEL[m]} className={'cc-swatch' + (activo ? ' on' : '')}
+                  style={{ background: swatchColor(m) }} onClick={() => setMaterial(m)}><span className="cc-swatch-lbl">{MATERIAL_LABEL[m]}</span></button>;
+              })}
+            </div>
+          </div>
+
+          <div className="cc-ctrl">
+            <label className="cc-ctrl-lbl">Tono</label>
+            <div className="cc-seg">
+              {[['claro', 'Claro'], [null, 'Natural'], ['oscuro', 'Oscuro']].map(([v, l]) => (
+                <button key={l} type="button" className={'cc-seg-b' + ((intent.materiales?.[0]?.tono || null) === v ? ' on' : '')} onClick={() => setTono(v)}>{l}</button>
+              ))}
+            </div>
+          </div>
+
+          {[FAMILIA.RECEPCION, FAMILIA.MESA, FAMILIA.ESCRITORIO].includes(intent.familia) && (
+            <div className="cc-ctrl">
+              <label className="cc-ctrl-lbl">Forma</label>
+              <div className="cc-seg">
+                <button type="button" className={'cc-seg-b' + (!feats.includes('curva') ? ' on' : '')} onClick={() => feats.includes('curva') && toggleFeature('curva')}>Recta</button>
+                <button type="button" className={'cc-seg-b' + (feats.includes('curva') ? ' on' : '')} onClick={() => !feats.includes('curva') && toggleFeature('curva')}>Curva</button>
+              </div>
+            </div>
+          )}
+
+          <div className="cc-ctrl">
+            <label className="cc-ctrl-lbl">Características</label>
+            <div className="cc-feats">
+              {(FEATURES_POR_FAMILIA[intent.familia] || []).map((f) => (
+                <button key={f} type="button" className={'cc-feat' + (feats.includes(f) ? ' on' : '')} onClick={() => toggleFeature(f)}>
+                  {feats.includes(f) ? '✓ ' : '+ '}{FEATURE_LABEL[f] || f}
+                </button>
+              ))}
+            </div>
+          </div>
+        </aside>
+
+        {/* ---- CANVAS (protagonista) ---- */}
+        <main className="cc-canvas">
+          {comparA ? (
+            <div className="cc-ab">
+              <div className="cc-ab-col">
+                <div className="cc-ab-tag">A · como estaba</div>
+                <CocrearVisual spec={specA} />
+                <button type="button" className="boton-fantasma cocrear-btn-sec" onClick={() => elegir(comparA, 'A')}>Elegir A</button>
+              </div>
+              <div className="cc-ab-col">
+                <div className="cc-ab-tag">B · con tus cambios</div>
+                <CocrearVisual spec={spec} />
+                <button type="button" className="boton cocrear-btn" onClick={() => elegir(intent, 'B')}>Elegir B</button>
+              </div>
+            </div>
+          ) : (
+            <div className="cc-canvas-inner">
+              <CocrearVisual spec={spec} />
+            </div>
+          )}
+          {/* Historia visual */}
+          <div className="cc-historia">
+            {historia.map((h) => (
+              <button key={h.rev} type="button" className={'cc-hist' + (h.rev === rev ? ' on' : '')} onClick={() => verRevision(h)} title={h.label}>
+                <span className="cc-hist-rev">R{h.rev}</span><span className="cc-hist-lbl">{h.label}</span>
+              </button>
+            ))}
+          </div>
+        </main>
+
+        {/* ---- VONI ---- */}
+        <aside className="cc-panel cc-voni">
+          <h3 className="cc-panel-tit">Voni</h3>
+          <div className="cc-nl">
+            <input className="cc-nl-input" value={nl} onChange={(e) => setNl(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && enviarNL()}
+              placeholder='Dile qué cambiar: "más largo", "quiero nogal", "ponle cajones", "más elegante"…' />
+            <button type="button" className="boton cocrear-btn" onClick={enviarNL} disabled={!nl.trim()}>Cambiar</button>
+          </div>
+          {vozMsg && <p className="cc-voni-msg">{vozMsg}</p>}
+          {propuestas && (
+            <div className="cc-propuestas">
+              {propuestas.map((p) => (
+                <button key={p.id} type="button" className="cc-propuesta" onClick={() => elegirPropuesta(p)}>
+                  <strong>{p.label}</strong><span>{p.detalle}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="cc-sugs">
+            {sugerencias.map((s, i) => (
+              <div key={i} className={'cc-sug cc-sug-' + tono(s.tipo === 'ok' ? 'ok' : s.tipo === 'validacion' || s.tipo === 'riesgo' ? 'REQUIRES' : 'PARTIAL')}>
+                <div className="cc-sug-top"><strong>{s.que}</strong>{s.confianza && <span className="cc-sug-conf">{s.confianza}</span>}</div>
+                <p className="cc-sug-why">{s.porque}</p>
+                {s.accion && <button type="button" className="cocrear-chip-ej" onClick={() => aplicarSugerencia(s)}>{s.accion.label}</button>}
+              </div>
+            ))}
+          </div>
+        </aside>
+      </div>
+
+      {/* ---- BARRA INFERIOR: estado + precio-safe + técnico ---- */}
+      <div className="cc-bottom">
+        <div className="cc-ready">
+          <ReadyChip ok={!!intent.familia && intent.familia !== 'DESCONOCIDA'} label="Diseño" />
+          <ReadyChip ok={!!intent.dimensiones} label="Geometría" />
+          <ReadyChip ok={(intent.materiales || []).length > 0} label="Material" />
+          <ReadyChip estado={r.ingenieria.estado} label="Ingeniería" />
+          <ReadyChip estado={r.costo.cost_status} label="Costo" />
+        </div>
+        <div className="cc-precio">
+          {veCostos ? (
+            r.costo.official_cost != null
+              ? <><span>Costo: <strong>{pesos(r.costo.official_cost)}</strong></span>
+                  {onAgregar && <button type="button" className="boton cocrear-btn" onClick={agregarACotizacion}>Agregar al proyecto</button>}</>
+              : <span className="cocrear-nota-rojo">Precio por definir — falta desarrollar el despiece (Detalle técnico).</span>
+          ) : <span>El precio lo confirma Diseño/Dirección al desarrollar el producto.</span>}
+        </div>
+      </div>
+
+      {veCostos && (
+        <div className="cc-tecnico">
+          <button type="button" className="cc-tecnico-toggle" onClick={() => setTecnico((v) => !v)}>{tecnico ? '▾' : '▸'} Detalle técnico (Diseño / Dirección)</button>
+          {tecnico && (
+            <div className="tarjeta cc-tecnico-body">
+              <p><strong>Clasificación:</strong> {r.clasificacion.clasificacion} — {r.clasificacion.motivos.join(' ')}</p>
+              <p><strong>Ficha:</strong> <span className="cocrear-mono">{spec.id}@{spec.rev} #{spec.hash}</span></p>
+              <p><strong>Manufacturabilidad:</strong> {r.manufacturabilidad.estado}{r.manufacturabilidad.requisitos.length ? ` — validar: ${r.manufacturabilidad.requisitos.join(', ')}` : ''}</p>
+              <p><strong>Costo:</strong> {r.costo.cost_status}{r.costo.unresolved_lines.length ? ` — pendiente: ${r.costo.unresolved_lines.join(', ')}` : ''}</p>
+              <TecnicoBOM intent={intent} insumos={insumos} onSet={(componentes) => {
+                // el BOM desarrollado se guarda como una revisión del mismo producto.
+                commit({ ...intent, _componentes: componentes }, `Despiece: ${componentes.length} partida(s)`);
+              }} componentesIniciales={intent._componentes || []} />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-const ETIQUETA_COSTO = {
-  [COST_STATUS.KNOWN]: 'Costo conocido (precios reales)',
-  [COST_STATUS.ESTIMATED]: 'Costo estimado (precioBase)',
-  [COST_STATUS.PENDING_PRICE]: 'Material sin precio: pendiente',
-  [COST_STATUS.PENDING_MATERIAL]: 'Material no está en catálogo: pendiente',
-  [COST_STATUS.UNKNOWN]: 'Sin despiece: costo por determinar',
-  [COST_STATUS.NOT_APPLICABLE]: 'No aplica',
-};
+function ReadyChip({ ok, estado, label }) {
+  const t = estado ? tono(estado) : (ok ? 'verde' : 'gris');
+  return <span className="cc-ready-chip" style={{ color: COLOR[t], background: FONDO[t] }}>{label}</span>;
+}
 
-const ETIQUETA_STATUS = {
-  [COCREO_STATUS.READY]: 'Listo para cotizar',
-  [COCREO_STATUS.PARTIAL]: 'Avanza — faltan piezas del pipeline',
-  [COCREO_STATUS.BLOCKED]: 'Bloqueado — requiere validación',
-  [COCREO_STATUS.DRAFT]: 'Borrador — hace falta más del brief',
-};
+// Color de muestra para el swatch (sin tono, para reconocer el material).
+function swatchColor(m) {
+  return { nogal: '#6B4423', roble: '#B88A5A', encino: '#C9A06A', maple: '#D8B98A', laminado: '#CBB79B', solid_surface: '#ECEAE6', cristal: '#AFC8D6', metal: '#9AA0A6', piedra: '#C9C3B8' }[m] || '#B89A7A';
+}
 
-export default function Cocrear({ estado, soloVentas = false, onIr }) {
-  const [texto, setTexto] = useState('');
-  const [resultado, setResultado] = useState(null);
-
-  // insumos + parámetros reales del proyecto (para costear si hay BOM).
-  const insumos = estado?.insumos || {};
-  const par = useMemo(() => parametrosEfectivos(estado, { componentes: [] }).par || estado?.parametros || {}, [estado]);
-
-  const correr = () => {
-    const t = (texto || '').trim();
-    if (!t) return;
-    setResultado(cocrear(t, { insumos, par }));
-  };
-
-  const r = resultado;
-
+// Constructor de BOM — SÓLO en el backstage técnico (no es la experiencia primaria).
+function TecnicoBOM({ insumos, onSet, componentesIniciales }) {
+  const [busca, setBusca] = useState('');
+  const [comps, setComps] = useState(componentesIniciales);
+  const matches = useMemo(() => {
+    const q = busca.trim().toLowerCase(); if (!q) return [];
+    return Object.values(insumos).filter((i) => i && i.id && String(i.nombre || '').toLowerCase().includes(q)).slice(0, 6);
+  }, [busca, insumos]);
+  const add = (ins) => { const n = [...comps, { nombre: ins.nombre, insumoId: ins.id, cantidad: 1, piezas: 1 }]; setComps(n); setBusca(''); onSet(n); };
+  const qty = (i, v) => { const n = comps.map((c, k) => (k === i ? { ...c, cantidad: Math.max(0, Number(v) || 0) } : c)); setComps(n); onSet(n); };
+  const del = (i) => { const n = comps.filter((_, k) => k !== i); setComps(n); onSet(n); };
   return (
-    <div className="contenido cocrear-wrap">
-      <header className="cocrear-head">
-        <h1 className="cocrear-h1">Cocrear</h1>
-        <p className="cocrear-sub">De la idea al producto: lo entendemos, lo clasificamos, lo costeamos y te decimos — con honestidad — qué falta antes de cotizarlo.</p>
-      </header>
-
-      <div className="tarjeta cocrear-entrada">
-        <label className="cocrear-label" htmlFor="cocrear-idea">Describe la idea del cliente</label>
-        <textarea
-          id="cocrear-idea"
-          className="cocrear-textarea"
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          placeholder={EJEMPLO}
-          rows={4}
-        />
-        <div className="cocrear-acciones">
-          <button type="button" className="boton cocrear-btn" onClick={correr} disabled={!texto.trim()}>Co-crear</button>
-          <button type="button" className="boton-fantasma cocrear-btn-sec" onClick={() => setTexto(EJEMPLO)}>Usar ejemplo</button>
-        </div>
-      </div>
-
-      {r && (
-        <>
-          {/* Estado global, honesto y visible. */}
-          <div className="cocrear-status" style={{ background: FONDO[tonoEstado(r.status)], borderColor: COLOR[tonoEstado(r.status)] }}>
-            <div>
-              <Badge estado={r.status}>{r.status}</Badge>
-              <span className="cocrear-status-txt"> {ETIQUETA_STATUS[r.status] || ''}</span>
-            </div>
-            <span className="cocrear-desc">{r.lineaCotizacion.descripcion}</span>
-          </div>
-
-          {r.blockers.length > 0 && (
-            <div className="tarjeta cocrear-blockers">
-              <strong>Qué falta para poder cotizar</strong>
-              <ul>{r.blockers.map((b, i) => <li key={i}>{b}</li>)}</ul>
-            </div>
-          )}
-
-          <div className="cocrear-pasos">
-            {/* 1 · Intención */}
-            <Paso titulo="1 · Qué entendimos" estado={r.intent.familia === 'DESCONOCIDA' ? 'parcial' : 'ok'}>
-              <dl className="cocrear-dl">
-                <div><dt>Familia</dt><dd>{r.intent.familia}</dd></div>
-                {r.intent.dimensiones && <div><dt>Dimensión</dt><dd>{(r.intent.dimensiones.ancho_mm / 1000).toFixed(2)} m</dd></div>}
-                {r.intent.materiales.length > 0 && <div><dt>Materiales</dt><dd>{r.intent.materiales.map((m) => `${m.material}${m.tono ? ' ' + m.tono : ''}`).join(', ')}</dd></div>}
-                {r.intent.caracteristicas.length > 0 && <div><dt>Características</dt><dd>{r.intent.caracteristicas.join(', ')}</dd></div>}
-                {r.intent.capacidad && <div><dt>Capacidad</dt><dd>{r.intent.capacidad.personas} personas</dd></div>}
-                {(r.dna.tono || r.dna.nivel) && <div><dt>ADN</dt><dd>{[r.dna.nivel, r.dna.tono].filter(Boolean).join(' · ')}</dd></div>}
-              </dl>
-              {r.intent.desconocidos.length > 0 && (
-                <p className="cocrear-nota-rojo">No se mencionó: {r.intent.desconocidos.join(', ')} — no lo inventamos.</p>
-              )}
-            </Paso>
-
-            {/* 2 · Clasificación */}
-            <Paso titulo="2 · Clasificación" estado={r.clasificacion.clasificacion}>
-              <p className="cocrear-motivo">{r.clasificacion.motivos.join(' ')}</p>
-              {r.clasificacion.parent_product_id && (
-                <p className="cocrear-linaje">Deriva de <strong>{r.clasificacion.parent_product_id}</strong> ({r.clasificacion.parent_product_version}) · se conserva el linaje, no se cobra el estándar.</p>
-              )}
-              {r.clasificacion.change_set.length > 0 && (
-                <ul className="cocrear-changeset">
-                  {r.clasificacion.change_set.map((c, i) => <li key={i}><span className="cocrear-chip">{c.tipo}</span> {c.campo}: {String(c.a)}</li>)}
-                </ul>
-              )}
-            </Paso>
-
-            {/* 3 · ProductSpec */}
-            <Paso titulo="3 · Ficha de producto (ProductSpec)" estado={`rev ${r.spec.rev}`}>
-              <p className="cocrear-mono">{r.spec.id}@{r.spec.rev} <span className="cocrear-hash">#{r.spec.hash}</span></p>
-              <p className="cocrear-ayuda">Versionada y con hash: cualquier cambio genera una revisión nueva y marca obsoleto lo de aguas abajo.</p>
-            </Paso>
-
-            {/* 4 · Ingeniería + Manufacturabilidad */}
-            <Paso titulo="4 · Ingeniería y fabricación" estado={r.ingenieria.estado}>
-              <p className="cocrear-motivo">{r.ingenieria.motivos.join(' ')}</p>
-              <div className="cocrear-top-inline">
-                <span>Manufacturabilidad:</span> <Badge estado={r.manufacturabilidad.estado}>{r.manufacturabilidad.estado}</Badge>
-              </div>
-              {r.manufacturabilidad.requisitos.length > 0 && (
-                <p className="cocrear-ayuda">Requiere validar: {r.manufacturabilidad.requisitos.join(', ')}.</p>
-              )}
-            </Paso>
-
-            {/* 5 · Costo (seller-safe) */}
-            <Paso titulo="5 · Costo" estado={r.costo.cost_status}>
-              <p className="cocrear-motivo">{ETIQUETA_COSTO[r.costo.cost_status]}</p>
-              {!soloVentas && r.costo.official_cost != null && (
-                <p className="cocrear-dato">Costo oficial: <strong>${r.costo.official_cost.toLocaleString('es-MX', { maximumFractionDigits: 2 })}</strong></p>
-              )}
-              {!soloVentas && r.costo.official_cost == null && r.costo.known_cost > 0 && (
-                <p className="cocrear-dato">Subtotal conocido (parcial): ${r.costo.known_cost.toLocaleString('es-MX', { maximumFractionDigits: 2 })} · el costo oficial está bloqueado hasta resolver lo pendiente.</p>
-              )}
-              {r.costo.unresolved_lines.length > 0 && (
-                <p className="cocrear-nota-rojo">Pendiente: {r.costo.unresolved_lines.join(', ')}.</p>
-              )}
-            </Paso>
-
-            {/* 6 · Línea de cotización */}
-            <Paso titulo="6 · Cotización" estado={r.lineaCotizacion.costeable ? 'lista' : 'requiere desarrollo'}>
-              {r.lineaCotizacion.costeable ? (
-                <>
-                  <p className="cocrear-motivo">Listo para cotizar. El precio lo fija la política de cotización (margen/lista); el vendedor nunca ve el costo.</p>
-                  {onIr && <button type="button" className="boton cocrear-btn" onClick={() => onIr('cotizacion')}>Ir a cotización</button>}
-                </>
-              ) : (
-                <p className="cocrear-nota-rojo">{r.lineaCotizacion.motivo}</p>
-              )}
-            </Paso>
-          </div>
-        </>
-      )}
+    <div className="cc-bom">
+      <p className="cocrear-ayuda">Desarrolla el despiece con el catálogo real (mismo motor que Costear). El costo de arriba se recalcula.</p>
+      <input className="cocrear-input" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar material (tablero, herraje, LED)…" />
+      {matches.length > 0 && <div className="cocrear-bom-matches">{matches.map((i) => <button key={i.id} type="button" className="cocrear-bom-match" onClick={() => add(i)}><span>{i.nombre}</span><span className="cocrear-bom-unidad">{i.unidad || ''}</span></button>)}</div>}
+      {comps.length > 0 && <ul className="cocrear-bom-lista">{comps.map((c, i) => (
+        <li key={i} className="cocrear-bom-item"><span className="cocrear-bom-nombre">{c.nombre}</span>
+          <input className="cocrear-input cocrear-bom-qty" type="number" min="0" step="0.01" value={c.cantidad} onChange={(e) => qty(i, e.target.value)} />
+          <span className="cocrear-bom-unidad">{insumos[c.insumoId]?.unidad || ''}</span>
+          <button type="button" className="cocrear-bom-x" onClick={() => del(i)}>×</button></li>
+      ))}</ul>}
     </div>
   );
 }
