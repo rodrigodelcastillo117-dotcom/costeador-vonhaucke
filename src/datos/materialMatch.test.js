@@ -1,7 +1,51 @@
 import { describe, it, expect } from 'vitest';
 import {
-  MATCH, MATCH_AUTOCOSTEABLE, familiaDeMaterial, clasificarMaterial, aplicarPoliticaMaterial,
+  MATCH, MATCH_AUTOCOSTEABLE, familiaDeMaterial, clasificarMaterial, aplicarPoliticaMaterial, mejorInsumoDeFamilia,
 } from './materialMatch.js';
+
+// Catálogo mock como el real (ids con color/espesor) para probar la auto-precarga.
+const CAT = [
+  { id: 'melamina-19-nogal-neo-tx', nombre: 'Melamina 19 mm, Nogal Neo TX', seccion: 'cubiertas' },
+  { id: 'melamina-16-blanco-absoluto', nombre: 'Melamina 16 mm, Blanco Absoluto', seccion: 'cubiertas' },
+  { id: 'mdf', nombre: 'MDF 19 mm', seccion: 'cubiertas' },
+  { id: 'lamina-14', nombre: 'Lamina de acero cal. 14', seccion: 'metal' },
+  { id: 'laminado-walnut', nombre: 'Laminado plastico 4x8 Walnut (nogal)', seccion: 'cubiertas' },
+];
+
+describe('VONI hace su trabajo: material nombrado NUNCA queda sin costear (auto-precarga)', () => {
+  it('"melamina nogal claro 19mm" sin id del LLM → auto-asigna melamina nogal 19', () => {
+    const c = aplicarPoliticaMaterial(
+      { nombre: 'Costado melamina nogal claro 19 mm', insumoId: '', material_solicitado: 'melamina nogal claro 19 mm' },
+      () => undefined, CAT,
+    );
+    expect(c.insumoId).toBe('melamina-19-nogal-neo-tx'); // misma familia + color + espesor
+    expect(c._match.autollenado).toBe(true);
+    expect(c._match.clase).toBe(MATCH.EXACT);
+  });
+  it('mejorInsumoDeFamilia respeta el ESPESOR (16 vs 19)', () => {
+    expect(mejorInsumoDeFamilia('tapa melamina blanca 16', CAT).id).toBe('melamina-16-blanco-absoluto');
+    expect(mejorInsumoDeFamilia('cubierta melamina 19 nogal', CAT).id).toBe('melamina-19-nogal-neo-tx');
+  });
+  it('laminado walnut → laminado (no melamina)', () => {
+    expect(mejorInsumoDeFamilia('frente laminado walnut', CAT).id).toBe('laminado-walnut');
+  });
+  it('familia AUSENTE (solid surface) → NO auto-asigna, queda pendiente (no inventa)', () => {
+    expect(mejorInsumoDeFamilia('cubierta superficie sólida azul', CAT)).toBe(null);
+    const c = aplicarPoliticaMaterial(
+      { nombre: 'Cubierta', insumoId: '', material_solicitado: 'superficie sólida azul' },
+      () => undefined, CAT,
+    );
+    expect(c.insumoId).toBe('');
+    expect(c._match.clase).toBe(MATCH.NOT_AVAILABLE);
+  });
+  it('cross-familia: LLM pone MDF para solid surface → NO se queda MDF; solid surface ausente → pendiente', () => {
+    const c = aplicarPoliticaMaterial(
+      { nombre: 'Cubierta', insumoId: 'mdf', material_solicitado: 'superficie sólida azul' },
+      (id) => CAT.find((x) => x.id === id), CAT,
+    );
+    expect(c.insumoId).toBe(''); // nunca MDF disfrazado de solid surface
+  });
+});
 
 describe('familiaDeMaterial — reconoce las familias de Von Haucke', () => {
   it('superficie sólida en todas sus formas', () => {
