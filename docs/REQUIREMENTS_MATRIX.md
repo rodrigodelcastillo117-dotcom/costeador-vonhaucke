@@ -48,8 +48,8 @@ Actualizar ANTES de implementar cualquier instrucción nueva. SHA ref: `198920c`
 | LAYOUT-004 | Layout parcial no se presenta como terminado | layout | P0 | PASS | compuerta dura VH-014 |
 | RENDER-001 | Render no inventa; representa ProductVersion | render | P0 | IN_PROGRESS | renderOficina usa dibujo+colocación; fidelidad NOT_VERIFIED |
 | RENDER-002 | Render final BLOQUEADO si layout roto | render | P0 | PASS | VH-014 |
-| RENDER-003 | Render staleness por hash | render | P1 | NOT_STARTED | §44 |
-| RENDER-004 | Prompt compiler versionado + post-validation | render | P1 | NOT_STARTED | §42/43 |
+| RENDER-003 | Render staleness por hash | render | P1 | PASS (cocrear) | `renderPrompt.renderStale` por spec.hash; render de Cocrear se atenúa+avisa al cambiar el spec. E2E navegador |
+| RENDER-004 | Prompt compiler versionado + post-validation | render | P1 | PASS (cocrear) | `renderPrompt.compileRenderPrompt` (cocrear_render_v1): render del ProductSpec EXACTO, geometría bloqueada, manifiesto `expected` (GEOMETRY/FINISH/FEATURE) para fidelidad; UI honesta "pendiente de verificación visual". 4 tests + E2E (LED mandatory apareció). Falta: validación de fidelidad por VISIÓN (contar puertas/cajones) |
 | RENDER-005 | 3D con geometría/escala/acabados reales | render | P1 | NOT_VERIFIED | §100 (punto débil CEO) |
 | PDF-001 | PDF real genera | pdf | P0 | PASS | blob application/pdf 7.5MB |
 | PDF-002 | PDF deriva de revisión emitida/inmutable | pdf | P0 | NOT_STARTED | hoy deriva del estado vivo |
