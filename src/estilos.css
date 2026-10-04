@@ -498,7 +498,7 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 .grupo-acc-b { padding: 14px; }
 
 /* ---- Tile con foto (showroom) ---- */
-.tile-foto { position: relative; min-height: 190px; padding: 0; border: 1px solid var(--linea); border-radius: 12px; overflow: hidden; background-size: contain; background-repeat: no-repeat; background-position: center top; background-color: #f4f2ef; align-items: stretch; box-shadow: var(--sombra); }
+.tile-foto { position: relative; min-height: 190px; padding: 0; border: 1px solid var(--linea); border-radius: 12px; overflow: hidden; background-size: contain; background-repeat: no-repeat; background-position: center top; background-color: var(--panel); align-items: stretch; box-shadow: var(--sombra); }
 .tile-foto-velo { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(20,18,17,0) 30%, rgba(20,18,17,.78) 100%); }
 .tile-foto-txt { position: relative; margin-top: auto; z-index: 1; display: flex; flex-direction: column; gap: 3px; padding: 16px; text-align: left; }
 .tile-foto .tile-titulo { color: #fff; font-size: 22px; }
