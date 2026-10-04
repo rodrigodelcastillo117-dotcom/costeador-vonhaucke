@@ -22,7 +22,16 @@ const PROHIBIDOS = /^(margen|precio|preciobase|precioreal|preciounitario|costo|c
 // Se EXCLUYE a propósito `excluida`: marcar una partida como $0 es una decisión
 // comercial que vive en la Cotización (con confirmación humana), no en la intención
 // cruda de costeo — dejar que el cliente la mande aquí sería una fuga fail-OPEN.
-const COMP_PERMITIDOS = ['insumoId', 'nombre', 'cantidad', 'largoMM', 'anchoMM', 'piezas', 'hojas'];
+const COMP_PERMITIDOS = ['insumoId', 'nombre', 'cantidad', 'largoMM', 'anchoMM', 'piezas', 'hojas', 'material_solicitado', 'material_match'];
+
+// MATERIAL_PENDING (P0-05): estados de match en los que la IA NO asignó insumoId
+// porque el catálogo no tiene la familia/precio. El componente NO se inventa ni se
+// elimina: sobrevive con insumoId='' y el motor lo bloquea (componentesIgnorados →
+// costeoEmitible: costoTotal=null, emitible=false). Nunca $0 silencioso.
+const MATCH_PENDIENTE = new Set([
+  'NOT_AVAILABLE', 'SUBSTITUTE_SUGGESTED', 'SUBSTITUTE_REQUIRES_CONFIRMATION',
+  'PENDING_MATERIAL', 'PENDING_PRICE', 'PENDING_PURCHASING',
+]);
 
 function buscarProhibido(obj, ruta = '') {
   if (obj == null || typeof obj !== 'object') return null;
@@ -75,7 +84,18 @@ export function validarIntentCosteo(body) {
   const compsLimpios = [];
   (comps || []).forEach((c, i) => {
     if (c == null || typeof c !== 'object') { issues.push({ field: `componentes[${i}]`, msg: 'Componente inválido.' }); return; }
-    if (!c.insumoId || typeof c.insumoId !== 'string') issues.push({ field: `componentes[${i}].insumoId`, msg: 'insumoId (string) es obligatorio; el precio lo resuelve el servidor.' });
+    const idOk = typeof c.insumoId === 'string' && c.insumoId.trim() !== '';
+    const solicitado = typeof c.material_solicitado === 'string' ? c.material_solicitado.trim() : '';
+    const matchTxt = typeof c.material_match === 'string' ? c.material_match.trim().toUpperCase() : '';
+    // MATERIAL_PENDING (P0-05): se admite SIN insumoId SÓLO si declara QUÉ material se
+    // pidió (material_solicitado) y un match pendiente. Así el componente sobrevive al
+    // contrato y el motor lo BLOQUEA (componentesIgnorados), en vez de inventarlo,
+    // sustituirlo de otra familia o costearlo en $0. Un insumoId vacío "a secas" (sin
+    // material declarado) sigue siendo un error.
+    const esPendiente = !idOk && solicitado !== '' && (matchTxt === '' || MATCH_PENDIENTE.has(matchTxt));
+    if (!idOk && !esPendiente) {
+      issues.push({ field: `componentes[${i}].insumoId`, msg: 'insumoId (string) es obligatorio, salvo material pendiente declarado (material_solicitado + material_match pendiente); el precio lo resuelve el servidor.' });
+    }
     for (const campo of ['largoMM', 'anchoMM', 'cantidad', 'piezas', 'hojas']) {
       if (c[campo] != null && !(finito(c[campo]) && c[campo] >= 0)) issues.push({ field: `componentes[${i}].${campo}`, msg: `${campo} debe ser un número finito ≥ 0.` });
     }
@@ -85,8 +105,12 @@ export function validarIntentCosteo(body) {
       if (c[campo] == null) continue;
       // `nombre`: sólo string, acotado — nunca un objeto que se cuele como etiqueta.
       if (campo === 'nombre') { if (typeof c.nombre === 'string') limpio.nombre = c.nombre.slice(0, 200); continue; }
+      if (campo === 'material_solicitado') { if (solicitado) limpio.material_solicitado = solicitado.slice(0, 200); continue; }
+      if (campo === 'material_match') { if (matchTxt) limpio.material_match = matchTxt.slice(0, 40); continue; }
       limpio[campo] = c[campo];
     }
+    // Normaliza el pendiente: insumoId='' explícito + bandera para UI/motor.
+    if (esPendiente) { limpio.insumoId = ''; limpio.pendiente = true; }
     compsLimpios.push(limpio);
   });
 

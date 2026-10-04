@@ -268,7 +268,12 @@ export function netoComponente(comp, n = 1) {
 // `comp.hojas`, el estimador ya dio la fraccion de hoja que rinde (como el
 // T.D.C. real) — el costo es fraccion x precio_hoja, sin merma inventada.
 export function costoNetoComponente(comp, insumo, n = 1, par = PARAMETROS_DEFAULT) {
-  if (comp.hojas != null && insumo?.formato) {
+  // ⚠️ P0-03 (bug hojas:0): la PRESENCIA de `hojas` NO decide el modo de consumo.
+  // Antes esto era `comp.hojas != null`, y `hojas:0` (que el esquema de la IA permite
+  // como "no aplica") daba `0 != null → true` → costo `0 × precio = $0`, ignorando
+  // la medida/cantidad real. Un PTR de 6 m salía GRATIS. La fracción de hoja real
+  // SIEMPRE es > 0; con `> 0`, un `hojas:0` cae al cálculo por área/cantidad de abajo.
+  if (comp.hojas > 0 && insumo?.formato) {
     return noNegativo(comp.hojas * n) * precioDeInsumo(insumo, par);
   }
   return netoComponente(comp, n) * precioDeInsumo(insumo, par);
@@ -309,7 +314,9 @@ function comprarInsumo(insumo, comps, n, par) {
   const medidaFmt = insumo.formato ? insumo.formato.medida : 0;
 
   for (const c of comps) {
-    if (c.hojas != null && insumo.formato) { hojasDirectas += noNegativo(c.hojas) * n; continue; }
+    // P0-03: `> 0`, no `!= null` — un `hojas:0` NO debe tomar la vía de fracción
+    // (que lo costearía en $0 y haría `continue`, perdiendo su cantidad/medida).
+    if (c.hojas > 0 && insumo.formato) { hojasDirectas += noNegativo(c.hojas) * n; continue; }
     const netoC = netoComponente(c, n);
     neto += netoC;
     conCorte += netoC * factorMerma;
