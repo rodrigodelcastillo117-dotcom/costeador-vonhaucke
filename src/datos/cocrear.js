@@ -595,6 +595,45 @@ export function sugerenciasVoni(spec) {
 }
 
 // ---------------------------------------------------------------------------
+//  PERSISTENCIA · serializa el estudio a un `expediente` (reusa el modelo que ya
+//  existe: expedientes + expediente_revisiones). LIVIANO: guarda intent + historia
+//  + metadatos de render (specHash/expected), NUNCA el base64 del render (§31).
+// ---------------------------------------------------------------------------
+export const COCREAR_PERSIST_VERSION = 'cocrear_studio_v1';
+
+export function cocrearAExpediente(estado = {}) {
+  const intent = estado.intent || {};
+  const rev = (estado.historia?.length) || 1;
+  const spec = construirProductSpec(intent, extraerDNA(intent), clasificarProducto(intent, {}), { rev });
+  return {
+    nombre: descripcionCorta(spec),
+    producto_tipo: spec.familia,
+    ancho_mm: spec.dimensiones?.ancho_mm ?? null,
+    alto_mm: spec.dimensiones?.alto_mm ?? null,
+    fondo_mm: spec.dimensiones?.prof_mm ?? null,
+    descripcion: estado.brief || descripcionCorta(spec),
+    materiales: (spec.materiales || []).map((m) => `${m.material}${m.tono ? ' ' + m.tono : ''}`),
+    etiquetas: ['cocrear'],
+    estado: 'cocreacion',
+    revision: rev,
+    cocrear: {
+      version: COCREAR_PERSIST_VERSION,
+      brief: estado.brief || '',
+      intent,
+      historia: (estado.historia || []).map((h) => ({ rev: h.rev, label: h.label, intent: h.intent })),
+      render: estado.render ? { specHash: estado.render.specHash, expected: estado.render.expected } : null,
+      specHash: spec.hash,
+    },
+  };
+}
+
+export function cocrearDeExpediente(expediente) {
+  const c = expediente?.cocrear;
+  if (!c || !c.intent) return null;
+  return { brief: c.brief || '', intent: c.intent, historia: Array.isArray(c.historia) ? c.historia : [], render: c.render || null };
+}
+
+// ---------------------------------------------------------------------------
 //  10) STALENESS · si el ProductSpec cambia (nueva rev), lo aguas-abajo
 //      (costo/render/cotización) queda OBSOLETO hasta recalcular (§3,§22).
 // ---------------------------------------------------------------------------

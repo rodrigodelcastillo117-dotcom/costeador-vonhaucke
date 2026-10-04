@@ -2507,3 +2507,15 @@ input::placeholder, textarea::placeholder { color: #6f6961; }
   :root:not([data-theme="light"]) .cc-render { background: #221F1E; border-color: #3A3533; }
   :root:not([data-theme="light"]) .cc-render-top strong { color: #ECE9E4; }
 }
+
+/* COCREAR · co-creaciones guardadas (reabrir) */
+.cocrear-guardadas { margin-top: 20px; }
+.cocrear-guardadas-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.cocrear-guardada { text-align: left; border: 1px solid #EAECF0; background: #fff; border-radius: 12px; padding: 12px 14px; cursor: pointer; display: flex; flex-direction: column; gap: 3px; min-height: 56px; }
+.cocrear-guardada:hover { border-color: #1E1B1A; }
+.cocrear-guardada strong { font-size: 14px; color: #1E1B1A; }
+.cocrear-guardada span { font-size: 12px; color: #667085; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .cocrear-guardada { background: #221F1E; border-color: #3A3533; }
+  :root:not([data-theme="light"]) .cocrear-guardada strong { color: #ECE9E4; }
+}

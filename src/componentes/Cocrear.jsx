@@ -14,8 +14,10 @@ import React, { useMemo, useState, useRef } from 'react';
 import {
   interpretarIntent, cocrearDesdeIntent, construirProductSpec, extraerDNA, clasificarProducto,
   aplicarCambioTexto, sugerenciasVoni, descripcionCorta, lineaCocreada,
+  cocrearAExpediente, cocrearDeExpediente,
   DIMS_DEFAULT, MATERIALES_EDIT, FAMILIA, COCREO_STATUS, COST_STATUS,
 } from '../datos/cocrear.js';
+import { guardarExpediente, actualizarExpediente, listarExpedientes, obtenerExpediente, guardarRevisionExpediente } from '../nube.js';
 import CocrearVisual from './CocrearVisual.jsx';
 import { parametrosEfectivos } from './Costeador.jsx';
 import { precioVenta } from '../motor/calculo.js';
@@ -84,7 +86,24 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
   const [render, setRender] = useState(null);       // { dataUrl, specHash, expected, version }
   const [renderCargando, setRenderCargando] = useState(false);
   const [renderError, setRenderError] = useState('');
+  const [expedienteId, setExpedienteId] = useState(null);  // id en Supabase (persistencia real)
+  const [guardando, setGuardando] = useState(false);
+  const [misCocreaciones, setMisCocreaciones] = useState([]);
   const draggingRef = useRef(false);
+
+  // En la pantalla de inicio, lista las co-creaciones GUARDADAS (reabrir de verdad,
+  // no sólo draft del navegador). Degradación suave si no hay conexión.
+  React.useEffect(() => {
+    if (fase !== 'inicio') return;
+    let vivo = true;
+    (async () => {
+      try {
+        const r = await listarExpedientes('');
+        if (vivo && r?.ok) setMisCocreaciones((r.items || []).filter((x) => x.estado === 'cocreacion' || (x.etiquetas || []).includes('cocrear')).slice(0, 8));
+      } catch { /* sin conexión: queda el draft local */ }
+    })();
+    return () => { vivo = false; };
+  }, [fase]);
 
   const insumos = estado?.insumos || {};
   const par = useMemo(() => parametrosEfectivos(estado, { componentes: [] }).par || estado?.parametros || {}, [estado]);
@@ -123,8 +142,34 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
       if (d?.historia?.length) { setHistoria(d.historia); setIntent(d.historia[d.historia.length - 1].intent); setTexto(d.brief || ''); setFase('studio'); }
     } catch { /* noop */ }
   };
-  const guardar = () => {
-    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ brief: texto, historia })); setGuardado(true); } catch { setVozMsg('No se pudo guardar en este navegador.'); }
+  // GUARDAR REAL: persiste en Supabase (expedientes + revisiones inmutables),
+  // reutilizando el modelo existente. Mantiene el draft local como respaldo offline.
+  const guardar = async () => {
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ brief: texto, historia })); } catch { /* noop */ }
+    setGuardando(true);
+    try {
+      const row = cocrearAExpediente({ brief: texto, intent, historia, render });
+      let id = expedienteId;
+      if (id) { await actualizarExpediente(id, row); }
+      else { const res = await guardarExpediente(row); if (res?.ok) { id = res.id; setExpedienteId(id); } else throw new Error(res?.error || 'no se pudo guardar'); }
+      // Snapshot INMUTABLE de la revisión actual (append-only).
+      if (id) await guardarRevisionExpediente({ expediente_id: id, rev, nombre: row.nombre, materiales: row.materiales, cocrear: { intent, label: historia[historia.length - 1]?.label || `Rev ${rev}`, specHash: spec?.hash } });
+      setGuardado(true);
+    } catch (e) { setVozMsg('Guardado local OK; la nube falló: ' + String(e?.message || e)); setGuardado(true); }
+    setGuardando(false);
+  };
+
+  // REABRIR desde Supabase (persistencia real entre sesiones/dispositivos).
+  const reabrir = async (id) => {
+    try {
+      const res = await obtenerExpediente(id);
+      const est = res?.ok ? cocrearDeExpediente(res.expediente) : null;
+      if (est?.intent) {
+        setHistoria(est.historia.length ? est.historia : [{ rev: 1, label: 'Idea inicial', intent: est.intent }]);
+        setIntent(est.intent); setTexto(est.brief || ''); setExpedienteId(id);
+        setRender(null); setPropuestas(null); setVozMsg(''); setComparA(null); setFase('studio');
+      }
+    } catch { /* noop */ }
   };
 
   // Cambia una dimensión (vivo durante el drag, revisión al soltar).
@@ -220,6 +265,19 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
             {hayDraft && <button type="button" className="boton-fantasma cocrear-btn-sec" onClick={retomar}>Retomar lo último</button>}
           </div>
         </div>
+        {misCocreaciones.length > 0 && (
+          <div className="cocrear-guardadas">
+            <h3 className="cc-panel-tit">Mis co-creaciones guardadas</h3>
+            <div className="cocrear-guardadas-lista">
+              {misCocreaciones.map((x) => (
+                <button key={x.id} type="button" className="cocrear-guardada" onClick={() => reabrir(x.id)}>
+                  <strong>{x.nombre || 'Sin nombre'}</strong>
+                  <span>{x.producto_tipo || ''} · {new Date(x.actualizado || x.creado).toLocaleDateString('es-MX')}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -241,7 +299,7 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
           <Badge estado={`Rev ${rev}`}>Rev {rev}</Badge>
         </div>
         <div className="cc-top-acciones">
-          <button type="button" className="boton-fantasma cocrear-btn-sec" onClick={guardar}>{guardado ? '✓ Guardado' : 'Guardar'}</button>
+          <button type="button" className="boton-fantasma cocrear-btn-sec" onClick={guardar} disabled={guardando}>{guardando ? 'Guardando…' : (guardado ? '✓ Guardado' : 'Guardar')}</button>
           {!comparA ? <button type="button" className="boton-fantasma cocrear-btn-sec" onClick={compararAB}>Comparar A/B</button>
             : <button type="button" className="boton-fantasma cocrear-btn-sec" onClick={() => setComparA(null)}>Cancelar A/B</button>}
         </div>

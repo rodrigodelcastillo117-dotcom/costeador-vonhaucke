@@ -9,7 +9,7 @@ import { describe, it, expect } from 'vitest';
 import {
   interpretarIntent, clasificarProducto, construirProductSpec, extraerDNA,
   costearSpec, lineaCocreada, manufacturabilidad, estadoIngenieria, cocrear, estaStale,
-  aplicarCambioTexto, sugerenciasVoni,
+  aplicarCambioTexto, sugerenciasVoni, cocrearAExpediente, cocrearDeExpediente,
   CLASIFICACION, COST_STATUS, ENG_STATUS, MFG_STATUS, COCREO_STATUS, FAMILIA,
 } from './cocrear.js';
 
@@ -217,6 +217,32 @@ describe('COCREAR · Voni proactivo (honesto, con evidencia)', () => {
   it('diseño simple ⇒ "no recomiendo cambios" (no sobre-ingeniería)', () => {
     const s = sugerenciasVoni(specDe('mesa 1.20 m laminado'));
     expect(s.some((x) => x.tipo === 'ok')).toBe(true);
+  });
+});
+
+describe('COCREAR · persistencia save/reopen (round-trip, sin base64)', () => {
+  it('serializa y recupera EXACTAMENTE intent + historia (close/reopen)', () => {
+    const i1 = interpretarIntent('recepción 2.40 m nogal'); i1.dimensiones = { ancho_mm: 2400 };
+    const historia = [
+      { rev: 1, label: 'Idea inicial', intent: i1 },
+      { rev: 2, label: 'Material: Roble', intent: { ...i1, materiales: [{ material: 'roble', tono: null }] } },
+      { rev: 3, label: 'Ancho 2.10 m', intent: { ...i1, dimensiones: { ancho_mm: 2100 } } },
+    ];
+    const render = { dataUrl: 'data:image/png;base64,AAAAHEAVYBASE64...', specHash: 'habc', expected: { features: ['LED'] } };
+    const row = cocrearAExpediente({ brief: 'recepción', intent: historia[2].intent, historia, render });
+    // No guarda el base64 pesado del render (§31).
+    expect(JSON.stringify(row)).not.toContain('AAAAHEAVYBASE64');
+    expect(row.cocrear.render.specHash).toBe('habc');
+    expect(row.producto_tipo).toBe(FAMILIA.RECEPCION);
+    expect(row.etiquetas).toContain('cocrear');
+    // Reabrir recupera las 3 revisiones y el intent actual.
+    const restaurado = cocrearDeExpediente(row);
+    expect(restaurado.historia).toHaveLength(3);
+    expect(restaurado.historia[1].label).toBe('Material: Roble');
+    expect(restaurado.intent.dimensiones.ancho_mm).toBe(2100);
+  });
+  it('un expediente sin datos de cocrear ⇒ null (no rompe)', () => {
+    expect(cocrearDeExpediente({ nombre: 'otro' })).toBeNull();
   });
 });
 
