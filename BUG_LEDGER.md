@@ -5,6 +5,30 @@ SHA de referencia de los fixes: hasta `198920c` (prod).
 ---
 ## FIXED · VERIFIED
 
+**VH-027 · P1 · Render canónico en partida de Cotizar** (tanda 10X). La partida resuelve su
+imagen SÓLO por `(producto_id, producto_version_id)` → `VIGENTE/STALE/SIN_RENDER_VALIDO/SIN_VERSION`;
+nunca por nombre, nunca revisión vieja; congelado por versión. RPC read-only
+`resolver_renders_canonicos` (renders RLS deny-all). 11 tests. SHA `6874245`.
+
+**VH-028 · P1 · voni-council conectado al orquestador** (tanda 10X). Council edge multi-modelo
+como PROPUESTA/CRÍTICA (PROPOSAL_ONLY); nunca ejecuta por acuerdo, DISAGREEMENT visible,
+degrada si cae. 9 tests + E2E "30 cm más corta…". SHA `94e47be`.
+
+**VH-029 · P1 · Floor Editor: contrato canónico 1 mm** (tanda 10X). `floorPlan.js` única verdad
+(areasM metros = verdad, areas mm = cache en sync, precisión 1 mm sin deriva). 8/8 gates.
+Acomodo/Voni usan floorPlan (sin normalizador duplicado). 11 tests. SHA `beaa005`.
+
+**VH-030 · P1 · plan-reading 10X** (tanda 10X). `revisarAreas` atrapa diminutos/enormes/astillas/
+duplicados/puertas huérfanas; `resumenLectura` da confianza (alta/media/baja). +8 tests. SHA `6f20359`.
+
+**VH-031 · P1 · Acomodo 10X · auditor único de calidad** (tanda 10X). `acomodoAudit.js` detecta
+encimados (solape>tol en ambos ejes) y piezas fuera de área; el chequeo de Acomodo DELEGA en él
+(sin duplicar). Gate: el propio `acomodarLocal` pasa la auditoría. +8 tests. SHA `e62559d`.
+
+**VH-032 · P2 · render fidelity 10X** (tanda 10X). `verificarFidelidad`/`diffFidelidad`: reporta
+QUÉ dejó de coincidir (acabado/geometría/features), no un stale binario; Cocrear lo muestra.
++5 tests. SHA `6f23fb9`.
+
 **VH-023 · P0 · Camino Cocrear→Cotizar MUERTO** (tanda 2026-10-04b). `<Cocrear>` en App.jsx no recibía
 `onAgregar` → el botón "Agregar al proyecto" (`{onAgregar && …}`) nunca se renderizaba y `agregarACotizacion`
 abortaba. El especial co-diseñado NUNCA podía entrar a Cotizar. Fix: `onAgregar={agregarDesdeAsistente}`
