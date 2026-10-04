@@ -2505,6 +2505,10 @@ input::placeholder, textarea::placeholder { color: #6f6961; }
   .cc-grid { grid-template-columns: minmax(0, 1fr); }
   .cc-canvas { order: -1; }           /* el producto primero */
   .cc-voni { order: 2; }
+  /* A ancho completo el lienzo (4:3) se volvía gigante (~600px) y empujaba TODOS los
+     controles fuera de la vista: al abrir el estudio sólo se veía el mueble. Se acota
+     y centra para que el producto se vea Y las decisiones queden a la mano. */
+  .cc-canvas-inner { max-width: 520px; margin-inline: auto; }
 }
 /* ---- Móvil: todo apilado, canvas primero, controles cómodos ---- */
 @media (max-width: 640px) {
