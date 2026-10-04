@@ -18,7 +18,7 @@ import { rellenar, puestosDeclarados } from '../datos/rellenar.js';
 import { idNuevo } from '../util.js';
 import { flagActivo } from '../datos/flags.js';
 import { totalesCotizacion } from '../datos/totales.js';
-import { estadoLayout } from '../datos/floorSpec.js';
+import { estadoLayout, violacionesSemanticas } from '../datos/floorSpec.js';
 
 // Para la paleta, SILLA es todo lo que se sienta: la operativa, la de visita y
 // también el sillón y el banco. Rodrigo lo pidió partido en dos: "lado
@@ -931,12 +931,18 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     const areaPiso = areasMM.reduce((s, a) => s + a.ancho * a.largo, 0) / 1e6;   // m²
     // "Todo cabe" tiene que significar TODO: antes decía que sí mientras el
     // renglón de abajo decía "caben 27 de 36".
+    // VH-015: placement SEMÁNTICO. Un mueble en zona que no le corresponde (mesa
+    // de juntas en CEO, recepción en operativa, cualquier mueble en sanitario) es
+    // un problema real, no cosmético: se suma a `problemas` y bloquea el render.
+    const viols = violacionesSemanticas(plan.colocacion || [], areasMM, byId);
+    for (const v of viols) problemas.push(`${v.nombre} no va en ${v.zona} (muévelo a su zona).`);
     return {
       ok: problemas.length === 0 && sinColocar === 0,
       problemas: problemas.slice(0, 10), nProblemas: problemas.length,
       // Contados aparte porque las palomitas de abajo los necesitan por
       // separado, y `problemas` va recortado a 10 para la lista de pantalla.
       nEncimados: enc.size, nFuera: new Set(fuera).size,
+      nViolaciones: viols.length, violaciones: viols.slice(0, 6),
       puestos, sinColocar,
       m2Persona: puestos ? Math.round((areaPiso / puestos) * 10) / 10 : null,
       areaPiso: Math.round(areaPiso),
@@ -956,11 +962,12 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     colisiones: chequeo.nEncimados || 0,
     fuera: chequeo.nFuera || 0,
   }) : null;
-  const layoutListo = !plan || !chequeo ? false : layout.status === 'LAYOUT_VALID';
+  const layoutListo = !plan || !chequeo ? false : (layout.status === 'LAYOUT_VALID' && (chequeo.nViolaciones || 0) === 0);
   const motivoLayout = !layout ? '' : [
     layout.unplaced > 0 ? `${layout.unplaced} sin colocar` : '',
     layout.colisiones > 0 ? `${layout.colisiones} encimada(s)` : '',
     layout.fuera > 0 ? `${layout.fuera} fuera del plano` : '',
+    (chequeo?.nViolaciones || 0) > 0 ? `${chequeo.nViolaciones} en zona equivocada` : '',
   ].filter(Boolean).join(' · ');
 
   // ============================================================================

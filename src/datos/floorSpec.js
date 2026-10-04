@@ -225,3 +225,68 @@ export function puedePresentarPropuesta(floorStatus, layoutStatus) {
 export function renderFiel({ rendered = 0, placed = 0 } = {}) {
   return rendered === placed;
 }
+
+// ============================================================================
+//  PLACEMENT SEMÁNTICO (VH-015 / LAYOUT-002 / contrato §53,§99).
+//  El motor coloca por "cabe aquí"; esto verifica "PERTENECE aquí". Es un
+//  VALIDADOR determinista (no reescribe el acomodo): detecta muebles en una zona
+//  que no les corresponde (mesa de juntas en CEO, recepción en operativa, o
+//  CUALQUIER mueble dentro de un sanitario/site — Von Haucke no amuebla baños).
+//  Conservador a propósito: SOLO marca violaciones CLARAS; una zona genérica/open
+//  acepta todo, y los muebles flexibles (sillas, guarda) no se bloquean salvo en
+//  sanitarios/site. Las violaciones cuentan como problema → la compuerta dura ya
+//  existente bloquea el render/propuesta oficial.
+// ============================================================================
+
+// Mapea una pieza del acomodo (tipo/nombre) a su ROL semántico.
+export function rolDePiezaAcomodo(pieza) {
+  const t = `${pieza?.tipo || ''} ${pieza?.nombre || ''}`.toLowerCase();
+  if (/mesa de junta|mesa junta|mesa de consejo|sala de junta|board|consejo/.test(t)) return ROL.TABLE;
+  if (/recepci|mostrador|módulo recep|modulo recep/.test(t)) return ROL.RECEPTION;
+  if (/escritorio|bench|puesto|estacion|estación|workstation|operativ/.test(t)) return ROL.WORKSTATION;
+  if (/mesa\b|table/.test(t)) return ROL.TABLE;
+  if (/archiv|credenza|gaveta|pedestal|guarda|storage/.test(t)) return ROL.STORAGE;
+  if (/silla|asiento|chair|seat/.test(t)) return ROL.WORK_SEAT;
+  return ROL.OTHER;
+}
+
+// ¿El rol PERTENECE a esa zona? true = permitido; false = violación clara.
+// Devuelve siempre true salvo los casos inequívocos de "no pertenece".
+export function zonaPermite(rol, zonaTipo) {
+  // Regla dura: NADA de mobiliario dentro de sanitarios o site/IT.
+  if (zonaTipo === ZONA.SANITARIOS || zonaTipo === ZONA.SITE) return false;
+  // Zona genérica/open: no sabemos lo suficiente para prohibir.
+  if (!zonaTipo || zonaTipo === ZONA.GENERICA) return true;
+  switch (rol) {
+    case ROL.TABLE:       // mesa de juntas/consejo: solo en sala de consejo/juntas
+      return zonaTipo === ZONA.CONSEJO;
+    case ROL.RECEPTION:   // módulo/mostrador de recepción: solo en recepción
+      return zonaTipo === ZONA.RECEPCION;
+    case ROL.WORKSTATION: // puestos operativos: no en consejo ni recepción
+      return zonaTipo !== ZONA.CONSEJO && zonaTipo !== ZONA.RECEPCION;
+    default:              // sillas, guarda, otros: flexibles (ya filtrados sanitarios/site)
+      return true;
+  }
+}
+
+// Lista de violaciones semánticas de un acomodo. `colocaciones`=[{id,area}],
+// `areas`=[{nombre}] (index == area), `byId`=mapa id->pieza.
+export function violacionesSemanticas(colocaciones = [], areas = [], byId = {}) {
+  const out = [];
+  for (const c of colocaciones) {
+    const area = areas[c?.area];
+    if (!area) continue;
+    const zonaTipo = zonaSemantica(area.nombre || '');
+    const pieza = byId[c?.id] || {};
+    const rol = rolDePiezaAcomodo(pieza);
+    if (!zonaPermite(rol, zonaTipo)) {
+      out.push({
+        id: c.id,
+        nombre: pieza.nombre || 'mueble',
+        zona: area.nombre || 'zona',
+        motivo: `${pieza.nombre || 'un mueble'} no pertenece a ${area.nombre || 'esa zona'}`,
+      });
+    }
+  }
+  return out;
+}

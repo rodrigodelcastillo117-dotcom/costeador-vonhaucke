@@ -143,3 +143,56 @@ describe('ARQ-01 · layout (nada desaparece; no verde parcial)', () => {
     expect(renderFiel({ rendered: 23, placed: 23 })).toBe(true);
   });
 });
+
+// ============================================================================
+//  PLACEMENT SEMÁNTICO (VH-015 / LAYOUT-002). "Cabe aquí" != "pertenece aquí".
+//  El motor dejaba la mesa de juntas en CEO y la recepción en operativa.
+// ============================================================================
+import { violacionesSemanticas, rolDePiezaAcomodo, zonaPermite, ROL as ROL2, ZONA as ZONA2 } from './floorSpec.js';
+
+describe('placement semántico · un mueble no va en cualquier zona', () => {
+  const areas = [
+    { nombre: 'OFICINA CEO' },          // 0
+    { nombre: 'SALA DE CONSEJO' },      // 1
+    { nombre: 'ÁREA OPERATIVA' },       // 2
+    { nombre: 'RECEPCIÓN' },            // 3
+    { nombre: 'SANITARIOS H' },         // 4
+  ];
+  const byId = {
+    mesa: { id: 'mesa', tipo: 'mesa', nombre: 'Mesa de juntas APP LT' },
+    recep: { id: 'recep', tipo: 'recepcion', nombre: 'Módulo recepción' },
+    esc: { id: 'esc', tipo: 'escritorio', nombre: 'Escritorio operativo' },
+    silla: { id: 'silla', tipo: 'silla', nombre: 'Silla operativa' },
+  };
+
+  it('mesa de juntas en CEO = violación; en Consejo = OK', () => {
+    expect(violacionesSemanticas([{ id: 'mesa', area: 0 }], areas, byId)).toHaveLength(1);
+    expect(violacionesSemanticas([{ id: 'mesa', area: 1 }], areas, byId)).toHaveLength(0);
+  });
+
+  it('recepción en operativa = violación; en recepción = OK', () => {
+    expect(violacionesSemanticas([{ id: 'recep', area: 2 }], areas, byId)).toHaveLength(1);
+    expect(violacionesSemanticas([{ id: 'recep', area: 3 }], areas, byId)).toHaveLength(0);
+  });
+
+  it('escritorio operativo en Área Operativa = OK; en Consejo = violación', () => {
+    expect(violacionesSemanticas([{ id: 'esc', area: 2 }], areas, byId)).toHaveLength(0);
+    expect(violacionesSemanticas([{ id: 'esc', area: 1 }], areas, byId)).toHaveLength(1);
+  });
+
+  it('CUALQUIER mueble dentro de un sanitario = violación (no amueblamos baños)', () => {
+    expect(violacionesSemanticas([{ id: 'silla', area: 4 }], areas, byId)).toHaveLength(1);
+    expect(violacionesSemanticas([{ id: 'mesa', area: 4 }], areas, byId)).toHaveLength(1);
+  });
+
+  it('una silla operativa es flexible: no se bloquea en zonas de trabajo/genéricas', () => {
+    expect(violacionesSemanticas([{ id: 'silla', area: 2 }], areas, byId)).toHaveLength(0);
+    expect(violacionesSemanticas([{ id: 'silla', area: 0 }], areas, byId)).toHaveLength(0);
+  });
+
+  it('helpers directos', () => {
+    expect(rolDePiezaAcomodo(byId.mesa)).toBe(ROL2.TABLE);
+    expect(zonaPermite(ROL2.TABLE, ZONA2.CEO)).toBe(false);
+    expect(zonaPermite(ROL2.TABLE, ZONA2.CONSEJO)).toBe(true);
+  });
+});
