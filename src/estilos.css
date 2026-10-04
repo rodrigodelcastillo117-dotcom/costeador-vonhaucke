@@ -2259,3 +2259,32 @@ input::placeholder, textarea::placeholder { color: #6f6961; }
 .boton.fantasma { background: transparent; color: var(--carbon); }
 /* La barra de "Atrás/Inicio" y nombres de vista, legibles en oscuro. */
 .barra-atras-t { color: var(--gris); }
+
+/* ==========================================================================
+   ESTADOS/BANNERS/SELLOS EN OSCURO — antes tenían fondos pastel CLAROS
+   hardcodeados (#eef4ef, #fbeceb, #f7f0dd…) que en el tema oscuro quedaban como
+   cajas claras con texto ilegible. Aquí se redefinen con TINTE oscuro del mismo
+   color semántico + texto brillante. (Los documentos de cliente/print van aparte.)
+   ========================================================================== */
+/* Verde (ok / firme / planta / aprovecha / sugerido) */
+.semaforo.verde, .etiqueta-dato.planta, .ia-aprov, .ia-conf-alta, .ia-badge.sugerido,
+.sello-firme, .sello-calibrado, .dvis-gana, .prog-plano {
+  background: rgba(52,211,153,.12) !important; border-color: rgba(52,211,153,.35) !important; color: #6ee7b7 !important;
+}
+.prog-plano strong { color: #8af0c3 !important; }
+.prog-plano span { color: var(--gris) !important; }
+/* Ámbar (supuesto / estimado / media / aviso) */
+.alerta.ambar, .semaforo.ambar, .etiqueta-dato.supuesto, .ia-conf-media, .ia-badge.media,
+.sello-estimado, .empezar-resumen.apretado, .prog-aviso {
+  background: rgba(224,169,59,.14) !important; border-color: rgba(224,169,59,.38) !important; color: #e8c98a !important;
+}
+/* Rojo (falla / baja / alerta) */
+.alerta.roja, .semaforo.rojo, .ia-falla, .ia-conf-baja, .ia-nota-conf, .ia-badge.baja {
+  background: rgba(229,72,77,.14) !important; border-color: rgba(229,72,77,.42) !important; color: #f3a6a2 !important;
+}
+/* Superficies neutras claras → superficie oscura */
+.empezar-resumen, .segmento, .prog-resumen, .prog-chip, .confianza, .paleta-item img {
+  background: var(--panel) !important;
+}
+.segmento button.on { background: var(--blanco) !important; color: var(--carbon) !important; box-shadow: 0 1px 3px rgba(0,0,0,.4) !important; }
+.confianza-barra { background: rgba(255,255,255,.12) !important; }
