@@ -27,7 +27,7 @@ import { aMM, areasCanonicas, bloqueGeometria, cuantizar } from '../datos/floorP
 const esSilla = (p) => p?.tipo === 'asiento' || esSillaDeTrabajo(p);
 import { escenasDeAcomodo, lineasDeEscena, tipoDeEscena } from '../datos/escenas.js';
 import { LINEAS_REG } from '../datos/lineas.js';
-import { areasDeLectura, revisarAreas } from '../datos/planoLeido.js';
+import { areasDeLectura, revisarAreas, resumenLectura } from '../datos/planoLeido.js';
 import PlanoAcomodo from './PlanoAcomodo.jsx';
 import PropuestaViva from './PropuestaViva.jsx';
 import DibujarPlano from './DibujarPlano.jsx';
@@ -275,11 +275,20 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       // recordar() ANTES para que el undo cruce el cambio de modo (gate undo/redo).
       if (leidas.length) { recordar(); setAreas(cuantizar(leidas)); setPlanReal(true); }
       const notas = [];
+      // Confianza HONESTA del levantamiento al frente: cuántos cuartos leí, cuánta
+      // superficie y qué tan confiable salió. Así el proyectista sabe de entrada si
+      // puede confiar en el plano o conviene revisarlo/redibujarlo (no lo descubre
+      // cuando el 3D sale raro).
+      const resumen = resumenLectura(lec);
+      if (leidas.length) {
+        const etiqueta = { alta: 'Lectura confiable', media: 'Lectura con dudas', baja: 'Lectura poco confiable', nula: '' }[resumen.nivel];
+        if (etiqueta) notas.push(`${etiqueta}: ${resumen.cuartos} cuarto(s), ~${resumen.m2} m².`);
+      }
       if (!lec.tieneCotas) notas.push('El plano no traía cotas: las medidas son estimadas, revísalas.');
       // La revisión se enseña ANTES que las notas del modelo: si el levantamiento
       // no cuadra como planta, el proyectista tiene que saberlo, no descubrirlo
       // cuando el 3D salga raro.
-      const problemas = revisarAreas(lec);
+      const problemas = resumen.problemas;
       if (problemas.length) notas.push('Revisa esto:', ...problemas.map((p) => '· ' + p));
       if (!leidas.length) notas.push('No pude reconocer los cuartos. Sube el plano en mejor calidad o dibújalo con “Dibujar mi oficina”.');
       if (lec.notas?.length) notas.push(...lec.notas);

@@ -267,5 +267,67 @@ export function revisarAreas(lectura) {
     }
   }
 
+  // 4) Dimensiones implausibles por cuarto: una lectura de IA confunde a menudo el
+  //    grosor de un muro, una cota o una leyenda con un cuarto. Se atrapan los
+  //    diminutos, los enormes (mala escala) y las astillas (muro leído como cuarto).
+  for (const { a, pts } of crudas) {
+    const b = bbox(pts);
+    const w = (b.x2 - b.x) / 1000, h = (b.y2 - b.y) / 1000;
+    const nom = a.nombre || 'Área';
+    if (w < 0.5 || h < 0.5) {
+      problemas.push(`"${nom}" quedó diminuto (${w.toFixed(2)}×${h.toFixed(2)} m): puede ser un muro o una cota leída como cuarto.`);
+    } else if (w > 50 || h > 50) {
+      problemas.push(`"${nom}" quedó enorme (${w.toFixed(1)}×${h.toFixed(1)} m): revisa la escala del plano.`);
+    } else {
+      const larg = Math.max(w, h), cort = Math.min(w, h);
+      if (cort > 0 && larg / cort > 12 && cort < 1) {
+        problemas.push(`"${nom}" es una astilla (${w.toFixed(2)}×${h.toFixed(2)} m): probablemente un muro, no un cuarto.`);
+      }
+    }
+  }
+
+  // 5) Cuartos duplicados: mismo nombre repetido = casi siempre una doble lectura.
+  const vistos = new Set();
+  const dupAvisado = new Set();
+  for (const { a } of crudas) {
+    const n = String(a.nombre || '').trim().toLowerCase();
+    if (!n) continue;
+    if (vistos.has(n) && !dupAvisado.has(n)) {
+      problemas.push(`El cuarto "${a.nombre}" aparece más de una vez: puede ser una doble lectura.`);
+      dupAvisado.add(n);
+    }
+    vistos.add(n);
+  }
+
+  // 6) Puertas huérfanas: una puerta que no cae sobre ningún cuarto no sirve para
+  //    medir acceso (el motor no sabría por dónde se entra).
+  const puertas = (lectura?.puertas || []).filter((p) => Number.isFinite(p?.x) && Number.isFinite(p?.y));
+  const huerfanas = puertas.filter((p) => !crudas.some(({ pts }) => cercaDe(pts, p.x, p.y, TOCA_PUERTA)));
+  if (huerfanas.length) {
+    problemas.push(`${huerfanas.length} puerta(s) no caen sobre ningún cuarto: revisa dónde está el acceso.`);
+  }
+
   return problemas;
+}
+
+// Resumen de CONFIANZA de la lectura, para la UX: cuántos cuartos, m² total,
+// cuántos problemas y un nivel honesto. No corrige nada; orienta al proyectista
+// sobre si puede confiar en el levantamiento o conviene revisarlo/redibujarlo.
+export function resumenLectura(lectura) {
+  const crudas = (lectura?.areas || [])
+    .map((a) => ({ a, pts: contornoMM(a) }))
+    .filter((r) => r.pts && r.pts.length >= 3);
+  const problemas = revisarAreas(lectura);
+  const padre = anidamientos(crudas);
+  const m2 = crudas.reduce((s, r, i) => s + (padre.has(i) ? 0 : areaM2(r.pts)), 0);
+  const nivel = !crudas.length ? 'nula' : problemas.length === 0 ? 'alta' : problemas.length <= 2 ? 'media' : 'baja';
+  return {
+    cuartos: crudas.length,
+    m2: +m2.toFixed(1),
+    puertas: (lectura?.puertas || []).filter((p) => Number.isFinite(p?.x) && Number.isFinite(p?.y)).length,
+    problemas,
+    nProblemas: problemas.length,
+    nivel,              // 'alta' | 'media' | 'baja' | 'nula'
+    confiable: problemas.length === 0 && crudas.length > 0,
+  };
 }

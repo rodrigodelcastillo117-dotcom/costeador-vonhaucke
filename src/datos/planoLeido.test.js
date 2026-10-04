@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { areasDeLectura, revisarAreas, contornoMM, areaM2 } from './planoLeido.js';
+import { areasDeLectura, revisarAreas, contornoMM, areaM2, resumenLectura } from './planoLeido.js';
 
 // ---------------------------------------------------------------------------
 //  El plano REAL de Rodrigo (Plano_Organico_Con_Medidas.pdf, 2026-08-16):
@@ -128,5 +128,65 @@ describe('revisión de la lectura', () => {
 
   it('avisa cuando no se reconoció ningún cuarto', () => {
     expect(revisarAreas({ envolvente: { ancho: 1, largo: 1 }, areas: [] })[0]).toMatch(/ningún cuarto/);
+  });
+
+  // ---- plan-reading 10X: más modos de falla de una lectura de IA ----
+  const cuarto = (nombre, x, y, w, h, extra = {}) => ({
+    nombre, tipo: 'privado', forma: 'poligono', dentroDe: '', circulo: { cx: 0, cy: 0, r: 0 },
+    puntos: [{ x, y }, { x: x + w, y }, { x: x + w, y: y + h }, { x, y: y + h }], ...extra,
+  });
+
+  it('atrapa un cuarto diminuto (muro/cota leído como cuarto)', () => {
+    const l = { envolvente: { ancho: 20000, largo: 20000 }, areas: [cuarto('Muro?', 0, 0, 300, 300)] };
+    expect(revisarAreas(l).join(' ')).toMatch(/diminuto/);
+  });
+
+  it('atrapa un cuarto enorme (mala escala)', () => {
+    const l = { envolvente: { ancho: 90000, largo: 90000 }, areas: [cuarto('Todo', 0, 0, 60000, 10000)] };
+    expect(revisarAreas(l).join(' ')).toMatch(/enorme/);
+  });
+
+  it('atrapa una astilla (muro largo y angosto)', () => {
+    const l = { envolvente: { ancho: 30000, largo: 30000 }, areas: [cuarto('Astilla', 0, 0, 15000, 800)] };
+    expect(revisarAreas(l).join(' ')).toMatch(/astilla/);
+  });
+
+  it('atrapa cuartos duplicados (doble lectura)', () => {
+    const l = { envolvente: { ancho: 30000, largo: 30000 }, areas: [cuarto('Sala', 0, 0, 4000, 4000), cuarto('Sala', 10000, 10000, 4000, 4000)] };
+    expect(revisarAreas(l).join(' ')).toMatch(/aparece más de una vez/);
+  });
+
+  it('atrapa puertas huérfanas (no caen sobre ningún cuarto)', () => {
+    const l = { envolvente: { ancho: 30000, largo: 30000 }, areas: [cuarto('A', 0, 0, 4000, 4000)], puertas: [{ x: 25000, y: 25000, ancho: 900 }] };
+    expect(revisarAreas(l).join(' ')).toMatch(/no caen sobre ningún cuarto/);
+  });
+});
+
+describe('resumenLectura · confianza del levantamiento', () => {
+  it('plano bien leído ⇒ nivel alta y confiable', () => {
+    const r = resumenLectura(PLANO);
+    expect(r.cuartos).toBe(3);
+    expect(r.nivel).toBe('alta');
+    expect(r.confiable).toBe(true);
+    expect(r.m2).toBeGreaterThan(0);
+  });
+
+  it('plano con varios problemas ⇒ nivel baja, no confiable', () => {
+    const malo = {
+      envolvente: { ancho: 20000, largo: 20000 },
+      areas: [
+        { nombre: 'X', tipo: 'open', forma: 'poligono', dentroDe: '', circulo: { cx: 0, cy: 0, r: 0 },
+          puntos: [{ x: 0, y: 0 }, { x: 300, y: 0 }, { x: 300, y: 300 }, { x: 0, y: 300 }] },
+        { nombre: 'X', tipo: 'privado', forma: 'poligono', dentroDe: '', circulo: { cx: 0, cy: 0, r: 0 },
+          puntos: [{ x: 0, y: 0 }, { x: 15000, y: 0 }, { x: 15000, y: 800 }, { x: 0, y: 800 }] },
+      ],
+    };
+    const r = resumenLectura(malo);
+    expect(r.confiable).toBe(false);
+    expect(r.nProblemas).toBeGreaterThan(1);
+  });
+
+  it('sin cuartos ⇒ nivel nula', () => {
+    expect(resumenLectura({ areas: [] }).nivel).toBe('nula');
   });
 });
