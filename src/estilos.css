@@ -1902,3 +1902,115 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--foco), 0
 
 /* BOTÓN FLOTANTE DE VONI: que se sienta "vivo" y premium en todas las pantallas. */
 .voni-fab, .voni-flotante, .fab-voni { box-shadow: 0 10px 28px -8px rgba(178,42,34,.6) !important; }
+
+/* ==========================================================================
+   PASE PREMIUM 2 (2026-10-04) — "se ve carísimo". Profundidad real, textura de
+   papel, hero y Voni como piezas centrales. Solo apariencia (reversible).
+   ========================================================================== */
+/* Papel con cuerpo: vignette cálida muy sutil + grano finísimo fijo. Da riqueza
+   sin ensuciar (el grano es casi imperceptible, pointer-events:none). */
+body {
+  background:
+    radial-gradient(130% 100% at 50% -10%, #FAF8F4 0%, var(--papel) 46%, #ECE8E1 100%) fixed;
+}
+body::after {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: .5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.028'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+}
+#raiz { position: relative; z-index: 2; }
+
+/* Sombras más profundas y suaves = señal #1 de "premium". */
+:root {
+  --sombra-1: 0 1px 2px rgba(30,27,26,.04), 0 10px 24px -14px rgba(30,27,26,.20);
+  --sombra-2: 0 2px 8px rgba(30,27,26,.05), 0 28px 60px -28px rgba(30,27,26,.34);
+}
+.tarjeta { border-color: rgba(30,27,26,.08); }
+/* canto de material: hairline claro arriba del borde, como un bisel fino */
+.tarjeta, .inicio-hero { box-shadow: var(--sombra-1), inset 0 1px 0 rgba(255,255,255,.7); }
+
+/* HERO: más presencia y aire; título con más confianza. */
+.inicio-hero { padding: 38px 34px 34px; }
+.inicio-titulo { font-size: 44px; letter-spacing: -0.035em; }
+@media (max-width: 520px) { .inicio-hero { padding: 24px 18px 22px; } .inicio-titulo { font-size: 32px; } }
+.inicio-lead { font-size: 18px; color: #5c564f; }
+.inicio-overline { font-size: 12.5px; letter-spacing: .16em; }
+
+/* VONI: la pieza central. Gradiente más rico y profundo, retícula de plano
+   tenue por dentro, resplandor cálido y CTA con brillo. Debe decir "esto es IA
+   de verdad, premium". */
+.voni-principal {
+  background:
+    radial-gradient(120% 120% at 88% -10%, rgba(178,42,34,.42), transparent 55%),
+    linear-gradient(145deg, #171413 0%, #2a1d1b 48%, #3c2321 100%);
+  box-shadow: var(--sombra-2), inset 0 1px 0 rgba(255,255,255,.08);
+  position: relative; overflow: hidden;
+}
+.voni-principal::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,.05) 1px, transparent 1px);
+  background-size: 30px 30px;
+  -webkit-mask-image: radial-gradient(120% 120% at 85% 0%, #000, transparent 60%);
+  mask-image: radial-gradient(120% 120% at 85% 0%, #000, transparent 60%);
+}
+.voni-principal > * { position: relative; z-index: 1; }
+.voni-principal-cta { background: rgba(255,255,255,.16); box-shadow: 0 6px 18px -8px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.25); backdrop-filter: blur(4px); }
+.voni-principal:hover { box-shadow: var(--sombra-2), 0 0 0 1px rgba(178,42,34,.4), inset 0 1px 0 rgba(255,255,255,.1); }
+
+/* COSTEAR: el contrapunto claro, también más premium. */
+.costear-principal { box-shadow: var(--sombra-1), inset 0 1px 0 rgba(255,255,255,.8); }
+.costear-principal:hover { box-shadow: var(--sombra-2), inset 0 1px 0 rgba(255,255,255,.9); }
+
+/* TILES / ATAJOS / FAVORITAS: bisel fino arriba + hover con más profundidad. */
+.tile, .atajo { box-shadow: var(--sombra-1), inset 0 1px 0 rgba(255,255,255,.6); }
+.tile:hover { box-shadow: var(--sombra-2); transform: translateY(-2px); }
+.favorita {
+  box-shadow: var(--sombra-1); transition: transform .16s var(--ease), box-shadow .16s var(--ease), border-color .16s var(--ease);
+}
+.favorita:hover { transform: translateY(-1px); box-shadow: var(--sombra-2); border-color: var(--rojo); color: var(--rojo); }
+
+/* RETOMAR: realce premium. */
+.retomar { box-shadow: var(--sombra-1), inset 0 1px 0 rgba(255,255,255,.8); }
+.retomar:hover { box-shadow: var(--sombra-2); }
+
+/* ==========================================================================
+   PASE PREMIUM 3 (2026-10-04) — HERO CINEMATOGRÁFICO. Pieza central oscura que
+   "apantalla": carbón profundo + resplandor de marca + plano técnico + tipografía
+   grande en blanco. Es lo primero que se ve y debe decir "producto de clase mundial".
+   ========================================================================== */
+.inicio-hero {
+  padding: 56px 46px 50px;
+  border-radius: 22px;
+  color: #F4F1EC;
+  background:
+    radial-gradient(130% 150% at 86% -25%, rgba(178,42,34,.55), transparent 52%),
+    radial-gradient(90% 120% at 0% 120%, rgba(178,42,34,.12), transparent 50%),
+    linear-gradient(152deg, #100E0D 0%, #1E1B1A 52%, #271A18 100%);
+  border: 1px solid rgba(255,255,255,.09);
+  box-shadow: 0 40px 90px -40px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.08);
+}
+/* retícula de plano en blanco, se desvanece hacia el texto */
+.inicio-hero::before {
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,.06) 1px, transparent 1px);
+  background-size: 32px 32px;
+  -webkit-mask-image: radial-gradient(130% 130% at 90% 0%, #000, transparent 62%);
+  mask-image: radial-gradient(130% 130% at 90% 0%, #000, transparent 62%);
+}
+/* nodo de cota en rojo brillante, esquina superior derecha */
+.inicio-hero::after {
+  top: 26px; right: 30px; width: 60px; height: 60px; opacity: .9;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 8px, rgba(230,90,80,.9) 8px, rgba(230,90,80,.9) 9.5px, transparent 10px),
+    linear-gradient(to right, rgba(230,90,80,.9) 1.5px, transparent 1.5px) 50% 50% / 100% 1.5px no-repeat,
+    linear-gradient(to bottom, rgba(230,90,80,.9) 1.5px, transparent 1.5px) 50% 50% / 1.5px 100% no-repeat;
+  background-repeat: no-repeat;
+}
+.inicio-titulo { color: #FFFFFF; font-size: 52px; line-height: 1.0; letter-spacing: -0.04em; }
+.inicio-lead { color: rgba(244,241,236,.72); font-size: 18.5px; }
+.inicio-overline { color: #F2A59E; }
+.inicio-overline::before { background: #E65A50; box-shadow: 0 0 14px rgba(230,90,80,.7); }
+@media (max-width: 520px) { .inicio-hero { padding: 30px 20px 26px; border-radius: 18px; } .inicio-titulo { font-size: 34px; } .inicio-hero::after { display: none; } }

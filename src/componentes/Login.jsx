@@ -63,7 +63,7 @@ export default function Login({ onEntrar, aviso = '' }) {
         ))}
         <div className="entrada-velo" />
         <div className="entrada-marca">
-          <div className="entrada-marca-t">Mobiliario de oficina hecho en México</div>
+          <div className="entrada-marca-t">Cocreando tu espacio</div>
           <div className="entrada-marca-s">Vonhaucke · más de 68 años de oficio</div>
         </div>
       </div>
