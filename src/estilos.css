@@ -335,6 +335,22 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 .cot-datos { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; color: var(--gris); }
 .cot-datos b { color: var(--carbon); font-family: var(--mono); }
 
+/* ---- Lanzador flotante de Voni (FAB global) ----
+   Vive en cualquier ruta (cerebro transversal). En móvil, cuando hay barra de
+   acciones fija abajo (Cotizar), se eleva por encima para no tapar sus botones. */
+.voni-fab {
+  position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  z-index: 9000; width: 54px; height: 54px; border-radius: 999px;
+  background: #b22a22; color: #fff; border: none; box-shadow: 0 6px 18px rgba(0,0,0,.25);
+  font-weight: 800; font-size: 18px; cursor: pointer;
+}
+@media (max-width: 560px) {
+  /* Aquí la barra de Cotizar apila a ancho completo (≈3 filas, ≈225px): el FAB se
+     sube por encima. Arriba de 560px la barra es una fila y se reserva hueco a la
+     derecha (regla en .cot-acciones-fija) en vez de subir el FAB. */
+  .voni-fab--conbarra { bottom: calc(248px + env(safe-area-inset-bottom, 0px)); }
+}
+
 /* ---- Chip de estado económico POR LÍNEA (seller-safe, sin cifras) ----
    Pegado a cada partida: dice QUÉ renglón detiene la emisión y por qué, en
    lenguaje humano. 'falta' = faltan datos (ámbar); 'aprob' = requiere visto
@@ -1870,6 +1886,12 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
   display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
 }
 .cot-acciones-fija .cot-pdf { margin-left: auto; }
+/* Reserva un hueco a la derecha para el FAB global de Voni (una fila): así ningún
+   botón (Verificar emisión/Imprimir) queda bajo el botón flotante. En ≤560px la
+   barra apila a ancho completo y el FAB se eleva por encima en vez de reservar. */
+@media (min-width: 561px) {
+  .cot-acciones-fija { padding-right: 84px; }
+}
 @media (max-width: 560px) {
   .cot-acciones-fija { gap: 8px; }
   .cot-acciones-fija .cot-pdf, .cot-acciones-fija .boton.fantasma { flex: 1 1 auto; }

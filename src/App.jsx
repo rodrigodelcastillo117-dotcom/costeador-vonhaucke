@@ -1101,8 +1101,9 @@ export default function App() {
             type="button"
             aria-label="Abrir Voni"
             onClick={() => setVoniAbierto(true)}
-            style={{ position: 'fixed', right: 18, bottom: 18, zIndex: 9000, width: 54, height: 54, borderRadius: 999,
-              background: '#b22a22', color: '#fff', border: 'none', boxShadow: '0 6px 18px rgba(0,0,0,.25)', fontWeight: 800, fontSize: 18, cursor: 'pointer' }}>
+            // En móvil, Cotizar tiene una barra de acciones fija abajo: el FAB se
+            // eleva por encima de ella para no tapar "Verificar emisión"/"Descargar PDF".
+            className={'voni-fab' + (pestania === 'cotizacion' ? ' voni-fab--conbarra' : '')}>
             Voni
           </button>
           {voniAbierto && (
