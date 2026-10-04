@@ -2,7 +2,7 @@
 //  COSTEADOR - la pantalla principal de trabajo (master 7.2)
 //  Dos columnas en >=1000px; una sola abajo, con barra fija que muestra el costo.
 // ============================================================================
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { calcular, precioDe, precioVenta, sugerenciaLote, sugerenciaMedida, costoNetoComponente, netoComponente, PARAMETROS_DEFAULT, modeloParaPieza, SIN_MO_SECCIONES } from '../motor/calculo.js';
 import { precioDeLista } from '../datos/preciosVenta.js';
 import { SECCIONES } from '../datos/insumos.js';
@@ -59,6 +59,16 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   const [analizandoIA, setAnalizandoIA] = useState(false);
   const [errIA, setErrIA] = useState('');
   const [estructuraVoni, setEstructuraVoni] = useState(null);
+  // RENDER STALE (Gate 6): si el despiece cambió desde que se generó la imagen, el
+  // render ya NO es fiel. No lo mostramos como válido: avisamos y marcamos para regenerar.
+  const [sigRender, setSigRender] = useState(null);
+  const bomSig = useMemo(
+    () => JSON.stringify((costeo.componentes || []).map((c) => [c.insumoId, c.cantidad, c.piezas, c.largoMM, c.anchoMM])),
+    [costeo.componentes],
+  );
+  const renderStale = !!costeo.imagen && sigRender !== null && sigRender !== bomSig;
+  // Al cargar un costeo que ya trae imagen, fija la firma base para detectar cambios futuros.
+  useEffect(() => { if (costeo.imagen && sigRender === null) setSigRender(bomSig); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [costeo.imagen]);
   const insumos = estado.insumos;
 
   const piezaVirtual = {
@@ -178,6 +188,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
       const r = await generarRender(d.descripcion, { materiales: d.materiales, medidas: d.medidas, tipo: d.tipo, spec: d.spec, render_spec });
       if (!r || !r.ok) { setErrRender(r?.error || 'No se pudo generar el render.'); return; }
       set({ imagen: r.dataUrl });
+      setSigRender(bomSig); // la imagen corresponde a ESTE despiece
     } catch (e) { setErrRender('No se pudo conectar. Vuelve a intentar.'); }
     finally { setGenerando(false); }
   }
@@ -647,11 +658,18 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             {generando
               ? <div className="render-gen"><span className="render-gen-spin" /><span>Generando render…</span></div>
               : costeo.imagen
-                ? <img src={costeo.imagen} alt={costeo.nombre || 'Render'} className="ficha-foto" />
+                ? <>
+                    <img src={costeo.imagen} alt={costeo.nombre || 'Render'} className="ficha-foto" style={renderStale ? { filter: 'grayscale(0.5) opacity(0.7)' } : undefined} />
+                    {renderStale && (
+                      <div style={{ position: 'absolute', top: 8, left: 8, right: 8, background: '#7a4a00', color: '#fff', borderRadius: 8, padding: '6px 10px', fontSize: 12, textAlign: 'center' }}>
+                        ⚠️ El despiece cambió — este render ya no refleja el mueble. Vuelve a generarlo.
+                      </div>
+                    )}
+                  </>
                 : <MiniRender tipo={vistaTipo} w={dimsDeMueble(costeo).w} d={dimsDeMueble(costeo).d} />}
           </div>
           <button className="boton primario" style={{ width: '100%', marginTop: 10 }} disabled={generando} onClick={generarRenderIA}>
-            {generando ? 'Generando…' : costeo.imagen ? 'Regenerar render con IA' : 'Generar render con IA'}
+            {generando ? 'Generando…' : renderStale ? 'Actualizar render (despiece cambió)' : costeo.imagen ? 'Regenerar render con IA' : 'Generar render con IA'}
           </button>
           {costeo.imagen && !generando && <button className="boton fantasma" style={{ width: '100%', marginTop: 8 }} onClick={() => set({ imagen: undefined })}>Quitar render</button>}
           {errRender && <div className="alerta roja" style={{ marginTop: 8 }}><span className="texto">{errRender}</span></div>}
