@@ -66,7 +66,10 @@ sin consejo→sobra, sin recepción→sobra, plano completo→0 violaciones con 
 Estado: contador en vivo consistente + "revisión vencida"; pero el MOTOR aún no coloca todo. Falta mejora de placement.
 
 **VH-017 · P0 · `costoUnitario = 0` persistido = "gratis" vs "desconocido"** (#10/§25). Cot.58: 7/12 líneas, $152,062.
-UI ya muestra "—" (honesta) y no hay margen agregado falso. Falta: modelo de costo DESCONOCIDO explícito + bloqueo de emisión/costo oficial. NOT started.
+→ **FIXED (cliente)**: `precioUsable()` en `calculo.js` distingue ZERO declarado (§7) de UNKNOWN (ausente). Un insumo
+presente-sin-precio entra a `componentesIgnorados` → `costeoEmitible` incompleto → `costoTotal=null` → emisión
+bloqueada (misma infra que material faltante). UI por-renglón muestra "Pendiente", no $0. 4 tests (824 verdes), prod.
+FALTA (follow-up): paridad en edge `costear-servidor` (copia propia) + enum formal de 7 estados si se requiere persistir.
 
 **VH-018 · P1 · Descuento a PÉRDIDA** (#11/§36). Gate exige aprobación solo >40% (política plana); rentabilidad puede ser 13%.
 Trigger verificado (41/60% → requiere aprobación). Falta: gate de pérdida (margen<mínimo), no solo política.

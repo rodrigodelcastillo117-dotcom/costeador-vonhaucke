@@ -17,7 +17,7 @@ Actualizar ANTES de implementar cualquier instrucción nueva. SHA ref: `198920c`
 | SEC-003 | RLS por rol testeado con JWT real (todas las tablas) | sec | P0 | NOT_VERIFIED | 31 tablas RLS on; test JWT por rol pendiente |
 | SEC-004 | leaked-password protection ON | sec | P2 | NOT_STARTED | advisor |
 | COST-001 | Motor económico canónico server-side (sin split-brain) | costear | P0 | IN_PROGRESS | costear-servidor autoridad; paridad total NOT_VERIFIED |
-| COST-002 | UNKNOWN ≠ 0; costo crítico faltante → BLOCKED | costear | P0 | IN_PROGRESS | UI muestra "—"; modelo/BLOCK formal NOT_STARTED (VH-017) |
+| COST-002 | UNKNOWN ≠ 0; costo crítico faltante → BLOCKED | costear | P0 | PASS (cliente) | VH-017: `precioUsable` distingue ZERO declarado de UNKNOWN; insumo sin precio → componentesIgnorados → costoTotal=null → emisión bloqueada; UI "Pendiente". 4 tests (824 verdes), prod. Falta paridad edge costear-servidor (follow-up) |
 | COST-003 | hojas=0 no produce costo $0 | costear | P0 | PASS | fix + tests (sesión previa) |
 | COST-004 | Material inexistente → línea PENDING (no skip) | costear | P0 | NOT_VERIFIED | §30 test pendiente |
 | COST-005 | Sin dos precios para misma pieza | costear | P0 | PASS | VH-004 |
