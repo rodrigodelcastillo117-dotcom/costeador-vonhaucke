@@ -40,11 +40,17 @@ export default function Usuarios({ onAviso, miCorreo = '' }) {
     const r = await adminUsuarios('crear', { email: correoAlta, password: pass, nombre, rol });
     setTrabajando(false);
     if (r.ok) {
-      onAviso && onAviso('Persona agregada. Ya puede entrar.');
-      // La contraseña se muestra UNA vez aquí para compartirla ahora; NO se guarda
-      // en ningún lado (P0-09). `password_una_vez` viene del edge; si no, usamos la
-      // que se tecleó en este formulario (es la misma que se acaba de fijar).
-      setRecienCreado({ nombre: nombre || correoAlta, email: correoAlta, pass: r.password_una_vez || pass });
+      if (r.ya_existia) {
+        // C3 (P0): el correo ya tenía cuenta. NO se cambió su contraseña. Se reactivó
+        // su acceso; si no la recuerda, usa recuperación en el login.
+        onAviso && onAviso('Esa persona ya tenía cuenta: reactivamos su acceso con el rol elegido. NO se cambió su contraseña — si no la recuerda, que use "¿Olvidaste tu contraseña?" en el login.');
+      } else {
+        onAviso && onAviso('Persona agregada. Ya puede entrar.');
+        // La contraseña se muestra UNA vez aquí para compartirla ahora; NO se guarda
+        // en ningún lado (P0-09). `password_una_vez` viene del edge; si no, usamos la
+        // que se tecleó en este formulario (es la misma que se acaba de fijar).
+        setRecienCreado({ nombre: nombre || correoAlta, email: correoAlta, pass: r.password_una_vez || pass });
+      }
       setNombre(''); setEmail(''); setPass(''); setRol('vendedor');
       recargar();
     } else {

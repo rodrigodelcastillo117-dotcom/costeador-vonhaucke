@@ -72,38 +72,30 @@ Deno.serve(async (req) => {
 
     if (accion === "crear") {
       const email = String(body.email || "").trim().toLowerCase();
-      const { error } = await admin.auth.admin.createUser({ email, password: body.password, email_confirm: true });
-      let yaExistia = false;
+      const rol = String(body.rol || "vendedor");
+      // C1 (P0): validar el ROL contra la lista blanca ANTES de cualquier upsert. La
+      // acción "rol" ya lo hacía; "crear" NO, así que un cliente podía meter un rol
+      // arbitrario en `permitidos`. No se aceptan strings libres.
+      if (!ROLES.includes(rol)) return json({ error: "rol-invalido" }, 400);
+      if (!email.includes("@")) return json({ error: "correo-invalido" }, 400);
+      const pass = String(body.password || "");
+      if (pass.length < 6) return json({ error: "password-min-6" }, 400);
+
+      const { error } = await admin.auth.admin.createUser({ email, password: pass, email_confirm: true });
       if (error) {
         if (!String(error.message).toLowerCase().includes("already")) return json({ error: error.message }, 400);
-        yaExistia = true;
+        // C3 (P0): el correo YA tiene cuenta. NO se resetea su contraseña en silencio.
+        // Antes se llamaba updateUserById(password), lo que permitía a Dirección
+        // CAMBIAR la clave de cualquiera sin su consentimiento. Ahora solo se REACTIVA
+        // el permiso y se devuelve un estado explícito; si la persona no recuerda su
+        // contraseña, usa el flujo de recuperación (login → "¿olvidaste tu contraseña?").
+        await admin.from("permitidos").upsert({ email, nombre: body.nombre || null, rol });
+        return json({ ok: true, ya_existia: true, password_cambiada: false, rol }, 200);
       }
-      // ⚠️ 2026-08-19: "DAR DE ALTA" A UN CORREO QUE YA TENÍA CUENTA le dejaba SU
-      // contraseña vieja intacta (createUser falla con "already" y ahí se
-      // quedaba) — Rodrigo necesitaba reemitir credenciales para gente que ya
-      // estaba en la lista pero nunca había entrado. Ahora, si ya existía, se le
-      // FIJA la contraseña nueva con updateUserById en vez de dejarla como estaba.
-      // ⚠️ 2026-08-19 (hallazgo de auditoría): si listUsers() falla aquí, ANTES
-      // esto seguía de largo como si la contraseña sí se hubiera fijado —
-      // guardaba la nueva en `credenciales_temporales` y el Excel entregaba una
-      // contraseña que en realidad NUNCA se puso. Ahora, si no se puede
-      // verificar, se corta con error en vez de mentir con un "ok".
-      if (yaExistia) {
-        const { data: lista, error: errLista } = await admin.auth.admin.listUsers();
-        if (errLista) return json({ error: "no-se-pudo-verificar" }, 500);
-        const u = lista?.users?.find((x) => x.email === email);
-        if (!u) return json({ error: "no-se-encontro-la-cuenta" }, 404);
-        const { error: errPass } = await admin.auth.admin.updateUserById(u.id, { password: body.password });
-        if (errPass) return json({ error: errPass.message }, 400);
-      }
-      await admin.from("permitidos").upsert({ email, nombre: body.nombre || null, rol: body.rol || "vendedor" });
-      // P0-09 / FASE 14 — YA NO SE ALMACENAN CONTRASEÑAS. Antes aquí se guardaba la
-      // contraseña EN TEXTO PLANO en `credenciales_temporales` para un "Excel de
-      // credenciales". Eso es exactamente la arquitectura prohibida: Supabase Auth
-      // es la ÚNICA autoridad de contraseña. La contraseña la acaba de teclear quien
-      // da de alta, así que se devuelve UNA sola vez para que la comparta ahora —
-      // nunca se persiste. El Excel de todas las contraseñas se eliminó.
-      return json({ ok: true, password_una_vez: body.password || null }, 200);
+      await admin.from("permitidos").upsert({ email, nombre: body.nombre || null, rol });
+      // Usuario NUEVO: la contraseña recién fijada se devuelve UNA sola vez para
+      // compartirla; nunca se persiste (P0-09 — Supabase Auth es la única autoridad).
+      return json({ ok: true, ya_existia: false, password_una_vez: pass, rol }, 200);
     }
 
     if (accion === "rol") {
