@@ -408,30 +408,30 @@ export default function DibujarPlano({ onListo, onCancelar }) {
         style={{ touchAction: 'none', width: '100%', height: 'auto', aspectRatio: `${VW} / ${VH}` }}
       >
         {/* rejilla (hasta donde llega el dibujo, por el auto-encuadre) */}
-        {Array.from({ length: VW + 1 }).map((_, i) => <line key={'v' + i} x1={i} y1={0} x2={i} y2={VH} stroke={i % 5 === 0 ? '#cdc6be' : '#e8e3dc'} strokeWidth={i % 5 === 0 ? 0.04 : 0.02} />)}
-        {Array.from({ length: VH + 1 }).map((_, i) => <line key={'h' + i} x1={0} y1={i} x2={VW} y2={i} stroke={i % 5 === 0 ? '#cdc6be' : '#e8e3dc'} strokeWidth={i % 5 === 0 ? 0.04 : 0.02} />)}
+        {Array.from({ length: VW + 1 }).map((_, i) => <line key={'v' + i} x1={i} y1={0} x2={i} y2={VH} stroke={i % 5 === 0 ? 'rgba(237,233,228,0.22)' : 'rgba(237,233,228,0.09)'} strokeWidth={i % 5 === 0 ? 0.04 : 0.02} />)}
+        {Array.from({ length: VH + 1 }).map((_, i) => <line key={'h' + i} x1={0} y1={i} x2={VW} y2={i} stroke={i % 5 === 0 ? 'rgba(237,233,228,0.22)' : 'rgba(237,233,228,0.09)'} strokeWidth={i % 5 === 0 ? 0.04 : 0.02} />)}
         {/* cuartos */}
         {rooms.map((r) => (
           <g key={r.id}>
             {r.poly
-              ? <polygon points={r.poly.map(([px, py]) => `${px},${py}`).join(' ')} fill="rgba(178,42,34,0.06)" stroke="#1E1B1A" strokeWidth="0.12" />
-              : <rect x={r.x} y={r.y} width={r.w} height={r.h} fill="rgba(178,42,34,0.06)" stroke="#1E1B1A" strokeWidth="0.12" />}
-            <text x={r.x + r.w / 2} y={r.y + r.h / 2 - 0.15} fontSize="0.5" fill="#1E1B1A" fontWeight="700" textAnchor="middle">{r.nombre}</text>
-            <text x={r.x + r.w / 2} y={r.y + r.h / 2 + 0.55} fontSize="0.42" fill="#746E68" textAnchor="middle">{r.poly ? `${areaPoly(r.poly).toFixed(1)} m²` : `${r.w.toFixed(1)} × ${r.h.toFixed(1)} m`}</text>
-            <text x={r.x + r.w / 2} y={r.y + r.h / 2 + 1.15} fontSize="0.38" fill="#B22A22" fontWeight="700" textAnchor="middle">{(TIPOS_CUARTO.find((t) => t.id === (r.tipo || tipoPorTamano(r.w, r.h))) || {}).t}</text>
-            {r.doble && <text x={r.x + r.w / 2} y={r.y + 0.55} fontSize="0.34" fill="#B22A22" fontWeight="700" textAnchor="middle">doble altura</text>}
+              ? <polygon points={r.poly.map(([px, py]) => `${px},${py}`).join(' ')} fill="rgba(229,72,77,0.13)" stroke="rgba(237,233,228,0.45)" strokeWidth="0.12" />
+              : <rect x={r.x} y={r.y} width={r.w} height={r.h} fill="rgba(229,72,77,0.13)" stroke="rgba(237,233,228,0.45)" strokeWidth="0.12" />}
+            <text x={r.x + r.w / 2} y={r.y + r.h / 2 - 0.15} fontSize="0.5" fill="#ECE9E4" fontWeight="700" textAnchor="middle" style={{ paintOrder: 'stroke', stroke: 'rgba(12,11,10,0.7)', strokeWidth: 0.08 }}>{r.nombre}</text>
+            <text x={r.x + r.w / 2} y={r.y + r.h / 2 + 0.55} fontSize="0.42" fill="#C9C3BB" textAnchor="middle" style={{ paintOrder: 'stroke', stroke: 'rgba(12,11,10,0.7)', strokeWidth: 0.06 }}>{r.poly ? `${areaPoly(r.poly).toFixed(1)} m²` : `${r.w.toFixed(1)} × ${r.h.toFixed(1)} m`}</text>
+            <text x={r.x + r.w / 2} y={r.y + r.h / 2 + 1.15} fontSize="0.38" fill="#E5484D" fontWeight="700" textAnchor="middle" style={{ paintOrder: 'stroke', stroke: 'rgba(12,11,10,0.7)', strokeWidth: 0.06 }}>{(TIPOS_CUARTO.find((t) => t.id === (r.tipo || tipoPorTamano(r.w, r.h))) || {}).t}</text>
+            {r.doble && <text x={r.x + r.w / 2} y={r.y + 0.55} fontSize="0.34" fill="#E5484D" fontWeight="700" textAnchor="middle">doble altura</text>}
           </g>
         ))}
         {/* puertas */}
         {doors.map((d) => <g key={d.id}><rect x={d.x - 0.45} y={d.y - 0.12} width="0.9" height="0.24" fill="#fff" stroke="#B22A22" strokeWidth="0.06" /><path d={`M ${d.x - 0.45} ${d.y} a 0.9 0.9 0 0 1 0.9 0`} fill="none" stroke="#B22A22" strokeWidth="0.05" /></g>)}
         {/* columnas */}
-        {cols.map((c) => <rect key={c.id} x={c.x - 0.2} y={c.y - 0.2} width="0.4" height="0.4" fill="#3C3E42" stroke="#1E1B1A" strokeWidth="0.05" />)}
+        {cols.map((c) => <rect key={c.id} x={c.x - 0.2} y={c.y - 0.2} width="0.4" height="0.4" fill="#3C3E42" stroke="rgba(237,233,228,0.40)" strokeWidth="0.05" />)}
         {/* escaleras */}
         {stairs.map((s) => (
           <g key={s.id}>
-            <rect x={s.x} y={s.y} width={s.w} height={s.h} fill="#e3ddd4" stroke="#1E1B1A" strokeWidth="0.08" />
+            <rect x={s.x} y={s.y} width={s.w} height={s.h} fill="#e3ddd4" stroke="rgba(237,233,228,0.40)" strokeWidth="0.08" />
             {Array.from({ length: Math.max(2, Math.round(s.h / 0.3)) }).map((_, k) => <line key={k} x1={s.x} y1={s.y + (s.h * (k + 1)) / Math.max(2, Math.round(s.h / 0.3))} x2={s.x + s.w} y2={s.y + (s.h * (k + 1)) / Math.max(2, Math.round(s.h / 0.3))} stroke="#8a8178" strokeWidth="0.04" />)}
-            <text x={s.x + s.w / 2} y={s.y + s.h / 2} fontSize="0.3" fill="#746E68" textAnchor="middle">escalera</text>
+            <text x={s.x + s.w / 2} y={s.y + s.h / 2} fontSize="0.3" fill="#C9C3BB" textAnchor="middle">escalera</text>
           </g>
         ))}
         {/* preview — dibujar por esquinas: paredes con su medida + línea guía */}
