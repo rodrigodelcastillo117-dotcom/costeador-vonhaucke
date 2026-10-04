@@ -63,7 +63,7 @@ function CampoPct({ valor, max, onCambio, ancho = 90 }) {
 
 // Traduce las razones del gate server-side a lenguaje humano SELLER-SAFE (sin cifras
 // de costo/margen). Códigos como "linea_3_costo_desconocido" → mensaje claro.
-function textoRazonEmision(code) {
+export function textoRazonEmision(code) {
   const m = /^linea_(\d+)_(.+)$/.exec(String(code || ''));
   const n = m ? m[1] : null;
   const k = m ? m[2] : String(code || '');
@@ -88,6 +88,47 @@ const ESTADO_EMISION = {
   APPROVAL_REQUIRED: { tono: 'ambar', titulo: 'Requiere aprobación de Dirección antes de emitir' },
   BLOCKED: { tono: 'rojo', titulo: 'No se puede emitir todavía' },
 };
+
+// Reparte las razones del gate server-side por LÍNEA (1-based) para enseñar un
+// chip al lado de CADA partida — así el vendedor ve QUÉ renglón detiene la
+// emisión, no sólo un bloque de texto hasta abajo (UX económico por línea,
+// seller-safe: sin cifras de costo/margen). Un código `linea_3_costo_desconocido`
+// cae en la línea 3; los códigos sin número se quedan en el banner general.
+export function razonesPorLinea(gate) {
+  const map = new Map();
+  if (!gate) return map;
+  const codes = [...new Set([...(gate.motivos || []), ...(gate.economics || [])])];
+  for (const code of codes) {
+    const m = /^linea_(\d+)_(.+)$/.exec(String(code || ''));
+    if (!m) continue;
+    const n = Number(m[1]);
+    // El texto seller-safe ya trae "Línea N: …"; aquí sobra el prefijo porque el
+    // chip ya está pegado a su renglón.
+    const texto = textoRazonEmision(code).replace(/^Línea\s*\d+:\s*/, '');
+    const aprob = /aprobaci/i.test(texto);
+    if (!map.has(n)) map.set(n, { tono: aprob ? 'aprob' : 'falta', textos: [] });
+    const e = map.get(n);
+    if (aprob) e.tono = 'aprob';
+    e.textos.push(texto);
+  }
+  return map;
+}
+
+// Chip económico seller-safe pegado a una partida. `tono`: 'falta' (ámbar, faltan
+// datos) | 'aprob' (requiere visto bueno de Dirección).
+function EstadoLinea({ info }) {
+  if (!info) return null;
+  const aprob = info.tono === 'aprob';
+  return (
+    <span
+      className={`linea-estado ${aprob ? 'aprob' : 'falta'}`}
+      title={info.textos.join(' · ')}
+    >
+      <span className="linea-estado-punto" aria-hidden="true" />
+      {aprob ? 'Requiere aprobación' : 'Falta confirmar'}
+    </span>
+  );
+}
 
 export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr, onEmitida, verificarEmision, veCostos = false }) {
   const [vistaClienteManual, setVistaClienteManual] = useState(false);
@@ -224,6 +265,8 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   }
   // Razones del gate, traducidas y seller-safe (motivos duros + económicos).
   const gateRazones = gate ? [...new Set([...(gate.motivos || []), ...(gate.economics || [])])].map(textoRazonEmision) : [];
+  // Estado económico POR LÍNEA (chips pegados a cada partida). 1-based → {tono, textos}.
+  const razonesLinea = useMemo(() => razonesPorLinea(gate), [gate]);
   async function descargarPDF() {
     setPdfErr(''); setBajandoPDF(true);
     try {
@@ -454,7 +497,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
             <p className="ayuda" style={{ marginTop: 0, marginBottom: 10 }}>Ajusta cantidades o quita lo que no va. El cliente ve la propuesta de abajo.</p>
             {partidas.map((pt, i) => (
               <div className="vt-fila" key={pt.id}>
-                <div className="vt-nombre">{pt.nombre}</div>
+                <div className="vt-nombre">{pt.nombre}<EstadoLinea info={razonesLinea.get(i + 1)} /></div>
                 {/* El vendedor ve TRES cosas y nada más: precio unitario,
                     cantidad y total. Nunca costo, utilidad ni margen —Rodrigo,
                     2026-08-18: "ellos precio unitario, cantidad y total". Antes
@@ -530,6 +573,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                     return (
                       <tr key={pt.id} className={bajo ? 'nota-clara' : undefined} style={bajo ? { background: '#fbeceb' } : undefined}>
                         <td>{pt.nombre} <span className={`sello sello-${s.tipo}`} title={s.nota}>{s.texto}</span>
+                          <EstadoLinea info={razonesLinea.get(i + 1)} />
                           {bajo && <div className="ayuda rojo">Debajo del mínimo de {estado.parametros.margenMinimo}%</div>}</td>
                         <td className="num"><span className="masmenos"><button onClick={() => setPartida(i, { cantidad: Math.max(1, pt.cantidad - 1) })}>−</button><span className="valor">{pt.cantidad}</span><button onClick={() => setPartida(i, { cantidad: pt.cantidad + 1 })}>+</button></span></td>
                         <td className="num">{pesos(pt.precioUnitario)}</td>
@@ -568,7 +612,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                 const util = (pt.precioUnitario - (pt.costoUnitario || 0)) * pt.cantidad;
                 return (
                   <div className="cot-card" key={pt.id}>
-                    <div className="cot-nombre">{pt.nombre}</div>
+                    <div className="cot-nombre">{pt.nombre}<EstadoLinea info={razonesLinea.get(i + 1)} /></div>
                     <div className="cot-linea">
                       <span className="masmenos"><button style={{ width: 44, height: 44 }} onClick={() => setPartida(i, { cantidad: Math.max(1, pt.cantidad - 1) })}>−</button><span className="valor">{pt.cantidad}</span><button style={{ width: 44, height: 44 }} onClick={() => setPartida(i, { cantidad: pt.cantidad + 1 })}>+</button></span>
                       <span className="cot-importe">{pesos(pt.precioUnitario * pt.cantidad)}</span>

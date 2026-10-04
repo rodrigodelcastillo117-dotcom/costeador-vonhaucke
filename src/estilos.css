@@ -335,6 +335,24 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 .cot-datos { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; color: var(--gris); }
 .cot-datos b { color: var(--carbon); font-family: var(--mono); }
 
+/* ---- Chip de estado económico POR LÍNEA (seller-safe, sin cifras) ----
+   Pegado a cada partida: dice QUÉ renglón detiene la emisión y por qué, en
+   lenguaje humano. 'falta' = faltan datos (ámbar); 'aprob' = requiere visto
+   bueno de Dirección (ámbar fuerte). Nunca enseña costo/margen. */
+.linea-estado {
+  display: inline-flex; align-items: center; gap: 5px; vertical-align: middle;
+  margin-left: 8px; padding: 2px 9px; border-radius: 999px;
+  font-size: 11.5px; font-weight: 700; letter-spacing: .01em; white-space: nowrap;
+  border: 1px solid transparent; cursor: help;
+}
+.linea-estado-punto { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.linea-estado.falta { color: #8a6a12; background: #f7f0dd; border-color: var(--ambar); }
+.linea-estado.aprob { color: #7a3f0a; background: #fbe6cf; border-color: #d98a2b; }
+@media (prefers-color-scheme: dark) {
+  .linea-estado.falta { color: #e7c977; background: rgba(224,169,59,.14); border-color: rgba(224,169,59,.5); }
+  .linea-estado.aprob { color: #f0b67a; background: rgba(217,138,43,.18); border-color: rgba(217,138,43,.55); }
+}
+
 /* ---- Rejilla dos columnas del costeador ---- */
 .dos-col { display: grid; grid-template-columns: 1fr 380px; gap: 20px; align-items: start; }
 @media (max-width: 1000px) {
