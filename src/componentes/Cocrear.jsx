@@ -14,7 +14,7 @@ import React, { useMemo, useState, useRef } from 'react';
 import {
   interpretarIntent, cocrearDesdeIntent, construirProductSpec, extraerDNA, clasificarProducto,
   aplicarCambioTexto, sugerenciasVoni, descripcionCorta, lineaCocreada,
-  cocrearAExpediente, cocrearDeExpediente, cocrearPayload,
+  cocrearAExpediente, cocrearDeExpediente, cocrearPayload, hashEstable,
   DIMS_DEFAULT, MATERIALES_EDIT, FAMILIA, COCREO_STATUS, COST_STATUS,
 } from '../datos/cocrear.js';
 import { listarCocreaciones, guardarCocrearSeguro, cargarCocrearSeguro, registrarProductoDesdeExpediente, subirRenderCanonico } from '../nube.js';
@@ -269,7 +269,8 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
       // El render canónico se liga a una ProductVersion REAL, que sólo existe con costo
       // conocido. Sin costo completo no se canoniza (una sola verdad): se explica, honesto.
       if (!verId) { setRenderMsg('El render se generó. Para guardarlo ligado al producto, primero completa el costo (desarrolla el despiece en “Detalle técnico”).'); setGuardandoRender(false); return; }
-      const r = await subirRenderCanonico({ expedienteId: id, productoId: prodId, productoVersionId: verId, dataUrl: render.dataUrl, promptVersion: render.version, modo: 'render', specHash: spec.hash, inputs: render.expected || {} });
+      const geometryHash = hashEstable({ familia: spec.familia, dimensiones: spec.dimensiones || {}, caracteristicas: spec.caracteristicas || [], componentes: spec.componentes || [] });
+      const r = await subirRenderCanonico({ expedienteId: id, productoId: prodId, productoVersionId: verId, dataUrl: render.dataUrl, promptVersion: render.version, modo: 'render', specHash: spec.hash, geometryHash, inputs: render.expected || {} });
       setRenderMsg(r.ok ? `Render guardado en el proyecto (versión canónica v${verId}).` : 'No se pudo guardar el render: ' + (r.error || ''));
     } catch (e) { setRenderMsg('No se pudo guardar el render: ' + String(e?.message || e)); }
     setGuardandoRender(false);
