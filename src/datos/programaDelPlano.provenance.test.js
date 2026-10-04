@@ -4,7 +4,7 @@
 // (Von Haucke no fabrica escusados). Aquí se fija la disciplina detectado/estimado/
 // sugerido y que servicio (sanitarios/site) no produce muebles.
 import { describe, it, expect } from 'vitest';
-import { programaDelPlano } from './programaDelPlano.js';
+import { programaDelPlano, resumenDelPlano } from './programaDelPlano.js';
 
 // Zona operativa + 2 privados + recepción + sanitarios (servicio) + site (servicio).
 const PLANO = [
@@ -47,5 +47,50 @@ describe('programaDelPlano · procedencia honesta', () => {
   it('SANITARIOS y SITE (servicio) NO generan mobiliario', () => {
     expect(pr.privados).toBe(2);
     expect(pr.juntas).toBe(0);
+  });
+});
+
+// ============================================================================
+//  PUESTOS CONTADOS DEL DIBUJO (no estimados por área).
+//  El lector de plano (leer-plano v8) cuenta los escritorios DIBUJADOS en cada
+//  isla y los manda en `puestos`. El programa DEBE respetar ese conteo, no
+//  re-estimarlo por geometría. Éste es el caso real del "Plano Ejecutivo
+//  Complejo": 2 islas de 4 = 8 puestos. Los polígonos de isla salen chicos
+//  (~2.2 × 2.1 m); si se estimara por geometría darían 1 c/u = 2 (el bug).
+// ============================================================================
+describe('programaDelPlano · puestos CONTADOS del plano mandan sobre la geometría', () => {
+  const PLANO_OPERATIVO = [
+    { nombre: 'ÁREA OPERATIVA', tipo: 'open', ancho: 12, largo: 8.8, contiene: 2 },
+    { nombre: 'Isla 1', tipo: 'open', ancho: 2.18, largo: 2.11, dentroDe: 'ÁREA OPERATIVA', puestos: 4 },
+    { nombre: 'Isla 2', tipo: 'open', ancho: 2.52, largo: 2.11, dentroDe: 'ÁREA OPERATIVA', puestos: 4 },
+    { nombre: 'OFICINA CEO', tipo: 'privado', ancho: 4, largo: 3.2 },
+  ];
+  const pr = programaDelPlano(PLANO_OPERATIVO, { largoPuesto: 1500 });
+
+  it('suma los puestos DIBUJADOS (4 + 4 = 8), no la geometría (que daría 2)', () => {
+    expect(pr.operativos).toBe(8);
+  });
+
+  it('la procedencia de los puestos es DETECTADO (contado), no estimado', () => {
+    expect(pr.fuente.operativos).toBe('detectado');
+  });
+
+  it('sillas y gavetas sugeridas = puestos contados (8)', () => {
+    expect(pr.sugeridos.sillasOperativas).toBe(8);
+    expect(pr.sugeridos.gavetas).toBe(8);
+  });
+
+  it('el resumen dice "contados del plano", no "estimé ~"', () => {
+    const t = resumenDelPlano(pr);
+    expect(t).toMatch(/8 puestos operativos \(contados del plano\)/);
+    expect(t).not.toMatch(/Estimé ~/);
+  });
+
+  it('sin el campo puestos, cae a geometría y marca ESTIMADO (compatibilidad)', () => {
+    const sinConteo = PLANO_OPERATIVO.map(({ puestos, ...a }) => a);
+    const pr2 = programaDelPlano(sinConteo, { largoPuesto: 1500 });
+    expect(pr2.fuente.operativos).toBe('estimado');
+    // Geometría: islas chicas → pocos puestos (el viejo comportamiento).
+    expect(pr2.operativos).toBeLessThan(8);
   });
 });

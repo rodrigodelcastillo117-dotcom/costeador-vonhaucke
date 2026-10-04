@@ -200,6 +200,9 @@ export function areasDeLectura(lectura) {
     return {
       nombre: a.nombre || 'Área',
       ...(a.tipo ? { tipo: a.tipo } : {}),
+      // Puestos CONTADOS del dibujo por el lector. Es dato duro: el programa lo
+      // respeta en vez de re-estimar por geometría (ver programaDelPlano).
+      ...(Number.isFinite(a.puestos) && a.puestos > 0 ? { puestos: a.puestos } : {}),
       ...(padreDe.has(nombreDe(idx)) ? { dentroDe: padreDe.get(nombreDe(idx)) } : {}),
       ...((hijos.get(a.nombre) || []).length ? { contiene: (hijos.get(a.nombre) || []).length } : {}),
       x: m(b.x), y: m(b.y),

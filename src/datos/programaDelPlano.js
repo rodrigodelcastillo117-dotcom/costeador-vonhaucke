@@ -111,14 +111,28 @@ export function programaDelPlano(areas, opts = {}) {
 
   const avisos = [];
   let operativos = 0, porIsla = 0;
+  // ¿Los puestos vienen CONTADOS del dibujo? El lector pone `puestos` por isla
+  // (escritorios realmente dibujados). Si al menos una isla trae ese dato, el
+  // conteo es DETECTADO, no estimado: lo respetamos y NO lo recalculamos por
+  // geometría. Antes se re-estimaba siempre y una isla chica (2×2 m) devolvía 1
+  // puesto donde el plano dibujaba 4 → el total se iba al piso. La geometría
+  // queda sólo de respaldo para islas sin conteo (planos sin mobiliario claro).
+  let contado = false;
   if (islasA.length) {
-    const cuentas = islasA.map((a) => puestosPorIsla(a, largoPuesto));
+    const explicitas = islasA.filter((a) => Number.isFinite(a.puestos) && a.puestos > 0);
+    contado = explicitas.length > 0;
+    const cuentas = islasA.map((a) => (Number.isFinite(a.puestos) && a.puestos > 0
+      ? a.puestos
+      : puestosPorIsla(a, largoPuesto)));
     operativos = cuentas.reduce((s, n) => s + n, 0);
     porIsla = cuentas[0] || 0;
     // ⚠️ EL AVISO QUE FALTABA. Con 1.80 m por puesto, una isla de 4.5 m da 2 por
     // hilera (4 por isla), no 3 (6): 32 personas en vez de 48. Antes esto no se
     // decía en ningún lado y el proyectista descubría el hueco al final.
-    if (zonas.length) {
+    // El aviso de "con 1.50 m caben más" sólo aplica cuando el conteo es por
+    // geometría (largo de puesto). Si los puestos vienen CONTADOS del dibujo, el
+    // largo de puesto no cambia cuántos escritorios hay dibujados.
+    if (zonas.length && !contado) {
       const con150 = islasA.reduce((s, a) => s + puestosPorIsla(a, 1500), 0);
       if (largoPuesto > 1500 && con150 > operativos) {
         // ⚠️ EL AVISO TIENE QUE ENSEÑAR LA CUENTA, NO EL RESULTADO. Rodrigo:
@@ -174,7 +188,8 @@ export function programaDelPlano(areas, opts = {}) {
     privados: 'detectado',     // zonas con muros propios en el plano
     salas: 'detectado',
     recepcion: 'detectado',
-    operativos: 'estimado',    // inferido por área de la zona operativa (confírmame)
+    // CONTADO del dibujo (el lector contó los escritorios) vs ESTIMADO por área.
+    operativos: contado ? 'detectado' : 'estimado',
     sillasOperativas: 'sugerido',
     gavetas: 'sugerido',
     archiveros: 'sugerido',
@@ -208,9 +223,14 @@ export function resumenDelPlano(pr) {
   if (pr.privados) det.push(`${pr.privados} ${pr.privados === 1 ? 'privado' : 'privados'}`);
   if (pr.salas.length) det.push(`${pr.salas.length} ${pr.salas.length === 1 ? 'sala' : 'salas'} de juntas (${pr.salas.join(' y ')})`);
   if (pr.recepcion) det.push('recepción');
+  const contado = pr.fuente?.operativos === 'detectado';
+  // Si los puestos vienen CONTADOS del dibujo, entran al bloque "Del plano:"
+  // junto con lo demás detectado. Si son estimados por área, van aparte con el
+  // "~" y la petición de confirmar.
+  if (contado && pr.operativos) det.unshift(`${pr.operativos} puestos operativos (contados del plano)`);
   const partes = [];
   if (det.length) partes.push(`Del plano: ${det.join(' · ')}.`);
-  if (pr.operativos) partes.push(`Estimé ~${pr.operativos} puestos operativos por el área (confírmame el número).`);
+  if (!contado && pr.operativos) partes.push(`Estimé ~${pr.operativos} puestos operativos por el área (confírmame el número).`);
   const sug = pr.sugeridos || {};
   const sugTxt = [];
   if (sug.sillasOperativas) sugTxt.push(`${sug.sillasOperativas} sillas`);
