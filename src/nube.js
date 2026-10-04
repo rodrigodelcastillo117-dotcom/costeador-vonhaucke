@@ -447,6 +447,30 @@ export async function registrarProductoDesdeExpediente(expedienteId) {
   return data;
 }
 
+// RENDER CANÓNICO · sube la imagen al Storage (bucket público `renders`) y la registra
+// contra la ProductVersion exacta (spec_hash, prompt_version, stale). No guarda base64
+// pesado en JSON. Devuelve {ok, storage_url, storage_path, ...} o {ok:false, error}.
+export async function subirRenderCanonico({ expedienteId, productoId, productoVersionId, dataUrl, promptVersion, modo = 'render', specHash, geometryHash = null, inputs = {} }) {
+  try {
+    if (!dataUrl) return { ok: false, error: 'sin imagen' };
+    const blob = await (await fetch(dataUrl)).blob();
+    const ext = ((blob.type || 'image/png').split('/')[1] || 'png').replace('jpeg', 'jpg');
+    // Path ÚNICO (insert simple): evita el camino de UPSERT (que exigiría también la
+    // policy de UPDATE). Sólo requiere `renders_insert` (authenticated, bucket=renders).
+    const path = `cocrear/${expedienteId || 'tmp'}/${specHash || 'r'}-${Date.now()}.${ext}`;
+    const up = await nube.storage.from('renders').upload(path, blob, { upsert: false, contentType: blob.type || 'image/png' });
+    if (up.error) return { ok: false, error: up.error.message };
+    const storageUrl = nube.storage.from('renders').getPublicUrl(path)?.data?.publicUrl || null;
+    const { data, error } = await nube.rpc('registrar_render_canonico', {
+      p_producto_id: productoId ?? null, p_producto_version_id: productoVersionId ?? null, p_expediente_id: expedienteId ?? null,
+      p_storage_path: path, p_storage_url: storageUrl, p_prompt_version: promptVersion || null, p_modo: modo,
+      p_spec_hash: specHash || null, p_geometry_hash: geometryHash, p_inputs: inputs || {},
+    });
+    if (error) return { ok: false, error: error.message, storage_url: storageUrl, storage_path: path };
+    return { ok: true, ...(data || {}), storage_url: storageUrl, storage_path: path };
+  } catch (e) { return { ok: false, error: String(e?.message || e) }; }
+}
+
 // GATE DE EMISIÓN autoritativo (server-side). Devuelve { ok, estado, motivos[], economics[], hash }.
 // estado ∈ ALLOWED | ECONOMICS_INCOMPLETE | APPROVAL_REQUIRED | BLOCKED. Seller-safe
 // (no trae cifras de costo/margen, sólo razones). Degrada: si falla, { ok:false, estado:'DESCONOCIDO' }.

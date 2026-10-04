@@ -17,7 +17,7 @@ import {
   cocrearAExpediente, cocrearDeExpediente, cocrearPayload,
   DIMS_DEFAULT, MATERIALES_EDIT, FAMILIA, COCREO_STATUS, COST_STATUS,
 } from '../datos/cocrear.js';
-import { listarCocreaciones, guardarCocrearSeguro, cargarCocrearSeguro, registrarProductoDesdeExpediente } from '../nube.js';
+import { listarCocreaciones, guardarCocrearSeguro, cargarCocrearSeguro, registrarProductoDesdeExpediente, subirRenderCanonico } from '../nube.js';
 import CocrearVisual from './CocrearVisual.jsx';
 import { parametrosEfectivos } from './Costeador.jsx';
 import { precioVenta } from '../motor/calculo.js';
@@ -249,6 +249,29 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
   };
   const rStale = render && renderStale(render, spec);
 
+  // RENDER CANÓNICO: guarda el expediente, registra/reutiliza la ProductRevision y sube
+  // la imagen al Storage registrándola contra esa versión exacta (spec_hash). Si el
+  // diseño cambió (rStale) NO se guarda — habría que regenerarlo primero.
+  const [guardandoRender, setGuardandoRender] = useState(false);
+  const [renderMsg, setRenderMsg] = useState('');
+  const guardarRenderCanonico = async () => {
+    if (!render || rStale) return;
+    setGuardandoRender(true); setRenderMsg('');
+    try {
+      const g = await guardarCocrearSeguro(expedienteId, cocrearPayload({ brief: texto, intent, historia, render }));
+      const id = g?.ok ? (g.expediente_id || expedienteId) : expedienteId;
+      if (id) setExpedienteId(id);
+      let prodId = null, verId = null;
+      if (id) { const reg = await registrarProductoDesdeExpediente(id); if (reg?.ok) { prodId = reg.producto_id; verId = reg.version_id; } }
+      // El render canónico se liga a una ProductVersion REAL, que sólo existe con costo
+      // conocido. Sin costo completo no se canoniza (una sola verdad): se explica, honesto.
+      if (!verId) { setRenderMsg('El render se generó. Para guardarlo ligado al producto, primero completa el costo (desarrolla el despiece en “Detalle técnico”).'); setGuardandoRender(false); return; }
+      const r = await subirRenderCanonico({ expedienteId: id, productoId: prodId, productoVersionId: verId, dataUrl: render.dataUrl, promptVersion: render.version, modo: 'render', specHash: spec.hash, inputs: render.expected || {} });
+      setRenderMsg(r.ok ? `Render guardado en el proyecto (versión canónica v${verId}).` : 'No se pudo guardar el render: ' + (r.error || ''));
+    } catch (e) { setRenderMsg('No se pudo guardar el render: ' + String(e?.message || e)); }
+    setGuardandoRender(false);
+  };
+
   // A/B
   const compararAB = () => setComparA(JSON.parse(JSON.stringify(intent)));
   const elegir = (cualIntent, cual) => { commit(cualIntent, `Elegí opción ${cual}`); setComparA(null); };
@@ -435,6 +458,12 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
                   <div className="cc-render-manifiesto">
                     <span className="cc-render-badge">Pendiente de verificación visual de fidelidad</span>
                     <p className="cocrear-ayuda">Lo que bloqueamos para este render: {render.expected.features.length ? render.expected.features.join(', ') + '. ' : ''}{render.expected.finish.join('; ')}.</p>
+                    {!rStale && (
+                      <button type="button" className="boton-fantasma cocrear-btn-sec" onClick={guardarRenderCanonico} disabled={guardandoRender}>
+                        {guardandoRender ? 'Guardando render…' : 'Guardar render en el proyecto'}
+                      </button>
+                    )}
+                    {renderMsg && <p className="cocrear-ayuda">{renderMsg}</p>}
                   </div>
                 </div>
               )}
