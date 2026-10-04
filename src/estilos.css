@@ -2316,3 +2316,69 @@ input::placeholder, textarea::placeholder { color: #6f6961; }
 }
 .segmento button.on { background: var(--blanco) !important; color: var(--carbon) !important; box-shadow: 0 1px 3px rgba(0,0,0,.4) !important; }
 .confianza-barra { background: rgba(255,255,255,.12) !important; }
+
+/* ============================================================================
+   COCREAR · pantalla de co-creación. Responsive P0 (móvil → desktop), una
+   sola columna fluida, touch ≥44px, sin overflow horizontal.
+   ============================================================================ */
+.cocrear-wrap { max-width: 860px; margin: 0 auto; padding: 0 16px 48px; }
+.cocrear-head { margin: 8px 0 16px; }
+.cocrear-h1 { font-size: clamp(26px, 6vw, 40px); font-weight: 800; letter-spacing: -0.02em; margin: 0 0 6px; color: var(--carbon, #1E1B1A); }
+.cocrear-sub { color: #475467; font-size: 15px; line-height: 1.5; margin: 0; max-width: 60ch; }
+.cocrear-entrada { display: flex; flex-direction: column; gap: 10px; }
+.cocrear-label { font-weight: 700; font-size: 14px; color: #1E1B1A; }
+.cocrear-textarea { width: 100%; box-sizing: border-box; border: 1px solid #D0D5DD; border-radius: 12px; padding: 12px 14px;
+  font: inherit; font-size: 16px; line-height: 1.5; resize: vertical; min-height: 96px; color: #1E1B1A; background: #fff; }
+.cocrear-textarea:focus { outline: 2px solid #1E1B1A22; border-color: #1E1B1A; }
+.cocrear-acciones { display: flex; flex-wrap: wrap; gap: 10px; }
+.cocrear-btn { min-height: 44px; padding: 0 20px; font-weight: 700; }
+.cocrear-btn-sec { min-height: 44px; padding: 0 16px; background: transparent; border: 1px solid #D0D5DD; border-radius: 10px; color: #344054; font-weight: 600; cursor: pointer; }
+.cocrear-status { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between;
+  margin: 18px 0 12px; padding: 14px 16px; border: 1px solid; border-radius: 12px; }
+.cocrear-status-txt { font-weight: 700; color: #1E1B1A; }
+.cocrear-desc { color: #475467; font-size: 14px; }
+.cocrear-blockers { border-left: 4px solid #B42318; margin-bottom: 16px; }
+.cocrear-blockers ul { margin: 8px 0 0; padding-left: 20px; color: #B42318; }
+.cocrear-blockers li { margin: 4px 0; }
+.cocrear-pasos { display: flex; flex-direction: column; gap: 12px; }
+.cocrear-paso { border: 1px solid #EAECF0; border-radius: 14px; padding: 16px; background: #fff; }
+.cocrear-paso-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.cocrear-paso-titulo { font-size: 15px; font-weight: 800; margin: 0; color: #1E1B1A; }
+.cocrear-dl { display: grid; grid-template-columns: 1fr; gap: 6px 20px; margin: 0; }
+.cocrear-dl > div { display: flex; gap: 8px; align-items: baseline; }
+.cocrear-dl dt { color: #667085; font-size: 13px; min-width: 110px; }
+.cocrear-dl dd { margin: 0; color: #1E1B1A; font-weight: 600; font-size: 14px; }
+.cocrear-motivo { color: #344054; font-size: 14px; line-height: 1.5; margin: 0 0 6px; }
+.cocrear-linaje { color: #344054; font-size: 13px; margin: 4px 0; }
+.cocrear-ayuda { color: #667085; font-size: 13px; margin: 4px 0 0; }
+.cocrear-dato { color: #1E1B1A; font-size: 14px; margin: 4px 0; }
+.cocrear-nota-rojo { color: #B42318; font-size: 13px; font-weight: 600; margin: 6px 0 0; }
+.cocrear-changeset { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.cocrear-changeset li { font-size: 13px; color: #344054; }
+.cocrear-chip { display: inline-block; font-size: 11px; font-weight: 700; color: #344054; background: #F2F4F7; border-radius: 6px; padding: 1px 6px; margin-right: 4px; }
+.cocrear-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: #1E1B1A; word-break: break-all; margin: 0 0 4px; }
+.cocrear-hash { color: #667085; }
+.cocrear-top-inline { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 14px; color: #344054; flex-wrap: wrap; }
+/* Tablet/desktop: la lista de "qué entendimos" en dos columnas. */
+@media (min-width: 720px) {
+  .cocrear-dl { grid-template-columns: 1fr 1fr; }
+}
+/* Dark mode: tarjetas legibles sobre fondo oscuro. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .cocrear-paso,
+  :root:not([data-theme="light"]) .cocrear-textarea { background: #221F1E; border-color: #3A3533; color: #ECE9E4; }
+  :root:not([data-theme="light"]) .cocrear-h1,
+  :root:not([data-theme="light"]) .cocrear-paso-titulo,
+  :root:not([data-theme="light"]) .cocrear-dl dd,
+  :root:not([data-theme="light"]) .cocrear-dato,
+  :root:not([data-theme="light"]) .cocrear-mono { color: #ECE9E4; }
+  :root:not([data-theme="light"]) .cocrear-sub,
+  :root:not([data-theme="light"]) .cocrear-motivo,
+  :root:not([data-theme="light"]) .cocrear-ayuda,
+  :root:not([data-theme="light"]) .cocrear-desc { color: #B8B2AC; }
+  :root:not([data-theme="light"]) .cocrear-label,
+  :root:not([data-theme="light"]) .cocrear-linaje,
+  :root:not([data-theme="light"]) .cocrear-dato,
+  :root:not([data-theme="light"]) .cocrear-top-inline { color: #ECE9E4; }
+  :root:not([data-theme="light"]) .cocrear-dl dt { color: #9A938C; }
+}

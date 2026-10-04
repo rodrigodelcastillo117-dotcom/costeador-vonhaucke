@@ -13,6 +13,7 @@ import Cotizacion from './componentes/Cotizacion.jsx';
 import CotizadorIA from './componentes/CotizadorIA.jsx';
 import CambiarContrasena from './componentes/CambiarContrasena.jsx';
 import Acomodo from './componentes/Acomodo.jsx';
+import Cocrear from './componentes/Cocrear.jsx';
 import Voni from './componentes/Voni.jsx';
 import Precios from './componentes/Precios.jsx';
 import Guia from './componentes/Guia.jsx';
@@ -72,6 +73,7 @@ const RUTAS_LINEA = new Set(['applt', 'app', 'via', 'rio', 'feather', 'cirque', 
 const NOMBRE_VISTA = {
   comercial: 'Comercial · proyectos y propuestas',
   voni: 'Voni · asistente de proyecto',
+  cocrear: 'Cocrear · de la idea al producto',
   asistente: 'Cotizar un mueble',
   banco: 'Banco de precios',
   archivo: 'Presupuestos que ya hicimos',
@@ -956,6 +958,9 @@ export default function App() {
         )}
         {pestania === 'asistente' && (
           <div className="contenido"><Asistente estado={estado} onAgregarPartida={agregarDesdeAsistente} onIr={irA} soloVentas={esVendedor} /></div>
+        )}
+        {pestania === 'cocrear' && (
+          <Cocrear estado={estado} soloVentas={esVendedor} onIr={irA} />
         )}
         {pestania === 'banco' && <Banco onAgregar={agregarDeBanco} onIr={irA} />}
         {pestania === 'archivo' && (

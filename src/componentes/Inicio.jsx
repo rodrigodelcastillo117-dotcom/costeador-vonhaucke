@@ -48,6 +48,10 @@ const LINEAS = [
 // `soloCostos: true` = sólo Diseño y Dirección. A un vendedor NO se le muestran:
 // antes las veía, las tocaba y caía en una pantalla que sólo le decía que no.
 const HERRAMIENTAS = [
+  // Cocrear: la mezcla de costear + cotizar. De una idea del cliente a una ficha
+  // de producto versionada, con costo honesto y lista (o no) para cotizar. Visible
+  // para todos; es seller-safe por dentro (el vendedor no ve costos).
+  { ruta: 'cocrear', titulo: 'Cocrear un producto', desc: 'De la idea del cliente a una ficha de producto: lo clasifica, lo costea y te dice qué falta para cotizar.', icono: 'acabado', destacada: true },
   // ⚠️ SIN soloCostos SE COLABA A LOS VENDEDORES (auditoría 2026-08-19). Esta
   // ficha no lo llevaba, aunque su botón ("Configurar →") manda a 'costeador'
   // — que SÍ es soloCostos: un vendedor la veía, la tocaba, y caía en la
