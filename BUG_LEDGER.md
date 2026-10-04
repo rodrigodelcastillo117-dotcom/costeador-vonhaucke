@@ -54,10 +54,13 @@ Archivo: Acomodo.jsx. Tests: floorSpec.test.js. Commit 896dc6f.
 ## OPEN (P0/P1 — pendientes, confirmados con evidencia)
 
 **VH-015 · P0 · Acomodo coloca por "cabe" no por "pertenece"** (#7/§53). Mesa de juntas en CEO, recepción en operativa.
-PARCIAL (commit 1c5abc9, prod): **validador determinista** `floorSpec.violacionesSemanticas` + cableado a la
-compuerta dura (una violación bloquea render/propuesta oficial y la lista como problema). 6 tests. Conservador
-(no bloquea zonas genéricas ni muebles flexibles; sí bloquea sanitarios/site). FALTA: que el MOTOR coloque bien
-(no solo detectar) — placement activo por zona permitida. Estado: detección PASS, corrección de motor NOT_STARTED.
+→ **FIXED · VERIFIED** (commit f73e5e3). Validador determinista `floorSpec.violacionesSemanticas` + compuerta dura
+(1c5abc9) MÁS el MOTOR corregido: `planner.js` ahora consulta el MISMO validador (`zonaAceptaPieza` =
+`zonaPermite(rolDePiezaAcomodo, zonaSemantica)`) como filtro DURO en la 1ª pasada (`candidatos.find`) y la 2ª
+(`permite`). Antes la 1ª pasada era preferencia blanda y caía a "donde quepa" (recepción→operativa). Ahora un rol
+duro que no cabe en zona permitida SOBRA (honesto), no aterriza mal. Además `rolDePiezaAcomodo` dejó de marcar
+'mesa' genérica como TABLE (evita falso positivo de mesa de lounge, §3-G). 9 tests (6 validador + 3 motor↔validador:
+sin consejo→sobra, sin recepción→sobra, plano completo→0 violaciones con mesa en juntas y recep en recep). 820 verdes.
 
 **VH-016 · P0 · Acomodo deja piezas sin colocar (48→23)** (#6/§52). Invariante requested=placed+unplaced+excluded.
 Estado: contador en vivo consistente + "revisión vencida"; pero el MOTOR aún no coloca todo. Falta mejora de placement.
