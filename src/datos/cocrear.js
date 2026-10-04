@@ -638,15 +638,20 @@ export function cocrearDeExpediente(expediente) {
 export function cocrearPayload(estado = {}) {
   const intent = estado.intent || {};
   const rev = (estado.historia?.length) || 1;
-  const spec = construirProductSpec(intent, extraerDNA(intent), clasificarProducto(intent, {}), { rev });
+  const componentes = intent._componentes || [];
+  const spec = construirProductSpec(intent, extraerDNA(intent), clasificarProducto(intent, {}), { rev, componentes });
+  // CostSnapshot para que el backend (registrar_producto_desde_expediente) sepa si el
+  // costo es conocido antes de crear la ProductVersion canónica (una sola verdad).
+  const snap = costearSpec(spec, estado.insumos || {}, estado.par || {});
   return {
     version: COCREAR_PERSIST_VERSION,
     nombre: descripcionCorta(spec),
     familia: spec.familia,
-    spec: { familia: spec.familia, dimensiones: spec.dimensiones || {} },
+    spec: { familia: spec.familia, dimensiones: spec.dimensiones || {}, componentes },
     brief: estado.brief || '',
     intent,
     historia: (estado.historia || []).map((h) => ({ rev: h.rev, label: h.label, intent: h.intent })),
+    costSnapshot: { status: snap.cost_status, known_cost: snap.known_cost, official_cost: snap.official_cost },
     render: estado.render ? { specHash: estado.render.specHash, expected: estado.render.expected } : null,
     specHash: spec.hash,
   };

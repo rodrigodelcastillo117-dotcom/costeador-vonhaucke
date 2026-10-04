@@ -111,8 +111,11 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
   const veCostos = !soloVentas;
 
   const rev = historia.length;
-  const spec = useMemo(() => (intent ? construirProductSpec(intent, extraerDNA(intent), clasificarProducto(intent, {}), { rev: rev || 1 }) : null), [intent, rev]);
-  const pipeline = useMemo(() => (intent ? cocrearDesdeIntent(intent, { insumos, par, rev: rev || 1 }) : null), [intent, insumos, par, rev]);
+  // El despiece desarrollado en el backstage vive en intent._componentes y DEBE
+  // alimentar el costo (antes se ignoraba → costo siempre UNKNOWN).
+  const bomIntent = (intent && intent._componentes) || [];
+  const spec = useMemo(() => (intent ? construirProductSpec(intent, extraerDNA(intent), clasificarProducto(intent, {}), { rev: rev || 1, componentes: bomIntent }) : null), [intent, rev, bomIntent]);
+  const pipeline = useMemo(() => (intent ? cocrearDesdeIntent(intent, { insumos, par, rev: rev || 1, componentes: bomIntent }) : null), [intent, insumos, par, rev, bomIntent]);
   const sugerencias = useMemo(() => (spec ? sugerenciasVoni(spec) : []), [spec]);
 
   const hayDraft = useMemo(() => { try { return !!localStorage.getItem(DRAFT_KEY); } catch { return false; } }, [fase]);
@@ -171,7 +174,7 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
     try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ brief: texto, historia })); } catch { /* noop */ }
     setGuardando(true);
     try {
-      const res = await guardarCocrearSeguro(expedienteId, cocrearPayload({ brief: texto, intent, historia, render }));
+      const res = await guardarCocrearSeguro(expedienteId, cocrearPayload({ brief: texto, intent, historia, render, insumos, par }));
       if (res?.ok) { if (res.expediente_id) setExpedienteId(res.expediente_id); setGuardado(true); }
       else throw new Error(res?.error || 'no se pudo guardar');
     } catch (e) { setVozMsg('Guardado local OK; la nube falló: ' + String(e?.message || e)); setGuardado(true); }
@@ -258,7 +261,7 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
     if (!render || rStale) return;
     setGuardandoRender(true); setRenderMsg('');
     try {
-      const g = await guardarCocrearSeguro(expedienteId, cocrearPayload({ brief: texto, intent, historia, render }));
+      const g = await guardarCocrearSeguro(expedienteId, cocrearPayload({ brief: texto, intent, historia, render, insumos, par }));
       const id = g?.ok ? (g.expediente_id || expedienteId) : expedienteId;
       if (id) setExpedienteId(id);
       let prodId = null, verId = null;
@@ -282,7 +285,7 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
     // ProductRevision canónica. Guarda (secure) y registra/reutiliza el producto.
     let prodVersionId = null, prodId = null;
     try {
-      const g = await guardarCocrearSeguro(expedienteId, cocrearPayload({ brief: texto, intent, historia, render }));
+      const g = await guardarCocrearSeguro(expedienteId, cocrearPayload({ brief: texto, intent, historia, render, insumos, par }));
       const id = g?.ok ? (g.expediente_id || expedienteId) : expedienteId;
       if (id) { setExpedienteId(id); const reg = await registrarProductoDesdeExpediente(id); if (reg?.ok) { prodVersionId = reg.version_id || null; prodId = reg.producto_id || null; } }
     } catch { /* la cotización no se bloquea por la nube; el precio ya es honesto */ }
