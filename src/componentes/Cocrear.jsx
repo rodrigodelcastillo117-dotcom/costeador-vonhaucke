@@ -89,6 +89,7 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
   const [expedienteId, setExpedienteId] = useState(null);  // id en Supabase (persistencia real)
   const [guardando, setGuardando] = useState(false);
   const [misCocreaciones, setMisCocreaciones] = useState([]);
+  const [analizando, setAnalizando] = useState(false);     // transición "VONI entendiendo…"
   const draggingRef = useRef(false);
 
   // En la pantalla de inicio, lista las co-creaciones GUARDADAS (reabrir de verdad,
@@ -133,7 +134,26 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
     it.dimensiones = { ...dd, ...(it.dimensiones || {}) };
     setIntent(it);
     setHistoria([{ rev: 1, intent: JSON.parse(JSON.stringify(it)), label: 'Idea inicial' }]);
-    setFase('studio'); setPropuestas(null); setVozMsg(''); setComparA(null);
+    setFase('studio'); setPropuestas(null); setVozMsg(''); setComparA(null); setExpedienteId(null);
+  };
+
+  // CTA principal: "Diseñarlo con VONI" — ejecuta la cadena real (idea → VONI
+  // interpreta → ProductIntent/clasificación → ProductSpec/concepto → Studio) con
+  // una transición breve "VONI está entendiendo…". No es sólo mandar texto a un chat.
+  const disenarConVoni = () => {
+    if (!texto.trim() || analizando) return;
+    setAnalizando(true);
+    setTimeout(() => { empezar(); setAnalizando(false); }, 650);
+  };
+
+  // Entrada secundaria: entrar al Studio completo aunque no haya brief todavía
+  // (parte de un producto base que el cliente re-moldea con controles/VONI).
+  const entrarStudioDirecto = () => {
+    const it = interpretarIntent('recepción 2.40 m');
+    it.dimensiones = { ...DIMS_DEFAULT[it.familia] };
+    setIntent(it);
+    setHistoria([{ rev: 1, intent: JSON.parse(JSON.stringify(it)), label: 'Producto base' }]);
+    setFase('studio'); setPropuestas(null); setVozMsg(''); setComparA(null); setExpedienteId(null);
   };
 
   const retomar = () => {
@@ -261,10 +281,21 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
             {EJEMPLOS.map((e, i) => <button key={i} type="button" className="cocrear-chip-ej" onClick={() => { setTexto(e); }}>{e.split(',')[0]}</button>)}
           </div>
           <div className="cocrear-acciones">
-            <button type="button" className="boton cocrear-btn" onClick={() => empezar()} disabled={!texto.trim()}>Empezar a diseñar →</button>
+            {/* CTA principal: VONI toma el control y convierte la idea en diseño.
+                Cuando no hay texto NO es un botón muerto: explica qué falta. */}
+            {texto.trim()
+              ? <button type="button" className="boton cocrear-btn cocrear-cta-voni" onClick={disenarConVoni} disabled={analizando}>{analizando ? 'VONI está entendiendo…' : 'Diseñarlo con VONI →'}</button>
+              : <span className="cocrear-cta-hint">✍️ Describe tu idea arriba para que VONI empiece a diseñar</span>}
+            <button type="button" className="boton-fantasma cocrear-btn-sec" onClick={entrarStudioDirecto}>Entrar a Cocreación completa</button>
             {hayDraft && <button type="button" className="boton-fantasma cocrear-btn-sec" onClick={retomar}>Retomar lo último</button>}
           </div>
         </div>
+        {analizando && (
+          <div className="cocrear-analizando">
+            <span className="cocrear-analizando-pulse" />
+            VONI está entendiendo tu idea…
+          </div>
+        )}
         {misCocreaciones.length > 0 && (
           <div className="cocrear-guardadas">
             <h3 className="cc-panel-tit">Mis co-creaciones guardadas</h3>

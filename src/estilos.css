@@ -2536,3 +2536,15 @@ button.inicio-hero-foto:hover { transform: translateY(-2px); box-shadow: 0 12px 
 .puertas .con-foto:hover::after { opacity: .85; }
 .puertas .con-foto > * { position: relative; z-index: 1; }
 @media (max-width: 680px) { .puertas .con-foto::after { opacity: .4; width: 60%; } }
+
+/* COCREAR · entrada con VONI (CTA real, helper, transición) */
+.cocrear-cta-voni { background: #B42318; }
+.cocrear-cta-voni:hover:not(:disabled) { background: #991b14; }
+.cocrear-cta-hint { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; color: #B54708; background: #FFFAEB; border: 1px dashed #B5470855; border-radius: 10px; font-size: 14px; font-weight: 600; }
+.cocrear-analizando { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 14px 16px; border: 1px solid #B4231833; background: #FEF3F2; border-radius: 12px; font-weight: 700; color: #B42318; }
+.cocrear-analizando-pulse { width: 12px; height: 12px; border-radius: 999px; background: #B42318; animation: ccpulse 1s ease-in-out infinite; }
+@keyframes ccpulse { 0%,100% { opacity: .35; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.15); } }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .cocrear-analizando { background: #2a1714; border-color: #B4231855; color: #FDA29B; }
+  :root:not([data-theme="light"]) .cocrear-cta-hint { background: #241c10; color: #FEC84B; }
+}
