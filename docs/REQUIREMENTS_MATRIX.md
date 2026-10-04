@@ -58,7 +58,8 @@ Actualizar ANTES de implementar cualquier instrucción nueva. SHA ref: `198920c`
 | UI-002 | Dibujar legible en tema oscuro | ui | P1 | PASS | VH-009 |
 | UI-003 | Singular/plural en capa de presentación | ui | P2 | NOT_STARTED | VH-020 |
 | UI-004 | Todas las pantallas a nivel premium | ui | P1 | IN_PROGRESS | §69/70 barrido pendiente |
-| COCREATE-001 | Cocrear orquesta Costear+Cotizar sin duplicar | cocrear | P0 | PASS | `datos/cocrear.js`: orquestador puro idea→ProductSpec→costo(calcular)→cotización; `Cocrear.jsx` UI responsive wired (pestaña+Inicio). 20 tests + E2E navegador (Golden #1). No duplica motores. prod |
+| COCREATE-000 | Cocrear = STUDIO de co-diseño EN VIVO (el producto es protagonista) | cocrear | P0 | PASS | `Cocrear.jsx` studio + `CocrearVisual.jsx` (visual paramétrico instantáneo). Loop: ver→cambiar→ver cambiar→A/B→revisión; controles por familia; Voni NL + sugerencias; backstage técnico. E2E navegador (material en vivo, NL 40cm, Voni detectó claro largo). prod. **Pendiente para "perfecto": render real, Voni-AI, save DB, floor editor** |
+| COCREATE-001 | Cocrear orquesta Costear+Cotizar sin duplicar | cocrear | P0 | PASS | `datos/cocrear.js`: orquestador puro idea→ProductSpec→costo(calcular)→cotización; BOM movido a backstage técnico. 29 tests. No duplica motores. prod |
 | COCREATE-002 | Test maestro integración (Rev1→Rev2→stale→reopen) | cocrear | P0 | IN_PROGRESS | `estaStale()` por hash + test; falta reopen/persistencia DB |
 | COCREATE-003 | Design DNA / ProductIntent / change-impact / history | cocrear | P1 | IN_PROGRESS | ProductIntent determinista + ProjectDNA + change_set + historia hechos; change-impact/A-B pendiente |
 | COCREATE-004 | Clasificación LINE/CONFIGURED/DERIVED/NEW + linaje | cocrear | P0 | PASS | §17: `clasificarProducto` con parent/change_set; test Cirque config vs derivado |
