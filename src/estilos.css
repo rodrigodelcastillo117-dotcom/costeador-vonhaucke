@@ -2069,3 +2069,31 @@ body::after {
   .inicio-hero .inicio-titulo { font-size: 34px; }
   .inicio-hero .inicio-lead { font-size: 16.5px; }
 }
+
+/* ==========================================================================
+   PASE PREMIUM 5 (2026-10-04) — TIPOGRAFÍA EDITORIAL. Display serif de alto
+   contraste (Fraunces) para titulares: le da carácter de atelier/lujo, no de
+   herramienta. La UI y el dinero siguen en Inter. Es el cambio que más mueve el
+   "se ve caro".
+   ========================================================================== */
+:root { --serif: "Fraunces", "Archivo", Georgia, "Times New Roman", serif; }
+
+.inicio-hero .inicio-titulo {
+  font-family: var(--serif);
+  font-weight: 600; font-optical-sizing: auto;
+  font-size: 56px; line-height: .96; letter-spacing: -0.02em;
+}
+@media (max-width: 760px) { .inicio-hero .inicio-titulo { font-size: 38px; } }
+
+/* Títulos de las dos puertas (Voni / Costear) en serif: lee editorial, premium. */
+.voni-principal-txt strong, .costear-principal .voni-principal-txt strong {
+  font-family: var(--serif); font-weight: 600; font-size: 25px; letter-spacing: -0.01em;
+}
+/* Encabezados de sección del Home, también con carácter. */
+.panel-titulo, .inicio-hero .inicio-overline { font-optical-sizing: auto; }
+
+/* Overline más fino y espaciado (etiqueta de plano de lujo). */
+.inicio-hero .inicio-overline { font-weight: 600; color: #8a8278; }
+
+/* Lead con un pelo más de aire y color más rico. */
+.inicio-hero .inicio-lead { color: #574f47; line-height: 1.5; }
