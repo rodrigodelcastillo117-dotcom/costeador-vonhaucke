@@ -1101,9 +1101,11 @@ export default function App() {
             type="button"
             aria-label="Abrir Voni"
             onClick={() => setVoniAbierto(true)}
-            // En móvil, Cotizar tiene una barra de acciones fija abajo: el FAB se
-            // eleva por encima de ella para no tapar "Verificar emisión"/"Descargar PDF".
-            className={'voni-fab' + (pestania === 'cotizacion' ? ' voni-fab--conbarra' : '')}>
+            // Rutas con barra de acción fija abajo: el FAB se eleva/reserva hueco para
+            // no tapar sus botones. Cotizar (acciones) y Costeador de línea (compra).
+            className={'voni-fab'
+              + (pestania === 'cotizacion' ? ' voni-fab--conbarra' : '')
+              + (RUTAS_LINEA.has(pestania) ? ' voni-fab--compra' : '')}>
             Voni
           </button>
           {voniAbierto && (

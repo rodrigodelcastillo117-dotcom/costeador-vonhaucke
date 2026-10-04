@@ -350,6 +350,9 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
      derecha (regla en .cot-acciones-fija) en vez de subir el FAB. */
   .voni-fab--conbarra { bottom: calc(248px + env(safe-area-inset-bottom, 0px)); }
 }
+/* Costeador de línea: barra de compra fija de UNA fila (~67px) a todos los anchos
+   → el FAB se eleva por encima para no tapar "Agregar a la cotización". */
+.voni-fab--compra { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); }
 
 /* ---- Chip de estado económico POR LÍNEA (seller-safe, sin cifras) ----
    Pegado a cada partida: dice QUÉ renglón detiene la emisión y por qué, en
