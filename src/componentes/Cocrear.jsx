@@ -21,7 +21,7 @@ import { listarCocreaciones, guardarCocrearSeguro, cargarCocrearSeguro, registra
 import CocrearVisual from './CocrearVisual.jsx';
 import { parametrosEfectivos } from './Costeador.jsx';
 import { precioVenta } from '../motor/calculo.js';
-import { compileRenderPrompt, renderStale } from '../datos/renderPrompt.js';
+import { compileRenderPrompt, renderStale, verificarFidelidad } from '../datos/renderPrompt.js';
 import { voniTurno, voniReview } from '../datos/voni.js';
 import { generarRender } from '../nube.js';
 
@@ -256,6 +256,9 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
     setRenderCargando(false);
   };
   const rStale = render && renderStale(render, spec);
+  // Fidelidad 10X: no sólo "cambió", sino QUÉ cambió (acabado/geometría/features).
+  const rFidelidad = render && rStale ? verificarFidelidad(render, spec, spec?.dna) : null;
+  const ETIQUETA_FIDELIDAD = { tipo: 'tipo de producto', forma: 'forma', acabado: 'acabado', features: 'características', door_count: 'número de puertas', screen_count: 'pantalla', user_capacity: 'capacidad' };
 
   // RENDER CANÓNICO: guarda el expediente, registra/reutiliza la ProductRevision y sube
   // la imagen al Storage registrándola contra esa versión exacta (spec_hash). Si el
@@ -476,7 +479,14 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
               {renderError && <p className="cocrear-nota-rojo">{renderError}</p>}
               {render && (
                 <div className="cc-render-out">
-                  {rStale && <div className="cc-render-stale">El diseño cambió desde este render — está desactualizado. Regenéralo para verlo al día.</div>}
+                  {rStale && (
+                    <div className="cc-render-stale">
+                      El diseño cambió desde este render — está desactualizado. Regenéralo para verlo al día.
+                      {rFidelidad?.cambios?.length > 0 && (
+                        <span className="cc-render-stale-que"> Cambió: {[...new Set(rFidelidad.cambios.map((c) => ETIQUETA_FIDELIDAD[c.campo] || c.campo))].join(', ')}.</span>
+                      )}
+                    </div>
+                  )}
                   <img className={'cc-render-img' + (rStale ? ' stale' : '')} src={render.dataUrl} alt={`Render de ${descripcionCorta(spec)}`} />
                   <div className="cc-render-manifiesto">
                     <span className="cc-render-badge">Pendiente de verificación visual de fidelidad</span>

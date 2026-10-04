@@ -113,3 +113,34 @@ export function renderStale(renderGuardado, specActual) {
   if (!renderGuardado?.specHash || !specActual?.hash) return false;
   return renderGuardado.specHash !== specActual.hash;
 }
+
+// FIDELITY 10X · compara el manifiesto `expected` del render guardado contra el del
+// spec actual y dice QUÉ dejó de coincidir (tipo/forma/conteos, acabado, features),
+// no sólo un sí/no. Así el usuario ve EXACTAMENTE por qué el render ya no representa
+// al producto (p.ej. "acabado cambió de nogal a roble"), en vez de un stale binario.
+export function diffFidelidad(expViejo = {}, expNuevo = {}) {
+  const cambios = [];
+  const g0 = expViejo.geometry || {}, g1 = expNuevo.geometry || {};
+  for (const k of new Set([...Object.keys(g0), ...Object.keys(g1)])) {
+    if (String(g0[k] ?? '') !== String(g1[k] ?? '')) {
+      cambios.push({ campo: k === 'product_type' ? 'tipo' : k === 'forma' ? 'forma' : k, de: g0[k], a: g1[k] });
+    }
+  }
+  const f0 = (expViejo.finish || []).join(' | '), f1 = (expNuevo.finish || []).join(' | ');
+  if (f0 !== f1) cambios.push({ campo: 'acabado', de: f0, a: f1 });
+  const ft0 = [...(expViejo.features || [])].sort().join(' | ');
+  const ft1 = [...(expNuevo.features || [])].sort().join(' | ');
+  if (ft0 !== ft1) cambios.push({ campo: 'features', de: ft0, a: ft1 });
+  return cambios;
+}
+
+// Verifica la fidelidad del render guardado contra el spec ACTUAL. Devuelve el estado
+// y los cambios concretos. `vigente:null` si el render no trae manifiesto (legacy).
+export function verificarFidelidad(renderGuardado, specActual, dna = {}) {
+  if (!renderGuardado?.expected) {
+    return { vigente: renderStale(renderGuardado, specActual) ? false : null, cambios: [], motivo: 'sin manifiesto de fidelidad' };
+  }
+  const nuevo = compileRenderPrompt(specActual, dna).expected;
+  const cambios = diffFidelidad(renderGuardado.expected, nuevo);
+  return { vigente: cambios.length === 0, cambios, stale: renderStale(renderGuardado, specActual) };
+}
