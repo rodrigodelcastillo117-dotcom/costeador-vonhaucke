@@ -166,9 +166,15 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
     return (
       <div className="inicio">
         <div className="inicio-hero">
-          <div className="inicio-overline">Vonhaucke · Más de 68 años de oficio</div>
-          <h1 className="inicio-titulo">Empecemos tu propuesta</h1>
-          <div className="inicio-lead">Cotiza, acomoda y presenta con mobiliario Vonhaucke, en minutos.</div>
+          <div className="inicio-hero-txt">
+            <div className="inicio-overline">Vonhaucke · Cocreando tu espacio</div>
+            <h1 className="inicio-titulo">Empecemos tu propuesta</h1>
+            <div className="inicio-lead">Cotiza, acomoda y presenta con mobiliario Vonhaucke, en minutos.</div>
+          </div>
+          <div className="inicio-hero-foto" aria-hidden="true"
+            style={{ backgroundImage: 'url(https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/app/marca/portada-1.jpg)' }}>
+            <span className="inicio-hero-cota">3600 × 750 mm</span>
+          </div>
         </div>
 
         {/* En qué vas: retomar es más común que empezar de cero. */}

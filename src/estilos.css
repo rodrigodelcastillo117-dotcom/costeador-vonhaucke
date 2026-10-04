@@ -1483,7 +1483,8 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 .favorita:hover { border-color: var(--linea-fuerte); background: #faf8f6; }
 .favorita:focus-visible { outline: 3px solid var(--foco); outline-offset: 2px; }
 
-@media (max-width: 900px) { .puertas { flex-direction: column; } }
+/* En columna, flex:1 1 0 colapsaba las tarjetas a una tira: se fija basis auto. */
+@media (max-width: 900px) { .puertas { flex-direction: column; } .puertas > button { flex: 1 1 auto; } }
 
 @media (max-width: 640px) {
   .voni-principal, .costear-principal { flex-direction: column; align-items: stretch; text-align: center; gap: 14px; padding: 20px 18px; }
@@ -1719,7 +1720,13 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
   border-radius: 12px; padding: 0 16px; min-height: 44px; cursor: pointer;
   color: var(--gris); font-weight: 600; font-size: 14px; }
 .retomar-tirar:hover { border-color: var(--rojo); color: var(--rojo); }
-@media (max-width: 560px) { .retomar-fila { flex-direction: column; } .retomar-tirar { min-height: 46px; } }
+@media (max-width: 560px) {
+  .retomar-fila { flex-direction: column; }
+  /* "Descartar todo" es secundaria y destructiva: en móvil no una caja grande vacía,
+     sino un enlace discreto alineado, sin competir con la tarjeta principal. */
+  .retomar-tirar { min-height: 40px; align-self: flex-end; width: auto; padding: 8px 14px;
+    font-size: 13px; color: var(--gris); border-color: transparent; background: transparent; }
+}
 
 /* Resultados de PRODUCTO. Van arriba de las líneas porque es lo que la gente
    busca: nadie quiere "la línea Eclipse", quiere "una mesa de juntas". */
@@ -2014,3 +2021,51 @@ body::after {
 .inicio-overline { color: #F2A59E; }
 .inicio-overline::before { background: #E65A50; box-shadow: 0 0 14px rgba(230,90,80,.7); }
 @media (max-width: 520px) { .inicio-hero { padding: 30px 20px 26px; border-radius: 18px; } .inicio-titulo { font-size: 34px; } .inicio-hero::after { display: none; } }
+
+/* ==========================================================================
+   PASE PREMIUM 4 (2026-10-04) — HERO EDITORIAL CON IMAGEN. Split: texto elegante
+   en papel + render real de un proyecto. "Caro" = imagen + aire + restraint, no
+   cajas oscuras ni botones grandes. Anula el hero oscuro anterior.
+   ========================================================================== */
+.inicio-hero {
+  display: grid; grid-template-columns: 1.02fr 0.98fr; align-items: stretch; gap: 0;
+  padding: 0; border-radius: 20px; overflow: hidden; color: var(--tinta);
+  background: linear-gradient(180deg, #FFFFFF 0%, var(--panel) 100%);
+  border: 1px solid rgba(30,27,26,.07);
+  box-shadow: 0 2px 10px rgba(30,27,26,.05), 0 36px 70px -38px rgba(30,27,26,.32), inset 0 1px 0 rgba(255,255,255,.8);
+  margin-bottom: 24px; animation: none;
+}
+.inicio-hero::before, .inicio-hero::after { content: none !important; }
+.inicio-hero-txt { padding: 52px 44px; display: flex; flex-direction: column; justify-content: center; position: relative; overflow: hidden; }
+/* retícula de plano finísima detrás del texto, se desvanece (elegante, no CAD) */
+.inicio-hero-txt::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background-image:
+    linear-gradient(to right, rgba(30,27,26,.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(30,27,26,.05) 1px, transparent 1px);
+  background-size: 30px 30px;
+  -webkit-mask-image: linear-gradient(160deg, rgba(0,0,0,.6), transparent 72%);
+  mask-image: linear-gradient(160deg, rgba(0,0,0,.6), transparent 72%);
+}
+.inicio-hero-txt > * { position: relative; z-index: 1; }
+.inicio-hero .inicio-overline { color: var(--gris); letter-spacing: .2em; font-size: 12px; margin-bottom: 16px; }
+.inicio-hero .inicio-overline::before { background: var(--rojo); width: 28px; height: 3px; box-shadow: none; }
+.inicio-hero .inicio-titulo { color: var(--tinta); font-size: 48px; line-height: .98; letter-spacing: -0.045em; margin: 0; }
+.inicio-hero .inicio-lead { color: #5b554e; font-size: 18px; margin-top: 14px; max-width: 42ch; }
+/* FOTO: render real del proyecto, cover, con un velo finísimo para integrarla */
+.inicio-hero-foto { position: relative; background-size: cover; background-position: center; min-height: 300px; }
+.inicio-hero-foto::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 0 60px rgba(16,14,13,.14), inset 1px 0 0 rgba(255,255,255,.1); background: linear-gradient(90deg, rgba(243,241,237,.5), transparent 22%); }
+.inicio-hero-cota {
+  position: absolute; left: 16px; bottom: 14px; z-index: 1; color: #fff;
+  font-family: var(--mono); font-size: 11.5px; font-weight: 600; letter-spacing: .06em;
+  background: rgba(16,14,13,.48); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  padding: 5px 11px; border-radius: 999px; border: 1px solid rgba(255,255,255,.22);
+}
+@media (max-width: 760px) {
+  .inicio-hero { grid-template-columns: 1fr; border-radius: 18px; }
+  .inicio-hero-foto { order: -1; min-height: 190px; }
+  .inicio-hero-foto::after { background: linear-gradient(0deg, rgba(243,241,237,.55), transparent 28%); }
+  .inicio-hero-txt { padding: 24px 22px 26px; }
+  .inicio-hero .inicio-titulo { font-size: 34px; }
+  .inicio-hero .inicio-lead { font-size: 16.5px; }
+}
