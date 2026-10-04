@@ -12,6 +12,14 @@ import { regla } from './reglas.js';
 import { enderezarTodo } from './orientacion.js';
 import { puestosDe } from './rellenar.js';
 import { dimsPieza } from './espacio.js';
+import { rolDePiezaAcomodo, zonaPermite, zonaSemantica } from './floorSpec.js';
+
+// VH-015: el MOTOR usa el MISMO validador semántico que el gate visual. No es una
+// preferencia blanda (que caía a "donde quepa"): es un filtro DURO. Una zona que
+// no acepta el rol de la pieza (mesa de juntas en CEO/operativa, recepción en
+// operativa, puesto en consejo) nunca es candidata, ni en la 2ª pasada. Así el
+// motor no PRODUCE lo que `floorSpec.violacionesSemanticas` luego marcaría.
+const zonaAceptaPieza = (p, area) => zonaPermite(rolDePiezaAcomodo(p), zonaSemantica(area?.nombre || ''));
 
 const PERIM = 700;      // circulación perimetral contra muro (paso)
 const WALL = 60;        // holgura mínima al muro para guardas (pegadas)
@@ -320,12 +328,25 @@ function acomodarLocalBase(areas, piezas, opts = {}) {
 // A qué cuarto va cada tipo de mueble, en orden de preferencia. Es el criterio
 // que usaría un proyectista: la mesa a la sala de juntas, los escritorios a los
 // privados y luego al open, los benches al open, el lounge a la recepción.
+// ⚠️ VH-015: estas preferencias son ahora CONSISTENTES con el validador semántico
+// `floorSpec.zonaPermite`. El motor coloca por "cabe"; el validador verifica
+// "pertenece". Antes la preferencia permitía fallbacks que el validador marcaba
+// como violación (mesa de juntas→privado/open, recepción→open, escritorio→juntas):
+// el motor PRODUCÍA un acomodo que su propio gate luego bloqueaba. Ahora un rol
+// duro (mesa de juntas, recepción, puesto operativo) solo cae en zonas que el
+// validador acepta; si no cabe en ninguna, sobra (se reporta sin colocar) en vez
+// de aterrizar en una zona equivocada. "Más vale reportar que no cupo que dibujar
+// un disparate." (contrato §2/§53/§99)
 const PREFERENCIA = {
-  juntas:     ['juntas', 'general', 'open', 'privado', 'lounge', 'recepcion'],
+  // Mesa de juntas/consejo: a su sala, o a un cuarto genérico. NUNCA a open
+  // (operativa), privado/dirección (CEO) ni recepción → el validador los marca.
+  juntas:     ['juntas', 'general', 'lounge'],
   // Un escritorio suelto va a un privado; un BENCH de varios puestos no cabe
   // en la oficina del director aunque quepa de milagro: va al open space.
-  escritorio: ['privado', 'open', 'general', 'juntas', 'lounge'],
-  bench:      ['open', 'general', 'privado', 'juntas'],
+  // Puesto operativo: privado/open/genérico. NUNCA 'juntas' (consejo) ni
+  // recepción → el validador marca un escritorio en sala de consejo como violación.
+  escritorio: ['privado', 'open', 'general', 'lounge'],
+  bench:      ['open', 'general', 'privado'],
   // REGLA DE RODRIGO: "las gavetas SIEMPRE van pegadas a los escritorios u
   // operativos. Nunca sueltas y NUNCA en sala de juntas." Por eso 'juntas' ya
   // no es destino de una guarda: una sala de juntas no tiene a quién servir.
@@ -338,7 +359,9 @@ const PREFERENCIA = {
   credenza:   ['privado', 'general', 'open'],
   mampara:    ['open', 'general', 'privado'],
   // El mostrador va en la RECEPCIÓN. Obvio, pero hasta hoy no existía el tipo.
-  recepcion:  ['recepcion', 'general', 'open'],
+  // NUNCA a 'open' (operativa) → el validador marca una recepción en el área
+  // operativa como violación. Si no cabe en recepción, sobra (honesto).
+  recepcion:  ['recepcion', 'general'],
   // ⚠️ UNA SILLA DE TRABAJO NO ES UN SILLÓN. El tipo `asiento` mete en el mismo
   // saco la silla operativa y el sofá del lounge, y con eso las 27 sillas de un
   // proyecto real se fueron TODAS al "Break Room & Baños" —Rodrigo lo vio en el
@@ -547,8 +570,9 @@ function acomodarPorCuartos(areas, piezas) {
         tipo === 'escritorio' || tipo === 'juntas' || visita || credenza
         || esSillaDirectiva(p) || esSillaDeJuntas(p));
       // Se busca el primer cuarto de la preferencia donde la pieza QUEPA
-      // físicamente y todavía haya área libre estimada.
-      const dest = candidatos.find((c) => cabeEn(p, c.a) && c.libre > (p.w * p.d) / 1e6 * 1.35);
+      // físicamente, todavía haya área libre estimada Y la zona ACEPTE el rol de
+      // la pieza (VH-015: filtro semántico duro, no solo orden de preferencia).
+      const dest = candidatos.find((c) => zonaAceptaPieza(p, c.a) && cabeEn(p, c.a) && c.libre > (p.w * p.d) / 1e6 * 1.35);
       if (dest) { dest.asignadas.push(p); dest.libre -= (p.w * p.d) / 1e6 * 1.35; }
       else sobran.push(p);
     }
@@ -579,6 +603,8 @@ function acomodarPorCuartos(areas, piezas) {
       // un cuarto que NO está en la preferencia de la pieza no la recibe ni de
       // rebote. Más vale reportar que no cupo que dibujar un disparate.
       const permite = (p) => {
+        // VH-015: zona que no acepta el rol → ni de rebote (mismo validador que el gate).
+        if (!zonaAceptaPieza(p, c.a)) return false;
         const pref = p.tipo === 'escritorio' && esBench(p) ? PREFERENCIA.bench
           : (PREFERENCIA[p.tipo] || PREFERENCIA.mueble);
         return pref.includes(c.rol);

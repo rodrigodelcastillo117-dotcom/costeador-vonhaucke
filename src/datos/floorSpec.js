@@ -244,7 +244,11 @@ export function rolDePiezaAcomodo(pieza) {
   if (/mesa de junta|mesa junta|mesa de consejo|sala de junta|board|consejo/.test(t)) return ROL.TABLE;
   if (/recepci|mostrador|módulo recep|modulo recep/.test(t)) return ROL.RECEPTION;
   if (/escritorio|bench|puesto|estacion|estación|workstation|operativ/.test(t)) return ROL.WORKSTATION;
-  if (/mesa\b|table/.test(t)) return ROL.TABLE;
+  // ⚠️ NO toda "mesa" es mesa de juntas. Una mesa de centro/café/lounge es
+  // FLEXIBLE: marcarla TABLE la volvía violación en recepción/operativa (falso
+  // positivo). Solo la mesa de JUNTAS/CONSEJO (regla explícita de arriba) es
+  // TABLE; una mesa genérica cae a OTHER → flexible (§3-G: no inventar
+  // incompatibilidad para un rol que no es claramente de junta).
   if (/archiv|credenza|gaveta|pedestal|guarda|storage/.test(t)) return ROL.STORAGE;
   if (/silla|asiento|chair|seat/.test(t)) return ROL.WORK_SEAT;
   return ROL.OTHER;
