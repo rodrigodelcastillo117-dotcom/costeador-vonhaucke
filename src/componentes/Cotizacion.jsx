@@ -80,7 +80,14 @@ export function textoRazonEmision(code) {
   if (/aprobacion_requerida/.test(k)) return 'Requiere aprobación de Dirección para este contenido.';
   if (/sin_permiso|no_autorizado/.test(k)) return 'No tienes permiso para emitir esta cotización.';
   if (/sin_guardar/.test(k)) return 'Guarda la cotización primero.';
-  return k;
+  // Producto no registrado como versión canónica (la línea apunta a un producto que
+  // el servidor no reconoce): hay que re-agregarla desde su ficha / Cocrear.
+  if (/producto_id_invalido|producto_invalido|producto_no_registrad/.test(k)) return `${L}re-agrégala desde su ficha (el producto no está registrado como versión).`;
+  // Especial co-diseñado cuyo costo aún no está confirmado en el servidor.
+  if (/costo_especial_desconocido|especial_sin_costo/.test(k)) return `${L}falta confirmar el costo del especial con Diseño/Dirección.`;
+  // Fallback: código desconocido. Conservamos el "Línea N:" para no perder a cuál
+  // renglón se refiere (antes se tragaba el prefijo y salía el código crudo solo).
+  return L + k;
 }
 const ESTADO_EMISION = {
   ALLOWED: { tono: 'verde', titulo: 'Lista para emitir' },

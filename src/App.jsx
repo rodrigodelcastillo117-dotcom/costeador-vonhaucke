@@ -976,7 +976,11 @@ export default function App() {
           <div className="contenido"><Asistente estado={estado} onAgregarPartida={agregarDesdeAsistente} onIr={irA} soloVentas={esVendedor} /></div>
         )}
         {pestania === 'cocrear' && (
-          <Cocrear estado={estado} soloVentas={esVendedor} onIr={irA} />
+          // onAgregar enchufa "Agregar al proyecto": el especial co-diseñado entra a
+          // Cotizar como partida con producto_id + producto_version_id ya fijados
+          // (partidaDeCosteo). Sin esta prop el botón nunca aparecía y el camino
+          // Cocrear→Cotizar quedaba muerto (una sola verdad de producto).
+          <Cocrear estado={estado} soloVentas={esVendedor} onIr={irA} onAgregar={agregarDesdeAsistente} />
         )}
         {pestania === 'banco' && <Banco onAgregar={agregarDeBanco} onIr={irA} />}
         {pestania === 'archivo' && (

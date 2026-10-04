@@ -71,8 +71,30 @@ describe('textoRazonEmision — seller-safe, sin cifras', () => {
     expect(t).not.toMatch(/\$|\d+\s*%/);
   });
 
+  it('producto_id_invalido => guía seller-safe a re-agregar (nunca código crudo)', () => {
+    const t = textoRazonEmision('linea_1_producto_id_invalido');
+    expect(t).toMatch(/Línea 1/);
+    expect(t).toMatch(/re-agr[eé]gala|ficha/i);
+    expect(t).not.toMatch(/producto_id_invalido/); // nunca el código crudo
+    expect(t).not.toMatch(/\$|\d+\s*%|margen|proveedor/i);
+  });
+
+  it('costo_especial_desconocido => confirmar costo del especial (sin cifra)', () => {
+    const t = textoRazonEmision('costo_especial_desconocido');
+    expect(t).toMatch(/especial/i);
+    expect(t).toMatch(/costo/i);
+    expect(t).not.toMatch(/costo_especial_desconocido/);
+  });
+
+  it('código desconocido CON línea conserva el prefijo "Línea N:" (no se traga)', () => {
+    const t = textoRazonEmision('linea_5_algo_nuevo');
+    expect(t).toMatch(/^Línea 5:/);
+    expect(t).toMatch(/algo_nuevo/); // crudo, pero con su línea
+  });
+
   it('código desconocido degrada al propio texto, no truena', () => {
     expect(() => textoRazonEmision('algo_raro')).not.toThrow();
+    expect(textoRazonEmision('algo_raro')).toBe('algo_raro');
     expect(textoRazonEmision('')).toBe('');
   });
 });
