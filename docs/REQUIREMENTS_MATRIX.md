@@ -43,7 +43,7 @@ Actualizar ANTES de implementar cualquier instrucción nueva. SHA ref: `198920c`
 | PLAN-004 | FloorSpecV2 (walls/windows/fixtures/finishes/positions) | plano | P1 | NOT_STARTED | §98 |
 | PLAN-005 | Snapshot/versionado de interpretación (no reparse) | plano | P1 | NOT_STARTED | §87 / review #15 |
 | LAYOUT-001 | Invariante requested=placed+unplaced+excluded | layout | P0 | IN_PROGRESS | contador consistente + vencida; motor no coloca todo (VH-016) |
-| LAYOUT-002 | Placement semántico (zonas permitidas/prohibidas) | layout | P0 | FAIL | motor por "cabe" no "pertenece" (VH-015) |
+| LAYOUT-002 | Placement semántico (zonas permitidas/prohibidas) | layout | P0 | IN_PROGRESS | VALIDADOR determinista + gate hechos (VH-015, 6 tests, prod); falta que el MOTOR coloque bien (no solo detectar) |
 | LAYOUT-003 | Validador determinista (muros/puertas/overlap/circulación) | layout | P0 | NOT_STARTED | §99 |
 | LAYOUT-004 | Layout parcial no se presenta como terminado | layout | P0 | PASS | compuerta dura VH-014 |
 | RENDER-001 | Render no inventa; representa ProductVersion | render | P0 | IN_PROGRESS | renderOficina usa dibujo+colocación; fidelidad NOT_VERIFIED |

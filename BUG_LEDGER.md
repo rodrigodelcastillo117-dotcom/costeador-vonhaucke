@@ -54,7 +54,10 @@ Archivo: Acomodo.jsx. Tests: floorSpec.test.js. Commit 896dc6f.
 ## OPEN (P0/P1 — pendientes, confirmados con evidencia)
 
 **VH-015 · P0 · Acomodo coloca por "cabe" no por "pertenece"** (#7/§53). Mesa de juntas en CEO, recepción en operativa.
-Mitigado parcial por VH-014 (no llega a render final). Falta: zonas permitidas/prohibidas por intent + validador determinista (§99). NOT started (motor).
+PARCIAL (commit 1c5abc9, prod): **validador determinista** `floorSpec.violacionesSemanticas` + cableado a la
+compuerta dura (una violación bloquea render/propuesta oficial y la lista como problema). 6 tests. Conservador
+(no bloquea zonas genéricas ni muebles flexibles; sí bloquea sanitarios/site). FALTA: que el MOTOR coloque bien
+(no solo detectar) — placement activo por zona permitida. Estado: detección PASS, corrección de motor NOT_STARTED.
 
 **VH-016 · P0 · Acomodo deja piezas sin colocar (48→23)** (#6/§52). Invariante requested=placed+unplaced+excluded.
 Estado: contador en vivo consistente + "revisión vencida"; pero el MOTOR aún no coloca todo. Falta mejora de placement.
