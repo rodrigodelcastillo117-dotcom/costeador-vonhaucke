@@ -3,7 +3,7 @@
 //  Dos columnas en >=1000px; una sola abajo, con barra fija que muestra el costo.
 // ============================================================================
 import { useMemo, useState, useEffect } from 'react';
-import { calcular, precioDe, precioVenta, sugerenciaLote, sugerenciaMedida, costoNetoComponente, netoComponente, PARAMETROS_DEFAULT, modeloParaPieza, SIN_MO_SECCIONES } from '../motor/calculo.js';
+import { calcular, precioDe, precioVenta, sugerenciaLote, sugerenciaMedida, costoNetoComponente, netoComponente, PARAMETROS_DEFAULT, modeloParaPieza, SIN_MO_SECCIONES, precioUsable } from '../motor/calculo.js';
 import { precioDeLista } from '../datos/preciosVenta.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { AREAS_LABEL } from '../datos/areas.js';
@@ -464,7 +464,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                       <label>Cantidad ({ins.unidad})<input type="number" className="numero" step="0.01" min="0" value={c.cantidad}
                         onChange={(e) => setCantidad(i, parseFloat(e.target.value) || 0)} /></label>
                     )}
-                    <span className="pieza-sub">{pesos(costoPieza(c, ins, costeo.piezas))}</span>
+                    <span className="pieza-sub">{precioUsable(ins) ? pesos(costoPieza(c, ins, costeo.piezas)) : <strong style={{ color: '#B42318' }} title="Material sin precio: pendiente de capturar (no cuenta como $0)">Pendiente</strong>}</span>
                   </div>
                 )}
                 {porHojaDir && c.hojas > 0 && (
