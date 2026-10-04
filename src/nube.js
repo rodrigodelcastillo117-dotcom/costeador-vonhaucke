@@ -480,6 +480,23 @@ export async function cotizacionEmitible(cotizacionId) {
   if (error || !data) return { ok: false, estado: 'DESCONOCIDO', motivos: [], error: error?.message };
   return data;
 }
+
+// RENDER CANÓNICO (lectura). Trae las filas de `renders` de UNAS revisiones exactas
+// (por producto_version_id) vía RPC SECURITY DEFINER `resolver_renders_canonicos`
+// (la tabla tiene RLS deny-all para el front). Devuelve { [versionId]: filas[] }; el
+// contrato de VIGENTE/STALE/none lo decide src/datos/renderCanonico.js. Degrada a {}.
+export async function resolverRendersCanonicos(versionIds = []) {
+  const ids = [...new Set((versionIds || []).map((v) => Number(v)).filter((v) => Number.isFinite(v)))];
+  if (!ids.length) return {};
+  const { data, error } = await nube.rpc('resolver_renders_canonicos', { p_version_ids: ids });
+  if (error || !Array.isArray(data)) return {};
+  const porVersion = {};
+  for (const fila of data) {
+    const k = fila.producto_version_id;
+    (porVersion[k] = porVersion[k] || []).push(fila);
+  }
+  return porVersion;
+}
 // Descarga una imagen de Storage y la vuelve base64 raw (para re-render con el plano original).
 export async function urlABase64(url) {
   try {

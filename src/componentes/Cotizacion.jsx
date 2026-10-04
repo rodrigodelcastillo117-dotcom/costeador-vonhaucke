@@ -17,7 +17,8 @@ import { imagenPartida } from '../datos/imagenes.js';
 import VoniAvatar from './VoniAvatar.jsx';
 import { confianzaDe, textoConfianza } from '../datos/confianza.js';
 import { expandirPiezas, mapaPiezas } from '../datos/espacio.js';
-import { generarRender, analizarNegocio } from '../nube.js';
+import { generarRender, analizarNegocio, resolverRendersCanonicos } from '../nube.js';
+import { estadoRenderPartida, claveRenderPartida, ESTADO_RENDER } from '../datos/renderCanonico.js';
 import PlanoAcomodo from './PlanoAcomodo.jsx';
 import ConfirmarCandado from './ConfirmarCandado.jsx';
 
@@ -137,6 +138,20 @@ function EstadoLinea({ info }) {
   );
 }
 
+// Estado del RENDER CANÓNICO de la partida (interno, para Dirección): dice si la
+// imagen que verá el cliente es la vigente de la revisión anclada, un histórico
+// stale, o si falta. Nunca aparece para líneas sin versión (catálogo/banco legacy).
+function RenderChip({ estado }) {
+  const MAP = {
+    VIGENTE: { t: 'Render vigente', cls: 'ok' },
+    STALE: { t: 'Render histórico (stale)', cls: 'stale' },
+    SIN_RENDER_VALIDO: { t: 'Sin render de esta versión', cls: 'none' },
+  };
+  const m = MAP[estado];
+  if (!m) return null; // SIN_VERSION u otro → no aplica el contrato canónico
+  return <span className={`render-chip render-chip-${m.cls}`} title={`Render canónico de la revisión anclada: ${estado}`}>{m.t}</span>;
+}
+
 export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr, onEmitida, verificarEmision, veCostos = false }) {
   const [vistaClienteManual, setVistaClienteManual] = useState(false);
   const vistaCliente = soloVentas || vistaClienteManual;
@@ -150,6 +165,33 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   const [voniError, setVoniError] = useState('');
 
   const setCot = (parcial) => setEstado({ ...estado, cotizacion: { ...cot, ...parcial } });
+
+  // RENDER CANÓNICO por partida: se resuelve SÓLO por producto_version_id (nunca por
+  // nombre). mapaRenders = { [versionId]: filas[] }; estadoRenderPartida decide
+  // VIGENTE/STALE/SIN_RENDER_VALIDO/SIN_VERSION. Una partida queda congelada a su
+  // versión (el id es inmutable), así una revisión nueva no cambia el PDF ya emitido.
+  const [mapaRenders, setMapaRenders] = useState({});
+  const versionesPartidas = useMemo(
+    () => [...new Set(partidas.map((p) => claveRenderPartida(p)?.productoVersionId).filter((v) => v != null))].sort().join(','),
+    [partidas]
+  );
+  useEffect(() => {
+    const ids = versionesPartidas ? versionesPartidas.split(',') : [];
+    if (!ids.length) { setMapaRenders({}); return; }
+    let vivo = true;
+    resolverRendersCanonicos(ids).then((m) => { if (vivo) setMapaRenders(m || {}); }).catch(() => {});
+    return () => { vivo = false; };
+  }, [versionesPartidas]);
+  const estadoRenderDe = (pt) => estadoRenderPartida(pt, mapaRenders);
+  // Imagen VIGENTE de una partida: canónica si está anclada a una versión; si no,
+  // catálogo/ad-hoc (legacy). Nunca cae a catálogo "por nombre" para un canónico ni
+  // muestra un render stale como vigente.
+  const fotoResuelta = (pt) => {
+    const est = estadoRenderDe(pt);
+    if (est.estado === ESTADO_RENDER.SIN_VERSION) return fotoPartida(pt);
+    if (est.estado === ESTADO_RENDER.VIGENTE) return est.url;
+    return null;
+  };
 
   // Adjuntar render 3D del acomodo (reescala para no inflar el estado)
   const subirRender = (file) => {
@@ -281,7 +323,9 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
       // esperarlos, el PDF saldría con los recuadros vacíos.
       // El logo y la foto de la casa van en la MISMA espera que las fotos: la
       // portada sin logo es justo lo que Rodrigo no quiere volver a ver.
-      const [fotos, marca] = await Promise.all([cargarFotos(partidas, fotoPartida), cargarMarca()]);
+      // El PDF usa la MISMA resolución canónica que la pantalla: render vigente de la
+      // versión anclada; nunca catálogo por nombre ni un render stale como vigente.
+      const [fotos, marca] = await Promise.all([cargarFotos(partidas, fotoResuelta), cargarMarca()]);
       // Evidencia PRIMERO (audit 2026-10-01): se conserva la revisión ANTES de
       // entregar el documento. El contenido que se congela es el mismo que se
       // dibuja abajo. Si no se pudo registrar, el PDF sale pero se avisa que NO es
@@ -581,6 +625,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                       <tr key={pt.id} className={bajo ? 'nota-clara' : undefined} style={bajo ? { background: '#fbeceb' } : undefined}>
                         <td>{pt.nombre} <span className={`sello sello-${s.tipo}`} title={s.nota}>{s.texto}</span>
                           <EstadoLinea info={razonesLinea.get(i + 1)} />
+                          <RenderChip estado={estadoRenderDe(pt).estado} />
                           {bajo && <div className="ayuda rojo">Debajo del mínimo de {estado.parametros.margenMinimo}%</div>}</td>
                         <td className="num"><span className="masmenos"><button onClick={() => setPartida(i, { cantidad: Math.max(1, pt.cantidad - 1) })}>−</button><span className="valor">{pt.cantidad}</span><button onClick={() => setPartida(i, { cantidad: pt.cantidad + 1 })}>+</button></span></td>
                         <td className="num">{pesos(pt.precioUnitario)}</td>
@@ -753,7 +798,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           {/* Renglones con foto */}
           <section className="propx-items">
             {partidas.map((pt) => {
-              const foto = fotoPartida(pt);
+              const foto = fotoResuelta(pt);
               const s = selloPartida(pt);
               return (
                 <article className="propx-item" key={pt.id}>
