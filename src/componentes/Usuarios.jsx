@@ -2,7 +2,7 @@
 //  USUARIOS - solo Direccion. Da de alta y de baja a quien puede entrar.
 // ============================================================================
 import { useEffect, useState } from 'react';
-import { listaPermitidos, adminUsuarios, credencialesTemporales } from '../nube.js';
+import { listaPermitidos, adminUsuarios } from '../nube.js';
 
 // Qué ve cada rol. Se enseña en pantalla porque mover a alguien de rol le ABRE
 // o le CIERRA datos de verdad (nómina, financieros, costos), no es una etiqueta.
@@ -22,6 +22,8 @@ export default function Usuarios({ onAviso, miCorreo = '' }) {
   const [trabajando, setTrabajando] = useState(false);
   const [error, setError] = useState('');
   const [porBorrar, setPorBorrar] = useState(null);
+  // Contraseña recién fijada, mostrada UNA sola vez para compartirla (no se guarda).
+  const [recienCreado, setRecienCreado] = useState(null);
 
   async function recargar() {
     setCargando(true);
@@ -34,10 +36,15 @@ export default function Usuarios({ onAviso, miCorreo = '' }) {
     setError('');
     if (!email || !pass || pass.length < 6) { setError('Escribe el correo y una contraseña de al menos 6 letras.'); return; }
     setTrabajando(true);
-    const r = await adminUsuarios('crear', { email: email.trim().toLowerCase(), password: pass, nombre, rol });
+    const correoAlta = email.trim().toLowerCase();
+    const r = await adminUsuarios('crear', { email: correoAlta, password: pass, nombre, rol });
     setTrabajando(false);
     if (r.ok) {
       onAviso && onAviso('Persona agregada. Ya puede entrar.');
+      // La contraseña se muestra UNA vez aquí para compartirla ahora; NO se guarda
+      // en ningún lado (P0-09). `password_una_vez` viene del edge; si no, usamos la
+      // que se tecleó en este formulario (es la misma que se acaba de fijar).
+      setRecienCreado({ nombre: nombre || correoAlta, email: correoAlta, pass: r.password_una_vez || pass });
       setNombre(''); setEmail(''); setPass(''); setRol('vendedor');
       recargar();
     } else {
@@ -74,37 +81,6 @@ export default function Usuarios({ onAviso, miCorreo = '' }) {
     } else {
       setError('No se pudo quitar a la persona. ' + (r.error || ''));
     }
-  }
-
-  // ⚠️ "SOLO REQUIERO UN EXCEL CON SUS CONTRASEÑAS" (Rodrigo, 2026-08-19, el
-  // mismo día que le iba a enseñar el costeador a su equipo). El guardado ya
-  // pasa solo —la función `usuarios` escribe en `credenciales_temporales` cada
-  // vez que se da de alta o se reemite una contraseña—; esto sólo lo baja como
-  // archivo. CSV, no .xlsx real: Excel lo abre directo con doble clic (es lo
-  // que la gente de aquí entiende por "un excel"), y así no hay que sumarle una
-  // librería nueva al bundle de un solo archivo. `﻿` al frente es el BOM
-  // que hace que Excel lea los acentos bien en vez de mostrar basura.
-  const [descargando, setDescargando] = useState(false);
-  async function descargarCredenciales() {
-    setDescargando(true);
-    try {
-      const filas = await credencialesTemporales();
-      if (!filas.length) { onAviso && onAviso('Todavía no hay contraseñas temporales guardadas.'); return; }
-      const csv = ['Nombre,Correo,Entra como,Contraseña temporal,Actualizado']
-        .concat(filas.map((f) => {
-          const et = ROLES.find((r) => r.id === f.rol)?.et || f.rol || '';
-          const cuando = f.actualizado ? new Date(f.actualizado).toLocaleString('es-MX') : '';
-          const csv1 = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-          return [f.nombre, f.email, et, f.password_temporal, cuando].map(csv1).join(',');
-        }))
-        .join('\r\n');
-      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `credenciales-costeador-${new Date().toISOString().slice(0, 10)}.csv`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-    } finally { setDescargando(false); }
   }
 
   return (
@@ -145,16 +121,32 @@ export default function Usuarios({ onAviso, miCorreo = '' }) {
         <button className="boton primario grande" disabled={trabajando} onClick={agregar}>{trabajando ? 'Agregando...' : 'Agregar persona'}</button>
       </div>
 
+      {/* Contraseña de una sola vez — se muestra aquí tras el alta y NO se guarda. */}
+      {recienCreado && (
+        <div className="tarjeta" style={{ borderColor: 'var(--ambar, #e0a93b)' }}>
+          <h3 style={{ marginTop: 0 }}>Comparte esta contraseña ahora</h3>
+          <p className="ayuda">
+            Para <strong>{recienCreado.nombre}</strong> ({recienCreado.email}). No se guarda
+            en ningún lado: si la cierras, tendrás que reemitirla dando de alta otra vez.
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <code style={{ fontSize: 18, padding: '6px 12px', background: 'var(--panel, #111)', borderRadius: 6, userSelect: 'all' }}>
+              {recienCreado.pass}
+            </code>
+            <button className="boton fantasma" onClick={() => {
+              try { navigator.clipboard?.writeText(recienCreado.pass); onAviso && onAviso('Contraseña copiada.'); } catch { /* sin clipboard: se puede seleccionar a mano */ }
+            }}>Copiar</button>
+            <button className="boton fantasma" onClick={() => setRecienCreado(null)}>Listo, ya la compartí</button>
+          </div>
+        </div>
+      )}
+
       {/* Lista */}
       <div className="tarjeta">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-          <h3 style={{ margin: 0 }}>Lista de acceso ({lista.length})</h3>
-          <button className="boton fantasma no-imprimir" disabled={descargando} onClick={descargarCredenciales}>
-            {descargando ? 'Preparando…' : 'Descargar credenciales (Excel)'}
-          </button>
-        </div>
+        <h3 style={{ margin: 0 }}>Lista de acceso ({lista.length})</h3>
         <p className="ayuda gris no-imprimir" style={{ marginTop: 4 }}>
-          Contraseñas temporales de cada alta o reemisión — se guardan solas, esto solo las baja.
+          Las contraseñas no se guardan: cuando das de alta a alguien, su contraseña se
+          muestra una sola vez arriba para que la compartas en ese momento.
         </p>
         {cargando ? <p className="ayuda">Cargando...</p> : (
           <div className="tablewrap"><table className="datos">

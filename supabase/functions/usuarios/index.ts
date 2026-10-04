@@ -97,16 +97,13 @@ Deno.serve(async (req) => {
         if (errPass) return json({ error: errPass.message }, 400);
       }
       await admin.from("permitidos").upsert({ email, nombre: body.nombre || null, rol: body.rol || "vendedor" });
-      // La contraseña que se acaba de fijar (nueva o de alta) queda guardada
-      // para el Excel de "Descargar credenciales" — Rodrigo: "cada vez que demos
-      // de alta a alguien, que se guarde en ese excel automáticamente".
-      if (body.password) {
-        await admin.from("credenciales_temporales").upsert({
-          email, nombre: body.nombre || null, rol: body.rol || "vendedor",
-          password_temporal: body.password, actualizado: new Date().toISOString(),
-        });
-      }
-      return json({ ok: true }, 200);
+      // P0-09 / FASE 14 — YA NO SE ALMACENAN CONTRASEÑAS. Antes aquí se guardaba la
+      // contraseña EN TEXTO PLANO en `credenciales_temporales` para un "Excel de
+      // credenciales". Eso es exactamente la arquitectura prohibida: Supabase Auth
+      // es la ÚNICA autoridad de contraseña. La contraseña la acaba de teclear quien
+      // da de alta, así que se devuelve UNA sola vez para que la comparta ahora —
+      // nunca se persiste. El Excel de todas las contraseñas se eliminó.
+      return json({ ok: true, password_una_vez: body.password || null }, 200);
     }
 
     if (accion === "rol") {

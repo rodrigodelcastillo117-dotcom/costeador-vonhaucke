@@ -135,18 +135,12 @@ export async function miPermiso(email) {
   if (error) throw error;
   return data || null;
 }
-// Las contraseñas temporales que se han ido dando de alta (solo Dirección las
-// lee — RLS). Sirve para el Excel de "Descargar credenciales": Rodrigo, dando
-// de alta a su equipo el mismo día que se lo iba a enseñar: "solo requiero un
-// excel con sus contraseñas, y cada vez que demos de alta a alguien, se guarde
-// en ese excel automáticamente". El guardado ya pasa solo (edge function
-// `usuarios`, acción `crear`); esto es sólo la lectura para exportarlo.
-export async function credencialesTemporales() {
-  const { data, error } = await nube.from('credenciales_temporales').select('email, nombre, rol, password_temporal, actualizado');
-  if (error) console.error('credencialesTemporales:', error);
-  return (data || []).sort((a, b) =>
-    (a.nombre || a.email || '').localeCompare(b.nombre || b.email || '', 'es', { sensitivity: 'base' }));
-}
+// P0-09 / FASE 14 — el "Excel con todas las contraseñas temporales" SE ELIMINÓ.
+// Guardar contraseñas en texto plano (aunque fuera solo-Dirección por RLS) es la
+// arquitectura prohibida: Supabase Auth es la única autoridad de contraseña. Ahora,
+// al dar de alta, la contraseña se muestra UNA vez para compartirla y no se guarda
+// en ningún lado (ver edge `usuarios` → `password_una_vez`). La tabla
+// `credenciales_temporales` quedó sin lectores y se elimina en la DB.
 export async function listaPermitidos() {
   const { data, error } = await nube.from('permitidos').select('email, nombre, rol, creado');
   if (error) console.error('listaPermitidos:', error);
