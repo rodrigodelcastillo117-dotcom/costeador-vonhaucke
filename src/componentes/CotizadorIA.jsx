@@ -89,8 +89,21 @@ export default function CotizadorIA({
       const costados = [];
       const sinCostear = [];
       const sinPrecio = [];   // vendedor: producto sin precio AUTORIZADO (fail-closed, nunca $0)
+      const especiales = [];  // P0-A: material explícito que el producto NO ofrece → especial a la medida
       for (const it of items) {
         const cantidad = Math.max(1, Math.round(Number(it.cantidad) || 1));
+        // P0-A — PRECEDENCIA DE MATERIAL: si el usuario pidió un material que el
+        // producto de catálogo NO ofrece (p.ej. superficie sólida/Corian en una línea
+        // de melamina), el producto es SOLO referencia de geometría: su precio estándar
+        // NO aplica. No se costea como ese producto (sería presentar MELAMINA cuando
+        // pidieron otra familia) ni se mete en $0: va como ESPECIAL a la medida,
+        // conservando el material, para cotización de fábrica. El material explícito del
+        // usuario manda sobre el producto similar.
+        if (it.material_override && String(it.material_override).trim()) {
+          const et = it.etiqueta || it.producto || 'mueble';
+          especiales.push(`${et}${cantidad > 1 ? ` (×${cantidad})` : ''} — ${String(it.material_override).trim()}`);
+          continue;
+        }
         const c = costearItem(estado, { ...it, cantidad }, { soloVentas });
         // `avisos` son los ajustes que la app le hizo a lo que pidió Voni (pediste 8
         // usuarios y ese producto sólo tiene 6). Antes se hacían en silencio.
@@ -154,6 +167,7 @@ export default function CotizadorIA({
         noEncontrado: r.propuesta?.noEncontrado || [],
         sinCostear,
         sinPrecio,
+        especiales,
       });
       setRespuesta('');
       // Un solo clic ("Armar el proyecto") te lleva a la pantalla de "esto
@@ -275,6 +289,15 @@ export default function CotizadorIA({
           {resultado.noEncontrado.length > 0 && (
             <div className="alerta ambar" style={{ marginTop: 10 }}>
               <span className="texto">Esto no está en catálogo: {resultado.noEncontrado.join(' · ')}. Va aparte, como especial a la medida.</span>
+            </div>
+          )}
+          {resultado.especiales?.length > 0 && (
+            <div className="alerta ambar" style={{ marginTop: 10 }}>
+              <span className="texto">
+                Material especial (no es de catálogo estándar): {resultado.especiales.join(' · ')}.
+                No se cotiza con el precio del producto estándar —se respeta el material que pediste—;
+                va como <strong>especial a la medida</strong> y requiere costeo de fábrica.
+              </span>
             </div>
           )}
           {resultado.sinCostear.length > 0 && (

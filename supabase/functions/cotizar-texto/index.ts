@@ -42,6 +42,7 @@ const SCHEMA = {
           confianza: { type: "string", enum: ["alta", "media", "baja"] },
           nota: { type: "string", description: "Supuestos que tomaste o por que dudas. Vacio si todo claro." },
           sugerido: { type: "boolean", description: "true SOLO si TU lo propones como acompañante (silla, gaveta, mesa de una sala), no si el usuario lo pidio explicito. Default false." },
+          material_override: { type: "string", description: "VACIO normalmente. Llenalo SOLO si el usuario pidio EXPLICITAMENTE un material/acabado que este producto NO ofrece en sus 'params' (p.ej. 'superficie solida'/'Corian'/'Krion', marmol, cristal, inoxidable en una linea que es de melamina/MDF). En ese caso escribe aqui el material textual tal como lo pidio (ej. 'superficie solida azul') y NO elijas un acabado melamina en 'seleccion' para disimularlo: el producto queda SOLO como referencia de geometria y su precio estandar NO aplica. Si el material pedido SI cabe en los params del producto, deja esto vacio y usalo en 'seleccion' normal." },
         },
         required: ["ruta", "producto", "cantidad", "seleccion", "etiqueta", "confianza", "nota"],
       },
@@ -92,6 +93,7 @@ Deno.serve(async (req) => {
     "1) Usa SOLO 'ruta' y 'producto' que existan en el catalogo (claves e ids EXACTOS). Si piden algo que no existe, ponlo en 'noEncontrado' y NO lo inventes como item.\n" +
     "2) En 'seleccion' cada 'clave' debe ser una de las de 'params' del producto y el 'valor' uno de los permitidos (para dimensiones el valor es el numero como texto, ej. '1200'). Para 'checks' (lista de nombres) agrega el par {clave:<nombre>, valor:'si'} SOLO si el usuario lo pide activado.\n" +
     "3) Si no especifican una opcion, ELIGE un default sensato (medida mas comun, acabado melamina/ABS) y dilo breve en 'nota'; no llenes 'preguntas' con todo, solo lo esencial que cambie el precio de forma importante.\n" +
+    "3-bis) PRECEDENCIA DE MATERIAL (CRITICO, manda sobre la regla 3): el material/acabado EXPLICITO del usuario GANA sobre el producto de catalogo. Una geometria parecida NUNCA autoriza cambiar la familia de material. Si el usuario pide un material que el producto NO puede dar (superficie solida/Corian/Krion, marmol, cristal, inoxidable, piedra, etc. en una linea de melamina/MDF), NO lo cambies a melamina ni lo mandes a 'noEncontrado': deja 'ruta'/'producto' como REFERENCIA DE GEOMETRIA y pon el material pedido en 'material_override'. JAMAS presentes melamina/ABS cuando pidieron superficie solida. Prioridad: material explicito del usuario > material del plano > catalogo/producto similar > inferencia tuya.\n" +
     "4) Respeta cantidades del texto (ej. '15 estaciones' -> cantidad 15). Un renglon por tipo/config distinta. " +
     "EXCEPCION CRITICA (bancas/bench con parametro 'usuarios'): el numero de personas va COMPLETO en " +
     "seleccion.usuarios (aunque sea mayor al maximo del catalogo -- el sistema cobra por puesto al escalon " +
