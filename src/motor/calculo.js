@@ -235,6 +235,19 @@ export function precioDeInsumo(insumo, par = PARAMETROS_DEFAULT) {
   return base;
 }
 
+// VH-017 · ¿El insumo tiene un precio USABLE? Distingue ZERO de UNKNOWN.
+// - precio DECLARADO (numérico, incluido 0 explícito) → conocido (§7: un 0 real
+//   es válido; el "$0 por decisión" se modela con comp.excluida, no aquí).
+// - precio ausente pero con precioBase > 0 → conocido (estimado).
+// - sin ninguno de los dos → DESCONOCIDO: la pieza NO se costea en $0, se marca
+//   pendiente (el total deja de ser emitible). "NO convertir missing a zero" (§24).
+export function precioUsable(insumo) {
+  if (!insumo) return false;
+  const p = insumo.precio;
+  if (p != null && p !== '' && Number.isFinite(Number(p))) return true;
+  return Number(insumo.precioBase) > 0;
+}
+
 // -----------------------------------------------------------------------------
 //  Neto de un componente EN LA UNIDAD DEL INSUMO.
 //  Si trae medidas (largoMM/anchoMM) es area en m2; si no, es su cantidad neta.
@@ -497,6 +510,11 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     if (comp.excluida) { componentesExcluidos.push(comp.nombre || 'Partida excluida'); continue; }
     const insumo = insumos[comp.insumoId] || comp.insumo;
     if (!insumo) { componentesIgnorados.push(comp.nombre || 'Pieza sin material'); continue; }
+    // VH-017: insumo PRESENTE pero sin precio usable = PENDIENTE DE PRECIO, no $0.
+    // Entra a la misma lista que un material faltante → el costeo queda INCOMPLETO
+    // y la emisión se bloquea. (Un precio 0 declarado SÍ es conocido, §7; un $0
+    // por decisión se marca con comp.excluida, atendido arriba.)
+    if (!precioUsable(insumo)) { componentesIgnorados.push(comp.nombre || insumo.nombre || 'Material sin precio'); continue; }
     if (!grupos[comp.insumoId]) {
       grupos[comp.insumoId] = { insumo, comps: [] };
       orden.push(comp.insumoId);

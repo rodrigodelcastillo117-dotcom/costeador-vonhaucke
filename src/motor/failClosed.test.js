@@ -80,3 +80,55 @@ describe('Integridad del costo — fail-closed + BOM canónico', () => {
     expect(bomHash(a)).toBe(bomHash(b));
   });
 });
+
+// ============================================================================
+//  VH-017 · UNKNOWN != 0. Un insumo que EXISTE en el catálogo pero no tiene
+//  precio usable (precio ausente y sin precioBase) NO se costea en $0: es un
+//  PENDIENTE de precio, igual que un material faltante. Un precio DECLARADO
+//  (incluido 0 explícito) sí es conocido (§7: "precio real = 0 válido").
+// ============================================================================
+describe('VH-017 — insumo presente SIN precio usable ⇒ pendiente, no $0', () => {
+  const insumosBase = {
+    tablero: { id: 'tablero', nombre: 'Tablero melamina', seccion: 'cubiertas', clase: 'directa', unidad: 'hoja', precio: 600, formato: { medida: 2.9768 }, fraccion: true, mermaCorte: 0 },
+  };
+  const parL = { aprovechamientoCorte: 80, margenObjetivo: 40, mermaProceso: 0, modeloCosteo: 'clasico' };
+  const piezaCon = (compExtra) => ({
+    nombre: 'Mueble', piezas: 1, modoManoObra: 'porcentaje',
+    componentes: [
+      { nombre: 'Panel', insumoId: 'tablero', hojas: 1, piezas: 1, cantidad: 1 },
+      compExtra,
+    ],
+  });
+
+  it('precio AUSENTE (null) y sin precioBase ⇒ NO emitible, costoTotal=null, listado en pendientes', () => {
+    const insumos = { ...insumosBase, byrne: { id: 'byrne', nombre: 'Multicontacto Byrne', seccion: 'electrico', clase: 'directa', unidad: 'pza', precio: null } };
+    const r = calcular(piezaCon({ nombre: 'Multicontacto Byrne', insumoId: 'byrne', cantidad: 2, piezas: 1 }), 1, insumos, parL);
+    const e = costeoEmitible(r);
+    expect(e.emitible).toBe(false);
+    expect(e.costoTotal).toBeNull();
+    expect(e.estadoCosto).toBe('incompleto');
+    expect(e.pendientes.some((p) => /Byrne/.test(p))).toBe(true);
+    expect(e.subtotalConocido).toBeGreaterThan(0);
+    expect(r.detalleInsumos.some((d) => d.insumoId === 'byrne')).toBe(false);
+  });
+
+  it('ZERO declarado (precio: 0) ⇒ CONOCIDO, emitible (distingue ZERO de UNKNOWN, §7)', () => {
+    const insumos = { ...insumosBase, gratis: { id: 'gratis', nombre: 'Accesorio sin costo', seccion: 'herrajes', clase: 'indirecta', unidad: 'pza', precio: 0 } };
+    const r = calcular(piezaCon({ nombre: 'Accesorio sin costo', insumoId: 'gratis', cantidad: 1, piezas: 1 }), 1, insumos, parL);
+    const e = costeoEmitible(r);
+    expect(e.emitible).toBe(true);
+    expect(e.costoTotal).toBeGreaterThan(0);
+  });
+
+  it('precioBase estimado (precio null, precioBase > 0) ⇒ CONOCIDO (estimado), emitible', () => {
+    const insumos = { ...insumosBase, estim: { id: 'estim', nombre: 'Herraje estimado', seccion: 'herrajes', clase: 'indirecta', unidad: 'pza', precio: null, precioBase: 50 } };
+    const r = calcular(piezaCon({ nombre: 'Herraje estimado', insumoId: 'estim', cantidad: 2, piezas: 1 }), 1, insumos, parL);
+    expect(costeoEmitible(r).emitible).toBe(true);
+  });
+
+  it('cost UNKNOWN + precio de venta conocido ⇒ el costo NO es emitible (no margen 100%)', () => {
+    const insumos = { ...insumosBase, byrne: { id: 'byrne', nombre: 'Multicontacto Byrne', seccion: 'electrico', clase: 'directa', unidad: 'pza', precio: null } };
+    const r = calcular(piezaCon({ nombre: 'Multicontacto Byrne', insumoId: 'byrne', cantidad: 2, piezas: 1 }), 1, insumos, parL);
+    expect(costeoEmitible(r).costoTotal).toBeNull();
+  });
+});
