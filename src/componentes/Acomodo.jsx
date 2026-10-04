@@ -20,6 +20,7 @@ import { flagActivo } from '../datos/flags.js';
 import { totalesCotizacion } from '../datos/totales.js';
 import { estadoLayout, violacionesSemanticas } from '../datos/floorSpec.js';
 import { aMM, areasCanonicas, bloqueGeometria, cuantizar } from '../datos/floorPlan.js';
+import { auditarColocacion } from '../datos/acomodoAudit.js';
 
 // Para la paleta, SILLA es todo lo que se sienta: la operativa, la de visita y
 // también el sillón y el banco. Rodrigo lo pidió partido en dos: "lado
@@ -855,23 +856,14 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // VERIFICACIÓN determinista por área: dentro de bordes + sin traslapes.
   const chequeo = useMemo(() => {
     if (!plan) return null;
-    const tol = 20;
-    const cajas = (plan.colocacion || []).map((c) => {
-      const p = byId[c.id]; if (!p) return null;
-      const { pw, ph } = dimsPieza(p, c.rot);
-      return { area: c.area ?? 0, nombre: p.nombre, x0: c.x, y0: c.y, x1: c.x + pw, y1: c.y + ph };
-    }).filter(Boolean);
-    const fuera = [], enc = new Set();
-    for (const b of cajas) {
-      const a = areasMM[b.area]; if (!a) continue;
-      if (b.x0 < -tol || b.y0 < -tol || b.x1 > a.ancho + tol || b.y1 > a.largo + tol) fuera.push(b.nombre);
-    }
-    for (let i = 0; i < cajas.length; i++) for (let j = i + 1; j < cajas.length; j++) {
-      const a = cajas[i], b = cajas[j]; if (a.area !== b.area) continue;
-      const ix = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
-      const iy = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0);
-      if (ix > tol && iy > tol) { enc.add(a.nombre); enc.add(b.nombre); }
-    }
+    // Encimados y fuera-de-área: delegados al AUDITOR ÚNICO (src/datos/acomodoAudit.js),
+    // probado y reutilizable — una sola verdad de la verificación física del acomodo
+    // (footprint con giro == dimsPieza; mismo modelo de tolerancia en ambos ejes).
+    const audit = auditarColocacion({ areas: areasMM, colocacion: plan.colocacion || [], byId }, { tol: 20 });
+    const nombreDe = (id) => byId[id]?.nombre || id;
+    const fuera = audit.fuera.map((f) => nombreDe(f.id));
+    const enc = new Set();
+    for (const o of audit.overlaps) { enc.add(nombreDe(o.a)); enc.add(nombreDe(o.b)); }
     const problemas = [...new Set(fuera)].map((n) => `Se sale del área: ${n}`).concat([...enc].map((n) => `Encimado: ${n}`));
     // NÚMEROS QUE SÍ DICEN ALGO. El "% de ocupación de piso" era inútil —
     // Rodrigo: "está pésimo, no es eso"— y además mentía: dividía la superficie
