@@ -63,4 +63,21 @@ describe('la frase que se le entrega a Voni', () => {
       expect(f).toMatch(t);
     }
   });
+
+  // ⚠️ GAVETAS ≠ ARCHIVEROS (bug del "Archiveros = 9"). El pedestal rodante (una
+  // gaveta por puesto) y el archivero (guarda de privado) son muebles distintos.
+  // Antes se sumaban en `guardas` y se decían todos como "archiveros": con 8
+  // puestos y 1 privado salían "9 archiveros". Ahora van separados.
+  it('gavetas y archiveros se dicen por separado, no sumados como "archiveros"', () => {
+    const f = fraseDe({ ...BASE, operativos: 8, privados: 1, gavetas: 8, archiveros: 1 });
+    expect(f).toMatch(/8 gavetas rodantes \(pedestal\)/);
+    expect(f).toMatch(/1 archiveros/);
+    expect(f).not.toMatch(/9 archiveros/);
+  });
+
+  it('sin gavetas no inventa pedestales', () => {
+    const f = fraseDe({ ...BASE, operativos: 4, archiveros: 2 });
+    expect(f).not.toMatch(/gavetas/);
+    expect(f).toMatch(/2 archiveros/);
+  });
 });

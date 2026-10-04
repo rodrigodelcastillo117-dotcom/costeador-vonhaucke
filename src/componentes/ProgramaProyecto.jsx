@@ -110,7 +110,15 @@ export function fraseDe(p) {
     t.push(`una sala de juntas para ${p.juntas} personas con su mesa de juntas y sus ${p.juntas} sillas de visita ${p.sillaJuntas}`);
   }
   if (p.recepcion) t.push('una recepción con su mostrador');
-  if (p.guardas > 0) t.push(`${p.guardas} archiveros`);
+  // GAVETAS (pedestal rodante, una por puesto) y ARCHIVEROS (guarda de privado,
+  // uno por oficina cerrada) son muebles DISTINTOS. Antes se sumaban en `guardas`
+  // y se decían todos como "archiveros" → de ahí salían "9 archiveros" donde el
+  // plano tiene 1 privado. Se separan. Compat: un caller viejo que mande sólo
+  // `guardas` lo seguimos leyendo como archiveros.
+  const gavetas = p.gavetas ?? 0;
+  const archiveros = p.archiveros ?? p.guardas ?? 0;
+  if (gavetas > 0) t.push(`${gavetas} gavetas rodantes (pedestal)`);
+  if (archiveros > 0) t.push(`${archiveros} archiveros`);
   return t.join(', ') + '.';
 }
 
@@ -127,7 +135,11 @@ export default function ProgramaProyecto({ onArmar, cargando = false, areasPlano
     operativos: delPlano.operativos, largoPuesto: 1500, lineaOperativos: 'applt', sillaOperativa: 'WIN',
     privados: delPlano.privados, largoPrivado: 2100, credenza: true, lineaPrivados: 'eclipse',
     sillaDirectiva: 'ALPHA', sillaVisita: 'CONCERTO',
-    juntas: delPlano.juntas, sillaJuntas: 'SONATA', recepcion: delPlano.recepcion, guardas: delPlano.guardas,
+    juntas: delPlano.juntas, sillaJuntas: 'SONATA', recepcion: delPlano.recepcion,
+    // Gavetas (pedestal rodante, 1 por puesto) y archiveros (1 por privado) son
+    // muebles distintos: el plano los sugiere por separado y aquí se editan aparte.
+    gavetas: delPlano.sugeridos?.gavetas ?? 0,
+    archiveros: delPlano.sugeridos?.archiveros ?? 0,
     // Del plano, para que la FRASE pueda decir cómo partir los puestos y cuántas
     // salas hay. Sin plano vienen en cero y la frase sale como siempre.
     islas: delPlano.islas, porIsla: delPlano.porIsla, salas: delPlano.salas,
@@ -143,7 +155,7 @@ export default function ProgramaProyecto({ onArmar, cargando = false, areasPlano
   const avisoSala = useMemo(() => avisosDeSala(delPlano, p.juntas), [delPlano, p.juntas]);
   // Acepta un valor o una función, como `setState`: los ± mandan función.
   const set = (k) => (v) => setP((x) => ({ ...x, [k]: typeof v === 'function' ? v(x[k]) : v }));
-  const hay = p.operativos > 0 || p.privados > 0 || p.juntas > 0 || p.recepcion || p.guardas > 0;
+  const hay = p.operativos > 0 || p.privados > 0 || p.juntas > 0 || p.recepcion || p.gavetas > 0 || p.archiveros > 0;
   // Los puestos que se van a sentar, para que vea crecer el proyecto.
   const personas = p.operativos + p.privados + p.juntas;
 
@@ -210,8 +222,13 @@ export default function ProgramaProyecto({ onArmar, cargando = false, areasPlano
       )}
 
       <div className="prog-fila">
-        <div className="prog-et"><strong>Archiveros</strong><span>guarda suelta</span></div>
-        <Mm v={p.guardas} set={set('guardas')} />
+        <div className="prog-et"><strong>Gavetas</strong><span>pedestal rodante · 1 por puesto</span></div>
+        <Mm v={p.gavetas} set={set('gavetas')} />
+      </div>
+
+      <div className="prog-fila">
+        <div className="prog-et"><strong>Archiveros</strong><span>guarda de privado</span></div>
+        <Mm v={p.archiveros} set={set('archiveros')} />
       </div>
 
       <label className="chk" style={{ marginTop: 6 }}>
