@@ -257,13 +257,13 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
     if (!pipeline || !veCostos || pipeline.costo.official_cost == null || !onAgregar) return;
     // Una sola verdad de producto: antes de cotizar, el especial debe existir como
     // ProductRevision canónica. Guarda (secure) y registra/reutiliza el producto.
-    let prodVersionId = null;
+    let prodVersionId = null, prodId = null;
     try {
       const g = await guardarCocrearSeguro(expedienteId, cocrearPayload({ brief: texto, intent, historia, render }));
       const id = g?.ok ? (g.expediente_id || expedienteId) : expedienteId;
-      if (id) { setExpedienteId(id); const reg = await registrarProductoDesdeExpediente(id); if (reg?.ok) prodVersionId = reg.producto_version_id || null; }
+      if (id) { setExpedienteId(id); const reg = await registrarProductoDesdeExpediente(id); if (reg?.ok) { prodVersionId = reg.version_id || null; prodId = reg.producto_id || null; } }
     } catch { /* la cotización no se bloquea por la nube; el precio ya es honesto */ }
-    const costeo = { nombre: descripcionCorta(spec), componentes: spec.componentes, w: spec.dimensiones?.ancho_mm || null, d: null, productoId: null, productVersionId: prodVersionId, precioReal: false, config: null };
+    const costeo = { nombre: descripcionCorta(spec), componentes: spec.componentes, w: spec.dimensiones?.ancho_mm || null, d: null, productoId: prodId, productVersionId: prodVersionId, precioReal: false, config: null };
     const margen = Number.isFinite(par.margenObjetivo) ? par.margenObjetivo : 40;
     onAgregar(costeo, 1, precioVenta(pipeline.costo.official_cost, par).precio, margen);
     setCotizadoHash(spec.hash);   // la cotización queda PINNED a esta revisión (hash)

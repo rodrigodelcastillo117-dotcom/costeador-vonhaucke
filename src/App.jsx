@@ -659,6 +659,9 @@ export default function App() {
       nombre: costeo.nombre,
       ruta: costeo.ruta || null,
       productoId: costeo.productoId || null,
+      // Pin de la versión canónica del producto (una sola verdad): el gate de emisión
+      // exige producto_version_id en toda línea ligada a producto (Cocrear/catálogo).
+      producto_version_id: costeo.productVersionId || costeo.producto_version_id || null,
       w: costeo.w || null, d: costeo.d || null,
       cantidad: n,
       costoUnitario: costo,
