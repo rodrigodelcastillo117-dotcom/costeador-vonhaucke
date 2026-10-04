@@ -481,7 +481,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                     const util = (pt.precioUnitario - (pt.costoUnitario || 0)) * pt.cantidad;
                     const s = selloPartida(pt);
                     return (
-                      <tr key={pt.id} style={bajo ? { background: '#fbeceb' } : undefined}>
+                      <tr key={pt.id} className={bajo ? 'nota-clara' : undefined} style={bajo ? { background: '#fbeceb' } : undefined}>
                         <td>{pt.nombre} <span className={`sello sello-${s.tipo}`} title={s.nota}>{s.texto}</span>
                           {bajo && <div className="ayuda rojo">Debajo del mínimo de {estado.parametros.margenMinimo}%</div>}</td>
                         <td className="num"><span className="masmenos"><button onClick={() => setPartida(i, { cantidad: Math.max(1, pt.cantidad - 1) })}>−</button><span className="valor">{pt.cantidad}</span><button onClick={() => setPartida(i, { cantidad: pt.cantidad + 1 })}>+</button></span></td>

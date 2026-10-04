@@ -81,6 +81,34 @@ h3 { font-size: 17px; font-weight: 700; }
 .verde { color: var(--verde); }
 .ambar { color: var(--ambar); }
 
+/* ⚠️ NOTA-CLARA (auditoría 2026-10-04): cajas con FONDO CLARO dentro del tema
+   oscuro (notas tipo "papel": barra de dibujar, tarjetas de reglas, panel Voni…).
+   El tema oscuro dejó el texto por defecto CLARO (--carbon = #ECE9E4), así que
+   cualquier caja que conservó un fondo claro quedó con texto claro sobre claro
+   (invisible). Esta clase fuerza texto OSCURO en esas cajas y sus labels, sin
+   tocar botones ni colores semánticos. Rodrigo: "si hay texto blanco, ponerlo en
+   negro". */
+.nota-clara { color: #1E1B1A; }
+.nota-clara .ayuda,
+.nota-clara label,
+.nota-clara .etiqueta,
+.nota-clara .leg { color: #6b645d; }
+.nota-clara strong,
+.nota-clara b,
+.nota-clara h1,
+.nota-clara h2,
+.nota-clara h3 { color: #1E1B1A; }
+
+/* Mismas "notas de papel" que ya existían por CLASE (fondo claro hardcodeado) y
+   que el tema oscuro dejó con texto claro heredado. Se les fija texto oscuro aquí
+   (los `span`/`em` en --gris siguen ganando por especificidad: son secundarios a
+   propósito). Auditoría 2026-10-04 "texto blanco sobre fondo claro en toda la app". */
+.empezar-resumen,
+.prog-resumen,
+.cuarto-chip,
+.cancel-aviso,
+.prog-plano { color: #1E1B1A; }
+
 /* ---- Encabezado (siempre visible, 7) - responsivo ---- */
 .encabezado {
   background: var(--oscuro);

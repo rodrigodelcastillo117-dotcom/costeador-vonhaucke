@@ -470,7 +470,7 @@ export default function DibujarPlano({ onListo, onCancelar }) {
       </svg>
 
       {/* 📐 Dibuja a ojo y yo lo mido: escala TODO el dibujo al m² que digas. */}
-      <div className="fila-botones" style={{ gap: 10, marginTop: 12, alignItems: 'center', flexWrap: 'wrap', background: '#f3efe8', border: '1px solid var(--linea)', borderRadius: 12, padding: '10px 12px' }}>
+      <div className="fila-botones nota-clara" style={{ gap: 10, marginTop: 12, alignItems: 'center', flexWrap: 'wrap', background: '#f3efe8', border: '1px solid var(--linea)', borderRadius: 12, padding: '10px 12px' }}>
         <strong style={{ fontSize: 14 }}>📐 Dibuja a ojo y yo lo mido:</strong>
         <label className="ayuda" htmlFor="meta-m2">¿Cuántos m² es (aprox)?</label>
         <input id="meta-m2" type="text" inputMode="numeric" className="numero" style={{ width: 90 }} value={metaM2} placeholder="200"

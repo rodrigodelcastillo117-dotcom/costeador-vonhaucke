@@ -46,7 +46,7 @@ export default function Voni2({ ctx = {}, onCerrar }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,27,42,.45)', zIndex: 9998, display: 'flex', justifyContent: 'flex-end' }} onClick={onCerrar}>
-      <div style={{ width: 'min(440px, 100%)', background: '#fff', height: '100%', overflow: 'auto', padding: 20, boxShadow: '-8px 0 30px rgba(0,0,0,.15)' }} onClick={(e) => e.stopPropagation()}>
+      <div className="nota-clara" style={{ width: 'min(440px, 100%)', background: '#fff', height: '100%', overflow: 'auto', padding: 20, boxShadow: '-8px 0 30px rgba(0,0,0,.15)' }} onClick={(e) => e.stopPropagation()}>
         <div className="fila" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
           <strong style={{ fontSize: 18 }}>Voni{ctx.clientSafe ? ' · modo cliente' : ''}</strong>
           <button className="boton fantasma" onClick={onCerrar} aria-label="Cerrar">Cerrar ✕</button>

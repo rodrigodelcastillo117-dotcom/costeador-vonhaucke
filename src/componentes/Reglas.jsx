@@ -164,7 +164,7 @@ export default function Reglas({ puedeEditar = false }) {
 function Editor({ r, setR, onGuardar, onCancelar }) {
   const set = (k, v) => setR({ ...r, [k]: v });
   return (
-    <div className="tarjeta" style={{ background: '#fbf9f5', marginTop: 10 }}>
+    <div className="tarjeta nota-clara" style={{ background: '#fbf9f5', marginTop: 10 }}>
       <label className="etiqueta">La regla, con tus palabras</label>
       <textarea className="campo" rows={2} value={r.texto} onChange={(e) => set('texto', e.target.value)}
         placeholder="Ej.: en los privados siempre van 2 sillas de visita de 4 patas." />
