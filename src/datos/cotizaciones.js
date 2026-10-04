@@ -164,19 +164,23 @@ export async function guardarCotizacion(estado, usuario, id = null) {
  * de en cuál de los tres estaba.
  */
 export async function listarCotizaciones({ q = '', limite = 60 } = {}) {
-  let sel = nube.from('cotizaciones').select('*').eq('activa', true)
-    .order('actualizado', { ascending: false }).limit(limite);
-  const { data, error } = await sel;
-  // ⚠️ ANTES un error de la consulta (red, RLS) devolvía `[]` igual que un
-  // archivo legítimamente vacío: Archivo.jsx ya tiene su propio try/catch
-  // esperando justo esto (setError('No se pudo leer el archivo.')), pero como
-  // aquí nunca se lanzaba nada, esa pantalla de error jamás se veía — el
-  // vendedor sólo leía "Todavía no hay presupuestos guardados", que es falso
-  // cuando en realidad la consulta se cayó.
+  // LECTURA SELLER-SAFE (P0-08). Antes: `from('cotizaciones').select('*')` — y eso
+  // entregaba al vendedor las `partidas` CRUDAS, que guardan economía interna
+  // (costoUnitario, costoDerivado, margen, config/catálogo embebidos). RLS filtra
+  // FILAS, no columnas dentro del JSON, así que la UI lo ocultaba pero el API no.
+  // Ahora la única vía es el RPC `cotizaciones_mias` (SECURITY DEFINER): Dirección
+  // ve economía completa; vendedor/diseño reciben las partidas SIN economía. El
+  // SELECT directo a la columna `cotizaciones.partidas` está REVOCADO al rol
+  // `authenticated`/`anon` (migración seller_safe_cotizaciones_mias_revoke_partidas),
+  // de modo que no hay forma de leerla por REST crudo.
+  const { data, error } = await nube.rpc('cotizaciones_mias', { p_limite: limite });
+  // ⚠️ Si la consulta falla (red, permisos) NO devolver `[]` —que parece "archivo
+  // vacío"—: Archivo.jsx tiene su try/catch (setError('No se pudo leer el archivo.')).
   if (error) throw error;
+  const filas = Array.isArray(data) ? data : [];
   const t = String(q || '').trim().toLowerCase();
-  if (!t) return data || [];
-  return (data || []).filter((c) => textoDe(c).includes(t));
+  if (!t) return filas;
+  return filas.filter((c) => textoDe(c).includes(t));
 }
 
 /** Todo lo que se puede buscar de una cotización, en un solo texto. */
