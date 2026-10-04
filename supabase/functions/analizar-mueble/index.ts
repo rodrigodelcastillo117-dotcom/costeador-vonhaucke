@@ -192,7 +192,7 @@ Deno.serve(async (req) => {
 
   // CATÁLOGO CANÓNICO server-side = AUTORIDAD. El catálogo que manda el cliente ya
   // NO es autoridad: sólo se usa como PISTA para ids que el servidor aún no tenga.
-  const cat = await construirCatalogo(catalogo);
+  const { texto: cat, canonicoOk } = await construirCatalogo(catalogo);
 
   const system =
     "Actua como el Director Operativo (COO), Jefe de Ingenieria de Producto y Experto en Costos de una fabrica de mobiliario de clase mundial (corporativo, hoteleria y retail; metalmecanica, CNC, pintura, tapiceria). Eres maestro en Lean Manufacturing, Design for Manufacturing (DFM) y optimizacion de recursos.\n\n" +
@@ -327,7 +327,9 @@ Deno.serve(async (req) => {
   catch { return json({ ok: false, error: "La IA no devolvio un analisis valido (JSON incompleto). Reintenta." }, 200); }
 
   await cerrarTel("ok", 200, { model_status: String(data?.stop_reason || "ok") });
-  return json({ ok: true, propuesta, uso: data?.usage || null, request_id: requestId });
+  // #8: la fuente del catálogo viaja al cliente. 'cliente-fallback' => el canónico no
+  // estuvo disponible y se usaron pistas locales: la UI debe avisar (no cotizar en firme).
+  return json({ ok: true, propuesta, catalogoFuente: canonicoOk ? "canonico" : "cliente-fallback", uso: data?.usage || null, request_id: requestId });
 });
 
 function json(obj: unknown, status = 200) {
@@ -340,11 +342,15 @@ function json(obj: unknown, status = 200) {
 // cliente para no romper el análisis. Marca los insumos SIN precio certificado
 // (p.ej. superficie sólida recién dada de alta) para que la IA los trate como
 // pendientes de precio, no como inexistentes.
-async function construirCatalogo(clienteCat: any): Promise<string> {
+async function construirCatalogo(clienteCat: any): Promise<{ texto: string; canonicoOk: boolean }> {
   const url = Deno.env.get("SUPABASE_URL");
   const srv = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const lineasServidor: string[] = [];
   const idsServidor = new Set<string>();
+  // ⚠️ #8 (2026-10-04): el fallback al catálogo del cliente NO puede ser silencioso.
+  // Se marca si el catálogo CANÓNICO se pudo leer; si no, el caller lo reporta
+  // (`catalogoFuente`) para que la UI avise "no cotizar en firme con datos locales".
+  let canonicoOk = false;
   if (url && srv) {
     const h = { apikey: srv, authorization: `Bearer ${srv}` };
     try {
@@ -368,6 +374,7 @@ async function construirCatalogo(clienteCat: any): Promise<string> {
         { headers: h },
       );
       if (rc.ok) {
+        canonicoOk = true;   // se leyó la autoridad de "qué materiales existen"
         for (const d of (await rc.json()) || []) {
           if (!d?.id) continue;
           idsServidor.add(d.id);
@@ -380,7 +387,11 @@ async function construirCatalogo(clienteCat: any): Promise<string> {
           );
         }
       }
-    } catch (_) { /* fail-open a las pistas del cliente */ }
+    } catch (e) {
+      // Fail-open a las pistas del cliente, pero NO en silencio: queda en logs y
+      // el caller marca `catalogoFuente='cliente-fallback'`.
+      console.error("[construirCatalogo] catálogo canónico no disponible, uso pistas del cliente:", e);
+    }
   }
   const hints: string[] = [];
   if (Array.isArray(clienteCat)) {
@@ -394,5 +405,5 @@ async function construirCatalogo(clienteCat: any): Promise<string> {
     }
   }
   const todo = [...lineasServidor, ...hints];
-  return todo.length ? todo.join("\n") : "(sin catalogo)";
+  return { texto: todo.length ? todo.join("\n") : "(sin catalogo)", canonicoOk };
 }

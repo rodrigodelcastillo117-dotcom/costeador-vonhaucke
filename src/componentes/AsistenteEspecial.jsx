@@ -98,6 +98,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const [analizando, setAnalizando] = useState(false);
   const [verificando, setVerificando] = useState(false); // 2ª pasada: la IA critica su propio despiece
   const [errorIA, setErrorIA] = useState('');
+  const [catalogoFuente, setCatalogoFuente] = useState(null); // 'canonico' | 'cliente-fallback' (#8: aviso si el catálogo central no estuvo)
   const [preguntasIA, setPreguntasIA] = useState([]);
   const [propuestaIA, setPropuestaIA] = useState(null); // despiece crudo de la IA (para re-costear con respuestas)
   const [respuestas, setRespuestas] = useState({});     // {idx: texto} respuestas del usuario a las preguntas
@@ -490,6 +491,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     // DESCARTE de respuesta async vieja: si ya empezó otra corrida (otro plano), ignórala.
     if (!aceptaCorrida(corridaId, corrida.current)) return false;
     if (!res?.ok) { setErrorIA(res?.error || 'No se pudo analizar.'); return false; }
+    setCatalogoFuente(res.catalogoFuente || null);   // #8: si fue 'cliente-fallback', se avisa (no cotizar en firme)
     const p = res.propuesta || {};
     const comps = conAcompanantes(mapIaComps(p));
     // planos: TODAS las páginas/vistas del plano (base64 raw) para referencia múltiple del render.
@@ -817,6 +819,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
               <input type="file" accept="image/*,application/pdf,.pdf" hidden disabled={analizando} onChange={onImagen} />
             </label>
             {errorIA && <div className="alerta roja" style={{ marginTop: 12 }}><span className="texto">{errorIA}</span></div>}
+            {catalogoFuente === 'cliente-fallback' && <div className="alerta ambar" style={{ marginTop: 12 }}><span className="texto">⚠ El catálogo central no estaba disponible: la IA usó datos locales. <strong>No cotices en firme</strong> con este análisis; confirma materiales y precios con Dirección.</span></div>}
           </div>
 
           <label className="etiqueta">O escríbelo tú</label>
