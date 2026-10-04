@@ -662,6 +662,9 @@ export default function App() {
       // Pin de la versión canónica del producto (una sola verdad): el gate de emisión
       // exige producto_version_id en toda línea ligada a producto (Cocrear/catálogo).
       producto_version_id: costeo.productVersionId || costeo.producto_version_id || null,
+      // Imagen canónica del especial co-diseñado (URL de Storage, nunca base64): la
+      // misma que el cliente vio en Cocrear viaja a la partida (una sola verdad).
+      render: costeo.render || null,
       w: costeo.w || null, d: costeo.d || null,
       cantidad: n,
       costoUnitario: costo,
