@@ -164,16 +164,22 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
     const cot = estado.cotizacion || {};
     const totalCot = (cot.partidas || []).reduce((s, p) => s + (p.precioUnitario || 0) * (p.cantidad || 0), 0);
     return (
-      <div className="inicio">
+      <div className="inicio inicio-terminal">
         <div className="inicio-hero">
           <div className="inicio-hero-txt">
-            <div className="inicio-overline">Vonhaucke · Cocreando tu espacio</div>
-            <h1 className="inicio-titulo">Empecemos tu propuesta</h1>
-            <div className="inicio-lead">Cotiza, acomoda y presenta con mobiliario Vonhaucke, en minutos.</div>
+            <div className="inicio-overline"><span className="ov-dot" />VH · TALLER DIGITAL · EST. 1958</div>
+            <h1 className="inicio-titulo">Cocreando<br />tu espacio</h1>
+            <div className="inicio-lead">Del plano al producto: costea, cotiza y presenta mobiliario Vonhaucke con precisión, en minutos.</div>
+            <div className="inicio-datastrip">
+              <span><b>68</b> AÑOS DE OFICIO</span>
+              <span><b>+118</b> PRODUCTOS</span>
+              <span className="ds-live"><span className="ds-pulse" />MOTOR DE COSTEO · ACTIVO</span>
+            </div>
           </div>
           <div className="inicio-hero-foto" aria-hidden="true"
             style={{ backgroundImage: 'url(https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/app/marca/portada-1.jpg)' }}>
-            <span className="inicio-hero-cota">3600 × 750 mm</span>
+            <span className="inicio-hero-cota">3600 × 750 × 1050 MM</span>
+            <span className="inicio-hero-tag">PROYECTO · ASUR T2</span>
           </div>
         </div>
 

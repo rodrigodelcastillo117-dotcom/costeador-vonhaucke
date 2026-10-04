@@ -2097,3 +2097,114 @@ body::after {
 
 /* Lead con un pelo más de aire y color más rico. */
 .inicio-hero .inicio-lead { color: #574f47; line-height: 1.5; }
+
+/* ==========================================================================
+   VH TERMINAL (2026-10-04) — Home con lenguaje Bloomberg × taller de manufactura.
+   Oscuro, técnico, de datos, filoso. Grotesca moderna + mono. Full-bleed.
+   Tema SOLO del Home (clase .inicio-terminal); el resto de la app no se toca aún.
+   ========================================================================== */
+.inicio-terminal {
+  --t-bg: #0C0B0A; --t-panel: #151312; --t-panel2: #1B1817; --t-line: rgba(255,255,255,.09);
+  --t-line2: rgba(255,255,255,.17); --t-txt: #ECE9E4; --t-dim: #948C84; --t-red: #E5484D;
+  --mono2: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --grot: "Space Grotesk", "Archivo", var(--sans);
+  max-width: none; color: var(--t-txt);
+  margin-inline: calc(50% - 50vw); padding: 26px max(16px, calc(50vw - 600px)) 64px;
+  background: radial-gradient(70% 55% at 86% -8%, rgba(229,72,77,.12), transparent 60%), var(--t-bg);
+  min-height: calc(100vh - 66px); position: relative;
+}
+.inicio-terminal::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background-image: linear-gradient(var(--t-line) 1px, transparent 1px), linear-gradient(90deg, var(--t-line) 1px, transparent 1px);
+  background-size: 36px 36px; opacity: .6;
+  -webkit-mask-image: linear-gradient(#000, transparent 88%); mask-image: linear-gradient(#000, transparent 88%);
+}
+.inicio-terminal > * { position: relative; z-index: 1; }
+
+/* HERO ------------------------------------------------------------------- */
+.inicio-terminal .inicio-hero {
+  grid-template-columns: 1.05fr .95fr; background: linear-gradient(180deg, #171413, #110F0E);
+  border: 1px solid var(--t-line2); border-radius: 12px; box-shadow: 0 40px 90px -50px #000, inset 0 1px 0 rgba(255,255,255,.05);
+  overflow: hidden; animation: none;
+}
+.inicio-terminal .inicio-hero::before, .inicio-terminal .inicio-hero::after { content: none !important; }
+.inicio-terminal .inicio-hero-txt { padding: 44px 40px; }
+.inicio-terminal .inicio-hero-txt::before {
+  background-image: linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+  background-size: 28px 28px; -webkit-mask-image: linear-gradient(150deg, rgba(0,0,0,.7), transparent 70%); mask-image: linear-gradient(150deg, rgba(0,0,0,.7), transparent 70%);
+}
+.inicio-terminal .inicio-overline {
+  display: inline-flex; align-items: center; gap: 9px; font-family: var(--mono2);
+  color: var(--t-dim); font-size: 11.5px; font-weight: 500; letter-spacing: .18em; margin-bottom: 20px;
+}
+.inicio-terminal .inicio-overline::before { content: none; }
+.inicio-terminal .ov-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--t-red); box-shadow: 0 0 10px var(--t-red); }
+.inicio-terminal .inicio-titulo {
+  font-family: var(--grot); font-weight: 600; color: #fff; font-size: 62px; line-height: .95;
+  letter-spacing: -0.03em; margin: 0;
+}
+.inicio-terminal .inicio-lead { font-family: var(--sans); color: #B9B2AA; font-size: 17px; line-height: 1.5; margin-top: 16px; max-width: 44ch; }
+.inicio-datastrip { display: flex; flex-wrap: wrap; gap: 9px 24px; margin-top: 26px; font-family: var(--mono2); font-size: 11px; letter-spacing: .09em; color: var(--t-dim); text-transform: uppercase; }
+.inicio-datastrip b { color: #fff; font-weight: 600; font-size: 13.5px; margin-right: 5px; }
+.inicio-datastrip .ds-live { color: var(--t-red); display: inline-flex; align-items: center; gap: 8px; }
+.ds-pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--t-red); }
+@media (prefers-reduced-motion: no-preference) { .ds-pulse { animation: ds-pulse 2.2s infinite; } }
+@keyframes ds-pulse { 0% { box-shadow: 0 0 0 0 rgba(229,72,77,.5); } 70% { box-shadow: 0 0 0 8px rgba(229,72,77,0); } 100% { box-shadow: 0 0 0 0 rgba(229,72,77,0); } }
+/* foto con marco técnico + etiquetas mono */
+.inicio-terminal .inicio-hero-foto { min-height: 340px; }
+.inicio-terminal .inicio-hero-foto::after { background: linear-gradient(90deg, rgba(17,15,14,.55), transparent 30%), linear-gradient(0deg, rgba(17,15,14,.65), transparent 40%); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+.inicio-terminal .inicio-hero-cota, .inicio-terminal .inicio-hero-tag {
+  font-family: var(--mono2); font-size: 10.5px; font-weight: 500; letter-spacing: .1em;
+  background: rgba(10,9,8,.6); border: 1px solid rgba(255,255,255,.2); color: #fff; backdrop-filter: blur(6px);
+}
+.inicio-terminal .inicio-hero-tag { position: absolute; top: 14px; right: 14px; left: auto; bottom: auto; padding: 5px 10px; border-radius: 5px; color: var(--t-red); border-color: rgba(229,72,77,.45); }
+.inicio-terminal .inicio-hero-cota { border-radius: 5px; }
+
+/* RETOMAR ---------------------------------------------------------------- */
+.inicio-terminal .retomar { background: var(--t-panel); border: 1px solid var(--t-line); border-left: 3px solid var(--t-red); box-shadow: none; border-radius: 10px; }
+.inicio-terminal .retomar:hover { border-color: var(--t-line2); border-left-color: var(--t-red); background: var(--t-panel2); }
+.inicio-terminal .retomar-lbl { font-family: var(--mono2); color: var(--t-red); letter-spacing: .12em; }
+.inicio-terminal .retomar-txt strong { font-family: var(--grot); color: #fff; }
+.inicio-terminal .retomar-n { font-family: var(--mono2); color: var(--t-dim); }
+.inicio-terminal .retomar-cta { background: #fff; color: #0C0B0A; border-radius: 7px; }
+.inicio-terminal .retomar-tirar { color: var(--t-dim); border-color: var(--t-line); }
+
+/* PUERTAS (Voni / Costear) ---------------------------------------------- */
+.inicio-terminal .voni-principal {
+  background: radial-gradient(120% 120% at 85% -10%, rgba(229,72,77,.3), transparent 55%), linear-gradient(150deg, #1a1513, #221513);
+  border: 1px solid var(--t-line2); border-radius: 12px; box-shadow: 0 30px 60px -40px #000;
+}
+.inicio-terminal .voni-principal-k, .inicio-terminal .costear-principal .voni-principal-k { font-family: var(--mono2); letter-spacing: .14em; opacity: .9; }
+.inicio-terminal .voni-principal-txt strong { font-family: var(--grot); color: #fff; }
+.inicio-terminal .voni-principal-cta { background: #fff; color: #0C0B0A; border-radius: 7px; backdrop-filter: none; }
+.inicio-terminal .costear-principal {
+  background: var(--t-panel); border: 1px solid var(--t-line2); color: var(--t-txt); border-radius: 12px; box-shadow: 0 30px 60px -40px #000;
+}
+.inicio-terminal .costear-principal:hover { background: var(--t-panel2); }
+.inicio-terminal .costear-principal .voni-principal-av { color: var(--t-red); }
+.inicio-terminal .costear-principal .voni-principal-k { color: var(--t-red); }
+.inicio-terminal .costear-principal .voni-principal-txt strong { color: #fff; }
+.inicio-terminal .costear-principal .voni-principal-txt span:last-child { color: #B9B2AA; }
+.inicio-terminal .costear-principal .voni-principal-cta { background: var(--t-red); color: #fff; }
+
+/* ATAJOS / FAVORITAS / PIE --------------------------------------------- */
+.inicio-terminal .atajos-bloque, .inicio-terminal .favoritas { border-top-color: var(--t-line); }
+.inicio-terminal .atajos-lbl, .inicio-terminal .favoritas-lbl { font-family: var(--mono2); color: var(--t-dim); letter-spacing: .12em; }
+.inicio-terminal .atajo { background: var(--t-panel); border: 1px solid var(--t-line); color: var(--t-txt); box-shadow: none; border-radius: 8px; }
+.inicio-terminal .atajo span { color: var(--t-dim); }
+.inicio-terminal .atajo:hover { background: var(--t-panel2); border-color: var(--t-line2); }
+.inicio-terminal .atajo-mas { background: transparent; border-style: dashed; color: var(--t-dim); }
+.inicio-terminal .favorita { background: var(--t-panel); border: 1px solid var(--t-line); color: var(--t-txt); box-shadow: none; }
+.inicio-terminal .favorita:hover { border-color: var(--t-red); color: #fff; }
+.inicio-terminal .inicio-pie { border-top: 1px solid var(--t-line); margin-top: 26px; padding-top: 18px; }
+.inicio-terminal .enlace-pie { font-family: var(--mono2); font-size: 12px; letter-spacing: .06em; color: var(--t-dim); }
+.inicio-terminal .enlace-pie:hover { color: var(--t-red); }
+
+@media (max-width: 760px) {
+  .inicio-terminal { padding: 18px 16px 48px; }
+  .inicio-terminal .inicio-hero { grid-template-columns: 1fr; }
+  .inicio-terminal .inicio-hero-foto { order: -1; min-height: 210px; }
+  .inicio-terminal .inicio-hero-txt { padding: 26px 22px 28px; }
+  .inicio-terminal .inicio-titulo { font-size: 40px; }
+  .inicio-terminal .inicio-lead { max-width: none; }
+}
