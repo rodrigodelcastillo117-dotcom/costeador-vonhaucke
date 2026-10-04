@@ -475,7 +475,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     // POLÍTICA DE MATERIAL (misma que Costeador): nunca sustituye una familia por
     // otra en silencio (solid surface jamás cae en MDF/HPL). Sólo EXACT/EQUIV
     // conservan insumoId; el resto queda '' + bandera `_match`.
-    const base = aplicarPoliticaMaterial({ ...z, material_solicitado: z.material_solicitado || z.nombre }, (id) => insumos[id]);
+    const base = aplicarPoliticaMaterial({ ...z, material_solicitado: z.material_solicitado || z.nombre }, (id) => insumos[id], Object.values(insumos));
     if (z.forma === 'area') {
       base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
       // La IA ya estimó la fracción de hoja que rinde: el motor la usa directa

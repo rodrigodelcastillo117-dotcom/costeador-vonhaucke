@@ -6,20 +6,30 @@
    ========================================================================== */
 
 :root {
-  --rojo: #B22A22;          /* rojo de marca, deepened para verse premium */
-  --rojo-osc: #8A1F19;
-  --carbon: #1E1B1A;        /* tinta: color dominante de la interfaz */
-  --tinta: #1E1B1A;
-  --papel: #F3F1ED;         /* off-white cálido, tipo papel */
-  --panel: #FBFAF8;         /* superficie de tarjeta, un pelo más clara que papel */
-  --linea: #E2DDD7;         /* filete fino (hairline) */
-  --linea-fuerte: #CDC6BE;
-  --gris: #746E68;
-  --verde: #0F766E;
-  --ambar: #9A7317;
-  --blanco: #FFFFFF;
-  --foco: #E7B4AF;
-  --sombra: 0 1px 2px rgba(30,27,26,.04), 0 8px 24px -14px rgba(30,27,26,.18);
+  /* ===== TEMA OSCURO GLOBAL "VH TERMINAL" (2026-10-04) =====
+     Se reusan los NOMBRES de token (todo el app los usa) pero con valores oscuros.
+     Regla: --carbon/--tinta ahora son TEXTO CLARO (antes eran tinta oscura y texto);
+     las superficies oscuras que antes usaban --carbon/--tinta pasan a --oscuro.
+     --blanco ahora es una SUPERFICIE oscura elevada (las ~16 tarjetas que lo usaban
+     quedan oscuras). Texto blanco literal donde haga falta: #fff. Revertir = volver
+     estos valores a los claros originales (un solo bloque). PDF/impresión NO se
+     afecta aquí (se fuerza claro en @media print más abajo). */
+  --rojo: #E5484D;          /* rojo de marca, más brillante para destacar en oscuro */
+  --rojo-osc: #B22A22;
+  --oscuro: #141210;        /* superficie oscura (header, botones tinta): antes --carbon/--tinta */
+  --carbon: #ECE9E4;        /* AHORA = texto principal claro */
+  --tinta: #ECE9E4;         /* AHORA = texto principal claro */
+  --papel: #0C0B0A;         /* fondo de la app (canvas oscuro) */
+  --panel: #151312;         /* superficie de tarjeta */
+  --linea: rgba(237,233,228,.12);   /* filete fino (hairline) claro translúcido */
+  --linea-fuerte: rgba(237,233,228,.22);
+  --gris: #9A938B;          /* texto atenuado, legible sobre oscuro */
+  --verde: #34D399;
+  --ambar: #E0A93B;
+  --blanco: #1C1917;        /* AHORA = superficie oscura elevada (tarjetas/inputs/botones blancos) */
+  --blanco-puro: #FFFFFF;   /* blanco real para los pocos textos que deben ir en blanco */
+  --foco: rgba(229,72,77,.5);
+  --sombra: 0 1px 2px rgba(0,0,0,.4), 0 14px 34px -16px rgba(0,0,0,.6);
 
   /* Fuentes de marca incrustadas en el archivo (fuentes.css), con respaldo del
      sistema por si algo falla. La monoespaciada alinea las columnas de dinero. */
@@ -73,8 +83,8 @@ h3 { font-size: 17px; font-weight: 700; }
 
 /* ---- Encabezado (siempre visible, 7) - responsivo ---- */
 .encabezado {
-  background: var(--carbon);
-  color: var(--blanco);
+  background: var(--oscuro);
+  color: var(--blanco-puro);
   padding: 10px 16px;
   position: sticky;
   top: 0;
@@ -157,9 +167,9 @@ input.capturado { border-color: var(--verde); }
 .boton:hover { border-color: var(--tinta); }
 .boton:active { transform: translateY(1px); }
 .boton:focus-visible { outline: 3px solid var(--foco); outline-offset: 1px; }
-.boton.primario { background: var(--rojo); border-color: var(--rojo); color: var(--blanco); }
+.boton.primario { background: var(--rojo); border-color: var(--rojo); color: var(--blanco-puro); }
 .boton.primario:hover { background: var(--rojo-osc); border-color: var(--rojo-osc); }
-.boton.tinta { background: var(--tinta); border-color: var(--tinta); color: #fff; }
+.boton.tinta { background: var(--oscuro); border-color: var(--tinta); color: #fff; }
 .boton.tinta:hover { background: #000; }
 .boton.fantasma { background: transparent; border-color: var(--linea); color: var(--tinta); font-weight: 600; }
 .boton.fantasma:hover { border-color: var(--tinta); background: rgba(30,27,26,.03); }
@@ -183,7 +193,7 @@ input.capturado { border-color: var(--verde); }
   border: 2px solid var(--linea); background: var(--blanco); color: var(--carbon);
   font-size: 16px; font-weight: 600;
 }
-.chip.on { background: var(--rojo); border-color: var(--rojo); color: var(--blanco); }
+.chip.on { background: var(--rojo); border-color: var(--rojo); color: var(--blanco-puro); }
 .chip .marca-chip { font-weight: 800; }
 .chip-swatch { width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(0,0,0,.18); flex-shrink: 0; }
 
@@ -246,11 +256,11 @@ input.capturado { border-color: var(--verde); }
 /* ---- Franja fija inferior (pantallas angostas, 4.8) ---- */
 .barra-fija {
   position: sticky; bottom: 0; z-index: 20;
-  background: var(--carbon); color: var(--blanco);
+  background: var(--oscuro); color: var(--blanco-puro);
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   padding: 12px 20px; border-top: 3px solid var(--rojo);
 }
-.barra-fija .precio-grande { color: var(--blanco); font-size: 28px; }
+.barra-fija .precio-grande { color: var(--blanco-puro); font-size: 28px; }
 
 /* ---- KPIs del tablero ---- */
 .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
@@ -379,7 +389,7 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 /* Tile destacada = primer paso de cada sección, en tinta (no rojo relleno) */
 .tile-destacada {
   grid-column: 1 / -1;
-  background: var(--tinta); border-color: var(--tinta); color: #fff;
+  background: var(--oscuro); border-color: var(--tinta); color: #fff;
   min-height: 120px; align-items: center;
 }
 .tile-destacada .tile-icono { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.16); color: #fff; }
@@ -431,7 +441,7 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 .accion:hover .accion-cta svg { transform: translateX(3px); }
 .accion-cta svg { transition: transform .14s ease; }
 /* variantes de tono */
-.accion-oscuro { background: var(--tinta); border-color: var(--tinta); color: #fff; }
+.accion-oscuro { background: var(--oscuro); border-color: var(--tinta); color: #fff; }
 .accion-oscuro .accion-icono { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.16); color: #fff; }
 .accion-oscuro .accion-kicker { color: #b9b2ab; }
 .accion-oscuro .accion-desc { color: #cfc9c4; }
@@ -874,7 +884,7 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 .propx-tot-box { width: min(400px, 100%); }
 .propx-tot-row { display: flex; justify-content: space-between; gap: 30px; padding: 5px 0; color: var(--gris); font-size: 14px; }
 .propx-tot-row b { color: var(--tinta); font-family: var(--mono); }
-.propx-tot-grand { display: flex; justify-content: space-between; gap: 30px; align-items: center; margin-top: 8px; padding: 13px 18px; background: var(--tinta); color: #fff; border-radius: 12px; }
+.propx-tot-grand { display: flex; justify-content: space-between; gap: 30px; align-items: center; margin-top: 8px; padding: 13px 18px; background: var(--oscuro); color: #fff; border-radius: 12px; }
 .propx-tot-grand span { font-family: var(--display); font-weight: 800; letter-spacing: .06em; }
 /* EL NÚMERO QUE DECIDE LA VENTA TIENE QUE SER EL MÁS GRANDE DE LA HOJA.
    Medido el 2026-08-16: en una propuesta de $298,996 el elemento más grande de
@@ -1319,7 +1329,7 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 /* Lo que se le escribe a Voni, tal cual. */
 .guia-ejemplo {
   margin-top: 12px; padding: 12px 14px; border-radius: 10px;
-  background: var(--tinta); color: #f2efec; display: block;
+  background: var(--oscuro); color: #f2efec; display: block;
 }
 .guia-ejemplo-lbl { display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em; opacity: .62; margin-bottom: 5px; }
 .guia-ejemplo-txt { display: block; font-size: 14px; line-height: 1.5; }
@@ -1404,7 +1414,7 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 .retomar-n { font-family: var(--mono); font-size: 13.5px; color: var(--gris); }
 .retomar-cta {
   flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px;
-  border-radius: 999px; background: var(--tinta); color: #fff; font-family: var(--display);
+  border-radius: 999px; background: var(--oscuro); color: #fff; font-family: var(--display);
   font-weight: 700; font-size: 13.5px;
 }
 
@@ -1860,7 +1870,7 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
    retícula de plano casi imperceptible. Se ve en TODAS las pantallas. */
 .encabezado {
   background:
-    linear-gradient(180deg, #26221F 0%, var(--carbon) 100%);
+    linear-gradient(180deg, #211D1B 0%, var(--oscuro) 100%);
   border-bottom: 2px solid var(--rojo);
   box-shadow: 0 1px 0 rgba(255,255,255,.04) inset, 0 6px 20px -12px rgba(0,0,0,.5);
 }
@@ -1895,7 +1905,7 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 }
 .boton.primario:hover { transform: translateY(-1px); box-shadow: 0 1px 1px rgba(255,255,255,.2) inset, 0 12px 26px -10px rgba(178,42,34,.65); }
 .boton.primario:active { transform: translateY(0); }
-.boton.tinta { background: linear-gradient(180deg, #2a2624 0%, var(--tinta) 100%); box-shadow: 0 8px 20px -12px rgba(0,0,0,.5); }
+.boton.tinta { background: linear-gradient(180deg, #2a2624 0%, var(--oscuro) 100%); box-shadow: 0 8px 20px -12px rgba(0,0,0,.5); }
 .boton.tinta:hover { transform: translateY(-1px); }
 
 /* CAMPOS: radio más suave y foco con anillo premium (doble: rojo tenue + tinta). */
@@ -2208,3 +2218,43 @@ body::after {
   .inicio-terminal .inicio-titulo { font-size: 40px; }
   .inicio-terminal .inicio-lead { max-width: none; }
 }
+
+/* ==========================================================================
+   PROTECCIÓN CLIENTE / IMPRESIÓN — los documentos que ve el cliente (la ficha de
+   cotización) y TODO lo que se imprime DEBEN ir en claro (papel blanco, tinta
+   oscura), aunque el app esté en oscuro. Se re-definen los tokens SÓLO dentro de
+   estos contenedores (cascada CSS) y en @media print. NO tocar.
+   ========================================================================== */
+.ficha-pdf, .hoja {
+  --papel: #F3F1ED; --panel: #FFFFFF; --oscuro: #1E1B1A;
+  --carbon: #1E1B1A; --tinta: #1E1B1A; --blanco: #FFFFFF; --blanco-puro: #FFFFFF;
+  --linea: #E2DDD7; --linea-fuerte: #CDC6BE; --gris: #746E68;
+  background: #FFFFFF; color: #1E1B1A;
+}
+@media print {
+  :root {
+    --papel: #FFFFFF; --panel: #FFFFFF; --oscuro: #1E1B1A;
+    --carbon: #1E1B1A; --tinta: #1E1B1A; --blanco: #FFFFFF; --blanco-puro: #FFFFFF;
+    --linea: #E2DDD7; --linea-fuerte: #CDC6BE; --gris: #555;
+  }
+  body { background: #FFFFFF !important; color: #1E1B1A !important; }
+}
+
+/* ==========================================================================
+   AJUSTES GLOBALES DEL TEMA OSCURO — tipografía de marca + legibilidad.
+   ========================================================================== */
+body { background: var(--papel); color: var(--carbon); }
+h1, h2, h3 { color: var(--carbon); }
+/* Titulares con la grotesca moderna; etiquetas/overlines en mono se definen por componente. */
+:root { --display: "Space Grotesk", "Archivo", var(--sans); }
+/* Inputs oscuros legibles */
+input[type="text"], input[type="number"], input[type="password"], input[type="email"],
+input[type="search"], input[type="tel"], input[type="date"], select, textarea {
+  background: var(--blanco); color: var(--carbon); border-color: var(--linea-fuerte);
+}
+input::placeholder, textarea::placeholder { color: #6f6961; }
+/* El botón "blanco" por defecto en oscuro: superficie elevada con texto claro. */
+.boton { background: var(--blanco); color: var(--carbon); border-color: var(--linea-fuerte); }
+.boton.fantasma { background: transparent; color: var(--carbon); }
+/* La barra de "Atrás/Inicio" y nombres de vista, legibles en oscuro. */
+.barra-atras-t { color: var(--gris); }

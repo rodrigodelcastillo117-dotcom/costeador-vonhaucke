@@ -154,42 +154,80 @@ export function clasificarMaterial({ solicitado = '', insumoId = '', insumoNombr
   };
 }
 
+// Puntúa coincidencia de color/acabado/espesor de un texto contra el nombre de un insumo.
+const RE_ESPESOR = /\b(9|12|16|19|25|28|30|36)\b/g;
 /**
- * Aplica la política a una pieza del analizador y devuelve el componente listo
- * para el BOM, con el id ya filtrado (sólo EXACT/EQUIVALENT_APPROVED conservan
- * su insumoId) y los metadatos de match para la UI. NUNCA inyecta un material
- * de otra familia al costeo.
- *
- * @param {{insumoId?:string, nombre?:string, material_solicitado?:string, cantidad?:number, nota?:string, confianza?:string, razonamiento?:string}} pieza
- * @param {(id:string)=>({nombre?:string}|undefined)} resolver  Devuelve el insumo del catálogo por id (p.ej. id => insumos[id]).
- * @returns {object} componente para el BOM, con _match {clase, motivo, solicitado}.
+ * MEJOR insumo de la MISMA familia para un texto de material (red de seguridad
+ * determinista: un material NOMBRADO nunca debe quedar sin costear). Escoge por
+ * familia + color/acabado + espesor. NUNCA cruza familias: si la familia pedida no
+ * existe en el catálogo, devuelve null (queda pendiente, p.ej. solid surface).
+ * @param {string} texto  p.ej. "Costado melamina nogal claro 19 mm"
+ * @param {Array<{id:string,nombre?:string,seccion?:string}>} catalogo  Object.values(insumos)
+ * @returns {{id:string,nombre?:string}|null}
  */
-export function aplicarPoliticaMaterial(pieza, resolver) {
+export function mejorInsumoDeFamilia(texto, catalogo = []) {
+  const fam = familiaDeMaterial(texto);
+  if (!fam || !Array.isArray(catalogo)) return null;
+  const t = String(texto).toLowerCase();
+  const STOP = new Set(['melamina', 'laminado', 'madera', 'panel', 'costado', 'lateral', 'repisa', 'repisas', 'frente', 'frentes', 'cubierta', 'entrepano', 'puerta', 'para', 'con', 'del', 'los', 'las', 'mdf', 'acero', 'lamina']);
+  const tokens = (t.match(/[a-záéíóúñ]{3,}/gi) || []).filter((w) => !STOP.has(w));
+  const espesores = t.match(RE_ESPESOR) || [];
+  let best = null, bestScore = -1;
+  for (const ins of catalogo) {
+    if (!ins || !ins.id) continue;
+    if (familiaDeMaterial(ins.nombre || ins.id) !== fam) continue;
+    const n = `${ins.nombre || ''} ${ins.id}`.toLowerCase();
+    let score = 1; // misma familia ya vale
+    for (const tok of tokens) if (n.includes(tok)) score += 2;          // color/acabado
+    for (const e of espesores) if (new RegExp(`\\b${e}\\b`).test(n)) score += 3; // espesor
+    if (score > bestScore) { bestScore = score; best = ins; }
+  }
+  return best;
+}
+
+/**
+ * Aplica la política a una pieza del analizador. Sólo EXACT/EQUIVALENT_APPROVED
+ * conservan el id del LLM. Si queda sin id PERO la FAMILIA existe en el catálogo
+ * (p.ej. el LLM nombró "melamina nogal" pero no mapeó), se AUTO-PRECARGA el mejor
+ * insumo de esa misma familia (cost-equivalente, nunca cruza familia). Si la
+ * familia no existe (solid surface ausente), queda pendiente. NUNCA inyecta otra familia.
+ *
+ * @param {object} pieza  {insumoId, nombre, material_solicitado, cantidad, nota, confianza, razonamiento}
+ * @param {(id:string)=>({nombre?:string}|undefined)} resolver  id => insumos[id]
+ * @param {Array<{id:string,nombre?:string,seccion?:string}>} [catalogo]  Object.values(insumos) para auto-precarga
+ * @returns {object} componente para el BOM, con _match {clase, motivo, solicitado, autollenado?}
+ */
+export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
   const id = String(pieza?.insumoId || '').trim();
   const existe = id ? resolver(id) : null;
   const insumoNombre = existe?.nombre || '';
   const solicitado = pieza?.material_solicitado || '';
 
-  // Si el id ni existe en el catálogo, es NOT_AVAILABLE directo (lo que ya hacía
-  // mapIaComps al blanquearlo, pero ahora con metadato y motivo claros).
-  const clasif = clasificarMaterial({
-    solicitado,
-    insumoId: existe ? id : '',
-    insumoNombre,
-  });
+  const clasif = clasificarMaterial({ solicitado, insumoId: existe ? id : '', insumoNombre });
+
+  let insumoIdFinal = clasif.insumoIdEfectivo;
+  let clase = clasif.clase;
+  let motivo = clasif.motivo;
+  let autollenado = false;
+  // RED DE SEGURIDAD: material nombrado sin id → auto-precarga de la MISMA familia.
+  if (!insumoIdFinal && Array.isArray(catalogo)) {
+    const cand = mejorInsumoDeFamilia(solicitado, catalogo);
+    if (cand) {
+      insumoIdFinal = cand.id; clase = MATCH.EXACT; autollenado = true;
+      motivo = `Auto-asignado por familia: ${cand.nombre || cand.id}. Revisa que sea el acabado correcto.`;
+    }
+  }
 
   return {
     nombre: pieza?.nombre || 'Pieza',
-    insumoId: clasif.insumoIdEfectivo, // '' salvo EXACT/EQUIVALENT_APPROVED
+    insumoId: insumoIdFinal,
     cantidad: pieza?.cantidad || 1,
     piezas: 1,
     iaNota: pieza?.nota || '',
     iaConf: pieza?.confianza || '',
     iaRazon: pieza?.razonamiento || '',
     _match: {
-      clase: clasif.clase,
-      motivo: clasif.motivo,
-      solicitado,
+      clase, motivo, solicitado, autollenado,
       familiaSolicitada: clasif.familiaSolicitada,
       familiaResuelta: clasif.familiaResuelta,
     },

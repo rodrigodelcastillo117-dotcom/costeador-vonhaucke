@@ -128,7 +128,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     // (el motor los marca pendientes, nunca los costea en $0 disfrazados).
     // `material_solicitado` lo da el analizador (v19+); si no viene, cae al nombre
     // de la pieza, que ya suele traer el material ("Cubierta superficie sólida").
-    const base = aplicarPoliticaMaterial({ ...z, material_solicitado: z.material_solicitado || z.nombre }, (id) => insumos[id]);
+    const base = aplicarPoliticaMaterial({ ...z, material_solicitado: z.material_solicitado || z.nombre }, (id) => insumos[id], Object.values(insumos));
     if (z.forma === 'area') { base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1; if (z.hojas > 0) base.hojas = z.hojas; }
     return base;
   });
