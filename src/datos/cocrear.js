@@ -504,6 +504,14 @@ export function aplicarCambioTexto(intent, frase) {
   if (/oscur|negr|dark/.test(t)) { _setTono(next, 'oscuro'); cambios.push({ campo: 'tono', a: 'oscuro', tipo: 'acabado' }); }
   else if (/clar|blanc|light/.test(t)) { _setTono(next, 'claro'); cambios.push({ campo: 'tono', a: 'claro', tipo: 'acabado' }); }
 
+  // --- "más cálida/cálido/warm" = cambio CONCRETO (madera cálida: nogal + ADN cálido) ---
+  if (/c[aá]lid|warm|acogedor/.test(t)) {
+    const tono0 = next.materiales?.[0]?.tono || null;
+    next.materiales = [{ material: 'nogal', tono: tono0 }, ...(next.materiales || []).slice(1)];
+    next.tono = 'calido';
+    cambios.push({ campo: 'adn.tono', a: 'calido (nogal)', tipo: 'material' });
+  }
+
   // --- Forma ---
   if (/curv|redonde|organ/.test(t)) { _addFeat(next, 'curva'); cambios.push({ campo: 'forma', a: 'curva', tipo: 'forma' }); }
   if (/recto|recta|angular|cuadrad/.test(t)) { _delFeat(next, 'curva'); cambios.push({ campo: 'forma', a: 'recta', tipo: 'forma' }); }

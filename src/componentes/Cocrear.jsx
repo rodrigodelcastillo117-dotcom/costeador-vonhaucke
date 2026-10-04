@@ -20,6 +20,7 @@ import CocrearVisual from './CocrearVisual.jsx';
 import { parametrosEfectivos } from './Costeador.jsx';
 import { precioVenta } from '../motor/calculo.js';
 import { compileRenderPrompt, renderStale } from '../datos/renderPrompt.js';
+import { voniTurno, voniReview } from '../datos/voni.js';
 import { generarRender } from '../nube.js';
 
 const EJEMPLOS = [
@@ -76,6 +77,8 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
   const [propuestas, setPropuestas] = useState(null);
   const [nl, setNl] = useState('');
   const [vozMsg, setVozMsg] = useState('');
+  const [voniPensando, setVoniPensando] = useState(false);
+  const [cotizadoHash, setCotizadoHash] = useState(null);  // hash de la rev agregada a cotización
   const [tecnico, setTecnico] = useState(false);
   const [guardado, setGuardado] = useState(false);
   const [render, setRender] = useState(null);       // { dataUrl, specHash, expected, version }
@@ -137,13 +140,30 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
     commit({ ...intent, caracteristicas: cs }, `${has ? 'Quitar' : 'Agregar'}: ${FEATURE_LABEL[f] || f}`);
   };
 
-  const enviarNL = () => {
+  // El input de Voni pasa por el ORQUESTADOR: understand → validar → tool
+  // (crear revisión) → verify → invalidar dependencias → responder. Nunca dice
+  // "listo" si la tool/verify falla (tool-failure honesto).
+  const enviarNL = async () => {
     const frase = nl.trim(); if (!frase || !intent) return;
-    const res = aplicarCambioTexto(intent, frase);
-    setNl('');
-    if (res.tipo === 'aplicado') { commit(res.intent, frase); setPropuestas(null); setVozMsg(''); }
-    else if (res.tipo === 'propuestas') { setPropuestas(res.propuestas); setVozMsg('Veo varios caminos — elige uno:'); }
-    else { setVozMsg(res.mensaje || 'No entendí un cambio concreto.'); }
+    setNl(''); setVoniPensando(true); setPropuestas(null);
+    const revSig = (historia.length || 0) + 1;
+    const tools = {
+      CREATE_REVISION: async (nextIntent) => {
+        const h = construirProductSpec(nextIntent, extraerDNA(nextIntent), clasificarProducto(nextIntent, {}), { rev: revSig }).hash;
+        commit(nextIntent, frase);
+        return { ok: true, rev: revSig, hash: h };
+      },
+      REVIEW_PRODUCT: async (it) => voniReview(construirProductSpec(it, extraerDNA(it), clasificarProducto(it, {}), { rev: rev || 1 })),
+    };
+    const estudio = { spec, rev, historiaLen: historia.length, renderState: render ? (rStale ? 'stale' : 'ok') : 'none', costState: { cost_status: r?.costo?.cost_status } };
+    try {
+      const out = await voniTurno(frase, { intentActual: intent, role: soloVentas ? 'vendedor' : 'direccion', tools, estudio });
+      setVozMsg(out.response.humano);
+      setPropuestas(out.understand.proposals || null);
+      // Si el producto ya estaba en la cotización y cambió, avisar (revisión nueva).
+      if (out.newRev && cotizadoHash) setCotizadoHash((prev) => prev); // mantiene; la UI compara hash abajo
+    } catch (e) { setVozMsg('No pude procesar la petición: ' + String(e?.message || e)); }
+    setVoniPensando(false);
   };
   const elegirPropuesta = (p) => { commit(p.intent, p.label); setPropuestas(null); setVozMsg(''); };
   const aplicarSugerencia = (s) => { if (s.accion?.addFeature) commit({ ...intent, caracteristicas: [...new Set([...(intent.caracteristicas || []), s.accion.addFeature])] }, s.accion.label); };
@@ -174,8 +194,11 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
     const costeo = { nombre: descripcionCorta(spec), componentes: spec.componentes, w: spec.dimensiones?.ancho_mm || null, d: null, productoId: null, precioReal: false, config: null };
     const margen = Number.isFinite(par.margenObjetivo) ? par.margenObjetivo : 40;
     onAgregar(costeo, 1, precioVenta(pipeline.costo.official_cost, par).precio, margen);
-    setVozMsg(`Agregado al proyecto: ${costeo.nombre}`);
+    setCotizadoHash(spec.hash);   // la cotización queda PINNED a esta revisión (hash)
+    setVozMsg(`Agregado al proyecto: ${costeo.nombre} (Rev ${rev})`);
   };
+  // La cotización está pinned a una revisión anterior y el producto ya cambió.
+  const cotizaDesactualizada = cotizadoHash && spec && cotizadoHash !== spec.hash;
 
   // ---------- INICIO ----------
   if (fase === 'inicio') {
@@ -337,10 +360,11 @@ export default function Cocrear({ estado, soloVentas = false, onIr, onAgregar })
           <h3 className="cc-panel-tit">Voni</h3>
           <div className="cc-nl">
             <input className="cc-nl-input" value={nl} onChange={(e) => setNl(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && enviarNL()}
-              placeholder='Dile qué cambiar: "más largo", "quiero nogal", "ponle cajones", "más elegante"…' />
-            <button type="button" className="boton cocrear-btn" onClick={enviarNL} disabled={!nl.trim()}>Cambiar</button>
+              placeholder='Dile a Voni: "hazla 30 cm más corta, más cálida y dime qué mejorarías"…' disabled={voniPensando} />
+            <button type="button" className="boton cocrear-btn" onClick={enviarNL} disabled={!nl.trim() || voniPensando}>{voniPensando ? 'Pensando…' : 'Pedir a Voni'}</button>
           </div>
           {vozMsg && <p className="cc-voni-msg">{vozMsg}</p>}
+          {cotizaDesactualizada && <p className="cocrear-nota-rojo">Nueva revisión disponible: la cotización usa una versión anterior. Agrégala de nuevo para actualizarla.</p>}
           {propuestas && (
             <div className="cc-propuestas">
               {propuestas.map((p) => (
