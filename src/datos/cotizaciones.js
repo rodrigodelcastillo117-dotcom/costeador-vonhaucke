@@ -183,6 +183,20 @@ export async function listarCotizaciones({ q = '', limite = 60 } = {}) {
   return filas.filter((c) => textoDe(c).includes(t));
 }
 
+/**
+ * Trae UNA cotización COMPLETA por id (con sus partidas enteras) para reabrirla y
+ * seguir editándola. La lista del Archivo (`listarCotizaciones`) es LIGERA —solo
+ * nombre/cantidad/precioUnitario por partida— por rendimiento (había cotizaciones
+ * con 10 MB de blobs embebidos en partidas; agregarlas todas excedía el timeout).
+ * Abrir una trae el detalle completo por el RPC seller-safe `cotizacion_segura`
+ * (Dirección ve economía; vendedor/diseño, sin ella). Devuelve el objeto o null.
+ */
+export async function cargarCotizacionCompleta(id) {
+  const { data, error } = await nube.rpc('cotizacion_segura', { p_id: id });
+  if (error || !data || data.ok === false) return null;
+  return data;
+}
+
 /** Todo lo que se puede buscar de una cotización, en un solo texto. */
 export function textoDe(c) {
   const nombres = (c.partidas || []).map((p) => p.nombre || '').join(' ');

@@ -53,7 +53,7 @@ import Usuarios from './componentes/Usuarios.jsx';
 import Reglas from './componentes/Reglas.jsx';
 import { cargarReglas } from './datos/reglas.js';
 import { cargarAprendizajes } from './datos/aprendizaje.js';
-import { guardarCotizacion } from './datos/cotizaciones.js';
+import { guardarCotizacion, cargarCotizacionCompleta } from './datos/cotizaciones.js';
 import { guardarRevision } from './datos/revisiones.js';
 import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
 import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso } from './nube.js';
@@ -954,27 +954,31 @@ export default function App() {
         {pestania === 'archivo' && (
           <Archivo
             estado={estado}
-            onAbrir={(c) => {
+            onAbrir={async (c) => {
               // Abrir un presupuesto viejo trae SUS renglones al proyecto actual.
               // Se pregunta antes si ya hay algo cargado: reemplazar sin avisar es
               // perder trabajo, que es justo lo que veníamos arreglando.
               const hay = (estado.cotizacion?.partidas || []).length;
               if (hay && !confirm(`Tienes ${hay} mueble(s) en el proyecto actual. ¿Los reemplazo con este presupuesto?`)) return;
+              // La lista del Archivo es LIGERA (solo nombres) por rendimiento; aquí se
+              // trae la cotización COMPLETA por id (seller-safe) para poder re-editarla.
+              // Si la nube falla, se cae a lo que traía la tarjeta (degradación suave).
+              const full = (await cargarCotizacionCompleta(c.id)) || c;
               idCotizacion.current = c.id;   // seguir editando ESE, no crear otro
               setEstado((e) => ({
                 ...e,
                 cotizacion: {
                   ...e.cotizacion,
-                  cliente: c.cliente || '', folio: c.folio || '',
-                  partidas: c.partidas || [], acomodo: c.acomodo || null,
-                  descuentoPct: c.totales?.descuentoPct ?? e.cotizacion.descuentoPct,
-                  contingenciaPct: c.totales?.contingenciaPct ?? e.cotizacion.contingenciaPct,
-                  maniobrasPct: c.totales?.maniobrasPct ?? e.cotizacion.maniobrasPct,
-                  fletePct: c.totales?.fletePct ?? e.cotizacion.fletePct,
+                  cliente: full.cliente || '', folio: full.folio || '',
+                  partidas: full.partidas || [], acomodo: full.acomodo || null,
+                  descuentoPct: full.totales?.descuentoPct ?? e.cotizacion.descuentoPct,
+                  contingenciaPct: full.totales?.contingenciaPct ?? e.cotizacion.contingenciaPct,
+                  maniobrasPct: full.totales?.maniobrasPct ?? e.cotizacion.maniobrasPct,
+                  fletePct: full.totales?.fletePct ?? e.cotizacion.fletePct,
                 },
               }));
               irA('cotizacion');
-              mostrarAviso(`Abierto: ${c.cliente || 'sin cliente'}`);
+              mostrarAviso(`Abierto: ${full.cliente || c.cliente || 'sin cliente'}`);
             }}
           />
         )}
