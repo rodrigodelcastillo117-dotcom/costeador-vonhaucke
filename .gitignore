@@ -6,6 +6,11 @@ dist/
 # 3.5 s y su caché trae rutas absolutas de esta Mac: no va al historial.
 graphify-out/
 
+# Salidas de Playwright (E2E): se regeneran al correr `npm run e2e`.
+test-results/
+playwright-report/
+.playwright/
+
 # macOS
 .DS_Store
 
