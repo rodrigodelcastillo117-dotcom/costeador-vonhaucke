@@ -38,9 +38,11 @@ test.describe('Auditoría producción autenticada — navegación amplia', () =>
 
   test('Home y puertas principales no rompen', async ({ page }) => {
     const errors = await login(page);
-    await expect(page.getByText(/Cocreando tu espacio/i)).toBeVisible();
+    // Los copies de marketing cambian seguido; la salud del Home se ancla a
+    // acciones funcionales y al shell autenticado, no a un slogan.
     await expect(page.getByRole('button', { name: /Cocrear un producto/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Dime qué pide el cliente/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Ver todo lo de cotizar/i })).toBeVisible();
     await assertHealthy(page, errors, 'home');
   });
 
