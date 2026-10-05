@@ -5,6 +5,7 @@ import SinPantallaBlanca from './componentes/SinPantallaBlanca.jsx';
 import { registrarError } from './datos/telemetria.js';
 import './fuentes.css';
 import './estilos.css';
+import './demoGuardrails.css';
 import './runtimeGuardrails.js';
 
 // ============================================================================
@@ -22,8 +23,8 @@ import './runtimeGuardrails.js';
 
 function pintarFallo(titulo, detalle) {
   const raiz = document.getElementById('raiz');
-  if (!raiz || raiz.dataset.fallo === '1') return;   // no encimar dos errores
-  if (raiz.childElementCount > 0) return;            // React ya pintó algo: no estorbar
+  if (!raiz || raiz.dataset.fallo === '1') return;
+  if (raiz.childElementCount > 0) return;
   raiz.dataset.fallo = '1';
   const caja = document.createElement('div');
   caja.style.cssText = 'max-width:720px;margin:40px auto;padding:24px;font:15px/1.5 system-ui,sans-serif;color:#1E1B1A';
