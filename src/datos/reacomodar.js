@@ -19,6 +19,7 @@
 // ============================================================================
 import { acomodarLocal, sentarSillas } from './planner.js';
 import { dimsPieza } from './espacio.js';
+import { sentarJuntas } from './juntasLayout.js';
 
 // Qué colocaciones cuentan como "puestas a mano": las marcadas Y que todavía
 // existan en la cotización (si quitaste el mueble, su lugar se libera).
@@ -33,8 +34,14 @@ export function reacomodar({ areas, piezas, colocacion = [], byId, ajustar = fal
     : Object.fromEntries((piezas || []).map((p) => [p.id, p]));
   const fijas = respetarManual ? fijasDe(colocacion, piezas) : [];
 
-  // Sin nada a mano, esto es exactamente el acomodo de siempre.
-  if (!fijas.length) return { ...acomodarLocal(areas, piezas, { ajustar }), fijas: 0 };
+  // Sin nada a mano: motor normal + una sola pasada semántica de salas de
+  // juntas. La mesa conserva la posición del planner; las sillas usan la zona
+  // que el planner ya reservó alrededor de esa mesa.
+  if (!fijas.length) {
+    const base = acomodarLocal(areas, piezas, { ajustar });
+    const areasFinales = base.areas || areas;
+    return { ...sentarJuntas({ ...base, areas: areasFinales }, piezas, areasFinales), fijas: 0 };
+  }
 
   const idFijo = new Set(fijas.map((c) => c.id));
   const resto = (piezas || []).filter((p) => !idFijo.has(p.id));
@@ -90,7 +97,7 @@ export function reacomodar({ areas, piezas, colocacion = [], byId, ajustar = fal
     notas.push(`${sobran} pieza(s) no cupieron alrededor de lo que acomodaste a mano.`);
   }
 
-  return {
+  const combinado = {
     ...r,
     // ⚠️ Las áreas que se devuelven son las DE VERDAD, no las que llevan los
     // muebles disfrazados de obstáculo: si se guardan éstas, el plano dibuja
@@ -99,6 +106,10 @@ export function reacomodar({ areas, piezas, colocacion = [], byId, ajustar = fal
     colocacion: puestas,
     caben, auditoria, notas,
     resumen: `Se respetaron ${fijas.length} mueble(s) que acomodaste a mano y se acomodó el resto alrededor. ${r.resumen || ''}`.trim(),
-    fijas: fijas.length,
   };
+
+  // Las sillas de junta AUTOMÁTICAS se acomodan en torno a la mesa después de
+  // recombinar lo manual. Una silla que el usuario movió a mano permanece fija.
+  const conJuntas = sentarJuntas(combinado, piezas, areas);
+  return { ...conJuntas, fijas: fijas.length };
 }
