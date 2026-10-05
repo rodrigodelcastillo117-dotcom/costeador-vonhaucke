@@ -6,7 +6,7 @@
 //  Mandato: "Integra los estados económicos reales en UX... Nunca unknown como $0".
 // ============================================================================
 import { describe, it, expect } from 'vitest';
-import { razonesPorLinea, textoRazonEmision } from './Cotizacion.jsx';
+import { razonesPorLinea, textoRazonEmision } from '../datos/emisionUX.js';
 
 describe('razonesPorLinea — reparte el gate por renglón', () => {
   it('sin gate → mapa vacío (no inventa estados)', () => {

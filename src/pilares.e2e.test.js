@@ -17,7 +17,7 @@ import {
 } from './motor/calculo.js';
 import { totalesCotizacion } from './datos/totales.js';
 import { problemasDeEmision, senalesCotizacion } from './datos/senales.js';
-import { razonesPorLinea, textoRazonEmision } from './componentes/Cotizacion.jsx';
+import { razonesPorLinea, textoRazonEmision } from './datos/emisionUX.js';
 
 // --- Fixtures compartidas (mismas que las suites por módulo) ----------------
 const INSUMOS = {
