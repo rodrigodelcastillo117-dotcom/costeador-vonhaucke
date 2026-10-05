@@ -106,6 +106,23 @@ export function conceptosCocrear(intent) {
   ];
 }
 
+// #6: ¿el brief es un PRODUCTO, una ZONA o un PROYECTO completo? Solo clasifica
+// (no es un motor): un proyecto se enruta al flujo por plano que YA existe
+// (Cotizador IA → programa por área → productos → acomodo), en vez de volverse
+// un solo mueble a la fuerza. No duplica ProgramaProyecto/FloorPlan.
+export function detectarAlcanceCocrear(brief) {
+  const x = normal(brief);
+  // Un proyecto SÍ puede ser de >24 personas (nPersonas topa en 24 porque es la
+  // capacidad de UN mueble). Para el alcance, lee el número real del brief.
+  const mBig = x.match(/(\d{1,4})\s*(?:personas|usuarios|puestos|empleados|lugares|colaboradores|gente)/);
+  const personas = mBig ? Number(mBig[1]) : (nPersonas(brief) || 0);
+  const diceProyecto = /oficinas?\s+(complet[ao]s?|nuevas?|enteras?)|proyecto\s+(de\s+)?oficina|amueblar\s+(toda|la)\s+oficina|espacio\s+completo|todo\s+el\s+piso|plantas?\b|edificio|varias?\s+(areas|zonas|salas)|oficinas?\s+para\s+\d+/.test(x);
+  const graduaProyecto = personas >= 15 && /oficin|espacio|empresa|corporativ|coworking/.test(x) && !/escritorio|banca|mesa\b|locker|recepci|mueble|silla|credenza|exhibidor/.test(x);
+  if (diceProyecto || graduaProyecto) return { scope: 'project', personas };
+  if (/esta\s+zona|este\s+espacio|mejorar\s+(la|el|esta|este)|reacomodar|redise[nñ]ar\s+(la|el|esta|este)/.test(x)) return { scope: 'zone', personas };
+  return { scope: 'product', personas };
+}
+
 export function aplicarConceptoCocrear(intent, concepto) {
   const next = structuredClone(intent);
   const features = new Set((next.caracteristicas || []).filter(f=>!LAYOUTS.has(f)));

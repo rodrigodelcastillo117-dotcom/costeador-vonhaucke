@@ -353,7 +353,7 @@ export function costearItem(estado, item, opciones = {}) {
   // de imprimir/avanzar, no solo mostrar un aviso que se puede ignorar.
   const candadoUsuarios = !escalado && !!config.usuarios && cantidad > 1;
   if (candadoUsuarios) {
-    avisos.push(`Esto se cotiza como ${cantidad} bancas SEPARADAS de ${config.usuarios} usuarios cada una (${cantidad * config.usuarios} personas en total, ${cantidad}× el precio de una banca). Si en realidad pediste ${cantidad} PERSONAS y no ${cantidad} bancas, corrige la cantidad a 1.`);
+    avisos.push(`La cantidad son UNIDADES, no personas: ${cantidad} unidades × ${config.usuarios} usuario(s) = ${cantidad * config.usuarios} puestos (se cobra ${cantidad}× el precio de una). Es correcto si quieres ${cantidad} piezas separadas. Si querías UNA sola pieza para ${cantidad * config.usuarios} personas, baja la cantidad a 1 y ajusta la capacidad.`);
   }
   // ⚠️ TECHO DE CORDURA EN USUARIOS (2026-08-20, decisión de Rodrigo: "normalmente
   // se manejan en pares, nunca he visto uno de más de 14; en ese caso se tiene

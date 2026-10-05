@@ -29,6 +29,7 @@ const esSilla = (p) => p?.tipo === 'asiento' || esSillaDeTrabajo(p);
 import { escenasDeAcomodo, lineasDeEscena, tipoDeEscena } from '../datos/escenas.js';
 import { LINEAS_REG } from '../datos/lineas.js';
 import { areasDeLectura, revisarAreas, resumenLectura } from '../datos/planoLeido.js';
+import { abrirPdf, paginaAImagen } from '../datos/pdfImagen.js';
 import PlanoAcomodo from './PlanoAcomodo.jsx';
 import PropuestaViva from './PropuestaViva.jsx';
 import DibujarPlano from './DibujarPlano.jsx';
@@ -87,6 +88,10 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   const [error, setError] = useState('');
   const [plan, setPlan] = useState(() => guardadoPrevio?.plan || null);
   const [notaPlano, setNotaPlano] = useState('');
+  // #7: conservar el plano ORIGINAL (imagen, o pág.1 del PDF) + la confianza de
+  // lectura, para enseñar "original vs. lo que entendí" ANTES de acomodar.
+  const [planoImagen, setPlanoImagen] = useState('');
+  const [lecturaMeta, setLecturaMeta] = useState(null);
   const [guardado, setGuardado] = useState(false);
   const [staging, setStaging] = useState(false);      // generando staging
   const [stagingUrl, setStagingUrl] = useState(() => guardadoPrevio?.render3d || '');   // resultado (foto amueblada)
@@ -281,6 +286,12 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       // puede confiar en el plano o conviene revisarlo/redibujarlo (no lo descubre
       // cuando el 3D sale raro).
       const resumen = resumenLectura(lec);
+      // #7: conserva el plano original para la comparación y la confianza de lectura.
+      setLecturaMeta({ nivel: resumen.nivel, m2: resumen.m2, cuartos: resumen.cuartos, cotas: lec.tieneCotas });
+      try {
+        if (esPdf) { const _w = await abrirPdf(file); setPlanoImagen(await paginaAImagen(_w, 1, 1400)); }
+        else { setPlanoImagen('data:image/jpeg;base64,' + b64); }
+      } catch { setPlanoImagen(''); }
       if (leidas.length) {
         const etiqueta = { alta: 'Lectura confiable', media: 'Lectura con dudas', baja: 'Lectura poco confiable', nula: '' }[resumen.nivel];
         if (etiqueta) notas.push(`${etiqueta}: ${resumen.cuartos} cuarto(s), ~${resumen.m2} m².`);
@@ -612,6 +623,9 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // es la del cliente.
   const isoLimpioRef = useRef(null);   // la copia SIN etiquetas: es la que se manda
   const [realista, setRealista] = useState('');
+  // #10: una vista PRELIMINAR (acomodo incompleto) sí se puede generar para
+  // mirarla, pero queda marcada como preliminar y NO vale como propuesta final.
+  const [realistaPreliminar, setRealistaPreliminar] = useState(false);
   // ✨ PROPUESTA VIVA: el modo presentación cinematográfico para el cliente.
   const [vivaAbierta, setVivaAbierta] = useState(false);
   // Inversión = precio al CLIENTE (precio × cantidad). Nunca costo ni margen:
@@ -677,9 +691,12 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     });
   }
 
-  async function vistaRealista() {
-    // Compuerta dura: no renderizar un acomodo incompleto como si fuera propuesta.
-    if (plan && !layoutListo) { setErrStaging(`No genero el render final de un acomodo incompleto (${motivoLayout}). Acomódalo bien primero (el 2D/3D de arriba sí lo puedes editar).`); return; }
+  async function vistaRealista(preliminar = false) {
+    // Compuerta dura SOLO para el render FINAL: un acomodo incompleto no puede
+    // salir como propuesta aprobada. Pero sí se permite una VISTA PRELIMINAR
+    // (marcada) para que la app siga siendo útil mientras se cierra el acomodo (#10).
+    const incompleto = plan && !layoutListo;
+    if (incompleto && !preliminar) { setErrStaging(`El render FINAL se bloquea con un acomodo incompleto (${motivoLayout}). Puedes ver una vista preliminar marcada, o acomódalo bien primero (el 2D/3D de arriba sí lo puedes editar).`); return; }
     // Se lee SIEMPRE la copia limpia, no la visible: la visible puede estar en
     // modo Planta (sin isométrico) y además lleva las etiquetas del piso.
     const svg = isoLimpioRef.current?.querySelector('svg.plano');
@@ -693,7 +710,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
         medidas: areas.map((a) => `${a.nombre} ${a.ancho}×${a.largo} m`).join('; '),
       });
       if (!r || !r.ok) { setErrStaging(r?.error || 'No se pudo generar la vista realista.'); return; }
-      setRealista(r.dataUrl);
+      setRealista(r.dataUrl); setRealistaPreliminar(incompleto);
     } catch (e) {
       setErrStaging('No se pudo generar la vista realista: ' + String(e?.message || e));
     } finally { setGenerandoReal(false); }
@@ -1034,7 +1051,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
                 onClick={() => {
                   if (!confirm('¿Empezar el espacio otra vez? Se borran las áreas, el acomodo y las imágenes que tienes.')) return;
                   recordar(); setAreas([]); setPlan(null); setPlanReal(false);
-                  setNotaPlano(''); setGuardado(false); autoRef.current = false;
+                  setNotaPlano(''); setPlanoImagen(''); setLecturaMeta(null); setGuardado(false); autoRef.current = false;
                   // Las imágenes eran del espacio VIEJO: dejarlas puestas mete
                   // en la portada del PDF una oficina que ya no existe.
                   setStagingUrl(''); setRealista(''); setImgEscena({});
@@ -1053,6 +1070,45 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
               <button className="boton fantasma" style={{ minHeight: 50 }} onClick={acomodarIA} title="Alterna con IA (el acomodo normal ya es automático)">Con IA</button>
             </div>
             {notaPlano && <div className="alerta ambar" style={{ marginTop: 10 }}><span className="texto">{notaPlano}</span></div>}
+            {/* #7: comparación HONESTA plano original vs. lo que la app entendió,
+                ANTES de dar por bueno el acomodo. Si la confianza no es alta, se
+                pide validar en vez de fingir exactitud. */}
+            {planoImagen && (
+              <div className="tarjeta" style={{ marginTop: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <strong>Plano original vs. lo que entendí</strong>
+                  {lecturaMeta && (
+                    <span className="ayuda" style={{ display: 'inline' }}>
+                      {({ alta: '✓ Lectura confiable', media: '◑ Lectura con dudas', baja: '⚠ Lectura poco confiable', nula: '' })[lecturaMeta.nivel] || ''}
+                      {lecturaMeta.m2 ? ` · ${lecturaMeta.cuartos} cuarto(s), ~${lecturaMeta.m2} m²` : ''}
+                      {lecturaMeta.cotas === false ? ' · sin cotas (medidas estimadas)' : ''}
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10, marginTop: 8 }}>
+                  <div>
+                    <div className="ayuda" style={{ marginBottom: 4 }}>Tu plano (original)</div>
+                    <img src={planoImagen} alt="Plano original subido" style={{ width: '100%', borderRadius: 10, border: '1px solid var(--linea)', display: 'block' }} />
+                  </div>
+                  <div>
+                    <div className="ayuda" style={{ marginBottom: 4 }}>Lo que entendí ({areas.length} área{areas.length === 1 ? '' : 's'})</div>
+                    <div style={{ display: 'grid', gap: 2 }}>
+                      {areas.map((a, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 13, padding: '3px 0', borderBottom: '1px solid var(--linea)' }}>
+                          <span>{a.nombre || `Área ${i + 1}`}</span>
+                          <b style={{ fontVariantNumeric: 'tabular-nums' }}>{a.ancho}×{a.largo} m</b>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                {lecturaMeta && lecturaMeta.nivel !== 'alta' && (
+                  <div className="alerta ambar" style={{ marginTop: 8 }}>
+                    <span className="texto">Revisa que los cuartos y las medidas coincidan con tu plano antes de acomodar. Si algo no cuadra, ajústalo arriba o vuelve a subir el plano con mejor calidad/cotas — no doy por exacto lo que no leí bien.</span>
+                  </div>
+                )}
+              </div>
+            )}
           </>
         )}
         {error && <div className="alerta roja" style={{ marginTop: 12 }}><span className="texto">{error}</span></div>}
@@ -1140,9 +1196,15 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
               {aMano ? 'Terminar de acomodar' : 'Acomodar a mano'}
             </button>
             <button className={`boton ${modo === 'iso' ? 'primario' : 'fantasma'}`} style={{ minHeight: 42 }} onClick={() => setModo('iso')}>Vista 3D</button>
-            <button className="boton" style={{ minHeight: 42 }} disabled={generandoReal || !plan || (plan && !layoutListo)} title={plan && !layoutListo ? `Acomodo incompleto (${motivoLayout})` : ''} onClick={vistaRealista}>
-              {generandoReal ? 'Generando…' : realista ? 'Volver a generar' : 'Vista realista (IA)'}
-            </button>
+            {plan && !layoutListo ? (
+              <button className="boton fantasma" style={{ minHeight: 42 }} disabled={generandoReal} title={`Vista preliminar — acomodo incompleto (${motivoLayout})`} onClick={() => vistaRealista(true)}>
+                {generandoReal ? 'Generando…' : `Vista preliminar (${layout?.unplaced || 0} pendientes)`}
+              </button>
+            ) : (
+              <button className="boton" style={{ minHeight: 42 }} disabled={generandoReal || !plan} onClick={() => vistaRealista(false)}>
+                {generandoReal ? 'Generando…' : realista ? 'Volver a generar' : 'Vista realista (IA)'}
+              </button>
+            )}
             {/* ✨ PROPUESTA VIVA: presentación cinematográfica para el cliente. */}
             <button className="boton primario" style={{ minHeight: 42 }} disabled={!plan || !areas.length} onClick={() => setVivaAbierta(true)}>
               ✨ Propuesta Viva
@@ -1381,9 +1443,14 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
             </div>
           ))}
           {realista && (
-            <div style={{ marginTop: 12 }}>
-              <img src={realista} alt="Vista realista del acomodo" style={{ width: '100%', borderRadius: 12, border: '1px solid var(--linea)' }} />
-              <div className="ayuda gris">Generada con IA a partir de tu acomodo: respeta cuántos muebles hay y dónde van.</div>
+            <div style={{ marginTop: 12, position: 'relative' }}>
+              {realistaPreliminar && (
+                <div className="alerta ambar" style={{ marginBottom: 8 }}>
+                  <span className="texto"><b>⚠ VISTA PRELIMINAR</b> · {layout?.unplaced || 0} elemento(s) pendiente(s) por colocar. No es la propuesta final ni válida para PDF definitivo; cierra el acomodo para liberar el render final.</span>
+                </div>
+              )}
+              <img src={realista} alt={realistaPreliminar ? 'Vista preliminar del acomodo (incompleto)' : 'Vista realista del acomodo'} style={{ width: '100%', borderRadius: 12, border: realistaPreliminar ? '2px dashed var(--ambar, #d8a800)' : '1px solid var(--linea)' }} />
+              <div className="ayuda gris">{realistaPreliminar ? 'Vista preliminar: faltan piezas por colocar. Útil para enseñar la dirección, no para cerrar.' : 'Generada con IA a partir de tu acomodo: respeta cuántos muebles hay y dónde van.'}</div>
             </div>
           )}
 
