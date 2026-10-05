@@ -20,6 +20,7 @@ import { expandirPiezas, mapaPiezas } from '../datos/espacio.js';
 import { generarRender, analizarNegocio, resolverRendersCanonicos } from '../nube.js';
 import { estadoRenderPartida, claveRenderPartida, ESTADO_RENDER } from '../datos/renderCanonico.js';
 import { textoRazonEmision, ESTADO_EMISION, razonesPorLinea } from '../datos/emisionUX.js';
+import MontoAnimado from './MontoAnimado.jsx';
 import PlanoAcomodo from './PlanoAcomodo.jsx';
 import ConfirmarCandado from './ConfirmarCandado.jsx';
 
@@ -810,7 +811,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                 <div className="propx-tot-grand"><span>TOTAL</span><b style={{ color: '#b3261e' }}>⚠ Cálculo inválido</b></div>
               ) : (
                 <>
-                  <div className="propx-tot-grand"><span>TOTAL</span><b>{pesos(totalRedondeado)}</b></div>
+                  <div className="propx-tot-grand"><span>TOTAL</span><b><MontoAnimado valor={totalRedondeado} /></b></div>
                   <div className="propx-tot-anticipo">Anticipo {anticipoPct}%: <b>{pesos(anticipo)}</b> · Saldo contra entrega: <b>{pesos(totalRedondeado - anticipo)}</b></div>
                 </>
               )}

@@ -2788,3 +2788,31 @@ h1 { letter-spacing: -0.035em; }
 
 /* La cuenta del carrito (pill) con el degradado rojo también. */
 .btn-cot { background-image: linear-gradient(180deg, #E5484D, var(--rojo-osc)); border-color: var(--rojo-osc); }
+
+/* ---- SKELETONS (carga percibida premium): en vez de "Cargando…", bloques con
+   brillo que recorren. Dicen "ya casi" y se sienten instantáneos. ---- */
+.vh-skel {
+  position: relative; overflow: hidden; border-radius: 10px;
+  background: var(--panel); border: 1px solid var(--linea);
+}
+.vh-skel::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,.07) 50%, transparent 80%);
+  transform: translateX(-100%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .vh-skel::after { animation: vh-shimmer 1.3s ease-in-out infinite; }
+}
+@keyframes vh-shimmer { to { transform: translateX(100%); } }
+.vh-skel-linea { height: 14px; border-radius: 7px; margin: 10px 0; }
+.vh-skel-bloque { height: 120px; }
+.vh-skel-cargando { display: grid; gap: 12px; }
+
+/* ---- Imágenes de contenido: aparecen con un fade suave (sin "pop-in" de cuadro
+   gris que salta a foto). Se siente pulido. Sólo contenido, no logos/íconos. ---- */
+@media (prefers-reduced-motion: no-preference) {
+  .propx-foto, .cc-render-img, .tile-foto img, .cot-cliente img, .inicio-hero-foto img {
+    animation: vh-img-in .5s var(--vh-ease) both;
+  }
+  @keyframes vh-img-in { from { opacity: 0; transform: scale(1.015); } to { opacity: 1; transform: none; } }
+}

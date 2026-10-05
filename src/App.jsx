@@ -961,7 +961,14 @@ export default function App() {
       <main>
         {/* Red de seguridad: un error de render ya no deja la app en blanco. */}
         <SinPantallaBlanca resetKey={pestania} onInicio={irInicio}>
-        <Suspense fallback={<div className="contenido"><p className="gris" style={{ marginTop: 40 }}>Cargando…</p></div>}>
+        <Suspense fallback={(
+          <div className="contenido vh-skel-cargando" style={{ marginTop: 20 }} aria-busy="true" aria-label="Cargando">
+            <div className="vh-skel vh-skel-bloque" />
+            <div className="vh-skel vh-skel-linea" style={{ width: '60%' }} />
+            <div className="vh-skel vh-skel-linea" style={{ width: '85%' }} />
+            <div className="vh-skel vh-skel-linea" style={{ width: '45%' }} />
+          </div>
+        )}>
         {/* Barra grande de regreso: nunca un callejon sin salida (4.2) */}
         {pestania !== 'inicio' && (
           <div className="contenido no-imprimir barra-atras" style={{ paddingBottom: 0 }}>
