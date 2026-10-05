@@ -33,6 +33,30 @@ describe('programa sugerido desde plano', () => {
     expect(gavetas[0].cantidad).toBe(8);
   });
 
+  it('APARTADO con PAX es operativo y nunca privado/general', () => {
+    const a = normalizarAreasPrograma([
+      { nombre: 'APARTADO 1 (6 PAX)', ancho: 6.75, largo: 3.5 },
+      { nombre: 'APARTADO 2 (6 PAX)', ancho: 6.75, largo: 3.5 },
+      { nombre: 'APARTADO 3 (8 PAX)', ancho: 13.5, largo: 3 },
+    ]);
+    expect(a.map((x) => x.tipo)).toEqual(['open', 'open', 'open']);
+    expect(a.map((x) => x.puestos)).toEqual([6, 6, 8]);
+  });
+
+  it('golden CEO APARTADO 6/6/8 produce sólo benches operativos 6/6/8', () => {
+    const p = partidasSugeridasDeAreas([
+      { nombre: 'APARTADO 1 (6 PAX)', ancho: 6.75, largo: 3.5 },
+      { nombre: 'APARTADO 2 (6 PAX)', ancho: 6.75, largo: 3.5 },
+      { nombre: 'APARTADO 3 (8 PAX)', ancho: 13.5, largo: 3 },
+    ]);
+    const benches = p.filter((x) => /Banca doble APP LT/.test(x.nombre));
+    expect(benches).toHaveLength(3);
+    expect(benches.map((x) => x.usuarios)).toEqual([6, 6, 8]);
+    expect(p.some((x) => /Escritorio directivo|Silla directiva/.test(x.nombre))).toBe(false);
+    expect(p.filter((x) => /Silla operativa · WIN/.test(x.nombre)).reduce((s, x) => s + x.cantidad, 0)).toBe(20);
+    expect(p.filter((x) => /Gaveta rodante APP LT/.test(x.nombre)).reduce((s, x) => s + x.cantidad, 0)).toBe(20);
+  });
+
   it('sala de juntas genera mesa y sillas según capacidad', () => {
     const p = partidasSugeridasDeAreas([
       { nombre: 'SALA JUNTAS 1 (8 PAX)', tipo: 'juntas', ancho: 8, largo: 3.5 },
