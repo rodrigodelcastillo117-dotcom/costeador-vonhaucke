@@ -7,6 +7,7 @@
 //  Requiere ANTHROPIC_API_KEY.
 // ============================================================================
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { planearDeterminista, validarColocacion, resumenViolaciones, recomendacionesParcial } from "./acomodo-core.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -59,8 +60,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ ok: false, error: "Usa POST" }, 405);
 
+  // La IA ya NO decide coordenadas (lo hace el solver determinista), así que la
+  // API key es OPCIONAL — el acomodo funciona sin red. Se conserva por si a
+  // futuro se agrega una capa de narrativa/estrategia asistida por IA.
   const key = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!key) return json({ ok: false, error: "Falta ANTHROPIC_API_KEY" }, 500);
 
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, error: "JSON invalido" }, 400); }
@@ -74,50 +77,55 @@ Deno.serve(async (req) => {
     .map((p: any) => `${p.id}: ${p.nombre} — huella ${Math.round(p.w)}×${Math.round(p.d)} mm (tipo ${p.tipo || "mueble"})`)
     .join("\n");
 
-  const system =
-    "Eres un space planner senior de oficinas (como el que dibuja en AutoCAD). Te doy uno o varios ÁREAS (cuartos, con su medida real) y una lista de muebles con su huella real. " +
-    "Piensa como al planear un despacho de verdad: primero DECIDE el uso de cada cuarto por su nombre y tamaño, agrupa los muebles en CONJUNTOS lógicos, y recién entonces coloca cada pieza. " +
-    "Coordenadas LOCALES a cada área: origen (0,0) arriba-izquierda de ESE cuarto; X = ancho, Y = largo; en mm.\n\n" +
-    "CÓMO ACOMODAR (piensa así):\n" +
-    "1) ASIGNA por uso: 'open space/operativo' = las islas de estaciones de trabajo; 'privado/dirección' = 1 estación + su guarda; 'juntas/consejo' = la mesa centrada con paso alrededor; 'recepción' = mueble junto al acceso; los archiveros/guardas se REPARTEN pegados a muro cerca de las estaciones a las que sirven (NO todos apilados en una sola columna).\n" +
-    "2) BENCHING: junta las estaciones en ISLAS ordenadas (bloques alineados, en hilera o back-to-back), todas con el MISMO giro dentro de la isla. Entre islas deja pasillo ≥ 1000 mm; detrás de una silla ≥ 900 mm para salir. Alinéalas a una retícula (mismos x o y).\n" +
-    "3) MESA DE JUNTAS: céntrala en su cuarto dejando ≥ 900 mm libres en los 4 lados para sillas y paso.\n" +
-    "4) USA EL CUARTO: distribuye los conjuntos para aprovechar el espacio (no encimes todo en una esquina ni dejes medio cuarto vacío), pero deja circulaciones reales. Pega contra muro lo que va contra muro (guardas, credenzas).\n" +
-    "5) Cada pieza cabe COMPLETA dentro de su área. rot=0 ocupa w(X)×d(Y); rot=90 ocupa d(X)×w(Y). NADA se traslapa.\n" +
-    "6) Devuelve una entrada por CADA id (su 'area' índice, x, y enteros en mm, rot). Marca 'zonas' con nombre para los conjuntos (ej. 'Isla de trabajo', 'Juntas', 'Guarda') para que el plano se lea claro.\n" +
-    "7) Si NO cabe todo con holgura, mete lo que quepa BIEN, pon caben=false y en 'notas' di cuántas piezas no entraron y qué recomiendas (menos densidad, otro cuarto, o reducir cantidad). Es mejor un plano realista que forzar todo.\n" +
-    "8) 'resumen': 1-2 frases para el cliente, en lenguaje sencillo, diciendo qué quedó en cada zona.\n\n" +
-    `ÁREAS (${areas.length}):\n${areasTxt}\n\nMUEBLES (${piezas.length}):\n${lista}`;
+  // (areasTxt/lista quedan disponibles por si a futuro se agrega narrativa IA.)
+  void areasTxt; void lista; void key; void SCHEMA;
 
-  const apiBody = {
-    model: "claude-opus-5",
-    max_tokens: 8000,
-    output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } },
-    system,
-    messages: [{ role: "user", content: [{ type: "text", text: "Acomoda estos muebles en las áreas con un layout profesional y circulaciones cómodas." }] }],
-  };
-
-  let data: any;
+  // ACOMODO DETERMINISTA: el SOLVER coloca (coordenadas válidas por construcción)
+  // y el VALIDADOR decide. Antes la IA "adivinaba" coordenadas y el validador
+  // determinista las rechazaba (IA propone → determinista rechaza). Ahora no:
+  // una sola verdad geométrica. Soporta polígono/puertas/obstáculos si el área
+  // los trae; con áreas rectangulares simples funciona igual (compat).
+  let planeado: any;
   try {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify(apiBody),
-    });
-    data = await r.json();
+    planeado = planearDeterminista(areas, piezas, { gapMM: 150 });
   } catch (e) {
-    return json({ ok: false, error: "No se pudo llamar a Claude: " + String(e) }, 502);
+    return json({ ok: false, error: "No se pudo acomodar: " + String((e as any)?.message || e) }, 200);
   }
+  const val = validarColocacion(areas, piezas, planeado.colocacion);
 
-  if (data?.type === "error") return json({ ok: false, error: data.error?.message || "Error de la API" }, 502);
-  if (data?.stop_reason === "max_tokens") return json({ ok: false, error: "El acomodo salió muy grande y se cortó. Divide en menos piezas o áreas." }, 200);
+  const zonas = areas.map((a: any, i: number) => ({
+    area: i, nombre: a.nombre || `Área ${i + 1}`,
+    x: 0, y: 0, ancho: Number(a.ancho) || 0, largo: Number(a.largo) || 0,
+  }));
 
-  const txt = (data?.content || []).find((b: any) => b.type === "text")?.text || "";
-  let plan: any;
-  try { plan = JSON.parse(txt); }
-  catch { return json({ ok: false, error: "La IA no devolvió un acomodo válido. Reintenta." }, 200); }
+  const completo = val.ok;
+  const recomendaciones = completo ? [] : recomendacionesParcial(val);
+  const resumen = completo
+    ? `Acomodo completo: ${val.colocadas} pieza(s) en ${areas.length} área(s), sin traslapes ni bloqueos de puerta.`
+    : `Acomodo parcial: ${val.colocadas} de ${val.total} colocada(s). Faltan ${val.noColocadas.length} (ver detalle por pieza).`;
 
-  return json({ ok: true, plan, uso: data?.usage || null });
+  // Contrato de SALIDA: compatible con el frontend (plan.colocacion/zonas/caben/
+  // resumen/notas) + campos deterministas nuevos. completo=false ⇒ plan.caben=false
+  // ⇒ el frontend mantiene fail-closed del render/PDF final.
+  return json({
+    ok: true,
+    plan: {
+      colocacion: planeado.colocacion,
+      zonas,
+      caben: completo,
+      resumen,
+      notas: completo ? [] : [`${val.noColocadas.length} pieza(s) sin colocar.`, ...resumenViolaciones(val)],
+    },
+    completo,
+    colocadas: val.colocadas,
+    total: val.total,
+    porPieza: val.porPieza,
+    noColocadas: val.noColocadas,
+    recomendaciones,
+    intentos: [{ intento: 1, motor: "solver_determinista", colocadas: val.colocadas, total: val.total, violaciones: resumenViolaciones(val) }],
+    metodo: "solver_determinista",
+    uso: null,
+  });
 });
 
 function json(obj: unknown, status = 200) {
