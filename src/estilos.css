@@ -2684,3 +2684,13 @@ button.inicio-hero-foto:hover { transform: translateY(-2px); box-shadow: 0 12px 
   .contenido { animation: vh-entrada 220ms var(--vh-ease) both; }
   @keyframes vh-entrada { from { opacity: 0; } to { opacity: 1; } }
 }
+
+/* Botones de acción con un brillo sutil (luz arriba, sombra abajo): da volumen
+   premium sobre CUALQUIER color base, sin cambiar la paleta. El color de fondo real
+   lo sigue poniendo .boton.primario/.tinta; esto es sólo una capa de luz encima. */
+.boton.primario, .boton.tinta, .cocrear-btn, .btn-cot {
+  background-image: linear-gradient(180deg, rgba(255,255,255,.12), rgba(0,0,0,.08));
+}
+.boton.primario:active, .boton.tinta:active {
+  background-image: linear-gradient(180deg, rgba(0,0,0,.08), rgba(255,255,255,.06));
+}
