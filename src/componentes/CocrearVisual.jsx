@@ -1,102 +1,105 @@
-import React, { useMemo } from 'react';
-import { colorMaterial, DIMS_DEFAULT, FAMILIA } from '../datos/cocrear.js';
-import { LAYOUT_COCREAR } from '../datos/cocrearWow.js';
+import React,{useMemo} from 'react';
+import {colorMaterial,DIMS_DEFAULT,FAMILIA} from '../datos/cocrear.js';
+import {LAYOUT_COCREAR} from '../datos/cocrearWow.js';
+import Orbit3D from './Orbit3D.jsx';
 
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const has=(intent,k)=>(intent?.caracteristicas||[]).includes(k);
+const box=(x,y,z,w,d,h,color,extra={})=>({x,y,z,w,d,h,color,...extra});
 
-function Planta({x,y,w=42,h=14}){
-  return <g><rect x={x} y={y} width={w} height={h} rx="6" fill="#59635f"/>{[0,1,2,3].map(i=><circle key={i} cx={x+7+i*(w-14)/3} cy={y+4-(i%2)*3} r={4+(i%2)} fill="#75977a"/>)}</g>;
+function materialColor(intent,spec){
+  const m=(intent?.materiales||spec?.materiales||[])[0]||{material:'laminado',tono:null};
+  return colorMaterial(m.material,m.tono);
 }
-function Silla({x,y}){return <circle cx={x} cy={y} r="7" fill="#6d7278"/>}
-function Desk({x,y,w,h,color}){return <rect x={x} y={y} width={w} height={h} rx="5" fill={color} stroke="#555c62" strokeWidth="1.2"/>}
 
-function IslaContinua({intent,color}){
-  const cap=clamp(Number(intent?.capacidad_personas)||6,2,24),cols=Math.ceil(cap/2);
-  const x=62,w=416,y1=76,y2=151;
-  const seats=[];
+function silla(x,y,rz=0){
+  return [
+    box(x-210,y-185,0,420,370,440,'#666d75',{rz}),
+    box(x-210,y+135,420,420,45,330,'#747b83',{rz}),
+  ];
+}
+function divisor(x,y,w,rz=0){return box(x-w/2,y-25,760,w,50,360,'#a9adb0',{rz,opacity:.92})}
+function jardinera(x,y,w,d,h=420,rz=0){
+  return [box(x-w/2,y-d/2,0,w,d,h,'#59636a',{rz}),box(x-w*.42,y-d*.42,h,w*.84,d*.84,80,'#58795f',{rz})];
+}
+
+function isla(intent,c){
+  const cap=clamp(Number(intent?.capacidad_personas||intent?.capacidad?.personas)||6,2,24),cols=Math.ceil(cap/2);
+  const d=intent?.dimensiones||{},W=Math.max(Number(d.ancho_mm)||cols*1200,cols*1050),D=Math.max(Number(d.prof_mm||d.fondo_mm)||1400,1300);
+  const solids=[];
+  solids.push(box(-W/2,-D/2,720,W,D/2-110,30,c),box(-W/2,110,720,W,D/2-110,30,c));
+  solids.push(box(-W/2+100,-D/2+120,0,55,D/2-220,720,'#74797e'),box(W/2-155,-D/2+120,0,55,D/2-220,720,'#74797e'));
+  solids.push(box(-W/2+100,220,0,55,D/2-330,720,'#74797e'),box(W/2-155,220,0,55,D/2-330,720,'#74797e'));
+  if(has(intent,'electrificacion_integrada'))solids.push(box(-W/2+160,-55,675,W-320,110,90,'#3f454a'));
+  if(has(intent,'jardinera_integrada'))solids.push(...jardinera(0,0,Math.min(W*.58,2600),340,430));
   for(let i=0;i<cols;i++){
-    const px=x+(i+.5)*(w/cols);
-    if(i*2<cap) seats.push(<Silla key={`t${i}`} x={px} y={57}/>);
-    if(i*2+1<cap) seats.push(<Silla key={`b${i}`} x={px} y={213}/>);
+    const x=-W/2+(i+.5)*W/cols;
+    if(i*2<cap)solids.push(...silla(x,-D/2-330,0));
+    if(i*2+1<cap)solids.push(...silla(x,D/2+330,180));
+    if((has(intent,'divisores')||has(intent,'acustica'))&&i<cols-1)solids.push(divisor(-W/2+(i+1)*W/cols,-D/4,Math.max(440,D/2-150),90),divisor(-W/2+(i+1)*W/cols,D/4,Math.max(440,D/2-150),90));
   }
-  return <g>
-    <Desk x={x} y={y1} w={w} h={50} color={color}/><Desk x={x} y={y2} w={w} h={50} color={color}/>
-    <rect x="78" y="129" width="384" height="18" rx="9" fill="#4f565b"/>
-    {has(intent,'jardinera_integrada')&&<Planta x={130} y={131} w={280} h={14}/>} 
-    {has(intent,'electrificacion_integrada')&&<line x1="92" y1="140" x2="448" y2="140" stroke="#141719" strokeWidth="3" strokeDasharray="9 7"/>}
-    {seats}<text x="270" y="28" textAnchor="middle" fill="#9199a3" fontSize="10">A · ISLA CONTINUA · SUPERFICIE VISUAL ÚNICA</text>
-  </g>;
+  return solids;
 }
 
-function ModulosDobles({intent,color}){
-  const cap=clamp(Number(intent?.capacidad_personas)||6,2,24),pairs=Math.ceil(cap/2);
-  const maxCols=Math.min(6,pairs),start=270-(maxCols*65)/2;
-  const nodes=[];
-  for(let i=0;i<maxCols;i++){
-    const x=start+i*65;
-    if(i*2<cap){nodes.push(<Desk key={`a${i}`} x={x} y={76} w={56} h={46} color={color}/>);nodes.push(<Silla key={`sa${i}`} x={x+28} y={58}/>)}
-    if(i*2+1<cap){nodes.push(<Desk key={`b${i}`} x={x} y={158} w={56} h={46} color={color}/>);nodes.push(<Silla key={`sb${i}`} x={x+28} y={221}/>)}
+function modulos(intent,c){
+  const cap=clamp(Number(intent?.capacidad_personas||intent?.capacidad?.personas)||6,2,24),pairs=Math.ceil(cap/2);
+  const d=intent?.dimensiones||{},W=Math.max(Number(d.ancho_mm)||pairs*1200,pairs*1050),D=Math.max(Number(d.prof_mm||d.fondo_mm)||1400,1350),gap=90;
+  const solids=[];
+  for(let i=0;i<pairs;i++){
+    const cell=W/pairs,x=-W/2+i*cell+gap/2,ww=cell-gap;
+    if(i*2<cap){solids.push(box(x,-D/2,720,ww,D/2-125,30,c));solids.push(...silla(x+ww/2,-D/2-330,0));}
+    if(i*2+1<cap){solids.push(box(x,125,720,ww,D/2-125,30,c));solids.push(...silla(x+ww/2,D/2+330,180));}
+    solids.push(box(x+80,-D/2+100,0,45,D/2-230,720,'#74797e'),box(x+ww-125,-D/2+100,0,45,D/2-230,720,'#74797e'));
+    solids.push(box(x+80,225,0,45,D/2-325,720,'#74797e'),box(x+ww-125,225,0,45,D/2-325,720,'#74797e'));
+    if((has(intent,'divisores')||has(intent,'acustica'))&&i<pairs-1)solids.push(divisor(x+ww+gap/2,0,D-180,90));
   }
-  return <g>{nodes}
-    <rect x="86" y="129" width="368" height="18" rx="9" fill="#52595f"/>
-    {has(intent,'jardinera_integrada')&&<Planta x={150} y={131} w={240} h={14}/>} 
-    {has(intent,'electrificacion_integrada')&&<line x1="105" y1="140" x2="435" y2="140" stroke="#141719" strokeWidth="3" strokeDasharray="8 7"/>}
-    {(has(intent,'divisores')||has(intent,'acustica'))&&[1,2,3].map(i=><line key={i} x1={start+i*65-5} y1="72" x2={start+i*65-5} y2="207" stroke="#a4adb5" strokeWidth="3" opacity=".75"/>)}
-    <text x="270" y="28" textAnchor="middle" fill="#9199a3" fontSize="10">B · MÓDULOS DOBLES · UNIDADES INDEPENDIENTES + ESPINA TÉCNICA</text>
-  </g>;
+  if(has(intent,'electrificacion_integrada'))solids.push(box(-W/2+110,-55,660,W-220,110,105,'#3f454a'));
+  if(has(intent,'jardinera_integrada'))solids.push(...jardinera(0,0,Math.min(W*.45,2200),360,440));
+  return solids;
 }
 
-function HubEscultorico({intent,color}){
-  const cap=clamp(Number(intent?.capacidad_personas)||8,4,16),cx=270,cy=137,rx=128,ry=82;
-  const nodes=[];
+function escultorico(intent,c){
+  const cap=clamp(Number(intent?.capacidad_personas||intent?.capacidad?.personas)||8,4,16),d=intent?.dimensiones||{};
+  const W=Math.max(Number(d.ancho_mm)||4800,3600),D=Math.max(Number(d.prof_mm||d.fondo_mm)||2200,2100),rx=W*.32,ry=D*.33;
+  const solids=[];
+  solids.push(box(-520,-520,0,1040,1040,700,'#4d555b',{rz:45}));
+  if(has(intent,'jardinera_integrada'))solids.push(...jardinera(0,0,760,760,760,45));
   for(let i=0;i<cap;i++){
-    const a=(Math.PI*2*i/cap)-Math.PI/2;
-    const x=cx+Math.cos(a)*rx,y=cy+Math.sin(a)*ry;
-    const deg=a*180/Math.PI+90;
-    nodes.push(<g key={i} transform={`translate(${x} ${y}) rotate(${deg})`}><rect x="-28" y="-21" width="56" height="42" rx="7" fill={color} stroke="#555c62"/><circle cx="0" cy="-35" r="7" fill="#6d7278"/></g>);
+    const a=Math.PI*2*i/cap-Math.PI/2,x=Math.cos(a)*rx,y=Math.sin(a)*ry,deg=a*180/Math.PI+90;
+    solids.push(box(x-470,y-330,720,940,660,32,c,{rz:deg}));
+    solids.push(box(x-390,y-260,0,55,520,720,'#72787e',{rz:deg}),box(x+335,y-260,0,55,520,720,'#72787e',{rz:deg}));
+    solids.push(...silla(x+Math.cos(a)*650,y+Math.sin(a)*650,deg+180));
+    if(has(intent,'divisores')||has(intent,'acustica'))solids.push(box(x-350,y-20,755,700,40,300,'#a8adb2',{rz:deg,opacity:.9}));
   }
-  return <g>{nodes}
-    <polygon points="270,90 309,112 309,160 270,183 231,160 231,112" fill="#4e555b" stroke="#707980" strokeWidth="2"/>
-    {has(intent,'jardinera_integrada')&&<g><circle cx="270" cy="137" r="31" fill="#607066"/><Planta x={242} y={132} w={56} h={17}/></g>}
-    {has(intent,'electrificacion_integrada')&&<circle cx="270" cy="137" r="49" fill="none" stroke="#171a1d" strokeWidth="4" strokeDasharray="8 6"/>}
-    <text x="270" y="28" textAnchor="middle" fill="#9199a3" fontSize="10">C · HUB ESCULTÓRICO · NÚCLEO CENTRAL + PUESTOS RADIALES</text>
-  </g>;
+  if(has(intent,'electrificacion_integrada'))solids.push(box(-620,-620,620,1240,1240,70,'#353b40',{rz:45}));
+  return solids;
 }
 
-function OperativoPlano({intent,color}){
-  const layout=intent?._concepto_layout || (intent?.caracteristicas||[]).find(x=>Object.values(LAYOUT_COCREAR).includes(x));
-  if(layout===LAYOUT_COCREAR.C) return <HubEscultorico intent={intent} color={color}/>;
-  if(layout===LAYOUT_COCREAR.B) return <ModulosDobles intent={intent} color={color}/>;
-  return <IslaContinua intent={intent} color={color}/>;
-}
-
-function ProductoGenerico({intent,spec,color}){
-  const fam=spec?.familia||intent?.familia||FAMILIA.DESCONOCIDA;
-  if(fam===FAMILIA.RECEPCION) return <g><path d="M105 175 Q105 105 185 92 H392 V176 H318 V132 H188 Q156 132 156 175Z" fill={color} stroke="#50545a" strokeWidth="2"/></g>;
-  if(fam===FAMILIA.LOCKER) return <g><rect x="160" y="54" width="220" height="150" rx="8" fill={color} stroke="#50545a"/>{[0,1,2,3].map(c=>[0,1,2].map(r=><rect key={`${c}-${r}`} x={170+c*50} y={64+r*44} width="42" height="36" rx="3" fill="none" stroke="#686d72"/>))}</g>;
-  if(fam===FAMILIA.MESA) return <g><rect x="112" y="104" width="320" height="82" rx="38" fill={color} stroke="#50545a"/><rect x="145" y="137" width="254" height="16" rx="8" fill="#24272b" opacity=".7"/></g>;
-  if(fam===FAMILIA.DISPLAY) return <g><rect x="170" y="58" width="210" height="148" rx="6" fill={color} stroke="#50545a"/>{[98,135,172].map(y=><line key={y} x1="184" y1={y} x2="366" y2={y} stroke="#5b6065" strokeWidth="3"/>)}</g>;
-  if(fam===FAMILIA.GUARDADO) return <g><rect x="135" y="112" width="280" height="92" rx="6" fill={color} stroke="#50545a"/><line x1="275" y1="118" x2="275" y2="198" stroke="#5b6065"/><line x1="141" y1="157" x2="409" y2="157" stroke="#5b6065"/></g>;
-  return <g><rect x="110" y="112" width="330" height="70" rx="8" fill={color} stroke="#50545a"/><rect x="140" y="181" width="18" height="32" rx="3" fill="#5e6469"/><rect x="392" y="181" width="18" height="32" rx="3" fill="#5e6469"/></g>;
+function generico(intent,spec,c){
+  const fam=spec?.familia||intent?.familia||FAMILIA.DESCONOCIDA,d=intent?.dimensiones||spec?.dimensiones||DIMS_DEFAULT[FAMILIA.DESCONOCIDA];
+  const W=Math.max(Number(d.ancho_mm)||1500,400),D=Math.max(Number(d.prof_mm||d.fondo_mm)||600,300),H=Math.max(Number(d.alto_mm)||750,250),s=[];
+  if(fam===FAMILIA.RECEPCION){s.push(box(-W/2,-D/2,0,W,D,H*.78,c),box(-W/2,-D/2,H*.78,W,D*.32,H*.22,'#dfd7cd'));return s;}
+  if(fam===FAMILIA.LOCKER){const cols=Math.max(2,Math.round(W/450)),cw=W/cols;for(let i=0;i<cols;i++)for(let r=0;r<3;r++)s.push(box(-W/2+i*cw,-D/2,r*H/3,cw-12,D,H/3-12,c));return s;}
+  if(fam===FAMILIA.GUARDADO||fam===FAMILIA.DISPLAY){s.push(box(-W/2,-D/2,0,W,D,H,c));if(fam===FAMILIA.DISPLAY)for(let r=1;r<4;r++)s.push(box(-W/2+40,-D/2-20,r*H/4,W-80,40,18,'#555c62'));return s;}
+  if(fam===FAMILIA.MESA){s.push(box(-W/2,-D/2,H-35,W,D,35,c));for(const [x,y] of [[-W/2+100,-D/2+100],[W/2-155,-D/2+100],[-W/2+100,D/2-155],[W/2-155,D/2-155]])s.push(box(x,y,0,55,55,H-35,'#70767c'));return s;}
+  s.push(box(-W/2,-D/2,H-35,W,D,35,c),box(-W/2+100,-D/2+80,0,55,D-160,H-35,'#70767c'),box(W/2-155,-D/2+80,0,55,D-160,H-35,'#70767c'));
+  return s;
 }
 
 export default function CocrearVisual({spec,intent}){
-  const m=(intent?.materiales||spec?.materiales||[])[0]||{material:'laminado',tono:null};
-  const color=useMemo(()=>colorMaterial(m.material,m.tono),[m.material,m.tono]);
-  const d=intent?.dimensiones||spec?.dimensiones||DIMS_DEFAULT[FAMILIA.DESCONOCIDA];
+  const c=materialColor(intent,spec),layout=intent?._concepto_layout||(intent?.caracteristicas||[]).find(x=>Object.values(LAYOUT_COCREAR).includes(x));
   const operativo=intent?.tipologia_cocrear==='operativo_colaborativo';
+  const solids=useMemo(()=>{
+    if(operativo){if(layout===LAYOUT_COCREAR.C)return escultorico(intent,c);if(layout===LAYOUT_COCREAR.B)return modulos(intent,c);return isla(intent,c);}
+    return generico(intent,spec,c);
+  },[intent,spec,c,layout,operativo]);
+  const d=intent?.dimensiones||spec?.dimensiones||{},nombre=intent?._concepto_nombre||String(spec?.familia||intent?.familia||'Concepto');
   return <div style={{width:'100%',background:'#111315',border:'1px solid #2b2e32',borderRadius:12,overflow:'hidden'}}>
-    <div style={{display:'flex',justifyContent:'space-between',gap:12,padding:'10px 12px',borderBottom:'1px solid #272a2d',alignItems:'center'}}>
-      <div><strong style={{fontSize:12,color:'#eef0f2'}}>Modelo técnico del concepto {intent?._concepto?`· ${intent._concepto}`:''}</strong><div style={{fontSize:10,color:'#858d96',marginTop:2}}>Deriva del mismo concepto que el render · NO sustituye ingeniería</div></div>
+    <div style={{display:'flex',justifyContent:'space-between',gap:12,padding:'10px 12px',borderBottom:'1px solid #272a2d',alignItems:'center',flexWrap:'wrap'}}>
+      <div><strong style={{fontSize:12,color:'#eef0f2'}}>Modelo 3D interactivo · {nombre}</strong><div style={{fontSize:10,color:'#858d96',marginTop:2}}>Mismo concepto canónico que alimenta el render IA · gira con mouse o dedo</div></div>
       <div style={{fontFamily:'monospace',fontSize:10,color:'#8f98a8'}}>{d?.ancho_mm?`${Math.round(d.ancho_mm)} × ${Math.round(d.prof_mm||d.fondo_mm||0)} × ${Math.round(d.alto_mm||0)} mm`:'medidas por desarrollar'}</div>
     </div>
-    <svg viewBox="0 0 540 245" role="img" aria-label={`Modelo técnico del concepto ${intent?._concepto||''}`} style={{display:'block',width:'100%',height:'auto'}}>
-      <defs><pattern id="grid-cocrear" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1e2226" strokeWidth="1"/></pattern></defs>
-      <rect width="540" height="245" fill="#0f1113"/><rect width="540" height="245" fill="url(#grid-cocrear)"/>
-      {operativo?<OperativoPlano intent={intent} color={color}/>:<ProductoGenerico intent={intent} spec={spec} color={color}/>} 
-      <line x1="70" y1="232" x2="470" y2="232" stroke="#4b5055"/><line x1="70" y1="227" x2="70" y2="237" stroke="#4b5055"/><line x1="470" y1="227" x2="470" y2="237" stroke="#4b5055"/>
-      <text x="270" y="242" textAnchor="middle" fill="#77808a" fontSize="9">envolvente conceptual · validar ingeniería antes de fabricar</text>
-    </svg>
+    <Orbit3D solids={solids} height={360} label={`Modelo 3D interactivo del concepto ${intent?._concepto||''} ${nombre}`}/>
+    <div style={{padding:'7px 12px',fontSize:9,color:'#77808a'}}>MODELO CONCEPTUAL · orientación libre para revisar volumen. No sustituye plano/ficha de ingeniería.</div>
   </div>;
 }
