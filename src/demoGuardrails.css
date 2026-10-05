@@ -1,0 +1,32 @@
+/* Guardrails visuales para la demo CEO. No cambia lógica. */
+.programa .masmenos button,
+.programa .masmenos button:hover,
+.programa .masmenos button:focus,
+.masmenos button,
+.masmenos button:hover,
+.masmenos button:focus {
+  color: #f7f7f8 !important;
+  -webkit-text-fill-color: #f7f7f8 !important;
+  opacity: 1 !important;
+}
+
+.programa .masmenos .valor,
+.masmenos .valor {
+  color: #f7f7f8 !important;
+  -webkit-text-fill-color: #f7f7f8 !important;
+}
+
+/* En botones rojos/activos nunca heredar texto oscuro del navegador. */
+button.chip.on,
+.boton.primario,
+.boton.rojo {
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+}
+
+/* Evita que bloques informativos heredados por .alerta se partan en columnas. */
+.demo-voni-programa {
+  display: block !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
