@@ -1,7 +1,7 @@
 import React,{useEffect,useMemo,useState} from 'react';
 import {
   cocrearDesdeIntent,construirProductSpec,extraerDNA,clasificarProducto,cocrearDeExpediente,cocrearPayload,
-  hashEstable,DIMS_DEFAULT,MATERIALES_EDIT,FAMILIA,
+  hashEstable,DIMS_DEFAULT,MATERIALES_EDIT,FAMILIA,aplicarCambioTexto,
 } from '../datos/cocrear.js';
 import {prepararIntentCocrear,resumenIdeaCocrear,conceptosCocrear,aplicarConceptoCocrear,FEATURES_COCREAR} from '../datos/cocrearWow.js';
 import {referenciasComercialesCocrear,formatearReferenciaCocrear} from '../datos/cocrearReferencias.js';
@@ -22,6 +22,7 @@ const EJEMPLOS=[
 ];
 const clone=x=>JSON.parse(JSON.stringify(x));
 const money=(n,cur='MXN')=>Number.isFinite(Number(n))?new Intl.NumberFormat('es-MX',{style:'currency',currency:cur,maximumFractionDigits:0}).format(Number(n)):'—';
+const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 
 function councilText(r){
  if(!r)return '';
@@ -30,6 +31,36 @@ function councilText(r){
  const outs=(r.opinions||[]).filter(x=>x?.ok&&x?.output).map(x=>x.output);
  const ss=outs.map(x=>x?.summary).filter(Boolean);if(ss.length)return ss.join(' · ');
  const recs=outs.flatMap(x=>x?.recommendations||[]).map(x=>x?.what).filter(Boolean);return recs.slice(0,3).join(' · ');
+}
+
+function cambioCanonico(base,frase){
+ const t=norm(frase);let next=clone(base),cambios=[];
+ const local=aplicarCambioTexto(base,frase);
+ if(local?.tipo==='aplicado'){next=local.intent;cambios=[...(local.cambios||[])];}
+ const feats=new Set(next.caracteristicas||[]);
+ const add=(f,label)=>{if(!feats.has(f)){feats.add(f);cambios.push({campo:'feature',a:f,tipo:'feature',label})}};
+ const del=(f)=>{if(feats.delete(f))cambios.push({campo:'feature',a:`-${f}`,tipo:'feature'})};
+ if(/jardiner|maceter|vegetacion|plantas/.test(t)) add('jardinera_integrada','jardinera integrada');
+ if(/jardiner.*(complet|todo|larga|longitud|100%)|(complet|todo|100%).*jardiner|eje central completo/.test(t)) add('jardinera_longitud_completa','jardinera a todo el eje central');
+ if(/jardiner.*(corta|parcial|solo centro|pequena)/.test(t)) del('jardinera_longitud_completa');
+ if(/electrificacion|cableado|cables|contactos/.test(t)&&/ocult|invisible|integr/.test(t)) add('electrificacion_integrada','electrificación oculta');
+ if(/divisor|mampara/.test(t)) add('divisores','divisores');
+ if(/acustic/.test(t)) add('acustica','acústica');
+ const cap=t.match(/(\d+)\s*(personas?|usuarios?|puestos?|lugares?)/);if(cap){const n=Number(cap[1]);if(n>=2&&n<=24&&n!==Number(next.capacidad_personas||next.capacidad?.personas)){next.capacidad_personas=n;next.capacidad={...(next.capacidad||{}),personas:n};cambios.push({campo:'capacidad',a:n,tipo:'dimension'});}}
+ next.caracteristicas=[...feats];
+ // Una instrucción de detalle nunca cambia a escondidas el concepto A/B/C.
+ next._concepto=base._concepto;next._concepto_nombre=base._concepto_nombre;next._concepto_layout=base._concepto_layout;next.tipologia_cocrear=base.tipologia_cocrear;
+ return {next,cambios,aplico:cambios.length>0};
+}
+
+async function capturarModeloPNG(){
+ try{
+  const svg=document.querySelector('#cocrear-modelo-canonico svg');if(!svg)return null;
+  const xml=new XMLSerializer().serializeToString(svg),blob=new Blob([xml],{type:'image/svg+xml;charset=utf-8'}),url=URL.createObjectURL(blob);
+  const img=new Image();await new Promise((ok,err)=>{img.onload=ok;img.onerror=err;img.src=url});
+  const cv=document.createElement('canvas');cv.width=1200;cv.height=660;const ctx=cv.getContext('2d');ctx.fillStyle='#111315';ctx.fillRect(0,0,cv.width,cv.height);ctx.drawImage(img,0,0,cv.width,cv.height);URL.revokeObjectURL(url);
+  return cv.toDataURL('image/png').split(',')[1]||null;
+ }catch{return null}
 }
 function Card({children,style={}}){return <div style={{background:'#171717',border:'1px solid #303236',borderRadius:14,padding:14,...style}}>{children}</div>}
 function Label({children}){return <div style={{fontSize:10,letterSpacing:1.25,textTransform:'uppercase',color:'#8992a2',fontWeight:800,marginBottom:7}}>{children}</div>}
@@ -61,8 +92,9 @@ export default function Cocrear({estado,onAgregar}){
   if(!nextSpec)return;setRenderCargando(true);setRenderError('');
   try{
    const c=compileRenderPrompt(nextSpec,nextSpec.dna);
-   const descripcion=`${c.descripcion}\nCLIENT BRIEF: ${nextIntent?._brief||texto}. SELECTED CONCEPT: ${nextIntent?._concepto||''} ${nextIntent?._concepto_nombre||''}. The image MUST represent this exact selected concept geometry and capacity.`;
-   const r=await generarRender(descripcion,{render_spec:c.render_spec,materiales:c.materiales,medidas:c.medidas,tipo:c.tipo,modo:c.modo,aspecto:'4:3'});
+   const descripcion=`${c.descripcion}\nCLIENT BRIEF: ${nextIntent?._brief||texto}. SELECTED CONCEPT: ${nextIntent?._concepto||''} ${nextIntent?._concepto_nombre||''}. The image MUST preserve the exact current-revision geometry shown in the supplied technical reference. Do not redesign the product.`;
+   const modelo=await capturarModeloPNG();
+   const r=await generarRender(descripcion,{render_spec:c.render_spec,materiales:c.materiales,medidas:c.medidas,tipo:c.tipo,modo:c.modo,aspecto:'4:3',...(modelo?{imagen:modelo,mediaType:'image/png'}:{})});
    if(r?.ok&&r.dataUrl)setRender({dataUrl:r.dataUrl,specHash:nextSpec.hash,expected:c.expected,version:c.version,concepto:nextIntent?._concepto||null});else throw new Error(r?.error||'No se pudo generar el render');
   }catch(e){setRenderError(String(e?.message||e))}finally{setRenderCargando(false)}
  };
@@ -83,7 +115,8 @@ export default function Cocrear({estado,onAgregar}){
   const next=aplicarConceptoCocrear(intent,c);
   setIntent(next);setHistoria([{rev:1,intent:clone(next),label:`Concepto ${c.id}: ${c.nombre}`}]);setFase('studio');setRender(null);setComparA(null);
   const nextSpec=construirProductSpec(next,extraerDNA(next),clasificarProducto(next,{}),{rev:1,componentes:next._componentes||[]});
-  await generarPara(next,nextSpec);
+  // Espera a que el modelo canónico de ESTA revisión esté montado: esa imagen se usa como referencia del render.
+  await new Promise(r=>setTimeout(r,120));await generarPara(next,nextSpec);
  };
  const desdeCero=()=>{const b=prepararIntentCocrear('producto especial modular');b.familia=FAMILIA.DESCONOCIDA;b._brief='Producto especial desde cero';b.dimensiones={...DIMS_DEFAULT[FAMILIA.DESCONOCIDA]};setTexto('Producto especial desde cero');setIntent(b);setHistoria([{rev:1,intent:clone(b),label:'Base libre'}]);setFase('studio')};
  const setDim=(k,v)=>commit({...intent,dimensiones:{...(intent.dimensiones||{}),[k]:Number(v)}},`${k}: ${v} mm`);
@@ -93,7 +126,20 @@ export default function Cocrear({estado,onAgregar}){
  const setTone=tono=>commit({...intent,materiales:[{material:intent.materiales?.[0]?.material||'laminado',tono},...(intent.materiales||[]).slice(1)]},`Tono: ${tono||'natural'}`);
  const toggleFeature=f=>{const s=new Set(intent.caracteristicas||[]);s.has(f)?s.delete(f):s.add(f);commit({...intent,caracteristicas:[...s]},`${s.has(f)?'Agregar':'Quitar'} ${FEATURES_COCREAR.find(([k])=>k===f)?.[1]||f}`)};
 
- const pedirVoni=async()=>{const frase=nl.trim();if(!frase||pensando)return;setPensando(true);setMensaje('');try{const r=await voniCouncil({task:'interpret_change',request:frase,context:{brief:texto,intent,spec,resumen},constraints:['No inventar costos','No cambiar el concepto seleccionado silenciosamente','Proponer cambios explícitos y fabricables'],lenses:['diseño','fabricación','uso']});setAnalisis(r||{});setMensaje(councilText(r)||'VONI analizó el cambio. Ajusta los controles y regenera el render para confirmar la revisión.');setNl('');}catch(e){setMensaje(`VONI no pudo responder: ${String(e?.message||e)}`)}setPensando(false)};
+ const pedirVoni=async()=>{
+  const frase=nl.trim();if(!frase||pensando)return;setPensando(true);setMensaje('');
+  const cambio=cambioCanonico(intent,frase);const next=cambio.aplico?cambio.next:intent;
+  if(cambio.aplico)commit(next,`VONI: ${frase.slice(0,58)}`);
+  try{
+   const nextRev=historia.length+(cambio.aplico?1:0)||1;
+   const nextSpec=construirProductSpec(next,extraerDNA(next),clasificarProducto(next,{}),{rev:nextRev,componentes:next._componentes||[]});
+   const r=await voniCouncil({task:'interpret_change',request:frase,context:{brief:texto,intent:next,spec:nextSpec,resumen},constraints:['No inventar costos','No cambiar el concepto seleccionado silenciosamente','La instrucción debe afectar el ProductSpec canónico si es concreta','Proponer cambios explícitos y fabricables'],lenses:['diseño','fabricación','uso']});setAnalisis(r||{});
+   const txt=councilText(r)||'VONI revisó la modificación.';
+   setMensaje(cambio.aplico?`✓ Cambio aplicado a la revisión canónica. ${txt} El render anterior quedó vencido; regénéralo para ver exactamente esta revisión.`:txt);
+   setNl('');
+  }catch(e){setMensaje(cambio.aplico?`✓ Cambio aplicado al modelo. Council no pudo responder: ${String(e?.message||e)}`:`VONI no pudo responder: ${String(e?.message||e)}`)}
+  setPensando(false)
+ };
 
  const guardar=async()=>{if(!intent)return;setGuardando(true);setMensaje('');try{const r=await guardarCocrearSeguro(expedienteId,cocrearPayload({brief:texto,intent,historia,render,insumos,par}));if(!r?.ok)throw new Error(r?.error||'No se pudo guardar');if(r.expediente_id)setExpedienteId(r.expediente_id);setGuardado(true);setMensaje('✓ Co-creación guardada.');}catch(e){setMensaje(`No se pudo guardar: ${String(e?.message||e)}`)}setGuardando(false)};
  const reabrir=async id=>{try{const r=await cargarCocrearSeguro(id);const est=r?.ok?cocrearDeExpediente({cocrear:r.cocrear}):null;if(!est?.intent)throw new Error('Expediente sin intención válida');setIntent(est.intent);setHistoria(est.historia?.length?est.historia:[{rev:1,label:'Reabierta',intent:est.intent}]);setTexto(est.brief||est.intent?._brief||'');setExpedienteId(id);setRender(null);setFase('studio')}catch(e){setMensaje(String(e?.message||e))}};
@@ -118,13 +164,13 @@ export default function Cocrear({estado,onAgregar}){
  <div className="c3-studio">
   <Card><Label>Diseño</Label><div style={{marginBottom:9}}><small>Tipología</small><select value={intent?.familia||FAMILIA.DESCONOCIDA} onChange={e=>setFamilia(e.target.value)} className="c3-input" style={{marginTop:3}}>{FAMILY_OPTIONS.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></div>{intent?.tipologia_cocrear==='operativo_colaborativo'&&<div style={{marginBottom:9}}><small>Personas / puestos</small><input type="number" min="2" max="24" value={intent.capacidad_personas||6} onChange={e=>setCap(e.target.value)} className="c3-input" style={{marginTop:3}}/></div>}<div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:4,marginBottom:10}}>{[['ancho_mm','Ancho'],['prof_mm','Fondo'],['alto_mm','Alto']].map(([k,l])=><label key={k} style={{fontSize:9,color:'#aaa'}}>{l}<input type="number" value={dims[k]||0} onChange={e=>setDim(k,e.target.value)} className="c3-input" style={{padding:5,marginTop:2}}/></label>)}</div><Label>Material</Label><div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:4}}>{MATERIALES_EDIT.map(m=><button key={m} onClick={()=>setMaterial(m)} style={{padding:'6px 2px',borderRadius:7,border:mat===m?'2px solid #d33b30':'1px solid #414141',background:'#22201f',color:'#fff',fontSize:9}}>{MAT_LABEL[m]||m}</button>)}</div><Label>Tono</Label><div style={{display:'flex',gap:4}}>{[['claro','Claro'],[null,'Natural'],['oscuro','Oscuro']].map(([v,l])=><button key={l} onClick={()=>setTone(v)} style={{flex:1,padding:6,borderRadius:7,border:tone===v?'2px solid #d33b30':'1px solid #414141',background:'#22201f',color:'#fff',fontSize:9}}>{l}</button>)}</div><Label>Funciones</Label><div style={{display:'flex',flexWrap:'wrap',gap:4}}>{FEATURES_COCREAR.map(([k,l])=><button key={k} onClick={()=>toggleFeature(k)} style={{padding:'5px 6px',borderRadius:999,border:feats.has(k)?'1px solid #d33b30':'1px solid #414141',background:feats.has(k)?'#3b211f':'transparent',color:'#fff',fontSize:9}}>{feats.has(k)?'✓ ':'+ '}{l}</button>)}</div></Card>
 
-  <div>{comparA?<Card><Label>Comparación conceptual</Label><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:7}}><CocrearVisual spec={construirProductSpec(comparA,extraerDNA(comparA),clasificarProducto(comparA,{}),{rev:'A'})} intent={comparA}/><CocrearVisual spec={spec} intent={intent}/></div></Card>:<Card style={{padding:8}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'4px 5px 8px'}}><div><Label>Render IA · Concepto {intent?._concepto||'—'}</Label><strong style={{fontSize:13}}>{intent?._concepto_nombre||'Visualización principal'}</strong></div><Btn onClick={generar} disabled={renderCargando}>{renderCargando?'Generando…':render?'Regenerar':'Generar render'}</Btn></div><div className="c3-hero">{renderCargando?<div style={{textAlign:'center'}}><strong>VONI está construyendo el concepto {intent?._concepto}</strong><p className="c3-small">Misma geometría, capacidad y funciones que el modelo técnico.</p></div>:render?<div style={{width:'100%'}}>{rStale&&<div style={{padding:8,background:'#4a2d16',color:'#ffd09c',fontSize:10}}>El diseño cambió. Regenera: este render ya no representa la revisión actual.</div>}<img src={render.dataUrl} alt={`Render del concepto ${intent?._concepto||''}`} style={{opacity:rStale?.62:1}}/></div>:<div style={{textAlign:'center'}}><strong>Sin render de esta revisión</strong><p className="c3-small">Genera la visualización amarrada al concepto seleccionado.</p><Btn onClick={generar}>Generar render</Btn></div>}</div>{renderError&&<p style={{color:'#ff9d93',fontSize:10}}>{renderError}</p>}</Card>}{!comparA&&<div style={{marginTop:8}}><CocrearVisual spec={spec} intent={intent}/></div>}<div className="c3-history">{historia.map(h=><button key={h.rev} onClick={()=>{setIntent(clone(h.intent));setMensaje(`Viendo Rev ${h.rev}: ${h.label}`)}}>R{h.rev} · {h.label}</button>)}</div></div>
+  <div>{comparA?<Card><Label>Comparación conceptual</Label><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:7}}><CocrearVisual spec={construirProductSpec(comparA,extraerDNA(comparA),clasificarProducto(comparA,{}),{rev:'A'})} intent={comparA}/><CocrearVisual spec={spec} intent={intent}/></div></Card>:<Card style={{padding:8}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'4px 5px 8px'}}><div><Label>Render IA · Concepto {intent?._concepto||'—'}</Label><strong style={{fontSize:13}}>{intent?._concepto_nombre||'Visualización principal'}</strong></div><Btn onClick={generar} disabled={renderCargando}>{renderCargando?'Generando…':render?'Regenerar':'Generar render'}</Btn></div><div className="c3-hero">{renderCargando?<div style={{textAlign:'center'}}><strong>VONI está construyendo el concepto {intent?._concepto}</strong><p className="c3-small">Usando el modelo canónico de esta revisión como referencia de geometría.</p></div>:render?<div style={{width:'100%'}}>{rStale&&<div style={{padding:8,background:'#4a2d16',color:'#ffd09c',fontSize:10}}>El diseño cambió. Este render está vencido; regenera para representar la revisión actual.</div>}<img src={render.dataUrl} alt={`Render del concepto ${intent?._concepto||''}`} style={{opacity:rStale?.62:1}}/></div>:<div style={{textAlign:'center'}}><strong>Sin render de esta revisión</strong><p className="c3-small">Genera la visualización usando el modelo 3D como referencia.</p><Btn onClick={generar}>Generar render</Btn></div>}</div>{renderError&&<p style={{color:'#ff9d93',fontSize:10}}>{renderError}</p>}</Card>}{!comparA&&<div id="cocrear-modelo-canonico" style={{marginTop:8}}><CocrearVisual spec={spec} intent={intent}/></div>}<div className="c3-history">{historia.map(h=><button key={h.rev} onClick={()=>{setIntent(clone(h.intent));setMensaje(`Viendo Rev ${h.rev}: ${h.label}`)}}>R{h.rev} · {h.label}</button>)}</div></div>
 
-  <div className="c3-right" style={{display:'grid',gap:10}}><Card><Label>VONI · Co-diseñador</Label><p style={{fontSize:11,color:'#aaa',lineHeight:1.4}}>Pídele criterio de diseño, ergonomía o fabricación. No cambia de concepto a escondidas.</p><textarea value={nl} onChange={e=>setNl(e.target.value)} rows={3} placeholder="Ej. Haz la jardinera más protagonista y oculta totalmente el cableado." className="c3-input"/><Btn onClick={pedirVoni} disabled={!nl.trim()||pensando} style={{width:'100%',marginTop:6}}>{pensando?'Analizando…':'Pedir a VONI'}</Btn>{mensaje&&<p style={{fontSize:10,lineHeight:1.4}}>{mensaje}</p>}</Card>
+  <div className="c3-right" style={{display:'grid',gap:10}}><Card><Label>VONI · Co-diseñador</Label><p style={{fontSize:11,color:'#aaa',lineHeight:1.4}}>Pídele un cambio concreto. Si la instrucción es inequívoca, primero cambia el modelo canónico; el render viejo queda vencido hasta regenerarlo.</p><textarea value={nl} onChange={e=>setNl(e.target.value)} rows={3} placeholder="Ej. Haz la jardinera completa a todo el eje central y conserva el resto exactamente igual." className="c3-input"/><Btn onClick={pedirVoni} disabled={!nl.trim()||pensando} style={{width:'100%',marginTop:6}}>{pensando?'Analizando…':'Aplicar con VONI'}</Btn>{mensaje&&<p style={{fontSize:10,lineHeight:1.4}}>{mensaje}</p>}</Card>
   <Card><Label>Verdad industrial</Label><div style={{display:'grid',gap:5,fontSize:12}}><div>Costo certificado: <b>{costoConocido?money(costoOficial):'Pendiente de BOM'}</b></div><div>Estado motor: <b>{pipeline?.costo?.cost_status||'UNKNOWN'}</b></div><div>Componentes BOM: <b>{spec?.componentes?.length||0}</b></div></div>
    {refsCargando&&<p className="c3-small">Buscando referencias reales en la lista vigente…</p>}
-   {refUI&&<div className="c3-ref"><Label>Referencia comercial real</Label>{refUI.rangoPrecio&&<div style={{fontSize:17,fontWeight:900,color:'#d7f0df'}}>{refUI.rangoPrecio}</div>}{refUI.rangoCosto&&<div style={{fontSize:11,marginTop:4}}>Costo comparable autorizado: <b>{refUI.rangoCosto}</b></div>}<p style={{fontSize:9,color:'#9fb0a5',lineHeight:1.35}}>No es el costo del especial. Son precios vigentes de productos comparables; jardinera, acústica, electrificación y demás especiales requieren BOM.</p>{refUI.items.slice(0,4).map((x,i)=><div className="c3-refrow" key={`${x.producto_id}-${i}`}><span>{x.capacidad?`${x.capacidad}u · `:''}{x.nombre.replace('Módulo operativo App LT ','')}</span><b>{money(x.precio,x.moneda)}</b></div>)}</div>}
-   {!costoConocido&&<p style={{color:'#d6a36d',fontSize:10,lineHeight:1.4}}>La app sí muestra precios con evidencia. Lo único que no hace es convertir un precio de catálogo comparable en “costo de fabricación” del concepto sin BOM.</p>}
+   {refUI&&<div className="c3-ref"><Label>Referencia comercial real</Label>{refUI.rangoPrecio&&<div style={{fontSize:17,fontWeight:900,color:'#d7f0df'}}>{refUI.rangoPrecio}</div>}{refUI.rangoCosto&&<div style={{fontSize:11,marginTop:4}}>Costo comparable autorizado: <b>{refUI.rangoCosto}</b></div>}<p style={{fontSize:9,color:'#9fb0a5',lineHeight:1.35}}>No es el costo del especial. Son precios vigentes de productos comparables; extras especiales se certifican cuando existe BOM/precio de insumo suficiente.</p>{refUI.items.slice(0,4).map((x,i)=><div className="c3-refrow" key={`${x.producto_id}-${i}`}><span>{x.capacidad?`${x.capacidad}u · `:''}{x.nombre.replace('Módulo operativo App LT ','')}</span><b>{money(x.precio,x.moneda)}</b></div>)}</div>}
+   {!costoConocido&&<p style={{color:'#d6a36d',fontSize:10,lineHeight:1.4}}>La referencia comercial es útil para presupuesto preliminar, pero no se presenta como costo certificado hasta bajar el concepto a BOM.</p>}
    <Btn onClick={agregarCotizacion} disabled={!costoConocido||!onAgregar} style={{width:'100%',marginTop:5}}>{cotizadoHash===spec?.hash?'✓ En cotización':'Convertir en partida'}</Btn>
   </Card></div>
  </div></div>;
