@@ -532,13 +532,13 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
   doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(...GRIS);
   doc.text('PROPUESTA DE MOBILIARIO', M.izq, y);
   y += 9;
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(21); doc.setTextColor(...TINTA);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(26); doc.setTextColor(...TINTA);
   // OJO: se mide cuántos renglones ocupa de verdad. Antes se avanzaban 9 mm
   // fijos y con una razón social larga el nombre caía encima del folio.
   const tituloCliente = cot.cliente ? `Preparada para ${T(cot.cliente)}` : 'Propuesta para su proyecto';
   const renglonesTitulo = doc.splitTextToSize(tituloCliente, ANCHO);
   doc.text(renglonesTitulo, M.izq, y);
-  y += 9 + (renglonesTitulo.length - 1) * 8.5;
+  y += 11 + (renglonesTitulo.length - 1) * 11;
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...GRIS);
   const meta = [
     cot.folio ? `Folio ${cot.folio}` : null,
@@ -761,14 +761,15 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
   if (y + 8 * escalera.length + 12 > A4.h - M.abajo) { pie(); doc.addPage(); y = M.arriba; }
   regla(0.5, TINTA); y += 7;
   for (const [etiqueta, monto, fuerte] of escalera) {
-    if (fuerte) { doc.setDrawColor(...TINTA); doc.setLineWidth(0.4); doc.line(X.uni - 44, y - 3.5, A4.w - M.der, y - 3.5); y += 3; }
+    if (fuerte) { doc.setDrawColor(...ROJO); doc.setLineWidth(0.8); doc.line(X.uni - 44, y - 4, A4.w - M.der, y - 4); y += 3.5; }
     doc.setFont('helvetica', fuerte ? 'bold' : 'normal');
-    doc.setFontSize(fuerte ? 12 : 9.5);
+    doc.setFontSize(fuerte ? 15 : 9.5);
     doc.setTextColor(...(fuerte ? TINTA : GRIS));
     doc.text(etiqueta, X.uni, y, { align: 'right' });
-    doc.setTextColor(...TINTA);
+    // El TOTAL —el número que decide— en rojo de marca: el ojo va directo ahí.
+    doc.setTextColor(...(fuerte ? ROJO : TINTA));
     doc.text(T((monto < 0 ? '-' : '') + pesos(Math.abs(monto))), X.imp, y, { align: 'right' });
-    y += fuerte ? 9 : 6;
+    y += fuerte ? 11 : 6;
   }
   // El anticipo va aquí porque es la condición que decide si se firma o no.
   if (totales.anticipoPct) {
