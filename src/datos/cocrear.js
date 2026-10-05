@@ -26,26 +26,26 @@ import { calcular, costeoEmitible, precioUsable } from '../motor/calculo.js';
 
 // --- Enums formales (VH-017 + §17) -----------------------------------------
 export const CLASIFICACION = Object.freeze({
-  LINE_PRODUCT: 'LINE_PRODUCT',                   // de catálogo, sin cambios
-  CONFIGURED_LINE_PRODUCT: 'CONFIGURED_LINE_PRODUCT', // catálogo + opción permitida (color)
-  DERIVED_SPECIAL: 'DERIVED_SPECIAL',             // deriva de un padre con cambios reales
-  NEW_SPECIAL: 'NEW_SPECIAL',                      // nuevo desde cero (sin padre)
+  LINE_PRODUCT: 'LINE_PRODUCT',
+  CONFIGURED_LINE_PRODUCT: 'CONFIGURED_LINE_PRODUCT',
+  DERIVED_SPECIAL: 'DERIVED_SPECIAL',
+  NEW_SPECIAL: 'NEW_SPECIAL',
 });
 
 export const COST_STATUS = Object.freeze({
-  KNOWN: 'KNOWN',                     // todo costeado con precio real
-  ESTIMATED: 'ESTIMATED',             // costeado con precioBase (estimado)
-  PENDING_PRICE: 'PENDING_PRICE',     // material existe, sin precio usable
-  PENDING_MATERIAL: 'PENDING_MATERIAL', // material no está en catálogo
-  UNKNOWN: 'UNKNOWN',                 // sin BOM / no se puede costear aún
-  NOT_APPLICABLE: 'NOT_APPLICABLE',   // excluido por decisión
+  KNOWN: 'KNOWN',
+  ESTIMATED: 'ESTIMATED',
+  PENDING_PRICE: 'PENDING_PRICE',
+  PENDING_MATERIAL: 'PENDING_MATERIAL',
+  UNKNOWN: 'UNKNOWN',
+  NOT_APPLICABLE: 'NOT_APPLICABLE',
 });
 
 export const ENG_STATUS = Object.freeze({
-  NONE: 'NONE',                       // no hay ingeniería todavía
-  PROPOSED: 'PROPOSED',               // propuesta, sin validar
-  VALIDATED: 'VALIDATED',             // validada por ingeniería
-  REQUIRES_VALIDATION: 'REQUIRES_VALIDATION', // necesita revisión humana (no la finge la IA)
+  NONE: 'NONE',
+  PROPOSED: 'PROPOSED',
+  VALIDATED: 'VALIDATED',
+  REQUIRES_VALIDATION: 'REQUIRES_VALIDATION',
 });
 
 export const MFG_STATUS = Object.freeze({
@@ -55,31 +55,27 @@ export const MFG_STATUS = Object.freeze({
 });
 
 export const COCREO_STATUS = Object.freeze({
-  DRAFT: 'DRAFT',       // apenas una idea
-  PARTIAL: 'PARTIAL',   // avanza pero faltan piezas del pipeline
-  READY: 'READY',       // todo resuelto: costeable y cotizable
-  BLOCKED: 'BLOCKED',   // hay un bloqueo que impide avanzar
+  DRAFT: 'DRAFT',
+  PARTIAL: 'PARTIAL',
+  READY: 'READY',
+  BLOCKED: 'BLOCKED',
 });
 
-// Familias de producto que el core reconoce hoy (extensible, no sólo oficina §18).
 export const FAMILIA = Object.freeze({
   RECEPCION: 'RECEPCION',
   ESCRITORIO: 'ESCRITORIO',
-  LOCKER: 'LOCKER',            // Smart Locker (eléctrico/electrónico)
-  DISPLAY: 'DISPLAY',          // exhibidor retail
+  LOCKER: 'LOCKER',
+  DISPLAY: 'DISPLAY',
   MESA: 'MESA',
   GUARDADO: 'GUARDADO',
   DESCONOCIDA: 'DESCONOCIDA',
 });
 
-// --- Opciones y defaults para el ESTUDIO EN VIVO (co-diseño con el cliente) ---
-// El cliente y Von Haucke ajustan estos ejes y ven el producto tomar forma.
 export const FAMILIAS_EDIT = [FAMILIA.RECEPCION, FAMILIA.ESCRITORIO, FAMILIA.MESA, FAMILIA.GUARDADO, FAMILIA.LOCKER, FAMILIA.DISPLAY];
 export const MATERIALES_EDIT = ['nogal', 'roble', 'encino', 'maple', 'laminado', 'solid_surface', 'cristal', 'metal', 'piedra'];
 export const TONOS_EDIT = [null, 'claro', 'oscuro'];
 export const FEATURES_EDIT = ['curva', 'iluminacion_integrada', 'cerraduras', 'electronica', 'ventilacion'];
 
-// Dimensiones por defecto por familia (mm) para el visual cuando el brief no las da.
 export const DIMS_DEFAULT = {
   [FAMILIA.RECEPCION]: { ancho_mm: 2400, alto_mm: 1100, prof_mm: 700 },
   [FAMILIA.ESCRITORIO]: { ancho_mm: 1500, alto_mm: 750, prof_mm: 700 },
@@ -94,7 +90,6 @@ const _hex = (h) => { const n = parseInt(h.replace('#', ''), 16); return [n >> 1
 const _rgb = ([r, g, b]) => '#' + [r, g, b].map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
 const _mezclar = (a, b, t) => { const A = _hex(a), B = _hex(b); return _rgb(A.map((v, i) => v + (B[i] - v) * t)); };
 
-// Color de un material + tono, para el visual paramétrico (y, a futuro, el render).
 export function colorMaterial(material, tono) {
   const base = {
     nogal: '#6B4423', roble: '#B88A5A', encino: '#C9A06A', maple: '#D8B98A',
@@ -106,10 +101,6 @@ export function colorMaterial(material, tono) {
   return base;
 }
 
-// ---------------------------------------------------------------------------
-//  Hash estable (djb2 sobre JSON canónico con llaves ordenadas). Sirve para
-//  versionar el ProductSpec y detectar staleness aguas abajo.
-// ---------------------------------------------------------------------------
 function ordenarProfundo(x) {
   if (Array.isArray(x)) return x.map(ordenarProfundo);
   if (x && typeof x === 'object') {
@@ -126,11 +117,6 @@ export function hashEstable(obj) {
 
 const sinAcentos = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
-// ---------------------------------------------------------------------------
-//  1) PRODUCT INTENT · interpreta la idea del cliente de forma DETERMINISTA.
-//     No usa LLM: extrae lo que el texto dice literalmente; lo que no dice,
-//     queda null y se anota en `desconocidos` (no se inventa).
-// ---------------------------------------------------------------------------
 const FAMILIAS_TXT = [
   [/recep|lobby|mostrador|front\s?desk/, FAMILIA.RECEPCION],
   [/locker|casiller|smart\s?locker|paqueter/, FAMILIA.LOCKER],
@@ -147,30 +133,23 @@ const MATERIALES_TXT = [
   ['metal', /metal|acero|aluminio/], ['piedra', /m[aá]rmol|piedra|cuarzo/],
 ];
 
-// Convierte "2.40 m" / "2400 mm" / "240 cm" a milímetros.
 function aMM(valor, unidad) {
   const n = parseFloat(String(valor).replace(',', '.'));
   if (!Number.isFinite(n)) return null;
   if (/mm/.test(unidad)) return Math.round(n);
   if (/cm/.test(unidad)) return Math.round(n * 10);
-  return Math.round(n * 1000); // metros por defecto
+  return Math.round(n * 1000);
 }
 
 export function interpretarIntent(texto = '') {
   const t = sinAcentos(texto);
   const desconocidos = [];
-
-  // Familia
   let familia = FAMILIA.DESCONOCIDA;
   for (const [re, fam] of FAMILIAS_TXT) { if (re.test(t)) { familia = fam; break; } }
   if (familia === FAMILIA.DESCONOCIDA) desconocidos.push('familia');
-
-  // Dimensión principal (ancho/largo): primer "N m/cm/mm".
   const dim = t.match(/(\d+(?:[.,]\d+)?)\s*(mm|cm|m)\b/);
   const ancho_mm = dim ? aMM(dim[1], dim[2]) : null;
   if (ancho_mm == null) desconocidos.push('dimensiones');
-
-  // Materiales + tono (claro/oscuro) por cercanía textual.
   const materiales = [];
   for (const [mat, re] of MATERIALES_TXT) {
     const m = re.exec(t);
@@ -179,12 +158,9 @@ export function interpretarIntent(texto = '') {
     const tono = /oscur|dark/.test(ventana) ? 'oscuro' : /clar|light|blanc/.test(ventana) ? 'claro' : null;
     materiales.push({ material: mat, tono });
   }
-  // "cubierta clara" sin material nombrado → acabado de cubierta.
   const acabados = [];
   if (/cubierta clar|cubierta blanc|tapa clar/.test(t)) acabados.push({ rol: 'cubierta', tono: 'claro' });
   if (/cubierta oscur|tapa oscur/.test(t)) acabados.push({ rol: 'cubierta', tono: 'oscuro' });
-
-  // Características (features) explícitas.
   const caracteristicas = [];
   if (/iluminaci|backlight|luz integrada|lighting/.test(t)) caracteristicas.push('iluminacion_integrada');
   if (/curv|curved|radio|redonde/.test(t)) caracteristicas.push('curva');
@@ -194,17 +170,12 @@ export function interpretarIntent(texto = '') {
   if (/cajon|gaveta|storage|almacen/.test(t)) caracteristicas.push('cajones');
   if (/flotante|flote|suspend/.test(t)) caracteristicas.push('flotante');
   if (/carga|cargador|celular|inalambric|wireless/.test(t)) caracteristicas.push('carga_inalambrica');
-
-  // Capacidad (personas). Acepta dígito ("2") o número escrito ("dos").
   const NUM_TXT = { un: 1, uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, doce: 12 };
   const cap = t.match(/(\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|doce)\s*(personas?|usuarios?|lugares?|puestos?)/);
   const capN = cap ? (/^\d+$/.test(cap[1]) ? parseInt(cap[1], 10) : NUM_TXT[cap[1]]) : null;
   const capacidad = capN ? { personas: capN } : null;
-
-  // ADN de diseño: nivel + tono emocional.
   const nivel = /premium|alta gama|lujo|ejecutiv/.test(t) ? 'premium' : /econ[oó]mic|b[aá]sic/.test(t) ? 'economico' : null;
   const tono = /c[aá]lid|acogedor|warm/.test(t) ? 'calido' : /sobri|minimal|fr[ií]o|cool/.test(t) ? 'sobrio' : null;
-
   return {
     textoOriginal: String(texto || ''),
     familia, dimensiones: ancho_mm ? { ancho_mm } : null,
@@ -213,10 +184,6 @@ export function interpretarIntent(texto = '') {
   };
 }
 
-// ---------------------------------------------------------------------------
-//  2) PROJECT DNA · el "lenguaje de diseño" del proyecto, reutilizable entre
-//     productos. Separado del producto a propósito (§14-15).
-// ---------------------------------------------------------------------------
 export function extraerDNA(intent) {
   const paleta = (intent.materiales || []).map((m) => m.material);
   return {
@@ -228,29 +195,17 @@ export function extraerDNA(intent) {
   };
 }
 
-// ---------------------------------------------------------------------------
-//  3) CLASIFICACIÓN · LINE / CONFIGURED / DERIVED_SPECIAL / NEW_SPECIAL (§17).
-//     `parent` es un producto de catálogo { id, version, nombre, familia,
-//     dimensiones, materialesPermitidos:[], coloresPermitidos:[] } o null.
-// ---------------------------------------------------------------------------
-// Un cambio es "configuración permitida" sólo si es un color/acabado dentro del
-// set permitido del padre. Cualquier otra cosa (dimensión, material fuera de
-// set, feature nueva, cambio estructural) es DERIVACIÓN → especial derivado.
 export function clasificarProducto(intent, { parent = null } = {}) {
   if (!parent) {
     return { clasificacion: CLASIFICACION.NEW_SPECIAL, parent_product_id: null, parent_product_version: null, change_set: [], motivos: ['sin producto padre: especial nuevo'] };
   }
   const change_set = [];
   const motivos = [];
-
-  // Dimensión distinta al padre → cambio estructural/dimensional.
   const anchoPide = intent.dimensiones?.ancho_mm;
   const anchoPadre = parent.dimensiones?.ancho_mm;
   if (anchoPide != null && anchoPadre != null && Math.abs(anchoPide - anchoPadre) >= 1) {
     change_set.push({ campo: 'dimension.ancho_mm', de: anchoPadre, a: anchoPide, tipo: 'dimensional' });
   }
-
-  // Materiales: dentro del set permitido = configuración; fuera = derivación.
   const permitidos = (parent.materialesPermitidos || []).map(sinAcentos);
   const coloresOk = (parent.coloresPermitidos || []).map(sinAcentos);
   for (const m of intent.materiales || []) {
@@ -262,11 +217,8 @@ export function clasificarProducto(intent, { parent = null } = {}) {
       change_set.push({ campo: 'color', de: '(set permitido)', a: m.tono || m.material, tipo: 'configuracion' });
     }
   }
-
-  // Features que alteran el producto (iluminación, electrónica, estructura).
   const featDeriva = (intent.caracteristicas || []).filter((c) => ['iluminacion_integrada', 'electronica', 'cerraduras', 'ventilacion', 'estructural'].includes(c));
   for (const f of featDeriva) change_set.push({ campo: 'feature', de: null, a: f, tipo: 'feature' });
-
   const soloConfiguracion = change_set.length > 0 && change_set.every((c) => c.tipo === 'configuracion');
   if (change_set.length === 0) {
     motivos.push('idéntico al padre: producto de línea');
@@ -280,11 +232,6 @@ export function clasificarProducto(intent, { parent = null } = {}) {
   return { clasificacion: CLASIFICACION.DERIVED_SPECIAL, parent_product_id: parent.id, parent_product_version: parent.version, change_set, motivos };
 }
 
-// ---------------------------------------------------------------------------
-//  4) PRODUCT SPEC · universal/extensible y VERSIONADO (§15,§18).
-//     `componentes` es el BOM-seed en el contrato de `calcular()` (puede venir
-//     vacío → la ingeniería queda pendiente; no se finge).
-// ---------------------------------------------------------------------------
 export function construirProductSpec(intent, dna, clasif, { rev = 1, componentes = [], id = null } = {}) {
   const spec = {
     id: id || ('ps_' + hashEstable({ t: intent.textoOriginal, rev }).slice(1)),
@@ -299,17 +246,13 @@ export function construirProductSpec(intent, dna, clasif, { rev = 1, componentes
     acabados: intent.acabados,
     caracteristicas: intent.caracteristicas,
     capacidad: intent.capacidad,
-    componentes,          // BOM-seed (contrato calcular)
+    componentes,
     dna,
   };
   spec.hash = hashEstable({ ...spec, hash: undefined });
   return spec;
 }
 
-// ---------------------------------------------------------------------------
-//  5) INGENIERÍA / BOM STATE · honesto. Sin componentes → no hay ingeniería.
-//     Features eléctricas/electrónicas/estructurales → REQUIRES_VALIDATION.
-// ---------------------------------------------------------------------------
 const FEATURES_CRITICAS = ['electronica', 'cerraduras', 'ventilacion', 'iluminacion_integrada', 'estructural'];
 export function estadoIngenieria(spec) {
   const criticas = (spec.caracteristicas || []).filter((c) => FEATURES_CRITICAS.includes(c));
@@ -322,10 +265,6 @@ export function estadoIngenieria(spec) {
   return { estado: ENG_STATUS.PROPOSED, faltantes: [], motivos: ['despiece propuesto, pendiente de validar por ingeniería'] };
 }
 
-// ---------------------------------------------------------------------------
-//  6) MANUFACTURABILIDAD · honesta (§19). Un Smart Locker con capacidad
-//     eléctrica/electrónica no certificada NUNCA es CAN_BUILD por IA.
-// ---------------------------------------------------------------------------
 const REQUISITOS_LOCKER = ['enclosure', 'doors', 'locks', 'controller', 'power', 'wiring', 'access', 'ventilation', 'maintenance', 'mounting', 'finish'];
 export function manufacturabilidad(spec) {
   const esElectrico = spec.familia === FAMILIA.LOCKER || (spec.caracteristicas || []).some((c) => ['electronica', 'cerraduras'].includes(c));
@@ -339,11 +278,6 @@ export function manufacturabilidad(spec) {
   return { estado: MFG_STATUS.CAN_BUILD, requisitos: [], motivos: ['fabricable con procesos estándar'] };
 }
 
-// ---------------------------------------------------------------------------
-//  7) COST SNAPSHOT · ORQUESTA costear (calculo.js). Honra VH-017: distingue
-//     KNOWN / ESTIMATED / PENDING_* / UNKNOWN. El costo OFICIAL sólo existe si
-//     todo el BOM es emitible (sin pendientes).
-// ---------------------------------------------------------------------------
 export function costearSpec(spec, insumos = {}, par = {}) {
   const comps = spec.componentes || [];
   if (!comps.length) {
@@ -352,10 +286,8 @@ export function costearSpec(spec, insumos = {}, par = {}) {
   const costeo = calcular({ nombre: spec.familia, piezas: 1, componentes: comps, modoManoObra: 'porcentaje' }, 1, insumos, par);
   const e = costeoEmitible(costeo);
   const ignorados = costeo.componentesIgnorados || [];
-  // ¿Los pendientes son por MATERIAL faltante o por PRECIO ausente?
   const pendMaterial = ignorados.filter((n) => comps.some((c) => (c.nombre === n) && !insumos[c.insumoId] && !c.insumo));
   const pendPrecio = ignorados.filter((n) => !pendMaterial.includes(n));
-
   let cost_status;
   if (!e.emitible) {
     cost_status = pendMaterial.length ? COST_STATUS.PENDING_MATERIAL : (pendPrecio.length ? COST_STATUS.PENDING_PRICE : COST_STATUS.UNKNOWN);
@@ -365,8 +297,8 @@ export function costearSpec(spec, insumos = {}, par = {}) {
   }
   return {
     cost_status,
-    known_cost: e.subtotalConocido ?? null,                     // lo costeado hasta ahora
-    official_cost: e.emitible ? e.costoTotal : null,            // sólo si es emitible
+    known_cost: e.subtotalConocido ?? null,
+    official_cost: e.emitible ? e.costoTotal : null,
     unresolved_lines: e.pendientes || [],
     estimated_amount: cost_status === COST_STATUS.ESTIMATED ? costeo.costoUnitario : null,
     certified_amount: cost_status === COST_STATUS.KNOWN ? costeo.costoUnitario : null,
@@ -375,11 +307,6 @@ export function costearSpec(spec, insumos = {}, par = {}) {
   };
 }
 
-// ---------------------------------------------------------------------------
-//  8) LÍNEA DE COTIZACIÓN · seller-safe. Sólo hay precio si el costo es oficial.
-//     Si el costo no es emitible → la línea queda "sin precio autorizado"
-//     (requiere desarrollo), nunca con un precio inventado (§7,§14,§24).
-// ---------------------------------------------------------------------------
 export function lineaCocreada(spec, snapshot, { cantidad = 1 } = {}) {
   const base = {
     descripcion: descripcionCorta(spec),
@@ -391,9 +318,6 @@ export function lineaCocreada(spec, snapshot, { cantidad = 1 } = {}) {
   if (!costeable) {
     return { ...base, sinPrecioAutorizado: true, requiere_desarrollo: true, cost_status: snapshot.cost_status, motivo: 'costo no emitible: la línea requiere desarrollo/precio real antes de cotizar' };
   }
-  // NOTA: el PRECIO de venta lo fija la política de cotización (margen/lista),
-  // no Cocrear. Aquí la línea viaja "lista para cotizar" con el costo oficial
-  // disponible SÓLO para Dirección; el vendedor nunca recibe costo.
   return { ...base, cost_status: snapshot.cost_status, costeable: true, listaParaCotizar: true };
 }
 
@@ -404,58 +328,43 @@ export function descripcionCorta(spec) {
   return `${fam}${ancho}${mats ? ' · ' + mats : ''}`.trim();
 }
 
-// ---------------------------------------------------------------------------
-//  9) ORQUESTADOR · corre el vertical slice y devuelve TODO el pipeline + una
-//     historia + los bloqueos reales + el estado global honesto.
-// ---------------------------------------------------------------------------
 export function cocrear(texto, opts = {}) {
   return cocrearDesdeIntent(interpretarIntent(texto), opts);
 }
 
-// Variante que parte de un INTENT ya estructurado (el estudio en vivo edita el
-// intent con controles — medidas, material, forma, features — y recalcula sin
-// re-parsear texto). `cocrear(texto)` es azúcar sobre esto.
 export function cocrearDesdeIntent(intent, { insumos = {}, par = {}, parent = null, rev = 1, componentes = [] } = {}) {
   const historia = [];
   const paso = (nombre, estado) => historia.push({ paso: nombre, estado, ts: historia.length });
+  const desconocidos = Array.isArray(intent?.desconocidos) ? intent.desconocidos : [];
+  const componentesSeguros = Array.isArray(componentes) ? componentes : [];
 
-  paso('intent', intent.familia === FAMILIA.DESCONOCIDA ? 'parcial' : 'ok');
-  const dna = extraerDNA(intent); paso('dna', 'ok');
-  const clasif = clasificarProducto(intent, { parent }); paso('clasificacion', clasif.clasificacion);
-  const spec = construirProductSpec(intent, dna, clasif, { rev, componentes }); paso('product_spec', `rev${spec.rev}`);
+  paso('intent', intent?.familia === FAMILIA.DESCONOCIDA ? 'parcial' : 'ok');
+  const dna = extraerDNA(intent || {}); paso('dna', 'ok');
+  const clasif = clasificarProducto(intent || {}, { parent }); paso('clasificacion', clasif.clasificacion);
+  const spec = construirProductSpec(intent || {}, dna, clasif, { rev, componentes: componentesSeguros }); paso('product_spec', `rev${spec.rev}`);
   const ingenieria = estadoIngenieria(spec); paso('ingenieria', ingenieria.estado);
   const mfg = manufacturabilidad(spec); paso('manufacturabilidad', mfg.estado);
   const costo = costearSpec(spec, insumos, par); paso('costo', costo.cost_status);
   const linea = lineaCocreada(spec, costo); paso('cotizacion', linea.costeable ? 'lista' : 'requiere_desarrollo');
 
-  // Bloqueos reales (nada se finge como listo).
   const blockers = [];
   if (ingenieria.estado === ENG_STATUS.REQUIRES_VALIDATION) blockers.push('ingeniería requiere validación humana');
   if (mfg.estado === MFG_STATUS.REQUIRES_VALIDATION) blockers.push('manufacturabilidad requiere validación');
   if (mfg.estado === MFG_STATUS.UNKNOWN) blockers.push('manufacturabilidad por determinar');
   if (costo.official_cost == null) blockers.push('costo no emitible (' + costo.cost_status + ')');
-  if (intent.desconocidos.length) blockers.push('faltan datos del brief: ' + intent.desconocidos.join(', '));
+  if (desconocidos.length) blockers.push('faltan datos del brief: ' + desconocidos.join(', '));
 
   let status;
   if (linea.costeable && !blockers.length) status = COCREO_STATUS.READY;
   else if (blockers.some((b) => /validación|validacion/.test(b))) status = COCREO_STATUS.BLOCKED;
-  else status = (spec.componentes.length || intent.familia !== FAMILIA.DESCONOCIDA) ? COCREO_STATUS.PARTIAL : COCREO_STATUS.DRAFT;
+  else status = ((spec.componentes || []).length || spec.familia !== FAMILIA.DESCONOCIDA) ? COCREO_STATUS.PARTIAL : COCREO_STATUS.DRAFT;
 
-  // Render: sólo se PREPARA el input (RenderSpec) cuando hay geometría/estado
-  // suficiente; no se genera aquí (eso pasa por Voni/Render Director, §8).
-  const render = { status: spec.componentes.length ? 'input_listo' : 'pendiente', ref: null, specHash: spec.hash };
-  // Placement: sólo aplica cuando el producto se coloca en un FloorSpec.
+  const render = { status: (spec.componentes || []).length ? 'input_listo' : 'pendiente', ref: null, specHash: spec.hash };
   const placement = { status: 'no_aplica' };
 
-  return { intent, dna, clasificacion: clasif, spec, ingenieria, manufacturabilidad: mfg, costo, lineaCotizacion: linea, render, placement, status, blockers, historia };
+  return { intent: intent || {}, dna, clasificacion: clasif, spec, ingenieria, manufacturabilidad: mfg, costo, lineaCotizacion: linea, render, placement, status, blockers, historia };
 }
 
-// ---------------------------------------------------------------------------
-//  CAMBIOS EN LENGUAJE NATURAL · el cliente habla, el producto CAMBIA de verdad.
-//  Convierte "hazlo más largo / quiero nogal / ponle cajones / más elegante" en
-//  un cambio ESTRUCTURADO del intent. Si la intención es ambigua ("más elegante")
-//  NO cambia en silencio: devuelve 2-3 PROPUESTAS para que el cliente elija (§9,§10).
-// ---------------------------------------------------------------------------
 const _clon = (x) => JSON.parse(JSON.stringify(x));
 const _setTono = (intent, tono) => {
   if (!intent.materiales?.length) intent.materiales = [{ material: 'laminado', tono: null }];
@@ -470,15 +379,13 @@ export function aplicarCambioTexto(intent, frase) {
   const dd = DIMS_DEFAULT[next.familia] || DIMS_DEFAULT[FAMILIA.DESCONOCIDA];
   if (!next.dimensiones) next.dimensiones = { ancho_mm: dd.ancho_mm };
   const cambios = [];
-
-  // --- Dimensión principal (ancho) ---
   const cm = t.match(/(\d+(?:[.,]\d+)?)\s*(cm|mm|m)\b/);
   const quiereMenos = /(corto|corta|angost|chic|peque|reduce|reducir|menos|acorta)/.test(t);
   const quiereMas = /(larg|anch|grande|alarga|agranda|extiende|mas\s+espacio)/.test(t);
   const anchoAct = next.dimensiones.ancho_mm || dd.ancho_mm;
   if (cm) {
     const delta = aMM(cm[1], cm[2]);
-    let nuevo = delta;                                    // "2.70 m" = set absoluto
+    let nuevo = delta;
     if (quiereMenos) nuevo = Math.max(300, anchoAct - delta);
     else if (quiereMas) nuevo = anchoAct + delta;
     next.dimensiones.ancho_mm = nuevo;
@@ -490,8 +397,6 @@ export function aplicarCambioTexto(intent, frase) {
     next.dimensiones.ancho_mm = Math.round(anchoAct * 0.88);
     cambios.push({ campo: 'dimension.ancho_mm', a: next.dimensiones.ancho_mm, tipo: 'dimensional' });
   }
-
-  // --- Material ---
   for (const [mat, re] of MATERIALES_TXT) {
     if (re.test(t)) {
       const tono0 = next.materiales?.[0]?.tono || null;
@@ -500,23 +405,16 @@ export function aplicarCambioTexto(intent, frase) {
       break;
     }
   }
-  // --- Tono / color ---
   if (/oscur|negr|dark/.test(t)) { _setTono(next, 'oscuro'); cambios.push({ campo: 'tono', a: 'oscuro', tipo: 'acabado' }); }
   else if (/clar|blanc|light/.test(t)) { _setTono(next, 'claro'); cambios.push({ campo: 'tono', a: 'claro', tipo: 'acabado' }); }
-
-  // --- "más cálida/cálido/warm" = cambio CONCRETO (madera cálida: nogal + ADN cálido) ---
   if (/c[aá]lid|warm|acogedor/.test(t)) {
     const tono0 = next.materiales?.[0]?.tono || null;
     next.materiales = [{ material: 'nogal', tono: tono0 }, ...(next.materiales || []).slice(1)];
     next.tono = 'calido';
     cambios.push({ campo: 'adn.tono', a: 'calido (nogal)', tipo: 'material' });
   }
-
-  // --- Forma ---
   if (/curv|redonde|organ/.test(t)) { _addFeat(next, 'curva'); cambios.push({ campo: 'forma', a: 'curva', tipo: 'forma' }); }
   if (/recto|recta|angular|cuadrad/.test(t)) { _delFeat(next, 'curva'); cambios.push({ campo: 'forma', a: 'recta', tipo: 'forma' }); }
-
-  // --- Features concretas ---
   const feat = [
     [/ilumina|\bluz\b|\bled\b|backlight/, 'iluminacion_integrada'],
     [/cajon|gaveta|guardar|storage|almacen/, 'cajones'],
@@ -528,8 +426,6 @@ export function aplicarCambioTexto(intent, frase) {
   ];
   for (const [re, f] of feat) if (re.test(t)) { _addFeat(next, f); cambios.push({ campo: 'feature', a: f, tipo: 'feature' }); }
   if (/sin\s+(cajon|gaveta)/.test(t)) { _delFeat(next, 'cajones'); cambios.push({ campo: 'feature', a: '-cajones', tipo: 'feature' }); }
-
-  // --- Intención ABSTRACTA sin cambio concreto → proponer caminos (no adivinar) ---
   if (!cambios.length) {
     const abstract = /(mas|más)?\s*(elegante|premium|ligero|liviano|moderno|sobrio|calid|limpio|minimal)/.test(t);
     if (abstract) return { tipo: 'propuestas', propuestas: propuestasDeEstilo(t, intent) };
@@ -538,7 +434,6 @@ export function aplicarCambioTexto(intent, frase) {
   return { tipo: 'aplicado', intent: next, cambios };
 }
 
-// Rutas (2-3) para una intención abstracta. Cada una es un delta aplicable.
 function propuestasDeEstilo(t, intent) {
   const rutas = [];
   const base = () => _clon(intent);
@@ -565,40 +460,25 @@ function propuestasDeEstilo(t, intent) {
   return rutas;
 }
 
-// ---------------------------------------------------------------------------
-//  VONI PROACTIVO · revisa el diseño y propone mejoras HONESTAS (riesgo, valor,
-//  mantenimiento, decisiones faltantes). Determinista, con evidencia; nunca
-//  inventa vida útil ni certifica. También sabe decir "no cambiaría nada" (§45-51).
-// ---------------------------------------------------------------------------
 export function sugerenciasVoni(spec) {
   const out = [];
   const ancho = spec?.dimensiones?.ancho_mm || 0;
   const feats = spec?.caracteristicas || [];
   const fam = spec?.familia;
-
-  // Claro largo → riesgo de flexión (recepción/mesa/escritorio con cubierta).
   if ([FAMILIA.RECEPCION, FAMILIA.MESA, FAMILIA.ESCRITORIO].includes(fam) && ancho >= 2600 && !feats.includes('refuerzo_inferior')) {
     out.push({ tipo: 'riesgo', que: `Claro largo (${(ancho / 1000).toFixed(2)} m)`, porque: 'Una cubierta de ese claro puede flexionar con el tiempo.', impacto: 'estructural', confianza: 'media', accion: { addFeature: 'refuerzo_inferior', label: 'Evaluar refuerzo inferior' } });
   }
-  // Locker: decisión de acceso + validación eléctrica.
   if (fam === FAMILIA.LOCKER) {
     if (!feats.includes('acceso_definido')) out.push({ tipo: 'decision', que: 'Falta definir el sistema de acceso', porque: 'Un locker inteligente necesita acceso (QR / RFID / cerradura autónoma).', impacto: 'funcional', confianza: 'alta', accion: { addFeature: 'acceso_definido', label: 'Definir acceso (RFID)' } });
     out.push({ tipo: 'validacion', que: 'La parte eléctrica/electrónica requiere validación', porque: 'La IA no certifica electrónica; lo revisa ingeniería.', impacto: 'manufacturabilidad', confianza: 'alta', accion: null });
   }
-  // Iluminación → registro de mantenimiento del driver.
   if (feats.includes('iluminacion_integrada') && !feats.includes('registro_mantenimiento')) {
     out.push({ tipo: 'mantenimiento', que: 'El driver LED necesita acceso de servicio', porque: 'Sin un registro de mantenimiento, cambiar el driver obliga a desarmar.', impacto: 'mantenimiento', confianza: 'media', accion: { addFeature: 'registro_mantenimiento', label: 'Agregar registro frontal' } });
   }
-  // Guard de sobre-ingeniería: si no hay nada, dilo (no inventes mejoras).
   if (!out.length) out.push({ tipo: 'ok', que: 'No recomiendo cambios estructurales', porque: 'El diseño actual es razonable para su uso previsto.', impacto: null, confianza: 'media', accion: null });
   return out;
 }
 
-// ---------------------------------------------------------------------------
-//  PERSISTENCIA · serializa el estudio a un `expediente` (reusa el modelo que ya
-//  existe: expedientes + expediente_revisiones). LIVIANO: guarda intent + historia
-//  + metadatos de render (specHash/expected), NUNCA el base64 del render (§31).
-// ---------------------------------------------------------------------------
 export const COCREAR_PERSIST_VERSION = 'cocrear_studio_v1';
 
 export function cocrearAExpediente(estado = {}) {
@@ -633,15 +513,11 @@ export function cocrearDeExpediente(expediente) {
   return { brief: c.brief || '', intent: c.intent, historia: Array.isArray(c.historia) ? c.historia : [], render: c.render || null };
 }
 
-// Payload jsonb para el RPC `guardar_cocrear_seguro` (server-authority). Incluye los
-// campos que el RPC extrae (nombre/familia/spec.dimensiones) + el estado completo.
 export function cocrearPayload(estado = {}) {
   const intent = estado.intent || {};
   const rev = (estado.historia?.length) || 1;
-  const componentes = intent._componentes || [];
+  const componentes = Array.isArray(intent._componentes) ? intent._componentes : [];
   const spec = construirProductSpec(intent, extraerDNA(intent), clasificarProducto(intent, {}), { rev, componentes });
-  // CostSnapshot para que el backend (registrar_producto_desde_expediente) sepa si el
-  // costo es conocido antes de crear la ProductVersion canónica (una sola verdad).
   const snap = costearSpec(spec, estado.insumos || {}, estado.par || {});
   return {
     version: COCREAR_PERSIST_VERSION,
@@ -657,10 +533,6 @@ export function cocrearPayload(estado = {}) {
   };
 }
 
-// ---------------------------------------------------------------------------
-//  10) STALENESS · si el ProductSpec cambia (nueva rev), lo aguas-abajo
-//      (costo/render/cotización) queda OBSOLETO hasta recalcular (§3,§22).
-// ---------------------------------------------------------------------------
 export function estaStale(resultadoPrevio, specNuevo) {
   if (!resultadoPrevio?.spec || !specNuevo) return false;
   return resultadoPrevio.spec.hash !== specNuevo.hash;
