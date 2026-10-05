@@ -1,23 +1,15 @@
 // ============================================================================
-//  RENDER PROMPT COMPILER (Cocrear) · un solo lugar, versionado, que convierte un
-//  ProductSpec EXACTO en el input del render. NO hay "prompt libre": la geometría
-//  obligatoria (tipo, medidas, forma, conteos, features) sale del ProductSpec;
-//  Voni/Render Director sólo elige cámara e intención. (contrato §4,§13-16,§23)
-//
-//  Produce { version, descripcion, materiales, medidas, render_spec, modo, aspecto,
-//  expected } donde `render_spec` es el contrato tipado que el edge `generar-render`
-//  ya consume (counts + finishes + locked_geometry) y `expected` es el MANIFIESTO
-//  para validar fidelidad después (GEOMETRY/FINISH/FEATURE).
+// RENDER PROMPT COMPILER (Cocrear) · ProductSpec → render contract.
 // ============================================================================
 import { FAMILIA, colorMaterial } from './cocrear.js';
 
-export const RENDER_PROMPT_VERSION = 'cocrear_render_v1';
+export const RENDER_PROMPT_VERSION = 'cocrear_render_v2_layout_locked';
 
 const MAT_EN = { nogal: 'walnut wood', roble: 'oak wood', encino: 'oak-like wood', maple: 'maple wood', laminado: 'high-pressure laminate', solid_surface: 'solid surface (seamless matte mineral)', cristal: 'tempered glass', metal: 'powder-coated steel', piedra: 'stone' };
 const TONO_EN = { oscuro: 'dark', claro: 'light' };
 const PRODUCT_TYPE = {
   [FAMILIA.RECEPCION]: 'reception desk / front counter',
-  [FAMILIA.ESCRITORIO]: 'executive desk',
+  [FAMILIA.ESCRITORIO]: 'workstation / desk system',
   [FAMILIA.MESA]: 'meeting / conference table',
   [FAMILIA.LOCKER]: 'smart locker cabinet',
   [FAMILIA.DISPLAY]: 'retail display shelving',
@@ -28,7 +20,14 @@ const CAMARA = {
   [FAMILIA.RECEPCION]: { view: 'three_quarter', elevation: 'eye_level', lens_mm: 35 },
   [FAMILIA.LOCKER]: { view: 'front_three_quarter', elevation: 'eye_level', lens_mm: 50 },
   [FAMILIA.MESA]: { view: 'three_quarter', elevation: 'slightly_above', lens_mm: 50 },
+  [FAMILIA.ESCRITORIO]: { view: 'three_quarter', elevation: 'slightly_above', lens_mm: 45 },
   default: { view: 'three_quarter', elevation: 'eye_level', lens_mm: 50 },
+};
+
+const LAYOUT_TEXT = {
+  layout_isla_continua: 'one continuous linear collaborative island: two continuous opposing work surfaces connected by one uninterrupted central technical spine; do not split it into detached desk pods',
+  layout_modulos_dobles: 'a clearly modular double-workstation system: distinct two-person modules with visible separation joints, aligned along one shared central technical/biofilic spine; modules must read as repeatable and scalable',
+  layout_hub_escultorico: 'a sculptural radial hub: work positions fan around one strong central architectural core; the composition must be radial/clustered, not two ordinary parallel desk rows',
 };
 
 function lockerDoors(spec) {
@@ -38,7 +37,6 @@ function lockerDoors(spec) {
   return cols * rows;
 }
 
-// Deriva el render_spec tipado + manifiesto esperado desde el ProductSpec.
 export function renderSpecDeProducto(spec, dna = {}) {
   const fam = spec?.familia || FAMILIA.DESCONOCIDA;
   const feats = spec?.caracteristicas || [];
@@ -55,8 +53,19 @@ export function renderSpecDeProducto(spec, dna = {}) {
   if (feats.includes('cerraduras')) mandatory.push('visible locks on the doors');
   if (feats.includes('ventilacion')) mandatory.push('ventilation grilles');
   if (feats.includes('flotante')) mandatory.push('recessed base so the body looks floating (no visible legs)');
-  const forma = feats.includes('curva') ? 'curved, soft radii' : 'clean straight lines';
+  if (feats.includes('jardinera_integrada')) mandatory.push('integrated living planter with real green vegetation, structurally part of the furniture concept');
+  if (feats.includes('electrificacion_integrada')) mandatory.push('fully concealed integrated power and cable management');
+  if (feats.includes('divisores')) mandatory.push('removable privacy dividers at the work positions');
+  if (feats.includes('acustica')) mandatory.push('acoustic divider panels with premium textile finish');
 
+  const layout = feats.find(f => LAYOUT_TEXT[f]) || null;
+  if (layout) {
+    counts.layout = layout;
+    mandatory.unshift(`LAYOUT LOCK: ${LAYOUT_TEXT[layout]}`);
+    if (layout === 'layout_modulos_dobles' && counts.user_capacity) counts.module_count = Math.ceil(counts.user_capacity / 2);
+  }
+
+  const forma = feats.includes('curva') ? 'curved, soft radii' : 'clean straight lines';
   const mat0 = (spec?.materiales || [])[0] || { material: 'laminado', tono: null };
   const acab = (spec?.acabados || [])[0];
   const finishes = [];
@@ -64,11 +73,13 @@ export function renderSpecDeProducto(spec, dna = {}) {
   if (acab) finishes.push(`top/counter: ${[TONO_EN[acab.tono], 'finish'].filter(Boolean).join(' ')} (hex ${colorMaterial(mat0.material, acab.tono)})`);
 
   return {
-    schema_version: 'render_spec_v1',
+    schema_version: 'render_spec_v2',
     product_type: PRODUCT_TYPE[fam] || 'furniture piece',
     dimensions: spec?.dimensiones || {},
-    modules: 1,
+    modules: counts.module_count,
     counts,
+    layout,
+    layout_instruction: layout ? LAYOUT_TEXT[layout] : null,
     materials: (spec?.materiales || []).map((m) => `${m.material}${m.tono ? ' ' + m.tono : ''}`),
     finishes,
     locked_geometry: true,
@@ -78,16 +89,16 @@ export function renderSpecDeProducto(spec, dna = {}) {
   };
 }
 
-// El compilador único: ProductSpec (+DNA) → input completo de render, versionado.
 export function compileRenderPrompt(spec, dna = {}) {
   const rs = renderSpecDeProducto(spec, dna);
   const fam = spec?.familia || FAMILIA.DESCONOCIDA;
   const dims = spec?.dimensiones || {};
-  const medidasTxt = [dims.ancho_mm && `${(dims.ancho_mm / 1000).toFixed(2)} m wide`, dims.alto_mm && `${(dims.alto_mm / 1000).toFixed(2)} m tall`, dims.prof_mm && `${(dims.prof_mm / 1000).toFixed(2)} m deep`].filter(Boolean).join(', ');
+  const medidasTxt = [dims.ancho_mm && `${(dims.ancho_mm / 1000).toFixed(2)} m wide`, dims.alto_mm && `${(dims.alto_mm / 1000).toFixed(2)} m tall`, (dims.prof_mm || dims.fondo_mm) && `${((dims.prof_mm || dims.fondo_mm) / 1000).toFixed(2)} m deep`].filter(Boolean).join(', ');
 
   const partes = [];
   partes.push(`A ${rs.visual_profile.replace('_', ' ')} ${rs.product_type}.`);
   partes.push(`GEOMETRY: ${rs.forma}.${medidasTxt ? ' Proportions: ' + medidasTxt + '.' : ''}`);
+  if (rs.layout_instruction) partes.push(`SELECTED CONCEPT GEOMETRY — MUST MATCH: ${rs.layout_instruction}. This layout is canonical and cannot be replaced with another workstation arrangement.`);
   if (rs.materials.length) partes.push(`MATERIALS: ${rs.finishes.join('; ')}. Physically-based, realistic; do not substitute species or color.`);
   if (rs.mandatory.length) partes.push(`MANDATORY FEATURES (must appear exactly): ${rs.mandatory.join('; ')}.`);
   partes.push(`CONTEXT: ${dna?.tono === 'calido' ? 'warm, premium, architectural' : 'premium, architectural'} Von Haucke style. Editorial furniture photography.`);
@@ -101,23 +112,17 @@ export function compileRenderPrompt(spec, dna = {}) {
     tipo: fam,
     render_spec: rs,
     modo: 'render',
-    // Ratio válido para el modelo de imagen (Gemini): no "landscape" libre.
     aspecto: '4:3',
     expected: { geometry: { product_type: rs.product_type, forma: rs.forma, ...rs.counts }, finish: rs.finishes, features: rs.mandatory },
     specHash: spec?.hash || null,
   };
 }
 
-// ¿El render guardado quedó OBSOLETO respecto al spec actual? (stale por hash, §17,§83)
 export function renderStale(renderGuardado, specActual) {
   if (!renderGuardado?.specHash || !specActual?.hash) return false;
   return renderGuardado.specHash !== specActual.hash;
 }
 
-// FIDELITY 10X · compara el manifiesto `expected` del render guardado contra el del
-// spec actual y dice QUÉ dejó de coincidir (tipo/forma/conteos, acabado, features),
-// no sólo un sí/no. Así el usuario ve EXACTAMENTE por qué el render ya no representa
-// al producto (p.ej. "acabado cambió de nogal a roble"), en vez de un stale binario.
 export function diffFidelidad(expViejo = {}, expNuevo = {}) {
   const cambios = [];
   const g0 = expViejo.geometry || {}, g1 = expNuevo.geometry || {};
@@ -134,8 +139,6 @@ export function diffFidelidad(expViejo = {}, expNuevo = {}) {
   return cambios;
 }
 
-// Verifica la fidelidad del render guardado contra el spec ACTUAL. Devuelve el estado
-// y los cambios concretos. `vigente:null` si el render no trae manifiesto (legacy).
 export function verificarFidelidad(renderGuardado, specActual, dna = {}) {
   if (!renderGuardado?.expected) {
     return { vigente: renderStale(renderGuardado, specActual) ? false : null, cambios: [], motivo: 'sin manifiesto de fidelidad' };
