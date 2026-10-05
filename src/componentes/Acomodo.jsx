@@ -2,8 +2,12 @@
 // ACOMODO · ADAPTADOR DEMO CEO
 //
 // Las sugerencias del plano son SOLO un fallback visual cuando todavía no
-// existen partidas comerciales. Nunca se mezclan con muebles reales: ese bug
-// duplicaba el proyecto (144 piezas) y contaminaba el reparto por cuartos.
+// existen partidas comerciales. Nunca se mezclan completas con muebles reales:
+// ese bug duplicaba el proyecto (144 piezas) y contaminaba el reparto por cuartos.
+//
+// Excepción segura: si el plano detecta salas de juntas y la lista comercial
+// olvidó una mesa/sillería de junta, se añaden SOLO los faltantes como preview
+// SUGERIDO/noCobrar dentro del Acomodo. No alteran la cotización ni el precio.
 // ============================================================================
 import { useMemo, useRef, useState } from 'react';
 import AcomodoBase from './AcomodoBase.jsx';
@@ -15,6 +19,53 @@ import {
 import { marcarDestinoPartida } from '../datos/destinoAcomodo.js';
 
 const esSugerida = (p) => !!p?.sugeridoPlano || String(p?.id || '').startsWith('sug-');
+const norm = (s = '') => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const cantidadDe = (p) => Math.max(1, Math.round(Number(p?.cantidad) || 1));
+const textoPartida = (p) => norm(`${p?.nombre || ''} ${p?.nota || ''} ${p?.ruta || ''} ${p?.zonaSugerida || ''} ${p?.piezaId || ''}`);
+const esMesaJuntas = (p) => /mesa|table/.test(textoPartida(p)) && /junta|consejo|board|reunion|meeting|vh-dest-mtg/.test(textoPartida(p));
+const esSillaJuntas = (p) => /silla|asiento|chair|seat/.test(textoPartida(p)) && /junta|consejo|board|reunion|meeting|vh-dest-mtg/.test(textoPartida(p));
+const esSillaVisitaAmbigua = (p) => {
+  const t = textoPartida(p);
+  if (/vh-dest-(?:mtg|prv|rcp|opn)/.test(t)) return false;
+  return /silla|asiento|chair|seat/.test(t) && /visita|espera|confidente|sonata|concerto|delta|re570gt/.test(t);
+};
+
+function tomarCantidad(lineas, faltan, sufijo) {
+  const out = [];
+  let pendiente = Math.max(0, Math.round(faltan || 0));
+  for (const p of lineas) {
+    if (pendiente <= 0) break;
+    const q = Math.min(cantidadDe(p), pendiente);
+    out.push({ ...p, id: `${p.id}-${sufijo}-${out.length + 1}`, cantidad: q, previewFaltante: true });
+    pendiente -= q;
+  }
+  return out;
+}
+
+// Completa ÚNICAMENTE huecos inequívocos de salas de juntas. Es deliberadamente
+// conservador: no rellena open/privados/recepción cuando ya hay partidas reales.
+// Si hay sillas de visita ambiguas no inventa más sillas; deja que el destino
+// semántico/nota las reparta antes de crear un duplicado visual.
+export function complementosJuntasVisuales(realesMarcados = [], sugeridasPlano = []) {
+  const objetivoMesas = sugeridasPlano.filter(esMesaJuntas);
+  const objetivoSillas = sugeridasPlano.filter(esSillaJuntas);
+  if (!objetivoMesas.length && !objetivoSillas.length) return [];
+
+  const mesasObjetivo = objetivoMesas.reduce((s, p) => s + cantidadDe(p), 0);
+  const sillasObjetivo = objetivoSillas.reduce((s, p) => s + cantidadDe(p), 0);
+  const mesasReales = realesMarcados.filter(esMesaJuntas).reduce((s, p) => s + cantidadDe(p), 0);
+  const sillasReales = realesMarcados.filter(esSillaJuntas).reduce((s, p) => s + cantidadDe(p), 0);
+  const sillasAmbiguas = realesMarcados.filter(esSillaVisitaAmbigua).reduce((s, p) => s + cantidadDe(p), 0);
+
+  const extras = [];
+  if (mesasReales < mesasObjetivo) {
+    extras.push(...tomarCantidad(objetivoMesas, mesasObjetivo - mesasReales, 'gap-mesa'));
+  }
+  if (sillasReales < sillasObjetivo && sillasAmbiguas === 0) {
+    extras.push(...tomarCantidad(objetivoSillas, sillasObjetivo - sillasReales, 'gap-silla'));
+  }
+  return extras;
+}
 
 function areasMCrudas(acomodo) {
   if (Array.isArray(acomodo?.areasM)) return acomodo.areasM;
@@ -52,7 +103,8 @@ export function elegirPartidasAcomodo(partidas = [], sugeridas = []) {
     // Se marca SÓLO en la copia que consume Acomodo; la cotización original,
     // nombres, precios y PDF comercial permanecen intactos.
     .map(marcarDestinoPartida);
-  return reales.length ? reales : sugeridas;
+  if (!reales.length) return sugeridas;
+  return [...reales, ...complementosJuntasVisuales(reales, sugeridas)];
 }
 
 export default function Acomodo(props) {
@@ -64,7 +116,9 @@ export default function Acomodo(props) {
   const areasIniciales = areasMDe(guardado);
   const guardadoNormalizado = guardado ? conAreasNormalizadas(guardado, areasIniciales) : null;
   const sugeridasGuardadas = Array.isArray(guardado?.sugeridosPartidas) ? guardado.sugeridosPartidas : [];
-  // P0: si ya existe una lista comercial de Voni, jamás revivimos el autopoblado.
+  // P0: si ya existe una lista comercial de Voni, jamás revivimos el autopoblado
+  // COMPLETO. Los únicos extras posibles son complementos de juntas calculados
+  // al vuelo y no persistidos.
   const sugeridasIniciales = hayReales
     ? []
     : (sugeridasGuardadas.length ? sugeridasGuardadas : partidasSugeridasDeAreas(areasIniciales));
@@ -80,10 +134,21 @@ export default function Acomodo(props) {
   const [revision, setRevision] = useState(() => (sugeridasIniciales.length && !sugeridasGuardadas.length ? 1 : 0));
   const firmaRef = useRef(firmaAreasParaSugeridos(areasIniciales));
 
+  const areasActuales = areasMDe(acomodoLocal || guardadoNormalizado);
+  const sugeridasPlanoActuales = hayReales
+    ? partidasSugeridasDeAreas(areasActuales, { linea: lineaOperativa })
+    : sugeridas;
+  const realesMarcados = hayReales ? realesEntrada.map(marcarDestinoPartida) : [];
+  const complementosJuntas = hayReales ? complementosJuntasVisuales(realesMarcados, sugeridasPlanoActuales) : [];
+
   const estadoDemo = useMemo(() => {
     const e = props?.estado || {};
     const c = e.cotizacion || {};
-    const partidas = elegirPartidasAcomodo(c.partidas, sugeridas);
+    const areasAhora = areasMDe(acomodoLocal || guardadoNormalizado);
+    const sugeridasParaLayout = hayReales
+      ? partidasSugeridasDeAreas(areasAhora, { linea: lineaOperativa })
+      : sugeridas;
+    const partidas = elegirPartidasAcomodo(c.partidas, sugeridasParaLayout);
     const acomodo = partidas.some((p) => !esSugerida(p)) ? limpiarSugeridos(acomodoLocal) : acomodoLocal;
     return {
       ...e,
@@ -93,7 +158,7 @@ export default function Acomodo(props) {
         ...(acomodo ? { acomodo } : {}),
       },
     };
-  }, [props?.estado, sugeridas, acomodoLocal]);
+  }, [props?.estado, sugeridas, acomodoLocal, hayReales, lineaOperativa, guardadoNormalizado]);
 
   const guardarInterceptado = (acomodo, silencioso) => {
     const areas = areasMDe(acomodo);
@@ -101,6 +166,7 @@ export default function Acomodo(props) {
 
     // P0: cuando Voni ya armó partidas comerciales, el plano NO añade otro set
     // de benches/sillas/gavetas. Limpia cualquier sugerido histórico y recalcula.
+    // Los complementos de juntas son sólo una vista al vuelo; nunca se guardan.
     if (hayReales) {
       setSugeridas([]);
       const limpio = limpiarSugeridos(normalizado);
@@ -164,6 +230,16 @@ export default function Acomodo(props) {
           </div>
         </div>
       )}
+
+      {hayReales && complementosJuntas.length > 0 && (
+        <div className="contenido no-imprimir" style={{ paddingBottom: 0, width: '100%' }}>
+          <div className="alerta" style={{ display: 'block', width: '100%', boxSizing: 'border-box', background: '#fff8e6', borderColor: '#d8a800', color: '#5e4700' }}>
+            <strong>⚠ La lista comercial dejó incompleta una sala de juntas.</strong>{' '}
+            Para no dibujarla vacía, el acomodo añadió {complementosJuntas.reduce((s, p) => s + cantidadDe(p), 0)} pieza(s) sólo como <strong>preview SUGERIDO</strong>. No se cobran ni se agregan a la cotización; sirven para señalar exactamente qué falta confirmar/cotizar.
+          </div>
+        </div>
+      )}
+
       <AcomodoBase key={`acomodo-demo-${revision}-${hayReales ? 'real' : 'sug'}`} {...props} estado={estadoDemo} onGuardarAcomodo={guardarInterceptado} />
     </>
   );
