@@ -2630,3 +2630,57 @@ button.inicio-hero-foto:hover { transform: translateY(-2px); box-shadow: 0 12px 
   :root:not([data-theme="light"]) .cocrear-analizando { background: #2a1714; border-color: #B4231855; color: #FDA29B; }
   :root:not([data-theme="light"]) .cocrear-cta-hint { background: #241c10; color: #FEC84B; }
 }
+
+/* ==========================================================================
+   LEVANTADA FRONTEND (2026-10-05) · capa de PULIDO premium, aditiva y reversible.
+   No cambia la identidad "VH Terminal": unifica movimiento, elevación e interacción
+   para que todo se sienta de una sola pieza y de gama alta. Respeta reduced-motion
+   y no altera el layout (sólo sombra/translate/color, que no recalculan la caja).
+   Revertir = borrar este bloque.
+   ========================================================================== */
+:root {
+  --vh-ease: cubic-bezier(.22, .61, .36, 1);   /* curva suave y elegante */
+  --vh-tr: 170ms var(--vh-ease);               /* duración base de transición */
+  --elev-1: 0 1px 2px rgba(0,0,0,.35);
+  --elev-2: 0 4px 10px -2px rgba(0,0,0,.45), 0 2px 4px rgba(0,0,0,.3);
+  --elev-3: 0 12px 30px -8px rgba(0,0,0,.6), 0 4px 10px rgba(0,0,0,.35);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Transición unificada en lo interactivo: los hover/active que ya existían pasan
+     de "saltar" a deslizarse. Sólo propiedades baratas (sin reflow). */
+  .boton, .tile, .tile-destacada, .accion, .chip, .opcion-grande, .segmento button,
+  .cc-swatch, .cc-feat, .cc-seg-b, .cc-hist, .cc-propuesta, .voni-fab, .icono-btn,
+  .cocrear-btn, .cocrear-chip, .masmenos button, .tile-flecha {
+    transition: background-color var(--vh-tr), border-color var(--vh-tr),
+      color var(--vh-tr), box-shadow var(--vh-tr), transform var(--vh-tr), opacity var(--vh-tr);
+  }
+  /* Realce al pasar el cursor: una sombra viva da sensación de "tocable" premium. */
+  .tile:hover, .tile-destacada:hover { box-shadow: var(--elev-3); }
+  .cc-propuesta:hover { box-shadow: var(--elev-2); transform: translateY(-1px); }
+  .boton.primario:hover:not(:disabled), .boton.tinta:hover:not(:disabled) { box-shadow: var(--elev-2); }
+  .voni-fab:hover { transform: scale(1.06); box-shadow: var(--elev-3); }
+  .voni-fab:active { transform: scale(.97); }
+}
+
+/* Foco más nítido y consistente (teclado/accesibilidad) sin romper el existente. */
+:where(.boton, .tile, .accion, .chip, .cc-swatch, .cc-feat, .segmento button, a, button):focus-visible {
+  outline: 2.5px solid var(--rojo);
+  outline-offset: 2px;
+}
+
+/* Detalles de gama alta: selección, scrollbar e imágenes nítidas. */
+::selection { background: rgba(229,72,77,.28); color: #fff; }
+* { scrollbar-width: thin; scrollbar-color: var(--linea-fuerte) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: var(--linea-fuerte); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+*::-webkit-scrollbar-thumb:hover { background: var(--gris); background-clip: padding-box; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+/* Entrada suave del contenido al cambiar de pantalla: aparece, no parpadea.
+   SÓLO opacidad (nada de transform): un transform en el ancestro rompería el
+   position:sticky de barras como la de Cotizar durante la animación. */
+@media (prefers-reduced-motion: no-preference) {
+  .contenido { animation: vh-entrada 220ms var(--vh-ease) both; }
+  @keyframes vh-entrada { from { opacity: 0; } to { opacity: 1; } }
+}
