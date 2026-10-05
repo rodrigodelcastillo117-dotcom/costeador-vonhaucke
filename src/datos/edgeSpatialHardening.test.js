@@ -24,6 +24,15 @@ describe('edge spatial intelligence · hardening no negociable', () => {
     expect(s).toContain('render_ready: renderReady');
   });
 
+  it('ProductRevision espacial es autoridad server-side y no acepta spoof del navegador', () => {
+    const s = read('supabase/functions/acomodar-espacio/index.ts');
+    expect(s).toContain('spatial_specs_para_versiones');
+    expect(s).toContain('CANONICAL_SPATIAL_SOURCE_UNAVAILABLE');
+    expect(s).toContain('delete p.spatial_spec');
+    expect(s).toContain('SERVER_PRODUCT_REVISION');
+    expect(s).toContain('canonical_specs_resolved');
+  });
+
   it('leer-plano conserva wrapper seguro y delega visión al core', () => {
     const s = read('supabase/functions/leer-plano/index.ts');
     expect(s).toContain('createClient');
