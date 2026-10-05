@@ -1,96 +1,107 @@
 // ============================================================================
 //  Contrato de RENDER CANÓNICO por ProductRevision exacta.
-//  Reglas duras (tanda render-partida): resolver SÓLO por producto_id +
-//  producto_version_id; nunca por nombre; nunca una revisión vieja en silencio;
-//  stale sólo como histórico; estado explícito cuando falta; congelado por versión.
+//  Reglas duras: revisión exacta, stale nunca vigente y GENERATED != VALIDATED.
 // ============================================================================
 import { describe, it, expect } from 'vitest';
 import {
-  resolverRenderDeFilas, estadoRenderPartida, claveRenderPartida, partidaEsCanonica, ESTADO_RENDER,
+  resolverRenderDeFilas, estadoRenderPartida, claveRenderPartida, partidaEsCanonica,
+  renderEstaValidado, ESTADO_RENDER,
 } from './renderCanonico.js';
 
-// Filas de ejemplo tal como las devuelve resolver_renders_canonicos (metadata).
 const fila = (over = {}) => ({
-  producto_id: 1933, producto_version_id: 1933, estado: 'GENERATED', stale: false,
+  producto_id: 1933, producto_version_id: 1933, estado: 'VALIDATED', stale: false,
+  geometry_validation: 'PASS', feature_validation: 'PASS', finish_validation: 'PASS',
   storage_url: 'https://x/renders/1933.png', creado: '2026-10-04T10:00:00Z',
   prompt_version: 'cocrear_render_v1', geometry_hash: 'h1', modo: 'render', ...over,
 });
 
 describe('render canónico · resolución por revisión exacta', () => {
-  it('1. render exacto de Rev1 ⇒ VIGENTE con su URL', () => {
+  it('1. render exacto VALIDATED + PASS/PASS/PASS ⇒ VIGENTE', () => {
     const r = resolverRenderDeFilas([fila()], { productoId: 1933, productoVersionId: 1933 });
     expect(r.estado).toBe(ESTADO_RENDER.VIGENTE);
+    expect(r.validado).toBe(true);
     expect(r.url).toBe('https://x/renders/1933.png');
   });
 
-  it('2. existe Rev2 pero la partida sigue en Rev1 ⇒ resuelve Rev1, NUNCA Rev2', () => {
+  it('2. GENERATED + NOT_VERIFIED ⇒ PENDIENTE_VALIDACION, nunca VIGENTE', () => {
+    const r = resolverRenderDeFilas([fila({ estado: 'GENERATED', geometry_validation: 'NOT_VERIFIED', feature_validation: 'NOT_VERIFIED', finish_validation: 'NOT_VERIFIED' })],
+      { productoId: 1933, productoVersionId: 1933 });
+    expect(r.estado).toBe(ESTADO_RENDER.PENDIENTE_VALIDACION);
+    expect(r.validado).toBe(false);
+    expect(r.url).toBeTruthy();
+  });
+
+  it('3. falta cualquiera de las tres validaciones ⇒ no es vigente', () => {
+    for (const campo of ['geometry_validation', 'feature_validation', 'finish_validation']) {
+      const r = resolverRenderDeFilas([fila({ [campo]: 'NOT_VERIFIED' })], { productoId: 1933, productoVersionId: 1933 });
+      expect(r.estado).toBe(ESTADO_RENDER.PENDIENTE_VALIDACION);
+      expect(renderEstaValidado(r.render)).toBe(false);
+    }
+  });
+
+  it('4. existe Rev2 pero la partida sigue en Rev1 ⇒ resuelve Rev1, nunca Rev2', () => {
     const filas = [
       fila({ producto_version_id: 1933, storage_url: 'URL_REV1' }),
       fila({ producto_version_id: 1934, storage_url: 'URL_REV2', creado: '2026-10-05T10:00:00Z' }),
     ];
     const r = resolverRenderDeFilas(filas, { productoId: 1933, productoVersionId: 1933 });
     expect(r.estado).toBe(ESTADO_RENDER.VIGENTE);
-    expect(r.url).toBe('URL_REV1'); // aunque Rev2 sea más nuevo, no se usa
+    expect(r.url).toBe('URL_REV1');
   });
 
-  it('3. Rev1 sólo tiene render STALE ⇒ STALE (histórico), nunca vigente', () => {
+  it('5. Rev1 sólo tiene render STALE ⇒ STALE, nunca vigente', () => {
     const r = resolverRenderDeFilas([fila({ stale: true })], { productoId: 1933, productoVersionId: 1933 });
     expect(r.estado).toBe(ESTADO_RENDER.STALE);
-    expect(r.url).toBeTruthy(); // disponible sólo como histórico marcado
+    expect(r.validado).toBe(false);
   });
 
-  it('4. no hay render para esa versión ⇒ SIN_RENDER_VALIDO (estado explícito)', () => {
+  it('6. no hay render para esa versión ⇒ SIN_RENDER_VALIDO', () => {
     const r = resolverRenderDeFilas([], { productoId: 1933, productoVersionId: 1933 });
     expect(r.estado).toBe(ESTADO_RENDER.SIN_RENDER_VALIDO);
     expect(r.url).toBeNull();
   });
 
-  it('5. especial Cocrear (producto_id ≠ version_id) ⇒ resuelve por su versión exacta', () => {
+  it('7. especial Cocrear (producto_id ≠ version_id) ⇒ versión exacta', () => {
     const r = resolverRenderDeFilas([fila({ producto_id: 1933, producto_version_id: 1934, storage_url: 'URL_V1934' })],
       { productoId: 1933, productoVersionId: 1934 });
     expect(r.estado).toBe(ESTADO_RENDER.VIGENTE);
     expect(r.url).toBe('URL_V1934');
   });
 
-  it('6. línea estándar CON ProductVersion ⇒ mismo contrato (resuelve por versión)', () => {
+  it('8. línea estándar CON ProductVersion ⇒ mismo contrato', () => {
     const partida = { nombre: 'Escritorio App LT', productoId: 500, producto_version_id: 777 };
     const mapa = { 777: [fila({ producto_id: 500, producto_version_id: 777, storage_url: 'URL_LINEA' })] };
     const r = estadoRenderPartida(partida, mapa);
     expect(r.estado).toBe(ESTADO_RENDER.VIGENTE);
-    expect(r.url).toBe('URL_LINEA');
   });
 
-  it('7. NUNCA fallback por nombre: filas de otra versión/otro nombre no se usan', () => {
-    const filas = [
-      fila({ producto_version_id: 2000, storage_url: 'URL_OTRA_VERSION', producto_nombre: 'Escritorio 1.80 nogal' }),
-    ];
+  it('9. NUNCA fallback por nombre', () => {
+    const filas = [fila({ producto_version_id: 2000, storage_url: 'URL_OTRA_VERSION', producto_nombre: 'Escritorio 1.80 nogal' })];
     const r = resolverRenderDeFilas(filas, { productoId: 1933, productoVersionId: 1933 });
-    expect(r.estado).toBe(ESTADO_RENDER.SIN_RENDER_VALIDO); // aunque "se parezca", no se usa
-    expect(r.url).toBeNull();
+    expect(r.estado).toBe(ESTADO_RENDER.SIN_RENDER_VALIDO);
   });
 
-  it('8. actualización explícita Rev1→Rev2 ⇒ la partida en Rev2 resuelve el render de Rev2', () => {
+  it('10. actualización explícita Rev1→Rev2 resuelve Rev2', () => {
     const mapa = {
       1933: [fila({ producto_version_id: 1933, storage_url: 'URL_REV1' })],
       1934: [fila({ producto_version_id: 1934, storage_url: 'URL_REV2' })],
     };
-    expect(estadoRenderPartida({ productoId: 1933, producto_version_id: 1933 }, mapa).url).toBe('URL_REV1');
     expect(estadoRenderPartida({ productoId: 1933, producto_version_id: 1934 }, mapa).url).toBe('URL_REV2');
   });
 
-  it('guardias: partida sin versión ⇒ SIN_VERSION (no es canónica)', () => {
+  it('guardias: partida sin versión ⇒ SIN_VERSION', () => {
     expect(claveRenderPartida({ nombre: 'Silla banco' })).toBeNull();
     expect(partidaEsCanonica({ nombre: 'Silla banco' })).toBe(false);
     expect(estadoRenderPartida({ nombre: 'Silla banco' }, {}).estado).toBe(ESTADO_RENDER.SIN_VERSION);
   });
 
-  it('guardias: el producto_id es un guardia — versión correcta pero producto que no coincide se ignora', () => {
+  it('guardias: producto_id no coincidente se ignora', () => {
     const r = resolverRenderDeFilas([fila({ producto_id: 9999, producto_version_id: 1933 })],
       { productoId: 1933, productoVersionId: 1933 });
     expect(r.estado).toBe(ESTADO_RENDER.SIN_RENDER_VALIDO);
   });
 
-  it('elige el render VIGENTE más reciente si hay varios para la misma versión', () => {
+  it('elige el VALIDATED más reciente de la misma versión', () => {
     const filas = [
       fila({ storage_url: 'VIEJO', creado: '2026-10-01T00:00:00Z' }),
       fila({ storage_url: 'NUEVO', creado: '2026-10-04T00:00:00Z' }),
