@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import SinPantallaBlanca from './componentes/SinPantallaBlanca.jsx';
+import { registrarError } from './datos/telemetria.js';
 import './fuentes.css';
 import './estilos.css';
 
@@ -40,9 +41,11 @@ function pintarFallo(titulo, detalle) {
 }
 
 window.addEventListener('error', (e) => {
+  registrarError(e?.error || e?.message, { origen: 'window.onerror', archivo: e?.filename, linea: e?.lineno });
   pintarFallo('Error al cargar', `${e.message}\n${e.filename}:${e.lineno}:${e.colno}\n\n${e.error?.stack || ''}`);
 });
 window.addEventListener('unhandledrejection', (e) => {
+  registrarError(e?.reason, { origen: 'unhandledrejection' });
   pintarFallo('Error al cargar (promesa)', String(e.reason?.stack || e.reason));
 });
 

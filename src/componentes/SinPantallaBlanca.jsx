@@ -11,6 +11,7 @@
 //  solo, así que un tropiezo en una pantalla no deja la app inservible.
 // ============================================================================
 import { Component } from 'react';
+import { registrarError } from '../datos/telemetria.js';
 
 export default class SinPantallaBlanca extends Component {
   constructor(props) {
@@ -26,6 +27,8 @@ export default class SinPantallaBlanca extends Component {
     this.setState({ info });
     // Queda en la consola del navegador con nombre propio, para poder pedirlo.
     console.error('[Von Haucke] Error de pantalla:', error, info?.componentStack);
+    // Y se CAPTURA en telemetría (anillo exportable) con la pantalla como contexto.
+    registrarError(error, { pantalla: this.props.resetKey || null, origen: 'error-boundary' });
   }
 
   componentDidUpdate(prev) {
