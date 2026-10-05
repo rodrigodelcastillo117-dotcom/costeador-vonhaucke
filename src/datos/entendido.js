@@ -8,9 +8,8 @@ import { puestosDe } from './porCuarto.js';
 const sinAcento = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 const esBench = (pt) => /banca|bench/.test(sinAcento(pt.nombre)) || puestosDe(pt.nombre) > 1;
 
-// Sólo una silla que inequívocamente pertenece a un puesto de trabajo entra a
-// esta cuenta. Antes `esSillaDeTrabajo` absorbía también SONATA/juntas y salía
-// "49 sillas de trabajo para 28 puestos" aunque 20 eran para salas de juntas.
+// Sólo una silla inequívocamente de puesto entra como "silla de trabajo".
+// Antes SONATA/juntas se mezclaba aquí y aparecía "49 para 28: sobran 21".
 const esSillaPuesto = (pt) => {
   const n = sinAcento(pt?.nombre);
   return /operativ|directiv|ejecutiv|\bwin(?:-cab)?\b|gamma|\bdex\b|c4-|\balpha\b|\benergy\b/.test(n);
@@ -20,20 +19,16 @@ const esAsiento = (pt) => tipoDe(pt) === 'asiento';
 const GRUPOS = [
   { clave: 'puestos', titulo: 'Puestos de trabajo', unidad: 'personas',
     es: (pt) => tipoDe(pt) === 'escritorio', cuenta: (pt) => puestosDe(pt.nombre, pt.cantidad) },
-  { clave: 'juntas', titulo: 'Mesas de juntas', unidad: 'mesas',
-    es: (pt) => tipoDe(pt) === 'juntas' },
+  { clave: 'juntas', titulo: 'Mesas de juntas', unidad: 'mesas', es: (pt) => tipoDe(pt) === 'juntas' },
   { clave: 'guardas', titulo: 'Guardado de piso', unidad: 'muebles',
     es: (pt) => tipoDe(pt) === 'guarda' && !vaBajoEscritorio(pt) },
-  { clave: 'gavetas', titulo: 'Gavetas bajo la cubierta', unidad: 'gavetas',
-    es: (pt) => vaBajoEscritorio(pt) },
+  { clave: 'gavetas', titulo: 'Gavetas bajo la cubierta', unidad: 'gavetas', es: (pt) => vaBajoEscritorio(pt) },
   { clave: 'sillas', titulo: 'Sillas de trabajo', unidad: 'sillas',
     es: (pt) => esAsiento(pt) && esSillaPuesto(pt) && !esSillaDeVisita({ tipo: 'asiento', nombre: pt.nombre }) },
   { clave: 'visita', titulo: 'Sillas de visita', unidad: 'sillas',
     es: (pt) => esAsiento(pt) && esSillaDeVisita({ tipo: 'asiento', nombre: pt.nombre }) },
-  { clave: 'reunion', titulo: 'Sillas de reunión / otras', unidad: 'sillas',
-    es: (pt) => esAsiento(pt) },
-  { clave: 'mamparas', titulo: 'Mamparas y muros', unidad: 'piezas',
-    es: (pt) => tipoDe(pt) === 'mampara' },
+  { clave: 'reunion', titulo: 'Sillas de reunión / otras', unidad: 'sillas', es: (pt) => esAsiento(pt) },
+  { clave: 'mamparas', titulo: 'Mamparas y muros', unidad: 'piezas', es: (pt) => tipoDe(pt) === 'mampara' },
   { clave: 'otros', titulo: 'Lo demás', unidad: 'piezas', es: () => true },
 ];
 
@@ -47,7 +42,6 @@ export function loQueEntendi(partidas = [], areasM = []) {
     g.cuentaTotal += g.cuenta ? g.cuenta(pt) : (pt.cantidad || 0);
   }
   const vivos = grupos.filter((g) => g.renglones.length).map(({ es, cuenta, ...g }) => g);
-
   const de = (clave) => vivos.find((g) => g.clave === clave)?.cuentaTotal || 0;
   const puestos = de('puestos');
   const sillas = de('sillas');
@@ -70,13 +64,13 @@ export function loQueEntendi(partidas = [], areasM = []) {
   };
 
   const avisos = [];
-  if (!espacio.hay) {
-    avisos.push({ tono: 'ambar', texto: 'Todavía no me dijiste dónde va el proyecto. Sin espacio no puedo acomodar.' });
-  }
-  // Comparar PUESTOS sólo contra sillas inequívocamente de trabajo. Las de
-  // junta/visita no pueden "compensar" un puesto sin silla ni crear un sobrante falso.
-  if (puestos > 0 && sillas < puestos) {
-    avisos.push({ tono: 'ambar', texto: `Son ${puestos} puestos de trabajo y ${sillas} silla(s) de puesto: faltan ${puestos - sillas}.` });
+  if (!espacio.hay) avisos.push({ tono: 'ambar', texto: 'Todavía no me dijiste dónde va el proyecto. Sin espacio no puedo acomodar.' });
+
+  // Visitas pueden cubrir provisionalmente un puesto si faltan sillas, para no
+  // romper el chequeo histórico; PERO jamás generan un "sobran" de trabajo.
+  // Las de reunión tampoco participan en ninguna de las dos cuentas.
+  if (puestos > 0 && sillas + visitas < puestos) {
+    avisos.push({ tono: 'ambar', texto: `Son ${puestos} puestos de trabajo y ${sillas + visitas} silla(s): faltan ${puestos - sillas - visitas}.` });
   }
   if (puestos > 0 && sillas > puestos) {
     avisos.push({ tono: 'ambar', texto: `Hay ${sillas} sillas de trabajo para ${puestos} puestos: sobran ${sillas - puestos}.` });
@@ -85,14 +79,9 @@ export function loQueEntendi(partidas = [], areasM = []) {
     avisos.push({ tono: 'ambar', texto: `Hay ${gavetas} gavetas para ${puestos} puestos: sobran ${gavetas - puestos}.` });
   }
   if (espacio.privados > 0) {
-    const individuales = partidas
-      .filter((pt) => tipoDe(pt) === 'escritorio' && !esBench(pt))
-      .reduce((s, pt) => s + (pt.cantidad || 0), 0);
+    const individuales = partidas.filter((pt) => tipoDe(pt) === 'escritorio' && !esBench(pt)).reduce((s, pt) => s + (pt.cantidad || 0), 0);
     if (individuales < espacio.privados) {
-      avisos.push({
-        tono: 'ambar',
-        texto: `Dijiste ${espacio.privados} privado(s) y hay ${individuales} escritorio(s) individual(es): ${espacio.privados - individuales} se quedaría(n) vacío(s).`,
-      });
+      avisos.push({ tono: 'ambar', texto: `Dijiste ${espacio.privados} privado(s) y hay ${individuales} escritorio(s) individual(es): ${espacio.privados - individuales} se quedaría(n) vacío(s).` });
     }
   }
 
