@@ -28,7 +28,9 @@ const norm = (s = '') => String(s).toLowerCase().normalize('NFD').replace(/[\u03
 export function inferirDestinoPartida(partida = {}) {
   const nombre = norm(partida.nombre);
   const nota = norm(partida.nota);
-  const todo = `${nombre} ${nota}`;
+  const zona = norm(partida.zonaSugerida || partida.zona_destino || partida.zonaDestino || partida.areaDestino || '');
+  const identidad = norm(`${partida.piezaId || ''} ${partida.source_ref || ''} ${partida.modelo || ''}`);
+  const todo = `${nombre} ${nota} ${zona} ${identidad}`;
 
   // Lo explícito gana. Recepción primero para que "silla operativa de recepción"
   // no caiga a open sólo por la palabra operativa.
@@ -37,7 +39,7 @@ export function inferirDestinoPartida(partida = {}) {
   // Sala/mesa/sillería de reunión. También cubre notas como
   // "8 para la sala APP LT y 12 para la sala Cirque" aunque el nombre del banco
   // sea simplemente "Silla · SONATA".
-  if (/sala(?:s)? de junta|sala junta|sala app\s*lt|sala cirque|\bjunta(?:s)?\b|consejo|boardroom|mesa de reunion/.test(todo)) {
+  if (/sala(?:s)? de junta|sala junta|sala app\s*lt|sala cirque|\bjunta(?:s)?\b|consejo|boardroom|reunion|meeting|mesa de reunion/.test(todo)) {
     return DESTINO.JUNTAS;
   }
 
@@ -51,6 +53,17 @@ export function inferirDestinoPartida(partida = {}) {
   if (/\boperativ|\bbench\b|\bbanca\b|\bisla\b|\bapartado\b|open\s*space|puesto(?:s)? de trabajo/.test(todo)) {
     return DESTINO.OPEN;
   }
+
+  // FALLBACKS DE MODELO (sólo cuando el texto/nota NO dijo destino).
+  // El programa guiado usa modelos distintos por rol. Antes se perdía la
+  // etiqueta que devolvía la IA y una SONATA de sala terminaba como "silla
+  // genérica"; `sentarSillas()` la pegaba a un bench operativo. Estos defaults
+  // nunca pisan una nota explícita: sólo rescatan el caso silencioso.
+  if (/\bsonata\b/.test(todo)) return DESTINO.JUNTAS;
+  if (/\bconcerto\b/.test(todo)) return DESTINO.PRIVADO;
+  if (/\balpha\b|\benergy\b/.test(todo)) return DESTINO.PRIVADO;
+  if (/\bwin(?:-cab)?\b|gamma-e|c4-em-bnf|c4-el-bnf-cab|\bdex\b/.test(todo)) return DESTINO.OPEN;
+
   return null;
 }
 
