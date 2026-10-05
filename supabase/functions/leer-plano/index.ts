@@ -1,20 +1,7 @@
 // ============================================================================
-//  Edge Function: leer-plano  (LEE UN PLANO / LAYOUT y saca las ÁREAS)
-//  Recibe la imagen de un plano (AutoCAD exportado a imagen/PDF-render) y
-//  devuelve la lista de cuartos/áreas con su FORMA REAL y sus medidas en mm,
-//  para pre-llenar el acomodo. Si no hay cotas, estima y lo marca.
-//  Requiere ANTHROPIC_API_KEY.
-//
-//  v2 (2026-08-16) — POR QUÉ CAMBIÓ EL ESQUEMA:
-//  Rodrigo subió una planta orgánica (sala de juntas CIRCULAR de Ø7 m dentro
-//  del open space, recepción TRIANGULAR, break room TRAPEZOIDAL y las oficinas
-//  detrás de un muro CURVO) y la app dibujó nueve cajas rectas encimadas. No
-//  fue que el modelo leyera mal: el esquema sólo tenía ancho/largo, así que la
-//  única respuesta posible era una caja. Ahora cada área entrega su CONTORNO
-//  (polígono en mm) o su círculo, más el ENVOLVENTE del conjunto tomado de la
-//  cota general. El motor de acomodo y el plano ya sabían trabajar con
-//  polígonos (venía del lienzo "Dibujar mi oficina"); el lector era el único
-//  eslabón que no los producía.
+// leer-plano v3 · levanta geometría arquitectónica verificable desde imagen/PDF.
+// La IA EXTRAE; FloorSpec/solver VALIDAN. Si un dato crítico no se ve, se marca
+// desconocido: nunca se inventa para conseguir un layout verde.
 // ============================================================================
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
@@ -28,10 +15,28 @@ const PUNTO = {
   type: "object",
   additionalProperties: false,
   properties: {
-    x: { type: "number", description: "mm desde el borde IZQUIERDO del envolvente." },
-    y: { type: "number", description: "mm desde el borde SUPERIOR del envolvente (crece hacia abajo)." },
+    x: { type: "number", description: "mm desde el borde izquierdo del envolvente" },
+    y: { type: "number", description: "mm desde el borde superior del envolvente; y crece hacia abajo" },
   },
   required: ["x", "y"],
+};
+
+const PUERTA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    x: { type: "number", description: "Centro del vano en mm, coordenada global del envolvente." },
+    y: { type: "number", description: "Centro del vano en mm, coordenada global del envolvente." },
+    ancho: { type: "number", description: "Ancho de la hoja/vano en mm." },
+    tieneBarrido: { type: "boolean", description: "true SOLO cuando el arco/sentido de apertura se distingue realmente en el plano." },
+    bisagraX: { type: "number", description: "X de la bisagra en mm. Si no se puede leer, 0 y tieneBarrido=false." },
+    bisagraY: { type: "number", description: "Y de la bisagra en mm. Si no se puede leer, 0 y tieneBarrido=false." },
+    anguloCerradaDeg: { type: "number", description: "Ángulo de la hoja cerrada: 0=derecha, 90=abajo, 180=izquierda, 270=arriba." },
+    sentido: { type: "string", enum: ["horario", "antihorario", "desconocido"], description: "Sentido visual del giro en coordenadas del plano." },
+    barridoDeg: { type: "number", description: "Grados del arco visible; normalmente 90. Si no se ve, 0." },
+    confianza: { type: "string", enum: ["alta", "media", "baja"] },
+  },
+  required: ["x", "y", "ancho", "tieneBarrido", "bisagraX", "bisagraY", "anguloCerradaDeg", "sentido", "barridoDeg", "confianza"],
 };
 
 const SCHEMA = {
@@ -39,88 +44,46 @@ const SCHEMA = {
   additionalProperties: false,
   properties: {
     envolvente: {
-      type: "object",
-      additionalProperties: false,
-      description: "Caja que encierra TODO el conjunto construido, tomada de la cota general del plano.",
+      type: "object", additionalProperties: false,
       properties: {
-        ancho: { type: "number", description: "Ancho total en mm (eje horizontal)." },
-        largo: { type: "number", description: "Largo total en mm (eje vertical)." },
+        ancho: { type: "number", description: "Ancho total en mm." },
+        largo: { type: "number", description: "Largo total en mm." },
       },
       required: ["ancho", "largo"],
     },
-    // COTAS DEL GRID (ejes). Permiten VALIDAR la envolvente de forma determinista:
-    // la suma de los segmentos debe cuadrar con ancho/largo (cota > escala > IA).
     grid: {
-      type: "object",
-      additionalProperties: false,
-      description: "Las cotas de los ejes, segmento por segmento, en mm. Ej. ejes A-E con 4.00+4.00+4.00+3.00 → horizontal:[4000,4000,4000,3000]. Vacío si el plano no trae cotas de ejes.",
+      type: "object", additionalProperties: false,
       properties: {
-        horizontal: { type: "array", items: { type: "number" }, description: "Segmentos horizontales (entre ejes verticales A,B,C…) en mm, de izquierda a derecha." },
-        vertical: { type: "array", items: { type: "number" }, description: "Segmentos verticales (entre ejes horizontales 1,2,3…) en mm, de arriba a abajo." },
+        horizontal: { type: "array", items: { type: "number" } },
+        vertical: { type: "array", items: { type: "number" } },
       },
       required: ["horizontal", "vertical"],
     },
     areas: {
       type: "array",
-      description: "Un cuarto/área por entrada, con su FORMA REAL en mm.",
       items: {
-        type: "object",
-        additionalProperties: false,
+        type: "object", additionalProperties: false,
         properties: {
-          nombre: { type: "string", description: "Nombre o uso del cuarto tal como se lee en el plano (ej. 'Oficina 1', 'Recepción')." },
-          tipo: { type: "string", enum: ["open", "privado", "juntas", "recepcion", "lounge", "servicio"], description: "Para qué se usa el cuarto." },
-          // El esquema viejo sólo tenía ancho/largo y por eso una sala circular
-          // salía cuadrada y un open space en L salía rectangular.
-          forma: { type: "string", enum: ["poligono", "circulo"], description: "'circulo' SÓLO si el cuarto es realmente redondo/ovalado; si no, 'poligono'." },
-          puntos: {
-            type: "array",
-            description: "Contorno del cuarto en orden (horario), en mm absolutos. Obligatorio si forma='poligono': 4 puntos si es rectangular, 3 si es triangular, 4 si es trapecio, y de 8 a 16 si algún muro es CURVO (puntos sobre la curva). Si forma='circulo', deja la lista vacía.",
-            items: PUNTO,
-          },
+          nombre: { type: "string" },
+          tipo: { type: "string", enum: ["open", "privado", "juntas", "recepcion", "lounge", "servicio"] },
+          forma: { type: "string", enum: ["poligono", "circulo"] },
+          puntos: { type: "array", items: PUNTO },
           circulo: {
-            type: "object",
-            additionalProperties: false,
-            description: "Sólo si forma='circulo'. Si es polígono, manda ceros.",
-            properties: {
-              cx: { type: "number", description: "Centro x en mm." },
-              cy: { type: "number", description: "Centro y en mm." },
-              r: { type: "number", description: "Radio en mm (la mitad del diámetro que dice la cota)." },
-            },
+            type: "object", additionalProperties: false,
+            properties: { cx: { type: "number" }, cy: { type: "number" }, r: { type: "number" } },
             required: ["cx", "cy", "r"],
           },
-          // Una sala de juntas circular DENTRO del open space no es un traslape:
-          // es un cuarto anidado. Sin este campo la validación la rechazaba.
-          dentroDe: { type: "string", description: "Nombre del área que CONTIENE a ésta (una sala cerrada dentro del open space). Cadena vacía si no está dentro de ninguna." },
-          // El número de puestos NO se estima por área: es el conteo de los
-          // escritorios REALMENTE DIBUJADOS en esta zona. Viaja como dato duro
-          // para que el cliente no lo recalcule por geometría (antes salían 18
-          // donde el plano dibujaba 8).
-          puestos: { type: "integer", description: "SÓLO para zonas/islas de trabajo con escritorios DIBUJADOS: cuenta los puestos (escritorios/posiciones) que REALMENTE se ven dibujados en ESTA zona. NO estimes por área: cuenta uno por cada escritorio con su silla. 0 para cuartos sin puestos de trabajo (privados, salas, servicio, recepción, o el salón contenedor cuyos puestos ya están en sus islas)." },
+          dentroDe: { type: "string" },
+          puestos: { type: "integer" },
           confianza: { type: "string", enum: ["alta", "media", "baja"] },
         },
         required: ["nombre", "tipo", "forma", "puntos", "circulo", "dentroDe", "puestos", "confianza"],
       },
     },
-    // Sin puertas, el motor amuebla tapando accesos y además no puede
-    // comprobar que se LLEGUE caminando a cada puesto. Van aparte de las áreas
-    // porque una puerta pertenece al muro, no al cuarto.
-    puertas: {
-      type: "array",
-      description: "Puertas y accesos del plano. Suelen verse como un vano en el muro, a veces con el arco de barrido o marcados en otro color.",
-      items: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          x: { type: "number", description: "Centro del vano, mm desde el borde izquierdo del envolvente." },
-          y: { type: "number", description: "Centro del vano, mm desde el borde superior del envolvente." },
-          ancho: { type: "number", description: "Ancho del vano en mm (una puerta normal ~900)." },
-        },
-        required: ["x", "y", "ancho"],
-      },
-    },
-    escala: { type: "string", description: "De qué cota saliste para la escala (ej. 'cota general 30.00 m en el borde inferior')." },
-    tieneCotas: { type: "boolean", description: "¿El plano trae cotas/medidas legibles?" },
-    notas: { type: "array", items: { type: "string" }, description: "Supuestos; pide 1 medida de referencia si no hay cotas." },
+    puertas: { type: "array", items: PUERTA },
+    escala: { type: "string" },
+    tieneCotas: { type: "boolean" },
+    notas: { type: "array", items: { type: "string" } },
   },
   required: ["envolvente", "grid", "areas", "puertas", "escala", "tieneCotas", "notas"],
 };
@@ -138,60 +101,25 @@ Deno.serve(async (req) => {
   if (!image) return json({ ok: false, error: "Falta la imagen del plano." }, 400);
   const esPdf = mediaType === "application/pdf";
 
-  const system =
-    "Eres un arquitecto que levanta la planta de un plano de oficina. Te doy la imagen de un plano. " +
-    "Devuelve la FORMA REAL de cada cuarto en MILÍMETROS. No aproximes a rectángulos: si un cuarto es " +
-    "triangular, trapezoidal, curvo o redondo, dilo con sus puntos.\n\n" +
-    "TRABAJA EN ESTE ORDEN:\n" +
-    "PASO 1 · ESCALA Y ENVOLVENTE. Busca primero las cotas generales (las flechas largas de los bordes, " +
-    "tipo '30.00 m' abajo y '20.00 m' a la izquierda) y con ellas fija el envolvente en mm. TODO lo demás " +
-    "se mide contra esa escala; no inventes medidas redondas que no vengan del plano.\n" +
-    "PASO 2 · CONTORNOS. Recorre el plano cuarto por cuarto y traza su contorno con puntos, en mm.\n" +
-    "PASO 3 · PUERTAS. Marca el centro y el ancho de CADA puerta o acceso. Son el vano en el muro, muchas\n" +
-    "veces con el arco de barrido dibujado o pintadas de otro color. Sin ellas el acomodo tapa las entradas.\n\n" +
-    "SISTEMA DE COORDENADAS:\n" +
-    "· El origen (0,0) es la esquina SUPERIOR IZQUIERDA del envolvente.\n" +
-    "· x crece hacia la derecha; y crece hacia ABAJO.\n" +
-    "· Todos los puntos van en mm absolutos dentro del envolvente.\n\n" +
-    "CÓMO DESCRIBIR CADA FORMA:\n" +
-    "· Rectangular → 4 puntos (las esquinas).\n" +
-    "· Triangular → 3 puntos. Trapezoidal → 4 puntos, con sus lados inclinados de verdad.\n" +
-    "· Muro CURVO (por ejemplo un pasillo curvo que separa el open space de las oficinas) → traza la curva " +
-    "con 8 a 16 puntos sobre ella; el resto del contorno con sus esquinas. NO la conviertas en línea recta.\n" +
-    "· Sala REDONDA u ovalada → forma='circulo' con centro y radio (la cota suele dar el diámetro: el radio " +
-    "es la mitad). Deja 'puntos' vacío.\n" +
-    "· Un cuarto CERRADO que está DENTRO de otro (una sala de juntas en medio del open space) se declara " +
-    "igual, y además pone en 'dentroDe' el nombre del área que lo contiene. Eso NO es un error de traslape.\n\n" +
-    "REGLAS:\n" +
-    "1) Si el plano trae COTAS, úsalas (tieneCotas=true). Normaliza a mm (si ves metros, ×1000).\n" +
-    "2) Si NO hay cotas, ESTIMA con proporciones y estándares (puerta ~900 mm, mobiliario típico), marca " +
-    "confianza 'baja' y en 'notas' pide 1 medida de referencia real para calibrar.\n" +
-    (refMM ? `3) El usuario indica que una referencia mide ${refMM} mm; úsala para escalar.\n` : "") +
-    "4) Nombra cada área como la nombra el plano; si no tiene nombre, 'Área 1', 'Área 2'.\n" +
-    "5) No inventes cuartos que no estén en el plano, y no te saltes ninguno.\n" +
-    "6) Clasifica en 'tipo': open (área abierta de trabajo), privado (oficina cerrada de 1-2 personas), " +
-    "juntas (sala de juntas/consejo), recepcion, lounge (comedor/estar), servicio (baño, cocineta, ducto, " +
-    "escalera, bodega, SITE/IT). Los de servicio NO se amueblan.\n" +
-    "7) ISLAS DE TRABAJO (CRÍTICO para contar puestos bien). Dentro de un área 'open' suele haber uno o varios " +
-    "CLUSTERS de escritorios/bancas dibujados (grupos de rectángulos con una silla/círculo cada uno, p.ej. dos " +
-    "bloques de 4 posiciones). Declara CADA cluster como un área aparte con tipo='open', su contorno REAL " +
-    "(sólo el cluster, no todo el salón) y 'dentroDe'=nombre del área que lo contiene. NO estimes los puestos " +
-    "dividiendo el salón entero: el número de puestos sale de los escritorios DIBUJADOS en cada isla. Pon ese " +
-    "conteo en el campo 'puestos' de la isla (cuenta uno por cada escritorio con su silla que veas dibujado). " +
-    "El salón contenedor lleva puestos=0 (sus puestos ya están repartidos en las islas). No embebas el número en " +
-    "el nombre; va en 'puestos'. Si el open no tiene mobiliario dibujado, no inventes islas.\n" +
-    "8) NO es mobiliario ni cuarto: las líneas PUNTEADAS/azules de DUCTOS HVAC (a veces con una X), las líneas de " +
-    "corte, los ejes y las cotas. Ignóralos. Los SANITARIOS son tipo='servicio' (no fabricamos escusados ni " +
-    "lavabos): no los cuentes como sillas ni muebles.\n" +
-    "9) GRID: extrae las cotas de los ejes a 'grid' (horizontal y vertical, en mm, segmento por segmento). " +
-    "La SUMA de cada lista debe cuadrar con la envolvente — si no cuadra, revísala: la cota manda sobre el dibujo.\n\n" +
-    "ANTES DE RESPONDER, COMPRUEBA:\n" +
-    "a) El envolvente coincide con la cota general del plano.\n" +
-    "b) Ningún punto se sale del envolvente (0 ≤ x ≤ ancho, 0 ≤ y ≤ largo).\n" +
-    "c) Dos áreas que NO están anidadas no se encinan: si comparten muro, comparten esos puntos.\n" +
-    "d) La suma de las superficies no pasa la del envolvente.\n" +
-    "e) Cada contorno tiene los puntos suficientes para que su forma se reconozca sin la imagen.\n" +
-    "f) Cada puerta cae SOBRE un muro, no en medio de un cuarto ni en el aire.";
+  const system = [
+    "Eres un arquitecto que LEVANTA un plano de oficina. Extrae evidencia geométrica; no diseñes ni completes lo que no se ve.",
+    "Devuelve todo en MILÍMETROS y usa origen (0,0) en la esquina superior izquierda; x derecha, y abajo.",
+    "ORDEN OBLIGATORIO:",
+    "1) ESCALA/ENVOLVENTE: usa primero cotas generales. COTA > escala gráfica > estimación. Si estimas, confianza baja.",
+    "2) GRID: copia los segmentos de ejes horizontal/vertical. Su suma debe cuadrar con la envolvente.",
+    "3) CONTORNOS: traza cada cuarto con su forma real. Rectángulo=4 puntos; triángulo=3; trapecio=4; muros curvos=8-16 puntos. Círculos con centro/radio.",
+    "4) ANIDAMIENTO: si una sala/isla está dentro de otra área, usa dentroDe. No la marques como traslape.",
+    "5) PUESTOS: cuenta sólo escritorios/posiciones REALMENTE dibujados en cada isla. Sillas de juntas, sanitarios, HVAC y símbolos no son puestos.",
+    "6) PUERTAS: detecta cada puerta real y su vano. Si se ve el arco de apertura, extrae la BISAGRA, la hoja cerrada y el SENTIDO del arco.",
+    "CONTRATO DE PUERTA: anguloCerradaDeg usa 0=derecha, 90=abajo, 180=izquierda, 270=arriba. Como y crece hacia abajo, 'horario' es el giro visual horario.",
+    "tieneBarrido=true SÓLO si puedes identificar bisagra + sentido + arco. Entonces barridoDeg es el arco visible (normalmente 90) y confianza refleja legibilidad.",
+    "Si NO ves el arco/bisagra/sentido con suficiente evidencia: tieneBarrido=false, sentido='desconocido', bisagraX=0, bisagraY=0, anguloCerradaDeg=0, barridoDeg=0. NO ADIVINES.",
+    "Un vano sin hoja/arco puede registrarse como puerta/acceso pero debe quedar tieneBarrido=false; el sistema pedirá confirmación antes de aprobar el layout.",
+    "7) SERVICIOS: baños, SITE/IT, cocineta, ductos y escaleras son tipo='servicio' y no se amueblan.",
+    "8) No inventes cuartos, SKUs, mobiliario ni dimensiones. Si falta una referencia real, anótalo en notas.",
+    "COMPROBACIÓN FINAL: envolvente y grid coherentes; puntos dentro del envolvente; áreas no anidadas sin traslape; cada puerta sobre un muro; ninguna puerta dudosa convertida en barrido 'confirmado'.",
+    refMM ? `El usuario dio una referencia real de ${refMM} mm: úsala para calibrar la escala.` : "",
+  ].filter(Boolean).join("\n");
 
   const apiBody = {
     model: "claude-opus-5",
@@ -204,7 +132,7 @@ Deno.serve(async (req) => {
         esPdf
           ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: image } }
           : { type: "image", source: { type: "base64", media_type: mediaType, data: image } },
-        { type: "text", text: "Levanta este plano: envolvente por las cotas generales y luego el contorno real de cada cuarto, en mm." },
+        { type: "text", text: "Levanta este plano con geometría y puertas verificables. No completes datos que no se vean." },
       ],
     }],
   };
@@ -213,7 +141,11 @@ Deno.serve(async (req) => {
   try {
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+      },
       body: JSON.stringify(apiBody),
     });
     data = await r.json();
@@ -233,5 +165,8 @@ Deno.serve(async (req) => {
 });
 
 function json(obj: unknown, status = 200) {
-  return new Response(JSON.stringify(obj), { status, headers: { ...CORS, "content-type": "application/json" } });
+  return new Response(JSON.stringify(obj), {
+    status,
+    headers: { ...CORS, "content-type": "application/json" },
+  });
 }
