@@ -46,10 +46,10 @@ export default function Voni2({ ctx = {}, onCerrar }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,27,42,.45)', zIndex: 9998, display: 'flex', justifyContent: 'flex-end' }} onClick={onCerrar}>
-      <div className="nota-clara" style={{ width: 'min(440px, 100%)', background: '#fff', height: '100%', overflow: 'auto', padding: 20, boxShadow: '-8px 0 30px rgba(0,0,0,.15)' }} onClick={(e) => e.stopPropagation()}>
+      <div style={{ width: 'min(440px, 100%)', background: 'var(--panel)', color: 'var(--carbon)', height: '100%', overflow: 'auto', padding: 20, borderLeft: '1px solid var(--linea-fuerte)', boxShadow: '-8px 0 34px rgba(0,0,0,.5)' }} onClick={(e) => e.stopPropagation()}>
         <div className="fila" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
           <strong style={{ fontSize: 18 }}>Voni{ctx.clientSafe ? ' · modo cliente' : ''}</strong>
-          <button className="boton fantasma" onClick={onCerrar} aria-label="Cerrar">Cerrar ✕</button>
+          <button className="boton" onClick={onCerrar} aria-label="Cerrar" style={{ minHeight: 40, padding: '0 14px' }}>Cerrar ✕</button>
         </div>
         <p className="ayuda" style={{ marginTop: 2 }}>Pregúntame sobre este {ctx.project_id ? 'proyecto' : 'espacio'}. Reviso lo que tu rol puede ver.</p>
 
@@ -79,7 +79,7 @@ export default function Voni2({ ctx = {}, onCerrar }) {
                 {resp.bloqueos.map((b, i) => {
                   const c = COLOR_URGENCIA[b.urgencia] || COLOR_URGENCIA.MEDIA;
                   return (
-                    <div key={i} style={{ border: '1px solid #ece7df', borderLeft: `4px solid ${c.fg}`, borderRadius: 8, padding: '8px 10px', marginTop: 6 }}>
+                    <div key={i} style={{ border: '1px solid var(--linea)', borderLeft: `4px solid ${c.fg}`, borderRadius: 8, padding: '8px 10px', marginTop: 6 }}>
                       <div style={{ fontWeight: 700 }}>{b.titulo} <span style={{ background: c.bg, color: c.fg, borderRadius: 999, padding: '1px 8px', fontSize: 11, marginLeft: 6 }}>{b.urgencia}</span></div>
                       {b.detalle && <div className="ayuda">{b.detalle}</div>}
                     </div>
