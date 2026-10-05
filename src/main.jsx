@@ -5,6 +5,7 @@ import SinPantallaBlanca from './componentes/SinPantallaBlanca.jsx';
 import { registrarError } from './datos/telemetria.js';
 import './fuentes.css';
 import './estilos.css';
+import './runtimeGuardrails.js';
 
 // ============================================================================
 //  MALLA DE ÚLTIMO RECURSO — la app NUNCA debe quedarse en blanco.
