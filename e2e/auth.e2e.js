@@ -20,10 +20,17 @@ test.describe('E2E autenticado', () => {
     await page.getByRole('button', { name: /^Entrar$/i }).click();
     // El login cae cuando aparece el shell (el botón Salir del encabezado).
     await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
+    // Primer login: se abre la guía "Bienvenido al costeador" encima. Se cierra con
+    // Escape para no tapar la pantalla (si no está, no pasa nada).
+    if (await page.getByRole('dialog', { name: /Guía de uso/i }).isVisible().catch(() => false)) {
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('dialog', { name: /Guía de uso/i })).toBeHidden({ timeout: 5000 });
+    }
   });
 
   test('login → shell de la app (hero / navegación)', async ({ page }) => {
-    await expect(page.getByText(/Cocreando tu espacio/i)).toBeVisible();
+    await expect(page.getByText(/Cocreando/i).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /Cocrear un producto/i })).toBeVisible();
   });
 
   test('entra al estudio de Cocrear (co-diseño en vivo)', async ({ page }) => {
