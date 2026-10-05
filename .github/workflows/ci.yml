@@ -1,7 +1,5 @@
 name: CI
 
-# Corre la suite y el build en cada push y PR. Blinda "una sola verdad": nada roto
-# llega lejos sin que CI lo marque en rojo. (Se activa al agregar el remoto de GitHub.)
 on:
   push:
   pull_request:
@@ -25,6 +23,11 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
+    env:
+      E2E_EXTERNAL: '1'
+      E2E_BASE_URL: 'https://costeador-vonhaucke.vercel.app/'
+      TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
+      TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -34,5 +37,5 @@ jobs:
       - run: npm ci
       - name: Instalar navegador de Playwright
         run: npx playwright install --with-deps chromium
-      - name: E2E (smoke)
+      - name: E2E producción (smoke + autenticado si hay secretos)
         run: npm run e2e
