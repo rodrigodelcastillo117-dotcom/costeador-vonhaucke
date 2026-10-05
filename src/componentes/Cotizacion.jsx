@@ -874,6 +874,18 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           </button>
         )}
       </div>
+      {/* FIX (2026-10-05) · cero botones muertos: antes `pdfErr` se asignaba
+          (al imprimir sin registrar la emisión, al fallar el gate con el botón
+          HABILITADO) pero NUNCA se dibujaba — el vendedor hacía clic y "no pasaba
+          nada". El guardrail global cubre el botón DESHABILITADO; esto cubre el
+          caso habilitado-pero-bloqueado. El motivo siempre se ve. */}
+      {pdfErr && (
+        <div className="aviso rojo no-imprimir" role="alert" aria-live="assertive"
+          style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+          <span className="texto">{pdfErr}</span>
+          <button className="boton fantasma" style={{ minHeight: 28, fontSize: 12, flex: '0 0 auto' }} onClick={() => setPdfErr('')}>Entendido</button>
+        </div>
+      )}
       {/* GATE DE EMISIÓN autoritativo (server-side). Explica el estado y QUÉ falta,
           en lenguaje claro y seller-safe (sin cifras de costo/margen). */}
       {gate && gate.estado && gate.estado !== 'DESCONOCIDO' && (() => {

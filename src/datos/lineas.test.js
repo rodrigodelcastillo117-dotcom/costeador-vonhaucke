@@ -253,14 +253,14 @@ describe('candado: cantidad de bancas vs. total de gente', () => {
 
   it('30 personas correctamente (usuarios:30, cantidad:1): sin aviso de candado, precio de UNA banca escalada', () => {
     const c = item(30, 1);
-    expect(c.avisos.join(' ')).not.toMatch(/bancas SEPARADAS/);
+    expect(c.avisos.join(' ')).not.toMatch(/unidades, no personas/i);
     expect(c.nombre).toMatch(/30/);
   });
 
   it('la mezcla ambigua (usuarios:12 válido + cantidad:30) avisa del sobrecobro, no lo esconde', () => {
     const correcto = item(30, 1);
     const ambiguo = item(12, 30);
-    expect(ambiguo.avisos.join(' ')).toMatch(/bancas SEPARADAS/);
+    expect(ambiguo.avisos.join(' ')).toMatch(/unidades, no personas/i);
     expect(ambiguo.avisos.join(' ')).toMatch(/360/);
     // Y de verdad cobra 12× lo que cobra la forma correcta — el aviso no es
     // cosmético, hay dinero real de diferencia.
@@ -269,7 +269,7 @@ describe('candado: cantidad de bancas vs. total de gente', () => {
   });
 
   it('cantidad:1 con usuarios válido nunca avisa (caso normal, un solo bench)', () => {
-    expect(item(12, 1).avisos.join(' ')).not.toMatch(/bancas SEPARADAS/);
+    expect(item(12, 1).avisos.join(' ')).not.toMatch(/unidades, no personas/i);
   });
 
   // La condición ahora también viaja como dato (`candadoUsuarios`), no sólo
