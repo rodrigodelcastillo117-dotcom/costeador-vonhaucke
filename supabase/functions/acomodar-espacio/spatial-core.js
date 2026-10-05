@@ -11,8 +11,29 @@ const EPS = 1;
 const n = (v, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
 const esFinito = (v) => Number.isFinite(Number(v));
 
+// ProductRevision canónica: el contrato puede viajar directo en la pieza o dentro
+// de `atributos`, que es donde `producto_versiones` conserva metadata técnica.
+// Se admiten las formas anidadas para que el solver no dependa de que cada caller
+// "desempaque" el JSONB a mano. Nunca generamos un spec aquí: sólo lo leemos.
 export function spatialSpecDe(pieza = {}) {
-  return pieza?.spatial_spec || pieza?.spatial || pieza?.espacial || {};
+  return pieza?.spatial_spec
+    || pieza?.atributos?.spatial_spec
+    || pieza?.product_revision?.spatial_spec
+    || pieza?.product_revision?.atributos?.spatial_spec
+    || pieza?.revision?.spatial_spec
+    || pieza?.revision?.atributos?.spatial_spec
+    || pieza?.spatial
+    || pieza?.espacial
+    || {};
+}
+
+export function procedenciaSpatial(pieza = {}) {
+  const s = spatialSpecDe(pieza);
+  return {
+    source: s?.source || s?.fuente || null,
+    confidence: s?.confidence || s?.confianza || null,
+    verified: s?.verified === true || s?.verificado === true,
+  };
 }
 
 function ladosBase(spec = {}) {
@@ -277,7 +298,7 @@ export function evaluarCalidad(areas = [], piezas = [], colocacion = [], porPiez
         pen += 8;
       }
     }
-    if (pen > 0) breakdown.push({ id: p.id, penalty: +pen.toFixed(2) });
+    if (pen > 0) breakdown.push({ id: p.id, penalty: +pen.toFixed(2), provenance: procedenciaSpatial(p) });
     softPenalty += pen;
   }
 
