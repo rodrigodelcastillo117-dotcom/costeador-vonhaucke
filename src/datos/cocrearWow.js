@@ -20,6 +20,13 @@ export const FEATURES_COCREAR = [
   ['electronica', 'Pantalla / electrónica'],
 ];
 
+export const LAYOUT_COCREAR = Object.freeze({
+  A: 'layout_isla_continua',
+  B: 'layout_modulos_dobles',
+  C: 'layout_hub_escultorico',
+});
+const LAYOUTS = new Set(Object.values(LAYOUT_COCREAR));
+
 export function prepararIntentCocrear(brief, base = null) {
   const texto = String(brief || '').trim();
   const it = base ? structuredClone(base) : interpretarIntent(texto || 'producto especial');
@@ -27,7 +34,7 @@ export function prepararIntentCocrear(brief, base = null) {
   it._brief = texto;
   it._modo_cocrear = true;
 
-  const operativo = /operativ|workstation|bench|estacion|puesto|isla de trabajo|mesa de trabajo/.test(x);
+  const operativo = /operativ|workstation|bench|estacion|puesto|isla de trabajo|mesa de trabajo|hub colaborativo/.test(x);
   const capacidad = nPersonas(texto) || Number(it.capacidad_personas || it.capacidad?.personas || 0) || null;
   if (operativo) it.familia = FAMILIA.ESCRITORIO;
   if (capacidad) { it.capacidad_personas = capacidad; it.capacidad = { ...(it.capacidad || {}), personas: capacidad }; }
@@ -71,7 +78,7 @@ export function resumenIdeaCocrear(intent, brief='') {
   const dims = [d.ancho_mm, (d.prof_mm || d.fondo_mm), d.alto_mm].every(Number.isFinite)
     ? `${(d.ancho_mm/1000).toFixed(2)} × ${((d.prof_mm || d.fondo_mm)/1000).toFixed(2)} × ${(d.alto_mm/1000).toFixed(2)} m conceptuales`
     : 'dimensiones por desarrollar';
-  const feats = (intent?.caracteristicas || []).map((f) => FEATURES_COCREAR.find(([k]) => k === f)?.[1] || f).slice(0, 5);
+  const feats = (intent?.caracteristicas || []).filter(f=>!LAYOUTS.has(f)).map((f) => FEATURES_COCREAR.find(([k]) => k === f)?.[1] || f).slice(0, 5);
   return {
     necesidad: String(brief || intent?._brief || '').trim(),
     tipologia: intent?.tipologia_cocrear === 'operativo_colaborativo' ? 'Sistema operativo colaborativo' : String(intent?.familia || 'Producto especial'),
@@ -86,25 +93,28 @@ export function conceptosCocrear(intent) {
   const jardinera = (intent?.caracteristicas || []).includes('jardinera_integrada');
   if (operativo) {
     return [
-      { id: 'A', nombre: 'Isla continua', subtitulo: 'Limpia · eficiente · fabricable', descripcion: `Una sola pieza visual para ${intent.capacidad_personas || 6} usuarios, con espina central${jardinera ? ' y jardinera longitudinal' : ''}.`, add: ['electrificacion_integrada'] },
-      { id: 'B', nombre: 'Módulos dobles', subtitulo: 'Flexible · escalable · mantenible', descripcion: `Módulos de dos puestos que comparten un centro técnico${jardinera ? ' biofílico' : ''}; permite crecer o reconfigurar.`, add: ['electrificacion_integrada', 'divisores'] },
-      { id: 'C', nombre: 'Hub escultórico', subtitulo: 'WOW · premium · protagonista', descripcion: `Sistema colaborativo con estructura central de acero${jardinera ? ', vegetación integrada' : ''}, cableado oculto y una presencia más arquitectónica.`, add: ['electrificacion_integrada', 'iluminacion_integrada'] },
+      { id: 'A', nombre: 'Isla continua', layout: LAYOUT_COCREAR.A, subtitulo: 'Limpia · eficiente · fabricable', descripcion: `Una sola pieza visual para ${intent.capacidad_personas || 6} usuarios, con espina central${jardinera ? ' y jardinera longitudinal' : ''}.`, add: ['electrificacion_integrada'] },
+      { id: 'B', nombre: 'Módulos dobles', layout: LAYOUT_COCREAR.B, subtitulo: 'Flexible · escalable · mantenible', descripcion: `Módulos de dos puestos que comparten un centro técnico${jardinera ? ' biofílico' : ''}; permite crecer o reconfigurar.`, add: ['electrificacion_integrada', 'divisores'] },
+      { id: 'C', nombre: 'Hub escultórico', layout: LAYOUT_COCREAR.C, subtitulo: 'WOW · premium · protagonista', descripcion: `Sistema colaborativo con estructura central de acero${jardinera ? ', vegetación integrada' : ''}, cableado oculto y una presencia más arquitectónica.`, add: ['electrificacion_integrada', 'iluminacion_integrada'] },
     ];
   }
   const fam = String(intent?.familia || 'producto');
   return [
-    { id: 'A', nombre: 'Esencial', subtitulo: 'Claro · funcional · directo', descripcion: `Una interpretación limpia del ${fam}, priorizando fabricación y uso.`, add: [] },
-    { id: 'B', nombre: 'Integrado', subtitulo: 'Premium · resuelto · completo', descripcion: 'Integra tecnología, guardado y detalles para elevar la experiencia sin perder fabricabilidad.', add: ['electrificacion_integrada'] },
-    { id: 'C', nombre: 'Signature', subtitulo: 'WOW · diferenciador · Von Haucke', descripcion: 'Una versión más expresiva del concepto, con presencia arquitectónica y detalles protagonistas.', add: ['iluminacion_integrada'] },
+    { id: 'A', nombre: 'Esencial', layout: LAYOUT_COCREAR.A, subtitulo: 'Claro · funcional · directo', descripcion: `Una interpretación limpia del ${fam}, priorizando fabricación y uso.`, add: [] },
+    { id: 'B', nombre: 'Integrado', layout: LAYOUT_COCREAR.B, subtitulo: 'Premium · resuelto · completo', descripcion: 'Integra tecnología, guardado y detalles para elevar la experiencia sin perder fabricabilidad.', add: ['electrificacion_integrada'] },
+    { id: 'C', nombre: 'Signature', layout: LAYOUT_COCREAR.C, subtitulo: 'WOW · diferenciador · Von Haucke', descripcion: 'Una versión más expresiva del concepto, con presencia arquitectónica y detalles protagonistas.', add: ['iluminacion_integrada'] },
   ];
 }
 
 export function aplicarConceptoCocrear(intent, concepto) {
   const next = structuredClone(intent);
-  const features = new Set(next.caracteristicas || []);
+  const features = new Set((next.caracteristicas || []).filter(f=>!LAYOUTS.has(f)));
   for (const f of concepto?.add || []) features.add(f);
+  const layout=concepto?.layout || LAYOUT_COCREAR[concepto?.id] || null;
+  if(layout) features.add(layout);
   next.caracteristicas = [...features];
   next._concepto = concepto?.id || null;
   next._concepto_nombre = concepto?.nombre || null;
+  next._concepto_layout = layout;
   return next;
 }
