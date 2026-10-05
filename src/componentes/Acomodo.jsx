@@ -612,6 +612,9 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // es la del cliente.
   const isoLimpioRef = useRef(null);   // la copia SIN etiquetas: es la que se manda
   const [realista, setRealista] = useState('');
+  // #10: una vista PRELIMINAR (acomodo incompleto) sí se puede generar para
+  // mirarla, pero queda marcada como preliminar y NO vale como propuesta final.
+  const [realistaPreliminar, setRealistaPreliminar] = useState(false);
   // ✨ PROPUESTA VIVA: el modo presentación cinematográfico para el cliente.
   const [vivaAbierta, setVivaAbierta] = useState(false);
   // Inversión = precio al CLIENTE (precio × cantidad). Nunca costo ni margen:
@@ -677,9 +680,12 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     });
   }
 
-  async function vistaRealista() {
-    // Compuerta dura: no renderizar un acomodo incompleto como si fuera propuesta.
-    if (plan && !layoutListo) { setErrStaging(`No genero el render final de un acomodo incompleto (${motivoLayout}). Acomódalo bien primero (el 2D/3D de arriba sí lo puedes editar).`); return; }
+  async function vistaRealista(preliminar = false) {
+    // Compuerta dura SOLO para el render FINAL: un acomodo incompleto no puede
+    // salir como propuesta aprobada. Pero sí se permite una VISTA PRELIMINAR
+    // (marcada) para que la app siga siendo útil mientras se cierra el acomodo (#10).
+    const incompleto = plan && !layoutListo;
+    if (incompleto && !preliminar) { setErrStaging(`El render FINAL se bloquea con un acomodo incompleto (${motivoLayout}). Puedes ver una vista preliminar marcada, o acomódalo bien primero (el 2D/3D de arriba sí lo puedes editar).`); return; }
     // Se lee SIEMPRE la copia limpia, no la visible: la visible puede estar en
     // modo Planta (sin isométrico) y además lleva las etiquetas del piso.
     const svg = isoLimpioRef.current?.querySelector('svg.plano');
@@ -693,7 +699,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
         medidas: areas.map((a) => `${a.nombre} ${a.ancho}×${a.largo} m`).join('; '),
       });
       if (!r || !r.ok) { setErrStaging(r?.error || 'No se pudo generar la vista realista.'); return; }
-      setRealista(r.dataUrl);
+      setRealista(r.dataUrl); setRealistaPreliminar(incompleto);
     } catch (e) {
       setErrStaging('No se pudo generar la vista realista: ' + String(e?.message || e));
     } finally { setGenerandoReal(false); }
@@ -1140,9 +1146,15 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
               {aMano ? 'Terminar de acomodar' : 'Acomodar a mano'}
             </button>
             <button className={`boton ${modo === 'iso' ? 'primario' : 'fantasma'}`} style={{ minHeight: 42 }} onClick={() => setModo('iso')}>Vista 3D</button>
-            <button className="boton" style={{ minHeight: 42 }} disabled={generandoReal || !plan || (plan && !layoutListo)} title={plan && !layoutListo ? `Acomodo incompleto (${motivoLayout})` : ''} onClick={vistaRealista}>
-              {generandoReal ? 'Generando…' : realista ? 'Volver a generar' : 'Vista realista (IA)'}
-            </button>
+            {plan && !layoutListo ? (
+              <button className="boton fantasma" style={{ minHeight: 42 }} disabled={generandoReal} title={`Vista preliminar — acomodo incompleto (${motivoLayout})`} onClick={() => vistaRealista(true)}>
+                {generandoReal ? 'Generando…' : `Vista preliminar (${layout?.unplaced || 0} pendientes)`}
+              </button>
+            ) : (
+              <button className="boton" style={{ minHeight: 42 }} disabled={generandoReal || !plan} onClick={() => vistaRealista(false)}>
+                {generandoReal ? 'Generando…' : realista ? 'Volver a generar' : 'Vista realista (IA)'}
+              </button>
+            )}
             {/* ✨ PROPUESTA VIVA: presentación cinematográfica para el cliente. */}
             <button className="boton primario" style={{ minHeight: 42 }} disabled={!plan || !areas.length} onClick={() => setVivaAbierta(true)}>
               ✨ Propuesta Viva
@@ -1381,9 +1393,14 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
             </div>
           ))}
           {realista && (
-            <div style={{ marginTop: 12 }}>
-              <img src={realista} alt="Vista realista del acomodo" style={{ width: '100%', borderRadius: 12, border: '1px solid var(--linea)' }} />
-              <div className="ayuda gris">Generada con IA a partir de tu acomodo: respeta cuántos muebles hay y dónde van.</div>
+            <div style={{ marginTop: 12, position: 'relative' }}>
+              {realistaPreliminar && (
+                <div className="alerta ambar" style={{ marginBottom: 8 }}>
+                  <span className="texto"><b>⚠ VISTA PRELIMINAR</b> · {layout?.unplaced || 0} elemento(s) pendiente(s) por colocar. No es la propuesta final ni válida para PDF definitivo; cierra el acomodo para liberar el render final.</span>
+                </div>
+              )}
+              <img src={realista} alt={realistaPreliminar ? 'Vista preliminar del acomodo (incompleto)' : 'Vista realista del acomodo'} style={{ width: '100%', borderRadius: 12, border: realistaPreliminar ? '2px dashed var(--ambar, #d8a800)' : '1px solid var(--linea)' }} />
+              <div className="ayuda gris">{realistaPreliminar ? 'Vista preliminar: faltan piezas por colocar. Útil para enseñar la dirección, no para cerrar.' : 'Generada con IA a partir de tu acomodo: respeta cuántos muebles hay y dónde van.'}</div>
             </div>
           )}
 
