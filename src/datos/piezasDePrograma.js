@@ -1,15 +1,60 @@
 // ============================================================================
-//  MOBILIARIO SUGERIDO DESDE EL PROGRAMA DEL PLANO
+// MOBILIARIO SUGERIDO DESDE EL PROGRAMA DEL PLANO
 //
-//  Demo-safe: convierte las zonas leídas en PARTIDAS VISUALES para Acomodo.
-//  NO son partidas comerciales, NO tienen precio/costo y nunca deben emitirse.
-//  Su única función es poblar el plano de forma determinista cuando el usuario
-//  todavía no eligió mobiliario para cada zona.
+// Demo-safe: traduce semántica del plano a mobiliario VISUAL. No cotiza, no
+// crea economía y no convierte sugerencias en partidas comerciales.
 // ============================================================================
 import { personasEnSala, puestosPorIsla, rolDe } from './programaDelPlano.js';
 
 const norm = (s = '') => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-const cap = (n, lo = 0, hi = 24) => Math.max(lo, Math.min(hi, Math.round(Number(n) || 0)));
+const cap = (n, lo = 0, hi = 48) => Math.max(lo, Math.min(hi, Math.round(Number(n) || 0)));
+const sinPax = (s = '') => norm(s).replace(/\s*\(\s*\d+\s*(?:pax|personas?|usuarios?|puestos?)\s*\)\s*/g, ' ').replace(/\s+/g, ' ').trim();
+
+export function paxDeNombre(nombre = '') {
+  const s = norm(nombre);
+  const m = /(\d+)\s*(?:pax|personas?|usuarios?|puestos?)\b/.exec(s);
+  return m ? cap(+m[1], 1, 48) : 0;
+}
+
+function esIsla(a) {
+  return /^\s*(?:isla|bench|banca)\b/i.test(String(a?.nombre || ''));
+}
+
+function baseIsla(nombre = '') {
+  return sinPax(nombre).replace(/^\s*(?:isla|bench|banca)\s+/i, '').trim();
+}
+
+/**
+ * Corrige semántica que el lector puede dejar implícita:
+ * - "OPERATIVO 1 (8 PAX)" = cuarto operativo.
+ * - "Isla OPERATIVO 1" = zona interna de ese cuarto, NO otro cuarto.
+ * - hereda los PAX del padre cuando la isla no los trae escritos.
+ */
+export function normalizarAreasPrograma(areas = []) {
+  const lista = (Array.isArray(areas) ? areas : []).filter(Boolean).map((a) => ({ ...a }));
+  const padres = lista.filter((a) => !esIsla(a));
+
+  for (const a of lista) {
+    const paxPropio = Number(a?.puestos) > 0 ? cap(a.puestos, 1, 48) : paxDeNombre(a?.nombre);
+    if (paxPropio) a.puestos = paxPropio;
+    if (!esIsla(a)) continue;
+
+    const buscado = baseIsla(a.nombre);
+    const padre = padres.find((p) => {
+      const np = sinPax(p.nombre);
+      return np === buscado || np.endsWith(buscado) || buscado.endsWith(np);
+    });
+    if (!padre) continue;
+
+    a.dentroDe = padre.nombre;
+    a.tipo = 'open';
+    const paxPadre = Number(padre.puestos) > 0 ? padre.puestos : paxDeNombre(padre.nombre);
+    if (!(Number(a.puestos) > 0) && paxPadre) a.puestos = paxPadre;
+    padre.contiene = Math.max(1, Number(padre.contiene) || 0);
+    if (!padre.tipo) padre.tipo = 'open';
+  }
+  return lista;
+}
 
 function partida(id, nombre, cantidad, w, d, extra = {}) {
   return {
@@ -34,37 +79,38 @@ function partida(id, nombre, cantidad, w, d, extra = {}) {
 }
 
 function puestosDeArea(a) {
-  if (Number.isFinite(Number(a?.puestos)) && Number(a.puestos) > 0) return cap(a.puestos, 1, 24);
-  // Respaldo conservador para un plano que reconoce la zona pero no contó puestos.
-  // Nunca llenar una oficina con 40 muebles por pura superficie en una demo.
-  return cap(puestosPorIsla(a, 1500), 2, 12);
+  if (Number.isFinite(Number(a?.puestos)) && Number(a.puestos) > 0) return cap(a.puestos, 1, 48);
+  const pax = paxDeNombre(a?.nombre);
+  if (pax) return pax;
+  return cap(puestosPorIsla(a, 1500), 2, 16);
 }
 
 function esServicioDuro(a) {
   const n = norm(a?.nombre);
   return /sanitari|bano|wc|toilet|site|\bit\b|rack|ducto|escaler/.test(n);
 }
-
-function esArchivo(a) {
-  return /archivo|apoyo|bodega|almacen|storage/.test(norm(a?.nombre));
-}
-
-function esCoffee(a) {
-  return /coffee|print|cafe|copiadora|impresion/.test(norm(a?.nombre));
-}
+function esArchivo(a) { return /archivo|apoyo|bodega|almacen|storage/.test(norm(a?.nombre)); }
+function esCoffee(a) { return /coffee|print|cafe|copiadora|impresion/.test(norm(a?.nombre)); }
 
 /**
  * @param {Array} areas áreas canónicas en METROS (areasM)
  * @returns {Array} partidas visuales SUGERIDAS, costo/precio = 0
  */
 export function partidasSugeridasDeAreas(areas = []) {
-  const lista = Array.isArray(areas) ? areas.filter(Boolean) : [];
+  const lista = normalizarAreasPrograma(areas);
   const out = [];
   let seq = 0;
-  const add = (a, nombre, cantidad, w, d) => {
+  const add = (a, nombre, cantidad, w, d, extra = {}) => {
     seq += 1;
-    out.push(partida(`${seq}`, `${nombre} · ${a.nombre || 'Zona'}`, cantidad, w, d, { zonaSugerida: a.nombre || null }));
+    out.push(partida(`${seq}`, `${nombre} · ${a.nombre || 'Zona'}`, cantidad, w, d, {
+      zonaSugerida: a.nombre || null,
+      ...extra,
+    }));
   };
+
+  // Si un operativo tiene una isla interna, el mobiliario se genera EN LA ISLA,
+  // no dos veces (padre + hija). El padre sigue existiendo como cuarto físico.
+  const padresConIsla = new Set(lista.filter(esIsla).map((a) => a.dentroDe).filter(Boolean));
 
   for (const a of lista) {
     if (!a || esServicioDuro(a)) continue;
@@ -83,17 +129,19 @@ export function partidasSugeridasDeAreas(areas = []) {
 
     if (rol === 'recepcion') {
       add(a, 'Mostrador de recepción', 1, 2000, 700);
+      add(a, 'Silla operativa recepción', 1, 600, 600);
       add(a, 'Silla de visita recepción', 2, 600, 600);
       continue;
     }
 
     if (rol === 'juntas') {
       const m2 = Math.max(0, Number(a.ancho || 0) * Number(a.largo || 0));
-      const personas = cap(personasEnSala(m2), 4, 12);
-      const mesaW = personas >= 10 ? 3600 : personas >= 8 ? 3200 : personas >= 6 ? 2600 : 2200;
+      const explicitas = puestosDeArea(a);
+      const personas = cap(explicitas || personasEnSala(m2), 4, 16);
+      const mesaW = personas >= 14 ? 4200 : personas >= 12 ? 3800 : personas >= 10 ? 3400 : personas >= 8 ? 3000 : personas >= 6 ? 2600 : 2200;
       add(a, `Mesa de juntas ${personas} personas`, 1, mesaW, 1200);
       add(a, 'Silla de juntas', personas, 600, 600);
-      if (m2 >= 16) add(a, 'Credenza de sala de juntas', 1, 1600, 500);
+      if (m2 >= 18) add(a, 'Credenza de sala de juntas', 1, 1600, 500);
       continue;
     }
 
@@ -111,15 +159,21 @@ export function partidasSugeridasDeAreas(areas = []) {
       continue;
     }
 
-    // Open / general operativo.
+    // Un padre operativo con isla no recibe otro bench: se amuebla su isla.
+    if (padresConIsla.has(a.nombre) && !esIsla(a)) continue;
+
+    // OPERATIVO / BENCH / ISLA: PAX MANDA. Para la demo la línea elegida es
+    // APP LT 1.50 m. Un "8 PAX" = una banca doble de 8 usuarios + 8 sillas +
+    // 8 gavetas. La gaveta no consume piso porque espacio.js la mete bajo mesa.
     const puestos = puestosDeArea(a);
     if (puestos > 0) {
-      const benches = Math.max(1, Math.ceil(puestos / 2));
-      add(a, 'Bench 2 usuarios', benches, 2400, 1400);
-      add(a, 'Silla operativa', puestos, 600, 600);
-      // Gavetas se marcan como sugerencia de programa, pero no ocupan piso:
-      // expandirPiezas las excluye automáticamente por ir bajo cubierta.
-      add(a, 'Gaveta rodante', puestos, 400, 580);
+      const columnas = Math.max(1, Math.ceil(puestos / 2));
+      const anchoBench = columnas * 1500;
+      add(a, `Banca doble APP LT 1.50 · ${puestos} usuarios · ocupa ${(anchoBench / 1000).toFixed(2)} × 1.20 m`, 1, anchoBench, 1200, {
+        lineaSugerida: 'applt', usuarios: puestos,
+      });
+      add(a, 'Silla operativa · WIN', puestos, 600, 600, { lineaSugerida: 'applt' });
+      add(a, 'Gaveta rodante APP LT', puestos, 400, 580, { lineaSugerida: 'applt' });
     }
   }
 
@@ -127,10 +181,10 @@ export function partidasSugeridasDeAreas(areas = []) {
 }
 
 export function firmaAreasParaSugeridos(areas = []) {
-  return JSON.stringify((areas || []).map((a) => ({
+  return JSON.stringify(normalizarAreasPrograma(areas).map((a) => ({
     n: a?.nombre || '', t: a?.tipo || '', p: Number(a?.puestos) || 0,
     a: Math.round((Number(a?.ancho) || 0) * 1000),
     l: Math.round((Number(a?.largo) || 0) * 1000),
-    d: a?.dentroDe || '',
+    d: a?.dentroDe || '', c: Number(a?.contiene) || 0,
   })));
 }
