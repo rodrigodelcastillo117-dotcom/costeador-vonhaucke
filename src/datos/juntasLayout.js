@@ -2,9 +2,9 @@
 // SALAS DE JUNTAS · post-procesador determinista del layout
 //
 // El planner ya reserva holgura alrededor de las mesas de juntas, pero las
-// sillas se procesaban después como asientos genéricos. Resultado: una SONATA
-// podía quedar contra un muro, junto a un bench, o incluso quedar fuera aunque
-// hubiera espacio reservado alrededor de la mesa.
+// sillas se procesaban después como asientos genéricos. Resultado: una silla de
+// reunión podía quedar contra un muro, junto a un bench, o incluso quedar fuera
+// aunque hubiera espacio reservado alrededor de la mesa.
 //
 // Esta capa usa la colocación ya validada de las MESAS como ancla y sienta las
 // sillas de junta alrededor. No inventa cantidades ni muebles. Si una silla no
@@ -21,9 +21,13 @@ const norm = (s = '') => String(s).toLowerCase().normalize('NFD').replace(/[\u03
 
 export function esSillaJuntasLayout(p = {}) {
   if (p?.tipo !== 'asiento') return false;
-  if (destinoMarcado(p) === 'juntas') return true;
+  // Si la pieza ya trae destino explícito, ESO manda. Así una SONATA que el
+  // vendedor asignó a recepción/privado no vuelve a convertirse en junta por el
+  // nombre del modelo.
+  const destino = destinoMarcado(p);
+  if (destino) return destino === 'juntas';
   const t = norm(`${p.nombre || ''} ${p.ruta || ''}`);
-  return /silla.*junta|junta.*silla|consejo|board|meeting|\bsonata\b/.test(t);
+  return /silla.*junta|junta.*silla|consejo|board|meeting/.test(t);
 }
 
 export function esMesaJuntasLayout(p = {}) {
@@ -66,7 +70,6 @@ function posicionesAlrededor(table, chair) {
   const cw = chair.w, cd = chair.d;
   const out = [];
 
-  // Filas en los lados largos, centradas respecto a la mesa.
   const nx = Math.max(1, Math.floor((table.w + GAP_SILLA) / (cw + GAP_SILLA)));
   const totalX = nx * cw + Math.max(0, nx - 1) * GAP_SILLA;
   const sx = table.x + (table.w - totalX) / 2;
@@ -76,7 +79,6 @@ function posicionesAlrededor(table, chair) {
     out.push({ x, y: table.y + table.d + GAP_MESA, w: cw, d: cd, rot: 0, lado: 'abajo' });
   }
 
-  // Cabeceras. Si la mesa es profunda pueden entrar varias; si no, una por lado.
   const ny = Math.max(1, Math.floor((table.d + GAP_SILLA) / (cw + GAP_SILLA)));
   const totalY = ny * cw + Math.max(0, ny - 1) * GAP_SILLA;
   const sy = table.y + (table.d - totalY) / 2;
@@ -114,8 +116,6 @@ export function sentarJuntas(plan = {}, piezas = [], areas = []) {
     .filter(({ p }) => p && esMesaJuntasLayout(p))
     .map(({ c, p }) => ({ c, p, area: Number(c.area), box: caja(c, p) }));
 
-  // Sin mesa no existe una sala de juntas utilizable. No dejamos sillas auto
-  // flotando por el plano sólo para cerrar el conteo; las manuales sí se respetan.
   if (!mesas.length) {
     const manuales = colocacionOriginal.filter((c) => !esSillaJuntasLayout(byId[String(c.id)]) || c.manual);
     const faltan = sillasTodas.filter((p) => !manuales.some((c) => String(c.id) === String(p.id))).length;
@@ -130,7 +130,6 @@ export function sentarJuntas(plan = {}, piezas = [], areas = []) {
     };
   }
 
-  // Todo lo que NO sea silla automática de junta es obstáculo/verdad y se queda.
   const base = colocacionOriginal.filter((c) => {
     const p = byId[String(c.id)];
     return !p || !esSillaJuntasLayout(p) || c.manual;
@@ -146,14 +145,13 @@ export function sentarJuntas(plan = {}, piezas = [], areas = []) {
 
   automaticas.forEach((p, idx) => {
     const previa = porId.get(String(p.id));
-    // Si ya estaba en una sala con mesa, esa sala va primero. Para las no
-    // colocadas se alternan las mesas para no llenar una y dejar otra vacía.
     const ordenMesas = [...mesas].sort((a, b) => {
       const pa = previa && a.area === Number(previa.area) ? -1000 : 0;
       const pb = previa && b.area === Number(previa.area) ? -1000 : 0;
       if (pa !== pb) return pa - pb;
-      const ra = (a.area - (idx % mesas.length) + mesas.length) % mesas.length;
-      const rb = (b.area - (idx % mesas.length) + mesas.length) % mesas.length;
+      const ia = mesas.indexOf(a), ib = mesas.indexOf(b);
+      const ra = (ia - (idx % mesas.length) + mesas.length) % mesas.length;
+      const rb = (ib - (idx % mesas.length) + mesas.length) % mesas.length;
       return ra - rb;
     });
 
