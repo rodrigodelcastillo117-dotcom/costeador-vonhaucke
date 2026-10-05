@@ -3,7 +3,7 @@
 // ============================================================================
 import { FAMILIA, colorMaterial } from './cocrear.js';
 
-export const RENDER_PROMPT_VERSION = 'cocrear_render_v2_layout_locked';
+export const RENDER_PROMPT_VERSION = 'cocrear_render_v3_reference_locked';
 
 const MAT_EN = { nogal: 'walnut wood', roble: 'oak wood', encino: 'oak-like wood', maple: 'maple wood', laminado: 'high-pressure laminate', solid_surface: 'solid surface (seamless matte mineral)', cristal: 'tempered glass', metal: 'powder-coated steel', piedra: 'stone' };
 const TONO_EN = { oscuro: 'dark', claro: 'light' };
@@ -54,6 +54,10 @@ export function renderSpecDeProducto(spec, dna = {}) {
   if (feats.includes('ventilacion')) mandatory.push('ventilation grilles');
   if (feats.includes('flotante')) mandatory.push('recessed base so the body looks floating (no visible legs)');
   if (feats.includes('jardinera_integrada')) mandatory.push('integrated living planter with real green vegetation, structurally part of the furniture concept');
+  if (feats.includes('jardinera_longitud_completa')) {
+    counts.planter_coverage = 'full_length';
+    mandatory.push('FULL-LENGTH PLANTER LOCK: one continuous planter must cover essentially the entire usable central longitudinal spine from the first module to the last; do not shorten it to a small central pot or isolated planter');
+  }
   if (feats.includes('electrificacion_integrada')) mandatory.push('fully concealed integrated power and cable management');
   if (feats.includes('divisores')) mandatory.push('removable privacy dividers at the work positions');
   if (feats.includes('acustica')) mandatory.push('acoustic divider panels with premium textile finish');
@@ -73,7 +77,7 @@ export function renderSpecDeProducto(spec, dna = {}) {
   if (acab) finishes.push(`top/counter: ${[TONO_EN[acab.tono], 'finish'].filter(Boolean).join(' ')} (hex ${colorMaterial(mat0.material, acab.tono)})`);
 
   return {
-    schema_version: 'render_spec_v2',
+    schema_version: 'render_spec_v3',
     product_type: PRODUCT_TYPE[fam] || 'furniture piece',
     dimensions: spec?.dimensiones || {},
     modules: counts.module_count,
@@ -101,6 +105,7 @@ export function compileRenderPrompt(spec, dna = {}) {
   if (rs.layout_instruction) partes.push(`SELECTED CONCEPT GEOMETRY — MUST MATCH: ${rs.layout_instruction}. This layout is canonical and cannot be replaced with another workstation arrangement.`);
   if (rs.materials.length) partes.push(`MATERIALS: ${rs.finishes.join('; ')}. Physically-based, realistic; do not substitute species or color.`);
   if (rs.mandatory.length) partes.push(`MANDATORY FEATURES (must appear exactly): ${rs.mandatory.join('; ')}.`);
+  partes.push(`REVISION DISCIPLINE: preserve every geometry choice from the current revision. A requested detail change is NOT permission to redesign the product, change the selected layout, change module count, or move major elements.`);
   partes.push(`CONTEXT: ${dna?.tono === 'calido' ? 'warm, premium, architectural' : 'premium, architectural'} Von Haucke style. Editorial furniture photography.`);
   partes.push(`FORBIDDEN: ${rs.forbidden.join(', ')}.`);
 
