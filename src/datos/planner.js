@@ -13,6 +13,7 @@ import { enderezarTodo } from './orientacion.js';
 import { puestosDe } from './rellenar.js';
 import { dimsPieza } from './espacio.js';
 import { rolDePiezaAcomodo, zonaPermite, zonaSemantica } from './floorSpec.js';
+import { destinoMarcado } from './destinoAcomodo.js';
 
 const zonaAceptaPieza = (p, area) => zonaPermite(rolDePiezaAcomodo(p), zonaSemantica(area?.nombre || ''));
 
@@ -29,7 +30,8 @@ export function rolArea(nombre) {
   if (/lounge|descanso|estar|comedor|break|caf[eé]|espera/.test(s)) return 'lounge';
   if (/recep|lobby|acceso|vest[íi]b/.test(s)) return 'recepcion';
   if (/priv|direcc|gerenc|oficina/.test(s)) return 'privado';
-  if (/open|operativ|trabajo|estaci|planta libre/.test(s)) return 'open';
+  // APARTADO + PAX es el vocabulario real que vino del lector de planos del CEO.
+  if (/open|operativ|apartado|trabajo|estaci|planta libre|bench|isla/.test(s)) return 'open';
   return 'general';
 }
 
@@ -68,11 +70,6 @@ function empacarTodoGarantizado(base, piezas, ajustar) {
   const CIRC = regla('circulacion_min') ?? 900;
   const PER = CIRC, GX = CIRC;
   const rowGap = (t) => (t === 'escritorio' ? 1100 : t === 'juntas' ? 1200 : t === 'asiento' ? 850 : 700);
-
-  // VH-016: nunca filtrar silenciosamente un tipo. Antes el flujo 1-clic tenía
-  // una whitelist que NO incluía `recepcion`: dos módulos podían desaparecer y
-  // aun así el resultado decía que todo estaba acomodado. Los tipos conocidos
-  // conservan el orden de oficio y cualquier tipo futuro entra al final.
   const ordenBase = ['guarda', 'juntas', 'recepcion', 'escritorio', 'mesa', 'asiento', 'mampara', 'mueble'];
   const extras = [...new Set(piezas.map((p) => p?.tipo || 'mueble'))].filter((t) => !ordenBase.includes(t));
   const orden = [...ordenBase, ...extras];
@@ -242,8 +239,10 @@ export const esSillaDeTrabajo = (p) => (
 );
 export const esSillaDeVisita = (p) => esSillaDeTrabajo(p) && /visita|espera|confidente/i.test(p.nombre || '');
 export const esSillaDirectiva = (p) => esSillaDeTrabajo(p) && /directiv|ejecutiv|presiden|gerencial/i.test(p.nombre || '');
-export const esSillaDeJuntas = (p) => esSillaDeTrabajo(p) && /junta|consejo|board/i.test(p.nombre || '');
+export const esSillaDeJuntas = (p) => esSillaDeTrabajo(p)
+  && (/junta|consejo|board/i.test(p.nombre || '') || destinoMarcado(p) === 'juntas');
 export const esSillaOperativa = (p) => esSillaDeTrabajo(p)
+  && destinoMarcado(p) !== 'juntas' && destinoMarcado(p) !== 'recepcion'
   && !esSillaDeVisita(p) && !esSillaDirectiva(p) && !esSillaDeJuntas(p);
 
 const cabeEn = (p, a) => {
@@ -275,6 +274,22 @@ export function rolCuartoBase(a, todos) {
   return 'juntas';
 }
 
+const grupoFuente = (p) => String(p?.id || '').replace(/-\d+$/, '');
+
+function capacidadMesa(p) {
+  const s = String(p?.nombre || '').toLowerCase();
+  const explicita = /(\d+)\s*(?:personas?|pax|usuarios?|lugares?)/i.exec(s);
+  if (explicita) return Math.max(2, +explicita[1]);
+  const largo = Math.max(Number(p?.w) || 0, Number(p?.d) || 0);
+  if (/app\s*lt/i.test(s) && largo >= 2200) return 8;
+  if (/cirque/i.test(s)) return 6; // dos módulos de 2400/1800 => 12 lugares
+  if (largo >= 3600) return 12;
+  if (largo >= 3000) return 10;
+  if (largo >= 2200) return 8;
+  if (largo >= 1600) return 6;
+  return 4;
+}
+
 function acomodarPorCuartos(areas, piezas) {
   const cuartos = areas.map((a, i) => {
     const rol = rolCuarto(a, areas);
@@ -286,8 +301,12 @@ function acomodarPorCuartos(areas, piezas) {
   });
   const utiles = cuartos.filter((c) => !c.servicio);
   const sobran = [];
+  const destinoGrupoJunta = new Map();
   const hayEscritorios = piezas.some((q) => q.tipo === 'escritorio');
-  const sinCuartoPropio = (p) => hayEscritorios && esSillaOperativa(p);
+  const sinCuartoPropio = (p) => hayEscritorios && esSillaOperativa(p) && !destinoMarcado(p);
+  const capacidadJuntas = (c) => c.asignadas.filter((q) => q.tipo === 'juntas').reduce((s, q) => s + capacidadMesa(q), 0);
+  const sillasJuntasAsignadas = (c) => c.asignadas.filter((q) => q.tipo === 'asiento' && esSillaDeJuntas(q)).length;
+
   for (const tipo of ORDEN_TIPOS) {
     const lote = piezas.filter((p) => (p.tipo || 'mueble') === tipo).sort((a, b) => (b.w * b.d) - (a.w * a.d));
     if (!lote.length) continue;
@@ -307,23 +326,58 @@ function acomodarPorCuartos(areas, piezas) {
       const rx = px === -1 ? 99 : px, ry = py === -1 ? 99 : py;
       return rx !== ry ? rx - ry : y.m2 - x.m2;
     });
+
     for (const p of lote) {
       const silla = tipo === 'asiento' && esSillaDeTrabajo(p);
       const visita = silla && esSillaDeVisita(p);
       if (sinCuartoPropio(p)) { sobran.push(p); continue; }
       const credenza = tipo === 'guarda' && /credenza|lateral|bajo\b/i.test(p.nombre || '');
-      const orden = tipo === 'escritorio' && esBench(p) ? PREFERENCIA.bench
+      const destino = destinoMarcado(p);
+      let orden = tipo === 'escritorio' && esBench(p) ? PREFERENCIA.bench
         : silla ? (visita ? PREFERENCIA.visita
           : esSillaDirectiva(p) ? PREFERENCIA.directiva
             : esSillaDeJuntas(p) ? PREFERENCIA.juntasSilla : PREFERENCIA.silla)
           : credenza ? PREFERENCIA.credenza
             : (PREFERENCIA[tipo] || PREFERENCIA.mueble);
-      const candidatos = ordenar(orden, (tipo === 'guarda' && !credenza) || (silla && !visita),
+      if (destino) orden = [destino, ...orden.filter((r) => r !== destino)];
+
+      let candidatos = ordenar(orden, (tipo === 'guarda' && !credenza) || (silla && !visita),
         tipo === 'escritorio' || tipo === 'juntas' || visita || credenza
         || esSillaDirectiva(p) || esSillaDeJuntas(p));
-      const dest = candidatos.find((c) => zonaAceptaPieza(p, c.a) && cabeEn(p, c.a) && c.libre > (p.w * p.d) / 1e6 * 1.35);
-      if (dest) { dest.asignadas.push(p); dest.libre -= (p.w * p.d) / 1e6 * 1.35; }
-      else sobran.push(p);
+
+      // Dos módulos de una misma mesa (p.ej. Cirque 2×2400) deben ir JUNTOS en
+      // una sala, no uno en cada sala sólo porque el reparto "equilibró" piezas.
+      if (tipo === 'juntas') {
+        const fijado = destinoGrupoJunta.get(grupoFuente(p));
+        if (Number.isInteger(fijado)) candidatos = [...candidatos].sort((a, b) => (a.i === fijado ? -1 : b.i === fijado ? 1 : 0));
+      }
+
+      // Las sillas de junta se reparten por CAPACIDAD de las mesas ya asignadas,
+      // no 10/10 por simple balance. Caso CEO: APP LT=8, 2 módulos Cirque=12.
+      if (silla && esSillaDeJuntas(p)) {
+        candidatos = [...candidatos].sort((a, b) => {
+          const am = a.rol === 'juntas' ? 1 : 0, bm = b.rol === 'juntas' ? 1 : 0;
+          if (am !== bm) return bm - am;
+          if (am) {
+            const ra = capacidadJuntas(a) - sillasJuntasAsignadas(a);
+            const rb = capacidadJuntas(b) - sillasJuntasAsignadas(b);
+            if (ra !== rb) return rb - ra;
+          }
+          return 0;
+        });
+      }
+
+      // Si Voni ya dijo a qué TIPO de espacio pertenece, no lo dejamos escapar
+      // a otro tipo sólo porque ahí había más metros libres. Si ese tipo no existe,
+      // sí cae al orden heurístico como fallback seguro.
+      const exactos = destino ? candidatos.filter((c) => c.rol === destino) : [];
+      const pool = exactos.length ? exactos : candidatos;
+      const dest = pool.find((c) => zonaAceptaPieza(p, c.a) && cabeEn(p, c.a) && c.libre > (p.w * p.d) / 1e6 * 1.35);
+      if (dest) {
+        dest.asignadas.push(p);
+        dest.libre -= (p.w * p.d) / 1e6 * 1.35;
+        if (tipo === 'juntas') destinoGrupoJunta.set(grupoFuente(p), dest.i);
+      } else sobran.push(p);
     }
   }
 
@@ -344,15 +398,18 @@ function acomodarPorCuartos(areas, piezas) {
       const ocupadas = c.asignadas.filter((p) => yaPuestas.includes(p.id));
       const permite = (p) => {
         if (!zonaAceptaPieza(p, c.a)) return false;
+        const destino = destinoMarcado(p);
+        if (destino && utiles.some((u) => u.rol === destino) && c.rol !== destino) return false;
         const pref = p.tipo === 'escritorio' && esBench(p) ? PREFERENCIA.bench
           : (PREFERENCIA[p.tipo] || PREFERENCIA.mueble);
-        return pref.includes(c.rol);
+        return destino ? c.rol === destino || pref.includes(c.rol) : pref.includes(c.rol);
       };
       let cupoGuarda = ocupadas.filter((p) => p.tipo === 'escritorio').length
         - ocupadas.filter((p) => p.tipo === 'guarda').length;
       const nuevas = restantes.filter((p) => !sinCuartoPropio(p) && permite(p) && cabeEn(p, c.a))
         .filter((p) => {
           if (p.tipo !== 'guarda') return true;
+          if (destinoMarcado(p) === 'privado') return true;
           if (cupoGuarda <= 0) return false;
           cupoGuarda -= 1; return true;
         });
