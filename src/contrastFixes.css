@@ -1,0 +1,36 @@
+/* ==========================================================================
+   CONTRAST FIXES · dark theme
+
+   Algunos componentes conservan superficies claras intencionales dentro del
+   tema oscuro. Dos casos se rompían porque heredaban texto claro:
+   1) chips de "Estructura que entendió Voni" (fondo --fondo/#f3f3f3),
+   2) opción seleccionada del Centro de confirmaciones, cuyo inline style usa
+      --tinta; en el tema oscuro --tinta es texto claro y por eso quedaba
+      blanco-sobre-blanco.
+
+   Regla pedida: fondo blanco/claro => texto negro. Se limita a esos patrones
+   para no cambiar botones rojos/verdes ni la jerarquía visual del resto.
+   ========================================================================== */
+
+.chip[style*="--fondo"],
+.chip[style*="#f3f3f3"],
+.chip[style*="#F3F3F3"] {
+  color: #111 !important;
+}
+
+button.chip.on[style*="--tinta"] {
+  background: #fff !important;
+  color: #111 !important;
+  border-color: var(--rojo, #E5484D) !important;
+  box-shadow: 0 0 0 1px var(--rojo, #E5484D) inset;
+}
+
+/* Si algún botón nativo queda explícitamente blanco dentro de una superficie
+   oscura, evita texto blanco heredado. Se acota a .chip/.boton para no tocar
+   campos, headers ni PDFs. */
+button.chip[style*="background: #fff"],
+button.boton[style*="background: #fff"],
+button.chip[style*="background:#fff"],
+button.boton[style*="background:#fff"] {
+  color: #111 !important;
+}
