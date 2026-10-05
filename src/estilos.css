@@ -2816,3 +2816,35 @@ h1 { letter-spacing: -0.035em; }
   }
   @keyframes vh-img-in { from { opacity: 0; transform: scale(1.015); } to { opacity: 1; transform: none; } }
 }
+
+/* ==========================================================================
+   GLOWUP MÁX "NO MAMES" (2026-10-05) · sube la intensidad a tope, legible.
+   ========================================================================== */
+body::before {
+  background:
+    radial-gradient(72% 52% at 100% -6%, rgba(229,72,77,.20), transparent 60%),
+    radial-gradient(60% 46% at -6% 108%, rgba(229,72,77,.13), transparent 62%),
+    radial-gradient(55% 42% at 50% 122%, rgba(178,42,34,.11), transparent 60%);
+}
+.boton.primario, .inicio-hero-cta, .btn-cot {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 0 0 1px rgba(229,72,77,.32),
+    0 12px 32px -6px rgba(229,72,77,.6), 0 0 48px -8px rgba(229,72,77,.5);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .boton.primario, .inicio-hero-cta { animation: vh-glow 2.8s ease-in-out infinite; }
+  @keyframes vh-glow {
+    0%, 100% { box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 10px 28px -8px rgba(229,72,77,.5), 0 0 26px -8px rgba(229,72,77,.42); }
+    50% { box-shadow: inset 0 1px 0 rgba(255,255,255,.24), 0 16px 44px -6px rgba(229,72,77,.82), 0 0 60px -6px rgba(229,72,77,.72); }
+  }
+}
+.tarjeta, .kpi {
+  border-color: rgba(255,255,255,.08);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 2px 6px rgba(0,0,0,.45), 0 22px 56px -22px rgba(0,0,0,.8);
+}
+.encabezado { box-shadow: 0 1px 0 rgba(229,72,77,.4), 0 16px 44px -18px rgba(0,0,0,.92); }
+@media (prefers-reduced-motion: no-preference) {
+  .tile:hover, .tile-destacada:hover {
+    box-shadow: 0 24px 60px -16px rgba(0,0,0,.82), 0 0 0 1px rgba(229,72,77,.4), 0 0 48px -10px rgba(229,72,77,.45);
+  }
+}
+.voni-fab { box-shadow: 0 0 0 1px rgba(229,72,77,.4), 0 10px 28px -6px rgba(229,72,77,.6), 0 0 40px -8px rgba(229,72,77,.55); }
