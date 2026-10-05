@@ -2737,3 +2737,54 @@ input:focus, select:focus, textarea:focus {
 
 /* Hairlines más finos y nítidos en separadores de tablas (lectura más limpia). */
 table.datos th, table.datos td { border-bottom-color: var(--linea); }
+
+/* ==========================================================================
+   MEGA GLOWUP (2026-10-05) · lujo contenido en TODA la app (Linear/Stripe/Arc vibe)
+   Sube los PRIMITIVOS compartidos → todas las pantallas suben a la vez. Profundo,
+   premium y LEGIBLE (números grandes intactos). Sin cambiar paleta ni layout: el
+   ambiente va detrás del contenido (pointer-events:none). Revertir = borrar bloque.
+   ========================================================================== */
+
+/* Ambiente de marca FIJO detrás de todo: dos glows rojos tenues en las esquinas dan
+   profundidad "de estudio" en cada pantalla, sin ensuciar el texto. Capa fija (barata
+   en GPU, sin jank de scroll en móvil). */
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(85% 55% at 100% -6%, rgba(178,42,34,.08), transparent 60%),
+    radial-gradient(70% 48% at -6% 106%, rgba(178,42,34,.05), transparent 62%);
+}
+
+/* Botón primario/tinta: degradado rojo de marca + glow — el CTA se siente "caro". */
+.boton.primario {
+  background-image: linear-gradient(180deg, #E5484D, var(--rojo-osc));
+  border-color: var(--rojo-osc);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 6px 16px -7px rgba(178,42,34,.65);
+}
+.boton.primario:hover:not(:disabled) {
+  background-image: linear-gradient(180deg, #ea5a5f, var(--rojo));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 10px 26px -8px rgba(229,72,77,.75);
+}
+.boton.primario:active:not(:disabled) { box-shadow: inset 0 2px 6px rgba(0,0,0,.25); }
+
+/* Encabezado: hairline rojo de firma bajo el cristal (detalle de marca). */
+.encabezado { box-shadow: 0 1px 0 rgba(229,72,77,.22), 0 10px 30px -18px rgba(0,0,0,.8); }
+
+/* Campos: hundidos (inner shadow) → se ven "de precisión", no planos. */
+input[type="text"], input[type="number"], input[type="password"], input[type="email"],
+input[type="search"], input[type="tel"], input[type="date"], select, textarea {
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.28);
+  transition: border-color var(--vh-tr), box-shadow var(--vh-tr);
+}
+
+/* Títulos con un pelo más de presencia (sin pasar de legible). */
+h1 { letter-spacing: -0.035em; }
+.kpi .rotulo, .etiqueta, .propx-kicker, .inicio-kicker { letter-spacing: .1em; }
+
+/* Tiles del inicio: glow de marca al hover (se sienten "vivos" y premium). */
+@media (prefers-reduced-motion: no-preference) {
+  .tile:hover { box-shadow: var(--elev-3), 0 0 0 1px rgba(229,72,77,.22); }
+}
+
+/* La cuenta del carrito (pill) con el degradado rojo también. */
+.btn-cot { background-image: linear-gradient(180deg, #E5484D, var(--rojo-osc)); border-color: var(--rojo-osc); }
