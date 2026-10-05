@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { inferirDestinoPartida, marcarDestinoPartida } from './destinoAcomodo.js';
-import { expandirPiezas } from './espacio.js';
-import { acomodarLocal } from './planner.js';
+import { expandirPiezas, mapaPiezas } from './espacio.js';
+import { reacomodar } from './reacomodar.js';
 import { elegirPartidasAcomodo, complementosJuntasVisuales } from '../componentes/Acomodo.jsx';
 
 describe('layout · salas de juntas no se pierden ni fugan sillas', () => {
@@ -18,7 +18,7 @@ describe('layout · salas de juntas no se pierden ni fugan sillas', () => {
       { id: 'r2', nombre: 'Silla operativa · WIN', cantidad: 8 },
     ];
     const sugeridas = [
-      { id: 'sug-open', sugeridoPlano: true, noCobrar: true, nombre: 'Banca doble APP LT · OPERATIVO', cantidad: 1 },
+      { id: 'sug-open', sugeridoPlano: true, noCobrar: true, nombre: 'Banca APP LT · OPERATIVO', cantidad: 1 },
       { id: 'sug-mesa', sugeridoPlano: true, noCobrar: true, nombre: 'Mesa de juntas 8 personas · SALA JUNTAS', cantidad: 1, ruta: 'sugerido-plano' },
       { id: 'sug-sillas', sugeridoPlano: true, noCobrar: true, nombre: 'Silla de juntas · SALA JUNTAS', cantidad: 8, ruta: 'sugerido-plano' },
     ];
@@ -41,7 +41,7 @@ describe('layout · salas de juntas no se pierden ni fugan sillas', () => {
     expect(complementosJuntasVisuales(reales.map(marcarDestinoPartida), sugeridas)).toEqual([]);
   });
 
-  it('una SONATA genérica ya no termina en el open space', () => {
+  it('una SONATA genérica queda en juntas Y físicamente ligada a una mesa', () => {
     const reales = [
       { id: 'bench', nombre: 'Banca doble APP LT · 4 usuarios', cantidad: 1, w: 3000, d: 1200 },
       { id: 'win', nombre: 'Silla operativa · WIN', cantidad: 4 },
@@ -54,10 +54,12 @@ describe('layout · salas de juntas no se pierden ni fugan sillas', () => {
       { nombre: 'OPERATIVO', tipo: 'open', ancho: 7000, largo: 4500 },
       { nombre: 'SALA JUNTAS', tipo: 'juntas', ancho: 6500, largo: 4500 },
     ];
-    const r = acomodarLocal(areas, piezas);
+    const r = reacomodar({ areas, piezas, byId: mapaPiezas(piezas), ajustar: false });
     const sonatas = new Set(piezas.filter((p) => /sonata/i.test(p.nombre)).map((p) => p.id));
     const colocadas = r.colocacion.filter((c) => sonatas.has(c.id));
     expect(colocadas.length).toBe(4);
     expect(new Set(colocadas.map((c) => areas[c.area].tipo))).toEqual(new Set(['juntas']));
+    expect(colocadas.every((c) => c.alrededorDe && String(c.contra).startsWith('mesa:'))).toBe(true);
+    expect(r.auditoria.some((a) => a.check === 'Sillas de juntas junto a su mesa' && a.ok)).toBe(true);
   });
 });
