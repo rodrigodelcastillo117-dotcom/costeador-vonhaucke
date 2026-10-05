@@ -68,7 +68,7 @@ export default function PropuestaViva({ areas, plan, byId, nombre = 'Tu nueva of
           <span className="pv-logo">VON<span className="pv-logo-h">HAUCKE</span></span>
           <span className="pv-tag">Mobiliario de oficina · desde 1958</span>
         </div>
-        <button className="pv-cerrar" onClick={onCerrar}>Salir</button>
+        <button className="pv-cerrar" onClick={onCerrar}>‹ Salir de la propuesta</button>
       </header>
 
       <div className="pv-hero">
@@ -114,14 +114,14 @@ const CSS = `
   background:radial-gradient(closest-side, rgba(120,170,220,.22), rgba(120,170,220,0) 70%);filter:blur(10px);}
 .pv-atardecer .pv-glow{background:radial-gradient(closest-side, rgba(240,170,90,.28), rgba(240,170,90,0) 70%);}
 
-.pv-top{width:100%;max-width:1040px;display:flex;justify-content:space-between;align-items:center;gap:12px;}
+.pv-top{position:sticky;top:0;z-index:40;width:100%;max-width:1040px;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;}
 .pv-marca{display:flex;flex-direction:column;line-height:1.05;}
 .pv-logo{font-weight:800;font-size:19px;letter-spacing:.14em;}
 .pv-logo-h{color:#e0564a;}
 .pv-tag{font-size:11px;opacity:.6;letter-spacing:.04em;margin-top:2px;}
-.pv-cerrar{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;border-radius:999px;
-  padding:9px 18px;font-weight:600;cursor:pointer;min-height:40px;}
-.pv-cerrar:hover{background:rgba(255,255,255,.16);}
+.pv-cerrar{background:#fff;border:1px solid rgba(0,0,0,.25);color:#141414;border-radius:999px;
+  padding:10px 20px;font-weight:800;cursor:pointer;min-height:44px;box-shadow:0 8px 22px rgba(0,0,0,.35);}
+.pv-cerrar:hover{background:#efece6;}
 
 .pv-hero{text-align:center;margin:26px 0 8px;max-width:800px;animation:pv-up .8s .05s ease both;}
 .pv-kicker{text-transform:uppercase;letter-spacing:.22em;font-size:12px;color:#e0564a;font-weight:700;margin-bottom:10px;}

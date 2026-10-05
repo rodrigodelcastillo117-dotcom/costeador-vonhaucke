@@ -1913,6 +1913,27 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
   .cot-acciones-fija { gap: 8px; }
   .cot-acciones-fija .cot-pdf, .cot-acciones-fija .boton.fantasma { flex: 1 1 auto; }
 }
+/* FIX (2026-10-05): la barra de acciones es CLARA (crema); los botones heredaban
+   texto del tema oscuro (claro) y quedaban CASI INVISIBLES. Se fuerza contraste:
+   Descargar PDF en ROJO de marca (prominente) + Imprimir/Verificar legibles. */
+.cot-acciones-fija .cot-pdf,
+.cot-acciones-fija .boton.tinta {
+  background: var(--rojo, #B22A22);
+  border: 1px solid var(--rojo, #B22A22);
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 0 6px 18px -8px rgba(178, 42, 34, .6);
+}
+.cot-acciones-fija .cot-pdf:hover,
+.cot-acciones-fija .boton.tinta:hover { background: #9e241d; border-color: #9e241d; color: #fff; }
+.cot-acciones-fija .boton.fantasma {
+  background: #ffffff;
+  border: 1px solid rgba(30, 27, 26, .32);
+  color: #1e1b1a;
+  font-weight: 700;
+}
+.cot-acciones-fija .boton.fantasma:hover { border-color: #1e1b1a; background: #f1efea; color: #1e1b1a; }
+.cot-acciones-fija .boton:disabled { opacity: .55; cursor: not-allowed; }
 
 /* ------------------------------------------------------------------------- */
 /*  VARIANTES DEL CATÁLOGO en "Esto entendí": cuando un mueble casa con       */
