@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { prepararIntentCocrear, conceptosCocrear, aplicarConceptoCocrear, LAYOUT_COCREAR } from './cocrearWow.js';
+import { prepararIntentCocrear, conceptosCocrear, aplicarConceptoCocrear, LAYOUT_COCREAR, detectarAlcanceCocrear } from './cocrearWow.js';
 import { FAMILIA, construirProductSpec, extraerDNA, clasificarProducto } from './cocrear.js';
 import { compileRenderPrompt } from './renderPrompt.js';
 
@@ -45,5 +45,27 @@ describe('Cocrear WOW · preserva intención compleja', () => {
     });
 
     expect(new Set(hashes).size).toBe(3);
+  });
+});
+
+describe('detectarAlcanceCocrear · producto vs zona vs proyecto (#6)', () => {
+  it('oficinas completas / N personas grande ⇒ project', () => {
+    expect(detectarAlcanceCocrear('Quiero cocrear las oficinas nuevas completas para 40 personas').scope).toBe('project');
+    expect(detectarAlcanceCocrear('Proyecto de oficina para una empresa, varias áreas y salas').scope).toBe('project');
+  });
+  it('un mueble concreto ⇒ product (aunque mencione personas)', () => {
+    expect(detectarAlcanceCocrear('Un escritorio operativo para 8 personas con jardinera').scope).toBe('product');
+    expect(detectarAlcanceCocrear('Recepción escultórica curva con luz').scope).toBe('product');
+  });
+  it('mejorar una zona existente ⇒ zone', () => {
+    expect(detectarAlcanceCocrear('Quiero mejorar esta zona de trabajo').scope).toBe('zone');
+  });
+  it('captura personas SIN topar en 24 (un proyecto puede ser mayor)', () => {
+    expect(detectarAlcanceCocrear('oficinas completas para 24 personas').personas).toBe(24);
+    expect(detectarAlcanceCocrear('Quiero cocrear las oficinas nuevas completas para 40 personas').personas).toBe(40);
+  });
+  it('no explota con vacío', () => {
+    expect(detectarAlcanceCocrear('').scope).toBe('product');
+    expect(detectarAlcanceCocrear(undefined).scope).toBe('product');
   });
 });
