@@ -1,10 +1,10 @@
 // ============================================================================
-// acomodar-espacio v7 · planner IA + validador espacial DETERMINISTA.
+// acomodar-espacio v8 · planner IA + validador espacial DETERMINISTA.
 //
-// Conserva el hardening vivo de v6: JWT, roles, rate-limit, input bounds,
-// geometría real, semántica, invariante, observabilidad y repair-loop <= 3.
-// V7 añade: barrido verificable de puertas, clearances de ProductRevision,
-// score espacial y fail-closed cuando la puerta no tiene evidencia suficiente.
+// Conserva hardening vivo: JWT, roles, rate-limit, input bounds, geometría real,
+// semántica, invariante, observabilidad y repair-loop <= 3.
+// V8: barrido verificable de puertas + ProductRevision spatial_spec resuelto
+// SERVER-SIDE + score espacial + fail-closed donde falta evidencia de puerta.
 // ============================================================================
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -169,9 +169,6 @@ Deno.serve(async (req) => {
   const ANON = Deno.env.get("SUPABASE_ANON_KEY");
   if (!key || !URL || !SERVICE) return json({ ok: false, code: "SERVER_CONFIG", error: "Falta configuracion del servidor." }, 500);
 
-  // ------------------------------------------------------------------------
-  // Seguridad y permiso — preservado de producción v6.
-  // ------------------------------------------------------------------------
   const auth = req.headers.get("Authorization") || "";
   if (!auth.startsWith("Bearer ")) return json({ ok: false, code: "UNAUTHENTICATED", error: "No autenticado." }, 401);
   const uc = createClient(URL, ANON || SERVICE, { global: { headers: { Authorization: auth } } });
@@ -201,9 +198,6 @@ Deno.serve(async (req) => {
   if ((uCnt.count ?? 0) >= 30) return json({ ok: false, code: "RATE_LIMITED_USER", error: "Limite de 30 acomodos por hora." }, 429);
   if ((gCnt.count ?? 0) >= 200) return json({ ok: false, code: "RATE_LIMITED_GLOBAL", error: "Demasiados acomodos en este momento." }, 429);
 
-  // ------------------------------------------------------------------------
-  // Input authority + roles semánticos.
-  // ------------------------------------------------------------------------
   const excluded = raw.filter((p: any) => p?.excluded === true || p?.excluida === true);
   const active = raw.filter((p: any) => !(p?.excluded === true || p?.excluida === true));
   const ids = new Set<string>();
@@ -226,10 +220,39 @@ Deno.serve(async (req) => {
   for (const a of areaMeta) if (!finite(a._g.width) || !finite(a._g.depth) || a._g.width <= 0 || a._g.depth <= 0) inputIssues.push({ field: `areas[${a._i}]`, code: "INVALID_AREA_GEOMETRY" });
   if (inputIssues.length) return json({ ok: false, code: "INVALID_INPUT", issues: inputIssues }, 400);
 
-  const cleanPieces = active.map((p: any) => ({
+  // ProductRevision authority: for versioned pieces, the browser is NOT allowed
+  // to choose the canonical spatial contract. Resolve it server-side through a
+  // seller-safe RPC that returns only version_id + spatial_spec.
+  const versionIds = [...new Set(active
+    .map((p: any) => n(p?.producto_version_id ?? p?.productoVersionId ?? p?.version_id))
+    .filter((v: number) => Number.isInteger(v) && v > 0))];
+  const specByVersion = new Map<string, any>();
+  if (versionIds.length) {
+    const { data: specRows, error: specErr } = await svc.rpc("spatial_specs_para_versiones", { p_version_ids: versionIds });
+    if (specErr) return json({ ok: false, code: "CANONICAL_SPATIAL_SOURCE_UNAVAILABLE", error: "No se pudo resolver el contrato espacial de ProductRevision." }, 503);
+    for (const row of (Array.isArray(specRows) ? specRows : [])) {
+      if (row?.version_id != null && row?.spatial_spec && typeof row.spatial_spec === "object") specByVersion.set(String(row.version_id), row.spatial_spec);
+    }
+  }
+  let versionedPieces = 0, canonicalSpatialPieces = 0;
+  for (const p0 of active) {
+    const id = String(p0.id || "").trim();
+    const p = pieceMap.get(id);
+    if (!p) continue;
+    const vid = n(p0?.producto_version_id ?? p0?.productoVersionId ?? p0?.version_id);
+    if (Number.isInteger(vid) && vid > 0) {
+      versionedPieces++;
+      p.producto_version_id = vid;
+      delete p.spatial_spec;
+      const canonical = specByVersion.get(String(vid));
+      if (canonical) { p.spatial_spec = canonical; canonicalSpatialPieces++; }
+    }
+  }
+  const canonicalPieces = active.map((p: any) => pieceMap.get(String(p.id))).filter(Boolean);
+
+  const cleanPieces = canonicalPieces.map((p: any) => ({
     id: String(p.id), nombre: String(p.nombre || "Mueble"),
-    w: n(p.w ?? p.width_mm ?? p.ancho_mm), d: n(p.d ?? p.depth_mm ?? p.fondo_mm),
-    tipo: String(p.tipo || p.product_role || "mueble"),
+    w: n(p.w), d: n(p.d), tipo: String(p.tipo || p.product_role || "mueble"),
     ...(p.spatial_spec ? { spatial_spec: p.spatial_spec } : {}),
   }));
   const cleanAreas = areaMeta.map((a: any) => ({
@@ -238,8 +261,8 @@ Deno.serve(async (req) => {
     puertas: Array.isArray(a.puertas) ? a.puertas.length : 0,
   }));
   const areasTxt = cleanAreas.map((a: any, i: number) => `[${i}] ${a.nombre}: ${a.ancho} x ${a.largo} mm; rol=${a.zone_role}; puertas=${a.puertas}`).join("\n");
-  const lista = cleanPieces.map((p: any) => `${p.id}: ${p.nombre} - ${Math.round(p.w)}x${Math.round(p.d)} mm (${p.tipo})`).join("\n");
-  const baseSystem = `Eres un space planner senior. PROPONES un layout, pero un validador determinista decide si sirve. Nunca inventes piezas ni omitas IDs. Coordenadas locales por area, x/y en mm, rot 0/90. Cada pieza completa debe quedar dentro de su area y sin traslapes. Respeta semantica: recepcion en recepcion, mesa de juntas en juntas, benches en area operativa, escritorio direccion en oficina privada. No coloques muebles cerca de puertas si su barrido no es claro. Si no cabe todo, caben=false; NO reduzcas cantidades. Pasillos objetivo >=1000 mm y detras de sillas >=900 mm.\n\nAREAS:\n${areasTxt}\n\nPIEZAS:\n${lista}`;
+  const lista = cleanPieces.map((p: any) => `${p.id}: ${p.nombre} - ${Math.round(p.w)}x${Math.round(p.d)} mm (${p.tipo})${p.spatial_spec ? `; spatial=${JSON.stringify(p.spatial_spec)}` : ""}`).join("\n");
+  const baseSystem = `Eres un space planner senior. PROPONES un layout, pero un validador determinista decide si sirve. Nunca inventes piezas ni omitas IDs. Coordenadas locales por area, x/y en mm, rot 0/90. Cada pieza completa debe quedar dentro de su area y sin traslapes. Respeta semantica: recepcion en recepcion, mesa de juntas en juntas, benches en area operativa, escritorio direccion en oficina privada. Si una pieza incluye spatial, respeta sus clearances/anclas/preferencias. No coloques muebles cerca de puertas si su barrido no es claro. Si no cabe todo, caben=false; NO reduzcas cantidades. Pasillos objetivo >=1000 mm y detras de sillas >=900 mm.\n\nAREAS:\n${areasTxt}\n\nPIEZAS:\n${lista}`;
 
   let ultimaUsage: any = null;
   async function llamarIA(system: string) {
@@ -272,7 +295,6 @@ Deno.serve(async (req) => {
     const placements = Array.isArray(plan?.colocacion) ? plan.colocacion : [];
     const issues: any[] = [], reviews: any[] = [], seen = new Set<string>(), valid: any[] = [];
 
-    // Geometría + semántica existente (v6).
     for (let i = 0; i < placements.length; i++) {
       const c = placements[i] || {};
       const id = String(c.id || ""), p = pieceMap.get(id);
@@ -295,17 +317,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    // V7: puerta + clearance funcional. Se evalúa sobre TODA colocación válida
-    // para impedir que una huella 'quepa' pero la silla/cajón/paso no.
     const rectsByArea: Record<string, any[]> = {};
     for (const v of valid) (rectsByArea[v.area] ||= []).push({ id: v.id, x: v.x, y: v.y, w: v.w, d: v.d });
     for (const v of valid) {
       const p = pieceMap.get(v.id), a = areas[v.area];
       const rect = { id: v.id, x: v.x, y: v.y, w: v.w, d: v.d };
       const puertas = a?.puertas || a?.doors || [];
-      if (puertas.some((d: any) => bloqueaPuertaEspacial(rect, d))) {
-        issues.push({ code: "BLOCKS_DOOR", id: v.id, area: v.area });
-      }
+      if (puertas.some((d: any) => bloqueaPuertaEspacial(rect, d))) issues.push({ code: "BLOCKS_DOOR", id: v.id, area: v.area });
       if (requiereClearance(p)) {
         const inv = usoInvadido({ area: a, pieza: p, rot: v.rot, rect, otros: rectsByArea[v.area] || [], obstaculos: obstacles(a) });
         if (inv) issues.push({ code: "FUNCTIONAL_CLEARANCE", id: v.id, area: v.area, collision: inv.tipo, with_id: inv.id || null });
@@ -315,11 +333,10 @@ Deno.serve(async (req) => {
     const invalidIds = new Set<string>(issues.map((q) => q.id).filter(Boolean));
     for (const q of issues) if (q.code === "OVERLAP") { invalidIds.add(q.a); invalidIds.add(q.b); }
     const placedIds = new Set(valid.filter((v) => !invalidIds.has(v.id)).map((v) => v.id));
-    const unplaced = active.filter((p: any) => !placedIds.has(String(p.id))).map((p: any) => String(p.id));
+    const unplaced = canonicalPieces.filter((p: any) => !placedIds.has(String(p.id))).map((p: any) => String(p.id));
     const excludedIds = excluded.map((p: any) => String(p.id || "")).filter(Boolean);
     const requested = raw.length, placed = placedIds.size;
 
-    // Una pieza omitida es un input del repair-loop, no un agujero silencioso.
     for (const id of unplaced) {
       if (!issues.some((q) => q.id === id || q.a === id || q.b === id)) issues.push({ code: "MISSING_PLACEMENT", id });
     }
@@ -327,8 +344,8 @@ Deno.serve(async (req) => {
     if (plan?.caben === true && unplaced.length) issues.push({ code: "CLAIMED_ALL_FIT_BUT_UNPLACED", unplaced });
 
     const doors = auditarPuertas(areas);
-    const porPieza = active.map((p: any) => ({ id: String(p.id), ok: placedIds.has(String(p.id)) }));
-    const quality = evaluarCalidad(areas, active, placements, porPieza);
+    const porPieza = canonicalPieces.map((p: any) => ({ id: String(p.id), ok: placedIds.has(String(p.id)) }));
+    const quality = evaluarCalidad(areas, canonicalPieces, placements, porPieza);
     return { plan, valid, issues, reviews, placedIds, unplaced, excludedIds, requested, placed, doors, quality };
   }
 
@@ -367,7 +384,6 @@ Deno.serve(async (req) => {
     }
     const ev = evaluar(plan);
     if (mejorQue(ev, best)) best = ev;
-
     const hard = ev.issues.filter((q: any) => q.code !== "MISSING_PLACEMENT");
     if (!hard.length && !ev.unplaced.length) break;
   }
@@ -396,12 +412,18 @@ Deno.serve(async (req) => {
       invariant_ok: best.requested === best.placed + best.unplaced.length + best.excludedIds.length,
       doors: best.doors,
       quality: best.quality,
+      product_revision_spatial: {
+        versioned_pieces: versionedPieces,
+        canonical_specs_resolved: canonicalSpatialPieces,
+        missing_specs: Math.max(0, versionedPieces - canonicalSpatialPieces),
+        authority: "SERVER_PRODUCT_REVISION",
+      },
     },
   };
 
   try {
     await svc.from("ai_eventos").insert({
-      request_id: crypto.randomUUID(), fn: "acomodar-espacio", email, rol, modo: "repair-loop-v7",
+      request_id: crypto.randomUUID(), fn: "acomodar-espacio", email, rol, modo: "repair-loop-v8",
       images_count: 0, payload_bytes: 0,
       status: status === "PASS" ? "ok" : status === "FAIL" ? "failed" : "partial",
       http_status: 200, finished_at: new Date().toISOString(),
@@ -433,6 +455,6 @@ Deno.serve(async (req) => {
     recomendaciones,
     calidad: best.quality,
     puertas: best.doors,
-    metodo: "ai_proposal_deterministic_spatial_validation_v7",
+    metodo: "ai_proposal_deterministic_spatial_validation_v8",
   }, 200);
 });
