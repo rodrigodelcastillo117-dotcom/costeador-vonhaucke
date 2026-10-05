@@ -12,6 +12,7 @@ import {
   firmaAreasParaSugeridos,
   normalizarAreasPrograma,
 } from '../datos/piezasDePrograma.js';
+import { marcarDestinoPartida } from '../datos/destinoAcomodo.js';
 
 const esSugerida = (p) => !!p?.sugeridoPlano || String(p?.id || '').startsWith('sug-');
 
@@ -45,7 +46,12 @@ function limpiarSugeridos(acomodo) {
 }
 
 export function elegirPartidasAcomodo(partidas = [], sugeridas = []) {
-  const reales = (Array.isArray(partidas) ? partidas : []).filter((p) => !esSugerida(p));
+  const reales = (Array.isArray(partidas) ? partidas : [])
+    .filter((p) => !esSugerida(p))
+    // P1 CEO: la nota de Voni contiene destino real (sala/privado/recepción/open).
+    // Se marca SÓLO en la copia que consume Acomodo; la cotización original,
+    // nombres, precios y PDF comercial permanecen intactos.
+    .map(marcarDestinoPartida);
   return reales.length ? reales : sugeridas;
 }
 
@@ -134,7 +140,9 @@ export default function Acomodo(props) {
         .paleta-item { text-align: left; }
         .paleta-item .paleta-t { font-weight: 700; line-height: 1.25; }
         svg.plano text[paint-order="stroke"] { font-size: 220px !important; stroke-width: 52px !important; }
-        .masmenos button { color: #f5f5f7 !important; }
+        .masmenos button,
+        button[aria-label="sumar"], button[aria-label="restar"],
+        button[title="sumar"], button[title="restar"] { color: #f5f5f7 !important; }
       `}</style>
 
       {!hayReales && sugeridas.length > 0 && (
