@@ -94,9 +94,13 @@ function esCoffee(a) { return /coffee|print|cafe|copiadora|impresion/.test(norm(
 
 /**
  * @param {Array} areas áreas canónicas en METROS (areasM)
+ * @param {Object} opts { linea } — hoy sólo `applt` está habilitada en demo.
  * @returns {Array} partidas visuales SUGERIDAS, costo/precio = 0
  */
-export function partidasSugeridasDeAreas(areas = []) {
+export function partidasSugeridasDeAreas(areas = [], opts = {}) {
+  const linea = opts.linea || 'applt';
+  if (linea !== 'applt') return [];
+
   const lista = normalizarAreasPrograma(areas);
   const out = [];
   let seq = 0;
