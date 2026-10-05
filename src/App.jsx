@@ -3,10 +3,13 @@
 //  El acceso a nomina/financieros/tablero NO se pide con un PIN: lo resuelve
 //  la base de datos por el correo de quien entro (tabla `permitidos`).
 // ============================================================================
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import Icono from './componentes/Iconos.jsx';
 import MarcaLogo from './componentes/MarcaLogo.jsx';
-import Tablero from './componentes/Tablero.jsx';
+// Diferidos (carga bajo demanda): recharts (Tablero) y pdfjs (AsistenteEspecial) son
+// los vendors más pesados y sólo los usa Dirección/Diseño en pantallas puntuales —
+// no deben pesar en la carga inicial del vendedor. (ver AsistenteEspecial abajo)
+const Tablero = lazy(() => import('./componentes/Tablero.jsx'));
 import Costeador, { parametrosEfectivos } from './componentes/Costeador.jsx';
 import Catalogo from './componentes/Catalogo.jsx';
 import Cotizacion from './componentes/Cotizacion.jsx';
@@ -20,7 +23,7 @@ import Guia from './componentes/Guia.jsx';
 import SinPantallaBlanca from './componentes/SinPantallaBlanca.jsx';
 import Inicio from './componentes/Inicio.jsx';
 import Asistente from './componentes/Asistente.jsx';
-import AsistenteEspecial from './componentes/AsistenteEspecial.jsx';
+const AsistenteEspecial = lazy(() => import('./componentes/AsistenteEspecial.jsx'));
 import Biblioteca from './componentes/Biblioteca.jsx';
 import CosteadorLinea from './componentes/CosteadorLinea.jsx';
 import { APPLT_PRODUCTOS, generarAppLT } from './datos/applt.js';
@@ -958,6 +961,7 @@ export default function App() {
       <main>
         {/* Red de seguridad: un error de render ya no deja la app en blanco. */}
         <SinPantallaBlanca resetKey={pestania} onInicio={irInicio}>
+        <Suspense fallback={<div className="contenido"><p className="gris" style={{ marginTop: 40 }}>Cargando…</p></div>}>
         {/* Barra grande de regreso: nunca un callejon sin salida (4.2) */}
         {pestania !== 'inicio' && (
           <div className="contenido no-imprimir barra-atras" style={{ paddingBottom: 0 }}>
@@ -1088,6 +1092,7 @@ export default function App() {
         {/* Lo que Voni sabe: lo leen todos (el motor lo aplica igual para
             todos), pero dictar o corregir una regla es de Diseño y Dirección. */}
         {pestania === 'reglas' && <Reglas puedeEditar={veCostos} />}
+        </Suspense>
         </SinPantallaBlanca>
       </main>
 
