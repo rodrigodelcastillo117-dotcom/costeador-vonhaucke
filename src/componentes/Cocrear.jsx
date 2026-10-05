@@ -1,1 +1,1 @@
-export { default } from './CocrearV2.jsx';
+export { default } from './CocrearV3.jsx';
