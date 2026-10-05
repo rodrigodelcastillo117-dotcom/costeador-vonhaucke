@@ -62,15 +62,38 @@ export function auditarColocacion({ areas = [], colocacion = [], byId = {} } = {
       if (p.codigos?.includes(CODIGO.BLOCKS_DOOR)) puertasBloqueadas.push({ id: p.id, area: p.area, motivo: p.motivo });
     }
   }
-
   const puertasPendientes = spatial?.puertas?.noVerificadas || [];
-  const okFisico = overlaps.length === 0 && fuera.length === 0;
+
+  // Compatibilidad con la compuerta UI existente (`AcomodoBase` históricamente
+  // sólo contaba `fuera` + `overlaps`). Hasta que la vista consuma los campos
+  // ricos directamente, proyectamos aquí las NUEVAS violaciones a `fuera` con
+  // un id explicativo. Es deliberadamente fail-closed: jamás se muestra verde
+  // por ignorar una puerta/ergonomía que el auditor sí sabe que está pendiente.
+  // Las entradas mantienen `tipo` para que una UI nueva pueda diferenciarlas.
+  const virtuales = [];
+  for (const f of funcionales) {
+    const nombre = byId[f.id]?.nombre || f.id;
+    virtuales.push({ id: `Espacio funcional insuficiente · ${nombre}`, area: f.area, tipo: 'funcional', realId: f.id });
+  }
+  for (const p of puertasBloqueadas) {
+    const nombre = byId[p.id]?.nombre || p.id;
+    virtuales.push({ id: `Barrido de puerta invadido · ${nombre}`, area: p.area, tipo: 'puerta', realId: p.id });
+  }
+  for (const p of puertasPendientes) {
+    virtuales.push({ id: `Puerta sin barrido verificable · área ${(p.area ?? 0) + 1}`, area: p.area, tipo: 'puerta_pendiente' });
+  }
+  fuera.push(...virtuales);
+
+  const fueraFisico = fuera.filter((f) => f.tipo === 'huella');
+  const okFisico = overlaps.length === 0 && fueraFisico.length === 0;
   const ok = okFisico && funcionales.length === 0 && puertasBloqueadas.length === 0 && puertasPendientes.length === 0;
 
   return {
     ok,
     overlaps,
     fuera,
+    fueraFisico,
+    virtuales,
     funcionales,
     puertasBloqueadas,
     puertasPendientes,
@@ -78,7 +101,7 @@ export function auditarColocacion({ areas = [], colocacion = [], byId = {} } = {
     spatial,
     checks: [
       { check: 'Sin muebles encimados', ok: overlaps.length === 0, detalle: overlaps.length ? `${overlaps.length} encimado(s)` : 'ninguno' },
-      { check: 'Todo dentro de su área', ok: fuera.length === 0, detalle: fuera.length ? `${fuera.length} fuera` : 'ok' },
+      { check: 'Todo dentro de su área', ok: fueraFisico.length === 0, detalle: fueraFisico.length ? `${fueraFisico.length} fuera` : 'ok' },
       { check: 'Espacio de uso respetado', ok: funcionales.length === 0, detalle: funcionales.length ? `${funcionales.length} conflicto(s) funcional(es)` : 'medido: clearances válidos' },
       { check: 'Puertas libres', ok: puertasBloqueadas.length === 0 && puertasPendientes.length === 0,
         detalle: puertasBloqueadas.length ? `${puertasBloqueadas.length} mueble(s) invade(n) barrido/despeje`
@@ -87,6 +110,6 @@ export function auditarColocacion({ areas = [], colocacion = [], byId = {} } = {
     ],
     resumen: ok
       ? 'Acomodo verificable: sin encimados, fuera de área, conflictos funcionales ni puertas pendientes.'
-      : `${overlaps.length} encimado(s), ${fuera.length} fuera, ${funcionales.length} conflicto(s) funcional(es), ${puertasBloqueadas.length} puerta(s) bloqueada(s), ${puertasPendientes.length} puerta(s) sin barrido verificable.`,
+      : `${overlaps.length} encimado(s), ${fueraFisico.length} fuera, ${funcionales.length} conflicto(s) funcional(es), ${puertasBloqueadas.length} puerta(s) bloqueada(s), ${puertasPendientes.length} puerta(s) sin barrido verificable.`,
   };
 }
