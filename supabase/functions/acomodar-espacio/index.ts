@@ -7,6 +7,7 @@
 //  Requiere ANTHROPIC_API_KEY.
 // ============================================================================
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { acomodarConReparacion } from "./acomodo-core.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -74,7 +75,7 @@ Deno.serve(async (req) => {
     .map((p: any) => `${p.id}: ${p.nombre} — huella ${Math.round(p.w)}×${Math.round(p.d)} mm (tipo ${p.tipo || "mueble"})`)
     .join("\n");
 
-  const system =
+  const baseSystem =
     "Eres un space planner senior de oficinas (como el que dibuja en AutoCAD). Te doy uno o varios ÁREAS (cuartos, con su medida real) y una lista de muebles con su huella real. " +
     "Piensa como al planear un despacho de verdad: primero DECIDE el uso de cada cuarto por su nombre y tamaño, agrupa los muebles en CONJUNTOS lógicos, y recién entonces coloca cada pieza. " +
     "Coordenadas LOCALES a cada área: origen (0,0) arriba-izquierda de ESE cuarto; X = ancho, Y = largo; en mm.\n\n" +
@@ -89,35 +90,68 @@ Deno.serve(async (req) => {
     "8) 'resumen': 1-2 frases para el cliente, en lenguaje sencillo, diciendo qué quedó en cada zona.\n\n" +
     `ÁREAS (${areas.length}):\n${areasTxt}\n\nMUEBLES (${piezas.length}):\n${lista}`;
 
-  const apiBody = {
-    model: "claude-opus-5",
-    max_tokens: 8000,
-    output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } },
-    system,
-    messages: [{ role: "user", content: [{ type: "text", text: "Acomoda estos muebles en las áreas con un layout profesional y circulaciones cómodas." }] }],
-  };
+  // Addendum de REPARACIÓN: en los reintentos se corrige SOLO lo inválido, sin
+  // mover lo ya válido, usando las violaciones concretas del intento anterior.
+  function systemDeIntento(intento: number, violaciones: string[], validas: any[]) {
+    if (intento <= 1 || !violaciones?.length) return baseSystem;
+    return baseSystem +
+      `\n\nREINTENTO ${intento} (REPARACIÓN). El intento anterior dejó estas violaciones — corrígelas exactamente:\n` +
+      violaciones.map((v) => "- " + v).join("\n") +
+      "\n\nMANTÉN EXACTAS estas colocaciones que YA son válidas (NO las muevas):\n" +
+      JSON.stringify(validas) +
+      "\n\nReposiciona ÚNICAMENTE las piezas con violación para que quepan completas y sin traslape. " +
+      "NO inventes muebles, NO cambies cantidades, NO reduzcas piezas para 'hacerlo caber'. Devuelve TODAS las piezas (las válidas igual que estaban).";
+  }
 
-  let data: any;
-  try {
+  let ultimaUsage: any = null;
+  // Proposer inyectable: una llamada a Claude por intento. El bucle y la
+  // validación viven en acomodo-core (deterministas y testeables).
+  async function proponer({ intento, violacionesPrevias, colocacionValidaPrevia }: any) {
+    const apiBody = {
+      model: "claude-opus-5",
+      max_tokens: 8000,
+      output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } },
+      system: systemDeIntento(intento, violacionesPrevias, colocacionValidaPrevia),
+      messages: [{ role: "user", content: [{ type: "text", text: intento > 1
+        ? "Corrige SOLO las piezas inválidas listadas; conserva las válidas en su posición exacta. Devuelve todas las piezas."
+        : "Acomoda estos muebles en las áreas con un layout profesional y circulaciones cómodas." }] }],
+    };
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
       body: JSON.stringify(apiBody),
     });
-    data = await r.json();
-  } catch (e) {
-    return json({ ok: false, error: "No se pudo llamar a Claude: " + String(e) }, 502);
+    const data = await r.json();
+    if (data?.type === "error") throw new Error(data.error?.message || "Error de la API");
+    if (data?.stop_reason === "max_tokens") throw new Error("El acomodo salió muy grande y se cortó. Divide en menos piezas o áreas.");
+    ultimaUsage = data?.usage || ultimaUsage;
+    const txt = (data?.content || []).find((b: any) => b.type === "text")?.text || "";
+    return JSON.parse(txt); // si no es JSON válido, el core registra el intento fallido y sigue
   }
 
-  if (data?.type === "error") return json({ ok: false, error: data.error?.message || "Error de la API" }, 502);
-  if (data?.stop_reason === "max_tokens") return json({ ok: false, error: "El acomodo salió muy grande y se cortó. Divide en menos piezas o áreas." }, 200);
+  let resultado: any;
+  try {
+    resultado = await acomodarConReparacion({ areas, piezas, proponer, maxIntentos: 3 });
+  } catch (e) {
+    return json({ ok: false, error: "No se pudo acomodar: " + String((e as any)?.message || e) }, 200);
+  }
 
-  const txt = (data?.content || []).find((b: any) => b.type === "text")?.text || "";
-  let plan: any;
-  try { plan = JSON.parse(txt); }
-  catch { return json({ ok: false, error: "La IA no devolvió un acomodo válido. Reintenta." }, 200); }
-
-  return json({ ok: true, plan, uso: data?.usage || null });
+  // Contrato de SALIDA: compatible con el frontend (plan.colocacion/zonas/caben/
+  // resumen/notas) + campos deterministas nuevos. `completo=false` ⇒ acomodo
+  // PARCIAL: el frontend NO debe permitir render/PDF final (fail-closed se
+  // mantiene en cliente y aquí plan.caben queda en false).
+  return json({
+    ok: true,
+    plan: resultado.plan,
+    completo: resultado.completo,
+    colocadas: resultado.colocadas,
+    total: resultado.total,
+    porPieza: resultado.porPieza,
+    noColocadas: resultado.noColocadas,
+    recomendaciones: resultado.recomendaciones,
+    intentos: resultado.intentos,
+    uso: ultimaUsage,
+  });
 });
 
 function json(obj: unknown, status = 200) {
