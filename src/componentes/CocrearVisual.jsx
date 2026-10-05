@@ -22,6 +22,9 @@ function divisor(x,y,w,rz=0){return box(x-w/2,y-25,760,w,50,360,'#a9adb0',{rz,op
 function jardinera(x,y,w,d,h=420,rz=0){
   return [box(x-w/2,y-d/2,0,w,d,h,'#59636a',{rz}),box(x-w*.42,y-d*.42,h,w*.84,d*.84,80,'#58795f',{rz})];
 }
+function anchoJardinera(intent,W,normal){
+  return has(intent,'jardinera_longitud_completa') ? Math.max(600,W-300) : Math.min(W*normal,2600);
+}
 
 function isla(intent,c){
   const cap=clamp(Number(intent?.capacidad_personas||intent?.capacidad?.personas)||6,2,24),cols=Math.ceil(cap/2);
@@ -31,7 +34,7 @@ function isla(intent,c){
   solids.push(box(-W/2+100,-D/2+120,0,55,D/2-220,720,'#74797e'),box(W/2-155,-D/2+120,0,55,D/2-220,720,'#74797e'));
   solids.push(box(-W/2+100,220,0,55,D/2-330,720,'#74797e'),box(W/2-155,220,0,55,D/2-330,720,'#74797e'));
   if(has(intent,'electrificacion_integrada'))solids.push(box(-W/2+160,-55,675,W-320,110,90,'#3f454a'));
-  if(has(intent,'jardinera_integrada'))solids.push(...jardinera(0,0,Math.min(W*.58,2600),340,430));
+  if(has(intent,'jardinera_integrada'))solids.push(...jardinera(0,0,anchoJardinera(intent,W,.58),340,430));
   for(let i=0;i<cols;i++){
     const x=-W/2+(i+.5)*W/cols;
     if(i*2<cap)solids.push(...silla(x,-D/2-330,0));
@@ -54,7 +57,7 @@ function modulos(intent,c){
     if((has(intent,'divisores')||has(intent,'acustica'))&&i<pairs-1)solids.push(divisor(x+ww+gap/2,0,D-180,90));
   }
   if(has(intent,'electrificacion_integrada'))solids.push(box(-W/2+110,-55,660,W-220,110,105,'#3f454a'));
-  if(has(intent,'jardinera_integrada'))solids.push(...jardinera(0,0,Math.min(W*.45,2200),360,440));
+  if(has(intent,'jardinera_integrada'))solids.push(...jardinera(0,0,anchoJardinera(intent,W,.45),360,440));
   return solids;
 }
 
@@ -63,7 +66,10 @@ function escultorico(intent,c){
   const W=Math.max(Number(d.ancho_mm)||4800,3600),D=Math.max(Number(d.prof_mm||d.fondo_mm)||2200,2100),rx=W*.32,ry=D*.33;
   const solids=[];
   solids.push(box(-520,-520,0,1040,1040,700,'#4d555b',{rz:45}));
-  if(has(intent,'jardinera_integrada'))solids.push(...jardinera(0,0,760,760,760,45));
+  if(has(intent,'jardinera_integrada')){
+    const full=has(intent,'jardinera_longitud_completa');
+    solids.push(...jardinera(0,0,full?Math.max(1500,W*.55):760,full?420:760,full?650:760,full?0:45));
+  }
   for(let i=0;i<cap;i++){
     const a=Math.PI*2*i/cap-Math.PI/2,x=Math.cos(a)*rx,y=Math.sin(a)*ry,deg=a*180/Math.PI+90;
     solids.push(box(x-470,y-330,720,940,660,32,c,{rz:deg}));
@@ -96,10 +102,10 @@ export default function CocrearVisual({spec,intent}){
   const d=intent?.dimensiones||spec?.dimensiones||{},nombre=intent?._concepto_nombre||String(spec?.familia||intent?.familia||'Concepto');
   return <div style={{width:'100%',background:'#111315',border:'1px solid #2b2e32',borderRadius:12,overflow:'hidden'}}>
     <div style={{display:'flex',justifyContent:'space-between',gap:12,padding:'10px 12px',borderBottom:'1px solid #272a2d',alignItems:'center',flexWrap:'wrap'}}>
-      <div><strong style={{fontSize:12,color:'#eef0f2'}}>Modelo 3D interactivo · {nombre}</strong><div style={{fontSize:10,color:'#858d96',marginTop:2}}>Mismo concepto canónico que alimenta el render IA · gira con mouse o dedo</div></div>
+      <div><strong style={{fontSize:12,color:'#eef0f2'}}>Modelo 3D interactivo · {nombre}</strong><div style={{fontSize:10,color:'#858d96',marginTop:2}}>Geometría canónica de esta revisión · gira con mouse o dedo</div></div>
       <div style={{fontFamily:'monospace',fontSize:10,color:'#8f98a8'}}>{d?.ancho_mm?`${Math.round(d.ancho_mm)} × ${Math.round(d.prof_mm||d.fondo_mm||0)} × ${Math.round(d.alto_mm||0)} mm`:'medidas por desarrollar'}</div>
     </div>
     <Orbit3D solids={solids} height={360} label={`Modelo 3D interactivo del concepto ${intent?._concepto||''} ${nombre}`}/>
-    <div style={{padding:'7px 12px',fontSize:9,color:'#77808a'}}>MODELO CONCEPTUAL · orientación libre para revisar volumen. No sustituye plano/ficha de ingeniería.</div>
+    <div style={{padding:'7px 12px',fontSize:9,color:'#77808a'}}>MODELO CONCEPTUAL · esta geometría alimenta la referencia del render. No sustituye plano/ficha de ingeniería.</div>
   </div>;
 }
