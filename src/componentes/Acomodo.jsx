@@ -43,6 +43,10 @@ export default function Acomodo(props) {
   const sugeridasGuardadas = Array.isArray(guardado?.sugeridosPartidas) ? guardado.sugeridosPartidas : [];
   const sugeridasIniciales = sugeridasGuardadas.length ? sugeridasGuardadas : partidasSugeridasDeAreas(areasIniciales);
 
+  // Hoy la línea aprobada para el flujo automático es APP LT. Dejamos la
+  // pregunta visible para que Voni no "elija" una familia en silencio. Cuando
+  // se habiliten otras familias, este selector ya es el punto de extensión.
+  const [lineaOperativa, setLineaOperativa] = useState('applt');
   const [sugeridas, setSugeridas] = useState(sugeridasIniciales);
   const [acomodoLocal, setAcomodoLocal] = useState(() => (
     sugeridasIniciales.length && guardadoNormalizado
@@ -72,44 +76,58 @@ export default function Acomodo(props) {
     const firma = firmaAreasParaSugeridos(areas);
 
     if (areas.length && firma && firma !== firmaRef.current) {
-      const nuevas = partidasSugeridasDeAreas(areas);
+      const nuevas = partidasSugeridasDeAreas(areas, { linea: lineaOperativa });
       firmaRef.current = firma;
       setSugeridas(nuevas);
       if (nuevas.length) {
         // Al cambiar lectura/programa se recalcula desde cero, ahora con semántica:
         // cuarto operativo + isla interna + PAX exactos.
-        const siguiente = { ...normalizado, plan: null, sugeridosPartidas: nuevas, demoAutopoblado: true };
+        const siguiente = { ...normalizado, plan: null, sugeridosPartidas: nuevas, demoAutopoblado: true, lineaOperativa };
         setAcomodoLocal(siguiente);
         setRevision((v) => v + 1);
-        props.onGuardarAcomodo?.({ ...normalizado, sugeridosPartidas: nuevas, demoAutopoblado: true }, silencioso);
+        props.onGuardarAcomodo?.({ ...normalizado, sugeridosPartidas: nuevas, demoAutopoblado: true, lineaOperativa }, silencioso);
         return;
       }
     }
 
     const persistidas = sugeridas.length ? sugeridas : (acomodo?.sugeridosPartidas || []);
-    const completo = { ...normalizado, ...(persistidas.length ? { sugeridosPartidas: persistidas, demoAutopoblado: true } : {}) };
+    const completo = {
+      ...normalizado,
+      ...(persistidas.length ? { sugeridosPartidas: persistidas, demoAutopoblado: true, lineaOperativa } : {}),
+    };
     setAcomodoLocal(completo);
     props.onGuardarAcomodo?.(completo, silencioso);
   };
 
   return (
     <>
-      {/* Hotfix visual de demo: la paleta heredaba texto negro sobre tarjeta oscura. */}
+      {/* Guardrails visuales de demo: contraste alto + rótulos de plano discretos. */}
       <style>{`
         .paleta-item, .paleta-item .paleta-t { color: #f5f5f7 !important; }
         .paleta-item .ayuda, .paleta-item .gris, .paleta-cab, .paleta-cab .gris { color: #b9bac1 !important; }
         .paleta-item { text-align: left; }
         .paleta-item .paleta-t { font-weight: 700; line-height: 1.25; }
+        svg.plano text[paint-order="stroke"] { font-size: 220px !important; stroke-width: 52px !important; }
       `}</style>
 
       {sugeridas.length > 0 && (
         <div className="contenido no-imprimir" style={{ paddingBottom: 0 }}>
           <div className="alerta" style={{ background: '#eef6f3', borderColor: '#8bbcaf', color: '#174f45' }}>
             <span className="texto">
-              <strong>✨ Programa sugerido · APP LT:</strong> Voni interpreta PAX, privados, salas, recepción e islas operativas.
-              {' '}Un <strong>OPERATIVO / BENCH / ISLA de N PAX</strong> se arma como banca APP LT para N usuarios + N sillas + N gavetas.
+              <strong>✨ Voni entendió el programa del plano.</strong>
+              {' '}OPERATIVO / BENCH / ISLA de <strong>N PAX</strong> = banca para N usuarios + N sillas + N gavetas; salas de juntas = mesa dimensionada + sus sillas; privados, recepción y servicios se tratan por separado.
               {' '}Todo sigue marcado <strong>SUGERIDO</strong> y <strong>no se cobra</strong> hasta confirmarlo.
             </span>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 10 }}>
+              <strong style={{ color: '#174f45' }}>Voni: ¿qué línea operativa quieres usar?</strong>
+              <select
+                value={lineaOperativa}
+                onChange={(e) => setLineaOperativa(e.target.value)}
+                style={{ minHeight: 40, borderRadius: 8, padding: '0 12px', border: '1px solid #8bbcaf', background: '#fff', color: '#174f45', fontWeight: 700 }}>
+                <option value="applt">APP LT · 1.50 m por puesto</option>
+              </select>
+              <span style={{ color: '#356b62' }}>Hoy sólo APP LT está habilitada para que la demo sea determinista.</span>
+            </div>
           </div>
         </div>
       )}
