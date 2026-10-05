@@ -4,7 +4,13 @@
 .programa .masmenos button:focus,
 .masmenos button,
 .masmenos button:hover,
-.masmenos button:focus {
+.masmenos button:focus,
+button[aria-label="Menos"],
+button[aria-label="Más"],
+button[aria-label="Menos"]:hover,
+button[aria-label="Más"]:hover,
+button[aria-label="Menos"]:focus,
+button[aria-label="Más"]:focus {
   color: #f7f7f8 !important;
   -webkit-text-fill-color: #f7f7f8 !important;
   opacity: 1 !important;
@@ -16,6 +22,14 @@
   -webkit-text-fill-color: #f7f7f8 !important;
 }
 
+/* Los controles de cantidad viven sobre fondo oscuro: evita que el UA pinte
+   texto negro aunque una regla más específica cambie color/background. */
+.programa .masmenos button,
+.masmenos button {
+  background: #18181b !important;
+  border-color: #e7e7ea !important;
+}
+
 /* En botones rojos/activos nunca heredar texto oscuro del navegador. */
 button.chip.on,
 .boton.primario,
@@ -24,9 +38,21 @@ button.chip.on,
   -webkit-text-fill-color: #fff !important;
 }
 
+/* Chips inactivos y textos dentro de tarjetas oscuras siempre legibles. */
+.programa button.chip:not(.on),
+.paleta-item,
+.paleta-item .paleta-t {
+  color: #f5f5f7 !important;
+  -webkit-text-fill-color: #f5f5f7 !important;
+}
+
 /* Evita que bloques informativos heredados por .alerta se partan en columnas. */
-.demo-voni-programa {
+.demo-voni-programa,
+.alerta.demo-voni-programa {
   display: block !important;
   width: 100% !important;
+  max-width: none !important;
   box-sizing: border-box !important;
+  columns: auto !important;
+  column-count: 1 !important;
 }
