@@ -1,82 +1,51 @@
 import React, { useMemo } from 'react';
 import { colorMaterial, DIMS_DEFAULT, FAMILIA } from '../datos/cocrear.js';
 
-const clamp = (n,a,b) => Math.max(a, Math.min(b,n));
-const shade = (hex, p=0.18) => {
-  const n = parseInt(String(hex || '#888888').replace('#',''), 16);
-  const c = (v) => Math.round(v*(1-p)).toString(16).padStart(2,'0');
-  return `#${c((n>>16)&255)}${c((n>>8)&255)}${c(n&255)}`;
-};
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 
-function IsoBox({x,y,w,d,h,fill='#c6c6c6', stroke='#555', opacity=1}) {
-  const dx=d*.48, dy=d*.25;
-  const top=`${x},${y-h} ${x+w},${y-h} ${x+w+dx},${y-h-dy} ${x+dx},${y-h-dy}`;
-  const front=`${x},${y-h} ${x+w},${y-h} ${x+w},${y} ${x},${y}`;
-  const side=`${x+w},${y-h} ${x+w+dx},${y-h-dy} ${x+w+dx},${y-dy} ${x+w},${y}`;
-  return <g opacity={opacity}>
-    <polygon points={front} fill={fill} stroke={stroke}/>
-    <polygon points={side} fill={shade(fill,.28)} stroke={stroke}/>
-    <polygon points={top} fill={shade(fill,.05)} stroke={stroke}/>
-  </g>;
-}
-
-function Plant({x,y,s=1}) {
-  return <g>
-    <path d={`M${x} ${y} C${x-8*s} ${y-20*s},${x-23*s} ${y-20*s},${x-18*s} ${y-35*s}`} fill="none" stroke="#66846b" strokeWidth={3*s}/>
-    <path d={`M${x} ${y} C${x+9*s} ${y-18*s},${x+22*s} ${y-18*s},${x+18*s} ${y-34*s}`} fill="none" stroke="#66846b" strokeWidth={3*s}/>
-    <ellipse cx={x-18*s} cy={y-36*s} rx={9*s} ry={5*s} fill="#7d9a80"/>
-    <ellipse cx={x+18*s} cy={y-35*s} rx={9*s} ry={5*s} fill="#7d9a80"/>
-  </g>;
-}
-
-function Operativo({intent, color}) {
-  const cap=clamp(Number(intent?.capacidad_personas)||6,2,16);
-  const lado=Math.ceil(cap/2);
-  const deskW=54, gap=4, total=lado*deskW + (lado-1)*gap;
-  const x=230-total/2, y=275;
+function OperativoPlano({intent,color}){
+  const cap=clamp(Number(intent?.capacidad_personas)||6,2,24);
+  const cols=Math.ceil(cap/2);
+  const x0=80, yA=86, yB=150, deskW=Math.min(72,420/Math.max(cols,1));
+  const features=new Set(intent?.caracteristicas||[]);
   const nodes=[];
-  for(let i=0;i<lado;i++){
-    const xx=x+i*(deskW+gap);
-    nodes.push(<IsoBox key={`a${i}`} x={xx} y={y} w={deskW} d={55} h={10} fill={color}/>);
-    nodes.push(<IsoBox key={`b${i}`} x={xx+28} y={y-49} w={deskW} d={55} h={10} fill={color}/>);
-    nodes.push(<rect key={`sa${i}`} x={xx+14} y={y+8} width="24" height="7" rx="3" fill="#6d7278"/>);
-    nodes.push(<rect key={`sb${i}`} x={xx+44} y={y-63} width="24" height="7" rx="3" fill="#6d7278"/>);
+  for(let i=0;i<cols;i++){
+    const x=x0+i*deskW;
+    if(i*2<cap) nodes.push(<g key={`a${i}`}><rect x={x} y={yA} width={deskW-6} height="42" rx="5" fill={color} stroke="#50545a"/><circle cx={x+(deskW-6)/2} cy={yA-12} r="8" fill="#6d7278"/></g>);
+    if(i*2+1<cap) nodes.push(<g key={`b${i}`}><rect x={x} y={yB} width={deskW-6} height="42" rx="5" fill={color} stroke="#50545a"/><circle cx={x+(deskW-6)/2} cy={yB+54} r="8" fill="#6d7278"/></g>);
   }
-  const features=intent?.caracteristicas||[];
-  if(features.includes('jardinera_integrada')){
-    nodes.push(<IsoBox key="planter" x={205} y={242} w={52} d={42} h={30} fill="#666b70"/>);
-    nodes.push(<Plant key="p1" x={225} y={210} s={.9}/>);
-    nodes.push(<Plant key="p2" x={250} y={202} s={.75}/>);
-  }
-  if(features.includes('electrificacion_integrada')) nodes.push(<rect key="power" x="197" y="252" width="72" height="5" rx="2" fill="#222"/>);
-  if(features.includes('divisores')) nodes.push(<rect key="div" x="210" y="205" width="46" height="34" rx="3" fill="#aeb8c4" opacity=".72"/>);
+  if(features.has('jardinera_integrada')) nodes.push(<g key="planter"><rect x="92" y="132" width="348" height="14" rx="7" fill="#555b60"/><g fill="#6f8f73">{[120,165,210,255,300,345,390,425].map((x,i)=><circle key={i} cx={x} cy="139" r={i%2?5:7}/>)}</g></g>);
+  if(features.has('electrificacion_integrada')) nodes.push(<g key="power"><line x1="112" y1="139" x2="420" y2="139" stroke="#171717" strokeWidth="3" strokeDasharray="8 7"/><text x="354" y="128" fill="#8f98a8" fontSize="9">canal técnico oculto</text></g>);
+  if(features.has('divisores')||features.has('acustica')) nodes.push(<g key="div"><line x1="266" y1="78" x2="266" y2="200" stroke="#9aa5b1" strokeWidth="4" opacity=".8"/><text x="274" y="94" fill="#8f98a8" fontSize="9">divisor</text></g>);
   return <g>{nodes}</g>;
 }
 
-function GenericProduct({spec,intent,color}){
+function ProductoGenerico({intent,spec,color}){
   const fam=spec?.familia||intent?.familia||FAMILIA.DESCONOCIDA;
-  if(fam===FAMILIA.RECEPCION) return <g><IsoBox x={105} y={290} w={230} d={75} h={95} fill={color}/><IsoBox x={125} y={194} w={210} d={48} h={14} fill="#d8d2c6"/></g>;
-  if(fam===FAMILIA.LOCKER) return <g><IsoBox x={140} y={302} w={180} d={45} h={205} fill={color}/>{[0,1,2].flatMap(r=>[0,1,2].map(c=><rect key={`${r}-${c}`} x={147+c*57} y={105+r*61} width="50" height="54" fill="none" stroke="#555"/>))}</g>;
-  if(fam===FAMILIA.DISPLAY) return <g><IsoBox x={155} y={300} w={155} d={55} h={180} fill={color}/>{[0,1,2].map(i=><line key={i} x1="160" y1={165+i*45} x2="307" y2={165+i*45} stroke="#444" strokeWidth="4"/>)}</g>;
-  if(fam===FAMILIA.GUARDADO) return <g><IsoBox x={135} y={300} w={190} d={65} h={105} fill={color}/><line x1="140" y1="238" x2="323" y2="238" stroke="#555"/><line x1="230" y1="200" x2="230" y2="297" stroke="#555"/></g>;
-  return <g><IsoBox x={95} y={260} w={255} d={95} h={14} fill={color}/><IsoBox x={120} y={300} w={18} d={22} h={72} fill="#60666b"/><IsoBox x={308} y={300} w={18} d={22} h={72} fill="#60666b"/></g>;
+  if(fam===FAMILIA.RECEPCION) return <g><path d="M105 175 Q105 105 185 92 H392 V176 H318 V132 H188 Q156 132 156 175Z" fill={color} stroke="#50545a" strokeWidth="2"/></g>;
+  if(fam===FAMILIA.LOCKER) return <g><rect x="160" y="54" width="220" height="150" rx="8" fill={color} stroke="#50545a"/>{[0,1,2,3].map(c=>[0,1,2].map(r=><rect key={`${c}-${r}`} x={170+c*50} y={64+r*44} width="42" height="36" rx="3" fill="none" stroke="#686d72"/>))}</g>;
+  if(fam===FAMILIA.MESA) return <g><rect x="112" y="104" width="320" height="82" rx="38" fill={color} stroke="#50545a"/><rect x="145" y="137" width="254" height="16" rx="8" fill="#24272b" opacity=".7"/></g>;
+  if(fam===FAMILIA.DISPLAY) return <g><rect x="170" y="58" width="210" height="148" rx="6" fill={color} stroke="#50545a"/>{[98,135,172].map(y=><line key={y} x1="184" y1={y} x2="366" y2={y} stroke="#5b6065" strokeWidth="3"/>)}</g>;
+  if(fam===FAMILIA.GUARDADO) return <g><rect x="135" y="112" width="280" height="92" rx="6" fill={color} stroke="#50545a"/><line x1="275" y1="118" x2="275" y2="198" stroke="#5b6065"/><line x1="141" y1="157" x2="409" y2="157" stroke="#5b6065"/></g>;
+  return <g><rect x="110" y="112" width="330" height="70" rx="8" fill={color} stroke="#50545a"/><rect x="140" y="181" width="18" height="32" rx="3" fill="#5e6469"/><rect x="392" y="181" width="18" height="32" rx="3" fill="#5e6469"/></g>;
 }
 
-export default function CocrearVisual({ spec, intent }) {
+export default function CocrearVisual({spec,intent}){
   const m=(intent?.materiales||spec?.materiales||[])[0]||{material:'laminado',tono:null};
   const color=useMemo(()=>colorMaterial(m.material,m.tono),[m.material,m.tono]);
   const d=intent?.dimensiones||spec?.dimensiones||DIMS_DEFAULT[FAMILIA.DESCONOCIDA];
   const operativo=intent?.tipologia_cocrear==='operativo_colaborativo';
-  return <div style={{width:'100%'}}>
-    <svg viewBox="0 0 460 350" className="cocrear-visual-svg" role="img" aria-label="Vista volumétrica conceptual del producto">
-      <defs><linearGradient id="floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ffffff"/><stop offset="1" stopColor="#e9e7e3"/></linearGradient></defs>
-      <path d="M40 302 L280 332 L430 265 L188 235 Z" fill="url(#floor)" stroke="#d4d0ca"/>
-      {operativo ? <Operativo intent={intent} color={color}/> : <GenericProduct spec={spec} intent={intent} color={color}/>} 
-      <g fontFamily="ui-sans-serif,system-ui" fill="#667085" fontSize="11">
-        <text x="24" y="22">VISTA VOLUMÉTRICA CONCEPTUAL</text>
-        <text x="24" y="40">{d?.ancho_mm ? `${Math.round(d.ancho_mm)} × ${Math.round(d.prof_mm||d.fondo_mm||0)} × ${Math.round(d.alto_mm||0)} mm` : 'Dimensiones por desarrollar'}</text>
-        <text x="24" y="337">Concepto de diseño · el render realista y la ficha técnica se validan por separado</text>
-      </g>
+  return <div style={{width:'100%',background:'#111315',border:'1px solid #2b2e32',borderRadius:12,overflow:'hidden'}}>
+    <div style={{display:'flex',justifyContent:'space-between',gap:12,padding:'10px 12px',borderBottom:'1px solid #272a2d',alignItems:'center'}}>
+      <div><strong style={{fontSize:12,color:'#eef0f2'}}>Modelo conceptual</strong><div style={{fontSize:10,color:'#858d96',marginTop:2}}>Esquema paramétrico · NO es el render final</div></div>
+      <div style={{fontFamily:'monospace',fontSize:10,color:'#8f98a8'}}>{d?.ancho_mm?`${Math.round(d.ancho_mm)} × ${Math.round(d.prof_mm||d.fondo_mm||0)} × ${Math.round(d.alto_mm||0)} mm`:'medidas por desarrollar'}</div>
+    </div>
+    <svg viewBox="0 0 540 235" role="img" aria-label="Modelo conceptual técnico del producto" style={{display:'block',width:'100%',height:'auto'}}>
+      <defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1e2226" strokeWidth="1"/></pattern></defs>
+      <rect width="540" height="235" fill="#0f1113"/><rect width="540" height="235" fill="url(#grid)"/>
+      {operativo?<OperativoPlano intent={intent} color={color}/>:<ProductoGenerico intent={intent} spec={spec} color={color}/>} 
+      <line x1="70" y1="218" x2="470" y2="218" stroke="#4b5055"/><line x1="70" y1="213" x2="70" y2="223" stroke="#4b5055"/><line x1="470" y1="213" x2="470" y2="223" stroke="#4b5055"/>
+      <text x="270" y="230" textAnchor="middle" fill="#77808a" fontSize="10">envolvente conceptual · validar ingeniería antes de fabricar</text>
     </svg>
   </div>;
 }
