@@ -1,10 +1,16 @@
 name: CI
 
-# Corre la suite y el build en cada push y PR. Blinda "una sola verdad": nada roto
-# llega lejos sin que CI lo marque en rojo. (Se activa al agregar el remoto de GitHub.)
+# Un feature branch con PR abierto corría DOS veces por commit (push + PR),
+# generando una lluvia de correos y corridas canceladas cuando entraba el commit
+# siguiente. Las ramas de trabajo se verifican por pull_request; las ramas base
+# siguen verificándose también si reciben un push directo.
 on:
   push:
+    branches:
+      - c3.4-seller-safe
+      - demo-ceo-autopoblar-zonas
   pull_request:
+  workflow_dispatch:
 
 jobs:
   verify:
