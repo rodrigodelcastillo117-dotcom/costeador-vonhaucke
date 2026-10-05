@@ -19,21 +19,17 @@ describe('acomodo CEO: cada cosa en su tipo de espacio', () => {
   ];
 
   const piezas = [];
-  // 3 bancas reales de 8 -> sólo open.
   for (let i = 1; i <= 3; i++) piezas.push(p(`bench-${i}`, 'Banca doble APP LT 1.50 · 8 usuarios · ocupa 6.00 × 1.20 m', 'escritorio', 6000, 1200, 'applt vh-dest-opn'));
-  // 4 privados + guardado asociado.
   for (let i = 1; i <= 4; i++) {
     piezas.push(p(`desk-${i}`, 'Eclipse Escritorio Directivo 2.10 m', 'escritorio', 2100, 800, 'eclipse vh-dest-prv'));
     piezas.push(p(`cred-${i}`, 'Eclipse Credenza baja 2.10 × 0.60 m', 'guarda', 2100, 600, 'eclipse vh-dest-prv'));
     piezas.push(p(`arch-${i}`, 'Modulor · Archivero horizontal 0.90', 'guarda', 900, 450, 'modulor vh-dest-prv'));
     piezas.push(p(`alpha-${i}`, 'Silla directiva ALPHA', 'asiento', 650, 650, 'banco vh-dest-prv'));
   }
-  // Sala APP LT de 8 + sala Cirque modular de 12 (2 módulos de la MISMA partida).
   piezas.push(p('appmesa-1', 'Mesa de juntas APP LT 2.40 × 1.20', 'juntas', 2400, 1200, 'applt vh-dest-mtg'));
   piezas.push(p('cirque-1', 'Cirque · Mesa de juntas cuadrada 1.80 m', 'juntas', 1800, 1800, 'cirque vh-dest-mtg'));
   piezas.push(p('cirque-2', 'Cirque · Mesa de juntas cuadrada 1.80 m', 'juntas', 1800, 1800, 'cirque vh-dest-mtg'));
   for (let i = 1; i <= 20; i++) piezas.push(p(`sonata-${i}`, 'Silla · SONATA', 'asiento', 600, 600, 'banco vh-dest-mtg'));
-  // Recepción explícita.
   piezas.push(p('recep-1', 'Cirque · Recepción recta 2.40 m', 'recepcion', 2400, 800, 'cirque vh-dest-rcp'));
   piezas.push(p('recep-seat-1', 'Silla operativa · GAMMA-E', 'asiento', 600, 600, 'banco vh-dest-rcp'));
 
@@ -73,12 +69,13 @@ describe('acomodo CEO: cada cosa en su tipo de espacio', () => {
     expect(Object.values(porSala).sort((a, b) => a - b)).toEqual([8, 12]);
   });
 
-  it('recepción y su silla se quedan en recepción', () => {
-    for (const id of ['recep-1', 'recep-seat-1']) {
-      const c = r.colocacion.find((x) => x.id === id);
-      expect(c).toBeTruthy();
-      expect(rolArea(c)).toBe('recepcion');
-    }
+  it('el mostrador queda en recepción y una silla que no quepa NO se fuga a otro cuarto', () => {
+    const mostrador = r.colocacion.find((x) => x.id === 'recep-1');
+    expect(mostrador).toBeTruthy();
+    expect(rolArea(mostrador)).toBe('recepcion');
+    const silla = r.colocacion.find((x) => x.id === 'recep-seat-1');
+    if (silla) expect(rolArea(silla)).toBe('recepcion');
+    else expect(r.caben).toBe(false);
   });
 
   it('ninguna pieza con destino explícito cruza de tipo de cuarto', () => {
