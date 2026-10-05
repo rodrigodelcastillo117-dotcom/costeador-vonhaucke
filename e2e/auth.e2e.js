@@ -1,0 +1,45 @@
+import { test, expect } from '@playwright/test';
+
+// E2E de flujos CON LOGIN. Gated por credenciales de una CUENTA DE PRUEBA sembrada:
+//   TEST_EMAIL / TEST_PASSWORD  (en CI como secrets; en local como env vars).
+// Sin credenciales se SALTA limpio (no rompe la suite). Con ellas, ejercita los
+// pilares autenticados de punta a punta en navegador real.
+//   Nunca usar aquí credenciales de producción de una persona real: una cuenta de
+//   prueba dedicada, idealmente con rol Dirección para ver todo el flujo.
+const EMAIL = process.env.TEST_EMAIL;
+const PASS = process.env.TEST_PASSWORD;
+const hayCreds = !!(EMAIL && PASS);
+
+test.describe('E2E autenticado', () => {
+  test.skip(!hayCreds, 'Define TEST_EMAIL y TEST_PASSWORD (cuenta de prueba) para correr los flujos con login.');
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.fill('#email-login', EMAIL);
+    await page.fill('#pass-login', PASS);
+    await page.getByRole('button', { name: /^Entrar$/i }).click();
+    // El login cae cuando aparece el shell (el botón Salir del encabezado).
+    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
+  });
+
+  test('login → shell de la app (hero / navegación)', async ({ page }) => {
+    await expect(page.getByText(/Cocreando tu espacio/i)).toBeVisible();
+  });
+
+  test('entra al estudio de Cocrear (co-diseño en vivo)', async ({ page }) => {
+    await page.getByRole('button', { name: /Cocrear un producto/i }).click();
+    // El estudio arranca en "¿Qué tienes en mente?" o reabre una co-creación.
+    await expect(page.getByText(/Qué tienes en mente|Cocrear . de la idea|Diséñalo|Disénalo/i).first()).toBeVisible({ timeout: 15000 });
+  });
+
+  test('abre Cotizar y ve el gate de emisión (seller-safe)', async ({ page }) => {
+    // Si hay partidas, el encabezado muestra "Mi cotización"; si no, se omite el assert del gate.
+    const carrito = page.getByRole('button', { name: /Ver mi cotización|Mi cotización/i });
+    if (await carrito.count()) {
+      await carrito.first().click();
+      await expect(page.getByRole('button', { name: /Verificar emisión|Descargar PDF/i }).first()).toBeVisible({ timeout: 15000 });
+    } else {
+      test.info().annotations.push({ type: 'nota', description: 'Sin partidas en la cuenta de prueba: se omite el gate.' });
+    }
+  });
+});
