@@ -1,9 +1,9 @@
 // ============================================================================
 // ACOMODO · ADAPTADOR DEMO CEO
 //
-// Mantiene intacto el Acomodo productivo en AcomodoBase.jsx y añade una capa
-// client-side que entiende programa del plano y propone mobiliario visual.
-// Las sugerencias NO son partidas comerciales: precio/costo = 0.
+// Las sugerencias del plano son SOLO un fallback visual cuando todavía no
+// existen partidas comerciales. Nunca se mezclan con muebles reales: ese bug
+// duplicaba el proyecto (144 piezas) y contaminaba el reparto por cuartos.
 // ============================================================================
 import { useMemo, useRef, useState } from 'react';
 import AcomodoBase from './AcomodoBase.jsx';
@@ -36,36 +36,55 @@ function conAreasNormalizadas(acomodo, areas) {
   return { ...acomodo, areasM: areas };
 }
 
+function limpiarSugeridos(acomodo) {
+  if (!acomodo) return acomodo;
+  const teniaSugeridos = !!acomodo.demoAutopoblado || (Array.isArray(acomodo.sugeridosPartidas) && acomodo.sugeridosPartidas.length > 0);
+  const { sugeridosPartidas, demoAutopoblado, lineaOperativa, ...resto } = acomodo;
+  // Un plan calculado con sugeridos ya no es válido para las partidas reales.
+  return teniaSugeridos ? { ...resto, plan: null } : resto;
+}
+
+export function elegirPartidasAcomodo(partidas = [], sugeridas = []) {
+  const reales = (Array.isArray(partidas) ? partidas : []).filter((p) => !esSugerida(p));
+  return reales.length ? reales : sugeridas;
+}
+
 export default function Acomodo(props) {
   const guardado = props?.estado?.cotizacion?.acomodo || null;
+  const partidasEntrada = Array.isArray(props?.estado?.cotizacion?.partidas) ? props.estado.cotizacion.partidas : [];
+  const realesEntrada = partidasEntrada.filter((p) => !esSugerida(p));
+  const hayReales = realesEntrada.length > 0;
+
   const areasIniciales = areasMDe(guardado);
   const guardadoNormalizado = guardado ? conAreasNormalizadas(guardado, areasIniciales) : null;
   const sugeridasGuardadas = Array.isArray(guardado?.sugeridosPartidas) ? guardado.sugeridosPartidas : [];
-  const sugeridasIniciales = sugeridasGuardadas.length ? sugeridasGuardadas : partidasSugeridasDeAreas(areasIniciales);
+  // P0: si ya existe una lista comercial de Voni, jamás revivimos el autopoblado.
+  const sugeridasIniciales = hayReales
+    ? []
+    : (sugeridasGuardadas.length ? sugeridasGuardadas : partidasSugeridasDeAreas(areasIniciales));
 
-  // Hoy la línea aprobada para el flujo automático es APP LT. Dejamos la
-  // pregunta visible para que Voni no "elija" una familia en silencio. Cuando
-  // se habiliten otras familias, este selector ya es el punto de extensión.
   const [lineaOperativa, setLineaOperativa] = useState('applt');
   const [sugeridas, setSugeridas] = useState(sugeridasIniciales);
-  const [acomodoLocal, setAcomodoLocal] = useState(() => (
-    sugeridasIniciales.length && guardadoNormalizado
+  const [acomodoLocal, setAcomodoLocal] = useState(() => {
+    if (hayReales) return limpiarSugeridos(guardadoNormalizado);
+    return sugeridasIniciales.length && guardadoNormalizado
       ? { ...guardadoNormalizado, plan: sugeridasGuardadas.length ? guardadoNormalizado.plan : null, sugeridosPartidas: sugeridasIniciales, demoAutopoblado: true }
-      : guardadoNormalizado
-  ));
+      : guardadoNormalizado;
+  });
   const [revision, setRevision] = useState(() => (sugeridasIniciales.length && !sugeridasGuardadas.length ? 1 : 0));
   const firmaRef = useRef(firmaAreasParaSugeridos(areasIniciales));
 
   const estadoDemo = useMemo(() => {
     const e = props?.estado || {};
     const c = e.cotizacion || {};
-    const reales = (c.partidas || []).filter((p) => !esSugerida(p));
+    const partidas = elegirPartidasAcomodo(c.partidas, sugeridas);
+    const acomodo = partidas.some((p) => !esSugerida(p)) ? limpiarSugeridos(acomodoLocal) : acomodoLocal;
     return {
       ...e,
       cotizacion: {
         ...c,
-        partidas: [...reales, ...sugeridas],
-        ...(acomodoLocal ? { acomodo: acomodoLocal } : {}),
+        partidas,
+        ...(acomodo ? { acomodo } : {}),
       },
     };
   }, [props?.estado, sugeridas, acomodoLocal]);
@@ -73,19 +92,27 @@ export default function Acomodo(props) {
   const guardarInterceptado = (acomodo, silencioso) => {
     const areas = areasMDe(acomodo);
     const normalizado = conAreasNormalizadas(acomodo, areas);
-    const firma = firmaAreasParaSugeridos(areas);
 
+    // P0: cuando Voni ya armó partidas comerciales, el plano NO añade otro set
+    // de benches/sillas/gavetas. Limpia cualquier sugerido histórico y recalcula.
+    if (hayReales) {
+      setSugeridas([]);
+      const limpio = limpiarSugeridos(normalizado);
+      setAcomodoLocal(limpio);
+      props.onGuardarAcomodo?.(limpio, silencioso);
+      return;
+    }
+
+    const firma = firmaAreasParaSugeridos(areas);
     if (areas.length && firma && firma !== firmaRef.current) {
       const nuevas = partidasSugeridasDeAreas(areas, { linea: lineaOperativa });
       firmaRef.current = firma;
       setSugeridas(nuevas);
       if (nuevas.length) {
-        // Al cambiar lectura/programa se recalcula desde cero, ahora con semántica:
-        // cuarto operativo + isla interna + PAX exactos.
         const siguiente = { ...normalizado, plan: null, sugeridosPartidas: nuevas, demoAutopoblado: true, lineaOperativa };
         setAcomodoLocal(siguiente);
         setRevision((v) => v + 1);
-        props.onGuardarAcomodo?.({ ...normalizado, sugeridosPartidas: nuevas, demoAutopoblado: true, lineaOperativa }, silencioso);
+        props.onGuardarAcomodo?.(siguiente, silencioso);
         return;
       }
     }
@@ -101,42 +128,35 @@ export default function Acomodo(props) {
 
   return (
     <>
-      {/* Guardrails visuales de demo: contraste alto + rótulos de plano discretos. */}
       <style>{`
         .paleta-item, .paleta-item .paleta-t { color: #f5f5f7 !important; }
         .paleta-item .ayuda, .paleta-item .gris, .paleta-cab, .paleta-cab .gris { color: #b9bac1 !important; }
         .paleta-item { text-align: left; }
         .paleta-item .paleta-t { font-weight: 700; line-height: 1.25; }
         svg.plano text[paint-order="stroke"] { font-size: 220px !important; stroke-width: 52px !important; }
+        .masmenos button { color: #f5f5f7 !important; }
       `}</style>
 
-      {sugeridas.length > 0 && (
-        <div className="contenido no-imprimir" style={{ paddingBottom: 0 }}>
-          <div className="alerta" style={{ background: '#eef6f3', borderColor: '#8bbcaf', color: '#174f45' }}>
-            <span className="texto">
-              <strong>✨ Voni entendió el programa del plano.</strong>
-              {' '}OPERATIVO / BENCH / ISLA de <strong>N PAX</strong> = banca para N usuarios + N sillas + N gavetas; salas de juntas = mesa dimensionada + sus sillas; privados, recepción y servicios se tratan por separado.
-              {' '}Todo sigue marcado <strong>SUGERIDO</strong> y <strong>no se cobra</strong> hasta confirmarlo.
-            </span>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 10 }}>
+      {!hayReales && sugeridas.length > 0 && (
+        <div className="contenido no-imprimir" style={{ paddingBottom: 0, width: '100%' }}>
+          <div className="alerta" style={{ display: 'block', width: '100%', boxSizing: 'border-box', background: '#eef6f3', borderColor: '#8bbcaf', color: '#174f45' }}>
+            <div style={{ display: 'block', width: '100%', lineHeight: 1.45 }}>
+              <strong>✨ Voni entendió el programa del plano.</strong>{' '}
+              OPERATIVO / BENCH / ISLA de <strong>N PAX</strong> = banca para N usuarios + N sillas + N gavetas; salas de juntas = mesa dimensionada + sus sillas; privados, recepción y servicios se tratan por separado.{' '}
+              Todo sigue marcado <strong>SUGERIDO</strong> y <strong>no se cobra</strong> hasta confirmarlo.
+            </div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 12, width: '100%' }}>
               <strong style={{ color: '#174f45' }}>Voni: ¿qué línea operativa quieres usar?</strong>
-              <select
-                value={lineaOperativa}
-                onChange={(e) => setLineaOperativa(e.target.value)}
-                style={{ minHeight: 40, borderRadius: 8, padding: '0 12px', border: '1px solid #8bbcaf', background: '#fff', color: '#174f45', fontWeight: 700 }}>
+              <select value={lineaOperativa} onChange={(e) => setLineaOperativa(e.target.value)}
+                style={{ minHeight: 40, width: 'min(100%, 480px)', borderRadius: 8, padding: '0 12px', border: '1px solid #8bbcaf', background: '#fff', color: '#174f45', fontWeight: 700 }}>
                 <option value="applt">APP LT · 1.50 m por puesto</option>
               </select>
-              <span style={{ color: '#356b62' }}>Hoy sólo APP LT está habilitada para que la demo sea determinista.</span>
+              <span style={{ color: '#356b62' }}>APP LT está fijada para que el acomodo sea determinista.</span>
             </div>
           </div>
         </div>
       )}
-      <AcomodoBase
-        key={`acomodo-demo-${revision}`}
-        {...props}
-        estado={estadoDemo}
-        onGuardarAcomodo={guardarInterceptado}
-      />
+      <AcomodoBase key={`acomodo-demo-${revision}-${hayReales ? 'real' : 'sug'}`} {...props} estado={estadoDemo} onGuardarAcomodo={guardarInterceptado} />
     </>
   );
 }
