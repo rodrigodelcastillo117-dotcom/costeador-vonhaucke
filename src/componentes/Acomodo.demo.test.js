@@ -11,7 +11,12 @@ describe('Acomodo · fuente única de mobiliario', () => {
       { id: 'sug-1', sugeridoPlano: true, nombre: 'Banca APP LT · APARTADO 1', cantidad: 1 },
       { id: 'sug-2', sugeridoPlano: true, nombre: 'Silla WIN · APARTADO 1', cantidad: 6 },
     ];
-    expect(elegirPartidasAcomodo(reales, sugeridas)).toEqual(reales);
+    const elegidas = elegirPartidasAcomodo(reales, sugeridas);
+    expect(elegidas.map((p) => p.id)).toEqual(['r1', 'r2']);
+    expect(elegidas.some((p) => p.sugeridoPlano || String(p.id).startsWith('sug-'))).toBe(false);
+    // El contexto espacial se añade sólo a la copia de Acomodo; no es una pieza extra.
+    expect(elegidas[0].ruta).toContain('vh-dest-opn');
+    expect(elegidas[1].ruta).toContain('vh-dest-opn');
   });
 
   it('sin partidas comerciales sí usa sugeridos como preview visual', () => {
