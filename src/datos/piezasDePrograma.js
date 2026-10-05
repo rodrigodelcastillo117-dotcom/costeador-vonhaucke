@@ -24,10 +24,15 @@ function baseIsla(nombre = '') {
   return sinPax(nombre).replace(/^\s*(?:isla|bench|banca)\s+/i, '').trim();
 }
 
+function esOperativoNombrado(a) {
+  const n = norm(a?.nombre);
+  return /(^|\b)(apartado|operativo|open\s*space|workstation|zona\s*operativa)(\b|$)/.test(n);
+}
+
 /**
  * Corrige semántica que el lector puede dejar implícita:
- * - "OPERATIVO 1 (8 PAX)" = cuarto operativo.
- * - "Isla OPERATIVO 1" = zona interna de ese cuarto, NO otro cuarto.
+ * - "OPERATIVO/APARTADO (8 PAX)" = cuarto operativo.
+ * - "Isla OPERATIVO" = zona interna de ese cuarto, NO otro cuarto.
  * - hereda los PAX del padre cuando la isla no los trae escritos.
  */
 export function normalizarAreasPrograma(areas = []) {
@@ -37,6 +42,11 @@ export function normalizarAreasPrograma(areas = []) {
   for (const a of lista) {
     const paxPropio = Number(a?.puestos) > 0 ? cap(a.puestos, 1, 48) : paxDeNombre(a?.nombre);
     if (paxPropio) a.puestos = paxPropio;
+    // El lector real del golden llamó APARTADO 1/2/3 a las zonas operativas.
+    // Con PAX explícitos no puede caer a privado/general: es un área de trabajo.
+    if (paxPropio && esOperativoNombrado(a) && !/junta|consejo|privad|direc|recep/.test(norm(a?.nombre))) {
+      a.tipo = 'open';
+    }
     if (!esIsla(a)) continue;
 
     const buscado = baseIsla(a.nombre);
@@ -112,8 +122,6 @@ export function partidasSugeridasDeAreas(areas = [], opts = {}) {
     }));
   };
 
-  // Si un operativo tiene una isla interna, el mobiliario se genera EN LA ISLA,
-  // no dos veces (padre + hija). El padre sigue existiendo como cuarto físico.
   const padresConIsla = new Set(lista.filter(esIsla).map((a) => a.dentroDe).filter(Boolean));
 
   for (const a of lista) {
@@ -163,12 +171,8 @@ export function partidasSugeridasDeAreas(areas = [], opts = {}) {
       continue;
     }
 
-    // Un padre operativo con isla no recibe otro bench: se amuebla su isla.
     if (padresConIsla.has(a.nombre) && !esIsla(a)) continue;
 
-    // OPERATIVO / BENCH / ISLA: PAX MANDA. Para la demo la línea elegida es
-    // APP LT 1.50 m. Un "8 PAX" = una banca doble de 8 usuarios + 8 sillas +
-    // 8 gavetas. La gaveta no consume piso porque espacio.js la mete bajo mesa.
     const puestos = puestosDeArea(a);
     if (puestos > 0) {
       const columnas = Math.max(1, Math.ceil(puestos / 2));
