@@ -2,19 +2,21 @@
 // ACOMODO · ADAPTADOR DEMO CEO
 //
 // Mantiene intacto el Acomodo productivo en AcomodoBase.jsx y añade una capa
-// client-side que, al leer un plano, propone mobiliario visual por zona.
-// Las sugerencias NO son partidas comerciales: precio/costo = 0 y van marcadas
-// como SUGERIDO. Sirven para que el plano no quede vacío durante la demo.
+// client-side que entiende programa del plano y propone mobiliario visual.
+// Las sugerencias NO son partidas comerciales: precio/costo = 0.
 // ============================================================================
 import { useMemo, useRef, useState } from 'react';
 import AcomodoBase from './AcomodoBase.jsx';
-import { partidasSugeridasDeAreas, firmaAreasParaSugeridos } from '../datos/piezasDePrograma.js';
+import {
+  partidasSugeridasDeAreas,
+  firmaAreasParaSugeridos,
+  normalizarAreasPrograma,
+} from '../datos/piezasDePrograma.js';
 
 const esSugerida = (p) => !!p?.sugeridoPlano || String(p?.id || '').startsWith('sug-');
 
-function areasMDe(acomodo) {
+function areasMCrudas(acomodo) {
   if (Array.isArray(acomodo?.areasM)) return acomodo.areasM;
-  // Compatibilidad con guardados legacy que sólo tienen áreas en mm.
   if (Array.isArray(acomodo?.areas)) {
     return acomodo.areas.map((a) => ({
       ...a,
@@ -26,19 +28,26 @@ function areasMDe(acomodo) {
   return [];
 }
 
+function areasMDe(acomodo) {
+  return normalizarAreasPrograma(areasMCrudas(acomodo));
+}
+
+function conAreasNormalizadas(acomodo, areas) {
+  return { ...acomodo, areasM: areas };
+}
+
 export default function Acomodo(props) {
   const guardado = props?.estado?.cotizacion?.acomodo || null;
   const areasIniciales = areasMDe(guardado);
+  const guardadoNormalizado = guardado ? conAreasNormalizadas(guardado, areasIniciales) : null;
   const sugeridasGuardadas = Array.isArray(guardado?.sugeridosPartidas) ? guardado.sugeridosPartidas : [];
   const sugeridasIniciales = sugeridasGuardadas.length ? sugeridasGuardadas : partidasSugeridasDeAreas(areasIniciales);
 
   const [sugeridas, setSugeridas] = useState(sugeridasIniciales);
-  // Si abrimos un plano ya guardado que aún no tenía sugerencias, forzamos una
-  // única reconstrucción local para que el motor acomode reales+sugeridas.
   const [acomodoLocal, setAcomodoLocal] = useState(() => (
-    sugeridasIniciales.length && !sugeridasGuardadas.length && guardado
-      ? { ...guardado, plan: null, sugeridosPartidas: sugeridasIniciales, demoAutopoblado: true }
-      : null
+    sugeridasIniciales.length && guardadoNormalizado
+      ? { ...guardadoNormalizado, plan: sugeridasGuardadas.length ? guardadoNormalizado.plan : null, sugeridosPartidas: sugeridasIniciales, demoAutopoblado: true }
+      : guardadoNormalizado
   ));
   const [revision, setRevision] = useState(() => (sugeridasIniciales.length && !sugeridasGuardadas.length ? 1 : 0));
   const firmaRef = useRef(firmaAreasParaSugeridos(areasIniciales));
@@ -59,39 +68,47 @@ export default function Acomodo(props) {
 
   const guardarInterceptado = (acomodo, silencioso) => {
     const areas = areasMDe(acomodo);
+    const normalizado = conAreasNormalizadas(acomodo, areas);
     const firma = firmaAreasParaSugeridos(areas);
 
-    // Sólo regenerar si cambió realmente la geometría/programa del plano.
     if (areas.length && firma && firma !== firmaRef.current) {
       const nuevas = partidasSugeridasDeAreas(areas);
       firmaRef.current = firma;
       setSugeridas(nuevas);
       if (nuevas.length) {
-        // El primer plan se calculó con las partidas que existían ANTES de leer
-        // el plano. Remontamos una sola vez, conservando geometría y borrando el
-        // plan viejo, para que AcomodoBase corra su planner local con el conjunto
-        // reales + sugeridas. No hay llamada a IA ni costo.
-        setAcomodoLocal({ ...acomodo, plan: null, sugeridosPartidas: nuevas, demoAutopoblado: true });
+        // Al cambiar lectura/programa se recalcula desde cero, ahora con semántica:
+        // cuarto operativo + isla interna + PAX exactos.
+        const siguiente = { ...normalizado, plan: null, sugeridosPartidas: nuevas, demoAutopoblado: true };
+        setAcomodoLocal(siguiente);
         setRevision((v) => v + 1);
-        props.onGuardarAcomodo?.({ ...acomodo, sugeridosPartidas: nuevas, demoAutopoblado: true }, silencioso);
+        props.onGuardarAcomodo?.({ ...normalizado, sugeridosPartidas: nuevas, demoAutopoblado: true }, silencioso);
         return;
       }
     }
 
     const persistidas = sugeridas.length ? sugeridas : (acomodo?.sugeridosPartidas || []);
-    const completo = { ...acomodo, ...(persistidas.length ? { sugeridosPartidas: persistidas, demoAutopoblado: true } : {}) };
+    const completo = { ...normalizado, ...(persistidas.length ? { sugeridosPartidas: persistidas, demoAutopoblado: true } : {}) };
     setAcomodoLocal(completo);
     props.onGuardarAcomodo?.(completo, silencioso);
   };
 
   return (
     <>
+      {/* Hotfix visual de demo: la paleta heredaba texto negro sobre tarjeta oscura. */}
+      <style>{`
+        .paleta-item, .paleta-item .paleta-t { color: #f5f5f7 !important; }
+        .paleta-item .ayuda, .paleta-item .gris, .paleta-cab, .paleta-cab .gris { color: #b9bac1 !important; }
+        .paleta-item { text-align: left; }
+        .paleta-item .paleta-t { font-weight: 700; line-height: 1.25; }
+      `}</style>
+
       {sugeridas.length > 0 && (
         <div className="contenido no-imprimir" style={{ paddingBottom: 0 }}>
           <div className="alerta" style={{ background: '#eef6f3', borderColor: '#8bbcaf', color: '#174f45' }}>
             <span className="texto">
-              <strong>✨ Programa sugerido:</strong> el plano se puebla automáticamente por zona con mobiliario de referencia.
-              {' '}Estas piezas están marcadas como <strong>SUGERIDAS</strong> y <strong>no se cobran</strong> hasta que las sustituyas/confirmes en la cotización.
+              <strong>✨ Programa sugerido · APP LT:</strong> Voni interpreta PAX, privados, salas, recepción e islas operativas.
+              {' '}Un <strong>OPERATIVO / BENCH / ISLA de N PAX</strong> se arma como banca APP LT para N usuarios + N sillas + N gavetas.
+              {' '}Todo sigue marcado <strong>SUGERIDO</strong> y <strong>no se cobra</strong> hasta confirmarlo.
             </span>
           </div>
         </div>
