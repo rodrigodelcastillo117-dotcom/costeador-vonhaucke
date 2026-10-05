@@ -2848,3 +2848,60 @@ body::before {
   }
 }
 .voni-fab { box-shadow: 0 0 0 1px rgba(229,72,77,.4), 0 10px 28px -6px rgba(229,72,77,.6), 0 0 40px -8px rgba(229,72,77,.55); }
+
+/* ==========================================================================
+   REFINAMIENTO PRO (2026-10-05) · de "glow" a GAMA ALTA. Paleta más neutra y
+   profunda (Linear/Stripe), hairlines nítidos, tipografía con carácter, glow en
+   "respiración" lenta (no parpadeo). Marca roja intacta. Todo override de tokens →
+   toda la app sube a la vez. Revertir = borrar bloque.
+   ========================================================================== */
+:root {
+  --papel: #09090B;              /* fondo: negro casi puro, neutro y profundo */
+  --panel: #121214;              /* superficie de tarjeta, refinada */
+  --oscuro: #0D0D0F;             /* header / botones tinta */
+  --carbon: #F4F4F6;             /* texto principal, nítido */
+  --tinta: #F4F4F6;
+  --gris: #8A8A93;               /* gris neutro profesional (mejor jerarquía) */
+  --linea: rgba(255,255,255,.07);
+  --linea-fuerte: rgba(255,255,255,.13);
+  --blanco: #17171A;             /* superficie elevada (tarjetas/inputs) */
+  --sombra: 0 1px 2px rgba(0,0,0,.5), 0 18px 44px -20px rgba(0,0,0,.8);
+}
+
+/* Tipografía con más carácter y aire. */
+h1 { font-weight: 800; letter-spacing: -0.04em; }
+h2 { letter-spacing: -0.02em; }
+.etiqueta, .kpi .rotulo, .inicio-kicker, .propx-kicker { letter-spacing: .14em; font-size: 11.5px; color: var(--gris); }
+
+/* Superficies: borde nítido + degradado sutil + profundidad limpia (menos "neón"). */
+.tarjeta, .kpi {
+  border: 1px solid rgba(255,255,255,.08);
+  background: linear-gradient(180deg, rgba(255,255,255,.022), transparent 160px), var(--panel);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 1px 2px rgba(0,0,0,.4), 0 24px 60px -28px rgba(0,0,0,.85);
+}
+
+/* CTA: glow más contenido y elegante, con RESPIRACIÓN lenta (no parpadeo gamer). */
+.boton.primario, .inicio-hero-cta, .btn-cot {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 10px 26px -8px rgba(229,72,77,.5), 0 0 30px -10px rgba(229,72,77,.4);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .boton.primario, .inicio-hero-cta { animation: vh-breathe 5.5s ease-in-out infinite; }
+  @keyframes vh-breathe {
+    0%, 100% { box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 10px 26px -8px rgba(229,72,77,.45), 0 0 26px -10px rgba(229,72,77,.35); }
+    50% { box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 14px 34px -8px rgba(229,72,77,.62), 0 0 40px -10px rgba(229,72,77,.5); }
+  }
+}
+
+/* Ambiente: más sutil y sofisticado (menos saturado, más "estudio de diseño"). */
+body::before {
+  background:
+    radial-gradient(70% 50% at 100% -8%, rgba(229,72,77,.13), transparent 62%),
+    radial-gradient(60% 46% at -6% 108%, rgba(178,42,34,.09), transparent 64%);
+}
+
+/* Tiles: realce limpio al hover (sin aro neón). */
+@media (prefers-reduced-motion: no-preference) {
+  .tile:hover, .tile-destacada:hover {
+    box-shadow: 0 26px 60px -20px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.1);
+  }
+}
