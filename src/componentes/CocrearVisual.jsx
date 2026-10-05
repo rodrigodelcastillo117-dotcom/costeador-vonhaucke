@@ -1,23 +1,74 @@
 import React, { useMemo } from 'react';
 import { colorMaterial, DIMS_DEFAULT, FAMILIA } from '../datos/cocrear.js';
+import { LAYOUT_COCREAR } from '../datos/cocrearWow.js';
 
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const has=(intent,k)=>(intent?.caracteristicas||[]).includes(k);
+
+function Planta({x,y,w=42,h=14}){
+  return <g><rect x={x} y={y} width={w} height={h} rx="6" fill="#59635f"/>{[0,1,2,3].map(i=><circle key={i} cx={x+7+i*(w-14)/3} cy={y+4-(i%2)*3} r={4+(i%2)} fill="#75977a"/>)}</g>;
+}
+function Silla({x,y}){return <circle cx={x} cy={y} r="7" fill="#6d7278"/>}
+function Desk({x,y,w,h,color}){return <rect x={x} y={y} width={w} height={h} rx="5" fill={color} stroke="#555c62" strokeWidth="1.2"/>}
+
+function IslaContinua({intent,color}){
+  const cap=clamp(Number(intent?.capacidad_personas)||6,2,24),cols=Math.ceil(cap/2);
+  const x=62,w=416,y1=76,y2=151;
+  const seats=[];
+  for(let i=0;i<cols;i++){
+    const px=x+(i+.5)*(w/cols);
+    if(i*2<cap) seats.push(<Silla key={`t${i}`} x={px} y={57}/>);
+    if(i*2+1<cap) seats.push(<Silla key={`b${i}`} x={px} y={213}/>);
+  }
+  return <g>
+    <Desk x={x} y={y1} w={w} h={50} color={color}/><Desk x={x} y={y2} w={w} h={50} color={color}/>
+    <rect x="78" y="129" width="384" height="18" rx="9" fill="#4f565b"/>
+    {has(intent,'jardinera_integrada')&&<Planta x={130} y={131} w={280} h={14}/>} 
+    {has(intent,'electrificacion_integrada')&&<line x1="92" y1="140" x2="448" y2="140" stroke="#141719" strokeWidth="3" strokeDasharray="9 7"/>}
+    {seats}<text x="270" y="28" textAnchor="middle" fill="#9199a3" fontSize="10">A · ISLA CONTINUA · SUPERFICIE VISUAL ÚNICA</text>
+  </g>;
+}
+
+function ModulosDobles({intent,color}){
+  const cap=clamp(Number(intent?.capacidad_personas)||6,2,24),pairs=Math.ceil(cap/2);
+  const maxCols=Math.min(6,pairs),start=270-(maxCols*65)/2;
+  const nodes=[];
+  for(let i=0;i<maxCols;i++){
+    const x=start+i*65;
+    if(i*2<cap){nodes.push(<Desk key={`a${i}`} x={x} y={76} w={56} h={46} color={color}/>);nodes.push(<Silla key={`sa${i}`} x={x+28} y={58}/>)}
+    if(i*2+1<cap){nodes.push(<Desk key={`b${i}`} x={x} y={158} w={56} h={46} color={color}/>);nodes.push(<Silla key={`sb${i}`} x={x+28} y={221}/>)}
+  }
+  return <g>{nodes}
+    <rect x="86" y="129" width="368" height="18" rx="9" fill="#52595f"/>
+    {has(intent,'jardinera_integrada')&&<Planta x={150} y={131} w={240} h={14}/>} 
+    {has(intent,'electrificacion_integrada')&&<line x1="105" y1="140" x2="435" y2="140" stroke="#141719" strokeWidth="3" strokeDasharray="8 7"/>}
+    {(has(intent,'divisores')||has(intent,'acustica'))&&[1,2,3].map(i=><line key={i} x1={start+i*65-5} y1="72" x2={start+i*65-5} y2="207" stroke="#a4adb5" strokeWidth="3" opacity=".75"/>)}
+    <text x="270" y="28" textAnchor="middle" fill="#9199a3" fontSize="10">B · MÓDULOS DOBLES · UNIDADES INDEPENDIENTES + ESPINA TÉCNICA</text>
+  </g>;
+}
+
+function HubEscultorico({intent,color}){
+  const cap=clamp(Number(intent?.capacidad_personas)||8,4,16),cx=270,cy=137,rx=128,ry=82;
+  const nodes=[];
+  for(let i=0;i<cap;i++){
+    const a=(Math.PI*2*i/cap)-Math.PI/2;
+    const x=cx+Math.cos(a)*rx,y=cy+Math.sin(a)*ry;
+    const deg=a*180/Math.PI+90;
+    nodes.push(<g key={i} transform={`translate(${x} ${y}) rotate(${deg})`}><rect x="-28" y="-21" width="56" height="42" rx="7" fill={color} stroke="#555c62"/><circle cx="0" cy="-35" r="7" fill="#6d7278"/></g>);
+  }
+  return <g>{nodes}
+    <polygon points="270,90 309,112 309,160 270,183 231,160 231,112" fill="#4e555b" stroke="#707980" strokeWidth="2"/>
+    {has(intent,'jardinera_integrada')&&<g><circle cx="270" cy="137" r="31" fill="#607066"/><Planta x={242} y={132} w={56} h={17}/></g>}
+    {has(intent,'electrificacion_integrada')&&<circle cx="270" cy="137" r="49" fill="none" stroke="#171a1d" strokeWidth="4" strokeDasharray="8 6"/>}
+    <text x="270" y="28" textAnchor="middle" fill="#9199a3" fontSize="10">C · HUB ESCULTÓRICO · NÚCLEO CENTRAL + PUESTOS RADIALES</text>
+  </g>;
+}
 
 function OperativoPlano({intent,color}){
-  const cap=clamp(Number(intent?.capacidad_personas)||6,2,24);
-  const cols=Math.ceil(cap/2);
-  const x0=80, yA=86, yB=150, deskW=Math.min(72,420/Math.max(cols,1));
-  const features=new Set(intent?.caracteristicas||[]);
-  const nodes=[];
-  for(let i=0;i<cols;i++){
-    const x=x0+i*deskW;
-    if(i*2<cap) nodes.push(<g key={`a${i}`}><rect x={x} y={yA} width={deskW-6} height="42" rx="5" fill={color} stroke="#50545a"/><circle cx={x+(deskW-6)/2} cy={yA-12} r="8" fill="#6d7278"/></g>);
-    if(i*2+1<cap) nodes.push(<g key={`b${i}`}><rect x={x} y={yB} width={deskW-6} height="42" rx="5" fill={color} stroke="#50545a"/><circle cx={x+(deskW-6)/2} cy={yB+54} r="8" fill="#6d7278"/></g>);
-  }
-  if(features.has('jardinera_integrada')) nodes.push(<g key="planter"><rect x="92" y="132" width="348" height="14" rx="7" fill="#555b60"/><g fill="#6f8f73">{[120,165,210,255,300,345,390,425].map((x,i)=><circle key={i} cx={x} cy="139" r={i%2?5:7}/>)}</g></g>);
-  if(features.has('electrificacion_integrada')) nodes.push(<g key="power"><line x1="112" y1="139" x2="420" y2="139" stroke="#171717" strokeWidth="3" strokeDasharray="8 7"/><text x="354" y="128" fill="#8f98a8" fontSize="9">canal técnico oculto</text></g>);
-  if(features.has('divisores')||features.has('acustica')) nodes.push(<g key="div"><line x1="266" y1="78" x2="266" y2="200" stroke="#9aa5b1" strokeWidth="4" opacity=".8"/><text x="274" y="94" fill="#8f98a8" fontSize="9">divisor</text></g>);
-  return <g>{nodes}</g>;
+  const layout=intent?._concepto_layout || (intent?.caracteristicas||[]).find(x=>Object.values(LAYOUT_COCREAR).includes(x));
+  if(layout===LAYOUT_COCREAR.C) return <HubEscultorico intent={intent} color={color}/>;
+  if(layout===LAYOUT_COCREAR.B) return <ModulosDobles intent={intent} color={color}/>;
+  return <IslaContinua intent={intent} color={color}/>;
 }
 
 function ProductoGenerico({intent,spec,color}){
@@ -37,15 +88,15 @@ export default function CocrearVisual({spec,intent}){
   const operativo=intent?.tipologia_cocrear==='operativo_colaborativo';
   return <div style={{width:'100%',background:'#111315',border:'1px solid #2b2e32',borderRadius:12,overflow:'hidden'}}>
     <div style={{display:'flex',justifyContent:'space-between',gap:12,padding:'10px 12px',borderBottom:'1px solid #272a2d',alignItems:'center'}}>
-      <div><strong style={{fontSize:12,color:'#eef0f2'}}>Modelo conceptual</strong><div style={{fontSize:10,color:'#858d96',marginTop:2}}>Esquema paramétrico · NO es el render final</div></div>
+      <div><strong style={{fontSize:12,color:'#eef0f2'}}>Modelo técnico del concepto {intent?._concepto?`· ${intent._concepto}`:''}</strong><div style={{fontSize:10,color:'#858d96',marginTop:2}}>Deriva del mismo concepto que el render · NO sustituye ingeniería</div></div>
       <div style={{fontFamily:'monospace',fontSize:10,color:'#8f98a8'}}>{d?.ancho_mm?`${Math.round(d.ancho_mm)} × ${Math.round(d.prof_mm||d.fondo_mm||0)} × ${Math.round(d.alto_mm||0)} mm`:'medidas por desarrollar'}</div>
     </div>
-    <svg viewBox="0 0 540 235" role="img" aria-label="Modelo conceptual técnico del producto" style={{display:'block',width:'100%',height:'auto'}}>
-      <defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1e2226" strokeWidth="1"/></pattern></defs>
-      <rect width="540" height="235" fill="#0f1113"/><rect width="540" height="235" fill="url(#grid)"/>
+    <svg viewBox="0 0 540 245" role="img" aria-label={`Modelo técnico del concepto ${intent?._concepto||''}`} style={{display:'block',width:'100%',height:'auto'}}>
+      <defs><pattern id="grid-cocrear" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1e2226" strokeWidth="1"/></pattern></defs>
+      <rect width="540" height="245" fill="#0f1113"/><rect width="540" height="245" fill="url(#grid-cocrear)"/>
       {operativo?<OperativoPlano intent={intent} color={color}/>:<ProductoGenerico intent={intent} spec={spec} color={color}/>} 
-      <line x1="70" y1="218" x2="470" y2="218" stroke="#4b5055"/><line x1="70" y1="213" x2="70" y2="223" stroke="#4b5055"/><line x1="470" y1="213" x2="470" y2="223" stroke="#4b5055"/>
-      <text x="270" y="230" textAnchor="middle" fill="#77808a" fontSize="10">envolvente conceptual · validar ingeniería antes de fabricar</text>
+      <line x1="70" y1="232" x2="470" y2="232" stroke="#4b5055"/><line x1="70" y1="227" x2="70" y2="237" stroke="#4b5055"/><line x1="470" y1="227" x2="470" y2="237" stroke="#4b5055"/>
+      <text x="270" y="242" textAnchor="middle" fill="#77808a" fontSize="9">envolvente conceptual · validar ingeniería antes de fabricar</text>
     </svg>
   </div>;
 }
