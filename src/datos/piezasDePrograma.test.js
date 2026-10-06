@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { normalizarAreasPrograma, partidasSugeridasDeAreas, paxDeNombre } from './piezasDePrograma.js';
+import { expandirPiezas } from './espacio.js';
 
 describe('programa sugerido desde plano', () => {
   it('lee PAX del nombre', () => {
@@ -79,5 +80,31 @@ describe('programa sugerido desde plano', () => {
   it('fail-closed para líneas no habilitadas', () => {
     const p = partidasSugeridasDeAreas([{ nombre: 'OPERATIVO 1 (8 PAX)', ancho: 7.5, largo: 4 }], { linea: 'otra' });
     expect(p).toEqual([]);
+  });
+});
+
+
+describe('grupos funcionales desde el programa', () => {
+  it('bench + sillas + gavetas nacen con el mismo functional_group_id', () => {
+    const p = partidasSugeridasDeAreas([{ nombre:'OPERATIVO 1 (4 PAX)', ancho:6, largo:3.5 }]);
+    const bench = p.find((x) => /Banca doble/.test(x.nombre));
+    const chairs = p.find((x) => /Silla operativa/.test(x.nombre));
+    const drawers = p.find((x) => /Gaveta rodante/.test(x.nombre));
+    expect(bench.functional_group_id).toBeTruthy();
+    expect(chairs.functional_group_id).toBe(bench.functional_group_id);
+    expect(drawers.functional_group_id).toBe(bench.functional_group_id);
+    expect(bench.relation_role).toBe('ANCHOR_WORKSTATION');
+    expect(chairs.anchor_role).toBe('ANCHOR_WORKSTATION');
+  });
+
+  it('expandirPiezas conserva grupo/rol/ancla en cada silla física', () => {
+    const p = partidasSugeridasDeAreas([{ nombre:'SALA JUNTAS 1 (4 PAX)', tipo:'juntas', ancho:6, largo:4 }]);
+    const piezas = expandirPiezas(p);
+    const mesa = piezas.find((x) => /Mesa de juntas/.test(x.nombre));
+    const sillas = piezas.filter((x) => /Silla de juntas/.test(x.nombre));
+    expect(mesa.functional_group_id).toBeTruthy();
+    expect(sillas).toHaveLength(4);
+    expect(sillas.every((x) => x.functional_group_id === mesa.functional_group_id)).toBe(true);
+    expect(sillas.every((x) => x.anchor_role === 'ANCHOR_MEETING')).toBe(true);
   });
 });
