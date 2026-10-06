@@ -17,13 +17,14 @@ import { imagenPartida } from '../datos/imagenes.js';
 import VoniAvatar from './VoniAvatar.jsx';
 import { confianzaDe, textoConfianza } from '../datos/confianza.js';
 import { expandirPiezas, mapaPiezas } from '../datos/espacio.js';
-import { generarRender, analizarNegocio, resolverRendersCanonicos, subirRender as subirRenderNube } from '../nube.js';
+import { generarRender, analizarNegocio, resolverRendersCanonicos, subirRender as subirRenderNube, voniCouncil } from '../nube.js';
 import { estadoRenderPartida, claveRenderPartida, ESTADO_RENDER } from '../datos/renderCanonico.js';
 import { textoRazonEmision, ESTADO_EMISION, razonesPorLinea } from '../datos/emisionUX.js';
 import MontoAnimado from './MontoAnimado.jsx';
 import PlanoAcomodo from './PlanoAcomodo.jsx';
 import ConfirmarCandado from './ConfirmarCandado.jsx';
 import { evaluarAcomodoCliente, cotizacionSinAcomodoNoValidado } from '../datos/acomodoCliente.js';
+import { resumenCouncilUI } from '../datos/councilUX.js';
 
 // El render IA de la partida manda; si no, la foto de catálogo; y si es una
 // silla del banco (que no tiene línea), su foto de presupuesto.
@@ -110,6 +111,10 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   const [voniCargando, setVoniCargando] = useState(false);
   const [voniMensaje, setVoniMensaje] = useState('');
   const [voniError, setVoniError] = useState('');
+  const [revisionQuote, setRevisionQuote] = useState(null);
+  const [revisionQuoteCargando, setRevisionQuoteCargando] = useState(false);
+  const [revisionQuoteError, setRevisionQuoteError] = useState('');
+
 
   const setCot = (parcial) => setEstado({ ...estado, cotizacion: { ...cot, ...parcial } });
 
@@ -473,10 +478,6 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   const senalesInsumosProyecto = senalesInsumos(Object.values(estado.insumos || {}), estado.parametros);
   const preguntarleAVoni = async () => {
     setVoniCargando(true); setVoniError(''); setVoniMensaje('');
-    // ⚠️ SIN try/catch, EL BOTÓN SE QUEDABA "PENSANDO…" PARA SIEMPRE (auditoría
-    // 2026-08-19). `analizarNegocio()` normalmente resuelve con {ok:false} en
-    // vez de lanzar, pero si algo lanza de verdad (JSON no serializable,
-    // cliente mal inicializado), `setVoniCargando(false)` nunca corría.
     try {
       const r = await analizarNegocio(senalesProyecto, 'cotizacion');
       if (!r?.ok) { setVoniError(r?.error || 'No se pudo conectar con Voni.'); return; }
@@ -487,6 +488,63 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
       setVoniCargando(false);
     }
   };
+
+  async function revisarCotizacionSenior() {
+    if (!partidas.length || revisionQuoteCargando) return;
+    setRevisionQuoteCargando(true); setRevisionQuoteError('');
+    try {
+      const lineas = partidas.map((p,i)=>({
+        linea:i+1,nombre:p.nombre,cantidad:p.cantidad,precio_unitario:p.precioUnitario,
+        importe:Number(p.precioUnitario||0)*Number(p.cantidad||0),
+        ruta:p.ruta||null,producto_id:p.productoId||null,producto_version_id:p.productoVersionId||p.producto_version_id||null,
+        costo_estado:p.costoEstado||null,costo_pendiente:p.costoPendiente===true,
+        exclusiones:p.nombresExcluidos||[],piezas_sin_material:p.piezasSinMaterial||0,
+        render_estado:estadoRenderDe(p).estado,
+      }));
+      const contexto = {
+        propuesta:{cliente:cot.cliente||null,folio:cot.folio||null,lineas:lineas.length,piezas:nPzas},
+        dinero_cliente:{
+          suma_renglones:precioLista,descuento_pct:descuentoPct,subtotal,
+          contingencia_pct:contingenciaPct,maniobras_pct:maniobrasPct,flete_pct:fletePct,
+          iva_pct:ivaPct,total:totalRedondeado,anticipo_pct:anticipoPct,
+        },
+        lineas,
+        emision:{
+          problemas_locales:probEmision,
+          exclusiones_pendientes:bloqueoExcluidas?excluidasProyecto:[],
+          gate_estado:gate?.estado||'NO_VERIFICADO',
+          gate_razones:gateRazones,
+          lineas_bajo_piso:nBajoPiso,
+        },
+        acomodo:{
+          existe:acomodoClienteGate.existe,
+          mostrar_cliente:acomodoClienteGate.mostrar,
+          estado:acomodoClienteGate.estado||null,
+          razones:acomodoClienteGate.razones||[],
+        },
+        resumen_areas:resumen.map(x=>({nombre:x.nombre,m2:x.m2||null,total:x.total,renglones:(x.renglones||[]).length})).slice(0,30),
+      };
+      const r=await voniCouncil({
+        task:'quote_review',
+        request:'REVISIÓN SENIOR DE COTIZACIÓN VON HAUCKE. Revisa como un proyectista/comercial senior si la propuesta está clara, coherente, defendible y lista para cliente, sin recalcular ni inventar precios.',
+        context:contexto,
+        constraints:[
+          'El gate determinista/server-side de emisión es autoridad. Nunca declarar lista una cotización bloqueada.',
+          'NO cambiar precios, descuentos, IVA, cantidades ni productos.',
+          'NO inventar costos, márgenes, alcances, especificaciones, acabados ni condiciones comerciales.',
+          'Detectar omisiones, duplicidades, exclusiones ambiguas, renders no vigentes, acomodo no certificado y claridad por áreas.',
+          'Un precio al cliente puede revisarse por consistencia documental; la economía interna sólo se comenta si el rol/contexto la permite.',
+          'Priorizar que el cliente entienda exactamente qué compra y que el vendedor pueda defender la propuesta.',
+          'Von Haucke real primero: no recomendar sustituir por productos genéricos si ya hay identidad de línea/producto.',
+        ],
+        lenses:['proyectista senior','comercial B2B','claridad de alcance','riesgo de emisión','experiencia del cliente','Von Haucke']
+      });
+      if(!r?.ok) throw new Error(r?.error||'El Council no pudo completar la revisión.');
+      setRevisionQuote(resumenCouncilUI(r));
+    } catch(e) {
+      setRevisionQuoteError(String(e?.message||e||'No se pudo revisar la cotización.'));
+    } finally { setRevisionQuoteCargando(false); }
+  }
 
   return (
     <div className="contenido cotizacion-pg">
@@ -629,10 +687,16 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                 arriba — no recalcula nada, solo las explica. Un clic, nunca
                 automática (cada llamada a Claude cuesta). */}
             <div style={{ marginBottom: 14 }}>
-              <button className="boton fantasma" style={{ minHeight: 40, padding: '0 14px' }}
-                disabled={voniCargando} onClick={preguntarleAVoni}>
-                {voniCargando ? 'Voni está pensando…' : 'Pregúntale a Voni'}
-              </button>
+              <div className="fila-botones" style={{gap:8,flexWrap:'wrap'}}>
+                <button className="boton fantasma" style={{ minHeight: 40, padding: '0 14px' }}
+                  disabled={voniCargando} onClick={preguntarleAVoni}>
+                  {voniCargando ? 'Voni está pensando…' : 'Pregúntale a Voni'}
+                </button>
+                <button className="boton" style={{minHeight:40,padding:'0 14px'}}
+                  disabled={revisionQuoteCargando||!partidas.length} onClick={revisarCotizacionSenior}>
+                  {revisionQuoteCargando?'Revisión senior hasta 50 s…':revisionQuote?'Volver a revisar propuesta':'Revisión senior de propuesta'}
+                </button>
+              </div>
               {voniMensaje && (
                 <div className="tarjeta" style={{ marginTop: 10, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                   <VoniAvatar tam={32} variante="cara" />
@@ -640,6 +704,25 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                 </div>
               )}
               {voniError && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">{voniError}</span></div>}
+              {revisionQuoteError&&<div className="alerta roja" style={{marginTop:10}}><span className="texto">{revisionQuoteError}</span></div>}
+              {revisionQuote&&(
+                <div className="tarjeta" style={{marginTop:10,borderLeft:'4px solid #315e52'}}>
+                  <div className="ayuda">Council <b>{revisionQuote.status}</b> · decisión <b>{revisionQuote.decision}</b>
+                    {revisionQuote.latency_ms!=null?<> · {(revisionQuote.latency_ms/1000).toFixed(1)} s</>:null}
+                    {revisionQuote.budget_ms!=null?<> / techo {(revisionQuote.budget_ms/1000).toFixed(0)} s</>:null}
+                    {revisionQuote.deadline_hit?' · llegó al límite de tiempo':''}
+                  </div>
+                  {revisionQuote.summary&&<p style={{margin:'8px 0',fontWeight:700}}>{revisionQuote.summary}</p>}
+                  {revisionQuote.blockers.length>0&&<div className="alerta roja"><span className="texto"><b>Bloqueos:</b> {revisionQuote.blockers.join(' · ')}</span></div>}
+                  {revisionQuote.recommendations.map((x,i)=><div key={i} style={{padding:'8px 0',borderTop:'1px solid var(--linea)'}}>
+                    <b>{x.category||'MEJORA'} · {x.what}</b>
+                    {x.why&&<div className="ayuda">{x.why}</div>}
+                    {x.impact&&<div className="ayuda gris">Impacto: {x.impact}</div>}
+                  </div>)}
+                  {revisionQuote.questions.length>0&&<div className="ayuda" style={{marginTop:8}}><b>Preguntas que subirían la confianza:</b> {revisionQuote.questions.join(' · ')}</div>}
+                  <div className="ayuda gris" style={{marginTop:8}}>Advisory: esta revisión no cambia un número ni desbloquea emisión. El RPC autoritativo sigue siendo el juez final.</div>
+                </div>
+              )}
             </div>
             <div className="tablewrap solo-escritorio">
               <table className="datos">
