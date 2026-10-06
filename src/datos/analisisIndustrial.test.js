@@ -85,3 +85,24 @@ it('integra oportunidades de desarrollo de producto en el análisis industrial',
     });
     expect(r.bloqueos.some(x=>x.code==='PIEZA_LINEAL_NO_CABE')).toBe(true);
   });
+
+
+describe('analisis industrial · UNKNOWN cost never equals ZERO',()=>{
+  it('sin costing puede analizar BOM pero no declarar costo emitible',()=>{
+    const r=analizarProductoIndustrial({
+      bom:[{nombre:'Cubierta',insumoId:'mdf',procedencia:'MEASURED',largoMM:1200,anchoMM:600,espesorMM:18}],
+      costing:null,
+    });
+    expect(r.costo_emitible).toBe(false);
+    expect(r.bloqueos.some(x=>x.code==='SIN_COSTEO')).toBe(true);
+  });
+
+  it('costoUnitario=null no se convierte en $0 válido',()=>{
+    const r=analizarProductoIndustrial({
+      bom:[{nombre:'Cubierta',insumoId:'mdf',procedencia:'MEASURED'}],
+      costing:{costoUnitario:null,componentesIgnorados:[],detalleInsumos:[]},
+    });
+    expect(r.costo_emitible).toBe(false);
+    expect(r.bloqueos.some(x=>x.code==='COSTO_INVALIDO')).toBe(true);
+  });
+});
