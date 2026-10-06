@@ -17,6 +17,8 @@ import {
   normalizarAreasPrograma,
 } from '../datos/piezasDePrograma.js';
 import { marcarDestinoPartida } from '../datos/destinoAcomodo.js';
+import { expandirPiezas } from '../datos/espacio.js';
+import { validarCoherenciaPrograma } from '../datos/coherenciaPrograma.js';
 
 const esSugerida = (p) => !!p?.sugeridoPlano || String(p?.id || '').startsWith('sug-');
 const norm = (s = '') => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -96,6 +98,26 @@ function limpiarSugeridos(acomodo) {
   return teniaSugeridos ? { ...resto, plan: null } : resto;
 }
 
+function sanearAcomodoContraPartidas(acomodo, partidasReales = []) {
+  if (!acomodo?.plan) return acomodo;
+  const piezas = expandirPiezas(partidasReales);
+  const ids = new Set((piezas || []).map((p) => String(p.id)));
+  const coloc = Array.isArray(acomodo.plan?.colocacion) ? acomodo.plan.colocacion : [];
+  const layoutSpec = acomodo.plan?.layoutSpec || acomodo.layoutSpec || null;
+  const tieneAjena = coloc.some((x) => !ids.has(String(x?.id || '')));
+  const requested = Number(layoutSpec?.requested);
+  const cuentaIncompatible = Number.isFinite(requested) && requested !== ids.size;
+  if (!tieneAjena && !cuentaIncompatible) return acomodo;
+  const { render3d, escenas, ...rest } = acomodo;
+  return {
+    ...rest,
+    plan: null,
+    layoutValidado: false,
+    layoutEstado: 'STALE_PROGRAM',
+    layoutMotivo: 'El acomodo guardado pertenece a otra lista de muebles; se recalculará con la cotización actual.',
+  };
+}
+
 export function elegirPartidasAcomodo(partidas = [], sugeridas = []) {
   const reales = (Array.isArray(partidas) ? partidas : [])
     .filter((p) => !esSugerida(p))
@@ -114,7 +136,8 @@ export default function Acomodo(props) {
   const hayReales = realesEntrada.length > 0;
 
   const areasIniciales = areasMDe(guardado);
-  const guardadoNormalizado = guardado ? conAreasNormalizadas(guardado, areasIniciales) : null;
+  const guardadoNormalizadoBase = guardado ? conAreasNormalizadas(guardado, areasIniciales) : null;
+  const guardadoNormalizado = hayReales ? sanearAcomodoContraPartidas(guardadoNormalizadoBase, realesEntrada) : guardadoNormalizadoBase;
   const sugeridasGuardadas = Array.isArray(guardado?.sugeridosPartidas) ? guardado.sugeridosPartidas : [];
   // P0: si ya existe una lista comercial de Voni, jamás revivimos el autopoblado
   // COMPLETO. Los únicos extras posibles son complementos de juntas calculados
@@ -140,6 +163,7 @@ export default function Acomodo(props) {
     : sugeridas;
   const realesMarcados = hayReales ? realesEntrada.map(marcarDestinoPartida) : [];
   const complementosJuntas = hayReales ? complementosJuntasVisuales(realesMarcados, sugeridasPlanoActuales) : [];
+  const coherenciaPrograma = hayReales ? validarCoherenciaPrograma(realesEntrada) : { ok: true, bloqueos: [] };
 
   const estadoDemo = useMemo(() => {
     const e = props?.estado || {};
@@ -231,6 +255,23 @@ export default function Acomodo(props) {
         </div>
       )}
 
+      {hayReales && !coherenciaPrograma.ok && (
+        <div className="contenido no-imprimir" style={{ paddingBottom: 0, width: '100%' }}>
+          <div className="alerta roja" style={{ display: 'block', width: '100%', boxSizing: 'border-box' }}>
+            <strong>Programa incompleto para acomodar.</strong>{' '}
+            No voy a inventar muebles para que el plano “se vea completo”.
+            <div style={{ marginTop: 8, display: 'grid', gap: 6 }}>
+              {coherenciaPrograma.bloqueos.map((b) => (
+                <div key={b.code}><b>• {b.mensaje}</b> <span>{b.accion}</span></div>
+              ))}
+            </div>
+            <button className="boton primario" style={{ marginTop: 10 }} onClick={() => props.onIr?.('voni')}>
+              Completar la cotización con VONI →
+            </button>
+          </div>
+        </div>
+      )}
+
       {hayReales && complementosJuntas.length > 0 && (
         <div className="contenido no-imprimir" style={{ paddingBottom: 0, width: '100%' }}>
           <div className="alerta" style={{ display: 'block', width: '100%', boxSizing: 'border-box', background: '#fff8e6', borderColor: '#d8a800', color: '#5e4700' }}>
@@ -240,7 +281,8 @@ export default function Acomodo(props) {
         </div>
       )}
 
-      <AcomodoBase key={`acomodo-demo-${revision}-${hayReales ? 'real' : 'sug'}`} {...props} estado={estadoDemo} onGuardarAcomodo={guardarInterceptado} />
+      <AcomodoBase key={`acomodo-demo-${revision}-${hayReales ? 'real' : 'sug'}`} {...props} estado={estadoDemo}
+        bloqueosPrograma={coherenciaPrograma.bloqueos} onGuardarAcomodo={guardarInterceptado} />
     </>
   );
 }
