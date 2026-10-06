@@ -5,9 +5,8 @@
 // existen partidas comerciales. Nunca se mezclan completas con muebles reales:
 // ese bug duplicaba el proyecto (144 piezas) y contaminaba el reparto por cuartos.
 //
-// Excepción segura: si el plano detecta salas de juntas y la lista comercial
-// olvidó una mesa/sillería de junta, se añaden SOLO los faltantes como preview
-// SUGERIDO/noCobrar dentro del Acomodo. No alteran la cotización ni el precio.
+// Si el plano detecta una posible carencia del programa comercial, se muestra
+// únicamente como AVISO. Nunca se inyecta una pieza sugerida al solver real.
 // ============================================================================
 import { useMemo, useRef, useState } from 'react';
 import AcomodoBase from './AcomodoBase.jsx';
