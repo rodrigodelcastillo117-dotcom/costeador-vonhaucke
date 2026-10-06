@@ -699,7 +699,8 @@ export function costeoEmitible(resultado) {
   const formatosInvalidos = (resultado?.detalleInsumos || [])
     .filter((d) => d?.noCabe)
     .map((d) => `${d.nombre || d.insumoId || 'Material'}: una o más piezas no caben en el formato de compra`);
-  const costo = Number(resultado?.costoUnitario);
+  const costoRaw = resultado?.costoUnitario;
+  const costo = costoRaw == null || costoRaw === '' ? NaN : Number(costoRaw);
   const costoCorrupto = !Number.isFinite(costo) || costo < 0;
 
   const pendientes = [...faltantes, ...formatosInvalidos];
