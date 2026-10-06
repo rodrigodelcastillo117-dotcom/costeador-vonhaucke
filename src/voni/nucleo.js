@@ -300,12 +300,21 @@ function respuestaConocimiento(k) {
   const evidencia = (k.principios || []).map((p) => afirmacion(p, TIPO_AFIRMACION.HECHO, { source_type: 'catalogo' }));
   let que_paso; let por_que = null;
   if (k.recomendaciones && k.recomendaciones.length) {
-    que_paso = `Te sirve: ${k.recomendaciones.map((r) => r.nombre).join(', ')}.`;
-    por_que = k.recomendaciones.map((r) => `${r.nombre} — ${r.que} (${r.razones.join('; ')})`).join(' · ');
-    for (const r of k.recomendaciones) evidencia.push(afirmacion(`${r.nombre}: ${r.que}.`, TIPO_AFIRMACION.HECHO, { source_type: 'catalogo', confidence: 0.8 }));
+    const nombreLinea=(r)=>r.linea||r.nombre||r.ruta||'Línea Von Haucke';
+    que_paso = `Te sirve revisar: ${k.recomendaciones.map(nombreLinea).join(', ')}.`;
+    por_que = k.recomendaciones.map((r) => {
+      const piezas=(r.productos||[]).slice(0,4).map((p)=>p.nombre||p.id).filter(Boolean);
+      return `${nombreLinea(r)}${r.que?` — ${r.que}`:''}${piezas.length?` · variantes: ${piezas.join(', ')}`:''}`;
+    }).join(' · ');
+    for (const r of k.recomendaciones) evidencia.push(afirmacion(
+      `${nombreLinea(r)}: ${r.que || `${(r.productos||[]).length} producto(s)/variante(s) en el registro canónico`}.`,
+      TIPO_AFIRMACION.HECHO,
+      { source_type: 'catalogo', confidence: 1 },
+    ));
   } else if (k.linea) {
-    que_paso = `${k.linea.nombre}: ${k.linea.que}.`;
-    por_que = `Fabrica: ${(k.linea.fabrica || []).join(', ')}.`;
+    const nom=k.linea.linea||k.linea.nombre||k.linea.ruta||'Línea Von Haucke';
+    que_paso = `${nom}${k.linea.que?`: ${k.linea.que}`:'.'}`;
+    por_que = `Registro canónico: ${(k.linea.productos || []).slice(0,8).map((p)=>p.nombre||p.id).join(', ') || 'sin variantes detalladas'}.`;
   } else {
     que_paso = 'Von Haucke fabrica casi todo a la medida. Dime el mueble o la zona (sala de juntas, privado, recepción, lounge…) y te recomiendo la línea.';
   }
