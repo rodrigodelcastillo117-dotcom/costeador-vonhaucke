@@ -121,7 +121,7 @@ export function analizarProductoIndustrial({bom=[],costing=null}={}){
       const rem=(opt.remanentes||[]).filter((r)=>Number(r.area_mm2)>=80000).slice(0,3);
       if(rem.length){
         recomendaciones.push({
-          tipo:'RETASO_REUTILIZABLE',prioridad:'BAJA',
+          tipo:'RETAZO_REUTILIZABLE',prioridad:'BAJA',
           accion:`Registrar/usar retazos de ${nombre}: ${rem.map((r)=>`${r.w}×${r.h} mm`).join(', ')} antes de abrir material nuevo.`,
           confianza:.9,ahorro_certificado:false,
           evidencia:{remanentes:rem},
