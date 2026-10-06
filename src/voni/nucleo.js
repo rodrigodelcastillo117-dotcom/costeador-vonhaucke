@@ -67,6 +67,27 @@ function requisitosEvidencia(intent, ctx = {}) {
   return base;
 }
 
+function respuestaSinPermisoEconomico(intent, denegadas = [], resultadosLente = []) {
+  const lentes = resultadosLente.map((r) => r.lente);
+  const detalle = denegadas.join(', ');
+  return respuestaEstructurada({
+    que_paso: 'No puedo confirmar el análisis económico con este rol.',
+    por_que: `La consulta requiere información económica interna no autorizada: ${detalle}.`,
+    impacto: 'No se interpreta la ausencia de permiso como costo/margen correcto.',
+    confianza: 0,
+    accion: 'Abrir la consulta con un rol autorizado o revisar una vista seller-safe sin economía.',
+    evidencia: [],
+    urgencia: URGENCIA.BAJA,
+    estado: ESTADO.DESCONOCIDO,
+    lentes,
+    bloqueos: [{
+      titulo: 'Información económica restringida',
+      detalle: `Sin permiso para: ${detalle}.`,
+      urgencia: URGENCIA.BAJA,
+    }],
+  });
+}
+
 function respuestaSinEvidencia(intent, faltantes, resultadosLente = []) {
   const evidencia = [];
   const lentes = resultadosLente.map((r) => r.lente);
@@ -236,9 +257,16 @@ export async function responder({ query, ctx = {}, prov = {}, intentForzado = nu
   // falta de una fuente requerida produce DESCONOCIDO, nunca OK.
   const requeridas = requisitosEvidencia(plan.intent, contexto);
   const faltantes = requeridas.filter((nombre) => datos[nombre] == null);
-  const respuesta = faltantes.length
-    ? respuestaSinEvidencia(plan.intent, faltantes, resultadosLente)
-    : sintetizar(plan.intent, resultadosLente);
+  const denegadasEconomia = Object.entries(fallosTool)
+    .filter(([nombre, r]) => ['get_costing', 'get_bom'].includes(nombre) && r?.error === 'sin_permiso')
+    .map(([nombre]) => nombre);
+  const consultaEconomicaDirecta = ['COSTING_ANALYSIS', 'RISK'].includes(plan.intent);
+
+  const respuesta = (consultaEconomicaDirecta && denegadasEconomia.length)
+    ? respuestaSinPermisoEconomico(plan.intent, denegadasEconomia, resultadosLente)
+    : faltantes.length
+      ? respuestaSinEvidencia(plan.intent, faltantes, resultadosLente)
+      : sintetizar(plan.intent, resultadosLente);
 
   // Nota de permiso si se pidió una lente económica sin permiso real.
   const lenteEco = plan.lentes.find((l) => ['cfo', 'costeador'].includes(l));
