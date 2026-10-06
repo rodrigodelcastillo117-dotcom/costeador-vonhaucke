@@ -91,7 +91,8 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // #7: conservar el plano ORIGINAL (imagen, o pág.1 del PDF) + la confianza de
   // lectura, para enseñar "original vs. lo que entendí" ANTES de acomodar.
   const [planoImagen, setPlanoImagen] = useState('');
-  const [lecturaMeta, setLecturaMeta] = useState(null);
+  const [lecturaMeta, setLecturaMeta] = useState(() => guardadoPrevio?.lecturaMeta || null);
+  const [floorSpec, setFloorSpec] = useState(() => guardadoPrevio?.floorSpec || null);
   const [guardado, setGuardado] = useState(false);
   const [staging, setStaging] = useState(false);      // generando staging
   const [stagingUrl, setStagingUrl] = useState(() => guardadoPrevio?.render3d || '');   // resultado (foto amueblada)
@@ -246,12 +247,14 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     const t = setTimeout(() => {
       onGuardarAcomodo({
         ...bloqueGeometria(areas), plan, planReal,   // areasM (verdad) + areas mm en sync
+        ...(lecturaMeta ? { lecturaMeta } : {}),
+        ...(floorSpec ? { floorSpec } : {}),
         ...(dibujoMeta && Object.keys(dibujoMeta).length ? { dibujoMeta } : {}),
         ...(stagingUrl ? { render3d: stagingUrl } : {}),
       }, true);
     }, 600);
     return () => clearTimeout(t);
-  }, [areas, plan, planReal, stagingUrl]);
+  }, [areas, plan, planReal, stagingUrl, lecturaMeta, floorSpec]);
   // Acomodo con IA (alterna): útil para casos raros; el motor local es el default.
   async function acomodarIA() {
     setError(''); setPlan(null); setGuardado(false); setCargando('acomodo');
@@ -299,6 +302,8 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       setCargando('');
       if (!r || !r.ok) { setError(r?.error || 'No se pudo leer el plano.'); return; }
       const lec = r.lectura;
+      const floor = r.floorSpec || null;
+      setFloorSpec(floor);
       // La lectura trae la FORMA REAL de cada cuarto (polígono o círculo) en mm
       // absolutos. `areasDeLectura` la pasa a lo que ya usa el resto de la app:
       // posición + contorno relativo, en metros. Un cuarto declarado dentro de
@@ -315,7 +320,12 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       // cuando el 3D sale raro).
       const resumen = resumenLectura(lec);
       // #7: conserva el plano original para la comparación y la confianza de lectura.
-      setLecturaMeta({ nivel: resumen.nivel, m2: resumen.m2, cuartos: resumen.cuartos, cotas: lec.tieneCotas });
+      setLecturaMeta({
+        nivel: resumen.nivel, m2: resumen.m2, cuartos: resumen.cuartos, cotas: lec.tieneCotas,
+        floorState: floor?.validation?.state || null,
+        puertasVerificadas: floor?.validation?.metrics?.doors_verified ?? null,
+        puertasPendientes: floor?.validation?.metrics?.doors_unverified ?? null,
+      });
       try {
         if (esPdf) { const _w = await abrirPdf(file); setPlanoImagen(await paginaAImagen(_w, 1, 1400)); }
         else { setPlanoImagen('data:image/jpeg;base64,' + b64); }
@@ -383,7 +393,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
         w: Math.round(o.w * 1000), h: Math.round(o.h * 1000), tipo: o.tipo,
       })),
     }));
-    recordar(); setAreas(cuantizar(areasDib)); setDibujoMeta(meta || {}); setPlanReal(true); setDibujando(false); setGuardado(false); setError('');  // MODO DIBUJO: contrato canónico 1 mm + undo cruza modos
+    recordar(); setAreas(cuantizar(areasDib)); setDibujoMeta(meta || {}); setFloorSpec(null); setLecturaMeta(null); setPlanReal(true); setDibujando(false); setGuardado(false); setError('');  // MODO DIBUJO: contrato canónico 1 mm + undo cruza modos
     (async () => {
       try {
         const ar = await acomodarEspacio(mm, piezas);
