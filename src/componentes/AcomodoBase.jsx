@@ -410,8 +410,15 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
           setError('El motor espacial no respondió; el acomodo local es sólo borrador.');
         }
       } catch (e) {
-        try { setPlan({ ...acomodarLocal(mm, piezas, { ajustar: false }), render_ready: false, strictPlacement: false }); } catch {}
-        setError('No se pudo validar el acomodo con el motor espacial; se muestra sólo un borrador local.');
+        try {
+          setPlan({ ...acomodarLocal(mm, piezas, { ajustar: false }), render_ready: false, strictPlacement: false });
+          setError('No se pudo validar el acomodo con el motor espacial; se muestra sólo un borrador local.');
+        } catch (fallbackError) {
+          // Si también falla el fallback, NUNCA dejamos visible el plan anterior:
+          // correspondería a otra geometría y sería peor que no mostrar nada.
+          setPlan(null);
+          setError(`No se pudo generar un acomodo válido. ${String(fallbackError?.message || '')}`.trim());
+        }
       }
     })();
   }
