@@ -91,7 +91,10 @@ describe('Intelisis v1 · contrato canónico fail-closed', () => {
   it('moneda es obligatoria y v1 bloquea EUR hasta tener FX por moneda', () => {
     expect(normal({ ...bueno, moneda: '' }).issues).toContain('MISSING_CURRENCY');
     expect(normal({ ...bueno, moneda: 'EUR' }).issues).toContain('UNSUPPORTED_CURRENCY');
-    expect(normal({ ...bueno, moneda: 'USD' }).costeable).toBe(true);
+    expect(normal({ ...bueno, moneda: 'USD' }).costeable).toBe(false);
+    const usd = normal({ ...bueno, moneda: 'USD', tipo_cambio_mxn: 17.5 });
+    expect(usd.costeable).toBe(true);
+    expect(usd.precio_mxn).toBeCloseTo(23373, 6);
   });
 
   it('requiere snapshot/batch para reproducibilidad', () => {
@@ -123,6 +126,8 @@ describe('Intelisis v1 · contrato canónico fail-closed', () => {
     expect(p.evidence_status).toBe('documentada');
     expect(p.propiedades.clave_erp).toBe('MVLMAG01280800');
     expect(p.propiedades.moneda).toBe('MXN');
+    expect(p.propiedades.moneda_origen).toBe('MXN');
+    expect(p.propiedades.precio_origen).toBe(1335.6);
     expect(p.propiedades.snapshot_id).toBe('snap-20261006-001');
   });
 
@@ -132,6 +137,17 @@ describe('Intelisis v1 · contrato canónico fail-closed', () => {
       insumoId: 'melamina-28',
       unidadCosteoInterna: 'kg',
     })).toThrow('ERP_INTERNAL_UNIT_MISMATCH');
+  });
+
+  it('bloquea discrepancia entre TC y costo MXN del ERP', () => {
+    const r = normal({
+      ...bueno,
+      moneda: 'USD',
+      tipo_cambio_mxn: 17.5,
+      costo_mxn: 999,
+    });
+    expect(r.costeable).toBe(false);
+    expect(r.issues).toContain('FX_COST_MISMATCH');
   });
 
   it('jamás convierte un registro bloqueado a precio de Supabase', () => {
