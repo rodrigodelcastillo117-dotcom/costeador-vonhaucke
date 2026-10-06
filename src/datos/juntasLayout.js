@@ -36,6 +36,16 @@ export function esMesaJuntasLayout(p = {}) {
   return /mesa.*junta|junta.*mesa|mesa.*consejo|boardroom|meeting table/.test(t);
 }
 
+export function capacidadMesaJuntas(p = {}) {
+  for (const k of ['user_capacity', 'capacidadUsuarios', 'capacidad', 'usuarios', 'personas', 'seat_count']) {
+    const n = Number(p?.[k]);
+    if (Number.isFinite(n) && n > 0) return Math.round(n);
+  }
+  const t = norm(`${p.nombre || ''} ${p.nota || ''} ${p.descripcion || ''}`);
+  const m = t.match(/(?:para\s*)?(\d{1,2})\s*(?:personas|usuarios|pax|plazas)/);
+  return m ? Math.max(1, Number(m[1])) : 0;
+}
+
 function caja(c, p) {
   const { pw, ph } = dimsPieza(p, c?.rot || 0);
   return { x: Number(c?.x) || 0, y: Number(c?.y) || 0, w: pw, d: ph };
@@ -177,18 +187,42 @@ export function sentarJuntas(plan = {}, piezas = [], areas = []) {
   const total = piezas.length;
   const nCol = colocadas.length;
   const faltan = sillasTodas.length - sentadas;
-  const caben = nCol === total && faltan === 0;
-  const notas = (plan.notas || []).filter((n) => !/silla\(s\) de junta|sillas de junta/i.test(String(n)));
+
+  // CAPACIDAD FUNCIONAL: una "mesa para 8" requiere 8 posiciones útiles ligadas
+  // físicamente a ESA mesa. No basta con tener ocho sillas en el mismo cuarto.
+  const capacidad = mesas
+    .map((m) => ({ id: String(m.c.id), requerida: capacidadMesaJuntas(m.p) }))
+    .filter((x) => x.requerida > 0)
+    .map((x) => ({
+      ...x,
+      colocadas: colocadas.filter((cc) => String(cc.alrededorDe || '') === x.id).length,
+    }));
+  const deficits = capacidad.filter((x) => x.colocadas < x.requerida);
+  const capacidadOk = deficits.length === 0;
+  const caben = nCol === total && faltan === 0 && capacidadOk;
+  const notas = (plan.notas || []).filter((n) => !/silla\(s\) de junta|sillas de junta|capacidad de junta/i.test(String(n)));
   if (faltan) notas.push(`${faltan} silla(s) de junta no cupieron alrededor de una mesa sin traslapar ni salirse del cuarto.`);
+  if (deficits.length) {
+    notas.push(`Capacidad de junta incompleta: ${deficits.map((x) => `${x.colocadas}/${x.requerida} posiciones en mesa ${x.id}`).join(' · ')}.`);
+  }
+
+  const auditoria = actualizarAuditoria(plan.auditoria, nCol, total, sentadas, sillasTodas.length);
+  if (capacidad.length) {
+    auditoria.push({
+      check: 'Capacidad funcional de sala de juntas',
+      ok: capacidadOk,
+      detalle: capacidad.map((x) => `${x.colocadas}/${x.requerida} en ${x.id}`).join(' · '),
+    });
+  }
 
   return {
     ...plan,
     colocacion: colocadas,
     caben,
-    auditoria: actualizarAuditoria(plan.auditoria, nCol, total, sentadas, sillasTodas.length),
+    auditoria,
     notas,
     resumen: caben
-      ? `${plan.resumen || ''} Las sillas de juntas quedaron ligadas físicamente a sus mesas.`.trim()
-      : `${plan.resumen || ''} La sala de juntas quedó incompleta: ${faltan} silla(s) sin posición válida.`.trim(),
+      ? `${plan.resumen || ''} Las sillas de juntas quedaron ligadas físicamente a sus mesas y la capacidad solicitada está satisfecha.`.trim()
+      : `${plan.resumen || ''} La sala de juntas quedó incompleta: ${faltan} silla(s) sin posición válida${deficits.length ? ` y ${deficits.length} mesa(s) sin capacidad completa` : ''}.`.trim(),
   };
 }
