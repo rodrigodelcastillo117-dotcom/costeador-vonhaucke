@@ -124,7 +124,10 @@ export function compileRenderPrompt(spec, dna = {}) {
 }
 
 export function renderStale(renderGuardado, specActual) {
-  if (!renderGuardado?.specHash || !specActual?.hash) return false;
+  // Fail-closed: si existe render pero falta cualquiera de las firmas, NO podemos
+  // demostrar que corresponde a la ProductSpec actual. Sólo "sin render" no es stale.
+  if (!renderGuardado) return false;
+  if (!renderGuardado.specHash || !specActual?.hash) return true;
   return renderGuardado.specHash !== specActual.hash;
 }
 
