@@ -177,7 +177,11 @@ export default function Acomodo(props) {
       ? partidasSugeridasDeAreas(areasAhora, { linea: lineaOperativa })
       : sugeridas;
     const partidas = elegirPartidasAcomodo(c.partidas, sugeridasParaLayout);
-    const acomodo = acomodoLocal;
+    // Si faltan anclas comerciales duras, un plan viejo deja de ser evidencia:
+    // no lo revivimos visualmente ni reutilizamos su render.
+    const acomodo = hayReales && !coherenciaPrograma.ok && acomodoLocal
+      ? { ...acomodoLocal, plan: null, render3d: '', layoutValidado: false, layoutEstado: 'PROGRAM_INCOMPLETE' }
+      : acomodoLocal;
     return {
       ...e,
       cotizacion: {
@@ -186,7 +190,7 @@ export default function Acomodo(props) {
         ...(acomodo ? { acomodo } : {}),
       },
     };
-  }, [props?.estado, sugeridas, acomodoLocal, hayReales, lineaOperativa, guardadoNormalizado]);
+  }, [props?.estado, sugeridas, acomodoLocal, hayReales, lineaOperativa, guardadoNormalizado, coherenciaPrograma.ok]);
 
   const guardarInterceptado = (acomodo, silencioso) => {
     const areas = areasMDe(acomodo);
