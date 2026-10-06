@@ -71,6 +71,42 @@ export function analizarProductoIndustrial({bom=[],costing=null}={}){
       areaNeta+=n(opt.area_piezas_mm2)||0;
     }
 
+    const opt1=d?.optimizacionCorte1D;
+    if(opt1){
+      if(opt1.disponible){
+        const ef1=pct(opt1.eficiencia_pct);
+        hallazgos.push({
+          tipo:'CORTE_1D',material:nombre,eficiencia_pct:ef1,
+          tramos:opt1.tramos??null,piezas:opt1.piezas_colocadas??null,
+          advisory:true,
+        });
+        for(const issue of opt1.issues||[]){
+          if(issue?.code==='PIEZA_NO_CABE'){
+            bloqueos.push({
+              code:'PIEZA_LINEAL_NO_CABE',
+              titulo:'Corte lineal imposible',
+              detalle:`${nombre}: ${issue.id||'una pieza'} mide ${issue.largo||'?'} mm y excede el tramo útil de ${issue.util_mm||'?'} mm.`,
+            });
+          }
+        }
+        if(ef1!=null&&ef1<80){
+          recomendaciones.push({
+            tipo:'EFICIENCIA_CORTE_1D',
+            prioridad:ef1<65?'ALTA':'MEDIA',
+            accion:`Revisar secuencia de corte/tramos de ${nombre}; eficiencia 1D advisory ${ef1}%.`,
+            confianza:.95,ahorro_certificado:false,
+          });
+        }
+      }else if((opt1.issues||[]).includes('SIN_PIEZAS_LINEALES')){
+        recomendaciones.push({
+          tipo:'DESPIECE_LINEAL',
+          prioridad:'ALTA',
+          accion:`Desglosar ${nombre} en largos por pieza; hoy sólo hay consumo agregado y no se puede optimizar el tramo de forma verificable.`,
+          confianza:1,ahorro_certificado:false,
+        });
+      }
+    }
+
     const waste=n(d?.desperdicio);
     if(waste!=null&&waste>0) desperdicioCosto+=waste;
     const dp=pct(d?.pct);
