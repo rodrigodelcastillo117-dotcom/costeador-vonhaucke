@@ -82,6 +82,21 @@ function conflictoEspesor(a='',b='') {
   return !A.some((x)=>B.includes(x));
 }
 
+const STOP_IDENTIDAD = new Set([
+  'pieza','piezas','componente','componentes','material','accesorio','accesorios',
+  'cubierta','costado','frente','panel','base','estructura','soporte','para','con',
+]);
+function tokensIdentidad(texto='') {
+  const t=String(texto||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  return (t.match(/[a-z0-9-]{4,}/g)||[]).filter((x)=>!STOP_IDENTIDAD.has(x));
+}
+function identidadComercialExacta(solicitado='', insumoNombre='') {
+  const pide=[...new Set(tokensIdentidad(solicitado))];
+  if(pide.length<2) return false;
+  const tiene=new Set(tokensIdentidad(insumoNombre));
+  return pide.every((x)=>tiene.has(x));
+}
+
 // Equivalencias PRE-AUTORIZADAS (misma familia tratada como intercambiable).
 // Hoy vacío a propósito: ninguna equivalencia entre familias distintas está
 // autorizada. Cuando Compras/Dirección autoricen una (p.ej. un color de melamina
@@ -126,6 +141,19 @@ export function clasificarMaterial({ solicitado = '', insumoId = '', insumoNombr
   // Hay id, pero no sabemos qué pidió. Eso es CANDIDATO, no evidencia de
   // exactitud. Antes la ausencia de contraste se interpretaba como PASS.
   if (!famPide) {
+    // Componentes comprados (herrajes/equipamiento) pueden no pertenecer a una
+    // familia de MP. Sólo se aceptan como EXACT cuando la identidad textual es
+    // suficientemente específica y coincide con el artículo real del catálogo.
+    if (identidadComercialExacta(solicitado, insumoNombre)) {
+      return {
+        clase: MATCH.EXACT,
+        familiaSolicitada: '',
+        familiaResuelta: famTiene,
+        autocosteable: true,
+        insumoIdEfectivo: insumoId,
+        motivo: 'Identidad comercial específica coincide con el artículo del catálogo.',
+      };
+    }
     return {
       clase: MATCH.CANDIDATE_REQUIRES_CONFIRMATION,
       familiaSolicitada: '',
@@ -133,7 +161,7 @@ export function clasificarMaterial({ solicitado = '', insumoId = '', insumoNombr
       autocosteable: false,
       insumoIdEfectivo: '',
       insumoIdCandidato: insumoId,
-      motivo: 'Hay un material candidato del catálogo, pero no existe familia solicitada verificable para confirmar que sea exacto.',
+      motivo: 'Hay un artículo candidato del catálogo, pero falta evidencia suficiente para confirmar identidad exacta.',
     };
   }
 
