@@ -27,7 +27,7 @@
 //  nube falla, se traga el error y el vendedor no se entera. Aprender es
 //  secundario; cotizar es el trabajo.
 // ============================================================================
-import { nube } from '../nube.js';
+import { nube, lecturaProtegida } from '../nube.js';
 
 let CACHE = [];          // lecciones vigentes, cargadas al abrir
 let cargado = false;
@@ -38,12 +38,12 @@ const MAX_EN_PROMPT = 25;
 
 export async function cargarAprendizajes() {
   try {
-    const { data, error } = await nube
+    const { data, error } = await lecturaProtegida(() => nube
       .from('aprendizajes')
       .select('*')
       .eq('activo', true)
       .order('creado', { ascending: false })
-      .limit(120);
+      .limit(120));
     if (!error && data) { CACHE = data; cargado = true; }
   } catch (e) { /* sin nube se sigue cotizando igual */ }
   return CACHE;
