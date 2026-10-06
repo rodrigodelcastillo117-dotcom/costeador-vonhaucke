@@ -13,7 +13,7 @@ import {precioVenta} from '../motor/calculo.js';
 import {compileRenderPrompt,renderStale} from '../datos/renderPrompt.js';
 import {visualRevisionHash,visualesSincronizados} from '../datos/visualRevision.js';
 import {modeloTecnico3DDesdeSpec} from '../datos/productModel3D.js';
-import {diagnosticoDesarrolloProducto} from '../datos/desarrolloProducto.js';
+import {diagnosticoDesarrolloProducto,compararVariantesProducto} from '../datos/desarrolloProducto.js';
 
 const MAT_LABEL={nogal:'Nogal',roble:'Roble',encino:'Encino',maple:'Maple',laminado:'Laminado',solid_surface:'Solid surface',cristal:'Cristal',metal:'Metal',piedra:'Piedra'};
 const FAMILY_OPTIONS=[[FAMILIA.DESCONOCIDA,'Producto libre'],[FAMILIA.ESCRITORIO,'Operativo / escritorio'],[FAMILIA.MESA,'Mesa'],[FAMILIA.RECEPCION,'Recepción'],[FAMILIA.LOCKER,'Locker'],[FAMILIA.DISPLAY,'Exhibidor'],[FAMILIA.GUARDADO,'Guardado']];
@@ -112,6 +112,18 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
  const refUI=useMemo(()=>formatearReferenciaCocrear(refs),[refs]);
  const estimado=useMemo(()=>estimadoDisenoCocrear(intent,insumos),[intent,insumos]);
  const desarrollo=useMemo(()=>spec?diagnosticoDesarrolloProducto(spec):null,[spec]);
+ const comparSpecA=useMemo(()=>comparA?construirProductSpec(
+   comparA,extraerDNA(comparA),clasificarProducto(comparA,{}),
+   {rev:'A',componentes:comparA._componentes||[]}
+ ):null,[comparA]);
+ const comparPipelineA=useMemo(()=>comparA?cocrearDesdeIntent(comparA,{
+   insumos,par,rev:'A',componentes:comparA._componentes||[]
+ }):null,[comparA,insumos,par]);
+ const comparativaAB=useMemo(()=>comparSpecA&&spec?compararVariantesProducto(
+   comparSpecA,spec,
+   comparPipelineA?.costo?.official_cost,
+   pipeline?.costo?.official_cost,
+ ):null,[comparSpecA,spec,comparPipelineA,pipeline]);
  const puedeAprobarRol=rol==='direccion'||rol==='diseno';
  const ingenieriaListaParaRevision=!!(
    spec?.componentes?.length
