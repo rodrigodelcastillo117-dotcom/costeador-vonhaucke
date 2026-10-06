@@ -69,6 +69,7 @@ export function auditarColocacion({ areas = [], colocacion = [], byId = {} } = {
   // automáticas deben conservar un escritorio ancla. Las manuales se auditan igual
   // si ya declaraban relación y ésta se perdió.
   const idsColocados = new Set(colocacion.map((c) => String(c.id)));
+  const colocacionPorId = new Map(colocacion.map((c) => [String(c.id), c]));
   const relacionesRotas = [];
   const norm = (s = '') => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   for (const c of colocacion) {
@@ -78,13 +79,27 @@ export function auditarColocacion({ areas = [], colocacion = [], byId = {} } = {
     const esTrabajo = /silla.*operativ|operativ.*silla|silla.*directiv|task chair|work chair/.test(nombre);
     if (esJunta) {
       const anchor = c.anchor_id ?? c.alrededorDe ?? (String(c.contra || '').startsWith('mesa:') ? String(c.contra).slice(5) : null);
-      if (!anchor || !idsColocados.has(String(anchor))) {
-        relacionesRotas.push({ id: c.id, tipo: 'silla_juntas_sin_mesa', esperado: 'mesa' });
+      const ac = anchor ? colocacionPorId.get(String(anchor)) : null;
+      const ap = anchor ? (byId[anchor] || byId[String(anchor)] || {}) : {};
+      const an = norm(`${ap.nombre || ''} ${ap.ruta || ''}`);
+      const esMesa = /mesa|table|boardroom|meeting/.test(an) && !/silla|chair|asiento/.test(an);
+      if (!anchor || !idsColocados.has(String(anchor)) || !esMesa || Number(ac?.area) !== Number(c.area)) {
+        relacionesRotas.push({
+          id: c.id, tipo: 'silla_juntas_sin_mesa_valida', esperado: 'mesa misma área',
+          anchor: anchor || null,
+        });
       }
     } else if (esTrabajo) {
       const anchor = c.anchor_id ?? (String(c.contra || '').startsWith('escritorio:') ? String(c.contra).slice(11) : null);
-      if (!anchor || !idsColocados.has(String(anchor))) {
-        relacionesRotas.push({ id: c.id, tipo: 'silla_trabajo_sin_escritorio', esperado: 'escritorio' });
+      const ac = anchor ? colocacionPorId.get(String(anchor)) : null;
+      const ap = anchor ? (byId[anchor] || byId[String(anchor)] || {}) : {};
+      const an = norm(`${ap.nombre || ''} ${ap.ruta || ''}`);
+      const esEscritorio = /escritorio|bench|banca|estacion|workstation|desk/.test(an);
+      if (!anchor || !idsColocados.has(String(anchor)) || !esEscritorio || Number(ac?.area) !== Number(c.area)) {
+        relacionesRotas.push({
+          id: c.id, tipo: 'silla_trabajo_sin_escritorio_valido', esperado: 'escritorio misma área',
+          anchor: anchor || null,
+        });
       }
     }
   }
@@ -103,9 +118,14 @@ export function auditarColocacion({ areas = [], colocacion = [], byId = {} } = {
       return s + Math.max(0, fp.w) * Math.max(0, fp.h);
     }, 0);
     const ratio = ocupada / areaMM2;
-    const row = { area: ai, ratio: +ratio.toFixed(4), pct: +(ratio * 100).toFixed(1) };
+    const tipoArea = norm(`${area?.tipo || ''} ${area?.nombre || ''}`);
+    const areaDeUsoHumano = !/servicio|storage|almacen|archivo|bodega|locker|deposito|cuarto tecnico/.test(tipoArea);
+    const row = {
+      area: ai, ratio: +ratio.toFixed(4), pct: +(ratio * 100).toFixed(1),
+      evaluadaComoCritica: areaDeUsoHumano,
+    };
     densidadPorArea.push(row);
-    if (ratio > 0.65) densidadCritica.push(row);
+    if (areaDeUsoHumano && ratio > 0.65) densidadCritica.push(row);
   }
 
   // Compatibilidad con la compuerta UI existente (`AcomodoBase` históricamente
