@@ -7,7 +7,7 @@ import { FAMILIAS, MUEBLES, lineasDeMueble } from '../datos/catalogo.js';
 import Icono from './Iconos.jsx';
 import { construirCosteo } from '../recetas.js';
 import { recetaBench } from '../datos/bench.js';
-import { calcular, precioDe, precioVenta, modeloParaPieza } from '../motor/calculo.js';
+import { calcular, precioDe, precioVenta, modeloParaPieza, PARAMETROS_DEFAULT } from '../motor/calculo.js';
 import { precioDeLista } from '../datos/preciosVenta.js';
 import { pesos } from '../util.js';
 import HojaCosto from './HojaCosto.jsx';
@@ -37,7 +37,7 @@ function precioSegunModelo(costoUnitario, par, esIntelisis, margen) {
 }
 
 export default function Asistente({ estado, onAgregarPartida, onModoAvanzado, onIr, soloVentas = false }) {
-  const margenObjetivo = estado.parametros.margenObjetivo ?? 40;
+  const margenObjetivo = estado.parametros.margenObjetivo ?? PARAMETROS_DEFAULT.margenObjetivo;
   const [paso, setPaso] = useState('familia');
   const [familia, setFamilia] = useState(null);
   const [mueble, setMueble] = useState(null);
