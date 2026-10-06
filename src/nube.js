@@ -400,7 +400,10 @@ export async function subirRender(dataUrl, path) {
     const mime = (cab.match(/data:(.*?);/) || [])[1] || 'image/png';
     const bin = atob(b64); const u8 = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-    const { error } = await nube.storage.from('renders').upload(path, u8, { contentType: mime, upsert: true });
+    // Todos los callers usan paths únicos (hash/timestamp). INSERT simple coincide
+    // con la policy real `renders_insert`; upsert=true exigiría SELECT+UPDATE y
+    // provoca 400 aunque el archivo sea nuevo.
+    const { error } = await nube.storage.from('renders').upload(path, u8, { contentType: mime, upsert: false });
     if (error) return { ok: false, error: error.message };
     const { data } = nube.storage.from('renders').getPublicUrl(path);
     return { ok: true, path, url: data?.publicUrl || null };
