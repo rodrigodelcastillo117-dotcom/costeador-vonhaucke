@@ -182,10 +182,18 @@ export function planearDeterminista(areas = [], piezas = [], opts = {}) {
   const noColocadas = [];
   for (const p of pend) {
     let puesto = null;
-    // Si la pieza sugiere un área (rol/índice), pruébala primero; luego todas.
+    // Semántica ANTES que geometría: si la pieza trae allowedAreas/_areasPreferidas,
+    // el solver respeta ese conjunto y su orden. Así una silla de juntas no termina
+    // en Operativo sólo porque físicamente cabe. Sin metadatos, conserva compatibilidad.
+    const sugeridas = Array.isArray(p.allowedAreas) ? p.allowedAreas
+      : Array.isArray(p._areasPreferidas) ? p._areasPreferidas : [];
     const orden = [];
-    if (Number.isFinite(Number(p.area)) && areas[Number(p.area)]) orden.push(Number(p.area));
-    areas.forEach((_, ai) => { if (!orden.includes(ai)) orden.push(ai); });
+    for (const raw of sugeridas) {
+      const ai = Number(raw);
+      if (Number.isInteger(ai) && areas[ai] && !orden.includes(ai)) orden.push(ai);
+    }
+    if (!orden.length && Number.isFinite(Number(p.area)) && areas[Number(p.area)]) orden.push(Number(p.area));
+    if (!sugeridas.length) areas.forEach((_, ai) => { if (!orden.includes(ai)) orden.push(ai); });
 
     for (const ai of orden) {
       const area = areas[ai];
