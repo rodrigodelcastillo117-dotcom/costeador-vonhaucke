@@ -19,7 +19,8 @@ import { diffRevisiones } from '../datos/diffRevisiones.js';
 import { conocimientoDe } from './conocimiento.js';
 import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
 import { buscarMaterialTecnico, describirFormatoTecnico } from '../datos/materialKnowledge.js';
-import { nube } from '../nube.js';
+import { nube, buscarProductosMaestroTexto } from '../nube.js';
+import { explicarCosteo } from '../datos/explicacionCosteo.js';
 
 const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
 
@@ -125,7 +126,7 @@ export const proveedorReal = {
     ? { componentes: ctx.bom, contradicciones: [] }
     : { disponible: false, nota: 'Abre el Costeador para ver el BOM certificado de una pieza.' }),
   get_costing: async (ctx) => (ctx.costing
-    ? ctx.costing
+    ? { ...ctx.costing, explicacion: explicarCosteo(ctx.costing, { nombre: ctx.product_name || ctx.nombre || '' }) }
     : { disponible: false, nota: 'El costo se consolida por pieza en el Costeador; no hay un total de proyecto inventado aquí.' }),
   get_industrial_analysis: async (ctx) => {
     const bom = Array.isArray(ctx.bom) ? ctx.bom : [];
@@ -162,16 +163,7 @@ export const proveedorReal = {
   },
 
   search_products: async (_ctx, args) => {
-    const raw=String(args?.query||'').trim().slice(0,90);
-    const q=raw.replace(/[^a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ ._\/-]/g,' ').replace(/\s+/g,' ').trim();
-    if(q.length<2) return [];
-    const cols='id,nombre,codigo,source_type,familia,estado,activo,version_tecnica_vigente_id';
-    const [porNombre,porCodigo]=await Promise.all([
-      nube.from('productos').select(cols).eq('activo',true).ilike('nombre',`%${q}%`).limit(20),
-      nube.from('productos').select(cols).eq('activo',true).ilike('codigo',`%${q}%`).limit(20),
-    ]);
-    const uniq=new Map();
-    for(const x of [...(porNombre.data||[]),...(porCodigo.data||[])]) if(x?.id!=null) uniq.set(x.id,x);
-    return [...uniq.values()].slice(0,25);
+    const r=await buscarProductosMaestroTexto(args?.query||'',25);
+    return r?.ok ? (r.items||[]) : [];
   },
 };

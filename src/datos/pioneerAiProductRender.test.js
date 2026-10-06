@@ -74,15 +74,17 @@ describe('VONI Council · 20 segundos', () => {
 });
 
 describe('VONI 2.0 · Producto Maestro real', () => {
-  it('search_products consulta productos activos y no selecciona economía', () => {
-    const s=fs.readFileSync('src/voni/proveedorReal.js','utf8');
-    const i=s.indexOf('search_products:');
-    const b=s.slice(i, s.indexOf('\n};', i));
-    expect(b).toContain("from('productos')");
-    expect(b).toContain("eq('activo',true)");
-    expect(b).toContain("ilike('nombre'");
-    expect(b).toContain("ilike('codigo'");
-    expect(b).toContain('version_tecnica_vigente_id');
+  it('search_products comparte la búsqueda seller-safe real con Cocrear', () => {
+    const p=fs.readFileSync('src/voni/proveedorReal.js','utf8');
+    const n=fs.readFileSync('src/nube.js','utf8');
+    const i=p.indexOf('search_products:');
+    const b=p.slice(i, p.indexOf('\n};', i));
+    expect(p).toContain('buscarProductosMaestroTexto');
+    expect(b).toContain("buscarProductosMaestroTexto(args?.query||'',25)");
+    expect(n).toContain("from('productos')");
+    expect(n).toContain("eq('activo',true)");
+    expect(n).toContain('familia.ilike');
+    expect(n).toContain('version_tecnica_vigente_id');
     expect(b).not.toContain('costo');
     expect(b).not.toContain('margen');
   });
