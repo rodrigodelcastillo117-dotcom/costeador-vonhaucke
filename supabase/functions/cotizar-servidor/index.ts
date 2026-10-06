@@ -27,6 +27,8 @@
 // ============================================================================
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { precioConDescuento, importePorCantidad, cargoPorcentaje, sumarMontos } from "../../../src/motor/comercialDinero.js";
+import { dinero } from "../../../src/motor/dinero.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -173,15 +175,17 @@ Deno.serve(async (req) => {
       if (it && it.piso_minimo != null) piso = Number(it.piso_minimo);
     } catch (_e) { /* sin piso */ }
 
-    // P0.2: NO clamp. El descuento se conserva exacto; si excede política o cae bajo piso => requiere aprobación.
-    const precio_final = Math.round(precio_lista * (1 - descuento / 100));
-    const bajoPiso = piso != null && precio_final < piso;
+    // P0.2 + PENNIES: descuento/importe a centavos, sin redondeo al peso.
+    const precio_final = precioConDescuento(precio_lista, descuento);
+    if (precio_final == null) { lineas.push({ idx: i, ok: false, motivo: "precio_no_finito" }); hayLineaInvalida = true; continue; }
+    const bajoPiso = piso != null && precio_final < dinero(piso);
     const sobrePolitica = descuento > descuentoMax;
     const lineaRequiereAprob = bajoPiso || sobrePolitica;
     if (lineaRequiereAprob) requiereAprobacion = true;
 
-    const importe = precio_final * cantidad;
-    subtotal += importe;
+    const importe = importePorCantidad(precio_final, cantidad);
+    if (importe == null) { lineas.push({ idx: i, ok: false, motivo: "importe_invalido" }); hayLineaInvalida = true; continue; }
+    subtotal = sumarMontos([subtotal, importe]) ?? NaN;
 
     const base: any = {
       idx: i, ok: true, producto_id, version_id: r.version_id, variante_id: variante_id ?? null, cantidad,
@@ -198,7 +202,7 @@ Deno.serve(async (req) => {
         if (eco && eco.costo_oficial_referencia != null) costo = Number(eco.costo_oficial_referencia);
       } catch (_e) { /* sin economía */ }
       base.costo_oficial_referencia = costo;
-      base.utilidad = costo != null ? precio_final - costo : null;
+      base.utilidad = costo != null ? dinero(precio_final - costo) : null;
       base.margen_pct = costo != null && precio_final > 0 ? Math.round(((precio_final - costo) / precio_final) * 1000) / 10 : null;
       base.economia_estado = costo != null ? "conocida" : "costo_desconocido";
     }
@@ -222,16 +226,28 @@ Deno.serve(async (req) => {
       continue;
     }
     if (tipo) tiposVistos.add(tipo);
-    if (tipo === "maniobras" && maniobrasPct > 0) { const imp = Math.round(subtotal * maniobrasPct / 100); serviciosTotal += imp; servicios.push({ tipo, importe: imp, base: "subtotal", pct: maniobrasPct }); }
-    else if (tipo === "flete" && fletePct > 0) { const imp = Math.round(subtotal * fletePct / 100); serviciosTotal += imp; servicios.push({ tipo, importe: imp, base: "subtotal", pct: fletePct }); }
+    if (tipo === "maniobras" && maniobrasPct > 0) {
+      const imp = cargoPorcentaje(subtotal, maniobrasPct);
+      if (imp == null) { servicios.push({ tipo, importe:null, estado:"SERVICIO_CALCULO_INVALIDO" }); hayServicioPendiente = true; continue; }
+      serviciosTotal = sumarMontos([serviciosTotal, imp]) ?? NaN;
+      servicios.push({ tipo, importe: imp, base: "subtotal", pct: maniobrasPct });
+    }
+    else if (tipo === "flete" && fletePct > 0) {
+      const imp = cargoPorcentaje(subtotal, fletePct);
+      if (imp == null) { servicios.push({ tipo, importe:null, estado:"SERVICIO_CALCULO_INVALIDO" }); hayServicioPendiente = true; continue; }
+      serviciosTotal = sumarMontos([serviciosTotal, imp]) ?? NaN;
+      servicios.push({ tipo, importe: imp, base: "subtotal", pct: fletePct });
+    }
     else { servicios.push({ tipo: tipo || "desconocido", importe: null, estado: "SERVICIO_PENDIENTE_PRECIO" }); hayServicioPendiente = true; requiereAprobacion = true; }
   }
 
   // P0.4 + FIX B: emitible solo si NO hay líneas inválidas, servicios sin precio ni duplicados.
-  const cotizacion_emitible = !hayLineaInvalida && !hayServicioPendiente && !hayServicioDuplicado;
-  const baseIva = subtotal + serviciosTotal;
-  const iva = Math.round(baseIva * (ivaPct / 100));
-  const total = baseIva + iva;
+  let cotizacion_emitible = !hayLineaInvalida && !hayServicioPendiente && !hayServicioDuplicado;
+  const baseIva = sumarMontos([subtotal, serviciosTotal]);
+  const iva = baseIva == null ? null : cargoPorcentaje(baseIva, ivaPct);
+  const total = baseIva == null || iva == null ? null : sumarMontos([baseIva, iva]);
+  if (baseIva == null || iva == null || total == null) hayLineaInvalida = true;
+  cotizacion_emitible = !hayLineaInvalida && !hayServicioPendiente && !hayServicioDuplicado;
 
   // P0.5: lista REAL desde la resolución (no hardcode).
   let listaInfo: any = null;
