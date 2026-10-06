@@ -69,10 +69,11 @@ describe('RENDER FIDELITY 10X · qué dejó de coincidir, no sólo sí/no', () =
     expect(v.cambios.some((c) => c.campo === 'features')).toBe(true);
   });
 
-  it('render sin manifiesto (legacy) pero del mismo spec ⇒ vigente null, no truena', () => {
+  it('render legacy sin firma visual/manifiesto ⇒ no verificable (fail-closed)', () => {
     const s = specDe('mesa 1.2 m', 1);
-    const v = verificarFidelidad({ specHash: s.hash }, s);   // sin expected, hash igual
-    expect(v.vigente).toBeNull();
+    const v = verificarFidelidad({ specHash: s.hash }, s);
+    expect(v.vigente).toBe(false);
+    expect(v.motivo).toBe('sin manifiesto de fidelidad');
   });
 
   it('diffFidelidad detecta cambio de tipo y de conteo', () => {
