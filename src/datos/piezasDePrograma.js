@@ -5,6 +5,7 @@
 // crea economía y no convierte sugerencias en partidas comerciales.
 // ============================================================================
 import { personasEnSala, puestosPorIsla, rolDe } from './programaDelPlano.js';
+import { inferirDestinoPartida, marcarDestinoPartida } from './destinoAcomodo.js';
 
 const norm = (s = '') => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const cap = (n, lo = 0, hi = 48) => Math.max(lo, Math.min(hi, Math.round(Number(n) || 0)));
@@ -209,4 +210,120 @@ export function firmaAreasParaSugeridos(areas = []) {
     l: Math.round((Number(a?.largo) || 0) * 1000),
     d: a?.dentroDe || '', c: Number(a?.contiene) || 0,
   })));
+}
+
+
+const cantidad = (p) => Math.max(1, Math.round(Number(p?.cantidad) || 1));
+
+function familiaPrograma(p = {}) {
+  const rr = String(p?.relation_role || '').toUpperCase();
+  const n = norm(`${p?.nombre || ''} ${p?.nota || ''} ${p?.ruta || ''}`);
+  const dest = inferirDestinoPartida(p);
+
+  if (rr === 'ANCHOR_RECEPTION') return 'reception_anchor';
+  if (rr === 'ANCHOR_MEETING') return 'meeting_anchor';
+  if (/^ANCHOR_(?:WORKSTATION|WORK)$/.test(rr)) return 'work_anchor';
+  if (/^ANCHOR_(?:DESK|PRIVATE)$/.test(rr)) return 'private_anchor';
+  if (rr === 'MEETING_SEAT') return 'meeting_seat';
+  if (rr === 'EXECUTIVE_SEAT') return 'private_exec_seat';
+  if (rr === 'VISITOR_SEAT') return dest === 'recepcion' ? 'reception_visitor' : dest === 'juntas' ? 'meeting_visitor' : 'private_visitor';
+  if (rr === 'WORK_SEAT') return dest === 'recepcion' ? 'reception_work_seat' : 'work_seat';
+  if (rr === 'UNDERDESK_STORAGE') return 'underdesk_storage';
+  if (rr === 'SUPPORT_STORAGE') return dest === 'juntas' ? 'meeting_storage' : dest === 'recepcion' ? 'reception_storage' : 'private_storage';
+
+  if (/recep|mostrador/.test(n) && !/silla|asiento/.test(n)) return 'reception_anchor';
+  if (/mesa/.test(n) && /junta|consejo|meeting|reunion/.test(n)) return 'meeting_anchor';
+  if (/bench|banca|estacion|workstation/.test(n) && !/silla|asiento/.test(n)) return 'work_anchor';
+  if (/escritorio/.test(n) && /direccion|directiv|ejecutiv|privad|gerenc/.test(n)) return 'private_anchor';
+  if (/silla|asiento/.test(n)) {
+    if (dest === 'juntas') return 'meeting_seat';
+    if (dest === 'recepcion') return /operativ|trabajo/.test(n) ? 'reception_work_seat' : 'reception_visitor';
+    if (dest === 'privado') return /directiv|ejecutiv|alpha|energy/.test(n) ? 'private_exec_seat' : 'private_visitor';
+    if (dest === 'open') return 'work_seat';
+  }
+  if (/gaveta|pedestal|cajonera/.test(n)) return 'underdesk_storage';
+  if (/credenza|archivero|guarda|librero/.test(n)) {
+    if (dest === 'juntas') return 'meeting_storage';
+    if (dest === 'recepcion') return 'reception_storage';
+    if (dest === 'privado') return 'private_storage';
+  }
+  return null;
+}
+
+function excluidaPorTexto(sugerida, reales = []) {
+  const fam = familiaPrograma(sugerida);
+  const todo = norm(reales.map((p) => p?.nota || '').join(' | '));
+  if (fam === 'reception_visitor' && /sin sillas? de espera|sin espera|no.*sillas? de espera/.test(todo)) return true;
+  return false;
+}
+
+function enriquecerRealConPrograma(real, sugeridasFamilia) {
+  const grupos = [...new Set(sugeridasFamilia.map((s) => s?.functional_group_id).filter(Boolean))];
+  const zonas = [...new Set(sugeridasFamilia.map((s) => s?.zonaSugerida).filter(Boolean))];
+  const roles = [...new Set(sugeridasFamilia.map((s) => s?.relation_role).filter(Boolean))];
+  const anchors = [...new Set(sugeridasFamilia.map((s) => s?.anchor_role).filter(Boolean))];
+  const maxDist = [...new Set(sugeridasFamilia.map((s) => Number(s?.max_anchor_distance_mm)).filter(Number.isFinite))];
+  const out = marcarDestinoPartida(real);
+  if (grupos.length !== 1) return out;
+  return {
+    ...out,
+    functional_group_id: out.functional_group_id || grupos[0],
+    ...(roles.length === 1 && !out.relation_role ? { relation_role: roles[0] } : {}),
+    ...(anchors.length === 1 && !out.anchor_role ? { anchor_role: anchors[0] } : {}),
+    ...(zonas.length === 1 && !out.zonaSugerida ? { zonaSugerida: zonas[0] } : {}),
+    ...(maxDist.length === 1 && !Number.isFinite(Number(out.max_anchor_distance_mm))
+      ? { max_anchor_distance_mm: maxDist[0] } : {}),
+  };
+}
+
+/**
+ * Une la cotización REAL con el programa ESPERADO del plano.
+ * - Lo ya cotizado gana y conserva precio/id.
+ * - Sólo agrega el DELTA faltante como SUGERIDO/noCobrar.
+ * - Cuando una familia pertenece inequívocamente a una sola zona, el real hereda
+ *   su grupo/zona para que sillas, mesa, escritorio, bench y apoyos viajen juntos.
+ */
+export function completarProgramaVisual(reales = [], sugeridas = []) {
+  const realesLimpios = (Array.isArray(reales) ? reales : []).filter((p) => !p?.sugeridoPlano && !String(p?.id || '').startsWith('sug-'));
+  const sug = (Array.isArray(sugeridas) ? sugeridas : []).filter(Boolean);
+
+  const sugPorFamilia = new Map();
+  for (const s of sug) {
+    const fam = familiaPrograma(s);
+    if (!fam) continue;
+    if (!sugPorFamilia.has(fam)) sugPorFamilia.set(fam, []);
+    sugPorFamilia.get(fam).push(s);
+  }
+
+  const realesEnriquecidos = realesLimpios.map((r) => {
+    const fam = familiaPrograma(r);
+    return fam && sugPorFamilia.has(fam) ? enriquecerRealConPrograma(r, sugPorFamilia.get(fam)) : marcarDestinoPartida(r);
+  });
+
+  const realRestante = new Map();
+  for (const r of realesEnriquecidos) {
+    const fam = familiaPrograma(r);
+    if (!fam) continue;
+    realRestante.set(fam, (realRestante.get(fam) || 0) + cantidad(r));
+  }
+
+  const faltantes = [];
+  for (const s of sug) {
+    if (excluidaPorTexto(s, realesEnriquecidos)) continue;
+    const fam = familiaPrograma(s);
+    if (!fam) { faltantes.push(s); continue; }
+    const objetivo = cantidad(s);
+    const disponibles = realRestante.get(fam) || 0;
+    const cubiertos = Math.min(objetivo, disponibles);
+    realRestante.set(fam, Math.max(0, disponibles - cubiertos));
+    const faltan = objetivo - cubiertos;
+    if (faltan > 0) faltantes.push({ ...s, cantidad: faltan });
+  }
+
+  return {
+    reales: realesEnriquecidos,
+    sugerencias: faltantes,
+    partidas: [...realesEnriquecidos, ...faltantes],
+    programaCompleto: faltantes.length === 0,
+  };
 }
