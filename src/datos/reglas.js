@@ -20,7 +20,7 @@
 //  internet, o antes de que cargue), el motor sigue costeando con los mismos
 //  números en vez de inventarse otros.
 // ============================================================================
-import { nube } from '../nube.js';
+import { nube, lecturaProtegida } from '../nube.js';
 
 export const REGLAS_DEFAULT = {
   circulacion_min: 900,        // mm libres para que pase una persona
@@ -51,7 +51,9 @@ export const todasLasReglas = () => TEXTOS;
 
 export async function cargarReglas() {
   try {
-    const { data, error } = await nube.from('reglas').select('*').eq('activa', true).order('ambito');
+    const { data, error } = await lecturaProtegida(
+      () => nube.from('reglas').select('*').eq('activa', true).order('ambito')
+    );
     if (error || !data) return VIGENTES;
     TEXTOS = data;
     const v = { ...REGLAS_DEFAULT };
