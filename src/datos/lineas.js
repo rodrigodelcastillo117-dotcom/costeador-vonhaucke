@@ -31,6 +31,7 @@ import { FEATHER_PRODUCTOS, generarFeather } from './feather.js';
 import { WORKLOUNGE_PRODUCTOS, generarWorklounge } from './worklounge.js';
 import { CIRQUE_PRODUCTOS, generarCirque } from './cirque.js';
 import { ECOACUSTIC_PRODUCTOS, generarEcoAcustic } from './ecoacustic.js';
+import { MELAMINA_POR_ESPESOR, PINTURA_COLORES } from './acabados.js';
 import { calcular, precioDe, precioVenta, modeloParaPieza } from '../motor/calculo.js';
 import { buscarPrecioVenta, costoImplicito, precioDeLista } from './preciosVenta.js';
 import { factorDeLinea } from './factoresLinea.js';
@@ -567,6 +568,14 @@ export function catalogoIA() {
       ...(b.medidas ? { medidas: b.medidas } : {}),
       ...(b.usuarios ? { usuarios: b.usuarios } : {}),
     })),
+  };
+  // Acabados globales REALES. Son conocimiento para VONI, no permiso universal:
+  // cada producto sigue limitando qué combinación es válida en su generador.
+  out.__acabados = {
+    nota: 'Catálogo global real; validar compatibilidad por producto antes de aplicar.',
+    melamina: Object.entries(MELAMINA_POR_ESPESOR).flatMap(([espesor, rows]) =>
+      (rows || []).map((x) => ({ id:x.id, nombre:x.label, espesorMM:Number(espesor), codigo:x.codigo || null }))),
+    pintura: (PINTURA_COLORES || []).map((x) => ({ id:x.id, nombre:x.label, codigo:x.codigo || null })),
   };
   return out;
 }
