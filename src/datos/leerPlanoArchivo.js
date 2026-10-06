@@ -35,6 +35,11 @@ const imagenABase64 = (file, max = 1600) => new Promise((resolve, reject) => {
 });
 
 export const esCAD = (file) => /\.(dwg|dxf)$/i.test(file?.name || '');
+export const MAX_PLANO_MB = 30;
+const conTimeout = (promesa, ms = 60000) => Promise.race([
+  promesa,
+  new Promise((_, reject) => setTimeout(() => reject(new Error('La lectura del plano tardó demasiado. Intenta otra vez o sube una captura de la hoja principal.')), ms)),
+]);
 
 /**
  * Lee el plano de un archivo y devuelve las áreas listas para la app.
@@ -44,6 +49,9 @@ export async function leerPlanoDeArchivo(file) {
   if (!file) return { ok: false, error: 'No llegó ningún archivo.' };
   // AutoCAD no se lee: quien mira el plano es un modelo que VE la hoja, y un
   // .dwg es binario. Decirlo es mejor que fallar como si el plano estuviera mal.
+  if (file.size > MAX_PLANO_MB * 1024 * 1024) {
+    return { ok: false, error: `El archivo pesa ${(file.size / 1048576).toFixed(0)} MB. Para que la lectura sea estable, usa un PDF de máximo ${MAX_PLANO_MB} MB o sube la hoja principal como imagen.` };
+  }
   if (esCAD(file)) {
     return { ok: false, error: 'Todavía no leo archivos de AutoCAD (.dwg / .dxf). '
       + 'Expórtalo a PDF desde AutoCAD (Imprimir → PDF) o mándame una captura de pantalla del '
@@ -52,7 +60,7 @@ export async function leerPlanoDeArchivo(file) {
   try {
     const esPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
     const b64 = esPdf ? await archivoABase64(file) : await imagenABase64(file);
-    const r = await leerPlano(b64, esPdf ? 'application/pdf' : 'image/jpeg');
+    const r = await conTimeout(leerPlano(b64, esPdf ? 'application/pdf' : 'image/jpeg'), 60000);
     if (!r || !r.ok) return { ok: false, error: r?.error || 'No se pudo leer el plano.' };
     const lec = r.lectura;
     const { areas } = areasDeLectura(lec);
