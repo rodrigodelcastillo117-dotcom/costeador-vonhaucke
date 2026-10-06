@@ -97,3 +97,19 @@ describe('VH-015 · el motor no produce acomodos que el validador marque', () =>
     expect(recep.area).toBe(0);
   });
 });
+
+
+describe('layout funcional · silla operativa anclada a su puesto', () => {
+  it('cada silla operativa colocada queda ligada a un escritorio real', () => {
+    const areas = [{ nombre: 'Área Operativa', ancho: 7000, largo: 5000 }];
+    const piezas = expandirPiezas([
+      { id: 'desk', nombre: 'Escritorio operativo', cantidad: 1, precioUnitario: 1, w: 1600, d: 800 },
+      { id: 'chair', nombre: 'Silla operativa', cantidad: 1, precioUnitario: 1, w: 600, d: 600 },
+    ]);
+    const r = acomodarLocal(areas, piezas);
+    const silla = r.colocacion.find((x) => x.id === 'chair-1');
+    expect(silla).toBeTruthy();
+    expect(silla.anchor_id).toBe('desk-1');
+    expect(silla.contra).toBe('escritorio:desk-1');
+  });
+});
