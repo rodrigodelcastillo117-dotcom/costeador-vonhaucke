@@ -8,6 +8,7 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import { calcular, precioDe, netoComponente, modeloParaPieza, costeoEmitible, bomHash, diffBOM, aplicarDiffBOM, MOTOR_VERSION, FORMULA_ALBA_V1, formulaDePieza } from '../motor/calculo.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos } from '../util.js';
+import { dinero } from '../motor/dinero.js';
 import { analizarRender, analizarRenderImagenes, analizarTexto, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64 } from '../nube.js';
 import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { revisarEstructura } from '../datos/revisionEstructural.js';
@@ -400,7 +401,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         // IDENTIDAD DE REVISIÓN congelada (audit 2026-10-01): mismo bom_hash + mismo
         // catálogo + mismo motor ⇒ mismo costo a centavos. Guardamos todo lo que define
         // esa identidad para poder reconstruir/verificar cualquier revisión.
-        costo: { costoUnitario: Math.round(resultado.costoUnitario), subtotalConocido: Math.round(emision.subtotalConocido), costoTotal: emitible ? Math.round(resultado.costoUnitario) : null, materialTotal: Math.round(resultado.materialTotal), manoObra: Math.round(resultado.manoObra), indirectosFabrica: Math.round(resultado.indirectosFabrica), precio: emitible ? Math.round(precio) : null, margen: b.margen, estado_costo: estadoCostoGuardar, pendientes: piezasSinMaterial, bom_hash: bomHash(b.componentes), analysis_id: b.analysisId ?? null, version_motor: MOTOR_VERSION, formula_version: formulaDePieza(b), version_catalogo: 'config-legado', factorDirecta: b.factorDirecta ?? null, factorIndirecta: b.factorIndirecta ?? null, render_hash: renderHash === renderFirmaActual ? renderHash : null, fecha: new Date().toISOString() },
+        costo: { costoUnitario: dinero(resultado.costoUnitario), subtotalConocido: dinero(emision.subtotalConocido), costoTotal: emitible ? dinero(resultado.costoUnitario) : null, materialTotal: dinero(resultado.materialTotal), manoObra: dinero(resultado.manoObra), indirectosFabrica: dinero(resultado.indirectosFabrica), precio: emitible ? dinero(precio) : null, margen: b.margen, estado_costo: estadoCostoGuardar, pendientes: emision.pendientes, bom_hash: bomHash(b.componentes), analysis_id: b.analysisId ?? null, version_motor: MOTOR_VERSION, formula_version: formulaDePieza(b), version_catalogo: 'config-legado', factorDirecta: b.factorDirecta ?? null, factorIndirecta: b.factorIndirecta ?? null, render_hash: renderHash === renderFirmaActual ? renderHash : null, fecha: new Date().toISOString() },
         confirmaciones: Object.entries(confirmadas).map(([question_key, v]) => ({ question_key, pregunta: v.pregunta, respuesta: v.respuesta })),
         plano_urls: planoUrls.length ? planoUrls : (expId ? undefined : []),
         render_aislado_url: soloHttp(renders.aislado), render_ambiente_url: soloHttp(renders.ambiente),
