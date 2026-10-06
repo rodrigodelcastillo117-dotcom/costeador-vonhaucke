@@ -31,6 +31,24 @@ const money=(n,cur='MXN')=>Number.isFinite(Number(n))
  : '—';
 const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 
+function entornoNatural(intent,brief=''){
+ const t=norm(`${brief} ${intent?._brief||''}`);
+ if(/aeropuerto|airport|check.?in|gate|terminal/.test(t)) return 'airport terminal / passenger processing environment';
+ if(/supermerc|retail|tienda|exhibidor|display/.test(t)) return 'premium retail or supermarket environment appropriate to the product';
+ if(/hotel|hospitality|hosped/.test(t)) return 'high-end hospitality interior';
+ if(/hospital|clinica|salud|health/.test(t)) return 'clean healthcare interior';
+ if(/cafeter|cafe|coffee/.test(t)) return 'corporate café / hospitality counter environment';
+ switch(intent?.familia){
+  case FAMILIA.RECEPCION:return 'real corporate lobby and reception environment';
+  case FAMILIA.ESCRITORIO:return 'contemporary workplace with believable circulation and adjacent workstations';
+  case FAMILIA.MESA:return 'executive boardroom / meeting room';
+  case FAMILIA.GUARDADO:return 'executive office or workplace storage zone';
+  case FAMILIA.LOCKER:return 'employee locker / operations support area';
+  case FAMILIA.DISPLAY:return 'real commercial retail display environment';
+  default:return 'premium contract-furniture interior matching the client brief';
+ }
+}
+
 function councilText(r){
  if(!r)return '';
  const direct=[r.humano,r.summary,r.resumen,r.recommendation,r.recomendacion,r.synthesis?.summary,r.synthesis?.recommendation];
@@ -167,7 +185,10 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
    if(!modelo) throw new Error('No existe una referencia 3D verificable de esta revisión. Render bloqueado para evitar divergencia visual.');
    const r=await generarRender(descripcion,{
      render_spec:c.render_spec,materiales:c.materiales,medidas:c.medidas,
-     tipo:c.tipo,modo:c.modo,aspecto:'4:3',
+     tipo:c.tipo,
+     // El 3D canónico ya cubre la lectura técnica. El fotográfico debe enseñar
+     // cómo vive el producto en un espacio real, sin perder la geometría.
+     modo:'ambiente',entorno:entornoNatural(nextIntent,nextIntent?._brief||texto),aspecto:'3:2',calidad:'2K',
      imagen:modelo,mediaType:'image/png',
      visual_revision_hash:c.visualRevisionHash,
    });
