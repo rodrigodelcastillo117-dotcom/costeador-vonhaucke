@@ -1028,7 +1028,14 @@ export default function App() {
           // Cotizar como partida con producto_id + producto_version_id ya fijados
           // (partidaDeCosteo). Sin esta prop el botón nunca aparecía y el camino
           // Cocrear→Cotizar quedaba muerto (una sola verdad de producto).
-          <Cocrear estado={estado} soloVentas={esVendedor} onIr={irA} onAgregar={agregarDesdeAsistente} />
+          <Cocrear
+            estado={estado}
+            soloVentas={esVendedor}
+            rol={esDireccion ? 'direccion' : esDiseno ? 'diseno' : 'ventas'}
+            usuarioEmail={sesion?.user?.email || null}
+            onIr={irA}
+            onAgregar={agregarDesdeAsistente}
+          />
         )}
         {pestania === 'banco' && <Banco onAgregar={agregarDeBanco} onIr={irA} />}
         {pestania === 'archivo' && (
