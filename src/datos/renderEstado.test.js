@@ -59,3 +59,10 @@ describe('historial', () => {
     expect(v1.estado).toBe(ESTADOS_RENDER.DESACTUALIZADO);
   });
 });
+
+
+  it('si existe hash actual pero el render no lo trae ⇒ DESACTUALIZADO', () => {
+    const r = marcarListo(nuevoRender({ bom_hash: null }), 'u');
+    expect(estaDesactualizado(r, { bom_hash: 'b1' })).toBe(true);
+    expect(evaluarRender(r, { bom_hash: 'b1' }).estado).toBe(ESTADOS_RENDER.DESACTUALIZADO);
+  });
