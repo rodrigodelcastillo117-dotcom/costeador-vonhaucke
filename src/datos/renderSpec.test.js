@@ -75,3 +75,19 @@ describe('renderSpecFromGraph — contrato tipado', () => {
     expect(renderSpecFromGraph({ nodes: [] })).toBe(null);
   });
 });
+
+
+describe('Cocrear render fidelity · fail-closed', () => {
+  it('render legado sin specHash se considera stale', async () => {
+    const { renderStale } = await import('./renderPrompt.js');
+    expect(renderStale({ dataUrl: 'https://example.test/r.png' }, { hash: 'spec-actual' })).toBe(true);
+  });
+  it('misma firma sigue vigente', async () => {
+    const { renderStale } = await import('./renderPrompt.js');
+    expect(renderStale({ specHash: 'abc' }, { hash: 'abc' })).toBe(false);
+  });
+  it('firma distinta queda stale', async () => {
+    const { renderStale } = await import('./renderPrompt.js');
+    expect(renderStale({ specHash: 'abc' }, { hash: 'def' })).toBe(true);
+  });
+});
