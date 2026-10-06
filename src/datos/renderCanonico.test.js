@@ -12,7 +12,7 @@ const fila = (over = {}) => ({
   producto_id: 1933, producto_version_id: 1933, estado: 'VALIDATED', stale: false,
   geometry_validation: 'PASS', feature_validation: 'PASS', finish_validation: 'PASS',
   storage_url: 'https://x/renders/1933.png', creado: '2026-10-04T10:00:00Z',
-  prompt_version: 'cocrear_render_v1', geometry_hash: 'h1', modo: 'render', ...over,
+  prompt_version: 'cocrear_render_v1', spec_hash: 's1', geometry_hash: 'h1', modo: 'render', ...over,
 });
 
 describe('render canónico · resolución por revisión exacta', () => {
@@ -113,6 +113,12 @@ describe('render canónico · resolución por revisión exacta', () => {
 
   it('VALIDATED sin geometry_hash nunca es VIGENTE', () => {
     const r = resolverRenderDeFilas([fila({ geometry_hash: null })], { productoId: 1933, productoVersionId: 1933 });
+    expect(r.estado).toBe(ESTADO_RENDER.PENDIENTE_VALIDACION);
+    expect(r.validado).toBe(false);
+  });
+
+  it('VALIDATED sin spec_hash nunca es VIGENTE', () => {
+    const r = resolverRenderDeFilas([fila({ spec_hash: null })], { productoId: 1933, productoVersionId: 1933 });
     expect(r.estado).toBe(ESTADO_RENDER.PENDIENTE_VALIDACION);
     expect(r.validado).toBe(false);
   });
