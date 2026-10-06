@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { explicarCosteo } from './explicacionCosteo.js';
 import { construirPrecedentesCosteo } from './precedentesCosteo.js';
 import { ejecutarTool, toolsParaRol } from '../voni/tools.js';
+import { inferirIntencion, guiaRuta } from '../voni/nucleo.js';
 import fs from 'node:fs';
 
 describe('Explicabilidad de costeo · no crea un segundo motor',()=>{
@@ -97,6 +98,19 @@ describe('Memoria económica · permisos',()=>{
     expect(b).toContain("from('expediente_revisiones')");
     expect(b).toContain("from('producto_version_economia')");
     expect(b).not.toContain("from('aprendizajes')");
+  });
+});
+
+describe('VONI contextual · cada chip hace lo que promete',()=>{
+  it('detecta explicación y precedentes como intenciones económicas explícitas',()=>{
+    expect(inferirIntencion('Explícame este costo',{role:'diseno'}).intent).toBe('COST_EXPLAIN');
+    expect(inferirIntencion('¿Hay un precedente similar?',{role:'diseno'}).intent).toBe('PRECEDENTS');
+  });
+
+  it('guía según pantalla sin inventar un módulo nuevo',()=>{
+    expect(guiaRuta({route:'costeador'}).detalle).toMatch(/cada peso|desperdicio/i);
+    expect(guiaRuta({route:'acomodo'}).detalle).toMatch(/circulación/i);
+    expect(guiaRuta({route:'cotizacion'}).detalle).toMatch(/emisión/i);
   });
 });
 
