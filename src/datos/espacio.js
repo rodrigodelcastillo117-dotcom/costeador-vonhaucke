@@ -122,6 +122,11 @@ export function expandirPiezas(partidas, tope = 600) {
         ruta: pt.ruta || null,
         productoId: pt.productoId || pt.producto_id || null,
         producto_version_id: productoVersionId,
+        ...(pt.functional_group_id ? { functional_group_id: pt.functional_group_id } : {}),
+        ...(pt.relation_role ? { relation_role: pt.relation_role } : {}),
+        ...(pt.anchor_role ? { anchor_role: pt.anchor_role } : {}),
+        ...(Number(pt.user_capacity) > 0 ? { user_capacity: Number(pt.user_capacity) } : {}),
+        relation_index: k + 1,
         ...(spatialSpec ? { spatial_spec: spatialSpec } : {}),
       });
     }
