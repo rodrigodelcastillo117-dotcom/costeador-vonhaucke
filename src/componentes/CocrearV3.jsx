@@ -6,7 +6,7 @@ import {
 import {prepararIntentCocrear,resumenIdeaCocrear,conceptosCocrear,aplicarConceptoCocrear,FEATURES_COCREAR,detectarAlcanceCocrear} from '../datos/cocrearWow.js';
 import {referenciasComercialesCocrear,formatearReferenciaCocrear} from '../datos/cocrearReferencias.js';
 import {estimadoDisenoCocrear} from '../datos/estimadoDiseno.js';
-import {listarCocreaciones,guardarCocrearSeguro,cargarCocrearSeguro,registrarProductoDesdeExpediente,subirRenderCanonico,voniCouncil,generarRender} from '../nube.js';
+import {listarCocreaciones,guardarCocrearSeguro,cargarCocrearSeguro,registrarProductoDesdeExpediente,subirRenderCanonico,voniCouncil,generarRender,buscarProductosMaestroTexto} from '../nube.js';
 import CocrearVisual from './CocrearVisual.jsx';
 import {parametrosEfectivos} from './Costeador.jsx';
 import {precioVenta} from '../motor/calculo.js';
@@ -208,11 +208,13 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
   try{
    const ctx=resumenIdeaCocrear(base,brief);
    const vh=contextoCatalogoParaIA(brief);
+   const master=await buscarProductosMaestroTexto(brief,30);
+   const vhReal={...vh,producto_maestro:master?.items||[]};
    setCatalogoCandidatos(vh.candidatos||[]);
    const r=await voniCouncil({
      task:'review_product',
      request:`COCREACIÓN. Interpreta esta idea completa sin convertirla en un mueble genérico: ${brief}`,
-     context:{...ctx,intent:base,von_haucke:vh},
+     context:{...ctx,intent:base,von_haucke:vhReal},
      constraints:[
        'No inventar costos',
        'Conservar intención completa',
@@ -255,10 +257,12 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
    const nextRev=historia.length+(cambio.aplico?1:0)||1;
    const nextSpec=construirProductSpec(next,extraerDNA(next),clasificarProducto(next,{}),{rev:nextRev,componentes:next._componentes||[]});
    const vh=contextoCatalogoParaIA(`${texto} ${frase}`);
+   const master=await buscarProductosMaestroTexto(`${texto} ${frase}`,30);
+   const vhReal={...vh,producto_maestro:master?.items||[]};
    setCatalogoCandidatos(vh.candidatos||[]);
    const r=await voniCouncil({
      task:'interpret_change',request:frase,
-     context:{brief:texto,intent:next,spec:nextSpec,resumen,von_haucke:vh},
+     context:{brief:texto,intent:next,spec:nextSpec,resumen,von_haucke:vhReal},
      constraints:['No inventar costos','No cambiar el concepto seleccionado silenciosamente','Revisar compatibilidad con línea/variante/acabado Von Haucke antes de convertir el cambio en custom','La instrucción debe afectar el ProductSpec canónico si es concreta','Proponer cambios explícitos y fabricables'],
      lenses:['portafolio Von Haucke','diseño','fabricación','uso']
    });setAnalisis(r||{});
