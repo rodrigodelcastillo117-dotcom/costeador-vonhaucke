@@ -58,7 +58,7 @@ function cambioCanonico(base,frase){
 
 async function capturarModeloPNG(){
  try{
-  const svg=document.querySelector('#cocrear-modelo-canonico svg');if(!svg)return null;
+  const svg=document.querySelector('#cocrear-modelo-canonico [data-view="render-reference"] svg');if(!svg)return null;
   const xml=new XMLSerializer().serializeToString(svg),blob=new Blob([xml],{type:'image/svg+xml;charset=utf-8'}),url=URL.createObjectURL(blob);
   const img=new Image();await new Promise((ok,err)=>{img.onload=ok;img.onerror=err;img.src=url});
   const cv=document.createElement('canvas');cv.width=1200;cv.height=660;const ctx=cv.getContext('2d');ctx.fillStyle='#111315';ctx.fillRect(0,0,cv.width,cv.height);ctx.drawImage(img,0,0,cv.width,cv.height);URL.revokeObjectURL(url);
