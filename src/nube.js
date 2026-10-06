@@ -80,16 +80,31 @@ export async function salir() { try { await nube.auth.signOut(); } catch (e) {} 
 // con una sesión de recuperación: ahí se pone la nueva SIN pedir la anterior
 // (justo porque no la recuerda).
 export async function pedirRecuperacion(email) {
-  const { error } = await nube.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
-  if (error) return { ok: false, error: error.message || 'No se pudo enviar el correo.' };
-  return { ok: true };
+  try {
+    const redirectTo = new URL('/', window.location.origin).toString();
+    const { error } = await conTimeout(
+      nube.auth.resetPasswordForEmail(email, { redirectTo }),
+      12000, 'recuperación de contraseña',
+    );
+    if (error) return { ok: false, error: error.message || 'No se pudo enviar el correo.' };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e?.message || 'No se pudo enviar el correo.' };
+  }
 }
 
 // Re-autentica al usuario con su contraseña ACTUAL. Sin esto, cualquiera que
 // se encuentre una sesión abierta puede cambiar la clave y quedarse la cuenta.
 export async function verificarContrasena(email, actual) {
-  const { error } = await nube.auth.signInWithPassword({ email, password: actual });
-  return !error;
+  try {
+    const { error } = await conTimeout(
+      nube.auth.signInWithPassword({ email, password: actual }),
+      12000, 'verificación de contraseña',
+    );
+    return !error;
+  } catch (_e) {
+    return false;
+  }
 }
 
 // Cierra la sesión en los DEMÁS dispositivos, no en éste.
@@ -104,9 +119,16 @@ export async function cerrarOtrasSesiones() {
 }
 
 export async function cambiarContrasena(nueva) {
-  const { error } = await nube.auth.updateUser({ password: nueva });
-  if (error) return { ok: false, error: error.message || 'No se pudo cambiar la contraseña.' };
-  return { ok: true };
+  try {
+    const { error } = await conTimeout(
+      nube.auth.updateUser({ password: nueva }),
+      12000, 'cambio de contraseña',
+    );
+    if (error) return { ok: false, error: error.message || 'No se pudo cambiar la contraseña.' };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e?.message || 'No se pudo cambiar la contraseña.' };
+  }
 }
 
 // Devuelve el permiso del correo (rol/nombre) o null si de verdad no esta en
