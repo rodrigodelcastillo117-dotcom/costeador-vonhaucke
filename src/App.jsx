@@ -3,7 +3,7 @@
 //  El acceso a nomina/financieros/tablero NO se pide con un PIN: lo resuelve
 //  la base de datos por el correo de quien entro (tabla `permitidos`).
 // ============================================================================
-import { useEffect, useRef, useState, lazy, Suspense } from 'react';
+import { useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
 import Icono from './componentes/Iconos.jsx';
 import MarcaLogo from './componentes/MarcaLogo.jsx';
 // Diferidos (carga bajo demanda): recharts (Tablero) y pdfjs (AsistenteEspecial) son
@@ -62,6 +62,7 @@ import { guardarRevision } from './datos/revisiones.js';
 import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
 import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, cotizacionEmitible } from './nube.js';
 import { calcular, modeloParaPieza, componentesSinMaterial } from './motor/calculo.js';
+import { calcularCosteoVivo } from './motor/costeoVivo.js';
 import { aCentavosEnteros, dinero } from './motor/dinero.js';
 import { idNuevo } from './util.js';
 import { costoImplicito, precioDeLista } from './datos/preciosVenta.js';
@@ -463,6 +464,17 @@ export default function App() {
   const esVendedor = !esDireccion && !esDiseno;
   // Puede ver el costo de fabricacion (Costeador, Precios de material, HojaCosto).
   const veCostos = esDireccion || esDiseno;
+
+  // VONI mira EXACTAMENTE el mismo resultado vivo que Costeador. No existe un
+  // "costeo para IA" paralelo. Si no hay BOM o el rol no ve economía, no se crea.
+  const voniCosting = useMemo(() => {
+    if (!veCostos || !(costeo?.componentes || []).length) return null;
+    try {
+      return calcularCosteoVivo(estado, costeo).resultado;
+    } catch (_e) {
+      return null;
+    }
+  }, [veCostos, estado, costeo]);
   // Nomina, financieros y tablero: SOLO Direccion, resuelto por su correo.
   // Ya no hay PIN: el permiso lo da la base de datos, que a los demas ni
   // siquiera les manda estos datos.
@@ -1159,6 +1171,7 @@ export default function App() {
                 // Fuente económica autorizada: SÓLO veCostos, y sólo el BOM del
                 // costeo actual (la tool igual bloquea a vendedor/cliente).
                 bom: veCostos ? (costeo?.componentes || null) : null,
+                costing: veCostos ? voniCosting : null,
                 clientSafe: false,
               }}
               onCerrar={() => setVoniAbierto(false)}
