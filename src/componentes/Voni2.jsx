@@ -6,7 +6,7 @@
 //  atención, budget, riesgo). La UI simplifica el contrato de respuesta.
 // ============================================================================
 import { useEffect, useMemo, useState } from 'react';
-import { responder, sugerencias } from '../voni/nucleo.js';
+import { responder, sugerencias, guiaRuta } from '../voni/nucleo.js';
 import { proveedorReal } from '../voni/proveedorReal.js';
 
 const COLOR_URGENCIA = {
@@ -34,6 +34,7 @@ export default function Voni2({ ctx = {}, onCerrar }) {
   const [estado, setEstado] = useState('idle'); // idle|cargando|ok|error
   const [resp, setResp] = useState(null);
   const sugs = useMemo(() => sugerencias(ctx), [ctx]);
+  const guia = useMemo(() => guiaRuta(ctx), [ctx]);
 
   async function preguntar(texto) {
     const query = (texto ?? q).trim();
@@ -59,6 +60,10 @@ export default function Voni2({ ctx = {}, onCerrar }) {
           <button className="boton" onClick={onCerrar} aria-label="Cerrar" style={{ minHeight: 40, padding: '0 14px' }}>Cerrar ✕</button>
         </div>
         <p className="ayuda" style={{ marginTop: 2 }}>Pregúntame sobre este {ctx.project_id ? 'proyecto' : 'espacio'}. Reviso lo que tu rol puede ver.</p>
+        <div style={{marginTop:10,padding:'10px 12px',border:'1px solid var(--linea)',borderRadius:10,background:'rgba(49,94,82,.08)'}}>
+          <strong style={{fontSize:13}}>{guia.titulo}</strong>
+          <div className="ayuda" style={{marginTop:3,lineHeight:1.45}}>{guia.detalle}</div>
+        </div>
 
         <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
           <input className="campo" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') preguntar(); }}
