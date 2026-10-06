@@ -2926,3 +2926,35 @@ body::before {
     box-shadow: 0 26px 60px -20px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.1);
   }
 }
+
+
+/* UX 10 — Inicio por trabajos, no por módulos. La complejidad existe pero se
+   revela sólo al pedir "Más herramientas". Conserva todas las rutas. */
+.inicio-simple { max-width: 900px; }
+.inicio-simple-cab { padding: 24px 2px 18px; }
+.inicio-simple-cab .inicio-titulo { margin: 8px 0 6px; }
+.inicio-tareas { display: grid; gap: 12px; margin: 16px 0; }
+.tarea-principal {
+  width: 100%; display: grid; grid-template-columns: 52px 1fr auto; align-items: center;
+  gap: 16px; text-align: left; padding: 22px; cursor: pointer;
+  border: 1px solid var(--linea); border-radius: 14px; background: var(--panel);
+  color: var(--tinta); box-shadow: var(--sombra);
+}
+.tarea-principal:hover { border-color: var(--tinta); transform: translateY(-1px); }
+.tarea-principal:focus-visible { outline: 3px solid var(--foco); outline-offset: 2px; }
+.tarea-vender { border-color: rgba(178,42,34,.45); }
+.tarea-num { font-family: var(--mono); color: var(--gris); font-size: 13px; }
+.tarea-cuerpo { display: grid; gap: 4px; min-width: 0; }
+.tarea-cuerpo strong { font-size: 20px; line-height: 1.2; }
+.tarea-cuerpo > span:last-child { color: var(--gris); font-size: 14px; line-height: 1.45; }
+.tarea-k { color: var(--rojo); font-size: 11px; font-weight: 800; letter-spacing: .09em; }
+.tarea-ir { white-space: nowrap; font-weight: 800; font-size: 14px; }
+.inicio-mas { margin: 18px 0 8px; border-top: 1px solid var(--linea); border-bottom: 1px solid var(--linea); }
+.inicio-mas > summary { cursor: pointer; padding: 16px 2px; font-weight: 700; color: var(--gris); }
+.inicio-mas[open] > summary { color: var(--tinta); }
+.inicio-mas .atajos { padding-bottom: 16px; }
+@media (max-width: 620px) {
+  .inicio-simple-cab { padding-top: 10px; }
+  .tarea-principal { grid-template-columns: 34px 1fr; padding: 18px 16px; gap: 10px; }
+  .tarea-ir { grid-column: 2; }
+}
