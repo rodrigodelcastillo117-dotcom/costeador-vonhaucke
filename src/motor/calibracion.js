@@ -100,3 +100,24 @@ export function calcularReconciliacionCosteo({pieza={},piezas=1,insumos={},param
     : null;
   return {alba,intelisis,delta,regla:'NO_PROMEDIAR'};
 }
+
+
+/**
+ * Certificación formal de un golden: además de cuadrar al centavo, exige
+ * procedencia externa válida. evaluarGoldenCosteo sigue sirviendo para
+ * diagnóstico interno; esta función es la compuerta para decir "certificado".
+ */
+export function evaluarGoldenCertificado(actual={}, esperado={}, {fuente=null, ...opts}={}) {
+  const comparacion = evaluarGoldenCosteo(actual, esperado, opts);
+  const fuente_valida = fuenteGoldenValida(fuente || {});
+  return {
+    ...comparacion,
+    fuente_valida,
+    fuente: fuente || null,
+    certificable: comparacion.certificable && fuente_valida,
+    issues_certificacion: [
+      ...(!fuente_valida ? ['FUENTE_GOLDEN_INVALIDA'] : []),
+      ...(!comparacion.certificable ? ['DELTA_O_CAMPOS_PENDIENTES'] : []),
+    ],
+  };
+}
