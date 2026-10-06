@@ -117,7 +117,13 @@ export default function Cocrear({estado,onAgregar,onIr}){
    const c=compileRenderPrompt(nextSpec,nextSpec.dna);
    const descripcion=`${c.descripcion}\nCLIENT BRIEF: ${nextIntent?._brief||texto}. SELECTED CONCEPT: ${nextIntent?._concepto||''} ${nextIntent?._concepto_nombre||''}. The image MUST preserve the exact current-revision geometry shown in the supplied technical reference. Do not redesign the product.`;
    const modelo=await capturarModeloPNG(c.visualRevisionHash);
-   const r=await generarRender(descripcion,{render_spec:c.render_spec,materiales:c.materiales,medidas:c.medidas,tipo:c.tipo,modo:c.modo,aspecto:'4:3',...(modelo?{imagen:modelo,mediaType:'image/png'}:{})});
+   if(!modelo) throw new Error('No existe una referencia 3D verificable de esta revisión. Render bloqueado para evitar divergencia visual.');
+   const r=await generarRender(descripcion,{
+     render_spec:c.render_spec,materiales:c.materiales,medidas:c.medidas,
+     tipo:c.tipo,modo:c.modo,aspecto:'4:3',
+     imagen:modelo,mediaType:'image/png',
+     visual_revision_hash:c.visualRevisionHash,
+   });
    if(r?.ok&&r.dataUrl)setRender({
      dataUrl:r.dataUrl,
      specHash:nextSpec.hash,
