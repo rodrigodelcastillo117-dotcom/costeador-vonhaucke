@@ -23,6 +23,17 @@ const PROV = {
   get_bom: async () => ({ contradicciones: [], componentes: [] }),
   compare_revisions: async () => ({ resumen: { totalAnterior: 100, totalNuevo: 120, delta: 20 } }),
   get_layout: async () => ({ warnings: [] }),
+  get_industrial_analysis: async () => ({
+    disponible:true,
+    bloqueos:[],
+    hallazgos:[{tipo:'CORTE_2D',material:'MDF',eficiencia_pct:62,completo:true}],
+    recomendaciones:[{
+      tipo:'EFICIENCIA_CORTE',prioridad:'MEDIA',
+      accion:'Revisar nesting/formato de MDF; eficiencia advisory 62%.',
+      confianza:0.9,ahorro_certificado:false,
+    }],
+    eficiencia:{corte_2d_global_pct:62,ahorro_certificado:null,optimizacion_advisory:true},
+  }),
 };
 
 describe('VONI seguridad adversarial', () => {
@@ -89,6 +100,7 @@ describe('VONI seguridad adversarial', () => {
     const t = toolsParaRol('ventas');
     expect(t).not.toContain('get_costing');
     expect(t).not.toContain('get_bom');
+    expect(t).not.toContain('get_industrial_analysis');
     expect(t).toContain('get_quote');
   });
 });
@@ -193,5 +205,45 @@ describe('VONI · permiso ≠ evidencia', () => {
     });
     expect(respuesta.que_paso).toContain('NO LISTA');
     expect(respuesta.que_paso).not.toMatch(/análisis económico con este rol/i);
+  });
+});
+
+
+describe('VONI industrial · mejor que un chatbot, no más autoritario que la evidencia', () => {
+  it('mapea merma/desperdicio/desarrollo de producto al cerebro industrial', () => {
+    expect(inferirIntencion('¿Cómo reducirías la merma de este mueble?').intent).toBe('INDUSTRIAL_IMPROVEMENT');
+    expect(inferirIntencion('mejora este producto para fabricarlo mejor').intent).toBe('INDUSTRIAL_IMPROVEMENT');
+    expect(inferirIntencion('quiero optimizar el despiece y el nesting').intent).toBe('INDUSTRIAL_IMPROVEMENT');
+  });
+
+  it('costeador recibe recomendaciones accionables y NO llama certificado al ahorro', async () => {
+    const { respuesta, intent } = await responder({
+      query:'¿cómo mejorarías este mueble para desperdiciar menos?',
+      ctx:{user:USER,role:'costeador',bom:[{nombre:'Cubierta'}],costing:{costoUnitario:1000}},
+      prov:PROV,
+    });
+    expect(intent).toBe('INDUSTRIAL_IMPROVEMENT');
+    expect(respuesta.que_paso).toMatch(/mejora/i);
+    expect(respuesta.accion).toMatch(/nesting|formato/i);
+    expect(respuesta.impacto).toMatch(/potencial/i);
+    expect(JSON.stringify(respuesta)).toMatch(/NO certificado|potencial/i);
+  });
+
+  it('vendedor no recibe análisis industrial económico por pedirlo', async () => {
+    const { respuesta } = await responder({
+      query:'optimiza la merma y dime cuánto ahorraríamos',
+      ctx:{user:USER,role:'ventas'},
+      prov:PROV,
+    });
+    expect(respuesta.estado).toBe('DESCONOCIDO');
+    expect(respuesta.que_paso).toMatch(/No puedo confirmar el análisis económico/i);
+    expect(esClientSafe(respuesta)).toBe(true);
+  });
+
+  it('tool industrial está disponible para costeador y dirección', async () => {
+    const a=await ejecutarTool('get_industrial_analysis',{user:USER,role:'costeador'},{},PROV);
+    const b=await ejecutarTool('get_industrial_analysis',{user:USER,role:'direccion'},{},PROV);
+    expect(a.ok).toBe(true);
+    expect(b.ok).toBe(true);
   });
 });
