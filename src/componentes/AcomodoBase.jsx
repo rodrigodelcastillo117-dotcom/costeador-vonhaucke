@@ -662,9 +662,17 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     setAreas((as) => as.map((a, i) => {
       if (clase === 'pu') {
         if (i === a0) { const ps = [...(a.puertas || [])]; const q = ps[idx]; ps.splice(idx, 1);
-          return i === area ? { ...a, puertas: [...ps, { ...q, x: +(xmm / 1000).toFixed(2), y: +(ymm / 1000).toFixed(2) }] } : { ...a, puertas: ps }; }
+          return i === area ? { ...a, puertas: [...ps, {
+            ...q,
+            x: +(xmm / 1000).toFixed(2), y: +(ymm / 1000).toFixed(2),
+            ...(q?.tieneBarrido ? { bisagraX: +(xmm / 1000).toFixed(2), bisagraY: +(ymm / 1000).toFixed(2) } : {}),
+          }] } : { ...a, puertas: ps }; }
         if (i === area) { const q = as[a0].puertas[idx];
-          return { ...a, puertas: [...(a.puertas || []), { ...q, x: +(xmm / 1000).toFixed(2), y: +(ymm / 1000).toFixed(2) }] }; }
+          return { ...a, puertas: [...(a.puertas || []), {
+            ...q,
+            x: +(xmm / 1000).toFixed(2), y: +(ymm / 1000).toFixed(2),
+            ...(q?.tieneBarrido ? { bisagraX: +(xmm / 1000).toFixed(2), bisagraY: +(ymm / 1000).toFixed(2) } : {}),
+          }] }; }
         return a;
       }
       if (i === a0) { const os = [...(a.obstaculos || [])]; const q = os[idx]; os.splice(idx, 1);
