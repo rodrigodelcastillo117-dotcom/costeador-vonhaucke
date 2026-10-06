@@ -70,7 +70,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     [estado, costeo],
   );
   const { piezaVirtual, parBase, par, esIntelisis, resultado } = vivo;
-  const margen = costeo.margen ?? estado.parametros.margenObjetivo ?? 40;
+  const margen = costeo.margen ?? estado.parametros.margenObjetivo ?? PARAMETROS_DEFAULT.margenObjetivo;
   const precio = esIntelisis
     ? precioDeLista(precioVenta(resultado.costoUnitario, par).lista)
     : precioDe(resultado.costoUnitario, margen);
