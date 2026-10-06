@@ -23,6 +23,7 @@ import { renderSpecFromGraph } from '../datos/renderSpec.js';
 import { flagActivo } from '../datos/flags.js';
 import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
 import { recomendar as recomendarCatalogoVonHaucke } from '../voni/conocimiento.js';
+import { explicarCosteo } from '../datos/explicacionCosteo.js';
 
 const ATAJOS = [
   { nombre: 'Muy facil', v: 30 },
@@ -91,6 +92,10 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   const inteligenciaIndustrial = useMemo(
     () => analizarProductoIndustrial({ bom: costeo.componentes || [], costing: resultado }),
     [costeo.componentes, resultado],
+  );
+  const explicacionCosteo = useMemo(
+    () => explicarCosteo(resultado, { nombre: costeo.nombre, cantidad: costeo.piezas }),
+    [resultado, costeo.nombre, costeo.piezas],
   );
   // SIMULADOR vs OFICIAL (cutover 2026-10-02). El costo OFICIAL usa Alba (sin factores a
   // mano y sin horas). En cuanto el usuario fija un factorDirecta/Indirecta o usa modo
@@ -725,6 +730,18 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
           {!(inteligenciaIndustrial?.recomendaciones || []).length && !(inteligenciaIndustrial?.bloqueos || []).length && (
             <div className="ayuda verde" style={{ marginTop:8 }}>Sin mejora determinista obvia con la evidencia actual. VONI no inventa ahorro.</div>
           )}
+          <details style={{ marginTop:10, borderTop:'1px solid var(--linea)', paddingTop:8 }}>
+            <summary style={{ cursor:'pointer', fontWeight:700, fontSize:12 }}>¿Por qué cuesta esto?</summary>
+            <div className="ayuda" style={{ marginTop:7 }}>{explicacionCosteo.ecuacion}</div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(2,minmax(0,1fr))', gap:5, marginTop:7, fontSize:11 }}>
+              <span>Material <b>{pesos2(explicacionCosteo.matematicas.material_total)}</b></span>
+              <span>MO <b>{pesos2(explicacionCosteo.matematicas.mano_obra)}</b></span>
+              <span>GI fábrica <b>{pesos2(explicacionCosteo.matematicas.indirectos_fabrica)}</b></span>
+              <span>Costo unitario <b>{pesos2(explicacionCosteo.matematicas.costo_unitario)}</b></span>
+            </div>
+            {(explicacionCosteo.supuestos || []).map((s,i)=><div key={i} className="ayuda gris" style={{ marginTop:4 }}>• {s}</div>)}
+            <div className="ayuda gris" style={{ marginTop:6, fontSize:10 }}>{explicacionCosteo.nota}</div>
+          </details>
         </div>
 
         {puedeVerComercial ? (
