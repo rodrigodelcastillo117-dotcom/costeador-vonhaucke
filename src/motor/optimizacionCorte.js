@@ -120,7 +120,11 @@ export function piezasLineales(componentes = [], lote = 1) {
     const largo = npos(c.largoMM ?? c.longitudMM ?? c.length_mm);
     const esLineal = c.forma === 'lineal' || (!npos(c.anchoMM) && largo > 0);
     if (!esLineal || !largo) continue;
-    const qBase = npos(c.piezas ?? c.cantidad) || 1;
+    // En BOM legacy, `cantidad` de PTR/perfil suele significar METROS agregados,
+    // no número de cortes. Sólo `piezas` (o cantidadPiezas explícita) puede
+    // expandirse como conteo; jamás convertimos metros en piezas por heurística.
+    const qBase = npos(c.piezas ?? c.cantidadPiezas);
+    if (!qBase) continue;
     const q = Math.max(0, Math.round(qBase * (npos(lote) || 1)));
     for (let i = 0; i < q; i++) {
       out.push({
