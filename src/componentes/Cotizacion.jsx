@@ -468,11 +468,12 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           que es el trabajo que de verdad sube la exactitud. */}
       {!soloVentas && partidas.length > 0 && (() => {
         const c = confianzaDe(partidas);
+        const evaluable = typeof c.pct === 'number';
         return (
-          <div className={`confianza no-imprimir ${c.pct >= 60 ? 'ok' : c.pct >= 25 ? 'media' : 'baja'}`}>
-            <div className="confianza-barra"><span style={{ width: `${c.pct}%` }} /></div>
+          <div className={`confianza no-imprimir ${!evaluable ? 'baja' : c.pct >= 60 ? 'ok' : c.pct >= 25 ? 'media' : 'baja'}`}>
+            <div className="confianza-barra"><span style={{ width: `${evaluable ? c.pct : 0}%` }} /></div>
             <div className="confianza-txt">
-              <strong>{c.pct}% del precio sale de proyectos ya cerrados.</strong>{' '}
+              <strong>{evaluable ? `${c.pct}% del precio sale de proyectos ya cerrados.` : 'Confianza de precio no evaluable.'}</strong>{' '}
               <span className="gris">{textoConfianza(c)}</span>
               {c.lineasFlojas.length > 0 && (
                 <div className="ayuda" style={{ marginTop: 4 }}>
