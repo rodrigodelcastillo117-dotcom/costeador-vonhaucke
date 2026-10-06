@@ -98,7 +98,7 @@ function limpiarSugeridos(acomodo) {
   return teniaSugeridos ? { ...resto, plan: null } : resto;
 }
 
-function sanearAcomodoContraPartidas(acomodo, partidasReales = []) {
+export function sanearAcomodoContraPartidas(acomodo, partidasReales = []) {
   if (!acomodo?.plan) return acomodo;
   const piezas = expandirPiezas(partidasReales);
   const ids = new Set((piezas || []).map((p) => String(p.id)));
