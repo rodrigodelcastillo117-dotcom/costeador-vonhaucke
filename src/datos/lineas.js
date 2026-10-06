@@ -234,7 +234,8 @@ export function precioDePieza(estado, ruta, g, pieza, cantidad, config) {
   const precio = real ? precioDeLista(real.lista) : (porUsuario ? porUsuario.lista : precioModelo * factor);
   const costo = real ? costoImplicito(real.lista)
     : (porUsuario ? costoImplicito(porUsuario.lista / (1 - 0.40)) : resultado.costoUnitario * factor);
-  return { resultado, margen, precio, costo, real: !!real && !real.heredada, par };
+  const costoDerivado = !!real || !!porUsuario;
+  return { resultado, margen, precio, costo, costoDerivado, real: !!real && !real.heredada, par };
 }
 
 // --- SELLER-SAFE: el vendedor NUNCA recibe economía interna ------------------
@@ -439,7 +440,7 @@ export function costearItem(estado, item, opciones = {}) {
 
   const partidaModelo = {
     ruta: item.ruta, linea: L.titulo, producto: prod.id, nombre: nb.nombre,
-    cantidad, costoUnitario: pr.costo, precioUnitario: precio, margen, pieza,
+    cantidad, costoUnitario: pr.costo, costoDerivado: !!pr.costoDerivado, precioUnitario: precio, margen, pieza,
     w: nb.w, d: nb.d, config,
     // ¿El precio salió de un presupuesto real o del modelo? El sello de la
     // propuesta depende de esto, no de una lista de líneas escrita a mano.
@@ -483,7 +484,7 @@ export function costearConfig(estado, ruta, productoId, config, cantidad = 1) {
     const a = res.articulo;
     return {
       nombre: nb.nombre, config: cfg, cantidad: n,
-      costoUnitario: costoImplicito(a.full || a.lista), precioUnitario: a.lista,
+      costoUnitario: costoImplicito(a.full || a.lista), costoDerivado: true, precioUnitario: a.lista,
       margen, w: nb.w, d: nb.d, precioReal: true,
       catalogo: { clave: a.clave, lista: a.lista, full: a.full, minimo: a.minimo },
       variantes: res.estado === 'varios' ? res.candidatos.slice(0, 8) : null,
@@ -491,7 +492,7 @@ export function costearConfig(estado, ruta, productoId, config, cantidad = 1) {
   }
   return {
     nombre: nb.nombre, config: cfg, cantidad: n,
-    costoUnitario: pr.costo, precioUnitario: pr.precio,
+    costoUnitario: pr.costo, costoDerivado: !!pr.costoDerivado, precioUnitario: pr.precio,
     margen, w: nb.w, d: nb.d,
     // Igual que costearItem: sin esto, una partida editada perdía el sello
     // "Firme" aunque su precio siguiera saliendo de un presupuesto real.
