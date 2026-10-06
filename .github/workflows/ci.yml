@@ -9,6 +9,7 @@ on:
     branches:
       - c3.4-seller-safe
       - demo-ceo-autopoblar-zonas
+      - chatgpt/perfection-v2-20261005
   pull_request:
   workflow_dispatch:
 
