@@ -11,7 +11,7 @@
 //   · fail-closed: sin material → sin precio; `nombre` sobrevive para trazabilidad.
 // ============================================================================
 import { describe, it, expect } from 'vitest';
-import { validarIntentCosteo } from './validarIntentCosteo.js';
+import { validarIntentCosteo, proyectarPiezaTecnica } from './validarIntentCosteo.js';
 import { calcular, modeloParaPieza, precioDe, PARAMETROS_DEFAULT } from '../motor/calculo.js';
 
 // Config que "carga el servidor" (análogo a config.datos del edge). El cliente NUNCA
@@ -44,6 +44,26 @@ function costearComoServidor(body, { insumos = INSUMOS_SERVIDOR, parametros = PA
 const bodyValido = () => ({ cantidad: 1, pieza: { componentes: [{ insumoId: 'tablero-x', nombre: 'Cubierta', largoMM: 1000, anchoMM: 500, piezas: 1 }] } });
 
 describe('costear-servidor (contrato shadow) — el dinero es del servidor', () => {
+  it('wrapper UI proyecta sólo BOM/horas y elimina economía antes de llamar al servidor', () => {
+    const ui = {
+      nombre: 'Exhibidor',
+      componentes: bodyValido().pieza.componentes,
+      horas: { corte: 1.5 },
+      margen: 5,
+      costo: 1,
+      precio: 2,
+      modeloCosteo: 'cliente-inyectado',
+      factorDirecta: 0.01,
+      imagen: 'data:image/png;base64,muy-pesado',
+    };
+    const pieza = proyectarPiezaTecnica(ui);
+    expect(pieza).toEqual({
+      componentes: ui.componentes,
+      horas: { corte: 1.5 },
+    });
+    expect(validarIntentCosteo({ cantidad: 1, pieza }).ok).toBe(true);
+  });
+
   it('ataque vendedor: pieza.margen=0 para abaratar → 400, el precio NO se produce', () => {
     const r = costearComoServidor({ ...bodyValido(), pieza: { ...bodyValido().pieza, margen: 0 } });
     expect(r.status).toBe(400);
