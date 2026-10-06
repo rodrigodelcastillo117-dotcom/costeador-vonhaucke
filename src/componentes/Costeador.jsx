@@ -51,6 +51,8 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   // estructura que Voni entendió. No toca el costeo/dinero: el motor sigue costeando.
   const [analizandoIA, setAnalizandoIA] = useState(false);
   const [errIA, setErrIA] = useState('');
+  const [validandoCosto, setValidandoCosto] = useState(false);
+  const [errAutoridad, setErrAutoridad] = useState('');
   const [estructuraVoni, setEstructuraVoni] = useState(null);
   // RENDER STALE (Gate 6): si el despiece cambió desde que se generó la imagen, el
   // render ya NO es fiel. No lo mostramos como válido: avisamos y marcamos para regenerar.
@@ -133,6 +135,20 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   const vistaTipo = (estructuraVoni?.design_intent?.product_type && estructuraVoni.design_intent.product_type !== 'unknown')
     ? tipoDeMueble({ nombre: estructuraVoni.design_intent.product_type })
     : tipoDeMueble(costeo);
+
+  async function agregarCotizacionVerificada() {
+    if (incompletoC || simulando || validandoCosto) return;
+    setErrAutoridad('');
+    setValidandoCosto(true);
+    try {
+      const r = await onAgregarCotizacion(resultado, precio, margen);
+      if (r?.ok === false) setErrAutoridad(r.error || 'No se pudo verificar el costo.');
+    } catch (e) {
+      setErrAutoridad(String(e?.message || e || 'No se pudo verificar el costo.'));
+    } finally {
+      setValidandoCosto(false);
+    }
+  }
 
   // --- Render de calidad con IA (Gemini), inspirado en lo que se costea ---
   // Resumen de ESTRUCTURA (lo que Voni entendió) para que el render arme el objeto
@@ -686,7 +702,10 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
           {!incompletoC && bajoMinimo && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">Debajo del minimo de {estado.parametros.margenMinimo}%.</span></div>}
           <div className="espacio" />
           {/* Emisión OFICIAL solo cuando es Alba (no simulación) y el costo está completo. */}
-          <button className="boton primario grande" disabled={incompletoC || simulando} title={simulando ? 'Simulación: vuelve al costo oficial Alba para cotizar' : incompletoC ? 'No se puede cotizar mientras el motor marque bloqueos de costeo' : ''} onClick={() => !incompletoC && !simulando && onAgregarCotizacion(resultado, precio, margen)}>Agregar a la cotización</button>
+          {errAutoridad && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">⚠ {errAutoridad}</span></div>}
+          <button className="boton primario grande" disabled={incompletoC || simulando || validandoCosto}
+            title={simulando ? 'Simulación: vuelve al costo oficial Alba para cotizar' : incompletoC ? 'No se puede cotizar mientras el motor marque bloqueos de costeo' : validandoCosto ? 'Verificando costo contra el servidor' : 'Verifica el costo autoritativo antes de agregar'}
+            onClick={agregarCotizacionVerificada}>{validandoCosto ? 'Verificando costo…' : 'Agregar a la cotización'}</button>
           <div className="espacio" />
           <button className="boton grande" onClick={() => onGuardarPieza(resultado)}>Guardar como pieza</button>
           <div className="espacio" />
