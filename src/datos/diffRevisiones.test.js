@@ -50,3 +50,23 @@ describe('diffRevisiones (N16)', () => {
     expect(silla.deltaImporte).toBe(-80 * 4210);
   });
 });
+
+
+  it('preserva deltas de centavos', () => {
+    const a={partidas:[{source_ref:'x',nombre:'X',cantidad:1,precioUnitario:100.10}],totales:{precioLista:100.10},total:100.10};
+    const b={partidas:[{source_ref:'x',nombre:'X',cantidad:1,precioUnitario:100.11}],totales:{precioLista:100.11},total:100.11};
+    const d=diffRevisiones(a,b);
+    expect(d.lineas[0].deltaImporte).toBe(0.01);
+    expect(d.deltas.precioLista).toBe(0.01);
+    expect(d.deltas.total).toBe(0.01);
+  });
+
+  it('dinero desconocido produce delta desconocido, no cero ficticio', () => {
+    const a={partidas:[{source_ref:'x',nombre:'X',cantidad:1,precioUnitario:null}],totales:{precioLista:null},total:null};
+    const b={partidas:[{source_ref:'x',nombre:'X',cantidad:1,precioUnitario:100}],totales:{precioLista:100},total:100};
+    const d=diffRevisiones(a,b);
+    expect(d.lineas[0].deltaImporte).toBeNull();
+    expect(d.deltas.precioLista).toBeNull();
+    expect(d.deltas.total).toBeNull();
+    expect(d.incompleto).toBe(true);
+  });
