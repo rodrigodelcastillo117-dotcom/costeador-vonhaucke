@@ -64,12 +64,15 @@ Pedimos una fila por artículo/material:
 | `unidad_consumo` | si difiere | unidad con la que costea el BOM |
 | `factor_conversion` | si difieren | explícito; jamás inferido |
 | `precio_compra` | sí | costo/precio de compra fuente |
-| `moneda` | sí | MXN/USD/EUR |
-| `fecha_ultima_compra` | sí | formato YYYY-MM-DD |
+| `moneda` | sí | v1: MXN/USD; EUR queda bloqueado hasta tener FX por moneda |
+| `fecha_ultima_compra` | sí | formato YYYY-MM-DD y fecha calendario válida |
+| `costo_mxn` o `tipo_cambio_mxn` | si moneda=USD | costo local real del ERP o TC del movimiento; nunca TC de hoy |
 | `evidencia` | sí | OC, factura, folio o movimiento ERP |
 
 Si alguno de los campos críticos falla, el registro queda **bloqueado** y no
-puede transformarse en precio utilizable por el motor.
+puede transformarse en precio utilizable por el motor. Cada corrida recibe además
+un `snapshot_id`/batch generado por el ingestor (archivo, request o lote SQL) para
+poder reconstruir exactamente de dónde salió cada costo.
 
 ## Si Viviana elige SQL Server read-only
 
@@ -89,6 +92,7 @@ sugeridos (pueden llamarse distinto; lo importante son las columnas):
 - clave_erp
 - precio_compra
 - moneda
+- costo_mxn y/o tipo_cambio_mxn cuando la compra no esté en MXN
 - fecha_ultima_compra
 - proveedor
 - evidencia / movimiento_id / folio
@@ -117,7 +121,8 @@ Necesitamos del técnico:
 - paginación;
 - límites de llamadas;
 - zona horaria/formatos de fecha;
-- significado exacto de cada “costo” que Intelisis exponga.
+- significado exacto de cada “costo” que Intelisis exponga;
+- si una compra está en USD, el costo contabilizado en MXN o el tipo de cambio del movimiento.
 
 La credencial vive sólo del lado servidor.
 
@@ -129,7 +134,7 @@ Primera entrega recomendada:
 Encabezado canónico:
 
 ```csv
-clave_erp,descripcion,proveedor,unidad_compra,unidad_consumo,factor_conversion,precio_compra,moneda,fecha_ultima_compra,evidencia
+clave_erp,descripcion,proveedor,unidad_compra,unidad_consumo,factor_conversion,precio_compra,moneda,costo_mxn,tipo_cambio_mxn,fecha_ultima_compra,evidencia
 ```
 
 Debe ser exportación automática cuando sea posible. Cada archivo se conserva
@@ -168,9 +173,10 @@ registro queda pendiente de conciliación.
 Un dato validado se prepara para `insumo_precios` como:
 - histórico, no overwrite destructivo;
 - `estado='propuesto'`;
-- `evidence_status='verified'`;
+- `evidence_status='documentada'`;
 - `requiere_validacion_compras=true`;
-- fuente y evidencia obligatorias.
+- fuente y evidencia obligatorias;
+- `precio`/`precio_compra` operativos quedan normalizados a MXN; moneda, precio original y TC se conservan en `propiedades`.
 
 Compras/Dirección sigue controlando cuándo se convierte en precio autorizado.
 
