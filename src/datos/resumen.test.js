@@ -94,3 +94,21 @@ describe('especificación del área', () => {
     expect(especificacion(op)).toMatch(/6 × Modulor/);
   });
 });
+
+
+describe('resumen por área · precio desconocido', () => {
+  it('no suma una partida sin precio como $0', () => {
+    const partidas=[
+      {id:'p1',nombre:'Escritorio',cantidad:1,precioUnitario:null},
+    ];
+    const acomodo={
+      areas:[{nombre:'Privado',tipo:'privado',ancho:4000,largo:3500}],
+      plan:{colocacion:[{id:'p1-1',area:0}]},
+    };
+    const r=resumenPorArea(partidas,acomodo);
+    expect(r[0].renglones[0].unitario).toBeNull();
+    expect(r[0].renglones[0].importe).toBeNull();
+    expect(r[0].total).toBeNull();
+    expect(r[0].incompleto).toBe(true);
+  });
+});
