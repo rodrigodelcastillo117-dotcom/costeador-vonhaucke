@@ -3,7 +3,7 @@
 //  Dos columnas en >=1000px; una sola abajo, con barra fija que muestra el costo.
 // ============================================================================
 import { useMemo, useState, useEffect } from 'react';
-import { precioDe, precioVenta, sugerenciaLote, sugerenciaMedida, costoNetoComponente, netoComponente, PARAMETROS_DEFAULT, SIN_MO_SECCIONES, precioUsable } from '../motor/calculo.js';
+import { precioDe, precioVenta, sugerenciaLote, sugerenciaMedida, costoNetoComponente, netoComponente, costeoEmitible, PARAMETROS_DEFAULT, SIN_MO_SECCIONES, precioUsable } from '../motor/calculo.js';
 import { calcularCosteoVivo, parametrosEfectivosCosteo } from '../motor/costeoVivo.js';
 export { parametrosEfectivosCosteo as parametrosEfectivos } from '../motor/costeoVivo.js';
 import { precioDeLista } from '../datos/preciosVenta.js';
@@ -77,8 +77,9 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   const bajoMinimo = margen < estado.parametros.margenMinimo;
   // FAIL-CLOSED (audit 2026-10-01): con partidas sin costear no hay precio ni se
   // puede emitir a la cotización. Solo se muestra el subtotal conocido.
-  const pendientesC = resultado.componentesIgnorados || [];
-  const incompletoC = pendientesC.length > 0;
+  const emisionC = costeoEmitible(resultado);
+  const pendientesC = emisionC.pendientes || [];
+  const incompletoC = !emisionC.emitible;
   // SIMULADOR vs OFICIAL (cutover 2026-10-02). El costo OFICIAL usa Alba (sin factores a
   // mano y sin horas). En cuanto el usuario fija un factorDirecta/Indirecta o usa modo
   // horas, está SIMULANDO: no es oficial y no puede emitir/cotizar/aprobar. Volver a
