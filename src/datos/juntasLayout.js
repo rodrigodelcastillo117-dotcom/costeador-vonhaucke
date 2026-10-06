@@ -178,7 +178,11 @@ export function sentarJuntas(plan = {}, piezas = [], areas = []) {
         const r = { x: Math.round(cand.x), y: Math.round(cand.y), w: cand.w, d: cand.d };
         if (!dentro(area, r) || chocaObstaculo(area, r)) continue;
         if (ocupados.some((o) => o.area === m.area && solapa(r, o, 25))) continue;
-        elegida = { id: p.id, area: m.area, x: r.x, y: r.y, rot: cand.rot, contra: `mesa:${m.c.id}`, alrededorDe: m.c.id };
+        elegida = {
+          id: p.id, area: m.area, x: r.x, y: r.y, rot: cand.rot,
+          contra: `mesa:${m.c.id}`, alrededorDe: m.c.id, anchor_id: m.c.id,
+          lado_mesa: cand.lado,
+        };
         ocupados.push({ area: m.area, id: String(p.id), ...r });
         break;
       }
