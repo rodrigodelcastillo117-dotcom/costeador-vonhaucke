@@ -2993,3 +2993,10 @@ body::before {
  .costeo-resumen95{grid-template-columns:1fr}
  .confianza95-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+.costeo-avanzado95>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px}
+.costeo-avanzado95>summary::-webkit-details-marker{display:none}
+.costeo-avanzado95>summary::after{content:'＋';font-size:18px;font-weight:400;margin-left:auto}
+.costeo-avanzado95[open]>summary::after{content:'−'}
+.costeo-avanzado95>summary>span{font-size:11px;font-weight:600;color:var(--texto-secundario,#666)}
+.costeo-avanzado95[open]>summary{padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--linea)}
