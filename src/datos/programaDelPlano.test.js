@@ -141,3 +141,16 @@ describe('rolDe: respaldo por tamaño cuando no hay tipo ni nombre reconocible',
     expect(pr.privados).toBe(1);
   });
 });
+
+
+describe('capacidad de juntas fail-closed', () => {
+  it('0 m² no inventa cuatro personas', () => {
+    expect(personasEnSala(0)).toBe(0);
+  });
+  it('área insuficiente para cuatro según la regla no certifica capacidad', () => {
+    expect(personasEnSala(12)).toBe(0);
+  });
+  it('16 m² sí soporta cuatro según 4 m²/persona', () => {
+    expect(personasEnSala(16)).toBe(4);
+  });
+});
