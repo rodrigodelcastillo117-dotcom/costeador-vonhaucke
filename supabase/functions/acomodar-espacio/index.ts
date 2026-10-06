@@ -233,7 +233,7 @@ Deno.serve(async (req) => {
   }));
   const areasTxt = cleanAreas.map((a: any, i: number) => `[${i}] ${a.nombre}: ${a.ancho} x ${a.largo} mm; rol=${a.zone_role}; puertas=${a.puertas}`).join("\n");
   const lista = cleanPieces.map((p: any) => `${p.id}: ${p.nombre} - ${Math.round(p.w)}x${Math.round(p.d)} mm (${p.tipo})${p.spatial_spec ? `; spatial=${JSON.stringify(p.spatial_spec)}` : ""}`).join("\n");
-  const baseSystem = `Eres un space planner senior. PROPONES un layout, pero un validador determinista decide si sirve. Nunca inventes piezas ni omitas IDs. Coordenadas locales por area, x/y en mm, rot 0/90. Cada pieza completa debe quedar dentro de su area y sin traslapes. Respeta semantica: recepcion en recepcion, mesa de juntas en juntas, benches en area operativa, escritorio direccion en oficina privada. Si una pieza incluye spatial, respeta sus clearances/anclas/preferencias. No coloques muebles cerca de puertas si su barrido no es claro. Si no cabe todo, caben=false; NO reduzcas cantidades. Pasillos objetivo >=1000 mm y detras de sillas >=900 mm.\n\nAREAS:\n${areasTxt}\n\nPIEZAS:\n${lista}`;
+  const baseSystem = `Eres un space planner senior. PROPONES un layout, pero un validador determinista decide si sirve. Nunca inventes piezas ni omitas IDs. Coordenadas locales por area, x/y en mm, rot 0/90. Cada pieza completa debe quedar dentro de su area y sin traslapes. Respeta semantica: recepcion en recepcion, mesa de juntas en juntas, benches en area operativa, escritorio direccion en oficina privada. Los miembros con el mismo grupo funcional DEBEN permanecer en la misma area y los dependientes conservar su anchor indicado. Si una pieza incluye spatial, respeta sus clearances/anclas/preferencias. No coloques muebles cerca de puertas si su barrido no es claro. Si no cabe todo, caben=false; NO reduzcas cantidades. Pasillos objetivo >=1000 mm y detras de sillas >=900 mm.\n\nAREAS:\n${areasTxt}\n\nPIEZAS:\n${lista}`;
 
   let ultimaUsage: any = null;
   async function llamarIA(system: string) {
@@ -287,6 +287,8 @@ Deno.serve(async (req) => {
         if (valid[i].area === valid[j].area && overlap(valid[i], valid[j])) issues.push({ code: "OVERLAP", a: valid[i].id, b: valid[j].id, area: valid[i].area });
       }
     }
+
+    for (const gi of auditarGruposFuncionales(canonicalPieces, valid)) issues.push({ field: "functional_group", ...gi });
 
     const rectsByArea: Record<string, any[]> = {};
     for (const v of valid) (rectsByArea[v.area] ||= []).push({ id: v.id, x: v.x, y: v.y, w: v.w, d: v.d });
