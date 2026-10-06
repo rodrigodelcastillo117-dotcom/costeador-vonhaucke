@@ -31,6 +31,7 @@ import { FEATHER_PRODUCTOS, generarFeather } from './feather.js';
 import { WORKLOUNGE_PRODUCTOS, generarWorklounge } from './worklounge.js';
 import { CIRQUE_PRODUCTOS, generarCirque } from './cirque.js';
 import { ECOACUSTIC_PRODUCTOS, generarEcoAcustic } from './ecoacustic.js';
+import { MELAMINA_POR_ESPESOR, PINTURA_COLORES } from './acabados.js';
 import { calcular, precioDe, precioVenta, modeloParaPieza } from '../motor/calculo.js';
 import { buscarPrecioVenta, costoImplicito, precioDeLista } from './preciosVenta.js';
 import { factorDeLinea } from './factoresLinea.js';
@@ -541,6 +542,10 @@ export function catalogoIA() {
         if (p.biombo) params.biombo = [null, 'cristal', 'melamina'];
         for (const sel of p.selects || []) params[sel.key] = sel.opciones.map((o) => o.id);
         if (p.finishes) params.finish = p.finishes.map((f) => f.id);
+        // Colores/acabados disponibles por producto. Antes VONI conocía el producto
+        // pero no veía sus colores reales, así que "Blanco Absoluto" o "Nogal Neo"
+        // terminaban como texto libre en vez de configuración trazable.
+        if (p.colores) params.color = p.colores.map((x) => x?.id || x).filter(Boolean);
         const checks = (p.checks || []).map((c) => c.key);
         return { id: p.id, nombre: p.nombre, params, checks };
       }),
@@ -563,6 +568,14 @@ export function catalogoIA() {
       ...(b.medidas ? { medidas: b.medidas } : {}),
       ...(b.usuarios ? { usuarios: b.usuarios } : {}),
     })),
+  };
+  // Acabados globales REALES. Son conocimiento para VONI, no permiso universal:
+  // cada producto sigue limitando qué combinación es válida en su generador.
+  out.__acabados = {
+    nota: 'Catálogo global real; validar compatibilidad por producto antes de aplicar.',
+    melamina: Object.entries(MELAMINA_POR_ESPESOR).flatMap(([espesor, rows]) =>
+      (rows || []).map((x) => ({ id:x.id, nombre:x.label, espesorMM:Number(espesor), codigo:x.codigo || null }))),
+    pintura: (PINTURA_COLORES || []).map((x) => ({ id:x.id, nombre:x.label, codigo:x.codigo || null })),
   };
   return out;
 }

@@ -13,7 +13,7 @@ import { recetaBench } from '../datos/bench.js';
 import HojaCosto from './HojaCosto.jsx';
 import FichaPDF from './FichaPDF.jsx';
 import MiniRender, { tipoDeMueble, dimsDeMueble } from './MiniRender.jsx';
-import { generarRender, analizarTexto } from '../nube.js';
+import { generarRender, analizarTexto, buscarProductosMaestroTexto } from '../nube.js';
 import { pesos2, pct, pct1, colorMerma } from '../util.js';
 import AnalisisEstructural from './AnalisisEstructural.jsx';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
@@ -21,6 +21,8 @@ import { conAcompanantes } from '../datos/autoInsumos.js';
 import { aplicarPoliticaMaterial, MATCH } from '../datos/materialMatch.js';
 import { renderSpecFromGraph } from '../datos/renderSpec.js';
 import { flagActivo } from '../datos/flags.js';
+import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
+import { recomendar as recomendarCatalogoVonHaucke } from '../voni/conocimiento.js';
 
 const ATAJOS = [
   { nombre: 'Muy facil', v: 30 },
@@ -65,6 +67,10 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   // Al cargar un costeo que ya trae imagen, fija la firma base para detectar cambios futuros.
   useEffect(() => { if (costeo.imagen && sigRender === null) setSigRender(bomSig); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [costeo.imagen]);
   const insumos = estado.insumos;
+  const candidatosLinea = useMemo(
+    () => recomendarCatalogoVonHaucke(costeo.descripcionCliente || costeo.nombre || '', 5),
+    [costeo.descripcionCliente, costeo.nombre],
+  );
 
   // ÚNICO camino de preparación/cálculo: la misma función alimenta a VONI.
   const vivo = useMemo(
@@ -82,6 +88,10 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   const emisionC = costeoEmitible(resultado);
   const pendientesC = emisionC.pendientes || [];
   const incompletoC = !emisionC.emitible;
+  const inteligenciaIndustrial = useMemo(
+    () => analizarProductoIndustrial({ bom: costeo.componentes || [], costing: resultado }),
+    [costeo.componentes, resultado],
+  );
   // SIMULADOR vs OFICIAL (cutover 2026-10-02). El costo OFICIAL usa Alba (sin factores a
   // mano y sin horas). En cuanto el usuario fija un factorDirecta/Indirecta o usa modo
   // horas, está SIMULANDO: no es oficial y no puede emitir/cotizar/aprobar. Volver a
@@ -122,7 +132,9 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
         !window.confirm('Esto reemplazará las piezas actuales por lo que entienda Voni de tu descripción. ¿Seguir?')) return;
     setErrIA(''); setAnalizandoIA(true);
     try {
-      const res = await analizarTexto(catalogoIA(), desc);
+      const master = await buscarProductosMaestroTexto(desc, 30);
+      const catalogo = { ...catalogoIA(), __producto_maestro: master?.items || [] };
+      const res = await analizarTexto(catalogo, desc);
       if (!res?.ok) { setErrIA(res?.error || 'No se pudo interpretar la descripción.'); return; }
       const p = res.propuesta || {};
       set({ nombre: costeo.nombre || p.producto || '', descripcionCliente: p.descripcionCliente || desc, componentes: conAcompanantes(mapIaComps(p)) });
@@ -328,6 +340,15 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             <span className="ayuda gris" style={{ fontSize: 12 }}>Propone piezas y estructura; tú confirmas. El precio lo calcula el motor.</span>
           </div>
           {errIA && <div className="alerta roja" style={{ marginTop: 8 }}><span className="texto">{errIA}</span></div>}
+          {candidatosLinea.length > 0 && (
+            <div className="alerta" style={{ marginTop: 8, display: 'block', background: '#eef6f3', borderColor: '#8bbcaf', color: '#174f45' }}>
+              <strong>Antes de hacerlo a la medida:</strong> VONI encontró posibles líneas Von Haucke existentes.
+              <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:6 }}>
+                {candidatosLinea.map((l)=><span key={l.ruta} className="chip" style={{background:'#fff'}}><b>{l.linea}</b> · {l.productos?.length||0} variante(s)</span>)}
+              </div>
+              <div className="ayuda" style={{marginTop:6,color:'#356b62'}}>Son candidatos, no una coincidencia certificada. Revisa línea/variante antes de construir un especial; si ninguna resuelve el brief, Von Haucke sí puede fabricarlo a la medida.</div>
+            </div>
+          )}
           {estructuraVoni && estructuraVoni.nodes.length > 0 && (
             <div className="tarjeta" style={{ background: 'var(--panel)', borderLeft: '4px solid var(--acento, #3a6ea5)', marginTop: 10 }}>
               <div style={{ fontWeight: 700, marginBottom: 2 }}>🧠 Estructura que entendió Voni</div>
@@ -677,6 +698,34 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             grande para la MISMA pieza. Se le pasa el margen efectivo. (Para piezas
             de catálogo/Intelisis la hoja usa la lista ×3 y este override no aplica.) */}
         <HojaCosto resultado={resultado} insumos={insumos} pieza={piezaVirtual} parametros={{ ...par, margenObjetivo: margen }} tipo={costeo.tipoProducto} mostrarVolumen={puedeVerComercial} mostrarComercial={puedeVerComercial} />
+
+        <div className="tarjeta" style={{ marginTop: 12, borderLeft: '4px solid #315e52' }}>
+          <div className="fila" style={{ justifyContent:'space-between', gap:8, alignItems:'start' }}>
+            <div>
+              <strong>VONI · Mejora de fabricación</strong>
+              <div className="ayuda">El costo oficial NO cambia. Esta capa encuentra oportunidades deterministas de corte, retazo, repetibilidad y datos faltantes.</div>
+            </div>
+            <span className="chip">{inteligenciaIndustrial?.matematica?.formula_oficial || resultado.formulaCosteo || '—'}</span>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,minmax(0,1fr))', gap:6, marginTop:10 }}>
+            <div><div className="ayuda">Eficiencia 2D</div><strong>{inteligenciaIndustrial?.eficiencia?.corte_2d_global_pct == null ? '—' : `${inteligenciaIndustrial.eficiencia.corte_2d_global_pct}%`}</strong></div>
+            <div><div className="ayuda">Desperdicio calculado</div><strong>{pesos2(inteligenciaIndustrial?.eficiencia?.desperdicio_costo_calculado || 0)}</strong></div>
+            <div><div className="ayuda">Supuestos</div><strong>{inteligenciaIndustrial?.matematica?.supuestos?.length || 0}</strong></div>
+          </div>
+          {(inteligenciaIndustrial?.matematica?.supuestos || []).slice(0,2).map((s,i)=>(
+            <div key={'sup'+i} className="alerta ambar" style={{ marginTop:8 }}><span className="texto">⚠ {s.detalle}</span></div>
+          ))}
+          {(inteligenciaIndustrial?.recomendaciones || []).slice(0,3).map((r,i)=>(
+            <div key={'rec'+i} style={{ marginTop:8, paddingTop:8, borderTop:'1px solid var(--linea)' }}>
+              <div style={{ fontWeight:700, fontSize:12 }}>{r.tipo?.replace(/_/g,' ')}</div>
+              <div className="ayuda">{r.accion}</div>
+              {r.ahorro_certificado === false && <div className="ayuda gris" style={{ fontSize:11 }}>Advisory · requiere validación de Diseño/Producción antes de modificar BOM o declarar ahorro.</div>}
+            </div>
+          ))}
+          {!(inteligenciaIndustrial?.recomendaciones || []).length && !(inteligenciaIndustrial?.bloqueos || []).length && (
+            <div className="ayuda verde" style={{ marginTop:8 }}>Sin mejora determinista obvia con la evidencia actual. VONI no inventa ahorro.</div>
+          )}
+        </div>
 
         {puedeVerComercial ? (
           <div className="tarjeta roja" style={{ marginTop: 16 }}>

@@ -19,6 +19,7 @@ import { diffRevisiones } from '../datos/diffRevisiones.js';
 import { conocimientoDe } from './conocimiento.js';
 import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
 import { buscarMaterialTecnico, describirFormatoTecnico } from '../datos/materialKnowledge.js';
+import { nube } from '../nube.js';
 
 const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
 
@@ -148,6 +149,29 @@ export const proveedorReal = {
   // Conocimiento del catálogo Von Haucke (líneas, materiales, a la medida). Usa la
   // consulta del usuario (args.query) para recomendar/explicar. No es económico.
   get_catalog_knowledge: async (ctx, args) => conocimientoDe(args?.query || ''),
-  get_product: async () => null,
-  search_products: async () => [],
+
+  // Producto Maestro REAL, seller-safe: identidad/taxonomía/versionado, jamás costo/margen.
+  get_product: async (_ctx, args) => {
+    const id=Number(args?.id);
+    if(!Number.isFinite(id)) return null;
+    const {data,error}=await nube.from('productos')
+      .select('id,nombre,codigo,source_type,familia,estado,activo,version_tecnica_vigente_id')
+      .eq('id',id).maybeSingle();
+    if(error) return null;
+    return data||null;
+  },
+
+  search_products: async (_ctx, args) => {
+    const raw=String(args?.query||'').trim().slice(0,90);
+    const q=raw.replace(/[^a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ ._\/-]/g,' ').replace(/\s+/g,' ').trim();
+    if(q.length<2) return [];
+    const cols='id,nombre,codigo,source_type,familia,estado,activo,version_tecnica_vigente_id';
+    const [porNombre,porCodigo]=await Promise.all([
+      nube.from('productos').select(cols).eq('activo',true).ilike('nombre',`%${q}%`).limit(20),
+      nube.from('productos').select(cols).eq('activo',true).ilike('codigo',`%${q}%`).limit(20),
+    ]);
+    const uniq=new Map();
+    for(const x of [...(porNombre.data||[]),...(porCodigo.data||[])]) if(x?.id!=null) uniq.set(x.id,x);
+    return [...uniq.values()].slice(0,25);
+  },
 };

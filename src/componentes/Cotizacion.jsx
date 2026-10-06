@@ -272,21 +272,14 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         : 'Primero crea y valida el acomodo del proyecto.');
       return;
     }
-    setErrGen(''); setGenOficina(true);
-    try {
-      const lista = partidas.map((p) => `${p.cantidad}× ${p.nombre}`).join(', ') || 'mobiliario de oficina Von Haucke';
-      const ctx = cotCliente.acomodo?.areas?.length ? `${cotCliente.acomodo.areas.length} área(s) de trabajo` : '';
-      // Fotos reales de los productos cotizados → referencia (específico a las líneas VH).
-      const urls = [...new Set(partidas.map((p) => fotoPartida(p)).filter(Boolean))].slice(0, 6);
-      const imagenes = (await Promise.all(urls.map(urlABase64))).filter(Boolean);
-      const r = await generarRender(lista, { modo: 'oficina', medidas: ctx, imagenes });
-      if (r?.ok && r?.dataUrl) {
-        const up = await persistirRender(r.dataUrl, 'acomodo');
-        if (!up?.ok || !up?.url) setErrGen(up?.error || 'Se generó la oficina, pero no se pudo guardar.');
-        else setCot({ acomodo: { ...(cot.acomodo || {}), render3d: up.url, render3d_storage_path: up.path || null, render3d_layout_validado: true } });
-      } else setErrGen(r?.error || 'No se pudo generar la oficina.');
-    } catch (e) { setErrGen('No se pudo conectar.'); }
-    finally { setGenOficina(false); }
+    // Un render "bonito" generado sólo con la lista de compras no es una propuesta
+    // exacta. El layout visual vive en Acomodo; ahí existe la referencia isométrica
+    // limpia y el QA puede comparar posición/orientación antes de certificar.
+    if (!cotCliente.acomodo?.render3d) {
+      setErrGen('Para un render exacto, genéralo desde Acomodo → Render de mi oficina. Ahí VONI usa el layout real como referencia; desde Cotización no voy a inventar una oficina genérica.');
+      return;
+    }
+    setErrGen('El render vigente ya viene del Acomodo validado. Para regenerarlo sin perder fidelidad, vuelve a Acomodo.');
   }
 
   // DESCARGAR de verdad: se genera el archivo y se baja. Antes esto abría el

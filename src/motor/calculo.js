@@ -582,6 +582,15 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
           lote: n,
         })
       : null;
+    const tipoAlbaAplicado = SIN_MO_SECCIONES.has(insumo.seccion)
+      ? 'compraventa'
+      : tipoAlba({ seccion: insumo.seccion, nombre: insumo.nombre });
+    const tieneFraccionDirecta = comps.some((x)=>Number(x?.hojas)>0);
+    const tieneGeometria = comps.some((x)=>Number(x?.largoMM)>0&&Number(x?.anchoMM)>0);
+    const usaAprovechamientoGenerico = !!(
+      insumo.fraccion &&
+      comps.some((x)=>!(Number(x?.hojas)>0) && !(Number(x?.largoMM)>0&&Number(x?.anchoMM)>0))
+    );
     detalleInsumos.push({
       insumoId: id,
       nombre: insumo.nombre,
@@ -589,9 +598,19 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
       clase: insumo.clase || 'directa',
       unidad: insumo.unidad,
       formato: insumo.formato,
+      veta: !!insumo.veta,
       nombresComponentes: comps.map((c) => c.nombre).filter(Boolean),
       optimizacionCorte,
       optimizacionCorte1D,
+      tipoAlbaAplicado,
+      metodoConsumo: tieneFraccionDirecta
+        ? 'FRACCION_DIRECTA_RAFA'
+        : insumo.fraccion
+          ? (tieneGeometria ? 'RENDIMIENTO_GEOMETRICO' : 'APROVECHAMIENTO_GENERICO')
+          : insumo.inventario
+            ? 'INVENTARIO_CONTINUO'
+            : insumo.formato ? 'FORMATO_COMPLETO' : 'CONSUMO_DIRECTO',
+      usaAprovechamientoGenerico,
       ...r,
     });
   }
@@ -696,6 +715,9 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     gastosOperacion,
     costoFabricacion,
     modeloCosteo,
+    formulaCosteo: formulaDePieza(pieza),
+    mermaProcesoPct: merma * 100,
+    parametrosCorte: { kerfMM: par.kerfMM, recorteOrillaMM: par.recorteOrillaMM, aprovechamientoCorte: par.aprovechamientoCorte },
     costoLote,
     costoLoteConMerma,
     costoUnitario,

@@ -8,9 +8,47 @@
 import { auditarEvidenciaBOM } from './evidencia.js';
 import { diagnosticoDesarrolloProducto } from './desarrolloProducto.js';
 import { costeoEmitible } from '../motor/calculo.js';
+import { optimizarCorte2D } from '../motor/optimizacionCorte.js';
 
 const n=(x)=>x!=null&&x!==''&&Number.isFinite(Number(x))?Number(x):null;
 const pct=(x)=>n(x)==null?null:Math.round(n(x)*10)/10;
+
+function microAjustesNesting(bom, d, lote=1){
+  const base=d?.optimizacionCorte;
+  const fmt=d?.formato||{};
+  if(!base?.disponible||!base?.completo||!(base.hojas>1)||!(fmt.largoMM>0&&fmt.anchoMM>0)) return [];
+  const comps=(bom||[]).filter((x)=>x?.insumoId===d.insumoId && Number(x?.largoMM)>100 && Number(x?.anchoMM)>100 && !(Number(x?.hojas)>0));
+  if(!comps.length) return [];
+  const out=[];
+  for(let ci=0;ci<comps.length;ci++){
+    for(const campo of ['largoMM','anchoMM']){
+      const original=Number(comps[ci][campo]);
+      for(const delta of [5,10,15,20,25]){
+        if(original-delta<100) continue;
+        const variante=comps.map((x,i)=>i===ci?{...x,[campo]:original-delta}:{...x});
+        const r=optimizarCorte2D({
+          componentes:variante,formato:fmt,veta:!!d?.veta,
+          kerfMM:Number(costingParametros(d)?.kerfMM)||6,
+          recorteOrillaMM:Number(costingParametros(d)?.recorteOrillaMM)||10,
+          lote,
+        });
+        if(r?.completo&&r.hojas<base.hojas){
+          out.push({
+            componente:comps[ci].nombre||d.nombre,
+            campo,de_mm:original,a_mm:original-delta,delta_mm:-delta,
+            hojas_antes:base.hojas,hojas_despues:r.hojas,
+            hojas_evitadas:base.hojas-r.hojas,
+            valor_compra_referencia:Number.isFinite(Number(d.precio))?+(Number(d.precio)*(base.hojas-r.hojas)).toFixed(2):null,
+            requiere_validacion_diseno:true,
+          });
+          break;
+        }
+      }
+    }
+  }
+  return out.sort((a,b)=>b.hojas_evitadas-a.hojas_evitadas||Math.abs(a.delta_mm)-Math.abs(b.delta_mm)).slice(0,3);
+}
+function costingParametros(d){ return d?._parametrosCorte || {}; }
 
 export function analizarProductoIndustrial({bom=[],costing=null}={}){
   const componentes=Array.isArray(bom)?bom:[];
@@ -45,7 +83,8 @@ export function analizarProductoIndustrial({bom=[],costing=null}={}){
   }
 
   let areaComprada=0,areaNeta=0,desperdicioCosto=0;
-  for(const d of detalles){
+  for(const d0 of detalles){
+    const d={...d0,_parametrosCorte:costing?.parametrosCorte||{}};
     const nombre=d?.nombre||d?.insumoId||'Material';
     if(d?.noCabe){
       bloqueos.push({
@@ -77,6 +116,24 @@ export function analizarProductoIndustrial({bom=[],costing=null}={}){
           tipo:'EFICIENCIA_CORTE',prioridad:ef<55?'ALTA':'MEDIA',
           accion:`Revisar nesting/formato de ${nombre}; eficiencia advisory ${ef}%.`,
           confianza:.9,ahorro_certificado:false,
+        });
+      }
+      const rem=(opt.remanentes||[]).filter((r)=>Number(r.area_mm2)>=80000).slice(0,3);
+      if(rem.length){
+        recomendaciones.push({
+          tipo:'RETAZO_REUTILIZABLE',prioridad:'BAJA',
+          accion:`Registrar/usar retazos de ${nombre}: ${rem.map((r)=>`${r.w}×${r.h} mm`).join(', ')} antes de abrir material nuevo.`,
+          confianza:.9,ahorro_certificado:false,
+          evidencia:{remanentes:rem},
+        });
+      }
+      const micros=microAjustesNesting(componentes,d,Number(costing?.piezas)||1);
+      for(const m of micros){
+        recomendaciones.push({
+          tipo:'MICROAJUSTE_NESTING',prioridad:'MEDIA',
+          accion:`Explorar ${m.componente}: ${m.campo==='largoMM'?'largo':'ancho'} ${m.de_mm}→${m.a_mm} mm; el nesting advisory baja de ${m.hojas_antes} a ${m.hojas_despues} hoja(s).`,
+          confianza:.85,ahorro_certificado:false,
+          evidencia:m,
         });
       }
       areaComprada+=n(opt.area_comprada_mm2)||0;
@@ -131,6 +188,22 @@ export function analizarProductoIndustrial({bom=[],costing=null}={}){
     }
   }
 
+  const supuestos=[];
+  for(const d of detalles){
+    if(d?.usaAprovechamientoGenerico) supuestos.push({
+      code:'APROVECHAMIENTO_GENERICO',material:d.nombre||d.insumoId,
+      detalle:`Usa aprovechamiento genérico de ${costing?.parametrosCorte?.aprovechamientoCorte ?? 'N/D'}% porque falta geometría/fracción verificable.`,
+    });
+  }
+  if(Number(costing?.mermaProcesoPct)>0) supuestos.push({
+    code:'MERMA_GLOBAL',
+    detalle:`La merma de proceso ${pct(costing.mermaProcesoPct)}% se aplica al costo completo como rendimiento global; es correcta sólo si representa pérdida equivalente de unidad completa.`,
+  });
+  if(Number(costing?.preparacion)>0 && costing?.formulaCosteo==='ALBA_V1') supuestos.push({
+    code:'PREPARACION_COSTO_HORA',
+    detalle:'Hay preparación por horas encima de Alba; validar que la tarifa/hora usada sea la autorizada de planta.',
+  });
+
   for (const o of desarrollo.oportunidades || []) {
     recomendaciones.push({
       tipo: o.tipo,
@@ -166,10 +239,17 @@ export function analizarProductoIndustrial({bom=[],costing=null}={}){
       issues:(evidencia.issues||[]).length,
     },
     desarrollo_producto: desarrollo,
+    matematica:{
+      formula_oficial:costing?.formulaCosteo||null,
+      modelo_costeo:costing?.modeloCosteo||null,
+      merma_proceso_pct:n(costing?.mermaProcesoPct),
+      parametros_corte:costing?.parametrosCorte||null,
+      supuestos,
+      lectura:'Alba/Rafa permanecen como costo oficial; nesting, retazos y microajustes son ingeniería advisory hasta validación de Producción.',
+    },
     eficiencia:{
       corte_2d_global_pct:eficienciaGlobal,
       desperdicio_costo_calculado:desperdicioCosto,
-      // explícito: este número NO es ahorro.
       ahorro_certificado:null,
       optimizacion_advisory:true,
     },

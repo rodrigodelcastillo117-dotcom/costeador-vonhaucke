@@ -146,8 +146,8 @@ export function inferirIntencion(query, ctx = {}) {
 
   // CONOCIMIENTO DE PRODUCTO (qué línea sirve, materiales, a la medida). Va ANTES
   // que COSTING para que "¿qué mueble me sirve?" no se confunda con "costéame".
-  if (/(que linea|recomiend|sugier|me sirve|sirve para|de que est|a la medida|que producto|catalogo|que mueble)/.test(q)) {
-    return { intent: 'KNOWLEDGE', modo, lentes: ['conocimiento'], tools: ['get_catalog_knowledge'] };
+  if (/(que linea|recomiend|sugier|me sirve|sirve para|de que est|a la medida|que producto|catalogo|que mueble|codigo|modelo|variante|mampara|cancel|biombo)/.test(q)) {
+    return { intent: 'KNOWLEDGE', modo, lentes: ['conocimiento'], tools: ['get_catalog_knowledge','search_products'] };
   }
   if (/\b(mejor\w*|optimiz\w*|desarroll\w* producto|despiece|despiez\w*|merma\w*|desperdici\w*|eficien\w*|nesting|corte\w*|aprovech\w*|fabricab\w*)\b/.test(q)) {
     return {
@@ -300,16 +300,36 @@ function respuestaConocimiento(k) {
   const evidencia = (k.principios || []).map((p) => afirmacion(p, TIPO_AFIRMACION.HECHO, { source_type: 'catalogo' }));
   let que_paso; let por_que = null;
   if (k.recomendaciones && k.recomendaciones.length) {
-    que_paso = `Te sirve: ${k.recomendaciones.map((r) => r.nombre).join(', ')}.`;
-    por_que = k.recomendaciones.map((r) => `${r.nombre} — ${r.que} (${r.razones.join('; ')})`).join(' · ');
-    for (const r of k.recomendaciones) evidencia.push(afirmacion(`${r.nombre}: ${r.que}.`, TIPO_AFIRMACION.HECHO, { source_type: 'catalogo', confidence: 0.8 }));
+    const nombreLinea=(r)=>r.linea||r.nombre||r.ruta||'Línea Von Haucke';
+    que_paso = `Te sirve revisar: ${k.recomendaciones.map(nombreLinea).join(', ')}.`;
+    por_que = k.recomendaciones.map((r) => {
+      const piezas=(r.productos||[]).slice(0,4).map((p)=>p.nombre||p.id).filter(Boolean);
+      return `${nombreLinea(r)}${r.que?` — ${r.que}`:''}${piezas.length?` · variantes: ${piezas.join(', ')}`:''}`;
+    }).join(' · ');
+    for (const r of k.recomendaciones) evidencia.push(afirmacion(
+      `${nombreLinea(r)}: ${r.que || `${(r.productos||[]).length} producto(s)/variante(s) en el registro canónico`}.`,
+      TIPO_AFIRMACION.HECHO,
+      { source_type: 'catalogo', confidence: 1 },
+    ));
   } else if (k.linea) {
-    que_paso = `${k.linea.nombre}: ${k.linea.que}.`;
-    por_que = `Fabrica: ${(k.linea.fabrica || []).join(', ')}.`;
+    const nom=k.linea.linea||k.linea.nombre||k.linea.ruta||'Línea Von Haucke';
+    que_paso = `${nom}${k.linea.que?`: ${k.linea.que}`:'.'}`;
+    por_que = `Registro canónico: ${(k.linea.productos || []).slice(0,8).map((p)=>p.nombre||p.id).join(', ') || 'sin variantes detalladas'}.`;
   } else {
     que_paso = 'Von Haucke fabrica casi todo a la medida. Dime el mueble o la zona (sala de juntas, privado, recepción, lounge…) y te recomiendo la línea.';
   }
-  if (k.esAMedida) por_que = `${por_que ? `${por_que} · ` : ''}Sí: casi todo se hace a la medida (medidas y acabados); por eso cada pieza se costea por su despiece.`;
+  const productosReales = Array.isArray(k.productos_reales) ? k.productos_reales : [];
+  if (productosReales.length) {
+    const top = productosReales.slice(0, 6);
+    const txt = top.map((p) => [p.codigo, p.nombre, p.familia ? `[${p.familia}]` : null].filter(Boolean).join(' · ')).join(' | ');
+    por_que = `${por_que ? por_que + ' · ' : ''}Producto Maestro encontró coincidencias reales: ${txt}.`;
+    for (const p of top) evidencia.push(afirmacion(
+      `Producto Maestro #${p.id}: ${p.nombre}${p.codigo ? ` (${p.codigo})` : ''}.`,
+      TIPO_AFIRMACION.HECHO,
+      { source_type:'producto_maestro', source_id:p.id, confidence:1 },
+    ));
+  }
+  if (k.esAMedida || k.a_la_medida_disponible) por_que = `${por_que ? por_que + ' · ' : ''}Si ningún producto real resuelve el brief, Von Haucke puede desarrollarlo a la medida; si existe un padre real, VONI debe conservar ese linaje.`;
   return respuestaEstructurada({
     que_paso, por_que, confianza: confianzaDe(evidencia),
     accion: 'Dime la zona o el mueble y lo aterrizo en tu cotización.',
@@ -333,9 +353,13 @@ export async function responder({ query, ctx = {}, prov = {}, intentForzado = nu
   // CONOCIMIENTO DE PRODUCTO: responde directo desde el catálogo (sin lentes de
   // readiness). Mantiene el MISMO contrato de respuesta, así la UI no cambia.
   if (plan.intent === 'KNOWLEDGE') {
-    const res = await ejecutarTool('get_catalog_knowledge', contexto, { ...contexto, query }, prov);
-    const respuesta = respuestaConocimiento(res.ok ? res.data : null);
-    const obs = registrar({ ctx: contexto, intent: plan.intent, lentes: plan.lentes, tools: ['get_catalog_knowledge'], resultStatus: respuesta.estado, duration: Date.now() - t0 });
+    const [rk,rp] = await Promise.all([
+      ejecutarTool('get_catalog_knowledge', contexto, { ...contexto, query }, prov),
+      ejecutarTool('search_products', contexto, { ...contexto, query }, prov),
+    ]);
+    const knowledge = rk.ok ? { ...(rk.data || {}), productos_reales: rp.ok ? (rp.data || []) : [] } : null;
+    const respuesta = respuestaConocimiento(knowledge);
+    const obs = registrar({ ctx: contexto, intent: plan.intent, lentes: plan.lentes, tools: ['get_catalog_knowledge','search_products'], resultStatus: respuesta.estado, duration: Date.now() - t0 });
     return { respuesta, intent: plan.intent, modo: plan.modo, observabilidad: obs };
   }
 
