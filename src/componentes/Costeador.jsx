@@ -3,7 +3,9 @@
 //  Dos columnas en >=1000px; una sola abajo, con barra fija que muestra el costo.
 // ============================================================================
 import { useMemo, useState, useEffect } from 'react';
-import { calcular, precioDe, precioVenta, sugerenciaLote, sugerenciaMedida, costoNetoComponente, netoComponente, PARAMETROS_DEFAULT, modeloParaPieza, SIN_MO_SECCIONES, precioUsable } from '../motor/calculo.js';
+import { precioDe, precioVenta, sugerenciaLote, sugerenciaMedida, costoNetoComponente, netoComponente, PARAMETROS_DEFAULT, SIN_MO_SECCIONES, precioUsable } from '../motor/calculo.js';
+import { calcularCosteoVivo, parametrosEfectivosCosteo } from '../motor/costeoVivo.js';
+export { parametrosEfectivosCosteo as parametrosEfectivos } from '../motor/costeoVivo.js';
 import { precioDeLista } from '../datos/preciosVenta.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { AREAS_LABEL } from '../datos/areas.js';
@@ -27,15 +29,6 @@ const ATAJOS = [
   { nombre: 'Dificil', v: 70 },
   { nombre: 'Muy dificil', v: 90 },
 ];
-
-export function parametrosEfectivos(estado, costeo) {
-  return {
-    ...estado.parametros,
-    factorIndirectosFabrica: costeo.factorIndirectosFabrica ?? estado.parametros.factorIndirectosFabrica,
-    mermaProceso: costeo.mermaProceso ?? estado.parametros.mermaProceso,
-    empaquePorPieza: costeo.empaquePorPieza ?? estado.parametros.empaquePorPieza,
-  };
-}
 
 // Nadie escribe "1500" cuando piensa en una cubierta de 1.50 m. Al teclear 1.50
 // en un campo de milímetros, la app calculaba 1.5 mm × 0.9 mm = 0.00 m² y
@@ -71,26 +64,12 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   useEffect(() => { if (costeo.imagen && sigRender === null) setSigRender(bomSig); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [costeo.imagen]);
   const insumos = estado.insumos;
 
-  const piezaVirtual = {
-    nombre: costeo.nombre,
-    componentes: costeo.componentes,
-    horas: costeo.horas,
-    modoManoObra: costeo.modoManoObra,
-    modeloCosteo: costeo.modeloCosteo,
-    factorDirecta: costeo.factorDirecta,
-    factorIndirecta: costeo.factorIndirecta,
-    preparacionHoras: costeo.preparacionHoras,
-  };
-  const parBase = parametrosEfectivos(estado, costeo);
-  // Modelo de costeo (clásico vs Intelisis): mismo patrón que ya usan
-  // CosteadorLinea.jsx/lineas.js:precioDePieza(). No-op hoy — `costeo` en
-  // esta pantalla nunca nace de una pieza de línea, siempre en blanco, desde
-  // AsistenteEspecial o desde Catálogo (ninguno declara modeloCosteo todavía).
-  const { par, esIntelisis } = modeloParaPieza(parBase, piezaVirtual);
-  const resultado = useMemo(
-    () => calcular(piezaVirtual, costeo.piezas, insumos, par),
-    [costeo, insumos, par]
+  // ÚNICO camino de preparación/cálculo: la misma función alimenta a VONI.
+  const vivo = useMemo(
+    () => calcularCosteoVivo(estado, costeo),
+    [estado, costeo],
   );
+  const { piezaVirtual, parBase, par, esIntelisis, resultado } = vivo;
   const margen = costeo.margen ?? estado.parametros.margenObjetivo ?? 40;
   const precio = esIntelisis
     ? precioDeLista(precioVenta(resultado.costoUnitario, par).lista)
