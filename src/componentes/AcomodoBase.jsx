@@ -174,20 +174,48 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // se llevaba media hora de trabajo por delante. Ahora lo movido con el dedo se
   // le entrega al motor como espacio ocupado y él acomoda alrededor
   // (`reacomodar.js`). `deCero` es la puerta de salida explícita.
-  function acomodar({ deCero = false } = {}) {
+  async function acomodar({ deCero = false } = {}) {
     setError(''); setGuardado(false);
-    // Volver a acomodar SIEMPRE se puede deshacer, se pida desde donde se pida.
-    // (En el primer acomodo no hay nada que recordar: no se ensucia el historial.)
+    // Volver a acomodar SIEMPRE se puede deshacer.
     if (plan?.colocacion?.length) recordar();
+
+    const hayMano = fijasDe(plan?.colocacion, piezas).length > 0;
+    const usarMotorEspacial = (planReal || areasMM.length > 1) && (deCero || !hayMano);
+
+    // Regla de producto: NUNCA cambiamos las dimensiones del espacio para lograr
+    // un "todo cabe". La habitación/plano es evidencia, no una variable del solver.
+    if (usarMotorEspacial) {
+      setCargando('acomodo');
+      try {
+        const r = await acomodarEspacio(areasMM, piezas);
+        if (r?.ok && r?.plan) {
+          setPlan({
+            ...r.plan,
+            layoutSpec: r.layoutSpec || null,
+            render_ready: r.render_ready === true,
+            strictPlacement: r.strictPlacement === true,
+          });
+          if (!r.completo && Array.isArray(r.noColocadas) && r.noColocadas.length) {
+            setError(`Acomodo parcial: ${r.colocadas || 0} de ${r.total || piezas.length}. ${r.noColocadas.slice(0,3).map(x => x.motivo || x.id).join(' · ')}`);
+          }
+          return;
+        }
+        // Fallback explícito: si el motor remoto falla, conserva trabajo local
+        // pero NO lo presenta como validación avanzada.
+        setError(r?.error ? `Motor espacial no disponible: ${r.error}. Usé acomodo local como borrador.` : 'Motor espacial no disponible. Usé acomodo local como borrador.');
+      } catch (e) {
+        setError('Motor espacial no disponible. Usé acomodo local como borrador.');
+      } finally {
+        setCargando('');
+      }
+    }
+
     try {
-      const hayMano = fijasDe(plan?.colocacion, piezas).length > 0;
-      const auto = !planReal && areasMM.length <= 1 && (deCero || !hayMano);
       const r = reacomodar({
         areas: areasMM, piezas, colocacion: plan?.colocacion || [], byId,
-        ajustar: auto, respetarManual: !deCero,
+        ajustar: false, respetarManual: !deCero,
       });
-      setPlan(r);
-      if (auto && r.areas?.length) setAreas(r.areas.map((a) => ({ nombre: a.nombre, ancho: +(a.ancho / 1000).toFixed(2), largo: +(a.largo / 1000).toFixed(2) })));
+      setPlan({ ...r, render_ready: false, strictPlacement: false });
     } catch (e) { setError('No se pudo acomodar: ' + String(e?.message || e)); }
   }
 
@@ -308,8 +336,21 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       // Acomodar de inmediato: subir el plano y quedarse con la pantalla igual
       // hacía pensar que no había pasado nada.
       if (leidas.length) {
-        try { setPlan(acomodarLocal(aMM(leidas), piezas, { ajustar: false })); }
-        catch (err2) { setError('Leí el plano pero no pude acomodar: ' + String(err2?.message || err2)); }
+        const mm = aMM(leidas);
+        try {
+          const ar = await acomodarEspacio(mm, piezas);
+          if (ar?.ok && ar?.plan) {
+            setPlan({ ...ar.plan, layoutSpec: ar.layoutSpec || null, render_ready: ar.render_ready === true, strictPlacement: true });
+            if (!ar.completo) setError(`Leí el plano; el acomodo quedó parcial: ${ar.colocadas || 0} de ${ar.total || piezas.length}. Corrige lo marcado antes de render/PDF.`);
+          } else {
+            setPlan({ ...acomodarLocal(mm, piezas, { ajustar: false }), render_ready: false, strictPlacement: false });
+            setError((ar?.error ? ar.error + ' ' : '') + 'Mostré un acomodo local de borrador; aún no está validado por el motor espacial.');
+          }
+        } catch (err2) {
+          try { setPlan({ ...acomodarLocal(mm, piezas, { ajustar: false }), render_ready: false, strictPlacement: false }); }
+          catch { /* conserva el error de lectura/acomodo */ }
+          setError('Leí el plano, pero el motor espacial no respondió. El acomodo visible es sólo borrador.');
+        }
       }
     } catch (err) { setCargando(''); setError('No se pudo procesar la imagen.'); }
   }
@@ -343,7 +384,21 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       })),
     }));
     recordar(); setAreas(cuantizar(areasDib)); setDibujoMeta(meta || {}); setPlanReal(true); setDibujando(false); setGuardado(false); setError('');  // MODO DIBUJO: contrato canónico 1 mm + undo cruza modos
-    try { setPlan(acomodarLocal(mm, piezas, { ajustar: false })); } catch (e) { setError('No se pudo acomodar: ' + String(e?.message || e)); }
+    (async () => {
+      try {
+        const ar = await acomodarEspacio(mm, piezas);
+        if (ar?.ok && ar?.plan) {
+          setPlan({ ...ar.plan, layoutSpec: ar.layoutSpec || null, render_ready: ar.render_ready === true, strictPlacement: true });
+          if (!ar.completo) setError(`El acomodo quedó parcial: ${ar.colocadas || 0} de ${ar.total || piezas.length}. Corrige lo marcado antes de render/PDF.`);
+        } else {
+          setPlan({ ...acomodarLocal(mm, piezas, { ajustar: false }), render_ready: false, strictPlacement: false });
+          setError('El motor espacial no respondió; el acomodo local es sólo borrador.');
+        }
+      } catch (e) {
+        try { setPlan({ ...acomodarLocal(mm, piezas, { ajustar: false }), render_ready: false, strictPlacement: false }); } catch {}
+        setError('No se pudo validar el acomodo con el motor espacial; se muestra sólo un borrador local.');
+      }
+    })();
   }
 
   // Piezas que TODAVÍA no están en el plano: son las de la paleta.
