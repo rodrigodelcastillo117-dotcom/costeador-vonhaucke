@@ -1,1 +1,1 @@
-clave_erp,descripcion,proveedor,unidad_compra,unidad_consumo,factor_conversion,precio_compra,moneda,fecha_ultima_compra,evidencia
+clave_erp,descripcion,proveedor,unidad_compra,unidad_consumo,factor_conversion,precio_compra,moneda,costo_mxn,tipo_cambio_mxn,fecha_ultima_compra,evidencia
