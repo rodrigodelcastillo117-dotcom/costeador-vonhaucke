@@ -30,3 +30,17 @@ describe('analisis industrial VONI',()=>{
     expect(r.cobertura_bom.certificable).toBe(false);
   });
 });
+
+
+it('integra oportunidades de desarrollo de producto en el análisis industrial',()=>{
+  const r=analizarProductoIndustrial({
+    bom:[
+      {nombre:'Lateral',insumoId:'mdf',procedencia:'MEASURED',largoMM:700,anchoMM:500,espesorMM:18,piezas:4},
+      {nombre:'Cubierta',insumoId:'mdf',procedencia:'MEASURED',largoMM:1200,anchoMM:600,espesorMM:18,piezas:1},
+    ],
+    costing:{costoUnitario:1000,detalleInsumos:[]},
+  });
+  expect(r.desarrollo_producto.metricas.grupos_repetidos).toBeGreaterThan(0);
+  expect(r.recomendaciones.some(x=>x.tipo==='REPETIBILIDAD')).toBe(true);
+  expect(r.recomendaciones.filter(x=>x.tipo==='REPETIBILIDAD').every(x=>x.ahorro_certificado===false)).toBe(true);
+});
