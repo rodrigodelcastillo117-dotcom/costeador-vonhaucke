@@ -1,5 +1,5 @@
 import { describe,it,expect } from 'vitest';
-import { evaluarGoldenCosteo, fuenteGoldenValida, calcularReconciliacionCosteo } from './calibracion.js';
+import { evaluarGoldenCosteo, evaluarGoldenCertificado, fuenteGoldenValida, calcularReconciliacionCosteo } from './calibracion.js';
 
 describe('golden cost contract',()=>{
   it('certifica sólo si todos los campos cuadran al centavo',()=>{
@@ -44,5 +44,23 @@ describe('reconciliación Alba vs Intelisis',()=>{
     expect(r.intelisis.disponible).toBe(false);
     expect(r.intelisis.issues).toContain('SIN_HORAS_INTELISIS');
     expect(r.delta).toBeNull();
+  });
+});
+
+
+describe('certificación formal de golden',()=>{
+  const g={costoTotal:100.01};
+  it('aunque cuadre al centavo, sin fuente válida NO se certifica',()=>{
+    const r=evaluarGoldenCertificado(g,g,{campos:['costoTotal'],fuente:null});
+    expect(r.certificable).toBe(false);
+    expect(r.issues_certificacion).toContain('FUENTE_GOLDEN_INVALIDA');
+  });
+  it('con fuente válida y delta cero sí se certifica',()=>{
+    const r=evaluarGoldenCertificado(g,g,{
+      campos:['costoTotal'],
+      fuente:{tipo:'INTELISIS',folio:'REP-42',fecha:'2026-10-05'}
+    });
+    expect(r.certificable).toBe(true);
+    expect(r.fuente_valida).toBe(true);
   });
 });
