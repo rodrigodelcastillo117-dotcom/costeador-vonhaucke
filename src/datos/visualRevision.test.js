@@ -21,3 +21,10 @@ describe('visual revision signature',()=>{
    expect(visualesSincronizados({spec,render:{visualRevisionHash:'old'},model3d:{visualRevisionHash:h}}).synchronized).toBe(false);
  });
 });
+
+
+ it('concepto/layout distinto invalida firma aunque dimensiones/materiales coincidan',()=>{
+   const base={...spec,concepto:'A',layout_conceptual:'isla',tipologia_cocrear:'operativo_colaborativo'};
+   expect(visualRevisionHash({...base,concepto:'B'})).not.toBe(visualRevisionHash(base));
+   expect(visualRevisionHash({...base,layout_conceptual:'modulos'})).not.toBe(visualRevisionHash(base));
+ });
