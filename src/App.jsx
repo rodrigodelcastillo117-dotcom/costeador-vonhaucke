@@ -62,6 +62,7 @@ import { guardarRevision } from './datos/revisiones.js';
 import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
 import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, cotizacionEmitible } from './nube.js';
 import { calcular, modeloParaPieza, componentesSinMaterial } from './motor/calculo.js';
+import { aCentavosEnteros, dinero } from './motor/dinero.js';
 import { idNuevo } from './util.js';
 import { costoImplicito, precioDeLista } from './datos/preciosVenta.js';
 const Comercial = lazy(() => import('./componentes/comercial/Comercial.jsx'));
@@ -798,7 +799,7 @@ export default function App() {
   // igual con distinto acabado SÍ son renglones distintos.
   const mismoRenglon = (a, b) =>
     a.nombre === b.nombre &&
-    Math.round(a.precioUnitario || 0) === Math.round(b.precioUnitario || 0) &&
+    aCentavosEnteros(a.precioUnitario) === aCentavosEnteros(b.precioUnitario) &&
     (a.piezaId || null) === (b.piezaId || null) &&
     (a.ruta || null) === (b.ruta || null) &&
     (a.productoId || null) === (b.productoId || null) &&
@@ -853,7 +854,7 @@ export default function App() {
     if (!p) return 0;
     const esSilleria = item?.categoria === 'Sillería';
     const precio2 = esSilleria ? p : p / 0.60;
-    return Math.round(costoImplicito(precio2));
+    return dinero(costoImplicito(precio2));
   };
   const margenDeBanco = (item) => {
     const c = costoDeBanco(item), p = Number(item?.precio) || 0;
