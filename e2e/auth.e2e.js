@@ -65,7 +65,7 @@ test.describe('E2E autenticado · flujo real', () => {
 
     await page.getByRole('button', { name: /Acomodo/i }).first().click();
     await expect(
-      page.getByText(/Áreas del proyecto|Tu cotización está vacía|Programa incompleto para acomodar|¿Dónde van estos muebles\?/i).first()
+      page.getByText(/Áreas del proyecto|Tu cotización está vacía|Programa incompleto para acomodar|¿Dónde va a ir esto\?/i).first()
     ).toBeVisible({ timeout: 15000 });
     expect(pageErrors).toEqual([]);
   });
