@@ -13,6 +13,7 @@ import {precioVenta} from '../motor/calculo.js';
 import {compileRenderPrompt,renderStale} from '../datos/renderPrompt.js';
 import {visualRevisionHash,visualesSincronizados} from '../datos/visualRevision.js';
 import {modeloTecnico3DDesdeSpec} from '../datos/productModel3D.js';
+import {diagnosticoDesarrolloProducto} from '../datos/desarrolloProducto.js';
 
 const MAT_LABEL={nogal:'Nogal',roble:'Roble',encino:'Encino',maple:'Maple',laminado:'Laminado',solid_surface:'Solid surface',cristal:'Cristal',metal:'Metal',piedra:'Piedra'};
 const FAMILY_OPTIONS=[[FAMILIA.DESCONOCIDA,'Producto libre'],[FAMILIA.ESCRITORIO,'Operativo / escritorio'],[FAMILIA.MESA,'Mesa'],[FAMILIA.RECEPCION,'Recepción'],[FAMILIA.LOCKER,'Locker'],[FAMILIA.DISPLAY,'Exhibidor'],[FAMILIA.GUARDADO,'Guardado']];
@@ -87,6 +88,7 @@ export default function Cocrear({estado,onAgregar,onIr}){
  const rStale=!!(render&&spec&&(renderStale(render,spec)||!visualSync.render_ok));
  const refUI=useMemo(()=>formatearReferenciaCocrear(refs),[refs]);
  const estimado=useMemo(()=>estimadoDisenoCocrear(intent,insumos),[intent,insumos]);
+ const desarrollo=useMemo(()=>spec?diagnosticoDesarrolloProducto(spec):null,[spec]);
  const alcance=useMemo(()=>detectarAlcanceCocrear(texto||intent?._brief||''),[texto,intent]);
 
  useEffect(()=>{if(fase!=='inicio')return;let live=true;listarCocreaciones(12).then(r=>{if(live&&r?.ok)setGuardadas(r.items||[])}).catch(()=>{});return()=>{live=false}},[fase]);
@@ -231,6 +233,24 @@ export default function Cocrear({estado,onAgregar,onIr}){
    </div></div></Card>:<Card style={{padding:8}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'4px 5px 8px'}}><div><Label>Render IA · Concepto {intent?._concepto||'—'}</Label><strong style={{fontSize:13}}>{intent?._concepto_nombre||'Visualización principal'}</strong></div><Btn onClick={generar} disabled={renderCargando}>{renderCargando?'Generando…':render?'Regenerar':'Generar render'}</Btn></div><div className="c3-hero">{renderCargando?<div style={{textAlign:'center'}}><strong>VONI está construyendo el concepto {intent?._concepto}</strong><p className="c3-small">Usando el modelo canónico de esta revisión como referencia de geometría.</p></div>:render?<div style={{width:'100%'}}>{rStale&&<div style={{padding:8,background:'#4a2d16',color:'#ffd09c',fontSize:10}}>El diseño cambió. Este render está vencido; regenera para representar la revisión actual.</div>}<img src={render.dataUrl} alt={`Render del concepto ${intent?._concepto||''}`} style={{opacity:rStale?.62:1}}/></div>:<div style={{textAlign:'center'}}><strong>Sin render de esta revisión</strong><p className="c3-small">Genera la visualización usando el modelo 3D como referencia.</p><Btn onClick={generar}>Generar render</Btn></div>}</div>{renderError&&<p style={{color:'#ff9d93',fontSize:10}}>{renderError}</p>}</Card>}{!comparA&&<div id="cocrear-modelo-canonico" style={{marginTop:8}}><CocrearVisual spec={spec} intent={intent}/></div>}<div className="c3-history">{historia.map(h=><button key={h.rev} onClick={()=>{setIntent(clone(h.intent));setMensaje(`Viendo Rev ${h.rev}: ${h.label}`)}}>R{h.rev} · {h.label}</button>)}</div></div>
 
   <div className="c3-right" style={{display:'grid',gap:10}}><Card><Label>VONI · Co-diseñador</Label><p style={{fontSize:11,color:'#aaa',lineHeight:1.4}}>Pídele un cambio concreto. Si la instrucción es inequívoca, primero cambia el modelo canónico; el render viejo queda vencido hasta regenerarlo.</p><textarea value={nl} onChange={e=>setNl(e.target.value)} rows={3} placeholder="Ej. Haz la jardinera completa a todo el eje central y conserva el resto exactamente igual." className="c3-input"/><Btn onClick={pedirVoni} disabled={!nl.trim()||pensando} style={{width:'100%',marginTop:6}}>{pensando?'Analizando…':'Aplicar con VONI'}</Btn>{mensaje&&<p style={{fontSize:10,lineHeight:1.4}}>{mensaje}</p>}</Card>
+  <Card>
+   <Label>VONI Industrial · desarrollo</Label>
+   {desarrollo&&desarrollo.metricas.piezas_totales>0
+    ? <><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,fontSize:11}}>
+        <div>Piezas <b>{desarrollo.metricas.piezas_totales}</b></div>
+        <div>Geometrías <b>{desarrollo.metricas.geometrias_distintas}</b></div>
+        <div>Materiales <b>{desarrollo.metricas.familias_material}</b></div>
+        <div>Grupos repetidos <b>{desarrollo.metricas.grupos_repetidos}</b></div>
+      </div>
+      <div style={{marginTop:8,display:'grid',gap:6}}>
+       {(desarrollo.oportunidades||[]).slice(0,3).map((o,i)=><div key={i} style={{fontSize:10,lineHeight:1.35,padding:7,border:'1px solid #34383c',borderRadius:8}}>
+         <b>{o.tipo.replaceAll('_',' ')}</b><div style={{color:'#aeb6bf',marginTop:2}}>{o.recomendacion}</div>
+         <div style={{fontSize:9,color:'#7f8993',marginTop:3}}>Hipótesis de desarrollo · ahorro no certificado</div>
+       </div>)}
+       {!(desarrollo.oportunidades||[]).length&&<div className="c3-small">Sin oportunidad determinista evidente todavía. Completa el BOM para profundizar.</div>}
+      </div></>
+    : <div className="c3-small">Baja el concepto a BOM para que VONI revise repetibilidad, complejidad y estandarización.</div>}
+  </Card>
   <Card><Label>Verdad industrial</Label><div style={{display:'grid',gap:5,fontSize:12}}><div>Costo calculado: <b>{costoConocido?money(costoOficial):'Pendiente de BOM'}</b></div><div>Estado motor: <b>{pipeline?.costo?.cost_status||'UNKNOWN'}</b></div><div>Componentes BOM: <b>{spec?.componentes?.length||0}</b></div></div>
    {!costoConocido&&estimado.disponible&&<div style={{background:'#1c160f',border:'1px solid #4a3a1f',borderRadius:10,padding:10,marginTop:10}}><Label>Estimado de diseño · evidencia real</Label><div style={{fontSize:17,fontWeight:900,color:'#ffe0b0'}}>≈ {money(estimado.total)} <span style={{fontSize:10,fontWeight:600,color:'#c7a98a'}}>parcial</span></div><div style={{fontSize:10,color:'#9a9a9a',margin:'2px 0 6px'}}>Cobertura {estimado.coberturaPct}% del alcance (por partidas) · confianza {estimado.confianza}</div>{estimado.items.map((it,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',gap:8,padding:'4px 0',borderTop:'1px solid #33291a',fontSize:11}}><span>{it.concepto} · {it.detalle}</span><b>{money(it.subtotal)}</b></div>)}<div style={{fontSize:10,color:'#d6a36d',marginTop:6}}><b>Pendiente por estimar</b> (no es $0): {estimado.pendientes.join(' · ')}</div><p style={{fontSize:9,color:'#8a8a8a',lineHeight:1.35,marginTop:5}}>{estimado.nota}</p></div>}
    {refsCargando&&<p className="c3-small">Buscando referencias reales en la lista vigente…</p>}
