@@ -1128,7 +1128,12 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
         espacio: areasMM.map((a,areaIndex)=>({
           area_index:areaIndex,nombre:a.nombre,ancho_mm:a.ancho,largo_mm:a.largo,
           forma:a.forma||null,
-          puertas:(a.puertas||[]).slice(0,12).map(p=>({x:p.x,y:p.y,w:p.w,h:p.h,pared:p.pared||null,sentido:p.sentido||null})),
+          puertas:(a.puertas||[]).slice(0,12).map(p=>({
+            x_mm:p.x,y_mm:p.y,ancho_mm:p.ancho,
+            bisagra_x_mm:p.bisagraX??null,bisagra_y_mm:p.bisagraY??null,
+            angulo_cerrada_deg:p.anguloCerradaDeg??null,barrido_deg:p.barridoDeg??null,
+            sentido:p.sentido||null,confianza:p.confianza||null,
+          })),
           obstaculos:(a.obstaculos||[]).slice(0,20).map(o=>({x:o.x,y:o.y,w:o.w,h:o.h,tipo:o.tipo||null})),
         })).slice(0,30),
         colocacion:(plan?.colocacion||[]).slice(0,150).map(x=>{
