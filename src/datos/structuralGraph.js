@@ -181,10 +181,15 @@ export function graphFromBom(piezas = [], meta = {}) {
       geometry,
       orientation: null,
       processes: [],
-      source: p._src || 'ai',
-      confidence: p._confidence ?? 0.5,
+      source: p._src || p.source || 'ai',
+      confidence: p._confidence ?? p.confidence ?? 0.5,
+      evidence_state: p.procedencia || p.provenance || p.evidence_state || null,
+      evidence: p.evidencia || p.evidence || '',
+      evidence_page: Number.isInteger(Number(p.pagina ?? p.evidence_page))
+        ? Number(p.pagina ?? p.evidence_page) : null,
       assumptions: [],
-      requires_confirmation: !p.insumoId,
+      requires_confirmation: !p.insumoId
+        || ['ASSUMED','INFERRED'].includes(String(p.procedencia || p.provenance || p.evidence_state || '').toUpperCase()),
     };
   });
   const relations = [];
