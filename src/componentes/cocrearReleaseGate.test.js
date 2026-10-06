@@ -11,5 +11,10 @@ for (const file of ['src/componentes/CocrearV3.jsx','src/componentes/CocrearV2.j
     it('no etiqueta official_cost como costo certificado', () => {
       expect(s).not.toContain('Costo certificado:');
     });
+    it('no usa margen 40 como verdad paralela ni exige costo > 0', () => {
+      expect(s).not.toContain('par.margenObjetivo:40');
+      expect(s).not.toContain('costoOficial>0');
+      expect(s).toContain('costoRaw!=null');
+    });
   });
 }
