@@ -78,7 +78,7 @@ export default function HojaCosto({ resultado, insumos, pieza, parametros = PARA
         </div>
         {incompleto && (
           <div className="alerta roja" style={{ marginTop: 8 }}>
-            <span className="texto">⚠ <strong>Costo INCOMPLETO</strong> — faltan por costear {pendientes.length} partida(s): {pendientes.slice(0, 6).join(', ')}{pendientes.length > 6 ? '…' : ''}. No hay costo total ni precio hasta cerrarlas.</span>
+            <span className="texto">⚠ <strong>Costo NO EMITIBLE</strong> — {pendientes.length} bloqueo(s): {pendientes.slice(0, 6).join(' · ')}{pendientes.length > 6 ? '…' : ''}. No hay precio oficial hasta resolverlos.</span>
           </div>
         )}
         <div className="dvis-bar" role="img" aria-label="Composición del precio">
