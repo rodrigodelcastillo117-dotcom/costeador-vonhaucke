@@ -15,10 +15,15 @@ export function catalogoTecnicoMateriales(insumos = {}) {
       unidad:x?.unidad||null,
       veta:!!x?.veta,
       inventario:!!x?.inventario,
+      espesor_mm:npos(x?.espesorMM ?? x?.espesor_mm ?? f?.espesorMM ?? f?.espesor_mm),
       formato:{
+        tipo:f.tipo||null,
+        nombre:f.nombre||null,
         largo_mm:npos(f.largoMM ?? f.largo_mm),
         ancho_mm:npos(f.anchoMM ?? f.ancho_mm),
         medida:npos(f.medida),
+        largo_comercial_mm:(f.tipo==='tramo' && (x?.unidad==='m' || x?.unidad==='metro') && npos(f.medida))
+          ? npos(f.medida)*1000 : null,
       },
     };
   });
@@ -42,9 +47,12 @@ export function buscarMaterialTecnico(catalogo = [], consulta = '') {
 export function describirFormatoTecnico(m={}) {
   const f=m.formato||{};
   if(f.largo_mm&&f.ancho_mm) {
-    return `${Math.round(f.largo_mm)} × ${Math.round(f.ancho_mm)} mm${m.veta?' · con veta':''}`;
+    return `${f.tipo||'formato'} ${Math.round(f.largo_mm)} × ${Math.round(f.ancho_mm)} mm${m.espesor_mm?` · espesor ${m.espesor_mm} mm`:''}${m.veta?' · con veta':''}`;
   }
-  if(f.medida) return `formato de compra: ${f.medida} ${m.unidad||''}`.trim();
+  if(f.tipo==='tramo' && f.largo_comercial_mm) {
+    return `tramo ${(f.largo_comercial_mm/1000).toFixed(2)} m${m.espesor_mm?` · espesor ${m.espesor_mm} mm`:''}`;
+  }
+  if(f.medida) return `${f.tipo?f.tipo+' · ':''}formato de compra: ${f.medida} ${m.unidad||''}`.trim();
   return 'formato físico no documentado';
 }
 
