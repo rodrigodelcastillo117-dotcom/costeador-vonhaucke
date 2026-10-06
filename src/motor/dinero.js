@@ -4,6 +4,7 @@
 // (renglón, cargo, impuesto, comparación, emisión) se cuantiza a $0.01.
 
 export function aCentavosEnteros(valor) {
+  if (valor == null || (typeof valor === 'string' && valor.trim() === '')) return null;
   const n = Number(valor);
   if (!Number.isFinite(n)) return null;
   // EPSILON reduce artefactos binarios típicos como 1.005.
@@ -30,6 +31,7 @@ export function sumarDinero(valores = []) {
 }
 
 export function aplicarPct(base, pct) {
+  if (base == null || pct == null || base === '' || pct === '') return NaN;
   const b = Number(base), p = Number(pct);
   if (!Number.isFinite(b) || !Number.isFinite(p)) return NaN;
   return dinero(b * p / 100);
@@ -41,6 +43,7 @@ export function aplicarPct(base, pct) {
 // descuentos, etc. acumulen error binario antes del redondeo final a centavo.
 export function porcentajeCentavos(baseCentavos, pct) {
   if (!Number.isSafeInteger(baseCentavos)) return null;
+  if (pct == null || pct === '') return null;
   const p = Number(pct);
   if (!Number.isFinite(p)) return null;
   const escala = 1_000_000; // micro-puntos porcentuales
