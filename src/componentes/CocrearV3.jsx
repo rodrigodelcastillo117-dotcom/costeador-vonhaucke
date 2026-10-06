@@ -77,7 +77,7 @@ function Card({children,style={}}){return <div style={{background:'#171717',bord
 function Label({children}){return <div style={{fontSize:10,letterSpacing:1.25,textTransform:'uppercase',color:'#8992a2',fontWeight:800,marginBottom:7}}>{children}</div>}
 function Btn({children,onClick,disabled=false,ghost=false,style={}}){return <button type="button" disabled={disabled} onClick={onClick} style={{borderRadius:10,padding:'9px 13px',fontSize:13,fontWeight:800,border:ghost?'1px solid #50545a':'1px solid #d13b30',background:ghost?'transparent':disabled?'#34211f':'#c93429',color:disabled?'#776b69':'#fff',cursor:disabled?'not-allowed':'pointer',...style}}>{children}</button>}
 
-export default function Cocrear({estado,onAgregar,onIr}){
+export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail=null}){
  const [fase,setFase]=useState('inicio'),[texto,setTexto]=useState(''),[intent,setIntent]=useState(null),[historia,setHistoria]=useState([]),[conceptos,setConceptos]=useState([]);
  const [analisis,setAnalisis]=useState(null),[aiError,setAiError]=useState(''),[pensando,setPensando]=useState(false),[nl,setNl]=useState(''),[mensaje,setMensaje]=useState('');
  const [guardando,setGuardando]=useState(false),[guardado,setGuardado]=useState(false),[expedienteId,setExpedienteId]=useState(null),[guardadas,setGuardadas]=useState([]),[guardadasError,setGuardadasError]=useState(''),[guardadasReload,setGuardadasReload]=useState(0);
@@ -87,8 +87,24 @@ export default function Cocrear({estado,onAgregar,onIr}){
  const insumos=estado?.insumos||{};
  const par=useMemo(()=>parametrosEfectivos(estado,{componentes:[]}).par||estado?.parametros||{},[estado]);
  const rev=historia.length||1,bom=(intent&&intent._componentes)||[];
- const spec=useMemo(()=>intent?construirProductSpec(intent,extraerDNA(intent),clasificarProducto(intent,{}),{rev,componentes:bom}):null,[intent,rev,bom]);
- const pipeline=useMemo(()=>intent?cocrearDesdeIntent(intent,{insumos,par,rev,componentes:bom}):null,[intent,insumos,par,rev,bom]);
+ const engineeringValidation=intent?._engineering_validation||null;
+ const engineeringValidated=!!(
+   intent?._engineering_validated
+   && engineeringValidation?.visual_hash
+   && engineeringValidation.visual_hash===visualRevisionHash(
+     construirProductSpec(intent,extraerDNA(intent),clasificarProducto(intent,{}),{rev,componentes:bom})
+   )
+ );
+ const spec=useMemo(()=>intent?construirProductSpec(intent,extraerDNA(intent),clasificarProducto(intent,{}),{
+   rev,componentes:bom,
+   engineering_validated:engineeringValidated,
+   engineering_validation:engineeringValidated?engineeringValidation:null,
+ }):null,[intent,rev,bom,engineeringValidated,engineeringValidation]);
+ const pipeline=useMemo(()=>intent?cocrearDesdeIntent(intent,{
+   insumos,par,rev,componentes:bom,
+   engineering_validated:engineeringValidated,
+   engineering_validation:engineeringValidated?engineeringValidation:null,
+ }):null,[intent,insumos,par,rev,bom,engineeringValidated,engineeringValidation]);
  const resumen=useMemo(()=>intent?resumenIdeaCocrear(intent,texto):null,[intent,texto]);
  const modelo3d=useMemo(()=>spec?modeloTecnico3DDesdeSpec(spec):null,[spec]);
  const visualSync=useMemo(()=>spec?visualesSincronizados({spec,render,model3d:modelo3d}):{synchronized:true},[spec,render,modelo3d]);
@@ -110,8 +126,10 @@ export default function Cocrear({estado,onAgregar,onIr}){
 
  const reset=()=>{setFase('inicio');setIntent(null);setHistoria([]);setConceptos([]);setAnalisis(null);setAiError('');setRender(null);setMensaje('');setExpedienteId(null);setComparA(null);setRefs(null)};
  const commit=(next,label)=>{
-  setIntent(next);
-  setHistoria(h=>[...h,{rev:h.length+1,intent:clone(next),label}]);
+  // Cualquier cambio técnico/visual invalida la aprobación de ingeniería previa.
+  const limpio={...next,_engineering_validated:false,_engineering_validation:null};
+  setIntent(limpio);
+  setHistoria(h=>[...h,{rev:h.length+1,intent:clone(limpio),label}]);
   setGuardado(false);
   // Una revisión visual nueva jamás comparte pantalla con un render viejo.
   // El 3D se deriva inmediatamente del spec; el fotográfico se regenera después.
