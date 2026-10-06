@@ -60,7 +60,7 @@ import { cargarAprendizajes } from './datos/aprendizaje.js';
 import { guardarCotizacion, cargarCotizacionCompleta } from './datos/cotizaciones.js';
 import { guardarRevision } from './datos/revisiones.js';
 import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
-import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, cotizacionEmitible } from './nube.js';
+import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, cotizacionEmitible, costearServidor } from './nube.js';
 import { calcular, modeloParaPieza, componentesSinMaterial } from './motor/calculo.js';
 import { idNuevo } from './util.js';
 import { costoImplicito, precioDeLista } from './datos/preciosVenta.js';
@@ -735,8 +735,48 @@ export default function App() {
   // Costear especial (modo avanzado). Mismo bug: estas tres se pasaban como prop
   // y no existían, así que "Costear especial" y "Catálogo" también morían en
   // blanco. `resultado` es el cálculo; el mueble en sí vive en `costeo`.
-  function onAgregarCotizacion(resultado, precio, margen) {
+  async function onAgregarCotizacion(resultado, precio, margen) {
     const n = Math.max(1, Number(costeo.piezas) || 1);
+
+    // AUTORIDAD ECONÓMICA: antes de permitir que un costeo NUEVO entre a la
+    // cotización, el servidor vuelve a correr EL MISMO motor con su config real.
+    // Si cliente y servidor difieren siquiera $0.01, falla cerrado: no guardamos
+    // una cifra que mañana no podamos defender.
+    let autoritativo;
+    try {
+      autoritativo = await costearServidor(costeo, n);
+    } catch (e) {
+      const error = 'No se agregó: no pude certificar el costo con el servidor.';
+      mostrarAviso(error, 7000);
+      return { ok: false, error };
+    }
+    if (!autoritativo?.ok) {
+      const error = 'No se agregó: ' + (autoritativo?.error || 'el servidor no pudo certificar este costeo.');
+      mostrarAviso(error, 7000);
+      return { ok: false, error };
+    }
+    if (autoritativo.estado === 'incompleto' || autoritativo.estado === 'bloqueado') {
+      const error = 'No se agregó: el costo autoritativo está ' + autoritativo.estado + '.';
+      mostrarAviso(error, 7000);
+      return { ok: false, error };
+    }
+
+    const costoServidor = Number(autoritativo?.costo?.costoUnitario);
+    const costoCliente = Number(resultado?.costoUnitario);
+    if (!Number.isFinite(costoServidor) || !Number.isFinite(costoCliente)) {
+      const error = 'No se agregó: el costo no es finito o no pudo certificarse.';
+      mostrarAviso(error, 7000);
+      return { ok: false, error };
+    }
+    const clienteCentavos = Math.round((costoCliente + Math.sign(costoCliente || 1) * Number.EPSILON) * 100);
+    const servidorCentavos = Math.round((costoServidor + Math.sign(costoServidor || 1) * Number.EPSILON) * 100);
+    if (clienteCentavos !== servidorCentavos) {
+      const delta = Math.abs(servidorCentavos - clienteCentavos) / 100;
+      const error = `No se agregó: cliente y servidor difieren $${delta.toFixed(2)}. Recarga los datos y vuelve a costear.`;
+      mostrarAviso(error, 9000);
+      return { ok: false, error, cliente: costoCliente, servidor: costoServidor };
+    }
+
     // Piezas sin material: el motor ya las reporta; si no vino el resultado, se
     // deriva del despiece. Viaja con la partida para bloquear la emisión (no el
     // guardado) hasta que se les asigne material.
@@ -747,6 +787,7 @@ export default function App() {
     const excl = Array.isArray(resultado?.componentesExcluidos)
       ? resultado.componentesExcluidos
       : (costeo.componentes || []).filter((c) => c && c.excluida).map((c) => c.nombre || 'Partida excluida');
+
     sumarPartidas([{
       id: idNuevo('p'),
       piezaId: costeo.piezaId || null,
@@ -755,15 +796,20 @@ export default function App() {
       productoId: costeo.productoId || null,
       w: costeo.w || null, d: costeo.d || null,
       cantidad: n,
-      costoUnitario: resultado?.costoUnitario ?? 0,
+      // La cifra que entra a la cotización es la del SERVIDOR, no la del navegador.
+      costoUnitario: costoServidor,
       precioUnitario: precio,
       margen: Number.isFinite(margen) ? margen : null,
       config: null,
+      costoEstado: autoritativo.estado || null,
+      versionMotor: autoritativo.versionMotor || null,
+      versionCatalogo: autoritativo.versionCatalogo || null,
       piezasSinMaterial: sinMat.length,
       nombresSinMaterial: sinMat,
       nombresExcluidos: excl,
     }]);
-    mostrarAviso(`Agregado: ${costeo.nombre || 'mueble a la medida'}`);
+    mostrarAviso(`Agregado y verificado: ${costeo.nombre || 'mueble a la medida'}`);
+    return { ok: true, estado: autoritativo.estado, costoUnitario: costoServidor };
   }
 
   // Guarda el despiece actual como pieza reutilizable del catálogo interno.
