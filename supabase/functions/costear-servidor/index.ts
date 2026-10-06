@@ -17,7 +17,8 @@
 // ============================================================================
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { calcular, modeloParaPieza, precioDe, PARAMETROS_DEFAULT, MOTOR_VERSION } from "../../../src/motor/calculo.js";
+import { calcular, modeloParaPieza, precioDe, costeoEmitible, PARAMETROS_DEFAULT, MOTOR_VERSION } from "../../../src/motor/calculo.js";
+import { dinero } from "../../../src/motor/dinero.js";
 import { INSUMOS_SEMILLA, mapaInsumos } from "../../../src/datos/insumos.js";
 // DTO ESTRICTO — la MISMA frontera que usa el cliente (sin duplicar lógica). Rechaza
 // cualquier campo económico (margen, precio, costo, insumo inline, factores,
@@ -103,11 +104,15 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: "No se pudo calcular: " + String(e) }, 500);
   }
 
-  // FAIL-CLOSED: si hay piezas sin material (se costean en $0), NO se certifica.
+  // FAIL-CLOSED: MISMO juez que el cliente. Esto incluye material/precio faltante,
+  // costo no finito y piezas que NO CABEN en el formato de compra. No duplicamos
+  // la definición de emitibilidad en la Edge.
+  const emision = costeoEmitible(r);
   const faltan: string[] = Array.isArray(r.componentesIgnorados) ? r.componentesIgnorados : [];
   const warnings: string[] = [];
-  if (faltan.length) warnings.push(`${faltan.length} pieza(s) sin material en el catálogo: ${faltan.join(", ")}`);
-  if (!(r.costoUnitario > 0)) warnings.push("Costo calculado en 0 — revisa el despiece.");
+  if (faltan.length) warnings.push(`${faltan.length} pieza(s) sin material/precio usable: ${faltan.join(", ")}`);
+  for (const b of emision.bloqueos?.formato_incompatible || []) warnings.push(b);
+  if (emision.bloqueos?.costo_invalido) warnings.push("Costo calculado inválido/no finito.");
 
   // --- EVIDENCIA desde catalogo_vigente (el costo sigue saliendo de config-legado;
   //     catalogo_vigente aporta SOLO el estado de evidencia por insumo usado). Aditivo. ---
@@ -132,7 +137,7 @@ Deno.serve(async (req) => {
   // ESTADO (4 valores). El costo es legado (tiene precio), por eso 'bloqueado' solo
   // aplicaría en modo costo-desde-catálogo (futuro); hoy: incompleto | preliminar | certificado.
   let estado: "certificado" | "preliminar" | "incompleto" | "bloqueado";
-  if (faltan.length || !(r.costoUnitario > 0)) {
+  if (!emision.emitible) {
     estado = "incompleto";
   } else if (noCertificados.length === 0) {
     estado = "certificado";
@@ -146,11 +151,11 @@ Deno.serve(async (req) => {
   // body — el DTO ya rechazó cualquier `margen` del cliente. Modelo 'clásico' (Alba)
   // para producto nuevo, que es el caso de costear-servidor; 'intelisis' (líneas App
   // LT) se costea aún en cliente y queda fuera de esta superficie.
-  const margen = Number(parametros.margenObjetivo ?? 40);
+  const margen = Number(parametros.margenObjetivo ?? 50);
   // FAIL-CLOSED: precioDe devuelve NaN ante margen imposible (≥100/<0) o costo no
   // finito. No se convierte en $0 ni se emite: precioVenta = null → sin precio.
   const precioRaw = precioDe(r.costoUnitario, margen);
-  const precioVenta = Number.isFinite(precioRaw) ? Math.round(precioRaw) : null;
+  const precioVenta = Number.isFinite(precioRaw) ? dinero(precioRaw) : null;
 
   // --- SNAPSHOT reproducible ---
   const meta = {
@@ -182,13 +187,13 @@ Deno.serve(async (req) => {
 
   // Diseño: BOM + costo técnico, SIN información financiera (sin precioVenta, sin margen).
   const tecnico = {
-    costoUnitario: Math.round(r.costoUnitario),
-    materialTotal: Math.round(r.materialTotal),
-    manoObra: Math.round(r.manoObra),
-    indirectosFabrica: Math.round(r.indirectosFabrica),
-    desperdicio: Math.round(r.desperdicio),
+    costoUnitario: dinero(r.costoUnitario),
+    materialTotal: dinero(r.materialTotal),
+    manoObra: dinero(r.manoObra),
+    indirectosFabrica: dinero(r.indirectosFabrica),
+    desperdicio: dinero(r.desperdicio),
     detalleInsumos: (r.detalleInsumos || []).map((d: any) => ({
-      insumoId: d.insumoId, nombre: d.nombre, seccion: d.seccion, costo: Math.round(d.costo || 0),
+      insumoId: d.insumoId, nombre: d.nombre, seccion: d.seccion, costo: dinero(d.costo || 0),
       certificable: !!evMap[d.insumoId]?.certificable, evidencia: evMap[d.insumoId]?.estado || "sin-catalogo",
     })),
     componentesIgnorados: faltan,
