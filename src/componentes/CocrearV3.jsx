@@ -112,6 +112,12 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
  const refUI=useMemo(()=>formatearReferenciaCocrear(refs),[refs]);
  const estimado=useMemo(()=>estimadoDisenoCocrear(intent,insumos),[intent,insumos]);
  const desarrollo=useMemo(()=>spec?diagnosticoDesarrolloProducto(spec):null,[spec]);
+ const puedeAprobarRol=rol==='direccion'||rol==='diseno';
+ const ingenieriaListaParaRevision=!!(
+   spec?.componentes?.length
+   && desarrollo?.estado==='ANALIZADO'
+   && modelo3d?.status==='EXPLODED_READY'
+ );
  const alcance=useMemo(()=>detectarAlcanceCocrear(texto||intent?._brief||''),[texto,intent]);
 
  useEffect(()=>{
@@ -205,6 +211,32 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
  const guardar=async()=>{if(!intent)return;setGuardando(true);setMensaje('');try{const r=await guardarCocrearSeguro(expedienteId,cocrearPayload({brief:texto,intent,historia,render,insumos,par}));if(!r?.ok)throw new Error(r?.error||'No se pudo guardar');if(r.expediente_id)setExpedienteId(r.expediente_id);setGuardado(true);setMensaje('✓ Co-creación guardada.');}catch(e){setMensaje(`No se pudo guardar: ${String(e?.message||e)}`)}setGuardando(false)};
  const reabrir=async id=>{try{const r=await cargarCocrearSeguro(id);const est=r?.ok?cocrearDeExpediente({cocrear:r.cocrear}):null;if(!est?.intent)throw new Error('Expediente sin intención válida');setIntent(est.intent);setHistoria(est.historia?.length?est.historia:[{rev:1,label:'Reabierta',intent:est.intent}]);setTexto(est.brief||est.intent?._brief||'');setExpedienteId(id);setRender(null);setFase('studio')}catch(e){setMensaje(String(e?.message||e))}};
 
+ const validarIngenieria=()=>{
+  if(!puedeAprobarRol){
+    setMensaje('Sólo Diseño o Dirección pueden validar ingeniería.');
+    return;
+  }
+  if(!ingenieriaListaParaRevision){
+    setMensaje('Ingeniería todavía no puede validarse: completa materiales y geometría del BOM hasta tener un Despiece 3D completo.');
+    return;
+  }
+  const visual_hash=visualRevisionHash(spec);
+  const evidencia={
+    validador:usuarioEmail||rol,
+    rol,
+    fecha:new Date().toISOString(),
+    visual_hash,
+    spec_hash_prevalidacion:spec.hash,
+    motivo:'BOM, geometría, materiales y fabricabilidad revisados explícitamente en Cocrear.',
+  };
+  const next={...intent,_engineering_validated:true,_engineering_validation:evidencia};
+  setIntent(next);
+  setHistoria(h=>[...h,{rev:h.length+1,intent:clone(next),label:`Ingeniería validada · ${rol}`}]);
+  setGuardado(false);
+  setCotizadoHash(null);
+  setMensaje(`✓ Ingeniería validada por ${usuarioEmail||rol}. Cualquier cambio posterior invalidará esta aprobación.`);
+ };
+
  const costoRaw=pipeline?.costo?.official_cost;
  const costoOficial=Number(costoRaw),costoConocido=costoRaw!=null&&Number.isFinite(costoOficial)&&costoOficial>=0;
   const listaParaCotizar=pipeline?.lineaCotizacion?.listaParaCotizar===true;
@@ -289,7 +321,12 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
       </div></>
     : <div className="c3-small">Baja el concepto a BOM para que VONI revise repetibilidad, complejidad y estandarización.</div>}
   </Card>
-  <Card><Label>Verdad industrial</Label><div style={{display:'grid',gap:5,fontSize:12}}><div>Costo calculado: <b>{costoConocido?money(costoOficial):'Pendiente de BOM'}</b></div><div>Estado motor: <b>{pipeline?.costo?.cost_status||'UNKNOWN'}</b></div><div>Componentes BOM: <b>{spec?.componentes?.length||0}</b></div></div>
+  <Card><Label>Verdad industrial</Label><div style={{display:'grid',gap:5,fontSize:12}}><div>Costo calculado: <b>{costoConocido?money(costoOficial):'Pendiente de BOM'}</b></div><div>Estado motor: <b>{pipeline?.costo?.cost_status||'UNKNOWN'}</b></div><div>Componentes BOM: <b>{spec?.componentes?.length||0}</b></div><div>Ingeniería: <b style={{color:engineeringValidated?'#79c990':'#e0a36f'}}>{engineeringValidated?'VALIDADA':'REQUIERE VALIDACIÓN'}</b></div></div>
+   {engineeringValidated
+    ? <div style={{marginTop:8,padding:8,border:'1px solid #28553b',borderRadius:8,fontSize:10,color:'#bfe8ca'}}>✓ Validada por {engineeringValidation?.validador||engineeringValidation?.rol||'ingeniería'} · {engineeringValidation?.fecha?new Date(engineeringValidation.fecha).toLocaleString('es-MX'):'fecha registrada'} · ligada a esta revisión visual.</div>
+    : puedeAprobarRol
+      ? <div style={{marginTop:8}}><Btn ghost onClick={validarIngenieria} disabled={!ingenieriaListaParaRevision} style={{width:'100%'}}>Validar ingeniería de esta revisión</Btn>{!ingenieriaListaParaRevision&&<div className="c3-small" style={{marginTop:5}}>Para validar: BOM con materiales + geometría completa + Despiece 3D técnico completo.</div>}</div>
+      : <div className="c3-small" style={{marginTop:8}}>La liberación de ingeniería requiere Diseño o Dirección.</div>}
    {!costoConocido&&estimado.disponible&&<div style={{background:'#1c160f',border:'1px solid #4a3a1f',borderRadius:10,padding:10,marginTop:10}}><Label>Estimado de diseño · evidencia real</Label><div style={{fontSize:17,fontWeight:900,color:'#ffe0b0'}}>≈ {money(estimado.total)} <span style={{fontSize:10,fontWeight:600,color:'#c7a98a'}}>parcial</span></div><div style={{fontSize:10,color:'#9a9a9a',margin:'2px 0 6px'}}>Cobertura {estimado.coberturaPct}% del alcance (por partidas) · confianza {estimado.confianza}</div>{estimado.items.map((it,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',gap:8,padding:'4px 0',borderTop:'1px solid #33291a',fontSize:11}}><span>{it.concepto} · {it.detalle}</span><b>{money(it.subtotal)}</b></div>)}<div style={{fontSize:10,color:'#d6a36d',marginTop:6}}><b>Pendiente por estimar</b> (no es $0): {estimado.pendientes.join(' · ')}</div><p style={{fontSize:9,color:'#8a8a8a',lineHeight:1.35,marginTop:5}}>{estimado.nota}</p></div>}
    {refsCargando&&<p className="c3-small">Buscando referencias reales en la lista vigente…</p>}
    {refUI&&<div className="c3-ref"><Label>Referencia comercial real</Label>{refUI.rangoPrecio&&<div style={{fontSize:17,fontWeight:900,color:'#d7f0df'}}>{refUI.rangoPrecio}</div>}{refUI.rangoCosto&&<div style={{fontSize:11,marginTop:4}}>Costo comparable autorizado: <b>{refUI.rangoCosto}</b></div>}<p style={{fontSize:9,color:'#9fb0a5',lineHeight:1.35}}>No es el costo del especial. Son precios vigentes de productos comparables; extras especiales se certifican cuando existe BOM/precio de insumo suficiente.</p>{refUI.items.slice(0,4).map((x,i)=><div className="c3-refrow" key={`${x.producto_id}-${i}`}><span>{x.capacidad?`${x.capacidad}u · `:''}{x.nombre.replace('Módulo operativo App LT ','')}</span><b>{money(x.precio,x.moneda)}</b></div>)}</div>}
