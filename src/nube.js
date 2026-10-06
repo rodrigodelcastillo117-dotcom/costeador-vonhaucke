@@ -499,6 +499,13 @@ export async function registrarProductoDesdeExpediente(expedienteId) {
 export async function subirRenderCanonico({ expedienteId, productoId, productoVersionId, dataUrl, promptVersion, modo = 'render', specHash, geometryHash = null, inputs = {} }) {
   try {
     if (!dataUrl) return { ok: false, error: 'sin imagen' };
+    if (!specHash) return { ok: false, error: 'render canónico sin spec_hash: no se puede demostrar la revisión' };
+    if (!geometryHash) return { ok: false, error: 'render canónico sin visual/geometry hash: no se puede demostrar sincronía' };
+    const canonicalInputs = {
+      ...(inputs || {}),
+      visual_revision_hash: geometryHash,
+      spec_hash: specHash,
+    };
     const blob = await (await fetch(dataUrl)).blob();
     const ext = ((blob.type || 'image/png').split('/')[1] || 'png').replace('jpeg', 'jpg');
     // Path ÚNICO (insert simple): evita el camino de UPSERT (que exigiría también la
@@ -510,7 +517,7 @@ export async function subirRenderCanonico({ expedienteId, productoId, productoVe
     const { data, error } = await nube.rpc('registrar_render_canonico', {
       p_producto_id: productoId ?? null, p_producto_version_id: productoVersionId ?? null, p_expediente_id: expedienteId ?? null,
       p_storage_path: path, p_storage_url: storageUrl, p_prompt_version: promptVersion || null, p_modo: modo,
-      p_spec_hash: specHash || null, p_geometry_hash: geometryHash, p_inputs: inputs || {},
+      p_spec_hash: specHash, p_geometry_hash: geometryHash, p_inputs: canonicalInputs,
     });
     if (error) return { ok: false, error: error.message, storage_url: storageUrl, storage_path: path };
     return { ok: true, ...(data || {}), storage_url: storageUrl, storage_path: path };
