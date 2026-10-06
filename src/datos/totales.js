@@ -1,4 +1,4 @@
-import { aCentavosEnteros, deCentavosEnteros } from '../motor/dinero.js';
+import { aCentavosEnteros, deCentavosEnteros, porcentajeCentavos } from '../motor/dinero.js';
 
 // ============================================================================
 //  TOTALES · la ÚNICA autoridad de dinero de una cotización.
@@ -56,9 +56,9 @@ export function totalesCotizacion(partidas = [], cot = {}, par = {}) {
   const precioLista = deCentavosEnteros(precioListaCentavos);
 
   const pctCentavos = (baseCentavos, pct) => {
-    const p = Number(pct);
-    if (!Number.isFinite(p)) { hayLineaInvalida = true; return 0; }
-    return Math.round((baseCentavos * p) / 100);
+    const cents = porcentajeCentavos(baseCentavos, pct);
+    if (cents == null) { hayLineaInvalida = true; return 0; }
+    return cents;
   };
 
   const descuentoPct = cot.descuentoPct ?? par.descuentoPorcentaje ?? 0;
