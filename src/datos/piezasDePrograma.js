@@ -66,6 +66,11 @@ export function normalizarAreasPrograma(areas = []) {
   return lista;
 }
 
+const groupId = (a, kind = 'grupo') => {
+  const base = norm(a?.nombre || 'zona').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'zona';
+  return `fg-${kind}-${base}`;
+};
+
 function partida(id, nombre, cantidad, w, d, extra = {}) {
   return {
     id: `sug-${id}`,
@@ -140,9 +145,10 @@ export function partidasSugeridasDeAreas(areas = [], opts = {}) {
     if (rol === 'servicio') continue;
 
     if (rol === 'recepcion') {
-      add(a, 'Mostrador de recepción', 1, 2000, 700);
-      add(a, 'Silla operativa recepción', 1, 600, 600);
-      add(a, 'Silla de visita recepción', 2, 600, 600);
+      const fg = groupId(a, 'recepcion');
+      add(a, 'Mostrador de recepción', 1, 2000, 700, { functional_group_id: fg, relation_role: 'ANCHOR_RECEPTION' });
+      add(a, 'Silla operativa recepción', 1, 600, 600, { functional_group_id: fg, relation_role: 'WORK_SEAT', anchor_role: 'ANCHOR_RECEPTION' });
+      add(a, 'Silla de visita recepción', 2, 600, 600, { functional_group_id: fg, relation_role: 'VISITOR_SEAT', anchor_role: 'ANCHOR_RECEPTION' });
       continue;
     }
 
@@ -151,17 +157,19 @@ export function partidasSugeridasDeAreas(areas = [], opts = {}) {
       const explicitas = puestosDeArea(a);
       const personas = cap(explicitas || personasEnSala(m2), 4, 16);
       const mesaW = personas >= 14 ? 4200 : personas >= 12 ? 3800 : personas >= 10 ? 3400 : personas >= 8 ? 3000 : personas >= 6 ? 2600 : 2200;
-      add(a, `Mesa de juntas ${personas} personas`, 1, mesaW, 1200);
-      add(a, 'Silla de juntas', personas, 600, 600);
-      if (m2 >= 18) add(a, 'Credenza de sala de juntas', 1, 1600, 500);
+      const fg = groupId(a, 'juntas');
+      add(a, `Mesa de juntas ${personas} personas`, 1, mesaW, 1200, { functional_group_id: fg, relation_role: 'ANCHOR_MEETING', user_capacity: personas });
+      add(a, 'Silla de juntas', personas, 600, 600, { functional_group_id: fg, relation_role: 'MEETING_SEAT', anchor_role: 'ANCHOR_MEETING' });
+      if (m2 >= 18) add(a, 'Credenza de sala de juntas', 1, 1600, 500, { functional_group_id: fg, relation_role: 'SUPPORT_STORAGE', anchor_role: 'ANCHOR_MEETING' });
       continue;
     }
 
     if (rol === 'privado') {
-      add(a, 'Escritorio directivo', 1, 1800, 800);
-      add(a, 'Silla directiva', 1, 650, 650);
-      add(a, 'Silla de visita', 2, 600, 600);
-      add(a, 'Credenza dirección', 1, 1200, 500);
+      const fg = groupId(a, 'privado');
+      add(a, 'Escritorio directivo', 1, 1800, 800, { functional_group_id: fg, relation_role: 'ANCHOR_DESK' });
+      add(a, 'Silla directiva', 1, 650, 650, { functional_group_id: fg, relation_role: 'EXECUTIVE_SEAT', anchor_role: 'ANCHOR_DESK' });
+      add(a, 'Silla de visita', 2, 600, 600, { functional_group_id: fg, relation_role: 'VISITOR_SEAT', anchor_role: 'ANCHOR_DESK' });
+      add(a, 'Credenza dirección', 1, 1200, 500, { functional_group_id: fg, relation_role: 'SUPPORT_STORAGE', anchor_role: 'ANCHOR_DESK' });
       continue;
     }
 
@@ -177,11 +185,17 @@ export function partidasSugeridasDeAreas(areas = [], opts = {}) {
     if (puestos > 0) {
       const columnas = Math.max(1, Math.ceil(puestos / 2));
       const anchoBench = columnas * 1500;
+      const fg = groupId(a, 'workstation');
       add(a, `Banca doble APP LT 1.50 · ${puestos} usuarios · ocupa ${(anchoBench / 1000).toFixed(2)} × 1.20 m`, 1, anchoBench, 1200, {
         lineaSugerida: 'applt', usuarios: puestos,
+        functional_group_id: fg, relation_role: 'ANCHOR_WORKSTATION',
       });
-      add(a, 'Silla operativa · WIN', puestos, 600, 600, { lineaSugerida: 'applt' });
-      add(a, 'Gaveta rodante APP LT', puestos, 400, 580, { lineaSugerida: 'applt' });
+      add(a, 'Silla operativa · WIN', puestos, 600, 600, {
+        lineaSugerida: 'applt', functional_group_id: fg, relation_role: 'WORK_SEAT', anchor_role: 'ANCHOR_WORKSTATION',
+      });
+      add(a, 'Gaveta rodante APP LT', puestos, 400, 580, {
+        lineaSugerida: 'applt', functional_group_id: fg, relation_role: 'UNDERDESK_STORAGE', anchor_role: 'ANCHOR_WORKSTATION',
+      });
     }
   }
 
