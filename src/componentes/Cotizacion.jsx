@@ -9,7 +9,7 @@ import { resumenPorArea, especificacion } from '../datos/resumen.js';
 import { listaPorCuarto } from '../datos/porCuarto.js';
 import { descargarPropuesta, cargarFotos, cargarMarca } from '../datos/pdfPropuesta.js';
 import EditarPartida, { sePuedeEditar } from './EditarPartida.jsx';
-import { pesos, pesos2, leePct, selloPartida, claseCosto } from '../util.js';
+import { pesos2, leePct, selloPartida, claseCosto } from '../util.js';
 import { senalesCotizacion, senalesInsumos, problemasDeEmision } from '../datos/senales.js';
 import { porQueNoPuedoEmitir } from '../datos/voniContext.js';
 import { totalesCotizacion } from '../datos/totales.js';
