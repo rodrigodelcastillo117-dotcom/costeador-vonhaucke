@@ -104,6 +104,17 @@ function areaGeometry(a: any) {
 function zoneRole(a: any) { return canonicalZoneRole(a); }
 function productRole(p: any) { return canonicalProductRole(p); }
 function semanticVerdict(pr: string, zr: string) { return semanticVerdictCanonical(pr, zr); }
+function explicitAreaIndexes(p:any, metas:any[]){
+  const z=norm(p?.zonaSugerida || p?.zona_destino || p?.zonaDestino || p?.areaDestino || '');
+  if(!z) return [];
+  const exact=metas.filter((a:any)=>norm(a?.nombre)===z).map((a:any)=>a._i);
+  if(exact.length) return exact;
+  const fuzzy=metas.filter((a:any)=>{
+    const n0=norm(a?.nombre);
+    return n0 && (n0.includes(z) || z.includes(n0));
+  }).map((a:any)=>a._i);
+  return fuzzy.length===1 ? fuzzy : [];
+}
 function insideArea(x: number, y: number, w: number, d: number, g: any) {
   if (x < 0 || y < 0 || x + w > g.width || y + d > g.depth) return false;
   if (g.kind === "rect") return true;
@@ -249,6 +260,8 @@ Deno.serve(async (req) => {
     ...(p.functional_group_id ? { functional_group_id: String(p.functional_group_id) } : {}),
     ...(p.relation_role ? { relation_role: String(p.relation_role) } : {}),
     ...(p.anchor_role ? { anchor_role: String(p.anchor_role) } : {}),
+    ...(p.zonaSugerida ? { zonaSugerida: String(p.zonaSugerida) } : {}),
+    ...(p.sugeridoPlano ? { sugeridoPlano: true } : {}),
     ...(Number.isFinite(Number(p.user_capacity)) ? { user_capacity: Number(p.user_capacity) } : {}),
     ...(Number.isFinite(Number(p.max_anchor_distance_mm)) ? { max_anchor_distance_mm: Number(p.max_anchor_distance_mm) } : {}),
     ...(p.spatial_spec ? { spatial_spec: p.spatial_spec } : {}),
@@ -304,6 +317,10 @@ Deno.serve(async (req) => {
       if (!finite(x) || !finite(y) || x < 0 || y < 0 || ![0, 90].includes(rot)) { issues.push({ field: `colocacion[${i}]`, code: "INVALID_COORDINATES", id }); continue; }
       const w = rot === 90 ? p.d : p.w, d = rot === 90 ? p.w : p.d, a = areaMeta[ai];
       if (!insideArea(x, y, w, d, a._g)) { issues.push({ field: `colocacion[${i}]`, code: "OUTSIDE_ZONE", id, area: ai }); continue; }
+      const explicitAreas = explicitAreaIndexes(p, areaMeta);
+      if (explicitAreas.length && !explicitAreas.includes(ai)) {
+        issues.push({ field: `colocacion[${i}]`, code: "WRONG_EXPLICIT_ZONE", id, expected_zone: p.zonaSugerida, zone: a.nombre });
+      }
       const sv = semanticVerdict(p.product_role, a.zone_role);
       if (sv.level === "FAIL") issues.push({ field: `colocacion[${i}]`, code: sv.code, id, product_role: p.product_role, zone_role: a.zone_role, zone: a.nombre });
       else if (sv.level === "REVIEW") reviews.push({ field: `colocacion[${i}]`, code: sv.code, id, product_role: p.product_role, zone_role: a.zone_role, zone: a.nombre });
@@ -378,11 +395,12 @@ Deno.serve(async (req) => {
       : {}),
   }));
   const solverPieces = canonicalPieces.map((p: any) => {
+    const explicitAreas = explicitAreaIndexes(p, areaMeta);
     const ranked = areaMeta
       .map((a: any, ai: number) => ({ ai, v: semanticVerdict(p.product_role, a.zone_role) }))
       .filter((x: any) => x.v.level !== "FAIL")
       .sort((a: any, b: any) => (a.v.level === "PASS" ? 0 : 1) - (b.v.level === "PASS" ? 0 : 1) || a.ai - b.ai);
-    const allowedAreas = ranked.map((x: any) => x.ai);
+    const allowedAreas = explicitAreas.length ? explicitAreas : ranked.map((x: any) => x.ai);
     return { ...p, allowedAreas, ...(allowedAreas.length ? { area: allowedAreas[0] } : {}) };
   });
   const det = planearDeterminista(solverAreas, solverPieces, { gapMM: 150, stepMM: 100 });
