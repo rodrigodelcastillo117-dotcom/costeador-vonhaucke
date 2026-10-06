@@ -93,7 +93,16 @@ export default function Cocrear({estado,onAgregar,onIr}){
  useEffect(()=>{if(fase!=='studio'||!intent)return;let live=true;setRefsCargando(true);referenciasComercialesCocrear(intent).then(r=>{if(live)setRefs(r)}).finally(()=>{if(live)setRefsCargando(false)});return()=>{live=false}},[fase,intent?._concepto,intent?.capacidad_personas,intent?.familia]);
 
  const reset=()=>{setFase('inicio');setIntent(null);setHistoria([]);setConceptos([]);setAnalisis(null);setAiError('');setRender(null);setMensaje('');setExpedienteId(null);setComparA(null);setRefs(null)};
- const commit=(next,label)=>{setIntent(next);setHistoria(h=>[...h,{rev:h.length+1,intent:clone(next),label}]);setGuardado(false)};
+ const commit=(next,label)=>{
+  setIntent(next);
+  setHistoria(h=>[...h,{rev:h.length+1,intent:clone(next),label}]);
+  setGuardado(false);
+  // Una revisión visual nueva jamás comparte pantalla con un render viejo.
+  // El 3D se deriva inmediatamente del spec; el fotográfico se regenera después.
+  setRender(null);
+  setRenderError('');
+  setCotizadoHash(null);
+ };
 
  const generarPara=async(nextIntent,nextSpec)=>{
   if(!nextSpec)return;setRenderCargando(true);setRenderError('');
