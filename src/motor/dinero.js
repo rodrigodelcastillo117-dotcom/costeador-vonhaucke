@@ -34,3 +34,22 @@ export function aplicarPct(base, pct) {
   if (!Number.isFinite(b) || !Number.isFinite(p)) return NaN;
   return dinero(b * p / 100);
 }
+
+
+// Aplica un porcentaje sobre CENTAVOS ENTEROS usando BigInt en la frontera.
+// El porcentaje se cuantiza a 1e-6 puntos porcentuales; evita que 12.5%, IVA,
+// descuentos, etc. acumulen error binario antes del redondeo final a centavo.
+export function porcentajeCentavos(baseCentavos, pct) {
+  if (!Number.isSafeInteger(baseCentavos)) return null;
+  const p = Number(pct);
+  if (!Number.isFinite(p)) return null;
+  const escala = 1_000_000; // micro-puntos porcentuales
+  const pMicro = Math.round(p * escala);
+  const den = BigInt(100 * escala);
+  const num = BigInt(baseCentavos) * BigInt(pMicro);
+  const neg = num < 0n;
+  const abs = neg ? -num : num;
+  const q = (abs + den / 2n) / den; // half-up a centavo
+  const out = Number(neg ? -q : q);
+  return Number.isSafeInteger(out) ? out : null;
+}
