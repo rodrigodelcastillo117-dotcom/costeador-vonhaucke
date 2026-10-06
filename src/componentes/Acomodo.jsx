@@ -18,6 +18,7 @@ import {
 } from '../datos/piezasDePrograma.js';
 import { marcarDestinoPartida } from '../datos/destinoAcomodo.js';
 import { expandirPiezas } from '../datos/espacio.js';
+import { validarCoherenciaPrograma } from '../datos/coherenciaPrograma.js';
 
 const esSugerida = (p) => !!p?.sugeridoPlano || String(p?.id || '').startsWith('sug-');
 const norm = (s = '') => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -118,9 +119,13 @@ export function sanearAcomodoContraPartidas(acomodo, partidasReales = []) {
 }
 
 export function elegirPartidasAcomodo(partidas = [], sugeridas = []) {
-  const reales = (Array.isArray(partidas) ? partidas : []).filter((p) => !esSugerida(p));
-  if (!reales.length) return sugeridas;
-  return completarProgramaVisual(reales, sugeridas).partidas;
+  const reales = (Array.isArray(partidas) ? partidas : [])
+    .filter((p) => !esSugerida(p))
+    .map(marcarDestinoPartida);
+  // En una cotización real, el solver recibe EXCLUSIVAMENTE muebles reales.
+  // Las sugerencias del plano son diagnóstico; jamás piezas fantasma.
+  if (reales.length) return reales;
+  return (Array.isArray(sugeridas) ? sugeridas : []).filter(Boolean);
 }
 
 export default function Acomodo(props) {
@@ -137,7 +142,7 @@ export default function Acomodo(props) {
     ? completarProgramaVisual(realesEntrada, sugeridasProgramaIniciales)
     : { partidas: sugeridasGuardadas.length ? sugeridasGuardadas : sugeridasProgramaIniciales, sugerencias: sugeridasGuardadas.length ? sugeridasGuardadas : sugeridasProgramaIniciales };
   const guardadoNormalizado = hayReales
-    ? sanearAcomodoContraPartidas(guardadoNormalizadoBase, programaInicial.partidas)
+    ? sanearAcomodoContraPartidas(guardadoNormalizadoBase, realesEntrada)
     : guardadoNormalizadoBase;
   const sugeridasIniciales = hayReales
     ? programaInicial.sugerencias
@@ -162,6 +167,7 @@ export default function Acomodo(props) {
     ? completarProgramaVisual(realesEntrada, sugeridasPlanoActuales)
     : { reales: [], sugerencias: sugeridasPlanoActuales, partidas: sugeridasPlanoActuales, programaCompleto: false };
   const sugerenciasFaltantes = programaVisual.sugerencias || [];
+  const coherenciaPrograma = hayReales ? validarCoherenciaPrograma(realesEntrada) : { ok: true, bloqueos: [] };
 
   const estadoDemo = useMemo(() => {
     const e = props?.estado || {};
@@ -170,10 +176,7 @@ export default function Acomodo(props) {
     const sugeridasParaLayout = hayReales
       ? partidasSugeridasDeAreas(areasAhora, { linea: lineaOperativa })
       : sugeridas;
-    const programa = hayReales
-      ? completarProgramaVisual(c.partidas, sugeridasParaLayout)
-      : { partidas: sugeridasParaLayout, sugerencias: sugeridasParaLayout };
-    const partidas = programa.partidas;
+    const partidas = elegirPartidasAcomodo(c.partidas, sugeridasParaLayout);
     const acomodo = acomodoLocal;
     return {
       ...e,
@@ -268,20 +271,22 @@ export default function Acomodo(props) {
           <div className="alerta" style={{ display: 'block', width: '100%', boxSizing: 'border-box', background: '#fff8e6', borderColor: '#d8a800', color: '#5e4700' }}>
             <strong>✨ VONI completó lo que falta para que el plano tenga sentido.</strong>{' '}
             Propuso <strong>{sugerenciasFaltantes.reduce((s, p) => s + cantidadDe(p), 0)} pieza(s)</strong> que todavía no están cotizadas.
-            Se acomodan en su zona correcta para evaluar el proyecto, pero siguen <strong>SUGERIDAS · NO COTIZADAS</strong>.
+            <strong>No se meten al acomodo real.</strong> Siguen <strong>SUGERIDAS · NO COTIZADAS</strong> hasta que alguien las confirme/agregue.
             <div style={{ display: 'grid', gap: 4, marginTop: 8 }}>
               {sugerenciasFaltantes.slice(0, 8).map((p) => (
                 <div key={p.id}>• {p.cantidad}× {p.nombre}{p.zonaSugerida ? ' → ' + p.zonaSugerida : ''}</div>
               ))}
               {sugerenciasFaltantes.length > 8 && <div>• +{sugerenciasFaltantes.length - 8} renglón(es) sugeridos</div>}
             </div>
-            <div style={{ marginTop: 8 }}>El acomodo puede trabajarse completo; la propuesta final queda como borrador hasta confirmar/agregar estas piezas.</div>
+            <div style={{ marginTop: 8 }}>El acomodo real usa únicamente lo cotizado. Si falta un ancla funcional, se bloquea y te dice exactamente qué agregar.</div>
           </div>
         </div>
       )}
 
       <AcomodoBase key={`acomodo-demo-${revision}-${hayReales ? 'real' : 'sug'}`} {...props} estado={estadoDemo}
-        pendientesPrograma={sugerenciasFaltantes} onGuardarAcomodo={guardarInterceptado} />
+        pendientesPrograma={sugerenciasFaltantes}
+        bloqueosPrograma={coherenciaPrograma.bloqueos}
+        onGuardarAcomodo={guardarInterceptado} />
     </>
   );
 }
