@@ -60,9 +60,47 @@ export async function escribirDireccion(datos) {
   if (error) throw error;
 }
 
-export async function sesionActual() {
-  const { data } = await nube.auth.getSession();
-  return data.session || null;
+// Sesión robusta para demos y trabajo real: Supabase refresca automáticamente,
+// pero una petición puede coincidir con el instante en que el access token venció.
+// Centralizamos el refresh en una sola promesa para evitar una estampida de refreshes
+// (varias pantallas arrancan a la vez al entrar). Nunca concede acceso sin sesión.
+let refreshEnVuelo = null;
+async function refrescarSesionUnaVez() {
+  if (!refreshEnVuelo) {
+    refreshEnVuelo = nube.auth.refreshSession()
+      .then(({ data, error }) => {
+        if (error) throw error;
+        return data?.session || null;
+      })
+      .finally(() => { refreshEnVuelo = null; });
+  }
+  return refreshEnVuelo;
+}
+
+export async function sesionActual({ refrescarSiVenceEnSeg = 45 } = {}) {
+  const { data, error } = await nube.auth.getSession();
+  if (error) throw error;
+  const s = data?.session || null;
+  if (!s) return null;
+  const venceMs = Number(s.expires_at || 0) * 1000;
+  if (venceMs && venceMs - Date.now() <= refrescarSiVenceEnSeg * 1000) {
+    try { return await refrescarSesionUnaVez(); }
+    catch (_) { return s; } // el caller sigue fail-closed si el servidor rechaza el JWT
+  }
+  return s;
+}
+
+// Para lecturas protegidas: ante un 401/JWT expirado, refresca UNA vez y reintenta.
+// No reintenta 403/RLS ni errores de negocio: esos deben seguir visibles.
+async function lecturaProtegida(operacion) {
+  let r = await operacion();
+  const status = Number(r?.error?.status || r?.status || 0);
+  const msg = String(r?.error?.message || '').toLowerCase();
+  if (r?.error && (status === 401 || msg.includes('jwt') || msg.includes('token'))) {
+    await refrescarSesionUnaVez();
+    r = await operacion();
+  }
+  return r;
 }
 export function alCambiarSesion(cb) {
   const { data } = nube.auth.onAuthStateChange((evento, s) => cb(s || null, evento));
@@ -128,8 +166,9 @@ function conTimeout(promesa, ms = 8000, etiqueta = 'operación') {
 }
 
 export async function miPermiso(email) {
+  const consulta = () => nube.from('permitidos').select('rol, nombre').eq('email', email).maybeSingle();
   const { data, error } = await conTimeout(
-    nube.from('permitidos').select('rol, nombre').eq('email', email).maybeSingle(),
+    lecturaProtegida(consulta),
     8000, 'permiso',
   );
   if (error) throw error;
