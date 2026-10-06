@@ -789,10 +789,10 @@ export default function App() {
       productoId: costeo.productoId || null,
       w: costeo.w || null, d: costeo.d || null,
       cantidad: n,
-      costoUnitario: Number.isFinite(Number(resultado?.costoUnitario))
+      costoUnitario: resultado?.costoUnitario != null && Number.isFinite(Number(resultado.costoUnitario))
         ? Number(resultado.costoUnitario)
         : null,
-      costoPendiente: !Number.isFinite(Number(resultado?.costoUnitario)),
+      costoPendiente: !(resultado?.costoUnitario != null && Number.isFinite(Number(resultado.costoUnitario))),
       precioUnitario: precio,
       margen: Number.isFinite(margen) ? margen : null,
       config: null,
