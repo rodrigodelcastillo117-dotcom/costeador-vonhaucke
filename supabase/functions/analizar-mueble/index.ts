@@ -282,7 +282,6 @@ Deno.serve(async (req) => {
   }
 
   const contenido = [...bloquesImagen, { type: "text", text: textoTarea }];
-  const esRevision = !!revisar;
   const pedir = async (schema: any, sys: string, maxTok: number) => {
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), esRevision ? 45_000 : 75_000);
