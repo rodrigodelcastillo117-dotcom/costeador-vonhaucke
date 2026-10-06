@@ -41,7 +41,9 @@ export const cotizacionSegura = (id) => nube.rpc('cotizacion_segura', { p_id: id
 // proyectos. Devuelve el acomodo de las cotizaciones activas del proyecto para que
 // la Solución lea su fuente real (no una columna inexistente de proyectos).
 export const acomodosDeProyecto = (proyectoId) =>
-  sel(nube.from('cotizaciones').select('id,folio,acomodo').eq('proyecto_id', proyectoId).eq('activa', true));
+  // Voni sólo necesita saber QUÉ cotizaciones tienen acomodo, no descargar el
+  // JSON (legacy puede pesar 12 MB por escenas base64).
+  sel(nube.from('cotizaciones').select('id,folio').eq('proyecto_id', proyectoId).eq('activa', true).not('acomodo', 'is', null));
 
 // ---- Escenarios (N12) ------------------------------------------------------
 export const listarEscenarios = (proyectoId) =>
