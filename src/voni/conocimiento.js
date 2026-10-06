@@ -120,10 +120,21 @@ export function conocimientoDe(query) {
 }
 
 export function contextoCatalogoParaIA(query='') {
+  const catalogo=catalogoVonHauckeCompacto();
+  const candidatos=recomendar(query,10);
+  const rutas=new Set(candidatos.map((x)=>x.ruta));
+  // VONI "sabe todo", pero no mandamos todas las matrices de opciones a cada
+  // proveedor: índice completo de TODAS las líneas + detalle completo sólo de
+  // candidatos. Así no sacrificamos los 20 s del Council.
+  const indice_lineas=catalogo.map((l)=>({
+    ruta:l.ruta,linea:l.linea,que:l.que,gama:l.gama,
+    productos:(l.productos||[]).map((p)=>({id:p.id,nombre:p.nombre})),
+  }));
   return {
     principios: PRINCIPIOS,
-    candidatos: recomendar(query, 10),
-    catalogo_lineas: catalogoVonHauckeCompacto(),
+    candidatos,
+    candidatos_detalle:catalogo.filter((l)=>rutas.has(l.ruta)),
+    catalogo_lineas:indice_lineas,
     acabados: acabadosVonHaucke(),
     clasificacion_obligatoria: ['LINE_PRODUCT','CONFIGURED_LINE_PRODUCT','DERIVED_SPECIAL','NEW_SPECIAL'],
     regla: 'Antes de proponer NEW_SPECIAL, demuestra que ninguna línea/producto/configuración real resuelve el brief. Nunca cambies una línea real en silencio.',
