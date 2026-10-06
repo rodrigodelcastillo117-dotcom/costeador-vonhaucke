@@ -7,7 +7,7 @@
 //  Requiere ANTHROPIC_API_KEY.
 // ============================================================================
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { planearDeterminista, validarColocacion, resumenViolaciones, recomendacionesParcial } from "./acomodo-core.js";
+import { validarColocacion, resumenViolaciones, recomendacionesParcial } from "./acomodo-core.js";\nimport { planearSemantico } from "./layout-semantico.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
   // los trae; con áreas rectangulares simples funciona igual (compat).
   let planeado: any;
   try {
-    planeado = planearDeterminista(areas, piezas, { gapMM: 150 });
+    planeado = planearSemantico(areas, piezas, { gapMM: 150, stepMM: 100 });
   } catch (e) {
     return json({ ok: false, error: "No se pudo acomodar: " + String((e as any)?.message || e) }, 200);
   }
@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
     noColocadas: val.noColocadas,
     recomendaciones,
     intentos: [{ intento: 1, motor: "solver_determinista", colocadas: val.colocadas, total: val.total, violaciones: resumenViolaciones(val) }],
-    metodo: "solver_determinista",
+    metodo: "solver_semantico_determinista",
     uso: null,
   });
 });
