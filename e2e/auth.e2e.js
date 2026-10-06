@@ -23,13 +23,13 @@ test.describe('E2E autenticado · flujo real', () => {
 
   test('home es inequívoco: Cotizar · Costear · Cocrear', async ({ page }) => {
     await expect(page.getByRole('heading', { name: /Qué vas a hacer/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Preparar propuesta para cliente|COTIZAR/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Costear un producto nuevo|COSTEAR/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Diseñar un producto nuevo|COCREAR/i })).toBeVisible();
+    await expect(page.getByTestId('home-cotizar')).toBeVisible();
+    await expect(page.getByTestId('home-costear')).toBeVisible();
+    await expect(page.getByTestId('home-cocrear')).toBeVisible();
   });
 
   test('COSTEAR abre directo el flujo de PDF y acepta un PDF multipágina real', async ({ page }) => {
-    await page.getByRole('button', { name: /Costear un producto nuevo|COSTEAR/i }).click();
+    await page.getByTestId('home-costear').click();
     await expect(page.getByText(/Qué vas a costear/i)).toBeVisible({ timeout: 15000 });
     const input = page.getByTestId('costear-archivo');
     await expect(input).toHaveCount(1);
@@ -39,13 +39,13 @@ test.describe('E2E autenticado · flujo real', () => {
   });
 
   test('COTIZAR abre VONI sin menú intermedio', async ({ page }) => {
-    await page.getByRole('button', { name: /Preparar propuesta para cliente|COTIZAR/i }).click();
+    await page.getByTestId('home-cotizar').click();
     await expect(page.getByText(/asistente de proyecto/i).first()).toBeVisible({ timeout: 15000 });
     await expect(page.getByText(/Dónde va el proyecto|Cuéntame qué necesita tu cliente/i).first()).toBeVisible({ timeout: 15000 });
   });
 
   test('COCREAR entra al estudio de co-diseño', async ({ page }) => {
-    await page.getByRole('button', { name: /Diseñar un producto nuevo|COCREAR/i }).click();
+    await page.getByTestId('home-cocrear').click();
     await expect(page.getByText(/Qué tienes en mente|Cocrear . de la idea|Diséñalo|Disénalo/i).first()).toBeVisible({ timeout: 15000 });
   });
 
