@@ -49,4 +49,25 @@ test.describe('E2E autenticado', () => {
       test.info().annotations.push({ type: 'nota', description: 'Sin partidas en la cuenta de prueba: se omite el gate.' });
     }
   });
+  test('home prioriza una ruta clara por rol y no ofrece callejones', async ({ page }) => {
+    // Regla UX: un usuario nuevo debe poder empezar sin conocer la arquitectura.
+    // Siempre existe la puerta guiada por lenguaje de cliente.
+    await expect(page.getByRole('button', { name: /Dime qué pide el cliente/i })).toBeVisible();
+    // Nunca enseñamos un CTA que sólo conduce a "no tienes permiso".
+    const textosBloqueo = page.getByText(/no tienes permiso|no puedes usar|solo dirección/i);
+    await expect(textosBloqueo).toHaveCount(0);
+  });
+
+  test('navegar y volver conserva el contexto del inicio', async ({ page }) => {
+    // Entrar a una herramienta y volver no debe resetear la experiencia ni obligar
+    // a reaprender dónde estaba el usuario.
+    await page.getByRole('button', { name: /Dime qué pide el cliente/i }).click();
+    await expect(page.getByText(/Voni|proyecto|cliente/i).first()).toBeVisible({ timeout: 15000 });
+    const volver = page.getByRole('button', { name: /Atrás|Inicio|Volver/i }).first();
+    if (await volver.count()) {
+      await volver.click();
+      await expect(page.getByRole('button', { name: /Dime qué pide el cliente/i })).toBeVisible({ timeout: 10000 });
+    }
+  });
+
 });
