@@ -20,6 +20,7 @@ import { conocimientoDe } from './conocimiento.js';
 import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
 import { buscarMaterialTecnico, describirFormatoTecnico } from '../datos/materialKnowledge.js';
 import { construirPrecedentesCosteo } from '../datos/precedentesCosteo.js';
+import { explicarCosteo } from '../datos/explicacionCosteo.js';
 import { nube, buscarProductosMaestroTexto } from '../nube.js';
 
 const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
@@ -128,6 +129,10 @@ export const proveedorReal = {
   get_costing: async (ctx) => (ctx.costing
     ? ctx.costing
     : { disponible: false, nota: 'El costo se consolida por pieza en el Costeador; no hay un total de proyecto inventado aquí.' }),
+  get_cost_explanation: async (ctx) => {
+    if(!ctx.costing) return { disponible:false, nota:'Abre un mueble en Costear para explicar su matemática real.' };
+    return { disponible:true, ...explicarCosteo(ctx.costing,{ nombre:ctx.costing?.nombre||'Costeo actual' }) };
+  },
   get_industrial_analysis: async (ctx) => {
     const bom = Array.isArray(ctx.bom) ? ctx.bom : [];
     const costing = ctx.costing || null;
