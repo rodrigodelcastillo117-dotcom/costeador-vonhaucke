@@ -45,6 +45,48 @@ export function construirContexto(p = {}) {
 
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
+// Evidencia mínima para NO confundir "no pude comprobar" con "todo bien".
+// Se exige sólo lo imprescindible para la intención. Las tools económicas se
+// agregan cuando el rol realmente puede verlas; un vendedor no queda bloqueado
+// por no tener permisos de costo interno.
+function requisitosEvidencia(intent, ctx = {}) {
+  const base = {
+    READINESS: ['get_project_context', 'get_reconciliation', 'get_quote', 'get_approvals', 'get_render_status'],
+    DIFF: ['compare_revisions'],
+    GAPS: ['get_reconciliation', 'get_quote'],
+    BUDGET: ['get_project_context', 'get_quote'],
+    ATTENTION: ['get_today_attention'],
+    COSTING_ANALYSIS: [],
+    RISK: [],
+    LAYOUT: ['get_reconciliation', 'get_layout'],
+  }[intent] || [];
+  if (['READINESS', 'COSTING_ANALYSIS', 'RISK'].includes(intent)
+      && rolVeEconomia(ctx.role) && !ctx.clientSafe) {
+    return [...new Set([...base, 'get_costing', ...(intent === 'COSTING_ANALYSIS' || intent === 'READINESS' ? ['get_bom'] : [])])];
+  }
+  return base;
+}
+
+function respuestaSinEvidencia(intent, faltantes, resultadosLente = []) {
+  const evidencia = [];
+  const lentes = resultadosLente.map((r) => r.lente);
+  const detalle = faltantes.join(', ');
+  return respuestaEstructurada({
+    que_paso: intent === 'READINESS'
+      ? 'No puedo confirmar que esté lista para enviarse.'
+      : 'No puedo confirmar el resultado todavía.',
+    por_que: `Falta evidencia de fuente: ${detalle}.`,
+    impacto: 'La ausencia de datos no se interpreta como PASS.',
+    confianza: 0,
+    accion: 'Recuperar esas fuentes y volver a revisar.',
+    evidencia,
+    urgencia: URGENCIA.ALTA,
+    estado: ESTADO.DESCONOCIDO,
+    lentes,
+    bloqueos: [{ titulo: 'Evidencia insuficiente', detalle: `No respondieron: ${detalle}.`, urgencia: URGENCIA.ALTA }],
+  });
+}
+
 // Intenciones → { intent, modo, lentes, tools }.
 export function inferirIntencion(query, ctx = {}) {
   const q = norm(query);
@@ -178,15 +220,25 @@ export async function responder({ query, ctx = {}, prov = {}, intentForzado = nu
   // La consulta viaja en args (`query`) para las tools que la usan (conocimiento).
   const datos = {};
   const toolsLlamadas = [];
+  const fallosTool = {};
   for (const nombre of plan.tools) {
     const res = await ejecutarTool(nombre, contexto, { ...contexto, query }, prov);
     toolsLlamadas.push(nombre);
     if (res.ok) datos[nombre] = res.data;
+    else fallosTool[nombre] = res;
   }
 
   // Correr lentes (ángulo); los datos económicos faltantes no se pueden exponer.
   const resultadosLente = plan.lentes.map((l) => correrLente(l, datos, contexto));
-  const respuesta = sintetizar(plan.intent, resultadosLente);
+
+  // FAIL-CLOSED DE EVIDENCIA: antes, si una consulta crítica fallaba, las lentes
+  // veían {} y podían producir cero bloqueos => "Lista para enviarse". Ahora la
+  // falta de una fuente requerida produce DESCONOCIDO, nunca OK.
+  const requeridas = requisitosEvidencia(plan.intent, contexto);
+  const faltantes = requeridas.filter((nombre) => datos[nombre] == null);
+  const respuesta = faltantes.length
+    ? respuestaSinEvidencia(plan.intent, faltantes, resultadosLente)
+    : sintetizar(plan.intent, resultadosLente);
 
   // Nota de permiso si se pidió una lente económica sin permiso real.
   const lenteEco = plan.lentes.find((l) => ['cfo', 'costeador'].includes(l));
