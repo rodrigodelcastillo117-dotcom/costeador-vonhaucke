@@ -387,6 +387,73 @@ function entradaOcupada(p, c) {
   return { ...physical, use: requiereClearance(p) ? rectUso(physical, p, Number(c.rot) === 90 ? 90 : 0) : null };
 }
 
+function miembrosMismoRol(piezas=[], p={}){
+  const gid=grupoId(p), rr=relationRole(p);
+  if(!gid || !rr) return [p];
+  return piezas
+    .filter((x)=>grupoId(x)===gid && relationRole(x)===rr)
+    .slice()
+    .sort((a,b)=>(Number(a.relation_index)||0)-(Number(b.relation_index)||0) || String(a.id).localeCompare(String(b.id)));
+}
+
+function slotLado(rect, pieza, rot, lado, slot, total, gap=120){
+  const {w,d}=huellaConRot(pieza,rot);
+  const n=Math.max(1,total||1), i=Math.max(0,Math.min(n-1,slot||0));
+  if(lado==='top'||lado==='bottom'){
+    const cx=rect.x + rect.w*((i+0.5)/n);
+    return {x:Math.round(cx-w/2),y:Math.round(lado==='top'?rect.y-d-gap:rect.y+rect.d+gap),rot};
+  }
+  const cy=rect.y + rect.d*((i+0.5)/n);
+  return {x:Math.round(lado==='left'?rect.x-w-gap:rect.x+rect.w+gap),y:Math.round(cy-d/2),rot};
+}
+
+/**
+ * Candidatos semánticos alrededor del anchor del grupo.
+ * No certifica nada: el validador geométrico sigue decidiendo si cada candidato sirve.
+ */
+export function candidatosRelacionales(pieza, piezas=[], anchorPieza, anchorColocacion){
+  if(!pieza||!anchorPieza||!anchorColocacion) return [];
+  const ar=rectDeColocacion(anchorPieza,anchorColocacion);
+  if(!ar) return [];
+  const rr=relationRole(pieza);
+  const arRole=relationRole(anchorPieza);
+  const miembros=miembrosMismoRol(piezas,pieza);
+  const idx=Math.max(0,miembros.findIndex((x)=>String(x.id)===String(pieza.id)));
+  const n=Math.max(1,miembros.length);
+  const out=[];
+
+  const addPair=(ladoA,ladoB)=>{
+    const porLado=Math.ceil(n/2);
+    const lado=(idx%2===0)?ladoA:ladoB;
+    const slot=Math.floor(idx/2);
+    out.push(slotLado(ar,pieza,0,lado,slot,porLado));
+    // alternativa simétrica por si puerta/contorno bloquea el lado preferido
+    out.push(slotLado(ar,pieza,0,lado===ladoA?ladoB:ladoA,slot,porLado));
+  };
+
+  if(rr==='WORK_SEAT'){
+    // bench/estación: usuarios a ambos lados del tablero. Recepción: operador detrás.
+    if(arRole==='ANCHOR_RECEPTION') {
+      out.push(slotLado(ar,pieza,0,'bottom',idx,n));
+      out.push(slotLado(ar,pieza,0,'top',idx,n));
+    } else addPair('bottom','top');
+  } else if(rr==='MEETING_SEAT') {
+    addPair('bottom','top');
+    // En mesas pequeñas, los extremos son buenas alternativas.
+    out.push(slotLado(ar,pieza,0,'left',Math.floor(idx/2),Math.ceil(n/2)));
+    out.push(slotLado(ar,pieza,0,'right',Math.floor(idx/2),Math.ceil(n/2)));
+  } else if(rr==='EXECUTIVE_SEAT') {
+    out.push(slotLado(ar,pieza,0,'bottom',0,1));
+    out.push(slotLado(ar,pieza,0,'right',0,1));
+  } else if(rr==='PRIVATE_SEAT' || rr==='VISITOR_SEAT') {
+    // visitas frente al escritorio/mostrador, no detrás del usuario.
+    out.push(slotLado(ar,pieza,0,'top',idx,n));
+    out.push(slotLado(ar,pieza,0,'left',idx,n));
+    out.push(slotLado(ar,pieza,0,'right',idx,n));
+  }
+  return out;
+}
+
 function candidatoCompatible(area, p, rot, r, ocup, gap) {
   const poly = area.polygon || area.poly;
   if (poly && !rectEnPoligono(r, poly)) return false;
@@ -463,6 +530,39 @@ export function planearDeterminista(areas = [], piezas = [], opts = {}) {
       const area = areas[ai];
       const A = Number(area.ancho); const L = Number(area.largo);
       const ocup = ocupadosPorArea[ai] || [];
+
+      // 1) Anchor de grupo: empieza al centro para dejar espacio real a sus
+      // dependientes alrededor (sillas, visitas, apoyos).
+      if (esAnchor(p)) {
+        for (const rot of rotations) {
+          const { w, d } = huellaConRot(p, rot);
+          if (w > A || d > L) continue;
+          const r = { id:String(p.id), x:Math.round((A-w)/2), y:Math.round((L-d)/2), w, d };
+          if (candidatoCompatible(area,p,rot,r,ocup,gap)) {
+            puesto={area:ai,x:r.x,y:r.y,rot,w,d};
+            break;
+          }
+        }
+        if(puesto) break;
+      }
+
+      // 2) Dependiente: intenta primero su posición FUNCIONAL respecto al anchor.
+      if (anchorPlaced && Number(anchorPlaced.area)===ai && p.group_anchor_id) {
+        const ap=piezas.find((pp)=>String(pp.id)===String(p.group_anchor_id));
+        if(ap){
+          for(const cand of candidatosRelacionales(p,piezas,ap,anchorPlaced)){
+            const {w,d}=huellaConRot(p,cand.rot||0);
+            const r={id:String(p.id),x:Number(cand.x),y:Number(cand.y),w,d};
+            if(candidatoCompatible(area,p,cand.rot||0,r,ocup,gap)){
+              puesto={area:ai,x:r.x,y:r.y,rot:cand.rot||0,w,d};
+              break;
+            }
+          }
+        }
+        if(puesto) break;
+      }
+
+      // 3) Fallback determinista general.
       for (const rot of rotations) {
         const { w, d } = huellaConRot(p, rot);
         if (w > A || d > L) continue;
