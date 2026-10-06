@@ -679,14 +679,30 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
 //  Las EXCLUIDAS_CONFIRMADAS (comp.excluida) NO cuentan: son $0 por decisión.
 // -----------------------------------------------------------------------------
 export function costeoEmitible(resultado) {
-  const pendientes = (resultado && resultado.componentesIgnorados) || [];
+  const faltantes = [...((resultado && resultado.componentesIgnorados) || [])];
+  const formatosInvalidos = (resultado?.detalleInsumos || [])
+    .filter((d) => d?.noCabe)
+    .map((d) => `${d.nombre || d.insumoId || 'Material'}: una o más piezas no caben en el formato de compra`);
+  const costo = Number(resultado?.costoUnitario);
+  const costoCorrupto = !Number.isFinite(costo) || costo < 0;
+
+  const pendientes = [...faltantes, ...formatosInvalidos];
+  if (costoCorrupto) pendientes.push('Costo unitario inválido/no finito');
+
+  const emitible = pendientes.length === 0;
   return {
-    emitible: pendientes.length === 0,
+    emitible,
     pendientes,
-    subtotalConocido: (resultado && resultado.costoUnitario) || 0,
-    // costoTotal es null mientras haya pendientes: no hay un total que autorizar.
-    costoTotal: pendientes.length === 0 ? ((resultado && resultado.costoUnitario) || 0) : null,
-    estadoCosto: pendientes.length === 0 ? 'completo' : 'incompleto',
+    bloqueos: {
+      datos_faltantes: faltantes,
+      formato_incompatible: formatosInvalidos,
+      costo_invalido: costoCorrupto,
+    },
+    subtotalConocido: Number.isFinite(costo) && costo >= 0 ? costo : 0,
+    // Nunca existe costoTotal autorizado mientras haya una incompatibilidad física
+    // o numérica, aunque el motor haya podido calcular un subtotal aproximado.
+    costoTotal: emitible ? costo : null,
+    estadoCosto: emitible ? 'completo' : 'incompleto',
   };
 }
 
