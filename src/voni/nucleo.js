@@ -160,6 +160,59 @@ export function inferirIntencion(query, ctx = {}) {
   return { intent: 'CONSULTA', modo, lentes: [ef.lente], tools: ['get_project_context', 'get_reconciliation', 'get_quote'] };
 }
 
+function respuestaIndustrial(a, resultadosLente = []) {
+  if (!a || a.disponible === false) {
+    return respuestaSinEvidencia('INDUSTRIAL_IMPROVEMENT', ['get_industrial_analysis'], resultadosLente);
+  }
+  const recomendaciones = Array.isArray(a.recomendaciones) ? a.recomendaciones : [];
+  const bloqueos = Array.isArray(a.bloqueos) ? a.bloqueos.map((b) => ({
+    titulo: b.titulo || b.code || 'Bloqueo industrial',
+    detalle: b.detalle || '',
+    urgencia: URGENCIA.ALTA,
+  })) : [];
+  const evidencia = [];
+  for (const h of a.hallazgos || []) {
+    if (h.tipo === 'CORTE_2D') {
+      evidencia.push(afirmacion(
+        `${h.material}: eficiencia de corte advisory ${h.eficiencia_pct ?? 'N/D'}%.`,
+        TIPO_AFIRMACION.HECHO,
+        { source_type:'motor_corte', confidence:h.completo ? 0.9 : 0.6 },
+      ));
+    }
+  }
+  for (const r of recomendaciones) {
+    evidencia.push(afirmacion(
+      `${r.accion}${r.ahorro_certificado === false ? ' · ahorro potencial, NO certificado' : ''}`,
+      TIPO_AFIRMACION.RECOMENDACION,
+      { source_type:'analisis_industrial', confidence:r.confianza ?? 0.7 },
+    ));
+  }
+
+  const principal = recomendaciones[0] || null;
+  const hayBloqueos = bloqueos.length > 0;
+  const nMejoras = recomendaciones.length;
+  return respuestaEstructurada({
+    que_paso: hayBloqueos
+      ? `${bloqueos.length} bloqueo(s) industrial(es) y ${nMejoras} mejora(s) detectada(s).`
+      : nMejoras
+        ? `${nMejoras} mejora(s) concreta(s) detectada(s).`
+        : 'No detecté una mejora industrial demostrable con la evidencia disponible.',
+    por_que: principal?.accion || bloqueos[0]?.detalle || 'No hay señal determinista suficiente para recomendar un cambio.',
+    impacto: nMejoras
+      ? 'Puede mejorar fabricabilidad, uso de material o eficiencia. El ahorro sigue siendo potencial hasta validarlo con Producción.'
+      : 'No se atribuye ahorro sin evidencia.',
+    confianza: confianzaDe(evidencia),
+    accion: hayBloqueos
+      ? `Resolver primero: ${bloqueos[0].titulo}.`
+      : principal?.accion || 'Mantener la revisión actual y seguir midiendo datos reales.',
+    evidencia,
+    urgencia: hayBloqueos ? URGENCIA.ALTA : (nMejoras ? URGENCIA.MEDIA : URGENCIA.BAJA),
+    estado: hayBloqueos ? ESTADO.ATENCION : (nMejoras ? ESTADO.ATENCION : ESTADO.OK),
+    lentes: resultadosLente.map((r) => r.lente),
+    bloqueos,
+  });
+}
+
 // Sintetiza los resultados de lente en UNA respuesta.
 function sintetizar(intent, resultadosLente) {
   const bloqueos = [];
@@ -267,15 +320,17 @@ export async function responder({ query, ctx = {}, prov = {}, intentForzado = nu
   const requeridas = requisitosEvidencia(plan.intent, contexto);
   const faltantes = requeridas.filter((nombre) => datos[nombre] == null);
   const denegadasEconomia = Object.entries(fallosTool)
-    .filter(([nombre, r]) => ['get_costing', 'get_bom'].includes(nombre) && r?.error === 'sin_permiso')
+    .filter(([nombre, r]) => ['get_costing', 'get_bom', 'get_industrial_analysis'].includes(nombre) && r?.error === 'sin_permiso')
     .map(([nombre]) => nombre);
-  const consultaEconomicaDirecta = ['COSTING_ANALYSIS', 'RISK'].includes(plan.intent);
+  const consultaEconomicaDirecta = ['COSTING_ANALYSIS', 'RISK', 'INDUSTRIAL_IMPROVEMENT'].includes(plan.intent);
 
   const respuesta = (consultaEconomicaDirecta && denegadasEconomia.length)
     ? respuestaSinPermisoEconomico(plan.intent, denegadasEconomia, resultadosLente)
     : faltantes.length
       ? respuestaSinEvidencia(plan.intent, faltantes, resultadosLente)
-      : sintetizar(plan.intent, resultadosLente);
+      : plan.intent === 'INDUSTRIAL_IMPROVEMENT'
+        ? respuestaIndustrial(datos.get_industrial_analysis, resultadosLente)
+        : sintetizar(plan.intent, resultadosLente);
 
   // Nota de permiso si se pidió una lente económica sin permiso real.
   const lenteEco = plan.lentes.find((l) => ['cfo', 'costeador'].includes(l));
