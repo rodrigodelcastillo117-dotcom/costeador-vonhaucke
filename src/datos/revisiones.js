@@ -22,6 +22,7 @@
 // ============================================================================
 import { nube } from '../nube.js';
 import { paraGuardar } from './cotizaciones.js';
+import { aCentavosEnteros } from '../motor/dinero.js';
 
 // Lo que se emitió, con la MISMA escalera de dinero que ve y firma el cliente
 // (paraGuardar → totales.js). El `usuario` de dentro del snapshot da igual: el
@@ -43,11 +44,13 @@ export function esDefinitiva(reg) {
 export function hashContenido(snap) {
   const base = {
     partidas: (snap?.partidas || []).map((p) => ({
-      n: p.nombre || '', c: p.cantidad || 0,
-      pu: Math.round(p.precioUnitario || 0), cu: Math.round(p.costoUnitario || 0),
+      n: p.nombre || '',
+      c: p.cantidad == null ? null : Number(p.cantidad),
+      pu_cents: aCentavosEnteros(p.precioUnitario),
+      cu_cents: aCentavosEnteros(p.costoUnitario),
       pid: p.piezaId || null, cfg: p.config || null,
     })),
-    total: snap?.total || 0,
+    total_cents: aCentavosEnteros(snap?.total),
     totales: snap?.totales || null,
     folio: snap?.folio || null,
     cliente: snap?.cliente || null,
