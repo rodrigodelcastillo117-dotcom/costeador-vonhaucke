@@ -24,6 +24,18 @@ export function evaluarAcomodoCliente(acomodo, partidas=[]) {
   if (!acomodo?.plan) return { existe:false, mostrar:false, valido:true, estado:'SIN_ACOMODO', razones:[] };
 
   const plan=acomodo.plan;
+  const sugerenciasPendientes=Array.isArray(acomodo?.sugerenciasPendientes)
+    ? acomodo.sugerenciasPendientes
+    : (Array.isArray(acomodo?.sugeridosPartidas) ? acomodo.sugeridosPartidas : []);
+  const programaPendiente=acomodo?.programaPropuesto===true || String(acomodo?.layoutEstado||'')==='SUGGESTIONS_PENDING' || sugerenciasPendientes.length>0;
+  if (programaPendiente) {
+    const n=sugerenciasPendientes.reduce((s,p)=>s+Math.max(1,Math.round(Number(p?.cantidad)||1)),0);
+    return {
+      existe:true, mostrar:false, valido:false, estado:'SUGERENCIAS_PENDIENTES',
+      razones:[`${n || sugerenciasPendientes.length} pieza(s) sugerida(s) todavía no están confirmadas/cotizadas`],
+      source:'PROGRAM_V1',
+    };
+  }
   const floorState=String(acomodo?.floorSpec?.validation?.state || '');
   if (floorState && floorState !== 'PASS') {
     return {
