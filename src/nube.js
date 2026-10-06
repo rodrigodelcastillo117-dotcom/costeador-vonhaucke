@@ -346,7 +346,11 @@ export async function generarRender(descripcion, extra = {}) {
     try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
     return { ok: false, error: msg };
   }
-  return data;
+  if (!data) return { ok: false, error: 'El servidor de renders no devolvió respuesta.' };
+  // La edge moderna persiste directamente en Storage y devuelve `url`.
+  // Los consumidores históricos usan `dataUrl`. Normalizamos AQUÍ una sola vez
+  // para que Cocrear/Acomodo/Cotización acepten URL o data URL sin falsos fallos.
+  return data?.ok ? { ...data, dataUrl: data.dataUrl || data.url || null } : data;
 }
 
 // --- SHADOW costear-servidor (Fase 3) ----------------------------------------
