@@ -257,13 +257,13 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     if (primerGuardado.current) { primerGuardado.current = false; return; }
     const t = setTimeout(() => {
       const serverSpatialValid = plan?.layoutSpec?.status === 'PASS' && plan?.render_ready === true;
-      const serverPublicable = serverSpatialValid && !programaPropuesto;
+      const serverPublicable = serverSpatialValid && programaListo;
       onGuardarAcomodo({
         ...bloqueGeometria(areas), plan, planReal,
         layoutEspacialValidado: serverSpatialValid,
         layoutValidado: serverPublicable,
-        layoutEstado: programaPropuesto ? 'SUGGESTIONS_PENDING' : (plan?.layoutSpec?.status || null),
-        layoutMotivo: programaPropuesto ? `${nSugeridasPendientes} pieza(s) sugerida(s) pendientes de confirmar/cotizar.` : null,
+        layoutEstado: programaListo ? (plan?.layoutSpec?.status || null) : 'PROGRAM_INCOMPLETE',
+        layoutMotivo: programaListo ? null : motivoPrograma,
         sugerenciasPendientes: sugerenciasPendientes.map((p) => ({ id:p.id, nombre:p.nombre, cantidad:p.cantidad, zonaSugerida:p.zonaSugerida || null })),
         ...(lecturaMeta ? { lecturaMeta } : {}),
         ...(floorSpec ? { floorSpec } : {}),
@@ -274,9 +274,14 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       }, true);
     }, 600);
     return () => clearTimeout(t);
-  }, [areas, plan, planReal, stagingUrl, lecturaMeta, floorSpec, programaPropuesto, nSugeridasPendientes, sugerenciasPendientes]);
+  }, [areas, plan, planReal, stagingUrl, lecturaMeta, floorSpec, programaListo, motivoPrograma, sugerenciasPendientes]);
   // Acomodo con IA (alterna): útil para casos raros; el motor local es el default.
   async function acomodarIA() {
+    if (!programaListo) {
+      setPlan(null);
+      setError(`Completa primero la cotización. ${motivoPrograma}`);
+      return;
+    }
     setError(''); setPlan(null); setGuardado(false); setCargando('acomodo');
     try {
       const r = await acomodarEspacio(areasMM, piezas);
@@ -1004,10 +1009,8 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       plan,
       layoutEspacialValidado: !!layoutListo,
       layoutValidado: !!layoutPublicable,
-      layoutEstado: programaPropuesto ? 'SUGGESTIONS_PENDING' : (serverStatus || layout?.status || null),
-      layoutMotivo: programaPropuesto
-        ? `${nSugeridasPendientes} pieza(s) sugerida(s) pendientes de confirmar/cotizar.`
-        : (motivoLayout || null),
+      layoutEstado: programaListo ? (serverStatus || layout?.status || null) : 'PROGRAM_INCOMPLETE',
+      layoutMotivo: programaListo ? (motivoLayout || null) : motivoPrograma,
       sugerenciasPendientes: sugerenciasPendientes.map((p) => ({ id:p.id, nombre:p.nombre, cantidad:p.cantidad, zonaSugerida:p.zonaSugerida || null })),
       // El render con sugerencias es PREVIEW. Sólo viaja al PDF final cuando
       // todas las piezas quedaron confirmadas/cotizadas y el layout es válido.
@@ -1017,9 +1020,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     setGuardadoValido(!!layoutPublicable);
     setGuardado(true);
     if (!layoutPublicable) {
-      setError(programaPropuesto
-        ? `Borrador guardado. El acomodo puede estar espacialmente correcto, pero faltan confirmar/cotizar ${nSugeridasPendientes} pieza(s) sugerida(s).`
-        : `Borrador guardado. No se mostrará como acomodo final en la propuesta hasta corregir: ${motivoLayout || 'validación pendiente'}.`);
+      setError(`Borrador guardado. No se mostrará como acomodo final en la propuesta hasta corregir: ${motivoPublicacion || 'validación pendiente'}.`);
     }
   }
 
@@ -1045,17 +1046,13 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
         plan: plan || null,
         layoutEspacialValidado: !!layoutListo,
         layoutValidado: false,
-        layoutEstado: programaPropuesto ? 'SUGGESTIONS_PENDING' : (layout?.status || null),
-        layoutMotivo: programaPropuesto
-          ? `${nSugeridasPendientes} pieza(s) sugerida(s) pendientes de confirmar/cotizar.`
-          : (motivoLayout || null),
+        layoutEstado: programaListo ? (layout?.status || null) : 'PROGRAM_INCOMPLETE',
+        layoutMotivo: programaListo ? (motivoLayout || null) : motivoPrograma,
         sugerenciasPendientes: sugerenciasPendientes.map((p) => ({ id:p.id, nombre:p.nombre, cantidad:p.cantidad, zonaSugerida:p.zonaSugerida || null })),
       });
       setGuardadoValido(false);
       setGuardado(true);
-      setErrStaging(programaPropuesto
-        ? `Guardé el acomodo como borrador. El render queda PRELIMINAR porque faltan confirmar/cotizar ${nSugeridasPendientes} pieza(s).`
-        : `Guardé el acomodo como borrador, pero NO el render final: ${motivoLayout || 'la validación espacial sigue pendiente'}.`);
+      setErrStaging(`Guardé el acomodo como borrador, pero NO el render final: ${motivoPublicacion || 'la validación espacial sigue pendiente'}.`);
       return;
     }
     onGuardarAcomodo({ areas: areasMM, plan: plan || null, render3d: stagingUrl, layoutEspacialValidado: true, layoutValidado: true, layoutEstado: layout?.status || 'LAYOUT_VALID', sugerenciasPendientes: [] });
@@ -1135,7 +1132,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   const serverAprobado = !serverStrict || (serverStatus === 'PASS' && plan?.render_ready === true);
   const layoutLocalValido = !!plan && !!chequeo && (layout.status === 'LAYOUT_VALID' && (chequeo.nViolaciones || 0) === 0);
   const layoutListo = layoutLocalValido && serverAprobado;
-  const layoutPublicable = layoutListo && !programaPropuesto;
+  const layoutPublicable = layoutListo && programaListo;
   const motivoLayout = [
     ...(!layout ? [] : [
       layout.unplaced > 0 ? `${layout.unplaced} sin colocar` : '',
@@ -1148,7 +1145,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   ].filter(Boolean).join(' · ');
   const motivoPublicacion = [
     motivoLayout,
-    programaPropuesto ? `${nSugeridasPendientes} pieza(s) sugerida(s) pendientes de confirmar/cotizar` : '',
+    !programaListo ? motivoPrograma : '',
   ].filter(Boolean).join(' · ');
 
   // ============================================================================
@@ -1419,14 +1416,14 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
             </button>
             {onGuardarAcomodo && !guardado && <button className="boton" style={{ minHeight: 42, marginLeft: 'auto' }} disabled={!programaListo}
               title={!programaListo ? motivoPrograma : undefined} onClick={guardarEnPropuesta}>
-              {layoutPublicable ? 'Guardar en la propuesta' : programaPropuesto ? 'Guardar propuesta de acomodo (borrador)' : 'Guardar borrador de acomodo'}
+              {layoutPublicable ? 'Guardar en la propuesta' : 'Guardar borrador de acomodo'}
             </button>}
             {guardado && <button className={guardadoValido ? 'boton primario' : 'boton'} style={{ minHeight: 42, marginLeft: 'auto' }} onClick={() => onIr('cotizacion')}>
               {guardadoValido ? 'Ver cotización con el acomodo →' : 'Ver cotización (borrador de acomodo) →'}
             </button>}
           </div>
           {guardado && <div className={guardadoValido ? 'ayuda verde no-imprimir' : 'ayuda no-imprimir'} style={{ marginTop: 6 }}>
-            {guardadoValido ? '✓ Acomodo validado y guardado. Ya puede aparecer en la propuesta/PDF.' : programaPropuesto ? `Borrador guardado. El espacio puede estar bien acomodado, pero faltan confirmar/cotizar ${nSugeridasPendientes} pieza(s) sugerida(s).` : 'Borrador guardado. No se presenta al cliente como acomodo final hasta quedar válido.'}
+            {guardadoValido ? '✓ Acomodo validado y guardado. Ya puede aparecer en la propuesta/PDF.' : 'Borrador guardado. No se presenta al cliente como acomodo final hasta quedar válido.'}
           </div>}
 
           {vivaAbierta && (
