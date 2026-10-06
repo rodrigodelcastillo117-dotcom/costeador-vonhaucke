@@ -127,8 +127,8 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
    engineering_validation:engineeringValidated?engineeringValidation:null,
  }):null,[intent,insumos,par,rev,bom,engineeringValidated,engineeringValidation]);
  const explicacionCosteo=useMemo(
-   ()=>pipeline?.costo?.costeo?explicarCosteo(pipeline.costo.costeo,{nombre:intent?._concepto_nombre||resumen?.tipologia||intent?.familia||'Producto co-creado',cantidad:1}):null,
-   [pipeline?.costo?.costeo,intent?._concepto_nombre,intent?.familia,resumen?.tipologia]
+   ()=>pipeline?.costo?.costeo?explicarCosteo(pipeline.costo.costeo,{nombre:intent?._concepto_nombre||intent?.familia||'Producto co-creado',cantidad:1}):null,
+   [pipeline?.costo?.costeo,intent?._concepto_nombre,intent?.familia]
  );
  const resumen=useMemo(()=>intent?resumenIdeaCocrear(intent,texto):null,[intent,texto]);
  const modelo3d=useMemo(()=>spec?modeloTecnico3DDesdeSpec(spec):null,[spec]);
