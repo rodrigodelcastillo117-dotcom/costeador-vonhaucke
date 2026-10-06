@@ -17,7 +17,7 @@
 //
 //  Todo en METROS (es lo que devuelve `areasDeLectura` y lo que guarda `areasM`).
 // ============================================================================
-import { rolCuartoBase } from './planner.js';
+import { rolCuartoBase, rolArea, tipoAreaConfiable } from './planner.js';
 
 // El rol de un cuarto: lo que declaró el lector, su nombre, o —si ninguno de
 // los dos dice nada, "Sala 12" sin `tipo`— su TAMAÑO. Mismo criterio que usa el
@@ -39,6 +39,10 @@ export const rolDe = (a, todos) => rolCuartoBase(aMM(a), (todos && todos.length 
 // Una ZONA es un área dibujada DENTRO de otra (las islas punteadas del open
 // space). Un CUARTO tiene muros propios.
 const esZona = (a) => !!a?.dentroDe;
+
+// "Detectado" exige evidencia semántica directa: tipo confiable o nombre
+// inequívoco. Si el rol salió sólo por tamaño, es ESTIMADO, no "del plano".
+const rolSemanticoDetectado = (a) => tipoAreaConfiable(a) || rolArea(a?.nombre) !== 'general';
 
 const FONDO_BENCH = 1.2;      // m, fondo de una hilera de bench
 const SILLA = 0.66;           // m, lo que pide una silla detrás de la cubierta
@@ -194,9 +198,11 @@ export function programaDelPlano(areas, opts = {}) {
   // geometría de zonas se detecta; los PUESTOS se ESTIMAN por área (el plano no
   // detecta sillas aún) y hay que confirmarlos; sillas/gavetas/archiveros se SUGIEREN.
   const fuente = {
-    privados: 'detectado',     // zonas con muros propios en el plano
-    salas: 'detectado',
-    recepcion: 'detectado',
+    privados: privados.every(rolSemanticoDetectado) ? 'detectado' : 'estimado',
+    salas: salasA.every(rolSemanticoDetectado) ? 'detectado' : 'estimado',
+    recepcion: recepcion
+      ? (lista.filter((a) => rolDe(a, lista) === 'recepcion').every(rolSemanticoDetectado) ? 'detectado' : 'estimado')
+      : 'detectado',
     // CONTADO del dibujo (el lector contó los escritorios) vs ESTIMADO por área.
     operativos: contado ? 'detectado' : 'estimado',
     sillasOperativas: 'sugerido',
