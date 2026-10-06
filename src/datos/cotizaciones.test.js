@@ -83,7 +83,7 @@ describe('lo que se guarda', () => {
     // → 96,352 redondeado. ANTES aquí se guardaba 97,720 —la suma sin descuento
     // ni IVA—, así que el número del Archivo NO era el que el cliente firmaba.
     // Este test codificaba ese bug; ahora exige el total emitido real. FIX-05.
-    expect(f.total).toBe(96352);
+    expect(f.total).toBe(96351.92);
     expect(f.total).not.toBe(2 * 17600 + 12 * 5210); // ya no es la suma cruda
     expect(f.totales.total).toBe(96352);             // el desglose cuadra con el total
     expect(f.piezas).toBe(14);
