@@ -8,12 +8,13 @@ const partidas = [
 ];                                          // precioLista = 97,720
 
 describe('totales · la única autoridad de dinero', () => {
-  it('sin ajustes: total = suma + IVA, redondeado al peso', () => {
+  it('sin ajustes: total = suma + IVA, autoritativo a centavos', () => {
     const t = totalesCotizacion(partidas, {}, { ivaPorcentaje: 16 });
     expect(t.precioLista).toBe(97720);
     expect(t.descuento).toBe(0);
     expect(t.iva).toBeCloseTo(97720 * 0.16, 5);
-    expect(t.totalRedondeado).toBe(97720 + Math.round(97720 * 0.16));
+    expect(t.totalRedondeado).toBe(113355.2);
+    expect(t.totalCentavos).toBe(11335520);
   });
 
   it('con descuento e IVA: el total baja por el descuento (no es la suma cruda)', () => {
@@ -24,14 +25,16 @@ describe('totales · la única autoridad de dinero', () => {
     expect(t.totalRedondeado).toBeLessThan(t.precioLista);
   });
 
-  it('INVARIANTE: el total es la suma de los MISMOS renglones redondeados', () => {
+  it('INVARIANTE: el total es la suma exacta de sus fronteras monetarias a centavos', () => {
     const par = { ivaPorcentaje: 16 };
     const cot = { descuentoPct: 12, maniobrasPct: 3, fletePct: 10 };
     const t = totalesCotizacion(partidas, cot, par);
-    const suma = Math.round(t.precioLista) - Math.round(t.descuento)
-      + Math.round(t.contingencia) + Math.round(t.maniobras)
-      + Math.round(t.flete) + Math.round(t.iva);
-    expect(t.totalRedondeado).toBe(suma);
+    const aC = (x) => Math.round((x + Number.EPSILON) * 100);
+    const sumaCentavos = aC(t.precioLista) - aC(t.descuento)
+      + aC(t.contingencia) + aC(t.maniobras)
+      + aC(t.flete) + aC(t.iva);
+    expect(t.totalCentavos).toBe(sumaCentavos);
+    expect(t.totalRedondeado).toBe(sumaCentavos / 100);
   });
 
   it('maniobras y flete van SOBRE el subtotal ya descontado, como en el papel', () => {
@@ -55,7 +58,7 @@ describe('totales · la única autoridad de dinero', () => {
     const t = totalesCotizacion(partidas, { descuentoPct: 15 }, { ivaPorcentaje: 16, anticipoPorcentaje: 50 });
     const saldo = t.totalRedondeado - t.anticipo;
     expect(t.anticipo + saldo).toBe(t.totalRedondeado);
-    expect(t.anticipo).toBe(Math.round(t.totalRedondeado * 0.5));
+    expect(t.anticipo).toBe(Math.round(t.totalCentavos * 0.5) / 100);
   });
 
   it('sin renglones no explota ni inventa dinero', () => {
@@ -71,3 +74,16 @@ describe('totales · la única autoridad de dinero', () => {
     expect(t.precioLista).toBe(0); // ambos renglones incompletos → 0
   });
 });
+
+
+  it('conserva centavos en partidas, IVA y total final', () => {
+    const t = totalesCotizacion([
+      { precioUnitario: 10.015, cantidad: 1 },
+      { precioUnitario: 20.015, cantidad: 1 },
+    ], {}, { ivaPorcentaje: 16 });
+    // cada línea se cuantiza a 10.02 y 20.02 => 30.04; IVA = 4.81; total = 34.85
+    expect(t.precioLista).toBe(30.04);
+    expect(t.iva).toBe(4.81);
+    expect(t.totalRedondeado).toBe(34.85);
+    expect(t.totalCentavos).toBe(3485);
+  });
