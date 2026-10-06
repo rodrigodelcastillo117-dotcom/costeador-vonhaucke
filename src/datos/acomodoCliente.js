@@ -24,18 +24,27 @@ export function evaluarAcomodoCliente(acomodo, partidas=[]) {
   if (!acomodo?.plan) return { existe:false, mostrar:false, valido:true, estado:'SIN_ACOMODO', razones:[] };
 
   const plan=acomodo.plan;
-  const sugerenciasPendientes=Array.isArray(acomodo?.sugerenciasPendientes)
-    ? acomodo.sugerenciasPendientes
-    : (Array.isArray(acomodo?.sugeridosPartidas) ? acomodo.sugeridosPartidas : []);
-  const programaPendiente=acomodo?.programaPropuesto===true || String(acomodo?.layoutEstado||'')==='SUGGESTIONS_PENDING' || sugerenciasPendientes.length>0;
-  if (programaPendiente) {
-    const n=sugerenciasPendientes.reduce((s,p)=>s+Math.max(1,Math.round(Number(p?.cantidad)||1)),0);
+  const colocInicial=Array.isArray(plan?.colocacion)?plan.colocacion:[];
+  const sugeridasEnPlan=colocInicial.filter((x)=>String(x?.id||'').startsWith('sug-'));
+  if (sugeridasEnPlan.length) {
     return {
-      existe:true, mostrar:false, valido:false, estado:'SUGERENCIAS_PENDIENTES',
-      razones:[`${n || sugerenciasPendientes.length} pieza(s) sugerida(s) todavía no están confirmadas/cotizadas`],
-      source:'PROGRAM_V1',
+      existe:true, mostrar:false, valido:false, estado:'PLAN_CONTAMINADO_SUGERIDOS',
+      razones:[`${sugeridasEnPlan.length} pieza(s) sugerida(s) quedaron dentro del plan legacy; debe recalcularse sólo con partidas reales`],
+      source:'LEGACY_PROGRAM_CONTAMINATION',
     };
   }
+
+  const programaIncompleto=String(acomodo?.layoutEstado||'')==='PROGRAM_INCOMPLETE';
+  if (programaIncompleto) {
+    return {
+      existe:true, mostrar:false, valido:false, estado:'PROGRAM_INCOMPLETE',
+      razones:[acomodo?.layoutMotivo || 'faltan piezas funcionales reales antes de validar el acomodo'],
+      source:'PROGRAM_GATE_V2',
+    };
+  }
+
+  // Las sugerencias pendientes son advisory. No bloquean por sí solas un
+  // PlacementSpec real ya validado; sólo viajan como metadata para VONI.
   const floorState=String(acomodo?.floorSpec?.validation?.state || '');
   if (floorState && floorState !== 'PASS') {
     return {
