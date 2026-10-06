@@ -198,7 +198,7 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
         )}
 
         <div className={'inicio-op-grid' + (veCostos ? '' : ' vendedor')}>
-          <button className="inicio-op-card principal" onClick={() => onIr('voni')}>
+          <button className="inicio-op-card principal" data-testid="home-cotizar" onClick={() => onIr('voni')}>
             <span className="inicio-op-icon"><VoniAvatar tam={56} variante="cara" /></span>
             <span className="inicio-op-k">COTIZAR</span>
             <strong>Preparar propuesta para cliente</strong>
@@ -207,7 +207,7 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
           </button>
 
           {veCostos && (
-            <button className="inicio-op-card" onClick={() => onIr('especial')}>
+            <button className="inicio-op-card" data-testid="home-costear" onClick={() => onIr('especial')}>
               <span className="inicio-op-icon"><Icono nombre="despiece" tam={30} /></span>
               <span className="inicio-op-k">COSTEAR</span>
               <strong>Costear un producto nuevo</strong>
@@ -216,7 +216,7 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
             </button>
           )}
 
-          <button className="inicio-op-card" onClick={() => onIr('cocrear')}>
+          <button className="inicio-op-card" data-testid="home-cocrear" onClick={() => onIr('cocrear')}>
             <span className="inicio-op-icon"><Icono nombre="especial" tam={30} /></span>
             <span className="inicio-op-k">COCREAR</span>
             <strong>Diseñar un producto nuevo</strong>
