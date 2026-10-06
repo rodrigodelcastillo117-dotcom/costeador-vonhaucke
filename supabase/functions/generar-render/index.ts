@@ -13,8 +13,9 @@ const CORS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// Modelo de imagen de Gemini (nano-banana). Cambiar aquí si se quiere otro.
-const MODEL = "gemini-2.5-flash-image";
+// Motor visual premium. Override por secret = rollback instantáneo sin redeploy.
+const MODEL = Deno.env.get("GEMINI_IMAGE_MODEL") || "gemini-3-pro-image";
+const AUDIT_MODEL = Deno.env.get("GEMINI_RENDER_AUDIT_MODEL") || Deno.env.get("GEMINI_TEXT_MODEL") || "gemini-3.5-flash";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -72,7 +73,7 @@ Deno.serve(async (req) => {
   // --- Límites de payload (protección de costo): nº de imágenes y tamaño total. ---
   {
     const imgs = [body?.imagen, ...(Array.isArray(body?.imagenes) ? body.imagenes : [])].filter(Boolean);
-    if (imgs.length > 7) return json({ ok: false, code: "TOO_MANY_IMAGES", error: "Máximo 7 imágenes de referencia." }, 413);
+    if (imgs.length > 6) return json({ ok: false, code: "TOO_MANY_IMAGES", error: "Máximo 6 imágenes de referencia para mantener alta fidelidad." }, 413);
     // 5C: MIME del inline principal validado contra allowlist (la referencia se pasa a Gemini).
     const MIME_OK = new Set(["image/jpeg", "image/png", "image/webp"]);
     if (body?.imagen && !MIME_OK.has(String(body?.mediaType || "image/jpeg"))) {
@@ -83,7 +84,7 @@ Deno.serve(async (req) => {
     const bytes = imgs.reduce((s: number, i: any) => s + (typeof i === "string" ? b64bytes(i) : 0), 0);
     if (bytes > 21_000_000) return json({ ok: false, code: "PAYLOAD_TOO_LARGE", error: "Las imágenes de referencia son demasiado grandes." }, 413);
   }
-  const { descripcion = "", materiales = [], medidas = "", tipo = "", spec = "", render_spec = null, imagen = "", imagenes = [], mediaType = "image/jpeg", modo = "render", aspecto = "", cuarto = "", lineas = [], conteoPiso = null, entorno = "", preservar = "" } = body || {};
+  const { descripcion = "", materiales = [], medidas = "", tipo = "", spec = "", render_spec = null, imagen = "", imagenes = [], mediaType = "image/jpeg", modo = "render", aspecto = "", cuarto = "", lineas = [], conteoPiso = null, entorno = "", preservar = "", calidad = "2K" } = body || {};
   // MIME allowlist: sólo formatos de imagen/plano soportados (evita payloads raros).
   const MIME_OK = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
   if (imagen && mediaType && !MIME_OK.has(String(mediaType))) {
@@ -234,9 +235,8 @@ Deno.serve(async (req) => {
       `What is in this room: ${descripcion}. ` +
       (Array.isArray(lineas) && lineas.length ? `Von Haucke product line(s): ${lineas.join(", ")}. ` : "") +
       (medidas ? `Room size: ${medidas}. ` : "") +
-      "MATERIALS, physically based: warm oak melamine tops with visible grain, charcoal powder-coated steel with a fine matte " +
-      "texture, acoustic felt screens in muted tones, real glass with slim mullions, pale oak or polished concrete floor, " +
-      "clean white walls with a subtle skirting. " +
+      "ENVIRONMENT: make the room identity unmistakable from architecture, scale, circulation and fixtures. Infer finishes from the declared room/project context; never force a generic corporate-office palette onto retail, airport, healthcare, hospitality or industrial spaces. " +
+      "MATERIALS: preserve the exact product-reference finishes first; use physically plausible architectural finishes consistent with the actual environment. " +
       // Mismo arreglo que en `acomodo`: se permite lo que va ENCIMA del mueble,
       // nunca un mueble nuevo. Un cuarto vacío se dibuja VACÍO.
       "ON TOP of the furniture already in the diagram you may add: a task chair at each work position, a monitor at each " +
@@ -254,12 +254,15 @@ Deno.serve(async (req) => {
     ? // AMBIENTE DEL PRODUCTO: coloca el MISMO producto (imagen de referencia) en su entorno
       // real. El entorno lo manda el cliente (supermercado/tienda para exhibidores, oficina
       // para mobiliario, etc.) para que NO salga siempre una oficina.
-      "Place the EXACT product shown in the reference image into a realistic " + (entorno || "modern commercial") + " environment. " +
+      "Create a natural architectural photograph of the EXACT product shown in the reference image, installed in a realistic " + (entorno || "commercial") + " environment. " +
+      "The ENVIRONMENT must be immediately recognizable from architecture, circulation, fixtures, ceiling, floor, lighting and adjacent context — not a generic office background. " +
       "The product is the hero of the scene and must keep its EXACT design, proportions, configuration, materials, finish and every element (shelves, doors, niches, light box, trays) as in the reference image. " +
       "Do not redesign it, do not add or remove parts, do not change how many shelves/doors/niches it has. " +
       `Product: ${descripcion}. ` +
       (medidas ? `True proportions: ${medidas}. ` : "") +
-      "Photorealistic, correct perspective, natural lighting and contact shadows consistent with the environment, the product clearly visible and in context. " +
+      "CAMERA: natural human eye level around 1.55–1.65 m, 28–35 mm architectural lens unless the reference clearly demands another view; verticals straight, believable depth, no fisheye. " +
+      "LIGHTING: physically plausible daylight/practical-light mix, realistic exposure, soft contact shadows and material response. Avoid CGI gloss, excessive HDR, impossible reflections and sterile showroom emptiness. " +
+      "COMPOSITION: show enough surrounding architecture to understand exactly where the product lives, while keeping the product unobstructed and visually dominant. " +
       "No text, no watermark, no logos, no people standing in front of the product."
     : modo === "oficina"
     ? // OFICINA COMPLETA: generar la escena interior amueblada con lo cotizado
@@ -300,13 +303,14 @@ Deno.serve(async (req) => {
 
   const parts: any[] = [{ text: prompt }];
   if (imagen) parts.push({ inlineData: { mimeType: mediaType, data: imagen } });
-  if (Array.isArray(imagenes)) for (const im of imagenes.slice(0, 6)) if (im) parts.push({ inlineData: { mimeType: "image/jpeg", data: im } });
+  if (Array.isArray(imagenes)) for (const im of imagenes.slice(0, imagen ? 5 : 6)) if (im) parts.push({ inlineData: { mimeType: "image/jpeg", data: im } });
 
   // Proporción fija: sin esto Gemini copia el formato de la foto de referencia y
   // el catálogo sale con 67 formatos distintos.
   const ar = aspecto || (modo === "catalogo" ? "4:3" : modo === "oficina" ? "16:9" : modo === "escena" ? "3:2" : "");
   const imageGenConfig: any = { responseModalities: ["IMAGE"] };
-  if (ar) imageGenConfig.imageConfig = { aspectRatio: ar };
+  const imageSize = ["1K","2K","4K"].includes(String(calidad).toUpperCase()) ? String(calidad).toUpperCase() : "2K";
+  imageGenConfig.imageConfig = { ...(ar ? { aspectRatio: ar } : {}), imageSize };
 
   // Una sola llamada a Gemini, con el manejo de error (cuota, API key, bloqueo
   // de seguridad) centralizado: antes vivía una sola vez porque sólo había una
@@ -344,6 +348,52 @@ Deno.serve(async (req) => {
       return { error: m || "Error de la API de Gemini", data: null };
     }
     return { error: null, data };
+  }
+
+  async function auditarVisual(generada: string, mimeGenerada: string): Promise<any> {
+    if (!imagen || !generada) return { pass: true, skipped: true, reasons: [] };
+    const auditPrompt = [
+      "You are a strict QA inspector for architectural/product visualization.",
+      "REFERENCE IMAGE = source of truth. GENERATED IMAGE = candidate output.",
+      "Evaluate only what can be visually verified. Do not reward beauty over accuracy.",
+      `MODE=${modo}; ROOM=${cuarto || "n/a"}; ENVIRONMENT=${entorno || "n/a"}; EXPECTED_FLOOR_COUNT=${conteoPiso ?? "n/a"}.`,
+      "Return ONLY JSON with keys:",
+      '{"pass":boolean,"geometry_match":"PASS|FAIL|UNKNOWN","layout_match":"PASS|FAIL|UNKNOWN","environment_match":"PASS|FAIL|UNKNOWN","extra_objects":"PASS|FAIL|UNKNOWN","natural_camera":"PASS|FAIL|UNKNOWN","reasons":[string],"confidence":0-1}.',
+      "FAIL geometry_match if the product silhouette, module count, supports/legs, doors, shelves or major proportions differ.",
+      "FAIL layout_match for room/placement modes if furniture positions/orientations/room organization materially differ from reference.",
+      "FAIL environment_match if the declared room/environment does not read clearly or becomes a generic unrelated office.",
+      "FAIL extra_objects if new floor-standing furniture/partitions/rooms are invented.",
+      "FAIL natural_camera for dollhouse/aerial/fisheye/physically implausible perspective when a natural view is required.",
+      "pass=true only if every relevant critical field is PASS; UNKNOWN may remain only for non-relevant fields."
+    ].join("\n");
+    const refMime = String(mediaType || "image/jpeg").startsWith("image/") ? mediaType : "image/jpeg";
+    const bodyAudit = {
+      contents:[{role:"user",parts:[
+        {text:auditPrompt},
+        {text:"REFERENCE IMAGE:"},{inlineData:{mimeType:refMime,data:imagen}},
+        {text:"GENERATED IMAGE:"},{inlineData:{mimeType:mimeGenerada,data:generada}}
+      ]}],
+      generationConfig:{responseMimeType:"application/json",temperature:0}
+    };
+    try {
+      const ac=new AbortController(), timer=setTimeout(()=>ac.abort(),25_000);
+      let rr;
+      try {
+        rr=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${AUDIT_MODEL}:generateContent?key=${key}`,{
+          method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(bodyAudit),signal:ac.signal
+        });
+      } finally { clearTimeout(timer); }
+      const j=await rr.json();
+      if(!rr.ok||j?.error) return {pass:false,code:"AUDIT_UNAVAILABLE",reasons:[j?.error?.message||`Audit HTTP ${rr.status}`],confidence:0};
+      const txt=(j?.candidates?.[0]?.content?.parts||[]).map((p:any)=>p.text||"").join("").trim().replace(/^\`\`\`(?:json)?\s*/i,"").replace(/\`\`\`\s*$/,"");
+      const a=JSON.parse(txt);
+      const critical=["geometry_match","layout_match","environment_match","extra_objects","natural_camera"];
+      const relevant=(k:string)=>!(k==="layout_match" && !["acomodo","escena"].includes(modo)) && !(k==="environment_match" && !["acomodo","escena","ambiente","oficina","staging"].includes(modo));
+      const failed=critical.some((k)=>relevant(k)&&a?.[k]==="FAIL");
+      return {...a,pass:a?.pass===true&&!failed};
+    } catch(e) {
+      return {pass:false,code:"AUDIT_UNAVAILABLE",reasons:[String(e instanceof Error?e.message:e)],confidence:0};
+    }
   }
 
   // TELEMETRÍA (auditoría + base del rate-limit): un renglón por intento REAL de render.
@@ -420,6 +470,19 @@ Deno.serve(async (req) => {
     }
   }
 
+  // QA VISUAL posterior: el render no se certifica sólo porque Gemini devolvió bytes.
+  // Para modos con referencia, compara fuente vs resultado antes de persistir.
+  const audit = await auditarVisual(inline.data, mime);
+  if (!audit.pass && !audit.skipped) {
+    return json({
+      ok:false,
+      code:audit.code || "RENDER_QA_FAILED",
+      error:"El render se generó, pero no pasó la verificación de fidelidad. No se guardó como render válido.",
+      audit,
+      request_id:requestId,
+    }, audit.code==="AUDIT_UNAVAILABLE" ? 503 : 200);
+  }
+
   // PERFORMANCE: no devolver ~2 MB de base64 al navegador sólo para que lo
   // vuelva a subir. El servidor ya tiene los bytes y service-role: persiste una
   // sola vez en Storage y responde una URL pequeña. Fallback dataUrl mantiene
@@ -435,11 +498,11 @@ Deno.serve(async (req) => {
     if (!up.error) {
       const pub = svc.storage.from("renders").getPublicUrl(storagePath);
       const url = pub?.data?.publicUrl || null;
-      if (url) return json({ ok: true, url, storagePath, mime, bytes: bytes.length, request_id: requestId });
+      if (url) return json({ ok: true, url, storagePath, mime, bytes: bytes.length, request_id: requestId, model: MODEL, image_size: imageSize, audit });
     }
   } catch (_e) { /* fallback compatible abajo */ }
 
-  return json({ ok: true, dataUrl: `data:${mime};base64,${inline.data}`, storageFallback: true, request_id: requestId });
+  return json({ ok: true, dataUrl: `data:${mime};base64,${inline.data}`, storageFallback: true, request_id: requestId, model: MODEL, image_size: imageSize, audit });
 });
 
 function json(obj: unknown, status = 200) {
