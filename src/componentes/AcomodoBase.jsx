@@ -93,6 +93,12 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   const [revisionSeniorCargando, setRevisionSeniorCargando] = useState(false);
   const [revisionSeniorError, setRevisionSeniorError] = useState('');
 
+  // La segunda opinión pertenece a ESTE estado espacial. Cualquier cambio la vence.
+  useEffect(() => {
+    setRevisionSenior(null);
+    setRevisionSeniorError('');
+  }, [plan, areas, partidas]);
+
   const [notaPlano, setNotaPlano] = useState('');
   // #7: conservar el plano ORIGINAL (imagen, o pág.1 del PDF) + la confianza de
   // lectura, para enseñar "original vs. lo que entendí" ANTES de acomodar.
@@ -1119,10 +1125,21 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
           m2_por_persona: chequeo.m2Persona || null,
           auditoria: auditoriaMedida.map(a=>({check:a.check,ok:!!a.ok,detalle:a.detalle||null})).slice(0,30),
         },
-        espacio: areas.map(a=>({
-          nombre:a.nombre,ancho_m:a.ancho,largo_m:a.largo,
-          forma:a.forma||null,obstaculos:(a.obstaculos||[]).length,puertas:(a.puertas||[]).length,
+        espacio: areasMM.map((a,areaIndex)=>({
+          area_index:areaIndex,nombre:a.nombre,ancho_mm:a.ancho,largo_mm:a.largo,
+          forma:a.forma||null,
+          puertas:(a.puertas||[]).slice(0,12).map(p=>({x:p.x,y:p.y,w:p.w,h:p.h,pared:p.pared||null,sentido:p.sentido||null})),
+          obstaculos:(a.obstaculos||[]).slice(0,20).map(o=>({x:o.x,y:o.y,w:o.w,h:o.h,tipo:o.tipo||null})),
         })).slice(0,30),
+        colocacion:(plan?.colocacion||[]).slice(0,150).map(x=>{
+          const p=byId[x.id]||{};
+          return {
+            id:x.id,nombre:p.nombre||p.etiqueta||x.id,area:x.area,
+            x_mm:x.x,y_mm:x.y,rot:x.rot||0,
+            ancho_mm:dimsPieza(p,x.rot||0).w,profundidad_mm:dimsPieza(p,x.rot||0).d,
+            tipo:p.tipo||null,ruta:p.ruta||null,
+          };
+        }),
         mobiliario: partidas.map(p=>({
           nombre:p.nombre,cantidad:p.cantidad,ruta:p.ruta||null,producto_id:p.productoId||null,
         })).slice(0,80),
