@@ -21,6 +21,7 @@ import { conAcompanantes } from '../datos/autoInsumos.js';
 import { aplicarPoliticaMaterial, MATCH } from '../datos/materialMatch.js';
 import { renderSpecFromGraph } from '../datos/renderSpec.js';
 import { flagActivo } from '../datos/flags.js';
+import { recomendar as recomendarCatalogoVonHaucke } from '../voni/conocimiento.js';
 
 const ATAJOS = [
   { nombre: 'Muy facil', v: 30 },
@@ -65,6 +66,10 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   // Al cargar un costeo que ya trae imagen, fija la firma base para detectar cambios futuros.
   useEffect(() => { if (costeo.imagen && sigRender === null) setSigRender(bomSig); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [costeo.imagen]);
   const insumos = estado.insumos;
+  const candidatosLinea = useMemo(
+    () => recomendarCatalogoVonHaucke(costeo.descripcionCliente || costeo.nombre || '', 5),
+    [costeo.descripcionCliente, costeo.nombre],
+  );
 
   // ÚNICO camino de preparación/cálculo: la misma función alimenta a VONI.
   const vivo = useMemo(
@@ -328,6 +333,15 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             <span className="ayuda gris" style={{ fontSize: 12 }}>Propone piezas y estructura; tú confirmas. El precio lo calcula el motor.</span>
           </div>
           {errIA && <div className="alerta roja" style={{ marginTop: 8 }}><span className="texto">{errIA}</span></div>}
+          {candidatosLinea.length > 0 && (
+            <div className="alerta" style={{ marginTop: 8, display: 'block', background: '#eef6f3', borderColor: '#8bbcaf', color: '#174f45' }}>
+              <strong>Antes de hacerlo a la medida:</strong> VONI encontró posibles líneas Von Haucke existentes.
+              <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:6 }}>
+                {candidatosLinea.map((l)=><span key={l.ruta} className="chip" style={{background:'#fff'}}><b>{l.linea}</b> · {l.productos?.length||0} variante(s)</span>)}
+              </div>
+              <div className="ayuda" style={{marginTop:6,color:'#356b62'}}>Son candidatos, no una coincidencia certificada. Revisa línea/variante antes de construir un especial; si ninguna resuelve el brief, Von Haucke sí puede fabricarlo a la medida.</div>
+            </div>
+          )}
           {estructuraVoni && estructuraVoni.nodes.length > 0 && (
             <div className="tarjeta" style={{ background: 'var(--panel)', borderLeft: '4px solid var(--acento, #3a6ea5)', marginTop: 10 }}>
               <div style={{ fontWeight: 700, marginBottom: 2 }}>🧠 Estructura que entendió Voni</div>
