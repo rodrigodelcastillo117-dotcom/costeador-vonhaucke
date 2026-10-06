@@ -681,16 +681,16 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             <span className="valor">{margen}%</span>
           </div>
           <div className="precio-grande" style={incompletoC ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : pesos2(precio)}</div>
-          <div className="ayuda">{incompletoC ? 'Sin precio: faltan partidas por costear.' : `Precio por pieza con ${margen}% de margen.`}</div>
-          {incompletoC && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">⚠ Costo INCOMPLETO — faltan por costear {pendientesC.length} partida(s): {pendientesC.slice(0, 6).join(', ')}{pendientesC.length > 6 ? '…' : ''}. No se puede cotizar ni emitir.</span></div>}
+          <div className="ayuda">{incompletoC ? 'Sin precio oficial: existe al menos un bloqueo técnico/económico de costeo.' : `Precio por pieza con ${margen}% de margen.`}</div>
+          {incompletoC && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">⚠ Costo NO EMITIBLE — {pendientesC.length} bloqueo(s): {pendientesC.slice(0, 6).join(' · ')}{pendientesC.length > 6 ? '…' : ''}. No se puede cotizar ni emitir hasta resolverlos.</span></div>}
           {!incompletoC && bajoMinimo && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">Debajo del minimo de {estado.parametros.margenMinimo}%.</span></div>}
           <div className="espacio" />
           {/* Emisión OFICIAL solo cuando es Alba (no simulación) y el costo está completo. */}
-          <button className="boton primario grande" disabled={incompletoC || simulando} title={simulando ? 'Simulación: vuelve al costo oficial Alba para cotizar' : incompletoC ? 'No se puede cotizar un costo incompleto' : ''} onClick={() => !incompletoC && !simulando && onAgregarCotizacion(resultado, precio, margen)}>Agregar a la cotización</button>
+          <button className="boton primario grande" disabled={incompletoC || simulando} title={simulando ? 'Simulación: vuelve al costo oficial Alba para cotizar' : incompletoC ? 'No se puede cotizar mientras el motor marque bloqueos de costeo' : ''} onClick={() => !incompletoC && !simulando && onAgregarCotizacion(resultado, precio, margen)}>Agregar a la cotización</button>
           <div className="espacio" />
           <button className="boton grande" onClick={() => onGuardarPieza(resultado)}>Guardar como pieza</button>
           <div className="espacio" />
-          <button className="boton grande" disabled={incompletoC || simulando} title={simulando ? 'Simulación: no emite ficha oficial' : incompletoC ? 'No se puede imprimir una ficha con precio incompleto' : ''} onClick={() => !incompletoC && !simulando && setFichaAbierta(true)}>Ver ficha PDF</button>
+          <button className="boton grande" disabled={incompletoC || simulando} title={simulando ? 'Simulación: no emite ficha oficial' : incompletoC ? 'No se puede imprimir una ficha oficial con bloqueos de costeo' : ''} onClick={() => !incompletoC && !simulando && setFichaAbierta(true)}>Ver ficha PDF</button>
         </div>
       </div>
 
