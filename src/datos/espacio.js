@@ -57,6 +57,25 @@ export function tipoDe(pt) {
 export const colorTipo = (t) => (TIPOS[t] || TIPOS.mueble).color;
 export const altoTipo = (t) => (TIPOS[t] || TIPOS.mueble).alto;
 
+/**
+ * Lee huella cuando el nombre comercial trae medidas explícitas.
+ * 2 números: ancho × fondo.
+ * 3 números en guardas/pedestales: ancho × alto/fondo × fondo/alto; para la
+ * huella toma el menor de los dos últimos (el otro suele ser altura).
+ */
+export function dimensionesEnNombre(nombre='', tipo='mueble') {
+  const s=String(nombre).replace(/,/g,'.');
+  const m=/\(?\s*(\d{2,5}(?:\.\d+)?)\s*[x×]\s*(\d{2,5}(?:\.\d+)?)\s*(?:[x×]\s*(\d{2,5}(?:\.\d+)?)\s*)?(?:mm)?\s*\)?/i.exec(s);
+  if(!m) return null;
+  const a=Number(m[1]), b=Number(m[2]), cc=m[3]!=null?Number(m[3]):null;
+  if(![a,b].every(Number.isFinite) || a<=0 || b<=0) return null;
+  if(cc!=null && Number.isFinite(cc) && cc>0) {
+    if(tipo==='guarda') return {w:a,d:Math.min(b,cc),alto:Math.max(b,cc)};
+    return {w:a,d:b,alto:cc};
+  }
+  return {w:a,d:b,alto:null};
+}
+
 export const dimsPieza = (p, rot) => ((rot === 90 || rot === 270) ? { pw: p.d, ph: p.w } : { pw: p.w, ph: p.d });
 export const frenteDe = (rot) => (rot === 90 ? 'izq' : rot === 180 ? 'arriba' : rot === 270 ? 'der' : 'abajo');
 
@@ -101,6 +120,10 @@ export function expandirPiezas(partidas, tope = 600) {
     if (vaBajoEscritorio(pt)) continue;
     const tipo = tipoDe(pt);
     let w = pt.w, d = pt.d;
+    if (tipo !== 'asiento' && (!w || !d)) {
+      const explicitas = dimensionesEnNombre(pt.nombre, tipo);
+      if (explicitas) { w = w || explicitas.w; d = d || explicitas.d; }
+    }
     if (tipo === 'asiento' || !w || !d) { [w, d] = HUELLA[tipo] || HUELLA.mueble; }
     if (tipo === 'guarda' || tipo === 'mampara') ({ w, d } = enderezarAlto(w, d, tipo));
     [w, d] = huellaReal(pt.nombre, w, d, tipo);
@@ -126,6 +149,12 @@ export function expandirPiezas(partidas, tope = 600) {
         ...(pt.relation_role ? { relation_role: pt.relation_role } : {}),
         ...(pt.anchor_role ? { anchor_role: pt.anchor_role } : {}),
         ...(Number(pt.user_capacity) > 0 ? { user_capacity: Number(pt.user_capacity) } : {}),
+        ...(pt.zonaSugerida ? { zonaSugerida: pt.zonaSugerida } : {}),
+        ...(pt.sugeridoPlano ? { sugeridoPlano: true } : {}),
+        ...(pt.sugerido ? { sugerido: true } : {}),
+        ...(pt.noCobrar ? { noCobrar: true } : {}),
+        ...(pt.source ? { source: pt.source } : {}),
+        ...(Number.isFinite(Number(pt.max_anchor_distance_mm)) ? { max_anchor_distance_mm: Number(pt.max_anchor_distance_mm) } : {}),
         relation_index: k + 1,
         ...(spatialSpec ? { spatial_spec: spatialSpec } : {}),
       });

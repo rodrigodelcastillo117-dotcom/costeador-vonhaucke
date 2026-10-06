@@ -946,6 +946,12 @@ export function datosDesdeSnapshot(snapshot, extras = {}) {
   };
 }
 
+export function nombreArchivoPropuesta(datos = {}) {
+  const nombre = [datos?.borrador ? 'BORRADOR' : null, 'Propuesta', datos?.cot?.folio, datos?.cot?.cliente]
+    .filter(Boolean).join(' ').replace(/[\\/:*?"<>|]/g, '').trim() || 'Propuesta Vonhaucke';
+  return `${nombre}.pdf`;
+}
+
 export function descargarPropuesta(datos) {
   // Defensa en profundidad: el PDF nunca sale con economía interna aunque el
   // llamador se equivoque. Sólo sanea las partidas (es donde viven los costos);
@@ -958,10 +964,9 @@ export function descargarPropuesta(datos) {
   // evidencia conservada (audit 2026-10-01). Un banner solo se ve en la pantalla
   // del vendedor; esta marca viaja con el PDF.
   if (datos.borrador) marcarBorrador(doc);
-  const nombre = [datos.borrador ? 'BORRADOR' : null, 'Propuesta', datos.cot.folio, datos.cot.cliente]
-    .filter(Boolean).join(' ').replace(/[\\/:*?"<>|]/g, '').trim() || 'Propuesta Vonhaucke';
-  doc.save(`${nombre}.pdf`);
-  return `${nombre}.pdf`;
+  const archivo = nombreArchivoPropuesta(datos);
+  doc.save(archivo);
+  return archivo;
 }
 
 // ⚠️ LA PRIMERA HOJA ES EL CIERRE (Rodrigo, 2026-08-17): *"en la primera página

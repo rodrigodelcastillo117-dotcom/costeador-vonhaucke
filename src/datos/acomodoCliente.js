@@ -24,6 +24,27 @@ export function evaluarAcomodoCliente(acomodo, partidas=[]) {
   if (!acomodo?.plan) return { existe:false, mostrar:false, valido:true, estado:'SIN_ACOMODO', razones:[] };
 
   const plan=acomodo.plan;
+  const colocInicial=Array.isArray(plan?.colocacion)?plan.colocacion:[];
+  const sugeridasEnPlan=colocInicial.filter((x)=>String(x?.id||'').startsWith('sug-'));
+  if (sugeridasEnPlan.length) {
+    return {
+      existe:true, mostrar:false, valido:false, estado:'PLAN_CONTAMINADO_SUGERIDOS',
+      razones:[`${sugeridasEnPlan.length} pieza(s) sugerida(s) quedaron dentro del plan legacy; debe recalcularse sólo con partidas reales`],
+      source:'LEGACY_PROGRAM_CONTAMINATION',
+    };
+  }
+
+  const programaIncompleto=String(acomodo?.layoutEstado||'')==='PROGRAM_INCOMPLETE';
+  if (programaIncompleto) {
+    return {
+      existe:true, mostrar:false, valido:false, estado:'PROGRAM_INCOMPLETE',
+      razones:[acomodo?.layoutMotivo || 'faltan piezas funcionales reales antes de validar el acomodo'],
+      source:'PROGRAM_GATE_V2',
+    };
+  }
+
+  // Las sugerencias pendientes son advisory. No bloquean por sí solas un
+  // PlacementSpec real ya validado; sólo viajan como metadata para VONI.
   const floorState=String(acomodo?.floorSpec?.validation?.state || '');
   if (floorState && floorState !== 'PASS') {
     return {

@@ -331,7 +331,9 @@ export async function cotizarTexto(texto, catalogo) {
 
 // Acomodo de mobiliario en una o varias áreas (Claude propone posiciones).
 export async function acomodarEspacio(areas, piezas) {
-  const { data, error } = await nube.functions.invoke('acomodar-espacio', {
+  // Recovery lane: preview usa el solver nuevo en una Edge paralela para no
+  // tocar producción hasta certificar el flujo real completo.
+  const { data, error } = await nube.functions.invoke('acomodar-espacio-recovery', {
     body: { areas, piezas },
   });
   if (error) {

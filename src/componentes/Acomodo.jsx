@@ -1,13 +1,12 @@
 // ============================================================================
-// ACOMODO · ADAPTADOR DEMO CEO
+// ACOMODO · ADAPTADOR OPERATIVO
 //
 // Las sugerencias del plano son SOLO un fallback visual cuando todavía no
 // existen partidas comerciales. Nunca se mezclan completas con muebles reales:
 // ese bug duplicaba el proyecto (144 piezas) y contaminaba el reparto por cuartos.
 //
-// Excepción segura: si el plano detecta salas de juntas y la lista comercial
-// olvidó una mesa/sillería de junta, se añaden SOLO los faltantes como preview
-// SUGERIDO/noCobrar dentro del Acomodo. No alteran la cotización ni el precio.
+// Si el plano detecta una posible carencia del programa comercial, se muestra
+// únicamente como AVISO. Nunca se inyecta una pieza sugerida al solver real.
 // ============================================================================
 import { useMemo, useRef, useState } from 'react';
 import AcomodoBase from './AcomodoBase.jsx';
@@ -15,8 +14,11 @@ import {
   partidasSugeridasDeAreas,
   firmaAreasParaSugeridos,
   normalizarAreasPrograma,
+  completarProgramaVisual,
 } from '../datos/piezasDePrograma.js';
 import { marcarDestinoPartida } from '../datos/destinoAcomodo.js';
+import { expandirPiezas } from '../datos/espacio.js';
+import { validarCoherenciaPrograma } from '../datos/coherenciaPrograma.js';
 
 const esSugerida = (p) => !!p?.sugeridoPlano || String(p?.id || '').startsWith('sug-');
 const norm = (s = '') => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -96,15 +98,34 @@ function limpiarSugeridos(acomodo) {
   return teniaSugeridos ? { ...resto, plan: null } : resto;
 }
 
+export function sanearAcomodoContraPartidas(acomodo, partidasReales = []) {
+  if (!acomodo?.plan) return acomodo;
+  const piezas = expandirPiezas(partidasReales);
+  const ids = new Set((piezas || []).map((p) => String(p.id)));
+  const coloc = Array.isArray(acomodo.plan?.colocacion) ? acomodo.plan.colocacion : [];
+  const layoutSpec = acomodo.plan?.layoutSpec || acomodo.layoutSpec || null;
+  const tieneAjena = coloc.some((x) => !ids.has(String(x?.id || '')));
+  const requested = Number(layoutSpec?.requested);
+  const cuentaIncompatible = Number.isFinite(requested) && requested !== ids.size;
+  if (!tieneAjena && !cuentaIncompatible) return acomodo;
+  const { render3d, escenas, ...rest } = acomodo;
+  return {
+    ...rest,
+    plan: null,
+    layoutValidado: false,
+    layoutEstado: 'STALE_PROGRAM',
+    layoutMotivo: 'El acomodo guardado pertenece a otra lista de muebles; se recalculará con la cotización actual.',
+  };
+}
+
 export function elegirPartidasAcomodo(partidas = [], sugeridas = []) {
   const reales = (Array.isArray(partidas) ? partidas : [])
     .filter((p) => !esSugerida(p))
-    // P1 CEO: la nota de Voni contiene destino real (sala/privado/recepción/open).
-    // Se marca SÓLO en la copia que consume Acomodo; la cotización original,
-    // nombres, precios y PDF comercial permanecen intactos.
     .map(marcarDestinoPartida);
-  if (!reales.length) return sugeridas;
-  return [...reales, ...complementosJuntasVisuales(reales, sugeridas)];
+  // En una cotización real, el solver recibe EXCLUSIVAMENTE muebles reales.
+  // Las sugerencias del plano son diagnóstico; jamás piezas fantasma.
+  if (reales.length) return reales;
+  return (Array.isArray(sugeridas) ? sugeridas : []).filter(Boolean);
 }
 
 export default function Acomodo(props) {
@@ -114,19 +135,23 @@ export default function Acomodo(props) {
   const hayReales = realesEntrada.length > 0;
 
   const areasIniciales = areasMDe(guardado);
-  const guardadoNormalizado = guardado ? conAreasNormalizadas(guardado, areasIniciales) : null;
+  const guardadoNormalizadoBase = guardado ? conAreasNormalizadas(guardado, areasIniciales) : null;
   const sugeridasGuardadas = Array.isArray(guardado?.sugeridosPartidas) ? guardado.sugeridosPartidas : [];
-  // P0: si ya existe una lista comercial de Voni, jamás revivimos el autopoblado
-  // COMPLETO. Los únicos extras posibles son complementos de juntas calculados
-  // al vuelo y no persistidos.
+  const sugeridasProgramaIniciales = partidasSugeridasDeAreas(areasIniciales, { linea: 'applt' });
+  const programaInicial = hayReales
+    ? completarProgramaVisual(realesEntrada, sugeridasProgramaIniciales)
+    : { partidas: sugeridasGuardadas.length ? sugeridasGuardadas : sugeridasProgramaIniciales, sugerencias: sugeridasGuardadas.length ? sugeridasGuardadas : sugeridasProgramaIniciales };
+  const guardadoNormalizado = hayReales
+    ? sanearAcomodoContraPartidas(guardadoNormalizadoBase, realesEntrada)
+    : guardadoNormalizadoBase;
   const sugeridasIniciales = hayReales
-    ? []
-    : (sugeridasGuardadas.length ? sugeridasGuardadas : partidasSugeridasDeAreas(areasIniciales));
+    ? programaInicial.sugerencias
+    : (sugeridasGuardadas.length ? sugeridasGuardadas : sugeridasProgramaIniciales);
 
   const [lineaOperativa, setLineaOperativa] = useState('applt');
   const [sugeridas, setSugeridas] = useState(sugeridasIniciales);
   const [acomodoLocal, setAcomodoLocal] = useState(() => {
-    if (hayReales) return limpiarSugeridos(guardadoNormalizado);
+    if (hayReales) return guardadoNormalizado;
     return sugeridasIniciales.length && guardadoNormalizado
       ? { ...guardadoNormalizado, plan: sugeridasGuardadas.length ? guardadoNormalizado.plan : null, sugeridosPartidas: sugeridasIniciales, demoAutopoblado: true }
       : guardadoNormalizado;
@@ -138,8 +163,11 @@ export default function Acomodo(props) {
   const sugeridasPlanoActuales = hayReales
     ? partidasSugeridasDeAreas(areasActuales, { linea: lineaOperativa })
     : sugeridas;
-  const realesMarcados = hayReales ? realesEntrada.map(marcarDestinoPartida) : [];
-  const complementosJuntas = hayReales ? complementosJuntasVisuales(realesMarcados, sugeridasPlanoActuales) : [];
+  const programaVisual = hayReales
+    ? completarProgramaVisual(realesEntrada, sugeridasPlanoActuales)
+    : { reales: [], sugerencias: sugeridasPlanoActuales, partidas: sugeridasPlanoActuales, programaCompleto: false };
+  const sugerenciasFaltantes = programaVisual.sugerencias || [];
+  const coherenciaPrograma = hayReales ? validarCoherenciaPrograma(realesEntrada) : { ok: true, bloqueos: [] };
 
   const estadoDemo = useMemo(() => {
     const e = props?.estado || {};
@@ -149,7 +177,11 @@ export default function Acomodo(props) {
       ? partidasSugeridasDeAreas(areasAhora, { linea: lineaOperativa })
       : sugeridas;
     const partidas = elegirPartidasAcomodo(c.partidas, sugeridasParaLayout);
-    const acomodo = partidas.some((p) => !esSugerida(p)) ? limpiarSugeridos(acomodoLocal) : acomodoLocal;
+    // Si faltan anclas comerciales duras, un plan viejo deja de ser evidencia:
+    // no lo revivimos visualmente ni reutilizamos su render.
+    const acomodo = hayReales && !coherenciaPrograma.ok && acomodoLocal
+      ? { ...acomodoLocal, plan: null, render3d: '', layoutValidado: false, layoutEstado: 'PROGRAM_INCOMPLETE' }
+      : acomodoLocal;
     return {
       ...e,
       cotizacion: {
@@ -158,20 +190,27 @@ export default function Acomodo(props) {
         ...(acomodo ? { acomodo } : {}),
       },
     };
-  }, [props?.estado, sugeridas, acomodoLocal, hayReales, lineaOperativa, guardadoNormalizado]);
+  }, [props?.estado, sugeridas, acomodoLocal, hayReales, lineaOperativa, guardadoNormalizado, coherenciaPrograma.ok]);
 
   const guardarInterceptado = (acomodo, silencioso) => {
     const areas = areasMDe(acomodo);
     const normalizado = conAreasNormalizadas(acomodo, areas);
 
-    // P0: cuando Voni ya armó partidas comerciales, el plano NO añade otro set
-    // de benches/sillas/gavetas. Limpia cualquier sugerido histórico y recalcula.
-    // Los complementos de juntas son sólo una vista al vuelo; nunca se guardan.
+    // Con partidas comerciales, VONI completa el PROGRAMA VISUAL del plano.
+    // Las piezas faltantes viven sólo como metadata SUGERIDA/noCobrar; jamás
+    // entran a cotizacion.partidas ni a los totales.
     if (hayReales) {
-      setSugeridas([]);
-      const limpio = limpiarSugeridos(normalizado);
-      setAcomodoLocal(limpio);
-      props.onGuardarAcomodo?.(limpio, silencioso);
+      const nuevasPrograma = partidasSugeridasDeAreas(areas, { linea: lineaOperativa });
+      const programa = completarProgramaVisual(realesEntrada, nuevasPrograma);
+      setSugeridas(programa.sugerencias);
+      const completo = {
+        ...normalizado,
+        sugeridosPartidas: programa.sugerencias,
+        programaPropuesto: programa.sugerencias.length > 0,
+        lineaOperativa,
+      };
+      setAcomodoLocal(completo);
+      props.onGuardarAcomodo?.(completo, silencioso);
       return;
     }
 
@@ -231,16 +270,27 @@ export default function Acomodo(props) {
         </div>
       )}
 
-      {hayReales && complementosJuntas.length > 0 && (
+      {hayReales && sugerenciasFaltantes.length > 0 && (
         <div className="contenido no-imprimir" style={{ paddingBottom: 0, width: '100%' }}>
           <div className="alerta" style={{ display: 'block', width: '100%', boxSizing: 'border-box', background: '#fff8e6', borderColor: '#d8a800', color: '#5e4700' }}>
-            <strong>⚠ La lista comercial dejó incompleta una sala de juntas.</strong>{' '}
-            Para no dibujarla vacía, el acomodo añadió {complementosJuntas.reduce((s, p) => s + cantidadDe(p), 0)} pieza(s) sólo como <strong>preview SUGERIDO</strong>. No se cobran ni se agregan a la cotización; sirven para señalar exactamente qué falta confirmar/cotizar.
+            <strong>✨ VONI detectó posibles faltantes del programa.</strong>{' '}
+            Propuso <strong>{sugerenciasFaltantes.reduce((s, p) => s + cantidadDe(p), 0)} pieza(s)</strong> que todavía no están cotizadas.
+            <strong>No se meten al acomodo real.</strong> Siguen <strong>SUGERIDAS · NO COTIZADAS</strong> hasta que alguien las confirme/agregue.
+            <div style={{ display: 'grid', gap: 4, marginTop: 8 }}>
+              {sugerenciasFaltantes.slice(0, 8).map((p) => (
+                <div key={p.id}>• {p.cantidad}× {p.nombre}{p.zonaSugerida ? ' → ' + p.zonaSugerida : ''}</div>
+              ))}
+              {sugerenciasFaltantes.length > 8 && <div>• +{sugerenciasFaltantes.length - 8} renglón(es) sugeridos</div>}
+            </div>
+            <div style={{ marginTop: 8 }}>El acomodo real usa únicamente lo cotizado. Si falta un ancla funcional, se bloquea y te dice exactamente qué agregar.</div>
           </div>
         </div>
       )}
 
-      <AcomodoBase key={`acomodo-demo-${revision}-${hayReales ? 'real' : 'sug'}`} {...props} estado={estadoDemo} onGuardarAcomodo={guardarInterceptado} />
+      <AcomodoBase key={`acomodo-demo-${revision}-${hayReales ? 'real' : 'sug'}`} {...props} estado={estadoDemo}
+        pendientesPrograma={sugerenciasFaltantes}
+        bloqueosPrograma={coherenciaPrograma.bloqueos}
+        onGuardarAcomodo={guardarInterceptado} />
     </>
   );
 }

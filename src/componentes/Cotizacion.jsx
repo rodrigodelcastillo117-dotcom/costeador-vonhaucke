@@ -308,113 +308,116 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   // Fail-closed: si cambia QUÉ piezas están excluidas, se re-exige la confirmación
   // (no se arrastra un "confirmo" viejo sobre una lista distinta).
   useEffect(() => { setConfirmoExcluidas(false); }, [excluidasProyecto.join('|')]);
-  function conCandado(fn) {
-    return async () => {
-      if (probEmision.length) { setPdfErr('No se puede emitir: ' + probEmision[0]); return; }
-      if (bloqueoExcluidas) { setPdfErr('Confirma las piezas excluidas antes de emitir.'); return; }
-      // GATE AUTORITATIVO server-side ANTES de emitir.
-      // FAIL-CLOSED: si no podemos demostrar ALLOWED, no sale un documento al cliente.
-      // Un corte de red/RPC permite seguir editando/guardando borrador, NO emitir.
-      if (verificarEmision) {
-        setGateCargando(true);
-        let g = null;
-        try { g = await verificarEmision(); } catch (e) { g = { estado: 'DESCONOCIDO', error: String(e?.message || e) }; }
-        setGateCargando(false);
-        setGate(g);
-        const estadoGate = g?.estado || 'DESCONOCIDO';
-        if (estadoGate !== 'ALLOWED') {
-          setVerPorque(true);
-          const titulo = estadoGate === 'DESCONOCIDO'
-            ? 'No se pudo verificar la emisión'
-            : ((ESTADO_EMISION[estadoGate] || {}).titulo || estadoGate);
-          setPdfErr(`No se puede emitir: ${titulo}. ${estadoGate === 'DESCONOCIDO' ? 'Reintenta cuando la verificación del servidor esté disponible.' : ''}`.trim());
-          return;
-        }
+  // Un documento SIEMPRE debe poder salir como BORRADOR. Lo que se bloquea
+  // fail-closed es la EMISIÓN DEFINITIVA, no el botón. Así un vendedor nunca
+  // vuelve a sentir "clic y no pasó nada" por un gate, RPC o aprobación pendiente.
+  async function resolverModoDocumento() {
+    const razones = [];
+    if (probEmision.length) razones.push(probEmision[0]);
+    if (bloqueoExcluidas) razones.push('Falta confirmar las piezas excluidas.');
+    if (partidas.some((p) => p.candadoUsuarios || p.requiereProyectista)) {
+      razones.push('Requiere revisión/confirmación de proyecto antes de emitir definitivo.');
+    }
+
+    let g = null;
+    if (!razones.length && verificarEmision) {
+      setGateCargando(true);
+      try { g = await verificarEmision(); }
+      catch (e) { g = { estado: 'DESCONOCIDO', error: String(e?.message || e) }; }
+      finally { setGateCargando(false); }
+      setGate(g);
+      const estadoGate = g?.estado || 'DESCONOCIDO';
+      if (estadoGate !== 'ALLOWED') {
+        setVerPorque(true);
+        const titulo = estadoGate === 'DESCONOCIDO'
+          ? 'No se pudo verificar la emisión'
+          : ((ESTADO_EMISION[estadoGate] || {}).titulo || estadoGate);
+        razones.push(titulo);
       }
-      if (partidas.some((p) => p.candadoUsuarios || p.requiereProyectista)) setAccionPendiente(() => fn);
-      else fn();
-    };
+    }
+
+    if (razones.length) return { definitivo: false, motivo: razones.join(' · '), gate: g };
+
+    const reg = onEmitida ? await onEmitida() : { ok: false, motivo: 'sin-registro-emision' };
+    if (!reg?.ok) {
+      return {
+        definitivo: false,
+        motivo: /aprobaci|politica|supera/i.test(reg?.motivo || '')
+          ? 'Requiere aprobación de Dirección.'
+          : 'No se pudo conservar la revisión inmutable.',
+        gate: g,
+      };
+    }
+    return { definitivo: true, motivo: '', gate: g };
   }
+
   // Razones del gate, traducidas y seller-safe (motivos duros + económicos).
   const gateRazones = gate ? [...new Set([...(gate.motivos || []), ...(gate.economics || [])])].map(textoRazonEmision) : [];
   // Estado económico POR LÍNEA (chips pegados a cada partida). 1-based → {tono, textos}.
   const razonesLinea = useMemo(() => razonesPorLinea(gate), [gate]);
   async function descargarPDF() {
+    if (bajandoPDF) return;
     setPdfErr(''); setBajandoPDF(true);
     try {
-      // Los renders se traen ANTES de armar el documento: si se dibujara sin
-      // esperarlos, el PDF saldría con los recuadros vacíos.
-      // El logo y la foto de la casa van en la MISMA espera que las fotos: la
-      // portada sin logo es justo lo que Rodrigo no quiere volver a ver.
-      // El PDF usa la MISMA resolución canónica que la pantalla: render vigente de la
-      // versión anclada; nunca catálogo por nombre ni un render stale como vigente.
+      const modo = await resolverModoDocumento();
       const [fotos, marca, render3dPdf] = await Promise.all([
         cargarFotos(partidas, fotoResuelta),
         cargarMarca(),
         urlADataUrl(cotCliente.acomodo?.render3d),
       ]);
-      // El estado persistente conserva URL; sólo la copia efímera que entra a jsPDF
-      // usa dataURL porque jsPDF no consume URLs remotas directamente.
       const cotParaPdf = cotCliente.acomodo?.render3d
         ? { ...cotCliente, acomodo: { ...cotCliente.acomodo, render3d: render3dPdf || null } }
         : cotCliente;
-      // Evidencia PRIMERO: si no podemos congelar la revisión inmutable,
-      // NO entregamos un archivo que pueda circular como propuesta definitiva.
-      const reg = onEmitida ? await onEmitida() : { ok: false, motivo:'sin-registro-emision' };
-      if (!reg?.ok) {
-        const necesitaAprob = /aprobaci|politica|supera/i.test(reg?.motivo || '');
-        setPdfErr(necesitaAprob
-          ? 'No se puede emitir: requiere APROBACIÓN DE DIRECCIÓN antes de generar el PDF definitivo.'
-          : 'No se puede emitir: no fue posible conservar la revisión inmutable. Revisa tu conexión y reintenta.');
-        return;
-      }
+
       descargarPropuesta({
         cot: cotParaPdf, partidas, resumen, especificacion, nPzas, fotos, marca,
         piezas: expandirPiezas(partidas),
-        // Llegar aquí implica snapshot inmutable guardado.
-        borrador: false,
-        // La hoja "Qué va en cada área", en palabras y con las gavetas: el
-        // plano no las puede enseñar porque viven debajo de la cubierta.
+        borrador: !modo.definitivo,
         cuartos: listaPorCuarto(partidas, cotCliente.acomodo),
-        // Piezas excluidas (audit #3): se imprimen como cláusula explícita bajo el total.
         exclusionesBOM: excluidasProyecto,
         totales: { precioLista, descuento, descuentoPct, subtotal, contingencia, contingenciaPct,
           maniobras, maniobrasPct, flete, fletePct,
           iva, ivaPct, total,
           anticipoPct, anticipo, cliente: cot.cliente, folio: cot.folio },
       });
+
+      if (!modo.definitivo) {
+        setPdfErr(`PDF descargado como BORRADOR · NO REGISTRADO. ${modo.motivo || 'Falta validación para emitir definitivo.'}`);
+      }
     } catch (e) {
-      // Si algo falla, queda el camino de siempre en vez de dejarlo sin nada.
-      setPdfErr('No se pudo generar el archivo; se abrirá la impresión para guardarlo como PDF.');
-      imprimir();
-    } finally { setBajandoPDF(false); }
+      setPdfErr('No se pudo generar el PDF: ' + String(e?.message || e));
+    } finally {
+      setBajandoPDF(false);
+    }
   }
 
   // Imprimir: nombra el archivo, y espera que las fotos (remotas) decodifiquen
   // antes de imprimir para que NUNCA salga una partida sin imagen en el PDF.
   async function imprimir() {
-    // Misma regla que el PDF (audit 2026-10-01): conservar la evidencia ANTES de
-    // una salida definitiva. Si no se registró, NO se imprime como definitiva.
-    const reg = onEmitida ? await onEmitida() : { ok: false };
-    if (!reg?.ok) {
-      const necesitaAprob = /aprobaci|politica|supera/i.test(reg?.motivo || '');
-      setPdfErr(necesitaAprob
-        ? 'No se imprime como definitiva: el descuento supera la política y requiere APROBACIÓN DE DIRECCIÓN. Mientras tanto usa "Descargar PDF" (sale como borrador).'
-        : 'No se registró la emisión: no se imprime como definitiva. Usa "Descargar PDF" (sale marcado como borrador) o revisa tu conexión y reintenta.');
-      return;
-    }
+    setPdfErr('');
+    const modo = await resolverModoDocumento();
     const prev = document.title;
-    document.title = ['Propuesta', cot.folio, cot.cliente].filter(Boolean).join(' ').trim() || 'Propuesta Vonhaucke';
+    const tituloBase = ['Propuesta', cot.folio, cot.cliente].filter(Boolean).join(' ').trim() || 'Propuesta Vonhaucke';
+    document.title = modo.definitivo ? tituloBase : `BORRADOR - ${tituloBase}`;
+    if (!modo.definitivo) document.body.classList.add('vh-print-borrador');
     try {
       const imgs = Array.from(document.querySelectorAll('.cot-cliente img'));
       await Promise.all(imgs.map((im) => (im.decode ? im.decode().catch(() => {}) : Promise.resolve())));
-    } catch (e) { /* seguir de todas formas */ }
-    window.print();
-    setTimeout(() => { document.title = prev; }, 800);
-    // Abrir el diálogo de impresión NO prueba que se imprimió ni que el cliente
-    // recibió algo (audit 2026-10-01): aquí NO se registra una revisión. La
-    // emisión definitiva (con evidencia conservada) es "Descargar PDF".
+      if (typeof window.vhPrint === 'function') window.vhPrint();
+      else window.print();
+      if (!modo.definitivo) {
+        setPdfErr(`Impresión abierta como BORRADOR · NO REGISTRADO. ${modo.motivo || 'Falta validación para emitir definitivo.'}`);
+      }
+    } catch (e) {
+      setPdfErr('No se pudo abrir la impresión: ' + String(e?.message || e));
+    } finally {
+      setTimeout(() => {
+        document.title = prev;
+        document.body.classList.remove('vh-print-borrador');
+      }, 1200);
+    }
   }
+
   const setPartida = (i, parcial) => { const ps = partidas.slice(); ps[i] = { ...ps[i], ...parcial }; setCot({ partidas: ps }); };
   const quitar = (i) => {
     const pt = partidas[i];
@@ -962,10 +965,14 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
             <button className={vistaCliente ? 'on' : ''} onClick={() => setVistaCliente(true)}>Como la ve el cliente</button>
           </div>
         )}
-        <button className="boton tinta cot-pdf" onClick={conCandado(descargarPDF)} disabled={bajandoPDF || probEmision.length > 0 || bloqueoExcluidas} title={probEmision.length ? probEmision[0] : (bloqueoExcluidas ? 'Confirma las piezas excluidas' : undefined)}>
-          {bajandoPDF ? 'Armando el PDF…' : 'Descargar PDF'}
+        <button className="boton tinta cot-pdf" onClick={descargarPDF} disabled={bajandoPDF}
+          title={(probEmision.length || bloqueoExcluidas) ? 'Se descargará como BORRADOR hasta resolver las validaciones pendientes.' : 'Descargar propuesta'}>
+          {bajandoPDF ? 'Armando el PDF…' : (probEmision.length || bloqueoExcluidas) ? 'Descargar BORRADOR' : 'Descargar PDF'}
         </button>
-        <button className="boton fantasma no-imprimir" style={{ minHeight: 42 }} onClick={conCandado(imprimir)} disabled={probEmision.length > 0 || bloqueoExcluidas} title={probEmision.length ? probEmision[0] : (bloqueoExcluidas ? 'Confirma las piezas excluidas' : undefined)}>Imprimir</button>
+        <button className="boton fantasma no-imprimir" style={{ minHeight: 42 }} onClick={imprimir}
+          title={(probEmision.length || bloqueoExcluidas) ? 'Se imprimirá como BORRADOR hasta resolver las validaciones pendientes.' : 'Imprimir propuesta'}>
+          {(probEmision.length || bloqueoExcluidas) ? 'Imprimir BORRADOR' : 'Imprimir'}
+        </button>
         {verificarEmision && (
           <button className="boton fantasma no-imprimir" style={{ minHeight: 42 }} disabled={gateCargando}
             onClick={async () => { setGateCargando(true); try { setGate(await verificarEmision()); } catch { setGate({ estado: 'DESCONOCIDO' }); } setGateCargando(false); }}>

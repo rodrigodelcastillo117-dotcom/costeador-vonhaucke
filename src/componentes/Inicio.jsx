@@ -160,155 +160,96 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
     return g;
   }, [lineasFiltradas]);
 
-  // -------------------- HOME --------------------
+  // -------------------- HOME · OPERACIÓN SIMPLE --------------------
+  // Una pantalla = una decisión. Cada botón abre DIRECTO el flujo real:
+  // Cotizar -> VONI; Costear -> especial con PDF/plano/render; Cocrear -> estudio.
+  // Lo avanzado sigue disponible abajo sin competir con los tres trabajos.
   if (vista === 'home') {
     const cot = estado.cotizacion || {};
     const totalCot = (cot.partidas || []).reduce((s, p) => s + (p.precioUnitario || 0) * (p.cantidad || 0), 0);
     return (
-      <div className="inicio inicio-terminal">
-        <div className="inicio-hero">
-          <div className="inicio-hero-txt">
-            <div className="inicio-overline"><span className="ov-dot" />VH · TALLER DIGITAL · EST. 1958</div>
-            <h1 className="inicio-titulo">Cocreando<br />tu espacio</h1>
-            <div className="inicio-lead">Del plano al producto: costea, cotiza y presenta mobiliario Vonhaucke con precisión, en minutos.</div>
-            <div className="inicio-datastrip">
-              <span><b>68</b> AÑOS DE OFICIO</span>
-              <span><b>+118</b> PRODUCTOS</span>
-              <span className="ds-live"><span className="ds-pulse" />MOTOR DE COSTEO · ACTIVO</span>
-            </div>
-            {/* Entrada a COCREAR: la experiencia de co-diseño en vivo vive aquí,
-                en "Cocreando tu espacio" — no escondida dentro de Costear. */}
-            <button className="inicio-hero-cta" onClick={() => onIr('cocrear')}>
-              Cocrear un producto
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-            </button>
+      <div className="inicio inicio-terminal inicio-operativo">
+        <div className="inicio-op-cab">
+          <div>
+            <div className="inicio-overline"><span className="ov-dot" />VH · TALLER DIGITAL</div>
+            <h1 className="inicio-op-titulo">¿Qué vas a hacer?</h1>
+            <div className="inicio-lead">Tres caminos. Sin menús intermedios.</div>
           </div>
-          <button className="inicio-hero-foto" onClick={() => onIr('cocrear')} title="Entrar a Cocrear"
-            style={{ backgroundImage: 'url(https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/app/marca/portada-1.jpg)' }}>
-            <span className="inicio-hero-cota">3600 × 750 × 1050 MM</span>
-            <span className="inicio-hero-tag">PROYECTO · ASUR T2</span>
-          </button>
+          <span className="ds-live"><span className="ds-pulse" />MOTOR ACTIVO</span>
         </div>
 
-        {/* En qué vas: retomar es más común que empezar de cero. */}
         {nPartidas > 0 && (
           <div className="retomar-fila">
             <button className="retomar" onClick={() => onIr('cotizacion')}>
               <span className="retomar-txt">
-                <span className="retomar-lbl">Vas a la mitad</span>
-                {/* ⚠️ DECÍA "6 MUEBLES" CON 17 PIEZAS (2026-08-17): contaba
-                    RENGLONES. El vendedor le dice al cliente "seis muebles" con
-                    $228,102 enfrente y el precio suena carísimo. */}
-                <strong>{cot.cliente ? cot.cliente : 'Cotización sin nombre'} · {nPzasRetomar} pieza{nPzasRetomar === 1 ? '' : 's'} en {nPartidas} {nPartidas === 1 ? 'renglón' : 'renglones'}</strong>
+                <span className="retomar-lbl">Proyecto en curso</span>
+                <strong>{cot.cliente || 'Cotización sin nombre'} · {nPzasRetomar} pieza{nPzasRetomar === 1 ? '' : 's'}</strong>
                 {totalCot > 0 && <span className="retomar-n">{pesos(totalCot)}</span>}
               </span>
-              <span className="retomar-cta">Seguir <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
+              <span className="retomar-cta">Continuar →</span>
             </button>
-            {/* Empezar de cero SIN quitar mueble por mueble. Con 34 partidas
-                eran 34 "quitar" MÁS 34 confirmaciones. Aquí es UNA. */}
             {onDescartar && (
-              <button className="retomar-tirar" title="Borrar esta cotización y empezar de cero"
-                onClick={() => {
-                  if (!confirm(`¿Descartar esta cotización completa?\n\nSe borran ${nPartidas} mueble${nPartidas === 1 ? '' : 's'} y el acomodo del plano. No se puede deshacer.`)) return;
-                  onDescartar();
-                }}>
-                Descartar todo
-              </button>
+              <button className="retomar-tirar" onClick={() => {
+                if (!confirm(`¿Descartar esta cotización completa?\n\nSe borran ${nPartidas} renglón${nPartidas === 1 ? '' : 'es'} y el acomodo. No se puede deshacer.`)) return;
+                onDescartar();
+              }}>Empezar de cero</button>
             )}
           </div>
         )}
 
-        {/* ⚠️ LAS DOS PUERTAS GRANDES (Rodrigo, 2026-08-17): "lo principal de la
-            app es COSTEAR bien, rápido y eficaz, y para vendedores poder
-            cotizar". Son los DOS trabajos del negocio, así que van del mismo
-            tamaño y lado a lado, no uno grande y el otro de atajo:
-              · Voni    = vender (el vendedor describe y sale la propuesta).
-              · Costear = producir (Dirección/Diseño saca el costo real).
-            Costear sólo aparece con `veCostos`: el vendedor no ve costos, y
-            para él la única puerta grande es Voni. */}
-        <div className="puertas">
-        <button className="voni-principal con-foto" onClick={() => onIr('voni')}
-          style={{ '--puerta-foto': `url(${heroLinea('cirque')})` }}>
-          <span className="voni-principal-av"><VoniAvatar tam={64} variante="cara" /></span>
-          <span className="voni-principal-txt">
-            <span className="voni-principal-k">Empieza aquí</span>
-            <strong>Dime qué pide el cliente</strong>
-            <span>Descríbelo en tus palabras y armo el proyecto completo: los muebles, el acomodo en su espacio y la propuesta lista para entregar.</span>
-          </span>
-          <span className="voni-principal-cta">Empezar <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
-        </button>
-
-        {veCostos && (
-          <button className="costear-principal con-foto" onClick={() => setVista('costear')}
-            style={{ '--puerta-foto': `url(${heroLinea('eclipse')})` }}>
-            <span className="voni-principal-av" aria-hidden="true">
-              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="4" y="2.5" width="16" height="19" rx="2.5" />
-                <path d="M7.5 6.5h9M7.5 11h3M13 11h3.5M7.5 15h3M13 15v3.5M7.5 18.5h3" />
-              </svg>
-            </span>
-            <span className="voni-principal-txt">
-              <span className="voni-principal-k">Costear</span>
-              <strong>¿Cuánto nos cuesta fabricarlo?</strong>
-              <span>El costo real de producción: material, mano de obra e indirectos, pieza por pieza. Es de donde sale el precio de todo lo demás.</span>
-            </span>
-            <span className="voni-principal-cta">Costear <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
+        <div className={'inicio-op-grid' + (veCostos ? '' : ' vendedor')}>
+          <button className="inicio-op-card principal" data-testid="home-cotizar" onClick={() => onIr('voni')}>
+            <span className="inicio-op-icon"><VoniAvatar tam={56} variante="cara" /></span>
+            <span className="inicio-op-k">COTIZAR</span>
+            <strong>Preparar propuesta para cliente</strong>
+            <span>Sube plano/PDF o describe lo que necesita el cliente; VONI arma la propuesta y te lleva al acomodo/PDF.</span>
+            <b>Empezar cotización →</b>
           </button>
-        )}
+
+          {veCostos && (
+            <button className="inicio-op-card" data-testid="home-costear" onClick={() => onIr('especial')}>
+              <span className="inicio-op-icon"><Icono nombre="despiece" tam={30} /></span>
+              <span className="inicio-op-k">COSTEAR</span>
+              <strong>Costear un producto nuevo</strong>
+              <span><u>Sube PDF, plano, render o foto</u>, o descríbelo. VONI propone el despiece y el motor calcula.</span>
+              <b>Subir PDF / costear →</b>
+            </button>
+          )}
+
+          <button className="inicio-op-card" data-testid="home-cocrear" onClick={() => onIr('cocrear')}>
+            <span className="inicio-op-icon"><Icono nombre="especial" tam={30} /></span>
+            <span className="inicio-op-k">COCREAR</span>
+            <strong>Diseñar un producto nuevo</strong>
+            <span>Empieza desde la necesidad y baja el concepto a una solución fabricable.</span>
+            <b>Empezar cocreación →</b>
+          </button>
         </div>
 
-        {/* ⚠️ ESTO ERAN DOS TARJETONES DEL MISMO TAMAÑO QUE VONI (2026-08-17).
-            Con tres puertas grandes al mismo nivel, Rodrigo entró por la
-            equivocada: "de verdad imposible, yo me sé la app y no pude". El mapa
-            que acordamos es de UNA puerta y dos herramientas:
-              · Voni = EL CAMINO (arriba, grande).
-              · Cotizar de línea = el destornillador: ajustar y vender piezas.
-              · Banco de precios = la memoria de lo ya vendido.
-            Por eso lo de abajo son ATAJOS, no acciones: letra chica, en una
-            tira, y van DIRECTO a su pantalla (antes había que pasar por el
-            panel "Cotizar" para llegar a cotizar de línea). */}
-        <div className="atajos-bloque">
-          <div className="atajos-lbl">¿Ya sabes qué quieres? Ve directo</div>
+        <details className="inicio-op-mas">
+          <summary>Más herramientas</summary>
           <div className="atajos">
-            <button className="atajo" onClick={() => setVista('cotizarlinea')}>
-              Cotizar de línea <span>un mueble, con su precio</span>
-            </button>
-            <button className="atajo" onClick={() => onIr('banco')}>
-              Banco de precios <span>lo ya vendido, con precio real</span>
-            </button>
-            <button className="atajo" onClick={() => onIr('archivo')}>
-              Presupuestos que ya hicimos <span>ábrelos otra vez</span>
-            </button>
-            <button className="atajo" onClick={() => onIr(veCostos ? 'costeador' : 'asistente')}>
-              Especial a la medida <span>lo que no está en catálogo</span>
-            </button>
-            {/* Costear ya NO vive aquí: subió a puerta grande, arriba. */}
-            <button className="atajo atajo-mas" onClick={() => setVista('cotizar')}>
-              Ver todo lo de cotizar →
-            </button>
+            <button className="atajo" onClick={() => setVista('cotizarlinea')}>Cotizar de línea <span>producto conocido</span></button>
+            {nPartidas > 0 && <button className="atajo" onClick={() => onIr('cotizacion')}>Proyecto actual <span>ver, imprimir o descargar</span></button>}
+            {nPartidas > 0 && <button className="atajo" onClick={() => onIr('acomodo')}>Acomodo <span>plano y distribución</span></button>}
+            {veCostos && <button className="atajo" onClick={() => onIr('costeador')}>Costeo manual <span>despiece pieza por pieza</span></button>}
+            {flagActivo('commercial_v2') && <button className="atajo" onClick={() => onIr('comercial')}>Comercial · Proyectos <span>pipeline y propuestas</span></button>}
+            <button className="atajo" onClick={() => onIr('cotizarIA')}>Cotizar varios con IA <span>varios muebles de un jalón</span></button>
+            <button className="atajo" onClick={() => onIr('banco')}>Banco de precios <span>lo ya vendido</span></button>
+            <button className="atajo" onClick={() => onIr('archivo')}>Presupuestos anteriores <span>buscar y reabrir</span></button>
+            <button className="atajo" onClick={() => onIr('reglas')}>Lo que Voni sabe <span>reglas de oficio</span></button>
+            {esDireccion && <button className="atajo" onClick={() => onIr('tablero')}>Dirección <span>ver el negocio</span></button>}
+            {esDireccion && <button className="atajo" onClick={() => onIr('usuarios')}>Usuarios y accesos <span>permisos</span></button>}
           </div>
-        </div>
+        </details>
 
-        {/* Lo que TÚ más cotizas, a un toque. La app lo aprende sola. */}
         {favoritas.length > 0 && (
           <div className="favoritas">
             <div className="favoritas-lbl">Tus líneas más usadas</div>
             <div className="favoritas-chips">
-              {favoritas.map((l) => (
-                <button key={l.ruta} className="favorita" onClick={() => onIr(l.ruta)}>{l.titulo}</button>
-              ))}
+              {favoritas.map((l) => <button key={l.ruta} className="favorita" onClick={() => onIr(l.ruta)}>{l.titulo}</button>)}
             </div>
           </div>
         )}
-
-        <div className="inicio-pie">
-          {/* "Lo que Voni sabe" la leen TODOS (el motor aplica las reglas igual para
-              cualquier rol). Antes sólo se alcanzaba desde el panel Costear, que el
-              vendedor no usa -> para ventas quedaba huérfana. Aquí la ve cualquiera. */}
-          <button className="enlace-pie" onClick={() => onIr('reglas')}>Lo que Voni sabe →</button>
-          {esDireccion && <button className="enlace-pie" onClick={() => onIr('tablero')}>Ver el negocio (Dirección) →</button>}
-          {esDireccion && <button className="enlace-pie" onClick={() => onIr('usuarios')}>Usuarios y accesos →</button>}
-        </div>
       </div>
     );
   }
