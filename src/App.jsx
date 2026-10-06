@@ -1022,6 +1022,8 @@ export default function App() {
                   contingenciaPct: full.totales?.contingenciaPct ?? e.cotizacion.contingenciaPct,
                   maniobrasPct: full.totales?.maniobrasPct ?? e.cotizacion.maniobrasPct,
                   fletePct: full.totales?.fletePct ?? e.cotizacion.fletePct,
+                  ivaPct: full.totales?.ivaPct ?? e.cotizacion.ivaPct,
+                  anticipoPct: full.totales?.anticipoPct ?? e.cotizacion.anticipoPct,
                 },
               }));
               irA('cotizacion');
