@@ -30,6 +30,7 @@ export const TOOLS = Object.freeze([
   { nombre: 'get_today_attention', economica: false, roles: null, desc: 'Qué necesita atención hoy.' },
   { nombre: 'get_direction_facts', economica: false, roles: ['direccion', 'cfo'], desc: 'Hechos de Dirección (pipeline, ganadas/perdidas).' },
   { nombre: 'get_catalog_knowledge', economica: false, roles: null, desc: 'Conocimiento del catálogo Von Haucke (líneas, materiales, a la medida).' },
+  { nombre: 'get_material_technical', economica: false, roles: null, desc: 'Ficha técnica seller-safe de materiales/formato/veta/unidad; nunca incluye precio ni costo.' },
   // --- Económicas: requieren rolVeEconomia && !clientSafe ---
   { nombre: 'get_costing', economica: true, roles: ['direccion', 'diseno', 'costeador', 'cfo'], desc: 'Costeo (costo/margen). Sólo roles con economía.' },
   { nombre: 'get_bom', economica: true, roles: ['direccion', 'diseno', 'costeador'], desc: 'BOM certificado. Sólo fabricación.' },
