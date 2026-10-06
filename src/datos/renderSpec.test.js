@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { renderSpecFromGraph, visualProfileFromContext, RENDER_SPEC_VERSION } from './renderSpec.js';
+import { compileRenderPrompt, renderStale } from './renderPrompt.js';
 
 const graph = (design_intent, nodes, relations = []) => ({
   schema_version: 'structural_graph_v1', design_intent, nodes, relations,
