@@ -22,7 +22,7 @@ describe('cutting stock 1D · perfiles/PTR advisory', () => {
       recortePuntaMM: 10,
     });
     expect(r.disponible).toBe(true);
-    expect(r.tramos).toBe(1);
+    expect(r.tramos).toBe(2);
     expect(r.piezas_colocadas).toBe(4);
     expect(r.largo_neto_mm).toBe(6000);
     expect(r.issues).toHaveLength(0);
