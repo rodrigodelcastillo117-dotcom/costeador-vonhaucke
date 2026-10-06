@@ -158,10 +158,24 @@ describe('VONI recuperación de fallos (FASE 11)', () => {
     expect(r.ok).toBe(false);
     expect(r.error).toBe('fallo_tool');
   });
-  it('responder no truena aunque todas las tools fallen', async () => {
+  it('responder no truena aunque todas las tools fallen y NUNCA da falso verde', async () => {
     const provMalo = new Proxy({}, { get: () => async () => { throw new Error('caída'); } });
     const { respuesta } = await responder({ query: '¿está lista?', ctx: { user: USER, role: 'ventas', project_id: 1 }, prov: provMalo });
     expect(respuesta).toBeTruthy();
-    expect(['OK', 'ATENCION', 'BLOQUEADO']).toContain(respuesta.estado);
+    expect(respuesta.estado).toBe('DESCONOCIDO');
+    expect(respuesta.que_paso).toMatch(/No puedo confirmar/i);
+    expect(respuesta.que_paso).not.toMatch(/^Lista para enviarse/i);
+    expect(respuesta.bloqueos.some((b) => /Evidencia insuficiente/i.test(b.titulo))).toBe(true);
+  });
+
+  it('si falla UNA fuente crítica de readiness, sigue DESCONOCIDO aunque las demás estén bien', async () => {
+    const provParcial = { ...PROV, get_quote: async () => { throw new Error('timeout quote'); } };
+    const { respuesta } = await responder({
+      query: '¿está lista para enviarse?',
+      ctx: { user: USER, role: 'ventas', project_id: 7, quote_id: 3 },
+      prov: provParcial,
+    });
+    expect(respuesta.estado).toBe('DESCONOCIDO');
+    expect(respuesta.por_que).toMatch(/get_quote/);
   });
 });
