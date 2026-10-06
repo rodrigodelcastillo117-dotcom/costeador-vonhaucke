@@ -94,6 +94,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   const [lecturaMeta, setLecturaMeta] = useState(() => guardadoPrevio?.lecturaMeta || null);
   const [floorSpec, setFloorSpec] = useState(() => guardadoPrevio?.floorSpec || null);
   const [guardado, setGuardado] = useState(false);
+  const [guardadoValido, setGuardadoValido] = useState(false);
   const [staging, setStaging] = useState(false);      // generando staging
   const [stagingUrl, setStagingUrl] = useState(() => guardadoPrevio?.render3d || '');   // resultado (foto amueblada)
   const [errStaging, setErrStaging] = useState('');
@@ -967,7 +968,23 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   }
 
   function guardarEnPropuesta() {
-    if (onGuardarAcomodo && plan) { onGuardarAcomodo({ areas: areasMM, plan, ...(stagingUrl ? { render3d: stagingUrl } : {}) }); setGuardado(true); }
+    if (!onGuardarAcomodo || !plan) return;
+    const payload = {
+      areas: areasMM,
+      plan,
+      layoutValidado: !!layoutListo,
+      layoutEstado: layout?.status || null,
+      layoutMotivo: motivoLayout || null,
+      // Un render de un acomodo inválido puede quedarse visible como PRELIMINAR,
+      // pero nunca viajar a la propuesta/PDF como si fuera final.
+      ...(layoutListo && stagingUrl ? { render3d: stagingUrl } : {}),
+    };
+    onGuardarAcomodo(payload);
+    setGuardadoValido(!!layoutListo);
+    setGuardado(true);
+    if (!layoutListo) {
+      setError(`Borrador guardado. No se mostrará como acomodo final en la propuesta hasta corregir: ${motivoLayout || 'validación pendiente'}.`);
+    }
   }
 
   // STAGING VIRTUAL: subir foto real del espacio → la IA lo amuebla con lo cotizado.
@@ -985,7 +1002,17 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     finally { setStaging(false); }
   }
   function guardarStaging() {
-    if (onGuardarAcomodo && stagingUrl) { onGuardarAcomodo({ areas: areasMM, plan: plan || null, render3d: stagingUrl }); setGuardado(true); }
+    if (!onGuardarAcomodo || !stagingUrl) return;
+    if (!layoutListo) {
+      onGuardarAcomodo({ areas: areasMM, plan: plan || null, layoutValidado: false, layoutEstado: layout?.status || null, layoutMotivo: motivoLayout || null });
+      setGuardadoValido(false);
+      setGuardado(true);
+      setErrStaging(`Guardé el acomodo como borrador, pero NO el render final: ${motivoLayout || 'la validación espacial sigue pendiente'}.`);
+      return;
+    }
+    onGuardarAcomodo({ areas: areasMM, plan: plan || null, render3d: stagingUrl, layoutValidado: true, layoutEstado: layout?.status || 'LAYOUT_VALID' });
+    setGuardadoValido(true);
+    setGuardado(true);
   }
 
   // VERIFICACIÓN determinista por área: dentro de bordes + sin traslapes.
@@ -1324,13 +1351,21 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
               </button>
             )}
             {/* ✨ PROPUESTA VIVA: presentación cinematográfica para el cliente. */}
-            <button className="boton primario" style={{ minHeight: 42 }} disabled={!plan || !areas.length} onClick={() => setVivaAbierta(true)}>
+            <button className="boton primario" style={{ minHeight: 42 }} disabled={!plan || !areas.length || !layoutListo}
+              title={!layoutListo && plan ? `Corrige primero el acomodo: ${motivoLayout}` : undefined}
+              onClick={() => setVivaAbierta(true)}>
               ✨ Propuesta Viva
             </button>
-            {onGuardarAcomodo && !guardado && <button className="boton" style={{ minHeight: 42, marginLeft: 'auto' }} onClick={guardarEnPropuesta}>Guardar en la propuesta</button>}
-            {guardado && <button className="boton primario" style={{ minHeight: 42, marginLeft: 'auto' }} onClick={() => onIr('cotizacion')}>Ver cotización con el acomodo →</button>}
+            {onGuardarAcomodo && !guardado && <button className="boton" style={{ minHeight: 42, marginLeft: 'auto' }} onClick={guardarEnPropuesta}>
+              {layoutListo ? 'Guardar en la propuesta' : 'Guardar borrador de acomodo'}
+            </button>}
+            {guardado && <button className={guardadoValido ? 'boton primario' : 'boton'} style={{ minHeight: 42, marginLeft: 'auto' }} onClick={() => onIr('cotizacion')}>
+              {guardadoValido ? 'Ver cotización con el acomodo →' : 'Ver cotización (sin acomodo final) →'}
+            </button>}
           </div>
-          {guardado && <div className="ayuda verde no-imprimir" style={{ marginTop: 6 }}>✓ Guardado. Ya aparece en el PDF de la propuesta.</div>}
+          {guardado && <div className={guardadoValido ? 'ayuda verde no-imprimir' : 'ayuda no-imprimir'} style={{ marginTop: 6 }}>
+            {guardadoValido ? '✓ Acomodo validado y guardado. Ya puede aparecer en la propuesta/PDF.' : 'Borrador guardado. No se presenta al cliente como acomodo final hasta quedar válido.'}
+          </div>}
 
           {vivaAbierta && (
             <PropuestaViva areas={areasMM} plan={plan} byId={byId}
