@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { aCentavosEnteros, deCentavosEnteros, dinero, sumarDinero, aplicarPct } from './dinero.js';
+import { aCentavosEnteros, deCentavosEnteros, dinero, sumarDinero, aplicarPct, porcentajeCentavos } from './dinero.js';
 
 describe('dinero canónico · pennies and cents', () => {
   it('cuantiza a centavos de forma estable', () => {
@@ -20,5 +20,20 @@ describe('dinero canónico · pennies and cents', () => {
   it('falla cerrado con dinero no finito', () => {
     expect(Number.isNaN(dinero(NaN))).toBe(true);
     expect(Number.isNaN(sumarDinero([10, Infinity]))).toBe(true);
+  });
+});
+
+
+describe('porcentajes sobre centavos enteros', () => {
+  it('12.5% de $100.01 queda reproducible al centavo', () => {
+    expect(porcentajeCentavos(10001, 12.5)).toBe(1250);
+  });
+
+  it('IVA 16% sobre $83,062.00 produce exactamente $13,289.92', () => {
+    expect(porcentajeCentavos(8306200, 16)).toBe(1328992);
+  });
+
+  it('rechaza bases fuera de enteros seguros', () => {
+    expect(porcentajeCentavos(Number.MAX_SAFE_INTEGER + 1, 16)).toBeNull();
   });
 });
