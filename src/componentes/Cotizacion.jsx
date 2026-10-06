@@ -17,7 +17,7 @@ import { imagenPartida } from '../datos/imagenes.js';
 import VoniAvatar from './VoniAvatar.jsx';
 import { confianzaDe, textoConfianza } from '../datos/confianza.js';
 import { expandirPiezas, mapaPiezas } from '../datos/espacio.js';
-import { generarRender, analizarNegocio, resolverRendersCanonicos } from '../nube.js';
+import { generarRender, analizarNegocio, resolverRendersCanonicos, subirRender as subirRenderNube } from '../nube.js';
 import { estadoRenderPartida, claveRenderPartida, ESTADO_RENDER } from '../datos/renderCanonico.js';
 import { textoRazonEmision, ESTADO_EMISION, razonesPorLinea } from '../datos/emisionUX.js';
 import MontoAnimado from './MontoAnimado.jsx';
@@ -140,24 +140,52 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
     return null;
   };
 
-  // Adjuntar render 3D del acomodo (reescala para no inflar el estado)
+  // Los renders persistentes viven en Storage. El estado/cotización conserva sólo
+  // una URL pequeña: nunca volvemos a meter cientos de KB/MB de base64 en `partidas`.
+  async function persistirRender(dataUrl, tipo = 'render') {
+    if (!dataUrl || !String(dataUrl).startsWith('data:image/')) {
+      return { ok: false, error: 'La imagen generada no tiene un formato válido.' };
+    }
+    const id = (globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const path = `cotizaciones/${tipo}/${id}.img`;
+    return await subirRenderNube(dataUrl, path);
+  }
+
+  // Adjuntar render 3D del acomodo: se reescala y se sube a Storage; el JSON de
+  // la cotización sólo guarda la URL. Si Storage falla, NO persistimos base64.
   const subirRender = (file) => {
     if (!file) return;
     const r = new FileReader();
     r.onload = () => {
       const img = new Image();
-      img.onload = () => {
-        const max = 1400; let w = img.width, h = img.height;
-        const sc = Math.min(1, max / Math.max(w, h)); w = Math.round(w * sc); h = Math.round(h * sc);
-        const c = document.createElement('canvas'); c.width = w; c.height = h;
-        c.getContext('2d').drawImage(img, 0, 0, w, h);
-        setCot({ acomodo: { ...(cot.acomodo || {}), render3d: c.toDataURL('image/jpeg', 0.85) } });
+      img.onload = async () => {
+        try {
+          const max = 1400; let w = img.width, h = img.height;
+          const sc = Math.min(1, max / Math.max(w, h)); w = Math.round(w * sc); h = Math.round(h * sc);
+          const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          const up = await persistirRender(dataUrl, 'acomodo');
+          if (!up?.ok || !up?.url) {
+            setErrGen(up?.error || 'No se pudo guardar la imagen.');
+            return;
+          }
+          setCot({ acomodo: { ...(cot.acomodo || {}), render3d: up.url, render3d_storage_path: up.path || null } });
+        } catch (_e) {
+          setErrGen('No se pudo preparar o guardar la imagen.');
+        }
       };
       img.src = r.result;
     };
+    r.onerror = () => setErrGen('No se pudo leer la imagen.');
     r.readAsDataURL(file);
   };
-  const quitarRender = () => { const a = { ...(cot.acomodo || {}) }; delete a.render3d; setCot({ acomodo: a }); };
+  const quitarRender = () => {
+    const a = { ...(cot.acomodo || {}) };
+    delete a.render3d;
+    delete a.render3d_storage_path;
+    setCot({ acomodo: a });
+  };
 
   // --- Renders de calidad con IA (Gemini) ---
   const [genPart, setGenPart] = useState(null); // id de partida en proceso
@@ -176,23 +204,64 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
     setErrGen(''); setGenPart(pt.id);
     try {
       const r = await generarRender(pt.nombre || 'mueble de oficina', { tipo: pt.ruta || '' });
-      if (r?.ok) setPartida(i, { render: r.dataUrl }); else setErrGen(r?.error || 'No se pudo generar el render.');
-    } catch (e) { setErrGen('No se pudo conectar.'); }
+      if (!r?.ok || !r?.dataUrl) {
+        setErrGen(r?.error || 'No se pudo generar el render.');
+        return;
+      }
+      const up = await persistirRender(r.dataUrl, 'partidas');
+      if (!up?.ok || !up?.url) {
+        setErrGen(up?.error || 'Se generó el render, pero no se pudo guardar.');
+        return;
+      }
+      setPartida(i, { render: up.url, render_storage_path: up.path || null });
+    } catch (_e) { setErrGen('No se pudo conectar o guardar el render.'); }
     finally { setGenPart(null); }
   }
+
   async function renderTodas() {
     setErrGen('');
     const ps = partidas.slice();
-    for (let i = 0; i < ps.length; i++) {
-      if (ps[i].render) continue;
-      setGenPart(ps[i].id);
-      // ⚠️ CATCH VACÍO, INCONSISTENTE CON renderPartida (auditoría 2026-08-19):
-      // si truena la red a media tanda, esa pieza se quedaba sin imagen y sin
-      // aviso — la versión de "un solo render" (arriba) sí avisa.
-      try { const r = await generarRender(ps[i].nombre || 'mueble', { tipo: ps[i].ruta || '' }); if (r?.ok) ps[i] = { ...ps[i], render: r.dataUrl }; else if (r?.error) setErrGen(r.error); } catch (e) { setErrGen('No se pudo conectar.'); }
+    try {
+      for (let i = 0; i < ps.length; i++) {
+        if (ps[i].render) continue;
+        setGenPart(ps[i].id);
+        const r = await generarRender(ps[i].nombre || 'mueble', { tipo: ps[i].ruta || '' });
+        if (!r?.ok || !r?.dataUrl) {
+          setErrGen(r?.error || `No se pudo generar el render de ${ps[i].nombre || 'una partida'}.`);
+          continue;
+        }
+        const up = await persistirRender(r.dataUrl, 'partidas');
+        if (!up?.ok || !up?.url) {
+          setErrGen(up?.error || `No se pudo guardar el render de ${ps[i].nombre || 'una partida'}.`);
+          continue;
+        }
+        ps[i] = { ...ps[i], render: up.url, render_storage_path: up.path || null };
+      }
+      setCot({ partidas: ps });
+    } catch (_e) {
+      setErrGen('La generación por lote se interrumpió; los renders ya guardados se conservaron.');
+      setCot({ partidas: ps });
+    } finally {
+      setGenPart(null);
     }
-    setGenPart(null); setCot({ partidas: ps });
   }
+
+  async function urlADataUrl(url) {
+    if (!url) return null;
+    if (String(url).startsWith('data:')) return String(url);
+    try {
+      const r = await fetch(url);
+      if (!r.ok) return null;
+      const b = await r.blob();
+      return await new Promise((res) => {
+        const fr = new FileReader();
+        fr.onload = () => res(String(fr.result));
+        fr.onerror = () => res(null);
+        fr.readAsDataURL(b);
+      });
+    } catch (_e) { return null; }
+  }
+
   async function urlABase64(url) {
     try { const r = await fetch(url); const b = await r.blob(); return await new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.onerror = () => res(null); fr.readAsDataURL(b); }); } catch (e) { return null; }
   }
@@ -211,7 +280,11 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
       const urls = [...new Set(partidas.map((p) => fotoPartida(p)).filter(Boolean))].slice(0, 6);
       const imagenes = (await Promise.all(urls.map(urlABase64))).filter(Boolean);
       const r = await generarRender(lista, { modo: 'oficina', medidas: ctx, imagenes });
-      if (r?.ok) setCot({ acomodo: { ...(cot.acomodo || {}), render3d: r.dataUrl, render3d_layout_validado: true } }); else setErrGen(r?.error || 'No se pudo generar la oficina.');
+      if (r?.ok && r?.dataUrl) {
+        const up = await persistirRender(r.dataUrl, 'acomodo');
+        if (!up?.ok || !up?.url) setErrGen(up?.error || 'Se generó la oficina, pero no se pudo guardar.');
+        else setCot({ acomodo: { ...(cot.acomodo || {}), render3d: up.url, render3d_storage_path: up.path || null, render3d_layout_validado: true } });
+      } else setErrGen(r?.error || 'No se pudo generar la oficina.');
     } catch (e) { setErrGen('No se pudo conectar.'); }
     finally { setGenOficina(false); }
   }
@@ -282,7 +355,16 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
       // portada sin logo es justo lo que Rodrigo no quiere volver a ver.
       // El PDF usa la MISMA resolución canónica que la pantalla: render vigente de la
       // versión anclada; nunca catálogo por nombre ni un render stale como vigente.
-      const [fotos, marca] = await Promise.all([cargarFotos(partidas, fotoResuelta), cargarMarca()]);
+      const [fotos, marca, render3dPdf] = await Promise.all([
+        cargarFotos(partidas, fotoResuelta),
+        cargarMarca(),
+        urlADataUrl(cotCliente.acomodo?.render3d),
+      ]);
+      // El estado persistente conserva URL; sólo la copia efímera que entra a jsPDF
+      // usa dataURL porque jsPDF no consume URLs remotas directamente.
+      const cotParaPdf = cotCliente.acomodo?.render3d
+        ? { ...cotCliente, acomodo: { ...cotCliente.acomodo, render3d: render3dPdf || null } }
+        : cotCliente;
       // Evidencia PRIMERO: si no podemos congelar la revisión inmutable,
       // NO entregamos un archivo que pueda circular como propuesta definitiva.
       const reg = onEmitida ? await onEmitida() : { ok: false, motivo:'sin-registro-emision' };
@@ -294,7 +376,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         return;
       }
       descargarPropuesta({
-        cot: cotCliente, partidas, resumen, especificacion, nPzas, fotos, marca,
+        cot: cotParaPdf, partidas, resumen, especificacion, nPzas, fotos, marca,
         piezas: expandirPiezas(partidas),
         // Llegar aquí implica snapshot inmutable guardado.
         borrador: false,
