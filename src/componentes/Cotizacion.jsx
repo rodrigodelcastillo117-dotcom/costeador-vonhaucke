@@ -245,18 +245,22 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
     return async () => {
       if (probEmision.length) { setPdfErr('No se puede emitir: ' + probEmision[0]); return; }
       if (bloqueoExcluidas) { setPdfErr('Confirma las piezas excluidas antes de emitir.'); return; }
-      // GATE AUTORITATIVO server-side ANTES de emitir (costo/versión/margen/aprobación).
-      // Degrada: si el gate no está disponible (DESCONOCIDO) no bloquea — el servidor
-      // re-valida al registrar la emisión (fail-closed real vive en la DB).
+      // GATE AUTORITATIVO server-side ANTES de emitir.
+      // FAIL-CLOSED: si no podemos demostrar ALLOWED, no sale un documento al cliente.
+      // Un corte de red/RPC permite seguir editando/guardando borrador, NO emitir.
       if (verificarEmision) {
         setGateCargando(true);
         let g = null;
-        try { g = await verificarEmision(); } catch (e) { g = { estado: 'DESCONOCIDO' }; }
+        try { g = await verificarEmision(); } catch (e) { g = { estado: 'DESCONOCIDO', error: String(e?.message || e) }; }
         setGateCargando(false);
         setGate(g);
-        if (g && g.estado && g.estado !== 'ALLOWED' && g.estado !== 'DESCONOCIDO') {
+        const estadoGate = g?.estado || 'DESCONOCIDO';
+        if (estadoGate !== 'ALLOWED') {
           setVerPorque(true);
-          setPdfErr(`No se puede emitir: ${(ESTADO_EMISION[g.estado] || {}).titulo || g.estado}`);
+          const titulo = estadoGate === 'DESCONOCIDO'
+            ? 'No se pudo verificar la emisión'
+            : ((ESTADO_EMISION[estadoGate] || {}).titulo || estadoGate);
+          setPdfErr(`No se puede emitir: ${titulo}. ${estadoGate === 'DESCONOCIDO' ? 'Reintenta cuando la verificación del servidor esté disponible.' : ''}`.trim());
           return;
         }
       }
