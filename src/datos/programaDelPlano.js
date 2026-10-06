@@ -67,7 +67,14 @@ export function puestosPorIsla(area, largoPuestoMM = 1500) {
 // impar deja una silla sola en la cabecera o un lugar vacío. Se redondea HACIA
 // ABAJO al par: más vale prometer 8 que no quepan 9.
 const M2_POR_PERSONA = 4;        // con su paso alrededor de la mesa
-export const personasEnSala = (m2) => Math.max(4, 2 * Math.floor((m2 || 0) / M2_POR_PERSONA / 2));
+export const personasEnSala = (m2) => {
+  const area = Number(m2);
+  if (!Number.isFinite(area) || area <= 0) return 0;
+  const capacidadPar = 2 * Math.floor(area / M2_POR_PERSONA / 2);
+  // No inventar un "mínimo de 4" si la geometría ni siquiera lo soporta.
+  // Una sala sólo recibe capacidad 4+ cuando su área alcanza la propia regla.
+  return capacidadPar >= 4 ? capacidadPar : 0;
+};
 
 // ¿Sobra lugar en la sala para una credenza? Rodrigo: "me hubiera gustado que
 // me propusiera, si es que hay espacio, una credenza para guardar cosas o poner
@@ -166,6 +173,8 @@ export function programaDelPlano(areas, opts = {}) {
   salasA.forEach((a, i) => {
     if (!(m2Salas[i] > 0)) {
       avisos.push(`No pude leer bien las medidas de "${a.nombre || 'una sala'}" (salió en 0 m²) — revisa el plano o corrígela a mano.`);
+    } else if (salas[i] === 0) {
+      avisos.push(`"${a.nombre || 'Sala'}" tiene ${m2Salas[i].toFixed(1)} m²: con la regla de ${M2_POR_PERSONA} m²/persona no certifico capacidad de 4; requiere revisar geometría/mobiliario.`);
     }
   });
   // SUGERENCIA DE OFICIO (no es "del plano"): acompañantes naturales de cada puesto.
