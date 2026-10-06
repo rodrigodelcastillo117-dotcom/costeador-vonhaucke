@@ -15,6 +15,13 @@ const COLOR_URGENCIA = {
   MEDIA: { bg: '#e8eef7', fg: '#274b7a' },
   BAJA: { bg: '#e6f4ea', fg: '#1e6b33' },
 };
+const COLOR_EVIDENCIA = {
+  HECHO: { bg:'#e6f4ea', fg:'#1e6b33', t:'Hecho' },
+  INFERENCIA: { bg:'#e8eef7', fg:'#274b7a', t:'Inferencia' },
+  SUPUESTO: { bg:'#f7efe2', fg:'#8a5a00', t:'Supuesto' },
+  RECOMENDACION: { bg:'#eee8f7', fg:'#5b3c8a', t:'Recomendación' },
+};
+
 const COLOR_ESTADO = {
   OK: { bg: '#e6f4ea', fg: '#1e6b33', t: 'Todo en orden' },
   ATENCION: { bg: '#fdf7e6', fg: '#8a5a00', t: 'Requiere atención' },
@@ -71,6 +78,17 @@ export default function Voni2({ ctx = {}, onCerrar }) {
             <div style={{ display: 'inline-block', background: est.bg, color: est.fg, borderRadius: 999, padding: '4px 12px', fontWeight: 700, fontSize: 13 }}>{est.t}</div>
             <h3 style={{ margin: '10px 0 4px' }}>{resp.que_paso || '—'}</h3>
             {resp.por_que && <p className="ayuda">{resp.por_que}</p>}
+
+            {(resp.impacto || typeof resp.confianza === 'number') && (
+              <div style={{display:'grid',gridTemplateColumns:resp.impacto?'1fr auto':'auto',gap:10,alignItems:'start',marginTop:10,padding:10,border:'1px solid var(--linea)',borderRadius:8}}>
+                {resp.impacto && <div><strong style={{fontSize:12}}>Impacto</strong><div className="ayuda" style={{marginTop:2}}>{resp.impacto}</div></div>}
+                {typeof resp.confianza === 'number' && <div style={{textAlign:'right'}}>
+                  <strong style={{fontSize:12}}>Confianza</strong>
+                  <div style={{fontSize:18,fontWeight:800,color:resp.confianza>=.8?'#1e6b33':resp.confianza>=.55?'#8a5a00':'#9a2820'}}>{Math.round(resp.confianza*100)}%</div>
+                </div>}
+              </div>
+            )}
+
             {resp.nota_permiso && <div className="alerta ambar" style={{ marginTop: 8 }}><span className="texto">{resp.nota_permiso}</span></div>}
 
             {resp.bloqueos.length > 0 && (
@@ -94,12 +112,18 @@ export default function Voni2({ ctx = {}, onCerrar }) {
               <details style={{ marginTop: 12 }}>
                 <summary className="ayuda">Evidencia ({resp.evidencia.length})</summary>
                 <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
-                  {resp.evidencia.map((a, i) => (
-                    <li key={i} className="ayuda" style={{ marginBottom: 4 }}>
-                      <span style={{ fontWeight: 600 }}>[{a.tipo}]</span> {a.texto}
-                      {a.fuente?.source_type && <span style={{ opacity: .7 }}> · {a.fuente.source_type}</span>}
-                    </li>
-                  ))}
+                  {resp.evidencia.map((a, i) => {
+                    const ev = COLOR_EVIDENCIA[a.tipo] || COLOR_EVIDENCIA.INFERENCIA;
+                    const cf = typeof a.fuente?.confidence === 'number' ? Math.round(a.fuente.confidence * 100) : null;
+                    return (
+                      <li key={i} className="ayuda" style={{ marginBottom: 7, lineHeight: 1.45 }}>
+                        <span style={{background:ev.bg,color:ev.fg,borderRadius:999,padding:'1px 7px',fontSize:10,fontWeight:700,marginRight:5}}>{ev.t}</span>
+                        {a.texto}
+                        {a.fuente?.source_type && <span style={{ opacity: .72 }}> · fuente: {a.fuente.source_type}</span>}
+                        {cf != null && <span style={{ opacity: .72 }}> · {cf}%</span>}
+                      </li>
+                    );
+                  })}
                 </ul>
               </details>
             )}
