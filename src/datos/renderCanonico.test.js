@@ -109,3 +109,23 @@ describe('render canónico · resolución por revisión exacta', () => {
     expect(resolverRenderDeFilas(filas, { productoId: 1933, productoVersionId: 1933 }).url).toBe('NUEVO');
   });
 });
+
+
+  it('VALIDATED sin geometry_hash nunca es VIGENTE', () => {
+    const r = resolverRenderDeFilas([fila({ geometry_hash: null })], { productoId: 1933, productoVersionId: 1933 });
+    expect(r.estado).toBe(ESTADO_RENDER.PENDIENTE_VALIDACION);
+    expect(r.validado).toBe(false);
+  });
+
+  it('hash actual distinto al del render impide VIGENTE aunque PASS/PASS/PASS', () => {
+    const r = resolverRenderDeFilas(
+      [fila({ geometry_hash: 'g-old', bom_hash: 'b-old', material_hash: 'm-old', layout_hash: 'l-old' })],
+      {
+        productoId: 1933,
+        productoVersionId: 1933,
+        hashesActuales: { geometry_hash: 'g-new', bom_hash: 'b-old', material_hash: 'm-old', layout_hash: 'l-old' },
+      },
+    );
+    expect(r.estado).toBe(ESTADO_RENDER.PENDIENTE_VALIDACION);
+    expect(r.validado).toBe(false);
+  });
