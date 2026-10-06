@@ -90,6 +90,7 @@ function EstadoLinea({ info }) {
 function RenderChip({ estado }) {
   const MAP = {
     VIGENTE: { t: 'Render vigente', cls: 'ok' },
+    PENDIENTE_VALIDACION: { t: 'Render pendiente de validar', cls: 'pendiente' },
     STALE: { t: 'Render histórico (stale)', cls: 'stale' },
     SIN_RENDER_VALIDO: { t: 'Sin render de esta versión', cls: 'none' },
   };
