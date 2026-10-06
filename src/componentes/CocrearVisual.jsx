@@ -3,6 +3,7 @@ import {colorMaterial,DIMS_DEFAULT,FAMILIA} from '../datos/cocrear.js';
 import {LAYOUT_COCREAR} from '../datos/cocrearWow.js';
 import Orbit3D from './Orbit3D.jsx';
 import {modeloTecnico3DDesdeSpec,solidsHastaEtapa} from '../datos/productModel3D.js';
+import {visualRevisionHash} from '../datos/visualRevision.js';
 
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const has=(intent,k)=>(intent?.caracteristicas||[]).includes(k);
@@ -103,6 +104,7 @@ export default function CocrearVisual({spec,intent}){
     return generico(intent,spec,c);
   },[intent,spec,c,layout,operativo]);
   const tecnico=useMemo(()=>modeloTecnico3DDesdeSpec(spec||{}),[spec]);
+  const revisionVisual=useMemo(()=>visualRevisionHash(spec||{}),[spec]);
   const maxEtapa=Math.max(1,...(tecnico.secuencia||[]).map(x=>x.stage||1));
   const d=intent?.dimensiones||spec?.dimensiones||{},nombre=intent?._concepto_nombre||String(spec?.familia||intent?.familia||'Concepto');
   const vistaSolids=vista==='concepto'?solids:(vista==='despiece'?tecnico.solids:solidsHastaEtapa(tecnico,etapa));
@@ -145,7 +147,7 @@ export default function CocrearVisual({spec,intent}){
     </div>
     {/* Referencia ENSAMBLADA fija para el render IA. No depende de la pestaña
         visible; evita que una vista explotada/4D se mande por accidente. */}
-    <div data-view="render-reference" aria-hidden="true" style={{position:'absolute',left:'-10000px',top:0,width:600,height:330,overflow:'hidden',pointerEvents:'none'}}>
+    <div data-view="render-reference" data-visual-revision={revisionVisual} aria-hidden="true" style={{position:'absolute',left:'-10000px',top:0,width:600,height:330,overflow:'hidden',pointerEvents:'none'}}>
       <Orbit3D solids={solids} height={330} showControls={false} label="Referencia ensamblada de render"/>
     </div>
   </div>;
