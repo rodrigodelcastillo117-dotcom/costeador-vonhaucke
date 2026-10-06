@@ -184,7 +184,7 @@ export default function Voni({
             </p>
           </div>
           <input
-            ref={archivoRef} type="file" style={{ display: 'none' }}
+            ref={archivoRef} data-testid="cotizar-plano" type="file" style={{ display: 'none' }}
             accept="image/*,application/pdf,.pdf,.dwg,.dxf"
             onChange={(e) => {
               const f = e.target.files?.[0]; e.target.value = '';
