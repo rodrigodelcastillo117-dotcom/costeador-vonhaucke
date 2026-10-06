@@ -986,7 +986,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       plan,
       layoutEspacialValidado: !!layoutListo,
       layoutValidado: !!layoutPublicable,
-      layoutEstado: programaPropuesto ? 'SUGGESTIONS_PENDING' : (layout?.status || null),
+      layoutEstado: programaPropuesto ? 'SUGGESTIONS_PENDING' : (serverStatus || layout?.status || null),
       layoutMotivo: programaPropuesto
         ? `${nSugeridasPendientes} pieza(s) sugerida(s) pendientes de confirmar/cotizar.`
         : (motivoLayout || null),
@@ -1112,7 +1112,11 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     colisiones: chequeo.nEncimados || 0,
     fuera: chequeo.nFuera || 0,
   }) : null;
-  const layoutListo = !!plan && !!chequeo && (layout.status === 'LAYOUT_VALID' && (chequeo.nViolaciones || 0) === 0);
+  const serverStrict = plan?.strictPlacement === true;
+  const serverStatus = String(plan?.layoutSpec?.status || '');
+  const serverAprobado = !serverStrict || (serverStatus === 'PASS' && plan?.render_ready === true);
+  const layoutLocalValido = !!plan && !!chequeo && (layout.status === 'LAYOUT_VALID' && (chequeo.nViolaciones || 0) === 0);
+  const layoutListo = layoutLocalValido && serverAprobado;
   const layoutPublicable = layoutListo && !programaPropuesto;
   const motivoLayout = [
     ...(!layout ? [] : [
@@ -1121,6 +1125,8 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       layout.fuera > 0 ? `${layout.fuera} fuera del plano` : '',
       (chequeo?.nViolaciones || 0) > 0 ? `${chequeo.nViolaciones} en zona equivocada` : '',
     ]),
+    serverStrict && serverStatus && serverStatus !== 'PASS' ? `revisión espacial: ${serverStatus}` : '',
+    serverStrict && plan?.render_ready !== true ? 'validación de puertas/clearances pendiente' : '',
   ].filter(Boolean).join(' · ');
   const motivoPublicacion = [
     motivoLayout,
