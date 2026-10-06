@@ -372,8 +372,6 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   const { precioLista, descuentoPct, descuento, subtotal, contingenciaPct, contingencia,
     maniobrasPct, maniobras, fletePct, flete, ivaPct, iva, baseGravable, total, totalRedondeado,
     anticipoPct, anticipo, hayLineaInvalida } = totalesCotizacion(partidas, cot, estado.parametros);
-  const costoTotal = partidas.reduce((a, p) => a + (p.costoUnitario || 0) * p.cantidad, 0);
-  const utilidadTotal = baseGravable - costoTotal;
   const minMarkup = estado.parametros.minMarkupLinea ?? 45;
   const factorDesc = 1 - descuentoPct / 100;
   const markupPartida = (pt) => (pt.costoUnitario > 0 ? ((pt.precioUnitario * factorDesc - pt.costoUnitario) / pt.costoUnitario) * 100 : null);
