@@ -282,18 +282,21 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
       // El PDF usa la MISMA resolución canónica que la pantalla: render vigente de la
       // versión anclada; nunca catálogo por nombre ni un render stale como vigente.
       const [fotos, marca] = await Promise.all([cargarFotos(partidas, fotoResuelta), cargarMarca()]);
-      // Evidencia PRIMERO (audit 2026-10-01): se conserva la revisión ANTES de
-      // entregar el documento. El contenido que se congela es el mismo que se
-      // dibuja abajo. Si no se pudo registrar, el PDF sale pero se avisa que NO es
-      // una emisión definitiva.
-      const reg = onEmitida ? await onEmitida() : { ok: false };
+      // Evidencia PRIMERO: si no podemos congelar la revisión inmutable,
+      // NO entregamos un archivo que pueda circular como propuesta definitiva.
+      const reg = onEmitida ? await onEmitida() : { ok: false, motivo:'sin-registro-emision' };
+      if (!reg?.ok) {
+        const necesitaAprob = /aprobaci|politica|supera/i.test(reg?.motivo || '');
+        setPdfErr(necesitaAprob
+          ? 'No se puede emitir: requiere APROBACIÓN DE DIRECCIÓN antes de generar el PDF definitivo.'
+          : 'No se puede emitir: no fue posible conservar la revisión inmutable. Revisa tu conexión y reintenta.');
+        return;
+      }
       descargarPropuesta({
         cot: cotCliente, partidas, resumen, especificacion, nPzas, fotos, marca,
         piezas: expandirPiezas(partidas),
-        // Si NO se registró la emisión, el PDF sale MARCADO como borrador: no se
-        // entrega al cliente un documento que parezca definitivo sin evidencia
-        // conservada (audit 2026-10-01).
-        borrador: !reg?.ok,
+        // Llegar aquí implica snapshot inmutable guardado.
+        borrador: false,
         // La hoja "Qué va en cada área", en palabras y con las gavetas: el
         // plano no las puede enseñar porque viven debajo de la cubierta.
         cuartos: listaPorCuarto(partidas, cotCliente.acomodo),
@@ -304,12 +307,6 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           iva, ivaPct, total,
           anticipoPct, anticipo, cliente: cot.cliente, folio: cot.folio },
       });
-      if (!reg?.ok) {
-        const necesitaAprob = /aprobaci|politica|supera/i.test(reg?.motivo || '');
-        setPdfErr(necesitaAprob
-          ? '⚠️ Salió como BORRADOR: el descuento supera la política comercial y requiere APROBACIÓN DE DIRECCIÓN antes de emitirse en definitiva. No cuenta como emisión oficial.'
-          : '⚠️ Se generó el PDF, pero NO se registró la emisión (su evidencia no quedó conservada): NO cuenta como emisión definitiva. Revisa tu conexión e inténtalo de nuevo.');
-      }
     } catch (e) {
       // Si algo falla, queda el camino de siempre en vez de dejarlo sin nada.
       setPdfErr('No se pudo generar el archivo; se abrirá la impresión para guardarlo como PDF.');
