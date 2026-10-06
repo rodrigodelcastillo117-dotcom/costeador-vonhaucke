@@ -1,3 +1,5 @@
+import { calcular, costeoEmitible, precioVenta } from './calculo.js';
+
 // Comparador de calibración certificable.
 // No calcula ni inventa costos: compara una salida de la app contra una fuente
 // externa aprobada (Alba / Rafa / Intelisis / orden cerrada) a nivel de centavos.
@@ -45,4 +47,56 @@ export function fuenteGoldenValida(f={}) {
   const tipo=String(f.tipo||'').toUpperCase();
   const permitidas=new Set(['ALBA','RAFA','INTELISIS','ORDEN_CERRADA']);
   return permitidas.has(tipo) && !!String(f.id||f.folio||'').trim() && !!String(f.fecha||'').trim();
+}
+
+
+const AREAS_COSTEO = ['pm','carpinteria','pintura','acabados','tapiceria','otros'];
+
+function horasConTarifa(pieza={}, par={}) {
+  const usadas=AREAS_COSTEO.filter(a=>Number(pieza?.horas?.[a])>0);
+  if(!usadas.length) return {ok:false,issues:['SIN_HORAS_INTELISIS']};
+  const issues=[];
+  for(const a of usadas){
+    if(!(Number(par?.costoHoraArea?.[a])>=0) || !(Number(par?.costoHoraGIF?.[a])>=0)) issues.push(`FALTA_TARIFA_${a.toUpperCase()}`);
+  }
+  return {ok:issues.length===0,issues,areas:usadas};
+}
+
+/**
+ * Reconciliación NO PROMEDIA: calcula los dos métodos sólo cuando sus entradas
+ * existen. "Alba" = fórmula de estimación; "Intelisis" = horas/tarifas/GIF.
+ * Dirección decide cuál es autoritativo para emisión.
+ */
+export function calcularReconciliacionCosteo({pieza={},piezas=1,insumos={},parametros={},intelisisPar={}}={}) {
+  const piezaAlba={...pieza,modoManoObra:'porcentaje'};
+  delete piezaAlba.factorDirecta; delete piezaAlba.factorIndirecta;
+  piezaAlba.modeloCosteo='clasico';
+  const albaCalc=calcular(piezaAlba,piezas,insumos,{...parametros,modeloCosteo:'clasico'});
+  const albaGate=costeoEmitible(albaCalc);
+  const alba=albaGate.emitible
+    ? {disponible:true,costo:albaCalc.costoUnitario,precio:precioVenta(albaCalc.costoUnitario,{...parametros,modeloCosteo:'clasico'}).precioLista,detalle:albaCalc}
+    : {disponible:false,issues:['COSTEO_ALBA_INCOMPLETO',...(albaGate.pendientes||[])],detalle:albaCalc};
+
+  const parI={...parametros,...intelisisPar,modeloCosteo:'intelisis',usarCostoPorArea:true};
+  const tarifas=horasConTarifa(pieza,parI);
+  let intelisis;
+  if(!tarifas.ok){
+    intelisis={disponible:false,issues:tarifas.issues};
+  }else{
+    const piezaI={...pieza,modoManoObra:'horas',modeloCosteo:'intelisis'};
+    const calcI=calcular(piezaI,piezas,insumos,parI);
+    const gateI=costeoEmitible(calcI);
+    intelisis=gateI.emitible
+      ? {disponible:true,costo:calcI.costoUnitario,precio:precioVenta(calcI.costoUnitario,parI).precioLista,detalle:calcI}
+      : {disponible:false,issues:['COSTEO_INTELISIS_INCOMPLETO',...(gateI.pendientes||[])],detalle:calcI};
+  }
+
+  const delta=(alba.disponible&&intelisis.disponible)
+    ? {
+        costo: intelisis.costo-alba.costo,
+        costo_pct: alba.costo ? ((intelisis.costo-alba.costo)/alba.costo)*100 : null,
+        precio: intelisis.precio-alba.precio,
+      }
+    : null;
+  return {alba,intelisis,delta,regla:'NO_PROMEDIAR'};
 }
