@@ -129,6 +129,8 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // Metros -> mm, conservando la geometría (forma real y obstáculos) para que
   // el motor y el plano dibujen y calculen sobre el MISMO espacio.
   const areasMM = aMM(areas);
+  const programaListo = !Array.isArray(bloqueosPrograma) || bloqueosPrograma.length === 0;
+  const motivoPrograma = programaListo ? '' : bloqueosPrograma.map((b) => b?.mensaje || b?.code).filter(Boolean).join(' · ');
 
   // Al corregir a mano el ancho/largo de un cuarto que vino de un plano, su
   // FORMA se escala con él. Sin esto el número decía una cosa y el dibujo otra:
@@ -181,6 +183,11 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // (`reacomodar.js`). `deCero` es la puerta de salida explícita.
   async function acomodar({ deCero = false } = {}) {
     setError(''); setGuardado(false);
+    if (!programaListo) {
+      setPlan(null);
+      setError(`No voy a acomodar un programa comercial incompleto. ${motivoPrograma}`);
+      return;
+    }
     // Volver a acomodar SIEMPRE se puede deshacer.
     if (plan?.colocacion?.length) recordar();
 
@@ -227,7 +234,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // 1-CLIC: al entrar con muebles, genera el 3D automáticamente (motor local, gratis).
   const autoRef = useRef(false);
   useEffect(() => {
-    if (autoRef.current || piezas.length === 0) return;
+    if (autoRef.current || piezas.length === 0 || !programaListo) return;
     // Sin espacio todavía no hay nada que acomodar: primero contesta dónde va.
     if (!areas.length) return;
     autoRef.current = true;
@@ -238,7 +245,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     acomodar();
     // `areas` va en las dependencias porque el acomodo ya NO arranca al entrar:
     // arranca en cuanto el proyectista contesta dónde va el proyecto.
-  }, [piezas, areas]);
+  }, [piezas, areas, programaListo]);
 
   // ---- GUARDADO SOLO ------------------------------------------------------
   // Cada cambio del plano o de las áreas se escribe en la propuesta, sin avisos
@@ -981,6 +988,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
 
   function guardarEnPropuesta() {
     if (!onGuardarAcomodo || !plan) return;
+    if (!programaListo) { setError(`No puedo guardar un acomodo final: ${motivoPrograma}`); return; }
     const payload = {
       areas: areasMM,
       plan,
@@ -1253,8 +1261,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
               {/* `onClick={acomodar}` le pasaba el EVENTO del clic como opciones:
                   funcionaba de milagro (`deCero` salía undefined). Explícito. */}
               <button className="boton primario" style={{ minHeight: 50, marginLeft: 'auto' }}
-                title={nAMano ? `Acomoda lo que falta sin mover los ${nAMano} que pusiste tú.` : undefined}
-                onClick={() => acomodar()}>Acomodar</button>
+                disabled={!programaListo} title={!programaListo ? motivoPrograma : (nAMano ? `Acomoda lo que falta sin mover los ${nAMano} que pusiste tú.` : undefined)} onClick={() => acomodar()}>Acomodar</button>
               <button className="boton fantasma" style={{ minHeight: 50 }} onClick={acomodarIA}
                 title="Alterna con IA (el acomodo normal ya es automático)">Con IA</button>
             </div>
@@ -1400,7 +1407,8 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
               onClick={() => setVivaAbierta(true)}>
               ✨ Propuesta Viva
             </button>
-            {onGuardarAcomodo && !guardado && <button className="boton" style={{ minHeight: 42, marginLeft: 'auto' }} onClick={guardarEnPropuesta}>
+            {onGuardarAcomodo && !guardado && <button className="boton" style={{ minHeight: 42, marginLeft: 'auto' }} disabled={!programaListo}
+              title={!programaListo ? motivoPrograma : undefined} onClick={guardarEnPropuesta}>
               {layoutPublicable ? 'Guardar en la propuesta' : programaPropuesto ? 'Guardar propuesta de acomodo (borrador)' : 'Guardar borrador de acomodo'}
             </button>}
             {guardado && <button className={guardadoValido ? 'boton primario' : 'boton'} style={{ minHeight: 42, marginLeft: 'auto' }} onClick={() => onIr('cotizacion')}>
