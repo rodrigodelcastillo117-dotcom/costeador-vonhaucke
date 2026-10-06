@@ -372,6 +372,11 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       // hacía pensar que no había pasado nada.
       if (leidas.length) {
         const mm = aMM(leidas);
+        if (!programaListo) {
+          setPlan(null);
+          setError(`Plano leído correctamente, pero no voy a inventar mobiliario para completar el programa. ${motivoPrograma}`);
+          return;
+        }
         try {
           const ar = await acomodarEspacio(mm, piezas);
           if (ar?.ok && ar?.plan) {
@@ -420,6 +425,11 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     }));
     recordar(); setAreas(cuantizar(areasDib)); setDibujoMeta(meta || {}); setFloorSpec(null); setLecturaMeta(null); setPlanReal(true); setDibujando(false); setGuardado(false); setError('');  // MODO DIBUJO: contrato canónico 1 mm + undo cruza modos
     (async () => {
+      if (!programaListo) {
+        setPlan(null);
+        setError(`Espacio guardado, pero falta completar la cotización antes de acomodar. ${motivoPrograma}`);
+        return;
+      }
       try {
         const ar = await acomodarEspacio(mm, piezas);
         if (ar?.ok && ar?.plan) {
