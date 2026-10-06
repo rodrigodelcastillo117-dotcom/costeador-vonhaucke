@@ -352,6 +352,20 @@ export function lineaCocreada(spec, snapshot, { cantidad = 1 } = {}) {
   if (!costeable) {
     return { ...base, sinPrecioAutorizado: true, requiere_desarrollo: true, cost_status: snapshot.cost_status, motivo: 'costo no emitible: la línea requiere desarrollo/precio real antes de cotizar' };
   }
+
+  const especial = [CLASIFICACION.NEW_SPECIAL, CLASIFICACION.DERIVED_SPECIAL].includes(spec.clasificacion);
+  if (especial && spec.engineering_validated !== true) {
+    return {
+      ...base,
+      cost_status: snapshot.cost_status,
+      costeable: true,                    // costo conocido ≠ producto liberado
+      listaParaCotizar: false,
+      requiere_desarrollo: true,
+      sinPrecioAutorizado: false,
+      motivo: 'costo conocido, pero el especial requiere validación de ingeniería antes de cotizar como definitivo',
+    };
+  }
+
   return { ...base, cost_status: snapshot.cost_status, costeable: true, listaParaCotizar: true };
 }
 
