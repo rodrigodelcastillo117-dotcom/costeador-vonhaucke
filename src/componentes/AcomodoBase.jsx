@@ -1129,7 +1129,12 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   }) : null;
   const serverStrict = plan?.strictPlacement === true;
   const serverStatus = String(plan?.layoutSpec?.status || '');
-  const serverAprobado = !serverStrict || (serverStatus === 'PASS' && plan?.render_ready === true);
+  // Un plano real o multiárea NO puede publicarse sólo con el fallback local.
+  // Ahí exigimos la validación espacial del servidor (PASS + render_ready).
+  const requiereValidacionServidor = planReal || areasMM.length > 1;
+  const serverAprobado = requiereValidacionServidor
+    ? (serverStrict && serverStatus === 'PASS' && plan?.render_ready === true)
+    : (!serverStrict || (serverStatus === 'PASS' && plan?.render_ready === true));
   const layoutLocalValido = !!plan && !!chequeo && (layout.status === 'LAYOUT_VALID' && (chequeo.nViolaciones || 0) === 0);
   const layoutListo = layoutLocalValido && serverAprobado;
   const layoutPublicable = layoutListo && programaListo;
@@ -1140,6 +1145,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       layout.fuera > 0 ? `${layout.fuera} fuera del plano` : '',
       (chequeo?.nViolaciones || 0) > 0 ? `${chequeo.nViolaciones} en zona equivocada` : '',
     ]),
+    requiereValidacionServidor && !serverStrict ? 'falta validación espacial del servidor' : '',
     serverStrict && serverStatus && serverStatus !== 'PASS' ? `revisión espacial: ${serverStatus}` : '',
     serverStrict && plan?.render_ready !== true ? 'validación de puertas/clearances pendiente' : '',
   ].filter(Boolean).join(' · ');
