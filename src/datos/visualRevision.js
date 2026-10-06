@@ -10,6 +10,12 @@ export function visualRevisionPayload(spec = {}) {
     acabados: spec.acabados || [],
     caracteristicas: [...(spec.caracteristicas || [])].sort(),
     capacidad: spec.capacidad || null,
+    dna: spec.dna ? {
+      tono: spec.dna.tono || null,
+      nivel: spec.dna.nivel || null,
+      forma: spec.dna.forma || null,
+      estilo: spec.dna.estilo || null,
+    } : null,
     componentes: (spec.componentes || []).map((c) => ({
       id: c.graph_node_id || c.id || null,
       nombre: c.nombre || null,
