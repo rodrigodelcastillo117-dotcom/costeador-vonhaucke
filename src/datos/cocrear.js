@@ -232,7 +232,7 @@ export function clasificarProducto(intent, { parent = null } = {}) {
   return { clasificacion: CLASIFICACION.DERIVED_SPECIAL, parent_product_id: parent.id, parent_product_version: parent.version, change_set, motivos };
 }
 
-export function construirProductSpec(intent, dna, clasif, { rev = 1, componentes = [], id = null } = {}) {
+export function construirProductSpec(intent, dna, clasif, { rev = 1, componentes = [], id = null, engineering_validated = false, engineering_validation = null } = {}) {
   const spec = {
     id: id || ('ps_' + hashEstable({ t: intent.textoOriginal, rev }).slice(1)),
     rev,
@@ -247,6 +247,8 @@ export function construirProductSpec(intent, dna, clasif, { rev = 1, componentes
     caracteristicas: intent.caracteristicas,
     capacidad: intent.capacidad,
     componentes,
+    engineering_validated: engineering_validated === true,
+    engineering_validation: engineering_validation || null,
     dna,
   };
   spec.hash = hashEstable({ ...spec, hash: undefined });
@@ -256,13 +258,37 @@ export function construirProductSpec(intent, dna, clasif, { rev = 1, componentes
 const FEATURES_CRITICAS = ['electronica', 'cerraduras', 'ventilacion', 'iluminacion_integrada', 'estructural'];
 export function estadoIngenieria(spec) {
   const criticas = (spec.caracteristicas || []).filter((c) => FEATURES_CRITICAS.includes(c));
-  if (criticas.length) {
-    return { estado: ENG_STATUS.REQUIRES_VALIDATION, faltantes: criticas, motivos: [`features que requieren validación de ingeniería: ${criticas.join(', ')}`] };
-  }
   if (!(spec.componentes || []).length) {
     return { estado: ENG_STATUS.NONE, faltantes: ['BOM'], motivos: ['sin despiece (BOM): ingeniería por definir'] };
   }
-  return { estado: ENG_STATUS.PROPOSED, faltantes: [], motivos: ['despiece propuesto, pendiente de validar por ingeniería'] };
+
+  // Sólo una validación EXPLÍCITA puede convertir un especial en ingeniería validada.
+  // La IA/BOM propuesto nunca se auto-certifica por tener precios completos.
+  if (spec.engineering_validated === true) {
+    return {
+      estado: ENG_STATUS.VALIDATED,
+      faltantes: [],
+      motivos: [spec.engineering_validation?.motivo || 'ingeniería validada explícitamente'],
+      evidencia: spec.engineering_validation || null,
+    };
+  }
+
+  const especial = [CLASIFICACION.NEW_SPECIAL, CLASIFICACION.DERIVED_SPECIAL].includes(spec.clasificacion);
+  if (criticas.length || especial) {
+    const faltantes = [...new Set([...criticas, ...(especial ? ['VALIDACION_INGENIERIA'] : [])])];
+    return {
+      estado: ENG_STATUS.REQUIRES_VALIDATION,
+      faltantes,
+      motivos: [
+        ...(criticas.length ? [`features que requieren validación de ingeniería: ${criticas.join(', ')}`] : []),
+        ...(especial ? ['producto especial: el BOM propuesto debe validarse antes de declararse fabricable/cotizable'] : []),
+      ],
+    };
+  }
+
+  // Producto de línea/configurado: el BOM sigue siendo propuesta salvo que venga
+  // de una revisión canónica validada; no inventamos un VALIDATED.
+  return { estado: ENG_STATUS.PROPOSED, faltantes: [], motivos: ['despiece propuesto; no equivale a validación de ingeniería'] };
 }
 
 const REQUISITOS_LOCKER = ['enclosure', 'doors', 'locks', 'controller', 'power', 'wiring', 'access', 'ventilation', 'maintenance', 'mounting', 'finish'];
@@ -272,10 +298,18 @@ export function manufacturabilidad(spec) {
     const faltan = spec.familia === FAMILIA.LOCKER ? REQUISITOS_LOCKER : ['controlador/alimentación certificados'];
     return { estado: MFG_STATUS.REQUIRES_VALIDATION, requisitos: faltan, motivos: ['capacidad eléctrica/electrónica no certificada: requiere validación de ingeniería (la IA no puede aprobarla)'] };
   }
-  if (spec.clasificacion === CLASIFICACION.NEW_SPECIAL && !(spec.componentes || []).length) {
-    return { estado: MFG_STATUS.UNKNOWN, requisitos: ['BOM'], motivos: ['especial nuevo sin despiece: manufacturabilidad por determinar'] };
+  if (!(spec.componentes || []).length) {
+    return { estado: MFG_STATUS.UNKNOWN, requisitos: ['BOM'], motivos: ['sin despiece: manufacturabilidad por determinar'] };
   }
-  return { estado: MFG_STATUS.CAN_BUILD, requisitos: [], motivos: ['fabricable con procesos estándar'] };
+  const especial = [CLASIFICACION.NEW_SPECIAL, CLASIFICACION.DERIVED_SPECIAL].includes(spec.clasificacion);
+  if (especial && spec.engineering_validated !== true) {
+    return {
+      estado: MFG_STATUS.REQUIRES_VALIDATION,
+      requisitos: ['VALIDACION_INGENIERIA'],
+      motivos: ['especial con BOM propuesto: no se declara fabricable hasta validar ingeniería'],
+    };
+  }
+  return { estado: MFG_STATUS.CAN_BUILD, requisitos: [], motivos: ['fabricable según la revisión validada/disponible'] };
 }
 
 export function costearSpec(spec, insumos = {}, par = {}) {
@@ -332,7 +366,7 @@ export function cocrear(texto, opts = {}) {
   return cocrearDesdeIntent(interpretarIntent(texto), opts);
 }
 
-export function cocrearDesdeIntent(intent, { insumos = {}, par = {}, parent = null, rev = 1, componentes = [] } = {}) {
+export function cocrearDesdeIntent(intent, { insumos = {}, par = {}, parent = null, rev = 1, componentes = [], engineering_validated = false, engineering_validation = null } = {}) {
   const historia = [];
   const paso = (nombre, estado) => historia.push({ paso: nombre, estado, ts: historia.length });
   const desconocidos = Array.isArray(intent?.desconocidos) ? intent.desconocidos : [];
@@ -341,7 +375,9 @@ export function cocrearDesdeIntent(intent, { insumos = {}, par = {}, parent = nu
   paso('intent', intent?.familia === FAMILIA.DESCONOCIDA ? 'parcial' : 'ok');
   const dna = extraerDNA(intent || {}); paso('dna', 'ok');
   const clasif = clasificarProducto(intent || {}, { parent }); paso('clasificacion', clasif.clasificacion);
-  const spec = construirProductSpec(intent || {}, dna, clasif, { rev, componentes: componentesSeguros }); paso('product_spec', `rev${spec.rev}`);
+  const spec = construirProductSpec(intent || {}, dna, clasif, {
+    rev, componentes: componentesSeguros, engineering_validated, engineering_validation,
+  }); paso('product_spec', `rev${spec.rev}`);
   const ingenieria = estadoIngenieria(spec); paso('ingenieria', ingenieria.estado);
   const mfg = manufacturabilidad(spec); paso('manufacturabilidad', mfg.estado);
   const costo = costearSpec(spec, insumos, par); paso('costo', costo.cost_status);
