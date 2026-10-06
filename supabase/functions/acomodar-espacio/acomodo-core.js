@@ -282,8 +282,12 @@ export function planearDeterminista(areas = [], piezas = [], opts = {}) {
   const noColocadas = [];
   for (const p of pend) {
     let puesto = null;
-    const preferida = Number.isFinite(Number(p.area)) && areas[Number(p.area)] ? Number(p.area) : null;
-    let resto = areas.map((_, ai) => ai).filter((ai) => ai !== preferida);
+    const permitidas = Array.isArray(p.allowedAreas)
+      ? [...new Set(p.allowedAreas.map(Number).filter((ai) => Number.isInteger(ai) && areas[ai]))]
+      : null;
+    const universo = permitidas && permitidas.length ? permitidas : areas.map((_, ai) => ai);
+    const preferida = Number.isFinite(Number(p.area)) && universo.includes(Number(p.area)) ? Number(p.area) : null;
+    let resto = universo.filter((ai) => ai !== preferida);
     if (reverseAreas) resto = resto.reverse();
     const orden = preferida == null ? resto : [preferida, ...resto];
 
