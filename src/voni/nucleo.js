@@ -59,6 +59,7 @@ function requisitosEvidencia(intent, ctx = {}) {
     ATTENTION: ['get_today_attention'],
     COSTING_ANALYSIS: [],
     COST_EXPLAIN: ['get_cost_explanation'],
+    PRECEDENTS: ['get_costing_precedents'],
     INDUSTRIAL_IMPROVEMENT: ['get_industrial_analysis'],
     MATERIAL_TECHNICAL: ['get_material_technical'],
     RISK: [],
@@ -150,6 +151,9 @@ export function inferirIntencion(query, ctx = {}) {
   if (/(que linea|recomiend|sugier|me sirve|sirve para|de que est|a la medida|que producto|catalogo|que mueble|codigo|modelo|variante|mampara|cancel|biombo)/.test(q)) {
     return { intent: 'KNOWLEDGE', modo, lentes: ['conocimiento'], tools: ['get_catalog_knowledge','search_products'] };
   }
+  if (/\b(precedent\w*|histor\w*|caso similar|similar anterior)\b/.test(q)) {
+    return { intent:'PRECEDENTS', modo:MODOS.CONSULTAR, lentes:['costeador'], tools:['get_costing_precedents'] };
+  }
   if (/\b(explica\w*|desglosa\w*|matematic\w*|calculo\w*|calculaste|calcul[oó]|de donde sale|cómo sale|como sale)\b/.test(q)
       && /\b(costo|costeo|precio de fabricacion|material|mano de obra|indirectos|merma)\b/.test(q)) {
     return { intent: 'COST_EXPLAIN', modo: MODOS.ANALIZAR, lentes: ['costeador'], tools: ['get_cost_explanation'] };
@@ -203,6 +207,31 @@ function respuestaMaterialTecnico(k) {
     accion: items.length>1 ? 'Si buscabas otra variante, dime la clave o nombre más exacto.' : 'Usar este formato para validar piezas y aprovechamiento.',
     evidencia, urgencia:URGENCIA.BAJA, estado:ESTADO.OK,
     lentes:['conocimiento'], bloqueos:[],
+  });
+}
+
+function respuestaPrecedentes(data) {
+  const ps=Array.isArray(data?.precedentes)?data.precedentes:[];
+  if(!data||data.disponible===false) return respuestaSinEvidencia('PRECEDENTS',['get_costing_precedents'],[]);
+  if(!ps.length) return respuestaEstructurada({
+    que_paso:'No encontré un precedente económico suficientemente parecido y defendible.',
+    por_que:'VONI sólo usa como memoria económica costos oficiales de ProductRevision o revisiones marcadas completas; un expediente incompleto no enseña un costo.',
+    impacto:'Evita anclar el nuevo mueble a un número histórico débil.',
+    confianza:1,accion:'Costear con el BOM actual; este trabajo podrá convertirse en precedente cuando quede validado.',
+    evidencia:[],urgencia:URGENCIA.BAJA,estado:ESTADO.OK,lentes:['costeador'],bloqueos:[],
+  });
+  const evidencia=ps.map((p)=>afirmacion(
+    `${p.nombre} · similitud ${Math.round((p.similitud||0)*100)}% · costo histórico oficial $ ${Number(p.costo_oficial).toFixed(2)} · ${p.formula||'fórmula N/D'}.`,
+    TIPO_AFIRMACION.HECHO,{source_type:'precedente_costeo_protegido',source_id:p.revision_id,confidence:Math.min(.95,Math.max(.4,p.similitud||0))}
+  ));
+  const p=ps[0];
+  return respuestaEstructurada({
+    que_paso:`Encontré ${ps.length} precedente(s) defendible(s); el más parecido es “${p.nombre}” (${Math.round((p.similitud||0)*100)}%).`,
+    por_que:`Coincidencia de materiales ${Math.round((p.coincidencia_material||0)*100)}% y de términos/componentes ${Math.round((p.coincidencia_texto||0)*100)}%.`,
+    impacto:`Su costo histórico oficial fue $ ${Number(p.costo_oficial).toFixed(2)}, pero NO se reutiliza: el mueble actual se recalcula con BOM y precios vigentes.`,
+    confianza:Math.min(.95,Math.max(.4,p.similitud||0)),
+    accion:'Usarlo como segunda referencia humana: compara BOM, fórmula y diferencias; nunca copies el total histórico.',
+    evidencia,urgencia:URGENCIA.BAJA,estado:ESTADO.OK,lentes:['costeador'],bloqueos:[],
   });
 }
 
@@ -428,7 +457,7 @@ export async function responder({ query, ctx = {}, prov = {}, intentForzado = nu
   const denegadasEconomia = Object.entries(fallosTool)
     .filter(([nombre, r]) => ['get_costing', 'get_bom', 'get_industrial_analysis', 'get_cost_explanation', 'get_costing_precedents'].includes(nombre) && r?.error === 'sin_permiso')
     .map(([nombre]) => nombre);
-  const consultaEconomicaDirecta = ['COSTING_ANALYSIS', 'COST_EXPLAIN', 'RISK', 'INDUSTRIAL_IMPROVEMENT'].includes(plan.intent);
+  const consultaEconomicaDirecta = ['COSTING_ANALYSIS', 'COST_EXPLAIN', 'PRECEDENTS', 'RISK', 'INDUSTRIAL_IMPROVEMENT'].includes(plan.intent);
 
   const respuesta = (consultaEconomicaDirecta && denegadasEconomia.length)
     ? respuestaSinPermisoEconomico(plan.intent, denegadasEconomia, resultadosLente)
@@ -438,6 +467,8 @@ export async function responder({ query, ctx = {}, prov = {}, intentForzado = nu
         ? respuestaMaterialTecnico(datos.get_material_technical)
         : plan.intent === 'COST_EXPLAIN'
           ? respuestaExplicacionCosteo(datos.get_cost_explanation)
+        : plan.intent === 'PRECEDENTS'
+          ? respuestaPrecedentes(datos.get_costing_precedents)
         : plan.intent === 'INDUSTRIAL_IMPROVEMENT'
           ? respuestaIndustrial(datos.get_industrial_analysis, datos.get_costing_precedents, resultadosLente)
           : sintetizar(plan.intent, resultadosLente);
