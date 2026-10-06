@@ -273,7 +273,7 @@ export default function Acomodo(props) {
       {hayReales && sugerenciasFaltantes.length > 0 && (
         <div className="contenido no-imprimir" style={{ paddingBottom: 0, width: '100%' }}>
           <div className="alerta" style={{ display: 'block', width: '100%', boxSizing: 'border-box', background: '#fff8e6', borderColor: '#d8a800', color: '#5e4700' }}>
-            <strong>✨ VONI completó lo que falta para que el plano tenga sentido.</strong>{' '}
+            <strong>✨ VONI detectó posibles faltantes del programa.</strong>{' '}
             Propuso <strong>{sugerenciasFaltantes.reduce((s, p) => s + cantidadDe(p), 0)} pieza(s)</strong> que todavía no están cotizadas.
             <strong>No se meten al acomodo real.</strong> Siguen <strong>SUGERIDAS · NO COTIZADAS</strong> hasta que alguien las confirme/agregue.
             <div style={{ display: 'grid', gap: 4, marginTop: 8 }}>
