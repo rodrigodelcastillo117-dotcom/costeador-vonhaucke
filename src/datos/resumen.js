@@ -125,16 +125,20 @@ export function resumenPorArea(partidas, acomodo) {
         nombre: p.nombre, cantidad,
         // Se dice con todas sus letras dónde está: no ocupa piso, va abajo.
         bajoCubierta: bajo.has(pid) && !m.has(pid),
-        unitario: p.precioUnitario || 0,
-        importe: (p.precioUnitario || 0) * cantidad,
+        unitario: p.precioUnitario == null || !Number.isFinite(Number(p.precioUnitario)) ? null : Number(p.precioUnitario),
+        importe: p.precioUnitario == null || !Number.isFinite(Number(p.precioUnitario))
+          ? null : Number(p.precioUnitario) * cantidad,
       };
-    }).sort((x, y) => y.importe - x.importe);
+    }).sort((x, y) => (y.importe ?? -Infinity) - (x.importe ?? -Infinity));
+    const incompletos = renglones.filter((r) => r.importe == null).length;
     bloques.push({
       nombre: a?.nombre || 'Sin ubicar en el plano',
       tipo: a?.tipo || null,
       m2: Math.round(m2De(a) * 10) / 10,
       renglones,
-      total: renglones.reduce((s, r) => s + r.importe, 0),
+      total: incompletos ? null : renglones.reduce((s, r) => s + r.importe, 0),
+      incompleto: incompletos > 0,
+      renglonesSinPrecio: incompletos,
     });
   }
 
@@ -146,14 +150,17 @@ export function resumenPorArea(partidas, acomodo) {
     .filter((r) => r.falta > 0)
     .map(({ p, falta }) => ({
       nombre: p.nombre, cantidad: falta,
-      unitario: p.precioUnitario || 0,
-      importe: (p.precioUnitario || 0) * falta,
+      unitario: p.precioUnitario == null || !Number.isFinite(Number(p.precioUnitario)) ? null : Number(p.precioUnitario),
+      importe: p.precioUnitario == null || !Number.isFinite(Number(p.precioUnitario))
+        ? null : Number(p.precioUnitario) * falta,
     }));
   if (sueltas.length) {
     bloques.push({
       nombre: 'Sin ubicar en el plano', tipo: null, m2: 0,
-      renglones: sueltas.sort((x, y) => y.importe - x.importe),
-      total: sueltas.reduce((s, r) => s + r.importe, 0),
+      renglones: sueltas.sort((x, y) => (y.importe ?? -Infinity) - (x.importe ?? -Infinity)),
+      total: sueltas.some((r) => r.importe == null) ? null : sueltas.reduce((s, r) => s + r.importe, 0),
+      incompleto: sueltas.some((r) => r.importe == null),
+      renglonesSinPrecio: sueltas.filter((r) => r.importe == null).length,
       sinUbicar: true,
     });
   }
