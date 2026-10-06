@@ -66,6 +66,7 @@ import { calcularCosteoVivo } from './motor/costeoVivo.js';
 import { aCentavosEnteros, dinero } from './motor/dinero.js';
 import { idNuevo } from './util.js';
 import { costoImplicito, precioDeLista } from './datos/preciosVenta.js';
+import { catalogoTecnicoMateriales } from './datos/materialKnowledge.js';
 const Comercial = lazy(() => import('./componentes/comercial/Comercial.jsx'));
 import Voni2 from './componentes/Voni2.jsx';
 import { flagActivo } from './datos/flags.js';
@@ -464,6 +465,12 @@ export default function App() {
   const esVendedor = !esDireccion && !esDiseno;
   // Puede ver el costo de fabricacion (Costeador, Precios de material, HojaCosto).
   const veCostos = esDireccion || esDiseno;
+  // Catálogo técnico seller-safe: VONI puede conocer formatos/unidades/materiales
+  // sin recibir precios ni costos, incluso para vendedores.
+  const materialesTecnicosVoni = useMemo(
+    () => catalogoTecnicoMateriales(estado?.insumos || {}),
+    [estado?.insumos],
+  );
 
   // VONI mira EXACTAMENTE el mismo resultado vivo que Costeador. No existe un
   // "costeo para IA" paralelo. Si no hay BOM o el rol no ve economía, no se crea.
@@ -1172,6 +1179,7 @@ export default function App() {
                 // costeo actual (la tool igual bloquea a vendedor/cliente).
                 bom: veCostos ? (costeo?.componentes || null) : null,
                 costing: veCostos ? voniCosting : null,
+                materialesTecnicos: materialesTecnicosVoni,
                 clientSafe: false,
               }}
               onCerrar={() => setVoniAbierto(false)}
