@@ -63,3 +63,21 @@ describe('layout · salas de juntas no se pierden ni fugan sillas', () => {
     expect(r.auditoria.some((a) => a.check === 'Sillas de juntas junto a su mesa' && a.ok)).toBe(true);
   });
 });
+
+
+describe('layout · capacidad funcional de juntas', () => {
+  it('una mesa para 8 NO pasa como completa con sólo 4 sillas útiles', () => {
+    const reales = [
+      { id: 'mesa8', nombre: 'Mesa de juntas para 8 personas', cantidad: 1, w: 2800, d: 1200, tipo: 'juntas' },
+      { id: 'silla8', nombre: 'Silla de juntas', cantidad: 4, w: 550, d: 550, tipo: 'asiento', nota: 'sala de juntas' },
+    ];
+    const piezas = expandirPiezas(reales.map(marcarDestinoPartida));
+    const areas = [{ nombre: 'SALA JUNTAS', tipo: 'juntas', ancho: 7000, largo: 5000 }];
+    const r = reacomodar({ areas, piezas, byId: mapaPiezas(piezas), ajustar: false });
+    expect(r.caben).toBe(false);
+    const check = r.auditoria.find((a) => a.check === 'Capacidad funcional de sala de juntas');
+    expect(check).toBeTruthy();
+    expect(check.ok).toBe(false);
+    expect(check.detalle).toMatch(/4\/8/);
+  });
+});
