@@ -1,5 +1,5 @@
 // ============================================================================
-// ACOMODO · ADAPTADOR DEMO CEO
+// ACOMODO · ADAPTADOR OPERATIVO
 //
 // Las sugerencias del plano son SOLO un fallback visual cuando todavía no
 // existen partidas comerciales. Nunca se mezclan completas con muebles reales:
@@ -99,12 +99,12 @@ function limpiarSugeridos(acomodo) {
 export function elegirPartidasAcomodo(partidas = [], sugeridas = []) {
   const reales = (Array.isArray(partidas) ? partidas : [])
     .filter((p) => !esSugerida(p))
-    // P1 CEO: la nota de Voni contiene destino real (sala/privado/recepción/open).
-    // Se marca SÓLO en la copia que consume Acomodo; la cotización original,
-    // nombres, precios y PDF comercial permanecen intactos.
+    // La nota de Voni puede orientar el destino, pero el solver operativo sólo
+    // recibe piezas REALES de la cotización. Sugerencias del plano nunca se
+    // convierten en muebles ni alteran cantidades/ocupación.
     .map(marcarDestinoPartida);
   if (!reales.length) return sugeridas;
-  return [...reales, ...complementosJuntasVisuales(reales, sugeridas)];
+  return reales;
 }
 
 export default function Acomodo(props) {
