@@ -13,7 +13,7 @@ import { recetaBench } from '../datos/bench.js';
 import HojaCosto from './HojaCosto.jsx';
 import FichaPDF from './FichaPDF.jsx';
 import MiniRender, { tipoDeMueble, dimsDeMueble } from './MiniRender.jsx';
-import { generarRender, analizarTexto } from '../nube.js';
+import { generarRender, analizarTexto, buscarProductosMaestroTexto } from '../nube.js';
 import { pesos2, pct, pct1, colorMerma } from '../util.js';
 import AnalisisEstructural from './AnalisisEstructural.jsx';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
@@ -127,7 +127,9 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
         !window.confirm('Esto reemplazará las piezas actuales por lo que entienda Voni de tu descripción. ¿Seguir?')) return;
     setErrIA(''); setAnalizandoIA(true);
     try {
-      const res = await analizarTexto(catalogoIA(), desc);
+      const master = await buscarProductosMaestroTexto(desc, 30);
+      const catalogo = { ...catalogoIA(), __producto_maestro: master?.items || [] };
+      const res = await analizarTexto(catalogo, desc);
       if (!res?.ok) { setErrIA(res?.error || 'No se pudo interpretar la descripción.'); return; }
       const p = res.propuesta || {};
       set({ nombre: costeo.nombre || p.producto || '', descripcionCliente: p.descripcionCliente || desc, componentes: conAcompanantes(mapIaComps(p)) });
