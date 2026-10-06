@@ -19,6 +19,7 @@ import { diffRevisiones } from '../datos/diffRevisiones.js';
 import { conocimientoDe } from './conocimiento.js';
 import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
 import { buscarMaterialTecnico, describirFormatoTecnico } from '../datos/materialKnowledge.js';
+import { construirPrecedentesCosteo } from '../datos/precedentesCosteo.js';
 import { nube, buscarProductosMaestroTexto } from '../nube.js';
 import { explicarCosteo } from '../datos/explicacionCosteo.js';
 
@@ -128,6 +129,10 @@ export const proveedorReal = {
   get_costing: async (ctx) => (ctx.costing
     ? { ...ctx.costing, explicacion: explicarCosteo(ctx.costing, { nombre: ctx.product_name || ctx.nombre || '' }) }
     : { disponible: false, nota: 'El costo se consolida por pieza en el Costeador; no hay un total de proyecto inventado aquí.' }),
+  get_cost_explanation: async (ctx) => {
+    if(!ctx.costing) return { disponible:false, nota:'Abre un mueble en Costear para explicar su matemática real.' };
+    return { disponible:true, ...explicarCosteo(ctx.costing,{ nombre:ctx.product_name||ctx.nombre||'Costeo actual' }) };
+  },
   get_industrial_analysis: async (ctx) => {
     const bom = Array.isArray(ctx.bom) ? ctx.bom : [];
     const costing = ctx.costing || null;
@@ -135,6 +140,27 @@ export const proveedorReal = {
       return { disponible:false, nota:'Abre o selecciona un producto con BOM/costeo para analizarlo industrialmente.' };
     }
     return { disponible:true, ...analizarProductoIndustrial({ bom, costing }) };
+  },
+  get_costing_precedents: async (ctx) => {
+    const bom=Array.isArray(ctx.bom)?ctx.bom:[];
+    if(!bom.length) return { disponible:false, precedentes:[], nota:'Sin BOM actual no hay una base honesta para medir similitud.' };
+    const {data:revs,error}=await nube.from('expediente_revisiones')
+      .select('id,expediente_id,rev,creado,nombre,bom,costo,producto_id,producto_version_id')
+      .not('bom','is',null).order('creado',{ascending:false}).limit(80);
+    if(error) return { disponible:false, precedentes:[], nota:'No se pudo consultar la memoria técnica autorizada.' };
+    const versionIds=[...new Set((revs||[]).map((x)=>Number(x.producto_version_id)).filter(Number.isFinite))];
+    let ecos=[];
+    if(versionIds.length){
+      const r=await nube.from('producto_version_economia')
+        .select('producto_version_id,costo_oficial_referencia,formula_version,fuente,actualizado')
+        .in('producto_version_id',versionIds);
+      ecos=r.data||[];
+    }
+    return {
+      disponible:true,
+      precedentes:construirPrecedentesCosteo(bom,revs||[],ecos),
+      politica:'Precedente = comparación, no autoridad. El costo vigente siempre lo recalcula el motor con BOM/precios actuales.',
+    };
   },
   get_material_technical: async (ctx, args) => {
     const items = buscarMaterialTecnico(ctx.materialesTecnicos || [], args?.query || '');

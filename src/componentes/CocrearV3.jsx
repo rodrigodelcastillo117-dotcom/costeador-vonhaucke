@@ -15,6 +15,7 @@ import {visualRevisionHash,visualesSincronizados} from '../datos/visualRevision.
 import {modeloTecnico3DDesdeSpec} from '../datos/productModel3D.js';
 import {diagnosticoDesarrolloProducto,compararVariantesProducto} from '../datos/desarrolloProducto.js';
 import {contextoCatalogoParaIA,recomendar as recomendarCatalogoVonHaucke} from '../voni/conocimiento.js';
+import {explicarCosteo} from '../datos/explicacionCosteo.js';
 
 const MAT_LABEL={nogal:'Nogal',roble:'Roble',encino:'Encino',maple:'Maple',laminado:'Laminado',solid_surface:'Solid surface',cristal:'Cristal',metal:'Metal',piedra:'Piedra'};
 const FAMILY_OPTIONS=[[FAMILIA.DESCONOCIDA,'Producto libre'],[FAMILIA.ESCRITORIO,'Operativo / escritorio'],[FAMILIA.MESA,'Mesa'],[FAMILIA.RECEPCION,'Recepción'],[FAMILIA.LOCKER,'Locker'],[FAMILIA.DISPLAY,'Exhibidor'],[FAMILIA.GUARDADO,'Guardado']];
@@ -125,6 +126,10 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
    engineering_validated:engineeringValidated,
    engineering_validation:engineeringValidated?engineeringValidation:null,
  }):null,[intent,insumos,par,rev,bom,engineeringValidated,engineeringValidation]);
+ const explicacionCosteo=useMemo(
+   ()=>pipeline?.costo?.costeo?explicarCosteo(pipeline.costo.costeo,{nombre:intent?._concepto_nombre||intent?.familia||'Producto co-creado',cantidad:1}):null,
+   [pipeline?.costo?.costeo,intent?._concepto_nombre,intent?.familia]
+ );
  const resumen=useMemo(()=>intent?resumenIdeaCocrear(intent,texto):null,[intent,texto]);
  const modelo3d=useMemo(()=>spec?modeloTecnico3DDesdeSpec(spec):null,[spec]);
  const visualSync=useMemo(()=>spec?visualesSincronizados({spec,render,model3d:modelo3d}):{synchronized:true},[spec,render,modelo3d]);
@@ -396,6 +401,25 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
     : <div className="c3-small">Baja el concepto a BOM para que VONI revise repetibilidad, complejidad y estandarización.</div>}
   </Card>
   <Card><Label>Verdad industrial</Label><div style={{display:'grid',gap:5,fontSize:12}}><div>Costo calculado: <b>{costoConocido?money(costoOficial):'Pendiente de BOM'}</b></div><div>Estado motor: <b>{pipeline?.costo?.cost_status||'UNKNOWN'}</b></div><div>Componentes BOM: <b>{spec?.componentes?.length||0}</b></div><div>Ingeniería: <b style={{color:engineeringValidated?'#79c990':'#e0a36f'}}>{engineeringValidated?'VALIDADA':'REQUIERE VALIDACIÓN'}</b></div></div>
+   {explicacionCosteo&&<details open style={{marginTop:9,border:'1px solid #3d352d',borderRadius:9,padding:9,background:'#171513'}}>
+    <summary style={{cursor:'pointer',fontWeight:800,fontSize:11}}>Cómo llegó VONI a este costo</summary>
+    <div className="c3-small" style={{marginTop:6,lineHeight:1.45}}>{explicacionCosteo.ecuacion}</div>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5,marginTop:7,fontSize:10}}>
+     <div>Material <b>{money(explicacionCosteo.matematicas.material_total)}</b></div>
+     <div>MO <b>{money(explicacionCosteo.matematicas.mano_obra)}</b></div>
+     <div>GI fábrica <b>{money(explicacionCosteo.matematicas.indirectos_fabrica)}</b></div>
+     <div>Preparación+empaque <b>{money((explicacionCosteo.matematicas.preparacion||0)+(explicacionCosteo.matematicas.empaque||0))}</b></div>
+    </div>
+    <div className="c3-small" style={{marginTop:6}}>Fórmula <b>{explicacionCosteo.formula}</b>{explicacionCosteo.matematicas.merma_proceso_pct?<><span> · merma </span><b>{explicacionCosteo.matematicas.merma_proceso_pct}%</b></>:null}</div>
+    {explicacionCosteo.supuestos.slice(0,3).map((s,i)=><div key={i} style={{marginTop:5,fontSize:9,color:'#e0b478'}}>⚠ {s}</div>)}
+    {explicacionCosteo.bloqueos.slice(0,3).map((s,i)=><div key={'b'+i} style={{marginTop:5,fontSize:9,color:'#ff9b91'}}>✕ {s}</div>)}
+    {!!explicacionCosteo.insumos.length&&<div style={{marginTop:7}}>
+      {explicacionCosteo.insumos.slice(0,6).map((x)=><div key={x.id||x.nombre} style={{borderTop:'1px solid #332f2b',padding:'5px 0',fontSize:9,display:'flex',justifyContent:'space-between',gap:8}}>
+        <span>{x.nombre}<span style={{color:'#8f969e'}}> · {x.metodo?x.metodo.replaceAll('_',' ').toLowerCase():'método N/D'}{x.desperdicio_pct!=null?' · desperdicio '+x.desperdicio_pct+'%':''}</span></span><b>{money(x.costo||0)}</b>
+      </div>)}
+    </div>}
+    <div className="c3-small" style={{marginTop:6}}>{explicacionCosteo.nota}</div>
+   </details>}
    {engineeringValidated
     ? <div style={{marginTop:8,padding:8,border:'1px solid #28553b',borderRadius:8,fontSize:10,color:'#bfe8ca'}}>✓ Validada por {engineeringValidation?.validador||engineeringValidation?.rol||'ingeniería'} · {engineeringValidation?.fecha?new Date(engineeringValidation.fecha).toLocaleString('es-MX'):'fecha registrada'} · ligada a esta revisión visual.</div>
     : puedeAprobarRol
