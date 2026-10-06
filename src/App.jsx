@@ -340,7 +340,18 @@ export default function App() {
     // pide la anterior (justo porque no la recuerda).
     const off = alCambiarSesion((s, evento) => {
       setSesion(s);
-      if (evento === 'PASSWORD_RECOVERY') { setRecuperando(true); setPestania('contrasena'); }
+      if (evento === 'PASSWORD_RECOVERY') {
+        setRecuperando(true);
+        setPestania('contrasena');
+        // Supabase ya consumió el fragmento de recovery y creó la sesión.
+        // Quitamos access_token/refresh_token de la barra de direcciones para
+        // que no queden en screenshots, copy/paste, historial o soporte.
+        try {
+          if (window.location.hash) {
+            history.replaceState(null, '', window.location.pathname + window.location.search);
+          }
+        } catch (_e) {}
+      }
     });
     return () => { clearTimeout(limite); off(); };
   }, []);
