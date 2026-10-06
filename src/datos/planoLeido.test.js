@@ -190,3 +190,48 @@ describe('resumenLectura · confianza del levantamiento', () => {
     expect(resumenLectura({ areas: [] }).nivel).toBe('nula');
   });
 });
+
+
+describe('puertas · UNKNOWN no se convierte en geometría inventada', () => {
+  const baseArea = {
+    nombre:'Privado', tipo:'privado', forma:'poligono',
+    puntos:[{x:0,y:0},{x:5000,y:0},{x:5000,y:4000},{x:0,y:4000}],
+  };
+
+  it('puerta sin ancho conserva ancho=null y queda pendiente', () => {
+    const lectura = {
+      envolvente:{ancho:5000,largo:4000},
+      areas:[baseArea],
+      puertas:[{ x:2500, y:0, tieneBarrido:false, procedencia:'INFERRED' }],
+    };
+    const {areas}=areasDeLectura(lectura);
+    expect(areas[0].puertas[0].ancho).toBeNull();
+    expect(areas[0].puertasPendientes[0].motivo).toBe('ANCHO_PUERTA_DESCONOCIDO');
+    expect(revisarAreas(lectura).join(' ')).toMatch(/no tienen ancho verificable/);
+  });
+
+  it('puerta con ancho pero sin bisagra no genera obstáculo geométrico certificado', () => {
+    const lectura = {
+      envolvente:{ancho:5000,largo:4000},
+      areas:[baseArea],
+      puertas:[{ x:2500, y:0, ancho:900, tieneBarrido:true }],
+    };
+    const {areas}=areasDeLectura(lectura);
+    expect((areas[0].obstaculos||[]).filter(o=>o.tipo==='puerta')).toHaveLength(0);
+    expect(areas[0].puertasPendientes[0].motivo).toBe('BARRIDO_PUERTA_NO_VERIFICADO');
+  });
+
+  it('sólo puerta con ancho+barrido+bisagra verificables crea obstáculo', () => {
+    const lectura = {
+      envolvente:{ancho:5000,largo:4000},
+      areas:[baseArea],
+      puertas:[{
+        x:2500,y:0,ancho:900,tieneBarrido:true,
+        bisagraX:2050,bisagraY:0,barridoDeg:90,anguloCerradaDeg:0,
+      }],
+    };
+    const {areas}=areasDeLectura(lectura);
+    expect((areas[0].obstaculos||[]).some(o=>o.tipo==='puerta')).toBe(true);
+    expect(areas[0].puertasPendientes).toBeUndefined();
+  });
+});
