@@ -94,10 +94,34 @@ export function mpCambio(cot, insumosHoy, parHoy) {
 //  GUARDAR / LEER
 // ---------------------------------------------------------------------------
 
+// Nunca persistir blobs/base64 gigantes dentro de cotizaciones. Los binarios
+// viven en Storage; la fila conserva URL/path/hash y datos estructurados.
+export function compactarPayloadNube(valor) {
+  const visto = new WeakSet();
+  const walk = (v) => {
+    if (typeof v === 'string') {
+      if (v.length < 120000) return v;
+      const s = v.trim();
+      const dataUrl = /^data:(image|application\/pdf|application\/octet-stream)[^,]*;base64,/i.test(s);
+      const base64Puro = /^[A-Za-z0-9+/=\r\n]+$/.test(s) && s.length > 200000;
+      return (dataUrl || base64Puro) ? null : v;
+    }
+    if (!v || typeof v !== 'object') return v;
+    if (v instanceof Date) return v.toISOString();
+    if (Array.isArray(v)) return v.map(walk);
+    if (visto.has(v)) return null;
+    visto.add(v);
+    const out = {};
+    for (const [k,x] of Object.entries(v)) out[k] = walk(x);
+    return out;
+  };
+  return walk(valor);
+}
+
 /** Lo que de verdad se guarda. Se deja fuera todo lo que no es la cotización. */
 export function paraGuardar(estado, usuario) {
   const cot = estado?.cotizacion || {};
-  const partidas = cot.partidas || [];
+  const partidas = compactarPayloadNube(cot.partidas || []);
   // La MISMA escalera de dinero que ve el cliente en pantalla y firma en el PDF
   // (src/datos/totales.js), no una suma cruda aparte. Antes aquí se guardaba
   // `Math.round(Σ precio×cantidad)` —la suma de renglones SIN descuento, maniobras,
@@ -109,7 +133,7 @@ export function paraGuardar(estado, usuario) {
     usuario: usuario || null,
     estado: cot.estadoComercial || 'borrador',
     partidas,
-    acomodo: cot.acomodo || null,
+    acomodo: compactarPayloadNube(cot.acomodo || null),
     // Se guarda el desglose completo, no solo los pct: así una reimpresión o el
     // Archivo reproducen el total al peso sin recalcular con parámetros de hoy.
     totales: {
