@@ -2952,3 +2952,20 @@ body::before {
 .inicio-op-mas .atajos{padding:10px}
 @media(max-width:900px){.inicio-op-grid,.inicio-op-grid.vendedor{grid-template-columns:1fr}.inicio-op-directos{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.inicio-op-cab{align-items:flex-start;flex-direction:column}.inicio-op-directos{grid-template-columns:1fr}.inicio-op-card{min-height:205px}}
+
+@media print {
+  body.vh-print-borrador .cot-cliente { position: relative; }
+  body.vh-print-borrador .cot-cliente::before {
+    content: "BORRADOR · NO REGISTRADO";
+    position: fixed;
+    inset: 42% auto auto 50%;
+    transform: translate(-50%,-50%) rotate(-28deg);
+    font-size: 46px;
+    font-weight: 900;
+    letter-spacing: .08em;
+    color: rgba(160,0,0,.16);
+    z-index: 9999;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+}
