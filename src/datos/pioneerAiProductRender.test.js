@@ -78,7 +78,7 @@ describe('VONI 2.0 · Producto Maestro real', () => {
     const s=fs.readFileSync('src/voni/proveedorReal.js','utf8');
     const i=s.indexOf('search_products:');
     const b=s.slice(i, s.indexOf('\n};', i));
-    expect(b).toContain("from('productos')");
+    expect(b).toMatch(/(?:nube\.)?from\('productos'\)/);
     expect(b).toContain("eq('activo',true)");
     expect(b).toContain("ilike('nombre'");
     expect(b).toContain("ilike('codigo'");
