@@ -1262,8 +1262,8 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
                   funcionaba de milagro (`deCero` salía undefined). Explícito. */}
               <button className="boton primario" style={{ minHeight: 50, marginLeft: 'auto' }}
                 disabled={!programaListo} title={!programaListo ? motivoPrograma : (nAMano ? `Acomoda lo que falta sin mover los ${nAMano} que pusiste tú.` : undefined)} onClick={() => acomodar()}>Acomodar</button>
-              <button className="boton fantasma" style={{ minHeight: 50 }} onClick={acomodarIA}
-                title="Alterna con IA (el acomodo normal ya es automático)">Con IA</button>
+              <button className="boton fantasma" style={{ minHeight: 50 }} disabled={!programaListo} onClick={acomodarIA}
+                title={!programaListo ? motivoPrograma : 'Alterna con IA (el acomodo normal ya es automático)'}>Con IA</button>
             </div>
             {notaPlano && <div className="alerta ambar" style={{ marginTop: 10 }}><span className="texto">{notaPlano}</span></div>}
             {/* #7: comparación HONESTA plano original vs. lo que la app entendió,
