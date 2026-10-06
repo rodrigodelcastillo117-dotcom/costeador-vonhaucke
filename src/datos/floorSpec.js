@@ -1,3 +1,4 @@
+import { destinoMarcado } from './destinoAcomodo.js';
 // ============================================================================
 //  FloorSpec — CAPA DETERMINISTA DE VERDAD del plano (P0-PLAN).
 //
@@ -241,16 +242,26 @@ export function renderFiel({ rendered = 0, placed = 0 } = {}) {
 // Mapea una pieza del acomodo (tipo/nombre) a su ROL semántico.
 export function rolDePiezaAcomodo(pieza) {
   const t = `${pieza?.tipo || ''} ${pieza?.nombre || ''}`.toLowerCase();
+  const destino = destinoMarcado(pieza);
+  const esAsiento = /silla|asiento|chair|seat|sillón|sillon/.test(t);
+
+  // El destino explícito viaja desde la cotización/Voni y manda sobre heurísticas
+  // genéricas. Así la auditoría local habla el mismo idioma que el edge.
+  if (esAsiento && destino === 'juntas') return ROL.MEETING_SEAT;
+  if (esAsiento && destino === 'privado') return ROL.EXECUTIVE_SEAT;
+  if (esAsiento && destino === 'recepcion') return ROL.VISITOR_SEAT;
+  if (esAsiento && destino === 'open') return ROL.WORK_SEAT;
+
   if (/mesa de junta|mesa junta|mesa de consejo|sala de junta|board|consejo/.test(t)) return ROL.TABLE;
   if (/recepci|mostrador|módulo recep|modulo recep/.test(t)) return ROL.RECEPTION;
   if (/escritorio|bench|puesto|estacion|estación|workstation|operativ/.test(t)) return ROL.WORKSTATION;
-  // ⚠️ NO toda "mesa" es mesa de juntas. Una mesa de centro/café/lounge es
-  // FLEXIBLE: marcarla TABLE la volvía violación en recepción/operativa (falso
-  // positivo). Solo la mesa de JUNTAS/CONSEJO (regla explícita de arriba) es
-  // TABLE; una mesa genérica cae a OTHER → flexible (§3-G: no inventar
-  // incompatibilidad para un rol que no es claramente de junta).
   if (/archiv|credenza|gaveta|pedestal|guarda|storage/.test(t)) return ROL.STORAGE;
-  if (/silla|asiento|chair|seat/.test(t)) return ROL.WORK_SEAT;
+  if (esAsiento) {
+    if (/directiv|ejecutiv|presiden|gerenc|concerto/.test(t)) return ROL.EXECUTIVE_SEAT;
+    if (/junta|consejo|board|sonata/.test(t)) return ROL.MEETING_SEAT;
+    if (/visita|espera|confidente/.test(t)) return ROL.VISITOR_SEAT;
+    return ROL.WORK_SEAT;
+  }
   return ROL.OTHER;
 }
 
@@ -268,7 +279,15 @@ export function zonaPermite(rol, zonaTipo) {
       return zonaTipo === ZONA.RECEPCION;
     case ROL.WORKSTATION: // puestos operativos: no en consejo ni recepción
       return zonaTipo !== ZONA.CONSEJO && zonaTipo !== ZONA.RECEPCION;
-    default:              // sillas, guarda, otros: flexibles (ya filtrados sanitarios/site)
+    case ROL.MEETING_SEAT:
+      return zonaTipo === ZONA.CONSEJO;
+    case ROL.EXECUTIVE_SEAT:
+      return zonaTipo === ZONA.CEO;
+    case ROL.WORK_SEAT:
+      return zonaTipo === ZONA.OPERATIVA;
+    case ROL.VISITOR_SEAT:
+      return [ZONA.RECEPCION, ZONA.CEO, ZONA.CONSEJO].includes(zonaTipo);
+    default:
       return true;
   }
 }
