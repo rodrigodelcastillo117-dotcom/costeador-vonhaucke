@@ -5,8 +5,8 @@ for(const file of ['src/componentes/CocrearV3.jsx','src/componentes/CocrearV2.js
   describe(file+' · canonical persistence',()=>{
     const s=fs.readFileSync(file,'utf8');
     const i=s.indexOf('const agregarCotizacion=async()=>');
-    const j=s.indexOf('\n\n',i);
-    const b=s.slice(i,j>i?j:i+5000);
+    const j=s.indexOf('const css=',i);
+    const b=s.slice(i,j>i?j:i+7000);
     it('no oculta fallos de persistencia',()=>{
       expect(b).toContain('No se agregó a la cotización');
       expect(b).toContain('No se pudo registrar la revisión canónica');
