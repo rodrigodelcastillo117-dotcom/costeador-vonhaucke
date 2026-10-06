@@ -100,6 +100,9 @@ function puertaLocal(p, b) {
     x: m(p.x - b.x),
     y: m(p.y - b.y),
     ancho: m(p.ancho || 900),
+    ...(p.procedencia ? { procedencia: p.procedencia } : {}),
+    ...(p.evidencia ? { evidencia: p.evidencia } : {}),
+    ...(Number.isInteger(Number(p.pagina)) && Number(p.pagina) > 0 ? { pagina: Number(p.pagina) } : {}),
   };
   if (typeof p.tieneBarrido !== 'boolean') return base;
   const rich = {
@@ -150,6 +153,10 @@ export function areasDeLectura(lectura) {
       nombre: a.nombre || 'Área',
       ...(a.tipo ? { tipo: a.tipo } : {}),
       ...(Number.isFinite(a.puestos) && a.puestos > 0 ? { puestos: a.puestos } : {}),
+      ...(a.confianza ? { confianza: a.confianza } : {}),
+      ...(a.procedencia ? { procedencia: a.procedencia } : {}),
+      ...(a.evidencia ? { evidencia: a.evidencia } : {}),
+      ...(Number.isInteger(Number(a.pagina)) && Number(a.pagina) > 0 ? { pagina: Number(a.pagina) } : {}),
       ...(padreDe.has(nombreDe(idx)) ? { dentroDe: padreDe.get(nombreDe(idx)) } : {}),
       ...((hijos.get(a.nombre) || []).length ? { contiene: (hijos.get(a.nombre) || []).length } : {}),
       x: m(b.x), y: m(b.y),
