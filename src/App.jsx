@@ -765,6 +765,7 @@ export default function App() {
       cantidad: (a.cantidad || 1) * n,
       // Seller-safe: el vendedor no guarda costo (ni el derivado del precio).
       costoUnitario: veCostos ? costoImplicito(a.lista) : null,
+      costoDerivado: veCostos,
       precioUnitario: precioDeLista(a.lista),
       margen: null,
       config: null,
