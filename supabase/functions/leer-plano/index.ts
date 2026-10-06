@@ -16,6 +16,17 @@ function json(obj: unknown, status = 200) {
 }
 const finite = (x: any) => Number.isFinite(Number(x));
 const num = (x: any) => Number(x);
+const PROV = new Set(["MEASURED","DERIVED","INFERRED","ASSUMED"]);
+const provenance = (x: any) => {
+  const p = String(x || "").toUpperCase();
+  return PROV.has(p) ? p : "UNKNOWN";
+};
+const evidenceMeta = (x: any) => ({
+  provenance: provenance(x?.procedencia),
+  evidence: typeof x?.evidencia === "string" ? x.evidencia.slice(0, 500) : "",
+  page: Number.isInteger(Number(x?.pagina)) && Number(x?.pagina) > 0 ? Number(x.pagina) : null,
+  confidence: x?.confianza || null,
+});
 const b64bytes = (s: string) => {
   const n = (s || "").length;
   const pad = s.endsWith("==") ? 2 : s.endsWith("=") ? 1 : 0;
@@ -143,6 +154,9 @@ Deno.serve(async (req: Request) => {
   const warnings: any[] = [];
   const W = num(l?.envolvente?.ancho), H = num(l?.envolvente?.largo);
   if (!finite(W) || !finite(H) || W <= 0 || H <= 0 || W > 500_000 || H > 500_000) issues.push({ field: "envolvente", code: "INVALID_ENVELOPE" });
+  const envelopeEvidence = evidenceMeta(l?.envolvente);
+  if (envelopeEvidence.provenance === "ASSUMED") warnings.push({ field: "envolvente", code: "ASSUMED_CRITICAL_GEOMETRY", message: "La envolvente depende de un supuesto; requiere confirmación antes de liberar." });
+  if (envelopeEvidence.provenance === "UNKNOWN") warnings.push({ field: "envolvente", code: "UNKNOWN_GEOMETRY_PROVENANCE", message: "La procedencia de la envolvente no quedó estructurada." });
 
   const gh = Array.isArray(l?.grid?.horizontal) ? l.grid.horizontal : [];
   const gv = Array.isArray(l?.grid?.vertical) ? l.grid.vertical : [];
@@ -205,7 +219,10 @@ Deno.serve(async (req: Request) => {
       circle_mm: a.forma === "circulo" ? a.circulo : null,
       parent_name: parent || null, observed_workstations: puestos,
       confidence: a.confianza, area_m2: Math.round(sqm * 100) / 100,
+      evidence: evidenceMeta(a),
     });
+    const aProv = provenance(a?.procedencia);
+    if (aProv === "ASSUMED") warnings.push({ field: `areas[${i}]`, code: "ASSUMED_ZONE_GEOMETRY", zone: name, message: "Geometría de zona basada en supuesto; requiere confirmación." });
   }
 
   const envArea = finite(W) && finite(H) ? (W * H / 1_000_000) : 0;
@@ -218,7 +235,9 @@ Deno.serve(async (req: Request) => {
   let verifiedDoors = 0;
   for (let i = 0; i < doors.length; i++) {
     const d = doors[i] || {};
+    const dEvidence = evidenceMeta(d);
     const x = num(d.x), y = num(d.y), w = num(d.ancho);
+    if (dEvidence.provenance === "ASSUMED") warnings.push({ field: `puertas[${i}]`, code: "ASSUMED_DOOR_GEOMETRY", message: "Puerta basada en supuesto; requiere confirmación." });
     if (![x,y,w].every(finite) || w <= 0) issues.push({ field: `puertas[${i}]`, code: "INVALID_DOOR" });
     else if (finite(W) && finite(H) && (x < 0 || y < 0 || x > W || y > H || w > Math.max(W,H))) issues.push({ field: `puertas[${i}]`, code: "DOOR_OUTSIDE_ENVELOPE" });
 
@@ -240,11 +259,16 @@ Deno.serve(async (req: Request) => {
   const validationState = issues.length ? "FAIL" : warnings.length ? "REVIEW_REQUIRED" : "PASS";
   const floorSpec = {
     version: "FLOOR_SPEC_V2",
-    envelope: { width_mm: W, depth_mm: H, area_m2: Math.round(envArea * 100) / 100 },
+    envelope: { width_mm: W, depth_mm: H, area_m2: Math.round(envArea * 100) / 100, evidence: envelopeEvidence },
     grid_mm: { horizontal: gh, vertical: gv },
     zones: normalizedZones,
-    doors_mm: doors,
-    source: { scale_evidence: l?.escala || "", has_dimensions: !!l?.tieneCotas, notes: Array.isArray(l?.notas) ? l.notas : [] },
+    doors_mm: doors.map((d: any) => ({ ...d, evidence_meta: evidenceMeta(d) })),
+    source: {
+      scale_evidence: l?.escala || "",
+      has_dimensions: !!l?.tieneCotas,
+      notes: Array.isArray(l?.notas) ? l.notas : [],
+      evidence_policy: "MEASURED>DERIVED>INFERRED>ASSUMED",
+    },
     validation: {
       state: validationState, issues, warnings,
       metrics: {
