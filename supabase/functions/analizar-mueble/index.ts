@@ -282,24 +282,31 @@ Deno.serve(async (req) => {
   }
 
   const contenido = [...bloquesImagen, { type: "text", text: textoTarea }];
+  const esRevision = !!revisar;
   const pedir = async (schema: any, sys: string, maxTok: number) => {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({
-        model: "claude-opus-5",
-        max_tokens: maxTok,
-        output_config: { effort: "medium", format: { type: "json_schema", schema } },
-        system: sys,
-        messages: [{ role: "user", content: contenido }],
-      }),
-    });
-    return await r.json();
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), esRevision ? 45_000 : 75_000);
+    try {
+      const r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify({
+          model: "claude-opus-5",
+          max_tokens: maxTok,
+          output_config: { effort: esRevision ? "low" : "medium", format: { type: "json_schema", schema } },
+          system: sys + (esRevision
+            ? "\nREVISION COMPACTA: corrige BOM/cotas/material_match y sé mínimo en informe/notas; no reescribas una auditoría larga."
+            : "\nPRIORIDAD DE SALIDA: BOM completo y correcto > informe. Informe máximo ~900 palabras; razonamiento por pieza en una sola línea."),
+          messages: [{ role: "user", content: contenido }],
+        }),
+        signal: ac.signal,
+      });
+      return await r.json();
+    } finally { clearTimeout(timer); }
   };
 
-  // Presupuesto de salida amplio: un plano rico (varias vistas + despiece + razonamiento) excede
-  // 8000 tokens fácil. 16000 también para 1 imagen (1 imagen es rápida; el timeout de 150s aguanta).
-  const MAX_TOK = 16000;
+  // El main necesita espacio para BOM, pero no 16k de prosa. La revisión es corta.
+  const MAX_TOK = esRevision ? 6000 : 10000;
   let data: any;
   try { data = await pedir(SCHEMA, system, MAX_TOK); }
   catch (e) { return json({ ok: false, error: "No se pudo llamar a Claude: " + String(e) }, 502); }
