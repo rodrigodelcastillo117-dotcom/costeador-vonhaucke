@@ -64,6 +64,50 @@ export function auditarColocacion({ areas = [], colocacion = [], byId = {} } = {
   }
   const puertasPendientes = spatial?.puertas?.noVerificadas || [];
 
+  // Relaciones funcionales: un layout puede no tener overlaps y aun ser absurdo.
+  // Las sillas de juntas deben conservar una mesa ancla; las operativas/directivas
+  // automáticas deben conservar un escritorio ancla. Las manuales se auditan igual
+  // si ya declaraban relación y ésta se perdió.
+  const idsColocados = new Set(colocacion.map((c) => String(c.id)));
+  const relacionesRotas = [];
+  const norm = (s = '') => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  for (const c of colocacion) {
+    const p = byId[c.id] || {};
+    const nombre = norm(`${p.nombre || ''} ${p.ruta || ''}`);
+    const esJunta = /silla.*junta|junta.*silla|meeting.*chair|board.*chair/.test(nombre);
+    const esTrabajo = /silla.*operativ|operativ.*silla|silla.*directiv|task chair|work chair/.test(nombre);
+    if (esJunta) {
+      const anchor = c.anchor_id ?? c.alrededorDe ?? (String(c.contra || '').startsWith('mesa:') ? String(c.contra).slice(5) : null);
+      if (!anchor || !idsColocados.has(String(anchor))) {
+        relacionesRotas.push({ id: c.id, tipo: 'silla_juntas_sin_mesa', esperado: 'mesa' });
+      }
+    } else if (esTrabajo) {
+      const anchor = c.anchor_id ?? (String(c.contra || '').startsWith('escritorio:') ? String(c.contra).slice(11) : null);
+      if (!anchor || !idsColocados.has(String(anchor))) {
+        relacionesRotas.push({ id: c.id, tipo: 'silla_trabajo_sin_escritorio', esperado: 'escritorio' });
+      }
+    }
+  }
+
+  // Densidad física extrema: aunque no haya choque, una habitación donde las
+  // huellas consumen >65% del piso queda marcada como inviable funcionalmente.
+  // Es un hard gate conservador; debajo de eso la calidad fina sigue en spatial.
+  const densidadPorArea = [];
+  const densidadCritica = [];
+  for (const [ai, items] of porArea) {
+    const area = areas[ai];
+    const areaMM2 = Number(area?.ancho || 0) * Number(area?.largo || 0);
+    if (!(areaMM2 > 0)) continue;
+    const ocupada = items.reduce((s, cc) => {
+      const fp = footprintPieza(cc, byId[cc.id]);
+      return s + Math.max(0, fp.w) * Math.max(0, fp.h);
+    }, 0);
+    const ratio = ocupada / areaMM2;
+    const row = { area: ai, ratio: +ratio.toFixed(4), pct: +(ratio * 100).toFixed(1) };
+    densidadPorArea.push(row);
+    if (ratio > 0.65) densidadCritica.push(row);
+  }
+
   // Compatibilidad con la compuerta UI existente (`AcomodoBase` históricamente
   // sólo contaba `fuera` + `overlaps`). Hasta que la vista consuma los campos
   // ricos directamente, proyectamos aquí las NUEVAS violaciones a `fuera` con
@@ -86,7 +130,12 @@ export function auditarColocacion({ areas = [], colocacion = [], byId = {} } = {
 
   const fueraFisico = fuera.filter((f) => f.tipo === 'huella');
   const okFisico = overlaps.length === 0 && fueraFisico.length === 0;
-  const ok = okFisico && funcionales.length === 0 && puertasBloqueadas.length === 0 && puertasPendientes.length === 0;
+  const ok = okFisico
+    && funcionales.length === 0
+    && puertasBloqueadas.length === 0
+    && puertasPendientes.length === 0
+    && relacionesRotas.length === 0
+    && densidadCritica.length === 0;
 
   return {
     ok,
@@ -97,6 +146,9 @@ export function auditarColocacion({ areas = [], colocacion = [], byId = {} } = {
     funcionales,
     puertasBloqueadas,
     puertasPendientes,
+    relacionesRotas,
+    densidadPorArea,
+    densidadCritica,
     calidad: spatial?.calidad || null,
     spatial,
     checks: [
@@ -107,9 +159,13 @@ export function auditarColocacion({ areas = [], colocacion = [], byId = {} } = {
         detalle: puertasBloqueadas.length ? `${puertasBloqueadas.length} mueble(s) invade(n) barrido/despeje`
           : puertasPendientes.length ? `${puertasPendientes.length} puerta(s) sin barrido verificable`
             : 'medido: barridos/despejes válidos' },
+      { check: 'Relaciones funcionales', ok: relacionesRotas.length === 0,
+        detalle: relacionesRotas.length ? `${relacionesRotas.length} relación(es) rota(s)` : 'sillas ancladas a su función' },
+      { check: 'Densidad utilizable', ok: densidadCritica.length === 0,
+        detalle: densidadCritica.length ? densidadCritica.map((d) => `área ${d.area + 1}: ${d.pct}%`).join(' · ') : 'sin saturación física extrema' },
     ],
     resumen: ok
-      ? 'Acomodo verificable: sin encimados, fuera de área, conflictos funcionales ni puertas pendientes.'
-      : `${overlaps.length} encimado(s), ${fueraFisico.length} fuera, ${funcionales.length} conflicto(s) funcional(es), ${puertasBloqueadas.length} puerta(s) bloqueada(s), ${puertasPendientes.length} puerta(s) sin barrido verificable.`,
+      ? 'Acomodo verificable: geometría, puertas, relaciones funcionales y densidad pasan.'
+      : `${overlaps.length} encimado(s), ${fueraFisico.length} fuera, ${funcionales.length} conflicto(s) funcional(es), ${puertasBloqueadas.length} puerta(s) bloqueada(s), ${puertasPendientes.length} puerta(s) pendiente(s), ${relacionesRotas.length} relación(es) rota(s), ${densidadCritica.length} área(s) saturada(s).`,
   };
 }
