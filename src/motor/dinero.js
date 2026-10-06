@@ -47,9 +47,9 @@ export function porcentajeCentavos(baseCentavos, pct) {
   const pMicro = Math.round(p * escala);
   const den = BigInt(100 * escala);
   const num = BigInt(baseCentavos) * BigInt(pMicro);
-  const neg = num < 0n;
+  const neg = num < BigInt(0);
   const abs = neg ? -num : num;
-  const q = (abs + den / 2n) / den; // half-up a centavo
+  const q = (abs + den / BigInt(2)) / den; // half-up a centavo
   const out = Number(neg ? -q : q);
   return Number.isSafeInteger(out) ? out : null;
 }
