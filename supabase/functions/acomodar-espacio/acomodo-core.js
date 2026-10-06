@@ -170,7 +170,7 @@ export function prepararGruposFuncionales(areas = [], piezas = []) {
   return { piezas: piezas.map((p) => byId.get(String(p.id)) || p), issues };
 }
 
-function auditarGruposFuncionales(piezas = [], colocacion = []) {
+export function auditarGruposFuncionales(piezas = [], colocacion = []) {
   const byCol = new Map((colocacion || []).map((x) => [String(x.id), x]));
   const issues = [];
   for (const [gid, miembros] of gruposFuncionales(piezas)) {
