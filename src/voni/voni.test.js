@@ -23,6 +23,15 @@ const PROV = {
   get_bom: async () => ({ contradicciones: [], componentes: [] }),
   compare_revisions: async () => ({ resumen: { totalAnterior: 100, totalNuevo: 120, delta: 20 } }),
   get_layout: async () => ({ warnings: [] }),
+  get_material_technical: async (_ctx,args) => ({
+    disponible:/mdf/i.test(args?.query||''),
+    items:/mdf/i.test(args?.query||'') ? [{
+      id:'mdf18',nombre:'MDF 18 mm',unidad:'hoja',veta:false,
+      formato:{largo_mm:2440,ancho_mm:1220,medida:2.9768},
+      formato_texto:'2440 × 1220 mm',
+    }] : [],
+    nota:/mdf/i.test(args?.query||'') ? null : 'sin coincidencia',
+  }),
   get_industrial_analysis: async () => ({
     disponible:true,
     bloqueos:[],
@@ -245,5 +254,32 @@ describe('VONI industrial · mejor que un chatbot, no más autoritario que la ev
     const b=await ejecutarTool('get_industrial_analysis',{user:USER,role:'direccion'},{},PROV);
     expect(a.ok).toBe(true);
     expect(b.ok).toBe(true);
+  });
+});
+
+
+describe('VONI · conocimiento técnico de materiales', () => {
+  it('entiende preguntas de formato de hoja',()=>{
+    expect(inferirIntencion('¿cuánto mide la hoja de MDF?').intent).toBe('MATERIAL_TECHNICAL');
+    expect(inferirIntencion('¿qué formato tiene este tablero MDF?').intent).toBe('MATERIAL_TECHNICAL');
+  });
+  it('vendedor puede consultar medidas técnicas sin recibir economía',async()=>{
+    const {respuesta}=await responder({
+      query:'¿cuánto mide la hoja de MDF?',
+      ctx:{user:USER,role:'ventas',materialesTecnicos:[{id:'mdf18',nombre:'MDF 18 mm'}]},
+      prov:PROV,
+    });
+    expect(respuesta.estado).toBe('OK');
+    expect(respuesta.que_paso).toMatch(/2440 × 1220/);
+    expect(esClientSafe(respuesta)).toBe(true);
+  });
+  it('material no documentado no se inventa',async()=>{
+    const {respuesta}=await responder({
+      query:'¿qué formato tiene la hoja de unobtanium?',
+      ctx:{user:USER,role:'ventas',materialesTecnicos:[]},
+      prov:PROV,
+    });
+    expect(respuesta.estado).toBe('DESCONOCIDO');
+    expect(respuesta.impacto).toMatch(/No invento medidas/i);
   });
 });
