@@ -29,6 +29,8 @@ jobs:
           node-version: '22'
           cache: 'npm'
       - run: npm ci
+      - name: Auditoría dependencias de producción
+        run: npm audit --omit=dev --audit-level=high
       - name: Tests
         run: npx vitest run
       - name: Build
