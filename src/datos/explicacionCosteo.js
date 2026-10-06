@@ -37,6 +37,12 @@ export function explicarCosteo(resultado={}, {nombre='', cantidad=null}={}) {
     seccion:x.seccion||'otros',
     metodo:x.metodoConsumo||null,
     tipo_alba:x.tipoAlbaAplicado||null,
+    formato_fisico:x.formato ? {
+      tipo:x.formato.tipo||null,nombre:x.formato.nombre||null,
+      largo_mm:r2(x.formato.largoMM),ancho_mm:r2(x.formato.anchoMM),
+      medida_compra:r2(x.formato.medida),
+    } : null,
+    formato_geometrico_verificable:!!(Number(x.formato?.largoMM)>0&&Number(x.formato?.anchoMM)>0),
     neto:r2(x.neto),
     comprado:r2(x.comprado),
     unidades:r2(x.unidades),
@@ -64,6 +70,8 @@ export function explicarCosteo(resultado={}, {nombre='', cantidad=null}={}) {
   if(insumos.some((x)=>x.usa_aprovechamiento_generico)) {
     supuestos.push(`Hay materiales sin geometría/fracción suficiente: usan aprovechamiento genérico ${resultado.parametrosCorte?.aprovechamientoCorte ?? 'N/D'}%.`);
   }
+  const sinGeometria=insumos.filter((x)=>x.formato_fisico&&['tablero','lamina'].includes(x.formato_fisico.tipo)&&!x.formato_geometrico_verificable&&x.metodo!=='FRACCION_DIRECTA_RAFA');
+  if(sinGeometria.length) supuestos.push(`Falta geometría física verificable de formato para: ${sinGeometria.map(x=>x.nombre).slice(0,5).join(', ')}; no se certifica nesting 2D exacto.`);
   if(merma>0) supuestos.push(`Merma de proceso global: ${merma}%; se aplica como rendimiento del lote completo.`);
   if(resultado.modoManoObra==='horas') supuestos.push('La mano de obra se calculó con horas por centro y sus tarifas vigentes.');
   if(formula==='ALBA_V1') supuestos.push('La mano de obra y GI siguen Alba V1 por tipo de material; no se sustituyeron por una heurística de IA.');

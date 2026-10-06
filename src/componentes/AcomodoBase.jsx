@@ -6,7 +6,7 @@
 //  propuesta para que salga en el PDF del cliente.
 // ============================================================================
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { acomodarEspacio, leerPlano, generarRender } from '../nube.js';
+import { acomodarEspacio, leerPlano, generarRender, voniCouncil } from '../nube.js';
 import { TIPOS, dimsPieza, expandirPiezas, mapaPiezas, contarBajoEscritorio } from '../datos/espacio.js';
 import { imagenProducto, imagenPartida, heroLinea } from '../datos/imagenes.js';
 import { acomodarLocal } from '../datos/planner.js';
@@ -21,6 +21,7 @@ import { totalesCotizacion } from '../datos/totales.js';
 import { estadoLayout, violacionesSemanticas } from '../datos/floorSpec.js';
 import { aMM, areasCanonicas, bloqueGeometria, cuantizar } from '../datos/floorPlan.js';
 import { auditarColocacion } from '../datos/acomodoAudit.js';
+import { resumenCouncilUI } from '../datos/councilUX.js';
 
 // Para la paleta, SILLA es todo lo que se sienta: la operativa, la de visita y
 // también el sillón y el banco. Rodrigo lo pidió partido en dos: "lado
@@ -35,6 +36,7 @@ import PropuestaViva from './PropuestaViva.jsx';
 import DibujarPlano from './DibujarPlano.jsx';
 import EmpezarEspacio from './EmpezarEspacio.jsx';
 import Cargando from './Cargando.jsx';
+import MisionFlujo from './MisionFlujo.jsx';
 
 // Un dibujo para lo que no tiene foto. Las sillas del banco vienen de
 // presupuestos y no traen render de catálogo: antes se pintaba un CUADRADO CAFÉ
@@ -87,6 +89,17 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   const [cargando, setCargando] = useState('');   // '' | 'acomodo' | 'plano'
   const [error, setError] = useState('');
   const [plan, setPlan] = useState(() => guardadoPrevio?.plan || null);
+  // Segunda opinión senior: NO mueve muebles ni reemplaza la auditoría medida.
+  const [revisionSenior, setRevisionSenior] = useState(null);
+  const [revisionSeniorCargando, setRevisionSeniorCargando] = useState(false);
+  const [revisionSeniorError, setRevisionSeniorError] = useState('');
+
+  // La segunda opinión pertenece a ESTE estado espacial. Cualquier cambio la vence.
+  useEffect(() => {
+    setRevisionSenior(null);
+    setRevisionSeniorError('');
+  }, [plan, areas, partidas]);
+
   const [notaPlano, setNotaPlano] = useState('');
   // #7: conservar el plano ORIGINAL (imagen, o pág.1 del PDF) + la confianza de
   // lectura, para enseñar "original vs. lo que entendí" ANTES de acomodar.
@@ -1096,6 +1109,101 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     });
   }, [plan, chequeo]);
 
+  const misionAcomodo = {
+    paso:areas.length===0?1:!plan?2:!layoutListo?3:4,
+    estado:layoutListo&&!vencida?'ok':(plan&&!layoutListo?'blocked':'attention'),
+    resumen:areas.length===0
+      ?'Primero necesito conocer el espacio real: medidas, dibujo o plano.'
+      :!plan
+        ?'El espacio ya existe; todavía falta colocar los muebles.'
+        :!layoutListo
+          ?`El layout aún no pasa la revisión espacial${motivoLayout?`: ${motivoLayout}`:'.'}`
+          :vencida
+            ?'El acomodo cambió después de la última revisión; vuelve a validarlo.'
+            :'Acomodo medido y listo para usarse en la propuesta.',
+    siguiente:areas.length===0?'Sube un plano, dibuja el espacio o captura sus medidas.'
+      :!plan?'Pulsa acomodar; después podrás mover piezas manualmente sin perder el trabajo.'
+      :!layoutListo?'Corrige las piezas marcadas y vuelve a revisar.'
+      :vencida?'Ejecuta de nuevo la revisión antes del render/propuesta.'
+      :stagingUrl?'Guarda el acomodo en la propuesta.'
+      :'Si quieres presentación, genera la vista realista; el layout ya está listo.',
+    items:[
+      {key:'espacio',label:'Espacio real',ok:areas.length>0},
+      {key:'colocacion',label:'Todos colocados',ok:!!plan&&pendientes.length===0},
+      {key:'medido',label:'Sin colisiones/fuera',ok:!!chequeo&&chequeo.nEncimados===0&&chequeo.nFuera===0},
+      {key:'semantica',label:'Zonas correctas',ok:!!chequeo&&(chequeo.nViolaciones||0)===0},
+      {key:'audit',label:'Layout válido',ok:layoutListo&&!vencida},
+    ],
+  };
+
+  async function revisarAcomodoSenior() {
+    if (!plan || !chequeo || revisionSeniorCargando) return;
+    setRevisionSeniorCargando(true); setRevisionSeniorError('');
+    try {
+      const contexto = {
+        autoridad_determinista: {
+          layout_status: layout?.status || 'UNKNOWN',
+          layout_listo: layoutListo,
+          sin_colocar: chequeo.sinColocar || 0,
+          colisiones: chequeo.nEncimados || 0,
+          fuera_de_area: chequeo.nFuera || 0,
+          violaciones_semanticas: chequeo.nViolaciones || 0,
+          puestos: chequeo.puestos || 0,
+          area_piso_m2: chequeo.areaPiso || null,
+          m2_por_persona: chequeo.m2Persona || null,
+          auditoria: auditoriaMedida.map(a=>({check:a.check,ok:!!a.ok,detalle:a.detalle||null})).slice(0,30),
+        },
+        espacio: areasMM.map((a,areaIndex)=>({
+          area_index:areaIndex,nombre:a.nombre,ancho_mm:a.ancho,largo_mm:a.largo,
+          forma:a.forma||null,
+          puertas:(a.puertas||[]).slice(0,12).map(p=>({
+            x_mm:p.x,y_mm:p.y,ancho_mm:p.ancho,
+            bisagra_x_mm:p.bisagraX??null,bisagra_y_mm:p.bisagraY??null,
+            angulo_cerrada_deg:p.anguloCerradaDeg??null,barrido_deg:p.barridoDeg??null,
+            sentido:p.sentido||null,confianza:p.confianza||null,
+          })),
+          obstaculos:(a.obstaculos||[]).slice(0,20).map(o=>({x:o.x,y:o.y,w:o.w,h:o.h,tipo:o.tipo||null})),
+        })).slice(0,30),
+        colocacion:(plan?.colocacion||[]).slice(0,150).map(x=>{
+          const p=byId[x.id]||{};
+          return {
+            id:x.id,nombre:p.nombre||p.etiqueta||x.id,area:x.area,
+            x_mm:x.x,y_mm:x.y,rot:x.rot||0,
+            ancho_mm:dimsPieza(p,x.rot||0).pw,profundidad_mm:dimsPieza(p,x.rot||0).ph,
+            tipo:p.tipo||null,ruta:p.ruta||null,
+          };
+        }),
+        mobiliario: partidas.map(p=>({
+          nombre:p.nombre,cantidad:p.cantidad,ruta:p.ruta||null,producto_id:p.productoId||null,
+        })).slice(0,80),
+        lectura_plano: lecturaMeta ? {
+          confianza:lecturaMeta.confianza||null,
+          fuente:lecturaMeta.fuente||null,
+          resumen:lecturaMeta.resumen||null,
+        } : null,
+        resumen_plan: plan.resumen||null,
+      };
+      const r=await voniCouncil({
+        task:'layout_review',
+        request:'REVISIÓN SENIOR DEL ACOMODO VON HAUCKE. Critica el layout ya calculado como un proyectista senior: circulación, uso, orientación, accesibilidad, relación entre áreas, coherencia del mobiliario y riesgos que la comprobación geométrica por sí sola no captura.',
+        context:contexto,
+        constraints:[
+          'La auditoría determinista es autoridad para colisiones, piezas fuera y piezas sin colocar; no la contradigas sin evidencia.',
+          'NO mover, duplicar, quitar ni sustituir muebles. Sólo revisar y proponer.',
+          'NO inventar medidas, puertas, obstáculos, normas ni requisitos que no estén en el contexto.',
+          'Si layout_listo=false, jamás declarar el acomodo aprobado.',
+          'Priorizar soluciones reales Von Haucke y respetar exactamente cantidades/productos ya cotizados.',
+          'Distinguir un problema bloqueante de una mejora opcional de proyecto.',
+        ],
+        lenses:['proyectista senior','space planning','ergonomía y circulación','operación del cliente','portafolio Von Haucke']
+      });
+      if(!r?.ok) throw new Error(r?.error||'El Council no pudo completar la revisión.');
+      setRevisionSenior(resumenCouncilUI(r));
+    } catch(e) {
+      setRevisionSeniorError(String(e?.message||e||'No se pudo revisar el acomodo.'));
+    } finally { setRevisionSeniorCargando(false); }
+  }
+
   if (cargando === 'acomodo') return <Cargando voni titulo="Voni está acomodando el espacio" mensajes={['Midiendo las áreas…', 'Asignando muebles a cada cuarto…', 'Dejando circulaciones…', 'Verificando que todo quepa…']} />;
   if (cargando === 'plano') return <Cargando voni titulo="Voni está leyendo el plano" mensajes={['Reconociendo muros…', 'Midiendo los cuartos…', 'Sacando las áreas…']} />;
 
@@ -1103,6 +1211,15 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
 
   return (
     <div className="contenido" style={{ maxWidth: 1000 }}>
+      <MisionFlujo
+        titulo="Misión · acomodar el proyecto"
+        paso={misionAcomodo.paso}
+        total={4}
+        estado={misionAcomodo.estado}
+        resumen={misionAcomodo.resumen}
+        siguiente={misionAcomodo.siguiente}
+        items={misionAcomodo.items}
+      />
       {dibujando && <DibujarPlano onListo={usarDibujo} onCancelar={() => setDibujando(false)} />}
       <div className="tarjeta no-imprimir" style={dibujando ? { display: 'none' } : undefined}>
         <button className="boton fantasma" style={{ minHeight: 40, marginBottom: 10 }} onClick={() => onIr('cotizacion')}>← Volver a la cotización</button>
@@ -1305,6 +1422,42 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
               </div>
             </div>
           )}
+
+          <div className="tarjeta no-imprimir" style={{marginTop:10,borderLeft:'4px solid #315e52'}}>
+            <div style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'center',flexWrap:'wrap'}}>
+              <div>
+                <strong>VONI · Revisión de proyectista senior</strong>
+                <div className="ayuda">Segunda opinión sobre uso y circulación. No mueve el acomodo ni sustituye las mediciones de arriba.</div>
+              </div>
+              <button className="boton" disabled={!plan||!chequeo||revisionSeniorCargando} onClick={revisarAcomodoSenior}>
+                {revisionSeniorCargando?'Revisando hasta 60 s…':revisionSenior?'Volver a revisar':'Revisión profunda'}
+              </button>
+            </div>
+            {revisionSeniorError&&<div className="alerta roja" style={{marginTop:8}}><span className="texto">{revisionSeniorError}</span></div>}
+            {revisionSenior&&(
+              <div style={{marginTop:10}}>
+                <div className="ayuda">
+                  Council <b>{revisionSenior.status}</b> · decisión <b>{revisionSenior.decision}</b>
+                  {revisionSenior.latency_ms!=null?<> · {(revisionSenior.latency_ms/1000).toFixed(1)} s</>:null}
+                  {revisionSenior.budget_ms!=null?<> / techo {(revisionSenior.budget_ms/1000).toFixed(0)} s</>:null}
+                  {revisionSenior.deadline_hit?' · llegó al límite de tiempo':''}
+                </div>
+                {revisionSenior.summary&&<p style={{margin:'8px 0',fontWeight:700}}>{revisionSenior.summary}</p>}
+                {revisionSenior.blockers.length>0&&<div className="alerta roja"><span className="texto"><b>Bloqueos:</b> {revisionSenior.blockers.join(' · ')}</span></div>}
+                {revisionSenior.recommendations.length>0&&(
+                  <div style={{display:'grid',gap:7,marginTop:8}}>
+                    {revisionSenior.recommendations.map((x,i)=><div key={i} style={{padding:'8px 0',borderTop:'1px solid var(--linea)'}}>
+                      <b>{x.category||'MEJORA'} · {x.what}</b>
+                      {x.why&&<div className="ayuda">{x.why}</div>}
+                      {x.impact&&<div className="ayuda gris">Impacto: {x.impact}</div>}
+                    </div>)}
+                  </div>
+                )}
+                {revisionSenior.questions.length>0&&<div className="ayuda" style={{marginTop:8}}><b>Antes de certificar mejor:</b> {revisionSenior.questions.join(' · ')}</div>}
+                <div className="ayuda gris" style={{marginTop:8}}>La revisión del Council es advisory. El render final sigue bloqueado por la auditoría determinista si el layout no es válido.</div>
+              </div>
+            )}
+          </div>
 
           {/* Toggle planta / 3D */}
           <div className="fila-botones no-imprimir" style={{ gap: 8, marginTop: 8 }}>

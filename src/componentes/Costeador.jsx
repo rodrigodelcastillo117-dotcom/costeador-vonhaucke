@@ -16,6 +16,7 @@ import MiniRender, { tipoDeMueble, dimsDeMueble } from './MiniRender.jsx';
 import { generarRender, analizarTexto, buscarProductosMaestroTexto } from '../nube.js';
 import { pesos2, pct, pct1, colorMerma } from '../util.js';
 import AnalisisEstructural from './AnalisisEstructural.jsx';
+import MisionFlujo from './MisionFlujo.jsx';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
 import { aplicarPoliticaMaterial, MATCH } from '../datos/materialMatch.js';
@@ -103,6 +104,32 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   // Alba (botón) limpia los factores y restaura el costo certificado.
   const esOficialAlba = costeo.modoManoObra !== 'horas' && costeo.factorDirecta == null && costeo.factorIndirecta == null;
   const simulando = !esOficialAlba;
+  const misionCosteo = useMemo(() => {
+    const nombreOk=!!String(costeo.nombre||'').trim();
+    const bomOk=(costeo.componentes||[]).length>0;
+    const costoOk=Number.isFinite(Number(resultado?.costoUnitario));
+    const oficialOk=costoOk&&!incompletoC&&!simulando;
+    const paso=!nombreOk?1:!bomOk?2:!oficialOk?3:4;
+    return {
+      paso,
+      estado:oficialOk?'ok':(incompletoC?'blocked':'attention'),
+      resumen:!nombreOk?'Empieza definiendo qué mueble estás costeando.'
+        :!bomOk?'Falta convertir el mueble en piezas/materiales reales.'
+        :!oficialOk?'El despiece existe, pero el costo todavía no está certificado para cotizar.'
+        :'Costo oficial trazado y listo para revisión/cotización.',
+      siguiente:!nombreOk?'Ponle nombre o descríbelo para que VONI proponga estructura.'
+        :!bomOk?'Completa o confirma el BOM.'
+        :simulando?'Vuelve a Alba V1 para recuperar el costo oficial.'
+        :incompletoC?'Resuelve los bloqueos marcados antes de cotizar.'
+        :'Revisa la auditoría matemática y agrega a la cotización.',
+      items:[
+        {key:'producto',label:'Producto definido',ok:nombreOk},
+        {key:'bom',label:'BOM',ok:bomOk},
+        {key:'costo',label:'Costo oficial',ok:oficialOk},
+        {key:'explica',label:'Explicación auditable',ok:!!explicacionCosteo},
+      ],
+    };
+  },[costeo.nombre,costeo.componentes,resultado?.costoUnitario,incompletoC,simulando,explicacionCosteo]);
   const volverAAlba = () => set({ modoManoObra: 'porcentaje', factorDirecta: null, factorIndirecta: null });
   const sugerencia = useMemo(
     () => sugerenciaLote(piezaVirtual, costeo.piezas, insumos, par),
@@ -319,6 +346,15 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     <div className="dos-col">
       {/* ------------------ COLUMNA IZQUIERDA ------------------ */}
       <div>
+        <MisionFlujo
+          titulo="Misión · costear este mueble"
+          paso={misionCosteo.paso}
+          total={4}
+          estado={misionCosteo.estado}
+          resumen={misionCosteo.resumen}
+          siguiente={misionCosteo.siguiente}
+          items={misionCosteo.items}
+        />
         {/* N3 — análisis estructural (read-only, no toca el BOM certificado) */}
         {flagActivo('costing_ai_v2') && <AnalisisEstructural costeo={costeo} />}
         {/* 1. Que estas costeando */}

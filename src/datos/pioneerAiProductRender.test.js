@@ -65,11 +65,12 @@ describe('Render premium · fidelidad antes que belleza', () => {
   });
 });
 
-describe('VONI Council · 20 segundos', () => {
-  it('usa 20s como presupuesto global máximo', () => {
+describe('VONI Council · presupuesto por complejidad', () => {
+  it('reserva hasta 60s para trabajo profundo sin hacer lentos los cambios simples', () => {
     const s=fs.readFileSync('supabase/functions/voni-council/index.ts','utf8');
-    expect(s).toContain('const councilBudget=20000');
-    expect(s).not.toContain("VONI_COUNCIL_BUDGET_MS')||14500");
+    expect(s).toContain('review_product:60000');
+    expect(s).toContain('layout_review:60000');
+    expect(s).toContain('interpret_change:25000');
   });
 });
 
