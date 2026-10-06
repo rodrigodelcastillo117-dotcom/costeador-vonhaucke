@@ -124,7 +124,7 @@ function costeoEnBlanco() {
     // CUTOVER A ALBA (2026-10-02): el costo OFICIAL por defecto es Alba (sin factores a
     // mano). El 55/12 legacy ya no se siembra: así "Ver detalle" de un producto Alba no
     // se recostea en Legacy55. Mover un factor a mano = SIMULACIÓN no oficial (Costeador).
-    factorDirecta: null, factorIndirecta: null, preparacionHoras: 0, margen: 30,
+    factorDirecta: null, factorIndirecta: null, preparacionHoras: 0, margen: null,
   };
 }
 
