@@ -59,7 +59,8 @@ describe('Render prompt · Von Haucke DNA grounded',()=>{
   it('uses brand DNA only after product/reference truth',()=>{
     const s=fs.readFileSync('supabase/functions/generar-render/index.ts','utf8');
     expect(s).toContain('VON HAUCKE DESIGN DNA');
-    expect(s).toContain('Never turn the piece into generic Scandinavian');
+    expect(s).toContain('Never turn the piece');
+    expect(s).toContain('into generic Scandinavian, residential, mid-century or another brand');
     expect(s).toContain('Preserve the ACTUAL product');
     expect(s).not.toContain('Herman Miller / Vitra catalogue quality');
   });
