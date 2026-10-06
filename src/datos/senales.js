@@ -87,6 +87,19 @@ export function bloqueosDeEmision(partidas = []) {
         corregir: `Vuelve a costear "${etq}" y resuelve sus datos pendientes antes de emitir.` });
     }
 
+    const estadoCosto = String(p.costoEstado || '').toLowerCase();
+    if (estadoCosto === 'preliminar') {
+      b.push({ code: 'COSTO_PRELIMINAR', pieza: etq, nivel: 'blocker',
+        titulo: `"${etq}" tiene costo preliminar; todavía no está certificado.`,
+        porque: 'El cálculo existe, pero uno o más insumos todavía no tienen evidencia suficiente para convertirlo en una emisión definitiva.',
+        corregir: `Confirma los precios/evidencias pendientes de "${etq}" con Compras o Diseño y vuelve a costear hasta obtener estado certificado.` });
+    } else if (estadoCosto === 'incompleto' || estadoCosto === 'bloqueado') {
+      b.push({ code: 'COSTO_NO_CERTIFICABLE', pieza: etq, nivel: 'blocker',
+        titulo: `"${etq}" tiene un costo ${estadoCosto} y no puede emitirse.`,
+        porque: 'El servidor autoritativo indicó que el costo no reúne las condiciones mínimas para ser comercial.',
+        corregir: `Resuelve los bloqueos del costeo de "${etq}" antes de emitir.` });
+    }
+
     const nSin = Number(p.piezasSinMaterial) || 0;
     if (nSin > 0) {
       const cuales = Array.isArray(p.nombresSinMaterial) && p.nombresSinMaterial.length
