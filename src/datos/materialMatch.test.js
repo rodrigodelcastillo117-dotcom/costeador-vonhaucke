@@ -168,7 +168,7 @@ describe('confirmación humana de material candidato', () => {
     const c = aplicarPoliticaMaterial(
       {
         nombre:'Cubierta',
-        insumoId:'melamina-16',
+        insumoId:'melamina-16-blanco-absoluto',
         material_solicitado:'',
         material_confirmado:true,
         cantidad:1,
@@ -176,9 +176,33 @@ describe('confirmación humana de material candidato', () => {
       (id) => CAT.find((x) => x.id === id),
       CAT,
     );
-    expect(c.insumoId).toBe('melamina-16');
+    expect(c.insumoId).toBe('melamina-16-blanco-absoluto');
     expect(c._match.clase).toBe(MATCH.USER_CONFIRMED);
     expect(c._match.confirmado_por_usuario).toBe(true);
     expect(MATCH_AUTOCOSTEABLE.has(c._match.clase)).toBe(true);
+  });
+});
+
+
+describe('identidad comercial de componentes comprados', () => {
+  it('nombre comercial específico + artículo real del catálogo puede ser EXACT sin familia MP', () => {
+    const r = clasificarMaterial({
+      solicitado:'portamonitor Loktec',
+      insumoId:'portamonitor-loktec-d7a',
+      insumoNombre:'Portamonitor Loktec D7A',
+    });
+    expect(r.clase).toBe(MATCH.EXACT);
+    expect(r.insumoIdEfectivo).toBe('portamonitor-loktec-d7a');
+    expect(r.autocosteable).toBe(true);
+  });
+
+  it('texto genérico sin familia sigue siendo candidato, no exacto', () => {
+    const r = clasificarMaterial({
+      solicitado:'accesorio',
+      insumoId:'portamonitor-loktec-d7a',
+      insumoNombre:'Portamonitor Loktec D7A',
+    });
+    expect(r.clase).toBe(MATCH.CANDIDATE_REQUIRES_CONFIRMATION);
+    expect(r.insumoIdEfectivo).toBe('');
   });
 });
