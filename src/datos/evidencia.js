@@ -14,6 +14,8 @@ export const FUENTES = Object.freeze({
   VISIBLE_EN_PLANO: 'VISIBLE_EN_PLANO',       // cota/símbolo explícito en el plano
   INFERIDO_ESTRUCTURAL: 'INFERIDO_ESTRUCTURAL', // deducido por geometría/estructura
   SUPUESTO: 'SUPUESTO',                       // asumido por default razonable
+  CATALOGO: 'CATALOGO',                       // dato canónico de catálogo/ProductRevision
+  DERIVADO_MEDIDO: 'DERIVADO_MEDIDO',         // cálculo determinista desde evidencia medida
 });
 
 const CONFIANZA = Object.freeze({
@@ -21,6 +23,8 @@ const CONFIANZA = Object.freeze({
   VISIBLE_EN_PLANO: 0.9,
   INFERIDO_ESTRUCTURAL: 0.6,
   SUPUESTO: 0.3,
+  CATALOGO: 0.95,
+  DERIVADO_MEDIDO: 0.9,
 });
 
 export function confianzaDeFuente(fuente) {
@@ -152,5 +156,88 @@ export function modeloEvidencia(camposLecturas, opts = {}) {
       const vs = Object.values(resuelto).map((e) => e.confianza);
       return vs.length ? Math.round((vs.reduce((a, b) => a + b, 0) / vs.length) * 100) / 100 : 0;
     })(),
+  };
+}
+
+
+// ---------------------------------------------------------------------------
+// CERTIFICACIÓN DE BOM · puente con el contrato nuevo de procedencia.
+// MEASURED/DERIVED/INFERRED/ASSUMED del Document Intelligence se mapean SIN
+// reinterpretar a las fuentes canónicas de esta capa.
+// ---------------------------------------------------------------------------
+export const PROCEDENCIA_TECNICA = Object.freeze({
+  MEASURED: 'MEASURED',
+  DERIVED: 'DERIVED',
+  INFERRED: 'INFERRED',
+  ASSUMED: 'ASSUMED',
+  USER_CONFIRMED: 'USER_CONFIRMED',
+  CATALOG: 'CATALOG',
+  UNKNOWN: 'UNKNOWN',
+});
+
+export function procedenciaTecnica(item = {}) {
+  const raw = String(
+    item?.procedencia ?? item?.provenance ?? item?.evidence_state ?? ''
+  ).trim().toUpperCase();
+  return Object.values(PROCEDENCIA_TECNICA).includes(raw)
+    ? raw
+    : PROCEDENCIA_TECNICA.UNKNOWN;
+}
+
+export function fuenteDesdeProcedencia(item = {}) {
+  switch (procedenciaTecnica(item)) {
+    case PROCEDENCIA_TECNICA.MEASURED: return FUENTES.VISIBLE_EN_PLANO;
+    case PROCEDENCIA_TECNICA.DERIVED: return FUENTES.DERIVADO_MEDIDO;
+    case PROCEDENCIA_TECNICA.INFERRED: return FUENTES.INFERIDO_ESTRUCTURAL;
+    case PROCEDENCIA_TECNICA.ASSUMED: return FUENTES.SUPUESTO;
+    case PROCEDENCIA_TECNICA.USER_CONFIRMED: return FUENTES.CONFIRMADO_USUARIO;
+    case PROCEDENCIA_TECNICA.CATALOG: return FUENTES.CATALOGO;
+    default: return null;
+  }
+}
+
+const FUENTES_CERTIFICABLES = new Set([
+  FUENTES.CONFIRMADO_USUARIO,
+  FUENTES.VISIBLE_EN_PLANO,
+  FUENTES.DERIVADO_MEDIDO,
+  FUENTES.CATALOGO,
+]);
+
+export function evidenciaCertificable(item = {}) {
+  const fuente = item?.fuente || fuenteDesdeProcedencia(item);
+  return FUENTES_CERTIFICABLES.has(fuente);
+}
+
+/**
+ * Un BOM puede existir como PRELIMINARY con inferencias/supuestos, pero NO puede
+ * llamarse CERTIFIED mientras haya material sin identificar o evidencia débil.
+ */
+export function auditarEvidenciaBOM(componentes = []) {
+  const issues = [];
+  const estados = [];
+  for (let i = 0; i < (componentes || []).length; i++) {
+    const comp = componentes[i] || {};
+    const nombre = comp.nombre || comp.insumoId || `componente_${i + 1}`;
+    const fuente = comp.fuente || fuenteDesdeProcedencia(comp);
+    const procedencia = procedenciaTecnica(comp);
+    estados.push({ index: i, nombre, fuente, procedencia });
+
+    if (!comp.insumoId && !comp.excluida) {
+      issues.push({ index: i, nombre, code: 'MATERIAL_NO_CONFIRMADO', fuente, procedencia });
+    }
+    if (!evidenciaCertificable(comp)) {
+      issues.push({
+        index: i, nombre,
+        code: procedencia === PROCEDENCIA_TECNICA.INFERRED ? 'INFERENCIA_SIN_CONFIRMAR' : 'EVIDENCIA_NO_CERTIFICABLE',
+        fuente, procedencia,
+      });
+    }
+  }
+  return {
+    certificable: issues.length === 0,
+    estado: issues.length ? 'PRELIMINARY' : 'CERTIFIED',
+    total: (componentes || []).length,
+    issues,
+    estados,
   };
 }
