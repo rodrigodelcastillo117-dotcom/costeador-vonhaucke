@@ -2969,3 +2969,27 @@ body::before {
   .inicio-mas95-grid{grid-template-columns:1fr}
   .trabajo95{padding:18px}
 }
+
+
+/* Costeo 9.5 · verdad primero */
+.costeo-resumen95{grid-column:1/-1;display:grid;grid-template-columns:minmax(210px,1.45fr) repeat(3,minmax(120px,1fr));gap:9px;margin-bottom:4px;padding:11px;border:1px solid var(--linea);border-radius:15px;background:var(--panel,#fff)}
+.costeo-resumen95-principal,.costeo-resumen95-metrica{display:flex;flex-direction:column;justify-content:center;min-height:92px;padding:13px;border-radius:11px;background:rgba(0,0,0,.025)}
+.costeo-resumen95-principal{background:linear-gradient(145deg,rgba(49,94,82,.12),rgba(49,94,82,.035));border:1px solid rgba(49,94,82,.2)}
+.costeo-resumen95-k{font-size:10px;font-weight:900;letter-spacing:.12em;color:#315e52}
+.costeo-resumen95-principal>strong{font-size:28px;line-height:1.05;margin:5px 0 4px}
+.costeo-resumen95-principal>span:last-child,.costeo-resumen95-metrica>span,.costeo-resumen95-metrica>small{font-size:11px;color:var(--texto-secundario,#666)}
+.costeo-resumen95-metrica>strong{font-size:23px;line-height:1.1;margin:5px 0}
+.confianza95-score{display:flex;align-items:baseline;gap:2px;white-space:nowrap}
+.confianza95-score strong{font-size:28px;line-height:1}
+.confianza95-score span{font-size:12px;font-weight:800}
+.confianza95-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:10px}
+.confianza95-grid>div{padding:8px;border-radius:8px;background:rgba(0,0,0,.035)}
+.confianza95-grid span{display:block;font-size:10px;color:var(--texto-secundario,#666)}
+.confianza95-grid strong{display:block;margin-top:3px;font-size:15px}
+@media(max-width:950px){
+ .costeo-resumen95{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:560px){
+ .costeo-resumen95{grid-template-columns:1fr}
+ .confianza95-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
