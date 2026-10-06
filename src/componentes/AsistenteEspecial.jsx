@@ -14,7 +14,8 @@ import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
 import { aplicarPoliticaMaterial } from '../datos/materialMatch.js';
-import { abrirPdf, paginaAImagen, todasLasPaginas } from '../datos/pdfImagen.js';
+import { paginaAImagen } from '../datos/pdfImagen.js';
+import { prepararPdfRapido, rasterizarPaginas } from '../datos/pdfPipeline.js';
 import Cargando from './Cargando.jsx';
 import Markdown from './Markdown.jsx';
 import InformeIA from './InformeIA.jsx';
@@ -679,12 +680,12 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         // Abre el PDF en el navegador y manda SOLO la hoja del mueble como imagen
         // (lo que la IA sí lee bien). Si pdf.js falla → PDF crudo (como antes).
         try {
-          const doc = await abrirPdf(file);
-          if (doc.numPaginas > 1) {
-            const preview = await paginaAImagen(doc, 1, 1400);
-            setPdfSel({ doc, numPaginas: doc.numPaginas, pagina: 1, preview });
+          const prep = await prepararPdfRapido(file, { previewPx: 1200 });
+          const doc = prep.doc;
+          if (prep.numPaginas > 1) {
+            setPdfSel({ doc, numPaginas: prep.numPaginas, pagina: 1, preview: prep.preview, msAFirstPreview: prep.msAFirstPreview });
             setAnalizando(false);
-            return; // espera a que elija la hoja (la corrida se abre al analizar)
+            return; // muestra preview rápido; el trabajo pesado ocurre sólo al confirmar
           }
           const cid = nuevaCorrida();
           const dataUrl = await paginaAImagen(doc, 1);
@@ -745,8 +746,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     setPdfSel(null); setErrorIA(''); setAnalizando(true);
     const cid = nuevaCorrida();
     try {
-      const imgs = await todasLasPaginas(sel.doc, 1600);
-      await analizarImagenes(imgs, sel.preview, cid);
+      const paginas = Array.from({ length: sel.numPaginas }, (_, i) => i + 1);
+      const raster = await rasterizarPaginas(sel.doc, paginas, { maxPx: 1600, concurrency: 3 });
+      await analizarImagenes(raster.map((x) => x.base64), sel.preview, cid);
     } catch (err) {
       setErrorIA('No se pudieron procesar las hojas. Intenta subir la hoja principal como imagen.');
     } finally {
