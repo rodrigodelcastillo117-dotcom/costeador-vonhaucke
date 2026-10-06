@@ -12,6 +12,7 @@ export function textoRazonEmision(code) {
   const k = m ? m[2] : String(code || '');
   const L = n ? `Línea ${n}: ` : '';
   if (/costo_desconocido/.test(k)) return `${L}falta confirmar el costo con Diseño/Dirección.`;
+  if (/costo_preliminar|costo_no_certificado/.test(k)) return `${L}el costo existe, pero todavía falta certificar sus precios/evidencias.`;
   if (/sin_product_version_id/.test(k)) return `${L}vuelve a agregarla desde su ficha (falta versión de producto).`;
   if (/product_version_no_corresponde/.test(k)) return `${L}la versión de producto no corresponde; re-agrégala.`;
   if (/precio_bajo_costo|margen_bajo/.test(k)) return `${L}requiere aprobación de Dirección.`;

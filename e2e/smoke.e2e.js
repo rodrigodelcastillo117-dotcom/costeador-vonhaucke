@@ -35,4 +35,25 @@ test.describe('smoke · la app arranca', () => {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
     expect(overflow).toBe(false);
   });
+  test('login · validación local, mostrar contraseña y recuperación no tienen caminos muertos', async ({ page }) => {
+    await page.goto('/');
+
+    const entrar = page.getByRole('button', { name: /^Entrar$/i });
+    await entrar.click();
+    await expect(page.getByText(/Escribe tu correo y tu contraseña/i)).toBeVisible();
+
+    const pass = page.locator('#pass-login');
+    await expect(pass).toHaveAttribute('type', 'password');
+    await page.getByLabel(/Ver contraseña/i).check();
+    await expect(pass).toHaveAttribute('type', 'text');
+    await page.getByLabel(/Ver contraseña/i).uncheck();
+    await expect(pass).toHaveAttribute('type', 'password');
+
+    await page.getByRole('button', { name: /Olvidaste tu contraseña/i }).click();
+    await expect(page.getByText(/Escribe tu correo arriba/i)).toBeVisible();
+    await expect(page.getByRole('button', { name: /Mandarme el enlace/i })).toBeVisible();
+    await page.getByRole('button', { name: /Cancelar/i }).click();
+    await expect(page.getByRole('button', { name: /Olvidaste tu contraseña/i })).toBeVisible();
+  });
+
 });

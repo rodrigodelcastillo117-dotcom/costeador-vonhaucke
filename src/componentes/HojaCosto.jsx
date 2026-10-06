@@ -6,7 +6,7 @@ import { precioDe, precioVenta, costeoEmitible, PARAMETROS_DEFAULT, formulaDePie
 import { precioDeLista } from '../datos/preciosVenta.js';
 import { preciosVH } from '../datos/politicaVH.js';
 
-export default function HojaCosto({ resultado, insumos, pieza, parametros = PARAMETROS_DEFAULT, tipo = 'mueble_fabricado', mostrarVolumen = false }) {
+export default function HojaCosto({ resultado, insumos, pieza, parametros = PARAMETROS_DEFAULT, tipo = 'mueble_fabricado', mostrarVolumen = false, mostrarComercial = true }) {
   if (!resultado) return null;
 
   const intelisis = resultado.modeloCosteo === 'intelisis';
@@ -41,7 +41,7 @@ export default function HojaCosto({ resultado, insumos, pieza, parametros = PARA
 
   // --- Desglose VISUAL: de qué se compone el precio (vivo) ---
   // Sin costo completo no hay utilidad real: el precio es "Pendiente", no un número.
-  const utilidad = incompleto ? 0 : Math.max(0, precioLista - costoFabricacion);
+  const utilidad = (!mostrarComercial || incompleto) ? 0 : Math.max(0, precioLista - costoFabricacion);
   const segs = [
     { k: 'Material', v: resultado.materialTotal, c: '#C6A971' },
     { k: 'Mano de obra', v: (resultado.manoObra || 0) + (resultado.preparacion || 0) + (resultado.empaque || 0), c: '#3B6FB0' },
@@ -70,11 +70,13 @@ export default function HojaCosto({ resultado, insumos, pieza, parametros = PARA
             <div className="dvis-lbl">{incompleto ? 'Subtotal conocido' : 'Cuesta hacer 1'}</div>
             <div className="dvis-costo">{pesos2(costoFabricacion)}</div>
           </div>
-          <div className="dvis-arrow">→</div>
-          <div style={{ textAlign: 'right' }}>
-            <div className="dvis-lbl">Precio de lista</div>
-            <div className="dvis-precio" style={incompleto ? { color: '#b22a22', fontSize: '0.8em' } : undefined}>{incompleto ? 'Pendiente' : pesos2(precioLista)}</div>
-          </div>
+          {mostrarComercial && <>
+            <div className="dvis-arrow">→</div>
+            <div style={{ textAlign: 'right' }}>
+              <div className="dvis-lbl">Precio de lista</div>
+              <div className="dvis-precio" style={incompleto ? { color: '#b22a22', fontSize: '0.8em' } : undefined}>{incompleto ? 'Pendiente' : pesos2(precioLista)}</div>
+            </div>
+          </>}
         </div>
         {incompleto && (
           <div className="alerta roja" style={{ marginTop: 8 }}>
@@ -92,7 +94,7 @@ export default function HojaCosto({ resultado, insumos, pieza, parametros = PARA
             </span>
           ))}
         </div>
-        {utilidad > 0 && <div className="dvis-gana">De cada venta, ganas <b>{pesos2(utilidad)}</b> <span className="gris">({Math.round(margenReal)}% del precio)</span></div>}
+        {mostrarComercial && utilidad > 0 && <div className="dvis-gana">De cada venta, ganas <b>{pesos2(utilidad)}</b> <span className="gris">({Math.round(margenReal)}% del precio)</span></div>}
       </div>
 
 
@@ -149,7 +151,7 @@ export default function HojaCosto({ resultado, insumos, pieza, parametros = PARA
       <hr className="doble" />
       <div className="fila"><span>Costo de materia prima</span><span className="val">{pesos2(materiaPrima)}</span></div>
       <div className="fila"><span>{incompleto ? 'Subtotal de fabricación (parcial)' : 'Costo de fabricacion'}</span><span className="val">{pesos2(costoFabricacion)}</span></div>
-      {incompleto ? (
+      {mostrarComercial && (incompleto ? (
         <div className="ayuda" style={{ marginTop: 4, color: '#b22a22' }}>Precio mínimo, de lista y por volumen quedan pendientes hasta costear todas las partidas.</div>
       ) : (
         <>
@@ -157,14 +159,14 @@ export default function HojaCosto({ resultado, insumos, pieza, parametros = PARA
           <div className="fila total"><span>Precio de lista <span className="gris">{intelisis ? '(×3)' : `(${margenObjetivo}%)`}</span></span><span className="val">{pesos2(precioLista)}</span></div>
           <div className="ayuda" style={{ marginTop: 4 }}>Se cotiza de la lista hacia abajo con descuento; el mínimo es el piso.</div>
         </>
-      )}
+      ))}
 
       {/* Precios por volumen — método T.D.C. de Alba (REG-DCC-IDP-031), verificado
           al centavo contra el copete C-CO-516R. precio_mínimo = costo × factor de
           volumen; lista = mín/0.7; precio_2 = mín/0.42. A mayor volumen, menor
           factor → menor precio. SOLO en el Costeador de producto nuevo: en las
           líneas de catálogo el precio ya está calibrado y este escalón confundiría. */}
-      {mostrarVolumen && !incompleto && (
+      {mostrarComercial && mostrarVolumen && !incompleto && (
         <>
           <hr className="doble" />
           <div className="fila"><strong>Precios por volumen</strong><span className="gris">método Vonhaucke</span></div>

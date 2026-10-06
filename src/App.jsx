@@ -60,7 +60,7 @@ import { cargarAprendizajes } from './datos/aprendizaje.js';
 import { guardarCotizacion, cargarCotizacionCompleta } from './datos/cotizaciones.js';
 import { guardarRevision } from './datos/revisiones.js';
 import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
-import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, cotizacionEmitible } from './nube.js';
+import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, cotizacionEmitible, costearServidor } from './nube.js';
 import { calcular, modeloParaPieza, componentesSinMaterial } from './motor/calculo.js';
 import { calcularCosteoVivo } from './motor/costeoVivo.js';
 import { aCentavosEnteros, dinero } from './motor/dinero.js';
@@ -423,7 +423,12 @@ export default function App() {
     const t = setTimeout(async () => {
       const epoca = epocaCot.current;
       const id = await guardarCotizacion(estado, sesion.user.email, idCotizacion.current);
-      if (id && epocaCot.current === epoca) idCotizacion.current = id;
+      if (id && epocaCot.current === epoca) {
+        idCotizacion.current = id;
+        setNubeEstado('conectado');
+      } else if (epocaCot.current === epoca) {
+        setNubeEstado('sin-conexion');
+      }
     }, 1500);
     return () => clearTimeout(t);
   }, [estado.cotizacion, sesion]);
@@ -439,8 +444,13 @@ export default function App() {
     try {
       const epoca = epocaCot.current;
       const id = await guardarCotizacion(estado, sesion.user.email, idCotizacion.current);
-      if (id && epocaCot.current === epoca) idCotizacion.current = id;
-      return await cotizacionEmitible(idCotizacion.current);
+      if (!id || epocaCot.current !== epoca) {
+        setNubeEstado('sin-conexion');
+        return { ok: false, estado: 'DESCONOCIDO', motivos: [], error: 'No se pudo guardar el estado vivo de la cotización.' };
+      }
+      idCotizacion.current = id;
+      setNubeEstado('conectado');
+      return await cotizacionEmitible(id);
     } catch (e) { return { ok: false, estado: 'DESCONOCIDO', motivos: [], error: String(e?.message || e) }; }
   }
 
@@ -449,8 +459,13 @@ export default function App() {
     try {
       const epoca = epocaCot.current;
       const id = await guardarCotizacion(estado, sesion.user.email, idCotizacion.current);
-      if (id && epocaCot.current === epoca) idCotizacion.current = id;
-      const r = await guardarRevision(estado, idCotizacion.current);
+      if (!id || epocaCot.current !== epoca) {
+        setNubeEstado('sin-conexion');
+        return { ok: false, motivo: 'no-se-guardo-estado-vivo' };
+      }
+      idCotizacion.current = id;
+      setNubeEstado('conectado');
+      const r = await guardarRevision(estado, id);
       if (r?.ok && r.nueva) mostrarAviso(`Revisión ${r.revision} guardada — se conservó lo que se emitió.`);
       return r || { ok: false, motivo: 'desconocido' };
     } catch (e) {
@@ -778,18 +793,55 @@ export default function App() {
   // Costear especial (modo avanzado). Mismo bug: estas tres se pasaban como prop
   // y no existían, así que "Costear especial" y "Catálogo" también morían en
   // blanco. `resultado` es el cálculo; el mueble en sí vive en `costeo`.
-  function onAgregarCotizacion(resultado, precio, margen) {
+  async function onAgregarCotizacion(resultado, precio, margen) {
     const n = Math.max(1, Number(costeo.piezas) || 1);
-    // Piezas sin material: el motor ya las reporta; si no vino el resultado, se
-    // deriva del despiece. Viaja con la partida para bloquear la emisión (no el
-    // guardado) hasta que se les asigne material.
+
+    // GATE AUTORITATIVO: antes de convertir un costeo NUEVO en una línea comercial,
+    // el servidor recalcula con la configuración real. Un centavo de diferencia
+    // implica estado no reproducible y falla cerrado.
+    let autoridad;
+    try {
+      autoridad = await costearServidor(costeo, n);
+    } catch (_e) {
+      const error = 'No se agregó: no pude verificar el costo con el servidor.';
+      mostrarAviso(error, 8000);
+      return { ok: false, error };
+    }
+    if (!autoridad?.ok) {
+      const error = 'No se agregó: ' + (autoridad?.error || 'el servidor no pudo verificar este costeo.');
+      mostrarAviso(error, 8000);
+      return { ok: false, error };
+    }
+    if (autoridad.estado === 'incompleto' || autoridad.estado === 'bloqueado') {
+      const error = `No se agregó: el costo autoritativo está ${autoridad.estado}.`;
+      mostrarAviso(error, 8000);
+      return { ok: false, error };
+    }
+
+    const costoClienteRaw = resultado?.costoUnitario;
+    const costoServidorRaw = autoridad?.costo?.costoUnitario;
+    const clienteC = aCentavosEnteros(costoClienteRaw);
+    const servidorC = aCentavosEnteros(costoServidorRaw);
+    if (clienteC == null || servidorC == null) {
+      const error = 'No se agregó: el costo no es finito o no quedó certificado.';
+      mostrarAviso(error, 8000);
+      return { ok: false, error };
+    }
+    if (clienteC !== servidorC) {
+      const delta = Math.abs(clienteC - servidorC) / 100;
+      const error = `No se agregó: cliente y servidor difieren $${delta.toFixed(2)}. Recarga y vuelve a costear.`;
+      mostrarAviso(error, 9000);
+      return { ok: false, error };
+    }
+
+    const costoServidor = dinero(costoServidorRaw);
     const sinMat = Array.isArray(resultado?.componentesIgnorados)
       ? resultado.componentesIgnorados
       : componentesSinMaterial(costeo.componentes, estado.insumos);
-    // Piezas excluidas ($0 por decisión): el motor ya las reporta; si no, del despiece.
     const excl = Array.isArray(resultado?.componentesExcluidos)
       ? resultado.componentesExcluidos
       : (costeo.componentes || []).filter((c) => c && c.excluida).map((c) => c.nombre || 'Partida excluida');
+
     sumarPartidas([{
       id: idNuevo('p'),
       piezaId: costeo.piezaId || null,
@@ -798,10 +850,11 @@ export default function App() {
       productoId: costeo.productoId || null,
       w: costeo.w || null, d: costeo.d || null,
       cantidad: n,
-      costoUnitario: resultado?.costoUnitario != null && Number.isFinite(Number(resultado.costoUnitario))
-        ? Number(resultado.costoUnitario)
-        : null,
-      costoPendiente: !(resultado?.costoUnitario != null && Number.isFinite(Number(resultado.costoUnitario))),
+      costoUnitario: costoServidor,
+      costoPendiente: false,
+      costoEstado: autoridad.estado || null,
+      versionMotor: autoridad.versionMotor || null,
+      versionCatalogo: autoridad.versionCatalogo || null,
       precioUnitario: precio,
       margen: Number.isFinite(margen) ? margen : null,
       config: null,
@@ -809,7 +862,8 @@ export default function App() {
       nombresSinMaterial: sinMat,
       nombresExcluidos: excl,
     }]);
-    mostrarAviso(`Agregado: ${costeo.nombre || 'mueble a la medida'}`);
+    mostrarAviso(`Agregado y verificado: ${costeo.nombre || 'mueble a la medida'}`);
+    return { ok: true, costoUnitario: costoServidor, estado: autoridad.estado };
   }
 
   // Guarda el despiece actual como pieza reutilizable del catálogo interno.
@@ -1123,7 +1177,8 @@ export default function App() {
           ? (
             <div className="contenido">
               <Costeador estado={estado} costeo={costeo} setCosteo={setCosteo}
-                onAgregarCotizacion={onAgregarCotizacion} onGuardarPieza={onGuardarPieza} />
+                onAgregarCotizacion={onAgregarCotizacion} onGuardarPieza={onGuardarPieza}
+                puedeVerComercial={esDireccion} />
             </div>
           )
           : <div className="contenido"><div className="tarjeta"><p className="ayuda">El modo avanzado y el costo de fabricación son para Diseño y Dirección. Usa <strong>Cotizar un mueble</strong> para el precio recomendado.</p></div></div>

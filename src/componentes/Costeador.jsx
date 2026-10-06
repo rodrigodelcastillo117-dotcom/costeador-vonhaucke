@@ -42,7 +42,7 @@ const MM_MINIMO = 10;
 export const pareceMetros = (v) => Number(v) > 0 && Number(v) < MM_MINIMO;
 export const aMilimetros = (v) => (pareceMetros(v) ? Math.round(Number(v) * 1000) : Number(v) || 0);
 
-export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizacion, onGuardarPieza }) {
+export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizacion, onGuardarPieza, puedeVerComercial = true }) {
   const [abiertas, setAbiertas] = useState({ cubiertas: true });
   const [fichaAbierta, setFichaAbierta] = useState(false);
   const [generando, setGenerando] = useState(false);
@@ -51,6 +51,8 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   // estructura que Voni entendió. No toca el costeo/dinero: el motor sigue costeando.
   const [analizandoIA, setAnalizandoIA] = useState(false);
   const [errIA, setErrIA] = useState('');
+  const [validandoCosto, setValidandoCosto] = useState(false);
+  const [errAutoridad, setErrAutoridad] = useState('');
   const [estructuraVoni, setEstructuraVoni] = useState(null);
   // RENDER STALE (Gate 6): si el despiece cambió desde que se generó la imagen, el
   // render ya NO es fiel. No lo mostramos como válido: avisamos y marcamos para regenerar.
@@ -133,6 +135,20 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   const vistaTipo = (estructuraVoni?.design_intent?.product_type && estructuraVoni.design_intent.product_type !== 'unknown')
     ? tipoDeMueble({ nombre: estructuraVoni.design_intent.product_type })
     : tipoDeMueble(costeo);
+
+  async function agregarCotizacionVerificada() {
+    if (incompletoC || simulando || validandoCosto) return;
+    setErrAutoridad('');
+    setValidandoCosto(true);
+    try {
+      const r = await onAgregarCotizacion(resultado, precio, margen);
+      if (r?.ok === false) setErrAutoridad(r.error || 'No se pudo verificar el costo.');
+    } catch (e) {
+      setErrAutoridad(String(e?.message || e || 'No se pudo verificar el costo.'));
+    } finally {
+      setValidandoCosto(false);
+    }
+  }
 
   // --- Render de calidad con IA (Gemini), inspirado en lo que se costea ---
   // Resumen de ESTRUCTURA (lo que Voni entendió) para que el render arme el objeto
@@ -660,48 +676,59 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             (default 30%), así que mostraba un "precio de lista" distinto al precio
             grande para la MISMA pieza. Se le pasa el margen efectivo. (Para piezas
             de catálogo/Intelisis la hoja usa la lista ×3 y este override no aplica.) */}
-        <HojaCosto resultado={resultado} insumos={insumos} pieza={piezaVirtual} parametros={{ ...par, margenObjetivo: margen }} tipo={costeo.tipoProducto} mostrarVolumen={true} />
+        <HojaCosto resultado={resultado} insumos={insumos} pieza={piezaVirtual} parametros={{ ...par, margenObjetivo: margen }} tipo={costeo.tipoProducto} mostrarVolumen={puedeVerComercial} mostrarComercial={puedeVerComercial} />
 
-        <div className="tarjeta roja" style={{ marginTop: 16 }}>
-          {/* SIMULADOR vs OFICIAL: un costo oficial SIEMPRE es Alba. Con factores a mano
-              esto es una simulación y no puede emitir/cotizar. */}
-          {simulando ? (
-            <div className="alerta" style={{ border: '1px solid #8a6d00', borderRadius: 8, padding: 10, marginBottom: 10 }}>
-              <div style={{ fontWeight: 700 }}>⚠ SIMULADOR — NO OFICIAL</div>
-              <div className="ayuda" style={{ margin: '4px 0 8px' }}>Los factores manuales NO modifican el costo certificado del expediente (Alba V1). No se puede cotizar, aprobar ni emitir desde aquí.</div>
-              <button className="boton" onClick={volverAAlba}>Volver al costo oficial (Alba V1)</button>
+        {puedeVerComercial ? (
+          <div className="tarjeta roja" style={{ marginTop: 16 }}>
+            {/* Dirección controla la capa comercial; Diseño conserva sólo la capa técnica. */}
+            {simulando ? (
+              <div className="alerta" style={{ border: '1px solid #8a6d00', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                <div style={{ fontWeight: 700 }}>⚠ SIMULADOR — NO OFICIAL</div>
+                <div className="ayuda" style={{ margin: '4px 0 8px' }}>Los factores manuales NO modifican el costo certificado del expediente (Alba V1). No se puede cotizar, aprobar ni emitir desde aquí.</div>
+                <button className="boton" onClick={volverAAlba}>Volver al costo oficial (Alba V1)</button>
+              </div>
+            ) : (
+              <div className="ayuda" style={{ marginBottom: 10, opacity: 0.8 }}>Costo oficial — <strong>Alba V1</strong>.</div>
+            )}
+            <label className="etiqueta">Cuanto quieres ganar</label>
+            <div className="masmenos" style={{ marginBottom: 10 }}>
+              <input type="range" min="0" max="70" value={margen}
+                onChange={(e) => set({ margen: parseInt(e.target.value) })} style={{ flex: 1 }} />
+              <span className="valor">{margen}%</span>
             </div>
-          ) : (
-            <div className="ayuda" style={{ marginBottom: 10, opacity: 0.8 }}>Costo oficial — <strong>Alba V1</strong>.</div>
-          )}
-          <label className="etiqueta">Cuanto quieres ganar</label>
-          <div className="masmenos" style={{ marginBottom: 10 }}>
-            <input type="range" min="0" max="70" value={margen}
-              onChange={(e) => set({ margen: parseInt(e.target.value) })} style={{ flex: 1 }} />
-            <span className="valor">{margen}%</span>
+            <div className="precio-grande" style={incompletoC ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : pesos2(precio)}</div>
+            <div className="ayuda">{incompletoC ? 'Sin precio oficial: existe al menos un bloqueo técnico/económico de costeo.' : `Precio por pieza con ${margen}% de margen.`}</div>
+            {incompletoC && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">⚠ Costo NO EMITIBLE — {pendientesC.length} bloqueo(s): {pendientesC.slice(0, 6).join(' · ')}{pendientesC.length > 6 ? '…' : ''}. No se puede cotizar ni emitir hasta resolverlos.</span></div>}
+            {!incompletoC && bajoMinimo && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">Debajo del minimo de {estado.parametros.margenMinimo}%.</span></div>}
+            <div className="espacio" />
+            {errAutoridad && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">⚠ {errAutoridad}</span></div>}
+            <button className="boton primario grande" disabled={incompletoC || simulando || validandoCosto}
+              title={simulando ? 'Simulación: vuelve al costo oficial Alba para cotizar' : incompletoC ? 'No se puede cotizar mientras el motor marque bloqueos de costeo' : validandoCosto ? 'Verificando costo contra el servidor' : 'Verifica el costo autoritativo antes de agregar'}
+              onClick={agregarCotizacionVerificada}>{validandoCosto ? 'Verificando costo…' : 'Agregar a la cotización'}</button>
+            <div className="espacio" />
+            <button className="boton grande" onClick={() => onGuardarPieza(resultado)}>Guardar como pieza</button>
+            <div className="espacio" />
+            <button className="boton grande" disabled={incompletoC || simulando} title={simulando ? 'Simulación: no emite ficha oficial' : incompletoC ? 'No se puede imprimir una ficha oficial con bloqueos de costeo' : ''} onClick={() => !incompletoC && !simulando && setFichaAbierta(true)}>Ver ficha PDF</button>
           </div>
-          <div className="precio-grande" style={incompletoC ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : pesos2(precio)}</div>
-          <div className="ayuda">{incompletoC ? 'Sin precio oficial: existe al menos un bloqueo técnico/económico de costeo.' : `Precio por pieza con ${margen}% de margen.`}</div>
-          {incompletoC && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">⚠ Costo NO EMITIBLE — {pendientesC.length} bloqueo(s): {pendientesC.slice(0, 6).join(' · ')}{pendientesC.length > 6 ? '…' : ''}. No se puede cotizar ni emitir hasta resolverlos.</span></div>}
-          {!incompletoC && bajoMinimo && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">Debajo del minimo de {estado.parametros.margenMinimo}%.</span></div>}
-          <div className="espacio" />
-          {/* Emisión OFICIAL solo cuando es Alba (no simulación) y el costo está completo. */}
-          <button className="boton primario grande" disabled={incompletoC || simulando} title={simulando ? 'Simulación: vuelve al costo oficial Alba para cotizar' : incompletoC ? 'No se puede cotizar mientras el motor marque bloqueos de costeo' : ''} onClick={() => !incompletoC && !simulando && onAgregarCotizacion(resultado, precio, margen)}>Agregar a la cotización</button>
-          <div className="espacio" />
-          <button className="boton grande" onClick={() => onGuardarPieza(resultado)}>Guardar como pieza</button>
-          <div className="espacio" />
-          <button className="boton grande" disabled={incompletoC || simulando} title={simulando ? 'Simulación: no emite ficha oficial' : incompletoC ? 'No se puede imprimir una ficha oficial con bloqueos de costeo' : ''} onClick={() => !incompletoC && !simulando && setFichaAbierta(true)}>Ver ficha PDF</button>
-        </div>
+        ) : (
+          <div className="tarjeta" style={{ marginTop: 16 }}>
+            <h2>Cierre técnico</h2>
+            <div className="ayuda">Diseño puede revisar BOM y costo técnico. Precio de venta, margen, descuentos y documentos comerciales son de Dirección/Ventas.</div>
+            {incompletoC && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">⚠ Costo técnico incompleto — {pendientesC.slice(0, 6).join(' · ')}</span></div>}
+            <div className="espacio" />
+            <button className="boton grande" onClick={() => onGuardarPieza(resultado)}>Guardar como pieza</button>
+          </div>
+        )}
       </div>
 
-      {fichaAbierta && (
+      {puedeVerComercial && fichaAbierta && (
         <FichaPDF estado={estado} costeo={costeo} cantidad={costeo.piezas} precioUnitario={precio} onCerrar={() => setFichaAbierta(false)} />
       )}
 
       {/* Barra fija inferior para pantallas angostas */}
       <div className="barra-fija no-imprimir">
         <span>{simulando ? 'Simulación' : incompletoC ? 'Subtotal conocido' : 'Cuesta hacer 1 pieza'} <strong className="mono">{pesos2(resultado.costoUnitario)}</strong></span>
-        <span className="precio-grande" style={(incompletoC || simulando) ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : simulando ? 'No oficial' : pesos2(precio)}</span>
+        {puedeVerComercial && <span className="precio-grande" style={(incompletoC || simulando) ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : simulando ? 'No oficial' : pesos2(precio)}</span>}
       </div>
     </div>
   );
