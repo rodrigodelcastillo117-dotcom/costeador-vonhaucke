@@ -115,3 +115,25 @@ describe('graphFromPropuesta — camino ideal: usa la semántica del LLM, no reg
     expect(g.warnings.length).toBeGreaterThan(0);
   });
 });
+
+
+describe('StructuralGraph · trazabilidad de evidencia', () => {
+  it('preserva procedencia/evidencia/página desde propuesta hasta BOM', () => {
+    const propuesta = {
+      design_intent: { product_type:'escritorio', module_count:1, seat_count:0, user_capacity:1, overall_dimensions:'1200x600x750', assumptions:[], missing_critical_data:[] },
+      piezas: [{
+        nombre:'Cubierta', insumoId:'mdf18', cantidad:1, largoMM:1200, anchoMM:600,
+        semantic_role:'cubierta', confianza:'alta',
+        procedencia:'MEASURED', evidencia:'cota frontal 1200', pagina:2,
+      }],
+    };
+    const g = graphFromPropuesta(propuesta);
+    expect(g.nodes[0].evidence_state).toBe('MEASURED');
+    expect(g.nodes[0].evidence).toContain('1200');
+    expect(g.nodes[0].evidence_page).toBe(2);
+    const bom = structuralGraphToBom(g);
+    expect(bom.ok).toBe(true);
+    expect(bom.filas[0].procedencia).toBe('MEASURED');
+    expect(bom.filas[0].pagina).toBe(2);
+  });
+});
