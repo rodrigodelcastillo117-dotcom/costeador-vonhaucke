@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { FAMILIAS, MUEBLES, LINEAS, lineasDeMueble, REGLAS_LINEA } from '../datos/catalogo.js';
 import { PIEZAS_SEMILLA } from '../datos/piezas.js';
 import { recetaBench } from '../datos/bench.js';
-import { calcular, modeloParaPieza } from '../motor/calculo.js';
+import { calcular, modeloParaPieza, PARAMETROS_DEFAULT } from '../motor/calculo.js';
 import { pesos, idNuevo, coincide } from '../util.js';
 
 // Busca receta semilla para una linea+mueble
@@ -30,7 +30,7 @@ export default function Catalogo({ estado, onCargar, soloVentas = false }) {
   const [busca, setBusca] = useState('');
   const [mueble, setMueble] = useState(null); // {muebleId, familiaId}
   // En modo Ventas se muestra el precio recomendado (margen objetivo), nunca el costo.
-  const margenObjetivo = estado.parametros.margenObjetivo ?? 40;
+  const margenObjetivo = estado.parametros.margenObjetivo ?? PARAMETROS_DEFAULT.margenObjetivo;
   const aMostrar = (costo) => (soloVentas ? costo / (1 - margenObjetivo / 100) : costo);
 
   // ---- Paso 2: lineas de un mueble ----
