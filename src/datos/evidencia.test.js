@@ -1,6 +1,6 @@
 // N4 — modelo de evidencia y contradicciones. Puro.
 import { describe, it, expect } from 'vitest';
-import { evidencia, resolverCampo, modeloEvidencia, contradiccionesDeLectura, FUENTES } from './evidencia.js';
+import { evidencia, resolverCampo, modeloEvidencia, contradiccionesDeLectura, FUENTES, auditarEvidenciaBOM, procedenciaTecnica } from './evidencia.js';
 
 describe('evidencia', () => {
   it('asigna confianza por fuente', () => {
@@ -81,5 +81,34 @@ describe('N4 contradiccionesDeLectura (datos reales del edge)', () => {
   });
   it('sin envolvente no truena (fallback seguro)', () => {
     expect(contradiccionesDeLectura({ areas: [{ m2: 50 }] }).requiereConfirmacion).toBe(false);
+  });
+});
+
+
+describe('certificación de evidencia BOM', () => {
+  it('MEASURED/DERIVED/USER_CONFIRMED/CATALOG pueden sostener certificación', () => {
+    for (const p of ['MEASURED','DERIVED','USER_CONFIRMED','CATALOG']) {
+      const r = auditarEvidenciaBOM([{ nombre:'Pieza', insumoId:'mat1', procedencia:p }]);
+      expect(r.certificable).toBe(true);
+      expect(r.estado).toBe('CERTIFIED');
+    }
+  });
+
+  it('ASSUMED no se convierte silenciosamente en costo certificado', () => {
+    const r = auditarEvidenciaBOM([{ nombre:'Cubierta', insumoId:'mdf18', procedencia:'ASSUMED' }]);
+    expect(r.certificable).toBe(false);
+    expect(r.estado).toBe('PRELIMINARY');
+    expect(r.issues.some(x => x.code === 'EVIDENCIA_NO_CERTIFICABLE')).toBe(true);
+  });
+
+  it('INFERRED requiere confirmación y material faltante bloquea por dos causas', () => {
+    const r = auditarEvidenciaBOM([{ nombre:'Cristal', insumoId:'', procedencia:'INFERRED' }]);
+    expect(r.certificable).toBe(false);
+    expect(r.issues.some(x => x.code === 'MATERIAL_NO_CONFIRMADO')).toBe(true);
+    expect(r.issues.some(x => x.code === 'INFERENCIA_SIN_CONFIRMAR')).toBe(true);
+  });
+
+  it('procedencia ausente queda UNKNOWN, nunca fingida', () => {
+    expect(procedenciaTecnica({})).toBe('UNKNOWN');
   });
 });
