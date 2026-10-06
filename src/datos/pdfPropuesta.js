@@ -28,11 +28,13 @@ const TINTA = [30, 27, 26];
 const GRIS = [116, 110, 104];
 const LINEA = [222, 216, 208];
 
-// El signo va ANTES del peso: '-$22,612', no '$-22,612'.
+// El signo va ANTES del peso y el documento comercial conserva centavos.
 const pesos = (n) => {
   const v = Number(n);
   if (!Number.isFinite(v)) return '$0.00';
-  return (v < 0 ? '-' : '') + '
+  const abs = Math.abs(v).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${v < 0 ? '-' : ''}\$${abs}`;
+};
 
 // ⚠️ jsPDF dibuja con las 14 fuentes base de PDF (Helvetica), que NO tienen el
 // menos tipográfico "−", ni las comillas curvas, ni la raya larga. Cuando se
@@ -750,14 +752,6 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
     totales.flete > 0 ? [`Flete ${totales.fletePct}%`, totales.flete, false] : null,
     [`IVA ${totales.ivaPct}%`, totales.iva, false],
   ].filter(Boolean);
-  // ⚠️ EL TOTAL SE ARMA CON LOS RENGLONES QUE SE IMPRIMEN, NO CON EL FLOTANTE
-  // (2026-08-17). Cada renglón se redondea al pintarlo y el TOTAL venía sin
-  // redondear: en la hoja de la FIRMA los renglones sumaban $305,160 y el total
-  // decía $305,161. **Un peso, en el documento que el cliente firma.** Un
-  // cliente que suma con la calculadora encuentra eso en diez segundos y ya no
-  // te cree ningún otro número. Se suman los MISMOS pesos que se ven, así que
-  // el papel cuadra siempre; la diferencia contra el flotante nunca pasa de un
-  // peso por renglón y va donde tiene que ir: en el total impreso.
   // El total del papel ES el total canónico calculado una sola vez en
   // totalesCotizacion(). No se reconstruye/redondea de nuevo al imprimir.
   const totalImpreso = totales.totalRedondeado;
@@ -778,8 +772,7 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
   // El anticipo va aquí porque es la condición que decide si se firma o no.
   if (totales.anticipoPct) {
     doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...GRIS);
-    // Del total IMPRESO, no del flotante: si no, anticipo + saldo no dan el total
-    // que está tres renglones arriba, y es el renglón que decide la firma.
+    // Anticipo y saldo salen del mismo total en centavos enteros.
     const antImpreso = totales.anticipo;
     const saldoImpreso = Number.isInteger(totales.totalCentavos) && Number.isInteger(totales.anticipoCentavos)
       ? deCentavosEnteros(totales.totalCentavos - totales.anticipoCentavos)
