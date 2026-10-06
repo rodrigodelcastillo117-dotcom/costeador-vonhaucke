@@ -177,7 +177,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const sombraRef = useRef('');
   useEffect(() => {
     if (!(b.componentes?.length) || !(resultado.costoUnitario > 0)) return;
-    const pieza = { ...b, modeloCosteo: estado.parametros?.modeloCosteo };
+    const pieza = b; // costear-servidor receives technical intent only; server owns model/config/money
     const h = hashInput({ c: b.componentes, n: b.piezas, m: b.margen });
     if (sombraRef.current === h) return; // ya comparado este input
     const t = setTimeout(async () => {
