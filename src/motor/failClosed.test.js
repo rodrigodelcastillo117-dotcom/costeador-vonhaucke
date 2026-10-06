@@ -162,3 +162,11 @@ describe('PENNIES + física de material · emisión', () => {
     expect(e.bloqueos.costo_invalido).toBe(true);
   });
 });
+
+
+  it('costoUnitario null jamás se autoriza como $0', () => {
+    const e = costeoEmitible({ costoUnitario: null, componentesIgnorados: [], detalleInsumos: [] });
+    expect(e.emitible).toBe(false);
+    expect(e.costoTotal).toBeNull();
+    expect(e.bloqueos.costo_invalido).toBe(true);
+  });
