@@ -31,7 +31,7 @@ const LINEA = [222, 216, 208];
 // El signo va ANTES del peso y el documento comercial conserva centavos.
 const pesos = (n) => {
   const v = Number(n);
-  if (!Number.isFinite(v)) return '$0.00';
+  if (!Number.isFinite(v)) return '—';
   const abs = Math.abs(v).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return `${v < 0 ? '-' : ''}\$${abs}`;
 };
@@ -722,9 +722,9 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
       try { doc.addImage(img, 'JPEG', X.foto, y, COL.foto - 2, (COL.foto - 2) * 0.75); } catch (e) { /* si no se pudo, va sin foto */ }
     }
     doc.text(String(pt.cantidad), X.cant, yTexto, { align: 'right' });
-    doc.text(pesos(pt.precioUnitario || 0), X.uni, yTexto, { align: 'right' });
+    doc.text(pesos(pt.precioUnitario), X.uni, yTexto, { align: 'right' });
     doc.setFont('helvetica', 'bold');
-    doc.text(pesos((pt.precioUnitario || 0) * pt.cantidad), X.imp, yTexto, { align: 'right' });
+    doc.text(pesos(Number.isFinite(Number(pt.precioUnitario)) && Number.isFinite(Number(pt.cantidad)) ? Number(pt.precioUnitario) * Number(pt.cantidad) : NaN), X.imp, yTexto, { align: 'right' });
     y += altoFila;
     doc.setDrawColor(...LINEA); doc.setLineWidth(0.15);
     doc.line(M.izq, y - 1.5, A4.w - M.der, y - 1.5);
