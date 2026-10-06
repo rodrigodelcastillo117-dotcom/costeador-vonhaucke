@@ -5,6 +5,7 @@
 // ============================================================================
 import { useState, useMemo, useEffect } from 'react';
 import MarcaLogo from './MarcaLogo.jsx';
+import MisionFlujo from './MisionFlujo.jsx';
 import { resumenPorArea, especificacion } from '../datos/resumen.js';
 import { listaPorCuarto } from '../datos/porCuarto.js';
 import { descargarPropuesta, cargarFotos, cargarMarca } from '../datos/pdfPropuesta.js';
@@ -560,8 +561,47 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
     } finally { setRevisionQuoteCargando(false); }
   }
 
+  const misionCotizacion = (() => {
+    const tienePartidas=partidas.length>0;
+    const clienteOk=!!String(cot.cliente||'').trim();
+    const sinBloqueos=probEmision.length===0&&!bloqueoExcluidas;
+    const layoutOk=!acomodoClienteGate?.existe||acomodoClienteGate?.mostrar===true;
+    const gateOk=gate?.estado==='ALLOWED';
+    const paso=!tienePartidas?1:!clienteOk?2:!sinBloqueos||!gateOk?3:4;
+    return {
+      paso,
+      estado:gateOk&&sinBloqueos?'ok':(probEmision.length||bloqueoExcluidas?'blocked':'attention'),
+      resumen:!tienePartidas?'La propuesta todavía no tiene muebles.'
+        :!clienteOk?'Ya hay muebles; identifica al cliente para que la propuesta quede trazable.'
+        :!sinBloqueos?'Hay pendientes que impiden emitir un documento definitivo.'
+        :!gateOk?'El contenido se ve listo; falta la verificación autoritativa del servidor.'
+        :'Propuesta autorizada para documento definitivo.',
+      siguiente:!tienePartidas?'Agrega muebles desde VONI, catálogo o banco de precios.'
+        :!clienteOk?'Captura el cliente.'
+        :!sinBloqueos?'Abre “¿Por qué no puedo emitir?” y resuelve cada bloqueo.'
+        :!gateOk?'Pulsa “Verificar emisión”.'
+        :'Revisa “Como la ve el cliente” y descarga el PDF.',
+      items:[
+        {key:'muebles',label:'Muebles',ok:tienePartidas},
+        {key:'cliente',label:'Cliente',ok:clienteOk},
+        {key:'layout',label:'Acomodo válido o no requerido',ok:layoutOk},
+        {key:'bloqueos',label:'Sin bloqueos',ok:sinBloqueos},
+        {key:'gate',label:'Emisión autorizada',ok:gateOk},
+      ],
+    };
+  })();
+
   return (
     <div className="contenido cotizacion-pg">
+      <MisionFlujo
+        titulo="Misión · cerrar esta cotización"
+        paso={misionCotizacion.paso}
+        total={4}
+        estado={misionCotizacion.estado}
+        resumen={misionCotizacion.resumen}
+        siguiente={misionCotizacion.siguiente}
+        items={misionCotizacion.items}
+      />
       {/* Editor de datos (solo pantalla) */}
       <div className="tarjeta no-imprimir">
         <div style={{ marginBottom: 12 }}><MarcaLogo alto={42} /></div>
