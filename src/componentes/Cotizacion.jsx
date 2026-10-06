@@ -9,7 +9,7 @@ import { resumenPorArea, especificacion } from '../datos/resumen.js';
 import { listaPorCuarto } from '../datos/porCuarto.js';
 import { descargarPropuesta, cargarFotos, cargarMarca } from '../datos/pdfPropuesta.js';
 import EditarPartida, { sePuedeEditar } from './EditarPartida.jsx';
-import { pesos, leePct, selloPartida, claseCosto } from '../util.js';
+import { pesos, pesos2, leePct, selloPartida, claseCosto } from '../util.js';
 import { senalesCotizacion, senalesInsumos, problemasDeEmision } from '../datos/senales.js';
 import { porQueNoPuedoEmitir } from '../datos/voniContext.js';
 import { totalesCotizacion } from '../datos/totales.js';
@@ -365,9 +365,8 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   // la misma que guarda cotizaciones.js y con la que se arma el PDF. Antes esto
   // se calculaba inline aquí, otra vez en el PDF y de forma DISTINTA (sin IVA ni
   // descuento) al guardar: tres números para el mismo folio. `totalRedondeado` =
-  // suma de los renglones ya redondeados al peso = lo que el cliente ve y firma
-  // (el PDF cuadra al peso porque suma esos mismos renglones); `total` es el
-  // flotante, uso interno. MANIOBRAS/FLETE van sobre el subtotal ya descontado,
+  // el total canónico a centavos que cliente, PDF y archivo deben compartir;
+  // `total` queda sólo para diagnóstico. MANIOBRAS/FLETE van sobre el subtotal ya descontado,
   // igual que en el papel de Von Haucke.
   const { precioLista, descuentoPct, descuento, subtotal, contingenciaPct, contingencia,
     maniobrasPct, maniobras, fletePct, flete, ivaPct, iva, baseGravable, total, totalRedondeado,
@@ -816,18 +815,18 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                   oficio lee "precio de lista" y su siguiente frase es "¿y mi
                   descuento de lista?". El PDF ya lo llamaba bien. Ahora los dos
                   documentos dicen lo mismo. */}
-              <div className="propx-tot-row"><span>Suma de los renglones</span><b>{pesos(precioLista)}</b></div>
-              {descuento > 0 && <div className="propx-tot-row"><span>Descuento {descuentoPct}%</span><b className="rojo">− {pesos(descuento)}</b></div>}
+              <div className="propx-tot-row"><span>Suma de los renglones</span><b>{pesos2(precioLista)}</b></div>
+              {descuento > 0 && <div className="propx-tot-row"><span>Descuento {descuentoPct}%</span><b className="rojo">− {pesos2(descuento)}</b></div>}
               {/* Sin descuento, "Subtotal" imprimía EXACTAMENTE el mismo número
                   que el renglón de arriba: dos renglones idénticos justo donde el
                   cliente baja la vista a buscar el precio. Se lee como si se
                   hubiera caído el descuento. Igual que en el PDF: sólo aparece
                   cuando de verdad hay algo que restar. */}
-              {descuento > 0 && <div className="propx-tot-row"><span>Subtotal</span><b>{pesos(subtotal)}</b></div>}
-              {contingencia > 0 && <div className="propx-tot-row"><span>Imprevistos de obra {contingenciaPct}%</span><b>{pesos(contingencia)}</b></div>}
-              {maniobras > 0 && <div className="propx-tot-row"><span>Maniobras e instalación {maniobrasPct}%</span><b>{pesos(maniobras)}</b></div>}
-              {flete > 0 && <div className="propx-tot-row"><span>Flete {fletePct}%</span><b>{pesos(flete)}</b></div>}
-              <div className="propx-tot-row"><span>IVA {estado.parametros.ivaPorcentaje}%</span><b>{pesos(iva)}</b></div>
+              {descuento > 0 && <div className="propx-tot-row"><span>Subtotal</span><b>{pesos2(subtotal)}</b></div>}
+              {contingencia > 0 && <div className="propx-tot-row"><span>Imprevistos de obra {contingenciaPct}%</span><b>{pesos2(contingencia)}</b></div>}
+              {maniobras > 0 && <div className="propx-tot-row"><span>Maniobras e instalación {maniobrasPct}%</span><b>{pesos2(maniobras)}</b></div>}
+              {flete > 0 && <div className="propx-tot-row"><span>Flete {fletePct}%</span><b>{pesos2(flete)}</b></div>}
+              <div className="propx-tot-row"><span>IVA {estado.parametros.ivaPorcentaje}%</span><b>{pesos2(iva)}</b></div>
               {/* Fail-closed: si un renglón tiene precio inválido (NaN/Infinity), NO se
                   muestra un total barato falso — se marca inválido y la emisión ya está
                   bloqueada (problemasDeEmision). */}
@@ -836,7 +835,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
               ) : (
                 <>
                   <div className="propx-tot-grand"><span>TOTAL</span><b><MontoAnimado valor={totalRedondeado} /></b></div>
-                  <div className="propx-tot-anticipo">Anticipo {anticipoPct}%: <b>{pesos(anticipo)}</b> · Saldo contra entrega: <b>{pesos(totalRedondeado - anticipo)}</b></div>
+                  <div className="propx-tot-anticipo">Anticipo {anticipoPct}%: <b>{pesos2(anticipo)}</b> · Saldo contra entrega: <b>{pesos2(totalRedondeado - anticipo)}</b></div>
                 </>
               )}
             </div>
