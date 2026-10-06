@@ -683,12 +683,19 @@ export default function App() {
     let costo = null;
     let margenEf = null;
     if (veCostos) {
-      costo = costoUnitario;
-      if (!Number.isFinite(costo)) {
-        try { costo = calcular(costeo, n, estado.insumos, modeloParaPieza(estado.parametros, costeo).par).costoUnitario; }
-        catch (e) { costo = Number.isFinite(margen) ? precioUnitario * (1 - margen / 100) : 0; }
+      costo = costoUnitario != null && Number.isFinite(Number(costoUnitario))
+        ? Number(costoUnitario)
+        : null;
+      if (costo == null) {
+        try {
+          const calculado = calcular(costeo, n, estado.insumos, modeloParaPieza(estado.parametros, costeo).par).costoUnitario;
+          costo = calculado != null && Number.isFinite(Number(calculado)) ? Number(calculado) : null;
+        } catch (_e) {
+          // FAIL-CLOSED: jamás derivar costo desde precio/margen ni sustituir por $0.
+          costo = null;
+        }
       }
-      margenEf = Number.isFinite(margen) ? margen : null;
+      margenEf = costo != null && Number.isFinite(margen) ? margen : null;
     }
     return {
       id: idNuevo('p'),
@@ -705,6 +712,7 @@ export default function App() {
       w: costeo.w || null, d: costeo.d || null,
       cantidad: n,
       costoUnitario: costo,
+      costoPendiente: veCostos && costo == null,
       precioUnitario,
       margen: margenEf,
       config: costeo.config || null,
