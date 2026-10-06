@@ -229,6 +229,31 @@ export async function analizarRenderImagenes(catalogo, imagenes) {
 // asiento y respaldo tapizados, conector cada 2 asientos") y la IA lo interpreta como
 // OBJETO (analizar-mueble v17, modo texto). Devuelve el MISMO { ok, propuesta } que la
 // ruta de imagen, ya con design_intent + semantic_role por pieza. Sin imagen.
+// Búsqueda seller-safe en Producto Maestro para alimentar a VONI con candidatos
+// REALES sin mandar 1,941 renglones al prompt. Usa términos discriminantes del brief
+// y devuelve identidad/linaje técnico, nunca economía.
+export async function buscarProductosMaestroTexto(texto, limite = 30) {
+  try {
+    const stop=new Set(['para','con','sin','una','uno','unos','unas','que','del','las','los','por','como','este','esta','mueble','muebles','quiero','hacer','necesito','modelo','linea','línea']);
+    const terms=[...new Set(String(texto||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').match(/[a-z0-9]{3,}/g)||[])]
+      .filter(x=>!stop.has(x)).sort((a,b)=>b.length-a.length).slice(0,8);
+    if(!terms.length) return {ok:true,items:[]};
+    const cols='id,nombre,codigo,source_type,familia,estado,activo,version_tecnica_vigente_id';
+    const ors=[];
+    for(const t of terms){ors.push(`nombre.ilike.%${t}%`,`codigo.ilike.%${t}%`,`familia.ilike.%${t}%`)}
+    const {data,error}=await nube.from('productos').select(cols).eq('activo',true).or(ors.join(',')).limit(Math.min(60,Math.max(5,limite*2)));
+    if(error) return {ok:false,items:[],error:error.message};
+    // Ranking local por número de términos presentes; evita que una coincidencia
+    // trivial le gane a una pieza que realmente dice "biombo cristal App LT".
+    const scored=(data||[]).map(x=>{
+      const hay=`${x.nombre||''} ${x.codigo||''} ${x.familia||''}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const score=terms.reduce((s,t)=>s+(hay.includes(t)?1:0),0);
+      return {...x,_score:score};
+    }).filter(x=>x._score>0).sort((a,b)=>b._score-a._score||String(a.nombre).localeCompare(String(b.nombre),'es'));
+    return {ok:true,items:scored.slice(0,limite).map(({_score,...x})=>x)};
+  } catch(e) { return {ok:false,items:[],error:String(e?.message||e)}; }
+}
+
 export async function analizarTexto(catalogo, descripcion) {
   const { data, error } = await nube.functions.invoke('analizar-mueble', {
     body: { catalogo, descripcion },
