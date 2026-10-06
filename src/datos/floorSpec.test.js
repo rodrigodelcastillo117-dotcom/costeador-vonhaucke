@@ -203,3 +203,42 @@ describe('placement semántico · un mueble no va en cualquier zona', () => {
     expect(zonaPermite(ROL2.TABLE, ZONA2.CONSEJO)).toBe(true);
   });
 });
+
+
+describe('FloorSpec hardening · referencias y semántica', () => {
+  it('observación que refiere zona inexistente ⇒ INVALID', () => {
+    const spec = {
+      envelope: { width_mm: 5000, height_mm: 4000 },
+      zones: [{ id:'z1', name:'Área Operativa', polygon:[[0,0],[5000,0],[5000,4000],[0,4000]] }],
+      furniture_observations: [{ id:'m1', semantic_role: ROL.WORKSTATION, zone_id:'z404', center:[1000,1000] }],
+    };
+    const r = validarFloorSpec(spec);
+    expect(r.status).toBe('INVALID');
+    expect(r.issues.some((i) => i.code === 'ZONA_REFERENCIADA_INEXISTENTE')).toBe(true);
+  });
+
+  it('ids de observación duplicados ⇒ INVALID', () => {
+    const spec = {
+      envelope: { width_mm: 5000, height_mm: 4000 },
+      zones: [{ id:'z1', name:'Área Operativa', polygon:[[0,0],[5000,0],[5000,4000],[0,4000]] }],
+      furniture_observations: [
+        { id:'dup', semantic_role: ROL.WORKSTATION, zone_id:'z1', center:[1000,1000] },
+        { id:'dup', semantic_role: ROL.WORK_SEAT, zone_id:'z1', center:[2000,1000] },
+      ],
+    };
+    const r = validarFloorSpec(spec);
+    expect(r.status).toBe('INVALID');
+    expect(r.issues.some((i) => i.code === 'MUEBLE_ID_DUPLICADO')).toBe(true);
+  });
+
+  it('rol semántico incompatible con la zona ⇒ INVALID', () => {
+    const spec = {
+      envelope: { width_mm: 5000, height_mm: 4000 },
+      zones: [{ id:'z1', name:'SANITARIOS H', polygon:[[0,0],[5000,0],[5000,4000],[0,4000]] }],
+      furniture_observations: [{ id:'mesa', semantic_role: ROL.TABLE, zone_id:'z1', center:[1000,1000] }],
+    };
+    const r = validarFloorSpec(spec);
+    expect(r.status).toBe('INVALID');
+    expect(r.issues.some((i) => i.code === 'ROL_NO_PERTENECE_A_ZONA')).toBe(true);
+  });
+});
