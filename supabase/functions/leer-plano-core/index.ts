@@ -35,6 +35,9 @@ const PUERTA = {
     sentido: { type: "string", enum: ["horario", "antihorario", "desconocido"] },
     barridoDeg: { type: "number", description: "Grados del arco visible; normalmente 90. Si no se ve, 0." },
     confianza: { type: "string", enum: ["alta", "media", "baja"] },
+    procedencia: { type: "string", enum: ["MEASURED", "DERIVED", "INFERRED", "ASSUMED"] },
+    evidencia: { type: "string" },
+    pagina: { type: "integer" },
   },
   required: ["x", "y", "ancho", "tieneBarrido", "bisagraX", "bisagraY", "anguloCerradaDeg", "sentido", "barridoDeg", "confianza"],
 };
@@ -45,7 +48,12 @@ const SCHEMA = {
   properties: {
     envolvente: {
       type: "object", additionalProperties: false,
-      properties: { ancho: { type: "number" }, largo: { type: "number" } },
+      properties: {
+        ancho: { type: "number" }, largo: { type: "number" },
+        procedencia: { type: "string", enum: ["MEASURED", "DERIVED", "INFERRED", "ASSUMED"] },
+        evidencia: { type: "string" },
+        pagina: { type: "integer" },
+      },
       required: ["ancho", "largo"],
     },
     grid: {
@@ -73,6 +81,9 @@ const SCHEMA = {
           dentroDe: { type: "string" },
           puestos: { type: "integer" },
           confianza: { type: "string", enum: ["alta", "media", "baja"] },
+          procedencia: { type: "string", enum: ["MEASURED", "DERIVED", "INFERRED", "ASSUMED"] },
+          evidencia: { type: "string" },
+          pagina: { type: "integer" },
         },
         required: ["nombre", "tipo", "forma", "puntos", "circulo", "dentroDe", "puestos", "confianza"],
       },
@@ -113,8 +124,9 @@ Deno.serve(async (req) => {
     "Si NO ves el arco/bisagra/sentido con suficiente evidencia: tieneBarrido=false, sentido='desconocido', bisagraX=0, bisagraY=0, anguloCerradaDeg=0, barridoDeg=0. NO ADIVINES.",
     "Un vano sin hoja/arco puede registrarse como acceso pero debe quedar tieneBarrido=false; el wrapper exigirá revisión antes de liberar.",
     "7) SERVICIOS: baños, SITE/IT, cocineta, ductos y escaleras son tipo='servicio' y no se amueblan.",
-    "8) No inventes cuartos, SKUs, mobiliario ni dimensiones. Si falta una referencia real, anótalo en notas.",
-    "COMPROBACIÓN FINAL: envolvente y grid coherentes; puntos dentro del envolvente; áreas no anidadas sin traslape; cada puerta sobre un muro; ninguna puerta dudosa convertida en barrido confirmado.",
+    "8) EVIDENCIA/PROCEDENCIA: para envolvente, cada área y cada puerta llena procedencia cuando puedas: MEASURED = leído de cota explícita; DERIVED = calculado directamente de cotas/escala visibles; INFERRED = inferido de geometría/símbolo sin cota directa; ASSUMED = supuesto necesario sin evidencia suficiente. En evidencia escribe una referencia BREVE y concreta (p.ej. 'cota general 15000', 'texto SALA JUNTAS', 'arco de puerta visible'). En PDF usa pagina=1..N; en imagen usa pagina=1. NO inventes evidencia.",
+    "9) No inventes cuartos, SKUs, mobiliario ni dimensiones. Si falta una referencia real, anótalo en notas.",
+    "COMPROBACIÓN FINAL: envolvente y grid coherentes; puntos dentro del envolvente; áreas no anidadas sin traslape; cada puerta sobre un muro; ninguna puerta dudosa convertida en barrido confirmado; ningún ASSUMED se presenta como MEASURED.",
     refMM ? `El usuario dio una referencia real de ${refMM} mm: úsala para calibrar la escala.` : "",
   ].filter(Boolean).join("\n");
 
