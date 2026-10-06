@@ -1136,7 +1136,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
           return {
             id:x.id,nombre:p.nombre||p.etiqueta||x.id,area:x.area,
             x_mm:x.x,y_mm:x.y,rot:x.rot||0,
-            ancho_mm:dimsPieza(p,x.rot||0).w,profundidad_mm:dimsPieza(p,x.rot||0).d,
+            ancho_mm:dimsPieza(p,x.rot||0).pw,profundidad_mm:dimsPieza(p,x.rot||0).ph,
             tipo:p.tipo||null,ruta:p.ruta||null,
           };
         }),
