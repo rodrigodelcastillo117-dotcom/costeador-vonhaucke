@@ -614,9 +614,9 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
 
         <ConfianzaCosteo confianza={confianzaTecnica} />
 
-        {/* 4. Mano de obra */}
-        <div className="tarjeta">
-          <h2>Mano de obra</h2>
+        {/* 4–6. Ajustes de fabricación · disponibles, pero fuera del camino principal. */}
+        <details className="tarjeta costeo-avanzado95">
+          <summary><strong>Mano de obra</strong><span>{costeo.modoManoObra === 'horas' ? 'Horas medidas' : 'Simulación por porcentaje'}</span></summary>
           <div className="fila-botones">
             <button className={`boton ${costeo.modoManoObra === 'horas' ? 'primario' : 'fantasma'}`}
               onClick={() => set({ modoManoObra: 'horas' })}>Por horas medidas</button>
@@ -669,11 +669,11 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
 
           {/* Puente entre modos (6.4) */}
           <PuenteModos resultado={resultado} costeo={costeo} set={set} />
-        </div>
+        </details>
 
         {/* 5. Preparacion, empaque, merma */}
-        <div className="tarjeta">
-          <h2>Preparacion, empaque y merma</h2>
+        <details className="tarjeta costeo-avanzado95">
+          <summary><strong>Preparación, empaque y merma</strong><span>Ajustes del lote</span></summary>
           <label className="etiqueta">Horas de arranque del lote (preparacion)</label>
           <input type="number" className="numero" min="0" step="0.5" value={costeo.preparacionHoras || 0}
             onChange={(e) => set({ preparacionHoras: parseFloat(e.target.value) || 0 })} />
@@ -687,17 +687,17 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
           <input type="number" className="numero" min="0" max="50" value={costeo.mermaProceso ?? estado.parametros.mermaProceso}
             onChange={(e) => set({ mermaProceso: parseFloat(e.target.value) || 0 })} />
           <div className="ayuda">Porcentaje de piezas que se rehacen.</div>
-        </div>
+        </details>
 
         {/* 6. Gastos de fabrica */}
-        <div className="tarjeta">
-          <h2>Gastos de fabrica</h2>
+        <details className="tarjeta costeo-avanzado95">
+          <summary><strong>Gastos de fábrica</strong><span>Indirectos</span></summary>
           <label className="etiqueta">Porcentaje sobre material directo</label>
           <input type="number" className="numero" min="0" max="100"
             value={costeo.factorIndirectosFabrica ?? estado.parametros.factorIndirectosFabrica}
             onChange={(e) => set({ factorIndirectosFabrica: parseFloat(e.target.value) || 0 })} />
           <div className="ayuda">Renta, luz, sueldos de oficina, herramienta y desperdicio. Va sobre la materia prima directa, no sobre el costo total.</div>
-        </div>
+        </details>
       </div>
 
       {/* ------------------ COLUMNA DERECHA ------------------ */}
