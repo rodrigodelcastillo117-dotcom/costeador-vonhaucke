@@ -423,7 +423,12 @@ export default function App() {
     const t = setTimeout(async () => {
       const epoca = epocaCot.current;
       const id = await guardarCotizacion(estado, sesion.user.email, idCotizacion.current);
-      if (id && epocaCot.current === epoca) idCotizacion.current = id;
+      if (id && epocaCot.current === epoca) {
+        idCotizacion.current = id;
+        setNubeEstado('conectado');
+      } else if (epocaCot.current === epoca) {
+        setNubeEstado('sin-conexion');
+      }
     }, 1500);
     return () => clearTimeout(t);
   }, [estado.cotizacion, sesion]);
@@ -439,8 +444,13 @@ export default function App() {
     try {
       const epoca = epocaCot.current;
       const id = await guardarCotizacion(estado, sesion.user.email, idCotizacion.current);
-      if (id && epocaCot.current === epoca) idCotizacion.current = id;
-      return await cotizacionEmitible(idCotizacion.current);
+      if (!id || epocaCot.current !== epoca) {
+        setNubeEstado('sin-conexion');
+        return { ok: false, estado: 'DESCONOCIDO', motivos: [], error: 'No se pudo guardar el estado vivo de la cotización.' };
+      }
+      idCotizacion.current = id;
+      setNubeEstado('conectado');
+      return await cotizacionEmitible(id);
     } catch (e) { return { ok: false, estado: 'DESCONOCIDO', motivos: [], error: String(e?.message || e) }; }
   }
 
@@ -449,8 +459,13 @@ export default function App() {
     try {
       const epoca = epocaCot.current;
       const id = await guardarCotizacion(estado, sesion.user.email, idCotizacion.current);
-      if (id && epocaCot.current === epoca) idCotizacion.current = id;
-      const r = await guardarRevision(estado, idCotizacion.current);
+      if (!id || epocaCot.current !== epoca) {
+        setNubeEstado('sin-conexion');
+        return { ok: false, motivo: 'no-se-guardo-estado-vivo' };
+      }
+      idCotizacion.current = id;
+      setNubeEstado('conectado');
+      const r = await guardarRevision(estado, id);
       if (r?.ok && r.nueva) mostrarAviso(`Revisión ${r.revision} guardada — se conservó lo que se emitió.`);
       return r || { ok: false, motivo: 'desconocido' };
     } catch (e) {
