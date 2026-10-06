@@ -10,5 +10,7 @@ describe('App · UNKNOWN cost never becomes ZERO for advanced special',()=>{
     expect(b).toContain('costoPendiente:');
     expect(b).toContain(': null');
     expect(b).not.toContain('resultado?.costoUnitario ?? 0');
+    expect(b).toContain('resultado?.costoUnitario != null');
+    expect(b).not.toContain('costoUnitario: Number.isFinite(Number(resultado?.costoUnitario))');
   });
 });
