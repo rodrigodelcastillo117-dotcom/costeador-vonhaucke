@@ -23,15 +23,22 @@ const masReciente = (filas) =>
  * `estado=VALIDATED` es la intención persistida en DB; las tres columnas son
  * la evidencia. Exigir ambas cosas hace el contrato fail-closed.
  */
-export function renderEstaValidado(f) {
+export function renderEstaValidado(f, hashesActuales = null) {
   if (!f || f.stale) return false;
+  if (!f.geometry_hash) return false; // fail-closed: validado sin identidad geométrica no es canónico
+  if (hashesActuales && typeof hashesActuales === 'object') {
+    for (const k of ['geometry_hash', 'bom_hash', 'material_hash', 'layout_hash']) {
+      if (hashesActuales[k] == null) continue;
+      if (f[k] == null || String(f[k]) !== String(hashesActuales[k])) return false;
+    }
+  }
   return String(f.estado || '').toUpperCase() === 'VALIDATED'
     && String(f.geometry_validation || '').toUpperCase() === PASS
     && String(f.feature_validation || '').toUpperCase() === PASS
     && String(f.finish_validation || '').toUpperCase() === PASS;
 }
 
-export function resolverRenderDeFilas(filas = [], { productoId = null, productoVersionId = null } = {}) {
+export function resolverRenderDeFilas(filas = [], { productoId = null, productoVersionId = null, hashesActuales = null } = {}) {
   if (productoVersionId == null) return { estado: ESTADO_RENDER.SIN_VERSION, url: null, productoVersionId: null };
 
   const deEstaRev = (filas || []).filter((f) =>
@@ -40,7 +47,7 @@ export function resolverRenderDeFilas(filas = [], { productoId = null, productoV
     && f.storage_url);
 
   // 1) Sólo VALIDATED + PASS/PASS/PASS puede ser vigente.
-  const validados = deEstaRev.filter(renderEstaValidado);
+  const validados = deEstaRev.filter((f) => renderEstaValidado(f, hashesActuales));
   if (validados.length) {
     const r = masReciente(validados);
     return { estado: ESTADO_RENDER.VIGENTE, url: r.storage_url, productoVersionId, render: r, validado: true };
