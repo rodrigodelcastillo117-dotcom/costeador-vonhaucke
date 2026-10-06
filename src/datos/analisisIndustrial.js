@@ -7,8 +7,9 @@
 // ============================================================================
 import { auditarEvidenciaBOM } from './evidencia.js';
 import { diagnosticoDesarrolloProducto } from './desarrolloProducto.js';
+import { costeoEmitible } from '../motor/calculo.js';
 
-const n=(x)=>Number.isFinite(Number(x))?Number(x):null;
+const n=(x)=>x!=null&&x!==''&&Number.isFinite(Number(x))?Number(x):null;
 const pct=(x)=>n(x)==null?null:Math.round(n(x)*10)/10;
 
 export function analizarProductoIndustrial({bom=[],costing=null}={}){
@@ -16,12 +17,23 @@ export function analizarProductoIndustrial({bom=[],costing=null}={}){
   const evidencia=auditarEvidenciaBOM(componentes);
   const desarrollo=diagnosticoDesarrolloProducto({ componentes });
   const detalles=Array.isArray(costing?.detalleInsumos)?costing.detalleInsumos:[];
+  const emision = costing ? costeoEmitible(costing) : null;
   const hallazgos=[];
   const bloqueos=[];
   const recomendaciones=[];
 
   if(!componentes.length){
     bloqueos.push({code:'SIN_BOM',titulo:'Sin BOM',detalle:'No existe un despiece técnico que permita revisar fabricación.'});
+  }
+  if(!costing){
+    bloqueos.push({code:'SIN_COSTEO',titulo:'Sin costeo calculado',detalle:'Puedo revisar el BOM, pero no confirmar costo/margen hasta ejecutar el motor canónico.'});
+  } else if(!emision?.emitible){
+    if(emision?.bloqueos?.costo_invalido){
+      bloqueos.push({code:'COSTO_INVALIDO',titulo:'Costo no emitible',detalle:'El motor canónico reporta un costo inválido/no finito.'});
+    }
+    for(const x of emision?.bloqueos?.formato_incompatible || []){
+      bloqueos.push({code:'FORMATO_INCOMPATIBLE',titulo:'Formato incompatible',detalle:String(x)});
+    }
   }
 
   for(const issue of evidencia.issues||[]){
@@ -137,7 +149,7 @@ export function analizarProductoIndustrial({bom=[],costing=null}={}){
 
   const eficienciaGlobal=areaComprada>0?pct((areaNeta/areaComprada)*100):null;
   const costo=n(costing?.costoUnitario);
-  const costoValido=costo!=null&&costo>=0&&!ignorados.length&&!detalles.some(d=>d?.noCabe);
+  const costoValido=!!(costing && emision?.emitible);
 
   // Dedup determinista.
   const dedup=(xs,key)=>xs.filter((x,i,a)=>a.findIndex(y=>key(y)===key(x))===i);
