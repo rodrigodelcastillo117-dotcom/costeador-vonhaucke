@@ -61,7 +61,11 @@ export function marcarError(r, msg) { return { ...r, estado: ESTADOS_RENDER.ERRO
 export function estaDesactualizado(r, hashesActuales = {}) {
   if (!r || (r.estado !== ESTADOS_RENDER.LISTO && r.estado !== ESTADOS_RENDER.DESACTUALIZADO)) return false;
   const campos = ['bom_hash', 'config_hash', 'layout_hash'];
-  return campos.some((k) => hashesActuales[k] != null && r[k] != null && hashesActuales[k] !== r[k]);
+  return campos.some((k) => {
+    if (hashesActuales[k] == null) return false;      // no hay verdad actual para comparar
+    if (r[k] == null) return true;                    // verdad actual existe, render sin firma = no verificable
+    return hashesActuales[k] !== r[k];
+  });
 }
 
 /** Devuelve el render con estado recalculado (LISTO→DESACTUALIZADO si cambió). */
