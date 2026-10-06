@@ -146,11 +146,16 @@ export function sentarSillas(colocacion, piezas, areas) {
           if (idx === -1) idx = 0;
           const silla = libres.splice(idx, 1)[0];
           silla.x = caja.x; silla.y = caja.y; silla.rot = 0;
+          silla.contra = `escritorio:${c.id}`;
+          silla.anchor_id = c.id;
         } else {
           let idx = sinLugar.findIndex((cc) => { const d = dimsPieza(cc, 0); return d.pw === pw && d.ph === ph; });
           if (idx === -1) idx = 0;
           const nueva = sinLugar.splice(idx, 1)[0];
-          out.push({ id: nueva.id, area: i, x: caja.x, y: caja.y, rot: 0, contra: null });
+          out.push({
+            id: nueva.id, area: i, x: caja.x, y: caja.y, rot: 0,
+            contra: `escritorio:${c.id}`, anchor_id: c.id,
+          });
         }
         puestas.push(caja);
       }
