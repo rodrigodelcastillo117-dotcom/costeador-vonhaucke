@@ -162,7 +162,8 @@ describe('placement semántico · un mueble no va en cualquier zona', () => {
     mesa: { id: 'mesa', tipo: 'mesa', nombre: 'Mesa de juntas APP LT' },
     recep: { id: 'recep', tipo: 'recepcion', nombre: 'Módulo recepción' },
     esc: { id: 'esc', tipo: 'escritorio', nombre: 'Escritorio operativo' },
-    silla: { id: 'silla', tipo: 'silla', nombre: 'Silla operativa' },
+    silla: { id: 'silla', tipo: 'silla', nombre: 'Silla operativa', ruta: 'vh-dest-opn' },
+    sillaJuntas: { id: 'sillaJuntas', tipo: 'asiento', nombre: 'Silla SONATA', ruta: 'vh-dest-mtg' },
   };
 
   it('mesa de juntas en CEO = violación; en Consejo = OK', () => {
@@ -185,9 +186,15 @@ describe('placement semántico · un mueble no va en cualquier zona', () => {
     expect(violacionesSemanticas([{ id: 'mesa', area: 4 }], areas, byId)).toHaveLength(1);
   });
 
-  it('una silla operativa es flexible: no se bloquea en zonas de trabajo/genéricas', () => {
+  it('una silla operativa explícita sólo pasa en Área Operativa', () => {
     expect(violacionesSemanticas([{ id: 'silla', area: 2 }], areas, byId)).toHaveLength(0);
-    expect(violacionesSemanticas([{ id: 'silla', area: 0 }], areas, byId)).toHaveLength(0);
+    expect(violacionesSemanticas([{ id: 'silla', area: 0 }], areas, byId)).toHaveLength(1);
+  });
+
+  it('una SONATA marcada para juntas no puede escapar al open', () => {
+    expect(violacionesSemanticas([{ id: 'sillaJuntas', area: 1 }], areas, byId)).toHaveLength(0);
+    expect(violacionesSemanticas([{ id: 'sillaJuntas', area: 2 }], areas, byId)).toHaveLength(1);
+    expect(rolDePiezaAcomodo(byId.sillaJuntas)).toBe(ROL2.MEETING_SEAT);
   });
 
   it('helpers directos', () => {
