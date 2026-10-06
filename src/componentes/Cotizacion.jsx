@@ -115,6 +115,12 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   const [revisionQuoteCargando, setRevisionQuoteCargando] = useState(false);
   const [revisionQuoteError, setRevisionQuoteError] = useState('');
 
+  // La revisión senior no sobrevive a cambios de la propuesta.
+  useEffect(() => {
+    setRevisionQuote(null);
+    setRevisionQuoteError('');
+  }, [cot, partidas]);
+
 
   const setCot = (parcial) => setEstado({ ...estado, cotizacion: { ...cot, ...parcial } });
 
