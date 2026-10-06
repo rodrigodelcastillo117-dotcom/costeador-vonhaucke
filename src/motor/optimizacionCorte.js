@@ -86,8 +86,11 @@ export function optimizarCorte2D({componentes=[],formato={},veta=false,kerfMM=6,
   const areaPiezas=placed.reduce((s,p)=>s+p.w*p.h,0);
   const areaComprada=hojas.length*W*H;
   const areaUtil=hojas.length*usableW*usableH;
+  const completo = issues.length === 0 && placed.length === piezas.length;
   return {
     disponible:true,
+    completo,
+    certificable:false,
     hojas:hojas.length,
     piezas_solicitadas:piezas.length,
     piezas_colocadas:placed.length,
@@ -186,8 +189,11 @@ export function optimizarCorte1D({
   const recorteTotal = tramos.length * 2 * edge;
   const sobrante = Math.max(0, comprado - neto - kerfTotal - recorteTotal);
 
+  const completo = issues.length === 0 && colocadas.length === piezas.length;
   return {
     disponible: true,
+    completo,
+    certificable: false,
     tramos: tramos.length,
     piezas_solicitadas: piezas.length,
     piezas_colocadas: colocadas.length,
