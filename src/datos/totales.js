@@ -73,7 +73,7 @@ export function totalesCotizacion(partidas = [], cot = {}, par = {}) {
   const fleteCentavos = pctCentavos(subtotalCentavos, fletePct);
 
   const baseGravableCentavos = subtotalCentavos + contingenciaCentavos + maniobrasCentavos + fleteCentavos;
-  const ivaPct = par.ivaPorcentaje ?? 16;
+  const ivaPct = cot.ivaPct ?? par.ivaPorcentaje ?? 16;
   const ivaCentavos = pctCentavos(baseGravableCentavos, ivaPct);
   const totalCentavos = baseGravableCentavos + ivaCentavos;
 
