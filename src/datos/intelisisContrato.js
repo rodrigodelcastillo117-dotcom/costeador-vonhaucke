@@ -15,7 +15,10 @@ export const INTELISIS_SOURCES = Object.freeze({
   CSV: 'intelisis-csv',
 });
 
-const MONEDAS = new Set(['MXN', 'USD', 'EUR']);
+// El motor actual distingue MXN vs moneda extranjera con UN solo tipoCambio,
+ // calibrado para USD. Aceptar EUR aquí haría que se multiplicara por TC USD.
+ // Hasta que exista FX por moneda, v1 sólo permite MXN/USD (fail-closed).
+const MONEDAS = new Set(['MXN', 'USD']);
 const UNIDADES = new Set([
   'pza', 'juego', 'kg', 'g', 'm', 'cm', 'mm', 'm2', 'm3',
   'hoja', 'tramo', 'rollo', 'caja', 'paquete', 'lt', 'ml',
@@ -63,22 +66,37 @@ export function normalizarMonedaIntelisis(v) {
 
 function numeroEstricto(v) {
   if (typeof v === 'number') return Number.isFinite(v) ? v : null;
-  const s = txt(v);
+  let s = txt(v);
   if (!s) return null;
-  // Intelisis/Excel puede traer "$1,234.50"; no aceptamos texto adicional.
-  const limpio = s.replace(/[$€£\s,]/g, '');
-  if (!/^-?\d+(\.\d+)?$/.test(limpio)) return null;
-  const n = Number(limpio);
+  // Sólo quitamos símbolo/espacios, no letras. Soporta:
+  //  1335.60 | 1,335.60 | 1335,60 | 1.335,60
+  s = s.replace(/^[$€£]\s*/, '').replace(/\s+/g, '');
+  let normal = null;
+  if (/^-?\d+(\.\d+)?$/.test(s)) normal = s;
+  else if (/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(s)) normal = s.replace(/,/g, '');
+  else if (/^-?\d+(,\d+)$/.test(s)) normal = s.replace(',', '.');
+  else if (/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) normal = s.replace(/\./g, '').replace(',', '.');
+  if (normal == null) return null;
+  const n = Number(normal);
   return Number.isFinite(n) ? n : null;
 }
 
 function fechaISO(v) {
   const s = txt(v);
   if (!s) return null;
-  // Contrato explícito: ISO calendario. No adivinamos 01/02/26.
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
-  const d = new Date(`${s}T00:00:00Z`);
-  return Number.isNaN(d.getTime()) ? null : s;
+  // Contrato explícito: ISO calendario. No adivinamos 01/02/26 y tampoco
+  // dejamos que Date "corrija" 2026-02-30 a marzo.
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return null;
+  const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  if (
+    Number.isNaN(dt.getTime()) ||
+    dt.getUTCFullYear() !== y ||
+    dt.getUTCMonth() !== mo - 1 ||
+    dt.getUTCDate() !== d
+  ) return null;
+  return s;
 }
 
 function primero(raw, keys) {
@@ -101,12 +119,17 @@ export function normalizarMaterialIntelisis(raw, {
   const unidadCompraRaw = primero(raw, ['unidad_compra', 'unidad', 'unidad_entrada']);
   const unidadConsumoRaw = primero(raw, ['unidad_consumo', 'unidad_costeo']);
   const unidadCompra = normalizarUnidadIntelisis(unidadCompraRaw);
-  const unidadConsumo = unidadConsumoRaw ? normalizarUnidadIntelisis(unidadConsumoRaw) : null;
+  // Si Intelisis no manda unidad de consumo, la identidad es la única
+  // interpretación segura: misma unidad de compra. Si la app interna usa otra,
+  // el reconciliador ERP→insumo debe exigir conversión explícita.
+  const unidadConsumo = unidadConsumoRaw ? normalizarUnidadIntelisis(unidadConsumoRaw) : unidadCompra;
   const precioCompra = numeroEstricto(primero(raw, [
     'precio_compra', 'precio', 'costo_ultima_compra', 'ultimo_costo', 'costo',
   ]));
-  const moneda = normalizarMonedaIntelisis(primero(raw, ['moneda', 'currency']) || 'MXN');
-  const factorConversion = numeroEstricto(primero(raw, ['factor_conversion', 'conversion_factor']));
+  const monedaRaw = primero(raw, ['moneda', 'currency']);
+  const moneda = normalizarMonedaIntelisis(monedaRaw);
+  const factorRaw = numeroEstricto(primero(raw, ['factor_conversion', 'conversion_factor']));
+  const factorConversion = factorRaw == null && unidadCompra && unidadConsumo === unidadCompra ? 1 : factorRaw;
   const vigenteDesde = fechaISO(primero(raw, [
     'vigente_desde', 'fecha_precio', 'fecha_ultima_compra', 'ultima_compra_fecha', 'fecha',
   ]));
@@ -120,8 +143,10 @@ export function normalizarMaterialIntelisis(raw, {
   if (!unidadCompra) issues.push('UNKNOWN_PURCHASE_UNIT');
   if (unidadConsumoRaw && !unidadConsumo) issues.push('UNKNOWN_COST_UNIT');
   if (!(precioCompra > 0)) issues.push('INVALID_PRICE');
-  if (!moneda) issues.push('UNKNOWN_CURRENCY');
+  if (!monedaRaw) issues.push('MISSING_CURRENCY');
+  else if (!moneda) issues.push('UNSUPPORTED_CURRENCY');
   if (!vigenteDesde) issues.push('INVALID_OR_AMBIGUOUS_DATE');
+  if (!txt(snapshotId)) issues.push('MISSING_SNAPSHOT');
 
   // Si compra y consumo son unidades distintas, la conversión debe venir
   // explícita. Nunca inferimos hoja↔m2, kg↔hoja, tramo↔m, etc.
@@ -137,8 +162,8 @@ export function normalizarMaterialIntelisis(raw, {
   const blocking = new Set([
     'SOURCE_INVALID', 'MISSING_ERP_KEY', 'MISSING_DESCRIPTION',
     'UNKNOWN_PURCHASE_UNIT', 'UNKNOWN_COST_UNIT', 'INVALID_PRICE',
-    'UNKNOWN_CURRENCY', 'INVALID_OR_AMBIGUOUS_DATE',
-    'MISSING_CONVERSION', 'INVALID_CONVERSION', 'MISSING_EVIDENCE',
+    'MISSING_CURRENCY', 'UNSUPPORTED_CURRENCY', 'INVALID_OR_AMBIGUOUS_DATE',
+    'MISSING_SNAPSHOT', 'MISSING_CONVERSION', 'INVALID_CONVERSION', 'MISSING_EVIDENCE',
   ]);
   const bloqueos = issues.filter((x) => blocking.has(x));
 
@@ -158,17 +183,23 @@ export function normalizarMaterialIntelisis(raw, {
     evidencia: evidencia || null,
     issues,
     costeable: bloqueos.length === 0,
-    evidence_status: bloqueos.length === 0 ? 'verified' : 'pending',
-    confidence: bloqueos.length === 0 ? 'high' : 'low',
+    // Valores CANÓNICOS de la DB real (constraints de insumo_precios).
+    evidence_status: evidencia ? 'documentada' : 'sin_evidencia',
+    confidence: bloqueos.length === 0 ? 'alta' : 'baja',
   };
 }
 
 // Convierte un registro YA validado al formato de la tabla histórica de precios.
 // Requiere un insumo_id existente/mapeado: jamás inventa una relación ERP→motor.
-export function precioSupabaseDesdeIntelisis(registro, { insumoId } = {}) {
+export function precioSupabaseDesdeIntelisis(registro, { insumoId, unidadCosteoInterna = null } = {}) {
   if (!registro?.costeable) throw new Error('INTELISIS_RECORD_NOT_COSTABLE');
   const id = txt(insumoId);
   if (!id) throw new Error('MISSING_INTERNAL_INSUMO_ID');
+  const unidadInterna = unidadCosteoInterna ? normalizarUnidadIntelisis(unidadCosteoInterna) : null;
+  if (unidadCosteoInterna && !unidadInterna) throw new Error('UNKNOWN_INTERNAL_COST_UNIT');
+  if (unidadInterna && registro.unidad_consumo !== unidadInterna) {
+    throw new Error('ERP_INTERNAL_UNIT_MISMATCH');
+  }
 
   return {
     insumo_id: id,
@@ -188,6 +219,7 @@ export function precioSupabaseDesdeIntelisis(registro, { insumoId } = {}) {
       clave_erp: registro.clave_erp,
       moneda: registro.moneda,
       unidad_consumo: registro.unidad_consumo,
+      unidad_costeo_interna: unidadInterna || registro.unidad_consumo,
       snapshot_id: registro.snapshot_id,
       contract_version: registro.contract_version,
     },
