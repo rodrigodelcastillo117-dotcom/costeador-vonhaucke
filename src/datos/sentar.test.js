@@ -96,3 +96,22 @@ describe('la silla se sienta en su puesto', () => {
   });
 
 });
+
+
+describe('sillas · vínculo de grupo funcional', () => {
+  it('dos sillas agrupadas no intercambian escritorios dentro del mismo cuarto', () => {
+    const partidas = [
+      { id:'da', nombre:'Escritorio operativo A', cantidad:1, w:1600, d:800, functional_group_id:'fg-a', relation_role:'ANCHOR_WORKSTATION' },
+      { id:'db', nombre:'Escritorio operativo B', cantidad:1, w:1600, d:800, functional_group_id:'fg-b', relation_role:'ANCHOR_WORKSTATION' },
+      { id:'ca', nombre:'Silla operativa A', cantidad:1, w:600, d:600, functional_group_id:'fg-a', relation_role:'WORK_SEAT', anchor_role:'ANCHOR_WORKSTATION' },
+      { id:'cb', nombre:'Silla operativa B', cantidad:1, w:600, d:600, functional_group_id:'fg-b', relation_role:'WORK_SEAT', anchor_role:'ANCHOR_WORKSTATION' },
+    ];
+    const piezas = expandirPiezas(partidas);
+    const byId = Object.fromEntries(piezas.map((p) => [p.id,p]));
+    const r = acomodarLocal([{ nombre:'Área Operativa', ancho:9000, largo:6000 }], piezas);
+    const ca = r.colocacion.find((x) => x.id === 'ca-1');
+    const cb = r.colocacion.find((x) => x.id === 'cb-1');
+    expect(byId[ca.anchor_id].functional_group_id).toBe('fg-a');
+    expect(byId[cb.anchor_id].functional_group_id).toBe('fg-b');
+  });
+});
