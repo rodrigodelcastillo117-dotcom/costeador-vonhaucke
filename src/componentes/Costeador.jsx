@@ -21,6 +21,7 @@ import { conAcompanantes } from '../datos/autoInsumos.js';
 import { aplicarPoliticaMaterial, MATCH } from '../datos/materialMatch.js';
 import { renderSpecFromGraph } from '../datos/renderSpec.js';
 import { flagActivo } from '../datos/flags.js';
+import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
 import { recomendar as recomendarCatalogoVonHaucke } from '../voni/conocimiento.js';
 
 const ATAJOS = [
@@ -87,6 +88,10 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   const emisionC = costeoEmitible(resultado);
   const pendientesC = emisionC.pendientes || [];
   const incompletoC = !emisionC.emitible;
+  const inteligenciaIndustrial = useMemo(
+    () => analizarProductoIndustrial({ bom: costeo.componentes || [], costing: resultado }),
+    [costeo.componentes, resultado],
+  );
   // SIMULADOR vs OFICIAL (cutover 2026-10-02). El costo OFICIAL usa Alba (sin factores a
   // mano y sin horas). En cuanto el usuario fija un factorDirecta/Indirecta o usa modo
   // horas, está SIMULANDO: no es oficial y no puede emitir/cotizar/aprobar. Volver a
@@ -693,6 +698,34 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             grande para la MISMA pieza. Se le pasa el margen efectivo. (Para piezas
             de catálogo/Intelisis la hoja usa la lista ×3 y este override no aplica.) */}
         <HojaCosto resultado={resultado} insumos={insumos} pieza={piezaVirtual} parametros={{ ...par, margenObjetivo: margen }} tipo={costeo.tipoProducto} mostrarVolumen={puedeVerComercial} mostrarComercial={puedeVerComercial} />
+
+        <div className="tarjeta" style={{ marginTop: 12, borderLeft: '4px solid #315e52' }}>
+          <div className="fila" style={{ justifyContent:'space-between', gap:8, alignItems:'start' }}>
+            <div>
+              <strong>VONI · Mejora de fabricación</strong>
+              <div className="ayuda">El costo oficial NO cambia. Esta capa encuentra oportunidades deterministas de corte, retazo, repetibilidad y datos faltantes.</div>
+            </div>
+            <span className="chip">{inteligenciaIndustrial?.matematica?.formula_oficial || resultado.formulaCosteo || '—'}</span>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,minmax(0,1fr))', gap:6, marginTop:10 }}>
+            <div><div className="ayuda">Eficiencia 2D</div><strong>{inteligenciaIndustrial?.eficiencia?.corte_2d_global_pct == null ? '—' : `${inteligenciaIndustrial.eficiencia.corte_2d_global_pct}%`}</strong></div>
+            <div><div className="ayuda">Desperdicio calculado</div><strong>{pesos2(inteligenciaIndustrial?.eficiencia?.desperdicio_costo_calculado || 0)}</strong></div>
+            <div><div className="ayuda">Supuestos</div><strong>{inteligenciaIndustrial?.matematica?.supuestos?.length || 0}</strong></div>
+          </div>
+          {(inteligenciaIndustrial?.matematica?.supuestos || []).slice(0,2).map((s,i)=>(
+            <div key={'sup'+i} className="alerta ambar" style={{ marginTop:8 }}><span className="texto">⚠ {s.detalle}</span></div>
+          ))}
+          {(inteligenciaIndustrial?.recomendaciones || []).slice(0,3).map((r,i)=>(
+            <div key={'rec'+i} style={{ marginTop:8, paddingTop:8, borderTop:'1px solid var(--linea)' }}>
+              <div style={{ fontWeight:700, fontSize:12 }}>{r.tipo?.replace(/_/g,' ')}</div>
+              <div className="ayuda">{r.accion}</div>
+              {r.ahorro_certificado === false && <div className="ayuda gris" style={{ fontSize:11 }}>Advisory · requiere validación de Diseño/Producción antes de modificar BOM o declarar ahorro.</div>}
+            </div>
+          ))}
+          {!(inteligenciaIndustrial?.recomendaciones || []).length && !(inteligenciaIndustrial?.bloqueos || []).length && (
+            <div className="ayuda verde" style={{ marginTop:8 }}>Sin mejora determinista obvia con la evidencia actual. VONI no inventa ahorro.</div>
+          )}
+        </div>
 
         {puedeVerComercial ? (
           <div className="tarjeta roja" style={{ marginTop: 16 }}>
