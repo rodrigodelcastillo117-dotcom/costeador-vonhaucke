@@ -330,9 +330,33 @@ export async function generarRender(descripcion, extra = {}) {
 // --- SHADOW costear-servidor (Fase 3) ----------------------------------------
 // Llama al motor autoritativo del servidor con el JWT real del usuario. El servidor
 // resuelve rol/costos server-side e ignora lo que mande el browser. Fire-and-forget.
+export function dtoCosteoServidor(pieza = {}, cantidad = 1) {
+  const componentes = (Array.isArray(pieza?.componentes) ? pieza.componentes : []).map((c) => ({
+    ...(typeof c?.insumoId === 'string' ? { insumoId: c.insumoId } : {}),
+    ...(typeof c?.nombre === 'string' ? { nombre: c.nombre.slice(0, 200) } : {}),
+    ...(Number.isFinite(Number(c?.cantidad)) ? { cantidad: Number(c.cantidad) } : {}),
+    ...(Number.isFinite(Number(c?.largoMM)) ? { largoMM: Number(c.largoMM) } : {}),
+    ...(Number.isFinite(Number(c?.anchoMM)) ? { anchoMM: Number(c.anchoMM) } : {}),
+    ...(Number.isFinite(Number(c?.piezas)) ? { piezas: Number(c.piezas) } : {}),
+    ...(Number.isFinite(Number(c?.hojas)) ? { hojas: Number(c.hojas) } : {}),
+    ...(typeof c?.material_solicitado === 'string' ? { material_solicitado: c.material_solicitado.slice(0, 200) } : {}),
+    ...(typeof c?.material_match === 'string' ? { material_match: c.material_match.slice(0, 40) } : {}),
+  }));
+  const horas = pieza?.horas && typeof pieza.horas === 'object'
+    ? Object.fromEntries(Object.entries(pieza.horas)
+        .filter(([,v]) => Number.isFinite(Number(v)) && Number(v) >= 0)
+        .map(([k,v]) => [k, Number(v)]))
+    : undefined;
+  return {
+    cantidad: Math.max(1, Math.round(Number(cantidad) || 1)),
+    pieza: { componentes, ...(horas && Object.keys(horas).length ? { horas } : {}) },
+  };
+}
+
 export async function costearServidor(pieza, cantidad = 1) {
+  const body = dtoCosteoServidor(pieza, cantidad);
   const { data, error } = await nube.functions.invoke('costear-servidor', {
-    body: { pieza, cantidad },
+    body,
   });
   if (error) {
     let msg = error.message || 'No se pudo costear en el servidor.';
