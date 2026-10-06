@@ -2,7 +2,7 @@
 import { pesos2, pct1 } from '../util.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { horasTotales } from '../datos/ue.js';
-import { precioDe, precioVenta, PARAMETROS_DEFAULT, formulaDePieza, FORMULA_ALBA_V1, MOTOR_VERSION } from '../motor/calculo.js';
+import { precioDe, precioVenta, costeoEmitible, PARAMETROS_DEFAULT, formulaDePieza, FORMULA_ALBA_V1, MOTOR_VERSION } from '../motor/calculo.js';
 import { precioDeLista } from '../datos/preciosVenta.js';
 import { preciosVH } from '../datos/politicaVH.js';
 
@@ -13,8 +13,9 @@ export default function HojaCosto({ resultado, insumos, pieza, parametros = PARA
   // FAIL-CLOSED (audit 2026-10-01): si hay partidas SIN costear, el "costo" de aquí
   // es apenas un SUBTOTAL CONOCIDO. No se calcula ni se imprime precio de lista,
   // mínimo, utilidad ni precios por volumen: eso sería vender sobre un hueco.
-  const pendientes = resultado.componentesIgnorados || [];
-  const incompleto = pendientes.length > 0;
+  const emision = costeoEmitible(resultado);
+  const pendientes = emision.pendientes || [];
+  const incompleto = !emision.emitible;
   // Los 4 rubros que pidio Ventas para imprimir (levantamiento Rafa 14.6)
   const margenObjetivo = parametros.margenObjetivo ?? 50;
   const minMarkup = parametros.minMarkupLinea ?? 45;
