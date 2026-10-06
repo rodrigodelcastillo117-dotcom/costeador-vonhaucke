@@ -71,7 +71,7 @@ function archivoABase64(file) {
 // aMM (metros→mm) y areasCanonicas (loader) viven en src/datos/floorPlan.js — el
 // contrato canónico único del plano. Aquí sólo se consumen.
 
-export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial = null, abrirDibujo = false, onConsumido, pendientesPrograma = [] }) {
+export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial = null, abrirDibujo = false, onConsumido, pendientesPrograma = [], bloqueosPrograma = [] }) {
   const partidas = (estado.cotizacion?.partidas) || [];
   const sugerenciasPendientes = Array.isArray(pendientesPrograma) ? pendientesPrograma : [];
   const programaPropuesto = sugerenciasPendientes.length > 0;
