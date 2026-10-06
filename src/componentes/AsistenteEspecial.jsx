@@ -332,6 +332,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     // 1) PRODUCTO AISLADO — el PLANO (todas sus vistas) es la fuente de verdad de la forma (modo catálogo).
     //    Sin plano, cae a 'render' por texto (menos fiel, se avisa).
     let aisladoDataUrl = null;
+    let aisladoUrl = null;
     try {
       const opt = paginas.length
         ? { modo: 'catalogo', medidas, tipo, materiales: materialesR, imagen: paginas[0], mediaType: 'image/jpeg', imagenes: paginas.slice(1, 6), preservar }
@@ -340,6 +341,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       if (r?.ok && (r.url || r.dataUrl)) {
         aisladoDataUrl = r.dataUrl || null;
         const url = await persistir(r, 'aislado', tipo, ent.tipo);
+        aisladoUrl = url || null;
         setRenders((s) => ({ ...s, aislado: url }));
         const avisos = [];
         if (geomFid === 'limitada') avisos.push('Sin plano cargado: el aislado se generó por descripción (geometría limitada). Sube el plano para fidelidad exacta.');
@@ -352,7 +354,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     // 2) EN AMBIENTE — coloca el MISMO producto (usa el aislado ya renderizado como referencia,
     //    o el plano) en su ENTORNO real inferido (supermercado para exhibidores, oficina si no).
     try {
-      const prodUrl = renders.aislado || null;
+      const prodUrl = aisladoUrl || null;
       let prod = aisladoDataUrl || b.imagen;
       if (!prod && prodUrl) prod = await urlABase64(prodUrl);
       const prodRaw = prod ? String(prod).split(',')[1] : '';
