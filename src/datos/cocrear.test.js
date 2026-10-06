@@ -115,7 +115,7 @@ describe('COCREAR · costo honesto (VH-017, orquesta costear)', () => {
     expect(lineaCocreada(spec, snap).requiere_desarrollo).toBe(true);
   });
 
-  it('BOM completo con precios reales ⇒ KNOWN, official_cost > 0, línea cotizable', () => {
+  it('BOM completo + precios reales ⇒ costo KNOWN, pero especial NO cotizable sin ingeniería validada', () => {
     const insumos2 = { ...insumos, luz: { ...insumos.luz, precio: 120 } };
     const spec = construirProductSpec(intent, dna, clasif, { rev: 3, componentes: [
       { nombre: 'Cubierta', insumoId: 'tablero', hojas: 1, piezas: 1, cantidad: 1 },
@@ -124,6 +124,23 @@ describe('COCREAR · costo honesto (VH-017, orquesta costear)', () => {
     const snap = costearSpec(spec, insumos2, par);
     expect(snap.cost_status).toBe(COST_STATUS.KNOWN);
     expect(snap.official_cost).toBeGreaterThan(0);
+    expect(lineaCocreada(spec, snap).listaParaCotizar).toBe(false);
+    expect(lineaCocreada(spec, snap).requiere_desarrollo).toBe(true);
+  });
+
+  it('especial explícitamente validado por ingeniería + costo KNOWN ⇒ línea cotizable', () => {
+    const insumos2 = { ...insumos, luz: { ...insumos.luz, precio: 120 } };
+    const spec = construirProductSpec(intent, dna, clasif, {
+      rev: 4,
+      engineering_validated: true,
+      engineering_validation: { validador: 'ingenieria', motivo: 'BOM y estructura revisados' },
+      componentes: [
+        { nombre: 'Cubierta', insumoId: 'tablero', hojas: 1, piezas: 1, cantidad: 1 },
+        { nombre: 'Tira LED', insumoId: 'luz', cantidad: 3, piezas: 1 },
+      ],
+    });
+    const snap = costearSpec(spec, insumos2, par);
+    expect(estadoIngenieria(spec).estado).toBe(ENG_STATUS.VALIDATED);
     expect(lineaCocreada(spec, snap).listaParaCotizar).toBe(true);
   });
 });
@@ -160,12 +177,28 @@ describe('COCREAR · orquestador end-to-end (Golden #1)', () => {
     expect(r.blockers.length).toBeGreaterThan(0);
   });
 
-  it('un producto simple con BOM y precios reales ⇒ READY y cotizable', () => {
+  it('especial simple con BOM y precios reales sigue BLOCKED hasta validar ingeniería', () => {
     const insumos = { tablero: { id: 'tablero', nombre: 'Tablero', seccion: 'cubiertas', clase: 'directa', unidad: 'hoja', precio: 600, formato: { medida: 2.9768 }, fraccion: true, mermaCorte: 0 } };
     const par = { aprovechamientoCorte: 80, margenObjetivo: 40, mermaProceso: 0, modeloCosteo: 'clasico' };
     const r = cocrear('Credenza 1.60 m laminado', { insumos, par, componentes: [{ nombre: 'Cuerpo', insumoId: 'tablero', hojas: 2, piezas: 1, cantidad: 1 }] });
-    expect(r.manufacturabilidad.estado).toBe(MFG_STATUS.CAN_BUILD);
+    expect(r.ingenieria.estado).toBe(ENG_STATUS.REQUIRES_VALIDATION);
+    expect(r.manufacturabilidad.estado).toBe(MFG_STATUS.REQUIRES_VALIDATION);
     expect(r.costo.official_cost).toBeGreaterThan(0);
+    expect(r.status).toBe(COCREO_STATUS.BLOCKED);
+    expect(r.lineaCotizacion.listaParaCotizar).toBe(false);
+  });
+
+  it('el mismo especial, después de validación explícita, sí queda READY', () => {
+    const insumos = { tablero: { id: 'tablero', nombre: 'Tablero', seccion: 'cubiertas', clase: 'directa', unidad: 'hoja', precio: 600, formato: { medida: 2.9768 }, fraccion: true, mermaCorte: 0 } };
+    const par = { aprovechamientoCorte: 80, margenObjetivo: 40, mermaProceso: 0, modeloCosteo: 'clasico' };
+    const r = cocrear('Credenza 1.60 m laminado', {
+      insumos, par,
+      engineering_validated: true,
+      engineering_validation: { validador: 'ingenieria', motivo: 'revisión aprobada' },
+      componentes: [{ nombre: 'Cuerpo', insumoId: 'tablero', hojas: 2, piezas: 1, cantidad: 1 }],
+    });
+    expect(r.ingenieria.estado).toBe(ENG_STATUS.VALIDATED);
+    expect(r.manufacturabilidad.estado).toBe(MFG_STATUS.CAN_BUILD);
     expect(r.status).toBe(COCREO_STATUS.READY);
     expect(r.lineaCotizacion.listaParaCotizar).toBe(true);
   });
