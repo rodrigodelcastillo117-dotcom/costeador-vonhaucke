@@ -235,8 +235,18 @@ export async function analizarRenderImagenes(catalogo, imagenes) {
 export async function buscarProductosMaestroTexto(texto, limite = 30) {
   try {
     const stop=new Set(['para','con','sin','una','uno','unos','unas','que','del','las','los','por','como','este','esta','mueble','muebles','quiero','hacer','necesito','modelo','linea','línea']);
-    const terms=[...new Set(String(texto||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').match(/[a-z0-9]{3,}/g)||[])]
-      .filter(x=>!stop.has(x)).sort((a,b)=>b.length-a.length).slice(0,8);
+    const bruto=String(texto||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const base=[...new Set(bruto.match(/[a-z0-9]{3,}/g)||[])].filter(x=>!stop.has(x));
+    // Vocabulario de oficio/ERP: el usuario habla "cancelería"; el maestro puede
+    // decir mampara, biombo, divisor, cristal o Privacy 4. Se EXPANDE la búsqueda,
+    // pero nunca se inventa un producto: todos los resultados siguen viniendo de DB.
+    const extra=[];
+    if(/cancel|division|privacidad|muro de cristal/.test(bruto)) extra.push('mampara','biombo','divisor','cristal','privacy');
+    if(/acustic|sonor/.test(bruto)) extra.push('acustico','pet','biombo','mampara');
+    if(/vidrio|cristal/.test(bruto)) extra.push('cristal','templado','satinado','laminado');
+    if(/operativ|workstation|bench|estacion/.test(bruto)) extra.push('app','bench','operativo');
+    if(/recep|lobby|mostrador/.test(bruto)) extra.push('recepcion','cirque','alba');
+    const terms=[...new Set([...base.sort((a,b)=>b.length-a.length).slice(0,6),...extra])].slice(0,12);
     if(!terms.length) return {ok:true,items:[]};
     const cols='id,nombre,codigo,source_type,familia,estado,activo,version_tecnica_vigente_id';
     const ors=[];
