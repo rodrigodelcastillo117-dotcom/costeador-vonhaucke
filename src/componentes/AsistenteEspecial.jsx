@@ -7,7 +7,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { calcular, precioDe, netoComponente, modeloParaPieza, costeoEmitible, bomHash, diffBOM, aplicarDiffBOM, MOTOR_VERSION, FORMULA_ALBA_V1, formulaDePieza } from '../motor/calculo.js';
 import { SECCIONES } from '../datos/insumos.js';
-import { pesos } from '../util.js';
+import { pesos2 } from '../util.js';
 import { dinero, aCentavosEnteros } from '../motor/dinero.js';
 import { analizarRender, analizarRenderImagenes, analizarTexto, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64 } from '../nube.js';
 import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
@@ -1085,7 +1085,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                     ) : (
                       <label>Cantidad ({ins.unidad})<input type="number" className="numero" step="0.01" min="0" value={c.cantidad} onChange={(e) => setPieza(i, { cantidad: parseFloat(e.target.value) || 0 })} /></label>
                     )}
-                    <span className="pieza-sub">{pesos(costoPieza(c, ins))}</span>
+                    <span className="pieza-sub">{pesos2(costoPieza(c, ins))}</span>
                   </div>
                 )}
                 {area && m2 > 0 && <div className="pieza-calc">= {m2.toFixed(2)} m² <span className="gris">({ins.clase === 'indirecta' ? 'comprado' : 'fabricado'})</span></div>}
@@ -1119,17 +1119,17 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           {emitible ? (
             <>
               <div className="ayuda" style={{ margin: '6px 0' }}>Cuesta hacer 1 pieza</div>
-              <div className="precio-enorme" style={{ color: 'var(--tinta)', fontSize: 38 }}>{pesos(resultado.costoUnitario)}</div>
+              <div className="precio-enorme" style={{ color: 'var(--tinta)', fontSize: 38 }}>{pesos2(resultado.costoUnitario)}</div>
               <div className="espacio" />
               <div className="ayuda">Precio de lista ({b.margen}% margen)</div>
-              <div className="precio-enorme">{pesos(precio)}</div>
+              <div className="precio-enorme">{pesos2(precio)}</div>
             </>
           ) : (
             // FAIL-CLOSED: hay partidas sin costear → NO hay costo total ni precio.
             // Solo se muestra lo que sí se conoce; el total y el precio quedan "Pendiente".
             <>
               <div className="ayuda" style={{ margin: '6px 0' }}>Subtotal conocido (solo lo que ya tiene material)</div>
-              <div className="precio-enorme" style={{ color: 'var(--tinta)', fontSize: 34 }}>{pesos(emision.subtotalConocido)}</div>
+              <div className="precio-enorme" style={{ color: 'var(--tinta)', fontSize: 34 }}>{pesos2(emision.subtotalConocido)}</div>
               <div className="espacio" />
               <div className="ayuda">Costo total</div>
               <div className="precio-enorme" style={{ color: '#b22a22' }}>Pendiente</div>
@@ -1138,7 +1138,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           )}
           <div className="espacio" />
           <div className="ayuda columna-texto" style={{ textAlign: 'left' }}>
-            Material {pesos(resultado.materialTotal)} · Mano de obra {pesos(resultado.manoObra)} · Fábrica {pesos(resultado.indirectosFabrica)}
+            Material {pesos2(resultado.materialTotal)} · Mano de obra {pesos2(resultado.manoObra)} · Fábrica {pesos2(resultado.indirectosFabrica)}
           </div>
           {/* Método de costeo — discreto. Alba V1 para producto nuevo; histórico legacy al reabrir. */}
           <div className="ayuda columna-texto" style={{ textAlign: 'left', marginTop: 2, opacity: 0.8 }}>
@@ -1152,8 +1152,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           )}
           {costoGuardado && aCentavosEnteros(costoGuardado.costoUnitario) !== aCentavosEnteros(resultado.costoUnitario) && (
             <div className="ayuda columna-texto" style={{ textAlign: 'left', marginTop: 6 }}>
-              Re-costeo con catálogo de hoy: guardado {pesos(costoGuardado.costoUnitario)} → hoy {pesos(resultado.costoUnitario)}
-              {' '}(Δ {pesos(dinero(resultado.costoUnitario - Number(costoGuardado.costoUnitario || 0)))}). Guarda para actualizar el expediente.
+              Re-costeo con catálogo de hoy: guardado {pesos2(costoGuardado.costoUnitario)} → hoy {pesos2(resultado.costoUnitario)}
+              {' '}(Δ {pesos2(dinero(resultado.costoUnitario - Number(costoGuardado.costoUnitario || 0)))}). Guarda para actualizar el expediente.
             </div>
           )}
 
