@@ -24,8 +24,6 @@ describe('material knowledge seller-safe',()=>{
   it('busca por nombre técnico',()=>{
     expect(buscarMaterialTecnico(catalogoTecnicoMateriales(insumos),'hoja MDF')[0].id).toBe('mdf18');
   });
-});
-
 
   it('PTR/tramo documentado expone longitud comercial, sin precio',()=>{
     const m=catalogoTecnicoMateriales(insumos).find(x=>x.id==='ptr');
@@ -34,3 +32,4 @@ describe('material knowledge seller-safe',()=>{
     expect(describirFormatoTecnico(m)).toBe('tramo 6.00 m');
     expect(m.precio).toBeUndefined();
   });
+});
