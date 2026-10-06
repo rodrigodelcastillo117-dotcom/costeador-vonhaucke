@@ -7,6 +7,7 @@
 import { reglasTexto } from './datos/reglas.js';
 import { aprendizajesTexto } from './datos/aprendizaje.js';
 import { createClient } from '@supabase/supabase-js';
+import { proyectarPiezaTecnica } from './datos/validarIntentCosteo.js';
 
 const URL = 'https://mtuvnbgljwbsaizjjgzs.supabase.co';
 const LLAVE = 'sb_publishable_lDPhCTatyJ2cap3FNEGs7A_uPapgg6y';
@@ -370,8 +371,11 @@ export async function generarRender(descripcion, extra = {}) {
 // Llama al motor autoritativo del servidor con el JWT real del usuario. El servidor
 // resuelve rol/costos server-side e ignora lo que mande el browser. Fire-and-forget.
 export async function costearServidor(pieza, cantidad = 1) {
+  // La UI guarda margen, renders, texto, estado y otros metadatos junto a la pieza.
+  // NADA de eso debe cruzar la frontera de dinero. Sólo BOM/horas técnicas.
+  const piezaTecnica = proyectarPiezaTecnica(pieza);
   const { data, error } = await nube.functions.invoke('costear-servidor', {
-    body: { pieza, cantidad },
+    body: { pieza: piezaTecnica, cantidad },
   });
   if (error) {
     let msg = error.message || 'No se pudo costear en el servidor.';
