@@ -86,6 +86,8 @@ describe('lo que se guarda', () => {
     expect(f.total).toBe(96351.92);
     expect(f.total).not.toBe(2 * 17600 + 12 * 5210); // ya no es la suma cruda
     expect(f.totales.total).toBe(96351.92);             // el desglose cuadra con el total
+    expect(f.totales.subtotal).toBe(83062);
+    expect(f.totales.iva).toBe(13289.92);               // centavos NO se pierden al persistir
     expect(f.piezas).toBe(14);
     expect(f.usuario).toBe('rodrigo@vonhaucke.mx');
   });
@@ -174,3 +176,12 @@ describe('el bloqueo por material inexistente sobrevive guardar y recuperar', ()
     expect(problemasDeEmision(corregido)).toEqual([]);
   });
 });
+
+
+  it('las referencias históricas de Voni conservan centavos', () => {
+    const refs = referenciasParaVoni([{
+      actualizado:'2026-10-05', huella_mp:huellaMP(insumos),
+      partidas:[{ nombre:'Especial centavos', precioUnitario:12345.67, cantidad:1 }],
+    }], insumos);
+    expect(refs[0].precio).toBe(12345.67);
+  });
