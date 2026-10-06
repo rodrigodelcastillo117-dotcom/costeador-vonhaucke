@@ -80,6 +80,13 @@ export function bloqueosDeEmision(partidas = []) {
         porque: 'Un precio en 0 o no finito (margen imposible, costo incompleto) regala el renglón o rompe el total.',
         corregir: `Revisa el costeo de "${etq}": que su costo esté completo y el margen sea válido (<100%).` });
     }
+    if (p.costoPendiente === true) {
+      b.push({ code: 'COSTO_PENDIENTE', pieza: etq, nivel: 'blocker',
+        titulo: `"${etq}" todavía no tiene un costeo válido.`,
+        porque: 'Es un producto especial/nuevo y no existe un resultado de costeo autorizado; tratarlo como $0 falsearía margen y precio.',
+        corregir: `Vuelve a costear "${etq}" y resuelve sus datos pendientes antes de emitir.` });
+    }
+
     const nSin = Number(p.piezasSinMaterial) || 0;
     if (nSin > 0) {
       const cuales = Array.isArray(p.nombresSinMaterial) && p.nombresSinMaterial.length
