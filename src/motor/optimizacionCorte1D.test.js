@@ -54,3 +54,18 @@ describe('cutting stock 1D · perfiles/PTR advisory', () => {
     expect(optimizarCorte1D(input)).toEqual(optimizarCorte1D(input));
   });
 });
+
+
+  it('cantidad en metros NO se interpreta como número de cortes', () => {
+    const p = piezasLineales([
+      { nombre:'PTR legacy', forma:'lineal', largoMM:1000, cantidad:6 },
+    ]);
+    expect(p).toHaveLength(0);
+  });
+
+  it('piezas explícitas sí habilitan cutting-stock verificable', () => {
+    const p = piezasLineales([
+      { nombre:'PTR', forma:'lineal', largoMM:1000, piezas:6 },
+    ]);
+    expect(p).toHaveLength(6);
+  });
