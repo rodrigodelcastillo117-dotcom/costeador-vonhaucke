@@ -80,7 +80,7 @@ function Btn({children,onClick,disabled=false,ghost=false,style={}}){return <but
 export default function Cocrear({estado,onAgregar,onIr}){
  const [fase,setFase]=useState('inicio'),[texto,setTexto]=useState(''),[intent,setIntent]=useState(null),[historia,setHistoria]=useState([]),[conceptos,setConceptos]=useState([]);
  const [analisis,setAnalisis]=useState(null),[aiError,setAiError]=useState(''),[pensando,setPensando]=useState(false),[nl,setNl]=useState(''),[mensaje,setMensaje]=useState('');
- const [guardando,setGuardando]=useState(false),[guardado,setGuardado]=useState(false),[expedienteId,setExpedienteId]=useState(null),[guardadas,setGuardadas]=useState([]);
+ const [guardando,setGuardando]=useState(false),[guardado,setGuardado]=useState(false),[expedienteId,setExpedienteId]=useState(null),[guardadas,setGuardadas]=useState([]),[guardadasError,setGuardadasError]=useState('');
  const [render,setRender]=useState(null),[renderCargando,setRenderCargando]=useState(false),[renderError,setRenderError]=useState(''),[comparA,setComparA]=useState(null),[cotizadoHash,setCotizadoHash]=useState(null);
  const [refs,setRefs]=useState(null),[refsCargando,setRefsCargando]=useState(false);
 
@@ -98,7 +98,14 @@ export default function Cocrear({estado,onAgregar,onIr}){
  const desarrollo=useMemo(()=>spec?diagnosticoDesarrolloProducto(spec):null,[spec]);
  const alcance=useMemo(()=>detectarAlcanceCocrear(texto||intent?._brief||''),[texto,intent]);
 
- useEffect(()=>{if(fase!=='inicio')return;let live=true;listarCocreaciones(12).then(r=>{if(live&&r?.ok)setGuardadas(r.items||[])}).catch(()=>{});return()=>{live=false}},[fase]);
+ useEffect(()=>{
+  if(fase!=='inicio')return;
+  let live=true;setGuardadasError('');
+  listarCocreaciones(12)
+    .then(r=>{if(!live)return;if(r?.ok)setGuardadas(r.items||[]);else setGuardadasError(r?.error||'No se pudieron cargar las co-creaciones guardadas.');})
+    .catch(e=>{if(live)setGuardadasError(String(e?.message||e||'No se pudieron cargar las co-creaciones guardadas.'))});
+  return()=>{live=false}
+ },[fase]);
  useEffect(()=>{if(fase!=='studio'||!intent)return;let live=true;setRefsCargando(true);referenciasComercialesCocrear(intent).then(r=>{if(live)setRefs(r)}).finally(()=>{if(live)setRefsCargando(false)});return()=>{live=false}},[fase,intent?._concepto,intent?.capacidad_personas,intent?.familia]);
 
  const reset=()=>{setFase('inicio');setIntent(null);setHistoria([]);setConceptos([]);setAnalisis(null);setAiError('');setRender(null);setMensaje('');setExpedienteId(null);setComparA(null);setRefs(null)};
