@@ -40,9 +40,15 @@ export function lenteVentas(datos = {}, ctx = {}) {
     bloqueos.push(bloqueo('Renglones sin precio autorizado', `${quote.sinPrecio.length} partida(s) sin precio; no se puede cotizar completo.`, URGENCIA.BLOQUEANTE));
   }
   if (proy) {
-    if (proy.presupuesto != null && proy.total_actual != null) {
+    if (Number(proy.cotizaciones_sin_total) > 0) {
+      bloqueos.push(bloqueo(
+        'Total de proyecto incompleto',
+        `${proy.cotizaciones_sin_total} cotización(es) no tienen total autoritativo; no concluyo presupuesto con una suma parcial.`,
+        URGENCIA.ALTA,
+      ));
+    } else if (proy.presupuesto != null && proy.total_actual != null) {
       const delta = num(proy.total_actual) - num(proy.presupuesto);
-      if (delta > 0) findings.push(afirmacion(`La propuesta está $${Math.round(delta).toLocaleString('es-MX')} arriba del presupuesto.`, TIPO_AFIRMACION.HECHO, { source_type: 'proyecto', confidence: 0.95 }));
+      if (delta > 0) findings.push(afirmacion(`La propuesta está ${Math.round(delta).toLocaleString('es-MX')} arriba del presupuesto.`, TIPO_AFIRMACION.HECHO, { source_type: 'proyecto', confidence: 0.95 }));
     }
     if (!proy.proxima_accion) bloqueos.push(bloqueo('Sin próxima acción', 'Este proyecto no tiene un siguiente paso agendado.', URGENCIA.MEDIA));
   }
