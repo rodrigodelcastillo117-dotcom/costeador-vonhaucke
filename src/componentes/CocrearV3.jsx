@@ -57,9 +57,14 @@ function cambioCanonico(base,frase){
  return {next,cambios,aplico:cambios.length>0};
 }
 
-async function capturarModeloPNG(){
+async function capturarModeloPNG(expectedVisualHash){
  try{
-  const svg=document.querySelector('#cocrear-modelo-canonico [data-view="render-reference"] svg');if(!svg)return null;
+  const host=document.querySelector('#cocrear-modelo-canonico [data-view="render-reference"]');
+  if(!host)return null;
+  if(expectedVisualHash && host.dataset.visualRevision!==expectedVisualHash) {
+    throw new Error('La referencia 3D visible no corresponde a la revisión visual actual.');
+  }
+  const svg=host.querySelector('svg');if(!svg)return null;
   const xml=new XMLSerializer().serializeToString(svg),blob=new Blob([xml],{type:'image/svg+xml;charset=utf-8'}),url=URL.createObjectURL(blob);
   const img=new Image();await new Promise((ok,err)=>{img.onload=ok;img.onerror=err;img.src=url});
   const cv=document.createElement('canvas');cv.width=1200;cv.height=660;const ctx=cv.getContext('2d');ctx.fillStyle='#111315';ctx.fillRect(0,0,cv.width,cv.height);ctx.drawImage(img,0,0,cv.width,cv.height);URL.revokeObjectURL(url);
@@ -111,7 +116,7 @@ export default function Cocrear({estado,onAgregar,onIr}){
   try{
    const c=compileRenderPrompt(nextSpec,nextSpec.dna);
    const descripcion=`${c.descripcion}\nCLIENT BRIEF: ${nextIntent?._brief||texto}. SELECTED CONCEPT: ${nextIntent?._concepto||''} ${nextIntent?._concepto_nombre||''}. The image MUST preserve the exact current-revision geometry shown in the supplied technical reference. Do not redesign the product.`;
-   const modelo=await capturarModeloPNG();
+   const modelo=await capturarModeloPNG(c.visualRevisionHash);
    const r=await generarRender(descripcion,{render_spec:c.render_spec,materiales:c.materiales,medidas:c.medidas,tipo:c.tipo,modo:c.modo,aspecto:'4:3',...(modelo?{imagen:modelo,mediaType:'image/png'}:{})});
    if(r?.ok&&r.dataUrl)setRender({
      dataUrl:r.dataUrl,
