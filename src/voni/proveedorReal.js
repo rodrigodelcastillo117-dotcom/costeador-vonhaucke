@@ -33,9 +33,15 @@ export const proveedorReal = {
     const { data: p } = await obtenerProyecto(ctx.project_id);
     if (!p) return null;
     const { data: cots } = await listarCotizacionesDeProyecto(ctx.project_id);
-    const total_actual = (cots || []).reduce((s, c) => s + num(c.total), 0);
+    const cotizaciones = cots || [];
+    const validas = cotizaciones.filter((c) => c?.total != null && Number.isFinite(Number(c.total)));
+    const sinTotal = cotizaciones.filter((c) => !(c?.total != null && Number.isFinite(Number(c.total))));
+    const total_conocido = validas.reduce((s, c) => s + Number(c.total), 0);
+    // Si falta un total, la suma parcial NO se promociona a total_actual.
+    const total_actual = sinTotal.length ? null : total_conocido;
     return { id: p.id, nombre: p.nombre, cliente: p.clientes?.nombre_comercial || null, etapa: p.etapa,
       vendedor: p.vendedor_responsable, presupuesto: p.presupuesto, total_actual,
+      total_conocido, cotizaciones_sin_total: sinTotal.length,
       proxima_accion: p.proxima_accion, fecha_proxima_accion: p.fecha_proxima_accion };
   },
   get_scope: async () => null, // sin fuente de scope por zonas (no se fabrica)
