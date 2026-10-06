@@ -3,8 +3,14 @@ name: CI
 # Corre la suite y el build en cada push y PR. Blinda "una sola verdad": nada roto
 # llega lejos sin que CI lo marque en rojo. (Se activa al agregar el remoto de GitHub.)
 on:
-  push:
-  pull_request:
+  workflow_dispatch:
+
+# Política permanente: NO ejecutar CI automáticamente en push/PR.
+# Las validaciones se disparan manualmente sólo cuando un bloque está listo,
+# evitando ruido, builds redundantes y notificaciones por cada commit.
+concurrency:
+  group: ci-manual-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   verify:
