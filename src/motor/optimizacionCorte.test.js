@@ -20,6 +20,8 @@ describe('optimizacion de corte 2D advisory',()=>{
     const r=optimizarCorte2D({formato,componentes:[{nombre:'Gigante',largoMM:3000,anchoMM:1500,piezas:1}]});
     expect(r.piezas_colocadas).toBe(0);
     expect(r.issues[0].code).toBe('PIEZA_NO_CABE');
+    expect(r.completo).toBe(false);
+    expect(r.certificable).toBe(false);
   });
   it('nunca coloca rectángulos traslapados',()=>{
     const r=optimizarCorte2D({formato,componentes:[
@@ -36,3 +38,11 @@ describe('optimizacion de corte 2D advisory',()=>{
     }
   });
 });
+
+
+  it('plan completo sigue siendo advisory, no certificado automáticamente',()=>{
+    const r=optimizarCorte2D({formato,componentes:[{nombre:'A',largoMM:800,anchoMM:500,piezas:1}]});
+    expect(r.completo).toBe(true);
+    expect(r.advisory).toBe(true);
+    expect(r.certificable).toBe(false);
+  });
