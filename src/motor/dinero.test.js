@@ -37,3 +37,19 @@ describe('porcentajes sobre centavos enteros', () => {
     expect(porcentajeCentavos(Number.MAX_SAFE_INTEGER + 1, 16)).toBeNull();
   });
 });
+
+
+describe('UNKNOWN no es ZERO en dinero canónico', () => {
+  it('null/undefined/vacío no se convierten en 0 centavos', () => {
+    expect(aCentavosEnteros(null)).toBeNull();
+    expect(aCentavosEnteros(undefined)).toBeNull();
+    expect(aCentavosEnteros('')).toBeNull();
+    expect(Number.isNaN(dinero(null))).toBe(true);
+  });
+
+  it('porcentajes desconocidos fallan cerrado', () => {
+    expect(Number.isNaN(aplicarPct(null, 16))).toBe(true);
+    expect(Number.isNaN(aplicarPct(100, null))).toBe(true);
+    expect(porcentajeCentavos(10000, null)).toBeNull();
+  });
+});
