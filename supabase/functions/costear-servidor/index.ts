@@ -18,6 +18,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { calcular, modeloParaPieza, precioDe, PARAMETROS_DEFAULT, MOTOR_VERSION } from "../../../src/motor/calculo.js";
+import { dinero } from "../../../src/motor/dinero.js";
 import { INSUMOS_SEMILLA, mapaInsumos } from "../../../src/datos/insumos.js";
 // DTO ESTRICTO — la MISMA frontera que usa el cliente (sin duplicar lógica). Rechaza
 // cualquier campo económico (margen, precio, costo, insumo inline, factores,
@@ -182,13 +183,15 @@ Deno.serve(async (req) => {
 
   // Diseño: BOM + costo técnico, SIN información financiera (sin precioVenta, sin margen).
   const tecnico = {
-    costoUnitario: Math.round(r.costoUnitario),
-    materialTotal: Math.round(r.materialTotal),
-    manoObra: Math.round(r.manoObra),
-    indirectosFabrica: Math.round(r.indirectosFabrica),
-    desperdicio: Math.round(r.desperdicio),
+    // Frontera económica canónica: conservar CENTAVOS. El servidor autoritativo
+    // no puede degradar un costo exacto a pesos enteros antes de compararlo/emitirlo.
+    costoUnitario: dinero(r.costoUnitario),
+    materialTotal: dinero(r.materialTotal),
+    manoObra: dinero(r.manoObra),
+    indirectosFabrica: dinero(r.indirectosFabrica),
+    desperdicio: dinero(r.desperdicio),
     detalleInsumos: (r.detalleInsumos || []).map((d: any) => ({
-      insumoId: d.insumoId, nombre: d.nombre, seccion: d.seccion, costo: Math.round(d.costo || 0),
+      insumoId: d.insumoId, nombre: d.nombre, seccion: d.seccion, costo: dinero(d.costo || 0),
       certificable: !!evMap[d.insumoId]?.certificable, evidencia: evMap[d.insumoId]?.estado || "sin-catalogo",
     })),
     componentesIgnorados: faltan,
