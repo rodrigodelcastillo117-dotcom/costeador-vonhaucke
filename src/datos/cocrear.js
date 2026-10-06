@@ -258,6 +258,17 @@ export function construirProductSpec(intent, dna, clasif, { rev = 1, componentes
 const FEATURES_CRITICAS = ['electronica', 'cerraduras', 'ventilacion', 'iluminacion_integrada', 'estructural'];
 export function estadoIngenieria(spec) {
   const criticas = (spec.caracteristicas || []).filter((c) => FEATURES_CRITICAS.includes(c));
+
+  // Una feature crítica exige validación aun ANTES de tener BOM. "Sin BOM" no
+  // puede esconder que ya sabemos que hay electricidad/estructura/ventilación.
+  if (criticas.length && spec.engineering_validated !== true) {
+    return {
+      estado: ENG_STATUS.REQUIRES_VALIDATION,
+      faltantes: [...new Set([...criticas, ...(!(spec.componentes || []).length ? ['BOM'] : [])])],
+      motivos: [`features que requieren validación de ingeniería: ${criticas.join(', ')}`],
+    };
+  }
+
   if (!(spec.componentes || []).length) {
     return { estado: ENG_STATUS.NONE, faltantes: ['BOM'], motivos: ['sin despiece (BOM): ingeniería por definir'] };
   }
