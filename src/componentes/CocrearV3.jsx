@@ -158,9 +158,42 @@ export default function Cocrear({estado,onAgregar,onIr}){
     return
   }
   let id=expedienteId,prodId=null,versionId=null;
-  try{if(!id){const s=await guardarCocrearSeguro(null,cocrearPayload({brief:texto,intent,historia,render,insumos,par}));if(s?.ok){id=s.expediente_id;setExpedienteId(id)}}if(id){const reg=await registrarProductoDesdeExpediente(id);if(reg?.ok){prodId=reg.producto_id;versionId=reg.version_id}}if(versionId&&render&&!rStale){const c=compileRenderPrompt(spec,spec.dna);const geometryHash=hashEstable({familia:spec.familia,dimensiones:spec.dimensiones||{},caracteristicas:spec.caracteristicas||[],componentes:spec.componentes||[]});await subirRenderCanonico({expedienteId:id,productoId:prodId,productoVersionId:versionId,dataUrl:render.dataUrl,promptVersion:render.version,modo:'render',specHash:spec.hash,geometryHash,inputs:c.expected||{}})}}catch{}
-  const margen=Number.isFinite(Number(par.margenObjetivo))?Number(par.margenObjetivo):50,pv=precioVenta(costoOficial,par).precio;
-  onAgregar({nombre:intent?._concepto_nombre||resumen?.tipologia||'Producto co-creado',componentes:spec.componentes,w:spec.dimensiones?.ancho_mm||null,d:spec.dimensiones?.prof_mm||spec.dimensiones?.fondo_mm||null,productoId:prodId,productVersionId:versionId,precioReal:false,config:null},1,pv,margen);setCotizadoHash(spec.hash);setMensaje('✓ Revisión actual agregada a cotización.');
+  let avisoRender='';
+  try{
+    if(!id){
+      const s=await guardarCocrearSeguro(null,cocrearPayload({brief:texto,intent,historia,render,insumos,par}));
+      if(!s?.ok||!s?.expediente_id)throw new Error(s?.error||'No se pudo crear el expediente canónico.');
+      id=s.expediente_id;setExpedienteId(id);
+    }
+    const reg=await registrarProductoDesdeExpediente(id);
+    if(!reg?.ok||!reg?.version_id)throw new Error(reg?.error||'No se pudo registrar la revisión canónica del producto.');
+    prodId=reg.producto_id;versionId=reg.version_id;
+
+    if(render&&!rStale){
+      const rc=compileRenderPrompt(spec,spec.dna);
+      const geometryHash=hashEstable({familia:spec.familia,dimensiones:spec.dimensiones||{},caracteristicas:spec.caracteristicas||[],componentes:spec.componentes||[]});
+      const up=await subirRenderCanonico({
+        expedienteId:id,productoId:prodId,productoVersionId:versionId,
+        dataUrl:render.dataUrl,promptVersion:render.version,modo:'render',
+        specHash:spec.hash,geometryHash,inputs:rc.expected||{},
+      });
+      if(!up?.ok)avisoRender=` Render canónico pendiente: ${up?.error||'no se pudo registrar'}.`;
+    }
+  }catch(e){
+    setMensaje(`No se agregó a la cotización: ${String(e?.message||e)}`);
+    return;
+  }
+  const margen=Number.isFinite(Number(par.margenObjetivo))?Number(par.margenObjetivo):50;
+  const pv=precioVenta(costoOficial,par).precio;
+  onAgregar({
+    nombre:intent?._concepto_nombre||resumen?.tipologia||'Producto co-creado',
+    componentes:spec.componentes,
+    w:spec.dimensiones?.ancho_mm||null,
+    d:spec.dimensiones?.prof_mm||spec.dimensiones?.fondo_mm||null,
+    productoId:prodId,productVersionId:versionId,precioReal:false,config:null
+  },1,pv,margen);
+  setCotizadoHash(spec.hash);
+  setMensaje(`✓ Revisión canónica agregada a cotización.${avisoRender}`);
  };
 
  const css=<style>{`.coc3{max-width:1240px;margin:0 auto;font-size:14px}.c3-title{font-size:clamp(30px,3vw,44px);line-height:1.06;margin:5px 0 9px}.c3-lead{font-size:16px;color:#b7b2af;max-width:850px;line-height:1.5}.c3-concepts{display:grid;grid-template-columns:320px minmax(0,1fr);gap:13px}.c3-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.c3-studio{display:grid;grid-template-columns:245px minmax(0,1fr) 300px;gap:11px;align-items:start}.c3-hero{min-height:330px;display:flex;align-items:center;justify-content:center;background:#111315;border-radius:11px;overflow:hidden}.c3-hero img{width:100%;height:auto;display:block}.c3-input{width:100%;box-sizing:border-box;background:#22201f;color:#fff;border:1px solid #444;border-radius:9px;padding:8px}.c3-small{font-size:11px;color:#9ca3ad}.c3-ref{background:#121b16;border:1px solid #28553b;border-radius:10px;padding:10px;margin-top:10px}.c3-refrow{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-top:1px solid #26352b;font-size:11px}.c3-history{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.c3-history button{background:#202225;color:#cfd3d7;border:1px solid #393d42;border-radius:999px;padding:5px 8px;font-size:10px}@media(max-width:1050px){.c3-studio{grid-template-columns:230px minmax(0,1fr)}.c3-right{grid-column:1/-1}.c3-concepts{grid-template-columns:1fr}}@media(max-width:760px){.c3-studio,.c3-concepts,.c3-cards{grid-template-columns:1fr}.c3-title{font-size:32px}}`}</style>;
