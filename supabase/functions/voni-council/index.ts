@@ -25,8 +25,10 @@ if(ok)calls.push(openai(ok,task,role,input));
 // Presupuesto GLOBAL de UX. Un proveedor lento ya no arrastra toda la pantalla.
 // El resultado conserva fail-closed: una sola opinión => SINGLE_PROVIDER + confirmación;
 // ninguna => NO_PROVIDER/BLOCK. Los validadores deterministas siguen siendo obligatorios.
-const budgetEnv=Number(Deno.env.get('VONI_COUNCIL_BUDGET_MS')||14500);
-const councilBudget=Math.min(20000,Math.max(6000,Number.isFinite(budgetEnv)?budgetEnv:14500));
+const budgetEnv=Number(Deno.env.get('VONI_COUNCIL_BUDGET_MS')||20000);
+// Rodrigo 2026-10-06: presupuesto global de 20 s. Es techo, no espera mínima:
+// si todos responden antes, regresamos antes; nunca excedemos 20 s por diseño.
+const councilBudget=Math.min(20000,Math.max(6000,Number.isFinite(budgetEnv)?budgetEnv:20000));
 const completed:any[]=[];
 const tracked=calls.map((p)=>p.then((r)=>{completed.push(r);return r;}));
 let deadlineHit=false;
