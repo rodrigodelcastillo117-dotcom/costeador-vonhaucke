@@ -42,6 +42,7 @@ test.describe('E2E autenticado · flujo real', () => {
     await page.getByTestId('home-cotizar').click();
     await expect(page.getByText(/asistente de proyecto/i).first()).toBeVisible({ timeout: 15000 });
     await expect(page.getByText(/Dónde va el proyecto|Cuéntame qué necesita tu cliente/i).first()).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('cotizar-plano')).toHaveCount(1);
   });
 
   test('COCREAR entra al estudio de co-diseño', async ({ page }) => {
