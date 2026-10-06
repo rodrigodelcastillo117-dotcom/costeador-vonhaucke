@@ -57,6 +57,7 @@ function requisitosEvidencia(intent, ctx = {}) {
     BUDGET: ['get_project_context', 'get_quote'],
     ATTENTION: ['get_today_attention'],
     COSTING_ANALYSIS: [],
+    INDUSTRIAL_IMPROVEMENT: ['get_industrial_analysis'],
     RISK: [],
     LAYOUT: ['get_reconciliation', 'get_layout'],
   }[intent] || [];
@@ -136,6 +137,14 @@ export function inferirIntencion(query, ctx = {}) {
   // que COSTING para que "¿qué mueble me sirve?" no se confunda con "costéame".
   if (/(que linea|recomiend|sugier|me sirve|sirve para|de que est|a la medida|que producto|catalogo|que mueble)/.test(q)) {
     return { intent: 'KNOWLEDGE', modo, lentes: ['conocimiento'], tools: ['get_catalog_knowledge'] };
+  }
+  if (/\b(mejora|mejorar|optimiza|optimizar|desarrollo de producto|desarrolla|despiece|despiezar|merma|desperdicio|eficiencia|nesting|corte|aprovechamiento|fabricabilidad)\b/.test(q)) {
+    return {
+      intent: 'INDUSTRIAL_IMPROVEMENT',
+      modo: MODOS.PROPONER,
+      lentes: ['industrial', 'costeador'],
+      tools: ['get_industrial_analysis', 'get_costing', 'get_bom', 'get_render_status'],
+    };
   }
   if (/\b(analiza este mueble|producto|mueble|costear|costo|fabricar|bom)\b/.test(q)) {
     return { intent: 'COSTING_ANALYSIS', modo: MODOS.ANALIZAR, lentes: ['costeador'], tools: ['get_costing', 'get_bom', 'get_render_status'] };
@@ -302,7 +311,7 @@ export function sugerencias(ctx = {}) {
     if (ctx.revision_id) base.push('¿Qué cambió entre revisiones?');
   }
   if (r === 'direccion' || r === 'cfo') base.push('¿Qué necesita mi atención?');
-  if (r === 'costeador' || r === 'diseno') base.push('Analiza este mueble');
+  if (r === 'costeador' || r === 'diseno') base.push('Analiza este mueble', '¿Cómo lo mejorarías para fabricar mejor y desperdiciar menos?');
   if (!base.length) base.push('¿Qué necesita mi atención?', '¿Qué falta?');
   base.push('¿Qué línea me sirve?');   // conocimiento de producto, útil para cualquiera
   return base.slice(0, 5);
