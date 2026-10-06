@@ -1,0 +1,211 @@
+// ============================================================================
+//  CONTRATO CANÓNICO INTELISIS v1
+//  ----------------------------------------------------------------------------
+//  La app NO depende de cómo TI exponga Intelisis (API, vistas SQL o CSV).
+//  Cualquier fuente se normaliza primero a este contrato y sólo después puede
+//  alimentar catálogo/precios. Fail-closed: un precio ambiguo o sin evidencia
+//  NUNCA se vuelve costo autorizado.
+// ============================================================================
+
+export const INTELISIS_CONTRACT_VERSION = 'intelisis-v1';
+
+export const INTELISIS_SOURCES = Object.freeze({
+  API: 'intelisis-api',
+  SQL: 'intelisis-sql-readonly',
+  CSV: 'intelisis-csv',
+});
+
+const MONEDAS = new Set(['MXN', 'USD', 'EUR']);
+const UNIDADES = new Set([
+  'pza', 'juego', 'kg', 'g', 'm', 'cm', 'mm', 'm2', 'm3',
+  'hoja', 'tramo', 'rollo', 'caja', 'paquete', 'lt', 'ml',
+]);
+
+const UNIDAD_ALIAS = new Map([
+  ['pieza', 'pza'], ['piezas', 'pza'], ['pz', 'pza'], ['pza', 'pza'],
+  ['jgo', 'juego'], ['juego', 'juego'],
+  ['kilogramo', 'kg'], ['kilogramos', 'kg'], ['kilo', 'kg'], ['kg', 'kg'],
+  ['gramo', 'g'], ['gramos', 'g'], ['g', 'g'],
+  ['metro', 'm'], ['metros', 'm'], ['mt', 'm'], ['mts', 'm'], ['m', 'm'],
+  ['cm', 'cm'], ['centimetro', 'cm'], ['centimetros', 'cm'],
+  ['mm', 'mm'], ['milimetro', 'mm'], ['milimetros', 'mm'],
+  ['m²', 'm2'], ['m2', 'm2'], ['metro cuadrado', 'm2'], ['metros cuadrados', 'm2'],
+  ['m³', 'm3'], ['m3', 'm3'], ['metro cubico', 'm3'], ['metros cubicos', 'm3'],
+  ['hoja', 'hoja'], ['hojas', 'hoja'],
+  ['tramo', 'tramo'], ['tramos', 'tramo'],
+  ['rollo', 'rollo'], ['rollos', 'rollo'],
+  ['caja', 'caja'], ['cajas', 'caja'],
+  ['paquete', 'paquete'], ['paquetes', 'paquete'],
+  ['litro', 'lt'], ['litros', 'lt'], ['lt', 'lt'], ['l', 'lt'],
+  ['mililitro', 'ml'], ['mililitros', 'ml'], ['ml', 'ml'],
+]);
+
+function txt(v) {
+  return v == null ? '' : String(v).trim();
+}
+
+function normKey(v) {
+  return txt(v)
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ');
+}
+
+export function normalizarUnidadIntelisis(v) {
+  const n = UNIDAD_ALIAS.get(normKey(v)) || normKey(v);
+  return UNIDADES.has(n) ? n : null;
+}
+
+export function normalizarMonedaIntelisis(v) {
+  const n = txt(v || 'MXN').toUpperCase();
+  return MONEDAS.has(n) ? n : null;
+}
+
+function numeroEstricto(v) {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+  const s = txt(v);
+  if (!s) return null;
+  // Intelisis/Excel puede traer "$1,234.50"; no aceptamos texto adicional.
+  const limpio = s.replace(/[$€£\s,]/g, '');
+  if (!/^-?\d+(\.\d+)?$/.test(limpio)) return null;
+  const n = Number(limpio);
+  return Number.isFinite(n) ? n : null;
+}
+
+function fechaISO(v) {
+  const s = txt(v);
+  if (!s) return null;
+  // Contrato explícito: ISO calendario. No adivinamos 01/02/26.
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  const d = new Date(`${s}T00:00:00Z`);
+  return Number.isNaN(d.getTime()) ? null : s;
+}
+
+function primero(raw, keys) {
+  for (const k of keys) {
+    const v = raw?.[k];
+    if (v !== undefined && v !== null && txt(v) !== '') return v;
+  }
+  return null;
+}
+
+export function normalizarMaterialIntelisis(raw, {
+  source = INTELISIS_SOURCES.CSV,
+  snapshotId = null,
+} = {}) {
+  const issues = [];
+  if (!Object.values(INTELISIS_SOURCES).includes(source)) issues.push('SOURCE_INVALID');
+
+  const claveERP = txt(primero(raw, ['clave_erp', 'clave', 'sku', 'articulo', 'codigo']));
+  const descripcion = txt(primero(raw, ['descripcion', 'nombre', 'articulo_descripcion']));
+  const unidadCompraRaw = primero(raw, ['unidad_compra', 'unidad', 'unidad_entrada']);
+  const unidadConsumoRaw = primero(raw, ['unidad_consumo', 'unidad_costeo']);
+  const unidadCompra = normalizarUnidadIntelisis(unidadCompraRaw);
+  const unidadConsumo = unidadConsumoRaw ? normalizarUnidadIntelisis(unidadConsumoRaw) : null;
+  const precioCompra = numeroEstricto(primero(raw, [
+    'precio_compra', 'precio', 'costo_ultima_compra', 'ultimo_costo', 'costo',
+  ]));
+  const moneda = normalizarMonedaIntelisis(primero(raw, ['moneda', 'currency']) || 'MXN');
+  const factorConversion = numeroEstricto(primero(raw, ['factor_conversion', 'conversion_factor']));
+  const vigenteDesde = fechaISO(primero(raw, [
+    'vigente_desde', 'fecha_precio', 'fecha_ultima_compra', 'ultima_compra_fecha', 'fecha',
+  ]));
+  const proveedor = txt(primero(raw, ['proveedor', 'proveedor_nombre']));
+  const evidencia = txt(primero(raw, [
+    'evidencia', 'folio_compra', 'orden_compra', 'oc', 'factura', 'movimiento_id',
+  ]));
+
+  if (!claveERP) issues.push('MISSING_ERP_KEY');
+  if (!descripcion) issues.push('MISSING_DESCRIPTION');
+  if (!unidadCompra) issues.push('UNKNOWN_PURCHASE_UNIT');
+  if (unidadConsumoRaw && !unidadConsumo) issues.push('UNKNOWN_COST_UNIT');
+  if (!(precioCompra > 0)) issues.push('INVALID_PRICE');
+  if (!moneda) issues.push('UNKNOWN_CURRENCY');
+  if (!vigenteDesde) issues.push('INVALID_OR_AMBIGUOUS_DATE');
+
+  // Si compra y consumo son unidades distintas, la conversión debe venir
+  // explícita. Nunca inferimos hoja↔m2, kg↔hoja, tramo↔m, etc.
+  if (unidadCompra && unidadConsumo && unidadCompra !== unidadConsumo && !(factorConversion > 0)) {
+    issues.push('MISSING_CONVERSION');
+  }
+  if (factorConversion != null && !(factorConversion > 0)) issues.push('INVALID_CONVERSION');
+
+  // Fuente técnica no equivale a evidencia comercial. Un endpoint puede ser
+  // auténtico y aun así devolver un costo sin OC/factura/movimiento rastreable.
+  if (!evidencia) issues.push('MISSING_EVIDENCE');
+
+  const blocking = new Set([
+    'SOURCE_INVALID', 'MISSING_ERP_KEY', 'MISSING_DESCRIPTION',
+    'UNKNOWN_PURCHASE_UNIT', 'UNKNOWN_COST_UNIT', 'INVALID_PRICE',
+    'UNKNOWN_CURRENCY', 'INVALID_OR_AMBIGUOUS_DATE',
+    'MISSING_CONVERSION', 'INVALID_CONVERSION', 'MISSING_EVIDENCE',
+  ]);
+  const bloqueos = issues.filter((x) => blocking.has(x));
+
+  return {
+    contract_version: INTELISIS_CONTRACT_VERSION,
+    source,
+    snapshot_id: snapshotId || null,
+    clave_erp: claveERP || null,
+    descripcion: descripcion || null,
+    proveedor: proveedor || null,
+    unidad_compra: unidadCompra,
+    unidad_consumo: unidadConsumo,
+    factor_conversion: factorConversion,
+    precio_compra: precioCompra,
+    moneda,
+    vigente_desde: vigenteDesde,
+    evidencia: evidencia || null,
+    issues,
+    costeable: bloqueos.length === 0,
+    evidence_status: bloqueos.length === 0 ? 'verified' : 'pending',
+    confidence: bloqueos.length === 0 ? 'high' : 'low',
+  };
+}
+
+// Convierte un registro YA validado al formato de la tabla histórica de precios.
+// Requiere un insumo_id existente/mapeado: jamás inventa una relación ERP→motor.
+export function precioSupabaseDesdeIntelisis(registro, { insumoId } = {}) {
+  if (!registro?.costeable) throw new Error('INTELISIS_RECORD_NOT_COSTABLE');
+  const id = txt(insumoId);
+  if (!id) throw new Error('MISSING_INTERNAL_INSUMO_ID');
+
+  return {
+    insumo_id: id,
+    precio: registro.precio_compra,
+    unidad_compra: registro.unidad_compra,
+    precio_compra: registro.precio_compra,
+    factor_conversion: registro.factor_conversion,
+    proveedor: registro.proveedor,
+    fuente: `Intelisis · ${registro.source} · ${registro.contract_version}`,
+    evidencia: registro.evidencia,
+    vigente_desde: registro.vigente_desde,
+    estado: 'propuesto',
+    confidence: registro.confidence,
+    evidence_status: registro.evidence_status,
+    requiere_validacion_compras: true,
+    propiedades: {
+      clave_erp: registro.clave_erp,
+      moneda: registro.moneda,
+      unidad_consumo: registro.unidad_consumo,
+      snapshot_id: registro.snapshot_id,
+      contract_version: registro.contract_version,
+    },
+  };
+}
+
+export function resumirLoteIntelisis(registros = []) {
+  const total = registros.length;
+  const costeables = registros.filter((x) => x?.costeable).length;
+  const porIssue = {};
+  for (const r of registros) {
+    for (const issue of r?.issues || []) porIssue[issue] = (porIssue[issue] || 0) + 1;
+  }
+  return {
+    total,
+    costeables,
+    bloqueados: total - costeables,
+    cobertura_pct: total ? Math.round((costeables / total) * 10000) / 100 : 0,
+    issues: porIssue,
+  };
+}
