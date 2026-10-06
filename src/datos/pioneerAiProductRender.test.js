@@ -72,3 +72,18 @@ describe('VONI Council · 20 segundos', () => {
     expect(s).toContain('Math.min(20000');
   });
 });
+
+describe('VONI 2.0 · Producto Maestro real', () => {
+  it('search_products consulta productos activos y no selecciona economía', () => {
+    const s=fs.readFileSync('src/voni/proveedorReal.js','utf8');
+    const i=s.indexOf('search_products:');
+    const b=s.slice(i, s.indexOf('\n};', i));
+    expect(b).toContain("from('productos')");
+    expect(b).toContain("eq('activo',true)");
+    expect(b).toContain("ilike('nombre'");
+    expect(b).toContain("ilike('codigo'");
+    expect(b).toContain('version_tecnica_vigente_id');
+    expect(b).not.toContain('costo');
+    expect(b).not.toContain('margen');
+  });
+});
