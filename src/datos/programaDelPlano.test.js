@@ -4,7 +4,7 @@
 //  El plano de prueba: 8 islas de 4.5 × 3.5 m, 5 privados, 2 salas, recepción.
 // ============================================================================
 import { describe, it, expect } from 'vitest';
-import { programaDelPlano, puestosPorIsla, resumenDelPlano, avisosDeSala } from './programaDelPlano.js';
+import { programaDelPlano, puestosPorIsla, resumenDelPlano, avisosDeSala, personasEnSala } from './programaDelPlano.js';
 
 const isla = (n) => ({ nombre: `Área Op. ${n}`, tipo: 'open', ancho: 4.5, largo: 3.5, dentroDe: 'Pasillo' });
 const PLANO = [
