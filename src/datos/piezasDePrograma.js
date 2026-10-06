@@ -188,7 +188,7 @@ export function partidasSugeridasDeAreas(areas = [], opts = {}) {
       const anchoBench = columnas * 1500;
       const fg = groupId(a, 'workstation');
       add(a, `Banca doble APP LT 1.50 · ${puestos} usuarios · ocupa ${(anchoBench / 1000).toFixed(2)} × 1.20 m`, 1, anchoBench, 1200, {
-        lineaSugerida: 'applt', usuarios: puestos,
+        lineaSugerida: 'applt', usuarios: puestos, user_capacity: puestos,
         functional_group_id: fg, relation_role: 'ANCHOR_WORKSTATION',
       });
       add(a, 'Silla operativa · WIN', puestos, 600, 600, {
