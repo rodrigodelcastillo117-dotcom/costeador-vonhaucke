@@ -93,7 +93,7 @@ export const proveedorReal = {
     if (ctx.project_id == null) return null;
     // Fuente real del layout: cotizaciones.acomodo (no una columna de proyectos).
     const { data } = await acomodosDeProyecto(ctx.project_id);
-    const conAcomodo = (data || []).filter((c) => c.acomodo);
+    const conAcomodo = data || []; // query ya filtra acomodo IS NOT NULL sin descargarlo
     return { tieneAcomodo: conAcomodo.length > 0, cotizaciones: conAcomodo.map((c) => c.folio || `Cot ${c.id}`), warnings: [] };
   },
   get_render_status: async () => [], // renders técnicos viven en expediente/producto, no por proyecto
