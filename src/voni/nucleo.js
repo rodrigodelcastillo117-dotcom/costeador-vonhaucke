@@ -59,6 +59,7 @@ function requisitosEvidencia(intent, ctx = {}) {
     ATTENTION: ['get_today_attention'],
     COSTING_ANALYSIS: [],
     INDUSTRIAL_IMPROVEMENT: ['get_industrial_analysis'],
+    MATERIAL_TECHNICAL: ['get_material_technical'],
     RISK: [],
     LAYOUT: ['get_reconciliation', 'get_layout'],
   }[intent] || [];
@@ -134,6 +135,15 @@ export function inferirIntencion(query, ctx = {}) {
   if (/\b(atencion|atenci[oó]n|hoy|que necesito|prioridad)\b/.test(q)) {
     return { intent: 'ATTENTION', modo, lentes: ['direccion'], tools: ['get_today_attention', 'get_direction_facts', 'get_approvals'] };
   }
+  // CONOCIMIENTO TÉCNICO DE MATERIAL: formato físico/unidad/veta, SIN economía.
+  if (/\b(mide|medida|medidas|formato|hoja|tablero|veta|espesor|ptr|perfil)\b/.test(q)
+      && /\b(material|mdf|melamina|laminado|tablero|hoja|ptr|perfil|acero|aluminio|cristal|madera)\b/.test(q)) {
+    return {
+      intent: 'MATERIAL_TECHNICAL', modo: MODOS.CONSULTAR,
+      lentes: ['conocimiento'], tools: ['get_material_technical'],
+    };
+  }
+
   // CONOCIMIENTO DE PRODUCTO (qué línea sirve, materiales, a la medida). Va ANTES
   // que COSTING para que "¿qué mueble me sirve?" no se confunda con "costéame".
   if (/(que linea|recomiend|sugier|me sirve|sirve para|de que est|a la medida|que producto|catalogo|que mueble)/.test(q)) {
@@ -159,6 +169,36 @@ export function inferirIntencion(query, ctx = {}) {
   // Default: la lente de su rol (pedir otra lente no da permisos).
   const ef = lenteEfectiva(ctx.role);
   return { intent: 'CONSULTA', modo, lentes: [ef.lente], tools: ['get_project_context', 'get_reconciliation', 'get_quote'] };
+}
+
+function respuestaMaterialTecnico(k) {
+  const items = Array.isArray(k?.items) ? k.items : [];
+  if (!k || k.disponible === false || !items.length) {
+    return respuestaEstructurada({
+      que_paso: 'No encontré una ficha técnica verificable para ese material.',
+      por_que: k?.nota || 'El catálogo técnico cargado no tiene coincidencia suficiente.',
+      impacto: 'No invento medidas de hoja/formato.',
+      confianza: 0,
+      accion: 'Confirma la clave/nombre del material o carga su ficha técnica.',
+      evidencia: [], urgencia: URGENCIA.MEDIA, estado: ESTADO.DESCONOCIDO,
+      lentes:['conocimiento'], bloqueos:[],
+    });
+  }
+  const evidencia = items.slice(0,5).map((m)=>afirmacion(
+    `${m.nombre}: ${m.formato_texto || 'formato no documentado'} · unidad ${m.unidad || 'N/D'}.`,
+    TIPO_AFIRMACION.HECHO,
+    { source_type:'catalogo_tecnico_materiales', source_id:m.id, confidence:1 },
+  ));
+  const top=items[0];
+  return respuestaEstructurada({
+    que_paso: `${top.nombre}: ${top.formato_texto || 'formato físico no documentado'}.`,
+    por_que: `Ficha técnica cargada · unidad ${top.unidad || 'N/D'}${top.veta?' · material con veta':''}.`,
+    impacto: 'Este formato puede alimentar validación de corte/nesting; no contiene precio ni costo.',
+    confianza: 1,
+    accion: items.length>1 ? 'Si buscabas otra variante, dime la clave o nombre más exacto.' : 'Usar este formato para validar piezas y aprovechamiento.',
+    evidencia, urgencia:URGENCIA.BAJA, estado:ESTADO.OK,
+    lentes:['conocimiento'], bloqueos:[],
+  });
 }
 
 function respuestaIndustrial(a, resultadosLente = []) {
@@ -329,9 +369,11 @@ export async function responder({ query, ctx = {}, prov = {}, intentForzado = nu
     ? respuestaSinPermisoEconomico(plan.intent, denegadasEconomia, resultadosLente)
     : faltantes.length
       ? respuestaSinEvidencia(plan.intent, faltantes, resultadosLente)
-      : plan.intent === 'INDUSTRIAL_IMPROVEMENT'
-        ? respuestaIndustrial(datos.get_industrial_analysis, resultadosLente)
-        : sintetizar(plan.intent, resultadosLente);
+      : plan.intent === 'MATERIAL_TECHNICAL'
+        ? respuestaMaterialTecnico(datos.get_material_technical)
+        : plan.intent === 'INDUSTRIAL_IMPROVEMENT'
+          ? respuestaIndustrial(datos.get_industrial_analysis, resultadosLente)
+          : sintetizar(plan.intent, resultadosLente);
 
   // Nota de permiso si se pidió una lente económica sin permiso real.
   const lenteEco = plan.lentes.find((l) => ['cfo', 'costeador'].includes(l));
