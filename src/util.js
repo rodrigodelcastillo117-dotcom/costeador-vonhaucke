@@ -2,7 +2,18 @@
 
 export function pesos(n) {
   if (n == null || n === '' || isNaN(n) || !isFinite(n)) return '—';
-  return '
+  return '$' + Math.round(Number(n)).toLocaleString('es-MX');
+}
+
+export function pesos2(n) {
+  if (n == null || n === '' || isNaN(n) || !isFinite(n)) return '—';
+  return '$' + Number(n).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+export function pct(n) {
+  if (n == null || n === '' || isNaN(n) || !isFinite(n)) return '—';
+  return Math.round(Number(n)) + '%';
+}
 
 // Lee un porcentaje TECLEADO por una persona y lo devuelve seguro.
 // Nace de tres cosas reales que se cachan auditando la pantalla de cotización:
@@ -297,8 +308,8 @@ export function coincide(consulta, ...campos) {
 }
 
 export function pct1(n) {
-  if (n == null || isNaN(n) || !isFinite(n)) return '0%';
-  return n.toFixed(1) + '%';
+  if (n == null || n === '' || isNaN(n) || !isFinite(n)) return '—';
+  return Number(n).toFixed(1) + '%';
 }
 
 // Color de semaforo para un porcentaje de desperdicio (7.2): verde <12, ambar <=25, rojo arriba
