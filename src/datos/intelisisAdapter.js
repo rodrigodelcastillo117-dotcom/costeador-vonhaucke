@@ -21,6 +21,10 @@ export function normalizarMaterialIntelisis(row={}) {
   if(!out.clave_erp) issues.push('FALTA_CLAVE_ERP');
   if(out.precio===null||out.precio<0) issues.push('PRECIO_INVALIDO');
   if(!out.unidad_compra) issues.push('FALTA_UNIDAD_COMPRA');
+  if(out.unidad_compra && out.unidad_consumo && out.unidad_compra !== out.unidad_consumo){
+    const conv=num(out.conversion);
+    if(!(conv>0)) issues.push('FALTA_CONVERSION_UNIDAD');
+  }
   if(!out.vigencia) issues.push('FALTA_VIGENCIA');
   if(!out.evidencia) issues.push('FALTA_EVIDENCIA');
   return {...out,evidence_status:issues.length?'incompleta':'verificada',issues};
@@ -66,5 +70,9 @@ export function normalizarBomIntelisis(row={}) {
   if(!out.clave_material) issues.push('FALTA_MATERIAL');
   if(out.cantidad===null||out.cantidad<=0) issues.push('CANTIDAD_INVALIDA');
   if(!out.unidad_consumo) issues.push('FALTA_UNIDAD_CONSUMO');
+  if(!out.version_receta) issues.push('FALTA_VERSION_RECETA');
+  if(!out.evidencia) issues.push('FALTA_EVIDENCIA');
+  if(out.merma_pct===null) issues.push('FALTA_MERMA');
+  else if(out.merma_pct<0 || out.merma_pct>=100) issues.push('MERMA_INVALIDA');
   return {...out,evidence_status:issues.length?'incompleta':'verificada',issues};
 }
