@@ -9,7 +9,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { canonicalZoneRole, canonicalProductRole, semanticVerdict as semanticVerdictCanonical } from "./spatial-semantics.js";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { planearDeterminista } from "./acomodo-core.js";
+import { planearDeterminista, auditarGruposFuncionales } from "./acomodo-core.js";
 import {
   auditarPuertas,
   bloqueaPuertaEspacial,
@@ -219,6 +219,11 @@ Deno.serve(async (req) => {
   const cleanPieces = canonicalPieces.map((p: any) => ({
     id: String(p.id), nombre: String(p.nombre || "Mueble"),
     w: n(p.w), d: n(p.d), tipo: String(p.tipo || p.product_role || "mueble"),
+    ...(p.functional_group_id ? { functional_group_id: String(p.functional_group_id) } : {}),
+    ...(p.relation_role ? { relation_role: String(p.relation_role) } : {}),
+    ...(p.anchor_role ? { anchor_role: String(p.anchor_role) } : {}),
+    ...(Number.isFinite(Number(p.user_capacity)) ? { user_capacity: Number(p.user_capacity) } : {}),
+    ...(Number.isFinite(Number(p.max_anchor_distance_mm)) ? { max_anchor_distance_mm: Number(p.max_anchor_distance_mm) } : {}),
     ...(p.spatial_spec ? { spatial_spec: p.spatial_spec } : {}),
   }));
   const cleanAreas = areaMeta.map((a: any) => ({
