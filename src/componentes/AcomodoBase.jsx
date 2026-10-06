@@ -71,10 +71,11 @@ function archivoABase64(file) {
 // aMM (metros→mm) y areasCanonicas (loader) viven en src/datos/floorPlan.js — el
 // contrato canónico único del plano. Aquí sólo se consumen.
 
-export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial = null, abrirDibujo = false, onConsumido, bloqueosPrograma = [] }) {
+export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial = null, abrirDibujo = false, onConsumido, pendientesPrograma = [] }) {
   const partidas = (estado.cotizacion?.partidas) || [];
-  const programaBloqueado = Array.isArray(bloqueosPrograma) && bloqueosPrograma.length > 0;
-  const motivoPrograma = programaBloqueado ? bloqueosPrograma.map((b) => b?.mensaje || b?.code).filter(Boolean).join(' · ') : '';
+  const sugerenciasPendientes = Array.isArray(pendientesPrograma) ? pendientesPrograma : [];
+  const programaPropuesto = sugerenciasPendientes.length > 0;
+  const nSugeridasPendientes = sugerenciasPendientes.reduce((s, p) => s + Math.max(1, Math.round(Number(p?.cantidad) || 1)), 0);
   // LO QUE YA HABÍAS ACOMODADO. Rodrigo: "si me salgo, no se guarda el acomodo
   // que yo tenía cuando regreso a la cotización… ni el plano se guarda".
   // Tenía razón y era grave: el acomodo y las áreas vivían SÓLO en esta
@@ -180,10 +181,6 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // (`reacomodar.js`). `deCero` es la puerta de salida explícita.
   async function acomodar({ deCero = false } = {}) {
     setError(''); setGuardado(false);
-    if (programaBloqueado) {
-      setError(`No acomodo todavía: ${motivoPrograma} Completa la cotización primero; no voy a inventar los muebles faltantes.`);
-      return;
-    }
     // Volver a acomodar SIEMPRE se puede deshacer.
     if (plan?.colocacion?.length) recordar();
 
@@ -230,7 +227,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // 1-CLIC: al entrar con muebles, genera el 3D automáticamente (motor local, gratis).
   const autoRef = useRef(false);
   useEffect(() => {
-    if (autoRef.current || piezas.length === 0 || programaBloqueado) return;
+    if (autoRef.current || piezas.length === 0) return;
     // Sin espacio todavía no hay nada que acomodar: primero contesta dónde va.
     if (!areas.length) return;
     autoRef.current = true;
@@ -252,22 +249,25 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     if (!onGuardarAcomodo) return;
     if (primerGuardado.current) { primerGuardado.current = false; return; }
     const t = setTimeout(() => {
-      const serverValid = plan?.layoutSpec?.status === 'PASS' && plan?.render_ready === true && !programaBloqueado;
+      const serverSpatialValid = plan?.layoutSpec?.status === 'PASS' && plan?.render_ready === true;
+      const serverPublicable = serverSpatialValid && !programaPropuesto;
       onGuardarAcomodo({
         ...bloqueGeometria(areas), plan, planReal,
-        layoutValidado: serverValid,
-        layoutEstado: programaBloqueado ? 'PROGRAM_INCOMPLETE' : (plan?.layoutSpec?.status || null),
-        layoutMotivo: programaBloqueado ? motivoPrograma : null,
+        layoutEspacialValidado: serverSpatialValid,
+        layoutValidado: serverPublicable,
+        layoutEstado: programaPropuesto ? 'SUGGESTIONS_PENDING' : (plan?.layoutSpec?.status || null),
+        layoutMotivo: programaPropuesto ? `${nSugeridasPendientes} pieza(s) sugerida(s) pendientes de confirmar/cotizar.` : null,
+        sugerenciasPendientes: sugerenciasPendientes.map((p) => ({ id:p.id, nombre:p.nombre, cantidad:p.cantidad, zonaSugerida:p.zonaSugerida || null })),
         ...(lecturaMeta ? { lecturaMeta } : {}),
         ...(floorSpec ? { floorSpec } : {}),
         ...(dibujoMeta && Object.keys(dibujoMeta).length ? { dibujoMeta } : {}),
         // Si el layout deja de ser final, limpia cualquier render viejo para que
         // jamás viaje una foto de otro acomodo al PDF del cliente.
-        render3d: serverValid ? (stagingUrl || '') : '',
+        render3d: serverPublicable ? (stagingUrl || '') : '',
       }, true);
     }, 600);
     return () => clearTimeout(t);
-  }, [areas, plan, planReal, stagingUrl, lecturaMeta, floorSpec, programaBloqueado, motivoPrograma]);
+  }, [areas, plan, planReal, stagingUrl, lecturaMeta, floorSpec, programaPropuesto, nSugeridasPendientes, sugerenciasPendientes]);
   // Acomodo con IA (alterna): útil para casos raros; el motor local es el default.
   async function acomodarIA() {
     setError(''); setPlan(null); setGuardado(false); setCargando('acomodo');
@@ -1094,15 +1094,19 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     colisiones: chequeo.nEncimados || 0,
     fuera: chequeo.nFuera || 0,
   }) : null;
-  const layoutListo = !programaBloqueado && !!plan && !!chequeo && (layout.status === 'LAYOUT_VALID' && (chequeo.nViolaciones || 0) === 0);
+  const layoutListo = !!plan && !!chequeo && (layout.status === 'LAYOUT_VALID' && (chequeo.nViolaciones || 0) === 0);
+  const layoutPublicable = layoutListo && !programaPropuesto;
   const motivoLayout = [
-    ...(programaBloqueado ? [`programa incompleto: ${motivoPrograma}`] : []),
     ...(!layout ? [] : [
       layout.unplaced > 0 ? `${layout.unplaced} sin colocar` : '',
       layout.colisiones > 0 ? `${layout.colisiones} encimada(s)` : '',
       layout.fuera > 0 ? `${layout.fuera} fuera del plano` : '',
       (chequeo?.nViolaciones || 0) > 0 ? `${chequeo.nViolaciones} en zona equivocada` : '',
     ]),
+  ].filter(Boolean).join(' · ');
+  const motivoPublicacion = [
+    motivoLayout,
+    programaPropuesto ? `${nSugeridasPendientes} pieza(s) sugerida(s) pendientes de confirmar/cotizar` : '',
   ].filter(Boolean).join(' · ');
 
   // ============================================================================
@@ -1225,12 +1229,10 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
               {/* `onClick={acomodar}` le pasaba el EVENTO del clic como opciones:
                   funcionaba de milagro (`deCero` salía undefined). Explícito. */}
               <button className="boton primario" style={{ minHeight: 50, marginLeft: 'auto' }}
-                disabled={programaBloqueado}
-                title={programaBloqueado ? motivoPrograma : (nAMano ? `Acomoda lo que falta sin mover los ${nAMano} que pusiste tú.` : undefined)}
+                title={nAMano ? `Acomoda lo que falta sin mover los ${nAMano} que pusiste tú.` : undefined}
                 onClick={() => acomodar()}>Acomodar</button>
               <button className="boton fantasma" style={{ minHeight: 50 }} onClick={acomodarIA}
-                disabled={programaBloqueado}
-                title={programaBloqueado ? motivoPrograma : "Alterna con IA (el acomodo normal ya es automático)"}>Con IA</button>
+                title="Alterna con IA (el acomodo normal ya es automático)">Con IA</button>
             </div>
             {notaPlano && <div className="alerta ambar" style={{ marginTop: 10 }}><span className="texto">{notaPlano}</span></div>}
             {/* #7: comparación HONESTA plano original vs. lo que la app entendió,
@@ -1369,20 +1371,20 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
               </button>
             )}
             {/* ✨ PROPUESTA VIVA: presentación cinematográfica para el cliente. */}
-            <button className="boton primario" style={{ minHeight: 42 }} disabled={!plan || !areas.length || !layoutListo}
-              title={!layoutListo && plan ? `Corrige primero el acomodo: ${motivoLayout}` : undefined}
+            <button className="boton primario" style={{ minHeight: 42 }} disabled={!plan || !areas.length || !layoutPublicable}
+              title={!layoutPublicable && plan ? `Todavía no es propuesta final: ${motivoPublicacion}` : undefined}
               onClick={() => setVivaAbierta(true)}>
               ✨ Propuesta Viva
             </button>
             {onGuardarAcomodo && !guardado && <button className="boton" style={{ minHeight: 42, marginLeft: 'auto' }} onClick={guardarEnPropuesta}>
-              {layoutListo ? 'Guardar en la propuesta' : 'Guardar borrador de acomodo'}
+              {layoutPublicable ? 'Guardar en la propuesta' : programaPropuesto ? 'Guardar propuesta de acomodo (borrador)' : 'Guardar borrador de acomodo'}
             </button>}
             {guardado && <button className={guardadoValido ? 'boton primario' : 'boton'} style={{ minHeight: 42, marginLeft: 'auto' }} onClick={() => onIr('cotizacion')}>
-              {guardadoValido ? 'Ver cotización con el acomodo →' : 'Ver cotización (sin acomodo final) →'}
+              {guardadoValido ? 'Ver cotización con el acomodo →' : 'Ver cotización (borrador de acomodo) →'}
             </button>}
           </div>
           {guardado && <div className={guardadoValido ? 'ayuda verde no-imprimir' : 'ayuda no-imprimir'} style={{ marginTop: 6 }}>
-            {guardadoValido ? '✓ Acomodo validado y guardado. Ya puede aparecer en la propuesta/PDF.' : 'Borrador guardado. No se presenta al cliente como acomodo final hasta quedar válido.'}
+            {guardadoValido ? '✓ Acomodo validado y guardado. Ya puede aparecer en la propuesta/PDF.' : programaPropuesto ? `Borrador guardado. El espacio puede estar bien acomodado, pero faltan confirmar/cotizar ${nSugeridasPendientes} pieza(s) sugerida(s).` : 'Borrador guardado. No se presenta al cliente como acomodo final hasta quedar válido.'}
           </div>}
 
           {vivaAbierta && (
