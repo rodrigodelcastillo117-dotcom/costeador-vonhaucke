@@ -8,7 +8,7 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import { calcular, precioDe, netoComponente, modeloParaPieza, costeoEmitible, bomHash, diffBOM, aplicarDiffBOM, MOTOR_VERSION, FORMULA_ALBA_V1, formulaDePieza } from '../motor/calculo.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos } from '../util.js';
-import { dinero } from '../motor/dinero.js';
+import { dinero, aCentavosEnteros } from '../motor/dinero.js';
 import { analizarRender, analizarRenderImagenes, analizarTexto, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64 } from '../nube.js';
 import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { revisarEstructura } from '../datos/revisionEstructural.js';
@@ -192,11 +192,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           version_catalogo: srv?.versionCatalogo || null,
           estado_servidor: srv?.estado || (srv?.ok === false ? 'error' : null),
           http_status: srv?.status ?? (srv?.ok ? 200 : null),
-          precio_cliente: Math.round(precio),
-          precio_servidor: precioSrv,
-          costo_cliente: Math.round(resultado.costoUnitario),
-          costo_servidor: srv?.costo?.costoUnitario ?? null,
-          diff: precioSrv != null ? Math.round(precio) - precioSrv : null,
+          precio_cliente: dinero(precio),
+          precio_servidor: precioSrv != null ? dinero(precioSrv) : null,
+          costo_cliente: dinero(resultado.costoUnitario),
+          costo_servidor: srv?.costo?.costoUnitario != null ? dinero(srv.costo.costoUnitario) : null,
+          diff: precioSrv != null ? dinero(dinero(precio) - dinero(precioSrv)) : null,
           campos_recibidos: srv && typeof srv === 'object' ? Object.keys(srv) : null,
           nota: b.nombre || null,
         });
@@ -1150,10 +1150,10 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
               <button className="boton" style={{ marginTop: 6 }} onClick={reCostearConAlba}>Re-costear con método vigente (Alba V1)</button>
             </div>
           )}
-          {costoGuardado && Math.abs((costoGuardado.costoUnitario || 0) - Math.round(resultado.costoUnitario)) > 0 && (
+          {costoGuardado && aCentavosEnteros(costoGuardado.costoUnitario) !== aCentavosEnteros(resultado.costoUnitario) && (
             <div className="ayuda columna-texto" style={{ textAlign: 'left', marginTop: 6 }}>
               Re-costeo con catálogo de hoy: guardado {pesos(costoGuardado.costoUnitario)} → hoy {pesos(resultado.costoUnitario)}
-              {' '}(Δ {pesos(Math.round(resultado.costoUnitario) - (costoGuardado.costoUnitario || 0))}). Guarda para actualizar el expediente.
+              {' '}(Δ {pesos(dinero(resultado.costoUnitario - Number(costoGuardado.costoUnitario || 0)))}). Guarda para actualizar el expediente.
             </div>
           )}
 
