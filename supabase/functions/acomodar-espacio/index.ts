@@ -7,6 +7,7 @@
 // SERVER-SIDE + score espacial + fail-closed donde falta evidencia de puerta.
 // ============================================================================
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { canonicalZoneRole, canonicalProductRole, semanticVerdict as semanticVerdictCanonical } from "./spatial-semantics.js";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import {
   auditarPuertas,
@@ -99,45 +100,9 @@ function areaGeometry(a: any) {
     offsetX: 0, offsetY: 0,
   };
 }
-function zoneRole(a: any) {
-  const explicit = norm(a?.zone_role);
-  if (explicit) return explicit;
-  const t = norm(`${a?.tipo || ""} ${a?.nombre || a?.name || ""}`);
-  if (/bano|sanitario|wc|restroom/.test(t)) return "restroom";
-  if (/site|servidor|server|it\b|tecnico/.test(t)) return "technical";
-  if (/recep|lobby|acceso/.test(t)) return "reception";
-  if (/junta|consejo|conference|meeting/.test(t)) return "meeting";
-  if (/open|operativ|workstation|isla/.test(t)) return "operational";
-  if (/direccion|director|ceo|privad|oficina/.test(t)) return "private_office";
-  if (/lounge|comedor|break|estar/.test(t)) return "lounge";
-  if (/servicio|bodega|cocina/.test(t)) return "service";
-  return "unknown";
-}
-function productRole(p: any) {
-  const explicit = norm(p?.product_role);
-  if (explicit) return explicit;
-  const t = norm(`${p?.tipo || ""} ${p?.nombre || ""}`);
-  if (/recep/.test(t)) return "reception_desk";
-  if (/mesa.*junta|junta.*mesa|conference|consejo/.test(t)) return "meeting_table";
-  if (/bench|banca/.test(t)) return "bench";
-  if (/estacion|workstation/.test(t)) return "workstation";
-  if (/escritorio.*(direccion|director|ejecutiv|ceo)|(direccion|director|ejecutiv|ceo).*escritorio/.test(t)) return "executive_desk";
-  if (/locker|site|server|servidor|rack/.test(t)) return "technical_storage";
-  if (/archivero|credenza|cajonera|guarda|storage/.test(t)) return "storage";
-  if (/escritorio/.test(t)) return "workstation";
-  return "unknown";
-}
-function semanticVerdict(pr: string, zr: string) {
-  if (zr === "restroom") return { level: "FAIL", code: "FURNITURE_IN_RESTROOM" };
-  if (pr === "unknown" || zr === "unknown") return { level: "REVIEW", code: "SEMANTIC_ROLE_UNKNOWN" };
-  if (pr === "reception_desk" && zr !== "reception") return { level: "FAIL", code: "RECEPTION_OUTSIDE_RECEPTION" };
-  if (pr === "meeting_table" && zr !== "meeting") return { level: "FAIL", code: "MEETING_TABLE_OUTSIDE_MEETING" };
-  if (pr === "bench" && zr !== "operational") return { level: "FAIL", code: "BENCH_OUTSIDE_OPERATIONAL" };
-  if (pr === "executive_desk" && zr !== "private_office") return { level: "FAIL", code: "EXECUTIVE_DESK_OUTSIDE_PRIVATE_OFFICE" };
-  if (pr === "workstation" && !["operational", "private_office"].includes(zr)) return { level: "FAIL", code: "WORKSTATION_IN_WRONG_ZONE" };
-  if (pr === "technical_storage" && !["technical", "service"].includes(zr)) return { level: "REVIEW", code: "TECHNICAL_STORAGE_ZONE_REVIEW" };
-  return { level: "PASS", code: null };
-}
+function zoneRole(a: any) { return canonicalZoneRole(a); }
+function productRole(p: any) { return canonicalProductRole(p); }
+function semanticVerdict(pr: string, zr: string) { return semanticVerdictCanonical(pr, zr); }
 function insideArea(x: number, y: number, w: number, d: number, g: any) {
   if (x < 0 || y < 0 || x + w > g.width || y + d > g.depth) return false;
   if (g.kind === "rect") return true;
