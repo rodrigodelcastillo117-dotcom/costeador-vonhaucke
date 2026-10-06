@@ -261,7 +261,12 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     try {
       const r = await acomodarEspacio(areasMM, piezas);
       if (!r || !r.ok) { setError(r?.error || 'No se pudo acomodar. Vuelve a intentar.'); return; }
-      setPlan(r.plan);
+      setPlan({
+        ...r.plan,
+        layoutSpec: r.layoutSpec || null,
+        render_ready: r.render_ready === true,
+        strictPlacement: r.strictPlacement === true,
+      });
     } catch (e) {
       setError('No se pudo conectar con el asistente. Revisa tu internet y vuelve a intentar.');
     } finally {
@@ -623,14 +628,23 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     escalera: { et: 'Escalera', w: 1.20, h: 2.50 },
   };
 
+  function geometriaEditadaPorUsuario() {
+    // Desde este punto manda la geometría corregida por el proyectista. El
+    // FloorSpec de la lectura automática ya no describe exactamente el plano.
+    setFloorSpec(null);
+  }
+
   function ponerElemento(area, xmm, ymm) {
     const t = herramienta; if (!t) return;
     const x = xmm / 1000, y = ymm / 1000;
-    recordar(); setGuardado(false);
+    recordar(); setGuardado(false); geometriaEditadaPorUsuario();
     setAreas((as) => as.map((a, i) => {
       if (i !== area) return a;
       if (t === 'puerta') {
-        return { ...a, puertas: [...(a.puertas || []), { x: +x.toFixed(2), y: +y.toFixed(2), ancho: ELEMENTOS.puerta.ancho }] };
+        return { ...a, puertas: [...(a.puertas || []), {
+          x: +x.toFixed(2), y: +y.toFixed(2), ancho: ELEMENTOS.puerta.ancho,
+          tieneBarrido: false, confianza: 'usuario'
+        }] };
       }
       const d = ELEMENTOS[t];
       const o = { x: +(x - d.w / 2).toFixed(2), y: +(y - d.h / 2).toFixed(2), w: d.w, h: d.h, tipo: t };
@@ -644,7 +658,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
 
   function moverElemento(id, area, xmm, ymm) {
     const { clase, area: a0, idx } = partesEl(id);
-    recordar(); setGuardado(false);
+    recordar(); setGuardado(false); geometriaEditadaPorUsuario();
     setAreas((as) => as.map((a, i) => {
       if (clase === 'pu') {
         if (i === a0) { const ps = [...(a.puertas || [])]; const q = ps[idx]; ps.splice(idx, 1);
@@ -665,16 +679,40 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   function girarElemento(id) {
     const { clase, area, idx } = partesEl(id);
     if (clase === 'pu') return;                    // una puerta redonda no cambia al girar
-    recordar(); setGuardado(false);
+    recordar(); setGuardado(false); geometriaEditadaPorUsuario();
     setAreas((as) => as.map((a, i) => (i !== area ? a : {
       ...a,
       obstaculos: (a.obstaculos || []).map((o, k) => (k !== idx ? o : { ...o, w: o.h, h: o.w })),
     })));
   }
 
+  function configurarPuerta(id, abreHaciaDeg) {
+    const { clase, area, idx } = partesEl(id);
+    if (clase !== 'pu') return;
+    const abre = ((Number(abreHaciaDeg) % 360) + 360) % 360;
+    const cerrada = (abre + 270) % 360; // barrido horario de 90° termina en "abre"
+    recordar(); setGuardado(false); geometriaEditadaPorUsuario();
+    setAreas((as) => as.map((a, i) => {
+      if (i !== area) return a;
+      return {
+        ...a,
+        puertas: (a.puertas || []).map((p, k) => k !== idx ? p : ({
+          ...p,
+          tieneBarrido: true,
+          bisagraX: p.x,
+          bisagraY: p.y,
+          anguloCerradaDeg: cerrada,
+          sentido: 'horario',
+          barridoDeg: 90,
+          confianza: 'usuario_confirmado',
+        })),
+      };
+    }));
+  }
+
   function quitarElemento(id) {
     const { clase, area, idx } = partesEl(id);
-    recordar(); setGuardado(false);
+    recordar(); setGuardado(false); geometriaEditadaPorUsuario();
     setAreas((as) => as.map((a, i) => (i !== area ? a : (clase === 'pu'
       ? { ...a, puertas: (a.puertas || []).filter((_, k) => k !== idx) }
       : { ...a, obstaculos: (a.obstaculos || []).filter((_, k) => k !== idx) }))));
@@ -1367,6 +1405,26 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
                   <span className="ayuda">Seleccionado: <strong>{byId[selPieza]?.nombre}</strong> · los botones están sobre el mueble</span>
                 </div>
               )}
+              {selEl && partesEl(selEl).clase === 'pu' && (() => {
+                const { area, idx } = partesEl(selEl);
+                const p = areas[area]?.puertas?.[idx];
+                return (
+                  <div className="alerta" style={{ marginBottom:10, background:'#f7f8fa', borderColor:'var(--linea)' }}>
+                    <span className="texto">
+                      <strong>Puerta seleccionada.</strong> Marca hacia dónde abre. El punto donde la pusiste se toma como bisagra.
+                      <span className="fila-botones" style={{ gap:6, marginTop:8, flexWrap:'wrap' }}>
+                        {[['→',0],['↓',90],['←',180],['↑',270]].map(([et,deg]) => (
+                          <button key={deg} className="boton fantasma" style={{ minHeight:38, minWidth:48 }}
+                            onClick={() => configurarPuerta(selEl, deg)}>Abre {et}</button>
+                        ))}
+                      </span>
+                      <span className="ayuda" style={{ display:'block', marginTop:6 }}>
+                        {p?.tieneBarrido ? '✓ Barrido de 90° confirmado por usuario.' : 'Pendiente: sin dirección confirmada, el layout queda en revisión.'}
+                      </span>
+                    </span>
+                  </div>
+                );
+              })()}
               {/* AGRUPADA POR PRODUCTO, CON SU CUENTA. Rodrigo, acomodando a mano:
                   "deberían salir los muebles que pediste... si pides 6, que salga
                   escritorio Eclipse ×6, y como vas colocando va bajando; ejemplo
