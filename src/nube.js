@@ -585,3 +585,18 @@ export function suscribirConfig(cb) {
     .subscribe();
   return () => { try { nube.removeChannel(canal); } catch (e) {} };
 }
+
+export async function verificarRenderCanonico(renderId, evidence = {}) {
+  const id = Number(renderId);
+  if (!Number.isInteger(id) || id <= 0) return { ok: false, error: 'render_id inválido' };
+  const { data, error } = await nube.rpc('verificar_render_canonico', {
+    p_render_id: id,
+    p_geometry: 'PASS',
+    p_features: 'PASS',
+    p_finish: 'PASS',
+    p_evidence: evidence || {},
+  });
+  if (error) return { ok: false, error: error.message || 'No se pudo validar el render.' };
+  return data || { ok: false, error: 'Sin respuesta de validación.' };
+}
+
