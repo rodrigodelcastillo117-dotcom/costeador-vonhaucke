@@ -15,6 +15,7 @@ import {visualRevisionHash,visualesSincronizados} from '../datos/visualRevision.
 import {modeloTecnico3DDesdeSpec} from '../datos/productModel3D.js';
 import {diagnosticoDesarrolloProducto,compararVariantesProducto} from '../datos/desarrolloProducto.js';
 import {contextoCatalogoParaIA,recomendar as recomendarCatalogoVonHaucke} from '../voni/conocimiento.js';
+import {explicarCosteo} from '../datos/explicacionCosteo.js';
 
 const MAT_LABEL={nogal:'Nogal',roble:'Roble',encino:'Encino',maple:'Maple',laminado:'Laminado',solid_surface:'Solid surface',cristal:'Cristal',metal:'Metal',piedra:'Piedra'};
 const FAMILY_OPTIONS=[[FAMILIA.DESCONOCIDA,'Producto libre'],[FAMILIA.ESCRITORIO,'Operativo / escritorio'],[FAMILIA.MESA,'Mesa'],[FAMILIA.RECEPCION,'Recepción'],[FAMILIA.LOCKER,'Locker'],[FAMILIA.DISPLAY,'Exhibidor'],[FAMILIA.GUARDADO,'Guardado']];
@@ -125,6 +126,10 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
    engineering_validated:engineeringValidated,
    engineering_validation:engineeringValidated?engineeringValidation:null,
  }):null,[intent,insumos,par,rev,bom,engineeringValidated,engineeringValidation]);
+ const explicacionCosteo=useMemo(
+   ()=>pipeline?.costo?.costeo?explicarCosteo(pipeline.costo.costeo,{nombre:intent?._concepto_nombre||resumen?.tipologia||intent?.familia||'Producto co-creado',cantidad:1}):null,
+   [pipeline?.costo?.costeo,intent?._concepto_nombre,intent?.familia,resumen?.tipologia]
+ );
  const resumen=useMemo(()=>intent?resumenIdeaCocrear(intent,texto):null,[intent,texto]);
  const modelo3d=useMemo(()=>spec?modeloTecnico3DDesdeSpec(spec):null,[spec]);
  const visualSync=useMemo(()=>spec?visualesSincronizados({spec,render,model3d:modelo3d}):{synchronized:true},[spec,render,modelo3d]);
