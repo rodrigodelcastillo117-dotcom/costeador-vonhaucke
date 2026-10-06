@@ -420,7 +420,26 @@ Deno.serve(async (req) => {
     }
   }
 
-  return json({ ok: true, dataUrl: `data:${mime};base64,${inline.data}` });
+  // PERFORMANCE: no devolver ~2 MB de base64 al navegador sólo para que lo
+  // vuelva a subir. El servidor ya tiene los bytes y service-role: persiste una
+  // sola vez en Storage y responde una URL pequeña. Fallback dataUrl mantiene
+  // compatibilidad si Storage está temporalmente indisponible.
+  try {
+    const raw = atob(inline.data);
+    const bytes = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+    const ext = /jpe?g/i.test(mime) ? "jpg" : /webp/i.test(mime) ? "webp" : "png";
+    const safeEmail = email.toLowerCase().replace(/[^a-z0-9._-]+/g, "_").slice(0, 80);
+    const storagePath = `generated/${safeEmail}/${new Date().toISOString().slice(0,10)}/${requestId}.${ext}`;
+    const up = await svc.storage.from("renders").upload(storagePath, bytes, { contentType: mime, upsert: false });
+    if (!up.error) {
+      const pub = svc.storage.from("renders").getPublicUrl(storagePath);
+      const url = pub?.data?.publicUrl || null;
+      if (url) return json({ ok: true, url, storagePath, mime, bytes: bytes.length, request_id: requestId });
+    }
+  } catch (_e) { /* fallback compatible abajo */ }
+
+  return json({ ok: true, dataUrl: `data:${mime};base64,${inline.data}`, storageFallback: true, request_id: requestId });
 });
 
 function json(obj: unknown, status = 200) {
