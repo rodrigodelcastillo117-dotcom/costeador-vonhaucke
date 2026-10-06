@@ -36,6 +36,7 @@ import PropuestaViva from './PropuestaViva.jsx';
 import DibujarPlano from './DibujarPlano.jsx';
 import EmpezarEspacio from './EmpezarEspacio.jsx';
 import Cargando from './Cargando.jsx';
+import MisionFlujo from './MisionFlujo.jsx';
 
 // Un dibujo para lo que no tiene foto. Las sillas del banco vienen de
 // presupuestos y no traen render de catálogo: antes se pintaba un CUADRADO CAFÉ
@@ -1108,6 +1109,33 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     });
   }, [plan, chequeo]);
 
+  const misionAcomodo = {
+    paso:areas.length===0?1:!plan?2:!layoutListo?3:4,
+    estado:layoutListo&&!vencida?'ok':(plan&&!layoutListo?'blocked':'attention'),
+    resumen:areas.length===0
+      ?'Primero necesito conocer el espacio real: medidas, dibujo o plano.'
+      :!plan
+        ?'El espacio ya existe; todavía falta colocar los muebles.'
+        :!layoutListo
+          ?`El layout aún no pasa la revisión espacial${motivoLayout?`: ${motivoLayout}`:'.'}`
+          :vencida
+            ?'El acomodo cambió después de la última revisión; vuelve a validarlo.'
+            :'Acomodo medido y listo para usarse en la propuesta.',
+    siguiente:areas.length===0?'Sube un plano, dibuja el espacio o captura sus medidas.'
+      :!plan?'Pulsa acomodar; después podrás mover piezas manualmente sin perder el trabajo.'
+      :!layoutListo?'Corrige las piezas marcadas y vuelve a revisar.'
+      :vencida?'Ejecuta de nuevo la revisión antes del render/propuesta.'
+      :stagingUrl?'Guarda el acomodo en la propuesta.'
+      :'Si quieres presentación, genera la vista realista; el layout ya está listo.',
+    items:[
+      {key:'espacio',label:'Espacio real',ok:areas.length>0},
+      {key:'colocacion',label:'Todos colocados',ok:!!plan&&pendientes.length===0},
+      {key:'medido',label:'Sin colisiones/fuera',ok:!!chequeo&&chequeo.nEncimados===0&&chequeo.nFuera===0},
+      {key:'semantica',label:'Zonas correctas',ok:!!chequeo&&(chequeo.nViolaciones||0)===0},
+      {key:'audit',label:'Layout válido',ok:layoutListo&&!vencida},
+    ],
+  };
+
   async function revisarAcomodoSenior() {
     if (!plan || !chequeo || revisionSeniorCargando) return;
     setRevisionSeniorCargando(true); setRevisionSeniorError('');
@@ -1183,6 +1211,15 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
 
   return (
     <div className="contenido" style={{ maxWidth: 1000 }}>
+      <MisionFlujo
+        titulo="Misión · acomodar el proyecto"
+        paso={misionAcomodo.paso}
+        total={4}
+        estado={misionAcomodo.estado}
+        resumen={misionAcomodo.resumen}
+        siguiente={misionAcomodo.siguiente}
+        items={misionAcomodo.items}
+      />
       {dibujando && <DibujarPlano onListo={usarDibujo} onCancelar={() => setDibujando(false)} />}
       <div className="tarjeta no-imprimir" style={dibujando ? { display: 'none' } : undefined}>
         <button className="boton fantasma" style={{ minHeight: 40, marginBottom: 10 }} onClick={() => onIr('cotizacion')}>← Volver a la cotización</button>
