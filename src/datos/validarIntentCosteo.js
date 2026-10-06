@@ -58,6 +58,20 @@ const entero = (x) => finito(x) && Number.isInteger(x);
  * @param {object} body  { producto?, version?, contexto?, cantidad, pieza:{componentes:[...], horas?} }
  * @returns {{ok:true,intent}|{ok:false,code,issues}}
  */
+/**
+ * Proyección CLIENT-SAFE de una pieza UI al DTO técnico que acepta el servidor.
+ * Deliberadamente NO copia margen, costo, precio, modeloCosteo, factores ni otros
+ * campos de presentación. El servidor vuelve a validar: esto mejora wiring/UX,
+ * no sustituye la frontera de seguridad.
+ */
+export function proyectarPiezaTecnica(pieza) {
+  const p = pieza && typeof pieza === 'object' ? pieza : {};
+  return {
+    componentes: Array.isArray(p.componentes) ? p.componentes : [],
+    ...(p.horas && typeof p.horas === 'object' ? { horas: p.horas } : {}),
+  };
+}
+
 export function validarIntentCosteo(body) {
   if (body == null || typeof body !== 'object') {
     return { ok: false, code: 'INVALID_INPUT', issues: [{ field: '(body)', msg: 'Falta el cuerpo de la petición.' }] };
