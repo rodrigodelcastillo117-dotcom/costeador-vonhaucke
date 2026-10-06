@@ -28,9 +28,9 @@ const SCHEMA = {
         type: "object",
         additionalProperties: false,
         properties: {
-          nombre: { type: "string" },
+          nombre: { type: "string", maxLength: 180 },
           insumoId: { type: "string", description: "id EXACTO del catalogo cuando el material pedido ES de la MISMA familia que un insumo del catalogo. '' si el material pedido NO existe en el catalogo. NUNCA pongas el id de OTRA familia (p.ej. superficie solida -> NO uses un id de MDF/melamina/laminado): eso falsea el costo." },
-          material_solicitado: { type: "string", description: "El MATERIAL que realmente pidio el usuario, en palabras (p.ej. 'superficie solida azul', 'acero inoxidable 304', 'MDF 19 mm'). SIEMPRE llenalo con lo que el texto/imagen indica, aunque el catalogo no lo tenga. Es lo que permite detectar sustituciones indebidas." },
+          material_solicitado: { type: "string", maxLength: 180, description: "El MATERIAL que realmente pidio el usuario, en palabras (p.ej. 'superficie solida azul', 'acero inoxidable 304', 'MDF 19 mm'). SIEMPRE llenalo con lo que el texto/imagen indica, aunque el catalogo no lo tenga. Es lo que permite detectar sustituciones indebidas." },
           material_match: { type: "string", enum: ["EXACT", "NOT_AVAILABLE", "SUBSTITUTE_SUGGESTED"], description: "EXACT: el insumoId es de la MISMA familia que material_solicitado. NOT_AVAILABLE: el catalogo no tiene esa familia (insumoId=''). SUBSTITUTE_SUGGESTED: hay un material de otra familia que PODRIA servir pero NO lo aplicaste al id (insumoId='' y lo explicas en nota) — requiere confirmacion humana." },
           forma: { type: "string", enum: ["area", "lineal", "pieza"] },
           largoMM: { type: "number" },
@@ -38,36 +38,40 @@ const SCHEMA = {
           cantidad: { type: "number" },
           hojas: { type: "number", description: "Para forma='area' (tableros/laminas/acrilicos): FRACCION DE HOJA estandar que consume el TOTAL de esta pieza x cantidad (1 = una hoja entera 1.22x2.44 de tablero, o 3x10 de lamina). Es lo que el motor usa para costear; estimala conservadora a partir de las cotas. 0 si no aplica (lineal/pieza)." },
           confianza: { type: "string", enum: ["alta", "media", "baja"] },
-          nota: { type: "string" },
-          razonamiento: { type: "string", description: "COMO saliste de las COTAS a esta cantidad/hojas, en una linea: cota usada → tamano de pieza → cuantas caben por hoja → fraccion. Ej: 'copete 120x55 cm (cota frontal); 3 piezas por hoja 1.22x2.44 → 0.35 hoja x 2 = 0.7 hojas'. Si lo SUPUSISTE sin cota, dilo ('supuesto, sin cota')." },
+          nota: { type: "string", maxLength: 260 },
+          razonamiento: { type: "string", maxLength: 360, description: "COMO saliste de las COTAS a esta cantidad/hojas, en una linea: cota usada → tamano de pieza → cuantas caben por hoja → fraccion. Ej: 'copete 120x55 cm (cota frontal); 3 piezas por hoja 1.22x2.44 → 0.35 hoja x 2 = 0.7 hojas'. Si lo SUPUSISTE sin cota, dilo ('supuesto, sin cota')." },
+          procedencia: { type: "string", enum: ["MEASURED", "DERIVED", "INFERRED", "ASSUMED"], description: "MEASURED=cota/texto explícito; DERIVED=cálculo directo desde evidencia visible; INFERRED=deducción estructural; ASSUMED=supuesto sin evidencia suficiente." },
+          evidencia: { type: "string", maxLength: 300, description: "Referencia breve que sostiene la pieza/medida/material: cota, vista, nota o texto del usuario. Vacío si no existe evidencia." },
+          pagina: { type: "integer", description: "Página/hoja 1..N de la evidencia principal; 0 si no aplica (texto sin archivo)." },
           // --- SEMÁNTICA ESTRUCTURAL (para el modelo/grafo del mueble, NO para el precio) ---
-          semantic_role: { type: "string", description: "ROL estructural de la pieza (lo que HACE en el mueble, no su material): cubierta, faldon, lateral, gaveta, pata, respaldo, asiento, entrepano, puerta, conector, espuma, tapiz, herraje, estructura, u 'otro'. Obligatorio." },
-          parent: { type: "string", description: "nombre de la pieza/módulo que la CONTIENE o a la que pertenece ('' si es de primer nivel). Ej: una gaveta pertenece a un 'cuerpo'/'módulo'; un asiento a un 'módulo de plaza'." },
+          semantic_role: { type: "string", maxLength: 100, description: "ROL estructural de la pieza (lo que HACE en el mueble, no su material): cubierta, faldon, lateral, gaveta, pata, respaldo, asiento, entrepano, puerta, conector, espuma, tapiz, herraje, estructura, u 'otro'. Obligatorio." },
+          parent: { type: "string", maxLength: 180, description: "nombre de la pieza/módulo que la CONTIENE o a la que pertenece ('' si es de primer nivel). Ej: una gaveta pertenece a un 'cuerpo'/'módulo'; un asiento a un 'módulo de plaza'." },
           relacion: { type: "string", enum: ["", "soporta", "contiene", "conecta", "se_repite_con"], description: "Relación física principal con 'relacion_con': una pata SOPORTA la cubierta; un cuerpo CONTIENE una gaveta; un conector CONECTA módulos; piezas que SE_REPITEN_CON un módulo. '' si no aplica." },
-          relacion_con: { type: "string", description: "nombre de la otra pieza/módulo de la 'relacion' ('' si no aplica)." },
+          relacion_con: { type: "string", maxLength: 180, description: "nombre de la otra pieza/módulo de la 'relacion' ('' si no aplica)." },
         },
         required: ["nombre", "insumoId", "material_solicitado", "material_match", "forma", "largoMM", "anchoMM", "cantidad", "hojas", "confianza", "nota", "razonamiento", "semantic_role"],
       },
     },
-    descripcionCliente: { type: "string", description: "Para el CLIENTE, sin jerga: que es, de que esta hecho, medidas aprox, para que sirve. 2-4 frases." },
-    materiales: { type: "array", items: { type: "string" }, description: "Materiales visibles en palabras de cliente." },
-    volumenAsumido: { type: "string", description: "Volumen que asumiste para el analisis (ej. 'prototipo/1 pieza' o 'corrida 50+'). Afecta flat-pack y herramentales." },
+    descripcionCliente: { type: "string", maxLength: 900, description: "Para el CLIENTE, sin jerga: que es, de que esta hecho, medidas aprox, para que sirve. 2-4 frases." },
+    materiales: { type: "array", maxItems: 16, items: { type: "string", maxLength: 120 }, description: "Materiales visibles en palabras de cliente." },
+    volumenAsumido: { type: "string", maxLength: 180, description: "Volumen que asumiste para el analisis (ej. 'prototipo/1 pieza' o 'corrida 50+'). Afecta flat-pack y herramentales." },
     confianzaGeneral: { type: "string", enum: ["alta", "media", "baja"], description: "Confianza global del analisis (baja si no hay escala)." },
-    informe: { type: "string", description: "Auditoria tecnica COMPLETA en Markdown con EXACTAMENTE estas secciones y titulos, en este orden: '## 📐 Resumen Tecnico y Medidas Generales', '## 📋 Tabla BOM' (tabla markdown: Pieza | Material | Calibre/Espesor | Medida | Acabado), '## ✂️ Analisis de Merma y Nesting' (cuantifica: merma % actual vs optimizada, piezas por tablero 1.22x2.44), '## ⚙️ Ruta de Produccion y Estandarizacion' (Corte->CNC->Doblez->Soldadura->Pintura->Tapiceria->Ensamble; cuello de botella; piezas universales izq/der), '## 💡 Ingenieria de Valor' (2 acciones para bajar >=15%, en % no en pesos), '## 📦 Estrategia Logistica (Flat-Pack)' (knock-down y densidad en contenedor 53ft), '## 🛡️ Refuerzos Estructurales (Contract/BIFMA)', '## 🎯 Top 3 Acciones' (ordenadas por impacto/esfuerzo). Cuantifica siempre (%, piezas/tablero, kg, horas). NUNCA precios en pesos." },
+    informe: { type: "string", maxLength: 6500, description: "Auditoria tecnica COMPLETA en Markdown con EXACTAMENTE estas secciones y titulos, en este orden: '## 📐 Resumen Tecnico y Medidas Generales', '## 📋 Tabla BOM' (tabla markdown: Pieza | Material | Calibre/Espesor | Medida | Acabado), '## ✂️ Analisis de Merma y Nesting' (cuantifica: merma % actual vs optimizada, piezas por tablero 1.22x2.44), '## ⚙️ Ruta de Produccion y Estandarizacion' (Corte->CNC->Doblez->Soldadura->Pintura->Tapiceria->Ensamble; cuello de botella; piezas universales izq/der), '## 💡 Ingenieria de Valor' (2 acciones para bajar >=15%, en % no en pesos), '## 📦 Estrategia Logistica (Flat-Pack)' (knock-down y densidad en contenedor 53ft), '## 🛡️ Refuerzos Estructurales (Contract/BIFMA)', '## 🎯 Top 3 Acciones' (ordenadas por impacto/esfuerzo). Cuantifica siempre (%, piezas/tablero, kg, horas). NUNCA precios en pesos." },
     preguntas: {
       type: "array",
+      maxItems: 8,
       description: "Confirmaciones ESENCIALES para cerrar el costo, como CONTROLES respondibles (no prosa). MÁX 8 críticas, TODAS JUNTAS en esta pasada, ordenadas por impacto. Si hay más de 8 detalles MENORES, NO los preguntes: documéntalos como supuestos/warnings en 'informe'. Cada una con su tipo de control y su supuesto actual.",
       items: {
         type: "object",
         additionalProperties: false,
         properties: {
-          question_key: { type: "string", description: "ID SEMÁNTICO ESTABLE en snake_case (NO depende del texto). Reusa el MISMO key para el mismo concepto siempre. Ej: equipo_refrigerador_responsable, frentes_inferiores_tipo, estructura_ptr_calibre, grafica_responsable, cantidad_islas, carga_repisa_kg, cantidad_cajones, cantidad_puertas." },
-          pregunta: { type: "string", description: "La pregunta, corta y concreta." },
+          question_key: { type: "string", maxLength: 120, description: "ID SEMÁNTICO ESTABLE en snake_case (NO depende del texto). Reusa el MISMO key para el mismo concepto siempre. Ej: equipo_refrigerador_responsable, frentes_inferiores_tipo, estructura_ptr_calibre, grafica_responsable, cantidad_islas, carga_repisa_kg, cantidad_cajones, cantidad_puertas." },
+          pregunta: { type: "string", maxLength: 260, description: "La pregunta, corta y concreta." },
           tipo: { type: "string", enum: ["radio", "select", "number", "texto"], description: "radio/select cuando hay opciones acotadas; number para cantidades; texto para abierto." },
           opciones: { type: "array", items: { type: "string" }, description: "Opciones para radio/select (ej. ['Cliente','Von Haucke','Por definir']); [] si es number/texto." },
           impacto: { type: "string", enum: ["alto", "medio", "bajo"], description: "Cuánto mueve el costo/el producto." },
           afecta: { type: "string", enum: ["bom", "costo", "proceso", "render"], description: "Qué cambia la respuesta." },
-          supuesto: { type: "string", description: "Lo que ASUMISTE por ahora (el valor actual del despiece)." },
+          supuesto: { type: "string", maxLength: 260, description: "Lo que ASUMISTE por ahora (el valor actual del despiece)." },
         },
         required: ["question_key", "pregunta", "tipo", "opciones", "impacto", "afecta", "supuesto"],
       },
@@ -79,13 +83,13 @@ const SCHEMA = {
       additionalProperties: false,
       description: "La INTENCIÓN de diseño entendida como OBJETO: tipo, módulos, dimensiones globales, supuestos y datos críticos faltantes.",
       properties: {
-        product_type: { type: "string", description: "Tipo de mueble como objeto (ej. 'banca de aeropuerto 4 plazas', 'counter de check-in', 'barra alta comunal', 'armero', 'escritorio recto'). 'desconocido' SOLO si la info es genuinamente ambigua." },
+        product_type: { type: "string", maxLength: 180, description: "Tipo de mueble como objeto (ej. 'banca de aeropuerto 4 plazas', 'counter de check-in', 'barra alta comunal', 'armero', 'escritorio recto'). 'desconocido' SOLO si la info es genuinamente ambigua." },
         module_count: { type: "number", description: "Cuántos MÓDULOS ESTRUCTURALES repetidos lo componen (cuerpos/unidades físicas que se fabrican y repiten). OJO: NO es la cantidad de personas. Una barra comunal MONOLÍTICA para 6 personas tiene module_count=1 (una sola estructura). Una banca modular de 4 plazas separadas puede tener module_count=4. Si no hay repetición modular clara, 1." },
         seat_count: { type: "number", description: "Número de ASIENTOS físicos (sillas/plazas con asiento). 0 si el mueble no tiene asientos (counter, mostrador, armero, exhibidor)." },
         user_capacity: { type: "number", description: "Cuántas PERSONAS puede usar/atender a la vez (p.ej. 'barra para 6 personas' → 6). Es capacidad de uso, NO módulos ni asientos. 0 si no aplica." },
-        overall_dimensions: { type: "string", description: "Dimensiones globales aprox (LxAnxAl en mm) si se deducen; '' si no." },
-        assumptions: { type: "array", items: { type: "string" }, description: "Supuestos que tomaste para entenderlo (material, escala, uso)." },
-        missing_critical_data: { type: "array", items: { type: "string" }, description: "Datos críticos que faltan para costear con confianza." },
+        overall_dimensions: { type: "string", maxLength: 160, description: "Dimensiones globales aprox (LxAnxAl en mm) si se deducen; '' si no." },
+        assumptions: { type: "array", maxItems: 8, items: { type: "string", maxLength: 240 }, description: "Supuestos que tomaste para entenderlo (material, escala, uso)." },
+        missing_critical_data: { type: "array", maxItems: 8, items: { type: "string", maxLength: 240 }, description: "Datos críticos que faltan para costear con confianza." },
       },
       required: ["product_type", "module_count", "seat_count", "user_capacity", "overall_dimensions", "assumptions", "missing_critical_data"],
     },
@@ -220,6 +224,7 @@ Deno.serve(async (req) => {
     "   · NO DUPLIQUES la superficie: si un tablero es MELAMINA/LAMINADO de COLOR (ej. 'MDF melamina Walnut', 'MDF con laminado nogal'), usa el tablero YA laminado (mdf-...-walnut) — ese precio YA incluye las dos caras. NO sumes aparte una hoja de 'laminado' como pieza extra: eso cuenta la superficie dos veces. Solo factura laminado/chapa por separado si es un enchapado sobre un nucleo que ya costeaste crudo.\n" +
     "   · UNA PIEZA, UNA VEZ: el mismo panel que sale en vista frontal, lateral y superior es UNA pieza. Agrupa piezas identicas en un solo renglon con su 'cantidad'.\n" +
     "   · AUTO-VERIFICA antes de responder: relee tus 'piezas' y pregunta '¿esta cantidad sale de una cota o la supuse?'. Si la supusiste, baja la 'confianza' a 'media' o 'baja' para que el humano la revise. Mejor conservador y marcado que inflado.\n" +
+    "   · En CADA pieza llena procedencia/evidencia/pagina cuando sea posible: MEASURED=cota/texto explícito; DERIVED=cálculo directo desde cotas visibles; INFERRED=deducción estructural; ASSUMED=supuesto. NO promociones ASSUMED/INFERRED a MEASURED. Si no hay archivo y sólo hay texto, pagina=0.\n" +
     "H) MODELO ESTRUCTURAL (entiende el mueble como OBJETO, no como piezas sueltas):\n" +
     "   · Rellena SIEMPRE 'design_intent' (product_type como objeto, module_count, seat_count, user_capacity, overall_dimensions si se deduce, assumptions, missing_critical_data). Si de verdad no se puede saber qué es, product_type='desconocido' y pon la ambigüedad en missing_critical_data y en una 'pregunta'.\n" +
     "   · CAPACIDAD ≠ MÓDULOS ≠ ASIENTOS (error frecuente): 'barra comunal para 6 personas' NO significa module_count=6. Si es una sola estructura monolítica, module_count=1 y user_capacity=6. Sólo pon module_count>1 si hay cuerpos/estructuras FÍSICAMENTE repetidos. seat_count es cuántos asientos físicos hay (0 si es counter/mostrador/armero/barra sin bancos). No conviertas 'lugares'/'personas' en módulos estructurales.\n" +
@@ -228,7 +233,7 @@ Deno.serve(async (req) => {
     (soloTexto || !desc ? "" :
       "I) TEXTO + IMAGEN: el TEXTO es la INTENCIÓN del usuario; la IMAGEN/plano es la evidencia geométrica. Si se CONTRADICEN (el texto dice una cosa y la imagen otra), NO elijas en silencio: refléjalo como una 'pregunta' crítica (afecta='bom') con las dos lecturas.\n") +
     "\n" +
-    "El 'informe' (Markdown) DEBE traer las 8 secciones con los titulos EXACTOS del schema (las 7 de la auditoria + '## 🎯 Top 3 Acciones' al final), con la tabla BOM en markdown. SE CONCISO: viñetas cortas, no ensayos; maximo ~3-5 puntos por seccion; tabla BOM breve. Prioriza claridad y termina SIEMPRE el JSON.\n\n" +
+    "El 'informe' (Markdown) DEBE traer las 8 secciones con los titulos EXACTOS del schema (las 7 de la auditoria + '## 🎯 Top 3 Acciones' al final), con una tabla BOM COMPACTA. Máximo ~550 palabras TOTAL: 1-2 viñetas por sección, sin repetir en prosa lo que ya está en 'piezas'. Prioriza BOM/cotas/materiales y termina SIEMPRE el JSON.\n\n" +
     "PREGUNTAS (confirmaciones): devuelve MÁX 8 CRÍTICAS como CONTROLES, TODAS JUNTAS, ordenadas por impacto (más de 8 detalles menores NO se preguntan: van como supuestos/warnings). Cada una con: 'tipo' (radio/select/number/texto), 'opciones' (para radio/select, ej. refrigerador→['Cliente','Von Haucke','Por definir']; frentes→['Abatibles','Fijos','Cajones']; PTR→['cal.14','cal.12','Otro']; gráfica→['Nosotros','Cliente','Solo montaje']), 'impacto' (alto/medio/bajo), 'afecta' (bom/costo/proceso/render) y 'supuesto' (lo que asumiste ahora). Pregunta SOLO lo que de verdad mueve el costo o cambia el producto (equipo comprado, frentes fijos vs abatibles, calibre, gráfica propia vs cliente, nº de islas, carga por repisa). ⛔ NUNCA preguntes por un material/acabado/color/espesor que YA venga escrito en el plano o en el texto: eso YA está decidido, mapéalo al catálogo (no es pregunta). NO prosa; son controles para contestar rápido.\n" +
     "  · UNA PREGUNTA = UN SOLO DATO con su 'question_key' estable. NUNCA juntes dos cantidades: '¿cuántos cajones y cuántas puertas?' está MAL; son dos (cantidad_cajones, cantidad_puertas).\n" +
     "  · DETECTA TODAS las confirmaciones críticas EN ESTA PRIMERA PASADA y devuélvelas JUNTAS. No las vayas soltando de a poco en pasadas siguientes.\n" +
@@ -283,25 +288,34 @@ Deno.serve(async (req) => {
 
   const contenido = [...bloquesImagen, { type: "text", text: textoTarea }];
   const pedir = async (schema: any, sys: string, maxTok: number) => {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({
-        model: "claude-opus-5",
-        max_tokens: maxTok,
-        output_config: { effort: "medium", format: { type: "json_schema", schema } },
-        system: sys,
-        messages: [{ role: "user", content: contenido }],
-      }),
-    });
-    return await r.json();
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), esRevision ? 45_000 : 75_000);
+    try {
+      const r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify({
+          model: "claude-opus-5",
+          max_tokens: maxTok,
+          output_config: { effort: esRevision ? "low" : "medium", format: { type: "json_schema", schema } },
+          system: sys + (esRevision
+            ? "\nREVISION DE BOM: corrige BOM/cotas/material_match. Pon 'informe'='' (vacío); NO repitas la auditoría ejecutiva. Notas y razonamiento en una línea breve por pieza."
+            : "\nPRIORIDAD DE SALIDA: BOM completo y correcto > informe. Informe máximo ~900 palabras; razonamiento por pieza en una sola línea."),
+          messages: [{ role: "user", content: contenido }],
+        }),
+        signal: ac.signal,
+      });
+      return await r.json();
+    } finally { clearTimeout(timer); }
   };
 
-  // Presupuesto de salida amplio: un plano rico (varias vistas + despiece + razonamiento) excede
-  // 8000 tokens fácil. 16000 también para 1 imagen (1 imagen es rápida; el timeout de 150s aguanta).
-  const MAX_TOK = 16000;
+  // El main necesita espacio para BOM. La revisión corrige BOM y NO reescribe informe.
+  const schemaPrimario = esRevision
+    ? { ...SCHEMA, required: (SCHEMA.required as string[]).filter((k) => k !== "informe") }
+    : SCHEMA;
+  const MAX_TOK = esRevision ? 4500 : 9000;
   let data: any;
-  try { data = await pedir(SCHEMA, system, MAX_TOK); }
+  try { data = await pedir(schemaPrimario, system, MAX_TOK); }
   catch (e) { return json({ ok: false, error: "No se pudo llamar a Claude: " + String(e) }, 502); }
 
   if (data?.type === "error") return json({ ok: false, error: data.error?.message || "Error de la API" }, 502);
@@ -315,7 +329,7 @@ Deno.serve(async (req) => {
     const sysCompacto = system +
       "\n\nIMPORTANTE: la respuesta anterior se CORTÓ por larga. Esta vez OMITE 'informe' (déjalo '' o muy corto), " +
       "sé BREVE en 'razonamiento' y 'nota' (media línea cada uno) y ASEGÚRATE de CERRAR el JSON completo con TODO el despiece de piezas.";
-    try { data = await pedir(schemaCompacto, sysCompacto, MAX_TOK); }
+    try { data = await pedir(schemaCompacto, sysCompacto, Math.min(MAX_TOK, 6000)); }
     catch (e) { return json({ ok: false, error: "No se pudo llamar a Claude: " + String(e) }, 502); }
     if (data?.stop_reason === "max_tokens")
       return json({ ok: false, error: "El plano es muy extenso y el despiece no cupo aun compactando. Sube menos hojas a la vez, o súbelo por partes." }, 200);
