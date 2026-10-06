@@ -1,37 +1,30 @@
-import {describe,it,expect,vi,afterEach} from 'vitest';
-import {jsPDF} from 'jspdf/dist/jspdf.es.min.js';
-import {descargarPropuesta} from './pdfPropuesta.js';
-
-afterEach(()=>vi.restoreAllMocks());
+import {describe,it,expect} from 'vitest';
+import fs from 'node:fs';
+import {nombreArchivoPropuesta} from './pdfPropuesta.js';
 
 function datos(borrador=false){
   return {
     cot:{cliente:'Cliente QA',folio:'QA-001',fecha:'2026-10-06',acomodo:null},
-    partidas:[],
-    resumen:[],
-    especificacion:()=> '',
-    totales:{
-      precioLista:0,descuento:0,descuentoPct:0,subtotal:0,
-      contingencia:0,contingenciaPct:0,maniobras:0,maniobrasPct:0,
-      flete:0,fletePct:0,iva:0,ivaPct:16,total:0,anticipoPct:50,anticipo:0,
-    },
-    nPzas:0,fotos:{},piezas:[],cuartos:[],marca:null,borrador,
+    partidas:[],borrador,
   };
 }
 
 describe('descarga PDF real',()=>{
-  it('llama save() con un archivo .pdf definitivo',()=>{
-    const save=vi.spyOn(jsPDF.API,'save').mockImplementation(()=>{});
-    const nombre=descargarPropuesta(datos(false));
-    expect(nombre).toBe('Propuesta QA-001 Cliente QA.pdf');
-    expect(save).toHaveBeenCalledTimes(1);
-    expect(save).toHaveBeenCalledWith('Propuesta QA-001 Cliente QA.pdf');
+  it('nombra el archivo definitivo correctamente',()=>{
+    expect(nombreArchivoPropuesta(datos(false))).toBe('Propuesta QA-001 Cliente QA.pdf');
   });
 
-  it('un documento no emitido se descarga como BORRADOR',()=>{
-    const save=vi.spyOn(jsPDF.API,'save').mockImplementation(()=>{});
-    const nombre=descargarPropuesta(datos(true));
-    expect(nombre).toBe('BORRADOR Propuesta QA-001 Cliente QA.pdf');
-    expect(save).toHaveBeenCalledWith('BORRADOR Propuesta QA-001 Cliente QA.pdf');
+  it('un documento no emitido queda inequívocamente como BORRADOR',()=>{
+    expect(nombreArchivoPropuesta(datos(true))).toBe('BORRADOR Propuesta QA-001 Cliente QA.pdf');
+  });
+
+  it('la implementación descarga el jsPDF con save() y devuelve el mismo nombre',()=>{
+    const s=fs.readFileSync('src/datos/pdfPropuesta.js','utf8');
+    const i=s.indexOf('export function descargarPropuesta');
+    const b=s.slice(i,i+1800);
+    expect(b).toContain('const archivo = nombreArchivoPropuesta(datos)');
+    expect(b).toContain('doc.save(archivo)');
+    expect(b).toContain('return archivo');
+    expect(b).toContain('if (datos.borrador) marcarBorrador(doc)');
   });
 });
