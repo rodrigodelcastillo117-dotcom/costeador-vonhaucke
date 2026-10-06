@@ -143,6 +143,8 @@ export function paraGuardar(estado, usuario) {
       maniobrasPct: t.maniobrasPct,
       fletePct: t.fletePct,
       ivaPct: t.ivaPct,
+      anticipoPct: t.anticipoPct,
+      anticipo: dinero(t.anticipo),
       precioLista: dinero(t.precioLista),
       descuento: dinero(t.descuento),
       subtotal: dinero(t.subtotal),
