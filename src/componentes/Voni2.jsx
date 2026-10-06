@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { responder, sugerencias, guiaRuta } from '../voni/nucleo.js';
 import { proveedorReal } from '../voni/proveedorReal.js';
+import { voniCouncil } from '../nube.js';
 
 const COLOR_URGENCIA = {
   BLOQUEANTE: { bg: '#fbe6e4', fg: '#9a2820' },
@@ -22,6 +23,16 @@ const COLOR_EVIDENCIA = {
   RECOMENDACION: { bg:'#eee8f7', fg:'#5b3c8a', t:'Recomendación' },
 };
 
+function taskCouncilDe(ctx = {}) {
+  const r = String(ctx.route || ctx.ruta || '').toLowerCase();
+  if (/cost/.test(r)) return 'cost_review';
+  if (/acomodo|layout|espacio/.test(r)) return 'layout_review';
+  if (/cocrear|producto|especial/.test(r)) return 'review_product';
+  if (/cotizacion|quote/.test(r)) return 'quote_review';
+  if (/plano|plan/.test(r)) return 'plan_review';
+  return 'general';
+}
+
 const COLOR_ESTADO = {
   OK: { bg: '#e6f4ea', fg: '#1e6b33', t: 'Todo en orden' },
   ATENCION: { bg: '#fdf7e6', fg: '#8a5a00', t: 'Requiere atención' },
@@ -33,13 +44,15 @@ export default function Voni2({ ctx = {}, onCerrar }) {
   const [q, setQ] = useState('');
   const [estado, setEstado] = useState('idle'); // idle|cargando|ok|error
   const [resp, setResp] = useState(null);
+  const [councilEstado, setCouncilEstado] = useState('idle');
+  const [councilResp, setCouncilResp] = useState(null);
   const sugs = useMemo(() => sugerencias(ctx), [ctx]);
   const guia = useMemo(() => guiaRuta(ctx), [ctx]);
 
   async function preguntar(texto) {
     const query = (texto ?? q).trim();
     if (!query) return;
-    setEstado('cargando'); setResp(null);
+    setEstado('cargando'); setResp(null); setCouncilEstado('idle'); setCouncilResp(null);
     try {
       const { respuesta } = await responder({ query, ctx, prov: proveedorReal });
       setResp(respuesta); setEstado('ok');
@@ -48,9 +61,29 @@ export default function Voni2({ ctx = {}, onCerrar }) {
     }
   }
 
+  async function profundizar() {
+    const query = q.trim() || resp?.que_paso || '';
+    if (!query || councilEstado === 'cargando') return;
+    setCouncilEstado('cargando'); setCouncilResp(null);
+    try {
+      const r = await voniCouncil({
+        task: taskCouncilDe(ctx),
+        mode: 'deep',
+        request: query,
+        context: ctx,
+        constraints: ['No modificar el costo oficial con heurísticas de IA.', 'Separar hechos, inferencias y recomendaciones.', 'Cualquier cambio técnico/económico requiere validación determinista.'],
+      });
+      if (!r?.ok) throw new Error(r?.error || 'Council no disponible');
+      setCouncilResp(r); setCouncilEstado('ok');
+    } catch (_e) {
+      setCouncilEstado('error');
+    }
+  }
+
   useEffect(() => { const onEsc = (e) => { if (e.key === 'Escape') onCerrar?.(); }; window.addEventListener('keydown', onEsc); return () => window.removeEventListener('keydown', onEsc); }, [onCerrar]);
 
   const est = resp ? (COLOR_ESTADO[resp.estado] || COLOR_ESTADO.DESCONOCIDO) : null;
+  const councilOut = councilResp?.opinions?.find((o) => o?.ok && o?.output)?.output || null;
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,27,42,.45)', zIndex: 9998, display: 'flex', justifyContent: 'flex-end' }} onClick={onCerrar}>
@@ -112,6 +145,30 @@ export default function Voni2({ ctx = {}, onCerrar }) {
             )}
 
             {resp.accion && <div style={{ marginTop: 12 }}><strong style={{ fontSize: 13 }}>Siguiente paso</strong><p className="ayuda">{resp.accion}</p></div>}
+
+            <div className="voni2-deep" style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--linea)' }}>
+              <button className="boton" style={{ width: '100%' }} onClick={profundizar} disabled={councilEstado === 'cargando'}>
+                {councilEstado === 'cargando' ? 'Council revisando a fondo…' : councilEstado === 'ok' ? 'Revisar otra vez a fondo' : 'Analizar a fondo con VONI Council'}
+              </button>
+              <div className="ayuda gris" style={{ marginTop: 5 }}>Diseño + ingeniería + materiales + manufactura + costeo/comercial cuando aplique. La decisión final sigue en los validadores.</div>
+              {councilEstado === 'error' && <div className="alerta ambar" style={{ marginTop: 8 }}><span className="texto">El Council no respondió; la respuesta determinista de arriba sigue vigente.</span></div>}
+              {councilEstado === 'ok' && councilOut && (
+                <div style={{ marginTop: 9, border: '1px solid var(--linea)', borderRadius: 10, padding: 10 }}>
+                  <div className="fila" style={{ justifyContent: 'space-between', gap: 8 }}>
+                    <strong style={{ fontSize: 12 }}>Council · {councilResp?.council?.status || 'revisión'}</strong>
+                    <span className="chip">{councilResp?.mode === 'deep' ? 'PROFUNDO' : 'RÁPIDO'}</span>
+                  </div>
+                  <div style={{ marginTop: 6, fontSize: 13, fontWeight: 750 }}>{councilOut.summary}</div>
+                  {(councilOut.blockers || []).slice(0, 3).map((x, i) => <div key={'cb'+i} className="ayuda" style={{ marginTop: 5, color: '#9a2820' }}>✕ {x}</div>)}
+                  {(councilOut.recommendations || []).slice(0, 3).map((x, i) => (
+                    <div key={'cr'+i} style={{ marginTop: 7, paddingTop: 7, borderTop: '1px solid var(--linea)' }}>
+                      <div style={{ fontSize: 10, fontWeight: 850, letterSpacing: '.04em' }}>{x.category}</div>
+                      <div className="ayuda"><strong>{x.what}</strong>{x.why ? ` · ${x.why}` : ''}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {resp.evidencia.length > 0 && (
               <details style={{ marginTop: 12 }}>
