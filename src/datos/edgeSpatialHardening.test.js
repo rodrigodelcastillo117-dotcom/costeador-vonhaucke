@@ -56,3 +56,22 @@ describe('edge spatial intelligence · hardening no negociable', () => {
     expect(s).toContain('NO ADIVINES');
   });
 });
+
+
+describe('document intelligence · procedencia estructurada', () => {
+  it('leer-plano-core distingue MEASURED/DERIVED/INFERRED/ASSUMED y no inventa evidencia', () => {
+    const s = read('supabase/functions/leer-plano-core/index.ts');
+    expect(s).toContain('"MEASURED", "DERIVED", "INFERRED", "ASSUMED"');
+    expect(s).toContain('evidencia');
+    expect(s).toContain('pagina');
+    expect(s).toContain('NO inventes evidencia');
+  });
+
+  it('wrapper baja a revisión geometría ASSUMED', () => {
+    const s = read('supabase/functions/leer-plano/index.ts');
+    expect(s).toContain('ASSUMED_CRITICAL_GEOMETRY');
+    expect(s).toContain('ASSUMED_ZONE_GEOMETRY');
+    expect(s).toContain('ASSUMED_DOOR_GEOMETRY');
+    expect(s).toContain('evidence_policy');
+  });
+});
