@@ -6,7 +6,7 @@
 //  por pruebas (calculo.test.js).
 // ============================================================================
 import { costoAlba, tipoAlba } from './formulaAlba.js';
-import { optimizarCorte2D } from './optimizacionCorte.js';
+import { optimizarCorte2D, optimizarCorte1D } from './optimizacionCorte.js';
 
 // VERSIÓN DEL MOTOR — entra en la huella de cada cotización (cotizaciones.js:
 // huellaMP) para que, si la FÓRMULA cambia (no solo un precio), una cotización
@@ -551,6 +551,21 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
           lote: n,
         })
       : null;
+
+    // Advisory 1D para PTR/perfiles. El COSTO oficial sigue exactamente igual:
+    // sólo analizamos la lista de cortes cuando el BOM trae largos + número de
+    // piezas explícitos. Si el legacy sólo trae metros agregados, el optimizador
+    // devuelve SIN_PIEZAS_LINEALES y VONI lo marca como dato pendiente.
+    const optimizacionCorte1D = insumo.formato?.tipo === 'tramo'
+      && Number(insumo.formato?.medida) > 0
+      ? optimizarCorte1D({
+          componentes: comps.map((x) => ({ ...x, forma: 'lineal' })),
+          largoTramoMM: Number(insumo.formato.medida) * 1000,
+          kerfMM: par.kerfMM,
+          recortePuntaMM: Number(insumo.formato.recortePuntaMM) || 0,
+          lote: n,
+        })
+      : null;
     detalleInsumos.push({
       insumoId: id,
       nombre: insumo.nombre,
@@ -560,6 +575,7 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
       formato: insumo.formato,
       nombresComponentes: comps.map((c) => c.nombre).filter(Boolean),
       optimizacionCorte,
+      optimizacionCorte1D,
       ...r,
     });
   }
