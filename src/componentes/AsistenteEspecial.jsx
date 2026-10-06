@@ -16,7 +16,7 @@ import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
 import { aplicarPoliticaMaterial } from '../datos/materialMatch.js';
 import { paginaAImagen } from '../datos/pdfImagen.js';
-import { prepararPdfRapido, rasterizarPaginas } from '../datos/pdfPipeline.js';
+import { prepararPdfRapido, rasterizarPaginas, paginasAlrededor } from '../datos/pdfPipeline.js';
 import Cargando from './Cargando.jsx';
 import Markdown from './Markdown.jsx';
 import InformeIA from './InformeIA.jsx';
@@ -772,7 +772,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     setPdfSel(null); setErrorIA(''); setAnalizando(true);
     const cid = nuevaCorrida();
     try {
-      const paginas = Array.from({ length: sel.numPaginas }, (_, i) => i + 1);
+      const paginas = sel.numPaginas <= 8
+        ? Array.from({ length: sel.numPaginas }, (_, i) => i + 1)
+        : paginasAlrededor(sel.pagina, sel.numPaginas, 3);
       const raster = await rasterizarPaginas(sel.doc, paginas, { maxPx: 1600, concurrency: 3 });
       await analizarImagenes(raster.map((x) => x.base64), sel.preview, cid);
     } catch (err) {
@@ -809,7 +811,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
             style={{ maxWidth: '100%', border: '1px solid rgba(0,0,0,.18)', borderRadius: 8, display: 'block' }} />
         )}
         <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
-          <button className="boton primario grande" onClick={analizarTodasPdf}>Analizar las {pdfSel.numPaginas} hojas juntas (un mueble)</button>
+          <button className="boton primario grande" onClick={analizarTodasPdf}>{pdfSel.numPaginas > 8 ? 'Analizar vistas cercanas (máx. 7)' : `Analizar las ${pdfSel.numPaginas} hojas juntas (un mueble)`}</button>
           <button className="boton grande" onClick={analizarPaginaPdf}>Solo esta hoja</button>
           <button className="boton fantasma" onClick={() => setPdfSel(null)}>Cancelar</button>
         </div>
@@ -844,7 +846,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
             <div className="espacio" />
             <label className={'boton ' + (analizando ? 'fantasma' : 'primario')} style={{ display: 'inline-flex', cursor: analizando ? 'default' : 'pointer' }}>
               {analizando ? 'Analizando…' : 'Subir render o plano (PDF)'}
-              <input type="file" accept="image/*,application/pdf,.pdf" hidden disabled={analizando} onChange={onImagen} />
+              <input id="costear-archivo" data-testid="costear-archivo" type="file" accept="image/*,application/pdf,.pdf" hidden disabled={analizando} onChange={onImagen} />
             </label>
             {errorIA && <div className="alerta roja" style={{ marginTop: 12 }}><span className="texto">{errorIA}</span></div>}
             {catalogoFuente === 'cliente-fallback' && <div className="alerta ambar" style={{ marginTop: 12 }}><span className="texto">⚠ El catálogo central no estaba disponible: la IA usó datos locales. <strong>No cotices en firme</strong> con este análisis; confirma materiales y precios con Dirección.</span></div>}
