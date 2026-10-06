@@ -202,7 +202,7 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
             <span className="inicio-op-icon"><VoniAvatar tam={56} variante="cara" /></span>
             <span className="inicio-op-k">COTIZAR</span>
             <strong>Preparar propuesta para cliente</strong>
-            <span>Describe lo que necesita o parte de un proyecto; VONI arma la propuesta y te lleva al acomodo/PDF.</span>
+            <span>Sube plano/PDF o describe lo que necesita el cliente; VONI arma la propuesta y te lleva al acomodo/PDF.</span>
             <b>Empezar cotización →</b>
           </button>
 
