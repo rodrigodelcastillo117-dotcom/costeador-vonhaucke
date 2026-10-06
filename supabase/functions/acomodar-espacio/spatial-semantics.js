@@ -29,6 +29,23 @@ function seatKind(t){
 }
 
 export function canonicalProductRole(p={}) {
+  const rr=String(p?.relation_role||'').toUpperCase();
+  const rrMap={
+    ANCHOR_RECEPTION:'reception_desk',
+    ANCHOR_MEETING:'meeting_table',
+    ANCHOR_WORKSTATION:'bench',
+    ANCHOR_WORK:'workstation',
+    ANCHOR_DESK:'executive_desk',
+    ANCHOR_PRIVATE:'executive_desk',
+    MEETING_SEAT:'meeting_seat',
+    EXECUTIVE_SEAT:'executive_seat',
+    PRIVATE_SEAT:'visitor_seat',
+    VISITOR_SEAT:'visitor_seat',
+    WORK_SEAT:'work_seat',
+    UNDERDESK_STORAGE:'storage',
+    SUPPORT_STORAGE:'storage',
+  };
+  if (rrMap[rr]) return rrMap[rr];
   const explicit=norm(p?.product_role);
   // Sólo respetar explícitos si pertenecen a nuestra taxonomía.
   const known=new Set(['reception_desk','meeting_table','bench','workstation','executive_desk','technical_storage','storage','meeting_seat','executive_seat','visitor_seat','work_seat','generic_seat','other']);
