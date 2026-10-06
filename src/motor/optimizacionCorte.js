@@ -101,3 +101,106 @@ export function optimizarCorte2D({componentes=[],formato={},veta=false,kerfMM=6,
     advisory:true,
   };
 }
+
+
+// ---------------------------------------------------------------------------
+// CUTTING STOCK 1D · perfiles / PTR / tubos / molduras.
+// Advisory: NO cambia costo oficial hasta validación de Producción.
+// Heurística deterministic best-fit-decreasing. Respeta kerf por corte y recorte
+// de punta en cada tramo comprado. Mismo input => mismo resultado.
+// ---------------------------------------------------------------------------
+export function piezasLineales(componentes = [], lote = 1) {
+  const out = [];
+  for (const c of componentes || []) {
+    // Una pieza lineal usa largoMM. Si también tiene anchoMM > 0 se considera
+    // panel y pertenece al nesting 2D, salvo que forma='lineal' explícita.
+    const largo = npos(c.largoMM ?? c.longitudMM ?? c.length_mm);
+    const esLineal = c.forma === 'lineal' || (!npos(c.anchoMM) && largo > 0);
+    if (!esLineal || !largo) continue;
+    const qBase = npos(c.piezas ?? c.cantidad) || 1;
+    const q = Math.max(0, Math.round(qBase * (npos(lote) || 1)));
+    for (let i = 0; i < q; i++) {
+      out.push({
+        id: `${c.nombre || c.insumoId || 'perfil'}#${i + 1}`,
+        nombre: c.nombre || '',
+        largo,
+      });
+    }
+  }
+  return out.sort((a, b) => b.largo - a.largo || a.id.localeCompare(b.id));
+}
+
+export function optimizarCorte1D({
+  componentes = [],
+  largoTramoMM = 0,
+  kerfMM = 3,
+  recortePuntaMM = 0,
+  lote = 1,
+} = {}) {
+  const stock = npos(largoTramoMM);
+  const kerf = Math.max(0, Number(kerfMM) || 0);
+  const edge = Math.max(0, Number(recortePuntaMM) || 0);
+  const usable = stock - 2 * edge;
+  if (!(usable > 0)) return { disponible: false, issues: ['TRAMO_SIN_GEOMETRIA'], advisory: true };
+
+  const piezas = piezasLineales(componentes, lote);
+  if (!piezas.length) return { disponible: false, issues: ['SIN_PIEZAS_LINEALES'], advisory: true };
+
+  const tramos = [];
+  const issues = [];
+  for (const p of piezas) {
+    if (p.largo > usable) {
+      issues.push({ code: 'PIEZA_NO_CABE', id: p.id, largo: p.largo, util_mm: usable });
+      continue;
+    }
+
+    // Best fit: tramo donde después del corte queda el menor remanente >= 0.
+    let elegido = -1;
+    let mejorResto = Infinity;
+    for (let i = 0; i < tramos.length; i++) {
+      const t = tramos[i];
+      const gasto = p.largo + (t.piezas.length ? kerf : 0);
+      const resto = t.restante - gasto;
+      if (resto >= -1e-9 && resto < mejorResto) {
+        elegido = i;
+        mejorResto = resto;
+      }
+    }
+    if (elegido < 0) {
+      tramos.push({ restante: usable, piezas: [], usado: 0, cortes: 0 });
+      elegido = tramos.length - 1;
+    }
+
+    const t = tramos[elegido];
+    const gastoKerf = t.piezas.length ? kerf : 0;
+    t.restante -= p.largo + gastoKerf;
+    t.usado += p.largo;
+    if (gastoKerf) t.cortes += 1;
+    t.piezas.push({ id: p.id, nombre: p.nombre, largo: p.largo });
+  }
+
+  const colocadas = tramos.flatMap((t, i) => t.piezas.map((p) => ({ ...p, tramo: i + 1 })));
+  const comprado = tramos.length * stock;
+  const neto = colocadas.reduce((s, p) => s + p.largo, 0);
+  const kerfTotal = tramos.reduce((s, t) => s + t.cortes * kerf, 0);
+  const recorteTotal = tramos.length * 2 * edge;
+  const sobrante = Math.max(0, comprado - neto - kerfTotal - recorteTotal);
+
+  return {
+    disponible: true,
+    tramos: tramos.length,
+    piezas_solicitadas: piezas.length,
+    piezas_colocadas: colocadas.length,
+    placements: colocadas,
+    issues,
+    largo_comprado_mm: comprado,
+    largo_neto_mm: neto,
+    kerf_total_mm: kerfTotal,
+    recorte_total_mm: recorteTotal,
+    sobrante_reutilizable_mm: sobrante,
+    desperdicio_pct: comprado > 0 ? ((comprado - neto) / comprado) * 100 : 0,
+    eficiencia_pct: comprado > 0 ? (neto / comprado) * 100 : 0,
+    parametros: { largoTramoMM: stock, kerfMM: kerf, recortePuntaMM: edge },
+    advisory: true,
+  };
+}
