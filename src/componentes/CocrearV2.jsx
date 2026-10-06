@@ -14,6 +14,7 @@ import CocrearVisual from './CocrearVisual.jsx';
 import { parametrosEfectivos } from './Costeador.jsx';
 import { precioVenta } from '../motor/calculo.js';
 import { compileRenderPrompt, renderStale } from '../datos/renderPrompt.js';
+import { visualRevisionHash } from '../datos/visualRevision.js';
 
 const MAT_LABEL={nogal:'Nogal',roble:'Roble',encino:'Encino',maple:'Maple',laminado:'Laminado',solid_surface:'Solid surface',cristal:'Cristal',metal:'Metal',piedra:'Piedra'};
 const FAMILY_OPTIONS=[[FAMILIA.DESCONOCIDA,'Producto libre'],[FAMILIA.ESCRITORIO,'Operativo / escritorio'],[FAMILIA.MESA,'Mesa'],[FAMILIA.RECEPCION,'Recepción'],[FAMILIA.LOCKER,'Locker'],[FAMILIA.DISPLAY,'Exhibidor'],[FAMILIA.GUARDADO,'Guardado']];
