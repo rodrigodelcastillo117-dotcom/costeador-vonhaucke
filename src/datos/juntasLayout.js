@@ -20,13 +20,13 @@ const GAP_SILLA = 80;  // separación lateral entre sillas
 const norm = (s = '') => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 export function esSillaJuntasLayout(p = {}) {
-  if (p?.tipo !== 'asiento') return false;
-  // Si la pieza ya trae destino explícito, ESO manda. Así una SONATA que el
-  // vendedor asignó a recepción/privado no vuelve a convertirse en junta por el
-  // nombre del modelo.
-  const destino = destinoMarcado(p);
-  if (destino) return destino === 'juntas';
   const t = norm(`${p.nombre || ''} ${p.ruta || ''}`);
+  const esSilla = /silla|chair|asiento/.test(t);
+  // destinoAcomodo puede retaggear `tipo` a "juntas"; por eso el nombre/rol
+  // funcional decide si es SILLA, no `tipo === asiento`.
+  const destino = destinoMarcado(p);
+  if (destino) return destino === 'juntas' && esSilla;
+  if (!esSilla && p?.tipo !== 'asiento') return false;
   return /silla.*junta|junta.*silla|consejo|board|meeting/.test(t);
 }
 
