@@ -33,8 +33,10 @@ export const TOOLS = Object.freeze([
   { nombre: 'get_material_technical', economica: false, roles: null, desc: 'Ficha técnica seller-safe de materiales/formato/veta/unidad; nunca incluye precio ni costo.' },
   // --- Económicas: requieren rolVeEconomia && !clientSafe ---
   { nombre: 'get_costing', economica: true, roles: ['direccion', 'diseno', 'costeador', 'cfo'], desc: 'Costeo (costo/margen). Sólo roles con economía.' },
+  { nombre: 'get_cost_explanation', economica: true, roles: ['direccion', 'diseno', 'costeador', 'cfo'], desc: 'Explicación determinista del costeo canónico: fórmula, material, MO, GI, merma, corte y supuestos.' },
   { nombre: 'get_bom', economica: true, roles: ['direccion', 'diseno', 'costeador'], desc: 'BOM certificado. Sólo fabricación.' },
   { nombre: 'get_industrial_analysis', economica: true, roles: ['direccion', 'diseno', 'costeador', 'cfo'], desc: 'Análisis industrial determinista: BOM, fabricabilidad, merma, corte y eficiencia. No certifica ahorros advisory.' },
+  { nombre: 'get_costing_precedents', economica: true, roles: ['direccion', 'diseno', 'costeador', 'cfo'], desc: 'Precedentes históricos autorizados de costeo/BOM para comparar soluciones similares. Nunca define el costo vigente.' },
 ]);
 
 const PORNOMBRE = Object.freeze(Object.fromEntries(TOOLS.map((t) => [t.nombre, t])));
