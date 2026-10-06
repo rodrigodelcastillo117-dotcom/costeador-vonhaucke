@@ -105,8 +105,8 @@ export function diagnosticoDesarrolloProducto(spec={}){
 
 export function compararVariantesProducto(a={},b={},costA=null,costB=null){
   const A=diagnosticoDesarrolloProducto(a),B=diagnosticoDesarrolloProducto(b);
-  const ca=Number.isFinite(Number(costA))?Number(costA):null;
-  const cb=Number.isFinite(Number(costB))?Number(costB):null;
+  const ca=costA!=null&&Number.isFinite(Number(costA))?Number(costA):null;
+  const cb=costB!=null&&Number.isFinite(Number(costB))?Number(costB):null;
   return {
     a:A.metricas,b:B.metricas,
     delta:{
