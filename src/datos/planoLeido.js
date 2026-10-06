@@ -99,7 +99,7 @@ function puertaLocal(p, b) {
   const base = {
     x: m(p.x - b.x),
     y: m(p.y - b.y),
-    ancho: m(p.ancho || 900),
+    ancho: Number.isFinite(Number(p.ancho)) && Number(p.ancho) > 0 ? m(Number(p.ancho)) : null,
     ...(p.procedencia ? { procedencia: p.procedencia } : {}),
     ...(p.evidencia ? { evidencia: p.evidencia } : {}),
     ...(Number.isInteger(Number(p.pagina)) && Number(p.pagina) > 0 ? { pagina: Number(p.pagina) } : {}),
@@ -109,8 +109,8 @@ function puertaLocal(p, b) {
     ...base,
     tieneBarrido: p.tieneBarrido,
     sentido: p.sentido || 'desconocido',
-    barridoDeg: Number(p.barridoDeg) || 0,
-    anguloCerradaDeg: Number(p.anguloCerradaDeg) || 0,
+    barridoDeg: Number.isFinite(Number(p.barridoDeg)) ? Number(p.barridoDeg) : null,
+    anguloCerradaDeg: Number.isFinite(Number(p.anguloCerradaDeg)) ? Number(p.anguloCerradaDeg) : null,
     confianza: p.confianza || 'baja',
   };
   if (p.tieneBarrido && Number.isFinite(p.bisagraX) && Number.isFinite(p.bisagraY)) {
@@ -145,9 +145,22 @@ export function areasDeLectura(lectura) {
       return { x: m(hb.x - b.x), y: m(hb.y - b.y), w: m(hb.x2 - hb.x), h: m(hb.y2 - hb.y), tipo: 'cuarto' };
     });
     const suyas = puertas.filter((p) => cercaDe(pts, p.x, p.y, TOCA_PUERTA));
+    const puertasPendientes = [];
     for (const p of suyas) {
-      const lado = Math.max(p.ancho || 900, 900) + BARRIDO;
-      obst.push({ x: m(p.x - b.x - lado / 2), y: m(p.y - b.y - lado / 2), w: m(lado), h: m(lado), tipo: 'puerta' });
+      const anchoConocido = Number.isFinite(Number(p.ancho)) && Number(p.ancho) > 0;
+      const barridoConocido = p.tieneBarrido === true
+        && Number.isFinite(Number(p.bisagraX))
+        && Number.isFinite(Number(p.bisagraY));
+      if (anchoConocido && barridoConocido) {
+        const lado = Math.max(Number(p.ancho), 900) + BARRIDO;
+        obst.push({ x: m(p.x - b.x - lado / 2), y: m(p.y - b.y - lado / 2), w: m(lado), h: m(lado), tipo: 'puerta' });
+      } else {
+        puertasPendientes.push({
+          x: m(p.x - b.x),
+          y: m(p.y - b.y),
+          motivo: !anchoConocido ? 'ANCHO_PUERTA_DESCONOCIDO' : 'BARRIDO_PUERTA_NO_VERIFICADO',
+        });
+      }
     }
     return {
       nombre: a.nombre || 'Área',
@@ -164,6 +177,7 @@ export function areasDeLectura(lectura) {
       poly: pts.map(([px, py]) => [m(px - b.x), m(py - b.y)]),
       ...(obst.length ? { obstaculos: obst } : {}),
       ...(suyas.length ? { puertas: suyas.map((p) => puertaLocal(p, b)) } : {}),
+      ...(puertasPendientes.length ? { puertasPendientes } : {}),
     };
   });
 
@@ -229,7 +243,14 @@ export function revisarAreas(lectura) {
   const huerfanas = puertas.filter((p) => !crudas.some(({ pts }) => cercaDe(pts, p.x, p.y, TOCA_PUERTA)));
   if (huerfanas.length) problemas.push(`${huerfanas.length} puerta(s) no caen sobre ningún cuarto: revisa dónde está el acceso.`);
 
-  const sinBarrido = puertas.filter((p) => typeof p.tieneBarrido === 'boolean' && !p.tieneBarrido);
+  const sinAncho = puertas.filter((p) => !(Number.isFinite(Number(p.ancho)) && Number(p.ancho) > 0));
+  if (sinAncho.length) problemas.push(`${sinAncho.length} puerta(s) no tienen ancho verificable: no se inventa 900 mm; confirma la cota antes de aprobar el acomodo.`);
+
+  const sinBarrido = puertas.filter((p) =>
+    p.tieneBarrido !== true
+    || !Number.isFinite(Number(p.bisagraX))
+    || !Number.isFinite(Number(p.bisagraY))
+  );
   if (sinBarrido.length) problemas.push(`${sinBarrido.length} puerta(s) no tienen barrido verificable: confirma bisagra y sentido antes de aprobar el acomodo.`);
 
   return problemas;
@@ -243,7 +264,12 @@ export function resumenLectura(lectura) {
   const padre = anidamientos(crudas);
   const m2 = crudas.reduce((s, r, i) => s + (padre.has(i) ? 0 : areaM2(r.pts)), 0);
   const puertas = (lectura?.puertas || []).filter((p) => Number.isFinite(p?.x) && Number.isFinite(p?.y));
-  const puertasPendientes = puertas.filter((p) => typeof p.tieneBarrido === 'boolean' && !p.tieneBarrido).length;
+  const puertasPendientes = puertas.filter((p) =>
+    !(Number.isFinite(Number(p.ancho)) && Number(p.ancho) > 0)
+    || p.tieneBarrido !== true
+    || !Number.isFinite(Number(p.bisagraX))
+    || !Number.isFinite(Number(p.bisagraY))
+  ).length;
   const nivel = !crudas.length ? 'nula' : problemas.length === 0 ? 'alta' : problemas.length <= 2 ? 'media' : 'baja';
   return {
     cuartos: crudas.length,
