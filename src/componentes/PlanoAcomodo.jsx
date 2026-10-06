@@ -564,6 +564,16 @@ export default function PlanoAcomodo({
               style={editable ? { cursor: arrastrando ? 'grabbing' : 'grab' } : undefined}
               opacity={arrastrando ? 0.65 : 1}>
               <Glifo x={px} y={py} w={pw} h={ph} tipo={p.tipo} col={colorTipo(p.tipo)} rot={c.rot} />
+              {p.sugeridoPlano && (
+                <>
+                  <rect x={px - 35} y={py - 35} width={pw + 70} height={ph + 70}
+                    rx="36" fill="none" stroke="#c9a24a" strokeWidth="34" strokeDasharray="110 78" />
+                  <text x={px + pw / 2} y={py - 90} fontSize="150" textAnchor="middle"
+                    fill="#8a6512" fontWeight="800" paintOrder="stroke" stroke="#fff" strokeWidth="32">
+                    SUGERIDO
+                  </text>
+                </>
+              )}
               {/* Zona de toque generosa: en celular, el glifo fino no se atina. */}
               {editable && <rect x={px - 60} y={py - 60} width={pw + 120} height={ph + 120}
                 fill="transparent" stroke={activo ? '#B22A22' : 'transparent'} strokeWidth="46" strokeDasharray="130 90" />}
