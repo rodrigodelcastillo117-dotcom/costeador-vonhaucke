@@ -7,6 +7,7 @@
 import { reglasTexto } from './datos/reglas.js';
 import { aprendizajesTexto } from './datos/aprendizaje.js';
 import { createClient } from '@supabase/supabase-js';
+import { proyectarPiezaTecnica } from './datos/validarIntentCosteo.js';
 
 const URL = 'https://mtuvnbgljwbsaizjjgzs.supabase.co';
 const LLAVE = 'sb_publishable_lDPhCTatyJ2cap3FNEGs7A_uPapgg6y';
@@ -31,7 +32,7 @@ export function soloCompartido(estado) {
 // economía). Ver RPC `config_para_rol` (SECURITY DEFINER, resuelve el rol por el JWT).
 // Así el costo NO viaja al navegador del vendedor por esta vía.
 export async function leerConfig() {
-  const { data, error } = await nube.rpc('config_para_rol');
+  const { data, error } = await lecturaProtegida(() => nube.rpc('config_para_rol'));
   if (error) throw error;
   return data || {};
 }
@@ -50,7 +51,9 @@ export async function escribirConfig(datosCompartidos) {
 // rol 'direccion' (se resuelve por el correo del que entro). Si un vendedor la
 // pide, no obtiene nada: no es que se le esconda en pantalla, es que no le llega.
 export async function leerDireccion() {
-  const { data, error } = await nube.from('direccion').select('datos').eq('id', 1).maybeSingle();
+  const { data, error } = await lecturaProtegida(
+    () => nube.from('direccion').select('datos').eq('id', 1).maybeSingle()
+  );
   if (error) { console.error('leerDireccion:', error); return null; }
   return data?.datos || null;
 }
@@ -60,9 +63,47 @@ export async function escribirDireccion(datos) {
   if (error) throw error;
 }
 
-export async function sesionActual() {
-  const { data } = await nube.auth.getSession();
-  return data.session || null;
+// Sesión robusta para demos y trabajo real: Supabase refresca automáticamente,
+// pero una petición puede coincidir con el instante en que el access token venció.
+// Centralizamos el refresh en una sola promesa para evitar una estampida de refreshes
+// (varias pantallas arrancan a la vez al entrar). Nunca concede acceso sin sesión.
+let refreshEnVuelo = null;
+async function refrescarSesionUnaVez() {
+  if (!refreshEnVuelo) {
+    refreshEnVuelo = nube.auth.refreshSession()
+      .then(({ data, error }) => {
+        if (error) throw error;
+        return data?.session || null;
+      })
+      .finally(() => { refreshEnVuelo = null; });
+  }
+  return refreshEnVuelo;
+}
+
+export async function sesionActual({ refrescarSiVenceEnSeg = 45 } = {}) {
+  const { data, error } = await nube.auth.getSession();
+  if (error) throw error;
+  const s = data?.session || null;
+  if (!s) return null;
+  const venceMs = Number(s.expires_at || 0) * 1000;
+  if (venceMs && venceMs - Date.now() <= refrescarSiVenceEnSeg * 1000) {
+    try { return await refrescarSesionUnaVez(); }
+    catch (_) { return s; } // el caller sigue fail-closed si el servidor rechaza el JWT
+  }
+  return s;
+}
+
+// Para lecturas protegidas: ante un 401/JWT expirado, refresca UNA vez y reintenta.
+// No reintenta 403/RLS ni errores de negocio: esos deben seguir visibles.
+export async function lecturaProtegida(operacion) {
+  let r = await operacion();
+  const status = Number(r?.error?.status || r?.status || 0);
+  const msg = String(r?.error?.message || '').toLowerCase();
+  if (r?.error && (status === 401 || msg.includes('jwt') || msg.includes('token'))) {
+    await refrescarSesionUnaVez();
+    r = await operacion();
+  }
+  return r;
 }
 export function alCambiarSesion(cb) {
   const { data } = nube.auth.onAuthStateChange((evento, s) => cb(s || null, evento));
@@ -128,8 +169,9 @@ function conTimeout(promesa, ms = 8000, etiqueta = 'operación') {
 }
 
 export async function miPermiso(email) {
+  const consulta = () => nube.from('permitidos').select('rol, nombre').eq('email', email).maybeSingle();
   const { data, error } = await conTimeout(
-    nube.from('permitidos').select('rol, nombre').eq('email', email).maybeSingle(),
+    lecturaProtegida(consulta),
     8000, 'permiso',
   );
   if (error) throw error;
@@ -331,8 +373,11 @@ export async function generarRender(descripcion, extra = {}) {
 // Llama al motor autoritativo del servidor con el JWT real del usuario. El servidor
 // resuelve rol/costos server-side e ignora lo que mande el browser. Fire-and-forget.
 export async function costearServidor(pieza, cantidad = 1) {
+  // La UI guarda margen, renders, texto, estado y otros metadatos junto a la pieza.
+  // NADA de eso debe cruzar la frontera de dinero. Sólo BOM/horas técnicas.
+  const piezaTecnica = proyectarPiezaTecnica(pieza);
   const { data, error } = await nube.functions.invoke('costear-servidor', {
-    body: { pieza, cantidad },
+    body: { pieza: piezaTecnica, cantidad },
   });
   if (error) {
     let msg = error.message || 'No se pudo costear en el servidor.';
@@ -357,7 +402,10 @@ export async function subirRender(dataUrl, path) {
     const mime = (cab.match(/data:(.*?);/) || [])[1] || 'image/png';
     const bin = atob(b64); const u8 = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-    const { error } = await nube.storage.from('renders').upload(path, u8, { contentType: mime, upsert: true });
+    // Todos los callers usan paths únicos (hash/timestamp). INSERT simple coincide
+    // con la policy real `renders_insert`; upsert=true exigiría SELECT+UPDATE y
+    // provoca 400 aunque el archivo sea nuevo.
+    const { error } = await nube.storage.from('renders').upload(path, u8, { contentType: mime, upsert: false });
     if (error) return { ok: false, error: error.message };
     const { data } = nube.storage.from('renders').getPublicUrl(path);
     return { ok: true, path, url: data?.publicUrl || null };
@@ -537,3 +585,18 @@ export function suscribirConfig(cb) {
     .subscribe();
   return () => { try { nube.removeChannel(canal); } catch (e) {} };
 }
+
+export async function verificarRenderCanonico(renderId, evidence = {}) {
+  const id = Number(renderId);
+  if (!Number.isInteger(id) || id <= 0) return { ok: false, error: 'render_id inválido' };
+  const { data, error } = await nube.rpc('verificar_render_canonico', {
+    p_render_id: id,
+    p_geometry: 'PASS',
+    p_features: 'PASS',
+    p_finish: 'PASS',
+    p_evidence: evidence || {},
+  });
+  if (error) return { ok: false, error: error.message || 'No se pudo validar el render.' };
+  return data || { ok: false, error: 'Sin respuesta de validación.' };
+}
+

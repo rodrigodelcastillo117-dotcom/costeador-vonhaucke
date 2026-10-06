@@ -6,7 +6,7 @@ import {
 import {prepararIntentCocrear,resumenIdeaCocrear,conceptosCocrear,aplicarConceptoCocrear,FEATURES_COCREAR,detectarAlcanceCocrear} from '../datos/cocrearWow.js';
 import {referenciasComercialesCocrear,formatearReferenciaCocrear} from '../datos/cocrearReferencias.js';
 import {estimadoDisenoCocrear} from '../datos/estimadoDiseno.js';
-import {listarCocreaciones,guardarCocrearSeguro,cargarCocrearSeguro,registrarProductoDesdeExpediente,subirRenderCanonico,voniCouncil,generarRender} from '../nube.js';
+import {listarCocreaciones,guardarCocrearSeguro,cargarCocrearSeguro,registrarProductoDesdeExpediente,subirRenderCanonico,verificarRenderCanonico,voniCouncil,generarRender} from '../nube.js';
 import CocrearVisual from './CocrearVisual.jsx';
 import {parametrosEfectivos} from './Costeador.jsx';
 import {precioVenta} from '../motor/calculo.js';
@@ -67,11 +67,12 @@ function Card({children,style={}}){return <div style={{background:'#171717',bord
 function Label({children}){return <div style={{fontSize:10,letterSpacing:1.25,textTransform:'uppercase',color:'#8992a2',fontWeight:800,marginBottom:7}}>{children}</div>}
 function Btn({children,onClick,disabled=false,ghost=false,style={}}){return <button type="button" disabled={disabled} onClick={onClick} style={{borderRadius:10,padding:'9px 13px',fontSize:13,fontWeight:800,border:ghost?'1px solid #50545a':'1px solid #d13b30',background:ghost?'transparent':disabled?'#34211f':'#c93429',color:disabled?'#776b69':'#fff',cursor:disabled?'not-allowed':'pointer',...style}}>{children}</button>}
 
-export default function Cocrear({estado,onAgregar,onIr}){
+export default function Cocrear({estado,onAgregar,onIr,soloVentas=false}){
  const [fase,setFase]=useState('inicio'),[texto,setTexto]=useState(''),[intent,setIntent]=useState(null),[historia,setHistoria]=useState([]),[conceptos,setConceptos]=useState([]);
  const [analisis,setAnalisis]=useState(null),[aiError,setAiError]=useState(''),[pensando,setPensando]=useState(false),[nl,setNl]=useState(''),[mensaje,setMensaje]=useState('');
  const [guardando,setGuardando]=useState(false),[guardado,setGuardado]=useState(false),[expedienteId,setExpedienteId]=useState(null),[guardadas,setGuardadas]=useState([]);
  const [render,setRender]=useState(null),[renderCargando,setRenderCargando]=useState(false),[renderError,setRenderError]=useState(''),[comparA,setComparA]=useState(null),[cotizadoHash,setCotizadoHash]=useState(null);
+ const [verificandoRender,setVerificandoRender]=useState(false);
  const [refs,setRefs]=useState(null),[refsCargando,setRefsCargando]=useState(false);
 
  const insumos=estado?.insumos||{};
@@ -98,7 +99,7 @@ export default function Cocrear({estado,onAgregar,onIr}){
    const descripcion=`${c.descripcion}\nCLIENT BRIEF: ${nextIntent?._brief||texto}. SELECTED CONCEPT: ${nextIntent?._concepto||''} ${nextIntent?._concepto_nombre||''}. The image MUST preserve the exact current-revision geometry shown in the supplied technical reference. Do not redesign the product.`;
    const modelo=await capturarModeloPNG();
    const r=await generarRender(descripcion,{render_spec:c.render_spec,materiales:c.materiales,medidas:c.medidas,tipo:c.tipo,modo:c.modo,aspecto:'4:3',...(modelo?{imagen:modelo,mediaType:'image/png'}:{})});
-   if(r?.ok&&r.dataUrl)setRender({dataUrl:r.dataUrl,specHash:nextSpec.hash,expected:c.expected,version:c.version,concepto:nextIntent?._concepto||null});else throw new Error(r?.error||'No se pudo generar el render');
+   if(r?.ok&&r.dataUrl)setRender({dataUrl:r.dataUrl,specHash:nextSpec.hash,expected:c.expected,version:c.version,concepto:nextIntent?._concepto||null,canonicalId:null,validation:'NOT_VERIFIED'});else throw new Error(r?.error||'No se pudo generar el render');
   }catch(e){setRenderError(String(e?.message||e))}finally{setRenderCargando(false)}
  };
  const generar=()=>generarPara(intent,spec);
@@ -148,10 +149,53 @@ export default function Cocrear({estado,onAgregar,onIr}){
  const reabrir=async id=>{try{const r=await cargarCocrearSeguro(id);const est=r?.ok?cocrearDeExpediente({cocrear:r.cocrear}):null;if(!est?.intent)throw new Error('Expediente sin intención válida');setIntent(est.intent);setHistoria(est.historia?.length?est.historia:[{rev:1,label:'Reabierta',intent:est.intent}]);setTexto(est.brief||est.intent?._brief||'');setExpedienteId(id);setRender(null);setFase('studio')}catch(e){setMensaje(String(e?.message||e))}};
 
  const costoOficial=Number(pipeline?.costo?.official_cost),costoConocido=Number.isFinite(costoOficial)&&costoOficial>0;
+
+ const asegurarProductoCanonico=async()=>{
+  let id=expedienteId;
+  if(!id){
+   const s=await guardarCocrearSeguro(null,cocrearPayload({brief:texto,intent,historia,render,insumos,par}));
+   if(!s?.ok||!s.expediente_id)throw new Error(s?.error||'No se pudo guardar la co-creación.');
+   id=s.expediente_id;setExpedienteId(id);
+  }
+  const reg=await registrarProductoDesdeExpediente(id);
+  if(!reg?.ok||!reg.producto_id||!reg.version_id)throw new Error(reg?.error||'No se pudo fijar la revisión canónica.');
+  return {id,prodId:reg.producto_id,versionId:reg.version_id};
+ };
+
+ const canonizarRenderActual=async(ctx=null)=>{
+  if(!render||rStale)throw new Error('Regenera el render de la revisión actual antes de validarlo.');
+  if(render.canonicalId&&render.specHash===spec?.hash)return {...(ctx||{}),renderId:render.canonicalId};
+  const base=ctx||await asegurarProductoCanonico();
+  const rp=compileRenderPrompt(spec,spec.dna);
+  const geometryHash=hashEstable({familia:spec.familia,dimensiones:spec.dimensiones||{},caracteristicas:spec.caracteristicas||[],componentes:spec.componentes||[]});
+  const up=await subirRenderCanonico({expedienteId:base.id,productoId:base.prodId,productoVersionId:base.versionId,dataUrl:render.dataUrl,promptVersion:render.version,modo:'render',specHash:spec.hash,geometryHash,inputs:rp.expected||{}});
+  if(!up?.ok||!up.render_id)throw new Error(up?.error||'No se pudo registrar el render canónico.');
+  setRender(s=>s?{...s,canonicalId:up.render_id,validation:up.validation||'NOT_VERIFIED',productoId:base.prodId,versionId:base.versionId}:s);
+  return {...base,renderId:up.render_id};
+ };
+
+ const validarRenderActual=async()=>{
+  if(!render||rStale||verificandoRender)return;
+  const ok=window.confirm('Confirma que este render coincide con la revisión actual en geometría, funciones y acabado. Si algo no coincide, cancela y regenera.');
+  if(!ok)return;
+  setVerificandoRender(true);setMensaje('');
+  try{
+   const can=await canonizarRenderActual();
+   const v=await verificarRenderCanonico(can.renderId,{confirmation:'Revisado visualmente contra ProductSpec y modelo canónico vigentes.',spec_hash:spec.hash,geometry_hash:hashEstable({familia:spec.familia,dimensiones:spec.dimensiones||{},caracteristicas:spec.caracteristicas||[],componentes:spec.componentes||[]})});
+   if(!v?.ok||!v.validated)throw new Error(v?.error||'El render no pudo quedar validado.');
+   setRender(s=>s?{...s,canonicalId:can.renderId,validation:'VALIDATED'}:s);
+   setMensaje('✓ Render verificado: geometría, funciones y acabado confirmados para esta revisión.');
+  }catch(e){setMensaje('No se pudo validar el render: '+String(e?.message||e))}
+  setVerificandoRender(false);
+ };
+
  const agregarCotizacion=async()=>{
   if(!costoConocido||!onAgregar){setMensaje('Todavía no puede convertirse en partida: falta BOM/economía certificada. Las referencias comerciales no sustituyen el costeo.');return}
   let id=expedienteId,prodId=null,versionId=null;
-  try{if(!id){const s=await guardarCocrearSeguro(null,cocrearPayload({brief:texto,intent,historia,render,insumos,par}));if(s?.ok){id=s.expediente_id;setExpedienteId(id)}}if(id){const reg=await registrarProductoDesdeExpediente(id);if(reg?.ok){prodId=reg.producto_id;versionId=reg.version_id}}if(versionId&&render&&!rStale){const c=compileRenderPrompt(spec,spec.dna);const geometryHash=hashEstable({familia:spec.familia,dimensiones:spec.dimensiones||{},caracteristicas:spec.caracteristicas||[],componentes:spec.componentes||[]});await subirRenderCanonico({expedienteId:id,productoId:prodId,productoVersionId:versionId,dataUrl:render.dataUrl,promptVersion:render.version,modo:'render',specHash:spec.hash,geometryHash,inputs:c.expected||{}})}}catch{}
+  try{
+   const can=await asegurarProductoCanonico();id=can.id;prodId=can.prodId;versionId=can.versionId;
+   if(render&&!rStale)await canonizarRenderActual(can);
+  }catch(e){setMensaje('No se pudo fijar la revisión canónica: '+String(e?.message||e));return}
   const margen=Number.isFinite(par.margenObjetivo)?par.margenObjetivo:40,pv=precioVenta(costoOficial,par).precio;
   onAgregar({nombre:intent?._concepto_nombre||resumen?.tipologia||'Producto co-creado',componentes:spec.componentes,w:spec.dimensiones?.ancho_mm||null,d:spec.dimensiones?.prof_mm||spec.dimensiones?.fondo_mm||null,productoId:prodId,productVersionId:versionId,precioReal:false,config:null},1,pv,margen);setCotizadoHash(spec.hash);setMensaje('✓ Revisión actual agregada a cotización.');
  };
@@ -167,7 +211,7 @@ export default function Cocrear({estado,onAgregar,onIr}){
  <div className="c3-studio">
   <Card><Label>Diseño</Label><div style={{marginBottom:9}}><small>Tipología</small><select value={intent?.familia||FAMILIA.DESCONOCIDA} onChange={e=>setFamilia(e.target.value)} className="c3-input" style={{marginTop:3}}>{FAMILY_OPTIONS.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></div>{intent?.tipologia_cocrear==='operativo_colaborativo'&&<div style={{marginBottom:9}}><small>Personas / puestos</small><input type="number" min="2" max="24" value={intent.capacidad_personas||6} onChange={e=>setCap(e.target.value)} className="c3-input" style={{marginTop:3}}/></div>}<div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:4,marginBottom:10}}>{[['ancho_mm','Ancho'],['prof_mm','Fondo'],['alto_mm','Alto']].map(([k,l])=><label key={k} style={{fontSize:9,color:'#aaa'}}>{l}<input type="number" value={dims[k]||0} onChange={e=>setDim(k,e.target.value)} className="c3-input" style={{padding:5,marginTop:2}}/></label>)}</div><Label>Material</Label><div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:4}}>{MATERIALES_EDIT.map(m=><button key={m} onClick={()=>setMaterial(m)} style={{padding:'6px 2px',borderRadius:7,border:mat===m?'2px solid #d33b30':'1px solid #414141',background:'#22201f',color:'#fff',fontSize:9}}>{MAT_LABEL[m]||m}</button>)}</div><Label>Tono</Label><div style={{display:'flex',gap:4}}>{[['claro','Claro'],[null,'Natural'],['oscuro','Oscuro']].map(([v,l])=><button key={l} onClick={()=>setTone(v)} style={{flex:1,padding:6,borderRadius:7,border:tone===v?'2px solid #d33b30':'1px solid #414141',background:'#22201f',color:'#fff',fontSize:9}}>{l}</button>)}</div><Label>Funciones</Label><div style={{display:'flex',flexWrap:'wrap',gap:4}}>{FEATURES_COCREAR.map(([k,l])=><button key={k} onClick={()=>toggleFeature(k)} style={{padding:'5px 6px',borderRadius:999,border:feats.has(k)?'1px solid #d33b30':'1px solid #414141',background:feats.has(k)?'#3b211f':'transparent',color:'#fff',fontSize:9}}>{feats.has(k)?'✓ ':'+ '}{l}</button>)}</div></Card>
 
-  <div>{comparA?<Card><Label>Comparación conceptual</Label><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:7}}><CocrearVisual spec={construirProductSpec(comparA,extraerDNA(comparA),clasificarProducto(comparA,{}),{rev:'A'})} intent={comparA}/><CocrearVisual spec={spec} intent={intent}/></div></Card>:<Card style={{padding:8}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'4px 5px 8px'}}><div><Label>Render IA · Concepto {intent?._concepto||'—'}</Label><strong style={{fontSize:13}}>{intent?._concepto_nombre||'Visualización principal'}</strong></div><Btn onClick={generar} disabled={renderCargando}>{renderCargando?'Generando…':render?'Regenerar':'Generar render'}</Btn></div><div className="c3-hero">{renderCargando?<div style={{textAlign:'center'}}><strong>VONI está construyendo el concepto {intent?._concepto}</strong><p className="c3-small">Usando el modelo canónico de esta revisión como referencia de geometría.</p></div>:render?<div style={{width:'100%'}}>{rStale&&<div style={{padding:8,background:'#4a2d16',color:'#ffd09c',fontSize:10}}>El diseño cambió. Este render está vencido; regenera para representar la revisión actual.</div>}<img src={render.dataUrl} alt={`Render del concepto ${intent?._concepto||''}`} style={{opacity:rStale?.62:1}}/></div>:<div style={{textAlign:'center'}}><strong>Sin render de esta revisión</strong><p className="c3-small">Genera la visualización usando el modelo 3D como referencia.</p><Btn onClick={generar}>Generar render</Btn></div>}</div>{renderError&&<p style={{color:'#ff9d93',fontSize:10}}>{renderError}</p>}</Card>}{!comparA&&<div id="cocrear-modelo-canonico" style={{marginTop:8}}><CocrearVisual spec={spec} intent={intent}/></div>}<div className="c3-history">{historia.map(h=><button key={h.rev} onClick={()=>{setIntent(clone(h.intent));setMensaje(`Viendo Rev ${h.rev}: ${h.label}`)}}>R{h.rev} · {h.label}</button>)}</div></div>
+  <div>{comparA?<Card><Label>Comparación conceptual</Label><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:7}}><CocrearVisual spec={construirProductSpec(comparA,extraerDNA(comparA),clasificarProducto(comparA,{}),{rev:'A'})} intent={comparA}/><CocrearVisual spec={spec} intent={intent}/></div></Card>:<Card style={{padding:8}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'4px 5px 8px'}}><div><Label>Render IA · Concepto {intent?._concepto||'—'}</Label><strong style={{fontSize:13}}>{intent?._concepto_nombre||'Visualización principal'}</strong>{render&&<div style={{fontSize:9,fontWeight:800,marginTop:3,color:rStale?'#ffd09c':render.validation==='VALIDATED'?'#8ee0b4':'#e5bc70'}}>{rStale?'● VENCIDO':render.validation==='VALIDATED'?'✓ VERIFICADO':'● NO VERIFICADO'}</div>}</div><div style={{display:'flex',gap:5,flexWrap:'wrap',justifyContent:'flex-end'}}>{render&&!rStale&&!soloVentas&&render.validation!=='VALIDATED'&&<Btn ghost onClick={validarRenderActual} disabled={verificandoRender}>{verificandoRender?'Verificando…':'Verificar render'}</Btn>}<Btn onClick={generar} disabled={renderCargando}>{renderCargando?'Generando…':render?'Regenerar':'Generar render'}</Btn></div></div><div className="c3-hero">{renderCargando?<div style={{textAlign:'center'}}><strong>VONI está construyendo el concepto {intent?._concepto}</strong><p className="c3-small">Usando el modelo canónico de esta revisión como referencia de geometría.</p></div>:render?<div style={{width:'100%'}}>{rStale&&<div style={{padding:8,background:'#4a2d16',color:'#ffd09c',fontSize:10}}>El diseño cambió. Este render está vencido; regenera para representar la revisión actual.</div>}<img src={render.dataUrl} alt={`Render del concepto ${intent?._concepto||''}`} style={{opacity:rStale?.62:1}}/></div>:<div style={{textAlign:'center'}}><strong>Sin render de esta revisión</strong><p className="c3-small">Genera la visualización usando el modelo 3D como referencia.</p><Btn onClick={generar}>Generar render</Btn></div>}</div>{renderError&&<p style={{color:'#ff9d93',fontSize:10}}>{renderError}</p>}</Card>}{!comparA&&<div id="cocrear-modelo-canonico" style={{marginTop:8}}><CocrearVisual spec={spec} intent={intent}/></div>}<div className="c3-history">{historia.map(h=><button key={h.rev} onClick={()=>{setIntent(clone(h.intent));setMensaje(`Viendo Rev ${h.rev}: ${h.label}`)}}>R{h.rev} · {h.label}</button>)}</div></div>
 
   <div className="c3-right" style={{display:'grid',gap:10}}><Card><Label>VONI · Co-diseñador</Label><p style={{fontSize:11,color:'#aaa',lineHeight:1.4}}>Pídele un cambio concreto. Si la instrucción es inequívoca, primero cambia el modelo canónico; el render viejo queda vencido hasta regenerarlo.</p><textarea value={nl} onChange={e=>setNl(e.target.value)} rows={3} placeholder="Ej. Haz la jardinera completa a todo el eje central y conserva el resto exactamente igual." className="c3-input"/><Btn onClick={pedirVoni} disabled={!nl.trim()||pensando} style={{width:'100%',marginTop:6}}>{pensando?'Analizando…':'Aplicar con VONI'}</Btn>{mensaje&&<p style={{fontSize:10,lineHeight:1.4}}>{mensaje}</p>}</Card>
   <Card><Label>Verdad industrial</Label><div style={{display:'grid',gap:5,fontSize:12}}><div>Costo certificado: <b>{costoConocido?money(costoOficial):'Pendiente de BOM'}</b></div><div>Estado motor: <b>{pipeline?.costo?.cost_status||'UNKNOWN'}</b></div><div>Componentes BOM: <b>{spec?.componentes?.length||0}</b></div></div>
