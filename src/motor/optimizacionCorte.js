@@ -95,6 +95,14 @@ export function optimizarCorte2D({componentes=[],formato={},veta=false,kerfMM=6,
     piezas_solicitadas:piezas.length,
     piezas_colocadas:placed.length,
     placements:placed,
+    // Retazos geométricos reutilizables. ADVISORY: son huecos del nesting
+    // determinista, no inventario físico hasta que Producción confirme/etiquete.
+    remanentes: hojas.flatMap((s,si)=>(s.libres||[]).map((r)=>({
+      hoja:si+1,x:Math.round(r.x),y:Math.round(r.y),
+      w:Math.round(r.w),h:Math.round(r.h),area_mm2:Math.round(r.w*r.h),
+    }))).filter((r)=>r.w>=100&&r.h>=100)
+      .sort((a,b)=>b.area_mm2-a.area_mm2)
+      .slice(0,12),
     issues,
     area_piezas_mm2:areaPiezas,
     area_comprada_mm2:areaComprada,
@@ -202,6 +210,9 @@ export function optimizarCorte1D({
     piezas_solicitadas: piezas.length,
     piezas_colocadas: colocadas.length,
     placements: colocadas,
+    remanentes: tramos.map((t,i)=>({tramo:i+1,largo_mm:Math.max(0,Math.round(t.restante))}))
+      .filter((r)=>r.largo_mm>=100)
+      .sort((a,b)=>b.largo_mm-a.largo_mm),
     issues,
     largo_comprado_mm: comprado,
     largo_neto_mm: neto,
