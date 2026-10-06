@@ -138,7 +138,7 @@ export function inferirIntencion(query, ctx = {}) {
   if (/(que linea|recomiend|sugier|me sirve|sirve para|de que est|a la medida|que producto|catalogo|que mueble)/.test(q)) {
     return { intent: 'KNOWLEDGE', modo, lentes: ['conocimiento'], tools: ['get_catalog_knowledge'] };
   }
-  if (/\b(mejora|mejorar|optimiza|optimizar|desarrollo de producto|desarrolla|despiece|despiezar|merma|desperdicio|eficiencia|nesting|corte|aprovechamiento|fabricabilidad)\b/.test(q)) {
+  if (/\b(mejor\w*|optimiz\w*|desarroll\w* producto|despiece|despiez\w*|merma\w*|desperdici\w*|eficien\w*|nesting|corte\w*|aprovech\w*|fabricab\w*)\b/.test(q)) {
     return {
       intent: 'INDUSTRIAL_IMPROVEMENT',
       modo: MODOS.PROPONER,
