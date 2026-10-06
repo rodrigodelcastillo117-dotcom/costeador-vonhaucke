@@ -58,6 +58,7 @@ function requisitosEvidencia(intent, ctx = {}) {
     BUDGET: ['get_project_context', 'get_quote'],
     ATTENTION: ['get_today_attention'],
     COSTING_ANALYSIS: [],
+    COST_EXPLAIN: ['get_cost_explanation'],
     INDUSTRIAL_IMPROVEMENT: ['get_industrial_analysis'],
     MATERIAL_TECHNICAL: ['get_material_technical'],
     RISK: [],
@@ -149,6 +150,10 @@ export function inferirIntencion(query, ctx = {}) {
   if (/(que linea|recomiend|sugier|me sirve|sirve para|de que est|a la medida|que producto|catalogo|que mueble|codigo|modelo|variante|mampara|cancel|biombo)/.test(q)) {
     return { intent: 'KNOWLEDGE', modo, lentes: ['conocimiento'], tools: ['get_catalog_knowledge','search_products'] };
   }
+  if (/\b(explica\w*|desglosa\w*|matematic\w*|calculo\w*|calculaste|calcul[oó]|de donde sale|cómo sale|como sale)\b/.test(q)
+      && /\b(costo|costeo|precio de fabricacion|material|mano de obra|indirectos|merma)\b/.test(q)) {
+    return { intent: 'COST_EXPLAIN', modo: MODOS.ANALIZAR, lentes: ['costeador'], tools: ['get_cost_explanation'] };
+  }
   if (/\b(mejor\w*|optimiz\w*|desarroll\w* producto|despiece|despiez\w*|merma\w*|desperdici\w*|eficien\w*|nesting|corte\w*|aprovech\w*|fabricab\w*)\b/.test(q)) {
     return {
       intent: 'INDUSTRIAL_IMPROVEMENT',
@@ -198,6 +203,34 @@ function respuestaMaterialTecnico(k) {
     accion: items.length>1 ? 'Si buscabas otra variante, dime la clave o nombre más exacto.' : 'Usar este formato para validar piezas y aprovechamiento.',
     evidencia, urgencia:URGENCIA.BAJA, estado:ESTADO.OK,
     lentes:['conocimiento'], bloqueos:[],
+  });
+}
+
+function respuestaExplicacionCosteo(e) {
+  if (!e || e.disponible === false) return respuestaSinEvidencia('COST_EXPLAIN', ['get_cost_explanation'], []);
+  const m=e.matematicas||{};
+  const money=(x)=>Number.isFinite(Number(x)) ? Number(x).toLocaleString('es-MX',{style:'currency',currency:'MXN',minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+  const evidencia=[
+    afirmacion(`Fórmula aplicada: ${e.formula||'N/D'} · modelo ${e.modelo||'N/D'}.`, TIPO_AFIRMACION.HECHO, {source_type:'motor_costeo_canonico',confidence:1}),
+    afirmacion(`Material ${money(m.material_total)} · MO ${money(m.mano_obra)} · indirectos ${money(m.indirectos_fabrica)} · costo unitario ${money(m.costo_unitario)}.`, TIPO_AFIRMACION.HECHO, {source_type:'motor_costeo_canonico',confidence:1}),
+  ];
+  for(const x of (e.insumos||[]).slice(0,6)) evidencia.push(afirmacion(
+    `${x.nombre}: ${money(x.costo)} · ${String(x.metodo||'método N/D').replaceAll('_',' ').toLowerCase()}${x.desperdicio_pct!=null?` · desperdicio ${x.desperdicio_pct}%`:''}.`,
+    TIPO_AFIRMACION.HECHO,{source_type:'detalle_costeo_canonico',source_id:x.id,confidence:1}
+  ));
+  const bloqueos=(e.bloqueos||[]).map((x)=>({titulo:'Costo no cerrado',detalle:String(x),urgencia:URGENCIA.BLOQUEANTE}));
+  const sup=(e.supuestos||[]);
+  return respuestaEstructurada({
+    que_paso:`${e.formula||'Costeo'} → costo unitario ${money(m.costo_unitario)}.`,
+    por_que:e.ecuacion||null,
+    impacto:`Material directo ${money(m.material_directo)} + indirecto ${money(m.material_indirecto)} + MO ${money(m.mano_obra)} + GI ${money(m.indirectos_fabrica)}${m.gastos_operacion?` + operación ${money(m.gastos_operacion)}`:''}.`,
+    confianza:bloqueos.length?0.55:1,
+    accion:bloqueos.length?`Resolver primero: ${bloqueos[0].detalle}`:sup.length?`Revisar supuesto: ${sup[0]}`:'La matemática está trazada; compara contra la T.D.C./expediente si quieres una segunda validación.',
+    evidencia:[...evidencia,...sup.map((s)=>afirmacion(String(s),TIPO_AFIRMACION.SUPUESTO,{source_type:'motor_costeo_canonico',confidence:1}))],
+    urgencia:bloqueos.length?URGENCIA.BLOQUEANTE:(sup.length?URGENCIA.MEDIA:URGENCIA.BAJA),
+    estado:bloqueos.length?ESTADO.BLOQUEADO:(sup.length?ESTADO.ATENCION:ESTADO.OK),
+    lentes:['costeador'],
+    bloqueos,
   });
 }
 
@@ -396,9 +429,9 @@ export async function responder({ query, ctx = {}, prov = {}, intentForzado = nu
   const requeridas = requisitosEvidencia(plan.intent, contexto);
   const faltantes = requeridas.filter((nombre) => datos[nombre] == null);
   const denegadasEconomia = Object.entries(fallosTool)
-    .filter(([nombre, r]) => ['get_costing', 'get_bom', 'get_industrial_analysis'].includes(nombre) && r?.error === 'sin_permiso')
+    .filter(([nombre, r]) => ['get_costing', 'get_bom', 'get_industrial_analysis', 'get_cost_explanation', 'get_costing_precedents'].includes(nombre) && r?.error === 'sin_permiso')
     .map(([nombre]) => nombre);
-  const consultaEconomicaDirecta = ['COSTING_ANALYSIS', 'RISK', 'INDUSTRIAL_IMPROVEMENT'].includes(plan.intent);
+  const consultaEconomicaDirecta = ['COSTING_ANALYSIS', 'COST_EXPLAIN', 'RISK', 'INDUSTRIAL_IMPROVEMENT'].includes(plan.intent);
 
   const respuesta = (consultaEconomicaDirecta && denegadasEconomia.length)
     ? respuestaSinPermisoEconomico(plan.intent, denegadasEconomia, resultadosLente)
@@ -406,6 +439,8 @@ export async function responder({ query, ctx = {}, prov = {}, intentForzado = nu
       ? respuestaSinEvidencia(plan.intent, faltantes, resultadosLente)
       : plan.intent === 'MATERIAL_TECHNICAL'
         ? respuestaMaterialTecnico(datos.get_material_technical)
+        : plan.intent === 'COST_EXPLAIN'
+          ? respuestaExplicacionCosteo(datos.get_cost_explanation)
         : plan.intent === 'INDUSTRIAL_IMPROVEMENT'
           ? respuestaIndustrial(datos.get_industrial_analysis, datos.get_costing_precedents, resultadosLente)
           : sintetizar(plan.intent, resultadosLente);
@@ -434,18 +469,41 @@ export async function responder({ query, ctx = {}, prov = {}, intentForzado = nu
 }
 
 // Sugerencias contextuales (3–5) por ruta/rol.
+export function guiaRuta(ctx = {}) {
+  const route=String(ctx.route||'inicio');
+  const map={
+    inicio:{titulo:'Dime qué quieres lograr',detalle:'Puedo orientarte a la línea, cotización, costeo o co-creación correcta sin que conozcas la app.'},
+    costeador:{titulo:'Estoy revisando el mueble contigo',detalle:'Puedo explicar cada peso, detectar faltantes, comparar precedentes y proponer menos desperdicio sin cambiar el costo oficial.'},
+    cocrear:{titulo:'Primero Von Haucke, después custom',detalle:'Busco líneas/productos reales, ayudo a aterrizar el especial y separo diseño, ingeniería, costo y render.'},
+    cotizacion:{titulo:'Antes de enviar, yo reviso',detalle:'Puedo decirte qué falta, qué bloquea emisión, si el acomodo está listo y qué necesita atención.'},
+    cotizarIA:{titulo:'Descríbeme lo que necesita el cliente',detalle:'Te ayudo a aterrizarlo a producto real y a detectar lo que falta confirmar antes de cotizar.'},
+    acomodo:{titulo:'Que quepa no basta',detalle:'Reviso acomodo, circulación y pendientes; un layout no se considera correcto sólo porque no colisiona.'},
+    precios:{titulo:'Datos reales antes que números bonitos',detalle:'Puedo explicar formatos/materiales; costos y evidencias siguen sujetos a los permisos de tu rol.'},
+    reglas:{titulo:'Esta es la memoria explícita de oficio',detalle:'Aquí ves lo que VONI da por sabido. Una corrección aprendida no se vuelve regla permanente sin trazabilidad.'},
+    comercial:{titulo:'VONI conoce el contexto comercial',detalle:'Puedo revisar atención, pendientes, revisiones y readiness según lo que tu rol puede ver.'},
+  };
+  return map[route]||{titulo:'VONI está en contexto',detalle:'Pregúntame qué falta, qué puedo revisar o cuál es el siguiente paso en esta pantalla.'};
+}
+
 export function sugerencias(ctx = {}) {
-  const base = [];
-  const r = ctx.role || 'ventas';
-  const hayTrabajo = ctx.project_id || ctx.quote_id || (ctx.partidasLocales && ctx.partidasLocales.length);
-  if (hayTrabajo) {
-    base.push('¿Está lista para enviarse?', '¿Qué falta?');
-    if (ctx.project_id || ctx.quote_id) base.push('¿Estamos en budget?');
-    if (ctx.revision_id) base.push('¿Qué cambió entre revisiones?');
-  }
-  if (r === 'direccion' || r === 'cfo') base.push('¿Qué necesita mi atención?');
-  if (r === 'costeador' || r === 'diseno') base.push('Analiza este mueble', '¿Cómo lo mejorarías para fabricar mejor y desperdiciar menos?');
-  if (!base.length) base.push('¿Qué necesita mi atención?', '¿Qué falta?');
-  base.push('¿Qué línea me sirve?');   // conocimiento de producto, útil para cualquiera
-  return base.slice(0, 5);
+  const route=String(ctx.route||'');
+  const r=ctx.role||'ventas';
+  const porRuta={
+    inicio:['¿Qué línea me sirve?','¿Qué puedo hacer aquí?'],
+    costeador:['Explícame este costo','¿Cómo lo mejoro para desperdiciar menos?','¿Hay un precedente similar?','¿Qué falta para cerrarlo?'],
+    cocrear:['¿Qué línea me sirve?','¿Esto ya existe en Von Haucke?','¿Cómo lo harías fabricable?'],
+    cotizacion:['¿Está lista para enviarse?','¿Qué falta?','¿Qué necesita atención?'],
+    cotizarIA:['¿Qué línea me sirve?','¿Qué falta confirmar?'],
+    acomodo:['¿Cabe y tiene buena circulación?','¿Qué falta en el acomodo?'],
+    precios:['¿Cómo se costea este material?','¿Qué formato físico usa este material?'],
+    reglas:['¿Qué línea me sirve?','¿Qué puedo hacer aquí?'],
+    comercial:['¿Qué necesita mi atención?','¿Qué falta?','¿Está lista para enviarse?'],
+  };
+  const base=[...(porRuta[route]||[])];
+  const hayTrabajo=ctx.project_id||ctx.quote_id||(ctx.partidasLocales&&ctx.partidasLocales.length);
+  if(hayTrabajo&&!base.includes('¿Qué falta?')) base.push('¿Qué falta?');
+  if((r==='direccion'||r==='cfo')&&!base.includes('¿Qué necesita mi atención?')) base.push('¿Qué necesita mi atención?');
+  if((r==='costeador'||r==='diseno'||route==='costeador')&&!base.includes('¿Cómo lo mejoro para desperdiciar menos?')) base.push('¿Cómo lo mejoro para desperdiciar menos?');
+  if(!base.includes('¿Qué línea me sirve?')) base.push('¿Qué línea me sirve?');
+  return [...new Set(base)].slice(0,5);
 }
