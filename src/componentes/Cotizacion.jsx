@@ -23,6 +23,7 @@ import { textoRazonEmision, ESTADO_EMISION, razonesPorLinea } from '../datos/emi
 import MontoAnimado from './MontoAnimado.jsx';
 import PlanoAcomodo from './PlanoAcomodo.jsx';
 import ConfirmarCandado from './ConfirmarCandado.jsx';
+import { evaluarAcomodoCliente, cotizacionSinAcomodoNoValidado } from '../datos/acomodoCliente.js';
 
 // El render IA de la partida manda; si no, la foto de catálogo; y si es una
 // silla del banco (que no tiene línea), su foto de presupuesto.
@@ -195,15 +196,21 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
     try { const r = await fetch(url); const b = await r.blob(); return await new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.onerror = () => res(null); fr.readAsDataURL(b); }); } catch (e) { return null; }
   }
   async function renderOficina() {
+    if (!acomodoClienteGate?.mostrar) {
+      setErrGen(acomodoClienteGate?.existe
+        ? `El acomodo todavía no está validado para cliente: ${(acomodoClienteGate.razones || []).join(' · ') || acomodoClienteGate.estado}. Revísalo en Acomodo primero.`
+        : 'Primero crea y valida el acomodo del proyecto.');
+      return;
+    }
     setErrGen(''); setGenOficina(true);
     try {
       const lista = partidas.map((p) => `${p.cantidad}× ${p.nombre}`).join(', ') || 'mobiliario de oficina Von Haucke';
-      const ctx = cot.acomodo?.areas?.length ? `${cot.acomodo.areas.length} área(s) de trabajo` : '';
+      const ctx = cotCliente.acomodo?.areas?.length ? `${cotCliente.acomodo.areas.length} área(s) de trabajo` : '';
       // Fotos reales de los productos cotizados → referencia (específico a las líneas VH).
       const urls = [...new Set(partidas.map((p) => fotoPartida(p)).filter(Boolean))].slice(0, 6);
       const imagenes = (await Promise.all(urls.map(urlABase64))).filter(Boolean);
       const r = await generarRender(lista, { modo: 'oficina', medidas: ctx, imagenes });
-      if (r?.ok) setCot({ acomodo: { ...(cot.acomodo || {}), render3d: r.dataUrl } }); else setErrGen(r?.error || 'No se pudo generar la oficina.');
+      if (r?.ok) setCot({ acomodo: { ...(cot.acomodo || {}), render3d: r.dataUrl, render3d_layout_validado: true } }); else setErrGen(r?.error || 'No se pudo generar la oficina.');
     } catch (e) { setErrGen('No se pudo conectar.'); }
     finally { setGenOficina(false); }
   }
@@ -277,7 +284,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
       // una emisión definitiva.
       const reg = onEmitida ? await onEmitida() : { ok: false };
       descargarPropuesta({
-        cot, partidas, resumen, especificacion, nPzas, fotos, marca,
+        cot: cotCliente, partidas, resumen, especificacion, nPzas, fotos, marca,
         piezas: expandirPiezas(partidas),
         // Si NO se registró la emisión, el PDF sale MARCADO como borrador: no se
         // entrega al cliente un documento que parezca definitivo sin evidencia
@@ -285,7 +292,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         borrador: !reg?.ok,
         // La hoja "Qué va en cada área", en palabras y con las gavetas: el
         // plano no las puede enseñar porque viven debajo de la cubierta.
-        cuartos: listaPorCuarto(partidas, estado.cotizacion?.acomodo),
+        cuartos: listaPorCuarto(partidas, cotCliente.acomodo),
         // Piezas excluidas (audit #3): se imprimen como cláusula explícita bajo el total.
         exclusionesBOM: excluidasProyecto,
         totales: { precioLista, descuento, descuentoPct, subtotal, contingencia, contingenciaPct,
@@ -338,10 +345,20 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
     setCot({ partidas: partidas.filter((_, j) => j !== i) });
   };
 
-  // El acomodo dice qué mueble quedó en qué cuarto; con eso el resumen reparte
-  // el importe por área. Si todavía no hay acomodo, sale una sola agrupación
-  // ("Sin ubicar") en vez de mentir con áreas inventadas.
-  const resumen = useMemo(() => resumenPorArea(partidas, estado.cotizacion?.acomodo), [partidas, estado.cotizacion?.acomodo]);
+  // Gate espacial independiente del gate financiero. Una cotización SIN layout
+  // puede emitirse; un layout presente sólo se muestra al cliente si está validado.
+  const acomodoClienteGate = useMemo(
+    () => evaluarAcomodoCliente(cot.acomodo, partidas),
+    [cot.acomodo, partidas],
+  );
+  const cotCliente = useMemo(
+    () => cotizacionSinAcomodoNoValidado(cot, partidas).cot,
+    [cot, partidas],
+  );
+
+  // El resumen por área también usa sólo acomodo validado. Si el layout es
+  // borrador/legacy/partial, no inventamos áreas en el documento del cliente.
+  const resumen = useMemo(() => resumenPorArea(partidas, cotCliente.acomodo), [partidas, cotCliente.acomodo]);
 
   // TODA la escalera de dinero —suma, descuento, subtotal, imprevistos, maniobras,
   // flete, IVA, total, anticipo— sale de UNA sola función (src/datos/totales.js),
@@ -664,7 +681,8 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
             <button className="boton" style={{ minHeight: 46 }} disabled={genPart != null || genOficina} onClick={renderTodas}>
               {genPart != null ? 'Generando muebles…' : 'Una foto de cada mueble'}
             </button>
-            <button className="boton" style={{ minHeight: 46 }} disabled={genOficina || genPart != null} onClick={renderOficina}>
+            <button className="boton" style={{ minHeight: 46 }} disabled={genOficina || genPart != null || !acomodoClienteGate.mostrar} onClick={renderOficina}
+              title={!acomodoClienteGate.mostrar ? (acomodoClienteGate.existe ? 'Valida primero el acomodo' : 'Crea primero un acomodo') : undefined}>
               {genOficina ? 'Generando oficina…' : 'Una imagen de la oficina completa'}
             </button>
             {onIr && partidas.length > 0 && <button className="boton" style={{ minHeight: 46 }} onClick={() => onIr('acomodo')}>Ver el acomodo en 3D</button>}
@@ -672,7 +690,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           {(genOficina || genPart != null) && (
             <div className="render-gen" style={{ position: 'relative', height: 90 }}><span className="render-gen-spin" /><span>{genOficina ? 'Creando el render de la oficina… (10–20 s)' : 'Generando renders de los muebles…'}</span></div>
           )}
-          {cot.acomodo?.render3d && !genOficina && (
+          {acomodoClienteGate.mostrar && cotCliente.acomodo?.render3d && !genOficina && (
             <div>
               <img src={cot.acomodo.render3d} alt="Render de oficina" style={{ width: '100%', maxWidth: 360, borderRadius: 10, border: '1px solid var(--linea)', display: 'block' }} />
               <div className="ayuda verde" style={{ marginTop: 4 }}>Listo: ya aparece en la propuesta y en el PDF.</div>
@@ -680,10 +698,16 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
             </div>
           )}
           <label className="enlace-sutil" style={{ cursor: 'pointer' }}>
-            {cot.acomodo?.render3d ? 'o subir otra imagen mía' : 'o subir una imagen mía'}
+            {cotCliente.acomodo?.render3d ? 'o subir otra imagen mía' : 'o subir una imagen mía'}
             <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => subirRender(e.target.files?.[0])} />
           </label>
-          {errGen && <div className="alerta roja"><span className="texto">{errGen}</span></div>}
+          {acomodoClienteGate.existe && !acomodoClienteGate.mostrar && (
+            <div className="alerta" style={{ background:'#fff8e6', borderColor:'#d8a800', color:'#5e4700' }}>
+              <span className="texto"><strong>Acomodo no certificado para cliente.</strong>{' '}
+                {(acomodoClienteGate.razones || []).join(' · ') || acomodoClienteGate.estado}. La cotización puede emitirse, pero el plano/3D se omitirá hasta validarlo.</span>
+            </div>
+          )}
+                    {errGen && <div className="alerta roja"><span className="texto">{errGen}</span></div>}
         </div>
 
         {/* ---------- CLIENTE · Propuesta premium (SIEMPRE imprime) ---------- */}
@@ -766,18 +790,18 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           </section>
 
           {/* Distribución en el espacio */}
-          {(cot.acomodo?.plan || cot.acomodo?.render3d) && (
+          {(cotCliente.acomodo?.plan || cotCliente.acomodo?.render3d) && (
             <section className="propx-acomodo">
               <h2 className="propx-h2">Distribución en el espacio</h2>
-              {cot.acomodo?.render3d && (
+              {cotCliente.acomodo?.render3d && (
                 <figure className="propx-render3d">
                   <img src={cot.acomodo.render3d} alt="Vista 3D del acomodo" />
                   <figcaption>Vista 3D de referencia del acomodo con mobiliario Vonhaucke</figcaption>
                 </figure>
               )}
               {/* El plano SVG solo si NO hay render de IA (el render Gemini manda). */}
-              {cot.acomodo?.plan && !cot.acomodo?.render3d && (
-                <PlanoAcomodo areas={cot.acomodo.areas} plan={cot.acomodo.plan} byId={mapaPiezas(expandirPiezas(partidas))} modo="iso" />
+              {cotCliente.acomodo?.plan && !cotCliente.acomodo?.render3d && (
+                <PlanoAcomodo areas={cotCliente.acomodo.areas} plan={cotCliente.acomodo.plan} byId={mapaPiezas(expandirPiezas(partidas))} modo="iso" />
               )}
             </section>
           )}
