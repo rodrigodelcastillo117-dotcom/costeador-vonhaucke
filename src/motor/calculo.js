@@ -6,6 +6,7 @@
 //  por pruebas (calculo.test.js).
 // ============================================================================
 import { costoAlba, tipoAlba } from './formulaAlba.js';
+import { optimizarCorte2D } from './optimizacionCorte.js';
 
 // VERSIÓN DEL MOTOR — entra en la huella de cada cotización (cotizaciones.js:
 // huellaMP) para que, si la FÓRMULA cambia (no solo un precio), una cotización
@@ -540,6 +541,16 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     // llevan mano de obra real (pintar, tapizar).
     if (SIN_MO_SECCIONES.has(insumo.seccion)) materialSinMO += r.costo;
     desperdicioTotal += r.desperdicio;
+    const optimizacionCorte = insumo.formato?.largoMM && insumo.formato?.anchoMM
+      ? optimizarCorte2D({
+          componentes: comps,
+          formato: insumo.formato,
+          veta: !!insumo.veta,
+          kerfMM: par.kerfMM,
+          recorteOrillaMM: par.recorteOrillaMM,
+          lote: n,
+        })
+      : null;
     detalleInsumos.push({
       insumoId: id,
       nombre: insumo.nombre,
@@ -548,6 +559,7 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
       unidad: insumo.unidad,
       formato: insumo.formato,
       nombresComponentes: comps.map((c) => c.nombre).filter(Boolean),
+      optimizacionCorte,
       ...r,
     });
   }
