@@ -9,6 +9,8 @@
 // "4D" = 3D + secuencia. Hasta tener routing/operaciones reales de Intelisis/
 // Producción, la secuencia es DERIVED/PRELIMINARY y nunca se etiqueta certificada.
 // ============================================================================
+import { visualRevisionHash } from './visualRevision.js';
+
 export const MODEL3D_STATUS = Object.freeze({
   NONE:'NONE',
   PARTIAL:'PARTIAL',
@@ -43,6 +45,7 @@ export function modeloTecnico3DDesdeSpec(spec={}){
   if(!comps.length)return {
     status:MODEL3D_STATUS.NONE, solids:[], secuencia:[],
     issues:['SIN_BOM'], source:'BOM', certification:'PRELIMINARY',
+    visualRevisionHash: visualRevisionHash(spec),
   };
 
   const validas=[],issues=[];
@@ -70,6 +73,7 @@ export function modeloTecnico3DDesdeSpec(spec={}){
   if(!validas.length)return {
     status:MODEL3D_STATUS.NONE, solids:[], secuencia:[],
     issues, source:'BOM', certification:'PRELIMINARY',
+    visualRevisionHash: visualRevisionHash(spec),
   };
 
   // Exploded layout determinista: filas, sin fingir coordenadas de ensamble.
@@ -110,6 +114,7 @@ export function modeloTecnico3DDesdeSpec(spec={}){
     representation:'EXPLODED_NOT_ASSEMBLED',
     certification:'PRELIMINARY',
     sequence_source:'DERIVED',
+    visualRevisionHash: visualRevisionHash(spec),
   };
 }
 
