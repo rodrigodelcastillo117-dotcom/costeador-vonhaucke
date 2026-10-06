@@ -154,11 +154,11 @@ export function inferirIntencion(query, ctx = {}) {
       intent: 'INDUSTRIAL_IMPROVEMENT',
       modo: MODOS.PROPONER,
       lentes: ['industrial', 'costeador'],
-      tools: ['get_industrial_analysis', 'get_costing', 'get_bom', 'get_render_status'],
+      tools: ['get_industrial_analysis', 'get_costing_precedents', 'get_costing', 'get_bom', 'get_render_status'],
     };
   }
   if (/\b(analiza este mueble|producto|mueble|costear|costo|fabricar|bom)\b/.test(q)) {
-    return { intent: 'COSTING_ANALYSIS', modo: MODOS.ANALIZAR, lentes: ['costeador'], tools: ['get_costing', 'get_bom', 'get_render_status'] };
+    return { intent: 'COSTING_ANALYSIS', modo: MODOS.ANALIZAR, lentes: ['costeador'], tools: ['get_costing', 'get_bom', 'get_costing_precedents', 'get_render_status'] };
   }
   if (/\b(riesgo|margen|rentab|utilidad)\b/.test(q)) {
     return { intent: 'RISK', modo, lentes: ['cfo'], tools: ['get_costing', 'get_approvals', 'get_direction_facts'] };
@@ -201,7 +201,7 @@ function respuestaMaterialTecnico(k) {
   });
 }
 
-function respuestaIndustrial(a, resultadosLente = []) {
+function respuestaIndustrial(a, precedentesData = null, resultadosLente = []) {
   if (!a || a.disponible === false) {
     return respuestaSinEvidencia('INDUSTRIAL_IMPROVEMENT', ['get_industrial_analysis'], resultadosLente);
   }
@@ -229,6 +229,15 @@ function respuestaIndustrial(a, resultadosLente = []) {
     ));
   }
 
+  const precedentes = Array.isArray(precedentesData?.precedentes) ? precedentesData.precedentes : [];
+  for (const p of precedentes.slice(0,3)) {
+    evidencia.push(afirmacion(
+      `Precedente técnico: ${p.nombre} · similitud ${Math.round((p.similitud||0)*100)}% · costo histórico oficial $ ${Number(p.costo_oficial||0).toFixed(2)} · fórmula ${p.formula||'N/D'}.`,
+      TIPO_AFIRMACION.HECHO,
+      { source_type:'precedente_costeo_protegido', source_id:p.revision_id, confidence:Math.min(.95,Math.max(.4,p.similitud||0)) },
+    ));
+  }
+
   const principal = recomendaciones[0] || null;
   const hayBloqueos = bloqueos.length > 0;
   const nMejoras = recomendaciones.length;
@@ -240,8 +249,10 @@ function respuestaIndustrial(a, resultadosLente = []) {
         : 'No detecté una mejora industrial demostrable con la evidencia disponible.',
     por_que: principal?.accion || bloqueos[0]?.detalle || 'No hay señal determinista suficiente para recomendar un cambio.',
     impacto: nMejoras
-      ? 'Puede mejorar fabricabilidad, uso de material o eficiencia. El ahorro sigue siendo potencial hasta validarlo con Producción.'
-      : 'No se atribuye ahorro sin evidencia.',
+      ? `Puede mejorar fabricabilidad, uso de material o eficiencia. El ahorro sigue siendo potencial hasta validarlo con Producción.${precedentes.length ? ` Comparé además ${precedentes.length} precedente(s) histórico(s) defendible(s); sirven como control, nunca reemplazan el recálculo actual.` : ''}`
+      : precedentes.length
+        ? `No detecté ahorro determinista nuevo; sí encontré ${precedentes.length} precedente(s) comparable(s) para control humano. No sustituyen el costo vigente.`
+        : 'No se atribuye ahorro sin evidencia.',
     confianza: confianzaDe(evidencia),
     accion: hayBloqueos
       ? `Resolver primero: ${bloqueos[0].titulo}.`
@@ -396,7 +407,7 @@ export async function responder({ query, ctx = {}, prov = {}, intentForzado = nu
       : plan.intent === 'MATERIAL_TECHNICAL'
         ? respuestaMaterialTecnico(datos.get_material_technical)
         : plan.intent === 'INDUSTRIAL_IMPROVEMENT'
-          ? respuestaIndustrial(datos.get_industrial_analysis, resultadosLente)
+          ? respuestaIndustrial(datos.get_industrial_analysis, datos.get_costing_precedents, resultadosLente)
           : sintetizar(plan.intent, resultadosLente);
 
   // Nota de permiso si se pidió una lente económica sin permiso real.
