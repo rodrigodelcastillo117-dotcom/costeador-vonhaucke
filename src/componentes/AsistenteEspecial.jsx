@@ -274,21 +274,28 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       ? { tipo: 'retail', txt: 'modern supermarket / retail store aisle with product shelving, refrigerators and bright retail lighting, polished floor' }
       : { tipo: 'oficina', txt: 'modern corporate office with warm oak furniture and natural daylight' };
   }
-  // sube a Storage + guarda metadata; devuelve la URL para mostrar (o el dataUrl si Storage falla).
-  async function persistir(dataUrl, modo, tipo, entornoTipo) {
-    const path = `nuevo/${hashInput({ n: b.nombre, c: b.componentes })}/${modo}-${Date.now()}.png`;
-    const up = await subirRender(dataUrl, path);
-    if (up.ok) {
+  // Guarda metadata. El camino nuevo recibe URL/path ya persistidos por la Edge;
+  // el fallback legacy todavía puede recibir dataUrl y subirlo desde el browser.
+  async function persistir(renderResult, modo, tipo, entornoTipo) {
+    let storagePath = renderResult?.storagePath || null;
+    let storageUrl = renderResult?.url || null;
+    const dataUrl = renderResult?.dataUrl || null;
+    if (!storageUrl && dataUrl) {
+      const path = `nuevo/${hashInput({ n: b.nombre, c: b.componentes })}/${modo}-${Date.now()}.png`;
+      const up = await subirRender(dataUrl, path);
+      if (up.ok) { storagePath = up.path; storageUrl = up.url; }
+    }
+    if (storageUrl) {
       await guardarRender({
         producto_nombre: b.nombre, producto_version: null, prompt_version: PROMPT_VERSION,
         categoria: tipo, ancho_mm: dimsR.w, fondo_mm: dimsR.d, alto_mm: null, modo,
-        storage_path: up.path, storage_url: up.url,
+        storage_path: storagePath, storage_url: storageUrl,
         inputs: { materiales: materialesR, notas: b.descripcionCliente || null, piezas: (b.componentes || []).length, entorno: entornoTipo || null, render_hash: renderFirmaActual },
         costo_estado: costoEstado || 'preliminar', estado: 'preliminar',
       });
-      return up.url;
+      return storageUrl;
     }
-    return dataUrl; // fallback visual; NO se guarda base64 en metadata
+    return dataUrl; // sólo fallback visual; nunca se persiste base64 en metadata
   }
 
   async function generarRenders() {
@@ -330,9 +337,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         ? { modo: 'catalogo', medidas, tipo, materiales: materialesR, imagen: paginas[0], mediaType: 'image/jpeg', imagenes: paginas.slice(1, 6), preservar }
         : { modo: 'render', medidas, tipo, materiales: materialesR };
       const r = await generarRender(texto, opt);
-      if (r?.ok && r.dataUrl) {
-        aisladoDataUrl = r.dataUrl;
-        const url = await persistir(r.dataUrl, 'aislado', tipo, ent.tipo);
+      if (r?.ok && (r.url || r.dataUrl)) {
+        aisladoDataUrl = r.dataUrl || null;
+        const url = await persistir(r, 'aislado', tipo, ent.tipo);
         setRenders((s) => ({ ...s, aislado: url }));
         const avisos = [];
         if (geomFid === 'limitada') avisos.push('Sin plano cargado: el aislado se generó por descripción (geometría limitada). Sube el plano para fidelidad exacta.');
@@ -345,13 +352,15 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     // 2) EN AMBIENTE — coloca el MISMO producto (usa el aislado ya renderizado como referencia,
     //    o el plano) en su ENTORNO real inferido (supermercado para exhibidores, oficina si no).
     try {
-      const prod = aisladoDataUrl || b.imagen;
+      const prodUrl = renders.aislado || null;
+      let prod = aisladoDataUrl || b.imagen;
+      if (!prod && prodUrl) prod = await urlABase64(prodUrl);
       const prodRaw = prod ? String(prod).split(',')[1] : '';
       const prodMime = prod ? ((String(prod).match(/data:(.*?);/) || [])[1] || 'image/png') : 'image/png';
       if (prodRaw) {
         const r = await generarRender(texto, { modo: 'ambiente', medidas, tipo, materiales: materialesR, imagen: prodRaw, mediaType: prodMime, entorno: ent.txt });
-        if (r?.ok && r.dataUrl) {
-          const url = await persistir(r.dataUrl, 'ambiente', tipo, ent.tipo);
+        if (r?.ok && (r.url || r.dataUrl)) {
+          const url = await persistir(r, 'ambiente', tipo, ent.tipo);
           setRenders((s) => ({ ...s, ambiente: url }));
         } else { setRenderMsg(r?.error || 'No se pudo generar el ambiente.'); }
       }
