@@ -12,6 +12,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Una sola corrida viva por PR/rama. Si entra un commit nuevo, cancela la anterior
+# en vez de terminar dos builds obsoletos y disparar más notificaciones.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
