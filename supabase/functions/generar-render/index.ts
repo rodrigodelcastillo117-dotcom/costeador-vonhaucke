@@ -104,6 +104,13 @@ Deno.serve(async (req) => {
   // colección se vea como UNA sola sesión de fotos y no 67 imágenes sueltas.
   // La escenografia (fondo, sombra, encuadre) NO la decide el modelo: se pide
   // fondo PLANO y el encuadre/sombra se arman despues, iguales para los 67.
+  const ADN_VON_HAUCKE =
+    "VON HAUCKE DESIGN DNA — premium Mexican contract furniture: engineered rather than decorative; precise modular logic, " +
+    "clean junctions, disciplined proportions, purposeful details, robust metalwork, honest materials, cable-management and " +
+    "serviceability when present, restrained contemporary character, and commercial durability. Preserve the ACTUAL product " +
+    "and line identity from references; this DNA guides only unspecified photographic/styling decisions. Never turn the piece " +
+    "into generic Scandinavian, residential, mid-century or another brand's furniture. ";
+
   const RECETA_CATALOGO =
     "Background: seamless warm off-white studio sweep (#F4F1EC), smooth subtle falloff, no visible horizon line, " +
     "no wall/floor separation, no props, nothing else in frame. " +
@@ -113,7 +120,7 @@ Deno.serve(async (req) => {
     "The furniture must SIT on the surface, never float. " +
     "CAMERA: same 3/4 viewpoint as the reference, 50mm lens at eye level slightly above the top, no wide-angle distortion. " +
     "Framing: the COMPLETE piece fully visible and centered with comfortable margins, nothing cropped, tack-sharp. " +
-    "Editorial furniture photography of Herman Miller / Vitra catalogue quality. " +
+    "Editorial furniture photography at world-class contract-furniture catalogue quality, unmistakably Von Haucke in restraint and engineering. " +
     "No people, no text, no watermark, no logos, no dimension lines, no chairs or monitors unless part of the product.";
 
   const prompt = modo === "catalogo"
@@ -162,14 +169,17 @@ Deno.serve(async (req) => {
         : "FINISH NOT SPECIFIED in the plano: render in a NEUTRAL light-grey matte finish with a neutral dark-grey frame and clear " +
           "glass where the drawing shows it. DO NOT invent a specific wood species, brand color or decorative finish — keep it " +
           "deliberately neutral so it is obvious the final finish is still pending. ") +
+      ADN_VON_HAUCKE +
       RECETA_CATALOGO
     : modo === "staging"
     ? // STAGING VIRTUAL: amueblar una foto real del espacio del cliente
       "You are given a photograph of a real, empty (or semi-empty) office space. " +
       "Furnish it realistically with the following Von Haucke office furniture, KEEPING the room's architecture, walls, windows, doors, floor, ceiling, perspective, camera angle and lighting EXACTLY as in the photo. Only ADD furniture; do not change the room. " +
       `Furniture to place: ${descripcion}. ` +
-      "Place it sensibly with realistic circulation and spacing. Von Haucke aesthetic: warm oak melamine tops, charcoal powder-coated steel, acoustic felt privacy screens, ergonomic chairs, tasteful plants. " +
-      "Photorealistic, natural integration, correct perspective and shadows consistent with the room's light. No text, no watermark, no logos, no people."
+      "Place it sensibly with realistic circulation and spacing. If product reference images are present, reproduce THOSE exact Von Haucke products and finishes; never substitute a generic desk, bench, storage piece or screen. " +
+      ADN_VON_HAUCKE +
+      "The result must read as a believable real project, not AI staging: preserve camera calibration, vanishing points, scale, contact shadows, reflections, occlusion and existing architectural materials. " +
+      "Use accessories only when they clarify real use; do not hide product geometry. No invented floor-standing furniture, no fake logos, no text, no watermark, no visible people."
     : modo === "acomodo"
     ? // ACOMODO REAL → FOTO. La imagen de referencia es el isométrico que dibuja
       // la app con el acomodo EXACTO que calculó el motor: cuántos muebles, en
@@ -258,7 +268,8 @@ Deno.serve(async (req) => {
       "Create a natural architectural photograph of the EXACT product shown in the reference image, installed in a realistic " + (entorno || "commercial") + " environment. " +
       "The ENVIRONMENT must be immediately recognizable from architecture, circulation, fixtures, ceiling, floor, lighting and adjacent context — not a generic office background. " +
       "The product is the hero of the scene and must keep its EXACT design, proportions, configuration, materials, finish and every element (shelves, doors, niches, light box, trays) as in the reference image. " +
-      "Do not redesign it, do not add or remove parts, do not change how many shelves/doors/niches it has. " +
+      "Do not redesign it, do not add or remove parts, do not change how many shelves/doors/niches it has. " +      ADN_VON_HAUCKE +
+
       `Product: ${descripcion}. ` +
       (medidas ? `True proportions: ${medidas}. ` : "") +
       "CAMERA: natural human eye level around 1.55–1.65 m, 28–35 mm architectural lens unless the reference clearly demands another view; verticals straight, believable depth, no fisheye. " +
@@ -270,9 +281,10 @@ Deno.serve(async (req) => {
       "Photorealistic wide-angle interior architectural render of a modern corporate office, professionally furnished with the following Von Haucke office furniture, laid out with realistic circulation, aisles and zoning: " +
       `${descripcion}. ` +
       (medidas ? `Space context: ${medidas}. ` : "") +
-      "Von Haucke Mexican modern aesthetic: warm oak melamine desktops, charcoal powder-coated steel frames, acoustic felt privacy screens, black ergonomic mesh chairs, glass-walled meeting room, polished concrete or light wood floor, floor-to-ceiling windows with soft natural daylight, tasteful plants. " +
-      (Array.isArray(imagenes) && imagenes.length ? "IMPORTANT: use the EXACT furniture pieces shown in the reference images — these are the real Von Haucke products; match their design, wood tone, frames and proportions. " : "") +
-      "Editorial architectural photography, eye-level 3/4 wide angle, elegant, bright, aspirational, high-end. No text, no watermark, no logos, no visible people."
+      (Array.isArray(imagenes) && imagenes.length ? "IMPORTANT: use the EXACT furniture pieces shown in the reference images — these are the real Von Haucke products; match their design, finish, frames and proportions. " : "Do not invent a fake product line: use only the furniture identity described in the request. ") +
+      ADN_VON_HAUCKE +
+      "The architecture must make the actual room/program immediately understandable. Do not default every project to oak, black steel, glass meeting rooms or plants; use finishes and architecture consistent with the declared client environment. " +
+      "Editorial architectural photography, natural eye-level 3/4 view, physically plausible daylight/practicals, straight verticals and real material response. No text, no watermark, no fake logos, no visible people."
     : imagen
     ? // RENDER a partir de una FOTO de referencia (fidelidad al producto real)
       "Using the reference image as the exact model, produce a clean, professional PHOTOREALISTIC studio product render of the SAME piece of office furniture. " +
