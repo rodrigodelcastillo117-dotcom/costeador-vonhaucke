@@ -1204,10 +1204,13 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
         <p className="ayuda columna-texto">
           {/* No decir "ya acomodamos" antes de tener dónde: era el mismo vicio
               de inventarse el espacio, ahora en el texto. */}
-          {areas.length
-            ? <>Ya acomodamos los <strong>{piezas.length}</strong> muebles de tu cotización en un espacio a escala (abajo, en 3D).
-              Ajusta las medidas o <strong>sube tu plano real</strong> y vuelve a acomodar; luego guárdalo en la propuesta.</>
-            : <>Tu cotización trae <strong>{piezas.length}</strong> muebles. Dinos dónde van y los acomodamos a escala.</>}
+          {!areas.length
+            ? <>Tu cotización trae <strong>{piezas.length}</strong> muebles. Dinos dónde van y los acomodamos a escala.</>
+            : layoutPublicable
+              ? <>Acomodo <strong>validado</strong> para los <strong>{piezas.length}</strong> muebles de tu cotización. Puedes guardarlo en la propuesta.</>
+              : plan
+                ? <>Acomodo <strong>en revisión</strong> para los <strong>{piezas.length}</strong> muebles. Corrige lo marcado antes de presentarlo al cliente.</>
+                : <>Espacio cargado para <strong>{piezas.length}</strong> muebles. Falta ejecutar y validar el acomodo; todavía no lo considero terminado.</>}
           {bajoEscritorio > 0 && <> Aparte van <strong>{bajoEscritorio}</strong> {bajoEscritorio === 1 ? 'gaveta' : 'gavetas'} debajo de la cubierta: se cobran, pero <strong>no ocupan piso</strong>, por eso no se dibujan sueltas.</>}
         </p>
         {/* ⚠️ ANTES EL CARTEL DE ARRIBA MENTÍA (auditoría 2026-08-19): decía
