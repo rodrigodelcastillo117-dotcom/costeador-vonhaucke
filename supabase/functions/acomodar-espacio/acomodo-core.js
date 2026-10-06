@@ -30,6 +30,7 @@ export const CODIGO = Object.freeze({
   MISSING_GROUP_ANCHOR: 'MISSING_GROUP_ANCHOR',
   WRONG_GROUP_ANCHOR: 'WRONG_GROUP_ANCHOR',
   GROUP_CAPACITY_INCOMPLETE: 'GROUP_CAPACITY_INCOMPLETE',
+  GROUP_ANCHOR_TOO_FAR: 'GROUP_ANCHOR_TOO_FAR',
 });
 
 export function huellaConRot(pieza, rot) {
@@ -170,6 +171,19 @@ export function prepararGruposFuncionales(areas = [], piezas = []) {
   return { piezas: piezas.map((p) => byId.get(String(p.id)) || p), issues };
 }
 
+export function rectDeColocacion(p, c) {
+  if (!p || !c) return null;
+  const rot = Number(c.rot) === 90 ? 90 : 0;
+  const { w, d } = huellaConRot(p, rot);
+  return { x:Number(c.x), y:Number(c.y), w, d };
+}
+function distanciaEntreRects(a,b){
+  if(!a||!b)return Infinity;
+  const dx=Math.max(0, Math.max(a.x,b.x)-Math.min(a.x+a.w,b.x+b.w));
+  const dy=Math.max(0, Math.max(a.y,b.y)-Math.min(a.y+a.d,b.y+b.d));
+  return Math.hypot(dx,dy);
+}
+
 export function auditarGruposFuncionales(piezas = [], colocacion = []) {
   const byCol = new Map((colocacion || []).map((x) => [String(x.id), x]));
   const issues = [];
@@ -192,6 +206,15 @@ export function auditarGruposFuncionales(piezas = [], colocacion = []) {
       const ac = byCol.get(String(anchor.id));
       if (!ac || Number(ac.area) !== Number(c.area)) {
         issues.push({ code: CODIGO.WRONG_GROUP_ANCHOR, id: String(p.id), group: gid, anchor_id: String(anchor.id) });
+      } else {
+        const maxDist = Number(p.max_anchor_distance_mm);
+        if (Number.isFinite(maxDist) && maxDist >= 0) {
+          const dist = distanciaEntreRects(rectDeColocacion(p,c), rectDeColocacion(anchor,ac));
+          if (dist > maxDist) issues.push({
+            code: CODIGO.GROUP_ANCHOR_TOO_FAR, id:String(p.id), group:gid,
+            anchor_id:String(anchor.id), distance_mm:Math.round(dist), max_mm:maxDist,
+          });
+        }
       }
     }
 
@@ -345,6 +368,7 @@ export function recomendacionesParcial(val) {
   if (cods.has(CODIGO.DOOR_SWING_UNKNOWN)) recs.push('El plano detectó una puerta sin barrido verificable: confirma bisagra, sentido y ángulo antes de aprobar el layout.');
   if (cods.has(CODIGO.FUNCTIONAL_GROUP_SPLIT) || cods.has(CODIGO.WRONG_GROUP_ANCHOR) || cods.has(CODIGO.MISSING_GROUP_ANCHOR)) recs.push('Mantén cada grupo funcional completo en una sola área y junto a su anchor correcto.');
   if (cods.has(CODIGO.GROUP_CAPACITY_INCOMPLETE)) recs.push('La sala/grupo no cumple la capacidad declarada: completa sus asientos antes de aprobar.');
+  if (cods.has(CODIGO.GROUP_ANCHOR_TOO_FAR)) recs.push('Hay dependientes demasiado lejos de su anchor: acerca sillas, gavetas o soportes a su grupo funcional.');
   if (cods.has(CODIGO.NO_SPACE) || cods.has(CODIGO.UNKNOWN_PIECE)) recs.push('No hubo superficie libre suficiente para todas las piezas.');
   recs.push('Opciones: mover a otra área · cambiar el producto por uno más chico · acomodar a mano. No se reducen cantidades ni se inventan muebles.');
   return recs;
@@ -447,6 +471,11 @@ export function planearDeterminista(areas = [], piezas = [], opts = {}) {
         for (const y of ys) {
           for (const x of xs) {
             const r = { id: String(p.id), x, y, w, d };
+            if (anchorPlaced && Number.isFinite(Number(p.max_anchor_distance_mm))) {
+              const ap = piezas.find((pp) => String(pp.id) === String(p.group_anchor_id));
+              const ar = rectDeColocacion(ap, anchorPlaced);
+              if (distanciaEntreRects(r, ar) > Number(p.max_anchor_distance_mm)) continue;
+            }
             if (!candidatoCompatible(area, p, rot, r, ocup, gap)) continue;
             puesto = { area: ai, x, y, rot, w, d };
             break;
