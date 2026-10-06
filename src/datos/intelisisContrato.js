@@ -128,6 +128,12 @@ export function normalizarMaterialIntelisis(raw, {
   ]));
   const monedaRaw = primero(raw, ['moneda', 'currency']);
   const moneda = normalizarMonedaIntelisis(monedaRaw);
+  const costoMxnRaw = numeroEstricto(primero(raw, [
+    'costo_mxn', 'precio_mxn', 'costo_moneda_local', 'importe_mxn',
+  ]));
+  const tipoCambioMxnRaw = numeroEstricto(primero(raw, [
+    'tipo_cambio_mxn', 'tipo_cambio', 'exchange_rate_mxn',
+  ]));
   const factorRaw = numeroEstricto(primero(raw, ['factor_conversion', 'conversion_factor']));
   const factorConversion = factorRaw == null && unidadCompra && unidadConsumo === unidadCompra ? 1 : factorRaw;
   const vigenteDesde = fechaISO(primero(raw, [
@@ -145,6 +151,23 @@ export function normalizarMaterialIntelisis(raw, {
   if (!(precioCompra > 0)) issues.push('INVALID_PRICE');
   if (!monedaRaw) issues.push('MISSING_CURRENCY');
   else if (!moneda) issues.push('UNSUPPORTED_CURRENCY');
+
+  // Para USD exigimos el costo local que realmente registró el ERP o el TC
+  // explícito del movimiento. Usar el TC "de hoy" rompería la reproducción al centavo.
+  let tipoCambioMxn = moneda === 'MXN' ? 1 : tipoCambioMxnRaw;
+  let precioMxn = moneda === 'MXN' ? precioCompra : costoMxnRaw;
+  if (moneda === 'USD') {
+    if (!(precioMxn > 0) && precioCompra > 0 && tipoCambioMxn > 0) {
+      precioMxn = precioCompra * tipoCambioMxn;
+    }
+    if (!(precioMxn > 0)) issues.push('MISSING_MXN_COST_OR_FX');
+    if (costoMxnRaw > 0 && tipoCambioMxnRaw > 0 && precioCompra > 0) {
+      const calculado = precioCompra * tipoCambioMxnRaw;
+      const delta = Math.abs(calculado - costoMxnRaw) / costoMxnRaw;
+      if (delta > 0.005) issues.push('FX_COST_MISMATCH');
+    }
+  }
+
   if (!vigenteDesde) issues.push('INVALID_OR_AMBIGUOUS_DATE');
   if (!txt(snapshotId)) issues.push('MISSING_SNAPSHOT');
 
@@ -162,8 +185,9 @@ export function normalizarMaterialIntelisis(raw, {
   const blocking = new Set([
     'SOURCE_INVALID', 'MISSING_ERP_KEY', 'MISSING_DESCRIPTION',
     'UNKNOWN_PURCHASE_UNIT', 'UNKNOWN_COST_UNIT', 'INVALID_PRICE',
-    'MISSING_CURRENCY', 'UNSUPPORTED_CURRENCY', 'INVALID_OR_AMBIGUOUS_DATE',
-    'MISSING_SNAPSHOT', 'MISSING_CONVERSION', 'INVALID_CONVERSION', 'MISSING_EVIDENCE',
+    'MISSING_CURRENCY', 'UNSUPPORTED_CURRENCY', 'MISSING_MXN_COST_OR_FX', 'FX_COST_MISMATCH',
+    'INVALID_OR_AMBIGUOUS_DATE', 'MISSING_SNAPSHOT',
+    'MISSING_CONVERSION', 'INVALID_CONVERSION', 'MISSING_EVIDENCE',
   ]);
   const bloqueos = issues.filter((x) => blocking.has(x));
 
@@ -179,6 +203,8 @@ export function normalizarMaterialIntelisis(raw, {
     factor_conversion: factorConversion,
     precio_compra: precioCompra,
     moneda,
+    precio_mxn: precioMxn,
+    tipo_cambio_mxn: tipoCambioMxn,
     vigente_desde: vigenteDesde,
     evidencia: evidencia || null,
     issues,
@@ -203,9 +229,11 @@ export function precioSupabaseDesdeIntelisis(registro, { insumoId, unidadCosteoI
 
   return {
     insumo_id: id,
-    precio: registro.precio_compra,
+    // La tabla operativa recibe costo CANÓNICO EN MXN. El precio/moneda
+    // originales se preservan en propiedades para auditoría.
+    precio: registro.precio_mxn,
     unidad_compra: registro.unidad_compra,
-    precio_compra: registro.precio_compra,
+    precio_compra: registro.precio_mxn,
     factor_conversion: registro.factor_conversion,
     proveedor: registro.proveedor,
     fuente: `Intelisis · ${registro.source} · ${registro.contract_version}`,
@@ -217,7 +245,10 @@ export function precioSupabaseDesdeIntelisis(registro, { insumoId, unidadCosteoI
     requiere_validacion_compras: true,
     propiedades: {
       clave_erp: registro.clave_erp,
-      moneda: registro.moneda,
+      moneda: 'MXN',
+      moneda_origen: registro.moneda,
+      precio_origen: registro.precio_compra,
+      tipo_cambio_mxn: registro.tipo_cambio_mxn,
       unidad_consumo: registro.unidad_consumo,
       unidad_costeo_interna: unidadInterna || registro.unidad_consumo,
       snapshot_id: registro.snapshot_id,
