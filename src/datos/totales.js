@@ -1,3 +1,5 @@
+import { aCentavosEnteros, deCentavosEnteros } from '../motor/dinero.js';
+
 // ============================================================================
 //  TOTALES · la ÚNICA autoridad de dinero de una cotización.
 //
@@ -12,11 +14,11 @@
 //  15% de descuento + IVA podía mostrar tres cifras distintas según dónde lo
 //  miraras. Esto lo arregla: una función pura, un solo cálculo, tres superficies.
 //
-//  Regla de redondeo (FIX-05 / CST-02): el cliente suma la hoja con calculadora.
-//  Por eso el TOTAL que cuenta es la suma de los MISMOS renglones ya redondeados
-//  al peso que se imprimen (`totalRedondeado`), no el flotante crudo. Cada peso
-//  cae donde el cliente lo ve; la diferencia contra el flotante nunca pasa de un
-//  peso por renglón. `total` (flotante) se conserva para cálculos internos.
+//  Regla monetaria vigente (PENNIES & CENTS): todas las fronteras económicas
+//  se cuantizan a centavos. El total autoritativo es la suma de renglones/cargos
+//  ya expresados en centavos enteros. `total` conserva el cálculo crudo sólo
+//  para diagnóstico; `totalRedondeado` mantiene el nombre histórico pero ahora
+//  significa monto final a DOS decimales, no redondeo al peso.
 // ============================================================================
 
 // `partidas` = renglones de la cotización; `cot` = la cotización (para sus
@@ -43,38 +45,56 @@ export function totalesCotizacion(partidas = [], cot = {}, par = {}) {
     if (!Number.isFinite(v)) { hayLineaInvalida = true; return 0; }
     return v;
   };
-  const precioLista = partidas.reduce((a, p) => a + linea(p), 0);
+  // Cada partida cruza a dinero autoritativo en centavos antes de sumar.
+  const lineaCentavos = partidas.map((p) => {
+    const v = linea(p);
+    const cents = aCentavosEnteros(v);
+    if (cents == null) { hayLineaInvalida = true; return 0; }
+    return cents;
+  });
+  const precioListaCentavos = lineaCentavos.reduce((a, b) => a + b, 0);
+  const precioLista = deCentavosEnteros(precioListaCentavos);
+
+  const pctCentavos = (baseCentavos, pct) => {
+    const p = Number(pct);
+    if (!Number.isFinite(p)) { hayLineaInvalida = true; return 0; }
+    return Math.round((baseCentavos * p) / 100);
+  };
 
   const descuentoPct = cot.descuentoPct ?? par.descuentoPorcentaje ?? 0;
-  const descuento = precioLista * (descuentoPct / 100);
-  const subtotal = precioLista - descuento;
+  const descuentoCentavos = pctCentavos(precioListaCentavos, descuentoPct);
+  const subtotalCentavos = precioListaCentavos - descuentoCentavos;
 
   const contingenciaPct = cot.contingenciaPct ?? par.contingenciaPorcentaje ?? 0;
-  const contingencia = subtotal * (contingenciaPct / 100);
+  const contingenciaCentavos = pctCentavos(subtotalCentavos, contingenciaPct);
   const maniobrasPct = cot.maniobrasPct ?? par.maniobrasPorcentaje ?? 0;
-  const maniobras = subtotal * (maniobrasPct / 100);
+  const maniobrasCentavos = pctCentavos(subtotalCentavos, maniobrasPct);
   const fletePct = cot.fletePct ?? par.fletePorcentaje ?? 0;
-  const flete = subtotal * (fletePct / 100);
+  const fleteCentavos = pctCentavos(subtotalCentavos, fletePct);
 
-  const baseGravable = subtotal + contingencia + maniobras + flete;
+  const baseGravableCentavos = subtotalCentavos + contingenciaCentavos + maniobrasCentavos + fleteCentavos;
   const ivaPct = par.ivaPorcentaje ?? 16;
-  const iva = baseGravable * (ivaPct / 100);
-  const total = baseGravable + iva;                 // flotante, uso interno
+  const ivaCentavos = pctCentavos(baseGravableCentavos, ivaPct);
+  const totalCentavos = baseGravableCentavos + ivaCentavos;
 
-  // El total que se IMPRIME y se GUARDA: suma de los renglones ya redondeados.
-  // Ojo: Math.round(-x) ≠ -Math.round(x) en los .5 (JS redondea hacia +∞), por
-  // eso el descuento se redondea en positivo y luego se resta —igual que el PDF.
-  const totalRedondeado =
-    Math.round(precioLista) - Math.round(descuento) + Math.round(contingencia)
-    + Math.round(maniobras) + Math.round(flete) + Math.round(iva);
+  const descuento = deCentavosEnteros(descuentoCentavos);
+  const subtotal = deCentavosEnteros(subtotalCentavos);
+  const contingencia = deCentavosEnteros(contingenciaCentavos);
+  const maniobras = deCentavosEnteros(maniobrasCentavos);
+  const flete = deCentavosEnteros(fleteCentavos);
+  const baseGravable = deCentavosEnteros(baseGravableCentavos);
+  const iva = deCentavosEnteros(ivaCentavos);
+  const total = baseGravable + iva; // diagnóstico matemático
+  const totalRedondeado = deCentavosEnteros(totalCentavos);
 
   const anticipoPct = cot.anticipoPct ?? par.anticipoPorcentaje ?? 50;
-  const anticipo = Math.round(totalRedondeado * (anticipoPct / 100));
+  const anticipoCentavos = pctCentavos(totalCentavos, anticipoPct);
+  const anticipo = deCentavosEnteros(anticipoCentavos);
 
   return {
     precioLista, descuentoPct, descuento, subtotal,
     contingenciaPct, contingencia, maniobrasPct, maniobras, fletePct, flete,
-    ivaPct, iva, baseGravable, total, totalRedondeado,
-    anticipoPct, anticipo, hayLineaInvalida,
+    ivaPct, iva, baseGravable, total, totalRedondeado, totalCentavos,
+    anticipoPct, anticipo, anticipoCentavos, hayLineaInvalida,
   };
 }
