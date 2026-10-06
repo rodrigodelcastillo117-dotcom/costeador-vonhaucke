@@ -455,6 +455,22 @@ function gifPorHoras(horas, piezas, par) {
   return total * piezas;
 }
 
+// Gate de DATOS, no cambio de fórmula: Intelisis sólo es autorizable cuando
+// cada centro realmente usado trae sus dos tarifas explícitas (MO + GIF).
+// Evita que un 0/faltante caiga al costoHora global o a GIF=0 y subcostee.
+function tarifasFaltantesIntelisis(horas, par) {
+  const faltan = [];
+  for (const area of AREAS) {
+    const h = Number(horas?.[area] || 0);
+    if (!(h > 0)) continue;
+    const mo = Number(par?.costoHoraArea?.[area]);
+    const gif = Number(par?.costoHoraGIF?.[area]);
+    if (!(Number.isFinite(mo) && mo > 0)) faltan.push(`MO:${area}`);
+    if (!(Number.isFinite(gif) && gif > 0)) faltan.push(`GIF:${area}`);
+  }
+  return faltan;
+}
+
 // -----------------------------------------------------------------------------
 //  FORMULA DE ALBA (estimaciones, 2026-08-18) — MO% y GI por tipo de material
 //  (ver motor/formulaAlba.js). Se aplica por GRUPO DE INSUMO, el mismo
@@ -660,6 +676,9 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
 
   const costoLoteConMerma = costoLote / (1 - merma);
   const costoUnitario = costoLoteConMerma / n;
+  const tarifasFaltantes = modeloCosteo === 'intelisis'
+    ? tarifasFaltantesIntelisis(pieza.horas, par)
+    : [];
 
   return {
     piezas: n,
@@ -683,6 +702,7 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     detalleInsumos,
     componentesIgnorados,
     componentesExcluidos,
+    tarifasFaltantes,
   };
 }
 
@@ -699,11 +719,12 @@ export function costeoEmitible(resultado) {
   const formatosInvalidos = (resultado?.detalleInsumos || [])
     .filter((d) => d?.noCabe)
     .map((d) => `${d.nombre || d.insumoId || 'Material'}: una o más piezas no caben en el formato de compra`);
+  const tarifasFaltantes = [...((resultado && resultado.tarifasFaltantes) || [])];
   const costoRaw = resultado?.costoUnitario;
   const costo = costoRaw == null || costoRaw === '' ? NaN : Number(costoRaw);
   const costoCorrupto = !Number.isFinite(costo) || costo < 0;
 
-  const pendientes = [...faltantes, ...formatosInvalidos];
+  const pendientes = [...faltantes, ...formatosInvalidos, ...tarifasFaltantes.map((x) => `Tarifa Intelisis faltante: ${x}`)];
   if (costoCorrupto) pendientes.push('Costo unitario inválido/no finito');
 
   const emitible = pendientes.length === 0;
@@ -713,6 +734,7 @@ export function costeoEmitible(resultado) {
     bloqueos: {
       datos_faltantes: faltantes,
       formato_incompatible: formatosInvalidos,
+      tarifas_faltantes: tarifasFaltantes,
       costo_invalido: costoCorrupto,
     },
     subtotalConocido: Number.isFinite(costo) && costo >= 0 ? costo : 0,
