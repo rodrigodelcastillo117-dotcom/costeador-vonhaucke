@@ -31,9 +31,12 @@ export function esSillaJuntasLayout(p = {}) {
 }
 
 export function esMesaJuntasLayout(p = {}) {
-  if (p?.tipo === 'juntas') return true;
   const t = norm(`${p.nombre || ''} ${p.ruta || ''}`);
-  return /mesa.*junta|junta.*mesa|mesa.*consejo|boardroom|meeting table/.test(t);
+  // destinoAcomodo puede convertir tanto mesa como sillas a tipo='juntas'.
+  // Nunca uses ese tipo por sí solo para decidir que algo ES una mesa.
+  if (/silla|chair|asiento/.test(t)) return false;
+  if (/mesa.*junta|junta.*mesa|mesa.*consejo|boardroom|meeting table/.test(t)) return true;
+  return p?.tipo === 'juntas' && /mesa|table|consejo|board|meeting/.test(t);
 }
 
 export function capacidadMesaJuntas(p = {}) {
