@@ -1177,7 +1177,8 @@ export default function App() {
           ? (
             <div className="contenido">
               <Costeador estado={estado} costeo={costeo} setCosteo={setCosteo}
-                onAgregarCotizacion={onAgregarCotizacion} onGuardarPieza={onGuardarPieza} />
+                onAgregarCotizacion={onAgregarCotizacion} onGuardarPieza={onGuardarPieza}
+                puedeVerComercial={esDireccion} />
             </div>
           )
           : <div className="contenido"><div className="tarjeta"><p className="ayuda">El modo avanzado y el costo de fabricación son para Diseño y Dirección. Usa <strong>Cotizar un mueble</strong> para el precio recomendado.</p></div></div>
