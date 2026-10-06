@@ -28,13 +28,14 @@ test.describe('E2E autenticado', () => {
     }
   });
 
-  test('login → shell de la app (hero / navegación)', async ({ page }) => {
-    await expect(page.getByText(/Cocreando/i).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: /Cocrear un producto/i })).toBeVisible();
+  test('login → shell de la app (home de tres trabajos)', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: /Qué necesitas hacer/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Diseñar algo nuevo|COCREAR/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Armar una propuesta|COTIZAR/i })).toBeVisible();
   });
 
   test('entra al estudio de Cocrear (co-diseño en vivo)', async ({ page }) => {
-    await page.getByRole('button', { name: /Cocrear un producto/i }).click();
+    await page.getByRole('button', { name: /Diseñar algo nuevo|COCREAR/i }).click();
     // El estudio arranca en "¿Qué tienes en mente?" o reabre una co-creación.
     await expect(page.getByText(/Qué tienes en mente|Cocrear . de la idea|Diséñalo|Disénalo/i).first()).toBeVisible({ timeout: 15000 });
   });

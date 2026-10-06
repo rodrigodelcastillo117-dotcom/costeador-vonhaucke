@@ -29,3 +29,19 @@ export function paginasAlrededor(seleccion,total,radio=1){
   const r=[]; for(let i=Math.max(1,n-radio);i<=Math.min(total,n+radio);i++) r.push(i);
   return r;
 }
+
+
+/**
+ * Ventana acotada para análisis multi-vista. Evita mandar PDFs enormes completos
+ * a visión: conserva la hoja elegida y sus vecinas, que suelen ser alzados/detalles
+ * del mismo mueble. Para PDFs chicos mantiene todas las hojas.
+ */
+export function paginasParaAnalisis(seleccion,total,maxPaginas=8){
+  const t=Math.max(0,Number(total)||0), m=Math.max(1,Math.floor(Number(maxPaginas)||8));
+  if(!t)return [];
+  if(t<=m)return Array.from({length:t},(_,i)=>i+1);
+  const s=Math.max(1,Math.min(t,Number(seleccion)||1));
+  let inicio=s-Math.floor((m-1)/2);
+  inicio=Math.max(1,Math.min(inicio,t-m+1));
+  return Array.from({length:m},(_,i)=>inicio+i);
+}

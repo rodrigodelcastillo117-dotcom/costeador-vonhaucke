@@ -2926,3 +2926,77 @@ body::before {
     box-shadow: 0 26px 60px -20px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.1);
   }
 }
+
+
+/* UX 9.5 · tres trabajos primarios */
+.inicio95{max-width:1180px;margin:0 auto;padding-bottom:42px}
+.inicio95-cab{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;padding:34px 0 18px;border-bottom:1px solid var(--linea)}
+.inicio95-cab h1{margin:7px 0 6px;font-size:clamp(30px,4.5vw,54px);line-height:.98;letter-spacing:-.045em}
+.inicio95-cab p{margin:0;max-width:680px;color:var(--texto-secundario,#666);font-size:15px;line-height:1.5}
+.inicio95-estado{display:flex;align-items:center;gap:8px;white-space:nowrap;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#315e52;border:1px solid #b7d1c9;background:#eef6f3;border-radius:999px;padding:8px 11px}
+.inicio95-retomar{margin-top:18px}
+.trabajos95{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:20px}
+.trabajos95.trabajos95-dos{grid-template-columns:repeat(2,minmax(0,1fr))}
+.trabajo95{position:relative;display:flex;min-height:260px;flex-direction:column;align-items:flex-start;text-align:left;padding:22px;border-radius:18px;border:1px solid var(--linea-fuerte,var(--linea));background:var(--panel,#fff);color:var(--carbon,#161616);cursor:pointer;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
+.trabajo95:hover{transform:translateY(-2px);border-color:#8e8882;box-shadow:0 12px 30px rgba(0,0,0,.08)}
+.trabajo95:focus-visible{outline:3px solid rgba(184,48,40,.3);outline-offset:3px}
+.trabajo95-principal{border-color:#8faaa2;background:linear-gradient(145deg,rgba(49,94,82,.12),var(--panel,#fff) 62%)}
+.trabajo95-icono{display:grid;place-items:center;width:58px;height:58px;margin-bottom:20px;border-radius:14px;background:rgba(0,0,0,.045)}
+.trabajo95-kicker{font-size:11px;font-weight:900;letter-spacing:.13em;color:#a52b24;margin-bottom:7px}
+.trabajo95 strong{font-size:22px;line-height:1.12;letter-spacing:-.02em;margin-bottom:8px}
+.trabajo95>span:not(.trabajo95-icono):not(.trabajo95-kicker):not(.trabajo95-cta){font-size:13px;line-height:1.48;color:var(--texto-secundario,#666)}
+.trabajo95-cta{margin-top:auto;padding-top:20px;font-size:13px;font-weight:850;color:var(--carbon,#161616)}
+.inicio95-regla{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:15px 0 0;padding:10px 13px;color:var(--texto-secundario,#666);font-size:12px}
+.inicio95-regla strong{color:var(--carbon,#161616)}
+.inicio-mas95{margin-top:14px;border:1px solid var(--linea);border-radius:14px;background:var(--panel,#fff);overflow:hidden}
+.inicio-mas95>summary{cursor:pointer;list-style:none;padding:15px 17px;font-weight:800;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+.inicio-mas95>summary::-webkit-details-marker{display:none}
+.inicio-mas95>summary::after{content:'＋';font-size:18px;font-weight:400}
+.inicio-mas95[open]>summary::after{content:'−'}
+.inicio-mas95[open]>summary{border-bottom:1px solid var(--linea)}
+.inicio-mas95-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding:12px}
+.inicio-mas95-grid .atajo{min-height:54px}
+.inicio95-favoritas{padding:2px 14px 10px}
+.inicio-mas95 .inicio-pie{padding:10px 14px 14px;margin-top:0}
+@media(max-width:850px){
+  .inicio95-cab{align-items:flex-start;flex-direction:column}
+  .trabajos95,.trabajos95.trabajos95-dos{grid-template-columns:1fr}
+  .trabajo95{min-height:210px}
+}
+@media(max-width:600px){
+  .inicio95-cab{padding-top:20px}
+  .inicio95-estado{white-space:normal}
+  .inicio-mas95-grid{grid-template-columns:1fr}
+  .trabajo95{padding:18px}
+}
+
+
+/* Costeo 9.5 · verdad primero */
+.costeo-resumen95{grid-column:1/-1;display:grid;grid-template-columns:minmax(210px,1.45fr) repeat(3,minmax(120px,1fr));gap:9px;margin-bottom:4px;padding:11px;border:1px solid var(--linea);border-radius:15px;background:var(--panel,#fff)}
+.costeo-resumen95-principal,.costeo-resumen95-metrica{display:flex;flex-direction:column;justify-content:center;min-height:92px;padding:13px;border-radius:11px;background:rgba(0,0,0,.025)}
+.costeo-resumen95-principal{background:linear-gradient(145deg,rgba(49,94,82,.12),rgba(49,94,82,.035));border:1px solid rgba(49,94,82,.2)}
+.costeo-resumen95-k{font-size:10px;font-weight:900;letter-spacing:.12em;color:#315e52}
+.costeo-resumen95-principal>strong{font-size:28px;line-height:1.05;margin:5px 0 4px}
+.costeo-resumen95-principal>span:last-child,.costeo-resumen95-metrica>span,.costeo-resumen95-metrica>small{font-size:11px;color:var(--texto-secundario,#666)}
+.costeo-resumen95-metrica>strong{font-size:23px;line-height:1.1;margin:5px 0}
+.confianza95-score{display:flex;align-items:baseline;gap:2px;white-space:nowrap}
+.confianza95-score strong{font-size:28px;line-height:1}
+.confianza95-score span{font-size:12px;font-weight:800}
+.confianza95-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:10px}
+.confianza95-grid>div{padding:8px;border-radius:8px;background:rgba(0,0,0,.035)}
+.confianza95-grid span{display:block;font-size:10px;color:var(--texto-secundario,#666)}
+.confianza95-grid strong{display:block;margin-top:3px;font-size:15px}
+@media(max-width:950px){
+ .costeo-resumen95{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:560px){
+ .costeo-resumen95{grid-template-columns:1fr}
+ .confianza95-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+.costeo-avanzado95>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px}
+.costeo-avanzado95>summary::-webkit-details-marker{display:none}
+.costeo-avanzado95>summary::after{content:'＋';font-size:18px;font-weight:400;margin-left:auto}
+.costeo-avanzado95[open]>summary::after{content:'−'}
+.costeo-avanzado95>summary>span{font-size:11px;font-weight:600;color:var(--texto-secundario,#666)}
+.costeo-avanzado95[open]>summary{padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--linea)}

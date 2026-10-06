@@ -24,6 +24,7 @@ import { flagActivo } from '../datos/flags.js';
 import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
 import { recomendar as recomendarCatalogoVonHaucke } from '../voni/conocimiento.js';
 import { explicarCosteo } from '../datos/explicacionCosteo.js';
+import { confianzaTecnicaCosteo } from '../datos/confianzaCosteoTecnica.js';
 
 const ATAJOS = [
   { nombre: 'Muy facil', v: 30 },
@@ -96,6 +97,10 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   const explicacionCosteo = useMemo(
     () => explicarCosteo(resultado, { nombre: costeo.nombre, cantidad: costeo.piezas }),
     [resultado, costeo.nombre, costeo.piezas],
+  );
+  const confianzaTecnica = useMemo(
+    () => confianzaTecnicaCosteo({ resultado, industrial: inteligenciaIndustrial, insumos }),
+    [resultado, inteligenciaIndustrial, insumos],
   );
   // SIMULADOR vs OFICIAL (cutover 2026-10-02). El costo OFICIAL usa Alba (sin factores a
   // mano y sin horas). En cuanto el usuario fija un factorDirecta/Indirecta o usa modo
@@ -317,6 +322,28 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
 
   return (
     <div className="dos-col">
+      <section className="costeo-resumen95 no-imprimir" aria-label="Resumen del costeo">
+        <div className="costeo-resumen95-principal">
+          <span className="costeo-resumen95-k">COSTO OFICIAL</span>
+          <strong>{Number.isFinite(Number(resultado.costoUnitario)) && Number(resultado.costoUnitario) > 0 ? pesos2(resultado.costoUnitario) : 'Pendiente'}</strong>
+          <span>{resultado.formulaCosteo || 'Motor canónico'} · {costeo.piezas || 1} pieza{(costeo.piezas || 1) === 1 ? '' : 's'}</span>
+        </div>
+        <div className="costeo-resumen95-metrica">
+          <span>Confianza técnica</span>
+          <strong>{confianzaTecnica.score == null ? '—' : `${confianzaTecnica.score}/100`}</strong>
+          <small>{confianzaTecnica.score == null ? 'Sin evidencia suficiente' : confianzaTecnica.estado === 'ALTA' ? 'Respaldo alto' : confianzaTecnica.estado === 'MEDIA' ? 'Revisar pendientes' : 'No liberar todavía'}</small>
+        </div>
+        <div className="costeo-resumen95-metrica">
+          <span>Bloqueos</span>
+          <strong>{inteligenciaIndustrial?.bloqueos?.length || 0}</strong>
+          <small>{(inteligenciaIndustrial?.bloqueos?.length || 0) ? 'Requieren resolución' : 'Sin bloqueo técnico'}</small>
+        </div>
+        <div className="costeo-resumen95-metrica">
+          <span>Oportunidades</span>
+          <strong>{inteligenciaIndustrial?.recomendaciones?.length || 0}</strong>
+          <small>Advisory; no cambian el costo oficial</small>
+        </div>
+      </section>
       {/* ------------------ COLUMNA IZQUIERDA ------------------ */}
       <div>
         {/* N3 — análisis estructural (read-only, no toca el BOM certificado) */}
@@ -585,11 +612,11 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
           ))}
         </div>
 
-        <ConfianzaCosteo resultado={resultado} insumos={insumos} />
+        <ConfianzaCosteo confianza={confianzaTecnica} />
 
-        {/* 4. Mano de obra */}
-        <div className="tarjeta">
-          <h2>Mano de obra</h2>
+        {/* 4–6. Ajustes de fabricación · disponibles, pero fuera del camino principal. */}
+        <details className="tarjeta costeo-avanzado95">
+          <summary><strong>Mano de obra</strong><span>{costeo.modoManoObra === 'horas' ? 'Horas medidas' : 'Simulación por porcentaje'}</span></summary>
           <div className="fila-botones">
             <button className={`boton ${costeo.modoManoObra === 'horas' ? 'primario' : 'fantasma'}`}
               onClick={() => set({ modoManoObra: 'horas' })}>Por horas medidas</button>
@@ -642,11 +669,11 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
 
           {/* Puente entre modos (6.4) */}
           <PuenteModos resultado={resultado} costeo={costeo} set={set} />
-        </div>
+        </details>
 
         {/* 5. Preparacion, empaque, merma */}
-        <div className="tarjeta">
-          <h2>Preparacion, empaque y merma</h2>
+        <details className="tarjeta costeo-avanzado95">
+          <summary><strong>Preparación, empaque y merma</strong><span>Ajustes del lote</span></summary>
           <label className="etiqueta">Horas de arranque del lote (preparacion)</label>
           <input type="number" className="numero" min="0" step="0.5" value={costeo.preparacionHoras || 0}
             onChange={(e) => set({ preparacionHoras: parseFloat(e.target.value) || 0 })} />
@@ -660,17 +687,17 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
           <input type="number" className="numero" min="0" max="50" value={costeo.mermaProceso ?? estado.parametros.mermaProceso}
             onChange={(e) => set({ mermaProceso: parseFloat(e.target.value) || 0 })} />
           <div className="ayuda">Porcentaje de piezas que se rehacen.</div>
-        </div>
+        </details>
 
         {/* 6. Gastos de fabrica */}
-        <div className="tarjeta">
-          <h2>Gastos de fabrica</h2>
+        <details className="tarjeta costeo-avanzado95">
+          <summary><strong>Gastos de fábrica</strong><span>Indirectos</span></summary>
           <label className="etiqueta">Porcentaje sobre material directo</label>
           <input type="number" className="numero" min="0" max="100"
             value={costeo.factorIndirectosFabrica ?? estado.parametros.factorIndirectosFabrica}
             onChange={(e) => set({ factorIndirectosFabrica: parseFloat(e.target.value) || 0 })} />
           <div className="ayuda">Renta, luz, sueldos de oficina, herramienta y desperdicio. Va sobre la materia prima directa, no sobre el costo total.</div>
-        </div>
+        </details>
       </div>
 
       {/* ------------------ COLUMNA DERECHA ------------------ */}
@@ -845,29 +872,42 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
 // Confianza del costeo (2026-09-24): qué parte del material se para sobre
 // precios con FUENTE verificada vs precios sin confirmar. La herramienta más
 // real no finge precisión: la revela. No cambia ningún costo, solo lo audita.
-function ConfianzaCosteo({ resultado, insumos }) {
-  const det = (resultado.detalleInsumos || []).filter((d) => (d.costo || 0) > 0);
-  const matTot = det.reduce((a, d) => a + d.costo, 0);
-  if (matTot <= 0) return null;
-  const conFuente = det.filter((d) => insumos[d.insumoId]?.fuente).reduce((a, d) => a + d.costo, 0);
-  const pctV = Math.round((conFuente / matTot) * 100);
-  const sinFuente = det.filter((d) => !insumos[d.insumoId]?.fuente);
-  const palabra = pctV >= 80 ? 'sólido' : pctV >= 50 ? 'parcial' : 'flojo';
+function ConfianzaCosteo({ confianza }) {
+  if (!confianza || confianza.score == null) return null;
+  const tono = confianza.estado === 'ALTA' ? '#315e52' : confianza.estado === 'MEDIA' ? '#8a6d00' : '#b42318';
   return (
-    <div className="tarjeta">
-      <h2>Confianza del costeo</h2>
-      <div className="ayuda">
-        <strong>{pctV}%</strong> del material viene de precios con fuente verificada — respaldo <strong>{palabra}</strong>.
+    <div className="tarjeta confianza95" style={{ borderLeft: `4px solid ${tono}` }}>
+      <div className="fila" style={{ justifyContent: 'space-between', gap: 12, alignItems: 'start' }}>
+        <div>
+          <h2 style={{ marginBottom: 2 }}>Confianza técnica del costeo</h2>
+          <div className="ayuda">Cuánto del número está respaldado por evidencia verificable. No modifica un centavo.</div>
+        </div>
+        <div className="confianza95-score" style={{ color: tono }}>
+          <strong>{confianza.score}</strong><span>/100</span>
+        </div>
       </div>
-      {sinFuente.length > 0 && (
-        <div className="alerta ambar" style={{ marginTop: 8 }}>
+      <div className="confianza95-grid">
+        {confianza.dimensiones.map((d) => (
+          <div key={d.key}>
+            <span>{d.label}</span>
+            <strong>{d.valor == null ? 'N/A' : `${d.valor}%`}</strong>
+          </div>
+        ))}
+      </div>
+      {confianza.material_sin_fuente.length > 0 && (
+        <div className="alerta ambar" style={{ marginTop: 9 }}>
           <span className="texto">
-            {sinFuente.length} {sinFuente.length === 1 ? 'material usa precio' : 'materiales usan precio'} SIN
-            fuente confirmada: {sinFuente.map((d) => d.nombre).slice(0, 4).join(', ')}{sinFuente.length > 4 ? '…' : ''}.
-            Ese pedazo del costo no es 100% de fiar hasta calibrarlo contra una compra o un T.D.C. real.
+            Precio sin fuente confirmada: {confianza.material_sin_fuente.slice(0, 4).join(', ')}
+            {confianza.material_sin_fuente.length > 4 ? '…' : ''}. Confírmalo contra compra, Intelisis o T.D.C. antes de tratarlo como firme.
           </span>
         </div>
       )}
+      {confianza.bloqueos.length > 0 && (
+        <div className="alerta roja" style={{ marginTop: 9 }}>
+          <span className="texto">{confianza.bloqueos.length} bloqueo(s) impiden tratar el costeo como liberado.</span>
+        </div>
+      )}
+      <div className="ayuda gris" style={{ marginTop: 7, fontSize: 11 }}>{confianza.nota}</div>
     </div>
   );
 }

@@ -42,12 +42,16 @@ document.addEventListener('pointerdown', (e) => {
   const btn = hit?.closest?.('button');
   if (!btn || !btn.disabled) return;
   const label = (btn.textContent || '').trim().toLowerCase();
-  if (!label.includes('imprimir') && !label.includes('descargar pdf') && !label.includes('convertir en partida')) return;
-
   const title = btn.getAttribute('title')?.trim();
-  const blocking = nearestBlockingMessage();
-  const why = title || blocking?.txt || 'Hay una validación pendiente antes de poder continuar.';
-  showToast(`Acción bloqueada: ${why}`);
+  const explicit = btn.getAttribute('data-disabled-reason')?.trim() || btn.getAttribute('aria-description')?.trim();
+  const critical = label.includes('imprimir') || label.includes('descargar pdf') || label.includes('convertir en partida')
+    || label.includes('cotizar') || label.includes('emitir') || label.includes('aprobar');
+  // Un botón bloqueado con razón explícita NUNCA debe sentirse muerto. Para
+  // acciones críticas, además buscamos el gate visible más cercano.
+  if (!title && !explicit && !critical) return;
+  const blocking = critical ? nearestBlockingMessage() : null;
+  const why = explicit || title || blocking?.txt || 'Hay una validación pendiente antes de poder continuar.';
+  showToast(`Todavía no: ${why}`);
   blocking?.el?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
 }, true);
 

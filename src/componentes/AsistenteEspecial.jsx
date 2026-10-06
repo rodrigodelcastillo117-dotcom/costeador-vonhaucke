@@ -16,7 +16,7 @@ import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
 import { aplicarPoliticaMaterial } from '../datos/materialMatch.js';
 import { paginaAImagen } from '../datos/pdfImagen.js';
-import { prepararPdfRapido, rasterizarPaginas } from '../datos/pdfPipeline.js';
+import { prepararPdfRapido, rasterizarPaginas, paginasParaAnalisis } from '../datos/pdfPipeline.js';
 import Cargando from './Cargando.jsx';
 import Markdown from './Markdown.jsx';
 import InformeIA from './InformeIA.jsx';
@@ -772,7 +772,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     setPdfSel(null); setErrorIA(''); setAnalizando(true);
     const cid = nuevaCorrida();
     try {
-      const paginas = Array.from({ length: sel.numPaginas }, (_, i) => i + 1);
+      const paginas = paginasParaAnalisis(sel.pagina, sel.numPaginas, 8);
       const raster = await rasterizarPaginas(sel.doc, paginas, { maxPx: 1600, concurrency: 3 });
       await analizarImagenes(raster.map((x) => x.base64), sel.preview, cid);
     } catch (err) {
@@ -809,7 +809,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
             style={{ maxWidth: '100%', border: '1px solid rgba(0,0,0,.18)', borderRadius: 8, display: 'block' }} />
         )}
         <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
-          <button className="boton primario grande" onClick={analizarTodasPdf}>Analizar las {pdfSel.numPaginas} hojas juntas (un mueble)</button>
+          <button className="boton primario grande" onClick={analizarTodasPdf}>{pdfSel.numPaginas > 8 ? 'Analizar hasta 8 vistas cercanas' : `Analizar las ${pdfSel.numPaginas} hojas juntas (un mueble)`}</button>
           <button className="boton grande" onClick={analizarPaginaPdf}>Solo esta hoja</button>
           <button className="boton fantasma" onClick={() => setPdfSel(null)}>Cancelar</button>
         </div>
