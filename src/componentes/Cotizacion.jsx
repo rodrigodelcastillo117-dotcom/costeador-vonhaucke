@@ -516,13 +516,13 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                     2026-08-18: "ellos precio unitario, cantidad y total". Antes
                     esta fila sólo enseñaba el total, y el unitario —el número
                     que el cliente pregunta primero— no salía por ningún lado. */}
-                <span className="vt-unit"><span className="vt-rot">c/u</span>{pesos(pt.precioUnitario)}</span>
+                <span className="vt-unit"><span className="vt-rot">c/u</span>{pesos2(pt.precioUnitario)}</span>
                 <span className="masmenos">
                   <button style={{ width: 44, height: 44 }} onClick={() => setPartida(i, { cantidad: Math.max(1, pt.cantidad - 1) })} aria-label="Menos">−</button>
                   <span className="valor">{pt.cantidad}</span>
                   <button style={{ width: 44, height: 44 }} onClick={() => setPartida(i, { cantidad: pt.cantidad + 1 })} aria-label="Más">+</button>
                 </span>
-                <span className="vt-importe"><span className="vt-rot">total</span>{pesos(pt.precioUnitario * pt.cantidad)}</span>
+                <span className="vt-importe"><span className="vt-rot">total</span>{pesos2(pt.precioUnitario * pt.cantidad)}</span>
                 {sePuedeEditar(pt) && (
                   <button className="icono-btn" title="Editar medidas, acabado y cantidad" aria-label={`Editar ${pt.nombre}`} onClick={() => setEditando(i)}>
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
@@ -590,10 +590,10 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                           <RenderChip estado={estadoRenderDe(pt).estado} />
                           {bajo && <div className="ayuda rojo">Debajo del mínimo de {estado.parametros.margenMinimo}%</div>}</td>
                         <td className="num"><span className="masmenos"><button onClick={() => setPartida(i, { cantidad: Math.max(1, pt.cantidad - 1) })}>−</button><span className="valor">{pt.cantidad}</span><button onClick={() => setPartida(i, { cantidad: pt.cantidad + 1 })}>+</button></span></td>
-                        <td className="num">{pesos(pt.precioUnitario)}</td>
-                        <td className="num" title={cc.aprox ? 'Costo aproximado (derivado del precio, no del despiece real)' : undefined}>{sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos(pt.costoUnitario)}</td>
-                        <td className="num">{sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos(util)}</td>
-                        <td className="num">{pesos(pt.precioUnitario * pt.cantidad)}</td>
+                        <td className="num">{pesos2(pt.precioUnitario)}</td>
+                        <td className="num" title={cc.aprox ? 'Costo aproximado (derivado del precio, no del despiece real)' : undefined}>{sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos2(pt.costoUnitario)}</td>
+                        <td className="num">{sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos2(util)}</td>
+                        <td className="num">{pesos2(pt.precioUnitario * pt.cantidad)}</td>
                         {/* ⚠️ AQUÍ NO HABÍA CÓMO EDITAR (2026-08-17). El lápiz
                             estaba escrito SÓLO dentro del bloque `soloVentas`, o
                             sea que en el rol de Dirección/Diseño —el que usa
@@ -629,9 +629,9 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                     <div className="cot-nombre">{pt.nombre}<EstadoLinea info={razonesLinea.get(i + 1)} /></div>
                     <div className="cot-linea">
                       <span className="masmenos"><button style={{ width: 44, height: 44 }} onClick={() => setPartida(i, { cantidad: Math.max(1, pt.cantidad - 1) })}>−</button><span className="valor">{pt.cantidad}</span><button style={{ width: 44, height: 44 }} onClick={() => setPartida(i, { cantidad: pt.cantidad + 1 })}>+</button></span>
-                      <span className="cot-importe">{pesos(pt.precioUnitario * pt.cantidad)}</span>
+                      <span className="cot-importe">{pesos2(pt.precioUnitario * pt.cantidad)}</span>
                     </div>
-                    <div className="cot-datos"><span>Precio c/u: <b>{pesos(pt.precioUnitario)}</b></span><span>Costo: {sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos(pt.costoUnitario)}</span><span>Utilidad: {sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos(util)}</span></div>
+                    <div className="cot-datos"><span>Precio c/u: <b>{pesos2(pt.precioUnitario)}</b></span><span>Costo: {sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos2(pt.costoUnitario)}</span><span>Utilidad: {sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos2(util)}</span></div>
                     <button className="boton fantasma" style={{ minHeight: 44, marginTop: 10 }} onClick={() => quitar(i)}>Quitar</button>
                   </div>
                 );
@@ -748,14 +748,14 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                         {b.m2 > 0 && <>{b.m2} m² · </>}{especificacion(b)}
                       </div>
                     </div>
-                    <div className="propx-res-tot">{pesos(b.total)}</div>
+                    <div className="propx-res-tot">{pesos2(b.total)}</div>
                   </div>
                   <ul className="propx-res-lista">
                     {b.renglones.map((r, k) => (
                       <li key={k}>
                         <span className="propx-res-cant">{r.cantidad}</span>
                         <span className="propx-res-item">{r.nombre}</span>
-                        <span className="propx-res-imp">{pesos(r.importe)}</span>
+                        <span className="propx-res-imp">{pesos2(r.importe)}</span>
                       </li>
                     ))}
                   </ul>
@@ -780,10 +780,10 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                         2026-08-16): es una señal interna para el vendedor, y
                         leer "sujeto a confirmación" en 5 de 6 renglones debilita
                         la propuesta. Sigue visible en "Mis números". */}
-                    <div className="propx-sub"><span className="propx-unit">{pesos(pt.precioUnitario)} c/u</span></div>
+                    <div className="propx-sub"><span className="propx-unit">{pesos2(pt.precioUnitario)} c/u</span></div>
                   </div>
                   <div className="propx-cant"><span className="propx-cant-n">{pt.cantidad}</span><span className="propx-cant-l">{pt.cantidad === 1 ? 'pza' : 'pzas'}</span></div>
-                  <div className="propx-importe">{pesos(pt.precioUnitario * pt.cantidad)}</div>
+                  <div className="propx-importe">{pesos2(pt.precioUnitario * pt.cantidad)}</div>
                 </article>
               );
             })}
