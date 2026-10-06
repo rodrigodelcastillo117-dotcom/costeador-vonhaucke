@@ -10,7 +10,7 @@
 // ============================================================================
 import { describe, it, expect } from 'vitest';
 import { expandirPiezas } from './espacio.js';
-import { acomodarLocal } from './planner.js';
+import { acomodarLocal, rolCuartoBase, tipoAreaConfiable } from './planner.js';
 import { violacionesSemanticas } from './floorSpec.js';
 
 // Muchos escritorios (fuerzan varias filas del mismo tipo) + sillas sueltas
@@ -111,5 +111,20 @@ describe('layout funcional · silla operativa anclada a su puesto', () => {
     expect(silla).toBeTruthy();
     expect(silla.anchor_id).toBe('desk-1');
     expect(silla.contra).toBe('escritorio:desk-1');
+  });
+});
+
+
+describe('semántica de cuarto · procedencia manda', () => {
+  it('tipo explícito confiable sí manda', () => {
+    const a = { nombre:'Sala 1', tipo:'juntas', ancho:5000, largo:4000, procedencia:'DETECTED_FROM_PLAN', confianza:'alta' };
+    expect(tipoAreaConfiable(a)).toBe(true);
+    expect(rolCuartoBase(a, [a])).toBe('juntas');
+  });
+
+  it('tipo INFERRED de confianza baja no pisa el nombre/geom', () => {
+    const a = { nombre:'Área Operativa', tipo:'juntas', ancho:9000, largo:7000, procedencia:'INFERRED', confianza:'baja' };
+    expect(tipoAreaConfiable(a)).toBe(false);
+    expect(rolCuartoBase(a, [a])).toBe('open');
   });
 });
