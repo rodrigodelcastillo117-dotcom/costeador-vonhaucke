@@ -19,6 +19,7 @@ import { diffRevisiones } from '../datos/diffRevisiones.js';
 import { conocimientoDe } from './conocimiento.js';
 import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
 import { buscarMaterialTecnico, describirFormatoTecnico } from '../datos/materialKnowledge.js';
+import { construirPrecedentesCosteo } from '../datos/precedentesCosteo.js';
 import { nube, buscarProductosMaestroTexto } from '../nube.js';
 
 const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
@@ -147,57 +148,16 @@ export const proveedorReal = {
     if(error) return { disponible:false, precedentes:[], nota:'No se pudo consultar la memoria técnica autorizada.' };
 
     const versionIds=[...new Set((revs||[]).map((x)=>Number(x.producto_version_id)).filter(Number.isFinite))];
-    const ecoMap=new Map();
+    let ecos=[];
     if(versionIds.length){
-      const {data:ecos}=await nube.from('producto_version_economia')
+      const r=await nube.from('producto_version_economia')
         .select('producto_version_id,costo_oficial_referencia,formula_version,fuente,actualizado')
         .in('producto_version_id',versionIds);
-      for(const e of (ecos||[])) ecoMap.set(Number(e.producto_version_id),e);
+      ecos=r.data||[];
     }
-
-    const norm=(s)=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-    const tokens=(xs)=>new Set((xs||[]).flatMap((x)=>norm(x).match(/[a-z0-9]{3,}/g)||[])
-      .filter((x)=>!['para','pieza','mueble','material','cubierta','estructura'].includes(x)));
-    const mats=(xs)=>new Set((xs||[]).map((x)=>String(x?.insumoId||x?.material_id||x?.material||'')).filter(Boolean));
-    const t0=tokens(bom.map((x)=>x?.nombre)),m0=mats(bom);
-    const inter=(a,b)=>[...a].filter((x)=>b.has(x)).length;
-    const jacc=(a,b)=>a.size||b.size ? inter(a,b)/(new Set([...a,...b]).size||1) : 0;
-    const countSim=(a,b)=>1-Math.min(1,Math.abs(a-b)/Math.max(1,a,b));
-
-    const candidatos=[];
-    for(const r of (revs||[])){
-      const rb=Array.isArray(r.bom)?r.bom:[];
-      if(!rb.length) continue;
-      const eco=ecoMap.get(Number(r.producto_version_id));
-      const c=r.costo&&typeof r.costo==='object'?r.costo:{};
-      const rawEco=eco?.costo_oficial_referencia;
-      const rawRev=c.costoTotal ?? c.costoUnitario;
-      const costoEco=rawEco==null||rawEco==='' ? NaN : Number(rawEco);
-      const costoRev=rawRev==null||rawRev==='' ? NaN : Number(rawRev);
-      const completo=String(c.estado_costo||'').toLowerCase()==='completo' && Number.isFinite(costoRev) && costoRev>=0;
-      const tieneOficial=Number.isFinite(costoEco)&&costoEco>=0;
-      if(!tieneOficial&&!completo) continue; // memoria económica sólo con verdad defendible
-      const mt=mats(rb),tt=tokens(rb.map((x)=>x?.nombre));
-      const materialSim=jacc(m0,mt),textoSim=jacc(t0,tt),cantidadSim=countSim(bom.length,rb.length);
-      const score=0.55*materialSim+0.30*textoSim+0.15*cantidadSim;
-      if(score<0.12) continue;
-      candidatos.push({
-        revision_id:r.id,expediente_id:r.expediente_id,revision:r.rev,nombre:r.nombre||'Precedente',
-        producto_id:r.producto_id||null,producto_version_id:r.producto_version_id||null,
-        similitud:+score.toFixed(3),
-        coincidencia_material:+materialSim.toFixed(3),
-        coincidencia_texto:+textoSim.toFixed(3),
-        bom_componentes:rb.length,
-        costo_oficial:tieneOficial?costoEco:costoRev,
-        formula:eco?.formula_version||c.formula_version||null,
-        fuente:tieneOficial?(eco?.fuente||'producto_version_economia'):'expediente_revision_completa',
-        fecha:eco?.actualizado||r.creado,
-      });
-    }
-    candidatos.sort((a,b)=>b.similitud-a.similitud || String(b.fecha||'').localeCompare(String(a.fecha||'')));
     return {
       disponible:true,
-      precedentes:candidatos.slice(0,6),
+      precedentes:construirPrecedentesCosteo(bom,revs||[],ecos),
       politica:'Precedente = comparación, no autoridad. El costo vigente siempre lo recalcula el motor con BOM/precios actuales.',
     };
   },
