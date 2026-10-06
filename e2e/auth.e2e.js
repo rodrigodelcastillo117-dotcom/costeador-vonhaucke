@@ -1,52 +1,73 @@
 import { test, expect } from '@playwright/test';
 
-// E2E de flujos CON LOGIN. Gated por credenciales de una CUENTA DE PRUEBA sembrada:
-//   TEST_EMAIL / TEST_PASSWORD  (en CI como secrets; en local como env vars).
-// Sin credenciales se SALTA limpio (no rompe la suite). Con ellas, ejercita los
-// pilares autenticados de punta a punta en navegador real.
-//   Nunca usar aquí credenciales de producción de una persona real: una cuenta de
-//   prueba dedicada, idealmente con rol Dirección para ver todo el flujo.
 const EMAIL = process.env.TEST_EMAIL;
 const PASS = process.env.TEST_PASSWORD;
 const hayCreds = !!(EMAIL && PASS);
 
-test.describe('E2E autenticado', () => {
-  test.skip(!hayCreds, 'Define TEST_EMAIL y TEST_PASSWORD (cuenta de prueba) para correr los flujos con login.');
+async function login(page) {
+  await page.goto('/');
+  await page.fill('#email-login', EMAIL);
+  await page.fill('#pass-login', PASS);
+  await page.getByRole('button', { name: /^Entrar$/i }).click();
+  await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
+  if (await page.getByRole('dialog', { name: /Guía de uso/i }).isVisible().catch(() => false)) {
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog', { name: /Guía de uso/i })).toBeHidden({ timeout: 5000 });
+  }
+}
 
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.fill('#email-login', EMAIL);
-    await page.fill('#pass-login', PASS);
-    await page.getByRole('button', { name: /^Entrar$/i }).click();
-    // El login cae cuando aparece el shell (el botón Salir del encabezado).
-    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
-    // Primer login: se abre la guía "Bienvenido al costeador" encima. Se cierra con
-    // Escape para no tapar la pantalla (si no está, no pasa nada).
-    if (await page.getByRole('dialog', { name: /Guía de uso/i }).isVisible().catch(() => false)) {
-      await page.keyboard.press('Escape');
-      await expect(page.getByRole('dialog', { name: /Guía de uso/i })).toBeHidden({ timeout: 5000 });
-    }
+test.describe('E2E autenticado · flujo real', () => {
+  test.skip(!hayCreds, 'Define TEST_EMAIL y TEST_PASSWORD para certificar el flujo autenticado.');
+
+  test.beforeEach(async ({ page }) => { await login(page); });
+
+  test('home es inequívoco: Cotizar · Costear · Cocrear', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: /Qué vas a hacer/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Preparar propuesta para cliente|COTIZAR/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Costear un producto nuevo|COSTEAR/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Diseñar un producto nuevo|COCREAR/i })).toBeVisible();
   });
 
-  test('login → shell de la app (hero / navegación)', async ({ page }) => {
-    await expect(page.getByText(/Cocreando/i).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: /Cocrear un producto/i })).toBeVisible();
+  test('COSTEAR abre directo el flujo de PDF y acepta un PDF multipágina real', async ({ page }) => {
+    await page.getByRole('button', { name: /Costear un producto nuevo|COSTEAR/i }).click();
+    await expect(page.getByText(/Qué vas a costear/i)).toBeVisible({ timeout: 15000 });
+    const input = page.getByTestId('costear-archivo');
+    await expect(input).toHaveCount(1);
+    await input.setInputFiles('e2e/fixtures/two-page.pdf');
+    await expect(page.getByText(/Tu plano tiene 2 páginas/i)).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('button', { name: /Solo esta hoja/i })).toBeVisible();
   });
 
-  test('entra al estudio de Cocrear (co-diseño en vivo)', async ({ page }) => {
-    await page.getByRole('button', { name: /Cocrear un producto/i }).click();
-    // El estudio arranca en "¿Qué tienes en mente?" o reabre una co-creación.
+  test('COTIZAR abre VONI sin menú intermedio', async ({ page }) => {
+    await page.getByRole('button', { name: /Preparar propuesta para cliente|COTIZAR/i }).click();
+    await expect(page.getByText(/asistente de proyecto/i).first()).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/Dónde va el proyecto|Cuéntame qué necesita tu cliente/i).first()).toBeVisible({ timeout: 15000 });
+  });
+
+  test('COCREAR entra al estudio de co-diseño', async ({ page }) => {
+    await page.getByRole('button', { name: /Diseñar un producto nuevo|COCREAR/i }).click();
     await expect(page.getByText(/Qué tienes en mente|Cocrear . de la idea|Diséñalo|Disénalo/i).first()).toBeVisible({ timeout: 15000 });
   });
 
-  test('abre Cotizar y ve el gate de emisión (seller-safe)', async ({ page }) => {
-    // Si hay partidas, el encabezado muestra "Mi cotización"; si no, se omite el assert del gate.
-    const carrito = page.getByRole('button', { name: /Ver mi cotización|Mi cotización/i });
-    if (await carrito.count()) {
-      await carrito.first().click();
-      await expect(page.getByRole('button', { name: /Verificar emisión|Descargar PDF/i }).first()).toBeVisible({ timeout: 15000 });
+  test('atajos críticos no son botones muertos', async ({ page }) => {
+    const costeoManual = page.getByRole('button', { name: /Costeo manual/i });
+    if (await costeoManual.count()) {
+      await costeoManual.click();
+      await expect(page.getByText(/Descríbelo y Voni lo entiende|despiece/i).first()).toBeVisible({ timeout: 15000 });
+      await page.getByRole('button', { name: /Inicio/i }).first().click().catch(() => {});
+    }
+  });
+
+  test('cotización: botones de salida nunca quedan muertos cuando existe un proyecto', async ({ page }) => {
+    const actual = page.getByRole('button', { name: /Proyecto actual/i });
+    await actual.click();
+    const descargar = page.getByRole('button', { name: /Descargar (PDF|BORRADOR)/i });
+    const imprimir = page.getByRole('button', { name: /Imprimir( BORRADOR)?/i });
+    if (await descargar.count()) {
+      await expect(descargar).toBeEnabled();
+      await expect(imprimir).toBeEnabled();
     } else {
-      test.info().annotations.push({ type: 'nota', description: 'Sin partidas en la cuenta de prueba: se omite el gate.' });
+      test.info().annotations.push({ type: 'nota', description: 'Proyecto vacío: la pantalla no expone emisión todavía.' });
     }
   });
 });
