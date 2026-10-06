@@ -20,6 +20,7 @@ import { conocimientoDe } from './conocimiento.js';
 import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
 import { buscarMaterialTecnico, describirFormatoTecnico } from '../datos/materialKnowledge.js';
 import { nube, buscarProductosMaestroTexto } from '../nube.js';
+import { explicarCosteo } from '../datos/explicacionCosteo.js';
 
 const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
 
@@ -125,7 +126,7 @@ export const proveedorReal = {
     ? { componentes: ctx.bom, contradicciones: [] }
     : { disponible: false, nota: 'Abre el Costeador para ver el BOM certificado de una pieza.' }),
   get_costing: async (ctx) => (ctx.costing
-    ? ctx.costing
+    ? { ...ctx.costing, explicacion: explicarCosteo(ctx.costing, { nombre: ctx.product_name || ctx.nombre || '' }) }
     : { disponible: false, nota: 'El costo se consolida por pieza en el Costeador; no hay un total de proyecto inventado aquí.' }),
   get_industrial_analysis: async (ctx) => {
     const bom = Array.isArray(ctx.bom) ? ctx.bom : [];
