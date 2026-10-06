@@ -67,12 +67,15 @@ describe('pipeline de puerta verificable · lector → canónico → solver', ()
     expect(r.problemas.join(' ')).toMatch(/barrido verificable/i);
   });
 
-  it('mantiene compatibilidad con puertas legacy sin campos de barrido', () => {
+  it('conserva puertas legacy para visualización, pero NO inventa barrido ni las certifica', () => {
     const lectura = { ...base, puertas: [{ x: 0, y: 1800, ancho: 900 }] };
     const { areas } = areasDeLectura(lectura);
     expect(areas[0].puertas[0]).toEqual({ x: 0, y: 1.8, ancho: 0.9 });
     const r = resumenLectura(lectura);
     expect(r.puertas).toBe(1);
-    expect(r.puertasPendientes).toBe(0);
+    expect(r.puertasPendientes).toBe(1);
+    expect(r.puertasVerificadas).toBe(0);
+    expect(r.confiable).toBe(false);
+    expect(r.problemas.join(' ')).toMatch(/barrido verificable/i);
   });
 });
