@@ -17,6 +17,7 @@ import {
 import { hoyNecesitaAtencion, hechosDireccion } from '../datos/atencion.js';
 import { diffRevisiones } from '../datos/diffRevisiones.js';
 import { conocimientoDe } from './conocimiento.js';
+import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
 
 const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
 
@@ -118,6 +119,14 @@ export const proveedorReal = {
   get_costing: async (ctx) => (ctx.costing
     ? ctx.costing
     : { disponible: false, nota: 'El costo se consolida por pieza en el Costeador; no hay un total de proyecto inventado aquí.' }),
+  get_industrial_analysis: async (ctx) => {
+    const bom = Array.isArray(ctx.bom) ? ctx.bom : [];
+    const costing = ctx.costing || null;
+    if (!bom.length && !costing) {
+      return { disponible:false, nota:'Abre o selecciona un producto con BOM/costeo para analizarlo industrialmente.' };
+    }
+    return { disponible:true, ...analizarProductoIndustrial({ bom, costing }) };
+  },
   // Conocimiento del catálogo Von Haucke (líneas, materiales, a la medida). Usa la
   // consulta del usuario (args.query) para recomendar/explicar. No es económico.
   get_catalog_knowledge: async (ctx, args) => conocimientoDe(args?.query || ''),
