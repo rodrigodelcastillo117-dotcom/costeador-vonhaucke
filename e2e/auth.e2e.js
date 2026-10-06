@@ -28,14 +28,15 @@ test.describe('E2E autenticado', () => {
     }
   });
 
-  test('login → shell de la app (hero / navegación)', async ({ page }) => {
-    await expect(page.getByText(/Cocreando/i).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: /Cocrear un producto/i })).toBeVisible();
+  test('login → inicio simple orientado a trabajos', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: /Qué quieres hacer/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Nueva cotización/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Cotizar un producto conocido/i })).toBeVisible();
   });
 
-  test('entra al estudio de Cocrear (co-diseño en vivo)', async ({ page }) => {
+  test('Cocrear sigue disponible sin competir con el camino principal', async ({ page }) => {
+    await page.getByText(/Más herramientas/i).click();
     await page.getByRole('button', { name: /Cocrear un producto/i }).click();
-    // El estudio arranca en "¿Qué tienes en mente?" o reabre una co-creación.
     await expect(page.getByText(/Qué tienes en mente|Cocrear . de la idea|Diséñalo|Disénalo/i).first()).toBeVisible({ timeout: 15000 });
   });
 
@@ -52,7 +53,7 @@ test.describe('E2E autenticado', () => {
   test('home prioriza una ruta clara por rol y no ofrece callejones', async ({ page }) => {
     // Regla UX: un usuario nuevo debe poder empezar sin conocer la arquitectura.
     // Siempre existe la puerta guiada por lenguaje de cliente.
-    await expect(page.getByRole('button', { name: /Dime qué pide el cliente/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Nueva cotización/i })).toBeVisible();
     // Nunca enseñamos un CTA que sólo conduce a "no tienes permiso".
     const textosBloqueo = page.getByText(/no tienes permiso|no puedes usar|solo dirección/i);
     await expect(textosBloqueo).toHaveCount(0);
@@ -61,12 +62,12 @@ test.describe('E2E autenticado', () => {
   test('navegar y volver conserva el contexto del inicio', async ({ page }) => {
     // Entrar a una herramienta y volver no debe resetear la experiencia ni obligar
     // a reaprender dónde estaba el usuario.
-    await page.getByRole('button', { name: /Dime qué pide el cliente/i }).click();
+    await page.getByRole('button', { name: /Nueva cotización/i }).click();
     await expect(page.getByText(/Voni|proyecto|cliente/i).first()).toBeVisible({ timeout: 15000 });
     const volver = page.getByRole('button', { name: /Atrás|Inicio|Volver/i }).first();
     if (await volver.count()) {
       await volver.click();
-      await expect(page.getByRole('button', { name: /Dime qué pide el cliente/i })).toBeVisible({ timeout: 10000 });
+      await expect(page.getByRole('button', { name: /Nueva cotización/i })).toBeVisible({ timeout: 10000 });
     }
   });
 
