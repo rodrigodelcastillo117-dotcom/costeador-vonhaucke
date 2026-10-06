@@ -9,6 +9,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { canonicalZoneRole, canonicalProductRole, semanticVerdict as semanticVerdictCanonical } from "./spatial-semantics.js";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { planearDeterminista } from "./acomodo-core.js";
 import {
   auditarPuertas,
   bloqueaPuertaEspacial,
@@ -232,14 +233,14 @@ Deno.serve(async (req) => {
   let ultimaUsage: any = null;
   async function llamarIA(system: string) {
     const ac = new AbortController();
-    const timer = setTimeout(() => ac.abort(), 60_000);
+    const timer = setTimeout(() => ac.abort(), 25_000);
     let r: Response;
     try {
       r = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "content-type": "application/json", "x-api-key": key!, "anthropic-version": "2023-06-01" },
         body: JSON.stringify({
-          model: "claude-opus-5", max_tokens: 8000,
+          model: "claude-opus-5", max_tokens: 4000,
           output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } },
           system,
           messages: [{ role: "user", content: [{ type: "text", text: "Acomoda estos muebles con circulación y uso realistas." }] }],
@@ -332,12 +333,41 @@ Deno.serve(async (req) => {
     return Number(a?.quality?.score || 0) > Number(b?.quality?.score || 0);
   }
 
-  let best: any = null;
-  for (let intento = 1; intento <= 3; intento++) {
+  // FAST PATH: semántica + geometría + clearances primero, sin pagar latencia LLM.
+  // La IA deja de ser el planner primario y pasa a ser repair/fallback.
+  const solverAreas = areaMeta.map((a: any) => ({
+    ...a,
+    ancho: Math.round(a._g.width),
+    largo: Math.round(a._g.depth),
+    ...(a._g.kind === "polygon"
+      ? { polygon: (a._g.pts || []).map((p: any) => [n(p?.x ?? p?.[0]) - a._g.offsetX, n(p?.y ?? p?.[1]) - a._g.offsetY]) }
+      : {}),
+  }));
+  const solverPieces = canonicalPieces.map((p: any) => {
+    const ranked = areaMeta
+      .map((a: any, ai: number) => ({ ai, v: semanticVerdict(p.product_role, a.zone_role) }))
+      .filter((x: any) => x.v.level !== "FAIL")
+      .sort((a: any, b: any) => (a.v.level === "PASS" ? 0 : 1) - (b.v.level === "PASS" ? 0 : 1) || a.ai - b.ai);
+    const allowedAreas = ranked.map((x: any) => x.ai);
+    return { ...p, allowedAreas, ...(allowedAreas.length ? { area: allowedAreas[0] } : {}) };
+  });
+  const det = planearDeterminista(solverAreas, solverPieces, { gapMM: 150, stepMM: 100 });
+  const detPlan = {
+    colocacion: det.colocacion,
+    zonas: cleanAreas.map((a: any, area: number) => ({ area, nombre: a.nombre, x: 0, y: 0, ancho: a.ancho, largo: a.largo })),
+    caben: det.noColocadas.length === 0,
+    resumen: det.noColocadas.length ? "Acomodo determinista parcial; IA sólo reparará lo pendiente." : "Acomodo determinista válido.",
+    notas: [],
+  };
+  let best: any = evaluar(detPlan);
+  const detHard = best.issues.filter((q: any) => q.code !== "MISSING_PLACEMENT");
+  const deterministicPass = detHard.length === 0 && best.unplaced.length === 0;
+
+  for (let intento = 1; intento <= (deterministicPass ? 0 : 2); intento++) {
     let plan: any;
     try {
-      const system = intento === 1 ? baseSystem : baseSystem
-        + `\n\nREINTENTO ${intento} (REPARACION). Corrige EXACTAMENTE estas violaciones:\n`
+      const system = baseSystem
+        + `\n\nREPARACION ${intento}. El solver determinista ya propuso una base. Corrige EXACTAMENTE estas violaciones:\n`
         + best.issues.slice(0, 50).map((q: any) => `- ${q.code}${q.id ? ` (pieza ${q.id})` : ""}${q.a ? ` (${q.a} vs ${q.b})` : ""}`).join("\n")
         + `\n\nMANTEN EXACTAS estas colocaciones ya validas (NO las muevas):\n`
         + JSON.stringify(best.valid.filter((v: any) => best.placedIds.has(v.id)).map((v: any) => ({ id: v.id, area: v.area, x: v.x, y: v.y, rot: v.rot })))
@@ -420,6 +450,6 @@ Deno.serve(async (req) => {
     recomendaciones,
     calidad: best.quality,
     puertas: best.doors,
-    metodo: "ai_proposal_deterministic_spatial_validation_v8",
+    metodo: deterministicPass ? "deterministic_semantic_spatial_v9" : "deterministic_first_ai_repair_v9",
   }, 200);
 });
