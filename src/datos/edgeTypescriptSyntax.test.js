@@ -29,4 +29,16 @@ describe('edge functions · TypeScript parse smoke', () => {
   it('voni-council parsea completo y queda source-controlled', async () => {
     await parseTs('supabase/functions/voni-council/index.ts');
   });
+  it('analizar-mueble parsea completo', async () => {
+    await parseTs('supabase/functions/analizar-mueble/index.ts');
+  });
+
+  it('generar-render parsea completo', async () => {
+    await parseTs('supabase/functions/generar-render/index.ts');
+  });
+
+  it('voni-council parsea completo', async () => {
+    await parseTs('supabase/functions/voni-council/index.ts');
+  });
+
 });
