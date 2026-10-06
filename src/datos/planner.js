@@ -116,6 +116,38 @@ export function sentarSillas(colocacion, piezas, areas) {
   );
   const out = colocacion.map((c) => ({ ...c }));
 
+  const idxCompatible = (arr, escritorioP, pw = null, ph = null) => {
+    const fg = escritorioP?.functional_group_id || null;
+    const candidatos = [];
+    for (let i = 0; i < arr.length; i++) {
+      const pp = byId[arr[i]?.id] || arr[i];
+      const pg = pp?.functional_group_id || null;
+      // Con grupo explícito: misma familia primero; piezas sin grupo son fallback.
+      // Una silla de OTRO grupo nunca se roba.
+      const compatibleGrupo = fg ? (pg === fg || !pg) : !pg;
+      if (!compatibleGrupo) continue;
+      candidatos.push(i);
+    }
+    if (!candidatos.length) return -1;
+    if (pw != null && ph != null) {
+      const exacto = candidatos.find((i) => {
+        const pp = byId[arr[i]?.id] || arr[i];
+        const d = dimsPieza(pp, 0);
+        return d.pw === pw && d.ph === ph;
+      });
+      if (exacto != null) return exacto;
+    }
+    // Si hay misma familia, gana sobre un fallback sin grupo.
+    if (fg) {
+      const mismo = candidatos.find((i) => {
+        const pp = byId[arr[i]?.id] || arr[i];
+        return pp?.functional_group_id === fg;
+      });
+      if (mismo != null) return mismo;
+    }
+    return candidatos[0];
+  };
+
   for (let i = 0; i < areas.length; i++) {
     const A = areas[i]; if (!A) continue;
     const enArea = out.filter((c) => c.area === i);
@@ -130,28 +162,35 @@ export function sentarSillas(colocacion, piezas, areas) {
     const puestas = [];
     const libres = [...sillas];
     for (const { c, h } of escritorios) {
-      const s0 = byId[libres[0]?.id] || sinLugar[0];
-      if (!s0) break;
+      const escritorioP = byId[c.id] || {};
+      let idx0 = idxCompatible(libres, escritorioP);
+      let s0 = idx0 >= 0 ? byId[libres[idx0]?.id] : null;
+      if (!s0) {
+        idx0 = idxCompatible(sinLugar, escritorioP);
+        s0 = idx0 >= 0 ? sinLugar[idx0] : null;
+      }
+      if (!s0) continue;
+
       const { pw, ph } = dimsPieza(s0, 0);
       for (const s of puestosDe(c, h, pw, ph, byId[c.id]?.nombre)) {
-        if (!libres.length && !sinLugar.length) break;
+        const idxLibre = idxCompatible(libres, escritorioP, pw, ph);
+        const idxPend = idxCompatible(sinLugar, escritorioP, pw, ph);
+        if (idxLibre < 0 && idxPend < 0) break;
+
         const caja = { x: s.x, y: s.y, w: pw, d: ph };
         const dentro = caja.x >= 0 && caja.y >= 0
           && caja.x + caja.w <= (A.ancho || 0) && caja.y + caja.d <= (A.largo || 0);
         if (!dentro) continue;
         if (fijas.some((v) => choca(caja, v, 0))) continue;
         if (puestas.some((v) => choca(caja, v, 40))) continue;
-        if (libres.length) {
-          let idx = libres.findIndex((cc) => { const d = dimsPieza(byId[cc.id], 0); return d.pw === pw && d.ph === ph; });
-          if (idx === -1) idx = 0;
-          const silla = libres.splice(idx, 1)[0];
+
+        if (idxLibre >= 0) {
+          const silla = libres.splice(idxLibre, 1)[0];
           silla.x = caja.x; silla.y = caja.y; silla.rot = 0;
           silla.contra = `escritorio:${c.id}`;
           silla.anchor_id = c.id;
         } else {
-          let idx = sinLugar.findIndex((cc) => { const d = dimsPieza(cc, 0); return d.pw === pw && d.ph === ph; });
-          if (idx === -1) idx = 0;
-          const nueva = sinLugar.splice(idx, 1)[0];
+          const nueva = sinLugar.splice(idxPend, 1)[0];
           out.push({
             id: nueva.id, area: i, x: caja.x, y: caja.y, rot: 0,
             contra: `escritorio:${c.id}`, anchor_id: c.id,
@@ -159,7 +198,6 @@ export function sentarSillas(colocacion, piezas, areas) {
         }
         puestas.push(caja);
       }
-      if (!libres.length && !sinLugar.length) break;
     }
   }
   return out;
