@@ -25,7 +25,7 @@ const masReciente = (filas) =>
  */
 export function renderEstaValidado(f, hashesActuales = null) {
   if (!f || f.stale) return false;
-  if (!f.geometry_hash) return false; // fail-closed: validado sin identidad geométrica no es canónico
+  if (!f.spec_hash || !f.geometry_hash) return false; // fail-closed: sin identidad de spec + geometría no es canónico
   if (hashesActuales && typeof hashesActuales === 'object') {
     for (const k of ['geometry_hash', 'bom_hash', 'material_hash', 'layout_hash']) {
       if (hashesActuales[k] == null) continue;
