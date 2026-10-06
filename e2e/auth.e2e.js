@@ -58,6 +58,44 @@ test.describe('E2E autenticado · flujo real', () => {
     }
   });
 
+
+  test('ACOMODO abre sin errores de runtime y nunca inventa que el programa está completo', async ({ page }) => {
+    const pageErrors = [];
+    page.on('pageerror', (e) => pageErrors.push(String(e?.message || e)));
+
+    await page.getByRole('button', { name: /Acomodo/i }).first().click();
+    await expect(
+      page.getByText(/Áreas del proyecto|Tu cotización está vacía|Programa incompleto para acomodar|¿Dónde van estos muebles\?/i).first()
+    ).toBeVisible({ timeout: 15000 });
+    expect(pageErrors).toEqual([]);
+  });
+
+  test('salidas de propuesta: descarga PDF real e imprimir responde cuando hay proyecto', async ({ page }) => {
+    await page.getByRole('button', { name: /Proyecto actual/i }).click();
+    const descargar = page.getByRole('button', { name: /Descargar (PDF|BORRADOR)/i });
+    const imprimir = page.getByRole('button', { name: /Imprimir( BORRADOR)?/i });
+
+    if (!(await descargar.count())) {
+      test.info().annotations.push({ type: 'nota', description: 'Proyecto vacío: no hay documento que emitir en esta cuenta.' });
+      return;
+    }
+
+    await expect(descargar).toBeEnabled();
+    const dl = await Promise.all([
+      page.waitForEvent('download', { timeout: 20000 }),
+      descargar.click(),
+    ]).then(([d]) => d);
+    expect((await dl.suggestedFilename()).toLowerCase()).toMatch(/\.pdf$/);
+
+    await page.evaluate(() => {
+      window.__vhPrintCalled = false;
+      window.vhPrint = () => { window.__vhPrintCalled = true; };
+    });
+    await expect(imprimir).toBeEnabled();
+    await imprimir.click();
+    await expect.poll(() => page.evaluate(() => window.__vhPrintCalled)).toBe(true);
+  });
+
   test('cotización: botones de salida nunca quedan muertos cuando existe un proyecto', async ({ page }) => {
     const actual = page.getByRole('button', { name: /Proyecto actual/i });
     await actual.click();
