@@ -85,7 +85,7 @@ describe('lo que se guarda', () => {
     // Este test codificaba ese bug; ahora exige el total emitido real. FIX-05.
     expect(f.total).toBe(96351.92);
     expect(f.total).not.toBe(2 * 17600 + 12 * 5210); // ya no es la suma cruda
-    expect(f.totales.total).toBe(96352);             // el desglose cuadra con el total
+    expect(f.totales.total).toBe(96351.92);             // el desglose cuadra con el total
     expect(f.piezas).toBe(14);
     expect(f.usuario).toBe('rodrigo@vonhaucke.mx');
   });
