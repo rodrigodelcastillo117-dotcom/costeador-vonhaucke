@@ -55,3 +55,19 @@ describe('N20 — hechos de Dirección', () => {
     expect(h.proyectosActivos).toBe(1);
   });
 });
+
+
+describe('Dirección · montos desconocidos no son cero', () => {
+  it('una ganada sin total deja montoGanado desconocido', () => {
+    const h=hechosDireccion({
+      proyectos:[
+        {etapa:'GANADA',total_final:500000},
+        {etapa:'GANADA',total_final:null},
+      ],
+    });
+    expect(h.ganadas).toBe(2);
+    expect(h.montoGanado).toBeNull();
+    expect(h.montoGanadoConocido).toBe(500000);
+    expect(h.ganadasSinTotal).toBe(1);
+  });
+});
