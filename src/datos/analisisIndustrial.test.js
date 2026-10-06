@@ -44,3 +44,44 @@ it('integra oportunidades de desarrollo de producto en el análisis industrial',
   expect(r.recomendaciones.some(x=>x.tipo==='REPETIBILIDAD')).toBe(true);
   expect(r.recomendaciones.filter(x=>x.tipo==='REPETIBILIDAD').every(x=>x.ahorro_certificado===false)).toBe(true);
 });
+
+
+  it('PTR con metros agregados pide lista de cortes, no inventa nesting 1D',()=>{
+    const r=analizarProductoIndustrial({
+      bom:[{nombre:'Estructura',insumoId:'ptr',procedencia:'MEASURED'}],
+      costing:{costoUnitario:800,detalleInsumos:[{
+        nombre:'PTR 1x2',
+        optimizacionCorte1D:{disponible:false,issues:['SIN_PIEZAS_LINEALES'],advisory:true},
+      }]}
+    });
+    const rec=r.recomendaciones.find(x=>x.tipo==='DESPIECE_LINEAL');
+    expect(rec).toBeTruthy();
+    expect(rec.accion).toMatch(/largos por pieza/i);
+    expect(rec.ahorro_certificado).toBe(false);
+  });
+
+  it('corte 1D explícito reporta eficiencia advisory',()=>{
+    const r=analizarProductoIndustrial({
+      bom:[{nombre:'Pata',insumoId:'ptr',procedencia:'MEASURED'}],
+      costing:{costoUnitario:800,detalleInsumos:[{
+        nombre:'PTR',
+        optimizacionCorte1D:{disponible:true,eficiencia_pct:60,tramos:2,piezas_colocadas:4,issues:[],advisory:true},
+      }]}
+    });
+    expect(r.hallazgos.some(x=>x.tipo==='CORTE_1D'&&x.eficiencia_pct===60)).toBe(true);
+    expect(r.recomendaciones.some(x=>x.tipo==='EFICIENCIA_CORTE_1D')).toBe(true);
+  });
+
+  it('pieza lineal mayor al tramo aparece como bloqueo físico',()=>{
+    const r=analizarProductoIndustrial({
+      bom:[{nombre:'Travesaño',insumoId:'ptr',procedencia:'MEASURED'}],
+      costing:{costoUnitario:800,detalleInsumos:[{
+        nombre:'PTR',
+        optimizacionCorte1D:{
+          disponible:true,eficiencia_pct:0,tramos:0,piezas_colocadas:0,
+          issues:[{code:'PIEZA_NO_CABE',id:'Travesaño#1',largo:6500,util_mm:6000}],advisory:true,
+        },
+      }]}
+    });
+    expect(r.bloqueos.some(x=>x.code==='PIEZA_LINEAL_NO_CABE')).toBe(true);
+  });
