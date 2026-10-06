@@ -19,7 +19,7 @@ describe('edge spatial intelligence · hardening no negociable', () => {
     expect(s).toContain('PLACEMENT_INVARIANT_BROKEN');
     expect(s).toContain('planearDeterminista');
     expect(s).toContain('deterministicPass');
-    expect(s).toContain('for (let intento = 1; intento <= (deterministicPass ? 0 : 2); intento++');
+    expect(s).toContain('for (let intento = 1; intento <= (deterministicPass ? 0 : 3); intento++');
     expect(s).toContain('bloqueaPuertaEspacial');
     expect(s).toContain('FUNCTIONAL_CLEARANCE');
     expect(s).toContain('auditarPuertas');
