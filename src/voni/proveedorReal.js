@@ -18,6 +18,7 @@ import { hoyNecesitaAtencion, hechosDireccion } from '../datos/atencion.js';
 import { diffRevisiones } from '../datos/diffRevisiones.js';
 import { conocimientoDe } from './conocimiento.js';
 import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
+import { buscarMaterialTecnico, describirFormatoTecnico } from '../datos/materialKnowledge.js';
 
 const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
 
@@ -126,6 +127,17 @@ export const proveedorReal = {
       return { disponible:false, nota:'Abre o selecciona un producto con BOM/costeo para analizarlo industrialmente.' };
     }
     return { disponible:true, ...analizarProductoIndustrial({ bom, costing }) };
+  },
+  get_material_technical: async (ctx, args) => {
+    const items = buscarMaterialTecnico(ctx.materialesTecnicos || [], args?.query || '');
+    return {
+      disponible: items.length > 0,
+      items: items.map((m) => ({
+        ...m,
+        formato_texto: describirFormatoTecnico(m),
+      })),
+      nota: items.length ? null : 'No encontré un material técnico coincidente en el catálogo cargado.',
+    };
   },
   // Conocimiento del catálogo Von Haucke (líneas, materiales, a la medida). Usa la
   // consulta del usuario (args.query) para recomendar/explicar. No es económico.
