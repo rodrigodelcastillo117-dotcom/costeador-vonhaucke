@@ -143,5 +143,10 @@ export default function CocrearVisual({spec,intent}){
           ? `MODELO TÉCNICO EXPLOTADO · ${tecnico.status} · ${tecnico.issues?.length||0} pieza(s)/dato(s) pendientes.`
           : 'SECUENCIA 4D PRELIMINAR · DERIVED · no equivale todavía a routing certificado de Producción/Intelisis.'}
     </div>
+    {/* Referencia ENSAMBLADA fija para el render IA. No depende de la pestaña
+        visible; evita que una vista explotada/4D se mande por accidente. */}
+    <div data-view="render-reference" aria-hidden="true" style={{position:'absolute',left:'-10000px',top:0,width:600,height:330,overflow:'hidden',pointerEvents:'none'}}>
+      <Orbit3D solids={solids} height={330} showControls={false} label="Referencia ensamblada de render"/>
+    </div>
   </div>;
 }
