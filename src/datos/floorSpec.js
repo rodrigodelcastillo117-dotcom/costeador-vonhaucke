@@ -185,14 +185,43 @@ export function validarFloorSpec(spec = {}) {
   // Mobiliario DENTRO de su zona; fixtures no son sillas; cantidades coherentes.
   const obs = Array.isArray(spec.furniture_observations) ? spec.furniture_observations : [];
   const zonaPorId = new Map(zonas.map((z) => [z.id, z]));
+  const idsObs = new Set();
   for (const o of obs) {
-    if (o.semantic_role === ROL.FIXTURE) continue; // fixtures no se validan como mueble
-    const z = zonaPorId.get(o.zone_id);
-    const poly = z && (z.polygon || z.puntos);
-    if (poly && o.center && !puntoEnPoligono(o.center, poly)) {
-      issues.push({ code: 'MUEBLE_FUERA_DE_ZONA', msg: `Mueble ${o.id} fuera de su zona ${o.zone_id}.` });
+    const oid = o?.id != null ? String(o.id) : '';
+    if (!oid) {
+      issues.push({ code: 'MUEBLE_SIN_ID', msg: 'Hay una observación de mobiliario sin id.' });
+    } else if (idsObs.has(oid)) {
+      issues.push({ code: 'MUEBLE_ID_DUPLICADO', msg: `Mueble ${oid} aparece más de una vez.` });
+    } else {
+      idsObs.add(oid);
     }
-    if (Number(o.quantity_group ?? 1) <= 0) issues.push({ code: 'CANTIDAD_INVALIDA', msg: `Mueble ${o.id} con cantidad no positiva.` });
+
+    const z = zonaPorId.get(o.zone_id);
+    if (!z) {
+      issues.push({ code: 'ZONA_REFERENCIADA_INEXISTENTE', msg: `Mueble ${o.id || '?'} refiere una zona inexistente (${o.zone_id || 'sin zone_id'}).` });
+      continue;
+    }
+
+    if (Number(o.quantity_group ?? 1) <= 0) {
+      issues.push({ code: 'CANTIDAD_INVALIDA', msg: `Mueble ${o.id} con cantidad no positiva.` });
+    }
+
+    if (o.semantic_role !== ROL.FIXTURE) {
+      const poly = z.polygon || z.puntos;
+      if (poly && o.center && !puntoEnPoligono(o.center, poly)) {
+        issues.push({ code: 'MUEBLE_FUERA_DE_ZONA', msg: `Mueble ${o.id} fuera de su zona ${o.zone_id}.` });
+      }
+
+      // Semántica dura: una observación ya clasificada no puede contradecir una
+      // zona inequívoca. "Mesa de juntas en sanitario" no es un dato válido.
+      const zonaTipo = zonaSemantica(z.name || z.nombre || '');
+      if (!zonaPermite(o.semantic_role, zonaTipo)) {
+        issues.push({
+          code: 'ROL_NO_PERTENECE_A_ZONA',
+          msg: `Mueble ${o.id} (${o.semantic_role}) no pertenece a ${z.name || z.nombre || o.zone_id}.`,
+        });
+      }
+    }
   }
 
   return { status: issues.length === 0 ? 'VALID' : 'INVALID', issues, area_m2: env.area_m2 };
