@@ -984,18 +984,24 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     const payload = {
       areas: areasMM,
       plan,
-      layoutValidado: !!layoutListo,
-      layoutEstado: layout?.status || null,
-      layoutMotivo: motivoLayout || null,
-      // Un render de un acomodo inválido puede quedarse visible como PRELIMINAR,
-      // pero nunca viajar a la propuesta/PDF como si fuera final.
-      ...(layoutListo && stagingUrl ? { render3d: stagingUrl } : {}),
+      layoutEspacialValidado: !!layoutListo,
+      layoutValidado: !!layoutPublicable,
+      layoutEstado: programaPropuesto ? 'SUGGESTIONS_PENDING' : (layout?.status || null),
+      layoutMotivo: programaPropuesto
+        ? `${nSugeridasPendientes} pieza(s) sugerida(s) pendientes de confirmar/cotizar.`
+        : (motivoLayout || null),
+      sugerenciasPendientes: sugerenciasPendientes.map((p) => ({ id:p.id, nombre:p.nombre, cantidad:p.cantidad, zonaSugerida:p.zonaSugerida || null })),
+      // El render con sugerencias es PREVIEW. Sólo viaja al PDF final cuando
+      // todas las piezas quedaron confirmadas/cotizadas y el layout es válido.
+      ...(layoutPublicable && stagingUrl ? { render3d: stagingUrl } : {}),
     };
     onGuardarAcomodo(payload);
-    setGuardadoValido(!!layoutListo);
+    setGuardadoValido(!!layoutPublicable);
     setGuardado(true);
-    if (!layoutListo) {
-      setError(`Borrador guardado. No se mostrará como acomodo final en la propuesta hasta corregir: ${motivoLayout || 'validación pendiente'}.`);
+    if (!layoutPublicable) {
+      setError(programaPropuesto
+        ? `Borrador guardado. El acomodo puede estar espacialmente correcto, pero faltan confirmar/cotizar ${nSugeridasPendientes} pieza(s) sugerida(s).`
+        : `Borrador guardado. No se mostrará como acomodo final en la propuesta hasta corregir: ${motivoLayout || 'validación pendiente'}.`);
     }
   }
 
@@ -1015,14 +1021,26 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   }
   function guardarStaging() {
     if (!onGuardarAcomodo || !stagingUrl) return;
-    if (!layoutListo) {
-      onGuardarAcomodo({ areas: areasMM, plan: plan || null, layoutValidado: false, layoutEstado: layout?.status || null, layoutMotivo: motivoLayout || null });
+    if (!layoutPublicable) {
+      onGuardarAcomodo({
+        areas: areasMM,
+        plan: plan || null,
+        layoutEspacialValidado: !!layoutListo,
+        layoutValidado: false,
+        layoutEstado: programaPropuesto ? 'SUGGESTIONS_PENDING' : (layout?.status || null),
+        layoutMotivo: programaPropuesto
+          ? `${nSugeridasPendientes} pieza(s) sugerida(s) pendientes de confirmar/cotizar.`
+          : (motivoLayout || null),
+        sugerenciasPendientes: sugerenciasPendientes.map((p) => ({ id:p.id, nombre:p.nombre, cantidad:p.cantidad, zonaSugerida:p.zonaSugerida || null })),
+      });
       setGuardadoValido(false);
       setGuardado(true);
-      setErrStaging(`Guardé el acomodo como borrador, pero NO el render final: ${motivoLayout || 'la validación espacial sigue pendiente'}.`);
+      setErrStaging(programaPropuesto
+        ? `Guardé el acomodo como borrador. El render queda PRELIMINAR porque faltan confirmar/cotizar ${nSugeridasPendientes} pieza(s).`
+        : `Guardé el acomodo como borrador, pero NO el render final: ${motivoLayout || 'la validación espacial sigue pendiente'}.`);
       return;
     }
-    onGuardarAcomodo({ areas: areasMM, plan: plan || null, render3d: stagingUrl, layoutValidado: true, layoutEstado: layout?.status || 'LAYOUT_VALID' });
+    onGuardarAcomodo({ areas: areasMM, plan: plan || null, render3d: stagingUrl, layoutEspacialValidado: true, layoutValidado: true, layoutEstado: layout?.status || 'LAYOUT_VALID', sugerenciasPendientes: [] });
     setGuardadoValido(true);
     setGuardado(true);
   }
