@@ -24,6 +24,18 @@ export function evaluarAcomodoCliente(acomodo, partidas=[]) {
   if (!acomodo?.plan) return { existe:false, mostrar:false, valido:true, estado:'SIN_ACOMODO', razones:[] };
 
   const plan=acomodo.plan;
+  const floorState=String(acomodo?.floorSpec?.validation?.state || '');
+  if (floorState && floorState !== 'PASS') {
+    return {
+      existe:true, mostrar:false, valido:false, estado:'FLOOR_SPEC_' + floorState,
+      razones:[
+        floorState === 'REVIEW_REQUIRED' ? 'la lectura del plano requiere revisión' : 'la lectura del plano no pasó validación',
+        ...(acomodo?.floorSpec?.validation?.warnings || []).slice(0,3).map(w=>w?.message || w?.code).filter(Boolean),
+        ...(acomodo?.floorSpec?.validation?.issues || []).slice(0,3).map(w=>w?.msg || w?.message || w?.code).filter(Boolean),
+      ],
+      source:'FLOOR_SPEC_V2',
+    };
+  }
   const areas=areasMM(acomodo);
   const piezas=expandirPiezas(partidas);
   const byId=mapaPiezas(piezas);
