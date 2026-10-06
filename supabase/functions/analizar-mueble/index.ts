@@ -96,6 +96,29 @@ const SCHEMA = {
   required: ["producto", "tipo", "piezas", "descripcionCliente", "materiales", "volumenAsumido", "confianzaGeneral", "informe", "preguntas", "design_intent"],
 };
 
+const RESTRICCIONES_SCHEMA_NO_SOPORTADAS = new Set([
+  "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf",
+  "minLength", "maxLength", "maxItems",
+]);
+
+// Anthropic Structured Outputs no acepta varias restricciones JSON Schema.
+// La función usa fetch directo (sin SDK que las quite automáticamente), así que
+// saneamos SIEMPRE el schema antes de enviarlo. Esto evita que una mejora de
+// validación vuelva a tumbar Costear con un 400/502.
+function sanearSchemaClaude(valor: any): any {
+  if (Array.isArray(valor)) return valor.map(sanearSchemaClaude);
+  if (!valor || typeof valor !== "object") return valor;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(valor)) {
+    if (RESTRICCIONES_SCHEMA_NO_SOPORTADAS.has(k)) continue;
+    // minItems sólo admite 0 o 1; para cualquier otro valor es más seguro
+    // retirarlo y validar la cardinalidad en nuestra capa determinista.
+    if (k === "minItems" && ![0, 1].includes(Number(v))) continue;
+    out[k] = sanearSchemaClaude(v);
+  }
+  return out;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ ok: false, error: "Usa POST" }, 405);
@@ -191,6 +214,11 @@ Deno.serve(async (req) => {
   const cerrarTel = async (status: string, http: number, extra: Record<string, unknown> = {}) => {
     if (evId == null) return;
     try { await svc.from("ai_eventos").update({ status, http_status: http, finished_at: new Date().toISOString(), duration_ms: Date.now() - t0, ...extra }).eq("id", evId); } catch (_e) { /* noop */ }
+  };
+
+  const fallarAnalisis = async (code: string, mensaje: string, http = 502, modelStatus = "error") => {
+    await cerrarTel("error", http, { model_status: modelStatus, error_code: code });
+    return json({ ok: false, code, error: mensaje, request_id: requestId }, http);
   };
 
   // CATÁLOGO CANÓNICO server-side = AUTORIDAD. El catálogo que manda el cliente ya
@@ -296,7 +324,10 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           model: "claude-opus-5",
           max_tokens: maxTok,
-          output_config: { effort: esRevision ? "low" : "medium", format: { type: "json_schema", schema } },
+          output_config: {
+            effort: esRevision ? "low" : "medium",
+            format: { type: "json_schema", schema: sanearSchemaClaude(schema) },
+          },
           system: sys + (esRevision
             ? "\nREVISION COMPACTA: corrige BOM/cotas/material_match y sé mínimo en informe/notas; no reescribas una auditoría larga."
             : "\nPRIORIDAD DE SALIDA: BOM completo y correcto > informe. Informe máximo ~900 palabras; razonamiento por pieza en una sola línea."),
@@ -304,7 +335,21 @@ Deno.serve(async (req) => {
         }),
         signal: ac.signal,
       });
-      return await r.json();
+      const raw = await r.text();
+      let data: any = null;
+      try { data = raw ? JSON.parse(raw) : null; }
+      catch {
+        const err: any = new Error(`Respuesta no JSON del proveedor (HTTP ${r.status}).`);
+        err.code = "PROVIDER_INVALID_JSON"; err.http = r.status || 502;
+        throw err;
+      }
+      if (!r.ok) {
+        const err: any = new Error(data?.error?.message || `Proveedor respondió HTTP ${r.status}.`);
+        err.code = String(data?.error?.type || data?.error?.code || "PROVIDER_HTTP_ERROR");
+        err.http = r.status;
+        throw err;
+      }
+      return data;
     } finally { clearTimeout(timer); }
   };
 
@@ -312,10 +357,21 @@ Deno.serve(async (req) => {
   const MAX_TOK = esRevision ? 6000 : 10000;
   let data: any;
   try { data = await pedir(SCHEMA, system, MAX_TOK); }
-  catch (e) { return json({ ok: false, error: "No se pudo llamar a Claude: " + String(e) }, 502); }
+  catch (e: any) {
+    const code = e?.name === "AbortError" ? "PROVIDER_TIMEOUT" : String(e?.code || "CLAUDE_API_ERROR");
+    const mensaje = code === "PROVIDER_TIMEOUT"
+      ? "El análisis tardó demasiado. Intenta de nuevo o analiza menos hojas."
+      : "No se pudo analizar el archivo con IA. Reintenta; si persiste, sube una sola hoja.";
+    return await fallarAnalisis(code, mensaje, 502, String(e?.code || e?.name || "provider_error"));
+  }
 
-  if (data?.type === "error") return json({ ok: false, error: data.error?.message || "Error de la API" }, 502);
-  if (data?.stop_reason === "refusal") return json({ ok: false, error: "La IA no pudo analizar esta imagen." }, 200);
+  if (data?.type === "error") {
+    return await fallarAnalisis("CLAUDE_API_ERROR", data.error?.message || "Error de la API", 502, String(data?.error?.type || "api_error"));
+  }
+  if (data?.stop_reason === "refusal") {
+    await cerrarTel("refused", 200, { model_status: "refusal", error_code: "MODEL_REFUSAL" });
+    return json({ ok: false, code: "MODEL_REFUSAL", error: "La IA no pudo analizar esta imagen.", request_id: requestId }, 200);
+  }
 
   // REINTENTO COMPACTO: si aún se cortó, re-pide SIN el 'informe' (lo más pesado) y con
   // razonamiento/nota breves, garantizando que el DESPIECE (lo que necesita el costeo y el
@@ -326,15 +382,23 @@ Deno.serve(async (req) => {
       "\n\nIMPORTANTE: la respuesta anterior se CORTÓ por larga. Esta vez OMITE 'informe' (déjalo '' o muy corto), " +
       "sé BREVE en 'razonamiento' y 'nota' (media línea cada uno) y ASEGÚRATE de CERRAR el JSON completo con TODO el despiece de piezas.";
     try { data = await pedir(schemaCompacto, sysCompacto, MAX_TOK); }
-    catch (e) { return json({ ok: false, error: "No se pudo llamar a Claude: " + String(e) }, 502); }
-    if (data?.stop_reason === "max_tokens")
-      return json({ ok: false, error: "El plano es muy extenso y el despiece no cupo aun compactando. Sube menos hojas a la vez, o súbelo por partes." }, 200);
+    catch (e: any) {
+      const code = e?.name === "AbortError" ? "PROVIDER_TIMEOUT" : String(e?.code || "CLAUDE_API_ERROR");
+      return await fallarAnalisis(code, "No se pudo completar el reintento compacto. Analiza menos hojas.", 502, String(e?.code || e?.name || "provider_error"));
+    }
+    if (data?.stop_reason === "max_tokens") {
+      await cerrarTel("partial", 200, { model_status: "max_tokens", error_code: "MODEL_TRUNCATED" });
+      return json({ ok: false, code: "MODEL_TRUNCATED", error: "El plano es muy extenso y el despiece no cupo aun compactando. Sube menos hojas a la vez, o súbelo por partes.", request_id: requestId }, 200);
+    }
   }
 
   const texto = (data?.content || []).find((b: any) => b.type === "text")?.text || "";
   let propuesta: any;
   try { propuesta = JSON.parse(texto); }
-  catch { return json({ ok: false, error: "La IA no devolvio un analisis valido (JSON incompleto). Reintenta." }, 200); }
+  catch {
+    await cerrarTel("error", 200, { model_status: String(data?.stop_reason || "invalid_json"), error_code: "INVALID_MODEL_JSON" });
+    return json({ ok: false, code: "INVALID_MODEL_JSON", error: "La IA no devolvio un analisis valido (JSON incompleto). Reintenta.", request_id: requestId }, 200);
+  }
 
   await cerrarTel("ok", 200, { model_status: String(data?.stop_reason || "ok") });
   // #8: la fuente del catálogo viaja al cliente. 'cliente-fallback' => el canónico no
