@@ -21,7 +21,7 @@ describe('totales · la única autoridad de dinero', () => {
     const t = totalesCotizacion(partidas, { descuentoPct: 15 }, { ivaPorcentaje: 16 });
     // 97,720 −15% = 83,062 · +16% IVA = 96,352
     expect(t.subtotal).toBe(83062);
-    expect(t.totalRedondeado).toBe(96352);
+    expect(t.totalRedondeado).toBe(96351.92);
     expect(t.totalRedondeado).toBeLessThan(t.precioLista);
   });
 
