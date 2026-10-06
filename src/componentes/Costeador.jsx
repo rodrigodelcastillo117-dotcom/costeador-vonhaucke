@@ -704,6 +704,47 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             de catálogo/Intelisis la hoja usa la lista ×3 y este override no aplica.) */}
         <HojaCosto resultado={resultado} insumos={insumos} pieza={piezaVirtual} parametros={{ ...par, margenObjetivo: margen }} tipo={costeo.tipoProducto} mostrarVolumen={puedeVerComercial} mostrarComercial={puedeVerComercial} />
 
+        <details className="tarjeta" open style={{ marginTop: 12, borderLeft:'4px solid #5b4636' }}>
+          <summary style={{ cursor:'pointer', fontWeight:800 }}>Así calculé este mueble · auditoría matemática</summary>
+          <div className="ayuda" style={{ marginTop:6 }}>{explicacionCosteo.ecuacion}</div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:6,marginTop:10}}>
+            <div><div className="ayuda">Material directo</div><strong>{pesos2(explicacionCosteo.matematicas.material_directo)}</strong></div>
+            <div><div className="ayuda">Material indirecto</div><strong>{pesos2(explicacionCosteo.matematicas.material_indirecto)}</strong></div>
+            <div><div className="ayuda">Mano de obra</div><strong>{pesos2(explicacionCosteo.matematicas.mano_obra)}</strong></div>
+            <div><div className="ayuda">Indirectos fábrica</div><strong>{pesos2(explicacionCosteo.matematicas.indirectos_fabrica)}</strong></div>
+            <div><div className="ayuda">Preparación + empaque</div><strong>{pesos2((explicacionCosteo.matematicas.preparacion||0)+(explicacionCosteo.matematicas.empaque||0))}</strong></div>
+            <div><div className="ayuda">Costo unitario</div><strong>{pesos2(explicacionCosteo.matematicas.costo_unitario||0)}</strong></div>
+          </div>
+          <div className="ayuda" style={{marginTop:8}}>
+            Fórmula: <b>{explicacionCosteo.formula}</b>
+            {explicacionCosteo.modelo ? <><span> · modelo </span><b>{explicacionCosteo.modelo}</b></> : null}
+            {explicacionCosteo.matematicas.merma_proceso_pct ? <><span> · merma proceso </span><b>{explicacionCosteo.matematicas.merma_proceso_pct}%</b></> : null}
+            {explicacionCosteo.corte ? <><span> · kerf </span><b>{explicacionCosteo.corte.kerfMM} mm</b><span> · recorte </span><b>{explicacionCosteo.corte.recorteOrillaMM} mm</b></> : null}
+          </div>
+          {explicacionCosteo.supuestos.map((s,i)=><div key={'xsu'+i} className="alerta ambar" style={{marginTop:7}}><span className="texto">⚠ {s}</span></div>)}
+          {explicacionCosteo.bloqueos.map((s,i)=><div key={'xbl'+i} className="alerta roja" style={{marginTop:7}}><span className="texto">✕ {s}</span></div>)}
+          {!!explicacionCosteo.insumos.length && (
+            <div style={{marginTop:10}}>
+              <div className="etiqueta">Material por material</div>
+              {explicacionCosteo.insumos.map((x)=>(
+                <div key={x.id||x.nombre} style={{padding:'7px 0',borderTop:'1px solid var(--linea)'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',gap:8}}>
+                    <strong style={{fontSize:12}}>{x.nombre}</strong><span className="mono">{pesos2(x.costo||0)}</span>
+                  </div>
+                  <div className="ayuda">
+                    {x.metodo ? x.metodo.replace(/_/g,' ').toLowerCase() : 'método no etiquetado'}
+                    {x.tipo_alba ? <><span> · Alba: </span>{x.tipo_alba}</> : null}
+                    {x.desperdicio_pct!=null ? <><span> · desperdicio </span>{x.desperdicio_pct}%</> : null}
+                    {x.corte_2d?.eficiencia_pct!=null ? <><span> · nesting 2D </span>{x.corte_2d.eficiencia_pct}%</> : null}
+                    {x.corte_1d?.eficiencia_pct!=null ? <><span> · corte 1D </span>{x.corte_1d.eficiencia_pct}%</> : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="ayuda gris" style={{marginTop:8}}>{explicacionCosteo.nota}</div>
+        </details>
+
         <div className="tarjeta" style={{ marginTop: 12, borderLeft: '4px solid #315e52' }}>
           <div className="fila" style={{ justifyContent:'space-between', gap:8, alignItems:'start' }}>
             <div>
