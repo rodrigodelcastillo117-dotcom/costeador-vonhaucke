@@ -83,9 +83,11 @@ describe('Cocrear render fidelity · fail-closed', () => {
     const { renderStale } = await import('./renderPrompt.js');
     expect(renderStale({ dataUrl: 'https://example.test/r.png' }, { hash: 'spec-actual' })).toBe(true);
   });
-  it('misma firma sigue vigente', async () => {
-    const { renderStale } = await import('./renderPrompt.js');
-    expect(renderStale({ specHash: 'abc' }, { hash: 'abc' })).toBe(false);
+  it('misma firma de spec + misma firma visual sigue vigente', async () => {
+    const { renderStale, compileRenderPrompt } = await import('./renderPrompt.js');
+    const spec = { hash:'abc', familia:'mesa', dimensiones:{ancho_mm:1200}, materiales:[], acabados:[], caracteristicas:[], capacidad:null, componentes:[] };
+    const c = compileRenderPrompt(spec, {});
+    expect(renderStale({ specHash:'abc', visualRevisionHash:c.visualRevisionHash }, spec)).toBe(false);
   });
   it('firma distinta queda stale', async () => {
     const { renderStale } = await import('./renderPrompt.js');
