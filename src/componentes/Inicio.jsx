@@ -271,20 +271,18 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
           <div className="atajos-lbl">¿Ya sabes qué quieres? Ve directo</div>
           <div className="atajos">
             <button className="atajo" onClick={() => setVista('cotizarlinea')}>
-              Cotizar de línea <span>un mueble, con su precio</span>
-            </button>
-            <button className="atajo" onClick={() => onIr('banco')}>
-              Banco de precios <span>lo ya vendido, con precio real</span>
+              Cotizar un mueble <span>búscalo y agrégalo con su precio</span>
             </button>
             <button className="atajo" onClick={() => onIr('archivo')}>
-              Presupuestos que ya hicimos <span>ábrelos otra vez</span>
+              Abrir una cotización <span>retoma un presupuesto anterior</span>
             </button>
             <button className="atajo" onClick={() => onIr(veCostos ? 'costeador' : 'asistente')}>
-              Especial a la medida <span>lo que no está en catálogo</span>
+              Producto a la medida <span>cuando no existe en catálogo</span>
             </button>
-            {/* Costear ya NO vive aquí: subió a puerta grande, arriba. */}
+            {/* Las herramientas secundarias siguen disponibles, pero no compiten
+                con los tres trabajos que un usuario nuevo sí reconoce. */}
             <button className="atajo atajo-mas" onClick={() => setVista('cotizar')}>
-              Ver todo lo de cotizar →
+              Más herramientas →
             </button>
           </div>
         </div>
