@@ -30,7 +30,11 @@ jobs:
         run: ls -lh dist/index.html
 
   e2e:
+    name: E2E público + autenticado si hay cuenta de prueba
     runs-on: ubuntu-latest
+    env:
+      TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
+      TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -38,7 +42,18 @@ jobs:
           node-version: '22'
           cache: 'npm'
       - run: npm ci
+      - name: Estado de certificación autenticada
+        shell: bash
+        run: |
+          if [[ -n "$TEST_EMAIL" && -n "$TEST_PASSWORD" ]]; then
+            echo "### ✅ AUTH E2E CERTIFICADO EN ESTA CORRIDA" >> "$GITHUB_STEP_SUMMARY"
+            echo "Se ejecutarán login, Cocrear y Cotizar con la cuenta de prueba." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning title=AUTH E2E NO CERTIFICADO::Faltan TEST_EMAIL/TEST_PASSWORD. Esta corrida sólo certifica smoke público; los tests autenticados quedan skipped."
+            echo "### ⚠️ AUTH E2E NO CERTIFICADO" >> "$GITHUB_STEP_SUMMARY"
+            echo "Faltan los secrets TEST_EMAIL / TEST_PASSWORD. Un check verde de este job NO certifica login/Cocrear/Cotizar autenticados." >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Instalar navegador de Playwright
         run: npx playwright install --with-deps chromium
-      - name: E2E (smoke)
+      - name: E2E público + auth condicional
         run: npm run e2e
