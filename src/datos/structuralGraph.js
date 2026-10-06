@@ -106,6 +106,9 @@ export function graphFromPropuesta(propuesta = {}) {
       processes: [],
       source: 'ai',
       confidence: conf,
+      evidence_state: p.procedencia || null,
+      evidence: p.evidencia || '',
+      evidence_page: Number.isInteger(Number(p.pagina)) ? Number(p.pagina) : null,
       assumptions: [],
       // Pide confirmación si no hay material o si el LLM no está seguro.
       requires_confirmation: !p.insumoId || norm(p.confianza) === 'baja',
@@ -225,6 +228,9 @@ export function structuralGraphToBom(graph) {
     semantic_role: n.semantic_role,
     source: n.source || 'ai',
     confidence: n.confidence ?? null,
+    procedencia: n.evidence_state || null,
+    evidencia: n.evidence || '',
+    pagina: n.evidence_page ?? null,
     requiere_confirmacion: !!n.requires_confirmation,
   }));
   return { ok: true, filas };
