@@ -1,0 +1,30 @@
+import {describe,it,expect} from 'vitest';
+import { evaluarAcomodoCliente, cotizacionSinAcomodoNoValidado } from './acomodoCliente.js';
+
+describe('gate de acomodo para cliente',()=>{
+  const partidas=[{id:'p1',nombre:'Escritorio operativo',cantidad:1,w:1200,d:600}];
+  it('sin acomodo no bloquea la cotización',()=>{
+    expect(evaluarAcomodoCliente(null,partidas)).toMatchObject({valido:true,mostrar:false,estado:'SIN_ACOMODO'});
+  });
+  it('PlacementSpec PASS sí puede mostrarse',()=>{
+    const a={areas:[{nombre:'ÁREA OPERATIVA',ancho:4000,largo:4000}],plan:{
+      colocacion:[{id:'p1-1',area:0,x:500,y:500,rot:0}],
+      strictPlacement:true,render_ready:true,
+      layoutSpec:{status:'PASS',validation:{render_ready:true,invariant_ok:true}}
+    }};
+    expect(evaluarAcomodoCliente(a,partidas).mostrar).toBe(true);
+  });
+  it('layout local aunque se vea sano no se vende como validado espacial',()=>{
+    const a={areas:[{nombre:'ÁREA OPERATIVA',ancho:4000,largo:4000}],plan:{colocacion:[{id:'p1-1',area:0,x:500,y:500,rot:0}]}};
+    const g=evaluarAcomodoCliente(a,partidas);
+    expect(g.mostrar).toBe(false);
+    expect(g.estado).toBe('LEGACY_REQUIERE_VALIDACION_ESPACIAL');
+  });
+  it('un layout no validado se omite del documento, sin borrar el original',()=>{
+    const a={areas:[{nombre:'ÁREA OPERATIVA',ancho:4000,largo:4000}],plan:{colocacion:[]}};
+    const cot={folio:'X',acomodo:a};
+    const r=cotizacionSinAcomodoNoValidado(cot,partidas);
+    expect(r.cot.acomodo).toBeNull();
+    expect(cot.acomodo).toBe(a);
+  });
+});
