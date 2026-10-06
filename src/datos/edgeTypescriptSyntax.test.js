@@ -25,4 +25,8 @@ describe('edge functions · TypeScript parse smoke', () => {
   it('leer-plano-core v2 parsea completo', async () => {
     await parseTs('supabase/functions/leer-plano-core/index.ts');
   });
+
+  it('voni-council parsea completo y queda source-controlled', async () => {
+    await parseTs('supabase/functions/voni-council/index.ts');
+  });
 });
