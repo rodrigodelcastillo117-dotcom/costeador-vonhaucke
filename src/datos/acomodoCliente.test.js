@@ -28,3 +28,32 @@ describe('gate de acomodo para cliente',()=>{
     expect(cot.acomodo).toBe(a);
   });
 });
+
+
+describe('gate FloorSpec + PlacementSpec',()=>{
+  const partidas=[{id:'p1',nombre:'Escritorio operativo',cantidad:1,w:1200,d:600}];
+  const basePlan={
+    colocacion:[{id:'p1-1',area:0,x:500,y:500,rot:0}],
+    strictPlacement:true,render_ready:true,
+    layoutSpec:{status:'PASS',validation:{render_ready:true,invariant_ok:true}}
+  };
+  it('FloorSpec REVIEW_REQUIRED mantiene fuera el layout aunque Placement sea PASS',()=>{
+    const a={
+      areas:[{nombre:'ÁREA OPERATIVA',ancho:4000,largo:4000}],
+      floorSpec:{validation:{state:'REVIEW_REQUIRED',warnings:[{code:'DOOR_SWING_UNVERIFIED',message:'Puerta sin barrido verificado'}]}},
+      plan:basePlan,
+    };
+    const g=evaluarAcomodoCliente(a,partidas);
+    expect(g.mostrar).toBe(false);
+    expect(g.estado).toBe('FLOOR_SPEC_REVIEW_REQUIRED');
+    expect(g.razones.join(' ')).toMatch(/Puerta/i);
+  });
+  it('FloorSpec PASS + Placement PASS sí libera presentación',()=>{
+    const a={
+      areas:[{nombre:'ÁREA OPERATIVA',ancho:4000,largo:4000}],
+      floorSpec:{validation:{state:'PASS'}},
+      plan:basePlan,
+    };
+    expect(evaluarAcomodoCliente(a,partidas).mostrar).toBe(true);
+  });
+});
