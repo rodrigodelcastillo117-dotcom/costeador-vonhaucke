@@ -14,6 +14,51 @@ describe('gate de acomodo para cliente',()=>{
     }};
     expect(evaluarAcomodoCliente(a,partidas).mostrar).toBe(true);
   });
+
+  it('un plan legacy contaminado con IDs sug-* jamás llega al cliente',()=>{
+    const a={areas:[{nombre:'ÁREA OPERATIVA',ancho:4000,largo:4000}],plan:{
+      colocacion:[
+        {id:'p1-1',area:0,x:500,y:500,rot:0},
+        {id:'sug-bench-1',area:0,x:1800,y:500,rot:0},
+      ],
+      strictPlacement:true,render_ready:true,
+      layoutSpec:{status:'PASS',validation:{render_ready:true,invariant_ok:true}}
+    }};
+    const g=evaluarAcomodoCliente(a,partidas);
+    expect(g.mostrar).toBe(false);
+    expect(g.estado).toBe('PLAN_CONTAMINADO_SUGERIDOS');
+  });
+
+  it('una recomendación opcional NO bloquea un PlacementSpec PASS real',()=>{
+    const a={
+      areas:[{nombre:'ÁREA OPERATIVA',ancho:4000,largo:4000}],
+      sugerenciasPendientes:[{id:'sug-credenza',nombre:'Credenza opcional',cantidad:1}],
+      programaPropuesto:true,
+      plan:{
+        colocacion:[{id:'p1-1',area:0,x:500,y:500,rot:0}],
+        strictPlacement:true,render_ready:true,
+        layoutSpec:{status:'PASS',validation:{render_ready:true,invariant_ok:true}}
+      }
+    };
+    expect(evaluarAcomodoCliente(a,partidas).mostrar).toBe(true);
+  });
+
+  it('PROGRAM_INCOMPLETE sí bloquea aunque el plan aparente PASS',()=>{
+    const a={
+      areas:[{nombre:'ÁREA OPERATIVA',ancho:4000,largo:4000}],
+      layoutEstado:'PROGRAM_INCOMPLETE',
+      layoutMotivo:'falta bench operativo',
+      plan:{
+        colocacion:[{id:'p1-1',area:0,x:500,y:500,rot:0}],
+        strictPlacement:true,render_ready:true,
+        layoutSpec:{status:'PASS',validation:{render_ready:true,invariant_ok:true}}
+      }
+    };
+    const g=evaluarAcomodoCliente(a,partidas);
+    expect(g.mostrar).toBe(false);
+    expect(g.estado).toBe('PROGRAM_INCOMPLETE');
+  });
+
   it('layout local aunque se vea sano no se vende como validado espacial',()=>{
     const a={areas:[{nombre:'ÁREA OPERATIVA',ancho:4000,largo:4000}],plan:{colocacion:[{id:'p1-1',area:0,x:500,y:500,rot:0}]}};
     const g=evaluarAcomodoCliente(a,partidas);
