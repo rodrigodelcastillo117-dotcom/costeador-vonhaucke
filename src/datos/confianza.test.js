@@ -42,8 +42,8 @@ describe('qué tan firme es la propuesta', () => {
 
   it('una partida sin precio vuelve la confianza NO evaluable, no mejora el porcentaje', () => {
     const c=confianzaDe([
-      P('a',10000,1,true,'Firme'),
-      P('b',null,1,false,'Desconocida'),
+      {id:'a',precioUnitario:10000,cantidad:1,precioReal:true,linea:'Firme'},
+      {id:'b',precioUnitario:null,cantidad:1,precioReal:false,linea:'Desconocida'},
     ]);
     expect(c.pct).toBeNull();
     expect(c.completa).toBe(false);
@@ -52,7 +52,7 @@ describe('qué tan firme es la propuesta', () => {
   });
 
   it('cero real sigue siendo un número conocido, distinto de null', () => {
-    const c=confianzaDe([P('a',0,1,true,'Cero real')]);
+    const c=confianzaDe([{id:'a',precioUnitario:0,cantidad:1,precioReal:true,linea:'Cero real'}]);
     expect(c.completa).toBe(true);
     expect(c.pct).toBe(0);
   });
