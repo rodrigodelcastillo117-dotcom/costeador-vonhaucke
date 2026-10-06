@@ -137,3 +137,21 @@ describe('StructuralGraph · trazabilidad de evidencia', () => {
     expect(bom.filas[0].pagina).toBe(2);
   });
 });
+
+
+describe('StructuralGraph legacy · evidencia', () => {
+  it('graphFromBom conserva procedencia y marca inferencias para confirmación', () => {
+    const g = graphFromBom([{
+      nombre:'Cubierta', insumoId:'mdf18', piezas:1,
+      largoMM:1200, anchoMM:600,
+      procedencia:'INFERRED', evidencia:'vista isométrica', pagina:1,
+    }], { tipo:'escritorio' });
+    expect(g.nodes[0].evidence_state).toBe('INFERRED');
+    expect(g.nodes[0].evidence).toContain('isométrica');
+    expect(g.nodes[0].evidence_page).toBe(1);
+    expect(g.nodes[0].requires_confirmation).toBe(true);
+    const bom = structuralGraphToBom(g);
+    expect(bom.filas[0].procedencia).toBe('INFERRED');
+    expect(bom.filas[0].requiere_confirmacion).toBe(true);
+  });
+});
