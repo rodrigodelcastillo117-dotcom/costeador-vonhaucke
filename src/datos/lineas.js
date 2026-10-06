@@ -541,6 +541,10 @@ export function catalogoIA() {
         if (p.biombo) params.biombo = [null, 'cristal', 'melamina'];
         for (const sel of p.selects || []) params[sel.key] = sel.opciones.map((o) => o.id);
         if (p.finishes) params.finish = p.finishes.map((f) => f.id);
+        // Colores/acabados disponibles por producto. Antes VONI conocía el producto
+        // pero no veía sus colores reales, así que "Blanco Absoluto" o "Nogal Neo"
+        // terminaban como texto libre en vez de configuración trazable.
+        if (p.colores) params.color = p.colores.map((x) => x?.id || x).filter(Boolean);
         const checks = (p.checks || []).map((c) => c.key);
         return { id: p.id, nombre: p.nombre, params, checks };
       }),
