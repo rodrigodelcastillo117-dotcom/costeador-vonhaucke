@@ -144,7 +144,7 @@ export default function CocrearV2({estado,onAgregar}){
     prodId=reg.producto_id;versionId=reg.version_id;
     if(render&&!rStale){
       const rc=compileRenderPrompt(spec,spec.dna);
-      const geometryHash=hashEstable({familia:spec.familia,dimensiones:spec.dimensiones||{},caracteristicas:spec.caracteristicas||[],componentes:spec.componentes||[]});
+      const geometryHash=visualRevisionHash(spec);
       const up=await subirRenderCanonico({
         expedienteId:id,productoId:prodId,productoVersionId:versionId,
         dataUrl:render.dataUrl,promptVersion:render.version,modo:'render',
