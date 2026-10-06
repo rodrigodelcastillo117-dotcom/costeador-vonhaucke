@@ -23,6 +23,7 @@ import { renderSpecFromGraph } from '../datos/renderSpec.js';
 import { flagActivo } from '../datos/flags.js';
 import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
 import { recomendar as recomendarCatalogoVonHaucke } from '../voni/conocimiento.js';
+import { explicarCosteo } from '../datos/explicacionCosteo.js';
 
 const ATAJOS = [
   { nombre: 'Muy facil', v: 30 },
@@ -91,6 +92,10 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   const inteligenciaIndustrial = useMemo(
     () => analizarProductoIndustrial({ bom: costeo.componentes || [], costing: resultado }),
     [costeo.componentes, resultado],
+  );
+  const explicacionCosteo = useMemo(
+    () => explicarCosteo(resultado, { nombre: costeo.nombre, cantidad: costeo.piezas }),
+    [resultado, costeo.nombre, costeo.piezas],
   );
   // SIMULADOR vs OFICIAL (cutover 2026-10-02). El costo OFICIAL usa Alba (sin factores a
   // mano y sin horas). En cuanto el usuario fija un factorDirecta/Indirecta o usa modo
