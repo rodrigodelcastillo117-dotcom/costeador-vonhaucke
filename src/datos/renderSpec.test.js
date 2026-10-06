@@ -91,3 +91,27 @@ describe('Cocrear render fidelity · fail-closed', () => {
     expect(renderStale({ specHash: 'abc' }, { hash: 'def' })).toBe(true);
   });
 });
+
+
+describe('render visual revision contract', () => {
+  it('compileRenderPrompt carries the canonical visual signature', () => {
+    const spec = { hash:'spec-x', familia:'mesa', dimensiones:{ancho_mm:1200,prof_mm:600,alto_mm:750}, materiales:[{material:'nogal'}], acabados:[], caracteristicas:[], capacidad:{personas:4}, componentes:[] };
+    const r = compileRenderPrompt(spec, {});
+    expect(r.visualRevisionHash).toBeTruthy();
+  });
+
+  it('render without visual signature is stale against a current spec', () => {
+    const spec = { hash:'spec-x', familia:'mesa', dimensiones:{ancho_mm:1200,prof_mm:600,alto_mm:750}, materiales:[{material:'nogal'}], acabados:[], caracteristicas:[], capacidad:{personas:4}, componentes:[] };
+    expect(renderStale({specHash:'spec-x'}, spec)).toBe(true);
+  });
+
+  it('changing a material invalidates an otherwise matching render', () => {
+    const a = { hash:'spec-a', familia:'mesa', dimensiones:{ancho_mm:1200}, materiales:[{material:'nogal'}], acabados:[], caracteristicas:[], capacidad:null, componentes:[] };
+    const compiled = compileRenderPrompt(a, {});
+    const render = { specHash:'spec-a', visualRevisionHash:compiled.visualRevisionHash };
+    expect(renderStale(render, a)).toBe(false);
+    const b = { ...a, materiales:[{material:'roble'}] };
+    // specHash deliberately kept same to prove visual signature catches it too.
+    expect(renderStale(render, b)).toBe(true);
+  });
+});
