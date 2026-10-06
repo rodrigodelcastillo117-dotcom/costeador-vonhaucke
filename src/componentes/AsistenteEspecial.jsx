@@ -576,11 +576,22 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     }
   }
 
+  function requiereVerificacionVisual(propuesta, paginas = 1) {
+    if (!propuesta || typeof propuesta !== 'object') return false;
+    if (paginas > 1) return true; // varias vistas: conviene reconciliar cotas entre hojas
+    if (propuesta.confianzaGeneral !== 'alta') return true;
+    if ((propuesta.piezas || []).some((p) => p?.confianza === 'baja' || p?.material_match !== 'EXACT')) return true;
+    if ((propuesta.preguntas || []).some((q) => q?.impacto === 'alto')) return true;
+    if ((propuesta.design_intent?.missing_critical_data || []).length) return true;
+    return false;
+  }
+
   // Una imagen (render/hoja). Paso 1: analiza. Paso 2 (solo imágenes, no PDF crudo):
   // la IA verifica su propio despiece contra las cotas. Devuelve true si ok.
   async function analizarYLlenar(base64, mediaType, dataUrl, corridaId) {
     const v1 = await analizarRender(catalogoIA(), base64, mediaType);
-    if (!v1?.ok || mediaType === 'application/pdf') return aplicarPropuesta(v1, dataUrl, [base64], true, corridaId);
+    if (!v1?.ok || mediaType === 'application/pdf' || !requiereVerificacionVisual(v1.propuesta, 1))
+      return aplicarPropuesta(v1, dataUrl, [base64], true, corridaId);
     setVerificando(true);
     const v2 = await verificarDespiece(catalogoIA(), [base64], v1.propuesta);
     setVerificando(false);
@@ -591,7 +602,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // Varias hojas del mismo mueble (plano multipágina). Paso 1 analiza, paso 2 verifica.
   async function analizarImagenes(imagenes, dataUrlPreview, corridaId) {
     const v1 = await analizarRenderImagenes(catalogoIA(), imagenes);
-    if (!v1?.ok) return aplicarPropuesta(v1, dataUrlPreview, imagenes, true, corridaId);
+    if (!v1?.ok || !requiereVerificacionVisual(v1.propuesta, imagenes.length))
+      return aplicarPropuesta(v1, dataUrlPreview, imagenes, true, corridaId);
     setVerificando(true);
     const v2 = await verificarDespiece(catalogoIA(), imagenes, v1.propuesta);
     setVerificando(false);
