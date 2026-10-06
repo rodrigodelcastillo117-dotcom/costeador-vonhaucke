@@ -35,9 +35,14 @@ describe('STALE (DESACTUALIZADO)', () => {
     expect(estaDesactualizado(r, { bom_hash: 'b2', config_hash: 'c1' })).toBe(true);
     expect(evaluarRender(r, { bom_hash: 'b2' }).estado).toBe(ESTADOS_RENDER.DESACTUALIZADO);
   });
-  it('no marca falso-positivo cuando la huella actual es null', () => {
+  it('no marca falso-positivo cuando NO existe verdad actual para comparar', () => {
     const r = marcarListo(nuevoRender({ bom_hash: 'b1' }), 'u');
-    expect(estaDesactualizado(r, { config_hash: 'c9' })).toBe(false);
+    expect(estaDesactualizado(r, { config_hash: null })).toBe(false);
+  });
+
+  it('si sí existe config_hash actual y el render no lo trae, queda stale', () => {
+    const r = marcarListo(nuevoRender({ bom_hash: 'b1', config_hash: null }), 'u');
+    expect(estaDesactualizado(r, { config_hash: 'c9' })).toBe(true);
   });
   it('un render GENERANDO nunca está DESACTUALIZADO', () => {
     const r = marcarGenerando(nuevoRender({ bom_hash: 'b1' }));
