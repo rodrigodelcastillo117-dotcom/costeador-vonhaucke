@@ -5,6 +5,9 @@ import { hashEstable } from './cocrear.js';
 export function visualRevisionPayload(spec = {}) {
   return {
     familia: spec.familia || null,
+    concepto: spec.concepto || null,
+    layout_conceptual: spec.layout_conceptual || null,
+    tipologia_cocrear: spec.tipologia_cocrear || null,
     dimensiones: spec.dimensiones || {},
     materiales: spec.materiales || [],
     acabados: spec.acabados || [],
