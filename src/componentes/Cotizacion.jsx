@@ -156,6 +156,14 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
     return await subirRenderNube(dataUrl, path);
   }
 
+  // La Edge moderna YA persiste el render en Storage. Si devuelve URL/path,
+  // se usan directamente; sólo los fallbacks legacy data:image se vuelven a subir.
+  async function asegurarRenderPersistido(r, tipo = 'render') {
+    const url = r?.url || (String(r?.dataUrl || '').startsWith('http') ? r.dataUrl : null);
+    if (url) return { ok:true, url, path:r?.storagePath || r?.storage_path || null };
+    return await persistirRender(r?.dataUrl, tipo);
+  }
+
   // Adjuntar render 3D del acomodo: se reescala y se sube a Storage; el JSON de
   // la cotización sólo guarda la URL. Si Storage falla, NO persistimos base64.
   const subirRender = (file) => {
@@ -213,7 +221,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         setErrGen(r?.error || 'No se pudo generar el render.');
         return;
       }
-      const up = await persistirRender(r.dataUrl, 'partidas');
+      const up = await asegurarRenderPersistido(r, 'partidas');
       if (!up?.ok || !up?.url) {
         setErrGen(up?.error || 'Se generó el render, pero no se pudo guardar.');
         return;
@@ -235,7 +243,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           setErrGen(r?.error || `No se pudo generar el render de ${ps[i].nombre || 'una partida'}.`);
           continue;
         }
-        const up = await persistirRender(r.dataUrl, 'partidas');
+        const up = await asegurarRenderPersistido(r, 'partidas');
         if (!up?.ok || !up?.url) {
           setErrGen(up?.error || `No se pudo guardar el render de ${ps[i].nombre || 'una partida'}.`);
           continue;
