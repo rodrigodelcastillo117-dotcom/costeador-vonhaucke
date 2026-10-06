@@ -12,7 +12,8 @@
 // ============================================================================
 import { describe, it, expect } from 'vitest';
 import { validarIntentCosteo } from './validarIntentCosteo.js';
-import { calcular, modeloParaPieza, precioDe, PARAMETROS_DEFAULT } from '../motor/calculo.js';
+import { calcular, modeloParaPieza, precioDe, costeoEmitible, PARAMETROS_DEFAULT } from '../motor/calculo.js';
+import { dinero } from '../motor/dinero.js';
 
 // Config que "carga el servidor" (análogo a config.datos del edge). El cliente NUNCA
 // la manda: es la autoridad de costo. Insumo con formato → costo finito y determinista.
@@ -28,10 +29,10 @@ function costearComoServidor(body, { insumos = INSUMOS_SERVIDOR, parametros = PA
   const n = Math.max(1, Number(v.intent.cantidad) || 1);
   const { par } = modeloParaPieza(parametros, v.intent.pieza);
   const r = calcular(v.intent.pieza, n, insumos, par);
-  const margen = Number(parametros.margenObjetivo ?? 40);         // SERVIDOR, jamás el body
+  const margen = Number(parametros.margenObjetivo ?? 50);         // SERVIDOR, jamás el body
   const precioRaw = precioDe(r.costoUnitario, margen);
-  const precioFinito = Number.isFinite(precioRaw) ? Math.round(precioRaw) : null;
-  const incompleto = (r.componentesIgnorados || []).length > 0 || !(r.costoUnitario > 0);
+  const precioFinito = Number.isFinite(precioRaw) ? dinero(precioRaw) : null;
+  const incompleto = !costeoEmitible(r).emitible;
   return {
     status: 200,
     margenUsado: margen,
@@ -62,7 +63,7 @@ describe('costear-servidor (contrato shadow) — el dinero es del servidor', () 
     expect(r.status).toBe(200);
     expect(r.margenUsado).toBe(PARAMETROS_SERVIDOR.margenObjetivo);
     // precio = precioDe(costo, margenServidor), al centavo.
-    expect(r.precioVenta).toBe(Math.round(precioDe(r.costoUnitario, PARAMETROS_SERVIDOR.margenObjetivo)));
+    expect(r.precioVenta).toBe(dinero(precioDe(r.costoUnitario, PARAMETROS_SERVIDOR.margenObjetivo)));
   });
 
   it('independencia: un body con margen y otro sin él — el válido no cambia su precio por lo que mande el cliente', () => {
@@ -86,3 +87,29 @@ describe('costear-servidor (contrato shadow) — el dinero es del servidor', () 
     expect(r.precioVenta).toBeNull();
   });
 });
+
+
+  it('pieza que no cabe en el formato queda incompleta también en servidor', () => {
+    const r = costearComoServidor({
+      cantidad:1,
+      pieza:{ componentes:[{ insumoId:'tablero-x', nombre:'Cubierta imposible', largoMM:3000, anchoMM:1500, piezas:1 }] },
+    }, {
+      insumos:{
+        'tablero-x': {
+          nombre:'Tablero', seccion:'cubierta', clase:'directa', unidad:'hoja', precio:1000,
+          formato:{ medida:2.9768, largoMM:2440, anchoMM:1220 }, fraccion:true,
+        },
+      },
+      parametros:{...PARAMETROS_SERVIDOR, tableroLargoMM:2440, tableroAnchoMM:1220},
+    });
+    expect(r.status).toBe(200);
+    expect(r.precioVenta).toBeNull();
+  });
+
+  it('precio de servidor conserva centavos', () => {
+    const r = costearComoServidor(bodyValido(), {
+      parametros:{ ...PARAMETROS_SERVIDOR, margenObjetivo:37.5 },
+    });
+    expect(r.precioVenta).toBe(dinero(precioDe(r.costoUnitario, 37.5)));
+    expect(Number.isInteger(r.precioVenta * 100)).toBe(true);
+  });
