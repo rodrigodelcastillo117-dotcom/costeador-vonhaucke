@@ -8,8 +8,33 @@ function sanitize(v:unknown,s:boolean):unknown{if(!s)return v;if(Array.isArray(v
 function asJson(t:string){if(!t)return null;const x=t.trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/i,'').trim();try{return JSON.parse(x)}catch{}const a=x.indexOf('{'),b=x.lastIndexOf('}');if(a>=0&&b>a){try{return JSON.parse(x.slice(a,b+1))}catch{}}return null}
 function valid(x:any){return !!x&&typeof x==='object'&&typeof x.decision==='string'&&typeof x.summary==='string'&&Array.isArray(x.facts)&&Array.isArray(x.inferences)&&Array.isArray(x.recommendations)&&Array.isArray(x.questions)&&Array.isArray(x.proposed_actions)&&Array.isArray(x.blockers)}
 const RULES=`Devuelve exactamente el JSON solicitado. Sé conciso: máximo 5 hechos, 5 inferencias, 3 recomendaciones, 3 preguntas, 3 acciones propuestas y 5 bloqueos; cada texto debe ser breve. No inventes cifras ni capacidades; no certifiques ingeniería; separa hechos de inferencias; si falta evidencia crítica usa REQUIRES_VALIDATION o ASK_CRITICAL_QUESTION; no digas que una acción fue ejecutada porque aquí sólo razonas/propones. En proposed_actions.payload usa summary; no es ejecutable.`;
-function sys(task:string,role:string){return `Eres VONI Council, capa de razonamiento experta para Von Haucke. Tu salida NO ejecuta herramientas: propone y critica; el sistema determinista decide y ejecuta.\nTarea: ${task}. Rol del usuario: ${role}.\nPiensa como equipo de diseño, ingeniería, materiales, manufactura, costeo, space planning y comercial, activando sólo lo relevante.\nPrioriza seguridad, trazabilidad, manufacturabilidad, mantenimiento, claridad y valor económico. Nunca reveles economía interna si el contexto no la contiene.\n${RULES}`}
-function providerBudget(task:string){return task==='review_product'?22000:task==='interpret_change'?14000:18000}
+function sys(task:string,role:string){return `Eres VONI Council, capa de razonamiento experta para Von Haucke. Tu salida NO ejecuta herramientas: propone y critica; el sistema determinista decide y ejecuta.\nTarea: ${task}. Rol del usuario: ${role}.\nPiensa como equipo de diseño, ingeniería, materiales, manufactura, costeo, space planning y comercial, activando sólo lo relevante.\nERES FAN DE VON HAUCKE EN EL SENTIDO PROFESIONAL: conoces, proteges y aprovechas su portafolio, diseño, ingeniería, acabados, modularidad y capacidad a la medida. Antes de proponer algo genérico o un especial, busca primero una solución real de Von Haucke en el contexto recibido y explica por qué encaja.\nSer fan NO significa inventar: jamás atribuyas a Von Haucke una línea, acabado, capacidad, precio, proceso o desempeño que no esté respaldado por evidencia. Si falta evidencia, dilo y pide validación.\nProtege la intención de marca: funcional, fabricable, durable, mantenible, coherente con el ambiente y con nivel de detalle de un proyectista/costeador experto.\nPrioriza seguridad, trazabilidad, manufacturabilidad, mantenimiento, claridad y valor económico. Nunca reveles economía interna si el contexto no la contiene.\n${RULES}`}
+function providerBudget(task:string){
+  const byTask:Record<string,number>={
+    interpret_change:22000,
+    general:25000,
+    quote_review:42000,
+    cost_review:45000,
+    review_product:55000,
+    plan_review:55000,
+    layout_review:55000,
+  };
+  return byTask[task]||30000;
+}
+function budgetCouncil(task:string){
+  const byTask:Record<string,number>={
+    interpret_change:25000,
+    general:30000,
+    quote_review:50000,
+    cost_review:50000,
+    review_product:60000,
+    plan_review:60000,
+    layout_review:60000,
+  };
+  const env=Number(Deno.env.get('VONI_COUNCIL_MAX_MS')||60000);
+  const max=Math.min(60000,Math.max(20000,Number.isFinite(env)?env:60000));
+  return Math.min(max,byTask[task]||35000);
+}
 async function timeout<T>(ms:number,fn:(s:AbortSignal)=>Promise<T>){const a=new AbortController(),t=setTimeout(()=>a.abort(),ms);try{return await fn(a.signal)}finally{clearTimeout(t)}}
 async function anthropic(k:string,task:string,role:string,input:any){const model=Deno.env.get('ANTHROPIC_MODEL')||'claude-opus-5',t=Date.now();try{const j:any=await timeout(providerBudget(task),async signal=>{const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':k,'anthropic-version':'2023-06-01'},body:JSON.stringify({model,max_tokens:2600,system:sys(task,role),messages:[{role:'user',content:[{type:'text',text:JSON.stringify(input)}]}],output_config:{format:{type:'json_schema',schema:COUNCIL_SCHEMA}}}),signal});const x=await r.json();if(!r.ok||x?.type==='error')throw new Error(x?.error?.message||`Anthropic HTTP ${r.status}`);return x});const text=(j?.content||[]).filter((b:any)=>b.type==='text').map((b:any)=>b.text||'').join('');const out=asJson(text);if(!valid(out))throw new Error(`Anthropic salida estructurada inválida${j?.stop_reason?` (${j.stop_reason})`:''}`);return{provider:'anthropic',ok:true,model,ms:Date.now()-t,output:out}}catch(e){return{provider:'anthropic',ok:false,model,ms:Date.now()-t,error:String(e instanceof Error?e.message:e)}}}
 function geminiText(j:any){if(typeof j?.output_text==='string'&&j.output_text)return j.output_text;return (j?.steps||[]).filter((s:any)=>s?.type==='model_output').flatMap((s:any)=>s?.content||[]).filter((c:any)=>c?.type==='text').map((c:any)=>c?.text||'').join('')}
@@ -22,12 +47,10 @@ if(ak)calls.push(anthropic(ak,task,role,input));
 if(gk)calls.push(gemini(gk,task,role,input));
 if(ok)calls.push(openai(ok,task,role,input));
 
-// Presupuesto GLOBAL de UX. Un proveedor lento ya no arrastra toda la pantalla.
-// El resultado conserva fail-closed: una sola opinión => SINGLE_PROVIDER + confirmación;
-// ninguna => NO_PROVIDER/BLOCK. Los validadores deterministas siguen siendo obligatorios.
-// Rodrigo 2026-10-06: presupuesto global EXACTO de 20 s. Es techo, no espera mínima:
-// si todos responden antes, regresamos antes. No depende de un secret heredado.
-const councilBudget=20000;
+// Presupuesto GLOBAL DINÁMICO. No es espera mínima: si todos responden antes,
+// regresamos antes. Las tareas profundas (producto/plano/acomodo) pueden usar
+// hasta 60 s; una consulta o cambio simple conserva un techo mucho menor.
+const councilBudget=budgetCouncil(task);
 const completed:any[]=[];
 const tracked=calls.map((p)=>p.then((r)=>{completed.push(r);return r;}));
 let deadlineHit=false;
@@ -35,5 +58,5 @@ await Promise.race([
   Promise.all(tracked),
   new Promise<void>((resolve)=>setTimeout(()=>{deadlineHit=true;resolve();},councilBudget)),
 ]);
-const results=[...completed],council=consensus(results),latency=Date.now()-start;try{await svc.from('voni_council_events').insert({email,rol:role,task,providers:results.map(r=>({provider:r.provider,ok:r.ok,model:r.model||null,ms:r.ms,skipped:!!r.skipped,error:r.ok?null:String(r.error||'').slice(0,500)})),status:council.status,decision:council.decision,request_hash:hash(serialized),latency_ms:latency})}catch{}return json({ok:results.some(r=>r.ok),task,seller_safe:sellerSafe,council,opinions:results,latency_ms:latency,deadline_hit:deadlineHit,execution:'PROPOSAL_ONLY',deterministic_validation_required:true},results.some(r=>r.ok)?200:502)});
+const results=[...completed],council=consensus(results),latency=Date.now()-start;try{await svc.from('voni_council_events').insert({email,rol:role,task,providers:results.map(r=>({provider:r.provider,ok:r.ok,model:r.model||null,ms:r.ms,skipped:!!r.skipped,error:r.ok?null:String(r.error||'').slice(0,500)})),status:council.status,decision:council.decision,request_hash:hash(serialized),latency_ms:latency})}catch{}return json({ok:results.some(r=>r.ok),task,seller_safe:sellerSafe,council,opinions:results,latency_ms:latency,budget_ms:councilBudget,deadline_hit:deadlineHit,execution:'PROPOSAL_ONLY',deterministic_validation_required:true},results.some(r=>r.ok)?200:502)});
 function json(o:unknown,s=200){return new Response(JSON.stringify(o),{status:s,headers:{...CORS,'content-type':'application/json'}})}
