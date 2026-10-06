@@ -35,6 +35,7 @@ export function construirContexto(p = {}) {
     // tools para vendedor/cliente, así que esto nunca filtra economía.
     bom: p.bom ?? null,
     costing: p.costing ?? null,
+    materialesTecnicos: Array.isArray(p.materialesTecnicos) ? p.materialesTecnicos : [],
     // Trabajo VIVO del flujo principal (seller-safe + geometría del acomodo), para
     // que Voni analice lo que está EN PANTALLA, no sólo lo guardado en la BD
     // comercial. Si no se pasan aquí, el proveedor nunca los ve.
