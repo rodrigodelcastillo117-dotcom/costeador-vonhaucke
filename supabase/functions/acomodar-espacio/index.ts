@@ -370,7 +370,9 @@ Deno.serve(async (req) => {
   const detHard = best.issues.filter((q: any) => q.code !== "MISSING_PLACEMENT");
   const deterministicPass = detHard.length === 0 && best.unplaced.length === 0;
 
-  for (let intento = 1; intento <= (deterministicPass ? 0 : 2); intento++) {
+  let attemptsUsed = 0;
+  for (let intento = 1; intento <= (deterministicPass ? 0 : 3); intento++) {
+    attemptsUsed = intento;
     let plan: any;
     try {
       const system = baseSystem
@@ -428,7 +430,7 @@ Deno.serve(async (req) => {
       request_id: crypto.randomUUID(), fn: "acomodar-espacio", email, rol, modo: "repair-loop-v8",
       images_count: 0, payload_bytes: 0,
       status: status === "PASS" ? "ok" : status === "FAIL" ? "failed" : "partial",
-      http_status: 200, finished_at: new Date().toISOString(),
+      http_status: 200, attempts: Math.max(1, attemptsUsed), finished_at: new Date().toISOString(),
     });
   } catch (_e) {}
 
@@ -457,6 +459,7 @@ Deno.serve(async (req) => {
     recomendaciones,
     calidad: best.quality,
     puertas: best.doors,
-    metodo: deterministicPass ? "deterministic_semantic_spatial_v9" : "deterministic_first_ai_repair_v9",
+    attempts_used: attemptsUsed,
+    metodo: deterministicPass ? "deterministic_semantic_spatial_v10" : "deterministic_first_ai_repair_v10",
   }, 200);
 });
