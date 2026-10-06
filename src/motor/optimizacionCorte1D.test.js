@@ -26,6 +26,8 @@ describe('cutting stock 1D · perfiles/PTR advisory', () => {
     expect(r.piezas_colocadas).toBe(4);
     expect(r.largo_neto_mm).toBe(6000);
     expect(r.issues).toHaveLength(0);
+    expect(r.completo).toBe(true);
+    expect(r.certificable).toBe(false);
     expect(r.advisory).toBe(true);
   });
 
@@ -36,6 +38,8 @@ describe('cutting stock 1D · perfiles/PTR advisory', () => {
     });
     expect(r.piezas_colocadas).toBe(0);
     expect(r.issues[0].code).toBe('PIEZA_NO_CABE');
+    expect(r.completo).toBe(false);
+    expect(r.certificable).toBe(false);
   });
 
   it('mismo input produce exactamente el mismo plan', () => {
