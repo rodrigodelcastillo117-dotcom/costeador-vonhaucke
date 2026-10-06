@@ -132,3 +132,33 @@ describe('VH-017 — insumo presente SIN precio usable ⇒ pendiente, no $0', ()
     expect(costeoEmitible(r).costoTotal).toBeNull();
   });
 });
+
+
+describe('PENNIES + física de material · emisión', () => {
+  it('una pieza que no cabe en el formato de compra BLOQUEA emisión', () => {
+    const ins = {
+      hoja: {
+        id:'hoja', nombre:'MDF 18', seccion:'cubiertas', clase:'directa',
+        unidad:'hoja', precio:1000,
+        formato:{ medida:2.9768 }, fraccion:true,
+      },
+    };
+    const pieza = {
+      nombre:'Cubierta imposible',
+      componentes:[{ nombre:'Cubierta 1500x1500', insumoId:'hoja', largoMM:1500, anchoMM:1500, piezas:1 }],
+    };
+    const r = calcular(pieza, 1, ins, { ...par, tableroLargoMM:2440, tableroAnchoMM:1220 });
+    expect(r.detalleInsumos[0].noCabe).toBe(true);
+    const e = costeoEmitible(r);
+    expect(e.emitible).toBe(false);
+    expect(e.costoTotal).toBeNull();
+    expect(e.bloqueos.formato_incompatible.length).toBeGreaterThan(0);
+  });
+
+  it('un costo no finito jamás se vuelve costo autorizado', () => {
+    const e = costeoEmitible({ costoUnitario: Infinity, componentesIgnorados: [], detalleInsumos: [] });
+    expect(e.emitible).toBe(false);
+    expect(e.costoTotal).toBeNull();
+    expect(e.bloqueos.costo_invalido).toBe(true);
+  });
+});
