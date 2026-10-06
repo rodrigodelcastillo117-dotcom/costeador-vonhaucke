@@ -81,3 +81,25 @@ describe('layout · capacidad funcional de juntas', () => {
     expect(check.detalle).toMatch(/4\/8/);
   });
 });
+
+
+describe('layout · dos grupos de juntas en el mismo cuarto', () => {
+  it('cada silla explícitamente agrupada se liga sólo a su mesa', () => {
+    const reales = [
+      { id:'ma', nombre:'Mesa de juntas para 2 personas A', cantidad:1, w:1800, d:900, tipo:'juntas', functional_group_id:'fg-a', relation_role:'ANCHOR_MEETING' },
+      { id:'mb', nombre:'Mesa de juntas para 2 personas B', cantidad:1, w:1800, d:900, tipo:'juntas', functional_group_id:'fg-b', relation_role:'ANCHOR_MEETING' },
+      { id:'ca', nombre:'Silla de juntas A', cantidad:2, w:550, d:550, tipo:'asiento', nota:'sala de juntas', functional_group_id:'fg-a', relation_role:'MEETING_SEAT', anchor_role:'ANCHOR_MEETING' },
+      { id:'cb', nombre:'Silla de juntas B', cantidad:2, w:550, d:550, tipo:'asiento', nota:'sala de juntas', functional_group_id:'fg-b', relation_role:'MEETING_SEAT', anchor_role:'ANCHOR_MEETING' },
+    ];
+    const piezas = expandirPiezas(reales.map(marcarDestinoPartida));
+    const byId = mapaPiezas(piezas);
+    const areas = [{ nombre:'SALA JUNTAS', tipo:'juntas', ancho:9000, largo:6500 }];
+    const r = reacomodar({ areas, piezas, byId, ajustar:false });
+
+    for (const c of r.colocacion.filter((x) => /^ca-|^cb-/.test(String(x.id)))) {
+      const chairGroup = byId[c.id].functional_group_id;
+      const tableGroup = byId[c.anchor_id]?.functional_group_id;
+      expect(tableGroup).toBe(chairGroup);
+    }
+  });
+});
