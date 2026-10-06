@@ -225,16 +225,13 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
           </button>
         </div>
 
-        <div className="inicio-op-directos">
-          <button className="atajo" onClick={() => setVista('cotizarlinea')}>Cotizar de línea <span>producto conocido</span></button>
-          <button className="atajo" onClick={() => onIr('cotizacion')}>Proyecto actual <span>ver, imprimir o descargar</span></button>
-          <button className="atajo" onClick={() => onIr('acomodo')}>Acomodo <span>plano y distribución</span></button>
-          {veCostos && <button className="atajo" onClick={() => onIr('costeador')}>Costeo manual <span>despiece pieza por pieza</span></button>}
-        </div>
-
         <details className="inicio-op-mas">
           <summary>Más herramientas</summary>
           <div className="atajos">
+            <button className="atajo" onClick={() => setVista('cotizarlinea')}>Cotizar de línea <span>producto conocido</span></button>
+            {nPartidas > 0 && <button className="atajo" onClick={() => onIr('cotizacion')}>Proyecto actual <span>ver, imprimir o descargar</span></button>}
+            {nPartidas > 0 && <button className="atajo" onClick={() => onIr('acomodo')}>Acomodo <span>plano y distribución</span></button>}
+            {veCostos && <button className="atajo" onClick={() => onIr('costeador')}>Costeo manual <span>despiece pieza por pieza</span></button>}
             {flagActivo('commercial_v2') && <button className="atajo" onClick={() => onIr('comercial')}>Comercial · Proyectos <span>pipeline y propuestas</span></button>}
             <button className="atajo" onClick={() => onIr('cotizarIA')}>Cotizar varios con IA <span>varios muebles de un jalón</span></button>
             <button className="atajo" onClick={() => onIr('banco')}>Banco de precios <span>lo ya vendido</span></button>
