@@ -1150,10 +1150,13 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
               <button className="boton" style={{ marginTop: 6 }} onClick={reCostearConAlba}>Re-costear con método vigente (Alba V1)</button>
             </div>
           )}
-          {costoGuardado && aCentavosEnteros(costoGuardado.costoUnitario) !== aCentavosEnteros(resultado.costoUnitario) && (
+          {costoGuardado
+            && aCentavosEnteros(costoGuardado.costoUnitario) != null
+            && aCentavosEnteros(resultado.costoUnitario) != null
+            && aCentavosEnteros(costoGuardado.costoUnitario) !== aCentavosEnteros(resultado.costoUnitario) && (
             <div className="ayuda columna-texto" style={{ textAlign: 'left', marginTop: 6 }}>
               Re-costeo con catálogo de hoy: guardado {pesos2(costoGuardado.costoUnitario)} → hoy {pesos2(resultado.costoUnitario)}
-              {' '}(Δ {pesos2(dinero(resultado.costoUnitario - Number(costoGuardado.costoUnitario || 0)))}). Guarda para actualizar el expediente.
+              {' '}(Δ {pesos2(dinero(Number(resultado.costoUnitario) - Number(costoGuardado.costoUnitario)))}). Guarda para actualizar el expediente.
             </div>
           )}
 
