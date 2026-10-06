@@ -10,6 +10,12 @@ describe('Acomodo · publicación honesta',()=>{
     expect(s).toContain("layoutEstado: programaListo ? (serverStatus || layout?.status || null) : 'PROGRAM_INCOMPLETE'");
   });
 
+  it('plano real/multiárea exige PASS espacial de servidor; el fallback local no publica',()=>{
+    expect(s).toContain('const requiereValidacionServidor = planReal || areasMM.length > 1');
+    expect(s).toContain("serverStrict && serverStatus === 'PASS' && plan?.render_ready === true");
+    expect(s).toContain("'falta validación espacial del servidor'");
+  });
+
   it('la IA de acomodo tampoco puede saltarse el gate de programa',()=>{
     const i=s.indexOf('async function acomodarIA()');
     expect(s.slice(i,i+500)).toContain('if (!programaListo)');
