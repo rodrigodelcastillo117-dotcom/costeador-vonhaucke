@@ -158,13 +158,21 @@ export function sentarJuntas(plan = {}, piezas = [], areas = []) {
 
   automaticas.forEach((p, idx) => {
     const previa = porId.get(String(p.id));
-    const ordenMesas = [...mesas].sort((a, b) => {
+    const fg = p?.functional_group_id || null;
+    const mismaFamilia = fg ? mesas.filter((m) => m.p?.functional_group_id === fg) : [];
+    const mesasBase = fg
+      ? mismaFamilia                               // grupo explícito = vínculo duro
+      : mesas.filter((m) => !m.p?.functional_group_id); // sin grupo no roba mesas agrupadas
+    const candidatas = mesasBase.length ? mesasBase : (!fg ? mesas : []);
+
+    const ordenMesas = [...candidatas].sort((a, b) => {
       const pa = previa && a.area === Number(previa.area) ? -1000 : 0;
       const pb = previa && b.area === Number(previa.area) ? -1000 : 0;
       if (pa !== pb) return pa - pb;
-      const ia = mesas.indexOf(a), ib = mesas.indexOf(b);
-      const ra = (ia - (idx % mesas.length) + mesas.length) % mesas.length;
-      const rb = (ib - (idx % mesas.length) + mesas.length) % mesas.length;
+      const ia = candidatas.indexOf(a), ib = candidatas.indexOf(b);
+      const n = Math.max(1, candidatas.length);
+      const ra = (ia - (idx % n) + n) % n;
+      const rb = (ib - (idx % n) + n) % n;
       return ra - rb;
     });
 
