@@ -598,6 +598,7 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
       clase: insumo.clase || 'directa',
       unidad: insumo.unidad,
       formato: insumo.formato,
+      veta: !!insumo.veta,
       nombresComponentes: comps.map((c) => c.nombre).filter(Boolean),
       optimizacionCorte,
       optimizacionCorte1D,
