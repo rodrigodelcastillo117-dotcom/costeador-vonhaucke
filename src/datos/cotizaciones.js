@@ -22,6 +22,7 @@
 import { nube } from '../nube.js';
 import { totalesCotizacion } from './totales.js';
 import { MOTOR_VERSION } from '../motor/calculo.js';
+import { dinero } from '../motor/dinero.js';
 
 // ---------------------------------------------------------------------------
 //  HUELLA DE LA MATERIA PRIMA
@@ -142,13 +143,13 @@ export function paraGuardar(estado, usuario) {
       maniobrasPct: t.maniobrasPct,
       fletePct: t.fletePct,
       ivaPct: t.ivaPct,
-      precioLista: Math.round(t.precioLista),
-      descuento: Math.round(t.descuento),
-      subtotal: Math.round(t.subtotal),
-      contingencia: Math.round(t.contingencia),
-      maniobras: Math.round(t.maniobras),
-      flete: Math.round(t.flete),
-      iva: Math.round(t.iva),
+      precioLista: dinero(t.precioLista),
+      descuento: dinero(t.descuento),
+      subtotal: dinero(t.subtotal),
+      contingencia: dinero(t.contingencia),
+      maniobras: dinero(t.maniobras),
+      flete: dinero(t.flete),
+      iva: dinero(t.iva),
       total: t.totalRedondeado,
     },
     total: t.totalRedondeado,
@@ -256,7 +257,7 @@ export function referenciasParaVoni(cotizaciones, insumosHoy, tope = 40, parHoy)
       if (!vistos.has(k)) {
         vistos.set(k, {
           nombre: p.nombre,
-          precio: Math.round(p.precioUnitario),
+          precio: dinero(p.precioUnitario),
           cliente: c.cliente || null,
           fecha: (c.actualizado || c.creado || '').slice(0, 10),
           mpCambio: viejo,
