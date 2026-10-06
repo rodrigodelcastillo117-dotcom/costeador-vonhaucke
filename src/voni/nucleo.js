@@ -534,4 +534,4 @@ export function sugerencias(ctx = {}) {
   if((r==='costeador'||r==='diseno'||route==='costeador')&&!base.includes('¿Cómo lo mejoro para desperdiciar menos?')) base.push('¿Cómo lo mejoro para desperdiciar menos?');
   if(!base.includes('¿Qué línea me sirve?')) base.push('¿Qué línea me sirve?');
   return [...new Set(base)].slice(0,5);
-
+}
