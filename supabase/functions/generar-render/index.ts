@@ -15,6 +15,7 @@ const CORS = {
 
 // Motor visual premium. Override por secret = rollback instantáneo sin redeploy.
 const MODEL = Deno.env.get("GEMINI_IMAGE_MODEL") || "gemini-3-pro-image";
+const FALLBACK_MODEL = Deno.env.get("GEMINI_IMAGE_FALLBACK_MODEL") || "gemini-3.1-flash-image";
 const AUDIT_MODEL = Deno.env.get("GEMINI_RENDER_AUDIT_MODEL") || Deno.env.get("GEMINI_TEXT_MODEL") || "gemini-3.5-flash";
 
 Deno.serve(async (req) => {
@@ -319,7 +320,7 @@ Deno.serve(async (req) => {
   // Forma de retorno FIJA (nunca una unión de shapes distintos): así `r.error`
   // y `r.data` se pueden leer siempre, sin que TypeScript se queje de que uno
   // de los dos "no existe" en la otra rama.
-  async function llamarGemini(contents: any[], generationConfig: any): Promise<{ error: string | null; data: any }> {
+  async function llamarGemini(contents: any[], generationConfig: any, model = MODEL): Promise<{ error: string | null; data: any }> {
     let data: any;
     try {
       // TIMEOUT explícito (90 s): un render colgado no debe amarrar la función ni al usuario.
@@ -328,7 +329,7 @@ Deno.serve(async (req) => {
       let r;
       try {
         r = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
           { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ contents, generationConfig }), signal: ac.signal },
         );
       } finally { clearTimeout(timer); }
@@ -401,8 +402,16 @@ Deno.serve(async (req) => {
   const bytesN = [imagen, ...(Array.isArray(imagenes) ? imagenes : [])].filter(Boolean).reduce((s: number, i: any) => s + (typeof i === "string" ? i.length : 0), 0);
   try { await svc.from("render_eventos").insert({ request_id: requestId, email, rol, modo, imagenes: imgsN, bytes: bytesN, ms: Date.now() - t0 }); } catch (_e) { /* best-effort */ }
 
-  const r1 = await llamarGemini([{ role: "user", parts }], imageGenConfig);
-  if (r1.error) return json({ ok: false, code: "GEMINI_ERROR", error: r1.error, request_id: requestId }, 502);
+  let usedModel = MODEL;
+  let r1 = await llamarGemini([{ role: "user", parts }], imageGenConfig, usedModel);
+  // Resiliencia de proveedor: sólo degradamos si el MODELO premium no está
+  // disponible/soportado. No usamos fallback para errores de auth, quota o safety,
+  // porque esconderlos produciría costos/diagnósticos engañosos.
+  if (r1.error && FALLBACK_MODEL !== MODEL && /model.*(?:not found|unavailable|unsupported|not supported|does not exist)|404/i.test(r1.error)) {
+    usedModel = FALLBACK_MODEL;
+    r1 = await llamarGemini([{ role: "user", parts }], imageGenConfig, usedModel);
+  }
+  if (r1.error) return json({ ok: false, code: "GEMINI_ERROR", error: r1.error, request_id: requestId, model: usedModel }, 502);
   let outParts = r1.data?.candidates?.[0]?.content?.parts || [];
   let img = outParts.find((p: any) => p.inlineData?.data || p.inline_data?.data);
   let inline = img?.inlineData || img?.inline_data;
@@ -456,7 +465,7 @@ Deno.serve(async (req) => {
         "Regenerate the ENTIRE image from scratch: same room, same camera angle, same materials and lighting, but fix the count of floor-standing furniture so it is exactly correct. " +
         "If there were too many, remove the extras completely — do not just shrink or hide them. If there were too few, add the missing ones in the empty floor space, matching the style of the rest.";
       contents = [...contents, { role: "user", parts: [{ text: correccion }] }];
-      const ri = await llamarGemini(contents, imageGenConfig);
+      const ri = await llamarGemini(contents, imageGenConfig, usedModel);
       if (ri.error) return json({ ok: false, error: ri.error }, 502);
       outParts = ri.data?.candidates?.[0]?.content?.parts || [];
       img = outParts.find((p: any) => p.inlineData?.data || p.inline_data?.data);
@@ -498,11 +507,11 @@ Deno.serve(async (req) => {
     if (!up.error) {
       const pub = svc.storage.from("renders").getPublicUrl(storagePath);
       const url = pub?.data?.publicUrl || null;
-      if (url) return json({ ok: true, url, storagePath, mime, bytes: bytes.length, request_id: requestId, model: MODEL, image_size: imageSize, audit });
+      if (url) return json({ ok: true, url, storagePath, mime, bytes: bytes.length, request_id: requestId, model: usedModel, image_size: imageSize, audit });
     }
   } catch (_e) { /* fallback compatible abajo */ }
 
-  return json({ ok: true, dataUrl: `data:${mime};base64,${inline.data}`, storageFallback: true, request_id: requestId, model: MODEL, image_size: imageSize, audit });
+  return json({ ok: true, dataUrl: `data:${mime};base64,${inline.data}`, storageFallback: true, request_id: requestId, model: usedModel, image_size: imageSize, audit });
 });
 
 function json(obj: unknown, status = 200) {
