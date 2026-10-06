@@ -181,7 +181,10 @@ export async function guardarCotizacion(estado, usuario, id = null) {
     const { data, error } = await nube.from('cotizaciones').insert(fila).select('id').single();
     return error ? null : data.id;
   } catch (e) {
-    return id;
+    // Una excepción de red NO equivale a "guardado". Devolver el id anterior haría
+    // que un gate posterior verificara una versión vieja de la cotización viva.
+    // El trabajo sigue en estado local, pero la persistencia se reporta fallida.
+    return null;
   }
 }
 
