@@ -170,9 +170,11 @@ export const proveedorReal = {
       if(!rb.length) continue;
       const eco=ecoMap.get(Number(r.producto_version_id));
       const c=r.costo&&typeof r.costo==='object'?r.costo:{};
-      const costoEco=Number(eco?.costo_oficial_referencia);
-      const costoRev=Number(c.costoTotal ?? c.costoUnitario);
-      const completo=String(c.estado_costo||'').toLowerCase()==='completo' && Number.isFinite(costoRev);
+      const rawEco=eco?.costo_oficial_referencia;
+      const rawRev=c.costoTotal ?? c.costoUnitario;
+      const costoEco=rawEco==null||rawEco==='' ? NaN : Number(rawEco);
+      const costoRev=rawRev==null||rawRev==='' ? NaN : Number(rawRev);
+      const completo=String(c.estado_costo||'').toLowerCase()==='completo' && Number.isFinite(costoRev) && costoRev>=0;
       const tieneOficial=Number.isFinite(costoEco)&&costoEco>=0;
       if(!tieneOficial&&!completo) continue; // memoria económica sólo con verdad defendible
       const mt=mats(rb),tt=tokens(rb.map((x)=>x?.nombre));
