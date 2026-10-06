@@ -267,8 +267,17 @@ function rolCuarto(a, todos) {
   return rolCuartoBase(a, todos);
 }
 
+export function tipoAreaConfiable(a = {}) {
+  if (!a.tipo) return false;
+  const proc = String(a.procedencia || a.source || '').toUpperCase();
+  const conf = String(a.confianza || a.confidence || '').toLowerCase();
+  const debil = /INFERRED|ASSUMED|SUGGEST|ESTIMAD|AI_/.test(proc)
+    || ['baja', 'low'].includes(conf);
+  return !debil;
+}
+
 export function rolCuartoBase(a, todos) {
-  if (a.tipo) return a.tipo;
+  if (tipoAreaConfiable(a)) return a.tipo;
   const porNombre = rolArea(a.nombre);
   if (porNombre !== 'general') return porNombre;
   const m2 = (a.ancho * a.largo) / 1e6;
