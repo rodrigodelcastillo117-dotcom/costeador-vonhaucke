@@ -25,7 +25,9 @@ const EJEMPLOS=[
  'Módulo café corporativo premium con exhibición, barra, almacenamiento y luz integrada.',
 ];
 const clone=x=>JSON.parse(JSON.stringify(x));
-const money=(n,cur='MXN')=>Number.isFinite(Number(n))?new Intl.NumberFormat('es-MX',{style:'currency',currency:cur,maximumFractionDigits:0}).format(Number(n)):'—';
+const money=(n,cur='MXN')=>Number.isFinite(Number(n))
+ ? new Intl.NumberFormat('es-MX',{style:'currency',currency:cur,minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n))
+ : '—';
 const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 
 function councilText(r){
