@@ -72,7 +72,16 @@ export default function CocrearV2({estado,onAgregar}){
 
   useEffect(()=>{if(fase!=='inicio')return;let vivo=true;listarCocreaciones(12).then(r=>{if(vivo&&r?.ok)setGuardadas(r.items||[])}).catch(()=>{});return()=>{vivo=false}},[fase]);
   const reset=()=>{setFase('inicio');setIntent(null);setHistoria([]);setConceptos([]);setAnalisis(null);setAiError('');setRender(null);setMensaje('');setExpedienteId(null);setComparA(null)};
-  const commit=(next,label)=>{setIntent(next);setHistoria(h=>[...h,{rev:h.length+1,intent:clone(next),label}]);setGuardado(false)};
+  const commit=(next,label)=>{
+  setIntent(next);
+  setHistoria(h=>[...h,{rev:h.length+1,intent:clone(next),label}]);
+  setGuardado(false);
+  // Una revisión visual nueva jamás comparte pantalla con un render viejo.
+  // El 3D se deriva inmediatamente del spec; el fotográfico se regenera después.
+  setRender(null);
+  setRenderError('');
+  setCotizadoHash(null);
+ };
 
   const renderPayload=(sp,it)=>{
     const c=compileRenderPrompt(sp,sp.dna);
