@@ -32,7 +32,7 @@ export function soloCompartido(estado) {
 // economía). Ver RPC `config_para_rol` (SECURITY DEFINER, resuelve el rol por el JWT).
 // Así el costo NO viaja al navegador del vendedor por esta vía.
 export async function leerConfig() {
-  const { data, error } = await nube.rpc('config_para_rol');
+  const { data, error } = await lecturaProtegida(() => nube.rpc('config_para_rol'));
   if (error) throw error;
   return data || {};
 }
@@ -51,7 +51,9 @@ export async function escribirConfig(datosCompartidos) {
 // rol 'direccion' (se resuelve por el correo del que entro). Si un vendedor la
 // pide, no obtiene nada: no es que se le esconda en pantalla, es que no le llega.
 export async function leerDireccion() {
-  const { data, error } = await nube.from('direccion').select('datos').eq('id', 1).maybeSingle();
+  const { data, error } = await lecturaProtegida(
+    () => nube.from('direccion').select('datos').eq('id', 1).maybeSingle()
+  );
   if (error) { console.error('leerDireccion:', error); return null; }
   return data?.datos || null;
 }
@@ -93,7 +95,7 @@ export async function sesionActual({ refrescarSiVenceEnSeg = 45 } = {}) {
 
 // Para lecturas protegidas: ante un 401/JWT expirado, refresca UNA vez y reintenta.
 // No reintenta 403/RLS ni errores de negocio: esos deben seguir visibles.
-async function lecturaProtegida(operacion) {
+export async function lecturaProtegida(operacion) {
   let r = await operacion();
   const status = Number(r?.error?.status || r?.status || 0);
   const msg = String(r?.error?.message || '').toLowerCase();
