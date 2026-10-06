@@ -534,18 +534,4 @@ export function sugerencias(ctx = {}) {
   if((r==='costeador'||r==='diseno'||route==='costeador')&&!base.includes('¿Cómo lo mejoro para desperdiciar menos?')) base.push('¿Cómo lo mejoro para desperdiciar menos?');
   if(!base.includes('¿Qué línea me sirve?')) base.push('¿Qué línea me sirve?');
   return [...new Set(base)].slice(0,5);
-}) {
-  const base = [];
-  const r = ctx.role || 'ventas';
-  const hayTrabajo = ctx.project_id || ctx.quote_id || (ctx.partidasLocales && ctx.partidasLocales.length);
-  if (hayTrabajo) {
-    base.push('¿Está lista para enviarse?', '¿Qué falta?');
-    if (ctx.project_id || ctx.quote_id) base.push('¿Estamos en budget?');
-    if (ctx.revision_id) base.push('¿Qué cambió entre revisiones?');
-  }
-  if (r === 'direccion' || r === 'cfo') base.push('¿Qué necesita mi atención?');
-  if (r === 'costeador' || r === 'diseno') base.push('Analiza este mueble', '¿Cómo lo mejorarías para fabricar mejor y desperdiciar menos?');
-  if (!base.length) base.push('¿Qué necesita mi atención?', '¿Qué falta?');
-  base.push('¿Qué línea me sirve?');   // conocimiento de producto, útil para cualquiera
-  return base.slice(0, 5);
-}
+
