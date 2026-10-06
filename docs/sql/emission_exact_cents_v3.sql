@@ -147,6 +147,15 @@ begin
       -- Sólo legacy sin ProductVersion: nunca se confía en el costo del snapshot recibido;
       -- se usa exclusivamente el costo histórico persistido en la cotización.
       begin v_cost:=nullif(v_dbpt->>'costoUnitario','')::numeric; exception when others then v_cost:=null; end;
+
+      -- Las líneas nuevas del Costeador guardan el veredicto del servidor. Un costo
+      -- PRELIMINAR puede vivir en borrador, pero no convertirse en emisión definitiva.
+      -- Las cotizaciones legacy que no traen costoEstado conservan su tratamiento histórico.
+      if lower(coalesce(v_dbpt->>'costoEstado','')) = 'preliminar' then
+        v_econ_reasons:=array_append(v_econ_reasons,format('linea_%s_costo_preliminar_no_certificado',v_ord));
+      elsif lower(coalesce(v_dbpt->>'costoEstado','')) in ('incompleto','bloqueado') then
+        v_econ_reasons:=array_append(v_econ_reasons,format('linea_%s_costo_no_certificado',v_ord));
+      end if;
     end if;
 
     if v_cost is null or v_cost<=0 then
