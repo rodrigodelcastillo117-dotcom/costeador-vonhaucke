@@ -125,6 +125,33 @@ function obstacles(area: any) {
   })).filter((o: any) => [o.x,o.y,o.w,o.d].every(Number.isFinite) && o.w > 0 && o.d > 0);
 }
 
+function inferirGruposObvios(piezas:any[]=[]){
+  const ps=piezas.map((p:any)=>p);
+  const agrupar=(anchorRoleName:string, depRoles:string[], gid:string, anchorRel:string, depRel:string, maxDist:number)=>{
+    const anchors=ps.filter((p:any)=>p.product_role===anchorRoleName && !p.functional_group_id);
+    const deps=ps.filter((p:any)=>depRoles.includes(p.product_role) && !p.functional_group_id);
+    // Sólo inferimos cuando hay UN ancla inequívoca. Con dos benches/mesas sin
+    // relación explícita preferimos no adivinar.
+    if(anchors.length!==1 || !deps.length) return;
+    const a=anchors[0];
+    a.functional_group_id=gid;
+    a.relation_role=anchorRel;
+    if(anchorRoleName==='meeting_table' && !Number(a.user_capacity)) a.user_capacity=deps.length;
+    for(const p of deps){
+      p.functional_group_id=gid;
+      p.relation_role=depRel;
+      p.anchor_role=anchorRel;
+      if(!Number.isFinite(Number(p.max_anchor_distance_mm))) p.max_anchor_distance_mm=maxDist;
+    }
+  };
+  agrupar('meeting_table',['meeting_seat'],'auto-meeting','ANCHOR_MEETING','MEETING_SEAT',1700);
+  agrupar('bench',['work_seat'],'auto-operational','ANCHOR_WORK','WORK_SEAT',1500);
+  agrupar('workstation',['work_seat'],'auto-workstation','ANCHOR_WORK','WORK_SEAT',1500);
+  agrupar('executive_desk',['executive_seat','visitor_seat'],'auto-private','ANCHOR_PRIVATE','PRIVATE_SEAT',1700);
+  agrupar('reception_desk',['visitor_seat'],'auto-reception','ANCHOR_RECEPTION','VISITOR_SEAT',2200);
+  return ps;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ ok: false, code: "METHOD_NOT_ALLOWED", error: "Usa POST" }, 405);
@@ -214,7 +241,7 @@ Deno.serve(async (req) => {
       if (canonical) { p.spatial_spec = canonical; canonicalSpatialPieces++; }
     }
   }
-  const canonicalPieces = active.map((p: any) => pieceMap.get(String(p.id))).filter(Boolean);
+  const canonicalPieces = inferirGruposObvios(active.map((p: any) => pieceMap.get(String(p.id))).filter(Boolean));
 
   const cleanPieces = canonicalPieces.map((p: any) => ({
     id: String(p.id), nombre: String(p.nombre || "Mueble"),
@@ -398,6 +425,7 @@ Deno.serve(async (req) => {
     ? (best.unplaced.length ? "PARTIAL" : (best.reviews.length || !doorsVerified ? "REVIEW_REQUIRED" : "PASS"))
     : (best.placed ? "PARTIAL" : "FAIL");
   const noColocadas = motivosPorPieza(best);
+  const placementComplete = hardIssues.length === 0 && best.unplaced.length === 0;
   const renderReady = status === "PASS";
 
   const layoutSpec = {
@@ -429,7 +457,7 @@ Deno.serve(async (req) => {
     await svc.from("ai_eventos").insert({
       request_id: crypto.randomUUID(), fn: "acomodar-espacio", email, rol, modo: "repair-loop-v8",
       images_count: 0, payload_bytes: 0,
-      status: status === "PASS" ? "ok" : status === "FAIL" ? "failed" : "partial",
+      status: status === "PASS" ? "ok" : status === "REVIEW_REQUIRED" ? "review" : status === "FAIL" ? "failed" : "partial",
       http_status: 200, attempts: Math.max(1, attemptsUsed), finished_at: new Date().toISOString(),
     });
   } catch (_e) {}
@@ -437,7 +465,7 @@ Deno.serve(async (req) => {
   const planLimpio = {
     ...(best.plan || {}),
     colocacion: best.valid.filter((v: any) => best.placedIds.has(v.id)).map((v: any) => ({ id: v.id, area: v.area, x: v.x, y: v.y, rot: v.rot })),
-    caben: status === "PASS",
+    caben: placementComplete,
   };
   const recomendaciones = [
     ...(best.unplaced.length ? ["Mover a otra area · cambiar el producto por uno mas chico · acomodar a mano. No se reducen cantidades ni se inventan muebles."] : []),
@@ -451,7 +479,8 @@ Deno.serve(async (req) => {
     layoutSpec,
     strictPlacement: true,
     render_ready: renderReady,
-    completo: status === "PASS",
+    completo: placementComplete,
+    review_required: status === "REVIEW_REQUIRED",
     aprobable: renderReady,
     colocadas: best.placed,
     total: best.requested,
