@@ -14,7 +14,7 @@ import HojaCosto from './HojaCosto.jsx';
 import FichaPDF from './FichaPDF.jsx';
 import MiniRender, { tipoDeMueble, dimsDeMueble } from './MiniRender.jsx';
 import { generarRender, analizarTexto } from '../nube.js';
-import { pesos, pct, pct1, colorMerma } from '../util.js';
+import { pesos2, pct, pct1, colorMerma } from '../util.js';
 import AnalisisEstructural from './AnalisisEstructural.jsx';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
@@ -443,7 +443,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                       <label>Cantidad ({ins.unidad})<input type="number" className="numero" step="0.01" min="0" value={c.cantidad}
                         onChange={(e) => setCantidad(i, parseFloat(e.target.value) || 0)} /></label>
                     )}
-                    <span className="pieza-sub">{precioUsable(ins) ? pesos(costoPieza(c, ins, costeo.piezas)) : <strong style={{ color: '#B42318' }} title="Material sin precio: pendiente de capturar (no cuenta como $0)">Pendiente</strong>}</span>
+                    <span className="pieza-sub">{precioUsable(ins) ? pesos2(costoPieza(c, ins, costeo.piezas)) : <strong style={{ color: '#B42318' }} title="Material sin precio: pendiente de capturar (no cuenta como $0)">Pendiente</strong>}</span>
                   </div>
                 )}
                 {porHojaDir && c.hojas > 0 && (
@@ -509,20 +509,20 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                   </div>
                 </span>
                 <span className={`semaforo ${colorMerma(c.pct)}`}>{pct(c.pct)}</span>
-                <span className="sub">{pesos(c.desperdicio)}</span>
+                <span className="sub">{pesos2(c.desperdicio)}</span>
               </div>
             );
           })}
           {resultado.desperdicio > 0 && (
             <div className="fila-botones" style={{ justifyContent: 'space-between', marginTop: 10 }}>
               <strong>SE VA AL BOTE DE BASURA</strong>
-              <strong className="dinero rojo">{pesos(resultado.desperdicio)}</strong>
+              <strong className="dinero rojo">{pesos2(resultado.desperdicio)}</strong>
             </div>
           )}
           {sugerencia && (
             <div className="alerta ambar" style={{ marginTop: 12 }}>
               <span className="texto">
-                Si en vez de {costeo.piezas} haces {sugerencia.piezas}, cada pieza baja a {pesos(sugerencia.costoUnitario)} — {pesos(sugerencia.ahorroPorPieza)} menos.
+                Si en vez de {costeo.piezas} haces {sugerencia.piezas}, cada pieza baja a {pesos2(sugerencia.costoUnitario)} — {pesos2(sugerencia.ahorroPorPieza)} menos.
               </span>
               <button className="boton" onClick={() => set({ piezas: sugerencia.piezas })}>Cambiar a {sugerencia.piezas}</button>
             </div>
@@ -533,7 +533,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             <div className="alerta ambar" style={{ marginTop: 12 }} key={s.i}>
               <span className="texto">
                 Esta pieza de {(s.actual === 1) ? 'solo deja 1 pieza' : `${s.actual} piezas`} por tablero. Si el cliente acepta{' '}
-                <strong>{(s.mejor.largoMM / 1000).toFixed(2)} × {(s.mejor.anchoMM / 1000).toFixed(2)}</strong>, caben {s.mejor.piezasPorTablero} por tablero y el material baja de {pesos(s.costoAct)} a {pesos(s.costoNuevo)} por pieza.
+                <strong>{(s.mejor.largoMM / 1000).toFixed(2)} × {(s.mejor.anchoMM / 1000).toFixed(2)}</strong>, caben {s.mejor.piezasPorTablero} por tablero y el material baja de {pesos2(s.costoAct)} a {pesos2(s.costoNuevo)} por pieza.
               </span>
               <button className="boton" onClick={() => aplicarMedida(s.i, s.mejor.largoMM, s.mejor.anchoMM)}>
                 Usar {(s.mejor.largoMM / 1000).toFixed(2)}×{(s.mejor.anchoMM / 1000).toFixed(2)}
@@ -566,7 +566,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                     <span className="nom">{label}</span>
                     <input type="number" className="numero" step="0.01" min="0" value={h}
                       onChange={(e) => set({ horas: { ...costeo.horas, [area]: parseFloat(e.target.value) || 0 } })} />
-                    <span className="sub">{pesos(h * costoArea)}</span>
+                    <span className="sub">{pesos2(h * costoArea)}</span>
                   </div>
                 );
               })}
@@ -679,7 +679,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
               onChange={(e) => set({ margen: parseInt(e.target.value) })} style={{ flex: 1 }} />
             <span className="valor">{margen}%</span>
           </div>
-          <div className="precio-grande" style={incompletoC ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : pesos(precio)}</div>
+          <div className="precio-grande" style={incompletoC ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : pesos2(precio)}</div>
           <div className="ayuda">{incompletoC ? 'Sin precio: faltan partidas por costear.' : `Precio por pieza con ${margen}% de margen.`}</div>
           {incompletoC && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">⚠ Costo INCOMPLETO — faltan por costear {pendientesC.length} partida(s): {pendientesC.slice(0, 6).join(', ')}{pendientesC.length > 6 ? '…' : ''}. No se puede cotizar ni emitir.</span></div>}
           {!incompletoC && bajoMinimo && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">Debajo del minimo de {estado.parametros.margenMinimo}%.</span></div>}
@@ -699,8 +699,8 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
 
       {/* Barra fija inferior para pantallas angostas */}
       <div className="barra-fija no-imprimir">
-        <span>{simulando ? 'Simulación' : incompletoC ? 'Subtotal conocido' : 'Cuesta hacer 1 pieza'} <strong className="mono">{pesos(resultado.costoUnitario)}</strong></span>
-        <span className="precio-grande" style={(incompletoC || simulando) ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : simulando ? 'No oficial' : pesos(precio)}</span>
+        <span>{simulando ? 'Simulación' : incompletoC ? 'Subtotal conocido' : 'Cuesta hacer 1 pieza'} <strong className="mono">{pesos2(resultado.costoUnitario)}</strong></span>
+        <span className="precio-grande" style={(incompletoC || simulando) ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : simulando ? 'No oficial' : pesos2(precio)}</span>
       </div>
     </div>
   );
@@ -757,7 +757,7 @@ function GuiaManoObra({ resultado }) {
   return (
     <div style={{ marginTop: 12 }}>
       <div className="ayuda">
-        Con este factor, la mano de obra es <strong>{pesos(resultado.manoObra)}</strong> — {pct(moShare * 100)} del costo de fabricar.
+        Con este factor, la mano de obra es <strong>{pesos2(resultado.manoObra)}</strong> — {pct(moShare * 100)} del costo de fabricar.
       </div>
       {mezclaFloja && (
         <div className="alerta ambar" style={{ marginTop: 8 }}>
