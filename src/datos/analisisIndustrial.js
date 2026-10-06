@@ -6,6 +6,7 @@
 // Los ahorros del nesting son POTENCIALES/ADVISORY hasta validación de Producción.
 // ============================================================================
 import { auditarEvidenciaBOM } from './evidencia.js';
+import { diagnosticoDesarrolloProducto } from './desarrolloProducto.js';
 
 const n=(x)=>Number.isFinite(Number(x))?Number(x):null;
 const pct=(x)=>n(x)==null?null:Math.round(n(x)*10)/10;
@@ -13,6 +14,7 @@ const pct=(x)=>n(x)==null?null:Math.round(n(x)*10)/10;
 export function analizarProductoIndustrial({bom=[],costing=null}={}){
   const componentes=Array.isArray(bom)?bom:[];
   const evidencia=auditarEvidenciaBOM(componentes);
+  const desarrollo=diagnosticoDesarrolloProducto({ componentes });
   const detalles=Array.isArray(costing?.detalleInsumos)?costing.detalleInsumos:[];
   const hallazgos=[];
   const bloqueos=[];
@@ -81,6 +83,17 @@ export function analizarProductoIndustrial({bom=[],costing=null}={}){
     }
   }
 
+  for (const o of desarrollo.oportunidades || []) {
+    recomendaciones.push({
+      tipo: o.tipo,
+      prioridad: o.prioridad,
+      accion: o.recomendacion,
+      confianza: o.confianza,
+      evidencia: o.evidencia,
+      ahorro_certificado: false,
+    });
+  }
+
   const ignorados=Array.isArray(costing?.componentesIgnorados)?costing.componentesIgnorados:[];
   for(const x of ignorados){
     bloqueos.push({code:'COSTO_FALTANTE',titulo:'Componente sin costo',detalle:String(x)});
@@ -104,6 +117,7 @@ export function analizarProductoIndustrial({bom=[],costing=null}={}){
       certificable:evidencia.certificable,
       issues:(evidencia.issues||[]).length,
     },
+    desarrollo_producto: desarrollo,
     eficiencia:{
       corte_2d_global_pct:eficienciaGlobal,
       desperdicio_costo_calculado:desperdicioCosto,
