@@ -26,6 +26,10 @@ export const CODIGO = Object.freeze({
   FUNCTIONAL_CLEARANCE: 'FUNCTIONAL_CLEARANCE',
   DOOR_SWING_UNKNOWN: 'DOOR_SWING_UNKNOWN',
   NO_SPACE: 'NO_SPACE',
+  FUNCTIONAL_GROUP_SPLIT: 'FUNCTIONAL_GROUP_SPLIT',
+  MISSING_GROUP_ANCHOR: 'MISSING_GROUP_ANCHOR',
+  WRONG_GROUP_ANCHOR: 'WRONG_GROUP_ANCHOR',
+  GROUP_CAPACITY_INCOMPLETE: 'GROUP_CAPACITY_INCOMPLETE',
 });
 
 export function huellaConRot(pieza, rot) {
@@ -90,6 +94,123 @@ function agregarProblema(resultado, codigo, motivo) {
   if (!prev.includes(motivo)) prev.push(motivo);
   resultado.motivo = prev.join('; ');
   resultado.ok = false;
+}
+
+
+const grupoId = (p) => p?.functional_group_id || p?.functionalGroupId || null;
+const relationRole = (p) => String(p?.relation_role || p?.relationRole || '');
+const anchorRole = (p) => String(p?.anchor_role || p?.anchorRole || '');
+const esAnchor = (p) => /^ANCHOR_/.test(relationRole(p));
+
+function gruposFuncionales(piezas = []) {
+  const grupos = new Map();
+  for (const p of piezas || []) {
+    const gid = grupoId(p);
+    if (!gid) continue;
+    if (!grupos.has(String(gid))) grupos.set(String(gid), []);
+    grupos.get(String(gid)).push(p);
+  }
+  return grupos;
+}
+
+function anchorDelGrupo(miembros = [], esperado = '') {
+  const anchors = miembros.filter(esAnchor);
+  if (esperado) return anchors.find((p) => relationRole(p) === esperado) || null;
+  return anchors[0] || null;
+}
+
+function interseccionAreas(miembros = [], areas = []) {
+  const sets = miembros
+    .map((p) => Array.isArray(p.allowedAreas)
+      ? new Set(p.allowedAreas.map(Number).filter((x) => Number.isInteger(x) && areas[x]))
+      : null)
+    .filter(Boolean);
+  if (!sets.length) return areas.map((_, i) => i);
+  let out = [...sets[0]];
+  for (const s of sets.slice(1)) out = out.filter((x) => s.has(x));
+  return out;
+}
+
+/**
+ * Un grupo funcional es indivisible por ÁREA: anchor + dependientes comparten
+ * el mismo universo permitido. La posición exacta sigue siendo trabajo del solver.
+ */
+export function prepararGruposFuncionales(areas = [], piezas = []) {
+  const grupos = gruposFuncionales(piezas);
+  const byId = new Map(piezas.map((p) => [String(p.id), { ...p }]));
+  const issues = [];
+
+  for (const [gid, miembros0] of grupos) {
+    const miembros = miembros0.map((p) => byId.get(String(p.id)));
+    const allowed = interseccionAreas(miembros, areas);
+    if (!allowed.length) {
+      issues.push({ code: 'FUNCTIONAL_GROUP_NO_COMMON_AREA', group: gid });
+      continue;
+    }
+    const anchors = miembros.filter(esAnchor);
+    for (const p of miembros) {
+      p.allowedAreas = allowed;
+      p.functional_group_id = gid;
+      if (!esAnchor(p)) {
+        const esperado = anchorRole(p);
+        const anchor = anchorDelGrupo(miembros, esperado);
+        if (esperado && !anchor) {
+          issues.push({ code: CODIGO.MISSING_GROUP_ANCHOR, group: gid, id: String(p.id), expected: esperado });
+        } else if (anchor) {
+          p.group_anchor_id = String(anchor.id);
+        }
+      }
+    }
+    // Anchor primero dentro del mismo grupo, sin alterar el orden relativo global
+    // más allá de lo necesario para mantener la relación.
+    if (!anchors.length && miembros.some((p) => anchorRole(p))) {
+      issues.push({ code: CODIGO.MISSING_GROUP_ANCHOR, group: gid });
+    }
+  }
+  return { piezas: piezas.map((p) => byId.get(String(p.id)) || p), issues };
+}
+
+function auditarGruposFuncionales(piezas = [], colocacion = []) {
+  const byCol = new Map((colocacion || []).map((x) => [String(x.id), x]));
+  const issues = [];
+  for (const [gid, miembros] of gruposFuncionales(piezas)) {
+    const colocados = miembros.map((p) => ({ p, c: byCol.get(String(p.id)) })).filter((x) => x.c);
+    if (!colocados.length) continue;
+    const areas = new Set(colocados.map((x) => Number(x.c.area)));
+    if (areas.size > 1) {
+      for (const { p } of colocados) issues.push({ code: CODIGO.FUNCTIONAL_GROUP_SPLIT, id: String(p.id), group: gid });
+    }
+    for (const { p, c } of colocados) {
+      if (esAnchor(p)) continue;
+      const esperado = anchorRole(p);
+      if (!esperado) continue;
+      const anchor = anchorDelGrupo(miembros, esperado);
+      if (!anchor) {
+        issues.push({ code: CODIGO.MISSING_GROUP_ANCHOR, id: String(p.id), group: gid, expected: esperado });
+        continue;
+      }
+      const ac = byCol.get(String(anchor.id));
+      if (!ac || Number(ac.area) !== Number(c.area)) {
+        issues.push({ code: CODIGO.WRONG_GROUP_ANCHOR, id: String(p.id), group: gid, anchor_id: String(anchor.id) });
+      }
+    }
+
+    const meetingAnchor = miembros.find((p) => relationRole(p) === 'ANCHOR_MEETING');
+    if (meetingAnchor) {
+      const required = Number(meetingAnchor.user_capacity || meetingAnchor.capacidadUsuarios || 0);
+      if (Number.isFinite(required) && required > 0) {
+        const seats = miembros.filter((p) => relationRole(p) === 'MEETING_SEAT')
+          .reduce((sum, p) => sum + Math.max(1, Math.round(Number(p.cantidad || p.piezas || 1))), 0);
+        if (seats < required) {
+          issues.push({
+            code: CODIGO.GROUP_CAPACITY_INCOMPLETE,
+            id: String(meetingAnchor.id), group: gid, required, seats,
+          });
+        }
+      }
+    }
+  }
+  return issues;
 }
 
 // --------------------------------------------------------------------------
@@ -180,6 +301,12 @@ export function validarColocacion(areas = [], piezas = [], colocacion = [], tolM
     }
   }
 
+  // Tercera pasada: relaciones de grupo (anchor/dependientes/capacidad).
+  for (const issue of auditarGruposFuncionales(piezas, col)) {
+    const res = resultadoPorId.get(String(issue.id));
+    if (res) agregarProblema(res, issue.code, `grupo funcional ${issue.group || ''}: ${issue.code}`);
+  }
+
   const colocadas = porPieza.filter((p) => p.ok).length;
   const total = piezas.length;
   const noColocadas = porPieza.filter((p) => !p.ok);
@@ -216,6 +343,8 @@ export function recomendacionesParcial(val) {
   if (cods.has(CODIGO.BLOCKS_DOOR)) recs.push('Piezas que tapan una puerta/acceso: reubícalas lejos del barrido de la puerta.');
   if (cods.has(CODIGO.FUNCTIONAL_CLEARANCE)) recs.push('Hay muebles que caben físicamente pero no dejan su espacio de uso: libera frente, silla, cajones o circulación.');
   if (cods.has(CODIGO.DOOR_SWING_UNKNOWN)) recs.push('El plano detectó una puerta sin barrido verificable: confirma bisagra, sentido y ángulo antes de aprobar el layout.');
+  if (cods.has(CODIGO.FUNCTIONAL_GROUP_SPLIT) || cods.has(CODIGO.WRONG_GROUP_ANCHOR) || cods.has(CODIGO.MISSING_GROUP_ANCHOR)) recs.push('Mantén cada grupo funcional completo en una sola área y junto a su anchor correcto.');
+  if (cods.has(CODIGO.GROUP_CAPACITY_INCOMPLETE)) recs.push('La sala/grupo no cumple la capacidad declarada: completa sus asientos antes de aprobar.');
   if (cods.has(CODIGO.NO_SPACE) || cods.has(CODIGO.UNKNOWN_PIECE)) recs.push('No hubo superficie libre suficiente para todas las piezas.');
   recs.push('Opciones: mover a otra área · cambiar el producto por uno más chico · acomodar a mano. No se reducen cantidades ni se inventan muebles.');
   return recs;
@@ -256,6 +385,8 @@ function candidatoCompatible(area, p, rot, r, ocup, gap) {
 // sin introducir aleatoriedad: mismo intento + mismo input = mismo resultado.
 // --------------------------------------------------------------------------
 export function planearDeterminista(areas = [], piezas = [], opts = {}) {
+  const groupPrep = prepararGruposFuncionales(areas, piezas);
+  piezas = groupPrep.piezas;
   const gap = Number(opts.gapMM) || 120;
   const step = Number(opts.stepMM) || 100;
   const reverseScan = opts.reverseScan === true;
@@ -277,7 +408,14 @@ export function planearDeterminista(areas = [], piezas = [], opts = {}) {
 
   const pend = piezas.filter((p) => !colocadoIds.has(String(p.id)))
     .slice()
-    .sort((a, b) => (Number(b.w) * Number(b.d)) - (Number(a.w) * Number(a.d)) || String(a.id).localeCompare(String(b.id)));
+    .sort((a, b) => {
+      const ga = grupoId(a), gb = grupoId(b);
+      if (ga && gb && String(ga) === String(gb)) {
+        const aa = esAnchor(a) ? 0 : 1, ab = esAnchor(b) ? 0 : 1;
+        if (aa !== ab) return aa - ab;
+      }
+      return (Number(b.w) * Number(b.d)) - (Number(a.w) * Number(a.d)) || String(a.id).localeCompare(String(b.id));
+    });
 
   const noColocadas = [];
   for (const p of pend) {
@@ -285,7 +423,13 @@ export function planearDeterminista(areas = [], piezas = [], opts = {}) {
     const permitidas = Array.isArray(p.allowedAreas)
       ? [...new Set(p.allowedAreas.map(Number).filter((ai) => Number.isInteger(ai) && areas[ai]))]
       : null;
-    const universo = permitidas && permitidas.length ? permitidas : areas.map((_, ai) => ai);
+    const anchorPlaced = p.group_anchor_id
+      ? colocacion.find((cc) => String(cc.id) === String(p.group_anchor_id))
+      : null;
+    const universoBase = permitidas && permitidas.length ? permitidas : areas.map((_, ai) => ai);
+    const universo = anchorPlaced && universoBase.includes(Number(anchorPlaced.area))
+      ? [Number(anchorPlaced.area)]
+      : universoBase;
     const preferida = Number.isFinite(Number(p.area)) && universo.includes(Number(p.area)) ? Number(p.area) : null;
     let resto = universo.filter((ai) => ai !== preferida);
     if (reverseAreas) resto = resto.reverse();
