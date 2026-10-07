@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fusionarInsumos } from './preciosVigentes.js';
+import { fusionarInsumos, buscarPreciosMaterial } from './preciosVigentes.js';
 import { INSUMOS_SEMILLA, mapaInsumos } from './insumos.js';
 import { calcular } from '../motor/calculo.js';
 
@@ -83,5 +83,31 @@ describe('fusionarInsumos — el costeo toma el precio del catálogo de la base'
     expect(antes).toBeCloseTo(100 * 2.9768, 2);
     expect(ahora).toBeGreaterThan(0);
     expect(ahora).toBeLessThan(antes / 2);
+  });
+});
+
+describe('buscarPreciosMaterial', () => {
+  const filas = [
+    { insumo_id: 'mdf', nombre: 'MDF 19 mm', precio: '10', unidad_costeo: 'hoja' },
+    { insumo_id: 'mdf-16', nombre: 'MDF 16 mm', precio: '9', unidad_costeo: 'hoja' },
+    { insumo_id: 'lamina-14', nombre: 'Lámina cal. 14', precio: '20', unidad_costeo: 'hoja' },
+  ];
+  it('busca por palabras sin acentos e ignora palabras de pregunta', () => {
+    expect(buscarPreciosMaterial(filas, '¿Cuánto cuesta la hoja de MDF 19?').map((x) => x.id)).toEqual(['mdf']);
+    expect(buscarPreciosMaterial(filas, 'precio lamina 14').map((x) => x.id)).toEqual(['lamina-14']);
+    expect(buscarPreciosMaterial(filas, '¿cuánto cuesta?')).toEqual([]);
+  });
+});
+
+describe('una sola fuente de precio para todas las rutas', () => {
+  it('costear-servidor y la app usan la misma fusión con catalogo_vigente (no la copia de config)', async () => {
+    const { readFileSync } = await import('node:fs');
+    const srv = readFileSync(new URL('../../supabase/functions/costear-servidor/index.ts', import.meta.url), 'utf8');
+    const app = readFileSync(new URL('../App.jsx', import.meta.url), 'utf8');
+    expect(srv).toMatch(/import \{ fusionarInsumos \} from "\.\.\/\.\.\/\.\.\/src\/datos\/preciosVigentes\.js"/);
+    expect(srv).toMatch(/from\("catalogo_vigente"\)\.select\("insumo_id, nombre, seccion, precio/);
+    expect(srv).toMatch(/fusionarInsumos\(mapaInsumos\(INSUMOS_SEMILLA\), datos\.insumos \|\| \{\}, vigentes\)/);
+    expect(srv).not.toMatch(/\?\s*datos\.insumos\s*:/);
+    expect(app).toMatch(/fusionarInsumos\(/);
   });
 });

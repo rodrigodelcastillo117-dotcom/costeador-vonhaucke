@@ -36,6 +36,7 @@ export const TOOLS = Object.freeze([
   { nombre: 'get_cost_explanation', economica: true, roles: ['direccion', 'diseno', 'costeador', 'cfo'], desc: 'Explicación determinista del costeo canónico: fórmula, material, MO, GI, merma, corte y supuestos.' },
   { nombre: 'get_bom', economica: true, roles: ['direccion', 'diseno', 'costeador'], desc: 'BOM certificado. Sólo fabricación.' },
   { nombre: 'get_industrial_analysis', economica: true, roles: ['direccion', 'diseno', 'costeador', 'cfo'], desc: 'Análisis industrial determinista: BOM, fabricabilidad, merma, corte y eficiencia. No certifica ahorros advisory.' },
+  { nombre: 'get_material_prices', economica: true, roles: ['direccion', 'diseno'], desc: 'Precio vigente de materias primas (catálogo de la base, compras reales). Sólo Dirección y Diseño; el servidor también lo filtra por rol.' },
   { nombre: 'get_costing_precedents', economica: true, roles: ['direccion', 'diseno', 'costeador', 'cfo'], desc: 'Precedentes históricos autorizados de costeo/BOM para comparar soluciones similares. Nunca define el costo vigente.' },
 ]);
 

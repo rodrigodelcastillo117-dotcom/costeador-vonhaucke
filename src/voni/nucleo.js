@@ -62,6 +62,7 @@ function requisitosEvidencia(intent, ctx = {}) {
     PRECEDENTS: ['get_costing_precedents'],
     INDUSTRIAL_IMPROVEMENT: ['get_industrial_analysis'],
     MATERIAL_TECHNICAL: ['get_material_technical'],
+    MATERIAL_PRICE: ['get_material_prices'],
     RISK: [],
     LAYOUT: ['get_reconciliation', 'get_layout'],
   }[intent] || [];
@@ -137,6 +138,12 @@ export function inferirIntencion(query, ctx = {}) {
   if (/\b(atencion|atenci[oó]n|hoy|que necesito|prioridad)\b/.test(q)) {
     return { intent: 'ATTENTION', modo, lentes: ['direccion'], tools: ['get_today_attention', 'get_direction_facts', 'get_approvals'] };
   }
+  // PRECIO DE MATERIA PRIMA: económico. Sólo Dirección/Diseño lo reciben.
+  if (/\b(cuanto cuesta\w*|cuanto vale\w*|precio\w*|cuesta\w*|costo de)\b/.test(q)
+      && !/\b(explica\w*|desglosa\w*|de donde sale|como sale)\b/.test(q)
+      && /\b(material|materia prima|mdf|melamina|laminado|tablero|hoja|lamina|ptr|perfil|acero|inox\w*|aluminio|cristal|madera|tela|ecopiel|canto|cubrecanto|tapacanto|bisagra|corredera|pintura|tornill\w*|pija\w*|taquete\w*|nivelador\w*|chapa|soldadura|espuma|aglomerado|tubular)\b/.test(q)) {
+    return { intent: 'MATERIAL_PRICE', modo: MODOS.CONSULTAR, lentes: ['costeador'], tools: ['get_material_prices'] };
+  }
   // CONOCIMIENTO TÉCNICO DE MATERIAL: formato físico/unidad/veta, SIN economía.
   if (/\b(mide|medida|medidas|formato|hoja|tablero|veta|espesor|ptr|perfil)\b/.test(q)
       && /\b(material|mdf|melamina|laminado|tablero|hoja|ptr|perfil|acero|aluminio|cristal|madera)\b/.test(q)) {
@@ -178,6 +185,35 @@ export function inferirIntencion(query, ctx = {}) {
   // Default: la lente de su rol (pedir otra lente no da permisos).
   const ef = lenteEfectiva(ctx.role);
   return { intent: 'CONSULTA', modo, lentes: [ef.lente], tools: ['get_project_context', 'get_reconciliation', 'get_quote'] };
+}
+
+function respuestaPrecioMaterial(k) {
+  const items = Array.isArray(k?.items) ? k.items : [];
+  if (!k || k.disponible === false || !items.length) {
+    return respuestaEstructurada({
+      que_paso: 'No encontré ese material en el catálogo de precios.',
+      por_que: k?.nota || 'Sin coincidencia en los precios vigentes de la base.',
+      impacto: 'No invento precios de materia prima.',
+      confianza: 0,
+      accion: 'Dime la clave o un nombre más exacto (p. ej. "MDF 19", "lámina cal. 14").',
+      evidencia: [], urgencia: URGENCIA.BAJA, estado: ESTADO.DESCONOCIDO, lentes: ['costeador'], bloqueos: [],
+    });
+  }
+  const fmt = (n) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+  const evidencia = items.slice(0, 5).map((m) => afirmacion(
+    `${m.nombre}: ${fmt(m.precio)} por ${m.unidad || 'unidad'} (vigente desde ${m.vigente_desde || 'N/D'}, ${m.estado || 'sin estado'}).`,
+    TIPO_AFIRMACION.HECHO,
+    { source_type: 'catalogo_vigente', source_id: m.id, confidence: m.estado === 'aprobado' ? 1 : 0.6 },
+  ));
+  const top = items[0];
+  return respuestaEstructurada({
+    que_paso: `${top.nombre}: ${fmt(top.precio)} por ${top.unidad || 'unidad'}.`,
+    por_que: `Precio vigente del catálogo de la base · ${top.fuente || 'sin fuente'}.`,
+    impacto: 'Es el mismo precio con el que costea el motor.',
+    confianza: top.estado === 'aprobado' ? 1 : 0.6,
+    accion: items.length > 1 ? 'Si buscabas otra variante, dime la clave o el nombre exacto.' : 'Usar este precio en el costeo.',
+    evidencia, urgencia: URGENCIA.BAJA, estado: ESTADO.OK, lentes: ['costeador'], bloqueos: [],
+  });
 }
 
 function respuestaMaterialTecnico(k) {
@@ -455,14 +491,16 @@ export async function responder({ query, ctx = {}, prov = {}, intentForzado = nu
   const requeridas = requisitosEvidencia(plan.intent, contexto);
   const faltantes = requeridas.filter((nombre) => datos[nombre] == null);
   const denegadasEconomia = Object.entries(fallosTool)
-    .filter(([nombre, r]) => ['get_costing', 'get_bom', 'get_industrial_analysis', 'get_cost_explanation', 'get_costing_precedents'].includes(nombre) && r?.error === 'sin_permiso')
+    .filter(([nombre, r]) => ['get_costing', 'get_bom', 'get_industrial_analysis', 'get_cost_explanation', 'get_costing_precedents', 'get_material_prices'].includes(nombre) && r?.error === 'sin_permiso')
     .map(([nombre]) => nombre);
-  const consultaEconomicaDirecta = ['COSTING_ANALYSIS', 'COST_EXPLAIN', 'PRECEDENTS', 'RISK', 'INDUSTRIAL_IMPROVEMENT'].includes(plan.intent);
+  const consultaEconomicaDirecta = ['COSTING_ANALYSIS', 'COST_EXPLAIN', 'PRECEDENTS', 'RISK', 'INDUSTRIAL_IMPROVEMENT', 'MATERIAL_PRICE'].includes(plan.intent);
 
   const respuesta = (consultaEconomicaDirecta && denegadasEconomia.length)
     ? respuestaSinPermisoEconomico(plan.intent, denegadasEconomia, resultadosLente)
     : faltantes.length
       ? respuestaSinEvidencia(plan.intent, faltantes, resultadosLente)
+      : plan.intent === 'MATERIAL_PRICE'
+        ? respuestaPrecioMaterial(datos.get_material_prices)
       : plan.intent === 'MATERIAL_TECHNICAL'
         ? respuestaMaterialTecnico(datos.get_material_technical)
         : plan.intent === 'COST_EXPLAIN'

@@ -283,3 +283,46 @@ describe('VONI · conocimiento técnico de materiales', () => {
     expect(respuesta.impacto).toMatch(/No invento medidas/i);
   });
 });
+
+describe('VONI · precios de materia prima (sólo Dirección y Diseño)', () => {
+  let llamadas = 0;
+  const PROV_PRECIOS = {
+    ...PROV,
+    get_material_prices: async () => { llamadas += 1; return { disponible: true, items: [
+      { id: 'mdf', nombre: 'MDF 19 mm', unidad: 'hoja', precio: 123.45, vigente_desde: '2026-10-02', estado: 'aprobado', fuente: 'Compras' },
+    ] }; },
+  };
+  const Q = '¿Cuánto cuesta la hoja de MDF 19?';
+
+  it('la pregunta de precio de material va a la tool económica', () => {
+    expect(inferirIntencion(Q).intent).toBe('MATERIAL_PRICE');
+    expect(inferirIntencion('¿cuánto mide la hoja de MDF?').intent).toBe('MATERIAL_TECHNICAL');
+  });
+
+  for (const role of ['ventas', 'proyectos', 'costeador', 'cfo']) {
+    it(`${role}: la tool se bloquea antes de leer precios y la respuesta no trae el precio`, async () => {
+      const antes = llamadas;
+      const r = await ejecutarTool('get_material_prices', { user: USER, role }, { query: 'mdf' }, PROV_PRECIOS);
+      expect(r.ok).toBe(false);
+      expect(r.error).toBe('sin_permiso');
+      const { respuesta } = await responder({ query: Q, ctx: { user: USER, role }, prov: PROV_PRECIOS });
+      expect(llamadas).toBe(antes);
+      expect(JSON.stringify(respuesta)).not.toMatch(/123[.,]45/);
+      expect(respuesta.estado).toBe('DESCONOCIDO');
+    });
+  }
+
+  it('Dirección en modo cliente tampoco recibe el precio', async () => {
+    const { respuesta } = await responder({ query: Q, ctx: { user: USER, role: 'direccion', clientSafe: true }, prov: PROV_PRECIOS });
+    expect(JSON.stringify(respuesta)).not.toMatch(/123[.,]45/);
+  });
+
+  for (const role of ['direccion', 'diseno']) {
+    it(`${role}: recibe el precio vigente de la base`, async () => {
+      const { respuesta } = await responder({ query: Q, ctx: { user: USER, role }, prov: PROV_PRECIOS });
+      expect(respuesta.estado).toBe('OK');
+      expect(respuesta.que_paso).toMatch(/MDF 19 mm/);
+      expect(respuesta.que_paso).toMatch(/123\.45/);
+    });
+  }
+});

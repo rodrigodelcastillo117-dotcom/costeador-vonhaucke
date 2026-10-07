@@ -85,3 +85,17 @@ export function fusionarInsumos(semilla, compartido = {}, vigentes = []) {
 
   return { insumos, resumen };
 }
+
+const sinAcentos = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const VACIAS = new Set(['cuanto', 'cuesta', 'cuestan', 'precio', 'precios', 'costo', 'costos', 'vale', 'valen', 'del', 'de', 'la', 'el', 'los', 'las', 'un', 'una', 'que', 'hoja', 'por', 'kg', 'metro', 'materia', 'prima', 'material', 'a', 'en', 'y', 'mm']);
+
+/** Busca filas de precios vigentes por palabras de la consulta (todas deben aparecer). */
+export function buscarPreciosMaterial(filas = [], consulta = '', limite = 8) {
+  const palabras = sinAcentos(consulta).split(/[^a-z0-9]+/).filter((w) => w && !VACIAS.has(w));
+  if (!palabras.length) return [];
+  return (filas || [])
+    .filter((f) => { const t = sinAcentos(`${f?.insumo_id} ${f?.nombre}`); return palabras.every((w) => t.includes(w)); })
+    .slice(0, limite)
+    .map((f) => ({ id: f.insumo_id, nombre: f.nombre || f.insumo_id, unidad: f.unidad_costeo, precio: Number(f.precio),
+      vigente_desde: f.vigente_desde, estado: f.estado, fuente: f.fuente }));
+}

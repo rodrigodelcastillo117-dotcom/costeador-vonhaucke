@@ -20,7 +20,8 @@ import { conocimientoDe } from './conocimiento.js';
 import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
 import { buscarMaterialTecnico, describirFormatoTecnico } from '../datos/materialKnowledge.js';
 import { construirPrecedentesCosteo } from '../datos/precedentesCosteo.js';
-import { nube, buscarProductosMaestroTexto } from '../nube.js';
+import { nube, buscarProductosMaestroTexto, leerPreciosVigentes } from '../nube.js';
+import { buscarPreciosMaterial } from '../datos/preciosVigentes.js';
 import { explicarCosteo } from '../datos/explicacionCosteo.js';
 
 const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
@@ -161,6 +162,13 @@ export const proveedorReal = {
       precedentes:construirPrecedentesCosteo(bom,revs||[],ecos),
       politica:'Precedente = comparación, no autoridad. El costo vigente siempre lo recalcula el motor con BOM/precios actuales.',
     };
+  },
+  // Precio vigente de materia prima. La RPC `precios_vigentes_costeo` revisa el
+  // rol en el servidor (a un vendedor le devuelve 0 filas) y tools.js bloquea la
+  // tool antes de llamarla; aquí sólo se busca dentro de lo que el servidor dio.
+  get_material_prices: async (_ctx, args) => {
+    const items = buscarPreciosMaterial(await leerPreciosVigentes(), args?.query || '');
+    return { disponible: items.length > 0, items, nota: items.length ? null : 'No encontré ese material en el catálogo de precios.' };
   },
   get_material_technical: async (ctx, args) => {
     const items = buscarMaterialTecnico(ctx.materialesTecnicos || [], args?.query || '');

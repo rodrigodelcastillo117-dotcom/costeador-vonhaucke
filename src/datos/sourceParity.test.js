@@ -7,11 +7,12 @@
 //
 //  MAPA DE FUENTES DE COSTO (verificado):
 //   · Tests (vitest) ......... SEED (INSUMOS_SEMILLA)                 ← engine golden
-//   · App LIVE / preview ..... SEED ⊕ config (BD) vía config_para_rol ← autoridad hoy
-//   · costear-servidor ....... config (BD)  ("config-legado")        ← shadow
+//   · App LIVE / preview ..... SEED ⊕ config (BD) vía config_para_rol ← prod bf6ec0f
+//   · Rama claude/project-thread-4bot5u: app (Dirección/Diseño) y costear-servidor
+//     usan fusionarInsumos(semilla, config, catalogo_vigente) → precio de compras.
 //   · resolver_costo_insumo .. catalogo_vigente → config → DESCONOCIDO
 //   · Producto Maestro ....... price-book comercial (economía sin certificar)
-//   · Voni ................... NO resuelve costo de insumo (seller-safe)
+//   · Voni ................... get_material_prices sólo Dirección/Diseño (RPC filtra rol)
 //
 //  Esta prueba NO sincroniza precios (cuál es el correcto lo decide Compras). Sólo
 //  CONGELA la divergencia conocida: si cambia (sync, nuevo insumo, nueva captura),

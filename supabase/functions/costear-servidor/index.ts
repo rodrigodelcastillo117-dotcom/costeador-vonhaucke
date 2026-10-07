@@ -20,6 +20,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { calcular, modeloParaPieza, precioDe, costeoEmitible, PARAMETROS_DEFAULT, MOTOR_VERSION } from "../../../src/motor/calculo.js";
 import { dinero } from "../../../src/motor/dinero.js";
 import { INSUMOS_SEMILLA, mapaInsumos } from "../../../src/datos/insumos.js";
+import { fusionarInsumos } from "../../../src/datos/preciosVigentes.js";
 // DTO ESTRICTO — la MISMA frontera que usa el cliente (sin duplicar lógica). Rechaza
 // cualquier campo económico (margen, precio, costo, insumo inline, factores,
 // modeloCosteo…) del body antes de tocar el motor. Ver src/datos/validarIntentCosteo.js.
@@ -85,14 +86,26 @@ Deno.serve(async (req) => {
   if (cfgErr) return json({ ok: false, error: "No se pudo leer la configuración." }, 502);
   const datos = (cfg?.datos as any) || {};
 
-  // Mismo ensamblado que el cliente (App.jsx `aplicarCompartido`): la config de la
-  // NUBE es la autoridad viva. Si trae `insumos`, el cliente los REEMPLAZA (no
-  // mergea con la semilla del código); solo cae a la semilla si la nube no trae.
-  // Los parámetros SÍ se funden sobre los defaults. Replicarlo EXACTO es lo que
-  // hace que el servidor cuadre al centavo con lo que ve el cliente hoy.
-  const insumos = (datos.insumos && typeof datos.insumos === "object" && Object.keys(datos.insumos).length)
-    ? datos.insumos
-    : mapaInsumos(INSUMOS_SEMILLA);
+  // Mismo ensamblado que el cliente con costos (App.jsx `aplicarCompartido` con
+  // fusionar): forma del insumo = semilla del código; precio = catalogo_vigente
+  // (compras reales, leído aquí con service role, nunca del navegador); un precio
+  // editado en la app gana solo si es más nuevo y trae la misma unidad. Antes se
+  // REEMPLAZABA todo con la copia de config (92 insumos del 2026-08-11).
+  let fuenteCosto = "catalogo_vigente";
+  let vigentes: any[] = [];
+  try {
+    const [{ data: vig, error: e1 }, { data: cat, error: e2 }] = await Promise.all([
+      svc.from("catalogo_vigente").select("insumo_id, nombre, seccion, precio, estado, certificable, fuente, vigente_desde"),
+      svc.from("insumos_catalogo").select("id, unidad_costeo"),
+    ]);
+    if (e1 || e2) throw e1 || e2;
+    const unidad: Record<string, string> = {};
+    for (const c of cat || []) unidad[c.id] = c.unidad_costeo;
+    vigentes = (vig || []).map((f: any) => ({ ...f, unidad_costeo: unidad[f.insumo_id] }));
+  } catch (_e) {
+    fuenteCosto = "semilla-y-config"; // sin catálogo: semilla + ediciones de config
+  }
+  const insumos = fusionarInsumos(mapaInsumos(INSUMOS_SEMILLA), datos.insumos || {}, vigentes).insumos;
   const parametros = { ...PARAMETROS_DEFAULT, ...(datos.parametros || {}) };
 
   // --- Mismo motor que el cliente ---
@@ -114,8 +127,7 @@ Deno.serve(async (req) => {
   for (const b of emision.bloqueos?.formato_incompatible || []) warnings.push(b);
   if (emision.bloqueos?.costo_invalido) warnings.push("Costo calculado inválido/no finito.");
 
-  // --- EVIDENCIA desde catalogo_vigente (el costo sigue saliendo de config-legado;
-  //     catalogo_vigente aporta SOLO el estado de evidencia por insumo usado). Aditivo. ---
+  // --- EVIDENCIA desde catalogo_vigente (estado de certificación por insumo usado). ---
   const usados: string[] = [...new Set((r.detalleInsumos || []).map((d: any) => d.insumoId).filter(Boolean))];
   const evMap: Record<string, any> = {};
   let versionCatalogo = "sin-catalogo";
@@ -162,7 +174,7 @@ Deno.serve(async (req) => {
     versionMotor: MOTOR_VERSION,
     versionConfig: hashConfig(datos),
     versionCatalogo,
-    fuenteCosto: "config-legado", // el costo aún sale de config; catalogo_vigente solo certifica
+    fuenteCosto, // catalogo_vigente (precio de compras) o semilla-y-config si no se pudo leer
     calculadoEn: new Date().toISOString(),
   };
   // El precio se entrega mientras el cálculo sea posible (certificado o preliminar) Y
