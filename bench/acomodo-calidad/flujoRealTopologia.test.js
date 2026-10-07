@@ -1,46 +1,43 @@
 import { describe, it, expect } from 'vitest';
-import { resolverOperativos, expandirDependientes } from '../../src/datos/resolverPrograma.js';
+import { proponerPrograma } from '../../src/datos/programaRealDelPlano.js';
 import { expandirPiezas } from '../../src/datos/espacio.js';
 import { topologiaDeProducto, clasificarFuenteTopologia } from '../../src/datos/placementTopologia.js';
 import { resolverKits } from '../../supabase/functions/acomodar-espacio-recovery/kit-solver.js';
 
 // ============================================================================
-//  P0.2c · GAP10 · FLUJO REAL: resolverOperativos(8) → expandirDependientes →
-//  expandirPiezas → resolverKits. SIN inyectar topology/placement_profile/
-//  productoId/relation_role/user_capacity artificiales. + GAP11 (INFERRED≠FOUND).
+//  P0.2c · GAP15 · FLUJO PRODUCTIVO REAL (sin reconstruir partidas a mano):
+//  proponerPrograma({operativos:8}) → preview (adapter productivo partidasPropuestas/
+//  aPartidaAcomodo) → expandirPiezas → resolverKits. La topología/capacidad/dueño
+//  deben SOBREVIVIR por el camino real. + GAP11 (INFERRED ≠ SOURCE_FOUND).
 // ============================================================================
-describe('P0.2c · GAP10 · 1 operativo para 8 por el flujo real → DOUBLE_FACE 4+4', () => {
-  it('resolverOperativos(8, App LT) resuelve un módulo real y le ADJUNTA la topología (no inyectada)', () => {
-    const { resoluciones } = resolverOperativos(8, { linea: 'App LT' });
-    expect(resoluciones.length).toBeGreaterThan(0);
-    const a = resoluciones[0];
-    expect(a.relation_role).toBe('ANCHOR_WORKSTATION');
-    expect(a.usuarios).toBeGreaterThanOrEqual(2);
-    expect(a.placement_profile).toBeTruthy();
-    expect(a.placement_profile.topology).toBe('DOUBLE_FACE');
-    expect(['USER_CONFIRMED', 'CATALOG']).toContain(a.placement_profile.provenance);
+describe('P0.2c · GAP15 · 1 operativo para 8 por el CAMINO PRODUCTIVO REAL → 4A+4B', () => {
+  it('proponerPrograma({operativos:8}).preview trae ancla DOUBLE_FACE + capacidad, SIN fabricar', () => {
+    const { preview } = proponerPrograma({ operativos: 8 }, { linea: 'App LT' });
+    const anchor = preview.find((p) => p.relation_role === 'ANCHOR_WORKSTATION');
+    expect(anchor, 'hay un ancla operativa real').toBeTruthy();
+    // topología sobrevivió el adapter real (no se inyectó en el test).
+    expect(anchor.placement_profile).toBeTruthy();
+    expect(anchor.placement_profile.topology).toBe('DOUBLE_FACE');
+    expect(['USER_CONFIRMED', 'CATALOG']).toContain(anchor.placement_profile.provenance);
+    expect(anchor.user_capacity).toBe(8);
+    // identidad estable real (no un id='A' fabricado).
+    expect(anchor.instance_id || anchor.id).toBeTruthy();
+    expect(anchor.bancoId).toBeTruthy();
   });
 
-  it('E2E: el ancla real + sus dependientes reales → resolverKits → 4 side A + 4 side B', () => {
-    const { resoluciones } = resolverOperativos(8, { linea: 'App LT' });
-    const a = resoluciones[0];
-    const U = Number(a.usuarios);
-    const deps = expandirDependientes(a, {});
-    const seatDep = deps.find((d) => d.relation_role === 'WORK_SEAT');
-    expect(seatDep, 'el programa real genera WORK_SEAT').toBeTruthy();
-    expect(Number(seatDep.cantidad)).toBe(U);
-
-    const anchorPartida = { id: 'A', nombre: a.nombre, w: a.w, d: a.d, cantidad: 1, relation_role: a.relation_role, functional_group_id: 'g', user_capacity: a.usuarios, placement_profile: a.placement_profile, zone_id: 'OP' };
-    const seatPartida = { id: 'S', nombre: seatDep.nombre || 'Silla operativa', w: 600, d: 600, cantidad: U, relation_role: seatDep.relation_role, functional_group_id: 'g', zone_id: 'OP', anchor_instance_id: 'A-1' };
-    const piezas = expandirPiezas([anchorPartida, seatPartida]);
-    const anchor = piezas.find((p) => p.relation_role === 'ANCHOR_WORKSTATION');
-    expect(anchor.placement_profile.topology).toBe('DOUBLE_FACE');
-
+  it('E2E: preview real → expandirPiezas → resolverKits → 4 side A + 4 side B, dueño correcto', () => {
+    const { preview } = proponerPrograma({ operativos: 8 }, { linea: 'App LT' });
+    const piezas = expandirPiezas(preview);
+    const anchorPieza = piezas.find((p) => p.relation_role === 'ANCHOR_WORKSTATION');
+    expect(anchorPieza.placement_profile.topology).toBe('DOUBLE_FACE');   // llegó hasta la pieza
     const sol = resolverKits([{ nombre: 'OP', zone_id: 'OP', tipo: 'open', ancho: 14000, largo: 9000 }], piezas);
     const seats = sol.colocacion.filter((c) => c.side === 'A' || c.side === 'B');
-    expect(seats.filter((c) => c.side === 'A').length).toBe(Math.ceil(U / 2));
-    expect(seats.filter((c) => c.side === 'B').length).toBe(Math.floor(U / 2));
-    expect(seats.every((c) => c.anchor_instance_id === anchor.id)).toBe(true);
+    expect(seats.length).toBe(8);
+    expect(seats.filter((c) => c.side === 'A').length).toBe(4);
+    expect(seats.filter((c) => c.side === 'B').length).toBe(4);
+    expect(seats.every((c) => c.anchor_instance_id === anchorPieza.id)).toBe(true);
+    expect(new Set(seats.map((c) => c.slot_id)).size).toBe(8);
+    expect(sol.unassigned.length).toBe(0);
   });
 });
 

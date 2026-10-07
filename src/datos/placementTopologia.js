@@ -42,8 +42,12 @@ export function topologiaDeProducto(prod = {}) {
 // gana ésa (CATALOG) vía topologiaDeProducto; aquí sólo cubrimos el op-* sin identidad.
 export function topologiaDeConfiguracion(resolucion = {}) {
   const esOp = resolucion.relation_role === 'ANCHOR_WORKSTATION' || resolucion.rol === 'operativo';
-  if (esOp && Number(resolucion.usuarios) >= 2) {
-    return { topology: 'DOUBLE_FACE', provenance: 'USER_CONFIRMED', evidence: 'regla Rodrigo: 1 operativo para N personas = bench doble (4+4 enfrentados)' };
+  // GAP14 · la regla USER_CONFIRMED es TAN ESTRECHA como la evidencia. Rodrigo
+  // confirmó SÓLO "1 operativo para 8 personas" (un único módulo que cubre 8) =
+  // DOUBLE_FACE 4+4. NO se extrapola a 2/3/4/6/10/12: esas capacidades necesitan
+  // evidencia CATALOG (familia bench doble) o quedan UNKNOWN/SOURCE_PARTIAL/REVIEW.
+  if (esOp && Number(resolucion.usuarios) === 8) {
+    return { topology: 'DOUBLE_FACE', provenance: 'USER_CONFIRMED', evidence: 'regla Rodrigo confirmada: 1 operativo para 8 personas = bench doble (4+4 enfrentados)' };
   }
   return null;
 }

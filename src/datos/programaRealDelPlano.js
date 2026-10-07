@@ -47,6 +47,11 @@ function aPartidaAcomodo(it) {
     w: it.w,
     d: it.d,
     usuarios: it.usuarios,
+    // P0.2c GAP15: capacidad y topología deben SOBREVIVIR el camino real hasta
+    // Acomodo. user_capacity viene de `usuarios` (módulo operativo); placement_profile
+    // lo adjuntó resolverOperativos (regla USER_CONFIRMED/CATALOG).
+    user_capacity: Number(it.user_capacity ?? it.usuarios) > 0 ? Number(it.user_capacity ?? it.usuarios) : null,
+    ...(it.placement_profile ? { placement_profile: it.placement_profile } : {}),
     linea: it.linea,
     // semántica estructural (autoridad, no el texto)
     relation_role: it.relation_role,
