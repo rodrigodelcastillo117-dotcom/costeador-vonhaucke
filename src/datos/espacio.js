@@ -3,6 +3,8 @@
 //  Tipo + color + altura por mueble, huella por defecto, y expansión de las
 //  partidas de la cotización a piezas individuales con su huella real.
 // ============================================================================
+import { topologiaDeProducto } from './placementTopologia.js';
+
 export const TIPOS = {
   escritorio: { label: 'Escritorios', color: '#3b6fb0', alto: 730 },
   juntas: { label: 'Juntas', color: '#0f766e', alto: 740 },
@@ -160,6 +162,10 @@ export function expandirPiezas(partidas, tope = 600) {
         ...(pt.zone_id ? { zone_id: pt.zone_id } : {}),
         ...(pt.anchor_instance_id ? { anchor_instance_id: pt.anchor_instance_id } : {}),
         ...(Number(pt.user_capacity) > 0 ? { user_capacity: Number(pt.user_capacity) } : {}),
+        // P0.2c GAP6: la topología de colocación VIAJA desde la identidad del
+        // producto (catálogo). Aditivo: sólo aparece si hay evidencia (p.ej. bench
+        // doble). perfilDeAncla la lee server-side; ausente → UNKNOWN+fallback.
+        ...((pt.placement_profile || topologiaDeProducto(pt)) ? { placement_profile: pt.placement_profile || topologiaDeProducto(pt) } : {}),
         ...(pt.zonaSugerida ? { zonaSugerida: pt.zonaSugerida } : {}),
         ...(pt.sugeridoPlano ? { sugeridoPlano: true } : {}),
         ...(pt.sugerido ? { sugerido: true } : {}),
