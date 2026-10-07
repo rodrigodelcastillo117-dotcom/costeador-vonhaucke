@@ -167,6 +167,83 @@ function candidatos(area, kw, kh) {
   return out;
 }
 
+const round1 = (n) => Math.round(num(n) * 10) / 10;
+
+// --- GAP17 · CERTIFICADO DE FALLO (INSTRUMENTACIÓN PURA) ---------------------
+// SÓLO describe por qué un kit no se colocó. NO cambia el orden de candidatos,
+// las variantes, el backtracking, la decisión PASS/FAIL ni las colocaciones:
+// corre DESPUÉS de la búsqueda y es read-only. Prueba la causa de forma
+// INDEPENDIENTE del presupuesto de búsqueda (sondeo geométrico exhaustivo de UN
+// kit en UNA zona), de modo que un timeout NO se disfrace de imposibilidad.
+function cabeEnAlgunaParte(kw, kh, area, ignorarPuertas) {
+  const a = ignorarPuertas ? { ...area, puertas: [], obstaculos: [] } : area;
+  for (const c of candidatos(a, kw, kh)) {
+    if (kitCabe(c.x, c.y, kw, kh, a, []) === null) return true;   // ocupados = [] (sin otros kits)
+  }
+  return false;
+}
+
+export function certificarKit(kit, areas, { budgetExhausted, nodos }) {
+  const variantes = [
+    { rot: 0, w: kit.base.w, d: kit.base.d },
+    { rot: 90, w: kit.base.d, d: kit.base.w },
+  ];
+  const needM2 = (kit.base.w * kit.base.d) / 1e6;
+  const moduloW_m = kit.base.w / 1000, moduloH_m = kit.base.d / 1000;
+  const moduloLong = Math.max(moduloW_m, moduloH_m), moduloShort = Math.min(moduloW_m, moduloH_m);
+
+  const permitted_areas = kit.zonas.map((ai) => {
+    const area = areas[ai];
+    const W = num(area.ancho) || num(area.width_mm), H = num(area.largo) || num(area.depth_mm);
+    let fitsDims = false, fitsWithDoors = false;
+    for (const v of variantes) {
+      if (!fitsDims && cabeEnAlgunaParte(v.w, v.d, area, true)) fitsDims = true;
+      if (!fitsWithDoors && cabeEnAlgunaParte(v.w, v.d, area, false)) fitsWithDoors = true;
+    }
+    return { zone: area.zone_id ?? area.nombre ?? `area_${ai}`, area_idx: ai, areaW_m: round1(W / 1000), areaH_m: round1(H / 1000), areaM2: round1((W * H) / 1e6), fitsDims, fitsWithDoors };
+  });
+
+  const haveM2 = permitted_areas.reduce((s, a) => s + a.areaM2, 0);
+  const anyFitsDims = permitted_areas.some((a) => a.fitsDims);
+  const anyFitsWithDoors = permitted_areas.some((a) => a.fitsWithDoors);
+  const rejected_by = kit._rej || {};
+
+  // Causas PROBADAS por el sondeo independiente (no por la heurística de búsqueda).
+  const proven = [];
+  if (!anyFitsDims) {
+    const excedeForma = permitted_areas.every((a) => moduloLong > Math.max(a.areaW_m, a.areaH_m) + 1e-6 || moduloShort > Math.min(a.areaW_m, a.areaH_m) + 1e-6);
+    if (excedeForma) proven.push('ASPECT_RATIO');
+    if (needM2 > haveM2 + 1e-6) proven.push('NO_SPACE');
+    if (!proven.length) proven.push('ASPECT_RATIO');   // no cupo por dims aunque m² total alcance
+  } else if (!anyFitsWithDoors) {
+    proven.push((rejected_by.DOOR || 0) >= (rejected_by.OBSTACLE || 0) ? 'DOOR' : 'OBSTACLE');
+  } else if (needM2 > haveM2 + 1e-6) {
+    proven.push('NO_SPACE');
+  } else {
+    proven.push('CONTIGUOUS_SPACE');   // entra solo, pero no junto a los demás → espacio fragmentado
+  }
+
+  // Imposibilidad geométrica DURA: demostrada sin depender del presupuesto.
+  const provenGeom = !anyFitsDims || !anyFitsWithDoors;
+  let primary_cause;
+  if (budgetExhausted && !provenGeom) primary_cause = 'SEARCH_BUDGET_EXHAUSTED';   // 17.2: NO imposibilidad falsa
+  else if (proven.length > 1) primary_cause = 'MULTI_CONSTRAINT';                   // 17.3: ninguna causa domina sola
+  else primary_cause = proven[0];
+  const secondary_causes = proven.filter((c) => c !== primary_cause);
+
+  return {
+    permitted_areas,
+    orientations: variantes.map((v) => v.rot),
+    rejected_by,
+    dimensional_fit: { any_fits_dims: anyFitsDims, any_fits_with_doors: anyFitsWithDoors, needM2: round1(needM2), haveM2: round1(haveM2), moduloW_m, moduloH_m },
+    search_exhausted: !budgetExhausted,
+    nodes_used: nodos,
+    primary_cause,
+    secondary_causes,
+    evidence: { needM2: round1(needM2), haveM2: round1(haveM2), moduloW_m, moduloH_m, nodes_used: nodos, budget_exhausted: !!budgetExhausted },
+  };
+}
+
 /**
  * C · Solver por bloques con backtracking. Determinista.
  * @returns {{colocacion, unplaced, unassigned, metodo, attempts_used, _nodos}}
@@ -199,6 +276,7 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
   const colocacion = [];
   const kitRes = new Array(kits.length).fill(null);   // {dropped:[], invariante?} por kit
   let nodos = 0;
+  let budgetExhausted = false;   // GAP17.2: timeout/tope de nodos ≠ imposibilidad geométrica
 
   // GAP2: la salida canónica conserva la metadata semántica para que el Semantic
   // Judge reconstruya silla→ancla→slot→lado→orientación. anchor_instance_id viene
@@ -212,7 +290,7 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
   });
 
   function intentarKit(idx) {
-    if (Date.now() - t0 > MAX_MS || nodos > MAX_NODOS) return idx >= kits.length;
+    if (Date.now() - t0 > MAX_MS || nodos > MAX_NODOS) { budgetExhausted = true; return idx >= kits.length; }
     if (idx >= kits.length) return true;
     const kit = kits[idx];
     const variantes = [
@@ -226,7 +304,11 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
         for (const c of candidatos(area, k.w, k.d)) {
           nodos++;
           const motivo = kitCabe(c.x, c.y, k.w, k.d, area, ocupadosPorArea.get(ai));
-          if (motivo) { if (motivo !== 'AISLE') mejorMotivo = motivo; continue; }
+          if (motivo) {
+            // GAP17: histograma de rechazos (SÓLO registra; no altera el flujo).
+            kit._rej = kit._rej || {}; kit._rej[motivo] = (kit._rej[motivo] || 0) + 1;
+            if (motivo !== 'AISLE') mejorMotivo = motivo; continue;
+          }
           ocupadosPorArea.get(ai).push({ x: c.x, y: c.y, w: k.w, d: k.d });
           const abs = { areaIdx: ai, x: c.x, y: c.y, rot };
           const base = colocacion.length;
@@ -247,8 +329,13 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
   const unplaced = [];
   kits.forEach((kit, idx) => {
     const res = kitRes[idx] || { dropped: kit.base.piezas.map((p) => String(p.id)), invariante: 'NO_SPACE', fail: true };
-    if (res.fail) unplaced.push({ anchorId: kit.anchorId, piezas: res.dropped, invariante: res.invariante });
-    else if (res.dropped && res.dropped.length) unplaced.push({ anchorId: kit.anchorId, piezas: res.dropped, invariante: 'NO_SPACE_PARA_SILLAS' });
+    if (res.fail) {
+      // GAP17: certificado adjunto (aditivo). `invariante` NO cambia (downstream intacto).
+      const certificado = certificarKit(kit, areas, { budgetExhausted, nodos });
+      unplaced.push({ anchorId: kit.anchorId, piezas: res.dropped, invariante: res.invariante, certificado });
+    } else if (res.dropped && res.dropped.length) {
+      unplaced.push({ anchorId: kit.anchorId, piezas: res.dropped, invariante: 'NO_SPACE_PARA_SILLAS' });
+    }
   });
 
   return { colocacion, piezas: asign, unplaced, unassigned, metodo: 'kit-solver-v1', attempts_used: 1, _nodos: nodos };

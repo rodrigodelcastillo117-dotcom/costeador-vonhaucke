@@ -52,6 +52,50 @@ function idsNoColocadas(sol) {
   return s;
 }
 
+const LABEL_CAUSA = {
+  ASPECT_RATIO: 'la forma/dimensión del módulo', NO_SPACE: 'superficie total insuficiente',
+  DOOR: 'el barrido de una puerta', OBSTACLE: 'una columna/obstáculo',
+  CONTIGUOUS_SPACE: 'espacio fragmentado', AISLE: 'el pasillo mínimo', OVERLAP: 'el traslape de bloques',
+};
+
+// GAP17 · causa a partir del CERTIFICADO del solver (primary_cause PROBADO). El
+// certificado abarca TODAS las zonas permitidas y distingue timeout (SEARCH_BUDGET_
+// EXHAUSTED → revisión, no imposibilidad) y empate de restricciones (MULTI_CONSTRAINT).
+// PROHIBIDO "necesita ~X m²" salvo que NO_SPACE esté probado (needM2 > haveM2).
+function causaDesdeCertificado(cert, anc, ar, nSillas) {
+  const zona = ar.nombre || ar.zone_id || 'el área';
+  const df = cert.dimensional_fit || {};
+  const needM2 = num(df.needM2), haveM2 = num(df.haveM2);
+  const areaW = num(ar.ancho) || num(ar.width_mm), areaH = num(ar.largo) || num(ar.depth_mm);
+  const ev = {
+    invariante_solver: cert.primary_cause, primary_cause: cert.primary_cause, secondary_causes: cert.secondary_causes || [],
+    needM2, haveM2, moduloW_m: num(df.moduloW_m), moduloH_m: num(df.moduloH_m),
+    areaW_m: +(areaW / 1000).toFixed(2), areaH_m: +(areaH / 1000).toFixed(2),
+    search_exhausted: cert.search_exhausted, nodes_used: cert.nodes_used,
+  };
+  const ladoTxt = () => (num(df.moduloW_m) > ev.areaW_m ? `ancho (${num(df.moduloW_m)} m vs ${ev.areaW_m} m de la zona)` : `fondo (${num(df.moduloH_m)} m vs ${ev.areaH_m} m de la zona)`);
+  switch (cert.primary_cause) {
+    case 'SEARCH_BUDGET_EXHAUSTED':
+      return { invariante: 'SEARCH_BUDGET_EXHAUSTED', texto: `No alcancé a explorar todo el espacio de "${zona}" dentro del presupuesto de cálculo; requiere revisión manual (no es una imposibilidad comprobada).`, evidencia: ev };
+    case 'ASPECT_RATIO':
+      return { invariante: 'ASPECT_RATIO', texto: `El módulo no entra por la FORMA del área "${zona}": su ${ladoTxt()} no cabe (hay ~${haveM2} m² en total, pero no en esa dimensión).`, evidencia: ev };
+    case 'NO_SPACE':
+      return { invariante: 'NO_SPACE', texto: `El grupo necesita ~${needM2} m² y las zonas permitidas suman ~${haveM2} m².`, evidencia: ev };
+    case 'DOOR':
+      return { invariante: 'DOOR', texto: `El barrido de la puerta en "${zona}" ocupa ese frente y no deja colocar el módulo.`, evidencia: ev };
+    case 'OBSTACLE':
+      return { invariante: 'OBSTACLE', texto: `Una columna/obstáculo en "${zona}" ocupa el punto donde iría el módulo.`, evidencia: ev };
+    case 'MULTI_CONSTRAINT': {
+      const causas = [cert.primary_cause, ...(cert.secondary_causes || [])].filter((c) => c !== 'MULTI_CONSTRAINT');
+      const lista = causas.map((c) => LABEL_CAUSA[c] || c).join(' y ');
+      return { invariante: 'MULTI_CONSTRAINT', texto: `Varias restricciones bloquean el módulo a la vez en "${zona}" (${lista}); no hay una sola causa dominante.`, evidencia: ev };
+    }
+    case 'CONTIGUOUS_SPACE':
+    default:
+      return { invariante: 'CONTIGUOUS_SPACE', texto: `Hay superficie en "${zona}" (~${haveM2} m²), pero no un hueco rectangular continuo que conserve el pasillo de 1.0 m.`, evidencia: ev };
+  }
+}
+
 // BLOCK 4 · causa REAL del no-cupo. El texto deriva del invariante limitante y de
 // evidencia medida. PROHIBIDO "falta superficie" cuando haveM2 ≥ needM2: en ese caso
 // el limitante es forma/dimensión (ASPECT_RATIO) o fragmentación (CONTIGUOUS_SPACE).
@@ -96,7 +140,8 @@ export function mensajeVendedor(areas = [], piezas = [], sol = {}, opts = {}) {
     const ai = anc ? areaIdxDe(anc, areas) : 0;
     const ar = areas[ai] || areas[0] || {};
     const nSillas = (u.piezas || []).filter((id) => { const p = byId.get(String(id)); return p && !esAncla(p.relation_role); }).length;
-    const c = causaReal(u.invariante || 'NO_SPACE', anc, ar, nSillas);
+    // GAP17: la causa PROBADA del certificado manda; la heurística es sólo fallback.
+    const c = u.certificado ? causaDesdeCertificado(u.certificado, anc, ar, nSillas) : causaReal(u.invariante || 'NO_SPACE', anc, ar, nSillas);
     motivos.push({ anchorId: u.anchorId, invariante: c.invariante, invariante_solver: u.invariante || 'NO_SPACE', zona: ar.nombre || ar.zone_id || `área ${ai + 1}`, texto: c.texto, evidencia: c.evidencia });
   }
   if (unassigned.length) motivos.push({ invariante: 'DEPENDENT_UNASSIGNED', texto: `${plural(unassigned.length, 'pieza')} sin un mueble que las reciba (se superó la capacidad del catálogo).` });

@@ -95,6 +95,9 @@ export function partidaComercialDesdeConfirmado(it) {
     w: it.w ?? null,
     d: it.d ?? null,
     usuarios: it.usuarios ?? null,
+    // P0.2c GAP16.2: ningún adapter productivo borra la topología/capacidad confirmada.
+    user_capacity: Number(it.user_capacity ?? it.usuarios) > 0 ? Number(it.user_capacity ?? it.usuarios) : null,
+    ...(it.placement_profile ? { placement_profile: it.placement_profile } : {}),
     linea: it.linea ?? null,
     cantidad: Number(it.cantidad) || 1,
     // SEMÁNTICA ESTRUCTURAL (top-level, NO en config) — #5

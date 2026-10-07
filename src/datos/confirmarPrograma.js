@@ -88,6 +88,10 @@ function estructuraDe(part) {
     functional_group_id: part.functional_group_id ?? null,
     requirement_id: part.requirement_id ?? null,
     zone_id: part.zone_id ?? null,
+    // P0.2c GAP16: la topología confirmada (CATALOG/USER_CONFIRMED) sobrevive el
+    // patch estructural de reutilización/idempotencia; NUNCA se pisa con UNKNOWN.
+    ...(part.placement_profile ? { placement_profile: part.placement_profile } : {}),
+    ...(Number(part.user_capacity ?? part.usuarios) > 0 ? { user_capacity: Number(part.user_capacity ?? part.usuarios) } : {}),
   };
 }
 
@@ -114,6 +118,9 @@ function aItemConfirmado(part, { slot = null, estado }) {
     nombre: part.nombre ?? null,
     linea: part.linea ?? null,
     usuarios: part.usuarios ?? null,
+    // P0.2c GAP16: topología + capacidad confirmadas SOBREVIVEN hasta Acomodo.
+    ...(part.placement_profile ? { placement_profile: part.placement_profile } : {}),
+    ...(Number(part.user_capacity ?? part.usuarios) > 0 ? { user_capacity: Number(part.user_capacity ?? part.usuarios) } : {}),
     w: part.w ?? null,
     d: part.d ?? null,
     cantidad: Number(part.cantidad) || 1,
