@@ -37,7 +37,7 @@ describe('G · propagación end-to-end de mensaje_vendedor', () => {
     // 2) el formatter del cliente lo convierte en tarjeta legible.
     const card = formatearMensajeVendedor(res.plan.mensaje_vendedor);
     expect(card).not.toBeNull();
-    expect(card.queNoCupo).toContain('• 2 sillas operativas');
+    expect(card.queNoCupo).toContain('2 sillas operativas');   // D: una sola viñeta (la pone el <li>)
     expect(card.porque[0]).toContain('m²');
     expect(card.queHacer[0]).toContain('estación de 2');
   });

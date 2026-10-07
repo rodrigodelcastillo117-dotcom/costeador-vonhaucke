@@ -141,7 +141,7 @@ export function mensajeVendedor(areas = [], piezas = [], sol = {}, opts = {}) {
       const quitar = new Set([...sillas.slice(capN), ...gavetas.slice(capN)].map((p) => String(p.id)));
       candidatas.push({
         id: `estacion_${capN}`, grupo, capN, cap0,
-        base: `Usar una estación de ${capN} puesto(s) en lugar de ${cap0}`,
+        base: `Usar una estación de ${plural(capN, 'puesto')} en lugar de ${cap0}`,
         aplicar: (as, ps) => ({ areas: as, piezas: ps.map((p) => (String(p.id) === String(wsFallo.id) ? { ...p, w: w1, user_capacity: capN } : p)).filter((p) => !quitar.has(String(p.id))) }),
       });
     }

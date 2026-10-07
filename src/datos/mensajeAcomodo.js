@@ -11,7 +11,8 @@ export function formatearMensajeVendedor(mv) {
   const opciones = Array.isArray(mv.opciones) ? mv.opciones : [];
   if (!pendientes.length) return null;
 
-  const queNoCupo = pendientes.map((p) => `• ${p.texto}`);
+  // El bullet lo pone el <li> de la UI; NO anteponer "• " aquí (evita "• • …").
+  const queNoCupo = pendientes.map((p) => p.texto);
   const porque = motivos.map((m) => m.texto).filter(Boolean);
   const queHacer = opciones.map((o) => o.texto).filter(Boolean).slice(0, 3);
   const sinOpcion = (!queHacer.length && mv.sin_opcion) ? mv.sin_opcion : null;

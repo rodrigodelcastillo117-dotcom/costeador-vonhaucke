@@ -17,7 +17,8 @@ describe('G · formatearMensajeVendedor (cliente)', () => {
     };
     const r = formatearMensajeVendedor(mv);
     expect(r).not.toBeNull();
-    expect(r.queNoCupo).toEqual(['• 2 sillas operativas', '• 1 gaveta']);
+    // D (microcoherencia): el formatter NO antepone "• " (la viñeta la pone el <li>).
+    expect(r.queNoCupo).toEqual(['2 sillas operativas', '1 gaveta']);
     expect(r.porque[0]).toContain('m²');
     expect(r.queHacer).toHaveLength(3);   // máximo 3 opciones
     expect(r.resumen).toContain('Quedaron pendientes');
