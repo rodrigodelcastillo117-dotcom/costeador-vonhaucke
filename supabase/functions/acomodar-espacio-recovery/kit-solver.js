@@ -172,13 +172,16 @@ function kitCabe(x, y, kw, kh, area, ocupados) {
 function candidatos(area, kw, kh, orden, deadline) {
   const W = num(area.ancho) || num(area.width_mm), H = num(area.largo) || num(area.depth_mm);
   const out = [];
-  // GAP35.B: la materialización del grid respeta el deadline (áreas enormes no deben
-  // construir millones de candidatos sin poder cortar). Sin deadline → build completo
+  // GAP35.B/GAP37: la materialización respeta el deadline con un CONTADOR INDEPENDIENTE
+  // en el loop INTERNO (no atado al boundary de fila `y`), de modo que una malla grande
+  // no construye millones de candidatos sin poder cortar. Sin deadline → build completo
   // (camino por defecto byte-idéntico; el banco usa áreas chicas y es instantáneo).
-  let n = 0;
-  for (let y = 0; y + kh <= H + 1; y += GRID) {
-    if (deadline && (n & 8191) === 0 && Date.now() >= deadline) return out;   // corte por presupuesto
-    for (let x = 0; x + kw <= W + 1; x += GRID) { out.push({ x, y }); n++; }
+  let n = 0, corte = false;
+  for (let y = 0; y + kh <= H + 1 && !corte; y += GRID) {
+    for (let x = 0; x + kw <= W + 1; x += GRID) {
+      if (deadline && (++n & 4095) === 0 && Date.now() >= deadline) { corte = true; break; }
+      out.push({ x, y });
+    }
   }
   if (!orden || orden === 'row') return out;                                  // DEFAULT: intacto
   if (orden === 'reverse') return out.slice().reverse();
@@ -353,6 +356,43 @@ export function certificarKit(kit, areas, { budgetExhausted, nodos, deadline: ex
   };
 }
 
+// Certificado de un kit FALLIDO completo.
+function certFail(kit, areas, ctx) { return certificarKit(kit, areas, ctx); }
+// Certificado PARCIAL (ancla cupo, sillas no): la causa del kit completo se prueba por
+// contrafáctico (GAP21) y se CONSERVAN sus permitted_areas (GAP42) para el texto multi-área.
+function certPartial(kit, areas, dropped, ctx) {
+  const full = certificarKit(kit, areas, ctx);
+  return {
+    primary_cause: 'PARTIAL_SEATS_DROPPED',
+    proven: full.proven === true,
+    permitted_areas: full.permitted_areas,          // GAP42: multi-área también en el parcial
+    partial_certificate: {
+      anchor_placeable: true, minimum_fit: true, dropped_dependents: dropped,
+      full_kit_cause: full.primary_cause, full_kit_proven: full.proven,
+      full_kit_evidence: full.evidence, full_kit_secondary: full.secondary_causes,
+      full_kit_permitted_areas: full.permitted_areas,
+    },
+  };
+}
+
+// GAP38 · Adjunta certificados causales al ganador YA FIJO, SIN re-buscar posiciones
+// (usa el contexto de kits guardado en el solve). La colocación NO se toca → el layout
+// retornado coincide byte a byte con el que se evaluó (winner_eval ↔ returned layout).
+export function attachCertificates(sol, areas = [], { deadline } = {}) {
+  const ctx = sol && sol._cert_ctx;
+  if (!ctx) return sol;
+  const base = { budgetExhausted: ctx.budgetExhausted, nodos: ctx.nodos, deadline };
+  for (const u of (sol.unplaced || [])) {
+    if (u.certificado != null) continue;
+    const kit = ctx.kitsByAnchor.get(String(u.anchorId));
+    if (!kit) continue;
+    u.certificado = u.invariante === 'NO_SPACE_PARA_SILLAS'
+      ? certPartial(kit, areas, u.piezas, base)
+      : certFail(kit, areas, base);
+  }
+  return sol;
+}
+
 /**
  * C · Solver por bloques con backtracking. Determinista.
  * @returns {{colocacion, unplaced, unassigned, metodo, attempts_used, _nodos}}
@@ -443,36 +483,26 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
   // OMITEN (certificados:false) y se calculan sólo para el GANADOR al final. El camino
   // por defecto (banco) mantiene certificados:true → salida byte-idéntica.
   const conCertificados = opts.certificados !== false;
+  const certCtx = { budgetExhausted, nodos, deadline };
+  const kitsByAnchor = new Map(kits.map((k) => [String(k.anchorId), k]));
   const unplaced = [];
   kits.forEach((kit, idx) => {
     const res = kitRes[idx] || { dropped: kit.base.piezas.map((p) => String(p.id)), invariante: 'NO_SPACE', fail: true };
     if (res.fail) {
       // GAP17: certificado adjunto (aditivo). `invariante` NO cambia (downstream intacto).
-      const certificado = conCertificados ? certificarKit(kit, areas, { budgetExhausted, nodos, deadline }) : null;
+      // GAP35.C: en exploración (certificados:false) se omite y se adjunta al ganador (attachCertificates).
+      const certificado = conCertificados ? certFail(kit, areas, certCtx) : null;
       unplaced.push({ anchorId: kit.anchorId, piezas: res.dropped, invariante: res.invariante, certificado });
     } else if (res.dropped && res.dropped.length) {
-      // GAP21: el ancla SÍ cupo pero las sillas no. La CAUSA del kit completo se prueba
-      // con el MISMO diagnóstico contrafáctico (no se afirma "pasillo" por defecto). Si
-      // la causa exacta no se puede probar → proven=false (REVIEW).
-      const full = conCertificados ? certificarKit(kit, areas, { budgetExhausted, nodos, deadline }) : null;
-      const certificado = full ? {
-        primary_cause: 'PARTIAL_SEATS_DROPPED',
-        proven: full.proven === true,
-        partial_certificate: {
-          anchor_placeable: true,
-          minimum_fit: true,
-          dropped_dependents: res.dropped,
-          full_kit_cause: full.primary_cause,
-          full_kit_proven: full.proven,
-          full_kit_evidence: full.evidence,
-          full_kit_secondary: full.secondary_causes,
-        },
-      } : null;
+      // GAP21: el ancla SÍ cupo pero las sillas no; la causa del kit completo se prueba por contrafáctico.
+      const certificado = conCertificados ? certPartial(kit, areas, res.dropped, certCtx) : null;
       unplaced.push({ anchorId: kit.anchorId, piezas: res.dropped, invariante: 'NO_SPACE_PARA_SILLAS', certificado });
     }
   });
 
-  return { colocacion, piezas: asign, unplaced, unassigned, metodo: 'kit-solver-v1', attempts_used: 1, _nodos: nodos };
+  // GAP38: contexto para certificar POST-HOC al ganador sin re-buscar (attachCertificates).
+  const _cert_ctx = { kitsByAnchor, budgetExhausted, nodos };
+  return { colocacion, piezas: asign, unplaced, unassigned, metodo: 'kit-solver-v1', attempts_used: 1, _nodos: nodos, _cert_ctx };
 }
 
 // ============================================================================
@@ -586,18 +616,22 @@ export function resolverKitsMulti(areas = [], piezas = [], opts = {}) {
   }
   if (Date.now() >= deadline) budgetExhaustedMulti = true;
 
-  // GAP35.C: certificados causales SÓLO para el GANADOR (determinista → mismo layout),
-  // con el deadline restante. Evita correr el diagnóstico completo por cada candidato.
-  let winnerSol = ganador.sol;
-  if ((winnerSol.unplaced || []).length && (winnerSol.unplaced || []).some((u) => u.certificado == null)) {
-    winnerSol = resolverKits(areas, piezas, { orden: ganador.ordenRaw, deadline, certificados: true });
+  // GAP35.C/GAP38: certificados causales SÓLO para el GANADOR, adjuntados POST-HOC sobre
+  // su layout YA FIJO (attachCertificates NO re-busca posiciones → la colocación retornada
+  // coincide byte a byte con la que evaluó el juez; winner_eval ↔ returned layout).
+  const winnerSol = ganador.sol;
+  if ((winnerSol.unplaced || []).some((u) => u.certificado == null)) {
+    attachCertificates(winnerSol, areas, { deadline });
   }
 
   const elapsed_ms = Date.now() - t0;
-  // GAP27: el presupuesto NO produce falso PASS. Sólo es "no review" si el ganador es
-  // LIMPIO (hard+semantic+quality+completo); winnerClean por sí solo NO basta.
+  // GAP37 · es un SOFT_MULTI_BUDGET honesto: el SEARCH se acota por el deadline compartido
+  // (candidatos + barrido), pero el JUZGADO por candidato (evaluarRecovery/validar/semantic/
+  // quality) es O(n²) y NO interrumpible, así que el total puede exceder el presupuesto.
+  // CONTRATO: si se excede, SIEMPRE revisión (jamás FINAL por haber "alcanzado" el tiempo).
+  const budgetExceeded = elapsed_ms > budget;
   const winnerLimpio = esLimpio(ganador.eval, total);
-  const quality_review_required = !winnerLimpio && (budgetExhaustedMulti || ganador.eval.quality_status !== 'PASS');
+  const quality_review_required = budgetExceeded || (!winnerLimpio && (budgetExhaustedMulti || ganador.eval.quality_status !== 'PASS'));
 
   return {
     ...winnerSol,
@@ -610,7 +644,7 @@ export function resolverKitsMulti(areas = [], piezas = [], opts = {}) {
       ganador_eval: ganador.eval,
       quality_review_required,
       publicable: winnerLimpio,
-      metrics: { elapsed_ms, budget_ms: budget, budget_exhausted: budgetExhaustedMulti, winner_strategy: ganador.orden, candidates_evaluated: cands.length },
+      metrics: { elapsed_ms, budget_ms: budget, budget_mode: 'SOFT_MULTI_BUDGET', budget_exhausted: budgetExhaustedMulti, budget_exceeded: budgetExceeded, winner_strategy: ganador.orden, candidates_evaluated: cands.length },
       por_candidato: cands.map((c) => ({ idx: c.idx, orden: c.orden, placed: c.eval.placed, hardOk: c.eval.hardOk, hard_issues: c.eval.hard_issues, sem_status: c.eval.sem_status, semRank: c.eval.semRank, semFail: c.eval.semFail, semReview: c.eval.semReview, quality: c.eval.quality, quality_status: c.eval.quality_status })),
     },
   };

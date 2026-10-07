@@ -171,6 +171,13 @@ export function invariantesRelacionales(piezas = [], colocacion = []) {
 // --- BOUNDS / OVERLAP / PUERTA / OBSTÁCULO (reusa helpers compartidos) ------
 function invariantesBase(areas = [], piezas = [], colocacion = []) {
   const porId = new Map(piezas.map((p) => [String(p.id), p]));
+  // GAP39: el no-traslape DURO es INTER-KIT. Dentro de un kit, la geometría canónica
+  // SÍ puede solaparse por diseño (gaveta BAJO el tablero = overlap legal con la huella
+  // del bench); eso lo gobierna el PlacementProfile/composición y lo audita el juez
+  // SEMÁNTICO (ocupación de slots), no el no-traslape global. Sólo piezas de DISTINTO
+  // kit que se encimen son OVERLAP duro.
+  const kitOwner = construirKitOwner(piezas);
+  const mismoKit = (ida, idb) => { const oa = kitOwner(porId.get(String(ida))), ob = kitOwner(porId.get(String(idb))); return oa != null && oa === ob; };
   const issues = [];
   const porArea = new Map();
   for (const c of colocacion) {
@@ -197,7 +204,8 @@ function invariantesBase(areas = [], piezas = [], colocacion = []) {
   }
   for (const [ai, lista] of porArea) {
     for (let i = 0; i < lista.length; i++) for (let j = i + 1; j < lista.length; j++) {
-      if (rectsSeSolapan(lista[i].rect, lista[j].rect)) issues.push({ code: 'OVERLAP', severity: 'fail', id: `${lista[i].id}|${lista[j].id}`, area: ai });
+      if (mismoKit(lista[i].id, lista[j].id)) continue;   // INTRA-KIT: overlap canónico legal
+      if (rectsSeSolapan(lista[i].rect, lista[j].rect)) issues.push({ code: 'OVERLAP', severity: 'fail', id: `${lista[i].id}|${lista[j].id}`, area: ai, scope: 'INTER_KIT' });
     }
   }
   return issues;

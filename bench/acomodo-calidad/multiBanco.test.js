@@ -4,6 +4,7 @@ import { construirDificiles } from '../acomodo/casos-dificiles.js';
 import { construirPlanosReales } from '../acomodo/planos-reales.js';
 import { resolverKits, resolverKitsMulti } from '../../supabase/functions/acomodar-espacio-recovery/kit-solver.js';
 import { evaluarRecovery } from '../../supabase/functions/acomodar-espacio-recovery/recovery-core.js';
+import { juzgar } from '../acomodo/judge.js';   // GAP40: juez NEUTRAL congelado (independiente del motor)
 
 // ============================================================================
 //  P0.2c · BLOCK 5 · GAP36 · BANCO MULTI COMPLETO (los 55 inputs del banco congelado,
@@ -90,28 +91,69 @@ describe('P0.2c · GAP36 · banco multi completo (55 casos)', () => {
     expect(maxElapsed).toBeLessThanOrEqual(MAX_MULTI_MS + 250);
   });
 
-  // GAP35 · stress de PRESUPUESTO: workload grande + budget pequeño. El SEARCH se corta
-  // por deadline compartido; si el presupuesto se agota sin ganador LIMPIO → review (nunca
-  // falso FINAL). El overshoot está acotado por el costo NO interrumpible de juzgar UN
-  // candidato (evaluarRecovery/validar/semantic/quality son O(n²) en piezas).
-  it('GAP35 · presupuesto estricto: exhausto → review, sin falso FINAL, overshoot acotado', () => {
+  it('GAP40 · juez NEUTRAL sobre el ganador: 0 falso FINAL; explica los placed-regressions', () => {
+    let falseFinalNeutral = 0, finals = 0, neutralPASS = 0;
+    const regr = [];
+    for (const c of casos) {
+      const base = resolverKits(c.areas, c.piezas);
+      const m = resolverKitsMulti(c.areas, c.piezas);
+      const er = evaluarRecovery(c.areas, m.piezas, m.colocacion, { requested: c.piezas.length });
+      const publicable = m.seleccion.publicable === true && er.render_ready === true;
+      const neutral = juzgar(c.areas, m.piezas, m.colocacion);   // JUEZ NEUTRAL CONGELADO
+      if (publicable) { finals++; if (neutral.status !== 'PASS') falseFinalNeutral++; }
+      if (neutral.status === 'PASS') neutralPASS++;
+
+      // placed-regressions vs determinista: deben justificarse con mejora HARD/SEMANTIC.
+      const basePlaced = c.piezas.length - idsFaltantes(base).size;
+      const multiPlaced = c.piezas.length - idsFaltantes(m).size;
+      if (multiPlaced < basePlaced) {
+        const cand0 = m.seleccion.por_candidato.find((x) => x.idx === 0);
+        const w = m.seleccion.ganador_eval;
+        regr.push({ n: c.nombre, base: basePlaced, multi: multiPlaced, cand0, w });
+      }
+    }
+    console.log(`[NEUTRAL] finals(publicable)=${finals} neutral_PASS_en_finals=${finals - falseFinalNeutral} falseFinalNeutral=${falseFinalNeutral} neutralPASS_total=${neutralPASS}`);
+    console.log(`[NEUTRAL] placed-regressions (${regr.length}): se aceptó colocar menos a cambio de ganar un GATE superior`);
+    for (const r of regr) console.log(`   ${r.n}: placed ${r.base}→${r.multi} | hardOk ${r.cand0.hardOk}→${r.w.hardOk} | sem ${r.cand0.sem_status}(fail${r.cand0.semFail}/rev${r.cand0.semReview})→${r.w.sem_status}(fail${r.w.semFail}/rev${r.w.semReview})`);
+
+    // CLAVE: nada publicado por el motor puede ser rechazado por el juez NEUTRAL congelado.
+    expect(falseFinalNeutral).toBe(0);
+    // Cada placed-regression se justifica: el ganador es ESTRICTAMENTE mejor en un GATE por
+    // ENCIMA de completeness (hard → semRank → −semFail → −semReview). Nunca coloca menos "gratis".
+    const SEM_RANK2 = { PASS: 2, REVIEW_REQUIRED: 1, FAIL: 0 };
+    const gatePrefix = (ev) => [ev.hardOk ? 1 : 0, SEM_RANK2[ev.sem_status] ?? 0, -(ev.semFail || 0), -(ev.semReview || 0)];
+    const strictlyBetter = (a, b) => { for (let i = 0; i < a.length; i++) { if (a[i] > b[i]) return true; if (a[i] < b[i]) return false; } return false; };
+    for (const r of regr) {
+      expect(strictlyBetter(gatePrefix(r.w), gatePrefix(r.cand0)), `placed-regression ${r.n} sin mejora de gate superior`).toBe(true);
+    }
+  });
+
+  // GAP37 · SOFT_MULTI_BUDGET honesto: el SEARCH (candidatos+barrido) se acota por el
+  // deadline compartido; el JUZGADO por candidato es O(n²) y NO interrumpible, así que el
+  // total puede exceder → CONTRATO: si excede, SIEMPRE revisión (nunca FINAL). Se MIDE el
+  // elapsed real y se verifica el modo soft + fail-safe, sin assertear una cota de reloj dura.
+  it('GAP37 · SOFT budget: mide elapsed real; exceder → review; search acotado; sin falso FINAL', () => {
     const stress = [];
     for (let g = 0; g < 6; g++) {
       stress.push({ id: 'b' + g, relation_role: 'ANCHOR_WORKSTATION', w: 6000, d: 1400, user_capacity: 8, functional_group_id: 'g' + g, zone_id: 'OP', placement_profile: { topology: 'DOUBLE_FACE', provenance: 'USER_CONFIRMED', version: 'PP_V1' } });
       for (let i = 0; i < 8; i++) stress.push({ id: `s${g}_${i}`, relation_role: 'WORK_SEAT', w: 600, d: 600, functional_group_id: 'g' + g, zone_id: 'OP' });
     }
     const areas = [{ nombre: 'OP', zone_id: 'OP', tipo: 'open', ancho: 100000, largo: 100000 }];
-    const budget = 100;
+    const budget = 50;
+    const t0 = Date.now();
     const m = resolverKitsMulti(areas, stress, { maxMultiMs: budget });
-    // Garantías DETERMINISTAS (no dependen del reloj bajo carga de CI):
-    //  - el deadline COMPARTIDO cortó el search → budget_exhausted;
-    //  - la exploración NO recorrió las 5 estrategias (evita el blow-up naïf de 5×MAX_MS);
-    //  - si el ganador no es LIMPIO, jamás se publica (sin falso FINAL).
-    // (La cota de reloj no se asserta: el juzgado O(n²) por candidato no es interrumpible
-    //  y su costo absoluto depende del hardware; `candidates_evaluated<5` es la prueba real
-    //  de que el presupuesto acota la exploración.)
-    expect(m.seleccion.metrics.budget_exhausted).toBe(true);
-    expect(m.seleccion.metrics.candidates_evaluated).toBeLessThan(5);
-    if (!m.seleccion.publicable) expect(m.seleccion.quality_review_required).toBe(true);
+    const elapsedReal = Date.now() - t0;
+    const met = m.seleccion.metrics;
+    expect(met.budget_mode).toBe('SOFT_MULTI_BUDGET');
+    // el flag budget_exceeded refleja el reloj REAL medido (honesto, no inventado).
+    expect(met.budget_exceeded).toBe(elapsedReal > budget);
+    // el SEARCH se acotó: NO recorrió las 5 estrategias (deadline compartido).
+    expect(met.candidates_evaluated).toBeLessThan(5);
+    expect(met.budget_exhausted).toBe(true);
+    // CONTRATO SOFT: si se excedió el presupuesto, SIEMPRE revisión (jamás FINAL).
+    if (met.budget_exceeded) {
+      expect(m.seleccion.quality_review_required).toBe(true);
+      expect(m.seleccion.publicable).toBe(false);
+    }
   });
 });

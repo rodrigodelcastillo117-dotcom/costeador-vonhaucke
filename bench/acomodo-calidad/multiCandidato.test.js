@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { resolverKits, resolverKitsMulti, mejorCandidato } from '../../supabase/functions/acomodar-espacio-recovery/kit-solver.js';
+import { resolverKits, resolverKitsMulti, mejorCandidato, attachCertificates } from '../../supabase/functions/acomodar-espacio-recovery/kit-solver.js';
 import { juzgarSemantico } from '../../supabase/functions/acomodar-espacio-recovery/semanticPlacementJudge.js';
+import { evaluarRecovery } from '../../supabase/functions/acomodar-espacio-recovery/recovery-core.js';
 
 // ============================================================================
 //  P0.2c · BLOCK 5 · BÚSQUEDA MULTI-CANDIDATO → JUECES EN CAPAS → GANADOR.
@@ -75,6 +76,27 @@ describe('P0.2c · BLOCK 5 · NO regresión (el determinista gana los empates)',
     const base = m.seleccion.por_candidato.find((c) => c.idx === 0);
     const ganador = m.seleccion.por_candidato.find((c) => c.orden === m.seleccion.ganador_orden);
     expect(ganador.placed).toBeGreaterThanOrEqual(base.placed);
+  });
+});
+
+describe('P0.2c · GAP38 · certificar al ganador NO cambia el layout (winner_eval ↔ returned)', () => {
+  const idsFaltan = (sol) => { const s = new Set(); for (const u of (sol.unplaced || [])) for (const id of (u.piezas || [])) s.add(String(id)); for (const id of (sol.unassigned || [])) s.add(String(id)); return s.size; };
+  it('el layout evaluado es el retornado; re-certificar es idempotente sobre la colocación', () => {
+    // área demasiado angosta para el bench doble cara 8 → kit no cabe (unplaced con certificado).
+    const areas = [{ nombre: 'OP', zone_id: 'OP', tipo: 'open', ancho: 5000, largo: 4000 }];
+    const m = resolverKitsMulti(areas, df8());
+    expect(m.unplaced.length).toBeGreaterThan(0);                       // hay faltantes → hubo que certificar
+    expect(m.unplaced.every((u) => u.certificado)).toBe(true);         // el ganador quedó certificado
+    // winner_eval describe EXACTAMENTE el layout retornado (no un layout re-buscado).
+    const er = evaluarRecovery(areas, m.piezas, m.colocacion, { requested: df8().length });
+    const sem = juzgarSemantico(areas, m.piezas, m.colocacion);
+    expect(m.seleccion.ganador_eval.hardOk).toBe((er.issues || []).filter((i) => i.severity === 'fail').length === 0);
+    expect(m.seleccion.ganador_eval.sem_status).toBe(sem.status);
+    expect(m.seleccion.ganador_eval.placed).toBe(df8().length - idsFaltan(m));
+    // adjuntar certificados NO toca la colocación (byte-idéntica antes/después).
+    const antes = JSON.stringify(m.colocacion);
+    attachCertificates(m, areas);
+    expect(JSON.stringify(m.colocacion)).toBe(antes);
   });
 });
 

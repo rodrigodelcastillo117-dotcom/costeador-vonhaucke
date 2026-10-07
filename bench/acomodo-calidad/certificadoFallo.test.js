@@ -162,6 +162,37 @@ describe('P0.2c · GAP17 · el mensaje al vendedor consume la causa PROBADA', ()
     expect(m.texto).not.toMatch(/pasillo de 1\.0 m/);  // GAP31: ya no inventa el pasillo
   });
 
+  it('GAP41 · certificado con proven ausente (undefined) → mensaje de revisión, no causa definitiva', () => {
+    const areas = [{ nombre: 'OP', zone_id: 'OP', tipo: 'open', ancho: 5000, largo: 4000 }];
+    const anc = mk('bX', 'ANCHOR_WORKSTATION', 6000, 1200, { user_capacity: 4 });
+    // certificado INCOMPLETO: primary_cause presente pero proven = undefined (sin evidencia).
+    const certificado = { primary_cause: 'ASPECT_RATIO', secondary_causes: [], dimensional_fit: { needM2: 10, haveM2: 20, moduloW_m: 6, moduloH_m: 1.8 }, permitted_areas: [{ zone: 'OP', causas: ['ASPECT_RATIO'] }] };
+    const sol = { unplaced: [{ anchorId: 'bX', piezas: ['bX'], invariante: 'NO_SPACE', certificado }], unassigned: [] };
+    const m = mensajeVendedor(areas, [anc], sol, {}).motivos[0];
+    expect(m.invariante).toBe('NEEDS_REVIEW');                 // fail-closed: proven!==true → revisión
+    expect(m.texto).toMatch(/revisi[oó]n manual|no es una imposibilidad/i);
+    expect(m.texto).not.toMatch(/FORMA del área/);             // NO afirma la causa como definitiva
+  });
+
+  it('GAP42 · PARTIAL multi-área: el mensaje menciona TODAS las zonas y motivos[].zona las refleja', () => {
+    const areas = [
+      { nombre: 'OP1', zone_id: 'OP1', tipo: 'open', ancho: 6200, largo: 1300 },
+      { nombre: 'OP2', zone_id: 'OP2', tipo: 'open', ancho: 6400, largo: 1300 },
+    ];
+    const piezas = [
+      mk('b', 'ANCHOR_WORKSTATION', 6000, 1200, { user_capacity: 4, placement_profile: { topology: 'SINGLE_FACE', provenance: 'CATALOG', version: 'PP_V1' } }),
+      ...Array.from({ length: 4 }, (_, i) => mk('s' + i, 'WORK_SEAT', 600, 600)),
+      mk('gv', 'UNDERDESK_STORAGE', 400, 500),
+    ].map((p) => ({ ...p, zone_id: undefined }));   // sin zone → ambas zonas permitidas
+    const sol = resolverKits(areas, piezas);
+    const u = (sol.unplaced || []).find((x) => x.certificado);
+    expect(u.certificado.partial_certificate.full_kit_permitted_areas.length).toBe(2);  // GAP42: conserva áreas
+    const m = mensajeVendedor(areas, sol.piezas, sol, { resolver: resolverKits }).motivos.find((x) => x.invariante === 'NO_SPACE_PARA_SILLAS');
+    expect(m.zona).toBe('OP1, OP2');               // refleja ambas, no una sola silenciosamente
+    expect(m.texto).toMatch(/OP1/);
+    expect(m.texto).toMatch(/OP2/);
+  });
+
   it('SEARCH_BUDGET_EXHAUSTED (17.2): el mensaje pide revisión, no afirma imposibilidad', () => {
     const areas = [{ nombre: 'OP', zone_id: 'OP', tipo: 'open', ancho: 5000, largo: 5000 }];
     const anc = mk('bX', 'ANCHOR_WORKSTATION', 1000, 1000, { user_capacity: 1 });

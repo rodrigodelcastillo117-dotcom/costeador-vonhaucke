@@ -99,8 +99,9 @@ function causaDesdeCertificado(cert, anc, ar, nSillas) {
     return out('NO_SPACE_PARA_SILLAS', mapa[pc.full_kit_cause] || `El mueble cabe en ${zonaTxt}; sus sillas/dependientes no caben (causa: ${pc.full_kit_cause}).`);
   }
 
-  // GAP31 · regla general: cert.proven !== true (fuera de budget) → NO afirmación definitiva.
-  if (cert.proven === false && !['SEARCH_BUDGET_EXHAUSTED', 'DIAGNOSTIC_BUDGET_EXHAUSTED'].includes(cert.primary_cause)) {
+  // GAP41 · fail-closed: cert.proven !== true (ausencia de evidencia incluida, fuera de los
+  // branches explícitos de budget) → NUNCA afirmación causal definitiva → revisión.
+  if (cert.proven !== true && !['SEARCH_BUDGET_EXHAUSTED', 'DIAGNOSTIC_BUDGET_EXHAUSTED'].includes(cert.primary_cause)) {
     return out('NEEDS_REVIEW', `No pude probar con certeza la causa en ${zonaTxt}; requiere revisión manual (no es una imposibilidad comprobada).`);
   }
 
