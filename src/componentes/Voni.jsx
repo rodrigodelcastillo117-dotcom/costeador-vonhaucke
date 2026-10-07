@@ -49,6 +49,7 @@ function Pasos({ paso, setPaso, puedeAvanzar, hechoPaso }) {
         return (
           <button
             key={p.n}
+            data-testid={`voni-paso-${p.clave}`}
             className={`voni-paso voni-paso-${estado}`}
             disabled={!habilitado}
             onClick={() => habilitado && setPaso(p.n)}
