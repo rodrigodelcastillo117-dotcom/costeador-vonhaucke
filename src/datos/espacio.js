@@ -152,6 +152,13 @@ export function expandirPiezas(partidas, tope = 600) {
         ...(pt.functional_group_id ? { functional_group_id: pt.functional_group_id } : {}),
         ...(pt.relation_role ? { relation_role: pt.relation_role } : {}),
         ...(pt.anchor_role ? { anchor_role: pt.anchor_role } : {}),
+        // P0.2 obj6: identidad estable de zona/requerimiento/ancla a NIVEL de grupo
+        // (compartida por todas las instancias de la partida) — para que el
+        // agregador de invariantes ate dependientes a su zona por id, no sólo por
+        // índice de área. Sólo viaja si la partida la trae (aditivo).
+        ...(pt.requirement_id ? { requirement_id: pt.requirement_id } : {}),
+        ...(pt.zone_id ? { zone_id: pt.zone_id } : {}),
+        ...(pt.anchor_instance_id ? { anchor_instance_id: pt.anchor_instance_id } : {}),
         ...(Number(pt.user_capacity) > 0 ? { user_capacity: Number(pt.user_capacity) } : {}),
         ...(pt.zonaSugerida ? { zonaSugerida: pt.zonaSugerida } : {}),
         ...(pt.sugeridoPlano ? { sugeridoPlano: true } : {}),
