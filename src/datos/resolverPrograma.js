@@ -35,7 +35,7 @@ import {
   modulosOperativosPorLinea, lineasOperativasDisponibles,
   ESCRITORIOS, JUNTAS, RECEPCIONES,
   vistaCanonica, identidadDe, autoridadPrecio, medidasAwd,
-  asientoPara, guardaPara,
+  asientoPara, guardaPara, buscarEnColeccion,
 } from './catalogoCanonico.js';
 
 export { medidasAwd };   // única fuente del parser de medidas
@@ -91,6 +91,34 @@ function construirResolucion(prod, {
     autoridad: 'SERVIDOR',                        // la cifra oficial la valida el servidor
     source: 'RESUELTO',
   };
+}
+
+// Resolución PENDIENTE: lo pedido no existe (o no cubre) en catálogo. NUNCA se
+// sustituye en silencio (#7/#8/#9/#10). No entra a partidas comerciales; viaja a
+// incompletos/pendientes para que el usuario confirme/ajuste.
+function needsConfirm({ requirement_id = null, zone_id = null, rol = null, relation_role, anchor_role = null, functional_group_id = null, anchor_instance_id = null, cantidad = 1, inclusion = 'anchor' }, faltante) {
+  return {
+    requirement_id, zone_id, rol,
+    bancoId: null, source_ref: null, source_type: null,
+    nombre: null, linea: null, usuarios: null, w: null, d: null,
+    relation_role, anchor_role, functional_group_id, instance_id: null, anchor_instance_id,
+    cantidad, inclusion,
+    product_status: 'NEEDS_CONFIRMATION',
+    identity_status: 'MISSING', identidad: null,
+    precio_lista_snapshot: null, price_status: 'SIN_PRECIO', autoridad: 'SERVIDOR',
+    source: 'PENDIENTE',
+    faltante,                                     // { reason, requested, ... }
+  };
+}
+
+// Ancla concreta desde un producto canónico (con instance_id/group estables).
+function anclaDesde(prod, rol, relation_role, { requirement_id, zone_id = null, ord = 0 }) {
+  return construirResolucion(prod, {
+    requirement_id, zone_id, rol, relation_role,
+    functional_group_id: groupId(requirement_id, ord),
+    instance_id: instanceId(requirement_id, ord),
+    inclusion: 'anchor',
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -163,45 +191,69 @@ export function resolverOperativos(nUsuarios, { linea = LINEA_DEFAULT, requireme
   return { resoluciones, faltante, usuariosCubiertos: total - faltante };
 }
 
-// --- PRIVADO / CEO: escritorio directivo real. ---
-export function resolverPrivado({ requirement_id = 'req:z:privado:0', zone_id = null, ord = 0 } = {}) {
+// --- PRIVADO / CEO: escritorio directivo real, respetando lo PEDIDO (#7). ---
+// req: { requirement_id, zone_id, ord, requested_models:{anchor}, requested_line, requested_dimensions }
+export function resolverPrivado(req = {}) {
+  const { requirement_id = 'req:z:privado:0', zone_id = null, ord = 0,
+    requested_models = null, requested_line = null, requested_dimensions = null } = req;
+  const base = { requirement_id, zone_id, ord };
+  const model = requested_models && requested_models.anchor;
+  if (model || requested_line || requested_dimensions) {
+    // Pidieron algo específico (p.ej. "Eclipse Drift 2.10"): se busca EXACTO en
+    // catálogo. Si no existe canónico → NEEDS_CONFIRMATION, jamás un dir-* en su lugar.
+    const found = buscarEnColeccion(ESCRITORIOS, { model, line: requested_line, dimensions: requested_dimensions });
+    if (!found.length) {
+      return needsConfirm({ requirement_id, zone_id, rol: 'privado', relation_role: 'ANCHOR_DESK' },
+        { reason: 'ESCRITORIO_SOLICITADO_NO_CANONICO', requested: { model, line: requested_line, dimensions: requested_dimensions } });
+    }
+    return anclaDesde(found[0], 'privado', 'ANCHOR_DESK', base);
+  }
+  // Sin pedido específico: directivo canónico por defecto.
   const prod = ESCRITORIOS.find((e) => /^dir-/.test(e.id))
     || ESCRITORIOS.find((e) => /directivo/i.test(e.nombre || ''))
-    || ESCRITORIOS.find((e) => /gerente/i.test(e.nombre || '') && /1800/.test(e.medidas || ''))
     || ESCRITORIOS[0];
-  return construirResolucion(prod, {
-    requirement_id, zone_id, rol: 'privado',
-    relation_role: 'ANCHOR_DESK',
-    functional_group_id: groupId(requirement_id, ord),
-    instance_id: instanceId(requirement_id, ord),
-    inclusion: 'anchor',
-  });
+  return anclaDesde(prod, 'privado', 'ANCHOR_DESK', base);
 }
 
-// --- JUNTAS: capacidad → mesa real con usuarios ≥ capacidad. ---
-export function resolverJuntas(capacidad, { requirement_id = 'req:z:juntas:0', zone_id = null, ord = 0 } = {}) {
+// --- JUNTAS: respeta dimensiones pedidas y capacidad; nunca finge cobertura. ---
+// req: { requirement_id, zone_id, ord, requested_dimensions:{w,d}, requested_line }
+export function resolverJuntas(capacidad, req = {}) {
+  const { requirement_id = 'req:z:juntas:0', zone_id = null, ord = 0,
+    requested_dimensions = null, requested_line = null } = req;
+  const base = { requirement_id, zone_id, ord };
   const cap = Math.max(1, Math.floor(Number(capacidad) || 0));
   const porCapacidad = JUNTAS.slice().sort((a, b) => a.usuarios - b.usuarios);
-  const prod = porCapacidad.find((m) => m.usuarios >= cap) || porCapacidad[porCapacidad.length - 1];
-  return construirResolucion(prod, {
-    requirement_id, zone_id, rol: 'juntas',
-    relation_role: 'ANCHOR_MEETING',
-    functional_group_id: groupId(requirement_id, ord),
-    instance_id: instanceId(requirement_id, ord),
-    inclusion: 'anchor',
-  });
+
+  if (requested_dimensions || requested_line) {
+    // #8: respeta la medida/línea pedida. Si no existe, NEEDS_CONFIRMATION.
+    const found = buscarEnColeccion(JUNTAS, { dimensions: requested_dimensions, line: requested_line });
+    if (!found.length) {
+      return needsConfirm({ requirement_id, zone_id, rol: 'juntas', relation_role: 'ANCHOR_MEETING' },
+        { reason: 'MESA_SOLICITADA_NO_CANONICA', requested: { dimensions: requested_dimensions, line: requested_line } });
+    }
+    const mesa = found.slice().sort((a, b) => a.usuarios - b.usuarios).find((m) => m.usuarios >= cap);
+    if (!mesa) {
+      return needsConfirm({ requirement_id, zone_id, rol: 'juntas', relation_role: 'ANCHOR_MEETING' },
+        { reason: 'DIM_NO_CUBRE_CAPACIDAD', requested: { dimensions: requested_dimensions }, capacidad: cap });
+    }
+    return anclaDesde(mesa, 'juntas', 'ANCHOR_MEETING', base);
+  }
+
+  // #9: sólo por capacidad. Si NINGUNA mesa cubre, NO finge con la más grande.
+  const cubre = porCapacidad.find((m) => m.usuarios >= cap);
+  if (!cubre) {
+    const max = porCapacidad.length ? porCapacidad[porCapacidad.length - 1].usuarios : 0;
+    return needsConfirm({ requirement_id, zone_id, rol: 'juntas', relation_role: 'ANCHOR_MEETING' },
+      { reason: 'CAPACITY_NOT_COVERED', capacidad: cap, max });
+  }
+  return anclaDesde(cubre, 'juntas', 'ANCHOR_MEETING', base);
 }
 
 // --- RECEPCIÓN: módulo recepción real. ---
 export function resolverRecepcion({ requirement_id = 'req:z:recepcion:0', zone_id = null, ord = 0 } = {}) {
   const prod = RECEPCIONES[0] || null;
-  return construirResolucion(prod, {
-    requirement_id, zone_id, rol: 'recepcion',
-    relation_role: 'ANCHOR_RECEPTION',
-    functional_group_id: groupId(requirement_id, ord),
-    instance_id: instanceId(requirement_id, ord),
-    inclusion: 'anchor',
-  });
+  if (!prod) return needsConfirm({ requirement_id, zone_id, rol: 'recepcion', relation_role: 'ANCHOR_RECEPTION' }, { reason: 'RECEPCION_NO_CANONICA' });
+  return anclaDesde(prod, 'recepcion', 'ANCHOR_RECEPTION', { requirement_id, zone_id, ord });
 }
 
 // ---------------------------------------------------------------------------
@@ -224,20 +276,41 @@ function dependiente(prod, { ancla, relation_role, anchor_role, cantidad, inclus
   });
 }
 
-function expandirDependientes(ancla, { capacidad = null, storageRequested = false } = {}) {
+// Asiento con MODELO pedido respetado (#10): si pidieron un modelo y no existe
+// canónico → NEEDS_CONFIRMATION (no se cambia por otro). El rol sólo decide dónde.
+function asientoDependiente(ancla, { relation_role, anchor_role, cantidad, inclusion, requestedModel = null }) {
+  const prod = asientoPara(relation_role, requestedModel);
+  if (!prod) {
+    if (requestedModel) {
+      return needsConfirm({
+        requirement_id: ancla.requirement_id, zone_id: ancla.zone_id, rol: ancla.rol,
+        relation_role, anchor_role, functional_group_id: ancla.functional_group_id,
+        anchor_instance_id: ancla.instance_id, cantidad, inclusion,
+      }, { reason: 'ASIENTO_SOLICITADO_NO_CANONICO', requested: { model: requestedModel, relation_role } });
+    }
+    return null;
+  }
+  return dependiente(prod, { ancla, relation_role, anchor_role, cantidad, inclusion });
+}
+
+function expandirDependientes(ancla, { capacidad = null, storageRequested = false, seatModels = {}, visitors = null } = {}) {
   if (!ancla) return [];
   const out = [];
   const push = (d) => { if (d) out.push(d); };
 
   if (ancla.rol === 'operativo') {
     const U = Number(ancla.usuarios) || 0;
-    push(dependiente(asientoPara('WORK_SEAT'), { ancla, relation_role: 'WORK_SEAT', anchor_role: 'ANCHOR_WORKSTATION', cantidad: U, inclusion: 'mandatory_by_rule' }));
+    push(asientoDependiente(ancla, { relation_role: 'WORK_SEAT', anchor_role: 'ANCHOR_WORKSTATION', cantidad: U, inclusion: 'mandatory_by_rule', requestedModel: seatModels.work }));
     push(dependiente(guardaPara('UNDERDESK_STORAGE'), { ancla, relation_role: 'UNDERDESK_STORAGE', anchor_role: 'ANCHOR_WORKSTATION', cantidad: U, inclusion: storageRequested ? 'requested' : 'optional_recommendation' }));
   } else if (ancla.rol === 'privado') {
-    push(dependiente(asientoPara('EXECUTIVE_SEAT'), { ancla, relation_role: 'EXECUTIVE_SEAT', anchor_role: 'ANCHOR_DESK', cantidad: 1, inclusion: 'mandatory_by_rule' }));
+    push(asientoDependiente(ancla, { relation_role: 'EXECUTIVE_SEAT', anchor_role: 'ANCHOR_DESK', cantidad: 1, inclusion: 'mandatory_by_rule', requestedModel: seatModels.executive }));
+    // Visitas: SÓLO si el brief las pide (no extras silenciosos).
+    if (visitors && Number(visitors.cantidad) > 0) {
+      push(asientoDependiente(ancla, { relation_role: 'VISITOR_SEAT', anchor_role: 'ANCHOR_DESK', cantidad: Number(visitors.cantidad), inclusion: 'requested', requestedModel: visitors.model }));
+    }
   } else if (ancla.rol === 'juntas') {
     const cap = Math.max(1, Math.floor(Number(capacidad) || ancla.usuarios || 0));
-    push(dependiente(asientoPara('MEETING_SEAT'), { ancla, relation_role: 'MEETING_SEAT', anchor_role: 'ANCHOR_MEETING', cantidad: cap, inclusion: 'mandatory_by_rule' }));
+    push(asientoDependiente(ancla, { relation_role: 'MEETING_SEAT', anchor_role: 'ANCHOR_MEETING', cantidad: cap, inclusion: 'mandatory_by_rule', requestedModel: seatModels.meeting }));
   }
   // recepción: sin dependientes por defecto (#11).
   return out;
@@ -251,7 +324,27 @@ export function resolverPrograma(programa = {}, { linea = LINEA_DEFAULT } = {}) 
   const anclas = [];
   const dependientes = [];
   const incompletos = [];
-  const storageRequested = !!(programa.brief && programa.brief.operativosStorage);
+  const pendientes = [];        // resoluciones NEEDS_CONFIRMATION/UNRESOLVED (no comercial)
+  const brief = programa.brief || {};
+  const storageRequested = !!brief.operativosStorage;
+  const briefPriv = Array.isArray(brief.privados) ? brief.privados : [];
+  const briefJuntas = Array.isArray(brief.juntas) ? brief.juntas : [];
+
+  // Enruta una resolución de ancla: RESUELTA → anclas+dependientes; PENDIENTE →
+  // pendientes+incompletos (jamás partida comercial, jamás sustitución silenciosa).
+  const integrarAncla = (r, depOpts, code) => {
+    if (!r) { incompletos.push({ code }); return; }
+    if (r.product_status === 'RESOLVED') {
+      anclas.push(r);
+      expandirDependientes(r, depOpts).forEach((d) => {
+        if (d.product_status === 'RESOLVED') dependientes.push(d);
+        else { pendientes.push(d); incompletos.push({ code: 'DEPENDIENTE_NEEDS_CONFIRMATION', detalle: d.faltante }); }
+      });
+    } else {
+      pendientes.push(r);
+      incompletos.push({ code: 'ANCLA_NEEDS_CONFIRMATION', rol: r.rol, detalle: r.faltante });
+    }
+  };
 
   const nOp = Math.max(0, Math.floor(Number(programa.operativos) || 0));
   if (nOp > 0) {
@@ -259,38 +352,34 @@ export function resolverPrograma(programa = {}, { linea = LINEA_DEFAULT } = {}) 
     requerimientos.push({ requirement_id: reqId, zone_id: null, rol: 'operativo', anchor_role: 'ANCHOR_WORKSTATION', capacidad: nOp, preferred_line: linea });
     const op = resolverOperativos(nOp, { linea, requirement_id: reqId });
     if (op.incompleto) incompletos.push(op.incompleto);
-    op.resoluciones.forEach((ancla) => {
-      anclas.push(ancla);
-      expandirDependientes(ancla, { storageRequested }).forEach((d) => dependientes.push(d));
-    });
+    op.resoluciones.forEach((ancla) => integrarAncla(ancla, { storageRequested, seatModels: { work: brief.operativoSeatModel } }, 'OPERATIVO_NO_RESUELTO'));
     if (op.faltante > 0) incompletos.push({ code: 'OPERATIVO_NO_RESUELTO', faltante: op.faltante });
   }
 
   const nPriv = Math.max(0, Math.floor(Number(programa.privados) || 0));
   for (let i = 0; i < nPriv; i++) {
     const reqId = requirementId(null, 'privado', i);
-    requerimientos.push({ requirement_id: reqId, zone_id: null, rol: 'privado', anchor_role: 'ANCHOR_DESK', capacidad: 1, preferred_line: linea });
-    const r = resolverPrivado({ requirement_id: reqId });
-    if (r) { anclas.push(r); expandirDependientes(r, {}).forEach((d) => dependientes.push(d)); }
-    else incompletos.push({ code: 'PRIVADO_NO_RESUELTO' });
+    const b = briefPriv[i] || {};
+    requerimientos.push({ requirement_id: reqId, zone_id: null, rol: 'privado', anchor_role: 'ANCHOR_DESK', capacidad: 1, preferred_line: linea, ...b });
+    const r = resolverPrivado({ requirement_id: reqId, requested_models: b.requested_models, requested_line: b.requested_line, requested_dimensions: b.requested_dimensions });
+    integrarAncla(r, { seatModels: { executive: b.requested_models && b.requested_models.seat }, visitors: b.requested_visitors }, 'PRIVADO_NO_RESUELTO');
   }
 
   const salas = Array.isArray(programa.salas) ? programa.salas : [];
   salas.forEach((cap, i) => {
     const capacidad = Number(cap) || 0;
     const reqId = requirementId(null, 'juntas', i);
-    requerimientos.push({ requirement_id: reqId, zone_id: null, rol: 'juntas', anchor_role: 'ANCHOR_MEETING', capacidad, preferred_line: linea });
-    const r = resolverJuntas(capacidad, { requirement_id: reqId });
-    if (r) { anclas.push(r); expandirDependientes(r, { capacidad }).forEach((d) => dependientes.push(d)); }
-    else incompletos.push({ code: 'JUNTAS_NO_RESUELTO', capacidad });
+    const b = briefJuntas[i] || {};
+    requerimientos.push({ requirement_id: reqId, zone_id: null, rol: 'juntas', anchor_role: 'ANCHOR_MEETING', capacidad, preferred_line: linea, ...b });
+    const r = resolverJuntas(capacidad, { requirement_id: reqId, requested_dimensions: b.requested_dimensions, requested_line: b.requested_line });
+    integrarAncla(r, { capacidad, seatModels: { meeting: b.requested_models && b.requested_models.seat } }, 'JUNTAS_NO_RESUELTO');
   });
 
   if (programa.recepcion) {
     const reqId = requirementId(null, 'recepcion', 0);
     requerimientos.push({ requirement_id: reqId, zone_id: null, rol: 'recepcion', anchor_role: 'ANCHOR_RECEPTION', capacidad: 1, preferred_line: linea });
     const r = resolverRecepcion({ requirement_id: reqId });
-    if (r) { anclas.push(r); expandirDependientes(r, {}).forEach((d) => dependientes.push(d)); }
-    else incompletos.push({ code: 'RECEPCION_NO_RESUELTO' });
+    integrarAncla(r, {}, 'RECEPCION_NO_RESUELTO');
   }
 
   // partidas comerciales = anclas + dependientes NO opcionales (mandatory/requested).
@@ -306,10 +395,11 @@ export function resolverPrograma(programa = {}, { linea = LINEA_DEFAULT } = {}) 
   return {
     ok: incompletos.length === 0 && anclas.length > 0,
     requerimientos,
-    resoluciones: anclas,        // anclas (compat nombre)
-    dependientes,                // mandatory + optional (todos)
+    resoluciones: anclas,        // anclas RESUELTAS (compat nombre)
+    dependientes,                // mandatory + optional (RESUELTOS)
     recomendaciones,             // sólo optional (no entran a partidas comerciales)
     partidas,                    // propuesta comercial (anclas + mandatory/requested)
+    pendientes,                  // NEEDS_CONFIRMATION/UNRESOLVED: lo pedido no existe/ no cubre
     incompletos,
     // resumen de compuertas separadas:
     productosReales,

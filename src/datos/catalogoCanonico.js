@@ -108,10 +108,39 @@ export const GUARDAS = BANCO.filter(
   (b) => esCanonico(b) && (b.tipo === 'guarda' || b.tipo === 'almacen'),
 );
 
+// Búsqueda por lo PEDIDO (modelo/línea/dimensiones) sobre una colección canónica.
+// Devuelve coincidencias reales; vacío si lo pedido no existe en catálogo (el
+// llamador decide NEEDS_CONFIRMATION — nunca sustituye en silencio, #7/#8/#10).
+const normk = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+export function buscarEnColeccion(coleccion, { model = null, line = null, dimensions = null } = {}) {
+  let xs = (coleccion || []).slice();
+  if (line) xs = xs.filter((p) => normk(p.linea) === normk(line));
+  if (dimensions && (dimensions.w || dimensions.d)) {
+    xs = xs.filter((p) => {
+      const wd = medidasAwd(p.medidas);
+      return wd && (!dimensions.w || wd.w === Number(dimensions.w)) && (!dimensions.d || wd.d === Number(dimensions.d));
+    });
+  }
+  if (model) {
+    const m = normk(model);
+    xs = xs.filter((p) => {
+      const id = normk(p.id); const nom = normk(p.nombre);
+      return id.includes(m) || nom.includes(m) || m.includes(id) || m.split(/\s+/).some((tok) => tok.length > 2 && (id.includes(tok) || nom.includes(tok)));
+    });
+  }
+  return xs;
+}
+
 // Selección determinista de asiento por rol funcional (producto REAL, no inventado).
-// No se adivina: si el id esperado no existe, se cae al primero de su familia.
+// Si se pide un MODELO explícito, se busca ese modelo real; si no existe, devuelve
+// null (el llamador emite NEEDS_CONFIRMATION, no sustituye). Sin modelo pedido,
+// default por regla. El rol decide DÓNDE va, no reemplaza el modelo pedido (#10).
 function porId(lista, id) { return lista.find((b) => b.id === id) || null; }
-export function asientoPara(relationRole) {
+export function asientoPara(relationRole, requestedModel = null) {
+  if (requestedModel) {
+    const found = buscarEnColeccion(SILLAS, { model: requestedModel });
+    return found[0] || null;      // null → NEEDS_CONFIRMATION en el llamador
+  }
   switch (relationRole) {
     case 'WORK_SEAT':      return porId(SILLAS, 'silla-win')      || SILLAS[0] || null;
     case 'EXECUTIVE_SEAT': return porId(SILLAS, 'silla-alpha')    || porId(SILLAS, 'silla-win') || null;
