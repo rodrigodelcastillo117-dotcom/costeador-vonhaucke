@@ -60,16 +60,22 @@ import { cargarAprendizajes } from './datos/aprendizaje.js';
 import { guardarCotizacion, cargarCotizacionCompleta } from './datos/cotizaciones.js';
 import { guardarRevision } from './datos/revisiones.js';
 import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
-import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, cotizacionEmitible, costearServidor } from './nube.js';
+import { leerConfig, escribirConfig, suscribirConfig, leerPreciosVigentes, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, cotizacionEmitible, costearServidor } from './nube.js';
 import { calcular, modeloParaPieza, componentesSinMaterial } from './motor/calculo.js';
 import { calcularCosteoVivo } from './motor/costeoVivo.js';
 import { aCentavosEnteros, dinero } from './motor/dinero.js';
 import { idNuevo } from './util.js';
 import { costoImplicito, precioDeLista } from './datos/preciosVenta.js';
 import { catalogoTecnicoMateriales } from './datos/materialKnowledge.js';
+import { fusionarInsumos } from './datos/preciosVigentes.js';
+import { INSUMOS_SEMILLA, mapaInsumos } from './datos/insumos.js';
+
 const Comercial = lazy(() => import('./componentes/comercial/Comercial.jsx'));
 import Voni2 from './componentes/Voni2.jsx';
 import { flagActivo } from './datos/flags.js';
+
+// Forma (unidad, formato, fracción) de cada insumo; el precio lo pone la base.
+const INSUMOS_BASE = mapaInsumos(INSUMOS_SEMILLA);
 
 // Rutas que son una línea de catálogo (para aprender cuáles usa cada quien).
 const RUTAS_LINEA = new Set(['applt', 'app', 'via', 'rio', 'feather', 'cirque', 'spine', 'ergo4', 'alba',
@@ -161,9 +167,18 @@ const firmaDir = (d) => JSON.stringify([d.nomina, d.finanzas]);
 // Mezcla lo compartido (de la nube) sobre el estado local. Los parametros se
 // FUNDEN (para no borrar la nomina que Direccion tenga desbloqueada en memoria);
 // los precios, recetas y el bloque cifrado se reemplazan.
-function aplicarCompartido(estado, datos) {
+//
+// Insumos: quien ve costos NO toma la copia de `config` tal cual (traía precios y
+// unidades viejas); se funde semilla + catálogo de la base + ediciones más nuevas
+// (ver datos/preciosVigentes.js). Al vendedor le llega la config sanitizada y se
+// reemplaza como antes.
+function aplicarCompartido(estado, datos, opciones = {}) {
   const nuevo = { ...estado };
-  if (datos.insumos) nuevo.insumos = datos.insumos;
+  if (datos.insumos) {
+    nuevo.insumos = opciones.fusionar
+      ? fusionarInsumos(INSUMOS_BASE, datos.insumos, opciones.vigentes || []).insumos
+      : datos.insumos;
+  }
   if (datos.piezas) nuevo.piezas = datos.piezas;
   // Los parametros se FUNDEN: lo compartido no debe borrar la nomina que
   // Direccion ya tenga cargada desde su boveda.
@@ -526,6 +541,8 @@ export default function App() {
   const timerNube = useRef(null);
   const ultimoDireccion = useRef('');   // firma de la boveda, para no reescribir igual
   const avisoGuardadoLocal = useRef(false); // ya se avisó que localStorage no guarda (no repetir en cada tecla)
+  const preciosVigentes = useRef([]);     // filas de catalogo_vigente (solo quien ve costos)
+  const insumosCompartidos = useRef(null); // última config.datos.insumos recibida
 
   // Al entrar (con sesion valida): traer la config de la nube y suscribirse.
   useEffect(() => {
@@ -537,7 +554,8 @@ export default function App() {
         // La nube manda: aplica precios/recetas/parametros/nomina compartidos.
         aplicandoRemoto.current = true;
         ultimoCompartido.current = firma(datos);
-        setEstado((e) => aplicarCompartido(e, datos));
+        insumosCompartidos.current = datos.insumos;
+        setEstado((e) => aplicarCompartido(e, datos, { fusionar: veCostos, vigentes: preciosVigentes.current }));
         setNubeEstado('conectado');
       } else {
         // Nube vacia: subir la semilla para inicializarla. El punto "En
@@ -553,6 +571,22 @@ export default function App() {
         });
       }
     }).catch(() => { if (vivo) setNubeEstado('sin-conexion'); });
+
+    // Precios del catálogo de la base: solo para quien ve costos. Si no llegan,
+    // se queda con los del código (nunca con la copia vieja de `config`).
+    if (veCostos) {
+      leerPreciosVigentes().then((filas) => {
+        if (!vivo) return;
+        preciosVigentes.current = filas;
+        const { insumos, resumen } = fusionarInsumos(INSUMOS_BASE, insumosCompartidos.current || {}, filas);
+        if (resumen.unidadDistinta.length) console.warn('[precios] unidad distinta entre base y código, se usa el código:', resumen.unidadDistinta);
+        aplicandoRemoto.current = true;
+        setEstado((e) => ({ ...e, insumos }));
+      }).catch((e) => {
+        console.error('[precios] no se pudo leer catalogo_vigente:', e);
+        if (vivo) mostrarAviso('No se pudieron cargar los precios del catálogo. Se usan los precios del sistema.', 6000);
+      });
+    }
 
     // Boveda de Direccion. A quien no es direccion la base no le devuelve
     // nada; ademas se BORRA lo que hubiera quedado guardado en su navegador
@@ -579,7 +613,8 @@ export default function App() {
       if (f === ultimoCompartido.current) return; // es mi propio cambio, ignorar
       aplicandoRemoto.current = true;
       ultimoCompartido.current = f;
-      setEstado((e) => aplicarCompartido(e, datos));
+      insumosCompartidos.current = datos.insumos;
+      setEstado((e) => aplicarCompartido(e, datos, { fusionar: true, vigentes: preciosVigentes.current }));
     }) : () => {};
     return () => { vivo = false; desuscribir(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps

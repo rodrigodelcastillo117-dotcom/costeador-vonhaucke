@@ -36,6 +36,15 @@ export async function leerConfig() {
   return data || {};
 }
 
+// Precios vigentes del catálogo de la base (catalogo_vigente). El servidor solo
+// los entrega a Dirección/Diseño (RPC `precios_vigentes_costeo`, revisa el rol
+// por el JWT); a cualquier otro rol le devuelve una lista vacía. No trae proveedor.
+export async function leerPreciosVigentes() {
+  const { data, error } = await nube.rpc('precios_vigentes_costeo');
+  if (error) throw error;
+  return Array.isArray(data) ? data : [];
+}
+
 export async function escribirConfig(datosCompartidos) {
   const { error } = await nube
     .from('config')
