@@ -860,8 +860,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
               qué material y cómo está hecho — no sólo el nombre. Entre más detalle,
               mejor el render y las sugerencias. (Rodrigo: "que te pregunte qué mueble
               es y tú lo describas".) */}
-          <label className="etiqueta">Descríbelo para que la IA lo entienda</label>
-          <textarea rows={3} placeholder="Ej. Sillas de espera de aeropuerto, estructura de aluminio, asiento y respaldo de hule espuma negra tapizado, conectores cada 2 asientos."
+          {/* label ligada al control (htmlFor/id): sin esta asociación el nombre
+              accesible no existía — lectores de pantalla no anunciaban el campo y
+              getByLabel() no lo encontraba (causa raíz del smoke LIVE AI, #16). */}
+          <label className="etiqueta" htmlFor="costear-descripcion">Descríbelo para que la IA lo entienda</label>
+          <textarea id="costear-descripcion" rows={3} placeholder="Ej. Sillas de espera de aeropuerto, estructura de aluminio, asiento y respaldo de hule espuma negra tapizado, conectores cada 2 asientos."
             value={b.descripcionCliente || ''} onChange={(e) => set({ descripcionCliente: e.target.value })}
             style={{ width: '100%', resize: 'vertical', padding: 10, borderRadius: 8, border: '1px solid var(--linea)', fontFamily: 'inherit', fontSize: 15 }} />
           <div className="ayuda">Material, estructura, acabados, detalles (conectores, patas, cajones…). Alimenta el render con IA y a Voni.</div>
