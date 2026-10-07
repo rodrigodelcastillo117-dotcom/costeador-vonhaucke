@@ -5,7 +5,11 @@ import { elegirPartidasAcomodo } from '../componentes/Acomodo.jsx';
 import { validarCoherenciaPrograma } from './coherenciaPrograma.js';
 
 // ============================================================================
-//  E2E de SALIDA de P0.1 (audit #20) · CASO EXACTO DE RODRIGO.
+//  INTEGRACIÓN / GOLDEN de P0.1 (audit #20) — NO es E2E real (#10): corre en
+//  vitest e importa funciones directo (resolver/confirmar/adapter/coherencia).
+//  El gate E2E real (navegador, botón, React state, doble click, refresh) vive
+//  en e2e/programaP01.e2e.js (Playwright, con credenciales).
+//  CASO EXACTO DE RODRIGO.
 //  Floor: open 10 + privado + juntas 4 + recepción.
 //  Brief: APP LT 10 · 10 WIN · 10 gavetas · Eclipse Drift 2.10 + credenza ·
 //         ALPHA · 2 CONCERTO · mesa 1200×1200 · 4 sillas · recepción sin extras.

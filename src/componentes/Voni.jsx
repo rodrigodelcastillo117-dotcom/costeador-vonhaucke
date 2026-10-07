@@ -140,9 +140,13 @@ export default function Voni({
   // P0.1 (#1/#2/#3): el PROGRAMA PROPUESTO vive en el PASO 2. Resuelve productos
   // reales del plano y se reconcilia contra lo ya cotizado (DELTA): propone sólo
   // lo que falta (p.ej. el bench APP LT) sin re-proponer lo ya presente.
+  // El brief estructurado (línea/modelo/dims/accesorios) lo interpreta CotizadorIA
+  // y se persiste en cot.programaBrief; aquí se combina con el FloorSpec (#4).
   const propuestaPrograma = useMemo(
-    () => (areasDelProyecto.length ? proponerProgramaDelPlano(areasDelProyecto, { linea: 'App LT' }) : null),
-    [areasDelProyecto],
+    () => (areasDelProyecto.length
+      ? proponerProgramaDelPlano(areasDelProyecto, { linea: (cot.programaBrief && cot.programaBrief.linea) || 'App LT', brief: cot.programaBrief || null })
+      : null),
+    [areasDelProyecto, cot.programaBrief],
   );
   const reconPrograma = useMemo(
     () => (propuestaPrograma ? aplicarPrograma(propuestaPrograma.propuesta, { existentes: partidas }) : null),

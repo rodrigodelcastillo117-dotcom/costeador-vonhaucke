@@ -38,6 +38,16 @@ describe('programaRealDelPlano · PROPONER no confirma (P0.1 · #2/#3)', () => {
     expect(a2.confirmacion.confirmadas).toHaveLength(0);
     expect(a2.partidas.length).toBe(a1.partidas.length);
   });
+
+  it('#4: el BRIEF estructurado llega al resolver por el punto de entrada vivo', () => {
+    const r = proponerProgramaDelPlano(areasM, {
+      linea: 'App LT',
+      brief: { privados: [{ requested_models: { anchor: 'Eclipse Drift 2.10' } }] },
+    });
+    // el privado del plano + brief Drift → NEEDS_CONFIRMATION (nunca sustituido)
+    expect(r.propuesta.pendientes.some((p) => p.rol === 'privado' && p.product_status === 'NEEDS_CONFIRMATION')).toBe(true);
+    expect(r.propuesta.partidas.some((p) => String(p.bancoId).startsWith('dir-'))).toBe(false);
+  });
 });
 
 describe('resolverYConfirmar · GOLDEN APP LT 10 directo (P0.1 · #5)', () => {

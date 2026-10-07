@@ -144,8 +144,14 @@ export function proponerPrograma(programa, { linea = 'App LT' } = {}) {
   };
 }
 
-/** PROPONE desde las áreas del plano (FloorSpec). NO confirma. */
-export function proponerProgramaDelPlano(areas, { linea = 'App LT' } = {}) {
+/**
+ * PROPONE desde las áreas del plano (FloorSpec) + el BRIEF estructurado del
+ * usuario (#4). NO confirma. El `brief` (línea/modelo/dimensiones/accesorios/
+ * sillas/extras) lo interpreta CotizadorIA/VONI y se persiste; aquí se COMBINA
+ * con el programa derivado del espacio — una sola ProgramRequirements, sin
+ * reconstruir nada desde los textos de las partidas.
+ */
+export function proponerProgramaDelPlano(areas, { linea = 'App LT', brief = null } = {}) {
   const programa = programaDelPlano(areas);
   const salas = Array.isArray(programa.salas) ? programa.salas.filter((n) => Number(n) > 0) : [];
   const entrada = {
@@ -153,7 +159,8 @@ export function proponerProgramaDelPlano(areas, { linea = 'App LT' } = {}) {
     privados: Number(programa.privados) || 0,
     salas,
     recepcion: !!programa.recepcion,
-    brief: programa.brief || null,
+    // FloorSpec aporta conteos/zonas; el brief aporta línea/modelo/dims/accesorios.
+    brief: { ...(programa.brief || {}), ...(brief || {}) },
   };
   return { programaDetectado: programa, ...proponerPrograma(entrada, { linea }) };
 }
