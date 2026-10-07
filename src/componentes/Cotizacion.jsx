@@ -450,7 +450,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   // igual que en el papel de Von Haucke.
   const { precioLista, descuentoPct, descuento, subtotal, contingenciaPct, contingencia,
     maniobrasPct, maniobras, fletePct, flete, ivaPct, iva, baseGravable, total, totalRedondeado,
-    anticipoPct, anticipo, hayLineaInvalida } = totalesCotizacion(partidas, cot, estado.parametros);
+    anticipoPct, anticipo, hayLineaInvalida, faltanPrecio, totalCompleto } = totalesCotizacion(partidas, cot, estado.parametros);
   const minMarkup = estado.parametros.minMarkupLinea ?? 45;
   const factorDesc = 1 - descuentoPct / 100;
   const markupPartida = (pt) => (pt.costoUnitario > 0 ? ((pt.precioUnitario * factorDesc - pt.costoUnitario) / pt.costoUnitario) * 100 : null);
@@ -911,6 +911,12 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                   bloqueada (problemasDeEmision). */}
               {hayLineaInvalida ? (
                 <div className="propx-tot-grand"><span>TOTAL</span><b style={{ color: '#b3261e' }}>⚠ Cálculo inválido</b></div>
+              ) : faltanPrecio > 0 ? (
+                // #7: no presentamos un total "definitivo" si faltan precios por resolver.
+                <>
+                  <div className="propx-tot-grand"><span>TOTAL (incompleto)</span><b style={{ color: '#8a5a00' }}>⚠ faltan {faltanPrecio} precio{faltanPrecio === 1 ? '' : 's'}</b></div>
+                  <div className="propx-tot-anticipo">Subtotal con precios conocidos: <b>{pesos2(precioLista)}</b>. El servidor valida los precios al emitir.</div>
+                </>
               ) : (
                 <>
                   <div className="propx-tot-grand"><span>TOTAL</span><b><MontoAnimado valor={totalRedondeado} /></b></div>

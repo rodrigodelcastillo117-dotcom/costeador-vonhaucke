@@ -156,7 +156,16 @@ export default function Voni({
   const conflictosPrograma = reconPrograma ? reconPrograma.conflictos : [];
   const pendientesPrograma = propuestaPrograma ? (propuestaPrograma.propuesta.pendientes || []) : [];
 
-  const totalLista = useMemo(() => partidas.reduce((a, p) => a + p.precioUnitario * p.cantidad, 0), [partidas]);
+  // #7: suma SÓLO precios conocidos (null/undefined NO cuenta como 0) y expone
+  // cuántos faltan, para no presentar un total incompleto como definitivo.
+  const totalLista = useMemo(
+    () => partidas.reduce((a, p) => a + (Number.isFinite(Number(p.precioUnitario)) ? Number(p.precioUnitario) * (p.cantidad || 0) : 0), 0),
+    [partidas],
+  );
+  const faltanPrecioVoni = useMemo(
+    () => partidas.filter((p) => p.price_status === 'SIN_PRECIO' || p.precioUnitario == null).length,
+    [partidas],
+  );
   const nEstimados = partidas.filter((p) => selloPartida(p).tipo === 'estimado').length;
 
   // Candado de cantidad/usuarios (decisión de Rodrigo, 2026-08-20): antes de
@@ -308,7 +317,7 @@ export default function Voni({
               quieres ir directo a revisar sin describir nada nuevo. */}
           {subpaso2 === 'describir' && hay && (
             <div className="tarjeta voni-puente">
-              <span className="ayuda">Voni ya armó <strong>{partidas.length}</strong> {partidas.length === 1 ? 'mueble' : 'muebles'} · {pesos(totalLista)}</span>
+              <span className="ayuda">Voni ya armó <strong>{partidas.length}</strong> {partidas.length === 1 ? 'mueble' : 'muebles'} · {faltanPrecioVoni > 0 ? `${pesos(totalLista)} (parcial · faltan ${faltanPrecioVoni} precio${faltanPrecioVoni === 1 ? '' : 's'})` : pesos(totalLista)}</span>
               <button className="boton primario grande" style={{ width: '100%' }} onClick={() => setSubpaso2('revisar')}>
                 Revisar lo que entendí ({partidas.length}) →
               </button>
@@ -357,9 +366,16 @@ export default function Voni({
                 />
                 <hr />
                 <div className="fila" style={{ justifyContent: 'flex-end', gap: 20 }}>
-                  <span className="ayuda">Precio de lista</span>
+                  <span className="ayuda">{faltanPrecioVoni > 0 ? 'Subtotal con precios conocidos' : 'Precio de lista'}</span>
                   <strong className="mono" style={{ fontSize: 18 }}>{pesos(totalLista)}</strong>
                 </div>
+                {faltanPrecioVoni > 0 && (
+                  <div className="alerta ambar" style={{ marginTop: 10 }}>
+                    <span className="texto">
+                      Faltan <strong>{faltanPrecioVoni}</strong> precio{faltanPrecioVoni === 1 ? '' : 's'}: el total NO está completo hasta resolverlos (el servidor los valida al emitir).
+                    </span>
+                  </div>
+                )}
                 {nEstimados > 0 && (
                   <div className="alerta ambar" style={{ marginTop: 10 }}>
                     <span className="texto">

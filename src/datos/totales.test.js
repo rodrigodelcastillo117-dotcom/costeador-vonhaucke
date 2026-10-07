@@ -87,3 +87,20 @@ describe('totales · la única autoridad de dinero', () => {
     expect(t.totalRedondeado).toBe(34.85);
     expect(t.totalCentavos).toBe(3485);
   });
+
+  it('#7: precio DESCONOCIDO no se suma como 0 en silencio — se cuenta y marca incompleto', () => {
+    const conFaltante = [
+      { precioUnitario: 5210, cantidad: 10 },                                  // conocido
+      { precioUnitario: null, price_status: 'SIN_PRECIO', cantidad: 1 },        // sin precio
+    ];
+    const t = totalesCotizacion(conFaltante, {}, { ivaPorcentaje: 16 });
+    expect(t.faltanPrecio).toBe(1);
+    expect(t.totalCompleto).toBe(false);
+    expect(t.precioLista).toBe(52100);           // subtotal con precios conocidos (no suma el null)
+  });
+
+  it('#7: con todos los precios → totalCompleto true, faltanPrecio 0', () => {
+    const t = totalesCotizacion(partidas, {}, { ivaPorcentaje: 16 });
+    expect(t.faltanPrecio).toBe(0);
+    expect(t.totalCompleto).toBe(true);
+  });

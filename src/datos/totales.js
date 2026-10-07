@@ -91,10 +91,17 @@ export function totalesCotizacion(partidas = [], cot = {}, par = {}) {
   const anticipoCentavos = pctCentavos(totalCentavos, anticipoPct);
   const anticipo = deCentavosEnteros(anticipoCentavos);
 
+  // #7: precio DESCONOCIDO no se suma como 0 en silencio. Se cuenta y se expone,
+  // para que la UI muestre "subtotal con precios conocidos + faltan N precios" en
+  // vez de presentar un total incompleto como si fuera definitivo.
+  const faltanPrecio = partidas.filter((p) => p && (p.price_status === 'SIN_PRECIO' || p.precioUnitario == null)).length;
+  const totalCompleto = faltanPrecio === 0 && !hayLineaInvalida;
+
   return {
     precioLista, descuentoPct, descuento, subtotal,
     contingenciaPct, contingencia, maniobrasPct, maniobras, fletePct, flete,
     ivaPct, iva, baseGravable, total, totalRedondeado, totalCentavos,
     anticipoPct, anticipo, anticipoCentavos, hayLineaInvalida,
+    faltanPrecio, totalCompleto,
   };
 }

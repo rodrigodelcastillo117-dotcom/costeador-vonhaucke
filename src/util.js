@@ -174,6 +174,15 @@ const RUTAS_CALIBRADAS = new Set(['applt']);
 const SIN_CALIBRAR = 'Esta línea todavía no tiene precios reales cargados y suele quedar POR DEBAJO. Confírmalo con Diseño antes de cerrar.';
 export function selloPartida(pt) {
   if (!pt) return { tipo: 'estimado', texto: 'Estimado', nota: SIN_CALIBRAR };
+  // AUTORIDAD DE PRECIO NUEVA (#8): manda sobre el legacy. La etiqueta jamás debe
+  // contradecir el gate económico (price_status). Sólo después cae al legacy.
+  if (pt.price_status === 'AUTHORIZED_REAL') return { tipo: 'firme', texto: 'Firme', nota: 'Precio autorizado (validado por el servidor).' };
+  if (pt.price_status === 'SIN_PRECIO' || (pt.sinPrecioAutorizado && pt.precioUnitario == null)) {
+    return { tipo: 'sin_precio', texto: 'Sin precio', nota: 'Producto resuelto sin precio; el servidor debe autorizarlo antes de emitir.' };
+  }
+  if (pt.price_status === 'SNAPSHOT_DISPLAY' || (pt.sinPrecioAutorizado && pt.precioReal === false)) {
+    return { tipo: 'referencia', texto: 'Referencia', nota: 'Precio de lista de referencia (snapshot). La cifra oficial la valida el servidor al emitir.' };
+  }
   if (pt.deBanco) return { tipo: 'firme', texto: 'Firme', nota: 'Precio real del banco de precios (salió de un proyecto cerrado).' };
   if (pt.precioReal) return { tipo: 'firme', texto: 'Firme', nota: 'Precio de lista real, tomado de un presupuesto cerrado de Vonhaucke.' };
   if (pt.ruta && RUTAS_CALIBRADAS.has(pt.ruta)) return { tipo: 'calibrado', texto: 'Calibrado', nota: 'Lo calculó el modelo, pero esta línea está contrastada contra presupuestos reales (±7%). No es un precio del papel.' };
