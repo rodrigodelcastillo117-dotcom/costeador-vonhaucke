@@ -4,16 +4,38 @@ const EMAIL = process.env.TEST_EMAIL;
 const PASS = process.env.TEST_PASSWORD;
 const hayCreds = !!(EMAIL && PASS);
 
+const CLAVE = 'costeador-vonhaucke-v1';
+
+// Determinista (#9): marca onboarding visto ANTES de montar para que el modal de
+// guía nunca intercepte clicks (causa de la corrida flaky).
+async function sembrarOnboarding(page) {
+  await page.addInitScript((k) => {
+    try { const s = JSON.parse(window.localStorage.getItem(k) || '{}'); s.onboardingVisto = true; window.localStorage.setItem(k, JSON.stringify(s)); } catch (_e) { /* modo privado */ }
+  }, CLAVE);
+}
+
+// Siembra un proyecto mínimo (#9): sin esto, "Proyecto actual" no existe en Home y
+// los tests de emisión/PDF se quedaban esperando un botón que nunca aparece.
+async function sembrarProyecto(page) {
+  await page.addInitScript((k) => {
+    try {
+      const s = JSON.parse(window.localStorage.getItem(k) || '{}');
+      s.onboardingVisto = true;
+      s.cotizacion = { ...(s.cotizacion || {}), partidas: [{ id: 'seed-1', piezaId: 'silla-win', nombre: 'Silla operativa WIN', cantidad: 4, precioUnitario: 5210, deBanco: true, precioReal: true }] };
+      window.localStorage.setItem(k, JSON.stringify(s));
+    } catch (_e) { /* modo privado */ }
+  }, CLAVE);
+  await page.reload();
+  await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
+}
+
 async function login(page) {
+  await sembrarOnboarding(page);
   await page.goto('/');
   await page.fill('#email-login', EMAIL);
   await page.fill('#pass-login', PASS);
   await page.getByRole('button', { name: /^Entrar$/i }).click();
   await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
-  if (await page.getByRole('dialog', { name: /Guía de uso/i }).isVisible().catch(() => false)) {
-    await page.keyboard.press('Escape');
-    await expect(page.getByRole('dialog', { name: /Guía de uso/i })).toBeHidden({ timeout: 5000 });
-  }
 }
 
 test.describe('E2E autenticado · flujo real', () => {
@@ -72,6 +94,7 @@ test.describe('E2E autenticado · flujo real', () => {
   });
 
   test('salidas de propuesta: descarga PDF real e imprimir responde cuando hay proyecto', async ({ page }) => {
+    await sembrarProyecto(page);
     await page.getByRole('button', { name: /Proyecto actual/i }).click();
     const descargar = page.getByRole('button', { name: /Descargar (PDF|BORRADOR)/i });
     const imprimir = page.getByRole('button', { name: /Imprimir( BORRADOR)?/i });
@@ -98,6 +121,7 @@ test.describe('E2E autenticado · flujo real', () => {
   });
 
   test('cotización: botones de salida nunca quedan muertos cuando existe un proyecto', async ({ page }) => {
+    await sembrarProyecto(page);
     const actual = page.getByRole('button', { name: /Proyecto actual/i });
     await actual.click();
     const descargar = page.getByRole('button', { name: /Descargar (PDF|BORRADOR)/i });

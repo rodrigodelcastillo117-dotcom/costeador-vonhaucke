@@ -7,14 +7,21 @@ test('LIVE AI smoke · Costear llama analizar-mueble real y devuelve BOM', async
   test.skip(!(EMAIL && PASS), 'Requiere cuenta de prueba autenticada.');
   test.setTimeout(140000);
 
+  // Determinista (#9): marca onboarding visto ANTES de montar para que el modal
+  // de guía nunca intercepte los clicks del flujo.
+  await page.addInitScript(() => {
+    try {
+      const k = 'costeador-vonhaucke-v1';
+      const s = JSON.parse(window.localStorage.getItem(k) || '{}');
+      s.onboardingVisto = true;
+      window.localStorage.setItem(k, JSON.stringify(s));
+    } catch (_e) { /* modo privado */ }
+  });
   await page.goto('/');
   await page.fill('#email-login', EMAIL);
   await page.fill('#pass-login', PASS);
   await page.getByRole('button', { name: /^Entrar$/i }).click();
   await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
-  if (await page.getByRole('dialog', { name: /Guía de uso/i }).isVisible().catch(() => false)) {
-    await page.keyboard.press('Escape');
-  }
 
   await page.getByTestId('home-costear').click();
   await expect(page.getByText(/Qué vas a costear/i)).toBeVisible({ timeout: 15000 });
