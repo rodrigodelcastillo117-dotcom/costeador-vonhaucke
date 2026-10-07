@@ -13,6 +13,9 @@
 import {
   rectsSeSolapan, rectDentroPoligono, bloqueaPuertaEspacial,
 } from '../acomodar-espacio/spatial-core.js';
+// GAP5 · validación SEMÁNTICA (grupos/zona) del core compartido: sus fallas entran
+// a issues, bajan status y ponen render_ready=false.
+import { auditarGruposFuncionales } from '../acomodar-espacio/acomodo-core.js';
 
 export const CONTRATO = Object.freeze({
   input_version: 'ACOMODO_INPUT_V1',
@@ -244,6 +247,9 @@ export function evaluarRecovery(areas = [], piezas = [], colocacion = [], { minP
     ...invariantesBase(areas, piezas, colocacion),
     ...invariantesMuros(areas, piezas, colocacion),
     ...invariantesCirculacion(areas, piezas, colocacion, minPasillo),
+    // GAP5: fallas semánticas (grupo funcional / dependiente fuera de la zona de su
+    // ancla) — geometría perfecta NO basta para PASS si la semántica está mal.
+    ...auditarGruposFuncionales(piezas, colocacion).map((i) => ({ ...i, severity: 'fail' })),
   ];
   const req = Number.isFinite(requested) ? requested : piezas.length;
   const colocados = new Set(colocacion.map((c) => String(c.id)).filter((id) => piezas.some((p) => String(p.id) === id)));

@@ -115,3 +115,27 @@ describe('recovery-core · proponerReparacion (reparación REAL · audit F)', ()
     expect(x.area).toBe(1);   // zona ZB
   });
 });
+
+describe('recovery-core · validación SEMÁNTICA (GAP 5)', () => {
+  const areas = [{ nombre: 'A', ancho: 6000, largo: 4000 }, { nombre: 'B', ancho: 6000, largo: 4000 }];
+  const piezas = [
+    { id: 'b', w: 3000, d: 1200, relation_role: 'ANCHOR_WORKSTATION', functional_group_id: 'g1' },
+    { id: 's', w: 600, d: 600, relation_role: 'WORK_SEAT', functional_group_id: 'g1' },
+  ];
+  it('geometría PERFECTA + dependiente en zona incorrecta → NUNCA PASS', () => {
+    // b en área0, s en área1: cada rect es válido, pero el grupo se parte.
+    const plan = [{ id: 'b', area: 0, x: 0, y: 0 }, { id: 's', area: 1, x: 0, y: 0 }];
+    const r = evaluarRecovery(areas, piezas, plan, { requested: 2 });
+    const codes = r.issues.map((i) => i.code);
+    expect(codes.some((c) => c === 'FUNCTIONAL_GROUP_SPLIT' || c === 'WRONG_GROUP_ANCHOR')).toBe(true);
+    expect(r.status).toBe('FAIL');
+    expect(r.render_ready).toBe(false);
+  });
+  it('mismo grupo en la misma zona → PASS', () => {
+    // s separada del bench con pasillo ≥1000mm (evita CIRCULATION_TIGHT).
+    const plan = [{ id: 'b', area: 0, x: 0, y: 0 }, { id: 's', area: 0, x: 4000, y: 0 }];
+    const r = evaluarRecovery(areas, piezas, plan, { requested: 2 });
+    expect(r.status).toBe('PASS');
+    expect(r.render_ready).toBe(true);
+  });
+});
