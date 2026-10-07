@@ -19,8 +19,10 @@ describe('Acomodo · fuente única de mobiliario', () => {
     expect(elegidas[1].ruta).toContain('vh-dest-opn');
   });
 
-  it('sin partidas comerciales sí usa sugeridos como preview visual', () => {
+  it('#6: sin partidas comerciales el SOLVER no recibe nada (jamás sug-*)', () => {
     const sugeridas = [{ id: 'sug-1', sugeridoPlano: true, nombre: 'Preview', cantidad: 1 }];
-    expect(elegirPartidasAcomodo([], sugeridas)).toEqual(sugeridas);
+    // El preview del programa se muestra aparte; el input del solver es reales-only.
+    expect(elegirPartidasAcomodo([], sugeridas)).toEqual([]);
+    expect(elegirPartidasAcomodo([])).toEqual([]);
   });
 });

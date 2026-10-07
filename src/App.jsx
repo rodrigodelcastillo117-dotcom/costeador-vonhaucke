@@ -26,6 +26,7 @@ const Asistente = lazy(() => import('./componentes/Asistente.jsx'));
 const AsistenteEspecial = lazy(() => import('./componentes/AsistenteEspecial.jsx'));
 const Biblioteca = lazy(() => import('./componentes/Biblioteca.jsx'));
 const CosteadorLinea = lazy(() => import('./componentes/CosteadorLinea.jsx'));
+import { aplicarPrograma } from './datos/programaRealDelPlano.js';
 import { APPLT_PRODUCTOS, generarAppLT } from './datos/applt.js';
 import { APP_PRODUCTOS, generarApp } from './datos/app.js';
 import { ECLIPSE_PRODUCTOS, generarEclipse } from './datos/eclipse.js';
@@ -758,6 +759,36 @@ export default function App() {
     ...e, cotizacion: { ...e.cotizacion, partidas: [...(e.cotizacion?.partidas || []), ...nuevas] },
   }));
 
+  // P0.1 · "Aplicar programa detectado": confirma la PROPUESTA del plano contra lo
+  // ya cotizado (reconcilia, idempotente) y agrega SÓLO las partidas nuevas como
+  // partidas reales de costeo. El precio es snapshot de display del catálogo; la
+  // cifra oficial la revalida el servidor al emitir (misma autoridad que el resto).
+  function aplicarProgramaDetectado(propuesta) {
+    if (!propuesta) return { confirmadas: 0, conflictos: [] };
+    const existentes = estado.cotizacion?.partidas || [];
+    const { confirmacion } = aplicarPrograma(propuesta, { existentes });
+    const nuevas = (confirmacion.confirmadas || []).map((it) => partidaDeCosteo(
+      {
+        piezaId: it.bancoId,
+        nombre: it.nombre,
+        ruta: it.linea || null,
+        productoId: it.productoId || null,
+        productVersionId: it.producto_version_id || null,
+        w: it.w || null,
+        d: it.d || null,
+        config: { usuarios: it.usuarios || null, relation_role: it.relation_role, functional_group_id: it.functional_group_id, anchor_instance_id: it.anchor_instance_id },
+        precioReal: true,
+        componentes: [],
+      },
+      it.cantidad,
+      Number(it.precio_lista_snapshot) || 0,
+      null,
+      null,
+    ));
+    if (nuevas.length) sumarPartidas(nuevas);
+    return { confirmadas: nuevas.length, conflictos: confirmacion.conflictos || [] };
+  }
+
   // Asistente y costeador de línea sencillo: una partida.
   function agregarDesdeAsistente(costeo, cantidad, precio, margen) {
     const p = partidaDeCosteo(costeo, cantidad, precio, margen);
@@ -1200,7 +1231,7 @@ export default function App() {
           />
         )}
         {pestania === 'contrasena' && <CambiarContrasena email={sesion?.user?.email} recuperacion={recuperando} onListo={() => { setRecuperando(false); irInicio(); }} />}
-        {pestania === 'acomodo' && <Acomodo estado={estado} onIr={irA} onGuardarAcomodo={guardarAcomodo} />}
+        {pestania === 'acomodo' && <Acomodo estado={estado} onIr={irA} onGuardarAcomodo={guardarAcomodo} onAplicarPrograma={aplicarProgramaDetectado} />}
         {pestania === 'precios' && (veCostos
           ? <Precios estado={estado} setEstado={setEstado} puedeVerDireccion={desbloqueado} onDireccion={null} />
           : <div className="contenido"><div className="tarjeta"><p className="ayuda">Los precios de materiales son costos y solo los ven Diseño y Dirección.</p></div></div>

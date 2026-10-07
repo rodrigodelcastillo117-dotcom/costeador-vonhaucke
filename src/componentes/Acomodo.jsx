@@ -19,6 +19,7 @@ import {
 import { marcarDestinoPartida } from '../datos/destinoAcomodo.js';
 import { expandirPiezas } from '../datos/espacio.js';
 import { validarCoherenciaPrograma } from '../datos/coherenciaPrograma.js';
+import { proponerProgramaDelPlano } from '../datos/programaRealDelPlano.js';
 
 const esSugerida = (p) => !!p?.sugeridoPlano || String(p?.id || '').startsWith('sug-');
 const norm = (s = '') => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -118,14 +119,14 @@ export function sanearAcomodoContraPartidas(acomodo, partidasReales = []) {
   };
 }
 
-export function elegirPartidasAcomodo(partidas = [], sugeridas = []) {
-  const reales = (Array.isArray(partidas) ? partidas : [])
+export function elegirPartidasAcomodo(partidas = []) {
+  // #6/#97 (regla ABSOLUTA): el solver recibe EXCLUSIVAMENTE partidas reales
+  // confirmadas. Nunca sug-*/preview. Sin partidas confirmadas → NO hay input de
+  // acomodo (se muestra el programa propuesto + CTA "Aplicar programa detectado",
+  // pero jamás se coloca una pieza fantasma en el PlacementSpec oficial).
+  return (Array.isArray(partidas) ? partidas : [])
     .filter((p) => !esSugerida(p))
     .map(marcarDestinoPartida);
-  // En una cotización real, el solver recibe EXCLUSIVAMENTE muebles reales.
-  // Las sugerencias del plano son diagnóstico; jamás piezas fantasma.
-  if (reales.length) return reales;
-  return (Array.isArray(sugeridas) ? sugeridas : []).filter(Boolean);
 }
 
 export default function Acomodo(props) {
@@ -169,6 +170,15 @@ export default function Acomodo(props) {
   const sugerenciasFaltantes = programaVisual.sugerencias || [];
   const coherenciaPrograma = hayReales ? validarCoherenciaPrograma(realesEntrada) : { ok: true, bloqueos: [] };
 
+  // #1/#6: sin partidas comerciales NO se corre el solver. Se calcula el PROGRAMA
+  // PROPUESTO real (productos canónicos, cero sug-*) para PREVIEW + CTA. La
+  // confirmación (escribir a cotizacion.partidas) es el acto explícito del botón.
+  const lineaResolver = lineaOperativa === 'applt' ? 'App LT' : lineaOperativa;
+  const propuestaPlano = !hayReales && areasActuales.length
+    ? proponerProgramaDelPlano(areasActuales, { linea: lineaResolver })
+    : null;
+  const previewPropuesto = propuestaPlano ? propuestaPlano.preview : [];
+
   const estadoDemo = useMemo(() => {
     const e = props?.estado || {};
     const c = e.cotizacion || {};
@@ -176,7 +186,7 @@ export default function Acomodo(props) {
     const sugeridasParaLayout = hayReales
       ? partidasSugeridasDeAreas(areasAhora, { linea: lineaOperativa })
       : sugeridas;
-    const partidas = elegirPartidasAcomodo(c.partidas, sugeridasParaLayout);
+    const partidas = elegirPartidasAcomodo(c.partidas);   // #6: solver = SÓLO reales confirmadas
     // Si faltan anclas comerciales duras, un plan viejo deja de ser evidencia:
     // no lo revivimos visualmente ni reutilizamos su render.
     const acomodo = hayReales && !coherenciaPrograma.ok && acomodoLocal
@@ -250,21 +260,38 @@ export default function Acomodo(props) {
         button[title="sumar"], button[title="restar"] { color: #f5f5f7 !important; }
       `}</style>
 
-      {!hayReales && sugeridas.length > 0 && (
+      {!hayReales && previewPropuesto.length > 0 && (
         <div className="contenido no-imprimir" style={{ paddingBottom: 0, width: '100%' }}>
           <div className="alerta" style={{ display: 'block', width: '100%', boxSizing: 'border-box', background: '#eef6f3', borderColor: '#8bbcaf', color: '#174f45' }}>
             <div style={{ display: 'block', width: '100%', lineHeight: 1.45 }}>
-              <strong>✨ Voni entendió el programa del plano.</strong>{' '}
-              OPERATIVO / BENCH / ISLA de <strong>N PAX</strong> = banca para N usuarios + N sillas + N gavetas; salas de juntas = mesa dimensionada + sus sillas; privados, recepción y servicios se tratan por separado.{' '}
-              Todo sigue marcado <strong>SUGERIDO</strong> y <strong>no se cobra</strong> hasta confirmarlo.
+              <strong>✨ Voni detectó el programa del plano.</strong>{' '}
+              Esta es una <strong>PROPUESTA</strong> de productos reales del catálogo (no se ha cotizado nada todavía).
+              El acomodo <strong>no se corre con sugerencias</strong>: primero aplica el programa para volverlas partidas reales.
             </div>
+            <div style={{ display: 'grid', gap: 4, marginTop: 10 }}>
+              {previewPropuesto.slice(0, 10).map((p) => (
+                <div key={p.id}>• {p.cantidad}× {p.nombre}{p.w ? ` · ${(p.w / 1000).toFixed(2)}×${((p.d || 0) / 1000).toFixed(2)} m` : ''}</div>
+              ))}
+              {previewPropuesto.length > 10 && <div>• +{previewPropuesto.length - 10} renglón(es)</div>}
+            </div>
+            {propuestaPlano && propuestaPlano.propuesta && propuestaPlano.propuesta.pendientes && propuestaPlano.propuesta.pendientes.length > 0 && (
+              <div style={{ marginTop: 8, color: '#8a5a00' }}>
+                <strong>Faltan por confirmar:</strong>{' '}
+                {propuestaPlano.propuesta.pendientes.map((x) => x.faltante?.reason || x.rol).join(', ')}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 12, width: '100%' }}>
-              <strong style={{ color: '#174f45' }}>Voni: ¿qué línea operativa quieres usar?</strong>
               <select value={lineaOperativa} onChange={(e) => setLineaOperativa(e.target.value)}
-                style={{ minHeight: 40, width: 'min(100%, 480px)', borderRadius: 8, padding: '0 12px', border: '1px solid #8bbcaf', background: '#fff', color: '#174f45', fontWeight: 700 }}>
+                style={{ minHeight: 40, width: 'min(100%, 320px)', borderRadius: 8, padding: '0 12px', border: '1px solid #8bbcaf', background: '#fff', color: '#174f45', fontWeight: 700 }}>
                 <option value="applt">APP LT · 1.50 m por puesto</option>
               </select>
-              <span style={{ color: '#356b62' }}>APP LT está fijada para que el acomodo sea determinista.</span>
+              <button type="button"
+                onClick={() => props.onAplicarPrograma?.(propuestaPlano.propuesta)}
+                disabled={!props.onAplicarPrograma}
+                style={{ minHeight: 40, padding: '0 18px', borderRadius: 8, border: 'none', background: '#174f45', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
+                Aplicar programa detectado
+              </button>
+              <span style={{ color: '#356b62' }}>Agrega los productos reales a la cotización (idempotente). El precio lo revalida el servidor al emitir.</span>
             </div>
           </div>
         </div>

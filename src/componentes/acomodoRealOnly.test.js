@@ -17,12 +17,10 @@ describe('Acomodo operativo · fuente única real',()=>{
     expect(out.some(x=>x.sugeridoPlano || String(x.id).startsWith('sug-'))).toBe(false);
   });
 
-  it('sin partidas comerciales sí permite sugeridos como preview visual no cobrable',()=>{
+  it('#6: sin partidas comerciales el solver NO recibe sugeridos (input vacío)',()=>{
     const out=elegirPartidasAcomodo([],[
       {id:'sug-bench',nombre:'Bench',cantidad:1,sugeridoPlano:true,noCobrar:true,precioUnitario:0}
     ]);
-    expect(out[0].sugeridoPlano).toBe(true);
-    expect(out[0].noCobrar).toBe(true);
-    expect(Number(out[0].precioUnitario||0)).toBe(0);
+    expect(out).toEqual([]);                        // preview aparte; solver reales-only
   });
 });
