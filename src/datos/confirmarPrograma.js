@@ -41,6 +41,7 @@ function inferRole(item) {
   if (silla && /junta|consejo|meeting|board/.test(t)) return 'MEETING_SEAT';
   if (/gaveta|pedestal|cajonera/.test(t)) return 'UNDERDESK_STORAGE';
   if (/mesa|table/.test(t) && /junta|consejo|meeting|board/.test(t)) return 'ANCHOR_MEETING';
+  if (/recepci|mostrador|lobby/.test(t) && !silla) return 'ANCHOR_RECEPTION';
   if (/escritorio|bench|banca|estacion|workstation/.test(t) && !silla) {
     return /privad|direccion|directiv|gerenc/.test(t) ? 'ANCHOR_DESK' : 'ANCHOR_WORKSTATION';
   }
@@ -64,6 +65,7 @@ function aItemConfirmado(part, { slot = null, estado }) {
     instance_id: part.instance_id ?? null,
     functional_group_id: part.functional_group_id ?? null,
     inclusion: part.inclusion ?? null,
+    requirement_id: part.requirement_id ?? null,
     zone_id: part.zone_id ?? null,
     evidence: part.evidence ?? null,
     bancoId: bancoDe(part),
@@ -161,8 +163,9 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
     }
   }
 
-  // existentes que el programa no tocó: intactos
-  const intactos = ex.filter((e) => !usados.has(e._i)).map((e) => ({ ...e.raw }));
+  // existentes que el programa no tocó: intactos (normaliza bancoId desde piezaId
+  // para que la lista de items sea homogénea aguas abajo).
+  const intactos = ex.filter((e) => !usados.has(e._i)).map((e) => ({ ...e.raw, bancoId: bancoDe(e.raw) }));
   const items = [...intactos, ...sinCambio, ...confirmadas];
   const propias = [...confirmadas, ...sinCambio];
 

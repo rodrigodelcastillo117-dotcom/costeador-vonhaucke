@@ -68,6 +68,58 @@ function aPartidaAcomodo(it) {
   };
 }
 
+/**
+ * ADAPTER CANÓNICO de ProductResolution confirmada → PARTIDA COMERCIAL (#5/#6/#7).
+ * NO usa partidaDeCosteo (dominio de costeo): no inventa costo, no calcula BOM
+ * vacío, no deriva margen. Conserva la semántica estructural a NIVEL SUPERIOR
+ * (no escondida en config) para que Acomodo/coherencia/spatial la lean directo.
+ * Precio: snapshot de DISPLAY (nunca $0; nunca FIRME); el servidor lo revalida.
+ */
+export function partidaComercialDesdeConfirmado(it) {
+  const snap = Number(it.precio_lista_snapshot) > 0 ? Number(it.precio_lista_snapshot) : null;
+  const sinPrecio = it.price_status === 'SIN_PRECIO' || snap == null;
+  return {
+    id: it.id || it.instance_id || `${it.relation_role}:${it.bancoId}`,
+    // identidad de producto (top-level)
+    piezaId: it.bancoId,
+    bancoId: it.bancoId,
+    source_ref: it.source_ref || it.bancoId,
+    productoId: it.productoId || null,
+    producto_version_id: it.producto_version_id || null,
+    nombre: it.nombre,
+    w: it.w ?? null,
+    d: it.d ?? null,
+    usuarios: it.usuarios ?? null,
+    linea: it.linea ?? null,
+    cantidad: Number(it.cantidad) || 1,
+    // SEMÁNTICA ESTRUCTURAL (top-level, NO en config) — #5
+    relation_role: it.relation_role ?? null,
+    anchor_role: it.anchor_role ?? null,
+    instance_id: it.instance_id ?? null,
+    anchor_instance_id: it.anchor_instance_id ?? null,
+    functional_group_id: it.functional_group_id ?? null,
+    requirement_id: it.requirement_id ?? null,
+    zone_id: it.zone_id ?? null,
+    // TRES COMPUERTAS (top-level)
+    product_status: it.product_status ?? 'RESOLVED',
+    identity_status: it.identity_status ?? (it.productoId ? 'RESOLVED' : 'MISSING'),
+    price_status: it.price_status ?? (snap ? 'SNAPSHOT_DISPLAY' : 'SIN_PRECIO'),
+    // PRECIO (#6): display, NUNCA $0 inventado, NUNCA firme hasta autoridad.
+    precioUnitario: sinPrecio ? null : snap,
+    precio_lista_snapshot: snap,
+    precioReal: false,
+    precioAutorizado: false,
+    sinPrecioAutorizado: true,
+    // COSTO (#7): desconocido/pendiente; jamás inventado ni 0.
+    costoUnitario: null,
+    costoPendiente: true,
+    margen: null,
+    // config SÓLO para configuración adicional
+    config: { usuarios: it.usuarios ?? null },
+    source: 'CONFIRMADO_PROGRAMA',
+  };
+}
+
 /** Partidas confirmadas → shape Acomodo/costeo (tras aplicar). */
 export function partidasParaAcomodo(confirmacion) {
   const items = (confirmacion && Array.isArray(confirmacion.items)) ? confirmacion.items : [];

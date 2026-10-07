@@ -26,7 +26,7 @@ const Asistente = lazy(() => import('./componentes/Asistente.jsx'));
 const AsistenteEspecial = lazy(() => import('./componentes/AsistenteEspecial.jsx'));
 const Biblioteca = lazy(() => import('./componentes/Biblioteca.jsx'));
 const CosteadorLinea = lazy(() => import('./componentes/CosteadorLinea.jsx'));
-import { aplicarPrograma } from './datos/programaRealDelPlano.js';
+import { aplicarPrograma, partidaComercialDesdeConfirmado } from './datos/programaRealDelPlano.js';
 import { APPLT_PRODUCTOS, generarAppLT } from './datos/applt.js';
 import { APP_PRODUCTOS, generarApp } from './datos/app.js';
 import { ECLIPSE_PRODUCTOS, generarEclipse } from './datos/eclipse.js';
@@ -759,34 +759,37 @@ export default function App() {
     ...e, cotizacion: { ...e.cotizacion, partidas: [...(e.cotizacion?.partidas || []), ...nuevas] },
   }));
 
-  // P0.1 · "Aplicar programa detectado": confirma la PROPUESTA del plano contra lo
-  // ya cotizado (reconcilia, idempotente) y agrega SÓLO las partidas nuevas como
-  // partidas reales de costeo. El precio es snapshot de display del catálogo; la
-  // cifra oficial la revalida el servidor al emitir (misma autoridad que el resto).
+  // P0.1 · "Aplicar programa detectado": confirma la PROPUESTA contra lo ya
+  // cotizado (reconcilia, idempotente) y agrega SÓLO las partidas nuevas como
+  // PARTIDAS COMERCIALES canónicas (adapter dedicado, NO partidaDeCosteo). El
+  // precio es snapshot de DISPLAY (nunca $0, nunca firme); el servidor lo revalida.
+  //
+  // ATÓMICO (#8): la reconciliación corre DENTRO de setEstado(prev=>...), así dos
+  // clicks seguidos (antes del rerender) ven el estado ya actualizado por el
+  // primero → el segundo reconcilia y no duplica. `aplicandoPrograma` evita reentradas.
+  const aplicandoProgramaRef = useRef(false);
   function aplicarProgramaDetectado(propuesta) {
-    if (!propuesta) return { confirmadas: 0, conflictos: [] };
-    const existentes = estado.cotizacion?.partidas || [];
-    const { confirmacion } = aplicarPrograma(propuesta, { existentes });
-    const nuevas = (confirmacion.confirmadas || []).map((it) => partidaDeCosteo(
-      {
-        piezaId: it.bancoId,
-        nombre: it.nombre,
-        ruta: it.linea || null,
-        productoId: it.productoId || null,
-        productVersionId: it.producto_version_id || null,
-        w: it.w || null,
-        d: it.d || null,
-        config: { usuarios: it.usuarios || null, relation_role: it.relation_role, functional_group_id: it.functional_group_id, anchor_instance_id: it.anchor_instance_id },
-        precioReal: true,
-        componentes: [],
-      },
-      it.cantidad,
-      Number(it.precio_lista_snapshot) || 0,
-      null,
-      null,
-    ));
-    if (nuevas.length) sumarPartidas(nuevas);
-    return { confirmadas: nuevas.length, conflictos: confirmacion.conflictos || [] };
+    if (!propuesta) return { confirmadas: 0, conflictos: [], pendientes: [] };
+    // Vista para la UI (contra el estado actual): conflictos y pendientes a mostrar.
+    const vista = aplicarPrograma(propuesta, { existentes: estado.cotizacion?.partidas || [] });
+    if (aplicandoProgramaRef.current) {
+      return { confirmadas: 0, conflictos: vista.conflictos || [], pendientes: propuesta.pendientes || [] };
+    }
+    aplicandoProgramaRef.current = true;
+    setEstado((prev) => {
+      const existentes = prev.cotizacion?.partidas || [];
+      const { confirmacion } = aplicarPrograma(propuesta, { existentes });
+      if (!confirmacion.confirmadas.length) return prev;         // idempotente: nada nuevo
+      const nuevas = confirmacion.confirmadas.map(partidaComercialDesdeConfirmado);
+      return { ...prev, cotizacion: { ...prev.cotizacion, partidas: [...existentes, ...nuevas] } };
+    });
+    // Libera el lock tras el commit (microtask: después del setEstado batcheado).
+    Promise.resolve().then(() => { aplicandoProgramaRef.current = false; });
+    return {
+      confirmadas: (vista.confirmacion?.confirmadas || []).length,
+      conflictos: vista.conflictos || [],
+      pendientes: propuesta.pendientes || [],
+    };
   }
 
   // Asistente y costeador de línea sencillo: una partida.
