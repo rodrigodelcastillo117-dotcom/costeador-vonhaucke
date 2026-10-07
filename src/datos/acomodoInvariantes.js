@@ -146,9 +146,14 @@ export function evaluarInvariantesAcomodo({ payload, plan, opts = {} } = {}) {
   //  (a) el ancla cae en un área cuya identidad de zona coincide con su zone_id;
   //  (b) cada dependiente cae en la MISMA área que su ancla; y si trae zone_id,
   //      que coincida con la del ancla. Todo por id/índice, nunca por nombre suelto.
+  // GAP4 · Identidad de zona por IDs ESTABLES: zone_id (del FloorSpec) manda; el
+  // `nombre` es SÓLO fallback legacy EXPLÍCITO (áreas viejas sin zone_id). Así dos
+  // áreas con el MISMO nombre pero distinto zone_id NO se confunden.
   const zonaDeArea = (ai) => {
     const a = areas[ai];
-    return a ? (a.zone_id ?? a.nombre ?? `#${ai}`) : `#${ai}`;
+    if (!a) return `#${ai}`;
+    if (a.zone_id != null) return a.zone_id;        // identidad primaria
+    return a.nombre ?? `#${ai}`;                     // fallback legacy explícito
   };
   const normZona = (z) => String(z ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '');
   const claveGrupo = (p) => p?.anchor_instance_id || p?.functional_group_id || null;

@@ -176,6 +176,28 @@ describe('acomodoInvariantes · zonas/anclas por IDs estables (audit G)', () => 
     const r = evaluarInvariantesAcomodo({ payload: payloadDual(), plan });
     expect(r.issues.filter((i) => i.code === 'DEPENDENT_WRONG_ZONE')).toHaveLength(2);
   });
+
+  it('GAP4: dos áreas con MISMO nombre y zone_id distinto NO se confunden', () => {
+    // Ambas áreas se llaman 'OPERATIVA'; sólo zone_id las distingue.
+    const payload = {
+      requested: 2,
+      areas: [
+        { nombre: 'OPERATIVA', zone_id: 'ZA', ancho: 8000, largo: 4000 },
+        { nombre: 'OPERATIVA', zone_id: 'ZB', ancho: 8000, largo: 4000 },
+      ],
+      piezas: [
+        { id: 'a', w: 6000, d: 1200, relation_role: 'ANCHOR_WORKSTATION', anchor_instance_id: 'iA', zone_id: 'ZA' },
+        { id: 'b', w: 6000, d: 1200, relation_role: 'ANCHOR_WORKSTATION', anchor_instance_id: 'iB', zone_id: 'ZB' },
+      ],
+    };
+    // Correcto: a→área0(ZA), b→área1(ZB).
+    const ok = evaluarInvariantesAcomodo({ payload, plan: { colocacion: [{ id: 'a', area: 0, x: 0, y: 0 }, { id: 'b', area: 1, x: 0, y: 0 }], layoutSpec: { status: 'PASS', validation: { render_ready: true } }, render_ready: true } });
+    expect(ok.status).toBe('PASS');
+    // Cruce: a (zone_id ZA) al área1 (nombre igual pero zone_id ZB) → mal, por zone_id.
+    const mal = evaluarInvariantesAcomodo({ payload, plan: { colocacion: [{ id: 'a', area: 1, x: 0, y: 0 }, { id: 'b', area: 0, x: 0, y: 0 }], layoutSpec: { status: 'PASS', validation: { render_ready: true } }, render_ready: true } });
+    expect(mal.issues.filter((i) => i.code === 'ANCHOR_WRONG_ZONE')).toHaveLength(2);
+    expect(mal.status).toBe('FAIL');
+  });
 });
 
 describe('derivarValidez · autoridad única (GAP 2)', () => {
