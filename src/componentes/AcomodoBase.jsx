@@ -233,7 +233,11 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
         ...res.plan,
         render_ready: res.render_ready === true,            // autoridad: agregador
         strictPlacement: true,
-        invariantes: ev ? { status: ev.status, issues: ev.issues } : null,
+        invariantes: ev ? {
+          status: ev.status, issues: ev.issues,
+          requested: ev.requested, placed: ev.placed, unplaced: ev.unplaced,
+          ghosts: ev.ghosts, duplicates: ev.duplicates,
+        } : null,
         repairTrace: res.trace || [],
         layoutSpec: {
           ...(res.plan.layoutSpec || {}),

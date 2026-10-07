@@ -82,7 +82,7 @@ test.describe('E2E REAL EDGE · recovery desplegado (P0.2 §5)', () => {
   test.skip(!hayCreds, 'Define TEST_EMAIL y TEST_PASSWORD para correr el gate E2E real.');
   test.setTimeout(120000);
 
-  test('multi-zona coherente: llama al edge REAL y verify-first es auto-consistente', async ({ page }) => {
+  test('multi-zona coherente (APP LT+WIN/gavetas, privado, juntas, puerta, obstáculo) → PASS REAL', async ({ page }) => {
     await loginConSemilla(page, semilla());
     const resp = await irAAcomodoYResolver(page);
     expect(resp.some((r) => r.status === 200), `respuestas del edge: ${JSON.stringify(resp)}`).toBe(true);
@@ -90,17 +90,20 @@ test.describe('E2E REAL EDGE · recovery desplegado (P0.2 §5)', () => {
     await expect.poll(async () => (await leerCot(page))?.acomodo?.plan?.program_hash || '', { timeout: 20000 }).toMatch(/^pc_/);
     const cot = await leerCot(page);
     const plan = cot.acomodo.plan;
-    const estado = cot.acomodo.layoutEstado;
-    const fails = (plan.invariantes?.issues || []).filter((i) => i.severity === 'fail');
+    const inv = plan.invariantes || {};
+    const fails = (inv.issues || []).filter((i) => i.severity === 'fail');
+    const ctx = `estado=${cot.acomodo.layoutEstado} placed=${inv.placed}/${inv.requested} issues=${JSON.stringify(inv.issues)}`;
 
-    // VERIFY-FIRST auto-consistente: PASS ⟺ cero fallas + validado; no-PASS ⟺ no validado.
-    if (estado === 'PASS') {
-      expect(fails, `fallas con estado PASS: ${JSON.stringify(fails)}`).toHaveLength(0);
-      expect(cot.acomodo.layoutEspacialValidado).toBe(true);
-    } else {
-      expect(['PARTIAL', 'REVIEW_REQUIRED', 'NEEDS_REVIEW', 'FAIL', null]).toContain(estado);
-      expect(cot.acomodo.layoutEspacialValidado).not.toBe(true);   // jamás validado si no PASS
-    }
+    // CASO VÁLIDO ⇒ PASS obligatorio (no basta auto-consistencia).
+    expect(cot.acomodo.layoutEstado, ctx).toBe('PASS');
+    expect(plan.render_ready, ctx).toBe(true);
+    expect(cot.acomodo.layoutEspacialValidado, ctx).toBe(true);
+    // todas las piezas colocadas · cantidades exactas · cero ghost/dup · cero fallas.
+    expect(inv.unplaced, ctx).toEqual([]);
+    expect(inv.placed, ctx).toBe(inv.requested);
+    expect(inv.ghosts, ctx).toEqual([]);
+    expect(inv.duplicates, ctx).toEqual([]);
+    expect(fails, ctx).toHaveLength(0);   // cero overlap/OOB/door/obstacle/wrong-zone
   });
 
   test('caso IMPOSIBLE: nunca un PASS falso (PARTIAL/NEEDS_REVIEW)', async ({ page }) => {
