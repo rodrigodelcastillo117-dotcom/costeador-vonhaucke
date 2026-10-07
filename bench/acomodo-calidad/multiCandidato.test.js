@@ -104,22 +104,29 @@ describe('P0.2c · BLOCK 5 · orden de jueces HARD → SEMANTIC → COMPLETENESS
   // Ejemplo OBLIGATORIO del mandato: A=20/20 placed pero semantic FAIL; B=19/20 placed
   // semantic PASS. A NUNCA puede ser el ganador final (la incoherencia semántica no se
   // compensa con más piezas colocadas). El resultado puede ser PARCIAL, nunca incoherente.
-  const A = { idx: 0, orden: 'row', eval: { hardOk: true, hard_issues: 0, placed: 20, sem_status: 'FAIL', semFail: 4, semReview: 0, semOk: false, quality: 95 } };
-  const B = { idx: 1, orden: 'center', eval: { hardOk: true, hard_issues: 0, placed: 19, sem_status: 'PASS', semFail: 0, semReview: 0, semOk: true, quality: 80 } };
+  const A = { idx: 0, orden: 'row', eval: { hardOk: true, hard_issues: 0, placed: 20, sem_status: 'FAIL', semRank: 0, semFail: 4, semReview: 0, quality: 95 } };
+  const B = { idx: 1, orden: 'center', eval: { hardOk: true, hard_issues: 0, placed: 19, sem_status: 'PASS', semRank: 2, semFail: 0, semReview: 0, quality: 80 } };
 
   it('semantic PASS (19/20) gana a semantic FAIL (20/20)', () => {
     expect(mejorCandidato(A, B)).toBe(B);
     expect(mejorCandidato(B, A)).toBe(B);   // simétrico
   });
 
+  it('GAP46 · MISMO status: COMPLETENESS gana a reducir issues (18/18 rev2 vence a 9/18 rev1)', () => {
+    const A2 = { idx: 0, orden: 'row', eval: { hardOk: true, hard_issues: 0, placed: 18, sem_status: 'REVIEW_REQUIRED', semRank: 1, semFail: 0, semReview: 2, quality: 70 } };
+    const B2 = { idx: 1, orden: 'center', eval: { hardOk: true, hard_issues: 0, placed: 9, sem_status: 'REVIEW_REQUIRED', semRank: 1, semFail: 0, semReview: 1, quality: 90 } };
+    expect(mejorCandidato(A2, B2)).toBe(A2);   // NO se sacrifica media oficina por bajar 2→1 review
+    expect(mejorCandidato(B2, A2)).toBe(A2);
+  });
+
   it('HARD manda sobre SEMANTIC: hard inválido pierde aunque sea semantic PASS', () => {
-    const hardBad = { idx: 2, orden: 'reverse', eval: { hardOk: false, hard_issues: 1, placed: 20, sem_status: 'PASS', semFail: 0, semReview: 0, semOk: true, quality: 99 } };
+    const hardBad = { idx: 2, orden: 'reverse', eval: { hardOk: false, hard_issues: 1, placed: 20, sem_status: 'PASS', semRank: 2, semFail: 0, semReview: 0, quality: 99 } };
     expect(mejorCandidato(hardBad, A)).toBe(A);     // A (hardOk, semFail) > hardBad (hard inválido)
   });
 
   it('COMPLETENESS sobre QUALITY: a igualdad de gates, más piezas gana aunque baje el score', () => {
-    const masPiezas = { idx: 0, orden: 'row', eval: { hardOk: true, hard_issues: 0, placed: 20, sem_status: 'PASS', semFail: 0, semReview: 0, semOk: true, quality: 70 } };
-    const menosPiezasMejorScore = { idx: 1, orden: 'center', eval: { hardOk: true, hard_issues: 0, placed: 18, sem_status: 'PASS', semFail: 0, semReview: 0, semOk: true, quality: 99 } };
+    const masPiezas = { idx: 0, orden: 'row', eval: { hardOk: true, hard_issues: 0, placed: 20, sem_status: 'PASS', semRank: 2, semFail: 0, semReview: 0, quality: 70 } };
+    const menosPiezasMejorScore = { idx: 1, orden: 'center', eval: { hardOk: true, hard_issues: 0, placed: 18, sem_status: 'PASS', semRank: 2, semFail: 0, semReview: 0, quality: 99 } };
     expect(mejorCandidato(masPiezas, menosPiezasMejorScore)).toBe(masPiezas);
   });
 });

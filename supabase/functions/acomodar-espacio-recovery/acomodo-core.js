@@ -220,7 +220,11 @@ export function auditarGruposFuncionales(piezas = [], colocacion = []) {
 
     const meetingAnchor = miembros.find((p) => relationRole(p) === 'ANCHOR_MEETING');
     if (meetingAnchor) {
-      const required = Number(meetingAnchor.user_capacity || meetingAnchor.capacidadUsuarios || 0);
+      // GAP45 · user_capacity es CAPACIDAD MÁXIMA, NO demanda de asientos. Sólo se marca
+      // INCOMPLETE si existe una demanda EXPLÍCITA y versionada (required_seats/required_users).
+      // "mesa de N siempre lleva N sillas" necesita evidencia explícita, no inferirse del
+      // campo capacidad. Con sólo user_capacity, seats <= capacity es VÁLIDO.
+      const required = Number(meetingAnchor.required_seats ?? meetingAnchor.required_users ?? meetingAnchor.requested_users ?? NaN);
       if (Number.isFinite(required) && required > 0) {
         const seats = miembros.filter((p) => relationRole(p) === 'MEETING_SEAT')
           .reduce((sum, p) => sum + Math.max(1, Math.round(Number(p.cantidad || p.piezas || 1))), 0);

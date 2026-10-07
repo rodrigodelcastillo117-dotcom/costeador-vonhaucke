@@ -168,16 +168,23 @@ export function invariantesRelacionales(piezas = [], colocacion = []) {
   return issues;
 }
 
+const esGavetaRol = (r) => r === 'UNDERDESK_STORAGE' || r === 'SUPPORT_STORAGE';
+// GAP44/GAP48 · overlap LEGAL idéntico al contrato del juez NEUTRAL congelado: ÚNICAMENTE
+// una gaveta/storage sobre SU PROPIO anchor (anchor_instance_id === id del ancla). CUALQUIER
+// otro solape (silla-silla, silla-ancla, gaveta de A1 vs ancla A2, dos gavetas) es ILEGAL.
+// NO se exime "todo lo del mismo kit": la integridad intra-kit de slots la ve el juez
+// semántico, pero el solape de coordenadas lo decide ESTE contrato, igual que el neutral.
+function overlapLegal(pa, pb) {
+  if (!pa || !pb) return false;
+  const aAnc = pa.anchor_instance_id != null ? String(pa.anchor_instance_id) : null;
+  const bAnc = pb.anchor_instance_id != null ? String(pb.anchor_instance_id) : null;
+  const pair = (gav, anc, gavAncId) => esGavetaRol(gav.relation_role) && esAnclaRol(anc.relation_role) && gavAncId === String(anc.id);
+  return pair(pa, pb, aAnc) || pair(pb, pa, bAnc);
+}
+
 // --- BOUNDS / OVERLAP / PUERTA / OBSTÁCULO (reusa helpers compartidos) ------
 function invariantesBase(areas = [], piezas = [], colocacion = []) {
   const porId = new Map(piezas.map((p) => [String(p.id), p]));
-  // GAP39: el no-traslape DURO es INTER-KIT. Dentro de un kit, la geometría canónica
-  // SÍ puede solaparse por diseño (gaveta BAJO el tablero = overlap legal con la huella
-  // del bench); eso lo gobierna el PlacementProfile/composición y lo audita el juez
-  // SEMÁNTICO (ocupación de slots), no el no-traslape global. Sólo piezas de DISTINTO
-  // kit que se encimen son OVERLAP duro.
-  const kitOwner = construirKitOwner(piezas);
-  const mismoKit = (ida, idb) => { const oa = kitOwner(porId.get(String(ida))), ob = kitOwner(porId.get(String(idb))); return oa != null && oa === ob; };
   const issues = [];
   const porArea = new Map();
   for (const c of colocacion) {
@@ -200,12 +207,13 @@ function invariantesBase(areas = [], piezas = [], colocacion = []) {
       if (bloqueaPuertaEspacial(rect, p)) { issues.push({ code: 'BLOCKS_DOOR', severity: 'fail', id: String(c.id), area: ai }); break; }
     }
     if (!porArea.has(ai)) porArea.set(ai, []);
-    porArea.get(ai).push({ id: String(c.id), rect });
+    porArea.get(ai).push({ id: String(c.id), rect, p: pieza });
   }
   for (const [ai, lista] of porArea) {
     for (let i = 0; i < lista.length; i++) for (let j = i + 1; j < lista.length; j++) {
-      if (mismoKit(lista[i].id, lista[j].id)) continue;   // INTRA-KIT: overlap canónico legal
-      if (rectsSeSolapan(lista[i].rect, lista[j].rect)) issues.push({ code: 'OVERLAP', severity: 'fail', id: `${lista[i].id}|${lista[j].id}`, area: ai, scope: 'INTER_KIT' });
+      if (!rectsSeSolapan(lista[i].rect, lista[j].rect)) continue;
+      if (overlapLegal(lista[i].p, lista[j].p)) continue;   // SÓLO gaveta↔su propio anchor
+      issues.push({ code: 'OVERLAP', severity: 'fail', id: `${lista[i].id}|${lista[j].id}`, area: ai });
     }
   }
   return issues;

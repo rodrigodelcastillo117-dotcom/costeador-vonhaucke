@@ -35,9 +35,9 @@ describe('P0.2c · GAP36 · banco multi completo (55 casos)', () => {
     ev.hardOk ? 1 : 0,
     ev.hardOk ? 0 : -(ev.hard_issues || 0),
     ev.semRank ?? (SEM_RANK[ev.sem_status] ?? 0),
+    ev.placed,                                      // GAP46: COMPLETENESS antes del detalle de issues
     -(ev.semFail || 0),
     -(ev.semReview || 0),
-    ev.placed,
     ev.quality || 0,
   ];
   const geq = (a, b) => { for (let i = 0; i < a.length; i++) { if (a[i] > b[i]) return true; if (a[i] < b[i]) return false; } return true; };
@@ -66,6 +66,8 @@ describe('P0.2c · GAP36 · banco multi completo (55 casos)', () => {
 
       const sel = m1.seleccion;
       const er = evaluarRecovery(c.areas, m1.piezas, m1.colocacion, { requested: c.piezas.length });
+      // GAP47 · contrato FAIL-CLOSED: jamás publicable=true con quality_review_required=true.
+      if (sel.publicable === true) expect(sel.quality_review_required, `${c.nombre}: publicable ∧ review`).toBe(false);
       // FINAL/publicable: hard PASS ∧ semantic PASS ∧ quality PASS (lo expone `publicable`).
       const final = sel.publicable === true && er.render_ready === true;
 
@@ -118,13 +120,14 @@ describe('P0.2c · GAP36 · banco multi completo (55 casos)', () => {
 
     // CLAVE: nada publicado por el motor puede ser rechazado por el juez NEUTRAL congelado.
     expect(falseFinalNeutral).toBe(0);
-    // Cada placed-regression se justifica: el ganador es ESTRICTAMENTE mejor en un GATE por
-    // ENCIMA de completeness (hard → semRank → −semFail → −semReview). Nunca coloca menos "gratis".
+    // GAP46 · un placed-regression SÓLO se justifica por CAMBIO DE STATUS (gate por ENCIMA de
+    // completeness: hard status → semantic status). Dentro del MISMO status, completeness manda,
+    // así que ya NO puede haber placed-regression "gratis" por bajar el conteo de issues.
     const SEM_RANK2 = { PASS: 2, REVIEW_REQUIRED: 1, FAIL: 0 };
-    const gatePrefix = (ev) => [ev.hardOk ? 1 : 0, SEM_RANK2[ev.sem_status] ?? 0, -(ev.semFail || 0), -(ev.semReview || 0)];
+    const statusPrefix = (ev) => [ev.hardOk ? 1 : 0, SEM_RANK2[ev.sem_status] ?? 0];
     const strictlyBetter = (a, b) => { for (let i = 0; i < a.length; i++) { if (a[i] > b[i]) return true; if (a[i] < b[i]) return false; } return false; };
     for (const r of regr) {
-      expect(strictlyBetter(gatePrefix(r.w), gatePrefix(r.cand0)), `placed-regression ${r.n} sin mejora de gate superior`).toBe(true);
+      expect(strictlyBetter(statusPrefix(r.w), statusPrefix(r.cand0)), `placed-regression ${r.n} sin cambio de STATUS (hard/semantic)`).toBe(true);
     }
   });
 

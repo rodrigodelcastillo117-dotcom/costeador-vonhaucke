@@ -274,9 +274,12 @@ export function mensajeVendedor(areas = [], piezas = [], sol = {}, opts = {}) {
   // resolver simple (sin verdict) no bloquea (compat). Nunca recursivo (el resolver
   // NO llama a mensajeVendedor).
   const verdictOk = (s) => {
-    const ev = s && s.seleccion && s.seleccion.ganador_eval;
-    if (!ev) return true;                                  // solver simple → no gate
-    return ev.hardOk === true && ev.semantic_pass === true && ev.quality_status === 'PASS';
+    const sel = s && s.seleccion;
+    if (!sel || !sel.ganador_eval) return true;            // solver simple (sin pipeline) → no gate
+    // GAP47 · respeta el contrato FINAL completo: publicable ya incluye hard ∧ semantic ∧
+    // quality ∧ completo ∧ !soft-budget-review. Una opción NO se anuncia "verificada" si el
+    // mismo pipeline exige REVIEW (por calidad o por presupuesto).
+    return sel.publicable === true && !sel.quality_review_required;
   };
 
   // Verifica cada candidata por simulación; conserva sólo las que mejoran Y pasan el

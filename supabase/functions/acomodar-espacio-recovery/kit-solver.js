@@ -572,18 +572,20 @@ function evaluarCandidato(areas, piezas, sol) {
   };
 }
 
-// Orden TOTAL en capas: HARD → SEMANTIC(rank PASS>REVIEW>FAIL) → COMPLETENESS →
-// QUALITY. Empate → #0. Una solución con FAIL semántico JAMÁS gana a una PASS, y
-// una PASS gana a una REVIEW_REQUIRED (GAP18), por más piezas o score que tengan.
+// Orden TOTAL en capas (GAP46): HARD STATUS → SEMANTIC STATUS (PASS>REVIEW>FAIL) →
+// COMPLETENESS → detalle de issues semánticos → QUALITY. Empate → #0.
+//  · Una PASS con menos piezas SÍ gana a una FAIL con más (cambio de STATUS, GAP18).
+//  · Pero dentro del MISMO status semántico, COMPLETENESS manda sobre reducir el número
+//    de issues (NO se sacrifica media oficina sólo para bajar de 2 reviews a 1).
 export function mejorCandidato(a, b) {
   const x = a.eval, y = b.eval;
-  if (x.hardOk !== y.hardOk) return x.hardOk ? a : b;                         // 1 HARD
+  if (x.hardOk !== y.hardOk) return x.hardOk ? a : b;                         // 1 HARD status
   if (!x.hardOk && x.hard_issues !== y.hard_issues) return x.hard_issues < y.hard_issues ? a : b;
-  if (x.semRank !== y.semRank) return x.semRank > y.semRank ? a : b;         // 2 SEMANTIC: PASS>REVIEW>FAIL
-  if (x.semFail !== y.semFail) return x.semFail < y.semFail ? a : b;
+  if (x.semRank !== y.semRank) return x.semRank > y.semRank ? a : b;         // 2 SEMANTIC status (PASS>REVIEW>FAIL)
+  if (x.placed !== y.placed) return x.placed > y.placed ? a : b;             // 3 COMPLETENESS (antes del detalle)
+  if (x.semFail !== y.semFail) return x.semFail < y.semFail ? a : b;         // 4 detalle de issues semánticos
   if (x.semReview !== y.semReview) return x.semReview < y.semReview ? a : b;
-  if (x.placed !== y.placed) return x.placed > y.placed ? a : b;             // 3 COMPLETENESS
-  if (x.quality !== y.quality) return x.quality > y.quality ? a : b;         // 4 QUALITY (score)
+  if (x.quality !== y.quality) return x.quality > y.quality ? a : b;         // 5 QUALITY (score)
   return a.idx <= b.idx ? a : b;                                             // empate → determinista
 }
 
@@ -643,7 +645,10 @@ export function resolverKitsMulti(areas = [], piezas = [], opts = {}) {
       estrategias_totales: estrategias.length,
       ganador_eval: ganador.eval,
       quality_review_required,
-      publicable: winnerLimpio,
+      winner_clean: winnerLimpio,
+      // GAP47 · publicable es FAIL-CLOSED: incluye TODOS los gates finales, incluido el
+      // soft-budget review. Jamás publicable=true con quality_review_required=true.
+      publicable: winnerLimpio && !quality_review_required,
       metrics: { elapsed_ms, budget_ms: budget, budget_mode: 'SOFT_MULTI_BUDGET', budget_exhausted: budgetExhaustedMulti, budget_exceeded: budgetExceeded, winner_strategy: ganador.orden, candidates_evaluated: cands.length },
       por_candidato: cands.map((c) => ({ idx: c.idx, orden: c.orden, placed: c.eval.placed, hardOk: c.eval.hardOk, hard_issues: c.eval.hard_issues, sem_status: c.eval.sem_status, semRank: c.eval.semRank, semFail: c.eval.semFail, semReview: c.eval.semReview, quality: c.eval.quality, quality_status: c.eval.quality_status })),
     },
