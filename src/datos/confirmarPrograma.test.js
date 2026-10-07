@@ -70,4 +70,38 @@ describe('confirmarPrograma · Propuesta → Confirmación (P0.1 · #3/#4)', () 
     expect(r.items.some((i) => i.bancoId === 'gabinete-x')).toBe(true);
     expect(r.confirmadas.length).toBe(3);
   });
+
+  it('#15 CASO RODRIGO (schema real): ya hay 10 WIN + 10 gavetas sin bench → reutiliza y añade SÓLO el ancla', () => {
+    // Schema real de cotizacion.partidas: piezaId + nombre, SIN relation_role.
+    const existentes = [
+      { id: 'p-win', piezaId: 'silla-win', nombre: 'Silla operativa WIN', cantidad: 10, precioUnitario: 5210 },
+      { id: 'p-gav', piezaId: 'gaveta-mox', nombre: 'Mox · Gaveta pedestal', cantidad: 10, precioUnitario: 3470 },
+    ];
+    const r = confirmarPrograma(prop10(), { existentes });
+    // reutiliza las 10 WIN y 10 gavetas (no duplica)
+    const win = r.items.filter((i) => i.bancoId === 'silla-win').reduce((s, i) => s + i.cantidad, 0);
+    const gav = r.items.filter((i) => i.bancoId === 'gaveta-mox').reduce((s, i) => s + i.cantidad, 0);
+    expect(win).toBe(10);
+    expect(gav).toBe(10);
+    // añade exactamente el ANCLA faltante (bench 10U)
+    const bench = r.items.filter((i) => i.bancoId === 'op-10u-6000x1200-cristal');
+    expect(bench).toHaveLength(1);
+    expect(r.confirmadas.filter((i) => i.relation_role === 'ANCHOR_WORKSTATION')).toHaveLength(1);
+    // las sillas/gavetas NO se agregan de nuevo (reutilizadas, no confirmadas)
+    expect(r.confirmadas.some((i) => i.bancoId === 'silla-win')).toBe(false);
+    expect(r.confirmadas.some((i) => i.bancoId === 'gaveta-mox')).toBe(false);
+  });
+
+  it('#15 idempotente sobre schema real: re-aplicar no vuelve a duplicar', () => {
+    const existentes = [
+      { id: 'p-win', piezaId: 'silla-win', nombre: 'Silla operativa WIN', cantidad: 10 },
+      { id: 'p-gav', piezaId: 'gaveta-mox', nombre: 'Mox · Gaveta pedestal', cantidad: 10 },
+    ];
+    const a1 = confirmarPrograma(prop10(), { existentes });
+    const a2 = confirmarPrograma(prop10(), { existentes: a1.items });
+    const win = a2.items.filter((i) => i.bancoId === 'silla-win').reduce((s, i) => s + i.cantidad, 0);
+    const bench = a2.items.filter((i) => i.bancoId === 'op-10u-6000x1200-cristal');
+    expect(win).toBe(10);
+    expect(bench).toHaveLength(1);
+  });
 });
