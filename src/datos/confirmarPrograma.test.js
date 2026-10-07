@@ -64,6 +64,46 @@ describe('confirmarPrograma · Propuesta → Confirmación (P0.1 · #3/#4)', () 
     expect(r.items.some((i) => i.bancoId === 'op-10u-6000x1200-cristal')).toBe(false);
   });
 
+  it('#8/#18 MULTI-GRUPO: dos anclas (A 10, B 8) enriquecen cada WIN a SU ancla, sin cross-link', () => {
+    const bench = (iid, banco) => ({ rol: 'operativo', relation_role: 'ANCHOR_WORKSTATION', bancoId: banco, instance_id: iid, functional_group_id: `fg-${iid}`, requirement_id: `req-${iid}`, cantidad: 1, nombre: banco, w: 6000, d: 1200, precio_lista_snapshot: 28540, product_status: 'RESOLVED', identity_status: 'RESOLVED', price_status: 'SNAPSHOT_DISPLAY' });
+    const seat = (iid, n) => ({ rol: 'operativo', relation_role: 'WORK_SEAT', anchor_role: 'ANCHOR_WORKSTATION', bancoId: 'silla-win', anchor_instance_id: iid, functional_group_id: `fg-${iid}`, cantidad: n, nombre: 'WIN', precio_lista_snapshot: 5210, product_status: 'RESOLVED', identity_status: 'RESOLVED', price_status: 'SNAPSHOT_DISPLAY' });
+    const propuesta = { partidas: [bench('A', 'op-10u-6000x1200-cristal'), bench('B', 'op-8u-4800x1200-cristal'), seat('A', 10), seat('B', 8)] };
+    const existentes = [
+      { id: 'w1', piezaId: 'silla-win', nombre: 'Silla operativa WIN', cantidad: 10 },
+      { id: 'w2', piezaId: 'silla-win', nombre: 'Silla operativa WIN', cantidad: 8 },
+    ];
+    const r = confirmarPrograma(propuesta, { existentes });
+    expect(r.conflictos).toHaveLength(0);
+    expect(r.enriquecidos.find((e) => e.id === 'w1').patch.anchor_instance_id).toBe('A');
+    expect(r.enriquecidos.find((e) => e.id === 'w2').patch.anchor_instance_id).toBe('B');
+    expect(r.confirmadas.filter((i) => i.relation_role === 'WORK_SEAT')).toHaveLength(0);
+    expect(r.confirmadas.filter((i) => i.relation_role === 'ANCHOR_WORKSTATION')).toHaveLength(2);
+  });
+
+  it('#8/#18 ORDEN INDEPENDIENTE: deps B,A casan por tamaño exacto (10→A, 8→B)', () => {
+    const bench = (iid, banco) => ({ rol: 'operativo', relation_role: 'ANCHOR_WORKSTATION', bancoId: banco, instance_id: iid, cantidad: 1, nombre: banco, w: 6000, d: 1200, precio_lista_snapshot: 1, product_status: 'RESOLVED', identity_status: 'RESOLVED', price_status: 'SNAPSHOT_DISPLAY' });
+    const seat = (iid, n) => ({ rol: 'operativo', relation_role: 'WORK_SEAT', anchor_role: 'ANCHOR_WORKSTATION', bancoId: 'silla-win', anchor_instance_id: iid, cantidad: n, nombre: 'WIN', precio_lista_snapshot: 1, product_status: 'RESOLVED', identity_status: 'RESOLVED', price_status: 'SNAPSHOT_DISPLAY' });
+    const propuesta = { partidas: [bench('B', 'op-8u-4800x1200-cristal'), bench('A', 'op-10u-6000x1200-cristal'), seat('B', 8), seat('A', 10)] };
+    const existentes = [
+      { id: 'w1', piezaId: 'silla-win', nombre: 'WIN', cantidad: 10 },
+      { id: 'w2', piezaId: 'silla-win', nombre: 'WIN', cantidad: 8 },
+    ];
+    const r = confirmarPrograma(propuesta, { existentes });
+    expect(r.conflictos).toHaveLength(0);
+    expect(r.enriquecidos.find((e) => e.id === 'w1').patch.anchor_instance_id).toBe('A');
+    expect(r.enriquecidos.find((e) => e.id === 'w2').patch.anchor_instance_id).toBe('B');
+  });
+
+  it('#8 SPLIT: una fila de 18 WIN para dos anclas → SPLIT_REQUIRED, sin cross-link silencioso', () => {
+    const bench = (iid, banco) => ({ rol: 'operativo', relation_role: 'ANCHOR_WORKSTATION', bancoId: banco, instance_id: iid, cantidad: 1, nombre: banco, w: 6000, d: 1200, precio_lista_snapshot: 1, product_status: 'RESOLVED', identity_status: 'RESOLVED', price_status: 'SNAPSHOT_DISPLAY' });
+    const seat = (iid, n) => ({ rol: 'operativo', relation_role: 'WORK_SEAT', anchor_role: 'ANCHOR_WORKSTATION', bancoId: 'silla-win', anchor_instance_id: iid, cantidad: n, nombre: 'WIN', precio_lista_snapshot: 1, product_status: 'RESOLVED', identity_status: 'RESOLVED', price_status: 'SNAPSHOT_DISPLAY' });
+    const propuesta = { partidas: [bench('A', 'op-10u-6000x1200-cristal'), bench('B', 'op-8u-4800x1200-cristal'), seat('A', 10), seat('B', 8)] };
+    const existentes = [{ id: 'w18', piezaId: 'silla-win', nombre: 'WIN', cantidad: 18 }];
+    const r = confirmarPrograma(propuesta, { existentes });
+    expect(r.conflictos.some((c) => c.code === 'SPLIT_REQUIRED')).toBe(true);
+    expect(r.enriquecidos.some((e) => e.id === 'w18')).toBe(false);
+  });
+
   it('conserva intactas las partidas existentes que el programa no toca', () => {
     const ajeno = [{ rol: 'otro', bancoId: 'gabinete-x', nombre: 'mueble ajeno', cantidad: 1 }];
     const r = confirmarPrograma(prop10(), { existentes: ajeno });

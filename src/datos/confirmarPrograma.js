@@ -16,9 +16,34 @@
 //  IDEMPOTENTE (#3): aplicar el mismo programa 2+ veces no duplica.
 //  Compuertas separadas (#12): el resumen distingue producto de precio.
 // ============================================================================
+import { BANCO } from './banco.js';
+
 const norm = (s = '') => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 const esAncla = (rel) => typeof rel === 'string' && rel.startsWith('ANCHOR_');
 const bancoDe = (it) => it.bancoId || it.piezaId || null;
+
+// Rol por IDENTIDAD de catálogo (#3): si conocemos el id del banco, el rol sale de
+// su metadata (tipo/nombre), no del texto comercial.
+function rolPorId(id) {
+  const p = BANCO.find((b) => b.id === id);
+  if (!p) return null;
+  const tipo = norm(p.tipo); const t = norm(`${p.nombre || ''} ${id}`);
+  if (tipo === 'silla' || /silla|asiento/.test(t)) {
+    if (/directiv|alpha|ejecutiv/.test(t)) return 'EXECUTIVE_SEAT';
+    if (/junta|consejo|sonata/.test(t)) return 'MEETING_SEAT';
+    if (/visit|concerto/.test(t)) return 'VISITOR_SEAT';
+    return 'WORK_SEAT';
+  }
+  // Gaveta/pedestal rodante = UNDERDESK (aunque su nombre diga "archivero/papelero");
+  // archivero/credenza de piso (tipo almacen) = SUPPORT. El orden importa.
+  if (/gaveta|pedestal|cajoner/.test(t)) return 'UNDERDESK_STORAGE';
+  if (tipo === 'almacen' || /archiv|credenza/.test(t)) return 'SUPPORT_STORAGE';
+  if (tipo === 'guarda') return 'UNDERDESK_STORAGE';
+  if (/^(op-\d+u-|esc-|ger-|dir-)/.test(String(id))) return /^dir-/.test(String(id)) ? 'ANCHOR_DESK' : 'ANCHOR_WORKSTATION';
+  if (/^mj-/.test(String(id))) return 'ANCHOR_MEETING';
+  if (/^rec-/.test(String(id))) return 'ANCHOR_RECEPTION';
+  return null;
+}
 
 function rolFromRel(rel) {
   switch (rel) {
@@ -33,6 +58,8 @@ function rolFromRel(rel) {
 // Rol funcional de un item existente: explícito, o inferido del nombre (legacy).
 function inferRole(item) {
   if (item.relation_role) return item.relation_role;
+  const porId = rolPorId(bancoDe(item));          // #3: identidad de catálogo primero
+  if (porId) return porId;
   const t = norm(`${item.nombre || ''} ${item.nota || ''}`);
   const silla = /silla|asiento/.test(t);
   if (silla && /operativ|puesto|banca|bench|open/.test(t)) return 'WORK_SEAT';
@@ -123,9 +150,11 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
     banco: bancoDe(e), cantidad: Math.max(1, Number(e.cantidad) || 1),
   }));
 
-  // --- ANCLAS por POSICIÓN (rol|relation_role|#ordinal) ---
+  // --- ANCLAS: identidad (requirement_id) PRIMERO, luego posición legacy (#9). ---
   const anchorSlot = (rol, rel, ord) => `${rol}|${rel}|#${ord}`;
   const existAnchors = ex.filter((e) => esAncla(e.rel));
+  const existByReq = new Map();
+  for (const e of existAnchors) { if (e.raw && e.raw.requirement_id) existByReq.set(String(e.raw.requirement_id), e); }
   const anchorOrd = new Map();
   const anchorBySlot = new Map();
   for (const e of existAnchors) {
@@ -139,7 +168,8 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
     const base = `${rol}|${a.relation_role}`;
     const ord = propAnchorOrd.get(base) || 0; propAnchorOrd.set(base, ord + 1);
     const slot = anchorSlot(rol, a.relation_role, ord);
-    const prev = anchorBySlot.get(slot);
+    // #9: requirement_id (estable bajo reorden) manda; posición sólo como fallback legacy.
+    const prev = (a.requirement_id && existByReq.get(String(a.requirement_id))) || anchorBySlot.get(slot);
     if (prev) {
       if (String(prev.banco) === String(a.bancoId)) {
         usados.add(prev._i);                      // reutiliza: lo re-emitimos como EXISTENTE
@@ -154,32 +184,38 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
     }
   }
 
-  // --- DEPENDIENTES por PRODUCTO+ROL con CANTIDAD (#15) ---
-  const poolDep = new Map();                      // `${rel}|${banco}` -> {total, idxs:[]}
+  // --- DEPENDIENTES por PRODUCTO+ROL con CANTIDAD, POR ANCLA (#8). Cada fila
+  //     existente se enriquece hacia SU ancla; si una fila tendría que PARTIRSE
+  //     entre dos anclas → SPLIT_REQUIRED (NEEDS_REVIEW), nunca cross-link silencioso. ---
+  const poolDep = new Map();                      // `${rel}|${banco}` -> [{idx, rem}]
   for (const e of ex) {
     if (e.rel && !esAncla(e.rel)) {
       const k = `${e.rel}|${e.banco}`;
-      const o = poolDep.get(k) || { total: 0, idxs: [] };
-      o.total += e.cantidad; o.idxs.push(e._i); poolDep.set(k, o);
+      if (!poolDep.has(k)) poolDep.set(k, []);
+      poolDep.get(k).push({ idx: e._i, rem: e.cantidad });
     }
   }
+  const consumir = (en, dep) => {              // reutiliza fila completa + enriquece a su ancla
+    usados.add(en.idx);
+    sinCambio.push(aItemConfirmado(ex[en.idx].raw, { slot: null, estado: 'EXISTENTE' }));
+    if (ex[en.idx].raw.id != null) enriquecidos.push({ id: ex[en.idx].raw.id, patch: estructuraDe(dep) });
+    en.rem = 0;
+  };
   for (const dep of depsProp) {
     const slot = `${dep.rol || rolFromRel(dep.relation_role)}|${dep.relation_role}|${dep.anchor_instance_id || ''}`;
     const k = `${dep.relation_role}|${dep.bancoId}`;
-    const pool = poolDep.get(k);
-    const need = Math.max(1, Number(dep.cantidad) || 1);
-    if (pool && !pool.done && pool.total > 0) {
-      pool.done = true;
-      pool.idxs.forEach((i) => usados.add(i));
-      // reutiliza lo existente equivalente (economics intactos) + ENRIQUECE su
-      // metadata estructural para que apunte al ancla confirmada (#4).
-      pool.idxs.forEach((i) => {
-        sinCambio.push(aItemConfirmado(ex[i].raw, { slot: null, estado: 'EXISTENTE' }));
-        if (ex[i].raw && ex[i].raw.id != null) enriquecidos.push({ id: ex[i].raw.id, patch: estructuraDe(dep) });
-      });
-      if (need > pool.total) confirmadas.push(aItemConfirmado({ ...dep, cantidad: need - pool.total }, { slot, estado: 'CONFIRMADO' }));
-    } else {
-      confirmadas.push(aItemConfirmado(dep, { slot, estado: 'CONFIRMADO' }));
+    let need = Math.max(1, Number(dep.cantidad) || 1);
+    const entries = poolDep.get(k) || [];
+    // 1) EXACTO primero (estable bajo reorden: cada ancla toma la fila de su tamaño).
+    const exacta = entries.find((e) => e.rem === need);
+    if (exacta) { consumir(exacta, dep); need = 0; }
+    // 2) filas completas que caben dentro del faltante.
+    for (const en of entries) { if (need <= 0) break; if (en.rem > 0 && en.rem <= need) { need -= en.rem; consumir(en, dep); } }
+    // 3) si aún falta y hay una fila MAYOR, partirla sería asignación ambigua → NEEDS_REVIEW.
+    if (need > 0) {
+      const mayor = entries.find((e) => e.rem > need);
+      if (mayor) { conflictos.push({ code: 'SPLIT_REQUIRED', slot, relation_role: dep.relation_role, bancoId: dep.bancoId, fila_cantidad: mayor.rem, requerido: need }); need = 0; }
+      else confirmadas.push(aItemConfirmado({ ...dep, cantidad: need }, { slot, estado: 'CONFIRMADO' }));
     }
   }
 
