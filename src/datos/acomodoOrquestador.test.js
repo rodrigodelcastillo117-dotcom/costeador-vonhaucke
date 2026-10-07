@@ -2,7 +2,9 @@ import { describe, it, expect, vi } from 'vitest';
 import { resolverAcomodo } from './acomodoOrquestador.js';
 import { construirPayloadAcomodo } from './acomodoPayload.js';
 
-const PARTIDAS = [{ id: 'e-win', nombre: 'Silla operativa WIN', cantidad: 2, relation_role: 'WORK_SEAT' }];
+// Piezas genéricas (sin relation_role de dependiente): el test ejercita la
+// mecánica del loop/precedencia, no la relación ancla-dependiente.
+const PARTIDAS = [{ id: 'e-win', nombre: 'Silla operativa WIN', cantidad: 2 }];
 const AREAS_M = [{ nombre: 'OPERATIVA', ancho: 6, largo: 3 }];
 
 // Plan válido: ambas sillas (600×600) dentro del área, sin solape.

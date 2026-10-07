@@ -157,23 +157,27 @@ export function evaluarInvariantesAcomodo({ payload, plan, opts = {} } = {}) {
   };
   const normZona = (z) => String(z ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '');
   const claveGrupo = (p) => p?.anchor_instance_id || p?.functional_group_id || null;
-  const grupos = new Map(); // clave → {anchorArea, anchorZone, deps:[{id,area,zone}]}
+  const esDep = (r) => ['WORK_SEAT', 'EXECUTIVE_SEAT', 'VISITOR_SEAT', 'MEETING_SEAT', 'UNDERDESK_STORAGE', 'SUPPORT_STORAGE'].includes(r);
+  const ATTACH_MM = 1200;
+  const distR = (a, b) => Math.hypot(Math.max(0, Math.max(a.x - (b.x + b.w), b.x - (a.x + a.w))), Math.max(0, Math.max(a.y - (b.y + b.h), b.y - (a.y + a.h))));
+  const grupos = new Map(); // clave → {anchorArea, anchorZone, anchorRect, deps:[{id,area,zone,rect}]}
   for (const c of colocadosValidos) {
     const pieza = porId.get(String(c.id));
+    const ai = Number(c.area);
+    const r = rectDe(pieza, c);
+    // D (P0.2b): dependiente SIN dueño declarado (ni anchor_instance_id ni grupo).
+    if (esDep(pieza.relation_role) && !claveGrupo(pieza)) { add('DEPENDENT_UNASSIGNED', 'fail', { id: String(c.id) }); continue; }
     const gid = claveGrupo(pieza);
     if (!gid) continue;
-    if (!grupos.has(gid)) grupos.set(gid, { anchorArea: null, anchorZone: null, deps: [] });
+    if (!grupos.has(gid)) grupos.set(gid, { anchorArea: null, anchorZone: null, anchorRect: null, deps: [] });
     const g = grupos.get(gid);
-    const ai = Number(c.area);
     if (esAncla(pieza.relation_role)) {
-      g.anchorArea = ai;
-      g.anchorZone = pieza.zone_id ?? null;
-      // (a) ancla en zona correcta: su zone_id debe corresponder al área colocada.
+      g.anchorArea = ai; g.anchorZone = pieza.zone_id ?? null; g.anchorRect = { ...r, h: r.d };
       if (pieza.zone_id != null && normZona(pieza.zone_id) !== normZona(zonaDeArea(ai))) {
         add('ANCHOR_WRONG_ZONE', 'fail', { id: String(c.id), area: ai, zoneEsperada: pieza.zone_id, zonaArea: zonaDeArea(ai) });
       }
     } else {
-      g.deps.push({ id: String(c.id), area: ai, zone: pieza.zone_id ?? null });
+      g.deps.push({ id: String(c.id), area: ai, zone: pieza.zone_id ?? null, rect: { ...r, h: r.d } });
     }
   }
   for (const [gid, g] of grupos) {
@@ -182,8 +186,10 @@ export function evaluarInvariantesAcomodo({ payload, plan, opts = {} } = {}) {
       if (d.area !== g.anchorArea) {
         add('DEPENDENT_WRONG_ZONE', 'fail', { id: d.id, area: d.area, grupo: gid, anclaArea: g.anchorArea });
       } else if (d.zone != null && g.anchorZone != null && normZona(d.zone) !== normZona(g.anchorZone)) {
-        // misma área que el ancla pero zone_id discrepante → identidad inconsistente.
         add('DEPENDENT_WRONG_ZONE', 'fail', { id: d.id, area: d.area, grupo: gid, zoneDep: d.zone, zoneAncla: g.anchorZone });
+      } else if (g.anchorRect && distR(d.rect, g.anchorRect) > ATTACH_MM) {
+        // D: misma zona pero DESPRENDIDO de su ancla (lejos).
+        add('DEPENDENT_DETACHED', 'fail', { id: d.id, area: d.area, grupo: gid });
       }
     }
   }
