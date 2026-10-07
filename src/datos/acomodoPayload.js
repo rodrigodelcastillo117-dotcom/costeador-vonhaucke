@@ -56,7 +56,11 @@ export function validarFloorSpecGeom(areasM) {
  *    detalles?:string[]}
  * }
  */
-export function construirPayloadAcomodo({ partidas = [], areasM = [], piezasExtra = [] } = {}) {
+// Estados de FloorSpec (de floorSpec.js / lectura de plano) que SÍ permiten
+// colocar. Para un plano leído por IA, cualquier otro estado bloquea el solver.
+const FLOORSPEC_ESTADOS_OK = new Set(['PASS', 'VALID', 'OK', 'VALIDO']);
+
+export function construirPayloadAcomodo({ partidas = [], areasM = [], piezasExtra = [], floorSpecEstado = null } = {}) {
   // (obj 1/2) CONFIRMADas-only: se filtra sug-* SIEMPRE, aquí, aunque el caller
   // ya lo haya hecho. Es la garantía server-independiente contra el bypass de
   // montar AcomodoBase sin el wrapper. `descartadosSugeridos` deja rastro.
@@ -77,6 +81,12 @@ export function construirPayloadAcomodo({ partidas = [], areasM = [], piezasExtr
   const val = validarFloorSpecGeom(areasCanon);
   if (!val.ok) {
     return { ok: false, motivo: 'FLOORSPEC_INVALIDO', detalles: val.issues, descartadosSugeridos };
+  }
+  // GAP3 · FloorSpec de PLANO/IA: aunque la GEOMETRÍA sea válida, si el estado
+  // determinista del FloorSpec no permite placement, NO se llama al solver. El
+  // espacio manual/simple (sin floorSpecEstado) pasa; un plano rechazado NO.
+  if (floorSpecEstado != null && !FLOORSPEC_ESTADOS_OK.has(String(floorSpecEstado).toUpperCase())) {
+    return { ok: false, motivo: 'FLOORSPEC_RECHAZADO', detalles: [String(floorSpecEstado)], descartadosSugeridos };
   }
 
   const piezas = expandirPiezas(reales);

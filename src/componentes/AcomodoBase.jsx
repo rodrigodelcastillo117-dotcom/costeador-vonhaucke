@@ -224,6 +224,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     };
     const res = await resolverAcomodo({
       partidas, areasM: areasMetros, piezasExtra: duplicados,
+      floorSpecEstado: floorSpec?.validation?.state ?? null,   // GAP3: plano rechazado no llama al solver
       solve, planGuardado: deCero ? null : plan,
     });
     if (res.plan) {
@@ -248,6 +249,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   function motivoNoListo(res) {
     if (res.status === 'SIN_LAYOUT') {
       if (res.motivo === 'FLOORSPEC_INVALIDO') return `el espacio no es válido (${(res.detalles || []).join(', ')})`;
+      if (res.motivo === 'FLOORSPEC_RECHAZADO') return `el plano leído no permite acomodar todavía (estado ${(res.detalles || []).join(', ')}); revisa/corrige el plano`;
       if (res.motivo === 'SIN_PARTIDAS_CONFIRMADAS') return 'no hay muebles confirmados para acomodar';
       return 'falta definir un plano/espacio válido';
     }

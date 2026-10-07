@@ -27,6 +27,15 @@ describe('acomodoOrquestador · contrato de entrada', () => {
     expect(r.status).toBe('SIN_LAYOUT');
     expect(solve).not.toHaveBeenCalled();
   });
+
+  it('GAP3: geometría válida pero FloorSpec rechazado → el solver NUNCA se llama', async () => {
+    const solve = vi.fn();
+    const r = await resolverAcomodo({ partidas: PARTIDAS, areasM: AREAS_M, floorSpecEstado: 'INVALID', solve });
+    expect(r.ok).toBe(false);
+    expect(r.status).toBe('SIN_LAYOUT');
+    expect(r.motivo).toBe('FLOORSPEC_RECHAZADO');
+    expect(solve).not.toHaveBeenCalled();
+  });
 });
 
 describe('acomodoOrquestador · repair loop (obj 8)', () => {

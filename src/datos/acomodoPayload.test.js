@@ -158,4 +158,15 @@ describe('acomodoPayload · construirPayloadAcomodo (P0.2 obj 1/2/3)', () => {
     expect(validarFloorSpecGeom([{ nombre: 'a', ancho: 4, largo: 3 }]).ok).toBe(true);
     expect(validarFloorSpecGeom([{ nombre: 'a', ancho: NaN, largo: 3 }]).ok).toBe(false);
   });
+
+  it('GAP3: geometría válida pero FloorSpec RECHAZADO → no payload (FLOORSPEC_RECHAZADO)', () => {
+    const r = construirPayloadAcomodo({ partidas: PARTIDAS, areasM: AREAS_M, floorSpecEstado: 'REVIEW_REQUIRED' });
+    expect(r.ok).toBe(false);
+    expect(r.motivo).toBe('FLOORSPEC_RECHAZADO');
+    expect(r.detalles).toContain('REVIEW_REQUIRED');
+  });
+  it('GAP3: FloorSpec PASS o ausente (espacio manual) → payload ok', () => {
+    expect(construirPayloadAcomodo({ partidas: PARTIDAS, areasM: AREAS_M, floorSpecEstado: 'PASS' }).ok).toBe(true);
+    expect(construirPayloadAcomodo({ partidas: PARTIDAS, areasM: AREAS_M, floorSpecEstado: null }).ok).toBe(true);
+  });
 });
