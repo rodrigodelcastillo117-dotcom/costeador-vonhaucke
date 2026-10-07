@@ -17,6 +17,7 @@
 //  Todo en mm. Puro (Deno + node). Reusa helpers vendorizados de ./spatial-core.js.
 // ============================================================================
 import { rectsSeSolapan, rectDentroPoligono, bloqueaPuertaEspacial } from './spatial-core.js';
+import { perfilDeAncla, layoutDeTopologia } from './placementProfiles.js';
 
 export const SEAT = 600;      // huella de silla (mm)
 export const PITCH = 650;     // separación entre sillas alrededor de mesa
@@ -93,38 +94,36 @@ function perimetroSillas(w, d, n) {
 }
 
 // --- B · COMPOSICIÓN DE KIT (coords locales; origen top-left) ----------------
+// P0.2c: la distribución de sillas depende de la TOPOLOGÍA del perfil del ancla
+// (SINGLE_FACE / DOUBLE_FACE / MEETING_TABLE / DESK / RECEPTION), no de la geometría
+// a secas. Cada silla cae en un SLOT (slot_id/side/facing). La topología NO se
+// infiere de la capacidad: DOUBLE_FACE sólo si el ancla la declara.
 export function componerKit(anchor, sillas = [], gavetas = []) {
   const aw = num(anchor.w, 1200), ad = num(anchor.d, 600);
   const rol = anchor.relation_role;
-  const piezas = [{ id: String(anchor.id), dx: 0, dy: 0, w: aw, d: ad, rol }];
+  const perfil = perfilDeAncla(anchor);
+  const lay = layoutDeTopologia(perfil.topology, aw, ad, sillas.length);
+  const piezas = [{ id: String(anchor.id), dx: lay.anchor.dx, dy: lay.anchor.dy, w: aw, d: ad, rol, topology: perfil.topology, provenance: perfil.provenance }];
   const sinColocar = [];
 
-  if (rol === 'ANCHOR_MEETING') {
-    piezas[0].dx = SEAT; piezas[0].dy = SEAT;
-    const pos = perimetroSillas(aw, ad, sillas.length);
-    sillas.forEach((s, i) => { if (pos[i]) piezas.push({ id: String(s.id), dx: pos[i].x, dy: pos[i].y, w: SEAT, d: SEAT, rol: s.relation_role }); });
-    for (let i = pos.length; i < sillas.length; i++) sinColocar.push(String(sillas[i].id));
-    return { anchorId: String(anchor.id), w: aw + 2 * SEAT, d: ad + 2 * SEAT, piezas, sinColocar };
-  }
-
-  const n = sillas.length;
-  const perW = n > 0 ? aw / n : aw;
   sillas.forEach((s, i) => {
-    piezas.push({ id: String(s.id), dx: Math.round(i * perW + Math.max(0, (perW - SEAT) / 2)), dy: ad, w: SEAT, d: SEAT, rol: s.relation_role });
+    const slot = lay.seats[i];
+    if (slot) piezas.push({ id: String(s.id), dx: slot.dx, dy: slot.dy, w: SEAT, d: SEAT, rol: s.relation_role, slot_id: slot.slot_id, side: slot.side, facing: slot.facing });
+    else sinColocar.push(String(s.id));
   });
   gavetas.forEach((g, i) => {
     const gw = num(g.w, 400), gd = num(g.d, 500);
-    piezas.push({ id: String(g.id), dx: Math.min(Math.max(0, aw - gw), i * (gw + 50)), dy: Math.max(0, ad - gd), w: gw, d: gd, rol: g.relation_role, bajoTablero: true });
+    piezas.push({ id: String(g.id), dx: lay.anchor.dx + Math.min(Math.max(0, aw - gw), i * (gw + 50)), dy: lay.anchor.dy + Math.max(0, ad - gd), w: gw, d: gd, rol: g.relation_role, bajoTablero: true, slot_id: `storage_${i + 1}` });
   });
-  const kitD = n > 0 ? ad + SEAT : ad;
-  return { anchorId: String(anchor.id), w: aw, d: kitD, piezas, sinColocar };
+  return { anchorId: String(anchor.id), w: lay.kitW, d: lay.kitD, piezas, sinColocar };
 }
 
 // Rota un kit 90° (intercambia dims; gira coords internas).
 function rotarKit(kit) {
   return {
     anchorId: kit.anchorId, w: kit.d, d: kit.w, sinColocar: kit.sinColocar,
-    piezas: kit.piezas.map((p) => ({ id: p.id, rol: p.rol, bajoTablero: p.bajoTablero, w: p.d, d: p.w, dx: kit.d - (p.dy + p.d), dy: p.dx })),
+    // Conserva metadata semántica (slot/side/facing/topology) al rotar el bloque.
+    piezas: kit.piezas.map((p) => ({ id: p.id, rol: p.rol, bajoTablero: p.bajoTablero, w: p.d, d: p.w, dx: kit.d - (p.dy + p.d), dy: p.dx, slot_id: p.slot_id, side: p.side, facing: p.facing, topology: p.topology, provenance: p.provenance })),
   };
 }
 
