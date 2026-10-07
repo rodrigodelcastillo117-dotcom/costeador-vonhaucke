@@ -1,54 +1,55 @@
 // ============================================================================
 //  confirmarPrograma · PROPUESTA → PARTIDAS CONFIRMADAS (P0.1 · #3/#4).
 //
-//  resolverPrograma devuelve una PROPUESTA (sugerencia de productos reales). NO
-//  es una cotización. La confirmación es un acto explícito del usuario ("Aplicar
-//  programa detectado"). Aquí se materializa ese acto de forma:
+//  resolverPrograma devuelve una PROPUESTA (productos reales sugeridos). NO es
+//  cotización. La confirmación es un acto EXPLÍCITO del usuario ("Aplicar
+//  programa detectado"); este módulo la materializa:
 //
-//   · IDEMPOTENTE (#3): aplicar el mismo programa dos veces NO duplica. Cada
-//     partida tiene una CLAVE determinista (slot + producto) que no depende del
-//     functional_group_id efímero, así que re-confirmar reconcilia contra lo ya
-//     confirmado en vez de agregar copias.
-//   · RECONCILIADO (#4): si ya existe una partida real que cubre el mismo slot
-//     con el MISMO producto → se reutiliza (sin cambio). Si el slot ya está
-//     ocupado por OTRO producto → se marca CONFLICTO y NO se sustituye en
-//     silencio (decisión del usuario).
+//   · IDEMPOTENTE (#3): clave determinista por SLOT (rol|relation_role|
+//     anchor_instance_id|#ordinal) + producto, independiente de ids efímeros.
+//     Aplicar el mismo programa 2+ veces NO duplica.
+//   · RECONCILIADO (#4): mismo slot + mismo producto → reutiliza. Slot ocupado
+//     por OTRO producto → CONFLICTO; se conserva lo existente, no se sustituye
+//     en silencio.
 //
-//  Una partida confirmada lleva identidad aplanada (producto_id +
-//  producto_version_id) y el precio como snapshot de display (autoridad =
-//  SERVIDOR). Nunca `sug-*`, nunca $0.
+//  Compuertas SEPARADAS (#12): el resumen distingue realidad de producto de
+//  disponibilidad de precio. Un producto RESOLVED con price SIN_PRECIO es REAL;
+//  bloquea emisión, no existencia. El precio es snapshot de display; la cifra
+//  oficial la valida el servidor.
 // ============================================================================
 
-// Requerimiento base: 'operativo:WORK_SEAT' → 'operativo'. Anclas quedan igual.
-function baseReq(requerimiento) {
-  return String(requerimiento || '').split(':')[0] || 'desconocido';
+// Rol base del requerimiento (operativo/privado/juntas/recepcion). Acepta el
+// modelo nuevo (`rol`) y el legacy (`requerimiento`).
+function baseRol(item) {
+  const r = item.rol || item.requerimiento || '';
+  return String(r).split(':')[0] || 'desconocido';
 }
 
-// SLOT = posición funcional, SIN el producto. Dos productos distintos en el
-// mismo slot = conflicto. El ordinal distingue instancias idénticas (p.ej. dos
-// benches operativos iguales) de forma determinista por orden de la propuesta.
+// SLOT = posición funcional, SIN el producto. relation_role distingue ancla de
+// dependiente; anchor_instance_id ata el dependiente a la INSTANCIA de su ancla.
 function slotBase(item) {
-  const base = baseReq(item.requerimiento);
-  const rol = item.relation_role || 'ANCHOR';
-  const ancla = item.anchor_ref || '';
-  return `${base}|${rol}|${ancla}|`;
+  const base = baseRol(item);
+  const rel = item.relation_role || 'ANCHOR';
+  const ancla = item.anchor_instance_id || item.anchor_ref || '';
+  return `${base}|${rel}|${ancla}|`;
 }
 
 function claveDeSlot(slot, bancoId) { return `${slot}::${bancoId}`; }
 
-// Normaliza una partida (de propuesta o ya existente) a item confirmado.
 function aItemConfirmado(part, slot, estado) {
   const ident = part.identidad || null;
-  const precio = part.precio_autoridad || null;
+  const snapshot = Number(part.precio_lista_snapshot ?? part.precio) || null;
   return {
     id: claveDeSlot(slot, part.bancoId),
     slot,
-    estado,                                  // 'CONFIRMADO' | 'EXISTENTE'
-    requerimiento: part.requerimiento,
-    anchor_role: part.anchor_role ?? null,
+    estado,                                      // 'CONFIRMADO' | 'EXISTENTE'
+    rol: part.rol ?? baseRol(part),
     relation_role: part.relation_role ?? null,
-    anchor_ref: part.anchor_ref ?? null,
+    anchor_role: part.anchor_role ?? null,
+    anchor_instance_id: part.anchor_instance_id ?? null,
+    instance_id: part.instance_id ?? null,
     functional_group_id: part.functional_group_id ?? null,
+    inclusion: part.inclusion ?? null,
     bancoId: part.bancoId,
     source_ref: part.source_ref ?? part.bancoId,
     nombre: part.nombre ?? null,
@@ -57,19 +58,21 @@ function aItemConfirmado(part, slot, estado) {
     w: part.w ?? null,
     d: part.d ?? null,
     cantidad: Number(part.cantidad) || 1,
-    // identidad aplanada (compuerta 2)
+    // COMPUERTA 1: realidad de producto
+    product_status: part.product_status ?? 'RESOLVED',
+    // COMPUERTA 2: identidad
+    identity_status: part.identity_status ?? (ident ? 'RESOLVED' : 'MISSING'),
     productoId: ident ? ident.producto_id : (part.productoId ?? null),
     producto_version_id: ident ? ident.producto_version_id : (part.producto_version_id ?? null),
     lista_precio_item_id: ident ? ident.lista_precio_item_id : (part.lista_precio_item_id ?? null),
-    // precio (compuerta 3): display, autoridad servidor
-    precio_lista_snapshot: precio ? precio.precio_lista_snapshot : (Number(part.precio) || null),
-    price_status: precio ? precio.price_status : (part.price_status ?? 'SNAPSHOT_DISPLAY'),
-    autoridad: precio ? precio.autoridad : 'SERVIDOR',
+    // COMPUERTA 3: precio (display, autoridad servidor)
+    precio_lista_snapshot: snapshot,
+    price_status: part.price_status ?? (snapshot ? 'SNAPSHOT_DISPLAY' : 'SIN_PRECIO'),
+    autoridad: 'SERVIDOR',
     source: 'CONFIRMADO_PROGRAMA',
   };
 }
 
-// Calcula slot+ordinales de una lista de partidas de forma determinista.
 function conSlots(partidas) {
   const contador = new Map();
   return partidas.map((p) => {
@@ -80,11 +83,7 @@ function conSlots(partidas) {
   });
 }
 
-/**
- * Clave de reconciliación de un item. Si el item fue confirmado por este mismo
- * flujo trae `slot`; si no, se recalcula. (Exportada para pruebas y para que
- * Acomodo pueda indexar lo existente.)
- */
+/** Clave de reconciliación de un item. (Exportada para pruebas / indexado.) */
 export function claveDe(item, ordinal = 0) {
   const slot = item.slot || `${slotBase(item)}#${ordinal}`;
   return { slot, clave: claveDeSlot(slot, item.bancoId) };
@@ -93,18 +92,14 @@ export function claveDe(item, ordinal = 0) {
 /**
  * Confirma una propuesta de resolverPrograma contra lo ya existente.
  * @param {object} propuesta  resultado de resolverPrograma (usa `.partidas`).
- * @param {object} opts.existentes  partidas ya en la cotización (con bancoId y, si vienen de aquí, slot).
- * @returns {{ items, confirmadas, sinCambio, conflictos, resumen }}
+ * @param {object} opts.existentes  partidas ya en la cotización.
  */
 export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
   const partidas = (propuesta && Array.isArray(propuesta.partidas)) ? propuesta.partidas : [];
 
-  // Index de lo existente por slot (slot → item). Ordinales estables.
   const existSlots = conSlots(existentes);
   const porSlot = new Map();
-  for (const { part, slot } of existSlots) {
-    if (!porSlot.has(slot)) porSlot.set(slot, part);
-  }
+  for (const { part, slot } of existSlots) { if (!porSlot.has(slot)) porSlot.set(slot, part); }
   const slotsUsados = new Set();
 
   const confirmadas = [];
@@ -115,12 +110,9 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
     const prev = porSlot.get(slot);
     if (prev) {
       if (String(prev.bancoId) === String(part.bancoId)) {
-        // Mismo producto en el mismo slot → reutiliza (idempotente, sin duplicar).
-        slotsUsados.add(slot);                    // ya lo re-emitimos como EXISTENTE
+        slotsUsados.add(slot);
         sinCambio.push(aItemConfirmado(part, slot, 'EXISTENTE'));
       } else {
-        // Slot ocupado por otro producto → CONFLICTO: se CONSERVA lo existente
-        // (queda en `intactos`), NO se agrega lo propuesto, se registra el choque.
         conflictos.push({
           slot,
           existente: { bancoId: prev.bancoId, nombre: prev.nombre ?? null },
@@ -133,12 +125,12 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
     }
   }
 
-  // Items existentes que el programa NO toca se conservan intactos.
   const intactos = existSlots
     .filter(({ slot }) => !slotsUsados.has(slot))
     .map(({ part, slot }) => ({ ...part, slot: part.slot || slot }));
 
   const items = [...intactos, ...sinCambio, ...confirmadas];
+  const propias = [...confirmadas, ...sinCambio];
 
   return {
     items,
@@ -150,10 +142,10 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
       nuevas: confirmadas.length,
       reutilizadas: sinCambio.length,
       conflictos: conflictos.length,
-      // Invariante dura: ninguna partida confirmada es sug-* ni $0.
-      limpio: [...confirmadas, ...sinCambio].every(
-        (it) => it.bancoId && !String(it.bancoId).startsWith('sug-') && Number(it.precio_lista_snapshot) > 0,
-      ),
+      // Compuertas SEPARADAS (#12): realidad de producto ≠ disponibilidad de precio.
+      productosReales: propias.every((it) => it.bancoId && !String(it.bancoId).startsWith('sug-') && it.product_status === 'RESOLVED'),
+      identidadesValidas: propias.every((it) => it.identity_status === 'RESOLVED'),
+      preciosDisponibles: propias.every((it) => it.price_status !== 'SIN_PRECIO'),
     },
   };
 }
