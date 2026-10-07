@@ -56,7 +56,7 @@ export function validarFloorSpecGeom(areasM) {
  *    detalles?:string[]}
  * }
  */
-export function construirPayloadAcomodo({ partidas = [], areasM = [] } = {}) {
+export function construirPayloadAcomodo({ partidas = [], areasM = [], piezasExtra = [] } = {}) {
   // (obj 1/2) CONFIRMADas-only: se filtra sug-* SIEMPRE, aquí, aunque el caller
   // ya lo haya hecho. Es la garantía server-independiente contra el bypass de
   // montar AcomodoBase sin el wrapper. `descartadosSugeridos` deja rastro.
@@ -80,8 +80,12 @@ export function construirPayloadAcomodo({ partidas = [], areasM = [] } = {}) {
   }
 
   const piezas = expandirPiezas(reales);
+  // Piezas EXTRA (p.ej. copias manuales `dup-*` del proyectista): ya vienen
+  // expandidas (nivel pieza). Entran al solver pero NUNCA un sug-*.
+  const extra = (Array.isArray(piezasExtra) ? piezasExtra : [])
+    .filter((pz) => !esSugerida(pz) && !String(pz.id || '').startsWith('sug-'));
   // Blindaje final: ninguna pieza expandida puede provenir de un sug-*.
-  const piezasLimpias = piezas.filter((pz) => !esSugerida(pz) && !String(pz.id || '').startsWith('sug-'));
+  const piezasLimpias = [...piezas, ...extra].filter((pz) => !esSugerida(pz) && !String(pz.id || '').startsWith('sug-'));
 
   return {
     ok: true,

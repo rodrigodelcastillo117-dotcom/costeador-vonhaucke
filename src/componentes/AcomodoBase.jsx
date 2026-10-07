@@ -26,6 +26,7 @@ import { auditarColocacion } from '../datos/acomodoAudit.js';
 // publicación ante fallas de invariantes que el edge vivo pudiera no reportar.
 import { construirPayloadAcomodo } from '../datos/acomodoPayload.js';
 import { evaluarInvariantesAcomodo } from '../datos/acomodoInvariantes.js';
+import { resolverAcomodo } from '../datos/acomodoOrquestador.js';
 
 // Para la paleta, SILLA es todo lo que se sienta: la operativa, la de visita y
 // también el sillón y el banco. Rodrigo lo pidió partido en dos: "lado
@@ -201,6 +202,56 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // se llevaba media hora de trabajo por delante. Ahora lo movido con el dedo se
   // le entrega al motor como espacio ocupado y él acomoda alrededor
   // (`reacomodar.js`). `deCero` es la puerta de salida explícita.
+  // ========================================================================
+  //  P0.2 (audit A/B/C) · ÚNICA PUERTA VIVA AL SOLVER.
+  //  Construye el payload (builder único), rechaza ANTES del solver si no es
+  //  válido, invoca el solve adapter SÓLO con payload.areas/payload.piezas, y
+  //  pasa por el orquestador (precedencia manual, stale por hashes, repair ≤3,
+  //  trace, reimposición manual, NEEDS_REVIEW). La AUTORIDAD de validez es el
+  //  AGREGADOR (no el edge): se adjunta al plan para que UI y guardado deriven de
+  //  aquí. Cero llamadas directas dispersas a acomodarEspacio(areasMM,piezas).
+  // ========================================================================
+  async function ejecutarAcomodo({ deCero = false, areasMetros = areas } = {}) {
+    const solve = async (payload) => {
+      const r = await acomodarEspacio(payload.areas, payload.piezas);
+      if (!r?.ok || !r?.plan) throw new Error(r?.error || 'Motor espacial no disponible');
+      return { ...r.plan, layoutSpec: r.layoutSpec || null, render_ready: r.render_ready === true, strictPlacement: r.strictPlacement === true };
+    };
+    const res = await resolverAcomodo({
+      partidas, areasM: areasMetros, piezasExtra: duplicados,
+      solve, planGuardado: deCero ? null : plan,
+    });
+    if (res.plan) {
+      const ev = res.evaluacion || null;
+      res.plan = {
+        ...res.plan,
+        render_ready: res.render_ready === true,            // autoridad: agregador
+        strictPlacement: true,
+        invariantes: ev ? { status: ev.status, issues: ev.issues } : null,
+        repairTrace: res.trace || [],
+        layoutSpec: {
+          ...(res.plan.layoutSpec || {}),
+          status: res.status,
+          validation: { ...((res.plan.layoutSpec || {}).validation || {}), render_ready: res.render_ready === true, invariant_ok: ev ? ev.invariant_ok : null },
+        },
+      };
+    }
+    return res;
+  }
+
+  // Mensaje humano para un resultado no-listo del agregador.
+  function motivoNoListo(res) {
+    if (res.status === 'SIN_LAYOUT') {
+      if (res.motivo === 'FLOORSPEC_INVALIDO') return `el espacio no es válido (${(res.detalles || []).join(', ')})`;
+      if (res.motivo === 'SIN_PARTIDAS_CONFIRMADAS') return 'no hay muebles confirmados para acomodar';
+      return 'falta definir un plano/espacio válido';
+    }
+    const fallas = [...new Set((res.evaluacion?.issues || []).filter((i) => i.severity === 'fail').map((i) => i.code))];
+    if (res.status === 'NEEDS_REVIEW') return `requiere revisión: ${fallas.join('/') || 'invariantes'}`;
+    if (res.status === 'PARTIAL') return `parcial: faltan ${res.evaluacion?.unplaced?.length || 0} por colocar`;
+    return fallas.join('/') || res.status;
+  }
+
   async function acomodar({ deCero = false } = {}) {
     setError(''); setGuardado(false);
     if (!programaListo) {
@@ -219,22 +270,14 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     if (usarMotorEspacial) {
       setCargando('acomodo');
       try {
-        const r = await acomodarEspacio(areasMM, piezas);
-        if (r?.ok && r?.plan) {
-          setPlan({
-            ...r.plan,
-            layoutSpec: r.layoutSpec || null,
-            render_ready: r.render_ready === true,
-            strictPlacement: r.strictPlacement === true,
-          });
-          if (!r.completo && Array.isArray(r.noColocadas) && r.noColocadas.length) {
-            setError(`Acomodo parcial: ${r.colocadas || 0} de ${r.total || piezas.length}. ${r.noColocadas.slice(0,3).map(x => x.motivo || x.id).join(' · ')}`);
-          }
+        const res = await ejecutarAcomodo({ deCero, areasMetros: areas });
+        if (res.status === 'SIN_LAYOUT') { setPlan(null); setError(`No voy a acomodar: ${motivoNoListo(res)}.`); return; }
+        if (res.plan) {
+          setPlan(res.plan);
+          setError(res.render_ready ? '' : `Acomodo ${motivoNoListo(res)}. Corrige antes de render/PDF.`);
           return;
         }
-        // Fallback explícito: si el motor remoto falla, conserva trabajo local
-        // pero NO lo presenta como validación avanzada.
-        setError(r?.error ? `Motor espacial no disponible: ${r.error}. Usé acomodo local como borrador.` : 'Motor espacial no disponible. Usé acomodo local como borrador.');
+        setError('Motor espacial no disponible. Usé acomodo local como borrador.');
       } catch (e) {
         setError('Motor espacial no disponible. Usé acomodo local como borrador.');
       } finally {
@@ -276,19 +319,27 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     if (!onGuardarAcomodo) return;
     if (primerGuardado.current) { primerGuardado.current = false; return; }
     const t = setTimeout(() => {
-      const serverSpatialValid = plan?.layoutSpec?.status === 'PASS' && plan?.render_ready === true;
+      // P0.2 audit C: la VERDAD persistida se deriva del AGREGADOR verify-first,
+      // no del PASS del edge. Si el cliente detectó ghost/duplicate/overlap/
+      // out-of-bounds/obstacle/door/wrong-zone, JAMÁS se guarda como válido.
+      const evalVivo = evalInvariantes;
+      const statusVivo = evalVivo ? evalVivo.status : (plan?.layoutSpec?.status || null);
+      const serverSpatialValid = evalVivo ? evalVivo.render_ready === true : (plan?.layoutSpec?.status === 'PASS' && plan?.render_ready === true);
       const serverPublicable = serverSpatialValid && programaListo;
-      // P0.2 obj10: sella program_hash/floor_hash en el plan persistido para
-      // detectar stale de forma determinista (no por conteo) y para la precedencia
-      // manual del orquestador en el siguiente ciclo.
-      const planSellado = (plan && payloadAcomodo.ok)
-        ? { ...plan, program_hash: payloadAcomodo.program_hash, floor_hash: payloadAcomodo.floor_hash }
+      // obj10: sella program_hash/floor_hash + render_ready del agregador en el
+      // plan persistido (stale determinista + precedencia manual del orquestador).
+      const planSellado = plan
+        ? {
+            ...plan,
+            ...(payloadAcomodo.ok ? { program_hash: payloadAcomodo.program_hash, floor_hash: payloadAcomodo.floor_hash } : {}),
+            ...(evalVivo ? { render_ready: evalVivo.render_ready === true } : {}),
+          }
         : plan;
       onGuardarAcomodo({
         ...bloqueGeometria(areas), plan: planSellado, planReal,
-        layoutEspacialValidado: serverSpatialValid,
-        layoutValidado: serverPublicable,
-        layoutEstado: programaListo ? (plan?.layoutSpec?.status || null) : 'PROGRAM_INCOMPLETE',
+        layoutEspacialValidado: serverSpatialValid,          // === status PASS
+        layoutValidado: serverPublicable,                    // === status PASS && programaListo
+        layoutEstado: programaListo ? statusVivo : 'PROGRAM_INCOMPLETE',
         layoutMotivo: programaListo ? null : motivoPrograma,
         sugerenciasPendientes: sugerenciasPendientes.map((p) => ({ id:p.id, nombre:p.nombre, cantidad:p.cantidad, zonaSugerida:p.zonaSugerida || null })),
         ...(lecturaMeta ? { lecturaMeta } : {}),
@@ -300,7 +351,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       }, true);
     }, 600);
     return () => clearTimeout(t);
-  }, [areas, plan, planReal, stagingUrl, lecturaMeta, floorSpec, programaListo, motivoPrograma, sugerenciasPendientes, payloadAcomodo]);
+  }, [areas, plan, planReal, stagingUrl, lecturaMeta, floorSpec, programaListo, motivoPrograma, sugerenciasPendientes, payloadAcomodo, evalInvariantes]);
   // Acomodo con IA (alterna): útil para casos raros; el motor local es el default.
   async function acomodarIA() {
     if (!programaListo) {
@@ -310,14 +361,11 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     }
     setError(''); setPlan(null); setGuardado(false); setCargando('acomodo');
     try {
-      const r = await acomodarEspacio(areasMM, piezas);
-      if (!r || !r.ok) { setError(r?.error || 'No se pudo acomodar. Vuelve a intentar.'); return; }
-      setPlan({
-        ...r.plan,
-        layoutSpec: r.layoutSpec || null,
-        render_ready: r.render_ready === true,
-        strictPlacement: r.strictPlacement === true,
-      });
+      const res = await ejecutarAcomodo({ deCero: true, areasMetros: areas });
+      if (res.status === 'SIN_LAYOUT') { setError(`No se pudo acomodar: ${motivoNoListo(res)}.`); return; }
+      if (!res.plan) { setError('No se pudo acomodar. Vuelve a intentar.'); return; }
+      setPlan(res.plan);
+      if (!res.render_ready) setError(`Acomodo ${motivoNoListo(res)}. Corrige antes de render/PDF.`);
     } catch (e) {
       setError('No se pudo conectar con el asistente. Revisa tu internet y vuelve a intentar.');
     } finally {
@@ -408,14 +456,19 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
           setError(`Plano leído correctamente, pero no voy a inventar mobiliario para completar el programa. ${motivoPrograma}`);
           return;
         }
+        // FloorSpec de PLANO (audit D): pasa por la ÚNICA puerta. Si el espacio
+        // leído no es válido geométricamente, se rechaza ANTES del solver.
         try {
-          const ar = await acomodarEspacio(mm, piezas);
-          if (ar?.ok && ar?.plan) {
-            setPlan({ ...ar.plan, layoutSpec: ar.layoutSpec || null, render_ready: ar.render_ready === true, strictPlacement: true });
-            if (!ar.completo) setError(`Leí el plano; el acomodo quedó parcial: ${ar.colocadas || 0} de ${ar.total || piezas.length}. Corrige lo marcado antes de render/PDF.`);
+          const res = await ejecutarAcomodo({ deCero: true, areasMetros: leidas });
+          if (res.status === 'SIN_LAYOUT') {
+            setPlan(null);
+            setError(`Leí el plano, pero no acomodo: ${motivoNoListo(res)}.`);
+          } else if (res.plan) {
+            setPlan(res.plan);
+            if (!res.render_ready) setError(`Leí el plano; el acomodo ${motivoNoListo(res)}. Corrige lo marcado antes de render/PDF.`);
           } else {
             setPlan({ ...acomodarLocal(mm, piezas, { ajustar: false }), render_ready: false, strictPlacement: false });
-            setError((ar?.error ? ar.error + ' ' : '') + 'Mostré un acomodo local de borrador; aún no está validado por el motor espacial.');
+            setError('Mostré un acomodo local de borrador; aún no está validado por el motor espacial.');
           }
         } catch (err2) {
           try { setPlan({ ...acomodarLocal(mm, piezas, { ajustar: false }), render_ready: false, strictPlacement: false }); }
@@ -462,10 +515,13 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
         return;
       }
       try {
-        const ar = await acomodarEspacio(mm, piezas);
-        if (ar?.ok && ar?.plan) {
-          setPlan({ ...ar.plan, layoutSpec: ar.layoutSpec || null, render_ready: ar.render_ready === true, strictPlacement: true });
-          if (!ar.completo) setError(`El acomodo quedó parcial: ${ar.colocadas || 0} de ${ar.total || piezas.length}. Corrige lo marcado antes de render/PDF.`);
+        const res = await ejecutarAcomodo({ deCero: true, areasMetros: areasDib });
+        if (res.status === 'SIN_LAYOUT') {
+          setPlan(null);
+          setError(`No acomodo: ${motivoNoListo(res)}.`);
+        } else if (res.plan) {
+          setPlan(res.plan);
+          if (!res.render_ready) setError(`El acomodo ${motivoNoListo(res)}. Corrige lo marcado antes de render/PDF.`);
         } else {
           setPlan({ ...acomodarLocal(mm, piezas, { ajustar: false }), render_ready: false, strictPlacement: false });
           setError('El motor espacial no respondió; el acomodo local es sólo borrador.');

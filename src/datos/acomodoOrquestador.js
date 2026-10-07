@@ -56,9 +56,9 @@ function piezasMovidas(prev, next) {
  *   planGuardado?:object, maxIntentos?:number
  * }} _
  */
-export async function resolverAcomodo({ partidas = [], areasM = [], solve, planGuardado = null, maxIntentos = 3 }) {
+export async function resolverAcomodo({ partidas = [], areasM = [], piezasExtra = [], solve, planGuardado = null, maxIntentos = 3 }) {
   const trace = [];
-  const payload = construirPayloadAcomodo({ partidas, areasM });
+  const payload = construirPayloadAcomodo({ partidas, areasM, piezasExtra });
   if (!payload.ok) {
     return { ok: false, status: 'SIN_LAYOUT', render_ready: false, motivo: payload.motivo, detalles: payload.detalles || [], payload, plan: null, evaluacion: null, trace };
   }
