@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { catalogoIA, costearItem } from '../datos/lineas.js';
 import { BANCO } from '../datos/banco.js';
+import { briefDeItems, briefTieneSenal } from '../datos/programaBrief.js';
 import { autorizadoPorRef } from '../datos/precioAutorizado.js';
 import { cotizarTexto } from '../nube.js';
 import ProgramaProyecto from './ProgramaProyecto.jsx';
@@ -152,7 +153,13 @@ export default function CotizadorIA({
       acabaDeInterpretar.current = true;
       if (costados.length) {
         const nuevoLote = `ia-${Date.now()}`;
-        onAgregarItems(costados, { lote: nuevoLote, reemplaza: lote.current });
+        // #5: persiste el BRIEF estructurado (línea/modelo/dims/accesorios) para que
+        // el Product Resolver reciba lo que el usuario pidió (p.ej. Eclipse Drift) y
+        // no lo sustituya en silencio. UNKNOWN si el intérprete no dio estructura.
+        const brief = briefDeItems(items);
+        const opts = { lote: nuevoLote, reemplaza: lote.current };
+        if (briefTieneSenal(brief)) opts.programaBrief = brief;
+        onAgregarItems(costados, opts);
         lote.current = nuevoLote;
       } else if (lote.current) {
         // No salió nada: igual hay que limpiar lo del intento anterior.

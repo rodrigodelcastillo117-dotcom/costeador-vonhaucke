@@ -961,7 +961,10 @@ export default function App() {
     setEstado((e) => {
       const previas = e.cotizacion.partidas || [];
       const base = opts.reemplaza ? previas.filter((p) => p.loteIA !== opts.reemplaza) : previas;
-      return { ...e, cotizacion: { ...e.cotizacion, partidas: juntarIguales([...base, ...partidas]) } };
+      // #5: persiste el brief estructurado del intérprete para que el Product
+      // Resolver (VONI paso 2) reciba lo pedido (línea/modelo/dims) en el flujo vivo.
+      const programaBrief = opts.programaBrief ? opts.programaBrief : e.cotizacion.programaBrief;
+      return { ...e, cotizacion: { ...e.cotizacion, partidas: juntarIguales([...base, ...partidas]), ...(programaBrief ? { programaBrief } : {}) } };
     });
     mostrarAviso(`¡Listo! ${partidas.length} mueble(s) en tu proyecto`);
   }
