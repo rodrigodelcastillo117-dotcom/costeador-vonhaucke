@@ -111,3 +111,40 @@ describe('una sola fuente de precio para todas las rutas', () => {
     expect(app).toMatch(/fusionarInsumos\(/);
   });
 });
+
+describe('formato de los tableros dados de alta solo en la base', () => {
+  const alta = (nombre, unidad = 'hoja') => fusionarInsumos(BASE, {}, [fila('erp-t', 100, unidad, { nombre })]);
+
+  it('melamina, MDF y aglomerado 4x8 toman el tablero 1.22 x 2.44 de la app y se costean por fracción', () => {
+    for (const n of ['AGLOMERADO MELAMINA DOS CARAS HOJA 4 X 8 ESPESOR 28 mm', "MDF MELAMINA DOS CARAS HOJA 4'' X 8'' ESPESOR 18 mm", 'MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm', 'PANEL RANURADO VERTICAL DE 1220 X 2440 mm ESPESOR 12 mm EN MDF']) {
+      const { insumos, resumen } = alta(n);
+      expect(insumos['erp-t'].formato).toEqual(BASE['melamina-16'].formato);
+      expect(insumos['erp-t'].fraccion).toBe(true);
+      expect(resumen.formatoPorConfirmar).toEqual([]);
+    }
+  });
+
+  it('melamina sin medida en la descripción usa el estándar 1.22 x 2.44', () => {
+    expect(alta('MELAMINA BLANCA 16 mm').insumos['erp-t'].formato).toEqual(BASE['melamina-16'].formato);
+  });
+
+  it('una repisa de melamina nueva ya no cobra la hoja completa', () => {
+    const { insumos } = alta('AGLOMERADO MELAMINA DOS CARAS HOJA 4 X 8 ESPESOR 16 mm');
+    const pieza = { componentes: [{ insumoId: 'erp-t', nombre: 'Repisa', largoMM: 400, anchoMM: 200, piezas: 3 }], modoManoObra: 'porcentaje' };
+    expect(calcular(pieza, 4, insumos).materialDirecto).toBeLessThan(50);
+  });
+
+  it('lámina de calibre y tamaño que la app ya tiene usa su formato', () => {
+    expect(alta("LAMINA HOJA 3'' X 10'' CALIBRE 12 EN ACERO INOXIDABLE").insumos['erp-t'].formato).toEqual(BASE['lamina-3x10-12'].formato);
+  });
+
+  it('una hoja de otro tamaño toma la medida de la descripción y queda marcada por confirmar', () => {
+    const { insumos, resumen } = alta('MDP MELAMINA DOS CARAS 2070 X 2800 mm ESPESOR 18 mm', 'pza');
+    expect(insumos['erp-t'].formato).toMatchObject({ largoMM: 2800, anchoMM: 2070 });
+    expect(resumen.formatoPorConfirmar.map((x) => x.id)).toEqual(['erp-t']);
+  });
+
+  it('herrajes y piezas a medida no reciben formato de hoja', () => {
+    expect(alta('BISAGRA BIDIMENSIONAL, MONTAJE SOBREPUESTO', 'pza').insumos['erp-t'].formato).toBeUndefined();
+  });
+});
