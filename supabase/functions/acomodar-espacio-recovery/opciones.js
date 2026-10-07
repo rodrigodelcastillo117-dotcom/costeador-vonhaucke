@@ -52,16 +52,29 @@ function idsNoColocadas(sol) {
   return s;
 }
 
-const MOTIVO = {
-  OUT_OF_BOUNDS: (c) => `El grupo necesita ~${c.needM2} m² y el área "${c.zona}" tiene ~${c.haveM2} m².`,
-  NO_SPACE: (c) => `El grupo necesita ~${c.needM2} m² y el área "${c.zona}" tiene ~${c.haveM2} m².`,
-  OUT_OF_POLYGON: (c) => `La forma del área "${c.zona}" (muros/recortes) no deja un hueco continuo para el módulo.`,
-  NO_SPACE_PARA_SILLAS: (c) => `No quedó espacio para ${plural(c.nSillas, 'silla')} junto a su mueble conservando el pasillo de 1.0 m.`,
-  DOOR: (c) => `El barrido de la puerta en "${c.zona}" ocupa ese frente y no deja colocar el módulo.`,
-  OBSTACLE: (c) => `Una columna/obstáculo en "${c.zona}" ocupa el punto donde iría el módulo.`,
-  AISLE: (c) => `Al colocar el módulo ya no queda el pasillo mínimo de 1.0 m entre bloques en "${c.zona}".`,
-  OVERLAP: (c) => `No caben los dos bloques en "${c.zona}" sin encimarse ni perder el pasillo de 1.0 m.`,
-};
+// BLOCK 4 · causa REAL del no-cupo. El texto deriva del invariante limitante y de
+// evidencia medida. PROHIBIDO "falta superficie" cuando haveM2 ≥ needM2: en ese caso
+// el limitante es forma/dimensión (ASPECT_RATIO) o fragmentación (CONTIGUOUS_SPACE).
+function causaReal(inv, anc, ar, nSillas) {
+  const h = anc ? huellaAncla(anc) : { w: 0, h: 0 };
+  const areaW = num(ar.ancho) || num(ar.width_mm), areaH = num(ar.largo) || num(ar.depth_mm);
+  const needM2 = m2(h.w * h.h), haveM2 = m2(areaW * areaH);
+  const zona = ar.nombre || ar.zone_id || 'el área';
+  const ev = { invariante_solver: inv, needM2, haveM2, moduloW_m: +(h.w / 1000).toFixed(2), moduloH_m: +(h.h / 1000).toFixed(2), areaW_m: +(areaW / 1000).toFixed(2), areaH_m: +(areaH / 1000).toFixed(2) };
+  if (inv === 'DOOR') return { invariante: 'DOOR', texto: `El barrido de la puerta en "${zona}" ocupa ese frente y no deja colocar el módulo.`, evidencia: ev };
+  if (inv === 'OBSTACLE') return { invariante: 'OBSTACLE', texto: `Una columna/obstáculo en "${zona}" ocupa el punto donde iría el módulo.`, evidencia: ev };
+  if (inv === 'AISLE') return { invariante: 'AISLE', texto: `Al colocar el módulo ya no queda el pasillo mínimo de 1.0 m entre bloques en "${zona}".`, evidencia: ev };
+  if (inv === 'OVERLAP') return { invariante: 'OVERLAP', texto: `No caben los dos bloques en "${zona}" sin encimarse ni perder el pasillo de 1.0 m.`, evidencia: ev };
+  if (inv === 'NO_SPACE_PARA_SILLAS') return { invariante: 'NO_SPACE_PARA_SILLAS', texto: `No quedó espacio para ${plural(nSillas, 'silla')} junto a su mueble conservando el pasillo de 1.0 m.`, evidencia: ev };
+  if (inv === 'OUT_OF_POLYGON') return { invariante: 'CONTIGUOUS_SPACE', texto: `La forma de "${zona}" (muros/recortes) no deja un rectángulo continuo para el módulo; hay superficie, pero fragmentada.`, evidencia: ev };
+  // OUT_OF_BOUNDS / NO_SPACE / genérico → decidir la causa real:
+  if (h.w > areaW + 1 || h.h > areaH + 1) {
+    const lado = h.w > areaW ? `ancho (${ev.moduloW_m} m vs ${ev.areaW_m} m de la zona)` : `fondo (${ev.moduloH_m} m vs ${ev.areaH_m} m de la zona)`;
+    return { invariante: 'ASPECT_RATIO', texto: `El módulo no entra por la FORMA del área "${zona}": su ${lado} no cabe (hay ~${haveM2} m² en total, pero no en esa dimensión).`, evidencia: ev };
+  }
+  if (needM2 > haveM2) return { invariante: 'NO_SPACE', texto: `El grupo necesita ~${needM2} m² y el área "${zona}" tiene ~${haveM2} m².`, evidencia: ev };
+  return { invariante: 'CONTIGUOUS_SPACE', texto: `Hay superficie en "${zona}" (~${haveM2} m²), pero no un hueco rectangular continuo que conserve el pasillo de 1.0 m.`, evidencia: ev };
+}
 
 export function mensajeVendedor(areas = [], piezas = [], sol = {}, opts = {}) {
   const resolver = typeof opts.resolver === 'function' ? opts.resolver : null;
@@ -82,10 +95,9 @@ export function mensajeVendedor(areas = [], piezas = [], sol = {}, opts = {}) {
     const anc = byId.get(String(u.anchorId));
     const ai = anc ? areaIdxDe(anc, areas) : 0;
     const ar = areas[ai] || areas[0] || {};
-    const h = anc ? huellaAncla(anc) : { w: 0, h: 0 };
-    const c = { needM2: m2(h.w * h.h), haveM2: m2(num(ar.ancho) * num(ar.largo)), zona: ar.nombre || ar.zone_id || `área ${ai + 1}`, nSillas: (u.piezas || []).filter((id) => { const p = byId.get(String(id)); return p && !esAncla(p.relation_role); }).length };
-    const fn = MOTIVO[u.invariante] || (() => `No se pudo colocar el grupo en "${c.zona}".`);
-    motivos.push({ anchorId: u.anchorId, invariante: u.invariante || 'NO_SPACE', zona: c.zona, texto: fn(c) });
+    const nSillas = (u.piezas || []).filter((id) => { const p = byId.get(String(id)); return p && !esAncla(p.relation_role); }).length;
+    const c = causaReal(u.invariante || 'NO_SPACE', anc, ar, nSillas);
+    motivos.push({ anchorId: u.anchorId, invariante: c.invariante, invariante_solver: u.invariante || 'NO_SPACE', zona: ar.nombre || ar.zone_id || `área ${ai + 1}`, texto: c.texto, evidencia: c.evidencia });
   }
   if (unassigned.length) motivos.push({ invariante: 'DEPENDENT_UNASSIGNED', texto: `${plural(unassigned.length, 'pieza')} sin un mueble que las reciba (se superó la capacidad del catálogo).` });
 

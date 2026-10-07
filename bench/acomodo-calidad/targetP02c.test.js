@@ -56,20 +56,18 @@ describe('P0.2c · DEFECTO B (DESPUÉS) · juntas topología canónica 4+4+1+1',
   });
 });
 
-describe('P0.2c · DEFECTO C (baseline) · explicación de m² causalmente contradictoria', () => {
-  it('BASELINE: NO_SPACE con haveM2 > needM2 todavía produce explicación de superficie', () => {
-    // Mesa 2400×1200 (huella ~8.6 m²) "no cupo" en un área de 30 m² → el motivo
-    // menciona m² aunque hay superficie de sobra. Eso es lo que P0.2c debe eliminar.
+describe('P0.2c · DEFECTO C (DESPUÉS, BLOCK4) · nunca "falta superficie" si have ≥ need', () => {
+  // ANTES (baseline): NO_SPACE con área 30 m² y necesidad ~8.6 m² decía igual
+  // "necesita ~8.6 m² y tiene ~30 m²" (contradictorio). DESPUÉS: el motivo deriva
+  // de la causa real (CONTIGUOUS_SPACE) y JAMÁS afirma falta de superficie.
+  it('NO_SPACE con haveM2 > needM2 → motivo causal (no superficie), con evidencia', () => {
     const piezas = [mk('m', 'ANCHOR_MEETING', 2400, 1200, { functional_group_id: 'g', zone_id: 'JUNTAS' })];
     const areas = [{ nombre: 'JUNTAS', zone_id: 'JUNTAS', tipo: 'juntas', ancho: 6000, largo: 5000 }]; // 30 m²
     const sol = { unplaced: [{ anchorId: 'm', piezas: ['m'], invariante: 'NO_SPACE' }], unassigned: [] };
-    const msg = mensajeVendedor(areas, piezas, sol);      // sin resolver: sólo el motivo
-    const motivo = (msg.motivos[0] || {}).texto || '';
-    // DEFECTO: el texto habla de m² (necesita ~8.6 / tiene ~30), contradictorio.
-    expect(motivo).toMatch(/m²/);
-    const need = Number((motivo.match(/necesita ~([\d.]+)/) || [])[1]);
-    const have = Number((motivo.match(/tiene ~([\d.]+)/) || [])[1]);
-    expect(need).toBeLessThan(have);   // ← contradicción que P0.2c debe prohibir
+    const m = mensajeVendedor(areas, piezas, sol).motivos[0];
+    expect(m.texto).not.toMatch(/necesita ~[\d.]+ m²/);       // no "falta superficie"
+    expect(['CONTIGUOUS_SPACE', 'ASPECT_RATIO']).toContain(m.invariante);
+    expect(m.evidencia.haveM2).toBeGreaterThan(m.evidencia.needM2);  // había superficie de sobra
   });
 });
 
