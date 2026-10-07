@@ -96,11 +96,13 @@ Evidencia: BANCO LOCAL (`bench/acomodo/banco.test.js`, 11 its) + CI run 37607705
 5. **Determinismo: 3 corridas byte a byte (sin telemetría)** — ✅ (25 casos, canónico idéntico).
 6. **p95 ≤ 2000 ms** — ✅ `p95=1ms, max=2ms`.
 7. **Cero regresión vs v9 (colocadasBien nuevo ≥ v9 por caso, juez congelado)** — ✅ `regresiones=0` con v9 juzgado por grupo funcional real (ver A§3).
-8. **Unit + build verdes + Gate I/J + acomodoP02 (good & lying mock) + link CI** — ver §C-8 (confirmación de CI).
+8. **Unit + build verdes + Gate I/J + acomodoP02 (good & lying mock) + link CI** — ✅ confirmado en CI (ver §C-8).
 
-### C-8 · CI
+### C-8 · CI (CONFIRMADO)
 Run: https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/actions/runs/37607705529 (`b8fd709`).
-`verify` (unit 1625 + build + BANCO) y gates Gate I (`programaP01`), Gate J (`writer`), `acomodoP02` (good+lying mock): **resultado anexado al cierre de esta corrida** (ver mensaje final en el chat). El job E2E puede seguir rojo SÓLO por los 3 focos de §G (ajenos a P0.2b).
+- **`verify` = success** (unit 1625 + build + BANCO). BANCO en CI: `FREEZE juez=50714aec casos=24a0bd13 dificiles=1cba0a35 reales=16457a1e opciones=e3d0033e` · `falsosPASS=0 factPASS=49/49 impSinPASS=6/6 regresiones=0 p50=0 p95=7ms maxMs=39ms`.
+- **Gate I (programaP01), Gate J (programaBriefWriter), acomodoP02 (good+lying): verdes** (0 fallos de esos specs en la corrida).
+- **`E2E` = failure SÓLO** por los 3 focos de §G (`auth.e2e.js:96/:123`, `live-ai-smoke.e2e.js:6`), ajenos a P0.2b.
 
 ---
 
