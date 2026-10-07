@@ -141,7 +141,9 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // obstáculo/puerta/dependiente-fuera-de-zona/cobertura), la publicación se bloquea
   // aunque el edge diga PASS. Sólo bloquea ante `fail`; PARTIAL/REVIEW ya los maneja
   // el gate del servidor (no regresa el camino local de borrador).
-  const payloadAcomodo = useMemo(() => construirPayloadAcomodo({ partidas, areasM: areas }), [partidas, areas]);
+  // Gap1: el MISMO piezasExtra (copias manuales dup-*) alimenta solver (ejecutarAcomodo),
+  // payload, evalInvariantes, program_hash, autosave y stale check. Una sola verdad.
+  const payloadAcomodo = useMemo(() => construirPayloadAcomodo({ partidas, areasM: areas, piezasExtra: duplicados }), [partidas, areas, duplicados]);
   const evalInvariantes = useMemo(
     () => ((plan?.colocacion?.length && payloadAcomodo.ok)
       ? evaluarInvariantesAcomodo({ payload: payloadAcomodo, plan })
