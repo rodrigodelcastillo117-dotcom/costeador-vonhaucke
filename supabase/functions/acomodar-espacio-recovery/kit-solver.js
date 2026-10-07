@@ -169,10 +169,17 @@ function kitCabe(x, y, kw, kh, area, ocupados) {
 // PERMUTACIONES del MISMO conjunto de candidatos (no "interior-first"): mismo set
 // legal, distinto orden de primer-ajuste, para que BLOCK 5 explore alternativas
 // sin cambiar qué posiciones son válidas.
-function candidatos(area, kw, kh, orden) {
+function candidatos(area, kw, kh, orden, deadline) {
   const W = num(area.ancho) || num(area.width_mm), H = num(area.largo) || num(area.depth_mm);
   const out = [];
-  for (let y = 0; y + kh <= H + 1; y += GRID) for (let x = 0; x + kw <= W + 1; x += GRID) out.push({ x, y });
+  // GAP35.B: la materialización del grid respeta el deadline (áreas enormes no deben
+  // construir millones de candidatos sin poder cortar). Sin deadline → build completo
+  // (camino por defecto byte-idéntico; el banco usa áreas chicas y es instantáneo).
+  let n = 0;
+  for (let y = 0; y + kh <= H + 1; y += GRID) {
+    if (deadline && (n & 8191) === 0 && Date.now() >= deadline) return out;   // corte por presupuesto
+    for (let x = 0; x + kw <= W + 1; x += GRID) { out.push({ x, y }); n++; }
+  }
   if (!orden || orden === 'row') return out;                                  // DEFAULT: intacto
   if (orden === 'reverse') return out.slice().reverse();
   if (orden === 'col') return out.slice().sort((a, b) => (a.x - b.x) || (a.y - b.y));
@@ -404,7 +411,7 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
     for (const ai of kit.zonas) {
       const area = areas[ai];
       for (const { k, rot, drop } of variantes) {
-        for (const c of candidatos(area, k.w, k.d, opts.orden)) {
+        for (const c of candidatos(area, k.w, k.d, opts.orden, deadline)) {
           nodos++;
           // GAP35.A: checar deadline DENTRO del barrido (no sólo al entrar a intentarKit),
           // para que una malla grande no exceda el presupuesto. Cada 512 nodos (barato).
