@@ -21,6 +21,11 @@ import { totalesCotizacion } from '../datos/totales.js';
 import { estadoLayout, violacionesSemanticas } from '../datos/floorSpec.js';
 import { aMM, areasCanonicas, bloqueGeometria, cuantizar } from '../datos/floorPlan.js';
 import { auditarColocacion } from '../datos/acomodoAudit.js';
+// P0.2 (CERTIFICADO AHORA): contrato de entrada + agregador verify-first. Se usa
+// para SELLAR program_hash/floor_hash en el plan persistido y para BLOQUEAR la
+// publicación ante fallas de invariantes que el edge vivo pudiera no reportar.
+import { construirPayloadAcomodo } from '../datos/acomodoPayload.js';
+import { evaluarInvariantesAcomodo } from '../datos/acomodoInvariantes.js';
 
 // Para la paleta, SILLA es todo lo que se sienta: la operativa, la de visita y
 // también el sillón y el banco. Rodrigo lo pidió partido en dos: "lado
@@ -129,6 +134,21 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // Metros -> mm, conservando la geometría (forma real y obstáculos) para que
   // el motor y el plano dibujen y calculen sobre el MISMO espacio.
   const areasMM = aMM(areas);
+  // P0.2 verify-first: payload canónico (hashes + requested) y evaluación del plan
+  // actual contra lo CONFIRMADO. No sustituye al gate del servidor; lo ENDURECE:
+  // si hay fallas de invariantes duras (fantasma/duplicado/fuera de bounds/solape/
+  // obstáculo/puerta/dependiente-fuera-de-zona/cobertura), la publicación se bloquea
+  // aunque el edge diga PASS. Sólo bloquea ante `fail`; PARTIAL/REVIEW ya los maneja
+  // el gate del servidor (no regresa el camino local de borrador).
+  const payloadAcomodo = useMemo(() => construirPayloadAcomodo({ partidas, areasM: areas }), [partidas, areas]);
+  const evalInvariantes = useMemo(
+    () => ((plan?.colocacion?.length && payloadAcomodo.ok)
+      ? evaluarInvariantesAcomodo({ payload: payloadAcomodo, plan })
+      : null),
+    [plan, payloadAcomodo],
+  );
+  const fallasInvariantes = evalInvariantes ? evalInvariantes.issues.filter((i) => i.severity === 'fail') : [];
+  const sinFallasInvariantes = fallasInvariantes.length === 0;
   const programaListo = !Array.isArray(bloqueosPrograma) || bloqueosPrograma.length === 0;
   const motivoPrograma = programaListo ? '' : bloqueosPrograma.map((b) => b?.mensaje || b?.code).filter(Boolean).join(' · ');
 
@@ -258,8 +278,14 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     const t = setTimeout(() => {
       const serverSpatialValid = plan?.layoutSpec?.status === 'PASS' && plan?.render_ready === true;
       const serverPublicable = serverSpatialValid && programaListo;
+      // P0.2 obj10: sella program_hash/floor_hash en el plan persistido para
+      // detectar stale de forma determinista (no por conteo) y para la precedencia
+      // manual del orquestador en el siguiente ciclo.
+      const planSellado = (plan && payloadAcomodo.ok)
+        ? { ...plan, program_hash: payloadAcomodo.program_hash, floor_hash: payloadAcomodo.floor_hash }
+        : plan;
       onGuardarAcomodo({
-        ...bloqueGeometria(areas), plan, planReal,
+        ...bloqueGeometria(areas), plan: planSellado, planReal,
         layoutEspacialValidado: serverSpatialValid,
         layoutValidado: serverPublicable,
         layoutEstado: programaListo ? (plan?.layoutSpec?.status || null) : 'PROGRAM_INCOMPLETE',
@@ -274,7 +300,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       }, true);
     }, 600);
     return () => clearTimeout(t);
-  }, [areas, plan, planReal, stagingUrl, lecturaMeta, floorSpec, programaListo, motivoPrograma, sugerenciasPendientes]);
+  }, [areas, plan, planReal, stagingUrl, lecturaMeta, floorSpec, programaListo, motivoPrograma, sugerenciasPendientes, payloadAcomodo]);
   // Acomodo con IA (alterna): útil para casos raros; el motor local es el default.
   async function acomodarIA() {
     if (!programaListo) {
@@ -1004,9 +1030,12 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   function guardarEnPropuesta() {
     if (!onGuardarAcomodo || !plan) return;
     if (!programaListo) { setError(`No puedo guardar un acomodo final: ${motivoPrograma}`); return; }
+    const planSellado = payloadAcomodo.ok
+      ? { ...plan, program_hash: payloadAcomodo.program_hash, floor_hash: payloadAcomodo.floor_hash }
+      : plan;
     const payload = {
       areas: areasMM,
-      plan,
+      plan: planSellado,
       layoutEspacialValidado: !!layoutListo,
       layoutValidado: !!layoutPublicable,
       layoutEstado: programaListo ? (serverStatus || layout?.status || null) : 'PROGRAM_INCOMPLETE',
@@ -1136,7 +1165,9 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     ? (serverStrict && serverStatus === 'PASS' && plan?.render_ready === true)
     : (!serverStrict || (serverStatus === 'PASS' && plan?.render_ready === true));
   const layoutLocalValido = !!plan && !!chequeo && (layout.status === 'LAYOUT_VALID' && (chequeo.nViolaciones || 0) === 0);
-  const layoutListo = layoutLocalValido && serverAprobado;
+  // Endurecimiento verify-first (P0.2 obj11/14): aunque el servidor apruebe, una
+  // falla de invariante dura del cross-check cliente bloquea la publicación.
+  const layoutListo = layoutLocalValido && serverAprobado && sinFallasInvariantes;
   const layoutPublicable = layoutListo && programaListo;
   const motivoLayout = [
     ...(!layout ? [] : [
@@ -1148,6 +1179,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     requiereValidacionServidor && !serverStrict ? 'falta validación espacial del servidor' : '',
     serverStrict && serverStatus && serverStatus !== 'PASS' ? `revisión espacial: ${serverStatus}` : '',
     serverStrict && plan?.render_ready !== true ? 'validación de puertas/clearances pendiente' : '',
+    fallasInvariantes.length ? `invariantes: ${[...new Set(fallasInvariantes.map((f) => f.code))].join('/')}` : '',
   ].filter(Boolean).join(' · ');
   const motivoPublicacion = [
     motivoLayout,
