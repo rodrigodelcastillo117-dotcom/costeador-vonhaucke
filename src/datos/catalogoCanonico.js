@@ -41,25 +41,32 @@ import { autorizadoPorRef } from './precioAutorizado.js';
 export const METADATA_DEBT = Object.freeze({
   problema:
     'BANCO no tiene flag canonical/source/status; p9-* (Excel) comparten ' +
-    'categoria/tipo/linea/usuarios con op-*/esc-/ger-/dir-/rec-/mj-. El prefijo ' +
-    'del id es el único discriminador de la carga limpia (Tradeco/BMU).',
+    'categoria/tipo/linea/usuarios con la carga limpia (op-/esc-/ger-/dir-/rec-/' +
+    'mj-/silla-/arch-/gaveta-...). El prefijo del id es el único discriminador: ' +
+    'auditado banco.js, el ÚNICO prefijo no canónico es p9- (175 renglones del ' +
+    'presupuesto Excel); todo lo demás es la carga limpia Tradeco/BMU.',
   mitigacion:
-    'Regla canónica centralizada en esCanonico() (un solo lugar). Prohibido ' +
-    'volver a dispersar id.startsWith("op-") por la app.',
+    'Regla canónica centralizada en esCanonico() (un solo lugar): canónico = ' +
+    'tiene id y NO es p9-*. Prohibido volver a dispersar id.startsWith("op-")/' +
+    'id.startsWith("p9-") por la app.',
   accion_definitiva:
     'Añadir en banco.js un campo explícito por pieza (canonical:true / ' +
-    'source:"tradeco") y reescribir esCanonico() para leerlo; retirar RE_CANONICO.',
+    'source:"tradeco"|"excel") y reescribir esCanonico() para leerlo; retirar RE_NO_CANONICO.',
 });
 
 // ---------------------------------------------------------------------------
-// REGLA CANÓNICA ÚNICA. Provisional por deuda de metadata (arriba).
+// REGLA CANÓNICA ÚNICA. Provisional por deuda de metadata (arriba): el único
+// lote no canónico es la importación de presupuestos Excel con prefijo `p9-`.
+// Canónico = tiene id y NO es p9-*. (Los roles concretos —anclas, asientos,
+// guardas— se derivan DESPUÉS con los prefijos de rol, siempre dentro de lo
+// canónico.) Prohibido escribir este criterio en otra parte de la app.
 // ---------------------------------------------------------------------------
-const RE_CANONICO = /^(op-\d+u-|esc-|ger-|dir-|rec-|mj-)/;
+const RE_NO_CANONICO = /^p9-/;
 
 /** ¿Esta pieza del banco pertenece a la carga canónica limpia (no p9-* Excel)? */
 export function esCanonico(prod) {
   if (!prod || prod.id == null) return false;
-  return RE_CANONICO.test(String(prod.id));
+  return !RE_NO_CANONICO.test(String(prod.id));
 }
 
 // ---------------------------------------------------------------------------
@@ -91,6 +98,35 @@ export const JUNTAS = BANCO.filter(
 export const RECEPCIONES = BANCO.filter(
   (b) => esCanonico(b) && /^rec-/.test(String(b.id)),
 );
+
+// Dependientes reales (asientos / guardas). Son productos canónicos de la carga
+// limpia; se enlazan a su ancla por functional_group_id + relation_role (#2/#5).
+export const SILLAS = BANCO.filter(
+  (b) => esCanonico(b) && b.tipo === 'silla',
+);
+export const GUARDAS = BANCO.filter(
+  (b) => esCanonico(b) && (b.tipo === 'guarda' || b.tipo === 'almacen'),
+);
+
+// Selección determinista de asiento por rol funcional (producto REAL, no inventado).
+// No se adivina: si el id esperado no existe, se cae al primero de su familia.
+function porId(lista, id) { return lista.find((b) => b.id === id) || null; }
+export function asientoPara(relationRole) {
+  switch (relationRole) {
+    case 'WORK_SEAT':      return porId(SILLAS, 'silla-win')      || SILLAS[0] || null;
+    case 'EXECUTIVE_SEAT': return porId(SILLAS, 'silla-alpha')    || porId(SILLAS, 'silla-win') || null;
+    case 'MEETING_SEAT':   return porId(SILLAS, 'silla-concerto') || porId(SILLAS, 'silla-sonata') || null;
+    case 'VISITOR_SEAT':   return porId(SILLAS, 'silla-sonata')   || porId(SILLAS, 'silla-concerto') || null;
+    default:               return null;
+  }
+}
+export function guardaPara(relationRole) {
+  switch (relationRole) {
+    case 'UNDERDESK_STORAGE': return porId(GUARDAS, 'gaveta-mox') || GUARDAS.find((g) => g.tipo === 'guarda') || null;
+    case 'SUPPORT_STORAGE':   return GUARDAS.find((g) => g.tipo === 'almacen') || porId(GUARDAS, 'gaveta-mox') || null;
+    default:                  return null;
+  }
+}
 
 /** Módulos operativos canónicos de UNA línea (para respetar preferred_line, #12). */
 export function modulosOperativosPorLinea(linea) {
