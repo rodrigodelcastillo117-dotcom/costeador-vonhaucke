@@ -14,6 +14,7 @@ import EditarPartida from './EditarPartida.jsx';
 import EmpezarEspacio from './EmpezarEspacio.jsx';
 import { leerPlanoDeArchivo } from '../datos/leerPlanoArchivo.js';
 import { areasCanonicas, bloqueGeometria } from '../datos/floorPlan.js';
+import { proponerProgramaDelPlano, aplicarPrograma } from '../datos/programaRealDelPlano.js';
 import Cargando from './Cargando.jsx';
 import EstoEntendi from './EstoEntendi.jsx';
 import { costoImplicito } from '../datos/preciosVenta.js';
@@ -72,7 +73,7 @@ function Pasos({ paso, setPaso, puedeAvanzar, hechoPaso }) {
 
 export default function Voni({
   estado, setEstado, soloVentas = false, veCostos = false,
-  onAgregarItems, onGuardarAcomodo, onIr,
+  onAgregarItems, onGuardarAcomodo, onIr, onAplicarPrograma,
   paso, setPaso,
 }) {
   const cot = estado.cotizacion || {};
@@ -135,6 +136,21 @@ export default function Voni({
   // ya contestado, que es peor que no decir nada.
   // Loader canónico único (floorPlan): areasM (verdad) o legacy mm→m, cuantizado 1 mm.
   const areasDelProyecto = useMemo(() => areasCanonicas(cot.acomodo || {}), [cot.acomodo]);
+
+  // P0.1 (#1/#2/#3): el PROGRAMA PROPUESTO vive en el PASO 2. Resuelve productos
+  // reales del plano y se reconcilia contra lo ya cotizado (DELTA): propone sólo
+  // lo que falta (p.ej. el bench APP LT) sin re-proponer lo ya presente.
+  const propuestaPrograma = useMemo(
+    () => (areasDelProyecto.length ? proponerProgramaDelPlano(areasDelProyecto, { linea: 'App LT' }) : null),
+    [areasDelProyecto],
+  );
+  const reconPrograma = useMemo(
+    () => (propuestaPrograma ? aplicarPrograma(propuestaPrograma.propuesta, { existentes: partidas }) : null),
+    [propuestaPrograma, partidas],
+  );
+  const faltantesPrograma = reconPrograma ? reconPrograma.confirmacion.confirmadas : [];
+  const conflictosPrograma = reconPrograma ? reconPrograma.conflictos : [];
+  const pendientesPrograma = propuestaPrograma ? (propuestaPrograma.propuesta.pendientes || []) : [];
 
   const totalLista = useMemo(() => partidas.reduce((a, p) => a + p.precioUnitario * p.cantidad, 0), [partidas]);
   const nEstimados = partidas.filter((p) => selloPartida(p).tipo === 'estimado').length;
@@ -227,6 +243,48 @@ export default function Voni({
           lleve derecho ahí, sin un clic de más. */}
       {paso === 2 && (
         <>
+          {propuestaPrograma && (faltantesPrograma.length > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0) && (
+            <div className="tarjeta no-imprimir" style={{ borderColor: '#8bbcaf', background: '#eef6f3' }}>
+              <strong style={{ color: '#174f45' }}>✨ Programa detectado del plano</strong>
+              <p className="ayuda" style={{ marginTop: 4 }}>
+                Productos reales del catálogo. Se agrega SÓLO lo que falta (no duplica lo ya cotizado). El precio lo revalida el servidor al emitir.
+              </p>
+              {faltantesPrograma.length > 0 && (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ fontWeight: 700, color: '#174f45' }}>Por agregar</div>
+                  {faltantesPrograma.map((p) => (
+                    <div key={p.id}>✓ {p.cantidad}× {p.nombre}{p.w ? ` · ${(p.w / 1000).toFixed(2)}×${((p.d || 0) / 1000).toFixed(2)} m` : ''}</div>
+                  ))}
+                </div>
+              )}
+              {pendientesPrograma.length > 0 && (
+                <div style={{ marginTop: 8, color: '#8a5a00' }}>
+                  <div style={{ fontWeight: 700 }}>Pendiente de confirmar (no se sustituye solo)</div>
+                  {pendientesPrograma.map((p, i) => (
+                    <div key={i}>⚠ {p.rol}{p.faltante?.requested?.model ? ` · ${p.faltante.requested.model}` : ''} — {p.faltante?.reason || 'NEEDS_CONFIRMATION'}</div>
+                  ))}
+                </div>
+              )}
+              {conflictosPrograma.length > 0 && (
+                <div style={{ marginTop: 8, color: '#8a1f1f' }}>
+                  <div style={{ fontWeight: 700 }}>Conflicto (decide tú)</div>
+                  {conflictosPrograma.map((c, i) => (
+                    <div key={i}>✗ {c.slot}: ya existe {c.existente?.bancoId} vs propuesto {c.propuesto?.bancoId}</div>
+                  ))}
+                </div>
+              )}
+              <div style={{ marginTop: 12 }}>
+                <button type="button" className="boton primario"
+                  disabled={!onAplicarPrograma || faltantesPrograma.length === 0}
+                  onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta)}>
+                  Aplicar programa detectado
+                </button>
+                {conflictosPrograma.length > 0 && (
+                  <span style={{ marginLeft: 10, color: '#8a1f1f', fontWeight: 700 }}>Programa INCOMPLETO / NEEDS_REVIEW por conflictos.</span>
+                )}
+              </div>
+            </div>
+          )}
           <div style={{ display: (subpaso2 === 'describir' && !hay) ? undefined : 'none' }}>
             <div className="voni-saludo">
               <VoniAvatar tam={64} variante="cara" anim="bob" />
@@ -352,6 +410,7 @@ export default function Voni({
           <Acomodo
             estado={estado}
             onGuardarAcomodo={onGuardarAcomodo}
+            onAplicarPrograma={onAplicarPrograma}
             onIr={(r) => setPaso(r === 'cotizacion' ? 4 : 2)}
             abrirDibujo={abrirDibujo}
             onConsumido={() => setAbrirDibujo(false)}

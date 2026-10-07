@@ -1230,6 +1230,7 @@ export default function App() {
             paso={voniPaso} setPaso={setVoniPaso}
             onAgregarItems={agregarItemsProyecto}
             onGuardarAcomodo={guardarAcomodo}
+            onAplicarPrograma={aplicarProgramaDetectado}
             onIr={irA}
           />
         )}
