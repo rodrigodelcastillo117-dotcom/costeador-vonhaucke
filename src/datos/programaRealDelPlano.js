@@ -154,13 +154,22 @@ export function proponerPrograma(programa, { linea = 'App LT' } = {}) {
 export function proponerProgramaDelPlano(areas, { linea = 'App LT', brief = null } = {}) {
   const programa = programaDelPlano(areas);
   const salas = Array.isArray(programa.salas) ? programa.salas.filter((n) => Number(n) > 0) : [];
+  // #19: conserva la identidad por-zona del FloorSpec (nombre/id del área) hasta el
+  // ProgramRequirement, sin tirarla al agregar conteos. El brief del usuario (línea/
+  // modelo/dims) se superpone sin pisar la identidad de zona.
+  const z = programa.zonas || {};
+  const briefBase = { ...(programa.brief || {}), ...(brief || {}) };
+  if (z.operativo) briefBase.operativoZoneId = briefBase.operativoZoneId || z.operativo.id || z.operativo.nombre;
+  if (z.recepcion) briefBase.recepcionZoneId = briefBase.recepcionZoneId || z.recepcion.id || z.recepcion.nombre;
+  const mezclarZona = (arr = [], zonas = []) => zonas.map((zz, i) => ({ zone_id: zz.id || zz.nombre, ...(arr[i] || {}) }));
+  briefBase.privados = mezclarZona(briefBase.privados, z.privados || []);
+  briefBase.juntas = mezclarZona(briefBase.juntas, z.juntas || []);
   const entrada = {
     operativos: Number(programa.operativos) || 0,
     privados: Number(programa.privados) || 0,
     salas,
     recepcion: !!programa.recepcion,
-    // FloorSpec aporta conteos/zonas; el brief aporta línea/modelo/dims/accesorios.
-    brief: { ...(programa.brief || {}), ...(brief || {}) },
+    brief: briefBase,
   };
   return { programaDetectado: programa, ...proponerPrograma(entrada, { linea }) };
 }

@@ -221,6 +221,14 @@ export function programaDelPlano(areas, opts = {}) {
     sugeridos,
     fuente,
     salasInfo: salasA.map((a, i) => ({ nombre: a.nombre, m2: m2Salas[i], caben: salas[i] })),
+    // #19: identidad por-zona (nombre/id del área) para conservarla hasta el
+    // ProgramRequirement. P0.3 la enriquecerá (evidencia/confianza); aquí no se tira.
+    zonas: {
+      operativo: (islasA[0] || abiertos[0]) ? { nombre: (islasA[0] || abiertos[0]).nombre, id: (islasA[0] || abiertos[0]).id || null } : null,
+      privados: privados.map((a) => ({ nombre: a.nombre, id: a.id || null })),
+      juntas: salasA.map((a) => ({ nombre: a.nombre, id: a.id || null })),
+      recepcion: (() => { const a = lista.find((x) => rolDe(x, lista) === 'recepcion'); return a ? { nombre: a.nombre, id: a.id || null } : null; })(),
+    },
     islas: islasA.length,
     porIsla,
     avisos,

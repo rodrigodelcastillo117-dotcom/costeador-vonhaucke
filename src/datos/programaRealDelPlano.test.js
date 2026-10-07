@@ -39,6 +39,15 @@ describe('programaRealDelPlano · PROPONER no confirma (P0.1 · #2/#3)', () => {
     expect(a2.partidas.length).toBe(a1.partidas.length);
   });
 
+  it('#19: la identidad de zona del FloorSpec (nombre del área) llega a la resolución', () => {
+    const r = proponerProgramaDelPlano(areasM, { linea: 'App LT' });
+    const bench = r.propuesta.resoluciones.find((x) => x.relation_role === 'ANCHOR_WORKSTATION');
+    expect(bench.zone_id).toBe('ÁREA OPERATIVA');
+    const rec = r.propuesta.resoluciones.find((x) => x.relation_role === 'ANCHOR_RECEPTION');
+    expect(rec.zone_id).toBe('RECEPCIÓN');
+    expect(bench.requirement_id).toContain('ÁREA OPERATIVA');
+  });
+
   it('#4: el BRIEF estructurado llega al resolver por el punto de entrada vivo', () => {
     const r = proponerProgramaDelPlano(areasM, {
       linea: 'App LT',
