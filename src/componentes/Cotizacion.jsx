@@ -453,6 +453,11 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
     anticipoPct, anticipo, hayLineaInvalida, faltanPrecio, totalCompleto } = totalesCotizacion(partidas, cot, estado.parametros);
   const minMarkup = estado.parametros.minMarkupLinea ?? 45;
   const factorDesc = 1 - descuentoPct / 100;
+  // #11: precio DESCONOCIDO jamás se dibuja como $0. Por renglón: "Sin precio" /
+  // "Pendiente". El servidor lo valida al emitir.
+  const sinPrecioPt = (pt) => pt.precioUnitario == null || pt.price_status === 'SIN_PRECIO';
+  const unitTxt = (pt) => (sinPrecioPt(pt) ? 'Sin precio' : pesos2(pt.precioUnitario));
+  const importeTxt = (pt) => (sinPrecioPt(pt) ? 'Pendiente' : pesos2(pt.precioUnitario * pt.cantidad));
   const markupPartida = (pt) => (pt.costoUnitario > 0 ? ((pt.precioUnitario * factorDesc - pt.costoUnitario) / pt.costoUnitario) * 100 : null);
   // El vendedor NO tiene costo (seller-safe): su piso se mide contra el PRECIO
   // MÍNIMO autorizado del catálogo (`catalogo.minimo`, un precio, no un costo). Si
@@ -594,13 +599,13 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                     2026-08-18: "ellos precio unitario, cantidad y total". Antes
                     esta fila sólo enseñaba el total, y el unitario —el número
                     que el cliente pregunta primero— no salía por ningún lado. */}
-                <span className="vt-unit"><span className="vt-rot">c/u</span>{pesos2(pt.precioUnitario)}</span>
+                <span className="vt-unit"><span className="vt-rot">c/u</span>{unitTxt(pt)}</span>
                 <span className="masmenos">
                   <button style={{ width: 44, height: 44 }} onClick={() => setPartida(i, { cantidad: Math.max(1, pt.cantidad - 1) })} aria-label="Menos">−</button>
                   <span className="valor">{pt.cantidad}</span>
                   <button style={{ width: 44, height: 44 }} onClick={() => setPartida(i, { cantidad: pt.cantidad + 1 })} aria-label="Más">+</button>
                 </span>
-                <span className="vt-importe"><span className="vt-rot">total</span>{pesos2(pt.precioUnitario * pt.cantidad)}</span>
+                <span className="vt-importe"><span className="vt-rot">total</span>{importeTxt(pt)}</span>
                 {sePuedeEditar(pt) && (
                   <button className="icono-btn" title="Editar medidas, acabado y cantidad" aria-label={`Editar ${pt.nombre}`} onClick={() => setEditando(i)}>
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
@@ -668,10 +673,10 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                           <RenderChip estado={estadoRenderDe(pt).estado} />
                           {bajo && <div className="ayuda rojo">Debajo del mínimo de {estado.parametros.margenMinimo}%</div>}</td>
                         <td className="num"><span className="masmenos"><button onClick={() => setPartida(i, { cantidad: Math.max(1, pt.cantidad - 1) })}>−</button><span className="valor">{pt.cantidad}</span><button onClick={() => setPartida(i, { cantidad: pt.cantidad + 1 })}>+</button></span></td>
-                        <td className="num">{pesos2(pt.precioUnitario)}</td>
+                        <td className="num">{unitTxt(pt)}</td>
                         <td className="num" title={cc.aprox ? 'Costo aproximado (derivado del precio, no del despiece real)' : undefined}>{sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos2(pt.costoUnitario)}</td>
                         <td className="num">{sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos2(util)}</td>
-                        <td className="num">{pesos2(pt.precioUnitario * pt.cantidad)}</td>
+                        <td className="num">{importeTxt(pt)}</td>
                         {/* ⚠️ AQUÍ NO HABÍA CÓMO EDITAR (2026-08-17). El lápiz
                             estaba escrito SÓLO dentro del bloque `soloVentas`, o
                             sea que en el rol de Dirección/Diseño —el que usa
@@ -707,9 +712,9 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                     <div className="cot-nombre">{pt.nombre}<EstadoLinea info={razonesLinea.get(i + 1)} /></div>
                     <div className="cot-linea">
                       <span className="masmenos"><button style={{ width: 44, height: 44 }} onClick={() => setPartida(i, { cantidad: Math.max(1, pt.cantidad - 1) })}>−</button><span className="valor">{pt.cantidad}</span><button style={{ width: 44, height: 44 }} onClick={() => setPartida(i, { cantidad: pt.cantidad + 1 })}>+</button></span>
-                      <span className="cot-importe">{pesos2(pt.precioUnitario * pt.cantidad)}</span>
+                      <span className="cot-importe">{importeTxt(pt)}</span>
                     </div>
-                    <div className="cot-datos"><span>Precio c/u: <b>{pesos2(pt.precioUnitario)}</b></span><span>Costo: {sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos2(pt.costoUnitario)}</span><span>Utilidad: {sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos2(util)}</span></div>
+                    <div className="cot-datos"><span>Precio c/u: <b>{unitTxt(pt)}</b></span><span>Costo: {sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos2(pt.costoUnitario)}</span><span>Utilidad: {sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos2(util)}</span></div>
                     <button className="boton fantasma" style={{ minHeight: 44, marginTop: 10 }} onClick={() => quitar(i)}>Quitar</button>
                   </div>
                 );
@@ -858,10 +863,10 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                         2026-08-16): es una señal interna para el vendedor, y
                         leer "sujeto a confirmación" en 5 de 6 renglones debilita
                         la propuesta. Sigue visible en "Mis números". */}
-                    <div className="propx-sub"><span className="propx-unit">{pesos2(pt.precioUnitario)} c/u</span></div>
+                    <div className="propx-sub"><span className="propx-unit">{unitTxt(pt)} c/u</span></div>
                   </div>
                   <div className="propx-cant"><span className="propx-cant-n">{pt.cantidad}</span><span className="propx-cant-l">{pt.cantidad === 1 ? 'pza' : 'pzas'}</span></div>
-                  <div className="propx-importe">{pesos2(pt.precioUnitario * pt.cantidad)}</div>
+                  <div className="propx-importe">{importeTxt(pt)}</div>
                 </article>
               );
             })}

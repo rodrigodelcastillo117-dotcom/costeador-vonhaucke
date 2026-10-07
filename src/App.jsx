@@ -785,7 +785,8 @@ export default function App() {
       const porId = new Map(enriquecidos.map((e) => [String(e.id), e.patch]));
       const patched = existentes.map((p) => {
         const patch = porId.get(String(p.id));
-        return patch ? { ...p, ...patch, config: { ...(p.config || {}), ...patch } } : p;
+        // #10: la semántica estructural vive SÓLO top-level (un dueño). NO se copia a config.
+        return patch ? { ...p, ...patch } : p;
       });
       const nuevas = confirmacion.confirmadas.map(partidaComercialDesdeConfirmado);
       if (!nuevas.length && !enriquecidos.length) return prev;    // idempotente: nada que hacer

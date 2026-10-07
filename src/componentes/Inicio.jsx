@@ -166,7 +166,10 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
   // Lo avanzado sigue disponible abajo sin competir con los tres trabajos.
   if (vista === 'home') {
     const cot = estado.cotizacion || {};
-    const totalCot = (cot.partidas || []).reduce((s, p) => s + (p.precioUnitario || 0) * (p.cantidad || 0), 0);
+    // #12: suma SÓLO precios conocidos (null NO cuenta como 0) y cuenta cuántos faltan,
+    // para no mostrar un importe que parezca total final.
+    const totalCot = (cot.partidas || []).reduce((s, p) => s + (Number.isFinite(Number(p.precioUnitario)) ? Number(p.precioUnitario) * (p.cantidad || 0) : 0), 0);
+    const faltanCot = (cot.partidas || []).filter((p) => p.price_status === 'SIN_PRECIO' || p.precioUnitario == null).length;
     return (
       <div className="inicio inicio-terminal inicio-operativo">
         <div className="inicio-op-cab">
@@ -180,11 +183,13 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
 
         {nPartidas > 0 && (
           <div className="retomar-fila">
-            <button className="retomar" onClick={() => onIr('cotizacion')}>
+            <button className="retomar" data-testid="home-retomar" onClick={() => onIr('cotizacion')}>
               <span className="retomar-txt">
                 <span className="retomar-lbl">Proyecto en curso</span>
                 <strong>{cot.cliente || 'Cotización sin nombre'} · {nPzasRetomar} pieza{nPzasRetomar === 1 ? '' : 's'}</strong>
-                {totalCot > 0 && <span className="retomar-n">{pesos(totalCot)}</span>}
+                {faltanCot > 0
+                  ? <span className="retomar-n">{totalCot > 0 ? `${pesos(totalCot)} · ` : ''}faltan {faltanCot} precio{faltanCot === 1 ? '' : 's'}</span>
+                  : (totalCot > 0 && <span className="retomar-n">{pesos(totalCot)}</span>)}
               </span>
               <span className="retomar-cta">Continuar →</span>
             </button>

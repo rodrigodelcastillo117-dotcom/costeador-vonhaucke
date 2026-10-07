@@ -59,8 +59,11 @@ test.describe('E2E P0.1 · caso roto de Rodrigo (navegador real)', () => {
     const pageErrors = [];
     page.on('pageerror', (e) => pageErrors.push(String(e?.message || e)));
 
+    // Siembra SÓLO si no hay estado aún: addInitScript corre en CADA navegación
+    // (incl. reload), así que sin este guard el refresh re-sembraría el estado
+    // original y borraría lo aplicado. Con el guard, el reload conserva la verdad.
     await page.addInitScript(([clave, estado]) => {
-      window.localStorage.setItem(clave, JSON.stringify(estado));
+      try { if (!window.localStorage.getItem(clave)) window.localStorage.setItem(clave, JSON.stringify(estado)); } catch (_e) { /* modo privado */ }
     }, [CLAVE, ESTADO_SEMILLA]);
 
     await page.goto('/');

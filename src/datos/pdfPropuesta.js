@@ -722,9 +722,11 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
       try { doc.addImage(img, 'JPEG', X.foto, y, COL.foto - 2, (COL.foto - 2) * 0.75); } catch (e) { /* si no se pudo, va sin foto */ }
     }
     doc.text(String(pt.cantidad), X.cant, yTexto, { align: 'right' });
-    doc.text(pesos(pt.precioUnitario), X.uni, yTexto, { align: 'right' });
+    // #11: precio DESCONOCIDO en el PDF jamás se dibuja como $0 → "Sin precio"/"Pendiente".
+    const sinPrecioPt = pt.precioUnitario == null || pt.price_status === 'SIN_PRECIO';
+    doc.text(sinPrecioPt ? 'Sin precio' : pesos(pt.precioUnitario), X.uni, yTexto, { align: 'right' });
     doc.setFont('helvetica', 'bold');
-    doc.text(pesos(Number.isFinite(Number(pt.precioUnitario)) && Number.isFinite(Number(pt.cantidad)) ? Number(pt.precioUnitario) * Number(pt.cantidad) : NaN), X.imp, yTexto, { align: 'right' });
+    doc.text(sinPrecioPt ? 'Pendiente' : pesos(Number.isFinite(Number(pt.precioUnitario)) && Number.isFinite(Number(pt.cantidad)) ? Number(pt.precioUnitario) * Number(pt.cantidad) : NaN), X.imp, yTexto, { align: 'right' });
     y += altoFila;
     doc.setDrawColor(...LINEA); doc.setLineWidth(0.15);
     doc.line(M.izq, y - 1.5, A4.w - M.der, y - 1.5);
