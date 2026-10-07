@@ -1429,7 +1429,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
         {/* G · mensaje al vendedor: SIEMPRE visible cuando el acomodo dejó pendientes,
             sin importar el modo (manual o no). Qué no cupó + por qué + qué hacer. */}
         {msgVendedor && (
-          <div className="tarjeta" style={{ background: '#fff7ed', border: '1px solid #fdba74', marginTop: 12 }}>
+          <div className="tarjeta" style={{ background: '#fff7ed', border: '1px solid #fdba74', color: '#7c2d12', marginTop: 12 }}>
             <strong>{msgVendedor.titulo}</strong>
             <div style={{ marginTop: 6 }}><em>No cupo:</em><ul style={{ margin: '4px 0' }}>{msgVendedor.queNoCupo.map((t, i) => <li key={i}>{t}</li>)}</ul></div>
             {msgVendedor.porque.length > 0 && <div style={{ marginTop: 4 }}><em>Por qué:</em> {msgVendedor.porque.join(' ')}</div>}
