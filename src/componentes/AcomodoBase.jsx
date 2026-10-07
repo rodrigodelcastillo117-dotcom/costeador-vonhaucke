@@ -25,7 +25,7 @@ import { auditarColocacion } from '../datos/acomodoAudit.js';
 // para SELLAR program_hash/floor_hash en el plan persistido y para BLOQUEAR la
 // publicación ante fallas de invariantes que el edge vivo pudiera no reportar.
 import { construirPayloadAcomodo } from '../datos/acomodoPayload.js';
-import { evaluarInvariantesAcomodo } from '../datos/acomodoInvariantes.js';
+import { evaluarInvariantesAcomodo, derivarValidez } from '../datos/acomodoInvariantes.js';
 import { resolverAcomodo } from '../datos/acomodoOrquestador.js';
 
 // Para la paleta, SILLA es todo lo que se sienta: la operativa, la de visita y
@@ -153,6 +153,9 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   const fallasInvariantes = evalInvariantes ? evalInvariantes.issues.filter((i) => i.severity === 'fail') : [];
   const sinFallasInvariantes = fallasInvariantes.length === 0;
   const programaListo = !Array.isArray(bloqueosPrograma) || bloqueosPrograma.length === 0;
+  // GAP2: AUTORIDAD ÚNICA de validez. Todo (autosave, guardarEnPropuesta,
+  // renderOficina y layoutListo/layoutPublicable) deriva de aquí.
+  const validez = useMemo(() => derivarValidez({ evaluacion: evalInvariantes, programaListo }), [evalInvariantes, programaListo]);
   const motivoPrograma = programaListo ? '' : bloqueosPrograma.map((b) => b?.mensaje || b?.code).filter(Boolean).join(' · ');
 
   // Al corregir a mano el ancho/largo de un cuarto que vino de un plano, su
@@ -321,27 +324,22 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     if (!onGuardarAcomodo) return;
     if (primerGuardado.current) { primerGuardado.current = false; return; }
     const t = setTimeout(() => {
-      // P0.2 audit C: la VERDAD persistida se deriva del AGREGADOR verify-first,
-      // no del PASS del edge. Si el cliente detectó ghost/duplicate/overlap/
-      // out-of-bounds/obstacle/door/wrong-zone, JAMÁS se guarda como válido.
-      const evalVivo = evalInvariantes;
-      const statusVivo = evalVivo ? evalVivo.status : (plan?.layoutSpec?.status || null);
-      const serverSpatialValid = evalVivo ? evalVivo.render_ready === true : (plan?.layoutSpec?.status === 'PASS' && plan?.render_ready === true);
-      const serverPublicable = serverSpatialValid && programaListo;
-      // obj10: sella program_hash/floor_hash + render_ready del agregador en el
-      // plan persistido (stale determinista + precedencia manual del orquestador).
+      // GAP2/audit C: la VERDAD persistida se deriva de la AUTORIDAD ÚNICA
+      // (derivarValidez sobre el agregador), nunca del PASS del edge. Si el cliente
+      // detectó ghost/duplicate/overlap/out-of-bounds/obstacle/door/wrong-zone,
+      // JAMÁS se guarda como válido; REVIEW_REQUIRED/PARTIAL/NEEDS_REVIEW no publican.
       const planSellado = plan
         ? {
             ...plan,
             ...(payloadAcomodo.ok ? { program_hash: payloadAcomodo.program_hash, floor_hash: payloadAcomodo.floor_hash } : {}),
-            ...(evalVivo ? { render_ready: evalVivo.render_ready === true } : {}),
+            ...(evalInvariantes ? { render_ready: validez.render_ready } : {}),
           }
         : plan;
       onGuardarAcomodo({
         ...bloqueGeometria(areas), plan: planSellado, planReal,
-        layoutEspacialValidado: serverSpatialValid,          // === status PASS
-        layoutValidado: serverPublicable,                    // === status PASS && programaListo
-        layoutEstado: programaListo ? statusVivo : 'PROGRAM_INCOMPLETE',
+        layoutEspacialValidado: validez.layoutEspacialValidado,   // === status PASS
+        layoutValidado: validez.layoutValidado,                   // === status PASS && programaListo
+        layoutEstado: programaListo ? (validez.status || plan?.layoutSpec?.status || null) : 'PROGRAM_INCOMPLETE',
         layoutMotivo: programaListo ? null : motivoPrograma,
         sugerenciasPendientes: sugerenciasPendientes.map((p) => ({ id:p.id, nombre:p.nombre, cantidad:p.cantidad, zonaSugerida:p.zonaSugerida || null })),
         ...(lecturaMeta ? { lecturaMeta } : {}),
@@ -349,11 +347,11 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
         ...(dibujoMeta && Object.keys(dibujoMeta).length ? { dibujoMeta } : {}),
         // Si el layout deja de ser final, limpia cualquier render viejo para que
         // jamás viaje una foto de otro acomodo al PDF del cliente.
-        render3d: serverPublicable ? (stagingUrl || '') : '',
+        render3d: validez.publicable ? (stagingUrl || '') : '',
       }, true);
     }, 600);
     return () => clearTimeout(t);
-  }, [areas, plan, planReal, stagingUrl, lecturaMeta, floorSpec, programaListo, motivoPrograma, sugerenciasPendientes, payloadAcomodo, evalInvariantes]);
+  }, [areas, plan, planReal, stagingUrl, lecturaMeta, floorSpec, programaListo, motivoPrograma, sugerenciasPendientes, payloadAcomodo, evalInvariantes, validez]);
   // Acomodo con IA (alterna): útil para casos raros; el motor local es el default.
   async function acomodarIA() {
     if (!programaListo) {
@@ -1223,9 +1221,11 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     ? (serverStrict && serverStatus === 'PASS' && plan?.render_ready === true)
     : (!serverStrict || (serverStatus === 'PASS' && plan?.render_ready === true));
   const layoutLocalValido = !!plan && !!chequeo && (layout.status === 'LAYOUT_VALID' && (chequeo.nViolaciones || 0) === 0);
-  // Endurecimiento verify-first (P0.2 obj11/14): aunque el servidor apruebe, una
-  // falla de invariante dura del cross-check cliente bloquea la publicación.
-  const layoutListo = layoutLocalValido && serverAprobado && sinFallasInvariantes;
+  // GAP2 · AUTORIDAD ÚNICA: la validez espacial la decide `validez` (derivarValidez
+  // sobre el agregador): SÓLO status PASS publica. PARTIAL/REVIEW_REQUIRED/NEEDS_REVIEW
+  // nunca. Se mantiene la exigencia de validación de servidor (serverAprobado) y el
+  // audit local como endurecimientos adicionales (nunca aflojan).
+  const layoutListo = layoutLocalValido && serverAprobado && validez.layoutEspacialValidado;
   const layoutPublicable = layoutListo && programaListo;
   const motivoLayout = [
     ...(!layout ? [] : [

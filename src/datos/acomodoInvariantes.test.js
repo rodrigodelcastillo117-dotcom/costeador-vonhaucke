@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { evaluarInvariantesAcomodo } from './acomodoInvariantes.js';
+import { evaluarInvariantesAcomodo, derivarValidez } from './acomodoInvariantes.js';
 
 // Payload canónico (mm) — dos áreas, un grupo operativo (ancla+silla) y una junta.
 function payloadBase() {
@@ -175,6 +175,34 @@ describe('acomodoInvariantes · zonas/anclas por IDs estables (audit G)', () => 
     plan.colocacion.find((c) => c.id === 'winB-1').area = 0;
     const r = evaluarInvariantesAcomodo({ payload: payloadDual(), plan });
     expect(r.issues.filter((i) => i.code === 'DEPENDENT_WRONG_ZONE')).toHaveLength(2);
+  });
+});
+
+describe('derivarValidez · autoridad única (GAP 2)', () => {
+  it('SÓLO PASS publica/valida', () => {
+    const v = derivarValidez({ evaluacion: { status: 'PASS', render_ready: true }, programaListo: true });
+    expect(v.layoutEspacialValidado).toBe(true);
+    expect(v.layoutValidado).toBe(true);
+    expect(v.publicable).toBe(true);
+    expect(v.render_ready).toBe(true);
+  });
+  it('PARTIAL/REVIEW_REQUIRED/NEEDS_REVIEW NUNCA publican', () => {
+    for (const status of ['PARTIAL', 'REVIEW_REQUIRED', 'NEEDS_REVIEW', 'FAIL']) {
+      const v = derivarValidez({ evaluacion: { status, render_ready: false }, programaListo: true });
+      expect(v.layoutEspacialValidado, status).toBe(false);
+      expect(v.layoutValidado, status).toBe(false);
+      expect(v.publicable, status).toBe(false);
+    }
+  });
+  it('PASS pero programa incompleto → espacial validado pero NO publicable', () => {
+    const v = derivarValidez({ evaluacion: { status: 'PASS', render_ready: true }, programaListo: false });
+    expect(v.layoutEspacialValidado).toBe(true);
+    expect(v.layoutValidado).toBe(false);
+  });
+  it('sin evaluación (borrador local) → nada validado', () => {
+    const v = derivarValidez({ evaluacion: null, programaListo: true });
+    expect(v.render_ready).toBe(false);
+    expect(v.layoutEspacialValidado).toBe(false);
   });
 });
 

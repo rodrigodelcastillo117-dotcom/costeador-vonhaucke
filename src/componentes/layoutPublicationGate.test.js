@@ -24,4 +24,16 @@ describe('Acomodo · publicación honesta',()=>{
   it('AcomodoBase declara explícitamente bloqueosPrograma para no explotar en runtime',()=>{
     expect(s).toContain('pendientesPrograma = [], bloqueosPrograma = []');
   });
+
+  it('GAP2: AUTORIDAD ÚNICA de validez (derivarValidez) usada por gate, autosave y publicación',()=>{
+    expect(s).toContain('derivarValidez');
+    expect(s).toContain('const validez = useMemo(() => derivarValidez(');
+    // el gate de publicación deriva de la autoridad única (status PASS)
+    expect(s).toContain('validez.layoutEspacialValidado');
+    // el autosave persiste desde la autoridad única, no desde el PASS del edge
+    expect(s).toContain('layoutEspacialValidado: validez.layoutEspacialValidado');
+    expect(s).toContain('layoutValidado: validez.layoutValidado');
+    // el render final sólo viaja si la autoridad única lo declara publicable
+    expect(s).toContain('render3d: validez.publicable ?');
+  });
 });

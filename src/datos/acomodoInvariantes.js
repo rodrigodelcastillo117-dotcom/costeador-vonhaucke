@@ -226,3 +226,24 @@ function normalizarStatusEdge(plan) {
 }
 
 export { peor as peorStatus };
+
+/**
+ * GAP 2 · AUTORIDAD ÚNICA DE VALIDEZ. Una sola función deriva todos los flags de
+ * publicación desde la evaluación del agregador. La usan autosave, guardarEnPropuesta,
+ * guardarStaging y layoutListo/layoutPublicable. SÓLO PASS publica: REVIEW_REQUIRED,
+ * PARTIAL y NEEDS_REVIEW nunca dan publicable/validado.
+ * @param {{evaluacion:object|null, programaListo:boolean}} _
+ */
+export function derivarValidez({ evaluacion = null, programaListo = true } = {}) {
+  const status = evaluacion ? evaluacion.status : null;
+  const render_ready = !!(evaluacion && evaluacion.render_ready);
+  const layoutEspacialValidado = status === 'PASS';          // SÓLO PASS
+  const layoutValidado = layoutEspacialValidado && !!programaListo;
+  return {
+    status,
+    render_ready,
+    layoutEspacialValidado,
+    layoutValidado,
+    publicable: layoutValidado,                               // alias de intención
+  };
+}
