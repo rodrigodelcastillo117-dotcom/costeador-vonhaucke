@@ -1,81 +1,152 @@
 // ============================================================================
-//  programaBrief · CONTRATO MÍNIMO (P0.1 · #5): salida estructurada de
-//  CotizadorIA/VONI → ProgramBrief que consume resolverPrograma.
+//  programaBrief · CONTRATO MÍNIMO (P0.1 · #5) contra el SCHEMA REAL de
+//  cotizar-texto v10. NO inventa campos: la Edge sólo garantiza
+//    items[]: { ruta, producto, cantidad, seleccion:[{clave,valor}], etiqueta,
+//              confianza, nota, material_override }
+//    banco[]: { id, cantidad, etiqueta, nota, sugerido }
+//  (additionalProperties:false — NO hay rol/linea/dimensiones/w/d).
 //
-//  NO es la inteligencia profunda de P0.7: sólo traduce los campos ESTRUCTURADOS
-//  que el intérprete ya entrega (línea, modelo, dimensiones, capacidad, rol,
-//  accesorios) al shape del brief. Regla dura: si el campo no viene, queda
-//  AUSENTE (UNKNOWN) — jamás se inventa. Así "el usuario pidió Eclipse Drift"
-//  llega al resolver y el Drift NO se sustituye por App LT en silencio.
+//  La LÍNEA sale de `ruta`; el MODELO de `producto`/`etiqueta`; las DIMENSIONES
+//  de `seleccion` (clave ancho/largo/profundidad). El ROL de las piezas de
+//  `banco` se resuelve por metadata canónica del BANCO (por id), no por texto.
+//  Regla dura: lo no provisto queda UNKNOWN (null/ausente) — nunca `false`
+//  (distingue "no mencionó" de "no quiere").
 // ============================================================================
+import { BANCO } from './banco.js';
+
 const norm = (s = '') => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
-// "1200 x 1200" / "1.20 × 1.20 m" / "2420x830 mm" → {w,d} en mm, o null.
-function dimsDe(it) {
-  if (it && (Number(it.w) > 0 || Number(it.d) > 0)) return { w: Number(it.w) || null, d: Number(it.d) || null };
-  const s = String(it?.dimensiones || it?.medidas || it?.dimensiones_mm || '');
-  const m = s.match(/(\d[\d.,]*)\s*[x×]\s*(\d[\d.,]*)/i);
-  if (!m) return null;
-  const toMM = (t) => { const n = parseFloat(String(t).replace(/,/g, '')); return n < 100 ? Math.round(n * 1000) : Math.round(n); };
-  const w = toMM(m[1]); const d = toMM(m[2]);
-  return (w > 0 && d > 0) ? { w, d } : null;
+// hash corto y estable del texto fuente (para versionar la interpretación).
+function hashTexto(t = '') {
+  let h = 0; const s = String(t);
+  for (let i = 0; i < s.length; i++) { h = ((h << 5) - h + s.charCodeAt(i)) | 0; }
+  return `h${(h >>> 0).toString(36)}`;
 }
 
-// Clasifica el rol de un item por su campo estructural (rol/tipo/zona) y, sólo si
-// falta, por palabras clave del nombre. Devuelve null si no hay señal (UNKNOWN).
+// Dimensiones desde `seleccion`: pares {clave:'ancho'|'largo'|'profundidad', valor:'1200'}.
+function dimsDeSeleccion(seleccion = []) {
+  const map = {};
+  for (const p of (Array.isArray(seleccion) ? seleccion : [])) {
+    const k = norm(p?.clave); const v = Number(String(p?.valor).replace(/[^\d.]/g, ''));
+    if (!v) continue;
+    if (/ancho|width/.test(k)) map.w = v < 100 ? Math.round(v * 1000) : Math.round(v);
+    else if (/largo|fondo|profund|depth|length/.test(k)) map.d = v < 100 ? Math.round(v * 1000) : Math.round(v);
+  }
+  return (map.w || map.d) ? { w: map.w || null, d: map.d || null } : null;
+}
+
+function capacidadDeSeleccion(seleccion = []) {
+  for (const p of (Array.isArray(seleccion) ? seleccion : [])) {
+    if (/usuarios|puestos|personas|capacidad/.test(norm(p?.clave))) {
+      const v = Number(String(p?.valor).replace(/[^\d]/g, ''));
+      if (v > 0) return v;
+    }
+  }
+  return null;
+}
+
+// Rol funcional de una pieza del BANCO por su metadata canónica (por id).
+function rolDeBanco(id) {
+  const p = BANCO.find((b) => b.id === id);
+  if (!p) return null;
+  const tipo = norm(p.tipo); const t = norm(`${p.nombre || ''} ${id}`);
+  if (tipo === 'silla' || /silla|asiento/.test(t)) {
+    if (/directiv|alpha|ejecutiv/.test(t)) return 'EXECUTIVE_SEAT';
+    if (/junta|consejo|sonata/.test(t)) return 'MEETING_SEAT';
+    if (/visit|concerto/.test(t)) return 'VISITOR_SEAT';
+    return 'WORK_SEAT';
+  }
+  if (tipo === 'guarda' || tipo === 'almacen' || /gaveta|pedestal|archiv|cajoner/.test(t)) return 'STORAGE';
+  return null;
+}
+
+// Clasifica un ITEM de línea por ruta/producto/etiqueta (fallback de texto: no
+// hay campo de rol en el schema real).
 function rolDeItem(it) {
-  const explicito = norm(it?.rol || it?.tipo || it?.zona || '');
-  const t = `${explicito} ${norm(it?.etiqueta || it?.producto || '')}`;
+  const t = norm(`${it?.ruta || ''} ${it?.producto || ''} ${it?.etiqueta || ''}`);
   if (/privad|direcc|directiv|ejecutiv|gerenc/.test(t)) return 'privado';
-  if (/junta|consejo|meeting|board|sala de junta/.test(t)) return 'juntas';
+  if (/junta|consejo|meeting|board/.test(t)) return 'juntas';
   if (/recepci|lobby|mostrador/.test(t)) return 'recepcion';
-  if (/gaveta|pedestal|cajonera|archiv/.test(t)) return 'guarda';
-  if (/silla|asiento/.test(t)) return 'silla';
   if (/operativ|bench|banca|open|puesto|workstation|isla/.test(t)) return 'operativo';
   return null;
 }
 
-const modeloDe = (it) => (it?.modelo || it?.producto || it?.etiqueta || null) || null;
-const lineaDe = (it) => it?.linea || it?.line || null;
-
 /**
- * Construye un ProgramBrief para resolverPrograma desde los items estructurados.
- * Alineación por orden de aparición (privados[0], juntas[0], ...). Campos ausentes
- * quedan sin setear (UNKNOWN). Nunca inventa línea/modelo/dimensiones.
+ * Construye el ProgramBrief VERSIONADO desde la propuesta REAL de cotizar-texto.
+ * @param {{items?:Array, banco?:Array, textoOriginal?:string}} propuesta
  */
-export function briefDeItems(items = []) {
-  const brief = { linea: null, operativosStorage: false, operativoSeatModel: null, privados: [], juntas: [] };
+export function briefDePropuesta({ items = [], banco = [], textoOriginal = '' } = {}) {
+  const requirements = {
+    linea: null,
+    operativosStorage: null,          // UNKNOWN hasta evidencia (no false)
+    operativoSeatModel: null,
+    privados: [],
+    juntas: [],
+    visitors: null,                   // {model, cantidad} si el banco trae visitas
+  };
+
+  // --- ITEMS de línea (ruta = línea; seleccion = dims/capacidad) ---
   for (const it of (Array.isArray(items) ? items : [])) {
     if (!it) continue;
-    if (!brief.linea && lineaDe(it)) brief.linea = lineaDe(it);
     const rol = rolDeItem(it);
+    const dims = dimsDeSeleccion(it.seleccion);
+    // La línea GLOBAL (operativa) sólo se toma de un item OPERATIVO; la de un
+    // privado/juntas viaja por-entrada (requested_line), no contamina la global.
+    if (rol === 'operativo' && !requirements.linea && it.ruta) requirements.linea = it.ruta;
     if (rol === 'privado') {
-      const entry = {};
-      if (lineaDe(it)) entry.requested_line = lineaDe(it);
-      const modelo = modeloDe(it);
-      if (modelo) entry.requested_models = { anchor: modelo };
-      const dims = dimsDe(it);
-      if (dims) entry.requested_dimensions = dims;
-      brief.privados.push(entry);
+      const e = { requested_route: it.ruta || null, requested_product: it.producto || null };
+      if (it.etiqueta || it.producto) e.requested_models = { anchor: it.etiqueta || it.producto };
+      if (it.ruta) e.requested_line = it.ruta;
+      if (dims) e.requested_dimensions = dims;
+      if (Array.isArray(it.seleccion) && it.seleccion.length) e.requested_selection = it.seleccion;
+      requirements.privados.push(e);
     } else if (rol === 'juntas') {
-      const entry = {};
-      if (lineaDe(it)) entry.requested_line = lineaDe(it);
-      const dims = dimsDe(it);
-      if (dims) entry.requested_dimensions = dims;
-      brief.juntas.push(entry);
-    } else if (rol === 'guarda') {
-      brief.operativosStorage = true;        // el usuario pidió guardas explícitamente
-    } else if (rol === 'silla' && /operativ|work|win|gamma/.test(norm(`${it.rol || ''} ${it.etiqueta || it.producto || ''}`))) {
-      if (modeloDe(it)) brief.operativoSeatModel = modeloDe(it);
+      const e = { requested_route: it.ruta || null };
+      if (it.ruta) e.requested_line = it.ruta;
+      if (dims) e.requested_dimensions = dims;
+      if (Array.isArray(it.seleccion) && it.seleccion.length) e.requested_selection = it.seleccion;
+      requirements.juntas.push(e);
     }
   }
-  return brief;
+
+  // --- BANCO (sillería/guardas) por id → rol canónico. Preserva modelo+cantidad. ---
+  for (const b of (Array.isArray(banco) ? banco : [])) {
+    if (!b || !b.id) continue;
+    const rol = rolDeBanco(b.id);
+    const cant = Math.max(1, Math.round(Number(b.cantidad) || 1));
+    if (rol === 'WORK_SEAT' && !requirements.operativoSeatModel) requirements.operativoSeatModel = b.id;
+    else if (rol === 'STORAGE') requirements.operativosStorage = true;            // evidencia explícita
+    else if (rol === 'VISITOR_SEAT') {
+      requirements.visitors = { model: b.id, cantidad: cant };
+      if (requirements.privados[0]) requirements.privados[0].requested_visitors = { model: b.id, cantidad: cant };
+    } else if (rol === 'EXECUTIVE_SEAT' && requirements.privados[0] && !requirements.privados[0].requested_models?.seat) {
+      requirements.privados[0].requested_models = { ...(requirements.privados[0].requested_models || {}), seat: b.id };
+    } else if (rol === 'MEETING_SEAT' && requirements.juntas[0] && !requirements.juntas[0].requested_models?.seat) {
+      requirements.juntas[0].requested_models = { ...(requirements.juntas[0].requested_models || {}), seat: b.id };
+    }
+  }
+
+  return {
+    version: 1,
+    source: 'cotizar-texto',
+    interpretation_id: `int-${Date.now()}`,
+    source_text_hash: hashTexto(textoOriginal),
+    interpreted_at: new Date().toISOString(),
+    requirements,
+  };
 }
 
-/** ¿El brief tiene alguna señal estructurada útil? (para no persistir ruido vacío) */
-export function briefTieneSenal(brief) {
-  if (!brief) return false;
-  return !!(brief.linea || brief.operativosStorage || brief.operativoSeatModel
-    || (brief.privados && brief.privados.some((p) => Object.keys(p).length))
-    || (brief.juntas && brief.juntas.some((p) => Object.keys(p).length)));
+/** ¿El brief (o sus requirements) tiene alguna señal estructurada útil? */
+export function briefTieneSenal(briefOrReq) {
+  const r = briefOrReq && briefOrReq.requirements ? briefOrReq.requirements : briefOrReq;
+  if (!r) return false;
+  return !!(r.linea || r.operativosStorage === true || r.operativoSeatModel || r.visitors
+    || (r.privados && r.privados.some((p) => Object.keys(p).length))
+    || (r.juntas && r.juntas.some((p) => Object.keys(p).length)));
+}
+
+/** Extrae los `requirements` que consume resolverPrograma (acepta brief versionado o plano). */
+export function requirementsDeBrief(brief) {
+  if (!brief) return null;
+  return brief.requirements ? brief.requirements : brief;
 }

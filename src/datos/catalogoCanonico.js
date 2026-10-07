@@ -117,7 +117,12 @@ export const GUARDAS = BANCO.filter(
 const normk = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 export function buscarEnColeccion(coleccion, { model = null, line = null, dimensions = null } = {}) {
   let xs = (coleccion || []).slice();
-  if (line) xs = xs.filter((p) => normk(p.linea) === normk(line));
+  // Línea tolerante a espacios: la `ruta` del intérprete ('applt') empata con la
+  // `linea` canónica del banco ('App LT'). No mezcla líneas distintas (drift≠applt).
+  const nl = (s) => normk(s).replace(/\s+/g, '');
+  // Un producto SIN línea (p.ej. mesas mj-*) no se excluye por línea pedida; sólo
+  // se descarta el que tiene OTRA línea explícita (drift ≠ applt).
+  if (line) xs = xs.filter((p) => !p.linea || nl(p.linea) === nl(line));
   if (dimensions && (dimensions.w || dimensions.d)) {
     xs = xs.filter((p) => {
       const wd = medidasAwd(p.medidas);

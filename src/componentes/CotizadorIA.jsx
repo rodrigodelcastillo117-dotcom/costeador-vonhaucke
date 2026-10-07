@@ -13,7 +13,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { catalogoIA, costearItem } from '../datos/lineas.js';
 import { BANCO } from '../datos/banco.js';
-import { briefDeItems, briefTieneSenal } from '../datos/programaBrief.js';
+import { briefDePropuesta } from '../datos/programaBrief.js';
 import { autorizadoPorRef } from '../datos/precioAutorizado.js';
 import { cotizarTexto } from '../nube.js';
 import ProgramaProyecto from './ProgramaProyecto.jsx';
@@ -151,19 +151,18 @@ export default function CotizadorIA({
       // Se marca ANTES de tocar las partidas: el useEffect de arriba compara
       // contra esta marca para saber que el cambio que viene fue nuestro.
       acabaDeInterpretar.current = true;
+      // #3/#4/#5: el BRIEF representa lo que el usuario PIDIÓ (items de línea por
+      // ruta/producto/seleccion + banco por id), NO lo que se pudo costear. Se
+      // construye del contrato REAL de cotizar-texto y se persiste SIEMPRE en una
+      // interpretación válida (aunque 0 partidas se costeen) REEMPLAZANDO la versión
+      // anterior (no se queda pegado el brief viejo).
+      const programaBrief = briefDePropuesta({ items, banco: r.propuesta?.banco || [], textoOriginal: t });
       if (costados.length) {
         const nuevoLote = `ia-${Date.now()}`;
-        // #5: persiste el BRIEF estructurado (línea/modelo/dims/accesorios) para que
-        // el Product Resolver reciba lo que el usuario pidió (p.ej. Eclipse Drift) y
-        // no lo sustituya en silencio. UNKNOWN si el intérprete no dio estructura.
-        const brief = briefDeItems(items);
-        const opts = { lote: nuevoLote, reemplaza: lote.current };
-        if (briefTieneSenal(brief)) opts.programaBrief = brief;
-        onAgregarItems(costados, opts);
+        onAgregarItems(costados, { lote: nuevoLote, reemplaza: lote.current, programaBrief });
         lote.current = nuevoLote;
-      } else if (lote.current) {
-        // No salió nada: igual hay que limpiar lo del intento anterior.
-        onAgregarItems([], { lote: null, reemplaza: lote.current });
+      } else {
+        onAgregarItems([], { lote: null, reemplaza: lote.current, programaBrief });
         lote.current = null;
       }
 

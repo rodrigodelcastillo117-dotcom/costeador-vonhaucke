@@ -15,6 +15,7 @@ import EmpezarEspacio from './EmpezarEspacio.jsx';
 import { leerPlanoDeArchivo } from '../datos/leerPlanoArchivo.js';
 import { areasCanonicas, bloqueGeometria } from '../datos/floorPlan.js';
 import { proponerProgramaDelPlano, aplicarPrograma } from '../datos/programaRealDelPlano.js';
+import { requirementsDeBrief } from '../datos/programaBrief.js';
 import Cargando from './Cargando.jsx';
 import EstoEntendi from './EstoEntendi.jsx';
 import { costoImplicito } from '../datos/preciosVenta.js';
@@ -142,9 +143,10 @@ export default function Voni({
   // lo que falta (p.ej. el bench APP LT) sin re-proponer lo ya presente.
   // El brief estructurado (línea/modelo/dims/accesorios) lo interpreta CotizadorIA
   // y se persiste en cot.programaBrief; aquí se combina con el FloorSpec (#4).
+  const reqBrief = requirementsDeBrief(cot.programaBrief);
   const propuestaPrograma = useMemo(
     () => (areasDelProyecto.length
-      ? proponerProgramaDelPlano(areasDelProyecto, { linea: (cot.programaBrief && cot.programaBrief.linea) || 'App LT', brief: cot.programaBrief || null })
+      ? proponerProgramaDelPlano(areasDelProyecto, { linea: (reqBrief && reqBrief.linea) || 'App LT', brief: reqBrief || null })
       : null),
     [areasDelProyecto, cot.programaBrief],
   );
