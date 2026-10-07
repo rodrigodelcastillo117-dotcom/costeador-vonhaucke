@@ -26,4 +26,24 @@ describe('coherencia del programa antes de Acomodo',()=>{
     ]);
     expect(r.ok).toBe(true);
   });
+
+  it('#5 AUTORIDAD relation_role: renombrar el producto NO rompe la coherencia',()=>{
+    // Nombres SIN ninguna palabra clave legacy; sólo relation_role estructural.
+    const r=validarCoherenciaPrograma([
+      {id:'a',nombre:'ZZZ-9981',cantidad:10,relation_role:'ANCHOR_WORKSTATION'},
+      {id:'b',nombre:'QRS-4420',cantidad:10,relation_role:'WORK_SEAT'},
+      {id:'c',nombre:'TTT-1000',cantidad:10,relation_role:'UNDERDESK_STORAGE'},
+    ]);
+    expect(r.ok).toBe(true);                     // el ancla se reconoce por rol, no por texto
+  });
+
+  it('#5 sin ancla estructural, los dependientes con relation_role SIGUEN bloqueando',()=>{
+    const r=validarCoherenciaPrograma([
+      {id:'b',nombre:'QRS-4420',cantidad:10,relation_role:'WORK_SEAT'},
+      {id:'c',nombre:'TTT-1000',cantidad:10,relation_role:'UNDERDESK_STORAGE'},
+    ]);
+    expect(r.ok).toBe(false);
+    expect(r.bloqueos.map(x=>x.code)).toContain('MISSING_WORK_ANCHOR');
+    expect(r.bloqueos.map(x=>x.code)).toContain('MISSING_PEDESTAL_ANCHOR');
+  });
 });

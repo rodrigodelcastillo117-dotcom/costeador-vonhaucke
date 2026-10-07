@@ -2,18 +2,34 @@
 // COHERENCIA DEL PROGRAMA ANTES DE ACOMODAR
 // No intenta diseñar ni inventar mobiliario. Detecta dependientes evidentes
 // (sillas/gavetas) cuyo ancla comercial no existe todavía en la cotización.
+//
+// AUTORIDAD (#5): la semántica estructural manda. Primero `relation_role`
+// (ANCHOR_*/WORK_SEAT/…); el texto del nombre es SÓLO fallback legacy para
+// cotizaciones viejas sin relation_role. Renombrar el producto NO rompe la
+// coherencia si el relation_role está bien puesto.
 // ============================================================================
-const norm=(s='')=>String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const norm=(s='')=>String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
 const txt=(p)=>norm(`${p?.nombre||''} ${p?.nota||''} ${p?.ruta||''}`);
 const cant=(p)=>Math.max(1,Math.round(Number(p?.cantidad)||1));
+const rel=(p)=>p?.relation_role||null;
 
-const esOperativa=(p)=>/silla|asiento/.test(txt(p)) && /operativ|puesto|banca|bench|open/.test(txt(p));
-const esDirectivaOVisita=(p)=>/silla|asiento/.test(txt(p)) && /directiv|ejecutiv|visita|confidente|privad/.test(txt(p));
-const esJuntasSeat=(p)=>/silla|asiento/.test(txt(p)) && /junta|consejo|meeting|board/.test(txt(p));
-const esMesaJuntas=(p)=>/mesa|table/.test(txt(p)) && /junta|consejo|meeting|board/.test(txt(p));
-const esWorkAnchor=(p)=>/escritorio|bench|banca|estacion|puesto de trabajo|workstation/.test(txt(p)) && !/silla|asiento/.test(txt(p));
-const esPrivateAnchor=(p)=>esWorkAnchor(p) && /privad|direccion|directiv|ejecutiv|gerenc/.test(txt(p));
-const esPedestal=(p)=>/gaveta|pedestal|cajonera/.test(txt(p));
+// --- fallback legacy por texto (sólo si no hay relation_role) ---
+const tOperativa=(p)=>/silla|asiento/.test(txt(p)) && /operativ|puesto|banca|bench|open/.test(txt(p));
+const tDirectivaOVisita=(p)=>/silla|asiento/.test(txt(p)) && /directiv|ejecutiv|visita|confidente|privad/.test(txt(p));
+const tJuntasSeat=(p)=>/silla|asiento/.test(txt(p)) && /junta|consejo|meeting|board/.test(txt(p));
+const tMesaJuntas=(p)=>/mesa|table/.test(txt(p)) && /junta|consejo|meeting|board/.test(txt(p));
+const tWorkAnchor=(p)=>/escritorio|bench|banca|estacion|puesto de trabajo|workstation/.test(txt(p)) && !/silla|asiento/.test(txt(p));
+const tPrivateAnchor=(p)=>tWorkAnchor(p) && /privad|direccion|directiv|ejecutiv|gerenc/.test(txt(p));
+const tPedestal=(p)=>/gaveta|pedestal|cajonera/.test(txt(p));
+
+// --- clasificadores: relation_role primero, texto después ---
+const esOperativa=(p)=> rel(p)==='WORK_SEAT' || (!rel(p) && tOperativa(p));
+const esDirectivaOVisita=(p)=> (rel(p)==='EXECUTIVE_SEAT'||rel(p)==='VISITOR_SEAT') || (!rel(p) && tDirectivaOVisita(p));
+const esJuntasSeat=(p)=> rel(p)==='MEETING_SEAT' || (!rel(p) && tJuntasSeat(p));
+const esMesaJuntas=(p)=> rel(p)==='ANCHOR_MEETING' || (!rel(p) && tMesaJuntas(p));
+const esWorkAnchor=(p)=> (rel(p)==='ANCHOR_WORKSTATION'||rel(p)==='ANCHOR_DESK') || (!rel(p) && tWorkAnchor(p));
+const esPrivateAnchor=(p)=> rel(p)==='ANCHOR_DESK' || (!rel(p) && tPrivateAnchor(p));
+const esPedestal=(p)=> (rel(p)==='UNDERDESK_STORAGE'||rel(p)==='SUPPORT_STORAGE') || (!rel(p) && tPedestal(p));
 
 export function validarCoherenciaPrograma(partidas=[]){
   const ps=(Array.isArray(partidas)?partidas:[]).filter(p=>!p?.sugeridoPlano&&!String(p?.id||'').startsWith('sug-'));
