@@ -11,12 +11,15 @@
 import { validarColocacion } from './acomodo-core.js';
 import { auditarPuertas } from './spatial-core.js';
 import { CONTRATO, evaluarRecovery } from './recovery-core.js';
-import { resolverKits, resolverKitsMulti } from './kit-solver.js';
+import { resolverKitsMulti } from './kit-solver.js';
 import { mensajeVendedor } from './opciones.js';
 
 // El mensaje al vendedor viaja sin los closures `aplicar` (no serializables).
+// GAP28: las opciones se verifican con el MISMO contrato del pipeline final
+// (resolverKitsMulti → hard → semantic → quality). El verifier NO llama a
+// mensajeVendedor, así que no hay recursión.
 function mensajeSerializable(areas, piezas, sol) {
-  const m = mensajeVendedor(areas, piezas, sol, { resolver: resolverKits });
+  const m = mensajeVendedor(areas, piezas, sol, { resolver: resolverKitsMulti });
   return { pendientes: m.pendientes, motivos: m.motivos, opciones: m.opciones.map((o) => ({ id: o.id, texto: o.texto })), sin_opcion: m.sin_opcion, hay_pendientes: m.hay_pendientes };
 }
 
@@ -33,11 +36,15 @@ export function construirRespuestaAcomodo(areas = [], piezas = []) {
   const doors = auditarPuertas(areas);
   const mensaje = mensajeSerializable(areas, piezasAsign, sol);
 
-  // GATE SEMÁNTICO + CALIDAD sobre el GANADOR.
-  const semOk = semEval.semOk !== false;
-  const qualityReview = !!sel.quality_review_required;
-  const render_ready = !!evalFinal.render_ready && semOk && !qualityReview;
-  const status = (!semOk) ? 'NEEDS_SEMANTIC_REVIEW' : (qualityReview ? 'QUALITY_REVIEW_REQUIRED' : evalFinal.status);
+  // GATE de publicación sobre el GANADOR (contrato FINAL):
+  //   render_ready ⇔ HARD PASS (evaluarRecovery) ∧ SEMANTIC PASS (GAP18: sólo PASS,
+  //   nunca REVIEW_REQUIRED) ∧ QUALITY ACEPTABLE (GAP26).
+  const semanticPass = semEval.semantic_pass === true;          // sólo 'PASS'
+  const qualityPass = semEval.quality_status ? semEval.quality_status === 'PASS' : true;
+  const qualityReview = !!sel.quality_review_required || !qualityPass;
+  const render_ready = !!evalFinal.render_ready && semanticPass && qualityPass && !sel.quality_review_required;
+  const status = (semEval.sem_status && !semanticPass) ? 'NEEDS_SEMANTIC_REVIEW'
+    : (qualityReview ? 'QUALITY_REVIEW_REQUIRED' : evalFinal.status);
 
   const layoutSpec = {
     version: CONTRATO.output_version,
@@ -54,7 +61,7 @@ export function construirRespuestaAcomodo(areas = [], piezas = []) {
       invariant_ok: evalFinal.invariant_ok,
       doors,
       semantic: val,
-      semantic_gate: { sem_status: semEval.sem_status ?? null, semFail: semEval.semFail ?? null, quality: semEval.quality ?? null },
+      semantic_gate: { sem_status: semEval.sem_status ?? null, semantic_pass: semanticPass, semFail: semEval.semFail ?? null, quality: semEval.quality ?? null, quality_status: semEval.quality_status ?? null },
       min_pasillo_mm: CONTRATO.min_pasillo_mm,
     },
     seleccion: sel,

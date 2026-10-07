@@ -75,6 +75,21 @@ function causaDesdeCertificado(cert, anc, ar, nSillas) {
     search_exhausted: cert.search_exhausted, nodes_used: cert.nodes_used,
   };
   const ladoTxt = () => (num(df.moduloW_m) > ev.areaW_m ? `ancho (${num(df.moduloW_m)} m vs ${ev.areaW_m} m de la zona)` : `fondo (${num(df.moduloH_m)} m vs ${ev.areaH_m} m de la zona)`);
+
+  // GAP22 · MULTI-ÁREA: si se intentaron VARIAS zonas y bloquearon por causas distintas,
+  // la explicación deriva de TODAS (no de una sola). Precede al switch mono-zona.
+  const zonasEval = (cert.permitted_areas || []).filter((a) => Array.isArray(a.causas) && a.causas.length);
+  if (zonasEval.length > 1 && !['SEARCH_BUDGET_EXHAUSTED', 'DIAGNOSTIC_BUDGET_EXHAUSTED', 'INTER_KIT_CONSTRAINT'].includes(cert.primary_cause)) {
+    const porZona = zonasEval.map((a) => `en "${a.zone}" ${a.causas.map((c) => LABEL_CAUSA[c] || c).join('/')}`);
+    const causasDistintas = new Set(zonasEval.flatMap((a) => a.causas)).size > 1;
+    const evMulti = { ...ev, por_zona: zonasEval.map((a) => ({ zona: a.zone, causas: a.causas })) };
+    if (causasDistintas) {
+      return { invariante: 'MULTI_CONSTRAINT', texto: `Se intentaron ${zonasEval.length} zonas y cada una bloquea por un motivo distinto: ${porZona.join('; ')}.`, evidencia: evMulti };
+    }
+    // misma causa en todas las zonas → una sola causa, pero mencionando que fueron varias.
+    return { invariante: cert.primary_cause, texto: `Se intentaron ${zonasEval.length} zonas (${zonasEval.map((a) => `"${a.zone}"`).join(', ')}) y en todas falla por lo mismo: ${(zonasEval[0].causas.map((c) => LABEL_CAUSA[c] || c).join('/'))}.`, evidencia: evMulti };
+  }
+
   switch (cert.primary_cause) {
     case 'SEARCH_BUDGET_EXHAUSTED':
       return { invariante: 'SEARCH_BUDGET_EXHAUSTED', texto: `No alcancé a explorar todo el espacio de "${zona}" dentro del presupuesto de cálculo; requiere revisión manual (no es una imposibilidad comprobada).`, evidencia: ev };
@@ -221,8 +236,19 @@ export function mensajeVendedor(areas = [], piezas = [], sol = {}, opts = {}) {
     });
   }
 
-  // Verifica cada candidata por simulación; conserva sólo las que mejoran, con texto
-  // de resultado verificado. Una por id de grupo/tipo; máximo 3.
+  // GAP28 · una opción se "verifica" con el MISMO contrato del pipeline final: si el
+  // `resolver` inyectado es el multi (trae seleccion.ganador_eval), la opción sólo
+  // cuenta si su simulación pasa HARD ∧ SEMANTIC PASS ∧ QUALITY aceptable. Con un
+  // resolver simple (sin verdict) no bloquea (compat). Nunca recursivo (el resolver
+  // NO llama a mensajeVendedor).
+  const verdictOk = (s) => {
+    const ev = s && s.seleccion && s.seleccion.ganador_eval;
+    if (!ev) return true;                                  // solver simple → no gate
+    return ev.hardOk === true && ev.semantic_pass === true && ev.quality_status === 'PASS';
+  };
+
+  // Verifica cada candidata por simulación; conserva sólo las que mejoran Y pasan el
+  // contrato. Una por id de grupo/tipo; máximo 3.
   const opciones = [];
   const vistos = new Set();
   for (const cand of candidatas) {
@@ -230,17 +256,18 @@ export function mensajeVendedor(areas = [], piezas = [], sol = {}, opts = {}) {
     const t = cand.aplicar(areas, piezas);
     const s2 = sim(t.areas, t.piezas);
     const r2 = colocDe(t.piezas, s2);
+    const ok2 = verdictOk(s2);
     let texto = null;
     if (cand.esQuitar) {
-      if (r2 && r2.no.size === 0 && t.piezas.length > 0) texto = `${cand.base}: el resto queda acomodado completo.`;
+      if (r2 && r2.no.size === 0 && t.piezas.length > 0 && ok2) texto = `${cand.base}: el resto queda acomodado completo y funcional.`;
       else if (!resolver) texto = `${cand.base}: deja el resto del acomodo.`;
     } else {
       const grupoIds = t.piezas.filter((p) => p.functional_group_id === cand.grupo).map((p) => String(p.id));
       const grupoCompleto = r2 ? grupoIds.length > 0 && grupoIds.every((id) => !r2.no.has(id)) : false;
-      if (grupoCompleto) {
-        if (cand.id === 'mover_zona') texto = `${cand.base}: ahí caben sus ${grupoIds.length} piezas.`;
-        else if (cand.id === 'mesa_mas_chica') texto = `${cand.base}: cabe con sus sillas.`;
-        else texto = `${cand.base}: cabe completa (${cand.capN} de ${cand.cap0}).`;
+      if (grupoCompleto && ok2) {
+        if (cand.id === 'mover_zona') texto = `${cand.base}: ahí caben sus ${grupoIds.length} piezas con acceso correcto.`;
+        else if (cand.id === 'mesa_mas_chica') texto = `${cand.base}: cabe con sus sillas y acceso correcto.`;
+        else texto = `${cand.base}: cabe completa y funcional (${cand.capN} de ${cand.cap0}).`;
       }
     }
     if (!texto) continue;

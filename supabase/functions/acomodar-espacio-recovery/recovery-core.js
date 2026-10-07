@@ -77,10 +77,23 @@ export function invariantesMuros(areas = [], piezas = [], colocacion = []) {
   return issues;
 }
 
-// --- CIRCULACIÓN (ancho de pasillo como regla dura, conservadora) ----------
-// Marca CIRCULATION_TIGHT cuando dos piezas del mismo área se enfrentan con un
-// hueco 1..min_pasillo (una persona tendría que pasar por un pasillo demasiado
-// angosto). Hueco 0 (a tope) no es pasillo; hueco ≥ min es correcto.
+// --- CIRCULACIÓN (ancho de pasillo como regla dura) ------------------------
+// GAP20: el pasillo mínimo de 1.0 m es INTER-KIT (entre bloques funcionales
+// distintos), NO una regla dentro de la geometría canónica de un kit. Dos piezas
+// del MISMO grupo funcional (bench doble cara, mesa de juntas) pueden estar a <1 m
+// por diseño (sillas hermanas, silla-tablero); eso lo rige el PlacementProfile/
+// slots, no la circulación. Sólo piezas de DISTINTO grupo a 1..min se marcan.
+const grupoFuncDe = (p) => (p && p.functional_group_id != null ? String(p.functional_group_id) : null);
+const anchorInstDe = (p) => (p && p.anchor_instance_id != null ? String(p.anchor_instance_id) : null);
+function mismoKit(pa, pb) {
+  if (!pa || !pb) return false;
+  const ga = grupoFuncDe(pa), gb = grupoFuncDe(pb);
+  if (ga && gb && ga === gb) return true;                 // mismo grupo funcional
+  if (anchorInstDe(pa) && anchorInstDe(pa) === String(pb.id)) return true;  // b es ancla de a
+  if (anchorInstDe(pb) && anchorInstDe(pb) === String(pa.id)) return true;  // a es ancla de b
+  if (anchorInstDe(pa) && anchorInstDe(pb) && anchorInstDe(pa) === anchorInstDe(pb)) return true; // misma ancla
+  return false;
+}
 export function invariantesCirculacion(areas = [], piezas = [], colocacion = [], minPasillo = CONTRATO.min_pasillo_mm) {
   const porId = new Map(piezas.map((p) => [String(p.id), p]));
   const porArea = new Map();
@@ -88,21 +101,22 @@ export function invariantesCirculacion(areas = [], piezas = [], colocacion = [],
     const pieza = porId.get(String(c.id)); if (!pieza) continue;
     const ai = Number(c.area);
     if (!porArea.has(ai)) porArea.set(ai, []);
-    porArea.get(ai).push({ id: String(c.id), r: rectDeColoc(pieza, c) });
+    porArea.get(ai).push({ id: String(c.id), p: pieza, r: rectDeColoc(pieza, c) });
   }
   const issues = [];
   for (const [ai, lista] of porArea) {
     for (let i = 0; i < lista.length; i++) {
       for (let j = i + 1; j < lista.length; j++) {
+        if (mismoKit(lista[i].p, lista[j].p)) continue;   // INTRA-KIT: no aplica pasillo inter-kit
         const a = lista[i].r, b = lista[j].r;
         const solapaY = a.y < b.y + b.d - EPS && a.y + a.d > b.y + EPS;
         const solapaX = a.x < b.x + b.w - EPS && a.x + a.w > b.x + EPS;
         if (solapaY && !solapaX) {
           const hueco = a.x < b.x ? b.x - (a.x + a.w) : a.x - (b.x + b.w);
-          if (hueco > EPS && hueco < minPasillo - EPS) issues.push({ code: 'CIRCULATION_TIGHT', severity: 'fail', id: `${lista[i].id}|${lista[j].id}`, area: ai, huecoMM: Math.round(hueco), eje: 'x' });
+          if (hueco > EPS && hueco < minPasillo - EPS) issues.push({ code: 'CIRCULATION_TIGHT', severity: 'fail', id: `${lista[i].id}|${lista[j].id}`, area: ai, huecoMM: Math.round(hueco), eje: 'x', scope: 'INTER_KIT' });
         } else if (solapaX && !solapaY) {
           const hueco = a.y < b.y ? b.y - (a.y + a.d) : a.y - (b.y + b.d);
-          if (hueco > EPS && hueco < minPasillo - EPS) issues.push({ code: 'CIRCULATION_TIGHT', severity: 'fail', id: `${lista[i].id}|${lista[j].id}`, area: ai, huecoMM: Math.round(hueco), eje: 'y' });
+          if (hueco > EPS && hueco < minPasillo - EPS) issues.push({ code: 'CIRCULATION_TIGHT', severity: 'fail', id: `${lista[i].id}|${lista[j].id}`, area: ai, huecoMM: Math.round(hueco), eje: 'y', scope: 'INTER_KIT' });
         }
       }
     }

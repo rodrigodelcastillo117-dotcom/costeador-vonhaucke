@@ -114,8 +114,16 @@ describe('P0.2c · GAP17 · causa exacta por contrafáctico', () => {
     const u = (sol.unplaced || []).find((x) => x.certificado);
     expect(u).toBeTruthy();
     expect(u.invariante).toBe('NO_SPACE_PARA_SILLAS');
-    expect(u.certificado.partial_certificate).toBeTruthy();
-    expect(u.certificado.partial_certificate.anchor_placeable).toBe(true);
+    const pc = u.certificado.partial_certificate;
+    expect(pc).toBeTruthy();
+    expect(pc.anchor_placeable).toBe(true);
+    expect(pc.minimum_fit).toBe(true);
+    expect(Array.isArray(pc.dropped_dependents)).toBe(true);
+    // GAP21: la CAUSA del kit completo está PROBADA por contrafáctico (NO "pasillo" por defecto).
+    expect(pc.full_kit_cause).toBeTruthy();
+    expect(['ASPECT_RATIO', 'NO_SPACE', 'MULTI_CONSTRAINT', 'DOOR', 'OBSTACLE', 'OUT_OF_POLYGON', 'INTER_KIT_CONSTRAINT']).toContain(pc.full_kit_cause);
+    expect(pc.full_kit_proven).toBe(true);
+    expect(pc.full_kit_evidence).toBeTruthy();
   });
 });
 

@@ -20,7 +20,8 @@ import { rectsSeSolapan, rectDentroPoligono, bloqueaPuertaEspacial } from './spa
 import { perfilDeAncla, layoutDeTopologia, rotarFacing, PROFILE_VERSION } from './placementProfiles.js';
 import { juzgarSemantico } from './semanticPlacementJudge.js';
 import { validarColocacion } from './acomodo-core.js';
-import { juzgarCalidad } from './qualityJudge.js';
+import { juzgarCalidad, calidadAceptable } from './qualityJudge.js';
+import { evaluarRecovery } from './recovery-core.js';
 
 export const SEAT = 600;      // huella de silla (mm)
 export const PITCH = 650;     // separación entre sillas alrededor de mesa
@@ -388,8 +389,9 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
     topology: p.topology ?? null, provenance: p.provenance ?? null, profile_version: p.profile_version ?? PROFILE_VERSION,
   });
 
+  const deadline = Number.isFinite(opts.deadline) ? opts.deadline : null;   // GAP27: presupuesto compartido
   function intentarKit(idx) {
-    if (Date.now() - t0 > MAX_MS || nodos > MAX_NODOS) { budgetExhausted = true; return idx >= kits.length; }
+    if (Date.now() - t0 > MAX_MS || nodos > MAX_NODOS || (deadline && Date.now() >= deadline)) { budgetExhausted = true; return idx >= kits.length; }
     if (idx >= kits.length) return true;
     const kit = kits[idx];
     const variantes = [
@@ -433,11 +435,22 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
       const certificado = certificarKit(kit, areas, { budgetExhausted, nodos });
       unplaced.push({ anchorId: kit.anchorId, piezas: res.dropped, invariante: res.invariante, certificado });
     } else if (res.dropped && res.dropped.length) {
-      // GAP17.5: el kit completo no cupo pero el ancla SÍ (variante mínima) → certificado PARCIAL.
+      // GAP21: el ancla SÍ cupo pero las sillas no. La CAUSA del kit completo se prueba
+      // con el MISMO diagnóstico contrafáctico (no se afirma "pasillo" por defecto). Si
+      // la causa exacta no se puede probar → proven=false (REVIEW).
+      const full = certificarKit(kit, areas, { budgetExhausted, nodos });
       const certificado = {
-        primary_cause: 'PARTIAL_SEATS_DROPPED', proven: true,
-        partial_certificate: { anchor_placeable: true, dropped: res.dropped.length,
-          note: 'El ancla se colocó; estas sillas/dependientes no cupieron conservando el pasillo de 1.0 m.' },
+        primary_cause: 'PARTIAL_SEATS_DROPPED',
+        proven: full.proven === true,
+        partial_certificate: {
+          anchor_placeable: true,
+          minimum_fit: true,
+          dropped_dependents: res.dropped,
+          full_kit_cause: full.primary_cause,
+          full_kit_proven: full.proven,
+          full_kit_evidence: full.evidence,
+          full_kit_secondary: full.secondary_causes,
+        },
       };
       unplaced.push({ anchorId: kit.anchorId, piezas: res.dropped, invariante: 'NO_SPACE_PARA_SILLAS', certificado });
     }
@@ -470,41 +483,50 @@ const ESTRATEGIAS_MULTI = [undefined, 'center', 'reverse', 'col', 'colReverse'];
 const MAX_MULTI_MS = 4000;        // F: presupuesto TOTAL del multi (no 5× el del solver)
 const QUALITY_EXCELENTE = 85;     // umbral para corte adaptativo
 
+// Rango semántico para ORDENAR (GAP18): PASS(2) > REVIEW_REQUIRED(1) > FAIL(0).
+const SEM_RANK = { PASS: 2, REVIEW_REQUIRED: 1, FAIL: 0 };
+
 function evaluarCandidato(areas, piezas, sol) {
   const faltan = new Set();
   for (const u of (sol.unplaced || [])) for (const id of (u.piezas || [])) faltan.add(String(id));
   for (const id of (sol.unassigned || [])) faltan.add(String(id));
   const placed = piezas.length - faltan.size;
 
-  // 1 · HARD: validador autoritativo. Legalidad de lo COLOCADO (ignora UNKNOWN_PIECE
-  // de las no colocadas; la completitud es un gate posterior, no una falla dura).
+  // 1 · HARD (GAP19): el MISMO contrato duro que decide la publicación (evaluarRecovery:
+  // bounds/overlap/puerta/obstáculo/muros/circulación/grupos/relacional). El selector
+  // no puede usar un hard distinto al final. hard-FAIL ⇒ hard issues de severidad fail.
+  const er = evaluarRecovery(areas, sol.piezas, sol.colocacion, { requested: piezas.length });
+  const hardFails = (er.issues || []).filter((i) => i.severity === 'fail');
+  const hardOk = hardFails.length === 0;
+  // porPieza del validador espacial (insumo de QUALITY, no gate).
   const hard = validarColocacion(areas, sol.piezas, sol.colocacion);
-  const hardIssues = (hard.porPieza || []).filter((r) => !r.ok && !(r.codigos || []).includes('UNKNOWN_PIECE'));
-  const hardOk = hardIssues.length === 0;
 
-  // 2 · SEMANTIC
+  // 2 · SEMANTIC (GAP18): PASS es condición de publicación; REVIEW_REQUIRED NO publica.
   const sem = juzgarSemantico(areas, sol.piezas, sol.colocacion);
   const sev = (s) => (sem.issues || []).filter((i) => i.severity === s).length;
   const semFail = sev('fail'), semReview = sev('review');
-  const semOk = semFail === 0;   // PASS o REVIEW; FAIL nunca pasa el gate semántico
+  const semantic_pass = sem.status === 'PASS';          // sólo PASS habilita render_ready
+  const semRank = SEM_RANK[sem.status] ?? 0;
 
-  // 4 · QUALITY (sólo informa el orden entre quienes pasaron gates)
+  // 4 · QUALITY (sólo informa el orden entre quienes pasaron gates) + estado aceptable (GAP26).
   const q = juzgarCalidad(areas, sol.piezas, sol.colocacion, { porPieza: hard.porPieza, semantic: sem });
+  const qa = calidadAceptable(q);
 
   return {
-    placed, hardOk, hard_issues: hardIssues.length,
-    sem_status: sem.status, semFail, semReview, semOk,
-    quality: q.total_score, quality_components: q.components, quality_reasons: q.reasons,
+    placed, hardOk, hard_issues: hardFails.length,
+    sem_status: sem.status, semFail, semReview, semantic_pass, semRank,
+    quality: q.total_score, quality_status: qa.status, quality_components: q.components, quality_reasons: q.reasons,
   };
 }
 
-// Orden TOTAL en capas: HARD → SEMANTIC → COMPLETENESS → QUALITY. Empate → #0.
-// Una solución con FAIL semántico JAMÁS gana a una PASS por colocar más piezas.
+// Orden TOTAL en capas: HARD → SEMANTIC(rank PASS>REVIEW>FAIL) → COMPLETENESS →
+// QUALITY. Empate → #0. Una solución con FAIL semántico JAMÁS gana a una PASS, y
+// una PASS gana a una REVIEW_REQUIRED (GAP18), por más piezas o score que tengan.
 export function mejorCandidato(a, b) {
   const x = a.eval, y = b.eval;
   if (x.hardOk !== y.hardOk) return x.hardOk ? a : b;                         // 1 HARD
   if (!x.hardOk && x.hard_issues !== y.hard_issues) return x.hard_issues < y.hard_issues ? a : b;
-  if (x.semOk !== y.semOk) return x.semOk ? a : b;                           // 2 SEMANTIC (gate)
+  if (x.semRank !== y.semRank) return x.semRank > y.semRank ? a : b;         // 2 SEMANTIC: PASS>REVIEW>FAIL
   if (x.semFail !== y.semFail) return x.semFail < y.semFail ? a : b;
   if (x.semReview !== y.semReview) return x.semReview < y.semReview ? a : b;
   if (x.placed !== y.placed) return x.placed > y.placed ? a : b;             // 3 COMPLETENESS
@@ -512,11 +534,15 @@ export function mejorCandidato(a, b) {
   return a.idx <= b.idx ? a : b;                                             // empate → determinista
 }
 
-const esExcelente = (ev, total) => ev.hardOk && ev.semOk && ev.sem_status === 'PASS' && ev.placed === total && ev.quality >= QUALITY_EXCELENTE;
+// GANADOR "limpio" = publicable: HARD PASS ∧ SEMANTIC PASS ∧ QUALITY aceptable ∧ completo.
+const esLimpio = (ev, total) => ev.hardOk && ev.semantic_pass && ev.quality_status === 'PASS' && ev.placed === total;
+// Excelente (corte adaptativo): limpio + score alto → no vale la pena explorar más.
+const esExcelente = (ev, total) => esLimpio(ev, total) && ev.quality >= QUALITY_EXCELENTE;
 
 export function resolverKitsMulti(areas = [], piezas = [], opts = {}) {
   const t0 = Date.now();
   const budget = num(opts.maxMultiMs, MAX_MULTI_MS);
+  const deadline = t0 + budget;                     // GAP27: presupuesto COMPARTIDO con el solver
   const estrategias = Array.isArray(opts.estrategias) && opts.estrategias.length ? opts.estrategias : ESTRATEGIAS_MULTI;
   const total = piezas.length;
   const cands = [];
@@ -524,21 +550,23 @@ export function resolverKitsMulti(areas = [], piezas = [], opts = {}) {
   let budgetExhaustedMulti = false;
 
   for (let i = 0; i < estrategias.length; i++) {
-    if (i > 0 && Date.now() - t0 > budget) { budgetExhaustedMulti = true; break; }   // F: presupuesto TOTAL
+    // GAP27: no arrancar otro candidato si ya no queda presupuesto REAL (cada solve
+    // puede consumir hasta MAX_MS). El deadline se pasa al solver para que corte.
+    if (i > 0 && Date.now() >= deadline) { budgetExhaustedMulti = true; break; }
     const orden = estrategias[i];
-    const sol = resolverKits(areas, piezas, { orden });
+    const sol = resolverKits(areas, piezas, { orden, deadline });   // presupuesto compartido
     const cand = { idx: i, orden: orden ?? 'row', sol, eval: evaluarCandidato(areas, piezas, sol) };
     cands.push(cand);
     ganador = ganador ? mejorCandidato(ganador, cand) : cand;
-    // F · corte adaptativo: si el GANADOR ya es excelente, no explorar de más.
-    if (esExcelente(ganador.eval, total)) break;
+    if (esExcelente(ganador.eval, total)) break;    // corte adaptativo
   }
+  if (Date.now() >= deadline) budgetExhaustedMulti = true;
 
   const elapsed_ms = Date.now() - t0;
-  // F · el presupuesto NO puede producir un falso PASS: si se agotó el tiempo y el
-  // ganador no es completo+semántico-OK, se marca QUALITY_REVIEW_REQUIRED.
-  const winnerClean = ganador.eval.hardOk && ganador.eval.semOk && ganador.eval.placed === total;
-  const quality_review_required = budgetExhaustedMulti && !winnerClean;
+  // GAP27: el presupuesto NO produce falso PASS. Sólo es "no review" si el ganador es
+  // LIMPIO (hard+semantic+quality+completo); winnerClean por sí solo NO basta.
+  const winnerLimpio = esLimpio(ganador.eval, total);
+  const quality_review_required = !winnerLimpio && (budgetExhaustedMulti || ganador.eval.quality_status !== 'PASS');
 
   return {
     ...ganador.sol,
@@ -550,8 +578,9 @@ export function resolverKitsMulti(areas = [], piezas = [], opts = {}) {
       estrategias_totales: estrategias.length,
       ganador_eval: ganador.eval,
       quality_review_required,
+      publicable: winnerLimpio,
       metrics: { elapsed_ms, budget_ms: budget, budget_exhausted: budgetExhaustedMulti, winner_strategy: ganador.orden, candidates_evaluated: cands.length },
-      por_candidato: cands.map((c) => ({ idx: c.idx, orden: c.orden, placed: c.eval.placed, hardOk: c.eval.hardOk, sem_status: c.eval.sem_status, semFail: c.eval.semFail, quality: c.eval.quality })),
+      por_candidato: cands.map((c) => ({ idx: c.idx, orden: c.orden, placed: c.eval.placed, hardOk: c.eval.hardOk, sem_status: c.eval.sem_status, semFail: c.eval.semFail, quality: c.eval.quality, quality_status: c.eval.quality_status })),
     },
   };
 }

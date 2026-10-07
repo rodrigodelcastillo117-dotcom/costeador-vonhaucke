@@ -5,8 +5,9 @@
 //  componente espacial en lugar de duplicarlo, y agrega componentes explicables.
 //
 //  Salida: { total_score (0..100), components:{nombre:{score0..1,weight,detail}}, reasons[] }
+//  calidadAceptable(q) → { status: PASS|REVIEW_REQUIRED, provenance:'PROVISIONAL', ... }
 // ============================================================================
-import { evaluarCalidad } from './spatial-core.js';
+import { evaluarCalidad, spatialSpecDe } from './spatial-core.js';
 
 const num = (n, d = 0) => (Number.isFinite(Number(n)) ? Number(n) : d);
 const esAncla = (r) => typeof r === 'string' && r.startsWith('ANCHOR_');
@@ -18,7 +19,7 @@ function rectDe(c, p) {
   return { x: num(c.x), y: num(c.y), w: g ? num(p.d) : num(p.w), d: g ? num(p.w) : num(p.d) };
 }
 
-// Ponderaciones (no todas pesan igual). HARD/SEMANTIC no están aquí: son gates.
+// Ponderaciones base (no todas pesan igual). HARD/SEMANTIC no están aquí: son gates.
 const PESOS = {
   spatial: 0.22,
   active_side_clearance: 0.20,
@@ -28,14 +29,17 @@ const PESOS = {
   symmetry: 0.08,
   utilization: 0.08,
   wall_usage: 0.03,
-  circulation: 0.03,
+  free_space_proxy: 0.03,
 };
+
+// GAP26: umbral PROVISIONAL de calidad aceptable (versionado, NO "regla Von Haucke").
+export const QUALITY_CONTRACT = Object.freeze({ version: 'QJ_V1_PROVISIONAL', min_score: 70, provenance: 'PROVISIONAL' });
 
 export function juzgarCalidad(areas = [], piezas = [], colocacion = [], { porPieza = [], semantic = null } = {}) {
   const byId = new Map(piezas.map((p) => [String(p.id), p]));
   const comps = {};
   const reasons = [];
-  const add = (name, score, detail) => { comps[name] = { score: +clamp01(score).toFixed(3), weight: PESOS[name] ?? 0, detail }; };
+  const add = (name, score, detail, weightOverride) => { comps[name] = { score: +clamp01(score).toFixed(3), weight: weightOverride != null ? weightOverride : (PESOS[name] ?? 0), detail }; };
 
   // 1 · ESPACIAL (reusa evaluarCalidad: 0..100 → 0..1).
   const esp = evaluarCalidad(areas, piezas, colocacion, porPieza);
@@ -59,22 +63,23 @@ export function juzgarCalidad(areas = [], piezas = [], colocacion = [], { porPie
     add('accessibility', 1, { avg_clear_mm: '>=target', target_mm: 600 });
   }
 
+  // Mapa ancla → {rect, topology}.
+  const anclas = new Map();
+  for (const c of colocacion) { const p = byId.get(String(c.id)); if (p && esAncla(p.relation_role)) anclas.set(String(c.id), { rect: rectDe(c, p), topology: c.topology || null, area: num(c.area) }); }
+
   // 4 · GROUPING: dependientes cerca de su ancla (compacidad del grupo funcional).
-  const anclaRect = new Map();
-  for (const c of colocacion) { const p = byId.get(String(c.id)); if (p && esAncla(p.relation_role)) anclaRect.set(String(c.id), rectDe(c, p)); }
   let gSum = 0, gN = 0;
   for (const c of seats) {
     const aId = c.anchor_instance_id != null ? String(c.anchor_instance_id) : null;
-    const ar = aId ? anclaRect.get(aId) : null; if (!ar) continue;
-    const p = byId.get(String(c.id)); const sr = rectDe(c, p);
+    const anc = aId ? anclas.get(aId) : null; if (!anc) continue;
+    const p = byId.get(String(c.id)); const sr = rectDe(c, p); const ar = anc.rect;
     const dx = Math.max(0, Math.max(ar.x, sr.x) - Math.min(ar.x + ar.w, sr.x + sr.w));
     const dy = Math.max(0, Math.max(ar.y, sr.y) - Math.min(ar.y + ar.d, sr.y + sr.d));
-    const dist = Math.hypot(dx, dy);
-    gSum += clamp01(1 - dist / 1500); gN++;   // >1.5 m del ancla ya es malo
+    gSum += clamp01(1 - Math.hypot(dx, dy) / 1500); gN++;
   }
   add('grouping', gN ? gSum / gN : 1, { seats_evaluados: gN });
 
-  // 5 · ORIENTATION_CONSISTENCY: las sillas del mismo lado (side) comparten facing.
+  // 5 · ORIENTATION_CONSISTENCY: sillas del mismo lado (side) comparten facing.
   const porAnclaLado = new Map();
   for (const c of seats) {
     const key = `${c.anchor_instance_id}#${c.side}`;
@@ -85,18 +90,28 @@ export function juzgarCalidad(areas = [], piezas = [], colocacion = [], { porPie
   for (const facings of porAnclaLado.values()) { ladosTot++; if (facings.size <= 1) ladosOk++; }
   add('orientation_consistency', ladosTot ? ladosOk / ladosTot : 1, { lados: ladosTot, consistentes: ladosOk });
 
-  // 6 · SYMMETRY: balance de sillas por lado en anclas de doble cara / mesa.
-  const porAnclaSide = new Map();
+  // 6 · SYMMETRY por TOPOLOGÍA (GAP23): la distribución canónica NO se penaliza.
+  //  DOUBLE_FACE → balancea A vs B.  MEETING_TABLE → A vs B y HEAD_A vs HEAD_B
+  //  por separado (jamás cabeceras contra lados largos). Otras topologías → N/A (1).
+  const bal = (x, y) => { const m = Math.max(x, y); return m ? Math.min(x, y) / m : 1; };
+  const sideCount = new Map();   // anchorId → {side: n}
   for (const c of seats) {
     const a = String(c.anchor_instance_id);
-    if (!porAnclaSide.has(a)) porAnclaSide.set(a, new Map());
-    const m = porAnclaSide.get(a); m.set(c.side, (m.get(c.side) || 0) + 1);
+    if (!sideCount.has(a)) sideCount.set(a, {});
+    const m = sideCount.get(a); m[c.side] = (m[c.side] || 0) + 1;
   }
   let simSum = 0, simN = 0;
-  for (const m of porAnclaSide.values()) {
-    const vals = [...m.values()]; if (vals.length < 2) { simSum += 1; simN++; continue; }
-    const max = Math.max(...vals), min = Math.min(...vals);
-    simSum += clamp01(min / max); simN++;
+  for (const [aId, m] of sideCount) {
+    const topo = anclas.get(aId)?.topology;
+    if (topo === 'MEETING_TABLE') {
+      const lados = bal(m.A || 0, m.B || 0);
+      const heads = ((m.HEAD_A || 0) + (m.HEAD_B || 0)) ? bal(m.HEAD_A || 0, m.HEAD_B || 0) : 1;
+      simSum += (lados + heads) / 2; simN++;
+    } else if (topo === 'DOUBLE_FACE') {
+      simSum += bal(m.A || 0, m.B || 0); simN++;
+    } else {
+      simSum += 1; simN++;   // SINGLE_FACE/DESK/RECEPTION: simetría no aplica
+    }
   }
   add('symmetry', simN ? simSum / simN : 1, { anclas: simN });
 
@@ -105,31 +120,50 @@ export function juzgarCalidad(areas = [], piezas = [], colocacion = [], { porPie
   for (const a of areas) areaTot += (num(a.ancho) || num(a.width_mm)) * (num(a.largo) || num(a.depth_mm));
   for (const c of colocacion) { const p = byId.get(String(c.id)); if (!p) continue; const r = rectDe(c, p); used += r.w * r.d; }
   const util = areaTot ? used / areaTot : 0;
-  // curva: hasta 0.7 sube linealmente; por encima penaliza (saturación).
   add('utilization', util <= 0.7 ? util / 0.7 : clamp01(1 - (util - 0.7) / 0.3), { utilization: +util.toFixed(3) });
 
-  // 8 · WALL_USAGE: anclas grandes apoyadas a un muro (estabilidad de layout).
+  // 8 · WALL_USAGE (GAP24): SÓLO si el PlacementProfile lo pide (prefer_wall). Sin
+  // evidencia → NO se premia (peso 0): "cerca de muro" no es criterio global.
   let wallSum = 0, wallN = 0;
-  for (const [id, ar] of anclaRect) {
-    const c = colocacion.find((x) => String(x.id) === id); const area = areas[num(c.area)]; if (!area) continue;
+  for (const [id, anc] of anclas) {
+    const p = byId.get(id); const spec = spatialSpecDe(p || {});
+    const preferWall = spec.prefer_wall === true || spec.anchor === 'wall' || spec.ancla === 'muro';
+    if (!preferWall) continue;                                  // sin evidencia → no cuenta
+    const area = areas[anc.area]; if (!area) continue;
     const W = num(area.ancho) || num(area.width_mm), H = num(area.largo) || num(area.depth_mm);
+    const ar = anc.rect;
     const dMuro = Math.min(ar.x, ar.y, Math.max(0, W - (ar.x + ar.w)), Math.max(0, H - (ar.y + ar.d)));
     wallSum += clamp01(1 - dMuro / 1500); wallN++;
   }
-  add('wall_usage', wallN ? wallSum / wallN : 1, { anclas: wallN });
+  add('wall_usage', wallN ? wallSum / wallN : 1, { anclas_prefer_wall: wallN, evidencia: wallN > 0 }, wallN ? PESOS.wall_usage : 0);
 
-  // 9 · CIRCULATION: proxy — queda holgura libre (no saturado) para circular.
-  add('circulation', clamp01(1 - util), { free_fraction: +(1 - util).toFixed(3) });
+  // 9 · FREE_SPACE_PROXY (GAP25): PROVISIONAL. Mide espacio libre, NO circulación real.
+  add('free_space_proxy', clamp01(1 - util), { free_fraction: +(1 - util).toFixed(3), provenance: 'PROVISIONAL', nota: 'proxy de holgura, no circulación medida' });
 
-  // --- total ponderado.
+  // --- total ponderado (los pesos 0 no cuentan).
   let total = 0, wsum = 0;
   for (const c of Object.values(comps)) { total += c.score * c.weight; wsum += c.weight; }
   const total_score = +(100 * (wsum ? total / wsum : 0)).toFixed(2);
 
   if (tight.length) reasons.push(`${tight.length} silla(s) con acceso apretado (<600 mm).`);
-  if (comps.symmetry.score < 0.8) reasons.push('Distribución de sillas poco balanceada entre lados.');
+  if (comps.symmetry.score < 0.8) reasons.push('Distribución de sillas poco balanceada para su topología.');
   if (comps.grouping.score < 0.8) reasons.push('Dependientes alejados de su ancla.');
   if (!reasons.length) reasons.push('Layout limpio: acceso, agrupación y orientación correctos.');
 
   return { total_score, components: comps, reasons };
+}
+
+// GAP26 · ¿la calidad es ACEPTABLE para publicar? PROVISIONAL (versionado). Un score
+// bajo o un componente crítico bajo NO puede terminar FINAL sólo porque hubo presupuesto.
+export function calidadAceptable(q) {
+  const c = q.components || {};
+  const reasons = [];
+  const crit = [];
+  if ((c.active_side_clearance?.score ?? 1) < 0.5) crit.push('active_side_clearance');
+  if ((c.accessibility?.score ?? 1) < 0.5) crit.push('accessibility');
+  const lowScore = num(q.total_score) < QUALITY_CONTRACT.min_score;
+  if (crit.length) reasons.push('componentes críticos bajos: ' + crit.join(', '));
+  if (lowScore) reasons.push(`score ${q.total_score} < ${QUALITY_CONTRACT.min_score} (provisional)`);
+  const status = (crit.length || lowScore) ? 'REVIEW_REQUIRED' : 'PASS';
+  return { status, provenance: QUALITY_CONTRACT.provenance, version: QUALITY_CONTRACT.version, threshold: QUALITY_CONTRACT.min_score, reasons };
 }

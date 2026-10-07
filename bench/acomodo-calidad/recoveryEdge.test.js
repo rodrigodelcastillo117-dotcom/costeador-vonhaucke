@@ -32,8 +32,41 @@ describe('P0.2c · BLOCK 5 · edge emite el GANADOR (center/PASS), no el row/FAI
     const sem = juzgarSemantico(areas, resp.plan.piezas, resp.layoutSpec.placements);
     expect(sem.status).toBe('PASS');
     expect(resp.metodo).toBe('kit-solver-multi-v1');
-    // (render_ready depende además del validador duro de recovery-core, que aplica
-    // circulación entre asientos del propio bench; eso es pre-existente y ajeno a BLOCK5.)
+    // GAP20: la circulación intra-kit ya NO marca CIRCULATION_TIGHT entre sillas del
+    // mismo bench → el ganador PASS es PUBLICABLE end-to-end.
+    expect((resp.layoutSpec.validation.issues || []).filter((i) => i.code === 'CIRCULATION_TIGHT').length).toBe(0);
+    expect(resp.render_ready).toBe(true);
+    expect(resp.status).toBe('PASS');
+  });
+
+  it('GAP29 · MEETING 10 (4+4+1+1): row FALLA, multi elige center PASS y el edge lo publica', () => {
+    const areas = [{ nombre: 'JU', zone_id: 'JU', tipo: 'juntas', ancho: 6000, largo: 4000 }];
+    const meeting10 = () => [
+      mk('m', 'ANCHOR_MEETING', 3000, 1200, { user_capacity: 10, placement_profile: { topology: 'MEETING_TABLE', provenance: 'CATALOG', version: 'PP_V1' } }),
+      ...Array.from({ length: 10 }, (_, i) => mk('s' + i, 'MEETING_SEAT', 600, 600)),
+    ];
+    const row = resolverKits(areas, meeting10());
+    expect(juzgarSemantico(areas, row.piezas, row.colocacion).status).toBe('FAIL');  // default contra el muro
+    const resp = construirRespuestaAcomodo(areas, meeting10());
+    expect(resp.seleccion.ganador_orden).toBe('center');
+    expect(resp.layoutSpec.validation.semantic_gate.sem_status).toBe('PASS');
+    expect(resp.render_ready).toBe(true);
+    // distribución canónica 4+4+1+1 en la salida real.
+    const sides = {};
+    for (const c of resp.layoutSpec.placements.filter((c) => c.side)) sides[c.side] = (sides[c.side] || 0) + 1;
+    expect(sides).toEqual({ A: 4, B: 4, HEAD_A: 1, HEAD_B: 1 });
+  });
+
+  it('GAP18 · topología UNKNOWN → REVIEW_REQUIRED → JAMÁS render_ready', () => {
+    const areas = [{ nombre: 'OP', zone_id: 'OP', tipo: 'open', ancho: 4000, largo: 4000 }];
+    const unk = [
+      mk('b', 'ANCHOR_WORKSTATION', 3000, 1200, { user_capacity: 2 }),   // SIN placement_profile → UNKNOWN
+      mk('s0', 'WORK_SEAT', 600, 600), mk('s1', 'WORK_SEAT', 600, 600),
+    ];
+    const resp = construirRespuestaAcomodo(areas, unk);
+    expect(resp.layoutSpec.validation.semantic_gate.sem_status).toBe('REVIEW_REQUIRED');
+    expect(resp.render_ready).toBe(false);
+    expect(resp.status).toBe('NEEDS_SEMANTIC_REVIEW');
   });
 
   it('si NINGÚN candidato logra PASS semántico, render_ready=false y status NEEDS_SEMANTIC_REVIEW', () => {
