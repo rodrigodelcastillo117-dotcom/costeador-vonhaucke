@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { programHash, floorHash, planEstaStale, serializarEstable } from './acomodoHash.js';
+import { programHash, programHashCanonico, floorHash, planEstaStale, serializarEstable } from './acomodoHash.js';
 import { construirPayloadAcomodo, validarFloorSpecGeom } from './acomodoPayload.js';
 
 const PARTIDAS = [
@@ -59,15 +59,47 @@ describe('acomodoHash · floor_hash (P0.2 obj 10)', () => {
   });
 });
 
-describe('acomodoHash · planEstaStale', () => {
+describe('acomodoHash · program_hash CANÓNICO (audit E)', () => {
+  const piezas = [
+    { id: 'a-1', w: 6000, d: 1200, tipo: 'escritorio', relation_role: 'ANCHOR_WORKSTATION', functional_group_id: 'g1' },
+    { id: 's-1', w: 600, d: 600, tipo: 'asiento', relation_role: 'WORK_SEAT', functional_group_id: 'g1' },
+  ];
+  it('CAMBIA si cambia una dimensión canónica aunque el id/cantidad no cambien', () => {
+    const base = programHashCanonico(piezas);
+    const otro = programHashCanonico(piezas.map((p) => (p.id === 'a-1' ? { ...p, w: 4500 } : p)));
+    expect(base).toMatch(/^pc_/);
+    expect(otro).not.toBe(base);
+  });
+  it('estable ante reordenamiento', () => {
+    expect(programHashCanonico(piezas)).toBe(programHashCanonico([...piezas].reverse()));
+  });
+});
+
+describe('acomodoHash · floor_hash cubre muros y min_pasillo (audit E)', () => {
+  it('CAMBIA al agregar un muro', () => {
+    const base = floorHash(AREAS_M);
+    const conMuro = floorHash(AREAS_M.map((a, i) => (i === 0 ? { ...a, muros: [{ x1: 1, y1: 0, x2: 1, y2: 3 }] } : a)));
+    expect(conMuro).not.toBe(base);
+  });
+  it('CAMBIA si cambia el pasillo mínimo (circulación)', () => {
+    expect(floorHash(AREAS_M, { minPasillo: 1000 })).not.toBe(floorHash(AREAS_M, { minPasillo: 1200 }));
+  });
+});
+
+describe('acomodoHash · planEstaStale (fail-safe audit E)', () => {
   const ph = programHash(PARTIDAS); const fh = floorHash(AREAS_M);
-  it('plan sin hashes previos (legacy) no se marca stale aquí', () => {
+  it('plan vacío (sin colocación) no se marca stale', () => {
     expect(planEstaStale({ colocacion: [] }, ph, fh)).toBe(false);
   });
+  it('FAIL-SAFE: plan legacy CON colocación y SIN hashes → STALE', () => {
+    expect(planEstaStale({ colocacion: [{ id: 'x', area: 0, x: 0, y: 0 }] }, ph, fh)).toBe(true);
+    expect(planEstaStale({ colocacion: [{ id: 'x' }], program_hash: ph }, ph, fh)).toBe(true); // falta floor_hash
+  });
   it('stale si cambió program_hash o floor_hash', () => {
-    expect(planEstaStale({ program_hash: ph, floor_hash: fh }, ph, fh)).toBe(false);
-    expect(planEstaStale({ program_hash: 'p_viejo', floor_hash: fh }, ph, fh)).toBe(true);
-    expect(planEstaStale({ program_hash: ph, floor_hash: 'f_viejo' }, ph, fh)).toBe(true);
+    const plan = { colocacion: [{ id: 'x' }], program_hash: ph, floor_hash: fh };
+    expect(planEstaStale(plan, ph, fh)).toBe(false);
+    expect(planEstaStale({ ...plan, program_hash: 'pc_viejo' }, ph, fh)).toBe(true);
+    expect(planEstaStale({ ...plan, floor_hash: 'f_viejo' }, ph, fh)).toBe(true);
   });
   it('serializarEstable ordena claves de forma determinista', () => {
     expect(serializarEstable({ b: 1, a: 2 })).toBe(serializarEstable({ a: 2, b: 1 }));
@@ -81,7 +113,7 @@ describe('acomodoPayload · construirPayloadAcomodo (P0.2 obj 1/2/3)', () => {
     expect(r.areas).toHaveLength(2);
     expect(r.areas[0].ancho).toBe(8000);            // metros → mm
     expect(r.piezas.length).toBeGreaterThan(0);
-    expect(r.program_hash).toMatch(/^p_/);
+    expect(r.program_hash).toMatch(/^pc_/);   // canónico sobre piezas expandidas
     expect(r.floor_hash).toMatch(/^f_/);
     expect(r.requested).toBe(r.piezas.length);
     expect(r.descartadosSugeridos).toBe(0);

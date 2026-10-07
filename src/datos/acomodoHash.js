@@ -68,6 +68,36 @@ export function programHash(partidas = []) {
   return `p_${hashEstable(huellas)}`;
 }
 
+// Normaliza UNA pieza canónica EXPANDIDA (lo que recibe el solver) a su huella.
+function huellaPiezaCanonica(p = {}) {
+  return {
+    id: String(p.id ?? ''),
+    w: mm(p.w), d: mm(p.d),
+    tipo: p.tipo ?? null,
+    relation_role: p.relation_role ?? null,
+    anchor_role: p.anchor_role ?? null,
+    anchor_instance_id: p.anchor_instance_id ?? null,
+    functional_group_id: p.functional_group_id ?? null,
+    requirement_id: p.requirement_id ?? null,
+    zone_id: p.zone_id ?? null,
+    zonaSugerida: p.zonaSugerida ?? null,
+  };
+}
+
+/**
+ * program_hash CANÓNICO (audit E): sobre las PIEZAS EXPANDIDAS que realmente
+ * recibe el solver, no las partidas crudas. Si cambia una dimensión canónica de
+ * una pieza (p.ej. el bench pasa de 6000 a 4500) el hash cambia aunque la
+ * cantidad/id comercial no cambien → el plan queda stale.
+ * @param {Array} piezas - salida de expandirPiezas (la que viaja al solver)
+ */
+export function programHashCanonico(piezas = []) {
+  const huellas = (Array.isArray(piezas) ? piezas : [])
+    .map(huellaPiezaCanonica)
+    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  return `pc_${hashEstable(huellas)}`;
+}
+
 // Normaliza UNA área del FloorSpec canónico (MM) a su geometría relevante.
 function huellaArea(a = {}) {
   return {
@@ -91,6 +121,10 @@ function huellaArea(a = {}) {
           barridoDeg: Number.isFinite(d.barridoDeg) ? Number(d.barridoDeg) : null,
         }))
       : null,
+    // MUROS first-class: cambian la geometría → entran al floor_hash (audit E).
+    muros: Array.isArray(a.muros)
+      ? a.muros.map((m) => ({ x1: mm(m.x1), y1: mm(m.y1), x2: mm(m.x2), y2: mm(m.y2), grosor: Number.isFinite(m.grosor) ? mm(m.grosor) : null }))
+      : null,
   };
 }
 
@@ -100,7 +134,7 @@ function huellaArea(a = {}) {
  * @param {Array} areas - areasM (metros) o áreas canónicas (mm)
  * @param {{yaEnMM?:boolean}} opts
  */
-export function floorHash(areas = [], { yaEnMM = false } = {}) {
+export function floorHash(areas = [], { yaEnMM = false, minPasillo = null } = {}) {
   const base = Array.isArray(areas) ? areas : [];
   const escala = yaEnMM ? 1 : 1000;   // a mm entero sin reordenar
   const huellas = base.map((a) => huellaArea({
@@ -121,17 +155,27 @@ export function floorHash(areas = [], { yaEnMM = false } = {}) {
           bisagraY: Number.isFinite(Number(d.bisagraY)) ? Number(d.bisagraY) * escala : d.bisagraY,
         }))
       : a.puertas,
+    muros: Array.isArray(a.muros)
+      ? a.muros.map((m) => ({ ...m, x1: Number(m.x1) * escala, y1: Number(m.y1) * escala, x2: Number(m.x2) * escala, y2: Number(m.y2) * escala, grosor: Number.isFinite(Number(m.grosor)) ? Number(m.grosor) * escala : m.grosor }))
+      : a.muros,
   }));
-  return `f_${hashEstable(huellas)}`;
+  // El pasillo mínimo/circulación es parte del INPUT geométrico (audit E): si
+  // cambia, un plan válido podría dejar de serlo → entra al hash.
+  const payload = { areas: huellas, min_pasillo: Number.isFinite(minPasillo) ? mm(minPasillo) : null };
+  return `f_${hashEstable(payload)}`;
 }
 
-/** ¿El plan guardado quedó obsoleto respecto a programa/floor actuales? */
+/**
+ * ¿El plan guardado quedó obsoleto respecto a programa/floor actuales?
+ * FAIL-SAFE (audit E): un plan guardado SIN hashes (legacy) no sabemos contra qué
+ * programa/floor se generó → se trata como STALE, nunca como "fresh".
+ */
 export function planEstaStale(planGuardado, programHashActual, floorHashActual) {
   if (!planGuardado) return false;
+  if (!planGuardado.colocacion?.length) return false; // nada que invalidar
   const pg = planGuardado.program_hash ?? null;
   const fg = planGuardado.floor_hash ?? null;
-  // Sin hashes previos (planes viejos): no se marca stale aquí — otros guards
-  // (conteo/ids en sanearAcomodoContraPartidas) siguen aplicando.
-  if (pg == null && fg == null) return false;
-  return (pg != null && pg !== programHashActual) || (fg != null && fg !== floorHashActual);
+  // Legacy sin hashes: fail-safe → stale (no asumir fresh).
+  if (pg == null || fg == null) return true;
+  return pg !== programHashActual || fg !== floorHashActual;
 }

@@ -15,7 +15,10 @@
 import { areasCanonicas, aMM } from './floorPlan.js';
 import { expandirPiezas } from './espacio.js';
 import { marcarDestinoPartida } from './destinoAcomodo.js';
-import { programHash, floorHash } from './acomodoHash.js';
+import { programHashCanonico, floorHash } from './acomodoHash.js';
+
+// Pasillo mínimo de circulación (mm) — parte del input geométrico para el hash.
+const MIN_PASILLO_MM = 1000;
 
 // Predicado sug-* local (no importa el componente Acomodo.jsx). Debe coincidir
 // con Acomodo.jsx:esSugerida — misma regla ABSOLUTA #6/#97.
@@ -85,8 +88,10 @@ export function construirPayloadAcomodo({ partidas = [], areasM = [] } = {}) {
     areas: aMM(areasCanon),                // mm, orden preservado (índice = identidad)
     areasCanon,                            // metros canónicos (para persistir/hash)
     piezas: piezasLimpias,
-    program_hash: programHash(reales),
-    floor_hash: floorHash(areasCanon),
+    // program_hash CANÓNICO: sobre las piezas EXPANDIDAS que recibe el solver
+    // (captura cambios de dimensión canónica aunque id/cantidad comercial no cambien).
+    program_hash: programHashCanonico(piezasLimpias),
+    floor_hash: floorHash(areasCanon, { minPasillo: MIN_PASILLO_MM }),
     requested: piezasLimpias.length,
     descartadosSugeridos,
   };
