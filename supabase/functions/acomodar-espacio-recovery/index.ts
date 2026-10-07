@@ -27,6 +27,14 @@ import { validarColocacion, prepararGruposFuncionales } from './acomodo-core.js'
 import { auditarPuertas } from './spatial-core.js';
 import { CONTRATO, evaluarRecovery } from './recovery-core.js';
 import { resolverKits } from './kit-solver.js';
+import { mensajeVendedor } from './opciones.js';
+
+// El mensaje al vendedor viaja sin los closures `aplicar` (no serializables): el
+// cliente sólo muestra texto; la simulación de cada opción vive en el banco.
+function mensajeSerializable(areas: any, piezas: any, sol: any) {
+  const m = mensajeVendedor(areas, piezas, sol);
+  return { pendientes: m.pendientes, motivos: m.motivos, opciones: m.opciones.map((o: any) => ({ id: o.id, texto: o.texto })), hay_pendientes: m.hay_pendientes };
+}
 
 const cors = {
   'access-control-allow-origin': '*',
@@ -71,6 +79,8 @@ function normalizarEntrada(body: any) {
   const evalFinal = evaluarRecovery(areas, piezasAsign, colocacion, { requested: piezas.length });
   const val = validarColocacion(areas, piezasAsign, colocacion, 1);
   const doors = auditarPuertas(areas);
+  // G · mensaje al vendedor: qué no cupó + por qué (causal) + opciones concretas.
+  const mensaje = mensajeSerializable(areas, piezasAsign, sol);
 
   const layoutSpec = {
     version: CONTRATO.output_version,
@@ -89,6 +99,7 @@ function normalizarEntrada(body: any) {
       semantic: val,
       min_pasillo_mm: CONTRATO.min_pasillo_mm,
     },
+    mensaje_vendedor: mensaje,
   };
 
   return json({
@@ -99,6 +110,7 @@ function normalizarEntrada(body: any) {
     status: evalFinal.status,
     no_cupieron: sol.unplaced,
     unassigned: sol.unassigned,
+    mensaje_vendedor: mensaje,
     metodo: sol.metodo,
     attempts_used: sol.attempts_used,
     input_version: CONTRATO.input_version,

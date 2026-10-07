@@ -46,6 +46,12 @@ describe('acomodar-espacio-recovery · fuente bajo control de código (P0.2)', (
     expect(ks).toContain('export function resolverKits');
     expect(ks).toContain('backtracking');
   });
+  it('G · mensaje al vendedor cableado (opciones.js + mensaje_vendedor en salida)', () => {
+    const op = fs.readFileSync('supabase/functions/acomodar-espacio-recovery/opciones.js', 'utf8');
+    expect(op).toContain('export function mensajeVendedor');
+    expect(idx).toContain("from './opciones.js'");
+    expect(idx).toContain('mensaje_vendedor');
+  });
   it('validador relacional DURO (D): DEPENDENT_DETACHED/UNASSIGNED', () => {
     expect(core).toContain("code: 'DEPENDENT_DETACHED'");
     expect(core).toContain("code: 'DEPENDENT_UNASSIGNED'");

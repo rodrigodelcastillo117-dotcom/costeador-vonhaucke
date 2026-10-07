@@ -27,6 +27,7 @@ import { auditarColocacion } from '../datos/acomodoAudit.js';
 import { construirPayloadAcomodo } from '../datos/acomodoPayload.js';
 import { evaluarInvariantesAcomodo, derivarValidez } from '../datos/acomodoInvariantes.js';
 import { resolverAcomodo } from '../datos/acomodoOrquestador.js';
+import { formatearMensajeVendedor } from '../datos/mensajeAcomodo.js';
 
 // Para la paleta, SILLA es todo lo que se sienta: la operativa, la de visita y
 // también el sillón y el banco. Rodrigo lo pidió partido en dos: "lado
@@ -552,6 +553,9 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // quita, su objeto puede quedar colgado en `duplicados`, pero no debe reaparecer
   // como "pendiente" (no existe en la cotización).
   const pendientes = piezas.filter((p) => !colocadas.has(p.id) && !idsDuplicados.has(p.id));
+  // G · mensaje al vendedor del edge recovery (qué no cupó + por qué + opciones).
+  // Defensivo: null si el edge no lo manda (edge viejo desplegado) → UI sin cambio.
+  const msgVendedor = formatearMensajeVendedor(plan?.mensaje_vendedor);
   // Las pendientes AGRUPADAS por producto, conservando el orden en que se
   // pidieron. `ids` es la lista de las que faltan de ese producto: su largo es
   // la cuenta que se enseña y baja sola conforme se van colocando.
@@ -1553,6 +1557,16 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
           {aMano && modo === 'planta' && (
             <div className="tarjeta" style={{ marginTop: 12 }}>
               <h3 style={{ marginTop: 0 }}>Tus muebles</h3>
+              {msgVendedor && (
+                <div className="tarjeta" style={{ background: '#fff7ed', border: '1px solid #fdba74', marginBottom: 10 }}>
+                  <strong>{msgVendedor.titulo}</strong>
+                  <div style={{ marginTop: 6 }}><em>No cupo:</em><ul style={{ margin: '4px 0' }}>{msgVendedor.queNoCupo.map((t, i) => <li key={i}>{t}</li>)}</ul></div>
+                  {msgVendedor.porque.length > 0 && <div style={{ marginTop: 4 }}><em>Por qué:</em> {msgVendedor.porque.join(' ')}</div>}
+                  {msgVendedor.queHacer.length > 0 && (
+                    <div style={{ marginTop: 4 }}><em>Qué puedes hacer:</em><ul style={{ margin: '4px 0' }}>{msgVendedor.queHacer.map((t, i) => <li key={i}>{t}</li>)}</ul></div>
+                  )}
+                </div>
+              )}
               <p className="ayuda columna-texto">
                 <strong>Arrastra</strong> los muebles con el dedo o el mouse. Tócalos una vez y te salen ahí mismo
                 los botones de <strong>girar</strong> (cada toque, 90°){layoutV2 ? <>, <strong>duplicar</strong></> : null} y <strong>quitar</strong>.
