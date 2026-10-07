@@ -20,10 +20,13 @@
 //    OUT (PLACEMENT_SPEC_V2_RECOVERY): { ok, plan:{colocacion:[{id,area,x,y,rot}]},
 //                               layoutSpec, render_ready, status, attempts_used, metodo }
 // ============================================================================
+// Cores VENDORIZADOS en este directorio (cada función Edge de Supabase se empaqueta
+// desde su PROPIO directorio: los imports cruzados a ../acomodar-espacio fallaban al
+// desplegar). Copias de acomodar-espacio/{acomodo-core,spatial-core}.js.
 import {
   planearDeterminista, validarColocacion, prepararGruposFuncionales,
-} from '../acomodar-espacio/acomodo-core.js';
-import { auditarPuertas } from '../acomodar-espacio/spatial-core.js';
+} from './acomodo-core.js';
+import { auditarPuertas } from './spatial-core.js';
 import { CONTRATO, evaluarRecovery, proponerReparacion } from './recovery-core.js';
 
 const cors = {

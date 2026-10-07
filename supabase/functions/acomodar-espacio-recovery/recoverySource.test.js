@@ -51,6 +51,15 @@ describe('acomodar-espacio-recovery · fuente bajo control de código (P0.2)', (
     expect(core).toContain("status = 'PARTIAL'");
   });
 
+  it('SELF-CONTAINED: sin imports cruzados a ../acomodar-espacio (deploy aislado)', () => {
+    // Supabase empaqueta cada función desde su propio directorio; los imports
+    // cruzados causaban deploy status 500. Los cores van vendorizados aquí.
+    expect(idx).not.toContain('../acomodar-espacio/');
+    expect(core).not.toContain('../acomodar-espacio/');
+    expect(idx).toContain("from './acomodo-core.js'");
+    expect(core).toContain("from './spatial-core.js'");
+  });
+
   it('PENDIENTE DE ACTIVACIÓN: no desplegada y nube.js NO repunteada', () => {
     expect(idx).toContain('PENDIENTE DE ACTIVACIÓN');
     expect(idx).toContain('NO ESTÁ DESPLEGADA');

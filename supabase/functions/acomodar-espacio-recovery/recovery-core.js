@@ -10,12 +10,14 @@
 //
 //  Contrato VERSIONADO de entrada/salida (determinista). Todo en mm.
 // ============================================================================
+// Cores VENDORIZADOS en este mismo directorio (self-contained para el deploy aislado
+// del Edge de Supabase; imports cruzados a ../acomodar-espacio fallaban con 500).
 import {
   rectsSeSolapan, rectDentroPoligono, bloqueaPuertaEspacial,
-} from '../acomodar-espacio/spatial-core.js';
+} from './spatial-core.js';
 // GAP5 · validación SEMÁNTICA (grupos/zona) del core compartido: sus fallas entran
 // a issues, bajan status y ponen render_ready=false.
-import { auditarGruposFuncionales } from '../acomodar-espacio/acomodo-core.js';
+import { auditarGruposFuncionales } from './acomodo-core.js';
 
 export const CONTRATO = Object.freeze({
   input_version: 'ACOMODO_INPUT_V1',
