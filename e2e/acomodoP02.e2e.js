@@ -86,13 +86,10 @@ test.describe('E2E P0.2 · acomodo verify-first (navegador real)', () => {
     await expect(stepAcomodo).toBeEnabled({ timeout: 15000 });
     await stepAcomodo.click();
 
-    // Fuerza el motor espacial (multi-área): el botón "Acomodar" llama al solver.
-    const btnAcomodar = page.getByRole('button', { name: /^Acomodar$/i });
-    await expect(btnAcomodar).toBeVisible({ timeout: 15000 });
-    await btnAcomodar.click();
-
-    // El motor espacial corre y pega al mock.
-    await expect.poll(() => golpes, { timeout: 25000 }).toBeGreaterThanOrEqual(1);
+    // Al montar el Acomodo (multi-área, sin plan previo) el auto-acomodo dispara
+    // SOLO el motor espacial, que pega al mock. No dependemos del botón "Acomodar"
+    // (durante la carga la barra se oculta): basta con que el solver se invoque.
+    await expect.poll(() => golpes, { timeout: 30000 }).toBeGreaterThanOrEqual(1);
 
     // Bloque D VIVO: el plan persistido trae ambos hashes sellados.
     await expect.poll(async () => (await leerPlan(page))?.program_hash || '', { timeout: 15000 }).toMatch(/^p_/);
