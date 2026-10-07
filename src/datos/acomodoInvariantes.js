@@ -140,23 +140,46 @@ export function evaluarInvariantesAcomodo({ payload, plan, opts = {} } = {}) {
     }
   }
 
-  // --- Multi-zona (obj 6/14): dependiente en la zona de SU ancla ---
-  // Agrupa por functional_group_id; el ancla del grupo (relation_role ANCHOR_*)
-  // define el área; ningún dependiente colocado puede caer en otra área.
-  const grupos = new Map(); // gid → {anchorArea, deps:[{id,area}]}
+  // --- Multi-zona (obj 6/14 · audit G): identidad por IDs ESTABLES ---
+  // Identidad primaria del grupo: anchor_instance_id (si existe) → functional_group_id.
+  // El ancla (relation_role ANCHOR_*) fija el ÁREA y la ZONA esperadas. Validamos:
+  //  (a) el ancla cae en un área cuya identidad de zona coincide con su zone_id;
+  //  (b) cada dependiente cae en la MISMA área que su ancla; y si trae zone_id,
+  //      que coincida con la del ancla. Todo por id/índice, nunca por nombre suelto.
+  const zonaDeArea = (ai) => {
+    const a = areas[ai];
+    return a ? (a.zone_id ?? a.nombre ?? `#${ai}`) : `#${ai}`;
+  };
+  const normZona = (z) => String(z ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '');
+  const claveGrupo = (p) => p?.anchor_instance_id || p?.functional_group_id || null;
+  const grupos = new Map(); // clave → {anchorArea, anchorZone, deps:[{id,area,zone}]}
   for (const c of colocadosValidos) {
     const pieza = porId.get(String(c.id));
-    const gid = pieza?.functional_group_id;
+    const gid = claveGrupo(pieza);
     if (!gid) continue;
-    if (!grupos.has(gid)) grupos.set(gid, { anchorArea: null, deps: [] });
+    if (!grupos.has(gid)) grupos.set(gid, { anchorArea: null, anchorZone: null, deps: [] });
     const g = grupos.get(gid);
-    if (esAncla(pieza.relation_role)) g.anchorArea = Number(c.area);
-    else g.deps.push({ id: String(c.id), area: Number(c.area) });
+    const ai = Number(c.area);
+    if (esAncla(pieza.relation_role)) {
+      g.anchorArea = ai;
+      g.anchorZone = pieza.zone_id ?? null;
+      // (a) ancla en zona correcta: su zone_id debe corresponder al área colocada.
+      if (pieza.zone_id != null && normZona(pieza.zone_id) !== normZona(zonaDeArea(ai))) {
+        add('ANCHOR_WRONG_ZONE', 'fail', { id: String(c.id), area: ai, zoneEsperada: pieza.zone_id, zonaArea: zonaDeArea(ai) });
+      }
+    } else {
+      g.deps.push({ id: String(c.id), area: ai, zone: pieza.zone_id ?? null });
+    }
   }
   for (const [gid, g] of grupos) {
     if (g.anchorArea == null) continue; // sin ancla colocada: lo cubre cobertura/missing
     for (const d of g.deps) {
-      if (d.area !== g.anchorArea) add('DEPENDENT_WRONG_ZONE', 'fail', { id: d.id, area: d.area, grupo: gid, anclaArea: g.anchorArea });
+      if (d.area !== g.anchorArea) {
+        add('DEPENDENT_WRONG_ZONE', 'fail', { id: d.id, area: d.area, grupo: gid, anclaArea: g.anchorArea });
+      } else if (d.zone != null && g.anchorZone != null && normZona(d.zone) !== normZona(g.anchorZone)) {
+        // misma área que el ancla pero zone_id discrepante → identidad inconsistente.
+        add('DEPENDENT_WRONG_ZONE', 'fail', { id: d.id, area: d.area, grupo: gid, zoneDep: d.zone, zoneAncla: g.anchorZone });
+      }
     }
   }
 

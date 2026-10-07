@@ -118,6 +118,66 @@ describe('acomodoInvariantes · multi-zona (obj 6/14)', () => {
   });
 });
 
+describe('acomodoInvariantes · zonas/anclas por IDs estables (audit G)', () => {
+  // DOS zonas operativas con el MISMO modelo; identidad por anchor_instance_id/zone_id.
+  const payloadDual = () => ({
+    requested: 4,
+    areas: [
+      { nombre: 'OP A', zone_id: 'OP A', ancho: 8000, largo: 4000 },
+      { nombre: 'OP B', zone_id: 'OP B', ancho: 8000, largo: 4000 },
+    ],
+    piezas: [
+      { id: 'opA-1', w: 6000, d: 1200, relation_role: 'ANCHOR_WORKSTATION', anchor_instance_id: 'instA', functional_group_id: 'gA', zone_id: 'OP A' },
+      { id: 'winA-1', w: 600, d: 600, relation_role: 'WORK_SEAT', anchor_instance_id: 'instA', functional_group_id: 'gA', zone_id: 'OP A' },
+      { id: 'opB-1', w: 6000, d: 1200, relation_role: 'ANCHOR_WORKSTATION', anchor_instance_id: 'instB', functional_group_id: 'gB', zone_id: 'OP B' },
+      { id: 'winB-1', w: 600, d: 600, relation_role: 'WORK_SEAT', anchor_instance_id: 'instB', functional_group_id: 'gB', zone_id: 'OP B' },
+    ],
+  });
+  const planBien = () => ({
+    colocacion: [
+      { id: 'opA-1', area: 0, x: 0, y: 0 }, { id: 'winA-1', area: 0, x: 0, y: 1500 },
+      { id: 'opB-1', area: 1, x: 0, y: 0 }, { id: 'winB-1', area: 1, x: 0, y: 1500 },
+    ],
+    render_ready: true, layoutSpec: { status: 'PASS', validation: { render_ready: true } },
+  });
+  const cds = (r) => r.issues.map((i) => i.code);
+
+  it('mismo modelo en dos zonas, cada quien en SU zona → PASS', () => {
+    const r = evaluarInvariantesAcomodo({ payload: payloadDual(), plan: planBien() });
+    expect(r.status).toBe('PASS');
+  });
+  it('dependiente de A en la zona de B → DEPENDENT_WRONG_ZONE', () => {
+    const plan = planBien(); plan.colocacion.find((c) => c.id === 'winA-1').area = 1;
+    const r = evaluarInvariantesAcomodo({ payload: payloadDual(), plan });
+    expect(cds(r)).toContain('DEPENDENT_WRONG_ZONE');
+    expect(r.status).toBe('FAIL');
+  });
+  it('ancla A colocada en el área cuya zona es OP B → ANCHOR_WRONG_ZONE', () => {
+    const plan = planBien();
+    // opA-1 (zone_id OP A) al área 1 (zona OP B); su dependiente lo sigue.
+    plan.colocacion.find((c) => c.id === 'opA-1').area = 1;
+    plan.colocacion.find((c) => c.id === 'winA-1').area = 1;
+    const r = evaluarInvariantesAcomodo({ payload: payloadDual(), plan });
+    expect(cds(r)).toContain('ANCHOR_WRONG_ZONE');
+    expect(r.status).toBe('FAIL');
+  });
+  it('reordenar áreas rompe por zone_id, no por nombre/índice', () => {
+    const payload = payloadDual();
+    [payload.areas[0], payload.areas[1]] = [payload.areas[1], payload.areas[0]]; // swap zonas
+    // El plan sigue poniendo opA-1 en índice 0, que ahora es zona OP B.
+    const r = evaluarInvariantesAcomodo({ payload, plan: planBien() });
+    expect(cds(r)).toContain('ANCHOR_WRONG_ZONE');
+    expect(r.status).toBe('FAIL');
+  });
+  it('dos anclas con dependientes iguales: cruce → ambos DEPENDENT_WRONG_ZONE', () => {
+    const plan = planBien();
+    plan.colocacion.find((c) => c.id === 'winA-1').area = 1;
+    plan.colocacion.find((c) => c.id === 'winB-1').area = 0;
+    const r = evaluarInvariantesAcomodo({ payload: payloadDual(), plan });
+    expect(r.issues.filter((i) => i.code === 'DEPENDENT_WRONG_ZONE')).toHaveLength(2);
+  });
+});
+
 describe('acomodoInvariantes · verify-first vs edge + repair', () => {
   it('nunca más verde que el edge: edge PARTIAL → no PASS aunque geometría ok', () => {
     const plan = planPASS();
