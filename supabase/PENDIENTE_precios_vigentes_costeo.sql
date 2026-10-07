@@ -18,6 +18,8 @@
 create or replace function private_api.precios_vigentes_costeo()
 returns table (
   insumo_id text,
+  nombre text,
+  seccion text,
   precio numeric,
   unidad_costeo text,
   estado text,
@@ -30,7 +32,7 @@ stable
 security definer
 set search_path to 'public'
 as $$
-  select v.insumo_id, v.precio, c.unidad_costeo, v.estado, v.certificable, v.fuente, v.vigente_desde
+  select v.insumo_id, v.nombre, v.seccion, v.precio, c.unidad_costeo, v.estado, v.certificable, v.fuente, v.vigente_desde
   from public.catalogo_vigente v
   join public.insumos_catalogo c on c.id = v.insumo_id
   where private_api.puede_editar_config();
@@ -39,6 +41,8 @@ $$;
 create or replace function public.precios_vigentes_costeo()
 returns table (
   insumo_id text,
+  nombre text,
+  seccion text,
   precio numeric,
   unidad_costeo text,
   estado text,

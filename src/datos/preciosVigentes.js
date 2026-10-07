@@ -14,6 +14,8 @@
 //    3. Un precio editado en la pantalla Precios (queda en `config` con su
 //       fecha) gana solo si es MÁS NUEVO que el de la base y trae la misma unidad.
 //    4. Un insumo que solo existe en `config` (alta manual) se conserva tal cual.
+//    5. Un insumo que solo existe en la base (alta desde compras) entra con su
+//       unidad de compra, sin formato ni fracción de hoja.
 //
 //  Al vendedor no se le aplica nada de esto: sigue recibiendo la config
 //  sanitizada del servidor, sin precios.
@@ -26,17 +28,30 @@ const fecha = (v) => (typeof v === 'string' ? v.slice(0, 10) : '');
  * @param {Record<string, object>} semilla   mapa id -> insumo del código
  * @param {Record<string, object>} compartido  config.datos.insumos (puede venir vacío)
  * @param {Array<object>} vigentes  filas de `precios_vigentes_costeo()`:
- *   { insumo_id, precio, unidad_costeo, estado, certificable, fuente, vigente_desde }
+ *   { insumo_id, nombre, seccion, precio, unidad_costeo, estado, certificable, fuente, vigente_desde }
  * @returns {{ insumos: Record<string, object>, resumen: object }}
  */
 export function fusionarInsumos(semilla, compartido = {}, vigentes = []) {
   const insumos = { ...semilla };
-  const resumen = { desdeBD: [], unidadDistinta: [], sinFormaEnCodigo: [], editadosEnApp: [], soloEnConfig: [] };
+  const resumen = { desdeBD: [], altasDesdeBD: [], unidadDistinta: [], sinFormaEnCodigo: [], editadosEnApp: [], soloEnConfig: [] };
 
   for (const f of vigentes || []) {
     const id = f?.insumo_id;
     const base = id ? insumos[id] : null;
-    if (!base) { if (id) resumen.sinFormaEnCodigo.push(id); continue; }
+    if (!base) {
+      // Alta hecha en la base (p. ej. material de compras que el código no
+      // tiene): se costea por su unidad de compra, sin formato ni fracción.
+      const precio = num(f?.precio);
+      if (!id || !f.unidad_costeo || !(precio > 0)) { if (id) resumen.sinFormaEnCodigo.push(id); continue; }
+      insumos[id] = {
+        id, nombre: f.nombre || id, seccion: f.seccion || 'consumibles', unidad: f.unidad_costeo,
+        clase: 'directa', mermaCorte: 0, inventario: false, veta: false, fraccion: false, proveedor: '',
+        precio, precioBase: precio, actualizado: fecha(f.vigente_desde), fuente: f.fuente || '',
+        estadoPrecio: f.estado || null, certificable: !!f.certificable, origenPrecio: 'catalogo_bd', altaEnBD: true,
+      };
+      resumen.altasDesdeBD.push(id);
+      continue;
+    }
     if (f.unidad_costeo && f.unidad_costeo !== base.unidad) {
       resumen.unidadDistinta.push({ id, codigo: base.unidad, bd: f.unidad_costeo });
       continue;

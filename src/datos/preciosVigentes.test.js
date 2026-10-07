@@ -50,11 +50,20 @@ describe('fusionarInsumos — el costeo toma el precio del catálogo de la base'
     expect(resumen.soloEnConfig).toEqual(['herraje-x']);
   });
 
-  it('ignora precios vacíos, cero o de insumos que el código no conoce', () => {
-    const { insumos, resumen } = fusionarInsumos(BASE, {}, [fila('mdf', 0, 'hoja'), fila('no-existe', 10, 'pza'), { insumo_id: 'mdf-16', precio: null, unidad_costeo: 'hoja' }]);
+  it('ignora precios vacíos o cero', () => {
+    const { insumos, resumen } = fusionarInsumos(BASE, {}, [fila('mdf', 0, 'hoja'), fila('no-existe', 0, 'pza'), { insumo_id: 'mdf-16', precio: null, unidad_costeo: 'hoja' }]);
     expect(insumos.mdf.precio).toBe(BASE.mdf.precio);
     expect(insumos['mdf-16'].precio).toBe(BASE['mdf-16'].precio);
+    expect(insumos['no-existe']).toBeUndefined();
     expect(resumen.sinFormaEnCodigo).toEqual(['no-existe']);
+  });
+
+  it('un insumo dado de alta solo en la base entra con su unidad de compra y se puede costear', () => {
+    const { insumos, resumen } = fusionarInsumos(BASE, {}, [fila('erp-x1', 12.5, 'pza', { nombre: 'Tornillo X', seccion: 'herrajes' })]);
+    expect(insumos['erp-x1']).toMatchObject({ nombre: 'Tornillo X', seccion: 'herrajes', unidad: 'pza', precio: 12.5, fraccion: false, altaEnBD: true });
+    expect(resumen.altasDesdeBD).toEqual(['erp-x1']);
+    const r = calcular({ componentes: [{ insumoId: 'erp-x1', nombre: 'Tornillo', cantidad: 8 }], modoManoObra: 'porcentaje' }, 1, insumos);
+    expect(r.materialDirecto).toBeCloseTo(100, 6);
   });
 
   it('no muta la semilla', () => {

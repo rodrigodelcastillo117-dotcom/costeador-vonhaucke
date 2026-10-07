@@ -431,6 +431,8 @@ export const SECCIONES = [
   { id: 'acabados', nombre: 'Acabados y pintura' },
   { id: 'ecoacustic', nombre: 'EcoAcustic (paneles Sonara)' },
   { id: 'graficos', nombre: 'Graficos e iluminacion (retail)' },
+  { id: 'consumibles', nombre: 'Consumibles, empaque y servicios' },
+  { id: 'compra_venta', nombre: 'Compra-venta y piezas a medida' },
 ];
 
 // Mapa id -> insumo, util para el motor
