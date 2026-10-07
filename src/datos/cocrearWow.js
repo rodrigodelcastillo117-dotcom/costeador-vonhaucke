@@ -42,6 +42,9 @@ export function prepararIntentCocrear(brief, base = null) {
   const dd = DIMS_DEFAULT[it.familia] || DIMS_DEFAULT[FAMILIA.DESCONOCIDA];
   let dims = { ...dd, ...(it.dimensiones || {}) };
   if (operativo) {
+    // ⚠️ Dimensión de PREVIEW NO autoritativa (#1): sólo pinta un bloque
+    // aproximado para cocrear cuando aún no hay producto real. NO es la
+    // geometría comercial (esa la da el catálogo vía el Product Resolver).
     const puestosPorLado = capacidad ? Math.ceil(capacidad / 2) : 3;
     dims = {
       ...dims,

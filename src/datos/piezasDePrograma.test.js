@@ -34,6 +34,16 @@ describe('programa sugerido desde plano', () => {
     expect(gavetas[0].cantidad).toBe(8);
   });
 
+  it('MUTACIÓN #102: 10 puestos → bench con geometría REAL 6000, NUNCA 7500', () => {
+    const p = partidasSugeridasDeAreas([{ nombre: 'OPERATIVO 1 (10 PAX)', ancho: 9, largo: 3.2 }]);
+    const bench = p.find((x) => /Banca doble APP LT/.test(x.nombre));
+    expect(bench).toBeTruthy();
+    expect(bench.usuarios).toBe(10);
+    expect(bench.w).toBe(6000);           // módulo real op-10u
+    expect(bench.w).not.toBe(7500);       // la geometría fantasma no vuelve
+    expect(bench.d).toBe(1200);
+  });
+
   it('APARTADO con PAX es operativo y nunca privado/general', () => {
     const a = normalizarAreasPrograma([
       { nombre: 'APARTADO 1 (6 PAX)', ancho: 6.75, largo: 3.5 },

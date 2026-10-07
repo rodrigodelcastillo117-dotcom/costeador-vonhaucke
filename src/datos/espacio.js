@@ -95,6 +95,10 @@ export function huellaReal(nombre, w, d, tipo) {
   const n = Math.max(1, +m[1]);
   if (n <= 1) return [w, d];
   if (tipo === 'escritorio') {
+    // ⚠️ HEURÍSTICA VISUAL NO AUTORITATIVA (#1). Sólo se usa cuando la partida NO
+    // trae geometría de bloque real (la guarda w>=2500 de arriba ya respeta el
+    // producto real: un bench App LT de 6000 pasa intacto). Para líneas sin
+    // módulo canónico (p.ej. Cirque) estima la huella; NO define producto.
     const perW = (w && w >= 700) ? w : 1200;
     const perD = (d && d >= 500) ? d : 750;
     const doble = /doble/.test(s);

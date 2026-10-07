@@ -6,6 +6,18 @@
 // ============================================================================
 import { personasEnSala, puestosPorIsla, rolDe } from './programaDelPlano.js';
 import { inferirDestinoPartida, marcarDestinoPartida } from './destinoAcomodo.js';
+import { resolverOperativos } from './resolverPrograma.js';
+
+// Geometría REAL del bench operativo desde el Product Resolver (módulo canónico
+// op-*). Reemplaza la fantasía ceil(n/2)*1500 (que daba 7.50 m para 10). Si el
+// resolver no cubre la línea, devuelve null y el llamador usa la heurística
+// visual NO autoritativa como último recurso.
+function geometriaBenchReal(puestos) {
+  const res = resolverOperativos(puestos, { linea: 'App LT' });
+  const w = res.resoluciones.reduce((s, r) => s + (Number(r.w) || 0) * (r.cantidad || 1), 0);
+  const d = res.resoluciones[0]?.d || 1200;
+  return w > 0 ? { w, d } : null;
+}
 
 const norm = (s = '') => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const cap = (n, lo = 0, hi = 48) => Math.max(lo, Math.min(hi, Math.round(Number(n) || 0)));
@@ -184,10 +196,14 @@ export function partidasSugeridasDeAreas(areas = [], opts = {}) {
 
     const puestos = puestosDeArea(a);
     if (puestos > 0) {
-      const columnas = Math.max(1, Math.ceil(puestos / 2));
-      const anchoBench = columnas * 1500;
+      // #102/#1: la geometría del bench ya NO se fabrica (ceil(n/2)*1500 daba
+      // 7.50 m para 10). Viene del catálogo real (op-*). El ceil(n/2)*1500 queda
+      // SÓLO como heurística visual NO autoritativa si el resolver no cubre.
+      const geo = geometriaBenchReal(puestos);
+      const anchoBench = geo ? geo.w : Math.max(1, Math.ceil(puestos / 2)) * 1500;
+      const fondoBench = geo ? geo.d : 1200;
       const fg = groupId(a, 'workstation');
-      add(a, `Banca doble APP LT 1.50 · ${puestos} usuarios · ocupa ${(anchoBench / 1000).toFixed(2)} × 1.20 m`, 1, anchoBench, 1200, {
+      add(a, `Banca doble APP LT · ${puestos} usuarios · ocupa ${(anchoBench / 1000).toFixed(2)} × ${(fondoBench / 1000).toFixed(2)} m`, 1, anchoBench, fondoBench, {
         lineaSugerida: 'applt', usuarios: puestos, user_capacity: puestos,
         functional_group_id: fg, relation_role: 'ANCHOR_WORKSTATION',
       });

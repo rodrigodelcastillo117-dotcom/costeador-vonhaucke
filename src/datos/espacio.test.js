@@ -23,14 +23,15 @@ describe('huella de bancas y sofás', () => {
   });
 
   it('NO expande una medida que ya es de bloque', () => {
-    // App LT, 10 usuarios a 1.50: la partida ya trae los 7.50 m del bloque.
-    expect(huellaReal('Banca doble APP LT 1.50 · 10 usuarios', 7500, 1200, 'escritorio'))
-      .toEqual([7500, 1200]);
+    // App LT, 10 usuarios: el módulo REAL op-10u mide 6.00 × 1.20 m (no 7.50 —
+    // esa era la geometría fantasma #102). Un bloque real ya no se re-expande.
+    expect(huellaReal('Banca doble APP LT · 10 usuarios', 6000, 1200, 'escritorio'))
+      .toEqual([6000, 1200]);
   });
 
   it('es idempotente: aplicarla dos veces da lo mismo que una', () => {
-    const nombre = 'Banca doble APP LT 1.50 · 10 usuarios · ocupa 7.50 × 1.20 m';
-    const una = huellaReal(nombre, 1500, 1200, 'escritorio');
+    const nombre = 'Banca doble APP LT · 10 usuarios · ocupa 6.00 × 1.20 m';
+    const una = huellaReal(nombre, 6000, 1200, 'escritorio');
     const dos = huellaReal(nombre, ...una, 'escritorio');
     expect(dos).toEqual(una);
   });
@@ -45,15 +46,15 @@ describe('huella de bancas y sofás', () => {
 describe('expandirPiezas con la cotización real', () => {
   const PARTIDA = {
     id: 'p1',
-    nombre: 'Banca doble APP LT 1.50 · 10 usuarios · ocupa 7.50 × 1.20 m',
-    w: 7500, d: 1200, cantidad: 2, ruta: 'applt', productoId: 'banca_doble',
+    nombre: 'Banca doble APP LT · 10 usuarios · ocupa 6.00 × 1.20 m',
+    w: 6000, d: 1200, cantidad: 2, ruta: 'applt', productoId: 'banca_doble',
   };
 
   it('deja la banca en su medida real y no la multiplica por sus puestos', () => {
     const piezas = expandirPiezas([PARTIDA]);
     expect(piezas).toHaveLength(2);
     for (const p of piezas) {
-      expect(p.w).toBe(7500);
+      expect(p.w).toBe(6000);           // real op-10u, jamás 7500 ni 60000
       expect(p.d).toBe(1200);
     }
   });
