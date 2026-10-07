@@ -51,7 +51,7 @@ const groupId = (requirement_id, ord) => `fg:${requirement_id}:#${ord}`;
 // Construye una RESOLUCIÓN con geometría real + compuertas SEPARADAS.
 // ---------------------------------------------------------------------------
 function construirResolucion(prod, {
-  requirement_id = null, zone_id = null, rol = null,
+  requirement_id = null, zone_id = null, rol = null, evidence = null,
   relation_role, anchor_role = null,
   functional_group_id = null, instance_id = null, anchor_instance_id = null,
   cantidad = 1, inclusion = 'anchor',
@@ -63,7 +63,7 @@ function construirResolucion(prod, {
   const precioGate = autoridadPrecio(prod);
   const snapshot = precioGate.precio_lista_snapshot;
   return {
-    requirement_id, zone_id, rol,
+    requirement_id, zone_id, rol, evidence,      // identidad FloorSpec (#16)
     bancoId: vista.bancoId,
     source_ref: vista.bancoId,
     source_type: 'banco',
@@ -112,9 +112,9 @@ function needsConfirm({ requirement_id = null, zone_id = null, rol = null, relat
 }
 
 // Ancla concreta desde un producto canónico (con instance_id/group estables).
-function anclaDesde(prod, rol, relation_role, { requirement_id, zone_id = null, ord = 0 }) {
+function anclaDesde(prod, rol, relation_role, { requirement_id, zone_id = null, evidence = null, ord = 0 }) {
   return construirResolucion(prod, {
-    requirement_id, zone_id, rol, relation_role,
+    requirement_id, zone_id, rol, evidence, relation_role,
     functional_group_id: groupId(requirement_id, ord),
     instance_id: instanceId(requirement_id, ord),
     inclusion: 'anchor',
@@ -158,7 +158,7 @@ export function componerOperativos(n, modulos) {
 }
 
 // --- OPERATIVOS: N usuarios → módulo(s) real(es) (anclas). ---
-export function resolverOperativos(nUsuarios, { linea = LINEA_DEFAULT, requirement_id = 'req:z:operativo:0', zone_id = null } = {}) {
+export function resolverOperativos(nUsuarios, { linea = LINEA_DEFAULT, requirement_id = 'req:z:operativo:0', zone_id = null, evidence = null } = {}) {
   const n = Math.max(0, Math.floor(Number(nUsuarios) || 0));
   if (!n) return { resoluciones: [], faltante: 0, usuariosCubiertos: 0 };
   const modulos = modulosOperativosPorLinea(linea);
@@ -177,7 +177,7 @@ export function resolverOperativos(nUsuarios, { linea = LINEA_DEFAULT, requireme
     for (let k = 0; k < cantidad; k++) {
       const iid = instanceId(requirement_id, ord);
       const r = construirResolucion(modulo, {
-        requirement_id, zone_id, rol: 'operativo',
+        requirement_id, zone_id, evidence, rol: 'operativo',
         relation_role: 'ANCHOR_WORKSTATION',
         functional_group_id: groupId(requirement_id, ord),
         instance_id: iid,
@@ -194,9 +194,9 @@ export function resolverOperativos(nUsuarios, { linea = LINEA_DEFAULT, requireme
 // --- PRIVADO / CEO: escritorio directivo real, respetando lo PEDIDO (#7). ---
 // req: { requirement_id, zone_id, ord, requested_models:{anchor}, requested_line, requested_dimensions }
 export function resolverPrivado(req = {}) {
-  const { requirement_id = 'req:z:privado:0', zone_id = null, ord = 0,
+  const { requirement_id = 'req:z:privado:0', zone_id = null, evidence = null, ord = 0,
     requested_models = null, requested_line = null, requested_dimensions = null } = req;
-  const base = { requirement_id, zone_id, ord };
+  const base = { requirement_id, zone_id, evidence, ord };
   const model = requested_models && requested_models.anchor;
   if (model || requested_line || requested_dimensions) {
     // Pidieron algo específico (p.ej. "Eclipse Drift 2.10"): se busca EXACTO en
@@ -218,9 +218,9 @@ export function resolverPrivado(req = {}) {
 // --- JUNTAS: respeta dimensiones pedidas y capacidad; nunca finge cobertura. ---
 // req: { requirement_id, zone_id, ord, requested_dimensions:{w,d}, requested_line }
 export function resolverJuntas(capacidad, req = {}) {
-  const { requirement_id = 'req:z:juntas:0', zone_id = null, ord = 0,
+  const { requirement_id = 'req:z:juntas:0', zone_id = null, evidence = null, ord = 0,
     requested_dimensions = null, requested_line = null } = req;
-  const base = { requirement_id, zone_id, ord };
+  const base = { requirement_id, zone_id, evidence, ord };
   const cap = Math.max(1, Math.floor(Number(capacidad) || 0));
   const porCapacidad = JUNTAS.slice().sort((a, b) => a.usuarios - b.usuarios);
 
@@ -250,10 +250,10 @@ export function resolverJuntas(capacidad, req = {}) {
 }
 
 // --- RECEPCIÓN: módulo recepción real. ---
-export function resolverRecepcion({ requirement_id = 'req:z:recepcion:0', zone_id = null, ord = 0 } = {}) {
+export function resolverRecepcion({ requirement_id = 'req:z:recepcion:0', zone_id = null, evidence = null, ord = 0 } = {}) {
   const prod = RECEPCIONES[0] || null;
   if (!prod) return needsConfirm({ requirement_id, zone_id, rol: 'recepcion', relation_role: 'ANCHOR_RECEPTION' }, { reason: 'RECEPCION_NO_CANONICA' });
-  return anclaDesde(prod, 'recepcion', 'ANCHOR_RECEPTION', { requirement_id, zone_id, ord });
+  return anclaDesde(prod, 'recepcion', 'ANCHOR_RECEPTION', { requirement_id, zone_id, evidence, ord });
 }
 
 // ---------------------------------------------------------------------------
@@ -266,6 +266,7 @@ function dependiente(prod, { ancla, relation_role, anchor_role, cantidad, inclus
   return construirResolucion(prod, {
     requirement_id: ancla.requirement_id,
     zone_id: ancla.zone_id,
+    evidence: ancla.evidence,
     rol: ancla.rol,
     relation_role,
     anchor_role,                                  // tipo de ancla requerida
@@ -348,9 +349,11 @@ export function resolverPrograma(programa = {}, { linea = LINEA_DEFAULT } = {}) 
 
   const nOp = Math.max(0, Math.floor(Number(programa.operativos) || 0));
   if (nOp > 0) {
-    const reqId = requirementId(null, 'operativo', 0);
-    requerimientos.push({ requirement_id: reqId, zone_id: null, rol: 'operativo', anchor_role: 'ANCHOR_WORKSTATION', capacidad: nOp, preferred_line: linea });
-    const op = resolverOperativos(nOp, { linea, requirement_id: reqId });
+    const zone_id = brief.operativoZoneId || null;
+    const evidence = brief.operativoEvidence || null;
+    const reqId = requirementId(zone_id, 'operativo', 0);
+    requerimientos.push({ requirement_id: reqId, zone_id, evidence, rol: 'operativo', anchor_role: 'ANCHOR_WORKSTATION', capacidad: nOp, preferred_line: linea });
+    const op = resolverOperativos(nOp, { linea, requirement_id: reqId, zone_id, evidence });
     if (op.incompleto) incompletos.push(op.incompleto);
     op.resoluciones.forEach((ancla) => integrarAncla(ancla, { storageRequested, seatModels: { work: brief.operativoSeatModel } }, 'OPERATIVO_NO_RESUELTO'));
     if (op.faltante > 0) incompletos.push({ code: 'OPERATIVO_NO_RESUELTO', faltante: op.faltante });
@@ -358,27 +361,30 @@ export function resolverPrograma(programa = {}, { linea = LINEA_DEFAULT } = {}) 
 
   const nPriv = Math.max(0, Math.floor(Number(programa.privados) || 0));
   for (let i = 0; i < nPriv; i++) {
-    const reqId = requirementId(null, 'privado', i);
     const b = briefPriv[i] || {};
-    requerimientos.push({ requirement_id: reqId, zone_id: null, rol: 'privado', anchor_role: 'ANCHOR_DESK', capacidad: 1, preferred_line: linea, ...b });
-    const r = resolverPrivado({ requirement_id: reqId, requested_models: b.requested_models, requested_line: b.requested_line, requested_dimensions: b.requested_dimensions });
+    const zone_id = b.zone_id || null;
+    const reqId = requirementId(zone_id, 'privado', i);
+    requerimientos.push({ requirement_id: reqId, zone_id, evidence: b.evidence || null, rol: 'privado', anchor_role: 'ANCHOR_DESK', capacidad: 1, preferred_line: linea, ...b });
+    const r = resolverPrivado({ requirement_id: reqId, zone_id, evidence: b.evidence || null, requested_models: b.requested_models, requested_line: b.requested_line, requested_dimensions: b.requested_dimensions });
     integrarAncla(r, { seatModels: { executive: b.requested_models && b.requested_models.seat }, visitors: b.requested_visitors }, 'PRIVADO_NO_RESUELTO');
   }
 
   const salas = Array.isArray(programa.salas) ? programa.salas : [];
   salas.forEach((cap, i) => {
     const capacidad = Number(cap) || 0;
-    const reqId = requirementId(null, 'juntas', i);
     const b = briefJuntas[i] || {};
-    requerimientos.push({ requirement_id: reqId, zone_id: null, rol: 'juntas', anchor_role: 'ANCHOR_MEETING', capacidad, preferred_line: linea, ...b });
-    const r = resolverJuntas(capacidad, { requirement_id: reqId, requested_dimensions: b.requested_dimensions, requested_line: b.requested_line });
+    const zone_id = b.zone_id || null;
+    const reqId = requirementId(zone_id, 'juntas', i);
+    requerimientos.push({ requirement_id: reqId, zone_id, evidence: b.evidence || null, rol: 'juntas', anchor_role: 'ANCHOR_MEETING', capacidad, preferred_line: linea, ...b });
+    const r = resolverJuntas(capacidad, { requirement_id: reqId, zone_id, evidence: b.evidence || null, requested_dimensions: b.requested_dimensions, requested_line: b.requested_line });
     integrarAncla(r, { capacidad, seatModels: { meeting: b.requested_models && b.requested_models.seat } }, 'JUNTAS_NO_RESUELTO');
   });
 
   if (programa.recepcion) {
-    const reqId = requirementId(null, 'recepcion', 0);
-    requerimientos.push({ requirement_id: reqId, zone_id: null, rol: 'recepcion', anchor_role: 'ANCHOR_RECEPTION', capacidad: 1, preferred_line: linea });
-    const r = resolverRecepcion({ requirement_id: reqId });
+    const zone_id = brief.recepcionZoneId || null;
+    const reqId = requirementId(zone_id, 'recepcion', 0);
+    requerimientos.push({ requirement_id: reqId, zone_id, evidence: brief.recepcionEvidence || null, rol: 'recepcion', anchor_role: 'ANCHOR_RECEPTION', capacidad: 1, preferred_line: linea });
+    const r = resolverRecepcion({ requirement_id: reqId, zone_id, evidence: brief.recepcionEvidence || null });
     integrarAncla(r, {}, 'RECEPCION_NO_RESUELTO');
   }
 

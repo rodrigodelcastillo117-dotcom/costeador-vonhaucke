@@ -86,3 +86,26 @@ describe('modelos de silla (P0.1 · #10): el rol decide DÓNDE, no QUÉ modelo',
     expect(vis.inclusion).toBe('requested');
   });
 });
+
+describe('FloorSpec identity (P0.1 · #16): zone_id/evidence viajan hasta la resolución', () => {
+  it('operativo con zone_id/evidence del brief → ancla y dependientes los conservan', () => {
+    const r = resolverPrograma({
+      operativos: 10,
+      brief: { operativoZoneId: 'zone:open-1', operativoEvidence: { page: 3, conf: 0.92 } },
+    }, { linea: 'App LT' });
+    const ancla = r.resoluciones.find((x) => x.relation_role === 'ANCHOR_WORKSTATION');
+    expect(ancla.zone_id).toBe('zone:open-1');
+    expect(ancla.evidence).toEqual({ page: 3, conf: 0.92 });
+    expect(ancla.requirement_id).toContain('zone:open-1');
+    const seat = r.dependientes.find((d) => d.relation_role === 'WORK_SEAT');
+    expect(seat.zone_id).toBe('zone:open-1');            // heredado del ancla
+    expect(seat.requirement_id).toBe(ancla.requirement_id);
+  });
+
+  it('el requerimiento también reporta zone_id/evidence (contrato para P0.3)', () => {
+    const r = resolverPrograma({ privados: 1, brief: { privados: [{ zone_id: 'zone:ceo', evidence: { page: 1 } }] } });
+    const req = r.requerimientos.find((q) => q.rol === 'privado');
+    expect(req.zone_id).toBe('zone:ceo');
+    expect(req.evidence).toEqual({ page: 1 });
+  });
+});

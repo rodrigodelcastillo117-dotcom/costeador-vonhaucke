@@ -18,8 +18,9 @@
 //  canónico `op-4u-3000x1200`. => `categoria`/`tipo`/`linea`/`usuarios` NO
 //  distinguen canónico de basura. El ÚNICO discriminador real hoy es el PREFIJO
 //  del id (carga limpia Tradeco/BMU) frente a `p9-*` (presupuestos Excel).
-//  Por eso la regla canónica es, PROVISIONALMENTE, un match de prefijo de id,
-//  centralizado aquí y marcado como DEUDA (ver METADATA_DEBT).
+//  Por eso la regla canónica es, PROVISIONALMENTE, una ALLOWLIST por prefijo de
+//  id (clasificación vigente, NO verdad eterna), centralizada aquí y marcada como
+//  DEUDA revisable (ver METADATA_DEBT, #17). Si aparece otro lote sucio, se reclasifica.
 //
 //  LAS TRES COMPUERTAS (NUNCA se mezclan — cada bug nació de confundirlas):
 //   1) PRODUCT_RESOLVED  → existe un producto REAL del catálogo canónico con
@@ -39,19 +40,21 @@ import { autorizadoPorRef } from './precioAutorizado.js';
 // entonces, el prefijo es la autoridad — pero SÓLO desde aquí.
 // ---------------------------------------------------------------------------
 export const METADATA_DEBT = Object.freeze({
+  clasificacion: 'CURRENT_ALLOWLIST / LEGACY_CLASSIFICATION',   // NO es verdad eterna
   problema:
-    'BANCO no tiene flag canonical/source/status; p9-* (Excel) comparten ' +
-    'categoria/tipo/linea/usuarios con la carga limpia (op-/esc-/ger-/dir-/rec-/' +
-    'mj-/silla-/arch-/gaveta-...). El prefijo del id es el único discriminador: ' +
-    'auditado banco.js, el ÚNICO prefijo no canónico es p9- (175 renglones del ' +
-    'presupuesto Excel); todo lo demás es la carga limpia Tradeco/BMU.',
+    'BANCO no tiene flag canonical/source/status, así que el prefijo del id es hoy ' +
+    'el único discriminador. El único lote con geometría inconsistente observado es ' +
+    'p9- (≈175 renglones del presupuesto Excel). Por eso, PROVISIONALMENTE, se ' +
+    'clasifica "canónico = tiene id y NO es p9-*". Es una ALLOWLIST vigente, no una ' +
+    'afirmación de que todo lo demás sea perfecto para siempre: si aparece otro lote ' +
+    'sucio, hay que reclasificar.',
   mitigacion:
-    'Regla canónica centralizada en esCanonico() (un solo lugar): canónico = ' +
-    'tiene id y NO es p9-*. Prohibido volver a dispersar id.startsWith("op-")/' +
-    'id.startsWith("p9-") por la app.',
+    'Regla centralizada en esCanonico() (un solo lugar). Prohibido dispersar ' +
+    'id.startsWith("op-")/id.startsWith("p9-") por la app.',
   accion_definitiva:
     'Añadir en banco.js un campo explícito por pieza (canonical:true / ' +
-    'source:"tradeco"|"excel") y reescribir esCanonico() para leerlo; retirar RE_NO_CANONICO.',
+    'source:"tradeco"|"excel") y reescribir esCanonico() para leerlo; retirar ' +
+    'RE_NO_CANONICO. Hasta entonces, tratar esta regla como clasificación revisable.',
 });
 
 // ---------------------------------------------------------------------------
