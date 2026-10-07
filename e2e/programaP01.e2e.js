@@ -104,10 +104,12 @@ test.describe('E2E P0.1 · caso roto de Rodrigo (navegador real)', () => {
     const win = desp.find((p) => (p.piezaId || p.bancoId) === 'silla-win');
     expect(win.anchor_instance_id || win.config?.anchor_instance_id).toBeTruthy();
 
-    // REFRESH → persiste exactamente una vez.
+    // REFRESH → el estado persiste exactamente una vez (localStorage es la verdad;
+    // no se re-navega: la persistencia no depende de estar en una pantalla).
     await page.reload();
-    await page.getByText(/^Muebles$/).first().click();
+    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
     await expect.poll(async () => cuenta(await leerPartidas(page), 'op-10u-6000x1200-cristal')).toBe(1);
+    await expect.poll(async () => cantidadDe(await leerPartidas(page), 'silla-win')).toBe(10);
 
     expect(pageErrors, pageErrors.join('\n')).toHaveLength(0);
   });
