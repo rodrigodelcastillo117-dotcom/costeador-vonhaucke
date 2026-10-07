@@ -5,27 +5,35 @@
 //  acomodo tiene SENTIDO FUNCIONAL, no sólo si es geométricamente legal.
 //
 //  Un layout FINAL requiere:  HARD_GEOMETRY = PASS  AND  SEMANTIC_PLACEMENT = PASS.
-//  Si falta una verdad crítica (topología desconocida): REVIEW_REQUIRED.
-//  Nunca UNKNOWN → PASS silencioso.
+//  Topología desconocida → REVIEW_REQUIRED. Nunca UNKNOWN → PASS silencioso.
 //
-//  Entrada: la salida de resolverKits (colocacion con slot_id/side/facing/topology/
-//  anchor_instance_id) + piezas (w/d/relation_role/anchor_instance_id) + areas.
+//  GAP8  · TODO MEETING_SEAT es lado ACTIVO, incl. HEAD_A/HEAD_B (hay persona).
+//          PASSIVE_END es concepto del ANCLA/profile de un bench (extremo SIN silla),
+//          no se infiere del nombre de un slot de silla.
+//  GAP9  · slots esperados derivados de la topología confirmada (unfilled/wrong/
+//          topology-broken/kit-relation).
+//  GAP12 · separar IMPOSIBILIDAD FUNCIONAL DURA (acceso bloqueado por muro/obstáculo
+//          = inutilizable → fail) del OBJETIVO DE CONFORT PROVISIONAL (600 mm → quality).
 // ============================================================================
+import { layoutDeTopologia } from './placementProfiles.js';
+
 const num = (n, d = 0) => (Number.isFinite(Number(n)) ? Number(n) : d);
 const esAncla = (r) => typeof r === 'string' && r.startsWith('ANCHOR_');
 const esDependiente = (r) => ['WORK_SEAT', 'EXECUTIVE_SEAT', 'VISITOR_SEAT', 'MEETING_SEAT'].includes(r);
-const esPasivo = (side) => typeof side === 'string' && side.startsWith('HEAD');
 
-// Acceso mínimo DURO para que una persona use un asiento en un lado activo (mm).
-// PROVISIONAL (no hay fuente ergonómica confirmada): pull de silla + cuerpo.
-export const ACTIVE_SIDE_ACCESS_MM = 600;
+// Umbral DURO de impossibilidad física (flush contra muro/obstáculo). PROVISIONAL.
+export const HARD_ACCESS_MM = 0;        // clearance ≤ 0 = inutilizable → fail
+// Objetivo de CONFORT (QualityJudge). PROVISIONAL, NO es verdad Von Haucke todavía.
+export const QUALITY_ACCESS_TARGET_MM = 600;
+
+// Rol de silla esperado por tipo de ancla (para KIT_FUNCTIONAL_RELATION_BROKEN).
+const SEAT_ROL_DE_ANCLA = { ANCHOR_WORKSTATION: 'WORK_SEAT', ANCHOR_MEETING: 'MEETING_SEAT', ANCHOR_DESK: 'EXECUTIVE_SEAT', ANCHOR_RECEPTION: 'VISITOR_SEAT' };
 
 function rectDe(c, p) {
   const g = num(c.rot) === 90 || num(c.rot) === 270;
   return { x: num(c.x), y: num(c.y), w: g ? num(p.d) : num(p.w), d: g ? num(p.w) : num(p.d) };
 }
 const solapan = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.d && a.y + a.d > b.y;
-// ¿El facing apunta del asiento hacia el ancla?
 function apuntaAlAncla(s, a, facing) {
   const cx = s.x + s.w / 2, cy = s.y + s.d / 2, ax = a.x + a.w / 2, ay = a.y + a.d / 2;
   if (facing === 'UP') return ay < cy;
@@ -34,37 +42,88 @@ function apuntaAlAncla(s, a, facing) {
   if (facing === 'RIGHT') return ax > cx;
   return false;
 }
-// Región de acceso (OPUESTA al facing): por ahí entra/sale la persona.
-function regionAcceso(s, facing, mm) {
-  if (facing === 'DOWN') return { x: s.x, y: s.y - mm, w: s.w, d: mm };   // acceso arriba
-  if (facing === 'UP') return { x: s.x, y: s.y + s.d, w: s.w, d: mm };    // acceso abajo
-  if (facing === 'RIGHT') return { x: s.x - mm, y: s.y, w: mm, d: s.d };  // acceso izquierda
-  if (facing === 'LEFT') return { x: s.x + s.w, y: s.y, w: mm, d: s.d };  // acceso derecha
-  return null;
-}
-const dentroArea = (r, area) => {
+// Clearance disponible en el lado de ACCESO (opuesto al facing): mínimo entre el
+// muro y el obstáculo más cercano en esa dirección dentro del ancho del asiento.
+function clearanceAcceso(s, facing, area) {
   const W = num(area.ancho) || num(area.width_mm), H = num(area.largo) || num(area.depth_mm);
-  return r.x >= -1 && r.y >= -1 && r.x + r.w <= W + 1 && r.y + r.d <= H + 1;
-};
+  let cMuro, limitador = 'wall';
+  if (facing === 'DOWN') cMuro = s.y;                       // acceso arriba
+  else if (facing === 'UP') cMuro = H - (s.y + s.d);        // acceso abajo
+  else if (facing === 'RIGHT') cMuro = s.x;                 // acceso izquierda
+  else if (facing === 'LEFT') cMuro = W - (s.x + s.w);      // acceso derecha
+  else return { clear: Infinity, limitador: 'none' };
+  let cObs = Infinity;
+  for (const o of (area.obstaculos || [])) {
+    const ox = num(o.x), oy = num(o.y), ow = num(o.w), oh = num(o.h);
+    if (facing === 'DOWN' && oy + oh <= s.y + 1 && ox < s.x + s.w && ox + ow > s.x) cObs = Math.min(cObs, s.y - (oy + oh));
+    if (facing === 'UP' && oy >= s.y + s.d - 1 && ox < s.x + s.w && ox + ow > s.x) cObs = Math.min(cObs, oy - (s.y + s.d));
+    if (facing === 'RIGHT' && ox + ow <= s.x + 1 && oy < s.y + s.d && oy + oh > s.y) cObs = Math.min(cObs, s.x - (ox + ow));
+    if (facing === 'LEFT' && ox >= s.x + s.w - 1 && oy < s.y + s.d && oy + oh > s.y) cObs = Math.min(cObs, ox - (s.x + s.w));
+  }
+  if (cObs < cMuro) { limitador = 'obstacle'; return { clear: cObs, limitador }; }
+  return { clear: cMuro, limitador };
+}
+
+// Slots esperados (slot_id + side) de un ancla, por su topología confirmada.
+function slotsEsperados(anchorPieza, nDeps) {
+  const topo = anchorPieza._topology;
+  if (!topo || topo === 'UNKNOWN') return null;
+  const lay = layoutDeTopologia(topo, num(anchorPieza.w), num(anchorPieza.d), nDeps);
+  return lay.seats.map((s) => ({ slot_id: s.slot_id, side: s.side }));
+}
 
 export function juzgarSemantico(areas = [], piezas = [], colocacion = []) {
   const byId = new Map(piezas.map((p) => [String(p.id), p]));
   const issues = [];
   const add = (code, extra = {}) => issues.push({ code, ...extra });
 
-  // Índice de anclas colocadas.
-  const anclas = new Map();   // id → { pieza, col, rect, topology }
+  const anclas = new Map();
   for (const c of colocacion) {
     const p = byId.get(String(c.id)); if (!p || !esAncla(p.relation_role)) continue;
-    anclas.set(String(c.id), { pieza: p, col: c, rect: rectDe(c, p), topology: c.topology ?? null });
+    anclas.set(String(c.id), { pieza: { ...p, _topology: c.topology ?? null }, rect: rectDe(c, p), rol: p.relation_role, topology: c.topology ?? null });
+  }
+  const depsPorAncla = new Map();
+  for (const p of piezas) {
+    if (!esDependiente(p.relation_role)) continue;
+    const a = p.anchor_instance_id != null ? String(p.anchor_instance_id) : null; if (!a) continue;
+    if (!depsPorAncla.has(a)) depsPorAncla.set(a, []);
+    depsPorAncla.get(a).push(p);
+  }
+  const colSeatPorAncla = new Map();
+  for (const c of colocacion) {
+    const p = byId.get(String(c.id)); if (!p || !esDependiente(p.relation_role)) continue;
+    const a = c.anchor_instance_id != null ? String(c.anchor_instance_id) : null; if (!a) continue;
+    if (!colSeatPorAncla.has(a)) colSeatPorAncla.set(a, []);
+    colSeatPorAncla.get(a).push(c);
   }
 
-  // 1 · Topología desconocida → REVIEW_REQUIRED (nunca PASS silencioso).
+  // 1 · Topología desconocida → REVIEW_REQUIRED.
+  for (const [id, a] of anclas) if (!a.topology || a.topology === 'UNKNOWN') add('SEMANTIC_PROFILE_UNKNOWN', { anchor: id, severity: 'review' });
+
+  // 2 · Slots requeridos / mal slot / topología rota / relación de kit (GAP9).
   for (const [id, a] of anclas) {
-    if (!a.topology || a.topology === 'UNKNOWN') add('SEMANTIC_PROFILE_UNKNOWN', { anchor: id, severity: 'review' });
+    if (!a.topology || a.topology === 'UNKNOWN') continue;
+    const deps = depsPorAncla.get(id) || [];
+    const esperados = slotsEsperados(a.pieza, deps.length);
+    if (!esperados) continue;
+    const esperadoSlots = new Set(esperados.map((s) => s.slot_id));
+    const colocados = colSeatPorAncla.get(id) || [];
+    const slotsColocados = new Set(colocados.map((c) => c.slot_id).filter(Boolean));
+    for (const s of esperados) if (!slotsColocados.has(s.slot_id)) add('SLOT_UNFILLED_REQUIRED', { anchor: id, slot: s.slot_id, severity: 'fail' });
+    const rolEsperado = SEAT_ROL_DE_ANCLA[a.rol];
+    for (const c of colocados) {
+      const p = byId.get(String(c.id));
+      if (c.slot_id && !esperadoSlots.has(c.slot_id)) add('DEPENDENT_WRONG_SLOT', { id: c.id, slot: c.slot_id, anchor: id, severity: 'fail' });
+      if (rolEsperado && p && p.relation_role !== rolEsperado) add('KIT_FUNCTIONAL_RELATION_BROKEN', { id: c.id, rol: p.relation_role, esperado: rolEsperado, anchor: id, severity: 'fail' });
+    }
+    const sidesEsperados = new Set(esperados.map((s) => s.side));
+    const sidesColocados = new Set(colocados.map((c) => c.side).filter(Boolean));
+    if (colocados.length > 0 && sidesColocados.size < sidesEsperados.size && (a.topology === 'DOUBLE_FACE' || a.topology === 'MEETING_TABLE')) {
+      add('ANCHOR_TOPOLOGY_BROKEN', { anchor: id, topology: a.topology, sides: [...sidesColocados], severity: 'fail' });
+    }
   }
 
-  // 2 · Slots duplicados por ancla.
+  // 3 · Slots duplicados.
   const slotVistos = new Map();
   for (const c of colocacion) {
     const p = byId.get(String(c.id)); if (!p || !esDependiente(p.relation_role) || !c.slot_id) continue;
@@ -73,32 +132,27 @@ export function juzgarSemantico(areas = [], piezas = [], colocacion = []) {
     else slotVistos.set(key, c.id);
   }
 
-  // 3 · Orientación + acceso de lados activos por dependiente colocado.
+  // 4 · Orientación + acceso. TODA silla (incl. HEAD de junta) es ACTIVA (GAP8).
   for (const c of colocacion) {
     const p = byId.get(String(c.id)); if (!p || !esDependiente(p.relation_role)) continue;
     const anc = c.anchor_instance_id != null ? anclas.get(String(c.anchor_instance_id)) : null;
-    if (!anc) continue;   // sin dueño colocado: lo cubre el juez geométrico (DETACHED)
+    if (!anc) continue;
     const sRect = rectDe(c, p);
-    // 3a · facing válido y hacia la mesa.
-    if (!c.facing) add('INVALID_FACING', { id: c.id, severity: 'fail' });
-    else if (!apuntaAlAncla(sRect, anc.rect, c.facing)) add('DEPENDENT_WRONG_ORIENTATION', { id: c.id, facing: c.facing, severity: 'fail' });
-    // 3b · lado activo (no cabecera) no puede quedar bloqueado contra muro/obstáculo.
-    if (c.side && !esPasivo(c.side) && c.facing) {
-      const acc = regionAcceso(sRect, c.facing, ACTIVE_SIDE_ACCESS_MM);
-      const area = areas[num(c.area)] || {};
-      if (acc && !dentroArea(acc, area)) add('ACTIVE_SIDE_BLOCKED_BY_WALL', { id: c.id, side: c.side, severity: 'fail' });
-      else if (acc) {
-        for (const o of (area.obstaculos || [])) {
-          if (solapan(acc, { x: num(o.x), y: num(o.y), w: num(o.w), d: num(o.h) })) { add('ACTIVE_SIDE_BLOCKED_BY_OBSTACLE', { id: c.id, side: c.side, severity: 'fail' }); break; }
-        }
-      }
+    if (!c.facing) { add('INVALID_FACING', { id: c.id, severity: 'fail' }); continue; }
+    if (!apuntaAlAncla(sRect, anc.rect, c.facing)) add('DEPENDENT_WRONG_ORIENTATION', { id: c.id, facing: c.facing, severity: 'fail' });
+    const area = areas[num(c.area)] || {};
+    const { clear, limitador } = clearanceAcceso(sRect, c.facing, area);
+    if (clear <= HARD_ACCESS_MM) {
+      add(limitador === 'obstacle' ? 'ACTIVE_SIDE_BLOCKED_BY_OBSTACLE' : 'ACTIVE_SIDE_BLOCKED_BY_WALL', { id: c.id, side: c.side, clear, severity: 'fail' });
+    } else if (clear < QUALITY_ACCESS_TARGET_MM) {
+      add('ACTIVE_SIDE_ACCESS_TIGHT', { id: c.id, side: c.side, clear, target: QUALITY_ACCESS_TARGET_MM, severity: 'quality', provenance: 'PROVISIONAL' });
     }
   }
 
   const hayFail = issues.some((i) => i.severity === 'fail');
   const hayReview = issues.some((i) => i.severity === 'review');
   const status = hayFail ? 'FAIL' : (hayReview ? 'REVIEW_REQUIRED' : 'PASS');
-  return { status, issues, access_mm: ACTIVE_SIDE_ACCESS_MM, access_provenance: 'PROVISIONAL' };
+  return { status, issues, hard_access_mm: HARD_ACCESS_MM, quality_access_target_mm: QUALITY_ACCESS_TARGET_MM, quality_provenance: 'PROVISIONAL' };
 }
 
 // Contrato final: sólo PASS si geometría dura Y semántica pasan.

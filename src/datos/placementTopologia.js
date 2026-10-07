@@ -34,10 +34,34 @@ export function topologiaDeProducto(prod = {}) {
   return null;
 }
 
+// GAP10 · topología desde la CONFIGURACIÓN resuelta (no desde identidad de catálogo).
+// Regla USER_CONFIRMED de Rodrigo: un operativo resuelto como UN módulo que sirve a
+// N≥2 personas es bench DOUBLE_FACE (usuarios enfrentados). Esto NO es "capacity===8
+// global": aplica a la configuración de un MÓDULO OPERATIVO resuelto, no a cualquier
+// pieza con capacidad. Si el producto ya tiene identidad de catálogo (bench doble),
+// gana ésa (CATALOG) vía topologiaDeProducto; aquí sólo cubrimos el op-* sin identidad.
+export function topologiaDeConfiguracion(resolucion = {}) {
+  const esOp = resolucion.relation_role === 'ANCHOR_WORKSTATION' || resolucion.rol === 'operativo';
+  if (esOp && Number(resolucion.usuarios) >= 2) {
+    return { topology: 'DOUBLE_FACE', provenance: 'USER_CONFIRMED', evidence: 'regla Rodrigo: 1 operativo para N personas = bench doble (4+4 enfrentados)' };
+  }
+  return null;
+}
+
+// Perfil de colocación para una RESOLUCIÓN del programa: identidad de catálogo primero
+// (CATALOG), luego la configuración confirmada (USER_CONFIRMED). Null si no hay evidencia.
+export function placementProfileDeResolucion(resolucion = {}) {
+  return topologiaDeProducto(resolucion) || topologiaDeConfiguracion(resolucion) || null;
+}
+
 // Clasifica la fuente de topología de un producto del catálogo.
 const esOperativo = (p) => /operativ|bench/i.test(p.categoria || '') || /ANCHOR_WORKSTATION/.test(p.relation_role || '');
+const PROV_CONFIRMADA = new Set(['CATALOG', 'CURATED_RULE', 'USER_CONFIRMED']);
 export function clasificarFuenteTopologia(prod = {}) {
-  if (topologiaDeProducto(prod)) return 'SOURCE_FOUND';
+  const t = topologiaDeProducto(prod);
+  // SOURCE_FOUND SÓLO con fuente CONFIRMADA; una inferencia (INFERRED) NO basta.
+  if (t && PROV_CONFIRMADA.has(t.provenance)) return 'SOURCE_FOUND';
+  if (t && t.provenance === 'INFERRED') return 'SOURCE_PARTIAL';
   const { w, d } = medidasAwd(prod.medidas) || {};
   const tieneDims = Number(w) > 0 && Number(d) > 0;
   const tieneCap = Number(prod.usuarios) > 0;

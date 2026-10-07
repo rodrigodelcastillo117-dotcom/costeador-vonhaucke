@@ -37,6 +37,7 @@ import {
   vistaCanonica, identidadDe, autoridadPrecio, medidasAwd,
   asientoPara, guardaPara, buscarEnColeccion,
 } from './catalogoCanonico.js';
+import { placementProfileDeResolucion } from './placementTopologia.js';
 
 export { medidasAwd };   // única fuente del parser de medidas
 
@@ -184,6 +185,9 @@ export function resolverOperativos(nUsuarios, { linea = LINEA_DEFAULT, requireme
         cantidad: 1,
         inclusion: 'anchor',
       });
+      // P0.2c GAP10: la topología viaja desde la CONFIGURACIÓN resuelta (operativo
+      // de N usuarios = bench doble, USER_CONFIRMED). Aditivo; null si no aplica.
+      if (r) { const pp = placementProfileDeResolucion(r); if (pp) r.placement_profile = pp; }
       if (r) resoluciones.push(r);
       ord += 1;
     }
@@ -294,7 +298,7 @@ function asientoDependiente(ancla, { relation_role, anchor_role, cantidad, inclu
   return dependiente(prod, { ancla, relation_role, anchor_role, cantidad, inclusion });
 }
 
-function expandirDependientes(ancla, { capacidad = null, storageRequested = false, seatModels = {}, visitors = null } = {}) {
+export function expandirDependientes(ancla, { capacidad = null, storageRequested = false, seatModels = {}, visitors = null } = {}) {
   if (!ancla) return [];
   const out = [];
   const push = (d) => { if (d) out.push(d); };
