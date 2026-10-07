@@ -17,7 +17,7 @@
 //  Todo en mm. Puro (Deno + node). Reusa helpers vendorizados de ./spatial-core.js.
 // ============================================================================
 import { rectsSeSolapan, rectDentroPoligono, bloqueaPuertaEspacial } from './spatial-core.js';
-import { perfilDeAncla, layoutDeTopologia } from './placementProfiles.js';
+import { perfilDeAncla, layoutDeTopologia, rotarFacing, PROFILE_VERSION } from './placementProfiles.js';
 
 export const SEAT = 600;      // huella de silla (mm)
 export const PITCH = 650;     // separación entre sillas alrededor de mesa
@@ -102,8 +102,11 @@ export function componerKit(anchor, sillas = [], gavetas = []) {
   const aw = num(anchor.w, 1200), ad = num(anchor.d, 600);
   const rol = anchor.relation_role;
   const perfil = perfilDeAncla(anchor);
-  const lay = layoutDeTopologia(perfil.topology, aw, ad, sillas.length);
-  const piezas = [{ id: String(anchor.id), dx: lay.anchor.dx, dy: lay.anchor.dy, w: aw, d: ad, rol, topology: perfil.topology, provenance: perfil.provenance }];
+  // GAP4: topología UNKNOWN NO es verdad; la geometría usa el fallback LEGACY, pero
+  // el ancla conserva la topología REAL (UNKNOWN) para que el Semantic Judge lo marque.
+  const topoGeom = perfil.topology !== 'UNKNOWN' ? perfil.topology : 'SINGLE_FACE';
+  const lay = layoutDeTopologia(topoGeom, aw, ad, sillas.length);
+  const piezas = [{ id: String(anchor.id), dx: lay.anchor.dx, dy: lay.anchor.dy, w: aw, d: ad, rol, topology: perfil.topology, provenance: perfil.provenance, profile_version: perfil.version, fallback_layout: perfil.topology === 'UNKNOWN' ? (perfil.fallback_layout_strategy || 'LEGACY_SINGLE_FACE') : null }];
   const sinColocar = [];
 
   sillas.forEach((s, i) => {
@@ -122,8 +125,9 @@ export function componerKit(anchor, sillas = [], gavetas = []) {
 function rotarKit(kit) {
   return {
     anchorId: kit.anchorId, w: kit.d, d: kit.w, sinColocar: kit.sinColocar,
-    // Conserva metadata semántica (slot/side/facing/topology) al rotar el bloque.
-    piezas: kit.piezas.map((p) => ({ id: p.id, rol: p.rol, bajoTablero: p.bajoTablero, w: p.d, d: p.w, dx: kit.d - (p.dy + p.d), dy: p.dx, slot_id: p.slot_id, side: p.side, facing: p.facing, topology: p.topology, provenance: p.provenance })),
+    // Conserva metadata semántica y ROTA el facing cardinal (GAP3). `side` semántico
+    // (A/B/HEAD_A/HEAD_B/FRONT) se conserva; `facing` absoluto gira con el bloque.
+    piezas: kit.piezas.map((p) => ({ id: p.id, rol: p.rol, bajoTablero: p.bajoTablero, w: p.d, d: p.w, dx: kit.d - (p.dy + p.d), dy: p.dx, slot_id: p.slot_id, side: p.side, facing: rotarFacing(p.facing, 90), topology: p.topology, provenance: p.provenance, profile_version: p.profile_version, fallback_layout: p.fallback_layout })),
   };
 }
 
@@ -196,7 +200,16 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
   const kitRes = new Array(kits.length).fill(null);   // {dropped:[], invariante?} por kit
   let nodos = 0;
 
-  const colocarPieza = (abs, p) => ({ id: p.id, area: abs.areaIdx, x: Math.round(abs.x + p.dx), y: Math.round(abs.y + p.dy), rot: abs.rot });
+  // GAP2: la salida canónica conserva la metadata semántica para que el Semantic
+  // Judge reconstruya silla→ancla→slot→lado→orientación. anchor_instance_id viene
+  // de la asignación de dueño; slot/side/facing/topology del kit compuesto.
+  const anchorDe = new Map(asign.map((x) => [String(x.id), x.anchor_instance_id ?? null]));
+  const colocarPieza = (abs, p) => ({
+    id: p.id, area: abs.areaIdx, x: Math.round(abs.x + p.dx), y: Math.round(abs.y + p.dy), rot: abs.rot,
+    anchor_instance_id: anchorDe.get(String(p.id)) ?? null,
+    slot_id: p.slot_id ?? null, side: p.side ?? null, facing: p.facing ?? null,
+    topology: p.topology ?? null, provenance: p.provenance ?? null, profile_version: p.profile_version ?? PROFILE_VERSION,
+  });
 
   function intentarKit(idx) {
     if (Date.now() - t0 > MAX_MS || nodos > MAX_NODOS) return idx >= kits.length;

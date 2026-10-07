@@ -20,7 +20,8 @@ describe('P0.2c · DEFECTO A (DESPUÉS) · workstation DOUBLE_FACE = 4+4 enfrent
   // DESPUÉS (P0.2c): con topología DOUBLE_FACE confirmada → 2 lados (A arriba /
   // B abajo), 4 y 4, cada silla con slot_id/side/facing. (NO se infiere de capacity.)
   it('DESPUÉS: bench cap 8 DOUBLE_FACE → 4 lado A + 4 lado B (enfrentados)', () => {
-    const anchor = mk('b', 'ANCHOR_WORKSTATION', 6000, 1200, { user_capacity: 8, topology: 'DOUBLE_FACE', topology_source: 'CURATED_RULE' });
+    // Regla USER_CONFIRMED de Rodrigo: "1 operativo para 8 personas" → DOUBLE_FACE.
+    const anchor = mk('b', 'ANCHOR_WORKSTATION', 6000, 1200, { user_capacity: 8, topology: 'DOUBLE_FACE', topology_source: 'USER_CONFIRMED' });
     const sillas = Array.from({ length: 8 }, (_, i) => mk('s' + i, 'WORK_SEAT', 600, 600));
     const k = componerKit(anchor, sillas, []);
     const seats = k.piezas.filter((p) => p.rol === 'WORK_SEAT');

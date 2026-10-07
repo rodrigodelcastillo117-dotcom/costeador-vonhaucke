@@ -21,23 +21,52 @@ export const SEAT = 600;
 const num = (n, d = 0) => (Number.isFinite(Number(n)) ? Number(n) : d);
 const topologiasValidas = new Set(['SINGLE_FACE', 'DOUBLE_FACE', 'MEETING_TABLE', 'DESK', 'RECEPTION']);
 
-// Perfil de un ancla, con topología + provenance + confianza.
+// Precedencia de fuentes de verdad (GAP5). UNKNOWN nunca pisa nada.
+const PRECEDENCIA = { CATALOG: 5, CURATED_RULE: 4, USER_CONFIRMED: 3, INFERRED: 2, UNKNOWN: 0 };
+const UNKNOWN_PROFILE = { topology: 'UNKNOWN', provenance: 'UNKNOWN', confidence: 0, version: PROFILE_VERSION, fallback_layout_strategy: 'LEGACY_SINGLE_FACE' };
+
+// Resolver DETERMINISTA de candidatos por precedencia (GAP5): CATALOG > CURATED_RULE
+// > USER_CONFIRMED > INFERRED > UNKNOWN. Desempate por confianza y luego por nombre.
+export function resolvePlacementProfile(candidates = []) {
+  const valid = (candidates || []).filter((c) => c && topologiasValidas.has(c.topology) && (PRECEDENCIA[c.provenance] || 0) > 0);
+  if (!valid.length) return { ...UNKNOWN_PROFILE };
+  valid.sort((a, b) => (PRECEDENCIA[b.provenance] - PRECEDENCIA[a.provenance])
+    || ((num(b.confidence, 0)) - (num(a.confidence, 0)))
+    || String(a.topology).localeCompare(String(b.topology)));
+  const w = valid[0];
+  return { topology: w.topology, provenance: w.provenance, confidence: num(w.confidence, 1), version: PROFILE_VERSION, fallback_layout_strategy: null };
+}
+
+// Perfil SEMÁNTICO de un ancla. GAP4: si no hay verdad de topología, es UNKNOWN
+// (NO SINGLE_FACE "curado"); la geometría se genera con un fallback LEGACY y el
+// Semantic Judge debe devolver REVIEW_REQUIRED, nunca FINAL PASS.
 export function perfilDeAncla(anchor = {}) {
   const rol = anchor.relation_role;
-  // 1. Topología EXPLÍCITA declarada en la pieza (catálogo/config/usuario).
+  const candidatos = [];
+  // 1. Topología DECLARADA en la pieza (catálogo/config/usuario confirmado).
   const expl = anchor.topology || anchor.placement_topology || anchor.placement_profile?.topology || null;
   if (expl && topologiasValidas.has(expl)) {
     const prov = anchor.topology_source || anchor.placement_profile?.provenance || 'USER_CONFIRMED';
-    return { topology: expl, provenance: prov, confidence: num(anchor.topology_confidence, 1), version: PROFILE_VERSION };
+    candidatos.push({ topology: expl, provenance: prov, confidence: num(anchor.topology_confidence, 1) });
   }
-  // 2. Regla CURADA por rol (conservadora). NUNCA DOUBLE_FACE por capacidad.
-  switch (rol) {
-    case 'ANCHOR_WORKSTATION': return { topology: 'SINGLE_FACE', provenance: 'CURATED_RULE', confidence: 0.6, version: PROFILE_VERSION };
-    case 'ANCHOR_MEETING':     return { topology: 'MEETING_TABLE', provenance: 'CURATED_RULE', confidence: 0.9, version: PROFILE_VERSION };
-    case 'ANCHOR_DESK':        return { topology: 'DESK', provenance: 'CURATED_RULE', confidence: 0.9, version: PROFILE_VERSION };
-    case 'ANCHOR_RECEPTION':   return { topology: 'RECEPTION', provenance: 'CURATED_RULE', confidence: 0.8, version: PROFILE_VERSION };
-    default:                   return { topology: 'UNKNOWN', provenance: 'UNKNOWN', confidence: 0, version: PROFILE_VERSION };
-  }
+  // 2. Regla CURADA de oficio SÓLO para roles con topología inequívoca. El bench
+  //    operativo NO: double vs single no se decide por rol/capacidad (GAP4).
+  const curada = { ANCHOR_MEETING: 'MEETING_TABLE', ANCHOR_DESK: 'DESK', ANCHOR_RECEPTION: 'RECEPTION' }[rol];
+  if (curada) candidatos.push({ topology: curada, provenance: 'CURATED_RULE', confidence: 0.9 });
+  const res = resolvePlacementProfile(candidatos);
+  if (res.topology === 'UNKNOWN') return { ...UNKNOWN_PROFILE };
+  return res;
+}
+
+// Rotación determinista del facing cardinal al girar el kit 90° con la convención
+// de rotarKit (pos (x,y)→(H-(y+h), x) ≡ dirección (dx,dy)→(-dy,dx)) (GAP3):
+//   UP→RIGHT, RIGHT→DOWN, DOWN→LEFT, LEFT→UP.
+const FACING_ROT90 = { UP: 'RIGHT', RIGHT: 'DOWN', DOWN: 'LEFT', LEFT: 'UP' };
+export function rotarFacing(facing, rot = 90) {
+  let f = facing;
+  const vueltas = ((Math.round(num(rot) / 90) % 4) + 4) % 4;
+  for (let i = 0; i < vueltas; i++) f = FACING_ROT90[f] || f;
+  return f;
 }
 
 const centrar = (i, count, span) => Math.round(i * (span / count) + Math.max(0, (span / count - SEAT) / 2));

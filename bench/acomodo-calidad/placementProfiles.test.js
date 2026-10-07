@@ -1,22 +1,27 @@
 import { describe, it, expect } from 'vitest';
-import { perfilDeAncla, layoutDoubleFace, layoutMeeting, PROFILE_VERSION } from '../../supabase/functions/acomodar-espacio-recovery/placementProfiles.js';
+import { perfilDeAncla, resolvePlacementProfile, layoutDoubleFace, layoutMeeting, PROFILE_VERSION } from '../../supabase/functions/acomodar-espacio-recovery/placementProfiles.js';
 
 // ============================================================================
 //  P0.2c · PLACEMENT PROFILES — precedencia de provenance y NO-inferencia por
-//  capacidad. La topología sólo es DOUBLE_FACE si el ancla la DECLARA.
+//  capacidad. La topología sólo es DOUBLE_FACE si el ancla la DECLARA. (GAP4/GAP5)
 // ============================================================================
-describe('P0.2c · perfilDeAncla · provenance + no inferir por capacidad', () => {
-  it('capacity=8 sin topología declarada → SINGLE_FACE curado (NUNCA double-face por capacidad)', () => {
+describe('P0.2c · perfilDeAncla · GAP4 (UNKNOWN ≠ verdad curada)', () => {
+  it('capacity=8 sin topología declarada → UNKNOWN + fallback LEGACY (NUNCA SINGLE_FACE "curado")', () => {
     const p = perfilDeAncla({ relation_role: 'ANCHOR_WORKSTATION', user_capacity: 8 });
-    expect(p.topology).toBe('SINGLE_FACE');
-    expect(p.provenance).toBe('CURATED_RULE');
+    expect(p.topology).toBe('UNKNOWN');
+    expect(p.provenance).toBe('UNKNOWN');
+    expect(p.confidence).toBe(0);
+    expect(p.fallback_layout_strategy).toBe('LEGACY_SINGLE_FACE');
     expect(p.version).toBe(PROFILE_VERSION);
   });
-  it('topología DECLARADA (catálogo) gana sobre la regla por rol', () => {
-    const p = perfilDeAncla({ relation_role: 'ANCHOR_WORKSTATION', topology: 'DOUBLE_FACE', topology_source: 'CATALOG' });
+  it('bench declarado DOUBLE_FACE (USER_CONFIRMED de Rodrigo) → DOUBLE_FACE', () => {
+    const p = perfilDeAncla({ relation_role: 'ANCHOR_WORKSTATION', topology: 'DOUBLE_FACE', topology_source: 'USER_CONFIRMED' });
     expect(p.topology).toBe('DOUBLE_FACE');
+    expect(p.provenance).toBe('USER_CONFIRMED');
+  });
+  it('topología DECLARADA (catálogo) gana sobre la regla por rol', () => {
+    const p = perfilDeAncla({ relation_role: 'ANCHOR_MEETING', topology: 'MEETING_TABLE', topology_source: 'CATALOG' });
     expect(p.provenance).toBe('CATALOG');
-    expect(p.confidence).toBe(1);
   });
   it('mesa → MEETING_TABLE curada; escritorio → DESK; recepción → RECEPTION', () => {
     expect(perfilDeAncla({ relation_role: 'ANCHOR_MEETING' }).topology).toBe('MEETING_TABLE');
@@ -24,14 +29,35 @@ describe('P0.2c · perfilDeAncla · provenance + no inferir por capacidad', () =
     expect(perfilDeAncla({ relation_role: 'ANCHOR_RECEPTION' }).topology).toBe('RECEPTION');
   });
   it('rol desconocido → UNKNOWN (sin inventar topología)', () => {
-    const p = perfilDeAncla({ relation_role: 'ANCHOR_RARO' });
-    expect(p.topology).toBe('UNKNOWN');
-    expect(p.provenance).toBe('UNKNOWN');
-    expect(p.confidence).toBe(0);
+    expect(perfilDeAncla({ relation_role: 'ANCHOR_RARO' }).topology).toBe('UNKNOWN');
   });
-  it('topología inválida declarada se ignora → cae a la regla por rol', () => {
-    const p = perfilDeAncla({ relation_role: 'ANCHOR_WORKSTATION', topology: 'NO_EXISTE' });
-    expect(p.topology).toBe('SINGLE_FACE');
+  it('topología inválida declarada se ignora → UNKNOWN para workstation (sin regla curada)', () => {
+    expect(perfilDeAncla({ relation_role: 'ANCHOR_WORKSTATION', topology: 'NO_EXISTE' }).topology).toBe('UNKNOWN');
+  });
+});
+
+describe('P0.2c · resolvePlacementProfile · precedencia determinista (GAP5)', () => {
+  const C = (topology, provenance, confidence = 1) => ({ topology, provenance, confidence });
+  it('CATALOG vs USER_CONFIRMED → gana CATALOG', () => {
+    expect(resolvePlacementProfile([C('SINGLE_FACE', 'USER_CONFIRMED'), C('DOUBLE_FACE', 'CATALOG')]).provenance).toBe('CATALOG');
+  });
+  it('CURATED_RULE vs INFERRED → gana CURATED_RULE', () => {
+    expect(resolvePlacementProfile([C('MEETING_TABLE', 'INFERRED'), C('MEETING_TABLE', 'CURATED_RULE')]).provenance).toBe('CURATED_RULE');
+  });
+  it('USER_CONFIRMED vs INFERRED → gana USER_CONFIRMED', () => {
+    expect(resolvePlacementProfile([C('DOUBLE_FACE', 'INFERRED'), C('DOUBLE_FACE', 'USER_CONFIRMED')]).provenance).toBe('USER_CONFIRMED');
+  });
+  it('UNKNOWN nunca pisa: [UNKNOWN, INFERRED] → gana INFERRED', () => {
+    expect(resolvePlacementProfile([C('SINGLE_FACE', 'UNKNOWN'), C('SINGLE_FACE', 'INFERRED')]).provenance).toBe('INFERRED');
+  });
+  it('sin candidatos válidos → UNKNOWN + fallback LEGACY', () => {
+    const r = resolvePlacementProfile([]);
+    expect(r.topology).toBe('UNKNOWN');
+    expect(r.fallback_layout_strategy).toBe('LEGACY_SINGLE_FACE');
+  });
+  it('determinista: mismo input → mismo ganador', () => {
+    const cands = [C('SINGLE_FACE', 'CURATED_RULE', 0.9), C('DOUBLE_FACE', 'CURATED_RULE', 0.9)];
+    expect(resolvePlacementProfile(cands)).toEqual(resolvePlacementProfile(cands.slice().reverse()));
   });
 });
 
