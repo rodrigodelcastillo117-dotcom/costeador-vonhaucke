@@ -1364,7 +1364,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
               </label>
               {/* `onClick={acomodar}` le pasaba el EVENTO del clic como opciones:
                   funcionaba de milagro (`deCero` salía undefined). Explícito. */}
-              <button className="boton primario" style={{ minHeight: 50, marginLeft: 'auto' }}
+              <button className="boton primario" data-testid="acomodo-acomodar" style={{ minHeight: 50, marginLeft: 'auto' }}
                 disabled={!programaListo} title={!programaListo ? motivoPrograma : (nAMano ? `Acomoda lo que falta sin mover los ${nAMano} que pusiste tú.` : undefined)} onClick={() => acomodar()}>Acomodar</button>
               <button className="boton fantasma" style={{ minHeight: 50 }} disabled={!programaListo} onClick={acomodarIA}
                 title={!programaListo ? motivoPrograma : 'Alterna con IA (el acomodo normal ya es automático)'}>Con IA</button>

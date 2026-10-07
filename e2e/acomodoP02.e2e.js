@@ -21,10 +21,13 @@ const PASS = process.env.TEST_PASSWORD;
 const hayCreds = !!(EMAIL && PASS);
 const CLAVE = 'costeador-vonhaucke-v1';
 
+// Programa COHERENTE (bench ancla + sillas + mesa) para que programaListo === true
+// (si no, validarCoherenciaPrograma emite MISSING_WORK_ANCHOR y bloquea el solver).
 const SEMILLA = {
   onboardingVisto: true,
   cotizacion: {
     partidas: [
+      { id: 'b', piezaId: 'op-bench', nombre: 'Bench operativo App LT', cantidad: 1, w: 6000, d: 1200, precioUnitario: 28540 },
       { id: 'w', piezaId: 'silla-win', nombre: 'Silla operativa WIN', cantidad: 2, precioUnitario: 5210 },
       { id: 'm', piezaId: 'mj-2400x1200', nombre: 'Mesa de juntas', cantidad: 1, w: 2400, d: 1200, precioUnitario: 5510 },
     ],
@@ -37,27 +40,30 @@ const SEMILLA = {
   },
 };
 
+// Piezas expandidas: b-1 (bench), w-1/w-2 (sillas), m-1 (mesa). requested = 4.
 const planBueno = {
   ok: true,
   plan: { colocacion: [
+    { id: 'b-1', area: 0, x: 0, y: 0, rot: 0 },
     { id: 'w-1', area: 0, x: 0, y: 1500, rot: 0 },
     { id: 'w-2', area: 0, x: 2000, y: 1500, rot: 0 },
     { id: 'm-1', area: 1, x: 0, y: 0, rot: 0 },
   ], caben: true },
-  layoutSpec: { version: 'PLACEMENT_SPEC_V2', status: 'PASS', requested: 3, placed: 3, unplaced: [], validation: { render_ready: true, invariant_ok: true } },
-  render_ready: true, strictPlacement: true, completo: true, colocadas: 3, total: 3, noColocadas: [],
+  layoutSpec: { version: 'PLACEMENT_SPEC_V2', status: 'PASS', requested: 4, placed: 4, unplaced: [], validation: { render_ready: true, invariant_ok: true } },
+  render_ready: true, strictPlacement: true, completo: true, colocadas: 4, total: 4, noColocadas: [],
 };
 
 // MENTIROSO: dice PASS/render_ready pero w-1 y w-2 se solapan (mismo punto).
 const planMentiroso = {
   ok: true,
   plan: { colocacion: [
+    { id: 'b-1', area: 0, x: 0, y: 0, rot: 0 },
     { id: 'w-1', area: 0, x: 0, y: 1500, rot: 0 },
     { id: 'w-2', area: 0, x: 0, y: 1500, rot: 0 },  // OVERLAP con w-1
     { id: 'm-1', area: 1, x: 0, y: 0, rot: 0 },
   ], caben: true },
-  layoutSpec: { version: 'PLACEMENT_SPEC_V2', status: 'PASS', requested: 3, placed: 3, unplaced: [], validation: { render_ready: true, invariant_ok: true } },
-  render_ready: true, strictPlacement: true, completo: true, colocadas: 3, total: 3, noColocadas: [],
+  layoutSpec: { version: 'PLACEMENT_SPEC_V2', status: 'PASS', requested: 4, placed: 4, unplaced: [], validation: { render_ready: true, invariant_ok: true } },
+  render_ready: true, strictPlacement: true, completo: true, colocadas: 4, total: 4, noColocadas: [],
 };
 
 const leerCot = (page) => page.evaluate((clave) => {
@@ -83,7 +89,7 @@ async function loginYSemilla(page) {
   await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
   // DIAGNÓSTICO (audit H): el fixture debe sobrevivir la hidratación.
   const cot = await leerCot(page);
-  expect(cot?.partidas?.length, 'las partidas del fixture deben sobrevivir el login').toBe(2);
+  expect(cot?.partidas?.length, 'las partidas del fixture deben sobrevivir el login').toBe(3);
   expect(cot?.acomodo?.areasM?.length, 'las areasM del fixture deben sobrevivir el login').toBe(2);
 }
 
@@ -110,7 +116,7 @@ test.describe('E2E P0.2 · acomodo verify-first (navegador real)', () => {
     await expect.poll(async () => (await leerCot(page))?.acomodo?.plan?.program_hash || '', { timeout: 15000 }).toMatch(/^pc_/);
     const cot = await leerCot(page);
     expect(cot.acomodo.plan.floor_hash).toMatch(/^f_/);
-    expect(cot.acomodo.plan.colocacion.length).toBe(3);
+    expect(cot.acomodo.plan.colocacion.length).toBe(4);
     // Autoridad del agregador: plan válido → persiste como validado.
     await expect.poll(async () => (await leerCot(page))?.acomodo?.layoutEspacialValidado, { timeout: 10000 }).toBe(true);
     expect(cot.acomodo.layoutEstado).toBe('PASS');
