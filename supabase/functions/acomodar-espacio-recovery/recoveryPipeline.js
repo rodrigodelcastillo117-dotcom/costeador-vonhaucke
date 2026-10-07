@@ -36,15 +36,18 @@ export function construirRespuestaAcomodo(areas = [], piezas = []) {
   const doors = auditarPuertas(areas);
   const mensaje = mensajeSerializable(areas, piezasAsign, sol);
 
-  // GATE de publicación sobre el GANADOR (contrato FINAL):
-  //   render_ready ⇔ HARD PASS (evaluarRecovery) ∧ SEMANTIC PASS (GAP18: sólo PASS,
-  //   nunca REVIEW_REQUIRED) ∧ QUALITY ACEPTABLE (GAP26).
-  const semanticPass = semEval.semantic_pass === true;          // sólo 'PASS'
-  const qualityPass = semEval.quality_status ? semEval.quality_status === 'PASS' : true;
-  const qualityReview = !!sel.quality_review_required || !qualityPass;
+  // GATE de publicación sobre el GANADOR (contrato FINAL, FAIL-CLOSED · GAP34):
+  //   render_ready ⇔ HARD PASS (evaluarRecovery) ∧ SEMANTIC PASS (GAP18: sólo 'PASS')
+  //   ∧ QUALITY PASS (GAP26). AUSENCIA DE EVIDENCIA ≠ PASS. Precedencia de estado:
+  //   metadata ausente → SEMANTIC (FAIL/REVIEW) → QUALITY. El quality se omite por
+  //   diseño cuando la semántica no pasa (lazy), así que SEMANTIC manda sobre QUALITY.
+  const semanticPass = semEval.sem_status === 'PASS' && semEval.semantic_pass === true;
+  const qualityPass = semEval.quality_status === 'PASS';       // fail-closed: faltante → false
   const render_ready = !!evalFinal.render_ready && semanticPass && qualityPass && !sel.quality_review_required;
-  const status = (semEval.sem_status && !semanticPass) ? 'NEEDS_SEMANTIC_REVIEW'
-    : (qualityReview ? 'QUALITY_REVIEW_REQUIRED' : evalFinal.status);
+  const qualityReview = !!sel.quality_review_required || !qualityPass;
+  const status = !semEval.sem_status ? 'NEEDS_REVIEW_METADATA'
+    : (!semanticPass ? 'NEEDS_SEMANTIC_REVIEW'
+      : (qualityReview ? 'QUALITY_REVIEW_REQUIRED' : evalFinal.status));
 
   const layoutSpec = {
     version: CONTRATO.output_version,

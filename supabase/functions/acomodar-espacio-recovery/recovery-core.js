@@ -85,17 +85,37 @@ export function invariantesMuros(areas = [], piezas = [], colocacion = []) {
 // slots, no la circulación. Sólo piezas de DISTINTO grupo a 1..min se marcan.
 const grupoFuncDe = (p) => (p && p.functional_group_id != null ? String(p.functional_group_id) : null);
 const anchorInstDe = (p) => (p && p.anchor_instance_id != null ? String(p.anchor_instance_id) : null);
-function mismoKit(pa, pb) {
-  if (!pa || !pb) return false;
-  const ga = grupoFuncDe(pa), gb = grupoFuncDe(pb);
-  if (ga && gb && ga === gb) return true;                 // mismo grupo funcional
-  if (anchorInstDe(pa) && anchorInstDe(pa) === String(pb.id)) return true;  // b es ancla de a
-  if (anchorInstDe(pb) && anchorInstDe(pb) === String(pa.id)) return true;  // a es ancla de b
-  if (anchorInstDe(pa) && anchorInstDe(pb) && anchorInstDe(pa) === anchorInstDe(pb)) return true; // misma ancla
-  return false;
+const esAnclaRolC = (p) => typeof p?.relation_role === 'string' && p.relation_role.startsWith('ANCHOR_');
+// GAP30: el "kit físico" lo define su ANCLA, no el functional_group_id (un grupo puede
+// tener VARIAS anclas = varios kits). kit_owner: ancla → su propio id; dependiente →
+// su anchor_instance_id. functional_group_id SÓLO como fallback conservador cuando el
+// grupo tiene UNA sola ancla y al dependiente le falta anchor_instance_id.
+function construirKitOwner(piezas = []) {
+  const anclasPorGrupo = new Map();        // gid → [anchorId]
+  for (const p of piezas) {
+    if (!esAnclaRolC(p)) continue;
+    const gid = grupoFuncDe(p); if (!gid) continue;
+    if (!anclasPorGrupo.has(gid)) anclasPorGrupo.set(gid, []);
+    anclasPorGrupo.get(gid).push(String(p.id));
+  }
+  return (p) => {
+    if (!p) return null;
+    if (esAnclaRolC(p)) return `anc:${String(p.id)}`;        // cada ancla = un kit
+    const ai = anchorInstDe(p);
+    if (ai) return `anc:${ai}`;                              // dependiente → su ancla
+    const gid = grupoFuncDe(p);
+    if (gid) {
+      const anclas = anclasPorGrupo.get(gid) || [];
+      if (anclas.length === 1) return `anc:${anclas[0]}`;    // fallback: única ancla del grupo
+      return `grp:${gid}`;                                   // ambiguo → conservador (no aísla)
+    }
+    return `solo:${String(p.id)}`;
+  };
 }
 export function invariantesCirculacion(areas = [], piezas = [], colocacion = [], minPasillo = CONTRATO.min_pasillo_mm) {
   const porId = new Map(piezas.map((p) => [String(p.id), p]));
+  const kitOwner = construirKitOwner(piezas);
+  const mismoKit = (pa, pb) => { const oa = kitOwner(pa), ob = kitOwner(pb); return oa != null && oa === ob; };
   const porArea = new Map();
   for (const c of colocacion) {
     const pieza = porId.get(String(c.id)); if (!pieza) continue;

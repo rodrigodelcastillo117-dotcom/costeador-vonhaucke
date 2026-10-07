@@ -57,6 +57,17 @@ describe('P0.2c · BLOCK 5 · edge emite el GANADOR (center/PASS), no el row/FAI
     expect(sides).toEqual({ A: 4, B: 4, HEAD_A: 1, HEAD_B: 1 });
   });
 
+  it('GAP34 · hard+semantic PASS pero QUALITY REVIEW → render_ready=false (fail-closed)', () => {
+    // bench doble cara 8 con pasillos de acceso APRETADOS (<600 mm en ambos lados):
+    // semántica PASS (acceso >0) pero calidad baja → quality_status REVIEW_REQUIRED.
+    const areas = [{ nombre: 'OP', zone_id: 'OP', tipo: 'open', ancho: 7000, largo: 3000 }];
+    const resp = construirRespuestaAcomodo(areas, df8());
+    expect(resp.layoutSpec.validation.semantic_gate.sem_status).toBe('PASS');
+    expect(resp.seleccion.ganador_eval.quality_status).toBe('REVIEW_REQUIRED');
+    expect(resp.render_ready).toBe(false);
+    expect(resp.status).toBe('QUALITY_REVIEW_REQUIRED');
+  });
+
   it('GAP18 · topología UNKNOWN → REVIEW_REQUIRED → JAMÁS render_ready', () => {
     const areas = [{ nombre: 'OP', zone_id: 'OP', tipo: 'open', ancho: 4000, largo: 4000 }];
     const unk = [

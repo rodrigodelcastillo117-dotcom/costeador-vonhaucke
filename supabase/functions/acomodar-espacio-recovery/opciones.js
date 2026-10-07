@@ -64,58 +64,86 @@ const LABEL_CAUSA = {
 // EXHAUSTED → revisión, no imposibilidad) y empate de restricciones (MULTI_CONSTRAINT).
 // PROHIBIDO "necesita ~X m²" salvo que NO_SPACE esté probado (needM2 > haveM2).
 function causaDesdeCertificado(cert, anc, ar, nSillas) {
-  const zona = ar.nombre || ar.zone_id || 'el área';
   const df = cert.dimensional_fit || {};
   const needM2 = num(df.needM2), haveM2 = num(df.haveM2);
   const areaW = num(ar.ancho) || num(ar.width_mm), areaH = num(ar.largo) || num(ar.depth_mm);
+  const zonas = (cert.permitted_areas || []).map((a) => a.zone).filter(Boolean);
+  const multi = zonas.length > 1;
+  const zonaTxt = multi ? zonas.map((z) => `"${z}"`).join(', ') : `"${ar.nombre || ar.zone_id || 'el área'}"`;
+  const zonaField = multi ? zonas.join(', ') : (ar.nombre || ar.zone_id || null);
   const ev = {
-    invariante_solver: cert.primary_cause, primary_cause: cert.primary_cause, secondary_causes: cert.secondary_causes || [],
+    invariante_solver: cert.primary_cause, primary_cause: cert.primary_cause, proven: cert.proven, secondary_causes: cert.secondary_causes || [],
     needM2, haveM2, moduloW_m: num(df.moduloW_m), moduloH_m: num(df.moduloH_m),
     areaW_m: +(areaW / 1000).toFixed(2), areaH_m: +(areaH / 1000).toFixed(2),
     search_exhausted: cert.search_exhausted, nodes_used: cert.nodes_used,
+    zonas_intentadas: zonas, por_zona: (cert.permitted_areas || []).map((a) => ({ zona: a.zone, causas: a.causas || [] })),
   };
   const ladoTxt = () => (num(df.moduloW_m) > ev.areaW_m ? `ancho (${num(df.moduloW_m)} m vs ${ev.areaW_m} m de la zona)` : `fondo (${num(df.moduloH_m)} m vs ${ev.areaH_m} m de la zona)`);
+  const out = (invariante, texto) => ({ invariante, texto, evidencia: ev, zona: zonaField });
 
-  // GAP22 · MULTI-ÁREA: si se intentaron VARIAS zonas y bloquearon por causas distintas,
-  // la explicación deriva de TODAS (no de una sola). Precede al switch mono-zona.
-  const zonasEval = (cert.permitted_areas || []).filter((a) => Array.isArray(a.causas) && a.causas.length);
-  if (zonasEval.length > 1 && !['SEARCH_BUDGET_EXHAUSTED', 'DIAGNOSTIC_BUDGET_EXHAUSTED', 'INTER_KIT_CONSTRAINT'].includes(cert.primary_cause)) {
-    const porZona = zonasEval.map((a) => `en "${a.zone}" ${a.causas.map((c) => LABEL_CAUSA[c] || c).join('/')}`);
-    const causasDistintas = new Set(zonasEval.flatMap((a) => a.causas)).size > 1;
-    const evMulti = { ...ev, por_zona: zonasEval.map((a) => ({ zona: a.zone, causas: a.causas })) };
-    if (causasDistintas) {
-      return { invariante: 'MULTI_CONSTRAINT', texto: `Se intentaron ${zonasEval.length} zonas y cada una bloquea por un motivo distinto: ${porZona.join('; ')}.`, evidencia: evMulti };
-    }
-    // misma causa en todas las zonas → una sola causa, pero mencionando que fueron varias.
-    return { invariante: cert.primary_cause, texto: `Se intentaron ${zonasEval.length} zonas (${zonasEval.map((a) => `"${a.zone}"`).join(', ')}) y en todas falla por lo mismo: ${(zonasEval[0].causas.map((c) => LABEL_CAUSA[c] || c).join('/'))}.`, evidencia: evMulti };
+  // GAP31 · PARTIAL: la causa del conjunto completo viene del CERTIFICADO del kit
+  // completo (full_kit_cause), NO se inventa "pasillo". Si no está probada → revisión.
+  if (cert.primary_cause === 'PARTIAL_SEATS_DROPPED') {
+    const pc = cert.partial_certificate || {};
+    if (pc.full_kit_proven !== true) return out('NEEDS_SEMANTIC_REVIEW', `El mueble cabe en ${zonaTxt}; sus sillas/dependientes no caben, pero la causa exacta requiere revisión.`);
+    const sec = (pc.full_kit_secondary || []).map((c) => LABEL_CAUSA[c] || c).join(' y ');
+    const mapa = {
+      DOOR: `El mueble cabe en ${zonaTxt}, pero el conjunto completo con sillas queda bloqueado por el barrido de una puerta (probado).`,
+      OBSTACLE: `El mueble cabe en ${zonaTxt}, pero el conjunto completo con sillas choca con una columna/obstáculo (probado).`,
+      OUT_OF_POLYGON: `El mueble cabe en ${zonaTxt}, pero el conjunto completo con sillas no entra en el contorno real del cuarto.`,
+      ASPECT_RATIO: `El mueble cabe en ${zonaTxt}, pero el conjunto completo con sillas no entra por la FORMA del área.`,
+      NO_SPACE: `El mueble cabe en ${zonaTxt}, pero el conjunto completo con sillas necesita más superficie de la disponible.`,
+      INTER_KIT_CONSTRAINT: `El mueble cabe en ${zonaTxt}, pero el conjunto completo con sillas no convive con los demás bloques conservando el pasillo de 1.0 m.`,
+      MULTI_CONSTRAINT: `El mueble cabe en ${zonaTxt}, pero el conjunto completo con sillas falla por varias restricciones a la vez (${sec}).`,
+    };
+    return out('NO_SPACE_PARA_SILLAS', mapa[pc.full_kit_cause] || `El mueble cabe en ${zonaTxt}; sus sillas/dependientes no caben (causa: ${pc.full_kit_cause}).`);
   }
 
+  // GAP31 · regla general: cert.proven !== true (fuera de budget) → NO afirmación definitiva.
+  if (cert.proven === false && !['SEARCH_BUDGET_EXHAUSTED', 'DIAGNOSTIC_BUDGET_EXHAUSTED'].includes(cert.primary_cause)) {
+    return out('NEEDS_REVIEW', `No pude probar con certeza la causa en ${zonaTxt}; requiere revisión manual (no es una imposibilidad comprobada).`);
+  }
+
+  // GAP32 · presupuesto: lista TODAS las zonas intentadas (no una sola).
+  if (cert.primary_cause === 'SEARCH_BUDGET_EXHAUSTED')
+    return out('SEARCH_BUDGET_EXHAUSTED', `No alcancé a explorar ${multi ? `las zonas ${zonaTxt}` : `el espacio de ${zonaTxt}`} dentro del presupuesto de cálculo; requiere revisión manual (no es una imposibilidad comprobada).`);
+  if (cert.primary_cause === 'DIAGNOSTIC_BUDGET_EXHAUSTED')
+    return out('DIAGNOSTIC_BUDGET_EXHAUSTED', `No terminé de diagnosticar la causa en ${multi ? `las zonas ${zonaTxt}` : zonaTxt} dentro del presupuesto; requiere revisión manual.`);
+
+  // GAP32 · INTER_KIT global cuando hay varias zonas (cabe aislado, no en conjunto).
+  if (cert.primary_cause === 'INTER_KIT_CONSTRAINT') {
+    if (multi) return out('INTER_KIT_CONSTRAINT', `Se intentaron las zonas ${zonaTxt}: el módulo cabe aislado, pero ninguna produce una solución conjunta que conserve el pasillo de 1.0 m entre bloques.`);
+    return out('INTER_KIT_CONSTRAINT', `El módulo cabe solo en ${zonaTxt}, pero no junto a los demás bloques conservando el pasillo de 1.0 m (el espacio se fragmenta entre muebles).`);
+  }
+
+  // GAP22/GAP32 · MULTI-ÁREA con causas geométricas por zona.
+  const zonasEval = (cert.permitted_areas || []).filter((a) => Array.isArray(a.causas) && a.causas.length);
+  if (zonasEval.length > 1) {
+    const porZona = zonasEval.map((a) => `en "${a.zone}" ${a.causas.map((c) => LABEL_CAUSA[c] || c).join('/')}`);
+    const distinct = new Set(zonasEval.flatMap((a) => a.causas)).size > 1;
+    if (distinct) return out('MULTI_CONSTRAINT', `Se intentaron ${zonasEval.length} zonas y cada una bloquea por un motivo distinto: ${porZona.join('; ')}.`);
+    return out(cert.primary_cause, `Se intentaron ${zonasEval.length} zonas (${zonaTxt}) y en todas falla por lo mismo: ${zonasEval[0].causas.map((c) => LABEL_CAUSA[c] || c).join('/')}.`);
+  }
+
+  // Mono-zona.
   switch (cert.primary_cause) {
-    case 'SEARCH_BUDGET_EXHAUSTED':
-      return { invariante: 'SEARCH_BUDGET_EXHAUSTED', texto: `No alcancé a explorar todo el espacio de "${zona}" dentro del presupuesto de cálculo; requiere revisión manual (no es una imposibilidad comprobada).`, evidencia: ev };
-    case 'DIAGNOSTIC_BUDGET_EXHAUSTED':
-      return { invariante: 'DIAGNOSTIC_BUDGET_EXHAUSTED', texto: `No alcancé a diagnosticar con certeza la causa en "${zona}" dentro del presupuesto; requiere revisión manual (no es una imposibilidad comprobada).`, evidencia: ev };
     case 'ASPECT_RATIO':
-      return { invariante: 'ASPECT_RATIO', texto: `El módulo no entra por la FORMA del área "${zona}": su ${ladoTxt()} no cabe (la zona tiene ~${haveM2} m², pero no en esa dimensión).`, evidencia: ev };
+      return out('ASPECT_RATIO', `El módulo no entra por la FORMA del área ${zonaTxt}: su ${ladoTxt()} no cabe (la zona tiene ~${haveM2} m², pero no en esa dimensión).`);
     case 'NO_SPACE':
-      return { invariante: 'NO_SPACE', texto: `El grupo necesita ~${needM2} m² y ninguna zona permitida alcanza esa superficie (la mayor tiene ~${haveM2} m²).`, evidencia: ev };
+      return out('NO_SPACE', `El grupo necesita ~${needM2} m² y ninguna zona permitida alcanza esa superficie (la mayor tiene ~${haveM2} m²).`);
     case 'OUT_OF_POLYGON':
-      return { invariante: 'OUT_OF_POLYGON', texto: `La forma real de "${zona}" (muros/recortes) no deja un rectángulo continuo para el módulo; hay superficie, pero el contorno la fragmenta.`, evidencia: ev };
+      return out('OUT_OF_POLYGON', `La forma real de ${zonaTxt} (muros/recortes) no deja un rectángulo continuo para el módulo; hay superficie, pero el contorno la fragmenta.`);
     case 'DOOR':
-      return { invariante: 'DOOR', texto: `El barrido de la puerta en "${zona}" ocupa ese frente y no deja colocar el módulo (probado: sin la puerta, sí cabe).`, evidencia: ev };
+      return out('DOOR', `El barrido de la puerta en ${zonaTxt} ocupa ese frente y no deja colocar el módulo (probado: sin la puerta, sí cabe).`);
     case 'OBSTACLE':
-      return { invariante: 'OBSTACLE', texto: `Una columna/obstáculo en "${zona}" ocupa el punto donde iría el módulo (probado: sin el obstáculo, sí cabe).`, evidencia: ev };
-    case 'INTER_KIT_CONSTRAINT':
-      return { invariante: 'INTER_KIT_CONSTRAINT', texto: `El módulo cabe solo en "${zona}", pero no junto a los demás bloques conservando el pasillo de 1.0 m (el espacio se fragmenta entre muebles).`, evidencia: ev };
-    case 'PARTIAL_SEATS_DROPPED':
-      return { invariante: 'NO_SPACE_PARA_SILLAS', texto: `El mueble sí cabe en "${zona}"; lo que no cupo son sus sillas/dependientes conservando el pasillo de 1.0 m.`, evidencia: ev };
+      return out('OBSTACLE', `Una columna/obstáculo en ${zonaTxt} ocupa el punto donde iría el módulo (probado: sin el obstáculo, sí cabe).`);
     case 'MULTI_CONSTRAINT': {
       const causas = [...(cert.secondary_causes || [])].filter((c) => c && c !== 'MULTI_CONSTRAINT');
       const lista = causas.map((c) => LABEL_CAUSA[c] || c).join(' y ') || 'varias restricciones';
-      return { invariante: 'MULTI_CONSTRAINT', texto: `Varias restricciones bloquean el módulo a la vez en "${zona}" (${lista}); no hay una sola causa dominante.`, evidencia: ev };
+      return out('MULTI_CONSTRAINT', `Varias restricciones bloquean el módulo a la vez en ${zonaTxt} (${lista}); no hay una sola causa dominante.`);
     }
     default:
-      return { invariante: 'INTER_KIT_CONSTRAINT', texto: `Hay superficie en "${zona}" (~${haveM2} m²), pero no un hueco que conserve el pasillo de 1.0 m junto a los demás bloques.`, evidencia: ev };
+      return out('INTER_KIT_CONSTRAINT', `Hay superficie en ${zonaTxt} (~${haveM2} m²), pero no un hueco que conserve el pasillo de 1.0 m junto a los demás bloques.`);
   }
 }
 
@@ -165,7 +193,10 @@ export function mensajeVendedor(areas = [], piezas = [], sol = {}, opts = {}) {
     const nSillas = (u.piezas || []).filter((id) => { const p = byId.get(String(id)); return p && !esAncla(p.relation_role); }).length;
     // GAP17: la causa PROBADA del certificado manda; la heurística es sólo fallback.
     const c = u.certificado ? causaDesdeCertificado(u.certificado, anc, ar, nSillas) : causaReal(u.invariante || 'NO_SPACE', anc, ar, nSillas);
-    motivos.push({ anchorId: u.anchorId, invariante: c.invariante, invariante_solver: u.invariante || 'NO_SPACE', zona: ar.nombre || ar.zone_id || `área ${ai + 1}`, texto: c.texto, evidencia: c.evidencia });
+    // GAP32: si la causa es global multi-área, `zona` refleja TODAS las zonas intentadas,
+    // no una sola silenciosamente.
+    const zonaMotivo = c.zona != null ? c.zona : (ar.nombre || ar.zone_id || `área ${ai + 1}`);
+    motivos.push({ anchorId: u.anchorId, invariante: c.invariante, invariante_solver: u.invariante || 'NO_SPACE', zona: zonaMotivo, texto: c.texto, evidencia: c.evidencia });
   }
   if (unassigned.length) motivos.push({ invariante: 'DEPENDENT_UNASSIGNED', texto: `${plural(unassigned.length, 'pieza')} sin un mueble que las reciba (se superó la capacidad del catálogo).` });
 

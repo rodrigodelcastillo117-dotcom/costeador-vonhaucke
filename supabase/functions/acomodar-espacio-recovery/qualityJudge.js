@@ -7,7 +7,7 @@
 //  Salida: { total_score (0..100), components:{nombre:{score0..1,weight,detail}}, reasons[] }
 //  calidadAceptable(q) → { status: PASS|REVIEW_REQUIRED, provenance:'PROVISIONAL', ... }
 // ============================================================================
-import { evaluarCalidad, spatialSpecDe } from './spatial-core.js';
+import { evaluarCalidad, spatialSpecDe, procedenciaSpatial } from './spatial-core.js';
 
 const num = (n, d = 0) => (Number.isFinite(Number(n)) ? Number(n) : d);
 const esAncla = (r) => typeof r === 'string' && r.startsWith('ANCHOR_');
@@ -122,20 +122,22 @@ export function juzgarCalidad(areas = [], piezas = [], colocacion = [], { porPie
   const util = areaTot ? used / areaTot : 0;
   add('utilization', util <= 0.7 ? util / 0.7 : clamp01(1 - (util - 0.7) / 0.3), { utilization: +util.toFixed(3) });
 
-  // 8 · WALL_USAGE (GAP24): SÓLO si el PlacementProfile lo pide (prefer_wall). Sin
-  // evidencia → NO se premia (peso 0): "cerca de muro" no es criterio global.
-  let wallSum = 0, wallN = 0;
+  // 8 · WALL_USAGE (GAP24/GAP33): SÓLO con evidencia del SPATIAL_SPEC del producto
+  // (prefer_wall), NO del PlacementProfile (que no transporta esa preferencia). Sin
+  // evidencia → peso 0 (no se premia): "cerca de muro" no es criterio global ni se infiere.
+  let wallSum = 0, wallN = 0; const wallProv = [];
   for (const [id, anc] of anclas) {
     const p = byId.get(id); const spec = spatialSpecDe(p || {});
     const preferWall = spec.prefer_wall === true || spec.anchor === 'wall' || spec.ancla === 'muro';
-    if (!preferWall) continue;                                  // sin evidencia → no cuenta
+    if (!preferWall) continue;                                  // sin evidencia en spatial_spec → no cuenta
     const area = areas[anc.area]; if (!area) continue;
     const W = num(area.ancho) || num(area.width_mm), H = num(area.largo) || num(area.depth_mm);
     const ar = anc.rect;
     const dMuro = Math.min(ar.x, ar.y, Math.max(0, W - (ar.x + ar.w)), Math.max(0, H - (ar.y + ar.d)));
     wallSum += clamp01(1 - dMuro / 1500); wallN++;
+    wallProv.push(procedenciaSpatial(p || {}));
   }
-  add('wall_usage', wallN ? wallSum / wallN : 1, { anclas_prefer_wall: wallN, evidencia: wallN > 0 }, wallN ? PESOS.wall_usage : 0);
+  add('wall_usage', wallN ? wallSum / wallN : 1, { source: 'spatial_spec.prefer_wall', anclas_con_evidencia: wallN, evidencia: wallN > 0, provenance: wallProv }, wallN ? PESOS.wall_usage : 0);
 
   // 9 · FREE_SPACE_PROXY (GAP25): PROVISIONAL. Mide espacio libre, NO circulación real.
   add('free_space_proxy', clamp01(1 - util), { free_fraction: +(1 - util).toFixed(3), provenance: 'PROVISIONAL', nota: 'proxy de holgura, no circulación medida' });

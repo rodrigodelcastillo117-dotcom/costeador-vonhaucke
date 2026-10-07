@@ -147,6 +147,21 @@ describe('P0.2c · GAP17 · el mensaje al vendedor consume la causa PROBADA', ()
     expect(m.texto).not.toMatch(/necesita ~[\d.]+ m²/);
   });
 
+  it('GAP31 · PARTIAL: el texto deriva de full_kit_cause (no inventa "pasillo")', () => {
+    const areas = [{ nombre: 'OP', zone_id: 'OP', tipo: 'open', ancho: 6200, largo: 1300 }];
+    const piezas = [
+      mk('b', 'ANCHOR_WORKSTATION', 6000, 1200, { user_capacity: 4, placement_profile: { topology: 'SINGLE_FACE', provenance: 'CATALOG', version: 'PP_V1' } }),
+      ...Array.from({ length: 4 }, (_, i) => mk('s' + i, 'WORK_SEAT', 600, 600)),
+      mk('gv', 'UNDERDESK_STORAGE', 400, 500),
+    ];
+    const sol = resolverKits(areas, piezas);
+    const m = mensajeVendedor(areas, sol.piezas, sol, { resolver: resolverKits }).motivos.find((x) => x.invariante === 'NO_SPACE_PARA_SILLAS');
+    expect(m).toBeTruthy();
+    expect(m.texto).toMatch(/el mueble cabe/i);        // ancla sí cabe
+    expect(m.texto).toMatch(/forma|superficie|restricciones/i);  // causa real del conjunto completo
+    expect(m.texto).not.toMatch(/pasillo de 1\.0 m/);  // GAP31: ya no inventa el pasillo
+  });
+
   it('SEARCH_BUDGET_EXHAUSTED (17.2): el mensaje pide revisión, no afirma imposibilidad', () => {
     const areas = [{ nombre: 'OP', zone_id: 'OP', tipo: 'open', ancho: 5000, largo: 5000 }];
     const anc = mk('bX', 'ANCHOR_WORKSTATION', 1000, 1000, { user_capacity: 1 });

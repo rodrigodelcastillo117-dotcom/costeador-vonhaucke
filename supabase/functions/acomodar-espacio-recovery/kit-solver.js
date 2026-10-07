@@ -254,8 +254,10 @@ function causaEnArea(dx, needM2, areaM2, moduloLong, moduloShort, areaLong, area
   return ['DOOR', 'OBSTACLE'];                                     // ambos o interacción
 }
 
-export function certificarKit(kit, areas, { budgetExhausted, nodos }) {
-  const deadline = Date.now() + DIAG_MAX_MS;
+export function certificarKit(kit, areas, { budgetExhausted, nodos, deadline: extDeadline } = {}) {
+  // GAP35.C: el diagnóstico respeta el deadline GLOBAL del multi si es más estricto
+  // que su propio presupuesto (DIAG_MAX_MS). Nunca lo excede.
+  const deadline = Number.isFinite(extDeadline) ? Math.min(Date.now() + DIAG_MAX_MS, extDeadline) : Date.now() + DIAG_MAX_MS;
   const variantesFull = [
     { rot: 0, w: kit.base.w, d: kit.base.d },
     { rot: 90, w: kit.base.d, d: kit.base.w },
@@ -404,6 +406,9 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
       for (const { k, rot, drop } of variantes) {
         for (const c of candidatos(area, k.w, k.d, opts.orden)) {
           nodos++;
+          // GAP35.A: checar deadline DENTRO del barrido (no sólo al entrar a intentarKit),
+          // para que una malla grande no exceda el presupuesto. Cada 512 nodos (barato).
+          if (deadline && (nodos % 512 === 0) && Date.now() >= deadline) { budgetExhausted = true; return idx >= kits.length; }
           const motivo = kitCabe(c.x, c.y, k.w, k.d, area, ocupadosPorArea.get(ai));
           if (motivo) {
             // GAP17: histograma de rechazos (SÓLO registra; no altera el flujo).
@@ -427,19 +432,23 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
 
   // Ensambla faltantes: kits sin colocar (fail) + sillas que cayeron al usar la
   // variante mínima. Motivo CAUSAL del invariante limitante (no genérico).
+  // GAP35.C: durante la EXPLORACIÓN multi, los certificados causales (costosos) se
+  // OMITEN (certificados:false) y se calculan sólo para el GANADOR al final. El camino
+  // por defecto (banco) mantiene certificados:true → salida byte-idéntica.
+  const conCertificados = opts.certificados !== false;
   const unplaced = [];
   kits.forEach((kit, idx) => {
     const res = kitRes[idx] || { dropped: kit.base.piezas.map((p) => String(p.id)), invariante: 'NO_SPACE', fail: true };
     if (res.fail) {
       // GAP17: certificado adjunto (aditivo). `invariante` NO cambia (downstream intacto).
-      const certificado = certificarKit(kit, areas, { budgetExhausted, nodos });
+      const certificado = conCertificados ? certificarKit(kit, areas, { budgetExhausted, nodos, deadline }) : null;
       unplaced.push({ anchorId: kit.anchorId, piezas: res.dropped, invariante: res.invariante, certificado });
     } else if (res.dropped && res.dropped.length) {
       // GAP21: el ancla SÍ cupo pero las sillas no. La CAUSA del kit completo se prueba
       // con el MISMO diagnóstico contrafáctico (no se afirma "pasillo" por defecto). Si
       // la causa exacta no se puede probar → proven=false (REVIEW).
-      const full = certificarKit(kit, areas, { budgetExhausted, nodos });
-      const certificado = {
+      const full = conCertificados ? certificarKit(kit, areas, { budgetExhausted, nodos, deadline }) : null;
+      const certificado = full ? {
         primary_cause: 'PARTIAL_SEATS_DROPPED',
         proven: full.proven === true,
         partial_certificate: {
@@ -451,7 +460,7 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
           full_kit_evidence: full.evidence,
           full_kit_secondary: full.secondary_causes,
         },
-      };
+      } : null;
       unplaced.push({ anchorId: kit.anchorId, piezas: res.dropped, invariante: 'NO_SPACE_PARA_SILLAS', certificado });
     }
   });
@@ -508,14 +517,21 @@ function evaluarCandidato(areas, piezas, sol) {
   const semantic_pass = sem.status === 'PASS';          // sólo PASS habilita render_ready
   const semRank = SEM_RANK[sem.status] ?? 0;
 
-  // 4 · QUALITY (sólo informa el orden entre quienes pasaron gates) + estado aceptable (GAP26).
-  const q = juzgarCalidad(areas, sol.piezas, sol.colocacion, { porPieza: hard.porPieza, semantic: sem });
-  const qa = calidadAceptable(q);
+  // 4 · QUALITY — LAZY (GAP35): el score sólo decide el orden ENTRE candidatos que ya
+  // pasaron HARD y SEMANTIC; para un candidato con hard-FAIL o semantic-FAIL el quality
+  // NUNCA cambia el ranking, así que se omite (ahorra presupuesto). Un candidato sin
+  // quality_status NO puede ser FINAL (fail-closed en recoveryPipeline).
+  let quality = 0, quality_status = undefined, quality_components, quality_reasons;
+  if (hardOk && sem.status !== 'FAIL') {
+    const q = juzgarCalidad(areas, sol.piezas, sol.colocacion, { porPieza: hard.porPieza, semantic: sem });
+    quality = q.total_score; quality_status = calidadAceptable(q).status;
+    quality_components = q.components; quality_reasons = q.reasons;
+  }
 
   return {
     placed, hardOk, hard_issues: hardFails.length,
     sem_status: sem.status, semFail, semReview, semantic_pass, semRank,
-    quality: q.total_score, quality_status: qa.status, quality_components: q.components, quality_reasons: q.reasons,
+    quality, quality_status, quality_components, quality_reasons,
   };
 }
 
@@ -554,13 +570,21 @@ export function resolverKitsMulti(areas = [], piezas = [], opts = {}) {
     // puede consumir hasta MAX_MS). El deadline se pasa al solver para que corte.
     if (i > 0 && Date.now() >= deadline) { budgetExhaustedMulti = true; break; }
     const orden = estrategias[i];
-    const sol = resolverKits(areas, piezas, { orden, deadline });   // presupuesto compartido
-    const cand = { idx: i, orden: orden ?? 'row', sol, eval: evaluarCandidato(areas, piezas, sol) };
+    // GAP35.C: exploración SIN certificados causales (costosos); se certifica sólo al ganador.
+    const sol = resolverKits(areas, piezas, { orden, deadline, certificados: false });
+    const cand = { idx: i, orden: orden ?? 'row', ordenRaw: orden, sol, eval: evaluarCandidato(areas, piezas, sol) };
     cands.push(cand);
     ganador = ganador ? mejorCandidato(ganador, cand) : cand;
     if (esExcelente(ganador.eval, total)) break;    // corte adaptativo
   }
   if (Date.now() >= deadline) budgetExhaustedMulti = true;
+
+  // GAP35.C: certificados causales SÓLO para el GANADOR (determinista → mismo layout),
+  // con el deadline restante. Evita correr el diagnóstico completo por cada candidato.
+  let winnerSol = ganador.sol;
+  if ((winnerSol.unplaced || []).length && (winnerSol.unplaced || []).some((u) => u.certificado == null)) {
+    winnerSol = resolverKits(areas, piezas, { orden: ganador.ordenRaw, deadline, certificados: true });
+  }
 
   const elapsed_ms = Date.now() - t0;
   // GAP27: el presupuesto NO produce falso PASS. Sólo es "no review" si el ganador es
@@ -569,7 +593,7 @@ export function resolverKitsMulti(areas = [], piezas = [], opts = {}) {
   const quality_review_required = !winnerLimpio && (budgetExhaustedMulti || ganador.eval.quality_status !== 'PASS');
 
   return {
-    ...ganador.sol,
+    ...winnerSol,
     metodo: 'kit-solver-multi-v1',
     seleccion: {
       ganador_idx: ganador.idx,
@@ -580,7 +604,7 @@ export function resolverKitsMulti(areas = [], piezas = [], opts = {}) {
       quality_review_required,
       publicable: winnerLimpio,
       metrics: { elapsed_ms, budget_ms: budget, budget_exhausted: budgetExhaustedMulti, winner_strategy: ganador.orden, candidates_evaluated: cands.length },
-      por_candidato: cands.map((c) => ({ idx: c.idx, orden: c.orden, placed: c.eval.placed, hardOk: c.eval.hardOk, sem_status: c.eval.sem_status, semFail: c.eval.semFail, quality: c.eval.quality, quality_status: c.eval.quality_status })),
+      por_candidato: cands.map((c) => ({ idx: c.idx, orden: c.orden, placed: c.eval.placed, hardOk: c.eval.hardOk, hard_issues: c.eval.hard_issues, sem_status: c.eval.sem_status, semRank: c.eval.semRank, semFail: c.eval.semFail, semReview: c.eval.semReview, quality: c.eval.quality, quality_status: c.eval.quality_status })),
     },
   };
 }

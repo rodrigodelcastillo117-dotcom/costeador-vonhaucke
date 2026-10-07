@@ -41,6 +41,39 @@ describe('P0.2c · GAP20 · circulación INTRA-KIT ≠ pasillo INTER-KIT', () =>
     expect(circ[0].scope).toBe('INTER_KIT');
   });
 
+  it('GAP30 · DOS anclas del MISMO functional_group_id son kits distintos → SÍ aisle inter-kit', () => {
+    const areas = [{ nombre: 'Z', zone_id: 'Z', tipo: 'open', ancho: 6000, largo: 3000 }];
+    // mismo functional_group_id 'g' pero DOS anclas → dos kits físicos.
+    const piezas = [
+      { id: 'A1', relation_role: 'ANCHOR_DESK', w: 1000, d: 1000, functional_group_id: 'g', zone_id: 'Z' },
+      { id: 'A2', relation_role: 'ANCHOR_DESK', w: 1000, d: 1000, functional_group_id: 'g', zone_id: 'Z' },
+    ];
+    const colocacion = [
+      { id: 'A1', area: 0, x: 0, y: 0, rot: 0 },
+      { id: 'A2', area: 0, x: 1500, y: 0, rot: 0 },   // hueco 500 mm entre dos ANCLAS
+    ];
+    const circ = invariantesCirculacion(areas, piezas, colocacion);
+    expect(circ.length).toBeGreaterThan(0);           // NO exentas por compartir grupo
+    expect(circ[0].scope).toBe('INTER_KIT');
+  });
+
+  it('GAP30 · un ancla + SUS dependientes (mismo grupo) → NO aisle intra-kit', () => {
+    const areas = [{ nombre: 'Z', zone_id: 'Z', tipo: 'open', ancho: 6000, largo: 3000 }];
+    const piezas = [
+      { id: 'A1', relation_role: 'ANCHOR_WORKSTATION', w: 1000, d: 1000, functional_group_id: 'g', zone_id: 'Z' },
+      { id: 'A2', relation_role: 'ANCHOR_WORKSTATION', w: 1000, d: 1000, functional_group_id: 'g', zone_id: 'Z' },
+      { id: 's1', relation_role: 'WORK_SEAT', w: 600, d: 600, functional_group_id: 'g', anchor_instance_id: 'A1', zone_id: 'Z' },
+    ];
+    const colocacion = [
+      { id: 'A1', area: 0, x: 0, y: 0, rot: 0 },
+      { id: 's1', area: 0, x: 1200, y: 0, rot: 0 },   // dep de A1 a 200 mm de A1 → intra-kit, OK
+      { id: 'A2', area: 0, x: 4000, y: 0, rot: 0 },   // lejos, no interfiere
+    ];
+    const circ = invariantesCirculacion(areas, piezas, colocacion);
+    // s1 pertenece a A1 (su ancla) → NO aisle con A1.
+    expect(circ.some((i) => String(i.id).includes('s1') && String(i.id).includes('A1'))).toBe(false);
+  });
+
   it('dos piezas del MISMO grupo a <1000 mm → NO CIRCULATION_TIGHT', () => {
     const areas = [{ nombre: 'Z', zone_id: 'Z', tipo: 'open', ancho: 6000, largo: 3000 }];
     const piezas = [
