@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolverKits, resolverKitsMulti } from '../../supabase/functions/acomodar-espacio-recovery/kit-solver.js';
+import { resolverKits, resolverKitsMulti, mejorCandidato } from '../../supabase/functions/acomodar-espacio-recovery/kit-solver.js';
 import { juzgarSemantico } from '../../supabase/functions/acomodar-espacio-recovery/semanticPlacementJudge.js';
 
 // ============================================================================
@@ -75,5 +75,29 @@ describe('P0.2c · BLOCK 5 · NO regresión (el determinista gana los empates)',
     const base = m.seleccion.por_candidato.find((c) => c.idx === 0);
     const ganador = m.seleccion.por_candidato.find((c) => c.orden === m.seleccion.ganador_orden);
     expect(ganador.placed).toBeGreaterThanOrEqual(base.placed);
+  });
+});
+
+describe('P0.2c · BLOCK 5 · orden de jueces HARD → SEMANTIC → COMPLETENESS → QUALITY', () => {
+  // Ejemplo OBLIGATORIO del mandato: A=20/20 placed pero semantic FAIL; B=19/20 placed
+  // semantic PASS. A NUNCA puede ser el ganador final (la incoherencia semántica no se
+  // compensa con más piezas colocadas). El resultado puede ser PARCIAL, nunca incoherente.
+  const A = { idx: 0, orden: 'row', eval: { hardOk: true, hard_issues: 0, placed: 20, sem_status: 'FAIL', semFail: 4, semReview: 0, semOk: false, quality: 95 } };
+  const B = { idx: 1, orden: 'center', eval: { hardOk: true, hard_issues: 0, placed: 19, sem_status: 'PASS', semFail: 0, semReview: 0, semOk: true, quality: 80 } };
+
+  it('semantic PASS (19/20) gana a semantic FAIL (20/20)', () => {
+    expect(mejorCandidato(A, B)).toBe(B);
+    expect(mejorCandidato(B, A)).toBe(B);   // simétrico
+  });
+
+  it('HARD manda sobre SEMANTIC: hard inválido pierde aunque sea semantic PASS', () => {
+    const hardBad = { idx: 2, orden: 'reverse', eval: { hardOk: false, hard_issues: 1, placed: 20, sem_status: 'PASS', semFail: 0, semReview: 0, semOk: true, quality: 99 } };
+    expect(mejorCandidato(hardBad, A)).toBe(A);     // A (hardOk, semFail) > hardBad (hard inválido)
+  });
+
+  it('COMPLETENESS sobre QUALITY: a igualdad de gates, más piezas gana aunque baje el score', () => {
+    const masPiezas = { idx: 0, orden: 'row', eval: { hardOk: true, hard_issues: 0, placed: 20, sem_status: 'PASS', semFail: 0, semReview: 0, semOk: true, quality: 70 } };
+    const menosPiezasMejorScore = { idx: 1, orden: 'center', eval: { hardOk: true, hard_issues: 0, placed: 18, sem_status: 'PASS', semFail: 0, semReview: 0, semOk: true, quality: 99 } };
+    expect(mejorCandidato(masPiezas, menosPiezasMejorScore)).toBe(masPiezas);
   });
 });

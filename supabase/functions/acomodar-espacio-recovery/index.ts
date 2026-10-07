@@ -23,19 +23,8 @@
 // Cores VENDORIZADOS en este directorio (cada función Edge de Supabase se empaqueta
 // desde su PROPIO directorio: los imports cruzados a ../acomodar-espacio fallaban al
 // desplegar). Copias de acomodar-espacio/{acomodo-core,spatial-core}.js.
-import { validarColocacion, prepararGruposFuncionales } from './acomodo-core.js';
-import { auditarPuertas } from './spatial-core.js';
-import { CONTRATO, evaluarRecovery } from './recovery-core.js';
-import { resolverKits } from './kit-solver.js';
-import { mensajeVendedor } from './opciones.js';
-
-// El mensaje al vendedor viaja sin los closures `aplicar` (no serializables): el
-// cliente sólo muestra texto; la simulación de cada opción vive en el banco.
-function mensajeSerializable(areas: any, piezas: any, sol: any) {
-  // El solver se INYECTA para que cada opción se auto-verifique por simulación.
-  const m = mensajeVendedor(areas, piezas, sol, { resolver: resolverKits });
-  return { pendientes: m.pendientes, motivos: m.motivos, opciones: m.opciones.map((o: any) => ({ id: o.id, texto: o.texto })), sin_opcion: m.sin_opcion, hay_pendientes: m.hay_pendientes };
-}
+import { prepararGruposFuncionales } from './acomodo-core.js';
+import { construirRespuestaAcomodo } from './recoveryPipeline.js';
 
 const cors = {
   'access-control-allow-origin': '*',
@@ -67,53 +56,9 @@ function normalizarEntrada(body: any) {
   if (!areas.length) return json({ ok: false, error: 'SIN_FLOORSPEC' }, 422);
   if (!piezas.length) return json({ ok: false, error: 'SIN_PARTIDAS_CONFIRMADAS' }, 422);
 
-  // MOTOR KIT-SOLVER (P0.2b): asignación de dueño + kits rígidos + backtracking
-  // determinista por bloques (MRV, malla 100mm, pasillo ≥1000 entre kits, ≤2s).
-  // Devuelve la colocación, las piezas con anchor_instance_id y los faltantes con
-  // motivo CAUSAL (del invariante limitante). Mejor parcial válido si no cabe todo.
-  const sol: any = resolverKits(areas, piezas);
-  const colocacion = sol.colocacion;
-  const piezasAsign = sol.piezas;   // con anchor_instance_id → validación relacional
-
-  // Validador DURO (incluye DEPENDENT_DETACHED/UNASSIGNED): PASS sólo si todo
-  // colocado, en su cuarto y UNIDO a su ancla.
-  const evalFinal = evaluarRecovery(areas, piezasAsign, colocacion, { requested: piezas.length });
-  const val = validarColocacion(areas, piezasAsign, colocacion, 1);
-  const doors = auditarPuertas(areas);
-  // G · mensaje al vendedor: qué no cupó + por qué (causal) + opciones concretas.
-  const mensaje = mensajeSerializable(areas, piezasAsign, sol);
-
-  const layoutSpec = {
-    version: CONTRATO.output_version,
-    status: evalFinal.status,
-    requested: evalFinal.requested,
-    placed: evalFinal.placed,
-    unplaced: evalFinal.unplaced,
-    no_cupieron: sol.unplaced,        // faltantes por kit con invariante causal
-    unassigned: sol.unassigned,       // dependientes sin dueño (nunca sueltos)
-    placements: colocacion,
-    validation: {
-      issues: evalFinal.issues,
-      render_ready: evalFinal.render_ready,
-      invariant_ok: evalFinal.invariant_ok,
-      doors,
-      semantic: val,
-      min_pasillo_mm: CONTRATO.min_pasillo_mm,
-    },
-    mensaje_vendedor: mensaje,
-  };
-
-  return json({
-    ok: true,
-    plan: { colocacion, piezas: piezasAsign },
-    layoutSpec,
-    render_ready: evalFinal.render_ready,
-    status: evalFinal.status,
-    no_cupieron: sol.unplaced,
-    unassigned: sol.unassigned,
-    mensaje_vendedor: mensaje,
-    metodo: sol.metodo,
-    attempts_used: sol.attempts_used,
-    input_version: CONTRATO.input_version,
-  });
+  // MOTOR KIT-SOLVER MULTI (P0.2c BLOCK 5): el pipeline PURO está en recoveryPipeline.js
+  // (testeable sin deploy). resolverKitsMulti → jueces en capas (HARD → SEMANTIC →
+  // COMPLETENESS → QUALITY) → GANADOR; layoutSpec/render_ready/status/mensaje_vendedor
+  // se calculan SOBRE EL GANADOR.
+  return json(construirRespuestaAcomodo(areas, piezas));
 });

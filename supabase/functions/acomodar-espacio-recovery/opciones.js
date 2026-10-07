@@ -53,8 +53,9 @@ function idsNoColocadas(sol) {
 }
 
 const LABEL_CAUSA = {
-  ASPECT_RATIO: 'la forma/dimensión del módulo', NO_SPACE: 'superficie total insuficiente',
+  ASPECT_RATIO: 'la forma/dimensión del módulo', NO_SPACE: 'superficie insuficiente en la zona',
   DOOR: 'el barrido de una puerta', OBSTACLE: 'una columna/obstáculo',
+  OUT_OF_POLYGON: 'el contorno del cuarto', INTER_KIT_CONSTRAINT: 'el espacio entre bloques',
   CONTIGUOUS_SPACE: 'espacio fragmentado', AISLE: 'el pasillo mínimo', OVERLAP: 'el traslape de bloques',
 };
 
@@ -77,22 +78,29 @@ function causaDesdeCertificado(cert, anc, ar, nSillas) {
   switch (cert.primary_cause) {
     case 'SEARCH_BUDGET_EXHAUSTED':
       return { invariante: 'SEARCH_BUDGET_EXHAUSTED', texto: `No alcancé a explorar todo el espacio de "${zona}" dentro del presupuesto de cálculo; requiere revisión manual (no es una imposibilidad comprobada).`, evidencia: ev };
+    case 'DIAGNOSTIC_BUDGET_EXHAUSTED':
+      return { invariante: 'DIAGNOSTIC_BUDGET_EXHAUSTED', texto: `No alcancé a diagnosticar con certeza la causa en "${zona}" dentro del presupuesto; requiere revisión manual (no es una imposibilidad comprobada).`, evidencia: ev };
     case 'ASPECT_RATIO':
-      return { invariante: 'ASPECT_RATIO', texto: `El módulo no entra por la FORMA del área "${zona}": su ${ladoTxt()} no cabe (hay ~${haveM2} m² en total, pero no en esa dimensión).`, evidencia: ev };
+      return { invariante: 'ASPECT_RATIO', texto: `El módulo no entra por la FORMA del área "${zona}": su ${ladoTxt()} no cabe (la zona tiene ~${haveM2} m², pero no en esa dimensión).`, evidencia: ev };
     case 'NO_SPACE':
-      return { invariante: 'NO_SPACE', texto: `El grupo necesita ~${needM2} m² y las zonas permitidas suman ~${haveM2} m².`, evidencia: ev };
+      return { invariante: 'NO_SPACE', texto: `El grupo necesita ~${needM2} m² y ninguna zona permitida alcanza esa superficie (la mayor tiene ~${haveM2} m²).`, evidencia: ev };
+    case 'OUT_OF_POLYGON':
+      return { invariante: 'OUT_OF_POLYGON', texto: `La forma real de "${zona}" (muros/recortes) no deja un rectángulo continuo para el módulo; hay superficie, pero el contorno la fragmenta.`, evidencia: ev };
     case 'DOOR':
-      return { invariante: 'DOOR', texto: `El barrido de la puerta en "${zona}" ocupa ese frente y no deja colocar el módulo.`, evidencia: ev };
+      return { invariante: 'DOOR', texto: `El barrido de la puerta en "${zona}" ocupa ese frente y no deja colocar el módulo (probado: sin la puerta, sí cabe).`, evidencia: ev };
     case 'OBSTACLE':
-      return { invariante: 'OBSTACLE', texto: `Una columna/obstáculo en "${zona}" ocupa el punto donde iría el módulo.`, evidencia: ev };
+      return { invariante: 'OBSTACLE', texto: `Una columna/obstáculo en "${zona}" ocupa el punto donde iría el módulo (probado: sin el obstáculo, sí cabe).`, evidencia: ev };
+    case 'INTER_KIT_CONSTRAINT':
+      return { invariante: 'INTER_KIT_CONSTRAINT', texto: `El módulo cabe solo en "${zona}", pero no junto a los demás bloques conservando el pasillo de 1.0 m (el espacio se fragmenta entre muebles).`, evidencia: ev };
+    case 'PARTIAL_SEATS_DROPPED':
+      return { invariante: 'NO_SPACE_PARA_SILLAS', texto: `El mueble sí cabe en "${zona}"; lo que no cupo son sus sillas/dependientes conservando el pasillo de 1.0 m.`, evidencia: ev };
     case 'MULTI_CONSTRAINT': {
-      const causas = [cert.primary_cause, ...(cert.secondary_causes || [])].filter((c) => c !== 'MULTI_CONSTRAINT');
-      const lista = causas.map((c) => LABEL_CAUSA[c] || c).join(' y ');
+      const causas = [...(cert.secondary_causes || [])].filter((c) => c && c !== 'MULTI_CONSTRAINT');
+      const lista = causas.map((c) => LABEL_CAUSA[c] || c).join(' y ') || 'varias restricciones';
       return { invariante: 'MULTI_CONSTRAINT', texto: `Varias restricciones bloquean el módulo a la vez en "${zona}" (${lista}); no hay una sola causa dominante.`, evidencia: ev };
     }
-    case 'CONTIGUOUS_SPACE':
     default:
-      return { invariante: 'CONTIGUOUS_SPACE', texto: `Hay superficie en "${zona}" (~${haveM2} m²), pero no un hueco rectangular continuo que conserve el pasillo de 1.0 m.`, evidencia: ev };
+      return { invariante: 'INTER_KIT_CONSTRAINT', texto: `Hay superficie en "${zona}" (~${haveM2} m²), pero no un hueco que conserve el pasillo de 1.0 m junto a los demás bloques.`, evidencia: ev };
   }
 }
 

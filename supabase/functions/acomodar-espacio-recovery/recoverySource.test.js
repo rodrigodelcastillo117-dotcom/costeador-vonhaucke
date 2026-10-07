@@ -2,15 +2,20 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 
 const idx = fs.readFileSync('supabase/functions/acomodar-espacio-recovery/index.ts', 'utf8');
+const pipe = fs.readFileSync('supabase/functions/acomodar-espacio-recovery/recoveryPipeline.js', 'utf8');
 const core = fs.readFileSync('supabase/functions/acomodar-espacio-recovery/recovery-core.js', 'utf8');
 const nube = fs.readFileSync('src/nube.js', 'utf8');
+// P0.2c BLOCK 5: el handler (index.ts) delega el pipeline puro a recoveryPipeline.js.
+// La "fuente del edge" bajo contrato es AMBOS archivos juntos.
+const edge = idx + '\n' + pipe;
+const ks = fs.readFileSync('supabase/functions/acomodar-espacio-recovery/kit-solver.js', 'utf8');
 
 describe('acomodar-espacio-recovery · fuente bajo control de código (P0.2)', () => {
   it('contrato VERSIONADO de entrada/salida', () => {
     expect(core).toContain("input_version: 'ACOMODO_INPUT_V1'");
     expect(core).toContain("output_version: 'PLACEMENT_SPEC_V2_RECOVERY'");
-    expect(idx).toContain('input_version: CONTRATO.input_version');
-    expect(idx).toContain('version: CONTRATO.output_version');
+    expect(edge).toContain('input_version: CONTRATO.input_version');
+    expect(edge).toContain('version: CONTRATO.output_version');
   });
 
   it('MUROS como first-class (invariante dura)', () => {
@@ -33,11 +38,17 @@ describe('acomodar-espacio-recovery · fuente bajo control de código (P0.2)', (
   });
 
   it('MOTOR kit-solver determinista (P0.2b): dueños + kits + backtracking', () => {
-    expect(idx).toContain('resolverKits');                  // motor por bloques
-    expect(idx).toContain('kit-solver.js');
-    expect(idx).toContain('anchor_instance_id');            // dueños asignados
-    expect(idx).toContain('no_cupieron');                   // faltantes causales (mejor parcial)
-    expect(idx).toContain('prepararGruposFuncionales');     // anchors/dependents + multi-zona
+    expect(edge).toContain('resolverKits');                 // motor por bloques
+    expect(edge).toContain('kit-solver.js');
+    expect(ks).toContain('anchor_instance_id');             // dueños asignados (en el motor)
+    expect(edge).toContain('no_cupieron');                  // faltantes causales (mejor parcial)
+    expect(idx).toContain('prepararGruposFuncionales');     // anchors/dependents + multi-zona (en el handler)
+  });
+  it('BLOCK 5 wiring: el edge usa resolverKitsMulti → gate semántico sobre el GANADOR', () => {
+    expect(edge).toContain('resolverKitsMulti');            // pipeline multi-candidato
+    expect(edge).toContain('construirRespuestaAcomodo');    // handler delega al pipeline puro
+    expect(pipe).toContain('semantic_gate');                // gate semántico en layoutSpec
+    expect(pipe).toContain("'NEEDS_SEMANTIC_REVIEW'");      // FAIL semántico bloquea render_ready
   });
   it('kit-solver expone asignación de dueño + kits + backtracking', () => {
     const ks = fs.readFileSync('supabase/functions/acomodar-espacio-recovery/kit-solver.js', 'utf8');
@@ -49,8 +60,8 @@ describe('acomodar-espacio-recovery · fuente bajo control de código (P0.2)', (
   it('G · mensaje al vendedor cableado (opciones.js + mensaje_vendedor en salida)', () => {
     const op = fs.readFileSync('supabase/functions/acomodar-espacio-recovery/opciones.js', 'utf8');
     expect(op).toContain('export function mensajeVendedor');
-    expect(idx).toContain("from './opciones.js'");
-    expect(idx).toContain('mensaje_vendedor');
+    expect(edge).toContain("from './opciones.js'");
+    expect(edge).toContain('mensaje_vendedor');
   });
   it('validador relacional DURO (D): DEPENDENT_DETACHED/UNASSIGNED', () => {
     expect(core).toContain("code: 'DEPENDENT_DETACHED'");
@@ -68,8 +79,10 @@ describe('acomodar-espacio-recovery · fuente bajo control de código (P0.2)', (
     // Supabase empaqueta cada función desde su propio directorio; los imports
     // cruzados causaban deploy status 500. Los cores van vendorizados aquí.
     expect(idx).not.toContain('../acomodar-espacio/');
+    expect(pipe).not.toContain('../acomodar-espacio/');
     expect(core).not.toContain('../acomodar-espacio/');
     expect(idx).toContain("from './acomodo-core.js'");
+    expect(pipe).toContain("from './recovery-core.js'");
     expect(core).toContain("from './spatial-core.js'");
   });
 
