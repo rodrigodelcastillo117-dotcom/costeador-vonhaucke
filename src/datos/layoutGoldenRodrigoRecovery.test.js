@@ -2,6 +2,7 @@ import {describe,it,expect} from 'vitest';
 import {expandirPiezas} from './espacio.js';
 import {validarCoherenciaPrograma} from './coherenciaPrograma.js';
 import {marcarDestinoPartida} from './destinoAcomodo.js';
+import {resolverOperativos,resolverPrivado} from './resolverPrograma.js';
 import {canonicalProductRole,canonicalZoneRole,semanticVerdict} from '../../supabase/functions/acomodar-espacio/spatial-semantics.js';
 import {planearDeterminista} from '../../supabase/functions/acomodar-espacio/acomodo-core.js';
 
@@ -38,10 +39,20 @@ describe('golden real · oficina CEO + consejo + operativo + recepción',()=>{
   });
 
   it('cuando los anclajes YA son partidas reales, el solver respeta cada cuarto semántico',()=>{
+    // #6/#102: las anclas NO se escriben a mano (nada de w:7500). Se obtienen del
+    // PRODUCT RESOLVER real; si el resolver se desconecta del catálogo o regresa
+    // la geometría fantasma, este golden FALLA aquí mismo.
+    const benchAncla=resolverOperativos(10,{linea:'App LT'}).resoluciones[0];
+    const deskAncla=resolverPrivado();
+    expect(benchAncla.bancoId).toBe('op-10u-6000x1200-cristal');
+    expect(benchAncla.w).toBe(6000);
+    expect(benchAncla.w).not.toBe(7500);           // la regresión prohibida
+    expect(deskAncla.w).toBeGreaterThan(0);
+
     const reales=[
       ...incompleto,
-      {id:'bench',nombre:'Bench APP LT operativo 10 puestos',cantidad:1,w:7500,d:1200,nota:'Área operativa'},
-      {id:'desk',nombre:'Escritorio dirección privado',cantidad:1,w:1800,d:800,nota:'OFICINA CEO dirección privada'},
+      {id:'bench',nombre:`Bench APP LT operativo 10 puestos · ${benchAncla.nombre}`,cantidad:benchAncla.cantidad,w:benchAncla.w,d:benchAncla.d,nota:'Área operativa'},
+      {id:'desk',nombre:`Escritorio dirección privado · ${deskAncla.nombre}`,cantidad:1,w:deskAncla.w,d:deskAncla.d,nota:'OFICINA CEO dirección privada'},
     ].map(marcarDestinoPartida);
 
     expect(validarCoherenciaPrograma(reales).ok).toBe(true);
