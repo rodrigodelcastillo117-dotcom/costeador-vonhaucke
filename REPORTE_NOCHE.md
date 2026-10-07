@@ -100,10 +100,17 @@ Evidencia: BANCO LOCAL (`bench/acomodo/banco.test.js`, 11 its) + CI run 37607705
 8. **Unit + build verdes + Gate I/J + acomodoP02 (good & lying mock) + link CI** — ✅ confirmado en CI (ver §C-8).
 
 ### C-8 · CI (CONFIRMADO)
-Run: https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/actions/runs/37607705529 (`b8fd709`).
-- **`verify` = success** (unit 1625 + build + BANCO). BANCO en CI: `FREEZE juez=50714aec casos=24a0bd13 dificiles=1cba0a35 reales=16457a1e opciones=e3d0033e` · `falsosPASS=0 factPASS=49/49 impSinPASS=6/6 regresiones=0 p50=0 p95=7ms maxMs=39ms`.
-- **Gate I (programaP01), Gate J (programaBriefWriter), acomodoP02 (good+lying): verdes** (0 fallos de esos specs en la corrida).
+Run final: https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/actions/runs/37620809124 (`212c075`).
+- **`verify` = success** (unit + build + BANCO). BANCO en CI: `falsosPASS=0 factPASS=49/49 impSinPASS=6/6 regresiones=0 p95≈7ms maxMs≈29ms`.
+- **Gate I (programaP01), Gate J (programaBriefWriter), acomodoP02 (good+lying): verdes** (0 fallos de esos specs).
+- **E2E G del vendedor (`acomodoMensajeVendedor.e2e.js`): VERDE** — ejercita la ruta recovery real (2 áreas → `usarMotorEspacial`), exige 1+ llamada al endpoint mock, y verifica en navegador, **sin modo manual**: `No cupo` + pieza pendiente + motivo causal + opción verificada. Captura real en §C-9.
 - **`E2E` = failure SÓLO** por los 3 focos de §G (`auth.e2e.js:96/:123`, `live-ai-smoke.e2e.js:6`), ajenos a P0.2b.
+
+### C-9 · Cierre de G (los 4 gaps del último mandato)
+1. **Conteo corregido:** 55 casos = 49 factibles + 6 imposibles (antes decía 61).
+2. **Propagación end-to-end:** el adapter `solve()` conservaba sólo `r.plan`; ahora lleva `r.mensaje_vendedor` → `resolverAcomodo` → `plan.mensaje_vendedor` → `formatearMensajeVendedor`. Test de integración `acomodoMensajeVendedor.test.js`.
+3. **Siempre visible:** la tarjeta salió de `aMano && modo==='planta'` a la zona del resultado, visible siempre que `plan && mensaje_vendedor.hay_pendientes`.
+4. **Causalidad + opciones reales:** motivo con el m² del **área real** del kit (no `areas[0]`); cada opción se simula con el solver y su texto corresponde EXACTO a la transformación (quitar N exactas / mover a 2ª área real / mesa más chica / estación de N puestos), con resultado verificado ("cabe completa 1 de 4"); máximo 3; si ninguna sirve → "No encontré una forma de que quepa; revisa el espacio con un diseñador". Nada de agrandar áreas ni borrar puertas/obstáculos de forma indiscriminada.
 
 ---
 
