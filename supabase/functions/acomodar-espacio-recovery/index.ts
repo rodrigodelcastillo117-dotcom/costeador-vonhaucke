@@ -21,10 +21,10 @@
 //                               layoutSpec, render_ready, status, attempts_used, metodo }
 // ============================================================================
 import {
-  planearDeterminista, acomodarConReparacion, validarColocacion, prepararGruposFuncionales,
+  planearDeterminista, validarColocacion, prepararGruposFuncionales,
 } from '../acomodar-espacio/acomodo-core.js';
 import { auditarPuertas } from '../acomodar-espacio/spatial-core.js';
-import { CONTRATO, evaluarRecovery } from './recovery-core.js';
+import { CONTRATO, evaluarRecovery, proponerReparacion } from './recovery-core.js';
 
 const cors = {
   'access-control-allow-origin': '*',
@@ -56,30 +56,32 @@ function normalizarEntrada(body: any) {
   if (!areas.length) return json({ ok: false, error: 'SIN_FLOORSPEC' }, 422);
   if (!piezas.length) return json({ ok: false, error: 'SIN_PARTIDAS_CONFIRMADAS' }, 422);
 
-  // Semilla DETERMINISTA primero (reproducible); si ya cumple, no se gasta repair.
-  const seed = planearDeterminista(areas, piezas, {});
-  const deterministicPass = evaluarRecovery(areas, piezas, seed?.colocacion || [], { requested: piezas.length }).render_ready;
+  const fails = (ev: any) => (ev?.issues || []).filter((i: any) => i.severity === 'fail').map((i: any) => i.code);
 
-  // REPAIR LOOP ≤ 3 (cada intento cambia algo concreto; conserva lo válido).
+  // Semilla DETERMINISTA (reproducible).
+  let colocacion = (planearDeterminista(areas, piezas, {}) as any)?.colocacion || [];
+  let evalActual = evaluarRecovery(areas, piezas, colocacion, { requested: piezas.length });
+  const repairTrace: any[] = [{
+    intento: 1, status: evalActual.status, invariantesFallados: fails(evalActual),
+    piezasMovidas: colocacion.map((c: any) => String(c.id)), porque: 'semilla determinista',
+  }];
+
+  // REPAIR LOOP REAL ≤ 3: cada intento CONSERVA las válidas y RE-COLOCA las
+  // inválidas/faltantes en espacio libre. Si no cambia nada concreto, NO se finge
+  // un intento. Tras el 3º inválido → NEEDS_REVIEW.
   let attemptsUsed = 1;
-  const resultado = await acomodarConReparacion({
-    areas, piezas,
-    maxIntentos: 3,
-    proponer: async (ctx: any) => {
-      // intento <= (deterministicPass ? 0 : 3) — no reparar si la semilla ya pasó.
-      attemptsUsed = Math.max(attemptsUsed, Number(ctx?.intento) || 1);
-      return ctx?.intento <= (deterministicPass ? 0 : 3) ? seed : seed;
-    },
-  }).catch(() => ({ colocacion: seed?.colocacion || [] }));
-
-  const colocacion = resultado?.colocacion || seed?.colocacion || [];
-
-  // Invariantes DUROS: bounds/overlap/puerta/obstáculo + MUROS + CIRCULACIÓN +
-  // cobertura (requested == placed + unplaced). render_ready SÓLO si todo pasa.
-  const evalFinal = evaluarRecovery(areas, piezas, colocacion, {
-    requested: piezas.length,
-    repairAgotado: attemptsUsed >= 3,
-  });
+  while (!evalActual.render_ready && attemptsUsed < 3) {
+    const rep = proponerReparacion({ areas, piezas, colocacionPrev: colocacion, evalPrev: evalActual });
+    if (!rep.movidas.length) {
+      repairTrace.push({ intento: attemptsUsed + 1, status: evalActual.status, invariantesFallados: fails(evalActual), piezasMovidas: [], porque: 'sin cambio reparable; no se finge intento' });
+      break;
+    }
+    attemptsUsed += 1;
+    colocacion = rep.colocacion;
+    evalActual = evaluarRecovery(areas, piezas, colocacion, { requested: piezas.length, repairAgotado: attemptsUsed >= 3 });
+    repairTrace.push({ intento: attemptsUsed, status: evalActual.status, invariantesFallados: fails(evalActual), piezasMovidas: rep.movidas, porque: 'reparación: conserva válidas, recoloca inválidas/faltantes' });
+  }
+  const evalFinal = evalActual;
   // Validación semántica/relacional del core compartido (out-of-zone, grupos).
   const val = validarColocacion(areas, piezas, colocacion, 1);
   const doors = auditarPuertas(areas);
@@ -98,6 +100,7 @@ function normalizarEntrada(body: any) {
       doors,
       semantic: val,
       min_pasillo_mm: CONTRATO.min_pasillo_mm,
+      repair_trace: repairTrace,   // audit F: rastro real de cada intento
     },
   };
 

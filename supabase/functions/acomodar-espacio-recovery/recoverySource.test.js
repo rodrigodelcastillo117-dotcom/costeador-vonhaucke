@@ -32,11 +32,17 @@ describe('acomodar-espacio-recovery · fuente bajo control de código (P0.2)', (
     expect(core).toContain("code: 'PLACEMENT_INVARIANT_BROKEN'");
   });
 
-  it('semilla DETERMINISTA + repair loop ≤ 3 + multi-zona/anchors', () => {
+  it('semilla DETERMINISTA + repair loop REAL ≤ 3 + multi-zona/anchors', () => {
     expect(idx).toContain('planearDeterminista');
-    expect(idx).toContain('maxIntentos: 3');
-    expect(idx).toContain('intento <= (deterministicPass ? 0 : 3)');
-    expect(idx).toContain('prepararGruposFuncionales');  // anchors/dependents + multi-zona
+    expect(idx).toContain('proponerReparacion');            // reparación real, no re-devolver seed
+    expect(idx).toContain('attemptsUsed < 3');
+    expect(idx).toContain('no se finge intento');           // sin cambio concreto → no finge
+    expect(idx).toContain('repair_trace');                  // rastro por intento
+    expect(idx).toContain('prepararGruposFuncionales');     // anchors/dependents + multi-zona
+  });
+  it('recovery-core expone reparación determinista que conserva válidas', () => {
+    expect(core).toContain('export function proponerReparacion');
+    expect(core).toContain('conserva las colocaciones');
   });
 
   it('render_ready SÓLO si todo pasa (status real, no PASS con warnings)', () => {

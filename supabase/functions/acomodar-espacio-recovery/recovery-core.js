@@ -140,6 +140,101 @@ function invariantesBase(areas = [], piezas = [], colocacion = []) {
   return issues;
 }
 
+// --- REPARACIÓN DETERMINISTA (audit F) --------------------------------------
+// Índice de área destino de una pieza: por zone_id/nombre; si no, su área previa.
+function areaDestino(areas, pieza, areaPrev) {
+  const z = pieza?.zone_id;
+  if (z != null) {
+    const nz = String(z).toLowerCase();
+    const i = areas.findIndex((a) => String(a?.zone_id ?? a?.nombre ?? '').toLowerCase() === nz);
+    if (i >= 0) return i;
+  }
+  return Number.isFinite(areaPrev) ? areaPrev : 0;
+}
+
+// ¿Cabe `rect` en `area` sin chocar con ocupados/obstáculos/puertas/muros ni
+// violar circulación? Determinista.
+function cabe(rect, area, ocupados, minPasillo) {
+  const W = Number(area?.ancho) || Number(area?.width_mm) || 0, H = Number(area?.largo) || Number(area?.depth_mm) || 0;
+  if (rect.x < 0 || rect.y < 0 || rect.x + rect.w > W + EPS || rect.y + rect.d > H + EPS) return false;
+  if (Array.isArray(area?.poly) && !rectDentroPoligono(rect, area.poly)) return false;
+  for (const o of (Array.isArray(area?.obstaculos) ? area.obstaculos : [])) {
+    if (rectsSeSolapan(rect, { x: +o.x || 0, y: +o.y || 0, w: +o.w || 0, d: +o.h || 0 })) return false;
+  }
+  for (const p of (Array.isArray(area?.puertas) ? area.puertas : [])) {
+    if (bloqueaPuertaEspacial(rect, p)) return false;
+  }
+  for (const m of (Array.isArray(area?.muros) ? area.muros : [])) {
+    if (cruzaMuro(rect, m)) return false;
+  }
+  for (const oc of ocupados) {
+    if (rectsSeSolapan(rect, oc)) return false;
+    // circulación: huecos 1..minPasillo entre piezas enfrentadas quedan prohibidos.
+    const solapaY = rect.y < oc.y + oc.d - EPS && rect.y + rect.d > oc.y + EPS;
+    const solapaX = rect.x < oc.x + oc.w - EPS && rect.x + rect.w > oc.x + EPS;
+    if (solapaY && !solapaX) { const h = rect.x < oc.x ? oc.x - (rect.x + rect.w) : rect.x - (oc.x + oc.w); if (h > EPS && h < minPasillo - EPS) return false; }
+    if (solapaX && !solapaY) { const h = rect.y < oc.y ? oc.y - (rect.y + rect.d) : rect.y - (oc.y + oc.d); if (h > EPS && h < minPasillo - EPS) return false; }
+  }
+  return true;
+}
+
+/**
+ * Reparación: conserva las colocaciones VÁLIDAS, re-coloca las inválidas/faltantes
+ * en espacio libre (grid determinista) respetando zona/bounds/obstáculos/puertas/
+ * muros/circulación. Devuelve { colocacion, movidas }. Si nada cambió, movidas=[].
+ * @param {{areas,piezas,colocacionPrev,evalPrev,minPasillo?}} _
+ */
+export function proponerReparacion({ areas = [], piezas = [], colocacionPrev = [], evalPrev = null, minPasillo = CONTRATO.min_pasillo_mm }) {
+  const porId = new Map(piezas.map((p) => [String(p.id), p]));
+  // ids involucrados en una falla (incluye pares 'a|b').
+  const malos = new Set();
+  for (const is of (evalPrev?.issues || [])) {
+    if (is.severity !== 'fail' || !is.id) continue;
+    String(is.id).split('|').forEach((x) => malos.add(x));
+  }
+  const prevPorId = new Map(colocacionPrev.map((c) => [String(c.id), c]));
+  // Conserva válidas (existen, no están en falla).
+  const keep = colocacionPrev.filter((c) => porId.has(String(c.id)) && !malos.has(String(c.id)));
+  const ocupadosPorArea = new Map();
+  for (const c of keep) {
+    const ai = Number(c.area);
+    if (!ocupadosPorArea.has(ai)) ocupadosPorArea.set(ai, []);
+    ocupadosPorArea.get(ai).push(rectDeColoc(porId.get(String(c.id)), c));
+  }
+  // Piezas a (re)colocar: faltantes + inválidas.
+  const keepIds = new Set(keep.map((c) => String(c.id)));
+  const porColocar = piezas.filter((p) => !keepIds.has(String(p.id)));
+  const nuevas = [];
+  const paso = Math.max(100, Math.round(minPasillo / 2));
+  for (const pieza of porColocar) {
+    const prev = prevPorId.get(String(pieza.id));
+    const ai = areaDestino(areas, pieza, prev ? Number(prev.area) : undefined);
+    const area = areas[ai]; if (!area) continue;
+    const ocup = ocupadosPorArea.get(ai) || (ocupadosPorArea.set(ai, []), ocupadosPorArea.get(ai));
+    const W = Number(area.ancho) || 0, H = Number(area.largo) || 0;
+    let puesta = null;
+    for (let y = 0; y <= H && !puesta; y += paso) {
+      for (let x = 0; x <= W && !puesta; x += paso) {
+        const rect = { x, y, w: Number(pieza.w) || 0, d: Number(pieza.d) || 0 };
+        if (cabe(rect, area, ocup, minPasillo)) puesta = { x, y };
+      }
+    }
+    if (puesta) {
+      nuevas.push({ id: String(pieza.id), area: ai, x: puesta.x, y: puesta.y, rot: 0 });
+      ocup.push({ x: puesta.x, y: puesta.y, w: Number(pieza.w) || 0, d: Number(pieza.d) || 0 });
+    }
+    // si no cabe, queda sin colocar (cobertura lo marcará PARTIAL).
+  }
+  const colocacion = [...keep, ...nuevas];
+  // movidas = ids cuya posición cambió respecto a la previa.
+  const clave = (c) => `${c.area}:${Math.round(c.x)},${Math.round(c.y)},${Number(c.rot) || 0}`;
+  const movidas = colocacion.filter((c) => {
+    const p = prevPorId.get(String(c.id));
+    return !p || clave(p) !== clave(c);
+  }).map((c) => String(c.id));
+  return { colocacion, movidas };
+}
+
 /**
  * Evaluación RECOVERY completa: base (bounds/overlap/puerta/obstáculo/ghost) +
  * MUROS + CIRCULACIÓN, con derivación de estado. `requested` para cobertura.

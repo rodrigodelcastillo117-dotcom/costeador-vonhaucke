@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CONTRATO, cruzaMuro, invariantesMuros, invariantesCirculacion, evaluarRecovery } from './recovery-core.js';
+import { CONTRATO, cruzaMuro, invariantesMuros, invariantesCirculacion, evaluarRecovery, proponerReparacion } from './recovery-core.js';
 
 const area = (extra = {}) => ({ nombre: 'A', ancho: 6000, largo: 4000, ...extra });
 const silla = (id) => ({ id, w: 600, d: 600 });
@@ -75,5 +75,43 @@ describe('recovery-core · evaluarRecovery (agrega todo)', () => {
     const r = evaluarRecovery(areas, piezas, [{ id: 'a', area: 0, x: 0, y: 1500 }, { id: 'b', area: 0, x: 400, y: 1500 }, { id: 'c', area: 0, x: 3200, y: 1500 }], { repairAgotado: true });
     expect(r.status).toBe('NEEDS_REVIEW');
     expect(r.render_ready).toBe(false);
+  });
+});
+
+describe('recovery-core · proponerReparacion (reparación REAL · audit F)', () => {
+  const areas = [{ nombre: 'A', ancho: 6000, largo: 4000 }];
+  const piezas = [{ id: 'a', w: 600, d: 600 }, { id: 'b', w: 600, d: 600 }];
+
+  it('un solape se repara: conserva/recoloca y elimina el OVERLAP', () => {
+    const mal = [{ id: 'a', area: 0, x: 0, y: 0 }, { id: 'b', area: 0, x: 0, y: 0 }];
+    const evalPrev = evaluarRecovery(areas, piezas, mal, { requested: 2 });
+    expect(evalPrev.status).toBe('FAIL');
+    const rep = proponerReparacion({ areas, piezas, colocacionPrev: mal, evalPrev });
+    expect(rep.movidas.length).toBeGreaterThan(0);                 // cambió algo concreto
+    const evalNew = evaluarRecovery(areas, piezas, rep.colocacion, { requested: 2 });
+    expect(evalNew.issues.some((i) => i.code === 'OVERLAP')).toBe(false);
+  });
+
+  it('plan ya válido → NO finge intento (movidas vacío)', () => {
+    const bien = [{ id: 'a', area: 0, x: 0, y: 0 }, { id: 'b', area: 0, x: 2000, y: 0 }];
+    const evalPrev = evaluarRecovery(areas, piezas, bien, { requested: 2 });
+    const rep = proponerReparacion({ areas, piezas, colocacionPrev: bien, evalPrev });
+    expect(rep.movidas).toHaveLength(0);
+  });
+
+  it('pieza faltante se coloca en espacio libre', () => {
+    const falta = [{ id: 'a', area: 0, x: 0, y: 0 }];
+    const evalPrev = evaluarRecovery(areas, piezas, falta, { requested: 2 });
+    expect(evalPrev.status).toBe('PARTIAL');
+    const rep = proponerReparacion({ areas, piezas, colocacionPrev: falta, evalPrev });
+    expect(rep.colocacion.some((c) => c.id === 'b')).toBe(true);
+  });
+
+  it('respeta la zona destino (zone_id) al recolocar', () => {
+    const areas2 = [{ nombre: 'A', zone_id: 'ZA', ancho: 4000, largo: 4000 }, { nombre: 'B', zone_id: 'ZB', ancho: 4000, largo: 4000 }];
+    const piezas2 = [{ id: 'x', w: 600, d: 600, zone_id: 'ZB' }];
+    const rep = proponerReparacion({ areas: areas2, piezas: piezas2, colocacionPrev: [], evalPrev: { issues: [] } });
+    const x = rep.colocacion.find((c) => c.id === 'x');
+    expect(x.area).toBe(1);   // zona ZB
   });
 });
