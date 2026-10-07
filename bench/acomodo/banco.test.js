@@ -130,18 +130,19 @@ describe('BANCO LOCAL · acomodador recovery (kit-solver) vs v9', () => {
       const faltan = r.unplaced.length + r.unassigned.length;
       expect(faltan, c.nombre).toBeGreaterThan(0);
       for (const u of r.unplaced) expect(u.invariante, c.nombre).toBeTruthy();
-      const msg = mensajeVendedor(c.areas, r.piezas, r);
+      const msg = mensajeVendedor(c.areas, r.piezas, r, { resolver: resolverKits });
       expect(msg.pendientes.length, `pendientes ${c.nombre}`).toBeGreaterThan(0);
       expect(msg.motivos.length, `motivos ${c.nombre}`).toBeGreaterThan(0);
-      expect(msg.opciones.length, `opciones ${c.nombre}`).toBeGreaterThan(0);
-      // Al menos una opción, aplicada y re-resuelta, mejora de verdad.
-      const mejora = msg.opciones.some((opt) => {
+      // O hay opciones auto-verificadas, O se declara explícitamente que no hay forma.
+      expect(msg.opciones.length > 0 || !!msg.sin_opcion, `opciones o sin_opcion ${c.nombre}`).toBe(true);
+      // Cada opción mostrada, aplicada y re-resuelta, mejora de verdad (texto ↔ transformación).
+      for (const opt of msg.opciones) {
         const { areas, piezas } = opt.aplicar(c.areas, c.piezas);
         const s2 = resolverKits(areas, piezas);
         const j2 = juzgar(areas, s2.piezas, s2.colocacion);
-        return (j2.status === 'PASS' && j2.colocadas > 0) || j2.colocadasBien > j.colocadasBien;
-      });
-      expect(mejora, `opción que mejora ${c.nombre}`).toBe(true);
+        const mejora = (j2.status === 'PASS' && j2.colocadas > 0) || j2.colocadasBien > j.colocadasBien;
+        expect(mejora, `opción ${opt.id} mejora ${c.nombre}`).toBe(true);
+      }
     }
   });
   it('5 · determinismo: 3 corridas idénticas byte a byte (sin telemetría)', () => {

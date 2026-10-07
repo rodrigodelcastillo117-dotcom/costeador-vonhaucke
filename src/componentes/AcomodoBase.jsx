@@ -221,7 +221,9 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     const solve = async (payload) => {
       const r = await acomodarEspacio(payload.areas, payload.piezas);
       if (!r?.ok || !r?.plan) throw new Error(r?.error || 'Motor espacial no disponible');
-      return { ...r.plan, layoutSpec: r.layoutSpec || null, render_ready: r.render_ready === true, strictPlacement: r.strictPlacement === true };
+      // G: el mensaje al vendedor viaja con el plan hasta la UI (antes se descartaba).
+      const mensaje_vendedor = r.mensaje_vendedor || r.layoutSpec?.mensaje_vendedor || null;
+      return { ...r.plan, mensaje_vendedor, layoutSpec: r.layoutSpec || null, render_ready: r.render_ready === true, strictPlacement: r.strictPlacement === true };
     };
     const res = await resolverAcomodo({
       partidas, areasM: areasMetros, piezasExtra: duplicados,
@@ -1424,6 +1426,19 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
           </>
         )}
         {error && <div className="alerta roja" style={{ marginTop: 12 }}><span className="texto">{error}</span></div>}
+        {/* G · mensaje al vendedor: SIEMPRE visible cuando el acomodo dejó pendientes,
+            sin importar el modo (manual o no). Qué no cupó + por qué + qué hacer. */}
+        {msgVendedor && (
+          <div className="tarjeta" style={{ background: '#fff7ed', border: '1px solid #fdba74', marginTop: 12 }}>
+            <strong>{msgVendedor.titulo}</strong>
+            <div style={{ marginTop: 6 }}><em>No cupo:</em><ul style={{ margin: '4px 0' }}>{msgVendedor.queNoCupo.map((t, i) => <li key={i}>{t}</li>)}</ul></div>
+            {msgVendedor.porque.length > 0 && <div style={{ marginTop: 4 }}><em>Por qué:</em> {msgVendedor.porque.join(' ')}</div>}
+            {msgVendedor.queHacer.length > 0 && (
+              <div style={{ marginTop: 4 }}><em>Qué puedes hacer:</em><ul style={{ margin: '4px 0' }}>{msgVendedor.queHacer.map((t, i) => <li key={i}>{t}</li>)}</ul></div>
+            )}
+            {msgVendedor.sinOpcion && <div style={{ marginTop: 4 }}>{msgVendedor.sinOpcion}</div>}
+          </div>
+        )}
       </div>
 
       {/* STAGING VIRTUAL con IA: foto real del espacio → amueblada con lo cotizado */}
@@ -1557,16 +1572,6 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
           {aMano && modo === 'planta' && (
             <div className="tarjeta" style={{ marginTop: 12 }}>
               <h3 style={{ marginTop: 0 }}>Tus muebles</h3>
-              {msgVendedor && (
-                <div className="tarjeta" style={{ background: '#fff7ed', border: '1px solid #fdba74', marginBottom: 10 }}>
-                  <strong>{msgVendedor.titulo}</strong>
-                  <div style={{ marginTop: 6 }}><em>No cupo:</em><ul style={{ margin: '4px 0' }}>{msgVendedor.queNoCupo.map((t, i) => <li key={i}>{t}</li>)}</ul></div>
-                  {msgVendedor.porque.length > 0 && <div style={{ marginTop: 4 }}><em>Por qué:</em> {msgVendedor.porque.join(' ')}</div>}
-                  {msgVendedor.queHacer.length > 0 && (
-                    <div style={{ marginTop: 4 }}><em>Qué puedes hacer:</em><ul style={{ margin: '4px 0' }}>{msgVendedor.queHacer.map((t, i) => <li key={i}>{t}</li>)}</ul></div>
-                  )}
-                </div>
-              )}
               <p className="ayuda columna-texto">
                 <strong>Arrastra</strong> los muebles con el dedo o el mouse. Tócalos una vez y te salen ahí mismo
                 los botones de <strong>girar</strong> (cada toque, 90°){layoutV2 ? <>, <strong>duplicar</strong></> : null} y <strong>quitar</strong>.

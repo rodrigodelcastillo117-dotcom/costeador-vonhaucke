@@ -1,20 +1,27 @@
 // ============================================================================
-//  P0.2b · G · MENSAJE AL VENDEDOR (puro, self-contained).
+//  P0.2b · G · MENSAJE AL VENDEDOR (puro; el solver se INYECTA, no se modifica).
 //
-//  Dado el resultado del solver (colocación + no_cupieron + unassigned), produce
-//  en español simple:
-//   1. QUÉ no cupó (lista por tipo, legible).
-//   2. POR QUÉ (motivo CAUSAL del invariante limitante, con números; "faltan m²"
-//      SÓLO cuando la restricción real es superficie/forma — nunca por defecto).
-//   3. QUÉ hacer: 2–3 opciones CONCRETAS, cada una con `aplicar(areas,piezas)` que
-//      transforma el input para que el solver pueda RE-SIMULARLA y confirmar que
-//      mejora/resuelve. El banco verifica que ≥1 opción realmente mejora.
-//
-//  No pone coordenadas ni decide negocio; sólo explica y propone transformaciones.
+//  Dado el resultado del solver produce, en español simple:
+//   1. QUÉ no cupó (lista por tipo).
+//   2. POR QUÉ (motivo CAUSAL del invariante limitante, con m² del área REAL del
+//      kit que falló — no `areas[0]`; "faltan m²" sólo si el limitante es superficie).
+//   3. QUÉ hacer: hasta 3 opciones CONCRETAS. Cada opción se SIMULA con el solver
+//      inyectado y su texto corresponde EXACTAMENTE a la transformación aplicada:
+//        · "quitar N piezas"      → quita exactamente esas piezas.
+//        · "mover a otra área"    → reasigna el grupo a una SEGUNDA área real.
+//        · "mesa más chica"       → reduce SÓLO esa mesa.
+//        · "estación de N puestos"→ reduce SÓLO esa estación.
+//      Sólo se muestra la opción si la simulación DEMUESTRA mejora, y el texto dice
+//      el resultado verificado ("caben las 10 sillas" / "caben 8 de 10"). Si ninguna
+//      opción mejora: `sin_opcion` lo dice claramente. Nunca agranda áreas ni borra
+//      puertas/obstáculos/polígono de forma indiscriminada.
 // ============================================================================
 const num = (n, d = 0) => (Number.isFinite(Number(n)) ? Number(n) : d);
 const esAncla = (r) => typeof r === 'string' && r.startsWith('ANCHOR_');
+const esSilla = (r) => ['WORK_SEAT', 'EXECUTIVE_SEAT', 'VISITOR_SEAT', 'MEETING_SEAT'].includes(r);
+const esGaveta = (r) => ['UNDERDESK_STORAGE', 'SUPPORT_STORAGE'].includes(r);
 const m2 = (mm2) => +(mm2 / 1e6).toFixed(1);
+const nz = (s) => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '');
 
 const LABEL = {
   ANCHOR_WORKSTATION: 'estación de trabajo', ANCHOR_DESK: 'escritorio',
@@ -24,118 +31,163 @@ const LABEL = {
   UNDERDESK_STORAGE: 'gaveta', SUPPORT_STORAGE: 'gaveta',
 };
 const plural = (n, sing) => `${n} ${sing}${n === 1 ? '' : 's'}`;
+const TIPO_DE_ROL = { ANCHOR_WORKSTATION: 'open', ANCHOR_DESK: 'privado', ANCHOR_MEETING: 'juntas', ANCHOR_RECEPTION: 'recepcion' };
 
-// Huella aproximada de un kit según su ancla (para dimensionar el espacio limpio).
 function huellaAncla(a) {
   const w = num(a.w), d = num(a.d);
-  switch (a.relation_role) {
-    case 'ANCHOR_MEETING': return { w: w + 1200, h: d + 1200 };
-    default: return { w, h: d + 600 };   // workstation/desk/reception: fila de sillas
-  }
+  return a.relation_role === 'ANCHOR_MEETING' ? { w: w + 1200, h: d + 1200 } : { w, h: d + 600 };
+}
+// Índice del área que el kit REALMENTE tiene como destino (zona, luego tipo).
+function areaIdxDe(anchor, areas) {
+  const zid = anchor?.zone_id;
+  if (zid != null) { const i = areas.findIndex((a) => nz(a?.zone_id ?? a?.nombre) === nz(zid)); if (i >= 0) return i; }
+  const tipo = TIPO_DE_ROL[anchor?.relation_role];
+  const i = areas.findIndex((a) => !tipo || nz(a?.tipo) === nz(tipo));
+  return i >= 0 ? i : 0;
+}
+function idsNoColocadas(sol) {
+  const s = new Set();
+  for (const u of (sol?.unplaced || [])) for (const id of (u.piezas || [])) s.add(String(id));
+  for (const id of (sol?.unassigned || [])) s.add(String(id));
+  return s;
 }
 
 const MOTIVO = {
-  OUT_OF_BOUNDS: (ctx) => `El grupo necesita ~${ctx.needM2} m² y el área disponible es de ~${ctx.haveM2} m².`,
-  OUT_OF_POLYGON: () => 'La forma del cuarto (muros/recortes) no deja un hueco continuo para el módulo.',
-  NO_SPACE: (ctx) => `El grupo necesita ~${ctx.needM2} m² y el área disponible es de ~${ctx.haveM2} m².`,
-  NO_SPACE_PARA_SILLAS: (ctx) => `No quedó espacio para ${plural(ctx.nSillas, 'silla')} junto a su mueble conservando el pasillo de 1.0 m.`,
-  DOOR: () => 'El barrido de la puerta ocupa ese frente y no deja colocar el módulo.',
-  OBSTACLE: () => 'Una columna/obstáculo ocupa el punto donde iría el módulo.',
-  AISLE: () => 'Al colocar el módulo ya no queda el pasillo mínimo de 1.0 m entre bloques.',
+  OUT_OF_BOUNDS: (c) => `El grupo necesita ~${c.needM2} m² y el área "${c.zona}" tiene ~${c.haveM2} m².`,
+  NO_SPACE: (c) => `El grupo necesita ~${c.needM2} m² y el área "${c.zona}" tiene ~${c.haveM2} m².`,
+  OUT_OF_POLYGON: (c) => `La forma del área "${c.zona}" (muros/recortes) no deja un hueco continuo para el módulo.`,
+  NO_SPACE_PARA_SILLAS: (c) => `No quedó espacio para ${plural(c.nSillas, 'silla')} junto a su mueble conservando el pasillo de 1.0 m.`,
+  DOOR: (c) => `El barrido de la puerta en "${c.zona}" ocupa ese frente y no deja colocar el módulo.`,
+  OBSTACLE: (c) => `Una columna/obstáculo en "${c.zona}" ocupa el punto donde iría el módulo.`,
+  AISLE: (c) => `Al colocar el módulo ya no queda el pasillo mínimo de 1.0 m entre bloques en "${c.zona}".`,
+  OVERLAP: (c) => `No caben los dos bloques en "${c.zona}" sin encimarse ni perder el pasillo de 1.0 m.`,
 };
-const esGeom = (inv) => inv === 'OUT_OF_BOUNDS' || inv === 'NO_SPACE' || inv === 'OUT_OF_POLYGON';
 
-export function mensajeVendedor(areas = [], piezas = [], sol = {}) {
+export function mensajeVendedor(areas = [], piezas = [], sol = {}, opts = {}) {
+  const resolver = typeof opts.resolver === 'function' ? opts.resolver : null;
   const byId = new Map(piezas.map((p) => [String(p.id), p]));
   const unplaced = Array.isArray(sol.unplaced) ? sol.unplaced : [];
   const unassigned = Array.isArray(sol.unassigned) ? sol.unassigned : [];
+  const faltanIds = [...idsNoColocadas(sol)];
+  const baseColoc = piezas.length - faltanIds.length;
 
-  // --- 1 · QUÉ no cupó -------------------------------------------------------
-  const faltanIds = [];
-  for (const u of unplaced) for (const id of (u.piezas || [])) faltanIds.push(String(id));
-  for (const id of unassigned) faltanIds.push(String(id));
+  // 1 · QUÉ no cupó
   const conteo = new Map();
-  for (const id of faltanIds) {
-    const p = byId.get(String(id)); if (!p) continue;
-    const key = p.relation_role;
-    conteo.set(key, (conteo.get(key) || 0) + 1);
-  }
+  for (const id of faltanIds) { const p = byId.get(String(id)); if (!p) continue; conteo.set(p.relation_role, (conteo.get(p.relation_role) || 0) + 1); }
   const pendientes = [...conteo.entries()].map(([rol, n]) => ({ rol, n, texto: plural(n, LABEL[rol] || 'pieza') }));
 
-  // --- 2 · POR QUÉ (causal por grupo) ---------------------------------------
+  // 2 · POR QUÉ (causal, con el área REAL del kit que falló)
   const motivos = [];
   for (const u of unplaced) {
-    const inv = u.invariante || 'NO_SPACE';
     const anc = byId.get(String(u.anchorId));
-    const ctx = {};
-    if (anc) { const h = huellaAncla(anc); ctx.needM2 = m2(h.w * h.h); }
-    const areaObj = areas[0];
-    ctx.haveM2 = areaObj ? m2(num(areaObj.ancho) * num(areaObj.largo)) : 0;
-    ctx.nSillas = (u.piezas || []).filter((id) => { const p = byId.get(String(id)); return p && !esAncla(p.relation_role); }).length;
-    const fn = MOTIVO[inv] || (() => `No se pudo colocar el grupo (${inv}).`);
-    motivos.push({ anchorId: u.anchorId, invariante: inv, texto: fn(ctx) });
+    const ai = anc ? areaIdxDe(anc, areas) : 0;
+    const ar = areas[ai] || areas[0] || {};
+    const h = anc ? huellaAncla(anc) : { w: 0, h: 0 };
+    const c = { needM2: m2(h.w * h.h), haveM2: m2(num(ar.ancho) * num(ar.largo)), zona: ar.nombre || ar.zone_id || `área ${ai + 1}`, nSillas: (u.piezas || []).filter((id) => { const p = byId.get(String(id)); return p && !esAncla(p.relation_role); }).length };
+    const fn = MOTIVO[u.invariante] || (() => `No se pudo colocar el grupo en "${c.zona}".`);
+    motivos.push({ anchorId: u.anchorId, invariante: u.invariante || 'NO_SPACE', zona: c.zona, texto: fn(c) });
   }
-  if (unassigned.length) motivos.push({ invariante: 'DEPENDENT_UNASSIGNED', texto: `${plural(unassigned.length, 'pieza')} dependiente(s) sin un mueble que las reciba (capacidad del catálogo superada).` });
+  if (unassigned.length) motivos.push({ invariante: 'DEPENDENT_UNASSIGNED', texto: `${plural(unassigned.length, 'pieza')} sin un mueble que las reciba (se superó la capacidad del catálogo).` });
 
-  // --- 3 · QUÉ hacer (opciones simulables) ----------------------------------
-  const anclas = piezas.filter((p) => esAncla(p.relation_role));
-  const opciones = [];
+  // 3 · QUÉ hacer — candidatos auto-verificados por simulación.
+  const grupoDe = (id) => byId.get(String(id))?.functional_group_id;
+  const sim = (as, ps) => { if (!resolver) return null; try { return resolver(as, ps); } catch { return null; } };
+  const colocDe = (ps, s) => { if (!s) return null; const no = idsNoColocadas(s); return { placed: ps.length - no.size, no }; };
 
-  // A · quitar lo que no cupo (conserva el acomodo del resto). Útil en PARTIAL.
-  if (faltanIds.length) {
-    const resumen = pendientes.map((p) => p.texto).join(', ');
-    opciones.push({
-      id: 'quitar_no_colocadas',
-      texto: `Quitar ${resumen} deja el resto del acomodo completo y con pasillos.`,
+  const candidatas = [];
+
+  // A · mover el grupo que falló a una SEGUNDA área real compatible.
+  for (const u of unplaced) {
+    const anc = byId.get(String(u.anchorId)); if (!anc) continue;
+    const grupo = anc.functional_group_id;
+    const tipo = TIPO_DE_ROL[anc.relation_role];
+    const origen = areaIdxDe(anc, areas);
+    const destIdx = areas.findIndex((a, i) => i !== origen && (!tipo || nz(a?.tipo) === nz(tipo)));
+    if (destIdx < 0) continue;
+    const dest = areas[destIdx];
+    candidatas.push({
+      id: 'mover_zona', grupo,
+      base: `Mover ${LABEL[anc.relation_role] || 'el grupo'} a "${dest.nombre || dest.zone_id}"`,
+      aplicar: (as, ps) => ({ areas: as, piezas: ps.map((p) => (p.functional_group_id === grupo ? { ...p, zone_id: dest.zone_id ?? dest.nombre } : p)) }),
+    });
+    break;
+  }
+
+  // B · mesa más chica (sólo la mesa de juntas que falló más grande).
+  const mesaFallo = unplaced.map((u) => byId.get(String(u.anchorId))).filter((a) => a && a.relation_role === 'ANCHOR_MEETING').sort((x, y) => num(y.w) - num(x.w))[0];
+  if (mesaFallo) {
+    const nuevoW = Math.max(1200, Math.round(num(mesaFallo.w) * 0.6));
+    const capN = Math.max(2, Math.floor(num(mesaFallo.user_capacity || 2) / 2));
+    const grupo = mesaFallo.functional_group_id;
+    const sillas = piezas.filter((p) => p.functional_group_id === grupo && esSilla(p.relation_role));
+    const quitar = new Set(sillas.slice(capN).map((p) => String(p.id)));
+    candidatas.push({
+      id: 'mesa_mas_chica', grupo,
+      base: `Cambiar la mesa de ${(num(mesaFallo.w) / 1000).toFixed(2)} m por una de ${(nuevoW / 1000).toFixed(2)} m`,
+      aplicar: (as, ps) => ({ areas: as, piezas: ps.map((p) => (String(p.id) === String(mesaFallo.id) ? { ...p, w: nuevoW, user_capacity: capN } : p)).filter((p) => !quitar.has(String(p.id))) }),
+    });
+  }
+
+  // C · estación con menos puestos (la workstation que falló más grande). Prueba el
+  // mayor capN que SÍ quepa (verificado por simulación más abajo).
+  const wsFallo = unplaced.map((u) => byId.get(String(u.anchorId))).filter((a) => a && a.relation_role === 'ANCHOR_WORKSTATION').sort((x, y) => num(y.w) - num(x.w))[0];
+  if (wsFallo) {
+    const grupo = wsFallo.functional_group_id;
+    const cap0 = Math.max(1, Math.round(num(wsFallo.user_capacity) || Math.round(num(wsFallo.w) / 1500)));
+    const sillas = piezas.filter((p) => p.functional_group_id === grupo && esSilla(p.relation_role));
+    const gavetas = piezas.filter((p) => p.functional_group_id === grupo && esGaveta(p.relation_role));
+    for (let capN = cap0 - 1; capN >= 1; capN--) {
+      const w1 = capN * 1500;
+      const quitar = new Set([...sillas.slice(capN), ...gavetas.slice(capN)].map((p) => String(p.id)));
+      candidatas.push({
+        id: `estacion_${capN}`, grupo, capN, cap0,
+        base: `Usar una estación de ${capN} puesto(s) en lugar de ${cap0}`,
+        aplicar: (as, ps) => ({ areas: as, piezas: ps.map((p) => (String(p.id) === String(wsFallo.id) ? { ...p, w: w1, user_capacity: capN } : p)).filter((p) => !quitar.has(String(p.id))) }),
+      });
+    }
+  }
+
+  // D · quitar exactamente lo que no cupo (sólo si ya hay algo colocado).
+  if (faltanIds.length && baseColoc > 0) {
+    candidatas.push({
+      id: 'quitar_no_colocadas', esQuitar: true,
+      base: `Quitar ${pendientes.map((p) => p.texto).join(', ')}`,
       aplicar: (as, ps) => ({ areas: as, piezas: ps.filter((p) => !faltanIds.includes(String(p.id))) }),
     });
   }
 
-  // B · espacio suficiente y limpio: área(s) dimensionada(s) a las huellas, sin
-  //     obstáculos/puertas/recortes. Simulable: el solver coloca todo. Texto
-  //     causal: "m²" SÓLO si el limitante es superficie/forma.
-  const maxW = Math.max(1000, ...anclas.map((a) => huellaAncla(a).w));
-  const sumH = anclas.reduce((s, a) => s + huellaAncla(a).h + 1000, 1000);
-  const needM2 = m2(maxW * sumH);
-  const hayGeom = unplaced.some((u) => esGeom(u.invariante));
-  const hayPuerta = unplaced.some((u) => u.invariante === 'DOOR');
-  const hayObst = unplaced.some((u) => u.invariante === 'OBSTACLE');
-  const txtB = hayGeom
-    ? `Usar un área de al menos ~${needM2} m² permite acomodar todas las piezas.`
-    : hayPuerta ? `Reubicar el acceso (el barrido de la puerta libera ese frente) permite colocar el módulo.`
-    : hayObst ? `Usar una zona sin columnas de ~${needM2} m² permite colocar el módulo completo.`
-    : `Dar un área despejada de ~${needM2} m² permite acomodar todas las piezas.`;
-  opciones.push({
-    id: 'espacio_suficiente',
-    texto: txtB,
-    aplicar: (as, ps) => ({
-      areas: as.map((a) => ({ ...a, ancho: Math.max(num(a.ancho), maxW), largo: Math.max(num(a.largo), sumH), obstaculos: [], puertas: [], poly: undefined })),
-      piezas: ps,
-    }),
-  });
-
-  // C · mueble más chico: reduce la mesa/estación más grande que no cupo.
-  const anclaFallo = unplaced.map((u) => byId.get(String(u.anchorId))).filter(Boolean)
-    .filter((a) => a.relation_role === 'ANCHOR_MEETING' || a.relation_role === 'ANCHOR_WORKSTATION')
-    .sort((x, y) => num(y.w) - num(x.w))[0];
-  if (anclaFallo) {
-    const esMesa = anclaFallo.relation_role === 'ANCHOR_MEETING';
-    const nuevoW = Math.max(1200, Math.round(num(anclaFallo.w) * 0.6));
-    const capNueva = Math.max(1, Math.floor(num(anclaFallo.user_capacity || 2) / 2));
-    const grupo = anclaFallo.functional_group_id;
-    const deps = piezas.filter((p) => p.functional_group_id === grupo && !esAncla(p.relation_role));
-    const quitar = new Set(deps.slice(capNueva).map((p) => String(p.id)));   // conserva capNueva deps
-    opciones.push({
-      id: 'mueble_mas_chico',
-      texto: esMesa
-        ? `Cambiar la mesa de ${(num(anclaFallo.w) / 1000).toFixed(2)} m por una de ${(nuevoW / 1000).toFixed(2)} m permite colocarla con sus sillas.`
-        : `Usar una estación de ${capNueva} puesto(s) en lugar de ${num(anclaFallo.user_capacity || 2)} permite colocarla completa.`,
-      aplicar: (as, ps) => ({
-        areas: as,
-        piezas: ps.map((p) => (String(p.id) === String(anclaFallo.id) ? { ...p, w: nuevoW, user_capacity: capNueva } : p)).filter((p) => !quitar.has(String(p.id))),
-      }),
-    });
+  // Verifica cada candidata por simulación; conserva sólo las que mejoran, con texto
+  // de resultado verificado. Una por id de grupo/tipo; máximo 3.
+  const opciones = [];
+  const vistos = new Set();
+  for (const cand of candidatas) {
+    if (opciones.length >= 3) break;
+    const t = cand.aplicar(areas, piezas);
+    const s2 = sim(t.areas, t.piezas);
+    const r2 = colocDe(t.piezas, s2);
+    let texto = null;
+    if (cand.esQuitar) {
+      if (r2 && r2.no.size === 0 && t.piezas.length > 0) texto = `${cand.base}: el resto queda acomodado completo.`;
+      else if (!resolver) texto = `${cand.base}: deja el resto del acomodo.`;
+    } else {
+      const grupoIds = t.piezas.filter((p) => p.functional_group_id === cand.grupo).map((p) => String(p.id));
+      const grupoCompleto = r2 ? grupoIds.length > 0 && grupoIds.every((id) => !r2.no.has(id)) : false;
+      if (grupoCompleto) {
+        if (cand.id === 'mover_zona') texto = `${cand.base}: ahí caben sus ${grupoIds.length} piezas.`;
+        else if (cand.id === 'mesa_mas_chica') texto = `${cand.base}: cabe con sus sillas.`;
+        else texto = `${cand.base}: cabe completa (${cand.capN} de ${cand.cap0}).`;
+      }
+    }
+    if (!texto) continue;
+    const clave = cand.id.startsWith('estacion_') ? `estacion:${cand.grupo}` : `${cand.id}:${cand.grupo || ''}`;
+    if (vistos.has(clave)) continue;
+    vistos.add(clave);
+    opciones.push({ id: cand.id, texto, aplicar: cand.aplicar });
   }
 
-  return { pendientes, motivos, opciones, hay_pendientes: faltanIds.length > 0 };
+  const sin_opcion = (faltanIds.length && opciones.length === 0)
+    ? 'No encontré una forma de que quepa; revisa el espacio con un diseñador.'
+    : null;
+
+  return { pendientes, motivos, opciones, sin_opcion, hay_pendientes: faltanIds.length > 0 };
 }

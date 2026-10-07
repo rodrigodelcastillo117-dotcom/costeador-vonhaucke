@@ -1,9 +1,10 @@
 # REPORTE_NOCHE · P0.2b + auditorías read-only
 Fecha: 2026-10-07 · Rama de trabajo: `claude/perfection-final-20261006` = `release/p0.2-recovery-20261007` · SHA `b8fd709`
 Evidencia: **BANCO LOCAL · CÓDIGO REAL** (no es edge desplegado, no es “certificado en producción”).
+Nota de alcance: lo hecho aquí es desarrollo + **revisión de código** (no una auditoría independiente). La **prueba independiente con casos externos la corre otra sesión**; `READY TO ACTIVATE` sólo es válido si esa prueba **no encuentra ningún PASS falso**. Si encuentra uno, se corrige dentro de A–G y **no se toca el juez**.
 
 ## Para Rodrigo (5 líneas, sin términos técnicos)
-1. **Qué quedó funcionando:** el acomodador nuevo coloca TODO en su lugar (sillas pegadas a su escritorio, nada suelto) en los 61 casos de prueba, incluidos 10 difíciles y 2 hechos con tus planos reales.
+1. **Qué quedó funcionando:** el acomodador nuevo coloca TODO en su lugar (sillas pegadas a su escritorio, nada suelto) en los 55 casos de prueba (49 que sí caben + 6 imposibles), incluidos 10 difíciles y 2 hechos con tus planos reales.
 2. **Qué mejoró:** antes el acomodo soltaba las sillas lejos de su mueble; ahora cada silla queda con su escritorio, y cuando algo no cabe te dice EN ESPAÑOL qué no cupo, por qué, y 2–3 cosas que puedes hacer.
 3. **Qué sigue fallando:** nada en el acomodador. En las pruebas automáticas de la app quedan 3 focos rojos ajenos a esto (2 son una prueba desactualizada de botones, 1 necesita la llave de IA en el servidor).
 4. **Si se puede avanzar:** sí, el motor pasó todas las pruebas; falta tu permiso para “encenderlo” en el servidor (yo no lo toqué).
@@ -15,7 +16,7 @@ Evidencia: **BANCO LOCAL · CÓDIGO REAL** (no es edge desplegado, no es “cert
 **CLOSED en BANCO LOCAL · CÓDIGO REAL** (los 8 criterios de salida se cumplen con el juez y los casos CONGELADOS). **NO** probado contra el edge desplegado. El deploy del edge requiere tu autorización escrita; hasta entonces producción se queda con el edge viejo.
 
 - Pendientes que exigía el mandato para poder cerrar — TODOS hechos:
-  1. **G · mensaje al vendedor:** ✅ `opciones.js` (edge) + `src/datos/mensajeAcomodo.js` + render en `AcomodoBase.jsx`.
+  1. **G · mensaje al vendedor (endurecido):** ✅ `opciones.js` con opciones **auto-verificadas por simulación** (el texto corresponde EXACTO a la transformación: quitar N exactas / mover a 2ª área real / mesa más chica / estación de N puestos), m² del **área real** del kit que falló, resultado verificado por opción ("cabe completa 1 de 4"), máximo 3, y mensaje claro "no encontré una forma…" cuando ninguna opción sirve. Propagado **end-to-end**: edge → `solve` adapter → `resolverAcomodo` → `plan.mensaje_vendedor` → `formatearMensajeVendedor` → tarjeta **siempre visible** (fuera de modo manual). Tests: `acomodoMensajeVendedor.test.js` (integración) + `e2e/acomodoMensajeVendedor.e2e.js` (navegador, mock, PARTIAL en flujo normal) + banco criterio 4.
   2. **Planos reales en el repo:** ✅ 2 casos derivados de planos versionados (ver B/§provenance); PDF crudos de cliente → **FUENTE_FALTANTE** (declarado).
   3. **10 casos difíciles congelados:** ✅ `bench/acomodo/casos-dificiles.js`.
   4. **Banco completo en CI con link:** ✅ run **37607705529** (`b8fd709`) — ver §C-8.
@@ -89,7 +90,7 @@ Derivan la **geometría REAL de zonas** (envolvente/bbox + 1 puerta real en real
 ## C · CRITERIOS 1–8 (PASS/FAIL con evidencia)
 Evidencia: BANCO LOCAL (`bench/acomodo/banco.test.js`, 11 its) + CI run 37607705529.
 
-1. **PASS falsos = 0** — ✅ `falsosPASS=0` en los 61 casos.
+1. **PASS falsos = 0** — ✅ `falsosPASS=0` en los 55 casos (49 factibles + 6 imposibles).
 2. **Factibles ≥95% PASS; los 8 nombrados 100%** — ✅ `factPASS=49/49 (100%)`; los 8 al 100%.
 3. **Dependientes unidos a su ancla = 100% en todo PASS** — ✅ `desprendidas=0, sinDueño=0` en todo PASS.
 4. **Imposibles/PARTIAL: 0 falso PASS + faltantes + motivo causal + ≥1 opción que SIMULADA mejora** — ✅ 6/6 imposibles sin PASS; cada uno con pendientes, motivo causal (sin “faltan m²” salvo cuando el limitante es superficie) y ≥1 opción que, re-resuelta por el solver, mejora/resuelve.
@@ -109,7 +110,7 @@ Run: https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/actions
 ## D · READY TO ACTIVATE RECOVERY EDGE (sólo si lo autorizas)
 - SHA exacto: `b8fd709` · ramas: `claude/perfection-final-20261006` = `release/p0.2-recovery-20261007`.
 - Hashes congelados: kit-solver `6927de44` · v9 `177eeac4` · juez `50714aec` · casos `24a0bd13`.
-- Archivos modificados/nuevos: `bench/acomodo/{casos-dificiles,planos-reales}.js` (nuevos), `bench/acomodo/banco.test.js`, `supabase/functions/acomodar-espacio-recovery/{opciones.js (nuevo),index.ts,recoverySource.test.js}`, `src/datos/mensajeAcomodo.js (+test)`, `src/componentes/AcomodoBase.jsx`.
+- Archivos modificados/nuevos: `bench/acomodo/{casos-dificiles,planos-reales}.js` (nuevos), `bench/acomodo/banco.test.js`, `supabase/functions/acomodar-espacio-recovery/{opciones.js (nuevo),index.ts,recoverySource.test.js}`, `src/datos/mensajeAcomodo.js (+test)`, `src/datos/acomodoMensajeVendedor.test.js` (nuevo, integración G), `src/componentes/AcomodoBase.jsx`, `e2e/acomodoMensajeVendedor.e2e.js` (nuevo, navegador mock). **kit-solver, juez y casos NO tocados.**
 - Cero migraciones (ningún SQL, ninguna tabla, ningún RLS tocado).
 - **Rollback:** el edge recovery desplegado sigue siendo el viejo (v4); activar = `supabase functions deploy acomodar-espacio-recovery --project-ref mtuvnbgljwbsaizjjgzs`; revertir = re-desplegar el commit anterior del edge. El cliente `nube.js` ya invoca `acomodar-espacio-recovery` (no se repuntó nada).
 - **La evidencia es BANCO LOCAL · CÓDIGO REAL; NO prueba todavía el edge desplegado.** La prueba contra el edge desplegado ocurre sólo DESPUÉS de tu autorización. **NO DEPLOY.**

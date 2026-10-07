@@ -14,12 +14,14 @@ export function formatearMensajeVendedor(mv) {
   const queNoCupo = pendientes.map((p) => `• ${p.texto}`);
   const porque = motivos.map((m) => m.texto).filter(Boolean);
   const queHacer = opciones.map((o) => o.texto).filter(Boolean).slice(0, 3);
+  const sinOpcion = (!queHacer.length && mv.sin_opcion) ? mv.sin_opcion : null;
 
   return {
     titulo: 'No cupo todo. Esto es lo que pasó y qué puedes hacer:',
     queNoCupo,                       // lista "• 2 sillas operativas"
     porque,                          // motivos causales
-    queHacer,                        // 2–3 opciones concretas
+    queHacer,                        // hasta 3 opciones concretas (texto verificado)
+    sinOpcion,                       // mensaje claro si no hay ninguna opción verificable
     resumen: `Quedaron pendientes: ${pendientes.map((p) => p.texto).join(', ')}.`,
   };
 }
