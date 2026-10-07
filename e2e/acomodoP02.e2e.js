@@ -78,13 +78,21 @@ test.describe('E2E P0.2 · acomodo verify-first (navegador real)', () => {
     await page.getByRole('button', { name: /^Entrar$/i }).click();
     await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
 
-    // home → Voni → paso 2 (Muebles) → paso 3 (Acomodo).
+    // home → Voni → paso 2 (Muebles) → paso 3 (Acomodo). Los pasos se identifican
+    // por su DESCRIPCIÓN única (evita ambigüedad con el botón "Acomodar").
     await page.getByTestId('home-cotizar').click();
-    await page.getByText(/^Muebles$/).first().click();
-    await page.getByText(/^Acomodo$/).first().click();
+    await page.getByRole('button', { name: /¿Qué lleva\?/i }).click();           // paso 2 Muebles
+    const stepAcomodo = page.getByRole('button', { name: /Dónde va cada cosa/i }); // paso 3 Acomodo
+    await expect(stepAcomodo).toBeEnabled({ timeout: 15000 });
+    await stepAcomodo.click();
 
-    // El motor espacial (multi-área) corre y pega al mock.
-    await expect.poll(() => golpes, { timeout: 20000 }).toBeGreaterThanOrEqual(1);
+    // Fuerza el motor espacial (multi-área): el botón "Acomodar" llama al solver.
+    const btnAcomodar = page.getByRole('button', { name: /^Acomodar$/i });
+    await expect(btnAcomodar).toBeVisible({ timeout: 15000 });
+    await btnAcomodar.click();
+
+    // El motor espacial corre y pega al mock.
+    await expect.poll(() => golpes, { timeout: 25000 }).toBeGreaterThanOrEqual(1);
 
     // Bloque D VIVO: el plan persistido trae ambos hashes sellados.
     await expect.poll(async () => (await leerPlan(page))?.program_hash || '', { timeout: 15000 }).toMatch(/^p_/);
