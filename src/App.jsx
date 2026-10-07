@@ -779,9 +779,17 @@ export default function App() {
     setEstado((prev) => {
       const existentes = prev.cotizacion?.partidas || [];
       const { confirmacion } = aplicarPrograma(propuesta, { existentes });
-      if (!confirmacion.confirmadas.length) return prev;         // idempotente: nada nuevo
+      const enriquecidos = confirmacion.enriquecidos || [];
+      // #4: ENRIQUECE en el sitio los existentes reutilizados (WIN/gavetas apuntan
+      // ahora al ancla APP LT) — sólo metadata estructural, sin tocar economics.
+      const porId = new Map(enriquecidos.map((e) => [String(e.id), e.patch]));
+      const patched = existentes.map((p) => {
+        const patch = porId.get(String(p.id));
+        return patch ? { ...p, ...patch, config: { ...(p.config || {}), ...patch } } : p;
+      });
       const nuevas = confirmacion.confirmadas.map(partidaComercialDesdeConfirmado);
-      return { ...prev, cotizacion: { ...prev.cotizacion, partidas: [...existentes, ...nuevas] } };
+      if (!nuevas.length && !enriquecidos.length) return prev;    // idempotente: nada que hacer
+      return { ...prev, cotizacion: { ...prev.cotizacion, partidas: [...patched, ...nuevas] } };
     });
     // Libera el lock tras el commit (microtask: después del setEstado batcheado).
     Promise.resolve().then(() => { aplicandoProgramaRef.current = false; });

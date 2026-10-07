@@ -108,4 +108,18 @@ describe('REGRESIÓN caso roto de Rodrigo (#11): cotización parcial, falta APP 
     expect(confirmacion.confirmadas.some((i) => i.bancoId === 'rec-2420x830')).toBe(false);
     expect(confirmacion.items.filter((i) => i.bancoId === 'mj-1200x1200-melamina')).toHaveLength(1);
   });
+
+  it('#4 ENRIQUECE: WIN y gavetas existentes ahora apuntan a la instancia del APP LT confirmado', () => {
+    const bench = confirmacion.confirmadas.find((i) => i.relation_role === 'ANCHOR_WORKSTATION');
+    expect(bench.instance_id).toBeTruthy();
+    const patchWin = confirmacion.enriquecidos.find((e) => e.id === 'e1');   // 10 WIN
+    const patchGav = confirmacion.enriquecidos.find((e) => e.id === 'e2');   // 10 gavetas
+    expect(patchWin).toBeTruthy();
+    expect(patchWin.patch.relation_role).toBe('WORK_SEAT');
+    expect(patchWin.patch.anchor_role).toBe('ANCHOR_WORKSTATION');
+    expect(patchWin.patch.anchor_instance_id).toBe(bench.instance_id);
+    expect(patchWin.patch.functional_group_id).toBe(bench.functional_group_id);
+    expect(patchGav.patch.anchor_instance_id).toBe(bench.instance_id);
+    expect(patchGav.patch.relation_role).toBe('UNDERDESK_STORAGE');
+  });
 });

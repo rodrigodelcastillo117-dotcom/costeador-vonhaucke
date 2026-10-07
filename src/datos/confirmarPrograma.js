@@ -50,6 +50,20 @@ function inferRole(item) {
 
 function rolDe(item) { return item.rol || rolFromRel(item.relation_role || inferRole(item)) || 'desconocido'; }
 
+// Parche de METADATA ESTRUCTURAL (sin tocar precio/costo/descripción/revisiones).
+// Al reutilizar un existente, se le injerta su relación con el ancla confirmada.
+function estructuraDe(part) {
+  return {
+    relation_role: part.relation_role ?? null,
+    anchor_role: part.anchor_role ?? null,
+    anchor_instance_id: part.anchor_instance_id ?? null,
+    instance_id: part.instance_id ?? null,
+    functional_group_id: part.functional_group_id ?? null,
+    requirement_id: part.requirement_id ?? null,
+    zone_id: part.zone_id ?? null,
+  };
+}
+
 function aItemConfirmado(part, { slot = null, estado }) {
   const ident = part.identidad || null;
   const snapshot = Number(part.precio_lista_snapshot ?? part.precio) || null;
@@ -101,6 +115,7 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
   const confirmadas = [];
   const sinCambio = [];
   const conflictos = [];
+  const enriquecidos = [];                         // {id, patch} para existentes reutilizados (#4)
   const usados = new Set();                       // índices de existentes consumidos
 
   const ex = existentes.map((e, i) => ({
@@ -129,6 +144,7 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
       if (String(prev.banco) === String(a.bancoId)) {
         usados.add(prev._i);                      // reutiliza: lo re-emitimos como EXISTENTE
         sinCambio.push(aItemConfirmado(a, { slot, estado: 'EXISTENTE' }));
+        if (prev.raw && prev.raw.id != null) enriquecidos.push({ id: prev.raw.id, patch: estructuraDe(a) });
       } else {
         // CONFLICTO: se CONSERVA lo existente (queda en intactos), NO se sustituye.
         conflictos.push({ slot, existente: { bancoId: prev.banco, nombre: prev.raw.nombre ?? null }, propuesto: { bancoId: a.bancoId, nombre: a.nombre ?? null }, code: 'SLOT_OCUPADO_PRODUCTO_DISTINTO' });
@@ -155,8 +171,12 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
     if (pool && !pool.done && pool.total > 0) {
       pool.done = true;
       pool.idxs.forEach((i) => usados.add(i));
-      // reutiliza lo existente equivalente (se conserva tal cual)
-      pool.idxs.forEach((i) => sinCambio.push(aItemConfirmado(ex[i].raw, { slot: null, estado: 'EXISTENTE' })));
+      // reutiliza lo existente equivalente (economics intactos) + ENRIQUECE su
+      // metadata estructural para que apunte al ancla confirmada (#4).
+      pool.idxs.forEach((i) => {
+        sinCambio.push(aItemConfirmado(ex[i].raw, { slot: null, estado: 'EXISTENTE' }));
+        if (ex[i].raw && ex[i].raw.id != null) enriquecidos.push({ id: ex[i].raw.id, patch: estructuraDe(dep) });
+      });
       if (need > pool.total) confirmadas.push(aItemConfirmado({ ...dep, cantidad: need - pool.total }, { slot, estado: 'CONFIRMADO' }));
     } else {
       confirmadas.push(aItemConfirmado(dep, { slot, estado: 'CONFIRMADO' }));
@@ -174,6 +194,7 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
     confirmadas,
     sinCambio,
     conflictos,
+    enriquecidos,                                  // #4: parches estructurales para existentes reutilizados
     resumen: {
       total: items.length,
       nuevas: confirmadas.length,
