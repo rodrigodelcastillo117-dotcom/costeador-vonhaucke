@@ -18,6 +18,7 @@
 // ============================================================================
 import { rectsSeSolapan, rectDentroPoligono, bloqueaPuertaEspacial } from './spatial-core.js';
 import { perfilDeAncla, layoutDeTopologia, rotarFacing, PROFILE_VERSION } from './placementProfiles.js';
+import { juzgarSemantico } from './semanticPlacementJudge.js';
 
 export const SEAT = 600;      // huella de silla (mm)
 export const PITCH = 650;     // separación entre sillas alrededor de mesa
@@ -160,10 +161,31 @@ function kitCabe(x, y, kw, kh, area, ocupados) {
   return null;
 }
 
-function candidatos(area, kw, kh) {
+// orden === undefined → barrido ROW-MAJOR original (comportamiento por defecto
+// BYTE-IDÉNTICO; el banco congelado depende de esto). Las demás estrategias son
+// PERMUTACIONES del MISMO conjunto de candidatos (no "interior-first"): mismo set
+// legal, distinto orden de primer-ajuste, para que BLOCK 5 explore alternativas
+// sin cambiar qué posiciones son válidas.
+function candidatos(area, kw, kh, orden) {
   const W = num(area.ancho) || num(area.width_mm), H = num(area.largo) || num(area.depth_mm);
   const out = [];
   for (let y = 0; y + kh <= H + 1; y += GRID) for (let x = 0; x + kw <= W + 1; x += GRID) out.push({ x, y });
+  if (!orden || orden === 'row') return out;                                  // DEFAULT: intacto
+  if (orden === 'reverse') return out.slice().reverse();
+  if (orden === 'col') return out.slice().sort((a, b) => (a.x - b.x) || (a.y - b.y));
+  if (orden === 'colReverse') return out.slice().sort((a, b) => (b.x - a.x) || (b.y - a.y));
+  if (orden === 'center') {
+    // Candidato ACCESO-CONSCIENTE (uno más a juzgar, NO el orden por defecto):
+    // prueba primero las posiciones con MÁS margen a los muros, para que los
+    // lados activos tengan holgura. Sólo gana si el juez semántico/calidad lo
+    // confirma; en empate pierde contra #0. Determinista (desempata por x,y).
+    const cx = (W - kw) / 2, cy = (H - kh) / 2;
+    return out.slice().sort((a, b) => {
+      const da = Math.max(Math.abs(a.x - cx), Math.abs(a.y - cy));
+      const db = Math.max(Math.abs(b.x - cx), Math.abs(b.y - cy));
+      return (da - db) || (a.x - b.x) || (a.y - b.y);
+    });
+  }
   return out;
 }
 
@@ -301,7 +323,7 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
     for (const ai of kit.zonas) {
       const area = areas[ai];
       for (const { k, rot, drop } of variantes) {
-        for (const c of candidatos(area, k.w, k.d)) {
+        for (const c of candidatos(area, k.w, k.d, opts.orden)) {
           nodos++;
           const motivo = kitCabe(c.x, c.y, k.w, k.d, area, ocupadosPorArea.get(ai));
           if (motivo) {
@@ -339,4 +361,65 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
   });
 
   return { colocacion, piezas: asign, unplaced, unassigned, metodo: 'kit-solver-v1', attempts_used: 1, _nodos: nodos };
+}
+
+// ============================================================================
+//  BLOCK 5 · BÚSQUEDA MULTI-CANDIDATO → JUECES EN CAPAS → GANADOR.
+//
+//  Cierra GAP13-A/D SIN "interior-first" ni tocar el camino determinista. El
+//  candidato #0 es SIEMPRE la solución determinista (orden=undefined, byte-
+//  idéntica a resolverKits por defecto). Los demás candidatos son la MISMA
+//  búsqueda con otro ORDEN de barrido (permutaciones del mismo set legal), de
+//  modo que todos son hard-legales por construcción (los produce el mismo
+//  kitCabe). Se elige por un orden TOTAL de jueces en capas; los empates van al
+//  candidato de menor índice (el determinista). Por eso un caso factible del
+//  banco sólo puede MANTENERSE o MEJORAR, nunca regresar.
+//
+//  Jerarquía de jueces (el frozen judge de geometría NO se importa ni se altera):
+//    1. HARD      · legalidad geométrica — garantizada por construcción.
+//    2. PLACED    · más piezas colocadas (menos unplaced/unassigned).
+//    3. SEMANTIC  · menos fails semánticos; luego PASS > REVIEW_REQUIRED.
+//    4. QUALITY   · menos accesos "apretados" (confort, PROVISIONAL).
+// ============================================================================
+const ESTRATEGIAS_MULTI = [undefined, 'center', 'reverse', 'col', 'colReverse'];
+
+function evaluarCandidato(areas, piezas, sol) {
+  const faltan = new Set();
+  for (const u of (sol.unplaced || [])) for (const id of (u.piezas || [])) faltan.add(String(id));
+  for (const id of (sol.unassigned || [])) faltan.add(String(id));
+  const placed = piezas.length - faltan.size;
+  const sem = juzgarSemantico(areas, sol.piezas, sol.colocacion);
+  const sev = (s) => (sem.issues || []).filter((i) => i.severity === s).length;
+  return { placed, sem_status: sem.status, semFail: sev('fail'), semReview: sev('review'), quality: sev('quality') };
+}
+
+// Devuelve el mejor de dos candidatos por el orden total en capas. Empate exacto
+// → el de MENOR índice (candidato determinista #0) para no regresar el banco.
+function mejorCandidato(a, b) {
+  const x = a.eval, y = b.eval;
+  if (x.placed !== y.placed) return x.placed > y.placed ? a : b;       // más colocadas
+  if (x.semFail !== y.semFail) return x.semFail < y.semFail ? a : b;   // menos fails semánticos
+  if (x.semReview !== y.semReview) return x.semReview < y.semReview ? a : b; // PASS > REVIEW
+  if (x.quality !== y.quality) return x.quality < y.quality ? a : b;   // menos accesos apretados
+  return a.idx <= b.idx ? a : b;                                       // empate → determinista
+}
+
+export function resolverKitsMulti(areas = [], piezas = [], opts = {}) {
+  const estrategias = Array.isArray(opts.estrategias) && opts.estrategias.length ? opts.estrategias : ESTRATEGIAS_MULTI;
+  const cands = estrategias.map((orden, idx) => {
+    const sol = resolverKits(areas, piezas, { orden });
+    return { idx, orden: orden ?? 'row', sol, eval: evaluarCandidato(areas, piezas, sol) };
+  });
+  let ganador = cands[0];
+  for (let i = 1; i < cands.length; i++) ganador = mejorCandidato(ganador, cands[i]);
+  return {
+    ...ganador.sol,
+    metodo: 'kit-solver-multi-v1',
+    seleccion: {
+      ganador_idx: ganador.idx,
+      ganador_orden: ganador.orden,
+      candidatos_evaluados: cands.length,
+      por_candidato: cands.map((c) => ({ idx: c.idx, orden: c.orden, ...c.eval })),
+    },
+  };
 }
