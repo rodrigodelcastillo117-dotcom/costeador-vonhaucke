@@ -110,6 +110,30 @@ export function invariantesCirculacion(areas = [], piezas = [], colocacion = [],
   return issues;
 }
 
+// --- D · INVARIANTE RELACIONAL (dependiente unido a su ancla) ---------------
+const ATTACH_MM = 1200;
+const esAnclaRol = (r) => typeof r === 'string' && r.startsWith('ANCHOR_');
+const esDepRol = (r) => ['WORK_SEAT', 'EXECUTIVE_SEAT', 'VISITOR_SEAT', 'MEETING_SEAT', 'UNDERDESK_STORAGE', 'SUPPORT_STORAGE'].includes(r);
+function distRects(a, b) {
+  const dx = Math.max(0, Math.max(a.x - (b.x + b.w), b.x - (a.x + a.w)));
+  const dy = Math.max(0, Math.max(a.y - (b.y + b.d), b.y - (a.y + a.d)));
+  return Math.hypot(dx, dy);
+}
+export function invariantesRelacionales(piezas = [], colocacion = []) {
+  const byId = new Map(piezas.map((p) => [String(p.id), p]));
+  const rectById = new Map();
+  for (const c of colocacion) { const p = byId.get(String(c.id)); if (p) rectById.set(String(c.id), { ...rectDeColoc(p, c), area: Number(c.area), rol: p.relation_role, anchor: p.anchor_instance_id != null ? String(p.anchor_instance_id) : null }); }
+  const issues = [];
+  for (const [id, r] of rectById) {
+    if (!esDepRol(r.rol)) continue;
+    if (!r.anchor) { issues.push({ code: 'DEPENDENT_UNASSIGNED', severity: 'fail', id }); continue; }
+    const anc = rectById.get(r.anchor);
+    if (!anc || !esAnclaRol(anc.rol)) { issues.push({ code: 'DEPENDENT_DETACHED', severity: 'fail', id, motivo: 'ancla no colocada' }); continue; }
+    if (anc.area !== r.area || distRects(r, anc) > ATTACH_MM) issues.push({ code: 'DEPENDENT_DETACHED', severity: 'fail', id, area: r.area });
+  }
+  return issues;
+}
+
 // --- BOUNDS / OVERLAP / PUERTA / OBSTÁCULO (reusa helpers compartidos) ------
 function invariantesBase(areas = [], piezas = [], colocacion = []) {
   const porId = new Map(piezas.map((p) => [String(p.id), p]));
@@ -252,6 +276,9 @@ export function evaluarRecovery(areas = [], piezas = [], colocacion = [], { minP
     // GAP5: fallas semánticas (grupo funcional / dependiente fuera de la zona de su
     // ancla) — geometría perfecta NO basta para PASS si la semántica está mal.
     ...auditarGruposFuncionales(piezas, colocacion).map((i) => ({ ...i, severity: 'fail' })),
+    // D (P0.2b): dependiente unido a su ancla. PASS sólo si todo colocado, en su
+    // cuarto y UNIDO a su ancla.
+    ...invariantesRelacionales(piezas, colocacion),
   ];
   const req = Number.isFinite(requested) ? requested : piezas.length;
   const colocados = new Set(colocacion.map((c) => String(c.id)).filter((id) => piezas.some((p) => String(p.id) === id)));

@@ -120,7 +120,7 @@ describe('recovery-core · validación SEMÁNTICA (GAP 5)', () => {
   const areas = [{ nombre: 'A', ancho: 6000, largo: 4000 }, { nombre: 'B', ancho: 6000, largo: 4000 }];
   const piezas = [
     { id: 'b', w: 3000, d: 1200, relation_role: 'ANCHOR_WORKSTATION', functional_group_id: 'g1' },
-    { id: 's', w: 600, d: 600, relation_role: 'WORK_SEAT', functional_group_id: 'g1' },
+    { id: 's', w: 600, d: 600, relation_role: 'WORK_SEAT', functional_group_id: 'g1', anchor_instance_id: 'b' },
   ];
   it('geometría PERFECTA + dependiente en zona incorrecta → NUNCA PASS', () => {
     // b en área0, s en área1: cada rect es válido, pero el grupo se parte.

@@ -23,11 +23,10 @@
 // Cores VENDORIZADOS en este directorio (cada función Edge de Supabase se empaqueta
 // desde su PROPIO directorio: los imports cruzados a ../acomodar-espacio fallaban al
 // desplegar). Copias de acomodar-espacio/{acomodo-core,spatial-core}.js.
-import {
-  planearDeterminista, validarColocacion, prepararGruposFuncionales,
-} from './acomodo-core.js';
+import { validarColocacion, prepararGruposFuncionales } from './acomodo-core.js';
 import { auditarPuertas } from './spatial-core.js';
-import { CONTRATO, evaluarRecovery, proponerReparacion } from './recovery-core.js';
+import { CONTRATO, evaluarRecovery } from './recovery-core.js';
+import { resolverKits } from './kit-solver.js';
 
 const cors = {
   'access-control-allow-origin': '*',
@@ -59,34 +58,18 @@ function normalizarEntrada(body: any) {
   if (!areas.length) return json({ ok: false, error: 'SIN_FLOORSPEC' }, 422);
   if (!piezas.length) return json({ ok: false, error: 'SIN_PARTIDAS_CONFIRMADAS' }, 422);
 
-  const fails = (ev: any) => (ev?.issues || []).filter((i: any) => i.severity === 'fail').map((i: any) => i.code);
+  // MOTOR KIT-SOLVER (P0.2b): asignación de dueño + kits rígidos + backtracking
+  // determinista por bloques (MRV, malla 100mm, pasillo ≥1000 entre kits, ≤2s).
+  // Devuelve la colocación, las piezas con anchor_instance_id y los faltantes con
+  // motivo CAUSAL (del invariante limitante). Mejor parcial válido si no cabe todo.
+  const sol: any = resolverKits(areas, piezas);
+  const colocacion = sol.colocacion;
+  const piezasAsign = sol.piezas;   // con anchor_instance_id → validación relacional
 
-  // Semilla DETERMINISTA (reproducible).
-  let colocacion = (planearDeterminista(areas, piezas, {}) as any)?.colocacion || [];
-  let evalActual = evaluarRecovery(areas, piezas, colocacion, { requested: piezas.length });
-  const repairTrace: any[] = [{
-    intento: 1, status: evalActual.status, invariantesFallados: fails(evalActual),
-    piezasMovidas: colocacion.map((c: any) => String(c.id)), porque: 'semilla determinista',
-  }];
-
-  // REPAIR LOOP REAL ≤ 3: cada intento CONSERVA las válidas y RE-COLOCA las
-  // inválidas/faltantes en espacio libre. Si no cambia nada concreto, NO se finge
-  // un intento. Tras el 3º inválido → NEEDS_REVIEW.
-  let attemptsUsed = 1;
-  while (!evalActual.render_ready && attemptsUsed < 3) {
-    const rep = proponerReparacion({ areas, piezas, colocacionPrev: colocacion, evalPrev: evalActual });
-    if (!rep.movidas.length) {
-      repairTrace.push({ intento: attemptsUsed + 1, status: evalActual.status, invariantesFallados: fails(evalActual), piezasMovidas: [], porque: 'sin cambio reparable; no se finge intento' });
-      break;
-    }
-    attemptsUsed += 1;
-    colocacion = rep.colocacion;
-    evalActual = evaluarRecovery(areas, piezas, colocacion, { requested: piezas.length, repairAgotado: attemptsUsed >= 3 });
-    repairTrace.push({ intento: attemptsUsed, status: evalActual.status, invariantesFallados: fails(evalActual), piezasMovidas: rep.movidas, porque: 'reparación: conserva válidas, recoloca inválidas/faltantes' });
-  }
-  const evalFinal = evalActual;
-  // Validación semántica/relacional del core compartido (out-of-zone, grupos).
-  const val = validarColocacion(areas, piezas, colocacion, 1);
+  // Validador DURO (incluye DEPENDENT_DETACHED/UNASSIGNED): PASS sólo si todo
+  // colocado, en su cuarto y UNIDO a su ancla.
+  const evalFinal = evaluarRecovery(areas, piezasAsign, colocacion, { requested: piezas.length });
+  const val = validarColocacion(areas, piezasAsign, colocacion, 1);
   const doors = auditarPuertas(areas);
 
   const layoutSpec = {
@@ -95,6 +78,8 @@ function normalizarEntrada(body: any) {
     requested: evalFinal.requested,
     placed: evalFinal.placed,
     unplaced: evalFinal.unplaced,
+    no_cupieron: sol.unplaced,        // faltantes por kit con invariante causal
+    unassigned: sol.unassigned,       // dependientes sin dueño (nunca sueltos)
     placements: colocacion,
     validation: {
       issues: evalFinal.issues,
@@ -103,19 +88,19 @@ function normalizarEntrada(body: any) {
       doors,
       semantic: val,
       min_pasillo_mm: CONTRATO.min_pasillo_mm,
-      repair_trace: repairTrace,   // audit F: rastro real de cada intento
     },
   };
 
   return json({
     ok: true,
-    plan: { colocacion },
+    plan: { colocacion, piezas: piezasAsign },
     layoutSpec,
     render_ready: evalFinal.render_ready,
     status: evalFinal.status,
-    attempts_used: attemptsUsed,
-    attempts: Math.max(1, attemptsUsed),
-    metodo: 'recovery-v1',
+    no_cupieron: sol.unplaced,
+    unassigned: sol.unassigned,
+    metodo: sol.metodo,
+    attempts_used: sol.attempts_used,
     input_version: CONTRATO.input_version,
   });
 });

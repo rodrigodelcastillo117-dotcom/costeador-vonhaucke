@@ -32,17 +32,24 @@ describe('acomodar-espacio-recovery · fuente bajo control de código (P0.2)', (
     expect(core).toContain("code: 'PLACEMENT_INVARIANT_BROKEN'");
   });
 
-  it('semilla DETERMINISTA + repair loop REAL ≤ 3 + multi-zona/anchors', () => {
-    expect(idx).toContain('planearDeterminista');
-    expect(idx).toContain('proponerReparacion');            // reparación real, no re-devolver seed
-    expect(idx).toContain('attemptsUsed < 3');
-    expect(idx).toContain('no se finge intento');           // sin cambio concreto → no finge
-    expect(idx).toContain('repair_trace');                  // rastro por intento
+  it('MOTOR kit-solver determinista (P0.2b): dueños + kits + backtracking', () => {
+    expect(idx).toContain('resolverKits');                  // motor por bloques
+    expect(idx).toContain('kit-solver.js');
+    expect(idx).toContain('anchor_instance_id');            // dueños asignados
+    expect(idx).toContain('no_cupieron');                   // faltantes causales (mejor parcial)
     expect(idx).toContain('prepararGruposFuncionales');     // anchors/dependents + multi-zona
   });
-  it('recovery-core expone reparación determinista que conserva válidas', () => {
-    expect(core).toContain('export function proponerReparacion');
-    expect(core).toContain('conserva las colocaciones');
+  it('kit-solver expone asignación de dueño + kits + backtracking', () => {
+    const ks = fs.readFileSync('supabase/functions/acomodar-espacio-recovery/kit-solver.js', 'utf8');
+    expect(ks).toContain('export function asignarDuenos');
+    expect(ks).toContain('export function componerKit');
+    expect(ks).toContain('export function resolverKits');
+    expect(ks).toContain('backtracking');
+  });
+  it('validador relacional DURO (D): DEPENDENT_DETACHED/UNASSIGNED', () => {
+    expect(core).toContain("code: 'DEPENDENT_DETACHED'");
+    expect(core).toContain("code: 'DEPENDENT_UNASSIGNED'");
+    expect(core).toContain('invariantesRelacionales');
   });
 
   it('render_ready SÓLO si todo pasa (status real, no PASS con warnings)', () => {
