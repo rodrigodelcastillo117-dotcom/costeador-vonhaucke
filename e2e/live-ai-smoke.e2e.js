@@ -21,7 +21,7 @@ function sanitizar(v) {
   return v;
 }
 
-test('LIVE AI smoke · Costear llama analizar-mueble real y devuelve BOM', async ({ page }) => {
+test('LIVE AI smoke · Costear llama analizar-mueble real y devuelve BOM', async ({ page }, testInfo) => {
   test.skip(!(EMAIL && PASS), 'Requiere cuenta de prueba autenticada.');
   test.setTimeout(140000);
 
@@ -59,8 +59,11 @@ test('LIVE AI smoke · Costear llama analizar-mueble real y devuelve BOM', async
   const propuesta = body && body.propuesta ? body.propuesta : {};
 
   // Persiste SÓLO el BOM sanitizado (sin headers/auth/request). Para inspección humana.
+  // POR INTENTO (testInfo.retry: 0,1,...) para clasificar determinismo A/B del modelo.
   try {
     mkdirSync('test-results', { recursive: true });
+    const snap = JSON.stringify({ attempt: testInfo.retry, ok: body?.ok === true, duration_ms, informe_pendiente: propuesta?.informe_pendiente, design_intent: sanitizar(propuesta?.design_intent || {}), piezas: sanitizar(propuesta?.piezas || []) }, null, 2);
+    writeFileSync(`test-results/live-ai-bom-attempt-${testInfo.retry}.json`, snap);
     writeFileSync('test-results/live-ai-bom.json', JSON.stringify({ ok: body?.ok === true, duration_ms, propuesta: sanitizar(propuesta) }, null, 2));
   } catch (_e) { /* no romper el test por el artifact */ }
 
