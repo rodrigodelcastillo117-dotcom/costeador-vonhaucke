@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { INSUMOS_SEMILLA } from './insumos.js';
-import { aplicarPoliticaMaterial, reconciliarMaterialServidor, requiereConfirmacion, MATCH, MATCH_AUTOCOSTEABLE } from './materialMatch.js';
+import { aplicarPoliticaMaterial, reconciliarMaterialServidor, puedeConfirmarMaterial, requiereConfirmacion, MATCH, MATCH_AUTOCOSTEABLE } from './materialMatch.js';
 import { validarIntentCosteo } from './validarIntentCosteo.js';
 import { calcular, costeoEmitible, bomHash, precioDe, PARAMETROS_DEFAULT } from '../motor/calculo.js';
 
@@ -23,13 +23,18 @@ const costear = (componentes) => calcular({ nombre: 'P', piezas: 1, componentes,
 // Espejo FIEL de la cadena del servidor (costear-servidor/index.ts): DTO estricto →
 // RECONCILIACIÓN de material contra el catálogo autoritativo (ignora el material_match del
 // browser) → motor → juez de emisión. Esto es lo que cierra el bypass P0.5.
-function servidor(componentesCrudos) {
+function servidor(componentesCrudos, { rol = 'diseno' } = {}) {
   const body = { cantidad: 1, pieza: { componentes: componentesCrudos } };
   const v = validarIntentCosteo(body);
   if (!v.ok) return { status: 400, code: v.code, issues: v.issues };
+  // P0.9: capability de confirmación la decide el SERVIDOR por rol (igual que index.ts).
+  const puedeConfirmar = puedeConfirmarMaterial(rol);
+  if (!puedeConfirmar && v.intent.pieza.componentes.some((c) => c.material_confirmado === true)) {
+    return { status: 403, code: 'MATERIAL_CONFIRMATION_FORBIDDEN' };
+  }
   const reconc = {
     ...v.intent.pieza,
-    componentes: v.intent.pieza.componentes.map((c) => reconciliarMaterialServidor(c, (id) => INSUMOS[id], CAT)),
+    componentes: v.intent.pieza.componentes.map((c) => reconciliarMaterialServidor(c, (id) => INSUMOS[id], CAT, { puedeConfirmar })),
   };
   const r = calcular(reconc, 1, INSUMOS, PARAMETROS_DEFAULT);
   const em = costeoEmitible(r);
@@ -214,5 +219,99 @@ describe('MATCH_AUTOCOSTEABLE sólo significa "puede subtotal provisional", NO e
     const comp = { ...mapear(PANEL), material_match: MATCH.USER_CONFIRMED };
     expect(MATCH_AUTOCOSTEABLE.has(comp.material_match)).toBe(true);
     expect(requiereConfirmacion(comp)).toBe(false);
+  });
+});
+
+// ============================================================================
+//  P0.9 — CAPABILITY DE CONFIRMACIÓN TÉCNICA (el servidor decide por ROL, no el browser).
+//  Modelo: IA propone → Diseño/Dirección confirma → Ventas consume.
+// ============================================================================
+describe('P0.9 — sólo Diseño/Dirección pueden confirmar material', () => {
+  const PANEL18 = { nombre: 'Lateral', insumoId: 'melamina-19-color', material_solicitado: 'melamina 18 mm nogal', forma: 'area', largoMM: 950, anchoMM: 650, cantidad: 4, hojas: 0.8 };
+
+  it('VENDEDOR + material_confirmado=true → 403 MATERIAL_CONFIRMATION_FORBIDDEN (no degrada en silencio)', () => {
+    const s = servidor([{ ...PANEL18, material_confirmado: true }], { rol: 'vendedor' });
+    expect(s.status).toBe(403);
+    expect(s.code).toBe('MATERIAL_CONFIRMATION_FORBIDDEN');
+  });
+
+  it('VENDEDOR sin confirmar (solo 18→19) → puede COSTEAR provisional, pero NO emitible', () => {
+    const s = servidor([PANEL18], { rol: 'vendedor' });
+    expect(s.status).toBe(200);
+    expect(s.intentComponentes[0].material_match).toBe(MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED);
+    expect(s.emitible).toBe(false);
+  });
+
+  it('DISEÑO + confirmación válida → USER_CONFIRMED efectivo, emitible, con precio', () => {
+    const s = servidor([{ ...PANEL18, material_confirmado: true }], { rol: 'diseno' });
+    expect(s.intentComponentes[0].material_match).toBe(MATCH.USER_CONFIRMED);
+    expect(s.emitible).toBe(true);
+    expect(s.precioVenta).toBeGreaterThan(0);
+  });
+
+  it('DIRECCIÓN + confirmación válida → USER_CONFIRMED efectivo', () => {
+    const s = servidor([{ ...PANEL18, material_confirmado: true }], { rol: 'direccion' });
+    expect(s.intentComponentes[0].material_match).toBe(MATCH.USER_CONFIRMED);
+    expect(s.emitible).toBe(true);
+  });
+});
+
+// ============================================================================
+//  P1 — ESPESOR: no todo cambio de espesor de panel es "compatible".
+// ============================================================================
+describe('P1 — política de espesor conservadora (sólo 18↔19 aprobado)', () => {
+  const panel = (mm) => mapear({ nombre: 'Cubierta', insumoId: 'melamina-19-color', material_solicitado: `melamina ${mm} mm color`, forma: 'area', largoMM: 1200, anchoMM: 600, cantidad: 1, hojas: 0.3 });
+
+  it('18→19 = COMPATIBLE provisional (único aprobado)', () => {
+    expect(panel(18).material_match).toBe(MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED);
+  });
+  it('28→19 = CRÍTICO (doble tablero/engrosado posible)', () => {
+    expect(panel(28).material_match).toBe(MATCH.SAME_FAMILY_CRITICAL_CONFLICT);
+    expect(panel(28).insumoId).toBe('');
+  });
+  it('36→19 = CRÍTICO', () => {
+    expect(panel(36).material_match).toBe(MATCH.SAME_FAMILY_CRITICAL_CONFLICT);
+  });
+  it('9→19 = CRÍTICO', () => {
+    expect(panel(9).material_match).toBe(MATCH.SAME_FAMILY_CRITICAL_CONFLICT);
+  });
+});
+
+// ============================================================================
+//  BACKWARD-COMPAT — BOMs legacy / selección manual (insumoId sin material_solicitado).
+// ============================================================================
+describe('backward-compat: BOMs legacy no se destruyen ni inventan confirmación', () => {
+  const legacy = { nombre: 'Cubierta', insumoId: 'melamina-19-color', forma: 'area', largoMM: 1200, anchoMM: 600, cantidad: 1, hojas: 0.3 };
+
+  it('legacy (insumoId, SIN material_solicitado) → se PRESERVA (LEGACY_SELECTED), costea y EMITE', () => {
+    const rec = reconciliarMaterialServidor(legacy, (id) => INSUMOS[id], CAT, { puedeConfirmar: false });
+    expect(rec.insumoId).toBe('melamina-19-color');          // no se destruye el insumo efectivo
+    expect(rec.material_match).toBe(MATCH.LEGACY_SELECTED);
+    const em = costeoEmitible(costear([rec]));
+    expect(em.emitible).toBe(true);                          // cotización legacy sigue emitible
+    expect(em.costoTotal).not.toBeNull();
+  });
+
+  it('legacy con insumoId INEXISTENTE → NOT_AVAILABLE (fail-closed, no inventa)', () => {
+    const rec = reconciliarMaterialServidor({ nombre: 'X', insumoId: 'fantasma-999' }, (id) => INSUMOS[id], CAT, { puedeConfirmar: false });
+    expect(rec.insumoId).toBe('');
+    expect(rec.material_match).toBe(MATCH.NOT_AVAILABLE);
+    expect(costeoEmitible(costear([rec])).emitible).toBe(false);
+  });
+
+  it('legacy NO inventa confirmación: material_confirmado sin capability NO promueve a USER_CONFIRMED', () => {
+    const rec = reconciliarMaterialServidor({ ...legacy, material_confirmado: true }, (id) => INSUMOS[id], CAT, { puedeConfirmar: false });
+    expect(rec.material_match).toBe(MATCH.LEGACY_SELECTED);  // no USER_CONFIRMED sin rol
+    expect(rec._match.confirmado_por_usuario).toBe(false);
+  });
+
+  it('un BOM legacy completo (varias piezas con insumoId) mantiene su costo > 0 (no se vuelve $0)', () => {
+    const bom = [
+      { nombre: 'Cubierta', insumoId: 'melamina-19-color', forma: 'area', largoMM: 1200, anchoMM: 600, cantidad: 1, hojas: 0.3 },
+      { nombre: 'Costado', insumoId: 'melamina-16', forma: 'area', largoMM: 700, anchoMM: 600, cantidad: 2, hojas: 0.4 },
+    ].map((c) => reconciliarMaterialServidor(c, (id) => INSUMOS[id], CAT, { puedeConfirmar: false }));
+    const em = costeoEmitible(costear(bom));
+    expect(em.emitible).toBe(true);
+    expect(em.subtotalConocido).toBeGreaterThan(0);
   });
 });

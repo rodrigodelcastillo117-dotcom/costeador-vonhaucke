@@ -35,12 +35,18 @@ export const MATCH = Object.freeze({
   AMBIGUOUS: 'AMBIGUOUS',
   SUBSTITUTE_REQUIRES_CONFIRMATION: 'SUBSTITUTE_REQUIRES_CONFIRMATION',
   NOT_AVAILABLE: 'NOT_AVAILABLE',
+  // SELECCIÓN DIRECTA / LEGACY (backward-compat): un componente con insumoId pero SIN
+  // material_solicitado (BOM histórico o selección manual del Costeador) no hace ningún
+  // RECLAMO de material que reconciliar. Se PRESERVA el insumo y SÍ costea/emite (para no
+  // romper las cotizaciones legacy), pero se etiqueta distinto de un EXACT fresco: NO se
+  // declara "certificado" ni "confirmado por IA". NUNCA se inventa confirmación.
+  LEGACY_SELECTED: 'LEGACY_SELECTED',
 });
 
 // Entran al BOM (costo provisional/autoritativo). SAME_FAMILY_COMPATIBLE_PROPOSED entra como
 // provisional (misma familia, variante compatible) marcado "por confirmar". El CRÍTICO, el
 // cruce de familia, lo ambiguo y lo no disponible JAMÁS están aquí (fail-closed).
-export const MATCH_AUTOCOSTEABLE = new Set([MATCH.EXACT, MATCH.EQUIVALENT_APPROVED, MATCH.USER_CONFIRMED, MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED]);
+export const MATCH_AUTOCOSTEABLE = new Set([MATCH.EXACT, MATCH.EQUIVALENT_APPROVED, MATCH.USER_CONFIRMED, MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED, MATCH.LEGACY_SELECTED]);
 
 // GATE ECONÓMICO: clases que, aunque muestren un costo PROVISIONAL, BLOQUEAN la emisión
 // hasta confirmación humana. El costo conocido/subtotal puede existir y mostrarse, pero
@@ -66,19 +72,49 @@ export function requiereConfirmacion(comp = {}) {
 // input hostil o corrupto: el DTO lo rechaza (400), NUNCA lo trata como seguro por omisión.
 export const MATCH_VALIDOS = new Set(Object.values(MATCH));
 
-// RECONCILIACIÓN SERVER-SIDE (P0.5): el `material_match` del BROWSER NO es autoridad. El
-// servidor RECALCULA la clase EFECTIVA desde inputs confiables —material_solicitado + el
-// insumoId contra el nombre/spec del catálogo AUTORITATIVO + la intención de confirmación
-// humana (campo dedicado `material_confirmado`, no el string)— reutilizando la MISMA lógica
-// determinista (`aplicarPoliticaMaterial`), sin duplicar regex/reglas. Preserva medidas y
-// cantidad del componente; sólo reescribe insumoId/material_match/_match a lo EFECTIVO.
-// Así un browser que mande material_match='EXACT' no se salta el gate: el servidor lo ignora.
-export function reconciliarMaterialServidor(comp = {}, resolver, catalogo = null) {
+// CAPABILITY de CONFIRMACIÓN TÉCNICA (P0.9): quién puede promover un material a USER_CONFIRMED.
+// El modelo es IA propone → DISEÑO/DIRECCIÓN confirma → VENTAS consume. Ventas (u otros roles)
+// NO pueden confirmar técnicamente un material. Lo decide el SERVIDOR con el rol que ya conoce;
+// nunca el browser. Fuente ÚNICA para index.ts y las pruebas.
+const ROLES_CONFIRMADORES = new Set(['direccion', 'diseno', 'diseño']);
+export function puedeConfirmarMaterial(rol) {
+  return ROLES_CONFIRMADORES.has(String(rol || '').trim().toLowerCase());
+}
+
+// RECONCILIACIÓN SERVER-SIDE (P0.5 + P0.9 + backward-compat): el `material_match` del BROWSER
+// NO es autoridad. El servidor RECALCULA la clase EFECTIVA con la MISMA lógica determinista:
+//  · CON material_solicitado (reclamo de la IA): clasifica contra el catálogo autoritativo.
+//    La confirmación humana (material_confirmado) SÓLO se honra si `puedeConfirmar` (capability
+//    de rol, P0.9); de lo contrario se ignora y queda la clase provisional/crítica real.
+//  · SIN material_solicitado (BOM legacy o selección directa del Costeador): no hay reclamo
+//    que reconciliar. Se PRESERVA el insumo (LEGACY_SELECTED, costea/emite) para no romper las
+//    cotizaciones existentes; con confirmación válida pasa a USER_CONFIRMED; insumoId inválido
+//    → NOT_AVAILABLE (fail-closed). Jamás se inventa confirmación.
+// `opts.puedeConfirmar` lo decide el servidor (index.ts) por el rol; por defecto FALSE.
+export function reconciliarMaterialServidor(comp = {}, resolver, catalogo = null, { puedeConfirmar = false } = {}) {
+  const solicitado = String(comp.material_solicitado || '').trim();
+  const idTxt = String(comp.insumoId || '').trim();
+  const existe = idTxt ? (resolver ? resolver(idTxt) : null) : null;
+  const confirmar = comp.material_confirmado === true && puedeConfirmar === true; // capability real
+
+  // Selección DIRECTA / LEGACY: insumoId sin material_solicitado declarado.
+  if (!solicitado) {
+    if (!existe) {
+      return { ...comp, insumoId: '', material_match: MATCH.NOT_AVAILABLE,
+        _match: { clase: MATCH.NOT_AVAILABLE, solicitado: '', confirmado_por_usuario: false, autocosteable: false, motivo: 'insumoId no existe en el catálogo autoritativo.' } };
+    }
+    const clase = confirmar ? MATCH.USER_CONFIRMED : MATCH.LEGACY_SELECTED;
+    return { ...comp, insumoId: idTxt, material_match: clase,
+      _match: { clase, solicitado: '', resuelto: existe.nombre || idTxt, confirmado_por_usuario: confirmar,
+        autocosteable: true, candidate_insumo_id: idTxt, cambio: '' } };
+  }
+
+  // CON reclamo de material: reclasificación determinista contra el catálogo.
   const pol = aplicarPoliticaMaterial({
     insumoId: comp.insumoId,
     nombre: comp.nombre,
-    material_solicitado: comp.material_solicitado || comp.nombre || '',
-    material_confirmado: comp.material_confirmado === true,  // INTENCIÓN explícita del humano
+    material_solicitado: solicitado,
+    material_confirmado: confirmar,        // sólo si hay capability (P0.9)
     cantidad: comp.cantidad,
   }, resolver, catalogo);
   return {
@@ -157,23 +193,43 @@ function conflictoCalibre(a='',b='') {
   return !A.some((x)=>B.includes(x));
 }
 
-// Familias donde una variante de ESPESOR es COMPATIBLE para estimar (tableros): el costo por
-// hoja es prácticamente igual entre 16/18/19 mm y no cambia la ingeniería del mueble.
+// Familias de TABLERO (donde ciertas variantes de espesor PUEDEN ser compatibles para estimar).
 const FAMILIAS_PANEL = new Set(['melamina', 'mdf', 'laminado_hpl', 'chapa_madera', 'madera_solida']);
 // Familias donde un cambio de espesor/calibre/perfil es CRÍTICO (estructural/funcional):
 // acero/lámina/PTR por calibre, aluminio por perfil, vidrio por espesor estructural.
 const FAMILIAS_CRITICAS = new Set(['metal_lamina', 'acero_inoxidable', 'aluminio', 'cristal']);
 
+// EQUIVALENCIAS DE ESPESOR APROBADAS (EXPLÍCITAS, conservadoras). Un cambio de espesor dentro
+// de una familia-panel SÓLO es COMPATIBLE para estimar si el par (ordenado) está AQUÍ. NO se
+// asume que "cualquier tablero de otro espesor es equivalente": 28→19, 36→19, 16→19, 9→19
+// pueden cambiar construcción (doble tablero/engrosado), rigidez, hojas, laminación, canto,
+// peso y proceso → CRÍTICO. Ampliar esta lista es una DECISIÓN de negocio, no un supuesto.
+const PARES_ESPESOR_PANEL_COMPATIBLE = new Set([
+  '18|19',   // 18 mm (no existe en catálogo) ↔ 19 mm estándar, mismo acabado — aprobado 2026-10-08
+]);
+function parEspesor(a, b) { return [Number(a), Number(b)].sort((x, y) => x - y).join('|'); }
+// ¿TODO par de espesores en conflicto está aprobado como compatible? Conservador: si ALGÚN
+// par no está aprobado, NO es compatible (→ crítico).
+function espesorPanelCompatible(solicitado, insumoNombre) {
+  const A = espesoresMM(solicitado), B = espesoresMM(insumoNombre);
+  if (!A.length || !B.length) return false;
+  return A.every((a) => B.every((b) => a === b || PARES_ESPESOR_PANEL_COMPATIBLE.has(parEspesor(a, b))));
+}
+
 // ¿El conflicto de atributo entre lo pedido y el candidato es CRÍTICO (ingeniería) o
-// COMPATIBLE (inocuo para estimar)? Determinista, por familia + tipo de atributo.
+// COMPATIBLE (inocuo para estimar)? Determinista, por familia + REGLA EXPLÍCITA de espesor.
 function severidadConflicto(fam, solicitado = '', insumoNombre = '') {
   const confEsp = conflictoEspesor(solicitado, insumoNombre);
   const confCal = conflictoCalibre(solicitado, insumoNombre);
   if (!confEsp && !confCal) return { conflicto: false, critico: false };
-  // Calibre distinto, o familia estructural → crítico. Tableros con espesor distinto →
-  // compatible. Cualquier otra familia con conflicto → crítico (conservador).
-  const critico = confCal || FAMILIAS_CRITICAS.has(fam) || !FAMILIAS_PANEL.has(fam);
-  return { conflicto: true, critico };
+  // Calibre distinto, o familia estructural (acero/aluminio/vidrio) → SIEMPRE crítico.
+  if (confCal || FAMILIAS_CRITICAS.has(fam)) return { conflicto: true, critico: true };
+  // Tablero con espesor distinto: COMPATIBLE sólo si el par está en la lista APROBADA (18↔19).
+  // Cualquier otro salto (28→19, 36→19, 16→19, 9→19) u otra familia con conflicto → CRÍTICO.
+  if (FAMILIAS_PANEL.has(fam) && espesorPanelCompatible(solicitado, insumoNombre)) {
+    return { conflicto: true, critico: false };
+  }
+  return { conflicto: true, critico: true };
 }
 
 // Texto legible de qué cambió, p.ej. "Solicitado 18 mm → candidato 19 mm" o

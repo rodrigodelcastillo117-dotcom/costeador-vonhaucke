@@ -118,12 +118,12 @@ describe('clasificarMaterial — la política', () => {
     expect(r.insumoIdCandidato).toBe('melamina-16');
   });
 
-  it('misma familia de TABLERO con espesor distinto (19 vs 16) → COMPATIBLE: entra provisional, por confirmar', () => {
+  it('TABLERO con salto de espesor NO aprobado (19 vs 16) → CRÍTICO (no autocostea; solo 18↔19 es compatible)', () => {
     const r = clasificarMaterial({ solicitado: 'melamina de color 19 mm', insumoId: 'melamina-16', insumoNombre: 'Melamina BLANCA 16 mm' });
-    expect(r.clase).toBe(MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED);
-    expect(r.autocosteable).toBe(true);
-    expect(r.insumoIdEfectivo).toBe('melamina-16');
-    expect(r.cambio).toMatch(/19.*→.*16|16.*mm/);
+    expect(r.clase).toBe(MATCH.SAME_FAMILY_CRITICAL_CONFLICT);
+    expect(r.autocosteable).toBe(false);
+    expect(r.insumoIdEfectivo).toBe('');
+    expect(r.insumoIdCandidato).toBe('melamina-16');   // se muestra, pero no se autocostea
   });
 
   it('CASO MOSTRADOR: melamina 18 mm (no existe) → candidato 19 mm, mismo acabado → COMPATIBLE + cambio legible', () => {

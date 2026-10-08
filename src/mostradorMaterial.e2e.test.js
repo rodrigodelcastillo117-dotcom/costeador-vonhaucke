@@ -38,16 +38,17 @@ describe('E2E mostrador — la IA llena el material como indica el plano (sin ro
     expect(e.badge).toMatch(/POR CONFIRMAR/);
   });
 
-  it('cubierta espesor 28 no pedido → se mapea a melamina 19 color, COMPATIBLE (tablero)', () => {
+  it('cubierta espesor 28 → melamina 19: SALTO GRANDE no aprobado → CRÍTICO, NO autocostea (28 mm puede ser doble tablero/engrosado)', () => {
     const c = mapear({
       nombre: 'Cubierta de mostrador',
       insumoId: 'melamina-19-color',
       material_solicitado: 'cubierta melamina 28 mm color',
       forma: 'area', largoMM: 2400, anchoMM: 700, cantidad: 1, hojas: 0.6,
     });
-    expect(c.insumoId).toBe('melamina-19-color');
-    expect(c._match.clase).toBe(MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED);
-    expect(estadoMaterialUI(c, INSUMOS).costeable).toBe(true);
+    expect(c._match.clase).toBe(MATCH.SAME_FAMILY_CRITICAL_CONFLICT);
+    expect(c.insumoId).toBe('');                               // no entra al costo sin confirmar
+    expect(c._match.candidate_insumo_id).toBe('melamina-19-color'); // se muestra para decidir
+    expect(estadoMaterialUI(c, INSUMOS).costeable).toBe(false);
   });
 
   it('postes PTR cal.14 (igual al catálogo) → EXACT, costea normal', () => {
@@ -94,15 +95,16 @@ describe('E2E mostrador — la IA llena el material como indica el plano (sin ro
     const piezas = [
       { nombre: 'Laterales base', insumoId: 'melamina-19-color', material_solicitado: 'melamina 18 mm color madera', forma: 'area', largoMM: 950, anchoMM: 650, cantidad: 4, hojas: 0.8 },
       { nombre: 'Entrepanos y fondos', insumoId: 'melamina-19-color', material_solicitado: 'melamina 18 mm color', forma: 'area', largoMM: 790, anchoMM: 650, cantidad: 6, hojas: 1.0 },
-      { nombre: 'Cubierta de mostrador', insumoId: 'melamina-19-color', material_solicitado: 'cubierta melamina 28 color', forma: 'area', largoMM: 2400, anchoMM: 700, cantidad: 1, hojas: 0.6 },
+      { nombre: 'Cubierta de mostrador', insumoId: 'melamina-19-color', material_solicitado: 'cubierta melamina 28 mm color', forma: 'area', largoMM: 2400, anchoMM: 700, cantidad: 1, hojas: 0.6 },
       { nombre: 'Refrigerador vitrina', insumoId: '', material_solicitado: 'refrigerador vitrina doble puerta' },
       { nombre: 'Cabezal lámina cal.18', insumoId: 'lamina-14', material_solicitado: 'lamina de acero cal. 18', cantidad: 3 },
     ];
     const componentes = piezas.map(mapear);
     const costeables = componentes.filter((c) => estadoMaterialUI(c, INSUMOS).costeable);
-    // Los 3 paneles de melamina entran; refrigerador y lámina-crítica NO.
+    // Los paneles 18→19 (compatible aprobado) entran; la cubierta 28→19 (salto grande =
+    // crítico), el refrigerador y la lámina-crítica NO.
     expect(costeables.map((c) => c.nombre)).toEqual([
-      'Laterales base', 'Entrepanos y fondos', 'Cubierta de mostrador',
+      'Laterales base', 'Entrepanos y fondos',
     ]);
     const r = calcular({ nombre: 'Mostrador', piezas: 1, componentes, modoManoObra: 'porcentaje', margen: 40 }, 1, INSUMOS, PARAMETROS_DEFAULT);
     expect(r.costoUnitario).toBeGreaterThan(0);   // ya no sale $0 en todo
