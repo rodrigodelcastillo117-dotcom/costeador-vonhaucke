@@ -24,6 +24,10 @@ import { INSUMOS_SEMILLA, mapaInsumos } from "../../../src/datos/insumos.js";
 // cualquier campo económico (margen, precio, costo, insumo inline, factores,
 // modeloCosteo…) del body antes de tocar el motor. Ver src/datos/validarIntentCosteo.js.
 import { validarIntentCosteo } from "../../../src/datos/validarIntentCosteo.js";
+// P0.5: el material_match del BROWSER no es autoridad. El servidor RECALCULA la clase efectiva
+// contra el catálogo autoritativo con la MISMA lógica determinista compartida (sin duplicar).
+// P0.9: la confirmación técnica de material (USER_CONFIRMED) la autoriza el SERVIDOR por rol.
+import { reconciliarMaterialServidor, puedeConfirmarMaterial } from "../../../src/datos/materialMatch.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -95,11 +99,34 @@ Deno.serve(async (req) => {
     : mapaInsumos(INSUMOS_SEMILLA);
   const parametros = { ...PARAMETROS_DEFAULT, ...(datos.parametros || {}) };
 
+  // --- CAPABILITY DE CONFIRMACIÓN TÉCNICA (P0.9, servidor autoritativo) ---
+  // La confirmación técnica de material (promover a USER_CONFIRMED) sólo la autorizan diseño/
+  // dirección. Si un rol SIN capability (p.ej. vendedor) manda material_confirmado=true, se
+  // RECHAZA explícito (no se degrada en silencio): 403 MATERIAL_CONFIRMATION_FORBIDDEN.
+  const puedeConfirmar = puedeConfirmarMaterial(rol);
+  const comps0 = Array.isArray(pieza.componentes) ? pieza.componentes : [];
+  if (!puedeConfirmar && comps0.some((c: any) => c?.material_confirmado === true)) {
+    return json({ ok: false, code: "MATERIAL_CONFIRMATION_FORBIDDEN", error: "Tu rol no puede confirmar materiales. La confirmación técnica es de Diseño/Dirección." }, 403);
+  }
+
+  // --- RECONCILIACIÓN DE MATERIAL (P0.5, servidor autoritativo) ---
+  // El `material_match` que mandó el navegador NO se confía. Para CADA componente se RECALCULA
+  // la clase efectiva contra el catálogo AUTORITATIVO (insumos) + material_solicitado + la
+  // intención de confirmación humana (material_confirmado, SÓLO si hay capability). Así un
+  // browser que spoofee material_match='EXACT' (o material_confirmado sin rol) NO se salta el
+  // gate: el motor verá la clase real y `costeoEmitible` bloqueará la emisión.
+  const resolver = (id: string) => (insumos as any)[id];
+  const catalogoVals = Object.values(insumos as any) as any;
+  const piezaReconciliada = {
+    ...pieza,
+    componentes: comps0.map((c: any) => reconciliarMaterialServidor(c, resolver, catalogoVals, { puedeConfirmar })),
+  };
+
   // --- Mismo motor que el cliente ---
   let r: any;
   try {
-    const { par } = modeloParaPieza(parametros, pieza);
-    r = calcular(pieza, n, insumos, par);
+    const { par } = modeloParaPieza(parametros, piezaReconciliada);
+    r = calcular(piezaReconciliada, n, insumos, par);
   } catch (e) {
     return json({ ok: false, error: "No se pudo calcular: " + String(e) }, 500);
   }

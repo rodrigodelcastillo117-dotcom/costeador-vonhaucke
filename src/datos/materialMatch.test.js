@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  MATCH, MATCH_AUTOCOSTEABLE, familiaDeMaterial, clasificarMaterial, aplicarPoliticaMaterial, mejorInsumoDeFamilia,
+  MATCH, MATCH_AUTOCOSTEABLE, familiaDeMaterial, clasificarMaterial, aplicarPoliticaMaterial, mejorInsumoDeFamilia, estadoMaterialUI,
 } from './materialMatch.js';
 
 // Catálogo mock como el real (ids con color/espesor) para probar la auto-precarga.
@@ -13,15 +13,18 @@ const CAT = [
 ];
 
 describe('VONI propone materiales sin auto-certificarlos', () => {
-  it('"melamina nogal claro 19mm" sin id del LLM → propone candidato, no lo costea solo', () => {
+  it('"melamina nogal claro 19mm" sin id del LLM → autollena candidato de la misma familia y lo costea PROVISIONAL (por confirmar)', () => {
     const c = aplicarPoliticaMaterial(
       { nombre: 'Costado melamina nogal claro 19 mm', insumoId: '', material_solicitado: 'melamina nogal claro 19 mm' },
       () => undefined, CAT,
     );
-    expect(c.insumoId).toBe('');
+    // Misma familia, candidato único compatible → entra al cálculo provisional, marcado por confirmar.
+    expect(c.insumoId).toBe('melamina-19-nogal-neo-tx');
     expect(c._match.candidate_insumo_id).toBe('melamina-19-nogal-neo-tx');
     expect(c._match.autollenado).toBe(true);
-    expect(c._match.clase).toBe(MATCH.CANDIDATE_REQUIRES_CONFIRMATION);
+    expect(c._match.clase).toBe(MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED);
+    expect(c._match.autocosteable).toBe(true);        // provisional, NO certificado
+    expect(c._match.confirmado_por_usuario).toBe(false);
   });
   it('mejorInsumoDeFamilia respeta el ESPESOR (16 vs 19)', () => {
     expect(mejorInsumoDeFamilia('tapa melamina blanca 16', CAT).id).toBe('melamina-16-blanco-absoluto');
@@ -115,22 +118,87 @@ describe('clasificarMaterial — la política', () => {
     expect(r.insumoIdCandidato).toBe('melamina-16');
   });
 
-  it('misma familia con espesor contradictorio requiere confirmación', () => {
+  it('TABLERO con salto de espesor NO aprobado (19 vs 16) → CRÍTICO (no autocostea; solo 18↔19 es compatible)', () => {
     const r = clasificarMaterial({ solicitado: 'melamina de color 19 mm', insumoId: 'melamina-16', insumoNombre: 'Melamina BLANCA 16 mm' });
-    expect(r.clase).toBe(MATCH.CANDIDATE_REQUIRES_CONFIRMATION);
+    expect(r.clase).toBe(MATCH.SAME_FAMILY_CRITICAL_CONFLICT);
     expect(r.autocosteable).toBe(false);
     expect(r.insumoIdEfectivo).toBe('');
+    expect(r.insumoIdCandidato).toBe('melamina-16');   // se muestra, pero no se autocostea
+  });
+
+  it('CASO MOSTRADOR: melamina 18 mm (no existe) → candidato 19 mm, mismo acabado → COMPATIBLE + cambio legible', () => {
+    const r = clasificarMaterial({ solicitado: 'melamina 18 mm nogal', insumoId: 'melamina-19-nogal-neo-tx', insumoNombre: 'Melamina 19 mm, Nogal Neo TX' });
+    expect(r.clase).toBe(MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED);
+    expect(r.autocosteable).toBe(true);
+    expect(r.insumoIdEfectivo).toBe('melamina-19-nogal-neo-tx');
+    expect(r.cambio).toBe('Solicitado 18 mm → candidato 19 mm');
+  });
+
+  it('CRÍTICO: lámina de acero cal.18 pedida vs cal.14 del catálogo → mismo material, atributo CRÍTICO: NO autocostea', () => {
+    const r = clasificarMaterial({ solicitado: 'lámina de acero cal. 18', insumoId: 'lamina-14', insumoNombre: 'Lamina de acero cal. 14' });
+    expect(r.clase).toBe(MATCH.SAME_FAMILY_CRITICAL_CONFLICT);
+    expect(r.autocosteable).toBe(false);
+    expect(r.insumoIdEfectivo).toBe('');               // no entra al costo sin confirmar
+    expect(r.insumoIdCandidato).toBe('lamina-14');      // pero sí se muestra/preselecciona
+    expect(r.cambio).toBe('Solicitado cal.18 → candidato cal.14');
   });
 });
 
 describe('MATCH_AUTOCOSTEABLE — qué entra al BOM solo', () => {
-  it('sólo EXACT, EQUIVALENT_APPROVED y USER_CONFIRMED', () => {
+  it('EXACT, EQUIVALENT_APPROVED, USER_CONFIRMED y COMPATIBLE (provisional); CRÍTICO/AMBIGUO/sustitución/NA fuera', () => {
     expect(MATCH_AUTOCOSTEABLE.has(MATCH.EXACT)).toBe(true);
     expect(MATCH_AUTOCOSTEABLE.has(MATCH.EQUIVALENT_APPROVED)).toBe(true);
     expect(MATCH_AUTOCOSTEABLE.has(MATCH.USER_CONFIRMED)).toBe(true);
+    expect(MATCH_AUTOCOSTEABLE.has(MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED)).toBe(true);  // provisional
+    expect(MATCH_AUTOCOSTEABLE.has(MATCH.SAME_FAMILY_CRITICAL_CONFLICT)).toBe(false);   // nunca autocostea
+    expect(MATCH_AUTOCOSTEABLE.has(MATCH.AMBIGUOUS)).toBe(false);
     expect(MATCH_AUTOCOSTEABLE.has(MATCH.CANDIDATE_REQUIRES_CONFIRMATION)).toBe(false);
     expect(MATCH_AUTOCOSTEABLE.has(MATCH.SUBSTITUTE_REQUIRES_CONFIRMATION)).toBe(false);
     expect(MATCH_AUTOCOSTEABLE.has(MATCH.NOT_AVAILABLE)).toBe(false);
+  });
+});
+
+describe('casos obligatorios del mandato (autollenado controlado, sin romper fail-closed)', () => {
+  it('lámina cal.14→cal.18 vía red de seguridad → CRÍTICO: preselecciona candidato pero NO lo costea', () => {
+    const c = aplicarPoliticaMaterial(
+      { nombre: 'Zoclo metálico', insumoId: '', material_solicitado: 'lámina de acero cal. 18' },
+      () => undefined, CAT,
+    );
+    expect(c.insumoId).toBe('');                               // no autocostea
+    expect(c._match.candidate_insumo_id).toBe('lamina-14');    // sí se muestra
+    expect(c._match.clase).toBe(MATCH.SAME_FAMILY_CRITICAL_CONFLICT);
+    expect(c._match.autocosteable).toBe(false);
+  });
+
+  it('refrigerador que NO existe en catálogo → NOT_AVAILABLE (pendiente), nunca $0 real ni inventado', () => {
+    const c = aplicarPoliticaMaterial(
+      { nombre: 'Refrigerador vitrina', insumoId: '', material_solicitado: 'refrigerador vitrina doble puerta' },
+      () => undefined, CAT,
+    );
+    expect(c.insumoId).toBe('');
+    expect(c._match.candidate_insumo_id).toBeFalsy();
+    expect(c._match.clase).toBe(MATCH.NOT_AVAILABLE);
+    expect(c._match.autocosteable).toBe(false);
+  });
+
+  it('dos candidatos de la MISMA familia igualmente plausibles → AMBIGUOUS: no escoge a escondidas', () => {
+    const c = aplicarPoliticaMaterial(
+      { nombre: 'Panel', insumoId: '', material_solicitado: 'melamina' },  // sólo familia, sin color/espesor
+      () => undefined, CAT,
+    );
+    expect(c.insumoId).toBe('');
+    expect(c._match.clase).toBe(MATCH.AMBIGUOUS);
+    expect(c._match.autocosteable).toBe(false);
+  });
+
+  it('solid surface → MDF sigue BLOQUEADO (fail-closed intacto)', () => {
+    const c = aplicarPoliticaMaterial(
+      { nombre: 'Cubierta', insumoId: 'mdf', material_solicitado: 'superficie sólida azul' },
+      (id) => CAT.find((x) => x.id === id), CAT,
+    );
+    expect(c.insumoId).toBe('');
+    expect(c._match.clase).toBe(MATCH.SUBSTITUTE_REQUIRES_CONFIRMATION);
+    expect(c._match.autocosteable).toBe(false);
   });
 });
 
@@ -183,6 +251,59 @@ describe('confirmación humana de material candidato', () => {
   });
 });
 
+
+describe('estadoMaterialUI — fuente única de la UI (paridad Costeador/AsistenteEspecial)', () => {
+  const INS = { 'melamina-19': { nombre: 'Melamina 19 mm' }, 'lamina-14': { nombre: 'Lámina cal.14' } };
+
+  it('COMPATIBLE autollenado → costeable, selector muestra el candidato, badge POR CONFIRMAR', () => {
+    const c = { insumoId: 'melamina-19', _match: { clase: MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED, autollenado: true, candidate_insumo_id: 'melamina-19', cambio: 'Solicitado 18 mm → candidato 19 mm' } };
+    const e = estadoMaterialUI(c, INS);
+    expect(e.costeable).toBe(true);
+    expect(e.selVal).toBe('melamina-19');
+    expect(e.badge).toMatch(/POR CONFIRMAR/);
+    expect(e.badge).toMatch(/18 mm → candidato 19 mm/);
+    expect(e.pendiente).toBe(false);
+  });
+
+  it('CRÍTICO → NO costeable, selector preselecciona candidato, "Costo pendiente" + botón confirmar', () => {
+    const c = { insumoId: '', _match: { clase: MATCH.SAME_FAMILY_CRITICAL_CONFLICT, candidate_insumo_id: 'lamina-14', cambio: 'Solicitado cal.18 → candidato cal.14' } };
+    const e = estadoMaterialUI(c, INS);
+    expect(e.costeable).toBe(false);
+    expect(e.selVal).toBe('lamina-14');           // se muestra, no "¿de qué es?"
+    expect(e.mostrarConfirmar).toBe(true);
+    expect(e.pendienteMsg).toMatch(/Costo pendiente/);
+    expect(e.pendienteMsg).toMatch(/crítico/);
+  });
+
+  it('AMBIGUO → pendiente, no preselecciona nada', () => {
+    const c = { insumoId: '', _match: { clase: MATCH.AMBIGUOUS } };
+    const e = estadoMaterialUI(c, INS);
+    expect(e.costeable).toBe(false);
+    expect(e.selVal).toBe('');
+    expect(e.pendienteMsg).toMatch(/elige/);
+  });
+
+  it('NOT_AVAILABLE sin candidato → "Costo pendiente", NUNCA $0', () => {
+    const c = { insumoId: '', _match: { clase: MATCH.NOT_AVAILABLE } };
+    const e = estadoMaterialUI(c, INS);
+    expect(e.pendienteMsg).toMatch(/Costo pendiente/);
+    expect(e.pendienteMsg).not.toMatch(/\$0/);
+  });
+
+  it('USER_CONFIRMED → costeable, SIN badge por confirmar', () => {
+    const c = { insumoId: 'melamina-19', _match: { clase: MATCH.USER_CONFIRMED, confirmado_por_usuario: true } };
+    const e = estadoMaterialUI(c, INS);
+    expect(e.costeable).toBe(true);
+    expect(e.badge).toBe('');
+  });
+
+  it('EXACT (sin _match de autollenado) → costeable, sin badge', () => {
+    const c = { insumoId: 'melamina-19', _match: { clase: MATCH.EXACT } };
+    const e = estadoMaterialUI(c, INS);
+    expect(e.costeable).toBe(true);
+    expect(e.badge).toBe('');
+  });
+});
 
 describe('identidad comercial de componentes comprados', () => {
   it('nombre comercial específico + artículo real del catálogo puede ser EXACT sin familia MP', () => {

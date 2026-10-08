@@ -7,6 +7,7 @@
 // ============================================================================
 import { costoAlba, tipoAlba } from './formulaAlba.js';
 import { optimizarCorte2D, optimizarCorte1D } from './optimizacionCorte.js';
+import { requiereConfirmacion } from '../datos/materialMatch.js';
 
 // VERSIÓN DEL MOTOR — entra en la huella de cada cotización (cotizaciones.js:
 // huellaMP) para que, si la FÓRMULA cambia (no solo un precio), una cotización
@@ -523,15 +524,24 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
   // un hueco de datos. No cuenta como PENDIENTE_COSTO: no vuelve el costeo INCOMPLETO.
   // Se registra aparte para dejar rastro de qué se excluyó y por qué.
   const componentesExcluidos = [];
+  // GATE "POR CONFIRMAR" (audit 2026-10-08): partidas con material PROVISIONAL/pendiente de
+  // confirmar (COMPATIBLE 18→19, CRÍTICO calibre, AMBIGUO, CANDIDATO). Pueden aportar un
+  // SUBTOTAL provisional (COMPATIBLE sí tiene insumo+precio), pero BLOQUEAN la emisión hasta
+  // confirmación humana (USER_CONFIRMED). No se cuentan como "sin material" (hueco de datos).
+  const materialesPorConfirmar = [];
   for (const comp of componentes) {
     if (comp.excluida) { componentesExcluidos.push(comp.nombre || 'Partida excluida'); continue; }
+    const porConfirmar = requiereConfirmacion(comp);
+    if (porConfirmar) materialesPorConfirmar.push(comp.nombre || 'Pieza por confirmar');
     const insumo = insumos[comp.insumoId] || comp.insumo;
-    if (!insumo) { componentesIgnorados.push(comp.nombre || 'Pieza sin material'); continue; }
+    // Sin insumo usable: si es "por confirmar" (crítico/ambiguo/candidato sin id) ya quedó
+    // registrado arriba; si no, es un hueco de datos → PENDIENTE (no $0).
+    if (!insumo) { if (!porConfirmar) componentesIgnorados.push(comp.nombre || 'Pieza sin material'); continue; }
     // VH-017: insumo PRESENTE pero sin precio usable = PENDIENTE DE PRECIO, no $0.
     // Entra a la misma lista que un material faltante → el costeo queda INCOMPLETO
     // y la emisión se bloquea. (Un precio 0 declarado SÍ es conocido, §7; un $0
     // por decisión se marca con comp.excluida, atendido arriba.)
-    if (!precioUsable(insumo)) { componentesIgnorados.push(comp.nombre || insumo.nombre || 'Material sin precio'); continue; }
+    if (!precioUsable(insumo)) { if (!porConfirmar) componentesIgnorados.push(comp.nombre || insumo.nombre || 'Material sin precio'); continue; }
     if (!grupos[comp.insumoId]) {
       grupos[comp.insumoId] = { insumo, comps: [] };
       orden.push(comp.insumoId);
@@ -724,6 +734,7 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     detalleInsumos,
     componentesIgnorados,
     componentesExcluidos,
+    materialesPorConfirmar,
     tarifasFaltantes,
   };
 }
@@ -742,11 +753,20 @@ export function costeoEmitible(resultado) {
     .filter((d) => d?.noCabe)
     .map((d) => `${d.nombre || d.insumoId || 'Material'}: una o más piezas no caben en el formato de compra`);
   const tarifasFaltantes = [...((resultado && resultado.tarifasFaltantes) || [])];
+  // GATE ECONÓMICO (audit 2026-10-08): materiales PROVISIONALES / por confirmar. Su costo
+  // puede existir como SUBTOTAL, pero NO libera la emisión hasta confirmación humana
+  // (USER_CONFIRMED). Incluye COMPATIBLE 18→19 (que SÍ tiene costo) y crítico/ambiguo/candidato.
+  const porConfirmar = [...((resultado && resultado.materialesPorConfirmar) || [])];
   const costoRaw = resultado?.costoUnitario;
   const costo = costoRaw == null || costoRaw === '' ? NaN : Number(costoRaw);
   const costoCorrupto = !Number.isFinite(costo) || costo < 0;
 
-  const pendientes = [...faltantes, ...formatosInvalidos, ...tarifasFaltantes.map((x) => `Tarifa Intelisis faltante: ${x}`)];
+  const pendientes = [
+    ...faltantes,
+    ...formatosInvalidos,
+    ...tarifasFaltantes.map((x) => `Tarifa Intelisis faltante: ${x}`),
+    ...porConfirmar.map((x) => `Material por confirmar: ${x}`),
+  ];
   if (costoCorrupto) pendientes.push('Costo unitario inválido/no finito');
 
   const emitible = pendientes.length === 0;
@@ -757,11 +777,13 @@ export function costeoEmitible(resultado) {
       datos_faltantes: faltantes,
       formato_incompatible: formatosInvalidos,
       tarifas_faltantes: tarifasFaltantes,
+      materiales_por_confirmar: porConfirmar,
       costo_invalido: costoCorrupto,
     },
     subtotalConocido: Number.isFinite(costo) && costo >= 0 ? costo : 0,
-    // Nunca existe costoTotal autorizado mientras haya una incompatibilidad física
-    // o numérica, aunque el motor haya podido calcular un subtotal aproximado.
+    // Nunca existe costoTotal autorizado mientras haya una incompatibilidad física,
+    // numérica o un material provisional por confirmar, aunque el motor haya podido
+    // calcular un subtotal aproximado.
     costoTotal: emitible ? costo : null,
     estadoCosto: emitible ? 'completo' : 'incompleto',
   };
@@ -774,7 +796,10 @@ export function costeoEmitible(resultado) {
 //  No depende del orden en que vengan las piezas.
 // -----------------------------------------------------------------------------
 function firmaComponente(c = {}) {
-  // La identidad de una partida: su nombre + material + medidas/cantidad efectivas.
+  // La identidad de una partida: su nombre + material + medidas/cantidad efectivas +
+  // ESTADO DE MATERIAL. Dos partidas con el MISMO insumoId pero distinto estado de
+  // confirmación (provisional "por confirmar" vs USER_CONFIRMED) NO son el mismo BOM:
+  // una es emitible y la otra no, así que deben dar firmas distintas (audit 2026-10-08).
   return [
     String(c.nombre || '').trim().toLowerCase(),
     String(c.insumoId || ''),
@@ -782,6 +807,13 @@ function firmaComponente(c = {}) {
     c.hojas != null ? Number(c.hojas) : '',
     Number(c.cantidad || 0), Number(c.piezas || 1),
     c.excluida ? 'X' : '',
+    // ESTADO DE MATERIAL (audit 2026-10-08, P0.7): la ESPECIFICACIÓN pedida, la clase EFECTIVA
+    // y el candidato. Dos partidas con el mismo insumoId pero distinto material_solicitado
+    // (melamina 18 vs 16) o distinto candidato crítico cambian de firma: una revisión
+    // provisional nunca parece idéntica a otra con especificación/confirmación distinta.
+    String(c.material_solicitado || '').trim().toLowerCase(),
+    String(c.material_match || c?._match?.clase || ''),
+    String(c.candidate_insumo_id || c?._match?.candidate_insumo_id || ''),
   ].join('|');
 }
 
