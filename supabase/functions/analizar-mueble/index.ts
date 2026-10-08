@@ -9,6 +9,8 @@
 // ============================================================================
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+// P0.COSTEO: plan de petición PURO (informe diferido en 1ª pasada de texto + right-size).
+import { schemaSinInforme, planPass, normalizarPropuesta, NOTA_TEXTO_INICIAL } from "./requestPlan.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -314,7 +316,7 @@ Deno.serve(async (req) => {
   }
 
   const contenido = [...bloquesImagen, { type: "text", text: textoTarea }];
-  const pedir = async (schema: any, sys: string, maxTok: number) => {
+  const pedir = async (schema: any, sys: string, maxTok: number, effort: string) => {
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), esRevision ? 45_000 : 75_000);
     try {
@@ -325,7 +327,7 @@ Deno.serve(async (req) => {
           model: "claude-opus-5",
           max_tokens: maxTok,
           output_config: {
-            effort: esRevision ? "low" : "medium",
+            effort,
             format: { type: "json_schema", schema: sanearSchemaClaude(schema) },
           },
           system: sys + (esRevision
@@ -353,10 +355,14 @@ Deno.serve(async (req) => {
     } finally { clearTimeout(timer); }
   };
 
-  // El main necesita espacio para BOM, pero no 16k de prosa. La revisión es corta.
-  const MAX_TOK = esRevision ? 6000 : 10000;
+  // P0.COSTEO · plan por pasada: en la 1ª pasada de TEXTO se DIFIERE el informe (BOM
+  // primero) y se right-sizea effort/max_tokens; imagen/plano y revisión quedan IGUAL.
+  const plan = planPass({ soloTexto, esRevision, respCount: resp.length });
+  const schemaInicial = plan.deferInforme ? schemaSinInforme(SCHEMA) : SCHEMA;
+  const systemInicial = plan.deferInforme ? (system + NOTA_TEXTO_INICIAL) : system;
+  const MAX_TOK = plan.maxTok;
   let data: any;
-  try { data = await pedir(SCHEMA, system, MAX_TOK); }
+  try { data = await pedir(schemaInicial, systemInicial, MAX_TOK, plan.effort); }
   catch (e: any) {
     const code = e?.name === "AbortError" ? "PROVIDER_TIMEOUT" : String(e?.code || "CLAUDE_API_ERROR");
     const mensaje = code === "PROVIDER_TIMEOUT"
@@ -381,7 +387,7 @@ Deno.serve(async (req) => {
     const sysCompacto = system +
       "\n\nIMPORTANTE: la respuesta anterior se CORTÓ por larga. Esta vez OMITE 'informe' (déjalo '' o muy corto), " +
       "sé BREVE en 'razonamiento' y 'nota' (media línea cada uno) y ASEGÚRATE de CERRAR el JSON completo con TODO el despiece de piezas.";
-    try { data = await pedir(schemaCompacto, sysCompacto, MAX_TOK); }
+    try { data = await pedir(schemaCompacto, sysCompacto, MAX_TOK, plan.effort); }
     catch (e: any) {
       const code = e?.name === "AbortError" ? "PROVIDER_TIMEOUT" : String(e?.code || "CLAUDE_API_ERROR");
       return await fallarAnalisis(code, "No se pudo completar el reintento compacto. Analiza menos hojas.", 502, String(e?.code || e?.name || "provider_error"));
@@ -399,6 +405,9 @@ Deno.serve(async (req) => {
     await cerrarTel("error", 200, { model_status: String(data?.stop_reason || "invalid_json"), error_code: "INVALID_MODEL_JSON" });
     return json({ ok: false, code: "INVALID_MODEL_JSON", error: "La IA no devolvio un analisis valido (JSON incompleto). Reintenta.", request_id: requestId }, 200);
   }
+  // P0.COSTEO · contrato público: 'informe' SIEMPRE string. Si se difirió (1ª pasada texto),
+  // informe:"" + informe_pendiente=true (la auditoría completa se pide on-demand). NO inventa precios.
+  normalizarPropuesta(propuesta, { deferInforme: plan.deferInforme });
 
   await cerrarTel("ok", 200, { model_status: String(data?.stop_reason || "ok") });
   // #8: la fuente del catálogo viaja al cliente. 'cliente-fallback' => el canónico no
