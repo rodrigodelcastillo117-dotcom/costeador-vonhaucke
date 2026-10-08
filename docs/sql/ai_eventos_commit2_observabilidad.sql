@@ -61,7 +61,7 @@ COMMIT;
 --   · 100% aditiva. El código v28 ignora estas columnas; el de Commit 2b las
 --     escribe en un UPDATE APARTE con try/catch: si la migración NO está aplicada,
 --     la telemetría base (CORE) sigue registrándose (no regresa nada).
---   · Antes de aplicar: 17 columnas, 102 filas. Después: 30 columnas (+13).
+--   · Columnas: 17 → 30 (+13). El row count NO se hardcodea (se verifica al aplicar).
 --
 -- RLS
 --   · RLS ya está habilitado (1 policy, deniega acceso directo a anon/authenticated).
@@ -69,9 +69,9 @@ COMMIT;
 --     default → la policy existente NO se modifica ni se necesita policy nueva.
 --
 -- IMPACTO
---   · ADD COLUMN con default no-volátil: en Postgres >= 11 es metadata-only (no
---     reescribe la tabla). 102 filas → instantáneo. Sin bloqueo relevante.
---   · Las 102 filas existentes quedan con NULL en TODOS los nuevos campos (incl.
+--   · ADD COLUMN nullable (y boolean sin default): en Postgres >= 11 es metadata-only
+--     (no reescribe la tabla) → instantáneo para la tabla actual. Sin bloqueo relevante.
+--   · Las filas existentes quedan con NULL en TODOS los nuevos campos (incl.
 --     fallback_used = NULL = desconocido). Esperado: telemetría nueva aplica en adelante.
 --
 -- ROLLBACK
