@@ -79,6 +79,47 @@ describe('P0.2c · BLOCK 5 · NO regresión (el determinista gana los empates)',
   });
 });
 
+describe('P0.2c · GAP45/GAP47 · publicable FAIL-CLOSED ante soft-budget (clean winner + timeout)', () => {
+  const area = [{ nombre: 'Z', zone_id: 'Z', tipo: 'privado', ancho: 20000, largo: 20000 }];
+  const desk = () => [
+    { id: 'b', relation_role: 'ANCHOR_DESK', w: 1600, d: 800, user_capacity: 1, functional_group_id: 'g', zone_id: 'Z', placement_profile: { topology: 'DESK', provenance: 'CATALOG', version: 'PP_V1' } },
+    { id: 's0', relation_role: 'EXECUTIVE_SEAT', w: 600, d: 600, functional_group_id: 'g', zone_id: 'Z' },
+  ];
+
+  it('POSITIVO: ganador limpio dentro de presupuesto → publicable=true, sin review', () => {
+    const m = resolverKitsMulti(area, desk());
+    expect(m.seleccion.winner_clean).toBe(true);
+    expect(m.seleccion.metrics.budget_exceeded).toBe(false);
+    expect(m.seleccion.publicable).toBe(true);
+    expect(m.seleccion.quality_review_required).toBe(false);
+  });
+
+  it('FÓRMULA (determinista): publicable === winner_clean ∧ !quality_review_required; budget → review', () => {
+    // Prueba el contrato por IDENTIDAD de fórmula (no por coincidencia de reloj): aunque
+    // winner_clean sea true, si quality_review_required (p.ej. soft-budget) → publicable=false.
+    // Esto cubre exactamente "clean winner + timeout" sin depender de un timing frágil.
+    const stress = [];
+    for (let g = 0; g < 6; g++) {
+      stress.push({ id: 'b' + g, relation_role: 'ANCHOR_WORKSTATION', w: 6000, d: 1400, user_capacity: 8, functional_group_id: 'g' + g, zone_id: 'Z', placement_profile: { topology: 'DOUBLE_FACE', provenance: 'USER_CONFIRMED', version: 'PP_V1' } });
+      for (let i = 0; i < 8; i++) stress.push({ id: `s${g}_${i}`, relation_role: 'WORK_SEAT', w: 600, d: 600, functional_group_id: 'g' + g, zone_id: 'Z' });
+    }
+    const big = [{ nombre: 'Z', zone_id: 'Z', tipo: 'open', ancho: 100000, largo: 100000 }];
+
+    for (const cfg of [{ a: area, p: desk() }, { a: big, p: stress, opts: { maxMultiMs: 1 } }]) {
+      const sel = resolverKitsMulti(cfg.a, cfg.p, cfg.opts).seleccion;
+      // IDENTIDAD de la fórmula publicable (fail-closed). Si winner_clean ∧ review → publicable=false.
+      expect(sel.publicable).toBe(sel.winner_clean === true && !sel.quality_review_required);
+      // budget excedido ⟹ review ⟹ NO publicable (aunque el ganador sea limpio).
+      if (sel.metrics.budget_exceeded) {
+        expect(sel.quality_review_required).toBe(true);
+        expect(sel.publicable).toBe(false);
+      }
+      // nunca la contradicción publicable ∧ (review | budget_exceeded).
+      expect(sel.publicable && (sel.quality_review_required || sel.metrics.budget_exceeded)).toBe(false);
+    }
+  });
+});
+
 describe('P0.2c · GAP38 · certificar al ganador NO cambia el layout (winner_eval ↔ returned)', () => {
   const idsFaltan = (sol) => { const s = new Set(); for (const u of (sol.unplaced || [])) for (const id of (u.piezas || [])) s.add(String(id)); for (const id of (sol.unassigned || [])) s.add(String(id)); return s.size; };
   it('el layout evaluado es el retornado; re-certificar es idempotente sobre la colocación', () => {

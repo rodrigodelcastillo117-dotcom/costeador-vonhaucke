@@ -21,19 +21,34 @@ describe('P0.2c · GAP44/GAP48 · overlap LEGAL sólo gaveta↔su propio anchor 
     expect(neutralPASS(piezas, col)).toBe(true);          // el neutral también lo acepta
   });
 
-  it('silla vs silla del MISMO anchor (encimadas) → recovery OVERLAP y neutral NO PASS', () => {
+  it('dos sillas mismo kit, slot_id DISTINTO + metadata coherente, misma coordenada → HARD FAIL', () => {
+    // El SemanticJudge valida slot/side/facing pero NO prueba la coordenada física; el HARD
+    // gate SÍ: dos sillas con slot_ids distintos y facing coherente, pero físicamente encimadas.
     const piezas = [
       { id: 'b', relation_role: 'ANCHOR_WORKSTATION', w: 2000, d: 800, functional_group_id: 'g', zone_id: 'Z' },
-      { id: 's0', relation_role: 'WORK_SEAT', w: 600, d: 600, functional_group_id: 'g', anchor_instance_id: 'b', zone_id: 'Z' },
-      { id: 's1', relation_role: 'WORK_SEAT', w: 600, d: 600, functional_group_id: 'g', anchor_instance_id: 'b', zone_id: 'Z' },
+      { id: 's0', relation_role: 'WORK_SEAT', w: 600, d: 600, functional_group_id: 'g', anchor_instance_id: 'b', zone_id: 'Z', slot_id: 'A0', side: 'A', facing: 'UP' },
+      { id: 's1', relation_role: 'WORK_SEAT', w: 600, d: 600, functional_group_id: 'g', anchor_instance_id: 'b', zone_id: 'Z', slot_id: 'A1', side: 'A', facing: 'UP' },
     ];
     const col = [
       { id: 'b', area: 0, x: 1000, y: 1000, rot: 0 },
-      { id: 's0', area: 0, x: 1000, y: 2000, rot: 0 },
-      { id: 's1', area: 0, x: 1100, y: 2050, rot: 0 },   // encima de s0
+      { id: 's0', area: 0, x: 1000, y: 2000, rot: 0, slot_id: 'A0', side: 'A', facing: 'UP' },
+      { id: 's1', area: 0, x: 1000, y: 2000, rot: 0, slot_id: 'A1', side: 'A', facing: 'UP' },   // MISMA coordenada
     ];
     expect(recOverlap(piezas, col)).toBe(true);           // NO exento por ser "mismo kit"
     expect(neutralPASS(piezas, col)).toBe(false);         // el neutral también lo rechaza
+  });
+
+  it('dependientes que comparten SÓLO functional_group_id (sin ownership gaveta↔anchor) → HARD FAIL', () => {
+    // GAP44 #5: compartir functional_group_id NO otorga exemption. Dos sillas encimadas.
+    const piezas = [
+      { id: 's0', relation_role: 'WORK_SEAT', w: 600, d: 600, functional_group_id: 'g', zone_id: 'Z' },
+      { id: 's1', relation_role: 'WORK_SEAT', w: 600, d: 600, functional_group_id: 'g', zone_id: 'Z' },
+    ];
+    const col = [
+      { id: 's0', area: 0, x: 1000, y: 1000, rot: 0 },
+      { id: 's1', area: 0, x: 1050, y: 1050, rot: 0 },   // encimadas, mismo grupo, sin ancla
+    ];
+    expect(recOverlap(piezas, col)).toBe(true);
   });
 
   it('silla vs su anchor (encimada) → recovery OVERLAP (silla NO es gaveta)', () => {

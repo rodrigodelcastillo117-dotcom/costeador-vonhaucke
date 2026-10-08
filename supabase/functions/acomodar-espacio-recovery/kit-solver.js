@@ -501,8 +501,13 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
   });
 
   // GAP38: contexto para certificar POST-HOC al ganador sin re-buscar (attachCertificates).
-  const _cert_ctx = { kitsByAnchor, budgetExhausted, nodos };
-  return { colocacion, piezas: asign, unplaced, unassigned, metodo: 'kit-solver-v1', attempts_used: 1, _nodos: nodos, _cert_ctx };
+  // GAP46: `_cert_ctx` es INTERNO, NO parte de la superficie pública. Se define NO-ENUMERABLE
+  // para que no aparezca en JSON.stringify ni en spreads ({...sol}); attachCertificates lo lee
+  // por acceso directo. Así la forma pública del sol (colocacion/unplaced/...) queda limpia y el
+  // default sigue siendo byte-idéntico también a nivel de claves enumerables.
+  const sol = { colocacion, piezas: asign, unplaced, unassigned, metodo: 'kit-solver-v1', attempts_used: 1, _nodos: nodos };
+  Object.defineProperty(sol, '_cert_ctx', { value: { kitsByAnchor, budgetExhausted, nodos }, enumerable: false, writable: true, configurable: true });
+  return sol;
 }
 
 // ============================================================================
