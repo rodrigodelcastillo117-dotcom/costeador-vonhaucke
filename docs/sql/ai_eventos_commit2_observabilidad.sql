@@ -36,8 +36,9 @@ ALTER TABLE public.ai_eventos
   ADD COLUMN IF NOT EXISTS provider_duration_ms  integer,
   ADD COLUMN IF NOT EXISTS provider_headers_ms   integer,
   ADD COLUMN IF NOT EXISTS provider_body_ms      integer,
-  -- Fallback de modelo (no implementado aún → siempre false)
-  ADD COLUMN IF NOT EXISTS fallback_used         boolean NOT NULL DEFAULT false;
+  -- Fallback de modelo: NULL en filas pre-instrumentación (= desconocido, no inventamos
+  -- histórico). Las llamadas NUEVAS escriben explícitamente false mientras no exista fallback.
+  ADD COLUMN IF NOT EXISTS fallback_used         boolean NULL;
 
 COMMENT ON COLUMN public.ai_eventos.model_id             IS 'Modelo resuelto por la config centralizada (ej. claude-opus-5).';
 COMMENT ON COLUMN public.ai_eventos.effort               IS 'output_config.effort usado (low/medium).';
@@ -51,7 +52,7 @@ COMMENT ON COLUMN public.ai_eventos.provider_http_status IS 'Status HTTP REAL de
 COMMENT ON COLUMN public.ai_eventos.provider_duration_ms IS 'ms totales de la llamada al proveedor (vs duration_ms = total nuestro).';
 COMMENT ON COLUMN public.ai_eventos.provider_headers_ms  IS 'ms hasta recibir headers de la respuesta del proveedor.';
 COMMENT ON COLUMN public.ai_eventos.provider_body_ms     IS 'ms leyendo el body de la respuesta del proveedor.';
-COMMENT ON COLUMN public.ai_eventos.fallback_used        IS 'true si se usó fallback de modelo (no implementado aún → siempre false).';
+COMMENT ON COLUMN public.ai_eventos.fallback_used        IS 'true si se usó fallback de modelo; false en llamadas nuevas (no hay fallback aún); NULL = fila pre-instrumentación (desconocido).';
 
 COMMIT;
 
@@ -70,8 +71,8 @@ COMMIT;
 -- IMPACTO
 --   · ADD COLUMN con default no-volátil: en Postgres >= 11 es metadata-only (no
 --     reescribe la tabla). 102 filas → instantáneo. Sin bloqueo relevante.
---   · Las 102 filas existentes quedan con NULL en los nuevos campos (salvo
---     fallback_used=false). Esperado: telemetría nueva aplica de aquí en adelante.
+--   · Las 102 filas existentes quedan con NULL en TODOS los nuevos campos (incl.
+--     fallback_used = NULL = desconocido). Esperado: telemetría nueva aplica en adelante.
 --
 -- ROLLBACK
 BEGIN;

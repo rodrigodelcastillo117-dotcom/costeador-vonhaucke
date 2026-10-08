@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { modalidadDe, mapProviderError, telemetriaExtra, MODALIDADES, CLAVES_PROHIBIDAS } from './telemetria.js';
+import { modalidadDe, mapProviderError, telemetriaExtra, crearAcumuladorProveedor, MODALIDADES, CLAVES_PROHIBIDAS } from './telemetria.js';
 
 // ============================================================================
 //  P0.COSTEO · Commit 2 · telemetría (observabilidad, sin secretos).
@@ -80,6 +80,77 @@ describe('provider_http_status ≠ http_status nuestro (auditoría 2b)', () => {
   });
   it('éxito: provider_http_status=200 se registra', () => {
     expect(telemetriaExtra({ provider_http_status: 200 }).provider_http_status).toBe(200);
+  });
+});
+
+describe('crearAcumuladorProveedor · multi-intento (auditoría 2c)', () => {
+  const A1_200_MAXTOK = { httpStatus: 200, elapsedMs: 40000, headersMs: 900, bodyMs: 100, usage: { input_tokens: 4000, output_tokens: 1500 } };
+
+  it('intento1 200/max_tokens + intento2 200/end_turn → status FINAL 200, sumas correctas', () => {
+    const m = crearAcumuladorProveedor();
+    m.registrarIntento(A1_200_MAXTOK);
+    m.registrarIntento({ httpStatus: 200, elapsedMs: 15000, headersMs: 850, bodyMs: 120, usage: { input_tokens: 4200, output_tokens: 300 } });
+    const r = m.resultado();
+    expect(r.attempts).toBe(2);
+    expect(r.provider_http_status).toBe(200);
+    expect(r.provider_duration_ms).toBe(55000);          // 40000 + 15000
+    expect(r.provider_headers_ms).toBe(1750);            // 900 + 850
+    expect(r.provider_body_ms).toBe(220);                // 100 + 120
+    expect(r.input_tokens).toBe(8200);                   // 4000 + 4200
+    expect(r.output_tokens).toBe(1800);                  // 1500 + 300
+  });
+
+  it('intento1 200/max_tokens + intento2 AbortError → status FINAL null, duration suma el abort, headers/tokens sólo del intento1', () => {
+    const m = crearAcumuladorProveedor();
+    m.registrarIntento(A1_200_MAXTOK);
+    m.registrarIntento({ httpStatus: null, elapsedMs: 75000, headersMs: null, bodyMs: null, usage: null });  // abort antes de headers
+    const r = m.resultado();
+    expect(r.attempts).toBe(2);
+    expect(r.provider_http_status).toBe(null);           // el ÚLTIMO intento no recibió respuesta → NULL (no 200 stale)
+    expect(r.provider_duration_ms).toBe(115000);         // 40000 + 75000
+    expect(r.provider_headers_ms).toBe(900);             // sólo el intento1 tuvo headers
+    expect(r.provider_body_ms).toBe(100);
+    expect(r.input_tokens).toBe(4000);                   // sólo usage del intento1
+    expect(r.output_tokens).toBe(1500);
+  });
+
+  it('intento1 200/max_tokens + intento2 529 → status FINAL 529, duration suma', () => {
+    const m = crearAcumuladorProveedor();
+    m.registrarIntento(A1_200_MAXTOK);
+    m.registrarIntento({ httpStatus: 529, elapsedMs: 3000, headersMs: 800, bodyMs: 50, usage: null });
+    const r = m.resultado();
+    expect(r.attempts).toBe(2);
+    expect(r.provider_http_status).toBe(529);            // status del ÚLTIMO intento
+    expect(r.provider_duration_ms).toBe(43000);          // 40000 + 3000
+    expect(r.provider_headers_ms).toBe(1700);            // 900 + 800
+  });
+
+  it('un solo AbortError (~75 s) → attempts=1, status NULL, duration≈75000, headers NULL', () => {
+    const m = crearAcumuladorProveedor();
+    m.registrarIntento({ httpStatus: null, elapsedMs: 75000, headersMs: null, bodyMs: null, usage: null });
+    const r = m.resultado();
+    expect(r.attempts).toBe(1);
+    expect(r.provider_http_status).toBe(null);
+    expect(r.provider_duration_ms).toBe(75000);          // el timeout SÍ cuenta su duración (no NULL)
+    expect(r.provider_headers_ms).toBe(null);            // nunca hubo headers
+    expect(r.provider_body_ms).toBe(null);
+    expect(r.input_tokens).toBe(null);
+  });
+
+  it('usage null-safe: input_tokens=null del proveedor NO se convierte en 0', () => {
+    const m = crearAcumuladorProveedor();
+    m.registrarIntento({ httpStatus: 200, elapsedMs: 10, usage: { input_tokens: null, output_tokens: 7 } });
+    const r = m.resultado();
+    expect(r.input_tokens).toBe(null);                   // ausente → NULL, no 0
+    expect(r.output_tokens).toBe(7);
+  });
+
+  it('sin intentos → duration/tokens/status NULL, attempts 0 (config-fail antes de llamar)', () => {
+    const r = crearAcumuladorProveedor().resultado();
+    expect(r.attempts).toBe(0);
+    expect(r.provider_duration_ms).toBe(null);
+    expect(r.provider_http_status).toBe(null);
+    expect(r.input_tokens).toBe(null);
   });
 });
 

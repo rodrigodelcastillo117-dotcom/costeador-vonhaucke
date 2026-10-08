@@ -13,7 +13,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { schemaSinInforme, planPass, normalizarPropuesta, NOTA_TEXTO_INICIAL } from "./requestPlan.js";
 // P0.COSTEO · Commit 2: config de modelo centralizada (fail-closed) + telemetría pura.
 import { resolverModelo } from "./modelConfig.js";
-import { modalidadDe, mapProviderError, telemetriaExtra } from "./telemetria.js";
+import { modalidadDe, mapProviderError, telemetriaExtra, crearAcumuladorProveedor } from "./telemetria.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -216,19 +216,9 @@ Deno.serve(async (req) => {
   // largo del request y se escriben en un UPDATE APARTE (ver cerrarTel) para que, si la
   // migración aún no se aplicó, la ausencia de columnas NO tumbe la telemetría base.
   let telExtra: Record<string, unknown> = {};
-  let attempts = 0;            // nº de llamadas REALES a Anthropic (pedir)
-  // Métricas del PROVEEDOR (se llenan en pedir; se leen al cerrar la telemetría).
-  let providerHttp: number | null = null;        // status HTTP REAL de Anthropic (null si no hubo respuesta: abort/timeout)
-  let providerHeadersMs: number | null = null;   // ms hasta recibir headers de la respuesta
-  let providerBodyMs: number | null = null;      // ms leyendo el body
-  let providerDurationMs: number | null = null;  // ms totales de la llamada al proveedor
-  // Anota conteos de tokens del proveedor (sólo números; NUNCA contenido).
-  const anotarUso = (d: any) => {
-    const u = d?.usage;
-    if (!u) return;
-    if (Number.isFinite(Number(u.input_tokens))) telExtra.input_tokens = Number(u.input_tokens);
-    if (Number.isFinite(Number(u.output_tokens))) telExtra.output_tokens = Number(u.output_tokens);
-  };
+  // Métricas del PROVEEDOR acumuladas a lo largo de TODOS los intentos (incl. retry compacto).
+  // Cada intento se registra en el finally de `pedir`, aun si aborta/falla → nunca stale.
+  const metrics = crearAcumuladorProveedor();
   let evId: number | null = null;
   try {
     const { data: ev } = await svc.from("ai_eventos")
@@ -238,22 +228,25 @@ Deno.serve(async (req) => {
   } catch (_e) { /* la telemetría no debe romper el análisis */ }
   const cerrarTel = async (status: string, http: number, extra: Record<string, unknown> = {}) => {
     if (evId == null) return;
+    const m = metrics.resultado();   // attempts/duration/headers/body/tokens/status FINAL del proveedor
     // 1) CORE (columnas que YA existen hoy) — SIEMPRE se intenta. `attempts` incluido.
     try {
       await svc.from("ai_eventos")
-        .update({ status, http_status: http, finished_at: new Date().toISOString(), duration_ms: Date.now() - t0, attempts, ...extra })
+        .update({ status, http_status: http, finished_at: new Date().toISOString(), duration_ms: Date.now() - t0, attempts: m.attempts, ...extra })
         .eq("id", evId);
     } catch (_e) { /* noop */ }
     // 2) EXTRA (columnas NUEVAS, whitelist) — update aparte; si faltan columnas, no
     //    regresa la telemetría base. retry_used es derivable de attempts>1 (no se persiste).
-    //    provider_http_status = status REAL del proveedor (≠ `http` nuestro, arriba).
+    //    provider_http_status = status REAL del ÚLTIMO intento (≠ `http` nuestro, arriba).
     try {
       const ex = telemetriaExtra({
         ...telExtra,
-        provider_http_status: providerHttp,
-        provider_duration_ms: providerDurationMs,
-        provider_headers_ms: providerHeadersMs,
-        provider_body_ms: providerBodyMs,
+        provider_http_status: m.provider_http_status,
+        provider_duration_ms: m.provider_duration_ms,
+        provider_headers_ms: m.provider_headers_ms,
+        provider_body_ms: m.provider_body_ms,
+        input_tokens: m.input_tokens,
+        output_tokens: m.output_tokens,
       } as any);
       if (Object.keys(ex).length) await svc.from("ai_eventos").update(ex).eq("id", evId);
     } catch (_e) { /* columnas nuevas pendientes de migración */ }
@@ -358,10 +351,15 @@ Deno.serve(async (req) => {
 
   const contenido = [...bloquesImagen, { type: "text", text: textoTarea }];
   const pedir = async (schema: any, sys: string, maxTok: number, effort: string, model: string) => {
-    attempts++;   // cuenta cada llamada REAL al proveedor (telemetría/retry_used)
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), esRevision ? 45_000 : 75_000);
-    const tFetch0 = Date.now();   // t0 de la llamada al proveedor (telemetría; no altera comportamiento)
+    const tFetch0 = Date.now();   // t0 de ESTE intento (telemetría; no altera comportamiento)
+    // Métricas de ESTE intento — reset per-attempt para que un abort/error NO herede valores
+    // del intento anterior. Se registran SIEMPRE en el finally (incl. abort/timeout/network).
+    let httpStatus: number | null = null;
+    let headersMs: number | null = null;
+    let bodyMs: number | null = null;
+    let usage: any = null;
     try {
       const r = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
@@ -380,15 +378,13 @@ Deno.serve(async (req) => {
         }),
         signal: ac.signal,
       });
-      // Métricas del proveedor (sólo tiempos y status; sin contenido). providerHttp refleja
-      // el status REAL de Anthropic (incl. 4xx/5xx), distinto del status que devolvemos.
+      // status y tiempo-a-headers REALES del proveedor (incl. 4xx/5xx). headersMs = tiempo hasta
+      // recibir los HEADERS HTTP (NO TTFB de tokens).
       const tHeaders = Date.now();
-      providerHttp = r.status;
+      httpStatus = r.status;
+      headersMs = tHeaders - tFetch0;
       const raw = await r.text();
-      const tBody = Date.now();
-      providerHeadersMs = tHeaders - tFetch0;
-      providerBodyMs = tBody - tHeaders;
-      providerDurationMs = tBody - tFetch0;
+      bodyMs = Date.now() - tHeaders;
       let data: any = null;
       try { data = raw ? JSON.parse(raw) : null; }
       catch {
@@ -396,6 +392,8 @@ Deno.serve(async (req) => {
         err.code = "PROVIDER_INVALID_JSON"; err.http = r.status || 502;
         throw err;
       }
+      // usage INMEDIATAMENTE tras un response válido, ANTES de decidir el retry compacto.
+      if (data?.usage) usage = data.usage;
       if (!r.ok) {
         const err: any = new Error(data?.error?.message || `Proveedor respondió HTTP ${r.status}.`);
         err.code = String(data?.error?.type || data?.error?.code || "PROVIDER_HTTP_ERROR");
@@ -403,7 +401,12 @@ Deno.serve(async (req) => {
         throw err;
       }
       return data;
-    } finally { clearTimeout(timer); }
+    } finally {
+      clearTimeout(timer);
+      // Registra ESTE intento pase lo que pase: abort/timeout → httpStatus/headersMs null y
+      // elapsedMs ≈ duración real consumida; success/4xx/5xx/invalid-json → con sus medidas.
+      metrics.registrarIntento({ httpStatus, elapsedMs: Date.now() - tFetch0, headersMs, bodyMs, usage });
+    }
   };
 
   // P0.COSTEO · plan por pasada: en la 1ª pasada de TEXTO se DIFIERE el informe (BOM
@@ -444,7 +447,6 @@ Deno.serve(async (req) => {
     return await fallarAnalisis("CLAUDE_API_ERROR", data.error?.message || "Error de la API", 502, String(data?.error?.type || "api_error"));
   }
   if (data?.stop_reason === "refusal") {
-    anotarUso(data);
     await cerrarTel("refused", 200, { model_status: "refusal", error_code: "MODEL_REFUSAL" });
     return json({ ok: false, code: "MODEL_REFUSAL", error: "La IA no pudo analizar esta imagen.", request_id: requestId }, 200);
   }
@@ -463,7 +465,6 @@ Deno.serve(async (req) => {
       return await fallarAnalisis(code, "No se pudo completar el reintento compacto. Analiza menos hojas.", 502, modelStatus);
     }
     if (data?.stop_reason === "max_tokens") {
-      anotarUso(data);
       await cerrarTel("partial", 200, { model_status: "max_tokens", error_code: "MODEL_TRUNCATED" });
       return json({ ok: false, code: "MODEL_TRUNCATED", error: "El plano es muy extenso y el despiece no cupo aun compactando. Sube menos hojas a la vez, o súbelo por partes.", request_id: requestId }, 200);
     }
@@ -473,7 +474,6 @@ Deno.serve(async (req) => {
   let propuesta: any;
   try { propuesta = JSON.parse(texto); }
   catch {
-    anotarUso(data);
     await cerrarTel("error", 200, { model_status: String(data?.stop_reason || "invalid_json"), error_code: "INVALID_MODEL_JSON" });
     return json({ ok: false, code: "INVALID_MODEL_JSON", error: "La IA no devolvio un analisis valido (JSON incompleto). Reintenta.", request_id: requestId }, 200);
   }
@@ -481,7 +481,6 @@ Deno.serve(async (req) => {
   // informe:"" + informe_pendiente=true (la auditoría completa se pide on-demand). NO inventa precios.
   normalizarPropuesta(propuesta, { deferInforme: plan.deferInforme });
 
-  anotarUso(data);
   await cerrarTel("ok", 200, { model_status: String(data?.stop_reason || "ok") });
   // #8: la fuente del catálogo viaja al cliente. 'cliente-fallback' => el canónico no
   // estuvo disponible y se usaron pistas locales: la UI debe avisar (no cotizar en firme).

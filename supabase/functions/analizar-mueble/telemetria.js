@@ -31,6 +31,51 @@ export function mapProviderError(e) {
   return { code, modelStatus, http };
 }
 
+// Acumulador PURO de métricas del proveedor a lo largo de los intentos (incl. retry compacto).
+// Semántica (auditoría 2c):
+//  · attempts              = nº REAL de llamadas.
+//  · provider_duration_ms  = SUMA del elapsed de TODOS los intentos (incl. abort/timeout/network).
+//  · provider_headers_ms   = SUMA de tiempos-a-headers SÓLO de intentos que recibieron headers (null si ninguno).
+//  · provider_body_ms      = SUMA de tiempos de lectura de body (null si ninguno).
+//  · input_tokens/output_tokens = SUMA del usage de los intentos que lo trajeron (null si ninguno).
+//  · provider_http_status  = status del ÚLTIMO intento; null si ese intento terminó ANTES de
+//                            recibir respuesta HTTP (abort/timeout/network). Se resetea por intento.
+// NOTA: provider_headers_ms = "tiempo hasta recibir los HEADERS HTTP de la respuesta", NO es
+//       TTFB de tokens ni token-time.
+export function crearAcumuladorProveedor() {
+  let attempts = 0, durationMs = 0;
+  let headersMs = null, bodyMs = null, inputTokens = null, outputTokens = null;
+  let lastHttp = null;
+  const sum = (acc, v) => (acc == null ? Number(v) : acc + Number(v));
+  return {
+    // Se llama UNA vez por intento (en el finally de `pedir`), con lo que se haya medido.
+    registrarIntento({ httpStatus = null, elapsedMs = 0, headersMs: hm = null, bodyMs: bm = null, usage = null } = {}) {
+      attempts++;
+      if (Number.isFinite(Number(elapsedMs))) durationMs += Number(elapsedMs);
+      if (hm != null && Number.isFinite(Number(hm))) headersMs = sum(headersMs, hm);
+      if (bm != null && Number.isFinite(Number(bm))) bodyMs = sum(bodyMs, bm);
+      // usage null-safe: null != null es false → se omite (no se convierte 0).
+      if (usage) {
+        if (usage.input_tokens != null && Number.isFinite(Number(usage.input_tokens))) inputTokens = sum(inputTokens, usage.input_tokens);
+        if (usage.output_tokens != null && Number.isFinite(Number(usage.output_tokens))) outputTokens = sum(outputTokens, usage.output_tokens);
+      }
+      // status del ÚLTIMO intento (reset implícito: este valor pisa el del intento anterior).
+      lastHttp = (httpStatus != null && Number.isFinite(Number(httpStatus))) ? Number(httpStatus) : null;
+    },
+    resultado() {
+      return {
+        attempts,
+        provider_duration_ms: attempts ? durationMs : null,
+        provider_headers_ms: headersMs,
+        provider_body_ms: bodyMs,
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        provider_http_status: lastHttp,
+      };
+    },
+  };
+}
+
 const _int = (x) => {
   const n = Math.round(Number(x));
   return Number.isFinite(n) ? n : null;
