@@ -9,7 +9,15 @@
 //
 //  Lo usa el frontend ANTES de mandar (UX) y lo espeja `costear-servidor` (seguridad).
 //  UX-validation != security: deben existir en ambos niveles.
+//
+//  AUTORIDAD DE MATERIAL (audit 2026-10-08, P0.5/P0.6): el `material_match` del cliente NO
+//  es autoridad. Aquí sólo se valida que, SI viene, sea un estado CONOCIDO (enum estricto:
+//  desconocido ⇒ 400, nunca "seguro por omisión"). La CLASE EFECTIVA la recalcula el
+//  servidor (costear-servidor) con `reconciliarMaterialServidor` contra el catálogo
+//  autoritativo. La confirmación humana viaja en el campo dedicado `material_confirmado`
+//  (intención), no en el string de match.
 // ============================================================================
+import { MATCH_VALIDOS } from './materialMatch.js';
 
 // Campos económicos PROHIBIDOS en la intención del cliente (a cualquier profundidad).
 // El cliente no define dinero: precio/costo/margen/factores/proveedor/insumo inline.
@@ -22,7 +30,7 @@ const PROHIBIDOS = /^(margen|precio|preciobase|precioreal|preciounitario|costo|c
 // Se EXCLUYE a propósito `excluida`: marcar una partida como $0 es una decisión
 // comercial que vive en la Cotización (con confirmación humana), no en la intención
 // cruda de costeo — dejar que el cliente la mande aquí sería una fuga fail-OPEN.
-const COMP_PERMITIDOS = ['insumoId', 'nombre', 'cantidad', 'largoMM', 'anchoMM', 'piezas', 'hojas', 'material_solicitado', 'material_match'];
+const COMP_PERMITIDOS = ['insumoId', 'nombre', 'cantidad', 'largoMM', 'anchoMM', 'piezas', 'hojas', 'material_solicitado', 'material_match', 'material_confirmado'];
 
 // MATERIAL_PENDING (P0-05): estados de match en los que la IA NO asignó insumoId
 // porque el catálogo no tiene la familia/precio. El componente NO se inventa ni se
@@ -31,7 +39,18 @@ const COMP_PERMITIDOS = ['insumoId', 'nombre', 'cantidad', 'largoMM', 'anchoMM',
 const MATCH_PENDIENTE = new Set([
   'NOT_AVAILABLE', 'SUBSTITUTE_SUGGESTED', 'SUBSTITUTE_REQUIRES_CONFIRMATION',
   'PENDING_MATERIAL', 'PENDING_PRICE', 'PENDING_PURCHASING',
+  // Clases "por confirmar" SIN insumoId (audit 2026-10-08): el candidato se MUESTRA pero no
+  // entra al costo hasta confirmación humana. Sobreviven al contrato (insumoId='') y el motor
+  // las bloquea vía materialesPorConfirmar. (SAME_FAMILY_COMPATIBLE_PROPOSED NO va aquí: sí
+  // trae insumoId y cuesta provisional; su material_match viaja igual y el motor lo bloquea.)
+  'SAME_FAMILY_CRITICAL_CONFLICT', 'AMBIGUOUS', 'CANDIDATE_REQUIRES_CONFIRMATION',
 ]);
+
+// Estados de match que el DTO ACEPTA estructuralmente: el enum canónico (MATCH_VALIDOS) +
+// los alias de pendiente legados (MATCH_PENDIENTE). Cualquier otro string ⇒ 400 (P0.6,
+// fail-closed). No confiere seguridad: la clase EFECTIVA la recalcula el servidor; esto sólo
+// frena basura/spoof estructural (p.ej. 'TODO_BIEN_CONFIA_EN_MI').
+const MATCH_ACEPTADOS = new Set([...MATCH_VALIDOS, ...MATCH_PENDIENTE]);
 
 function buscarProhibido(obj, ruta = '') {
   if (obj == null || typeof obj !== 'object') return null;
@@ -87,6 +106,11 @@ export function validarIntentCosteo(body) {
     const idOk = typeof c.insumoId === 'string' && c.insumoId.trim() !== '';
     const solicitado = typeof c.material_solicitado === 'string' ? c.material_solicitado.trim() : '';
     const matchTxt = typeof c.material_match === 'string' ? c.material_match.trim().toUpperCase() : '';
+    // ENUM ESTRICTO (P0.6): si viene un material_match, debe ser un estado CONOCIDO.
+    // Un string arbitrario (spoof/basura) ⇒ INVALID_INPUT, nunca "seguro por omisión".
+    if (matchTxt !== '' && !MATCH_ACEPTADOS.has(matchTxt)) {
+      issues.push({ field: `componentes[${i}].material_match`, msg: `material_match desconocido: '${matchTxt}'. Estados válidos: ${[...MATCH_ACEPTADOS].join(', ')}.` });
+    }
     // MATERIAL_PENDING (P0-05): se admite SIN insumoId SÓLO si declara QUÉ material se
     // pidió (material_solicitado) y un match pendiente. Así el componente sobrevive al
     // contrato y el motor lo BLOQUEA (componentesIgnorados), en vez de inventarlo,
@@ -107,6 +131,10 @@ export function validarIntentCosteo(body) {
       if (campo === 'nombre') { if (typeof c.nombre === 'string') limpio.nombre = c.nombre.slice(0, 200); continue; }
       if (campo === 'material_solicitado') { if (solicitado) limpio.material_solicitado = solicitado.slice(0, 200); continue; }
       if (campo === 'material_match') { if (matchTxt) limpio.material_match = matchTxt.slice(0, 40); continue; }
+      // INTENCIÓN de confirmación humana (P0.6): booleano explícito, DISTINTO del string de
+      // match. El servidor lo convierte a estado efectivo (USER_CONFIRMED) sólo si el insumoId
+      // existe; jamás se deriva de material_match='USER_CONFIRMED' mandado por el browser.
+      if (campo === 'material_confirmado') { if (c.material_confirmado === true) limpio.material_confirmado = true; continue; }
       limpio[campo] = c[campo];
     }
     // Normaliza el pendiente: insumoId='' explícito + bandera para UI/motor.

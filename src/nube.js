@@ -404,6 +404,9 @@ export function dtoCosteoServidor(pieza = {}, cantidad = 1) {
     ...(Number.isFinite(Number(c?.hojas)) ? { hojas: Number(c.hojas) } : {}),
     ...(typeof c?.material_solicitado === 'string' ? { material_solicitado: c.material_solicitado.slice(0, 200) } : {}),
     ...(typeof c?.material_match === 'string' ? { material_match: c.material_match.slice(0, 40) } : {}),
+    // INTENCIÓN de confirmación humana (P0.6/P0.8): el servidor la verifica y la convierte a
+    // USER_CONFIRMED efectivo; NO se deriva del string material_match mandado por el browser.
+    ...(c?.material_confirmado === true ? { material_confirmado: true } : {}),
   }));
   const horas = pieza?.horas && typeof pieza.horas === 'object'
     ? Object.fromEntries(Object.entries(pieza.horas)

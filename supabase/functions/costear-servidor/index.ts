@@ -24,6 +24,9 @@ import { INSUMOS_SEMILLA, mapaInsumos } from "../../../src/datos/insumos.js";
 // cualquier campo económico (margen, precio, costo, insumo inline, factores,
 // modeloCosteo…) del body antes de tocar el motor. Ver src/datos/validarIntentCosteo.js.
 import { validarIntentCosteo } from "../../../src/datos/validarIntentCosteo.js";
+// P0.5: el material_match del BROWSER no es autoridad. El servidor RECALCULA la clase efectiva
+// contra el catálogo autoritativo con la MISMA lógica determinista compartida (sin duplicar).
+import { reconciliarMaterialServidor } from "../../../src/datos/materialMatch.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -95,11 +98,25 @@ Deno.serve(async (req) => {
     : mapaInsumos(INSUMOS_SEMILLA);
   const parametros = { ...PARAMETROS_DEFAULT, ...(datos.parametros || {}) };
 
+  // --- RECONCILIACIÓN DE MATERIAL (P0.5, servidor autoritativo) ---
+  // El `material_match` que mandó el navegador NO se confía. Para CADA componente se RECALCULA
+  // la clase efectiva contra el catálogo AUTORITATIVO (insumos) + material_solicitado + la
+  // intención de confirmación humana (material_confirmado), reutilizando la MISMA lógica
+  // determinista que el cliente. Así un browser que spoofee material_match='EXACT' sobre una
+  // sustitución o una variante por confirmar NO se salta el gate: el motor verá la clase real
+  // (SAME_FAMILY_*/SUBSTITUTE/...) y `costeoEmitible` bloqueará la emisión.
+  const resolver = (id: string) => (insumos as any)[id];
+  const piezaReconciliada = {
+    ...pieza,
+    componentes: (Array.isArray(pieza.componentes) ? pieza.componentes : [])
+      .map((c: any) => reconciliarMaterialServidor(c, resolver, Object.values(insumos as any))),
+  };
+
   // --- Mismo motor que el cliente ---
   let r: any;
   try {
-    const { par } = modeloParaPieza(parametros, pieza);
-    r = calcular(pieza, n, insumos, par);
+    const { par } = modeloParaPieza(parametros, piezaReconciliada);
+    r = calcular(piezaReconciliada, n, insumos, par);
   } catch (e) {
     return json({ ok: false, error: "No se pudo calcular: " + String(e) }, 500);
   }

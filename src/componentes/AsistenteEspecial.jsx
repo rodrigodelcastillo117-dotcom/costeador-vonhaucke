@@ -14,7 +14,7 @@ import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
-import { aplicarPoliticaMaterial } from '../datos/materialMatch.js';
+import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI } from '../datos/materialMatch.js';
 import { paginaAImagen } from '../datos/pdfImagen.js';
 import { prepararPdfRapido, rasterizarPaginas, paginasAlrededor } from '../datos/pdfPipeline.js';
 import Cargando from './Cargando.jsx';
@@ -256,6 +256,12 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // su total es apenas un SUBTOTAL CONOCIDO, no se le pone precio ni se aprueba.
   const emision = costeoEmitible(resultado);
   const emitible = emision.emitible;
+  // POR CONFIRMAR (audit 2026-10-08): materiales provisionales (18→19 compatible, crítico,
+  // ambiguo, candidato). El COMPATIBLE sí aporta costo → hay un COSTO PROVISIONAL real, pero
+  // NO emitible hasta confirmación humana. Distinto de "sin material" (hueco de datos).
+  const materialesPorConfirmar = emision.bloqueos?.materiales_por_confirmar || [];
+  const soloPorConfirmar = !emitible && materialesPorConfirmar.length > 0
+    && piezasSinMaterial.length === 0 && (resultado.tarifasFaltantes || []).length === 0;
   // Fórmula que está aplicando AHORA la pieza (Alba para producto nuevo; legacy solo
   // si se reabrió un histórico sin re-costear). Para etiquetar el costo, no recalcula.
   const formulaActual = formulaDePieza(b);
@@ -470,10 +476,13 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     const comps = b.componentes.slice(); comps[i] = { ...comps[i], ...parcial }; editarComponentes(comps);
   }
   function quitarPieza(i) { editarComponentes(b.componentes.filter((_, j) => j !== i)); }
-  function onMaterial(i, insumoId) {
+  function onMaterial(i, insumoId, { confirmado = false } = {}) {
     const ins = insumos[insumoId]; const comps = b.componentes.slice(); const prev = comps[i];
     const patch = { insumoId, nombre: prev.nombre || (ins ? ins.nombre : '') };
     if (!esArea(ins)) { patch.largoMM = undefined; patch.anchoMM = undefined; }
+    // Elección/confirmación HUMANA: misma intención en ambas UIs (P0.8). El servidor verifica
+    // material_confirmado + insumoId y lo convierte a USER_CONFIRMED efectivo (no confía en el string).
+    if (ins) Object.assign(patch, patchConfirmacionUI(insumoId));
     comps[i] = { ...prev, ...patch }; editarComponentes(comps);
   }
   function costoPieza(c, ins) {
@@ -1061,6 +1070,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           {b.componentes.length === 0 && <p className="ayuda">Aún no agregas piezas. Toca una de arriba para empezar.</p>}
           {b.componentes.map((c, i) => {
             const ins = insumos[c.insumoId];
+            const est = estadoMaterialUI(c, insumos);
             const area = esArea(ins);
             const cnt = c.piezas || 1;
             const m2 = area && c.largoMM && c.anchoMM ? (c.largoMM / 1000) * (c.anchoMM / 1000) * cnt : 0;
@@ -1068,7 +1078,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
               <div className="pieza" key={i}>
                 <div className="pieza-head">
                   <input className="pieza-nom" placeholder="Nombre de la pieza" value={c.nombre || ''} onChange={(e) => setPieza(i, { nombre: e.target.value })} />
-                  <select className="pieza-mat" value={c.insumoId || ''} onChange={(e) => onMaterial(i, e.target.value)}>
+                  <select className="pieza-mat" value={est.selVal} onChange={(e) => onMaterial(i, e.target.value)}>
                     <option value="">— ¿de qué es? —</option>
                     {SECCIONES.map((sec) => (
                       <optgroup label={sec.nombre} key={sec.id}>
@@ -1080,7 +1090,17 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                   </select>
                   <button className="pieza-x" onClick={() => quitarPieza(i)} aria-label="quitar">×</button>
                 </div>
-                {!ins && <div className="pieza-calc" style={{ color: 'var(--alerta,#b22a22)' }}>⚠ Sin material: se costea en $0. Elige de qué es.</div>}
+                {est.badge && (
+                  <div className="pieza-calc" style={{ color: 'var(--ambar,#8a6d00)', fontWeight: 600 }}>🟡 {est.badge}</div>
+                )}
+                {est.pendiente && (
+                  <div className="pieza-calc" style={{ color: 'var(--alerta,#b22a22)' }}>
+                    ⚠ {est.pendienteMsg}
+                    {est.mostrarConfirmar && est.candId && (
+                      <>{' '}<button type="button" className="chip" style={{ cursor: 'pointer' }} onClick={() => onMaterial(i, est.candId, { confirmado: true })}>Usar {insumos[est.candId]?.nombre || 'candidato'} (confirmar)</button></>
+                    )}
+                  </div>
+                )}
                 {ins && (
                   <div className="pieza-med">
                     {area ? (
@@ -1132,6 +1152,18 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
               <div className="espacio" />
               <div className="ayuda">Precio de lista ({b.margen}% margen)</div>
               <div className="precio-enorme">{pesos2(precio)}</div>
+            </>
+          ) : soloPorConfirmar ? (
+            // PROVISIONAL: todo el BOM está costeado, pero ≥1 material es "por confirmar"
+            // (p.ej. 18→19). HAY un costo provisional real, pero NO se emite/aprueba hasta
+            // confirmar el material. No es un costo certificado ni completo.
+            <>
+              <div className="ayuda" style={{ margin: '6px 0' }}>Costo provisional (materiales por confirmar)</div>
+              <div className="precio-enorme" style={{ color: 'var(--ambar,#8a6d00)', fontSize: 34 }}>{pesos2(emision.subtotalConocido)}</div>
+              <div className="espacio" />
+              <div className="ayuda">Precio de lista</div>
+              <div className="precio-enorme" style={{ color: '#b22a22' }}>Por confirmar</div>
+              <div className="ayuda" style={{ color: '#8a6d00', marginTop: 4 }}>🟡 Costo provisional, no certificado. Confirma {materialesPorConfirmar.length} material(es) marcados POR CONFIRMAR para emitir/aprobar.</div>
             </>
           ) : (
             // FAIL-CLOSED: hay partidas sin costear → NO hay costo total ni precio.
