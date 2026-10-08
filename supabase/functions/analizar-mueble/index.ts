@@ -11,6 +11,9 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 // P0.COSTEO: plan de petición PURO (informe diferido en 1ª pasada de texto + right-size).
 import { schemaSinInforme, planPass, normalizarPropuesta, NOTA_TEXTO_INICIAL } from "./requestPlan.js";
+// P0.COSTEO · Commit 2: config de modelo centralizada (fail-closed) + telemetría pura.
+import { resolverModelo } from "./modelConfig.js";
+import { modalidadDe, mapProviderError, telemetriaExtra } from "./telemetria.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -205,7 +208,15 @@ Deno.serve(async (req) => {
   // TELEMETRÍA (started): cuenta el intento para el rate limit y mide duración real.
   // Un intento que falle queda 'started' (cuenta como intento, que es lo correcto
   // para una barrera de costo). Se marca 'ok' sólo al cerrar bien.
-  const modoTel = soloTexto ? "texto" : esRevision ? "revision" : "imagen";
+  // modalidad: texto / revision / pdf / imagen (= columna `modo`). pdf se distingue de
+  // imagen sólo para observabilidad; NO cambia ninguna ruta de ejecución.
+  const esPdf = !!image && !imgs.length && String(mediaType) === "application/pdf";
+  const modoTel = modalidadDe({ soloTexto, esRevision, esPdf });
+  // Campos NUEVOS de observabilidad (columnas pendientes de migración). Se llenan a lo
+  // largo del request y se escriben en un UPDATE APARTE (ver cerrarTel) para que, si la
+  // migración aún no se aplicó, la ausencia de columnas NO tumbe la telemetría base.
+  let telExtra: Record<string, unknown> = {};
+  let attempts = 0;            // nº de llamadas REALES a Anthropic (pedir)
   let evId: number | null = null;
   try {
     const { data: ev } = await svc.from("ai_eventos")
@@ -215,7 +226,18 @@ Deno.serve(async (req) => {
   } catch (_e) { /* la telemetría no debe romper el análisis */ }
   const cerrarTel = async (status: string, http: number, extra: Record<string, unknown> = {}) => {
     if (evId == null) return;
-    try { await svc.from("ai_eventos").update({ status, http_status: http, finished_at: new Date().toISOString(), duration_ms: Date.now() - t0, ...extra }).eq("id", evId); } catch (_e) { /* noop */ }
+    // 1) CORE (columnas que YA existen hoy) — SIEMPRE se intenta. `attempts` incluido.
+    try {
+      await svc.from("ai_eventos")
+        .update({ status, http_status: http, finished_at: new Date().toISOString(), duration_ms: Date.now() - t0, attempts, ...extra })
+        .eq("id", evId);
+    } catch (_e) { /* noop */ }
+    // 2) EXTRA (columnas NUEVAS, whitelist) — update aparte; si faltan columnas, no
+    //    regresa la telemetría base. retry_used es derivable de attempts>1 (no se persiste).
+    try {
+      const ex = telemetriaExtra(telExtra as any);
+      if (Object.keys(ex).length) await svc.from("ai_eventos").update(ex).eq("id", evId);
+    } catch (_e) { /* columnas nuevas pendientes de migración */ }
   };
 
   const fallarAnalisis = async (code: string, mensaje: string, http = 502, modelStatus = "error") => {
@@ -225,7 +247,7 @@ Deno.serve(async (req) => {
 
   // CATÁLOGO CANÓNICO server-side = AUTORIDAD. El catálogo que manda el cliente ya
   // NO es autoridad: sólo se usa como PISTA para ids que el servidor aún no tenga.
-  const { texto: cat, canonicoOk } = await construirCatalogo(catalogo);
+  const { texto: cat, canonicoOk, count: catCount } = await construirCatalogo(catalogo);
 
   const system =
     "Actua como el Director Operativo (COO), Jefe de Ingenieria de Producto y Experto en Costos de una fabrica de mobiliario de clase mundial (corporativo, hoteleria y retail; metalmecanica, CNC, pintura, tapiceria). Eres maestro en Lean Manufacturing, Design for Manufacturing (DFM) y optimizacion de recursos.\n\n" +
@@ -316,7 +338,8 @@ Deno.serve(async (req) => {
   }
 
   const contenido = [...bloquesImagen, { type: "text", text: textoTarea }];
-  const pedir = async (schema: any, sys: string, maxTok: number, effort: string) => {
+  const pedir = async (schema: any, sys: string, maxTok: number, effort: string, model: string) => {
+    attempts++;   // cuenta cada llamada REAL al proveedor (telemetría/retry_used)
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), esRevision ? 45_000 : 75_000);
     try {
@@ -324,7 +347,7 @@ Deno.serve(async (req) => {
         method: "POST",
         headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
         body: JSON.stringify({
-          model: "claude-opus-5",
+          model,
           max_tokens: maxTok,
           output_config: {
             effort,
@@ -361,14 +384,30 @@ Deno.serve(async (req) => {
   const schemaInicial = plan.deferInforme ? schemaSinInforme(SCHEMA) : SCHEMA;
   const systemInicial = plan.deferInforme ? (system + NOTA_TEXTO_INICIAL) : system;
   const MAX_TOK = plan.maxTok;
+
+  // CONFIG DE MODELO (fail-closed): resuelve el model_id ANTES de llamar a Anthropic.
+  // Si la config es inválida, 500 explícito y NO se quema el proveedor (no inventa modelo).
+  // Default de analizar-mueble = 'claude-opus-5' (idéntico a v28; sin override en env).
+  let MODEL_ID: string;
+  try {
+    MODEL_ID = resolverModelo("analizar-mueble", {
+      ANTHROPIC_MODEL: Deno.env.get("ANTHROPIC_MODEL") ?? undefined,
+      ANTHROPIC_MODEL_ANALIZAR_MUEBLE: Deno.env.get("ANTHROPIC_MODEL_ANALIZAR_MUEBLE") ?? undefined,
+    });
+  } catch (e: any) {
+    return await fallarAnalisis(String(e?.code || "MODEL_CONFIG_INVALID"), "Configuración de modelo inválida; contacta al administrador.", 500, "config_error");
+  }
+  // Telemetría (observabilidad): sólo medidas, NUNCA prompt/desc/BOM.
+  telExtra = { model_id: MODEL_ID, effort: plan.effort, max_tokens: MAX_TOK, input_chars: desc.length, catalog_count: catCount, fallback_used: false };
+
   let data: any;
-  try { data = await pedir(schemaInicial, systemInicial, MAX_TOK, plan.effort); }
+  try { data = await pedir(schemaInicial, systemInicial, MAX_TOK, plan.effort, MODEL_ID); }
   catch (e: any) {
-    const code = e?.name === "AbortError" ? "PROVIDER_TIMEOUT" : String(e?.code || "CLAUDE_API_ERROR");
+    const { code, modelStatus } = mapProviderError(e);
     const mensaje = code === "PROVIDER_TIMEOUT"
       ? "El análisis tardó demasiado. Intenta de nuevo o analiza menos hojas."
       : "No se pudo analizar el archivo con IA. Reintenta; si persiste, sube una sola hoja.";
-    return await fallarAnalisis(code, mensaje, 502, String(e?.code || e?.name || "provider_error"));
+    return await fallarAnalisis(code, mensaje, 502, modelStatus);
   }
 
   if (data?.type === "error") {
@@ -387,10 +426,10 @@ Deno.serve(async (req) => {
     const sysCompacto = system +
       "\n\nIMPORTANTE: la respuesta anterior se CORTÓ por larga. Esta vez OMITE 'informe' (déjalo '' o muy corto), " +
       "sé BREVE en 'razonamiento' y 'nota' (media línea cada uno) y ASEGÚRATE de CERRAR el JSON completo con TODO el despiece de piezas.";
-    try { data = await pedir(schemaCompacto, sysCompacto, MAX_TOK, plan.effort); }
+    try { data = await pedir(schemaCompacto, sysCompacto, MAX_TOK, plan.effort, MODEL_ID); }
     catch (e: any) {
-      const code = e?.name === "AbortError" ? "PROVIDER_TIMEOUT" : String(e?.code || "CLAUDE_API_ERROR");
-      return await fallarAnalisis(code, "No se pudo completar el reintento compacto. Analiza menos hojas.", 502, String(e?.code || e?.name || "provider_error"));
+      const { code, modelStatus } = mapProviderError(e);
+      return await fallarAnalisis(code, "No se pudo completar el reintento compacto. Analiza menos hojas.", 502, modelStatus);
     }
     if (data?.stop_reason === "max_tokens") {
       await cerrarTel("partial", 200, { model_status: "max_tokens", error_code: "MODEL_TRUNCATED" });
@@ -425,7 +464,7 @@ function json(obj: unknown, status = 200) {
 // cliente para no romper el análisis. Marca los insumos SIN precio certificado
 // (p.ej. superficie sólida recién dada de alta) para que la IA los trate como
 // pendientes de precio, no como inexistentes.
-async function construirCatalogo(clienteCat: any): Promise<{ texto: string; canonicoOk: boolean }> {
+async function construirCatalogo(clienteCat: any): Promise<{ texto: string; canonicoOk: boolean; count: number }> {
   const url = Deno.env.get("SUPABASE_URL");
   const srv = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const lineasServidor: string[] = [];
@@ -488,5 +527,6 @@ async function construirCatalogo(clienteCat: any): Promise<{ texto: string; cano
     }
   }
   const todo = [...lineasServidor, ...hints];
-  return { texto: todo.length ? todo.join("\n") : "(sin catalogo)", canonicoOk };
+  // count = nº de insumos ofrecidos al modelo (telemetría; mide el "peso" del catálogo).
+  return { texto: todo.length ? todo.join("\n") : "(sin catalogo)", canonicoOk, count: todo.length };
 }
