@@ -25,6 +25,35 @@ export const MODELO_DEFAULT = Object.freeze({
   "analizar-mueble": "claude-opus-5",
 });
 
+// FIX outage imagen/plano: la 1ª pasada VISUAL (extraer BOM de un render/plano, que el usuario
+// CONFIRMA; NO fija costo — el motor costea con precios canónicos) usa un modelo RÁPIDO para no
+// exceder el wall-clock de la función (Opus tardaba >75 s en el TTFT de visión → PROVIDER_TIMEOUT).
+// Opus se conserva para texto/revisión/pasadas de costeo. Default allowlisted; override por env;
+// fail-closed igual que resolverModelo.
+export const MODELO_VISUAL_DEFAULT = Object.freeze({
+  "analizar-mueble": "claude-sonnet-5-5",
+});
+export function resolverModeloVisual(fn, env = {}) {
+  const k = "ANTHROPIC_MODEL_VISUAL_" + String(fn || "").toUpperCase().replace(/[^A-Z0-9]+/g, "_");
+  const ov = env[k];
+  if (ov != null && String(ov).trim() !== "") {
+    const v = String(ov).trim();
+    if (!MODELOS_PERMITIDOS.has(v)) {
+      const err = new Error(`CONFIG de modelo visual inválida para '${fn}': '${v}' no está en la allowlist.`);
+      err.code = "MODEL_CONFIG_INVALID";
+      throw err;
+    }
+    return v;
+  }
+  const def = MODELO_VISUAL_DEFAULT[fn];
+  if (!def) {
+    const err = new Error(`CONFIG de modelo visual ausente: no hay default para '${fn}'.`);
+    err.code = "MODEL_CONFIG_MISSING";
+    throw err;
+  }
+  return def;
+}
+
 // Nombre de la variable de entorno de override por función: ANTHROPIC_MODEL_<FN>
 // (mayúsculas, guiones→guiones_bajos). Ej: 'analizar-mueble' → ANTHROPIC_MODEL_ANALIZAR_MUEBLE.
 export function envKeyPorFn(fn) {

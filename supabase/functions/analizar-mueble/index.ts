@@ -12,7 +12,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // P0.COSTEO: plan de petición PURO (informe diferido en 1ª pasada de texto + right-size).
 import { schemaSinInforme, planPass, normalizarPropuesta, NOTA_TEXTO_INICIAL } from "./requestPlan.js";
 // P0.COSTEO · Commit 2: config de modelo centralizada (fail-closed) + telemetría pura.
-import { resolverModelo } from "./modelConfig.js";
+import { resolverModelo, resolverModeloVisual } from "./modelConfig.js";
 import { modalidadDe, mapProviderError, telemetriaExtra, crearAcumuladorProveedor } from "./telemetria.js";
 
 const CORS = {
@@ -429,12 +429,26 @@ Deno.serve(async (req) => {
   } catch (e: any) {
     return await fallarAnalisis(String(e?.code || "MODEL_CONFIG_INVALID"), "Configuración de modelo inválida; contacta al administrador.", 500, "config_error");
   }
+  // 1ª pasada VISUAL (render/plano → BOM que el usuario CONFIRMA; NO fija costo — el motor costea
+  // con precios canónicos): modelo RÁPIDO para no exceder el wall-clock (Opus tardaba >75 s en el
+  // TTFT de visión → PROVIDER_TIMEOUT). Opus se conserva para texto/revisión/pasadas de costeo.
+  const esVisualPrimera = !soloTexto && !esRevision && resp.length === 0;
+  let MODEL_PASADA = MODEL_ID;
+  if (esVisualPrimera) {
+    try {
+      MODEL_PASADA = resolverModeloVisual("analizar-mueble", {
+        ANTHROPIC_MODEL_VISUAL_ANALIZAR_MUEBLE: Deno.env.get("ANTHROPIC_MODEL_VISUAL_ANALIZAR_MUEBLE") ?? undefined,
+      });
+    } catch (e: any) {
+      return await fallarAnalisis(String(e?.code || "MODEL_CONFIG_INVALID"), "Configuración de modelo visual inválida; contacta al administrador.", 500, "config_error");
+    }
+  }
   // Telemetría (observabilidad): sólo medidas, NUNCA prompt/desc/BOM. user_input_chars =
   // longitud del TEXTO del usuario (no el prompt total); catalog_chars/count = peso del catálogo.
-  telExtra = { model_id: MODEL_ID, effort: plan.effort, max_tokens: MAX_TOK, user_input_chars: desc.length, catalog_count: catCount, catalog_chars: (cat || "").length, fallback_used: false };
+  telExtra = { model_id: MODEL_PASADA, effort: plan.effort, max_tokens: MAX_TOK, user_input_chars: desc.length, catalog_count: catCount, catalog_chars: (cat || "").length, fallback_used: false };
 
   let data: any;
-  try { data = await pedir(schemaInicial, systemInicial, MAX_TOK, plan.effort, MODEL_ID); }
+  try { data = await pedir(schemaInicial, systemInicial, MAX_TOK, plan.effort, MODEL_PASADA); }
   catch (e: any) {
     const { code, modelStatus } = mapProviderError(e);
     const mensaje = code === "PROVIDER_TIMEOUT"
@@ -459,7 +473,7 @@ Deno.serve(async (req) => {
     const sysCompacto = system +
       "\n\nIMPORTANTE: la respuesta anterior se CORTÓ por larga. Esta vez OMITE 'informe' (déjalo '' o muy corto), " +
       "sé BREVE en 'razonamiento' y 'nota' (media línea cada uno) y ASEGÚRATE de CERRAR el JSON completo con TODO el despiece de piezas.";
-    try { data = await pedir(schemaCompacto, sysCompacto, MAX_TOK, plan.effort, MODEL_ID); }
+    try { data = await pedir(schemaCompacto, sysCompacto, MAX_TOK, plan.effort, MODEL_PASADA); }
     catch (e: any) {
       const { code, modelStatus } = mapProviderError(e);
       return await fallarAnalisis(code, "No se pudo completar el reintento compacto. Analiza menos hojas.", 502, modelStatus);

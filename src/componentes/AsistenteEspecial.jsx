@@ -976,6 +976,10 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                 const colImp = q.impacto === 'alto' ? '#8a2d00' : q.impacto === 'medio' ? '#8a6d00' : '#555';
                 const val = respuestas[q.question_key] ?? '';
                 const setVal = (v) => setRespuestas((s) => ({ ...s, [q.question_key]: v }));
+                // Opciones reales (sin vacías): una opción '' se pintaba como píldora blanca
+                // pre-seleccionada. Y la selección usaba var(--tinta), que en tema oscuro es CLARO
+                // (#ECE9E4) → blanco-sobre-blanco. Se usa el rojo de marca (siempre legible).
+                const ops = (q.opciones || []).map((o) => String(o)).filter((o) => o.trim() !== '');
                 return (
                   <div key={q.question_key} style={{ borderTop: i ? '1px solid var(--borde)' : 'none', paddingTop: i ? 10 : 0, marginTop: i ? 10 : 0 }}>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 4 }}>
@@ -985,12 +989,12 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                     </div>
                     <div style={{ fontWeight: 600, marginBottom: 2 }}>{q.pregunta}</div>
                     {q.supuesto && <div className="ayuda" style={{ marginBottom: 6 }}>Supuesto IA: {q.supuesto}</div>}
-                    {(q.tipo === 'radio' || q.tipo === 'select') && q.opciones?.length ? (
+                    {(q.tipo === 'radio' || q.tipo === 'select') && ops.length ? (
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        {q.opciones.map((op) => (
+                        {ops.map((op) => (
                           <button key={op} type="button" className={'chip' + (val === op ? ' on' : '')}
                             onClick={() => setVal(op)}
-                            style={{ cursor: 'pointer', background: val === op ? 'var(--tinta,#2B2622)' : undefined, color: val === op ? '#fff' : undefined }}>
+                            style={{ cursor: 'pointer', background: val === op ? 'var(--rojo,#E5484D)' : undefined, color: val === op ? '#fff' : undefined, borderColor: val === op ? 'var(--rojo,#E5484D)' : undefined }}>
                             {op}
                           </button>
                         ))}

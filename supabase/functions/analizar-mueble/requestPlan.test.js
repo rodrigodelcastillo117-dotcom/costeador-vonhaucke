@@ -22,8 +22,15 @@ describe('P0.COSTEO · planPass: right-size por tipo de pasada', () => {
     expect(p.maxTok).toBe(8000);
   });
 
-  it('PDF/imagen → NO difiere (effort medium, maxTok 10000): el recorte NO aplica', () => {
+  it('PDF/imagen 1ª pasada → SÍ difiere el informe (effort low, maxTok 8000): fix timeout/non-2xx', () => {
     const p = planPass({ soloTexto: false, esRevision: false, respCount: 0 });
+    expect(p.deferInforme).toBe(true);
+    expect(p.effort).toBe('low');      // low para caber bajo el wall-clock de la funcion
+    expect(p.maxTok).toBe(8000);
+  });
+
+  it('imagen con respuestas previas (pasada posterior) → NO difiere (effort medium, maxTok 10000)', () => {
+    const p = planPass({ soloTexto: false, esRevision: false, respCount: 2 });
     expect(p.deferInforme).toBe(false);
     expect(p.effort).toBe('medium');
     expect(p.maxTok).toBe(10000);
