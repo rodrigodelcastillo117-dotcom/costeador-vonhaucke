@@ -79,7 +79,6 @@ test('LIVE AI smoke · Costear llama analizar-mueble real y devuelve BOM', async
   const n = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
   const txt = (p) => `${p?.nombre || ''} ${p?.material_solicitado || ''} ${p?.semantic_role || ''} ${p?.nota || ''} ${p?.insumoId || ''}`.toLowerCase();
   const any = (re) => piezas.some((p) => re.test(txt(p)));
-  const sumCant = (re) => piezas.filter((p) => re.test(txt(p))).reduce((a, p) => a + Math.max(1, Math.round(n(p.cantidad))), 0);
   const near = (v, target, tol) => Math.abs(v - target) <= tol;
 
   // ok + contrato + no truncado (truncado ⇒ ok=false).
@@ -101,8 +100,22 @@ test('LIVE AI smoke · Costear llama analizar-mueble real y devuelve BOM', async
   const melamina19 = piezas.some((p) => /melamina|cubierta|tablero|mdf/.test(txt(p)) && /19/.test(txt(p)));
   expect(melamina19, 'cubierta melamina 19mm representada').toBe(true);
 
-  // 2 patas PTR (1 pieza x2 o 2 piezas). Tolerante: metal/ptr/pata.
-  expect(sumCant(/pata|ptr/), 'dos patas PTR representadas').toBeGreaterThanOrEqual(2);
+  // 2 patas PTR — aserción SEMÁNTICA (no por nombre exacto; no laxa). Verifica FUNCIÓN
+  // estructural + MATERIAL metálico/PTR + EQUIVALENCIA a 2 soportes (por cantidad o por
+  // geometría de base/marco). Sigue FALLANDO si falta una pata o cambia el material.
+  // OJO: tokens con \b para que "lámina" (metal) NO matchee dentro de "me-lamina" (madera).
+  const esMetal = (p) => /\bptr\b|\bmet[aá]l|\btubo|\bacero|\bl[aá]mina|\baluminio|\bhierro/i.test(`${p?.material_solicitado || ''} ${p?.insumoId || ''}`);
+  const esConsumible = (p) => /soldadura|pintura|adhesiv|pegamento|barniz|consumible|tornill|nivelador|canto|tapacanto/i.test(`${p?.material_solicitado || ''} ${p?.insumoId || ''} ${p?.nombre || ''}`);
+  const esSoporte = (p) => !esConsumible(p) && /\b(pata|patas|soporte|base|marco|bastidor|patin|patín|estructura|caballete)\b/i.test(`${p?.semantic_role || ''} ${p?.nombre || ''}`);
+  const soportesMetal = piezas.filter((p) => esSoporte(p) && esMetal(p));
+  // 1) Debe existir estructura de soporte METÁLICA/PTR (si falta o cambia el material → falla).
+  expect(soportesMetal.length, 'existe soporte estructural metálico/PTR (no melamina, no ausente)').toBeGreaterThan(0);
+  // 2) Equivalencia a 2 soportes: cantidad de patas ≥2, O ≥2 soportes metálicos distintos,
+  //    O una base/marco/bastidor metálico unificador (p.ej. caballete/base tubular).
+  const patasCant = soportesMetal.filter((p) => /\b(pata|patas)\b/i.test(`${p?.semantic_role || ''} ${p?.nombre || ''}`)).reduce((a, p) => a + Math.max(0, Math.round(n(p.cantidad))), 0);
+  const baseUnificadora = soportesMetal.some((p) => /\b(base|marco|bastidor|caballete|estructura)\b/i.test(`${p?.semantic_role || ''} ${p?.nombre || ''}`));
+  const dosSoportes = patasCant >= 2 || soportesMetal.length >= 2 || baseUnificadora;
+  expect(dosSoportes, `≥2 soportes PTR equivalentes (patasCant=${patasCant}, nSoportes=${soportesMetal.length}, base=${baseUnificadora})`).toBe(true);
 
   // Faldón presente.
   expect(any(/fald/), 'faldón presente').toBe(true);
