@@ -217,6 +217,18 @@ Deno.serve(async (req) => {
   // migración aún no se aplicó, la ausencia de columnas NO tumbe la telemetría base.
   let telExtra: Record<string, unknown> = {};
   let attempts = 0;            // nº de llamadas REALES a Anthropic (pedir)
+  // Métricas del PROVEEDOR (se llenan en pedir; se leen al cerrar la telemetría).
+  let providerHttp: number | null = null;        // status HTTP REAL de Anthropic (null si no hubo respuesta: abort/timeout)
+  let providerHeadersMs: number | null = null;   // ms hasta recibir headers de la respuesta
+  let providerBodyMs: number | null = null;      // ms leyendo el body
+  let providerDurationMs: number | null = null;  // ms totales de la llamada al proveedor
+  // Anota conteos de tokens del proveedor (sólo números; NUNCA contenido).
+  const anotarUso = (d: any) => {
+    const u = d?.usage;
+    if (!u) return;
+    if (Number.isFinite(Number(u.input_tokens))) telExtra.input_tokens = Number(u.input_tokens);
+    if (Number.isFinite(Number(u.output_tokens))) telExtra.output_tokens = Number(u.output_tokens);
+  };
   let evId: number | null = null;
   try {
     const { data: ev } = await svc.from("ai_eventos")
@@ -234,8 +246,15 @@ Deno.serve(async (req) => {
     } catch (_e) { /* noop */ }
     // 2) EXTRA (columnas NUEVAS, whitelist) — update aparte; si faltan columnas, no
     //    regresa la telemetría base. retry_used es derivable de attempts>1 (no se persiste).
+    //    provider_http_status = status REAL del proveedor (≠ `http` nuestro, arriba).
     try {
-      const ex = telemetriaExtra(telExtra as any);
+      const ex = telemetriaExtra({
+        ...telExtra,
+        provider_http_status: providerHttp,
+        provider_duration_ms: providerDurationMs,
+        provider_headers_ms: providerHeadersMs,
+        provider_body_ms: providerBodyMs,
+      } as any);
       if (Object.keys(ex).length) await svc.from("ai_eventos").update(ex).eq("id", evId);
     } catch (_e) { /* columnas nuevas pendientes de migración */ }
   };
@@ -342,6 +361,7 @@ Deno.serve(async (req) => {
     attempts++;   // cuenta cada llamada REAL al proveedor (telemetría/retry_used)
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), esRevision ? 45_000 : 75_000);
+    const tFetch0 = Date.now();   // t0 de la llamada al proveedor (telemetría; no altera comportamiento)
     try {
       const r = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
@@ -360,7 +380,15 @@ Deno.serve(async (req) => {
         }),
         signal: ac.signal,
       });
+      // Métricas del proveedor (sólo tiempos y status; sin contenido). providerHttp refleja
+      // el status REAL de Anthropic (incl. 4xx/5xx), distinto del status que devolvemos.
+      const tHeaders = Date.now();
+      providerHttp = r.status;
       const raw = await r.text();
+      const tBody = Date.now();
+      providerHeadersMs = tHeaders - tFetch0;
+      providerBodyMs = tBody - tHeaders;
+      providerDurationMs = tBody - tFetch0;
       let data: any = null;
       try { data = raw ? JSON.parse(raw) : null; }
       catch {
@@ -390,15 +418,17 @@ Deno.serve(async (req) => {
   // Default de analizar-mueble = 'claude-opus-5' (idéntico a v28; sin override en env).
   let MODEL_ID: string;
   try {
+    // AISLADO (2b): NO leemos ANTHROPIC_MODEL global (lo usan Council/otras fns); sólo el
+    // override por-función o el default. permitirGlobal queda en false por defecto.
     MODEL_ID = resolverModelo("analizar-mueble", {
-      ANTHROPIC_MODEL: Deno.env.get("ANTHROPIC_MODEL") ?? undefined,
       ANTHROPIC_MODEL_ANALIZAR_MUEBLE: Deno.env.get("ANTHROPIC_MODEL_ANALIZAR_MUEBLE") ?? undefined,
     });
   } catch (e: any) {
     return await fallarAnalisis(String(e?.code || "MODEL_CONFIG_INVALID"), "Configuración de modelo inválida; contacta al administrador.", 500, "config_error");
   }
-  // Telemetría (observabilidad): sólo medidas, NUNCA prompt/desc/BOM.
-  telExtra = { model_id: MODEL_ID, effort: plan.effort, max_tokens: MAX_TOK, input_chars: desc.length, catalog_count: catCount, fallback_used: false };
+  // Telemetría (observabilidad): sólo medidas, NUNCA prompt/desc/BOM. user_input_chars =
+  // longitud del TEXTO del usuario (no el prompt total); catalog_chars/count = peso del catálogo.
+  telExtra = { model_id: MODEL_ID, effort: plan.effort, max_tokens: MAX_TOK, user_input_chars: desc.length, catalog_count: catCount, catalog_chars: (cat || "").length, fallback_used: false };
 
   let data: any;
   try { data = await pedir(schemaInicial, systemInicial, MAX_TOK, plan.effort, MODEL_ID); }
@@ -414,6 +444,7 @@ Deno.serve(async (req) => {
     return await fallarAnalisis("CLAUDE_API_ERROR", data.error?.message || "Error de la API", 502, String(data?.error?.type || "api_error"));
   }
   if (data?.stop_reason === "refusal") {
+    anotarUso(data);
     await cerrarTel("refused", 200, { model_status: "refusal", error_code: "MODEL_REFUSAL" });
     return json({ ok: false, code: "MODEL_REFUSAL", error: "La IA no pudo analizar esta imagen.", request_id: requestId }, 200);
   }
@@ -432,6 +463,7 @@ Deno.serve(async (req) => {
       return await fallarAnalisis(code, "No se pudo completar el reintento compacto. Analiza menos hojas.", 502, modelStatus);
     }
     if (data?.stop_reason === "max_tokens") {
+      anotarUso(data);
       await cerrarTel("partial", 200, { model_status: "max_tokens", error_code: "MODEL_TRUNCATED" });
       return json({ ok: false, code: "MODEL_TRUNCATED", error: "El plano es muy extenso y el despiece no cupo aun compactando. Sube menos hojas a la vez, o súbelo por partes.", request_id: requestId }, 200);
     }
@@ -441,6 +473,7 @@ Deno.serve(async (req) => {
   let propuesta: any;
   try { propuesta = JSON.parse(texto); }
   catch {
+    anotarUso(data);
     await cerrarTel("error", 200, { model_status: String(data?.stop_reason || "invalid_json"), error_code: "INVALID_MODEL_JSON" });
     return json({ ok: false, code: "INVALID_MODEL_JSON", error: "La IA no devolvio un analisis valido (JSON incompleto). Reintenta.", request_id: requestId }, 200);
   }
@@ -448,6 +481,7 @@ Deno.serve(async (req) => {
   // informe:"" + informe_pendiente=true (la auditoría completa se pide on-demand). NO inventa precios.
   normalizarPropuesta(propuesta, { deferInforme: plan.deferInforme });
 
+  anotarUso(data);
   await cerrarTel("ok", 200, { model_status: String(data?.stop_reason || "ok") });
   // #8: la fuente del catálogo viaja al cliente. 'cliente-fallback' => el canónico no
   // estuvo disponible y se usaron pistas locales: la UI debe avisar (no cotizar en firme).

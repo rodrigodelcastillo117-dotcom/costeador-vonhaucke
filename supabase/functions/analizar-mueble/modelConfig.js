@@ -31,12 +31,17 @@ export function envKeyPorFn(fn) {
   return "ANTHROPIC_MODEL_" + String(fn || "").toUpperCase().replace(/[^A-Z0-9]+/g, "_");
 }
 
-// Resuelve el model_id para una fn. Precedencia: override por-fn → override global → default.
+// Resuelve el model_id para una fn. Precedencia: override por-fn → (global SI se permite) → default.
 // Un override presente pero inválido (no en la allowlist) LANZA (fail-closed).
 // `env` es un objeto plano (en Deno: sólo las claves ANTHROPIC_MODEL* — nunca todo el entorno).
-export function resolverModelo(fn, env = {}) {
+//
+// AISLAMIENTO (P0.COSTEO · 2b): `permitirGlobal` es FALSE por defecto. Así, aunque exista
+// un secret ANTHROPIC_MODEL global (que usan Council u otras funciones), NO afecta a esta
+// función: sólo su override por-fn o el default. Un caller debe OPTAR explícitamente por el
+// global para usarlo. Esto evita cambiar el Costeador sin tocar una línea.
+export function resolverModelo(fn, env = {}, { permitirGlobal = false } = {}) {
   const porFn = env[envKeyPorFn(fn)];
-  const global = env.ANTHROPIC_MODEL;
+  const global = permitirGlobal ? env.ANTHROPIC_MODEL : undefined;
   const override = (porFn != null && String(porFn).trim() !== "")
     ? String(porFn).trim()
     : (global != null && String(global).trim() !== "") ? String(global).trim() : null;

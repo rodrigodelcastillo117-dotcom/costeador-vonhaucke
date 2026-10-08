@@ -22,12 +22,6 @@ describe('resolverModelo · override válido', () => {
   it('override por-función válido gana sobre el default', () => {
     expect(resolverModelo('analizar-mueble', { ANTHROPIC_MODEL_ANALIZAR_MUEBLE: 'claude-opus-5-5' })).toBe('claude-opus-5-5');
   });
-  it('override global válido se aplica si no hay override por-función', () => {
-    expect(resolverModelo('analizar-mueble', { ANTHROPIC_MODEL: 'claude-sonnet-5-5' })).toBe('claude-sonnet-5-5');
-  });
-  it('el override por-función tiene precedencia sobre el global', () => {
-    expect(resolverModelo('analizar-mueble', { ANTHROPIC_MODEL: 'claude-sonnet-5-5', ANTHROPIC_MODEL_ANALIZAR_MUEBLE: 'claude-haiku-5-5' })).toBe('claude-haiku-5-5');
-  });
   it('recorta espacios del override', () => {
     expect(resolverModelo('analizar-mueble', { ANTHROPIC_MODEL_ANALIZAR_MUEBLE: '  claude-opus-5-5  ' })).toBe('claude-opus-5-5');
   });
@@ -44,8 +38,8 @@ describe('resolverModelo · fail-closed (no inventa modelo)', () => {
     expect(err).toBeTruthy();
     expect(err.code).toBe('MODEL_CONFIG_INVALID');
   });
-  it('override global inválido también LANZA', () => {
-    expect(() => resolverModelo('analizar-mueble', { ANTHROPIC_MODEL: 'modelo-fantasma' })).toThrow();
+  it('override global inválido LANZA SÓLO si se permite el global explícitamente', () => {
+    expect(() => resolverModelo('analizar-mueble', { ANTHROPIC_MODEL: 'modelo-fantasma' }, { permitirGlobal: true })).toThrow();
   });
   it('función sin default declarado LANZA (MODEL_CONFIG_MISSING), no adivina', () => {
     let err;
@@ -56,6 +50,22 @@ describe('resolverModelo · fail-closed (no inventa modelo)', () => {
   });
   it('un override inválido NUNCA se resuelve a claude-opus-5 por accidente', () => {
     expect(() => resolverModelo('analizar-mueble', { ANTHROPIC_MODEL_ANALIZAR_MUEBLE: 'opus' })).toThrow();
+  });
+});
+
+describe('aislamiento del global (P0.COSTEO · 2b)', () => {
+  it('por defecto (aislado) el ANTHROPIC_MODEL global se IGNORA → cae al default', () => {
+    // Aunque exista un global válido, sin permitirGlobal NO afecta a analizar-mueble.
+    expect(resolverModelo('analizar-mueble', { ANTHROPIC_MODEL: 'claude-sonnet-5-5' })).toBe('claude-opus-5');
+  });
+  it('un global inválido tampoco rompe cuando está aislado (se ignora)', () => {
+    expect(resolverModelo('analizar-mueble', { ANTHROPIC_MODEL: 'modelo-fantasma' })).toBe('claude-opus-5');
+  });
+  it('el override por-función SÍ aplica aunque el global esté aislado', () => {
+    expect(resolverModelo('analizar-mueble', { ANTHROPIC_MODEL: 'claude-sonnet-5-5', ANTHROPIC_MODEL_ANALIZAR_MUEBLE: 'claude-haiku-5-5' })).toBe('claude-haiku-5-5');
+  });
+  it('con permitirGlobal:true, el global válido sí se aplica (para otros callers)', () => {
+    expect(resolverModelo('analizar-mueble', { ANTHROPIC_MODEL: 'claude-sonnet-5-5' }, { permitirGlobal: true })).toBe('claude-sonnet-5-5');
   });
 });
 

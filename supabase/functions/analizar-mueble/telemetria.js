@@ -25,7 +25,9 @@ export function modalidadDe({ soloTexto = false, esRevision = false, esPdf = fal
 export function mapProviderError(e) {
   const code = e?.name === "AbortError" ? "PROVIDER_TIMEOUT" : String(e?.code || "CLAUDE_API_ERROR");
   const modelStatus = String(e?.code || e?.name || "provider_error");
-  const http = Number.isFinite(Number(e?.http)) ? Number(e.http) : 502;
+  // http REAL del proveedor si existe; null si NO hubo respuesta (abort/timeout). No se
+  // confunde con el status que devuelve NUESTRA Edge Function (ese lo decide el wiring).
+  const http = Number.isFinite(Number(e?.http)) ? Number(e.http) : null;
   return { code, modelStatus, http };
 }
 
@@ -37,20 +39,41 @@ const _int = (x) => {
 // WHITELIST de campos nuevos de observabilidad (columnas nuevas pendientes de migración).
 // Devuelve SÓLO estas claves, con tipos coercidos; descarta null/undefined y CUALQUIER
 // clave ajena. `retry_used` NO va aquí: es derivable de attempts (>1) en consulta.
+//   · user_input_chars = longitud del TEXTO del usuario (NO el tamaño total del prompt).
+//   · provider_http_status = status HTTP REAL de Anthropic (≠ http_status de NUESTRA fn).
+//   · provider_duration_ms / headers_ms / body_ms = tiempos de la llamada al proveedor.
+//   · input_tokens / output_tokens = data.usage del proveedor (sólo conteos, sin contenido).
 export function telemetriaExtra({
   model_id,
   effort,
   max_tokens,
-  input_chars,
+  user_input_chars,
   catalog_count,
+  catalog_chars,
+  input_tokens,
+  output_tokens,
+  provider_http_status,
+  provider_duration_ms,
+  provider_headers_ms,
+  provider_body_ms,
   fallback_used,
 } = {}) {
   const out = {};
   if (typeof model_id === "string" && model_id) out.model_id = model_id;
   if (typeof effort === "string" && effort) out.effort = effort;
-  const mt = _int(max_tokens); if (mt != null) out.max_tokens = mt;
-  const ic = _int(input_chars); if (ic != null) out.input_chars = ic;
-  const cc = _int(catalog_count); if (cc != null) out.catalog_count = cc;
+  // null/undefined se OMITEN (no se escriben → la columna queda NULL). Ojo: Number(null)===0,
+  // por eso hay que cortar antes de coercer, o un null terminaría guardado como 0.
+  const put = (k, v) => { if (v == null) return; const n = _int(v); if (n != null) out[k] = n; };
+  put("max_tokens", max_tokens);
+  put("user_input_chars", user_input_chars);
+  put("catalog_count", catalog_count);
+  put("catalog_chars", catalog_chars);
+  put("input_tokens", input_tokens);
+  put("output_tokens", output_tokens);
+  put("provider_http_status", provider_http_status);
+  put("provider_duration_ms", provider_duration_ms);
+  put("provider_headers_ms", provider_headers_ms);
+  put("provider_body_ms", provider_body_ms);
   if (typeof fallback_used === "boolean") out.fallback_used = fallback_used;
   return out;
 }
