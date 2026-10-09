@@ -329,6 +329,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // ni botones. El botón "Guardar en la propuesta" se queda para lo explícito,
   // pero ya no es lo que evita perder el trabajo.
   const primerGuardado = useRef(true);
+  const ultimaFirmaAcomodo = useRef(null);   // React P0-2: evita re-guardar el MISMO payload
   useEffect(() => {
     if (!onGuardarAcomodo) return;
     if (primerGuardado.current) { primerGuardado.current = false; return; }
@@ -344,7 +345,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
             ...(evalInvariantes ? { render_ready: validez.render_ready } : {}),
           }
         : plan;
-      onGuardarAcomodo({
+      const payload = {
         ...bloqueGeometria(areas), plan: planSellado, planReal,
         layoutEspacialValidado: validez.layoutEspacialValidado,   // === status PASS
         layoutValidado: validez.layoutValidado,                   // === status PASS && programaListo
@@ -357,7 +358,15 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
         // Si el layout deja de ser final, limpia cualquier render viejo para que
         // jamás viaje una foto de otro acomodo al PDF del cliente.
         render3d: validez.publicable ? (stagingUrl || '') : '',
-      }, true);
+      };
+      // React P0-2: sólo guardar si el payload REALMENTE cambió. Antes, como `sugerenciasPendientes`/
+      // `validez`/`payloadAcomodo` son objetos nuevos en cada render, el efecto re-disparaba y
+      // `onGuardarAcomodo` → setEstado → re-render → ... cada ~600ms (bucle), y el autosave a la nube
+      // (debounce 1.5 s en App) nunca llegaba a dispararse. Con la firma, un payload idéntico no re-guarda.
+      let firma; try { firma = JSON.stringify(payload); } catch (_e) { firma = null; }
+      if (firma != null && firma === ultimaFirmaAcomodo.current) return;
+      ultimaFirmaAcomodo.current = firma;
+      onGuardarAcomodo(payload, true);
     }, 600);
     return () => clearTimeout(t);
   }, [areas, plan, planReal, stagingUrl, lecturaMeta, floorSpec, programaListo, motivoPrograma, sugerenciasPendientes, payloadAcomodo, evalInvariantes, validez]);
