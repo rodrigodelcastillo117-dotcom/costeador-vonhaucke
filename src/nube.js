@@ -301,7 +301,11 @@ export async function responderDespiece(catalogo, imagenes, propuesta, respuesta
     });
     if (error || !data?.ok) {
       let msg = error?.message; try { const j = await error?.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
-      return { ok: false, error: msg || data?.error || 'No se pudo aplicar las respuestas.' };
+      const raw = String(msg || data?.error || '');
+      const timeout = /PROVIDER_TIMEOUT|Failed to send a request to the Edge Function|timeout|timed out|502/i.test(raw);
+      return { ok: false, error: timeout
+        ? 'La revisión de VONI agotó el tiempo de espera. Tu plano y tus respuestas siguen en pantalla; vuelve a intentar la revisión sin subir el archivo nuevamente. No se aplicaron cambios al despiece.'
+        : (msg || data?.error || 'No se pudo aplicar las respuestas.'), error_code: timeout ? 'REVISION_TIMEOUT' : null };
     }
     return { ...data, verificado: true };
   } catch (e) {
