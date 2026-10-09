@@ -14,7 +14,7 @@ import EditarPartida from './EditarPartida.jsx';
 import EmpezarEspacio from './EmpezarEspacio.jsx';
 import { leerPlanoDeArchivo } from '../datos/leerPlanoArchivo.js';
 import { areasCanonicas, bloqueGeometria } from '../datos/floorPlan.js';
-import { proponerProgramaDelPlano, proponerProgramaDesdeObservado, programRequirementsDesdeObservado, propuestaSilleriaSugerida, silleriaPendiente, aplicarPrograma } from '../datos/programaRealDelPlano.js';
+import { proponerProgramaDelPlano, proponerProgramaDesdeObservado, programRequirementsDesdeObservado, propuestaSilleriaSugerida, silleriaPendiente, aplicarPrograma, programaTieneAplicacionPendiente } from '../datos/programaRealDelPlano.js';
 import { requirementsDeBrief } from '../datos/programaBrief.js';
 import Cargando from './Cargando.jsx';
 import EstoEntendi from './EstoEntendi.jsx';
@@ -235,9 +235,16 @@ export default function Voni({
   const sillasPorConfirmar = (propuestaPrograma?.requiereConfirmacionSillas === true)
     && silleriaPendiente(recomendacionesObs, partidas);
   const lineaPrograma = (reqBrief && reqBrief.linea) || 'App LT';
+  // P0-R15-L: el programa observado puede tener mobiliario DETECTADO pero AÚN NO APLICADO
+  // a la cotización (producto nuevo O enriquecimiento estructural). OBSERVED ≠ CONFIRMED:
+  // no se puede cerrar la propuesta final hasta aplicarlo. Se consulta la MISMA autoridad
+  // que usa Acomodo (`programaTieneAplicacionPendiente` → `resolverAplicacionAtomica`),
+  // para que Voni y Acomodo no diverjan.
+  const aplicacionPendientePrograma = programaTieneAplicacionPendiente(propuestaPrograma, partidas);
   // R15-A: GATE ÚNICO para entrar a la PROPUESTA FINAL (paso 4). TODAS las rutas
   // (stepper, botones, omitir, onIr) deben pasar por aquí — no sólo `disabled`.
-  const puedeEntrarPropuesta = hay && !programaRequiereRevision && !sillasPorConfirmar && conflictosPrograma.length === 0;
+  const puedeEntrarPropuesta = hay && !programaRequiereRevision && !sillasPorConfirmar
+    && conflictosPrograma.length === 0 && !aplicacionPendientePrograma;
   const irAPropuesta = () => { if (puedeEntrarPropuesta) setPaso(4); };
 
   // #7: suma SÓLO precios conocidos (null/undefined NO cuenta como 0) y expone
@@ -542,6 +549,7 @@ export default function Voni({
                 title={sillasPorConfirmar ? 'Confirma la sillería antes de ir a la propuesta'
                   : programaRequiereRevision ? 'Hay mobiliario por revisar antes de ir a la propuesta'
                   : conflictosPrograma.length > 0 ? 'Resuelve los conflictos de reconciliación antes de ir a la propuesta'
+                  : aplicacionPendientePrograma ? 'Aplica el programa detectado del plano antes de ir a la propuesta'
                   : 'Sáltate el acomodo y ve directo a la propuesta'}>
                 No necesito acomodo, ir directo a la propuesta
               </button>
@@ -550,6 +558,7 @@ export default function Voni({
                   {sillasPorConfirmar ? 'Falta confirmar la sillería (modelo por confirmar) para cerrar el programa.'
                     : programaRequiereRevision ? 'Hay mobiliario observado por revisar antes de cerrar el programa.'
                     : conflictosPrograma.length > 0 ? 'Hay conflictos de reconciliación por resolver.'
+                    : aplicacionPendientePrograma ? `Falta aplicar ${faltantesPrograma.length} producto(s) detectado(s) del plano antes de cerrar la propuesta.`
                     : ''}
                 </div>
               )}

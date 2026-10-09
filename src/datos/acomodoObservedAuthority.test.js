@@ -75,3 +75,17 @@ describe('Voni · encabezado de sillería refleja el estado real (R15-J)', () =>
     expect(voni).toContain("sillasPorConfirmar ? ' · confirma modelo' : ''");
   });
 });
+
+// P0-R15-L: el gate ÚNICO de Voni (`puedeEntrarPropuesta`) exige que NO haya aplicación
+// pendiente, usando la MISMA autoridad que Acomodo (`programaTieneAplicacionPendiente`
+// → `resolverAplicacionAtomica`), para que Voni y Acomodo no diverjan.
+describe('Voni · el gate de propuesta usa la autoridad compartida de aplicación pendiente (R15-L)', () => {
+  const voni = fs.readFileSync('src/componentes/Voni.jsx', 'utf8');
+  it('importa y consulta programaTieneAplicacionPendiente', () => {
+    expect(voni).toContain('programaTieneAplicacionPendiente');
+    expect(voni).toContain('const aplicacionPendientePrograma = programaTieneAplicacionPendiente(propuestaPrograma, partidas);');
+  });
+  it('puedeEntrarPropuesta incluye !aplicacionPendientePrograma', () => {
+    expect(voni).toContain('&& !aplicacionPendientePrograma');
+  });
+});

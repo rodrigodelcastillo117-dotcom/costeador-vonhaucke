@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validarProgramaObservado } from '../../supabase/functions/leer-plano/observed-core.js';
-import { programRequirementsDesdeObservado, proponerProgramaDesdeObservado, propuestaBloqueada, aplicarPrograma, partidaComercialDesdeConfirmado, propuestaSilleriaSugerida, silleriaPendiente, bloqueosProgramaObservado, resolverAplicacionAtomica } from './programaRealDelPlano.js';
+import { programRequirementsDesdeObservado, proponerProgramaDesdeObservado, propuestaBloqueada, aplicarPrograma, partidaComercialDesdeConfirmado, propuestaSilleriaSugerida, silleriaPendiente, bloqueosProgramaObservado, resolverAplicacionAtomica, programaTieneAplicacionPendiente } from './programaRealDelPlano.js';
 
 // ============================================================================
 //  INTEGRACIÓN OFFLINE (ChatGPT R10) — NO es E2E del PDF vivo (MOCK_ONLY).
@@ -556,6 +556,48 @@ describe('INTEGRACIÓN observed pipeline (R10, offline)', () => {
   //  P1-R15-H3 · confirmado_modelo SOBREVIVE también al REUTILIZAR una silla existente
   //  (camino `enriquecidos` → estructuraDe), no sólo para una silla nueva.
   // ==========================================================================
+  // ==========================================================================
+  //  P0-R15-L · autoridad compartida de "aplicación pendiente" (el gate de Voni usa la
+  //  MISMA fuente que el blocker de Acomodo). OBSERVED detectado ≠ confirmado.
+  // ==========================================================================
+  it('L· programaTieneAplicacionPendiente: recepción nueva no aplicada → true; tras aplicar → false', () => {
+    const prop = proponerProgramaDesdeObservado(
+      [base({ type: 'recepcion', role: 'reception', zone: 'RECEPCION', dimensions: { w: 2420, d: 830 }, source_ref: 'R-02' })],
+      { linea: 'App LT' },
+    );
+    const existente = [{ id: 'p1', relation_role: 'ANCHOR_DESK', bancoId: 'esc-legacy', cantidad: 1 }];
+    expect(programaTieneAplicacionPendiente(prop, existente)).toBe(true);     // falta aplicar la recepción
+    const aplicado = aplicarPrograma(prop.propuesta, { existentes: existente });
+    const nuevas = aplicado.confirmacion.confirmadas.map(partidaComercialDesdeConfirmado);
+    expect(programaTieneAplicacionPendiente(prop, [...existente, ...nuevas])).toBe(false); // ya aplicada
+  });
+
+  // ==========================================================================
+  //  P0-R15-M · "pendiente de aplicar" incluye ENRIQUECIMIENTOS, no sólo productos nuevos.
+  // ==========================================================================
+  it('M· enrichment-only (existente legacy sin metadata): bloquea antes de aplicar, publicable después', () => {
+    const prop = proponerProgramaDesdeObservado(
+      [base({ type: 'recepcion', role: 'reception', zone: 'RECEPCION', dimensions: { w: 2420, d: 830 }, source_ref: 'R-03' })],
+      { linea: 'App LT' },
+    );
+    const anc = prop.propuesta.partidas[0];
+    // Existe el producto canónico CORRECTO pero legacy/manual: sin instance_id /
+    // functional_group_id / plan_source_ref (sólo banco + rol). Reconciliar lo enriquece.
+    const legacy = [{ id: 'leg-R', bancoId: anc.bancoId, relation_role: anc.relation_role, cantidad: 1 }];
+    const atomic = resolverAplicacionAtomica(prop.propuesta, { existentes: legacy });
+    expect(atomic.committed).toBe(true);
+    expect(atomic.nuevas.length).toBe(0);              // NO hay producto nuevo
+    expect(atomic.enriquecidos.length).toBeGreaterThan(0); // SÍ hay enriquecimiento real
+    const antes = bloqueosProgramaObservado(prop, { partidas: legacy });
+    const bK = antes.find((b) => b.code === 'PROGRAMA_PENDIENTE_APLICAR');
+    expect(bK).toBeTruthy();                            // bloquea aunque confirmadas=0
+    expect(bK.enriquecidos).toBeGreaterThan(0);
+    expect(bK.nuevas).toBe(0);
+    // Tras aplicar el enrichment → idéntico → committed=false → blocker desaparece.
+    const despues = bloqueosProgramaObservado(prop, { partidas: atomic.partidas });
+    expect(despues.some((b) => b.code === 'PROGRAMA_PENDIENTE_APLICAR')).toBe(false);
+  });
+
   it('H3· confirmar modelo alterno sobre una silla YA existente persiste confirmado_modelo → silleriaPendiente=false', () => {
     const recomendaciones = [{ dependent_role: 'WORK_SEAT', requirement_qty: 2, para_ancla: 'ancla-A', suggested_product: 'silla-win' }];
     // Ya existe una silla del modelo alterno, SIN confirmar el modelo.

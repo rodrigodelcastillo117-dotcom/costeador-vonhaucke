@@ -633,8 +633,15 @@ export function bloqueosProgramaObservado(propuestaPlano, { partidas = [] } = {}
   const bloqueos = [];
   if (!propuestaPlano) return bloqueos;
   const recs = Array.isArray(propuestaPlano.recomendaciones) ? propuestaPlano.recomendaciones : [];
-  const recon = propuestaPlano.propuesta
-    ? aplicarPrograma(propuestaPlano.propuesta, { existentes: partidas })
+  // P0-R15-M: UNA SOLA AUTORIDAD de "¿queda algo por aplicar?" = `resolverAplicacionAtomica`.
+  // committed=true ⇒ aplicar el programa produciría un WRITE REAL contra las partidas
+  // actuales: un producto NUEVO (nuevas) Y/O un ENRIQUECIMIENTO estructural de un
+  // existente (enriquecidos: instance_id/anchor_instance_id/functional_group_id/
+  // plan_source_ref/zone_id/confirmado_modelo…). Sus `conflictos` son la misma fuente
+  // del gate de reconciliación. Antes se miraba sólo `confirmadas` (productos nuevos),
+  // dejando pasar enriquecimientos legítimos aún pendientes.
+  const atomic = propuestaPlano.propuesta
+    ? resolverAplicacionAtomica(propuestaPlano.propuesta, { existentes: partidas })
     : null;
   if (propuestaPlano.requiereRevision) {
     bloqueos.push({
@@ -650,25 +657,37 @@ export function bloqueosProgramaObservado(propuestaPlano, { partidas = [] } = {}
       accion: 'Confirma la sillería sugerida antes de publicar.',
     });
   }
-  for (const c of (recon?.conflictos || [])) {
+  for (const c of (atomic?.conflictos || [])) {
     bloqueos.push({
       code: c?.code || 'CONFLICTO_RECONCILIACION',
       mensaje: `Conflicto de reconciliación con partidas existentes: ${c?.code || 'detalle no disponible'}.`,
       accion: 'Resuelve el conflicto de partidas antes de publicar.',
     });
   }
-  // P0-R15-K: el plano detectó productos que AÚN NO se han incorporado a la cotización.
-  // `confirmadas` = lo que `aplicarPrograma` agregaría de nuevo contra las partidas
-  // actuales; mientras sea > 0, el programa observado NO está aplicado → no publicable.
-  const porAplicar = recon?.confirmacion?.confirmadas?.length || 0;
-  if (porAplicar > 0) {
+  // P0-R15-K/M: mobiliario del plano TODAVÍA NO APLICADO — producto nuevo (nuevas) O
+  // enriquecimiento estructural pendiente (enriquecidos). OBSERVED detectado ≠ confirmado.
+  if (atomic?.committed) {
+    const nNuevas = atomic.nuevas.length;
+    const nEnriq = atomic.enriquecidos.length;
     bloqueos.push({
       code: 'PROGRAMA_PENDIENTE_APLICAR',
-      mensaje: `El plano detectó ${porAplicar} producto(s) que todavía no están en la cotización.`,
+      mensaje: `El plano tiene ${nNuevas} producto(s) por agregar y ${nEnriq} por vincular/actualizar con su estructura.`,
       accion: 'Aplica el programa detectado ("Aplicar programa detectado") antes de publicar.',
+      nuevas: nNuevas,
+      enriquecidos: nEnriq,
     });
   }
   return bloqueos;
+}
+
+// P0-R15-L/M: AUTORIDAD COMPARTIDA (Voni ≡ Acomodo) de "¿el programa observado tiene
+// aplicación pendiente?". true ⇒ aplicar produciría un write real (producto nuevo Y/O
+// enriquecimiento estructural). Deriva de `resolverAplicacionAtomica` para que NO existan
+// dos definiciones divergentes de "aplicado": el gate de Voni (`puedeEntrarPropuesta`) y
+// el blocker de Acomodo (`PROGRAMA_PENDIENTE_APLICAR`) consultan la MISMA fuente.
+export function programaTieneAplicacionPendiente(propuestaPlano, partidas = []) {
+  if (!propuestaPlano || !propuestaPlano.propuesta) return false;
+  return resolverAplicacionAtomica(propuestaPlano.propuesta, { existentes: partidas }).committed === true;
 }
 
 export function proponerProgramaDesdeObservado(observedProgram, { linea = 'App LT', brief = null } = {}) {
