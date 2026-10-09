@@ -171,13 +171,10 @@ Specs: e2e/auth.e2e.js, acomodoP02, programaP01, programaBriefWriter, acomodoMen
 - 3212f4e — React P0-2 (bucle autosave)
 - d4951c5 — P1-13 (IVA) + P1-7 (vendedor sin precio)
 
-## P0 que QUEDAN tras esta sesión (requieren E2E autenticado o prod)
-- **React P0-3 — render IA viejo viaja al PDF.** `stagingUrl` no se invalida al mover muebles/
-  recalcular/cambiar plano/partidas. Fix: hash plan↔render; limpiar stagingUrl/realista/imgEscena en
-  acomodar/acomodarIA/usarDibujo/procesarPlano/setArea/delArea y al cambiar partidas; en Voni resetear
-  render3d/escenas/floorSpec al cambiar de espacio. NO arreglado aquí: multi-punto en AcomodoBase (1800
-  líneas) y sin E2E autenticado no puedo verificar que no rompo el flujo. Prioridad #1 para la próxima
-  sesión (con TEST_EMAIL/TEST_PASSWORD de cuenta de prueba).
+## TODOS los P0 de CLIENTE encontrados por el red-team están CERRADOS (ver "ARREGLADOS", 1-7 + P0-3).
+React P0-3 (render viejo al PDF) CERRADO con firma plan↔render (commit 73bd64d). Suite 1870/1870, build ✅.
+
+## P0 que QUEDAN — SOLO seguridad de infra (BLOCKED_EXTERNAL, requieren prod/dashboard)
 - **security P0-1 — 4 edges IA sin auth interna** (cotizar-texto, generar-video [huérfano + proxy abierto
   a Google con la key del server], leer-plano-core, analizar-negocio). BLOCKED_EXTERNAL: el fix REAL es
   verify_jwt + desactivar llaves legacy en el dashboard de Supabase, y/o borrar la función desplegada
