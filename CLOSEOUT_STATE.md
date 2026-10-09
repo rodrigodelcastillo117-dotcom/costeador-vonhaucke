@@ -3,9 +3,14 @@
 > Estado vivo para continuar entre sesiones. Otra sesión debe poder retomar EXACTAMENTE aquí.
 > Última actualización: 2026-10-08 (auditoría ChatGPT ronda 2 + REALITY CUTOVER v1 + observed_program v1)
 >
-> **ESTADO ACTUAL**: HEAD `audit/final-product-completion` = `f3d6a7d` + este doc-commit encima.
-> Tests **1917/1917** · build ✅. P0 de cliente: **0 abiertos** (P0-A/P0-B cerrados). Economía/Provenance y
-> Plan Intelligence: contratos+resolvers v1 entregados (CODE_PASS) pero **NO cableados** a motor/UI todavía.
+> **ESTADO ACTUAL**: HEAD `audit/final-product-completion` = `cb76854` + este doc-commit encima.
+> Tests **1921/1921** · build ✅. P0 de cliente: **0 abiertos** (P0-A/P0-B cerrados).
+> PRIMER CABLEADO VISIBLE: `Precios.jsx` (Dirección) muestra columna Procedencia por insumo
+> (chip estado + tooltip "¿por qué $544?"), capa aditiva que NO cambia números del motor.
+> Verificado: build (import+JSX), wiring test, lógica del puente contra el catálogo real, y la app
+> arranca autenticada como Dirección (veCostos). Pendiente: screenshot del tab Precios en vivo (el home
+> curó ese tile; se alcanza por Guía/Dirección) — USER_FLOW(render) no bloquea. observed_program y el
+> resolver de precio siguen SIN cablear a motor/acomodo (sólo la UI de Precios está cableada).
 
 ## ⬆️ LO MÁS RECIENTE PRIMERO (ronda 2, auditoría ChatGPT independiente)
 ChatGPT auditó `audit/final-product-completion @ dca88e2` contra el código real y
@@ -186,7 +191,7 @@ de SEGURIDAD (edges/RLS en infra Supabase).
 | Login/Recovery | ✅ | ✅ | ✅ smoke | BLOCKED(creds) | buena | error genérico login P1-17 |
 | Roles | ✅ | ✅ | — | BLOCKED | buena | seller-safe COMPLETO P0-B CERRADO (piezas+partidas+local) |
 | Security | parcial | — | — | — | media | config RLS YA cerrada en prod; `app` verify_jwt=false → auditar; hardening interno 4 edges (ejecutable) |
-| Economía/Provenance | ✅ v1 | catálogo real (174/259 REAL) | — | — | nueva | resolver conectado al catálogo; falta cableado UI Costear + serie histórica |
+| Economía/Provenance | ✅ v1 | catálogo real (174/259 REAL) | UI Precios wired | render pendiente | nueva | chip procedencia en Precios (Dirección); falta Costear/HojaCosto + serie histórica |
 | Plan Intelligence | parcial | NO wired | — | BLOCKED | media | observed_program v1 (contrato+validación) listo; falta alimentarlo desde leer-plano + golden 132 m² |
 | Persistence | parcial | ✅ | — | BLOCKED | media | reopen FIX; autosave/config P0-3 |
 | VONI/Council | ✅ | ✅ | — | BLOCKED | media | proveedorReal traga errores (P1) |
