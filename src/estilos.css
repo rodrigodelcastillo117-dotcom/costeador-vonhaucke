@@ -254,7 +254,20 @@ input.capturado { border-color: var(--verde); }
 .pieza-sub { margin-left: auto; align-self: center; font-family: var(--mono); font-weight: 700; font-size: 17px; }
 .pieza-calc { margin-top: 8px; font-size: 13px; font-family: var(--mono); color: var(--gris); }
 .pieza-calc strong { color: var(--tinta); }
-@media (max-width: 480px) { .pieza-med label input { width: 78px; } .pieza-sub { width: 100%; margin-left: 0; text-align: right; } }
+@media (max-width: 480px) {
+  .pieza-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 44px;
+    grid-template-rows: auto auto;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .pieza-nom { grid-column: 1; grid-row: 1; width: 100%; }
+  .pieza-mat { grid-column: 1; grid-row: 2; width: 100%; }
+  .pieza-x { grid-column: 2; grid-row: 1 / span 2; width: 44px; height: 100%; min-height: 96px; }
+  .pieza-med label input { width: 78px; }
+  .pieza-sub { width: 100%; margin-left: 0; text-align: right; padding-right: 4px; }
+}
 
 /* ---- Renglones de insumo ---- */
 .renglon-insumo { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--papel); }
