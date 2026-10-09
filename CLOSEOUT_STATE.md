@@ -3,12 +3,12 @@
 > Estado VIVO y VERÍDICO para continuar entre sesiones y para auditoría de ChatGPT.
 > Regla: este archivo refleja SIEMPRE el HEAD real, los tests reales y qué quedó REALMENTE
 > cableado vs pendiente. Cero información histórica presentada como estado actual.
-> Última actualización: 2026-10-09 (ronda 15 ChatGPT+Grok: cierre de reconciliación física — surplus, provenance agrupada, sillería).
+> Última actualización: 2026-10-09 (re-auditoría R15 ChatGPT+Grok: gate real de sillería/conflictos + identidad de asiento + una sola realidad).
 
 ## ESTADO ACTUAL (verificado contra el repo)
-- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `b651932`**; el HEAD de la rama es el
+- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `fd6b6c5`**; el HEAD de la rama es el
   doc-commit de este CLOSEOUT encima (un commit no puede contener su propio SHA). Tip exacto: `git rev-parse HEAD`.
-- **Tests: 2154 / 2154** (vitest, 259 archivos) · **Build: ✅** (vite) · **deno check ✅** (leer-plano + core) · verificado en esta sesión (2026-10-09).
+- **Tests: 2156 / 2156** (vitest, 259 archivos) · **Build: ✅** (vite) · **deno check ✅** (leer-plano + core) · verificado en esta sesión (2026-10-09).
 - **Evidencia = LOCAL de Claude. GitHub NO tiene CI runs (0 workflows).** Golden QA-COT-01 = MOCK_ONLY /
   RECORDED CONTRACT (no es E2E del PDF vivo). Lectura de PDF en vivo + edges = BLOCKED_EXTERNAL (no desplegado).
 - **MANDATO RC (deadline lunes 12-oct)**: autónomo hasta Release Candidate. Autorización NUEVA de Rodrigo:
@@ -90,6 +90,19 @@ credenciales a un servicio externo). Por eso:
 - BLOCKED_EXTERNAL (requiere login con cuenta de PRUEBA): E2E autenticado de guardar/reabrir, roles en vivo, aprobar contra servidor, autosave real, storage real.
 
 ## HISTORIAL DE AUDITORÍA (ChatGPT) — qué pasó en cada ronda
+
+### Re-auditoría R15 — ChatGPT + Grok (sobre b651932) — 5 falsos verdes corregidos (código `fd6b6c5`)
+La re-auditoría aceptó R15-2/R15-3/R15-5 (PASS) y reabrió R15-1 (parcial), R15-4 y R15-6. Corregido:
+- **R15-A** GATE ÚNICO a la propuesta (`puedeEntrarPropuesta`): el STEPPER ya no brinca a paso 4 con sillería
+  pendiente; TODAS las rutas (stepper, botones, omitir, candado, onIr) pasan por el mismo predicado.
+- **R15-B** "¿hay alguna silla?" era demasiado débil: `silleriaPendiente` reconcilia por rol + CANTIDAD (8+10 vs 1 → pendiente).
+- **R15-C** `propuestaSilleriaSugerida` liga el asiento al ANCLA (`anchor_instance_id`, req_id por ancla): bench
+  quantity=4 → 8 sillas con instance_id únicos, 2 por ancla, sin cross-link ni IDs duplicados.
+- **R15-D** una sola realidad fail-closed en PERSISTENCIA: con observed server, Acomodo `setSugeridas([])` y ELIMINA
+  `sugeridosPartidas`/`demoAutopoblado`/`programaPropuesto` del estado guardado (todas las rutas).
+- **R15-E** conflicto de reconciliación (EXISTING_SURPLUS/SLOT_OCUPADO/SPLIT_REQUIRED) es GATE: botón Aplicar
+  deshabilitado + `App.aplicarProgramaDetectado` REHÚSA el write (0 escrituras) cuando la reconciliación los produce.
+Suite 2156/2156 (259 archivos) · build ✅ · deno check ✅. Ahora sí R15-1/4/6 cerrados. PENDIENTE: re-auditoría de estos fixes.
 
 ### Ronda 15 — ChatGPT + Grok (sobre 0fad6cb) — 6 puntos cerrados (código `b651932`)
 Cierre de reconciliación física (pre-motor):
@@ -430,7 +443,7 @@ Lo que falta es CONECTAR la casa, en este orden:
    LÍNEA (materiales/partes/rubros + moneda+FX) y usarlo con las T.D.C. Alba/Alpura reales (depende de #3).
    fixture ≠ golden ejecutado.
 
-## Matriz (estado real al código b651932)
+## Matriz (estado real al código fd6b6c5)
 | Área | CODE | INTEGRATION | E2E | USER FLOW | Pendiente |
 |---|---|---|---|---|---|
 | Home/Navegación | ✅ | ✅ | ✅ smoke | ✅ render | — |

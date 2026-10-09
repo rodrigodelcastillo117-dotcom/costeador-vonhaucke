@@ -5,6 +5,22 @@
 
 ---
 
+## RE-AUDITORÍA R15 — RESUELTA (para CHATGPT + GROK)
+
+- **branch:** `audit/final-product-completion` · **code SHA:** `fd6b6c5` (HEAD = doc-commit encima). Base = `b651932`.
+- **tests:** 2156/2156 vitest (259 archivos) · **vite build:** ✅ · **deno check:** ✅. **CI real:** GitHub 0 runs (evidencia LOCAL).
+- La re-auditoría aceptó **R15-2 / R15-3 / R15-5 (PASS)** y reabrió R15-1/4/6. Corregidos los 5 falsos verdes:
+  - **R15-A** (gate se brincaba por el stepper) → `puedeEntrarPropuesta` ÚNICO; stepper + botones + omitir + candado + onIr lo usan. — **CODE_PASS** (lógica), render no E2E.
+  - **R15-B** (una silla "resolvía" todo) → `silleriaPendiente` por rol + cantidad. — **INTEGRATION_PASS** (caso 35).
+  - **R15-C** (`propuestaSilleriaSugerida` perdía ancla / duplicaba IDs) → ligada a `anchor_instance_id`, 8 sillas únicas 2/ancla. — **INTEGRATION_PASS** (caso 36).
+  - **R15-D** (persistencia conservaba 2ª realidad) → fail-closed: con observed se eliminan sugeridosPartidas/demoAutopoblado/programaPropuesto. — **CODE_PASS** (lógica), render no E2E.
+  - **R15-E** (surplus era sólo mensaje) → gate real: botón deshabilitado + `App.aplicarProgramaDetectado` rehúsa el write si la reconciliación produce EXISTING_SURPLUS/SLOT_OCUPADO/SPLIT_REQUIRED. — **CODE_PASS** (App), dominio `aplicarPrograma` produce los conflictos **INTEGRATION_PASS** (casos 31/31b).
+- **Estado R15 final:** R15-1 ✅ (surplus detecta + gate), R15-2 ✅, R15-3 ✅, R15-4 ✅ (gate+acción real), R15-5 ✅, R15-6 ✅ (incl. persistencia).
+- **BLOCKED_EXTERNAL / supuestos:** iguales que el bloque R15 abajo + el render de UI (stepper/gate/persistencia) NO está cubierto por E2E; sólo la LÓGICA de dominio. El selector "elegir otro producto / requiere desarrollo" sigue pendiente de UI.
+- **Hallazgo:** el gate de sillería se libera cuando `silleriaPendiente` ve cubierto el rol+cantidad en la cotización (p.ej. tras "Usar sillería sugerida"); si el usuario borra esas sillas luego, vuelve a pendiente — sin flag de "confirmado" persistente (decisión de negocio abierta).
+
+---
+
 ## R15 PARA AUDITORÍA CHATGPT + GROK
 
 - **branch:** `audit/final-product-completion` · **code SHA:** `b651932` (HEAD = doc-commit encima). Base R15 = `0fad6cb`.
@@ -187,20 +203,20 @@
 Eres el auditor independiente del proyecto Von Haucke (app React + Supabase de costeo/cotización).
 Audita la rama `audit/final-product-completion`.
 
-- Último commit de CÓDIGO: b651932 (ronda 15: cierre de reconciliación física — surplus, provenance agrupada, sillería). Base R15 = 0fad6cb.
-  Verdad viva: `CLOSEOUT_STATE.md` (historial completo rondas 1–15) + bloque "R15 PARA AUDITORÍA CHATGPT + GROK" arriba.
-  Tests 2154/2154 (259 archivos), build ✅, deno check ✅ (evidencia LOCAL; GitHub 0 CI runs). Golden/adapter = MOCK_ONLY.
+- Último commit de CÓDIGO: fd6b6c5 (re-auditoría R15: gate real de sillería/conflictos + identidad de asiento + una sola realidad). Base = b651932.
+  Verdad viva: `CLOSEOUT_STATE.md` (historial rondas 1–15 + re-auditoría R15) + bloque "RE-AUDITORÍA R15 — RESUELTA" arriba.
+  Tests 2156/2156 (259 archivos), build ✅, deno check ✅ (evidencia LOCAL; GitHub 0 CI runs). Golden/adapter = MOCK_ONLY.
 - Límites que Claude respetó: NO merge, NO deploy/promote, NO migración prod, NO prod-write, NO tocar 33 legacy,
   NO aprobar DATA TRUTH, NO integrar Intelisis. Todo capa ADITIVA (no cambia números del motor). El validador del
   edge está PREPARADO + deno-clean pero NO DESPLEGADO (prod edge = hard boundary).
 
-Verifica contra el CÓDIGO real (no sólo el closeout) que los 6 puntos de tu ronda 15 quedaron bien cerrados:
-1. R15-1 SURPLUS: existente cantidad=4 + observed=2 → reutiliza 2 y marca EXISTING_SURPLUS de 2 (ok=false, no borra). observed=0 + existente observado → review.
-2. R15-2 provenance agrupada: una fila cantidad=2 que absorbe B-01+B-02 conserva AMBAS en plan_instances[] (¿alguna desaparece?).
-3. R15-3 stable key: dos benches misma zone+grouping, posiciones distintas, sin source_ref → requirement_id/instance_id DIFERENTES.
-4. R15-4 sillería: ¿programaCompleto=false bloquea "ir directo a la propuesta"/"omitir acomodo"? ¿"Usar sillería sugerida" crea partidas reales? ¿MODEL_MISMATCH gatea?
-5. R15-5 counts Acomodo usan reutilizadasUnidades (observed4 + existente cantidad2 → cubiertas 2 / por agregar 2).
-6. R15-6 estado: ¿Acomodo deja de generar/persistir sugeridosPartidas por áreas cuando hay observed server? Revisa supuestos del bloque R15 y busca NUEVOS falsos verdes.
+Verifica contra el CÓDIGO real (no sólo el closeout) que los 5 falsos verdes de tu re-auditoría R15 quedaron corregidos:
+1. R15-A: ¿el STEPPER (Pasos) ya NO entra a paso 4 con sillasPorConfirmar? ¿TODAS las rutas (stepper/botones/omitir/candado/onIr) usan `puedeEntrarPropuesta`?
+2. R15-B: `silleriaPendiente` reconcilia por rol+cantidad (8+10 requeridas vs 1 existente → pendiente), no "¿hay alguna silla?".
+3. R15-C: `propuestaSilleriaSugerida` con bench quantity=4 → 8 sillas, instance_id únicos, 2 por anchor_instance_id, sin cross-link.
+4. R15-D: con observed server, ¿Acomodo ELIMINA sugeridosPartidas/demoAutopoblado/programaPropuesto del estado persistido (todas las rutas)?
+5. R15-E: ¿`App.aplicarProgramaDetectado` rehúsa el write (0 escrituras) si la reconciliación produce EXISTING_SURPLUS/SLOT_OCUPADO/SPLIT_REQUIRED? ¿botón deshabilitado con conflictos?
+6. Revisa supuestos (render UI no E2E; selector de sillería pendiente) y busca NUEVOS falsos verdes.
 
 Luego decide/recomienda prioridad para el mega-avance, sabiendo que estos bloques necesitan decisión de Rodrigo o deploy:
 A. MOTOR CUTOVER: que `calcular()` tome el precio del CanonicalPriceResolver con fail-closed, preservando goldens (sólo productos nuevos).
