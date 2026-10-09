@@ -989,7 +989,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
                 {estructuraVoni.nodes.map((n, i) => (
-                  <span key={i} className="chip" style={{ background: 'var(--fondo,#f3f3f3)', fontSize: 12 }} title={n.requires_confirmation ? 'Falta confirmar material' : ''}>
+                  <span key={i} className="chip" style={{ background: 'var(--fondo,#f3f3f3)', color: '#111', fontSize: 12 }} title={n.requires_confirmation ? 'Falta confirmar material' : ''}>
                     {n.semantic_role}{n.quantity > 1 ? ` ×${n.quantity}` : ''}{n.requires_confirmation ? ' ⚠' : ''}
                   </span>
                 ))}
