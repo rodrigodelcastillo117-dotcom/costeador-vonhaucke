@@ -81,32 +81,44 @@ export function puedeConfirmarMaterial(rol) {
   return ROLES_CONFIRMADORES.has(String(rol || '').trim().toLowerCase());
 }
 
-// RECONCILIACIÓN SERVER-SIDE (P0.5 + P0.9 + backward-compat): el `material_match` del BROWSER
-// NO es autoridad. El servidor RECALCULA la clase EFECTIVA con la MISMA lógica determinista:
+// RECONCILIACIÓN SERVER-SIDE (P0.5 + P0.9 + P0.10 + backward-compat): el `material_match` y
+// cualquier flag `legacy` del BROWSER NO son autoridad. El servidor RECALCULA la clase EFECTIVA
+// con la MISMA lógica determinista:
 //  · CON material_solicitado (reclamo de la IA): clasifica contra el catálogo autoritativo.
 //    La confirmación humana (material_confirmado) SÓLO se honra si `puedeConfirmar` (capability
-//    de rol, P0.9); de lo contrario se ignora y queda la clase provisional/crítica real.
-//  · SIN material_solicitado (BOM legacy o selección directa del Costeador): no hay reclamo
-//    que reconciliar. Se PRESERVA el insumo (LEGACY_SELECTED, costea/emite) para no romper las
-//    cotizaciones existentes; con confirmación válida pasa a USER_CONFIRMED; insumoId inválido
-//    → NOT_AVAILABLE (fail-closed). Jamás se inventa confirmación.
-// `opts.puedeConfirmar` lo decide el servidor (index.ts) por el rol; por defecto FALSE.
-export function reconciliarMaterialServidor(comp = {}, resolver, catalogo = null, { puedeConfirmar = false } = {}) {
+//    de rol, P0.9); si no, se ignora y queda la clase provisional/crítica real.
+//  · SIN material_solicitado: la AUSENCIA de ese campo NO prueba legacy (P0.10). Un request
+//    interactivo nuevo sin material_solicitado queda PENDIENTE (CANDIDATE_REQUIRES_CONFIRMATION,
+//    no emitible), nunca legacy automático. `LEGACY_SELECTED` sólo se origina desde una
+//    PROVENANCE SERVER-SIDE confiable (`opts.origenLegacyConfiable`, que el cliente no puede
+//    fijar). Con confirmación válida → USER_CONFIRMED. insumoId inválido → NOT_AVAILABLE.
+// `opts.puedeConfirmar` y `opts.origenLegacyConfiable` los decide el servidor; por defecto FALSE.
+export function reconciliarMaterialServidor(comp = {}, resolver, catalogo = null, { puedeConfirmar = false, origenLegacyConfiable = false } = {}) {
   const solicitado = String(comp.material_solicitado || '').trim();
   const idTxt = String(comp.insumoId || '').trim();
   const existe = idTxt ? (resolver ? resolver(idTxt) : null) : null;
   const confirmar = comp.material_confirmado === true && puedeConfirmar === true; // capability real
 
-  // Selección DIRECTA / LEGACY: insumoId sin material_solicitado declarado.
+  // SIN reclamo de material (no hay material_solicitado).
   if (!solicitado) {
     if (!existe) {
       return { ...comp, insumoId: '', material_match: MATCH.NOT_AVAILABLE,
-        _match: { clase: MATCH.NOT_AVAILABLE, solicitado: '', confirmado_por_usuario: false, autocosteable: false, motivo: 'insumoId no existe en el catálogo autoritativo.' } };
+        _match: { clase: MATCH.NOT_AVAILABLE, solicitado: '', confirmado_por_usuario: false, autocosteable: false, candidate_insumo_id: '', motivo: 'insumoId no existe en el catálogo autoritativo.' } };
     }
-    const clase = confirmar ? MATCH.USER_CONFIRMED : MATCH.LEGACY_SELECTED;
-    return { ...comp, insumoId: idTxt, material_match: clase,
-      _match: { clase, solicitado: '', resuelto: existe.nombre || idTxt, confirmado_por_usuario: confirmar,
-        autocosteable: true, candidate_insumo_id: idTxt, cambio: '' } };
+    // Confirmación humana explícita y autorizada → USER_CONFIRMED (emite).
+    if (confirmar) {
+      return { ...comp, insumoId: idTxt, material_match: MATCH.USER_CONFIRMED,
+        _match: { clase: MATCH.USER_CONFIRMED, solicitado: '', resuelto: existe.nombre || idTxt, confirmado_por_usuario: true, autocosteable: true, candidate_insumo_id: idTxt, cambio: '' } };
+    }
+    // PROVENANCE legacy confiable (sólo el servidor la fija) → LEGACY_SELECTED (costea/emite,
+    // pero con estado tope preliminar/histórico, nunca certificado — P0.11).
+    if (origenLegacyConfiable) {
+      return { ...comp, insumoId: idTxt, material_match: MATCH.LEGACY_SELECTED,
+        _match: { clase: MATCH.LEGACY_SELECTED, solicitado: '', resuelto: existe.nombre || idTxt, confirmado_por_usuario: false, autocosteable: true, candidate_insumo_id: idTxt, cambio: '' } };
+    }
+    // Request nuevo sin material_solicitado ni confirmación ni provenance → PENDIENTE (no emite).
+    return { ...comp, insumoId: '', material_match: MATCH.CANDIDATE_REQUIRES_CONFIRMATION,
+      _match: { clase: MATCH.CANDIDATE_REQUIRES_CONFIRMATION, solicitado: '', resuelto: existe.nombre || idTxt, confirmado_por_usuario: false, autocosteable: false, candidate_insumo_id: idTxt, cambio: '', motivo: 'Material sin especificar ni confirmar: requiere confirmación (no se asume legacy).' } };
   }
 
   // CON reclamo de material: reclasificación determinista contra el catálogo.
@@ -123,6 +135,17 @@ export function reconciliarMaterialServidor(comp = {}, resolver, catalogo = null
     material_match: pol.material_match,   // EFECTIVO: autoridad del servidor, no del browser
     _match: pol._match,
   };
+}
+
+// P0.11 — LEGACY_SELECTED nunca se vuelve "certificado" automáticamente. Precio certificado del
+// INSUMO ≠ selección certificada del MATERIAL para esa pieza. Si cualquier componente efectivo
+// es LEGACY_SELECTED, el estado económico se topa en 'preliminar' hasta migración/confirmación
+// válida (que lo convertiría en USER_CONFIRMED y cambiaría el hash/revisión — P0.7/N).
+export function estadoConTopeLegacy(estadoBase, componentes = []) {
+  const hayLegacy = (Array.isArray(componentes) ? componentes : [])
+    .some((c) => (c?.material_match || c?._match?.clase) === MATCH.LEGACY_SELECTED);
+  if (hayLegacy && estadoBase === 'certificado') return 'preliminar';
+  return estadoBase;
 }
 
 // Familias canónicas de material. El orden importa: la primera regex que pega

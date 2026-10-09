@@ -27,7 +27,7 @@ import { validarIntentCosteo } from "../../../src/datos/validarIntentCosteo.js";
 // P0.5: el material_match del BROWSER no es autoridad. El servidor RECALCULA la clase efectiva
 // contra el catálogo autoritativo con la MISMA lógica determinista compartida (sin duplicar).
 // P0.9: la confirmación técnica de material (USER_CONFIRMED) la autoriza el SERVIDOR por rol.
-import { reconciliarMaterialServidor, puedeConfirmarMaterial } from "../../../src/datos/materialMatch.js";
+import { reconciliarMaterialServidor, puedeConfirmarMaterial, estadoConTopeLegacy } from "../../../src/datos/materialMatch.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -117,9 +117,13 @@ Deno.serve(async (req) => {
   // gate: el motor verá la clase real y `costeoEmitible` bloqueará la emisión.
   const resolver = (id: string) => (insumos as any)[id];
   const catalogoVals = Object.values(insumos as any) as any;
+  // origenLegacyConfiable=false SIEMPRE en este edge interactivo (P0.10): un request nuevo NO
+  // tiene provenance legacy confiable, así que la ausencia de material_solicitado NUNCA produce
+  // LEGACY_SELECTED aquí — queda pendiente de confirmación. (Un futuro flujo que RE-COSTEE un
+  // expediente guardado verificado server-side sería el único que podría pasar true.)
   const piezaReconciliada = {
     ...pieza,
-    componentes: comps0.map((c: any) => reconciliarMaterialServidor(c, resolver, catalogoVals, { puedeConfirmar })),
+    componentes: comps0.map((c: any) => reconciliarMaterialServidor(c, resolver, catalogoVals, { puedeConfirmar, origenLegacyConfiable: false })),
   };
 
   // --- Mismo motor que el cliente ---
@@ -172,6 +176,14 @@ Deno.serve(async (req) => {
     estado = "preliminar";
     warnings.push(`Costo preliminar — ${noCertificados.length} de ${usados.length} insumo(s) sin precio certificado.`);
     if (requierenValidacion.length) warnings.push(`${requierenValidacion.length} insumo(s) requieren validación de Compras.`);
+  }
+  // P0.11: si hay algún material LEGACY_SELECTED, el estado se topa en 'preliminar' aunque TODOS
+  // los precios estén certificados. Precio certificado del insumo ≠ selección certificada del
+  // material para esa pieza; sólo migración/confirmación válida (USER_CONFIRMED) lo libera.
+  const estadoTopado = estadoConTopeLegacy(estado, piezaReconciliada.componentes);
+  if (estadoTopado !== estado) {
+    warnings.push("Costo con material(es) histórico(s) (LEGACY_SELECTED): estado tope 'preliminar' hasta confirmar el material.");
+    estado = estadoTopado as typeof estado;
   }
 
   // Precio: SIEMPRE con el margen OBJETIVO del servidor (config/params), NUNCA del

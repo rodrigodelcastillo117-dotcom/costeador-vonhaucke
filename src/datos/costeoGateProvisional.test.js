@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { INSUMOS_SEMILLA } from './insumos.js';
-import { aplicarPoliticaMaterial, reconciliarMaterialServidor, puedeConfirmarMaterial, requiereConfirmacion, MATCH, MATCH_AUTOCOSTEABLE } from './materialMatch.js';
+import { aplicarPoliticaMaterial, reconciliarMaterialServidor, puedeConfirmarMaterial, estadoConTopeLegacy, requiereConfirmacion, MATCH, MATCH_AUTOCOSTEABLE } from './materialMatch.js';
 import { validarIntentCosteo } from './validarIntentCosteo.js';
 import { calcular, costeoEmitible, bomHash, precioDe, PARAMETROS_DEFAULT } from '../motor/calculo.js';
 
@@ -23,7 +23,9 @@ const costear = (componentes) => calcular({ nombre: 'P', piezas: 1, componentes,
 // Espejo FIEL de la cadena del servidor (costear-servidor/index.ts): DTO estricto →
 // RECONCILIACIÓN de material contra el catálogo autoritativo (ignora el material_match del
 // browser) → motor → juez de emisión. Esto es lo que cierra el bypass P0.5.
-function servidor(componentesCrudos, { rol = 'diseno' } = {}) {
+// `origenLegacy` SÓLO lo fija el servidor (provenance confiable); el edge interactivo real
+// pasa SIEMPRE false. En las pruebas simulamos un re-costeo de expediente verificado con true.
+function servidor(componentesCrudos, { rol = 'diseno', origenLegacy = false } = {}) {
   const body = { cantidad: 1, pieza: { componentes: componentesCrudos } };
   const v = validarIntentCosteo(body);
   if (!v.ok) return { status: 400, code: v.code, issues: v.issues };
@@ -34,15 +36,20 @@ function servidor(componentesCrudos, { rol = 'diseno' } = {}) {
   }
   const reconc = {
     ...v.intent.pieza,
-    componentes: v.intent.pieza.componentes.map((c) => reconciliarMaterialServidor(c, (id) => INSUMOS[id], CAT, { puedeConfirmar })),
+    componentes: v.intent.pieza.componentes.map((c) => reconciliarMaterialServidor(c, (id) => INSUMOS[id], CAT, { puedeConfirmar, origenLegacyConfiable: origenLegacy })),
   };
   const r = calcular(reconc, 1, INSUMOS, PARAMETROS_DEFAULT);
   const em = costeoEmitible(r);
   const precioRaw = precioDe(r.costoUnitario, 40);
+  // ESTADO como el edge: emitible+todo-certificado→'certificado'; aquí asumimos precios
+  // certificados para probar el TOPE P0.11 (LEGACY_SELECTED nunca llega a 'certificado').
+  const estadoBase = !em.emitible ? 'incompleto' : 'certificado';
+  const estado = estadoConTopeLegacy(estadoBase, reconc.componentes);
   return {
     status: 200,
     intentComponentes: reconc.componentes,             // lo EFECTIVO que el servidor costeó
     emitible: em.emitible,
+    estado,
     costoUnitario: r.costoUnitario,
     costoTotal: em.costoTotal,
     materialesPorConfirmar: em.bloqueos.materiales_por_confirmar,
@@ -280,38 +287,72 @@ describe('P1 — política de espesor conservadora (sólo 18↔19 aprobado)', ()
 // ============================================================================
 //  BACKWARD-COMPAT — BOMs legacy / selección manual (insumoId sin material_solicitado).
 // ============================================================================
-describe('backward-compat: BOMs legacy no se destruyen ni inventan confirmación', () => {
-  const legacy = { nombre: 'Cubierta', insumoId: 'melamina-19-color', forma: 'area', largoMM: 1200, anchoMM: 600, cantidad: 1, hojas: 0.3 };
+// ============================================================================
+//  P0.10 — LEGACY no se infiere por FALTA de material_solicitado. Sólo provenance
+//  server-side confiable. P0.11 — LEGACY nunca llega a 'certificado' automáticamente.
+//  Adversariales H–N.
+// ============================================================================
+describe('P0.10/P0.11 — LEGACY sólo por provenance server-side, nunca certificado automático', () => {
+  const sinSolicitado = { nombre: 'Cubierta', insumoId: 'melamina-19-color', forma: 'area', largoMM: 1200, anchoMM: 600, cantidad: 1, hojas: 0.3 };
 
-  it('legacy (insumoId, SIN material_solicitado) → se PRESERVA (LEGACY_SELECTED), costea y EMITE', () => {
-    const rec = reconciliarMaterialServidor(legacy, (id) => INSUMOS[id], CAT, { puedeConfirmar: false });
-    expect(rec.insumoId).toBe('melamina-19-color');          // no se destruye el insumo efectivo
-    expect(rec.material_match).toBe(MATCH.LEGACY_SELECTED);
-    const em = costeoEmitible(costear([rec]));
-    expect(em.emitible).toBe(true);                          // cotización legacy sigue emitible
-    expect(em.costoTotal).not.toBeNull();
+  it('H) VENDEDOR omite material_solicitado → NO legacy, NO emisión por esa omisión', () => {
+    const s = servidor([sinSolicitado], { rol: 'vendedor', origenLegacy: false });
+    expect(s.status).toBe(200);
+    expect(s.intentComponentes[0].material_match).toBe(MATCH.CANDIDATE_REQUIRES_CONFIRMATION); // pendiente
+    expect(s.intentComponentes[0].material_match).not.toBe(MATCH.LEGACY_SELECTED);
+    expect(s.emitible).toBe(false);
   });
 
-  it('legacy con insumoId INEXISTENTE → NOT_AVAILABLE (fail-closed, no inventa)', () => {
-    const rec = reconciliarMaterialServidor({ nombre: 'X', insumoId: 'fantasma-999' }, (id) => INSUMOS[id], CAT, { puedeConfirmar: false });
+  it('I) DISEÑO omite material_solicitado SIN confirmación → tampoco legacy automático', () => {
+    const s = servidor([sinSolicitado], { rol: 'diseno', origenLegacy: false });
+    expect(s.intentComponentes[0].material_match).toBe(MATCH.CANDIDATE_REQUIRES_CONFIRMATION);
+    expect(s.emitible).toBe(false);
+  });
+
+  it('J) BOM histórico REAL con provenance server-side → sí backward compatibility (LEGACY_SELECTED, emite)', () => {
+    const s = servidor([sinSolicitado], { rol: 'vendedor', origenLegacy: true }); // provenance la fija el servidor
+    expect(s.intentComponentes[0].material_match).toBe(MATCH.LEGACY_SELECTED);
+    expect(s.intentComponentes[0].insumoId).toBe('melamina-19-color');            // no se destruye
+    expect(s.emitible).toBe(true);
+  });
+
+  it('K) cliente manda material_match=LEGACY_SELECTED → ignorado/recalculado (queda pendiente)', () => {
+    const s = servidor([{ ...sinSolicitado, material_match: 'LEGACY_SELECTED' }], { rol: 'vendedor', origenLegacy: false });
+    expect(s.intentComponentes[0].material_match).toBe(MATCH.CANDIDATE_REQUIRES_CONFIRMATION);
+    expect(s.emitible).toBe(false);
+  });
+
+  it('L) cliente manda legacy=true → sin autoridad (el DTO lo descarta, sigue pendiente)', () => {
+    const s = servidor([{ ...sinSolicitado, legacy: true }], { rol: 'vendedor', origenLegacy: false });
+    expect(s.status).toBe(200);
+    expect(s.intentComponentes[0].material_match).toBe(MATCH.CANDIDATE_REQUIRES_CONFIRMATION);
+    expect(s.intentComponentes[0].legacy).toBeUndefined();   // el flag del cliente no sobrevive
+  });
+
+  it('M) legacy real + precios todos certificables → NO estado=certificado (tope preliminar)', () => {
+    const s = servidor([sinSolicitado], { rol: 'vendedor', origenLegacy: true });
+    expect(s.intentComponentes[0].material_match).toBe(MATCH.LEGACY_SELECTED);
+    expect(s.emitible).toBe(true);
+    expect(s.estado).toBe('preliminar');                     // NO 'certificado' aunque emita
+    expect(s.estado).not.toBe('certificado');
+  });
+
+  it('N) legacy migrado/confirmado válidamente → cambia de estado y de BOM hash (revisión)', () => {
+    const legacy = reconciliarMaterialServidor(sinSolicitado, (id) => INSUMOS[id], CAT, { puedeConfirmar: false, origenLegacyConfiable: true });
+    // Confirmación válida (diseño/dirección) sobre la misma pieza → USER_CONFIRMED.
+    const confirmado = reconciliarMaterialServidor({ ...sinSolicitado, material_confirmado: true }, (id) => INSUMOS[id], CAT, { puedeConfirmar: true });
+    expect(legacy.material_match).toBe(MATCH.LEGACY_SELECTED);
+    expect(confirmado.material_match).toBe(MATCH.USER_CONFIRMED);
+    // Estado: legacy topa en preliminar; confirmado puede certificar.
+    expect(estadoConTopeLegacy('certificado', [legacy])).toBe('preliminar');
+    expect(estadoConTopeLegacy('certificado', [confirmado])).toBe('certificado');
+    // Revisión/hash: legacy ≠ confirmado.
+    expect(bomHash([legacy])).not.toBe(bomHash([confirmado]));
+  });
+
+  it('insumoId INEXISTENTE (con o sin provenance) → NOT_AVAILABLE (fail-closed)', () => {
+    const rec = reconciliarMaterialServidor({ nombre: 'X', insumoId: 'fantasma-999' }, (id) => INSUMOS[id], CAT, { origenLegacyConfiable: true });
     expect(rec.insumoId).toBe('');
     expect(rec.material_match).toBe(MATCH.NOT_AVAILABLE);
-    expect(costeoEmitible(costear([rec])).emitible).toBe(false);
-  });
-
-  it('legacy NO inventa confirmación: material_confirmado sin capability NO promueve a USER_CONFIRMED', () => {
-    const rec = reconciliarMaterialServidor({ ...legacy, material_confirmado: true }, (id) => INSUMOS[id], CAT, { puedeConfirmar: false });
-    expect(rec.material_match).toBe(MATCH.LEGACY_SELECTED);  // no USER_CONFIRMED sin rol
-    expect(rec._match.confirmado_por_usuario).toBe(false);
-  });
-
-  it('un BOM legacy completo (varias piezas con insumoId) mantiene su costo > 0 (no se vuelve $0)', () => {
-    const bom = [
-      { nombre: 'Cubierta', insumoId: 'melamina-19-color', forma: 'area', largoMM: 1200, anchoMM: 600, cantidad: 1, hojas: 0.3 },
-      { nombre: 'Costado', insumoId: 'melamina-16', forma: 'area', largoMM: 700, anchoMM: 600, cantidad: 2, hojas: 0.4 },
-    ].map((c) => reconciliarMaterialServidor(c, (id) => INSUMOS[id], CAT, { puedeConfirmar: false }));
-    const em = costeoEmitible(costear(bom));
-    expect(em.emitible).toBe(true);
-    expect(em.subtotalConocido).toBeGreaterThan(0);
   });
 });
