@@ -118,6 +118,15 @@ export function guardar(estado) {
   }
 }
 
+// SEGURIDAD (P1-2 / seller-safe): borra el estado persistido de ESTE navegador. Se llama al
+// CERRAR SESIÓN y al detectar cambio de usuario, para que una PC compartida no conserve los
+// costos/insumos de Dirección/Diseño (que viven en `insumos.precio/precioBase/proveedor`) para
+// el siguiente que entre, ni queden legibles por DevTools. El trabajo guardado vive en la nube.
+export function limpiarAlmacen() {
+  try { localStorage.removeItem(CLAVE); return true; }
+  catch (e) { console.error('almacen.limpiarAlmacen: no se pudo limpiar', e); return false; }
+}
+
 // Restablecer precios de fabrica sin perder piezas ni cotizaciones (7.5)
 export function restablecerPrecios(estado) {
   const base = mapaInsumos(INSUMOS_SEMILLA);

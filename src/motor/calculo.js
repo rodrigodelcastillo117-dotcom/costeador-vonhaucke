@@ -541,6 +541,15 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     // esté "por confirmar"). Así una partida provisional sin precio muestra AMBOS problemas:
     // "por confirmar material" Y "sin precio" — nunca se oculta uno tras "Costo provisional".
     if (!precioUsable(insumo)) { componentesIgnorados.push(comp.nombre || insumo.nombre || 'Material sin precio'); continue; }
+    // FALTA MEDIDA (audit 2026-10-08, silent P0-1): una pieza DECLARADA de ÁREA (`forma:'area'`,
+    // como las que devuelve la IA del plano) necesita una medida USABLE — largo y ancho > 0, o
+    // hojas > 0. Si llega sin cotas (mapIaComps puso largo/ancho 0 + cantidad 1), NO se inventa
+    // 1 m²/1 hoja: se manda a PENDIENTE. Antes netoComponente caía a `cantidad` y costeaba un m²
+    // fantasma (a veces MÁS caro que la pieza real) saliendo "emitible". Sólo aplica a piezas
+    // marcadas `forma:'area'`: los BOM de línea (lineas.js) y los materiales lineales/por-unidad
+    // NO llevan esa marca y conservan su costeo por cantidad/hojas validado.
+    const tieneMedidaUsable = (Number(comp.largoMM) > 0 && Number(comp.anchoMM) > 0) || Number(comp.hojas) > 0;
+    if (comp.forma === 'area' && !tieneMedidaUsable) { componentesIgnorados.push((comp.nombre || insumo.nombre || 'Pieza') + ' — falta medida'); continue; }
     if (!grupos[comp.insumoId]) {
       grupos[comp.insumoId] = { insumo, comps: [] };
       orden.push(comp.insumoId);

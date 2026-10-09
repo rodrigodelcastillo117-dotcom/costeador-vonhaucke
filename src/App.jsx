@@ -60,7 +60,7 @@ import { cargarReglas } from './datos/reglas.js';
 import { cargarAprendizajes } from './datos/aprendizaje.js';
 import { guardarCotizacion, cargarCotizacionCompleta } from './datos/cotizaciones.js';
 import { guardarRevision } from './datos/revisiones.js';
-import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
+import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES, limpiarAlmacen } from './almacen.js';
 import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, cotizacionEmitible, costearServidor } from './nube.js';
 import { calcular, modeloParaPieza, componentesSinMaterial } from './motor/calculo.js';
 import { calcularCosteoVivo } from './motor/costeoVivo.js';
@@ -175,12 +175,22 @@ function aplicarCompartido(estado, datos) {
 // Borra de este navegador todo lo que solo Direccion debe tener. Se usa al
 // salir y al entrar con un rol que no es direccion: si la nomina quedo
 // guardada de antes de este cambio, aqui desaparece.
-function limpiarSensibles(estado) {
+export function limpiarSensibles(estado) {
   const parametros = { ...estado.parametros };
   for (const f of PARAMS_SENSIBLES) {
     parametros[f] = f === 'costoHoraArea' ? { pm: 0, carpinteria: 0, pintura: 0, acabados: 0, tapiceria: 0 } : null;
   }
-  return { ...estado, parametros, finanzas: null, dir: { cifrado: false } };
+  // P1-2 (seller-safe): NEUTRALIZA los costos de los insumos en memoria. `limpiarSensibles` sólo
+  // limpiaba nómina/finanzas, pero `insumos.{precio,precioBase,proveedor}` (y factores) se quedaban
+  // — un vendedor que entra tras Dirección en la misma PC los conservaba hasta que el RPC
+  // seller-safe respondiera (o si fallaba la red). Aquí se quitan: el catálogo con precios sólo
+  // vuelve si el servidor lo autoriza por rol (config_para_rol).
+  const insumos = {};
+  for (const [id, ins] of Object.entries(estado.insumos || {})) {
+    if (ins && typeof ins === 'object') { const { precio, precioBase, proveedor, ...safe } = ins; insumos[id] = safe; }
+    else insumos[id] = ins;
+  }
+  return { ...estado, parametros, insumos, finanzas: null, dir: { cifrado: false } };
 }
 
 // Mezcla la boveda de Direccion (solo llega si el rol lo permite).
@@ -518,6 +528,9 @@ export default function App() {
     setPestania('inicio');
     // Al salir se borra de esta computadora todo lo de Direccion.
     setEstado((e) => limpiarSensibles(e));
+    // P1-2 (seller-safe): además se borra el BLOB persistido en localStorage, para que una PC
+    // compartida no conserve costos/insumos de la sesión anterior (ni legibles por DevTools).
+    limpiarAlmacen();
   }
 
   // ---- Nube (datos compartidos) ----
@@ -1162,8 +1175,13 @@ export default function App() {
               if (hay && !confirm(`Tienes ${hay} mueble(s) en el proyecto actual. ¿Los reemplazo con este presupuesto?`)) return;
               // La lista del Archivo es LIGERA (solo nombres) por rendimiento; aquí se
               // trae la cotización COMPLETA por id (seller-safe) para poder re-editarla.
-              // Si la nube falla, se cae a lo que traía la tarjeta (degradación suave).
-              const full = (await cargarCotizacionCompleta(c.id)) || c;
+              // P0 (silent P0-2 / React P0-4): si la nube FALLA, cargarCotizacionCompleta
+              // devuelve null. ANTES se caía a la tarjeta ligera `c` (sin config/costos/render)
+              // y, al fijar idCotizacion + autosave, SOBRESCRIBÍA el presupuesto guardado con una
+              // versión recortada → pérdida de datos. Ahora se ABORTA: no se abre nada, no se
+              // toca idCotizacion, y se avisa. El proyecto actual queda intacto.
+              const full = await cargarCotizacionCompleta(c.id);
+              if (!full) { mostrarAviso('No se pudo cargar el presupuesto completo (revisa tu conexión). No se abrió, para no dañarlo.', 6000); return; }
               idCotizacion.current = c.id;   // seguir editando ESE, no crear otro
               setEstado((e) => ({
                 ...e,

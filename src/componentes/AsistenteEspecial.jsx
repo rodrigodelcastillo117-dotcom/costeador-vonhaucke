@@ -551,6 +551,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     // conservan insumoId; el resto queda '' + bandera `_match`.
     const base = aplicarPoliticaMaterial({ ...z, material_solicitado: z.material_solicitado || z.nombre }, (id) => insumos[id], Object.values(insumos));
     if (z.forma === 'area') {
+      base.forma = 'area'; // se preserva: el motor usa `forma:'area'` para exigir medida (silent P0-1)
       base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
       // La IA ya estimó la fracción de hoja que rinde: el motor la usa directa
       // (hojas × precio) en vez de re-nestear áreas, que es lo que oscilaba.
