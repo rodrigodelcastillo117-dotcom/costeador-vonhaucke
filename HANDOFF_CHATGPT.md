@@ -5,6 +5,28 @@
 
 ---
 
+## R13 PARA AUDITORÍA CHATGPT + GROK
+
+- **branch:** `audit/final-product-completion` · **code SHA:** `ce03973` (HEAD = doc-commit encima). Base R13 = `9166921`.
+- **tests:** 2142/2142 vitest (259 archivos) · **vite build:** ✅ · **deno check:** ✅. **CI real:** GitHub 0 runs (evidencia LOCAL).
+- **archivos tocados (R13):** `src/datos/confirmarPrograma.js` (match por instancia + provenance patch), `src/datos/programaRealDelPlano.js` (conciliarDependientes modelo), `src/componentes/Acomodo.jsx` (render con existentes + recomendaciones), `src/componentes/Voni.jsx` (recomendaciones), `src/datos/observedPipelineIntegracion.test.js` (+R13-1/5/3/4).
+- **Estado por hallazgo:**
+  - R13-1 cardinalidad real (4 obs + 2 existentes → reutiliza 2, agrega 2) — **INTEGRATION_PASS** (caso 21).
+  - R13-2 Acomodo con partidas existentes (reconciliación visible, sin bypass) — **CODE_PASS** (gate de UI cambiado) + reconciliación de dominio **INTEGRATION_PASS**; render = NOT_VERIFIED (no E2E).
+  - R13-3 recomendaciones/sillas no desaparecen (Voni+Acomodo las consumen) — **INTEGRATION_PASS** (caso 23) + CODE_PASS (UI).
+  - R13-4 source_ref ≠ modelo — **INTEGRATION_PASS** (caso 24).
+  - R13-5 provenance en reutilizados (plan_source_ref sobrevive la reconciliación) — **INTEGRATION_PASS** (caso 22).
+  - P1 model/finish del observado hasta resolverAnclaCanonica — **CODE_PASS parcial / PENDIENTE**: se lee defensivamente pero el schema del lector NO lo emite → fail-closed (sin modelo → requiere confirmación).
+- **BLOCKED_EXTERNAL:** deploy edge; motor cutover; DATA TRUTH (xlsx + conversión por familia + modelo de sillería por línea + schema de acabado en el lector); merge/promote; migraciones; 33 legacy; Intelisis.
+- **Supuestos NO verificados LIVE:**
+  1. El schema del lector NO emite modelo/acabado por mueble → el modelo observado es casi siempre null y la sillería/mesa ambigua requiere confirmación humana.
+  2. El catálogo real NO tiene las dims del ground truth QA-COT-01 (sí op-2u-1500x1200, por eso los adversariales resuelven).
+  3. El render de Acomodo/VONI (reconciliación con existentes, recomendaciones) NO está cubierto por E2E; sólo la LÓGICA de dominio.
+  4. La estabilidad de `instance_id` entre corridas depende de que el observed_program llegue en el MISMO orden; si el lector reordena filas, los índices cambian (hoy no hay orden garantizado del modelo).
+- **Hallazgos nuevos:** la reconciliación por instancia asume que los `instance_id` existentes provienen de una corrida previa del MISMO observed (mismo orden de filas). Si el orden cambia, el match cae a slot físico (ordinal) y luego a requirement_id único — correcto pero conviene fijar un orden canónico del observed_program en el futuro.
+
+---
+
 ## R12 PARA AUDITORÍA CHATGPT + GROK
 
 - **branch:** `audit/final-product-completion` · **code SHA:** `9166921` (HEAD = doc-commit encima). Base R12 = `b94800d`.
@@ -119,21 +141,22 @@
 Eres el auditor independiente del proyecto Von Haucke (app React + Supabase de costeo/cotización).
 Audita la rama `audit/final-product-completion`.
 
-- Último commit de CÓDIGO: 9166921 (ronda 12: product identity sin SKU arbitrario + provenance end-to-end). Base R12 = b94800d.
-  Verdad viva: `CLOSEOUT_STATE.md` (historial completo rondas 1–12) + bloque "R12 PARA AUDITORÍA CHATGPT + GROK" arriba.
-  Tests 2138/2138 (259 archivos), build ✅, deno check ✅ (evidencia LOCAL; GitHub 0 CI runs). Golden/adapter = MOCK_ONLY.
+- Último commit de CÓDIGO: ce03973 (ronda 13: reconciliación parcial por instancia + dependientes + provenance en reutilizados). Base R13 = 9166921.
+  Verdad viva: `CLOSEOUT_STATE.md` (historial completo rondas 1–13) + bloque "R13 PARA AUDITORÍA CHATGPT + GROK" arriba.
+  Tests 2142/2142 (259 archivos), build ✅, deno check ✅ (evidencia LOCAL; GitHub 0 CI runs). Golden/adapter = MOCK_ONLY.
 - Límites que Claude respetó: NO merge, NO deploy/promote, NO migración prod, NO prod-write, NO tocar 33 legacy,
   NO aprobar DATA TRUTH, NO integrar Intelisis. Todo capa ADITIVA (no cambia números del motor). El validador del
   edge está PREPARADO + deno-clean pero NO DESPLEGADO (prod edge = hard boundary).
 
-Verifica contra el CÓDIGO real (no sólo el closeout) que los 5 P0 + 3 P1 de tu ronda 12 quedaron bien cerrados:
-1. R12-1 ambigüedad (`resolverAnclaCanonica`): mesa 900×900 con melamina/comedor/cristal → PRODUCT_AMBIGUOUS, ¿NUNCA matches[0]?
-2. R12-2 capacidad: ¿cruza prod.usuarios con capacity_per_unit? bench 1500×1200 cap 8 → CAPACITY_MISMATCH (no op-2u).
-3. R12-3 sillas: ¿son RECOMENDACIONES SUGGESTED (no partidas confirmadas)? ¿conciliarDependientes compara modelo cuando existe?
-4. R12-4 Acomodo: ¿se eliminó `hayReales ? null`? ¿observed gobierna aun con partidas existentes (reconcilia, no reinventa por áreas)?
-5. R12-5 provenance: ¿`plan_source_ref` (B-01) sobrevive hasta la partida comercial, separado de `product_source_ref` (op-2u)?
-6. P1: ¿sin fallback cross-línea con línea explícita? ¿`propuestaBloqueada` bloquea identity_status MISSING?
-7. Revisa los SUPUESTOS NO verificados live (bloque R12) y dime cuáles son riesgo real para la demo. Busca NUEVOS falsos verdes.
+Verifica contra el CÓDIGO real (no sólo el closeout) que los 5 P0 + P1 de tu ronda 13 quedaron bien cerrados:
+1. R13-1 cardinalidad (`confirmarPrograma`): observed B-01 qty=4 + existentes {#0,#1} → reutiliza 2, agrega 2, total 4,
+   instance_id únicas. ¿Hay forma de reutilizar la misma existente para 2 instancias? (no debería; `usados` consume-once)
+2. R13-2 Acomodo: ¿se renderiza la reconciliación con partidas existentes (ya cubiertas/por agregar), sin el bypass `!hayReales`?
+3. R13-3 recomendaciones: ¿Voni y Acomodo muestran sillas observadas como "modelo por confirmar" y NO las auto-convierten/esconden?
+4. R13-4 `conciliarDependientes`: ¿source_ref (S-01) ya NO se usa como modelo? sin modelo explícito → requiere_confirmacion_modelo.
+5. R13-5 provenance en REUTILIZADOS: ¿la existente reconciliada con B-01 conserva plan_source_ref (patch de estructuraDe)?
+6. P1 + supuestos del bloque R13 (schema sin modelo/acabado; estabilidad de instance_id por orden del observed). ¿Riesgo real para la demo?
+7. Busca NUEVOS falsos verdes o huecos de integración.
 
 Luego decide/recomienda prioridad para el mega-avance, sabiendo que estos bloques necesitan decisión de Rodrigo o deploy:
 A. MOTOR CUTOVER: que `calcular()` tome el precio del CanonicalPriceResolver con fail-closed, preservando goldens (sólo productos nuevos).
