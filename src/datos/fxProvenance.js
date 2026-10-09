@@ -85,12 +85,16 @@ export function resolverFx(par, observaciones = [], opts = {}) {
   const esEstimado = (o) => o.fuente === FUENTE_FX.PROVISIONAL || o.fuente === FUENTE_FX.POLITICA;
   const estadoDe = (o) => {
     if (esEstimado(o)) return ESTADO_FX.PROVISIONAL;              // presupuesto/estimado, cualquier vigencia
+    // REAL requiere PROVENANCE: sin EVIDENCIA, un número + fuente NO es real (P0-6).
+    if (!o.evidencia) return ESTADO_FX.PROVISIONAL;
+    const f = fechaMs(o.fecha);
+    // FECHA FUTURA = fail-closed (P0-6): una observación "del futuro" no es real.
+    if (f != null && f > hoyMs) return ESTADO_FX.PROVISIONAL;
     const v = fechaMs(o.vigencia_hasta);
     if (v != null) {
       if (v + FIN_DIA < hoyMs) return ESTADO_FX.HISTORICAL;       // vigencia vencida
       return esOficial(o) ? ESTADO_FX.VERIFIED_CURRENT : ESTADO_FX.REAL_DATED; // factura con vigencia = real, no "oficial vigente"
     }
-    const f = fechaMs(o.fecha);
     if (f == null) return ESTADO_FX.PROVISIONAL;                 // real sin fecha ni vigencia → no se puede fechar
     return (hoyMs - f) <= ventanaMs ? ESTADO_FX.REAL_DATED : ESTADO_FX.HISTORICAL;
   };

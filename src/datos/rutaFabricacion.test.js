@@ -2,11 +2,18 @@ import { describe, it, expect } from 'vitest';
 import { operacion, rutaFabricacion, PROCESO, ESTADO_OP } from './rutaFabricacion.js';
 
 describe('RUTA DE FABRICACIÓN / horas-hombre (ChatGPT §10)', () => {
-  it('operación con tiempo + tarifa → OK, costo_mo correcto', () => {
-    const o = operacion({ proceso: 'corte', setup_min: 0, tiempo_unitario_min: 30, cantidad: 1, tarifa_hora: 120, fuente: 'ruta', confianza: 0.9 });
+  it('operación con tiempo + tarifa + PROCEDENCIA → OK, costo_mo correcto', () => {
+    const o = operacion({ proceso: 'corte', setup_min: 0, tiempo_unitario_min: 30, cantidad: 1, tarifa_hora: 120, fuente: 'ruta ingeniería', evidencia: 'TDC-123', confianza: 0.9 });
     expect(o.estado).toBe(ESTADO_OP.OK);
     expect(o.tiempo_total_min).toBe(30);
     expect(o.costo_mo).toBeCloseTo(60, 4);     // 0.5 h × $120
+  });
+
+  it('RED-TEAM P0-7: tiempo + tarifa pero SIN fuente/evidencia → PENDING (MO no oficial sin procedencia)', () => {
+    const o = operacion({ proceso: 'corte', tiempo_unitario_min: 30, cantidad: 1, tarifa_hora: 120 });
+    expect(o.issues).toContain('SIN_FUENTE');
+    expect(o.issues).toContain('SIN_EVIDENCIA');
+    expect(o.estado).toBe(ESTADO_OP.PENDING);
   });
 
   it('SIN tiempo → PENDING, tiempo_total null (no se inventan minutos)', () => {
@@ -33,8 +40,8 @@ describe('RUTA DE FABRICACIÓN / horas-hombre (ChatGPT §10)', () => {
 
   it('ruta con una operación PENDING → PRELIMINAR y totales null (no se cierra el costo)', () => {
     const r = rutaFabricacion([
-      { proceso: 'corte', tiempo_unitario_min: 30, cantidad: 1, tarifa_hora: 120 },
-      { proceso: 'ensamble', tiempo_unitario_min: 40, cantidad: 1 },   // sin tarifa → PENDING
+      { proceso: 'corte', tiempo_unitario_min: 30, cantidad: 1, tarifa_hora: 120, fuente: 'ruta', evidencia: 'TDC' },
+      { proceso: 'ensamble', tiempo_unitario_min: 40, cantidad: 1, fuente: 'ruta', evidencia: 'TDC' },   // sin tarifa → PENDING
     ]);
     expect(r.estado).toBe('PRELIMINAR');
     expect(r.pendientes).toBe(1);
@@ -44,8 +51,8 @@ describe('RUTA DE FABRICACIÓN / horas-hombre (ChatGPT §10)', () => {
 
   it('ruta completa → totales agregados', () => {
     const r = rutaFabricacion([
-      { proceso: 'corte', setup_min: 10, tiempo_unitario_min: 30, cantidad: 1, tarifa_hora: 120 },      // 40 min, $80
-      { proceso: 'ensamble', tiempo_unitario_min: 20, cantidad: 1, tarifa_hora: 150 },                   // 20 min, $50
+      { proceso: 'corte', setup_min: 10, tiempo_unitario_min: 30, cantidad: 1, tarifa_hora: 120, fuente: 'ruta', evidencia: 'TDC' },      // 40 min, $80
+      { proceso: 'ensamble', tiempo_unitario_min: 20, cantidad: 1, tarifa_hora: 150, fuente: 'ruta', evidencia: 'TDC' },                   // 20 min, $50
     ]);
     expect(r.estado).toBe('OK');
     expect(r.tiempo_total_min).toBeCloseTo(60, 4);
@@ -53,7 +60,7 @@ describe('RUTA DE FABRICACIÓN / horas-hombre (ChatGPT §10)', () => {
   });
 
   it('DETERMINISTA: misma ruta → mismo resultado', () => {
-    const ops = [{ proceso: 'corte', tiempo_unitario_min: 30, cantidad: 1, tarifa_hora: 120 }];
+    const ops = [{ proceso: 'corte', tiempo_unitario_min: 30, cantidad: 1, tarifa_hora: 120, fuente: 'ruta', evidencia: 'TDC' }];
     expect(rutaFabricacion(ops)).toEqual(rutaFabricacion(ops));
   });
 

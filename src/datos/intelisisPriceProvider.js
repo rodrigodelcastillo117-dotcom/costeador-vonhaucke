@@ -39,7 +39,11 @@ export function observacionDesdeIntelisis(rowIntelisis = {}, resolverIdentidad =
     conversion: mat.conversion,
     fuente: FUENTE_PRECIO.INTELISIS,
     source_document: mat.evidencia || `intelisis:${mat.clave_erp}`,
-    source_date: mat.vigencia,
+    // `vigencia` es la fecha HASTA la que el precio es válido, NO la fecha en que se
+    // observó: usarla como source_date metía una fecha FUTURA (que el resolver ahora
+    // rechaza, P0-5). La fecha de observación del ERP no viene en esta fila → null;
+    // la vigencia va a `validity` (vigencia explícita).
+    source_date: null,
     supplier: mat.proveedor,
     evidence: mat.evidencia,
     // Intelisis es autoritativo: si trae vigencia, se trata como vigencia explícita.

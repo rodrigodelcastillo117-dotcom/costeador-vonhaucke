@@ -11,7 +11,7 @@
 //  resolverCampo para contradicciones entre vistas. No lee archivos ni red: el
 //  ProductDrawingReader (edge/visión) alimenta estos datos ya extraídos.
 // ============================================================================
-import { procedenciaTecnica, resolverCampo } from './evidencia.js';
+import { procedenciaTecnica, resolverCampo, PROCEDENCIA_TECNICA } from './evidencia.js';
 
 // Estado de un dato/pieza dentro del ProductSpec.
 export const ESTADO_DATO = Object.freeze({
@@ -68,6 +68,11 @@ export function parteSpec(raw = {}) {
   // Espesor/calibre no visible cuando el tipo lo requiere → PENDING (no default).
   // Un espesor 0 o negativo es imposible → también PENDING (red-team).
   if (out.requiere_espesor && !(out.espesor_mm > 0) && !out.calibre) issues.push('FALTA_ESPESOR');
+  // P0-10: una parte NO es OK sin DIMENSIONES útiles (para una pieza de tablero/
+  // lámina que las requiere), sin PROCEDENCIA real, o sin CONFIANZA declarada.
+  if (out.requiere_espesor && !(out.dimensiones.w > 0 && out.dimensiones.d > 0)) issues.push('FALTA_DIMENSIONES');
+  if (out.procedencia === PROCEDENCIA_TECNICA.UNKNOWN) issues.push('PROCEDENCIA_DESCONOCIDA');
+  if (out.confidence == null) issues.push('FALTA_CONFIANZA');
 
   const estado = issues.length ? ESTADO_DATO.PENDING : ESTADO_DATO.OK;
   return { ...out, issues, estado };

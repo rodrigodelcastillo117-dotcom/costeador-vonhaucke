@@ -143,19 +143,22 @@ export function normalizarObservacionPrecio(row = {}) {
   }
   if (!out.fuente) issues.push('FALTA_FUENTE');
 
-  // Clasificación intrínseca.
+  // Clasificación intrínseca. precioUtilizable es FAIL-CLOSED: además de precio/id/
+  // unidad, una CONVERSIÓN de unidad faltante (compra≠costeo) invalida el precio
+  // para costeo — jamás se mezclan unidades (ChatGPT P0-4).
   const precioUtilizable = out.precio !== null && out.precio >= 0
     && !(out.precio === 0 && !esCeroReal)
-    && !!out.canonical_insumo_id && !!out.unidad_compra;
+    && !!out.canonical_insumo_id && !!out.unidad_compra
+    && !issues.includes('FALTA_CONVERSION_UNIDAD');
   let intrinseco;
   if (!precioUtilizable) {
     intrinseco = INTRINSECO.PENDING;
-  } else if (out.fuente === FUENTE_PRECIO.PROVISIONAL || (!out.source_document && !out.source_date)) {
-    // Estimado o sin ningún rastro documental/fechado → PROVISIONAL (no real).
+  } else if (out.fuente === FUENTE_PRECIO.PROVISIONAL || !out.fuente || (!out.source_document && !out.source_date)) {
+    // Estimado, SIN FUENTE VÁLIDA (ChatGPT P0-5) o sin rastro documental/fechado → PROVISIONAL (no real/oficial).
     intrinseco = INTRINSECO.PROVISIONAL;
   } else {
-    // Respaldada por documento/fecha reales. VERIFIED sólo si hay vigencia
-    // explícita (el resolver confirma que cubre `hoy`); si no, REAL.
+    // Respaldada por documento/fecha reales y fuente válida. VERIFIED sólo si hay
+    // vigencia explícita (el resolver confirma que cubre `hoy`); si no, REAL.
     intrinseco = out.validity ? INTRINSECO.VERIFIED : INTRINSECO.REAL;
   }
 

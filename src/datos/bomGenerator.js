@@ -62,24 +62,42 @@ export function generarBOM(spec, opts = {}) {
     if (parte.estado && parte.estado !== ESTADO_DATO.OK) issues.push(`PARTE_${parte.estado}`);
 
     // 2) Identidad de material: la resuelve el resolver canónico; aquí no se inventa.
-    const material_canonical_id = resolverMaterial(parte) || null;
+    //    resolverMaterial puede devolver un id (string) o {id, unidad_compra, conversion}.
+    const mat = resolverMaterial(parte);
+    const material_canonical_id = (typeof mat === 'string' ? mat : (mat && mat.id)) || null;
+    const unidad_compra = (mat && typeof mat === 'object') ? (mat.unidad_compra || null) : null;
+    const conversion = (mat && typeof mat === 'object') ? num(mat.conversion) : null;
     if (!material_canonical_id) issues.push('MATERIAL_SIN_CANONICO');
 
-    // 3) Consumo neto geométrico.
-    const unidad_consumo = unidadDeParte(parte);
-    const consumo_neto = consumoNeto(parte, unidad_consumo);
-    if (consumo_neto == null) issues.push('CONSUMO_NETO_INDETERMINADO');
+    // 3) CANTIDAD de la parte: necesaria y >0 para el consumo TOTAL (P0-8).
+    const cantidad = num(parte.cantidad);
+    if (cantidad == null || cantidad <= 0) issues.push('CANTIDAD_INVALIDA');
 
-    // 4) Merma: SÓLO por regla canónica. Sin regla → bruto PENDING (no mágica).
-    //    Una merma FUERA DE RANGO (negativa o ≥100) es un dato inválido: NO se
-    //    ignora ni se aplica — se marca MERMA_INVALIDA → PENDING (red-team HIGH).
+    // 4) Consumo neto GEOMÉTRICO por UNIDAD, y TOTAL = unitario × cantidad (P0-8):
+    //    jamás se cobra el consumo de 1 pieza cuando hay N piezas.
+    const unidad_consumo = unidadDeParte(parte);
+    const consumo_neto_unitario = consumoNeto(parte, unidad_consumo);
+    if (consumo_neto_unitario == null) issues.push('CONSUMO_NETO_INDETERMINADO');
+    const consumo_neto_total = (consumo_neto_unitario != null && cantidad != null && cantidad > 0)
+      ? +(consumo_neto_unitario * cantidad).toFixed(6) : null;
+
+    // 5) P0-9: si la unidad de COMPRA difiere de la de CONSUMO y NO hay conversión,
+    //    el BOM NO puede ser oficial (no se mezclan unidades).
+    if (unidad_compra && unidad_consumo && unidad_compra !== unidad_consumo && !(conversion > 0)) {
+      issues.push('CONVERSION_FALTANTE');
+    }
+
+    // 6) Merma: SÓLO por regla canónica. Sin regla → bruto PENDING (no mágica).
+    //    Una merma FUERA DE RANGO (negativa o ≥100) es un dato inválido → MERMA_INVALIDA.
     const merma_pct = num(reglaMerma(parte));
-    let consumo_bruto = null;
+    let consumo_bruto_unitario = null;
+    let consumo_bruto_total = null;
     if (merma_pct != null && (merma_pct < 0 || merma_pct >= 100)) {
       issues.push('MERMA_INVALIDA');
-    } else if (consumo_neto != null && merma_pct != null) {
-      consumo_bruto = +(consumo_neto / (1 - merma_pct / 100)).toFixed(6);
-    } else if (consumo_neto != null && merma_pct == null) {
+    } else if (consumo_neto_unitario != null && merma_pct != null) {
+      consumo_bruto_unitario = +(consumo_neto_unitario / (1 - merma_pct / 100)).toFixed(6);
+      if (consumo_neto_total != null) consumo_bruto_total = +(consumo_neto_total / (1 - merma_pct / 100)).toFixed(6);
+    } else if (consumo_neto_unitario != null && merma_pct == null) {
       issues.push('MERMA_SIN_REGLA');
     }
 
@@ -87,17 +105,20 @@ export function generarBOM(spec, opts = {}) {
     return {
       part_id: parte.part_id || null,
       descripcion: parte.nombre || parte.part_id || null,
-      cantidad: num(parte.cantidad),
+      cantidad,
       dimensiones_netas: parte.dimensiones || null,
       material_solicitado: parte.material_solicitado || null,
       material_canonical_id,
       espesor_mm: num(parte.espesor_mm),
       calibre: parte.calibre || null,
       unidad_consumo,
-      consumo_neto,
+      unidad_compra,
+      consumo_neto_unitario,
+      consumo_neto_total,            // lo que de verdad se costea (× cantidad)
       merma_pct,
-      consumo_bruto,
-      conversion: null,                 // la aporta el resolver (compra↔costeo) cuando exista
+      consumo_bruto_unitario,
+      consumo_bruto_total,
+      conversion,                    // de la compra↔costeo cuando el resolver la aporta
       procedencia: parte.procedencia || null,
       issues,
       estado,

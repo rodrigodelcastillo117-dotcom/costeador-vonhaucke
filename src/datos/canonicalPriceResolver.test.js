@@ -40,6 +40,32 @@ describe('precioProvenance · normalización y clasificación intrínseca', () =
     expect(o.issues).toContain('SIN_PRECIO');
   });
 
+  it('P0-4: unidad compra ≠ costeo SIN conversión → NO utilizable → PENDING (no mezcla unidades)', () => {
+    const o = normalizarObservacionPrecio({ ...COMPRA_544, unidad_compra: 'kg', unidad_costeo: 'hoja' });
+    expect(o.issues).toContain('FALTA_CONVERSION_UNIDAD');
+    expect(o.precioUtilizable).toBe(false);
+    expect(o.intrinseco).toBe(INTRINSECO.PENDING);
+    const r = resolverPrecioCanonico('melamina-ecolegno-19mm', [o], { hoy: HOY });
+    expect(r.estado).toBe(ESTADO_PRECIO.PENDING);
+    expect(r.bloqueaCostoOficial).toBe(true);
+  });
+
+  it('P0-5a: documento+fecha pero FUENTE inválida/ausente → PROVISIONAL, no REAL/oficial', () => {
+    const o = normalizarObservacionPrecio({ canonical_insumo_id: 'x', precio: 100, unidad_compra: 'pz', fuente: 'fuente-rara-no-enum', source_document: 'OC-9', source_date: '2026-09-01' });
+    expect(o.intrinseco).toBe(INTRINSECO.PROVISIONAL);   // sin fuente válida ⇒ no real
+    const r = resolverPrecioCanonico('x', [o], { hoy: HOY });
+    expect(r.bloqueaCostoOficial).toBe(true);
+  });
+
+  it('P0-5b: observación con source_date FUTURA → fail-closed (no gana por "más reciente")', () => {
+    const futura = { ...COMPRA_544, precio: 999, source_date: '2027-05-01', source_document: 'OC-FUT' };
+    const r = resolverPrecioCanonico('melamina-ecolegno-19mm', [futura, COMPRA_544], { hoy: HOY });
+    expect(r.precio).toBe(544);                          // gana la real presente, no la futura
+    const soloFutura = resolverPrecioCanonico('melamina-ecolegno-19mm', [futura], { hoy: HOY });
+    expect(soloFutura.estado).toBe(ESTADO_PRECIO.PROVISIONAL);
+    expect(soloFutura.bloqueaCostoOficial).toBe(true);
+  });
+
   it('$0 sin evidencia real → inválido (PENDING); $0 con es_cero_real → utilizable', () => {
     expect(normalizarObservacionPrecio({ ...COMPRA_544, precio: 0 }).issues).toContain('PRECIO_CERO_SIN_EVIDENCIA');
     const real0 = normalizarObservacionPrecio({ ...COMPRA_544, precio: 0, es_cero_real: true });

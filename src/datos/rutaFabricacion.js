@@ -47,6 +47,10 @@ export function operacion(raw = {}) {
   if (cantidadRaw != null && cantidadRaw <= 0) issues.push('CANTIDAD_INVALIDA');          // 0/negativa (red-team C2)
   if (tarifa_hora == null) issues.push('SIN_TARIFA');
   else if (tarifa_hora < 0) issues.push('TARIFA_INVALIDA');
+  // MO sólo es OFICIAL con PROCEDENCIA verificable (ChatGPT P0-7): sin fuente Y/O
+  // evidencia, el tiempo/tarifa no se pueden sustentar → PENDING, no OK.
+  if (!txt(raw.fuente)) issues.push('SIN_FUENTE');
+  if (!txt(raw.evidencia || raw.evidence)) issues.push('SIN_EVIDENCIA');
 
   // Tiempo total sólo con tiempo válido Y cantidad válida (no se inventa nada).
   let tiempo_total_min = null;

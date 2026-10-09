@@ -33,9 +33,17 @@ describe('ProductSpec · contrato Product Intelligence (ChatGPT §5)', () => {
     expect(parteSpec({ part_id: 'x', cantidad: 1, material: 'melamina', espesor_mm: '   ' }).issues).toContain('FALTA_ESPESOR');
   });
 
-  it('pieza que NO requiere espesor (herraje): no pide espesor', () => {
-    const p = parteSpec({ part_id: 'h1', nombre: 'Bisagra', cantidad: 2, material: 'acero', requiere_espesor: false });
+  it('pieza que NO requiere espesor (herraje): no pide espesor/dimensiones', () => {
+    const p = parteSpec({ part_id: 'h1', nombre: 'Bisagra', cantidad: 2, material: 'acero', requiere_espesor: false, procedencia: 'CATALOG', confianza: 0.9 });
     expect(p.estado).toBe(ESTADO_DATO.OK);
+  });
+
+  it('P0-10: material+espesor+cantidad pero SIN dimensiones/procedencia/confianza → PENDING', () => {
+    const p = parteSpec({ part_id: 'x', cantidad: 1, material: 'melamina', espesor_mm: 19 }); // sin w/d, sin procedencia, sin confianza
+    expect(p.estado).toBe(ESTADO_DATO.PENDING);
+    expect(p.issues).toContain('FALTA_DIMENSIONES');
+    expect(p.issues).toContain('PROCEDENCIA_DESCONOCIDA');
+    expect(p.issues).toContain('FALTA_CONFIANZA');
   });
 
   it('cantidad inválida (0/negativa) → PENDING', () => {
@@ -70,7 +78,7 @@ describe('ProductSpec · contrato Product Intelligence (ChatGPT §5)', () => {
   });
 
   it('validarProductSpec: todo OK → COMPLETO', () => {
-    const spec = construirProductSpec({ partes: [{ part_id: 'cub', cantidad: 1, material: 'melamina', espesor_mm: 19, procedencia: 'MEASURED' }] });
+    const spec = construirProductSpec({ partes: [{ part_id: 'cub', cantidad: 1, w: 1200, d: 600, material: 'melamina', espesor_mm: 19, procedencia: 'MEASURED', confianza: 0.9 }] });
     const v = validarProductSpec(spec);
     expect(v.ok).toBe(true);
     expect(v.estado).toBe('COMPLETO');

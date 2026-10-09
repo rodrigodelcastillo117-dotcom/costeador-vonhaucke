@@ -93,14 +93,21 @@ export function resolverPrecioCanonico(canonicalId, observaciones = [], opts = {
   const descartadas = mias.length - usables.length;
   if (usables.length === 0) return { ...base, descartadas };
 
-  // 3. Clasificación por tiers sobre el conjunto.
-  const verified = usables.filter((o) => o.intrinseco === INTRINSECO.VERIFIED && vigenciaCubre(o, hoyMs));
+  // FECHA FUTURA = FAIL-CLOSED (ChatGPT P0-5): una observación con source_date en
+  // el futuro es sospechosa (error de dato). NO puede ser real/verificada ni ganar
+  // por "más reciente" → se trata como PROVISIONAL (bloquea costo oficial).
+  const enFuturo = (o) => { const f = fechaMs(o.source_date); return f != null && f > hoyMs; };
+
+  // 3. Clasificación por tiers sobre el conjunto (excluyendo las de fecha futura
+  // de los tiers reales/verificados).
+  const verified = usables.filter((o) => o.intrinseco === INTRINSECO.VERIFIED && !enFuturo(o) && vigenciaCubre(o, hoyMs));
   // VERIFIED con VIGENCIA VENCIDA → HISTORICAL (ChatGPT #4): fue válido hasta una
   // fecha que ya pasó; NO es "última referencia real conocida" ni habilita costo
   // oficial. Va a su propio tier, NO a `reales`.
-  const historicosVencidos = usables.filter((o) => o.intrinseco === INTRINSECO.VERIFIED && !vigenciaCubre(o, hoyMs));
-  const reales = usables.filter((o) => o.intrinseco === INTRINSECO.REAL);
-  const provisionales = usables.filter((o) => o.intrinseco === INTRINSECO.PROVISIONAL);
+  const historicosVencidos = usables.filter((o) => o.intrinseco === INTRINSECO.VERIFIED && !enFuturo(o) && !vigenciaCubre(o, hoyMs));
+  const reales = usables.filter((o) => o.intrinseco === INTRINSECO.REAL && !enFuturo(o));
+  // Provisionales + cualquier observación de fecha futura (fail-closed).
+  const provisionales = usables.filter((o) => o.intrinseco === INTRINSECO.PROVISIONAL || enFuturo(o));
 
   let elegida = null;
   let estado = ESTADO_PRECIO.PENDING;
