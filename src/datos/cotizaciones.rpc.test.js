@@ -72,6 +72,27 @@ describe('contrato de guardado de cotizaciones con RPC seguras', () => {
     expect(mock.rpc).toHaveBeenNthCalledWith(3, 'cotizacion_segura', { p_id: 901 });
   });
 
+  it('dos guardados simultáneos idénticos comparten una sola creación RPC', async () => {
+    let responder;
+    mock.rpc.mockImplementationOnce(() => new Promise((resolve) => { responder = resolve; }));
+    const primero = guardarCotizacion(estado(), 'vendedor@qa.test');
+    const segundo = guardarCotizacion(estado(), 'vendedor@qa.test');
+    expect(mock.rpc).toHaveBeenCalledTimes(1);
+    responder(ok(901));
+    expect(await Promise.all([primero, segundo])).toEqual([901, 901]);
+    expect(mock.from).not.toHaveBeenCalled();
+  });
+
+  it('una creación distinta no se fusiona accidentalmente', async () => {
+    mock.rpc.mockResolvedValueOnce(ok(901)).mockResolvedValueOnce(ok(902));
+    const resultados = await Promise.all([
+      guardarCotizacion(estado(1), 'vendedor@qa.test'),
+      guardarCotizacion(estado(2), 'vendedor@qa.test'),
+    ]);
+    expect(resultados).toEqual([901, 902]);
+    expect(mock.rpc).toHaveBeenCalledTimes(2);
+  });
+
   it('reintento después de error sólo puede crear de nuevo sin una clave idempotente (riesgo abierto)', async () => {
     mock.rpc.mockRejectedValueOnce(new Error('timeout después de insert'))
       .mockResolvedValueOnce(ok(902));
