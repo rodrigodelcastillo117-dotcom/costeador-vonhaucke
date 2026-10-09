@@ -5,7 +5,6 @@
 // ============================================================================
 import { useMemo, useState } from 'react';
 import Icono from './Iconos.jsx';
-import VoniAvatar from './VoniAvatar.jsx';
 import { heroLinea } from '../datos/imagenes.js';
 import { buscarProductos } from '../datos/buscarProducto.js';
 import { pesos } from '../util.js';
@@ -172,11 +171,11 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
     const faltanCot = (cot.partidas || []).filter((p) => p.price_status === 'SIN_PRECIO' || p.precioUnitario == null).length;
     return (
       <div className="inicio inicio-terminal inicio-operativo inicio-premium">
-        <section className="inicio-premium-hero" aria-label="Von Haucke · Taller Digital">
+        <section className="inicio-premium-hero" aria-label="Vonhaucke · Taller Digital">
           <div className="inicio-premium-copy">
-            <div className="inicio-overline"><span className="ov-dot" />VON HAUCKE · TALLER DIGITAL · EST. 1958</div>
+            <div className="inicio-overline"><span className="ov-dot" />VONHAUCKE · TALLER DIGITAL · EST. 1958</div>
             <h1 className="inicio-premium-titulo">Cocreando<br />tu espacio</h1>
-            <p className="inicio-premium-lead">Del plano al producto: costea, cotiza y presenta mobiliario Von Haucke con precisión, en minutos.</p>
+            <p className="inicio-premium-lead">Del plano al producto: costea, cotiza y presenta mobiliario Vonhaucke con precisión, en minutos.</p>
 
             <div className="inicio-premium-facts" aria-label="Capacidades del sistema">
               <span><b>68</b><small>AÑOS DE OFICIO</small></span>
@@ -187,7 +186,7 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
 
           <div className="inicio-premium-media" aria-hidden="true"
             style={{ backgroundImage: 'url(https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/app/marca/portada-1.jpg)' }}>
-            <span className="inicio-premium-media-tag">MOBILIARIO · VON HAUCKE</span>
+            <span className="inicio-premium-media-tag">MOBILIARIO · VONHAUCKE</span>
             <span className="inicio-premium-media-caption">DEL CONCEPTO A PRODUCCIÓN</span>
           </div>
         </section>
@@ -252,7 +251,7 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
             <span className="inicio-op-content">
               <span className="inicio-op-top"><span className="inicio-op-k">{veCostos ? '03' : '02'} · COCREAR</span><span className="inicio-op-badge">ESTUDIO</span></span>
               <strong>Diseñar algo que todavía no existe</strong>
-              <span className="inicio-op-desc">Empieza desde la necesidad, define forma y acabados, y baja el concepto a una solución Von Haucke fabricable.</span>
+              <span className="inicio-op-desc">Empieza desde la necesidad, define forma y acabados, y baja el concepto a una solución Vonhaucke fabricable.</span>
               <b>Entrar al estudio <span aria-hidden="true">→</span></b>
             </span>
           </button>
