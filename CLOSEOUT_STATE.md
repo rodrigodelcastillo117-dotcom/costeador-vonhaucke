@@ -4,7 +4,7 @@
 > Última actualización: 2026-10-08 (auditoría ChatGPT ronda 2 + REALITY CUTOVER v1 + observed_program v1)
 >
 > **ESTADO ACTUAL**: HEAD `audit/final-product-completion` = `3051b5c` (código) + este doc-commit encima.
-> Tests **1910/1910** · build ✅. P0 de cliente: **0 abiertos** (P0-A/P0-B cerrados). Economía/Provenance y
+> Tests **1917/1917** · build ✅. P0 de cliente: **0 abiertos** (P0-A/P0-B cerrados). Economía/Provenance y
 > Plan Intelligence: contratos+resolvers v1 entregados (CODE_PASS) pero **NO cableados** a motor/UI todavía.
 
 ## ⬆️ LO MÁS RECIENTE PRIMERO (ronda 2, auditoría ChatGPT independiente)
@@ -186,7 +186,7 @@ de SEGURIDAD (edges/RLS en infra Supabase).
 | Login/Recovery | ✅ | ✅ | ✅ smoke | BLOCKED(creds) | buena | error genérico login P1-17 |
 | Roles | ✅ | ✅ | — | BLOCKED | buena | seller-safe COMPLETO P0-B CERRADO (piezas+partidas+local) |
 | Security | parcial | — | — | — | media | config RLS YA cerrada en prod; `app` verify_jwt=false → auditar; hardening interno 4 edges (ejecutable) |
-| Economía/Provenance | ✅ v1 (CODE) | NO wired | — | — | nueva | resolver+provenance listos; falta ingestión real + cableado UI Costear |
+| Economía/Provenance | ✅ v1 | catálogo real (174/259 REAL) | — | — | nueva | resolver conectado al catálogo; falta cableado UI Costear + serie histórica |
 | Plan Intelligence | parcial | NO wired | — | BLOCKED | media | observed_program v1 (contrato+validación) listo; falta alimentarlo desde leer-plano + golden 132 m² |
 | Persistence | parcial | ✅ | — | BLOCKED | media | reopen FIX; autosave/config P0-3 |
 | VONI/Council | ✅ | ✅ | — | BLOCKED | media | proveedorReal traga errores (P1) |
@@ -241,6 +241,15 @@ conocida de VH (compras/TDC ya cargadas en `src/datos/fuentes/*.xlsx`); Intelisi
     dimensions,page,evidence,confidence,origin}; ORIGEN observed/inferred/suggested derivado de PROCEDENCIA
     (floorSpec, UNA sola verdad); `validarObservedProgram`, `confirmarObservado` (acto EXPLÍCITO, nada se
     autoconfirma), `resumenObservado` (separa real de sugerido). Golden 18 puestos cubierto.
+- Puente catálogo real → resolver (7 tests, **CONECTADO a datos reales**):
+  - `src/datos/precioInsumoBridge.js` — `clasificarFuenteTexto` (por patrón, auto-mantenible) + `fechaDeFuenteTexto`
+    (ISO y DDMMYYYY de nombre de archivo) + `observacionDeInsumo`/`resolverPrecioInsumo`/`explicarPrecioInsumo`.
+  - INVENTARIO real (mandate A) de las 11 fuentes del catálogo (`insumos.js`, 259 insumos): ERP Luis Daniel
+    (99, 2026-08-10), Sonara (28), T.D.C. Alpura (18), Compras (15), ERP última compra (6), T.D.C. banca (4),
+    Mercado estimado (3), T.D.C. Alba (2), Loktec (2), Rodrigo rango (1), **81 sin fuente**.
+  - Coherencia resuelta (hoy=2026-10-08): **174/259 REAL_OBSERVED** (compra/ERP/TDC fechada), **85/259 PROVISIONAL**
+    (81 sin fuente + 4 estimados). EcoLegno 19 mm = $544 REAL_OBSERVED (Compras 2026-08-14). Capa ADITIVA: NO
+    cambia los números del motor.
 
 **SIGUIENTE (ejecutable, en orden):**
 1. **Ingestión de evidencia real**: parser puro de `fuentes/*.xlsx` (compras/TDC Alba/Rafa) →
