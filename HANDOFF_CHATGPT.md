@@ -5,7 +5,14 @@
 
 ---
 
-## ESTADO (2026-10-09, HEAD de código `260573a`)
+## CIERRE FINAL / RC INTEGRADO (2026-10-09, HEAD `f263ba96bc87e3da6aae16ae9016576b414c3de7`)
+- **RC integrado** en `audit/final-product-completion` @ `f263ba9`: merge de `release/current-20261009` (Home premium + Recharts v3 + deps) + R10 docs. **2182/2182 tests + vite build ✅**.
+- **Preview Vercel READY** (verificado, 0 errores consola, Home premium "Cocreando tu espacio" confirmado): `https://costeador-vonhaucke-p8gqeurml-rodrigos-eurotrip.vercel.app` (dpl `dpl_4kEu62x2ck9cobnUPfz4hxzpZ2ig`).
+- **Production: NO desplegado** — la promoción fue BLOQUEADA por el harness ("Production Deploy"); la hace Rodrigo. Rollback: `dpl_1m4bDohVjcqL86fcGHRhJTnw2rJc` / `5a38d2e`.
+- **Paquete de entrega:** `FINAL_AUDIT_PACKET.md` (fuente de verdad + matriz + OPEN ITEMS), `TEST_EVIDENCE.md`, `CHATGPT_NEXT_ACTION.md`. Leer esos primero.
+- Falta de verdad (BLOCKED/DATA_TRUTH): cutover de precios/materiales reales (shadow iniciado, regla de precio confirmada), vocabulario del lector + deploy de edges, E2E autenticado. Sin falsos verdes: ver matriz.
+
+## ESTADO R15/R10 (previo, HEAD de código `260573a`)
 - **R15 = 🟢 ACCEPTED/GREEN EN CÓDIGO** tras 6 re-auditorías ChatGPT+Grok. Sin más cambios en R15 salvo regresión demostrable.
 - **R10 RE-AUDITADA contra el HEAD actual `260573a`: 15/15 invariantes enforced, 0 regresiones.** Se verificó uno por uno
   en el código del HEAD (no se asumió que los fixes de `b3da1ba` siguieran vigentes) y se corrieron los test files de la

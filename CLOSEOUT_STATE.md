@@ -5,8 +5,15 @@
 > cableado vs pendiente. Cero información histórica presentada como estado actual.
 > Última actualización: 2026-10-09 (6ª re-auditoría R15 ChatGPT+Grok: N acción+mensaje de VONI usan la autoridad atómica + corrección de doc sobre persistencia de confirmado_modelo).
 
+## CIERRE FINAL / RC INTEGRADO (2026-10-09)
+- **HEAD = `f263ba96bc87e3da6aae16ae9016576b414c3de7`** (branch `audit/final-product-completion`). Integra `release/current-20261009` (Home premium + Recharts v3 + deps) + R10 docs. **2182/2182 tests + vite build ✅.**
+- **Preview Vercel READY**: `https://costeador-vonhaucke-p8gqeurml-rodrigos-eurotrip.vercel.app` (dpl `dpl_4kEu62x2ck9cobnUPfz4hxzpZ2ig`), 0 errores de consola, Home premium confirmado.
+- **Production NO desplegado** (promoción bloqueada por el harness; la hace Rodrigo). Rollback: `dpl_1m4bDohVjcqL86fcGHRhJTnw2rJc` / `5a38d2e`.
+- Verdad completa + matriz + OPEN ITEMS en **`FINAL_AUDIT_PACKET.md`**; evidencia en `TEST_EVIDENCE.md`; siguiente acción de auditoría en `CHATGPT_NEXT_ACTION.md`.
+- Regla de precio CONFIRMADA: mobiliario→Precio Lista, sillería→Precio Mínimo, sofás/lounge→Lista. Cutover real = DATA_TRUTH_REQUIRED (shadow iniciado, no en prod).
+
 ## ESTADO ACTUAL (verificado contra el repo)
-- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `260573a`**; el HEAD de la rama es el
+- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `260573a`** (lógica; RC integra +4 commits UI de release). El HEAD de la rama es el
   doc-commit de este CLOSEOUT encima (un commit no puede contener su propio SHA). Tip exacto: `git rev-parse HEAD`.
 - **Tests: 2182 / 2182** (vitest, 259 archivos; +3 R15-N + persistencia de confirmado_modelo) · **Build: ✅** (vite) · **deno check ✅** (leer-plano + core; sin cambios este round) · verificado en esta sesión (2026-10-09).
 - **Evidencia = LOCAL de Claude. GitHub NO tiene CI runs (0 workflows).** Golden QA-COT-01 = MOCK_ONLY /
