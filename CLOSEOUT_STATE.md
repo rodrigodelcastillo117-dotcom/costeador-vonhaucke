@@ -1,17 +1,40 @@
 # VON HAUCKE — FINAL PRODUCT COMPLETION · CLOSEOUT STATE
 
 > Estado vivo para continuar entre sesiones. Otra sesión debe poder retomar EXACTAMENTE aquí.
-> Última actualización: 2026-10-08 (ronda 2 + REALITY CUTOVER v1 + observed_program + UI procedencia Precios/HojaCosto)
+> Última actualización: 2026-10-08 (ronda 3 ChatGPT: golden real 8-puestos + price-trust + date-trust + FX + repo hygiene)
 >
-> **ESTADO ACTUAL**: HEAD `audit/final-product-completion` = `313af38` + este doc-commit encima.
-> Tests **1925/1925** · build ✅. P0 de cliente: **0 abiertos** (P0-A/P0-B cerrados).
+> **ESTADO ACTUAL**: HEAD `audit/final-product-completion` = `11224e6` + este doc-commit encima.
+> Tests **1928/1928** · build ✅. P0 de cliente: **0 abiertos**.
 > CABLEADO VISIBLE (capa ADITIVA, NO cambia números del motor; tests de dinero verdes):
->  1. `Precios.jsx` (Dirección): columna Procedencia por insumo (chip + "¿por qué $544?").
->  2. `HojaCosto.jsx` (Costear/veCostos): "✓ Costo con evidencia real" o "N de M MP sin evidencia —
->     costo no oficial", resolviendo la procedencia de cada MP del desglose (detalleInsumos).
-> Verificado: build (import+JSX), wiring tests, lógica del puente contra el catálogo real, app arranca
-> autenticada como Dirección (veCostos). Pendiente USER_FLOW(render en vivo de esos tabs) — no bloquea.
-> observed_program y el resolver siguen SIN cablear a motor/acomodo (sólo las 2 UIs de arriba).
+>  1. `Precios.jsx` (Dirección): columna Procedencia por insumo (chip por tipo de fuente + "¿por qué $544?").
+>  2. `HojaCosto.jsx` (Costear/veCostos): "✓ Costo con evidencia real" sólo si TODA la MP es real FECHADA
+>     y con FX verificado; si no, "N de M MP sin evidencia — costo no oficial".
+> Ambas usan UN adapter canónico (`resolverPrecioInsumoVivo`): un precio capturado a mano NO hereda
+> evidencia vieja. observed_program y el resolver siguen SIN cablear al MOTOR (eso es el cutover, pendiente).
+
+## ⬆️ RONDA 3 (ChatGPT, sobre HEAD e91e014) — correcciones de falsos verdes
+ChatGPT aceptó P0-A/P0-B a nivel código y cortó varios falsos verdes antes de construir encima:
+- **P0-PLAN-GOLDEN** (era FALSO): el golden "132 m²" inventaba 18 puestos y 2 privados. Corregido al
+  ground truth real del PDF QA-COT-01: Open Space = **8 puestos = 4 benches × 2**. El contrato
+  `observed_program` ahora separa **MUEBLES (quantity)** de **PUESTOS (capacity_per_unit/capacity_total)**;
+  `resumenObservado` reporta ambos. El "18 puestos" se relabeló como test sintético de contrato (no plano real).
+  HONESTO: la fixture es el observed_program ESPERADO del PDF; aún NO la produce el lector real (pendiente wiring).
+- **P0-PRICE-TRUST**: HojaCosto podía decir "evidencia real" sobre un precio editado a mano (heredaba la
+  `fuente` vieja). Nuevo adapter ÚNICO `observacionDeInsumoVivo`/`resolverPrecioInsumoVivo`: capturado a mano
+  ⇒ PROVISIONAL. Lo usan Precios + HojaCosto (+ futuro motor).
+- **PRICE DATE/TRUST**: `REAL_OBSERVED` → `REAL_OBSERVED_DATED` / `REAL_OBSERVED_UNDATED`. Un real SIN fecha
+  (p.ej. `FUENTE_ERP`) ya NO afirma "fechado/vigente" ni habilita costo oficial. Las etiquetas muestran el
+  TIPO de fuente (Compra/T.D.C./Lista), no un genérico "Compra real".
+- **FX PROVENANCE**: MP en moneda extranjera + tipoCambio sin procedencia ⇒ NO cuenta como evidencia real.
+- **REPO HYGIENE**: quitado del índice el symlink `node_modules → ruta absoluta`; `.gitignore` ahora lo cubre.
+- **SEGURIDAD `app` edge**: ChatGPT la inspeccionó: sólo sirve un `index.html` público desde Storage, sin
+  input/secrets/DB → **NO es P0**. Es una segunda superficie pública legacy (posible drift vs Vercel): limpieza, no seguridad.
+
+## ⬆️ LO MÁS RECIENTE PRIMERO (ronda 2, auditoría ChatGPT independiente)
+ChatGPT auditó `audit/final-product-completion @ dca88e2` contra el código real y
+contra Supabase desplegado. Reabrió 2 P0 que mi reporte dio por cerrados — AMBOS
+YA CERRADOS AHORA — rebaselineó seguridad, y amplió el mandato a REALITY CUTOVER.
+
 
 ## ⬆️ LO MÁS RECIENTE PRIMERO (ronda 2, auditoría ChatGPT independiente)
 ChatGPT auditó `audit/final-product-completion @ dca88e2` contra el código real y
@@ -220,12 +243,11 @@ A la fecha de este HEAD, **no hay P0 de cliente abiertos conocidos**. Suite 1903
 (Siguen sin verificación E2E_autenticada por el límite de credenciales; eso es cobertura, no un P0 abierto.)
 
 ## P0/seguridad que QUEDAN — rebaselineado contra PROD real
-- **`app` edge con verify_jwt=false** (confirmado por ChatGPT) → **NO auditable localmente**: NO existe
-  `supabase/functions/app/` en este repo (las edges presentes son acomodar-espacio[-recovery],
-  analizar-mueble, analizar-negocio, costear-servidor, cotizar-servidor, cotizar-texto, generar-render,
-  generar-video, leer-plano[-core], usuarios, voni-council). `app` es una función desplegada cuyo source
-  no está versionado aquí (¿auto/managed de Supabase?). BLOCKED_EXTERNAL: inspeccionar qué sirve en el
-  dashboard (ChatGPT/Rodrigo) antes de decidir si verify_jwt=false es intencional o un hueco.
+- **`app` edge (verify_jwt=false) — NO es P0** (ChatGPT la inspeccionó en Supabase, ronda 3): sólo sirve un
+  `index.html` público desde Storage; no toma input, no usa secrets, no toca DB. Es una SEGUNDA superficie
+  pública legacy (puede quedar desactualizada vs Vercel) → limpieza/legacy, revisar si se retira. No bloquea.
+- **Hardening interno de `generar-video`** (allowlist/model/operation/rate-limits) = P1 (tiene verify_jwt=true;
+  NO es proxy anónimo). Las otras 3 edges IA también verify_jwt=true.
 - Hardening INTERNO de las 4 edges IA (rate-limit/topes/validación de params): aunque tienen verify_jwt=true,
   el endurecimiento de source es EJECUTABLE (sin deploy). NO es "proxy abierto" (corregido).
 - `generar-video`: verificar si es huérfana; si lo es, candidata a borrado (requiere confirmación + deploy).
@@ -260,19 +282,23 @@ conocida de VH (compras/TDC ya cargadas en `src/datos/fuentes/*.xlsx`); Intelisi
     (81 sin fuente + 4 estimados). EcoLegno 19 mm = $544 REAL_OBSERVED (Compras 2026-08-14). Capa ADITIVA: NO
     cambia los números del motor.
 
-**SIGUIENTE (ejecutable, en orden):**
-1. **Ingestión de evidencia real**: parser puro de `fuentes/*.xlsx` (compras/TDC Alba/Rafa) →
-   observaciones de precio. Requiere dep de parser (no hay) + confirmar mapeo clave_erp→canonical_id (DATA TRUTH,
-   NO auto-aprobar). NOTA: el esquema real `lista_precio_items` ya tiene provenance/precio_lista/moneda/vigencia_desde/hasta.
-2. **Cablear resolver a la UI de Costear**: mostrar por MP "precio usado + fecha + fuente + estado";
-   PENDING bloquea costo oficial. (CosteadorLinea / ficha de costo.) ← primer cableado visible.
-3. **FloorPlanReader → observed_program real**: conectar la salida de `leer-plano` al contrato observedProgram;
-   golden 132 m² (15000×8800) completo. Hoy `observedProgram` existe pero NO está alimentado por el reader.
-4. **GOLDEN REALITY**: BOM/consumo/precio/costo humano (TDC real) vs app; clasificar diferencias por causa.
-   NO ajustar el motor para cuadrar.
-5. **PRODUCT INTELLIGENCE**: ProductDrawingReader→ProductSpec→BOM determinista→resolver→costo.
-6. BLOCKED_EXTERNAL para "precios OFICIALES vigentes": fuente autorizada (Intelisis o catálogo canónico aprobado).
-   La arquitectura ya queda lista para que SÓLO cambie el provider.
+**SIGUIENTE (ejecutable, en orden) — bloques grandes que necesitan decisión/autorización:**
+1. **MOTOR CUTOVER (#8 ChatGPT)**: que el catálogo EFECTIVO que entra a `calcular()` use `resolverPrecioInsumoVivo`
+   con fail-closed (PENDING/PROVISIONAL NO se vuelve costo oficial en silencio). PRESERVAR goldens/paridad: no
+   cambiar números sin explicar qué observación reemplazó a cuál. ⚠️ Toca el MOTOR CONGELADO y las 33 legacy →
+   requiere OK explícito de Rodrigo. Hoy el motor sigue tomando `insumo.precio` (el resolver sólo pinta chips).
+2. **Ingestión de evidencia DOCUMENTAL real (#7)**: leer read-only `fuentes/*.xlsx` conservando
+   archivo→hoja→fila/celda→artículo ERP→variante→precio→moneda→unidad→fecha→proveedor→canonical_id→conversión.
+   Requiere dep de parser (no hay) + mapeo clave_erp→canonical_id = **DATA TRUTH** (reservado, NO auto-aprobar).
+   NOTA: `lista_precio_items` ya tiene provenance/precio_lista/moneda/vigencia_desde/hasta.
+3. **FloorPlanReader → observed_program real**: cablear la salida de `leer-plano` al contrato; la fixture
+   GOLDEN_A_132M2_8_PUESTOS (en observedProgram.test.js) es el ESPERADO — la salida del lector debe igualarla
+   (ahí pasa de CODE_PASS a USER_FLOW_PASS). Requiere trabajo de edge + deploy para verificar en vivo.
+4. **GOLDEN REALITY**: BOM/consumo/precio/costo humano (TDC real) vs app; clasificar diferencia por causa.
+   NO ajustar el motor para cuadrar. (Depende de #2.)
+5. **PRODUCT INTELLIGENCE**: ProductDrawingReader→ProductSpec→BOM determinista→resolver→costo (reusar evidencia.js).
+6. **FX con provenance**: modelar tipoCambio con fecha/fuente (hoy sólo se marca provisional si moneda≠MXN).
+7. BLOCKED_EXTERNAL para "precios OFICIALES vigentes": fuente autorizada (Intelisis o catálogo canónico aprobado).
 
 ## P1 ejecutables que QUEDAN (sin E2E) — tanda siguiente
 money margen-rancio, margen mínimo 25% como gate, React P1-1/2/3/4/5/6/8/9/10/11/12, silent P1-5..19.
