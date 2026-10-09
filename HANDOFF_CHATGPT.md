@@ -5,6 +5,18 @@
 
 ---
 
+## ESTADO (2026-10-09, HEAD de código `260573a`)
+- **R15 = 🟢 ACCEPTED/GREEN EN CÓDIGO** tras 6 re-auditorías ChatGPT+Grok. Sin más cambios en R15 salvo regresión demostrable.
+- **R10 RE-AUDITADA contra el HEAD actual `260573a`: 15/15 invariantes enforced, 0 regresiones.** Se verificó uno por uno
+  en el código del HEAD (no se asumió que los fixes de `b3da1ba` siguieran vigentes) y se corrieron los test files de la
+  época (115 tests verdes). Varias invariantes R10 se CONSOLIDARON en `resolverAplicacionAtomica` (más estricto, no más
+  débil). Detalle por punto en `CLOSEOUT_STATE.md` → "Re-auditoría R10 contra HEAD 260573a". No se cambió código (no hubo
+  regresión). Limitaciones live SIN cambio (no regresiones): R10-14 PAGINA_FUERA_DE_RANGO sólo a nivel validador
+  (NOT_VERIFIED live), catálogo sin dims QA-COT-01, golden MOCK_ONLY, edge no desplegado, GitHub 0 CI.
+- Límites vigentes: NO motor cutover, NO XLSX, NO deploy, NO merge, NO migración prod, NO prod-write, NO 33 legacy, NO Intelisis.
+
+---
+
 ## 6ª RE-AUDITORÍA R15 — RESUELTA (para CHATGPT + GROK)
 
 - **branch:** `audit/final-product-completion` · **code SHA:** `260573a` (HEAD = doc-commit encima). Base = `985eef3`.

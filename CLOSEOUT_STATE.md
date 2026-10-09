@@ -15,7 +15,13 @@
   cutover del motor SÓLO para productos NUEVOS (shadow primero), agregar parser XLSX justificado, preparar edges.
   Siguen prohibidos (se preparan/documentan como BLOCKED_EXTERNAL, no se ejecutan): merge, deploy/promote,
   migración prod, escrituras masivas prod, modificar 33 legacy, aprobar DATA TRUTH, integrar Intelisis.
-- **P0 ejecutables cerrados por ronda; NO se declara "P0 abiertos: 0" hasta que R10 sea RE-AUDITADA.**
+- **R15 = 🟢 ACCEPTED/GREEN EN CÓDIGO** (ChatGPT+Grok, 6 re-auditorías; sin cambios salvo regresión demostrable).
+  **R10 RE-AUDITADA contra HEAD `260573a` (2026-10-09): 15/15 invariantes siguen enforced, 0 regresiones** (R11–R15
+  no debilitaron ninguna; varias se CONSOLIDARON en `resolverAplicacionAtomica`, más estricto). Detalle con evidencia
+  en "Re-auditoría R10" abajo. Persisten las MISMAS limitaciones live ya declaradas (no son regresiones): catálogo sin
+  dims QA-COT-01 ⇒ casi toda ancla NEEDS_CONFIRMATION en vivo; R10-14 PAGINA_FUERA_DE_RANGO sólo a nivel validador
+  (el core no emite conteo de páginas) = NOT_VERIFIED live; golden = MOCK_ONLY; edge NO desplegado; GitHub 0 CI runs.
+  Por eso NO se declara "P0 abiertos: 0" en vivo: la evidencia es LOCAL y el PDF/edge reales siguen BLOCKED_EXTERNAL.
   ChatGPT r7:10·r8:7·r9:10·r10:14·r11:5·r12:5·r13:5·r14:6. **r15 (ChatGPT+Grok): 6 puntos — cerrados en código ahora**
   (ver ronda 15): existente con cantidad SOBRANTE se consumía sin aviso (ahora EXISTING_SURPLUS→revisión); una fila
   agrupada perdía provenance de las instancias que no eran la primera (ahora plan_instances[]); `grouping` solo como
@@ -90,6 +96,29 @@ credenciales a un servicio externo). Por eso:
 - BLOCKED_EXTERNAL (requiere login con cuenta de PRUEBA): E2E autenticado de guardar/reabrir, roles en vivo, aprobar contra servidor, autosave real, storage real.
 
 ## HISTORIAL DE AUDITORÍA (ChatGPT) — qué pasó en cada ronda
+
+### Re-auditoría R10 contra HEAD `260573a` (2026-10-09) — 15/15 enforced, 0 regresiones
+Verificado uno por uno en el CÓDIGO del HEAD actual (no se asumió que los fixes de `b3da1ba` siguieran vigentes) +
+corrida de los test files de la época (`observedPipelineIntegracion` 54, `observed-core` 24, `mobiliarioOntologia` 9,
+`observedProgram` 8, `planoGoldenObserved132` 20 → todos verdes). Evidencia por punto:
+- **R10-1** unir issues del servidor — `programaRealDelPlano.js:250` `issuesFinal = union(serverIssues, norm.issues)`; item con cualquier issue o REVIEW del servidor → `pendientes` (no gobierna). ✅
+- **R10-2** PRESENT_REVIEW_REQUIRED es gate — `requiereRevision` en `proponerProgramaDesdeObservado`; en Voni, `resolverAplicacionAtomica` devuelve committed=false bajo revisión → botón deshabilitado. ✅ (UI = CODE_PASS, no E2E)
+- **R10-3** NEEDS_CONFIRMATION bloquea apply — `propuestaBloqueada` (`programaRealDelPlano.js:742`) rechaza `product_status==='NEEDS_CONFIRMATION'` / `identity_status==='MISSING'`. ✅
+- **R10-4** kind=room nunca mueble — `observed-core.js` `room_derived`; validador fail-closed. ✅
+- **R10-5** no inventar capacidad — bench sin capacity → `NEEDS_CAPACITY` (`programaRealDelPlano.js:315/320`). ✅
+- **R10-6** coherencia de capacidad — `CAPACIDAD_INCONSISTENTE` (`observed-core.js:73`, test unit). ✅
+- **R10-7** identidad por dims — `resolverAnclaCanonica`/`conciliarAnclasObservadas` vía `buscarEnColeccion` por geometría; sin dims en catálogo → NEEDS_CONFIRMATION. ✅ (limitación live: catálogo sin QA-COT-01)
+- **R10-8** cardinalidad 1:1 — `q=quantity`; cada ancla física resuelve N instancias (tests 14 y 36). ✅
+- **R10-9** dependientes no desaparecen — `conciliarDependientes` 4 estados; OBSERVED_ONLY/DIVERGE → `requiereRevision`. ✅
+- **R10-10** golden dims exactas — `planoGoldenObserved132.test.js` (MOCK_ONLY/RECORDED). ✅ (contrato grabado)
+- **R10-11** umbral de confianza — `UMBRAL_CONFIANZA_GOBERNAR=0.7` (`observedProgram.js:55`), aplicado en `programaRealDelPlano.js:265`. ✅
+- **R10-12** dedup por source_ref — clave `source_ref/plan_tag` primero → `ITEM_DUPLICADO` (`observed-core.js:176/208`). ✅
+- **R10-13** ontología palabra completa — regex `\b(?:…)\b` sobre texto normalizado (`mobiliarioOntologia.js:43`). ✅
+- **R10-14** maxPage en wrapper — plumbing presente (`index.ts:270`) + validador `PAGINA_FUERA_DE_RANGO` (`observed-core.js:117`); el core NO emite conteo real de páginas → **NOT_VERIFIED live** (igual que en R10, no es regresión). 🟡
+- **R10-15** docs sin falsos verdes — CLOSEOUT/HANDOFF mantienen limitaciones explícitas. ✅
+Conclusión: R10 sigue GREEN en código; las únicas no-verdes (R10-14 live, dims de catálogo, golden grabado, edge no
+desplegado, 0 CI) son limitaciones YA declaradas, no regresiones. NO se tocó código (no hubo regresión que corregir).
+NO motor / NO XLSX / NO deploy.
 
 ### 6ª re-auditoría R15 — ChatGPT + Grok (sobre 985eef3) — 1 corrección de doc + 1 hueco de UX (código `260573a`)
 La 6ª re-auditoría aceptó L/M (dominio) y confirmó K/H3/I2/I3/G/J sin regresión; corrigió una afirmación falsa y un hueco UX:
