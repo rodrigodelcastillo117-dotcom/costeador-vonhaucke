@@ -817,35 +817,26 @@ export default function App() {
   // clicks seguidos (antes del rerender) ven el estado ya actualizado por el
   // primero → el segundo reconcilia y no duplica. `aplicandoPrograma` evita reentradas.
   const aplicandoProgramaRef = useRef(false);
+  // P1-R15-I3: esto es un COMMAND, no un query. React NO garantiza que el updater de
+  // setEstado corra antes de que esta función retorne, así que NO devolvemos el estado
+  // del commit (sería un contrato que no se puede cumplir síncronamente). La AUTORIDAD
+  // es el ESTADO ACTUALIZADO: el commit real lo decide `resolverAplicacionAtomica`
+  // DENTRO de setEstado contra `prev` (fresco, fail-closed ante bloqueo/conflicto/
+  // idempotencia). Ningún caller usa hoy un valor de retorno; si en el futuro se
+  // necesita el resultado, debe entregarse por callback/efecto DESPUÉS del commit, no
+  // por una variable mutada desde el updater (y NO con flushSync).
   function aplicarProgramaDetectado(propuesta) {
-    if (!propuesta) return { confirmadas: 0, conflictos: [], pendientes: [], committed: false, motivo: 'SIN_PROPUESTA' };
-    if (aplicandoProgramaRef.current) {
-      return { confirmadas: 0, conflictos: [], pendientes: propuesta.pendientes || [], committed: false, motivo: 'EN_CURSO' };
-    }
-    // P1-R15-I: el WRITE y el RETURN derivan de la MISMA autoridad
-    // (`resolverAplicacionAtomica`). El commit real se decide DENTRO de setEstado contra
-    // `prev` (autoridad fresca, fail-closed ante conflictos/bloqueo/idempotencia) y su
-    // resultado se captura para que el return refleje el commit — NO un snapshot que
-    // bajo carrera reportaría éxito con el write abortado.
-    let resultado = { confirmadas: 0, conflictos: [], pendientes: propuesta.incompletos || propuesta.pendientes || [], committed: false, motivo: 'NO_APLICADO' };
+    if (!propuesta) return;
+    if (aplicandoProgramaRef.current) return;         // evita reentradas antes del rerender
     aplicandoProgramaRef.current = true;
     setEstado((prev) => {
       const existentes = prev.cotizacion?.partidas || [];
       const atomic = resolverAplicacionAtomica(propuesta, { existentes });
-      resultado = {
-        confirmadas: atomic.confirmadas,
-        conflictos: atomic.conflictos,
-        pendientes: propuesta.incompletos || propuesta.pendientes || [],
-        committed: atomic.committed,
-        motivo: atomic.motivo,
-        ...(atomic.committed ? {} : { bloqueada: atomic.motivo === 'PROPUESTA_REQUIERE_REVISION' || atomic.motivo === 'CONFLICTO_RECONCILIACION' }),
-      };
       if (!atomic.committed) return prev;             // fail-closed / idempotente: 0 writes
       return { ...prev, cotizacion: { ...prev.cotizacion, partidas: atomic.partidas } };
     });
     // Libera el lock tras el commit (microtask: después del setEstado batcheado).
     Promise.resolve().then(() => { aplicandoProgramaRef.current = false; });
-    return resultado;
   }
 
   // Asistente y costeador de línea sencillo: una partida.

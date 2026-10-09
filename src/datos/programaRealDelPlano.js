@@ -618,7 +618,11 @@ export function silleriaPendiente(recomendaciones, partidas = []) {
 //   1. propuestaPlano.requiereRevision (ancla sin producto canónico / dependiente en conflicto)
 //   2. sillería pendiente REAL, reconciliada contra las partidas actuales
 //   3. conflictos de reconciliación (aplicarPrograma vs partidas existentes)
-// Estos tres determinan por completo si el programa está completo DADAS las partidas
+//   4. P0-R15-K: MOBILIARIO OBSERVADO TODAVÍA NO APLICADO — el plano detectó productos
+//      canónicos reales (confirmadas>0) que aún NO están en la cotización. OBSERVED
+//      detectado ≠ producto confirmado (Proposal ≠ Confirmation): hasta aplicarlo, el
+//      programa NO está completo aunque no haya revisión/sillería/conflicto.
+// Estos CUATRO determinan por completo si el programa está completo DADAS las partidas
 // actuales. NO se usa `programaCompleto` como red de seguridad: ese flag se calcula al
 // proponer (incluye requiereConfirmacionSillas) SIN conocer las partidas ya cotizadas,
 // así que seguiría en false aunque la sillería YA esté cubierta por asientos confirmados.
@@ -651,6 +655,17 @@ export function bloqueosProgramaObservado(propuestaPlano, { partidas = [] } = {}
       code: c?.code || 'CONFLICTO_RECONCILIACION',
       mensaje: `Conflicto de reconciliación con partidas existentes: ${c?.code || 'detalle no disponible'}.`,
       accion: 'Resuelve el conflicto de partidas antes de publicar.',
+    });
+  }
+  // P0-R15-K: el plano detectó productos que AÚN NO se han incorporado a la cotización.
+  // `confirmadas` = lo que `aplicarPrograma` agregaría de nuevo contra las partidas
+  // actuales; mientras sea > 0, el programa observado NO está aplicado → no publicable.
+  const porAplicar = recon?.confirmacion?.confirmadas?.length || 0;
+  if (porAplicar > 0) {
+    bloqueos.push({
+      code: 'PROGRAMA_PENDIENTE_APLICAR',
+      mensaje: `El plano detectó ${porAplicar} producto(s) que todavía no están en la cotización.`,
+      accion: 'Aplica el programa detectado ("Aplicar programa detectado") antes de publicar.',
     });
   }
   return bloqueos;

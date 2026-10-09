@@ -94,6 +94,11 @@ function estructuraDe(part) {
     ...(part.product_source_ref != null ? { product_source_ref: part.product_source_ref } : {}),
     ...(part.plan_tag != null ? { plan_tag: part.plan_tag } : {}),
     ...(part.grouping != null ? { grouping: part.grouping } : {}),
+    // P1-R15-H3: la confirmación EXPLÍCITA de modelo de sillería SOBREVIVE también al
+    // REUTILIZAR una partida existente (camino enriquecidos). Sin esto, confirmar un
+    // modelo alterno sobre una silla ya cotizada no persistía la bandera y
+    // silleriaPendiente la volvía a marcar como pendiente. Sólo cuando es true.
+    ...(part.confirmado_modelo === true ? { confirmado_modelo: true } : {}),
     ...(part.evidence != null ? { evidence: part.evidence } : {}),
     ...(part.observed_position != null ? { observed_position: part.observed_position } : {}),
     ...(part.observed_orientation != null ? { observed_orientation: part.observed_orientation } : {}),
@@ -102,6 +107,19 @@ function estructuraDe(part) {
     ...(part.placement_profile ? { placement_profile: part.placement_profile } : {}),
     ...(Number(part.user_capacity ?? part.usuarios) > 0 ? { user_capacity: Number(part.user_capacity ?? part.usuarios) } : {}),
   };
+}
+
+// P1-R15-I2: un patch de reutilización sólo cuenta como ENRIQUECIMIENTO REAL si cambia
+// al menos un valor respecto del existente. Devuelve el subconjunto de keys que de verdad
+// cambian (vacío = no-op). Así re-aplicar datos idénticos NO emite enriquecidos → la
+// aplicación es verdaderamente idempotente (committed=false) y no dispara rerender/autosave.
+const igualValor = (a, b) => a === b || (a != null && b != null && JSON.stringify(a) === JSON.stringify(b));
+function patchCambios(existente, patch) {
+  const delta = {};
+  for (const k of Object.keys(patch)) {
+    if (!igualValor(existente ? existente[k] : undefined, patch[k])) delta[k] = patch[k];
+  }
+  return delta;
 }
 
 function aItemConfirmado(part, { slot = null, estado }) {
@@ -250,7 +268,9 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
       if (p.e.raw && p.e.raw.id != null) {
         const patch = estructuraDe(first.a);
         if (planInstances.length > 1) patch.plan_instances = planInstances;
-        enriquecidos.push({ id: p.e.raw.id, patch });
+        // P1-R15-I2: sólo enriquece si algo cambia de verdad (patch idéntico = no-op).
+        const delta = patchCambios(p.e.raw, patch);
+        if (Object.keys(delta).length > 0) enriquecidos.push({ id: p.e.raw.id, patch: delta });
       }
       if (p.rem > 0) conflictos.push({ code: 'EXISTING_SURPLUS', bancoId: p.e.banco, plan_source_ref: p.e.raw.plan_source_ref || null, sobrantes: p.rem, requeridos: matched.length });
     } else if (p.rem > 0 && observedGoverned) {
@@ -277,7 +297,11 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
     usados.add(en.idx);
     reutilizadasDep += Math.max(1, Number(ex[en.idx].raw.cantidad) || 1);
     sinCambio.push(aItemConfirmado(ex[en.idx].raw, { slot: null, estado: 'EXISTENTE' }));
-    if (ex[en.idx].raw.id != null) enriquecidos.push({ id: ex[en.idx].raw.id, patch: estructuraDe(dep) });
+    if (ex[en.idx].raw.id != null) {
+      // P1-R15-I2: sólo enriquece si el patch cambia algo real (idéntico = no-op).
+      const delta = patchCambios(ex[en.idx].raw, estructuraDe(dep));
+      if (Object.keys(delta).length > 0) enriquecidos.push({ id: ex[en.idx].raw.id, patch: delta });
+    }
     en.rem = 0;
   };
   for (const dep of depsProp) {

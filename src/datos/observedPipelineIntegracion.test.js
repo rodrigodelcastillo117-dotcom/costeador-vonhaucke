@@ -241,11 +241,14 @@ describe('INTEGRACIÓN observed pipeline (R10, offline)', () => {
     const ap2 = aplicarPrograma(p2.propuesta, { existentes: [ex1, ex2] });
     expect(ap2.confirmacion.resumen.reutilizadasUnidades).toBe(2);   // reutiliza los mismos físicos
     expect(ap2.confirmacion.resumen.nuevas).toBe(0);
-    // la provenance NO se intercambia: x1 sigue siendo B-01, x2 sigue siendo B-02
-    const px1 = ap2.confirmacion.enriquecidos.find((e) => e.id === 'x1')?.patch;
-    const px2 = ap2.confirmacion.enriquecidos.find((e) => e.id === 'x2')?.patch;
-    expect(px1.plan_source_ref).toBe('B-01');
-    expect(px2.plan_source_ref).toBe('B-02');
+    // la provenance NO se intercambia: x1 sigue siendo B-01, x2 sigue siendo B-02.
+    // P1-R15-I2: como la provenance ya era correcta, el patch idempotente puede OMITIR
+    // plan_source_ref (no-op). Lo que importa es que NO lo cambie al valor equivocado;
+    // se verifica sobre la partida MERGEADA (existente + patch), como hace App.
+    const px1 = ap2.confirmacion.enriquecidos.find((e) => e.id === 'x1')?.patch || {};
+    const px2 = ap2.confirmacion.enriquecidos.find((e) => e.id === 'x2')?.patch || {};
+    expect({ ...ex1, ...px1 }.plan_source_ref).toBe('B-01');
+    expect({ ...ex2, ...px2 }.plan_source_ref).toBe('B-02');
   });
 
   it('28· R14-3 MODEL_MISMATCH es GATE: silla observada con modelo ≠ sugerido → requiereRevision', () => {
@@ -489,9 +492,29 @@ describe('INTEGRACIÓN observed pipeline (R10, offline)', () => {
     expect(r2.nuevas.length).toBe(0);                  // 0 partidas NUEVAS
     expect(r2.partidas.length).toBe(r1.partidas.length); // no duplica (misma cardinalidad)
     expect(nNuevas).toBeGreaterThan(0);                // el snapshot SÍ habría reportado éxito
+    // P1-R15-I2 (estricto): re-aplicar datos idénticos es VERDADERAMENTE idempotente —
+    // sin enriquecidos no-op → committed=false (no dispara rerender/autosave inútil).
+    expect(r2.enriquecidos.length).toBe(0);
+    expect(r2.committed).toBe(false);
+    expect(r2.motivo).toBe('IDEMPOTENTE');
   });
 
-  it('I2· conflicto de reconciliación → committed=false fail-closed (no escribe)', () => {
+  it('I2· enriquecido REAL (metadata nueva) sí committea; idéntico NO', () => {
+    const { prop } = pipeline([base({ type: 'bench operativo', role: 'operational', quantity: 1, capacity_per_unit: 2, capacity_total: 2, dimensions: { w: 1500, d: 1200 }, source_ref: 'B-71' })]);
+    const anc = prop.propuesta.partidas[0];
+    // Existente del MISMO producto/plan pero SIN la metadata estructural (legacy) → el
+    // patch aporta cambios reales → committed=true, enriquecidos>0.
+    const legacy = [{ id: 'leg-1', bancoId: anc.bancoId, relation_role: anc.relation_role, cantidad: 1, plan_source_ref: anc.plan_source_ref }];
+    const r = resolverAplicacionAtomica(prop.propuesta, { existentes: legacy });
+    expect(r.committed).toBe(true);
+    expect(r.enriquecidos.length).toBeGreaterThan(0);
+    // Segunda vez contra el estado ya enriquecido → idéntico → committed=false.
+    const r2 = resolverAplicacionAtomica(prop.propuesta, { existentes: r.partidas });
+    expect(r2.committed).toBe(false);
+    expect(r2.enriquecidos.length).toBe(0);
+  });
+
+  it('I·conflicto de reconciliación → committed=false fail-closed (no escribe)', () => {
     const { prop } = pipeline([base({ type: 'bench operativo', role: 'operational', quantity: 2, capacity_per_unit: 2, capacity_total: 4, dimensions: { w: 1500, d: 1200 }, source_ref: 'B-01' })]);
     const existente = [{ relation_role: 'ANCHOR_WORKSTATION', rol: 'operativo', bancoId: 'op-2u-1500x1200', cantidad: 4, plan_source_ref: 'B-01', product_source_ref: 'op-2u-1500x1200' }];
     const r = resolverAplicacionAtomica(prop.propuesta, { existentes: existente });
@@ -500,10 +523,52 @@ describe('INTEGRACIÓN observed pipeline (R10, offline)', () => {
     expect(r.conflictos.length).toBeGreaterThan(0);
   });
 
-  it('I3· propuesta bajo revisión → committed=false (no la aplica aunque la pasen)', () => {
+  it('I·bloqueada: propuesta bajo revisión → committed=false (no la aplica aunque la pasen)', () => {
     const bloqueada = { partidas: [{ relation_role: 'ANCHOR_WORKSTATION', bancoId: 'x', product_status: 'NEEDS_CONFIRMATION' }], requiereRevision: true };
     const r = resolverAplicacionAtomica(bloqueada, { existentes: [] });
     expect(r.committed).toBe(false);
     expect(r.motivo).toBe('PROPUESTA_REQUIERE_REVISION');
+  });
+
+  // ==========================================================================
+  //  P0-R15-K · OBSERVED detectó mobiliario que todavía NO está en la cotización →
+  //  programa NO publicable hasta aplicarlo. OBSERVED detectado ≠ producto confirmado.
+  // ==========================================================================
+  it('K· recepción nueva detectada pero NO aplicada → PROGRAMA_PENDIENTE_APLICAR; tras aplicar, publicable', () => {
+    const prop = proponerProgramaDesdeObservado(
+      [base({ type: 'recepcion', role: 'reception', zone: 'RECEPCION', dimensions: { w: 2420, d: 830 }, source_ref: 'R-01' })],
+      { linea: 'App LT' },
+    );
+    expect(prop.requiereRevision).toBe(false);        // recepción canónica RESOLVED, sin sillería
+    // Cotización ANTES de aplicar: un producto real que NO está en el observed (queda intacto).
+    const existente = [{ id: 'p1', relation_role: 'ANCHOR_DESK', bancoId: 'esc-legacy', cantidad: 1 }];
+    const antes = bloqueosProgramaObservado(prop, { partidas: existente });
+    expect(antes.some((b) => b.code === 'PROGRAMA_PENDIENTE_APLICAR')).toBe(true);   // detectó recepción por agregar
+    // Tras aplicar la recepción (se incorpora a la cotización) → confirmadas=0 → publicable.
+    const aplicado = aplicarPrograma(prop.propuesta, { existentes: existente });
+    const nuevas = aplicado.confirmacion.confirmadas.map(partidaComercialDesdeConfirmado);
+    const despues = bloqueosProgramaObservado(prop, { partidas: [...existente, ...nuevas] });
+    expect(despues.some((b) => b.code === 'PROGRAMA_PENDIENTE_APLICAR')).toBe(false);
+    expect(despues).toEqual([]);                       // sin más bloqueos ⇒ programaListo=true
+  });
+
+  // ==========================================================================
+  //  P1-R15-H3 · confirmado_modelo SOBREVIVE también al REUTILIZAR una silla existente
+  //  (camino `enriquecidos` → estructuraDe), no sólo para una silla nueva.
+  // ==========================================================================
+  it('H3· confirmar modelo alterno sobre una silla YA existente persiste confirmado_modelo → silleriaPendiente=false', () => {
+    const recomendaciones = [{ dependent_role: 'WORK_SEAT', requirement_qty: 2, para_ancla: 'ancla-A', suggested_product: 'silla-win' }];
+    // Ya existe una silla del modelo alterno, SIN confirmar el modelo.
+    const existente = [{ id: 's1', relation_role: 'WORK_SEAT', rol: 'silla', bancoId: 'silla-alpha', anchor_instance_id: 'ancla-A', cantidad: 2, product_status: 'RESOLVED' }];
+    expect(silleriaPendiente(recomendaciones, existente)).toBe(true);   // modelo ≠ sugerido, sin confirmar
+    // El usuario confirma EXPLÍCITAMENTE ese modelo alterno (misma identidad, confirmado_modelo=true).
+    const propuestaConfirmada = { partidas: [{ relation_role: 'WORK_SEAT', rol: 'silla', bancoId: 'silla-alpha', anchor_instance_id: 'ancla-A', cantidad: 2, confirmado_modelo: true, productoId: 'pid-alpha', product_status: 'RESOLVED' }] };
+    const ap = aplicarPrograma(propuestaConfirmada, { existentes: existente });
+    // se REUTILIZA la existente (enriquecidos), no se agrega nueva.
+    const patch = ap.confirmacion.enriquecidos.find((e) => e.id === 's1')?.patch;
+    expect(patch?.confirmado_modelo).toBe(true);        // la bandera cruzó estructuraDe
+    // aplicar el patch al existente (como hace App) → la partida persistida queda confirmada
+    const persistida = { ...existente[0], ...patch };
+    expect(silleriaPendiente(recomendaciones, [persistida])).toBe(false);
   });
 });

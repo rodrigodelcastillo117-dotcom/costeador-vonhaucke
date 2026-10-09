@@ -2,18 +2,23 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import { proponerProgramaDesdeObservado, aplicarPrograma } from './programaRealDelPlano.js';
 
-// R15-E2 + P1-R15-I: el gate de conflictos de reconciliación vive en el PUNTO ATÓMICO
-// (dentro de setEstado(prev)) y, además, tanto el WRITE como el RETURN derivan de la
-// MISMA autoridad `resolverAplicacionAtomica` contra `prev` (no un snapshot externo).
-describe('App.aplicarProgramaDetectado · gate atómico vía autoridad única (R15-E2 / P1-R15-I)', () => {
+// R15-E2 + P1-R15-I3: el gate de conflictos vive en el PUNTO ATÓMICO (dentro de
+// setEstado(prev)) con autoridad única `resolverAplicacionAtomica`. El handler es un
+// COMMAND: NO devuelve el estado del commit (React no garantiza timing síncrono); la
+// autoridad es el estado actualizado.
+describe('App.aplicarProgramaDetectado · gate atómico vía autoridad única (R15-E2 / P1-R15-I3)', () => {
   const app = fs.readFileSync('src/App.jsx', 'utf8');
   it('decide el commit DENTRO del updater contra prev y devuelve prev si no hay commit', () => {
     expect(app).toContain('setEstado((prev) => {');
     expect(app).toContain('const atomic = resolverAplicacionAtomica(propuesta, { existentes });');
     // fail-closed / idempotente: 0 writes → devuelve el mismo prev
     expect(app).toContain('if (!atomic.committed) return prev;');
-    // el return refleja el commit atómico, no el snapshot `vista`
+    // ya NO existe el snapshot `vista` como autoridad del return
     expect(app).not.toContain('const vista = aplicarPrograma(propuesta, { existentes: estado.cotizacion?.partidas || [] });');
+  });
+  it('P1-R15-I3: es un COMMAND — no captura/retorna el resultado del commit', () => {
+    expect(app).not.toContain('return resultado;');
+    expect(app).not.toContain("motivo: 'NO_APLICADO'");
   });
 });
 
