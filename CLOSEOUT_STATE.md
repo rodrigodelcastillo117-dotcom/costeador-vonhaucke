@@ -6,10 +6,10 @@
 > Última actualización: 2026-10-09 (ronda 3 ChatGPT cerrada + cable FloorPlanReader + rewrite sin contradicciones).
 
 ## ESTADO ACTUAL (verificado contra el repo)
-- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `c2fdbb2`**; el HEAD de la rama es el
+- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `66caeb7`**; el HEAD de la rama es el
   doc-commit de este CLOSEOUT encima (un commit no puede contener su propio SHA). Tip exacto: `git rev-parse HEAD`.
   Diff completo de la rama: `git diff e5f737f..HEAD` · lista: `git log --oneline e5f737f..HEAD`.
-- **Tests: 1988 / 1988** (vitest) · **Build: ✅** (vite) · verificado en esta sesión (2026-10-09).
+- **Tests: 1995 / 1995** (vitest) · **Build: ✅** (vite) · verificado en esta sesión (2026-10-09).
 - **MANDATO RC (deadline lunes 12-oct)**: autónomo hasta Release Candidate. Autorización NUEVA de Rodrigo:
   cutover del motor SÓLO para productos NUEVOS (shadow primero), agregar parser XLSX justificado, preparar edges.
   Siguen prohibidos (se preparan/documentan como BLOCKED_EXTERNAL, no se ejecutan): merge, deploy/promote,
@@ -143,8 +143,23 @@ Intelisis = adapter FUTURO. NO usar $0 como desconocido; no viejo-como-vigente; 
   ambiguo/ausente → PENDING, espesor no visible → PENDING (sin default), dimensión inconsistente entre vistas → CONFLICT.
 - `src/datos/bomGenerator.js` — BOM determinista desde ProductSpec (§6): sin material canónico → PENDING;
   sin regla de merma → consumo_bruto PENDING (nunca merma mágica); costo oficial ≠ oportunidad industrial.
-- **FIX crítico**: el helper `num` devolvía 0 para null (Number(null)===0) en varios módulos nuevos → corregido
-  (null/undefined/'' → null) para no violar "$0≠desconocido" ni meter una merma de 0%.
+- `src/datos/goldenReality.js` — GOLDEN REALITY (§13): compararGolden(humano, app) clasifica diferencias por
+  causa (IDENTIDAD_MP/UNIDAD/CONVERSION/CANTIDAD/CONSUMO/MERMA/PRECIO/MONEDA_FX/MANO_OBRA/INDIRECTOS/FINANCIERO/
+  REDONDEO/DATO_FALTANTE). Diagnostica, no cuadra. Marco para T.D.C. humana vs app (espera ingestión xlsx).
+- `src/datos/fxProvenance.js` — FX con procedencia (§9): normalizarFx + resolverFx (VERIFIED_CURRENT/REAL_DATED/
+  HISTORICAL/PROVISIONAL/PENDING). FX viejo o sin valor NO habilita costo oficial. Falta: cablear a la conversión USD.
+- **FIX crítico**: el helper `num` devolvía 0 para null/whitespace (Number(null)===0, Number('  ')===0) → corregido
+  (null/undefined/''/whitespace → null) para no violar "$0≠desconocido" ni meter una merma de 0%.
+
+### Ronda 5 — RED-TEAM adversarial interno (código `66caeb7`)
+Un subagente red-team atacó los 8 módulos nuevos. Bugs reales encontrados y CERRADOS (con regresión):
+- HIGH: bomGenerator tragaba una merma fuera de rango (−5/≥100) → línea COMPLETO con bruto null. Ahora MERMA_INVALIDA → PENDING.
+- MEDIUM: fechaDeFuenteTexto fabricaba fechas de folios/OC ("folio 15032026"→fecha) → precio sin fecha pasaba a
+  REAL_OBSERVED_DATED. Ahora DDMMYYYY sólo en contexto de fecha + validación de calendario. ERP real intacto (2026-08-10).
+- LOW: comparador de alternativas NaN (fechas null) → determinista; `hoy` inválido degradaba todo a HISTORICAL → fallback;
+  explicarPrecio "Invalid Date" → "sin fecha"; productSpec espesor 0/whitespace → FALTA_ESPESOR.
+Módulos sin bug en el eje de datos-incorrectos (declarado por el red-team): precioProvenance, shadowCutover, observedProgram
+(core), canonicalPriceResolver (tier correcto).
 
 **INVENTARIO real del catálogo (mandate A, `insumos.js`, 259 insumos; hoy=2026-10-09):**
 11 fuentes distintas: ERP Luis Daniel (99, 2026-08-10), Sonara (28), T.D.C. Alpura (18), Compras (15),
