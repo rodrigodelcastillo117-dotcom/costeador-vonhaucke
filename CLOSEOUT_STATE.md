@@ -3,7 +3,7 @@
 > Estado vivo para continuar entre sesiones. Otra sesión debe poder retomar EXACTAMENTE aquí.
 > Última actualización: 2026-10-08 (auditoría ChatGPT ronda 2 + REALITY CUTOVER v1 + observed_program v1)
 >
-> **ESTADO ACTUAL**: HEAD `audit/final-product-completion` = (ver `git log -1`; último doc-commit estampa el SHA).
+> **ESTADO ACTUAL**: HEAD `audit/final-product-completion` = `3051b5c` (código) + este doc-commit encima.
 > Tests **1910/1910** · build ✅. P0 de cliente: **0 abiertos** (P0-A/P0-B cerrados). Economía/Provenance y
 > Plan Intelligence: contratos+resolvers v1 entregados (CODE_PASS) pero **NO cableados** a motor/UI todavía.
 
