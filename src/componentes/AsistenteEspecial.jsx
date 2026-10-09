@@ -161,7 +161,10 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   );
 
   const { par } = modeloParaPieza(estado.parametros, b);
-  const esArea = (ins) => !!ins && (ins.formato?.tipo === 'tablero' || ins.unidad === 'm2');
+  // Tableros Y láminas conservan geometría 2D. En lámina comprada por kg la
+  // geometría se convierte a peso usando kg/hoja; borrar largo/ancho producía
+  // el bug real "zoclo 2400x150 → 1 kg".
+  const esArea = (ins) => !!ins && (ins.formato?.tipo === 'tablero' || ins.formato?.tipo === 'lamina' || ins.unidad === 'm2');
 
   // ⚠️ Faltaba `estado.parametros` en las dependencias: si Dirección cambia un
   // parámetro (margen, factor de indirectos, costo por hora…) mientras alguien
@@ -542,7 +545,20 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     comps[i] = { ...prev, ...patch }; editarComponentes(comps);
   }
   function costoPieza(c, ins) {
-    const neto = netoComponente(c, b.piezas); const p = ins.precio ?? ins.precioBase ?? 0;
+    const p = ins.precio ?? ins.precioBase ?? 0;
+    // Lámina del catálogo legacy: precio $/kg + formato.medida = kg por hoja.
+    // Si conocemos la geometría, primero convertimos m² → kg. Multiplicar m²×$/kg
+    // (lo anterior) daba subtotales físicamente imposibles como $12 para un zoclo.
+    if (ins.formato?.tipo === 'lamina' && String(ins.unidad || '').toLowerCase() === 'kg' && c.largoMM > 0 && c.anchoMM > 0) {
+      const piezas = Math.max(1, Number(c.piezas) || 1) * Math.max(1, Number(b.piezas) || 1);
+      const areaM2 = (Number(c.largoMM) / 1000) * (Number(c.anchoMM) / 1000) * piezas;
+      const largoHoja = Number(ins.formato.largoMM || par.tableroLargoMM || 2440) / 1000;
+      const anchoHoja = Number(ins.formato.anchoMM || par.tableroAnchoMM || 1220) / 1000;
+      const areaHoja = largoHoja * anchoHoja;
+      const kgHoja = Number(ins.formato.medida) || 0;
+      if (areaHoja > 0 && kgHoja > 0) return areaM2 * (kgHoja / areaHoja) * p;
+    }
+    const neto = netoComponente(c, b.piezas);
     if (ins.formato && ins.fraccion) { const ap = (par.aprovechamientoCorte || 100) / 100; return (neto / (ins.formato.medida * ap)) * p; }
     return neto * p;
   }
