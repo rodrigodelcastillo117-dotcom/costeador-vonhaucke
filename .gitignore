@@ -1,4 +1,6 @@
 # Dependencias y compilados: se regeneran con `npm install` y `npm run build`
+# (sin barra final para ignorar también un symlink `node_modules`, no sólo el dir)
+node_modules
 node_modules/
 dist/
 
