@@ -1,7 +1,35 @@
 # VON HAUCKE — FINAL PRODUCT COMPLETION · CLOSEOUT STATE
 
 > Estado vivo para continuar entre sesiones. Otra sesión debe poder retomar EXACTAMENTE aquí.
-> Última actualización: 2026-10-08 (sesión inicial)
+> Última actualización: 2026-10-08 (auditoría ChatGPT ronda 2 + REALITY CUTOVER v1)
+
+## ⬆️ LO MÁS RECIENTE PRIMERO (ronda 2, auditoría ChatGPT independiente)
+ChatGPT auditó `audit/final-product-completion @ dca88e2` contra el código real y
+contra Supabase desplegado. Reabrió 2 P0 que mi reporte dio por cerrados — AMBOS
+YA CERRADOS AHORA — rebaselineó seguridad, y amplió el mandato a REALITY CUTOVER.
+
+- **P0-A (render stale al PDF) — CERRADO** (commit `b54a1f3`). La firma vieja era
+  `program_hash|floor_hash|nº-colocaciones`: mover/rotar un mueble NO la cambiaba.
+  Además `guardarEnPropuesta`/`guardarStaging` publicaban sin verificar firma.
+  FIX: `firmaLayout()` determinista (incluye x/y/rot/w/d por colocación) en
+  `acomodoHash.js`; autoridad única fail-closed `renderCorrespondeAlLayout` que
+  gobierna autosave + los dos botones + staging de foto. Regresión: mover 1 pieza
+  ⇒ firma cambia ⇒ no se publica. (`acomodoPayload.test.js`, `layoutPublicationGate.test.js`)
+- **P0-B (seller-safe incompleto) — CERRADO** (commit `b54a1f3`). `limpiarSensibles`
+  no saneaba `piezas[*].costoUnitario` ni `cotizacion.partidas[*].{costoUnitario,margen}`,
+  y el autosave LOCAL escribía estado completo antes del gate de rol. FIX:
+  `sinEconomiaInterna()` recursivo + saneo de piezas/partidas; el guardado local
+  persiste `limpiarSensibles(estado)` para roles sin veCostos. Precio de VENTA se
+  conserva. (`sellerSafeState.test.js`)
+- **SEGURIDAD REBASELINEADA contra PROD real** (verificado por ChatGPT en el dashboard):
+  - `config_leer` **YA tiene** `USING private_api.puede_editar_config()` → **NO está abierto**.
+    El supuesto "security P0-2" **ya no existe**. (Mi reporte previo estaba desactualizado.)
+  - `cotizar-texto`, `generar-video`, `leer-plano-core`, `analizar-negocio`: **verify_jwt=true**
+    en Supabase. NO son proxies anónimos abiertos. Puede quedar hardening INTERNO pendiente,
+    pero describirlos como "sin auth" era incorrecto.
+  - La ÚNICA edge con **verify_jwt=false** confirmada es **`app`** → auditar ESA por separado (ver abajo).
+- **REALITY CUTOVER v1 iniciado** (commit `83a93da`): provenance de precio +
+  `CanonicalPriceResolver` determinista + adapter Intelisis de diseño. Ver sección dedicada.
 
 ## Base / rama
 - BASE_SHA: `e5f737f044f2ecfd326b35640b995c0111c07902` (= audit/material-gate-v4-final, Material Gate P0.1–P0.16 aprobado)
@@ -149,12 +177,13 @@ de SEGURIDAD (edges/RLS en infra Supabase).
 | Costear | ✅ | ✅ | — | BLOCKED | buena | fantasma FIX; cert label P0-5 |
 | Cotizar | ✅ | ✅ | — | BLOCKED | media | render-overwrite P0-1, gate stale P1 |
 | Cocrear | ✅ | ✅ | — | BLOCKED | media | CocrearV2 dead code |
-| Acomodo | ✅ | ✅ | — | BLOCKED | media | autosave loop P0-2, render stale P0-3 |
-| Renders | ✅ | ✅ | — | BLOCKED | media | stale→PDF P0-3 |
+| Acomodo | ✅ | ✅ | — | BLOCKED | media | autosave loop (cerrado), render stale P0-A (CERRADO firmaLayout) |
+| Renders | ✅ | ✅ | — | BLOCKED | media | stale→PDF P0-A CERRADO (firmaLayout fail-closed) |
 | PDF/Print | ✅ | ✅ (9 tests) | — | BLOCKED | buena | imágenes faltantes sin aviso (P1-16) |
 | Login/Recovery | ✅ | ✅ | ✅ smoke | BLOCKED(creds) | buena | error genérico login P1-17 |
-| Roles | ✅ | ✅ | — | BLOCKED | buena | seller-safe localStorage FIX |
-| Security | parcial | — | — | — | media | edges auth P0-1, config RLS P0-2 (BLOCKED prod) |
+| Roles | ✅ | ✅ | — | BLOCKED | buena | seller-safe COMPLETO P0-B CERRADO (piezas+partidas+local) |
+| Security | parcial | — | — | — | media | config RLS YA cerrada en prod; `app` verify_jwt=false → auditar; hardening interno 4 edges (ejecutable) |
+| Economía/Provenance | ✅ v1 | — | — | — | nueva | REALITY CUTOVER: resolver listo; falta ingestión real + cableado UI |
 | Persistence | parcial | ✅ | — | BLOCKED | media | reopen FIX; autosave/config P0-3 |
 | VONI/Council | ✅ | ✅ | — | BLOCKED | media | proveedorReal traga errores (P1) |
 | Performance | — | — | — | — | — | bundle/rerenders (P2) |
@@ -170,19 +199,54 @@ Specs: e2e/auth.e2e.js, acomodoP02, programaP01, programaBriefWriter, acomodoMen
 - cb89439 — silent P0-3 (config overwrite)
 - 3212f4e — React P0-2 (bucle autosave)
 - d4951c5 — P1-13 (IVA) + P1-7 (vendedor sin precio)
+- 73bd64d — React P0-3 (primera versión firma plan↔render) · dca88e2 — closeout ronda 1
+- **b54a1f3 — P0-A (firmaLayout, render stale real) + P0-B (seller-safe estado completo)** [ronda 2]
+- **83a93da — REALITY CUTOVER v1 (provenance precio + CanonicalPriceResolver + Intelisis adapter)**
 
-## TODOS los P0 de CLIENTE encontrados por el red-team están CERRADOS (ver "ARREGLADOS", 1-7 + P0-3).
-React P0-3 (render viejo al PDF) CERRADO con firma plan↔render (commit 73bd64d). Suite 1870/1870, build ✅.
+## Estado de P0 de CLIENTE (corregido tras ronda 2 — SIN contradicción)
+Red-team ronda 1: 7 P0 + 2 P1 cerrados (ver "ARREGLADOS"). Ronda 2 (ChatGPT) reabrió
+2 P0 que quedaron mal cerrados → **P0-A y P0-B CERRADOS AHORA** (commit `b54a1f3`).
+A la fecha de este HEAD, **no hay P0 de cliente abiertos conocidos**. Suite 1903/1903, build ✅.
+(Siguen sin verificación E2E_autenticada por el límite de credenciales; eso es cobertura, no un P0 abierto.)
 
-## P0 que QUEDAN — SOLO seguridad de infra (BLOCKED_EXTERNAL, requieren prod/dashboard)
-- **security P0-1 — 4 edges IA sin auth interna** (cotizar-texto, generar-video [huérfano + proxy abierto
-  a Google con la key del server], leer-plano-core, analizar-negocio). BLOCKED_EXTERNAL: el fix REAL es
-  verify_jwt + desactivar llaves legacy en el dashboard de Supabase, y/o borrar la función desplegada
-  `generar-video` — no puedo tocar el proyecto Supabase. Source-hardening posible pero sin deploy no
-  cierra el hoyo en prod. REQUIERE autorización de Rodrigo.
-- **security P0-2 — config_leer RLS sin cortar.** 1 línea en prod (`alter policy config_leer ...`),
-  ya en `supabase/PENDIENTE_corte_rls_config.sql`. BLOCKED_EXTERNAL (migración prod).
+## P0/seguridad que QUEDAN — rebaselineado contra PROD real
+- **`app` edge con verify_jwt=false** (confirmado por ChatGPT) → **AUDITAR POR SEPARADO**: entender qué
+  expone, si es intencional (p.ej. health/landing) o un hueco. EJECUTABLE: leer `supabase/functions/app`
+  y clasificar; el cambio de verify_jwt en prod sería BLOCKED_EXTERNAL (dashboard).
+- Hardening INTERNO de las 4 edges IA (rate-limit/topes/validación de params): aunque tienen verify_jwt=true,
+  el endurecimiento de source es EJECUTABLE (sin deploy). NO es "proxy abierto" (corregido).
+- `generar-video`: verificar si es huérfana; si lo es, candidata a borrado (requiere confirmación + deploy).
+- Los antiguos "security P0-1 (sin auth)" y "security P0-2 (config RLS)" **quedan RETIRADOS** como P0:
+  el primero era inexacto (verify_jwt=true), el segundo ya está cerrado en prod.
 
-## P1 ejecutables que QUEDAN (sin E2E) — próxima tanda
+## REALITY CUTOVER — cadena de verdad económica (mandato ampliado de Rodrigo)
+Objetivo: FUENTE→EVIDENCIA→INTERPRETACIÓN→CONFIRMACIÓN→PRODUCTO→BOM→MP→PRECIO→COSTO→COTIZACIÓN→ACOMODO→OUTPUT.
+Ninguna etapa inventa la siguiente. "REAL" exige provenance. Hoy costear con la última evidencia REAL
+conocida de VH (compras/TDC ya cargadas en `src/datos/fuentes/*.xlsx`); Intelisis = adapter futuro.
+
+**v1 ENTREGADO (CODE_PASS, commit `83a93da`)** — pure, determinista, 20 tests:
+- `src/datos/precioProvenance.js` — contrato de observación de precio + clasificación
+  REAL/VERIFIED/PROVISIONAL/PENDING (enum ESTADO_PRECIO: CURRENT_VERIFIED/REAL_OBSERVED/HISTORICAL/PROVISIONAL/PENDING).
+  Reglas: $0≠desconocido, nunca inventar, nunca viejo-como-vigente, no mezclar unidades.
+- `src/datos/canonicalPriceResolver.js` — `resolverPrecioCanonico` (identidad exacta + tier + fecha/confianza),
+  `explicarPrecio` ("¿por qué $544?"), `bloqueaCostoOficial`, `resolverCatalogoPrecios`.
+- `src/datos/intelisisPriceProvider.js` — adapter de DISEÑO, NO integrado (fetch() lanza ERP_NO_INTEGRADO).
+
+**SIGUIENTE (ejecutable, en orden):**
+1. **Ingestión de evidencia real**: parser puro de `fuentes/*.xlsx` (compras/TDC Alba/Rafa) →
+   observaciones de precio (`precioProvenance`). NO escribe prod; genera un snapshot/fixture versionado.
+   (Las .xlsx son datos; leerlas con parser aislado. Requiere confirmar mapeo clave_erp→canonical_id.)
+2. **Cablear resolver a la UI de Costear**: mostrar por MP "precio usado + fecha + fuente + estado";
+   PENDING bloquea costo oficial; histórico se muestra como histórico. (CosteadorLinea / ficha de costo.)
+3. **GOLDEN REALITY**: BOM/consumo/precio/costo humano (TDC real) vs app; clasificar diferencias por causa
+   (identidad MP/unidad/consumo/merma/precio/MO/GI/redondeo/dato faltante). NO ajustar el motor para cuadrar.
+4. **PLAN INTELLIGENCE / PRODUCT INTELLIGENCE** (bloque grande): DocumentIngestion→FloorPlanReader→FloorSpec→
+   `observed_program` (type/qty/zone/grouping/position/orientation/dimensions/page/evidence/confidence/origin);
+   ProductDrawingReader→ProductSpec→BOM determinista→resolver→costo. Golden 132 m² (15000×8800) + 18 puestos + adversariales.
+   Nada sugerido se confirma solo. Compartir ingestion/FloorSpec/ProductSpec/catálogo/BOM/economía/provenance cross-flow.
+5. BLOCKED_EXTERNAL para "precios OFICIALES vigentes": fuente autorizada (Intelisis o catálogo canónico aprobado
+   en Supabase). La arquitectura ya queda lista para que SÓLO cambie el provider.
+
+## P1 ejecutables que QUEDAN (sin E2E) — tanda siguiente
 money margen-rancio, margen mínimo 25% como gate, React P1-1/2/3/4/5/6/8/9/10/11/12, silent P1-5..19.
 Detalle con archivo:línea en los reportes de los 5 agentes (transcript) y arriba.
