@@ -5,6 +5,29 @@
 
 ---
 
+## R14 PARA AUDITORÍA CHATGPT + GROK
+
+- **branch:** `audit/final-product-completion` · **code SHA:** `0fad6cb` (HEAD = doc-commit encima). Base R14 = `ce03973`.
+- **tests:** 2148/2148 vitest (259 archivos) · **vite build:** ✅ · **deno check:** ✅. **CI real:** GitHub 0 runs (evidencia LOCAL).
+- **archivos tocados (R14):** `src/datos/confirmarPrograma.js` (pool por cantidad + identidad estable + provenance patch), `src/datos/programaRealDelPlano.js` (requirementId estable, requiereConfirmacionSillas/programaCompleto, provenance), `src/componentes/Acomodo.jsx` (count fix + una sola realidad), `supabase/functions/leer-plano/observed-core.js` (observed_model), `src/datos/observedPipelineIntegracion.test.js` (+6 adversariales).
+- **Estado por hallazgo:**
+  - R14-1 cardinalidad cantidad>1 (obs 2 + existente(2) → reutiliza 2, agrega 0; obs 4 → agrega 2) — **INTEGRATION_PASS** (casos 25/26).
+  - R14-2 identidad estable + reorder sin swap de provenance — **INTEGRATION_PASS** (caso 27).
+  - R14-3a fix count Acomodo (`reconObs.confirmacion.resumen`) — **CODE_PASS** (render no E2E).
+  - R14-3b MODEL_MISMATCH gate + requiereConfirmacionSillas/programaCompleto — **INTEGRATION_PASS** (casos 28/29). Selector interactivo de modelo = **NOT_VERIFIED / pendiente UI** (el contrato de datos ya lo soporta).
+  - R14-4 provenance completa (evidence+posición+orientación a la partida comercial) — **INTEGRATION_PASS** (caso 30).
+  - R14-6 una sola realidad en Acomodo (sin sugerencias por áreas si observadoPresente) — **CODE_PASS** (render no E2E).
+- **BLOCKED_EXTERNAL:** deploy edge; motor cutover; DATA TRUTH (xlsx + conversión por familia + modelo de sillería por línea + schema de acabado en el lector); merge/promote; migraciones; 33 legacy; Intelisis.
+- **Supuestos NO verificados LIVE:**
+  1. El schema del lector NO emite modelo/acabado por mueble → observed_model casi siempre null; sillería/mesa ambigua requiere confirmación humana.
+  2. El selector interactivo de modelo de sillería (usar sugerido / elegir otro / requiere desarrollo) NO está implementado en UI; hoy se muestra el estado y el gate, pero el acto de confirmación por-modelo es pendiente.
+  3. El catálogo real NO tiene las dims del ground truth QA-COT-01 (sí op-2u-1500x1200).
+  4. El render de Acomodo/VONI (counts, una sola realidad, recomendaciones) NO está cubierto por E2E; sólo la LÓGICA de dominio.
+  5. La estabilidad de instance_id ahora deriva de plan_source_ref; si el lector NO entrega source_ref, cae a grouping y luego al índice (documentado).
+- **Hallazgos nuevos:** `resumen.reutilizadas` se mantiene como RENGLONES (compat con tests previos) y se añadió `reutilizadasUnidades` (físicas) para la cardinalidad. El gate distingue dos niveles: `requiereRevision` (bloquea aplicar el ANCLA) vs `requiereConfirmacionSillas`/`programaCompleto` (bloquea presentar el programa como completo sin confirmar sillería) — conviene que decidan si "no necesito acomodo → propuesta final" debe gatearse también con `programaCompleto`.
+
+---
+
 ## R13 PARA AUDITORÍA CHATGPT + GROK
 
 - **branch:** `audit/final-product-completion` · **code SHA:** `ce03973` (HEAD = doc-commit encima). Base R13 = `9166921`.
@@ -141,22 +164,20 @@
 Eres el auditor independiente del proyecto Von Haucke (app React + Supabase de costeo/cotización).
 Audita la rama `audit/final-product-completion`.
 
-- Último commit de CÓDIGO: ce03973 (ronda 13: reconciliación parcial por instancia + dependientes + provenance en reutilizados). Base R13 = 9166921.
-  Verdad viva: `CLOSEOUT_STATE.md` (historial completo rondas 1–13) + bloque "R13 PARA AUDITORÍA CHATGPT + GROK" arriba.
-  Tests 2142/2142 (259 archivos), build ✅, deno check ✅ (evidencia LOCAL; GitHub 0 CI runs). Golden/adapter = MOCK_ONLY.
+- Último commit de CÓDIGO: 0fad6cb (ronda 14: cardinalidad estable + confirmación de dependientes + provenance completa). Base R14 = ce03973.
+  Verdad viva: `CLOSEOUT_STATE.md` (historial completo rondas 1–14) + bloque "R14 PARA AUDITORÍA CHATGPT + GROK" arriba.
+  Tests 2148/2148 (259 archivos), build ✅, deno check ✅ (evidencia LOCAL; GitHub 0 CI runs). Golden/adapter = MOCK_ONLY.
 - Límites que Claude respetó: NO merge, NO deploy/promote, NO migración prod, NO prod-write, NO tocar 33 legacy,
   NO aprobar DATA TRUTH, NO integrar Intelisis. Todo capa ADITIVA (no cambia números del motor). El validador del
   edge está PREPARADO + deno-clean pero NO DESPLEGADO (prod edge = hard boundary).
 
-Verifica contra el CÓDIGO real (no sólo el closeout) que los 5 P0 + P1 de tu ronda 13 quedaron bien cerrados:
-1. R13-1 cardinalidad (`confirmarPrograma`): observed B-01 qty=4 + existentes {#0,#1} → reutiliza 2, agrega 2, total 4,
-   instance_id únicas. ¿Hay forma de reutilizar la misma existente para 2 instancias? (no debería; `usados` consume-once)
-2. R13-2 Acomodo: ¿se renderiza la reconciliación con partidas existentes (ya cubiertas/por agregar), sin el bypass `!hayReales`?
-3. R13-3 recomendaciones: ¿Voni y Acomodo muestran sillas observadas como "modelo por confirmar" y NO las auto-convierten/esconden?
-4. R13-4 `conciliarDependientes`: ¿source_ref (S-01) ya NO se usa como modelo? sin modelo explícito → requiere_confirmacion_modelo.
-5. R13-5 provenance en REUTILIZADOS: ¿la existente reconciliada con B-01 conserva plan_source_ref (patch de estructuraDe)?
-6. P1 + supuestos del bloque R13 (schema sin modelo/acabado; estabilidad de instance_id por orden del observed). ¿Riesgo real para la demo?
-7. Busca NUEVOS falsos verdes o huecos de integración.
+Verifica contra el CÓDIGO real (no sólo el closeout) que los 6 puntos de tu ronda 14 quedaron bien cerrados:
+1. R14-1 cantidad>1 (`confirmarPrograma` POOL): existente 1 renglón cantidad=2 absorbe 2 observadas; obs 4 + existente(2) → agrega 2. ¿Se sobre-agrega?
+2. R14-2 identidad estable: ¿requirementId/instanceId derivan de plan_source_ref (no del índice)? ¿reordenar el observed conserva B-01↔A / B-02↔B sin intercambiar provenance?
+3. R14-3 counts Acomodo (`reconObs.confirmacion.resumen`); MODEL_MISMATCH como gate; sillería sin modelo → programaCompleto=false (ancla aplicable). ¿El selector interactivo existe o sigue pendiente?
+4. R14-4 provenance: ¿evidence + observed_position + observed_orientation llegan a la partida comercial (sin `?? fallback`)?
+5. R14-6 una sola realidad: ¿Acomodo deja de mostrar sugerencias por áreas cuando observadoPresente?
+6. Revisa supuestos del bloque R14 (schema sin modelo/acabado; selector de sillería pendiente). ¿Riesgo real para la demo? Busca NUEVOS falsos verdes.
 
 Luego decide/recomienda prioridad para el mega-avance, sabiendo que estos bloques necesitan decisión de Rodrigo o deploy:
 A. MOTOR CUTOVER: que `calcular()` tome el precio del CanonicalPriceResolver con fail-closed, preservando goldens (sólo productos nuevos).
