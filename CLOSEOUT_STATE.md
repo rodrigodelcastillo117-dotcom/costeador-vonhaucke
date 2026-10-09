@@ -6,10 +6,10 @@
 > Última actualización: 2026-10-09 (ronda 3 ChatGPT cerrada + cable FloorPlanReader + rewrite sin contradicciones).
 
 ## ESTADO ACTUAL (verificado contra el repo)
-- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `18f0e08`**; el HEAD de la rama es el
+- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `cb9a211`**; el HEAD de la rama es el
   doc-commit de este CLOSEOUT encima (un commit no puede contener su propio SHA). Tip exacto: `git rev-parse HEAD`.
   Diff completo de la rama: `git diff e5f737f..HEAD` · lista: `git log --oneline e5f737f..HEAD`.
-- **Tests: 1946 / 1946** (vitest) · **Build: ✅** (vite) · verificado en esta sesión (2026-10-09).
+- **Tests: 1952 / 1952** (vitest) · **Build: ✅** (vite) · verificado en esta sesión (2026-10-09).
 - **MANDATO RC (deadline lunes 12-oct)**: autónomo hasta Release Candidate. Autorización NUEVA de Rodrigo:
   cutover del motor SÓLO para productos NUEVOS (shadow primero), agregar parser XLSX justificado, preparar edges.
   Siguen prohibidos (se preparan/documentan como BLOCKED_EXTERNAL, no se ejecutan): merge, deploy/promote,
@@ -135,6 +135,10 @@ Intelisis = adapter FUTURO. NO usar $0 como desconocido; no viejo-como-vigente; 
   zone, grouping, position, orientation, dimensions, page, evidence, confidence, origin}; ORIGEN observed/inferred/suggested
   derivado de PROCEDENCIA (floorSpec, una sola verdad); `confirmarObservado` (acto EXPLÍCITO, nada se autoconfirma).
 - `src/datos/floorPlanReader.js` — `observedProgramDeLectura(pr)`: cable del lector REAL `programaDelPlano` → observed_program.
+- `src/datos/shadowCutover.js` — SHADOW del motor (ChatGPT §8): compara legacy `insumo.precio` vs canónico por insumo.
+  Resultado catálogo real: **259/259 iguales, 0 diferencias numéricas → cutover SEGURO**; 93 quedarían como costo
+  NO oficial (85 provisional + 8 sin fecha). Honesto: cutover numérico es no-op hoy (1 observación/insumo);
+  el gobierno real del número cobra sentido al ingerir la serie histórica (xlsx).
 
 **INVENTARIO real del catálogo (mandate A, `insumos.js`, 259 insumos; hoy=2026-10-09):**
 11 fuentes distintas: ERP Luis Daniel (99, 2026-08-10), Sonara (28), T.D.C. Alpura (18), Compras (15),
