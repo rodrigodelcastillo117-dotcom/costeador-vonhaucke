@@ -5,6 +5,18 @@
 
 ---
 
+## 5ª RE-AUDITORÍA R15 — RESUELTA (para CHATGPT + GROK)
+
+- **branch:** `audit/final-product-completion` · **code SHA:** `0dcd6f2` (HEAD = doc-commit encima). Base = `5ccd262`.
+- **tests:** 2179/2179 vitest (259 archivos; +4) · **vite build:** ✅ · **deno check:** ✅ (edges sin cambios). **CI real:** GitHub 0 runs (evidencia LOCAL).
+- La 5ª re-auditoría aceptó K/H3/I2/I3 en las rutas corregidas; reabrió 2 huecos del MISMO contrato OBSERVED/PROPUESTA ≠ CONFIRMACIÓN. Corregidos con UNA sola autoridad:
+  - **P0-R15-L** — el gate ÚNICO de VONI (`puedeEntrarPropuesta`) NO incluía la aplicación pendiente: con una recepción canónica nueva detectada pero aún no aplicada, VONI podía saltar directo a la propuesta (stepper / "ir directo" / omitir / onIr). Ahora exige `!aplicacionPendientePrograma`, consultando la MISMA autoridad que Acomodo (`programaTieneAplicacionPendiente` → `resolverAplicacionAtomica`). Mensaje: "Falta aplicar N producto(s) detectado(s) del plano antes de cerrar la propuesta." — **INTEGRATION_PASS** (caso L por la autoridad compartida) + **CODE_PASS** (gate de Voni = source-assert). Render = **NOT_VERIFIED**.
+  - **P0-R15-M** — "pendiente de aplicar" sólo miraba `confirmadas` (productos nuevos), no los ENRIQUECIMIENTOS estructurales. Un existente legacy/manual correcto pero sin `instance_id`/`functional_group_id`/`plan_source_ref`/`zone_id`/`confirmado_modelo` se reconcilia con `confirmadas=0` pero `enriquecidos>0` (write real). Ahora `bloqueosProgramaObservado` deriva de `resolverAplicacionAtomica`: `committed===true` ⇒ `PROGRAMA_PENDIENTE_APLICAR` (distingue `nuevas` vs `enriquecidos` en el mensaje/metadata). UNA sola definición de "aplicado", compartida por Voni y Acomodo. — **INTEGRATION_PASS** (caso M enrichment-only: bloquea antes, publicable después).
+- **Estado R15:** K/H3/I2/I3 ✅ (4ª) · L ✅ (gate Voni con aplicación pendiente) · M ✅ (pendiente = nuevos **o** enriquecimientos, autoridad única). G/J siguen PASS. Acomodo y Voni consultan la MISMA fuente (`resolverAplicacionAtomica`).
+- **Supuestos NO verificados LIVE:** ningún render de UI en E2E (sólo dominio + source-asserts del gate de Voni); `patchCambios` compara por valor JSON y asume datos planos; selector "elegir otro producto" pendiente de UI; sin flag PERSISTENTE de modelo confirmado entre sesiones. **NO se tocó motor / XLSX / deploy.**
+
+---
+
 ## 4ª RE-AUDITORÍA R15 — RESUELTA (para CHATGPT + GROK)
 
 - **branch:** `audit/final-product-completion` · **code SHA:** `cc15e92` (HEAD = doc-commit encima). Base = `d244c24`.
@@ -246,20 +258,19 @@
 Eres el auditor independiente del proyecto Von Haucke (app React + Supabase de costeo/cotización).
 Audita la rama `audit/final-product-completion`.
 
-- Último commit de CÓDIGO: cc15e92 (4ª re-auditoría R15: K mobiliario pendiente de aplicar bloquea publicación + H3 confirmado_modelo sobrevive reutilización + I2 idempotencia estricta + I3 handler como command). Base = d244c24.
-  Verdad viva: `CLOSEOUT_STATE.md` (historial rondas 1–15 + 4 re-auditorías R15) + bloque "4ª RE-AUDITORÍA R15 — RESUELTA" arriba.
-  Tests 2175/2175 (259 archivos; +4), build ✅, deno check ✅ (evidencia LOCAL; GitHub 0 CI runs). Golden/adapter = MOCK_ONLY.
+- Último commit de CÓDIGO: 0dcd6f2 (5ª re-auditoría R15: L gate de Voni con aplicación pendiente + M "pendiente" incluye enriquecimientos, autoridad única compartida Voni≡Acomodo). Base = 5ccd262.
+  Verdad viva: `CLOSEOUT_STATE.md` (historial rondas 1–15 + 5 re-auditorías R15) + bloque "5ª RE-AUDITORÍA R15 — RESUELTA" arriba.
+  Tests 2179/2179 (259 archivos; +4), build ✅, deno check ✅ (evidencia LOCAL; GitHub 0 CI runs). Golden/adapter = MOCK_ONLY.
 - Límites que Claude respetó: NO merge, NO deploy/promote, NO migración prod, NO prod-write, NO tocar 33 legacy,
   NO aprobar DATA TRUTH, NO integrar Intelisis, **NO motor cutover, NO XLSX**. Todo capa ADITIVA (no cambia números del
   motor). El validador del edge está PREPARADO + deno-clean pero NO DESPLEGADO (prod edge = hard boundary).
 
-Verifica contra el CÓDIGO real (no sólo el closeout) que los hallazgos de tu 4ª re-auditoría R15 quedaron corregidos:
-1. P0-R15-K: ¿`bloqueosProgramaObservado` agrega `PROGRAMA_PENDIENTE_APLICAR` cuando `recon.confirmacion.confirmadas.length > 0` (plano detectó producto canónico real aún NO en la cotización) → `programaListo=false` hasta aplicarlo? (recepción nueva no aplicada → bloquea; tras aplicar → `[]`).
-2. P1-R15-H3: ¿`confirmado_modelo` sobrevive también al REUTILIZAR una silla existente (propagado en `estructuraDe`, no sólo en partida nueva), de modo que confirmar modelo alterno sobre una silla ya cotizada deja `silleriaPendiente`=false end-to-end?
-3. P1-R15-I2: ¿`confirmarPrograma` sólo emite `enriquecidos` cuando el patch cambia un valor real (`patchCambios`), de modo que re-aplicar datos idénticos da `committed=false`/`IDEMPOTENTE` (test con ASSERT `r2.committed===false`)?
-4. P1-R15-I3: ¿`aplicarProgramaDetectado` ya NO captura/retorna el resultado del commit (handler = command; autoridad = estado; sin `flushSync`)? ¿HANDOFF/CLOSEOUT ya no afirman que el return síncrono refleja el commit?
-5. Aceptados previos que NO deben regresar: G (botón conflictos) y J (encabezado sillería) siguen PASS; F sigue bloqueando por revisión/sillería/conflicto además de K.
-6. Revisa supuestos (ningún render UI en E2E; handler sin resultado síncrono; `patchCambios` compara por valor JSON y asume datos planos; selector "elegir otro" pendiente; sin flag PERSISTENTE de modelo confirmado) y busca NUEVOS falsos verdes.
+Verifica contra el CÓDIGO real (no sólo el closeout) que los 2 hallazgos de tu 5ª re-auditoría R15 quedaron corregidos:
+1. P0-R15-L: ¿el gate ÚNICO de Voni `puedeEntrarPropuesta` incluye `!aplicacionPendientePrograma` (= `programaTieneAplicacionPendiente(propuestaPrograma, partidas)`), de modo que con una recepción nueva detectada pero NO aplicada NO se pueda saltar a la propuesta por ninguna ruta (stepper/directo/omitir/onIr)? ¿El mensaje de bloqueo lo explica?
+2. P0-R15-M: ¿`bloqueosProgramaObservado` deriva "pendiente de aplicar" de `resolverAplicacionAtomica` (`committed===true` ⇒ producto nuevo **o** enriquecimiento estructural), no sólo de `confirmadas.length`? (existente legacy sin metadata: `confirmadas=0`/`enriquecidos>0` → bloquea antes; tras aplicar → desaparece).
+3. ¿Voni y Acomodo consultan la MISMA autoridad (`programaTieneAplicacionPendiente` / `resolverAplicacionAtomica`), sin lógica paralela divergente?
+4. Aceptados previos que NO deben regresar: K/H3/I2/I3, G, J.
+5. Revisa supuestos (ningún render UI en E2E; `patchCambios` compara por valor JSON; selector "elegir otro" pendiente; sin flag PERSISTENTE de modelo confirmado) y busca NUEVOS falsos verdes.
 
 Luego decide/recomienda prioridad para el mega-avance, sabiendo que estos bloques necesitan decisión de Rodrigo o deploy:
 A. MOTOR CUTOVER: que `calcular()` tome el precio del CanonicalPriceResolver con fail-closed, preservando goldens (sólo productos nuevos).

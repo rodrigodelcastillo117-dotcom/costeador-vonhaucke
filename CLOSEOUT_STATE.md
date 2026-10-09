@@ -3,12 +3,12 @@
 > Estado VIVO y VERÍDICO para continuar entre sesiones y para auditoría de ChatGPT.
 > Regla: este archivo refleja SIEMPRE el HEAD real, los tests reales y qué quedó REALMENTE
 > cableado vs pendiente. Cero información histórica presentada como estado actual.
-> Última actualización: 2026-10-09 (4ª re-auditoría R15 ChatGPT+Grok: K mobiliario pendiente de aplicar bloquea publicación + H3 confirmado_modelo sobrevive reutilización + I2 idempotencia estricta + I3 handler como command).
+> Última actualización: 2026-10-09 (5ª re-auditoría R15 ChatGPT+Grok: L gate de Voni con aplicación pendiente + M "pendiente" incluye enriquecimientos; autoridad única compartida Voni≡Acomodo).
 
 ## ESTADO ACTUAL (verificado contra el repo)
-- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `cc15e92`**; el HEAD de la rama es el
+- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `0dcd6f2`**; el HEAD de la rama es el
   doc-commit de este CLOSEOUT encima (un commit no puede contener su propio SHA). Tip exacto: `git rev-parse HEAD`.
-- **Tests: 2175 / 2175** (vitest, 259 archivos; +4 adversariales R15-K/H3/I2) · **Build: ✅** (vite) · **deno check ✅** (leer-plano + core; sin cambios este round) · verificado en esta sesión (2026-10-09).
+- **Tests: 2179 / 2179** (vitest, 259 archivos; +4 adversariales R15-L/M + autoridad compartida) · **Build: ✅** (vite) · **deno check ✅** (leer-plano + core; sin cambios este round) · verificado en esta sesión (2026-10-09).
 - **Evidencia = LOCAL de Claude. GitHub NO tiene CI runs (0 workflows).** Golden QA-COT-01 = MOCK_ONLY /
   RECORDED CONTRACT (no es E2E del PDF vivo). Lectura de PDF en vivo + edges = BLOCKED_EXTERNAL (no desplegado).
 - **MANDATO RC (deadline lunes 12-oct)**: autónomo hasta Release Candidate. Autorización NUEVA de Rodrigo:
@@ -90,6 +90,21 @@ credenciales a un servicio externo). Por eso:
 - BLOCKED_EXTERNAL (requiere login con cuenta de PRUEBA): E2E autenticado de guardar/reabrir, roles en vivo, aprobar contra servidor, autosave real, storage real.
 
 ## HISTORIAL DE AUDITORÍA (ChatGPT) — qué pasó en cada ronda
+
+### 5ª re-auditoría R15 — ChatGPT + Grok (sobre 5ccd262) — 2 huecos del mismo contrato (código `0dcd6f2`)
+La 5ª re-auditoría aceptó K/H3/I2/I3; encontró 2 huecos del MISMO contrato OBSERVED/PROPUESTA ≠ CONFIRMACIÓN, resueltos con UNA autoridad:
+- **P0-R15-L** el gate ÚNICO de VONI `puedeEntrarPropuesta` NO exigía que no hubiera aplicación pendiente: con una recepción
+  canónica nueva detectada pero aún no aplicada (hay=true, sin revisión/sillería/conflicto) VONI podía saltar directo a la
+  propuesta (stepper/"ir directo"/omitir/onIr). Ahora exige `!aplicacionPendientePrograma`, que consulta la MISMA autoridad
+  que Acomodo (`programaTieneAplicacionPendiente` → `resolverAplicacionAtomica`). Mensaje de bloqueo explícito.
+- **P0-R15-M** "pendiente de aplicar" sólo miraba `confirmadas` (productos nuevos). Un existente legacy/manual correcto sin
+  `instance_id`/`functional_group_id`/`plan_source_ref`/`zone_id`/`confirmado_modelo` se reconcilia con `confirmadas=0` pero
+  `enriquecidos>0` (write real). Ahora `bloqueosProgramaObservado` deriva de `resolverAplicacionAtomica`: `committed===true`
+  ⇒ `PROGRAMA_PENDIENTE_APLICAR` (distingue `nuevas` vs `enriquecidos`). UNA sola definición de "aplicado", compartida por
+  Voni y Acomodo (`programaTieneAplicacionPendiente`), sin lógica paralela.
+Suite 2179/2179 (259 archivos, +4) · build ✅ · deno check ✅. NO motor / NO XLSX / NO deploy. PENDIENTE: re-auditoría.
+Supuestos NO verificados LIVE: ningún render UI en E2E (sólo dominio + source-asserts del gate de Voni); `patchCambios`
+compara por valor JSON (datos planos); selector "elegir otro producto" pendiente de UI; sin flag PERSISTENTE de modelo confirmado.
 
 ### 4ª re-auditoría R15 — ChatGPT + Grok (sobre d244c24) — 1 P0 nuevo + 3 parciales (código `cc15e92`)
 La 4ª re-auditoría aceptó G/J y el gate fail-closed; encontró 1 P0 nuevo (K) y reabrió H/I como parciales. Corregido:
