@@ -405,8 +405,18 @@ export function dtoCosteoServidor(pieza = {}, cantidad = 1) {
     ...(Number.isFinite(Number(c?.anchoMM)) ? { anchoMM: Number(c.anchoMM) } : {}),
     ...(Number.isFinite(Number(c?.piezas)) ? { piezas: Number(c.piezas) } : {}),
     ...(Number.isFinite(Number(c?.hojas)) ? { hojas: Number(c.hojas) } : {}),
-    ...(typeof c?.material_solicitado === 'string' ? { material_solicitado: c.material_solicitado.slice(0, 200) } : {}),
-    ...(typeof c?.material_match === 'string' ? { material_match: c.material_match.slice(0, 40) } : {}),
+    // El BOM persistido conserva la autoridad de UI en _match.{solicitado,clase}.
+    // Si el material está pendiente y sólo copiamos material_solicitado/material_match,
+    // el DTO pierde esa intención y costear-servidor lo rechaza 400 como "insumoId vacío".
+    // Fallback explícito al shape persistido: sigue siendo INTENCIÓN, el servidor reclasifica.
+    ...((typeof c?.material_solicitado === 'string' && c.material_solicitado.trim())
+      ? { material_solicitado: c.material_solicitado.slice(0, 200) }
+      : (typeof c?._match?.solicitado === 'string' && c._match.solicitado.trim())
+        ? { material_solicitado: c._match.solicitado.slice(0, 200) } : {}),
+    ...((typeof c?.material_match === 'string' && c.material_match.trim())
+      ? { material_match: c.material_match.slice(0, 40) }
+      : (typeof c?._match?.clase === 'string' && c._match.clase.trim())
+        ? { material_match: c._match.clase.slice(0, 40) } : {}),
     // INTENCIÓN de confirmación humana (P0.6/P0.8): el servidor la verifica y la convierte a
     // USER_CONFIRMED efectivo; NO se deriva del string material_match mandado por el browser.
     ...(c?.material_confirmado === true ? { material_confirmado: true } : {}),
