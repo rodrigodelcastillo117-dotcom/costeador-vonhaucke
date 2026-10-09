@@ -352,7 +352,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             <div className="alerta" style={{ marginTop: 8, display: 'block', background: '#eef6f3', borderColor: '#8bbcaf', color: '#174f45' }}>
               <strong>Antes de hacerlo a la medida:</strong> VONI encontró posibles líneas Von Haucke existentes.
               <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:6 }}>
-                {candidatosLinea.map((l)=><span key={l.ruta} className="chip" style={{background:'#fff'}}><b>{l.linea}</b> · {l.productos?.length||0} variante(s)</span>)}
+                {candidatosLinea.map((l)=><span key={l.ruta} className="chip" style={{ background: '#fff', color: '#111' }}><b>{l.linea}</b> · {l.productos?.length||0} variante(s)</span>)}
               </div>
               <div className="ayuda" style={{marginTop:6,color:'#356b62'}}>Son candidatos, no una coincidencia certificada. Revisa línea/variante antes de construir un especial; si ninguna resuelve el brief, Von Haucke sí puede fabricarlo a la medida.</div>
             </div>
@@ -367,7 +367,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
                 {estructuraVoni.nodes.map((n, i) => (
-                  <span key={i} className="chip" style={{ background: 'var(--fondo,#f3f3f3)', fontSize: 12 }} title={n.requires_confirmation ? 'Falta confirmar material' : ''}>
+                  <span key={i} className="chip" style={{ background: 'var(--fondo,#f3f3f3)', color: '#111', fontSize: 12 }} title={n.requires_confirmation ? 'Falta confirmar material' : ''}>
                     {n.semantic_role}{n.quantity > 1 ? ` ×${n.quantity}` : ''}{n.requires_confirmation ? ' ⚠' : ''}
                   </span>
                 ))}
