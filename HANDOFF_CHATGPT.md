@@ -5,6 +5,21 @@
 
 ---
 
+## 2ª RE-AUDITORÍA R15 — RESUELTA (para CHATGPT + GROK)
+
+- **branch:** `audit/final-product-completion` · **code SHA:** `eb2ebfd` (HEAD = doc-commit encima). Base = `fd6b6c5`.
+- **tests:** 2160/2160 vitest (259 archivos) · **vite build:** ✅ · **deno check:** ✅. **CI real:** GitHub 0 runs (evidencia LOCAL).
+- La 2ª re-auditoría aceptó R15-2/3/5 y R15-A (lógica) y reabrió D/C/B/E + P1 UX. Corregidos:
+  - **R15-D2** — el borrado no sobrevivía el MERGE del padre → ahora Acomodo sobreescribe NEUTRAL (sugeridosPartidas:[], demoAutopoblado:false, programaPropuesto:false). — **INTEGRATION_PASS** (caso 38, semántica de merge).
+  - **R15-C2** — sillas heredan `anchor_role` + `functional_group_id` del ancla (no grupo inventado). — **INTEGRATION_PASS** (caso 36 ext).
+  - **R15-B2** — `silleriaPendiente` por (rol, ancla, modelo, cantidad): ancla equivocada / modelo distinto → pendiente. — **INTEGRATION_PASS** (casos 37/37b).
+  - **R15-E2** — gate de conflictos en el PUNTO ATÓMICO (`setEstado(prev)` revalida y devuelve prev con conflictos). — **CODE_PASS** (App; dominio produce conflictos INTEGRATION_PASS 31/31b).
+  - **R15-A-UX** — botón "ir directo a la propuesta" `disabled={!puedeEntrarPropuesta}` + title explicativo (no más botón muerto). — **CODE_PASS**.
+- **Estado R15:** R15-1 ✅ · R15-2 ✅ · R15-3 ✅ · R15-4 ✅ · R15-5 ✅ · R15-6 ✅ (borrado real bajo merge).
+- **Supuestos NO verificados LIVE:** render de UI (stepper/botones/persistencia) NO cubierto por E2E, sólo lógica de dominio + 1 source-assert del gate atómico; el selector "elegir otro producto / requiere desarrollo" sigue pendiente de UI; sin flag persistente de "modelo confirmado" (si el usuario borra las sillas, vuelve a pendiente).
+
+---
+
 ## RE-AUDITORÍA R15 — RESUELTA (para CHATGPT + GROK)
 
 - **branch:** `audit/final-product-completion` · **code SHA:** `fd6b6c5` (HEAD = doc-commit encima). Base = `b651932`.
@@ -203,20 +218,20 @@
 Eres el auditor independiente del proyecto Von Haucke (app React + Supabase de costeo/cotización).
 Audita la rama `audit/final-product-completion`.
 
-- Último commit de CÓDIGO: fd6b6c5 (re-auditoría R15: gate real de sillería/conflictos + identidad de asiento + una sola realidad). Base = b651932.
-  Verdad viva: `CLOSEOUT_STATE.md` (historial rondas 1–15 + re-auditoría R15) + bloque "RE-AUDITORÍA R15 — RESUELTA" arriba.
-  Tests 2156/2156 (259 archivos), build ✅, deno check ✅ (evidencia LOCAL; GitHub 0 CI runs). Golden/adapter = MOCK_ONLY.
+- Último commit de CÓDIGO: eb2ebfd (2ª re-auditoría R15: borrado real bajo merge + topología de sillas + reconciliación por ancla + gate atómico). Base = fd6b6c5.
+  Verdad viva: `CLOSEOUT_STATE.md` (historial rondas 1–15 + 2 re-auditorías R15) + bloque "2ª RE-AUDITORÍA R15 — RESUELTA" arriba.
+  Tests 2160/2160 (259 archivos), build ✅, deno check ✅ (evidencia LOCAL; GitHub 0 CI runs). Golden/adapter = MOCK_ONLY.
 - Límites que Claude respetó: NO merge, NO deploy/promote, NO migración prod, NO prod-write, NO tocar 33 legacy,
   NO aprobar DATA TRUTH, NO integrar Intelisis. Todo capa ADITIVA (no cambia números del motor). El validador del
   edge está PREPARADO + deno-clean pero NO DESPLEGADO (prod edge = hard boundary).
 
-Verifica contra el CÓDIGO real (no sólo el closeout) que los 5 falsos verdes de tu re-auditoría R15 quedaron corregidos:
-1. R15-A: ¿el STEPPER (Pasos) ya NO entra a paso 4 con sillasPorConfirmar? ¿TODAS las rutas (stepper/botones/omitir/candado/onIr) usan `puedeEntrarPropuesta`?
-2. R15-B: `silleriaPendiente` reconcilia por rol+cantidad (8+10 requeridas vs 1 existente → pendiente), no "¿hay alguna silla?".
-3. R15-C: `propuestaSilleriaSugerida` con bench quantity=4 → 8 sillas, instance_id únicos, 2 por anchor_instance_id, sin cross-link.
-4. R15-D: con observed server, ¿Acomodo ELIMINA sugeridosPartidas/demoAutopoblado/programaPropuesto del estado persistido (todas las rutas)?
-5. R15-E: ¿`App.aplicarProgramaDetectado` rehúsa el write (0 escrituras) si la reconciliación produce EXISTING_SURPLUS/SLOT_OCUPADO/SPLIT_REQUIRED? ¿botón deshabilitado con conflictos?
-6. Revisa supuestos (render UI no E2E; selector de sillería pendiente) y busca NUEVOS falsos verdes.
+Verifica contra el CÓDIGO real (no sólo el closeout) que los 5 hallazgos de tu 2ª re-auditoría R15 quedaron corregidos:
+1. R15-D2: con observed server, ¿el objeto que Acomodo envía SOBREESCRIBE neutral (sugeridosPartidas:[]/demoAutopoblado:false/programaPropuesto:false) de modo que el MERGE del padre ya no conserva lo stale?
+2. R15-C2: ¿las sillas de "usar sugerida" heredan anchor_role=ANCHOR_* y el functional_group_id del ancla (no uno inventado)? bench qty=4 → 2 sillas/ancla con el fg del ancla.
+3. R15-B2: `silleriaPendiente` por (rol, ancla, modelo, cantidad): 8 sillas al ancla equivocada o modelo distinto sin confirmar → sigue pendiente.
+4. R15-E2: ¿la revalidación de conflictos ocurre DENTRO de setEstado(prev) (no sólo en el precheck) y devuelve prev con 0 writes?
+5. R15-A-UX: ¿el botón "ir directo a la propuesta" usa disabled={!puedeEntrarPropuesta} (sin botón muerto)?
+6. Revisa supuestos (render UI no E2E; selector "elegir otro" pendiente; sin flag persistente de modelo confirmado) y busca NUEVOS falsos verdes.
 
 Luego decide/recomienda prioridad para el mega-avance, sabiendo que estos bloques necesitan decisión de Rodrigo o deploy:
 A. MOTOR CUTOVER: que `calcular()` tome el precio del CanonicalPriceResolver con fail-closed, preservando goldens (sólo productos nuevos).
