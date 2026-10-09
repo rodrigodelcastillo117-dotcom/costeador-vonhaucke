@@ -6,10 +6,10 @@
 > Última actualización: 2026-10-09 (ronda 3 ChatGPT cerrada + cable FloorPlanReader + rewrite sin contradicciones).
 
 ## ESTADO ACTUAL (verificado contra el repo)
-- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `66caeb7`**; el HEAD de la rama es el
+- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `8b89a5b`**; el HEAD de la rama es el
   doc-commit de este CLOSEOUT encima (un commit no puede contener su propio SHA). Tip exacto: `git rev-parse HEAD`.
   Diff completo de la rama: `git diff e5f737f..HEAD` · lista: `git log --oneline e5f737f..HEAD`.
-- **Tests: 1995 / 1995** (vitest) · **Build: ✅** (vite) · verificado en esta sesión (2026-10-09).
+- **Tests: 2008 / 2008** (vitest) · **Build: ✅** (vite) · verificado en esta sesión (2026-10-09).
 - **MANDATO RC (deadline lunes 12-oct)**: autónomo hasta Release Candidate. Autorización NUEVA de Rodrigo:
   cutover del motor SÓLO para productos NUEVOS (shadow primero), agregar parser XLSX justificado, preparar edges.
   Siguen prohibidos (se preparan/documentan como BLOCKED_EXTERNAL, no se ejecutan): merge, deploy/promote,
@@ -148,6 +148,11 @@ Intelisis = adapter FUTURO. NO usar $0 como desconocido; no viejo-como-vigente; 
   REDONDEO/DATO_FALTANTE). Diagnostica, no cuadra. Marco para T.D.C. humana vs app (espera ingestión xlsx).
 - `src/datos/fxProvenance.js` — FX con procedencia (§9): normalizarFx + resolverFx (VERIFIED_CURRENT/REAL_DATED/
   HISTORICAL/PROVISIONAL/PENDING). FX viejo o sin valor NO habilita costo oficial. Falta: cablear a la conversión USD.
+- `src/datos/rutaFabricacion.js` — HORAS-HOMBRE / ruta (§10): operaciones (corte/láser/soldadura/pintura/ensamble…)
+  con setup/tiempo/tarifa/fuente; sin tiempo o tarifa → PENDING (nunca minutos inventados); MO total sólo si la ruta
+  está completa. Responde "¿cuántas horas?" sólo con evidencia.
+- `src/datos/crossFlowInvariants.test.js` — §25 "una sola realidad": mismo plano→mismos hechos, mismo insumo→misma
+  resolución, mismo layout→misma firma, mismo BOM→mismo costo, proposal≠confirmation.
 - **FIX crítico**: el helper `num` devolvía 0 para null/whitespace (Number(null)===0, Number('  ')===0) → corregido
   (null/undefined/''/whitespace → null) para no violar "$0≠desconocido" ni meter una merma de 0%.
 

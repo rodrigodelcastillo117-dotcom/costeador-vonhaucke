@@ -11,8 +11,8 @@
 Eres el auditor independiente del proyecto Von Haucke (app React + Supabase de costeo/cotización).
 Audita la rama `audit/final-product-completion`.
 
-- Último commit de CÓDIGO: c744689. Base: e5f737f. Tip de rama: usa `git rev-parse HEAD` (doc-commit encima).
-- Diff a revisar: `git diff e5f737f..HEAD`. Verdad viva: `CLOSEOUT_STATE.md`.
+- Último commit de CÓDIGO: 8b89a5b (sesión autónoma RC). Base: e5f737f. Tip: usa `git rev-parse HEAD`.
+- Diff a revisar: `git diff e5f737f..HEAD`. Verdad viva: `CLOSEOUT_STATE.md`. Tests 2008/2008, build ✅, smoke E2E 3/3.
 - Límites que Claude respetó: NO merge, NO deploy, NO migración, NO prod-write, NO tocar 33 cotizaciones legacy,
   NO aprobar DATA TRUTH, NO integrar Intelisis. Todo son capas ADITIVAS (no cambian números del motor), salvo
   un único guard fail-closed en el motor (costo fantasma por falta de medida).
@@ -89,3 +89,29 @@ Modificados (clave): motor `calculo.js` (único cambio de motor: guard fail-clos
 A. **Motor cutover** (que el resolver gobierne `calcular()`): toca motor congelado + 33 legacy → requiere OK + alcance.
 B. **Ingestión de `.xlsx` reales**: requiere agregar parser (dependencia) + aprobar mapeo clave_erp→canonical_id (DATA TRUTH).
 C. **#2 detección de mobiliario en la edge** `leer-plano`: trabajo de edge (visión) + deploy para verificar.
+
+---
+
+## 3) SESIÓN AUTÓNOMA RC (hasta 8b89a5b) — qué se añadió
+
+Siguiendo el mandato de Release Candidate (deadline lunes 12-oct), trabajé autónomo SIN salirme de los límites
+(sin merge/deploy/migración/prod-write/legacy/DATA TRUTH/Intelisis). Cerrado y pusheado:
+
+- **P0 estrictos (ChatGPT §3)**: P0-C room→furniture (mueble implicado por un cuarto = INFERRED, no OBSERVED);
+  P0-B adversarial de vigencia (malformed/future/expired+verified/expired+newer-real); P0-A stale-guard de
+  lectura de plano (una lectura lenta superada por otra NO pisa el archivo nuevo).
+- **Shadow motor cutover (§8)**: `shadowCutover.js` compara legacy vs canónico → 259/259 iguales, 0 diferencias →
+  SEGURO; 93 bloquearían costo oficial por procedencia. (El cutover numérico es no-op hoy; cobra sentido con la serie xlsx.)
+- **Product Intelligence (§5-6)**: `productSpec.js` (material/espesor ausente→PENDING, dimensión en conflicto→CONFLICT)
+  + `bomGenerator.js` (sin material canónico o sin regla de merma → PENDING; nunca merma mágica).
+- **Golden Reality (§13)**: `goldenReality.js` clasifica diferencias humano-vs-app por causa (no cuadra artificialmente).
+- **FX provenance (§9)**: `fxProvenance.js` (FX con fuente/fecha/estado; FX viejo/sin valor no habilita costo oficial).
+- **Ruta de fabricación / horas-hombre (§10)**: `rutaFabricacion.js` (sin tiempo/tarifa → PENDING; no se inventan minutos).
+- **Cross-flow invariants (§25)**: test que protege "una sola realidad".
+- **Red-team adversarial interno**: un subagente atacó los 8 módulos nuevos; encontró y CERRÉ bugs reales —
+  HIGH merma fuera de rango se tragaba; MEDIUM fechaDeFuenteTexto fabricaba fechas de folios; + 4 LOW
+  (num(null/whitespace)→0, sort NaN, hoy inválido, "Invalid Date", espesor 0). Todos con regresión.
+
+**Naturaleza**: todo lo anterior son CONTRATOS/RESOLVERS/HARNESSES puros y testeados (CODE_PASS), capa ADITIVA
+que NO cambia los números del motor. Lo que falta para que "trabajen de verdad" es el wiring que requiere tu
+decisión (A/B/C arriba) o deploy. Audita buscando NUEVOS falsos verdes.
