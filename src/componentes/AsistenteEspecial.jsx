@@ -1009,6 +1009,23 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
               <div className="ayuda gris" style={{ fontSize: 11, marginTop: 6 }}>Es lo que Voni entendió como objeto; confirma o corrige las piezas abajo. El precio lo calcula el motor.</div>
             </div>
           )}
+          {Array.isArray(propuestaIA?.externos) && propuestaIA.externos.length > 0 && (
+            <div className="tarjeta" style={{ background: 'var(--panel)', borderLeft: '4px solid var(--gris,#8A8A93)', margin: '12px 0' }}>
+              <div style={{ fontWeight: 700, marginBottom: 6 }}>Fuera del costo de fabricación Von Haucke</div>
+              <div className="ayuda" style={{ marginBottom: 8 }}>
+                Se muestran para entender el mueble, pero no se convierten en materia prima ni en un falso $0.
+              </div>
+              {propuestaIA.externos.map((x, i) => {
+                const quien = x?.responsable === 'cliente' ? 'Cliente' : x?.responsable === 'tercero' ? 'Tercero' : 'Por definir';
+                return (
+                  <div key={i} style={{ padding: '8px 0', borderTop: i ? '1px solid var(--linea)' : 'none' }}>
+                    <div style={{ fontWeight: 650 }}>{x?.nombre || 'Elemento externo'} <span className="chip" style={{ marginLeft: 6, height: 28, fontSize: 11, background: '#fff', color: '#111' }}>{quien}</span></div>
+                    {x?.nota && <div className="ayuda gris" style={{ marginTop: 3 }}>{x.nota}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
           {(preguntasIA.length > 0 || Object.keys(confirmadas).length > 0) && (
             <div style={{ border: '1px solid var(--borde)', borderRadius: 10, padding: 14, margin: '12px 0', background: 'var(--panel)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
