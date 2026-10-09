@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validarProgramaObservado } from '../../supabase/functions/leer-plano/observed-core.js';
-import { programRequirementsDesdeObservado, proponerProgramaDesdeObservado, propuestaBloqueada, aplicarPrograma, partidaComercialDesdeConfirmado, propuestaSilleriaSugerida } from './programaRealDelPlano.js';
+import { programRequirementsDesdeObservado, proponerProgramaDesdeObservado, propuestaBloqueada, aplicarPrograma, partidaComercialDesdeConfirmado, propuestaSilleriaSugerida, silleriaPendiente } from './programaRealDelPlano.js';
 
 // ============================================================================
 //  INTEGRACIÓN OFFLINE (ChatGPT R10) — NO es E2E del PDF vivo (MOCK_ONLY).
@@ -329,6 +329,29 @@ describe('INTEGRACIÓN observed pipeline (R10, offline)', () => {
     // aplicables de verdad (producto canónico con identidad)
     const ap = aplicarPrograma(sill, { existentes: [] });
     expect(ap.confirmacion.confirmadas.length).toBe(2);
+  });
+
+  it('35· R15-B SILLERÍA pendiente por CANTIDAD: 1 silla existente no cubre 8+10 requeridas', () => {
+    const recomendaciones = [
+      { dependent_role: 'WORK_SEAT', requirement_qty: 8, suggested_product: 'silla-win' },
+      { dependent_role: 'MEETING_SEAT', requirement_qty: 10, suggested_product: 'silla-concerto' },
+    ];
+    expect(silleriaPendiente(recomendaciones, [{ relation_role: 'WORK_SEAT', bancoId: 'silla-win', cantidad: 1 }])).toBe(true);
+    // cubierto sólo cuando TODOS los roles están en cantidad
+    const cubierto = [{ relation_role: 'WORK_SEAT', bancoId: 'silla-win', cantidad: 8 }, { relation_role: 'MEETING_SEAT', bancoId: 'silla-concerto', cantidad: 10 }];
+    expect(silleriaPendiente(recomendaciones, cubierto)).toBe(false);
+  });
+
+  it('36· R15-C "usar sugerida" con bench quantity=4: 8 sillas, instance_id únicas, 2 por ancla, sin cross-link', () => {
+    const { prop } = pipeline([base({ type: 'bench operativo', role: 'operational', quantity: 4, capacity_per_unit: 2, capacity_total: 8, dimensions: { w: 1500, d: 1200 }, source_ref: 'B-01' })]);
+    const sill = propuestaSilleriaSugerida(prop.recomendaciones, { linea: 'App LT' });
+    expect(sill.partidas.length).toBe(8);                          // 4 benches × 2 asientos
+    const ids = sill.partidas.map((p) => p.instance_id);
+    expect(new Set(ids).size).toBe(8);                             // instance_id ÚNICOS (no duplicados)
+    const porAncla = {};
+    for (const p of sill.partidas) porAncla[p.anchor_instance_id] = (porAncla[p.anchor_instance_id] || 0) + 1;
+    expect(Object.keys(porAncla).length).toBe(4);                  // 4 anclas distintas
+    expect(Object.values(porAncla).every((n) => n === 2)).toBe(true); // 2 sillas por ancla
   });
 
   it('24· R13-4 modelo observado ≠ source_ref: sin modelo explícito → requiere_confirmacion_modelo', () => {

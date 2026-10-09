@@ -14,7 +14,7 @@ import EditarPartida from './EditarPartida.jsx';
 import EmpezarEspacio from './EmpezarEspacio.jsx';
 import { leerPlanoDeArchivo } from '../datos/leerPlanoArchivo.js';
 import { areasCanonicas, bloqueGeometria } from '../datos/floorPlan.js';
-import { proponerProgramaDelPlano, proponerProgramaDesdeObservado, programRequirementsDesdeObservado, propuestaSilleriaSugerida, aplicarPrograma } from '../datos/programaRealDelPlano.js';
+import { proponerProgramaDelPlano, proponerProgramaDesdeObservado, programRequirementsDesdeObservado, propuestaSilleriaSugerida, silleriaPendiente, aplicarPrograma } from '../datos/programaRealDelPlano.js';
 import { requirementsDeBrief } from '../datos/programaBrief.js';
 import Cargando from './Cargando.jsx';
 import EstoEntendi from './EstoEntendi.jsx';
@@ -38,14 +38,16 @@ const PASOS = [
 // Rodrigo subió su plano —que salta al paso 3 para leerlo— y **"Muebles" le
 // apareció hecho sin haberle preguntado nada**. Un cartel verde que miente es
 // peor que no tenerlo: le dice al proyectista que ya escogió muebles.
-function Pasos({ paso, setPaso, puedeAvanzar, hechoPaso }) {
+function Pasos({ paso, setPaso, puedeAvanzar, hechoPaso, puedeEntrar }) {
   return (
     <div className="voni-pasos no-imprimir">
       {PASOS.map((p, i) => {
         const hecho = p.n < paso && (hechoPaso ? hechoPaso(p.n) : true);
         const estado = p.n === paso ? 'activo' : hecho ? 'hecho' : 'pend';
         // Solo puedes saltar a un paso ya alcanzado (o al siguiente si hay muebles).
-        const habilitado = p.n <= paso || (p.n === paso + 1 && puedeAvanzar);
+        // R15-A: la entrada a un paso también debe pasar el gate compartido (p.ej. la
+        // PROPUESTA final exige sillería confirmada y sin conflictos) — el stepper no lo brinca.
+        const habilitado = (p.n <= paso || (p.n === paso + 1 && puedeAvanzar)) && (puedeEntrar ? puedeEntrar(p.n) : true);
         return (
           <button
             key={p.n}
@@ -222,17 +224,21 @@ export default function Voni({
   // R13-3: sillería/accesorios observados → recomendación con MODELO POR CONFIRMAR
   // (nunca se auto-convierte a silla-win/concerto ni se esconde).
   const recomendacionesObs = propuestaPrograma?.recomendaciones || [];
-  // R15-4: la sillería queda PENDIENTE hasta que el usuario la confirme (o ya esté en
-  // la cotización). Mientras tanto, el programa NO está completo y NO se permite saltar
-  // a la propuesta final. "Usar sugerida" la convierte en partidas reales (persiste).
-  const sillasYaEnCotizacion = (partidas || []).some((p) => /SEAT/i.test(p.relation_role || ''));
-  const sillasPorConfirmar = (propuestaPrograma?.requiereConfirmacionSillas === true) && !sillasYaEnCotizacion;
-  const lineaPrograma = (reqBrief && reqBrief.linea) || 'App LT';
   // P0-R10-2/R10-3: el programa requiere revisión si el servidor lo marcó REVIEW,
   // si alguna ancla no resolvió su geometría, o si hay cualquier pendiente.
   const programaRequiereRevision = !!propuestaPrograma?.requiereRevision
     || cot.acomodo?.observed_state === 'PRESENT_REVIEW_REQUIRED'
     || anclasPorConfirmar.length > 0;
+  // R15-4/R15-B: la sillería queda PENDIENTE hasta que el usuario la confirme (o ya
+  // esté cubierta en la cotización, reconciliando por rol + cantidad, no "¿hay alguna?").
+  // "Usar sugerida" la convierte en partidas reales (persiste).
+  const sillasPorConfirmar = (propuestaPrograma?.requiereConfirmacionSillas === true)
+    && silleriaPendiente(recomendacionesObs, partidas);
+  const lineaPrograma = (reqBrief && reqBrief.linea) || 'App LT';
+  // R15-A: GATE ÚNICO para entrar a la PROPUESTA FINAL (paso 4). TODAS las rutas
+  // (stepper, botones, omitir, onIr) deben pasar por aquí — no sólo `disabled`.
+  const puedeEntrarPropuesta = hay && !programaRequiereRevision && !sillasPorConfirmar && conflictosPrograma.length === 0;
+  const irAPropuesta = () => { if (puedeEntrarPropuesta) setPaso(4); };
 
   // #7: suma SÓLO precios conocidos (null/undefined NO cuenta como 0) y expone
   // cuántos faltan, para no presentar un total incompleto como definitivo.
@@ -252,6 +258,8 @@ export default function Voni({
   // dejar pasar de largo un aviso que se puede ignorar. Se recalcula contra
   // las `partidas` de AHORA mismo, no algo que se guardó una vez.
   function avanzarConCandado(destino) {
+    // R15-A: cualquier avance a la PROPUESTA (4) pasa por el gate único.
+    if (destino === 4 && !puedeEntrarPropuesta) return;
     if (partidas.some((p) => p.candadoUsuarios || p.requiereProyectista)) setConfirmarCandado(destino);
     else setPaso(destino);
   }
@@ -276,6 +284,7 @@ export default function Voni({
       </div>
 
       <Pasos paso={paso} setPaso={setPaso} puedeAvanzar={paso === 1 || hay}
+        puedeEntrar={(n) => n !== 4 || puedeEntrarPropuesta}
         hechoPaso={(n) => (n === 1 ? !!(estado.cotizacion?.acomodo?.areasM?.length || estado.cotizacion?.acomodo?.areas?.length)
           : n === 2 ? hay
             : n === 3 ? !!estado.cotizacion?.acomodo?.plan : true)} />
@@ -412,7 +421,7 @@ export default function Voni({
                 {/* P0-R10-2/R10-3: el apply es un GATE. Si algo afecta identidad/
                     qty/geometría (requiereRevision), NO se puede aplicar solo. */}
                 <button type="button" className="boton primario"
-                  disabled={!onAplicarPrograma || faltantesPrograma.length === 0 || programaRequiereRevision}
+                  disabled={!onAplicarPrograma || faltantesPrograma.length === 0 || programaRequiereRevision || conflictosPrograma.length > 0}
                   onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta)}>
                   Aplicar programa detectado
                 </button>
@@ -536,7 +545,7 @@ export default function Voni({
       {confirmarCandado != null && (
         <ConfirmarCandado
           partidas={partidas}
-          onConfirmar={() => { const destino = confirmarCandado; setConfirmarCandado(null); setPaso(destino); }}
+          onConfirmar={() => { const destino = confirmarCandado; setConfirmarCandado(null); if (destino === 4 && !puedeEntrarPropuesta) return; setPaso(destino); }}
           onCancelar={() => setConfirmarCandado(null)}
         />
       )}
@@ -558,13 +567,13 @@ export default function Voni({
         <>
           <div className="tarjeta no-imprimir voni-omitir">
             <span className="ayuda">¿No tienes planos ni medidas del lugar?</span>
-            <button className="boton fantasma" style={{ minHeight: 42 }} disabled={sillasPorConfirmar} onClick={() => setPaso(4)} title={sillasPorConfirmar ? 'Confirma la sillería antes de ir a la propuesta' : undefined}>Omitir el acomodo, ir a la propuesta →</button>
+            <button className="boton fantasma" style={{ minHeight: 42 }} disabled={!puedeEntrarPropuesta} onClick={irAPropuesta} title={!puedeEntrarPropuesta ? 'Confirma la sillería / resuelve conflictos antes de ir a la propuesta' : undefined}>Omitir el acomodo, ir a la propuesta →</button>
           </div>
           <Acomodo
             estado={estado}
             onGuardarAcomodo={onGuardarAcomodo}
             onAplicarPrograma={onAplicarPrograma}
-            onIr={(r) => setPaso(r === 'cotizacion' ? 4 : 2)}
+            onIr={(r) => { if (r === 'cotizacion') irAPropuesta(); else setPaso(2); }}
             abrirDibujo={abrirDibujo}
             onConsumido={() => setAbrirDibujo(false)}
           />

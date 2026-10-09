@@ -827,6 +827,12 @@ export default function App() {
     }
     // Vista para la UI (contra el estado actual): conflictos y pendientes a mostrar.
     const vista = aplicarPrograma(propuesta, { existentes: estado.cotizacion?.partidas || [] });
+    // ChatGPT R15-E: un CONFLICTO DE RECONCILIACIÓN (EXISTING_SURPLUS /
+    // SLOT_OCUPADO_PRODUCTO_DISTINTO / SPLIT_REQUIRED) es GATE fail-closed: NO se
+    // escribe nada (ni se agregan otras partidas) hasta que el usuario lo resuelva.
+    if ((vista.conflictos || []).length > 0) {
+      return { confirmadas: 0, conflictos: vista.conflictos, pendientes: propuesta.incompletos || propuesta.pendientes || [], bloqueada: true, motivo: 'CONFLICTO_RECONCILIACION' };
+    }
     if (aplicandoProgramaRef.current) {
       return { confirmadas: 0, conflictos: vista.conflictos || [], pendientes: propuesta.pendientes || [] };
     }

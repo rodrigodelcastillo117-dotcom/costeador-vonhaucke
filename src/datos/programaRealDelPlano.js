@@ -546,12 +546,17 @@ export function propuestaSilleriaSugerida(recomendaciones, { linea = 'App LT' } 
     const silla = buscarEnColeccion(SILLAS, { line: linea }).find((s) => s.id === r.suggested_product)
       || SILLAS.find((s) => s.id === r.suggested_product);
     if (!silla) return;
-    const req_id = requirementId(r.zone || null, 'silla', `${r.dependent_role}:${r.plan_source_ref || i}`);
+    // R15-C: la identidad del asiento se LIGA al ANCLA física (para_ancla). Así, un
+    // bench quantity=4 genera 4 recomendaciones (para_ancla distinto) × capacidad, con
+    // instance_id ÚNICOS y anchor_instance_id correcto — sin duplicar ni cross-link.
+    const ancla = r.para_ancla || `${r.plan_source_ref || 'x'}:${i}`;
+    const req_id = requirementId(r.zone || null, 'silla', `${r.dependent_role}:${ancla}`);
     const n = Number(r.requirement_qty) > 0 ? Math.floor(Number(r.requirement_qty)) : 1;
     for (let k = 0; k < n; k++) {
       const res = construirResolucion(silla, {
         requirement_id: req_id, zone_id: r.zone || null, rol: 'silla',
         relation_role: r.dependent_role, anchor_role: null,
+        anchor_instance_id: r.para_ancla || null,
         functional_group_id: groupId(req_id, k), instance_id: instanceId(req_id, k),
         cantidad: 1, inclusion: 'requested',
       });
@@ -559,6 +564,27 @@ export function propuestaSilleriaSugerida(recomendaciones, { linea = 'App LT' } 
     }
   });
   return { partidas };
+}
+
+/**
+ * ¿Queda sillería por confirmar? (ChatGPT R15-B) NO es "¿existe alguna silla?":
+ * reconcilia por dependent_role y CANTIDAD FÍSICA. Pendiente si ALGÚN rol requerido
+ * por el programa no está cubierto en cantidad por asientos reales en la cotización.
+ * @param {Array} recomendaciones  requerimientos de asiento del observed
+ * @param {Array} partidas         partidas ya en la cotización
+ */
+export function silleriaPendiente(recomendaciones, partidas = []) {
+  const req = {};
+  for (const r of (Array.isArray(recomendaciones) ? recomendaciones : [])) {
+    if (r && r.dependent_role) req[r.dependent_role] = (req[r.dependent_role] || 0) + (Number(r.requirement_qty) || 0);
+  }
+  if (Object.keys(req).length === 0) return false;
+  const cov = {};
+  for (const p of (Array.isArray(partidas) ? partidas : [])) {
+    const rel = String(p.relation_role || '');
+    if (/SEAT/i.test(rel) && (p.bancoId || p.product_status === 'RESOLVED')) cov[rel] = (cov[rel] || 0) + (Number(p.cantidad) || 1);
+  }
+  return Object.keys(req).some((rol) => (cov[rol] || 0) < req[rol]);
 }
 
 export function proponerProgramaDesdeObservado(observedProgram, { linea = 'App LT', brief = null } = {}) {

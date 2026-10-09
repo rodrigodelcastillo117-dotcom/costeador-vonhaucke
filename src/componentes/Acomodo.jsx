@@ -247,9 +247,18 @@ export default function Acomodo(props) {
     // Las piezas faltantes viven sólo como metadata SUGERIDA/noCobrar; jamás
     // entran a cotizacion.partidas ni a los totales.
     if (hayReales) {
-      // R15-6: con observed server NO se generan/persisten sugerencias por áreas.
-      const nuevasPrograma = observadoPresenteEstado ? [] : partidasSugeridasDeAreas(areas, { linea: lineaOperativa });
-      const programa = observadoPresenteEstado ? { sugerencias: [] } : completarProgramaVisual(realesEntrada, nuevasPrograma);
+      // R15-6/R15-D: con observed server NO se genera NI PERSISTE una segunda realidad:
+      // se ELIMINAN explícitamente sugeridosPartidas/demoAutopoblado/programaPropuesto.
+      if (observadoPresenteEstado) {
+        setSugeridas([]);
+        const { sugeridosPartidas, demoAutopoblado, programaPropuesto, ...limpio } = normalizado;
+        const completo = { ...limpio, lineaOperativa };
+        setAcomodoLocal(completo);
+        props.onGuardarAcomodo?.(completo, silencioso);
+        return;
+      }
+      const nuevasPrograma = partidasSugeridasDeAreas(areas, { linea: lineaOperativa });
+      const programa = completarProgramaVisual(realesEntrada, nuevasPrograma);
       setSugeridas(programa.sugerencias);
       const completo = {
         ...normalizado,
@@ -276,6 +285,16 @@ export default function Acomodo(props) {
       }
     }
 
+    // R15-D fail-closed: con observed server se ELIMINA toda segunda realidad del
+    // estado persistido (no basta con dejar de generarla; stale React/acomodo previo
+    // podría re-guardarla).
+    if (observadoPresenteEstado) {
+      setSugeridas([]);
+      const { sugeridosPartidas, demoAutopoblado, programaPropuesto, ...limpio } = normalizado;
+      setAcomodoLocal(limpio);
+      props.onGuardarAcomodo?.(limpio, silencioso);
+      return;
+    }
     const persistidas = sugeridas.length ? sugeridas : (acomodo?.sugeridosPartidas || []);
     const completo = {
       ...normalizado,
