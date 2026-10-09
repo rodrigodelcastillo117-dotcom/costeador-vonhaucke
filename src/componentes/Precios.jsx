@@ -7,34 +7,29 @@ import { calcularCostoHora } from '../motor/calculo.js';
 import Icono from './Iconos.jsx';
 import { exportar, importar, restablecerPrecios } from '../almacen.js';
 import { pesos2, pct, diasDesde } from '../util.js';
-import { resolverPrecioInsumo, explicarPrecioInsumo } from '../datos/precioInsumoBridge.js';
-import { etiquetaEstadoPrecio } from '../datos/canonicalPriceResolver.js';
+import { resolverPrecioInsumoVivo, explicarPrecioInsumo, precioCapturadoAMano } from '../datos/precioInsumoBridge.js';
+import { etiquetaEstadoDeResolucion } from '../datos/canonicalPriceResolver.js';
 import { ESTADO_PRECIO } from '../datos/precioProvenance.js';
 
 // Color del chip de procedencia por estado. Aditivo: NO cambia ningún número del
 // motor, sólo dice de DÓNDE sale el precio (REALITY CUTOVER: "¿por qué $544?").
 const COLOR_ESTADO = {
   [ESTADO_PRECIO.CURRENT_VERIFIED]: { bg: '#e6f4ea', fg: '#1e7e34' },
-  [ESTADO_PRECIO.REAL_OBSERVED]: { bg: '#e8f0fe', fg: '#1a56db' },
+  [ESTADO_PRECIO.REAL_OBSERVED_DATED]: { bg: '#e8f0fe', fg: '#1a56db' },
+  [ESTADO_PRECIO.REAL_OBSERVED_UNDATED]: { bg: '#fff4e5', fg: '#9a6700' },
   [ESTADO_PRECIO.HISTORICAL]: { bg: '#fff4e5', fg: '#9a6700' },
   [ESTADO_PRECIO.PROVISIONAL]: { bg: '#f1f3f4', fg: '#5f6368' },
   [ESTADO_PRECIO.PENDING]: { bg: '#fce8e6', fg: '#c5221f' },
 };
 
-// Chip de procedencia de UN insumo. Si el precio fue CAPTURADO a mano (difiere
-// del estimado base), NO reclama "compra real": se marca como provisional
-// capturado (sin documento) — honesto hasta que se adjunte evidencia.
+// Chip de procedencia de UN insumo. Toda la lógica (incl. "capturado a mano no
+// hereda evidencia vieja") vive en el adapter canónico del puente — una sola
+// verdad compartida con HojaCosto y el futuro motor (ChatGPT P0-PRICE-TRUST).
 function ChipProcedencia({ insumo }) {
-  const capturado = insumo.precioBase > 0 && insumo.precio !== insumo.precioBase;
-  const paraResolver = capturado
-    ? { precio: insumo.precio, unidad: insumo.unidad, nombre: insumo.nombre, fuente: null }
-    : insumo;
-  const r = resolverPrecioInsumo(insumo.id, paraResolver);
+  const r = resolverPrecioInsumoVivo(insumo.id, insumo);
   const col = COLOR_ESTADO[r.estado] || COLOR_ESTADO[ESTADO_PRECIO.PROVISIONAL];
-  const porque = capturado
-    ? `Precio capturado a mano${insumo.actualizado ? ` · ${insumo.actualizado}` : ''}. Provisional hasta adjuntar evidencia (compra/T.D.C./lista).`
-    : explicarPrecioInsumo(insumo.id, insumo);
-  const texto = capturado ? 'Capturado a mano' : etiquetaEstadoPrecio(r.estado);
+  const porque = explicarPrecioInsumo(insumo.id, insumo);
+  const texto = precioCapturadoAMano(insumo) ? 'Capturado a mano' : etiquetaEstadoDeResolucion(r);
   return (
     <span title={porque}
       style={{ background: col.bg, color: col.fg, borderRadius: 999, padding: '1px 8px', fontSize: 11, cursor: 'help', whiteSpace: 'nowrap' }}>

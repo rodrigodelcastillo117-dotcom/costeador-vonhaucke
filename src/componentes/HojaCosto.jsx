@@ -5,7 +5,7 @@ import { horasTotales } from '../datos/ue.js';
 import { precioDe, precioVenta, costeoEmitible, PARAMETROS_DEFAULT, formulaDePieza, FORMULA_ALBA_V1, MOTOR_VERSION } from '../motor/calculo.js';
 import { precioDeLista } from '../datos/preciosVenta.js';
 import { preciosVH } from '../datos/politicaVH.js';
-import { resolverPrecioInsumo } from '../datos/precioInsumoBridge.js';
+import { resolverPrecioInsumoVivo } from '../datos/precioInsumoBridge.js';
 import { ESTADO_PRECIO } from '../datos/precioProvenance.js';
 
 export default function HojaCosto({ resultado, insumos, pieza, parametros = PARAMETROS_DEFAULT, tipo = 'mueble_fabricado', mostrarVolumen = false, mostrarComercial = true }) {
@@ -42,10 +42,18 @@ export default function HojaCosto({ resultado, insumos, pieza, parametros = PARA
   // o pendiente, el costo NO es oficial reproducible — se nombra, no se maquilla.
   const mpProc = (resultado.detalleInsumos || []).map((c) => {
     const ins = insumos?.[c.insumoId];
-    const r = ins ? resolverPrecioInsumo(c.insumoId, ins) : null;
-    return { nombre: c.nombre || c.insumoId, estado: r ? r.estado : ESTADO_PRECIO.PENDING, conEvidencia: r ? !r.bloqueaCostoOficial : false };
+    // Capturado-aware: un precio editado a mano NO hereda la evidencia vieja
+    // (ChatGPT P0-PRICE-TRUST). "Con evidencia" = real FECHADA o vigente verificada.
+    const r = ins ? resolverPrecioInsumoVivo(c.insumoId, ins) : null;
+    // FX PROVENANCE (ChatGPT #9): una MP en moneda extranjera se convierte a MXN
+    // con un tipoCambio SIN procedencia (default). Aunque el precio sea real, el
+    // costo MXN NO es "totalmente real" hasta verificar el FX → se marca provisional.
+    const fxProvisional = !!(ins && ins.moneda && String(ins.moneda).toUpperCase() !== 'MXN');
+    const conEvidencia = (r ? !r.bloqueaCostoOficial : false) && !fxProvisional;
+    return { nombre: c.nombre || c.insumoId, estado: r ? r.estado : ESTADO_PRECIO.PENDING, conEvidencia, fxProvisional };
   });
   const mpSinEvidencia = mpProc.filter((m) => !m.conEvidencia);
+  const mpFx = mpProc.filter((m) => m.fxProvisional);
   const costoConEvidenciaReal = mpProc.length > 0 && mpSinEvidencia.length === 0;
 
   const horas = horasTotales(pieza?.horas);
@@ -82,7 +90,7 @@ export default function HojaCosto({ resultado, insumos, pieza, parametros = PARA
       {mpProc.length > 0 && (
         costoConEvidenciaReal
           ? <div className="ayuda" style={{ marginBottom: 8, color: '#1a56db' }} title="Todos los materiales del desglose tienen precio con procedencia real (compra/ERP/T.D.C. fechada).">✓ Costo con evidencia real · {mpProc.length} material(es) con procedencia</div>
-          : <div className="ayuda ambar" style={{ marginBottom: 8 }} title={`Sin evidencia suficiente: ${mpSinEvidencia.map((m) => m.nombre).join(', ')}`}>{mpSinEvidencia.length} de {mpProc.length} material(es) sin evidencia suficiente — costo no oficial (provisional/pendiente)</div>
+          : <div className="ayuda ambar" style={{ marginBottom: 8 }} title={`Sin evidencia suficiente: ${mpSinEvidencia.map((m) => m.nombre).join(', ')}${mpFx.length ? ` · FX no verificado (USD/otro): ${mpFx.map((m) => m.nombre).join(', ')}` : ''}`}>{mpSinEvidencia.length} de {mpProc.length} material(es) sin evidencia suficiente — costo no oficial (provisional/pendiente{mpFx.length ? '/FX no verificado' : ''})</div>
       )}
 
       {/* Desglose visual (vivo): así se compone el precio */}

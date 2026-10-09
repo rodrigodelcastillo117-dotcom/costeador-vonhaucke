@@ -9,7 +9,7 @@ describe('HojaCosto · procedencia del costo (evidencia real vs provisional)', (
   it('resuelve la procedencia de cada MP del desglose (detalleInsumos)', () => {
     expect(s).toContain("from '../datos/precioInsumoBridge.js'");
     expect(s).toContain('resultado.detalleInsumos');
-    expect(s).toContain('resolverPrecioInsumo(c.insumoId, ins)');
+    expect(s).toContain('resolverPrecioInsumoVivo(c.insumoId, ins)');   // capturado-aware (P0-PRICE-TRUST)
   });
 
   it('"costo con evidencia real" sólo si TODO el material tiene procedencia', () => {
@@ -20,5 +20,11 @@ describe('HojaCosto · procedencia del costo (evidencia real vs provisional)', (
   it('muestra el estado honesto: evidencia real, o N materiales sin evidencia (no oficial)', () => {
     expect(s).toContain('Costo con evidencia real');
     expect(s).toContain('sin evidencia suficiente — costo no oficial');
+  });
+
+  it('FX PROVENANCE: MP en moneda extranjera con FX no verificado NO cuenta como evidencia real', () => {
+    expect(s).toContain("String(ins.moneda).toUpperCase() !== 'MXN'");
+    expect(s).toContain('&& !fxProvisional');
+    expect(s).toContain('FX no verificado');
   });
 });

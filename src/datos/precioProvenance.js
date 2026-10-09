@@ -25,12 +25,26 @@
 // Estado FINAL de un precio (lo decide el resolver sobre el conjunto; aquí se
 // expone el enum para que todos usen los MISMOS nombres).
 export const ESTADO_PRECIO = Object.freeze({
-  CURRENT_VERIFIED: 'CURRENT_VERIFIED', // evidencia real + vigencia explícita que cubre hoy
-  REAL_OBSERVED: 'REAL_OBSERVED',       // compra/documento real; última referencia conocida
-  HISTORICAL: 'HISTORICAL',             // real pero superado por una observación posterior, o vigencia vencida
-  PROVISIONAL: 'PROVISIONAL',           // estimado/puesto a mano; NO respaldado por documento real
-  PENDING: 'PENDING',                   // sin precio utilizable → bloquea costo OFICIAL
+  CURRENT_VERIFIED: 'CURRENT_VERIFIED',             // evidencia real + vigencia explícita que cubre hoy
+  REAL_OBSERVED_DATED: 'REAL_OBSERVED_DATED',       // compra/documento real CON fecha → evidencia suficiente
+  REAL_OBSERVED_UNDATED: 'REAL_OBSERVED_UNDATED',   // real pero SIN fecha (p.ej. "ERP última compra"): real-histórico, NO "vigente/fechado"
+  HISTORICAL: 'HISTORICAL',                         // real pero superado por una observación posterior, o vigencia vencida
+  PROVISIONAL: 'PROVISIONAL',                       // estimado/puesto a mano; NO respaldado por documento real
+  PENDING: 'PENDING',                               // sin precio utilizable → bloquea costo OFICIAL
 });
+
+// Etiqueta por TIPO DE FUENTE (no por estado). ChatGPT #6: no llamar "Compra real"
+// a un T.D.C. o a una lista de proveedor; mostrar el tipo verdadero.
+const ETIQUETA_FUENTE = {
+  [/* INTELISIS */ 'INTELISIS']: 'Intelisis',
+  [/* COMPRA_REAL */ 'COMPRA_REAL']: 'Compra real',
+  [/* TDC_HUMANO */ 'TDC_HUMANO']: 'T.D.C. (costeo humano)',
+  [/* CATALOGO_APROBADO */ 'CATALOGO_APROBADO']: 'Lista de proveedor',
+  [/* PROVISIONAL */ 'PROVISIONAL']: 'Estimado',
+};
+export function etiquetaFuentePrecio(fuente) {
+  return ETIQUETA_FUENTE[fuente] || 'Fuente desconocida';
+}
 
 // Tipo de fuente (de más a menos autoritativa para precio de COMPRA/costo).
 export const FUENTE_PRECIO = Object.freeze({

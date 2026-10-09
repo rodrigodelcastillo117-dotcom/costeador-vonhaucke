@@ -64,20 +64,19 @@ describe('observed_program · contrato e invariantes (Plan Intelligence v1)', ()
     expect(sug.origin).toBe(ORIGEN.SUGGESTED);
   });
 
-  it('GOLDEN 18 PUESTOS: 18 benches observados + sillas sugeridas → resumen separa real de sugerido', () => {
+  it('CONTRATO (sintético, NO plano real): MUEBLES ≠ PUESTOS — 9 benches de 2 = 18 puestos, no 18 muebles', () => {
+    // Datos SINTÉTICOS para probar la separación cantidad/capacidad (ChatGPT #4).
+    // NO es un golden de un plano real; un golden real debe venir del lector.
     const programa = [
-      // 18 puestos observados del plano (2 grupos bench)
-      { type: 'bench', role: 'ANCHOR_WORKSTATION', cantidad: 10, zona: 'OPERATIVA', evidencia: 'planta', confianza: 0.95, procedencia: PROCEDENCIA.DETECTED_FROM_PLAN },
-      { type: 'bench', role: 'ANCHOR_WORKSTATION', cantidad: 8, zona: 'OPERATIVA', evidencia: 'planta', confianza: 0.95, procedencia: PROCEDENCIA.DETECTED_FROM_PLAN },
-      // sillas sugeridas por regla (1 por puesto) — NO confirmadas
+      { type: 'bench', role: 'ANCHOR_WORKSTATION', cantidad: 9, capacity_per_unit: 2, zona: 'OPERATIVA', evidencia: 'sintético', confianza: 0.9, procedencia: PROCEDENCIA.DETECTED_FROM_PLAN },
       { type: 'silla', role: 'WORK_SEAT', cantidad: 18, confianza: 0.4, procedencia: PROCEDENCIA.RULE_SUGGESTION },
     ];
     const res = resumenObservado(programa);
-    expect(res.porOrigen[ORIGEN.OBSERVED]).toBe(18);     // 18 puestos reales
-    expect(res.porOrigen[ORIGEN.SUGGESTED]).toBe(18);    // 18 sillas sugeridas
-    expect(res.cantidadObservada).toBe(18);
+    expect(res.porOrigen[ORIGEN.OBSERVED]).toBe(9);        // 9 MUEBLES observados
+    expect(res.capacidadObservada).toBe(18);               // 18 PUESTOS (9×2)
+    expect(res.porOrigen[ORIGEN.SUGGESTED]).toBe(18);      // 18 sillas sugeridas
+    expect(res.porTipo.bench).toBe(9);                     // por TIPO = muebles, no puestos
     expect(res.hayPendientesDeConfirmar).toBe(true);
-    expect(res.porTipo.bench).toBe(18);
   });
 
   it('DETERMINISTA: mismas entradas → mismo resumen', () => {
@@ -85,30 +84,59 @@ describe('observed_program · contrato e invariantes (Plan Intelligence v1)', ()
     expect(resumenObservado(p)).toEqual(resumenObservado(p));
   });
 
-  it('GOLDEN 132 m² (oficina 15000×8800): programa observado del plano, con adversariales', () => {
-    // Oficina de 15.0 × 8.8 m = 132 m². Programa conocido observado en el plano:
-    // 18 puestos operativos (2 benches), 2 privados dirección, 1 sala de juntas.
+  // GROUND TRUTH REAL del PDF `01_COTIZAR_Oficina_Corporativa_132m2_ESCALA_1-50.pdf`
+  // (QA-COT-01), verificado por ChatGPT contra el archivo. Esto es el observed_program
+  // ESPERADO de ese plano — una FIXTURE de verdad, no inventada. NOTA honesta: aún NO
+  // lo produce el lector real (leer-plano→FloorSpec→observed_program); cuando se cablee
+  // el lector, su salida debe IGUALAR esta fixture (ahí será USER_FLOW_PASS). Hoy valida
+  // el contrato y la separación muebles/puestos.
+  const GOLDEN_A_132M2_8_PUESTOS = [
+    { type: 'recepcion', role: 'ANCHOR_RECEPTION', cantidad: 1, dimensions: { w: 2000, d: 700 }, zona: 'RECEPCION', evidencia: 'R-01', confianza: 0.95, procedencia: PROCEDENCIA.DETECTED_FROM_PLAN, page: 1 },
+    // B-01: 4 benches de 2 usuarios = 8 PUESTOS (no 8 benches, no 18).
+    { type: 'bench', role: 'ANCHOR_WORKSTATION', cantidad: 4, capacity_per_unit: 2, dimensions: { w: 2400, d: 1400 }, zona: 'OPEN_SPACE', evidencia: 'B-01', confianza: 0.95, procedencia: PROCEDENCIA.DETECTED_FROM_PLAN, page: 1 },
+    { type: 'silla_operativa', role: 'WORK_SEAT', cantidad: 8, zona: 'OPEN_SPACE', evidencia: 'S-01', confianza: 0.95, procedencia: PROCEDENCIA.DETECTED_FROM_PLAN, page: 1 },
+    { type: 'mesa_juntas', role: 'ANCHOR_MEETING', cantidad: 1, capacity_per_unit: 8, dimensions: { w: 3200, d: 1200 }, zona: 'JUNTAS', evidencia: 'J-01', confianza: 0.9, procedencia: PROCEDENCIA.DETECTED_FROM_PLAN, page: 1 },
+    { type: 'silla_juntas', role: 'MEETING_SEAT', cantidad: 8, zona: 'JUNTAS', evidencia: 'SJ-01', confianza: 0.9, procedencia: PROCEDENCIA.DETECTED_FROM_PLAN, page: 1 },
+    { type: 'escritorio_direccion', role: 'ANCHOR_DESK', cantidad: 1, dimensions: { w: 2000, d: 900 }, zona: 'DIRECCION', evidencia: 'D-01', confianza: 0.9, procedencia: PROCEDENCIA.DETECTED_FROM_PLAN, page: 1 },
+    { type: 'credenza', role: 'SUPPORT_STORAGE', cantidad: 1, dimensions: { w: 1200, d: 500 }, zona: 'DIRECCION', evidencia: 'CR-01', confianza: 0.9, procedencia: PROCEDENCIA.DETECTED_FROM_PLAN, page: 1 },
+    { type: 'coffee_point', role: 'OTHER', cantidad: 1, dimensions: { w: 3300, d: 600 }, zona: 'AMENIDADES', evidencia: 'CF-01', confianza: 0.9, procedencia: PROCEDENCIA.DETECTED_FROM_PLAN, page: 1 },
+  ];
+
+  it('GOLDEN_A 132 m² (QA-COT-01, PDF real): Open Space = EXACTAMENTE 8 puestos (4 benches × 2)', () => {
     const AREA = { ancho: 15000, largo: 8800 };
     expect((AREA.ancho / 1000) * (AREA.largo / 1000)).toBeCloseTo(132, 5);
-    const programa = [
-      { type: 'bench', role: 'ANCHOR_WORKSTATION', cantidad: 10, zona: 'OPERATIVA', grouping: 'g-op-1', evidencia: 'planta pág.1', confianza: 0.95, procedencia: PROCEDENCIA.DETECTED_FROM_PLAN, page: 1 },
-      { type: 'bench', role: 'ANCHOR_WORKSTATION', cantidad: 8, zona: 'OPERATIVA', grouping: 'g-op-2', evidencia: 'planta pág.1', confianza: 0.95, procedencia: PROCEDENCIA.DETECTED_FROM_PLAN, page: 1 },
-      { type: 'escritorio', role: 'ANCHOR_DESK', cantidad: 2, zona: 'DIRECCION', evidencia: 'planta pág.1', confianza: 0.9, procedencia: PROCEDENCIA.DETECTED_FROM_PLAN, page: 1 },
-      { type: 'mesa_juntas', role: 'ANCHOR_MEETING', cantidad: 1, zona: 'JUNTAS', evidencia: 'planta pág.1', confianza: 0.9, procedencia: PROCEDENCIA.DETECTED_FROM_PLAN, page: 1 },
-      // ADVERSARIAL 1: silla sugerida por regla (no dibujada) → NO cuenta como observada.
-      { type: 'silla', role: 'WORK_SEAT', cantidad: 18, confianza: 0.4, procedencia: PROCEDENCIA.RULE_SUGGESTION },
-      // ADVERSARIAL 2: item de catálogo inferido (match), no visto en el plano → inferred.
-      { type: 'gaveta', role: 'UNDERDESK_STORAGE', cantidad: 18, confianza: 0.6, procedencia: PROCEDENCIA.CATALOG_MATCH },
-    ];
-    const r = validarObservedProgram(programa);
+
+    const r = validarObservedProgram(GOLDEN_A_132M2_8_PUESTOS);
     expect(r.ok).toBe(true);
-    const res = resumenObservado(programa);
-    // 18 puestos + 2 privados + 1 junta = 21 piezas OBSERVADAS reales.
-    expect(res.porOrigen[ORIGEN.OBSERVED]).toBe(21);
-    expect(res.porOrigen[ORIGEN.SUGGESTED]).toBe(18);  // sillas sugeridas
-    expect(res.porOrigen[ORIGEN.INFERRED]).toBe(18);   // gavetas inferidas por catálogo
-    expect(res.hayPendientesDeConfirmar).toBe(true);
-    // Los puestos operativos observados = 18 (no se mezclan con sugeridos/inferidos).
-    expect(res.porTipo.bench).toBe(18);
+
+    const res = resumenObservado(GOLDEN_A_132M2_8_PUESTOS);
+    // 8 tipos de mueble, todos OBSERVADOS del plano; nada sugerido/inferido.
+    expect(res.porOrigen[ORIGEN.SUGGESTED]).toBe(0);
+    expect(res.porOrigen[ORIGEN.INFERRED]).toBe(0);
+    expect(res.hayPendientesDeConfirmar).toBe(false);
+
+    // CLAVE (ChatGPT #3/#4): el Open Space es 8 PUESTOS, con 4 benches (muebles).
+    const bench = r.items.find((i) => i.type === 'bench');
+    expect(bench.quantity).toBe(4);              // 4 MUEBLES
+    expect(bench.capacity_per_unit).toBe(2);
+    expect(bench.capacity_total).toBe(8);        // 8 PUESTOS
+    expect(res.porTipo.bench).toBe(4);           // por tipo = muebles, NO 8 ni 18
+
+    // Cantidades exactas del cuadro real.
+    const cant = (t) => (r.items.find((i) => i.type === t)?.quantity ?? 0);
+    expect(cant('recepcion')).toBe(1);
+    expect(cant('silla_operativa')).toBe(8);
+    expect(cant('mesa_juntas')).toBe(1);
+    expect(cant('silla_juntas')).toBe(8);
+    expect(cant('escritorio_direccion')).toBe(1);
+    expect(cant('credenza')).toBe(1);
+    expect(cant('coffee_point')).toBe(1);
+    // Mesa de juntas: 1 mueble, capacidad 8.
+    const junta = r.items.find((i) => i.type === 'mesa_juntas');
+    expect(junta.quantity).toBe(1);
+    expect(junta.capacity_total).toBe(8);
+
+    // NO existen "2 privados" inventados; dirección = 1 escritorio.
+    expect(cant('escritorio_direccion')).not.toBe(2);
   });
 });

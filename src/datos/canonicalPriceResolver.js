@@ -26,7 +26,7 @@
 // ============================================================================
 import {
   ESTADO_PRECIO, INTRINSECO,
-  normalizarObservacionPrecio, confianzaObservacion, prioridadFuente, fechaMs,
+  normalizarObservacionPrecio, confianzaObservacion, prioridadFuente, fechaMs, etiquetaFuentePrecio,
 } from './precioProvenance.js';
 
 // Normaliza la entrada: acepta observaciones crudas o ya normalizadas.
@@ -105,8 +105,11 @@ export function resolverPrecioCanonico(canonicalId, observaciones = [], opts = {
   } else if (reales.length) {
     const ord = [...reales].sort(mejorQue);
     elegida = ord[0];
-    // La MÁS reciente real = REAL_OBSERVED (referencia real conocida, fechada).
-    estado = ESTADO_PRECIO.REAL_OBSERVED;
+    // La MÁS reciente real. CON fecha → DATED (evidencia suficiente); SIN fecha →
+    // UNDATED (real-histórico, no permite afirmar "fechado/vigente"). ChatGPT #6.
+    estado = fechaMs(elegida.source_date) != null
+      ? ESTADO_PRECIO.REAL_OBSERVED_DATED
+      : ESTADO_PRECIO.REAL_OBSERVED_UNDATED;
   } else if (provisionales.length) {
     elegida = [...provisionales].sort(mejorQue)[0];
     estado = ESTADO_PRECIO.PROVISIONAL;
@@ -138,18 +141,23 @@ export function resolverPrecioCanonico(canonicalId, observaciones = [], opts = {
     supplier: elegida.supplier,
     evidence: elegida.evidence,
     confianza: confianzaObservacion(elegida),
-    // Bloquea costo OFICIAL salvo que el precio sea verdad real (verified/observed).
-    bloqueaCostoOficial: !(estado === ESTADO_PRECIO.CURRENT_VERIFIED || estado === ESTADO_PRECIO.REAL_OBSERVED),
+    // Costo OFICIAL reproducible SÓLO con evidencia real FECHADA (o vigencia
+    // verificada). Un real SIN fecha (UNDATED) es real-histórico: NO autentica un
+    // costo "totalmente auditado", así que bloquea lo oficial igual que provisional.
+    bloqueaCostoOficial: !(estado === ESTADO_PRECIO.CURRENT_VERIFIED || estado === ESTADO_PRECIO.REAL_OBSERVED_DATED),
     elegida,
     descartadas,
     alternativas,
   };
 }
 
-// Etiqueta corta por estado (para chips de UI).
+// Etiqueta corta por estado (para chips de UI). Para los estados REALES, la
+// etiqueta de la fuente (Compra/T.D.C./Lista) la añade el caller con
+// etiquetaEstadoDeResolucion; aquí sólo el calificativo del estado.
 const ETIQUETA_ESTADO = {
   [ESTADO_PRECIO.CURRENT_VERIFIED]: 'Vigente verificado',
-  [ESTADO_PRECIO.REAL_OBSERVED]: 'Compra real',
+  [ESTADO_PRECIO.REAL_OBSERVED_DATED]: 'Real fechado',
+  [ESTADO_PRECIO.REAL_OBSERVED_UNDATED]: 'Real sin fecha',
   [ESTADO_PRECIO.HISTORICAL]: 'Histórico',
   [ESTADO_PRECIO.PROVISIONAL]: 'Provisional',
   [ESTADO_PRECIO.PENDING]: 'Pendiente de precio',
@@ -157,6 +165,21 @@ const ETIQUETA_ESTADO = {
 
 export function etiquetaEstadoPrecio(estado) {
   return ETIQUETA_ESTADO[estado] || estado || '';
+}
+
+// Etiqueta de chip combinando TIPO DE FUENTE + calificativo de estado, p.ej.
+// "Compra real · fechado", "T.D.C. (costeo humano) · sin fecha", "Estimado".
+export function etiquetaEstadoDeResolucion(resolucion) {
+  if (!resolucion || resolucion.estado === ESTADO_PRECIO.PENDING) return 'Pendiente de precio';
+  const fuenteLbl = etiquetaFuentePrecio(resolucion.fuente);
+  switch (resolucion.estado) {
+    case ESTADO_PRECIO.CURRENT_VERIFIED: return `${fuenteLbl} · vigente`;
+    case ESTADO_PRECIO.REAL_OBSERVED_DATED: return `${fuenteLbl} · fechado`;
+    case ESTADO_PRECIO.REAL_OBSERVED_UNDATED: return `${fuenteLbl} · sin fecha`;
+    case ESTADO_PRECIO.HISTORICAL: return `${fuenteLbl} · histórico`;
+    case ESTADO_PRECIO.PROVISIONAL: return fuenteLbl === 'Estimado' ? 'Provisional' : `${fuenteLbl} · provisional`;
+    default: return etiquetaEstadoPrecio(resolucion.estado);
+  }
 }
 
 /**
@@ -172,14 +195,16 @@ export function explicarPrecio(resolucion, nombreInsumo = '') {
   const money = (n, m) => `$${Number(n).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}${m && m !== 'MXN' ? ` ${m}` : ''}`;
   const fecha = resolucion.source_date
     ? new Date(resolucion.source_date).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })
-    : 's/fecha';
-  const partes = [etiquetaEstadoPrecio(resolucion.estado)];
+    : 'sin fecha';
+  // Encabeza con el TIPO DE FUENTE real (no un genérico "Compra real").
+  const partes = [etiquetaEstadoDeResolucion(resolucion)];
   if (resolucion.supplier) partes.push(resolucion.supplier);
   if (nombreInsumo) partes.push(nombreInsumo);
   partes.push(fecha);
   const precio = `${money(resolucion.precio, resolucion.moneda)}${resolucion.unidad_compra ? `/${resolucion.unidad_compra}` : ''}`;
   partes.push(precio);
   let s = partes.join(' · ');
+  if (resolucion.estado === ESTADO_PRECIO.REAL_OBSERVED_UNDATED) s += ' (evidencia real SIN fecha; vigencia desconocida)';
   if (resolucion.estado === ESTADO_PRECIO.HISTORICAL) s += ' (precio histórico, no vigente)';
   if (resolucion.estado === ESTADO_PRECIO.PROVISIONAL) s += ' (provisional, sin documento real)';
   return s;

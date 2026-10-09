@@ -92,7 +92,46 @@ export function resolverPrecioInsumo(id, insumo = {}, opts = {}) {
   return resolverPrecioCanonico(id, [observacionDeInsumo(id, insumo)], opts);
 }
 
-/** "¿Por qué $544?" para un insumo del catálogo real. */
+// ¿El precio del insumo fue CAPTURADO a mano? (difiere del estimado base).
+export function precioCapturadoAMano(insumo = {}) {
+  return Number(insumo.precioBase) > 0 && insumo.precio != null && insumo.precio !== insumo.precioBase;
+}
+
+/**
+ * ADAPTER CANÓNICO VIVO (ChatGPT P0-PRICE-TRUST). La provenance pertenece a la
+ * OBSERVACIÓN de precio, no al insumo genérico. Si Dirección captura un precio a
+ * mano (precio≠precioBase), el monto nuevo NO queda autenticado por la `fuente`
+ * vieja del catálogo: se emite una observación PROVISIONAL fechada con la fecha
+ * de captura (`actualizado`), sin heredar el documento anterior. Lo usan Precios,
+ * HojaCosto y el futuro motor — una sola verdad.
+ */
+export function observacionDeInsumoVivo(id, insumo = {}) {
+  if (precioCapturadoAMano(insumo)) {
+    return normalizarObservacionPrecio({
+      canonical_insumo_id: id,
+      precio: insumo.precio,
+      moneda: insumo.moneda || 'MXN',
+      unidad_compra: insumo.unidad,
+      unidad_costeo: insumo.unidad,
+      fuente: FUENTE_PRECIO.PROVISIONAL,
+      source_document: null,                 // NO hereda el documento del precio anterior
+      source_date: insumo.actualizado || null,
+      supplier: 'Capturado a mano',
+      evidence: null,
+    });
+  }
+  return observacionDeInsumo(id, insumo);
+}
+
+/**
+ * Resuelve el precio EFECTIVO de un insumo VIVO (capturado-aware). Es el único
+ * punto que deben usar la UI y el futuro cutover del motor.
+ */
+export function resolverPrecioInsumoVivo(id, insumo = {}, opts = {}) {
+  return resolverPrecioCanonico(id, [observacionDeInsumoVivo(id, insumo)], opts);
+}
+
+/** "¿Por qué $544?" para un insumo del catálogo real (capturado-aware). */
 export function explicarPrecioInsumo(id, insumo = {}, opts = {}) {
-  return explicarPrecio(resolverPrecioInsumo(id, insumo, opts), insumo.nombre || id);
+  return explicarPrecio(resolverPrecioInsumoVivo(id, insumo, opts), insumo.nombre || id);
 }

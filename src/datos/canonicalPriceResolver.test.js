@@ -60,7 +60,7 @@ describe('precioProvenance · normalización y clasificación intrínseca', () =
 describe('CanonicalPriceResolver · selección determinista', () => {
   it('EJEMPLO RODRIGO: una compra real $544 → REAL_OBSERVED, no bloquea costo oficial', () => {
     const r = resolverPrecioCanonico('melamina-ecolegno-19mm', [COMPRA_544], { hoy: HOY });
-    expect(r.estado).toBe(ESTADO_PRECIO.REAL_OBSERVED);
+    expect(r.estado).toBe(ESTADO_PRECIO.REAL_OBSERVED_DATED);
     expect(r.precio).toBe(544);
     expect(r.supplier).toBe('EcoLegno');
     expect(r.source_date).toBe('2026-09-18');
@@ -80,7 +80,7 @@ describe('CanonicalPriceResolver · selección determinista', () => {
   it('NO asume "última compra = vigente eternamente": sin vigencia explícita es REAL_OBSERVED, no CURRENT_VERIFIED', () => {
     const r = resolverPrecioCanonico('melamina-ecolegno-19mm', [COMPRA_544], { hoy: HOY });
     expect(r.estado).not.toBe(ESTADO_PRECIO.CURRENT_VERIFIED);
-    expect(r.estado).toBe(ESTADO_PRECIO.REAL_OBSERVED);
+    expect(r.estado).toBe(ESTADO_PRECIO.REAL_OBSERVED_DATED);
   });
 
   it('observación POSTERIOR gana; la anterior queda como HISTORICAL en alternativas', () => {
@@ -102,7 +102,7 @@ describe('CanonicalPriceResolver · selección determinista', () => {
   it('vigencia VENCIDA → cae a histórico-real, no CURRENT_VERIFIED', () => {
     const vencido = { ...COMPRA_544, precio: 500, source_date: '2025-01-01', validity: '2025-06-30', source_document: 'LISTA-2025' };
     const r = resolverPrecioCanonico('melamina-ecolegno-19mm', [vencido], { hoy: HOY });
-    expect(r.estado).toBe(ESTADO_PRECIO.REAL_OBSERVED); // real, pero no vigente-verificado
+    expect(r.estado).toBe(ESTADO_PRECIO.REAL_OBSERVED_DATED); // real, pero no vigente-verificado
   });
 
   it('SIN observaciones utilizables → PENDING y BLOQUEA costo oficial (no inventa)', () => {
@@ -133,7 +133,7 @@ describe('CanonicalPriceResolver · selección determinista', () => {
       COMPRA_544,
       { canonical_insumo_id: 'z', precio: 120, unidad_compra: 'pz', fuente: FUENTE_PRECIO.PROVISIONAL },
     ], { hoy: HOY });
-    expect(cat['melamina-ecolegno-19mm'].estado).toBe(ESTADO_PRECIO.REAL_OBSERVED);
+    expect(cat['melamina-ecolegno-19mm'].estado).toBe(ESTADO_PRECIO.REAL_OBSERVED_DATED);
     expect(cat['z'].estado).toBe(ESTADO_PRECIO.PROVISIONAL);
   });
 

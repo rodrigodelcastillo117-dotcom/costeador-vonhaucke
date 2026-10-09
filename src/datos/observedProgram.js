@@ -59,10 +59,20 @@ export function observedItem(raw = {}) {
   const dims = raw.dimensions || ((raw.w != null || raw.d != null || raw.h != null)
     ? { w: raw.w, d: raw.d, h: raw.h } : null);
 
+  // CANTIDAD DE MUEBLES ≠ CAPACIDAD (puestos). ChatGPT #4: 4 benches × 2 usuarios
+  // = 8 puestos, no "8 benches". quantity = unidades de mueble; capacity_per_unit
+  // = personas por mueble; capacity_total = puestos. Si no se da capacidad, es 1:1.
+  const quantity = num(raw.quantity ?? raw.quantity_group ?? raw.cantidad) ?? null;
+  const capacityPer = num(raw.capacity_per_unit ?? raw.capacidad_por_unidad);
+  const capacityTotal = num(raw.capacity_total ?? raw.capacidad_total)
+    ?? ((quantity != null && capacityPer != null) ? quantity * capacityPer : null);
+
   const out = {
     type: txt(raw.type || raw.tipo) || null,
     role: txt(raw.role || raw.semantic_role || raw.rol) || null,
-    quantity: num(raw.quantity ?? raw.quantity_group ?? raw.cantidad) ?? null,
+    quantity,
+    capacity_per_unit: capacityPer,
+    capacity_total: capacityTotal,
     zone: txt(raw.zone || raw.zona) || null,
     grouping: txt(raw.grouping || raw.functional_group_id || raw.grupo) || null,
     position: pos ? { x: num(pos.x), y: num(pos.y) } : null,
@@ -133,20 +143,28 @@ export function confirmarObservado(item, meta = {}) {
  */
 export function resumenObservado(items = []) {
   const { items: norm } = validarObservedProgram(items);
+  // porOrigen/porTipo cuentan MUEBLES (quantity); capacidadPorOrigen cuenta
+  // PUESTOS (capacity_total). Nunca se mezclan (ChatGPT #4).
   const porOrigen = { [ORIGEN.OBSERVED]: 0, [ORIGEN.INFERRED]: 0, [ORIGEN.SUGGESTED]: 0 };
+  const capacidadPorOrigen = { [ORIGEN.OBSERVED]: 0, [ORIGEN.INFERRED]: 0, [ORIGEN.SUGGESTED]: 0 };
   const porTipo = {};
   let cantidadObservada = 0;
+  let capacidadObservada = 0;
   for (const it of norm) {
     const q = it.quantity > 0 ? it.quantity : 0;
+    const cap = it.capacity_total > 0 ? it.capacity_total : 0;
     porOrigen[it.origin] = (porOrigen[it.origin] || 0) + q;
+    capacidadPorOrigen[it.origin] = (capacidadPorOrigen[it.origin] || 0) + cap;
     const clave = it.type || it.role || 'desconocido';
     porTipo[clave] = (porTipo[clave] || 0) + q;
-    if (it.origin === ORIGEN.OBSERVED) cantidadObservada += q;
+    if (it.origin === ORIGEN.OBSERVED) { cantidadObservada += q; capacidadObservada += cap; }
   }
   return {
     total: norm.length,
-    cantidadObservada,
-    porOrigen,
+    cantidadObservada,          // MUEBLES observados
+    capacidadObservada,         // PUESTOS observados (capacity)
+    porOrigen,                  // muebles por origen
+    capacidadPorOrigen,         // puestos por origen
     porTipo,
     // Sólo lo OBSERVED alimenta costeo/acomodo como real; el resto requiere confirmar.
     hayPendientesDeConfirmar: porOrigen[ORIGEN.SUGGESTED] > 0 || porOrigen[ORIGEN.INFERRED] > 0,
