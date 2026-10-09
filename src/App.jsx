@@ -554,17 +554,14 @@ export default function App() {
         setEstado((e) => aplicarCompartido(e, datos));
         setNubeEstado('conectado');
       } else {
-        // Nube vacia: subir la semilla para inicializarla. El punto "En
-        // línea" solo debe encenderse si esta subida inicial de verdad
-        // funcionó, no solo porque la lectura anterior no truene.
-        setEstado((e) => {
-          const comp = compartidoSeguro(e);
-          ultimoCompartido.current = firma(comp);
-          escribirConfig(comp)
-            .then(() => { if (vivo) setNubeEstado('conectado'); })
-            .catch(() => { if (vivo) setNubeEstado('sin-conexion'); });
-          return e;
-        });
+        // P0 (silent P0-3): la lectura devolvió algo SIN `insumos` (RPC que regresó {}/null, config
+        // sin insumos, o seller-safe). ANTES se SUBÍA la config local encima de la compartida para
+        // "inicializarla" — pero eso DESTRUÍA los precios de TODO el equipo si el estado local era la
+        // semilla del código o estaba stripeado (un vendedor subiendo config sin precios). Ya NO se
+        // auto-siembra al cargar: la nube manda. Si la nube realmente está vacía (primer arranque),
+        // se poblará cuando Dirección EDITE precios (ese autosave sí está gated por veCostos). Aquí
+        // sólo marcamos que la lectura funcionó y conservamos el estado local para mostrar.
+        if (vivo) setNubeEstado('conectado');
       }
     }).catch(() => { if (vivo) setNubeEstado('sin-conexion'); });
 
