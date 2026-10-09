@@ -6,10 +6,10 @@
 > Última actualización: 2026-10-09 (ronda 3 ChatGPT cerrada + cable FloorPlanReader + rewrite sin contradicciones).
 
 ## ESTADO ACTUAL (verificado contra el repo)
-- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `8b89a5b`**; el HEAD de la rama es el
+- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `37fc330`**; el HEAD de la rama es el
   doc-commit de este CLOSEOUT encima (un commit no puede contener su propio SHA). Tip exacto: `git rev-parse HEAD`.
   Diff completo de la rama: `git diff e5f737f..HEAD` · lista: `git log --oneline e5f737f..HEAD`.
-- **Tests: 2008 / 2008** (vitest) · **Build: ✅** (vite) · verificado en esta sesión (2026-10-09).
+- **Tests: 2017 / 2017** (vitest) · **Build: ✅** (vite) · verificado en esta sesión (2026-10-09).
 - **MANDATO RC (deadline lunes 12-oct)**: autónomo hasta Release Candidate. Autorización NUEVA de Rodrigo:
   cutover del motor SÓLO para productos NUEVOS (shadow primero), agregar parser XLSX justificado, preparar edges.
   Siguen prohibidos (se preparan/documentan como BLOCKED_EXTERNAL, no se ejecutan): merge, deploy/promote,
@@ -155,6 +155,15 @@ Intelisis = adapter FUTURO. NO usar $0 como desconocido; no viejo-como-vigente; 
   resolución, mismo layout→misma firma, mismo BOM→mismo costo, proposal≠confirmation.
 - **FIX crítico**: el helper `num` devolvía 0 para null/whitespace (Number(null)===0, Number('  ')===0) → corregido
   (null/undefined/''/whitespace → null) para no violar "$0≠desconocido" ni meter una merma de 0%.
+
+### Ronda 6 — RED-TEAM adversarial #2 sobre goldenReality/fx/ruta (código `37fc330`)
+Segundo subagente red-team; bugs reales encontrados y CERRADOS (con regresión):
+- CRITICAL: goldenReality.difiere usaba AND → un hueco ABSOLUTO grande con % chico ($499/$100k) se escondía como
+  REDONDEO. Ahora OR (real si grande en cualquier eje).
+- CRITICAL: rutaFabricacion coaccionaba cantidad ≤0 a 1 → tiempo/costo fabricados como OK. Ahora CANTIDAD_INVALIDA → PENDING.
+- HIGH: fxProvenance — POLÍTICA/estimado con vigencia futura se volvía VERIFIED_CURRENT. Ahora exige fuente OFICIAL (Banxico).
+- MEDIUM: comparador FX sin orden total → no determinista (corregido); `num` dejaba pasar bool/array →0 (endurecido: sólo number/string).
+- LOW: vigencia "hasta hoy" por la hora → fin-de-día; `hoy` inválido → fallback a ahora.
 
 ### Ronda 5 — RED-TEAM adversarial interno (código `66caeb7`)
 Un subagente red-team atacó los 8 módulos nuevos. Bugs reales encontrados y CERRADOS (con regresión):
