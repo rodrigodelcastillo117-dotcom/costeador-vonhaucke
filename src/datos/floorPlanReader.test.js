@@ -1,0 +1,59 @@
+import { describe, it, expect } from 'vitest';
+import { programaDelPlano } from './programaDelPlano.js';
+import { observedProgramDeLectura } from './floorPlanReader.js';
+import { ORIGEN, validarObservedProgram, resumenObservado } from './observedProgram.js';
+
+// Este test EJERCITA el lector real (programaDelPlano) y lo cablea al contrato
+// observed_program — NO construye a mano el array esperado (ChatGPT). Verifica
+// que la PROCEDENCIA honesta del lector (detectado/estimado/sugerido) se conserva.
+describe('FloorPlanReader → observed_program (cable real, sin arrays sintéticos)', () => {
+  // Oficina simple: un open space + una sala de juntas (medidas en metros).
+  const AREAS = [
+    { nombre: 'OPERATIVO', ancho: 8, largo: 6 },
+    { nombre: 'SALA DE JUNTAS', ancho: 5, largo: 4 },
+  ];
+  const pr = programaDelPlano(AREAS);
+  const items = observedProgramDeLectura(pr);
+
+  it('produce un observed_program válido a partir de la salida REAL del lector', () => {
+    expect(pr.hayPlano).toBe(true);
+    expect(items.length).toBeGreaterThan(0);
+    expect(validarObservedProgram(items).ok).toBe(true);
+    // El cable NO es vacío: hay al menos puestos operativos y sillas sugeridas.
+    expect(items.some((i) => i.type === 'puesto_operativo')).toBe(true);
+    expect(items.some((i) => i.type === 'silla_operativa' && i.origin === ORIGEN.SUGGESTED)).toBe(true);
+  });
+
+  it('respeta la procedencia del lector: sugeridos NUNCA cuentan como observados', () => {
+    const sillas = items.find((i) => i.type === 'silla_operativa');
+    if (sillas) expect(sillas.origin).toBe(ORIGEN.SUGGESTED);
+    const gavetas = items.find((i) => i.type === 'gaveta');
+    if (gavetas) expect(gavetas.origin).toBe(ORIGEN.SUGGESTED);
+  });
+
+  it('los puestos estimados por área son INFERRED (hay que confirmarlos), no OBSERVED', () => {
+    const puestos = items.find((i) => i.type === 'puesto_operativo');
+    // El lector marca operativos como "estimado" cuando no los contó del dibujo.
+    if (puestos && pr.fuente?.operativos === 'estimado') {
+      expect(puestos.origin).toBe(ORIGEN.INFERRED);
+    }
+  });
+
+  it('la mesa de juntas lleva su CAPACIDAD (personas), con quantity=1 (mueble)', () => {
+    const mesa = items.find((i) => i.type === 'mesa_juntas');
+    if (mesa) {
+      expect(mesa.quantity).toBe(1);
+      expect(mesa.capacity_per_unit).toBeGreaterThan(0);  // capacidad = personas que caben
+    }
+  });
+
+  it('el resumen separa real (observed) de lo que falta confirmar (inferred/suggested)', () => {
+    const res = resumenObservado(items);
+    // Hay sugeridos (sillas/gavetas) → siempre hay pendientes de confirmar.
+    expect(res.hayPendientesDeConfirmar).toBe(true);
+  });
+
+  it('DETERMINISTA: misma lectura → mismo observed_program', () => {
+    expect(observedProgramDeLectura(pr)).toEqual(observedProgramDeLectura(programaDelPlano(AREAS)));
+  });
+});
