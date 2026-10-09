@@ -736,7 +736,14 @@ export function proponerProgramaDesdeObservado(observedProgram, { linea = 'App L
 export function propuestaBloqueada(propuesta) {
   if (!propuesta) return true;
   if (propuesta.requiereRevision === true) return true;
-  if (Array.isArray(propuesta.incompletos) && propuesta.incompletos.length > 0) return true;
+  // P0.1 (caso roto de Rodrigo): `incompletos` son REQUERIMIENTOS que NO se pudieron
+  // resolver (p.ej. un privado "Eclipse Drift" sin producto canónico) — NO son partidas
+  // que se vayan a aplicar. Bloquear TODA la aplicación porque un requerimiento quedó
+  // pendiente impedía agregar las anclas SÍ resueltas (el bench APP LT): el contrato es
+  // "aplica lo resuelto, deja el pendiente pendiente". El gate de identidad sigue vivo
+  // abajo (ninguna PARTIDA sin producto/identidad se aplica) y en observado un ancla sin
+  // resolver marca `requiereRevision` (arriba), así que esos casos siguen bloqueados.
+  // (Antes: `if (incompletos.length > 0) return true;` — bloqueaba de más.)
   // P1-R12: ninguna partida con producto sin resolver o SIN identidad (producto_id)
   // se aplica — blinda el gate aunque el flujo cambie.
   if (Array.isArray(propuesta.partidas) && propuesta.partidas.some((p) => p && (p.product_status === 'NEEDS_CONFIRMATION' || p.identity_status === 'MISSING'))) return true;

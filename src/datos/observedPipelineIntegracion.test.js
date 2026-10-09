@@ -613,4 +613,31 @@ describe('INTEGRACIÓN observed pipeline (R10, offline)', () => {
     const persistida = { ...existente[0], ...patch };
     expect(silleriaPendiente(recomendaciones, [persistida])).toBe(false);
   });
+
+  // ==========================================================================
+  //  P0.1 (caso roto de Rodrigo) — REGRESIÓN que cazó el E2E vivo: un REQUERIMIENTO
+  //  pendiente en `incompletos` (p.ej. "Eclipse Drift" sin producto canónico) NO debe
+  //  bloquear aplicar las ANCLAS resueltas (el bench APP LT). El E2E clásico usaba
+  //  aplicarPrograma directo y no pasaba por el gate; aquí se asegura el gate real.
+  // ==========================================================================
+  it('P0.1· incompletos (requerimiento pendiente) NO bloquea aplicar lo resuelto', () => {
+    const propuesta = {
+      partidas: [{ relation_role: 'ANCHOR_WORKSTATION', rol: 'operativo', bancoId: 'op-10u-6000x1200-cristal', product_status: 'RESOLVED', identity_status: 'RESOLVED', productoId: 'pid-applt', instance_id: 'i-1', plan_source_ref: 'OP-1', cantidad: 1 }],
+      incompletos: [{ code: 'REQUIERE_DESARROLLO', reason: 'Eclipse Drift sin producto canónico' }],
+      recomendaciones: [],
+    };
+    expect(propuestaBloqueada(propuesta)).toBe(false);           // incompletos NO bloquea
+    const r = resolverAplicacionAtomica(propuesta, { existentes: [] });
+    expect(r.committed).toBe(true);                              // se aplica el ancla resuelta
+    expect(r.nuevas.map((p) => p.bancoId)).toContain('op-10u-6000x1200-cristal');
+  });
+
+  it('P0.1· pero una PARTIDA sin identidad (NEEDS_CONFIRMATION/MISSING) SÍ bloquea', () => {
+    const bloqueada = {
+      partidas: [{ relation_role: 'ANCHOR_WORKSTATION', bancoId: 'x', product_status: 'NEEDS_CONFIRMATION' }],
+      incompletos: [],
+    };
+    expect(propuestaBloqueada(bloqueada)).toBe(true);
+    expect(resolverAplicacionAtomica(bloqueada, { existentes: [] }).committed).toBe(false);
+  });
 });
