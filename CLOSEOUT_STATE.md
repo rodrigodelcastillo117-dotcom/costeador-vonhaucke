@@ -71,17 +71,25 @@ verificado, fail-closed real (precioDe→NaN, costeoEmitible bloquea, UNKNOWN≠
 malos) está bien. Los demás P0 son de MANEJO DE ESTADO UI (datos stale / pérdida de datos borde) y
 de SEGURIDAD (edges/RLS en infra Supabase).
 
-### ✅ ARREGLADOS en esta rama (con test + build verde)
+### ✅ ARREGLADOS en esta rama (con test/build verde; commits pusheados)
 1. **silent P0-1 — costo fantasma por falta de medida.** Pieza `forma:'area'` sin cotas caía a
-   `cantidad` y costeaba 1 m² fantasma (a veces más caro que la real) saliendo "emitible".
-   FIX: motor `calcular` manda a `componentesIgnorados` las piezas `forma:'area'` sin medida usable;
-   `mapIaComps` preserva `forma:'area'`. Test: `src/datos/finalCompletion.test.js`. Golden intacto.
-2. **security P1-2 — fuga seller-safe en localStorage.** `limpiarSensibles` no limpiaba
-   `insumos.{precio,precioBase,proveedor}`; una PC compartida conservaba costos de Dirección.
-   FIX: `limpiarSensibles` neutraliza costos de insumos; `hacerLogout`+`limpiarAlmacen()` borra el blob.
-3. **silent P0-2 / React P0-4 — pérdida de datos al reabrir.** Si `cargarCotizacionCompleta` fallaba,
-   se caía a la tarjeta ligera y el autosave SOBRESCRIBÍA el presupuesto guardado. FIX: `App.onAbrir`
-   aborta con aviso si la carga completa falla; no toca `idCotizacion`.
+   `cantidad` y costeaba 1 m² fantasma. FIX: `calcular` → `componentesIgnorados`; `mapIaComps` preserva
+   `forma:'area'`. Test `finalCompletion.test.js`. Golden intacto. (commit 5b522e4)
+2. **security P1-2 — fuga seller-safe en localStorage.** `limpiarSensibles` neutraliza costos de insumos;
+   `hacerLogout`+`limpiarAlmacen()` borra el blob. (5b522e4)
+3. **silent P0-2 / React P0-4 — pérdida de datos al reabrir.** `App.onAbrir` aborta si la carga completa
+   falla (no sobrescribe el guardado). (5b522e4)
+4. **React P0-1 — renders de Cotización pisaban estado con copia vieja.** setCot/setPartida funcionales;
+   render se escribe POR ID (`aplicarRenderPorId`) en renderPartida/renderTodas/subirRender. (d93c005)
+5. **React P0-5 — "COSTO CERTIFICADO" pegado al cambiar BOM.** Se guarda `costoEstadoHash`; sólo se muestra
+   si coincide con el BOM actual, si no cae a "PRELIMINAR". (d93c005)
+6. **silent P0-3 — config compartida se sobrescribía al cargar** (destruía precios de todo el equipo).
+   FIX: ya NO se auto-siembra al cargar; la nube manda; el autosave por cambio (gated por veCostos) puebla
+   cuando Dirección edita. (cb89439)
+7. **React P0-2 — bucle de autosave en Acomodo (~600ms).** Guard de firma: no re-guarda payload idéntico;
+   rompe el bucle y deja que el autosave a nube dispare. (3212f4e)
+8. **React P1-13 — etiqueta IVA** usa el `ivaPct` efectivo (coincide con el monto). (d4951c5)
+9. **React P1-7 — vendedor sin precio** ya no ve "$0" ni botón "Agregar" muerto: "Sin precio" + disabled. (d4951c5)
 
 ### 🔴 P0 ABIERTOS (prioridad; requieren cirugía de estado + E2E autenticado para verificar)
 - **React P0-1 — renders de Cotización pisan estado con copia vieja.** `Cotizacion.jsx:114,202-247`
@@ -156,5 +164,28 @@ de SEGURIDAD (edges/RLS en infra Supabase).
 `TEST_EMAIL=<cuenta-de-prueba> TEST_PASSWORD=<...> npx playwright test` (NO la cuenta de Rodrigo).
 Specs: e2e/auth.e2e.js, acomodoP02, programaP01, programaBriefWriter, acomodoMensajeVendedor.
 
-## Commits en esta rama
-(pendiente de commit)
+## Commits en esta rama (pusheados a origin/audit/final-product-completion)
+- 5b522e4 — P0 fantasma + seller-safe localStorage + reopen data-loss + closeout + red-team
+- d93c005 — React P0-1 (renders) + P0-5 (label certificado)
+- cb89439 — silent P0-3 (config overwrite)
+- 3212f4e — React P0-2 (bucle autosave)
+- d4951c5 — P1-13 (IVA) + P1-7 (vendedor sin precio)
+
+## P0 que QUEDAN tras esta sesión (requieren E2E autenticado o prod)
+- **React P0-3 — render IA viejo viaja al PDF.** `stagingUrl` no se invalida al mover muebles/
+  recalcular/cambiar plano/partidas. Fix: hash plan↔render; limpiar stagingUrl/realista/imgEscena en
+  acomodar/acomodarIA/usarDibujo/procesarPlano/setArea/delArea y al cambiar partidas; en Voni resetear
+  render3d/escenas/floorSpec al cambiar de espacio. NO arreglado aquí: multi-punto en AcomodoBase (1800
+  líneas) y sin E2E autenticado no puedo verificar que no rompo el flujo. Prioridad #1 para la próxima
+  sesión (con TEST_EMAIL/TEST_PASSWORD de cuenta de prueba).
+- **security P0-1 — 4 edges IA sin auth interna** (cotizar-texto, generar-video [huérfano + proxy abierto
+  a Google con la key del server], leer-plano-core, analizar-negocio). BLOCKED_EXTERNAL: el fix REAL es
+  verify_jwt + desactivar llaves legacy en el dashboard de Supabase, y/o borrar la función desplegada
+  `generar-video` — no puedo tocar el proyecto Supabase. Source-hardening posible pero sin deploy no
+  cierra el hoyo en prod. REQUIERE autorización de Rodrigo.
+- **security P0-2 — config_leer RLS sin cortar.** 1 línea en prod (`alter policy config_leer ...`),
+  ya en `supabase/PENDIENTE_corte_rls_config.sql`. BLOCKED_EXTERNAL (migración prod).
+
+## P1 ejecutables que QUEDAN (sin E2E) — próxima tanda
+money margen-rancio, margen mínimo 25% como gate, React P1-1/2/3/4/5/6/8/9/10/11/12, silent P1-5..19.
+Detalle con archivo:línea en los reportes de los 5 agentes (transcript) y arriba.
