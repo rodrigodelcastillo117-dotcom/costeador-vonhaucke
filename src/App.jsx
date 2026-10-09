@@ -1308,7 +1308,7 @@ export default function App() {
 
       {/* VONI 2.0 — cerebro transversal. Lanzador flotante en cualquier ruta
           (salvo login/cambio de contraseña). Respeta el rol real del usuario. */}
-      {permiso && permiso !== 'error' && pestania !== 'contrasena' && flagActivo('voni_2') && (
+      {permiso && permiso !== 'error' && pestania !== 'contrasena' && pestania !== 'especial' && flagActivo('voni_2') && (
         <>
           <button
             type="button"
