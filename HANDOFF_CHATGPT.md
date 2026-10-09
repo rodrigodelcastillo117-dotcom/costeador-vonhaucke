@@ -11,8 +11,8 @@
 Eres el auditor independiente del proyecto Von Haucke (app React + Supabase de costeo/cotización).
 Audita la rama `audit/final-product-completion`.
 
-- Último commit de CÓDIGO: 8b89a5b (sesión autónoma RC). Base: e5f737f. Tip: usa `git rev-parse HEAD`.
-- Diff a revisar: `git diff e5f737f..HEAD`. Verdad viva: `CLOSEOUT_STATE.md`. Tests 2008/2008, build ✅, smoke E2E 3/3.
+- Último commit de CÓDIGO: 37fc330 (sesión autónoma RC, 2 rondas red-team). Base: e5f737f. Tip: usa `git rev-parse HEAD`.
+- Diff a revisar: `git diff e5f737f..HEAD`. Verdad viva: `CLOSEOUT_STATE.md`. Tests 2017/2017, build ✅, smoke E2E 3/3.
 - Límites que Claude respetó: NO merge, NO deploy, NO migración, NO prod-write, NO tocar 33 cotizaciones legacy,
   NO aprobar DATA TRUTH, NO integrar Intelisis. Todo son capas ADITIVAS (no cambian números del motor), salvo
   un único guard fail-closed en el motor (costo fantasma por falta de medida).
