@@ -216,6 +216,14 @@ export default function Voni({
   // NO pueden desaparecer: se muestran como "Mobiliario observado por confirmar".
   const observadoPendientes = propuestaPrograma?.observadoPendientes || [];
   const anclasPorConfirmar = (propuestaPrograma?.anclasConciliadas || []).filter((a) => a.estado && a.estado !== 'RESOLVED');
+  // P0-R10-9: dependientes observados que NO empatan 1:1 con lo generado (una
+  // credenza real OBSERVED_ONLY no puede desaparecer en silencio).
+  const dependientesPorConfirmar = (propuestaPrograma?.dependientesConciliados || []).filter((d) => d.estado === 'OBSERVED_ONLY' || d.estado === 'DIVERGE');
+  // P0-R10-2/R10-3: el programa requiere revisión si el servidor lo marcó REVIEW,
+  // si alguna ancla no resolvió su geometría, o si hay cualquier pendiente.
+  const programaRequiereRevision = !!propuestaPrograma?.requiereRevision
+    || cot.acomodo?.observed_state === 'PRESENT_REVIEW_REQUIRED'
+    || anclasPorConfirmar.length > 0;
 
   // #7: suma SÓLO precios conocidos (null/undefined NO cuenta como 0) y expone
   // cuántos faltan, para no presentar un total incompleto como definitivo.
@@ -317,7 +325,7 @@ export default function Voni({
           lleve derecho ahí, sin un clic de más. */}
       {paso === 2 && (
         <>
-          {propuestaPrograma && (faltantesPrograma.length > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0 || observadoPendientes.length > 0 || anclasPorConfirmar.length > 0) && (
+          {propuestaPrograma && (faltantesPrograma.length > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0 || observadoPendientes.length > 0 || anclasPorConfirmar.length > 0 || dependientesPorConfirmar.length > 0) && (
             <div className="tarjeta no-imprimir" style={{ borderColor: '#8bbcaf', background: '#eef6f3' }}>
               <strong style={{ color: '#174f45' }}>✨ Programa detectado del plano</strong>
               <p className="ayuda" style={{ marginTop: 4 }}>
@@ -365,13 +373,30 @@ export default function Voni({
                   ))}
                 </div>
               )}
+              {/* P0-R10-9: dependientes observados que NO empatan con lo generado
+                  (una credenza real que el resolver no produce) — NO desaparecen. */}
+              {dependientesPorConfirmar.length > 0 && (
+                <div style={{ marginTop: 8, color: '#8a5a00' }}>
+                  <div style={{ fontWeight: 700 }}>Accesorios observados por identificar</div>
+                  {dependientesPorConfirmar.map((d, i) => (
+                    <div key={`dep${i}`}>⚠ {d.dependent_role} — {d.estado === 'OBSERVED_ONLY' ? `${d.observados} observado(s), requiere producto/desarrollo` : `observados ${d.observados} vs generados ${d.resueltos} (decide)`}</div>
+                  ))}
+                </div>
+              )}
               <div style={{ marginTop: 12 }}>
+                {/* P0-R10-2/R10-3: el apply es un GATE. Si algo afecta identidad/
+                    qty/geometría (requiereRevision), NO se puede aplicar solo. */}
                 <button type="button" className="boton primario"
-                  disabled={!onAplicarPrograma || faltantesPrograma.length === 0}
+                  disabled={!onAplicarPrograma || faltantesPrograma.length === 0 || programaRequiereRevision}
                   onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta)}>
                   Aplicar programa detectado
                 </button>
-                {conflictosPrograma.length > 0 && (
+                {programaRequiereRevision && (
+                  <span style={{ marginLeft: 10, color: '#8a1f1f', fontWeight: 700 }}>
+                    NEEDS_REVIEW: hay mobiliario observado sin producto canónico equivalente o pendiente de confirmar. Revisa antes de aplicar.
+                  </span>
+                )}
+                {!programaRequiereRevision && conflictosPrograma.length > 0 && (
                   <span style={{ marginLeft: 10, color: '#8a1f1f', fontWeight: 700 }}>Programa INCOMPLETO / NEEDS_REVIEW por conflictos.</span>
                 )}
               </div>

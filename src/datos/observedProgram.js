@@ -46,7 +46,13 @@ export function origenDeProcedencia(procedencia) {
 
 const txt = (v) => String(v ?? '').trim();
 const num = (v) => { if (typeof v !== 'number' && typeof v !== 'string') return null; if (typeof v === 'string' && v.trim() === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
-const clamp01 = (v) => { const n = Number(v); return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : null; };
+// null/undefined/'' → null (NO 0: Number(null)===0 metería una confianza falsa, P0-R10-1).
+const clamp01 = (v) => { const n = num(v); return n == null ? null : Math.max(0, Math.min(1, n)); };
+
+// UMBRAL ÚNICO de confianza para auto-gobernar (P1-R10-11). Un item OBSERVED con
+// confianza por debajo de esto NO gobierna solo: requiere revisión/confirmación
+// humana (alta≈0.9 gobierna; media≈0.6 y baja≈0.4 caen a revisión).
+export const UMBRAL_CONFIANZA_GOBERNAR = 0.7;
 
 /**
  * Normaliza UN item del programa observado al contrato canónico, tolerando los

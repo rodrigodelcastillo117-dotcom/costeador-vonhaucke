@@ -15,8 +15,9 @@
 import { programaDelPlano } from './programaDelPlano.js';
 import { resolverPrograma } from './resolverPrograma.js';
 import { confirmarPrograma } from './confirmarPrograma.js';
-import { validarObservedProgram, ORIGEN } from './observedProgram.js';
+import { validarObservedProgram, observedItem, ORIGEN, KIND, UMBRAL_CONFIANZA_GOBERNAR } from './observedProgram.js';
 import { clasificarMueble, CLASE, ANCHOR_ROLE } from './mobiliarioOntologia.js';
+import { buscarEnColeccion, medidasAwd, OPERATIVOS, ESCRITORIOS, JUNTAS, RECEPCIONES } from './catalogoCanonico.js';
 
 // Nombre que describe el ROL real en palabras que coherencia/ruteo legacy aún
 // entienden. NO es la autoridad semántica (esa es relation_role); sólo etiqueta.
@@ -215,92 +216,131 @@ export function proponerProgramaDelPlano(areas, { linea = 'App LT', brief = null
  * Sólo gobierna lo OBSERVED sin issues; el resto queda en `pendientes`.
  */
 export function programRequirementsDesdeObservado(observedProgram) {
-  const { items } = validarObservedProgram(Array.isArray(observedProgram) ? observedProgram : []);
+  const items = Array.isArray(observedProgram) ? observedProgram : [];
   const entrada = { operativos: 0, privados: 0, salas: [], recepcion: false };
   const pendientes = [];
-  const anclasObservadas = [];        // identidad física preservada (P0-R9-8)
+  const anclasObservadas = [];        // identidad física preservada (P0-R9-8/R10-7)
   const dependientesObservados = [];  // sillas/guardas: reconcilian, no gobiernan (P0-R9-9)
   let gobernables = 0;
-  for (const it of items) {
-    const cls = clasificarMueble(it);
-    const real = it.origin === ORIGEN.OBSERVED && (it.issues?.length ?? 0) === 0;
-    const etiqueta = it.type || it.role || null;
-    if (!real) { pendientes.push({ code: 'REQUIERE_CONFIRMACION', clase: cls.clase, type: etiqueta, origin: it.origin }); continue; }
 
-    const q = Number(it.quantity) > 0 ? Number(it.quantity) : 1;
-    const capTotal = Number(it.capacity_total) > 0 ? Number(it.capacity_total) : 0;
-    const capPer = Number(it.capacity_per_unit) > 0 ? Number(it.capacity_per_unit)
+  items.forEach((rawIt) => {
+    // Normalización src (aliases) + UNIÓN de issues con los del SERVIDOR (P0-R10-1):
+    // el cliente puede AÑADIR validación defensiva, nunca BORRAR/rebajar lo que el
+    // servidor ya marcó (ITEM_DUPLICADO, POSICION_FUERA_DE_ENVOLVENTE, etc.).
+    const norm = observedItem(rawIt);
+    const serverIssues = Array.isArray(rawIt.issues) ? rawIt.issues : [];
+    const issuesFinal = Array.from(new Set([...serverIssues, ...(norm.issues || [])]));
+    const serverReview = rawIt.review_required === true;
+    const kind = (rawIt.kind || norm.kind || KIND.FURNITURE);
+    const etiqueta = norm.type || norm.role || null;
+
+    // P0-R10-4: un CUARTO (kind=room) jamás es mueble: ni ancla, ni dependiente,
+    // ni suma capacidad. Es geometría de espacio (lo gobiernan las áreas).
+    if (kind === KIND.ROOM) return;
+
+    // Un item con issues (servidor o cliente) o REVIEW del servidor NO gobierna.
+    if (norm.origin !== ORIGEN.OBSERVED || issuesFinal.length > 0 || serverReview) {
+      pendientes.push({ code: 'REQUIERE_CONFIRMACION', type: etiqueta, origin: norm.origin, issues: issuesFinal });
+      return;
+    }
+    // P1-R10-11: confianza por debajo del umbral único NO gobierna sola.
+    if (!(Number(norm.confidence) >= UMBRAL_CONFIANZA_GOBERNAR)) {
+      pendientes.push({ code: 'CONFIANZA_BAJA', type: etiqueta, origin: norm.origin, confidence: norm.confidence ?? null });
+      return;
+    }
+    // P0-R10-4: sólo FURNITURE puede ser ancla/dependiente. amenity/unknown → revisión.
+    if (kind === KIND.AMENITY) { pendientes.push({ code: 'AMENITY_SIN_VOCABULARIO', type: etiqueta, origin: norm.origin }); return; }
+    if (kind === KIND.UNKNOWN) { pendientes.push({ code: 'ROLE_NO_MAPEADO', type: etiqueta, origin: norm.origin }); return; }
+
+    const cls = clasificarMueble(norm);
+    const q = Number(norm.quantity) > 0 ? Number(norm.quantity) : 1;
+    const capTotal = Number(norm.capacity_total) > 0 ? Number(norm.capacity_total) : 0;
+    const capPer = Number(norm.capacity_per_unit) > 0 ? Number(norm.capacity_per_unit)
       : (capTotal > 0 && q > 0 ? capTotal / q : 0);
+    const plan_tag = (typeof rawIt.plan_tag === 'string' ? rawIt.plan_tag : null) || norm.plan_tag || null;
 
     if (cls.clase === CLASE.DEPENDENT) {
-      // Una silla/guarda observada NO crea ancla: se usa para reconciliar.
-      dependientesObservados.push({ dependent_role: cls.dependent_role, quantity: q, zone: it.zone || null, source_ref: it.source_ref || null, dimensions: it.dimensions || null, evidence: it.evidence || null });
-      continue;
+      // Una silla/guarda observada NO crea ancla: se usa para reconciliar (P0-R9-9/R10-9).
+      dependientesObservados.push({ dependent_role: cls.dependent_role, quantity: q, zone: norm.zone || null, source_ref: norm.source_ref || null, dimensions: norm.dimensions || null, evidence: norm.evidence || null });
+      return;
     }
-    if (cls.clase === CLASE.AMENITY) { pendientes.push({ code: 'AMENITY_SIN_VOCABULARIO', type: etiqueta, origin: it.origin }); continue; }
-    if (cls.clase !== CLASE.ANCHOR) { pendientes.push({ code: 'ROLE_NO_MAPEADO', type: etiqueta, origin: it.origin }); continue; }
+    if (cls.clase === CLASE.AMENITY) { pendientes.push({ code: 'AMENITY_SIN_VOCABULARIO', type: etiqueta, origin: norm.origin }); return; }
+    if (cls.clase !== CLASE.ANCHOR) { pendientes.push({ code: 'ROLE_NO_MAPEADO', type: etiqueta, origin: norm.origin }); return; }
 
-    // ANCLA: gobierna el programa + conserva su identidad física íntegra.
+    // ANCLA: conserva identidad física íntegra (P0-R10-7). Cuenta como gobernable
+    // aunque falte capacidad (para NO caer al fallback de áreas); el hueco de
+    // capacidad se marca aparte como pendiente.
     gobernables++;
     anclasObservadas.push({
-      anchor_role: cls.anchor_role, type: it.type || null, role: it.role || null,
+      anchor_role: cls.anchor_role, type: norm.type || null, role: norm.role || null,
       quantity: q, capacity_per_unit: capPer || null, capacity_total: capTotal || (capPer ? capPer * q : null),
-      dimensions: it.dimensions || null, zone: it.zone || null,
-      source_ref: it.source_ref || null, plan_tag: it.plan_tag || null,
-      grouping: it.grouping || null, position: it.position || null, evidence: it.evidence || null,
+      dimensions: norm.dimensions || null, zone: norm.zone || null,
+      source_ref: norm.source_ref || null, plan_tag,
+      grouping: norm.grouping || null, position: norm.position || null, evidence: norm.evidence || null,
     });
-    if (cls.anchor_role === ANCHOR_ROLE.WORKSTATION) entrada.operativos += (capTotal > 0 ? capTotal : q);  // PUESTOS
-    else if (cls.anchor_role === ANCHOR_ROLE.DESK_PRIVATE) entrada.privados += q;
-    else if (cls.anchor_role === ANCHOR_ROLE.MEETING) { for (let k = 0; k < q; k++) entrada.salas.push(capPer || 0); }  // POR UNIDAD (P0-R9-7)
-    else if (cls.anchor_role === ANCHOR_ROLE.RECEPTION) entrada.recepcion = true;
-  }
+    if (cls.anchor_role === ANCHOR_ROLE.WORKSTATION) {
+      // P0-R10-5: NO inventar capacidad. Sin capacity_total NO se convierten muebles
+      // en puestos; el ancla queda pendiente de capacidad (REVIEW), pero existe.
+      if (capTotal > 0) entrada.operativos += capTotal;
+      else pendientes.push({ code: 'NEEDS_CAPACITY', type: etiqueta, source_ref: norm.source_ref || null, anchor_role: cls.anchor_role });
+    } else if (cls.anchor_role === ANCHOR_ROLE.DESK_PRIVATE) {
+      entrada.privados += q;
+    } else if (cls.anchor_role === ANCHOR_ROLE.MEETING) {
+      if (capPer > 0) { for (let k = 0; k < q; k++) entrada.salas.push(capPer); }  // POR UNIDAD (P0-R9-7)
+      else pendientes.push({ code: 'NEEDS_CAPACITY', type: etiqueta, source_ref: norm.source_ref || null, anchor_role: cls.anchor_role });
+    } else if (cls.anchor_role === ANCHOR_ROLE.RECEPTION) {
+      entrada.recepcion = true;
+    }
+  });
   return { entrada, pendientes, gobernables, anclasObservadas, dependientesObservados };
 }
 
-// Mapea el anchor_role de la ONTOLOGÍA (observado) al relation_role que emite el
-// ProductResolver en el preview, para poder cruzar observado vs resuelto.
-const ANCHOR_A_RELATION = Object.freeze({
-  [ANCHOR_ROLE.WORKSTATION]: 'ANCHOR_WORKSTATION',
-  [ANCHOR_ROLE.DESK_PRIVATE]: 'ANCHOR_DESK',
-  [ANCHOR_ROLE.MEETING]: 'ANCHOR_MEETING',
-  [ANCHOR_ROLE.RECEPTION]: 'ANCHOR_RECEPTION',
+// Colección canónica por rol de ancla (para resolver por DIMENSIONES, no por
+// capacidad): el mueble físico observado busca su equivalente real en catálogo.
+const COLECCION_ANCLA = Object.freeze({
+  [ANCHOR_ROLE.WORKSTATION]: OPERATIVOS,
+  [ANCHOR_ROLE.DESK_PRIVATE]: ESCRITORIOS,
+  [ANCHOR_ROLE.MEETING]: JUNTAS,
+  [ANCHOR_ROLE.RECEPTION]: RECEPCIONES,
 });
-
-// ¿La geometría observada equivale a la del producto resuelto? Compara el par
-// (w,d) sin importar orientación, con tolerancia relativa + absoluta.
-function dimsEquivalentes(a, b, tolRel = 0.06, tolAbs = 60) {
-  if (!a || !b) return false;
-  const close = (x, y) => x != null && y != null && Math.abs(Number(x) - Number(y)) <= Math.max(tolAbs, Math.max(Number(x), Number(y)) * tolRel);
-  return (close(a.w, b.w) && close(a.d, b.d)) || (close(a.w, b.d) && close(a.d, b.w));
-}
 
 function identidadAncla(an) {
   return { anchor_role: an.anchor_role, source_ref: an.source_ref || null, zone: an.zone || null, dimensions: an.dimensions || null, quantity: an.quantity, capacity_total: an.capacity_total ?? null };
 }
 
 /**
- * RECONCILIA cada ANCLA observada (con sus dimensiones) contra el producto que
- * el resolver eligió por capacidad (P0-R9-8). Si la geometría NO coincide, el
- * ancla queda NEEDS_CONFIRMATION (REQUIERE_DESARROLLO): NUNCA se sustituye en
- * silencio un bench 2400×1400 por un módulo 4800×1200 sólo porque cubre 8 puestos.
+ * RESUELVE cada ANCLA observada contra el CATÁLOGO por su IDENTIDAD FÍSICA
+ * (rol + dimensiones + línea), ANTES de colapsar a capacidad (P0-R10-7). Cada
+ * ancla física se resuelve INDEPENDIENTE (1:1, cardinalidad-aware — P0-R10-8):
+ * no se reutiliza un mismo módulo elegido por capacidad para varias anclas.
+ *  · RESOLVED            → existe un producto canónico con ESA geometría.
+ *  · NEEDS_DIMENSIONS    → el ancla no trae dimensiones; no se puede verificar.
+ *  · NEEDS_CONFIRMATION  → no hay equivalente canónico → REQUIERE_DESARROLLO
+ *                          (NUNCA se sustituye un bench 2400×1400 por 4800×1200).
  * @returns {Array<{anchor_role, source_ref, zone, dimensions, estado, producto?, motivo?}>}
  */
-export function conciliarAnclasObservadas(anclas = [], preview = [], _opts = {}) {
-  const anchorsPreview = (Array.isArray(preview) ? preview : []).filter((p) => /^ANCHOR_/.test(p.relation_role || ''));
+export function conciliarAnclasObservadas(anclas = [], opts = {}) {
+  const linea = opts.linea || 'App LT';
   return (Array.isArray(anclas) ? anclas : []).map((an) => {
-    const rel = ANCHOR_A_RELATION[an.anchor_role] || null;
-    const candidatos = anchorsPreview.filter((p) => p.relation_role === rel);
-    const sinDims = !an.dimensions || (an.dimensions.w == null && an.dimensions.d == null);
-    if (sinDims) {
-      return { ...identidadAncla(an), estado: 'NEEDS_DIMENSIONS', motivo: 'Ancla observada sin dimensiones: no se puede verificar el producto canónico.' };
+    const coleccion = COLECCION_ANCLA[an.anchor_role];
+    const dims = an.dimensions;
+    const base = identidadAncla(an);
+    if (!coleccion) return { ...base, estado: 'NEEDS_CONFIRMATION', motivo: 'Rol de ancla sin colección canónica.' };
+    if (!dims || (dims.w == null && dims.d == null)) {
+      return { ...base, estado: 'NEEDS_DIMENSIONS', motivo: 'Ancla observada sin dimensiones: no se puede verificar el producto canónico.' };
     }
-    const match = candidatos.find((p) => dimsEquivalentes(an.dimensions, { w: p.w, d: p.d }));
-    if (match) return { ...identidadAncla(an), estado: 'RESOLVED', producto: match.bancoId || match.piezaId || null, w: match.w, d: match.d };
+    // Match por dimensiones EXACTAS (con y sin línea pedida). El catálogo decide;
+    // si no existe, el llamador trata NEEDS_CONFIRMATION, nunca sustituye.
+    let matches = buscarEnColeccion(coleccion, { line: linea, dimensions: dims });
+    if (!matches.length) matches = buscarEnColeccion(coleccion, { dimensions: dims });
+    if (matches.length) {
+      const wd = medidasAwd(matches[0].medidas) || {};
+      return { ...base, estado: 'RESOLVED', producto: matches[0].id, w: wd.w ?? null, d: wd.d ?? null };
+    }
     return {
-      ...identidadAncla(an),
+      ...base,
       estado: 'NEEDS_CONFIRMATION',
       motivo: 'REQUIERE_DESARROLLO: ningún producto canónico equivale a la geometría observada (no se sustituye por capacidad).',
-      candidatos_por_capacidad: candidatos.map((c) => ({ producto: c.bancoId || c.piezaId || null, w: c.w ?? null, d: c.d ?? null })),
     };
   });
 }
@@ -324,12 +364,17 @@ export function conciliarDependientes(observados = [], preview = []) {
   const obs = sumaPorRol(observados, 'dependent_role', 'quantity');
   const res = sumaPorRol((Array.isArray(preview) ? preview : []).filter((p) => !/^ANCHOR_/.test(p.relation_role || '')), 'relation_role', 'cantidad');
   const roles = new Set([...Object.keys(obs), ...Object.keys(res)]);
-  return [...roles].sort().map((rol) => ({
-    dependent_role: rol,
-    observados: obs[rol] || 0,
-    resueltos: res[rol] || 0,
-    estado: (obs[rol] || 0) === (res[rol] || 0) ? 'MATCH' : 'DIVERGE',
-  }));
+  // P0-R10-9: 4 estados. Nada OBSERVADO desaparece: OBSERVED_ONLY exige acción
+  // (identificar producto/desarrollo); GENERATED_ONLY es regla/sugerencia, no observado.
+  return [...roles].sort().map((rol) => {
+    const o = obs[rol] || 0;
+    const r = res[rol] || 0;
+    let estado = 'MATCH';
+    if (o > 0 && r === 0) estado = 'OBSERVED_ONLY';
+    else if (r > 0 && o === 0) estado = 'GENERATED_ONLY';
+    else if (o !== r) estado = 'DIVERGE';
+    return { dependent_role: rol, observados: o, resueltos: r, estado };
+  });
 }
 
 /**
@@ -350,11 +395,14 @@ export function proponerProgramaDesdeObservado(observedProgram, { linea = 'App L
     brief: { ...(brief || {}) },
   };
   const base = { gobernadoPorObservado: true, observadoPendientes: pendientes, anclasObservadas, dependientesObservados, ...proponerPrograma(entradaPrograma, { linea }) };
-  // P0-R9-8/R9-9: contrasta las ANCLAS observadas (con sus dimensiones) contra el
-  // producto que eligió el resolver por capacidad; si no coincide la geometría,
-  // marca NEEDS_CONFIRMATION en vez de sustituir en silencio.
-  base.anclasConciliadas = conciliarAnclasObservadas(anclasObservadas, base.preview, { linea });
+  // P0-R10-7/R10-8: resuelve cada ancla por IDENTIDAD FÍSICA (catálogo, dims);
+  // si no coincide la geometría, NEEDS_CONFIRMATION (REQUIERE_DESARROLLO).
+  base.anclasConciliadas = conciliarAnclasObservadas(anclasObservadas, { linea });
   base.dependientesConciliados = conciliarDependientes(dependientesObservados, base.preview);
+  // P0-R10-2/R10-3: un ancla NO RESUELTA o cualquier pendiente hace que el
+  // programa REQUIERA REVISIÓN — el apply queda bloqueado (gate, no decorativo).
+  const hayAnclaNoResuelta = base.anclasConciliadas.some((a) => a.estado !== 'RESOLVED');
+  base.requiereRevision = hayAnclaNoResuelta || pendientes.length > 0;
   return base;
 }
 

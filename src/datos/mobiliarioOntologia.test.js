@@ -44,4 +44,19 @@ describe('mobiliarioOntologia · ANCLA vs DEPENDIENTE vs AMENIDAD (ChatGPT P0-R9
     expect(clasificarMueble({ type: 'artefacto raro', role: 'xyz' }).clase).toBe(CLASE.UNKNOWN);
     expect(clasificarMueble({}).clase).toBe(CLASE.UNKNOWN);
   });
+
+  it('P1-R10-13 ADVERSARIAL: NO falsos positivos de substring', () => {
+    // 'indirecto' no debe matar como "direct"/privado
+    expect(clasificarMueble({ type: 'costo indirecto', role: '' }).clase).toBe(CLASE.UNKNOWN);
+    // 'repuesto' no debe matar como "puesto"/workstation
+    expect(clasificarMueble({ type: 'repuesto mecanico', role: '' }).clase).toBe(CLASE.UNKNOWN);
+    // 'blueprint' no debe matar como "print"/amenity
+    expect(clasificarMueble({ type: 'blueprint', role: '' }).clase).toBe(CLASE.UNKNOWN);
+  });
+
+  it('P1-R10-13 ROLE canónico MANDA sobre el texto libre', () => {
+    // aunque el type diga "mesa de juntas", si role canónico es work_seat → dependiente
+    expect(clasificarMueble({ type: 'mesa de juntas', role: 'work_seat' })).toEqual({ clase: CLASE.DEPENDENT, dependent_role: DEPENDENT_ROLE.WORK_SEAT });
+    expect(clasificarMueble({ type: 'cualquier cosa', role: 'reception' }).anchor_role).toBe(ANCHOR_ROLE.RECEPTION);
+  });
 });

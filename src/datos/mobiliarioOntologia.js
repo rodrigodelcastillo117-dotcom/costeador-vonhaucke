@@ -35,39 +35,63 @@ export const DEPENDENT_ROLE = Object.freeze({
   STORAGE: 'STORAGE',
 });
 
-const re = (s) => new RegExp(s, 'i');
-const ES_SILLA = re('silla|seat|butaca|sill[oó]n');
-const ES_STORAGE = re('gaveta|pedestal|credenza|archiver|cajoner|libreer|librer');
-const ES_AMENITY = re('coffee|caf[eé]|locker|casiller|print|impres|mampara|planta|pizarr|v[eé]nd(ing)?');
-const ES_MEETING = re('junta|meeting|board|sala\\s+de\\s+junta|boardroom');
-const ES_RECEPTION = re('recep|reception|mostrador|lobby');
-const ES_PRIVATE = re('direcc|direct|privad|privat|private|ejecut|exec|gerenc|despacho');
-const ES_WORKSTATION = re('bench|workstation|work[\\s_-]?station|isla|operativ|puesto|escritor|desk');
+// P1-R10-13: patrones por PALABRA COMPLETA (\b) sobre texto NORMALIZADO (sin
+// acentos, con _/-/ convertidos a espacio). Evita falsos positivos de substring:
+// `direct` dentro de `indirect`, `puesto` dentro de `repuesto`, `print` dentro de
+// `blueprint`. (El underscore es "word char", por eso se normaliza a espacio.)
+const normaliza = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[_\-/]+/g, ' ').replace(/\s+/g, ' ').trim();
+const w = (alts) => new RegExp(`\\b(?:${alts})\\b`, 'i');
+const ES_SILLA = w('silla|sillas|seat|seats|butaca|butacas|sillon|sillones');
+const ES_STORAGE = w('gaveta|gavetas|pedestal|pedestales|credenza|credenzas|archivero|archiveros|cajonera|cajoneras|librero|libreros');
+const ES_AMENITY = w('coffee|cafe|cafetera|cafeteria|locker|lockers|casillero|casilleros|print|printer|impresora|impresoras|mampara|mamparas|pizarron|pizarra');
+const ES_MEETING = w('junta|juntas|meeting|board|boardroom');
+const ES_RECEPTION = w('recepcion|reception|mostrador|lobby');
+const ES_PRIVATE = w('direccion|director|directivo|directiva|privado|privada|private|ejecutivo|ejecutiva|executive|gerencia|gerente|despacho');
+const ES_WORKSTATION = w('bench|benches|workstation|workstations|isla|islas|operativo|operativa|operativos|operativas|operational|puesto|puestos|escritorio|escritorios|desk|desks');
+
+// Role CANÓNICO (si el lector lo da, manda sobre el texto libre — P1-R10-13).
+const ROLE_CANON = Object.freeze({
+  work_seat: { clase: CLASE.DEPENDENT, dependent_role: DEPENDENT_ROLE.WORK_SEAT },
+  meeting_seat: { clase: CLASE.DEPENDENT, dependent_role: DEPENDENT_ROLE.MEETING_SEAT },
+  executive_seat: { clase: CLASE.DEPENDENT, dependent_role: DEPENDENT_ROLE.EXECUTIVE_SEAT },
+  visitor_seat: { clase: CLASE.DEPENDENT, dependent_role: DEPENDENT_ROLE.VISITOR_SEAT },
+  storage: { clase: CLASE.DEPENDENT, dependent_role: DEPENDENT_ROLE.STORAGE },
+  operational: { clase: CLASE.ANCHOR, anchor_role: ANCHOR_ROLE.WORKSTATION },
+  workstation: { clase: CLASE.ANCHOR, anchor_role: ANCHOR_ROLE.WORKSTATION },
+  private_office: { clase: CLASE.ANCHOR, anchor_role: ANCHOR_ROLE.DESK_PRIVATE },
+  meeting: { clase: CLASE.ANCHOR, anchor_role: ANCHOR_ROLE.MEETING },
+  reception: { clase: CLASE.ANCHOR, anchor_role: ANCHOR_ROLE.RECEPTION },
+});
 
 /**
- * Clasifica un mueble observado a partir de type+role (texto libre del lector).
- * Determinista y sin inventar: lo que no reconoce → UNKNOWN (va a revisión).
+ * Clasifica un mueble observado. Prioriza el ROLE canónico; si no, usa el texto
+ * libre (type+role) por PALABRA COMPLETA. Determinista y sin inventar: lo que no
+ * reconoce → UNKNOWN (va a revisión).
  * @param {{type?:string, role?:string}} it
  * @returns {{clase, anchor_role?:string, dependent_role?:string}}
  */
 export function clasificarMueble(it = {}) {
-  const hay = `${it.role || ''} ${it.type || ''}`.toLowerCase().trim();
+  // 1) ROLE canónico explícito manda.
+  const roleKey = String(it.role || '').toLowerCase().trim();
+  if (ROLE_CANON[roleKey]) return { ...ROLE_CANON[roleKey] };
+
+  const hay = normaliza(`${it.role || ''} ${it.type || ''}`);
   if (!hay) return { clase: CLASE.UNKNOWN };
 
-  // 1) DEPENDIENTES primero (una "silla de juntas" NO es una sala).
+  // 2) DEPENDIENTES primero (una "silla de juntas" NO es una sala).
   if (ES_SILLA.test(hay)) {
     let rol = DEPENDENT_ROLE.WORK_SEAT;
     if (ES_MEETING.test(hay)) rol = DEPENDENT_ROLE.MEETING_SEAT;
+    else if (w('visita|visitante|visitor').test(hay)) rol = DEPENDENT_ROLE.VISITOR_SEAT;
     else if (ES_PRIVATE.test(hay)) rol = DEPENDENT_ROLE.EXECUTIVE_SEAT;
-    else if (/visit|visitor/i.test(hay)) rol = DEPENDENT_ROLE.VISITOR_SEAT;
     return { clase: CLASE.DEPENDENT, dependent_role: rol };
   }
   if (ES_STORAGE.test(hay)) return { clase: CLASE.DEPENDENT, dependent_role: DEPENDENT_ROLE.STORAGE };
 
-  // 2) AMENIDADES (no gobiernan el programa; van a revisión con su naturaleza).
+  // 3) AMENIDADES (no gobiernan el programa; van a revisión con su naturaleza).
   if (ES_AMENITY.test(hay)) return { clase: CLASE.AMENITY };
 
-  // 3) ANCLAS.
+  // 4) ANCLAS.
   if (ES_MEETING.test(hay)) return { clase: CLASE.ANCHOR, anchor_role: ANCHOR_ROLE.MEETING };
   if (ES_RECEPTION.test(hay)) return { clase: CLASE.ANCHOR, anchor_role: ANCHOR_ROLE.RECEPTION };
   if (ES_WORKSTATION.test(hay)) {
@@ -75,7 +99,7 @@ export function clasificarMueble(it = {}) {
     if (ES_PRIVATE.test(hay)) return { clase: CLASE.ANCHOR, anchor_role: ANCHOR_ROLE.DESK_PRIVATE };
     return { clase: CLASE.ANCHOR, anchor_role: ANCHOR_ROLE.WORKSTATION };
   }
-  // escritorio privado sin palabra de workstation (p.ej. sólo "dirección")
+  // dirección/privado sin palabra de workstation (p.ej. sólo "dirección")
   if (ES_PRIVATE.test(hay)) return { clase: CLASE.ANCHOR, anchor_role: ANCHOR_ROLE.DESK_PRIVATE };
 
   return { clase: CLASE.UNKNOWN };

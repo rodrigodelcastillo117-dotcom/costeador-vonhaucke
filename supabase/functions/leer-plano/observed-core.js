@@ -59,12 +59,19 @@ export function validarItemObservado(raw = {}, ctx = {}) {
   if (quantity == null || quantity <= 0 || !Number.isInteger(quantity)) issues.push('CANTIDAD_INVALIDA');
 
   const capacityPer = num(raw.capacity_per_unit);
-  if (raw.capacity_per_unit != null && capacityPer == null) issues.push('CAPACIDAD_UNIDAD_INVALIDA');
-  else if (capacityPer != null && capacityPer <= 0) issues.push('CAPACIDAD_UNIDAD_INVALIDA');
-  const capacityTotal = num(raw.capacity_total)
+  // capacity_per_unit (personas por mueble) debe ser ENTERO > 0 cuando se da.
+  if (raw.capacity_per_unit != null && (capacityPer == null || capacityPer <= 0 || !Number.isInteger(capacityPer))) issues.push('CAPACIDAD_UNIDAD_INVALIDA');
+  const capacityTotalDeclarado = num(raw.capacity_total);
+  const capacityTotal = capacityTotalDeclarado
     ?? ((quantity != null && capacityPer != null) ? quantity * capacityPer : null);
-  if (raw.capacity_total != null && num(raw.capacity_total) == null) issues.push('CAPACIDAD_TOTAL_INVALIDA');
+  if (raw.capacity_total != null && capacityTotalDeclarado == null) issues.push('CAPACIDAD_TOTAL_INVALIDA');
   else if (capacityTotal != null && capacityTotal <= 0) issues.push('CAPACIDAD_TOTAL_INVALIDA');
+  // P0-R10-6: COHERENCIA de capacidad. Si vienen los tres, total = quantity×unit;
+  // no se prioriza en silencio un total contradictorio.
+  if (capacityTotalDeclarado != null && quantity != null && capacityPer != null
+      && capacityPer > 0 && capacityTotalDeclarado !== quantity * capacityPer) {
+    issues.push('CAPACIDAD_INCONSISTENTE');
+  }
 
   // Dimensiones: SUMINISTRADAS pero no numéricas → ISSUE; 0/negativo → ISSUE.
   let dimensions = null;
@@ -157,11 +164,21 @@ export function validarItemObservado(raw = {}, ctx = {}) {
   return out;
 }
 
-/** Identidad para detectar duplicados de forma determinista. */
-function identidad(it) {
-  const px = it.position?.x ?? '∅';
-  const py = it.position?.y ?? '∅';
-  return `${it.type || it.role || '∅'}|${it.zone || '∅'}|${px}|${py}|${it.page ?? '∅'}`;
+// Identidad para detectar duplicados de forma determinista (P1-R10-12).
+// PRIORIDAD: source_ref/plan_tag (clave del plano) ganan — dos muebles reales con
+// la MISMA etiqueta sí son el mismo. Sólo cuando NO hay etiqueta se cae a
+// type|zone|posición|página, y dos muebles legítimos sin coordenadas NO colisionan
+// (se desempatan por un índice único) para no declarar un duplicado falso.
+function identidad(it, i) {
+  const ref = txt(it.source_ref) || txt(it.plan_tag);
+  if (ref) return `ref:${ref.toLowerCase()}`;
+  const px = it.position?.x;
+  const py = it.position?.y;
+  const grp = txt(it.grouping);
+  // Sin etiqueta Y sin posición → identidad ÚNICA por índice (no se declara
+  // duplicado a ciegas: dos benches legítimos sin coordenadas no colisionan).
+  if (px == null && py == null) return `uniq:${i}`;
+  return `${it.type || it.role || '∅'}|${it.zone || '∅'}|${grp || '∅'}|${px}|${py}|${it.page ?? '∅'}`;
 }
 
 /**
@@ -183,7 +200,7 @@ export function validarProgramaObservado(items, ctx = {}) {
   // Duplicados: misma identidad (type+zone+posición+página) ⇒ algo se contó doble.
   const seen = new Map();
   norm.forEach((it, i) => {
-    const key = identidad(it);
+    const key = identidad(it, i);
     if (seen.has(key)) {
       issues.push({ index: i, code: 'ITEM_DUPLICADO', of: seen.get(key) });
       it.review_required = true;

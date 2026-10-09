@@ -107,6 +107,28 @@ describe('observed-core · validador determinista del edge (ChatGPT P0-R8-2)', (
     expect(r.metrics.invalidos).toBeGreaterThanOrEqual(1);
   });
 
+  it('P0-R10-6 capacidad INCONSISTENTE: total ≠ quantity×unit → CAPACIDAD_INCONSISTENTE', () => {
+    const it = validarItemObservado(ok({ quantity: 4, capacity_per_unit: 2, capacity_total: 12 }), ctx);
+    expect(it.issues).toContain('CAPACIDAD_INCONSISTENTE');
+    // coherente no marca
+    expect(validarItemObservado(ok({ quantity: 4, capacity_per_unit: 2, capacity_total: 8 }), ctx).issues).not.toContain('CAPACIDAD_INCONSISTENTE');
+  });
+
+  it('P0-R10-6 capacity_per_unit no entero → CAPACIDAD_UNIDAD_INVALIDA', () => {
+    expect(validarItemObservado(ok({ capacity_per_unit: 2.5 }), ctx).issues).toContain('CAPACIDAD_UNIDAD_INVALIDA');
+  });
+
+  it('P1-R10-12 dos benches con MISMO source_ref → duplicado; con source_ref DISTINTO (sin posición) → NO duplicado', () => {
+    const sinPos = (ref) => ({ kind: 'furniture', type: 'bench', quantity: 4, capacity_per_unit: 2, zone: 'Open', confidence: 0.9, evidence: 'x', origin: 'observed', source_ref: ref });
+    const dup = validarProgramaObservado([sinPos('B-01'), sinPos('B-01')], ctx);
+    expect(dup.issues.some((x) => x.code === 'ITEM_DUPLICADO')).toBe(true);
+    const noDup = validarProgramaObservado([sinPos('B-01'), sinPos('B-02')], ctx);
+    expect(noDup.issues.some((x) => x.code === 'ITEM_DUPLICADO')).toBe(false);
+    // dos benches SIN etiqueta y SIN posición tampoco colisionan (identidad única)
+    const anon = () => ({ kind: 'furniture', type: 'bench', quantity: 4, capacity_per_unit: 2, zone: 'Open', confidence: 0.9, evidence: 'x', origin: 'observed' });
+    expect(validarProgramaObservado([anon(), anon()], ctx).issues.some((x) => x.code === 'ITEM_DUPLICADO')).toBe(false);
+  });
+
   it('PROGRAMA: sólo observed válidos → PASS; no-observed → REVIEW_REQUIRED (requiere confirmar)', () => {
     expect(validarProgramaObservado([ok({ position: { x: 100, y: 100 } }), ok({ zone: 'Juntas', position: { x: 3000, y: 100 } })], ctx).state).toBe('PASS');
     const r = validarProgramaObservado([ok({ origin: 'suggested', evidence: '' })], ctx);

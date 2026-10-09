@@ -263,10 +263,15 @@ Deno.serve(async (req: Request) => {
   // real: baja la lectura a REVIEW_REQUIRED, nunca libera solo.
   // ------------------------------------------------------------------------
   const zoneNameSet = new Set(normalizedZones.map((z: any) => String(z.name || "")).filter(Boolean));
+  // P1-R10-14: pasa maxPage SÓLO si el lector reportó un conteo real de páginas
+  // (lectura.paginas / lectura.num_paginas). Hoy el core NO lo emite → queda
+  // undefined y PAGINA_FUERA_DE_RANGO NO se afirma cubierto en integración viva.
+  const paginasReportadas = Number(l?.paginas ?? l?.num_paginas ?? l?.pages);
+  const maxPage = Number.isInteger(paginasReportadas) && paginasReportadas > 0 ? paginasReportadas : undefined;
   const observed = validarProgramaObservado(
     Array.isArray(data?.observed_program) ? data.observed_program
       : (Array.isArray(l?.observed_program) ? l.observed_program : null),
-    { envelopeW: finite(W) ? W : undefined, envelopeH: finite(H) ? H : undefined, zoneNames: zoneNameSet },
+    { envelopeW: finite(W) ? W : undefined, envelopeH: finite(H) ? H : undefined, zoneNames: zoneNameSet, maxPage },
   );
   if (observed.state === "REVIEW_REQUIRED") {
     warnings.push({ field: "observed_program", code: "OBSERVED_PROGRAM_REVIEW_REQUIRED", invalid: observed.metrics.invalidos, total: observed.metrics.total });
