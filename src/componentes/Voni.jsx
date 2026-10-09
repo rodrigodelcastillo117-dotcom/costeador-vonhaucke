@@ -14,7 +14,7 @@ import EditarPartida from './EditarPartida.jsx';
 import EmpezarEspacio from './EmpezarEspacio.jsx';
 import { leerPlanoDeArchivo } from '../datos/leerPlanoArchivo.js';
 import { areasCanonicas, bloqueGeometria } from '../datos/floorPlan.js';
-import { proponerProgramaDelPlano, proponerProgramaDesdeObservado, programRequirementsDesdeObservado, aplicarPrograma } from '../datos/programaRealDelPlano.js';
+import { proponerProgramaDelPlano, proponerProgramaDesdeObservado, programRequirementsDesdeObservado, propuestaSilleriaSugerida, aplicarPrograma } from '../datos/programaRealDelPlano.js';
 import { requirementsDeBrief } from '../datos/programaBrief.js';
 import Cargando from './Cargando.jsx';
 import EstoEntendi from './EstoEntendi.jsx';
@@ -222,6 +222,12 @@ export default function Voni({
   // R13-3: sillería/accesorios observados → recomendación con MODELO POR CONFIRMAR
   // (nunca se auto-convierte a silla-win/concerto ni se esconde).
   const recomendacionesObs = propuestaPrograma?.recomendaciones || [];
+  // R15-4: la sillería queda PENDIENTE hasta que el usuario la confirme (o ya esté en
+  // la cotización). Mientras tanto, el programa NO está completo y NO se permite saltar
+  // a la propuesta final. "Usar sugerida" la convierte en partidas reales (persiste).
+  const sillasYaEnCotizacion = (partidas || []).some((p) => /SEAT/i.test(p.relation_role || ''));
+  const sillasPorConfirmar = (propuestaPrograma?.requiereConfirmacionSillas === true) && !sillasYaEnCotizacion;
+  const lineaPrograma = (reqBrief && reqBrief.linea) || 'App LT';
   // P0-R10-2/R10-3: el programa requiere revisión si el servidor lo marcó REVIEW,
   // si alguna ancla no resolvió su geometría, o si hay cualquier pendiente.
   const programaRequiereRevision = !!propuestaPrograma?.requiereRevision
@@ -393,6 +399,13 @@ export default function Voni({
                   {recomendacionesObs.map((r, i) => (
                     <div key={`rec${i}`}>• {r.requirement_qty}× {r.dependent_role} — sugerido {r.suggested_nombre || r.suggested_product || '—'} · confirma modelo</div>
                   ))}
+                  {sillasPorConfirmar && (
+                    <button type="button" className="boton" style={{ marginTop: 6 }}
+                      disabled={!onAplicarPrograma}
+                      onClick={() => onAplicarPrograma?.(propuestaSilleriaSugerida(recomendacionesObs, { linea: lineaPrograma }))}>
+                      Usar sillería sugerida
+                    </button>
+                  )}
                 </div>
               )}
               <div style={{ marginTop: 12 }}>
@@ -508,9 +521,12 @@ export default function Voni({
               <button className="boton primario grande" style={{ width: '100%' }} disabled={!hay} onClick={() => avanzarConCandado(3)}>
                 Sí, así es — acomódalo →
               </button>
-              <button className="boton grande" style={{ width: '100%' }} disabled={!hay} onClick={() => avanzarConCandado(4)} title="Sáltate el acomodo y ve directo a la propuesta">
+              {/* R15-4: no se permite saltar a la propuesta final mientras haya
+                  sillería por confirmar (programa NO completo). */}
+              <button className="boton grande" style={{ width: '100%' }} disabled={!hay || sillasPorConfirmar} onClick={() => avanzarConCandado(4)} title={sillasPorConfirmar ? 'Confirma la sillería antes de ir a la propuesta' : 'Sáltate el acomodo y ve directo a la propuesta'}>
                 No necesito acomodo, ir directo a la propuesta
               </button>
+              {sillasPorConfirmar && <div className="ayuda" style={{ color: '#8a1f1f' }}>Falta confirmar la sillería (modelo por confirmar) para cerrar el programa.</div>}
             </div>
           </div>
           )}
@@ -542,7 +558,7 @@ export default function Voni({
         <>
           <div className="tarjeta no-imprimir voni-omitir">
             <span className="ayuda">¿No tienes planos ni medidas del lugar?</span>
-            <button className="boton fantasma" style={{ minHeight: 42 }} onClick={() => setPaso(4)}>Omitir el acomodo, ir a la propuesta →</button>
+            <button className="boton fantasma" style={{ minHeight: 42 }} disabled={sillasPorConfirmar} onClick={() => setPaso(4)} title={sillasPorConfirmar ? 'Confirma la sillería antes de ir a la propuesta' : undefined}>Omitir el acomodo, ir a la propuesta →</button>
           </div>
           <Acomodo
             estado={estado}

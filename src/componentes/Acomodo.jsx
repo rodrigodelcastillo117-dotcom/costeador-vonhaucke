@@ -135,10 +135,17 @@ export default function Acomodo(props) {
   const realesEntrada = partidasEntrada.filter((p) => !esSugerida(p));
   const hayReales = realesEntrada.length > 0;
 
+  // R15-6: UNA SOLA REALIDAD TAMBIÉN EN ESTADO. Si el lector entregó observed_program
+  // (server), NO se generan ni persisten sugerencias heurísticas por áreas como segunda
+  // realidad. Sólo ABSENT usa la heurística.
+  const obsEstadoInicial = guardado?.observed_state || 'ABSENT';
+  const observadoPresenteEstado = obsEstadoInicial === 'PRESENT_VALID' || obsEstadoInicial === 'PRESENT_REVIEW_REQUIRED'
+    || (guardado?.observed_source === 'server' && Array.isArray(guardado?.observed_program) && guardado.observed_program.length > 0);
+
   const areasIniciales = areasMDe(guardado);
   const guardadoNormalizadoBase = guardado ? conAreasNormalizadas(guardado, areasIniciales) : null;
-  const sugeridasGuardadas = Array.isArray(guardado?.sugeridosPartidas) ? guardado.sugeridosPartidas : [];
-  const sugeridasProgramaIniciales = partidasSugeridasDeAreas(areasIniciales, { linea: 'applt' });
+  const sugeridasGuardadas = observadoPresenteEstado ? [] : (Array.isArray(guardado?.sugeridosPartidas) ? guardado.sugeridosPartidas : []);
+  const sugeridasProgramaIniciales = observadoPresenteEstado ? [] : partidasSugeridasDeAreas(areasIniciales, { linea: 'applt' });
   const programaInicial = hayReales
     ? completarProgramaVisual(realesEntrada, sugeridasProgramaIniciales)
     : { partidas: sugeridasGuardadas.length ? sugeridasGuardadas : sugeridasProgramaIniciales, sugerencias: sugeridasGuardadas.length ? sugeridasGuardadas : sugeridasProgramaIniciales };
@@ -161,9 +168,10 @@ export default function Acomodo(props) {
   const firmaRef = useRef(firmaAreasParaSugeridos(areasIniciales));
 
   const areasActuales = areasMDe(acomodoLocal || guardadoNormalizado);
-  const sugeridasPlanoActuales = hayReales
-    ? partidasSugeridasDeAreas(areasActuales, { linea: lineaOperativa })
-    : sugeridas;
+  const sugeridasPlanoActuales = observadoPresenteEstado ? []
+    : hayReales
+      ? partidasSugeridasDeAreas(areasActuales, { linea: lineaOperativa })
+      : sugeridas;
   const programaVisual = hayReales
     ? completarProgramaVisual(realesEntrada, sugeridasPlanoActuales)
     : { reales: [], sugerencias: sugeridasPlanoActuales, partidas: sugeridasPlanoActuales, programaCompleto: false };
@@ -198,8 +206,9 @@ export default function Acomodo(props) {
   const reconObs = (propuestaPlano && propuestaPlano.propuesta)
     ? aplicarPrograma(propuestaPlano.propuesta, { existentes: partidasActuales })
     : null;
-  // R14-3: el resumen vive en reconObs.confirmacion.resumen (no en reconObs.resumen).
-  const obsCubiertas = reconObs?.confirmacion?.resumen?.reutilizadas ?? 0;
+  // R14-3/R15-5: el resumen vive en reconObs.confirmacion.resumen; "Ya cubiertas" usa
+  // UNIDADES físicas (reutilizadasUnidades), no renglones (un renglón cantidad=2 = 2).
+  const obsCubiertas = reconObs?.confirmacion?.resumen?.reutilizadasUnidades ?? 0;
   const obsPorAgregar = reconObs?.confirmacion?.resumen?.nuevas ?? previewPropuesto.length;
   const obsRecomendaciones = (propuestaPlano && Array.isArray(propuestaPlano.recomendaciones)) ? propuestaPlano.recomendaciones : [];
   // R14-6: UNA SOLA REALIDAD. Si el observed server gobierna, NO se muestran las
@@ -210,9 +219,10 @@ export default function Acomodo(props) {
     const e = props?.estado || {};
     const c = e.cotizacion || {};
     const areasAhora = areasMDe(acomodoLocal || guardadoNormalizado);
-    const sugeridasParaLayout = hayReales
-      ? partidasSugeridasDeAreas(areasAhora, { linea: lineaOperativa })
-      : sugeridas;
+    const sugeridasParaLayout = observadoPresenteEstado ? []
+      : hayReales
+        ? partidasSugeridasDeAreas(areasAhora, { linea: lineaOperativa })
+        : sugeridas;
     const partidas = elegirPartidasAcomodo(c.partidas);   // #6: solver = SÓLO reales confirmadas
     // Si faltan anclas comerciales duras, un plan viejo deja de ser evidencia:
     // no lo revivimos visualmente ni reutilizamos su render.
@@ -237,8 +247,9 @@ export default function Acomodo(props) {
     // Las piezas faltantes viven sólo como metadata SUGERIDA/noCobrar; jamás
     // entran a cotizacion.partidas ni a los totales.
     if (hayReales) {
-      const nuevasPrograma = partidasSugeridasDeAreas(areas, { linea: lineaOperativa });
-      const programa = completarProgramaVisual(realesEntrada, nuevasPrograma);
+      // R15-6: con observed server NO se generan/persisten sugerencias por áreas.
+      const nuevasPrograma = observadoPresenteEstado ? [] : partidasSugeridasDeAreas(areas, { linea: lineaOperativa });
+      const programa = observadoPresenteEstado ? { sugerencias: [] } : completarProgramaVisual(realesEntrada, nuevasPrograma);
       setSugeridas(programa.sugerencias);
       const completo = {
         ...normalizado,
@@ -252,7 +263,7 @@ export default function Acomodo(props) {
     }
 
     const firma = firmaAreasParaSugeridos(areas);
-    if (areas.length && firma && firma !== firmaRef.current) {
+    if (!observadoPresenteEstado && areas.length && firma && firma !== firmaRef.current) {
       const nuevas = partidasSugeridasDeAreas(areas, { linea: lineaOperativa });
       firmaRef.current = firma;
       setSugeridas(nuevas);

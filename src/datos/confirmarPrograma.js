@@ -193,7 +193,6 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
     anchorBySlot.set(anchorSlot(p.e.rol, p.e.rel, o), p);
   }
   let reutilizadasFisicas = 0;                      // unidades físicas reutilizadas
-  const emittedExist = new Set();                   // existentes ya re-emitidos a sinCambio
   const propAnchorOrd = new Map();
   for (const a of anchorsProp) {
     const rol = a.rol || rolFromRel(a.relation_role);
@@ -219,16 +218,41 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
       : null;
     if (hit) {
       hit.rem -= 1; reutilizadasFisicas += 1; usados.add(hit.e._i);   // consume 1 del renglón (cantidad N)
-      if (!emittedExist.has(hit.e._i)) {
-        emittedExist.add(hit.e._i);
-        sinCambio.push(aItemConfirmado({ ...a, cantidad: hit.e.cantidad }, { slot, estado: 'EXISTENTE' }));
-        if (hit.e.raw && hit.e.raw.id != null) enriquecidos.push({ id: hit.e.raw.id, patch: estructuraDe(a) });
-      }
+      hit.matched = hit.matched || []; hit.matched.push({ a, slot });  // acumula para plan_instances (R15-2)
     } else if (conflict) {
       // CONFLICTO: se CONSERVA lo existente (queda en intactos), NO se sustituye.
       conflictos.push({ slot, existente: { bancoId: conflict.e.banco, nombre: conflict.e.raw.nombre ?? null }, propuesto: { bancoId: a.bancoId, nombre: a.nombre ?? null }, code: 'SLOT_OCUPADO_PRODUCTO_DISTINTO' });
     } else {
       confirmadas.push(aItemConfirmado(a, { slot, estado: 'CONFIRMADO' }));
+    }
+  }
+  // Re-emite cada EXISTENTE reutilizado UNA vez. R15-2: si un renglón agrupado
+  // (cantidad N) absorbió varias instancias físicas, conserva TODAS las provenances
+  // en plan_instances[]. R15-1: lo consumido de menos queda como EXISTING_SURPLUS.
+  const observedGoverned = !!(propuesta && propuesta.gobernadoPorObservado);
+  for (const p of poolAnchor) {
+    const matched = p.matched || [];
+    if (matched.length > 0) {
+      const first = matched[0];
+      const planInstances = matched.map(({ a }) => ({
+        instance_id: a.instance_id || null, plan_source_ref: a.plan_source_ref || null,
+        zone: a.zone_id || a.zone || null, position: a.observed_position || a.position || null,
+        orientation: a.observed_orientation ?? a.orientation ?? null, evidence: a.evidence || null, grouping: a.grouping || null,
+      }));
+      const item = aItemConfirmado({ ...first.a, cantidad: p.e.cantidad }, { slot: first.slot, estado: 'EXISTENTE' });
+      if (planInstances.length > 1) item.plan_instances = planInstances;
+      sinCambio.push(item);
+      if (p.e.raw && p.e.raw.id != null) {
+        const patch = estructuraDe(first.a);
+        if (planInstances.length > 1) patch.plan_instances = planInstances;
+        enriquecidos.push({ id: p.e.raw.id, patch });
+      }
+      if (p.rem > 0) conflictos.push({ code: 'EXISTING_SURPLUS', bancoId: p.e.banco, plan_source_ref: p.e.raw.plan_source_ref || null, sobrantes: p.rem, requeridos: matched.length });
+    } else if (p.rem > 0 && observedGoverned) {
+      // No consumido por el observed que gobierna su mismo producto → excedente (revisión, NO silencio).
+      const mismoProducto = anchorsProp.some((a) => String(a.bancoId) === String(p.e.banco));
+      const origenObservado = !!(p.e.raw && (p.e.raw.plan_source_ref || p.e.raw.product_source_ref));
+      if (mismoProducto || origenObservado) conflictos.push({ code: 'EXISTING_SURPLUS', bancoId: p.e.banco, plan_source_ref: p.e.raw.plan_source_ref || null, sobrantes: p.rem, requeridos: 0 });
     }
   }
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validarProgramaObservado } from '../../supabase/functions/leer-plano/observed-core.js';
-import { programRequirementsDesdeObservado, proponerProgramaDesdeObservado, propuestaBloqueada, aplicarPrograma, partidaComercialDesdeConfirmado } from './programaRealDelPlano.js';
+import { programRequirementsDesdeObservado, proponerProgramaDesdeObservado, propuestaBloqueada, aplicarPrograma, partidaComercialDesdeConfirmado, propuestaSilleriaSugerida } from './programaRealDelPlano.js';
 
 // ============================================================================
 //  INTEGRACIÓN OFFLINE (ChatGPT R10) — NO es E2E del PDF vivo (MOCK_ONLY).
@@ -274,6 +274,61 @@ describe('INTEGRACIÓN observed pipeline (R10, offline)', () => {
     expect(comercial.evidence).toBe('isla dibujada en planta');
     expect(comercial.observed_position).toEqual({ x: 1234, y: 5678 });
     expect(comercial.observed_orientation).toBe(90);
+  });
+
+  it('31· R15-1 SURPLUS: observed 2 + existente renglón cantidad=4 → reutiliza 2, 0 nuevas, EXISTING_SURPLUS de 2', () => {
+    const { prop } = pipeline([base({ type: 'bench operativo', role: 'operational', quantity: 2, capacity_per_unit: 2, capacity_total: 4, dimensions: { w: 1500, d: 1200 }, source_ref: 'B-01' })]);
+    const existenteRow = [{ ...prop.propuesta.partidas[0], cantidad: 4 }];
+    const ap = aplicarPrograma(prop.propuesta, { existentes: existenteRow });
+    expect(ap.confirmacion.resumen.nuevas).toBe(0);
+    const surplus = ap.confirmacion.conflictos.find((c) => c.code === 'EXISTING_SURPLUS');
+    expect(surplus).toBeTruthy();
+    expect(surplus.sobrantes).toBe(2);               // 4 existentes − 2 observadas
+    expect(ap.ok).toBe(false);                       // requiere revisión, NO silencio
+  });
+
+  it('31b· R15-1 SURPLUS observed=0: programa observado vacío + existente observado → review, no silencio', () => {
+    const existente = [{ relation_role: 'ANCHOR_WORKSTATION', rol: 'operativo', bancoId: 'op-2u-1500x1200', cantidad: 4, plan_source_ref: 'B-01', product_source_ref: 'op-2u-1500x1200' }];
+    const ap = aplicarPrograma({ partidas: [], gobernadoPorObservado: true }, { existentes: existente });
+    expect(ap.confirmacion.conflictos.some((c) => c.code === 'EXISTING_SURPLUS')).toBe(true);
+  });
+
+  it('32· R15-2 PROVENANCE AGRUPADA: fila cantidad=2 ↔ B-01(zona A)+B-02(zona B) conserva AMBAS', () => {
+    const bench = (ref, zone) => base({ type: 'bench operativo', role: 'operational', quantity: 1, capacity_per_unit: 2, capacity_total: 2, dimensions: { w: 1500, d: 1200 }, source_ref: ref, zone });
+    const p = proponerProgramaDesdeObservado([bench('B-01', 'OPEN SPACE'), bench('B-02', 'DIRECCION')], { linea: 'App LT' });
+    // una sola fila comercial agrupada cantidad=2 que debe absorber B-01 y B-02
+    const filaAgrupada = [{ ...p.propuesta.partidas[0], instance_id: null, plan_source_ref: null, cantidad: 2 }];
+    const ap = aplicarPrograma(p.propuesta, { existentes: filaAgrupada });
+    const reemitida = ap.confirmacion.sinCambio.find((s) => Array.isArray(s.plan_instances));
+    expect(reemitida).toBeTruthy();
+    const refs = reemitida.plan_instances.map((pi) => pi.plan_source_ref).sort();
+    expect(refs).toEqual(['B-01', 'B-02']);          // ninguna provenance desaparece
+  });
+
+  it('33· R15-3 STABLE KEY: dos benches misma zone+grouping, posiciones distintas, sin source_ref → IDs DIFERENTES', () => {
+    const b = (x) => ({ kind: 'furniture', type: 'bench operativo', role: 'operational', quantity: 1, capacity_per_unit: 2, capacity_total: 2, dimensions: { w: 1500, d: 1200 }, zone: 'OPEN SPACE', grouping: 'isla-1', position: { x, y: 10 }, confidence: 0.9, evidence: 'x', origin: 'observed' });
+    const p = proponerProgramaDesdeObservado([b(100), b(900)], { linea: 'App LT' });
+    const ids = p.propuesta.partidas.filter((x) => /^ANCHOR_/.test(x.relation_role)).map((x) => x.instance_id);
+    expect(new Set(ids).size).toBe(ids.length);      // instance_id DISTINTOS (no colisión por grouping)
+    const reqs = p.anclasObservadas ? null : null;   // (req_id también distinto por posición)
+    expect(ids.length).toBe(2);
+  });
+
+  it('34· R15-4 programaCompleto bloquea paso a propuesta final mientras hay sillería por confirmar', () => {
+    const { prop } = pipeline([base({ type: 'bench operativo', role: 'operational', quantity: 1, capacity_per_unit: 2, capacity_total: 2, dimensions: { w: 1500, d: 1200 }, source_ref: 'B-50' })]);
+    expect(prop.programaCompleto).toBe(false);        // gate del paso a propuesta final
+    expect(prop.requiereConfirmacionSillas).toBe(true);
+  });
+
+  it('34b· R15-4 ACCIÓN "usar sugerida": convierte el requerimiento en partidas de silla REALES', () => {
+    const { prop } = pipeline([base({ type: 'bench operativo', role: 'operational', quantity: 1, capacity_per_unit: 2, capacity_total: 2, dimensions: { w: 1500, d: 1200 }, source_ref: 'B-51' })]);
+    const sill = propuestaSilleriaSugerida(prop.recomendaciones, { linea: 'App LT' });
+    expect(sill.partidas.length).toBe(2);                         // 2 asientos (capacidad del bench)
+    expect(sill.partidas.every((p) => p.relation_role === 'WORK_SEAT')).toBe(true);
+    expect(sill.partidas.every((p) => p.product_status === 'RESOLVED')).toBe(true);
+    // aplicables de verdad (producto canónico con identidad)
+    const ap = aplicarPrograma(sill, { existentes: [] });
+    expect(ap.confirmacion.confirmadas.length).toBe(2);
   });
 
   it('24· R13-4 modelo observado ≠ source_ref: sin modelo explícito → requiere_confirmacion_modelo', () => {

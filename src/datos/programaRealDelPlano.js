@@ -17,7 +17,7 @@ import { resolverPrograma, construirResolucion, requirementId, instanceId, group
 import { confirmarPrograma } from './confirmarPrograma.js';
 import { validarObservedProgram, observedItem, ORIGEN, KIND, UMBRAL_CONFIANZA_GOBERNAR } from './observedProgram.js';
 import { clasificarMueble, CLASE, ANCHOR_ROLE } from './mobiliarioOntologia.js';
-import { buscarEnColeccion, medidasAwd, asientoPara, OPERATIVOS, ESCRITORIOS, JUNTAS, RECEPCIONES } from './catalogoCanonico.js';
+import { buscarEnColeccion, medidasAwd, asientoPara, OPERATIVOS, ESCRITORIOS, JUNTAS, RECEPCIONES, SILLAS } from './catalogoCanonico.js';
 
 // Nombre que describe el ROL real en palabras que coherencia/ruteo legacy aún
 // entienden. NO es la autoridad semántica (esa es relation_role); sólo etiqueta.
@@ -491,9 +491,15 @@ export function resolverFisicoDesdeObservado(anclas, { linea = 'App LT' } = {}) 
     }
     const prod = r.producto_obj;
     const q = Number(an.quantity) > 0 ? Math.floor(Number(an.quantity)) : 1;
-    // R14-2: identidad ESTABLE, NO el índice del array. Prioriza plan_source_ref
-    // (estable) → plan_tag → grouping; sólo si nada hay, cae al índice.
-    const stableKey = an.source_ref || an.plan_tag || an.grouping || `idx${i}`;
+    // R14-2/R15-3: identidad ESTABLE SIN colisiones. `grouping` SOLO no basta (dos
+    // benches del mismo grupo colisionarían). Prioridad: source_ref → plan_tag →
+    // grouping+zone+posición → zone+posición → posición → índice (último recurso).
+    const pos = (an.position && an.position.x != null && an.position.y != null) ? `${an.position.x},${an.position.y}` : null;
+    const stableKey = an.source_ref || an.plan_tag
+      || (an.grouping && (an.zone || pos) ? `g:${an.grouping}:${an.zone || ''}:${pos || ''}` : null)
+      || (an.zone && pos ? `z:${an.zone}:${pos}` : null)
+      || (pos ? `p:${pos}` : null)
+      || `idx${i}`;
     const req_id = requirementId(an.zone || null, map.rol, stableKey);
     const seatsPorUnidad = Number(an.capacity_per_unit) > 0 ? Math.round(Number(an.capacity_per_unit)) : 0;
     for (let k = 0; k < q; k++) {   // CARDINALIDAD 1:1: una instancia física por observada
@@ -525,6 +531,36 @@ export function resolverFisicoDesdeObservado(anclas, { linea = 'App LT' } = {}) 
   return { partidas, incompletos, recomendaciones };
 }
 
+/**
+ * ACCIÓN REAL de confirmación de sillería (ChatGPT R15-4): toma las RECOMENDACIONES
+ * (SUGGESTED) y produce partidas de ASIENTO reales (ProductResolution RESOLVED) con
+ * el producto sugerido — para "USAR SUGERIDO". El acto es explícito del usuario; una
+ * vez aplicadas, las sillas dejan de ser pendientes (identidad comercial real).
+ * @param {Array} recomendaciones  `fisico.recomendaciones`
+ * @returns {{partidas:Array}}
+ */
+export function propuestaSilleriaSugerida(recomendaciones, { linea = 'App LT' } = {}) {
+  const partidas = [];
+  (Array.isArray(recomendaciones) ? recomendaciones : []).forEach((r, i) => {
+    if (!r || !r.suggested_product) return;
+    const silla = buscarEnColeccion(SILLAS, { line: linea }).find((s) => s.id === r.suggested_product)
+      || SILLAS.find((s) => s.id === r.suggested_product);
+    if (!silla) return;
+    const req_id = requirementId(r.zone || null, 'silla', `${r.dependent_role}:${r.plan_source_ref || i}`);
+    const n = Number(r.requirement_qty) > 0 ? Math.floor(Number(r.requirement_qty)) : 1;
+    for (let k = 0; k < n; k++) {
+      const res = construirResolucion(silla, {
+        requirement_id: req_id, zone_id: r.zone || null, rol: 'silla',
+        relation_role: r.dependent_role, anchor_role: null,
+        functional_group_id: groupId(req_id, k), instance_id: instanceId(req_id, k),
+        cantidad: 1, inclusion: 'requested',
+      });
+      if (res) { res.plan_source_ref = r.plan_source_ref || null; res.confirmado_modelo = true; partidas.push(res); }
+    }
+  });
+  return { partidas };
+}
+
 export function proponerProgramaDesdeObservado(observedProgram, { linea = 'App LT', brief = null } = {}) {
   const red = programRequirementsDesdeObservado(observedProgram);
   const { pendientes, gobernables, anclasObservadas, dependientesObservados } = red;
@@ -536,7 +572,7 @@ export function proponerProgramaDesdeObservado(observedProgram, { linea = 'App L
   const hayAnclaNoResuelta = anclasConciliadas.some((a) => a.estado !== 'RESOLVED');
   // propuesta.partidas = SÓLO anclas confirmables; las sillas viven en recomendaciones
   // (SUGGESTED, R12-3) y NUNCA entran como partida confirmada.
-  const propuesta = { partidas: fisico.partidas, recomendaciones: fisico.recomendaciones, pendientes: fisico.incompletos, incompletos: fisico.incompletos, cotizable: fisico.incompletos.length === 0 };
+  const propuesta = { partidas: fisico.partidas, recomendaciones: fisico.recomendaciones, pendientes: fisico.incompletos, incompletos: fisico.incompletos, cotizable: fisico.incompletos.length === 0, gobernadoPorObservado: true };
   const preview = partidasPropuestas(propuesta);
   // Reconcilia los dependientes OBSERVADOS contra el REQUERIMIENTO (recomendaciones),
   // comparando modelo cuando exista (R12-3).
