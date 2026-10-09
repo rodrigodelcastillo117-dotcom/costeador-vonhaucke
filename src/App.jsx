@@ -839,7 +839,12 @@ export default function App() {
     aplicandoProgramaRef.current = true;
     setEstado((prev) => {
       const existentes = prev.cotizacion?.partidas || [];
-      const { confirmacion } = aplicarPrograma(propuesta, { existentes });
+      const aplicado = aplicarPrograma(propuesta, { existentes });
+      // ChatGPT R15-E2: la SEGURIDAD fail-closed vive en el PUNTO ATÓMICO. Se revalida
+      // contra `prev` (autoridad fresca): si la reconciliación produce conflictos,
+      // NO se escribe nada (devuelve el mismo prev). El precheck externo es sólo UX.
+      if ((aplicado.conflictos || []).length > 0) return prev;
+      const { confirmacion } = aplicado;
       const enriquecidos = confirmacion.enriquecidos || [];
       // #4: ENRIQUECE en el sitio los existentes reutilizados (WIN/gavetas apuntan
       // ahora al ancla APP LT) — sólo metadata estructural, sin tocar economics.

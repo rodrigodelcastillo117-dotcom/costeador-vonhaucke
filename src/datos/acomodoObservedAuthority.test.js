@@ -2,6 +2,18 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import { proponerProgramaDesdeObservado, aplicarPrograma } from './programaRealDelPlano.js';
 
+// R15-E2: el gate de conflictos de reconciliación debe vivir en el PUNTO ATÓMICO
+// (dentro de setEstado(prev)), no sólo en el precheck externo contra el snapshot.
+describe('App.aplicarProgramaDetectado · gate atómico de conflictos (R15-E2)', () => {
+  const app = fs.readFileSync('src/App.jsx', 'utf8');
+  it('revalida conflictos contra prev dentro del updater y NO escribe si los hay', () => {
+    expect(app).toContain('setEstado((prev) => {');
+    expect(app).toContain('const aplicado = aplicarPrograma(propuesta, { existentes });');
+    // la revalidación ocurre contra prev y, con conflictos, devuelve el mismo prev (0 writes)
+    expect(app).toContain('if ((aplicado.conflictos || []).length > 0) return prev;');
+  });
+});
+
 // ChatGPT R12-4: Acomodo NO puede abandonar el observed_program sólo porque ya
 // existan partidas (el bypass `hayReales ? null`). La reconciliación contra
 // partidas existentes la hace confirmarPrograma (cubierta en confirmarPrograma.test.js);

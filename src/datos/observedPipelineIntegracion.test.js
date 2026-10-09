@@ -342,7 +342,7 @@ describe('INTEGRACIÓN observed pipeline (R10, offline)', () => {
     expect(silleriaPendiente(recomendaciones, cubierto)).toBe(false);
   });
 
-  it('36· R15-C "usar sugerida" con bench quantity=4: 8 sillas, instance_id únicas, 2 por ancla, sin cross-link', () => {
+  it('36· R15-C/C2 "usar sugerida" bench quantity=4: 8 sillas únicas, 2 por ancla, HEREDAN topología canónica', () => {
     const { prop } = pipeline([base({ type: 'bench operativo', role: 'operational', quantity: 4, capacity_per_unit: 2, capacity_total: 8, dimensions: { w: 1500, d: 1200 }, source_ref: 'B-01' })]);
     const sill = propuestaSilleriaSugerida(prop.recomendaciones, { linea: 'App LT' });
     expect(sill.partidas.length).toBe(8);                          // 4 benches × 2 asientos
@@ -352,6 +352,48 @@ describe('INTEGRACIÓN observed pipeline (R10, offline)', () => {
     for (const p of sill.partidas) porAncla[p.anchor_instance_id] = (porAncla[p.anchor_instance_id] || 0) + 1;
     expect(Object.keys(porAncla).length).toBe(4);                  // 4 anclas distintas
     expect(Object.values(porAncla).every((n) => n === 2)).toBe(true); // 2 sillas por ancla
+    // R15-C2: cada silla HEREDA anchor_role del ancla y el functional_group_id del ancla.
+    expect(sill.partidas.every((p) => p.anchor_role === 'ANCHOR_WORKSTATION')).toBe(true);
+    // las 2 sillas de cada ancla comparten el functional_group_id del ancla (= el del preview)
+    const anclasPreview = prop.propuesta.partidas.filter((p) => p.relation_role === 'ANCHOR_WORKSTATION');
+    for (const anc of anclasPreview) {
+      const suyas = sill.partidas.filter((p) => p.anchor_instance_id === anc.instance_id);
+      expect(suyas.length).toBe(2);
+      expect(suyas.every((p) => p.functional_group_id === anc.functional_group_id)).toBe(true);
+    }
+  });
+
+  it('37· R15-B2 ancla equivocada: 8 sillas ligadas al ancla A no cubren el requerimiento del ancla B', () => {
+    const recomendaciones = [
+      { dependent_role: 'WORK_SEAT', requirement_qty: 4, para_ancla: 'ancla-A', suggested_product: 'silla-win' },
+      { dependent_role: 'WORK_SEAT', requirement_qty: 4, para_ancla: 'ancla-B', suggested_product: 'silla-win' },
+    ];
+    // 8 sillas pero TODAS ligadas a A (o sin ancla) → B queda sin cubrir → pendiente.
+    const todasA = Array.from({ length: 8 }, () => ({ relation_role: 'WORK_SEAT', bancoId: 'silla-win', anchor_instance_id: 'ancla-A', cantidad: 1 }));
+    expect(silleriaPendiente(recomendaciones, todasA)).toBe(true);
+    // 4 a A + 4 a B → cubierto
+    const bien = [...Array.from({ length: 4 }, () => ({ relation_role: 'WORK_SEAT', bancoId: 'silla-win', anchor_instance_id: 'ancla-A', cantidad: 1 })),
+      ...Array.from({ length: 4 }, () => ({ relation_role: 'WORK_SEAT', bancoId: 'silla-win', anchor_instance_id: 'ancla-B', cantidad: 1 }))];
+    expect(silleriaPendiente(recomendaciones, bien)).toBe(false);
+  });
+
+  it('37b· R15-B2 modelo distinto SIN confirmar NO cubre el requerimiento', () => {
+    const recomendaciones = [{ dependent_role: 'WORK_SEAT', requirement_qty: 2, para_ancla: 'ancla-A', suggested_product: 'silla-win' }];
+    const otroModelo = [{ relation_role: 'WORK_SEAT', bancoId: 'silla-alpha', anchor_instance_id: 'ancla-A', cantidad: 2 }];
+    expect(silleriaPendiente(recomendaciones, otroModelo)).toBe(true);           // modelo ≠ sugerido → pendiente
+    const confirmadoOtro = [{ relation_role: 'WORK_SEAT', bancoId: 'silla-alpha', anchor_instance_id: 'ancla-A', cantidad: 2, confirmado_modelo: true }];
+    expect(silleriaPendiente(recomendaciones, confirmadoOtro)).toBe(false);      // acto explícito de modelo → cubierto
+  });
+
+  it('38· R15-D2 borrado REAL bajo el MERGE del padre: neutraliza la segunda realidad', () => {
+    // Replica la semántica de App.guardarAcomodo: acomodo: { ...viejo, ...datos }.
+    const viejo = { observed_state: 'PRESENT_VALID', observed_program: [{}], sugeridosPartidas: [{ id: 'stale' }], demoAutopoblado: true, programaPropuesto: true };
+    // Lo que Acomodo envía con observed presente (sobreescritura neutral, no omisión):
+    const limpio = { observed_state: 'PRESENT_VALID', sugeridosPartidas: [], demoAutopoblado: false, programaPropuesto: false };
+    const merged = { ...viejo, ...limpio };
+    expect(merged.sugeridosPartidas).toEqual([]);     // el merge YA no conserva lo stale
+    expect(merged.demoAutopoblado).toBe(false);
+    expect(merged.programaPropuesto).toBe(false);
   });
 
   it('24· R13-4 modelo observado ≠ source_ref: sin modelo explícito → requiere_confirmacion_modelo', () => {

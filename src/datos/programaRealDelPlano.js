@@ -518,6 +518,10 @@ export function resolverFisicoDesdeObservado(anclas, { linea = 'App LT' } = {}) 
           dependent_role: map.seat,
           requirement_qty: seatsPorUnidad,
           para_ancla: res ? res.instance_id : null,
+          // R15-C2: la silla HEREDA la topología canónica del ANCLA (mismo grupo
+          // funcional + tipo de ancla), igual que los dependientes de resolverPrograma.
+          anchor_functional_group_id: res ? res.functional_group_id : null,
+          anchor_role: map.rel,
           plan_source_ref: an.source_ref || null,
           zone: an.zone || null,
           suggested_product: silla ? silla.id : null,
@@ -552,12 +556,15 @@ export function propuestaSilleriaSugerida(recomendaciones, { linea = 'App LT' } 
     const ancla = r.para_ancla || `${r.plan_source_ref || 'x'}:${i}`;
     const req_id = requirementId(r.zone || null, 'silla', `${r.dependent_role}:${ancla}`);
     const n = Number(r.requirement_qty) > 0 ? Math.floor(Number(r.requirement_qty)) : 1;
+    // R15-C2: HEREDA la topología canónica del ancla (grupo funcional + tipo de ancla),
+    // NO inventa un grupo nuevo para la silla. instance_id sí propio y único por silla.
+    const fg = r.anchor_functional_group_id || groupId(req_id, 0);
     for (let k = 0; k < n; k++) {
       const res = construirResolucion(silla, {
         requirement_id: req_id, zone_id: r.zone || null, rol: 'silla',
-        relation_role: r.dependent_role, anchor_role: null,
+        relation_role: r.dependent_role, anchor_role: r.anchor_role || null,
         anchor_instance_id: r.para_ancla || null,
-        functional_group_id: groupId(req_id, k), instance_id: instanceId(req_id, k),
+        functional_group_id: fg, instance_id: instanceId(req_id, k),
         cantidad: 1, inclusion: 'requested',
       });
       if (res) { res.plan_source_ref = r.plan_source_ref || null; res.confirmado_modelo = true; partidas.push(res); }
@@ -574,17 +581,31 @@ export function propuestaSilleriaSugerida(recomendaciones, { linea = 'App LT' } 
  * @param {Array} partidas         partidas ya en la cotización
  */
 export function silleriaPendiente(recomendaciones, partidas = []) {
-  const req = {};
-  for (const r of (Array.isArray(recomendaciones) ? recomendaciones : [])) {
-    if (r && r.dependent_role) req[r.dependent_role] = (req[r.dependent_role] || 0) + (Number(r.requirement_qty) || 0);
+  const recs = Array.isArray(recomendaciones) ? recomendaciones : [];
+  if (recs.length === 0) return false;
+  // R15-B2: requerido por (rol, ANCLA) con su modelo sugerido — NO sólo por rol.
+  const req = new Map();
+  for (const r of recs) {
+    if (!r || !r.dependent_role) continue;
+    const ancla = String(r.para_ancla || '');
+    const key = `${r.dependent_role}|${ancla}`;
+    const cur = req.get(key) || { role: r.dependent_role, ancla, qty: 0, suggested: r.suggested_product || null };
+    cur.qty += Number(r.requirement_qty) || 0;
+    req.set(key, cur);
   }
-  if (Object.keys(req).length === 0) return false;
-  const cov = {};
-  for (const p of (Array.isArray(partidas) ? partidas : [])) {
-    const rel = String(p.relation_role || '');
-    if (/SEAT/i.test(rel) && (p.bancoId || p.product_status === 'RESOLVED')) cov[rel] = (cov[rel] || 0) + (Number(p.cantidad) || 1);
+  const seats = (Array.isArray(partidas) ? partidas : []).filter((p) => /SEAT/i.test(String(p.relation_role || '')) && (p.bancoId || p.product_status === 'RESOLVED'));
+  // Cobertura por (rol, ancla, modelo): una silla legacy/suelta (sin anchor) NO cubre
+  // en silencio el requerimiento de un ancla concreta; un modelo distinto tampoco
+  // cuenta salvo acto explícito (confirmado_modelo).
+  const cubierto = (role, ancla, suggested) => seats
+    .filter((p) => String(p.relation_role) === role
+      && String(p.anchor_instance_id || '') === ancla
+      && (!suggested || String(p.bancoId) === String(suggested) || p.confirmado_modelo === true))
+    .reduce((s, p) => s + (Number(p.cantidad) || 1), 0);
+  for (const { role, ancla, qty, suggested } of req.values()) {
+    if (cubierto(role, ancla, suggested) < qty) return true;   // pendiente
   }
-  return Object.keys(req).some((rol) => (cov[rol] || 0) < req[rol]);
+  return false;
 }
 
 export function proponerProgramaDesdeObservado(observedProgram, { linea = 'App LT', brief = null } = {}) {

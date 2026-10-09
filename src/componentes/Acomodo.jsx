@@ -250,9 +250,10 @@ export default function Acomodo(props) {
       // R15-6/R15-D: con observed server NO se genera NI PERSISTE una segunda realidad:
       // se ELIMINAN explícitamente sugeridosPartidas/demoAutopoblado/programaPropuesto.
       if (observadoPresenteEstado) {
+        // R15-D2: App.guardarAcomodo hace MERGE — OMITIR una key NO la borra. Hay que
+        // SOBREESCRIBIR con estado NEUTRAL para matar la segunda realidad en el padre.
         setSugeridas([]);
-        const { sugeridosPartidas, demoAutopoblado, programaPropuesto, ...limpio } = normalizado;
-        const completo = { ...limpio, lineaOperativa };
+        const completo = { ...normalizado, sugeridosPartidas: [], demoAutopoblado: false, programaPropuesto: false, lineaOperativa };
         setAcomodoLocal(completo);
         props.onGuardarAcomodo?.(completo, silencioso);
         return;
@@ -289,8 +290,9 @@ export default function Acomodo(props) {
     // estado persistido (no basta con dejar de generarla; stale React/acomodo previo
     // podría re-guardarla).
     if (observadoPresenteEstado) {
+      // R15-D2: SOBREESCRITURA neutral (el merge del padre no borra por omisión).
       setSugeridas([]);
-      const { sugeridosPartidas, demoAutopoblado, programaPropuesto, ...limpio } = normalizado;
+      const limpio = { ...normalizado, sugeridosPartidas: [], demoAutopoblado: false, programaPropuesto: false };
       setAcomodoLocal(limpio);
       props.onGuardarAcomodo?.(limpio, silencioso);
       return;

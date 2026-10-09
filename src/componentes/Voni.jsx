@@ -532,10 +532,23 @@ export default function Voni({
               </button>
               {/* R15-4: no se permite saltar a la propuesta final mientras haya
                   sillería por confirmar (programa NO completo). */}
-              <button className="boton grande" style={{ width: '100%' }} disabled={!hay || sillasPorConfirmar} onClick={() => avanzarConCandado(4)} title={sillasPorConfirmar ? 'Confirma la sillería antes de ir a la propuesta' : 'Sáltate el acomodo y ve directo a la propuesta'}>
+              {/* R15-A-UX: el `disabled` refleja el MISMO gate del handler (nada de
+                  botón "muerto" que se ve habilitado pero no hace nada). */}
+              <button className="boton grande" style={{ width: '100%' }} disabled={!puedeEntrarPropuesta} onClick={() => avanzarConCandado(4)}
+                title={sillasPorConfirmar ? 'Confirma la sillería antes de ir a la propuesta'
+                  : programaRequiereRevision ? 'Hay mobiliario por revisar antes de ir a la propuesta'
+                  : conflictosPrograma.length > 0 ? 'Resuelve los conflictos de reconciliación antes de ir a la propuesta'
+                  : 'Sáltate el acomodo y ve directo a la propuesta'}>
                 No necesito acomodo, ir directo a la propuesta
               </button>
-              {sillasPorConfirmar && <div className="ayuda" style={{ color: '#8a1f1f' }}>Falta confirmar la sillería (modelo por confirmar) para cerrar el programa.</div>}
+              {!puedeEntrarPropuesta && hay && (
+                <div className="ayuda" style={{ color: '#8a1f1f' }}>
+                  {sillasPorConfirmar ? 'Falta confirmar la sillería (modelo por confirmar) para cerrar el programa.'
+                    : programaRequiereRevision ? 'Hay mobiliario observado por revisar antes de cerrar el programa.'
+                    : conflictosPrograma.length > 0 ? 'Hay conflictos de reconciliación por resolver.'
+                    : ''}
+                </div>
+              )}
             </div>
           </div>
           )}
