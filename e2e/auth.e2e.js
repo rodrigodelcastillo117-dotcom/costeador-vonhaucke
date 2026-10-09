@@ -29,6 +29,20 @@ async function sembrarProyecto(page) {
   await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
 }
 
+// Navega al proyecto en curso como lo haría un usuario real en el Home PREMIUM:
+// la vía primaria es la tarjeta "PROYECTO EN CURSO · Continuar →" (data-testid
+// home-retomar). "Proyecto actual" sigue existiendo como atajo secundario DENTRO del
+// acordeón "Más herramientas"; si no está la tarjeta primaria, se expande el acordeón.
+// Ambos hacen onIr('cotizacion'). (El Home premium movió el atajo al acordeón; el E2E
+// viejo clickeaba un botón que quedaba oculto → timeout. Esto refleja el flujo real.)
+async function irAProyecto(page) {
+  const retomar = page.getByTestId('home-retomar');
+  if (await retomar.count()) { await retomar.first().click(); return; }
+  const mas = page.getByText(/Más herramientas/i).first();
+  if (await mas.count()) { await mas.click().catch(() => {}); }
+  await page.getByRole('button', { name: /Proyecto actual/i }).click();
+}
+
 async function login(page) {
   await sembrarOnboarding(page);
   await page.goto('/');
@@ -44,7 +58,9 @@ test.describe('E2E autenticado · flujo real', () => {
   test.beforeEach(async ({ page }) => { await login(page); });
 
   test('home es inequívoco: Cotizar · Costear · Cocrear', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: /Qué vas a hacer/i })).toBeVisible();
+    // Home premium: el overline "TALLER DIGITAL" está presente (reemplaza al heading
+    // viejo "¿Qué vas a hacer?"). El contrato real son los 3 caminos (testids).
+    await expect(page.getByText(/TALLER DIGITAL/i).first()).toBeVisible();
     await expect(page.getByTestId('home-cotizar')).toBeVisible();
     await expect(page.getByTestId('home-costear')).toBeVisible();
     await expect(page.getByTestId('home-cocrear')).toBeVisible();
@@ -95,7 +111,7 @@ test.describe('E2E autenticado · flujo real', () => {
 
   test('salidas de propuesta: descarga PDF real e imprimir responde cuando hay proyecto', async ({ page }) => {
     await sembrarProyecto(page);
-    await page.getByRole('button', { name: /Proyecto actual/i }).click();
+    await irAProyecto(page);
     const descargar = page.getByRole('button', { name: /Descargar (PDF|BORRADOR)/i });
     const imprimir = page.getByRole('button', { name: /Imprimir( BORRADOR)?/i });
 
@@ -122,8 +138,7 @@ test.describe('E2E autenticado · flujo real', () => {
 
   test('cotización: botones de salida nunca quedan muertos cuando existe un proyecto', async ({ page }) => {
     await sembrarProyecto(page);
-    const actual = page.getByRole('button', { name: /Proyecto actual/i });
-    await actual.click();
+    await irAProyecto(page);
     const descargar = page.getByRole('button', { name: /Descargar (PDF|BORRADOR)/i });
     const imprimir = page.getByRole('button', { name: /Imprimir( BORRADOR)?/i });
     if (await descargar.count()) {
