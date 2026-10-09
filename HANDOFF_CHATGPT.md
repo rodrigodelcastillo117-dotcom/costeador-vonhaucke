@@ -5,6 +5,29 @@
 
 ---
 
+## R15 PARA AUDITORÍA CHATGPT + GROK
+
+- **branch:** `audit/final-product-completion` · **code SHA:** `b651932` (HEAD = doc-commit encima). Base R15 = `0fad6cb`.
+- **tests:** 2154/2154 vitest (259 archivos) · **vite build:** ✅ · **deno check:** ✅. **CI real:** GitHub 0 runs (evidencia LOCAL).
+- **archivos tocados (R15):** `src/datos/confirmarPrograma.js` (surplus + plan_instances), `src/datos/programaRealDelPlano.js` (stableKey sin colisión + gobernadoPorObservado + propuestaSilleriaSugerida), `src/componentes/Acomodo.jsx` (una sola realidad en estado + counts), `src/componentes/Voni.jsx` (gate propuesta final + acción sillería), `src/datos/observedPipelineIntegracion.test.js` (+6 adversariales).
+- **Estado por hallazgo:**
+  - R15-1 EXISTING_SURPLUS (existente cantidad 4 + observed 2 → reutiliza 2, surplus 2; observed 0 → review) — **INTEGRATION_PASS** (31/31b).
+  - R15-2 provenance agrupada (plan_instances[] conserva B-01+B-02) — **INTEGRATION_PASS** (32).
+  - R15-3 stable key sin colisiones (misma zone+grouping, posiciones distintas → IDs distintas) — **INTEGRATION_PASS** (33).
+  - R15-4 sillería gatea propuesta final + acción real `propuestaSilleriaSugerida` — **INTEGRATION_PASS** (34/34b). Gate UI en Voni = CODE_PASS; selector "elegir otro producto" = NOT_VERIFIED/pendiente.
+  - R15-5 counts Acomodo por unidades físicas — **CODE_PASS** (lógica; render no E2E).
+  - R15-6 una sola realidad en estado (sin persistir sugerencias por áreas si observed) — **CODE_PASS** (lógica; render no E2E).
+- **BLOCKED_EXTERNAL:** deploy edge; motor cutover; DATA TRUTH (xlsx + conversión por familia + modelo de sillería por línea + schema de acabado en el lector); merge/promote; migraciones; 33 legacy; Intelisis.
+- **Supuestos NO verificados LIVE:**
+  1. El schema del lector NO emite modelo/acabado por mueble → sillería/mesa ambigua requiere confirmación; "Usar sugerida" aplica el default de regla (silla-win/concerto), que NO está confirmado con VH.
+  2. El selector interactivo "elegir otro producto / requiere desarrollo" NO está en UI; sí está la acción "usar sugerida" y el gate.
+  3. El catálogo real NO tiene las dims del ground truth QA-COT-01 (sí op-2u-1500x1200).
+  4. El render (gate de botones, counts, una sola realidad) NO está cubierto por E2E; sólo la LÓGICA de dominio.
+  5. EXISTING_SURPLUS marca conflicto pero NO borra: la acción de "reducir cantidad" es decisión humana, aún sin UI dedicada.
+- **Hallazgos nuevos:** `reutilizadas` (renglones) vs `reutilizadasUnidades` (físicas) coexisten; Acomodo usa unidades. El gate de sillería se libera cuando el usuario aplica "usar sugerida" (los asientos entran como partidas reales y `sillasYaEnCotizacion` pasa a true) — conviene que decidan si además debe persistirse un flag explícito de "modelo confirmado" por si el usuario borra las sillas luego.
+
+---
+
 ## R14 PARA AUDITORÍA CHATGPT + GROK
 
 - **branch:** `audit/final-product-completion` · **code SHA:** `0fad6cb` (HEAD = doc-commit encima). Base R14 = `ce03973`.
@@ -164,20 +187,20 @@
 Eres el auditor independiente del proyecto Von Haucke (app React + Supabase de costeo/cotización).
 Audita la rama `audit/final-product-completion`.
 
-- Último commit de CÓDIGO: 0fad6cb (ronda 14: cardinalidad estable + confirmación de dependientes + provenance completa). Base R14 = ce03973.
-  Verdad viva: `CLOSEOUT_STATE.md` (historial completo rondas 1–14) + bloque "R14 PARA AUDITORÍA CHATGPT + GROK" arriba.
-  Tests 2148/2148 (259 archivos), build ✅, deno check ✅ (evidencia LOCAL; GitHub 0 CI runs). Golden/adapter = MOCK_ONLY.
+- Último commit de CÓDIGO: b651932 (ronda 15: cierre de reconciliación física — surplus, provenance agrupada, sillería). Base R15 = 0fad6cb.
+  Verdad viva: `CLOSEOUT_STATE.md` (historial completo rondas 1–15) + bloque "R15 PARA AUDITORÍA CHATGPT + GROK" arriba.
+  Tests 2154/2154 (259 archivos), build ✅, deno check ✅ (evidencia LOCAL; GitHub 0 CI runs). Golden/adapter = MOCK_ONLY.
 - Límites que Claude respetó: NO merge, NO deploy/promote, NO migración prod, NO prod-write, NO tocar 33 legacy,
   NO aprobar DATA TRUTH, NO integrar Intelisis. Todo capa ADITIVA (no cambia números del motor). El validador del
   edge está PREPARADO + deno-clean pero NO DESPLEGADO (prod edge = hard boundary).
 
-Verifica contra el CÓDIGO real (no sólo el closeout) que los 6 puntos de tu ronda 14 quedaron bien cerrados:
-1. R14-1 cantidad>1 (`confirmarPrograma` POOL): existente 1 renglón cantidad=2 absorbe 2 observadas; obs 4 + existente(2) → agrega 2. ¿Se sobre-agrega?
-2. R14-2 identidad estable: ¿requirementId/instanceId derivan de plan_source_ref (no del índice)? ¿reordenar el observed conserva B-01↔A / B-02↔B sin intercambiar provenance?
-3. R14-3 counts Acomodo (`reconObs.confirmacion.resumen`); MODEL_MISMATCH como gate; sillería sin modelo → programaCompleto=false (ancla aplicable). ¿El selector interactivo existe o sigue pendiente?
-4. R14-4 provenance: ¿evidence + observed_position + observed_orientation llegan a la partida comercial (sin `?? fallback`)?
-5. R14-6 una sola realidad: ¿Acomodo deja de mostrar sugerencias por áreas cuando observadoPresente?
-6. Revisa supuestos del bloque R14 (schema sin modelo/acabado; selector de sillería pendiente). ¿Riesgo real para la demo? Busca NUEVOS falsos verdes.
+Verifica contra el CÓDIGO real (no sólo el closeout) que los 6 puntos de tu ronda 15 quedaron bien cerrados:
+1. R15-1 SURPLUS: existente cantidad=4 + observed=2 → reutiliza 2 y marca EXISTING_SURPLUS de 2 (ok=false, no borra). observed=0 + existente observado → review.
+2. R15-2 provenance agrupada: una fila cantidad=2 que absorbe B-01+B-02 conserva AMBAS en plan_instances[] (¿alguna desaparece?).
+3. R15-3 stable key: dos benches misma zone+grouping, posiciones distintas, sin source_ref → requirement_id/instance_id DIFERENTES.
+4. R15-4 sillería: ¿programaCompleto=false bloquea "ir directo a la propuesta"/"omitir acomodo"? ¿"Usar sillería sugerida" crea partidas reales? ¿MODEL_MISMATCH gatea?
+5. R15-5 counts Acomodo usan reutilizadasUnidades (observed4 + existente cantidad2 → cubiertas 2 / por agregar 2).
+6. R15-6 estado: ¿Acomodo deja de generar/persistir sugeridosPartidas por áreas cuando hay observed server? Revisa supuestos del bloque R15 y busca NUEVOS falsos verdes.
 
 Luego decide/recomienda prioridad para el mega-avance, sabiendo que estos bloques necesitan decisión de Rodrigo o deploy:
 A. MOTOR CUTOVER: que `calcular()` tome el precio del CanonicalPriceResolver con fail-closed, preservando goldens (sólo productos nuevos).

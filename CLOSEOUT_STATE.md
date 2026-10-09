@@ -3,12 +3,12 @@
 > Estado VIVO y VERÍDICO para continuar entre sesiones y para auditoría de ChatGPT.
 > Regla: este archivo refleja SIEMPRE el HEAD real, los tests reales y qué quedó REALMENTE
 > cableado vs pendiente. Cero información histórica presentada como estado actual.
-> Última actualización: 2026-10-09 (ronda 14 ChatGPT+Grok: cardinalidad estable + confirmación de dependientes + provenance completa).
+> Última actualización: 2026-10-09 (ronda 15 ChatGPT+Grok: cierre de reconciliación física — surplus, provenance agrupada, sillería).
 
 ## ESTADO ACTUAL (verificado contra el repo)
-- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `0fad6cb`**; el HEAD de la rama es el
+- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `b651932`**; el HEAD de la rama es el
   doc-commit de este CLOSEOUT encima (un commit no puede contener su propio SHA). Tip exacto: `git rev-parse HEAD`.
-- **Tests: 2148 / 2148** (vitest, 259 archivos) · **Build: ✅** (vite) · **deno check ✅** (leer-plano + core) · verificado en esta sesión (2026-10-09).
+- **Tests: 2154 / 2154** (vitest, 259 archivos) · **Build: ✅** (vite) · **deno check ✅** (leer-plano + core) · verificado en esta sesión (2026-10-09).
 - **Evidencia = LOCAL de Claude. GitHub NO tiene CI runs (0 workflows).** Golden QA-COT-01 = MOCK_ONLY /
   RECORDED CONTRACT (no es E2E del PDF vivo). Lectura de PDF en vivo + edges = BLOCKED_EXTERNAL (no desplegado).
 - **MANDATO RC (deadline lunes 12-oct)**: autónomo hasta Release Candidate. Autorización NUEVA de Rodrigo:
@@ -16,7 +16,12 @@
   Siguen prohibidos (se preparan/documentan como BLOCKED_EXTERNAL, no se ejecutan): merge, deploy/promote,
   migración prod, escrituras masivas prod, modificar 33 legacy, aprobar DATA TRUTH, integrar Intelisis.
 - **P0 ejecutables cerrados por ronda; NO se declara "P0 abiertos: 0" hasta que R10 sea RE-AUDITADA.**
-  ChatGPT r7:10·r8:7·r9:10·r10:14·r11:5·r12:5·r13:5. **r14 (ChatGPT+Grok): 6 puntos — cerrados en código ahora**
+  ChatGPT r7:10·r8:7·r9:10·r10:14·r11:5·r12:5·r13:5·r14:6. **r15 (ChatGPT+Grok): 6 puntos — cerrados en código ahora**
+  (ver ronda 15): existente con cantidad SOBRANTE se consumía sin aviso (ahora EXISTING_SURPLUS→revisión); una fila
+  agrupada perdía provenance de las instancias que no eran la primera (ahora plan_instances[]); `grouping` solo como
+  stableKey colisionaba (ahora source_ref→plan_tag→grouping+zone+posición); la sillería no gateaba la propuesta final
+  ni tenía acción real (ahora programaCompleto gatea + "Usar sillería sugerida" la vuelve partida real); counts de
+  Acomodo usaban renglones en vez de unidades; y Acomodo persistía sugerencias de áreas como 2ª realidad. **r14 (abajo): 6 puntos.**
   (ver ronda 14): la cardinalidad fallaba con renglón existente cantidad>1 (consumía 1, sobre-agregaba); los IDs
   dependían del índice del array (reordenar intercambiaba provenance); el contador "ya cubiertas/por agregar" de
   Acomodo leía mal el resumen; las sillas se mostraban pero sin gate (MODEL_MISMATCH no bloqueaba, programa "completo"
@@ -85,6 +90,22 @@ credenciales a un servicio externo). Por eso:
 - BLOCKED_EXTERNAL (requiere login con cuenta de PRUEBA): E2E autenticado de guardar/reabrir, roles en vivo, aprobar contra servidor, autosave real, storage real.
 
 ## HISTORIAL DE AUDITORÍA (ChatGPT) — qué pasó en cada ronda
+
+### Ronda 15 — ChatGPT + Grok (sobre 0fad6cb) — 6 puntos cerrados (código `b651932`)
+Cierre de reconciliación física (pre-motor):
+- **R15-1 EXISTING_SURPLUS**: existente cantidad=4 + observed=2 → reutiliza 2, 0 nuevas, conflicto EXISTING_SURPLUS de 2
+  (ok=false, revisión; NO borra, NO silencio). observed=0 + existente observado → review.
+- **R15-2 provenance agrupada**: una fila cantidad=N que absorbe B-01+B-02 conserva AMBAS en `plan_instances[]` (item + patch).
+- **R15-3 stable key sin colisiones**: `requirementId`/`instanceId` priorizan source_ref → plan_tag → grouping+zone+posición
+  → zone+posición → posición → índice. Dos benches misma zone+grouping, posiciones distintas → IDs DIFERENTES.
+- **R15-4 sillería resolvible + gate**: MODEL_MISMATCH y `requiereConfirmacionSillas` ⇒ `programaCompleto=false`; Voni
+  bloquea "ir directo a la propuesta"/"omitir acomodo" mientras falte confirmar. Acción REAL `propuestaSilleriaSugerida`
+  ("Usar sillería sugerida") convierte el requerimiento en partidas de silla REALES (persiste). *Pendiente UI*: selector
+  "elegir otro producto"/"requiere desarrollo" (el contrato ya lo soporta).
+- **R15-5 counts Acomodo** usan `reutilizadasUnidades` (físicas): observed4 + existente cantidad2 → cubiertas 2 / por agregar 2.
+- **R15-6 una sola realidad en ESTADO**: con observed server, Acomodo NO genera/persiste partidasSugeridasDeAreas/
+  sugeridosPartidas; heurística por áreas sólo en `observed_state=ABSENT`.
+Suite 2154/2154 (259 archivos) · build ✅ · deno check ✅. PENDIENTE: re-auditoría R15.
 
 ### Ronda 14 — ChatGPT + Grok (sobre ce03973) — 6 puntos cerrados (código `0fad6cb`)
 Cardinalidad estable + confirmación de dependientes + provenance completa (pre-motor):
@@ -409,7 +430,7 @@ Lo que falta es CONECTAR la casa, en este orden:
    LÍNEA (materiales/partes/rubros + moneda+FX) y usarlo con las T.D.C. Alba/Alpura reales (depende de #3).
    fixture ≠ golden ejecutado.
 
-## Matriz (estado real al código 0fad6cb)
+## Matriz (estado real al código b651932)
 | Área | CODE | INTEGRATION | E2E | USER FLOW | Pendiente |
 |---|---|---|---|---|---|
 | Home/Navegación | ✅ | ✅ | ✅ smoke | ✅ render | — |
