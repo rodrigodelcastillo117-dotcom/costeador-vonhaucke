@@ -165,8 +165,24 @@ export function paraGuardar(estado, usuario) {
  * Nunca tumba la app: si la nube falla, el vendedor sigue cotizando y se
  * reintenta al siguiente cambio.
  */
+// Una sola creación simultánea por usuario y huella exacta en esta instancia.
+// No sustituye la idempotencia del servidor ante respuestas perdidas o pestañas distintas.
+const creacionesEnCurso = new Map();
+
 export async function guardarCotizacion(estado, usuario, id = null) {
   const fila = paraGuardar(estado, usuario);
+  if (id == null && fila.partidas.length) {
+    const clave = JSON.stringify([usuario, fila.folio, fila.cliente, fila.partidas, fila.acomodo, fila.totales, fila.huella_mp]);
+    if (creacionesEnCurso.has(clave)) return creacionesEnCurso.get(clave);
+    const promesa = persistirCotizacion(fila, id);
+    creacionesEnCurso.set(clave, promesa);
+    try { return await promesa; }
+    finally { if (creacionesEnCurso.get(clave) === promesa) creacionesEnCurso.delete(clave); }
+  }
+  return persistirCotizacion(fila, id);
+}
+
+async function persistirCotizacion(fila, id) {
   // Sin nada dentro no se guarda: no queremos el archivo lleno de borradores
   // vacíos de cada vez que alguien abre la pantalla.
   if (!fila.partidas.length) return id;
