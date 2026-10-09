@@ -3,12 +3,12 @@
 > Estado VIVO y VERÍDICO para continuar entre sesiones y para auditoría de ChatGPT.
 > Regla: este archivo refleja SIEMPRE el HEAD real, los tests reales y qué quedó REALMENTE
 > cableado vs pendiente. Cero información histórica presentada como estado actual.
-> Última actualización: 2026-10-09 (ronda 10 ChatGPT+Grok: NEEDS_CONFIRMATION/REVIEW gobiernan la conducta).
+> Última actualización: 2026-10-09 (ronda 11 ChatGPT+Grok: IDENTITY-FIRST real + gate de dominio unificado).
 
 ## ESTADO ACTUAL (verificado contra el repo)
-- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `b3da1ba`**; el HEAD de la rama es el
+- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `b94800d`**; el HEAD de la rama es el
   doc-commit de este CLOSEOUT encima (un commit no puede contener su propio SHA). Tip exacto: `git rev-parse HEAD`.
-- **Tests: 2125 / 2125** (vitest, 257 archivos) · **Build: ✅** (vite) · **deno check ✅** (leer-plano + core) · verificado en esta sesión (2026-10-09).
+- **Tests: 2132 / 2132** (vitest, 258 archivos) · **Build: ✅** (vite) · **deno check ✅** (leer-plano + core) · verificado en esta sesión (2026-10-09).
 - **Evidencia = LOCAL de Claude. GitHub NO tiene CI runs (0 workflows).** Golden QA-COT-01 = MOCK_ONLY /
   RECORDED CONTRACT (no es E2E del PDF vivo). Lectura de PDF en vivo + edges = BLOCKED_EXTERNAL (no desplegado).
 - **MANDATO RC (deadline lunes 12-oct)**: autónomo hasta Release Candidate. Autorización NUEVA de Rodrigo:
@@ -16,8 +16,13 @@
   Siguen prohibidos (se preparan/documentan como BLOCKED_EXTERNAL, no se ejecutan): merge, deploy/promote,
   migración prod, escrituras masivas prod, modificar 33 legacy, aprobar DATA TRUTH, integrar Intelisis.
 - **P0 ejecutables cerrados por ronda; NO se declara "P0 abiertos: 0" hasta que R10 sea RE-AUDITADA.**
-  ChatGPT r7: 10 P0 (cerrados). r8: 7 P0 (cerrados). r9: 10 P0 de INTEGRACIÓN (cerrados). **r10 (ChatGPT+Grok):
-  14 P0/P1 ejecutables — cerrados en código ahora** (ver ronda 10): el cliente perdía issues del servidor;
+  ChatGPT r7: 10 P0. r8: 7 P0. r9: 10 P0. r10: 14 P0/P1. **r11 (ChatGPT+Grok): 5 P0 + P1 — cerrados en código
+  ahora** (ver ronda 11): la resolución seguía siendo por capacidad agregada (4 benches 1500×1200 → 1 op-8u) con
+  reconciliación post-hoc; PRESENT_REVIEW_REQUIRED y NEEDS_CONFIRMATION no bloqueaban Aplicar de verdad; Acomodo
+  reconstruía desde áreas ignorando observed_program; leerPlanoArchivo daba PRESENT_VALID con validación null.
+  Ahora: IDENTITY-FIRST (cada ancla física → producto canónico por dimensiones, cardinalidad 1:1), gate de dominio
+  central en App.aplicarProgramaDetectado, Acomodo unificado con Voni, y fail-closed en leerPlanoArchivo.
+  ChatGPT r10 (histórico): 14 P0/P1 — cerrados (ver ronda 10): el cliente perdía issues del servidor;
   PRESENT_REVIEW_REQUIRED no era gate; NEEDS_CONFIRMATION era sólo visual (el botón aplicaba el producto malo);
   kind=room podía volverse mueble; se inventaba capacidad (muebles→puestos); faltaba coherencia de capacidad;
   la identidad física no llegaba al resolver (se resolvía por capacidad y se detectaba después); reconciliación
@@ -32,12 +37,14 @@
      material(es) — (consumo/MO/GI sin verificar)" (NO dice "costo con evidencia real": el consumo/MO/GI no se verifican).
   Ambas usan UN adapter canónico `resolverPrecioInsumoVivo` (un precio capturado a mano NO hereda evidencia vieja).
   3. `floorPlanReader.js`: cable PURO lector real (`programaDelPlano`) → `observed_program` (test con lector real).
-  4. **observed_program GOBIERNA el programa (ronda 8/9)**: `Voni.jsx` usa `proponerProgramaDesdeObservado`
-     cuando el lector dio mobiliario (observed_state PRESENT_*), con AUTORIDAD del observed SANEADO por el
-     servidor (no el crudo de la IA); sólo cae a la heurística de áreas si el lector NO dio mobiliario (ABSENT).
-     Ontología ANCLA/DEPENDIENTE/AMENIDAD: las sillas NO crean anclas. Las anclas conservan su geometría y se
-     reconcilian por dimensiones (NEEDS_CONFIRMATION si ningún producto canónico equivale; NO sustitución silenciosa).
-     Pendientes observados + anclas por confirmar se MUESTRAN en VONI. PROPUESTA ≠ CONFIRMACIÓN.
+  4. **observed_program GOBIERNA el programa (ronda 8→11)**: `Voni.jsx` Y `Acomodo.jsx` usan la MISMA función
+     `proponerProgramaDesdeObservado` cuando el lector dio mobiliario (observed_state PRESENT_*), con AUTORIDAD del
+     observed SANEADO por el servidor (no el crudo de la IA); sólo cae a la heurística de áreas si ABSENT.
+     **IDENTITY-FIRST (ronda 11)**: cada ancla física resuelve su producto canónico por DIMENSIONES (1:1), sin
+     colapsar a capacidad (4× bench 1500×1200 → 4× op-2u, nunca 1× op-8u). Ontología ANCLA/DEPENDIENTE/AMENIDAD:
+     las sillas NO crean anclas. GATE CENTRAL en `App.aplicarProgramaDetectado` (`propuestaBloqueada`): ninguna
+     propuesta REVIEW_REQUIRED/NEEDS_CONFIRMATION se aplica aunque un caller se equivoque. Pendientes observados +
+     anclas por confirmar se MUESTRAN en VONI/Acomodo. PROPUESTA ≠ CONFIRMACIÓN.
   5. **Conversión por FAMILIA (ronda 9)**: `conversionMaterial.js` + BOM — lámina kg = m²×kg/m² (multiplica),
      tablero hoja ← m² (÷), perfil tramo ← m (÷), herraje juego ← pz (÷); falta de parámetro → NO costable.
      (El BOM NO está conectado al motor todavía.)
@@ -65,6 +72,22 @@ credenciales a un servicio externo). Por eso:
 - BLOCKED_EXTERNAL (requiere login con cuenta de PRUEBA): E2E autenticado de guardar/reabrir, roles en vivo, aprobar contra servidor, autosave real, storage real.
 
 ## HISTORIAL DE AUDITORÍA (ChatGPT) — qué pasó en cada ronda
+
+### Ronda 11 — ChatGPT + Grok (sobre b3da1ba) — 5 P0 + P1 cerrados (código `b94800d`)
+"R10 bien, pero la resolución seguía siendo por capacidad y la reconciliación era post-hoc." Cerrado (pre-motor):
+- **R11-1 IDENTITY-FIRST**: `resolverFisicoDesdeObservado` — cada ancla física observada genera su ProductResolution
+  canónica por DIMENSIONES (`buscarEnColeccion`), SIN colapsar a {operativos,…} ni elegir por capacidad agregada.
+  Adversarial probado: 4× bench 1500×1200 → **4× op-2u-1500x1200**, nunca 1× op-8u-4800x1200.
+- **R11-2 CARDINALIDAD**: quantity=N produce N instancias físicas canónicas (1:1), no una conciliación con quantity=N.
+- **R11-3 DEPENDIENTES SON GATE**: OBSERVED_ONLY/DIVERGE → `requiereRevision=true` (CR-01 observada sin producto bloquea Aplicar).
+- **R11-4 AUTORIDAD ÚNICA**: `Acomodo.jsx` usa la MISMA función observada que Voni (si hay observed_program server,
+  NO reconstruye desde áreas; sólo ABSENT → fallback). GATE CENTRAL en `App.aplicarProgramaDetectado` vía
+  `propuestaBloqueada`: ninguna propuesta REVIEW_REQUIRED/NEEDS_CONFIRMATION se aplica aunque un caller se equivoque.
+- **R11-5 FAIL-CLOSED `leerPlanoArchivo`**: con serverObserved, SÓLO state `PASS` → PRESENT_VALID; null/unknown/otro → PRESENT_REVIEW_REQUIRED.
+- **P1**: ancla sin source_ref ni posición → `IDENTIDAD_AMBIGUA` (no gobierna sola); test de integración que atraviesa
+  el ADAPTER real `leerPlanoDeArchivo` (nube mockeada) + el gate (`leerPlanoAdapterIntegracion.test.js`); limpieza histórica (1939/"SEGURO").
+Exports nuevos de `resolverPrograma`: `construirResolucion`, `requirementId`, `instanceId`, `groupId`. Nuevo test adversarial
+(4× op-2u) en `observedPipelineIntegracion.test.js`. Suite 2132/2132 (258 archivos) · build ✅ · deno check ✅. PENDIENTE: re-auditoría R11.
 
 ### Ronda 10 — ChatGPT + Grok (sobre a741ab1) — 14 P0/P1 ejecutables cerrados (código `b3da1ba`)
 "R9 mejoró de verdad pero NO cerró integración." Un NEEDS_CONFIRMATION/REVIEW debe GOBERNAR la conducta, no ser
@@ -323,7 +346,7 @@ Lo que falta es CONECTAR la casa, en este orden:
    LÍNEA (materiales/partes/rubros + moneda+FX) y usarlo con las T.D.C. Alba/Alpura reales (depende de #3).
    fixture ≠ golden ejecutado.
 
-## Matriz (estado real al código b3da1ba)
+## Matriz (estado real al código b94800d)
 | Área | CODE | INTEGRATION | E2E | USER FLOW | Pendiente |
 |---|---|---|---|---|---|
 | Home/Navegación | ✅ | ✅ | ✅ smoke | ✅ render | — |

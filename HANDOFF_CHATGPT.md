@@ -5,6 +5,32 @@
 
 ---
 
+## R11 PARA AUDITORÍA CHATGPT + GROK
+
+- **branch:** `audit/final-product-completion` · **code SHA:** `b94800d` (HEAD = doc-commit encima). Base R11 = `b3da1ba`.
+- **tests:** 2132/2132 vitest (258 archivos) · **vite build:** ✅ · **deno check:** ✅ (leer-plano, observed-core, leer-plano-core).
+- **CI real:** GitHub SIN workflow runs (0). Evidencia LOCAL de Claude.
+- **archivos tocados (R11):** `src/datos/resolverPrograma.js` (exports), `src/datos/programaRealDelPlano.js` (identity-first + gate), `src/datos/leerPlanoArchivo.js` (fail-closed), `src/componentes/Acomodo.jsx` (autoridad única + gate botón), `src/App.jsx` (gate central), `src/datos/observedPipelineIntegracion.test.js` (+adversarial), nuevo `src/datos/leerPlanoAdapterIntegracion.test.js`.
+- **Estado por hallazgo:**
+  - R11-1 identity-first (por dimensiones, no capacidad) — **INTEGRATION_PASS** (adversarial 4× op-2u + adapter real).
+  - R11-2 cardinalidad 1:1 (N instancias) — **INTEGRATION_PASS** (el adversarial produce 4 instancias op-2u).
+  - R11-3 dependientes son gate (OBSERVED_ONLY/DIVERGE → requiereRevision) — **INTEGRATION_PASS** (casos 15 + adapter gate).
+  - R11-4 autoridad única (Voni≡Acomodo) + gate central en App — **CODE_PASS** (lógica; `propuestaBloqueada` **INTEGRATION_PASS** vía adapter). UI de Acomodo = CODE_PASS (no E2E render).
+  - R11-5 fail-closed leerPlanoArchivo — **INTEGRATION_PASS** (adapter: validation null → PRESENT_REVIEW_REQUIRED).
+  - P1 identidad ambigua — **INTEGRATION_PASS** (caso 16). P1 integración por adapter real — **INTEGRATION_PASS**. P1 limpieza docs — **CODE_PASS**.
+- **ADVERSARIAL exigido:** `observedPipelineIntegracion.test.js` caso 14 — 4× op-2u-1500x1200 observado → EXACTAMENTE 4× op-2u en propuesta, 0× op-8u. (Fallaría en b3da1ba, que agregaba capacidad → op-8u.)
+- **BLOCKED_EXTERNAL:** deploy edge; motor cutover; DATA TRUTH (xlsx + params de conversión); merge/promote; migraciones; 33 legacy; Intelisis.
+- **Supuestos NO verificados LIVE:**
+  1. La visión poblará observed_program conforme al schema — golden/adapter usan contrato GRABADO, no PDF vivo.
+  2. El catálogo real tiene op-2u-1500x1200 (por eso el adversarial RESUELVE), pero NO tiene las dims del ground truth QA-COT-01 (2400×1400, 3200×1200, 2000×900, 1200×500) → en ese plano casi todo caería en NEEDS_CONFIRMATION hasta crecer catálogo/vocabulario.
+  3. Los asientos obligatorios se generan por regla (`asientoPara`: silla-win/concerto…); el modelo real de sillería por línea no está confirmado con VH.
+  4. El gate de UI (botón deshabilitado en Voni/Acomodo) está cubierto por la LÓGICA (`propuestaBloqueada`/`requiereRevision`), no por un test de render.
+  5. UMBRAL_CONFIANZA_GOBERNAR=0.7 y el mapa de confianza textual son convención de Claude.
+  6. Vocabulario de mobiliario del lector y params de conversión por familia: sin fuente real (DATA TRUTH).
+- **Hallazgos nuevos:** los dependientes obligatorios ahora se generan identity-first por `asientoPara`; si un día el lector observa sillas Y se generan por regla, la reconciliación (`dependientesConciliados`) evita duplicar y marca OBSERVED_ONLY/GENERATED_ONLY/DIVERGE — pero la POLÍTICA de cuál gana (observado vs regla) aún no está decidida por negocio.
+
+---
+
 ## R10 PARA AUDITORÍA CHATGPT + GROK
 
 - **branch:** `audit/final-product-completion`
@@ -70,28 +96,25 @@
 Eres el auditor independiente del proyecto Von Haucke (app React + Supabase de costeo/cotización).
 Audita la rama `audit/final-product-completion`.
 
-- Último commit de CÓDIGO: a741ab1 (ronda 9: bugs de INTEGRACIÓN observed→validador→resolver→golden). Base R9 = 8811fce.
-  Verdad viva: `CLOSEOUT_STATE.md` (historial completo rondas 1–9) + bloque "0) R9 PARA AUDITORÍA CHATGPT" en este archivo.
-  Tests 2092/2092 (256 archivos), build ✅, deno check ✅ (evidencia local; GitHub 0 CI runs).
+- Último commit de CÓDIGO: b94800d (ronda 11: IDENTITY-FIRST real + gate de dominio unificado). Base R11 = b3da1ba.
+  Verdad viva: `CLOSEOUT_STATE.md` (historial completo rondas 1–11) + bloque "R11 PARA AUDITORÍA CHATGPT + GROK" arriba.
+  Tests 2132/2132 (258 archivos), build ✅, deno check ✅ (evidencia LOCAL; GitHub 0 CI runs). Golden/adapter = MOCK_ONLY.
 - Límites que Claude respetó: NO merge, NO deploy/promote, NO migración prod, NO prod-write, NO tocar 33 legacy,
   NO aprobar DATA TRUTH, NO integrar Intelisis. Todo capa ADITIVA (no cambia números del motor). El validador del
   edge está PREPARADO + deno-clean pero NO DESPLEGADO (prod edge = hard boundary).
 
-Verifica contra el CÓDIGO real (no sólo el closeout) que los 7 P0 de tu ronda 8 quedaron bien cerrados:
-1. P0-R9-1 AUTORIDAD: `src/datos/leerPlanoArchivo.js` consume `r.observed_program`/`r.floorSpec.observed_program`
-   (saneado server-side), NO `lec.observed_program` crudo. ¿Alguna ruta sigue leyendo el crudo para gobernar?
-2. P0-R9-2/3 schema↔validador: `leer-plano-core` emite kind/source_ref/plan_tag/grouping/capacity_total; `observed-core.js`
-   mapea confianza textual→número y es fail-closed (quantity entero>0, confidence∈[0,1]→ISSUE no clamp, kind/dims/orientation inválidos→ISSUE).
-3. P0-R9-4/5 estados: ¿`Voni.jsx` NO reconstruye desde áreas cuando observed_state es PRESENT_*? ¿muestra observadoPendientes + anclas NEEDS_CONFIRMATION?
-4. P0-R9-6/7 ontología (`src/datos/mobiliarioOntologia.js`): ¿una silla NUNCA es ancla? ¿salas por capacidad POR UNIDAD?
-5. P0-R9-8 anti-sustitución (`conciliarAnclasObservadas`): el bench 2400×1400 → NEEDS_CONFIRMATION cuando el resolver
-   elige 4800×1200. ¿Hay forma de que un ancla observada quede RESOLVED con geometría distinta? (no debería)
-6. P0-R9-9 golden (`src/datos/planoGoldenObserved132.test.js`): ground truth completo (incluye S-01/SJ-01); reconciliación
-   de dependientes sin duplicar. ¿El golden mide el DOCUMENTO o hace trampa con el resolver?
-7. P0-R9-10 conversión por familia (`src/datos/conversionMaterial.js`): lámina kg=m²×kg/m² (×), tablero/perfil/herraje (÷);
-   falta de parámetro → NO costable. ¿Alguna familia usa una división genérica equivocada?
-8. Revisa los SUPUESTOS NO verificados live (sección 0) y dime cuáles son riesgo real para la demo.
-9. Busca NUEVOS falsos verdes o huecos de integración.
+Verifica contra el CÓDIGO real (no sólo el closeout) que los 5 P0 + P1 de tu ronda 11 quedaron bien cerrados:
+1. R11-1/2 IDENTITY-FIRST (`resolverFisicoDesdeObservado` en programaRealDelPlano.js): ¿cada ancla física resuelve su
+   producto por DIMENSIONES y quantity=N da N instancias? ¿Hay algún camino que todavía elija por capacidad agregada?
+   Corre el adversarial: 4× bench 1500×1200 → 4× op-2u-1500x1200 y 0× op-8u.
+2. R11-3 dependientes son gate: ¿OBSERVED_ONLY/DIVERGE pone requiereRevision? ¿CR-01 observada bloquea Aplicar?
+3. R11-4 autoridad única + gate central: ¿`Acomodo.jsx` usa la misma función observada que Voni (no reconstruye desde
+   áreas si hay observed server)? ¿`App.aplicarProgramaDetectado` rechaza vía `propuestaBloqueada` aunque el caller se equivoque?
+4. R11-5 fail-closed `leerPlanoArchivo`: con serverObserved, ¿sólo state PASS → PRESENT_VALID y null/unknown → REVIEW?
+5. P1: ¿ancla sin source_ref ni posición → IDENTIDAD_AMBIGUA? ¿el test de integración atraviesa el adapter real
+   (`leerPlanoAdapterIntegracion.test.js`) + el gate, no sólo validator→governor?
+6. Revisa los SUPUESTOS NO verificados live (bloque R11) y dime cuáles son riesgo real para la demo.
+7. Busca NUEVOS falsos verdes o huecos de integración.
 
 Luego decide/recomienda prioridad para el mega-avance, sabiendo que estos bloques necesitan decisión de Rodrigo o deploy:
 A. MOTOR CUTOVER: que `calcular()` tome el precio del CanonicalPriceResolver con fail-closed, preservando goldens (sólo productos nuevos).
@@ -170,11 +193,11 @@ Modificados (clave): motor `calculo.js` (único cambio de motor: guard fail-clos
 `AsistenteEspecial.jsx` (P0 de estado/render), `Precios.jsx`/`HojaCosto.jsx` (provenance UI),
 `leerPlanoArchivo.js` (timeout + conservar procedencia), `.gitignore` (node_modules).
 
-### Verificación (honesta)
-- **1939/1939 tests** (vitest) · **build ✅**. Verificado 2026-10-09.
+### Verificación (honesta) — NOTA: cifras HISTÓRICAS de esa ronda; el estado ACTUAL está en el bloque R11 arriba
+- **(histórico de esa ronda) 1939/1939 tests** (vitest) · build ✅. El conteo ACTUAL es 2132/2132 (ver bloque R11).
 - La app ARRANCA autenticada como Dirección (sesión de Rodrigo; sólo lectura, sin tocar su WIP de $54,851).
 - BLOCKED_EXTERNAL: E2E autenticado (necesita cuenta de PRUEBA), verificación en vivo de edges (deploy).
-- No hay corrida de CI independiente de este SHA: los 1939 son locales de Claude.
+- No hay corrida de CI independiente en GitHub (0 workflows): toda la evidencia es LOCAL de Claude.
 
 ### Decisiones que necesito de Rodrigo (bloquean el avance grande)
 A. **Motor cutover** (que el resolver gobierne `calcular()`): toca motor congelado + 33 legacy → requiere OK + alcance.
@@ -191,8 +214,9 @@ Siguiendo el mandato de Release Candidate (deadline lunes 12-oct), trabajé aut�
 - **P0 estrictos (ChatGPT §3)**: P0-C room→furniture (mueble implicado por un cuarto = INFERRED, no OBSERVED);
   P0-B adversarial de vigencia (malformed/future/expired+verified/expired+newer-real); P0-A stale-guard de
   lectura de plano (una lectura lenta superada por otra NO pisa el archivo nuevo).
-- **Shadow motor cutover (§8)**: `shadowCutover.js` compara legacy vs canónico → 259/259 iguales, 0 diferencias →
-  SEGURO; 93 bloquearían costo oficial por procedencia. (El cutover numérico es no-op hoy; cobra sentido con la serie xlsx.)
+- **Shadow motor cutover (§8)**: `shadowCutover.js` compara legacy vs canónico → 259/259 iguales, 0 diferencias
+  numéricas HOY (`sinDiferenciaNumericaActual`, NO "cutover seguro" permanente); 93 bloquearían costo oficial por
+  procedencia. (El cutover numérico es no-op hoy; cobra sentido con la serie xlsx.)
 - **Product Intelligence (§5-6)**: `productSpec.js` (material/espesor ausente→PENDING, dimensión en conflicto→CONFLICT)
   + `bomGenerator.js` (sin material canónico o sin regla de merma → PENDING; nunca merma mágica).
 - **Golden Reality (§13)**: `goldenReality.js` clasifica diferencias humano-vs-app por causa (no cuadra artificialmente).
