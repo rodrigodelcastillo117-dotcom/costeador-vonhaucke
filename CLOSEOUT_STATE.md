@@ -6,15 +6,20 @@
 > Última actualización: 2026-10-09 (ronda 3 ChatGPT cerrada + cable FloorPlanReader + rewrite sin contradicciones).
 
 ## ESTADO ACTUAL (verificado contra el repo)
-- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `37fc330`**; el HEAD de la rama es el
+- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `e859669`**; el HEAD de la rama es el
   doc-commit de este CLOSEOUT encima (un commit no puede contener su propio SHA). Tip exacto: `git rev-parse HEAD`.
   Diff completo de la rama: `git diff e5f737f..HEAD` · lista: `git log --oneline e5f737f..HEAD`.
-- **Tests: 2017 / 2017** (vitest) · **Build: ✅** (vite) · verificado en esta sesión (2026-10-09).
+- **Tests: 2033 / 2033** (vitest) · **Build: ✅** (vite) · verificado en esta sesión (2026-10-09).
 - **MANDATO RC (deadline lunes 12-oct)**: autónomo hasta Release Candidate. Autorización NUEVA de Rodrigo:
   cutover del motor SÓLO para productos NUEVOS (shadow primero), agregar parser XLSX justificado, preparar edges.
   Siguen prohibidos (se preparan/documentan como BLOCKED_EXTERNAL, no se ejecutan): merge, deploy/promote,
   migración prod, escrituras masivas prod, modificar 33 legacy, aprobar DATA TRUTH, integrar Intelisis.
-- **P0 de cliente ABIERTOS: 0.** (Historial de cerrados abajo.) Falta E2E autenticado (cobertura, no P0 abierto).
+- **P0 conocidos ABIERTOS: 0** — pero esto es "a la fecha de este HEAD y según las auditorías hechas".
+  La auditoría ChatGPT ronda 7 encontró **10 P0 nuevos** (gates detectados-pero-no-usados: unidad/fuente/
+  fecha-futura de precio, FX sin evidencia, MO sin procedencia, consumo×cantidad, conversión BOM, ProductSpec
+  completo, VONI tiraba observed_program, timeout sin AbortController) — **TODOS cerrados ahora** (ver ronda 7).
+  Que no haya P0 abiertos NO significa "no hay más"; significa que los encontrados están cerrados. Falta E2E
+  autenticado real (cobertura) y verificación en vivo de edges (deploy).
 - **Cableado REAL hoy** (capa ADITIVA — NO cambia ningún número del motor; tests de dinero verdes):
   1. `Precios.jsx` (Dirección): columna "Procedencia" por insumo — chip por TIPO de fuente + tooltip "¿por qué $544?".
   2. `HojaCosto.jsx` (Costear/veCostos): "✓ Costo con evidencia real" sólo si TODA la MP es real FECHADA con FX
@@ -40,6 +45,22 @@ credenciales a un servicio externo). Por eso:
 - BLOCKED_EXTERNAL (requiere login con cuenta de PRUEBA): E2E autenticado de guardar/reabrir, roles en vivo, aprobar contra servidor, autosave real, storage real.
 
 ## HISTORIAL DE AUDITORÍA (ChatGPT) — qué pasó en cada ronda
+
+### Ronda 7 — ChatGPT (sobre 37fc330) — 10 P0 nuevos, TODOS cerrados (código `e859669`)
+ChatGPT aceptó el trabajo previo a nivel CODE y encontró 10 P0 "issue detectado pero NO usado como gate" + 2 P1:
+- **P0-4** precioUtilizable ahora bloquea FALTA_CONVERSION_UNIDAD (kg→hoja sin conversión nunca oficial).
+- **P0-5** fuente inválida/ausente → PROVISIONAL; source_date FUTURA → fail-closed. (Adapter Intelisis: vigencia→validity.)
+- **P0-6** FX: REAL/VERIFIED exige EVIDENCIA; fecha futura fail-closed; VERIFIED_CURRENT sólo fuente oficial.
+- **P0-7** rutaFabricacion: OK exige fuente+evidencia (MO sólo oficial con procedencia).
+- **P0-8** BOM: consumo por UNIDAD vs TOTAL (×cantidad) — jamás cobrar 0.72m² por 2 piezas.
+- **P0-9** BOM: compra≠costeo sin conversión → CONVERSION_FALTANTE → PENDING.
+- **P0-10** ProductSpec: no OK sin dimensiones útiles / procedencia UNKNOWN / sin confianza.
+- **P0-1** VONI conserva lectura/floorSpec/request_id/observed_program y EstoEntendi lo usa (no re-infiere desde áreas).
+- **P0-3** timeout: AbortController real + cleanup del timer + regresión delayed-success/timeout con fake timers.
+- **P0-2** (PREPARADO, no desplegado): schema/prompt de mobiliario observado en leer-plano-core; cliente prefiere el real.
+- **P1** shadow: `seguroParaCutover` → `sinDiferenciaNumericaActual` (wording exacto).
+- **P1 PENDIENTE**: Golden Reality es comparador plano; falta BOM humano vs app línea por línea + ingerir T.D.C. real (xlsx).
+Regresión por cada hallazgo. Suite 2033/2033 · build ✅ · smoke E2E 3/3.
 
 ### Ronda 4 (ChatGPT, hallazgos POSTERIORES sobre 0637d0e) — 5 de 6 cerrados (código `c744689`)
 Son hallazgos posteriores, NO contradicciones del rewrite. Cerrados:
@@ -193,23 +214,26 @@ Rodrigo rango (1), **81 sin fuente**. Coherencia resuelta con los estados nuevos
 **166 REAL_OBSERVED_DATED · 8 REAL_OBSERVED_UNDATED · 85 PROVISIONAL** (0 PENDING; todos tienen un número).
 EcoLegno 19 mm = $544 → REAL_OBSERVED_DATED (Compras 2026-08-14). Capa ADITIVA: NO cambia los números del motor.
 
-**SIGUIENTE (necesita decisión/autorización o deploy):**
-1. **MOTOR CUTOVER** (ChatGPT #8): que el precio EFECTIVO que entra a `calcular()` venga de `resolverPrecioInsumoVivo`
-   con fail-closed (PENDING/PROVISIONAL/UNDATED ≠ costo oficial en silencio). PRESERVAR goldens/paridad; explicar qué
-   observación reemplaza a cuál. ⚠️ Cambia números y toca el MOTOR CONGELADO + las 33 legacy → **requiere OK de Rodrigo**
-   (y alcance: sólo productos nuevos, o también legacy). Hoy el motor NO usa el resolver.
-2. **Ingestión documental real** (ChatGPT #7): leer read-only `fuentes/*.xlsx` conservando
-   archivo→hoja→celda→artículo ERP→variante→precio→moneda→unidad→fecha→proveedor→canonical_id→conversión.
-   Requiere (a) dep de parser de xlsx (no hay) + (b) mapeo clave_erp→canonical_id = **DATA TRUTH** (reservado).
-   NOTA: `lista_precio_items` (Supabase) ya tiene provenance/precio_lista/moneda/vigencia_desde/hasta.
-3. **PDF→leer-plano→cable→UI en vivo**: el cable (`floorPlanReader`) ya existe y está probado con el lector real;
-   cerrar el lazo (PDF real por la edge + UI de confirmación) requiere **deploy**. La fixture GOLDEN_A es el esperado.
-4. **GOLDEN REALITY**: BOM/consumo/precio/costo humano (T.D.C. real) vs app; clasificar diferencia por causa; no ajustar
-   el motor para cuadrar. (Depende de #2.)
-5. **PRODUCT INTELLIGENCE**: ProductDrawingReader→ProductSpec→BOM determinista→resolver→costo (reusar `evidencia.js`).
-6. **FX con provenance**: modelar tipoCambio con fecha/fuente (hoy sólo se marca provisional si moneda≠MXN).
+**SIGUIENTE — los CONTRATOS ya están; ahora toca WIRING REAL (ChatGPT): NO abrir más contratos aislados.**
+Los módulos (precioProvenance/resolver/bridge, observedProgram/floorPlanReader, productSpec/bomGenerator,
+fxProvenance, rutaFabricacion, goldenReality, shadowCutover) YA están construidos y con gates fail-closed.
+Lo que falta es CONECTAR la casa, en este orden:
+1. **WIRING del costeo de PRODUCTOS NUEVOS** (autorizado por Rodrigo, sin tocar 33 legacy):
+   `ProductDrawingReader → ProductSpec → BOM → MaterialResolver → PriceResolver → FX → Ruta/MO → motor`.
+   El motor debe tomar el precio EFECTIVO del `resolverPrecioInsumoVivo` con fail-closed (PENDING/PROVISIONAL/
+   UNDATED ≠ costo oficial). Shadow ya demostró 0 diferencias numéricas HOY; preservar goldens. Hoy `calcular()`
+   aún toma `insumo.precio`. (Toca el motor → cuidado con paridad; sólo productos nuevos.)
+2. **PDF floor plan → observed_program (real) → confirmación → ProductResolver → Cotizar → Acomodo**: requiere
+   DESPLEGAR el schema/prompt de mobiliario (P0-2 ya PREPARADO en leer-plano-core) y cerrar el lazo en UI.
+   Golden esperado = GOLDEN_A_132M2_8_PUESTOS; comparar PDF→reader→observed_program (precision/recall).
+3. **Ingestión documental READ-ONLY de `fuentes/*.xlsx`** (T.D.C./compras reales): requiere dep de parser de xlsx
+   + mapeo clave_erp→canonical_id = **DATA TRUTH** (reservado, no auto-aprobar). Conserva archivo→hoja→celda→
+   artículo→precio→moneda→unidad→fecha→proveedor→canonical→conversión. `lista_precio_items` ya tiene provenance.
+4. **GOLDEN REALITY real** (extender, P1): hoy es comparador plano de campos; falta BOM humano vs app LÍNEA por
+   LÍNEA (materiales/partes/rubros + moneda+FX) y usarlo con las T.D.C. Alba/Alpura reales (depende de #3).
+   fixture ≠ golden ejecutado.
 
-## Matriz (estado real al código 0637d0e)
+## Matriz (estado real al código e859669)
 | Área | CODE | INTEGRATION | E2E | USER FLOW | Pendiente |
 |---|---|---|---|---|---|
 | Home/Navegación | ✅ | ✅ | ✅ smoke | ✅ render | — |
