@@ -79,7 +79,7 @@ export const INTRINSECO = Object.freeze({
 });
 
 const txt = (v) => String(v ?? '').trim();
-const num = (v) => { if (v === null || v === undefined) return null; if (typeof v === 'string' && v.trim() === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
+const num = (v) => { if (typeof v !== 'number' && typeof v !== 'string') return null; if (typeof v === 'string' && v.trim() === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
 
 // Fecha ISO (YYYY-MM-DD…) → epoch ms, o null si no parsea. Determinista.
 export function fechaMs(v) {

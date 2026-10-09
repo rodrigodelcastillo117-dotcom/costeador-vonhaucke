@@ -26,7 +26,7 @@ export const FUENTE_FX = Object.freeze({
 });
 
 const txt = (v) => String(v ?? '').trim();
-const num = (v) => { if (v === null || v === undefined) return null; if (typeof v === 'string' && v.trim() === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
+const num = (v) => { if (typeof v !== 'number' && typeof v !== 'string') return null; if (typeof v === 'string' && v.trim() === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
 const fechaMs = (v) => { const s = txt(v); if (!s) return null; const t = Date.parse(s); return Number.isFinite(t) ? t : null; };
 
 const PRIORIDAD = { BANXICO: 100, FACTURA: 80, POLITICA: 50, PROVISIONAL: 10 };
@@ -64,9 +64,14 @@ export function normalizarFx(row = {}) {
  * @param {{hoy?:string|number, ventanaDias?:number}} [opts]
  */
 export function resolverFx(par, observaciones = [], opts = {}) {
-  const hoyMs = opts.hoy != null ? (fechaMs(opts.hoy) ?? new Date(opts.hoy).getTime()) : Date.now();
+  // `hoy` inválido NO debe degradar silenciosamente todo a HISTORICAL (L2): fallback a ahora.
+  const hoyParsed = opts.hoy != null ? (fechaMs(opts.hoy) ?? new Date(opts.hoy).getTime()) : Date.now();
+  const hoyMs = Number.isFinite(hoyParsed) ? hoyParsed : Date.now();
   const ventanaMs = (opts.ventanaDias ?? 7) * 24 * 3600 * 1000;
   const parNorm = txt(par || 'USD/MXN').toUpperCase();
+  // La vigencia cubre hasta el FIN del día indicado (L1): evita marcar HISTORICAL
+  // un FX "válido hasta hoy" por la hora. fechaMs de 'YYYY-MM-DD' es medianoche UTC.
+  const FIN_DIA = 24 * 3600 * 1000 - 1;
 
   const base = { par: parNorm, valor: null, fecha: null, fuente: null, evidencia: null, estado: ESTADO_FX.PENDING, bloqueaCostoOficial: true, elegida: null };
   const mias = (Array.isArray(observaciones) ? observaciones : [])
@@ -74,13 +79,19 @@ export function resolverFx(par, observaciones = [], opts = {}) {
     .filter((o) => o.utilizable && o.par === parNorm);
   if (mias.length === 0) return base;
 
-  // Clasifica por estado y escoge: VERIFIED_CURRENT > REAL_DATED (fresco) > HISTORICAL > PROVISIONAL.
+  // Clasifica por estado. VERIFIED_CURRENT exige FUENTE OFICIAL (Banxico) + vigencia
+  // que cubre hoy (H1): una POLÍTICA/estimado con vigencia futura NO es "vigente verificado".
+  const esOficial = (o) => o.fuente === FUENTE_FX.BANXICO;
+  const esEstimado = (o) => o.fuente === FUENTE_FX.PROVISIONAL || o.fuente === FUENTE_FX.POLITICA;
   const estadoDe = (o) => {
-    if (o.fuente === FUENTE_FX.PROVISIONAL) return ESTADO_FX.PROVISIONAL;
+    if (esEstimado(o)) return ESTADO_FX.PROVISIONAL;              // presupuesto/estimado, cualquier vigencia
     const v = fechaMs(o.vigencia_hasta);
-    if (v != null) return v >= hoyMs ? ESTADO_FX.VERIFIED_CURRENT : ESTADO_FX.HISTORICAL;
+    if (v != null) {
+      if (v + FIN_DIA < hoyMs) return ESTADO_FX.HISTORICAL;       // vigencia vencida
+      return esOficial(o) ? ESTADO_FX.VERIFIED_CURRENT : ESTADO_FX.REAL_DATED; // factura con vigencia = real, no "oficial vigente"
+    }
     const f = fechaMs(o.fecha);
-    if (f == null) return ESTADO_FX.PROVISIONAL;
+    if (f == null) return ESTADO_FX.PROVISIONAL;                 // real sin fecha ni vigencia → no se puede fechar
     return (hoyMs - f) <= ventanaMs ? ESTADO_FX.REAL_DATED : ESTADO_FX.HISTORICAL;
   };
   const rank = { VERIFIED_CURRENT: 4, REAL_DATED: 3, HISTORICAL: 2, PROVISIONAL: 1, PENDING: 0 };
@@ -91,7 +102,12 @@ export function resolverFx(par, observaciones = [], opts = {}) {
     if (fa !== fb) return fb - fa;
     const pa = PRIORIDAD[a.fuente] ?? 0; const pb = PRIORIDAD[b.fuente] ?? 0;
     if (pa !== pb) return pb - pa;
-    return String(a.evidencia || '') < String(b.evidencia || '') ? -1 : 1;
+    // Orden TOTAL determinista (M1): evidencia, luego valor, luego 0 (empate real).
+    const ea = String(a.evidencia || ''); const eb = String(b.evidencia || '');
+    if (ea !== eb) return ea < eb ? -1 : 1;
+    const va = a.valor ?? 0; const vb = b.valor ?? 0;
+    if (va !== vb) return va - vb;
+    return 0;
   };
   const elegida = [...mias].sort(cmp)[0];
   const estado = estadoDe(elegida);

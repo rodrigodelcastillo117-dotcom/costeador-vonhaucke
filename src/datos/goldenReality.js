@@ -26,7 +26,7 @@ export const CAUSA_DIFERENCIA = Object.freeze({
   DATO_FALTANTE: 'DATO_FALTANTE',   // un lado no tiene el dato
 });
 
-const num = (v) => { if (v === null || v === undefined) return null; if (typeof v === 'string' && v.trim() === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
+const num = (v) => { if (typeof v !== 'number' && typeof v !== 'string') return null; if (typeof v === 'string' && v.trim() === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
 
 // Campos de rubro (nivel total) → causa cuando difieren.
 const RUBRO_CAUSA = {
@@ -41,12 +41,15 @@ const RUBRO_CAUSA = {
   tipo_cambio: CAUSA_DIFERENCIA.MONEDA_FX,
 };
 
-// ¿Dos números difieren más que la tolerancia? Dentro de tolerancia = REDONDEO.
+// ¿Dos números difieren MÁS que la tolerancia? Una diferencia es REDONDEO sólo si
+// es pequeña en AMBOS ejes (absoluto Y relativo). Es REAL si es grande en
+// CUALQUIERA de los dos (OR) — así un hueco absoluto grande NO se esconde como
+// redondeo por ser % chico sobre un número grande (red-team C1, regla sagrada 5).
 function difiere(a, b, tolRel, tolAbs) {
   if (a == null || b == null) return a !== b;
   const base = Math.max(Math.abs(a), Math.abs(b), 1);
   const abs = Math.abs(a - b);
-  return abs > tolAbs && abs / base > tolRel;
+  return abs > tolAbs || abs / base > tolRel;
 }
 
 /**

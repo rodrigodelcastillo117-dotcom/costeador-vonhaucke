@@ -60,4 +60,20 @@ describe('RUTA DE FABRICACIÓN / horas-hombre (ChatGPT §10)', () => {
   it('ruta vacía → PRELIMINAR', () => {
     expect(rutaFabricacion([]).estado).toBe('PRELIMINAR');
   });
+
+  it('RED-TEAM C2: cantidad 0/negativa → CANTIDAD_INVALIDA + PENDING (no se coacciona a 1)', () => {
+    for (const q of [0, -2]) {
+      const o = operacion({ proceso: 'corte', setup_min: 5, tiempo_unitario_min: 10, tarifa_hora: 60, cantidad: q });
+      expect(o.issues, `cantidad ${q}`).toContain('CANTIDAD_INVALIDA');
+      expect(o.estado).toBe(ESTADO_OP.PENDING);
+      expect(o.tiempo_total_min).toBeNull();     // no se fabrica tiempo
+      expect(o.costo_mo).toBeNull();
+    }
+  });
+
+  it('RED-TEAM M2: un tiempo/tarifa no-numérico (bool) NO se vuelve 0 → SIN_TIEMPO/SIN_TARIFA', () => {
+    const o = operacion({ proceso: 'corte', tiempo_unitario_min: false, tarifa_hora: 60 });
+    expect(o.issues).toContain('SIN_TIEMPO');     // false → null, no 0
+    expect(o.costo_mo).toBeNull();
+  });
 });

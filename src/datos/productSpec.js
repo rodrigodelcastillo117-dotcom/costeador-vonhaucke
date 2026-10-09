@@ -22,7 +22,7 @@ export const ESTADO_DATO = Object.freeze({
 
 const txt = (v) => String(v ?? '').trim();
 // null/undefined/'' → null (NO 0; Number(null)===0 metería un dato falso).
-const num = (v) => { if (v === null || v === undefined) return null; if (typeof v === 'string' && v.trim() === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
+const num = (v) => { if (typeof v !== 'number' && typeof v !== 'string') return null; if (typeof v === 'string' && v.trim() === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
 
 /**
  * Normaliza UNA parte del despiece. Marca su estado SIN inventar:

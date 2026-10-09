@@ -65,4 +65,19 @@ describe('GOLDEN REALITY · compararGolden clasifica diferencias por causa (Chat
     expect(compararGolden(base(), { ...base(), precio_unitario: 560 }))
       .toEqual(compararGolden(base(), { ...base(), precio_unitario: 560 }));
   });
+
+  it('RED-TEAM C1: un hueco ABSOLUTO grande con % chico NO se esconde como redondeo', () => {
+    // $499 de diferencia sobre $100,000 = 0.499% (bajo el 0.5% relativo) pero ENORME en absoluto.
+    const r = compararGolden({ precio_unitario: 100000 }, { precio_unitario: 100499 });
+    expect(r.soloRedondeo).toBe(false);
+    expect(r.porCausa[CAUSA_DIFERENCIA.PRECIO]).toBe(1);
+    // y uno realmente chico ($0.004) sí es redondeo
+    expect(compararGolden({ precio_unitario: 100000 }, { precio_unitario: 100000.004 }).soloRedondeo).toBe(true);
+  });
+
+  it('RED-TEAM M2: un valor no-numérico (bool/array) NO se vuelve 0 (DATO_FALTANTE, no PRECIO 0)', () => {
+    const r = compararGolden({ precio_unitario: 544 }, { precio_unitario: false });
+    const d = r.diferencias.find((x) => x.campo === 'precio_unitario');
+    expect(d.causa).toBe(CAUSA_DIFERENCIA.DATO_FALTANTE);   // false → null, no 0
+  });
 });

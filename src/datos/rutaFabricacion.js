@@ -22,7 +22,7 @@ export const ESTADO_OP = Object.freeze({
 });
 
 const txt = (v) => String(v ?? '').trim();
-const num = (v) => { if (v === null || v === undefined) return null; if (typeof v === 'string' && v.trim() === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
+const num = (v) => { if (typeof v !== 'number' && typeof v !== 'string') return null; if (typeof v === 'string' && v.trim() === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
 
 /**
  * Normaliza UNA operación. tiempo_total_min = setup + unitario×cantidad (sólo si
@@ -33,7 +33,10 @@ export function operacion(raw = {}) {
   const proceso = PROCESO[txt(raw.proceso).toUpperCase()] || (Object.values(PROCESO).includes(txt(raw.proceso)) ? txt(raw.proceso) : null);
   const setup_min = num(raw.setup_min ?? raw.setup);
   const tiempo_unitario_min = num(raw.tiempo_unitario_min ?? raw.tiempo_unitario);
-  const cantidad = num(raw.cantidad) ?? 1;
+  // CANTIDAD: si viene explícita y es ≤0 (o inválida) es un dato malo → NO se
+  // coacciona a 1 (eso fabricaría tiempo/costo). Default 1 sólo cuando NO viene.
+  const cantidadRaw = num(raw.cantidad);
+  const cantidad = cantidadRaw ?? 1;
   const tarifa_hora = num(raw.tarifa_hora ?? raw.tarifa);
 
   const issues = [];
@@ -41,13 +44,14 @@ export function operacion(raw = {}) {
   if (tiempo_unitario_min == null && setup_min == null) issues.push('SIN_TIEMPO');       // ni setup ni unitario
   if (tiempo_unitario_min != null && tiempo_unitario_min < 0) issues.push('TIEMPO_INVALIDO');
   if (setup_min != null && setup_min < 0) issues.push('TIEMPO_INVALIDO');
+  if (cantidadRaw != null && cantidadRaw <= 0) issues.push('CANTIDAD_INVALIDA');          // 0/negativa (red-team C2)
   if (tarifa_hora == null) issues.push('SIN_TARIFA');
   else if (tarifa_hora < 0) issues.push('TARIFA_INVALIDA');
 
-  // Tiempo total sólo si hay algún tiempo válido.
+  // Tiempo total sólo con tiempo válido Y cantidad válida (no se inventa nada).
   let tiempo_total_min = null;
-  if (!issues.includes('SIN_TIEMPO') && !issues.includes('TIEMPO_INVALIDO')) {
-    tiempo_total_min = +((setup_min || 0) + (tiempo_unitario_min || 0) * (cantidad > 0 ? cantidad : 1)).toFixed(4);
+  if (!issues.includes('SIN_TIEMPO') && !issues.includes('TIEMPO_INVALIDO') && !issues.includes('CANTIDAD_INVALIDA')) {
+    tiempo_total_min = +((setup_min || 0) + (tiempo_unitario_min || 0) * cantidad).toFixed(4);
   }
   // Costo MO sólo con tiempo Y tarifa reales.
   let costo_mo = null;
