@@ -44,14 +44,14 @@ export { medidasAwd };   // única fuente del parser de medidas
 const LINEA_DEFAULT = 'App LT';
 
 // --- Identidad estable (sobrevive refresh/reorden; #13/#14) ---------------
-const requirementId = (zone_id, rol, ord) => `req:${zone_id || 'z'}:${rol}:${ord}`;
-const instanceId = (requirement_id, ord) => `inst:${requirement_id}:#${ord}`;
-const groupId = (requirement_id, ord) => `fg:${requirement_id}:#${ord}`;
+export const requirementId = (zone_id, rol, ord) => `req:${zone_id || 'z'}:${rol}:${ord}`;
+export const instanceId = (requirement_id, ord) => `inst:${requirement_id}:#${ord}`;
+export const groupId = (requirement_id, ord) => `fg:${requirement_id}:#${ord}`;
 
 // ---------------------------------------------------------------------------
 // Construye una RESOLUCIÓN con geometría real + compuertas SEPARADAS.
 // ---------------------------------------------------------------------------
-function construirResolucion(prod, {
+export function construirResolucion(prod, {
   requirement_id = null, zone_id = null, rol = null, evidence = null,
   relation_role, anchor_role = null,
   functional_group_id = null, instance_id = null, anchor_instance_id = null,

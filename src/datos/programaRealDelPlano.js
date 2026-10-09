@@ -13,11 +13,11 @@
 //  JAMÁS sug-*. La geometría es del catálogo (w/d reales).
 // ============================================================================
 import { programaDelPlano } from './programaDelPlano.js';
-import { resolverPrograma } from './resolverPrograma.js';
+import { resolverPrograma, construirResolucion, requirementId, instanceId, groupId } from './resolverPrograma.js';
 import { confirmarPrograma } from './confirmarPrograma.js';
 import { validarObservedProgram, observedItem, ORIGEN, KIND, UMBRAL_CONFIANZA_GOBERNAR } from './observedProgram.js';
 import { clasificarMueble, CLASE, ANCHOR_ROLE } from './mobiliarioOntologia.js';
-import { buscarEnColeccion, medidasAwd, OPERATIVOS, ESCRITORIOS, JUNTAS, RECEPCIONES } from './catalogoCanonico.js';
+import { buscarEnColeccion, medidasAwd, asientoPara, OPERATIVOS, ESCRITORIOS, JUNTAS, RECEPCIONES } from './catalogoCanonico.js';
 
 // Nombre que describe el ROL real en palabras que coherencia/ruteo legacy aún
 // entienden. NO es la autoridad semántica (esa es relation_role); sólo etiqueta.
@@ -278,6 +278,11 @@ export function programRequirementsDesdeObservado(observedProgram) {
       source_ref: norm.source_ref || null, plan_tag,
       grouping: norm.grouping || null, position: norm.position || null, evidence: norm.evidence || null,
     });
+    // P1-R11: un ancla SIN etiqueta (source_ref/plan_tag) y SIN posición no tiene
+    // identidad segura para gobernar sola → revisión (no se asume uniq:index válido).
+    if (!norm.source_ref && !plan_tag && !norm.position) {
+      pendientes.push({ code: 'IDENTIDAD_AMBIGUA', type: etiqueta, anchor_role: cls.anchor_role });
+    }
     if (cls.anchor_role === ANCHOR_ROLE.WORKSTATION) {
       // P0-R10-5: NO inventar capacidad. Sin capacity_total NO se convierten muebles
       // en puestos; el ancla queda pendiente de capacidad (REVIEW), pero existe.
@@ -335,7 +340,7 @@ export function conciliarAnclasObservadas(anclas = [], opts = {}) {
     if (!matches.length) matches = buscarEnColeccion(coleccion, { dimensions: dims });
     if (matches.length) {
       const wd = medidasAwd(matches[0].medidas) || {};
-      return { ...base, estado: 'RESOLVED', producto: matches[0].id, w: wd.w ?? null, d: wd.d ?? null };
+      return { ...base, estado: 'RESOLVED', producto: matches[0].id, producto_obj: matches[0], w: wd.w ?? null, d: wd.d ?? null };
     }
     return {
       ...base,
@@ -382,31 +387,107 @@ export function conciliarDependientes(observados = [], preview = []) {
  * Devuelve null si nada observado es gobernable (→ el caller cae a la
  * heurística de áreas). Mantiene PROPUESTA ≠ CONFIRMACIÓN.
  */
-export function proponerProgramaDesdeObservado(observedProgram, { linea = 'App LT', brief = null } = {}) {
-  const red = programRequirementsDesdeObservado(observedProgram);
-  const { entrada, pendientes, gobernables, anclasObservadas, dependientesObservados } = red;
-  if (gobernables === 0) return null;
-  const salas = entrada.salas.filter((n) => Number(n) > 0);
-  const entradaPrograma = {
-    operativos: entrada.operativos,
-    privados: entrada.privados,
-    salas,
-    recepcion: entrada.recepcion,
-    brief: { ...(brief || {}) },
-  };
-  const base = { gobernadoPorObservado: true, observadoPendientes: pendientes, anclasObservadas, dependientesObservados, ...proponerPrograma(entradaPrograma, { linea }) };
-  // P0-R10-7/R10-8: resuelve cada ancla por IDENTIDAD FÍSICA (catálogo, dims);
-  // si no coincide la geometría, NEEDS_CONFIRMATION (REQUIERE_DESARROLLO).
-  base.anclasConciliadas = conciliarAnclasObservadas(anclasObservadas, { linea });
-  base.dependientesConciliados = conciliarDependientes(dependientesObservados, base.preview);
-  // P0-R10-2/R10-3: un ancla NO RESUELTA o cualquier pendiente hace que el
-  // programa REQUIERA REVISIÓN — el apply queda bloqueado (gate, no decorativo).
-  const hayAnclaNoResuelta = base.anclasConciliadas.some((a) => a.estado !== 'RESOLVED');
-  base.requiereRevision = hayAnclaNoResuelta || pendientes.length > 0;
-  return base;
+// Rol/relation por tipo de ancla (para construir la ProductResolution canónica).
+const ANCHOR_REL = Object.freeze({
+  [ANCHOR_ROLE.WORKSTATION]: { rel: 'ANCHOR_WORKSTATION', rol: 'operativo', seat: 'WORK_SEAT' },
+  [ANCHOR_ROLE.DESK_PRIVATE]: { rel: 'ANCHOR_DESK', rol: 'privado', seat: null },
+  [ANCHOR_ROLE.MEETING]: { rel: 'ANCHOR_MEETING', rol: 'juntas', seat: 'MEETING_SEAT' },
+  [ANCHOR_ROLE.RECEPTION]: { rel: 'ANCHOR_RECEPTION', rol: 'recepcion', seat: null },
+});
+
+/**
+ * IDENTITY-FIRST (ChatGPT R11-1/2): cada ANCLA FÍSICA observada genera DIRECTAMENTE
+ * su ProductResolution canónica por DIMENSIONES (no por capacidad agregada). Un
+ * observed quantity=N produce N instancias físicas (cardinalidad 1:1). Si no hay
+ * equivalente canónico para esa geometría → incompletos (NEEDS_CONFIRMATION), NUNCA
+ * se sustituye por un módulo de otra medida que cubra la misma capacidad.
+ * @returns {{partidas:Array, incompletos:Array}}
+ */
+export function resolverFisicoDesdeObservado(anclas, { linea = 'App LT' } = {}) {
+  const partidas = [];
+  const incompletos = [];
+  (Array.isArray(anclas) ? anclas : []).forEach((an, i) => {
+    const map = ANCHOR_REL[an.anchor_role];
+    const coleccion = COLECCION_ANCLA[an.anchor_role];
+    if (!map || !coleccion) { incompletos.push({ reason: 'ANCHOR_ROLE_DESCONOCIDO', source_ref: an.source_ref || null, anchor_role: an.anchor_role }); return; }
+    const dims = an.dimensions;
+    if (!dims || (dims.w == null && dims.d == null)) { incompletos.push({ reason: 'NEEDS_DIMENSIONS', source_ref: an.source_ref || null, anchor_role: an.anchor_role }); return; }
+    let matches = buscarEnColeccion(coleccion, { line: linea, dimensions: dims });
+    if (!matches.length) matches = buscarEnColeccion(coleccion, { dimensions: dims });
+    if (!matches.length) { incompletos.push({ reason: 'REQUIERE_DESARROLLO', source_ref: an.source_ref || null, anchor_role: an.anchor_role, dimensions: dims }); return; }
+    const prod = matches[0];
+    const q = Number(an.quantity) > 0 ? Math.floor(Number(an.quantity)) : 1;
+    const req_id = requirementId(an.zone || null, map.rol, i);
+    const seatsPorUnidad = Number(an.capacity_per_unit) > 0 ? Math.round(Number(an.capacity_per_unit)) : 0;
+    for (let k = 0; k < q; k++) {   // CARDINALIDAD 1:1: una instancia física por observada
+      const res = construirResolucion(prod, {
+        requirement_id: req_id, zone_id: an.zone || null, evidence: an.evidence || null,
+        rol: map.rol, relation_role: map.rel,
+        functional_group_id: groupId(req_id, k), instance_id: instanceId(req_id, k),
+        cantidad: 1, inclusion: 'anchor',
+      });
+      if (res) { res.observed_source_ref = an.source_ref || null; partidas.push(res); }
+      // Dependientes OBLIGATORIOS por regla (asiento), con identidad real de catálogo.
+      if (map.seat && seatsPorUnidad > 0) {
+        const silla = asientoPara(map.seat);
+        for (let s = 0; s < seatsPorUnidad && silla; s++) {
+          const dep = construirResolucion(silla, {
+            requirement_id: req_id, zone_id: an.zone || null, rol: 'silla', relation_role: map.seat,
+            anchor_role: map.rel, functional_group_id: groupId(req_id, k), instance_id: instanceId(req_id, `${map.seat}:${k}:${s}`),
+            anchor_instance_id: instanceId(req_id, k), cantidad: 1, inclusion: 'mandatory_by_rule',
+          });
+          if (dep) partidas.push(dep);
+        }
+      }
+    }
+  });
+  return { partidas, incompletos };
 }
 
-/** APLICA la propuesta: CONFIRMA (acto explícito) y produce partidas comerciales. */
+export function proponerProgramaDesdeObservado(observedProgram, { linea = 'App LT', brief = null } = {}) {
+  const red = programRequirementsDesdeObservado(observedProgram);
+  const { pendientes, gobernables, anclasObservadas, dependientesObservados } = red;
+  if (gobernables === 0) return null;
+  // IDENTITY-FIRST (R11-1/2): NO se colapsa a {operativos,…} ni se llama
+  // resolverPrograma por capacidad. Cada ancla física resuelve su producto por dims.
+  const fisico = resolverFisicoDesdeObservado(anclasObservadas, { linea });
+  const anclasConciliadas = conciliarAnclasObservadas(anclasObservadas, { linea });
+  const hayAnclaNoResuelta = anclasConciliadas.some((a) => a.estado !== 'RESOLVED');
+  const propuesta = { partidas: fisico.partidas, pendientes: fisico.incompletos, incompletos: fisico.incompletos, cotizable: fisico.incompletos.length === 0 };
+  const preview = partidasPropuestas(propuesta);
+  const dependientesConciliados = conciliarDependientes(dependientesObservados, preview);
+  // GATE (R11-3): ancla no resuelta, cualquier pendiente, o dependiente observado
+  // sin empate (OBSERVED_ONLY/DIVERGE) → requiereRevision (bloquea Aplicar).
+  const depGate = dependientesConciliados.some((d) => d.estado === 'OBSERVED_ONLY' || d.estado === 'DIVERGE');
+  const requiereRevision = hayAnclaNoResuelta || pendientes.length > 0 || depGate;
+  // R11-4: el flag viaja DENTRO de la propuesta para que el gate de dominio pueda
+  // rechazarla aunque un caller sólo pase `propuesta` (no sólo el botón disabled).
+  propuesta.requiereRevision = requiereRevision;
+  return {
+    gobernadoPorObservado: true,
+    observadoPendientes: pendientes,
+    anclasObservadas, dependientesObservados,
+    propuesta, preview, incompletos: fisico.incompletos, cotizable: propuesta.cotizable,
+    anclasConciliadas, dependientesConciliados,
+    requiereRevision,
+  };
+}
+
+/** ¿Esta propuesta está BLOQUEADA para aplicar? (gate de dominio, R11-4) */
+export function propuestaBloqueada(propuesta) {
+  if (!propuesta) return true;
+  if (propuesta.requiereRevision === true) return true;
+  if (Array.isArray(propuesta.incompletos) && propuesta.incompletos.length > 0) return true;
+  if (Array.isArray(propuesta.partidas) && propuesta.partidas.some((p) => p && p.product_status === 'NEEDS_CONFIRMATION')) return true;
+  return false;
+}
+
+/**
+ * APLICA la propuesta: CONFIRMA (acto explícito) y produce partidas comerciales.
+ * Para PREVIEW/reconciliación se reutiliza libremente; el GATE de aplicación real
+ * (R11-4) lo aplica el único punto de acción de usuario (App.aplicarProgramaDetectado)
+ * vía `propuestaBloqueada`, y `aplicarProgramaSeguro` para callers de dominio.
+ */
 export function aplicarPrograma(propuesta, { existentes = [] } = {}) {
   const confirmacion = confirmarPrograma(propuesta, { existentes });
   return {
@@ -415,6 +496,18 @@ export function aplicarPrograma(propuesta, { existentes = [] } = {}) {
     conflictos: confirmacion.conflictos,
     ok: confirmacion.conflictos.length === 0,
   };
+}
+
+/**
+ * APLICACIÓN SEGURA (gate de dominio, R11-4): rechaza una propuesta bajo revisión
+ * aunque un caller se equivoque y la pase. Es la que deben usar las ACCIONES de
+ * usuario (no el preview). Devuelve {ok:false, bloqueada:true} si está bajo revisión.
+ */
+export function aplicarProgramaSeguro(propuesta, { existentes = [] } = {}) {
+  if (propuestaBloqueada(propuesta)) {
+    return { confirmacion: { items: [], conflictos: [] }, partidas: [], conflictos: [], ok: false, bloqueada: true, motivo: 'PROPUESTA_REQUIERE_REVISION' };
+  }
+  return aplicarPrograma(propuesta, { existentes });
 }
 
 /**

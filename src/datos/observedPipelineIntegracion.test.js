@@ -24,7 +24,7 @@ function pipeline(rawItems) {
   return { server, observed_state, red, prop };
 }
 
-const base = (o = {}) => ({ kind: 'furniture', quantity: 1, capacity_per_unit: 1, zone: 'OPEN SPACE', confidence: 0.9, evidence: 'dibujado', origin: 'observed', ...o });
+const base = (o = {}) => ({ kind: 'furniture', quantity: 1, capacity_per_unit: 1, zone: 'OPEN SPACE', position: { x: 100, y: 100 }, confidence: 0.9, evidence: 'dibujado', origin: 'observed', ...o });
 
 describe('INTEGRACIÓN observed pipeline (R10, offline)', () => {
   it('1· reception 2420×830 EXACTA → gobierna, ancla RESOLVED, apply permitido', () => {
@@ -117,5 +117,28 @@ describe('INTEGRACIÓN observed pipeline (R10, offline)', () => {
     ]);
     expect(server.items.find((x) => x.source_ref === 'CR-01').dimensions).toEqual({ w: 1200, d: 500, h: null });
     expect(server.items.find((x) => x.source_ref === 'CF-01').dimensions).toEqual({ w: 3300, d: 600, h: null });
+  });
+
+  it('14· ADVERSARIAL R11: 4× bench 1500×1200 → EXACTAMENTE 4× op-2u-1500x1200, 0× op-8u', () => {
+    const { prop } = pipeline([base({ type: 'bench operativo', role: 'operational', quantity: 4, capacity_per_unit: 2, capacity_total: 8, dimensions: { w: 1500, d: 1200 }, source_ref: 'B-01' })]);
+    const porProducto = (id) => prop.propuesta.partidas.filter((p) => p.bancoId === id).length;
+    expect(porProducto('op-2u-1500x1200')).toBe(4);          // identidad física, cardinalidad 1:1
+    expect(porProducto('op-8u-4800x1200-cristal')).toBe(0);  // JAMÁS por capacidad agregada
+    expect(prop.requiereRevision).toBe(false);                // todo RESUELTO → aplicable
+  });
+
+  it('15· R11-3 GATE: reception RESOLVED + CR-01 OBSERVED_ONLY → apply BLOQUEADO', () => {
+    const { prop } = pipeline([
+      base({ type: 'recepcion', role: 'reception', zone: 'RECEPCION', dimensions: { w: 2420, d: 830 }, source_ref: 'R-01' }),
+      base({ type: 'credenza', role: 'storage', zone: 'DIRECCION', dimensions: { w: 1200, d: 500 }, source_ref: 'CR-01' }),
+    ]);
+    const st = prop.dependientesConciliados.find((d) => d.dependent_role === 'STORAGE');
+    expect(st.estado).toBe('OBSERVED_ONLY');
+    expect(prop.requiereRevision).toBe(true);     // la credenza observada sin producto bloquea Aplicar
+  });
+
+  it('16· P1 identidad ambigua: ancla sin source_ref ni posición → IDENTIDAD_AMBIGUA / revisión', () => {
+    const { red } = pipeline([{ kind: 'furniture', type: 'bench operativo', role: 'operational', quantity: 4, capacity_per_unit: 2, capacity_total: 8, dimensions: { w: 1500, d: 1200 }, zone: 'OPEN SPACE', confidence: 0.9, evidence: 'x', origin: 'observed' }]);
+    expect(red.pendientes.some((p) => p.code === 'IDENTIDAD_AMBIGUA')).toBe(true);
   });
 });

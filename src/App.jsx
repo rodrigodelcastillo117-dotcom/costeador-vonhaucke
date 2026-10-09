@@ -26,7 +26,7 @@ const Asistente = lazy(() => import('./componentes/Asistente.jsx'));
 const AsistenteEspecial = lazy(() => import('./componentes/AsistenteEspecial.jsx'));
 const Biblioteca = lazy(() => import('./componentes/Biblioteca.jsx'));
 const CosteadorLinea = lazy(() => import('./componentes/CosteadorLinea.jsx'));
-import { aplicarPrograma, partidaComercialDesdeConfirmado } from './datos/programaRealDelPlano.js';
+import { aplicarPrograma, propuestaBloqueada, partidaComercialDesdeConfirmado } from './datos/programaRealDelPlano.js';
 import { APPLT_PRODUCTOS, generarAppLT } from './datos/applt.js';
 import { APP_PRODUCTOS, generarApp } from './datos/app.js';
 import { ECLIPSE_PRODUCTOS, generarEclipse } from './datos/eclipse.js';
@@ -819,6 +819,12 @@ export default function App() {
   const aplicandoProgramaRef = useRef(false);
   function aplicarProgramaDetectado(propuesta) {
     if (!propuesta) return { confirmadas: 0, conflictos: [], pendientes: [] };
+    // GATE DE DOMINIO CENTRAL (ChatGPT R11-4): ninguna propuesta REVIEW_REQUIRED /
+    // con incompletos / NEEDS_CONFIRMATION se aplica, aunque un caller (Voni o
+    // Acomodo) se equivoque. No se depende del `disabled` del botón.
+    if (propuestaBloqueada(propuesta)) {
+      return { confirmadas: 0, conflictos: [], pendientes: propuesta.incompletos || propuesta.pendientes || [], bloqueada: true, motivo: 'PROPUESTA_REQUIERE_REVISION' };
+    }
     // Vista para la UI (contra el estado actual): conflictos y pendientes a mostrar.
     const vista = aplicarPrograma(propuesta, { existentes: estado.cotizacion?.partidas || [] });
     if (aplicandoProgramaRef.current) {

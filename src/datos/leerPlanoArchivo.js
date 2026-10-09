@@ -121,7 +121,9 @@ export async function leerPlanoDeArchivo(file) {
         // AUTORIDAD servidor: ya viene saneado; no se re-mapea el crudo de la IA.
         observedProgram = serverObserved;
         observedSource = 'server';
-        observedState = (observedValidation?.state === 'REVIEW_REQUIRED') ? 'PRESENT_REVIEW_REQUIRED' : 'PRESENT_VALID';
+        // P0-R11-5 FAIL-CLOSED: SÓLO 'PASS' habilita PRESENT_VALID. Cualquier otro
+        // estado, null o desconocido → PRESENT_REVIEW_REQUIRED (nunca null ⇒ VALID).
+        observedState = (observedValidation?.state === 'PASS') ? 'PRESENT_VALID' : 'PRESENT_REVIEW_REQUIRED';
       } else {
         // El lector no entregó mobiliario → heurística por áreas (NO autoritativa).
         observedProgram = observedProgramDeLectura(programaDelPlano(areas));

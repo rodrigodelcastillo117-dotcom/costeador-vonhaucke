@@ -19,7 +19,7 @@ import {
 import { marcarDestinoPartida } from '../datos/destinoAcomodo.js';
 import { expandirPiezas } from '../datos/espacio.js';
 import { validarCoherenciaPrograma } from '../datos/coherenciaPrograma.js';
-import { proponerProgramaDelPlano } from '../datos/programaRealDelPlano.js';
+import { proponerProgramaDelPlano, proponerProgramaDesdeObservado } from '../datos/programaRealDelPlano.js';
 
 const esSugerida = (p) => !!p?.sugeridoPlano || String(p?.id || '').startsWith('sug-');
 const norm = (s = '') => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -174,9 +174,19 @@ export default function Acomodo(props) {
   // PROPUESTO real (productos canónicos, cero sug-*) para PREVIEW + CTA. La
   // confirmación (escribir a cotizacion.partidas) es el acto explícito del botón.
   const lineaResolver = lineaOperativa === 'applt' ? 'App LT' : lineaOperativa;
-  const propuestaPlano = !hayReales && areasActuales.length
-    ? proponerProgramaDelPlano(areasActuales, { linea: lineaResolver })
-    : null;
+  // ChatGPT R11-4: MISMA autoridad que Voni. Si el lector entregó observed_program
+  // (observed_source server / observed_state PRESENT_*), LO OBSERVADO gobierna y
+  // Acomodo NO reconstruye un inventario distinto desde áreas. Sólo ABSENT permite
+  // el fallback legacy por áreas.
+  const acomodoObj = acomodoLocal || guardadoNormalizado || {};
+  const obsProg = Array.isArray(acomodoObj.observed_program) ? acomodoObj.observed_program : null;
+  const obsState = acomodoObj.observed_state || 'ABSENT';
+  const observadoPresente = obsState === 'PRESENT_VALID' || obsState === 'PRESENT_REVIEW_REQUIRED'
+    || (acomodoObj.observed_source === 'server' && !!obsProg && obsProg.length > 0);
+  const propuestaPlano = hayReales ? null
+    : observadoPresente
+      ? (obsProg && obsProg.length ? proponerProgramaDesdeObservado(obsProg, { linea: lineaResolver }) : null)
+      : (areasActuales.length ? proponerProgramaDelPlano(areasActuales, { linea: lineaResolver }) : null);
   const previewPropuesto = propuestaPlano ? propuestaPlano.preview : [];
 
   const estadoDemo = useMemo(() => {
@@ -277,7 +287,7 @@ export default function Acomodo(props) {
             {propuestaPlano && propuestaPlano.propuesta && propuestaPlano.propuesta.pendientes && propuestaPlano.propuesta.pendientes.length > 0 && (
               <div style={{ marginTop: 8, color: '#8a5a00' }}>
                 <strong>Faltan por confirmar:</strong>{' '}
-                {propuestaPlano.propuesta.pendientes.map((x) => x.faltante?.reason || x.rol).join(', ')}
+                {propuestaPlano.propuesta.pendientes.map((x) => x.faltante?.reason || x.reason || x.source_ref || x.rol || x.anchor_role).filter(Boolean).join(', ')}
               </div>
             )}
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 12, width: '100%' }}>
@@ -287,11 +297,13 @@ export default function Acomodo(props) {
               </select>
               <button type="button"
                 onClick={() => props.onAplicarPrograma?.(propuestaPlano.propuesta)}
-                disabled={!props.onAplicarPrograma}
-                style={{ minHeight: 40, padding: '0 18px', borderRadius: 8, border: 'none', background: '#174f45', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
+                disabled={!props.onAplicarPrograma || !!propuestaPlano.requiereRevision}
+                style={{ minHeight: 40, padding: '0 18px', borderRadius: 8, border: 'none', background: propuestaPlano.requiereRevision ? '#9aa' : '#174f45', color: '#fff', fontWeight: 800, cursor: propuestaPlano.requiereRevision ? 'not-allowed' : 'pointer' }}>
                 Aplicar programa detectado
               </button>
-              <span style={{ color: '#356b62' }}>Agrega los productos reales a la cotización (idempotente). El precio lo revalida el servidor al emitir.</span>
+              {propuestaPlano.requiereRevision
+                ? <span style={{ color: '#8a1f1f', fontWeight: 700 }}>NEEDS_REVIEW: mobiliario observado sin producto canónico equivalente o pendiente de confirmar.</span>
+                : <span style={{ color: '#356b62' }}>Agrega los productos reales a la cotización (idempotente). El precio lo revalida el servidor al emitir.</span>}
             </div>
           </div>
         </div>
