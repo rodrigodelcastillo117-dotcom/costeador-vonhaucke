@@ -92,9 +92,11 @@ export function resolverPrecioCanonico(canonicalId, observaciones = [], opts = {
 
   // 3. Clasificación por tiers sobre el conjunto.
   const verified = usables.filter((o) => o.intrinseco === INTRINSECO.VERIFIED && vigenciaCubre(o, hoyMs));
-  // VERIFIED con vigencia vencida cae a histórico-real.
-  const verifiedVencido = usables.filter((o) => o.intrinseco === INTRINSECO.VERIFIED && !vigenciaCubre(o, hoyMs));
-  const reales = usables.filter((o) => o.intrinseco === INTRINSECO.REAL).concat(verifiedVencido);
+  // VERIFIED con VIGENCIA VENCIDA → HISTORICAL (ChatGPT #4): fue válido hasta una
+  // fecha que ya pasó; NO es "última referencia real conocida" ni habilita costo
+  // oficial. Va a su propio tier, NO a `reales`.
+  const historicosVencidos = usables.filter((o) => o.intrinseco === INTRINSECO.VERIFIED && !vigenciaCubre(o, hoyMs));
+  const reales = usables.filter((o) => o.intrinseco === INTRINSECO.REAL);
   const provisionales = usables.filter((o) => o.intrinseco === INTRINSECO.PROVISIONAL);
 
   let elegida = null;
@@ -110,6 +112,10 @@ export function resolverPrecioCanonico(canonicalId, observaciones = [], opts = {
     estado = fechaMs(elegida.source_date) != null
       ? ESTADO_PRECIO.REAL_OBSERVED_DATED
       : ESTADO_PRECIO.REAL_OBSERVED_UNDATED;
+  } else if (historicosVencidos.length) {
+    // Sólo quedan precios con vigencia vencida → HISTORICAL (bloquea costo oficial).
+    elegida = [...historicosVencidos].sort(mejorQue)[0];
+    estado = ESTADO_PRECIO.HISTORICAL;
   } else if (provisionales.length) {
     elegida = [...provisionales].sort(mejorQue)[0];
     estado = ESTADO_PRECIO.PROVISIONAL;

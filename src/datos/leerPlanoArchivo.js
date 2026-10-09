@@ -11,6 +11,8 @@
 // ============================================================================
 import { leerPlano } from '../nube.js';
 import { areasDeLectura, revisarAreas } from './planoLeido.js';
+import { programaDelPlano } from './programaDelPlano.js';
+import { observedProgramDeLectura } from './floorPlanReader.js';
 
 const archivoABase64 = (file) => new Promise((resolve, reject) => {
   const fr = new FileReader();
@@ -36,9 +38,14 @@ const imagenABase64 = (file, max = 1600) => new Promise((resolve, reject) => {
 
 export const esCAD = (file) => /\.(dwg|dxf)$/i.test(file?.name || '');
 export const MAX_PLANO_MB = 30;
-const conTimeout = (promesa, ms = 60000) => Promise.race([
+// ⚠️ TIMEOUT de lectura de plano. Era 60 s y se observó en PROD una lectura real
+// que tardó 64.841 s → el cliente abortaba una lectura que el servidor SÍ iba a
+// completar (ChatGPT #1). Leer un PDF de plano con visión (Gemini) es pesado;
+// se sube a 180 s para dar holgura real sin colgar indefinidamente.
+export const TIMEOUT_LECTURA_MS = 180000;
+const conTimeout = (promesa, ms = TIMEOUT_LECTURA_MS) => Promise.race([
   promesa,
-  new Promise((_, reject) => setTimeout(() => reject(new Error('La lectura del plano tardó demasiado. Intenta otra vez o sube una captura de la hoja principal.')), ms)),
+  new Promise((_, reject) => setTimeout(() => reject(new Error('La lectura del plano tardó demasiado (más de 3 minutos). Intenta otra vez o sube una captura de la hoja principal.')), ms)),
 ]);
 
 /**
@@ -60,7 +67,7 @@ export async function leerPlanoDeArchivo(file) {
   try {
     const esPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
     const b64 = esPdf ? await archivoABase64(file) : await imagenABase64(file);
-    const r = await conTimeout(leerPlano(b64, esPdf ? 'application/pdf' : 'image/jpeg'), 60000);
+    const r = await conTimeout(leerPlano(b64, esPdf ? 'application/pdf' : 'image/jpeg'), TIMEOUT_LECTURA_MS);
     if (!r || !r.ok) return { ok: false, error: r?.error || 'No se pudo leer el plano.' };
     const lec = r.lectura;
     const { areas } = areasDeLectura(lec);
@@ -72,7 +79,21 @@ export async function leerPlanoDeArchivo(file) {
     if (problemas.length) notas.push('Revisa esto:', ...problemas.map((p) => '· ' + p));
     if (!areas.length) notas.push('No pude reconocer los cuartos. Sube el plano en mejor calidad o dibújalo.');
     if (lec.notas?.length) notas.push(...lec.notas);
-    return { ok: true, areas, nota: notas.join(' ') };
+    // ChatGPT #5: CONSERVAR la procedencia completa hasta VONI/"Esto entendí".
+    // Antes se devolvían sólo `areas`+`nota` y se tiraban lectura/floorSpec/page/
+    // request_id. Aquí se conservan, y se deriva el observed_program del lector
+    // real (cable floorPlanReader) para que el flujo arranque desde la evidencia.
+    let observedProgram = [];
+    try { observedProgram = observedProgramDeLectura(programaDelPlano(areas)); } catch { /* best-effort */ }
+    return {
+      ok: true,
+      areas,
+      nota: notas.join(' '),
+      lectura: lec,                       // cotas/evidencia/page/notas del lector
+      floorSpec: r.floorSpec || null,     // validación geométrica determinista del servidor
+      request_id: r.request_id || null,   // trazabilidad de la llamada
+      observed_program: observedProgram,  // programa observado (muebles/cuartos, con procedencia)
+    };
   } catch (e) {
     // Leer un plano es tarea central: si falla, hay que dejar rastro para
     // diagnosticar (antes se tragaba `e` y el mensaje genérico no decía nada).

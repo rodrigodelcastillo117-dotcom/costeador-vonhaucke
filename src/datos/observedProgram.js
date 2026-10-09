@@ -20,6 +20,15 @@ export const ORIGEN = Object.freeze({
   SUGGESTED: 'suggested', // propuesto por regla/IA; NUNCA cuenta como real hasta confirmar
 });
 
+// NATURALEZA del item (ChatGPT #3: un CUARTO observado ≠ un MUEBLE observado).
+// Detectar una sala NO es detectar su mobiliario; nunca se cuentan juntos.
+export const KIND = Object.freeze({
+  ROOM: 'room',           // área/cuarto/zona (geometría del espacio)
+  FURNITURE: 'furniture', // mueble (bench, silla, mesa, escritorio…)
+  AMENITY: 'amenity',     // coffee point, lockers, etc.
+  UNKNOWN: 'unknown',
+});
+
 // Mapea la PROCEDENCIA (floorSpec) al ORIGEN del observed_program.
 export function origenDeProcedencia(procedencia) {
   switch (procedencia) {
@@ -68,6 +77,7 @@ export function observedItem(raw = {}) {
     ?? ((quantity != null && capacityPer != null) ? quantity * capacityPer : null);
 
   const out = {
+    kind: Object.values(KIND).includes(raw.kind) ? raw.kind : KIND.FURNITURE,  // por defecto MUEBLE (#3)
     type: txt(raw.type || raw.tipo) || null,
     role: txt(raw.role || raw.semantic_role || raw.rol) || null,
     quantity,
@@ -143,15 +153,24 @@ export function confirmarObservado(item, meta = {}) {
  */
 export function resumenObservado(items = []) {
   const { items: norm } = validarObservedProgram(items);
-  // porOrigen/porTipo cuentan MUEBLES (quantity); capacidadPorOrigen cuenta
-  // PUESTOS (capacity_total). Nunca se mezclan (ChatGPT #4).
+  // ChatGPT #3/#4: nunca se mezclan MUEBLES con CUARTOS, ni cantidad con capacidad.
+  //  · porOrigen/porTipo/capacidad cuentan sólo MUEBLES (kind=furniture/amenity).
+  //  · cuartosPorOrigen cuenta sólo CUARTOS (kind=room).
+  const esMueble = (it) => it.kind !== KIND.ROOM;
   const porOrigen = { [ORIGEN.OBSERVED]: 0, [ORIGEN.INFERRED]: 0, [ORIGEN.SUGGESTED]: 0 };
   const capacidadPorOrigen = { [ORIGEN.OBSERVED]: 0, [ORIGEN.INFERRED]: 0, [ORIGEN.SUGGESTED]: 0 };
+  const cuartosPorOrigen = { [ORIGEN.OBSERVED]: 0, [ORIGEN.INFERRED]: 0, [ORIGEN.SUGGESTED]: 0 };
   const porTipo = {};
-  let cantidadObservada = 0;
-  let capacidadObservada = 0;
+  let cantidadObservada = 0;       // MUEBLES observados
+  let capacidadObservada = 0;      // PUESTOS observados
+  let cuartosObservados = 0;       // CUARTOS observados
   for (const it of norm) {
     const q = it.quantity > 0 ? it.quantity : 0;
+    if (it.kind === KIND.ROOM) {
+      cuartosPorOrigen[it.origin] = (cuartosPorOrigen[it.origin] || 0) + q;
+      if (it.origin === ORIGEN.OBSERVED) cuartosObservados += q;
+      continue;                    // un cuarto NUNCA cuenta como mueble
+    }
     const cap = it.capacity_total > 0 ? it.capacity_total : 0;
     porOrigen[it.origin] = (porOrigen[it.origin] || 0) + q;
     capacidadPorOrigen[it.origin] = (capacidadPorOrigen[it.origin] || 0) + cap;
@@ -161,12 +180,17 @@ export function resumenObservado(items = []) {
   }
   return {
     total: norm.length,
+    muebles: norm.filter(esMueble).length,
+    cuartos: norm.filter((it) => it.kind === KIND.ROOM).length,
     cantidadObservada,          // MUEBLES observados
     capacidadObservada,         // PUESTOS observados (capacity)
+    cuartosObservados,          // CUARTOS observados
     porOrigen,                  // muebles por origen
     capacidadPorOrigen,         // puestos por origen
+    cuartosPorOrigen,           // cuartos por origen
     porTipo,
     // Sólo lo OBSERVED alimenta costeo/acomodo como real; el resto requiere confirmar.
-    hayPendientesDeConfirmar: porOrigen[ORIGEN.SUGGESTED] > 0 || porOrigen[ORIGEN.INFERRED] > 0,
+    hayPendientesDeConfirmar: porOrigen[ORIGEN.SUGGESTED] > 0 || porOrigen[ORIGEN.INFERRED] > 0
+      || cuartosPorOrigen[ORIGEN.SUGGESTED] > 0 || cuartosPorOrigen[ORIGEN.INFERRED] > 0,
   };
 }

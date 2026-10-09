@@ -99,10 +99,15 @@ describe('CanonicalPriceResolver · selección determinista', () => {
     expect(r.precio).toBe(530);
   });
 
-  it('vigencia VENCIDA → cae a histórico-real, no CURRENT_VERIFIED', () => {
+  it('vigencia VENCIDA → HISTORICAL y BLOQUEA costo oficial (ChatGPT #4), no REAL_OBSERVED', () => {
     const vencido = { ...COMPRA_544, precio: 500, source_date: '2025-01-01', validity: '2025-06-30', source_document: 'LISTA-2025' };
     const r = resolverPrecioCanonico('melamina-ecolegno-19mm', [vencido], { hoy: HOY });
-    expect(r.estado).toBe(ESTADO_PRECIO.REAL_OBSERVED_DATED); // real, pero no vigente-verificado
+    expect(r.estado).toBe(ESTADO_PRECIO.HISTORICAL);        // vigencia que ya pasó
+    expect(r.bloqueaCostoOficial).toBe(true);
+    // Pero si además hay una compra real SIN vigencia, ésa (real conocida) gana al vencido.
+    const r2 = resolverPrecioCanonico('melamina-ecolegno-19mm', [vencido, COMPRA_544], { hoy: HOY });
+    expect(r2.estado).toBe(ESTADO_PRECIO.REAL_OBSERVED_DATED);
+    expect(r2.precio).toBe(544);
   });
 
   it('SIN observaciones utilizables → PENDING y BLOQUEA costo oficial (no inventa)', () => {

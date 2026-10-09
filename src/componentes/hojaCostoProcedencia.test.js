@@ -17,9 +17,12 @@ describe('HojaCosto · procedencia del costo (evidencia real vs provisional)', (
     expect(s).toContain('bloqueaCostoOficial');
   });
 
-  it('muestra el estado honesto: evidencia real, o N materiales sin evidencia (no oficial)', () => {
-    expect(s).toContain('Costo con evidencia real');
-    expect(s).toContain('sin evidencia suficiente — costo no oficial');
+  it('etiqueta PRECISA (ChatGPT #6): sólo el PRECIO de MP, no "costo con evidencia real"', () => {
+    expect(s).toContain('Precios de MP con evidencia real');
+    expect(s).toContain('(consumo/MO/GI sin verificar)');
+    expect(s).toContain('costo NO oficial');
+    // ya NO afirma el genérico "Costo con evidencia real" (sobre-reclamo)
+    expect(s).not.toContain('✓ Costo con evidencia real');
   });
 
   it('FX PROVENANCE: MP en moneda extranjera con FX no verificado NO cuenta como evidencia real', () => {

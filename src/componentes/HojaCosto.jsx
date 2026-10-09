@@ -86,11 +86,14 @@ export default function HojaCosto({ resultado, insumos, pieza, parametros = PARA
       <h3>HOJA DE COSTO</h3>
       <div className="ayuda" style={{ marginTop: -4, marginBottom: 8, opacity: 0.75 }} title={`Motor ${MOTOR_VERSION}`}>Método de costeo: <strong>{metodoEtq}</strong> <span className="gris">· motor {MOTOR_VERSION}</span></div>
 
-      {/* REALITY CUTOVER: calidad de la evidencia del costo (no cambia el número) */}
+      {/* REALITY CUTOVER: calidad de la evidencia (no cambia el número). PRECISO
+          (ChatGPT #6): sólo se verifica el PRECIO de la materia prima; consumo,
+          merma, MO y GI aún NO están respaldados por procedencia — por eso NO se
+          dice "costo con evidencia real" sino "precios de MP con evidencia real". */}
       {mpProc.length > 0 && (
         costoConEvidenciaReal
-          ? <div className="ayuda" style={{ marginBottom: 8, color: '#1a56db' }} title="Todos los materiales del desglose tienen precio con procedencia real (compra/ERP/T.D.C. fechada).">✓ Costo con evidencia real · {mpProc.length} material(es) con procedencia</div>
-          : <div className="ayuda ambar" style={{ marginBottom: 8 }} title={`Sin evidencia suficiente: ${mpSinEvidencia.map((m) => m.nombre).join(', ')}${mpFx.length ? ` · FX no verificado (USD/otro): ${mpFx.map((m) => m.nombre).join(', ')}` : ''}`}>{mpSinEvidencia.length} de {mpProc.length} material(es) sin evidencia suficiente — costo no oficial (provisional/pendiente{mpFx.length ? '/FX no verificado' : ''})</div>
+          ? <div className="ayuda" style={{ marginBottom: 8, color: '#1a56db' }} title="Todos los materiales del desglose tienen PRECIO con procedencia real (compra/ERP/T.D.C. fechada y FX verificado). Nota: consumo, merma, MO y GI todavía no se verifican por procedencia.">✓ Precios de MP con evidencia real · {mpProc.length} material(es) — (consumo/MO/GI sin verificar)</div>
+          : <div className="ayuda ambar" style={{ marginBottom: 8 }} title={`Precio de MP sin evidencia suficiente: ${mpSinEvidencia.map((m) => m.nombre).join(', ')}${mpFx.length ? ` · FX no verificado (USD/otro): ${mpFx.map((m) => m.nombre).join(', ')}` : ''}`}>{mpSinEvidencia.length} de {mpProc.length} material(es) con precio sin evidencia suficiente — costo NO oficial (provisional/pendiente{mpFx.length ? '/FX no verificado' : ''})</div>
       )}
 
       {/* Desglose visual (vivo): así se compone el precio */}

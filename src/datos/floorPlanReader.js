@@ -13,7 +13,7 @@
 //  verificación en vivo son el siguiente paso (requieren deploy). Aquí el cable
 //  es testeable offline con una salida real de `programaDelPlano`.
 // ============================================================================
-import { observedItem, ORIGEN } from './observedProgram.js';
+import { observedItem, ORIGEN, KIND } from './observedProgram.js';
 
 const origenDeFuente = (f) => (f === 'detectado' ? ORIGEN.OBSERVED : f === 'estimado' ? ORIGEN.INFERRED : ORIGEN.SUGGESTED);
 const conf = (f) => (f === 'detectado' ? 0.9 : f === 'estimado' ? 0.6 : 0.4);
@@ -28,6 +28,20 @@ const evi = (f, que) => (f === 'detectado' ? `plano: ${que} detectado` : f === '
 export function observedProgramDeLectura(pr = {}) {
   const f = pr.fuente || {};
   const items = [];
+
+  // CUARTOS/zonas detectados (kind=ROOM) — ChatGPT #3: un cuarto observado NO es
+  // mobiliario observado. La geometría del área es del plano (OBSERVED); su ROL
+  // semántico puede ser detectado o estimado (se refleja en confidence).
+  const z = pr.zonas || {};
+  const room = (nombre, rolZona, fuenteRol) => observedItem({
+    kind: KIND.ROOM, type: rolZona, role: rolZona, quantity: 1,
+    zone: nombre || rolZona, origin: ORIGEN.OBSERVED,
+    evidence: `plano: área "${nombre || rolZona}"`, confidence: conf(fuenteRol),
+  });
+  if (z.operativo) items.push(room(z.operativo.nombre, 'open_space', f.operativos));
+  (z.privados || []).forEach((p) => items.push(room(p.nombre, 'privado', f.privados)));
+  (z.juntas || []).forEach((s) => items.push(room(s.nombre, 'sala_juntas', f.salas)));
+  if (z.recepcion) items.push(room(z.recepcion.nombre, 'recepcion', f.recepcion));
 
   // PUESTOS operativos (el lector da PUESTOS, no muebles). Capacidad = quantity
   // (1 puesto por unidad); el reparto a benches (muebles) ocurre al resolver.

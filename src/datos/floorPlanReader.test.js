@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { programaDelPlano } from './programaDelPlano.js';
 import { observedProgramDeLectura } from './floorPlanReader.js';
-import { ORIGEN, validarObservedProgram, resumenObservado } from './observedProgram.js';
+import { ORIGEN, KIND, validarObservedProgram, resumenObservado } from './observedProgram.js';
 
 // Este test EJERCITA el lector real (programaDelPlano) y lo cablea al contrato
 // observed_program — NO construye a mano el array esperado (ChatGPT). Verifica
@@ -51,6 +51,20 @@ describe('FloorPlanReader → observed_program (cable real, sin arrays sintétic
     const res = resumenObservado(items);
     // Hay sugeridos (sillas/gavetas) → siempre hay pendientes de confirmar.
     expect(res.hayPendientesDeConfirmar).toBe(true);
+  });
+
+  it('ChatGPT #3: CUARTO observado ≠ MUEBLE observado — se emiten y cuentan por separado', () => {
+    const rooms = items.filter((i) => i.kind === KIND.ROOM);
+    const muebles = items.filter((i) => i.kind !== KIND.ROOM);
+    expect(rooms.length).toBeGreaterThan(0);        // al menos open space + sala
+    expect(muebles.length).toBeGreaterThan(0);      // puestos + sugeridos
+    const res = resumenObservado(items);
+    // Los cuartos NO inflan el conteo de muebles ni de puestos.
+    expect(res.cuartos).toBe(rooms.length);
+    expect(res.muebles).toBe(muebles.length);
+    expect(res.cuartosObservados).toBeGreaterThan(0);
+    // porTipo (muebles) no incluye tipos de cuarto (open_space/sala_juntas/privado).
+    expect(res.porTipo.open_space).toBeUndefined();
   });
 
   it('DETERMINISTA: misma lectura → mismo observed_program', () => {
