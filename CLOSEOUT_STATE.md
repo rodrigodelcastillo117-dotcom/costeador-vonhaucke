@@ -166,6 +166,17 @@ Un subagente red-team atacó los 8 módulos nuevos. Bugs reales encontrados y CE
 Módulos sin bug en el eje de datos-incorrectos (declarado por el red-team): precioProvenance, shadowCutover, observedProgram
 (core), canonicalPriceResolver (tier correcto).
 
+### INVENTARIO de rubros de costo del MOTOR (§12, read-only, 2026-10-09)
+El motor (`src/motor/calculo.js`) arma el COSTO INDUSTRIAL así (todos los rubros con evidencia en los comentarios,
+ninguno inventado): `materialTotal` (directo+indirecto) + `manoObra` (por horas o Alba GI) + `preparacion` +
+`empaque` + `indirectosFabrica`/`gastosOperacion` (30% "Factor Gastos Operación", Intelisis) = `costoUnitario`.
+Capa COMERCIAL (después del costo, no dentro): `margenObjetivo`/`margenMinimo`/`minMarkupLinea`, `anticipoPorcentaje`, `IVA`,
+`maniobras` (3%, respaldado por los 9 presupuestos: "Maniobras 3%"), `flete`.
+**DATO_FALTANTE / NECESITA CONFIRMACIÓN (Rodrigo):** el `fletePorcentaje`=10 es número de Rodrigo; NINGÚN presupuesto
+imprime un % de flete (el 3% del papel es de MANIOBRAS, otra cosa). Es el único rubro con desacuerdo sin cerrar.
+No hay costo FINANCIERO explícito modelado → `PENDING/NO CONFIGURADO` (no se inventa %). Costos convertidos de USD
+dependen de `tipoCambio` sin procedencia → ver fxProvenance (§9, falta cablear).
+
 **INVENTARIO real del catálogo (mandate A, `insumos.js`, 259 insumos; hoy=2026-10-09):**
 11 fuentes distintas: ERP Luis Daniel (99, 2026-08-10), Sonara (28), T.D.C. Alpura (18), Compras (15),
 ERP última compra (6, SIN fecha), T.D.C. banca (4), Mercado estimado (3), T.D.C. Alba (2), Loktec (2),
