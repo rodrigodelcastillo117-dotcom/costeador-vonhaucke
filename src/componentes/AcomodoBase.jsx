@@ -107,6 +107,16 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   const [guardadoValido, setGuardadoValido] = useState(false);
   const [staging, setStaging] = useState(false);      // generando staging
   const [stagingUrl, setStagingUrl] = useState(() => guardadoPrevio?.render3d || '');   // resultado (foto amueblada)
+  // React P0-3: FIRMA del plano con el que se generó el render (program_hash + floor_hash + nº de
+  // colocaciones). Si el plano cambia (mover muebles, re-acomodar, cambiar áreas/plano), la firma ya
+  // no coincide → el render queda STALE y NO se publica al PDF del cliente. Se inicializa desde lo
+  // guardado para también detectar "abrí un proyecto y luego cambié el plano".
+  const firmaRender = (pa, pl) => `${pa?.program_hash || ''}|${pa?.floor_hash || ''}|${pl?.colocacion?.length || 0}`;
+  const stagingSigRef = useRef(
+    (guardadoPrevio?.render3d && guardadoPrevio?.plan)
+      ? `${guardadoPrevio.plan.program_hash || ''}|${guardadoPrevio.plan.floor_hash || ''}|${guardadoPrevio.plan.colocacion?.length || 0}`
+      : null,
+  );
   const [errStaging, setErrStaging] = useState('');
   const [dibujando, setDibujando] = useState(false);  // lienzo "dibuja tu oficina"
   const archivoRef = useRef(null);                    // el <input file> del plano
@@ -355,9 +365,10 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
         ...(lecturaMeta ? { lecturaMeta } : {}),
         ...(floorSpec ? { floorSpec } : {}),
         ...(dibujoMeta && Object.keys(dibujoMeta).length ? { dibujoMeta } : {}),
-        // Si el layout deja de ser final, limpia cualquier render viejo para que
-        // jamás viaje una foto de otro acomodo al PDF del cliente.
-        render3d: validez.publicable ? (stagingUrl || '') : '',
+        // Si el layout deja de ser final, O si el render ya no corresponde al plano actual
+        // (React P0-3: firma program_hash/floor_hash/colocación distinta a la de cuando se generó),
+        // limpia el render para que JAMÁS viaje una foto de otro acomodo al PDF del cliente.
+        render3d: (validez.publicable && stagingUrl && (!stagingSigRef.current || stagingSigRef.current === firmaRender(payloadAcomodo, plan))) ? stagingUrl : '',
       };
       // React P0-2: sólo guardar si el payload REALMENTE cambió. Antes, como `sugerenciasPendientes`/
       // `validez`/`payloadAcomodo` son objetos nuevos en cada render, el efecto re-disparaba y
@@ -1100,6 +1111,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       });
       if (!r || !r.ok) { setErrStaging(r?.error || 'No se pudo generar la oficina.'); return; }
       setStagingUrl(r.dataUrl);
+      stagingSigRef.current = firmaRender(payloadAcomodo, plan);   // React P0-3: el render corresponde a ESTE plano
     } catch (e) { setErrStaging('No se pudo conectar.'); }
     finally { setStaging(false); }
   }
@@ -1377,7 +1389,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
                   setNotaPlano(''); setPlanoImagen(''); setLecturaMeta(null); setGuardado(false); autoRef.current = false;
                   // Las imágenes eran del espacio VIEJO: dejarlas puestas mete
                   // en la portada del PDF una oficina que ya no existe.
-                  setStagingUrl(''); setRealista(''); setImgEscena({});
+                  setStagingUrl(''); setRealista(''); setImgEscena({}); stagingSigRef.current = null;
                   onGuardarAcomodo?.({ render3d: '', escenas: [] }, true);
                 }}>Cambiar el espacio</button>
               <button className="boton" style={{ minHeight: 44 }} onClick={() => setDibujando(true)}>Dibujar mi oficina</button>

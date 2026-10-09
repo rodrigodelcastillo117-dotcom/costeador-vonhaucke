@@ -33,7 +33,8 @@ describe('Acomodo · publicación honesta',()=>{
     // el autosave persiste desde la autoridad única, no desde el PASS del edge
     expect(s).toContain('layoutEspacialValidado: validez.layoutEspacialValidado');
     expect(s).toContain('layoutValidado: validez.layoutValidado');
-    // el render final sólo viaja si la autoridad única lo declara publicable
-    expect(s).toContain('render3d: validez.publicable ?');
+    // el render final sólo viaja si la autoridad única lo declara publicable Y además el render
+    // corresponde al plano actual (React P0-3: firma program_hash/floor_hash/colocación vigente).
+    expect(s).toContain('render3d: (validez.publicable && stagingUrl && (!stagingSigRef.current || stagingSigRef.current === firmaRender(payloadAcomodo, plan)))');
   });
 });
