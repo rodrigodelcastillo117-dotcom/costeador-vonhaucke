@@ -15,6 +15,7 @@ import EmpezarEspacio from './EmpezarEspacio.jsx';
 import { leerPlanoDeArchivo } from '../datos/leerPlanoArchivo.js';
 import { areasCanonicas, bloqueGeometria } from '../datos/floorPlan.js';
 import { proponerProgramaDelPlano, proponerProgramaDesdeObservado, programRequirementsDesdeObservado, propuestaSilleriaSugerida, silleriaPendiente, resolverAplicacionAtomica } from '../datos/programaRealDelPlano.js';
+import { confirmarPrograma } from '../datos/confirmarPrograma.js';
 import { requirementsDeBrief } from '../datos/programaBrief.js';
 import Cargando from './Cargando.jsx';
 import EstoEntendi from './EstoEntendi.jsx';
@@ -215,8 +216,18 @@ export default function Voni({
     () => (propuestaPrograma?.propuesta ? resolverAplicacionAtomica(propuestaPrograma.propuesta, { existentes: partidas }) : null),
     [propuestaPrograma, partidas],
   );
+  // PREVIEW ≠ COMMIT. Si la propuesta está bloqueada por NEEDS_CONFIRMATION,
+  // resolverAplicacionAtomica debe devolver committed=false y nuevas=[] (gate correcto),
+  // pero la UI todavía debe enseñar qué partes sí resolvió Voni (p.ej. APP LT) para
+  // que el usuario entienda qué se agregará DESPUÉS de resolver los pendientes.
+  // confirmarPrograma aquí es reconciliación read-only: no escribe estado ni confirma.
+  const previewReconciliacionPrograma = useMemo(
+    () => (propuestaPrograma?.propuesta ? confirmarPrograma(propuestaPrograma.propuesta, { existentes: partidas }) : null),
+    [propuestaPrograma, partidas],
+  );
+  const faltantesPreviewPrograma = previewReconciliacionPrograma?.confirmadas || [];
   const aplicacionPendientePrograma = !!aplicacionPrograma?.committed;
-  const faltantesPrograma = aplicacionPrograma?.nuevas || [];          // productos NUEVOS (lista display)
+  const faltantesPrograma = aplicacionPrograma?.nuevas || [];          // autoridad de WRITE, no de display
   const enriquecidosPrograma = aplicacionPrograma?.enriquecidos?.length || 0;
   const conflictosPrograma = aplicacionPrograma?.conflictos || [];
   const pendientesPrograma = propuestaPrograma ? (propuestaPrograma.propuesta?.pendientes || []) : [];
@@ -353,16 +364,19 @@ export default function Voni({
           lleve derecho ahí, sin un clic de más. */}
       {paso === 2 && (
         <>
-          {propuestaPrograma && (faltantesPrograma.length > 0 || enriquecidosPrograma > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0 || observadoPendientes.length > 0 || anclasPorConfirmar.length > 0 || dependientesPorConfirmar.length > 0 || recomendacionesObs.length > 0) && (
+          {propuestaPrograma && (faltantesPreviewPrograma.length > 0 || enriquecidosPrograma > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0 || observadoPendientes.length > 0 || anclasPorConfirmar.length > 0 || dependientesPorConfirmar.length > 0 || recomendacionesObs.length > 0) && (
             <div className="tarjeta no-imprimir" style={{ borderColor: '#8bbcaf', background: '#eef6f3' }}>
               <strong style={{ color: '#174f45' }}>✨ Programa detectado del plano</strong>
               <p className="ayuda" style={{ marginTop: 4 }}>
                 Productos reales del catálogo. Se agrega SÓLO lo que falta (no duplica lo ya cotizado). El precio lo revalida el servidor al emitir.
               </p>
-              {faltantesPrograma.length > 0 && (
+              {faltantesPreviewPrograma.length > 0 && (
                 <div style={{ marginTop: 8 }}>
-                  <div style={{ fontWeight: 700, color: '#174f45' }}>Por agregar</div>
-                  {faltantesPrograma.map((p) => (
+                  <div style={{ fontWeight: 700, color: '#174f45' }}>
+                    Por agregar
+                    {programaRequiereRevision && <span style={{ fontWeight: 500, color: '#8a5a00' }}> · se aplicará al resolver pendientes</span>}
+                  </div>
+                  {faltantesPreviewPrograma.map((p) => (
                     <div key={p.id}>✓ {p.cantidad}× {p.nombre}{p.w ? ` · ${(p.w / 1000).toFixed(2)}×${((p.d || 0) / 1000).toFixed(2)} m` : ''}</div>
                   ))}
                 </div>
