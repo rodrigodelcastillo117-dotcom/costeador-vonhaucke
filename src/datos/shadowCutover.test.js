@@ -11,7 +11,7 @@ describe('SHADOW MOTOR CUTOVER · legacy vs canónico (ChatGPT §8)', () => {
     const rep = reporteShadowCatalogo(CAT, { hoy: HOY });
     expect(rep.total).toBeGreaterThan(200);
     expect(rep.diferenciasNumericas).toBe(0);     // el número resuelto == legacy
-    expect(rep.seguroParaCutover).toBe(true);
+    expect(rep.sinDiferenciaNumericaActual).toBe(true);
   });
 
   it('el reporte dice cuántos insumos quedarían como costo NO oficial (gate de procedencia)', () => {

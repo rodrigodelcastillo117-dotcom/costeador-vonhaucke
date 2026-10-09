@@ -60,7 +60,7 @@ export function shadowResolverInsumo(id, insumo = {}, opts = {}) {
 
 /**
  * Reporte SHADOW de un catálogo completo (mapa id→insumo).
- * @returns {{total, iguales, diferenciasNumericas, bloqueanOficial, porCausa, filas, seguroParaCutover}}
+ * @returns {{total, iguales, diferenciasNumericas, bloqueanOficial, porCausa, filas, sinDiferenciaNumericaActual}}
  */
 export function reporteShadowCatalogo(insumos = {}, opts = {}) {
   const filas = [];
@@ -82,11 +82,13 @@ export function reporteShadowCatalogo(insumos = {}, opts = {}) {
   return {
     total: filas.length,
     iguales,
-    diferenciasNumericas,       // DEBE ser 0 para considerar el cutover seguro
+    diferenciasNumericas,       // DEBE ser 0 para que el cutover no cambie números HOY
     bloqueanOficial,            // cuántos quedarían como costo NO oficial (gate de procedencia)
     porCausa,
     filas,
-    // El cutover es seguro cuando NO hay diferencias numéricas inexplicables.
-    seguroParaCutover: diferenciasNumericas === 0,
+    // WORDING EXACTO (ChatGPT P1): esto SÓLO demuestra que el bridge actual no
+    // cambia `insumo.precio` hoy. NO prueba el cutover con la serie histórica real
+    // (que aún no se ingiere), y 93/259 bloquearían costo oficial por procedencia.
+    sinDiferenciaNumericaActual: diferenciasNumericas === 0,
   };
 }
