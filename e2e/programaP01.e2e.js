@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 // ============================================================================
 //  E2E REAL P0.1 (audit #1/#2/#3/#6/#8) — navegador, botón, React state, doble
-//  click real, refresh. Gate del CASO ROTO DE RODRIGO: cotización PARCIAL real
+//  gate real + refresh. Caso roto de Rodrigo: cotización PARCIAL real
 //  (10 WIN + 10 gavetas + ALPHA + 2 CONCERTO + mesa 1200×1200 + 4 SONATA +
 //  recepción + archivero), FALTAN el bench APP LT y el privado (Eclipse Drift).
 //
@@ -55,7 +55,7 @@ const cantidadDe = (partidas, piezaId) => partidas.filter((p) => p.piezaId === p
 test.describe('E2E P0.1 · caso roto de Rodrigo (navegador real)', () => {
   test.skip(!hayCreds, 'Define TEST_EMAIL y TEST_PASSWORD para correr el gate E2E real.');
 
-  test('propone sólo el APP LT faltante, Drift pendiente, doble click no duplica, refresh persiste', async ({ page }) => {
+  test('muestra APP LT faltante, Drift pendiente y BLOQUEA aplicar hasta resolver', async ({ page }) => {
     const pageErrors = [];
     page.on('pageerror', (e) => pageErrors.push(String(e?.message || e)));
 
@@ -89,29 +89,25 @@ test.describe('E2E P0.1 · caso roto de Rodrigo (navegador real)', () => {
     expect(cuenta(antes, 'op-10u-6000x1200-cristal')).toBe(0);
     expect(cantidadDe(antes, 'silla-win')).toBe(10);
 
-    // DOBLE CLICK real (dos disparos síncronos antes de que React quite el botón).
+    // R10/R15: NEEDS_CONFIRMATION es un GATE REAL. Drift sigue sin identidad
+    // confirmada, por lo que Voni puede MOSTRAR el APP LT resuelto, pero NO aplicarlo.
     const aplicar = page.getByRole('button', { name: /Aplicar programa detectado/i });
-    await expect(aplicar).toBeEnabled();
-    await aplicar.dblclick();
+    await expect(aplicar).toBeDisabled();
+    await expect(page.getByText(/NEEDS_REVIEW|pendiente de confirmar/i).first()).toBeVisible();
 
-    // Estado DESPUÉS (persistido): exactamente 1 APP LT 6000×1200; sin duplicar WIN/
-    // gavetas; sin sustituir el privado por dir-*; archivero intacto.
-    await expect.poll(async () => cuenta(await leerPartidas(page), 'op-10u-6000x1200-cristal')).toBe(1);
-    const desp = await leerPartidas(page);
-    expect(cantidadDe(desp, 'silla-win')).toBe(10);
-    expect(cantidadDe(desp, 'gaveta-mox')).toBe(10);
-    expect(desp.some((p) => String(p.piezaId || p.bancoId || '').startsWith('dir-'))).toBe(false);
-    expect(cuenta(desp, 'arch-modulor-2p-900')).toBe(1);
-    expect(cuenta(desp, 'mj-1200x1200-melamina')).toBe(1);
-    // WIN existentes ahora apuntan al ancla confirmada (#4).
-    const win = desp.find((p) => (p.piezaId || p.bancoId) === 'silla-win');
-    expect(win.anchor_instance_id || win.config?.anchor_instance_id).toBeTruthy();
+    // Ningún write parcial silencioso: APP LT sigue sin entrar hasta resolver Drift;
+    // las partidas ya existentes permanecen intactas.
+    const bloqueado = await leerPartidas(page);
+    expect(cuenta(bloqueado, 'op-10u-6000x1200-cristal')).toBe(0);
+    expect(cantidadDe(bloqueado, 'silla-win')).toBe(10);
+    expect(cantidadDe(bloqueado, 'gaveta-mox')).toBe(10);
+    expect(cuenta(bloqueado, 'arch-modulor-2p-900')).toBe(1);
+    expect(cuenta(bloqueado, 'mj-1200x1200-melamina')).toBe(1);
 
-    // REFRESH → el estado persiste exactamente una vez (localStorage es la verdad;
-    // no se re-navega: la persistencia no depende de estar en una pantalla).
+    // REFRESH → el gate y el estado original persisten; no hubo confirmación implícita.
     await page.reload();
     await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
-    await expect.poll(async () => cuenta(await leerPartidas(page), 'op-10u-6000x1200-cristal')).toBe(1);
+    await expect.poll(async () => cuenta(await leerPartidas(page), 'op-10u-6000x1200-cristal')).toBe(0);
     await expect.poll(async () => cantidadDe(await leerPartidas(page), 'silla-win')).toBe(10);
 
     expect(pageErrors, pageErrors.join('\n')).toHaveLength(0);
