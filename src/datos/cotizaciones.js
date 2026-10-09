@@ -165,21 +165,45 @@ export function paraGuardar(estado, usuario) {
  * Nunca tumba la app: si la nube falla, el vendedor sigue cotizando y se
  * reintenta al siguiente cambio.
  */
+// Una sola creación simultánea por usuario y huella exacta en esta instancia.
+// No sustituye la idempotencia del servidor ante respuestas perdidas o pestañas distintas.
+const creacionesEnCurso = new Map();
+
 export async function guardarCotizacion(estado, usuario, id = null) {
   const fila = paraGuardar(estado, usuario);
+  if (id == null && fila.partidas.length) {
+    const clave = JSON.stringify([usuario, fila.folio, fila.cliente, fila.partidas, fila.acomodo, fila.totales, fila.huella_mp]);
+    if (creacionesEnCurso.has(clave)) return creacionesEnCurso.get(clave);
+    const promesa = persistirCotizacion(fila, id);
+    creacionesEnCurso.set(clave, promesa);
+    try { return await promesa; }
+    finally { if (creacionesEnCurso.get(clave) === promesa) creacionesEnCurso.delete(clave); }
+  }
+  return persistirCotizacion(fila, id);
+}
+
+async function persistirCotizacion(fila, id) {
   // Sin nada dentro no se guarda: no queremos el archivo lleno de borradores
   // vacíos de cada vez que alguien abre la pantalla.
   if (!fila.partidas.length) return id;
   try {
-    if (id) {
-      const { error } = await nube.from('cotizaciones')
-        .update({ ...fila, actualizado: new Date().toISOString() }).eq('id', id);
-      // Si el UPDATE falla (RLS, red, CHECK), NO fingir éxito: devolver null para
-      // que el llamador no crea que guardó. El id vivo lo conserva idCotizacion.
-      return error ? null : id;
+    // RPC canónicas: aplican autorización por propietario/rol en el servidor,
+    // protegen estado/folio oficial y evitan depender del SELECT directo por RLS.
+    // Nunca hacer fallback a INSERT/UPDATE crudo: saltaría estas compuertas.
+    if (id != null) {
+      const { data, error } = await nube.rpc('actualizar_cotizacion_segura', {
+        p_cotizacion_id: id,
+        p_patch: fila,
+      });
+      // Un RPC sin error pero sin confirmación válida NO acredita persistencia.
+      return !error && data?.ok !== false && String(data?.id) === String(id) ? id : null;
     }
-    const { data, error } = await nube.from('cotizaciones').insert(fila).select('id').single();
-    return error ? null : data.id;
+    const { data, error } = await nube.rpc('crear_cotizacion_segura', {
+      p_payload: fila,
+    });
+    const nuevoId = data?.id;
+    return !error && data?.ok !== false && Number.isSafeInteger(Number(nuevoId))
+      && Number(nuevoId) > 0 ? Number(nuevoId) : null;
   } catch (e) {
     // Una excepción de red NO equivale a "guardado". Devolver el id anterior haría
     // que un gate posterior verificara una versión vieja de la cotización viva.
