@@ -6,10 +6,14 @@
 > Última actualización: 2026-10-09 (ronda 3 ChatGPT cerrada + cable FloorPlanReader + rewrite sin contradicciones).
 
 ## ESTADO ACTUAL (verificado contra el repo)
-- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `c744689`**; el HEAD de la rama es el
+- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `18f0e08`**; el HEAD de la rama es el
   doc-commit de este CLOSEOUT encima (un commit no puede contener su propio SHA). Tip exacto: `git rev-parse HEAD`.
   Diff completo de la rama: `git diff e5f737f..HEAD` · lista: `git log --oneline e5f737f..HEAD`.
-- **Tests: 1939 / 1939** (vitest) · **Build: ✅** (vite) · verificado en esta sesión (2026-10-09).
+- **Tests: 1946 / 1946** (vitest) · **Build: ✅** (vite) · verificado en esta sesión (2026-10-09).
+- **MANDATO RC (deadline lunes 12-oct)**: autónomo hasta Release Candidate. Autorización NUEVA de Rodrigo:
+  cutover del motor SÓLO para productos NUEVOS (shadow primero), agregar parser XLSX justificado, preparar edges.
+  Siguen prohibidos (se preparan/documentan como BLOCKED_EXTERNAL, no se ejecutan): merge, deploy/promote,
+  migración prod, escrituras masivas prod, modificar 33 legacy, aprobar DATA TRUTH, integrar Intelisis.
 - **P0 de cliente ABIERTOS: 0.** (Historial de cerrados abajo.) Falta E2E autenticado (cobertura, no P0 abierto).
 - **Cableado REAL hoy** (capa ADITIVA — NO cambia ningún número del motor; tests de dinero verdes):
   1. `Precios.jsx` (Dirección): columna "Procedencia" por insumo — chip por TIPO de fuente + tooltip "¿por qué $544?".
@@ -53,6 +57,14 @@ Son hallazgos posteriores, NO contradicciones del rewrite. Cerrados:
   muebles), no sólo heurística de áreas. Hoy `programaDelPlano` estima puestos por área; la detección de símbolos
   de mueble vive en la edge `leer-plano` (prompt de visión) y verificarla necesita deploy. El contrato y el cable
   ya están listos para recibir esa salida.
+
+### Ronda 4b — versiones ESTRICTAS de los P0 (código `18f0e08`)
+- **P0-C estricto**: el MUEBLE implicado por un cuarto (escritorio/mesa/mostrador) ya NO es OBSERVED aunque el
+  cuarto esté detectado → INFERRED hasta confirmar (`floorPlanReader.capInferred`). El cuarto sí es OBSERVED.
+- **P0-B adversarial**: validity malformed → fail-closed HISTORICAL; future → CURRENT_VERIFIED;
+  expired+current-verified → gana vigente; expired+newer-real → gana real DATED.
+- **P0-A stale-guard**: `Voni.subirPlanoAqui` descarta una lectura lenta superada por una subida más nueva;
+  catch recuperable. (Timeout real 180 s ya estaba.) Falta (edge): AbortController del fetch real + telemetría.
 
 ### Ronda 1 (red-team interno de 5 agentes)
 Hallazgo clave TRANQUILIZADOR: **el motor de costeo es sólido; NO hay P0 que produzca un número incorrecto en el
