@@ -20,4 +20,23 @@ describe('costear-servidor client DTO',()=>{
     expect(txt).not.toContain('"insumo"');
     expect(validarIntentCosteo(dto).ok).toBe(true);
   });
+
+  it('pending material saved in _match survives DTO instead of causing server 400',()=>{
+    const pieza={
+      componentes:[{
+        nombre:'Pintura en polvo negro mate',
+        insumoId:'',
+        cantidad:2.5,
+        _match:{clase:'NOT_AVAILABLE',solicitado:'Pintura electrostática negra'}
+      }]
+    };
+    const dto=dtoCosteoServidor(pieza,1);
+    expect(dto.pieza.componentes[0]).toMatchObject({
+      insumoId:'',
+      material_solicitado:'Pintura electrostática negra',
+      material_match:'NOT_AVAILABLE',
+    });
+    const v=validarIntentCosteo(dto);
+    expect(v.ok).toBe(true);
+  });
 });
