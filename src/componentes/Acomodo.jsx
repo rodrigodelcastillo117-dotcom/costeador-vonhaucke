@@ -19,7 +19,7 @@ import {
 import { marcarDestinoPartida } from '../datos/destinoAcomodo.js';
 import { expandirPiezas } from '../datos/espacio.js';
 import { validarCoherenciaPrograma } from '../datos/coherenciaPrograma.js';
-import { proponerProgramaDelPlano, proponerProgramaDesdeObservado } from '../datos/programaRealDelPlano.js';
+import { proponerProgramaDelPlano, proponerProgramaDesdeObservado, aplicarPrograma } from '../datos/programaRealDelPlano.js';
 
 const esSugerida = (p) => !!p?.sugeridoPlano || String(p?.id || '').startsWith('sug-');
 const norm = (s = '') => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -192,6 +192,15 @@ export default function Acomodo(props) {
     ? (obsProg && obsProg.length ? proponerProgramaDesdeObservado(obsProg, { linea: lineaResolver }) : null)
     : (!hayReales && areasActuales.length ? proponerProgramaDelPlano(areasActuales, { linea: lineaResolver }) : null);
   const previewPropuesto = propuestaPlano ? propuestaPlano.preview : [];
+  // R13-2: reconciliación contra las partidas YA existentes (sólo display). Muestra
+  // cuántas ya están cubiertas y cuántas faltan — NO se abandona el observed por hayReales.
+  const partidasActuales = (props?.estado?.cotizacion?.partidas) || [];
+  const reconObs = (propuestaPlano && propuestaPlano.propuesta)
+    ? aplicarPrograma(propuestaPlano.propuesta, { existentes: partidasActuales })
+    : null;
+  const obsCubiertas = reconObs?.resumen?.reutilizadas ?? 0;
+  const obsPorAgregar = reconObs?.resumen?.nuevas ?? previewPropuesto.length;
+  const obsRecomendaciones = (propuestaPlano && Array.isArray(propuestaPlano.recomendaciones)) ? propuestaPlano.recomendaciones : [];
 
   const estadoDemo = useMemo(() => {
     const e = props?.estado || {};
@@ -274,7 +283,9 @@ export default function Acomodo(props) {
         button[title="sumar"], button[title="restar"] { color: #f5f5f7 !important; }
       `}</style>
 
-      {!hayReales && previewPropuesto.length > 0 && (
+      {/* R13-2: se renderiza si hay PROPUESTA observada (también con partidas
+          existentes) o, en ABSENT, la sugerencia por áreas. NO se oculta el observed. */}
+      {propuestaPlano && (previewPropuesto.length > 0 || obsRecomendaciones.length > 0 || (propuestaPlano.incompletos && propuestaPlano.incompletos.length > 0)) && (
         <div className="contenido no-imprimir" style={{ paddingBottom: 0, width: '100%' }}>
           <div className="alerta" style={{ display: 'block', width: '100%', boxSizing: 'border-box', background: '#eef6f3', borderColor: '#8bbcaf', color: '#174f45' }}>
             <div style={{ display: 'block', width: '100%', lineHeight: 1.45 }}>
@@ -282,12 +293,27 @@ export default function Acomodo(props) {
               Esta es una <strong>PROPUESTA</strong> de productos reales del catálogo (no se ha cotizado nada todavía).
               El acomodo <strong>no se corre con sugerencias</strong>: primero aplica el programa para volverlas partidas reales.
             </div>
+            {hayReales && (
+              <div style={{ marginTop: 8, fontWeight: 700, color: '#174f45' }}>
+                Ya cubiertas: {obsCubiertas} · Por agregar: {obsPorAgregar}{reconObs?.conflictos?.length ? ` · Conflictos: ${reconObs.conflictos.length}` : ''}
+              </div>
+            )}
             <div style={{ display: 'grid', gap: 4, marginTop: 10 }}>
               {previewPropuesto.slice(0, 10).map((p) => (
                 <div key={p.id}>• {p.cantidad}× {p.nombre}{p.w ? ` · ${(p.w / 1000).toFixed(2)}×${((p.d || 0) / 1000).toFixed(2)} m` : ''}</div>
               ))}
               {previewPropuesto.length > 10 && <div>• +{previewPropuesto.length - 10} renglón(es)</div>}
             </div>
+            {/* R13-3: sillas/accesorios observados NO desaparecen ni se auto-convierten:
+                se muestran como requerimiento con modelo POR CONFIRMAR. */}
+            {obsRecomendaciones.length > 0 && (
+              <div style={{ marginTop: 8, color: '#8a5a00' }}>
+                <strong>Sillería/accesorios (modelo por confirmar):</strong>
+                {obsRecomendaciones.map((r, i) => (
+                  <div key={`rec${i}`}>• {r.requirement_qty}× {r.dependent_role} — sugerido {r.suggested_nombre || r.suggested_product || '—'} · requiere confirmar modelo</div>
+                ))}
+              </div>
+            )}
             {propuestaPlano && propuestaPlano.propuesta && propuestaPlano.propuesta.pendientes && propuestaPlano.propuesta.pendientes.length > 0 && (
               <div style={{ marginTop: 8, color: '#8a5a00' }}>
                 <strong>Faltan por confirmar:</strong>{' '}

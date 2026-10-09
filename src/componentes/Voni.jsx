@@ -219,6 +219,9 @@ export default function Voni({
   // P0-R10-9: dependientes observados que NO empatan 1:1 con lo generado (una
   // credenza real OBSERVED_ONLY no puede desaparecer en silencio).
   const dependientesPorConfirmar = (propuestaPrograma?.dependientesConciliados || []).filter((d) => d.estado === 'OBSERVED_ONLY' || d.estado === 'DIVERGE');
+  // R13-3: sillería/accesorios observados → recomendación con MODELO POR CONFIRMAR
+  // (nunca se auto-convierte a silla-win/concerto ni se esconde).
+  const recomendacionesObs = propuestaPrograma?.recomendaciones || [];
   // P0-R10-2/R10-3: el programa requiere revisión si el servidor lo marcó REVIEW,
   // si alguna ancla no resolvió su geometría, o si hay cualquier pendiente.
   const programaRequiereRevision = !!propuestaPrograma?.requiereRevision
@@ -325,7 +328,7 @@ export default function Voni({
           lleve derecho ahí, sin un clic de más. */}
       {paso === 2 && (
         <>
-          {propuestaPrograma && (faltantesPrograma.length > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0 || observadoPendientes.length > 0 || anclasPorConfirmar.length > 0 || dependientesPorConfirmar.length > 0) && (
+          {propuestaPrograma && (faltantesPrograma.length > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0 || observadoPendientes.length > 0 || anclasPorConfirmar.length > 0 || dependientesPorConfirmar.length > 0 || recomendacionesObs.length > 0) && (
             <div className="tarjeta no-imprimir" style={{ borderColor: '#8bbcaf', background: '#eef6f3' }}>
               <strong style={{ color: '#174f45' }}>✨ Programa detectado del plano</strong>
               <p className="ayuda" style={{ marginTop: 4 }}>
@@ -380,6 +383,15 @@ export default function Voni({
                   <div style={{ fontWeight: 700 }}>Accesorios observados por identificar</div>
                   {dependientesPorConfirmar.map((d, i) => (
                     <div key={`dep${i}`}>⚠ {d.dependent_role} — {d.estado === 'OBSERVED_ONLY' ? `${d.observados} observado(s), requiere producto/desarrollo` : `observados ${d.observados} vs generados ${d.resueltos} (decide)`}</div>
+                  ))}
+                </div>
+              )}
+              {/* R13-3: sillería requerida por regla — modelo POR CONFIRMAR, no se auto-aplica. */}
+              {recomendacionesObs.length > 0 && (
+                <div style={{ marginTop: 8, color: '#8a5a00' }}>
+                  <div style={{ fontWeight: 700 }}>Sillería (modelo por confirmar)</div>
+                  {recomendacionesObs.map((r, i) => (
+                    <div key={`rec${i}`}>• {r.requirement_qty}× {r.dependent_role} — sugerido {r.suggested_nombre || r.suggested_product || '—'} · confirma modelo</div>
                   ))}
                 </div>
               )}

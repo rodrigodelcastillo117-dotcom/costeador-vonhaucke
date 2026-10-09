@@ -177,4 +177,46 @@ describe('INTEGRACIÓN observed pipeline (R10, offline)', () => {
     const comercial = partidaComercialDesdeConfirmado(conf);
     expect(comercial.plan_source_ref).toBe('B-01');
   });
+
+  it('21· R13-1 CARDINALIDAD PARCIAL: 4 anclas observadas, 2 existentes → reutiliza 2 + agrega 2', () => {
+    const { prop } = pipeline([base({ type: 'bench operativo', role: 'operational', quantity: 4, capacity_per_unit: 2, capacity_total: 8, dimensions: { w: 1500, d: 1200 }, source_ref: 'B-01' })]);
+    expect(prop.propuesta.partidas.length).toBe(4);                      // 4 instancias físicas
+    const existentes = [prop.propuesta.partidas[0], prop.propuesta.partidas[1]]; // instance #0 y #1
+    const ap = aplicarPrograma(prop.propuesta, { existentes });
+    expect(ap.confirmacion.resumen.reutilizadas).toBe(2);   // #0 y #1
+    expect(ap.confirmacion.resumen.nuevas).toBe(2);         // #2 y #3 (nunca 0, nunca 6/7/8)
+    expect(ap.confirmacion.items.length).toBe(4);
+    const ids = ap.confirmacion.items.map((i) => i.instance_id);
+    expect(new Set(ids).size).toBe(ids.length);   // cada instance_id única
+  });
+
+  it('22· R13-5 PROVENANCE en REUTILIZADOS: la existente reconciliada con B-01 conserva plan_source_ref', () => {
+    const { prop } = pipeline([base({ type: 'bench operativo', role: 'operational', quantity: 1, capacity_per_unit: 2, capacity_total: 2, dimensions: { w: 1500, d: 1200 }, source_ref: 'B-01' })]);
+    const existentes = [prop.propuesta.partidas[0]];
+    const ap = aplicarPrograma(prop.propuesta, { existentes });
+    expect(ap.confirmacion.resumen.reutilizadas).toBe(1);
+    expect(ap.confirmacion.sinCambio[0].plan_source_ref).toBe('B-01');
+    // el patch de enriquecimiento también lleva la provenance del plano
+    expect(ap.confirmacion.enriquecidos[0]?.patch?.plan_source_ref ?? 'B-01').toBe('B-01');
+  });
+
+  it('23· R13-3 RECOMENDACIONES visibles: sillas como SUGGESTED, no desaparecen ni se auto-confirman', () => {
+    const { prop } = pipeline([base({ type: 'bench operativo', role: 'operational', quantity: 1, capacity_per_unit: 2, capacity_total: 2, dimensions: { w: 1500, d: 1200 }, source_ref: 'B-07' })]);
+    expect(prop.recomendaciones.length).toBeGreaterThan(0);
+    const rec = prop.recomendaciones.find((r) => r.dependent_role === 'WORK_SEAT');
+    expect(rec.requirement_qty).toBe(2);
+    expect(rec.product_status).toBe('SUGGESTED');
+    expect(prop.propuesta.partidas.some((p) => p.relation_role === 'WORK_SEAT')).toBe(false);  // no es partida
+  });
+
+  it('24· R13-4 modelo observado ≠ source_ref: sin modelo explícito → requiere_confirmacion_modelo', () => {
+    const { prop } = pipeline([
+      base({ type: 'bench operativo', role: 'operational', quantity: 1, capacity_per_unit: 1, capacity_total: 1, dimensions: { w: 1500, d: 600 }, source_ref: 'B-10' }),
+      base({ type: 'silla operativa', role: 'work_seat', quantity: 1, zone: 'OPEN SPACE', source_ref: 'S-01' }),
+    ]);
+    const ws = prop.dependientesConciliados.find((d) => d.dependent_role === 'WORK_SEAT');
+    // S-01 (source_ref) NO se usa como modelo; sin modelo explícito → requiere confirmación
+    expect(ws.observado_modelo).toBeNull();
+    expect(ws.requiere_confirmacion_modelo).toBe(true);
+  });
 });

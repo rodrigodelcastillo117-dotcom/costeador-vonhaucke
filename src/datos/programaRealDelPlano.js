@@ -272,7 +272,13 @@ export function programRequirementsDesdeObservado(observedProgram) {
 
     if (cls.clase === CLASE.DEPENDENT) {
       // Una silla/guarda observada NO crea ancla: se usa para reconciliar (P0-R9-9/R10-9).
-      dependientesObservados.push({ dependent_role: cls.dependent_role, quantity: q, zone: norm.zone || null, source_ref: norm.source_ref || null, dimensions: norm.dimensions || null, evidence: norm.evidence || null });
+      // R13-4: plan_source_ref (S-01) ≠ observed_model (modelo comercial, si el lector lo dio).
+      dependientesObservados.push({
+        dependent_role: cls.dependent_role, quantity: q, zone: norm.zone || null,
+        plan_source_ref: norm.source_ref || null, source_ref: norm.source_ref || null,
+        observed_model: (typeof rawIt.observed_model === 'string' ? rawIt.observed_model : null) || (typeof rawIt.model === 'string' ? rawIt.model : null) || null,
+        dimensions: norm.dimensions || null, evidence: norm.evidence || null,
+      });
       return;
     }
     if (cls.clase === CLASE.AMENITY) { pendientes.push({ code: 'AMENITY_SIN_VOCABULARIO', type: etiqueta, origin: norm.origin }); return; }
@@ -405,8 +411,10 @@ export function conciliarDependientes(observados = [], requeridos = []) {
   const res = sumaPorRol(Array.isArray(requeridos) ? requeridos : [], 'dependent_role', 'requirement_qty');
   const modeloSugerido = {};
   for (const r of (Array.isArray(requeridos) ? requeridos : [])) if (r && r.dependent_role) modeloSugerido[r.dependent_role] = r.suggested_product || null;
+  // R13-4: source_ref es la identidad del PLANO (S-01), NO el modelo comercial.
+  // Sólo un modelo/producto EXPLÍCITO del observado cuenta como modelo observado.
   const modeloObservado = {};
-  for (const o of (Array.isArray(observados) ? observados : [])) if (o && o.dependent_role) modeloObservado[o.dependent_role] = o.product || o.model || o.source_ref || null;
+  for (const o of (Array.isArray(observados) ? observados : [])) if (o && o.dependent_role) modeloObservado[o.dependent_role] = o.observed_product || o.observed_model || o.product || o.model || null;
   const roles = new Set([...Object.keys(obs), ...Object.keys(res)]);
   // P0-R10-9: 4 estados. Nada OBSERVADO desaparece: OBSERVED_ONLY exige acción
   // (identificar producto/desarrollo); GENERATED_ONLY es regla/sugerencia, no observado.

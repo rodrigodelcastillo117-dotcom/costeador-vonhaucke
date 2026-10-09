@@ -88,6 +88,14 @@ function estructuraDe(part) {
     functional_group_id: part.functional_group_id ?? null,
     requirement_id: part.requirement_id ?? null,
     zone_id: part.zone_id ?? null,
+    // R13-5: la PROVENANCE del plano también se PARCHEA a los existentes reutilizados
+    // (una partida vieja reconciliada con B-01 recupera su plan_source_ref/posición).
+    ...(part.plan_source_ref != null ? { plan_source_ref: part.plan_source_ref } : {}),
+    ...(part.product_source_ref != null ? { product_source_ref: part.product_source_ref } : {}),
+    ...(part.plan_tag != null ? { plan_tag: part.plan_tag } : {}),
+    ...(part.grouping != null ? { grouping: part.grouping } : {}),
+    ...(part.observed_position != null ? { observed_position: part.observed_position } : {}),
+    ...(part.observed_orientation != null ? { observed_orientation: part.observed_orientation } : {}),
     // P0.2c GAP16: la topología confirmada (CATALOG/USER_CONFIRMED) sobrevive el
     // patch estructural de reutilización/idempotencia; NUNCA se pisa con UNKNOWN.
     ...(part.placement_profile ? { placement_profile: part.placement_profile } : {}),
@@ -121,6 +129,8 @@ function aItemConfirmado(part, { slot = null, estado }) {
     product_source_ref: part.product_source_ref ?? bancoDe(part),
     plan_tag: part.plan_tag ?? null,
     grouping: part.grouping ?? null,
+    ...(part.observed_position != null ? { observed_position: part.observed_position } : {}),
+    ...(part.observed_orientation != null ? { observed_orientation: part.observed_orientation } : {}),
     nombre: part.nombre ?? null,
     linea: part.linea ?? null,
     usuarios: part.usuarios ?? null,
@@ -163,11 +173,19 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
     banco: bancoDe(e), cantidad: Math.max(1, Number(e.cantidad) || 1),
   }));
 
-  // --- ANCLAS: identidad (requirement_id) PRIMERO, luego posición legacy (#9). ---
+  // --- ANCLAS: CARDINALIDAD REAL (ChatGPT R13-1). Prioridad de match por INSTANCIA:
+  //     instance_id exacto → slot físico (rol+rel+ordinal) → requirement_id SÓLO si
+  //     es INEQUÍVOCO (un único existente con ese req). Cada existente se consume UNA
+  //     vez (`usados`): 4 instancias observadas NO pueden reutilizar la misma existente. ---
   const anchorSlot = (rol, rel, ord) => `${rol}|${rel}|#${ord}`;
   const existAnchors = ex.filter((e) => esAncla(e.rel));
-  const existByReq = new Map();
-  for (const e of existAnchors) { if (e.raw && e.raw.requirement_id) existByReq.set(String(e.raw.requirement_id), e); }
+  const existByInstance = new Map();
+  for (const e of existAnchors) { if (e.raw && e.raw.instance_id) existByInstance.set(String(e.raw.instance_id), e); }
+  const existByReqList = new Map();   // req_id -> [existentes] (para saber si es inequívoco)
+  for (const e of existAnchors) {
+    const req = e.raw && e.raw.requirement_id;
+    if (req) { const k = String(req); if (!existByReqList.has(k)) existByReqList.set(k, []); existByReqList.get(k).push(e); }
+  }
   const anchorOrd = new Map();
   const anchorBySlot = new Map();
   for (const e of existAnchors) {
@@ -175,17 +193,23 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
     const ord = anchorOrd.get(base) || 0; anchorOrd.set(base, ord + 1);
     anchorBySlot.set(anchorSlot(e.rol, e.rel, ord), e);
   }
+  const libre = (e) => e && !usados.has(e._i);      // aún no consumido
   const propAnchorOrd = new Map();
   for (const a of anchorsProp) {
     const rol = a.rol || rolFromRel(a.relation_role);
     const base = `${rol}|${a.relation_role}`;
     const ord = propAnchorOrd.get(base) || 0; propAnchorOrd.set(base, ord + 1);
     const slot = anchorSlot(rol, a.relation_role, ord);
-    // #9: requirement_id (estable bajo reorden) manda; posición sólo como fallback legacy.
-    const prev = (a.requirement_id && existByReq.get(String(a.requirement_id))) || anchorBySlot.get(slot);
-    if (prev) {
+    // 1) instance_id exacto; 2) slot físico; 3) requirement_id sólo si es ÚNICO.
+    let prev = (a.instance_id && existByInstance.get(String(a.instance_id))) || null;
+    if (!libre(prev)) prev = libre(anchorBySlot.get(slot)) ? anchorBySlot.get(slot) : null;
+    if (!prev && a.requirement_id) {
+      const lista = (existByReqList.get(String(a.requirement_id)) || []).filter(libre);
+      if (lista.length === 1) prev = lista[0];      // inequívoco
+    }
+    if (prev && libre(prev)) {
       if (String(prev.banco) === String(a.bancoId)) {
-        usados.add(prev._i);                      // reutiliza: lo re-emitimos como EXISTENTE
+        usados.add(prev._i);                      // reutiliza UNA sola vez
         sinCambio.push(aItemConfirmado(a, { slot, estado: 'EXISTENTE' }));
         if (prev.raw && prev.raw.id != null) enriquecidos.push({ id: prev.raw.id, patch: estructuraDe(a) });
       } else {
