@@ -1,16 +1,17 @@
 # VON HAUCKE — FINAL PRODUCT COMPLETION · CLOSEOUT STATE
 
 > Estado vivo para continuar entre sesiones. Otra sesión debe poder retomar EXACTAMENTE aquí.
-> Última actualización: 2026-10-08 (auditoría ChatGPT ronda 2 + REALITY CUTOVER v1 + observed_program v1)
+> Última actualización: 2026-10-08 (ronda 2 + REALITY CUTOVER v1 + observed_program + UI procedencia Precios/HojaCosto)
 >
-> **ESTADO ACTUAL**: HEAD `audit/final-product-completion` = `cb76854` + este doc-commit encima.
-> Tests **1921/1921** · build ✅. P0 de cliente: **0 abiertos** (P0-A/P0-B cerrados).
-> PRIMER CABLEADO VISIBLE: `Precios.jsx` (Dirección) muestra columna Procedencia por insumo
-> (chip estado + tooltip "¿por qué $544?"), capa aditiva que NO cambia números del motor.
-> Verificado: build (import+JSX), wiring test, lógica del puente contra el catálogo real, y la app
-> arranca autenticada como Dirección (veCostos). Pendiente: screenshot del tab Precios en vivo (el home
-> curó ese tile; se alcanza por Guía/Dirección) — USER_FLOW(render) no bloquea. observed_program y el
-> resolver de precio siguen SIN cablear a motor/acomodo (sólo la UI de Precios está cableada).
+> **ESTADO ACTUAL**: HEAD `audit/final-product-completion` = `f1cd961` + este doc-commit encima.
+> Tests **1924/1924** · build ✅. P0 de cliente: **0 abiertos** (P0-A/P0-B cerrados).
+> CABLEADO VISIBLE (capa ADITIVA, NO cambia números del motor; tests de dinero verdes):
+>  1. `Precios.jsx` (Dirección): columna Procedencia por insumo (chip + "¿por qué $544?").
+>  2. `HojaCosto.jsx` (Costear/veCostos): "✓ Costo con evidencia real" o "N de M MP sin evidencia —
+>     costo no oficial", resolviendo la procedencia de cada MP del desglose (detalleInsumos).
+> Verificado: build (import+JSX), wiring tests, lógica del puente contra el catálogo real, app arranca
+> autenticada como Dirección (veCostos). Pendiente USER_FLOW(render en vivo de esos tabs) — no bloquea.
+> observed_program y el resolver siguen SIN cablear a motor/acomodo (sólo las 2 UIs de arriba).
 
 ## ⬆️ LO MÁS RECIENTE PRIMERO (ronda 2, auditoría ChatGPT independiente)
 ChatGPT auditó `audit/final-product-completion @ dca88e2` contra el código real y
