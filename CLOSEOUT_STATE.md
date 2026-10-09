@@ -6,10 +6,10 @@
 > Última actualización: 2026-10-09 (ronda 3 ChatGPT cerrada + cable FloorPlanReader + rewrite sin contradicciones).
 
 ## ESTADO ACTUAL (verificado contra el repo)
-- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `0637d0e`**; el HEAD de la rama es el
+- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `c744689`**; el HEAD de la rama es el
   doc-commit de este CLOSEOUT encima (un commit no puede contener su propio SHA). Tip exacto: `git rev-parse HEAD`.
   Diff completo de la rama: `git diff e5f737f..HEAD` · lista: `git log --oneline e5f737f..HEAD`.
-- **Tests: 1934 / 1934** (vitest) · **Build: ✅** (vite) · verificado en esta sesión (2026-10-09).
+- **Tests: 1939 / 1939** (vitest) · **Build: ✅** (vite) · verificado en esta sesión (2026-10-09).
 - **P0 de cliente ABIERTOS: 0.** (Historial de cerrados abajo.) Falta E2E autenticado (cobertura, no P0 abierto).
 - **Cableado REAL hoy** (capa ADITIVA — NO cambia ningún número del motor; tests de dinero verdes):
   1. `Precios.jsx` (Dirección): columna "Procedencia" por insumo — chip por TIPO de fuente + tooltip "¿por qué $544?".
@@ -36,6 +36,23 @@ credenciales a un servicio externo). Por eso:
 - BLOCKED_EXTERNAL (requiere login con cuenta de PRUEBA): E2E autenticado de guardar/reabrir, roles en vivo, aprobar contra servidor, autosave real, storage real.
 
 ## HISTORIAL DE AUDITORÍA (ChatGPT) — qué pasó en cada ronda
+
+### Ronda 4 (ChatGPT, hallazgos POSTERIORES sobre 0637d0e) — 5 de 6 cerrados (código `c744689`)
+Son hallazgos posteriores, NO contradicciones del rewrite. Cerrados:
+- **#1 TIMEOUT REAL**: la lectura de plano abortaba a 60 s, pero en PROD una lectura real tardó **64.841 s**
+  (el cliente mataba algo que el servidor sí completaba). FIX: `leerPlanoArchivo.js` → `TIMEOUT_LECTURA_MS = 180 s`.
+- **#4 VALIDITY VENCIDA → HISTORICAL**: una observación con vigencia que ya pasó ya NO cae a REAL_OBSERVED;
+  es **HISTORICAL** y **bloquea** costo oficial. (`canonicalPriceResolver.js`)
+- **#3 ROOM ≠ FURNITURE**: `observed_program` gana `kind` (room/furniture/amenity); `resumenObservado` cuenta
+  **cuartos** y **muebles** por separado (nunca mezclados); `floorPlanReader` emite los cuartos como `kind=room`.
+- **#5 CONSERVAR PROCEDENCIA hasta VONI**: `leerPlanoDeArchivo` ya NO tira la lectura; devuelve
+  `lectura`/`floorSpec`/`request_id` y el `observed_program` derivado del lector real (cable floorPlanReader).
+- **#6 LABEL PRECISO**: HojaCosto ya no dice "Costo con evidencia real" (sobre-reclamo); dice
+  **"Precios de MP con evidencia real (consumo/MO/GI sin verificar)"** — sólo el precio de MP está verificado.
+- **#2 PENDIENTE (requiere edge + deploy)**: que el lector de PDF detecte MOBILIARIO real (observed_program de
+  muebles), no sólo heurística de áreas. Hoy `programaDelPlano` estima puestos por área; la detección de símbolos
+  de mueble vive en la edge `leer-plano` (prompt de visión) y verificarla necesita deploy. El contrato y el cable
+  ya están listos para recibir esa salida.
 
 ### Ronda 1 (red-team interno de 5 agentes)
 Hallazgo clave TRANQUILIZADOR: **el motor de costeo es sólido; NO hay P0 que produzca un número incorrecto en el
@@ -164,6 +181,7 @@ hardening interno de edges IA. P2: dead code CocrearV2, code-split del bundle (1
 - Motor cutover, ingestión documental (xlsx dep + DATA TRUTH), y verificación en vivo de Plan Intelligence (deploy).
 
 ## Commits de esta rama (feat/fix; además hay doc-commits de este CLOSEOUT — ver `git log e5f737f..HEAD`)
+- `c744689` ronda 4: timeout real + validity→HISTORICAL + room≠furniture + conservar procedencia + label preciso
 - `0637d0e` cable FloorPlanReader→observed_program (lector real)
 - `11224e6` saca symlink node_modules del índice + .gitignore
 - `7a4f834` golden 132m² real + price-trust + date-trust + FX (ronda 3)
