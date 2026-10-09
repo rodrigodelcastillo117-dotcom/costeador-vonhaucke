@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { INSUMOS_SEMILLA } from './insumos.js';
-import { aplicarPoliticaMaterial, reconciliarMaterialServidor, puedeConfirmarMaterial, estadoConTopeLegacy, requiereConfirmacion, MATCH, MATCH_AUTOCOSTEABLE } from './materialMatch.js';
+import { aplicarPoliticaMaterial, reconciliarMaterialServidor, clasificarMaterial, puedeConfirmarMaterial, estadoConTopeLegacy, requiereConfirmacion, MATCH, MATCH_AUTOCOSTEABLE } from './materialMatch.js';
 import { validarIntentCosteo } from './validarIntentCosteo.js';
 import { calcular, costeoEmitible, bomHash, precioDe, PARAMETROS_DEFAULT } from '../motor/calculo.js';
 
@@ -354,5 +354,80 @@ describe('P0.10/P0.11 — LEGACY sólo por provenance server-side, nunca certifi
     const rec = reconciliarMaterialServidor({ nombre: 'X', insumoId: 'fantasma-999' }, (id) => INSUMOS[id], CAT, { origenLegacyConfiable: true });
     expect(rec.insumoId).toBe('');
     expect(rec.material_match).toBe(MATCH.NOT_AVAILABLE);
+  });
+});
+
+// ============================================================================
+//  ADVERSARIALES O–T (auditoría final): material_solicitado también es client-controlled;
+//  identidad de perfil/metal y acabado/color; blockers simultáneos; cross-family override.
+// ============================================================================
+describe('O–T — nada que controle el cliente otorga EXACT/emisión por sí solo', () => {
+  it('O) spec coherente enviada por el browser (sin provenance) → NO EXACT: provisional, no emitible (P0.12)', () => {
+    const s = servidor([{ nombre: 'Lateral', insumoId: 'melamina-19-color', material_solicitado: 'melamina 19 color madera', forma: 'area', largoMM: 950, anchoMM: 650, cantidad: 2, hojas: 0.4 }], { rol: 'vendedor' });
+    expect(s.intentComponentes[0].material_match).not.toBe(MATCH.EXACT);
+    expect(s.intentComponentes[0].material_match).toBe(MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED);
+    expect(s.emitible).toBe(false);
+    // Con provenance server-side de la spec, SÍ sería EXACT:
+    const conProv = reconciliarMaterialServidor({ nombre: 'Lateral', insumoId: 'melamina-19-color', material_solicitado: 'melamina 19 color madera' }, (id) => INSUMOS[id], CAT, { origenSpecConfiable: true });
+    expect(conProv.material_match).toBe(MATCH.EXACT);
+  });
+
+  it('P) identidad de perfil: lámina vs PTR (mismo calibre) → NO EXACT, CRÍTICO (P0.13)', () => {
+    const laminaVsPtr = clasificarMaterial({ solicitado: 'lámina de acero cal. 14', insumoId: 'ptr-14', insumoNombre: 'Tubo / PTR cal. 14' });
+    expect(laminaVsPtr.clase).toBe(MATCH.SAME_FAMILY_CRITICAL_CONFLICT);
+    expect(laminaVsPtr.insumoIdEfectivo).toBe('');
+    // redondo vs tubo (PTR) → crítico
+    const redondoVsPtr = clasificarMaterial({ solicitado: 'tubo redondo cal. 14', insumoId: 'ptr-14', insumoNombre: 'Tubo / PTR 1"x2" cal. 14' });
+    expect(redondoVsPtr.clase).toBe(MATCH.SAME_FAMILY_CRITICAL_CONFLICT);
+    // dimensiones de perfil distintas 1x2 vs 3x1½ → crítico
+    const dimsDistintas = clasificarMaterial({ solicitado: 'PTR 3x1 1/2 cal. 14', insumoId: 'ptr', insumoNombre: 'Tubo / PTR 1"x2" cal. 16' });
+    expect(dimsDistintas.clase).toBe(MATCH.SAME_FAMILY_CRITICAL_CONFLICT);
+  });
+
+  it('Q) acabado/color: melamina BLANCA 19 vs COLOR/madera 19 → NO EXACT, variante por confirmar (P0.14)', () => {
+    const r = clasificarMaterial({ solicitado: 'melamina blanca 19 mm', insumoId: 'melamina-19-color', insumoNombre: 'Melamina de COLOR / madera 19 mm' });
+    expect(r.clase).not.toBe(MATCH.EXACT);
+    expect(r.clase).toBe(MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED);  // misma familia+espesor pero color distinto
+    expect(r.autocosteable).toBe(true);                          // costea provisional
+    // mismo color (nogal ↔ "Nogal Neo TX") sí es EXACT
+    const exacto = clasificarMaterial({ solicitado: 'melamina nogal 19 mm', insumoId: 'melamina-19-nogal', insumoNombre: 'Melamina 19 mm Nogal Neo TX' });
+    expect(exacto.clase).toBe(MATCH.EXACT);
+  });
+
+  it('R) blockers SIMULTÁNEOS: partida por-confirmar Y sin precio usable → aparecen AMBOS (P0.15)', () => {
+    const INS2 = { 'sin-precio': { nombre: 'Tablero sin precio', seccion: 'cubiertas', clase: 'directa', formato: { medida: 2.98 }, fraccion: true } }; // sin `precio`
+    const comp = { nombre: 'Panel X', insumoId: 'sin-precio', material_match: MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED, forma: 'area', largoMM: 1000, anchoMM: 500, cantidad: 1, hojas: 0.3 };
+    const r = calcular({ piezas: 1, componentes: [comp] }, 1, INS2, PARAMETROS_DEFAULT);
+    expect(r.materialesPorConfirmar).toContain('Panel X');       // bloqueo 1: por confirmar
+    expect(r.componentesIgnorados).toContain('Panel X');          // bloqueo 2: sin precio
+    const em = costeoEmitible(r);
+    expect(em.bloqueos.materiales_por_confirmar).toContain('Panel X');
+    expect(em.bloqueos.datos_faltantes).toContain('Panel X');
+    expect(em.emitible).toBe(false);
+  });
+
+  it('S) cross-family confirmation (solid surface→MDF, material_confirmado SIN override) → NO USER_CONFIRMED', () => {
+    const catSinSS = [{ id: 'mdf', nombre: 'MDF 19 mm', precio: 437, seccion: 'cubierta', clase: 'directa', formato: { medida: 2.98 }, fraccion: true }];
+    const insSinSS = Object.fromEntries(catSinSS.map((x) => [x.id, x]));
+    const rec = reconciliarMaterialServidor(
+      { nombre: 'Cubierta', insumoId: 'mdf', material_solicitado: 'superficie sólida azul', material_confirmado: true },
+      (id) => insSinSS[id], catSinSS, { puedeConfirmar: true },  // diseño/dirección, pero SIN override
+    );
+    expect(rec.material_match).not.toBe(MATCH.USER_CONFIRMED);
+    expect(rec.material_match).toBe(MATCH.SUBSTITUTE_REQUIRES_CONFIRMATION);
+    expect(rec.insumoId).toBe('');                                // jamás MDF disfrazado de solid surface
+  });
+
+  it('T) cross-family con ENGINEERING_OVERRIDE + capability + motivo → USER_CONFIRMED auditable; sin capability → NO', () => {
+    const catSinSS = [{ id: 'mdf', nombre: 'MDF 19 mm', precio: 437, seccion: 'cubierta', clase: 'directa', formato: { medida: 2.98 }, fraccion: true }];
+    const insSinSS = Object.fromEntries(catSinSS.map((x) => [x.id, x]));
+    const base = { nombre: 'Cubierta', insumoId: 'mdf', material_solicitado: 'superficie sólida azul', material_confirmado: true, engineering_override: true, override_motivo: 'Cliente aprobó MDF por costo (acta 123)' };
+    const conCap = reconciliarMaterialServidor(base, (id) => insSinSS[id], catSinSS, { puedeConfirmar: true });
+    expect(conCap.material_match).toBe(MATCH.USER_CONFIRMED);      // sustitución deliberada autorizada
+    expect(conCap.insumoId).toBe('mdf');
+    expect(conCap._match.motivo).toMatch(/override|acta 123/i);    // motivo auditable
+    // sin capability, el override NO aplica:
+    const sinCap = reconciliarMaterialServidor(base, (id) => insSinSS[id], catSinSS, { puedeConfirmar: false });
+    expect(sinCap.material_match).not.toBe(MATCH.USER_CONFIRMED);
   });
 });

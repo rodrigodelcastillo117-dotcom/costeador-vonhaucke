@@ -534,14 +534,13 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     const porConfirmar = requiereConfirmacion(comp);
     if (porConfirmar) materialesPorConfirmar.push(comp.nombre || 'Pieza por confirmar');
     const insumo = insumos[comp.insumoId] || comp.insumo;
-    // Sin insumo usable: si es "por confirmar" (crítico/ambiguo/candidato sin id) ya quedó
-    // registrado arriba; si no, es un hueco de datos → PENDIENTE (no $0).
+    // Sin insumo (crítico/ambiguo/candidato sin id): ya quedó en materialesPorConfirmar; no se
+    // duplica como "sin material" (su pendiente es "confirmar", no "hueco de datos").
     if (!insumo) { if (!porConfirmar) componentesIgnorados.push(comp.nombre || 'Pieza sin material'); continue; }
-    // VH-017: insumo PRESENTE pero sin precio usable = PENDIENTE DE PRECIO, no $0.
-    // Entra a la misma lista que un material faltante → el costeo queda INCOMPLETO
-    // y la emisión se bloquea. (Un precio 0 declarado SÍ es conocido, §7; un $0
-    // por decisión se marca con comp.excluida, atendido arriba.)
-    if (!precioUsable(insumo)) { if (!porConfirmar) componentesIgnorados.push(comp.nombre || insumo.nombre || 'Material sin precio'); continue; }
+    // P0.15: insumo PRESENTE pero SIN precio usable = PENDIENTE DE PRECIO, SIEMPRE (aunque además
+    // esté "por confirmar"). Así una partida provisional sin precio muestra AMBOS problemas:
+    // "por confirmar material" Y "sin precio" — nunca se oculta uno tras "Costo provisional".
+    if (!precioUsable(insumo)) { componentesIgnorados.push(comp.nombre || insumo.nombre || 'Material sin precio'); continue; }
     if (!grupos[comp.insumoId]) {
       grupos[comp.insumoId] = { insumo, comps: [] };
       orden.push(comp.insumoId);

@@ -30,7 +30,7 @@ const PROHIBIDOS = /^(margen|precio|preciobase|precioreal|preciounitario|costo|c
 // Se EXCLUYE a propósito `excluida`: marcar una partida como $0 es una decisión
 // comercial que vive en la Cotización (con confirmación humana), no en la intención
 // cruda de costeo — dejar que el cliente la mande aquí sería una fuga fail-OPEN.
-const COMP_PERMITIDOS = ['insumoId', 'nombre', 'cantidad', 'largoMM', 'anchoMM', 'piezas', 'hojas', 'material_solicitado', 'material_match', 'material_confirmado'];
+const COMP_PERMITIDOS = ['insumoId', 'nombre', 'cantidad', 'largoMM', 'anchoMM', 'piezas', 'hojas', 'material_solicitado', 'material_match', 'material_confirmado', 'engineering_override', 'override_motivo'];
 
 // MATERIAL_PENDING (P0-05): estados de match en los que la IA NO asignó insumoId
 // porque el catálogo no tiene la familia/precio. El componente NO se inventa ni se
@@ -135,6 +135,10 @@ export function validarIntentCosteo(body) {
       // match. El servidor lo convierte a estado efectivo (USER_CONFIRMED) sólo si el insumoId
       // existe; jamás se deriva de material_match='USER_CONFIRMED' mandado por el browser.
       if (campo === 'material_confirmado') { if (c.material_confirmado === true) limpio.material_confirmado = true; continue; }
+      // ENGINEERING_OVERRIDE (cross-family): intención booleana + motivo auditable. El servidor
+      // sólo lo HONRA con capability Diseño/Dirección (índice/reconcile); aquí sólo se sanea.
+      if (campo === 'engineering_override') { if (c.engineering_override === true) limpio.engineering_override = true; continue; }
+      if (campo === 'override_motivo') { if (typeof c.override_motivo === 'string' && c.override_motivo.trim()) limpio.override_motivo = c.override_motivo.trim().slice(0, 300); continue; }
       limpio[campo] = c[campo];
     }
     // Normaliza el pendiente: insumoId='' explícito + bandera para UI/motor.

@@ -92,12 +92,20 @@ export function puedeConfirmarMaterial(rol) {
 //    no emitible), nunca legacy automático. `LEGACY_SELECTED` sólo se origina desde una
 //    PROVENANCE SERVER-SIDE confiable (`opts.origenLegacyConfiable`, que el cliente no puede
 //    fijar). Con confirmación válida → USER_CONFIRMED. insumoId inválido → NOT_AVAILABLE.
-// `opts.puedeConfirmar` y `opts.origenLegacyConfiable` los decide el servidor; por defecto FALSE.
-export function reconciliarMaterialServidor(comp = {}, resolver, catalogo = null, { puedeConfirmar = false, origenLegacyConfiable = false } = {}) {
+//  · P0.12: `material_solicitado` TAMBIÉN es client-controlled. El servidor NO declara EXACT
+//    (emitible sin confirmar) sólo porque el browser mande un solicitado coherente con el
+//    insumoId. EXACT requiere PROVENANCE server-side de la especificación (`origenSpecConfiable`);
+//    sin ella, una coincidencia exacta se degrada a provisional (SAME_FAMILY_COMPATIBLE_PROPOSED,
+//    por confirmar). Con confirmación válida o provenance, sí EXACT/USER_CONFIRMED.
+//  · Cross-family: la confirmación estándar NO promueve una sustitución de otra familia; eso
+//    exige `engineering_override` (+ capability). El servidor sólo lo honra con capability.
+// `opts.{puedeConfirmar,origenLegacyConfiable,origenSpecConfiable}` los decide el servidor; default FALSE.
+export function reconciliarMaterialServidor(comp = {}, resolver, catalogo = null, { puedeConfirmar = false, origenLegacyConfiable = false, origenSpecConfiable = false } = {}) {
   const solicitado = String(comp.material_solicitado || '').trim();
   const idTxt = String(comp.insumoId || '').trim();
   const existe = idTxt ? (resolver ? resolver(idTxt) : null) : null;
   const confirmar = comp.material_confirmado === true && puedeConfirmar === true; // capability real
+  const overrideOK = comp.engineering_override === true && puedeConfirmar === true; // cross-family sólo con capability
 
   // SIN reclamo de material (no hay material_solicitado).
   if (!solicitado) {
@@ -126,14 +134,27 @@ export function reconciliarMaterialServidor(comp = {}, resolver, catalogo = null
     insumoId: comp.insumoId,
     nombre: comp.nombre,
     material_solicitado: solicitado,
-    material_confirmado: confirmar,        // sólo si hay capability (P0.9)
+    material_confirmado: confirmar,                 // sólo si hay capability (P0.9)
+    engineering_override: overrideOK,               // cross-family sólo con capability
+    override_motivo: comp.override_motivo,
     cantidad: comp.cantidad,
   }, resolver, catalogo);
+
+  let claseEf = pol.material_match;
+  let idEf = pol.insumoId;
+  let matchEf = pol._match;
+  // P0.12: EXACT desde una spec SIN provenance server-side (y sin confirmación) NO es autoridad
+  // de emisión. Se degrada a provisional "por confirmar" (sigue costeando, pero no emite).
+  if (claseEf === MATCH.EXACT && !origenSpecConfiable && !confirmar) {
+    claseEf = MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED;
+    matchEf = { ...matchEf, clase: claseEf, autollenado: true,
+      motivo: 'Coincidencia exacta PROPUESTA: la especificación la envió el cliente (sin provenance server-side). Requiere confirmación antes de emitir.' };
+  }
   return {
     ...comp,
-    insumoId: pol.insumoId,               // efectivo (vacío si no autocosteable)
-    material_match: pol.material_match,   // EFECTIVO: autoridad del servidor, no del browser
-    _match: pol._match,
+    insumoId: idEf,                       // efectivo (vacío si no autocosteable)
+    material_match: claseEf,              // EFECTIVO: autoridad del servidor, no del browser
+    _match: matchEf,
   };
 }
 
@@ -239,20 +260,74 @@ function espesorPanelCompatible(solicitado, insumoNombre) {
   return A.every((a) => B.every((b) => a === b || PARES_ESPESOR_PANEL_COMPATIBLE.has(parEspesor(a, b))));
 }
 
-// ¿El conflicto de atributo entre lo pedido y el candidato es CRÍTICO (ingeniería) o
-// COMPATIBLE (inocuo para estimar)? Determinista, por familia + REGLA EXPLÍCITA de espesor.
+// P0.13 — IDENTIDAD DE PERFIL/METAL. redondo ≠ cuadrado ≠ rectangular ≠ lámina, y dimensiones
+// de perfil distintas (1"x2" vs 3"x1½") NO son el mismo artículo aunque coincida familia/calibre.
+function formaMetal(texto = '') {
+  const t = String(texto).toLowerCase();
+  if (/l[aá]mina|lamina|placa|plate|sheet/.test(t)) return 'lamina';
+  if (/redond|circular|\bround\b/.test(t)) return 'redondo';
+  if (/cuadrad|\bsquare\b/.test(t)) return 'cuadrado';
+  if (/rectangul/.test(t)) return 'rectangular';
+  if (/\bptr\b|tubular|\btubo\b|perfil/.test(t)) return 'tubo';
+  return '';
+}
+function dimsPerfil(texto = '') {
+  const t = String(texto).toLowerCase();
+  return (t.match(/\d+(?:\s*\/\s*\d+)?\s*["']?\s*x\s*\d+(?:\s*\/\s*\d+)?/g) || []).map((s) => s.replace(/[\s"']/g, ''));
+}
+function conflictoPerfilMetal(a = '', b = '') {
+  const fa = formaMetal(a), fb = formaMetal(b);
+  if (fa && fb && fa !== fb) return true;                 // lámina vs tubo, redondo vs cuadrado, etc.
+  const da = dimsPerfil(a), db = dimsPerfil(b);
+  if (da.length && db.length && !da.some((x) => db.includes(x))) return true; // 1x2 vs 3x1½
+  return false;
+}
+
+// P0.14 — VARIANTE/ACABADO/COLOR. Misma familia + mismo espesor NO basta: melamina blanca 19 ≠
+// melamina color/madera 19. Si lo pedido nombra un color/acabado concreto que el insumo NO tiene,
+// es una variante distinta (por confirmar), no EXACT.
+const COLORES = [
+  ['blanco', /\bblanc[oa]s?\b|white/], ['negro', /\bnegr[oa]s?\b|black/], ['nogal', /nogal|walnut/],
+  ['roble', /roble|\boak\b/], ['gris', /\bgris\b|gray|grey/], ['antracite', /antracit[ea]/],
+  ['maple', /maple|\barce\b/], ['cedro', /cedro/], ['wengue', /wengu[eé]/], ['haya', /\bhaya\b|beech/],
+];
+function coloresDe(texto = '') {
+  const t = String(texto).toLowerCase();
+  const out = new Set();
+  for (const [k, re] of COLORES) if (re.test(t)) out.add(k);
+  if (/\bcolor\b|madera|wood/.test(t)) out.add('_madera_generico');  // "color/madera" = cualquier madera
+  return out;
+}
+function conflictoAcabadoColor(solicitado = '', insumoNombre = '') {
+  const A = coloresDe(solicitado), B = coloresDe(insumoNombre);
+  const MADERAS = new Set(['nogal', 'roble', 'maple', 'cedro', 'wengue', 'haya', 'antracite']);
+  for (const c of A) {
+    if (c === '_madera_generico') continue;               // lo pedido genérico no exige color exacto
+    if (B.has(c)) continue;                                // el color pedido está en el insumo
+    if (B.has('_madera_generico') && MADERAS.has(c)) continue; // pidió madera concreta, insumo es "color/madera"
+    return true;                                           // p.ej. pidió BLANCO y el insumo es color/madera
+  }
+  return false;
+}
+
+// ¿El conflicto de atributo entre lo pedido y el candidato es CRÍTICO (ingeniería), COMPATIBLE
+// (inocuo para estimar) o sólo VARIANTE (acabado/color, por confirmar)? Determinista.
 function severidadConflicto(fam, solicitado = '', insumoNombre = '') {
   const confEsp = conflictoEspesor(solicitado, insumoNombre);
   const confCal = conflictoCalibre(solicitado, insumoNombre);
-  if (!confEsp && !confCal) return { conflicto: false, critico: false };
-  // Calibre distinto, o familia estructural (acero/aluminio/vidrio) → SIEMPRE crítico.
-  if (confCal || FAMILIAS_CRITICAS.has(fam)) return { conflicto: true, critico: true };
+  const confPerfil = FAMILIAS_CRITICAS.has(fam) && conflictoPerfilMetal(solicitado, insumoNombre); // P0.13
+  const confColor = conflictoAcabadoColor(solicitado, insumoNombre);                                // P0.14
+  if (!confEsp && !confCal && !confPerfil && !confColor) return { conflicto: false, critico: false };
+  // Calibre/perfil distinto, o familia estructural con cualquier conflicto → SIEMPRE crítico.
+  if (confCal || confPerfil || FAMILIAS_CRITICAS.has(fam)) return { conflicto: true, critico: true };
   // Tablero con espesor distinto: COMPATIBLE sólo si el par está en la lista APROBADA (18↔19).
-  // Cualquier otro salto (28→19, 36→19, 16→19, 9→19) u otra familia con conflicto → CRÍTICO.
-  if (FAMILIAS_PANEL.has(fam) && espesorPanelCompatible(solicitado, insumoNombre)) {
-    return { conflicto: true, critico: false };
+  if (confEsp) {
+    if (FAMILIAS_PANEL.has(fam) && espesorPanelCompatible(solicitado, insumoNombre)) return { conflicto: true, critico: false };
+    return { conflicto: true, critico: true };
   }
-  return { conflicto: true, critico: true };
+  // Sólo difiere acabado/color (sin espesor/calibre/perfil): VARIANTE por confirmar (no EXACT,
+  // no crítica de ingeniería). Entra como provisional.
+  return { conflicto: true, critico: false };
 }
 
 // Texto legible de qué cambió, p.ej. "Solicitado 18 mm → candidato 19 mm" o
@@ -266,6 +341,9 @@ function textoCambio(solicitado = '', insumoNombre = '') {
   if (cA.length && cB.length && !cA.some((x) => cB.includes(x))) {
     return `Solicitado cal.${cA.join('/')} → candidato cal.${cB.join('/')}`;
   }
+  const fa = formaMetal(solicitado), fb = formaMetal(insumoNombre);
+  if (fa && fb && fa !== fb) return `Solicitado perfil ${fa} → candidato ${fb}`;
+  if (conflictoAcabadoColor(solicitado, insumoNombre)) return 'Acabado/color distinto al solicitado';
   return '';
 }
 
@@ -511,14 +589,28 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
   let resuelto = insumoNombre || '';
   let autollenado = false;
 
-  // Confirmación humana explícita: sólo entonces un candidato conocido puede
-  // entrar al BOM económico (se promueve a USER_CONFIRMED).
+  // Confirmación humana explícita: promueve a USER_CONFIRMED. GUARD CROSS-FAMILY: una
+  // confirmación ESTÁNDAR NO puede promover una sustitución de OTRA familia (solid surface →
+  // MDF). Eso exige un ENGINEERING_OVERRIDE explícito (+ capability server-side + motivo
+  // auditable). Sin override, la confirmación de un cruce de familia se IGNORA y queda como
+  // sustitución bloqueada.
   if (pieza?.material_confirmado === true && existe) {
-    insumoIdFinal = id;
-    candidatoId = id;
-    clase = MATCH.USER_CONFIRMED;
-    cambio = '';
-    motivo = `Material confirmado por usuario: ${existe.nombre || id}.`;
+    const famPide = familiaDeMaterial(solicitado);
+    const famTiene = familiaDeMaterial(insumoNombre || id);
+    const cruzaFamilia = !!famPide && !!famTiene && famPide !== famTiene
+      && !EQUIVALENCIAS_APROBADAS.has(`${famPide}>${famTiene}`);
+    if (cruzaFamilia && pieza?.engineering_override !== true) {
+      // NO se promueve: queda la clase de sustitución (no emitible). Se deja rastro.
+      motivo = `Confirmación estándar NO promueve una sustitución de otra familia (${famPide.replace(/_/g, ' ')} → ${famTiene.replace(/_/g, ' ')}): requiere ENGINEERING_OVERRIDE de Diseño/Dirección con motivo.`;
+    } else {
+      insumoIdFinal = id;
+      candidatoId = id;
+      clase = MATCH.USER_CONFIRMED;
+      cambio = '';
+      motivo = cruzaFamilia
+        ? `Sustitución entre familias CONFIRMADA por ingeniería (override): ${famPide.replace(/_/g, ' ')} → ${existe.nombre || id}. Motivo: ${String(pieza?.override_motivo || '').slice(0, 300) || '(sin motivo)'}.`
+        : `Material confirmado por usuario: ${existe.nombre || id}.`;
+    }
   }
 
   // RED DE SEGURIDAD: material NOMBRADO sin id del LLM → busca en la MISMA familia.

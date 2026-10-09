@@ -117,13 +117,15 @@ Deno.serve(async (req) => {
   // gate: el motor verá la clase real y `costeoEmitible` bloqueará la emisión.
   const resolver = (id: string) => (insumos as any)[id];
   const catalogoVals = Object.values(insumos as any) as any;
-  // origenLegacyConfiable=false SIEMPRE en este edge interactivo (P0.10): un request nuevo NO
-  // tiene provenance legacy confiable, así que la ausencia de material_solicitado NUNCA produce
-  // LEGACY_SELECTED aquí — queda pendiente de confirmación. (Un futuro flujo que RE-COSTEE un
-  // expediente guardado verificado server-side sería el único que podría pasar true.)
+  // origenLegacyConfiable=false y origenSpecConfiable=false SIEMPRE en este edge interactivo:
+  //  · P0.10: un request nuevo NO tiene provenance legacy → ausencia de material_solicitado nunca
+  //    produce LEGACY_SELECTED (queda pendiente de confirmación).
+  //  · P0.12: la especificación (material_solicitado) la manda el browser → NO tiene provenance
+  //    server-side, así que una coincidencia "exacta" NO otorga EXACT emitible: queda provisional.
+  // (Un futuro flujo que RE-COSTEE un expediente/análisis verificado server-side podría pasar true.)
   const piezaReconciliada = {
     ...pieza,
-    componentes: comps0.map((c: any) => reconciliarMaterialServidor(c, resolver, catalogoVals, { puedeConfirmar, origenLegacyConfiable: false })),
+    componentes: comps0.map((c: any) => reconciliarMaterialServidor(c, resolver, catalogoVals, { puedeConfirmar, origenLegacyConfiable: false, origenSpecConfiable: false })),
   };
 
   // --- Mismo motor que el cliente ---
