@@ -28,6 +28,11 @@ describe('ProductSpec · contrato Product Intelligence (ChatGPT §5)', () => {
     expect(p.espesor_mm).toBeNull();            // no se rellenó con 16/18/19
   });
 
+  it('RED-TEAM: espesor 0 o whitespace → PENDING (0 mm es imposible, no se acepta)', () => {
+    expect(parteSpec({ part_id: 'x', cantidad: 1, material: 'melamina', espesor_mm: 0 }).issues).toContain('FALTA_ESPESOR');
+    expect(parteSpec({ part_id: 'x', cantidad: 1, material: 'melamina', espesor_mm: '   ' }).issues).toContain('FALTA_ESPESOR');
+  });
+
   it('pieza que NO requiere espesor (herraje): no pide espesor', () => {
     const p = parteSpec({ part_id: 'h1', nombre: 'Bisagra', cantidad: 2, material: 'acero', requiere_espesor: false });
     expect(p.estado).toBe(ESTADO_DATO.OK);

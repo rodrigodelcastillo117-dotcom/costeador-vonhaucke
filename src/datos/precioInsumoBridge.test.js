@@ -78,6 +78,20 @@ describe('precioInsumoBridge · conecta el catálogo REAL con el resolver', () =
     expect(fechaDeFuenteTexto('ERP, ultima compra')).toBeNull();   // sin fecha → null (no se inventa)
   });
 
+  it('RED-TEAM MEDIUM: un FOLIO/OC (8 dígitos sin contexto de fecha) NO se vuelve fecha', () => {
+    expect(fechaDeFuenteTexto('Compras folio 15032026')).toBeNull();     // folio, no fecha
+    expect(fechaDeFuenteTexto('OC 01022026 proveedor X')).toBeNull();    // OC, no fecha
+    // y por tanto NO promueve un precio a REAL_OBSERVED_DATED
+    const r = resolverPrecioInsumo('x', { precio: 100, unidad: 'pz', fuente: 'Compras folio 15032026' }, { hoy: '2026-10-09' });
+    expect(r.source_date).toBeNull();
+    expect(r.estado).not.toBe(ESTADO_PRECIO.REAL_OBSERVED_DATED);
+  });
+
+  it('RED-TEAM: fecha de calendario inválida se rechaza (no "2026-13-45", no 31 de un mes de 30)', () => {
+    expect(fechaDeFuenteTexto('al 31092026.xlsx')).toBeNull();   // 31 de septiembre no existe
+    expect(fechaDeFuenteTexto('fecha 2026-13-45')).toBeNull();   // mes/día imposibles
+  });
+
   it('cobertura: el catálogo real resuelve mayoría REAL_OBSERVED/CURRENT (no PENDING masivo)', () => {
     let pending = 0; let real = 0;
     for (const [id, ins] of Object.entries(CAT)) {

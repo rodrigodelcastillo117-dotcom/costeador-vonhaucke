@@ -52,4 +52,21 @@ describe('BOMGenerator · despiece determinista desde ProductSpec (ChatGPT §6)'
   it('spec sin partes → PRELIMINAR', () => {
     expect(generarBOM(construirProductSpec({ partes: [] })).estado).toBe('PRELIMINAR');
   });
+
+  it('RED-TEAM HIGH: merma FUERA DE RANGO (negativa o ≥100) → MERMA_INVALIDA + PENDING (no se traga)', () => {
+    for (const mala of [-5, 100, 120]) {
+      const bom = generarBOM(specCubierta(), { resolverMaterial: () => 'melamina-19', reglaMerma: () => mala });
+      const l = bom.lineas[0];
+      expect(l.issues, `merma ${mala}`).toContain('MERMA_INVALIDA');
+      expect(l.consumo_bruto).toBeNull();
+      expect(l.estado).toBe(ESTADO_DATO.PENDING);
+      expect(bom.estado).toBe('PRELIMINAR');            // NUNCA COMPLETO con merma inválida
+    }
+  });
+
+  it('RED-TEAM: merma 0% válida → bruto = neto (sin merma), línea OK', () => {
+    const bom = generarBOM(specCubierta(), { resolverMaterial: () => 'melamina-19', reglaMerma: () => 0 });
+    expect(bom.lineas[0].consumo_bruto).toBeCloseTo(0.72, 5);
+    expect(bom.lineas[0].estado).toBe(ESTADO_DATO.OK);
+  });
 });

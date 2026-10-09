@@ -19,14 +19,30 @@ import { resolverPrecioCanonico, explicarPrecio } from './canonicalPriceResolver
 //  · ISO explícita "2026-08-24"
 //  · 8 dígitos tipo nombre de archivo "10082026" (DDMMYYYY) → 2026-08-10
 // Devuelve null si no hay fecha determinista (NO se inventa).
+// Valida que (yyyy,mm,dd) sea una fecha de calendario REAL (día-en-mes correcto).
+function fechaValida(yyyy, mm, dd) {
+  const dt = new Date(Date.UTC(yyyy, mm - 1, dd));
+  return dt.getUTCFullYear() === yyyy && dt.getUTCMonth() === mm - 1 && dt.getUTCDate() === dd;
+}
 export function fechaDeFuenteTexto(fuente = '') {
   const s = String(fuente);
-  const iso = s.match(/(\d{4})-(\d{2})-(\d{2})/);
-  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
-  const ddmmyyyy = s.match(/\b(\d{2})(\d{2})(20\d{2})\b/);   // 10082026 → 2026-08-10
-  if (ddmmyyyy) {
-    const [, dd, mm, yyyy] = ddmmyyyy;
-    if (Number(mm) >= 1 && Number(mm) <= 12 && Number(dd) >= 1 && Number(dd) <= 31) return `${yyyy}-${mm}-${dd}`;
+  // ISO explícita, con validación de calendario (evita "2026-13-45").
+  const iso = s.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+  if (iso) {
+    const [, y, m, d] = iso.map(Number);
+    return fechaValida(y, m, d) ? `${iso[1]}-${iso[2]}-${iso[3]}` : null;
+  }
+  // DDMMYYYY (p.ej. nombre de archivo ERP "…al 10082026.xlsx") SÓLO en contexto
+  // de FECHA: precedido por al/del/fecha/compra, o inmediatamente seguido por una
+  // extensión de archivo. Un folio/OC/SKU suelto ("folio 15032026") NO es fecha
+  // y NO debe fabricar un source_date (red-team MEDIUM).
+  const ctx = s.match(/\b(?:al|del|fecha|compra)\s+(\d{2})(\d{2})(20\d{2})\b/i)
+           || s.match(/(?:^|[\s_-])(\d{2})(\d{2})(20\d{2})\.(?:xlsx|xls|pdf|csv)\b/i);
+  if (ctx) {
+    const dd = Number(ctx[1]); const mm = Number(ctx[2]); const yyyy = Number(ctx[3]);
+    if (fechaValida(yyyy, mm, dd)) {
+      return `${yyyy}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
+    }
   }
   return null;
 }

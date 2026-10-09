@@ -45,7 +45,7 @@ export function origenDeProcedencia(procedencia) {
 }
 
 const txt = (v) => String(v ?? '').trim();
-const num = (v) => { if (v === null || v === undefined || v === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
+const num = (v) => { if (v === null || v === undefined) return null; if (typeof v === 'string' && v.trim() === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
 const clamp01 = (v) => { const n = Number(v); return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : null; };
 
 /**
@@ -70,7 +70,9 @@ export function observedItem(raw = {}) {
 
   // CANTIDAD DE MUEBLES ≠ CAPACIDAD (puestos). ChatGPT #4: 4 benches × 2 usuarios
   // = 8 puestos, no "8 benches". quantity = unidades de mueble; capacity_per_unit
-  // = personas por mueble; capacity_total = puestos. Si no se da capacidad, es 1:1.
+  // = personas por mueble; capacity_total = puestos. Si NO se da capacidad explícita
+  // (ni total ni por-unidad), capacity_total queda null (NO se asume 1:1: inventar
+  // capacidad inflaría los puestos). El caller que la necesite la declara.
   const quantity = num(raw.quantity ?? raw.quantity_group ?? raw.cantidad) ?? null;
   const capacityPer = num(raw.capacity_per_unit ?? raw.capacidad_por_unidad);
   const capacityTotal = num(raw.capacity_total ?? raw.capacidad_total)

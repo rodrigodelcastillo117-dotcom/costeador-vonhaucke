@@ -26,7 +26,7 @@ export const FUENTE_FX = Object.freeze({
 });
 
 const txt = (v) => String(v ?? '').trim();
-const num = (v) => { if (v === null || v === undefined || v === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
+const num = (v) => { if (v === null || v === undefined) return null; if (typeof v === 'string' && v.trim() === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
 const fechaMs = (v) => { const s = txt(v); if (!s) return null; const t = Date.parse(s); return Number.isFinite(t) ? t : null; };
 
 const PRIORIDAD = { BANXICO: 100, FACTURA: 80, POLITICA: 50, PROVISIONAL: 10 };

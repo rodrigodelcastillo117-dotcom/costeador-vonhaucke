@@ -26,7 +26,7 @@ export const CAUSA_DIFERENCIA = Object.freeze({
   DATO_FALTANTE: 'DATO_FALTANTE',   // un lado no tiene el dato
 });
 
-const num = (v) => { if (v === null || v === undefined || v === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
+const num = (v) => { if (v === null || v === undefined) return null; if (typeof v === 'string' && v.trim() === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
 
 // Campos de rubro (nivel total) → causa cuando difieren.
 const RUBRO_CAUSA = {

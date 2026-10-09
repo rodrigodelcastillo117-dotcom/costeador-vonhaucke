@@ -70,7 +70,10 @@ function mejorQue(a, b) {
  * }}
  */
 export function resolverPrecioCanonico(canonicalId, observaciones = [], opts = {}) {
-  const hoyMs = opts.hoy != null ? (fechaMs(opts.hoy) ?? new Date(opts.hoy).getTime()) : Date.now();
+  // `hoy` inválido NO debe degradar silenciosamente todo a HISTORICAL: si no
+  // parsea, se usa ahora (red-team LOW).
+  const hoyParsed = opts.hoy != null ? (fechaMs(opts.hoy) ?? new Date(opts.hoy).getTime()) : Date.now();
+  const hoyMs = Number.isFinite(hoyParsed) ? hoyParsed : Date.now();
   const id = String(canonicalId ?? '').trim();
 
   const base = {
@@ -131,7 +134,14 @@ export function resolverPrecioCanonico(canonicalId, observaciones = [], opts = {
       else if (o.intrinseco === INTRINSECO.REAL || o.intrinseco === INTRINSECO.VERIFIED) est = ESTADO_PRECIO.HISTORICAL;
       return { estado: est, precio: o.precio, source_date: o.source_date, fuente: o.fuente, source_document: o.source_document, supplier: o.supplier };
     })
-    .sort((a, b) => (fechaMs(b.source_date) ?? -Infinity) - (fechaMs(a.source_date) ?? -Infinity));
+    .sort((a, b) => {
+      // Comparador determinista: evita NaN cuando ambas fechas son null (red-team).
+      const fa = fechaMs(a.source_date); const fb = fechaMs(b.source_date);
+      const va = fa == null ? -Infinity : fa; const vb = fb == null ? -Infinity : fb;
+      if (va !== vb) return vb - va;
+      const da = String(a.source_document || ''); const db = String(b.source_document || '');
+      return da < db ? -1 : da > db ? 1 : 0;
+    });
 
   return {
     canonical_insumo_id: id,
@@ -199,7 +209,9 @@ export function explicarPrecio(resolucion, nombreInsumo = '') {
     return `Sin precio con evidencia suficiente${nombreInsumo ? ` para ${nombreInsumo}` : ''}. Falta fuente real; no se emite costo oficial.`;
   }
   const money = (n, m) => `$${Number(n).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}${m && m !== 'MXN' ? ` ${m}` : ''}`;
-  const fecha = resolucion.source_date
+  // Una fecha presente pero ilegible NO debe renderizar "Invalid Date" (red-team).
+  const fechaOk = resolucion.source_date != null && Number.isFinite(Date.parse(resolucion.source_date));
+  const fecha = fechaOk
     ? new Date(resolucion.source_date).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })
     : 'sin fecha';
   // Encabeza con el TIPO DE FUENTE real (no un genérico "Compra real").

@@ -184,6 +184,19 @@ describe('CanonicalPriceResolver · selección determinista', () => {
     const b = resolverPrecioCanonico('melamina-ecolegno-19mm', [COMPRA_544], { hoy: HOY });
     expect(a).toEqual(b);
   });
+
+  it('RED-TEAM LOW: `hoy` inválido NO degrada un vigente a histórico (usa ahora)', () => {
+    const verificado = { ...COMPRA_544, precio: 530, source_date: '2026-08-01', validity: '2099-12-31', source_document: 'LISTA' };
+    const r = resolverPrecioCanonico('melamina-ecolegno-19mm', [verificado], { hoy: 'no-es-fecha' });
+    expect(r.estado).toBe(ESTADO_PRECIO.CURRENT_VERIFIED);   // vigencia 2099 cubre "ahora"
+  });
+
+  it('RED-TEAM LOW: explicarPrecio con source_date ilegible → "sin fecha", nunca "Invalid Date"', () => {
+    const r = resolverPrecioCanonico('x', [{ canonical_insumo_id: 'x', precio: 10, unidad_compra: 'pz', fuente: FUENTE_PRECIO.COMPRA_REAL, source_document: 'bogus', source_date: '1234-56-78' }], { hoy: HOY });
+    const t = explicarPrecio(r, 'Pieza');
+    expect(t).not.toMatch(/Invalid Date/);
+    expect(t).toMatch(/sin fecha/);
+  });
 });
 
 // ============================================================================

@@ -22,7 +22,7 @@ export const ESTADO_DATO = Object.freeze({
 
 const txt = (v) => String(v ?? '').trim();
 // null/undefined/'' → null (NO 0; Number(null)===0 metería un dato falso).
-const num = (v) => { if (v === null || v === undefined || v === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
+const num = (v) => { if (v === null || v === undefined) return null; if (typeof v === 'string' && v.trim() === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
 
 /**
  * Normaliza UNA parte del despiece. Marca su estado SIN inventar:
@@ -66,7 +66,8 @@ export function parteSpec(raw = {}) {
   // Material ambiguo (varias opciones sin una solicitada) o ausente → PENDING.
   if (!out.material_solicitado) issues.push(out.material_opciones.length > 1 ? 'MATERIAL_AMBIGUO' : 'FALTA_MATERIAL');
   // Espesor/calibre no visible cuando el tipo lo requiere → PENDING (no default).
-  if (out.requiere_espesor && out.espesor_mm == null && !out.calibre) issues.push('FALTA_ESPESOR');
+  // Un espesor 0 o negativo es imposible → también PENDING (red-team).
+  if (out.requiere_espesor && !(out.espesor_mm > 0) && !out.calibre) issues.push('FALTA_ESPESOR');
 
   const estado = issues.length ? ESTADO_DATO.PENDING : ESTADO_DATO.OK;
   return { ...out, issues, estado };

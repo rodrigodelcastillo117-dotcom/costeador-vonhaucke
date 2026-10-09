@@ -23,7 +23,7 @@ export const UNIDAD_CONSUMO = Object.freeze({
 });
 
 // null/undefined/'' → null (NO 0; Number(null)===0 causaría una merma mágica de 0%).
-const num = (v) => { if (v === null || v === undefined || v === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
+const num = (v) => { if (v === null || v === undefined) return null; if (typeof v === 'string' && v.trim() === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
 
 // Consumo NETO geométrico de una parte, según su unidad de consumo.
 function consumoNeto(parte, unidad) {
@@ -71,9 +71,13 @@ export function generarBOM(spec, opts = {}) {
     if (consumo_neto == null) issues.push('CONSUMO_NETO_INDETERMINADO');
 
     // 4) Merma: SÓLO por regla canónica. Sin regla → bruto PENDING (no mágica).
+    //    Una merma FUERA DE RANGO (negativa o ≥100) es un dato inválido: NO se
+    //    ignora ni se aplica — se marca MERMA_INVALIDA → PENDING (red-team HIGH).
     const merma_pct = num(reglaMerma(parte));
     let consumo_bruto = null;
-    if (consumo_neto != null && merma_pct != null && merma_pct >= 0 && merma_pct < 100) {
+    if (merma_pct != null && (merma_pct < 0 || merma_pct >= 100)) {
+      issues.push('MERMA_INVALIDA');
+    } else if (consumo_neto != null && merma_pct != null) {
       consumo_bruto = +(consumo_neto / (1 - merma_pct / 100)).toFixed(6);
     } else if (consumo_neto != null && merma_pct == null) {
       issues.push('MERMA_SIN_REGLA');
