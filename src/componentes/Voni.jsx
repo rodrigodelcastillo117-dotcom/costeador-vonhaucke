@@ -14,7 +14,7 @@ import EditarPartida from './EditarPartida.jsx';
 import EmpezarEspacio from './EmpezarEspacio.jsx';
 import { leerPlanoDeArchivo } from '../datos/leerPlanoArchivo.js';
 import { areasCanonicas, bloqueGeometria } from '../datos/floorPlan.js';
-import { proponerProgramaDelPlano, proponerProgramaDesdeObservado, programRequirementsDesdeObservado, propuestaSilleriaSugerida, silleriaPendiente, aplicarPrograma, programaTieneAplicacionPendiente } from '../datos/programaRealDelPlano.js';
+import { proponerProgramaDelPlano, proponerProgramaDesdeObservado, programRequirementsDesdeObservado, propuestaSilleriaSugerida, silleriaPendiente, resolverAplicacionAtomica } from '../datos/programaRealDelPlano.js';
 import { requirementsDeBrief } from '../datos/programaBrief.js';
 import Cargando from './Cargando.jsx';
 import EstoEntendi from './EstoEntendi.jsx';
@@ -206,12 +206,19 @@ export default function Voni({
     },
     [areasDelProyecto, cot.programaBrief, cot.acomodo],
   );
-  const reconPrograma = useMemo(
-    () => (propuestaPrograma?.propuesta && !propuestaPrograma.requiereRevision ? aplicarPrograma(propuestaPrograma.propuesta, { existentes: partidas }) : null),
+  // P0-R15-M/N: UNA SOLA AUTORIDAD de aplicación (la MISMA que Acomodo). `committed` ⇒
+  // aplicar produciría un write REAL contra las partidas actuales: producto NUEVO
+  // (`nuevas`) Y/O enriquecimiento estructural de un existente (`enriquecidos`). El botón,
+  // la tarjeta y el mensaje de "aplicar programa" derivan TODOS de aquí — no sólo de los
+  // productos nuevos (`faltantesPrograma`), para que un enrichment-only sea accionable.
+  const aplicacionPrograma = useMemo(
+    () => (propuestaPrograma?.propuesta ? resolverAplicacionAtomica(propuestaPrograma.propuesta, { existentes: partidas }) : null),
     [propuestaPrograma, partidas],
   );
-  const faltantesPrograma = reconPrograma ? reconPrograma.confirmacion.confirmadas : [];
-  const conflictosPrograma = reconPrograma ? reconPrograma.conflictos : [];
+  const aplicacionPendientePrograma = !!aplicacionPrograma?.committed;
+  const faltantesPrograma = aplicacionPrograma?.nuevas || [];          // productos NUEVOS (lista display)
+  const enriquecidosPrograma = aplicacionPrograma?.enriquecidos?.length || 0;
+  const conflictosPrograma = aplicacionPrograma?.conflictos || [];
   const pendientesPrograma = propuestaPrograma ? (propuestaPrograma.propuesta?.pendientes || []) : [];
   // P0-R9-5: los pendientes del OBSERVADO (sillas sin ancla, amenidades, roles sin
   // vocabulario) y las anclas que NO coinciden en geometría (NEEDS_CONFIRMATION)
@@ -235,14 +242,10 @@ export default function Voni({
   const sillasPorConfirmar = (propuestaPrograma?.requiereConfirmacionSillas === true)
     && silleriaPendiente(recomendacionesObs, partidas);
   const lineaPrograma = (reqBrief && reqBrief.linea) || 'App LT';
-  // P0-R15-L: el programa observado puede tener mobiliario DETECTADO pero AÚN NO APLICADO
-  // a la cotización (producto nuevo O enriquecimiento estructural). OBSERVED ≠ CONFIRMED:
-  // no se puede cerrar la propuesta final hasta aplicarlo. Se consulta la MISMA autoridad
-  // que usa Acomodo (`programaTieneAplicacionPendiente` → `resolverAplicacionAtomica`),
-  // para que Voni y Acomodo no diverjan.
-  const aplicacionPendientePrograma = programaTieneAplicacionPendiente(propuestaPrograma, partidas);
-  // R15-A: GATE ÚNICO para entrar a la PROPUESTA FINAL (paso 4). TODAS las rutas
-  // (stepper, botones, omitir, onIr) deben pasar por aquí — no sólo `disabled`.
+  // P0-R15-L: OBSERVED ≠ CONFIRMED — no se puede cerrar la propuesta final mientras quede
+  // aplicación pendiente (`aplicacionPendientePrograma`, de la autoridad atómica compartida
+  // con Acomodo). R15-A: GATE ÚNICO para entrar a la PROPUESTA FINAL (paso 4). TODAS las
+  // rutas (stepper, botones, omitir, onIr) deben pasar por aquí — no sólo `disabled`.
   const puedeEntrarPropuesta = hay && !programaRequiereRevision && !sillasPorConfirmar
     && conflictosPrograma.length === 0 && !aplicacionPendientePrograma;
   const irAPropuesta = () => { if (puedeEntrarPropuesta) setPaso(4); };
@@ -350,7 +353,7 @@ export default function Voni({
           lleve derecho ahí, sin un clic de más. */}
       {paso === 2 && (
         <>
-          {propuestaPrograma && (faltantesPrograma.length > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0 || observadoPendientes.length > 0 || anclasPorConfirmar.length > 0 || dependientesPorConfirmar.length > 0 || recomendacionesObs.length > 0) && (
+          {propuestaPrograma && (faltantesPrograma.length > 0 || enriquecidosPrograma > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0 || observadoPendientes.length > 0 || anclasPorConfirmar.length > 0 || dependientesPorConfirmar.length > 0 || recomendacionesObs.length > 0) && (
             <div className="tarjeta no-imprimir" style={{ borderColor: '#8bbcaf', background: '#eef6f3' }}>
               <strong style={{ color: '#174f45' }}>✨ Programa detectado del plano</strong>
               <p className="ayuda" style={{ marginTop: 4 }}>
@@ -431,8 +434,13 @@ export default function Voni({
               <div style={{ marginTop: 12 }}>
                 {/* P0-R10-2/R10-3: el apply es un GATE. Si algo afecta identidad/
                     qty/geometría (requiereRevision), NO se puede aplicar solo. */}
+                {/* P0-R15-N: el botón se habilita cuando hay CUALQUIER write legítimo
+                    pendiente (producto nuevo O enriquecimiento estructural), usando la
+                    misma autoridad atómica — no sólo `faltantesPrograma` (nuevos). Así un
+                    enrichment-only (nuevas=0, enriquecidos>0) sí es accionable.
+                    `aplicacionPendientePrograma` ya es false bajo revisión/conflicto. */}
                 <button type="button" className="boton primario"
-                  disabled={!onAplicarPrograma || faltantesPrograma.length === 0 || programaRequiereRevision || conflictosPrograma.length > 0}
+                  disabled={!onAplicarPrograma || !aplicacionPendientePrograma}
                   onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta)}>
                   Aplicar programa detectado
                 </button>
@@ -558,7 +566,10 @@ export default function Voni({
                   {sillasPorConfirmar ? 'Falta confirmar la sillería (modelo por confirmar) para cerrar el programa.'
                     : programaRequiereRevision ? 'Hay mobiliario observado por revisar antes de cerrar el programa.'
                     : conflictosPrograma.length > 0 ? 'Hay conflictos de reconciliación por resolver.'
-                    : aplicacionPendientePrograma ? `Falta aplicar ${faltantesPrograma.length} producto(s) detectado(s) del plano antes de cerrar la propuesta.`
+                    : aplicacionPendientePrograma ? `Falta ${[
+                        faltantesPrograma.length > 0 ? `aplicar ${faltantesPrograma.length} producto(s) nuevo(s)` : null,
+                        enriquecidosPrograma > 0 ? `vincular/actualizar ${enriquecidosPrograma} producto(s) existente(s)` : null,
+                      ].filter(Boolean).join(' y ')} del plano antes de cerrar la propuesta.`
                     : ''}
                 </div>
               )}

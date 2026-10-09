@@ -76,16 +76,22 @@ describe('Voni · encabezado de sillería refleja el estado real (R15-J)', () =>
   });
 });
 
-// P0-R15-L: el gate ÚNICO de Voni (`puedeEntrarPropuesta`) exige que NO haya aplicación
-// pendiente, usando la MISMA autoridad que Acomodo (`programaTieneAplicacionPendiente`
-// → `resolverAplicacionAtomica`), para que Voni y Acomodo no diverjan.
-describe('Voni · el gate de propuesta usa la autoridad compartida de aplicación pendiente (R15-L)', () => {
+// P0-R15-L/N: Voni deriva TODO (gate, botón, tarjeta, mensaje) de la MISMA autoridad
+// atómica que Acomodo (`resolverAplicacionAtomica`): committed ⇒ hay write pendiente
+// (producto nuevo O enriquecimiento). No se decide por `faltantesPrograma` (sólo nuevos).
+describe('Voni · gate + acción de propuesta usan la autoridad atómica compartida (R15-L/N)', () => {
   const voni = fs.readFileSync('src/componentes/Voni.jsx', 'utf8');
-  it('importa y consulta programaTieneAplicacionPendiente', () => {
-    expect(voni).toContain('programaTieneAplicacionPendiente');
-    expect(voni).toContain('const aplicacionPendientePrograma = programaTieneAplicacionPendiente(propuestaPrograma, partidas);');
-  });
-  it('puedeEntrarPropuesta incluye !aplicacionPendientePrograma', () => {
+  it('L: deriva aplicacionPendientePrograma de resolverAplicacionAtomica y el gate lo exige', () => {
+    expect(voni).toContain('resolverAplicacionAtomica(propuestaPrograma.propuesta, { existentes: partidas })');
+    expect(voni).toContain('const aplicacionPendientePrograma = !!aplicacionPrograma?.committed;');
     expect(voni).toContain('&& !aplicacionPendientePrograma');
+  });
+  it('N: el botón "Aplicar programa detectado" se habilita por aplicación pendiente (no por faltantesPrograma)', () => {
+    expect(voni).toContain('disabled={!onAplicarPrograma || !aplicacionPendientePrograma}');
+    // ya NO se usa faltantesPrograma.length como condición de disponibilidad del botón
+    expect(voni).not.toContain('faltantesPrograma.length === 0 || programaRequiereRevision || conflictosPrograma.length > 0}');
+  });
+  it('N: la tarjeta y el mensaje contemplan enriquecimientos (no sólo nuevas)', () => {
+    expect(voni).toContain('enriquecidosPrograma > 0');
   });
 });
