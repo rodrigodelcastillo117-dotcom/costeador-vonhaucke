@@ -345,9 +345,12 @@ export async function acomodarEspacio(areas, piezas) {
 }
 
 // Lee un plano (imagen) y devuelve las áreas con medidas (Claude visión).
-export async function leerPlano(image, mediaType, refMM) {
+export async function leerPlano(image, mediaType, refMM, opts = {}) {
   const { data, error } = await nube.functions.invoke('leer-plano', {
     body: { image, mediaType, refMM },
+    // AbortSignal cuando el caller lo provee (ChatGPT P0-3). Si la versión de
+    // supabase-js no lo soporta, se ignora sin romper.
+    ...(opts && opts.signal ? { signal: opts.signal } : {}),
   });
   if (error) {
     let msg = error.message || 'No se pudo leer el plano.';

@@ -17,6 +17,7 @@ import { pesos, selloPartida } from '../util.js';
 import { sePuedeEditar } from './EditarPartida.jsx';
 import { flagActivo } from '../datos/flags.js';
 import { procedenciaDePartida, resumenProcedencia } from '../datos/provenance.js';
+import { resumenObservado } from '../datos/observedProgram.js';
 
 // Color del pill de procedencia por tono (sin depender de CSS nuevo).
 const TONO_COLOR = {
@@ -45,18 +46,29 @@ const cortito = (d) => {
 };
 
 export default function EstoEntendi({
-  partidas = [], areasM = [], onCantidad, onQuitar, onEditar, onVariante,
+  partidas = [], areasM = [], observedProgram = [], onCantidad, onQuitar, onEditar, onVariante,
 }) {
   const r = loQueEntendi(partidas, areasM);
   const porId = Object.fromEntries(partidas.map((p) => [p.id, p]));
   const voni2 = flagActivo('voni_v2');
   const proc = voni2 ? resumenProcedencia(partidas) : null;
+  // ChatGPT P0-1: si el lector CONSERVÓ un observed_program (la verdad del plano),
+  // se muestra qué vino OBSERVADO del plano vs qué falta CONFIRMAR — en vez de
+  // tratar todo como inferido desde áreas. Capa aditiva sobre la lista existente.
+  const obs = Array.isArray(observedProgram) && observedProgram.length ? resumenObservado(observedProgram) : null;
 
   return (
     <>
       <div className="ee-cab">
         <h3 style={{ margin: 0 }}>Esto entendí</h3>
         {r.titular && <div className="ee-titular">{r.titular}</div>}
+        {obs && (obs.cantidadObservada > 0 || obs.hayPendientesDeConfirmar) && (
+          <div className="ayuda" style={{ marginTop: 4 }} title="Del plano: lo OBSERVADO se detectó; lo sugerido/inferido hay que confirmarlo (no se asume real).">
+            Del plano detecté <strong>{obs.cantidadObservada}</strong> mueble(s) observado(s)
+            {obs.cuartosObservados ? ` y ${obs.cuartosObservados} cuarto(s)` : ''}
+            {obs.hayPendientesDeConfirmar ? ' · hay elementos por confirmar' : ''}.
+          </div>
+        )}
       </div>
       <p className="ayuda columna-texto" style={{ marginTop: 2 }}>
         Revísalo aquí, que es donde se corrige de un toque. Lo que apruebes es lo que voy a acomodar.

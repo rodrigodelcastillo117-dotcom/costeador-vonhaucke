@@ -43,10 +43,19 @@ export const MAX_PLANO_MB = 30;
 // completar (ChatGPT #1). Leer un PDF de plano con visión (Gemini) es pesado;
 // se sube a 180 s para dar holgura real sin colgar indefinidamente.
 export const TIMEOUT_LECTURA_MS = 180000;
-const conTimeout = (promesa, ms = TIMEOUT_LECTURA_MS) => Promise.race([
-  promesa,
-  new Promise((_, reject) => setTimeout(() => reject(new Error('La lectura del plano tardó demasiado (más de 3 minutos). Intenta otra vez o sube una captura de la hoja principal.')), ms)),
-]);
+// Carrera con timeout que SÍ limpia su timer y, si se le pasa un AbortController,
+// ABORTA la petición al vencer (ChatGPT P0-3: Promise.race sola deja viva la red).
+// Exportada para prueba determinista con fake timers (delayed-success / timeout).
+export function conTimeout(promesa, ms = TIMEOUT_LECTURA_MS, controller = null) {
+  let t;
+  const timeout = new Promise((_, reject) => {
+    t = setTimeout(() => {
+      try { controller?.abort(); } catch (e) { /* noop */ }
+      reject(new Error('La lectura del plano tardó demasiado (más de 3 minutos). Intenta otra vez o sube una captura de la hoja principal.'));
+    }, ms);
+  });
+  return Promise.race([promesa, timeout]).finally(() => clearTimeout(t));
+}
 
 /**
  * Lee el plano de un archivo y devuelve las áreas listas para la app.
@@ -67,7 +76,14 @@ export async function leerPlanoDeArchivo(file) {
   try {
     const esPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
     const b64 = esPdf ? await archivoABase64(file) : await imagenABase64(file);
-    const r = await conTimeout(leerPlano(b64, esPdf ? 'application/pdf' : 'image/jpeg'), TIMEOUT_LECTURA_MS);
+    // AbortController real: al vencer el timeout se aborta la petición (donde el
+    // cliente lo soporte) en vez de dejarla viva (ChatGPT P0-3).
+    const controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    const r = await conTimeout(
+      leerPlano(b64, esPdf ? 'application/pdf' : 'image/jpeg', undefined, { signal: controller?.signal }),
+      TIMEOUT_LECTURA_MS,
+      controller,
+    );
     if (!r || !r.ok) return { ok: false, error: r?.error || 'No se pudo leer el plano.' };
     const lec = r.lectura;
     const { areas } = areasDeLectura(lec);

@@ -122,7 +122,17 @@ export default function Voni({
     if (!r.ok) { setErrorPlano(r.error); return; }
     if (r.nota) setNotaPlano(r.nota);
     if (!r.areas.length) return;        // no se reconoció nada: que lo intente de nuevo
-    onGuardarAcomodo?.({ ...bloqueGeometria(r.areas), plan: null, planReal: true });
+    // ChatGPT P0-1: CONSERVAR el objeto canónico completo del lector (lectura/
+    // floorSpec/request_id/observed_program) en el acomodo, NO sólo la geometría.
+    // Antes se tiraba y "Esto entendí" re-infería desde áreas. Ahora viaja hasta VONI.
+    onGuardarAcomodo?.({
+      ...bloqueGeometria(r.areas),
+      plan: null, planReal: true,
+      lectura: r.lectura || null,
+      floorSpec: r.floorSpec || null,
+      request_id: r.request_id || null,
+      observed_program: Array.isArray(r.observed_program) ? r.observed_program : [],
+    });
     setPaso(2);                          // el siguiente paso es QUÉ LLEVA, no acomodar
   }
   const [confVaciar, setConfVaciar] = useState(false);
@@ -371,6 +381,7 @@ export default function Voni({
                 <EstoEntendi
                   partidas={partidas}
                   areasM={areasDelProyecto}
+                  observedProgram={cot.acomodo?.observed_program || []}
                   onCantidad={(id, n) => setCot({ partidas: partidas.map((p) => (p.id === id ? { ...p, cantidad: Math.max(1, n) } : p)) })}
                   onQuitar={(id) => setCot({ partidas: partidas.filter((p) => p.id !== id) })}
                   onEditar={(id) => setEditando(partidas.findIndex((p) => p.id === id))}
