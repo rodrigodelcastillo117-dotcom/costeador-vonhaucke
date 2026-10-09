@@ -3,12 +3,12 @@
 > Estado VIVO y VERÍDICO para continuar entre sesiones y para auditoría de ChatGPT.
 > Regla: este archivo refleja SIEMPRE el HEAD real, los tests reales y qué quedó REALMENTE
 > cableado vs pendiente. Cero información histórica presentada como estado actual.
-> Última actualización: 2026-10-09 (3ª re-auditoría R15 ChatGPT+Grok: gate de publicación de Acomodo + conflictos en botón + confirmado_modelo sobrevive + return atómico + encabezado sillería).
+> Última actualización: 2026-10-09 (4ª re-auditoría R15 ChatGPT+Grok: K mobiliario pendiente de aplicar bloquea publicación + H3 confirmado_modelo sobrevive reutilización + I2 idempotencia estricta + I3 handler como command).
 
 ## ESTADO ACTUAL (verificado contra el repo)
-- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `08e6aad`**; el HEAD de la rama es el
+- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `cc15e92`**; el HEAD de la rama es el
   doc-commit de este CLOSEOUT encima (un commit no puede contener su propio SHA). Tip exacto: `git rev-parse HEAD`.
-- **Tests: 2171 / 2171** (vitest, 259 archivos; +11 adversariales R15-F/H/I + wiring) · **Build: ✅** (vite) · **deno check ✅** (leer-plano + core; sin cambios este round) · verificado en esta sesión (2026-10-09).
+- **Tests: 2175 / 2175** (vitest, 259 archivos; +4 adversariales R15-K/H3/I2) · **Build: ✅** (vite) · **deno check ✅** (leer-plano + core; sin cambios este round) · verificado en esta sesión (2026-10-09).
 - **Evidencia = LOCAL de Claude. GitHub NO tiene CI runs (0 workflows).** Golden QA-COT-01 = MOCK_ONLY /
   RECORDED CONTRACT (no es E2E del PDF vivo). Lectura de PDF en vivo + edges = BLOCKED_EXTERNAL (no desplegado).
 - **MANDATO RC (deadline lunes 12-oct)**: autónomo hasta Release Candidate. Autorización NUEVA de Rodrigo:
@@ -90,6 +90,29 @@ credenciales a un servicio externo). Por eso:
 - BLOCKED_EXTERNAL (requiere login con cuenta de PRUEBA): E2E autenticado de guardar/reabrir, roles en vivo, aprobar contra servidor, autosave real, storage real.
 
 ## HISTORIAL DE AUDITORÍA (ChatGPT) — qué pasó en cada ronda
+
+### 4ª re-auditoría R15 — ChatGPT + Grok (sobre d244c24) — 1 P0 nuevo + 3 parciales (código `cc15e92`)
+La 4ª re-auditoría aceptó G/J y el gate fail-closed; encontró 1 P0 nuevo (K) y reabrió H/I como parciales. Corregido:
+- **P0-R15-K** `bloqueosProgramaObservado` sólo miraba requiereRevision/sillería/conflictos pero NO que `aplicarPrograma`
+  todavía tuviera mobiliario nuevo por agregar (`recon.confirmacion.confirmadas>0`). Un plano podía detectar un producto
+  canónico real (p.ej. recepción) aún NO en la cotización y Acomodo lo consideraba `programaListo=true`. Ahora agrega el
+  blocker `PROGRAMA_PENDIENTE_APLICAR` mientras `confirmadas>0` ⇒ no publicable hasta aplicar (OBSERVED detectado ≠
+  confirmado; Proposal ≠ Confirmation). Tras aplicar → confirmadas=0 → publicable. Caso K before/after.
+- **P1-R15-H3** `confirmado_modelo` se perdía al REUTILIZAR una silla existente: `estructuraDe(part)` (patch de enriquecidos)
+  no lo propagaba. Ahora lo incluye (sólo si true) → confirmar un modelo alterno sobre una silla ya cotizada persiste la
+  bandera y `silleriaPendiente`=false end-to-end. H1/H2 cubrían sólo la silla NUEVA; H3 cubre la ruta de reutilización.
+- **P1-R15-I2** la "idempotencia" aún committeaba patches idénticos: `confirmarPrograma` re-emitía `enriquecidos` para
+  anclas reutilizadas aunque el patch fuera igual a lo persistido (nuevas=0, enriquecidos>0 → committed=true). Ahora
+  `patchCambios` incluye sólo las keys que cambian de verdad; si no cambia nada, no hay enriquecidos → `committed=false`/
+  `IDEMPOTENTE` (sin rerender/autosave inútil). El test I1 ahora asserta `r2.committed===false`.
+- **P1-R15-I3** el return de `App.aplicarProgramaDetectado` capturaba el resultado del updater y lo devolvía, pero React no
+  garantiza que el updater corra antes del return (contrato no cumplible síncronamente). Ahora el handler es un COMMAND:
+  no captura ni devuelve el commit; la AUTORIDAD es el estado actualizado (write fail-closed contra `prev`). Sin flushSync.
+  HANDOFF/CLOSEOUT ya NO afirman que el return síncrono refleje el commit.
+Suite 2175/2175 (259 archivos, +4) · build ✅ · deno check ✅. NO motor / NO XLSX / NO deploy. PENDIENTE: re-auditoría.
+Supuestos NO verificados LIVE: ningún render UI en E2E (sólo dominio + source-asserts); el handler de aplicación ya no
+promete resultado síncrono (un caller futuro debe usar callback/efecto posterior); `patchCambios` compara por valor (JSON)
+y asume datos planos; selector "elegir otro producto" pendiente de UI; sin flag PERSISTENTE de modelo confirmado entre sesiones.
 
 ### 3ª re-auditoría R15 — ChatGPT + Grok (sobre da454fe) — 5 hallazgos corregidos (código `08e6aad`)
 La 3ª re-auditoría aceptó D2/C2/B2/E2/A-UX y reabrió F (P0) + G/H/I/J (P1). Corregido:

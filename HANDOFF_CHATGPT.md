@@ -5,6 +5,20 @@
 
 ---
 
+## 4ª RE-AUDITORÍA R15 — RESUELTA (para CHATGPT + GROK)
+
+- **branch:** `audit/final-product-completion` · **code SHA:** `cc15e92` (HEAD = doc-commit encima). Base = `d244c24`.
+- **tests:** 2175/2175 vitest (259 archivos; +4) · **vite build:** ✅ · **deno check:** ✅ (edges sin cambios). **CI real:** GitHub 0 runs (evidencia LOCAL).
+- La 4ª re-auditoría aceptó G/J y el gate fail-closed; reabrió F (incompleto → P0 nuevo K) + H (parcial) + I (parcial). Corregidos:
+  - **P0-R15-K** — `bloqueosProgramaObservado` ahora también bloquea cuando el plano detectó productos canónicos reales que **todavía no están en la cotización** (`recon.confirmacion.confirmadas.length > 0` → blocker `PROGRAMA_PENDIENTE_APLICAR`). OBSERVED detectado ≠ producto confirmado. Antes de "Aplicar programa detectado" el programa NO es publicable aunque no haya revisión/sillería/conflicto; tras aplicar → `confirmadas=0` → publicable. — **INTEGRATION_PASS** (caso K: recepción nueva detectada no aplicada → bloquea; aplicada → `[]`). Render del gate = **NOT_VERIFIED**.
+  - **P1-R15-H3** — `confirmado_modelo` ahora SOBREVIVE también al REUTILIZAR una silla existente: se propaga en `estructuraDe` (patch de enriquecidos), no sólo en partidas nuevas. Confirmar un modelo alterno sobre una silla ya cotizada deja `silleriaPendiente`=false end-to-end. — **INTEGRATION_PASS** (caso H3 por ruta de reutilización, además de H1/H2 por partida nueva).
+  - **P1-R15-I2** — idempotencia ESTRICTA: `confirmarPrograma` sólo emite `enriquecidos` cuando el patch cambia de verdad algún valor (`patchCambios` diff vs la partida existente). Re-aplicar datos idénticos → `enriquecidos=0` → `resolverAplicacionAtomica` devuelve `committed=false` / `motivo=IDEMPOTENTE` (no rerender/autosave inútil). — **INTEGRATION_PASS** (I1 ahora asserta `committed===false`; I2 enriquecido-real vs idéntico).
+  - **P1-R15-I3** — `App.aplicarProgramaDetectado` es ahora un **COMMAND**: NO captura ni devuelve el resultado del commit (React no garantiza que el updater corra antes del return; ese contrato no es cumplible síncronamente). La AUTORIDAD es el estado actualizado; el write real lo decide `resolverAplicacionAtomica` contra `prev`, fail-closed. Sin `flushSync`. — **CODE_PASS** (source-assert: sin `return resultado`, sin `NO_APLICADO`).
+- **Estado R15:** G ✅ · J ✅ · gate fail-closed ✅ · F+K ✅ (publicación bloqueada por mobiliario pendiente de aplicar) · H+H3 ✅ · I2 idempotencia estricta ✅ · I3 command ✅.
+- **Supuestos NO verificados LIVE:** ningún render de UI en E2E (sólo dominio + source-asserts); el handler de aplicación ya NO promete resultado síncrono (si un caller futuro necesita el commit, debe ser por callback/efecto posterior, no por retorno); `patchCambios` compara por valor (JSON) y asume datos planos; selector "elegir otro producto" pendiente de UI; sin flag PERSISTENTE de modelo confirmado entre sesiones. **NO se tocó motor / XLSX / deploy.**
+
+---
+
 ## 3ª RE-AUDITORÍA R15 — RESUELTA (para CHATGPT + GROK)
 
 - **branch:** `audit/final-product-completion` · **code SHA:** `08e6aad` (HEAD = doc-commit encima). Base = `da454fe`.
@@ -232,20 +246,20 @@
 Eres el auditor independiente del proyecto Von Haucke (app React + Supabase de costeo/cotización).
 Audita la rama `audit/final-product-completion`.
 
-- Último commit de CÓDIGO: 08e6aad (3ª re-auditoría R15: F gate de publicación + G conflictos en botón + H confirmado_modelo sobrevive + I return atómico + J encabezado sillería). Base = da454fe.
-  Verdad viva: `CLOSEOUT_STATE.md` (historial rondas 1–15 + 3 re-auditorías R15) + bloque "3ª RE-AUDITORÍA R15 — RESUELTA" arriba.
-  Tests 2171/2171 (259 archivos; +11), build ✅, deno check ✅ (evidencia LOCAL; GitHub 0 CI runs). Golden/adapter = MOCK_ONLY.
+- Último commit de CÓDIGO: cc15e92 (4ª re-auditoría R15: K mobiliario pendiente de aplicar bloquea publicación + H3 confirmado_modelo sobrevive reutilización + I2 idempotencia estricta + I3 handler como command). Base = d244c24.
+  Verdad viva: `CLOSEOUT_STATE.md` (historial rondas 1–15 + 4 re-auditorías R15) + bloque "4ª RE-AUDITORÍA R15 — RESUELTA" arriba.
+  Tests 2175/2175 (259 archivos; +4), build ✅, deno check ✅ (evidencia LOCAL; GitHub 0 CI runs). Golden/adapter = MOCK_ONLY.
 - Límites que Claude respetó: NO merge, NO deploy/promote, NO migración prod, NO prod-write, NO tocar 33 legacy,
   NO aprobar DATA TRUTH, NO integrar Intelisis, **NO motor cutover, NO XLSX**. Todo capa ADITIVA (no cambia números del
   motor). El validador del edge está PREPARADO + deno-clean pero NO DESPLEGADO (prod edge = hard boundary).
 
-Verifica contra el CÓDIGO real (no sólo el closeout) que los 5 hallazgos de tu 3ª re-auditoría R15 quedaron corregidos:
-1. P0-R15-F: ¿`bloqueosProgramaObservado` combina requiereRevision + sillería pendiente reconciliada contra las partidas actuales + conflictos de reconciliación, y Acomodo lo concatena con coherenciaPrograma.bloqueos y lo pasa a `AcomodoBase.bloqueosPrograma` → `programaListo=false` cuando el programa comercial observado está incompleto? (4 benches ×2 asientos, anclas aplicadas, 0 sillas → publicable=false; EXISTING_SURPLUS → publicable=false; sillería cubierta → publicable).
-2. P1-R15-G: ¿el botón "Aplicar programa detectado" de Acomodo se deshabilita también por reconObs.conflictos y muestra el motivo concreto?
-3. P1-R15-H: ¿`confirmado_modelo` sobrevive `aItemConfirmado` y `partidaComercialDesdeConfirmado` (sólo si true), de modo que un modelo alterno confirmado deja `silleriaPendiente`=false end-to-end y sin confirmar=true?
-4. P1-R15-I: ¿el return de `aplicarProgramaDetectado` deriva de `resolverAplicacionAtomica(propuesta,{existentes:prev})` (la misma autoridad que el write), y NO del snapshot `vista`? ¿El test de carrera demuestra que la 2ª aplicación no agrega partidas nuevas ni duplica?
-5. P1-R15-J: ¿VONI muestra "✓ Sillería confirmada" cuando !sillasPorConfirmar (no el texto permanente "modelo por confirmar")?
-6. Revisa supuestos (ningún render UI está en E2E; timing batcheado de React en el return de aplicarProgramaDetectado — conservador, nunca miente éxito; ningún caller usa ese return como autoridad; selector "elegir otro" pendiente; sin flag PERSISTENTE de modelo confirmado) y busca NUEVOS falsos verdes.
+Verifica contra el CÓDIGO real (no sólo el closeout) que los hallazgos de tu 4ª re-auditoría R15 quedaron corregidos:
+1. P0-R15-K: ¿`bloqueosProgramaObservado` agrega `PROGRAMA_PENDIENTE_APLICAR` cuando `recon.confirmacion.confirmadas.length > 0` (plano detectó producto canónico real aún NO en la cotización) → `programaListo=false` hasta aplicarlo? (recepción nueva no aplicada → bloquea; tras aplicar → `[]`).
+2. P1-R15-H3: ¿`confirmado_modelo` sobrevive también al REUTILIZAR una silla existente (propagado en `estructuraDe`, no sólo en partida nueva), de modo que confirmar modelo alterno sobre una silla ya cotizada deja `silleriaPendiente`=false end-to-end?
+3. P1-R15-I2: ¿`confirmarPrograma` sólo emite `enriquecidos` cuando el patch cambia un valor real (`patchCambios`), de modo que re-aplicar datos idénticos da `committed=false`/`IDEMPOTENTE` (test con ASSERT `r2.committed===false`)?
+4. P1-R15-I3: ¿`aplicarProgramaDetectado` ya NO captura/retorna el resultado del commit (handler = command; autoridad = estado; sin `flushSync`)? ¿HANDOFF/CLOSEOUT ya no afirman que el return síncrono refleja el commit?
+5. Aceptados previos que NO deben regresar: G (botón conflictos) y J (encabezado sillería) siguen PASS; F sigue bloqueando por revisión/sillería/conflicto además de K.
+6. Revisa supuestos (ningún render UI en E2E; handler sin resultado síncrono; `patchCambios` compara por valor JSON y asume datos planos; selector "elegir otro" pendiente; sin flag PERSISTENTE de modelo confirmado) y busca NUEVOS falsos verdes.
 
 Luego decide/recomienda prioridad para el mega-avance, sabiendo que estos bloques necesitan decisión de Rodrigo o deploy:
 A. MOTOR CUTOVER: que `calcular()` tome el precio del CanonicalPriceResolver con fail-closed, preservando goldens (sólo productos nuevos).
