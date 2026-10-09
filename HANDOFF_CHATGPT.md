@@ -5,34 +5,58 @@
 
 ---
 
+## 0) R9 PARA AUDITORÍA CHATGPT (bloque de cierre de la ronda 9)
+
+- **SHA de CÓDIGO:** `a741ab1` (rama `audit/final-product-completion`; el HEAD es el doc-commit encima). Base ronda 9 = `8811fce`.
+- **Tests / build:** 2092/2092 vitest (256 archivos) · vite build ✅ · `deno check` ✅ (leer-plano, observed-core, leer-plano-core). **Evidencia LOCAL de Claude; GitHub sigue con 0 CI runs.**
+- **Archivos tocados (R9):**
+  - Nuevos: `src/datos/mobiliarioOntologia.js` (+test), `src/datos/conversionMaterial.js` (+test).
+  - Modificados: `supabase/functions/leer-plano/observed-core.js` (+test), `supabase/functions/leer-plano-core/index.ts` (schema+prompt), `src/datos/leerPlanoArchivo.js`, `src/datos/programaRealDelPlano.js`, `src/datos/bomGenerator.js` (+test), `src/componentes/Voni.jsx`, `src/datos/programaObservadoGobierna.test.js`, `src/datos/planoGoldenObserved132.test.js`, `src/datos/planoReaderFurniture.test.js`.
+- **P0 que DECLARO cerrados (R9-1…R9-10):** cliente consume observed SANEADO (no crudo); schema↔validador mismo idioma (confianza textual→número); validador fail-closed; estados ABSENT/PRESENT_VALID/PRESENT_REVIEW_REQUIRED sin fallback heurístico indebido; pendientes observados visibles en VONI; ontología ancla/dependiente (silla ≠ ancla); salas por capacidad POR UNIDAD; identidad física por ancla + reconciliación por dimensiones (NO sustitución silenciosa; 4 benches 2400×1400 → NEEDS_CONFIRMATION, verificado); golden con ground truth completo (S-01/SJ-01) + reconciliación sin duplicar; conversión POR FAMILIA (lámina kg = m²×kg/m²).
+- **BLOCKED_EXTERNAL (no ejecutado; hard boundary):** desplegar `leer-plano`/`leer-plano-core` con el schema/prompt nuevo; prod sigue en leer-plano v11 / core v4 (no emiten observed_program aún); motor cutover; ingestión `fuentes/*.xlsx` (DATA TRUTH); merge/promote; migraciones prod; modificar 33 legacy; Intelisis.
+- **SUPUESTOS NO verificados LIVE (explícitos):**
+  1. El modelo de visión realmente poblará `observed_program` conforme al schema (kind/dims/source_ref/capacity/zone) — NO probado contra un PDF real; el golden usa un contrato GRABADO, no salida viva.
+  2. Las dimensiones del ground truth QA-COT-01 (B-01 2400×1400, J-01 3200×1200, D-01 2000×900, R-01 2000×700) son las que ChatGPT citó; NO confirmadas contra el PDF original medido.
+  3. El mapa confianza textual→número (alta .9/media .6/baja .4) es una convención de Claude, no una política firmada por VH.
+  4. Los parámetros de conversión por familia (kg/m² de lámina, área de hoja, largo de tramo, pz/juego) vendrán del catálogo/DATA TRUTH; hoy el resolver NO los provee (por eso caen en FALTA_PARAM_CONVERSION) — no hay fuente real cableada.
+  5. El VOCABULARIO de mobiliario del lector NO existe aún: roles no reconocidos (credenza/coffee/etc.) van a revisión; la cobertura del regex de ontología no está validada contra el universo real de etiquetas de VH.
+  6. El `op-8u-4800x1200-cristal` que el resolver elige por capacidad es el comportamiento OBSERVADO hoy; que exista (o no) un bench canónico 2400×1400 equivalente en App LT NO está confirmado.
+
+---
+
 ## 1) PROMPT (listo para pegarle a ChatGPT)
 
 ```
 Eres el auditor independiente del proyecto Von Haucke (app React + Supabase de costeo/cotización).
 Audita la rama `audit/final-product-completion`.
 
-- Último commit de CÓDIGO: 8811fce (ronda 8: observed gobierna + validador edge + BOM conversión + golden QA-COT-01).
-  Verdad viva: `CLOSEOUT_STATE.md` (historial completo de rondas 1–8). Tests 2066/2066 (254 archivos), build ✅, deno check ✅.
+- Último commit de CÓDIGO: a741ab1 (ronda 9: bugs de INTEGRACIÓN observed→validador→resolver→golden). Base R9 = 8811fce.
+  Verdad viva: `CLOSEOUT_STATE.md` (historial completo rondas 1–9) + bloque "0) R9 PARA AUDITORÍA CHATGPT" en este archivo.
+  Tests 2092/2092 (256 archivos), build ✅, deno check ✅ (evidencia local; GitHub 0 CI runs).
 - Límites que Claude respetó: NO merge, NO deploy/promote, NO migración prod, NO prod-write, NO tocar 33 legacy,
   NO aprobar DATA TRUTH, NO integrar Intelisis. Todo capa ADITIVA (no cambia números del motor). El validador del
   edge está PREPARADO + deno-clean pero NO DESPLEGADO (prod edge = hard boundary).
 
 Verifica contra el CÓDIGO real (no sólo el closeout) que los 7 P0 de tu ronda 8 quedaron bien cerrados:
-1. P0-R8-1 `observed_program` GOBIERNA: `proponerProgramaDesdeObservado`/`programRequirementsDesdeObservado`
-   (src/datos/programaRealDelPlano.js) + Voni.jsx prefiere observado sobre áreas. ¿capacity manda PUESTOS (no muebles)?
-   ¿PROPUESTA ≠ CONFIRMACIÓN? ¿rol sin vocabulario → ROLE_NO_MAPEADO en vez de inventado? ¿SUGGESTED/INFERRED no gobiernan?
-2. P0-R8-2 validador edge (supabase/functions/leer-plano/observed-core.js) + wiring en index.ts: ¿están TODAS las
-   invariantes (quantity>0, capacity>0, dims>0, posición en-envolvente, zona existente, página, confidence, evidencia
-   OBSERVED, no-derivado-de-cuarto, enums, duplicados)? ¿el wrapper revalida y nunca emite mobiliario crudo?
-3. P0-R8-4 BOM aplica conversión (cantidad_compra_equivalente) y P0-R8-6 no COSTABLE sin unidad_compra (estadoCosteo).
-4. P0-R8-7 golden QA-COT-01 (src/datos/planoGoldenObserved132.test.js): ¿el contrato grabado prueba el pipeline sin
-   trampas? ¿8 puestos / sala 8 / dirección / recepción + dependientes WORK_SEAT/MEETING_SEAT?
-5. Busca NUEVOS falsos verdes o huecos de confianza en TODO lo anterior.
+1. P0-R9-1 AUTORIDAD: `src/datos/leerPlanoArchivo.js` consume `r.observed_program`/`r.floorSpec.observed_program`
+   (saneado server-side), NO `lec.observed_program` crudo. ¿Alguna ruta sigue leyendo el crudo para gobernar?
+2. P0-R9-2/3 schema↔validador: `leer-plano-core` emite kind/source_ref/plan_tag/grouping/capacity_total; `observed-core.js`
+   mapea confianza textual→número y es fail-closed (quantity entero>0, confidence∈[0,1]→ISSUE no clamp, kind/dims/orientation inválidos→ISSUE).
+3. P0-R9-4/5 estados: ¿`Voni.jsx` NO reconstruye desde áreas cuando observed_state es PRESENT_*? ¿muestra observadoPendientes + anclas NEEDS_CONFIRMATION?
+4. P0-R9-6/7 ontología (`src/datos/mobiliarioOntologia.js`): ¿una silla NUNCA es ancla? ¿salas por capacidad POR UNIDAD?
+5. P0-R9-8 anti-sustitución (`conciliarAnclasObservadas`): el bench 2400×1400 → NEEDS_CONFIRMATION cuando el resolver
+   elige 4800×1200. ¿Hay forma de que un ancla observada quede RESOLVED con geometría distinta? (no debería)
+6. P0-R9-9 golden (`src/datos/planoGoldenObserved132.test.js`): ground truth completo (incluye S-01/SJ-01); reconciliación
+   de dependientes sin duplicar. ¿El golden mide el DOCUMENTO o hace trampa con el resolver?
+7. P0-R9-10 conversión por familia (`src/datos/conversionMaterial.js`): lámina kg=m²×kg/m² (×), tablero/perfil/herraje (÷);
+   falta de parámetro → NO costable. ¿Alguna familia usa una división genérica equivocada?
+8. Revisa los SUPUESTOS NO verificados live (sección 0) y dime cuáles son riesgo real para la demo.
+9. Busca NUEVOS falsos verdes o huecos de integración.
 
 Luego decide/recomienda prioridad para el mega-avance, sabiendo que estos bloques necesitan decisión de Rodrigo o deploy:
 A. MOTOR CUTOVER: que `calcular()` tome el precio del CanonicalPriceResolver con fail-closed, preservando goldens (sólo productos nuevos).
-B. INGESTIÓN de `fuentes/*.xlsx` (parser + mapeo clave_erp→canonical_id = DATA TRUTH).
-C. DEPLOY del edge leer-plano (schema/prompt de mobiliario + validador) y el VOCABULARIO de mobiliario del lector (siguiente P0).
+B. INGESTIÓN de `fuentes/*.xlsx` (parser + mapeo clave_erp→canonical_id = DATA TRUTH) — incluye los parámetros de conversión por familia (kg/m², área de hoja, etc.).
+C. DEPLOY del edge leer-plano (schema/prompt + validador) y el VOCABULARIO de mobiliario del lector (siguiente P0).
 
 Devuelve: (a) qué aceptas a nivel código, (b) hallazgos nuevos con archivo:línea, (c) la decisión A/B/C y el orden óptimo.
 ```

@@ -3,34 +3,41 @@
 > Estado VIVO y VERÍDICO para continuar entre sesiones y para auditoría de ChatGPT.
 > Regla: este archivo refleja SIEMPRE el HEAD real, los tests reales y qué quedó REALMENTE
 > cableado vs pendiente. Cero información histórica presentada como estado actual.
-> Última actualización: 2026-10-09 (ronda 8 ChatGPT cerrada: observed_program gobierna + validador edge + BOM conversión + golden QA-COT-01).
+> Última actualización: 2026-10-09 (ronda 9 ChatGPT cerrada: bugs de INTEGRACIÓN observed→validador→resolver→golden).
 
 ## ESTADO ACTUAL (verificado contra el repo)
-- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `8811fce`**; el HEAD de la rama es el
+- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `a741ab1`**; el HEAD de la rama es el
   doc-commit de este CLOSEOUT encima (un commit no puede contener su propio SHA). Tip exacto: `git rev-parse HEAD`.
-- **Tests: 2066 / 2066** (vitest, 254 archivos) · **Build: ✅** (vite) · **deno check ✅** (leer-plano) · verificado en esta sesión (2026-10-09).
+- **Tests: 2092 / 2092** (vitest, 256 archivos) · **Build: ✅** (vite) · **deno check ✅** (leer-plano + core) · verificado en esta sesión (2026-10-09).
 - **MANDATO RC (deadline lunes 12-oct)**: autónomo hasta Release Candidate. Autorización NUEVA de Rodrigo:
   cutover del motor SÓLO para productos NUEVOS (shadow primero), agregar parser XLSX justificado, preparar edges.
   Siguen prohibidos (se preparan/documentan como BLOCKED_EXTERNAL, no se ejecutan): merge, deploy/promote,
   migración prod, escrituras masivas prod, modificar 33 legacy, aprobar DATA TRUTH, integrar Intelisis.
 - **P0 conocidos ABIERTOS: 0** — pero esto es "a la fecha de este HEAD y según las auditorías hechas".
-  ChatGPT ronda 7 encontró 10 P0 (TODOS cerrados). ChatGPT ronda 8 encontró 7 P0 más — **TODOS cerrados ahora**
-  (ver ronda 8): observed_program debe GOBERNAR (no reconstruir desde áreas), validador determinista del
-  observed_program en el edge, ProductSpec certificable vía `evidenciaCertificable`, BOM aplica la conversión
-  (no sólo gate) y no es COSTABLE sin unidad_compra, vigencia de precio fin-de-día, FX con vigencia malformada
-  fail-closed, y golden real QA-COT-01 (offline recorded-contract; lectura en vivo = BLOCKED_EXTERNAL).
-  Que no haya P0 abiertos NO significa "no hay más"; significa que los encontrados están cerrados. Falta E2E
-  autenticado real (cobertura), verificación en vivo de edges (deploy) y el VOCABULARIO de mobiliario del lector
-  (siguiente P0: hoy el lector da geometría+puestos, no tipos de mueble → roles no mapeados van a revisión).
+  ChatGPT ronda 7: 10 P0 (cerrados). Ronda 8: 7 P0 (cerrados). **Ronda 9: 10 P0 de INTEGRACIÓN — TODOS
+  cerrados ahora** (ver ronda 9): el cliente consumía el observed_program CRUDO (no el saneado por el servidor);
+  schema del lector ≠ validador (confianza textual); validador no fail-closed; fallback heurístico pese a haber
+  observed; pendientes observados perdidos en UI; sillas se contaban como anclas (inflaban puestos/salas);
+  capacidad de multi-mueble duplicada; se COLAPSABA el mueble observado a sólo usuarios (4 benches 2400×1400 →
+  1 módulo 4800×1200); golden incompleto; conversión industrial con una sola división genérica.
+  Que no haya P0 abiertos NO significa "no hay más". Falta E2E autenticado real, verificación EN VIVO de edges
+  (deploy) y el VOCABULARIO de mobiliario del lector (siguiente P0: hoy el lector da geometría+puestos, no tipos
+  de mueble → roles no mapeados van a revisión, nunca inventados).
 - **Cableado REAL hoy** (capa ADITIVA — NO cambia ningún número del motor; tests de dinero verdes):
   1. `Precios.jsx` (Dirección): columna "Procedencia" por insumo — chip por TIPO de fuente + tooltip "¿por qué $544?".
   2. `HojaCosto.jsx` (Costear/veCostos): "✓ Costo con evidencia real" sólo si TODA la MP es real FECHADA con FX
      verificado; si no, "N de M material(es) sin evidencia — costo no oficial".
   Ambas usan UN adapter canónico `resolverPrecioInsumoVivo` (un precio capturado a mano NO hereda evidencia vieja).
   3. `floorPlanReader.js`: cable PURO lector real (`programaDelPlano`) → `observed_program` (test con lector real).
-  4. **observed_program GOBIERNA el programa (ronda 8)**: `Voni.jsx` usa `proponerProgramaDesdeObservado`
-     cuando hay observed_program válido (capacity manda puestos); sólo cae a la heurística de áreas si nada
-     observado es gobernable. PROPUESTA ≠ CONFIRMACIÓN. Roles sin vocabulario → pendientes, nunca inventados.
+  4. **observed_program GOBIERNA el programa (ronda 8/9)**: `Voni.jsx` usa `proponerProgramaDesdeObservado`
+     cuando el lector dio mobiliario (observed_state PRESENT_*), con AUTORIDAD del observed SANEADO por el
+     servidor (no el crudo de la IA); sólo cae a la heurística de áreas si el lector NO dio mobiliario (ABSENT).
+     Ontología ANCLA/DEPENDIENTE/AMENIDAD: las sillas NO crean anclas. Las anclas conservan su geometría y se
+     reconcilian por dimensiones (NEEDS_CONFIRMATION si ningún producto canónico equivale; NO sustitución silenciosa).
+     Pendientes observados + anclas por confirmar se MUESTRAN en VONI. PROPUESTA ≠ CONFIRMACIÓN.
+  5. **Conversión por FAMILIA (ronda 9)**: `conversionMaterial.js` + BOM — lámina kg = m²×kg/m² (multiplica),
+     tablero hoja ← m² (÷), perfil tramo ← m (÷), herraje juego ← pz (÷); falta de parámetro → NO costable.
+     (El BOM NO está conectado al motor todavía.)
 - **NO cableado / preparado-no-desplegado** (bloques grandes, requieren decisión/deploy — ver "SIGUIENTE"):
   - El MOTOR (`calcular()`) sigue tomando `insumo.precio`; el `CanonicalPriceResolver` aún NO gobierna el número.
   - **Validador edge del observed_program (`observed-core.js`) PREPARADO + cableado en el wrapper `leer-plano`,
@@ -55,6 +62,30 @@ credenciales a un servicio externo). Por eso:
 - BLOCKED_EXTERNAL (requiere login con cuenta de PRUEBA): E2E autenticado de guardar/reabrir, roles en vivo, aprobar contra servidor, autosave real, storage real.
 
 ## HISTORIAL DE AUDITORÍA (ChatGPT) — qué pasó en cada ronda
+
+### Ronda 9 — ChatGPT (sobre 8811fce) — 10 P0 de INTEGRACIÓN, TODOS cerrados (código `a741ab1`)
+Acepta los fixes individuales de R8 y encuentra los errores de INTEGRACIÓN (los difíciles):
+- **P0-R9-1** el cliente BYPASSEABA el observed_program validado: `leerPlanoArchivo.js` usaba `lec.observed_program`
+  (crudo de IA). Ahora la AUTORIDAD es `r.observed_program` / `r.floorSpec.observed_program` (saneado server-side);
+  expone `observed_source`/`observed_state`/`observed_validation`. Regresión en `planoReaderFurniture.test.js`.
+- **P0-R9-2** schema core ≠ validador: `confianza` textual (alta/media/baja) → número por mapa EXPLÍCITO antes de
+  validar; el schema del lector ya emite `kind/source_ref/plan_tag/grouping/capacity_total`; prompt distingue ancla/dependiente.
+- **P0-R9-3** validador FAIL-CLOSED: quantity entero>0; confidence fuera de [0,1]→ISSUE (no clamp); kind inválido→ISSUE
+  (no furniture silencioso); dims/orientation/capacity no numéricas→ISSUE.
+- **P0-R9-4** estados `ABSENT` / `PRESENT_VALID` / `PRESENT_REVIEW_REQUIRED`: si el lector dio mobiliario, NO se
+  reconstruye desde áreas; en revisión se enseñan pendientes y se pide confirmación.
+- **P0-R9-5** `Voni.jsx` muestra `observadoPendientes` + anclas NEEDS_CONFIRMATION — nada observado desaparece en silencio.
+- **P0-R9-6** `mobiliarioOntologia.js`: ANCLA vs DEPENDIENTE vs AMENIDAD. Una SILLA nunca crea ancla ni infla puestos/salas.
+- **P0-R9-7** salas por capacidad POR UNIDAD (2 mesas ×6 → [6,6], no [12,12]).
+- **P0-R9-8** se PRESERVA la identidad física por ancla (dims/zona/source_ref/capacidad) y se RECONCILIA por dimensiones:
+  4 benches 2400×1400 NO se sustituyen en silencio por 1 módulo 4800×1200 → `NEEDS_CONFIRMATION` (REQUIERE_DESARROLLO).
+  Verificado en vivo: el resolver elegía `op-8u-4800x1200-cristal`; ahora queda marcado, no sustituido.
+- **P0-R9-9** golden `planoGoldenObserved132.test.js` con GROUND TRUTH COMPLETO (incluye S-01/SJ-01). El reader-golden
+  mide lo que el documento contiene; test aparte reconcilia dependientes (observado vs resuelto) sin duplicar.
+- **P0-R9-10** `conversionMaterial.js`: estrategia por familia (lámina kg = m²×kg/m² MULTIPLICA; tablero/perfil/herraje
+  dividen) + goldens; BOM la usa. Sin parámetro de familia → FALTA_PARAM_CONVERSION → NO costable. Motor NO conectado.
+Nuevos módulos: `mobiliarioOntologia.js`, `conversionMaterial.js` (+ tests). Regresión por cada hallazgo.
+Suite 2092/2092 (256 archivos) · build ✅ · deno check ✅. Edge PREPARADO, NO DESPLEGADO.
 
 ### Ronda 8 — ChatGPT (sobre e859669) — 7 P0 nuevos, TODOS cerrados (código `8811fce`)
 Acepta el trabajo de ronda 7 a nivel CODE. 7 P0 de "wiring real / cerrar invariantes antes del motor":
@@ -267,7 +298,7 @@ Lo que falta es CONECTAR la casa, en este orden:
    LÍNEA (materiales/partes/rubros + moneda+FX) y usarlo con las T.D.C. Alba/Alpura reales (depende de #3).
    fixture ≠ golden ejecutado.
 
-## Matriz (estado real al código 8811fce)
+## Matriz (estado real al código a741ab1)
 | Área | CODE | INTEGRATION | E2E | USER FLOW | Pendiente |
 |---|---|---|---|---|---|
 | Home/Navegación | ✅ | ✅ | ✅ smoke | ✅ render | — |
