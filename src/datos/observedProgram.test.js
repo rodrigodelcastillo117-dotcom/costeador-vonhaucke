@@ -84,4 +84,31 @@ describe('observed_program · contrato e invariantes (Plan Intelligence v1)', ()
     const p = [{ type: 'bench', cantidad: 4, evidencia: 'x', confianza: 0.9, procedencia: PROCEDENCIA.DETECTED_FROM_PLAN }];
     expect(resumenObservado(p)).toEqual(resumenObservado(p));
   });
+
+  it('GOLDEN 132 m² (oficina 15000×8800): programa observado del plano, con adversariales', () => {
+    // Oficina de 15.0 × 8.8 m = 132 m². Programa conocido observado en el plano:
+    // 18 puestos operativos (2 benches), 2 privados dirección, 1 sala de juntas.
+    const AREA = { ancho: 15000, largo: 8800 };
+    expect((AREA.ancho / 1000) * (AREA.largo / 1000)).toBeCloseTo(132, 5);
+    const programa = [
+      { type: 'bench', role: 'ANCHOR_WORKSTATION', cantidad: 10, zona: 'OPERATIVA', grouping: 'g-op-1', evidencia: 'planta pág.1', confianza: 0.95, procedencia: PROCEDENCIA.DETECTED_FROM_PLAN, page: 1 },
+      { type: 'bench', role: 'ANCHOR_WORKSTATION', cantidad: 8, zona: 'OPERATIVA', grouping: 'g-op-2', evidencia: 'planta pág.1', confianza: 0.95, procedencia: PROCEDENCIA.DETECTED_FROM_PLAN, page: 1 },
+      { type: 'escritorio', role: 'ANCHOR_DESK', cantidad: 2, zona: 'DIRECCION', evidencia: 'planta pág.1', confianza: 0.9, procedencia: PROCEDENCIA.DETECTED_FROM_PLAN, page: 1 },
+      { type: 'mesa_juntas', role: 'ANCHOR_MEETING', cantidad: 1, zona: 'JUNTAS', evidencia: 'planta pág.1', confianza: 0.9, procedencia: PROCEDENCIA.DETECTED_FROM_PLAN, page: 1 },
+      // ADVERSARIAL 1: silla sugerida por regla (no dibujada) → NO cuenta como observada.
+      { type: 'silla', role: 'WORK_SEAT', cantidad: 18, confianza: 0.4, procedencia: PROCEDENCIA.RULE_SUGGESTION },
+      // ADVERSARIAL 2: item de catálogo inferido (match), no visto en el plano → inferred.
+      { type: 'gaveta', role: 'UNDERDESK_STORAGE', cantidad: 18, confianza: 0.6, procedencia: PROCEDENCIA.CATALOG_MATCH },
+    ];
+    const r = validarObservedProgram(programa);
+    expect(r.ok).toBe(true);
+    const res = resumenObservado(programa);
+    // 18 puestos + 2 privados + 1 junta = 21 piezas OBSERVADAS reales.
+    expect(res.porOrigen[ORIGEN.OBSERVED]).toBe(21);
+    expect(res.porOrigen[ORIGEN.SUGGESTED]).toBe(18);  // sillas sugeridas
+    expect(res.porOrigen[ORIGEN.INFERRED]).toBe(18);   // gavetas inferidas por catálogo
+    expect(res.hayPendientesDeConfirmar).toBe(true);
+    // Los puestos operativos observados = 18 (no se mezclan con sugeridos/inferidos).
+    expect(res.porTipo.bench).toBe(18);
+  });
 });
