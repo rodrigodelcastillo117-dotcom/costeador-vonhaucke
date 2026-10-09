@@ -211,6 +211,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const [renderMsg, setRenderMsg] = useState('');
   const [renderizando, setRenderizando] = useState(false);
   const [costoEstado, setCostoEstado] = useState(null); // 'certificado' | 'preliminar' | null
+  // React P0-5: el estado de costo corresponde a UN bomHash. Si el despiece cambia, deja de ser
+  // vigente (no puede seguir diciendo "CERTIFICADO" sobre números nuevos). Guardamos el hash con
+  // el que se calculó y sólo mostramos el estado si coincide con el BOM actual.
+  const [costoEstadoHash, setCostoEstadoHash] = useState(null);
+  const marcarCostoEstado = (estado, hash) => { setCostoEstado(estado || null); setCostoEstadoHash(estado ? (hash ?? null) : null); };
   const [renderHash, setRenderHash] = useState(null);   // hash del BOM cuando se generó el render (marca DESACTUALIZADO si cambia)
   // Biblioteca
   const [etiquetasTxt, setEtiquetasTxt] = useState('');
@@ -262,6 +267,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // P0.16: ¿hay una validación server-authority VIGENTE para el BOM actual? Cualquier cambio de
   // componente/material/medida cambia el bomHash → invalida la validación anterior.
   const validacionVigente = !!validacionSrv && validacionSrv.valido === true && validacionSrv.bomHash === bomHash(b.componentes);
+  // React P0-5: el estado de costo sólo es VIGENTE si se calculó con el BOM actual. Si el despiece
+  // cambió, no se muestra "CERTIFICADO/PRELIMINAR" viejo: cae al default seguro (preliminar).
+  const costoEstadoVigente = (costoEstado && costoEstadoHash && costoEstadoHash === bomHash(b.componentes)) ? costoEstado : null;
   // POR CONFIRMAR (audit 2026-10-08): materiales provisionales (18→19 compatible, crítico,
   // ambiguo, candidato). El COMPATIBLE sí aporta costo → hay un COSTO PROVISIONAL real, pero
   // NO emitible hasta confirmación humana. Distinto de "sin material" (hueco de datos).
@@ -315,7 +323,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     if (faltaCritico || renderizando) return;
     if (b.analysisId != null && b.analysisId !== corrida.current) return; // BOM/costo no son de la corrida vigente
     setRenderizando(true); setRenderMsg(''); setRenders({ aislado: null, ambiente: null });
-    try { const srv = await costearServidor({ ...b }, b.piezas); if (srv?.estado) setCostoEstado(srv.estado); }
+    try { const hb = bomHash(b.componentes); const srv = await costearServidor({ ...b }, b.piezas); if (srv?.estado) marcarCostoEstado(srv.estado, hb); }
     catch (e) { console.warn('[generarRenders] re-costeo de servidor no disponible, sigo con el costo actual:', e); }
     const tipo = tipoDeMueble(b);
     const medidas = `${dimsR.w}×${dimsR.d} mm`;
@@ -410,7 +418,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       else if (!cuadra) razon = `el costo local (${pesos2(resultado.costoUnitario)}) no coincide con el del servidor (${pesos2(costoSrv)}).`;
       const v = { valido, razon, estado: estadoSrv, costoUnitario: costoSrv, bomHash: hashActual };
       setValidacionSrv(v);
-      if (estadoSrv) setCostoEstado(estadoSrv);
+      if (estadoSrv) marcarCostoEstado(estadoSrv, hashActual);
       return v;
     } catch (_e) {
       const v = { valido: false, razon: 'no se pudo contactar al servidor de costeo.', bomHash: hashActual };
@@ -496,7 +504,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     setConfirmadas(Object.fromEntries((e.confirmaciones || []).map((c) => [c.question_key || ('k_' + kpreg(c.pregunta).replace(/\s+/g, '_')), { pregunta: c.pregunta, respuesta: c.respuesta }])));
     setRenders({ aislado: e.render_aislado_url || null, ambiente: e.render_ambiente_url || null });
     setRenderHash(e.costo?.render_hash || null); // legacy sin firma queda NO canónico hasta regenerar
-    setCostoEstado(e.costo?.estado_costo || null); setCostoGuardado(e.costo || null); setExpMsg(''); setConfMsg(''); setPreguntasIA([]); setAnalisis(null);
+    marcarCostoEstado(e.costo?.estado_costo || null, e.costo?.bom_hash || null); setCostoGuardado(e.costo || null); setExpMsg(''); setConfMsg(''); setPreguntasIA([]); setAnalisis(null);
     // Un expediente guardado trae un BOM YA CONSOLIDADO: es canónico. Su hash debe
     // coincidir con el guardado (misma identidad de revisión al cerrar/reabrir).
     setCanonico(true); setPropuestaDiff(null); setBomDirty(false);
@@ -1262,8 +1270,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           <div style={{ borderTop: '1px solid var(--borde)', paddingTop: 14, textAlign: 'left' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <strong>Generar render</strong>
-              <span className="chip" style={{ background: costoIncompleto ? '#b22a22' : (costoEstado === 'certificado') ? 'var(--ok,#1a7f37)' : '#8a6d00', color: '#fff', fontSize: 12 }}>
-                {costoIncompleto ? 'COSTO INCOMPLETO' : costoEstado === 'certificado' ? 'COSTO CERTIFICADO' : 'COSTO PRELIMINAR'}
+              <span className="chip" style={{ background: costoIncompleto ? '#b22a22' : (costoEstadoVigente === 'certificado') ? 'var(--ok,#1a7f37)' : '#8a6d00', color: '#fff', fontSize: 12 }}>
+                {costoIncompleto ? 'COSTO INCOMPLETO' : costoEstadoVigente === 'certificado' ? 'COSTO CERTIFICADO' : 'COSTO PRELIMINAR'}
               </span>
               <span className="chip" style={{ background: geomFid === 'alta' ? 'var(--ok,#1a7f37)' : geomFid === 'media' ? '#8a6d00' : '#8a2d00', color: '#fff', fontSize: 12 }}>
                 GEOMETRÍA: {geomFid === 'alta' ? 'ALTA' : geomFid === 'media' ? 'MEDIA' : 'LIMITADA'}

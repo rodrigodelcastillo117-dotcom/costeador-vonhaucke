@@ -6,7 +6,10 @@ describe('cotización · renders no inflan el JSON', () => {
     const s = fs.readFileSync('src/componentes/Cotizacion.jsx', 'utf8');
     expect(s).toContain('subirRender as subirRenderNube');
     expect(s).toContain("persistirRender(r.dataUrl, 'partidas')");
-    expect(s).toContain('render: up.url');
+    // El render de partida persiste la URL de Storage (up.url), aplicada por id de forma funcional
+    // (React P0-1), nunca base64. Dos rutas: partida individual y lote.
+    expect(s).toContain('aplicarRenderPorId(pt.id, up.url, up.path)');
+    expect(s).toContain('aplicarRenderPorId(o.id, up.url, up.path)');
     expect(s).not.toContain('render: r.dataUrl');
     expect(s).not.toContain("render3d: c.toDataURL");
   });

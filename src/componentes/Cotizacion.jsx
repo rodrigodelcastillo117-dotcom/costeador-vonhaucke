@@ -111,7 +111,17 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   const [voniMensaje, setVoniMensaje] = useState('');
   const [voniError, setVoniError] = useState('');
 
-  const setCot = (parcial) => setEstado({ ...estado, cotizacion: { ...cot, ...parcial } });
+  // FUNCIONAL (React P0-1): NO capturar `estado`/`cot` del render del clic. Tras un await largo
+  // (generar render), una copia capturada revertía cambios intermedios del usuario (cantidades,
+  // descuentos, partidas) y, en Dir/Diseño, revertía precios llegados por realtime. Con el updater
+  // funcional cada escritura parte del estado VIGENTE.
+  const setCot = (parcial) => setEstado((e) => ({ ...e, cotizacion: { ...e.cotizacion, ...parcial } }));
+  // Aplica el render a UNA partida por su id (no por índice ni por arreglo capturado), de forma
+  // funcional: así un render que termina tarde no pisa los cambios hechos mientras generaba.
+  const aplicarRenderPorId = (id, render, path) => setEstado((e) => ({
+    ...e,
+    cotizacion: { ...e.cotizacion, partidas: (e.cotizacion.partidas || []).map((p) => (p.id === id ? { ...p, render, render_storage_path: path || null } : p)) },
+  }));
 
   // RENDER CANÓNICO por partida: se resuelve SÓLO por producto_version_id (nunca por
   // nombre). mapaRenders = { [versionId]: filas[] }; estadoRenderPartida decide
@@ -170,7 +180,8 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
             setErrGen(up?.error || 'No se pudo guardar la imagen.');
             return;
           }
-          setCot({ acomodo: { ...(cot.acomodo || {}), render3d: up.url, render3d_storage_path: up.path || null } });
+          // funcional: parte del acomodo VIGENTE (tras el await), no del capturado al elegir archivo.
+          setEstado((e) => ({ ...e, cotizacion: { ...e.cotizacion, acomodo: { ...(e.cotizacion.acomodo || {}), render3d: up.url, render3d_storage_path: up.path || null } } }));
         } catch (_e) {
           setErrGen('No se pudo preparar o guardar la imagen.');
         }
@@ -213,34 +224,29 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         setErrGen(up?.error || 'Se generó el render, pero no se pudo guardar.');
         return;
       }
-      setPartida(i, { render: up.url, render_storage_path: up.path || null });
+      aplicarRenderPorId(pt.id, up.url, up.path);   // por id funcional: no pisa cambios intermedios
     } catch (_e) { setErrGen('No se pudo conectar o guardar el render.'); }
     finally { setGenPart(null); }
   }
 
   async function renderTodas() {
     setErrGen('');
-    const ps = partidas.slice();
+    // Snapshot SOLO para decidir QUÉ renderizar (las que no tienen render al momento del clic).
+    // La ESCRITURA de cada render es por id y funcional (aplicarRenderPorId): si el usuario cambia
+    // cantidades/descuento/partidas o agrega muebles mientras corre el lote, esos cambios se
+    // conservan — antes `setCot({partidas: ps})` con el snapshot los revertía (React P0-1).
+    const objetivos = partidas.filter((p) => !p.render).map((p) => ({ id: p.id, nombre: p.nombre, ruta: p.ruta }));
     try {
-      for (let i = 0; i < ps.length; i++) {
-        if (ps[i].render) continue;
-        setGenPart(ps[i].id);
-        const r = await generarRender(ps[i].nombre || 'mueble', { tipo: ps[i].ruta || '' });
-        if (!r?.ok || !r?.dataUrl) {
-          setErrGen(r?.error || `No se pudo generar el render de ${ps[i].nombre || 'una partida'}.`);
-          continue;
-        }
+      for (const o of objetivos) {
+        setGenPart(o.id);
+        const r = await generarRender(o.nombre || 'mueble', { tipo: o.ruta || '' });
+        if (!r?.ok || !r?.dataUrl) { setErrGen(r?.error || `No se pudo generar el render de ${o.nombre || 'una partida'}.`); continue; }
         const up = await persistirRender(r.dataUrl, 'partidas');
-        if (!up?.ok || !up?.url) {
-          setErrGen(up?.error || `No se pudo guardar el render de ${ps[i].nombre || 'una partida'}.`);
-          continue;
-        }
-        ps[i] = { ...ps[i], render: up.url, render_storage_path: up.path || null };
+        if (!up?.ok || !up?.url) { setErrGen(up?.error || `No se pudo guardar el render de ${o.nombre || 'una partida'}.`); continue; }
+        aplicarRenderPorId(o.id, up.url, up.path);   // escribe sólo esa partida, por id, en el estado vigente
       }
-      setCot({ partidas: ps });
     } catch (_e) {
       setErrGen('La generación por lote se interrumpió; los renders ya guardados se conservaron.');
-      setCot({ partidas: ps });
     } finally {
       setGenPart(null);
     }
@@ -418,7 +424,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
     }
   }
 
-  const setPartida = (i, parcial) => { const ps = partidas.slice(); ps[i] = { ...ps[i], ...parcial }; setCot({ partidas: ps }); };
+  const setPartida = (i, parcial) => setEstado((e) => { const ps = (e.cotizacion.partidas || []).slice(); if (ps[i]) ps[i] = { ...ps[i], ...parcial }; return { ...e, cotizacion: { ...e.cotizacion, partidas: ps } }; });
   const quitar = (i) => {
     const pt = partidas[i];
     if (!confirm(`¿Quitar "${pt?.nombre || 'este renglón'}" de la cotización?`)) return;
