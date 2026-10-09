@@ -33,6 +33,13 @@ describe('precioProvenance · normalización y clasificación intrínseca', () =
     expect(o.precio).toBeNull();          // NO 0
   });
 
+  it('precio NULL explícito → precio null y PENDING (regresión num(null)≠0)', () => {
+    const o = normalizarObservacionPrecio({ ...COMPRA_544, precio: null });
+    expect(o.precio).toBeNull();          // NO 0 (Number(null)===0 sería el bug)
+    expect(o.intrinseco).toBe(INTRINSECO.PENDING);
+    expect(o.issues).toContain('SIN_PRECIO');
+  });
+
   it('$0 sin evidencia real → inválido (PENDING); $0 con es_cero_real → utilizable', () => {
     expect(normalizarObservacionPrecio({ ...COMPRA_544, precio: 0 }).issues).toContain('PRECIO_CERO_SIN_EVIDENCIA');
     const real0 = normalizarObservacionPrecio({ ...COMPRA_544, precio: 0, es_cero_real: true });

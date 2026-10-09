@@ -45,7 +45,7 @@ export function origenDeProcedencia(procedencia) {
 }
 
 const txt = (v) => String(v ?? '').trim();
-const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
+const num = (v) => { if (v === null || v === undefined || v === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
 const clamp01 = (v) => { const n = Number(v); return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : null; };
 
 /**

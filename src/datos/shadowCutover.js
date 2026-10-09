@@ -19,7 +19,7 @@
 import { resolverPrecioInsumoVivo, precioCapturadoAMano } from './precioInsumoBridge.js';
 import { ESTADO_PRECIO } from './precioProvenance.js';
 
-const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
+const num = (v) => { if (v === null || v === undefined || v === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
 
 // Causas de diferencia entre legacy y canónico (determinista).
 export const CAUSA_SHADOW = Object.freeze({
