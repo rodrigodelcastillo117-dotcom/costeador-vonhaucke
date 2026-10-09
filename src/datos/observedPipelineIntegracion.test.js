@@ -209,6 +209,73 @@ describe('INTEGRACIÓN observed pipeline (R10, offline)', () => {
     expect(prop.propuesta.partidas.some((p) => p.relation_role === 'WORK_SEAT')).toBe(false);  // no es partida
   });
 
+  it('25· R14-1 cantidad>1: observed 2× + existente 1 renglón cantidad=2 → reutiliza 2, agrega 0, físico=2', () => {
+    const { prop } = pipeline([base({ type: 'bench operativo', role: 'operational', quantity: 2, capacity_per_unit: 2, capacity_total: 4, dimensions: { w: 1500, d: 1200 }, source_ref: 'B-01' })]);
+    expect(prop.propuesta.partidas.length).toBe(2);
+    // UN renglón comercial agrupado con cantidad=2 (como lo deja subir/bajar la cotización)
+    const existenteRow = [{ ...prop.propuesta.partidas[0], cantidad: 2 }];
+    const ap = aplicarPrograma(prop.propuesta, { existentes: existenteRow });
+    expect(ap.confirmacion.resumen.reutilizadasUnidades).toBe(2);   // absorbe 2 físicos
+    expect(ap.confirmacion.resumen.nuevas).toBe(0);                 // NO sobre-agrega
+    const fisico = ap.confirmacion.items.reduce((s, i) => s + (Number(i.cantidad) || 1), 0);
+    expect(fisico).toBe(2);
+  });
+
+  it('26· R14-1 parcial: observed 4× + existente 1 renglón cantidad=2 → faltan exactamente 2', () => {
+    const { prop } = pipeline([base({ type: 'bench operativo', role: 'operational', quantity: 4, capacity_per_unit: 2, capacity_total: 8, dimensions: { w: 1500, d: 1200 }, source_ref: 'B-01' })]);
+    const existenteRow = [{ ...prop.propuesta.partidas[0], cantidad: 2 }];
+    const ap = aplicarPrograma(prop.propuesta, { existentes: existenteRow });
+    expect(ap.confirmacion.resumen.reutilizadasUnidades).toBe(2);
+    expect(ap.confirmacion.resumen.nuevas).toBe(2);                 // exactamente 2 nuevas
+  });
+
+  it('27· R14-2 IDENTIDAD ESTABLE: reordenar observed NO intercambia provenance (B-01↔A, B-02↔B)', () => {
+    const bench = (ref, zone) => base({ type: 'bench operativo', role: 'operational', quantity: 1, capacity_per_unit: 2, capacity_total: 2, dimensions: { w: 1500, d: 1200 }, source_ref: ref, zone });
+    // 1ª corrida: B-01 en OPEN SPACE, B-02 en DIRECCION → 2 partidas op-2u.
+    const p1 = proponerProgramaDesdeObservado([bench('B-01', 'OPEN SPACE'), bench('B-02', 'DIRECCION')], { linea: 'App LT' });
+    const ap1 = aplicarPrograma(p1.propuesta, { existentes: [] });
+    const ex1 = { ...ap1.confirmacion.confirmadas.find((c) => c.plan_source_ref === 'B-01'), id: 'x1' };
+    const ex2 = { ...ap1.confirmacion.confirmadas.find((c) => c.plan_source_ref === 'B-02'), id: 'x2' };
+    // 2ª corrida con el observed REORDENADO (B-02 primero) + los existentes.
+    const p2 = proponerProgramaDesdeObservado([bench('B-02', 'DIRECCION'), bench('B-01', 'OPEN SPACE')], { linea: 'App LT' });
+    const ap2 = aplicarPrograma(p2.propuesta, { existentes: [ex1, ex2] });
+    expect(ap2.confirmacion.resumen.reutilizadasUnidades).toBe(2);   // reutiliza los mismos físicos
+    expect(ap2.confirmacion.resumen.nuevas).toBe(0);
+    // la provenance NO se intercambia: x1 sigue siendo B-01, x2 sigue siendo B-02
+    const px1 = ap2.confirmacion.enriquecidos.find((e) => e.id === 'x1')?.patch;
+    const px2 = ap2.confirmacion.enriquecidos.find((e) => e.id === 'x2')?.patch;
+    expect(px1.plan_source_ref).toBe('B-01');
+    expect(px2.plan_source_ref).toBe('B-02');
+  });
+
+  it('28· R14-3 MODEL_MISMATCH es GATE: silla observada con modelo ≠ sugerido → requiereRevision', () => {
+    const { prop } = pipeline([
+      base({ type: 'bench operativo', role: 'operational', quantity: 1, capacity_per_unit: 2, capacity_total: 2, dimensions: { w: 1500, d: 1200 }, source_ref: 'B-30' }),
+      base({ type: 'silla operativa', role: 'work_seat', quantity: 2, zone: 'OPEN SPACE', source_ref: 'S-30', observed_model: 'silla-marca-x' }),
+    ]);
+    const ws = prop.dependientesConciliados.find((d) => d.dependent_role === 'WORK_SEAT');
+    expect(ws.modelo_mismatch).toBe(true);        // observado silla-marca-x ≠ sugerido silla-win
+    expect(prop.requiereRevision).toBe(true);     // mismatch bloquea aplicar
+  });
+
+  it('29· R14-3 sillería sin modelo: programa NO completo (requiereConfirmacionSillas) pero ancla aplicable', () => {
+    const { prop } = pipeline([base({ type: 'bench operativo', role: 'operational', quantity: 1, capacity_per_unit: 2, capacity_total: 2, dimensions: { w: 1500, d: 1200 }, source_ref: 'B-31' })]);
+    expect(prop.requiereConfirmacionSillas).toBe(true);   // sillería con modelo por confirmar
+    expect(prop.programaCompleto).toBe(false);            // no se presenta como completo
+    expect(prop.requiereRevision).toBe(false);            // pero el ANCLA sí se puede aplicar
+    expect(propuestaBloqueada(prop.propuesta)).toBe(false);
+  });
+
+  it('30· R14-4 PROVENANCE completa: evidence + posición + orientación llegan a la partida comercial', () => {
+    const { prop } = pipeline([base({ type: 'bench operativo', role: 'operational', quantity: 1, capacity_per_unit: 2, capacity_total: 2, dimensions: { w: 1500, d: 1200 }, position: { x: 1234, y: 5678 }, orientation: 90, evidence: 'isla dibujada en planta', source_ref: 'B-40' })]);
+    const ap = aplicarPrograma(prop.propuesta, { existentes: [] });
+    const comercial = partidaComercialDesdeConfirmado(ap.confirmacion.confirmadas[0]);
+    expect(comercial.plan_source_ref).toBe('B-40');
+    expect(comercial.evidence).toBe('isla dibujada en planta');
+    expect(comercial.observed_position).toEqual({ x: 1234, y: 5678 });
+    expect(comercial.observed_orientation).toBe(90);
+  });
+
   it('24· R13-4 modelo observado ≠ source_ref: sin modelo explícito → requiere_confirmacion_modelo', () => {
     const { prop } = pipeline([
       base({ type: 'bench operativo', role: 'operational', quantity: 1, capacity_per_unit: 1, capacity_total: 1, dimensions: { w: 1500, d: 600 }, source_ref: 'B-10' }),

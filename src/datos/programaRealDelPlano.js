@@ -97,12 +97,16 @@ export function partidaComercialDesdeConfirmado(it) {
     piezaId: it.bancoId,
     bancoId: it.bancoId,
     source_ref: it.source_ref || it.bancoId,
-    // R12-5: la partida comercial CONSERVA de dónde vino en el plano (B-01), aparte
-    // del producto de catálogo (op-2u…), para poder explicar "¿por qué este mueble?".
+    // R12-5/R14-4: la partida comercial CONSERVA de dónde vino en el plano (B-01),
+    // aparte del producto de catálogo (op-2u…), + evidencia y posición/orientación
+    // observadas, para poder explicar "¿de dónde salió este mueble?" y volver al plano.
     plan_source_ref: it.plan_source_ref ?? null,
     product_source_ref: it.product_source_ref ?? it.bancoId ?? null,
     plan_tag: it.plan_tag ?? null,
     grouping: it.grouping ?? null,
+    evidence: it.evidence ?? null,
+    ...(it.observed_position != null ? { observed_position: it.observed_position } : {}),
+    ...(it.observed_orientation != null ? { observed_orientation: it.observed_orientation } : {}),
     productoId: it.productoId || null,
     producto_version_id: it.producto_version_id || null,
     nombre: it.nombre,
@@ -293,7 +297,8 @@ export function programRequirementsDesdeObservado(observedProgram) {
       quantity: q, capacity_per_unit: capPer || null, capacity_total: capTotal || (capPer ? capPer * q : null),
       dimensions: norm.dimensions || null, zone: norm.zone || null,
       source_ref: norm.source_ref || null, plan_tag,
-      grouping: norm.grouping || null, position: norm.position || null, evidence: norm.evidence || null,
+      grouping: norm.grouping || null, position: norm.position || null,
+      orientation: norm.orientation ?? null, evidence: norm.evidence || null,
     });
     // P1-R11: un ancla SIN etiqueta (source_ref/plan_tag) y SIN posición no tiene
     // identidad segura para gobernar sola → revisión (no se asume uniq:index válido).
@@ -486,7 +491,10 @@ export function resolverFisicoDesdeObservado(anclas, { linea = 'App LT' } = {}) 
     }
     const prod = r.producto_obj;
     const q = Number(an.quantity) > 0 ? Math.floor(Number(an.quantity)) : 1;
-    const req_id = requirementId(an.zone || null, map.rol, i);
+    // R14-2: identidad ESTABLE, NO el índice del array. Prioriza plan_source_ref
+    // (estable) → plan_tag → grouping; sólo si nada hay, cae al índice.
+    const stableKey = an.source_ref || an.plan_tag || an.grouping || `idx${i}`;
+    const req_id = requirementId(an.zone || null, map.rol, stableKey);
     const seatsPorUnidad = Number(an.capacity_per_unit) > 0 ? Math.round(Number(an.capacity_per_unit)) : 0;
     for (let k = 0; k < q; k++) {   // CARDINALIDAD 1:1: una instancia física por observada
       const res = construirResolucion(prod, {
@@ -533,13 +541,21 @@ export function proponerProgramaDesdeObservado(observedProgram, { linea = 'App L
   // Reconcilia los dependientes OBSERVADOS contra el REQUERIMIENTO (recomendaciones),
   // comparando modelo cuando exista (R12-3).
   const dependientesConciliados = conciliarDependientes(dependientesObservados, fisico.recomendaciones);
-  // GATE (R11-3): ancla no resuelta, cualquier pendiente, o dependiente observado
-  // sin empate (OBSERVED_ONLY/DIVERGE) → requiereRevision (bloquea Aplicar).
-  const depGate = dependientesConciliados.some((d) => d.estado === 'OBSERVED_ONLY' || d.estado === 'DIVERGE');
+  // GATE (R11-3 + R14-3): ancla no resuelta, cualquier pendiente, dependiente
+  // observado sin empate (OBSERVED_ONLY/DIVERGE), o MODELO EN CONFLICTO
+  // (modelo_mismatch) → requiereRevision (bloquea Aplicar).
+  const depGate = dependientesConciliados.some((d) => d.estado === 'OBSERVED_ONLY' || d.estado === 'DIVERGE' || d.modelo_mismatch === true);
   const requiereRevision = hayAnclaNoResuelta || pendientes.length > 0 || depGate;
+  // R14-3: sillería con modelo SIN confirmar NO bloquea aplicar las ANCLAS, pero el
+  // PROGRAMA NO está COMPLETO hasta que el usuario confirme/elija el modelo.
+  const requiereConfirmacionSillas = (fisico.recomendaciones || []).some((r) => r.requiere_confirmacion_modelo === true)
+    || dependientesConciliados.some((d) => d.requiere_confirmacion_modelo === true);
+  const programaCompleto = !requiereRevision && !requiereConfirmacionSillas;
   // R11-4: el flag viaja DENTRO de la propuesta para que el gate de dominio pueda
   // rechazarla aunque un caller sólo pase `propuesta` (no sólo el botón disabled).
   propuesta.requiereRevision = requiereRevision;
+  propuesta.requiereConfirmacionSillas = requiereConfirmacionSillas;
+  propuesta.programaCompleto = programaCompleto;
   return {
     gobernadoPorObservado: true,
     observadoPendientes: pendientes,
@@ -547,7 +563,7 @@ export function proponerProgramaDesdeObservado(observedProgram, { linea = 'App L
     propuesta, preview, recomendaciones: fisico.recomendaciones,
     incompletos: fisico.incompletos, cotizable: propuesta.cotizable,
     anclasConciliadas, dependientesConciliados,
-    requiereRevision,
+    requiereRevision, requiereConfirmacionSillas, programaCompleto,
   };
 }
 

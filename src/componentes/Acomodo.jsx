@@ -198,9 +198,13 @@ export default function Acomodo(props) {
   const reconObs = (propuestaPlano && propuestaPlano.propuesta)
     ? aplicarPrograma(propuestaPlano.propuesta, { existentes: partidasActuales })
     : null;
-  const obsCubiertas = reconObs?.resumen?.reutilizadas ?? 0;
-  const obsPorAgregar = reconObs?.resumen?.nuevas ?? previewPropuesto.length;
+  // R14-3: el resumen vive en reconObs.confirmacion.resumen (no en reconObs.resumen).
+  const obsCubiertas = reconObs?.confirmacion?.resumen?.reutilizadas ?? 0;
+  const obsPorAgregar = reconObs?.confirmacion?.resumen?.nuevas ?? previewPropuesto.length;
   const obsRecomendaciones = (propuestaPlano && Array.isArray(propuestaPlano.recomendaciones)) ? propuestaPlano.recomendaciones : [];
+  // R14-6: UNA SOLA REALIDAD. Si el observed server gobierna, NO se muestran las
+  // sugerencias heurísticas por áreas como segundo inventario; sólo en ABSENT.
+  const sugerenciasAreaUI = observadoPresente ? [] : sugerenciasFaltantes;
 
   const estadoDemo = useMemo(() => {
     const e = props?.estado || {};
@@ -339,17 +343,17 @@ export default function Acomodo(props) {
         </div>
       )}
 
-      {hayReales && sugerenciasFaltantes.length > 0 && (
+      {hayReales && sugerenciasAreaUI.length > 0 && (
         <div className="contenido no-imprimir" style={{ paddingBottom: 0, width: '100%' }}>
           <div className="alerta" style={{ display: 'block', width: '100%', boxSizing: 'border-box', background: '#fff8e6', borderColor: '#d8a800', color: '#5e4700' }}>
             <strong>✨ VONI detectó posibles faltantes del programa.</strong>{' '}
-            Propuso <strong>{sugerenciasFaltantes.reduce((s, p) => s + cantidadDe(p), 0)} pieza(s)</strong> que todavía no están cotizadas.
+            Propuso <strong>{sugerenciasAreaUI.reduce((s, p) => s + cantidadDe(p), 0)} pieza(s)</strong> que todavía no están cotizadas.
             <strong>No se meten al acomodo real.</strong> Siguen <strong>SUGERIDAS · NO COTIZADAS</strong> hasta que alguien las confirme/agregue.
             <div style={{ display: 'grid', gap: 4, marginTop: 8 }}>
-              {sugerenciasFaltantes.slice(0, 8).map((p) => (
+              {sugerenciasAreaUI.slice(0, 8).map((p) => (
                 <div key={p.id}>• {p.cantidad}× {p.nombre}{p.zonaSugerida ? ' → ' + p.zonaSugerida : ''}</div>
               ))}
-              {sugerenciasFaltantes.length > 8 && <div>• +{sugerenciasFaltantes.length - 8} renglón(es) sugeridos</div>}
+              {sugerenciasAreaUI.length > 8 && <div>• +{sugerenciasAreaUI.length - 8} renglón(es) sugeridos</div>}
             </div>
             <div style={{ marginTop: 8 }}>El acomodo real usa únicamente lo cotizado. Si falta un ancla funcional, se bloquea y te dice exactamente qué agregar.</div>
           </div>
@@ -357,7 +361,7 @@ export default function Acomodo(props) {
       )}
 
       <AcomodoBase key={`acomodo-demo-${revision}-${hayReales ? 'real' : 'sug'}`} {...props} estado={estadoDemo}
-        pendientesPrograma={sugerenciasFaltantes}
+        pendientesPrograma={sugerenciasAreaUI}
         bloqueosPrograma={coherenciaPrograma.bloqueos}
         onGuardarAcomodo={guardarInterceptado} />
     </>

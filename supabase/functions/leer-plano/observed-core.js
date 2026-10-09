@@ -157,6 +157,9 @@ export function validarItemObservado(raw = {}, ctx = {}) {
     origin: origin || originRaw || null,
     source_ref: txt(raw.source_ref || raw.plan_tag) || null,
     plan_tag: txt(raw.plan_tag) || null,
+    // Modelo/acabado comercial OBSERVADO (distinto de source_ref, que es la etiqueta
+    // del plano). Sólo si el lector lo da explícito (R13-4/R14-3); si no, null.
+    observed_model: txt(raw.observed_model || raw.model || raw.modelo || raw.acabado) || null,
     room_derived: roomDerived,
     issues,
     review_required: issues.length > 0,

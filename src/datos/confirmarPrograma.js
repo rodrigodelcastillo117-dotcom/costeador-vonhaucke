@@ -94,6 +94,7 @@ function estructuraDe(part) {
     ...(part.product_source_ref != null ? { product_source_ref: part.product_source_ref } : {}),
     ...(part.plan_tag != null ? { plan_tag: part.plan_tag } : {}),
     ...(part.grouping != null ? { grouping: part.grouping } : {}),
+    ...(part.evidence != null ? { evidence: part.evidence } : {}),
     ...(part.observed_position != null ? { observed_position: part.observed_position } : {}),
     ...(part.observed_orientation != null ? { observed_orientation: part.observed_orientation } : {}),
     // P0.2c GAP16: la topología confirmada (CATALOG/USER_CONFIRMED) sobrevive el
@@ -173,49 +174,59 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
     banco: bancoDe(e), cantidad: Math.max(1, Number(e.cantidad) || 1),
   }));
 
-  // --- ANCLAS: CARDINALIDAD REAL (ChatGPT R13-1). Prioridad de match por INSTANCIA:
-  //     instance_id exacto → slot físico (rol+rel+ordinal) → requirement_id SÓLO si
-  //     es INEQUÍVOCO (un único existente con ese req). Cada existente se consume UNA
-  //     vez (`usados`): 4 instancias observadas NO pueden reutilizar la misma existente. ---
+  // --- ANCLAS: CARDINALIDAD REAL + IDENTIDAD ESTABLE (ChatGPT R13-1 / R14-1 / R14-2).
+  //   · Un renglón existente con cantidad=N representa N INSTANCIAS físicas: un POOL
+  //     con `rem` absorbe hasta N instancias observadas (no se sobre-agrega).
+  //   · Match por IDENTIDAD FÍSICA: plan_source_ref → instance_id → zone+grouping →
+  //     banco+rol (NO sólo rol|rel|ordinal, que intercambiaría zonas/provenance).
+  //   · Cada existente consumido se re-emite UNA vez; `usados` lo saca de intactos. ---
   const anchorSlot = (rol, rel, ord) => `${rol}|${rel}|#${ord}`;
   const existAnchors = ex.filter((e) => esAncla(e.rel));
-  const existByInstance = new Map();
-  for (const e of existAnchors) { if (e.raw && e.raw.instance_id) existByInstance.set(String(e.raw.instance_id), e); }
-  const existByReqList = new Map();   // req_id -> [existentes] (para saber si es inequívoco)
-  for (const e of existAnchors) {
-    const req = e.raw && e.raw.requirement_id;
-    if (req) { const k = String(req); if (!existByReqList.has(k)) existByReqList.set(k, []); existByReqList.get(k).push(e); }
-  }
+  const poolAnchor = existAnchors.map((e) => ({ e, rem: e.cantidad }));
+  // Slot posicional (rol|rel|ordinal) → poolEntry, para CONFLICTO legacy cuando no
+  // hay plan_source_ref ni requirement_id pero el mismo slot está ocupado por otro producto.
   const anchorOrd = new Map();
   const anchorBySlot = new Map();
-  for (const e of existAnchors) {
-    const base = `${e.rol}|${e.rel}`;
-    const ord = anchorOrd.get(base) || 0; anchorOrd.set(base, ord + 1);
-    anchorBySlot.set(anchorSlot(e.rol, e.rel, ord), e);
+  for (const p of poolAnchor) {
+    const b = `${p.e.rol}|${p.e.rel}`;
+    const o = anchorOrd.get(b) || 0; anchorOrd.set(b, o + 1);
+    anchorBySlot.set(anchorSlot(p.e.rol, p.e.rel, o), p);
   }
-  const libre = (e) => e && !usados.has(e._i);      // aún no consumido
+  let reutilizadasFisicas = 0;                      // unidades físicas reutilizadas
+  const emittedExist = new Set();                   // existentes ya re-emitidos a sinCambio
   const propAnchorOrd = new Map();
   for (const a of anchorsProp) {
     const rol = a.rol || rolFromRel(a.relation_role);
     const base = `${rol}|${a.relation_role}`;
     const ord = propAnchorOrd.get(base) || 0; propAnchorOrd.set(base, ord + 1);
     const slot = anchorSlot(rol, a.relation_role, ord);
-    // 1) instance_id exacto; 2) slot físico; 3) requirement_id sólo si es ÚNICO.
-    let prev = (a.instance_id && existByInstance.get(String(a.instance_id))) || null;
-    if (!libre(prev)) prev = libre(anchorBySlot.get(slot)) ? anchorBySlot.get(slot) : null;
-    if (!prev && a.requirement_id) {
-      const lista = (existByReqList.get(String(a.requirement_id)) || []).filter(libre);
-      if (lista.length === 1) prev = lista[0];      // inequívoco
-    }
-    if (prev && libre(prev)) {
-      if (String(prev.banco) === String(a.bancoId)) {
-        usados.add(prev._i);                      // reutiliza UNA sola vez
-        sinCambio.push(aItemConfirmado(a, { slot, estado: 'EXISTENTE' }));
-        if (prev.raw && prev.raw.id != null) enriquecidos.push({ id: prev.raw.id, patch: estructuraDe(a) });
-      } else {
-        // CONFLICTO: se CONSERVA lo existente (queda en intactos), NO se sustituye.
-        conflictos.push({ slot, existente: { bancoId: prev.banco, nombre: prev.raw.nombre ?? null }, propuesto: { bancoId: a.bancoId, nombre: a.nombre ?? null }, code: 'SLOT_OCUPADO_PRODUCTO_DISTINTO' });
+    const banco = String(a.bancoId);
+    const aPlan = String(a.plan_source_ref ?? '');
+    const aZone = String(a.zone_id ?? a.zone ?? '');
+    const find = (pred) => poolAnchor.find((p) => p.rem > 0 && String(p.e.banco) === banco && pred(p));
+    const hit = (aPlan && find((p) => String(p.e.raw.plan_source_ref || '') === aPlan))
+      || (a.instance_id && find((p) => String(p.e.raw.instance_id || '') === String(a.instance_id)))
+      || (aZone && find((p) => String(p.e.raw.zone_id || p.e.raw.zone || '') === aZone && String(p.e.raw.grouping || '') === String(a.grouping || '')))
+      || find((p) => p.e.rel === a.relation_role)
+      || null;
+    // CONFLICTO: misma identidad (plan_source_ref o requirement_id) con producto
+    // DISTINTO, o el MISMO slot posicional ocupado por otro producto (legacy).
+    const slotOcupado = anchorBySlot.get(slot);
+    const conflict = !hit
+      ? ((aPlan && poolAnchor.find((p) => String(p.e.raw.plan_source_ref || '') === aPlan && String(p.e.banco) !== banco))
+         || (a.requirement_id && poolAnchor.find((p) => String(p.e.raw.requirement_id || '') === String(a.requirement_id) && String(p.e.banco) !== banco))
+         || (slotOcupado && slotOcupado.rem > 0 && String(slotOcupado.e.banco) !== banco ? slotOcupado : null))
+      : null;
+    if (hit) {
+      hit.rem -= 1; reutilizadasFisicas += 1; usados.add(hit.e._i);   // consume 1 del renglón (cantidad N)
+      if (!emittedExist.has(hit.e._i)) {
+        emittedExist.add(hit.e._i);
+        sinCambio.push(aItemConfirmado({ ...a, cantidad: hit.e.cantidad }, { slot, estado: 'EXISTENTE' }));
+        if (hit.e.raw && hit.e.raw.id != null) enriquecidos.push({ id: hit.e.raw.id, patch: estructuraDe(a) });
       }
+    } else if (conflict) {
+      // CONFLICTO: se CONSERVA lo existente (queda en intactos), NO se sustituye.
+      conflictos.push({ slot, existente: { bancoId: conflict.e.banco, nombre: conflict.e.raw.nombre ?? null }, propuesto: { bancoId: a.bancoId, nombre: a.nombre ?? null }, code: 'SLOT_OCUPADO_PRODUCTO_DISTINTO' });
     } else {
       confirmadas.push(aItemConfirmado(a, { slot, estado: 'CONFIRMADO' }));
     }
@@ -232,8 +243,10 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
       poolDep.get(k).push({ idx: e._i, rem: e.cantidad });
     }
   }
+  let reutilizadasDep = 0;
   const consumir = (en, dep) => {              // reutiliza fila completa + enriquece a su ancla
     usados.add(en.idx);
+    reutilizadasDep += Math.max(1, Number(ex[en.idx].raw.cantidad) || 1);
     sinCambio.push(aItemConfirmado(ex[en.idx].raw, { slot: null, estado: 'EXISTENTE' }));
     if (ex[en.idx].raw.id != null) enriquecidos.push({ id: ex[en.idx].raw.id, patch: estructuraDe(dep) });
     en.rem = 0;
@@ -271,7 +284,9 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
     resumen: {
       total: items.length,
       nuevas: confirmadas.length,
-      reutilizadas: sinCambio.length,
+      reutilizadas: sinCambio.length,                 // RENGLONES reutilizados (compat)
+      // R14-1: UNIDADES físicas reutilizadas (un renglón cantidad=N cuenta N).
+      reutilizadasUnidades: reutilizadasFisicas + reutilizadasDep,
       conflictos: conflictos.length,
       productosReales: propias.every((it) => it.bancoId && !String(it.bancoId).startsWith('sug-') && it.product_status === 'RESOLVED'),
       identidadesValidas: propias.every((it) => it.identity_status === 'RESOLVED'),
