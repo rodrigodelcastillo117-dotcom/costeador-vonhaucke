@@ -132,6 +132,13 @@ describe('CanonicalPriceResolver · selección determinista', () => {
     expect(r.precio).toBe(530);
   });
 
+  it('P1-R8-5: vigencia "hasta hoy" cubre TODO el día (no vence a las 00:00)', () => {
+    const vigenteHoy = { ...COMPRA_544, precio: 530, source_date: '2026-10-01', validity: '2026-10-09', source_document: 'LISTA' };
+    const r = resolverPrecioCanonico('melamina-ecolegno-19mm', [vigenteHoy], { hoy: Date.parse('2026-10-09T15:00:00Z') });
+    expect(r.estado).toBe(ESTADO_PRECIO.CURRENT_VERIFIED);   // a las 15:00 del 9-oct sigue vigente
+    expect(r.bloqueaCostoOficial).toBe(false);
+  });
+
   it('vigencia VENCIDA → HISTORICAL y BLOQUEA costo oficial (ChatGPT #4), no REAL_OBSERVED', () => {
     const vencido = { ...COMPRA_544, precio: 500, source_date: '2025-01-01', validity: '2025-06-30', source_document: 'LISTA-2025' };
     const r = resolverPrecioCanonico('melamina-ecolegno-19mm', [vencido], { hoy: HOY });

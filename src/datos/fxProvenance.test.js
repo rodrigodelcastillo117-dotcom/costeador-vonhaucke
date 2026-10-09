@@ -88,6 +88,12 @@ describe('FX PROVENANCE · tipo de cambio con procedencia (ChatGPT §9)', () => 
     expect(r.bloqueaCostoOficial).toBe(true);
   });
 
+  it('P1-R8-6: FACTURA fresca con vigencia_hasta MALFORMADA → fail-closed PROVISIONAL (no REAL_DATED)', () => {
+    const r = resolverFx('USD/MXN', [{ par: 'USD/MXN', valor: 18, fuente: FUENTE_FX.FACTURA, fecha: HOY, vigencia_hasta: 'no-es-fecha', evidencia: 'factura' }], { hoy: HOY });
+    expect(r.estado).toBe(ESTADO_FX.PROVISIONAL);
+    expect(r.bloqueaCostoOficial).toBe(true);
+  });
+
   it('RED-TEAM M1: empate real (dos Banxico mismo día, evidencia igual) → selección determinista', () => {
     const obs = [
       { par: 'USD/MXN', valor: 18.2, fuente: FUENTE_FX.BANXICO, fecha: '2026-10-08', vigencia_hasta: '2026-10-31', evidencia: 'fix' },

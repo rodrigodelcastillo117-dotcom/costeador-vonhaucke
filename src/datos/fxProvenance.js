@@ -90,6 +90,9 @@ export function resolverFx(par, observaciones = [], opts = {}) {
     const f = fechaMs(o.fecha);
     // FECHA FUTURA = fail-closed (P0-6): una observación "del futuro" no es real.
     if (f != null && f > hoyMs) return ESTADO_FX.PROVISIONAL;
+    // VIGENCIA MALFORMADA = fail-closed (P1-R8-6): si vino vigencia_hasta pero NO
+    // parsea, es un dato corrupto → NO se ignora para caer por frescura; PROVISIONAL.
+    if (txt(o.vigencia_hasta) && fechaMs(o.vigencia_hasta) == null) return ESTADO_FX.PROVISIONAL;
     const v = fechaMs(o.vigencia_hasta);
     if (v != null) {
       if (v + FIN_DIA < hoyMs) return ESTADO_FX.HISTORICAL;       // vigencia vencida

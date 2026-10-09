@@ -14,7 +14,7 @@ import EditarPartida from './EditarPartida.jsx';
 import EmpezarEspacio from './EmpezarEspacio.jsx';
 import { leerPlanoDeArchivo } from '../datos/leerPlanoArchivo.js';
 import { areasCanonicas, bloqueGeometria } from '../datos/floorPlan.js';
-import { proponerProgramaDelPlano, aplicarPrograma } from '../datos/programaRealDelPlano.js';
+import { proponerProgramaDelPlano, proponerProgramaDesdeObservado, aplicarPrograma } from '../datos/programaRealDelPlano.js';
 import { requirementsDeBrief } from '../datos/programaBrief.js';
 import Cargando from './Cargando.jsx';
 import EstoEntendi from './EstoEntendi.jsx';
@@ -170,11 +170,23 @@ export default function Voni({
   // El brief estructurado (línea/modelo/dims/accesorios) lo interpreta CotizadorIA
   // y se persiste en cot.programaBrief; aquí se combina con el FloorSpec (#4).
   const reqBrief = requirementsDeBrief(cot.programaBrief);
+  // P0-R8-1: si el lector entregó un observed_program VÁLIDO, LO OBSERVADO
+  // GOBIERNA el programa — no se reconstruye desde la geometría de áreas. Sólo
+  // si nada observado es gobernable se cae a la heurística de áreas. En ambos
+  // casos es PROPUESTA, nunca confirmación (eso sigue siendo "Aplicar programa").
   const propuestaPrograma = useMemo(
-    () => (areasDelProyecto.length
-      ? proponerProgramaDelPlano(areasDelProyecto, { linea: (reqBrief && reqBrief.linea) || 'App LT', brief: reqBrief || null })
-      : null),
-    [areasDelProyecto, cot.programaBrief],
+    () => {
+      const linea = (reqBrief && reqBrief.linea) || 'App LT';
+      const obs = cot.acomodo?.observed_program;
+      const porObservado = (Array.isArray(obs) && obs.length)
+        ? proponerProgramaDesdeObservado(obs, { linea, brief: reqBrief || null })
+        : null;
+      if (porObservado) return porObservado;        // lo observado gobierna
+      return areasDelProyecto.length
+        ? proponerProgramaDelPlano(areasDelProyecto, { linea, brief: reqBrief || null })
+        : null;
+    },
+    [areasDelProyecto, cot.programaBrief, cot.acomodo],
   );
   const reconPrograma = useMemo(
     () => (propuestaPrograma ? aplicarPrograma(propuestaPrograma.propuesta, { existentes: partidas }) : null),

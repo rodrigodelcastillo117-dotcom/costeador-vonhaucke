@@ -11,7 +11,7 @@
 //  resolverCampo para contradicciones entre vistas. No lee archivos ni red: el
 //  ProductDrawingReader (edge/visión) alimenta estos datos ya extraídos.
 // ============================================================================
-import { procedenciaTecnica, resolverCampo, PROCEDENCIA_TECNICA } from './evidencia.js';
+import { procedenciaTecnica, resolverCampo, evidenciaCertificable } from './evidencia.js';
 
 // Estado de un dato/pieza dentro del ProductSpec.
 export const ESTADO_DATO = Object.freeze({
@@ -55,6 +55,10 @@ export function parteSpec(raw = {}) {
     notas_fabricacion: Array.isArray(raw.notas_fabricacion) ? raw.notas_fabricacion : [],
     procedencia: procedenciaTecnica(raw),
     confidence: num(raw.confidence ?? raw.confianza),
+    // TRAZABILIDAD REAL por pieza (ChatGPT P0-R8-3): de dónde salió este dato.
+    evidence: txt(raw.evidence || raw.evidencia) || null,
+    page: raw.page != null ? (num(raw.page) ?? txt(raw.page)) : null,
+    source_ref: txt(raw.source_ref || raw.plan_tag || raw.origin_view) || null,
     // `requiere_espesor`: por defecto true para piezas de tablero/lámina; el reader
     // puede ponerlo en false para piezas que no lo necesitan (p.ej. un herraje).
     requiere_espesor: raw.requiere_espesor !== false,
@@ -69,10 +73,15 @@ export function parteSpec(raw = {}) {
   // Un espesor 0 o negativo es imposible → también PENDING (red-team).
   if (out.requiere_espesor && !(out.espesor_mm > 0) && !out.calibre) issues.push('FALTA_ESPESOR');
   // P0-10: una parte NO es OK sin DIMENSIONES útiles (para una pieza de tablero/
-  // lámina que las requiere), sin PROCEDENCIA real, o sin CONFIANZA declarada.
+  // lámina que las requiere) ni sin CONFIANZA declarada.
   if (out.requiere_espesor && !(out.dimensiones.w > 0 && out.dimensiones.d > 0)) issues.push('FALTA_DIMENSIONES');
-  if (out.procedencia === PROCEDENCIA_TECNICA.UNKNOWN) issues.push('PROCEDENCIA_DESCONOCIDA');
   if (out.confidence == null) issues.push('FALTA_CONFIANZA');
+  // P0-R8-3: la procedencia debe ser CERTIFICABLE (USER_CONFIRMED/MEASURED/DERIVED/
+  // CATALOG). INFERRED/ASSUMED/UNKNOWN pueden existir como PRELIMINAR, NO como OK
+  // oficial — se reutiliza la AUTORIDAD de evidencia.js, no una regla nueva.
+  if (!evidenciaCertificable({ procedencia: out.procedencia })) issues.push('PROCEDENCIA_NO_CERTIFICABLE');
+  // Y debe conservar EVIDENCIA real de dónde salió (cota/plano/vista).
+  if (!out.evidence) issues.push('FALTA_EVIDENCIA');
 
   const estado = issues.length ? ESTADO_DATO.PENDING : ESTADO_DATO.OK;
   return { ...out, issues, estado };

@@ -15,6 +15,7 @@
 import { programaDelPlano } from './programaDelPlano.js';
 import { resolverPrograma } from './resolverPrograma.js';
 import { confirmarPrograma } from './confirmarPrograma.js';
+import { validarObservedProgram, ORIGEN } from './observedProgram.js';
 
 // Nombre que describe el ROL real en palabras que coherencia/ruteo legacy aún
 // entienden. NO es la autoridad semántica (esa es relation_role); sólo etiqueta.
@@ -180,6 +181,80 @@ export function proponerProgramaDelPlano(areas, { linea = 'App LT', brief = null
     brief: briefBase,
   };
   return { programaDetectado: programa, ...proponerPrograma(entrada, { linea }) };
+}
+
+// ---------------------------------------------------------------------------
+//  observed_program GOBIERNA el programa comercial (ChatGPT P0-R8-1).
+//
+//  Cuando el lector entrega un observed_program VÁLIDO, el programa NO se
+//  reconstruye desde la geometría de áreas: lo que el plano REALMENTE muestra
+//  (muebles observados) manda. Pipeline honesto:
+//     observed_program (revalidado) → [revisión humana] → ProgramRequirements →
+//     ProductResolver (resolverPrograma) → PROPUESTA (NO confirma).
+//
+//  · Sólo lo OBSERVED y sin issues GOBIERNA (capacity_total manda los PUESTOS,
+//    no el número de muebles: 4 benches×2 = 8 puestos).
+//  · SUGGESTED/INFERRED y los roles que aún no sabemos mapear NO se inventan:
+//    van a `observadoPendientes` para revisión humana (el vocabulario de
+//    mobiliario es el siguiente P0; aquí jamás se adivina un rol).
+//  · Si NADA observado gobierna, devuelve null y el caller usa la heurística de
+//    áreas (proponerProgramaDelPlano) — sin romper el camino actual.
+// ---------------------------------------------------------------------------
+const SLOT_OBSERVADO = [
+  { re: /operativ|operational|bench|workstation|work[\s_-]?seat|isla|puesto/i, slot: 'operativos' },
+  { re: /privad|private|exec|direcc|despacho/i, slot: 'privados' },
+  { re: /junta|meeting|sala|board/i, slot: 'salas' },
+  { re: /recep|reception|lobby|lobbies/i, slot: 'recepcion' },
+];
+function slotDeObservado(it) {
+  const hay = `${it.role || ''} ${it.type || ''}`.toLowerCase();
+  for (const m of SLOT_OBSERVADO) if (m.re.test(hay)) return m.slot;
+  return null;
+}
+
+/**
+ * Reduce un observed_program VALIDADO a ProgramRequirements {operativos,
+ * privados, salas[], recepcion}. Sólo gobierna lo OBSERVED sin issues; el resto
+ * queda en `pendientes` (nunca se inventa un rol ni una capacidad).
+ */
+export function programRequirementsDesdeObservado(observedProgram) {
+  const { items } = validarObservedProgram(Array.isArray(observedProgram) ? observedProgram : []);
+  const entrada = { operativos: 0, privados: 0, salas: [], recepcion: false };
+  const pendientes = [];
+  let gobernables = 0;
+  for (const it of items) {
+    const real = it.origin === ORIGEN.OBSERVED && (it.issues?.length ?? 0) === 0;
+    const slot = slotDeObservado(it);
+    if (!slot) { pendientes.push({ code: 'ROLE_NO_MAPEADO', type: it.type || it.role || null, origin: it.origin }); continue; }
+    if (!real) { pendientes.push({ code: 'REQUIERE_CONFIRMACION', slot, type: it.type || it.role || null, origin: it.origin }); continue; }
+    gobernables++;
+    const q = Number(it.quantity) > 0 ? Number(it.quantity) : 1;
+    const cap = Number(it.capacity_total) > 0 ? Number(it.capacity_total) : 0;
+    if (slot === 'operativos') entrada.operativos += (cap > 0 ? cap : q);          // PUESTOS, no muebles
+    else if (slot === 'privados') entrada.privados += q;
+    else if (slot === 'salas') { for (let k = 0; k < q; k++) entrada.salas.push(cap); }
+    else if (slot === 'recepcion') entrada.recepcion = true;
+  }
+  return { entrada, pendientes, gobernables };
+}
+
+/**
+ * PROPONE desde el observed_program (lo observado GOBIERNA). NO confirma.
+ * Devuelve null si nada observado es gobernable (→ el caller cae a la
+ * heurística de áreas). Mantiene PROPUESTA ≠ CONFIRMACIÓN.
+ */
+export function proponerProgramaDesdeObservado(observedProgram, { linea = 'App LT', brief = null } = {}) {
+  const { entrada, pendientes, gobernables } = programRequirementsDesdeObservado(observedProgram);
+  if (gobernables === 0) return null;
+  const salas = entrada.salas.filter((n) => Number(n) > 0);
+  const entradaPrograma = {
+    operativos: entrada.operativos,
+    privados: entrada.privados,
+    salas,
+    recepcion: entrada.recepcion,
+    brief: { ...(brief || {}) },
+  };
+  return { gobernadoPorObservado: true, observadoPendientes: pendientes, ...proponerPrograma(entradaPrograma, { linea }) };
 }
 
 /** APLICA la propuesta: CONFIRMA (acto explícito) y produce partidas comerciales. */

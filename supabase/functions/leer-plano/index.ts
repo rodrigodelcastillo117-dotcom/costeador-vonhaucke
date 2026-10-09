@@ -5,6 +5,7 @@
 // ============================================================================
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { validarProgramaObservado } from "./observed-core.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -256,6 +257,21 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  // ------------------------------------------------------------------------
+  // observed_program: la visión PROPONE mobiliario observado; el servidor lo
+  // revalida de forma determinista (P0-R8-2). Un item inválido NO cuenta como
+  // real: baja la lectura a REVIEW_REQUIRED, nunca libera solo.
+  // ------------------------------------------------------------------------
+  const zoneNameSet = new Set(normalizedZones.map((z: any) => String(z.name || "")).filter(Boolean));
+  const observed = validarProgramaObservado(
+    Array.isArray(data?.observed_program) ? data.observed_program
+      : (Array.isArray(l?.observed_program) ? l.observed_program : null),
+    { envelopeW: finite(W) ? W : undefined, envelopeH: finite(H) ? H : undefined, zoneNames: zoneNameSet },
+  );
+  if (observed.state === "REVIEW_REQUIRED") {
+    warnings.push({ field: "observed_program", code: "OBSERVED_PROGRAM_REVIEW_REQUIRED", invalid: observed.metrics.invalidos, total: observed.metrics.total });
+  }
+
   const validationState = issues.length ? "FAIL" : warnings.length ? "REVIEW_REQUIRED" : "PASS";
   const floorSpec = {
     version: "FLOOR_SPEC_V2",
@@ -269,6 +285,8 @@ Deno.serve(async (req: Request) => {
       notes: Array.isArray(l?.notas) ? l.notas : [],
       evidence_policy: "MEASURED>DERIVED>INFERRED>ASSUMED",
     },
+    observed_program: observed.items,
+    observed_validation: { state: observed.state, issues: observed.issues, warnings: observed.warnings, metrics: observed.metrics },
     validation: {
       state: validationState, issues, warnings,
       metrics: {
@@ -277,6 +295,9 @@ Deno.serve(async (req: Request) => {
         zones: areas.length, doors: doors.length,
         doors_verified: verifiedDoors,
         doors_unverified: Math.max(0, doors.length - verifiedDoors),
+        observed_items: observed.metrics.total,
+        observed_valid: observed.metrics.observados,
+        observed_invalid: observed.metrics.invalidos,
       },
     },
   };
@@ -287,5 +308,7 @@ Deno.serve(async (req: Request) => {
   }
 
   await finish("ok", 200, validationState === "REVIEW_REQUIRED" ? "REVIEW_REQUIRED" : undefined);
-  return json({ ...data, request_id: requestId, floorSpec, strictGeometry: true }, 200);
+  // El observed_program del nivel superior es el REVALIDADO por el servidor, no
+  // el crudo de la IA: el consumidor nunca recibe mobiliario sin revalidar.
+  return json({ ...data, observed_program: observed.items, request_id: requestId, floorSpec, strictGeometry: true }, 200);
 });

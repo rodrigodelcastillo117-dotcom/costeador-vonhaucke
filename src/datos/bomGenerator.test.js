@@ -4,7 +4,7 @@ import { generarBOM, UNIDAD_CONSUMO } from './bomGenerator.js';
 
 const specCubierta = () => construirProductSpec({
   nombre: 'Credenza',
-  partes: [{ part_id: 'cub', nombre: 'Cubierta', cantidad: 1, w: 1200, d: 600, material: 'melamina', espesor_mm: 19, procedencia: 'MEASURED', confianza: 0.9 }],
+  partes: [{ part_id: 'cub', nombre: 'Cubierta', cantidad: 1, w: 1200, d: 600, material: 'melamina', espesor_mm: 19, procedencia: 'MEASURED', confianza: 0.9, evidence: 'cota' }],
 });
 
 describe('BOMGenerator · despiece determinista desde ProductSpec (ChatGPT §6)', () => {
@@ -24,7 +24,7 @@ describe('BOMGenerator · despiece determinista desde ProductSpec (ChatGPT §6)'
   });
 
   it('P0-8 CANTIDAD: 2 piezas de 1200×600 → consumo_neto_total 1.44 m² (no 0.72)', () => {
-    const spec = construirProductSpec({ partes: [{ part_id: 'cub', cantidad: 2, w: 1200, d: 600, material: 'melamina', espesor_mm: 19, procedencia: 'MEASURED', confianza: 0.9 }] });
+    const spec = construirProductSpec({ partes: [{ part_id: 'cub', cantidad: 2, w: 1200, d: 600, material: 'melamina', espesor_mm: 19, procedencia: 'MEASURED', confianza: 0.9, evidence: 'cota' }] });
     const l = generarBOM(spec, { resolverMaterial: () => 'melamina-19', reglaMerma: () => 10 }).lineas[0];
     expect(l.consumo_neto_unitario).toBeCloseTo(0.72, 5);
     expect(l.consumo_neto_total).toBeCloseTo(1.44, 5);      // ← × cantidad 2
@@ -41,6 +41,32 @@ describe('BOMGenerator · despiece determinista desde ProductSpec (ChatGPT §6)'
     // con conversión sí pasa
     const ok = generarBOM(specCubierta(), { resolverMaterial: () => ({ id: 'melamina-19', unidad_compra: 'hoja', conversion: 2.98 }), reglaMerma: () => 10 });
     expect(ok.lineas[0].issues).not.toContain('CONVERSION_FALTANTE');
+  });
+
+  it('P0-R8-4 APLICA la conversión: tablero compra HOJA, consumo m² → cantidad_compra_equivalente en hojas', () => {
+    // 0.72 m² neto × 1 pza, merma 10% → 0.8 m² bruto; conversión 2.98 m²/hoja → 0.2685 hojas.
+    const bom = generarBOM(specCubierta(), { resolverMaterial: () => ({ id: 'melamina-19', unidad_compra: 'hoja', conversion: 2.98 }), reglaMerma: () => 10 });
+    const l = bom.lineas[0];
+    expect(l.consumo_bruto_total).toBeCloseTo(0.8, 4);
+    expect(l.conversion_factor).toBe(2.98);
+    expect(l.cantidad_compra_equivalente).toBeCloseTo(0.8 / 2.98, 5);   // hojas, NO m²
+    expect(l.costable).toBe(true);
+    expect(bom.estadoCosteo).toBe('COSTABLE');
+  });
+
+  it('P0-R8-4 unidades IGUALES (herraje pz): cantidad_compra_equivalente = consumo', () => {
+    const spec = construirProductSpec({ partes: [{ part_id: 'h', nombre: 'Jaladera', cantidad: 3, material: 'acero', requiere_espesor: false, procedencia: 'CATALOG', confianza: 0.9, evidence: 'catálogo' }] });
+    const l = generarBOM(spec, { resolverMaterial: () => ({ id: 'jaladera-x', unidad_compra: 'pz' }), unidadDeParte: () => 'pz', reglaMerma: () => 0 }).lineas[0];
+    expect(l.conversion_direction).toBe('1:1');
+    expect(l.cantidad_compra_equivalente).toBe(l.consumo_bruto_total);
+    expect(l.costable).toBe(true);
+  });
+
+  it('P0-R8-6 NO COSTABLE sin unidad_compra: resolverMaterial string → técnico OK pero NO costable/oficial', () => {
+    const bom = generarBOM(specCubierta(), { resolverMaterial: () => 'melamina-19', reglaMerma: () => 10 });
+    expect(bom.lineas[0].estado).toBe(ESTADO_DATO.OK);     // técnicamente completo
+    expect(bom.lineas[0].costable).toBe(false);            // pero NO costable (sin unidad_compra)
+    expect(bom.estadoCosteo).toBe('NO_COSTABLE');
   });
 
   it('SIN material canónico → línea PENDING (identidad es del resolver, no se inventa)', () => {

@@ -3,10 +3,12 @@ import { FUENTES } from './evidencia.js';
 import { ESTADO_DATO, parteSpec, construirProductSpec, validarProductSpec, conflictoDimension } from './productSpec.js';
 
 describe('ProductSpec · contrato Product Intelligence (ChatGPT §5)', () => {
-  it('parte completa (material + espesor + cantidad) → OK', () => {
-    const p = parteSpec({ part_id: 'cub-1', nombre: 'Cubierta', cantidad: 1, w: 1200, d: 600, material: 'melamina', espesor_mm: 19, procedencia: 'MEASURED', confianza: 0.9 });
+  it('parte completa (material + espesor + cantidad + evidencia certificable) → OK', () => {
+    const p = parteSpec({ part_id: 'cub-1', nombre: 'Cubierta', cantidad: 1, w: 1200, d: 600, material: 'melamina', espesor_mm: 19, procedencia: 'MEASURED', confianza: 0.9, evidence: 'cota 1200×600 planta', page: 1, source_ref: 'CR-01' });
     expect(p.estado).toBe(ESTADO_DATO.OK);
     expect(p.issues).toEqual([]);
+    expect(p.evidence).toBe('cota 1200×600 planta');   // trazabilidad conservada
+    expect(p.source_ref).toBe('CR-01');
   });
 
   it('material AUSENTE → PENDING (no se inventa)', () => {
@@ -34,16 +36,28 @@ describe('ProductSpec · contrato Product Intelligence (ChatGPT §5)', () => {
   });
 
   it('pieza que NO requiere espesor (herraje): no pide espesor/dimensiones', () => {
-    const p = parteSpec({ part_id: 'h1', nombre: 'Bisagra', cantidad: 2, material: 'acero', requiere_espesor: false, procedencia: 'CATALOG', confianza: 0.9 });
+    const p = parteSpec({ part_id: 'h1', nombre: 'Bisagra', cantidad: 2, material: 'acero', requiere_espesor: false, procedencia: 'CATALOG', confianza: 0.9, evidence: 'catálogo herraje' });
     expect(p.estado).toBe(ESTADO_DATO.OK);
   });
 
-  it('P0-10: material+espesor+cantidad pero SIN dimensiones/procedencia/confianza → PENDING', () => {
-    const p = parteSpec({ part_id: 'x', cantidad: 1, material: 'melamina', espesor_mm: 19 }); // sin w/d, sin procedencia, sin confianza
+  it('P0-10: material+espesor+cantidad pero SIN dimensiones/procedencia/confianza/evidencia → PENDING', () => {
+    const p = parteSpec({ part_id: 'x', cantidad: 1, material: 'melamina', espesor_mm: 19 }); // sin w/d, sin procedencia, sin confianza, sin evidencia
     expect(p.estado).toBe(ESTADO_DATO.PENDING);
     expect(p.issues).toContain('FALTA_DIMENSIONES');
-    expect(p.issues).toContain('PROCEDENCIA_DESCONOCIDA');
+    expect(p.issues).toContain('PROCEDENCIA_NO_CERTIFICABLE');
     expect(p.issues).toContain('FALTA_CONFIANZA');
+    expect(p.issues).toContain('FALTA_EVIDENCIA');
+  });
+
+  it('P0-R8-3: procedencia INFERRED/ASSUMED → NO certificable → PENDING (sólo MEASURED/DERIVED/USER_CONFIRMED/CATALOG)', () => {
+    for (const pr of ['INFERRED', 'ASSUMED', 'UNKNOWN']) {
+      const p = parteSpec({ part_id: 'x', cantidad: 1, w: 1200, d: 600, material: 'melamina', espesor_mm: 19, confianza: 0.8, evidence: 'algo', procedencia: pr });
+      expect(p.issues, pr).toContain('PROCEDENCIA_NO_CERTIFICABLE');
+      expect(p.estado).toBe(ESTADO_DATO.PENDING);
+    }
+    // MEASURED sí certifica
+    const ok = parteSpec({ part_id: 'x', cantidad: 1, w: 1200, d: 600, material: 'melamina', espesor_mm: 19, confianza: 0.8, evidence: 'cota', procedencia: 'MEASURED' });
+    expect(ok.estado).toBe(ESTADO_DATO.OK);
   });
 
   it('cantidad inválida (0/negativa) → PENDING', () => {
@@ -78,7 +92,7 @@ describe('ProductSpec · contrato Product Intelligence (ChatGPT §5)', () => {
   });
 
   it('validarProductSpec: todo OK → COMPLETO', () => {
-    const spec = construirProductSpec({ partes: [{ part_id: 'cub', cantidad: 1, w: 1200, d: 600, material: 'melamina', espesor_mm: 19, procedencia: 'MEASURED', confianza: 0.9 }] });
+    const spec = construirProductSpec({ partes: [{ part_id: 'cub', cantidad: 1, w: 1200, d: 600, material: 'melamina', espesor_mm: 19, procedencia: 'MEASURED', confianza: 0.9, evidence: 'cota planta' }] });
     const v = validarProductSpec(spec);
     expect(v.ok).toBe(true);
     expect(v.estado).toBe('COMPLETO');

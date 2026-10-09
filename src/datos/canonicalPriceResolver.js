@@ -35,10 +35,13 @@ function asObs(o) {
 }
 
 // ¿La vigencia explícita cubre `hoy`? Sin vigencia ⇒ no decide (false aquí).
+// La vigencia cubre hasta el FIN del día indicado (ChatGPT P1-R8-5): 'YYYY-MM-DD'
+// parsea a medianoche UTC; sin esto una vigencia "hasta hoy" vencía a las 00:00.
+const FIN_DIA_MS = 24 * 3600 * 1000 - 1;
 function vigenciaCubre(obs, hoyMs) {
   const hasta = fechaMs(obs.validity);
   if (hasta == null) return false;
-  return hasta >= hoyMs;
+  return hasta + FIN_DIA_MS >= hoyMs;
 }
 
 // Comparador determinista dentro de un tier: + reciente, + confianza, + fuente,

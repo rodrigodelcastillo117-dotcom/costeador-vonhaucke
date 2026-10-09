@@ -101,7 +101,27 @@ export function generarBOM(spec, opts = {}) {
       issues.push('MERMA_SIN_REGLA');
     }
 
+    // 7) APLICAR la conversión (ChatGPT P0-R8-4): producir la CANTIDAD DE COMPRA
+    //    equivalente en la unidad de compra. `conversion` = unidades de CONSUMO por
+    //    1 unidad de COMPRA (p.ej. 2.98 m²/hoja) → cantidad_compra = consumo / conversion.
+    const unidadesCoinciden = !!unidad_compra && !!unidad_consumo && unidad_compra === unidad_consumo;
+    const conversion_factor = (conversion > 0) ? conversion : null;
+    const conversion_direction = conversion_factor ? `${unidad_consumo} por 1 ${unidad_compra}` : (unidadesCoinciden ? '1:1' : null);
+    let cantidad_compra_equivalente = null;
+    if (consumo_bruto_total != null) {
+      if (unidadesCoinciden) cantidad_compra_equivalente = consumo_bruto_total;
+      else if (conversion_factor) cantidad_compra_equivalente = +(consumo_bruto_total / conversion_factor).toFixed(6);
+    }
+
     const estado = issues.length ? ESTADO_DATO.PENDING : ESTADO_DATO.OK;
+    // COSTABLE/OFICIAL (ChatGPT P0-R8-6): además de estar técnicamente OK, se necesita
+    // unidad de COMPRA conocida y una cantidad de compra equivalente real (misma unidad
+    // o conversión aplicada). Un BOM técnico sin unidad_compra NO es costable/oficial.
+    const costable = estado === ESTADO_DATO.OK
+      && !!unidad_compra
+      && (unidadesCoinciden || conversion_factor != null)
+      && cantidad_compra_equivalente != null;
+
     return {
       part_id: parte.part_id || null,
       descripcion: parte.nombre || parte.part_id || null,
@@ -112,23 +132,31 @@ export function generarBOM(spec, opts = {}) {
       espesor_mm: num(parte.espesor_mm),
       calibre: parte.calibre || null,
       unidad_consumo,
-      unidad_compra,
       consumo_neto_unitario,
       consumo_neto_total,            // lo que de verdad se costea (× cantidad)
       merma_pct,
       consumo_bruto_unitario,
       consumo_bruto_total,
-      conversion,                    // de la compra↔costeo cuando el resolver la aporta
+      unidad_compra,
+      conversion_factor,             // unidades de consumo por 1 de compra
+      conversion_direction,
+      cantidad_compra_equivalente,   // ← lo que se compra, en unidad_compra (NO se multiplica precio por m² si se compra por hoja)
       procedencia: parte.procedencia || null,
       issues,
       estado,
+      costable,
     };
   });
 
   const pendientes = lineas.filter((l) => l.estado !== ESTADO_DATO.OK).length;
+  const noCostables = lineas.filter((l) => !l.costable).length;
   return {
     lineas,
     estado: (pendientes === 0 && lineas.length > 0) ? 'COMPLETO' : 'PRELIMINAR',
     pendientes,
+    // Técnicamente completo ≠ costable: estadoCosteo sólo COSTABLE si TODAS las
+    // líneas pueden costearse de forma oficial (unidad/conversión resueltas).
+    estadoCosteo: (noCostables === 0 && lineas.length > 0) ? 'COSTABLE' : 'NO_COSTABLE',
+    noCostables,
   };
 }
