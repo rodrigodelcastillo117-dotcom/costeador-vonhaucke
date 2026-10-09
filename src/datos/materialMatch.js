@@ -183,8 +183,17 @@ const FAMILIAS = [
   ['marmol_piedra',     /m[aá]rmol|marble|granito|cuarzo|quartz|piedra|onix|[oó]nix/i],
   ['acero_inoxidable',  /inoxidable|inox\b|stainless|304|316/i],
   ['aluminio',          /aluminio|aluminum|anodiz/i],
+  // CANTO es un INSUMO LINEAL, no el tablero al que se pega. Debe ir antes que
+  // melamina/aglomerado: "canto nogal a tono con melamina" NO puede volverse tablero.
+  ['tapacanto',         /tapacanto|edge\s*band|perfil\s+de\s+canto|canto\s+(?:abs|pvc|nogal|walnut|a\s+tono)/i],
+  // Acabado de metal: se compra/costea como pintura en polvo (kg) cuando existe
+  // en catálogo. "Pintura electrostática" y "powder coat" son la misma familia industrial.
+  ['pintura_polvo',     /pintura\s+(?:en\s+)?polvo|pintura\s+electrost[aá]tica|powder\s*coat/i],
   ['laminado_hpl',      /laminado|hpl|ecolegno|formica|high\s*pressure/i],
-  ['melamina',          /melamina|melamine|aglomerad/i],
+  // Aglomerado desnudo ≠ melamina. Antes estaban fusionados y eso permitió que
+  // un tapacanto/una melamina se autocostearan como tablero aglomerado.
+  ['aglomerado',        /\baglomerad/i],
+  ['melamina',          /melamina|melamine/i],
   ['mdf',               /\bmdf\b|fibrofacil|tablero de fibra/i],
   ['chapa_madera',      /chapa|veneer|enchap/i],
   ['madera_solida',     /madera\s+s[oó]lida|solid\s*wood|duela|tzalam|encino macizo|roble macizo/i],
