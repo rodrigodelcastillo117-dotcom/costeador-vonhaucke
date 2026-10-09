@@ -9,40 +9,67 @@
 
 ```
 Eres el auditor independiente del proyecto Von Haucke (app React + Supabase de costeo/cotización).
-Audita la rama `audit/final-product-completion`.
+Audita la rama `claude/perfection-final-20261006`.
 
-- Último commit de CÓDIGO: 37fc330 (sesión autónoma RC, 2 rondas red-team). Base: e5f737f. Tip: usa `git rev-parse HEAD`.
-- Diff a revisar: `git diff e5f737f..HEAD`. Verdad viva: `CLOSEOUT_STATE.md`. Tests 2017/2017, build ✅, smoke E2E 3/3.
-- Límites que Claude respetó: NO merge, NO deploy, NO migración, NO prod-write, NO tocar 33 cotizaciones legacy,
-  NO aprobar DATA TRUTH, NO integrar Intelisis. Todo son capas ADITIVAS (no cambian números del motor), salvo
-  un único guard fail-closed en el motor (costo fantasma por falta de medida).
+- Último commit de CÓDIGO: 8811fce (ronda 8: observed gobierna + validador edge + BOM conversión + golden QA-COT-01).
+  Verdad viva: `CLOSEOUT_STATE.md` (historial completo de rondas 1–8). Tests 2066/2066 (254 archivos), build ✅, deno check ✅.
+- Límites que Claude respetó: NO merge, NO deploy/promote, NO migración prod, NO prod-write, NO tocar 33 legacy,
+  NO aprobar DATA TRUTH, NO integrar Intelisis. Todo capa ADITIVA (no cambia números del motor). El validador del
+  edge está PREPARADO + deno-clean pero NO DESPLEGADO (prod edge = hard boundary).
 
-Verifica contra el código real (no sólo el closeout):
-1. Los 5 hallazgos de tu ronda 4 quedaron bien cerrados:
-   #1 timeout de lectura de plano (ahora 180 s > 64.841 s observado),
-   #4 validity vencida → HISTORICAL + bloquea costo oficial,
-   #3 room≠furniture (campo `kind`, conteo separado cuartos/muebles),
-   #5 leerPlanoDeArchivo conserva lectura/floorSpec/request_id/observed_program,
-   #6 HojaCosto dice "Precios de MP con evidencia real (consumo/MO/GI sin verificar)", no "costo con evidencia real".
-2. Que la provenance de precio sea correcta y no sobre-reclame (REAL_OBSERVED_DATED/UNDATED, PROVISIONAL, PENDING).
-3. Busca NUEVOS falsos verdes o huecos de confianza.
+Verifica contra el CÓDIGO real (no sólo el closeout) que los 7 P0 de tu ronda 8 quedaron bien cerrados:
+1. P0-R8-1 `observed_program` GOBIERNA: `proponerProgramaDesdeObservado`/`programRequirementsDesdeObservado`
+   (src/datos/programaRealDelPlano.js) + Voni.jsx prefiere observado sobre áreas. ¿capacity manda PUESTOS (no muebles)?
+   ¿PROPUESTA ≠ CONFIRMACIÓN? ¿rol sin vocabulario → ROLE_NO_MAPEADO en vez de inventado? ¿SUGGESTED/INFERRED no gobiernan?
+2. P0-R8-2 validador edge (supabase/functions/leer-plano/observed-core.js) + wiring en index.ts: ¿están TODAS las
+   invariantes (quantity>0, capacity>0, dims>0, posición en-envolvente, zona existente, página, confidence, evidencia
+   OBSERVED, no-derivado-de-cuarto, enums, duplicados)? ¿el wrapper revalida y nunca emite mobiliario crudo?
+3. P0-R8-4 BOM aplica conversión (cantidad_compra_equivalente) y P0-R8-6 no COSTABLE sin unidad_compra (estadoCosteo).
+4. P0-R8-7 golden QA-COT-01 (src/datos/planoGoldenObserved132.test.js): ¿el contrato grabado prueba el pipeline sin
+   trampas? ¿8 puestos / sala 8 / dirección / recepción + dependientes WORK_SEAT/MEETING_SEAT?
+5. Busca NUEVOS falsos verdes o huecos de confianza en TODO lo anterior.
 
-Luego decide y recomienda prioridad para ir MÁS RÁPIDO, sabiendo que estos 3 bloques necesitan decisión de Rodrigo
-o un deploy (no los puede cerrar Claude solo):
-A. MOTOR CUTOVER: que `calcular()` tome el precio del CanonicalPriceResolver con fail-closed, preservando goldens.
-   ¿Lo autorizamos? ¿Alcance sólo productos nuevos, o también legacy?
-B. INGESTIÓN DOCUMENTAL real de `fuentes/*.xlsx`: requiere un parser de xlsx (dependencia) + aprobar el mapeo
-   clave_erp→canonical_id (DATA TRUTH). ¿Lo autorizamos?
-C. #2 PLAN INTELLIGENCE real: que la edge `leer-plano` DETECTE mobiliario (no sólo estime puestos por área).
-   Es trabajo de edge (prompt de visión) + deploy para verificar. ¿Procedemos?
+Luego decide/recomienda prioridad para el mega-avance, sabiendo que estos bloques necesitan decisión de Rodrigo o deploy:
+A. MOTOR CUTOVER: que `calcular()` tome el precio del CanonicalPriceResolver con fail-closed, preservando goldens (sólo productos nuevos).
+B. INGESTIÓN de `fuentes/*.xlsx` (parser + mapeo clave_erp→canonical_id = DATA TRUTH).
+C. DEPLOY del edge leer-plano (schema/prompt de mobiliario + validador) y el VOCABULARIO de mobiliario del lector (siguiente P0).
 
-Devuelve: (a) qué aceptas a nivel código, (b) hallazgos nuevos con archivo:línea, (c) la decisión A/B/C y el orden
-óptimo para el mega-avance.
+Devuelve: (a) qué aceptas a nivel código, (b) hallazgos nuevos con archivo:línea, (c) la decisión A/B/C y el orden óptimo.
 ```
 
 ---
 
-## 2) RESUMEN DE LA SESIÓN (qué hice, qué toqué, qué cerré, bugs)
+## 2) RESUMEN RONDA 8 (sesión más reciente · código `8811fce`)
+
+Cerré los 7 P0 de tu ronda 8, todo dentro de los límites (sin deploy/merge/prod):
+
+- **P0-R8-1 observed_program GOBIERNA** (src/datos/programaRealDelPlano.js + src/componentes/Voni.jsx):
+  `programRequirementsDesdeObservado` reduce el observed_program VALIDADO a {operativos,privados,salas,recepcion}
+  — **capacity_total manda PUESTOS, no el número de muebles** (4 benches×2 = 8). Sólo lo OBSERVED sin issues gobierna;
+  SUGGESTED/INFERRED → `REQUIERE_CONFIRMACION`; rol sin vocabulario → `ROLE_NO_MAPEADO` (nunca inventado).
+  `proponerProgramaDesdeObservado` devuelve null si nada gobierna → Voni cae a la heurística de áreas. PROPUESTA ≠ CONFIRMACIÓN.
+- **P0-R8-2 validador determinista del edge** (supabase/functions/leer-plano/observed-core.js, patrón de acomodo-core.js):
+  todas las invariantes (quantity/capacity/dims/posición-en-envolvente/zona/página/confidence/evidencia-OBSERVED/
+  no-derivado-de-cuarto/enums/duplicados). Cableado en index.ts: el wrapper REVALIDA y el observed_program del nivel
+  superior es el revalidado, nunca el crudo de la IA. **PREPARADO, deno check ✓, NO DESPLEGADO** (prod edge = hard boundary).
+- **P0-R8-4 / P0-R8-6 BOM** (src/datos/bomGenerator.js): aplica la conversión → `cantidad_compra_equivalente`
+  (tablero hoja→m² golden); `costable` por línea + `estadoCosteo` COSTABLE/NO_COSTABLE (sin unidad_compra NO es costable/oficial).
+- **P0-R8-3 / P0-R8-5** (cerrados al inicio de la sesión): ProductSpec certificable vía `evidenciaCertificable`
+  (+FALTA_EVIDENCIA/PROCEDENCIA_NO_CERTIFICABLE); vigencia de precio fin-de-día; FX con vigencia malformada fail-closed.
+- **P0-R8-7 golden QA-COT-01** (src/datos/planoGoldenObserved132.test.js): contrato GRABADO → validador edge →
+  observed gobierna → ProductResolver (8 puestos/sala 8/dirección/recepción + dependientes WORK_SEAT/MEETING_SEAT;
+  credenza/coffee → ROLE_NO_MAPEADO). Lectura de PDF en vivo = **BLOCKED_EXTERNAL**.
+
+**Archivos:** nuevos — observed-core.js (+test), programaObservadoGobierna.test.js, planoGoldenObserved132.test.js;
+modificados — bomGenerator.js(+test), productSpec.js(+test), canonicalPriceResolver.js(+test), fxProvenance.js(+test),
+programaRealDelPlano.js, Voni.jsx, supabase/functions/leer-plano/index.ts. **Suite 2066/2066 · build ✅ · deno check ✅.**
+
+**Hueco honesto:** el lector aún NO tiene VOCABULARIO de mobiliario (da geometría+puestos, no tipos de mueble);
+por eso roles no mapeables van a revisión en vez de inventarse. Ése es el siguiente P0 (PLAN INTELLIGENCE).
+
+---
+
+## 3) RESUMEN DE LA SESIÓN (qué hice, qué toqué, qué cerré, bugs)
 
 ### Qué cerré (por ronda de auditoría)
 - **Ronda 1 (red-team interno):** 7 P0 de estado-UI/integridad + 2 P1. Hallazgo tranquilizador: el MOTOR de costeo

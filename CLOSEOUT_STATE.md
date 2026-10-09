@@ -3,33 +3,43 @@
 > Estado VIVO y VERÍDICO para continuar entre sesiones y para auditoría de ChatGPT.
 > Regla: este archivo refleja SIEMPRE el HEAD real, los tests reales y qué quedó REALMENTE
 > cableado vs pendiente. Cero información histórica presentada como estado actual.
-> Última actualización: 2026-10-09 (ronda 3 ChatGPT cerrada + cable FloorPlanReader + rewrite sin contradicciones).
+> Última actualización: 2026-10-09 (ronda 8 ChatGPT cerrada: observed_program gobierna + validador edge + BOM conversión + golden QA-COT-01).
 
 ## ESTADO ACTUAL (verificado contra el repo)
-- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `e859669`**; el HEAD de la rama es el
+- Rama: `claude/perfection-final-20261006`. **Último commit de CÓDIGO = `8811fce`**; el HEAD de la rama es el
   doc-commit de este CLOSEOUT encima (un commit no puede contener su propio SHA). Tip exacto: `git rev-parse HEAD`.
-  Diff completo de la rama: `git diff e5f737f..HEAD` · lista: `git log --oneline e5f737f..HEAD`.
-- **Tests: 2033 / 2033** (vitest) · **Build: ✅** (vite) · verificado en esta sesión (2026-10-09).
+- **Tests: 2066 / 2066** (vitest, 254 archivos) · **Build: ✅** (vite) · **deno check ✅** (leer-plano) · verificado en esta sesión (2026-10-09).
 - **MANDATO RC (deadline lunes 12-oct)**: autónomo hasta Release Candidate. Autorización NUEVA de Rodrigo:
   cutover del motor SÓLO para productos NUEVOS (shadow primero), agregar parser XLSX justificado, preparar edges.
   Siguen prohibidos (se preparan/documentan como BLOCKED_EXTERNAL, no se ejecutan): merge, deploy/promote,
   migración prod, escrituras masivas prod, modificar 33 legacy, aprobar DATA TRUTH, integrar Intelisis.
 - **P0 conocidos ABIERTOS: 0** — pero esto es "a la fecha de este HEAD y según las auditorías hechas".
-  La auditoría ChatGPT ronda 7 encontró **10 P0 nuevos** (gates detectados-pero-no-usados: unidad/fuente/
-  fecha-futura de precio, FX sin evidencia, MO sin procedencia, consumo×cantidad, conversión BOM, ProductSpec
-  completo, VONI tiraba observed_program, timeout sin AbortController) — **TODOS cerrados ahora** (ver ronda 7).
+  ChatGPT ronda 7 encontró 10 P0 (TODOS cerrados). ChatGPT ronda 8 encontró 7 P0 más — **TODOS cerrados ahora**
+  (ver ronda 8): observed_program debe GOBERNAR (no reconstruir desde áreas), validador determinista del
+  observed_program en el edge, ProductSpec certificable vía `evidenciaCertificable`, BOM aplica la conversión
+  (no sólo gate) y no es COSTABLE sin unidad_compra, vigencia de precio fin-de-día, FX con vigencia malformada
+  fail-closed, y golden real QA-COT-01 (offline recorded-contract; lectura en vivo = BLOCKED_EXTERNAL).
   Que no haya P0 abiertos NO significa "no hay más"; significa que los encontrados están cerrados. Falta E2E
-  autenticado real (cobertura) y verificación en vivo de edges (deploy).
+  autenticado real (cobertura), verificación en vivo de edges (deploy) y el VOCABULARIO de mobiliario del lector
+  (siguiente P0: hoy el lector da geometría+puestos, no tipos de mueble → roles no mapeados van a revisión).
 - **Cableado REAL hoy** (capa ADITIVA — NO cambia ningún número del motor; tests de dinero verdes):
   1. `Precios.jsx` (Dirección): columna "Procedencia" por insumo — chip por TIPO de fuente + tooltip "¿por qué $544?".
   2. `HojaCosto.jsx` (Costear/veCostos): "✓ Costo con evidencia real" sólo si TODA la MP es real FECHADA con FX
      verificado; si no, "N de M material(es) sin evidencia — costo no oficial".
   Ambas usan UN adapter canónico `resolverPrecioInsumoVivo` (un precio capturado a mano NO hereda evidencia vieja).
   3. `floorPlanReader.js`: cable PURO lector real (`programaDelPlano`) → `observed_program` (test con lector real).
-- **NO cableado todavía** (son los bloques grandes, requieren decisión/deploy — ver "SIGUIENTE"):
+  4. **observed_program GOBIERNA el programa (ronda 8)**: `Voni.jsx` usa `proponerProgramaDesdeObservado`
+     cuando hay observed_program válido (capacity manda puestos); sólo cae a la heurística de áreas si nada
+     observado es gobernable. PROPUESTA ≠ CONFIRMACIÓN. Roles sin vocabulario → pendientes, nunca inventados.
+- **NO cableado / preparado-no-desplegado** (bloques grandes, requieren decisión/deploy — ver "SIGUIENTE"):
   - El MOTOR (`calcular()`) sigue tomando `insumo.precio`; el `CanonicalPriceResolver` aún NO gobierna el número.
-  - El lector de PDF en vivo (edge `leer-plano`) → cable → UI de confirmación (requiere deploy).
+  - **Validador edge del observed_program (`observed-core.js`) PREPARADO + cableado en el wrapper `leer-plano`,
+    deno check ✓, 16 tests — pero NO DESPLEGADO** (prod edge = hard boundary). El lector en vivo aún no emite
+    observed_program (core v4); cuando se despliegue, el golden QA-COT-01 valida la salida real sin cambios.
+  - El lector de PDF en vivo (edge `leer-plano`) → UI de confirmación (requiere deploy).
   - Ingestión documental de los `.xlsx` reales (requiere dep de parser + aprobar mapeo = DATA TRUTH).
+  - VOCABULARIO de mobiliario del lector (siguiente P0): sin él, `programRequirementsDesdeObservado` sólo mapea
+    operativo/privado/junta/recepción; credenza/coffee/etc. caen en `ROLE_NO_MAPEADO` (revisión, no inventado).
 
 ## Base / rama / límites
 - BASE_SHA: `e5f737f044f2ecfd326b35640b995c0111c07902` (= audit/material-gate-v4-final, Material Gate P0.1–P0.16 aprobado).
@@ -45,6 +55,28 @@ credenciales a un servicio externo). Por eso:
 - BLOCKED_EXTERNAL (requiere login con cuenta de PRUEBA): E2E autenticado de guardar/reabrir, roles en vivo, aprobar contra servidor, autosave real, storage real.
 
 ## HISTORIAL DE AUDITORÍA (ChatGPT) — qué pasó en cada ronda
+
+### Ronda 8 — ChatGPT (sobre e859669) — 7 P0 nuevos, TODOS cerrados (código `8811fce`)
+Acepta el trabajo de ronda 7 a nivel CODE. 7 P0 de "wiring real / cerrar invariantes antes del motor":
+- **P0-R8-1** `observed_program` debe GOBERNAR el programa comercial, NO reconstruir desde áreas:
+  `proponerProgramaDesdeObservado` + `programRequirementsDesdeObservado` (capacity manda PUESTOS, no muebles);
+  `Voni.jsx:173-186` prefiere lo observado. PROPUESTA ≠ CONFIRMACIÓN. Rol sin vocabulario → `ROLE_NO_MAPEADO`
+  (revisión), jamás inventado. SUGGESTED/INFERRED → `REQUIERE_CONFIRMACION`. 7 tests.
+- **P0-R8-2** validador DETERMINISTA del observed_program del edge (`observed-core.js`, patrón de `acomodo-core.js`):
+  quantity>0, capacity>0, dims>0, posición finita/en-envolvente, zona existente, página válida, confidence∈[0,1],
+  evidencia obligatoria para OBSERVED, OBSERVED no derivado de cuarto, origin/kind enum, sin duplicados; añade
+  source_ref/plan_tag/grouping/kind; inválido→REVIEW_REQUIRED. Cableado en el wrapper `leer-plano` (revalida y
+  nunca emite mobiliario crudo). 16 tests · deno check ✓. **PREPARADO, NO DESPLEGADO** (prod edge = hard boundary).
+- **P0-R8-3** ProductSpec certificable vía `evidenciaCertificable` (sólo MEASURED/DERIVED/USER_CONFIRMED/CATALOG) +
+  `FALTA_EVIDENCIA`/`PROCEDENCIA_NO_CERTIFICABLE` + conserva evidence/page/source_ref. (cerrado antes en la sesión.)
+- **P0-R8-4** BOM APLICA la conversión (no sólo gate): `conversion_factor`/`conversion_direction` +
+  `cantidad_compra_equivalente` (tablero hoja→m² golden). 
+- **P0-R8-5** vigencia de precio fin-de-día (`vigenciaCubre` + FIN_DIA_MS). (cerrado antes en la sesión.)
+- **P0-R8-6** BOM NO COSTABLE sin unidad_compra: `costable` por línea + `estadoCosteo` COSTABLE/NO_COSTABLE del BOM.
+- **P0-R8-7** golden real QA-COT-01 (132 m², `planoGoldenObserved132.test.js`): contrato GRABADO → validador edge
+  → observed gobierna → ProductResolver (8 puestos, sala 8, dirección, recepción + dependientes WORK_SEAT/MEETING_SEAT;
+  credenza/coffee → ROLE_NO_MAPEADO). Lectura de PDF en vivo = **BLOCKED_EXTERNAL** (no deploy). 4 tests.
+Regresión por cada hallazgo. Suite 2066/2066 (254 archivos) · build ✅ · deno check ✅.
 
 ### Ronda 7 — ChatGPT (sobre 37fc330) — 10 P0 nuevos, TODOS cerrados (código `e859669`)
 ChatGPT aceptó el trabajo previo a nivel CODE y encontró 10 P0 "issue detectado pero NO usado como gate" + 2 P1:
@@ -223,9 +255,11 @@ Lo que falta es CONECTAR la casa, en este orden:
    El motor debe tomar el precio EFECTIVO del `resolverPrecioInsumoVivo` con fail-closed (PENDING/PROVISIONAL/
    UNDATED ≠ costo oficial). Shadow ya demostró 0 diferencias numéricas HOY; preservar goldens. Hoy `calcular()`
    aún toma `insumo.precio`. (Toca el motor → cuidado con paridad; sólo productos nuevos.)
-2. **PDF floor plan → observed_program (real) → confirmación → ProductResolver → Cotizar → Acomodo**: requiere
-   DESPLEGAR el schema/prompt de mobiliario (P0-2 ya PREPARADO en leer-plano-core) y cerrar el lazo en UI.
-   Golden esperado = GOLDEN_A_132M2_8_PUESTOS; comparar PDF→reader→observed_program (precision/recall).
+2. **PDF floor plan → observed_program (real) → confirmación → ProductResolver → Cotizar → Acomodo**: ronda 8
+   cerró la CADENA OFFLINE (validador edge `observed-core.js` + observed GOBIERNA en Voni + golden QA-COT-01).
+   Falta: (a) DESPLEGAR schema/prompt de mobiliario (leer-plano-core) y el wrapper con el validador — BLOCKED
+   (prod edge); (b) el VOCABULARIO de mobiliario del lector (siguiente P0) para que roles no caigan en
+   ROLE_NO_MAPEADO; (c) cerrar el lazo de CONFIRMACIÓN humana en UI. Golden = `planoGoldenObserved132.test.js`.
 3. **Ingestión documental READ-ONLY de `fuentes/*.xlsx`** (T.D.C./compras reales): requiere dep de parser de xlsx
    + mapeo clave_erp→canonical_id = **DATA TRUTH** (reservado, no auto-aprobar). Conserva archivo→hoja→celda→
    artículo→precio→moneda→unidad→fecha→proveedor→canonical→conversión. `lista_precio_items` ya tiene provenance.
@@ -233,7 +267,7 @@ Lo que falta es CONECTAR la casa, en este orden:
    LÍNEA (materiales/partes/rubros + moneda+FX) y usarlo con las T.D.C. Alba/Alpura reales (depende de #3).
    fixture ≠ golden ejecutado.
 
-## Matriz (estado real al código e859669)
+## Matriz (estado real al código 8811fce)
 | Área | CODE | INTEGRATION | E2E | USER FLOW | Pendiente |
 |---|---|---|---|---|---|
 | Home/Navegación | ✅ | ✅ | ✅ smoke | ✅ render | — |
