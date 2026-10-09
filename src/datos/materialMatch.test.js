@@ -10,6 +10,9 @@ const CAT = [
   { id: 'mdf', nombre: 'MDF 19 mm', seccion: 'cubiertas' },
   { id: 'lamina-14', nombre: 'Lamina de acero cal. 14', seccion: 'metal' },
   { id: 'laminado-walnut', nombre: 'Laminado plastico 4x8 Walnut (nogal)', seccion: 'cubiertas' },
+  { id: 'aglomerado', nombre: 'Aglomerado crudo 19 mm', seccion: 'cubiertas' },
+  { id: 'canto-abs-22', nombre: 'Perfil de canto ABS 22 mm Walnut', seccion: 'cubiertas' },
+  { id: 'pintura-polvo-negro', nombre: 'Pintura en polvo negro mate', seccion: 'acabados' },
 ];
 
 describe('VONI propone materiales sin auto-certificarlos', () => {
@@ -32,6 +35,21 @@ describe('VONI propone materiales sin auto-certificarlos', () => {
   });
   it('laminado walnut → laminado (no melamina)', () => {
     expect(mejorInsumoDeFamilia('frente laminado walnut', CAT).id).toBe('laminado-walnut');
+  });
+  it('REGRESIÓN REAL: tapacanto ABS Walnut jamás cae en Aglomerado', () => {
+    expect(familiaDeMaterial('Tapacanto ABS Walnut 22 mm')).toBe('tapacanto');
+    expect(familiaDeMaterial('Aglomerado crudo 19 mm')).toBe('aglomerado');
+    expect(mejorInsumoDeFamilia('Tapacanto ABS Walnut 22 mm', CAT).id).toBe('canto-abs-22');
+    const c = aplicarPoliticaMaterial(
+      { nombre: 'Tapacanto ABS Walnut 22 mm', insumoId: 'aglomerado', material_solicitado: 'Canto nogal a tono con melamina nogal claro' },
+      (id) => CAT.find((x) => x.id === id), CAT,
+    );
+    expect(c.insumoId).not.toBe('aglomerado');
+    expect(c._match.clase).not.toBe(MATCH.EXACT);
+  });
+  it('pintura electrostática negra reconoce la familia pintura en polvo', () => {
+    expect(familiaDeMaterial('Pintura electrostática negra')).toBe('pintura_polvo');
+    expect(mejorInsumoDeFamilia('Pintura electrostática negra', CAT).id).toBe('pintura-polvo-negro');
   });
   it('familia AUSENTE (solid surface) → NO auto-asigna, queda pendiente (no inventa)', () => {
     expect(mejorInsumoDeFamilia('cubierta superficie sólida azul', CAT)).toBe(null);
@@ -62,6 +80,9 @@ describe('familiaDeMaterial — reconoce las familias de Von Haucke', () => {
     expect(familiaDeMaterial('MDF 19 mm')).toBe('mdf');
     expect(familiaDeMaterial('Melamina blanca 16')).toBe('melamina');
     expect(familiaDeMaterial('Laminado plástico HPL')).toBe('laminado_hpl');
+    expect(familiaDeMaterial('Aglomerado crudo 19 mm')).toBe('aglomerado');
+    expect(familiaDeMaterial('Canto ABS Walnut 22 mm')).toBe('tapacanto');
+    expect(familiaDeMaterial('Pintura electrostática negra')).toBe('pintura_polvo');
   });
   it('metal, inoxidable y aluminio no se confunden', () => {
     expect(familiaDeMaterial('Acero inoxidable 304')).toBe('acero_inoxidable');
