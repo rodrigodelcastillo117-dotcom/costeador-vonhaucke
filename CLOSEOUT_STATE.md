@@ -3,12 +3,12 @@
 > Estado VIVO y VERÍDICO para continuar entre sesiones y para auditoría de ChatGPT.
 > Regla: este archivo refleja SIEMPRE el HEAD real, los tests reales y qué quedó REALMENTE
 > cableado vs pendiente. Cero información histórica presentada como estado actual.
-> Última actualización: 2026-10-09 (2ª re-auditoría R15 ChatGPT+Grok: borrado real bajo merge + topología de sillas + reconciliación por ancla + gate atómico).
+> Última actualización: 2026-10-09 (3ª re-auditoría R15 ChatGPT+Grok: gate de publicación de Acomodo + conflictos en botón + confirmado_modelo sobrevive + return atómico + encabezado sillería).
 
 ## ESTADO ACTUAL (verificado contra el repo)
-- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `eb2ebfd`**; el HEAD de la rama es el
+- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `08e6aad`**; el HEAD de la rama es el
   doc-commit de este CLOSEOUT encima (un commit no puede contener su propio SHA). Tip exacto: `git rev-parse HEAD`.
-- **Tests: 2160 / 2160** (vitest, 259 archivos) · **Build: ✅** (vite) · **deno check ✅** (leer-plano + core) · verificado en esta sesión (2026-10-09).
+- **Tests: 2171 / 2171** (vitest, 259 archivos; +11 adversariales R15-F/H/I + wiring) · **Build: ✅** (vite) · **deno check ✅** (leer-plano + core; sin cambios este round) · verificado en esta sesión (2026-10-09).
 - **Evidencia = LOCAL de Claude. GitHub NO tiene CI runs (0 workflows).** Golden QA-COT-01 = MOCK_ONLY /
   RECORDED CONTRACT (no es E2E del PDF vivo). Lectura de PDF en vivo + edges = BLOCKED_EXTERNAL (no desplegado).
 - **MANDATO RC (deadline lunes 12-oct)**: autónomo hasta Release Candidate. Autorización NUEVA de Rodrigo:
@@ -90,6 +90,28 @@ credenciales a un servicio externo). Por eso:
 - BLOCKED_EXTERNAL (requiere login con cuenta de PRUEBA): E2E autenticado de guardar/reabrir, roles en vivo, aprobar contra servidor, autosave real, storage real.
 
 ## HISTORIAL DE AUDITORÍA (ChatGPT) — qué pasó en cada ronda
+
+### 3ª re-auditoría R15 — ChatGPT + Grok (sobre da454fe) — 5 hallazgos corregidos (código `08e6aad`)
+La 3ª re-auditoría aceptó D2/C2/B2/E2/A-UX y reabrió F (P0) + G/H/I/J (P1). Corregido:
+- **P0-R15-F** Acomodo podía PUBLICAR un programa comercial incompleto: `AcomodoBase.programaListo` sólo miraba
+  `bloqueosPrograma` = dependientes-sin-ancla. Nueva autoridad única `bloqueosProgramaObservado(propuestaPlano,{partidas})`
+  combina `requiereRevision` + sillería pendiente REAL (reconciliada contra las partidas actuales) + conflictos de
+  reconciliación. Acomodo concatena `coherenciaPrograma.bloqueos` + eso → `AcomodoBase.bloqueosPrograma` ⇒ con programa
+  incompleto `programaListo=false` (Propuesta Viva / guardado final / PDF bloqueados; BORRADOR permitido). NOTA: NO se usa
+  `programaCompleto` como red de seguridad porque se calcula sin conocer las partidas ya cotizadas (seguiría false aunque
+  la sillería ya esté cubierta). Casos F1 (sillería pendiente), F2 (EXISTING_SURPLUS), F3 (publicable cuando cubierta).
+- **P1-R15-G** el botón "Aplicar programa detectado" de Acomodo ahora se deshabilita también por `reconObs.conflictos`
+  y muestra el motivo concreto (`CONFLICTO: <code>`), no sólo por `requiereRevision`.
+- **P1-R15-H** `confirmado_modelo` SOBREVIVE `aItemConfirmado` y `partidaComercialDesdeConfirmado` (sólo cuando es true;
+  nunca se inventa). Un modelo alterno confirmado deja `silleriaPendiente`=false end-to-end (H1); sin confirmar=true (H2).
+- **P1-R15-I** el return de `App.aplicarProgramaDetectado` ya NO deriva del snapshot `vista`: WRITE y RETURN usan la misma
+  autoridad `resolverAplicacionAtomica(propuesta,{existentes:prev})` (función pura nueva). Test REAL de carrera: 2ª
+  aplicación contra el prev ya actualizado → 0 nuevas, no duplica (I1); conflicto → committed=false (I2); bloqueada → false (I3).
+- **P1-R15-J** VONI muestra "✓ Sillería confirmada" cuando `!sillasPorConfirmar` (antes decía siempre "modelo por confirmar").
+Suite 2171/2171 (259 archivos, +11) · build ✅ · deno check ✅. NO motor / NO XLSX / NO deploy. PENDIENTE: re-auditoría.
+Supuestos NO verificados LIVE: ningún render UI en E2E (sólo dominio + source-asserts); el timing batcheado de React en
+el return de `aplicarProgramaDetectado` (conservador: nunca reporta éxito fantasma) no está en E2E; ningún caller usa ese
+return como autoridad; selector "elegir otro producto" pendiente de UI; sin flag PERSISTENTE de modelo confirmado entre sesiones.
 
 ### 2ª re-auditoría R15 — ChatGPT + Grok (sobre fd6b6c5) — 5 hallazgos corregidos (código `eb2ebfd`)
 La 2ª re-auditoría aceptó R15-2/3/5 y R15-A (lógica), y reabrió D/C/B/E + un P1 UX. Corregido:

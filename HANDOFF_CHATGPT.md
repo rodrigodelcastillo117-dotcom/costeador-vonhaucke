@@ -5,6 +5,20 @@
 
 ---
 
+## 3ª RE-AUDITORÍA R15 — RESUELTA (para CHATGPT + GROK)
+
+- **branch:** `audit/final-product-completion` · **code SHA:** `08e6aad` (HEAD = doc-commit encima). Base = `da454fe`.
+- **tests:** 2171/2171 vitest (259 archivos; +11 adversariales) · **vite build:** ✅ · **deno check:** ✅ (leer-plano/leer-plano-core, sin cambios este round). **CI real:** GitHub 0 runs (evidencia LOCAL).
+- La 3ª re-auditoría aceptó D2/C2/B2/E2/A-UX y reabrió 5 hallazgos (F P0, G/H/I/J P1). Corregidos:
+  - **P0-R15-F** — Acomodo podía publicar un programa comercial INCOMPLETO (el layout geométrico PASS no implica programa completo). Nueva **autoridad única** `bloqueosProgramaObservado(propuestaPlano,{partidas})` que combina: `requiereRevision` + sillería pendiente REAL reconciliada contra las partidas actuales + conflictos de reconciliación. Acomodo concatena `coherenciaPrograma.bloqueos` + eso y lo pasa a `AcomodoBase.bloqueosPrograma` → `programaListo=false` ⇒ Propuesta Viva / guardado final / PDF bloqueados; BORRADOR sigue permitido. — **INTEGRATION_PASS** (F1 sillería-pendiente, F2 EXISTING_SURPLUS, F3 publicable cuando sillería cubierta). Wiring en Acomodo.jsx = **CODE_PASS** (source-assert); render del gate = **NOT_VERIFIED** (sin E2E).
+  - **P1-R15-G** — el botón "Aplicar programa detectado" ahora se deshabilita también por `reconObs.conflictos` (no sólo `requiereRevision`) y muestra el motivo concreto (`CONFLICTO: <code>`). — **CODE_PASS** (source-assert); render = **NOT_VERIFIED**.
+  - **P1-R15-H** — `confirmado_modelo` SOBREVIVE `aItemConfirmado` y `partidaComercialDesdeConfirmado` (sólo cuando es `true`; nunca se inventa). Un modelo ALTERNO confirmado cruza el apply end-to-end y `silleriaPendiente`=false; sin confirmar → true. — **INTEGRATION_PASS** (H1/H2 end-to-end).
+  - **P1-R15-I** — el return de `App.aplicarProgramaDetectado` ya NO deriva de un snapshot (`vista`): WRITE y RETURN usan la MISMA autoridad `resolverAplicacionAtomica(propuesta,{existentes:prev})`. Nueva función pura probada con test REAL de carrera (no source-assert): 2ª aplicación contra el prev ya actualizado → 0 nuevas, no duplica; conflicto → committed=false fail-closed; bloqueada → committed=false. — **INTEGRATION_PASS** (I1 carrera, I2 conflicto, I3 bloqueada). Integración React (timing batcheado del updater) = **NOT_VERIFIED**; el return es conservador (nunca reporta éxito fantasma).
+  - **P1-R15-J** — VONI muestra "✓ Sillería confirmada" cuando `!sillasPorConfirmar` (antes decía siempre "modelo por confirmar"). — **CODE_PASS** (source-assert); render = **NOT_VERIFIED**.
+- **Supuestos NO verificados LIVE:** ningún render de UI está cubierto por E2E (sólo dominio + source-asserts); el timing batcheado de React en `aplicarProgramaDetectado` (el return refleja el commit sólo si el updater corre síncrono — en el navegable es conservador, nunca miente éxito); ningún caller consume hoy ese return como autoridad; el selector "elegir otro producto / requiere desarrollo" sigue pendiente de UI; sin flag PERSISTENTE de "modelo confirmado" entre sesiones (si el usuario borra las sillas confirmadas, vuelve a pendiente). **NO se tocó motor / XLSX / deploy.**
+
+---
+
 ## 2ª RE-AUDITORÍA R15 — RESUELTA (para CHATGPT + GROK)
 
 - **branch:** `audit/final-product-completion` · **code SHA:** `eb2ebfd` (HEAD = doc-commit encima). Base = `fd6b6c5`.
@@ -218,20 +232,20 @@
 Eres el auditor independiente del proyecto Von Haucke (app React + Supabase de costeo/cotización).
 Audita la rama `audit/final-product-completion`.
 
-- Último commit de CÓDIGO: eb2ebfd (2ª re-auditoría R15: borrado real bajo merge + topología de sillas + reconciliación por ancla + gate atómico). Base = fd6b6c5.
-  Verdad viva: `CLOSEOUT_STATE.md` (historial rondas 1–15 + 2 re-auditorías R15) + bloque "2ª RE-AUDITORÍA R15 — RESUELTA" arriba.
-  Tests 2160/2160 (259 archivos), build ✅, deno check ✅ (evidencia LOCAL; GitHub 0 CI runs). Golden/adapter = MOCK_ONLY.
+- Último commit de CÓDIGO: 08e6aad (3ª re-auditoría R15: F gate de publicación + G conflictos en botón + H confirmado_modelo sobrevive + I return atómico + J encabezado sillería). Base = da454fe.
+  Verdad viva: `CLOSEOUT_STATE.md` (historial rondas 1–15 + 3 re-auditorías R15) + bloque "3ª RE-AUDITORÍA R15 — RESUELTA" arriba.
+  Tests 2171/2171 (259 archivos; +11), build ✅, deno check ✅ (evidencia LOCAL; GitHub 0 CI runs). Golden/adapter = MOCK_ONLY.
 - Límites que Claude respetó: NO merge, NO deploy/promote, NO migración prod, NO prod-write, NO tocar 33 legacy,
-  NO aprobar DATA TRUTH, NO integrar Intelisis. Todo capa ADITIVA (no cambia números del motor). El validador del
-  edge está PREPARADO + deno-clean pero NO DESPLEGADO (prod edge = hard boundary).
+  NO aprobar DATA TRUTH, NO integrar Intelisis, **NO motor cutover, NO XLSX**. Todo capa ADITIVA (no cambia números del
+  motor). El validador del edge está PREPARADO + deno-clean pero NO DESPLEGADO (prod edge = hard boundary).
 
-Verifica contra el CÓDIGO real (no sólo el closeout) que los 5 hallazgos de tu 2ª re-auditoría R15 quedaron corregidos:
-1. R15-D2: con observed server, ¿el objeto que Acomodo envía SOBREESCRIBE neutral (sugeridosPartidas:[]/demoAutopoblado:false/programaPropuesto:false) de modo que el MERGE del padre ya no conserva lo stale?
-2. R15-C2: ¿las sillas de "usar sugerida" heredan anchor_role=ANCHOR_* y el functional_group_id del ancla (no uno inventado)? bench qty=4 → 2 sillas/ancla con el fg del ancla.
-3. R15-B2: `silleriaPendiente` por (rol, ancla, modelo, cantidad): 8 sillas al ancla equivocada o modelo distinto sin confirmar → sigue pendiente.
-4. R15-E2: ¿la revalidación de conflictos ocurre DENTRO de setEstado(prev) (no sólo en el precheck) y devuelve prev con 0 writes?
-5. R15-A-UX: ¿el botón "ir directo a la propuesta" usa disabled={!puedeEntrarPropuesta} (sin botón muerto)?
-6. Revisa supuestos (render UI no E2E; selector "elegir otro" pendiente; sin flag persistente de modelo confirmado) y busca NUEVOS falsos verdes.
+Verifica contra el CÓDIGO real (no sólo el closeout) que los 5 hallazgos de tu 3ª re-auditoría R15 quedaron corregidos:
+1. P0-R15-F: ¿`bloqueosProgramaObservado` combina requiereRevision + sillería pendiente reconciliada contra las partidas actuales + conflictos de reconciliación, y Acomodo lo concatena con coherenciaPrograma.bloqueos y lo pasa a `AcomodoBase.bloqueosPrograma` → `programaListo=false` cuando el programa comercial observado está incompleto? (4 benches ×2 asientos, anclas aplicadas, 0 sillas → publicable=false; EXISTING_SURPLUS → publicable=false; sillería cubierta → publicable).
+2. P1-R15-G: ¿el botón "Aplicar programa detectado" de Acomodo se deshabilita también por reconObs.conflictos y muestra el motivo concreto?
+3. P1-R15-H: ¿`confirmado_modelo` sobrevive `aItemConfirmado` y `partidaComercialDesdeConfirmado` (sólo si true), de modo que un modelo alterno confirmado deja `silleriaPendiente`=false end-to-end y sin confirmar=true?
+4. P1-R15-I: ¿el return de `aplicarProgramaDetectado` deriva de `resolverAplicacionAtomica(propuesta,{existentes:prev})` (la misma autoridad que el write), y NO del snapshot `vista`? ¿El test de carrera demuestra que la 2ª aplicación no agrega partidas nuevas ni duplica?
+5. P1-R15-J: ¿VONI muestra "✓ Sillería confirmada" cuando !sillasPorConfirmar (no el texto permanente "modelo por confirmar")?
+6. Revisa supuestos (ningún render UI está en E2E; timing batcheado de React en el return de aplicarProgramaDetectado — conservador, nunca miente éxito; ningún caller usa ese return como autoridad; selector "elegir otro" pendiente; sin flag PERSISTENTE de modelo confirmado) y busca NUEVOS falsos verdes.
 
 Luego decide/recomienda prioridad para el mega-avance, sabiendo que estos bloques necesitan decisión de Rodrigo o deploy:
 A. MOTOR CUTOVER: que `calcular()` tome el precio del CanonicalPriceResolver con fail-closed, preservando goldens (sólo productos nuevos).
