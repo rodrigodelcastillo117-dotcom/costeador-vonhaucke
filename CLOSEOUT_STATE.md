@@ -220,9 +220,12 @@ A la fecha de este HEAD, **no hay P0 de cliente abiertos conocidos**. Suite 1903
 (Siguen sin verificación E2E_autenticada por el límite de credenciales; eso es cobertura, no un P0 abierto.)
 
 ## P0/seguridad que QUEDAN — rebaselineado contra PROD real
-- **`app` edge con verify_jwt=false** (confirmado por ChatGPT) → **AUDITAR POR SEPARADO**: entender qué
-  expone, si es intencional (p.ej. health/landing) o un hueco. EJECUTABLE: leer `supabase/functions/app`
-  y clasificar; el cambio de verify_jwt en prod sería BLOCKED_EXTERNAL (dashboard).
+- **`app` edge con verify_jwt=false** (confirmado por ChatGPT) → **NO auditable localmente**: NO existe
+  `supabase/functions/app/` en este repo (las edges presentes son acomodar-espacio[-recovery],
+  analizar-mueble, analizar-negocio, costear-servidor, cotizar-servidor, cotizar-texto, generar-render,
+  generar-video, leer-plano[-core], usuarios, voni-council). `app` es una función desplegada cuyo source
+  no está versionado aquí (¿auto/managed de Supabase?). BLOCKED_EXTERNAL: inspeccionar qué sirve en el
+  dashboard (ChatGPT/Rodrigo) antes de decidir si verify_jwt=false es intencional o un hueco.
 - Hardening INTERNO de las 4 edges IA (rate-limit/topes/validación de params): aunque tienen verify_jwt=true,
   el endurecimiento de source es EJECUTABLE (sin deploy). NO es "proxy abierto" (corregido).
 - `generar-video`: verificar si es huérfana; si lo es, candidata a borrado (requiere confirmación + deploy).
