@@ -1,305 +1,175 @@
 # VON HAUCKE — FINAL PRODUCT COMPLETION · CLOSEOUT STATE
 
-> Estado vivo para continuar entre sesiones. Otra sesión debe poder retomar EXACTAMENTE aquí.
-> Última actualización: 2026-10-08 (ronda 3 ChatGPT: golden real 8-puestos + price-trust + date-trust + FX + repo hygiene)
->
-> **ESTADO ACTUAL**: HEAD `audit/final-product-completion` = `0637d0e` + este doc-commit encima.
-> Tests **1934/1934** · build ✅. P0 de cliente: **0 abiertos**.
-> CABLEADO VISIBLE (capa ADITIVA, NO cambia números del motor; tests de dinero verdes):
->  1. `Precios.jsx` (Dirección): columna Procedencia por insumo (chip por tipo de fuente + "¿por qué $544?").
->  2. `HojaCosto.jsx` (Costear/veCostos): "✓ Costo con evidencia real" sólo si TODA la MP es real FECHADA
->     y con FX verificado; si no, "N de M MP sin evidencia — costo no oficial".
-> Ambas usan UN adapter canónico (`resolverPrecioInsumoVivo`): un precio capturado a mano NO hereda
-> evidencia vieja. observed_program y el resolver siguen SIN cablear al MOTOR (eso es el cutover, pendiente).
+> Estado VIVO y VERÍDICO para continuar entre sesiones y para auditoría de ChatGPT.
+> Regla: este archivo refleja SIEMPRE el HEAD real, los tests reales y qué quedó REALMENTE
+> cableado vs pendiente. Cero información histórica presentada como estado actual.
+> Última actualización: 2026-10-09 (ronda 3 ChatGPT cerrada + cable FloorPlanReader + rewrite sin contradicciones).
 
-## ⬆️ RONDA 3 (ChatGPT, sobre HEAD e91e014) — correcciones de falsos verdes
-ChatGPT aceptó P0-A/P0-B a nivel código y cortó varios falsos verdes antes de construir encima:
-- **P0-PLAN-GOLDEN** (era FALSO): el golden "132 m²" inventaba 18 puestos y 2 privados. Corregido al
-  ground truth real del PDF QA-COT-01: Open Space = **8 puestos = 4 benches × 2**. El contrato
-  `observed_program` ahora separa **MUEBLES (quantity)** de **PUESTOS (capacity_per_unit/capacity_total)**;
-  `resumenObservado` reporta ambos. El "18 puestos" se relabeló como test sintético de contrato (no plano real).
-  HONESTO: la fixture es el observed_program ESPERADO del PDF; aún NO la produce el lector real (pendiente wiring).
-- **P0-PRICE-TRUST**: HojaCosto podía decir "evidencia real" sobre un precio editado a mano (heredaba la
-  `fuente` vieja). Nuevo adapter ÚNICO `observacionDeInsumoVivo`/`resolverPrecioInsumoVivo`: capturado a mano
-  ⇒ PROVISIONAL. Lo usan Precios + HojaCosto (+ futuro motor).
-- **PRICE DATE/TRUST**: `REAL_OBSERVED` → `REAL_OBSERVED_DATED` / `REAL_OBSERVED_UNDATED`. Un real SIN fecha
-  (p.ej. `FUENTE_ERP`) ya NO afirma "fechado/vigente" ni habilita costo oficial. Las etiquetas muestran el
-  TIPO de fuente (Compra/T.D.C./Lista), no un genérico "Compra real".
-- **FX PROVENANCE**: MP en moneda extranjera + tipoCambio sin procedencia ⇒ NO cuenta como evidencia real.
-- **REPO HYGIENE**: quitado del índice el symlink `node_modules → ruta absoluta`; `.gitignore` ahora lo cubre.
-- **SEGURIDAD `app` edge**: ChatGPT la inspeccionó: sólo sirve un `index.html` público desde Storage, sin
-  input/secrets/DB → **NO es P0**. Es una segunda superficie pública legacy (posible drift vs Vercel): limpieza, no seguridad.
+## ESTADO ACTUAL (verificado contra el repo)
+- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `0637d0e`**; el HEAD de la rama es el
+  doc-commit de este CLOSEOUT encima (un commit no puede contener su propio SHA). Tip exacto: `git rev-parse HEAD`.
+  Diff completo de la rama: `git diff e5f737f..HEAD` · lista: `git log --oneline e5f737f..HEAD`.
+- **Tests: 1934 / 1934** (vitest) · **Build: ✅** (vite) · verificado en esta sesión (2026-10-09).
+- **P0 de cliente ABIERTOS: 0.** (Historial de cerrados abajo.) Falta E2E autenticado (cobertura, no P0 abierto).
+- **Cableado REAL hoy** (capa ADITIVA — NO cambia ningún número del motor; tests de dinero verdes):
+  1. `Precios.jsx` (Dirección): columna "Procedencia" por insumo — chip por TIPO de fuente + tooltip "¿por qué $544?".
+  2. `HojaCosto.jsx` (Costear/veCostos): "✓ Costo con evidencia real" sólo si TODA la MP es real FECHADA con FX
+     verificado; si no, "N de M material(es) sin evidencia — costo no oficial".
+  Ambas usan UN adapter canónico `resolverPrecioInsumoVivo` (un precio capturado a mano NO hereda evidencia vieja).
+  3. `floorPlanReader.js`: cable PURO lector real (`programaDelPlano`) → `observed_program` (test con lector real).
+- **NO cableado todavía** (son los bloques grandes, requieren decisión/deploy — ver "SIGUIENTE"):
+  - El MOTOR (`calcular()`) sigue tomando `insumo.precio`; el `CanonicalPriceResolver` aún NO gobierna el número.
+  - El lector de PDF en vivo (edge `leer-plano`) → cable → UI de confirmación (requiere deploy).
+  - Ingestión documental de los `.xlsx` reales (requiere dep de parser + aprobar mapeo = DATA TRUTH).
 
-## ⬆️ LO MÁS RECIENTE PRIMERO (ronda 2, auditoría ChatGPT independiente)
-ChatGPT auditó `audit/final-product-completion @ dca88e2` contra el código real y
-contra Supabase desplegado. Reabrió 2 P0 que mi reporte dio por cerrados — AMBOS
-YA CERRADOS AHORA — rebaselineó seguridad, y amplió el mandato a REALITY CUTOVER.
-
-
-## ⬆️ LO MÁS RECIENTE PRIMERO (ronda 2, auditoría ChatGPT independiente)
-ChatGPT auditó `audit/final-product-completion @ dca88e2` contra el código real y
-contra Supabase desplegado. Reabrió 2 P0 que mi reporte dio por cerrados — AMBOS
-YA CERRADOS AHORA — rebaselineó seguridad, y amplió el mandato a REALITY CUTOVER.
-
-- **P0-A (render stale al PDF) — CERRADO** (commit `b54a1f3`). La firma vieja era
-  `program_hash|floor_hash|nº-colocaciones`: mover/rotar un mueble NO la cambiaba.
-  Además `guardarEnPropuesta`/`guardarStaging` publicaban sin verificar firma.
-  FIX: `firmaLayout()` determinista (incluye x/y/rot/w/d por colocación) en
-  `acomodoHash.js`; autoridad única fail-closed `renderCorrespondeAlLayout` que
-  gobierna autosave + los dos botones + staging de foto. Regresión: mover 1 pieza
-  ⇒ firma cambia ⇒ no se publica. (`acomodoPayload.test.js`, `layoutPublicationGate.test.js`)
-- **P0-B (seller-safe incompleto) — CERRADO** (commit `b54a1f3`). `limpiarSensibles`
-  no saneaba `piezas[*].costoUnitario` ni `cotizacion.partidas[*].{costoUnitario,margen}`,
-  y el autosave LOCAL escribía estado completo antes del gate de rol. FIX:
-  `sinEconomiaInterna()` recursivo + saneo de piezas/partidas; el guardado local
-  persiste `limpiarSensibles(estado)` para roles sin veCostos. Precio de VENTA se
-  conserva. (`sellerSafeState.test.js`)
-- **SEGURIDAD REBASELINEADA contra PROD real** (verificado por ChatGPT en el dashboard):
-  - `config_leer` **YA tiene** `USING private_api.puede_editar_config()` → **NO está abierto**.
-    El supuesto "security P0-2" **ya no existe**. (Mi reporte previo estaba desactualizado.)
-  - `cotizar-texto`, `generar-video`, `leer-plano-core`, `analizar-negocio`: **verify_jwt=true**
-    en Supabase. NO son proxies anónimos abiertos. Puede quedar hardening INTERNO pendiente,
-    pero describirlos como "sin auth" era incorrecto.
-  - La ÚNICA edge con **verify_jwt=false** confirmada es **`app`** → auditar ESA por separado (ver abajo).
-- **REALITY CUTOVER v1 iniciado** (commit `83a93da`): provenance de precio +
-  `CanonicalPriceResolver` determinista + adapter Intelisis de diseño. Ver sección dedicada.
-
-## Base / rama
-- BASE_SHA: `e5f737f044f2ecfd326b35640b995c0111c07902` (= audit/material-gate-v4-final, Material Gate P0.1–P0.16 aprobado)
-- Rama de trabajo: `audit/final-product-completion` (worktree en `/Users/rodrigodelcastillo/Documents/costeador-vonhaucke-fpc`)
+## Base / rama / límites
+- BASE_SHA: `e5f737f044f2ecfd326b35640b995c0111c07902` (= audit/material-gate-v4-final, Material Gate P0.1–P0.16 aprobado).
 - Material Gate CONGELADO salvo que un E2E real descubra un P0 demostrable.
-
-## Límites (hard)
-NO merge · NO prod deploy · NO promote · NO migraciones en prod · NO escrituras masivas de prod ·
-NO modificar las 33 cotizaciones legacy · NO aprobar DATA TRUTH · NO Intelisis.
-Operaciones irreversibles se preparan/documentan y quedan pendientes de autorización.
+- **Límites (hard):** NO merge · NO prod deploy · NO promote · NO migraciones en prod · NO escrituras masivas de prod ·
+  NO modificar las 33 cotizaciones legacy · NO aprobar DATA TRUTH · NO integrar Intelisis.
+  Operaciones irreversibles se preparan/documentan y quedan pendientes de autorización.
 
 ## Restricción de verificación (honestidad)
-La app apunta a Supabase PROD (nube.js hardcoded). No puedo autenticarme con el password real
-de prod (enviaría credenciales a servicio externo). Por eso:
-- VERIFIED por mí: lógica pura (costeo/material/acomodo/PDF-función), build, suite, render sin auth,
-  consola/red al cargar, auditorías de código.
-- BLOCKED_EXTERNAL (requiere login del usuario): E2E autenticado de guardar/reabrir, roles en vivo,
-  aprobar contra servidor en vivo, autosave real, storage real.
+La app apunta a Supabase PROD (`nube.js` hardcoded). No me autentico con el password real de prod (sería enviar
+credenciales a un servicio externo). Por eso:
+- VERIFIED por mí: lógica pura (motor/material/acomodo/provenance/plan), build, suite, render sin auth, consola/red al cargar, auditoría de código, y que la app ARRANCA autenticada como Dirección (sesión persistida de Rodrigo — sólo lectura, sin tocar su WIP).
+- BLOCKED_EXTERNAL (requiere login con cuenta de PRUEBA): E2E autenticado de guardar/reabrir, roles en vivo, aprobar contra servidor, autosave real, storage real.
 
-## Baseline (medido al iniciar) — VERIFIED
-- Tests: **1863 passed / 1863** (vitest, 231 files). CODE_PASS + INTEGRATION_PASS.
-- Build: **✅ exitoso** (vite, 5.37s). Bundle principal 1.15MB (289KB gzip) — grande pero funcional; P2 code-split.
-- Dev server: arranca en :5173. Home AUTENTICADO renderiza (sesión persistida), **0 errores de consola**, todos los módulos 200, nav completa, 3 caminos claros, Voni presente, responsive OK. USER_FLOW(render) VERIFIED.
-- Playwright smoke E2E: **3/3 PASS** (monta, sin pantalla de fallo total, sin scroll horizontal a 375px, login+mostrar-contraseña+recuperación sin caminos muertos). E2E_PASS (login UI / app-opens).
-- Deno disponible (~/.deno/bin), Playwright chromium instalado.
+## HISTORIAL DE AUDITORÍA (ChatGPT) — qué pasó en cada ronda
+
+### Ronda 1 (red-team interno de 5 agentes)
+Hallazgo clave TRANQUILIZADOR: **el motor de costeo es sólido; NO hay P0 que produzca un número incorrecto en el
+camino principal** (un solo motor cliente/servidor; el edge importa `src/motor/calculo.js`; fail-closed real:
+precioDe→NaN, costeoEmitible bloquea, UNKNOWN≠$0). Los P0 eran de MANEJO DE ESTADO UI y de infra de seguridad.
+**7 P0 + 2 P1 cerrados** (ver "P0 de cliente cerrados").
+
+### Ronda 2 (ChatGPT, sobre HEAD dca88e2)
+Reabrió 2 P0 que mi reporte dio por cerrados mal → **AMBOS cerrados** (commit `b54a1f3`). Rebaselineó seguridad y
+amplió el mandato a REALITY CUTOVER.
+- **P0-A render stale**: la firma vieja (`program_hash|floor_hash|nº-colocaciones`) no cambiaba al mover/rotar un
+  mueble, y los dos botones de guardar publicaban sin verificar. FIX: `firmaLayout()` (incluye x/y/rot/w/d por
+  colocación) + autoridad única fail-closed `renderCorrespondeAlLayout`. (`acomodoHash.js`, tests de acomodo.)
+- **P0-B seller-safe**: `limpiarSensibles` no saneaba `piezas[*].costoUnitario` ni `partidas[*].{costoUnitario,margen}`,
+  y el autosave local escribía antes del gate de rol. FIX: `sinEconomiaInterna()` + saneo de piezas/partidas +
+  guardado local saneado para roles sin veCostos. (`sellerSafeState.test.js`.)
+- Seguridad: `config_leer` YA está cerrada en prod; las 4 edges IA tienen verify_jwt=true (no "sin auth").
+
+### Ronda 3 (ChatGPT, sobre HEAD e91e014) — cortó falsos verdes. TODOS corregidos:
+- **P0-PLAN-GOLDEN** (era FALSO): el golden "132 m²" inventaba 18 puestos y 2 privados. Corregido al ground truth
+  real del PDF QA-COT-01: **Open Space = 8 puestos = 4 benches × 2**. El contrato `observed_program` ahora separa
+  **MUEBLES (`quantity`)** de **PUESTOS (`capacity_per_unit`/`capacity_total`)**; `resumenObservado` reporta ambos.
+  El caso "18 puestos" se relabeló como test SINTÉTICO de contrato (no plano real). HONESTO: la fixture
+  `GOLDEN_A_132M2_8_PUESTOS` es el observed_program ESPERADO del PDF; cuando el lector real la IGUALE será USER_FLOW_PASS.
+- **P0-PRICE-TRUST**: HojaCosto podía decir "evidencia real" sobre un precio editado a mano (heredaba la `fuente`
+  vieja). FIX: adapter ÚNICO `observacionDeInsumoVivo`/`resolverPrecioInsumoVivo` — capturado a mano ⇒ PROVISIONAL.
+- **PRICE DATE/TRUST**: `REAL_OBSERVED` → `REAL_OBSERVED_DATED` / `REAL_OBSERVED_UNDATED`. Un real SIN fecha (p.ej.
+  `FUENTE_ERP`) ya NO afirma "fechado/vigente" ni habilita costo oficial. Las etiquetas muestran el TIPO de fuente
+  (Compra/T.D.C./Lista), no un genérico "Compra real".
+- **FX PROVENANCE**: MP en moneda ≠ MXN con tipoCambio sin procedencia ⇒ NO cuenta como evidencia real.
+- **REPO HYGIENE**: quitado del índice el symlink `node_modules → ruta absoluta`; `.gitignore` corregido (el patrón
+  con barra no casaba un symlink).
+- **SEGURIDAD `app` edge**: ChatGPT la inspeccionó en Supabase: sólo sirve un `index.html` público de Storage, sin
+  input/secrets/DB → **NO es P0** (superficie legacy, posible drift vs Vercel; limpieza, no seguridad).
+
+## P0 de CLIENTE cerrados (con commit; tests/build verdes; pusheados)
+Ronda 1: (1) costo fantasma por falta de medida `5b522e4` · (2) fuga seller-safe en localStorage `5b522e4` ·
+(3) pérdida de datos al reabrir `5b522e4` · (4) renders de Cotización pisaban estado `d93c005` ·
+(5) "COSTO CERTIFICADO" stale al cambiar BOM `d93c005` · (6) config compartida se sobrescribía al cargar `cb89439` ·
+(7) bucle de autosave en Acomodo `3212f4e`. + P1-13 IVA y P1-7 vendedor sin precio `d4951c5`.
+Ronda 2: **P0-A render stale** + **P0-B seller-safe completo** `b54a1f3` (la 1ª versión de P0-3 fue `73bd64d`).
+Ronda 3: **P0-PLAN-GOLDEN** + **P0-PRICE-TRUST** + date/FX/hygiene `7a4f834`, `11224e6`.
+
+## Seguridad — rebaselineado contra PROD real (NO hay P0 de seguridad abierto)
+- `config_leer` RLS: **YA cerrada en prod** (`USING private_api.puede_editar_config()`). El viejo "security P0-2" no existe.
+- `cotizar-texto`, `generar-video`, `leer-plano-core`, `analizar-negocio`: **verify_jwt=true**. No son proxies anónimos.
+  El viejo "security P0-1 (sin auth)" era inexacto.
+- `app` edge (verify_jwt=false): sólo HTML público de Storage → **no es P0**; superficie legacy a revisar/retirar.
+- P1 ejecutable (sin deploy): hardening interno de las 4 edges IA (rate-limit/topes/validación de params), p.ej.
+  `generar-video` (allowlist model/operation). No bloquea.
+
+## REALITY CUTOVER — cadena de verdad económica
+Objetivo: FUENTE→EVIDENCIA→INTERPRETACIÓN→CONFIRMACIÓN→PRODUCTO→BOM→MP→PRECIO→COSTO→COTIZACIÓN→ACOMODO→OUTPUT.
+Ninguna etapa inventa la siguiente. "REAL" exige provenance. Hoy costear con la última evidencia REAL conocida de VH;
+Intelisis = adapter FUTURO. NO usar $0 como desconocido; no viejo-como-vigente; no mezclar unidades.
+
+**ENTREGADO (puro, determinista, con tests):**
+- `src/datos/precioProvenance.js` — contrato de observación de precio + estados
+  `ESTADO_PRECIO`: CURRENT_VERIFIED / **REAL_OBSERVED_DATED** / **REAL_OBSERVED_UNDATED** / HISTORICAL / PROVISIONAL / PENDING;
+  `etiquetaFuentePrecio` (Compra/T.D.C./Lista/Intelisis/Estimado).
+- `src/datos/canonicalPriceResolver.js` — `resolverPrecioCanonico` (identidad exacta + tier + fecha/confianza),
+  `explicarPrecio` ("¿por qué $544?"), `etiquetaEstadoDeResolucion`, `bloqueaCostoOficial`, `resolverCatalogoPrecios`.
+  Un real SIN fecha o un provisional/pendiente **bloquea** el costo OFICIAL.
+- `src/datos/intelisisPriceProvider.js` — adapter de DISEÑO, NO integrado (`fetch()` lanza `ERP_NO_INTEGRADO`).
+- `src/datos/precioInsumoBridge.js` — puente al catálogo REAL: `clasificarFuenteTexto` (por patrón) + `fechaDeFuenteTexto`
+  + `observacionDeInsumoVivo`/`resolverPrecioInsumoVivo` (capturado-aware, ÚNICA verdad para UI y futuro motor).
+- `src/datos/observedProgram.js` — contrato `observed_program` {type, quantity, **capacity_per_unit, capacity_total**,
+  zone, grouping, position, orientation, dimensions, page, evidence, confidence, origin}; ORIGEN observed/inferred/suggested
+  derivado de PROCEDENCIA (floorSpec, una sola verdad); `confirmarObservado` (acto EXPLÍCITO, nada se autoconfirma).
+- `src/datos/floorPlanReader.js` — `observedProgramDeLectura(pr)`: cable del lector REAL `programaDelPlano` → observed_program.
+
+**INVENTARIO real del catálogo (mandate A, `insumos.js`, 259 insumos; hoy=2026-10-09):**
+11 fuentes distintas: ERP Luis Daniel (99, 2026-08-10), Sonara (28), T.D.C. Alpura (18), Compras (15),
+ERP última compra (6, SIN fecha), T.D.C. banca (4), Mercado estimado (3), T.D.C. Alba (2), Loktec (2),
+Rodrigo rango (1), **81 sin fuente**. Coherencia resuelta con los estados nuevos:
+**166 REAL_OBSERVED_DATED · 8 REAL_OBSERVED_UNDATED · 85 PROVISIONAL** (0 PENDING; todos tienen un número).
+EcoLegno 19 mm = $544 → REAL_OBSERVED_DATED (Compras 2026-08-14). Capa ADITIVA: NO cambia los números del motor.
+
+**SIGUIENTE (necesita decisión/autorización o deploy):**
+1. **MOTOR CUTOVER** (ChatGPT #8): que el precio EFECTIVO que entra a `calcular()` venga de `resolverPrecioInsumoVivo`
+   con fail-closed (PENDING/PROVISIONAL/UNDATED ≠ costo oficial en silencio). PRESERVAR goldens/paridad; explicar qué
+   observación reemplaza a cuál. ⚠️ Cambia números y toca el MOTOR CONGELADO + las 33 legacy → **requiere OK de Rodrigo**
+   (y alcance: sólo productos nuevos, o también legacy). Hoy el motor NO usa el resolver.
+2. **Ingestión documental real** (ChatGPT #7): leer read-only `fuentes/*.xlsx` conservando
+   archivo→hoja→celda→artículo ERP→variante→precio→moneda→unidad→fecha→proveedor→canonical_id→conversión.
+   Requiere (a) dep de parser de xlsx (no hay) + (b) mapeo clave_erp→canonical_id = **DATA TRUTH** (reservado).
+   NOTA: `lista_precio_items` (Supabase) ya tiene provenance/precio_lista/moneda/vigencia_desde/hasta.
+3. **PDF→leer-plano→cable→UI en vivo**: el cable (`floorPlanReader`) ya existe y está probado con el lector real;
+   cerrar el lazo (PDF real por la edge + UI de confirmación) requiere **deploy**. La fixture GOLDEN_A es el esperado.
+4. **GOLDEN REALITY**: BOM/consumo/precio/costo humano (T.D.C. real) vs app; clasificar diferencia por causa; no ajustar
+   el motor para cuadrar. (Depende de #2.)
+5. **PRODUCT INTELLIGENCE**: ProductDrawingReader→ProductSpec→BOM determinista→resolver→costo (reusar `evidencia.js`).
+6. **FX con provenance**: modelar tipoCambio con fecha/fuente (hoy sólo se marca provisional si moneda≠MXN).
+
+## Matriz (estado real al código 0637d0e)
+| Área | CODE | INTEGRATION | E2E | USER FLOW | Pendiente |
+|---|---|---|---|---|---|
+| Home/Navegación | ✅ | ✅ | ✅ smoke | ✅ render | — |
+| Money/Motor | ✅ | ✅ | — | BLOCKED(auth) | margen rancio/25% (P1); el resolver aún NO gobierna el número |
+| Costear | ✅ | ✅ | — | BLOCKED | HojaCosto muestra calidad de costo por procedencia (wired) |
+| Cotizar | ✅ | ✅ | — | BLOCKED | gate stale P1 |
+| Cocrear | ✅ | ✅ | — | BLOCKED | CocrearV2 dead code (P2) |
+| Acomodo | ✅ | ✅ | — | BLOCKED | render stale P0-A CERRADO (firmaLayout); autosave loop CERRADO |
+| Renders | ✅ | ✅ | — | BLOCKED | stale→PDF P0-A CERRADO |
+| PDF/Print | ✅ | ✅ | — | BLOCKED | imágenes faltantes sin aviso (P1) |
+| Login/Recovery | ✅ | ✅ | ✅ smoke | BLOCKED(creds) | error genérico login (P1) |
+| Roles | ✅ | ✅ | — | BLOCKED | seller-safe COMPLETO P0-B CERRADO |
+| Security | ✅ rebaselineado | — | — | — | 0 P0; hardening interno edges (P1, sin deploy) |
+| Economía/Provenance | ✅ | catálogo real 166/8/85 | Precios+HojaCosto wired | render en vivo pendiente | motor cutover + serie documental (ver SIGUIENTE 1,2) |
+| Plan Intelligence | ✅ contrato+cable | cable lector real | — | BLOCKED(deploy) | PDF→edge→UI en vivo + Product Intelligence |
+| Persistence | ✅ | ✅ | — | BLOCKED | reopen/config CERRADOS |
+| VONI/Council | ✅ | ✅ | — | BLOCKED | proveedorReal traga errores (P1) |
+| Performance | — | — | — | — | bundle/rerenders (P2) |
+| UX/Responsive | ✅ | — | ✅ 375px | ✅ render | — |
+
+## P1 ejecutables que QUEDAN (sin E2E)
+money margen-rancio (b.margen congelado en mount) · margen mínimo como gate (hoy sólo aviso) ·
+React P1 (gate/chips stale en Cotización, EditarPartida derivados viejos, carreras acomodar/plano, logout limpia cotización) ·
+silent P1 (listaPermitidos/leerDireccion/verificarDespiece tragan error → "no hay datos" como hecho; edge `usuarios` ok:true con upsert fallido) ·
+hardening interno de edges IA. P2: dead code CocrearV2, code-split del bundle (1.16MB), chips inertes.
 
 ## BLOCKED_EXTERNAL (requiere acción del usuario)
-- E2E autenticado (acomodo, programa, cross-flow, roles en vivo, guardar/reabrir, aprobar vivo):
-  los specs e2e/*.e2e.js SE SALTAN sin `TEST_EMAIL`/`TEST_PASSWORD`. Para correrlos: definir esas env
-  vars con una CUENTA DE PRUEBA (no la de Rodrigo, para no ensuciar datos/escrituras en prod).
-- No puedo autenticarme yo (password real → servicio externo). La app apunta a Supabase PROD.
-- live-ai-smoke.e2e.js consume IA real (dinero) → correr selectivamente.
+- E2E autenticado (acomodo, programa, cross-flow, roles, guardar/reabrir, aprobar): los specs `e2e/*.e2e.js` SE SALTAN
+  sin `TEST_EMAIL`/`TEST_PASSWORD`. Correrlos: `TEST_EMAIL=<cuenta-de-prueba> TEST_PASSWORD=<...> npx playwright test`
+  (NO la cuenta de Rodrigo, para no ensuciar prod). `live-ai-smoke.e2e.js` consume IA real (dinero) → selectivo.
+- Motor cutover, ingestión documental (xlsx dep + DATA TRUTH), y verificación en vivo de Plan Intelligence (deploy).
 
-## Progreso por área (actualizar continuamente)
-| Área | Estado | Notas |
-|---|---|---|
-| Setup rama+baseline | EN CURSO | |
-| 1 Home/Navegación | PENDIENTE | |
-| 2 Plan Intelligence | PENDIENTE | |
-| 3 Costear | PENDIENTE | |
-| 4 Cotizar | PENDIENTE | |
-| 5 Cocrear | PENDIENTE | |
-| 6 Acomodo | PENDIENTE | |
-| 7 Renders | PENDIENTE | |
-| 8 Botones | PENDIENTE | |
-| 9 PDF/Print | PENDIENTE | |
-| 10 Login/Recovery | PENDIENTE | |
-| 11 Roles | PENDIENTE | |
-| 12 Security | PENDIENTE | |
-| 13 Persistencia | PENDIENTE | |
-| 14 VONI/Council | PENDIENTE | |
-| 15 Performance | PENDIENTE | |
-| 16 UX | PENDIENTE | |
-| 17 24-project E2E | PENDIENTE | |
-| 18 Exploratory QA | PENDIENTE | |
-| 19 Cross-flow | PENDIENTE | |
-| 20 Red team multi-agente | PENDIENTE | |
-| 21 Self-audit | PENDIENTE | |
-
-## Red team multi-agente (5 agentes, COMPLETADO) — hallazgos con evidencia
-
-### HALLAZGO CLAVE TRANQUILIZADOR
-El agente de dinero/cross-flow concluye: **el motor de costeo está genuinamente sólido; NO hay P0
-que produzca un número incorrecto en el camino principal.** Un solo motor cliente/servidor (el edge
-importa `src/motor/calculo.js`, no reimplementa), cross-flow comparte motor, APP LT 10u=6000×1200
-verificado, fail-closed real (precioDe→NaN, costeoEmitible bloquea, UNKNOWN≠$0). Lo más temido (costos
-malos) está bien. Los demás P0 son de MANEJO DE ESTADO UI (datos stale / pérdida de datos borde) y
-de SEGURIDAD (edges/RLS en infra Supabase).
-
-### ✅ ARREGLADOS en esta rama (con test/build verde; commits pusheados)
-1. **silent P0-1 — costo fantasma por falta de medida.** Pieza `forma:'area'` sin cotas caía a
-   `cantidad` y costeaba 1 m² fantasma. FIX: `calcular` → `componentesIgnorados`; `mapIaComps` preserva
-   `forma:'area'`. Test `finalCompletion.test.js`. Golden intacto. (commit 5b522e4)
-2. **security P1-2 — fuga seller-safe en localStorage.** `limpiarSensibles` neutraliza costos de insumos;
-   `hacerLogout`+`limpiarAlmacen()` borra el blob. (5b522e4)
-3. **silent P0-2 / React P0-4 — pérdida de datos al reabrir.** `App.onAbrir` aborta si la carga completa
-   falla (no sobrescribe el guardado). (5b522e4)
-4. **React P0-1 — renders de Cotización pisaban estado con copia vieja.** setCot/setPartida funcionales;
-   render se escribe POR ID (`aplicarRenderPorId`) en renderPartida/renderTodas/subirRender. (d93c005)
-5. **React P0-5 — "COSTO CERTIFICADO" pegado al cambiar BOM.** Se guarda `costoEstadoHash`; sólo se muestra
-   si coincide con el BOM actual, si no cae a "PRELIMINAR". (d93c005)
-6. **silent P0-3 — config compartida se sobrescribía al cargar** (destruía precios de todo el equipo).
-   FIX: ya NO se auto-siembra al cargar; la nube manda; el autosave por cambio (gated por veCostos) puebla
-   cuando Dirección edita. (cb89439)
-7. **React P0-2 — bucle de autosave en Acomodo (~600ms).** Guard de firma: no re-guarda payload idéntico;
-   rompe el bucle y deja que el autosave a nube dispare. (3212f4e)
-8. **React P1-13 — etiqueta IVA** usa el `ivaPct` efectivo (coincide con el monto). (d4951c5)
-9. **React P1-7 — vendedor sin precio** ya no ve "$0" ni botón "Agregar" muerto: "Sin precio" + disabled. (d4951c5)
-
-### 🔴 P0 ABIERTOS (prioridad; requieren cirugía de estado + E2E autenticado para verificar)
-- **React P0-1 — renders de Cotización pisan estado con copia vieja.** `Cotizacion.jsx:114,202-247`
-  `setCot`/`setPartida` NO funcionales; tras await de render, restauran partidas/descuentos viejos
-  (pérdida de trabajo/dinero, y en Dir/Diseño revierten precios de realtime). FIX: `setEstado(e=>...)`
-  localizando por `id`, escribir solo `render`.
-- **React P0-2 — bucle de autosave en Acomodo (~600ms infinito).** `AcomodoBase.jsx:332-363` deps con
-  arreglo nuevo cada render; el autosave a nube nunca dispara (punto verde miente). VERIFICAR con profiler.
-  FIX: firma estable + memo + no re-llamar si no cambió.
-- **React P0-3 — render IA viejo viaja como vigente al PDF.** `stagingUrl` no se invalida al mover
-  muebles/recalcular/cambiar plano (`AcomodoBase.jsx:109,359,906`). El cliente recibe imagen que no
-  corresponde. FIX: hash plan↔render; limpiar stagingUrl/realista/imgEscena en acomodar/dibujar/setArea.
-- **React P0-5 — "COSTO CERTIFICADO" pegado al cambiar el BOM.** `AsistenteEspecial.jsx:1269` `costoEstado`
-  string no se invalida al editar. FIX: guardar `{estado,bomHash}` y mostrar solo si coincide.
-- **silent P0-3 — config compartida se sobrescribe si leerConfig no trae insumos.** `nube.js:33-37`
-  `return data||{}` → App siembra el estado local y PISA los precios de TODO el equipo. FIX: leerConfig
-  señala error si data null; App no auto-siembra sin confirmación. (RIESGOSO: afecta a todos; verificar.)
-- **security P0-1 — 4 edges IA sin auth interna** (cotizar-texto, generar-video, leer-plano-core,
-  analizar-negocio): credit-burn / proxy abierto (generar-video concatena `operacion`/`modelo` del cliente
-  a la URL de Google). FIX: pegar bloque auth+rate-limit de analizar-mueble + topes de tamaño; validar
-  operacion/modelo o BORRAR generar-video (huérfano). PREP de source posible; verify_jwt/llaves legacy =
-  dashboard Supabase (BLOCKED_EXTERNAL). NO desplegado.
-- **security P0-2 — config_leer RLS sin cortar:** vendedor lee `config` crudo (costos/proveedores) por
-  DevTools. FIX: `alter policy config_leer ... using (puede_editar_config())` — 1 línea, ya en
-  `supabase/PENDIENTE_corte_rls_config.sql`. BLOCKED_EXTERNAL (migración prod; requiere tu autorización).
-
-### 🟠 P1 ABIERTOS (resumen; detalle en los reportes de agentes del transcript)
-- money P1 — margen RANCIO: `b.margen` se congela en mount; si Dirección cambia margenObjetivo, el cliente
-  guarda `precio=costo_nuevo×margen_viejo` y el gate solo compara COSTO, no precio. FIX: derivar b.margen
-  reactivo y/o comparar precioVenta en validarServidorParaAprobar.
-- money P1 — margen mínimo 25% NO se hace cumplir (solo aviso). FIX: gate en costeoEmitible/emisión.
-- React P1-1 gate/chips viejos en Cotización · P1-2 partidas con costo/margen viejo sin marca ·
-  P1-3 autosave pierde cambios (vaciar cotización no sincroniza) · P1-4 respuestas IA fuera de orden
-  (Costeador/Voni2) · P1-5 render stale a ficha PDF · P1-6 EditarPartida deja derivados viejos ·
-  P1-7 CosteadorLinea sello "precio real" + "$0 Agregar" botón muerto para vendedor sin precio ·
-  P1-8 CotizadorIA pierde estado al interpretar / duplica lotes · P1-9 editar área desincroniza dibujo ·
-  P1-10/P1-11 carreras acomodar/plano + "Aplicar programa" sin feedback · P1-12 logout no limpia
-  cotización/idCotizacion (relacionado al P1-2 ya arreglado parcialmente) · P1-13 etiqueta IVA inconsistente.
-- security P1-1 emitir_revision legacy (no v2, anti-tamper) · P1-3 signups públicos (escalada de rol).
-- silent P1 (5-19): listaPermitidos/leerDireccion/verificarDespiece/autosave/revisiones/Voni/Comercial/
-  ProductoMaestro tragan error → "no hay datos" como hecho; edge `usuarios` ok:true con upsert fallido.
-
-### 🟡 P2 BACKLOG
-- Dead code: `CocrearV2.jsx` (~435 líneas, el vivo es V3) → borrar. Chips "líneas candidatas"
-  (`Costeador.jsx:355`) inertes → dar onClick o quitar look de chip.
-- Perf: bundle 1.15MB (code-split); voniCosting/guardar recalculan en cada tecla; CocrearV3 setTimeout mágico.
-- Muchos `.catch(()=>{})` benignos vs los que ocultan errores (ver silent agent P2).
-- security P2: oráculos de costo para vendedor (rate-limit), fecha/moneda del cliente, voni-council denylist,
-  bucket `renders` público, usuarios crear/bootstrap, resolver_costo_insumo a authenticated.
-
-## Matriz (estado al cierre de esta sesión)
-| Área | CODE | INTEGRATION | E2E | USER FLOW | Calidad | Pendiente |
-|---|---|---|---|---|---|---|
-| Home/Navegación | ✅ | ✅ | ✅ smoke | ✅ render | buena | — (sin dead-ends) |
-| Money/Motor | ✅ | ✅ 1870 | — | BLOCKED(auth) | ALTA | margen rancio/25% (P1) |
-| Costear | ✅ | ✅ | — | BLOCKED | buena | fantasma FIX; cert label P0-5 |
-| Cotizar | ✅ | ✅ | — | BLOCKED | media | render-overwrite P0-1, gate stale P1 |
-| Cocrear | ✅ | ✅ | — | BLOCKED | media | CocrearV2 dead code |
-| Acomodo | ✅ | ✅ | — | BLOCKED | media | autosave loop (cerrado), render stale P0-A (CERRADO firmaLayout) |
-| Renders | ✅ | ✅ | — | BLOCKED | media | stale→PDF P0-A CERRADO (firmaLayout fail-closed) |
-| PDF/Print | ✅ | ✅ (9 tests) | — | BLOCKED | buena | imágenes faltantes sin aviso (P1-16) |
-| Login/Recovery | ✅ | ✅ | ✅ smoke | BLOCKED(creds) | buena | error genérico login P1-17 |
-| Roles | ✅ | ✅ | — | BLOCKED | buena | seller-safe COMPLETO P0-B CERRADO (piezas+partidas+local) |
-| Security | parcial | — | — | — | media | config RLS YA cerrada en prod; `app` verify_jwt=false → auditar; hardening interno 4 edges (ejecutable) |
-| Economía/Provenance | ✅ v1 | catálogo real (174/259 REAL) | UI Precios wired | render pendiente | nueva | chip procedencia en Precios (Dirección); falta Costear/HojaCosto + serie histórica |
-| Plan Intelligence | parcial | NO wired | — | BLOCKED | media | observed_program v1 (contrato+validación) listo; falta alimentarlo desde leer-plano + golden 132 m² |
-| Persistence | parcial | ✅ | — | BLOCKED | media | reopen FIX; autosave/config P0-3 |
-| VONI/Council | ✅ | ✅ | — | BLOCKED | media | proveedorReal traga errores (P1) |
-| Performance | — | — | — | — | — | bundle/rerenders (P2) |
-| UX/Responsive | ✅ | — | ✅ 375px | ✅ render | buena | — |
-
-## Cómo correr E2E autenticado (para desbloquear USER FLOW)
-`TEST_EMAIL=<cuenta-de-prueba> TEST_PASSWORD=<...> npx playwright test` (NO la cuenta de Rodrigo).
-Specs: e2e/auth.e2e.js, acomodoP02, programaP01, programaBriefWriter, acomodoMensajeVendedor.
-
-## Commits en esta rama (pusheados a origin/audit/final-product-completion)
-- 5b522e4 — P0 fantasma + seller-safe localStorage + reopen data-loss + closeout + red-team
-- d93c005 — React P0-1 (renders) + P0-5 (label certificado)
-- cb89439 — silent P0-3 (config overwrite)
-- 3212f4e — React P0-2 (bucle autosave)
-- d4951c5 — P1-13 (IVA) + P1-7 (vendedor sin precio)
-- 73bd64d — React P0-3 (primera versión firma plan↔render) · dca88e2 — closeout ronda 1
-- **b54a1f3 — P0-A (firmaLayout, render stale real) + P0-B (seller-safe estado completo)** [ronda 2]
-- **83a93da — REALITY CUTOVER v1 (provenance precio + CanonicalPriceResolver + Intelisis adapter)**
-
-## Estado de P0 de CLIENTE (corregido tras ronda 2 — SIN contradicción)
-Red-team ronda 1: 7 P0 + 2 P1 cerrados (ver "ARREGLADOS"). Ronda 2 (ChatGPT) reabrió
-2 P0 que quedaron mal cerrados → **P0-A y P0-B CERRADOS AHORA** (commit `b54a1f3`).
-A la fecha de este HEAD, **no hay P0 de cliente abiertos conocidos**. Suite 1903/1903, build ✅.
-(Siguen sin verificación E2E_autenticada por el límite de credenciales; eso es cobertura, no un P0 abierto.)
-
-## P0/seguridad que QUEDAN — rebaselineado contra PROD real
-- **`app` edge (verify_jwt=false) — NO es P0** (ChatGPT la inspeccionó en Supabase, ronda 3): sólo sirve un
-  `index.html` público desde Storage; no toma input, no usa secrets, no toca DB. Es una SEGUNDA superficie
-  pública legacy (puede quedar desactualizada vs Vercel) → limpieza/legacy, revisar si se retira. No bloquea.
-- **Hardening interno de `generar-video`** (allowlist/model/operation/rate-limits) = P1 (tiene verify_jwt=true;
-  NO es proxy anónimo). Las otras 3 edges IA también verify_jwt=true.
-- Hardening INTERNO de las 4 edges IA (rate-limit/topes/validación de params): aunque tienen verify_jwt=true,
-  el endurecimiento de source es EJECUTABLE (sin deploy). NO es "proxy abierto" (corregido).
-- `generar-video`: verificar si es huérfana; si lo es, candidata a borrado (requiere confirmación + deploy).
-- Los antiguos "security P0-1 (sin auth)" y "security P0-2 (config RLS)" **quedan RETIRADOS** como P0:
-  el primero era inexacto (verify_jwt=true), el segundo ya está cerrado en prod.
-
-## REALITY CUTOVER — cadena de verdad económica (mandato ampliado de Rodrigo)
-Objetivo: FUENTE→EVIDENCIA→INTERPRETACIÓN→CONFIRMACIÓN→PRODUCTO→BOM→MP→PRECIO→COSTO→COTIZACIÓN→ACOMODO→OUTPUT.
-Ninguna etapa inventa la siguiente. "REAL" exige provenance. Hoy costear con la última evidencia REAL
-conocida de VH (compras/TDC ya cargadas en `src/datos/fuentes/*.xlsx`); Intelisis = adapter futuro.
-
-**ENTREGADO (CODE_PASS, puro, determinista). NINGUNO cableado aún a motor/UI (son contratos+resolvers):**
-- Precio v1 (commit `83a93da`, 20 tests):
-  - `src/datos/precioProvenance.js` — contrato de observación de precio + clasificación
-    (ESTADO_PRECIO: CURRENT_VERIFIED/REAL_OBSERVED/HISTORICAL/PROVISIONAL/PENDING). $0≠desconocido, nunca inventar,
-    nunca viejo-como-vigente, no mezclar unidades.
-  - `src/datos/canonicalPriceResolver.js` — `resolverPrecioCanonico`, `explicarPrecio` ("¿por qué $544?"),
-    `bloqueaCostoOficial`, `resolverCatalogoPrecios`.
-  - `src/datos/intelisisPriceProvider.js` — adapter de DISEÑO, NO integrado (fetch() lanza ERP_NO_INTEGRADO).
-- Plan Intelligence observed_program v1 (7 tests):
-  - `src/datos/observedProgram.js` — contrato canónico {type,quantity,zone,grouping,position,orientation,
-    dimensions,page,evidence,confidence,origin}; ORIGEN observed/inferred/suggested derivado de PROCEDENCIA
-    (floorSpec, UNA sola verdad); `validarObservedProgram`, `confirmarObservado` (acto EXPLÍCITO, nada se
-    autoconfirma), `resumenObservado` (separa real de sugerido). Golden 18 puestos cubierto.
-- Puente catálogo real → resolver (7 tests, **CONECTADO a datos reales**):
-  - `src/datos/precioInsumoBridge.js` — `clasificarFuenteTexto` (por patrón, auto-mantenible) + `fechaDeFuenteTexto`
-    (ISO y DDMMYYYY de nombre de archivo) + `observacionDeInsumo`/`resolverPrecioInsumo`/`explicarPrecioInsumo`.
-  - INVENTARIO real (mandate A) de las 11 fuentes del catálogo (`insumos.js`, 259 insumos): ERP Luis Daniel
-    (99, 2026-08-10), Sonara (28), T.D.C. Alpura (18), Compras (15), ERP última compra (6), T.D.C. banca (4),
-    Mercado estimado (3), T.D.C. Alba (2), Loktec (2), Rodrigo rango (1), **81 sin fuente**.
-  - Coherencia resuelta (hoy=2026-10-08): **174/259 REAL_OBSERVED** (compra/ERP/TDC fechada), **85/259 PROVISIONAL**
-    (81 sin fuente + 4 estimados). EcoLegno 19 mm = $544 REAL_OBSERVED (Compras 2026-08-14). Capa ADITIVA: NO
-    cambia los números del motor.
-
-**SIGUIENTE (ejecutable, en orden) — bloques grandes que necesitan decisión/autorización:**
-1. **MOTOR CUTOVER (#8 ChatGPT)**: que el catálogo EFECTIVO que entra a `calcular()` use `resolverPrecioInsumoVivo`
-   con fail-closed (PENDING/PROVISIONAL NO se vuelve costo oficial en silencio). PRESERVAR goldens/paridad: no
-   cambiar números sin explicar qué observación reemplazó a cuál. ⚠️ Toca el MOTOR CONGELADO y las 33 legacy →
-   requiere OK explícito de Rodrigo. Hoy el motor sigue tomando `insumo.precio` (el resolver sólo pinta chips).
-2. **Ingestión de evidencia DOCUMENTAL real (#7)**: leer read-only `fuentes/*.xlsx` conservando
-   archivo→hoja→fila/celda→artículo ERP→variante→precio→moneda→unidad→fecha→proveedor→canonical_id→conversión.
-   Requiere dep de parser (no hay) + mapeo clave_erp→canonical_id = **DATA TRUTH** (reservado, NO auto-aprobar).
-   NOTA: `lista_precio_items` ya tiene provenance/precio_lista/moneda/vigencia_desde/hasta.
-3. **FloorPlanReader → observed_program**: ✅ CABLE PURO hecho (`floorPlanReader.js` observedProgramDeLectura, test con lector real). Falta: PDF→edge leer-plano→este cable→UI confirmación (requiere deploy). La fixture
-   GOLDEN_A_132M2_8_PUESTOS (en observedProgram.test.js) es el ESPERADO — la salida del lector debe igualarla
-   (ahí pasa de CODE_PASS a USER_FLOW_PASS). Requiere trabajo de edge + deploy para verificar en vivo.
-4. **GOLDEN REALITY**: BOM/consumo/precio/costo humano (TDC real) vs app; clasificar diferencia por causa.
-   NO ajustar el motor para cuadrar. (Depende de #2.)
-5. **PRODUCT INTELLIGENCE**: ProductDrawingReader→ProductSpec→BOM determinista→resolver→costo (reusar evidencia.js).
-6. **FX con provenance**: modelar tipoCambio con fecha/fuente (hoy sólo se marca provisional si moneda≠MXN).
-7. BLOCKED_EXTERNAL para "precios OFICIALES vigentes": fuente autorizada (Intelisis o catálogo canónico aprobado).
-
-## P1 ejecutables que QUEDAN (sin E2E) — tanda siguiente
-money margen-rancio, margen mínimo 25% como gate, React P1-1/2/3/4/5/6/8/9/10/11/12, silent P1-5..19.
-Detalle con archivo:línea en los reportes de los 5 agentes (transcript) y arriba.
+## Commits de esta rama (feat/fix; además hay doc-commits de este CLOSEOUT — ver `git log e5f737f..HEAD`)
+- `0637d0e` cable FloorPlanReader→observed_program (lector real)
+- `11224e6` saca symlink node_modules del índice + .gitignore
+- `7a4f834` golden 132m² real + price-trust + date-trust + FX (ronda 3)
+- `313af38` test golden observed_program · `f1cd961` HojaCosto procedencia · `cb76854` UI Precios procedencia
+- `f3d6a7d` puente catálogo real + inventario · `3051b5c` observed_program v1
+- `83a93da` REALITY CUTOVER v1 (provenance + resolver + Intelisis adapter)
+- `b54a1f3` P0-A render stale + P0-B seller-safe (ronda 2) · `73bd64d` React P0-3 (1ª versión)
+- `d4951c5` P1-13 IVA + P1-7 vendedor · `3212f4e` React P0-2 autosave · `cb89439` silent P0-3 config
+- `d93c005` React P0-1 renders + P0-5 label · `5b522e4` 3 P0 integridad + red-team
