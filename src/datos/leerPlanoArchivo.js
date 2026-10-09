@@ -13,6 +13,7 @@ import { leerPlano } from '../nube.js';
 import { areasDeLectura, revisarAreas } from './planoLeido.js';
 import { programaDelPlano } from './programaDelPlano.js';
 import { observedProgramDeLectura } from './floorPlanReader.js';
+import { observedItem } from './observedProgram.js';
 
 const archivoABase64 = (file) => new Promise((resolve, reject) => {
   const fr = new FileReader();
@@ -99,8 +100,18 @@ export async function leerPlanoDeArchivo(file) {
     // Antes se devolvían sólo `areas`+`nota` y se tiraban lectura/floorSpec/page/
     // request_id. Aquí se conservan, y se deriva el observed_program del lector
     // real (cable floorPlanReader) para que el flujo arranque desde la evidencia.
+    // P0-2: si el lector REAL ya trae mobiliario observado del plano
+    // (lec.observed_program, cuando la edge esté desplegada), ÉSE es la verdad y se
+    // usa tal cual (normalizado). Si no, se cae a la heurística por áreas. No se
+    // reconstruye desde áreas cuando hay lectura real de mobiliario.
     let observedProgram = [];
-    try { observedProgram = observedProgramDeLectura(programaDelPlano(areas)); } catch { /* best-effort */ }
+    try {
+      if (Array.isArray(lec.observed_program) && lec.observed_program.length) {
+        observedProgram = lec.observed_program.map((it) => observedItem({ ...it, evidence: it.evidence || it.evidencia, confidence: it.confidence ?? (it.confianza === 'alta' ? 0.9 : it.confianza === 'media' ? 0.6 : it.confianza === 'baja' ? 0.4 : null) }));
+      } else {
+        observedProgram = observedProgramDeLectura(programaDelPlano(areas));
+      }
+    } catch { /* best-effort */ }
     return {
       ok: true,
       areas,

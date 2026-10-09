@@ -92,6 +92,31 @@ const SCHEMA = {
     escala: { type: "string" },
     tieneCotas: { type: "boolean" },
     notas: { type: "array", items: { type: "string" } },
+    // ⚠️ DRAFT (ChatGPT P0-2, PREPARADO — NO DESPLEGADO): mobiliario OBSERVADO del
+    // plano. OPCIONAL (no va en `required`), así que no cambia el comportamiento
+    // actual hasta que se despliegue y verifique. La IA observa/interpreta, NO elige
+    // SKU. Lo consume el contrato `observed_program` del cliente (floorPlanReader).
+    observed_program: {
+      type: "array",
+      items: {
+        type: "object", additionalProperties: false,
+        properties: {
+          type: { type: "string" },
+          role: { type: "string" },
+          quantity: { type: "integer" },
+          capacity_per_unit: { type: "integer" },
+          zone: { type: "string" },
+          position: { type: "object", additionalProperties: false, properties: { x: { type: "number" }, y: { type: "number" } }, required: ["x", "y"] },
+          orientation: { type: "number" },
+          dimensions: { type: "object", additionalProperties: false, properties: { w: { type: "number" }, d: { type: "number" } }, required: ["w", "d"] },
+          page: { type: "integer" },
+          evidencia: { type: "string" },
+          confianza: { type: "string", enum: ["alta", "media", "baja"] },
+          origin: { type: "string", enum: ["observed", "inferred", "suggested"] },
+        },
+        required: ["type", "quantity", "evidencia", "confianza", "origin"],
+      },
+    },
   },
   required: ["envolvente", "grid", "areas", "puertas", "escala", "tieneCotas", "notas"],
 };
@@ -126,6 +151,7 @@ Deno.serve(async (req) => {
     "7) SERVICIOS: baños, SITE/IT, cocineta, ductos y escaleras son tipo='servicio' y no se amueblan.",
     "8) EVIDENCIA/PROCEDENCIA: para envolvente, cada área y cada puerta llena procedencia cuando puedas: MEASURED = leído de cota explícita; DERIVED = calculado directamente de cotas/escala visibles; INFERRED = inferido de geometría/símbolo sin cota directa; ASSUMED = supuesto necesario sin evidencia suficiente. En evidencia escribe una referencia BREVE y concreta (p.ej. 'cota general 15000', 'texto SALA JUNTAS', 'arco de puerta visible'). En PDF usa pagina=1..N; en imagen usa pagina=1. NO inventes evidencia.",
     "9) No inventes cuartos, SKUs, mobiliario ni dimensiones. Si falta una referencia real, anótalo en notas.",
+    "10) MOBILIARIO OBSERVADO (observed_program, OPCIONAL): lista el mobiliario VISIBLEMENTE dibujado (bench, escritorio, mesa de juntas, silla, credenza, recepción, coffee point, lockers, mamparas…). Usa type y role; quantity = número de MUEBLES; capacity_per_unit = personas por mueble cuando aplique (un bench de 2 usuarios → quantity=1, capacity_per_unit=2; NO lo cuentes como 2 benches). origin='observed' SÓLO si el mueble está DIBUJADO; si sólo lo deduces por el tipo de cuarto, origin='inferred'; si es una regla/propuesta, origin='suggested'. Pon evidencia concreta (etiqueta/símbolo visto), confianza y page. NUNCA elijas SKU ni inventes mobiliario que no esté dibujado. Si no distingues mobiliario, deja observed_program vacío ([]).",
     "COMPROBACIÓN FINAL: envolvente y grid coherentes; puntos dentro del envolvente; áreas no anidadas sin traslape; cada puerta sobre un muro; ninguna puerta dudosa convertida en barrido confirmado; ningún ASSUMED se presenta como MEASURED.",
     refMM ? `El usuario dio una referencia real de ${refMM} mm: úsala para calibrar la escala.` : "",
   ].filter(Boolean).join("\n");
