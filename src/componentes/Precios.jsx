@@ -7,6 +7,41 @@ import { calcularCostoHora } from '../motor/calculo.js';
 import Icono from './Iconos.jsx';
 import { exportar, importar, restablecerPrecios } from '../almacen.js';
 import { pesos2, pct, diasDesde } from '../util.js';
+import { resolverPrecioInsumo, explicarPrecioInsumo } from '../datos/precioInsumoBridge.js';
+import { etiquetaEstadoPrecio } from '../datos/canonicalPriceResolver.js';
+import { ESTADO_PRECIO } from '../datos/precioProvenance.js';
+
+// Color del chip de procedencia por estado. Aditivo: NO cambia ningún número del
+// motor, sólo dice de DÓNDE sale el precio (REALITY CUTOVER: "¿por qué $544?").
+const COLOR_ESTADO = {
+  [ESTADO_PRECIO.CURRENT_VERIFIED]: { bg: '#e6f4ea', fg: '#1e7e34' },
+  [ESTADO_PRECIO.REAL_OBSERVED]: { bg: '#e8f0fe', fg: '#1a56db' },
+  [ESTADO_PRECIO.HISTORICAL]: { bg: '#fff4e5', fg: '#9a6700' },
+  [ESTADO_PRECIO.PROVISIONAL]: { bg: '#f1f3f4', fg: '#5f6368' },
+  [ESTADO_PRECIO.PENDING]: { bg: '#fce8e6', fg: '#c5221f' },
+};
+
+// Chip de procedencia de UN insumo. Si el precio fue CAPTURADO a mano (difiere
+// del estimado base), NO reclama "compra real": se marca como provisional
+// capturado (sin documento) — honesto hasta que se adjunte evidencia.
+function ChipProcedencia({ insumo }) {
+  const capturado = insumo.precioBase > 0 && insumo.precio !== insumo.precioBase;
+  const paraResolver = capturado
+    ? { precio: insumo.precio, unidad: insumo.unidad, nombre: insumo.nombre, fuente: null }
+    : insumo;
+  const r = resolverPrecioInsumo(insumo.id, paraResolver);
+  const col = COLOR_ESTADO[r.estado] || COLOR_ESTADO[ESTADO_PRECIO.PROVISIONAL];
+  const porque = capturado
+    ? `Precio capturado a mano${insumo.actualizado ? ` · ${insumo.actualizado}` : ''}. Provisional hasta adjuntar evidencia (compra/T.D.C./lista).`
+    : explicarPrecioInsumo(insumo.id, insumo);
+  const texto = capturado ? 'Capturado a mano' : etiquetaEstadoPrecio(r.estado);
+  return (
+    <span title={porque}
+      style={{ background: col.bg, color: col.fg, borderRadius: 999, padding: '1px 8px', fontSize: 11, cursor: 'help', whiteSpace: 'nowrap' }}>
+      {texto}
+    </span>
+  );
+}
 
 // ⚠️ ESTOS CAMPOS SE VOLVÍAN $0 EN VIVO, PARA TODO EL EQUIPO, EN CADA TECLA
 // (auditoría 2026-08-19). `type="number"` con `onChange={... parseFloat(v)||0}`
@@ -178,7 +213,7 @@ export default function Precios({ estado, setEstado, puedeVerDireccion = true, o
             <div className="tablewrap">
             <table className="datos">
               <thead>
-                <tr><th>Insumo</th><th>Unidad</th><th className="num">Precio</th><th>Actualizado</th></tr>
+                <tr><th>Insumo</th><th>Unidad</th><th className="num">Precio</th><th>Procedencia</th><th>Actualizado</th></tr>
               </thead>
               <tbody>
                 {insSec.map((ins) => {
@@ -197,6 +232,7 @@ export default function Precios({ estado, setEstado, puedeVerDireccion = true, o
                         <CampoNumero valor={ins.precio} ancho={120} clase={`numero ${capturado ? 'capturado' : ''}`}
                           onCambio={(n) => setPrecio(ins.id, n)} />
                       </td>
+                      <td><ChipProcedencia insumo={ins} /></td>
                       <td>{viejo ? <span className="semaforo ambar">{dias} días</span> : <span className="gris">{ins.actualizado}</span>}</td>
                     </tr>
                   );
