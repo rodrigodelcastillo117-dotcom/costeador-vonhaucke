@@ -57,6 +57,20 @@ const SCHEMA = {
         required: ["nombre", "insumoId", "material_solicitado", "material_match", "forma", "largoMM", "anchoMM", "cantidad", "hojas", "confianza", "nota", "razonamiento", "semantic_role"],
       },
     },
+    externos: {
+      type: "array",
+      description: "Elementos VISIBLES pero FUERA del costo de fabricación Von Haucke o suministrados por cliente/tercero. NO aparecen en piezas. Sirve para no mostrar un falso '$0' ni convertir equipo ajeno en materia prima.",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          nombre: { type: "string" },
+          responsable: { type: "string", enum: ["cliente", "tercero", "por_definir"] },
+          nota: { type: "string", description: "Qué hace Von Haucke respecto a este elemento (p.ej. deja nicho, instala/monta, prepara energía) y por qué no entra al BOM económico." },
+        },
+        required: ["nombre", "responsable", "nota"],
+      },
+    },
     descripcionCliente: { type: "string", description: "Para el CLIENTE, sin jerga: que es, de que esta hecho, medidas aprox, para que sirve. 2-4 frases." },
     materiales: { type: "array", items: { type: "string" }, description: "Materiales visibles en palabras de cliente." },
     volumenAsumido: { type: "string", description: "Volumen que asumiste para el analisis (ej. 'prototipo/1 pieza' o 'corrida 50+'). Afecta flat-pack y herramentales." },
@@ -98,7 +112,7 @@ const SCHEMA = {
       required: ["product_type", "module_count", "seat_count", "user_capacity", "overall_dimensions", "assumptions", "missing_critical_data"],
     },
   },
-  required: ["producto", "tipo", "piezas", "descripcionCliente", "materiales", "volumenAsumido", "confianzaGeneral", "informe", "preguntas", "design_intent"],
+  required: ["producto", "tipo", "piezas", "externos", "descripcionCliente", "materiales", "volumenAsumido", "confianzaGeneral", "informe", "preguntas", "design_intent"],
 };
 
 const RESTRICCIONES_SCHEMA_NO_SOPORTADAS = new Set([
@@ -269,6 +283,9 @@ Deno.serve(async (req) => {
     "ALCANCE DE VON HAUCKE (lo que SÍ fabricamos — úsalo para INTERPRETAR, mapear materiales y no quedarte corto; NO es sólo mueble de oficina):\n" +
     "· PROCESOS/MATERIALES: metalmecánica (PTR, lámina doblada cal.10–22, acero inoxidable, aluminio, soldadura, corte CNC/láser); carpintería (MDF, melamina, aglomerado, madera sólida, chapa, laminado/HPL); SUPERFICIE SÓLIDA (solid surface tipo Corian/Krion/Staron: mineral, termoformable, SIN juntas — NO es melamina ni piedra); TERMOFORMADO (acrílico/PVC/membrana); cristal (templado/satinado/serigrafía); PANEL ACÚSTICO PET (Sonara); acabados (pintura en polvo/electrostática, anodizado, barniz, granallado); tapicería (espuma, tela, piel, ecopiel); eléctrico (módulos Byrne, charolas, contactos/USB, kits LED).\n" +
     "· MERCADOS/FAMILIAS: oficina/corporativo (escritorios, benches, estaciones, guardas: archiveros/credenzas/lockers/cajoneras, mamparas/divisores acústicos); hotelería (recepción, lobby, lounge, cabeceras y bases de cama); retail/comercial (exhibidores, islas, kioscos, vitrinas, góndolas, portamonitores/portapantallas); aeropuertos/transporte (mostradores de documentación/CHECK-IN, counters, bancas de espera, barras altas comunales con energía, señalización); farmacias (mostradores, góndolas, anaqueles, cajas); militar/gobierno (ARMEROS/racks de armas, lockers de seguridad, mobiliario institucional); mobiliario urbano/señalética (bolardos, señales, bases).\n" +
+    "ALCANCE ECONÓMICO (CRÍTICO): separa lo que Von Haucke fabrica/compra de lo que sólo aparece en el render/plano. Refrigeradores/electrodomésticos, equipo POS/monitores/terminales y letras/logotipos/gráficas de marca se consideran CLIENTE/TERCERO por defecto salvo que el usuario/plano diga EXPLÍCITAMENTE que Von Haucke los suministra. NO los metas en 'piezas' como material $0: ponlos en 'externos' y describe si sólo dejamos nicho, pasacables, energía o montaje. Kits LED: sólo entran a 'piezas' si el alcance dice que Von Haucke los suministra; si sólo son visuales o no está definido, van a 'externos' responsable='por_definir' y abre UNA pregunta crítica.\n" +
+    "PINTURA: el acabado electrostático/pintura en polvo de metal FABRICADO POR VON HAUCKE SÍ es parte del costo. Nunca la dejes en $0 si el acabado está indicado. Mapea a pintura en polvo/electrostática del color más cercano de la MISMA familia; calcula consumo por superficie. Regla de taller: referencia 8 m²/kg en piezas planas; tubular rinde menos, así que si no conoces geometría exacta marca el rendimiento como supuesto y pregunta sólo si mueve materialmente el costo.\n" +
+    "PANELES/CANTOS: MDF + laminado HPL, melamina y aglomerado son construcciones distintas; NO las colapses. Tapacanto/ABS/PVC/canto es un INSUMO LINEAL y jamás puede mapearse a aglomerado/melamina por compartir color.\n" +
     "POLÍTICA DE MATERIAL (CRÍTICA — el error más caro): SIEMPRE llena 'material_solicitado' con lo que el usuario pidió (p.ej. 'superficie sólida azul'). Luego:\n" +
     "  · Si el catálogo tiene un insumo de la MISMA FAMILIA → ponlo en insumoId y material_match='EXACT'. ⚠️ 'MISMA FAMILIA' NO exige que el COLOR o el nombre coincidan al pie de la letra: un acabado de la misma familia y espesor es EXACT para costear (cuesta casi igual). Ejemplos que SÍ debes asignar: 'melamina nogal claro 19mm' → la melamina 19mm de color madera/nogal más cercana del catálogo (p.ej. melamina-19 nogal/walnut); 'laminado walnut' → el laminado walnut/madera; 'MDF 16' → mdf-16. Si el PLANO o el TEXTO YA NOMBRA el material/acabado/color/espesor, el material YA ESTÁ DECIDIDO: mapéalo al catálogo y NUNCA lo dejes con insumoId='' ni lo preguntes. Dejar vacío un material claramente nombrado es un ERROR (se costea en $0).\n" +
     "  · Si el catálogo NO tiene esa FAMILIA completa (p.ej. piden superficie sólida y no existe ninguna) → insumoId='' y material_match='NOT_AVAILABLE'. Descríbelo en 'nota' y en design_intent.missing_critical_data. NO lo costees con otra cosa. (Esto es SÓLO para familias ausentes, NO para un color distinto de una familia que sí existe.)\n" +
