@@ -3,12 +3,12 @@
 > Estado VIVO y VERÍDICO para continuar entre sesiones y para auditoría de ChatGPT.
 > Regla: este archivo refleja SIEMPRE el HEAD real, los tests reales y qué quedó REALMENTE
 > cableado vs pendiente. Cero información histórica presentada como estado actual.
-> Última actualización: 2026-10-09 (5ª re-auditoría R15 ChatGPT+Grok: L gate de Voni con aplicación pendiente + M "pendiente" incluye enriquecimientos; autoridad única compartida Voni≡Acomodo).
+> Última actualización: 2026-10-09 (6ª re-auditoría R15 ChatGPT+Grok: N acción+mensaje de VONI usan la autoridad atómica + corrección de doc sobre persistencia de confirmado_modelo).
 
 ## ESTADO ACTUAL (verificado contra el repo)
-- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `0dcd6f2`**; el HEAD de la rama es el
+- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `260573a`**; el HEAD de la rama es el
   doc-commit de este CLOSEOUT encima (un commit no puede contener su propio SHA). Tip exacto: `git rev-parse HEAD`.
-- **Tests: 2179 / 2179** (vitest, 259 archivos; +4 adversariales R15-L/M + autoridad compartida) · **Build: ✅** (vite) · **deno check ✅** (leer-plano + core; sin cambios este round) · verificado en esta sesión (2026-10-09).
+- **Tests: 2182 / 2182** (vitest, 259 archivos; +3 R15-N + persistencia de confirmado_modelo) · **Build: ✅** (vite) · **deno check ✅** (leer-plano + core; sin cambios este round) · verificado en esta sesión (2026-10-09).
 - **Evidencia = LOCAL de Claude. GitHub NO tiene CI runs (0 workflows).** Golden QA-COT-01 = MOCK_ONLY /
   RECORDED CONTRACT (no es E2E del PDF vivo). Lectura de PDF en vivo + edges = BLOCKED_EXTERNAL (no desplegado).
 - **MANDATO RC (deadline lunes 12-oct)**: autónomo hasta Release Candidate. Autorización NUEVA de Rodrigo:
@@ -91,6 +91,25 @@ credenciales a un servicio externo). Por eso:
 
 ## HISTORIAL DE AUDITORÍA (ChatGPT) — qué pasó en cada ronda
 
+### 6ª re-auditoría R15 — ChatGPT + Grok (sobre 985eef3) — 1 corrección de doc + 1 hueco de UX (código `260573a`)
+La 6ª re-auditoría aceptó L/M (dominio) y confirmó K/H3/I2/I3/G/J sin regresión; corrigió una afirmación falsa y un hueco UX:
+- **Corrección de doc (confirmado_modelo)** era FALSO decir "sin flag persistente de modelo confirmado entre sesiones".
+  `confirmado_modelo` SÍ persiste dentro de `cotizacion.partidas`: lo conservan `partidaComercialDesdeConfirmado` y
+  `estructuraDe`, NO lo elimina `compactarPayloadNube`, y la sanitización DB `jsonb_sin_economia()` tampoco (sólo quita
+  costo/margen/proveedor); sobrevive save → Supabase → reopen (`App` reabre `full.partidas` sin remapear). Lo que NO existe
+  es una confirmación DURABLE INDEPENDIENTE de la partida: si la silla se elimina/reemplaza, la decisión se pierde. Test de
+  persistencia puro agregado (`paraGuardar` conserva `confirmado_modelo:true`). La cadena DB es contrato leído, NOT_VERIFIED en vivo.
+- **P1-R15-N** VONI ya bloqueaba la propuesta por aplicación pendiente (L), pero el BOTÓN/TARJETA/MENSAJE de "Aplicar programa
+  detectado" seguían decidiéndose por `faltantesPrograma` (sólo productos NUEVOS). En enrichment-only (nuevas=0, enriquecidos>0,
+  committed=true) la propuesta quedaba bloqueada pero el botón salía deshabilitado, la tarjeta podía no aparecer y el mensaje
+  decía "0 producto(s)". Ahora VONI deriva TODO de la misma autoridad atómica (`resolverAplicacionAtomica`): botón habilitado si
+  `aplicacionPendientePrograma`, tarjeta visible con `enriquecidosPrograma>0`, mensaje que distingue nuevos vs existentes por
+  vincular/actualizar. Voni y Acomodo consultan la MISMA fuente, sin lógica paralela.
+Suite 2182/2182 (259 archivos, +3) · build ✅ · deno check ✅. NO motor / NO XLSX / NO deploy. PENDIENTE: re-auditoría.
+Supuestos NO verificados LIVE: ningún render UI en E2E (sólo dominio + source-asserts); la cadena DB de guardado/reopen es
+contrato leído (no corrido en vivo); `patchCambios` compara por valor JSON; selector "elegir otro producto" pendiente de UI;
+confirmado_modelo persiste en la partida pero NO hay confirmación durable independiente de ella.
+
 ### 5ª re-auditoría R15 — ChatGPT + Grok (sobre 5ccd262) — 2 huecos del mismo contrato (código `0dcd6f2`)
 La 5ª re-auditoría aceptó K/H3/I2/I3; encontró 2 huecos del MISMO contrato OBSERVED/PROPUESTA ≠ CONFIRMACIÓN, resueltos con UNA autoridad:
 - **P0-R15-L** el gate ÚNICO de VONI `puedeEntrarPropuesta` NO exigía que no hubiera aplicación pendiente: con una recepción
@@ -104,7 +123,7 @@ La 5ª re-auditoría aceptó K/H3/I2/I3; encontró 2 huecos del MISMO contrato O
   Voni y Acomodo (`programaTieneAplicacionPendiente`), sin lógica paralela.
 Suite 2179/2179 (259 archivos, +4) · build ✅ · deno check ✅. NO motor / NO XLSX / NO deploy. PENDIENTE: re-auditoría.
 Supuestos NO verificados LIVE: ningún render UI en E2E (sólo dominio + source-asserts del gate de Voni); `patchCambios`
-compara por valor JSON (datos planos); selector "elegir otro producto" pendiente de UI; sin flag PERSISTENTE de modelo confirmado.
+compara por valor JSON (datos planos); selector "elegir otro producto" pendiente de UI; confirmado_modelo SÍ persiste en la partida y sobrevive save/reopen; NO hay confirmación durable independiente de la partida (si la silla se elimina o reemplaza, la decisión se pierde).
 
 ### 4ª re-auditoría R15 — ChatGPT + Grok (sobre d244c24) — 1 P0 nuevo + 3 parciales (código `cc15e92`)
 La 4ª re-auditoría aceptó G/J y el gate fail-closed; encontró 1 P0 nuevo (K) y reabrió H/I como parciales. Corregido:
@@ -127,7 +146,7 @@ La 4ª re-auditoría aceptó G/J y el gate fail-closed; encontró 1 P0 nuevo (K)
 Suite 2175/2175 (259 archivos, +4) · build ✅ · deno check ✅. NO motor / NO XLSX / NO deploy. PENDIENTE: re-auditoría.
 Supuestos NO verificados LIVE: ningún render UI en E2E (sólo dominio + source-asserts); el handler de aplicación ya no
 promete resultado síncrono (un caller futuro debe usar callback/efecto posterior); `patchCambios` compara por valor (JSON)
-y asume datos planos; selector "elegir otro producto" pendiente de UI; sin flag PERSISTENTE de modelo confirmado entre sesiones.
+y asume datos planos; selector "elegir otro producto" pendiente de UI; confirmado_modelo SÍ persiste en cotizacion.partidas y sobrevive save/reopen (compactarPayloadNube y jsonb_sin_economia no lo eliminan); lo que NO existe es una confirmación durable independiente de la partida (si la silla se elimina o reemplaza, la decisión se pierde).
 
 ### 3ª re-auditoría R15 — ChatGPT + Grok (sobre da454fe) — 5 hallazgos corregidos (código `08e6aad`)
 La 3ª re-auditoría aceptó D2/C2/B2/E2/A-UX y reabrió F (P0) + G/H/I/J (P1). Corregido:
@@ -149,7 +168,7 @@ La 3ª re-auditoría aceptó D2/C2/B2/E2/A-UX y reabrió F (P0) + G/H/I/J (P1). 
 Suite 2171/2171 (259 archivos, +11) · build ✅ · deno check ✅. NO motor / NO XLSX / NO deploy. PENDIENTE: re-auditoría.
 Supuestos NO verificados LIVE: ningún render UI en E2E (sólo dominio + source-asserts); el timing batcheado de React en
 el return de `aplicarProgramaDetectado` (conservador: nunca reporta éxito fantasma) no está en E2E; ningún caller usa ese
-return como autoridad; selector "elegir otro producto" pendiente de UI; sin flag PERSISTENTE de modelo confirmado entre sesiones.
+return como autoridad; selector "elegir otro producto" pendiente de UI; confirmado_modelo SÍ persiste en cotizacion.partidas y sobrevive save/reopen (compactarPayloadNube y jsonb_sin_economia no lo eliminan); lo que NO existe es una confirmación durable independiente de la partida (si la silla se elimina o reemplaza, la decisión se pierde).
 
 ### 2ª re-auditoría R15 — ChatGPT + Grok (sobre fd6b6c5) — 5 hallazgos corregidos (código `eb2ebfd`)
 La 2ª re-auditoría aceptó R15-2/3/5 y R15-A (lógica), y reabrió D/C/B/E + un P1 UX. Corregido:
