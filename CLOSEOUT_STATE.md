@@ -1,7 +1,11 @@
 # VON HAUCKE — FINAL PRODUCT COMPLETION · CLOSEOUT STATE
 
 > Estado vivo para continuar entre sesiones. Otra sesión debe poder retomar EXACTAMENTE aquí.
-> Última actualización: 2026-10-08 (auditoría ChatGPT ronda 2 + REALITY CUTOVER v1)
+> Última actualización: 2026-10-08 (auditoría ChatGPT ronda 2 + REALITY CUTOVER v1 + observed_program v1)
+>
+> **ESTADO ACTUAL**: HEAD `audit/final-product-completion` = (ver `git log -1`; último doc-commit estampa el SHA).
+> Tests **1910/1910** · build ✅. P0 de cliente: **0 abiertos** (P0-A/P0-B cerrados). Economía/Provenance y
+> Plan Intelligence: contratos+resolvers v1 entregados (CODE_PASS) pero **NO cableados** a motor/UI todavía.
 
 ## ⬆️ LO MÁS RECIENTE PRIMERO (ronda 2, auditoría ChatGPT independiente)
 ChatGPT auditó `audit/final-product-completion @ dca88e2` contra el código real y
@@ -173,7 +177,6 @@ de SEGURIDAD (edges/RLS en infra Supabase).
 |---|---|---|---|---|---|---|
 | Home/Navegación | ✅ | ✅ | ✅ smoke | ✅ render | buena | — (sin dead-ends) |
 | Money/Motor | ✅ | ✅ 1870 | — | BLOCKED(auth) | ALTA | margen rancio/25% (P1) |
-| Plan Intelligence | parcial | ✅ | — | BLOCKED | media | leer-plano sin vocab mobiliario (ver project_p0_plan_intelligence) |
 | Costear | ✅ | ✅ | — | BLOCKED | buena | fantasma FIX; cert label P0-5 |
 | Cotizar | ✅ | ✅ | — | BLOCKED | media | render-overwrite P0-1, gate stale P1 |
 | Cocrear | ✅ | ✅ | — | BLOCKED | media | CocrearV2 dead code |
@@ -183,7 +186,8 @@ de SEGURIDAD (edges/RLS en infra Supabase).
 | Login/Recovery | ✅ | ✅ | ✅ smoke | BLOCKED(creds) | buena | error genérico login P1-17 |
 | Roles | ✅ | ✅ | — | BLOCKED | buena | seller-safe COMPLETO P0-B CERRADO (piezas+partidas+local) |
 | Security | parcial | — | — | — | media | config RLS YA cerrada en prod; `app` verify_jwt=false → auditar; hardening interno 4 edges (ejecutable) |
-| Economía/Provenance | ✅ v1 | — | — | — | nueva | REALITY CUTOVER: resolver listo; falta ingestión real + cableado UI |
+| Economía/Provenance | ✅ v1 (CODE) | NO wired | — | — | nueva | resolver+provenance listos; falta ingestión real + cableado UI Costear |
+| Plan Intelligence | parcial | NO wired | — | BLOCKED | media | observed_program v1 (contrato+validación) listo; falta alimentarlo desde leer-plano + golden 132 m² |
 | Persistence | parcial | ✅ | — | BLOCKED | media | reopen FIX; autosave/config P0-3 |
 | VONI/Council | ✅ | ✅ | — | BLOCKED | media | proveedorReal traga errores (P1) |
 | Performance | — | — | — | — | — | bundle/rerenders (P2) |
@@ -224,28 +228,33 @@ Objetivo: FUENTE→EVIDENCIA→INTERPRETACIÓN→CONFIRMACIÓN→PRODUCTO→BOM�
 Ninguna etapa inventa la siguiente. "REAL" exige provenance. Hoy costear con la última evidencia REAL
 conocida de VH (compras/TDC ya cargadas en `src/datos/fuentes/*.xlsx`); Intelisis = adapter futuro.
 
-**v1 ENTREGADO (CODE_PASS, commit `83a93da`)** — pure, determinista, 20 tests:
-- `src/datos/precioProvenance.js` — contrato de observación de precio + clasificación
-  REAL/VERIFIED/PROVISIONAL/PENDING (enum ESTADO_PRECIO: CURRENT_VERIFIED/REAL_OBSERVED/HISTORICAL/PROVISIONAL/PENDING).
-  Reglas: $0≠desconocido, nunca inventar, nunca viejo-como-vigente, no mezclar unidades.
-- `src/datos/canonicalPriceResolver.js` — `resolverPrecioCanonico` (identidad exacta + tier + fecha/confianza),
-  `explicarPrecio` ("¿por qué $544?"), `bloqueaCostoOficial`, `resolverCatalogoPrecios`.
-- `src/datos/intelisisPriceProvider.js` — adapter de DISEÑO, NO integrado (fetch() lanza ERP_NO_INTEGRADO).
+**ENTREGADO (CODE_PASS, puro, determinista). NINGUNO cableado aún a motor/UI (son contratos+resolvers):**
+- Precio v1 (commit `83a93da`, 20 tests):
+  - `src/datos/precioProvenance.js` — contrato de observación de precio + clasificación
+    (ESTADO_PRECIO: CURRENT_VERIFIED/REAL_OBSERVED/HISTORICAL/PROVISIONAL/PENDING). $0≠desconocido, nunca inventar,
+    nunca viejo-como-vigente, no mezclar unidades.
+  - `src/datos/canonicalPriceResolver.js` — `resolverPrecioCanonico`, `explicarPrecio` ("¿por qué $544?"),
+    `bloqueaCostoOficial`, `resolverCatalogoPrecios`.
+  - `src/datos/intelisisPriceProvider.js` — adapter de DISEÑO, NO integrado (fetch() lanza ERP_NO_INTEGRADO).
+- Plan Intelligence observed_program v1 (7 tests):
+  - `src/datos/observedProgram.js` — contrato canónico {type,quantity,zone,grouping,position,orientation,
+    dimensions,page,evidence,confidence,origin}; ORIGEN observed/inferred/suggested derivado de PROCEDENCIA
+    (floorSpec, UNA sola verdad); `validarObservedProgram`, `confirmarObservado` (acto EXPLÍCITO, nada se
+    autoconfirma), `resumenObservado` (separa real de sugerido). Golden 18 puestos cubierto.
 
 **SIGUIENTE (ejecutable, en orden):**
 1. **Ingestión de evidencia real**: parser puro de `fuentes/*.xlsx` (compras/TDC Alba/Rafa) →
-   observaciones de precio (`precioProvenance`). NO escribe prod; genera un snapshot/fixture versionado.
-   (Las .xlsx son datos; leerlas con parser aislado. Requiere confirmar mapeo clave_erp→canonical_id.)
+   observaciones de precio. Requiere dep de parser (no hay) + confirmar mapeo clave_erp→canonical_id (DATA TRUTH,
+   NO auto-aprobar). NOTA: el esquema real `lista_precio_items` ya tiene provenance/precio_lista/moneda/vigencia_desde/hasta.
 2. **Cablear resolver a la UI de Costear**: mostrar por MP "precio usado + fecha + fuente + estado";
-   PENDING bloquea costo oficial; histórico se muestra como histórico. (CosteadorLinea / ficha de costo.)
-3. **GOLDEN REALITY**: BOM/consumo/precio/costo humano (TDC real) vs app; clasificar diferencias por causa
-   (identidad MP/unidad/consumo/merma/precio/MO/GI/redondeo/dato faltante). NO ajustar el motor para cuadrar.
-4. **PLAN INTELLIGENCE / PRODUCT INTELLIGENCE** (bloque grande): DocumentIngestion→FloorPlanReader→FloorSpec→
-   `observed_program` (type/qty/zone/grouping/position/orientation/dimensions/page/evidence/confidence/origin);
-   ProductDrawingReader→ProductSpec→BOM determinista→resolver→costo. Golden 132 m² (15000×8800) + 18 puestos + adversariales.
-   Nada sugerido se confirma solo. Compartir ingestion/FloorSpec/ProductSpec/catálogo/BOM/economía/provenance cross-flow.
-5. BLOCKED_EXTERNAL para "precios OFICIALES vigentes": fuente autorizada (Intelisis o catálogo canónico aprobado
-   en Supabase). La arquitectura ya queda lista para que SÓLO cambie el provider.
+   PENDING bloquea costo oficial. (CosteadorLinea / ficha de costo.) ← primer cableado visible.
+3. **FloorPlanReader → observed_program real**: conectar la salida de `leer-plano` al contrato observedProgram;
+   golden 132 m² (15000×8800) completo. Hoy `observedProgram` existe pero NO está alimentado por el reader.
+4. **GOLDEN REALITY**: BOM/consumo/precio/costo humano (TDC real) vs app; clasificar diferencias por causa.
+   NO ajustar el motor para cuadrar.
+5. **PRODUCT INTELLIGENCE**: ProductDrawingReader→ProductSpec→BOM determinista→resolver→costo.
+6. BLOCKED_EXTERNAL para "precios OFICIALES vigentes": fuente autorizada (Intelisis o catálogo canónico aprobado).
+   La arquitectura ya queda lista para que SÓLO cambie el provider.
 
 ## P1 ejecutables que QUEDAN (sin E2E) — tanda siguiente
 money margen-rancio, margen mínimo 25% como gate, React P1-1/2/3/4/5/6/8/9/10/11/12, silent P1-5..19.
