@@ -14,8 +14,9 @@ async function sembrarOnboarding(page) {
   }, CLAVE);
 }
 
-// Siembra un proyecto mínimo (#9): sin esto, "Proyecto actual" no existe en Home y
-// los tests de emisión/PDF se quedaban esperando un botón que nunca aparece.
+// Siembra un proyecto mínimo (#9). El Home actual expone el proyecto en curso
+// mediante el CTA principal data-testid="home-retomar"; "Proyecto actual" quedó
+// como atajo secundario dentro de "Más herramientas".
 async function sembrarProyecto(page) {
   await page.addInitScript((k) => {
     try {
@@ -27,6 +28,28 @@ async function sembrarProyecto(page) {
   }, CLAVE);
   await page.reload();
   await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
+
+  // Certifica que el proyecto sembrado SOBREVIVIÓ el reload/hidratación.
+  await expect(page.getByTestId('home-retomar')).toBeVisible({ timeout: 20000 });
+  await expect.poll(() => page.evaluate((k) => {
+    try { return JSON.parse(window.localStorage.getItem(k) || '{}')?.cotizacion?.partidas?.length || 0; }
+    catch (_e) { return 0; }
+  }, CLAVE)).toBeGreaterThan(0);
+}
+
+async function abrirProyectoActual(page) {
+  const retomar = page.getByTestId('home-retomar');
+  if (await retomar.isVisible().catch(() => false)) {
+    await retomar.click();
+    return;
+  }
+
+  // Fallback para variantes de Home: abre explícitamente el contenedor secundario.
+  const mas = page.locator('details.inicio-op-mas');
+  if (await mas.count()) {
+    if (!(await mas.getAttribute('open'))) await mas.locator('summary').click();
+  }
+  await page.getByRole('button', { name: /Proyecto actual/i }).click();
 }
 
 async function login(page) {
@@ -44,7 +67,7 @@ test.describe('E2E autenticado · flujo real', () => {
   test.beforeEach(async ({ page }) => { await login(page); });
 
   test('home es inequívoco: Cotizar · Costear · Cocrear', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: /Qué vas a hacer/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Cocreando|Qué vas a hacer|Qué quieres resolver hoy/i }).first()).toBeVisible();
     await expect(page.getByTestId('home-cotizar')).toBeVisible();
     await expect(page.getByTestId('home-costear')).toBeVisible();
     await expect(page.getByTestId('home-cocrear')).toBeVisible();
@@ -73,6 +96,8 @@ test.describe('E2E autenticado · flujo real', () => {
   });
 
   test('atajos críticos no son botones muertos', async ({ page }) => {
+    const mas = page.locator('details.inicio-op-mas');
+    if (await mas.count() && !(await mas.getAttribute('open'))) await mas.locator('summary').click();
     const costeoManual = page.getByRole('button', { name: /Costeo manual/i });
     if (await costeoManual.count()) {
       await costeoManual.click();
@@ -95,7 +120,7 @@ test.describe('E2E autenticado · flujo real', () => {
 
   test('salidas de propuesta: descarga PDF real e imprimir responde cuando hay proyecto', async ({ page }) => {
     await sembrarProyecto(page);
-    await page.getByRole('button', { name: /Proyecto actual/i }).click();
+    await abrirProyectoActual(page);
     const descargar = page.getByRole('button', { name: /Descargar (PDF|BORRADOR)/i });
     const imprimir = page.getByRole('button', { name: /Imprimir( BORRADOR)?/i });
 
@@ -122,8 +147,7 @@ test.describe('E2E autenticado · flujo real', () => {
 
   test('cotización: botones de salida nunca quedan muertos cuando existe un proyecto', async ({ page }) => {
     await sembrarProyecto(page);
-    const actual = page.getByRole('button', { name: /Proyecto actual/i });
-    await actual.click();
+    await abrirProyectoActual(page);
     const descargar = page.getByRole('button', { name: /Descargar (PDF|BORRADOR)/i });
     const imprimir = page.getByRole('button', { name: /Imprimir( BORRADOR)?/i });
     if (await descargar.count()) {
