@@ -374,8 +374,14 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
             3 y no pude". Ahora la cuenta vive AQUÍ, donde está el dedo, y da un
             brinco cada vez que sube. */}
         <div className="bc-precio">
-          <span className="bc-monto">{pesos((precio + totalAddons) * cantidad)}</span>
-          <span className="bc-nota">{real ? 'Precio de lista real' : 'Precio estimado'}</span>
+          {/* P1-7: vendedor sin precio autorizado → NO mostrar $0 falso ni botón que no hace nada. */}
+          {soloVentas && precio == null ? (
+            <><span className="bc-monto" style={{ color: '#b22a22' }}>Sin precio</span>
+              <span className="bc-nota">Pide a Dirección autorizar el precio</span></>
+          ) : (
+            <><span className="bc-monto">{pesos((precio + totalAddons) * cantidad)}</span>
+              <span className="bc-nota">{real ? 'Precio de lista real' : 'Precio estimado'}</span></>
+          )}
         </div>
         {nEnCot > 0 && onIr && (
           <button className="bc-cuenta" key={nEnCot} onClick={() => onIr('cotizacion')}
@@ -388,7 +394,7 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
           <span className="valor">{cantidad}</span>
           <button onClick={() => setCantidad((n) => n + 1)} aria-label="Más">+</button>
         </span>
-        <button className="boton primario bc-add" onClick={agregar}>Agregar</button>
+        <button className="boton primario bc-add" onClick={agregar} disabled={soloVentas && precio == null} style={(soloVentas && precio == null) ? { opacity: 0.5, cursor: 'not-allowed' } : undefined} title={(soloVentas && precio == null) ? 'Sin precio autorizado: no se puede agregar' : ''}>Agregar</button>
       </div>
 
       {ficha && <FichaPDF estado={estado} costeo={costeoObj} cantidad={cantidad} precioUnitario={precio} onCerrar={() => setFicha(false)} />}

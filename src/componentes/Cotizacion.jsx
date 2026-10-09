@@ -916,7 +916,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
               {contingencia > 0 && <div className="propx-tot-row"><span>Imprevistos de obra {contingenciaPct}%</span><b>{pesos2(contingencia)}</b></div>}
               {maniobras > 0 && <div className="propx-tot-row"><span>Maniobras e instalación {maniobrasPct}%</span><b>{pesos2(maniobras)}</b></div>}
               {flete > 0 && <div className="propx-tot-row"><span>Flete {fletePct}%</span><b>{pesos2(flete)}</b></div>}
-              <div className="propx-tot-row"><span>IVA {estado.parametros.ivaPorcentaje}%</span><b>{pesos2(iva)}</b></div>
+              <div className="propx-tot-row"><span>IVA {ivaPct}%</span><b>{pesos2(iva)}</b></div>
               {/* Fail-closed: si un renglón tiene precio inválido (NaN/Infinity), NO se
                   muestra un total barato falso — se marca inválido y la emisión ya está
                   bloqueada (problemasDeEmision). */}
