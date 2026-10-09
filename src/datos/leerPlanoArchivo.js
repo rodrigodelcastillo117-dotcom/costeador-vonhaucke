@@ -13,7 +13,6 @@ import { leerPlano } from '../nube.js';
 import { areasDeLectura, revisarAreas } from './planoLeido.js';
 import { programaDelPlano } from './programaDelPlano.js';
 import { observedProgramDeLectura } from './floorPlanReader.js';
-import { observedItem } from './observedProgram.js';
 
 const archivoABase64 = (file) => new Promise((resolve, reject) => {
   const fr = new FileReader();
@@ -98,20 +97,38 @@ export async function leerPlanoDeArchivo(file) {
     if (lec.notas?.length) notas.push(...lec.notas);
     // ChatGPT #5: CONSERVAR la procedencia completa hasta VONI/"Esto entendí".
     // Antes se devolvían sólo `areas`+`nota` y se tiraban lectura/floorSpec/page/
-    // request_id. Aquí se conservan, y se deriva el observed_program del lector
-    // real (cable floorPlanReader) para que el flujo arranque desde la evidencia.
-    // P0-2: si el lector REAL ya trae mobiliario observado del plano
-    // (lec.observed_program, cuando la edge esté desplegada), ÉSE es la verdad y se
-    // usa tal cual (normalizado). Si no, se cae a la heurística por áreas. No se
-    // reconstruye desde áreas cuando hay lectura real de mobiliario.
+    // request_id. Aquí se conservan.
+    //
+    // ChatGPT P0-R9-1 — AUTORIDAD: el observed_program que gobierna es el que el
+    // SERVIDOR revalidó (r.observed_program / r.floorSpec.observed_program), NUNCA
+    // el crudo de la IA (r.lectura.observed_program). El servidor ya normalizó,
+    // mapeó confianza textual→número y marcó issues; el cliente consume ESO tal cual.
+    //
+    // ChatGPT P0-R9-4 — ESTADO: si el lector REAL entregó mobiliario, lo observado
+    // GOBIERNA (no se reconstruye desde áreas). Estados:
+    //   · PRESENT_VALID          → observado válido gobierna.
+    //   · PRESENT_REVIEW_REQUIRED → observado con pendientes: NO inventar desde
+    //                               áreas; enseñar pendientes y pedir confirmación.
+    //   · ABSENT                 → el lector no dio mobiliario → heurística legacy OK.
+    const serverObserved = Array.isArray(r.observed_program) ? r.observed_program
+      : (Array.isArray(r.floorSpec?.observed_program) ? r.floorSpec.observed_program : null);
+    const observedValidation = r.floorSpec?.observed_validation || null;
     let observedProgram = [];
+    let observedSource = 'none';
+    let observedState = 'ABSENT';
     try {
-      if (Array.isArray(lec.observed_program) && lec.observed_program.length) {
-        observedProgram = lec.observed_program.map((it) => observedItem({ ...it, evidence: it.evidence || it.evidencia, confidence: it.confidence ?? (it.confianza === 'alta' ? 0.9 : it.confianza === 'media' ? 0.6 : it.confianza === 'baja' ? 0.4 : null) }));
+      if (Array.isArray(serverObserved) && serverObserved.length) {
+        // AUTORIDAD servidor: ya viene saneado; no se re-mapea el crudo de la IA.
+        observedProgram = serverObserved;
+        observedSource = 'server';
+        observedState = (observedValidation?.state === 'REVIEW_REQUIRED') ? 'PRESENT_REVIEW_REQUIRED' : 'PRESENT_VALID';
       } else {
+        // El lector no entregó mobiliario → heurística por áreas (NO autoritativa).
         observedProgram = observedProgramDeLectura(programaDelPlano(areas));
+        observedSource = observedProgram.length ? 'heuristic' : 'none';
+        observedState = 'ABSENT';
       }
-    } catch { /* best-effort */ }
+    } catch { /* best-effort */ observedProgram = []; observedSource = 'none'; observedState = 'ABSENT'; }
     return {
       ok: true,
       areas,
@@ -119,7 +136,10 @@ export async function leerPlanoDeArchivo(file) {
       lectura: lec,                       // cotas/evidencia/page/notas del lector
       floorSpec: r.floorSpec || null,     // validación geométrica determinista del servidor
       request_id: r.request_id || null,   // trazabilidad de la llamada
-      observed_program: observedProgram,  // programa observado (muebles/cuartos, con procedencia)
+      observed_program: observedProgram,  // programa observado SANEADO por el servidor (o heurística si ABSENT)
+      observed_source: observedSource,    // 'server' | 'heuristic' | 'none'
+      observed_state: observedState,      // 'PRESENT_VALID' | 'PRESENT_REVIEW_REQUIRED' | 'ABSENT'
+      observed_validation: observedValidation,  // {state, issues, warnings, metrics} del servidor
     };
   } catch (e) {
     // Leer un plano es tarea central: si falla, hay que dejar rastro para

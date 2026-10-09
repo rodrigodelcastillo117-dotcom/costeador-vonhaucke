@@ -14,7 +14,7 @@ import EditarPartida from './EditarPartida.jsx';
 import EmpezarEspacio from './EmpezarEspacio.jsx';
 import { leerPlanoDeArchivo } from '../datos/leerPlanoArchivo.js';
 import { areasCanonicas, bloqueGeometria } from '../datos/floorPlan.js';
-import { proponerProgramaDelPlano, proponerProgramaDesdeObservado, aplicarPrograma } from '../datos/programaRealDelPlano.js';
+import { proponerProgramaDelPlano, proponerProgramaDesdeObservado, programRequirementsDesdeObservado, aplicarPrograma } from '../datos/programaRealDelPlano.js';
 import { requirementsDeBrief } from '../datos/programaBrief.js';
 import Cargando from './Cargando.jsx';
 import EstoEntendi from './EstoEntendi.jsx';
@@ -132,6 +132,11 @@ export default function Voni({
       floorSpec: r.floorSpec || null,
       request_id: r.request_id || null,
       observed_program: Array.isArray(r.observed_program) ? r.observed_program : [],
+      // P0-R9-1/R9-4: conservar la AUTORIDAD y el ESTADO del observed del servidor
+      // (si el lector dio mobiliario, gobierna; si está en revisión, no se inventa).
+      observed_source: r.observed_source || 'none',
+      observed_state: r.observed_state || 'ABSENT',
+      observed_validation: r.observed_validation || null,
     });
     setPaso(2);                          // el siguiente paso es QUÉ LLEVA, no acomodar
   }
@@ -170,18 +175,29 @@ export default function Voni({
   // El brief estructurado (línea/modelo/dims/accesorios) lo interpreta CotizadorIA
   // y se persiste en cot.programaBrief; aquí se combina con el FloorSpec (#4).
   const reqBrief = requirementsDeBrief(cot.programaBrief);
-  // P0-R8-1: si el lector entregó un observed_program VÁLIDO, LO OBSERVADO
-  // GOBIERNA el programa — no se reconstruye desde la geometría de áreas. Sólo
-  // si nada observado es gobernable se cae a la heurística de áreas. En ambos
-  // casos es PROPUESTA, nunca confirmación (eso sigue siendo "Aplicar programa").
+  // P0-R8-1 / P0-R9-4: si el lector entregó un observed_program (observed_source
+  // 'server'), LO OBSERVADO GOBIERNA — NUNCA se reconstruye desde áreas. Si está
+  // presente pero nada es gobernable (todo en revisión), se enseñan los pendientes
+  // del servidor y se pide confirmación, pero TAMPOCO se inventa desde áreas. Sólo
+  // cuando el lector NO dio mobiliario (ABSENT) se usa la heurística de áreas.
+  // En todos los casos es PROPUESTA, nunca confirmación ("Aplicar programa").
   const propuestaPrograma = useMemo(
     () => {
       const linea = (reqBrief && reqBrief.linea) || 'App LT';
       const obs = cot.acomodo?.observed_program;
-      const porObservado = (Array.isArray(obs) && obs.length)
-        ? proponerProgramaDesdeObservado(obs, { linea, brief: reqBrief || null })
-        : null;
-      if (porObservado) return porObservado;        // lo observado gobierna
+      const estadoObs = cot.acomodo?.observed_state || 'ABSENT';
+      const observadoPresente = estadoObs === 'PRESENT_VALID' || estadoObs === 'PRESENT_REVIEW_REQUIRED'
+        || (cot.acomodo?.observed_source === 'server' && Array.isArray(obs) && obs.length > 0);
+      if (observadoPresente) {
+        const porObservado = Array.isArray(obs) && obs.length
+          ? proponerProgramaDesdeObservado(obs, { linea, brief: reqBrief || null })
+          : null;
+        if (porObservado) return porObservado;        // lo observado gobierna
+        // Observado presente pero nada gobernable: NO invento desde áreas (P0-R9-4);
+        // expongo los pendientes del servidor para confirmación/desarrollo.
+        const red = Array.isArray(obs) ? programRequirementsDesdeObservado(obs) : { pendientes: [] };
+        return { gobernadoPorObservado: true, requiereRevision: true, observadoPendientes: red.pendientes || [], propuesta: { pendientes: [] }, preview: [] };
+      }
       return areasDelProyecto.length
         ? proponerProgramaDelPlano(areasDelProyecto, { linea, brief: reqBrief || null })
         : null;
@@ -189,12 +205,17 @@ export default function Voni({
     [areasDelProyecto, cot.programaBrief, cot.acomodo],
   );
   const reconPrograma = useMemo(
-    () => (propuestaPrograma ? aplicarPrograma(propuestaPrograma.propuesta, { existentes: partidas }) : null),
+    () => (propuestaPrograma?.propuesta && !propuestaPrograma.requiereRevision ? aplicarPrograma(propuestaPrograma.propuesta, { existentes: partidas }) : null),
     [propuestaPrograma, partidas],
   );
   const faltantesPrograma = reconPrograma ? reconPrograma.confirmacion.confirmadas : [];
   const conflictosPrograma = reconPrograma ? reconPrograma.conflictos : [];
-  const pendientesPrograma = propuestaPrograma ? (propuestaPrograma.propuesta.pendientes || []) : [];
+  const pendientesPrograma = propuestaPrograma ? (propuestaPrograma.propuesta?.pendientes || []) : [];
+  // P0-R9-5: los pendientes del OBSERVADO (sillas sin ancla, amenidades, roles sin
+  // vocabulario) y las anclas que NO coinciden en geometría (NEEDS_CONFIRMATION)
+  // NO pueden desaparecer: se muestran como "Mobiliario observado por confirmar".
+  const observadoPendientes = propuestaPrograma?.observadoPendientes || [];
+  const anclasPorConfirmar = (propuestaPrograma?.anclasConciliadas || []).filter((a) => a.estado && a.estado !== 'RESOLVED');
 
   // #7: suma SÓLO precios conocidos (null/undefined NO cuenta como 0) y expone
   // cuántos faltan, para no presentar un total incompleto como definitivo.
@@ -296,7 +317,7 @@ export default function Voni({
           lleve derecho ahí, sin un clic de más. */}
       {paso === 2 && (
         <>
-          {propuestaPrograma && (faltantesPrograma.length > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0) && (
+          {propuestaPrograma && (faltantesPrograma.length > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0 || observadoPendientes.length > 0 || anclasPorConfirmar.length > 0) && (
             <div className="tarjeta no-imprimir" style={{ borderColor: '#8bbcaf', background: '#eef6f3' }}>
               <strong style={{ color: '#174f45' }}>✨ Programa detectado del plano</strong>
               <p className="ayuda" style={{ marginTop: 4 }}>
@@ -323,6 +344,24 @@ export default function Voni({
                   <div style={{ fontWeight: 700 }}>Conflicto (decide tú)</div>
                   {conflictosPrograma.map((c, i) => (
                     <div key={i}>✗ {c.slot}: ya existe {c.existente?.bancoId} vs propuesto {c.propuesto?.bancoId}</div>
+                  ))}
+                </div>
+              )}
+              {/* P0-R9-5: mobiliario OBSERVADO que el servidor no pudo gobernar
+                  (sillas sueltas, amenidades, roles sin vocabulario) o anclas cuya
+                  geometría NO coincide con un producto canónico (NEEDS_CONFIRMATION).
+                  Nada observado se descarta en silencio. */}
+              {(observadoPendientes.length > 0 || anclasPorConfirmar.length > 0) && (
+                <div style={{ marginTop: 8, color: '#8a5a00' }}>
+                  <div style={{ fontWeight: 700 }}>Mobiliario observado por confirmar (no se sustituye solo)</div>
+                  {observadoPendientes.map((p, i) => (
+                    <div key={`op${i}`}>⚠ {p.type || p.role || 'mueble'} — {p.code === 'AMENITY_SIN_VOCABULARIO' ? 'amenidad por catalogar'
+                      : p.code === 'ROLE_NO_MAPEADO' ? 'tipo no reconocido (requiere desarrollo)'
+                      : p.code === 'REQUIERE_CONFIRMACION' ? 'observado, requiere confirmación'
+                      : p.code}</div>
+                  ))}
+                  {anclasPorConfirmar.map((a, i) => (
+                    <div key={`ac${i}`}>⚠ {a.source_ref || a.anchor_role}{a.dimensions?.w ? ` · ${(a.dimensions.w / 1000).toFixed(2)}×${((a.dimensions.d || 0) / 1000).toFixed(2)} m` : ''} — {a.estado === 'NEEDS_DIMENSIONS' ? 'falta dimensión para verificar producto' : 'requiere desarrollo: ningún producto canónico equivale'}</div>
                   ))}
                 </div>
               )}

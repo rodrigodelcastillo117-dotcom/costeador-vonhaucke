@@ -14,6 +14,7 @@
 //  los inyecta el caller (resolver canónico / reglas VH); por defecto devuelven null.
 // ============================================================================
 import { ESTADO_DATO } from './productSpec.js';
+import { convertirConsumoACompra } from './conversionMaterial.js';
 
 export const UNIDAD_CONSUMO = Object.freeze({
   AREA_M2: 'm2',      // tableros/láminas por área
@@ -67,6 +68,11 @@ export function generarBOM(spec, opts = {}) {
     const material_canonical_id = (typeof mat === 'string' ? mat : (mat && mat.id)) || null;
     const unidad_compra = (mat && typeof mat === 'object') ? (mat.unidad_compra || null) : null;
     const conversion = (mat && typeof mat === 'object') ? num(mat.conversion) : null;
+    // P0-R9-10: estrategia de conversión POR FAMILIA (tablero/lámina/perfil/herraje).
+    // El resolver puede declarar `familia` + `conversion_params`; si no, se usa el
+    // escalar `conversion` legacy (compat hacia atrás).
+    const familia = (mat && typeof mat === 'object') ? (mat.familia || null) : null;
+    const conversion_params = (mat && typeof mat === 'object' && mat.conversion_params) ? mat.conversion_params : {};
     if (!material_canonical_id) issues.push('MATERIAL_SIN_CANONICO');
 
     // 3) CANTIDAD de la parte: necesaria y >0 para el consumo TOTAL (P0-8).
@@ -81,9 +87,11 @@ export function generarBOM(spec, opts = {}) {
     const consumo_neto_total = (consumo_neto_unitario != null && cantidad != null && cantidad > 0)
       ? +(consumo_neto_unitario * cantidad).toFixed(6) : null;
 
-    // 5) P0-9: si la unidad de COMPRA difiere de la de CONSUMO y NO hay conversión,
-    //    el BOM NO puede ser oficial (no se mezclan unidades).
-    if (unidad_compra && unidad_consumo && unidad_compra !== unidad_consumo && !(conversion > 0)) {
+    // 5) P0-9: si la unidad de COMPRA difiere de la de CONSUMO y NO hay cómo
+    //    convertir (ni escalar legacy ni estrategia por familia), el BOM NO puede
+    //    ser oficial (no se mezclan unidades).
+    const hayComoConvertir = conversion > 0 || !!familia;
+    if (unidad_compra && unidad_consumo && unidad_compra !== unidad_consumo && !hayComoConvertir) {
       issues.push('CONVERSION_FALTANTE');
     }
 
@@ -101,25 +109,43 @@ export function generarBOM(spec, opts = {}) {
       issues.push('MERMA_SIN_REGLA');
     }
 
-    // 7) APLICAR la conversión (ChatGPT P0-R8-4): producir la CANTIDAD DE COMPRA
-    //    equivalente en la unidad de compra. `conversion` = unidades de CONSUMO por
-    //    1 unidad de COMPRA (p.ej. 2.98 m²/hoja) → cantidad_compra = consumo / conversion.
+    // 7) APLICAR la conversión (P0-R8-4 + P0-R9-10): producir la CANTIDAD DE COMPRA
+    //    equivalente en la unidad de compra, con la ESTRATEGIA correcta por familia
+    //    (lámina kg = m² × kg/m², NO una división genérica). Si no hay familia, se
+    //    usa el escalar legacy `conversion` (= unidades de consumo por 1 de compra).
     const unidadesCoinciden = !!unidad_compra && !!unidad_consumo && unidad_compra === unidad_consumo;
     const conversion_factor = (conversion > 0) ? conversion : null;
-    const conversion_direction = conversion_factor ? `${unidad_consumo} por 1 ${unidad_compra}` : (unidadesCoinciden ? '1:1' : null);
+    let conversion_direction = unidadesCoinciden ? '1:1' : (conversion_factor ? `${unidad_consumo} por 1 ${unidad_compra}` : null);
+    let conversion_definition = null;
+    let conversion_estrategia = null;
     let cantidad_compra_equivalente = null;
-    if (consumo_bruto_total != null) {
-      if (unidadesCoinciden) cantidad_compra_equivalente = consumo_bruto_total;
-      else if (conversion_factor) cantidad_compra_equivalente = +(consumo_bruto_total / conversion_factor).toFixed(6);
+    if (consumo_bruto_total != null && unidad_compra) {
+      if (familia) {
+        // Estrategia determinista por familia (P0-R9-10).
+        const conv = convertirConsumoACompra({ familia, unidad_consumo, unidad_compra, consumo: consumo_bruto_total, params: conversion_params });
+        if (conv.issues.length) { for (const code of conv.issues) if (!issues.includes(code)) issues.push(code); }
+        else {
+          cantidad_compra_equivalente = conv.cantidad_compra;
+          conversion_definition = conv.conversion_definition;
+          conversion_estrategia = conv.estrategia;
+          conversion_direction = conv.estrategia;
+        }
+      } else if (unidadesCoinciden) {
+        cantidad_compra_equivalente = consumo_bruto_total;
+      } else if (conversion_factor) {
+        // Legacy escalar: consumo / (unidades de consumo por 1 de compra).
+        cantidad_compra_equivalente = +(consumo_bruto_total / conversion_factor).toFixed(6);
+      }
     }
 
     const estado = issues.length ? ESTADO_DATO.PENDING : ESTADO_DATO.OK;
     // COSTABLE/OFICIAL (ChatGPT P0-R8-6): además de estar técnicamente OK, se necesita
     // unidad de COMPRA conocida y una cantidad de compra equivalente real (misma unidad
     // o conversión aplicada). Un BOM técnico sin unidad_compra NO es costable/oficial.
+    // Una cantidad_compra_equivalente != null ya implica que la conversión se
+    // resolvió (1:1, escalar legacy, o estrategia por familia P0-R9-10).
     const costable = estado === ESTADO_DATO.OK
       && !!unidad_compra
-      && (unidadesCoinciden || conversion_factor != null)
       && cantidad_compra_equivalente != null;
 
     return {
@@ -138,8 +164,10 @@ export function generarBOM(spec, opts = {}) {
       consumo_bruto_unitario,
       consumo_bruto_total,
       unidad_compra,
-      conversion_factor,             // unidades de consumo por 1 de compra
+      conversion_factor,             // unidades de consumo por 1 de compra (escalar legacy)
       conversion_direction,
+      conversion_definition,         // definición legible de la conversión por familia (P0-R9-10)
+      conversion_estrategia,         // p.ej. LAMINA_M2_A_KG / TABLERO_M2_A_HOJA
       cantidad_compra_equivalente,   // ← lo que se compra, en unidad_compra (NO se multiplica precio por m² si se compra por hoja)
       procedencia: parte.procedencia || null,
       issues,

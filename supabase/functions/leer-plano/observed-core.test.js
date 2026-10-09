@@ -46,9 +46,39 @@ describe('observed-core · validador determinista del edge (ChatGPT P0-R8-2)', (
     expect(validarItemObservado(ok({ page: 9 }), ctx).issues).toContain('PAGINA_FUERA_DE_RANGO');
   });
 
-  it('confidence ausente → FALTA_CONFIANZA; fuera de [0,1] → se recorta', () => {
+  it('confidence ausente → FALTA_CONFIANZA; fuera de [0,1] → ISSUE (no clamp silencioso, P0-R9-3)', () => {
     expect(validarItemObservado(ok({ confidence: undefined, confianza: undefined }), ctx).issues).toContain('FALTA_CONFIANZA');
-    expect(validarItemObservado(ok({ confidence: 5 }), ctx).confidence).toBe(1);
+    const fuera = validarItemObservado(ok({ confidence: 5 }), ctx);
+    expect(fuera.issues).toContain('CONFIANZA_FUERA_DE_RANGO');
+    expect(fuera.confidence).toBeNull();   // NO se recorta a 1
+  });
+
+  it('P0-R9-2 confianza TEXTUAL del lector (alta/media/baja) → número por mapa explícito, sin issue', () => {
+    expect(validarItemObservado(ok({ confidence: undefined, confianza: 'alta' }), ctx).confidence).toBe(0.9);
+    expect(validarItemObservado(ok({ confidence: undefined, confianza: 'media' }), ctx).confidence).toBe(0.6);
+    const baja = validarItemObservado(ok({ confidence: undefined, confianza: 'baja' }), ctx);
+    expect(baja.confidence).toBe(0.4);
+    expect(baja.issues).not.toContain('FALTA_CONFIANZA');
+    // texto no reconocido → ISSUE, nunca null silencioso
+    expect(validarItemObservado(ok({ confidence: undefined, confianza: 'altísima' }), ctx).issues).toContain('CONFIANZA_INVALIDA');
+  });
+
+  it('P0-R9-3 quantity debe ser ENTERO > 0 (2.5 benches no existe)', () => {
+    expect(validarItemObservado(ok({ quantity: 2.5 }), ctx).issues).toContain('CANTIDAD_INVALIDA');
+  });
+
+  it('P0-R9-3 kind SUMINISTRADO pero inválido → KIND_INVALIDO (no se degrada a furniture en silencio)', () => {
+    const it = validarItemObservado(ok({ kind: 'mueblecito' }), ctx);
+    expect(it.issues).toContain('KIND_INVALIDO');
+  });
+
+  it('P0-R9-3 dimensions/orientation SUMINISTRADAS pero no numéricas → ISSUE', () => {
+    expect(validarItemObservado(ok({ dimensions: { w: 'ancho', d: 600 } }), ctx).issues).toContain('DIMENSION_INVALIDA');
+    expect(validarItemObservado(ok({ orientation: 'de lado' }), ctx).issues).toContain('ORIENTACION_INVALIDA');
+  });
+
+  it('P0-R9-3 capacity_total SUMINISTRADO pero no numérico → ISSUE', () => {
+    expect(validarItemObservado(ok({ capacity_per_unit: undefined, capacity_total: 'ocho' }), ctx).issues).toContain('CAPACIDAD_TOTAL_INVALIDA');
   });
 
   it('OBSERVED sin evidencia → OBSERVED_SIN_EVIDENCIA', () => {

@@ -3,72 +3,101 @@ import { validarProgramaObservado } from '../../supabase/functions/leer-plano/ob
 import { programRequirementsDesdeObservado, proponerProgramaDesdeObservado } from './programaRealDelPlano.js';
 
 // ============================================================================
-//  GOLDEN HARNESS · QA-COT-01 (132 m²) · observed_program (ChatGPT P0-R8-7)
+//  GOLDEN HARNESS · QA-COT-01 (132 m²) · observed_program (ChatGPT P0-R9-9)
 //
-//  La LECTURA EN VIVO del PDF es BLOCKED_EXTERNAL (requiere el edge leer-plano +
-//  modelo en prod; HARD BOUNDARY: no deploy). Aquí se prueba, OFFLINE y de forma
-//  determinista, el CONTRATO GRABADO del pipeline:
-//     [salida esperada del lector] → validador determinista (edge observed-core)
-//        → ProgramRequirements (observed GOBIERNA) → ProductResolver.
-//  Cuando el edge emita observed_program en vivo, este mismo golden valida la
-//  salida real sin cambiar las aserciones.
+//  La LECTURA EN VIVO del PDF es BLOCKED_EXTERNAL (edge leer-plano + modelo en
+//  prod; HARD BOUNDARY: no deploy). Este golden prueba OFFLINE el CONTRATO GRABADO
+//  del pipeline con el GROUND TRUTH COMPLETO del documento.
 //
-//  Golden esperado (anclas OBSERVADAS en el plano de 132 m²):
-//    R-01 ×1  recepción            → RECEPCION
-//    B-01 ×4  bench, cap 2 = 8     → OPEN SPACE (8 PUESTOS, no "8 benches")
-//    J-01 ×1  mesa juntas, cap 8   → SALA DE JUNTAS
-//    D-01 ×1  escritorio dirección → DIRECCION
-//    CR-01 ×1 credenza            → DIRECCION   (rol aún sin vocabulario → pendiente)
-//    CF-01 ×1 coffee point        → COFFEE/PRINT (amenity, sin vocabulario → pendiente)
-//  Las sillas S-01 ×8 (operativas) y SJ-01 ×8 (juntas) NO son líneas observadas:
-//  son DEPENDIENTES obligatorios que resuelve el ProductResolver desde las anclas.
+//  El reader-golden mide LO QUE EL DOCUMENTO CONTIENE (incluye sillas S-01/SJ-01;
+//  NO se omiten porque el resolver genere dependientes). Un test aparte verifica
+//  la RECONCILIACIÓN (ancla + dependiente observados vs dependiente requerido →
+//  NO duplicar) y que NO haya SUSTITUCIÓN SILENCIOSA por capacidad (P0-R9-8).
+//
+//  Ground truth real (con dimensiones):
+//    R-01  ×1  recepción            2000×700   → RECEPCION
+//    B-01  ×4  bench, 2 u c/u       2400×1400  → OPEN SPACE   (ANCLA, 8 puestos)
+//    S-01  ×8  silla operativa                 → OPEN SPACE   (DEPENDIENTE)
+//    J-01  ×1  mesa de juntas, 8 u  3200×1200  → SALA DE JUNTAS (ANCLA)
+//    SJ-01 ×8  silla de juntas                 → SALA DE JUNTAS (DEPENDIENTE)
+//    D-01  ×1  escritorio dirección 2000×900   → DIRECCION    (ANCLA privada)
+//    CR-01 ×1  credenza                        → DIRECCION    (DEPENDIENTE storage)
+//    CF-01 ×1  coffee point                    → COFFEE/PRINT (AMENIDAD)
 // ============================================================================
 const ENV = { envelopeW: 15000, envelopeH: 8800 };
 const ZONAS = new Set(['ARCHIVO / APOYO', 'COLABORACION', 'RECEPCION', 'OPEN SPACE', 'COFFEE / PRINT', 'DIRECCION', 'SALA DE JUNTAS']);
 
-// Contrato GRABADO: lo que el lector debe entregar para este plano.
-const RECORDED_OBSERVED = [
-  { kind: 'furniture', type: 'recepcion', role: 'reception', quantity: 1, capacity_per_unit: 1, zone: 'RECEPCION', position: { x: 1600, y: 6600 }, page: 1, confidence: 0.92, evidence: 'mostrador dibujado en RECEPCION', origin: 'observed', source_ref: 'R-01' },
-  { kind: 'furniture', type: 'bench', role: 'operational', quantity: 4, capacity_per_unit: 2, zone: 'OPEN SPACE', position: { x: 6900, y: 4400 }, page: 1, confidence: 0.9, evidence: '4 islas de bench en OPEN SPACE', origin: 'observed', source_ref: 'B-01' },
-  { kind: 'furniture', type: 'mesa de juntas', role: 'meeting', quantity: 1, capacity_per_unit: 8, zone: 'SALA DE JUNTAS', position: { x: 12700, y: 7000 }, page: 1, confidence: 0.9, evidence: 'mesa con 8 sillas en SALA DE JUNTAS', origin: 'observed', source_ref: 'J-01' },
-  { kind: 'furniture', type: 'escritorio', role: 'private_office', quantity: 1, capacity_per_unit: 1, zone: 'DIRECCION', position: { x: 12700, y: 4000 }, page: 1, confidence: 0.9, evidence: 'escritorio en DIRECCION', origin: 'observed', source_ref: 'D-01' },
-  { kind: 'furniture', type: 'credenza', role: 'storage_credenza', quantity: 1, zone: 'DIRECCION', position: { x: 11000, y: 3000 }, page: 1, confidence: 0.8, evidence: 'credenza en DIRECCION', origin: 'observed', source_ref: 'CR-01' },
-  { kind: 'amenity', type: 'coffee point', role: 'amenity_coffee', quantity: 1, zone: 'COFFEE / PRINT', position: { x: 12700, y: 1200 }, page: 1, confidence: 0.8, evidence: 'coffee point en COFFEE/PRINT', origin: 'observed', source_ref: 'CF-01' },
+const GROUND_TRUTH = [
+  { kind: 'furniture', type: 'recepcion', role: 'reception', quantity: 1, capacity_per_unit: 1, dimensions: { w: 2000, d: 700 }, zone: 'RECEPCION', position: { x: 1600, y: 6600 }, page: 1, confidence: 0.92, evidence: 'mostrador en RECEPCION', origin: 'observed', source_ref: 'R-01' },
+  { kind: 'furniture', type: 'bench operativo', role: 'operational', quantity: 4, capacity_per_unit: 2, dimensions: { w: 2400, d: 1400 }, zone: 'OPEN SPACE', position: { x: 6900, y: 4400 }, page: 1, confidence: 0.9, evidence: '4 islas de bench en OPEN SPACE', origin: 'observed', source_ref: 'B-01' },
+  { kind: 'furniture', type: 'silla operativa', role: 'work_seat', quantity: 8, zone: 'OPEN SPACE', position: { x: 7000, y: 4600 }, page: 1, confidence: 0.85, evidence: '8 sillas en los benches', origin: 'observed', source_ref: 'S-01' },
+  { kind: 'furniture', type: 'mesa de juntas', role: 'meeting', quantity: 1, capacity_per_unit: 8, dimensions: { w: 3200, d: 1200 }, zone: 'SALA DE JUNTAS', position: { x: 12700, y: 7000 }, page: 1, confidence: 0.9, evidence: 'mesa con 8 lugares', origin: 'observed', source_ref: 'J-01' },
+  { kind: 'furniture', type: 'silla de juntas', role: 'meeting_seat', quantity: 8, zone: 'SALA DE JUNTAS', position: { x: 12800, y: 7100 }, page: 1, confidence: 0.85, evidence: '8 sillas alrededor de la mesa', origin: 'observed', source_ref: 'SJ-01' },
+  { kind: 'furniture', type: 'escritorio dirección', role: 'private_office', quantity: 1, capacity_per_unit: 1, dimensions: { w: 2000, d: 900 }, zone: 'DIRECCION', position: { x: 12700, y: 4000 }, page: 1, confidence: 0.9, evidence: 'escritorio en DIRECCION', origin: 'observed', source_ref: 'D-01' },
+  { kind: 'furniture', type: 'credenza', role: 'storage', quantity: 1, dimensions: { w: 1800, d: 500 }, zone: 'DIRECCION', position: { x: 11000, y: 3000 }, page: 1, confidence: 0.8, evidence: 'credenza en DIRECCION', origin: 'observed', source_ref: 'CR-01' },
+  { kind: 'amenity', type: 'coffee point', role: 'amenity_coffee', quantity: 1, zone: 'COFFEE / PRINT', position: { x: 12700, y: 1200 }, page: 1, confidence: 0.8, evidence: 'coffee point', origin: 'observed', source_ref: 'CF-01' },
 ];
 
-describe('GOLDEN observed_program · QA-COT-01 132 m² (P0-R8-7, offline recorded contract)', () => {
-  it('el validador determinista del edge ACEPTA el contrato grabado (todo observado, 0 inválidos)', () => {
-    const r = validarProgramaObservado(RECORDED_OBSERVED, { ...ENV, zoneNames: ZONAS });
-    expect(r.metrics.total).toBe(6);
+describe('GOLDEN observed_program · QA-COT-01 132 m² (P0-R9-9, ground truth completo)', () => {
+  it('READER GOLDEN: el validador acepta el documento COMPLETO (8 filas, incluye S-01/SJ-01), 0 inválidos', () => {
+    const r = validarProgramaObservado(GROUND_TRUTH, { ...ENV, zoneNames: ZONAS });
+    expect(r.metrics.total).toBe(8);
     expect(r.metrics.invalidos).toBe(0);
-    expect(r.metrics.observados).toBe(6);        // las 6 anclas son OBSERVED-reales
-    expect(r.state).toBe('PASS');                // sin issues ni pendientes de confirmar
-    expect(r.issues).toEqual([]);
+    expect(r.state).toBe('PASS');
+    // exactitud del lector: cada ancla preserva dims/capacidad/zone/source_ref
+    const bench = r.items.find((x) => x.source_ref === 'B-01');
+    expect(bench.dimensions).toEqual({ w: 2400, d: 1400, h: null });
+    expect(bench.capacity_total).toBe(8);             // 4 × 2
+    expect(bench.zone).toBe('OPEN SPACE');
+    const junta = r.items.find((x) => x.source_ref === 'J-01');
+    expect(junta.dimensions).toEqual({ w: 3200, d: 1200, h: null });
+    // las sillas SÍ están en el golden (no se omiten)
+    expect(r.items.filter((x) => /silla/.test(x.type)).map((x) => x.source_ref).sort()).toEqual(['S-01', 'SJ-01']);
   });
 
-  it('observed GOBIERNA el programa: 8 puestos, sala de 8, 1 dirección, recepción', () => {
-    const { entrada, gobernables, pendientes } = programRequirementsDesdeObservado(RECORDED_OBSERVED);
-    expect(entrada.operativos).toBe(8);          // B-01 ×4 × cap 2 = 8 PUESTOS
-    expect(entrada.salas).toEqual([8]);          // J-01 cap 8
-    expect(entrada.privados).toBe(1);            // D-01
-    expect(entrada.recepcion).toBe(true);        // R-01
-    expect(gobernables).toBe(4);
-    // CR-01 (credenza) y CF-01 (coffee): válidos y observados, pero su ROL aún no
-    // tiene vocabulario → NO se inventan, van a revisión (siguiente P0).
-    expect(pendientes.filter((p) => p.code === 'ROLE_NO_MAPEADO')).toHaveLength(2);
+  it('GOBIERNA + preserva identidad física: 8 puestos / sala 8 / dirección / recepción; dims conservadas', () => {
+    const red = programRequirementsDesdeObservado(GROUND_TRUTH);
+    expect(red.entrada.operativos).toBe(8);           // B-01 ancla, NO las sillas
+    expect(red.entrada.salas).toEqual([8]);           // J-01 por unidad
+    expect(red.entrada.privados).toBe(1);             // D-01
+    expect(red.entrada.recepcion).toBe(true);         // R-01
+    // ANCLAS conservan su geometría (P0-R9-8)
+    const bench = red.anclasObservadas.find((a) => a.source_ref === 'B-01');
+    expect(bench.dimensions).toEqual({ w: 2400, d: 1400, h: null });
+    expect(bench.quantity).toBe(4);
+    // DEPENDIENTES observados NO inflan el programa; quedan para reconciliar
+    const depRoles = red.dependientesObservados.map((d) => d.dependent_role).sort();
+    expect(depRoles).toEqual(['MEETING_SEAT', 'STORAGE', 'WORK_SEAT']);
+    // CF-01 amenidad → revisión, no inventada
+    expect(red.pendientes.some((p) => p.code === 'AMENITY_SIN_VOCABULARIO')).toBe(true);
   });
 
-  it('el ProductResolver produce los DEPENDIENTES golden (sillas operativas y de juntas)', () => {
-    const p = proponerProgramaDesdeObservado(RECORDED_OBSERVED, { linea: 'App LT' });
+  it('NO SUSTITUCIÓN SILENCIOSA (P0-R9-8): el bench 2400×1400 nunca se da por RESUELTO con otra geometría', () => {
+    const p = proponerProgramaDesdeObservado(GROUND_TRUTH, { linea: 'App LT' });
     expect(p).not.toBeNull();
-    expect(p.gobernadoPorObservado).toBe(true);
-    const roles = new Set((p.preview || []).map((x) => x.relation_role));
-    expect(roles.has('WORK_SEAT')).toBe(true);       // S-01 ×8 (dependiente del bench)
-    expect(roles.has('MEETING_SEAT')).toBe(true);    // SJ-01 (dependiente de la mesa)
+    const benchConc = p.anclasConciliadas.find((a) => a.source_ref === 'B-01');
+    expect(benchConc).toBeTruthy();
+    // Si el resolver eligió un producto por capacidad con OTRA geometría, el ancla
+    // NO puede quedar RESOLVED: debe pedir confirmación (REQUIERE_DESARROLLO).
+    expect(['RESOLVED', 'NEEDS_CONFIRMATION', 'NEEDS_DIMENSIONS']).toContain(benchConc.estado);
+    if (benchConc.estado === 'RESOLVED') {
+      const close = (x, y) => Math.abs(x - y) <= Math.max(60, Math.max(x, y) * 0.06);
+      const ok = (close(benchConc.w, 2400) && close(benchConc.d, 1400)) || (close(benchConc.w, 1400) && close(benchConc.d, 2400));
+      expect(ok, `RESOLVED debe coincidir en dims; eligió ${benchConc.w}×${benchConc.d}`).toBe(true);
+    }
+  });
+
+  it('SIN DUPLICAR DEPENDIENTES (P0-R9-9): las sillas observadas no se suman sobre las del resolver', () => {
+    const p = proponerProgramaDesdeObservado(GROUND_TRUTH, { linea: 'App LT' });
+    // el programa operativo sigue en 8 (no 8 + 8 sillas)
+    const red = programRequirementsDesdeObservado(GROUND_TRUTH);
+    expect(red.entrada.operativos).toBe(8);
+    // la reconciliación reporta las sillas observadas (8/8) para contraste, no como extra
+    const ws = p.dependientesConciliados.find((d) => d.dependent_role === 'WORK_SEAT');
+    expect(ws?.observados).toBe(8);
   });
 
   it('DETERMINISTA: el golden no cambia entre corridas', () => {
-    expect(programRequirementsDesdeObservado(RECORDED_OBSERVED))
-      .toEqual(programRequirementsDesdeObservado(RECORDED_OBSERVED));
+    expect(programRequirementsDesdeObservado(GROUND_TRUTH)).toEqual(programRequirementsDesdeObservado(GROUND_TRUTH));
   });
 });

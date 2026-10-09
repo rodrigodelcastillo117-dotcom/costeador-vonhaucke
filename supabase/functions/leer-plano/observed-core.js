@@ -24,10 +24,15 @@ export const KIND = Object.freeze({ ROOM: 'room', FURNITURE: 'furniture', AMENIT
 const txt = (v) => String(v ?? '').trim();
 // null/undefined/'' → null (NO 0; Number(null)===0 inventaría un dato).
 const num = (v) => { if (typeof v !== 'number' && typeof v !== 'string') return null; if (typeof v === 'string' && v.trim() === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
-const clamp01 = (v) => { const n = num(v); return n == null ? null : Math.max(0, Math.min(1, n)); };
+// Mapa EXPLÍCITO del enum textual de confianza del lector (schema core:
+// alta/media/baja) a número ANTES de validar (ChatGPT P0-R9-2). Nunca se intenta
+// Number("alta") (que daría null silencioso y dejaría confidence sin issue).
+const CONF_TEXTO = Object.freeze({ alta: 0.9, media: 0.6, baja: 0.4 });
 
 /**
- * Normaliza + valida UN item observado del lado servidor.
+ * Normaliza + valida UN item observado del lado servidor. FAIL-CLOSED:
+ * cualquier dato SUMINISTRADO pero inválido es un ISSUE, no un silencio
+ * (ChatGPT P0-R9-3). Lo AUSENTE queda null; lo PRESENTE-pero-malo marca review.
  * @param {object} raw item crudo de la visión
  * @param {object} ctx {envelopeW, envelopeH, zoneNames:Set<string>, maxPage}
  */
@@ -39,28 +44,35 @@ export function validarItemObservado(raw = {}, ctx = {}) {
   const origin = Object.values(ORIGEN).includes(originRaw) ? originRaw : null;
   if (!origin) issues.push('ORIGEN_INVALIDO');
 
+  // kind: ausente → furniture por defecto; PRESENTE pero fuera del enum → ISSUE
+  // (nunca se degrada en silencio a furniture — P0-R9-3).
   const kindRaw = txt(raw.kind).toLowerCase();
-  const kind = Object.values(KIND).includes(kindRaw) ? kindRaw : KIND.FURNITURE;
+  let kind = KIND.FURNITURE;
+  if (kindRaw) { if (Object.values(KIND).includes(kindRaw)) kind = kindRaw; else issues.push('KIND_INVALIDO'); }
 
   const type = txt(raw.type || raw.tipo) || null;
   const role = txt(raw.role || raw.semantic_role || raw.rol) || null;
   if (!type && !role) issues.push('FALTA_TYPE');
 
+  // quantity: entero > 0 (son MUEBLES; 2.5 benches no existe — P0-R9-3).
   const quantity = num(raw.quantity ?? raw.cantidad);
-  if (quantity == null || quantity <= 0) issues.push('CANTIDAD_INVALIDA');
+  if (quantity == null || quantity <= 0 || !Number.isInteger(quantity)) issues.push('CANTIDAD_INVALIDA');
 
   const capacityPer = num(raw.capacity_per_unit);
-  if (capacityPer != null && capacityPer <= 0) issues.push('CAPACIDAD_UNIDAD_INVALIDA');
+  if (raw.capacity_per_unit != null && capacityPer == null) issues.push('CAPACIDAD_UNIDAD_INVALIDA');
+  else if (capacityPer != null && capacityPer <= 0) issues.push('CAPACIDAD_UNIDAD_INVALIDA');
   const capacityTotal = num(raw.capacity_total)
     ?? ((quantity != null && capacityPer != null) ? quantity * capacityPer : null);
-  if (capacityTotal != null && capacityTotal <= 0) issues.push('CAPACIDAD_TOTAL_INVALIDA');
+  if (raw.capacity_total != null && num(raw.capacity_total) == null) issues.push('CAPACIDAD_TOTAL_INVALIDA');
+  else if (capacityTotal != null && capacityTotal <= 0) issues.push('CAPACIDAD_TOTAL_INVALIDA');
 
-  // Dimensiones (si vienen) deben ser positivas; nada de 0/negativo.
+  // Dimensiones: SUMINISTRADAS pero no numéricas → ISSUE; 0/negativo → ISSUE.
   let dimensions = null;
   const rawDims = raw.dimensions || ((raw.w != null || raw.d != null || raw.h != null) ? { w: raw.w, d: raw.d, h: raw.h } : null);
   if (rawDims) {
     dimensions = { w: num(rawDims.w), d: num(rawDims.d), h: num(rawDims.h) };
     for (const k of ['w', 'd', 'h']) {
+      if (rawDims[k] != null && dimensions[k] == null) { issues.push('DIMENSION_INVALIDA'); break; }  // dada pero no numérica
       if (dimensions[k] != null && dimensions[k] <= 0) { issues.push('DIMENSION_INVALIDA'); break; }
     }
   }
@@ -75,6 +87,13 @@ export function validarItemObservado(raw = {}, ctx = {}) {
       (position.x < 0 || position.y < 0 || position.x > envelopeW || position.y > envelopeH)) {
       issues.push('POSICION_FUERA_DE_ENVOLVENTE');
     }
+  }
+
+  // orientation: SUMINISTRADA pero no numérica → ISSUE (P0-R9-3).
+  let orientation = null;
+  if (raw.orientation != null || raw.rot != null || raw.orientacion != null) {
+    orientation = num(raw.orientation ?? raw.rot ?? raw.orientacion);
+    if (orientation == null) issues.push('ORIENTACION_INVALIDA');
   }
 
   // Zona declarada debe existir entre las zonas del FloorSpec.
@@ -92,8 +111,19 @@ export function validarItemObservado(raw = {}, ctx = {}) {
     else page = p;
   }
 
-  const confidence = clamp01(raw.confidence ?? raw.confianza);
-  if (raw.confidence == null && raw.confianza == null) issues.push('FALTA_CONFIANZA');
+  // confidence: enum textual del lector → número por mapa EXPLÍCITO; numérico
+  // fuera de [0,1] → ISSUE (no clamp silencioso); ausente → FALTA; basura → ISSUE.
+  let confidence = null;
+  const confRaw = raw.confidence ?? raw.confianza;
+  if (confRaw == null) issues.push('FALTA_CONFIANZA');
+  else if (typeof confRaw === 'string' && CONF_TEXTO[confRaw.trim().toLowerCase()] != null) {
+    confidence = CONF_TEXTO[confRaw.trim().toLowerCase()];
+  } else {
+    const c = num(confRaw);
+    if (c == null) issues.push('CONFIANZA_INVALIDA');
+    else if (c < 0 || c > 1) issues.push('CONFIANZA_FUERA_DE_RANGO');
+    else confidence = c;
+  }
 
   const evidence = txt(raw.evidence || raw.evidencia) || null;
   const roomDerived = raw.room_derived === true || raw.derived_from_room === true || raw.derivadoDeCuarto === true;
@@ -112,7 +142,7 @@ export function validarItemObservado(raw = {}, ctx = {}) {
     zone,
     grouping: txt(raw.grouping || raw.functional_group_id || raw.grupo) || null,
     position,
-    orientation: num(raw.orientation ?? raw.rot ?? raw.orientacion),
+    orientation,
     dimensions,
     page,
     evidence,

@@ -69,6 +69,30 @@ describe('BOMGenerator · despiece determinista desde ProductSpec (ChatGPT §6)'
     expect(bom.estadoCosteo).toBe('NO_COSTABLE');
   });
 
+  it('P0-R9-10 LÁMINA (familia): compra KG ← costeo m² se MULTIPLICA por kg/m² (no se divide)', () => {
+    // cubierta 0.72 m² neto, merma 10% → 0.8 m² bruto; lámina 7.065 kg/m² → 5.652 kg
+    const bom = generarBOM(specCubierta(), {
+      resolverMaterial: () => ({ id: 'lamina-cal20', unidad_compra: 'kg', familia: 'lamina', conversion_params: { kg_por_m2: 7.065 } }),
+      reglaMerma: () => 10,
+    });
+    const l = bom.lineas[0];
+    expect(l.consumo_bruto_total).toBeCloseTo(0.8, 4);
+    expect(l.cantidad_compra_equivalente).toBeCloseTo(0.8 * 7.065, 4);  // kg (× no ÷)
+    expect(l.conversion_estrategia).toBe('LAMINA_M2_A_KG');
+    expect(l.costable).toBe(true);
+    expect(bom.estadoCosteo).toBe('COSTABLE');
+  });
+
+  it('P0-R9-10 LÁMINA sin el parámetro de peso → FALTA_PARAM_CONVERSION → PENDING / NO costable', () => {
+    const bom = generarBOM(specCubierta(), {
+      resolverMaterial: () => ({ id: 'lamina-cal20', unidad_compra: 'kg', familia: 'lamina', conversion_params: {} }),
+      reglaMerma: () => 10,
+    });
+    expect(bom.lineas[0].issues).toContain('FALTA_PARAM_CONVERSION');
+    expect(bom.lineas[0].costable).toBe(false);
+    expect(bom.estadoCosteo).toBe('NO_COSTABLE');
+  });
+
   it('SIN material canónico → línea PENDING (identidad es del resolver, no se inventa)', () => {
     const bom = generarBOM(specCubierta(), { reglaMerma: () => 10 });  // sin resolverMaterial
     expect(bom.lineas[0].estado).toBe(ESTADO_DATO.PENDING);
