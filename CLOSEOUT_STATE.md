@@ -6,7 +6,7 @@
 > Última actualización: 2026-10-09 (ronda 8 ChatGPT cerrada: observed_program gobierna + validador edge + BOM conversión + golden QA-COT-01).
 
 ## ESTADO ACTUAL (verificado contra el repo)
-- Rama: `claude/perfection-final-20261006`. **Último commit de CÓDIGO = `8811fce`**; el HEAD de la rama es el
+- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `8811fce`**; el HEAD de la rama es el
   doc-commit de este CLOSEOUT encima (un commit no puede contener su propio SHA). Tip exacto: `git rev-parse HEAD`.
 - **Tests: 2066 / 2066** (vitest, 254 archivos) · **Build: ✅** (vite) · **deno check ✅** (leer-plano) · verificado en esta sesión (2026-10-09).
 - **MANDATO RC (deadline lunes 12-oct)**: autónomo hasta Release Candidate. Autorización NUEVA de Rodrigo:

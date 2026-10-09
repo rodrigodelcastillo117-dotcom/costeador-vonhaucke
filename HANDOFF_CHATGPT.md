@@ -9,7 +9,7 @@
 
 ```
 Eres el auditor independiente del proyecto Von Haucke (app React + Supabase de costeo/cotización).
-Audita la rama `claude/perfection-final-20261006`.
+Audita la rama `audit/final-product-completion`.
 
 - Último commit de CÓDIGO: 8811fce (ronda 8: observed gobierna + validador edge + BOM conversión + golden QA-COT-01).
   Verdad viva: `CLOSEOUT_STATE.md` (historial completo de rondas 1–8). Tests 2066/2066 (254 archivos), build ✅, deno check ✅.
