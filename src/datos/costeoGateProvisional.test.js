@@ -431,3 +431,52 @@ describe('O–T — nada que controle el cliente otorga EXACT/emisión por sí s
     expect(sinCap.material_match).not.toBe(MATCH.USER_CONFIRMED);
   });
 });
+
+// ============================================================================
+//  P0.16 — AUTORIDAD DEL SERVIDOR para APROBAR (no el juez local). Regresión obligatoria:
+//  IA propone melamina 19 EXACT localmente, pero el servidor (sin provenance de spec) la
+//  clasifica provisional/incompleto → NO aprobable. Tras confirmación de Diseño → aprobable.
+// ============================================================================
+describe('P0.16 — aprobar exige validación server-authority (costo local == servidor a centavos)', () => {
+  // Réplica del predicado de aprobación del frontend (AsistenteEspecial.validarServidorParaAprobar).
+  const centavos = (x) => (Number.isFinite(Number(x)) ? Math.round(Number(x) * 100) : null);
+  const validoParaAprobar = (localCosto, s) => {
+    const ok = s.status === 200;
+    const estadoOK = ok && !!s.estado && s.estado !== 'incompleto' && s.estado !== 'bloqueado';
+    const costoFinito = Number.isFinite(Number(s.costoUnitario));
+    const cL = centavos(localCosto), cS = costoFinito ? centavos(s.costoUnitario) : null;
+    return ok && estadoOK && costoFinito && cS != null && cL === cS;
+  };
+
+  const ai = { nombre: 'Lateral', insumoId: 'melamina-19-color', material_solicitado: 'melamina 19 color madera', forma: 'area', largoMM: 950, anchoMM: 650, cantidad: 2, hojas: 0.4 };
+  // Igual que mapIaComps del cliente: aplica política + copia medidas de área (que la función pura no copia).
+  const mapConDims = (z) => { const c = mapear(z); if (z.forma === 'area') { c.largoMM = z.largoMM; c.anchoMM = z.anchoMM; c.piezas = z.cantidad || 1; c.cantidad = 1; if (z.hojas > 0) c.hojas = z.hojas; } return c; };
+
+  it('local diría EXACT/emitible, pero el servidor sin provenance → provisional/incompleto → NO aprobable', () => {
+    const local = mapConDims(ai);
+    expect(local.material_match).toBe(MATCH.EXACT);                 // el juez LOCAL lo ve exacto
+    expect(costeoEmitible(costear([local])).emitible).toBe(true);   // y emitible local
+    const localCosto = costear([local]).costoUnitario;
+
+    const s1 = servidor([ai], { rol: 'diseno' });                   // servidor, sin confirmar
+    expect(s1.intentComponentes[0].material_match).toBe(MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED);
+    expect(s1.estado).toBe('incompleto');
+    expect(validoParaAprobar(localCosto, s1)).toBe(false);          // P0.16: NO se puede aprobar
+  });
+
+  it('tras confirmación explícita de Diseño → USER_CONFIRMED, costo cuadra a centavos → SÍ aprobable', () => {
+    const localCosto = costear([mapConDims(ai)]).costoUnitario;
+    const s2 = servidor([{ ...ai, material_confirmado: true }], { rol: 'diseno' });
+    expect(s2.intentComponentes[0].material_match).toBe(MATCH.USER_CONFIRMED);
+    expect(s2.estado).not.toBe('incompleto');
+    expect(Number.isFinite(Number(s2.costoUnitario))).toBe(true);
+    expect(validoParaAprobar(localCosto, s2)).toBe(true);           // costo local == servidor → aprobable
+  });
+
+  it('vendedor NO obtiene costo técnico del servidor → nunca aprobable por esa vía', () => {
+    // (el edge no devuelve `costo` a vendedor; aquí el harness igual bloquea por estado provisional)
+    const s = servidor([ai], { rol: 'vendedor' });
+    expect(s.estado).toBe('incompleto');
+    expect(validoParaAprobar(999, s)).toBe(false);
+  });
+});

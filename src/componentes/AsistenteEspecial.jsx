@@ -215,6 +215,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // Biblioteca
   const [etiquetasTxt, setEtiquetasTxt] = useState('');
   const [estadoExp, setEstadoExp] = useState('borrador');
+  // P0.16: validación SERVER-AUTHORITY vigente para el BOM hash actual (null = sin validar).
+  const [validacionSrv, setValidacionSrv] = useState(null); // { valido, razon, estado, costoUnitario, bomHash }
+  const [validandoSrv, setValidandoSrv] = useState(false);
   const [guardandoExp, setGuardandoExp] = useState(false);
   const [expId, setExpId] = useState(null);
   const [expMsg, setExpMsg] = useState('');
@@ -256,6 +259,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // su total es apenas un SUBTOTAL CONOCIDO, no se le pone precio ni se aprueba.
   const emision = costeoEmitible(resultado);
   const emitible = emision.emitible;
+  // P0.16: ¿hay una validación server-authority VIGENTE para el BOM actual? Cualquier cambio de
+  // componente/material/medida cambia el bomHash → invalida la validación anterior.
+  const validacionVigente = !!validacionSrv && validacionSrv.valido === true && validacionSrv.bomHash === bomHash(b.componentes);
   // POR CONFIRMAR (audit 2026-10-08): materiales provisionales (18→19 compatible, crítico,
   // ambiguo, candidato). El COMPATIBLE sí aporta costo → hay un COSTO PROVISIONAL real, pero
   // NO emitible hasta confirmación humana. Distinto de "sin material" (hueco de datos).
@@ -380,6 +386,39 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
 
   // Guarda (o actualiza) el producto como EXPEDIENTE en la biblioteca: nombre, etiquetas, BOM,
   // costo (snapshot con fecha), render y plano (a Storage). Editable luego por Diseño.
+  // P0.16 — AUTORIDAD DEL SERVIDOR para aprobar. El juez local (costeoEmitible) NO basta: el
+  // mismo BOM puede verse EXACT/emitible en el cliente pero el servidor (que reclasifica sin
+  // provenance, exige confirmación/capability y compara a centavos) lo marca provisional/
+  // incompleto. Devuelve { valido, razon, estado, costoUnitario, bomHash }.
+  async function validarServidorParaAprobar() {
+    const hashActual = bomHash(b.componentes);
+    try {
+      const srv = await costearServidor({ ...b }, b.piezas);
+      const costoSrv = srv?.costo?.costoUnitario;
+      const estadoSrv = srv?.estado || null;
+      const ok = srv?.ok === true;
+      const costoFinito = Number.isFinite(Number(costoSrv));
+      const estadoOK = ok && !!estadoSrv && estadoSrv !== 'incompleto' && estadoSrv !== 'bloqueado';
+      const cL = aCentavosEnteros(resultado.costoUnitario);
+      const cS = costoFinito ? aCentavosEnteros(costoSrv) : null;
+      const cuadra = cL != null && cS != null && cL === cS;   // costo técnico local == servidor, a centavos
+      const valido = ok && estadoOK && costoFinito && cuadra;
+      let razon = '';
+      if (!ok) razon = 'el servidor no validó el costo.';
+      else if (!estadoOK) razon = `el servidor marca el costo como ${estadoSrv || 'no emitible'} (faltan confirmaciones de material).`;
+      else if (!costoFinito) razon = 'el costo del servidor no es finito.';
+      else if (!cuadra) razon = `el costo local (${pesos2(resultado.costoUnitario)}) no coincide con el del servidor (${pesos2(costoSrv)}).`;
+      const v = { valido, razon, estado: estadoSrv, costoUnitario: costoSrv, bomHash: hashActual };
+      setValidacionSrv(v);
+      if (estadoSrv) setCostoEstado(estadoSrv);
+      return v;
+    } catch (_e) {
+      const v = { valido: false, razon: 'no se pudo contactar al servidor de costeo.', bomHash: hashActual };
+      setValidacionSrv(v);
+      return v;
+    }
+  }
+
   async function guardarEnBiblioteca() {
     if (guardandoExp) return;
     if (!b.nombre?.trim() || !(b.componentes?.length)) { setExpMsg('Falta nombre y despiece para guardar.'); return; }
@@ -398,8 +437,17 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       // FAIL-CLOSED al guardar: un costo incompleto NUNCA se guarda como APROBADO ni
       // con un precio "oficial". Se degrada a borrador, estado_costo=incompleto y
       // precio=null. Así la biblioteca no conserva un número de venta sin respaldo.
-      const estadoGuardar = emitible ? estadoExp : 'borrador';
-      const estadoCostoGuardar = !emitible ? 'incompleto' : (costoEstado || 'preliminar');
+      // P0.16: APROBAR exige validación SERVER-AUTHORITY del BOM actual. Si el servidor bloquea
+      // o el costo no cuadra a centavos → se degrada a borrador (precio/costoTotal = null).
+      let aprobadoBloqueado = false;
+      if (emitible && estadoExp === 'aprobado') {
+        const v = await validarServidorParaAprobar();
+        if (!v.valido) { aprobadoBloqueado = true; setExpMsg(`No se puede aprobar: ${v.razon} Se guarda como borrador.`); }
+      }
+      const estadoGuardar = aprobadoBloqueado ? 'borrador' : (emitible ? estadoExp : 'borrador');
+      // Tras un bloqueo del servidor NO se persiste costoTotal ni precio (sin respaldo server-authority).
+      const emitibleGuardar = emitible && !aprobadoBloqueado;
+      const estadoCostoGuardar = !emitibleGuardar ? 'incompleto' : (costoEstado || 'preliminar');
       const exp = {
         nombre: b.nombre.trim(), etiquetas, estado: estadoGuardar,
         producto_tipo: tipoDeMueble(b), ancho_mm: dimsR.w, fondo_mm: dimsR.d, alto_mm: null,
@@ -407,7 +455,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         // IDENTIDAD DE REVISIÓN congelada (audit 2026-10-01): mismo bom_hash + mismo
         // catálogo + mismo motor ⇒ mismo costo a centavos. Guardamos todo lo que define
         // esa identidad para poder reconstruir/verificar cualquier revisión.
-        costo: { costoUnitario: dinero(resultado.costoUnitario), subtotalConocido: dinero(emision.subtotalConocido), costoTotal: emitible ? dinero(resultado.costoUnitario) : null, materialTotal: dinero(resultado.materialTotal), manoObra: dinero(resultado.manoObra), indirectosFabrica: dinero(resultado.indirectosFabrica), precio: emitible ? dinero(precio) : null, margen: b.margen, estado_costo: estadoCostoGuardar, pendientes: emision.pendientes, bom_hash: bomHash(b.componentes), analysis_id: b.analysisId ?? null, version_motor: MOTOR_VERSION, formula_version: formulaDePieza(b), version_catalogo: 'config-legado', factorDirecta: b.factorDirecta ?? null, factorIndirecta: b.factorIndirecta ?? null, render_hash: renderHash === renderFirmaActual ? renderHash : null, fecha: new Date().toISOString() },
+        costo: { costoUnitario: dinero(resultado.costoUnitario), subtotalConocido: dinero(emision.subtotalConocido), costoTotal: emitibleGuardar ? dinero(resultado.costoUnitario) : null, materialTotal: dinero(resultado.materialTotal), manoObra: dinero(resultado.manoObra), indirectosFabrica: dinero(resultado.indirectosFabrica), precio: emitibleGuardar ? dinero(precio) : null, margen: b.margen, estado_costo: estadoCostoGuardar, validado_servidor: emitibleGuardar && estadoGuardar === 'aprobado' ? (validacionSrv?.bomHash === bomHash(b.componentes)) : false, pendientes: emision.pendientes, bom_hash: bomHash(b.componentes), analysis_id: b.analysisId ?? null, version_motor: MOTOR_VERSION, formula_version: formulaDePieza(b), version_catalogo: 'config-legado', factorDirecta: b.factorDirecta ?? null, factorIndirecta: b.factorIndirecta ?? null, render_hash: renderHash === renderFirmaActual ? renderHash : null, fecha: new Date().toISOString() },
         confirmaciones: Object.entries(confirmadas).map(([question_key, v]) => ({ question_key, pregunta: v.pregunta, respuesta: v.respuesta })),
         plano_urls: planoUrls.length ? planoUrls : (expId ? undefined : []),
         render_aislado_url: soloHttp(renders.aislado), render_ambiente_url: soloHttp(renders.ambiente),
@@ -1259,9 +1307,26 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10, flexWrap: 'wrap' }}>
               <span className="ayuda">Estado:</span>
               <button type="button" className={'chip' + ((estadoExp === 'borrador' || !emitible) ? ' on' : '')} onClick={() => setEstadoExp('borrador')} style={{ cursor: 'pointer', background: (estadoExp === 'borrador' || !emitible) ? 'var(--tinta,#2B2622)' : undefined, color: (estadoExp === 'borrador' || !emitible) ? '#fff' : undefined }}>Borrador</button>
-              {/* FAIL-CLOSED: no se puede APROBAR un costo incompleto. Solo borrador. */}
-              <button type="button" disabled={!emitible} className={'chip' + ((estadoExp === 'aprobado' && emitible) ? ' on' : '')} onClick={() => emitible && setEstadoExp('aprobado')} title={emitible ? '' : 'No se puede aprobar: faltan partidas por costear'} style={{ cursor: emitible ? 'pointer' : 'not-allowed', opacity: emitible ? 1 : 0.5, background: (estadoExp === 'aprobado' && emitible) ? 'var(--ok,#1a7f37)' : undefined, color: (estadoExp === 'aprobado' && emitible) ? '#fff' : undefined }}>Aprobado</button>
+              {/* FAIL-CLOSED + P0.16: no se puede APROBAR sin validación SERVER-AUTHORITY vigente
+                  del BOM actual. Al clic se valida con costear-servidor; sólo pasa a 'aprobado'
+                  si el servidor no bloquea y el costo cuadra a centavos. */}
+              <button type="button" disabled={!emitible || validandoSrv}
+                className={'chip' + ((estadoExp === 'aprobado' && emitible && validacionVigente) ? ' on' : '')}
+                onClick={async () => {
+                  if (!emitible || validandoSrv) return;
+                  setValidandoSrv(true);
+                  try {
+                    const v = await validarServidorParaAprobar();
+                    if (v.valido) { setEstadoExp('aprobado'); setExpMsg('✓ Validado por el servidor: listo para aprobar.'); }
+                    else { setEstadoExp('borrador'); setExpMsg(`No se puede aprobar: ${v.razon}`); }
+                  } finally { setValidandoSrv(false); }
+                }}
+                title={emitible ? 'Aprobar requiere validación del servidor' : 'No se puede aprobar: faltan partidas por costear'}
+                style={{ cursor: emitible ? 'pointer' : 'not-allowed', opacity: emitible && !validandoSrv ? 1 : 0.5, background: (estadoExp === 'aprobado' && emitible && validacionVigente) ? 'var(--ok,#1a7f37)' : undefined, color: (estadoExp === 'aprobado' && emitible && validacionVigente) ? '#fff' : undefined }}>
+                {validandoSrv ? 'Validando…' : 'Aprobado'}
+              </button>
               {!emitible && <span className="ayuda" style={{ color: '#b22a22' }}>Incompleto → solo borrador</span>}
+              {emitible && estadoExp === 'aprobado' && !validacionVigente && <span className="ayuda" style={{ color: '#8a6d00' }}>Validación del servidor pendiente (cambió el BOM): re-valida para aprobar.</span>}
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
               <button className="boton primario" disabled={guardandoExp} onClick={guardarEnBiblioteca}>
