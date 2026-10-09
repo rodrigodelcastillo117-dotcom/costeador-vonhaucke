@@ -26,7 +26,7 @@ const Asistente = lazy(() => import('./componentes/Asistente.jsx'));
 const AsistenteEspecial = lazy(() => import('./componentes/AsistenteEspecial.jsx'));
 const Biblioteca = lazy(() => import('./componentes/Biblioteca.jsx'));
 const CosteadorLinea = lazy(() => import('./componentes/CosteadorLinea.jsx'));
-import { aplicarPrograma, propuestaBloqueada, partidaComercialDesdeConfirmado } from './datos/programaRealDelPlano.js';
+import { resolverAplicacionAtomica } from './datos/programaRealDelPlano.js';
 import { APPLT_PRODUCTOS, generarAppLT } from './datos/applt.js';
 import { APP_PRODUCTOS, generarApp } from './datos/app.js';
 import { ECLIPSE_PRODUCTOS, generarEclipse } from './datos/eclipse.js';
@@ -818,53 +818,34 @@ export default function App() {
   // primero → el segundo reconcilia y no duplica. `aplicandoPrograma` evita reentradas.
   const aplicandoProgramaRef = useRef(false);
   function aplicarProgramaDetectado(propuesta) {
-    if (!propuesta) return { confirmadas: 0, conflictos: [], pendientes: [] };
-    // GATE DE DOMINIO CENTRAL (ChatGPT R11-4): ninguna propuesta REVIEW_REQUIRED /
-    // con incompletos / NEEDS_CONFIRMATION se aplica, aunque un caller (Voni o
-    // Acomodo) se equivoque. No se depende del `disabled` del botón.
-    if (propuestaBloqueada(propuesta)) {
-      return { confirmadas: 0, conflictos: [], pendientes: propuesta.incompletos || propuesta.pendientes || [], bloqueada: true, motivo: 'PROPUESTA_REQUIERE_REVISION' };
-    }
-    // Vista para la UI (contra el estado actual): conflictos y pendientes a mostrar.
-    const vista = aplicarPrograma(propuesta, { existentes: estado.cotizacion?.partidas || [] });
-    // ChatGPT R15-E: un CONFLICTO DE RECONCILIACIÓN (EXISTING_SURPLUS /
-    // SLOT_OCUPADO_PRODUCTO_DISTINTO / SPLIT_REQUIRED) es GATE fail-closed: NO se
-    // escribe nada (ni se agregan otras partidas) hasta que el usuario lo resuelva.
-    if ((vista.conflictos || []).length > 0) {
-      return { confirmadas: 0, conflictos: vista.conflictos, pendientes: propuesta.incompletos || propuesta.pendientes || [], bloqueada: true, motivo: 'CONFLICTO_RECONCILIACION' };
-    }
+    if (!propuesta) return { confirmadas: 0, conflictos: [], pendientes: [], committed: false, motivo: 'SIN_PROPUESTA' };
     if (aplicandoProgramaRef.current) {
-      return { confirmadas: 0, conflictos: vista.conflictos || [], pendientes: propuesta.pendientes || [] };
+      return { confirmadas: 0, conflictos: [], pendientes: propuesta.pendientes || [], committed: false, motivo: 'EN_CURSO' };
     }
+    // P1-R15-I: el WRITE y el RETURN derivan de la MISMA autoridad
+    // (`resolverAplicacionAtomica`). El commit real se decide DENTRO de setEstado contra
+    // `prev` (autoridad fresca, fail-closed ante conflictos/bloqueo/idempotencia) y su
+    // resultado se captura para que el return refleje el commit — NO un snapshot que
+    // bajo carrera reportaría éxito con el write abortado.
+    let resultado = { confirmadas: 0, conflictos: [], pendientes: propuesta.incompletos || propuesta.pendientes || [], committed: false, motivo: 'NO_APLICADO' };
     aplicandoProgramaRef.current = true;
     setEstado((prev) => {
       const existentes = prev.cotizacion?.partidas || [];
-      const aplicado = aplicarPrograma(propuesta, { existentes });
-      // ChatGPT R15-E2: la SEGURIDAD fail-closed vive en el PUNTO ATÓMICO. Se revalida
-      // contra `prev` (autoridad fresca): si la reconciliación produce conflictos,
-      // NO se escribe nada (devuelve el mismo prev). El precheck externo es sólo UX.
-      if ((aplicado.conflictos || []).length > 0) return prev;
-      const { confirmacion } = aplicado;
-      const enriquecidos = confirmacion.enriquecidos || [];
-      // #4: ENRIQUECE en el sitio los existentes reutilizados (WIN/gavetas apuntan
-      // ahora al ancla APP LT) — sólo metadata estructural, sin tocar economics.
-      const porId = new Map(enriquecidos.map((e) => [String(e.id), e.patch]));
-      const patched = existentes.map((p) => {
-        const patch = porId.get(String(p.id));
-        // #10: la semántica estructural vive SÓLO top-level (un dueño). NO se copia a config.
-        return patch ? { ...p, ...patch } : p;
-      });
-      const nuevas = confirmacion.confirmadas.map(partidaComercialDesdeConfirmado);
-      if (!nuevas.length && !enriquecidos.length) return prev;    // idempotente: nada que hacer
-      return { ...prev, cotizacion: { ...prev.cotizacion, partidas: [...patched, ...nuevas] } };
+      const atomic = resolverAplicacionAtomica(propuesta, { existentes });
+      resultado = {
+        confirmadas: atomic.confirmadas,
+        conflictos: atomic.conflictos,
+        pendientes: propuesta.incompletos || propuesta.pendientes || [],
+        committed: atomic.committed,
+        motivo: atomic.motivo,
+        ...(atomic.committed ? {} : { bloqueada: atomic.motivo === 'PROPUESTA_REQUIERE_REVISION' || atomic.motivo === 'CONFLICTO_RECONCILIACION' }),
+      };
+      if (!atomic.committed) return prev;             // fail-closed / idempotente: 0 writes
+      return { ...prev, cotizacion: { ...prev.cotizacion, partidas: atomic.partidas } };
     });
     // Libera el lock tras el commit (microtask: después del setEstado batcheado).
     Promise.resolve().then(() => { aplicandoProgramaRef.current = false; });
-    return {
-      confirmadas: (vista.confirmacion?.confirmadas || []).length,
-      conflictos: vista.conflictos || [],
-      pendientes: propuesta.pendientes || [],
-    };
+    return resultado;
   }
 
   // Asistente y costeador de línea sencillo: una partida.

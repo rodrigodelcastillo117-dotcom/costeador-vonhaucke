@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validarProgramaObservado } from '../../supabase/functions/leer-plano/observed-core.js';
-import { programRequirementsDesdeObservado, proponerProgramaDesdeObservado, propuestaBloqueada, aplicarPrograma, partidaComercialDesdeConfirmado, propuestaSilleriaSugerida, silleriaPendiente } from './programaRealDelPlano.js';
+import { programRequirementsDesdeObservado, proponerProgramaDesdeObservado, propuestaBloqueada, aplicarPrograma, partidaComercialDesdeConfirmado, propuestaSilleriaSugerida, silleriaPendiente, bloqueosProgramaObservado, resolverAplicacionAtomica } from './programaRealDelPlano.js';
 
 // ============================================================================
 //  INTEGRACIÓN OFFLINE (ChatGPT R10) — NO es E2E del PDF vivo (MOCK_ONLY).
@@ -405,5 +405,105 @@ describe('INTEGRACIÓN observed pipeline (R10, offline)', () => {
     // S-01 (source_ref) NO se usa como modelo; sin modelo explícito → requiere confirmación
     expect(ws.observado_modelo).toBeNull();
     expect(ws.requiere_confirmacion_modelo).toBe(true);
+  });
+
+  // ==========================================================================
+  //  P0-R15-F · AUTORIDAD ÚNICA de BLOQUEOS de PROGRAMA OBSERVADO para publicación.
+  //  El layout puede ser geométricamente válido; el PROGRAMA COMERCIAL incompleto
+  //  NO es publicable. bloqueosProgramaObservado es lo que apaga programaListo.
+  // ==========================================================================
+  it('F1· 4 benches ×2 asientos, anclas aplicadas, 0 sillas → SILLERIA_PENDIENTE (no publicable)', () => {
+    const { prop } = pipeline([base({ type: 'bench operativo', role: 'operational', quantity: 4, capacity_per_unit: 2, capacity_total: 8, dimensions: { w: 1500, d: 1200 }, source_ref: 'B-01' })]);
+    // Las 4 anclas ya están en la cotización (aplicadas); 0 sillas confirmadas.
+    const anclasAplicadas = prop.propuesta.partidas.map(partidaComercialDesdeConfirmado);
+    const bloqueos = bloqueosProgramaObservado(prop, { partidas: anclasAplicadas });
+    expect(bloqueos.some((b) => b.code === 'SILLERIA_PENDIENTE')).toBe(true);
+    expect(bloqueos.length).toBeGreaterThan(0);        // ⇒ programaListo=false, publicable=false
+  });
+
+  it('F2· layout PASS + EXISTING_SURPLUS → conflicto de reconciliación BLOQUEA publicación', () => {
+    const { prop } = pipeline([base({ type: 'bench operativo', role: 'operational', quantity: 2, capacity_per_unit: 2, capacity_total: 4, dimensions: { w: 1500, d: 1200 }, source_ref: 'B-01' })]);
+    // Renglón existente cantidad=4 del MISMO producto/plan → al reconciliar sobran 2.
+    const existente = [{ relation_role: 'ANCHOR_WORKSTATION', rol: 'operativo', bancoId: 'op-2u-1500x1200', cantidad: 4, plan_source_ref: 'B-01', product_source_ref: 'op-2u-1500x1200' }];
+    const bloqueos = bloqueosProgramaObservado(prop, { partidas: existente });
+    expect(bloqueos.some((b) => b.code === 'EXISTING_SURPLUS')).toBe(true);
+    expect(bloqueos.length).toBeGreaterThan(0);
+  });
+
+  it('F3· anclas aplicadas + sillería confirmada (misma-identidad) → SIN bloqueos (publicable)', () => {
+    const { prop } = pipeline([base({ type: 'bench operativo', role: 'operational', quantity: 1, capacity_per_unit: 2, capacity_total: 2, dimensions: { w: 1500, d: 1200 }, source_ref: 'B-60' })]);
+    const anclas = prop.propuesta.partidas.map(partidaComercialDesdeConfirmado);
+    const sillas = propuestaSilleriaSugerida(prop.recomendaciones, { linea: 'App LT' }).partidas;
+    const bloqueos = bloqueosProgramaObservado(prop, { partidas: [...anclas, ...sillas] });
+    expect(bloqueos).toEqual([]);                       // ⇒ programaListo=true, publicable
+  });
+
+  // ==========================================================================
+  //  P1-R15-H · confirmado_modelo SOBREVIVE aItemConfirmado + partidaComercialDesdeConfirmado.
+  // ==========================================================================
+  it('H1· modelo ALTERNO confirmado SOBREVIVE el apply end-to-end → silleriaPendiente=false', () => {
+    const recomendaciones = [{ dependent_role: 'WORK_SEAT', requirement_qty: 2, para_ancla: 'ancla-A', suggested_product: 'silla-win' }];
+    // El usuario confirma un modelo DISTINTO al sugerido (silla-win → silla-alpha).
+    const seatsConfirmados = {
+      partidas: [
+        { relation_role: 'WORK_SEAT', rol: 'silla', bancoId: 'silla-alpha', anchor_instance_id: 'ancla-A', cantidad: 2, confirmado_modelo: true, productoId: 'pid-alpha', product_status: 'RESOLVED' },
+      ],
+    };
+    const ap = aplicarPrograma(seatsConfirmados, { existentes: [] });
+    const comercial = ap.confirmacion.confirmadas.map(partidaComercialDesdeConfirmado);
+    // la bandera cruzó aItemConfirmado → partidaComercialDesdeConfirmado
+    expect(comercial.every((p) => p.confirmado_modelo === true)).toBe(true);
+    // y por eso el requerimiento de modelo-alterno queda CUBIERTO
+    expect(silleriaPendiente(recomendaciones, comercial)).toBe(false);
+  });
+
+  it('H2· modelo ALTERNO SIN confirmar NO sobrevive como confirmado → silleriaPendiente=true', () => {
+    const recomendaciones = [{ dependent_role: 'WORK_SEAT', requirement_qty: 2, para_ancla: 'ancla-A', suggested_product: 'silla-win' }];
+    const seatsSinConfirmar = {
+      partidas: [
+        { relation_role: 'WORK_SEAT', rol: 'silla', bancoId: 'silla-alpha', anchor_instance_id: 'ancla-A', cantidad: 2, productoId: 'pid-alpha', product_status: 'RESOLVED' },
+      ],
+    };
+    const ap = aplicarPrograma(seatsSinConfirmar, { existentes: [] });
+    const comercial = ap.confirmacion.confirmadas.map(partidaComercialDesdeConfirmado);
+    expect(comercial.some((p) => p.confirmado_modelo === true)).toBe(false);   // nunca se inventa la bandera
+    expect(silleriaPendiente(recomendaciones, comercial)).toBe(true);          // modelo ≠ sugerido y sin confirmar
+  });
+
+  // ==========================================================================
+  //  P1-R15-I · resolverAplicacionAtomica: el resultado REFLEJA el commit contra la
+  //  autoridad (`existentes`), no un snapshot. Prueba REAL de la carrera.
+  // ==========================================================================
+  it('I1· carrera: el resultado refleja la AUTORIDAD (prev), no un snapshot — 2ª aplicación NO suma partidas nuevas', () => {
+    const { prop } = pipeline([base({ type: 'bench operativo', role: 'operational', quantity: 1, capacity_per_unit: 2, capacity_total: 2, dimensions: { w: 1500, d: 1200 }, source_ref: 'B-70' })]);
+    // 1ª: contra cotización vacía → COMMIT con partidas nuevas.
+    const r1 = resolverAplicacionAtomica(prop.propuesta, { existentes: [] });
+    expect(r1.committed).toBe(true);
+    expect(r1.confirmadas).toBeGreaterThan(0);
+    const nNuevas = r1.nuevas.length;
+    // 2ª: el `prev` ya contiene lo committeado por r1. El bug clásico (usar el snapshot
+    // vacío como autoridad) reportaría de nuevo `nNuevas` confirmadas y DUPLICARÍA. La
+    // autoridad fresca (prev) no agrega NADA nuevo → confirmadas=0, nuevas=0, sin crecer.
+    const r2 = resolverAplicacionAtomica(prop.propuesta, { existentes: r1.partidas });
+    expect(r2.confirmadas).toBe(0);                    // NO reporta éxito fantasma
+    expect(r2.nuevas.length).toBe(0);                  // 0 partidas NUEVAS
+    expect(r2.partidas.length).toBe(r1.partidas.length); // no duplica (misma cardinalidad)
+    expect(nNuevas).toBeGreaterThan(0);                // el snapshot SÍ habría reportado éxito
+  });
+
+  it('I2· conflicto de reconciliación → committed=false fail-closed (no escribe)', () => {
+    const { prop } = pipeline([base({ type: 'bench operativo', role: 'operational', quantity: 2, capacity_per_unit: 2, capacity_total: 4, dimensions: { w: 1500, d: 1200 }, source_ref: 'B-01' })]);
+    const existente = [{ relation_role: 'ANCHOR_WORKSTATION', rol: 'operativo', bancoId: 'op-2u-1500x1200', cantidad: 4, plan_source_ref: 'B-01', product_source_ref: 'op-2u-1500x1200' }];
+    const r = resolverAplicacionAtomica(prop.propuesta, { existentes: existente });
+    expect(r.committed).toBe(false);
+    expect(r.motivo).toBe('CONFLICTO_RECONCILIACION');
+    expect(r.conflictos.length).toBeGreaterThan(0);
+  });
+
+  it('I3· propuesta bajo revisión → committed=false (no la aplica aunque la pasen)', () => {
+    const bloqueada = { partidas: [{ relation_role: 'ANCHOR_WORKSTATION', bancoId: 'x', product_status: 'NEEDS_CONFIRMATION' }], requiereRevision: true };
+    const r = resolverAplicacionAtomica(bloqueada, { existentes: [] });
+    expect(r.committed).toBe(false);
+    expect(r.motivo).toBe('PROPUESTA_REQUIERE_REVISION');
   });
 });

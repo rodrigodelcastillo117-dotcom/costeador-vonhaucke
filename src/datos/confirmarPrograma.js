@@ -135,6 +135,11 @@ function aItemConfirmado(part, { slot = null, estado }) {
     nombre: part.nombre ?? null,
     linea: part.linea ?? null,
     usuarios: part.usuarios ?? null,
+    // P1-R15-H: la confirmación EXPLÍCITA de modelo de sillería (confirmado_modelo)
+    // SOBREVIVE la reconciliación. Sin ella, una silla con modelo distinto al sugerido
+    // reaparecería como pendiente (silleriaPendiente la ignora salvo confirmado_modelo).
+    // Sólo se propaga cuando es true (acto explícito del usuario).
+    ...(part.confirmado_modelo === true ? { confirmado_modelo: true } : {}),
     // P0.2c GAP16: topología + capacidad confirmadas SOBREVIVEN hasta Acomodo.
     ...(part.placement_profile ? { placement_profile: part.placement_profile } : {}),
     ...(Number(part.user_capacity ?? part.usuarios) > 0 ? { user_capacity: Number(part.user_capacity ?? part.usuarios) } : {}),

@@ -403,10 +403,14 @@ export default function Voni({
               )}
               {/* R13-3: sillería requerida por regla — modelo POR CONFIRMAR, no se auto-aplica. */}
               {recomendacionesObs.length > 0 && (
-                <div style={{ marginTop: 8, color: '#8a5a00' }}>
-                  <div style={{ fontWeight: 700 }}>Sillería (modelo por confirmar)</div>
+                // P1-R15-J: el encabezado refleja el ESTADO REAL de la sillería. Si ya
+                // no queda nada por confirmar (sillasPorConfirmar=false), se muestra
+                // "✓ Sillería confirmada" (verde) y se oculta el botón; no se deja el
+                // texto "modelo por confirmar" cuando ya está confirmada.
+                <div style={{ marginTop: 8, color: sillasPorConfirmar ? '#8a5a00' : '#1b6b3a' }}>
+                  <div style={{ fontWeight: 700 }}>{sillasPorConfirmar ? 'Sillería (modelo por confirmar)' : '✓ Sillería confirmada'}</div>
                   {recomendacionesObs.map((r, i) => (
-                    <div key={`rec${i}`}>• {r.requirement_qty}× {r.dependent_role} — sugerido {r.suggested_nombre || r.suggested_product || '—'} · confirma modelo</div>
+                    <div key={`rec${i}`}>• {r.requirement_qty}× {r.dependent_role} — sugerido {r.suggested_nombre || r.suggested_product || '—'}{sillasPorConfirmar ? ' · confirma modelo' : ''}</div>
                   ))}
                   {sillasPorConfirmar && (
                     <button type="button" className="boton" style={{ marginTop: 6 }}

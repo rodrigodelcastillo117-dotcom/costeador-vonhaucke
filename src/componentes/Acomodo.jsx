@@ -19,7 +19,7 @@ import {
 import { marcarDestinoPartida } from '../datos/destinoAcomodo.js';
 import { expandirPiezas } from '../datos/espacio.js';
 import { validarCoherenciaPrograma } from '../datos/coherenciaPrograma.js';
-import { proponerProgramaDelPlano, proponerProgramaDesdeObservado, aplicarPrograma } from '../datos/programaRealDelPlano.js';
+import { proponerProgramaDelPlano, proponerProgramaDesdeObservado, aplicarPrograma, bloqueosProgramaObservado } from '../datos/programaRealDelPlano.js';
 
 const esSugerida = (p) => !!p?.sugeridoPlano || String(p?.id || '').startsWith('sug-');
 const norm = (s = '') => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -215,6 +215,24 @@ export default function Acomodo(props) {
   // sugerencias heurísticas por áreas como segundo inventario; sólo en ABSENT.
   const sugerenciasAreaUI = observadoPresente ? [] : sugerenciasFaltantes;
 
+  // P0-R15-F: UN SOLO conjunto de bloqueos de PROGRAMA para Acomodo. El layout puede
+  // ser geométricamente válido (layoutListo) y aun así NO ser publicable si el PROGRAMA
+  // COMERCIAL observado está incompleto. Combina, como mínimo:
+  //   1. coherenciaPrograma.bloqueos (dependientes sin ancla real)
+  //   2. propuestaPlano.requiereRevision (ancla sin producto canónico / dependiente en conflicto)
+  //   3. sillería pendiente REAL, reconciliada contra las partidas actuales
+  //   4. reconObs.conflictos (reconciliación contra partidas existentes)
+  //   5. cualquier otra causa de programaCompleto === false
+  // Mientras exista cualquiera de éstos, programaListo=false en AcomodoBase → se permite
+  // BORRADOR (acomodo local), pero NO Propuesta Viva / guardado final / PDF.
+  // La autoridad observada (requiereRevision + sillería pendiente reconciliada +
+  // conflictos de reconciliación + programaCompleto=false) vive en
+  // `bloqueosProgramaObservado`; aquí sólo se concatena la coherencia estructural.
+  const bloqueosObserved = observadoPresente
+    ? bloqueosProgramaObservado(propuestaPlano, { partidas: partidasActuales })
+    : [];
+  const bloqueosProgramaUI = [...(coherenciaPrograma.bloqueos || []), ...bloqueosObserved];
+
   const estadoDemo = useMemo(() => {
     const e = props?.estado || {};
     const c = e.cotizacion || {};
@@ -361,15 +379,20 @@ export default function Acomodo(props) {
                 style={{ minHeight: 40, width: 'min(100%, 320px)', borderRadius: 8, padding: '0 12px', border: '1px solid #8bbcaf', background: '#fff', color: '#174f45', fontWeight: 700 }}>
                 <option value="applt">APP LT · 1.50 m por puesto</option>
               </select>
+              {/* P1-R15-G: el botón se deshabilita también cuando la reconciliación
+                  contra las partidas existentes arroja CONFLICTOS (no sólo por
+                  requiereRevision), y el motivo concreto se muestra al lado. */}
               <button type="button"
                 onClick={() => props.onAplicarPrograma?.(propuestaPlano.propuesta)}
-                disabled={!props.onAplicarPrograma || !!propuestaPlano.requiereRevision}
-                style={{ minHeight: 40, padding: '0 18px', borderRadius: 8, border: 'none', background: propuestaPlano.requiereRevision ? '#9aa' : '#174f45', color: '#fff', fontWeight: 800, cursor: propuestaPlano.requiereRevision ? 'not-allowed' : 'pointer' }}>
+                disabled={!props.onAplicarPrograma || !!propuestaPlano.requiereRevision || (reconObs?.conflictos?.length || 0) > 0}
+                style={{ minHeight: 40, padding: '0 18px', borderRadius: 8, border: 'none', background: (propuestaPlano.requiereRevision || (reconObs?.conflictos?.length || 0) > 0) ? '#9aa' : '#174f45', color: '#fff', fontWeight: 800, cursor: (propuestaPlano.requiereRevision || (reconObs?.conflictos?.length || 0) > 0) ? 'not-allowed' : 'pointer' }}>
                 Aplicar programa detectado
               </button>
               {propuestaPlano.requiereRevision
                 ? <span style={{ color: '#8a1f1f', fontWeight: 700 }}>NEEDS_REVIEW: mobiliario observado sin producto canónico equivalente o pendiente de confirmar.</span>
-                : <span style={{ color: '#356b62' }}>Agrega los productos reales a la cotización (idempotente). El precio lo revalida el servidor al emitir.</span>}
+                : (reconObs?.conflictos?.length || 0) > 0
+                  ? <span style={{ color: '#8a1f1f', fontWeight: 700 }}>CONFLICTO: {reconObs.conflictos.map((c) => c?.code).filter(Boolean).join(', ') || 'reconciliación con partidas existentes'}. Resuelve el conflicto antes de aplicar.</span>
+                  : <span style={{ color: '#356b62' }}>Agrega los productos reales a la cotización (idempotente). El precio lo revalida el servidor al emitir.</span>}
             </div>
           </div>
         </div>
@@ -394,7 +417,7 @@ export default function Acomodo(props) {
 
       <AcomodoBase key={`acomodo-demo-${revision}-${hayReales ? 'real' : 'sug'}`} {...props} estado={estadoDemo}
         pendientesPrograma={sugerenciasAreaUI}
-        bloqueosPrograma={coherenciaPrograma.bloqueos}
+        bloqueosPrograma={bloqueosProgramaUI}
         onGuardarAcomodo={guardarInterceptado} />
     </>
   );

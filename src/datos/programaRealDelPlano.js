@@ -126,6 +126,9 @@ export function partidaComercialDesdeConfirmado(it) {
     functional_group_id: it.functional_group_id ?? null,
     requirement_id: it.requirement_id ?? null,
     zone_id: it.zone_id ?? null,
+    // P1-R15-H: la confirmación EXPLÍCITA de modelo de sillería SOBREVIVE hasta la
+    // partida comercial → silleriaPendiente la ve cubierta. Sólo cuando es true.
+    ...(it.confirmado_modelo === true ? { confirmado_modelo: true } : {}),
     // TRES COMPUERTAS (top-level)
     product_status: it.product_status ?? 'RESOLVED',
     identity_status: it.identity_status ?? (it.productoId ? 'RESOLVED' : 'MISSING'),
@@ -608,6 +611,51 @@ export function silleriaPendiente(recomendaciones, partidas = []) {
   return false;
 }
 
+// P0-R15-F: AUTORIDAD ÚNICA de BLOQUEOS de PROGRAMA OBSERVADO para publicación.
+// Dado el resultado de `proponerProgramaDesdeObservado` y las partidas ACTUALES de la
+// cotización, devuelve la lista de bloqueos que impiden publicar (Propuesta Viva /
+// guardado final / PDF) aunque el layout sea geométricamente válido. Combina:
+//   1. propuestaPlano.requiereRevision (ancla sin producto canónico / dependiente en conflicto)
+//   2. sillería pendiente REAL, reconciliada contra las partidas actuales
+//   3. conflictos de reconciliación (aplicarPrograma vs partidas existentes)
+// Estos tres determinan por completo si el programa está completo DADAS las partidas
+// actuales. NO se usa `programaCompleto` como red de seguridad: ese flag se calcula al
+// proponer (incluye requiereConfirmacionSillas) SIN conocer las partidas ya cotizadas,
+// así que seguiría en false aunque la sillería YA esté cubierta por asientos confirmados.
+// Lista vacía ⇒ el programa comercial observado está completo y es publicable.
+// NOTA: la coherencia estructural (dependientes sin ancla real) la aporta
+// `validarCoherenciaPrograma` y se concatena en el componente; aquí vive SÓLO lo observado.
+export function bloqueosProgramaObservado(propuestaPlano, { partidas = [] } = {}) {
+  const bloqueos = [];
+  if (!propuestaPlano) return bloqueos;
+  const recs = Array.isArray(propuestaPlano.recomendaciones) ? propuestaPlano.recomendaciones : [];
+  const recon = propuestaPlano.propuesta
+    ? aplicarPrograma(propuestaPlano.propuesta, { existentes: partidas })
+    : null;
+  if (propuestaPlano.requiereRevision) {
+    bloqueos.push({
+      code: 'OBSERVED_REQUIERE_REVISION',
+      mensaje: 'Mobiliario observado por revisar: hay anclas sin producto canónico equivalente o dependientes en conflicto de modelo.',
+      accion: 'Resuelve las anclas/dependientes del programa observado antes de publicar.',
+    });
+  }
+  if (silleriaPendiente(recs, partidas)) {
+    bloqueos.push({
+      code: 'SILLERIA_PENDIENTE',
+      mensaje: 'Falta confirmar la sillería del programa observado (modelo/cantidad por confirmar).',
+      accion: 'Confirma la sillería sugerida antes de publicar.',
+    });
+  }
+  for (const c of (recon?.conflictos || [])) {
+    bloqueos.push({
+      code: c?.code || 'CONFLICTO_RECONCILIACION',
+      mensaje: `Conflicto de reconciliación con partidas existentes: ${c?.code || 'detalle no disponible'}.`,
+      accion: 'Resuelve el conflicto de partidas antes de publicar.',
+    });
+  }
+  return bloqueos;
+}
+
 export function proponerProgramaDesdeObservado(observedProgram, { linea = 'App LT', brief = null } = {}) {
   const red = programRequirementsDesdeObservado(observedProgram);
   const { pendientes, gobernables, anclasObservadas, dependientesObservados } = red;
@@ -687,6 +735,44 @@ export function aplicarProgramaSeguro(propuesta, { existentes = [] } = {}) {
     return { confirmacion: { items: [], conflictos: [] }, partidas: [], conflictos: [], ok: false, bloqueada: true, motivo: 'PROPUESTA_REQUIERE_REVISION' };
   }
   return aplicarPrograma(propuesta, { existentes });
+}
+
+/**
+ * P1-R15-I: DECISIÓN ATÓMICA DE APLICACIÓN — autoridad ÚNICA.
+ * Dada una propuesta y las partidas EXISTENTES que se pasen (el `prev` fresco en el
+ * punto atómico, NO un snapshot anterior), devuelve exactamente lo que se escribiría y
+ * si hay commit. El flag `committed` es la verdad: false cuando la propuesta está
+ * bloqueada, cuando la reconciliación arroja conflictos, o cuando es idempotente
+ * (nada nuevo ni enriquecido). El resultado que reporta el caller DEBE derivarse de
+ * esta función con las MISMAS `existentes` que usa el write — así el return refleja el
+ * commit y no un snapshot que puede mentir bajo carrera (dos aplicaciones antes del
+ * rerender: la segunda recibe `existentes` ya actualizadas → committed=false).
+ * @returns {{committed:boolean, motivo:string, confirmadas:number, conflictos:Array, nuevas:Array, enriquecidos:Array, partidas:Array}}
+ */
+export function resolverAplicacionAtomica(propuesta, { existentes = [] } = {}) {
+  const base = Array.isArray(existentes) ? existentes : [];
+  if (!propuesta) {
+    return { committed: false, motivo: 'SIN_PROPUESTA', confirmadas: 0, conflictos: [], nuevas: [], enriquecidos: [], partidas: base };
+  }
+  if (propuestaBloqueada(propuesta)) {
+    return { committed: false, motivo: 'PROPUESTA_REQUIERE_REVISION', confirmadas: 0, conflictos: [], nuevas: [], enriquecidos: [], partidas: base };
+  }
+  const aplicado = aplicarPrograma(propuesta, { existentes: base });
+  if ((aplicado.conflictos || []).length > 0) {
+    return { committed: false, motivo: 'CONFLICTO_RECONCILIACION', confirmadas: 0, conflictos: aplicado.conflictos, nuevas: [], enriquecidos: [], partidas: base };
+  }
+  const { confirmacion } = aplicado;
+  const enriquecidos = confirmacion.enriquecidos || [];
+  const porId = new Map(enriquecidos.map((e) => [String(e.id), e.patch]));
+  const patched = base.map((p) => {
+    const patch = porId.get(String(p.id));
+    return patch ? { ...p, ...patch } : p;      // sólo metadata estructural
+  });
+  const nuevas = (confirmacion.confirmadas || []).map(partidaComercialDesdeConfirmado);
+  if (!nuevas.length && !enriquecidos.length) {
+    return { committed: false, motivo: 'IDEMPOTENTE', confirmadas: 0, conflictos: [], nuevas: [], enriquecidos: [], partidas: base };
+  }
+  return { committed: true, motivo: 'OK', confirmadas: nuevas.length, conflictos: [], nuevas, enriquecidos, partidas: [...patched, ...nuevas] };
 }
 
 /**
