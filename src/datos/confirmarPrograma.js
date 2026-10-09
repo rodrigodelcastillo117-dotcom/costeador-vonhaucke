@@ -115,6 +115,12 @@ function aItemConfirmado(part, { slot = null, estado }) {
     evidence: part.evidence ?? null,
     bancoId: bancoDe(part),
     source_ref: part.source_ref ?? bancoDe(part),
+    // R12-5: DOS identidades separadas que SOBREVIVEN la confirmación —
+    // plan_source_ref (B-01, del plano) ≠ product_source_ref (op-2u…, del catálogo).
+    plan_source_ref: part.plan_source_ref ?? null,
+    product_source_ref: part.product_source_ref ?? bancoDe(part),
+    plan_tag: part.plan_tag ?? null,
+    grouping: part.grouping ?? null,
     nombre: part.nombre ?? null,
     linea: part.linea ?? null,
     usuarios: part.usuarios ?? null,

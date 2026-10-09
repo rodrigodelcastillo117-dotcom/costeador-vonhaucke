@@ -183,10 +183,14 @@ export default function Acomodo(props) {
   const obsState = acomodoObj.observed_state || 'ABSENT';
   const observadoPresente = obsState === 'PRESENT_VALID' || obsState === 'PRESENT_REVIEW_REQUIRED'
     || (acomodoObj.observed_source === 'server' && !!obsProg && obsProg.length > 0);
-  const propuestaPlano = hayReales ? null
-    : observadoPresente
-      ? (obsProg && obsProg.length ? proponerProgramaDesdeObservado(obsProg, { linea: lineaResolver }) : null)
-      : (areasActuales.length ? proponerProgramaDelPlano(areasActuales, { linea: lineaResolver }) : null);
+  // ChatGPT R12-4: se elimina el bypass `hayReales ? null`. Si hay observed_program
+  // del servidor, GOBIERNA SIEMPRE — también cuando ya existen partidas (la
+  // reconciliación contra las existentes la hace aplicarPrograma/confirmarPrograma,
+  // que sólo propone faltantes y marca conflictos). Sólo ABSENT (sin observed) y sin
+  // partidas reales cae a la heurística por áreas.
+  const propuestaPlano = observadoPresente
+    ? (obsProg && obsProg.length ? proponerProgramaDesdeObservado(obsProg, { linea: lineaResolver }) : null)
+    : (!hayReales && areasActuales.length ? proponerProgramaDelPlano(areasActuales, { linea: lineaResolver }) : null);
   const previewPropuesto = propuestaPlano ? propuestaPlano.preview : [];
 
   const estadoDemo = useMemo(() => {

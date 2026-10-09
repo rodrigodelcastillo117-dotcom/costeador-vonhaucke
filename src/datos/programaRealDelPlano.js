@@ -45,6 +45,11 @@ function aPartidaAcomodo(it) {
     piezaId: it.bancoId,
     bancoId: it.bancoId,
     source_ref: it.source_ref,
+    // R12-5: provenance del plano viaja al shape de Acomodo/preview.
+    plan_source_ref: it.plan_source_ref ?? null,
+    product_source_ref: it.product_source_ref ?? it.bancoId ?? null,
+    plan_tag: it.plan_tag ?? null,
+    grouping: it.grouping ?? null,
     nombre: nombreSemantico(it),
     cantidad: it.cantidad,
     w: it.w,
@@ -92,6 +97,12 @@ export function partidaComercialDesdeConfirmado(it) {
     piezaId: it.bancoId,
     bancoId: it.bancoId,
     source_ref: it.source_ref || it.bancoId,
+    // R12-5: la partida comercial CONSERVA de dónde vino en el plano (B-01), aparte
+    // del producto de catálogo (op-2u…), para poder explicar "¿por qué este mueble?".
+    plan_source_ref: it.plan_source_ref ?? null,
+    product_source_ref: it.product_source_ref ?? it.bancoId ?? null,
+    plan_tag: it.plan_tag ?? null,
+    grouping: it.grouping ?? null,
     productoId: it.productoId || null,
     producto_version_id: it.producto_version_id || null,
     nombre: it.nombre,
@@ -313,41 +324,62 @@ function identidadAncla(an) {
   return { anchor_role: an.anchor_role, source_ref: an.source_ref || null, zone: an.zone || null, dimensions: an.dimensions || null, quantity: an.quantity, capacity_total: an.capacity_total ?? null };
 }
 
+// Roles cuyo producto TIENE capacidad (usuarios) que debe coincidir (R12-2).
+const ANCLA_CON_CAPACIDAD = new Set([ANCHOR_ROLE.WORKSTATION, ANCHOR_ROLE.MEETING]);
+const txtModeloAncla = (an) => {
+  const s = String(an.model || an.modelo || an.acabado || an.finish || '').trim();
+  return s || null;
+};
+
 /**
- * RESUELVE cada ANCLA observada contra el CATÁLOGO por su IDENTIDAD FÍSICA
- * (rol + dimensiones + línea), ANTES de colapsar a capacidad (P0-R10-7). Cada
- * ancla física se resuelve INDEPENDIENTE (1:1, cardinalidad-aware — P0-R10-8):
- * no se reutiliza un mismo módulo elegido por capacidad para varias anclas.
- *  · RESOLVED            → existe un producto canónico con ESA geometría.
- *  · NEEDS_DIMENSIONS    → el ancla no trae dimensiones; no se puede verificar.
- *  · NEEDS_CONFIRMATION  → no hay equivalente canónico → REQUIERE_DESARROLLO
- *                          (NUNCA se sustituye un bench 2400×1400 por 4800×1200).
- * @returns {Array<{anchor_role, source_ref, zone, dimensions, estado, producto?, motivo?}>}
+ * RESUELVE UNA ancla observada contra el CATÁLOGO por IDENTIDAD FÍSICA, cruzando
+ * rol + dimensiones + CAPACIDAD + línea/modelo (ChatGPT R12-1/R12-2). "Misma
+ * dimensión" NO basta:
+ *  · RESOLVED           → EXACTAMENTE un producto canónico compatible.
+ *  · PRODUCT_AMBIGUOUS  → ≥2 candidatos y la evidencia no discrimina (p.ej. mesa
+ *                         900×900 melamina/comedor/cristal) → NUNCA matches[0].
+ *  · CAPACITY_MISMATCH  → la capacidad observada no coincide con la del producto
+ *                         de esa geometría (1 bench 1500×1200 cap 8 ≠ op-2u).
+ *  · NEEDS_DIMENSIONS   → sin dimensiones.
+ *  · NEEDS_CONFIRMATION → sin equivalente canónico (REQUIERE_DESARROLLO).
+ * P1: NO se cae a otra LÍNEA sólo porque coincida la dimensión (buscarEnColeccion
+ * ya conserva productos sin línea; no se reintenta quitando la línea pedida).
  */
+export function resolverAnclaCanonica(an, { linea = 'App LT' } = {}) {
+  const coleccion = COLECCION_ANCLA[an.anchor_role];
+  const dims = an.dimensions;
+  const base = identidadAncla(an);
+  if (!coleccion) return { ...base, estado: 'NEEDS_CONFIRMATION', motivo: 'Rol de ancla sin colección canónica.' };
+  if (!dims || (dims.w == null && dims.d == null)) {
+    return { ...base, estado: 'NEEDS_DIMENSIONS', motivo: 'Ancla observada sin dimensiones: no se puede verificar el producto canónico.' };
+  }
+  const modelo = txtModeloAncla(an);
+  // Sin fallback cross-línea (P1): si se pide línea, otra línea requiere confirmación.
+  let matches = buscarEnColeccion(coleccion, { line: linea, dimensions: dims, model: modelo });
+  // Si NINGÚN producto tiene esa GEOMETRÍA → REQUIERE_DESARROLLO (no se sustituye).
+  if (matches.length === 0) {
+    return { ...base, estado: 'NEEDS_CONFIRMATION', motivo: 'REQUIERE_DESARROLLO: ningún producto canónico equivale a la geometría observada (no se sustituye por capacidad).' };
+  }
+  // La geometría EXISTE: ahora la CAPACIDAD debe coincidir cuando aplica (R12-2).
+  const capPer = Number(an.capacity_per_unit) > 0 ? Math.round(Number(an.capacity_per_unit)) : null;
+  if (ANCLA_CON_CAPACIDAD.has(an.anchor_role) && capPer != null) {
+    const conCap = matches.filter((p) => Number(p.usuarios) === capPer);
+    if (!conCap.length) {
+      return { ...base, estado: 'CAPACITY_MISMATCH', capacity_per_unit: capPer, motivo: `Existe producto de ${dims.w}×${dims.d} pero su capacidad no coincide con la observada (${capPer}).`, candidatos: matches.map((p) => p.id) };
+    }
+    matches = conCap;
+  }
+  if (matches.length > 1) {
+    return { ...base, estado: 'PRODUCT_AMBIGUOUS', motivo: 'Varios productos canónicos con esa geometría/capacidad; la evidencia no discrimina modelo/acabado.', candidatos: matches.map((p) => p.id) };
+  }
+  const wd = medidasAwd(matches[0].medidas) || {};
+  return { ...base, estado: 'RESOLVED', producto: matches[0].id, producto_obj: matches[0], w: wd.w ?? null, d: wd.d ?? null };
+}
+
+/** RECONCILIA cada ANCLA observada por identidad física (una por una, 1:1). */
 export function conciliarAnclasObservadas(anclas = [], opts = {}) {
   const linea = opts.linea || 'App LT';
-  return (Array.isArray(anclas) ? anclas : []).map((an) => {
-    const coleccion = COLECCION_ANCLA[an.anchor_role];
-    const dims = an.dimensions;
-    const base = identidadAncla(an);
-    if (!coleccion) return { ...base, estado: 'NEEDS_CONFIRMATION', motivo: 'Rol de ancla sin colección canónica.' };
-    if (!dims || (dims.w == null && dims.d == null)) {
-      return { ...base, estado: 'NEEDS_DIMENSIONS', motivo: 'Ancla observada sin dimensiones: no se puede verificar el producto canónico.' };
-    }
-    // Match por dimensiones EXACTAS (con y sin línea pedida). El catálogo decide;
-    // si no existe, el llamador trata NEEDS_CONFIRMATION, nunca sustituye.
-    let matches = buscarEnColeccion(coleccion, { line: linea, dimensions: dims });
-    if (!matches.length) matches = buscarEnColeccion(coleccion, { dimensions: dims });
-    if (matches.length) {
-      const wd = medidasAwd(matches[0].medidas) || {};
-      return { ...base, estado: 'RESOLVED', producto: matches[0].id, producto_obj: matches[0], w: wd.w ?? null, d: wd.d ?? null };
-    }
-    return {
-      ...base,
-      estado: 'NEEDS_CONFIRMATION',
-      motivo: 'REQUIERE_DESARROLLO: ningún producto canónico equivale a la geometría observada (no se sustituye por capacidad).',
-    };
-  });
+  return (Array.isArray(anclas) ? anclas : []).map((an) => resolverAnclaCanonica(an, { linea }));
 }
 
 /**
@@ -356,7 +388,7 @@ export function conciliarAnclasObservadas(anclas = [], opts = {}) {
  * detectar divergencias (faltan/sobran). Las sillas observadas confirman, no
  * duplican: por eso NO alimentan el programa; aquí sólo se verifica coherencia.
  */
-export function conciliarDependientes(observados = [], preview = []) {
+export function conciliarDependientes(observados = [], requeridos = []) {
   const sumaPorRol = (arr, key, qtyKey) => {
     const m = {};
     for (const x of (Array.isArray(arr) ? arr : [])) {
@@ -367,7 +399,14 @@ export function conciliarDependientes(observados = [], preview = []) {
     return m;
   };
   const obs = sumaPorRol(observados, 'dependent_role', 'quantity');
-  const res = sumaPorRol((Array.isArray(preview) ? preview : []).filter((p) => !/^ANCHOR_/.test(p.relation_role || '')), 'relation_role', 'cantidad');
+  // `requeridos` = recomendaciones de asiento (dependent_role, requirement_qty,
+  // suggested_product). El producto sugerido es SUGGESTED: el modelo lo confirma
+  // el usuario (R12-3) — por eso aquí NO se da por confirmada ninguna silla.
+  const res = sumaPorRol(Array.isArray(requeridos) ? requeridos : [], 'dependent_role', 'requirement_qty');
+  const modeloSugerido = {};
+  for (const r of (Array.isArray(requeridos) ? requeridos : [])) if (r && r.dependent_role) modeloSugerido[r.dependent_role] = r.suggested_product || null;
+  const modeloObservado = {};
+  for (const o of (Array.isArray(observados) ? observados : [])) if (o && o.dependent_role) modeloObservado[o.dependent_role] = o.product || o.model || o.source_ref || null;
   const roles = new Set([...Object.keys(obs), ...Object.keys(res)]);
   // P0-R10-9: 4 estados. Nada OBSERVADO desaparece: OBSERVED_ONLY exige acción
   // (identificar producto/desarrollo); GENERATED_ONLY es regla/sugerencia, no observado.
@@ -378,7 +417,13 @@ export function conciliarDependientes(observados = [], preview = []) {
     if (o > 0 && r === 0) estado = 'OBSERVED_ONLY';
     else if (r > 0 && o === 0) estado = 'GENERATED_ONLY';
     else if (o !== r) estado = 'DIVERGE';
-    return { dependent_role: rol, observados: o, resueltos: r, estado };
+    const suggested = modeloSugerido[rol] || null;
+    const observadoModelo = modeloObservado[rol] || null;
+    // R12-3: el modelo del asiento NO está confirmado. Si el observado trae modelo
+    // y difiere del sugerido → MODEL_MISMATCH; si no, el sugerido requiere confirmación.
+    const requiere_confirmacion_modelo = !!suggested && (!observadoModelo || observadoModelo !== suggested);
+    const modelo_mismatch = !!suggested && !!observadoModelo && observadoModelo !== suggested;
+    return { dependent_role: rol, observados: o, resueltos: r, estado, suggested_product: suggested, observado_modelo: observadoModelo, requiere_confirmacion_modelo, modelo_mismatch };
   });
 }
 
@@ -395,27 +440,43 @@ const ANCHOR_REL = Object.freeze({
   [ANCHOR_ROLE.RECEPTION]: { rel: 'ANCHOR_RECEPTION', rol: 'recepcion', seat: null },
 });
 
+// Adjunta la PROVENANCE del plano a una resolución (R12-5): dos identidades
+// SEPARADAS — plan_source_ref (B-01, del plano) vs product_source_ref (op-2u…,
+// del catálogo) — más plan_tag/grouping/zone/posición/orientación observadas.
+function conProvenance(res, an) {
+  if (!res) return res;
+  res.plan_source_ref = an.source_ref || null;       // identidad del PLANO (B-01)
+  res.product_source_ref = res.bancoId || null;       // identidad del PRODUCTO (op-2u…)
+  res.plan_tag = an.plan_tag || null;
+  res.grouping = an.grouping || null;
+  if (an.position) res.observed_position = an.position;
+  if (an.orientation != null) res.observed_orientation = an.orientation;
+  return res;
+}
+
 /**
- * IDENTITY-FIRST (ChatGPT R11-1/2): cada ANCLA FÍSICA observada genera DIRECTAMENTE
- * su ProductResolution canónica por DIMENSIONES (no por capacidad agregada). Un
- * observed quantity=N produce N instancias físicas (cardinalidad 1:1). Si no hay
- * equivalente canónico para esa geometría → incompletos (NEEDS_CONFIRMATION), NUNCA
- * se sustituye por un módulo de otra medida que cubra la misma capacidad.
- * @returns {{partidas:Array, incompletos:Array}}
+ * IDENTITY-FIRST (ChatGPT R11-1/2 + R12): cada ANCLA FÍSICA observada resuelve su
+ * producto canónico cruzando rol+dimensiones+CAPACIDAD+línea (resolverAnclaCanonica).
+ * quantity=N → N instancias (1:1). PRODUCT_AMBIGUOUS/CAPACITY_MISMATCH/NEEDS_* →
+ * incompletos (NUNCA matches[0] a ciegas).
+ * Las SILLAS NO son partidas confirmadas: son RECOMENDACIONES (SUGGESTED) con el
+ * producto sugerido por regla; el modelo real lo confirma el usuario (R12-3).
+ * Conserva PROVENANCE del plano en cada resolución (R12-5).
+ * @returns {{partidas:Array, incompletos:Array, recomendaciones:Array}}
  */
 export function resolverFisicoDesdeObservado(anclas, { linea = 'App LT' } = {}) {
   const partidas = [];
   const incompletos = [];
+  const recomendaciones = [];
   (Array.isArray(anclas) ? anclas : []).forEach((an, i) => {
     const map = ANCHOR_REL[an.anchor_role];
-    const coleccion = COLECCION_ANCLA[an.anchor_role];
-    if (!map || !coleccion) { incompletos.push({ reason: 'ANCHOR_ROLE_DESCONOCIDO', source_ref: an.source_ref || null, anchor_role: an.anchor_role }); return; }
-    const dims = an.dimensions;
-    if (!dims || (dims.w == null && dims.d == null)) { incompletos.push({ reason: 'NEEDS_DIMENSIONS', source_ref: an.source_ref || null, anchor_role: an.anchor_role }); return; }
-    let matches = buscarEnColeccion(coleccion, { line: linea, dimensions: dims });
-    if (!matches.length) matches = buscarEnColeccion(coleccion, { dimensions: dims });
-    if (!matches.length) { incompletos.push({ reason: 'REQUIERE_DESARROLLO', source_ref: an.source_ref || null, anchor_role: an.anchor_role, dimensions: dims }); return; }
-    const prod = matches[0];
+    if (!map) { incompletos.push({ reason: 'ANCHOR_ROLE_DESCONOCIDO', plan_source_ref: an.source_ref || null, anchor_role: an.anchor_role }); return; }
+    const r = resolverAnclaCanonica(an, { linea });
+    if (r.estado !== 'RESOLVED') {
+      incompletos.push({ reason: r.estado, motivo: r.motivo || null, plan_source_ref: an.source_ref || null, anchor_role: an.anchor_role, dimensions: an.dimensions || null, candidatos: r.candidatos || undefined });
+      return;
+    }
+    const prod = r.producto_obj;
     const q = Number(an.quantity) > 0 ? Math.floor(Number(an.quantity)) : 1;
     const req_id = requirementId(an.zone || null, map.rol, i);
     const seatsPorUnidad = Number(an.capacity_per_unit) > 0 ? Math.round(Number(an.capacity_per_unit)) : 0;
@@ -426,22 +487,26 @@ export function resolverFisicoDesdeObservado(anclas, { linea = 'App LT' } = {}) 
         functional_group_id: groupId(req_id, k), instance_id: instanceId(req_id, k),
         cantidad: 1, inclusion: 'anchor',
       });
-      if (res) { res.observed_source_ref = an.source_ref || null; partidas.push(res); }
-      // Dependientes OBLIGATORIOS por regla (asiento), con identidad real de catálogo.
+      if (res) partidas.push(conProvenance(res, an));
+      // ASIENTOS: el REQUERIMIENTO (N sillas) es real, pero el PRODUCTO es una
+      // SUGERENCIA (modelo no confirmado con VH) → recomendación, NO partida (R12-3).
       if (map.seat && seatsPorUnidad > 0) {
         const silla = asientoPara(map.seat);
-        for (let s = 0; s < seatsPorUnidad && silla; s++) {
-          const dep = construirResolucion(silla, {
-            requirement_id: req_id, zone_id: an.zone || null, rol: 'silla', relation_role: map.seat,
-            anchor_role: map.rel, functional_group_id: groupId(req_id, k), instance_id: instanceId(req_id, `${map.seat}:${k}:${s}`),
-            anchor_instance_id: instanceId(req_id, k), cantidad: 1, inclusion: 'mandatory_by_rule',
-          });
-          if (dep) partidas.push(dep);
-        }
+        recomendaciones.push({
+          dependent_role: map.seat,
+          requirement_qty: seatsPorUnidad,
+          para_ancla: res ? res.instance_id : null,
+          plan_source_ref: an.source_ref || null,
+          zone: an.zone || null,
+          suggested_product: silla ? silla.id : null,
+          suggested_nombre: silla ? (silla.nombre || silla.id) : null,
+          product_status: 'SUGGESTED',
+          requiere_confirmacion_modelo: true,
+        });
       }
     }
   });
-  return { partidas, incompletos };
+  return { partidas, incompletos, recomendaciones };
 }
 
 export function proponerProgramaDesdeObservado(observedProgram, { linea = 'App LT', brief = null } = {}) {
@@ -453,9 +518,13 @@ export function proponerProgramaDesdeObservado(observedProgram, { linea = 'App L
   const fisico = resolverFisicoDesdeObservado(anclasObservadas, { linea });
   const anclasConciliadas = conciliarAnclasObservadas(anclasObservadas, { linea });
   const hayAnclaNoResuelta = anclasConciliadas.some((a) => a.estado !== 'RESOLVED');
-  const propuesta = { partidas: fisico.partidas, pendientes: fisico.incompletos, incompletos: fisico.incompletos, cotizable: fisico.incompletos.length === 0 };
+  // propuesta.partidas = SÓLO anclas confirmables; las sillas viven en recomendaciones
+  // (SUGGESTED, R12-3) y NUNCA entran como partida confirmada.
+  const propuesta = { partidas: fisico.partidas, recomendaciones: fisico.recomendaciones, pendientes: fisico.incompletos, incompletos: fisico.incompletos, cotizable: fisico.incompletos.length === 0 };
   const preview = partidasPropuestas(propuesta);
-  const dependientesConciliados = conciliarDependientes(dependientesObservados, preview);
+  // Reconcilia los dependientes OBSERVADOS contra el REQUERIMIENTO (recomendaciones),
+  // comparando modelo cuando exista (R12-3).
+  const dependientesConciliados = conciliarDependientes(dependientesObservados, fisico.recomendaciones);
   // GATE (R11-3): ancla no resuelta, cualquier pendiente, o dependiente observado
   // sin empate (OBSERVED_ONLY/DIVERGE) → requiereRevision (bloquea Aplicar).
   const depGate = dependientesConciliados.some((d) => d.estado === 'OBSERVED_ONLY' || d.estado === 'DIVERGE');
@@ -467,7 +536,8 @@ export function proponerProgramaDesdeObservado(observedProgram, { linea = 'App L
     gobernadoPorObservado: true,
     observadoPendientes: pendientes,
     anclasObservadas, dependientesObservados,
-    propuesta, preview, incompletos: fisico.incompletos, cotizable: propuesta.cotizable,
+    propuesta, preview, recomendaciones: fisico.recomendaciones,
+    incompletos: fisico.incompletos, cotizable: propuesta.cotizable,
     anclasConciliadas, dependientesConciliados,
     requiereRevision,
   };
@@ -478,7 +548,9 @@ export function propuestaBloqueada(propuesta) {
   if (!propuesta) return true;
   if (propuesta.requiereRevision === true) return true;
   if (Array.isArray(propuesta.incompletos) && propuesta.incompletos.length > 0) return true;
-  if (Array.isArray(propuesta.partidas) && propuesta.partidas.some((p) => p && p.product_status === 'NEEDS_CONFIRMATION')) return true;
+  // P1-R12: ninguna partida con producto sin resolver o SIN identidad (producto_id)
+  // se aplica — blinda el gate aunque el flujo cambie.
+  if (Array.isArray(propuesta.partidas) && propuesta.partidas.some((p) => p && (p.product_status === 'NEEDS_CONFIRMATION' || p.identity_status === 'MISSING'))) return true;
   return false;
 }
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validarProgramaObservado } from '../../supabase/functions/leer-plano/observed-core.js';
-import { programRequirementsDesdeObservado, proponerProgramaDesdeObservado } from './programaRealDelPlano.js';
+import { programRequirementsDesdeObservado, proponerProgramaDesdeObservado, propuestaBloqueada, aplicarPrograma, partidaComercialDesdeConfirmado } from './programaRealDelPlano.js';
 
 // ============================================================================
 //  INTEGRACIÓN OFFLINE (ChatGPT R10) — NO es E2E del PDF vivo (MOCK_ONLY).
@@ -140,5 +140,41 @@ describe('INTEGRACIÓN observed pipeline (R10, offline)', () => {
   it('16· P1 identidad ambigua: ancla sin source_ref ni posición → IDENTIDAD_AMBIGUA / revisión', () => {
     const { red } = pipeline([{ kind: 'furniture', type: 'bench operativo', role: 'operational', quantity: 4, capacity_per_unit: 2, capacity_total: 8, dimensions: { w: 1500, d: 1200 }, zone: 'OPEN SPACE', confidence: 0.9, evidence: 'x', origin: 'observed' }]);
     expect(red.pendientes.some((p) => p.code === 'IDENTIDAD_AMBIGUA')).toBe(true);
+  });
+
+  it('17· R12-1 AMBIGÜEDAD: mesa 900×900 (melamina/comedor/cristal) sin evidencia → PRODUCT_AMBIGUOUS, nada en partidas', () => {
+    const { prop } = pipeline([base({ type: 'mesa de juntas', role: 'meeting', quantity: 1, capacity_per_unit: 4, dimensions: { w: 900, d: 900 }, zone: 'SALA DE JUNTAS', source_ref: 'J-09' })]);
+    const conc = prop.anclasConciliadas[0];
+    expect(conc.estado).toBe('PRODUCT_AMBIGUOUS');
+    expect(conc.candidatos.length).toBeGreaterThanOrEqual(2);
+    expect(prop.propuesta.partidas.length).toBe(0);   // no se eligió matches[0]
+    expect(prop.requiereRevision).toBe(true);
+  });
+
+  it('18· R12-2 CAPACIDAD: bench 1500×1200 con capacity_per_unit=8 → CAPACITY_MISMATCH (no op-2u)', () => {
+    const { prop } = pipeline([base({ type: 'bench operativo', role: 'operational', quantity: 1, capacity_per_unit: 8, capacity_total: 8, dimensions: { w: 1500, d: 1200 }, source_ref: 'B-08' })]);
+    expect(prop.anclasConciliadas[0].estado).toBe('CAPACITY_MISMATCH');
+    expect(prop.requiereRevision).toBe(true);
+    expect(prop.propuesta.partidas.filter((p) => p.bancoId === 'op-2u-1500x1200').length).toBe(0);
+  });
+
+  it('19· R12-3 SILLAS: operativo resuelto → asientos son RECOMENDACIÓN SUGGESTED, NO partida confirmada', () => {
+    const { prop } = pipeline([base({ type: 'bench operativo', role: 'operational', quantity: 1, capacity_per_unit: 2, capacity_total: 2, dimensions: { w: 1500, d: 1200 }, source_ref: 'B-07' })]);
+    // ninguna partida es una silla/dependiente: sólo el ancla
+    expect(prop.propuesta.partidas.every((p) => /^ANCHOR_/.test(p.relation_role))).toBe(true);
+    const rec = prop.recomendaciones.find((r) => r.dependent_role === 'WORK_SEAT');
+    expect(rec.product_status).toBe('SUGGESTED');
+    expect(rec.requiere_confirmacion_modelo).toBe(true);
+    expect(rec.requirement_qty).toBe(2);
+  });
+
+  it('20· R12-5 PROVENANCE: B-01 → op-2u; tras aplicar, la partida conserva plan_source_ref=B-01', () => {
+    const { prop } = pipeline([base({ type: 'bench operativo', role: 'operational', quantity: 1, capacity_per_unit: 2, capacity_total: 2, dimensions: { w: 1500, d: 1200 }, source_ref: 'B-01' })]);
+    const ap = aplicarPrograma(prop.propuesta, { existentes: [] });
+    const conf = ap.confirmacion.confirmadas[0];
+    expect(conf.plan_source_ref).toBe('B-01');               // identidad del PLANO conservada
+    expect(conf.product_source_ref).toBe('op-2u-1500x1200'); // identidad del PRODUCTO, separada
+    const comercial = partidaComercialDesdeConfirmado(conf);
+    expect(comercial.plan_source_ref).toBe('B-01');
   });
 });
