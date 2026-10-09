@@ -3,8 +3,8 @@
 > Estado vivo para continuar entre sesiones. Otra sesión debe poder retomar EXACTAMENTE aquí.
 > Última actualización: 2026-10-08 (ronda 2 + REALITY CUTOVER v1 + observed_program + UI procedencia Precios/HojaCosto)
 >
-> **ESTADO ACTUAL**: HEAD `audit/final-product-completion` = `f1cd961` + este doc-commit encima.
-> Tests **1924/1924** · build ✅. P0 de cliente: **0 abiertos** (P0-A/P0-B cerrados).
+> **ESTADO ACTUAL**: HEAD `audit/final-product-completion` = `313af38` + este doc-commit encima.
+> Tests **1925/1925** · build ✅. P0 de cliente: **0 abiertos** (P0-A/P0-B cerrados).
 > CABLEADO VISIBLE (capa ADITIVA, NO cambia números del motor; tests de dinero verdes):
 >  1. `Precios.jsx` (Dirección): columna Procedencia por insumo (chip + "¿por qué $544?").
 >  2. `HojaCosto.jsx` (Costear/veCostos): "✓ Costo con evidencia real" o "N de M MP sin evidencia —
