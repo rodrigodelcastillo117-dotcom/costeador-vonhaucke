@@ -3,30 +3,33 @@
 > Estado VIVO y VERÍDICO para continuar entre sesiones y para auditoría de ChatGPT.
 > Regla: este archivo refleja SIEMPRE el HEAD real, los tests reales y qué quedó REALMENTE
 > cableado vs pendiente. Cero información histórica presentada como estado actual.
-> Última actualización: 2026-10-09 (ronda 9 ChatGPT cerrada: bugs de INTEGRACIÓN observed→validador→resolver→golden).
+> Última actualización: 2026-10-09 (ronda 10 ChatGPT+Grok: NEEDS_CONFIRMATION/REVIEW gobiernan la conducta).
 
 ## ESTADO ACTUAL (verificado contra el repo)
-- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `a741ab1`**; el HEAD de la rama es el
+- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `b3da1ba`**; el HEAD de la rama es el
   doc-commit de este CLOSEOUT encima (un commit no puede contener su propio SHA). Tip exacto: `git rev-parse HEAD`.
-- **Tests: 2092 / 2092** (vitest, 256 archivos) · **Build: ✅** (vite) · **deno check ✅** (leer-plano + core) · verificado en esta sesión (2026-10-09).
+- **Tests: 2125 / 2125** (vitest, 257 archivos) · **Build: ✅** (vite) · **deno check ✅** (leer-plano + core) · verificado en esta sesión (2026-10-09).
+- **Evidencia = LOCAL de Claude. GitHub NO tiene CI runs (0 workflows).** Golden QA-COT-01 = MOCK_ONLY /
+  RECORDED CONTRACT (no es E2E del PDF vivo). Lectura de PDF en vivo + edges = BLOCKED_EXTERNAL (no desplegado).
 - **MANDATO RC (deadline lunes 12-oct)**: autónomo hasta Release Candidate. Autorización NUEVA de Rodrigo:
   cutover del motor SÓLO para productos NUEVOS (shadow primero), agregar parser XLSX justificado, preparar edges.
   Siguen prohibidos (se preparan/documentan como BLOCKED_EXTERNAL, no se ejecutan): merge, deploy/promote,
   migración prod, escrituras masivas prod, modificar 33 legacy, aprobar DATA TRUTH, integrar Intelisis.
-- **P0 conocidos ABIERTOS: 0** — pero esto es "a la fecha de este HEAD y según las auditorías hechas".
-  ChatGPT ronda 7: 10 P0 (cerrados). Ronda 8: 7 P0 (cerrados). **Ronda 9: 10 P0 de INTEGRACIÓN — TODOS
-  cerrados ahora** (ver ronda 9): el cliente consumía el observed_program CRUDO (no el saneado por el servidor);
-  schema del lector ≠ validador (confianza textual); validador no fail-closed; fallback heurístico pese a haber
-  observed; pendientes observados perdidos en UI; sillas se contaban como anclas (inflaban puestos/salas);
-  capacidad de multi-mueble duplicada; se COLAPSABA el mueble observado a sólo usuarios (4 benches 2400×1400 →
-  1 módulo 4800×1200); golden incompleto; conversión industrial con una sola división genérica.
-  Que no haya P0 abiertos NO significa "no hay más". Falta E2E autenticado real, verificación EN VIVO de edges
-  (deploy) y el VOCABULARIO de mobiliario del lector (siguiente P0: hoy el lector da geometría+puestos, no tipos
-  de mueble → roles no mapeados van a revisión, nunca inventados).
+- **P0 ejecutables cerrados por ronda; NO se declara "P0 abiertos: 0" hasta que R10 sea RE-AUDITADA.**
+  ChatGPT r7: 10 P0 (cerrados). r8: 7 P0 (cerrados). r9: 10 P0 de INTEGRACIÓN (cerrados). **r10 (ChatGPT+Grok):
+  14 P0/P1 ejecutables — cerrados en código ahora** (ver ronda 10): el cliente perdía issues del servidor;
+  PRESENT_REVIEW_REQUIRED no era gate; NEEDS_CONFIRMATION era sólo visual (el botón aplicaba el producto malo);
+  kind=room podía volverse mueble; se inventaba capacidad (muebles→puestos); faltaba coherencia de capacidad;
+  la identidad física no llegaba al resolver (se resolvía por capacidad y se detectaba después); reconciliación
+  no 1:1; dependientes observados (CR-01) desaparecían; golden con dims equivocadas; confianza 0.4 gobernaba;
+  dedup débil; regex de ontología demasiado ancho; maxPage sin cablear en el wrapper.
+  **Falta (NO ejecutable aquí / pendiente de re-auditoría):** re-auditoría R10, E2E autenticado real, deploy del
+  edge + lectura viva del PDF, VOCABULARIO de mobiliario del lector + productos canónicos que equivalgan a dims
+  reales, y los parámetros de conversión por familia (DATA TRUTH).
 - **Cableado REAL hoy** (capa ADITIVA — NO cambia ningún número del motor; tests de dinero verdes):
   1. `Precios.jsx` (Dirección): columna "Procedencia" por insumo — chip por TIPO de fuente + tooltip "¿por qué $544?".
-  2. `HojaCosto.jsx` (Costear/veCostos): "✓ Costo con evidencia real" sólo si TODA la MP es real FECHADA con FX
-     verificado; si no, "N de M material(es) sin evidencia — costo no oficial".
+  2. `HojaCosto.jsx` (Costear/veCostos): label EXACTO del código = "✓ Precios de MP con evidencia real · N
+     material(es) — (consumo/MO/GI sin verificar)" (NO dice "costo con evidencia real": el consumo/MO/GI no se verifican).
   Ambas usan UN adapter canónico `resolverPrecioInsumoVivo` (un precio capturado a mano NO hereda evidencia vieja).
   3. `floorPlanReader.js`: cable PURO lector real (`programaDelPlano`) → `observed_program` (test con lector real).
   4. **observed_program GOBIERNA el programa (ronda 8/9)**: `Voni.jsx` usa `proponerProgramaDesdeObservado`
@@ -62,6 +65,28 @@ credenciales a un servicio externo). Por eso:
 - BLOCKED_EXTERNAL (requiere login con cuenta de PRUEBA): E2E autenticado de guardar/reabrir, roles en vivo, aprobar contra servidor, autosave real, storage real.
 
 ## HISTORIAL DE AUDITORÍA (ChatGPT) — qué pasó en cada ronda
+
+### Ronda 10 — ChatGPT + Grok (sobre a741ab1) — 14 P0/P1 ejecutables cerrados (código `b3da1ba`)
+"R9 mejoró de verdad pero NO cerró integración." Un NEEDS_CONFIRMATION/REVIEW debe GOBERNAR la conducta, no ser
+decorativo. Cerrado en código (pendiente de RE-AUDITORÍA; capa pura, sin deploy/motor):
+- **R10-1** el cliente UNE issues del servidor y respeta `review_required` (no los borra al re-validar); `clamp01(null)→null`.
+- **R10-2** `PRESENT_REVIEW_REQUIRED` es GATE: no auto-aplica; `requiereRevision` estructural.
+- **R10-3** `NEEDS_CONFIRMATION` bloquea el botón Aplicar (ya no mete el producto incorrecto).
+- **R10-4** `kind=room` jamás es mueble (ni ancla, ni capacidad, ni reception/meeting/workstation).
+- **R10-5** NO inventar capacidad: bench sin capacity_total → `NEEDS_CAPACITY` (no convierte muebles en puestos).
+- **R10-6** validador: `capacity_total ≠ quantity×capacity_per_unit` → `CAPACIDAD_INCONSISTENTE`; unit entero>0.
+- **R10-7** identidad física del ancla llega al resolver; se resuelve por DIMENSIONES contra catálogo (`buscarEnColeccion`).
+- **R10-8** reconciliación 1:1 por catálogo (cada ancla física resuelve independiente; no se reutiliza un módulo por capacidad).
+- **R10-9** dependientes observados no desaparecen: `MATCH/DIVERGE/OBSERVED_ONLY/GENERATED_ONLY` en UI (CR-01 visible).
+- **R10-10** golden `planoGoldenObserved132.test.js` con dims EXACTAS (CR-01 1200×500, CF-01 3300×600) y asserts de expectativa única. MOCK_ONLY.
+- **R10-11** umbral único `UMBRAL_CONFIANZA_GOBERNAR=0.7` (observedProgram.js): media/baja → revisión.
+- **R10-12** dedup por `source_ref`/`plan_tag` primero; dos muebles sin posición y sin etiqueta NO colisionan.
+- **R10-13** ontología por PALABRA COMPLETA + role canónico (no 'direct'∈'indirect', 'puesto'∈'repuesto', 'print'∈'blueprint').
+- **R10-14** `maxPage` se pasa en el wrapper SÓLO si el lector reporta páginas (hoy no lo emite → NOT_VERIFIED live).
+Nuevos módulos previos usados: `mobiliarioOntologia.js`, `conversionMaterial.js`. Nuevo test de INTEGRACIÓN OFFLINE de
+13 casos (`observedPipelineIntegracion.test.js`): server→validador→autoridad cliente→resolver→reconciliación→apply gate.
+Suite 2125/2125 (257 archivos) · build ✅ · deno check ✅. Edge PREPARADO, NO DESPLEGADO. Verificado en vivo que el
+bug de sustitución existía: el resolver elegía `op-8u-4800x1200-cristal` para 4 benches 2400×1400 → ahora NEEDS_CONFIRMATION.
 
 ### Ronda 9 — ChatGPT (sobre 8811fce) — 10 P0 de INTEGRACIÓN, TODOS cerrados (código `a741ab1`)
 Acepta los fixes individuales de R8 y encuentra los errores de INTEGRACIÓN (los difíciles):
@@ -220,7 +245,7 @@ Intelisis = adapter FUTURO. NO usar $0 como desconocido; no viejo-como-vigente; 
   derivado de PROCEDENCIA (floorSpec, una sola verdad); `confirmarObservado` (acto EXPLÍCITO, nada se autoconfirma).
 - `src/datos/floorPlanReader.js` — `observedProgramDeLectura(pr)`: cable del lector REAL `programaDelPlano` → observed_program.
 - `src/datos/shadowCutover.js` — SHADOW del motor (ChatGPT §8): compara legacy `insumo.precio` vs canónico por insumo.
-  Resultado catálogo real: **259/259 iguales, 0 diferencias numéricas → cutover SEGURO**; 93 quedarían como costo
+  Resultado catálogo real: **259/259 iguales, 0 diferencias numéricas HOY (`sinDiferenciaNumericaActual`, NO "cutover seguro" permanente)**; 93 quedarían como costo
   NO oficial (85 provisional + 8 sin fecha). Honesto: cutover numérico es no-op hoy (1 observación/insumo);
   el gobierno real del número cobra sentido al ingerir la serie histórica (xlsx).
 - `src/datos/productSpec.js` — PRODUCT INTELLIGENCE (§5): contrato de MUEBLE con evidencia por dato; material
@@ -298,7 +323,7 @@ Lo que falta es CONECTAR la casa, en este orden:
    LÍNEA (materiales/partes/rubros + moneda+FX) y usarlo con las T.D.C. Alba/Alpura reales (depende de #3).
    fixture ≠ golden ejecutado.
 
-## Matriz (estado real al código a741ab1)
+## Matriz (estado real al código b3da1ba)
 | Área | CODE | INTEGRATION | E2E | USER FLOW | Pendiente |
 |---|---|---|---|---|---|
 | Home/Navegación | ✅ | ✅ | ✅ smoke | ✅ render | — |

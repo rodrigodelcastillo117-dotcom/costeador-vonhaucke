@@ -5,6 +5,46 @@
 
 ---
 
+## R10 PARA AUDITORÍA CHATGPT + GROK
+
+- **branch:** `audit/final-product-completion`
+- **code SHA:** `b3da1ba` (el HEAD de la rama es el doc-commit de este CLOSEOUT encima). Base R10 = `a741ab1`.
+- **docs HEAD previo auditado por ustedes:** `d7bb809`.
+- **archivos tocados (R10):**
+  - Nuevos: `src/datos/observedPipelineIntegracion.test.js` (13 casos de integración offline).
+  - Modificados: `supabase/functions/leer-plano/observed-core.js` (+test), `supabase/functions/leer-plano/index.ts` (maxPage), `src/datos/observedProgram.js` (clamp01, UMBRAL), `src/datos/mobiliarioOntologia.js` (+test), `src/datos/programaRealDelPlano.js`, `src/componentes/Voni.jsx`, `src/datos/planoGoldenObserved132.test.js`.
+- **tests:** 2125/2125 vitest (257 archivos). **vite build:** ✅. **deno check:** ✅ (leer-plano, observed-core, leer-plano-core).
+- **CI status real:** GitHub SIN workflow runs (0). Toda la evidencia es LOCAL de Claude.
+- **Estado por hallazgo:**
+  - R10-1 unir issues del servidor — **INTEGRATION_PASS** (casos 2/3/6).
+  - R10-2 PRESENT_REVIEW_REQUIRED es gate — **INTEGRATION_PASS** lógica (`requiereRevision`); UI del botón = CODE_PASS (no E2E).
+  - R10-3 NEEDS_CONFIRMATION bloquea apply — **INTEGRATION_PASS** (casos 7/8 + golden).
+  - R10-4 kind=room nunca mueble — **INTEGRATION_PASS** (caso 4).
+  - R10-5 no inventar capacidad — **INTEGRATION_PASS** (caso 5).
+  - R10-6 coherencia de capacidad — **INTEGRATION_PASS** (caso 6 + unit).
+  - R10-7 identidad física → resolver por dims — **INTEGRATION_PASS** (golden + caso 7).
+  - R10-8 reconciliación 1:1 — **CODE_PASS** (cada ancla resuelve independiente contra catálogo; no E2E multi-ancla con colisión real).
+  - R10-9 dependientes no desaparecen — **INTEGRATION_PASS** (caso 9 + golden OBSERVED_ONLY); UI = CODE_PASS.
+  - R10-10 golden dims exactas — **CODE_PASS** (MOCK_ONLY/RECORDED, no PDF vivo).
+  - R10-11 umbral de confianza — **INTEGRATION_PASS** (caso 12).
+  - R10-12 dedup por source_ref — **INTEGRATION_PASS** (caso 11 + unit).
+  - R10-13 ontología palabra completa — **CODE_PASS** (unit adversarial).
+  - R10-14 maxPage en wrapper — **NOT_VERIFIED (live)**: plumbing añadido; el core NO emite conteo de páginas, así que PAGINA_FUERA_DE_RANGO sólo se ejerce a nivel validador (unit), no en vivo.
+  - R10-15 docs sin falsos verdes — **CODE_PASS** (CLOSEOUT/HANDOFF corregidos).
+- **BLOCKED_EXTERNAL:** deploy de `leer-plano`/`leer-plano-core` (prod sigue v11/v4, no emiten observed_program); motor cutover; ingestión `fuentes/*.xlsx` (DATA TRUTH, incluye params de conversión por familia); merge/promote; migraciones; 33 legacy; Intelisis.
+- **Supuestos NO verificados LIVE:**
+  1. El modelo de visión poblará `observed_program` conforme al schema — NO probado contra PDF real; el golden es contrato GRABADO.
+  2. El CATÁLOGO real NO tiene las dimensiones del ground truth QA-COT-01 (B-01 2400×1400, J-01 3200×1200, D-01 2000×900, CR-01 1200×500): en la práctica HOY casi toda ancla observada caería en NEEDS_CONFIRMATION hasta que crezcan catálogo/vocabulario. (El único RESOLVED que probé usa `rec-2420x830`, que sí existe.)
+  3. `UMBRAL_CONFIANZA_GOBERNAR=0.7` y el mapa alta/.9·media/.6·baja/.4 son convención de Claude, no política firmada por VH.
+  4. Los parámetros de conversión por familia (kg/m², área de hoja, largo de tramo, pz/juego) no tienen fuente real cableada (DATA TRUTH).
+  5. El VOCABULARIO de mobiliario del lector NO existe; la cobertura del regex de ontología no está validada contra el universo real de etiquetas de VH.
+  6. El gate de "Aplicar" en `Voni.jsx` está cubierto por la LÓGICA (`requiereRevision`), no por un test de UI/E2E que pruebe el render del botón deshabilitado.
+- **Hallazgos nuevos durante la corrección:**
+  - Confirmado EN VIVO (no sólo teórico) que el resolver sustituía por capacidad: 4 benches 2400×1400 → `op-8u-4800x1200-cristal`. Ahora queda NEEDS_CONFIRMATION y bloquea apply.
+  - El validador del servidor (observed-core) es ahora la ÚNICA autoridad de issues; el re-validador del cliente (observedProgram.js) sólo AÑADE. Riesgo residual: si en el futuro alguien llama a `programRequirementsDesdeObservado` con items que NO pasaron por el servidor (p.ej. heurística de áreas), esos no traen issues server — hoy es aceptable porque la heurística sólo se usa en estado ABSENT.
+
+---
+
 ## 0) R9 PARA AUDITORÍA CHATGPT (bloque de cierre de la ronda 9)
 
 - **SHA de CÓDIGO:** `a741ab1` (rama `audit/final-product-completion`; el HEAD es el doc-commit encima). Base ronda 9 = `8811fce`.
