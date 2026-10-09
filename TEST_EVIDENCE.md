@@ -3,9 +3,10 @@
 > Evidencia concreta de la corrida de ESTE cierre, no histórica. 2026-10-09.
 
 ## Entorno
-- commit probado: `f263ba96bc87e3da6aae16ae9016576b414c3de7` (branch `audit/final-product-completion`)
+- commit probado (RC hardened): código `ec0a7740591a28a3635fa8115dfc114fcd70d1d9` · HEAD(tip) `bb23454cac9a13a914f6be7742fdc1458bb1bbf8` (branch `audit/final-product-completion`)
+- corrida previa de Claude: `f263ba9` (antes del fix DOMPurify de ChatGPT).
 - Node: `v26.5.0` · npm: `11.17.0`
-- Evidencia LOCAL de Claude + 1 Preview de Vercel. GitHub CI: 0 workflow runs.
+- Evidencia LOCAL de Claude + ChatGPT + 2 Previews de Vercel. GitHub CI: 0 workflow runs.
 
 ## Comandos y resultados
 ### `npx vitest run` (suite completa)
@@ -29,7 +30,7 @@
 
 ## WARNINGS (no escondidos)
 - `npm install`: `fsevents@2.3.3` tiene install script no cubierto por allowScripts. **Aceptado**: es un watcher opcional de macOS para dev (no build/runtime); no se aprueba su script.
-- `npm audit`: 11 vulnerabilidades (1 low, 3 moderate, 5 high, 2 critical) en el árbol de dependencias. **No corregidas en este cierre**: `npm audit fix --force` haría cambios breaking con riesgo de romper el build verde; se deja como item de hardening de deps a revisar con diff controlado. NO bloqueante para el RC.
+- `npm audit` (árbol completo): 11 avisos (1 low, 3 moderate, 5 high, 2 critical). **Separado runtime vs tooling (ChatGPT):** `npm audit --omit=dev` = **0 vulnerabilidades runtime** tras bump DOMPurify 3.4.13→3.4.16 (`ec0a774`). Los 10 avisos restantes son dev/test (Vitest/tinypool/Vite/vite-plugin-singlefile y transitivas); las 2 critical son de Vitest/tinypool, NO del bundle de empleados. No se hizo `audit fix --force` (implicaría majors de Vite/Vitest). Confirmado: `npm audit --omit=dev → found 0 vulnerabilities`.
 - Vite dev (local) sirvió Home viejo por caché de pre-bundle tras cambiar deps; irrelevante para el build desplegado (dist correcto).
 
 ## ETIQUETAS DE EVIDENCIA

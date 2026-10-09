@@ -6,7 +6,7 @@
 > Última actualización: 2026-10-09 (6ª re-auditoría R15 ChatGPT+Grok: N acción+mensaje de VONI usan la autoridad atómica + corrección de doc sobre persistencia de confirmado_modelo).
 
 ## CIERRE FINAL / RC INTEGRADO (2026-10-09)
-- **HEAD = `f263ba96bc87e3da6aae16ae9016576b414c3de7`** (branch `audit/final-product-completion`). Integra `release/current-20261009` (Home premium + Recharts v3 + deps) + R10 docs. **2182/2182 tests + vite build ✅.**
+- **HEAD(tip) = `bb23454` · CÓDIGO = `ec0a774`** (branch `audit/final-product-completion`). Integra `release/current-20261009` (Home premium + Recharts v3 + deps) + R10 docs + fix seguridad DOMPurify 3.4.16 (ChatGPT). **2182/2182 tests + vite build ✅ + runtime npm audit 0 vulnerabilidades.** Auditado por ChatGPT (`CHATGPT_AUDIT_FINAL.md`): GO RC-para-probar, NO-GO producción final.
 - **Preview Vercel READY**: `https://costeador-vonhaucke-p8gqeurml-rodrigos-eurotrip.vercel.app` (dpl `dpl_4kEu62x2ck9cobnUPfz4hxzpZ2ig`), 0 errores de consola, Home premium confirmado.
 - **Production NO desplegado** (promoción bloqueada por el harness; la hace Rodrigo). Rollback: `dpl_1m4bDohVjcqL86fcGHRhJTnw2rJc` / `5a38d2e`.
 - Verdad completa + matriz + OPEN ITEMS en **`FINAL_AUDIT_PACKET.md`**; evidencia en `TEST_EVIDENCE.md`; siguiente acción de auditoría en `CHATGPT_NEXT_ACTION.md`.

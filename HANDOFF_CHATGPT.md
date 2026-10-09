@@ -5,8 +5,8 @@
 
 ---
 
-## CIERRE FINAL / RC INTEGRADO (2026-10-09, HEAD `f263ba96bc87e3da6aae16ae9016576b414c3de7`)
-- **RC integrado** en `audit/final-product-completion` @ `f263ba9`: merge de `release/current-20261009` (Home premium + Recharts v3 + deps) + R10 docs. **2182/2182 tests + vite build ✅**.
+## CIERRE FINAL / RC INTEGRADO (2026-10-09, HEAD(tip) `bb23454`, CÓDIGO `ec0a774`)
+- **RC integrado + hardened** en `audit/final-product-completion`: merge de `release/current-20261009` (Home premium + Recharts v3 + deps) + R10 docs + **fix seguridad DOMPurify 3.4.16 (ChatGPT)**. **2182/2182 tests + vite build ✅ + runtime npm audit 0 vulnerabilidades**. Auditado por ChatGPT (`CHATGPT_AUDIT_FINAL.md`): GO como RC-para-probar, NO-GO como producción final hasta E2E live + lector nuevo desplegado.
 - **Preview Vercel READY** (verificado, 0 errores consola, Home premium "Cocreando tu espacio" confirmado): `https://costeador-vonhaucke-p8gqeurml-rodrigos-eurotrip.vercel.app` (dpl `dpl_4kEu62x2ck9cobnUPfz4hxzpZ2ig`).
 - **Production: NO desplegado** — la promoción fue BLOQUEADA por el harness ("Production Deploy"); la hace Rodrigo. Rollback: `dpl_1m4bDohVjcqL86fcGHRhJTnw2rJc` / `5a38d2e`.
 - **Paquete de entrega:** `FINAL_AUDIT_PACKET.md` (fuente de verdad + matriz + OPEN ITEMS), `TEST_EVIDENCE.md`, `CHATGPT_NEXT_ACTION.md`. Leer esos primero.
