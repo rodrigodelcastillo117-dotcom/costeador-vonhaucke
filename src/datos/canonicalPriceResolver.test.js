@@ -110,6 +110,36 @@ describe('CanonicalPriceResolver · selección determinista', () => {
     expect(r2.precio).toBe(544);
   });
 
+  it('P0-B adversarial · vigencia MALFORMED → fail-closed HISTORICAL (no se asume vigente)', () => {
+    const malformed = { ...COMPRA_544, precio: 500, source_date: '2026-09-01', validity: 'no-es-fecha', source_document: 'LISTA-X' };
+    const r = resolverPrecioCanonico('melamina-ecolegno-19mm', [malformed], { hoy: HOY });
+    expect(r.estado).toBe(ESTADO_PRECIO.HISTORICAL);        // vigencia ilegible ⇒ no confirma vigente
+    expect(r.bloqueaCostoOficial).toBe(true);
+  });
+
+  it('P0-B adversarial · vigencia FUTURA (cubre hoy) → CURRENT_VERIFIED', () => {
+    const futura = { ...COMPRA_544, precio: 520, source_date: '2026-09-01', validity: '2027-12-31', source_document: 'LISTA-FUT' };
+    const r = resolverPrecioCanonico('melamina-ecolegno-19mm', [futura], { hoy: HOY });
+    expect(r.estado).toBe(ESTADO_PRECIO.CURRENT_VERIFIED);
+    expect(r.bloqueaCostoOficial).toBe(false);
+  });
+
+  it('P0-B adversarial · expired + current-verified → gana el vigente verificado', () => {
+    const vencido = { ...COMPRA_544, precio: 500, source_date: '2026-01-01', validity: '2026-02-28', source_document: 'VIEJA' };
+    const vigente = { ...COMPRA_544, precio: 540, source_date: '2026-08-01', validity: '2026-12-31', source_document: 'VIGENTE' };
+    const r = resolverPrecioCanonico('melamina-ecolegno-19mm', [vencido, vigente], { hoy: HOY });
+    expect(r.estado).toBe(ESTADO_PRECIO.CURRENT_VERIFIED);
+    expect(r.precio).toBe(540);
+  });
+
+  it('P0-B adversarial · expired + newer REAL sin vigencia → gana el real conocido (DATED)', () => {
+    const vencido = { ...COMPRA_544, precio: 500, source_date: '2025-01-01', validity: '2025-06-30', source_document: 'VIEJA' };
+    const realNuevo = { ...COMPRA_544, precio: 560, source_date: '2026-10-01', source_document: 'OC-NUEVA' };
+    const r = resolverPrecioCanonico('melamina-ecolegno-19mm', [vencido, realNuevo], { hoy: HOY });
+    expect(r.estado).toBe(ESTADO_PRECIO.REAL_OBSERVED_DATED);
+    expect(r.precio).toBe(560);
+  });
+
   it('SIN observaciones utilizables → PENDING y BLOQUEA costo oficial (no inventa)', () => {
     const r = resolverPrecioCanonico('insumo-sin-precio', [
       { canonical_insumo_id: 'insumo-sin-precio', unidad_compra: 'pz', fuente: FUENTE_PRECIO.COMPRA_REAL, source_date: '2026-01-01' },

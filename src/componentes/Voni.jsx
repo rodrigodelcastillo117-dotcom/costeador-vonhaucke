@@ -99,10 +99,25 @@ export default function Voni({
   const [leyendoPlano, setLeyendoPlano] = useState(false);
   const [errorPlano, setErrorPlano] = useState('');
   const [notaPlano, setNotaPlano] = useState('');
+  // ChatGPT P0-A: una lectura de plano puede tardar (hasta 180 s). Si el usuario
+  // sube OTRO archivo mientras una lectura previa sigue en curso, la respuesta
+  // vieja NO debe pisar la nueva. Cada subida toma un id; al resolver, si ya hay
+  // una subida más nueva, se descarta la vieja (cancelación lógica limpia).
+  const reqPlanoRef = useRef(0);
 
   async function subirPlanoAqui(file) {
+    const miReq = ++reqPlanoRef.current;
     setErrorPlano(''); setNotaPlano(''); setLeyendoPlano(true);
-    const r = await leerPlanoDeArchivo(file);
+    let r;
+    try {
+      r = await leerPlanoDeArchivo(file);
+    } catch (e) {
+      if (miReq !== reqPlanoRef.current) return;   // superada por una lectura más nueva
+      setLeyendoPlano(false);
+      setErrorPlano('No se pudo leer el plano. Intenta de nuevo o sube la hoja principal como imagen.');
+      return;
+    }
+    if (miReq !== reqPlanoRef.current) return;      // P0-A: llegó una lectura MÁS NUEVA → descarta ésta
     setLeyendoPlano(false);
     if (!r.ok) { setErrorPlano(r.error); return; }
     if (r.nota) setNotaPlano(r.nota);

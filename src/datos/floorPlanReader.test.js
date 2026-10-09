@@ -70,4 +70,35 @@ describe('FloorPlanReader → observed_program (cable real, sin arrays sintétic
   it('DETERMINISTA: misma lectura → mismo observed_program', () => {
     expect(observedProgramDeLectura(pr)).toEqual(observedProgramDeLectura(programaDelPlano(AREAS)));
   });
+
+  it('ChatGPT P0-C: aunque el CUARTO esté DETECTADO, el MUEBLE que implica es INFERRED, no OBSERVED', () => {
+    // Cuartos detectados + mobiliario derivado de ellos.
+    const prDetectado = {
+      hayPlano: true,
+      operativos: 8, privados: 2, salas: [8], recepcion: true,
+      sugeridos: { sillasOperativas: 8, gavetas: 8, archiveros: 2 },
+      zonas: {
+        operativo: { nombre: 'OPEN SPACE' },
+        privados: [{ nombre: 'DIRECCIÓN A' }, { nombre: 'DIRECCIÓN B' }],
+        juntas: [{ nombre: 'JUNTAS' }],
+        recepcion: { nombre: 'RECEPCIÓN' },
+      },
+      // TODO detectado (el peor caso para el bug): el cuarto se ve, el mueble no.
+      fuente: { operativos: 'detectado', privados: 'detectado', salas: 'detectado', recepcion: 'detectado' },
+    };
+    const out = observedProgramDeLectura(prDetectado);
+    const escritorio = out.find((i) => i.type === 'escritorio_direccion');
+    const mesa = out.find((i) => i.type === 'mesa_juntas');
+    const mostrador = out.find((i) => i.kind !== KIND.ROOM && i.type === 'recepcion');
+    // El MUEBLE derivado del cuarto NUNCA es OBSERVED (a lo sumo INFERRED).
+    expect(escritorio.origin).toBe(ORIGEN.INFERRED);
+    expect(mesa.origin).toBe(ORIGEN.INFERRED);
+    expect(mostrador.origin).toBe(ORIGEN.INFERRED);
+    // Pero el CUARTO sí es OBSERVED (su geometría se detectó).
+    const cuartoDir = out.find((i) => i.kind === KIND.ROOM && i.type === 'privado');
+    expect(cuartoDir.origin).toBe(ORIGEN.OBSERVED);
+    // Y los puestos contados del dibujo sí pueden ser OBSERVED.
+    const puestos = out.find((i) => i.type === 'puesto_operativo');
+    expect(puestos.origin).toBe(ORIGEN.OBSERVED);
+  });
 });
