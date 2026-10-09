@@ -175,6 +175,29 @@ function aplicarCompartido(estado, datos) {
 // Borra de este navegador todo lo que solo Direccion debe tener. Se usa al
 // salir y al entrar con un rol que no es direccion: si la nomina quedo
 // guardada de antes de este cambio, aqui desaparece.
+// Campos ECONÓMICOS INTERNOS que un vendedor NUNCA debe tener en memoria ni en
+// persistencia local: costo, margen interno, derivaciones y snapshots de compra.
+// El precio de VENTA (`precioUnitario`, `precio`) NO está aquí: el vendedor sí lo
+// ve. Lista explícita (allowlist por omisión) para no arrastrar campos nuevos.
+const CAMPOS_ECONOMICOS_INTERNOS = [
+  'costoUnitario', 'costo', 'margen', 'costoDerivado', 'costoPendiente',
+  'costoImplicito', 'precioCompra', 'precioProveedor', 'proveedor', 'costoHora',
+];
+
+// Quita de UN objeto (pieza/partida/addon) los campos económicos internos.
+// Recurre en arreglos anidados típicos (componentes, addons, partes) para que no
+// quede un snapshot de costo colgando un nivel más abajo.
+function sinEconomiaInterna(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(sinEconomiaInterna);
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (CAMPOS_ECONOMICOS_INTERNOS.includes(k)) continue;
+    out[k] = (v && typeof v === 'object') ? sinEconomiaInterna(v) : v;
+  }
+  return out;
+}
+
 export function limpiarSensibles(estado) {
   const parametros = { ...estado.parametros };
   for (const f of PARAMS_SENSIBLES) {
@@ -190,7 +213,17 @@ export function limpiarSensibles(estado) {
     if (ins && typeof ins === 'object') { const { precio, precioBase, proveedor, ...safe } = ins; insumos[id] = safe; }
     else insumos[id] = ins;
   }
-  return { ...estado, parametros, insumos, finanzas: null, dir: { cifrado: false } };
+  // P0-B (ChatGPT audit, seller-safe COMPLETO): el costo no sólo vive en `insumos`.
+  // `estado.piezas[*].costoUnitario` y `estado.cotizacion.partidas[*].{costoUnitario,margen,…}`
+  // guardaban costo/margen internos que `limpiarSensibles` dejaba intactos. Un vendedor
+  // que entra tras Dirección en la MISMA pestaña los conservaba en memoria y —vía el
+  // autosave local— en localStorage. Aquí se sanea TODO el estado económico interno.
+  const piezas = {};
+  for (const [id, pz] of Object.entries(estado.piezas || {})) piezas[id] = sinEconomiaInterna(pz);
+  const cotizacion = estado.cotizacion
+    ? { ...estado.cotizacion, partidas: (estado.cotizacion.partidas || []).map(sinEconomiaInterna) }
+    : estado.cotizacion;
+  return { ...estado, parametros, insumos, piezas, cotizacion, finanzas: null, dir: { cifrado: false } };
 }
 
 // Mezcla la boveda de Direccion (solo llega si el rol lo permite).
@@ -605,7 +638,13 @@ export default function App() {
     // Una sola vez por sesión: si sigue roto, no tiene caso repetirlo en cada
     // tecla — y la cotización SIGUE viajando a la nube si hay sesión, así que
     // no todo se pierde.
-    if (!guardar(estado) && !avisoGuardadoLocal.current) {
+    // P0-B (seller-safe): el guardado LOCAL también respeta el rol. `guardar()` escribe
+    // en localStorage para CUALQUIER rol; sin esto, un vendedor que haya visto estado de
+    // Dirección en la misma pestaña persistía costo/margen al disco. Para quien no ve
+    // costos se persiste SIEMPRE la versión saneada (fail-closed), aunque la memoria aún
+    // no esté limpia. Dirección/Diseño guardan el estado completo.
+    const estadoLocal = veCostos ? estado : limpiarSensibles(estado);
+    if (!guardar(estadoLocal) && !avisoGuardadoLocal.current) {
       avisoGuardadoLocal.current = true;
       mostrarAviso('Esta computadora no está guardando tus cambios localmente (memoria llena o modo privado). Si tienes sesión, sigue viajando a la nube.', 8000);
     }

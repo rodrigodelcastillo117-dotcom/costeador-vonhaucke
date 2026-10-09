@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { programHash, programHashCanonico, floorHash, planEstaStale, serializarEstable } from './acomodoHash.js';
+import { programHash, programHashCanonico, floorHash, planEstaStale, serializarEstable, firmaLayout } from './acomodoHash.js';
 import { construirPayloadAcomodo, validarFloorSpecGeom } from './acomodoPayload.js';
 
 const PARTIDAS = [
@@ -168,5 +168,51 @@ describe('acomodoPayload · construirPayloadAcomodo (P0.2 obj 1/2/3)', () => {
   it('GAP3: FloorSpec PASS o ausente (espacio manual) → payload ok', () => {
     expect(construirPayloadAcomodo({ partidas: PARTIDAS, areasM: AREAS_M, floorSpecEstado: 'PASS' }).ok).toBe(true);
     expect(construirPayloadAcomodo({ partidas: PARTIDAS, areasM: AREAS_M, floorSpecEstado: null }).ok).toBe(true);
+  });
+});
+
+// ============================================================================
+// React P0-A (ChatGPT audit) · firmaLayout: el render se ata a la POSICIÓN de
+// cada pieza, no al conteo. program_hash|floor_hash|nº-colocaciones no cambiaba
+// al mover un mueble → un render viejo parecía vigente y viajaba al PDF.
+// ============================================================================
+describe('acomodoHash · firmaLayout (render stale por posición, no por conteo)', () => {
+  const PH = 'pc_x';
+  const FH = 'f_x';
+  const plan = (coloc) => ({ colocacion: coloc });
+  const L = [
+    { id: 'p1-1', area: 0, x: 500, y: 500, rot: 0 },
+    { id: 'p1-2', area: 0, x: 500, y: 2000, rot: 0 },
+    { id: 'p2-1', area: 1, x: 1000, y: 1000, rot: 90 },
+  ];
+
+  it('mismo layout → firma estable (idéntica entre corridas)', () => {
+    expect(firmaLayout(plan(L), PH, FH)).toBe(firmaLayout(plan(L), PH, FH));
+  });
+
+  it('REGRESIÓN NÚCLEO: mismo nº de muebles, muevo UNO → la firma CAMBIA', () => {
+    const movido = L.map((c) => (c.id === 'p1-1' ? { ...c, x: 7000 } : c));
+    expect(movido).toHaveLength(L.length);                 // mismo conteo
+    expect(firmaLayout(plan(movido), PH, FH)).not.toBe(firmaLayout(plan(L), PH, FH));
+  });
+
+  it('rotar una pieza (misma posición) → la firma CAMBIA', () => {
+    const rotado = L.map((c) => (c.id === 'p2-1' ? { ...c, rot: 180 } : c));
+    expect(firmaLayout(plan(rotado), PH, FH)).not.toBe(firmaLayout(plan(L), PH, FH));
+  });
+
+  it('un cambio sub-milimétrico (≥0.5 mm) en x → la firma CAMBIA', () => {
+    const casi = L.map((c) => (c.id === 'p1-2' ? { ...c, x: c.x + 0.6 } : c));
+    expect(firmaLayout(plan(casi), PH, FH)).not.toBe(firmaLayout(plan(L), PH, FH));
+  });
+
+  it('reordenar la lista de colocaciones NO cambia la firma (orden canónico)', () => {
+    const revuelto = [L[2], L[0], L[1]];
+    expect(firmaLayout(plan(revuelto), PH, FH)).toBe(firmaLayout(plan(L), PH, FH));
+  });
+
+  it('cambiar program_hash o floor_hash → la firma CAMBIA (QUÉ/DÓNDE siguen contando)', () => {
+    expect(firmaLayout(plan(L), 'pc_otro', FH)).not.toBe(firmaLayout(plan(L), PH, FH));
+    expect(firmaLayout(plan(L), PH, 'f_otro')).not.toBe(firmaLayout(plan(L), PH, FH));
   });
 });

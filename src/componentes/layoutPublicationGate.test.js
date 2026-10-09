@@ -34,7 +34,28 @@ describe('Acomodo · publicación honesta',()=>{
     expect(s).toContain('layoutEspacialValidado: validez.layoutEspacialValidado');
     expect(s).toContain('layoutValidado: validez.layoutValidado');
     // el render final sólo viaja si la autoridad única lo declara publicable Y además el render
-    // corresponde al plano actual (React P0-3: firma program_hash/floor_hash/colocación vigente).
-    expect(s).toContain('render3d: (validez.publicable && stagingUrl && (!stagingSigRef.current || stagingSigRef.current === firmaRender(payloadAcomodo, plan)))');
+    // corresponde al layout actual (React P0-A: firmaLayout incluye posición/rotación por pieza).
+    expect(s).toContain('render3d: (validez.publicable && renderCorrespondeAlLayout) ? stagingUrl : \'\'');
+  });
+
+  it('React P0-A: firma de layout determinista (firmaLayout) y autoridad única fail-closed',()=>{
+    // El helper ya no hashea por conteo: delega en firmaLayout, que incluye la
+    // geometría (x/y/rot) de cada colocación.
+    expect(s).toContain("import { firmaLayout } from '../datos/acomodoHash.js'");
+    expect(s).toContain('const firmaRender = (pa, pl) => firmaLayout(pl, pa?.program_hash, pa?.floor_hash)');
+    // Autoridad única fail-closed: sin firma registrada ⇒ no viaja.
+    expect(s).toContain('const renderCorrespondeAlLayout = !!stagingUrl');
+    expect(s).toContain('&& !!stagingSigRef.current');
+    expect(s).toContain('&& stagingSigRef.current === firmaRender(payloadAcomodo, plan)');
+  });
+
+  it('React P0-A: los DOS botones de guardar pasan por la misma autoridad (no bypass)',()=>{
+    // guardarEnPropuesta: el render sólo se incluye si corresponde al layout.
+    expect(s).toContain('...(layoutPublicable && renderCorrespondeAlLayout ? { render3d: stagingUrl } : {})');
+    // guardarStaging: si no corresponde, cae a borrador sin render3d.
+    expect(s).toContain('if (!layoutPublicable || !renderCorrespondeAlLayout) {');
+    // Antes del fix, guardarEnPropuesta publicaba con sólo `stagingUrl` y
+    // guardarStaging con sólo `!layoutPublicable`. Esos bypass ya no existen.
+    expect(s).not.toContain('...(layoutPublicable && stagingUrl ? { render3d: stagingUrl } : {})');
   });
 });

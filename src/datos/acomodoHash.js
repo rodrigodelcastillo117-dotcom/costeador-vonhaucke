@@ -165,6 +165,59 @@ export function floorHash(areas = [], { yaEnMM = false, minPasillo = null } = {}
   return `f_${hashEstable(payload)}`;
 }
 
+// Normaliza UNA colocación a su geometría relevante al RENDER: POSICIÓN y
+// rotación de la pieza, no sólo su existencia. program_hash/floor_hash capturan
+// QUÉ se acomoda y DÓNDE, pero NO dónde quedó cada mueble: mover un escritorio
+// de una esquina a otra conserva programa, espacio y nº de piezas. Sin esta
+// huella, un render viejo parecía vigente (React P0-A). mm() redondea a entero,
+// así que un cambio ≥0.5 mm en x/y ya cambia la firma.
+function huellaColocacion(c = {}) {
+  return {
+    id: String(c.id ?? ''),
+    area: Number.isFinite(c.area) ? Math.round(c.area) : null,
+    x: mm(c.x),
+    y: mm(c.y),
+    rot: Math.round(Number(c.rot) || 0),
+    w: Number.isFinite(c.w) ? mm(c.w) : null,
+    d: Number.isFinite(c.d) ? mm(c.d) : null,
+  };
+}
+
+/**
+ * firmaLayout: identidad COMPLETA de un render respecto al layout que lo generó.
+ * Combina program_hash + floor_hash (QUÉ + DÓNDE) con la geometría de CADA
+ * colocación (id/área/x/y/rot/w/d), ordenada canónicamente para ser estable
+ * entre corridas y navegadores. Mover, rotar o reubicar una sola pieza —aunque
+ * el programa, el espacio y el nº de colocaciones no cambien— cambia la firma.
+ *
+ * Es la ÚNICA autoridad de "este render corresponde al layout actual": la usan
+ * el autosave, guardarEnPropuesta, guardarStaging y la publicación al PDF. Si la
+ * firma registrada al generar el render no coincide con la del layout vigente,
+ * el render es STALE y NO viaja al cliente (fail-closed: sin firma ⇒ no viaja).
+ *
+ * @param {{colocacion?:Array}} plan
+ * @param {string|null} programHashActual
+ * @param {string|null} floorHashActual
+ * @returns {string} firma determinista con prefijo `l_`
+ */
+export function firmaLayout(plan, programHashActual, floorHashActual) {
+  const colocacion = Array.isArray(plan?.colocacion) ? plan.colocacion : [];
+  const huellas = colocacion
+    .map(huellaColocacion)
+    .sort((a, b) => {
+      if (a.id !== b.id) return a.id < b.id ? -1 : 1;
+      // Desempate estable por área/posición ante ids repetidos (defensivo).
+      if ((a.area ?? -1) !== (b.area ?? -1)) return (a.area ?? -1) - (b.area ?? -1);
+      if (a.x !== b.x) return a.x - b.x;
+      return a.y - b.y;
+    });
+  return `l_${hashEstable({
+    p: programHashActual ?? null,
+    f: floorHashActual ?? null,
+    c: huellas,
+  })}`;
+}
+
 /**
  * ¿El plan guardado quedó obsoleto respecto a programa/floor actuales?
  * FAIL-SAFE (audit E): un plan guardado SIN hashes (legacy) no sabemos contra qué

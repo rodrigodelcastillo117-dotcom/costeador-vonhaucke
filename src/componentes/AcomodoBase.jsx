@@ -25,6 +25,7 @@ import { auditarColocacion } from '../datos/acomodoAudit.js';
 // para SELLAR program_hash/floor_hash en el plan persistido y para BLOQUEAR la
 // publicación ante fallas de invariantes que el edge vivo pudiera no reportar.
 import { construirPayloadAcomodo } from '../datos/acomodoPayload.js';
+import { firmaLayout } from '../datos/acomodoHash.js';
 import { evaluarInvariantesAcomodo, derivarValidez } from '../datos/acomodoInvariantes.js';
 import { resolverAcomodo } from '../datos/acomodoOrquestador.js';
 import { formatearMensajeVendedor } from '../datos/mensajeAcomodo.js';
@@ -107,14 +108,19 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   const [guardadoValido, setGuardadoValido] = useState(false);
   const [staging, setStaging] = useState(false);      // generando staging
   const [stagingUrl, setStagingUrl] = useState(() => guardadoPrevio?.render3d || '');   // resultado (foto amueblada)
-  // React P0-3: FIRMA del plano con el que se generó el render (program_hash + floor_hash + nº de
-  // colocaciones). Si el plano cambia (mover muebles, re-acomodar, cambiar áreas/plano), la firma ya
-  // no coincide → el render queda STALE y NO se publica al PDF del cliente. Se inicializa desde lo
-  // guardado para también detectar "abrí un proyecto y luego cambié el plano".
-  const firmaRender = (pa, pl) => `${pa?.program_hash || ''}|${pa?.floor_hash || ''}|${pl?.colocacion?.length || 0}`;
+  // React P0-A: FIRMA del layout con el que se generó el render. Antes era
+  // program_hash|floor_hash|nº-colocaciones — insuficiente: mover/rotar un mueble
+  // conserva programa, espacio y conteo, así que el render viejo parecía vigente.
+  // Ahora delega en firmaLayout(), que incluye la POSICIÓN (id/área/x/y/rot/w/d)
+  // de cada colocación. Si el layout cambia aunque sea 1 mm/rotación/área, la
+  // firma ya no coincide → el render queda STALE y NO viaja al PDF del cliente.
+  // El MISMO helper gobierna autosave, guardarEnPropuesta, guardarStaging y PDF.
+  const firmaRender = (pa, pl) => firmaLayout(pl, pa?.program_hash, pa?.floor_hash);
+  // Se inicializa desde lo guardado (con los hashes sellados en guardarEnPropuesta)
+  // para detectar "abrí un proyecto y luego cambié el plano".
   const stagingSigRef = useRef(
-    (guardadoPrevio?.render3d && guardadoPrevio?.plan)
-      ? `${guardadoPrevio.plan.program_hash || ''}|${guardadoPrevio.plan.floor_hash || ''}|${guardadoPrevio.plan.colocacion?.length || 0}`
+    (guardadoPrevio?.render3d && guardadoPrevio?.plan?.colocacion?.length)
+      ? firmaLayout(guardadoPrevio.plan, guardadoPrevio.plan.program_hash, guardadoPrevio.plan.floor_hash)
       : null,
   );
   const [errStaging, setErrStaging] = useState('');
@@ -168,6 +174,14 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // renderOficina y layoutListo/layoutPublicable) deriva de aquí.
   const validez = useMemo(() => derivarValidez({ evaluacion: evalInvariantes, programaListo }), [evalInvariantes, programaListo]);
   const motivoPrograma = programaListo ? '' : bloqueosPrograma.map((b) => b?.mensaje || b?.code).filter(Boolean).join(' · ');
+  // React P0-A · AUTORIDAD ÚNICA de "el render corresponde al layout vigente".
+  // FAIL-CLOSED: sólo es true si hay render Y su firma registrada al generarlo
+  // coincide EXACTO con la firma del layout actual. Sin firma (null) ⇒ false ⇒
+  // el render NO viaja al cliente. La usan autosave, guardarEnPropuesta,
+  // guardarStaging y el gate de publicación al PDF — una sola verdad.
+  const renderCorrespondeAlLayout = !!stagingUrl
+    && !!stagingSigRef.current
+    && stagingSigRef.current === firmaRender(payloadAcomodo, plan);
 
   // Al corregir a mano el ancho/largo de un cuarto que vino de un plano, su
   // FORMA se escala con él. Sin esto el número decía una cosa y el dibujo otra:
@@ -368,7 +382,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
         // Si el layout deja de ser final, O si el render ya no corresponde al plano actual
         // (React P0-3: firma program_hash/floor_hash/colocación distinta a la de cuando se generó),
         // limpia el render para que JAMÁS viaje una foto de otro acomodo al PDF del cliente.
-        render3d: (validez.publicable && stagingUrl && (!stagingSigRef.current || stagingSigRef.current === firmaRender(payloadAcomodo, plan))) ? stagingUrl : '',
+        render3d: (validez.publicable && renderCorrespondeAlLayout) ? stagingUrl : '',
       };
       // React P0-2: sólo guardar si el payload REALMENTE cambió. Antes, como `sugerenciasPendientes`/
       // `validez`/`payloadAcomodo` son objetos nuevos en cada render, el efecto re-disparaba y
@@ -1131,8 +1145,10 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       layoutMotivo: programaListo ? (motivoLayout || null) : motivoPrograma,
       sugerenciasPendientes: sugerenciasPendientes.map((p) => ({ id:p.id, nombre:p.nombre, cantidad:p.cantidad, zonaSugerida:p.zonaSugerida || null })),
       // El render con sugerencias es PREVIEW. Sólo viaja al PDF final cuando
-      // todas las piezas quedaron confirmadas/cotizadas y el layout es válido.
-      ...(layoutPublicable && stagingUrl ? { render3d: stagingUrl } : {}),
+      // todas las piezas quedaron confirmadas/cotizadas, el layout es válido Y
+      // el render corresponde al layout vigente (React P0-A: antes este botón
+      // publicaba stagingUrl sin verificar la firma → render viejo al cliente).
+      ...(layoutPublicable && renderCorrespondeAlLayout ? { render3d: stagingUrl } : {}),
     };
     onGuardarAcomodo(payload);
     setGuardadoValido(!!layoutPublicable);
@@ -1153,12 +1169,19 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       const r = await generarRender(desc, { modo: 'staging', imagen: b64, mediaType: 'image/jpeg' });
       if (!r || !r.ok) { setErrStaging(r?.error || 'No se pudo amueblar la foto.'); return; }
       setStagingUrl(r.dataUrl);
+      // React P0-A: el staging de foto también se ata al layout vigente. Si el
+      // programa/plano cambia después, este render queda stale y no viaja.
+      stagingSigRef.current = firmaRender(payloadAcomodo, plan);
     } catch (err) { setErrStaging('No se pudo procesar la foto.'); }
     finally { setStaging(false); }
   }
   function guardarStaging() {
     if (!onGuardarAcomodo || !stagingUrl) return;
-    if (!layoutPublicable) {
+    // React P0-A: el render final sólo viaja si el layout es publicable Y el
+    // render corresponde al layout vigente. Si el layout cambió después de
+    // generar el render (mover/rotar/reubicar), cae a BORRADOR sin render3d —
+    // antes este botón publicaba stagingUrl sin verificar la firma.
+    if (!layoutPublicable || !renderCorrespondeAlLayout) {
       onGuardarAcomodo({
         areas: areasMM,
         plan: plan || null,
@@ -1170,7 +1193,9 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       });
       setGuardadoValido(false);
       setGuardado(true);
-      setErrStaging(`Guardé el acomodo como borrador, pero NO el render final: ${motivoPublicacion || 'la validación espacial sigue pendiente'}.`);
+      setErrStaging(!layoutPublicable
+        ? `Guardé el acomodo como borrador, pero NO el render final: ${motivoPublicacion || 'la validación espacial sigue pendiente'}.`
+        : 'Guardé el acomodo como borrador. El render no corresponde al layout actual (cambió desde que se generó); vuelve a generarlo para publicarlo.');
       return;
     }
     onGuardarAcomodo({ areas: areasMM, plan: plan || null, render3d: stagingUrl, layoutEspacialValidado: true, layoutValidado: true, layoutEstado: layout?.status || 'LAYOUT_VALID', sugerenciasPendientes: [] });
