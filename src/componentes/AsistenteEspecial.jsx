@@ -15,6 +15,7 @@ import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI } from '../datos/materialMatch.js';
+import { materialDesdeLeyenda } from '../datos/materialDesdeLeyenda.js';
 import { paginaAImagen } from '../datos/pdfImagen.js';
 import { prepararPdfRapido, rasterizarPaginas, paginasAlrededor } from '../datos/pdfPipeline.js';
 import Cargando from './Cargando.jsx';
@@ -573,7 +574,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     // POLÍTICA DE MATERIAL (misma que Costeador): nunca sustituye una familia por
     // otra en silencio (solid surface jamás cae en MDF/HPL). Sólo EXACT/EQUIV
     // conservan insumoId; el resto queda '' + bandera `_match`.
-    const base = aplicarPoliticaMaterial({ ...z, material_solicitado: z.material_solicitado || z.nombre }, (id) => insumos[id], Object.values(insumos));
+    const materialPlano = materialDesdeLeyenda(z, p?.materiales);
+    const base = aplicarPoliticaMaterial({ ...z, material_solicitado: z.material_solicitado || materialPlano || z.nombre }, (id) => insumos[id], Object.values(insumos));
     if (z.forma === 'area') {
       base.forma = 'area'; // se preserva: el motor usa `forma:'area'` para exigir medida (silent P0-1)
       base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
@@ -1178,6 +1180,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                 </div>
                 {est.badge && (
                   <div className="pieza-calc" style={{ color: 'var(--ambar,#8a6d00)', fontWeight: 600 }}>🟡 {est.badge}</div>
+                )}
+                {est.pendiente && c.material_solicitado && (
+                  <div className="pieza-calc" style={{ color: 'var(--texto,#e4e4e4)' }}>
+                    Plano: {c.material_solicitado} · falta elegir/confirmar insumo de catálogo
+                  </div>
                 )}
                 {est.pendiente && (
                   <div className="pieza-calc" style={{ color: 'var(--alerta,#b22a22)' }}>
