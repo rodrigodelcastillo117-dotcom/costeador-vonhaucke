@@ -3,8 +3,8 @@
 > Estado vivo para continuar entre sesiones. Otra sesión debe poder retomar EXACTAMENTE aquí.
 > Última actualización: 2026-10-08 (ronda 3 ChatGPT: golden real 8-puestos + price-trust + date-trust + FX + repo hygiene)
 >
-> **ESTADO ACTUAL**: HEAD `audit/final-product-completion` = `11224e6` + este doc-commit encima.
-> Tests **1928/1928** · build ✅. P0 de cliente: **0 abiertos**.
+> **ESTADO ACTUAL**: HEAD `audit/final-product-completion` = `0637d0e` + este doc-commit encima.
+> Tests **1934/1934** · build ✅. P0 de cliente: **0 abiertos**.
 > CABLEADO VISIBLE (capa ADITIVA, NO cambia números del motor; tests de dinero verdes):
 >  1. `Precios.jsx` (Dirección): columna Procedencia por insumo (chip por tipo de fuente + "¿por qué $544?").
 >  2. `HojaCosto.jsx` (Costear/veCostos): "✓ Costo con evidencia real" sólo si TODA la MP es real FECHADA
@@ -291,7 +291,7 @@ conocida de VH (compras/TDC ya cargadas en `src/datos/fuentes/*.xlsx`); Intelisi
    archivo→hoja→fila/celda→artículo ERP→variante→precio→moneda→unidad→fecha→proveedor→canonical_id→conversión.
    Requiere dep de parser (no hay) + mapeo clave_erp→canonical_id = **DATA TRUTH** (reservado, NO auto-aprobar).
    NOTA: `lista_precio_items` ya tiene provenance/precio_lista/moneda/vigencia_desde/hasta.
-3. **FloorPlanReader → observed_program real**: cablear la salida de `leer-plano` al contrato; la fixture
+3. **FloorPlanReader → observed_program**: ✅ CABLE PURO hecho (`floorPlanReader.js` observedProgramDeLectura, test con lector real). Falta: PDF→edge leer-plano→este cable→UI confirmación (requiere deploy). La fixture
    GOLDEN_A_132M2_8_PUESTOS (en observedProgram.test.js) es el ESPERADO — la salida del lector debe igualarla
    (ahí pasa de CODE_PASS a USER_FLOW_PASS). Requiere trabajo de edge + deploy para verificar en vivo.
 4. **GOLDEN REALITY**: BOM/consumo/precio/costo humano (TDC real) vs app; clasificar diferencia por causa.
