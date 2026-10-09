@@ -5,7 +5,6 @@
 // ============================================================================
 import { useMemo, useState } from 'react';
 import Icono from './Iconos.jsx';
-import VoniAvatar from './VoniAvatar.jsx';
 import { heroLinea } from '../datos/imagenes.js';
 import { buscarProductos } from '../datos/buscarProducto.js';
 import { pesos } from '../util.js';
@@ -171,18 +170,29 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
     const totalCot = (cot.partidas || []).reduce((s, p) => s + (Number.isFinite(Number(p.precioUnitario)) ? Number(p.precioUnitario) * (p.cantidad || 0) : 0), 0);
     const faltanCot = (cot.partidas || []).filter((p) => p.price_status === 'SIN_PRECIO' || p.precioUnitario == null).length;
     return (
-      <div className="inicio inicio-terminal inicio-operativo">
-        <div className="inicio-op-cab">
-          <div>
-            <div className="inicio-overline"><span className="ov-dot" />VH · TALLER DIGITAL</div>
-            <h1 className="inicio-op-titulo">¿Qué vas a hacer?</h1>
-            <div className="inicio-lead">Tres caminos. Sin menús intermedios.</div>
+      <div className="inicio inicio-terminal inicio-operativo inicio-premium">
+        <section className="inicio-premium-hero" aria-label="Vonhaucke · Taller Digital">
+          <div className="inicio-premium-copy">
+            <div className="inicio-overline"><span className="ov-dot" />VONHAUCKE · TALLER DIGITAL · EST. 1958</div>
+            <h1 className="inicio-premium-titulo">Cocreando<br />tu espacio</h1>
+            <p className="inicio-premium-lead">Del plano al producto: costea, cotiza y presenta mobiliario Vonhaucke con precisión, en minutos.</p>
+
+            <div className="inicio-premium-facts" aria-label="Capacidades del sistema">
+              <span><b>68</b><small>AÑOS DE OFICIO</small></span>
+              <span><b>VH</b><small>DISEÑO + INGENIERÍA</small></span>
+              <span className="live"><i aria-hidden="true" /><b>VONI</b><small>IA + MOTOR ACTIVO</small></span>
+            </div>
           </div>
-          <span className="ds-live"><span className="ds-pulse" />MOTOR ACTIVO</span>
-        </div>
+
+          <div className="inicio-premium-media" aria-hidden="true"
+            style={{ backgroundImage: 'url(https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/app/marca/portada-1.jpg)' }}>
+            <span className="inicio-premium-media-tag">MOBILIARIO · VONHAUCKE</span>
+            <span className="inicio-premium-media-caption">DEL CONCEPTO A PRODUCCIÓN</span>
+          </div>
+        </section>
 
         {nPartidas > 0 && (
-          <div className="retomar-fila">
+          <div className="retomar-fila inicio-premium-retomar">
             <button className="retomar" data-testid="home-retomar" onClick={() => onIr('cotizacion')}>
               <span className="retomar-txt">
                 <span className="retomar-lbl">Proyecto en curso</span>
@@ -202,36 +212,53 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
           </div>
         )}
 
-        <div className={'inicio-op-grid' + (veCostos ? '' : ' vendedor')}>
-          <button className="inicio-op-card principal" data-testid="home-cotizar" onClick={() => onIr('voni')}>
-            <span className="inicio-op-icon"><VoniAvatar tam={56} variante="cara" /></span>
-            <span className="inicio-op-k">COTIZAR</span>
-            <strong>Preparar propuesta para cliente</strong>
-            <span>Sube plano/PDF o describe lo que necesita el cliente; VONI arma la propuesta y te lleva al acomodo/PDF.</span>
-            <b>Empezar cotización →</b>
+        <div className="inicio-premium-cab">
+          <div>
+            <span className="inicio-premium-eyebrow">ELIGE UN CAMINO</span>
+            <h2>¿Qué quieres resolver hoy?</h2>
+          </div>
+          <span>Sin menús intermedios. Las herramientas avanzadas siguen abajo.</span>
+        </div>
+
+        <div className={'inicio-op-grid inicio-premium-grid' + (veCostos ? '' : ' vendedor')}>
+          <button className="inicio-op-card inicio-premium-card principal" data-testid="home-cotizar" onClick={() => onIr('voni')}>
+            <span className="inicio-op-foto" style={{ backgroundImage: `url(${heroLinea('cirque')})` }} aria-hidden="true" />
+            <span className="inicio-op-sombra" aria-hidden="true" />
+            <span className="inicio-op-content">
+              <span className="inicio-op-top"><span className="inicio-op-k">01 · COTIZAR</span><span className="inicio-op-badge">CON VONI</span></span>
+              <strong>Preparar una propuesta para cliente</strong>
+              <span className="inicio-op-desc">Sube plano/PDF o describe la necesidad. VONI arma el programa, la propuesta y te lleva al acomodo y al PDF.</span>
+              <b>Empezar cotización <span aria-hidden="true">→</span></b>
+            </span>
           </button>
 
           {veCostos && (
-            <button className="inicio-op-card" data-testid="home-costear" onClick={() => onIr('especial')}>
-              <span className="inicio-op-icon"><Icono nombre="despiece" tam={30} /></span>
-              <span className="inicio-op-k">COSTEAR</span>
-              <strong>Costear un producto nuevo</strong>
-              <span><u>Sube PDF, plano, render o foto</u>, o descríbelo. VONI propone el despiece y el motor calcula.</span>
-              <b>Subir PDF / costear →</b>
+            <button className="inicio-op-card inicio-premium-card" data-testid="home-costear" onClick={() => onIr('especial')}>
+              <span className="inicio-op-foto" style={{ backgroundImage: `url(${heroLinea('eclipse')})` }} aria-hidden="true" />
+              <span className="inicio-op-sombra" aria-hidden="true" />
+              <span className="inicio-op-content">
+                <span className="inicio-op-top"><span className="inicio-op-k">02 · COSTEAR</span><span className="inicio-op-badge">PRODUCCIÓN</span></span>
+                <strong>Costear un producto nuevo</strong>
+                <span className="inicio-op-desc">Sube PDF, plano, render o foto. VONI propone el despiece y el motor calcula materiales, mano de obra e indirectos.</span>
+                <b>Subir PDF / costear <span aria-hidden="true">→</span></b>
+              </span>
             </button>
           )}
 
-          <button className="inicio-op-card" data-testid="home-cocrear" onClick={() => onIr('cocrear')}>
-            <span className="inicio-op-icon"><Icono nombre="especial" tam={30} /></span>
-            <span className="inicio-op-k">COCREAR</span>
-            <strong>Diseñar un producto nuevo</strong>
-            <span>Empieza desde la necesidad y baja el concepto a una solución fabricable.</span>
-            <b>Empezar cocreación →</b>
+          <button className="inicio-op-card inicio-premium-card" data-testid="home-cocrear" onClick={() => onIr('cocrear')}>
+            <span className="inicio-op-foto" style={{ backgroundImage: `url(${heroLinea('alba')})` }} aria-hidden="true" />
+            <span className="inicio-op-sombra" aria-hidden="true" />
+            <span className="inicio-op-content">
+              <span className="inicio-op-top"><span className="inicio-op-k">{veCostos ? '03' : '02'} · COCREAR</span><span className="inicio-op-badge">ESTUDIO</span></span>
+              <strong>Diseñar algo que todavía no existe</strong>
+              <span className="inicio-op-desc">Empieza desde la necesidad, define forma y acabados, y baja el concepto a una solución Vonhaucke fabricable.</span>
+              <b>Entrar al estudio <span aria-hidden="true">→</span></b>
+            </span>
           </button>
         </div>
 
-        <details className="inicio-op-mas">
-          <summary>Más herramientas</summary>
+        <details className="inicio-op-mas inicio-premium-mas">
+          <summary><span>Más herramientas</span><small>Catálogo, proyecto actual, acomodo, banco y administración</small></summary>
           <div className="atajos">
             <button className="atajo" onClick={() => setVista('cotizarlinea')}>Cotizar de línea <span>producto conocido</span></button>
             {nPartidas > 0 && <button className="atajo" onClick={() => onIr('cotizacion')}>Proyecto actual <span>ver, imprimir o descargar</span></button>}
@@ -248,7 +275,7 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
         </details>
 
         {favoritas.length > 0 && (
-          <div className="favoritas">
+          <div className="favoritas inicio-premium-favoritas">
             <div className="favoritas-lbl">Tus líneas más usadas</div>
             <div className="favoritas-chips">
               {favoritas.map((l) => <button key={l.ruta} className="favorita" onClick={() => onIr(l.ruta)}>{l.titulo}</button>)}
