@@ -5,6 +5,29 @@
 
 ---
 
+## R12 PARA AUDITORÍA CHATGPT + GROK
+
+- **branch:** `audit/final-product-completion` · **code SHA:** `9166921` (HEAD = doc-commit encima). Base R12 = `b94800d`.
+- **tests:** 2138/2138 vitest (259 archivos) · **vite build:** ✅ · **deno check:** ✅. **CI real:** GitHub 0 runs (evidencia LOCAL).
+- **archivos tocados (R12):** `src/datos/programaRealDelPlano.js` (resolverAnclaCanonica + provenance + recomendaciones + gate identity), `src/datos/confirmarPrograma.js` (plan_source_ref), `src/componentes/Acomodo.jsx` (sin bypass hayReales), `src/datos/observedPipelineIntegracion.test.js` (+R12-1/2/3/5), nuevo `src/datos/acomodoObservedAuthority.test.js`.
+- **Estado por hallazgo:**
+  - R12-1 ambigüedad de producto = REVIEW (900×900 → PRODUCT_AMBIGUOUS, no matches[0]) — **INTEGRATION_PASS** (caso 17).
+  - R12-2 capacidad debe coincidir (bench 1500×1200 cap 8 → CAPACITY_MISMATCH) — **INTEGRATION_PASS** (caso 18).
+  - R12-3 dependiente observado ≠ SKU default (sillas = recomendación SUGGESTED, no partida) — **INTEGRATION_PASS** (caso 19).
+  - R12-4 Acomodo autoridad única (sin bypass hayReales) — **CODE_PASS** (bypass removido) + reconciliación de dominio **INTEGRATION_PASS** (confirmarPrograma + acomodoObservedAuthority). UI render = NOT_VERIFIED (no E2E).
+  - R12-5 provenance end-to-end (plan_source_ref=B-01 sobrevive apply) — **INTEGRATION_PASS** (caso 20).
+  - P1 sin cross-línea con línea explícita — **CODE_PASS**. P1 propuestaBloqueada ⊃ identity_status MISSING — **CODE_PASS**. P1 tests offline — ✅.
+- **BLOCKED_EXTERNAL:** deploy edge; motor cutover; DATA TRUTH (xlsx + conversión por familia + modelo de sillería por línea); merge/promote; migraciones; 33 legacy; Intelisis.
+- **Supuestos NO verificados LIVE:**
+  1. El catálogo real NO tiene las dims del ground truth QA-COT-01 → en ese plano casi toda ancla cae en NEEDS_CONFIRMATION (op-2u-1500x1200 sí existe, por eso el adversarial resuelve).
+  2. El modelo de sillería por línea (silla-win/concerto…) NO está confirmado con VH → se trata como SUGGESTED, nunca confirmado.
+  3. La visión poblará observed_program conforme al schema — golden/adapter = contrato GRABADO, no PDF vivo.
+  4. El render de Acomodo/VONI con observed + partidas existentes NO está cubierto por E2E; sólo la LÓGICA de dominio.
+  5. UMBRAL_CONFIANZA_GOBERNAR=0.7 y el mapa de confianza textual son convención de Claude.
+- **Hallazgos nuevos:** el orden importa — "sin producto de esa geometría" es NEEDS_CONFIRMATION, no CAPACITY_MISMATCH (se corrigió el orden en `resolverAnclaCanonica`). Al volver las sillas RECOMENDACIONES, el `preview`/`partidas` del observed ya NO contienen asientos (sólo anclas): cualquier consumidor aguas abajo que esperara asientos en partidas debe leer `recomendaciones`. La POLÍTICA de cuál gana (modelo observado vs sugerido por regla) sigue sin decidir por negocio.
+
+---
+
 ## R11 PARA AUDITORÍA CHATGPT + GROK
 
 - **branch:** `audit/final-product-completion` · **code SHA:** `b94800d` (HEAD = doc-commit encima). Base R11 = `b3da1ba`.
@@ -96,25 +119,21 @@
 Eres el auditor independiente del proyecto Von Haucke (app React + Supabase de costeo/cotización).
 Audita la rama `audit/final-product-completion`.
 
-- Último commit de CÓDIGO: b94800d (ronda 11: IDENTITY-FIRST real + gate de dominio unificado). Base R11 = b3da1ba.
-  Verdad viva: `CLOSEOUT_STATE.md` (historial completo rondas 1–11) + bloque "R11 PARA AUDITORÍA CHATGPT + GROK" arriba.
-  Tests 2132/2132 (258 archivos), build ✅, deno check ✅ (evidencia LOCAL; GitHub 0 CI runs). Golden/adapter = MOCK_ONLY.
+- Último commit de CÓDIGO: 9166921 (ronda 12: product identity sin SKU arbitrario + provenance end-to-end). Base R12 = b94800d.
+  Verdad viva: `CLOSEOUT_STATE.md` (historial completo rondas 1–12) + bloque "R12 PARA AUDITORÍA CHATGPT + GROK" arriba.
+  Tests 2138/2138 (259 archivos), build ✅, deno check ✅ (evidencia LOCAL; GitHub 0 CI runs). Golden/adapter = MOCK_ONLY.
 - Límites que Claude respetó: NO merge, NO deploy/promote, NO migración prod, NO prod-write, NO tocar 33 legacy,
   NO aprobar DATA TRUTH, NO integrar Intelisis. Todo capa ADITIVA (no cambia números del motor). El validador del
   edge está PREPARADO + deno-clean pero NO DESPLEGADO (prod edge = hard boundary).
 
-Verifica contra el CÓDIGO real (no sólo el closeout) que los 5 P0 + P1 de tu ronda 11 quedaron bien cerrados:
-1. R11-1/2 IDENTITY-FIRST (`resolverFisicoDesdeObservado` en programaRealDelPlano.js): ¿cada ancla física resuelve su
-   producto por DIMENSIONES y quantity=N da N instancias? ¿Hay algún camino que todavía elija por capacidad agregada?
-   Corre el adversarial: 4× bench 1500×1200 → 4× op-2u-1500x1200 y 0× op-8u.
-2. R11-3 dependientes son gate: ¿OBSERVED_ONLY/DIVERGE pone requiereRevision? ¿CR-01 observada bloquea Aplicar?
-3. R11-4 autoridad única + gate central: ¿`Acomodo.jsx` usa la misma función observada que Voni (no reconstruye desde
-   áreas si hay observed server)? ¿`App.aplicarProgramaDetectado` rechaza vía `propuestaBloqueada` aunque el caller se equivoque?
-4. R11-5 fail-closed `leerPlanoArchivo`: con serverObserved, ¿sólo state PASS → PRESENT_VALID y null/unknown → REVIEW?
-5. P1: ¿ancla sin source_ref ni posición → IDENTIDAD_AMBIGUA? ¿el test de integración atraviesa el adapter real
-   (`leerPlanoAdapterIntegracion.test.js`) + el gate, no sólo validator→governor?
-6. Revisa los SUPUESTOS NO verificados live (bloque R11) y dime cuáles son riesgo real para la demo.
-7. Busca NUEVOS falsos verdes o huecos de integración.
+Verifica contra el CÓDIGO real (no sólo el closeout) que los 5 P0 + 3 P1 de tu ronda 12 quedaron bien cerrados:
+1. R12-1 ambigüedad (`resolverAnclaCanonica`): mesa 900×900 con melamina/comedor/cristal → PRODUCT_AMBIGUOUS, ¿NUNCA matches[0]?
+2. R12-2 capacidad: ¿cruza prod.usuarios con capacity_per_unit? bench 1500×1200 cap 8 → CAPACITY_MISMATCH (no op-2u).
+3. R12-3 sillas: ¿son RECOMENDACIONES SUGGESTED (no partidas confirmadas)? ¿conciliarDependientes compara modelo cuando existe?
+4. R12-4 Acomodo: ¿se eliminó `hayReales ? null`? ¿observed gobierna aun con partidas existentes (reconcilia, no reinventa por áreas)?
+5. R12-5 provenance: ¿`plan_source_ref` (B-01) sobrevive hasta la partida comercial, separado de `product_source_ref` (op-2u)?
+6. P1: ¿sin fallback cross-línea con línea explícita? ¿`propuestaBloqueada` bloquea identity_status MISSING?
+7. Revisa los SUPUESTOS NO verificados live (bloque R12) y dime cuáles son riesgo real para la demo. Busca NUEVOS falsos verdes.
 
 Luego decide/recomienda prioridad para el mega-avance, sabiendo que estos bloques necesitan decisión de Rodrigo o deploy:
 A. MOTOR CUTOVER: que `calcular()` tome el precio del CanonicalPriceResolver con fail-closed, preservando goldens (sólo productos nuevos).

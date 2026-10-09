@@ -3,12 +3,12 @@
 > Estado VIVO y VERÍDICO para continuar entre sesiones y para auditoría de ChatGPT.
 > Regla: este archivo refleja SIEMPRE el HEAD real, los tests reales y qué quedó REALMENTE
 > cableado vs pendiente. Cero información histórica presentada como estado actual.
-> Última actualización: 2026-10-09 (ronda 11 ChatGPT+Grok: IDENTITY-FIRST real + gate de dominio unificado).
+> Última actualización: 2026-10-09 (ronda 12 ChatGPT+Grok: product identity sin SKU arbitrario + provenance end-to-end).
 
 ## ESTADO ACTUAL (verificado contra el repo)
-- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `b94800d`**; el HEAD de la rama es el
+- Rama: `audit/final-product-completion`. **Último commit de CÓDIGO = `9166921`**; el HEAD de la rama es el
   doc-commit de este CLOSEOUT encima (un commit no puede contener su propio SHA). Tip exacto: `git rev-parse HEAD`.
-- **Tests: 2132 / 2132** (vitest, 258 archivos) · **Build: ✅** (vite) · **deno check ✅** (leer-plano + core) · verificado en esta sesión (2026-10-09).
+- **Tests: 2138 / 2138** (vitest, 259 archivos) · **Build: ✅** (vite) · **deno check ✅** (leer-plano + core) · verificado en esta sesión (2026-10-09).
 - **Evidencia = LOCAL de Claude. GitHub NO tiene CI runs (0 workflows).** Golden QA-COT-01 = MOCK_ONLY /
   RECORDED CONTRACT (no es E2E del PDF vivo). Lectura de PDF en vivo + edges = BLOCKED_EXTERNAL (no desplegado).
 - **MANDATO RC (deadline lunes 12-oct)**: autónomo hasta Release Candidate. Autorización NUEVA de Rodrigo:
@@ -16,8 +16,13 @@
   Siguen prohibidos (se preparan/documentan como BLOCKED_EXTERNAL, no se ejecutan): merge, deploy/promote,
   migración prod, escrituras masivas prod, modificar 33 legacy, aprobar DATA TRUTH, integrar Intelisis.
 - **P0 ejecutables cerrados por ronda; NO se declara "P0 abiertos: 0" hasta que R10 sea RE-AUDITADA.**
-  ChatGPT r7: 10 P0. r8: 7 P0. r9: 10 P0. r10: 14 P0/P1. **r11 (ChatGPT+Grok): 5 P0 + P1 — cerrados en código
-  ahora** (ver ronda 11): la resolución seguía siendo por capacidad agregada (4 benches 1500×1200 → 1 op-8u) con
+  ChatGPT r7: 10 P0. r8: 7. r9: 10. r10: 14. r11: 5 P0+P1. **r12 (ChatGPT+Grok): 5 P0 + 3 P1 — cerrados en código
+  ahora** (ver ronda 12): "misma dimensión" no era "misma identidad" (elegía matches[0] entre melamina/comedor/
+  cristal 900×900); no comparaba capacidad observada vs producto (bench 1500×1200 cap 8 → op-2u); las sillas
+  recibían SKU default como partida confirmada; Acomodo abandonaba observed si ya había partidas; se perdía la
+  provenance del plano (B-01) al resolver. Ahora: ambigüedad→PRODUCT_AMBIGUOUS, capacidad→CAPACITY_MISMATCH,
+  sillas=RECOMENDACIÓN SUGGESTED, Acomodo unificado también con partidas, y dos identidades plan vs producto.
+  **r11 (ver abajo): 5 P0 + P1.** la resolución seguía siendo por capacidad agregada (4 benches 1500×1200 → 1 op-8u) con
   reconciliación post-hoc; PRESENT_REVIEW_REQUIRED y NEEDS_CONFIRMATION no bloqueaban Aplicar de verdad; Acomodo
   reconstruía desde áreas ignorando observed_program; leerPlanoArchivo daba PRESENT_VALID con validación null.
   Ahora: IDENTITY-FIRST (cada ancla física → producto canónico por dimensiones, cardinalidad 1:1), gate de dominio
@@ -72,6 +77,22 @@ credenciales a un servicio externo). Por eso:
 - BLOCKED_EXTERNAL (requiere login con cuenta de PRUEBA): E2E autenticado de guardar/reabrir, roles en vivo, aprobar contra servidor, autosave real, storage real.
 
 ## HISTORIAL DE AUDITORÍA (ChatGPT) — qué pasó en cada ronda
+
+### Ronda 12 — ChatGPT + Grok (sobre b94800d) — 5 P0 + 3 P1 cerrados (código `9166921`)
+"R11 arregló 4×2U→1×8U; ahora que 'producto físicamente compatible' no se vuelva 'SKU arbitrario'." Cerrado (pre-motor):
+- **R12-1 AMBIGÜEDAD = REVIEW**: `resolverAnclaCanonica` — ≥2 productos con la misma geometría y evidencia que no
+  discrimina → `PRODUCT_AMBIGUOUS` (mesa 900×900 melamina/comedor/cristal NO elige matches[0]).
+- **R12-2 CAPACIDAD coincide**: cruza rol+dims+CAPACIDAD (`prod.usuarios === capacity_per_unit`); 1 bench 1500×1200
+  cap 8 → `CAPACITY_MISMATCH` (no op-2u). Sin dims en catálogo → NEEDS_CONFIRMATION (no mismatch).
+- **R12-3 DEPENDIENTE ≠ SKU default**: las sillas son RECOMENDACIONES (`product_status: SUGGESTED`,
+  `requiere_confirmacion_modelo`), NUNCA partidas confirmadas; `conciliarDependientes` compara modelo cuando existe.
+- **R12-4 ACOMODO autoridad única**: se eliminó el bypass `hayReales ? null`; con observed server gobierna también
+  si ya hay partidas (reconcilia vía confirmarPrograma). Sólo ABSENT → heurística por áreas.
+- **R12-5 PROVENANCE end-to-end**: `plan_source_ref` (B-01) ≠ `product_source_ref` (op-2u…) + plan_tag/grouping/
+  posición/orientación; sobreviven `resolverFisicoDesdeObservado → confirmarPrograma → partidaComercialDesdeConfirmado`.
+- **P1**: sin fallback cross-línea con línea explícita; `propuestaBloqueada` bloquea `identity_status: MISSING`; tests INTEGRATION_OFFLINE.
+Nuevos tests adversariales (900×900 ambiguo, cap-mismatch, sillas SUGGESTED, provenance B-01) + `acomodoObservedAuthority`.
+Suite 2138/2138 (259 archivos) · build ✅ · deno check ✅. PENDIENTE: re-auditoría R12.
 
 ### Ronda 11 — ChatGPT + Grok (sobre b3da1ba) — 5 P0 + P1 cerrados (código `b94800d`)
 "R10 bien, pero la resolución seguía siendo por capacidad y la reconciliación era post-hoc." Cerrado (pre-motor):
@@ -346,7 +367,7 @@ Lo que falta es CONECTAR la casa, en este orden:
    LÍNEA (materiales/partes/rubros + moneda+FX) y usarlo con las T.D.C. Alba/Alpura reales (depende de #3).
    fixture ≠ golden ejecutado.
 
-## Matriz (estado real al código b94800d)
+## Matriz (estado real al código 9166921)
 | Área | CODE | INTEGRATION | E2E | USER FLOW | Pendiente |
 |---|---|---|---|---|---|
 | Home/Navegación | ✅ | ✅ | ✅ smoke | ✅ render | — |
