@@ -18,7 +18,7 @@ import { pesos2, pct, pct1, colorMerma } from '../util.js';
 import AnalisisEstructural from './AnalisisEstructural.jsx';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
-import { aplicarPoliticaMaterial, MATCH, estadoMaterialUI, patchConfirmacionUI } from '../datos/materialMatch.js';
+import { aplicarPoliticaMaterial, MATCH, estadoMaterialUI, patchConfirmacionUI, debeResetearHojasMaterial } from '../datos/materialMatch.js';
 import { renderSpecFromGraph } from '../datos/renderSpec.js';
 import { flagActivo } from '../datos/flags.js';
 import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
@@ -254,7 +254,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     // Cambiar de una lámina/tablero a OTRO invalida la fracción capturada para el
     // material anterior, incluso si AMBOS se venden por hoja. Nunca arrastrar hojas
     // obsoletas: el usuario recaptura su cantidad o el motor deriva el m² neto.
-    if (prev.insumoId !== insumoId || !esFraccionHoja(ins)) patch.hojas = undefined;
+    if (debeResetearHojasMaterial(prev.insumoId, insumoId, esFraccionHoja(ins))) patch.hojas = undefined;
     // Elección/confirmación HUMANA: misma intención en ambas UIs (P0.8). El servidor verifica
     // material_confirmado + insumoId y lo convierte a USER_CONFIRMED efectivo (no confía en el string).
     if (ins) Object.assign(patch, patchConfirmacionUI(insumoId));
