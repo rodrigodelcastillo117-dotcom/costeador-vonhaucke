@@ -57,6 +57,10 @@ export const yaCargado = () => cargado;
 // algo que se corrigió una.
 export function aprendizajesTexto() {
   return CACHE
+    // El vendedor puede ANOTAR una corrección sin que se convierta
+    // inmediatamente en conocimiento global para todos los modelos.
+    // Sólo Dirección/Diseño activa su uso en prompts por revisión.
+    .filter((a) => a.aprobado_para_ia === true)
     .slice()
     .sort((a, b) => (b.veces || 1) - (a.veces || 1))
     .slice(0, MAX_EN_PROMPT)
@@ -75,9 +79,14 @@ export async function anotar({ tipo, pedido, propuso, quedo, texto, usuario }) {
     const igual = CACHE.find((a) => a.texto === leccion);
     if (igual) {
       const veces = (igual.veces || 1) + 1;
-      await nube.from('aprendizajes').update({ veces }).eq('id', igual.id);
-      igual.veces = veces;
-      return igual;
+      const { error } = await nube.from('aprendizajes').update({ veces })
+        .eq('id', igual.id);
+      if (!error) {
+        igual.veces = veces;
+        return igual;
+      }
+      // Usuario de Ventas no puede alterar una lección global aprobada.
+      // Registrar su NUEVA observación pendiente, nunca fingir que actualizó.
     }
     const fila = {
       tipo: tipo || 'aclaracion',
