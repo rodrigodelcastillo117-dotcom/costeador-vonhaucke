@@ -153,8 +153,10 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
         !window.confirm('Esto reemplazará las piezas actuales por lo que entienda Voni de tu descripción. ¿Seguir?')) return;
     setErrIA(''); setAnalizandoIA(true);
     try {
-      const master = await buscarProductosMaestroTexto(desc, 30);
-      const catalogo = { ...catalogoIA(), __producto_maestro: master?.items || [] };
+      // analizar-mueble espera un ARRAY de artículos, no un objeto construido
+      // con spread de un array (0:{...},1:{...}). Eso hacía perder los hints
+      // y podía degradar el matching cuando no respondía el catálogo canónico.
+      const catalogo = catalogoIA();
       const res = await analizarTexto(catalogo, desc);
       if (!res?.ok) { setErrIA(res?.error || 'No se pudo interpretar la descripción.'); return; }
       const p = res.propuesta || {};
