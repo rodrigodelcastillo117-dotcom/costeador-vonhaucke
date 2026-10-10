@@ -18,6 +18,7 @@ import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, familia
 import { materialDesdeLeyenda } from '../datos/materialDesdeLeyenda.js';
 import { opcionesMaterialPlano } from '../datos/opcionesMaterialPlano.js';
 import { proxyTableroParaEstimar } from '../datos/proxyTableroEstimado.js';
+import { mensajePendienteInsumo } from '../datos/mensajePendienteInsumo.js';
 import { paginaAImagen } from '../datos/pdfImagen.js';
 import { prepararPdfRapido, rasterizarPaginas, paginasAlrededor } from '../datos/pdfPipeline.js';
 import Cargando from './Cargando.jsx';
@@ -1239,7 +1240,15 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                         ))
                       ) : (
                         <div role="status" className="material-sin-coincidencia">
-                          El plano ya identificó el material, pero no hay un artículo con espesor y acabado verificables en el catálogo de costeo. No se asignará uno incorrecto. Solicita a Compras/Diseño habilitarlo con precio validado.
+                          {mensajePendienteInsumo(c.material_solicitado)}
+                          {est.candId && insumos[est.candId] && (
+                            <div style={{ marginTop: 8, fontWeight: 600 }}>
+                              Candidato del catálogo: {insumos[est.candId].nombre}.
+                              {insumos[est.candId]?.precio > 0 || insumos[est.candId]?.precioBase > 0
+                                ? ' El precio de referencia existe, pero la especificación requiere confirmación.'
+                                : ' Falta un precio utilizable.'}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
