@@ -45,6 +45,33 @@ describe('P0: integración real de catálogo Compras 259 → motor sin precios i
     expect(insumos.lamina.formatoPendiente).toBe(true);
     expect(insumos.lamina.precioCertificable).toBe(false);
   });
+  it('MDF mismo ID en motor y Compras hereda formato 1.22x2.44, pero precio es exclusivamente ERP', () => {
+    const r=construirCatalogoCompras({},[item('mdf','MDF 19 mm','hoja')],
+      [p('mdf',{precio:720,precio_compra:720,unidad_compra:'hoja'})],[]);
+    const x=r.insumos.mdf;
+    expect(x.formato).toBeTruthy();
+    expect(x.formato.tipo).toBe('tablero');
+    expect(x.formato.medida).toBeGreaterThan(2.9);
+    expect(x.formatoOrigen).toBe('MOTOR_SEMILLA_MISMO_ID');
+    expect(x.formatoPendiente).toBe(false);
+    expect(x.precio).toBe(720);
+    const cost=calcular({componentes:[{insumoId:'mdf',forma:'area',nombre:'Frente',largoMM:1200,anchoMM:600,piezas:1}]},1,r.insumos,PARAMETROS_DEFAULT);
+    expect(cost.componentesIgnorados).toEqual([]);
+    expect(cost.materialTotal).toBeGreaterThan(0);
+  });
+  it('hoja ajena sin formato, aunque tenga nombre MDF, NO se le inventa formato 4x8', () => {
+    const r=construirCatalogoCompras({},[item('nuevo-mdf-extra','MDF industrial 19 mm','hoja')],
+      [p('nuevo-mdf-extra',{precio:800,precio_compra:800,unidad_compra:'hoja'})],[]);
+    expect(r.insumos['nuevo-mdf-extra'].formatoPendiente).toBe(true);
+    expect(r.insumos['nuevo-mdf-extra'].formato).toBeUndefined();
+  });
+  it('Lámina cal.14 hereda geometría de hoja/peso en kg, no la confunde con m²', () => {
+    const r=construirCatalogoCompras({},[item('lamina-14','Lámina acero cal. 14','hoja')],
+      [p('lamina-14',{precio:880,precio_compra:880,unidad_compra:'hoja'})],[]);
+    expect(r.insumos['lamina-14'].formato.tipo).toBe('lamina');
+    expect(r.insumos['lamina-14'].formato.medida).toBeGreaterThan(40);
+    expect(r.insumos['lamina-14'].formatoOrigen).toBe('MOTOR_SEMILLA_MISMO_ID');
+  });
   it('hoja sin formato: un área NO cuesta pero consumo explícito de 0.5 hoja sí', () => {
     const {insumos}=construirCatalogoCompras({},[item('hoja','Melamina nogal 16 mm','hoja')],
       [p('hoja',{precio:600,precio_compra:600,unidad_compra:'hoja'})],[]);
