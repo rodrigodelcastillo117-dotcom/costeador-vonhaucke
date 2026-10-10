@@ -86,10 +86,12 @@ export function construirCatalogoCompras(base = {}, referencias = [], precios = 
     const externo = identidadExterna(ref.id, mapeos, elegido);
     const metadata = {
       codigoCompras:ref.id, clavesERP:externo.clavesERP, mapeosERP:externo.mapeosERP,
-      descripcionCompras:ref.nombre, familiaCompras:ref.familia || '', calibreCompras:ref.calibre ?? null,
+      descripcionCompras:ref.nombre, familiaCompras:ref.familia || '', clasificacionCompras:ref.clasificacion || '', materialCompras:ref.material || '', atributosCompras:ref.atributos || null, calibreCompras:ref.calibre ?? null,
       espesorMMCompras:ref.espesor_mm ?? null, formatoCompras:ref.formato || null,
       unidadCompra:elegido?.unidad_compra || '', unidadCosteo:ref.unidad_costeo || '',
       precioCompraOriginal:num(elegido?.precio_compra), factorConversion:num(elegido?.factor_conversion),
+      monedaOrigen:elegido?.source_currency || '', precioOrigen:num(elegido?.source_price),unidadOrigen:elegido?.source_unit || '', tasaCambio:num(elegido?.fx_rate),fechaCambio:elegido?.fx_date || null,
+      proveedorCompra:elegido?.proveedor || '', propiedadesPrecio:elegido?.propiedades || null, evidenciaDescripcion:elegido?.evidencia || '',
       fuenteCompra:elegido?.source_document || elegido?.fuente || '',
       sistemaFuente:elegido?.source_system || '', registroFuente:elegido?.source_record_id || '',
       fechaFuente:elegido?.vigente_desde || '', precioEstado:elegido?.estado || 'sin_precio',
