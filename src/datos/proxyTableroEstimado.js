@@ -58,3 +58,21 @@ export function proxyTableroParaEstimar(materialSolicitado, insumos = {}) {
   return { ...opciones[0], modo: 'COSTEO_PROVISIONAL_18_A_19',
     aviso: 'Sustitución 18→19 mm, mismo tipo de tablero. Acabado y precio de compra real por validar. No autoriza fabricación ni emisión.' };
 }
+
+
+/** Solo entra al motor si existe geometría para convertir correctamente $/m².
+ * Una fracción de hoja NO puede multiplicarse directamente por un precio $/m².
+ */
+export function proxyParaPiezaDePlano(solicitado, pieza = {}, insumos = {}) {
+  const proxy = proxyTableroParaEstimar(solicitado, insumos);
+  if (!proxy) return null;
+  const ins = insumos[proxy.id];
+  const tieneGeometria = Number(pieza.largoMM) > 0 && Number(pieza.anchoMM) > 0;
+  if (ins?.unidad === 'm2' && !tieneGeometria) return null;
+  if (pieza.forma === 'area' && !tieneGeometria && !(Number(pieza.hojas) > 0 && ins?.unidad === 'hoja')) return null;
+  return proxy;
+}
+
+export function puedeUsarHojasDirectas(proxy, insumos = {}) {
+  return !proxy || insumos[proxy.id]?.unidad === 'hoja';
+}
