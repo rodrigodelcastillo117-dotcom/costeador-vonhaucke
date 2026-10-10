@@ -36,7 +36,7 @@ import { calcular, precioDe, precioVenta, modeloParaPieza } from '../motor/calcu
 import { buscarPrecioVenta, costoImplicito, precioDeLista } from './preciosVenta.js';
 import { factorDeLinea } from './factoresLinea.js';
 import { precioPorUsuarioAppLT } from './preciosVenta.js';
-import { tipoDe, huellaReal, HUELLA } from './espacio.js';
+import { tipoDe, huellaReal, HUELLA, dimensionesEnNombre } from './espacio.js';
 import { BANCO, bancoUnico } from './banco.js';
 import { resolverArticuloCatalogo } from './resolverArticulo.js';
 import { autorizadoPorRef } from './precioAutorizado.js';
@@ -158,20 +158,43 @@ export function configDesde(producto, seleccion = {}, avisos = null) {
 //  Y si el despiece no trae medidas (un sillón es bastidor, espuma y tela), se
 //  lee del nombre, que sí las dice: "Sillón Pac 1 plaza (0.60×0.60 m)".
 const FONDO_MAX = 1500;   // más de 1.5 m de fondo no es un mueble, es un error
+const CUBIERTA_MIN = 300; // COT-P1-027e: una "tapa" de <300 mm de fondo es un registro, no una cubierta
+const DIM_MIN = 100;
 
-export function footprintDe(componentes, nombre = '') {
+// COT-P1-027e · AUTORIDAD DIMENSIONAL (Parte XI §2), en este orden:
+//   1 PRODUCTO          · largoMM × fondoMM declarados por el producto (config resuelta)
+//   2 DESPIECE_CUBIERTA · la cubierta/tapa de MÁS ÁREA con fondo creíble (≥300 mm)
+//   3 DESPIECE_MAYOR    · la pieza de más área con fondo creíble (≤1.5 m)
+//   4 NOMBRE            · medidas con unidad en el nombre (NOMBRE_INFERIDO si sin unidad)
+//   5 DESPIECE_SIN_FONDO· la más grande aunque el fondo no cuadre (último recurso)
+//   — DESCONOCIDA       · {0,0}: nunca se transforma en una medida "certificada".
+// Evidencia: la credenza Eclipse salía 2100 × 200 porque su único "tapa" es la
+// "Tapa de registro" (L × 200). Si el nombre contradice la huella elegida (>10 %)
+// se MARCA `conflicto` (no se escoge arbitrariamente una medida).
+export function footprintDe(componentes, nombre = '', { config, producto } = {}) {
   const conMedida = (componentes || []).filter((c) => c.largoMM && c.anchoMM);
-  // 1) La cubierta, si el despiece la nombra. OJO: `.find()` devolvía la PRIMERA
+  const delNombre = dimensionesEnNombre(nombre);
+  const conConflicto = (fp) => {
+    if (delNombre && (Math.abs(delNombre.w - fp.w) > 0.1 * fp.w || Math.abs(delNombre.d - fp.d) > 0.1 * fp.d)) fp.conflicto = { nombre: { w: delNombre.w, d: delNombre.d } };
+    return fp;
+  };
+  // 1) El producto declara su fondo (fondos:[…]) y la config ya resolvió largo × fondo.
+  const L = Number(config?.largoMM), F = Number(config?.fondoMM);
+  if (Array.isArray(producto?.fondos) && Number.isFinite(L) && Number.isFinite(F) && L >= DIM_MIN && F >= DIM_MIN) {
+    return conConflicto({ w: L, d: F, origen: 'PRODUCTO' });
+  }
+  // 2) La cubierta, si el despiece la nombra. OJO: `.find()` devolvía la PRIMERA
   //    que pegara con el patrón, y "tapa registrable" pega — mide 152 mm y le
   //    ganaba a la "Cubierta" de 1200. Resultado: una mesa de juntas de 1.80 m
   //    dibujada de 15 cm, que el acomodo mete en cualquier rendija.
-  //    Se toma la de MÁS ÁREA, y una "cubierta" siempre le gana a una "tapa".
-  const mayorPor = (re) => (componentes || [])
-    .filter((c) => c.largoMM && c.anchoMM && re.test(c.nombre || ''))
+  //    Se toma la de MÁS ÁREA, una "cubierta" siempre le gana a una "tapa", y una
+  //    tapa angosta (<300 mm: registro, pasa-cables) NO es cubierta.
+  const mayorPor = (re) => conMedida
+    .filter((c) => re.test(c.nombre || '') && Math.min(c.largoMM, c.anchoMM) >= CUBIERTA_MIN)
     .sort((a, b) => b.largoMM * b.anchoMM - a.largoMM * a.anchoMM)[0];
   const cubierta = mayorPor(/cubierta|cubiert|superficie/i) || mayorPor(/tapa/i);
-  if (cubierta) return { w: cubierta.largoMM, d: cubierta.anchoMM };
-  // 2) La pieza de más área con un FONDO creíble.
+  if (cubierta) return conConflicto({ w: cubierta.largoMM, d: cubierta.anchoMM, origen: 'DESPIECE_CUBIERTA' });
+  // 3) La pieza de más área con un FONDO creíble.
   let w = 0, d = 0, area = 0;
   for (const c of conMedida) {
     const fondo = Math.min(c.largoMM, c.anchoMM);
@@ -179,16 +202,15 @@ export function footprintDe(componentes, nombre = '') {
     const a = c.largoMM * c.anchoMM;
     if (a > area) { area = a; w = c.largoMM; d = c.anchoMM; }
   }
-  if (w && d) return { w, d };
-  // 3) Del nombre: "(0.60×0.60 m)" o "1.20 × 0.75 m".
-  const m = String(nombre).match(/(\d+(?:\.\d+)?)\s*[×xX]\s*(\d+(?:\.\d+)?)\s*m\b/);
-  if (m) return { w: Math.round(parseFloat(m[1]) * 1000), d: Math.round(parseFloat(m[2]) * 1000) };
-  // 4) Última opción: la más grande aunque el fondo no cuadre, como antes.
+  if (w && d) return conConflicto({ w, d, origen: 'DESPIECE_MAYOR' });
+  // 4) Del nombre: "(0.60×0.60 m)", "1.20 × 0.75 m", "120 x 75 cm".
+  if (delNombre) return { w: delNombre.w, d: delNombre.d, origen: delNombre.inferido ? 'NOMBRE_INFERIDO' : 'NOMBRE' };
+  // 5) Última opción: la más grande aunque el fondo no cuadre, como antes.
   for (const c of conMedida) {
     const a = c.largoMM * c.anchoMM;
     if (a > area) { area = a; w = c.largoMM; d = c.anchoMM; }
   }
-  return { w, d };
+  return w && d ? { w, d, origen: 'DESPIECE_SIN_FONDO' } : { w: 0, d: 0, origen: 'DESCONOCIDA' };
 }
 
 // --- Cuesta un item de la IA con el MOTOR (idéntico a CosteadorLinea) -----------
@@ -405,13 +427,13 @@ export function costearItem(estado, item, opciones = {}) {
   if (requiereProyectista) {
     avisos.push(`Más de ${MAX_USUARIOS_AUTOMATICO} puestos no se cotiza automático: pide que un proyectista lo revise antes de mandarlo al cliente. Este precio es solo de referencia.`);
   }
-  let fp = footprintDe(g.componentes, g.nombre);
+  let fp = footprintDe(g.componentes, g.nombre, { config, producto: prod });
   // Último recurso: la huella típica de su tipo. Un sofá que no trae medidas en
   // el despiece ni en el nombre salía en 0 × 0, y una pieza sin huella el plano
-  // ni la dibuja ni la puede acomodar.
+  // ni la dibuja ni la puede acomodar. Queda MARCADA como estimada (027e).
   if (!fp.w || !fp.d) {
     const [hw, hd] = HUELLA[tipoDe({ ruta: item.ruta, nombre: g.nombre })] || HUELLA.mueble;
-    fp = { w: hw, d: hd };
+    fp = { w: hw, d: hd, origen: 'TIPO_ESTIMADA' };
   }
   // OJO CON EL ORDEN: `nombreConBloque` vuelve a leer los puestos DEL NOMBRE
   // para armar la huella del bloque. Si primero se le cambia el nombre a "8
@@ -468,7 +490,7 @@ export function costearItem(estado, item, opciones = {}) {
       // un despiece real. Se marca para NO presentar su margen como medido
       // (audit 2026-09-24): la pantalla lo muestra con "≈".
       costoDerivado: true,
-      w: nb.w, d: nb.d, config,
+      w: nb.w, d: nb.d, huellaOrigen: fp.origen, huellaConflicto: fp.conflicto || null, config,
       precioReal: true, catalogo, variantes,
       avisos, candadoUsuarios, requiereProyectista,
     };
@@ -482,7 +504,7 @@ export function costearItem(estado, item, opciones = {}) {
   const partidaModelo = {
     ruta: item.ruta, linea: L.titulo, producto: prod.id, nombre: nb.nombre,
     cantidad, costoUnitario: pr.costo, costoDerivado: !!pr.costoDerivado, precioUnitario: precio, margen, pieza,
-    w: nb.w, d: nb.d, config,
+    w: nb.w, d: nb.d, huellaOrigen: fp.origen, huellaConflicto: fp.conflicto || null, config,
     // ¿El precio salió de un presupuesto real o del modelo? El sello de la
     // propuesta depende de esto, no de una lista de líneas escrita a mano.
     precioReal: pr.real,
@@ -519,7 +541,7 @@ export function costearConfig(estado, ruta, productoId, config, cantidad = 1) {
   const pr = precioDePieza(estado, ruta, g, pieza, n, cfg);
   const resultado = pr.resultado;
   const margen = pr.margen;
-  const fp = footprintDe(g.componentes, g.nombre);
+  const fp = footprintDe(g.componentes, g.nombre, { config: cfg, producto: prod });
   const nb = nombreConBloque(g.nombre, ruta, fp.w, fp.d);
   // El catálogo manda AQUÍ también: si el vendedor cambia la medida/acabado y la
   // nueva config casa con un artículo real, su Precio Lista sustituye al modelo

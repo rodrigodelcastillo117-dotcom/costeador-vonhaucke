@@ -65,17 +65,37 @@ export const altoTipo = (t) => (TIPOS[t] || TIPOS.mueble).alto;
  * 3 números en guardas/pedestales: ancho × alto/fondo × fondo/alto; para la
  * huella toma el menor de los dos últimos (el otro suele ser altura).
  */
+// COT-P1-027e · El nombre es AUTORIDAD 4 (texto interpretado, sujeto a validación):
+//  · unidad explícita (mm / cm / m) manda; unidades mezcladas → null (contradicción);
+//  · sin unidad: ≥100 en todas → mm; decimales <20 en todas → metros INFERIDOS
+//    (marcado `inferido:true`); enteros chicos ("2x4", "2 puertas x 3") → null;
+//  · fuera de rango físico [100, 20000] mm → null. UNKNOWN nunca se certifica.
+const DIM_MIN_MM = 100, DIM_MAX_MM = 20000;
+const RE_DIMS = /(?:^|[^\d.])(\d+(?:\.\d+)?)\s*(mm|cm|m)?(?![a-z])\s*[x×X]\s*(\d+(?:\.\d+)?)\s*(mm|cm|m)?(?![a-z])(?:\s*[x×X]\s*(\d+(?:\.\d+)?)\s*(mm|cm|m)?(?![a-z]))?/i;
 export function dimensionesEnNombre(nombre='', tipo='mueble') {
   const s=String(nombre).replace(/,/g,'.');
-  const m=/\(?\s*(\d{2,5}(?:\.\d+)?)\s*[x×]\s*(\d{2,5}(?:\.\d+)?)\s*(?:[x×]\s*(\d{2,5}(?:\.\d+)?)\s*)?(?:mm)?\s*\)?/i.exec(s);
+  const m=RE_DIMS.exec(s);
   if(!m) return null;
-  const a=Number(m[1]), b=Number(m[2]), cc=m[3]!=null?Number(m[3]):null;
-  if(![a,b].every(Number.isFinite) || a<=0 || b<=0) return null;
-  if(cc!=null && Number.isFinite(cc) && cc>0) {
-    if(tipo==='guarda') return {w:a,d:Math.min(b,cc),alto:Math.max(b,cc)};
-    return {w:a,d:b,alto:cc};
+  const nums=[m[1],m[3],m[5]].filter((x)=>x!=null).map(Number);
+  if(!nums.every((n)=>Number.isFinite(n)&&n>0)) return null;
+  const unidades=[...new Set([m[2],m[4],m[6]].filter(Boolean).map((u)=>u.toLowerCase()))];
+  if(unidades.length>1) return null;                       // "2100 mm × 0.60 m": contradictorio
+  let unidad=unidades[0]||null, inferido=false;
+  if(!unidad) {
+    const crudos=[m[1],m[3],m[5]].filter((x)=>x!=null);
+    if(nums.every((n)=>n>=DIM_MIN_MM)) unidad='mm';
+    else if(nums.every((n)=>n<20) && crudos.every((x)=>x.includes('.'))) { unidad='m'; inferido=true; }
+    else return null;                                       // "2x4": ambiguo, no se inventa
   }
-  return {w:a,d:b,alto:null};
+  const k = unidad==='m' ? 1000 : unidad==='cm' ? 10 : 1;
+  const mm=nums.map((n)=>Math.round(n*k));
+  if(!mm.every((n)=>n>=DIM_MIN_MM && n<=DIM_MAX_MM)) return null;
+  const [a,b,cc]=mm;
+  if(cc!=null) {
+    if(tipo==='guarda') return {w:a,d:Math.min(b,cc),alto:Math.max(b,cc),unidad,inferido};
+    return {w:a,d:b,alto:cc,unidad,inferido};
+  }
+  return {w:a,d:b,alto:null,unidad,inferido};
 }
 
 export const dimsPieza = (p, rot) => ((rot === 90 || rot === 270) ? { pw: p.d, ph: p.w } : { pw: p.w, ph: p.d });

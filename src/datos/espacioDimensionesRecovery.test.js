@@ -8,7 +8,8 @@ describe('medidas explícitas de partidas para acomodo',()=>{
     expect(p.d).toBe(830);
   });
   it('en guarda de 900×750×420 usa 420 como fondo y 750 como altura',()=>{
-    expect(dimensionesEnNombre('Archivero Modulor (900 × 750 × 420 mm)','guarda')).toEqual({w:900,d:420,alto:750});
+    // 027e: el resultado trae además `unidad`/`inferido` (aditivo); la huella es la misma.
+    expect(dimensionesEnNombre('Archivero Modulor (900 × 750 × 420 mm)','guarda')).toMatchObject({w:900,d:420,alto:750,unidad:'mm',inferido:false});
     const p=expandirPiezas([{id:'a',nombre:'Archivero Modulor 2 puertas (900 × 750 × 420 mm)',cantidad:1}])[0];
     expect(p.w).toBe(900);
     expect(p.d).toBe(420);
