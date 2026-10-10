@@ -509,7 +509,7 @@ export function clasificarMaterial({ solicitado = '', insumoId = '', insumoNombr
 }
 
 // Puntúa coincidencia de color/acabado/espesor de un texto contra el nombre de un insumo.
-const RE_ESPESOR = /\b(9|12|16|19|25|28|30|36)\b/g;
+const RE_ESPESOR = /\b(9|12|16|18|19|25|28|30|36)\b/g;
 /**
  * MEJOR insumo de la MISMA familia para un texto de material (red de seguridad
  * determinista: un material NOMBRADO nunca debe quedar sin costear). Escoge por
@@ -533,7 +533,13 @@ export function mejorInsumoDeFamilia(texto, catalogo = []) {
     const n = `${ins.nombre || ''} ${ins.id}`.toLowerCase();
     let score = 1; // misma familia ya vale
     for (const tok of tokens) if (n.includes(tok)) score += 2;          // color/acabado
-    for (const e of espesores) if (new RegExp(`\\b${e}\\b`).test(n)) score += 3; // espesor
+    for (const e of espesores) if (new RegExp(`\\b${e}\\b`).test(n)) score += 3;
+    // Priorizar únicamente equivalencias de panel expresamente aprobadas (18↔19).
+    // Sin esto una petición 18 mm podía empatar con un panel 16 mm incompatibile.
+    if (FAMILIAS_PANEL.has(fam) && espesoresMM(texto).length && espesoresMM(ins.nombre || '').length) {
+      if (espesorPanelCompatible(texto, ins.nombre || '')) score += 5;
+      else if (conflictoEspesor(texto, ins.nombre || '')) score -= 5;
+    } // espesor
     if (score > bestScore) { bestScore = score; best = ins; }
   }
   return best;
@@ -560,6 +566,12 @@ export function candidatosDeFamilia(texto, catalogo = []) {
     let score = 1;
     for (const tok of tokens) if (n.includes(tok)) score += 2;
     for (const e of espesores) if (new RegExp(`\\b${e}\\b`).test(n)) score += 3;
+    // Priorizar únicamente equivalencias de panel expresamente aprobadas (18↔19).
+    // Sin esto una petición 18 mm podía empatar con un panel 16 mm incompatibile.
+    if (FAMILIAS_PANEL.has(fam) && espesoresMM(texto).length && espesoresMM(ins.nombre || '').length) {
+      if (espesorPanelCompatible(texto, ins.nombre || '')) score += 5;
+      else if (conflictoEspesor(texto, ins.nombre || '')) score -= 5;
+    }
     puntuados.push({ id: ins.id, nombre: ins.nombre || ins.id, score });
   }
   if (puntuados.length === 0) return { ambiguo: false, mejor: null, empatados: [] };
