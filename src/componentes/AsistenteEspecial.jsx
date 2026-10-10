@@ -9,7 +9,7 @@ import { calcular, precioDe, netoComponente, modeloParaPieza, costeoEmitible, bo
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos2 } from '../util.js';
 import { dinero, aCentavosEnteros } from '../motor/dinero.js';
-import { analizarRender, analizarRenderImagenes, analizarTexto, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64, leerReferenciasCompras } from '../nube.js';
+import { analizarRender, analizarRenderImagenes, analizarTexto, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64 } from '../nube.js';
 import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
@@ -17,7 +17,7 @@ import { conAcompanantes } from '../datos/autoInsumos.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, familiaDeMaterial } from '../datos/materialMatch.js';
 import { materialDesdeLeyenda } from '../datos/materialDesdeLeyenda.js';
 import { opcionesMaterialPlano } from '../datos/opcionesMaterialPlano.js';
-import { catalogoDeSugerencias } from '../datos/catalogoDeSugerencias.js';
+import { usarCatalogoCompras } from '../datos/usarCatalogoCompras.js';
 import { proxyParaPiezaDePlano, puedeUsarHojasDirectas } from '../datos/proxyTableroEstimado.js';
 import { mensajePendienteInsumo } from '../datos/mensajePendienteInsumo.js';
 import { costoReferenciaHerraje } from '../datos/costoReferenciaHerraje.js';
@@ -101,21 +101,11 @@ export function fusionarPreguntas(prev, incoming, confKeysSet, norm) {
 }
 
 export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBiblioteca, expedienteInicial }) {
-  const insumos = estado.insumos;
-  // Compras es fuente de IDENTIDAD, no de precio. RLS de la base impide enviar
-  // referencias técnicas a roles sin permiso. Si falla, sigue el catálogo activo.
-  const [referenciasCompras, setReferenciasCompras] = useState([]);
-  useEffect(() => {
-    let montado = true;
-    leerReferenciasCompras()
-      .then((refs) => { if (montado) setReferenciasCompras(refs); })
-      .catch(() => { if (montado) setReferenciasCompras([]); });
-    return () => { montado = false; };
-  }, []);
-  const catalogoSugerencias = useMemo(
-    () => catalogoDeSugerencias(insumos, referenciasCompras),
-    [insumos, referenciasCompras],
-  );
+  // El catálogo de Compras incluye TODO lo capturado: código, descripción,
+  // fuente, precios y clave ERP. Vive sólo en memoria; no sobreescribe los 92
+  // insumos ni provoca autosave a config.
+  const { insumos, stats: comprasStats, estado: comprasEstado, error: comprasError } = usarCatalogoCompras(estado.insumos);
+  const catalogoSugerencias = insumos;
   const [paso, setPaso] = useState(0);
   // Acceso directo desde el resultado a la decisión que mantiene el costo pendiente.
   // Sólo navega: NUNCA responde por el usuario ni cambia el BOM automáticamente.
@@ -384,7 +374,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     const despieceTxt = (b.componentes || [])
       .filter((c) => c && (c.nombre || c.insumoId))
       .map((c) => {
-        const mat = estado.insumos?.[c.insumoId]?.nombre || '';
+        const mat = insumos?.[c.insumoId]?.nombre || '';
         const dim = (c.largoMM && c.anchoMM) ? ` ${c.largoMM}×${c.anchoMM} mm` : '';
         const etq = c.nombre || mat || 'pieza';
         return mat && mat !== etq ? `${etq} (${mat}${dim})` : `${etq}${dim}`;
@@ -1044,7 +1034,17 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
               <input id="costear-archivo" data-testid="costear-archivo" type="file" accept="image/*,application/pdf,.pdf" hidden disabled={analizando} onChange={onImagen} />
             </label>
             {errorIA && <div className="alerta roja" style={{ marginTop: 12 }}><span className="texto">{errorIA}</span></div>}
-            {catalogoFuente === 'cliente-fallback' && <div className="alerta ambar" style={{ marginTop: 12 }}><span className="texto">⚠ El catálogo central no estaba disponible: la IA usó datos locales. <strong>No cotices en firme</strong> con este análisis; confirma materiales y precios con Dirección.</span></div>}
+            {comprasEstado === 'conectado' && (
+        <div className="ayuda" role="status" style={{fontSize:12,margin:'8px 0'}}>
+          Compras: {comprasStats.catalogo} artículos técnicos · {comprasStats.conPrecio} con precio legible · {comprasStats.aprobados} aprobados · {comprasStats.preliminares} referencias preliminares · {comprasStats.bloqueados} con dato faltante o conversión pendiente.
+        </div>
+      )}
+      {comprasEstado === 'sin-conexion' && (
+        <div className="alerta ambar" role="alert" style={{margin:'8px 0'}}>
+          Catálogo técnico/economía no cargado ({comprasError}). Se conservan referencias locales, pero no certifiques precios nuevos.
+        </div>
+      )}
+      {catalogoFuente === 'cliente-fallback' && <div className="alerta ambar" style={{ marginTop: 12 }}><span className="texto">⚠ El catálogo central no estaba disponible: la IA usó datos locales. <strong>No cotices en firme</strong> con este análisis; confirma materiales y precios con Dirección.</span></div>}
           </div>
 
           <label className="etiqueta">O escríbelo tú</label>
@@ -1304,6 +1304,19 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                 {c._estimacionAlternativa && (
                   <div className="pieza-calc" style={{ color: '#ffd88b', fontWeight: 600 }} role="status">
                     ESTIMACIÓN AUTOMÁTICA · {c._estimacionAlternativa.nombre}. Costo calculado con el precio configurado de ese artículo, NO con el material exacto del plano. Espesor y acabado por confirmar. No emitible.
+                  </div>
+                )}
+                {ins?.fuenteCatalogo === 'compras' && (
+                  <div className="pieza-calc" style={{fontSize:12,color:'var(--texto,#e4e4e4)',marginTop:5}}>
+                    <strong>Compras:</strong> {ins.codigoCompras}
+                    {ins.clavesERP?.length ? <span> · ERP {ins.clavesERP.join(', ')}</span> : null}
+                    {' · '}{ins.descripcionCompras}
+                    {' · '}{ins.unidadCosteo}
+                    {Number.isFinite(ins.precioReferencia) && ins.precioReferencia > 0
+                      ? <span> · Precio registrado: {pesos2(ins.precioReferencia)}/{ins.unidadCosteo}</span>
+                      : <span> · Precio pendiente</span>}
+                    <div>{ins.estadoEconomia === 'APROBADO' ? 'APROBADO' : 'COSTO PRELIMINAR / PENDIENTE'} · {ins.fuenteCompra || 'Fuente no documentada en Compras'}</div>
+                    {ins.observacionPrecio && <div>{ins.observacionPrecio}</div>}
                   </div>
                 )}
                 {est.badge && (
