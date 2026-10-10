@@ -474,6 +474,22 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                   return null;
                 })()}
 
+                {Array.isArray(c._match?.alternativas) && c._match.alternativas.length > 0 && (
+                  <div className="pieza-match-alternativas" style={{ margin: '8px 0', padding: 10, border: '1px solid #e9cf8a', borderRadius: 8 }}>
+                    <strong>Elige el material correcto (misma familia):</strong>
+                    <div className="ayuda">Confirma espesor, acabado y precio; no se asignará ninguno automáticamente.</div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                      {c._match.alternativas.filter((alt) => !!insumos[alt.id]).map((alt) => (
+                        <button key={alt.id} type="button" className="chip"
+                          onClick={() => onMaterial(i, alt.id, { confirmado: true })}
+                          title={insumos[alt.id]?.nombre || alt.nombre}>
+                          {insumos[alt.id]?.nombre || alt.nombre}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {ins && (
                   <div className="pieza-med">
                     {area ? (
