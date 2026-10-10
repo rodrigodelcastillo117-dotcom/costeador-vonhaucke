@@ -73,6 +73,8 @@ export function proxyParaPiezaDePlano(solicitado, pieza = {}, insumos = {}) {
   return proxy;
 }
 
-export function puedeUsarHojasDirectas(proxy, insumos = {}) {
-  return !proxy || insumos[proxy.id]?.unidad === 'hoja';
+export function puedeUsarHojasDirectas(insumoId, insumos = {}) {
+  // Aplica también si el material fue propuesto DIRECTAMENTE por VONI.
+  // Un precio $/m² jamás multiplica directamente fracciones de HOJA.
+  return !insumoId || insumos[insumoId]?.unidad === 'hoja';
 }
