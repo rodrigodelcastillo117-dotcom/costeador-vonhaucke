@@ -134,8 +134,22 @@ export function construirCatalogoCompras(base = {}, referencias = [], precios = 
       fuenteCatalogo:'compras', disponibleCosteo:economiaFinal.aptoEstimacion,
     };
     const unidad = ref.unidad_costeo || anterior?.unidad || '';
-    // Solo se hereda geometría/merma del mismo ID ya conocido por el motor.
-    const insumo = {...(anterior || {}),id:ref.id,nombre:ref.nombre,seccion:ref.seccion||anterior?.seccion||'',unidad,...metadata,precioReferencia:economiaFinal.precio};
+    // El ERP almacena 113 artículos por HOJA pero ninguno tiene formato físico.
+    // Cuando el MISMO ID ya cuenta con formato validado en el motor seed, se
+    // reutiliza su geometría, corte y clase (NUNCA su PRECIO histórico).
+    // Un ID distinto, espesor/calibre incompatible o unidad distinta bloquea.
+    const semillaCompatible = !anterior && semilla && semilla.unidad === unidad
+      && (!ref.espesor_mm || !semilla.espesor_mm || Number(ref.espesor_mm) === Number(semilla.espesor_mm))
+      && (!ref.calibre || !semilla.calibre || Number(ref.calibre) === Number(semilla.calibre))
+      ? semilla : null;
+    const tecnicaSeed = semillaCompatible
+      ? { formato:semillaCompatible.formato, fraccion:semillaCompatible.fraccion,
+          mermaCorte:semillaCompatible.mermaCorte, veta:semillaCompatible.veta,
+          inventario:semillaCompatible.inventario, clase:semillaCompatible.clase }
+      : {};
+    const insumo = {...tecnicaSeed,...(anterior || {}),id:ref.id,nombre:ref.nombre,
+      seccion:ref.seccion||anterior?.seccion||semillaCompatible?.seccion||'',unidad,
+      ...metadata,precioReferencia:economiaFinal.precio};
     if (economiaFinal.aptoEstimacion) {
       insumo.precio = economiaFinal.precio;
       insumo.precioBase = economiaFinal.precio;
@@ -148,10 +162,17 @@ export function construirCatalogoCompras(base = {}, referencias = [], precios = 
     // Si el artículo es nuevo y se compra por hoja, no inferimos medidas.
     // Una fracción explícita de hojas sólo se costea cuando se conozca formato real.
     if (!anterior && unidad === 'hoja') {
-      insumo.formatoPendiente = !ref.formato;
-      if (ref.formato && typeof ref.formato === 'object' && Number(ref.formato.medida) > 0) {
-        insumo.formato = ref.formato;
-        insumo.fraccion = true;
+      const formatoDB = ref.formato && typeof ref.formato === 'object'
+        && Number(ref.formato.medida) > 0 ? ref.formato : null;
+      const formatoSeed = semillaCompatible?.formato
+        && Number(semillaCompatible.formato.medida) > 0 ? semillaCompatible.formato : null;
+      const formatoCanonico = formatoDB || formatoSeed;
+      insumo.formatoPendiente = !formatoCanonico;
+      insumo.formatoOrigen = formatoDB ? 'COMPRAS_FORMATO_DOCUMENTADO'
+        : formatoSeed ? 'MOTOR_SEMILLA_MISMO_ID' : 'NO_DOCUMENTADO';
+      if (formatoCanonico) {
+        insumo.formato = formatoCanonico;
+        insumo.fraccion = formatoDB ? true : semillaCompatible.fraccion;
       } else {
         delete insumo.formato;
         insumo.fraccion = false;
