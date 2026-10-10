@@ -374,3 +374,15 @@ describe('P0 — 18 mm se prioriza contra variante de 19 mm aprobada', () => {
     expect(r.material_match).toBe(MATCH.SAME_FAMILY_CRITICAL_CONFLICT);
   });
 });
+
+
+describe('P0 — cantidades inválidas no se maquillan como una pieza', () => {
+  it('cantidad explícita cero no se convierte en 1', () => {
+    const c = aplicarPoliticaMaterial({ nombre: 'Cubierta', material_solicitado: 'melamina nogal 18 mm', cantidad: 0, insumoId: '' }, () => null, []);
+    expect(c.cantidad).toBe(0);
+  });
+  it('sin cantidad se conserva el valor por defecto legacy', () => {
+    const c = aplicarPoliticaMaterial({ nombre: 'Cubierta', material_solicitado: 'melamina nogal 18 mm', insumoId: '' }, () => null, []);
+    expect(c.cantidad).toBe(1);
+  });
+});
