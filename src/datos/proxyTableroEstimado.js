@@ -66,6 +66,9 @@ export function proxyTableroParaEstimar(materialSolicitado, insumos = {}) {
 export function proxyParaPiezaDePlano(solicitado, pieza = {}, insumos = {}) {
   const proxy = proxyTableroParaEstimar(solicitado, insumos);
   if (!proxy) return null;
+  // El mapeador del Costeador sólo preserva cotas para forma: 'area'.
+  // Sin esa semántica no podemos afirmar que la cantidad representa m².
+  if (pieza.forma !== 'area') return null;
   const ins = insumos[proxy.id];
   const tieneGeometria = Number(pieza.largoMM) > 0 && Number(pieza.anchoMM) > 0;
   if (ins?.unidad === 'm2' && !tieneGeometria) return null;
