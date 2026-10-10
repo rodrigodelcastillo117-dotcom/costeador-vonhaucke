@@ -195,6 +195,15 @@ test.describe('E2E TORRE SUR · plano real → cotización sin pérdidas', () =>
       error: acoJson?.error ?? null, piezasEnviadas, colocadas: colocacion.length, porArea,
       noColocadas: acoJson?.noColocadas || acoJson?.plan?.noColocadas || acoJson?.rechazadas || null,
     }, null, 2));
+    // Payload y respuesta COMPLETOS (geometría de áreas con puertas/poly, piezas con
+    // roles, layoutSpec/razones del solver) para reproducir localmente con el solver
+    // vendorizado. Sin credenciales ni texto del cliente.
+    try {
+      const reqBody = JSON.parse(aco.request().postData() || '{}');
+      fs.writeFileSync(path.resolve(process.cwd(), 'e2e/evidence/torre-sur-acomodo-full.json'), JSON.stringify({
+        fecha: new Date().toISOString(), request: { areas: reqBody.areas, piezas: reqBody.piezas }, response: acoJson,
+      }, null, 2));
+    } catch (_e) { /* evidencia opcional */ }
     expect(aco.status(), 'acomodar-espacio HTTP').toBe(200);
     expect(acoJson?.ok, `solver ok=false: ${JSON.stringify(acoJson?.error || acoJson?.status || '')}`).toBe(true);
     expect(piezasEnviadas, 'el solver no recibió piezas').toBeGreaterThan(0);
