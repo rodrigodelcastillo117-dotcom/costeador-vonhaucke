@@ -102,6 +102,17 @@ export function fusionarPreguntas(prev, incoming, confKeysSet, norm) {
 export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBiblioteca, expedienteInicial }) {
   const insumos = estado.insumos;
   const [paso, setPaso] = useState(0);
+  // Acceso directo desde el resultado a la decisión que mantiene el costo pendiente.
+  // Sólo navega: NUNCA responde por el usuario ni cambia el BOM automáticamente.
+  const [destinoPaso1, setDestinoPaso1] = useState('');
+  useEffect(() => {
+    if (paso !== 1 || !destinoPaso1) return;
+    const destino = destinoPaso1 === 'rotulos'
+      ? document.getElementById('vh-pregunta-rotulos') || document.getElementById('vh-centro-confirmaciones')
+      : document.getElementById('vh-despece-costear');
+    destino?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setDestinoPaso1('');
+  }, [paso, destinoPaso1]);
   const [analizando, setAnalizando] = useState(false);
   const [verificando, setVerificando] = useState(false); // 2ª pasada: la IA critica su propio despiece
   const [errorIA, setErrorIA] = useState('');
@@ -269,6 +280,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // INCOMPLETO: piezas del despiece SIN material en catálogo → se costean en $0 → el total sale BAJO.
   const piezasSinMaterial = resultado.componentesIgnorados || [];
   const costoIncompleto = piezasSinMaterial.length > 0;
+  const esTemaRotulos = (t) => /r[oó]tul|letrer|gr[aá]fic/i.test(String(t || ''));
+  const hayRotulosPendientes = piezasSinMaterial.some(esTemaRotulos);
+  const hayPreguntaRotulos = preguntasIA.some((q) => esTemaRotulos(normPreg(q).pregunta));
   // FAIL-CLOSED (audit 2026-10-01): si el costo está incompleto NO es emitible —
   // su total es apenas un SUBTOTAL CONOCIDO, no se le pone precio ni se aprueba.
   const emision = costeoEmitible(resultado);
@@ -1012,7 +1026,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
 
       {/* PASO 2 — Piezas */}
       {paso === 1 && (
-        <div>
+        <div id="vh-despece-costear" className="ancla-costear">
           <div className="pregunta">¿De qué está hecho?</div>
           <div className="pregunta-sub">Toca las piezas que lleva. Luego ajusta su material y medida.</div>
 
@@ -1081,7 +1095,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
             </div>
           )}
           {(preguntasIA.length > 0 || Object.keys(confirmadas).length > 0) && (
-            <div style={{ border: '1px solid var(--borde)', borderRadius: 10, padding: 14, margin: '12px 0', background: 'var(--panel)' }}>
+            <div id="vh-centro-confirmaciones" className="ancla-costear" style={{ border: '1px solid var(--borde)', borderRadius: 10, padding: 14, margin: '12px 0', background: 'var(--panel)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
                 <div style={{ fontWeight: 700 }}>Centro de confirmaciones</div>
                 <div className="ayuda" style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1114,7 +1128,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                 const val = respuestas[q.question_key] ?? '';
                 const setVal = (v) => setRespuestas((s) => ({ ...s, [q.question_key]: v }));
                 return (
-                  <div key={q.question_key} style={{ borderTop: i ? '1px solid var(--borde)' : 'none', paddingTop: i ? 10 : 0, marginTop: i ? 10 : 0 }}>
+                  <div key={q.question_key} id={esTemaRotulos(q.pregunta) ? 'vh-pregunta-rotulos' : undefined} className="ancla-costear" style={{ borderTop: i ? '1px solid var(--borde)' : 'none', paddingTop: i ? 10 : 0, marginTop: i ? 10 : 0 }}>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 4 }}>
                       <span className="chip" style={{ background: colImp, color: '#fff', fontSize: 11 }}>IMPACTO {q.impacto.toUpperCase()}</span>
                       <span className="chip" style={{ fontSize: 11 }}>afecta: {q.afecta}</span>
@@ -1395,12 +1409,25 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
 
           {costoIncompleto && (
             <div className="alerta roja" style={{ marginTop: 10, textAlign: 'left' }}>
-              <span className="texto">⚠ <strong>Costo INCOMPLETO</strong> — <strong>faltan por costear {piezasSinMaterial.length} partida(s)</strong>: {piezasSinMaterial.slice(0, 6).join(', ')}{piezasSinMaterial.length > 6 ? '…' : ''}. Asígnales material en el despiece (arriba) o márcalas como excluidas. Hasta entonces no hay costo total ni precio.</span>
+              <span className="texto">⚠ <strong>Costo INCOMPLETO</strong> — <strong>faltan por costear {piezasSinMaterial.length} partida(s)</strong>: {piezasSinMaterial.slice(0, 6).join(', ')}{piezasSinMaterial.length > 6 ? '…' : ''}. Son partidas sin costo, no se consideran gratuitas. Hasta resolverlas no hay costo total ni precio de lista.</span>
+              {hayRotulosPendientes && (
+                <p className="ayuda" style={{ margin: '8px 0', color: '#ffd5d7' }}>
+                  Los rótulos del plano necesitan una decisión: ¿los suministra el cliente o Von Haucke? Si Von Haucke los incluye, falta vincular un artículo y precio aprobados. No se asumirá ninguna opción automáticamente.
+                </p>
+              )}
+              <button type="button" className="boton boton-resolver-costeo" onClick={() => {
+                setDestinoPaso1(hayRotulosPendientes && hayPreguntaRotulos ? 'rotulos' : 'despiece');
+                setPaso(1);
+              }}>
+                {hayRotulosPendientes && hayPreguntaRotulos ? 'Resolver quién suministra los rótulos' : 'Volver al despiece y resolver pendientes'} →
+              </button>
             </div>
           )}
           {preguntasIA.length > 0 && (
             <div className="ayuda columna-texto" style={{ textAlign: 'left', marginTop: 8, color: '#8a6d00' }}>
-              Costo preliminar — {preguntasIA.length} decisión(es) pendiente(s): {preguntasIA.map((q) => normPreg(q).pregunta).join(' · ')}. No es obligatorio; puedes cotizar así.
+              Costo preliminar — {preguntasIA.length} decisión(es) pendiente(s).
+              {emitible ? ' Revisa estas decisiones antes de aprobar; el análisis todavía contiene supuestos.' : ' Puedes guardar un borrador, pero no emitir ni presentar un precio definitivo hasta resolver las partidas incompletas.'}
+              <details className="pendientes-resumen"><summary>Ver las {preguntasIA.length} preguntas pendientes</summary><div>{preguntasIA.map((q) => normPreg(q).pregunta).join(' · ')}</div></details>
             </div>
           )}
 
@@ -1430,16 +1457,20 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
             <button className="boton primario" disabled={faltaCritico || renderizando} onClick={generarRenders} style={{ marginTop: 6 }}>
               {renderizando ? 'Generando…' : (renders.aislado || renders.ambiente) ? 'Regenerar render' : 'Generar render'}
             </button>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
-              {['aislado', 'ambiente'].map((m) => (
-                <div key={m}>
-                  <div className="ayuda" style={{ marginBottom: 4 }}>{m === 'aislado' ? 'Producto aislado' : 'En ambiente'}</div>
-                  {renders[m]
-                    ? <img src={renders[m]} alt={m} style={{ width: '100%', borderRadius: 8, border: '1px solid var(--borde)' }} />
-                    : <div style={{ aspectRatio: '4/3', borderRadius: 8, border: '1px dashed var(--borde)', display: 'grid', placeItems: 'center' }}><span className="ayuda">{renderizando ? '…' : '—'}</span></div>}
-                </div>
-              ))}
-            </div>
+            {!(renders.aislado || renders.ambiente || renderizando) ? (
+              <div className="render-espera-mobile" role="status">Todavía no hay renders. Pulsa «Generar render» para crear las vistas del producto y en ambiente.</div>
+            ) : (
+              <div className="render-previas" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
+                {['aislado', 'ambiente'].map((m) => (
+                  <div key={m}>
+                    <div className="ayuda" style={{ marginBottom: 4 }}>{m === 'aislado' ? 'Producto aislado' : 'En ambiente'}</div>
+                    {renders[m]
+                      ? <img src={renders[m]} alt={m} style={{ width: '100%', borderRadius: 8, border: '1px solid var(--borde)' }} />
+                      : <div className="render-previa-pendiente"><span className="ayuda">{renderizando ? 'Generando…' : 'Vista pendiente'}</span></div>}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* GUARDAR EN BIBLIOTECA */}
@@ -1454,12 +1485,12 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
             <input type="text" value={etiquetasTxt} placeholder="Cabecera Soriana, Alpura, exhibidor, retail" onChange={(e) => setEtiquetasTxt(e.target.value)} style={{ width: '100%' }} />
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10, flexWrap: 'wrap' }}>
               <span className="ayuda">Estado:</span>
-              <button type="button" className={'chip' + ((estadoExp === 'borrador' || !emitible) ? ' on' : '')} onClick={() => setEstadoExp('borrador')} style={{ cursor: 'pointer', background: (estadoExp === 'borrador' || !emitible) ? 'var(--tinta,#2B2622)' : undefined, color: (estadoExp === 'borrador' || !emitible) ? '#fff' : undefined }}>Borrador</button>
+              <button type="button" className="estado-exp-opcion" aria-pressed={estadoExp === 'borrador' || !emitible} onClick={() => setEstadoExp('borrador')}>Borrador</button>
               {/* FAIL-CLOSED + P0.16: no se puede APROBAR sin validación SERVER-AUTHORITY vigente
                   del BOM actual. Al clic se valida con costear-servidor; sólo pasa a 'aprobado'
                   si el servidor no bloquea y el costo cuadra a centavos. */}
               <button type="button" disabled={!emitible || validandoSrv}
-                className={'chip' + ((estadoExp === 'aprobado' && emitible && validacionVigente) ? ' on' : '')}
+                className="estado-exp-opcion" aria-pressed={estadoExp === 'aprobado' && emitible && validacionVigente}
                 onClick={async () => {
                   if (!emitible || validandoSrv) return;
                   setValidandoSrv(true);
@@ -1470,7 +1501,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                   } finally { setValidandoSrv(false); }
                 }}
                 title={emitible ? 'Aprobar requiere validación del servidor' : 'No se puede aprobar: faltan partidas por costear'}
-                style={{ cursor: emitible ? 'pointer' : 'not-allowed', opacity: emitible && !validandoSrv ? 1 : 0.5, background: (estadoExp === 'aprobado' && emitible && validacionVigente) ? 'var(--ok,#1a7f37)' : undefined, color: (estadoExp === 'aprobado' && emitible && validacionVigente) ? '#fff' : undefined }}>
+                >
                 {validandoSrv ? 'Validando…' : 'Aprobado'}
               </button>
               {!emitible && <span className="ayuda" style={{ color: '#b22a22' }}>Incompleto → solo borrador</span>}
