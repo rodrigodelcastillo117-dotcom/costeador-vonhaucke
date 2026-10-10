@@ -7,6 +7,7 @@
 import { reglasTexto } from './datos/reglas.js';
 import { aprendizajesTexto } from './datos/aprendizaje.js';
 import { createClient } from '@supabase/supabase-js';
+import { validarIntentCosteo } from './datos/validarIntentCosteo.js';
 
 const URL = 'https://mtuvnbgljwbsaizjjgzs.supabase.co';
 const LLAVE = 'sb_publishable_lDPhCTatyJ2cap3FNEGs7A_uPapgg6y';
@@ -447,14 +448,28 @@ export function dtoCosteoServidor(pieza = {}, cantidad = 1) {
 
 export async function costearServidor(pieza, cantidad = 1) {
   const body = dtoCosteoServidor(pieza, cantidad);
+  // MISMA allowlist que usa la Edge; no enviar 400 ciegos cuando una pieza
+  // carece de insumo y de especificación. Jamás convierte 400 en costo cero.
+  const val = validarIntentCosteo(body);
+  if (!val.ok) return {
+    ok: false, status: 400, code: val.code, issues: val.issues,
+    error: 'Despiece técnico incompleto: ' + (val.issues?.[0]?.msg || 'corrige la partida indicada.'),
+  };
   const { data, error } = await nube.functions.invoke('costear-servidor', {
     body,
   });
   if (error) {
     let msg = error.message || 'No se pudo costear en el servidor.';
-    let status = error.context?.status;
-    try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
-    return { ok: false, error: msg, status };
+    const status = error.context?.status;
+    let code = null, issues = [];
+    try {
+      const j = await error.context?.json?.();
+      if (j?.error) msg = j.error;
+      if (j?.code) code = j.code;
+      if (Array.isArray(j?.issues)) issues = j.issues;
+      if (!j?.error && issues.length) msg = issues[0].msg || msg;
+    } catch (_e) { /* respuesta no JSON */ }
+    return { ok: false, error: msg, status, code, issues };
   }
   return data;
 }
