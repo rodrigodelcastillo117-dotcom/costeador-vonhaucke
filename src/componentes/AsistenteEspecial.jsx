@@ -1185,17 +1185,19 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                 {est.pendiente && c.material_solicitado && (
                   <div className="pieza-calc" style={{ color: 'var(--texto,#e4e4e4)' }}>
                     <strong>El plano especifica:</strong> {c.material_solicitado}. {est.candId ? 'Hay un artículo propuesto para confirmar.' : 'Selecciona el artículo equivalente del catálogo para continuar.'}
-                    {est.clase === 'AMBIGUOUS' && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
-                        {opcionesMaterialPlano(c.material_solicitado, insumos).map((op) => (
-                          <button type="button" key={op.id} className="chip"
-                            style={{ color: '#fff', background: '#303039', border: '1px solid #999', padding: '10px 12px', whiteSpace: 'normal', textAlign: 'left' }}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                      {opcionesMaterialPlano(c.material_solicitado, insumos).length > 0 ? (
+                        opcionesMaterialPlano(c.material_solicitado, insumos).map((op) => (
+                          <button type="button" key={op.id}
+                            style={{ color: '#f9f9f9', WebkitTextFillColor: '#f9f9f9', backgroundColor: '#292932', border: '1px solid #f0575e', borderRadius: 10, padding: '10px 12px', whiteSpace: 'normal', textAlign: 'left', minHeight: 44, fontWeight: 600 }}
                             onClick={() => onMaterial(i, op.id, { confirmado: true })}>
-                            Elegir {op.nombre}
+                            Confirmar alternativa: {op.nombre}
                           </button>
-                        ))}
-                      </div>
-                    )}
+                        ))
+                      ) : (
+                        <span style={{ color: '#ffb6b6' }}>No hay opciones verificables de esta familia en el catálogo cargado. Mantener pendiente y solicitar a Compras/Diseño.</span>
+                      )}
+                    </div>
                   </div>
                 )}
                 {est.pendiente && (
