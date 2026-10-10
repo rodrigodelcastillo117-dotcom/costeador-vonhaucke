@@ -2,6 +2,47 @@
 Formato contrato §89. Nunca borrar entradas; marcar resolved. Estados: FIXED·VERIFIED / FIXED / OPEN / BLOCKED.
 SHA de referencia de los fixes: hasta `198920c` (prod).
 
+> **REGLA DEL BLOQUE 0 (2026-10-10).** Un bug pasa a FIXED sólo con una prueba automatizada
+> que camine la **cadena completa** por la que el dato viaja en la app (lectura → contrato →
+> programa → acomodo → partida → guardado), no la función aislada. "VERIFIED" exige además
+> que CI (ahora en cada push/PR) esté verde con esa prueba. Motivo: VH-002 tenía 10 tests
+> verdes y volvió a producción en `beaa005` porque la capa de en medio (`floorPlan`) tiraba
+> el dato y nadie lo probaba de punta a punta. Ver `src/datos/puestosCadenaCompleta.test.js`.
+
+## REGRESIONES DETECTADAS 2026-10-10 (auditoría de código, no de síntomas)
+
+**VH-002 · P0 · REABIERTO y cerrado el mismo día.** `floorPlan.aMM/aMetros` (contrato canónico,
+`beaa005`) copiaban una lista blanca de campos geométricos y **tiraban `puestos`**. Voni (`Voni.jsx:107`)
+y Acomodo (`Acomodo.jsx:220,282`) guardan por esa capa → el programa volvía a estimar por geometría
+("48 en 8 islas de 6" donde el plano contaba 8). Fix: campos SEMÁNTICOS viajan intactos en ambas
+direcciones. Test de cadena: `puestosCadenaCompleta.test.js` (5). → **FIXED** (pendiente VERIFIED en
+vivo con el PDF golden).
+
+**VH-033 · P0 · OPEN · Acomodo pierde sillas con piso de sobra.** Reproducido con `acomodarLocal`:
+24 escritorios + 48 sillas operativas en sala de 23×14 m → **48 de 72**; 1 escritorio + 48 sillas en
+"Sala de capacitación" → **0 de 49** (el nombre se clasifica CONSEJO y veta al escritorio; sin
+escritorio, `sentarSillas` no coloca ninguna silla). Causa: las sillas operativas sólo se colocan
+en asientos de escritorios ya colocados (`planner.js:290,313,353`) y no tienen plan B; además la
+pasada 2 re-empaca desde cero y las piezas que no caben se pierden sin volver a `restantes`
+(`planner.js:359-369`) reportando `caben:true`. Es el mecanismo de VH-016.
+
+**VH-034 · P0 · OPEN · Cada recarga crea una cotización nueva en la nube.** `idCotizacion` es
+`useRef(null)` (`App.jsx:398`), nunca se persiste; al recargar, el autosave hace INSERT
+(`cotizaciones.js:154`). 673 filas en `cotizaciones` incluyen duplicados por esto.
+
+**VH-035 · P0 · OPEN · Reabrir desde Archivo destruye la economía guardada.** `cargarCotizacionCompleta`
+trae partidas despojadas por `cotizacion_segura` (vendedor/diseño), fija `idCotizacion` (`App.jsx:1013`)
+y el siguiente autosave hace UPDATE con esas partidas sin `costoUnitario`. Además `paraGuardar` escribe
+`estado: cot.estadoComercial || 'borrador'` y `estadoComercial` nunca se asigna → cada autosave
+regresa el estado comercial a borrador.
+
+**VH-036 · P1 · OPEN · `costear-servidor` rechaza el 100% de las llamadas del navegador.**
+`AsistenteEspecial.jsx:179` manda `{...b}` con `margen`/`modeloCosteo`; `validarIntentCosteo` responde
+`FORBIDDEN_FINANCIAL_FIELD`. La comparación "sombra" nunca ha recibido una respuesta del servidor.
+
+**VH-037 · P0 · OPEN · Esquema de Supabase sin versionar.** 203 migraciones aplicadas en producción,
+0 en el repo. Ver `supabase/schema/README.md`.
+
 ---
 ## FIXED · VERIFIED
 
