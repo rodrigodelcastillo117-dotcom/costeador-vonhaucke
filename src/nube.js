@@ -199,7 +199,7 @@ export async function adminUsuarios(accion, payload) {
 // con verify_jwt: manda la sesión del usuario. Devuelve { ok, propuesta } con
 // { piezas, informe (Markdown), descripcionCliente, materiales, ... } o { ok:false, error }.
 export async function analizarRender(catalogo, image, mediaType) {
-  const { data, error } = await nube.functions.invoke('analizar-mueble', {
+  const { data, error } = await nube.functions.invoke('analizar-mueble-preview', {
     body: { catalogo, image, mediaType },
   });
   if (error) {
@@ -214,7 +214,7 @@ export async function analizarRender(catalogo, image, mediaType) {
 // Varias HOJAS del MISMO mueble (plano multipágina rasterizado a imágenes). La IA
 // las integra en un solo despiece. Mismo retorno que analizarRender.
 export async function analizarRenderImagenes(catalogo, imagenes) {
-  const { data, error } = await nube.functions.invoke('analizar-mueble', {
+  const { data, error } = await nube.functions.invoke('analizar-mueble-preview', {
     body: { catalogo, imagenes },
   });
   if (error) {
@@ -265,7 +265,7 @@ export async function buscarProductosMaestroTexto(texto, limite = 30) {
 }
 
 export async function analizarTexto(catalogo, descripcion) {
-  const { data, error } = await nube.functions.invoke('analizar-mueble', {
+  const { data, error } = await nube.functions.invoke('analizar-mueble-preview', {
     body: { catalogo, descripcion },
   });
   if (error) {
@@ -282,7 +282,7 @@ export async function analizarTexto(catalogo, descripcion) {
 // (la verificación es una mejora, no un requisito — nunca deja al usuario sin nada).
 export async function verificarDespiece(catalogo, imagenes, propuesta) {
   try {
-    const { data, error } = await nube.functions.invoke('analizar-mueble', {
+    const { data, error } = await nube.functions.invoke('analizar-mueble-preview', {
       body: { catalogo, imagenes, revisar: propuesta },
     });
     if (error || !data?.ok) return { ok: true, propuesta, verificado: false };
@@ -296,7 +296,7 @@ export async function verificarDespiece(catalogo, imagenes, propuesta) {
 // (verdad confirmada: sobrescribe supuestos). respuestas = [{pregunta, respuesta}].
 export async function responderDespiece(catalogo, imagenes, propuesta, respuestas) {
   try {
-    const { data, error } = await nube.functions.invoke('analizar-mueble', {
+    const { data, error } = await nube.functions.invoke('analizar-mueble-preview', {
       body: { catalogo, imagenes, revisar: propuesta, respuestas },
     });
     if (error || !data?.ok) {
