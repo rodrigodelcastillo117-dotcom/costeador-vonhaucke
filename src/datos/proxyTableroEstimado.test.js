@@ -6,12 +6,12 @@ import { calcular, costeoEmitible } from '../motor/calculo.js';
 // Datos sintéticos PARA PRUEBA, no costos comerciales reales.
 const hoja = { tipo: 'tablero', medida: 2.9768, largoMM: 2440, anchoMM: 1220 };
 const activo = {
-  'melamina-9': { id: 'melamina-9', nombre: 'Melamina 9 mm (biombo)', precio: 50, unidad: 'hoja', formato: hoja, seccion: 'cubiertas' },
-  'melamina-16': { id: 'melamina-16', nombre: 'Melamina 16 mm', precio: 50, unidad: 'hoja', formato: hoja, seccion: 'cubiertas' },
-  'melamina-19': { id: 'melamina-19', nombre: 'Melamina / EcoLegno 19 mm', precio: 100, unidad: 'hoja', formato: hoja, seccion: 'cubiertas' },
-  'melamina-28': { id: 'melamina-28', nombre: 'Melamina ABS 28 mm (cubierta APP LT)', precio: 50, unidad: 'hoja', formato: hoja, seccion: 'cubiertas' },
+  'melamina-9': { id: 'melamina-9', nombre: 'Melamina 9 mm (biombo)', precio: 50, unidad: 'hoja', fraccion: true, formato: hoja, seccion: 'cubiertas' },
+  'melamina-16': { id: 'melamina-16', nombre: 'Melamina 16 mm', precio: 50, unidad: 'hoja', fraccion: true, formato: hoja, seccion: 'cubiertas' },
+  'melamina-19': { id: 'melamina-19', nombre: 'Melamina / EcoLegno 19 mm', precio: 100, unidad: 'hoja', fraccion: true, formato: hoja, seccion: 'cubiertas' },
+  'melamina-28': { id: 'melamina-28', nombre: 'Melamina ABS 28 mm (cubierta APP LT)', precio: 50, unidad: 'hoja', fraccion: true, formato: hoja, seccion: 'cubiertas' },
   'divisor-melamina': { id: 'divisor-melamina', nombre: 'Divisor de melamina', precio: 50, unidad: 'hoja', formato: hoja, seccion: 'mamparas' },
-  'faldon-melamina': { id: 'faldon-melamina', nombre: 'Faldon melamina', precio: 50, unidad: 'hoja', formato: hoja, seccion: 'cubiertas' },
+  'faldon-melamina': { id: 'faldon-melamina', nombre: 'Faldon melamina', precio: 50, unidad: 'hoja', fraccion: true, formato: hoja, seccion: 'cubiertas' },
 };
 describe('costo provisional automático cuando el plano pide 18mm nogal', () => {
   it('corrige familia Melamina/EcoLegno y respeta HPL explícito', () => {
