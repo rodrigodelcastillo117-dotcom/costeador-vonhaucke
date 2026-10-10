@@ -134,6 +134,6 @@ begin
 
   return public.cotizacion_segura(v_id);
 end;
-$function$
+$function$;
 
 COMMIT;
