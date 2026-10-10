@@ -25,6 +25,7 @@ import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
 import { recomendar as recomendarCatalogoVonHaucke } from '../voni/conocimiento.js';
 import { explicarCosteo } from '../datos/explicacionCosteo.js';
 import { usarCatalogoCompras } from '../datos/usarCatalogoCompras.js';
+import ResumenASUR from './ResumenASUR.jsx';
 
 const ATAJOS = [
   { nombre: 'Muy facil', v: 30 },
@@ -653,6 +654,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
           ))}
         </div>
 
+        <ResumenASUR componentes={costeo.componentes} insumos={insumos} lote={costeo.piezas} mostrarCosto={puedeVerComercial} />
         <ConfianzaCosteo resultado={resultado} insumos={insumos} />
 
         {/* 4. Mano de obra */}
