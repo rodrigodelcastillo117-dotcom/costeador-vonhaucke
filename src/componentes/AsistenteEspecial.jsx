@@ -276,7 +276,17 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   //  ACABADO:    confirmado (material/color de fuente explícita) · pendiente (sin definir → neutro)
   const geomFid = (Array.isArray(b.planos) && b.planos.length)
     ? (analisis?.confianzaGeneral === 'alta' ? 'alta' : 'media') : 'limitada';
-  const acabadoFid = matFinish.fuente === 'ninguna' ? 'pendiente' : 'confirmado';
+  // Una leyenda o un sustituto económico NO implica acabado aprobado.
+  // El badge no debe certificar el Walnut 19mm si el plano pide nogal claro 18mm.
+  const acabadoRequiereRevision = (b.componentes || []).some((c) =>
+    c.material_solicitado && estadoMaterialUI(c, insumos).pendiente);
+  const acabadoFid = matFinish.fuente === 'ninguna' || acabadoRequiereRevision
+    ? 'pendiente'
+    : matFinish.fuente === 'plano' ? 'referencia'
+    : (b.componentes || []).filter((c) => insumos[c.insumoId] &&
+      ['cubiertas', 'mamparas', 'acabados', 'metal', 'tapiceria'].includes(insumos[c.insumoId].seccion))
+        .some((c) => c.material_solicitado && c.material_confirmado !== true)
+      ? 'referencia' : 'confirmado';
   // INCOMPLETO: piezas del despiece SIN material en catálogo → se costean en $0 → el total sale BAJO.
   const piezasSinMaterial = resultado.componentesIgnorados || [];
   const costoIncompleto = piezasSinMaterial.length > 0;
@@ -390,7 +400,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         const avisos = [];
         if (geomFid === 'limitada') avisos.push('Sin plano cargado: el aislado se generó por descripción (geometría limitada). Sube el plano para fidelidad exacta.');
         else if (geomFid === 'media') avisos.push('Plano sin escala/cotas claras: geometría media. Da una medida de referencia o sube más vistas para subirla a alta.');
-        if (acabadoFid === 'pendiente') avisos.push('Acabado por confirmar: sin materiales/color definidos, el render usa un acabado neutro. Elige los materiales arriba para ver el acabado real.');
+        if (acabadoFid === 'pendiente') avisos.push('Acabado por confirmar: la selección del plano o el sustituto del costeo no tienen validación final. Comprueba el acabado antes de presentar como definitivo.');
+        if (acabadoFid === 'referencia') avisos.push('Acabado representado según el plano o catálogo, todavía sin validación técnica final.');
         if (avisos.length) setRenderMsg(avisos.join(' '));
       } else { setRenderMsg(r?.error || 'No se pudo generar el producto aislado.'); }
     } catch (e) { setRenderMsg('Error en producto aislado: ' + String(e)); }
@@ -505,6 +516,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         if (r.ok) { setExpId(r.id); await guardarRevisionExpediente(snap(r.id, 1)); setRevActual(1); setCostoGuardado(exp.costo); setBomDirty(false); setExpMsg('✓ Guardado en la biblioteca'); }
         else setExpMsg(r.error || 'No se pudo guardar.');
       }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setExpMsg('No se pudo completar el guardado. El borrador sigue abierto; vuelve a intentarlo. ' + (msg || 'Error de conexión.'));
     } finally { setGuardandoExp(false); }
   }
 
@@ -792,6 +806,10 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           setConfMsg('La IA propone cambios al BOM canónico. Revísalos abajo y Acepta o Rechaza — no se aplican solos.');
         }
       }
+    } catch (e) {
+      // Error de red/Edge: nunca declarar respuestas confirmadas ni ocultar la causa.
+      const msg = e instanceof Error ? e.message : String(e);
+      setConfMsg('No se pudieron aplicar las respuestas. Conservamos tus selecciones sin cambiar el despiece. ' + (msg || 'Reintenta cuando haya conexión.'));
     } finally {
       setRespondiendo(false); setAnalizando(false); setVerificando(false);
     }
@@ -1132,7 +1150,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 4 }}>
                       <span className="chip" style={{ background: colImp, color: '#fff', fontSize: 11 }}>IMPACTO {q.impacto.toUpperCase()}</span>
                       <span className="chip" style={{ fontSize: 11 }}>afecta: {q.afecta}</span>
-                      {val && <span className="chip" style={{ background: 'var(--ok,#1a7f37)', color: '#fff', fontSize: 11 }}>✓ confirmado</span>}
+                      {val && <span className="chip" style={{ background: '#715319', color: '#fff', fontSize: 11 }}>Respuesta elegida · falta aplicar</span>}
                     </div>
                     <div style={{ fontWeight: 600, marginBottom: 2 }}>{q.pregunta}</div>
                     {q.supuesto && <div className="ayuda" style={{ marginBottom: 6 }}>Supuesto IA: {q.supuesto}</div>}
@@ -1443,7 +1461,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                 GEOMETRÍA: {geomFid === 'alta' ? 'ALTA' : geomFid === 'media' ? 'MEDIA' : 'LIMITADA'}
               </span>
               <span className="chip" style={{ background: acabadoFid === 'confirmado' ? 'var(--ok,#1a7f37)' : '#8a2d00', color: '#fff', fontSize: 12 }}>
-                ACABADO: {acabadoFid === 'confirmado' ? 'CONFIRMADO' : 'POR CONFIRMAR'}
+                ACABADO: {acabadoFid === 'confirmado' ? 'CONFIRMADO' : acabadoFid === 'referencia' ? 'REFERENCIA' : 'POR CONFIRMAR'}
               </span>
               {renderObsoleto && <span className="chip" style={{ background: '#b22a22', color: '#fff', fontSize: 12 }}>RENDER DESACTUALIZADO</span>}
             </div>
