@@ -490,12 +490,18 @@ export async function subirPlano(base64, path) {
 export async function guardarExpediente(exp) {
   const { data, error } = await nube.from('expedientes').insert(exp).select('id').maybeSingle();
   if (error) return { ok: false, error: error.message };
-  return { ok: true, id: data?.id };
+  if (data?.id == null) return { ok: false, error: 'El servidor no devolvió ID del expediente; no se puede confirmar el guardado.' };
+  return { ok: true, id: data.id };
 }
 // Actualiza un expediente existente (edición del equipo de diseño).
 export async function actualizarExpediente(id, patch) {
-  const { error } = await nube.from('expedientes').update({ ...patch, actualizado: new Date().toISOString() }).eq('id', id);
-  return error ? { ok: false, error: error.message } : { ok: true };
+  // Un UPDATE protegido por RLS puede afectar 0 filas sin devolver error.
+  const { data, error } = await nube.from('expedientes')
+    .update({ ...patch, actualizado: new Date().toISOString() })
+    .eq('id', id).select('id').maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (data?.id == null) return { ok: false, error: 'No se confirmó ninguna fila actualizada (revisa permisos y sesión).' };
+  return { ok: true };
 }
 // Lista expedientes (más recientes primero) y filtra por palabra clave (nombre o etiquetas) en cliente.
 export async function listarExpedientes(q) {
@@ -516,7 +522,14 @@ export async function obtenerExpediente(id) {
 }
 // Guarda un snapshot INMUTABLE de revisión (no pisa el anterior).
 export async function guardarRevisionExpediente(row) {
-  try { await nube.from('expediente_revisiones').insert(row); } catch (e) { /* no bloquea */ }
+  // PostgREST NO lanza excepción para errores HTTP normales: devuelve { error }.
+  // Antes se descartaba silenciosamente un fallo de revisión y la UI decía OK.
+  try {
+    const { error } = await nube.from('expediente_revisiones').insert(row);
+    return error ? { ok: false, error: error.message } : { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 // Historial de revisiones de un expediente (rev desc).
 export async function listarRevisiones(expedienteId) {
