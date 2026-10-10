@@ -37,7 +37,7 @@ Regla: **ningún `PASS CERTIFICADO` sin E2E autenticado real.** Hoy no hay ningu
 |---|---|---|---|---|---|---|---|---|
 | COT-P0-001 plano sin inventario | P0 | No investigado en este corte (fuera del bloque 1-2) | leer-plano(-core), floorPlanReader | — | — | — | — | OPEN |
 | COT-P0-002 8 puestos → 1 | P0 | No reproducido aquí; parche de ChatGPT (edfb13e) **no verificado** | espacio.js, entendido.js | — | — | — | — | OPEN |
-| COT-P0-003 programas contradictorios | P0 | **DEMOSTRADA** (evidencia 13:22Z `torre-sur-leer-plano.json` + `textoEnviado`): el lector devolvió ÁREA OPERATIVA **puestos=8** (contado), pero Voni guarda `bloqueGeometria(r.areas)` y `aMM/aMetros` (floorPlan.js:32-62) enumeran campos a mano y **tiran `puestos`** → el formulario recibe áreas sin conteo → `programaDelPlano` estima por geometría 8 m/1.5 m = 5 × 2 hileras = **10** → texto "10 lugares… 10 WIN… 10 gavetas" → IA 10. Sala: lector `puestos=0` (su prompt excluye sillas de juntas) → 22.4 m²/4 → **4** (ver 001/006) | floorPlan.js, Voni.jsx, ProgramaProyecto.jsx | `aMM/aMetros` conservan `puestos`/`confianza` cuando existen (geometría intacta; `cuantizar` idempotente) | ✅ `fronteraLectorFormulario.test.js` falla en HEAD anterior (10/estimado) | ✅ 8/detectado; gavetas 8; sin conteo sigue 10/estimado (no se inventa) | torreSur 3-bis: `textoEnviado` debe empezar con los puestos contados — **pendiente de correr** | FIXED / TESTING |
+| COT-P0-003 programas contradictorios | P0 | **DEMOSTRADA** (evidencia 13:22Z `torre-sur-leer-plano.json` + `textoEnviado`): el lector devolvió ÁREA OPERATIVA **puestos=8** (contado), pero Voni guarda `bloqueGeometria(r.areas)` y `aMM/aMetros` (floorPlan.js:32-62) enumeran campos a mano y **tiran `puestos`** → el formulario recibe áreas sin conteo → `programaDelPlano` estima por geometría 8 m/1.5 m = 5 × 2 hileras = **10** → texto "10 lugares… 10 WIN… 10 gavetas" → IA 10. Sala: lector `puestos=0` (su prompt excluye sillas de juntas) → 22.4 m²/4 → **4** (ver 001/006) | floorPlan.js, Voni.jsx, ProgramaProyecto.jsx | `aMM/aMetros` conservan `puestos`/`confianza` cuando existen (geometría intacta; `cuantizar` idempotente) | ✅ `fronteraLectorFormulario.test.js` falla en HEAD anterior (10/estimado) | ✅ 8/detectado; gavetas 8; sin conteo sigue 10/estimado (no se inventa) | ✅ torreSur 13:29Z con `3cb3a1b`: lector 8 → texto "8 lugares… 8 WIN… 8 gavetas" → IA bench **8u**, WIN ×8, gaveta ×8; 0 warns | **PASS CERTIFICADO** (alcance: lector→formulario→IA; sala sigue 4 por 001) |
 | COT-P0-001 (actualización) | P0 | **Evidencia real del lector (v11/core v4) con este PDF:** `observed_program` **vacío**, `observed_validation` null, áreas correctas con `puestos` sólo en open (8) y privado (1); sala `puestos=0` por diseño del prompt ("sillas de juntas no son puestos"); 6 puertas sin barrido ("requieren verificación"). Conclusión: el camino "lo observado gobierna" no se activa con este plano; todo es heurística por áreas. Corregir exige cambiar la edge (vocabulario/salida de asientos de juntas) → **no se despliega sin autorización** | leer-plano-core v4, leer-plano v11 | — | — | — | evidencia ✅ | REVIEW_REQUIRED (edge) |
 | COT-P0-004 identidad se pierde en `partidasDeItemsIA` | P0 | **Sí**: el mapeo elegía campos; `producto_id/version/source_ref/lista_precio_item_id/zone/functional_group` morían. Además `conIdentidadV2` sólo corría en seller-safe | App.jsx:684, lineas.js | `soloSiExiste(...)` conserva identidad+topología+pendientes; identidad en todos los roles | cotizarRescate "identidad" (antes: `producto_id` undefined en Dirección) | ✅ | ✅ torreSur §5 (Eclipse con `producto_id` en localStorage tras armar y tras refresh) | **PASS CERTIFICADO** (alcance: partida creada + recarga; propuesta/emisión OPEN) |
 | COT-P0-005 Eclipse 2.10 `NO_CANONICO` | P0 | **Sí**: `ESCRITORIOS = BANCO.filter(esc-/ger-/dir-)` (catalogoCanonico.js:95); la línea Eclipse no está en BANCO | resolverPrograma.js, programaRealDelPlano.js | Puente por identidad EXACTA: pendiente cubierto si existe partida de línea con misma ruta+producto+medidas (`cubrirPendientesConLinea`); `requested_route/product` viajan en el pendiente. **No** se re-resolvió contra Producto Maestro dentro del resolver (orden de autoridad 1-5 del mandato): pendiente | programaRealDelPlano.test.js "RESCATE" (RED: pendiente+bloqueado) | ✅ (cubierto, apply del bench desbloquea; otro largo/producto/sugerida NO cubren) | pendiente | FIXED / TESTING (parcial: orden de autoridad completo OPEN) |
@@ -80,6 +80,24 @@ Regla: **ningún `PASS CERTIFICADO` sin E2E autenticado real.** Hoy no hay ningu
 | COT-P1-042 Playwright "Agregué…" | P1 | En esta rama el texto "Agregué N muebles a tu proyecto" se conserva (`programaBriefWriter.e2e.js` sigue válido); el cambio de ChatGPT (da56080) **no** se adoptó | CotizadorIA.jsx | — | — | — | pendiente de correr | DESCARTADO EN ESTA RAMA (aplica sólo a `fix/chatgpt-p0-recovery`) |
 
 ---
+
+## B2. Proyecto golden (Parte VIII) — estado en navegador real (corrida 13:29Z, `3cb3a1b`)
+
+| Producto / función | Esperado | Obtenido (IA + motor) | Estado |
+|---|---|---|---|
+| Bench App LT | 8 puestos | `applt/banca_doble` 1500, **8u** (escalón real, no provisional) | ✅ |
+| Sillas WIN | 8 | banco WIN ×8 | ✅ |
+| Gavetas pedestal | 8 | banco Mox pedestal ×8 | ✅ |
+| Escritorio Eclipse 2.10 | 1 | `eclipse/escritorio` 2100 D chapa · catálogo + identidad PM | ✅ |
+| Credenza Eclipse | 1 | `eclipse/credenza` 2100 D chapa · catálogo + identidad | ✅ |
+| Silla ALPHA | 1 | ×1 | ✅ |
+| Sillas CONCERTO | 2 | ×2 | ✅ |
+| Mesa de juntas App LT | 1 según lo pedido | **BANCO `mj-1200x1200-melamina` (4 personas)** | ❌ (001/006b: sala llega como 4 por m²) |
+| Sillas SONATA | 6 | **4** | ❌ (misma causa) |
+| Mostrador recepción | 1 | ×1 | ✅ |
+| Archivero | 1 | Modulor ×1 | ✅ |
+| **Conteos** | 9 puestos · 17 sillas · 8 gavetas · sin duplicados · nada perdido | 9 puestos ✓ · **15 sillas** ✗ · 8 gavetas ✓ · sin duplicados ✓ (1 renglón por producto) · nada perdido ✓ (0 warns, 11/11 partidas) | parcial |
+| Acomodo / render / guardado DB / PDF | — | **no probado** por E2E | OPEN |
 
 ## C. Qué NO se hizo (y por qué)
 
