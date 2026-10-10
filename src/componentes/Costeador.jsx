@@ -319,14 +319,17 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     .map((c, i) => {
       if (!c.largoMM || !c.anchoMM) return null;
       const ins = insumos[c.insumoId];
-      if (!ins?.formato) return null;
+      // La optimización 2D sólo aplica a TABLEROS en m²; para lámina formato.medida es kg.
+      if (ins?.formato?.tipo !== 'tablero' || !ins.fraccion) return null;
       const s = sugerenciaMedida(c.largoMM, c.anchoMM, ins, estado.parametros);
       if (!s.mejor || s.actual < 1) return null;
       const areaAct = (c.largoMM / 1000) * (c.anchoMM / 1000);
       const areaNueva = (s.mejor.largoMM / 1000) * (s.mejor.anchoMM / 1000);
       const precio = ins.precio ?? ins.precioBase ?? 0;
-      const costoAct = (ins.formato.medida / s.actual) * precio;
-      const costoNuevo = (ins.formato.medida / s.mejor.piezasPorTablero) * precio;
+      // Precio del catálogo es POR HOJA. Fracción de hoja por pieza = 1/piezasPorTablero;
+      // multiplicarlo otra vez por los m² de la hoja sobrevaloraba el ahorro.
+      const costoAct = precio / s.actual;
+      const costoNuevo = precio / s.mejor.piezasPorTablero;
       return { i, nombre: c.nombre, ...s, costoAct, costoNuevo, mejora: costoAct - costoNuevo };
     })
     .filter(Boolean);
