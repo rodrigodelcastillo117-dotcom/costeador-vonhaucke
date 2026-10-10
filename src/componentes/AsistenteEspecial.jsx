@@ -244,6 +244,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const [validacionSrv, setValidacionSrv] = useState(null); // { valido, razon, estado, costoUnitario, bomHash }
   const [validandoSrv, setValidandoSrv] = useState(false);
   const [guardandoExp, setGuardandoExp] = useState(false);
+  // Lock síncrono: dos toques rápidos antes de un render no pueden crear dos expedientes.
+  const guardarExpBloqueo = useRef(false);
   const [expId, setExpId] = useState(null);
   const [expMsg, setExpMsg] = useState('');
   const [costoGuardado, setCostoGuardado] = useState(null); // snapshot del costo al guardar (para Δ vs hoy)
@@ -462,8 +464,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   }
 
   async function guardarEnBiblioteca() {
-    if (guardandoExp) return;
+    if (guardarExpBloqueo.current || guardandoExp) return;
     if (!b.nombre?.trim() || !(b.componentes?.length)) { setExpMsg('Falta nombre y despiece para guardar.'); return; }
+    guardarExpBloqueo.current = true;
     setGuardandoExp(true); setExpMsg('');
     try {
       let quien = null; try { quien = (await sesionActual())?.user?.email || null; } catch (_e) {}
@@ -472,7 +475,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       const planoUrls = [];
       for (let i = 0; i < Math.min(planos.length, 8); i++) {
         const up = await subirPlano(planos[i], `${base}/plano-${i}-${Date.now()}.jpg`);
-        if (up.ok && up.url) planoUrls.push(up.url);
+        if (!up.ok || !up.url) throw new Error('No se logró guardar la página ' + (i + 1) + ' del plano. No se guardará el expediente sin ese plano.');
+        planoUrls.push(up.url);
       }
       const soloHttp = (u) => (typeof u === 'string' && u.startsWith('http')) ? u : null;
       const etiquetas = etiquetasTxt.split(',').map((s) => s.trim()).filter(Boolean);
@@ -509,17 +513,28 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       if (expId) {
         const nuevaRev = revActual + 1;
         const r = await actualizarExpediente(expId, { ...exp, revision: nuevaRev, actualizado_por: quien });
-        if (r.ok) { await guardarRevisionExpediente(snap(expId, nuevaRev)); setRevActual(nuevaRev); setCostoGuardado(exp.costo); setBomDirty(false); setExpMsg(`✓ Actualizado — revisión ${nuevaRev}`); }
-        else setExpMsg(r.error || 'No se pudo actualizar.');
+        if (r.ok) {
+          setRevActual(nuevaRev); setCostoGuardado(exp.costo); setBomDirty(false);
+          const rv = await guardarRevisionExpediente(snap(expId, nuevaRev));
+          setExpMsg(rv.ok
+            ? `✓ Actualizado — revisión ${nuevaRev}${aprobadoBloqueado ? ' (guardado como borrador: el servidor no aprobó el costo).' : ''}`
+            : `Actualizado — revisión ${nuevaRev}, pero el historial no se pudo registrar: ${rv.error || 'verifica permisos'}. Consulta Sistemas.`);
+        } else setExpMsg(r.error || 'No se pudo actualizar.');
       } else {
         const r = await guardarExpediente({ ...exp, plano_urls: planoUrls, revision: 1, creado_por: quien });
-        if (r.ok) { setExpId(r.id); await guardarRevisionExpediente(snap(r.id, 1)); setRevActual(1); setCostoGuardado(exp.costo); setBomDirty(false); setExpMsg('✓ Guardado en la biblioteca'); }
-        else setExpMsg(r.error || 'No se pudo guardar.');
+        if (r.ok) {
+          // Guardado principal confirmado: preservar el ID incluso si falla el histórico.
+          setExpId(r.id); setRevActual(1); setCostoGuardado(exp.costo); setBomDirty(false);
+          const rv = await guardarRevisionExpediente(snap(r.id, 1));
+          setExpMsg(rv.ok
+            ? `✓ Guardado en biblioteca${aprobadoBloqueado ? ' como borrador: el servidor rechazó la aprobación.' : ''}`
+            : `Guardado en biblioteca (ID ${r.id}), pero el historial de revisiones falló: ${rv.error || 'verifica permisos'}. No vuelvas a guardar para crear otro.`);
+        } else setExpMsg(r.error || 'No se pudo guardar.');
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setExpMsg('No se pudo completar el guardado. El borrador sigue abierto; vuelve a intentarlo. ' + (msg || 'Error de conexión.'));
-    } finally { setGuardandoExp(false); }
+    } finally { guardarExpBloqueo.current = false; setGuardandoExp(false); }
   }
 
   // Reabrir un expediente de la biblioteca: carga su BOM/costo/render como corrida nueva.
