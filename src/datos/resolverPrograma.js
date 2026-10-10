@@ -199,7 +199,8 @@ export function resolverOperativos(nUsuarios, { linea = LINEA_DEFAULT, requireme
 // req: { requirement_id, zone_id, ord, requested_models:{anchor}, requested_line, requested_dimensions }
 export function resolverPrivado(req = {}) {
   const { requirement_id = 'req:z:privado:0', zone_id = null, evidence = null, ord = 0,
-    requested_models = null, requested_line = null, requested_dimensions = null } = req;
+    requested_models = null, requested_line = null, requested_dimensions = null,
+    requested_route = null, requested_product = null } = req;
   const base = { requirement_id, zone_id, evidence, ord };
   const model = requested_models && requested_models.anchor;
   if (model || requested_line || requested_dimensions) {
@@ -207,8 +208,11 @@ export function resolverPrivado(req = {}) {
     // catálogo. Si no existe canónico → NEEDS_CONFIRMATION, jamás un dir-* en su lugar.
     const found = buscarEnColeccion(ESCRITORIOS, { model, line: requested_line, dimensions: requested_dimensions });
     if (!found.length) {
+      // `route/product` = identidad de LÍNEA que pidió el intérprete (ruta/producto de
+      // cotizar-texto). Viaja en el pendiente para que una partida de línea YA cotizada
+      // con esa misma identidad pueda cubrirlo (cubrirPendientesConLinea), sin sustituir.
       return needsConfirm({ requirement_id, zone_id, rol: 'privado', relation_role: 'ANCHOR_DESK' },
-        { reason: 'ESCRITORIO_SOLICITADO_NO_CANONICO', requested: { model, line: requested_line, dimensions: requested_dimensions } });
+        { reason: 'ESCRITORIO_SOLICITADO_NO_CANONICO', requested: { model, line: requested_line, dimensions: requested_dimensions, route: requested_route, product: requested_product } });
     }
     return anclaDesde(found[0], 'privado', 'ANCHOR_DESK', base);
   }
@@ -223,7 +227,8 @@ export function resolverPrivado(req = {}) {
 // req: { requirement_id, zone_id, ord, requested_dimensions:{w,d}, requested_line }
 export function resolverJuntas(capacidad, req = {}) {
   const { requirement_id = 'req:z:juntas:0', zone_id = null, evidence = null, ord = 0,
-    requested_dimensions = null, requested_line = null } = req;
+    requested_dimensions = null, requested_line = null,
+    requested_route = null, requested_product = null } = req;
   const base = { requirement_id, zone_id, evidence, ord };
   const cap = Math.max(1, Math.floor(Number(capacidad) || 0));
   const porCapacidad = JUNTAS.slice().sort((a, b) => a.usuarios - b.usuarios);
@@ -233,7 +238,7 @@ export function resolverJuntas(capacidad, req = {}) {
     const found = buscarEnColeccion(JUNTAS, { dimensions: requested_dimensions, line: requested_line });
     if (!found.length) {
       return needsConfirm({ requirement_id, zone_id, rol: 'juntas', relation_role: 'ANCHOR_MEETING' },
-        { reason: 'MESA_SOLICITADA_NO_CANONICA', requested: { dimensions: requested_dimensions, line: requested_line } });
+        { reason: 'MESA_SOLICITADA_NO_CANONICA', requested: { dimensions: requested_dimensions, line: requested_line, route: requested_route, product: requested_product } });
     }
     const mesa = found.slice().sort((a, b) => a.usuarios - b.usuarios).find((m) => m.usuarios >= cap);
     if (!mesa) {
@@ -369,7 +374,7 @@ export function resolverPrograma(programa = {}, { linea = LINEA_DEFAULT } = {}) 
     const zone_id = b.zone_id || null;
     const reqId = requirementId(zone_id, 'privado', i);
     requerimientos.push({ requirement_id: reqId, zone_id, evidence: b.evidence || null, rol: 'privado', anchor_role: 'ANCHOR_DESK', capacidad: 1, preferred_line: linea, ...b });
-    const r = resolverPrivado({ requirement_id: reqId, zone_id, evidence: b.evidence || null, requested_models: b.requested_models, requested_line: b.requested_line, requested_dimensions: b.requested_dimensions });
+    const r = resolverPrivado({ requirement_id: reqId, zone_id, evidence: b.evidence || null, requested_models: b.requested_models, requested_line: b.requested_line, requested_dimensions: b.requested_dimensions, requested_route: b.requested_route || null, requested_product: b.requested_product || null });
     integrarAncla(r, { seatModels: { executive: b.requested_models && b.requested_models.seat }, visitors: b.requested_visitors }, 'PRIVADO_NO_RESUELTO');
   }
 
@@ -380,7 +385,7 @@ export function resolverPrograma(programa = {}, { linea = LINEA_DEFAULT } = {}) 
     const zone_id = b.zone_id || null;
     const reqId = requirementId(zone_id, 'juntas', i);
     requerimientos.push({ requirement_id: reqId, zone_id, evidence: b.evidence || null, rol: 'juntas', anchor_role: 'ANCHOR_MEETING', capacidad, preferred_line: linea, ...b });
-    const r = resolverJuntas(capacidad, { requirement_id: reqId, zone_id, evidence: b.evidence || null, requested_dimensions: b.requested_dimensions, requested_line: b.requested_line });
+    const r = resolverJuntas(capacidad, { requirement_id: reqId, zone_id, evidence: b.evidence || null, requested_dimensions: b.requested_dimensions, requested_line: b.requested_line, requested_route: b.requested_route || null, requested_product: b.requested_product || null });
     integrarAncla(r, { capacidad, seatModels: { meeting: b.requested_models && b.requested_models.seat } }, 'JUNTAS_NO_RESUELTO');
   });
 

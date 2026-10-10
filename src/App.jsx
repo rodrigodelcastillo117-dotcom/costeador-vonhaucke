@@ -722,7 +722,22 @@ export default function App() {
       // Piezas excluidas ($0 por decisión) también por el camino de la IA/Voni.
       nombresExcluidos: Array.isArray(c.nombresExcluidos) ? c.nombresExcluidos
         : (c.componentes || []).filter((x) => x && x.excluida).map((x) => x.nombre || 'Partida excluida'),
+      // RESCATE punto 2: la IDENTIDAD (Producto Maestro / Línea V2) y la POSICIÓN en el
+      // programa (zona, grupo funcional, ancla) SOBREVIVEN al mapeo. Antes se
+      // reconstruía la partida eligiendo campos y se perdían — CotizadorIA las ponía y
+      // aquí morían ("tengo producto y precio" vs "requiere desarrollo").
+      ...soloSiExiste(c, ['source_type', 'source_ref', 'producto_id', 'producto_version_id', 'lista_precio_item_id', 'precio_lista_snapshot',
+        'zone_id', 'functional_group_id', 'relation_role', 'instance_id', 'anchor_instance_id', 'anchor_role',
+        // RESCATE punto 4/5/6: pendientes de costeo, precio provisional y costo desconocido.
+        'price_status', 'requiere_costeo', 'pendiente_tipo', 'motivoPendiente', 'seleccionIA', 'material_override',
+        'precioProvisional', 'escalado', 'costoDesconocido']),
     }));
+  }
+  // Copia sólo las llaves presentes (no siembra `undefined` en el estado persistido).
+  function soloSiExiste(obj, llaves) {
+    const out = {};
+    for (const k of llaves) if (obj && obj[k] !== undefined && obj[k] !== null) out[k] = obj[k];
+    return out;
   }
 
 

@@ -1,10 +1,11 @@
 // ============================================================================
-//  Edge Function: cotizar-texto  (COTIZADOR CONVERSACIONAL)
-//  Recibe un texto en lenguaje natural (lo que pide el cliente / el vendedor)
-//  + el catalogo compacto de las lineas (ruta -> productos -> params) y devuelve
-//  una lista de ITEMS estructurados {ruta, producto, seleccion, cantidad} que el
-//  FRONTEND cuesta con el MOTOR determinista y agrega a la cotizacion.
-//  La IA solo INTERPRETA y mapea; el precio lo pone el motor. Requiere ANTHROPIC_API_KEY.
+// Edge Function: cotizar-texto · v10
+// Texto natural -> renglones estructurados. La IA interpreta; el motor fija precio.
+// v10: cierre de aclaraciones + cero extras sugeridos cobrables sin aprobación.
+//
+// OPERACIÓN RESCATE 2026-10-10: este archivo se SINCRONIZÓ con la versión DESPLEGADA
+// (v10, ezbr_sha256 9c3c84f4…) — el repo traía una versión anterior (regla 9 de
+// "proponer acompañantes") que NO es la que corre. Fuente de verdad = lo desplegado.
 // ============================================================================
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
@@ -22,53 +23,23 @@ const SCHEMA = {
       type: "array",
       description: "Una entrada por cada producto/renglon que pide el usuario.",
       items: {
-        type: "object",
-        additionalProperties: false,
+        type: "object", additionalProperties: false,
         properties: {
-          ruta: { type: "string", description: "clave EXACTA de la linea del catalogo (ej. 'cirque', 'modulor')." },
-          producto: { type: "string", description: "id EXACTO del producto dentro de esa linea (ej. 'escritorio')." },
-          cantidad: { type: "number", description: "cuantas piezas. Si no lo dicen, 1." },
-          seleccion: {
-            type: "array",
-            description: "Opciones elegidas. Cada par {clave,valor} usa una clave de 'params' del producto y un valor permitido. Para 'checks', incluye el par solo si va ACTIVADO (valor 'si'). Omite lo que no apliques.",
-            items: {
-              type: "object",
-              additionalProperties: false,
-              properties: { clave: { type: "string" }, valor: { type: "string" } },
-              required: ["clave", "valor"],
-            },
-          },
-          etiqueta: { type: "string", description: "Como lo describirias en 1 linea (ej. 'Bench Cirque 1.20 m, 6 puestos, melamina')." },
-          confianza: { type: "string", enum: ["alta", "media", "baja"] },
-          nota: { type: "string", description: "Supuestos que tomaste o por que dudas. Vacio si todo claro." },
-          sugerido: { type: "boolean", description: "true SOLO si TU lo propones como acompañante (silla, gaveta, mesa de una sala), no si el usuario lo pidio explicito. Default false." },
-          material_override: { type: "string", description: "VACIO normalmente. Llenalo SOLO si el usuario pidio EXPLICITAMENTE un material/acabado que este producto NO ofrece en sus 'params' (p.ej. 'superficie solida'/'Corian'/'Krion', marmol, cristal, inoxidable en una linea que es de melamina/MDF). En ese caso escribe aqui el material textual tal como lo pidio (ej. 'superficie solida azul') y NO elijas un acabado melamina en 'seleccion' para disimularlo: el producto queda SOLO como referencia de geometria y su precio estandar NO aplica. Si el material pedido SI cabe en los params del producto, deja esto vacio y usalo en 'seleccion' normal." },
+          ruta: { type: "string" }, producto: { type: "string" }, cantidad: { type: "number" },
+          seleccion: { type: "array", items: { type: "object", additionalProperties: false,
+            properties: { clave: { type: "string" }, valor: { type: "string" } }, required: ["clave", "valor"] } },
+          etiqueta: { type: "string" }, confianza: { type: "string", enum: ["alta", "media", "baja"] },
+          nota: { type: "string" }, sugerido: { type: "boolean" }, material_override: { type: "string" },
         },
         required: ["ruta", "producto", "cantidad", "seleccion", "etiqueta", "confianza", "nota"],
       },
     },
-    // Piezas del BANCO DE PRECIOS: no se configuran, se piden por id. Aquí está
-    // la sillería, que antes no existía para Voni y por eso contestaba que el
-    // catálogo no tenía sillas — dejando fuera un pedazo grande del proyecto.
-    banco: {
-      type: "array",
-      description: "Piezas del banco de precios (sillería, complementos, electrificación) que el usuario necesita. Se piden por id EXACTO del banco.",
-      items: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          id: { type: "string", description: "id EXACTO de la pieza en __banco.piezas." },
-          cantidad: { type: "number" },
-          etiqueta: { type: "string", description: "Como lo describirias en 1 linea." },
-          nota: { type: "string", description: "Por que la elegiste. Vacio si es obvio." },
-          sugerido: { type: "boolean", description: "true SOLO si TU la propones como acompañante (ej. sillas para los puestos/la sala), no si el usuario la pidio explicito. Default false." },
-        },
-        required: ["id", "cantidad", "etiqueta", "nota"],
-      },
-    },
-    preguntas: { type: "array", items: { type: "string" }, description: "Solo lo ESENCIAL a confirmar (acabado, medida, cantidad) cuando de verdad falte. Vacio si el texto basta." },
-    resumen: { type: "string", description: "1 frase amable de que entendiste (para el vendedor)." },
-    noEncontrado: { type: "array", items: { type: "string" }, description: "Cosas que pidieron pero NO existen en el catalogo (para avisar)." },
+    banco: { type: "array", items: { type: "object", additionalProperties: false,
+      properties: { id: { type: "string" }, cantidad: { type: "number" }, etiqueta: { type: "string" }, nota: { type: "string" }, sugerido: { type: "boolean" } },
+      required: ["id", "cantidad", "etiqueta", "nota"] } },
+    preguntas: { type: "array", items: { type: "string" } },
+    resumen: { type: "string" },
+    noEncontrado: { type: "array", items: { type: "string" } },
   },
   required: ["items", "banco", "preguntas", "resumen", "noEncontrado"],
 };
@@ -76,7 +47,6 @@ const SCHEMA = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ ok: false, error: "Usa POST" }, 405);
-
   const key = Deno.env.get("ANTHROPIC_API_KEY");
   if (!key) return json({ ok: false, error: "Falta ANTHROPIC_API_KEY" }, 500);
 
@@ -86,81 +56,38 @@ Deno.serve(async (req) => {
   if (!texto || !String(texto).trim()) return json({ ok: false, error: "Falta el texto a cotizar." }, 400);
   if (!catalogo) return json({ ok: false, error: "Falta el catalogo." }, 400);
 
+  const textoCompleto = String(texto);
+  const rondasAclaracion = (textoCompleto.match(/(?:^|\n)\s*Aclaraciones?\s*:/gi) || []).length;
+  const cierreAclaraciones = rondasAclaracion >= 2
+    ? "\n12) CIERRE DE ACLARACIONES (OBLIGATORIO): ya hay DOS o mas bloques 'Aclaraciones:'. NO hagas mas preguntas. preguntas DEBE ser []. Usa lo ya dicho y defaults razonables para lo no esencial.\n"
+    : "\n12) DISCIPLINA DE PREGUNTAS: antes de preguntar revisa TODO el texto y sus Aclaraciones. JAMAS repitas una pregunta respondida. Pregunta solo si falta algo material.\n";
+
   const system =
-    "Eres el asistente experto de cotizacion de Von Haucke (mobiliario de oficina). " +
-    "Tu trabajo: convertir lo que pide el cliente/vendedor (en lenguaje natural) en RENGLONES estructurados de cotizacion, mapeandolos al CATALOGO real. Tu NO das precios: el motor de la app cuesta cada renglon.\n\n" +
+    "Eres el asistente experto de cotizacion de Von Haucke. Convierte el pedido en RENGLONES estructurados del CATALOGO real. Tu NO das precios: el motor cuesta cada renglon.\n\n" +
     "REGLAS:\n" +
-    "1) Usa SOLO 'ruta' y 'producto' que existan en el catalogo (claves e ids EXACTOS). Si piden algo que no existe, ponlo en 'noEncontrado' y NO lo inventes como item.\n" +
-    "2) En 'seleccion' cada 'clave' debe ser una de las de 'params' del producto y el 'valor' uno de los permitidos (para dimensiones el valor es el numero como texto, ej. '1200'). Para 'checks' (lista de nombres) agrega el par {clave:<nombre>, valor:'si'} SOLO si el usuario lo pide activado.\n" +
-    "3) Si no especifican una opcion, ELIGE un default sensato (medida mas comun, acabado melamina/ABS) y dilo breve en 'nota'; no llenes 'preguntas' con todo, solo lo esencial que cambie el precio de forma importante.\n" +
-    "3-bis) PRECEDENCIA DE MATERIAL (CRITICO, manda sobre la regla 3): el material/acabado EXPLICITO del usuario GANA sobre el producto de catalogo. Una geometria parecida NUNCA autoriza cambiar la familia de material. Si el usuario pide un material que el producto NO puede dar (superficie solida/Corian/Krion, marmol, cristal, inoxidable, piedra, etc. en una linea de melamina/MDF), NO lo cambies a melamina ni lo mandes a 'noEncontrado': deja 'ruta'/'producto' como REFERENCIA DE GEOMETRIA y pon el material pedido en 'material_override'. JAMAS presentes melamina/ABS cuando pidieron superficie solida. Prioridad: material explicito del usuario > material del plano > catalogo/producto similar > inferencia tuya.\n" +
-    "4) Respeta cantidades del texto (ej. '15 estaciones' -> cantidad 15). Un renglon por tipo/config distinta. " +
-    "EXCEPCION CRITICA (bancas/bench con parametro 'usuarios'): el numero de personas va COMPLETO en " +
-    "seleccion.usuarios (aunque sea mayor al maximo del catalogo -- el sistema cobra por puesto al escalon " +
-    "mas cercano), y 'cantidad' se queda en 1 (UNA banca continua para esas personas). 'cantidad' > 1 en un " +
-    "producto con 'usuarios' significa VARIAS bancas SEPARADAS (ej. '3 filas de 10' -> cantidad:3, " +
-    "usuarios:10), nunca el total de gente. Poner el total de gente en 'cantidad' junto con un 'usuarios' " +
-    "valido COBRA Y CUENTA MAL por error (ej. 30 personas con usuarios:12 y cantidad:30 cobra y cuenta como " +
-    "360 puestos, no 30 -- 12 veces de mas). '30 puestos en bench de 1.50' -> UN renglon: " +
-    "seleccion:[{clave:'usuarios',valor:'30'}], cantidad:1.\n" +
-    "5) Se practico: mejor un item con supuestos marcados (confianza media/baja + nota) que dejar todo en preguntas. Termina SIEMPRE el JSON.\n" +
-    "6) EL CATALOGO TIENE DOS PARTES:\n" +
-    "   a) las LINEAS (se configuran con params): escritorios, bancas, mesas, guardas, recepciones.\n" +
-    "   b) '__banco': piezas con PRECIO REAL de presupuestos ya cerrados, que NO se configuran. " +
-    "Se piden por id en el arreglo 'banco'. AHI ESTA LA SILLERIA: sillas operativas, de visita, de " +
-    "juntas, bancos altos y sofas. Un proyecto de oficina casi siempre lleva sillas: no las omitas " +
-    "y NO digas que no hay sillas en el catalogo.\n" +
-    "7) EL BANCO TRAE PRECIO. Uselo como criterio: si el cliente habla de presupuesto ajustado o de " +
-    "obra economica, elige lo mas barato que cumpla; si habla de direccion, sala de consejo o " +
-    "acabado premium, elige lo de mayor precio. Di en 'nota' por que elegiste esa.\n" +
-    "8) JERARQUIA DE LINEAS OPERATIVAS, de mas premium a mas economica: CIRQUE > RIO > APP LT. " +
-    "Si el texto no dice el nivel, usa App LT (la de volumen) y menciona en 'nota' que existe la " +
-    "version premium.\n" +
-    "9) PROPON LOS ACOMPAÑANTES NATURALES de cada mueble, como renglones APARTE con sugerido:true " +
-    "(el vendedor los revisa y quita lo que no va; NO infles cantidades):\n" +
-    "   - cada PUESTO OPERATIVO / ESCRITORIO -> una SILLA operativa del banco (una por puesto). Si es " +
-    "escritorio con guarda o el texto lo insinua, agrega tambien una GAVETA/pedestal (una por escritorio).\n" +
-    "   - cada SALA / MESA DE JUNTAS o de CONSEJO -> las SILLAS de junta que le tocan (una por lugar segun " +
-    "la medida: ~1 por cada 600 mm de perimetro util, minimo la capacidad que menciona el texto).\n" +
-    "   - RECEPCION -> una o dos sillas de visita o un banco alto.\n" +
-    "   Marca cada acompañante con sugerido:true y explica en 'nota' de que pieza es acompañante " +
-    "(ej. 'Sugerido: silla para los 6 puestos').\n" +
-    "10) OFRECE OPCIONES DE SILLA: cuando propongas sillas, menciona en 'nota' (o en 'preguntas' si de " +
-    "verdad hace falta decidir) 2-3 modelos del banco de distinto precio (economica / media / premium) " +
-    "usando la jerarquia de precio, para que el vendedor elija. Elige una por default y dilo.\n" +
-    "11) Los acompañantes NO cambian lo que el cliente pidio explicito: van SIEMPRE con sugerido:true y en " +
-    "cantidad sensata (una silla por puesto, una gaveta por escritorio, sillas = lugares de la mesa). Si " +
-    "dudas de si agregar un acompañante, mejor propon el mas obvio (la silla) y deja el resto como pregunta.\n\n" +
-    // REGLAS DEL OFICIO — las dicta Rodrigo desde la pantalla "Lo que Voni sabe"
-    // (tabla `reglas` en Supabase). Hasta el 2026-08-16 esta tabla NO llegaba a
-    // ningun modelo: `reglasTexto()` estaba exportada y no la llamaba nadie, asi
-    // que la pantalla enseñaba reglas que Voni no sabia. Van al FINAL y con
-    // prioridad explicita para que ganen sobre lo de arriba: son la voz del
-    // dueño del negocio y se actualizan sin volver a publicar nada.
-    (Array.isArray(reglas) && reglas.length
-      ? "\n\nREGLAS DE LA CASA (las dicta la Direccion de Von Haucke y MANDAN sobre " +
-        "cualquier criterio anterior; si alguna contradice lo de arriba, obedece esta y " +
-        "dilo en 'nota'):\n" + reglas.join("\n") + "\n"
-      : "") +
-    // LO QUE YA TE CORRIGIERON. Cada vez que un vendedor aclara algo que Voni no
-    // entendio, esa leccion queda guardada y vuelve aqui dentro del siguiente
-    // pedido. Es como aprende sin que nadie tenga que aprobar nada: rapido y
-    // reversible. Van DESPUES de las reglas de la casa porque pesan menos: una
-    // leccion es la experiencia de un vendedor, una regla es la voz de Direccion.
-    (Array.isArray(aprendizajes) && aprendizajes.length
-      ? "\n\nLO QUE YA TE CORRIGIERON ANTES (aprende de esto y NO lo vuelvas a " +
-        "repetir; si algo de aqui no aplica a este pedido, ignoralo y ya):\n" +
-        aprendizajes.join("\n") + "\n"
-      : "") +
-    "\nCATALOGO (JSON: ruta -> {titulo, productos:[{id, nombre, params:{clave:[valores permitidos]}, checks:[nombres]}]}):\n" +
-    JSON.stringify(catalogo);
+    "1) Usa SOLO ruta/producto existentes. Lo inexistente va a noEncontrado; no inventes items.\n" +
+    "2) seleccion usa claves exactas de params y valores permitidos.\n" +
+    "3) Si falta una opcion no esencial, elige default sensato y dilo en nota. No conviertas detalles opcionales en interrogatorio.\n" +
+    "3-bis) MATERIAL EXPLICITO MANDA. Si no existe en el producto usa material_override; nunca sustituyas silenciosamente.\n" +
+    "4) BANCAS/BENCH: usuarios=CAPACIDAD POR UNIDAD; cantidad=NUMERO DE BANCAS. '3 bancas de 8' => cantidad=3, usuarios=8, total=24. '24 lugares en una banca continua' => cantidad=1, usuarios=24.\n" +
+    "5) Mejor un supuesto marcado que preguntas interminables. Termina siempre el JSON.\n" +
+    "6) Catalogo: lineas configurables + __banco para silleria/complementos.\n" +
+    "7) El banco trae precio real de presupuesto cerrado; usalo como criterio sin inventar precio.\n" +
+    "8) Jerarquia operativa premium->economica: CIRQUE > RIO > APP LT. Si no especifican, APP LT.\n" +
+    "9) CERO EXTRAS SILENCIOSOS: NO agregues credenzas, espera, sofas, guardas, accesorios u otros extras que el usuario no haya pedido. Si quieres recomendar algo opcional, NO lo conviertas en item/banco cobrable. Solo puedes mencionarlo brevemente en una pregunta si realmente aporta.\n" +
+    "9-bis) COMPLEMENTOS FUNCIONALES OBLIGATORIOS: una SALA DE JUNTAS para N personas implica su mesa y N sillas aunque el usuario no repita la palabra 'sillas'; eso NO es un extra opcional y debe ir con sugerido:false. Un bench/operativo lleva sillas/gavetas SOLO cuando el pedido o programa las indique, como ocurre en el formulario de proyecto. Recepcion lleva mostrador; NO agregues sillas de espera/operativas salvo que se pidan.\n" +
+    "10) Si ya se indicó un modelo de silla, no preguntes por alternativas.\n" +
+    "11) Una Aclaracion posterior gana sobre el texto original y tus inferencias anteriores. No vuelvas a la version previa.\n" +
+    cierreAclaraciones +
+    (Array.isArray(reglas) && reglas.length ? "\nREGLAS DE LA CASA (MANDAN):\n" + reglas.join("\n") + "\n" : "") +
+    (Array.isArray(aprendizajes) && aprendizajes.length ? "\nCORRECCIONES APRENDIDAS (solo si aplican):\n" + aprendizajes.join("\n") + "\n" : "") +
+    "\nCATALOGO:\n" + JSON.stringify(catalogo);
 
   const apiBody = {
-    model: "claude-opus-5",
-    max_tokens: 8000,
+    model: "claude-opus-5", max_tokens: 8000,
     output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } },
     system,
-    messages: [{ role: "user", content: [{ type: "text", text: "Cotiza esto:\n\n" + String(texto).slice(0, 6000) }] }],
+    messages: [{ role: "user", content: [{ type: "text", text: "Cotiza esto:\n\n" + textoCompleto.slice(0, 6000) }] }],
   };
 
   let data: any;
@@ -171,9 +98,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify(apiBody),
     });
     data = await r.json();
-  } catch (e) {
-    return json({ ok: false, error: "No se pudo llamar a Claude: " + String(e) }, 502);
-  }
+  } catch (e) { return json({ ok: false, error: "No se pudo llamar a Claude: " + String(e) }, 502); }
 
   if (data?.type === "error") return json({ ok: false, error: data.error?.message || "Error de la API" }, 502);
   if (data?.stop_reason === "refusal") return json({ ok: false, error: "La IA no pudo interpretar el texto." }, 200);
@@ -184,7 +109,20 @@ Deno.serve(async (req) => {
   try { propuesta = JSON.parse(txt); }
   catch { return json({ ok: false, error: "La IA no devolvio una propuesta valida. Reintenta." }, 200); }
 
-  return json({ ok: true, propuesta, uso: data?.usage || null });
+  if (propuesta && typeof propuesta === "object") {
+    // Segundo cinturón determinista: un modelo no puede colar un extra opcional
+    // como cobrable si él mismo lo marcó sugerido.
+    const sugerenciasDescartadas = [
+      ...(Array.isArray(propuesta.items) ? propuesta.items.filter((x: any) => x?.sugerido === true).map((x: any) => x?.etiqueta || x?.producto) : []),
+      ...(Array.isArray(propuesta.banco) ? propuesta.banco.filter((x: any) => x?.sugerido === true).map((x: any) => x?.etiqueta || x?.id) : []),
+    ].filter(Boolean);
+    propuesta.items = (Array.isArray(propuesta.items) ? propuesta.items : []).filter((x: any) => x?.sugerido !== true);
+    propuesta.banco = (Array.isArray(propuesta.banco) ? propuesta.banco : []).filter((x: any) => x?.sugerido !== true);
+    if (rondasAclaracion >= 2) propuesta.preguntas = [];
+    return json({ ok: true, propuesta, uso: data?.usage || null, rondasAclaracion, sugerenciasDescartadas });
+  }
+
+  return json({ ok: true, propuesta, uso: data?.usage || null, rondasAclaracion });
 });
 
 function json(obj: unknown, status = 200) {

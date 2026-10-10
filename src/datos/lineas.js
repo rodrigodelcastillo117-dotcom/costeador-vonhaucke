@@ -286,8 +286,29 @@ function conIdentidadV2(p, sourceType, ref) {
 // `opciones.soloVentas=true` => salida SELLER-SAFE con fail-closed (sin economía,
 //  precio sólo si es AUTORIZADO). Sin la opción, el comportamiento es idéntico al de
 //  siempre (Dirección/Diseño no cambian en absoluto).
+// OPERACIÓN RESCATE (Cotizar): el intérprete (cotizar-texto) debe mandar `ruta`/`producto`
+// EXACTOS, pero si manda el TÍTULO de la línea ('App LT') o el NOMBRE del producto
+// ('Banca doble') en vez de la clave/id, antes esto moría MUDO (`return null` sin
+// rastro) y el vendedor sólo veía "No pude costear". Se tolera clave|título e id|nombre
+// (sin acentos/espacios/mayúsculas) y, si aun así no existe, se dice POR QUÉ.
+const normClave = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+export function resolverRutaProducto(ruta, producto) {
+  const rutaKey = LINEAS_REG[ruta] ? ruta
+    : (Object.keys(LINEAS_REG).find((k) => normClave(k) === normClave(ruta) || normClave(LINEAS_REG[k].titulo) === normClave(ruta)) || null);
+  if (!rutaKey) return { ruta: null, producto: null, motivo: `la línea "${ruta}" no existe en el catálogo` };
+  const L = LINEAS_REG[rutaKey];
+  const prod = L.productos.find((p) => p.id === producto)
+    || L.productos.find((p) => normClave(p.id) === normClave(producto) || normClave(p.nombre) === normClave(producto))
+    || null;
+  if (!prod) return { ruta: rutaKey, producto: null, motivo: `el producto "${producto}" no existe en ${L.titulo}` };
+  return { ruta: rutaKey, producto: prod.id, motivo: null };
+}
+
 export function costearItem(estado, item, opciones = {}) {
   const soloVentas = !!opciones.soloVentas;
+  const rp = resolverRutaProducto(item && item.ruta, item && item.producto);
+  if (rp.motivo) { console.warn(`costearItem: ${rp.motivo}`, item); return null; }
+  if (rp.ruta !== item.ruta || rp.producto !== item.producto) item = { ...item, ruta: rp.ruta, producto: rp.producto };
   const L = LINEAS_REG[item.ruta];
   if (!L) return null;
   const prod = L.productos.find((p) => p.id === item.producto);
@@ -435,8 +456,11 @@ export function costearItem(estado, item, opciones = {}) {
       precioReal: true, catalogo, variantes,
       avisos, candadoUsuarios, requiereProyectista,
     };
-    // Vendedor: precio AUTORIZADO del catálogo, con identidad Línea V2 y sin economía interna.
-    return soloVentas ? sellerSafePartida(conIdentidadV2(partidaCatalogo, 'linea', a.clave)) : partidaCatalogo;
+    // Identidad de Producto Maestro (producto_id/version/lista_precio_item) para TODOS
+    // los roles — antes sólo viajaba en seller-safe, y Dirección perdía la identidad al
+    // crear la partida (RESCATE punto 2). La identidad no es economía: no se recorta.
+    const conId = conIdentidadV2(partidaCatalogo, 'linea', a.clave);
+    return soloVentas ? sellerSafePartida(conId) : conId;
   }
 
   const partidaModelo = {
@@ -446,6 +470,11 @@ export function costearItem(estado, item, opciones = {}) {
     // ¿El precio salió de un presupuesto real o del modelo? El sello de la
     // propuesta depende de esto, no de una lista de líneas escrita a mano.
     precioReal: pr.real,
+    // RESCATE punto 5: un precio EXTRAPOLADO por puesto (pediste 8, el escalón real es
+    // 6) es PROVISIONAL — se cotiza, pero queda marcado y con su consecuencia de
+    // ingeniería (módulos/puestos reales) en `escalado`, no sólo en un aviso de texto.
+    precioProvisional: !!escalado,
+    escalado: escalado ? { puestosPedidos: escalado.pedidos, puestosDelEscalon: escalado.usados, precioPorPuesto: Math.round(escalado.porUsuario) } : null,
     // Lo que se AJUSTÓ de lo que pidió Voni, para poder decirlo en pantalla.
     avisos, candadoUsuarios, requiereProyectista,
   };

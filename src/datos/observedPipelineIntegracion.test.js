@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validarProgramaObservado } from '../../supabase/functions/leer-plano/observed-core.js';
-import { programRequirementsDesdeObservado, proponerProgramaDesdeObservado, propuestaBloqueada, aplicarPrograma, partidaComercialDesdeConfirmado, propuestaSilleriaSugerida, silleriaPendiente, bloqueosProgramaObservado, resolverAplicacionAtomica, programaTieneAplicacionPendiente } from './programaRealDelPlano.js';
+import { programRequirementsDesdeObservado, proponerProgramaDesdeObservado, propuestaBloqueada, aplicarPrograma, partidaComercialDesdeConfirmado, propuestaSilleriaSugerida, silleriaPendiente, bloqueosProgramaObservado, resolverAplicacionAtomica, programaTieneAplicacionPendiente, previewAplicacionPrograma } from './programaRealDelPlano.js';
 
 // ============================================================================
 //  INTEGRACIÓN OFFLINE (ChatGPT R10) — NO es E2E del PDF vivo (MOCK_ONLY).
@@ -615,21 +615,25 @@ describe('INTEGRACIÓN observed pipeline (R10, offline)', () => {
   });
 
   // ==========================================================================
-  //  P0.1 (caso roto de Rodrigo) — REGRESIÓN que cazó el E2E vivo: un REQUERIMIENTO
-  //  pendiente en `incompletos` (p.ej. "Eclipse Drift" sin producto canónico) NO debe
-  //  bloquear aplicar las ANCLAS resueltas (el bench APP LT). El E2E clásico usaba
-  //  aplicarPrograma directo y no pasaba por el gate; aquí se asegura el gate real.
+  //  P0.1 (caso roto de Rodrigo) — FAIL-CLOSED (OPERACIÓN RESCATE, retracta 1efe78c):
+  //  un REQUERIMIENTO pendiente en `incompletos` (p.ej. "Eclipse Drift" sin producto
+  //  canónico) BLOQUEA el apply; lo resuelto (el bench APP LT) se enseña sólo como
+  //  PREVIEW (previewAplicacionPrograma), nunca se escribe a medias.
   // ==========================================================================
-  it('P0.1· incompletos (requerimiento pendiente) NO bloquea aplicar lo resuelto', () => {
+  it('P0.1· FAIL-CLOSED: incompletos BLOQUEA el apply; lo resuelto sólo es preview', () => {
     const propuesta = {
       partidas: [{ relation_role: 'ANCHOR_WORKSTATION', rol: 'operativo', bancoId: 'op-10u-6000x1200-cristal', product_status: 'RESOLVED', identity_status: 'RESOLVED', productoId: 'pid-applt', instance_id: 'i-1', plan_source_ref: 'OP-1', cantidad: 1 }],
       incompletos: [{ code: 'REQUIERE_DESARROLLO', reason: 'Eclipse Drift sin producto canónico' }],
       recomendaciones: [],
     };
-    expect(propuestaBloqueada(propuesta)).toBe(false);           // incompletos NO bloquea
+    expect(propuestaBloqueada(propuesta)).toBe(true);            // incompletos SÍ bloquea
     const r = resolverAplicacionAtomica(propuesta, { existentes: [] });
-    expect(r.committed).toBe(true);                              // se aplica el ancla resuelta
-    expect(r.nuevas.map((p) => p.bancoId)).toContain('op-10u-6000x1200-cristal');
+    expect(r.committed).toBe(false);
+    expect(r.motivo).toBe('PROPUESTA_REQUIERE_REVISION');
+    expect(r.nuevas).toEqual([]);                                // ningún write parcial
+    // …pero el PREVIEW sí enseña el ancla resuelta (lo que entrará al resolver).
+    const pv = previewAplicacionPrograma(propuesta, { existentes: [] });
+    expect(pv.nuevas.map((p) => p.bancoId)).toContain('op-10u-6000x1200-cristal');
   });
 
   it('P0.1· pero una PARTIDA sin identidad (NEEDS_CONFIRMATION/MISSING) SÍ bloquea', () => {

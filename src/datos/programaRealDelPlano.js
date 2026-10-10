@@ -180,7 +180,47 @@ export function proponerPrograma(programa, { linea = 'App LT' } = {}) {
  * con el programa derivado del espacio — una sola ProgramRequirements, sin
  * reconstruir nada desde los textos de las partidas.
  */
-export function proponerProgramaDelPlano(areas, { linea = 'App LT', brief = null } = {}) {
+// OPERACIÓN RESCATE (caso Torre Sur): un pendiente NO_CANONICO cuyo producto pedido YA
+// está cotizado de LÍNEA con la MISMA identidad (ruta + producto [+ largo]) queda
+// CUBIERTO. No sustituye ni inventa: el usuario pidió "Eclipse 2.10" y la cotización ya
+// trae ese Eclipse 2.10 de la línea real (precio de catálogo). Sale de `pendientes`/
+// `incompletos` y se expone en `cubiertosPorLinea` (display). Sin identidad de línea en
+// el pendiente, o sin partida igual (otro largo, otro producto) → sigue pendiente.
+// El resolver de programa sólo conoce el BANCO (esc-/ger-/dir-, mj-*); sin este puente
+// un privado Eclipse bloqueaba Propuesta y el apply del bench sin camino para resolverlo.
+function cubrirPendientesConLinea(propuesta, existentes = []) {
+  const ex = Array.isArray(existentes) ? existentes : [];
+  if (!propuesta || !Array.isArray(propuesta.pendientes) || !propuesta.pendientes.length || !ex.length) return [];
+  const cubiertos = [];
+  const quedan = [];
+  for (const p of propuesta.pendientes) {
+    const req = p && p.faltante && p.faltante.requested;
+    const route = req && req.route;
+    const product = req && req.product;
+    // Medidas pedidas (el brief guarda largoMM bajo `d`, ver dimsDeSeleccion): cada una
+    // debe existir entre las medidas de la partida (largo/fondo/ancho), sin asumir eje.
+    const pedidas = [req && req.dimensions && req.dimensions.w, req && req.dimensions && req.dimensions.d]
+      .map(Number).filter((n) => Number.isFinite(n) && n > 0);
+    const medidasDe = (x) => [x.config && x.config.largoMM, x.config && x.config.fondoMM, x.config && x.config.anchoMM, x.w, x.d]
+      .map(Number).filter((n) => Number.isFinite(n) && n > 0);
+    const e = (route && product)
+      ? ex.find((x) => x && !x.sugeridoPlano && !String(x.id || '').startsWith('sug-')
+        && String(x.ruta) === String(route) && String(x.productoId) === String(product)
+        && pedidas.every((n) => medidasDe(x).includes(n)))
+      : null;
+    if (e) cubiertos.push({ ...p, cubierto_por_linea: { id: e.id, nombre: e.nombre, ruta: e.ruta, productoId: e.productoId } });
+    else quedan.push(p);
+  }
+  if (!cubiertos.length) return [];
+  const faltantes = new Set(cubiertos.map((c) => c.faltante));
+  propuesta.pendientes = quedan;
+  propuesta.incompletos = (propuesta.incompletos || []).filter((inc) => !(inc && inc.detalle && faltantes.has(inc.detalle)));
+  if ('cotizable' in propuesta) propuesta.cotizable = propuesta.incompletos.length === 0;
+  if (propuesta.incompletos.length === 0 && (propuesta.resoluciones || []).length > 0) propuesta.ok = true;
+  return cubiertos;
+}
+
+export function proponerProgramaDelPlano(areas, { linea = 'App LT', brief = null, existentes = [] } = {}) {
   const programa = programaDelPlano(areas);
   const salas = Array.isArray(programa.salas) ? programa.salas.filter((n) => Number(n) > 0) : [];
   // #19: conserva la identidad por-zona del FloorSpec (nombre/id del área) hasta el
@@ -200,7 +240,14 @@ export function proponerProgramaDelPlano(areas, { linea = 'App LT', brief = null
     recepcion: !!programa.recepcion,
     brief: briefBase,
   };
-  return { programaDetectado: programa, ...proponerPrograma(entrada, { linea }) };
+  const propuesto = proponerPrograma(entrada, { linea });
+  const cubiertosPorLinea = cubrirPendientesConLinea(propuesto.propuesta, existentes);
+  return {
+    programaDetectado: programa, ...propuesto,
+    // tras la cobertura, los agregados del nivel superior reflejan la propuesta real
+    incompletos: propuesto.propuesta.incompletos, cotizable: propuesto.propuesta.cotizable,
+    cubiertosPorLinea,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -736,14 +783,13 @@ export function proponerProgramaDesdeObservado(observedProgram, { linea = 'App L
 export function propuestaBloqueada(propuesta) {
   if (!propuesta) return true;
   if (propuesta.requiereRevision === true) return true;
-  // P0.1 (caso roto de Rodrigo): `incompletos` son REQUERIMIENTOS que NO se pudieron
-  // resolver (p.ej. un privado "Eclipse Drift" sin producto canónico) — NO son partidas
-  // que se vayan a aplicar. Bloquear TODA la aplicación porque un requerimiento quedó
-  // pendiente impedía agregar las anclas SÍ resueltas (el bench APP LT): el contrato es
-  // "aplica lo resuelto, deja el pendiente pendiente". El gate de identidad sigue vivo
-  // abajo (ninguna PARTIDA sin producto/identidad se aplica) y en observado un ancla sin
-  // resolver marca `requiereRevision` (arriba), así que esos casos siguen bloqueados.
-  // (Antes: `if (incompletos.length > 0) return true;` — bloqueaba de más.)
+  // FAIL-CLOSED (OPERACIÓN RESCATE, retracta 1efe78c): un requerimiento pendiente
+  // (`incompletos`, p.ej. un privado pedido que no existe canónico) BLOQUEA el apply
+  // completo — no se escribe "lo resuelto" a medias mientras el programa no cierra.
+  // Lo que SÍ se resolvió se enseña como PREVIEW (previewAplicacionPrograma), nunca
+  // como commit. Un pendiente cubierto por una partida de línea con la MISMA identidad
+  // pedida sale de `incompletos` en proponerProgramaDelPlano (cubrirPendientesConLinea).
+  if (Array.isArray(propuesta.incompletos) && propuesta.incompletos.length > 0) return true;
   // P1-R12: ninguna partida con producto sin resolver o SIN identidad (producto_id)
   // se aplica — blinda el gate aunque el flujo cambie.
   if (Array.isArray(propuesta.partidas) && propuesta.partidas.some((p) => p && (p.product_status === 'NEEDS_CONFIRMATION' || p.identity_status === 'MISSING'))) return true;
@@ -814,6 +860,25 @@ export function resolverAplicacionAtomica(propuesta, { existentes = [] } = {}) {
     return { committed: false, motivo: 'IDEMPOTENTE', confirmadas: 0, conflictos: [], nuevas: [], enriquecidos: [], partidas: base };
   }
   return { committed: true, motivo: 'OK', confirmadas: nuevas.length, conflictos: [], nuevas, enriquecidos, partidas: [...patched, ...nuevas] };
+}
+
+/**
+ * PREVIEW ≠ COMMIT (OPERACIÓN RESCATE / P0.1). Qué escribiría el apply SI el gate
+ * estuviera abierto: sirve para ENSEÑAR "Por agregar" mientras `resolverAplicacionAtomica`
+ * devuelve committed=false por pendientes. Nunca escribe estado; el botón sigue
+ * derivando de la autoridad atómica.
+ * @returns {{nuevas:Array, enriquecidos:Array, conflictos:Array}}
+ */
+export function previewAplicacionPrograma(propuesta, { existentes = [] } = {}) {
+  const base = Array.isArray(existentes) ? existentes : [];
+  if (!propuesta || !Array.isArray(propuesta.partidas)) return { nuevas: [], enriquecidos: [], conflictos: [] };
+  const aplicado = aplicarPrograma(propuesta, { existentes: base });
+  const { confirmacion } = aplicado;
+  return {
+    nuevas: (confirmacion.confirmadas || []).map(partidaComercialDesdeConfirmado),
+    enriquecidos: confirmacion.enriquecidos || [],
+    conflictos: aplicado.conflictos || [],
+  };
 }
 
 /**

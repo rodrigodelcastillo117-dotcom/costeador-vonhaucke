@@ -14,7 +14,7 @@ import EditarPartida from './EditarPartida.jsx';
 import EmpezarEspacio from './EmpezarEspacio.jsx';
 import { leerPlanoDeArchivo } from '../datos/leerPlanoArchivo.js';
 import { areasCanonicas, bloqueGeometria } from '../datos/floorPlan.js';
-import { proponerProgramaDelPlano, proponerProgramaDesdeObservado, programRequirementsDesdeObservado, propuestaSilleriaSugerida, silleriaPendiente, resolverAplicacionAtomica } from '../datos/programaRealDelPlano.js';
+import { proponerProgramaDelPlano, proponerProgramaDesdeObservado, programRequirementsDesdeObservado, propuestaSilleriaSugerida, silleriaPendiente, resolverAplicacionAtomica, previewAplicacionPrograma } from '../datos/programaRealDelPlano.js';
 import { requirementsDeBrief } from '../datos/programaBrief.js';
 import Cargando from './Cargando.jsx';
 import EstoEntendi from './EstoEntendi.jsx';
@@ -200,11 +200,13 @@ export default function Voni({
         const red = Array.isArray(obs) ? programRequirementsDesdeObservado(obs) : { pendientes: [] };
         return { gobernadoPorObservado: true, requiereRevision: true, observadoPendientes: red.pendientes || [], propuesta: { pendientes: [] }, preview: [] };
       }
+      // RESCATE: `existentes` permite que un pendiente NO_CANONICO ya cotizado de línea
+      // con la misma identidad (ruta+producto+largo) cuente como cubierto, no como muro.
       return areasDelProyecto.length
-        ? proponerProgramaDelPlano(areasDelProyecto, { linea, brief: reqBrief || null })
+        ? proponerProgramaDelPlano(areasDelProyecto, { linea, brief: reqBrief || null, existentes: partidas })
         : null;
     },
-    [areasDelProyecto, cot.programaBrief, cot.acomodo],
+    [areasDelProyecto, cot.programaBrief, cot.acomodo, partidas],
   );
   // P0-R15-M/N: UNA SOLA AUTORIDAD de aplicación (la MISMA que Acomodo). `committed` ⇒
   // aplicar produciría un write REAL contra las partidas actuales: producto NUEVO
@@ -216,10 +218,19 @@ export default function Voni({
     [propuestaPrograma, partidas],
   );
   const aplicacionPendientePrograma = !!aplicacionPrograma?.committed;
-  const faltantesPrograma = aplicacionPrograma?.nuevas || [];          // productos NUEVOS (lista display)
+  // PREVIEW ≠ COMMIT (RESCATE / P0.1): con pendientes, la autoridad atómica devuelve
+  // committed=false y nuevas=[] (gate correcto) — pero la tarjeta DEBE seguir enseñando
+  // qué sí resolvió Voni (el bench APP LT) para que el usuario sepa qué entrará al
+  // resolver. `previewAplicacionPrograma` es lectura pura, no escribe nada.
+  const previewPrograma = useMemo(
+    () => (propuestaPrograma?.propuesta ? previewAplicacionPrograma(propuestaPrograma.propuesta, { existentes: partidas }) : null),
+    [propuestaPrograma, partidas],
+  );
+  const faltantesPrograma = previewPrograma?.nuevas || [];             // productos NUEVOS (display)
   const enriquecidosPrograma = aplicacionPrograma?.enriquecidos?.length || 0;
   const conflictosPrograma = aplicacionPrograma?.conflictos || [];
   const pendientesPrograma = propuestaPrograma ? (propuestaPrograma.propuesta?.pendientes || []) : [];
+  const cubiertosPorLinea = propuestaPrograma?.cubiertosPorLinea || [];
   // P0-R9-5: los pendientes del OBSERVADO (sillas sin ancla, amenidades, roles sin
   // vocabulario) y las anclas que NO coinciden en geometría (NEEDS_CONFIRMATION)
   // NO pueden desaparecer: se muestran como "Mobiliario observado por confirmar".
@@ -360,10 +371,15 @@ export default function Voni({
                 Productos reales del catálogo. Se agrega SÓLO lo que falta (no duplica lo ya cotizado). El precio lo revalida el servidor al emitir.
               </p>
               {faltantesPrograma.length > 0 && (
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ fontWeight: 700, color: '#174f45' }}>Por agregar</div>
+                // RESCATE: la tarjeta es CLARA (#eef6f3) y en tema oscuro el texto heredaba
+                // BLANCO → "recuadro blanco" (captura de Rodrigo). Color explícito siempre.
+                <div style={{ marginTop: 8, color: '#1c2a26' }} data-testid="programa-por-agregar">
+                  <div style={{ fontWeight: 700, color: '#174f45' }}>
+                    Por agregar
+                    {(pendientesPrograma.length > 0 || programaRequiereRevision) && <span style={{ fontWeight: 500, color: '#8a5a00' }}> · se aplicará al resolver lo pendiente</span>}
+                  </div>
                   {faltantesPrograma.map((p) => (
-                    <div key={p.id}>✓ {p.cantidad}× {p.nombre}{p.w ? ` · ${(p.w / 1000).toFixed(2)}×${((p.d || 0) / 1000).toFixed(2)} m` : ''}</div>
+                    <div key={p.id} style={{ color: '#1c2a26' }}>✓ {p.cantidad}× {p.nombre}{p.w ? ` · ${(p.w / 1000).toFixed(2)}×${((p.d || 0) / 1000).toFixed(2)} m` : ''}</div>
                   ))}
                 </div>
               )}
@@ -372,6 +388,17 @@ export default function Voni({
                   <div style={{ fontWeight: 700 }}>Pendiente de confirmar (no se sustituye solo)</div>
                   {pendientesPrograma.map((p, i) => (
                     <div key={i}>⚠ {p.rol}{p.faltante?.requested?.model ? ` · ${p.faltante.requested.model}` : ''} — {p.faltante?.reason || 'NEEDS_CONFIRMATION'}</div>
+                  ))}
+                  <div className="ayuda" style={{ color: '#8a5a00', marginTop: 4 }}>
+                    Cómo se resuelve: cotiza ese mueble de su línea (abajo, con Voni o en "Cotizar de línea") con la misma medida; en cuanto exista en la cotización, deja de estar pendiente.
+                  </div>
+                </div>
+              )}
+              {cubiertosPorLinea.length > 0 && (
+                <div style={{ marginTop: 8, color: '#174f45' }} data-testid="programa-cubiertos">
+                  <div style={{ fontWeight: 700 }}>Cubierto por tu cotización (misma identidad pedida)</div>
+                  {cubiertosPorLinea.map((p, i) => (
+                    <div key={i}>✓ {p.rol} · {p.cubierto_por_linea?.nombre}</div>
                   ))}
                 </div>
               )}

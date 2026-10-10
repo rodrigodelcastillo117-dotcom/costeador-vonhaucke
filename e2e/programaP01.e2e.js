@@ -55,7 +55,7 @@ const cantidadDe = (partidas, piezaId) => partidas.filter((p) => p.piezaId === p
 test.describe('E2E P0.1 · caso roto de Rodrigo (navegador real)', () => {
   test.skip(!hayCreds, 'Define TEST_EMAIL y TEST_PASSWORD para correr el gate E2E real.');
 
-  test('propone sólo el APP LT faltante, Drift pendiente, doble click no duplica, refresh persiste', async ({ page }) => {
+  test('muestra APP LT faltante (visible), Drift pendiente y BLOQUEA aplicar hasta resolver (fail-closed)', async ({ page }) => {
     const pageErrors = [];
     page.on('pageerror', (e) => pageErrors.push(String(e?.message || e)));
 
@@ -89,29 +89,34 @@ test.describe('E2E P0.1 · caso roto de Rodrigo (navegador real)', () => {
     expect(cuenta(antes, 'op-10u-6000x1200-cristal')).toBe(0);
     expect(cantidadDe(antes, 'silla-win')).toBe(10);
 
-    // DOBLE CLICK real (dos disparos síncronos antes de que React quite el botón).
+    // RESCATE (captura de Rodrigo: "recuadro blanco"): el preview "Por agregar" tiene
+    // que ser LEGIBLE sobre la tarjeta clara — color explícito, nunca el blanco del
+    // tema oscuro. Se mide el color computado del renglón, no sólo "visible".
+    const renglon = page.getByTestId('programa-por-agregar').locator('div').nth(1);
+    await expect(renglon).toBeVisible();
+    const color = await renglon.evaluate((el) => getComputedStyle(el).color);
+    expect(color, `color del renglón "Por agregar": ${color}`).not.toMatch(/rgb\(255,\s*255,\s*255\)/);
+
+    // FAIL-CLOSED (retracta 1efe78c): Drift sigue sin identidad confirmada → Voni
+    // MUESTRA el APP LT resuelto (preview) pero NO lo aplica. El botón queda inhabilitado.
     const aplicar = page.getByRole('button', { name: /Aplicar programa detectado/i });
-    await expect(aplicar).toBeEnabled();
-    await aplicar.dblclick();
+    await expect(aplicar).toBeDisabled();
+    await expect(page.getByText(/se aplicará al resolver lo pendiente/i)).toBeVisible();
 
-    // Estado DESPUÉS (persistido): exactamente 1 APP LT 6000×1200; sin duplicar WIN/
-    // gavetas; sin sustituir el privado por dir-*; archivero intacto.
-    await expect.poll(async () => cuenta(await leerPartidas(page), 'op-10u-6000x1200-cristal')).toBe(1);
-    const desp = await leerPartidas(page);
-    expect(cantidadDe(desp, 'silla-win')).toBe(10);
-    expect(cantidadDe(desp, 'gaveta-mox')).toBe(10);
-    expect(desp.some((p) => String(p.piezaId || p.bancoId || '').startsWith('dir-'))).toBe(false);
-    expect(cuenta(desp, 'arch-modulor-2p-900')).toBe(1);
-    expect(cuenta(desp, 'mj-1200x1200-melamina')).toBe(1);
-    // WIN existentes ahora apuntan al ancla confirmada (#4).
-    const win = desp.find((p) => (p.piezaId || p.bancoId) === 'silla-win');
-    expect(win.anchor_instance_id || win.config?.anchor_instance_id).toBeTruthy();
+    // Ningún write parcial silencioso: el APP LT no entra hasta resolver Drift; lo
+    // existente permanece intacto y nada se sustituye por dir-*.
+    const bloqueado = await leerPartidas(page);
+    expect(cuenta(bloqueado, 'op-10u-6000x1200-cristal')).toBe(0);
+    expect(cantidadDe(bloqueado, 'silla-win')).toBe(10);
+    expect(cantidadDe(bloqueado, 'gaveta-mox')).toBe(10);
+    expect(bloqueado.some((p) => String(p.piezaId || p.bancoId || '').startsWith('dir-'))).toBe(false);
+    expect(cuenta(bloqueado, 'arch-modulor-2p-900')).toBe(1);
+    expect(cuenta(bloqueado, 'mj-1200x1200-melamina')).toBe(1);
 
-    // REFRESH → el estado persiste exactamente una vez (localStorage es la verdad;
-    // no se re-navega: la persistencia no depende de estar en una pantalla).
+    // REFRESH → el gate y el estado original persisten; no hubo confirmación implícita.
     await page.reload();
     await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
-    await expect.poll(async () => cuenta(await leerPartidas(page), 'op-10u-6000x1200-cristal')).toBe(1);
+    await expect.poll(async () => cuenta(await leerPartidas(page), 'op-10u-6000x1200-cristal')).toBe(0);
     await expect.poll(async () => cantidadDe(await leerPartidas(page), 'silla-win')).toBe(10);
 
     expect(pageErrors, pageErrors.join('\n')).toHaveLength(0);

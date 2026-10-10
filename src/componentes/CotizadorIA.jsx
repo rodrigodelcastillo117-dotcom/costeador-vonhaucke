@@ -11,7 +11,8 @@
 //  donde ya se puede cambiar la cantidad y quitar lo que no va.
 // ============================================================================
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { catalogoIA, costearItem } from '../datos/lineas.js';
+import { catalogoIA, costearItem, resolverRutaProducto } from '../datos/lineas.js';
+import { partidaRequerimientoPendiente, PENDIENTE_TIPOS } from '../datos/requerimientoPendiente.js';
 import { BANCO } from '../datos/banco.js';
 import { briefDePropuesta } from '../datos/programaBrief.js';
 import { autorizadoPorRef } from '../datos/precioAutorizado.js';
@@ -100,29 +101,49 @@ export default function CotizadorIA({
         // pidieron otra familia) ni se mete en $0: va como ESPECIAL a la medida,
         // conservando el material, para cotización de fábrica. El material explícito del
         // usuario manda sobre el producto similar.
+        // RESCATE punto 4: NADA que pidió el cliente desaparece. Lo que no se puede
+        // costear entra como PARTIDA PENDIENTE (precio null, nunca $0) con su motivo.
         if (it.material_override && String(it.material_override).trim()) {
           const et = it.etiqueta || it.producto || 'mueble';
-          especiales.push(`${et}${cantidad > 1 ? ` (×${cantidad})` : ''} — ${String(it.material_override).trim()}`);
+          const mat = String(it.material_override).trim();
+          especiales.push(`${et}${cantidad > 1 ? ` (×${cantidad})` : ''} — ${mat}`);
+          costados.push(partidaRequerimientoPendiente({ ...it, cantidad }, { tipo: PENDIENTE_TIPOS.ESPECIAL_MATERIAL, motivo: `material fuera de catálogo: ${mat}` }));
           continue;
         }
         const c = costearItem(estado, { ...it, cantidad }, { soloVentas });
         // `avisos` son los ajustes que la app le hizo a lo que pidió Voni (pediste 8
         // usuarios y ese producto sólo tiene 6). Antes se hacían en silencio.
         if (c && c.sinPrecioAutorizado) {
-          // Fail-closed: no se arma un renglón con $0. Se avisa que requiere costeo.
+          // Fail-closed: no se arma un renglón con $0. Queda PENDIENTE de costeo.
           sinPrecio.push(c.nombre || it.etiqueta || it.producto || 'un mueble');
+          costados.push(partidaRequerimientoPendiente({ ...it, cantidad, nombre: c.nombre, w: c.w, d: c.d }, { tipo: PENDIENTE_TIPOS.SIN_PRECIO_AUTORIZADO, motivo: 'sin precio autorizado (requiere costeo de Diseño/Dirección)' }));
         } else if (c) {
           costados.push({ ...c, nota: it.nota || null, confianza: it.confianza || null, avisos: c.avisos || [], sugerido: !!it.sugerido });
         } else {
-          sinCostear.push(it.etiqueta || it.producto || 'un mueble');
+          // RESCATE: antes se perdía SIN decir por qué. Ahora el renglón dice la causa
+          // (ruta/producto que mandó la IA y no existe) y queda rastro en consola.
+          const rp = resolverRutaProducto(it.ruta, it.producto);
+          const motivo = rp.motivo || 'el generador no pudo armar la configuración';
+          console.warn('[Cotizar] item de la IA sin costear', { ruta: it.ruta, producto: it.producto, seleccion: it.seleccion, motivo });
+          sinCostear.push(`${it.etiqueta || it.producto || 'un mueble'} (${motivo})`);
+          costados.push(partidaRequerimientoPendiente({ ...it, cantidad }, { tipo: PENDIENTE_TIPOS.SIN_COSTEAR, motivo }));
         }
+      }
+      // Lo que la IA marcó como "no está en catálogo" también se CONSERVA como pendiente.
+      for (const ne of r.propuesta?.noEncontrado || []) {
+        if (!ne || !String(ne).trim()) continue;
+        costados.push(partidaRequerimientoPendiente({ nombre: String(ne).trim(), cantidad: 1 }, { tipo: PENDIENTE_TIPOS.NO_EN_CATALOGO, motivo: 'no existe en el catálogo: especial a la medida' }));
       }
       // PIEZAS DEL BANCO DE PRECIOS (sillería, complementos). No se cuestan: su
       // precio viene de un presupuesto CERRADO, que manda sobre cualquier
       // modelo. Antes Voni ni las veía y contestaba que no había sillas.
       for (const b of r.propuesta?.banco || []) {
         const pieza = BANCO.find((x) => x.id === b.id);
-        if (!pieza) { sinCostear.push(b.etiqueta || b.id); continue; }
+        if (!pieza) {
+          sinCostear.push(`${b.etiqueta || b.id} (id de banco "${b.id}" no existe)`);
+          costados.push(partidaRequerimientoPendiente({ ...b, nombre: b.etiqueta || b.id }, { tipo: PENDIENTE_TIPOS.BANCO_DESCONOCIDO, motivo: `id de banco "${b.id}" no existe` }));
+          continue;
+        }
         const cantidad = Math.max(1, Math.round(Number(b.cantidad) || 1));
         // Banco = precio REAL de presupuesto cerrado (no se cuesta). Para el vendedor
         // NO se adjunta economía (ni siquiera costoUnitario:0, que dispararía el scanner).
@@ -132,7 +153,9 @@ export default function CotizadorIA({
           deBanco: true, precioReal: true,
           nota: b.nota || null, confianza: 'alta', avisos: [], sugerido: !!b.sugerido,
         };
-        if (!soloVentas) { partidaBanco.costoUnitario = 0; partidaBanco.margen = null; }
+        // RESCATE punto 6: el costo de fábrica de una pieza de BANCO es DESCONOCIDO
+        // (precio de presupuesto cerrado) — null, nunca $0 (un 0 pintaba margen 100%).
+        if (!soloVentas) { partidaBanco.costoUnitario = null; partidaBanco.margen = null; partidaBanco.costoDesconocido = true; }
         else {
           partidaBanco.sellerSafe = true;
           // LÍNEA V2: identidad de Producto Maestro (banco: source_ref == id de la pieza).
@@ -167,7 +190,8 @@ export default function CotizadorIA({
       }
 
       setResultado({
-        agregados: costados.length,
+        agregados: costados.filter((c) => !c.requiere_costeo).length,
+        pendientes: costados.filter((c) => c.requiere_costeo).length,
         resumen: limpiarResumen(r.propuesta?.resumen),
         preguntas: r.propuesta?.preguntas || [],
         noEncontrado: r.propuesta?.noEncontrado || [],
@@ -265,6 +289,9 @@ export default function CotizadorIA({
           {resultado.agregados > 0 ? (
             <>
               <strong>Agregué {resultado.agregados} {resultado.agregados === 1 ? 'mueble' : 'muebles'} a tu proyecto.</strong>
+              {resultado.pendientes > 0 && (
+                <span> Además {resultado.pendientes} {resultado.pendientes === 1 ? 'requerimiento quedó' : 'requerimientos quedaron'} en el proyecto <strong>sin precio</strong> (pendiente de costeo): no se pierden ni valen $0.</span>
+              )}
               {resultado.resumen && <span className="texto" style={{ display: 'block', marginTop: 4 }}>{resultado.resumen}</span>}
               <span className="texto" style={{ display: 'block', marginTop: 6 }}>
                 {verCotizacion
