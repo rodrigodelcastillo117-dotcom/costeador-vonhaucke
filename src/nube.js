@@ -315,7 +315,13 @@ export async function responderDespiece(catalogo, imagenes, propuesta, respuesta
 
 // Guarda la trazabilidad de confirmaciones del usuario (pregunta→respuesta, valor anterior, etc.).
 export async function guardarConfirmaciones(rows) {
-  try { if (Array.isArray(rows) && rows.length) await nube.from('confirmaciones').insert(rows); } catch (e) { /* no bloquea */ }
+  if (!Array.isArray(rows) || rows.length === 0) return { ok: true, omitido: true };
+  try {
+    const { error } = await nube.from('confirmaciones').insert(rows);
+    return error ? { ok: false, error: error.message } : { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 // Cotizador conversacional: texto natural -> items estructurados (Claude).
