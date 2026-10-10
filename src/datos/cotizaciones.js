@@ -168,16 +168,55 @@ export function paraGuardar(estado, usuario) {
 // Una sola creación simultánea por usuario y huella exacta en esta instancia.
 // No sustituye la idempotencia del servidor ante respuestas perdidas o pestañas distintas.
 const creacionesEnCurso = new Map();
+const clavesEnMemoria = new Map();
+const SLOT_IDEMPOTENCIA = 'vh-quote-create-pending-v1';
+
+function obtenerClaveOperacion(fingerprint) {
+  // Conservar el ID de operación después de fallar la red, incluso si el
+  // usuario recarga. No confundir contenido idéntico con una misma operación:
+  // la clave se elimina cuando el servidor CONFIRMA el nuevo ID.
+  let slot = null;
+  try {
+    if (typeof sessionStorage !== 'undefined')
+      slot = JSON.parse(sessionStorage.getItem(SLOT_IDEMPOTENCIA) || 'null');
+  } catch { /* navegación privada */ }
+  if (slot?.fingerprint === fingerprint && /^[a-zA-Z0-9_-]{10,100}$/.test(slot?.key || ''))
+    return slot.key;
+  if (clavesEnMemoria.has(fingerprint)) return clavesEnMemoria.get(fingerprint);
+  const key = typeof globalThis.crypto?.randomUUID === 'function'
+    ? globalThis.crypto.randomUUID()
+    : 'q-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+  clavesEnMemoria.clear();
+  clavesEnMemoria.set(fingerprint,key);
+  try { if (typeof sessionStorage !== 'undefined')
+    sessionStorage.setItem(SLOT_IDEMPOTENCIA,JSON.stringify({fingerprint,key})); } catch {}
+  return key;
+}
+function liberarOperacion(fingerprint,key) {
+  if (clavesEnMemoria.get(fingerprint)===key) clavesEnMemoria.delete(fingerprint);
+  try {
+    if (typeof sessionStorage === 'undefined') return;
+    const slot=JSON.parse(sessionStorage.getItem(SLOT_IDEMPOTENCIA)||'null');
+    if (slot?.fingerprint===fingerprint && slot?.key===key)
+      sessionStorage.removeItem(SLOT_IDEMPOTENCIA);
+  } catch {}
+}
 
 export async function guardarCotizacion(estado, usuario, id = null) {
   const fila = paraGuardar(estado, usuario);
   if (id == null && fila.partidas.length) {
     const clave = JSON.stringify([usuario, fila.folio, fila.cliente, fila.partidas, fila.acomodo, fila.totales, fila.huella_mp]);
     if (creacionesEnCurso.has(clave)) return creacionesEnCurso.get(clave);
-    const promesa = persistirCotizacion(fila, id);
+    const idOperacion = obtenerClaveOperacion(clave);
+    const promesa = persistirCotizacion({ ...fila, _idempotency_key:idOperacion }, id);
     creacionesEnCurso.set(clave, promesa);
-    try { return await promesa; }
-    finally { if (creacionesEnCurso.get(clave) === promesa) creacionesEnCurso.delete(clave); }
+    try {
+      const resultado = await promesa;
+      if (resultado != null) liberarOperacion(clave,idOperacion);
+      return resultado;
+    } finally {
+      if (creacionesEnCurso.get(clave) === promesa) creacionesEnCurso.delete(clave);
+    }
   }
   return persistirCotizacion(fila, id);
 }
