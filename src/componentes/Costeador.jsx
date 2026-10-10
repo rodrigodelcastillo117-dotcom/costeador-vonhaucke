@@ -521,6 +521,11 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                     {' · '}{ins.descripcionCompras}
                     {Number.isFinite(ins.precioReferencia) && <span> · {pesos2(ins.precioReferencia)}/{ins.unidadCosteo}</span>}
                     <div>{ins.estadoEconomia === 'APROBADO' ? 'Precio aprobado' : 'Costeo preliminar'} · {ins.fuenteCompra || 'Sin evidencia documental'}</div>
+                    {ins.estimacionMercado && <div style={{fontSize:12,marginTop:4}}>
+                      <strong>ASUR / referencia de mercado, NO compra registrada:</strong>{' '}
+                      {pesos2(ins.estimacionMercado.precio)}/{ins.estimacionMercado.unidad}.
+                      {' '}Debe sustituirse por la orden/factura real antes de costear oficialmente.
+                    </div>}
                     {ins.observacionPrecio && <div>{ins.observacionPrecio}</div>}
                   </div>
                 )}
