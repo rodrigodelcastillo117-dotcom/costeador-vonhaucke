@@ -45,6 +45,18 @@ export async function escribirConfig(datosCompartidos) {
   if (error) throw error;
 }
 
+// Solo METADATOS técnicos del catálogo de Compras para identificar artículos.
+// El RLS de insumos_catalogo restringe la lectura a Diseño/Dirección; no contiene
+// precios, proveedores, conversiones ni condiciones de compra en la respuesta.
+// Estas referencias NO son insumos del motor hasta que su economía sea validada.
+export async function leerReferenciasCompras() {
+  const { data, error } = await nube.from('insumos_catalogo')
+    .select('id,nombre,seccion,unidad_costeo,activo,calibre,espesor_mm,formato,material')
+    .eq('activo', true).order('nombre').limit(500);
+  if (error) throw error;
+  return (data || []).filter((x) => typeof x.id === 'string' && typeof x.nombre === 'string');
+}
+
 // ---- Sesion / acceso (control de quien entra) ----
 // --- BOVEDA DE DIRECCION -----------------------------------------------------
 // Nomina y estados financieros. La base solo entrega esta tabla a quien tiene
