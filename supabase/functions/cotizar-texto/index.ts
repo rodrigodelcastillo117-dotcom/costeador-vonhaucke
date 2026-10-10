@@ -1,8 +1,8 @@
 // ============================================================================
-// Edge Function: cotizar-texto · v11 CANDIDATA (DESPLEGADA = v10, ezbr 9c3c84f4…)
+// Edge Function: cotizar-texto · v11 (DESPLEGADA 2026-10-10 por Rodrigo, ezbr ebe5d246…)
 // Texto natural -> renglones estructurados. La IA interpreta; el motor fija precio.
 // v10: cierre de aclaraciones + cero extras sugeridos cobrables sin aprobación.
-// v11 (NO desplegada; requiere autorización de Rodrigo): CAUSA DEMOSTRADA del
+// v11 (autorizada y desplegada 2026-10-10): CAUSA DEMOSTRADA del
 //   "No pude costear" (E2E Torre Sur 2026-10-10): con el schema v10 SIN descripciones
 //   y la regla "Usa SOLO ruta/producto existentes", el modelo devolvía
 //   ruta:"applt/banca_doble" y producto:"Banca doble App LT 10 usuarios". Se
