@@ -58,7 +58,9 @@ function identidadExterna(id, mapeos = [], precio) {
     && String(x.source_record_id || x.external_key || '') === String(precio?.source_record_id || x.source_record_id || x.external_key || ''));
   return {
     clavesERP: [...new Set([
-      ...(precio?.source_record_id ? [String(precio.source_record_id)] : []),
+      // Las tarifas aprobadas para estimación por el usuario NO tienen clave ERP.
+      ...(precio?.source_record_id && precio?.source_system !== 'user_authorized_estimate'
+        ? [String(precio.source_record_id)] : []),
       ...relacionado.map((m) => String(m.external_key || '')).filter(Boolean),
     ])],
     mapeosERP: relacionado.map((m) => ({ clave:m.external_key, documento:m.source_document, estado:m.estado, identidad:m.identity_status })),
