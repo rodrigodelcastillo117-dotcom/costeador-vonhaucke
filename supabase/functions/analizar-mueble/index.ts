@@ -12,7 +12,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // P0.COSTEO: plan de petición PURO (informe diferido en 1ª pasada de texto + right-size).
 import { schemaSinInforme, planPass, normalizarPropuesta, NOTA_TEXTO_INICIAL } from "./requestPlan.js";
 // P0.COSTEO · Commit 2: config de modelo centralizada (fail-closed) + telemetría pura.
-import { resolverModelo } from "./modelConfig.js";
+import { resolverModeloPorPasada } from "./modelConfig.js";
 import { modalidadDe, mapProviderError, telemetriaExtra, crearAcumuladorProveedor } from "./telemetria.js";
 
 const CORS = {
@@ -440,9 +440,10 @@ Deno.serve(async (req) => {
   try {
     // AISLADO (2b): NO leemos ANTHROPIC_MODEL global (lo usan Council/otras fns); sólo el
     // override por-función o el default. permitirGlobal queda en false por defecto.
-    MODEL_ID = resolverModelo("analizar-mueble", {
+    MODEL_ID = resolverModeloPorPasada("analizar-mueble", {
       ANTHROPIC_MODEL_ANALIZAR_MUEBLE: Deno.env.get("ANTHROPIC_MODEL_ANALIZAR_MUEBLE") ?? undefined,
-    });
+      ANTHROPIC_MODEL_ANALIZAR_MUEBLE_REVISION: Deno.env.get("ANTHROPIC_MODEL_ANALIZAR_MUEBLE_REVISION") ?? undefined,
+    }, { esRevision, esVisual: !soloTexto });
   } catch (e: any) {
     return await fallarAnalisis(String(e?.code || "MODEL_CONFIG_INVALID"), "Configuración de modelo inválida; contacta al administrador.", 500, "config_error");
   }

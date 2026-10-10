@@ -7,6 +7,7 @@
 import { reglasTexto } from './datos/reglas.js';
 import { aprendizajesTexto } from './datos/aprendizaje.js';
 import { createClient } from '@supabase/supabase-js';
+import { validarIntentCosteo } from './datos/validarIntentCosteo.js';
 
 const URL = 'https://mtuvnbgljwbsaizjjgzs.supabase.co';
 const LLAVE = 'sb_publishable_lDPhCTatyJ2cap3FNEGs7A_uPapgg6y';
@@ -199,7 +200,7 @@ export async function adminUsuarios(accion, payload) {
 // con verify_jwt: manda la sesión del usuario. Devuelve { ok, propuesta } con
 // { piezas, informe (Markdown), descripcionCliente, materiales, ... } o { ok:false, error }.
 export async function analizarRender(catalogo, image, mediaType) {
-  const { data, error } = await nube.functions.invoke('analizar-mueble', {
+  const { data, error } = await nube.functions.invoke('analizar-mueble-preview', {
     body: { catalogo, image, mediaType },
   });
   if (error) {
@@ -214,7 +215,7 @@ export async function analizarRender(catalogo, image, mediaType) {
 // Varias HOJAS del MISMO mueble (plano multipágina rasterizado a imágenes). La IA
 // las integra en un solo despiece. Mismo retorno que analizarRender.
 export async function analizarRenderImagenes(catalogo, imagenes) {
-  const { data, error } = await nube.functions.invoke('analizar-mueble', {
+  const { data, error } = await nube.functions.invoke('analizar-mueble-preview', {
     body: { catalogo, imagenes },
   });
   if (error) {
@@ -265,7 +266,7 @@ export async function buscarProductosMaestroTexto(texto, limite = 30) {
 }
 
 export async function analizarTexto(catalogo, descripcion) {
-  const { data, error } = await nube.functions.invoke('analizar-mueble', {
+  const { data, error } = await nube.functions.invoke('analizar-mueble-preview', {
     body: { catalogo, descripcion },
   });
   if (error) {
@@ -282,7 +283,7 @@ export async function analizarTexto(catalogo, descripcion) {
 // (la verificación es una mejora, no un requisito — nunca deja al usuario sin nada).
 export async function verificarDespiece(catalogo, imagenes, propuesta) {
   try {
-    const { data, error } = await nube.functions.invoke('analizar-mueble', {
+    const { data, error } = await nube.functions.invoke('analizar-mueble-preview', {
       body: { catalogo, imagenes, revisar: propuesta },
     });
     if (error || !data?.ok) return { ok: true, propuesta, verificado: false };
@@ -296,12 +297,16 @@ export async function verificarDespiece(catalogo, imagenes, propuesta) {
 // (verdad confirmada: sobrescribe supuestos). respuestas = [{pregunta, respuesta}].
 export async function responderDespiece(catalogo, imagenes, propuesta, respuestas) {
   try {
-    const { data, error } = await nube.functions.invoke('analizar-mueble', {
+    const { data, error } = await nube.functions.invoke('analizar-mueble-preview', {
       body: { catalogo, imagenes, revisar: propuesta, respuestas },
     });
     if (error || !data?.ok) {
       let msg = error?.message; try { const j = await error?.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
-      return { ok: false, error: msg || data?.error || 'No se pudo aplicar las respuestas.' };
+      const raw = String(msg || data?.error || '');
+      const timeout = /PROVIDER_TIMEOUT|Failed to send a request to the Edge Function|timeout|timed out|502/i.test(raw);
+      return { ok: false, error: timeout
+        ? 'La revisión de VONI agotó el tiempo de espera. Tu plano y tus respuestas siguen en pantalla; vuelve a intentar la revisión sin subir el archivo nuevamente. No se aplicaron cambios al despiece.'
+        : (msg || data?.error || 'No se pudo aplicar las respuestas.'), error_code: timeout ? 'REVISION_TIMEOUT' : null };
     }
     return { ...data, verificado: true };
   } catch (e) {
@@ -311,7 +316,13 @@ export async function responderDespiece(catalogo, imagenes, propuesta, respuesta
 
 // Guarda la trazabilidad de confirmaciones del usuario (pregunta→respuesta, valor anterior, etc.).
 export async function guardarConfirmaciones(rows) {
-  try { if (Array.isArray(rows) && rows.length) await nube.from('confirmaciones').insert(rows); } catch (e) { /* no bloquea */ }
+  if (!Array.isArray(rows) || rows.length === 0) return { ok: true, omitido: true };
+  try {
+    const { error } = await nube.from('confirmaciones').insert(rows);
+    return error ? { ok: false, error: error.message } : { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 // Cotizador conversacional: texto natural -> items estructurados (Claude).
@@ -437,14 +448,28 @@ export function dtoCosteoServidor(pieza = {}, cantidad = 1) {
 
 export async function costearServidor(pieza, cantidad = 1) {
   const body = dtoCosteoServidor(pieza, cantidad);
+  // MISMA allowlist que usa la Edge; no enviar 400 ciegos cuando una pieza
+  // carece de insumo y de especificación. Jamás convierte 400 en costo cero.
+  const val = validarIntentCosteo(body);
+  if (!val.ok) return {
+    ok: false, status: 400, code: val.code, issues: val.issues,
+    error: 'Despiece técnico incompleto: ' + (val.issues?.[0]?.msg || 'corrige la partida indicada.'),
+  };
   const { data, error } = await nube.functions.invoke('costear-servidor', {
     body,
   });
   if (error) {
     let msg = error.message || 'No se pudo costear en el servidor.';
-    let status = error.context?.status;
-    try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
-    return { ok: false, error: msg, status };
+    const status = error.context?.status;
+    let code = null, issues = [];
+    try {
+      const j = await error.context?.json?.();
+      if (j?.error) msg = j.error;
+      if (j?.code) code = j.code;
+      if (Array.isArray(j?.issues)) issues = j.issues;
+      if (!j?.error && issues.length) msg = issues[0].msg || msg;
+    } catch (_e) { /* respuesta no JSON */ }
+    return { ok: false, error: msg, status, code, issues };
   }
   return data;
 }
@@ -486,12 +511,18 @@ export async function subirPlano(base64, path) {
 export async function guardarExpediente(exp) {
   const { data, error } = await nube.from('expedientes').insert(exp).select('id').maybeSingle();
   if (error) return { ok: false, error: error.message };
-  return { ok: true, id: data?.id };
+  if (data?.id == null) return { ok: false, error: 'El servidor no devolvió ID del expediente; no se puede confirmar el guardado.' };
+  return { ok: true, id: data.id };
 }
 // Actualiza un expediente existente (edición del equipo de diseño).
 export async function actualizarExpediente(id, patch) {
-  const { error } = await nube.from('expedientes').update({ ...patch, actualizado: new Date().toISOString() }).eq('id', id);
-  return error ? { ok: false, error: error.message } : { ok: true };
+  // Un UPDATE protegido por RLS puede afectar 0 filas sin devolver error.
+  const { data, error } = await nube.from('expedientes')
+    .update({ ...patch, actualizado: new Date().toISOString() })
+    .eq('id', id).select('id').maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (data?.id == null) return { ok: false, error: 'No se confirmó ninguna fila actualizada (revisa permisos y sesión).' };
+  return { ok: true };
 }
 // Lista expedientes (más recientes primero) y filtra por palabra clave (nombre o etiquetas) en cliente.
 export async function listarExpedientes(q) {
@@ -512,7 +543,14 @@ export async function obtenerExpediente(id) {
 }
 // Guarda un snapshot INMUTABLE de revisión (no pisa el anterior).
 export async function guardarRevisionExpediente(row) {
-  try { await nube.from('expediente_revisiones').insert(row); } catch (e) { /* no bloquea */ }
+  // PostgREST NO lanza excepción para errores HTTP normales: devuelve { error }.
+  // Antes se descartaba silenciosamente un fallo de revisión y la UI decía OK.
+  try {
+    const { error } = await nube.from('expediente_revisiones').insert(row);
+    return error ? { ok: false, error: error.message } : { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 // Historial de revisiones de un expediente (rev desc).
 export async function listarRevisiones(expedienteId) {

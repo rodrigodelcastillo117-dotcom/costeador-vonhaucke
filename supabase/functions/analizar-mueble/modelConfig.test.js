@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolverModelo, envKeyPorFn, MODELOS_PERMITIDOS, MODELO_DEFAULT } from './modelConfig.js';
+import { resolverModelo, resolverModeloPorPasada, envKeyPorFn, MODELOS_PERMITIDOS, MODELO_DEFAULT } from './modelConfig.js';
 
 // ============================================================================
 //  P0.COSTEO · Commit 2 · config de modelo centralizada (fail-closed).
@@ -73,5 +73,25 @@ describe('allowlist', () => {
   it('claude-opus-5 (legacy activo) está permitido; un id arbitrario no', () => {
     expect(MODELOS_PERMITIDOS.has('claude-opus-5')).toBe(true);
     expect(MODELOS_PERMITIDOS.has('claude-3')).toBe(false);
+  });
+});
+
+describe('regresión #123/#124/#127: timeout de revisión de plano', () => {
+  it('conserva Opus para texto, y Sonnet para imagen inicial y revisión', () => {
+    expect(resolverModeloPorPasada('analizar-mueble', {}, { esRevision: false, esVisual: false })).toBe('claude-opus-5');
+    expect(resolverModeloPorPasada('analizar-mueble', {}, { esRevision: false, esVisual: true })).toBe('claude-sonnet-5-5');
+  });
+  it('utiliza Sonnet para revisiones, sin cambiar el análisis inicial', () => {
+    expect(resolverModeloPorPasada('analizar-mueble', {}, { esRevision: true })).toBe('claude-sonnet-5-5');
+  });
+  it('admite un override específico de revisión válido', () => {
+    expect(resolverModeloPorPasada('analizar-mueble', {
+      ANTHROPIC_MODEL_ANALIZAR_MUEBLE_REVISION: 'claude-haiku-5-5',
+    }, { esRevision: true })).toBe('claude-haiku-5-5');
+  });
+  it('un override inválido de revisión falla cerrado', () => {
+    expect(() => resolverModeloPorPasada('analizar-mueble', {
+      ANTHROPIC_MODEL_ANALIZAR_MUEBLE_REVISION: 'model-inventado',
+    }, { esRevision: true })).toThrow();
   });
 });

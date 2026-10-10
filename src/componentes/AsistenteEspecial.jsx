@@ -14,7 +14,12 @@ import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
-import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI } from '../datos/materialMatch.js';
+import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, familiaDeMaterial } from '../datos/materialMatch.js';
+import { materialDesdeLeyenda } from '../datos/materialDesdeLeyenda.js';
+import { opcionesMaterialPlano } from '../datos/opcionesMaterialPlano.js';
+import { proxyParaPiezaDePlano, puedeUsarHojasDirectas } from '../datos/proxyTableroEstimado.js';
+import { mensajePendienteInsumo } from '../datos/mensajePendienteInsumo.js';
+import { costoReferenciaHerraje } from '../datos/costoReferenciaHerraje.js';
 import { paginaAImagen } from '../datos/pdfImagen.js';
 import { prepararPdfRapido, rasterizarPaginas, paginasAlrededor } from '../datos/pdfPipeline.js';
 import Cargando from './Cargando.jsx';
@@ -97,9 +102,21 @@ export function fusionarPreguntas(prev, incoming, confKeysSet, norm) {
 export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBiblioteca, expedienteInicial }) {
   const insumos = estado.insumos;
   const [paso, setPaso] = useState(0);
+  // Acceso directo desde el resultado a la decisión que mantiene el costo pendiente.
+  // Sólo navega: NUNCA responde por el usuario ni cambia el BOM automáticamente.
+  const [destinoPaso1, setDestinoPaso1] = useState('');
+  useEffect(() => {
+    if (paso !== 1 || !destinoPaso1) return;
+    const destino = destinoPaso1 === 'rotulos'
+      ? document.getElementById('vh-pregunta-rotulos') || document.getElementById('vh-centro-confirmaciones')
+      : document.getElementById('vh-despece-costear');
+    destino?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setDestinoPaso1('');
+  }, [paso, destinoPaso1]);
   const [analizando, setAnalizando] = useState(false);
   const [verificando, setVerificando] = useState(false); // 2ª pasada: la IA critica su propio despiece
   const [errorIA, setErrorIA] = useState('');
+  const [erroresMaterial, setErroresMaterial] = useState({});
   const [catalogoFuente, setCatalogoFuente] = useState(null); // 'canonico' | 'cliente-fallback' (#8: aviso si el catálogo central no estuvo)
   const [preguntasIA, setPreguntasIA] = useState([]);
   const [propuestaIA, setPropuestaIA] = useState(null); // despiece crudo de la IA (para re-costear con respuestas)
@@ -227,6 +244,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const [validacionSrv, setValidacionSrv] = useState(null); // { valido, razon, estado, costoUnitario, bomHash }
   const [validandoSrv, setValidandoSrv] = useState(false);
   const [guardandoExp, setGuardandoExp] = useState(false);
+  // Lock síncrono: dos toques rápidos antes de un render no pueden crear dos expedientes.
+  const guardarExpBloqueo = useRef(false);
   const [expId, setExpId] = useState(null);
   const [expMsg, setExpMsg] = useState('');
   const [costoGuardado, setCostoGuardado] = useState(null); // snapshot del costo al guardar (para Δ vs hoy)
@@ -259,10 +278,23 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   //  ACABADO:    confirmado (material/color de fuente explícita) · pendiente (sin definir → neutro)
   const geomFid = (Array.isArray(b.planos) && b.planos.length)
     ? (analisis?.confianzaGeneral === 'alta' ? 'alta' : 'media') : 'limitada';
-  const acabadoFid = matFinish.fuente === 'ninguna' ? 'pendiente' : 'confirmado';
+  // Una leyenda o un sustituto económico NO implica acabado aprobado.
+  // El badge no debe certificar el Walnut 19mm si el plano pide nogal claro 18mm.
+  const acabadoRequiereRevision = (b.componentes || []).some((c) =>
+    c.material_solicitado && estadoMaterialUI(c, insumos).pendiente);
+  const acabadoFid = matFinish.fuente === 'ninguna' || acabadoRequiereRevision
+    ? 'pendiente'
+    : matFinish.fuente === 'plano' ? 'referencia'
+    : (b.componentes || []).filter((c) => insumos[c.insumoId] &&
+      ['cubiertas', 'mamparas', 'acabados', 'metal', 'tapiceria'].includes(insumos[c.insumoId].seccion))
+        .some((c) => c.material_solicitado && c.material_confirmado !== true)
+      ? 'referencia' : 'confirmado';
   // INCOMPLETO: piezas del despiece SIN material en catálogo → se costean en $0 → el total sale BAJO.
   const piezasSinMaterial = resultado.componentesIgnorados || [];
   const costoIncompleto = piezasSinMaterial.length > 0;
+  const esTemaRotulos = (t) => /r[oó]tul|letrer|gr[aá]fic/i.test(String(t || ''));
+  const hayRotulosPendientes = piezasSinMaterial.some(esTemaRotulos);
+  const hayPreguntaRotulos = preguntasIA.some((q) => esTemaRotulos(normPreg(q).pregunta));
   // FAIL-CLOSED (audit 2026-10-01): si el costo está incompleto NO es emitible —
   // su total es apenas un SUBTOTAL CONOCIDO, no se le pone precio ni se aprueba.
   const emision = costeoEmitible(resultado);
@@ -370,7 +402,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         const avisos = [];
         if (geomFid === 'limitada') avisos.push('Sin plano cargado: el aislado se generó por descripción (geometría limitada). Sube el plano para fidelidad exacta.');
         else if (geomFid === 'media') avisos.push('Plano sin escala/cotas claras: geometría media. Da una medida de referencia o sube más vistas para subirla a alta.');
-        if (acabadoFid === 'pendiente') avisos.push('Acabado por confirmar: sin materiales/color definidos, el render usa un acabado neutro. Elige los materiales arriba para ver el acabado real.');
+        if (acabadoFid === 'pendiente') avisos.push('Acabado por confirmar: la selección del plano o el sustituto del costeo no tienen validación final. Comprueba el acabado antes de presentar como definitivo.');
+        if (acabadoFid === 'referencia') avisos.push('Acabado representado según el plano o catálogo, todavía sin validación técnica final.');
         if (avisos.length) setRenderMsg(avisos.join(' '));
       } else { setRenderMsg(r?.error || 'No se pudo generar el producto aislado.'); }
     } catch (e) { setRenderMsg('Error en producto aislado: ' + String(e)); }
@@ -431,8 +464,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   }
 
   async function guardarEnBiblioteca() {
-    if (guardandoExp) return;
+    if (guardarExpBloqueo.current || guardandoExp) return;
     if (!b.nombre?.trim() || !(b.componentes?.length)) { setExpMsg('Falta nombre y despiece para guardar.'); return; }
+    guardarExpBloqueo.current = true;
     setGuardandoExp(true); setExpMsg('');
     try {
       let quien = null; try { quien = (await sesionActual())?.user?.email || null; } catch (_e) {}
@@ -441,7 +475,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       const planoUrls = [];
       for (let i = 0; i < Math.min(planos.length, 8); i++) {
         const up = await subirPlano(planos[i], `${base}/plano-${i}-${Date.now()}.jpg`);
-        if (up.ok && up.url) planoUrls.push(up.url);
+        if (!up.ok || !up.url) throw new Error('No se logró guardar la página ' + (i + 1) + ' del plano. No se guardará el expediente sin ese plano.');
+        planoUrls.push(up.url);
       }
       const soloHttp = (u) => (typeof u === 'string' && u.startsWith('http')) ? u : null;
       const etiquetas = etiquetasTxt.split(',').map((s) => s.trim()).filter(Boolean);
@@ -478,14 +513,28 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       if (expId) {
         const nuevaRev = revActual + 1;
         const r = await actualizarExpediente(expId, { ...exp, revision: nuevaRev, actualizado_por: quien });
-        if (r.ok) { await guardarRevisionExpediente(snap(expId, nuevaRev)); setRevActual(nuevaRev); setCostoGuardado(exp.costo); setBomDirty(false); setExpMsg(`✓ Actualizado — revisión ${nuevaRev}`); }
-        else setExpMsg(r.error || 'No se pudo actualizar.');
+        if (r.ok) {
+          setRevActual(nuevaRev); setCostoGuardado(exp.costo); setBomDirty(false);
+          const rv = await guardarRevisionExpediente(snap(expId, nuevaRev));
+          setExpMsg(rv.ok
+            ? `✓ Actualizado — revisión ${nuevaRev}${aprobadoBloqueado ? ' (guardado como borrador: el servidor no aprobó el costo).' : ''}`
+            : `Actualizado — revisión ${nuevaRev}, pero el historial no se pudo registrar: ${rv.error || 'verifica permisos'}. Consulta Sistemas.`);
+        } else setExpMsg(r.error || 'No se pudo actualizar.');
       } else {
         const r = await guardarExpediente({ ...exp, plano_urls: planoUrls, revision: 1, creado_por: quien });
-        if (r.ok) { setExpId(r.id); await guardarRevisionExpediente(snap(r.id, 1)); setRevActual(1); setCostoGuardado(exp.costo); setBomDirty(false); setExpMsg('✓ Guardado en la biblioteca'); }
-        else setExpMsg(r.error || 'No se pudo guardar.');
+        if (r.ok) {
+          // Guardado principal confirmado: preservar el ID incluso si falla el histórico.
+          setExpId(r.id); setRevActual(1); setCostoGuardado(exp.costo); setBomDirty(false);
+          const rv = await guardarRevisionExpediente(snap(r.id, 1));
+          setExpMsg(rv.ok
+            ? `✓ Guardado en biblioteca${aprobadoBloqueado ? ' como borrador: el servidor rechazó la aprobación.' : ''}`
+            : `Guardado en biblioteca (ID ${r.id}), pero el historial de revisiones falló: ${rv.error || 'verifica permisos'}. No vuelvas a guardar para crear otro.`);
+        } else setExpMsg(r.error || 'No se pudo guardar.');
       }
-    } finally { setGuardandoExp(false); }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setExpMsg('No se pudo completar el guardado. El borrador sigue abierto; vuelve a intentarlo. ' + (msg || 'Error de conexión.'));
+    } finally { guardarExpBloqueo.current = false; setGuardandoExp(false); }
   }
 
   // Reabrir un expediente de la biblioteca: carga su BOM/costo/render como corrida nueva.
@@ -537,7 +586,31 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   function quitarPieza(i) { editarComponentes(b.componentes.filter((_, j) => j !== i)); }
   function onMaterial(i, insumoId, { confirmado = false } = {}) {
     const ins = insumos[insumoId]; const comps = b.componentes.slice(); const prev = comps[i];
-    const patch = { insumoId, nombre: prev.nombre || (ins ? ins.nombre : '') };
+    // Si el plano pide melamina específica, NO se puede confirmar un faldón,
+    // un divisor, otro espesor o un tablero sin el acabado que indica el plano.
+    // Un click en el selector nativo tampoco debe saltarse el gate económico.
+    if (insumoId && prev?.material_solicitado && familiaDeMaterial(prev.material_solicitado) === 'melamina') {
+      const permitido = opcionesMaterialPlano(prev.material_solicitado, insumos)
+        .some((op) => op.id === insumoId && op.confirmable);
+      if (!permitido) {
+        setErroresMaterial((v) => ({ ...v, [i]: `No se puede asignar ${ins?.nombre || insumoId}: no coincide con el espesor y acabado solicitado en el plano. Solicita la validación del artículo correcto.` }));
+        return;
+      }
+    }
+    setErroresMaterial((v) => { const n = { ...v }; delete n[i]; return n; });
+    const patch = { insumoId, nombre: prev.nombre || (ins ? ins.nombre : ''), _estimacionAlternativa: null };
+    // Limpiar el selector NO equivale a material aprobado; eliminar el rastro
+    // USER_CONFIRMED anterior y dejar la especificación del plano pendiente.
+    if (!insumoId) Object.assign(patch, {
+      material_confirmado: false, engineering_override: false, override_motivo: '',
+      candidate_insumo_id: '', material_match: 'NOT_AVAILABLE',
+      _match: { clase: 'NOT_AVAILABLE', solicitado: prev.material_solicitado || '',
+        confirmado_por_usuario: false, autollenado: false, candidate_insumo_id: '' },
+    });
+    // Nunca heredar hojas estimadas por VONI para OTRO artículo o formato.
+    // Las fracciones de hoja sólo son válidas para el insumo al que pertenecían;
+    // además $/m² no puede consumir cantidad "hojas".
+    if (insumoId !== prev.insumoId || ins?.unidad === 'm2') patch.hojas = undefined;
     if (!esArea(ins)) { patch.largoMM = undefined; patch.anchoMM = undefined; }
     // Elección/confirmación HUMANA: misma intención en ambas UIs (P0.8). El servidor verifica
     // material_confirmado + insumoId y lo convierte a USER_CONFIRMED efectivo (no confía en el string).
@@ -573,13 +646,30 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     // POLÍTICA DE MATERIAL (misma que Costeador): nunca sustituye una familia por
     // otra en silencio (solid surface jamás cae en MDF/HPL). Sólo EXACT/EQUIV
     // conservan insumoId; el resto queda '' + bandera `_match`.
-    const base = aplicarPoliticaMaterial({ ...z, material_solicitado: z.material_solicitado || z.nombre }, (id) => insumos[id], Object.values(insumos));
+    const materialPlano = materialDesdeLeyenda(z, p?.materiales);
+    const especificado = materialPlano || z.material_solicitado || z.nombre;
+    const inicial = aplicarPoliticaMaterial({ ...z, material_solicitado: especificado }, (id) => insumos[id], Object.values(insumos));
+    // Costear de forma automática con una alternativa del MISMO tablero, con
+    // precio REAL configurado, SIN confirmar ingeniería ni liberar emisión.
+    // Solo 18→19 melamina: calibres estructurales y herrajes NO se sustituyen.
+    const proxy = !inicial.insumoId && proxyParaPiezaDePlano(especificado, z, insumos);
+    const base = proxy
+      ? aplicarPoliticaMaterial({
+          ...z, insumoId: proxy.id, material_solicitado: especificado,
+          material_confirmado: false, engineering_override: false,
+        }, (id) => insumos[id], Object.values(insumos))
+      : inicial;
+    if (proxy && base.insumoId && base.material_match === 'SAME_FAMILY_COMPATIBLE_PROPOSED') {
+      base._estimacionAlternativa = { id: proxy.id, nombre: proxy.nombre, aviso: proxy.aviso };
+    }
     if (z.forma === 'area') {
       base.forma = 'area'; // se preserva: el motor usa `forma:'area'` para exigir medida (silent P0-1)
       base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
       // La IA ya estimó la fracción de hoja que rinde: el motor la usa directa
       // (hojas × precio) en vez de re-nestear áreas, que es lo que oscilaba.
-      if (z.hojas > 0) base.hojas = z.hojas;
+      if (z.hojas > 0 && puedeUsarHojasDirectas(base.insumoId, insumos)) {
+        base.hojas = z.hojas;
+      }
     }
     return base;
   });
@@ -716,7 +806,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       const r = await responderDespiece(catalogoIA(), imgs, propuestaIA, respPayload);
       if (!r?.ok) { setConfMsg(r?.error || 'No se pudo recalcular con tus respuestas.'); return; }
       let quien = null; try { quien = (await sesionActual())?.user?.email || null; } catch (_e) {}
-      guardarConfirmaciones(traza.map((x) => ({ confirmado_por: quien, producto: b.nombre || null, pregunta: x.pregunta, respuesta: x.respuesta, valor_anterior: x.supuesto || null, afecta: x.afecta, impacto: x.impacto })));
+      const registro = await guardarConfirmaciones(traza.map((x) => ({ confirmado_por: quien, producto: b.nombre || null, pregunta: x.pregunta, respuesta: x.respuesta, valor_anterior: x.supuesto || null, afecta: x.afecta, impacto: x.impacto })));
+      // La respuesta aplicada al BOM no desaparece si falla el log, pero tampoco
+      // fingimos persistencia en el historial de decisiones.
+      const avisoRegistro = registro?.ok === false
+        ? ' Atención: el historial de confirmaciones no se guardó (' + (registro.error || 'revisa permisos') + '). Guarda un borrador para conservar las decisiones.' : '';
       setConfirmadas(todas); // recordadas por key
       const confKeys = new Set(Object.keys(todas));
       const quedan = (Array.isArray(r.propuesta?.preguntas) ? r.propuesta.preguntas : []).filter((q) => !confKeys.has(normPreg(q).question_key)).length;
@@ -727,19 +821,23 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         // Cuando ya no quedan preguntas, se CONSOLIDA el BOM canónico de la revisión.
         aplicarPropuesta(r, b.imagen, b.planos, false, corrida.current, todas);
         if (quedan === 0) { setCanonico(true); setPropuestaIA(r.propuesta || propuestaIA); }
-        setConfMsg(`✓ Guardé ${Object.keys(todas).length} respuesta(s) y recalculé el costo.` + (quedan ? ` Quedan ${quedan} por confirmar.` : ' BOM consolidado: sin preguntas pendientes.'));
+        setConfMsg(`✓ Apliqué ${Object.keys(todas).length} respuesta(s) y recalculé el costo.` + (quedan ? ` Quedan ${quedan} por confirmar.` : ' BOM consolidado: sin preguntas pendientes.') + avisoRegistro);
       } else {
         // CANÓNICO: la salida de la IA NO reemplaza el BOM. Si propone cambios, se
         // ofrecen como PROPUESTA_DIFF para que el usuario ACEPTE o RECHACE.
         const iaComps = mapIaComps(r.propuesta || {});
         const d = diffBOM(b.componentes, iaComps);
         if (d.sinCambios) {
-          setConfMsg(`✓ Respuesta registrada. El BOM canónico no cambia (${bomHash(b.componentes)}).`);
+          setConfMsg(`✓ Respuesta aplicada a la revisión; el BOM canónico no cambia (${bomHash(b.componentes)}).` + avisoRegistro);
         } else {
           setPropuestaDiff({ agregar: d.agregar, modificar: d.modificar, eliminar: d.eliminar, motivo: `Respuesta a: ${Object.values(ahora).map((v) => v.pregunta).join(' · ')}`, iaComps });
-          setConfMsg('La IA propone cambios al BOM canónico. Revísalos abajo y Acepta o Rechaza — no se aplican solos.');
+          setConfMsg('La IA propone cambios al BOM canónico. Revísalos abajo y Acepta o Rechaza — no se aplican solos.' + avisoRegistro);
         }
       }
+    } catch (e) {
+      // Error de red/Edge: nunca declarar respuestas confirmadas ni ocultar la causa.
+      const msg = e instanceof Error ? e.message : String(e);
+      setConfMsg('No se pudieron aplicar las respuestas. Conservamos tus selecciones sin cambiar el despiece. ' + (msg || 'Reintenta cuando haya conexión.'));
     } finally {
       setRespondiendo(false); setAnalizando(false); setVerificando(false);
     }
@@ -974,7 +1072,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
 
       {/* PASO 2 — Piezas */}
       {paso === 1 && (
-        <div>
+        <div id="vh-despece-costear" className="ancla-costear">
           <div className="pregunta">¿De qué está hecho?</div>
           <div className="pregunta-sub">Toca las piezas que lleva. Luego ajusta su material y medida.</div>
 
@@ -1043,7 +1141,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
             </div>
           )}
           {(preguntasIA.length > 0 || Object.keys(confirmadas).length > 0) && (
-            <div style={{ border: '1px solid var(--borde)', borderRadius: 10, padding: 14, margin: '12px 0', background: 'var(--panel)' }}>
+            <div id="vh-centro-confirmaciones" className="ancla-costear" style={{ border: '1px solid var(--borde)', borderRadius: 10, padding: 14, margin: '12px 0', background: 'var(--panel)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
                 <div style={{ fontWeight: 700 }}>Centro de confirmaciones</div>
                 <div className="ayuda" style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1076,20 +1174,19 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                 const val = respuestas[q.question_key] ?? '';
                 const setVal = (v) => setRespuestas((s) => ({ ...s, [q.question_key]: v }));
                 return (
-                  <div key={q.question_key} style={{ borderTop: i ? '1px solid var(--borde)' : 'none', paddingTop: i ? 10 : 0, marginTop: i ? 10 : 0 }}>
+                  <div key={q.question_key} id={esTemaRotulos(q.pregunta) ? 'vh-pregunta-rotulos' : undefined} className="ancla-costear" style={{ borderTop: i ? '1px solid var(--borde)' : 'none', paddingTop: i ? 10 : 0, marginTop: i ? 10 : 0 }}>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 4 }}>
                       <span className="chip" style={{ background: colImp, color: '#fff', fontSize: 11 }}>IMPACTO {q.impacto.toUpperCase()}</span>
                       <span className="chip" style={{ fontSize: 11 }}>afecta: {q.afecta}</span>
-                      {val && <span className="chip" style={{ background: 'var(--ok,#1a7f37)', color: '#fff', fontSize: 11 }}>✓ confirmado</span>}
+                      {val && <span className="chip" style={{ background: '#715319', color: '#fff', fontSize: 11 }}>Respuesta elegida · falta aplicar</span>}
                     </div>
                     <div style={{ fontWeight: 600, marginBottom: 2 }}>{q.pregunta}</div>
                     {q.supuesto && <div className="ayuda" style={{ marginBottom: 6 }}>Supuesto IA: {q.supuesto}</div>}
                     {(q.tipo === 'radio' || q.tipo === 'select') && q.opciones?.length ? (
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         {q.opciones.map((op) => (
-                          <button key={op} type="button" className={'chip' + (val === op ? ' on' : '')}
-                            onClick={() => setVal(op)}
-                            style={{ cursor: 'pointer', background: val === op ? 'var(--tinta,#2B2622)' : undefined, color: val === op ? '#fff' : undefined }}>
+                          <button key={op} type="button" className="pregunta-opcion" aria-pressed={val === op}
+                            onClick={() => setVal(op)}>
                             {op}
                           </button>
                         ))}
@@ -1164,9 +1261,20 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
               <div className="pieza" key={i}>
                 <div className="pieza-head">
                   <input className="pieza-nom" placeholder="Nombre de la pieza" value={c.nombre || ''} onChange={(e) => setPieza(i, { nombre: e.target.value })} />
-                  <select className="pieza-mat" value={est.selVal} onChange={(e) => onMaterial(i, e.target.value)}>
-                    <option value="">— ¿de qué es? —</option>
-                    {SECCIONES.map((sec) => (
+                  <select className="pieza-mat" value={est.costeable ? c.insumoId : ''} onChange={(e) => onMaterial(i, e.target.value)} aria-label={`Material para ${c.nombre || 'pieza'}`}>
+                    <option value="">{c.material_solicitado ? `Plano: ${c.material_solicitado} · falta insumo` : '— ¿de qué es? —'}</option>
+                    {c.material_solicitado && familiaDeMaterial(c.material_solicitado) === 'melamina' ? (
+                      <>
+                        {c.insumoId && insumos[c.insumoId] && (
+                          <option value={c.insumoId} key={c.insumoId}>
+                            {c._estimacionAlternativa ? 'ESTIMACIÓN provisional: ' : 'Actual: '}{insumos[c.insumoId].nombre}
+                          </option>
+                        )}
+                        {opcionesMaterialPlano(c.material_solicitado, insumos)
+                          .filter((op) => op.confirmable && op.id !== c.insumoId)
+                          .map((op) => <option value={op.id} key={op.id}>{op.nombre} · confirmar especificación</option>)}
+                      </>
+                    ) : SECCIONES.map((sec) => (
                       <optgroup label={sec.nombre} key={sec.id}>
                         {Object.values(insumos).filter((x) => x.seccion === sec.id).map((x) => (
                           <option value={x.id} key={x.id}>{x.nombre}</option>
@@ -1176,12 +1284,59 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                   </select>
                   <button className="pieza-x" onClick={() => quitarPieza(i)} aria-label="quitar">×</button>
                 </div>
+                {erroresMaterial[i] && <div className="pieza-calc" role="alert" style={{ color: '#ff9198' }}>{erroresMaterial[i]}</div>}
+                {c._estimacionAlternativa && (
+                  <div className="pieza-calc" style={{ color: '#ffd88b', fontWeight: 600 }} role="status">
+                    ESTIMACIÓN AUTOMÁTICA · {c._estimacionAlternativa.nombre}. Costo calculado con el precio configurado de ese artículo, NO con el material exacto del plano. Espesor y acabado por confirmar. No emitible.
+                  </div>
+                )}
                 {est.badge && (
                   <div className="pieza-calc" style={{ color: 'var(--ambar,#8a6d00)', fontWeight: 600 }}>🟡 {est.badge}</div>
                 )}
+                {est.pendiente && c.material_solicitado && (
+                  <div className="pieza-calc" style={{ color: 'var(--texto,#e4e4e4)' }}>
+                    <strong>El plano especifica:</strong> {c.material_solicitado}. {est.candId ? 'Hay un artículo propuesto para confirmar.' : 'Selecciona el artículo equivalente del catálogo para continuar.'}
+                    <div className="material-candidatos" role="group" aria-label={`Opciones de catálogo para ${c.nombre}`}>
+                      {opcionesMaterialPlano(c.material_solicitado, insumos).length > 0 ? (
+                        opcionesMaterialPlano(c.material_solicitado, insumos).map((op) => (
+                          op.confirmable ? (
+                            <button type="button" key={op.id} className="material-candidato"
+                              onClick={() => onMaterial(i, op.id, { confirmado: true })}>
+                              <strong>Elegir y confirmar: {op.nombre}</strong>
+                              <span>{op.advertencia}</span>
+                            </button>
+                          ) : (
+                            <div key={op.id} className="material-referencia" role="status">
+                              <strong>Solo referencia: {op.nombre}</strong>
+                              <span>{op.advertencia}</span>
+                            </div>
+                          )
+                        ))
+                      ) : (
+                        <div role="status" className="material-sin-coincidencia">
+                          {mensajePendienteInsumo(c.material_solicitado)}
+                          {est.candId && insumos[est.candId] && (
+                            <div style={{ marginTop: 8, fontWeight: 600 }}>
+                              Candidato del catálogo: {insumos[est.candId].nombre}.
+                              {costoReferenciaHerraje(c, insumos[est.candId], b.piezas) != null ? (
+                                <div style={{ marginTop: 6, color: '#ffd88b' }}>
+                                  Referencia económica con {insumos[est.candId].nombre}: {pesos2(costoReferenciaHerraje(c, insumos[est.candId], b.piezas))} (cantidad informada: {c.cantidad}). No suma al costo oficial hasta confirmar el artículo.
+                                </div>
+                              ) : (
+                                <span> Falta validar la especificación, la unidad de consumo o el precio antes de agregarlo al costeo.</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {est.pendiente && (
                   <div className="pieza-calc" style={{ color: 'var(--alerta,#b22a22)' }}>
-                    ⚠ {est.pendienteMsg}
+                    ⚠ {est.clase === 'AMBIGUOUS' && c.material_solicitado
+                      ? 'Costo pendiente: falta identificar un artículo realmente compatible con el plano.'
+                      : est.pendienteMsg}
                     {est.mostrarConfirmar && est.candId && (
                       <>{' '}<button type="button" className="chip" style={{ cursor: 'pointer' }} onClick={() => onMaterial(i, est.candId, { confirmado: true })}>Usar {insumos[est.candId]?.nombre || 'candidato'} (confirmar)</button></>
                     )}
@@ -1204,8 +1359,19 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                   </div>
                 )}
                 {area && m2 > 0 && <div className="pieza-calc">= {m2.toFixed(2)} m² <span className="gris">({ins.clase === 'indirecta' ? 'comprado' : 'fabricado'})</span></div>}
-                {c.iaRazon && <div className="pieza-calc"><span className="gris">📐 Consumo IA: {c.iaRazon}</span></div>}
-                {c.iaNota && <div className="pieza-calc"><span className="gris">IA{c.iaConf ? ` · ${c.iaConf}` : ''}: {c.iaNota}</span></div>}
+                {(c.iaRazon || c.iaNota) && (
+                  <>
+                    <div className="pieza-razon-desktop">
+                      {c.iaRazon && <div className="pieza-calc"><span className="gris">📐 Consumo IA: {c.iaRazon}</span></div>}
+                      {c.iaNota && <div className="pieza-calc"><span className="gris">IA{c.iaConf ? ` · ${c.iaConf}` : ''}: {c.iaNota}</span></div>}
+                    </div>
+                    <details className="pieza-razon-mobile">
+                      <summary>Ver cálculo y supuestos de VONI</summary>
+                      {c.iaRazon && <div className="pieza-calc"><span className="gris">📐 Consumo IA: {c.iaRazon}</span></div>}
+                      {c.iaNota && <div className="pieza-calc"><span className="gris">IA{c.iaConf ? ` · ${c.iaConf}` : ''}: {c.iaNota}</span></div>}
+                    </details>
+                  </>
+                )}
               </div>
             );
           })}
@@ -1289,12 +1455,25 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
 
           {costoIncompleto && (
             <div className="alerta roja" style={{ marginTop: 10, textAlign: 'left' }}>
-              <span className="texto">⚠ <strong>Costo INCOMPLETO</strong> — <strong>faltan por costear {piezasSinMaterial.length} partida(s)</strong>: {piezasSinMaterial.slice(0, 6).join(', ')}{piezasSinMaterial.length > 6 ? '…' : ''}. Asígnales material en el despiece (arriba) o márcalas como excluidas. Hasta entonces no hay costo total ni precio.</span>
+              <span className="texto">⚠ <strong>Costo INCOMPLETO</strong> — <strong>faltan por costear {piezasSinMaterial.length} partida(s)</strong>: {piezasSinMaterial.slice(0, 6).join(', ')}{piezasSinMaterial.length > 6 ? '…' : ''}. Son partidas sin costo, no se consideran gratuitas. Hasta resolverlas no hay costo total ni precio de lista.</span>
+              {hayRotulosPendientes && (
+                <p className="ayuda" style={{ margin: '8px 0', color: '#ffd5d7' }}>
+                  Los rótulos del plano necesitan una decisión: ¿los suministra el cliente o Von Haucke? Si Von Haucke los incluye, falta vincular un artículo y precio aprobados. No se asumirá ninguna opción automáticamente.
+                </p>
+              )}
+              <button type="button" className="boton boton-resolver-costeo" onClick={() => {
+                setDestinoPaso1(hayRotulosPendientes && hayPreguntaRotulos ? 'rotulos' : 'despiece');
+                setPaso(1);
+              }}>
+                {hayRotulosPendientes && hayPreguntaRotulos ? 'Resolver quién suministra los rótulos' : 'Volver al despiece y resolver pendientes'} →
+              </button>
             </div>
           )}
           {preguntasIA.length > 0 && (
             <div className="ayuda columna-texto" style={{ textAlign: 'left', marginTop: 8, color: '#8a6d00' }}>
-              Costo preliminar — {preguntasIA.length} decisión(es) pendiente(s): {preguntasIA.map((q) => normPreg(q).pregunta).join(' · ')}. No es obligatorio; puedes cotizar así.
+              Costo preliminar — {preguntasIA.length} decisión(es) pendiente(s).
+              {emitible ? ' Revisa estas decisiones antes de aprobar; el análisis todavía contiene supuestos.' : ' Puedes guardar un borrador, pero no emitir ni presentar un precio definitivo hasta resolver las partidas incompletas.'}
+              <details className="pendientes-resumen"><summary>Ver las {preguntasIA.length} preguntas pendientes</summary><div>{preguntasIA.map((q) => normPreg(q).pregunta).join(' · ')}</div></details>
             </div>
           )}
 
@@ -1310,7 +1489,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                 GEOMETRÍA: {geomFid === 'alta' ? 'ALTA' : geomFid === 'media' ? 'MEDIA' : 'LIMITADA'}
               </span>
               <span className="chip" style={{ background: acabadoFid === 'confirmado' ? 'var(--ok,#1a7f37)' : '#8a2d00', color: '#fff', fontSize: 12 }}>
-                ACABADO: {acabadoFid === 'confirmado' ? 'CONFIRMADO' : 'POR CONFIRMAR'}
+                ACABADO: {acabadoFid === 'confirmado' ? 'CONFIRMADO' : acabadoFid === 'referencia' ? 'REFERENCIA' : 'POR CONFIRMAR'}
               </span>
               {renderObsoleto && <span className="chip" style={{ background: '#b22a22', color: '#fff', fontSize: 12 }}>RENDER DESACTUALIZADO</span>}
             </div>
@@ -1324,16 +1503,20 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
             <button className="boton primario" disabled={faltaCritico || renderizando} onClick={generarRenders} style={{ marginTop: 6 }}>
               {renderizando ? 'Generando…' : (renders.aislado || renders.ambiente) ? 'Regenerar render' : 'Generar render'}
             </button>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
-              {['aislado', 'ambiente'].map((m) => (
-                <div key={m}>
-                  <div className="ayuda" style={{ marginBottom: 4 }}>{m === 'aislado' ? 'Producto aislado' : 'En ambiente'}</div>
-                  {renders[m]
-                    ? <img src={renders[m]} alt={m} style={{ width: '100%', borderRadius: 8, border: '1px solid var(--borde)' }} />
-                    : <div style={{ aspectRatio: '4/3', borderRadius: 8, border: '1px dashed var(--borde)', display: 'grid', placeItems: 'center' }}><span className="ayuda">{renderizando ? '…' : '—'}</span></div>}
-                </div>
-              ))}
-            </div>
+            {!(renders.aislado || renders.ambiente || renderizando) ? (
+              <div className="render-espera-mobile" role="status">Todavía no hay renders. Pulsa «Generar render» para crear las vistas del producto y en ambiente.</div>
+            ) : (
+              <div className="render-previas" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
+                {['aislado', 'ambiente'].map((m) => (
+                  <div key={m}>
+                    <div className="ayuda" style={{ marginBottom: 4 }}>{m === 'aislado' ? 'Producto aislado' : 'En ambiente'}</div>
+                    {renders[m]
+                      ? <img src={renders[m]} alt={m} style={{ width: '100%', borderRadius: 8, border: '1px solid var(--borde)' }} />
+                      : <div className="render-previa-pendiente"><span className="ayuda">{renderizando ? 'Generando…' : 'Vista pendiente'}</span></div>}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* GUARDAR EN BIBLIOTECA */}
@@ -1348,12 +1531,12 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
             <input type="text" value={etiquetasTxt} placeholder="Cabecera Soriana, Alpura, exhibidor, retail" onChange={(e) => setEtiquetasTxt(e.target.value)} style={{ width: '100%' }} />
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10, flexWrap: 'wrap' }}>
               <span className="ayuda">Estado:</span>
-              <button type="button" className={'chip' + ((estadoExp === 'borrador' || !emitible) ? ' on' : '')} onClick={() => setEstadoExp('borrador')} style={{ cursor: 'pointer', background: (estadoExp === 'borrador' || !emitible) ? 'var(--tinta,#2B2622)' : undefined, color: (estadoExp === 'borrador' || !emitible) ? '#fff' : undefined }}>Borrador</button>
+              <button type="button" className="estado-exp-opcion" aria-pressed={estadoExp === 'borrador' || !emitible} onClick={() => setEstadoExp('borrador')}>Borrador</button>
               {/* FAIL-CLOSED + P0.16: no se puede APROBAR sin validación SERVER-AUTHORITY vigente
                   del BOM actual. Al clic se valida con costear-servidor; sólo pasa a 'aprobado'
                   si el servidor no bloquea y el costo cuadra a centavos. */}
               <button type="button" disabled={!emitible || validandoSrv}
-                className={'chip' + ((estadoExp === 'aprobado' && emitible && validacionVigente) ? ' on' : '')}
+                className="estado-exp-opcion" aria-pressed={estadoExp === 'aprobado' && emitible && validacionVigente}
                 onClick={async () => {
                   if (!emitible || validandoSrv) return;
                   setValidandoSrv(true);
@@ -1364,7 +1547,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                   } finally { setValidandoSrv(false); }
                 }}
                 title={emitible ? 'Aprobar requiere validación del servidor' : 'No se puede aprobar: faltan partidas por costear'}
-                style={{ cursor: emitible ? 'pointer' : 'not-allowed', opacity: emitible && !validandoSrv ? 1 : 0.5, background: (estadoExp === 'aprobado' && emitible && validacionVigente) ? 'var(--ok,#1a7f37)' : undefined, color: (estadoExp === 'aprobado' && emitible && validacionVigente) ? '#fff' : undefined }}>
+                >
                 {validandoSrv ? 'Validando…' : 'Aprobado'}
               </button>
               {!emitible && <span className="ayuda" style={{ color: '#b22a22' }}>Incompleto → solo borrador</span>}

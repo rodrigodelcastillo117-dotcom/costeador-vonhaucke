@@ -209,6 +209,10 @@ const FAMILIAS = [
 export function familiaDeMaterial(texto) {
   const t = String(texto || '').trim();
   if (!t) return '';
+  // Fuente real: el artículo "Melamina / EcoLegno 19 mm" es tablero de melamina,
+  // no HPL. Antes la subcadena EcoLegno ganaba por orden de regex y cambiaba
+  // incorrectamente la familia, bloqueando el costo provisional 18→19.
+  if (/^melamina\b/i.test(t)) return 'melamina';
   for (const [fam, re] of FAMILIAS) {
     if (re.test(t)) return fam;
   }

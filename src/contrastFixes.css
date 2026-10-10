@@ -34,3 +34,221 @@ button.chip[style*="background:#fff"],
 button.boton[style*="background:#fff"] {
   color: #111 !important;
 }
+
+
+/* P-01 mobile — respuestas aisladas de .chip.on. demoGuardrails.css
+   obliga texto blanco con !important en .chip.on, causando blanco/blanco.
+   Fondo siempre oscuro + texto claro, contrastado aun en iOS Safari. */
+button.pregunta-opcion,
+button.pregunta-opcion[aria-pressed="false"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  max-width: 100%;
+  padding: 8px 14px;
+  background: #22232b !important;
+  border: 1.5px solid #73737b !important;
+  border-radius: 999px;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: normal;
+  text-align: center;
+  cursor: pointer;
+}
+button.pregunta-opcion[aria-pressed="true"] {
+  background: #9c2028 !important;
+  border-color: #ff8e95 !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  box-shadow: inset 0 0 0 1px #ff8e95;
+}
+button.pregunta-opcion:focus-visible {
+  outline: 2px solid #ff8e95;
+  outline-offset: 2px;
+}
+
+/* Cada alternativa es visible, pero un artículo sin acabado identificado NO
+   es un botón: nunca puede ser confirmado con un tap accidental. */
+.material-candidatos { display: grid; gap: 7px; margin-top: 9px; }
+.material-candidato, .material-referencia, .material-sin-coincidencia {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 10px 12px;
+  width: 100%;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.material-candidato {
+  background: #292932 !important;
+  color: #fafafa !important;
+  -webkit-text-fill-color: #fafafa !important;
+  border: 1px solid #e8575b !important;
+  cursor: pointer;
+  min-height: 44px;
+}
+.material-referencia {
+  background: #25252a;
+  color: #ddd;
+  border: 1px solid #666;
+}
+.material-sin-coincidencia {
+  background: #291e20;
+  color: #ffd1d1;
+  border: 1px solid #83434a;
+}
+.material-candidato strong, .material-referencia strong { font-weight: 700; }
+.material-candidato span, .material-referencia span { opacity: .92; }
+
+.pieza-razon-mobile { display: none; }
+@media (max-width: 640px) {
+  .pieza { padding: 9px 10px; margin-bottom: 8px; }
+  .pieza-head { gap: 6px; }
+  .pieza-nom, .pieza-mat { font-size: 13px; }
+  .pieza-razon-desktop { display: none; }
+  .pieza-razon-mobile {
+    display: block;
+    margin-top: 7px;
+    font-size: 12px;
+    color: #aaa;
+  }
+  .pieza-razon-mobile summary {
+    display: list-item;
+    cursor: pointer;
+    padding: 5px 0;
+    font-size: 12px;
+    color: #c7c7cb;
+  }
+}
+
+
+/* Costeador P-01 · biblioteca. No usar .chip.on: demoGuardrails.css fuerza
+   blanco con !important y contrastFixes.css llegaba a fondo blanco con texto blanco.
+   Los dos estados mantienen contraste de forma determinista en Safari. */
+button.estado-exp-opcion {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 44px;
+  border-radius: 999px;
+  padding: 8px 18px;
+  border: 1.5px solid #797984 !important;
+  background: #24242d !important;
+  color: #f7f7fa !important;
+  -webkit-text-fill-color: #f7f7fa !important;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: normal;
+  cursor: pointer;
+}
+button.estado-exp-opcion[aria-pressed="true"] {
+  border-color: #ff969e !important;
+  background: #9f2832 !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+}
+button.estado-exp-opcion:disabled {
+  background: #26262c !important;
+  border-color: #55555e !important;
+  color: #adadb7 !important;
+  -webkit-text-fill-color: #adadb7 !important;
+  cursor: not-allowed;
+}
+button.estado-exp-opcion:focus-visible,
+button.boton-resolver-costeo:focus-visible {
+  outline: 2px solid #ff9ca4;
+  outline-offset: 3px;
+}
+
+.ancla-costear { scroll-margin-top: 190px; }
+button.boton-resolver-costeo {
+  margin-top: 10px;
+  width: 100%;
+  min-height: 44px;
+  background: #343039 !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  border: 1px solid #df858a !important;
+  font-size: 14px;
+  text-align: center;
+  white-space: normal;
+}
+.pendientes-resumen { margin-top: 8px; font-size: 12px; line-height: 1.45; }
+.pendientes-resumen summary {
+  cursor: pointer;
+  font-weight: 650;
+  padding: 5px 0;
+}
+.pendientes-resumen > div { margin-top: 4px; opacity: .92; }
+.render-espera-mobile {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px dashed #65656b;
+  border-radius: 8px;
+  color: #c9c9ce;
+  font-size: 13px;
+  text-align: left;
+}
+.render-previa-pendiente {
+  display: grid;
+  place-items: center;
+  min-height: 70px;
+  border: 1px dashed #66666d;
+  border-radius: 8px;
+}
+@media (max-width: 640px) {
+  .tarjeta-precio { padding: 14px; }
+  .render-previa-pendiente { min-height: 46px; }
+  .render-previas { gap: 7px !important; }
+  button.boton-resolver-costeo { font-size: 13px; }
+}
+
+
+/* Root cause revisada: en otros .chip.on legacy el fondo claro de este archivo
+   coexistía con -webkit-text-fill-color: #fff !important de demoGuardrails.
+   La reparación debe cubrir TODAS las pantallas, no sólo Borrador. */
+button.chip.on[style*="--tinta"],
+button.chip.on[style*="background: #fff"],
+button.chip.on[style*="background:#fff"],
+button.chip.on[style*="#f3f3f3"],
+button.chip.on[style*="#F3F3F3"] {
+  color: #111 !important;
+  -webkit-text-fill-color: #111 !important;
+}
+button.chip[style*="background: #fff"],
+button.chip[style*="background:#fff"] {
+  -webkit-text-fill-color: #111 !important;
+}
+
+/* Ajuste iPhone de todo el dashboard: las herramientas NO se esconden;
+   cabecera más delgada, táctil y adaptable. Sólo móvil. */
+@media (max-width: 640px) {
+  .encabezado { padding: 5px 10px !important; }
+  .barra-enc { gap: 4px 8px; }
+  .marca { min-height: 29px; }
+  .marca svg, .marca img { max-height: 29px; width: auto; }
+  .acciones-enc { width: 100%; gap: 4px; justify-content: space-between; }
+  .acciones-enc .btn-enc {
+    min-height: 44px;
+    height: 44px;
+    padding: 0 8px;
+    font-size: 13px;
+    border-radius: 8px;
+  }
+  .acciones-enc .conexion { padding: 4px 6px; }
+  .acciones-enc .btn-cot { min-height: 44px; }
+}
+@media (max-width: 360px) {
+  .acciones-enc { justify-content: flex-start; }
+  .acciones-enc .btn-enc { padding: 0 7px; font-size: 12px; }
+}
