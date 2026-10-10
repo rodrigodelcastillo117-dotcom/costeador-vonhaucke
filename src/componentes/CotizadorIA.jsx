@@ -17,6 +17,7 @@ import { briefDePropuesta } from '../datos/programaBrief.js';
 import { autorizadoPorRef } from '../datos/precioAutorizado.js';
 import { cotizarTexto } from '../nube.js';
 import ProgramaProyecto from './ProgramaProyecto.jsx';
+import { conciliarFuentesCotizador } from '../datos/conciliarFuentesCotizador.js';
 import { anotar } from '../datos/aprendizaje.js';
 
 // Un pedido puede traer párrafos; la lección se guarda con una pista corta para
@@ -148,6 +149,11 @@ export default function CotizadorIA({
         }
         costados.push(partidaBanco);
       }
+      // DOS ORÍGENES: línea y Banco. La misma silla WIN/ALPHA puede venir de
+      // ambos; el modelo NO decide sumar dos veces. El Banco confirmado
+      // prevalece solo con identidad+cantidad compatibles. Lo ambiguo se reporta.
+      const conciliacion = conciliarFuentesCotizador(costados);
+      const costadosFinales = conciliacion.partidas;
       // Se marca ANTES de tocar las partidas: el useEffect de arriba compara
       // contra esta marca para saber que el cambio que viene fue nuestro.
       acabaDeInterpretar.current = true;
@@ -157,9 +163,9 @@ export default function CotizadorIA({
       // interpretación válida (aunque 0 partidas se costeen) REEMPLAZANDO la versión
       // anterior (no se queda pegado el brief viejo).
       const programaBrief = briefDePropuesta({ items, banco: r.propuesta?.banco || [], textoOriginal: t });
-      if (costados.length) {
+      if (costadosFinales.length) {
         const nuevoLote = `ia-${Date.now()}`;
-        onAgregarItems(costados, { lote: nuevoLote, reemplaza: lote.current, programaBrief });
+        onAgregarItems(costadosFinales, { lote: nuevoLote, reemplaza: lote.current, programaBrief });
         lote.current = nuevoLote;
       } else {
         onAgregarItems([], { lote: null, reemplaza: lote.current, programaBrief });
@@ -167,7 +173,10 @@ export default function CotizadorIA({
       }
 
       setResultado({
-        agregados: costados.length,
+        agregados: costadosFinales.length,
+        unidades: costadosFinales.reduce((n,pt)=>n+(Number(pt.cantidad)||0),0),
+        conciliacion: conciliacion.deduplicadas,
+        ambiguos: conciliacion.ambiguos,
         resumen: limpiarResumen(r.propuesta?.resumen),
         preguntas: r.propuesta?.preguntas || [],
         noEncontrado: r.propuesta?.noEncontrado || [],
@@ -180,7 +189,7 @@ export default function CotizadorIA({
       // entendí" — Rodrigo: "7 clicks que no valen la pena. debería ser 1".
       // Sólo si de verdad agregó algo: si no pudo armar nada, mejor que se
       // quede viendo el mensaje y el formulario para volver a intentar.
-      if (costados.length) onListo?.();
+      if (costadosFinales.length) onListo?.();
     } catch (e) {
       setError('No se pudo conectar con el asistente. Revisa tu internet y vuelve a intentar.');
     } finally {
@@ -213,7 +222,7 @@ export default function CotizadorIA({
   if (cargando) return <Cargando voni titulo="Voni está trabajando" mensajes={['Leyendo tu pedido…', 'Buscando en las 24 líneas…', 'Costeando cada mueble…', 'Armando la lista…']} />;
 
   const avisos = resultado
-    ? resultado.preguntas.length + resultado.noEncontrado.length + resultado.sinCostear.length + (resultado.sinPrecio?.length || 0)
+    ? resultado.preguntas.length + resultado.noEncontrado.length + resultado.sinCostear.length + (resultado.sinPrecio?.length || 0) + (resultado.ambiguos?.length || 0)
     : 0;
 
   const conFormulario = pantalla !== 'resultado';
@@ -264,7 +273,7 @@ export default function CotizadorIA({
         <div className={`tarjeta ${resultado.agregados ? 'agregado-ok' : ''}`}>
           {resultado.agregados > 0 ? (
             <>
-              <strong>Agregué {resultado.agregados} {resultado.agregados === 1 ? 'mueble' : 'muebles'} a tu proyecto.</strong>
+              <strong>Identifiqué {resultado.agregados} {resultado.agregados === 1 ? 'tipo de mueble' : 'tipos de muebles'} ({resultado.unidades ?? resultado.agregados} unidades en total).</strong>
               {resultado.resumen && <span className="texto" style={{ display: 'block', marginTop: 4 }}>{resultado.resumen}</span>}
               <span className="texto" style={{ display: 'block', marginTop: 6 }}>
                 {verCotizacion
@@ -306,9 +315,23 @@ export default function CotizadorIA({
               </span>
             </div>
           )}
+          {resultado.conciliacion?.length > 0 && (
+            <div className="alerta" role="status" style={{marginTop:10}}>
+              <span className="texto">
+                Eliminé {resultado.conciliacion.length} renglón(es) duplicados entre línea y banco de precios.
+                No sumé dos veces las mismas sillas.
+              </span>
+            </div>
+          )}
+          {resultado.ambiguos?.length > 0 && (
+            <div className="alerta ambar" role="alert" style={{marginTop:10}}>
+              <strong>Posibles muebles repetidos: confirma antes de acomodar</strong>
+              {resultado.ambiguos.map((a,k)=><div key={k} className="texto">{a}</div>)}
+            </div>
+          )}
           {resultado.sinCostear.length > 0 && (
             <div className="alerta ambar" style={{ marginTop: 10 }}>
-              <span className="texto">No pude costear: {resultado.sinCostear.join(' · ')}. Agrégalo de línea o pídelo como especial.</span>
+              <span className="texto">No encontré una configuración costeable exacta: {resultado.sinCostear.join(' · ')}. Conserva el pedido y solicita equivalencia de catálogo o desarrollo especial; no sustituiré otro modelo ni inventaré un precio.</span>
             </div>
           )}
           {resultado.sinPrecio?.length > 0 && (
