@@ -303,7 +303,14 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // FAIL-CLOSED (audit 2026-10-01): si el costo está incompleto NO es emitible —
   // su total es apenas un SUBTOTAL CONOCIDO, no se le pone precio ni se aprueba.
   const emision = costeoEmitible(resultado);
-  const emitible = emision.emitible;
+  // Un precio de compra REGISTRADO no es automáticamente un costo comercial
+  // autorizado. El subtotal es útil como presupuesto preliminar, pero hasta que
+  // el servidor comparta el mismo catálogo versionado NO puede emitirse.
+  const preciosComprasPorConfirmar = (b.componentes || [])
+    .filter((c) => c.insumoId && insumos[c.insumoId]?.fuenteCatalogo === 'compras'
+      && insumos[c.insumoId]?.precioCertificable !== true)
+    .map((c) => c.nombre || insumos[c.insumoId]?.nombre || c.insumoId);
+  const emitible = emision.emitible && preciosComprasPorConfirmar.length === 0;
   // P0.16: ¿hay una validación server-authority VIGENTE para el BOM actual? Cualquier cambio de
   // componente/material/medida cambia el bomHash → invalida la validación anterior.
   const validacionVigente = !!validacionSrv && validacionSrv.valido === true && validacionSrv.bomHash === bomHash(b.componentes);
@@ -314,7 +321,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // ambiguo, candidato). El COMPATIBLE sí aporta costo → hay un COSTO PROVISIONAL real, pero
   // NO emitible hasta confirmación humana. Distinto de "sin material" (hueco de datos).
   const materialesPorConfirmar = emision.bloqueos?.materiales_por_confirmar || [];
-  const soloPorConfirmar = !emitible && materialesPorConfirmar.length > 0
+  const soloPorConfirmar = !emitible
+    && (materialesPorConfirmar.length > 0 || preciosComprasPorConfirmar.length > 0)
     && piezasSinMaterial.length === 0 && (resultado.tarifasFaltantes || []).length === 0;
   // Fórmula que está aplicando AHORA la pieza (Alba para producto nuevo; legacy solo
   // si se reabrió un histórico sin re-costear). Para etiquetar el costo, no recalcula.
@@ -1450,12 +1458,12 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
             // (p.ej. 18→19). HAY un costo provisional real, pero NO se emite/aprueba hasta
             // confirmar el material. No es un costo certificado ni completo.
             <>
-              <div className="ayuda" style={{ margin: '6px 0' }}>Costo provisional (materiales por confirmar)</div>
+              <div className="ayuda" style={{ margin: '6px 0' }}>Costo preliminar (materiales o precios de Compras por confirmar)</div>
               <div className="precio-enorme" style={{ color: 'var(--ambar,#8a6d00)', fontSize: 34 }}>{pesos2(emision.subtotalConocido)}</div>
               <div className="espacio" />
               <div className="ayuda">Precio de lista</div>
               <div className="precio-enorme" style={{ color: '#b22a22' }}>Por confirmar</div>
-              <div className="ayuda" style={{ color: '#8a6d00', marginTop: 4 }}>🟡 Costo provisional, no certificado. Confirma {materialesPorConfirmar.length} material(es) marcados POR CONFIRMAR para emitir/aprobar.</div>
+              <div className="ayuda" style={{ color: '#8a6d00', marginTop: 4 }}>🟡 Costo provisional, no certificado. Faltan {materialesPorConfirmar.length} confirmaciones técnicas y {preciosComprasPorConfirmar.length} certificaciones de precio de Compras para emitir/aprobar.</div>
             </>
           ) : (
             // FAIL-CLOSED: hay partidas sin costear → NO hay costo total ni precio.
