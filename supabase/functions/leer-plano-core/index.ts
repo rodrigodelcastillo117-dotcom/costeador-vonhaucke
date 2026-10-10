@@ -1,5 +1,7 @@
 // ============================================================================
-// leer-plano-core v2 · extracción visual pura detrás del wrapper seguro.
+// leer-plano-core v5 (FUENTE candidata COT-P0-001, NO desplegada; activa v4) ·
+// extracción visual pura detrás del wrapper seguro. v5: `asientos` observados por
+// área (regla 5b) + observed_program obligatorio cuando hay conteos (regla 10c).
 // El wrapper `leer-plano` autentica, rate-limita y valida FloorSpec.
 // Aquí Claude sólo EXTRAe evidencia: jamás completa una puerta que no puede ver.
 // ============================================================================
@@ -79,7 +81,11 @@ const SCHEMA = {
             required: ["cx", "cy", "r"],
           },
           dentroDe: { type: "string" },
-          puestos: { type: "integer" },
+          puestos: { type: "integer", description: "Escritorios/posiciones de trabajo REALMENTE dibujados en el área. Las sillas de juntas NO cuentan aquí." },
+          // COT-P0-001 (v5 candidata, NO desplegada): símbolos de asiento OBSERVADOS por
+          // área (sillas de juntas, de visita, de espera). Distinto de `puestos`: es la
+          // capacidad física dibujada de una sala/recepción. 0 = no se ven sillas.
+          asientos: { type: "integer", description: "Número de SÍMBOLOS DE ASIENTO (sillas) dibujados dentro del área. Es capacidad observada, NO puestos. 0 si no se ven." },
           confianza: { type: "string", enum: ["alta", "media", "baja"] },
           procedencia: { type: "string", enum: ["MEASURED", "DERIVED", "INFERRED", "ASSUMED"] },
           evidencia: { type: "string" },
@@ -149,6 +155,7 @@ Deno.serve(async (req) => {
     "3) CONTORNOS: traza cada cuarto con su forma real. Rectángulo=4 puntos; triángulo=3; trapecio=4; muros curvos=8-16 puntos. Círculos con centro/radio.",
     "4) ANIDAMIENTO: si una sala/isla está dentro de otra área, usa dentroDe. No la marques como traslape.",
     "5) PUESTOS: cuenta sólo escritorios/posiciones REALMENTE dibujados en cada isla. Sillas de juntas, sanitarios, HVAC y símbolos no son puestos.",
+    "5b) ASIENTOS OBSERVADOS: en CADA área cuenta los SÍMBOLOS DE SILLA dibujados y ponlos en `asientos` (una sala de consejo con 8 sillas dibujadas → asientos=8, puestos=0). Es capacidad física observada, no una propuesta: si no ves sillas, asientos=0. NUNCA deduzcas asientos por el tamaño del cuarto.",
     "6) PUERTAS: detecta cada puerta real y su vano. Si se ve el arco de apertura, extrae la BISAGRA, la hoja cerrada y el SENTIDO del arco.",
     "CONTRATO DE PUERTA: anguloCerradaDeg usa 0=derecha, 90=abajo, 180=izquierda, 270=arriba. Como y crece hacia abajo, 'horario' es el giro visual horario.",
     "tieneBarrido=true SÓLO si puedes identificar bisagra + sentido + arco. Entonces barridoDeg es el arco visible (normalmente 90) y confianza refleja legibilidad.",
@@ -160,6 +167,7 @@ Deno.serve(async (req) => {
     "10) MOBILIARIO OBSERVADO (observed_program, OPCIONAL): lista el mobiliario VISIBLEMENTE dibujado. Para CADA item: kind (furniture/amenity/room), type y role, quantity = número de MUEBLES, capacity_per_unit = personas por mueble cuando aplique (un bench de 2 usuarios → quantity=1, capacity_per_unit=2; NO lo cuentes como 2 benches), zone = nombre EXACTO del área donde está (igual que areas[].nombre), dimensions {w,d} en mm si el mueble está cotado, source_ref/plan_tag = la etiqueta del plano si existe (p.ej. 'B-01'), evidencia concreta, confianza y page.",
     "10a) ANCLA vs DEPENDIENTE: ANCLAS = bench/workstation, escritorio, mesa de juntas, recepción. DEPENDIENTES = sillas (operativa/juntas/ejecutiva/visita), gavetas/pedestales/credenzas/archiveros. AMENIDADES = coffee point, lockers, mamparas. Reporta CADA mueble que veas CON su type correcto (una 'silla de juntas' es type silla/role meeting_seat, NO una sala ni un puesto). NO conviertas sillas en puestos ni en salas: las sillas son dependientes que confirman el ancla, no anclas nuevas.",
     "10b) origin='observed' SÓLO si el mueble está DIBUJADO; si sólo lo deduces por el tipo de cuarto, origin='inferred'; si es una regla/propuesta, origin='suggested'. NUNCA elijas SKU ni inventes mobiliario que no esté dibujado. Si no distingues mobiliario, deja observed_program vacío ([]).",
+    "10c) observed_program NO puede quedar vacío si contaste puestos>0 o asientos>0 en alguna área: cada escritorio/bench contado es un item ANCLA (type workstation/escritorio, quantity y capacity_per_unit) y cada grupo de sillas contado es un item DEPENDIENTE (type silla, role meeting_seat/visitor_seat/work_seat, quantity) en su zone. Un elemento curvo en recepción es type recepcion sólo si lo lees como mostrador; si dudas, kind='unknown' con evidencia.",
     "COMPROBACIÓN FINAL: envolvente y grid coherentes; puntos dentro del envolvente; áreas no anidadas sin traslape; cada puerta sobre un muro; ninguna puerta dudosa convertida en barrido confirmado; ningún ASSUMED se presenta como MEASURED.",
     refMM ? `El usuario dio una referencia real de ${refMM} mm: úsala para calibrar la escala.` : "",
   ].filter(Boolean).join("\n");

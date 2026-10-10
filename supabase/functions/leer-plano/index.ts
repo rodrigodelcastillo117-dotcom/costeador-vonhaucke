@@ -219,6 +219,8 @@ Deno.serve(async (req: Request) => {
       points_mm: a.forma === "poligono" ? a.puntos : [],
       circle_mm: a.forma === "circulo" ? a.circulo : null,
       parent_name: parent || null, observed_workstations: puestos,
+      // COT-P0-001 (v12 candidata): asientos OBSERVADOS por zona (núcleo v5); null si el núcleo no lo reporta.
+      observed_seats: Number.isInteger(num(a.asientos)) && num(a.asientos) >= 0 && num(a.asientos) <= 10000 ? num(a.asientos) : null,
       confidence: a.confianza, area_m2: Math.round(sqm * 100) / 100,
       evidence: evidenceMeta(a),
     });

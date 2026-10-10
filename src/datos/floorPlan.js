@@ -34,6 +34,8 @@ const puertaAMetros = (p = {}) => ({
 // Voni caía a la estimación por m² (8 m / 1.5 = 10 "puestos" donde el plano dibuja 8).
 const extrasArea = (a) => ({
   ...(a.puestos !== null && a.puestos !== undefined && a.puestos !== '' && Number.isFinite(Number(a.puestos)) ? { puestos: Math.max(0, Math.round(Number(a.puestos))) } : {}),
+  // COT-P0-001: asientos OBSERVADOS (símbolos de silla) viajan con el área igual que `puestos`.
+  ...(a.asientos !== null && a.asientos !== undefined && a.asientos !== '' && Number.isFinite(Number(a.asientos)) ? { asientos: Math.max(0, Math.round(Number(a.asientos))) } : {}),
   ...(typeof a.confianza === 'string' && a.confianza ? { confianza: a.confianza } : {}),
 });
 

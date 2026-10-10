@@ -167,7 +167,13 @@ export function programaDelPlano(areas, opts = {}) {
   }
 
   const m2Salas = salasA.map((a) => (a.ancho || 0) * (a.largo || 0));
-  const salas = m2Salas.map(personasEnSala);
+  // COT-P0-001 (Parte XI §5): si el lector CONTÓ símbolos de asiento en la sala
+  // (`asientos` > 0), esa es la capacidad OBSERVADA y gobierna; la estimación por m²
+  // sólo aplica cuando no hay observación y queda marcada INFERRED (hay que confirmar).
+  // asientos=0 NO es "sala sin sillas" (el lector puede no tener vocabulario): estima.
+  const asientosObs = salasA.map((a) => (Number.isFinite(Number(a.asientos)) && Number(a.asientos) > 0 ? Math.round(Number(a.asientos)) : null));
+  const salas = m2Salas.map((m2, i) => (asientosObs[i] != null ? asientosObs[i] : personasEnSala(m2)));
+  const salasObservadas = salasA.length > 0 && asientosObs.every((n) => n != null);
   // ⚠️ "0 m²: da para 4 personas" ERA UNA CONTRADICCIÓN MUDA (auditoría
   // 2026-08-19). `personasEnSala` siempre pone un piso de 4 (Rodrigo: una
   // sala de juntas real nunca es para menos), pero eso NO distingue "sala
@@ -177,6 +183,9 @@ export function programaDelPlano(areas, opts = {}) {
   salasA.forEach((a, i) => {
     if (!(m2Salas[i] > 0)) {
       avisos.push(`No pude leer bien las medidas de "${a.nombre || 'una sala'}" (salió en 0 m²) — revisa el plano o corrígela a mano.`);
+    } else if (asientosObs[i] != null) {
+      // observado: nada que estimar; si el m² no alcanza para esos asientos, se dice.
+      if (personasEnSala(m2Salas[i]) < asientosObs[i]) avisos.push(`"${a.nombre || 'Sala'}" dibuja ${asientosObs[i]} asientos en ${m2Salas[i].toFixed(1)} m²: queda apretada con la regla de ${M2_POR_PERSONA} m²/persona.`);
     } else if (salas[i] === 0) {
       avisos.push(`"${a.nombre || 'Sala'}" tiene ${m2Salas[i].toFixed(1)} m²: con la regla de ${M2_POR_PERSONA} m²/persona no certifico capacidad de 4; requiere revisar geometría/mobiliario.`);
     }
@@ -205,6 +214,8 @@ export function programaDelPlano(areas, opts = {}) {
       : 'detectado',
     // CONTADO del dibujo (el lector contó los escritorios) vs ESTIMADO por área.
     operativos: contado ? 'detectado' : 'estimado',
+    // COT-P0-001: capacidad de las salas CONTADA (asientos dibujados) vs ESTIMADA por m².
+    juntas: salasObservadas ? 'detectado' : 'estimado',
     sillasOperativas: 'sugerido',
     gavetas: 'sugerido',
     archiveros: 'sugerido',
@@ -220,7 +231,7 @@ export function programaDelPlano(areas, opts = {}) {
     guardas,
     sugeridos,
     fuente,
-    salasInfo: salasA.map((a, i) => ({ nombre: a.nombre, m2: m2Salas[i], caben: salas[i] })),
+    salasInfo: salasA.map((a, i) => ({ nombre: a.nombre, m2: m2Salas[i], caben: salas[i], asientos: asientosObs[i], origen: asientosObs[i] != null ? 'OBSERVED' : 'INFERRED', cabenPorM2: personasEnSala(m2Salas[i]) })),
     // #19: identidad por-zona (nombre/id del área) para conservarla hasta el
     // ProgramRequirement. P0.3 la enriquecerá (evidencia/confianza); aquí no se tira.
     zonas: {
@@ -244,7 +255,11 @@ export function resumenDelPlano(pr) {
   if (!pr?.hayPlano) return '';
   const det = [];
   if (pr.privados) det.push(`${pr.privados} ${pr.privados === 1 ? 'privado' : 'privados'}`);
-  if (pr.salas.length) det.push(`${pr.salas.length} ${pr.salas.length === 1 ? 'sala' : 'salas'} de juntas (${pr.salas.join(' y ')})`);
+  // COT-P0-001: la capacidad de la sala sólo va en "Del plano" si fue CONTADA (asientos
+  // dibujados); si se estimó por m², va aparte con "~" y la petición de confirmar.
+  const salasContadas = pr.fuente?.juntas === 'detectado';
+  if (pr.salas.length && salasContadas) det.push(`${pr.salas.length} ${pr.salas.length === 1 ? 'sala' : 'salas'} de juntas (${pr.salas.join(' y ')}) (asientos contados del plano)`);
+  else if (pr.salas.length) det.push(`${pr.salas.length} ${pr.salas.length === 1 ? 'sala' : 'salas'} de juntas`);
   if (pr.recepcion) det.push('recepción');
   const contado = pr.fuente?.operativos === 'detectado';
   // Si los puestos vienen CONTADOS del dibujo, entran al bloque "Del plano:"
@@ -254,6 +269,7 @@ export function resumenDelPlano(pr) {
   const partes = [];
   if (det.length) partes.push(`Del plano: ${det.join(' · ')}.`);
   if (!contado && pr.operativos) partes.push(`Estimé ~${pr.operativos} puestos operativos por el área (confírmame el número).`);
+  if (pr.salas.length && !salasContadas) partes.push(`Estimé la sala de juntas para ~${pr.salas.join(' y ')} por el área, no vi las sillas dibujadas (confírmame cuántas personas).`);
   const sug = pr.sugeridos || {};
   const sugTxt = [];
   if (sug.sillasOperativas) sugTxt.push(`${sug.sillasOperativas} sillas`);
@@ -279,6 +295,12 @@ export function avisosDeSala(pr, personasPedidas) {
   if (!pr?.hayPlano || !n) return out;
   for (const s of pr.salasInfo || []) {
     const m2 = Math.round(s.m2);
+    // COT-P0-001: OBSERVADO (asientos dibujados) ≠ PEDIDO → se avisa, NO se iguala.
+    if (s.origen === 'OBSERVED' && Number.isFinite(s.asientos)) {
+      if (n !== s.asientos) out.push(`El plano dibuja ${s.asientos} asientos en ${s.nombre} y pediste ${n}. Conservo los dos datos: confírmame cuántas sillas cotizamos.`);
+      if (n < (s.cabenPorM2 ?? s.caben) && cabeCredenza(s.m2, n)) out.push(`En ${s.nombre} sobra lugar para una credenza: guardado, café, galletas y refrescos.`);
+      continue;
+    }
     if (n > s.caben) {
       out.push(`${s.nombre} mide ${m2} m²: da para ${s.caben} personas, y pediste ${n}. Va a quedar apretada.`);
       continue;
