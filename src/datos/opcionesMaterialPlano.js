@@ -33,6 +33,8 @@ export function opcionesMaterialPlano(solicitado, insumos = {}, limite = 4) {
   const familia = familiaDeMaterial(solicitado);
   if (familia !== 'melamina') return [];
   const espPedido = espesor(solicitado);
+  // Sin espesor de plano no existe un tablero verificable: no elegir 9/16/19/28 al azar.
+  if (espPedido == null) return [];
   const candidatos = Object.entries(insumos || {}).map(([key, x]) => {
     const id = String(x?.id || key);
     const nombre = String(x?.nombre || '');
