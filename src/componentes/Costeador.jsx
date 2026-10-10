@@ -24,6 +24,7 @@ import { flagActivo } from '../datos/flags.js';
 import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
 import { recomendar as recomendarCatalogoVonHaucke } from '../voni/conocimiento.js';
 import { explicarCosteo } from '../datos/explicacionCosteo.js';
+import { usarCatalogoCompras } from '../datos/usarCatalogoCompras.js';
 
 const ATAJOS = [
   { nombre: 'Muy facil', v: 30 },
@@ -67,7 +68,8 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   const renderStale = !!costeo.imagen && sigRender !== null && sigRender !== bomSig;
   // Al cargar un costeo que ya trae imagen, fija la firma base para detectar cambios futuros.
   useEffect(() => { if (costeo.imagen && sigRender === null) setSigRender(bomSig); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [costeo.imagen]);
-  const insumos = estado.insumos;
+  const { insumos, stats: comprasStats, estado: comprasEstado, error: comprasError } = usarCatalogoCompras(estado.insumos);
+  const estadoEconomico = useMemo(() => ({...estado, insumos}), [estado, insumos]);
   const candidatosLinea = useMemo(
     () => recomendarCatalogoVonHaucke(costeo.descripcionCliente || costeo.nombre || '', 5),
     [costeo.descripcionCliente, costeo.nombre],
@@ -75,8 +77,8 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
 
   // ÚNICO camino de preparación/cálculo: la misma función alimenta a VONI.
   const vivo = useMemo(
-    () => calcularCosteoVivo(estado, costeo),
-    [estado, costeo],
+    () => calcularCosteoVivo(estadoEconomico, costeo),
+    [estadoEconomico, costeo],
   );
   const { piezaVirtual, parBase, par, esIntelisis, resultado } = vivo;
   const margen = costeo.margen ?? estado.parametros.margenObjetivo ?? PARAMETROS_DEFAULT.margenObjetivo;
