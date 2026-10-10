@@ -423,7 +423,7 @@ describe('P0 — acero negro requiere definir metal y acabado POR SEPARADO', () 
     expect(c.insumoIdEfectivo).toBe('');
     expect(c.insumoIdCandidato).toBe('ptr-14');
     expect(c.motivo).toMatch(/calibre/);
-    expect(c.motivo).toMatch(/acabado negro/i);
+    expect(c.motivo).toMatch(/PTR negro/i);
   });
   it('lámina negra sin calibre tampoco puede emitirse con calibre arbitrario', () => {
     const c = clasificarMaterial({solicitado:'lámina negra',insumoId:'lamina-14',insumoNombre:'Lamina de acero cal. 14'});
@@ -433,7 +433,7 @@ describe('P0 — acero negro requiere definir metal y acabado POR SEPARADO', () 
   it('lámina cal 14 y pintura negra puede estimar acero crudo con acabado pendiente, no certificar', () => {
     const c = clasificarMaterial({solicitado:'lámina negra cal. 14',insumoId:'lamina-14',insumoNombre:'Lamina de acero cal. 14'});
     expect(c.clase).toBe(MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED);
-    expect(c.cambio).toMatch(/pintura aparte/i);
+    expect(c.cambio).toMatch(/NO asumir pintura/i);
   });
   it('metal CAL.18 no se sustituye por CAL.14 aunque se parezca el color', () => {
     const c = clasificarMaterial({solicitado:'lámina negra cal. 18',insumoId:'lamina-14',insumoNombre:'Lamina de acero cal. 14'});
