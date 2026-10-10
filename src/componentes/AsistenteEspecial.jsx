@@ -596,7 +596,13 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     // Costear de forma automática con una alternativa del MISMO tablero, con
     // precio REAL configurado, SIN confirmar ingeniería ni liberar emisión.
     // Solo 18→19 melamina: calibres estructurales y herrajes NO se sustituyen.
-    const proxy = !inicial.insumoId && proxyTableroParaEstimar(especificado, insumos);
+    const proxyCandidato = !inicial.insumoId && proxyTableroParaEstimar(especificado, insumos);
+    // Para precio $/m² necesitamos cotas geométricas. Si VONI sólo entrega
+    // fracción de hoja, el motor la interpreta como $/hoja y SUBCOSTEARÍA.
+    // En ese caso no autocosteamos: queda pendiente hasta tener dimensiones.
+    const medidasValidas = Number(z.largoMM) > 0 && Number(z.anchoMM) > 0;
+    const proxy = proxyCandidato && (insumos[proxyCandidato.id]?.unidad !== 'm2' || medidasValidas)
+      ? proxyCandidato : null;
     const base = proxy
       ? aplicarPoliticaMaterial({
           ...z, insumoId: proxy.id, material_solicitado: especificado,
@@ -611,7 +617,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
       // La IA ya estimó la fracción de hoja que rinde: el motor la usa directa
       // (hojas × precio) en vez de re-nestear áreas, que es lo que oscilaba.
-      if (z.hojas > 0) base.hojas = z.hojas;
+      if (z.hojas > 0 && !(base._estimacionAlternativa && insumos[base.insumoId]?.unidad === 'm2')) {
+        base.hojas = z.hojas;
+      }
     }
     return base;
   });
