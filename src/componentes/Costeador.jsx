@@ -128,7 +128,14 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     // `material_solicitado` lo da el analizador (v19+); si no viene, cae al nombre
     // de la pieza, que ya suele traer el material ("Cubierta superficie sólida").
     const base = aplicarPoliticaMaterial({ ...z, material_solicitado: z.material_solicitado || z.nombre }, (id) => insumos[id], Object.values(insumos));
-    if (z.forma === 'area') { base.forma = 'area'; base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1; if (z.hojas > 0) base.hojas = z.hojas; }
+    if (z.forma === 'area') {
+      base.forma = 'area'; base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
+      if (z.hojas > 0) base.hojas = z.hojas;
+    }
+    // Precio por hoja sin formato registrado: sólo usar consumo explícito.
+    // Si Voni estimó m² pero no hojas, no adivinar ni una hoja completa.
+    const material = insumos[base.insumoId];
+    if (material?.formatoPendiente && !(Number(base.hojas) > 0)) base.hojas = 0;
     return base;
   });
   async function analizarDescripcion() {
@@ -234,7 +241,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   const esArea = (ins) => !!ins && (ins.formato?.tipo === 'tablero' || ins.unidad === 'm2');
   // Lámina/tablero se pueden capturar por FRACCION DE HOJA directa (Rafa §1):
   // el estimador escribe "0.8 de hoja" y el costo es fraccion x precio_hoja.
-  const esFraccionHoja = (ins) => !!ins && ins.fraccion && (ins.formato?.tipo === 'lamina' || ins.formato?.tipo === 'tablero');
+  const esFraccionHoja = (ins) => !!ins && ((ins.fraccion && (ins.formato?.tipo === 'lamina' || ins.formato?.tipo === 'tablero')) || (ins.formatoPendiente && ins.unidad === 'hoja'));
 
   function agregarPieza() {
     set({ componentes: [...costeo.componentes, { nombre: '', insumoId: '', cantidad: 1, piezas: 1 }] });
@@ -266,7 +273,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   }
   // Costo neto de una pieza, respetando fracción de hoja (para el subtotal por pieza)
   function costoPieza(c, ins, n) {
-    if (c.hojas != null && ins.formato) {
+    if (c.hojas > 0 && (ins.formato || (ins.formatoPendiente && ins.unidad === 'hoja'))) {
       const precioH = ins.precio ?? ins.precioBase ?? 0;
       return Math.max(0, c.hojas) * n * precioH;
     }
@@ -432,6 +439,13 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
         {/* 2. El despiece — pieza por medidas (costear desde cero) */}
         <div className="tarjeta">
           <h2>De qué está hecho — pieza por pieza</h2>
+          {comprasEstado === 'conectado' && <p className="ayuda" role="status">
+            Catálogo de Compras: {comprasStats.catalogo} referencias · {comprasStats.conPrecio} con precios · {comprasStats.aprobados} aprobados.
+            La referencia y su estado se muestran debajo de cada material.
+          </p>}
+          {comprasEstado === 'sin-conexion' && <p className="alerta ambar" role="alert">
+            No se pudieron leer Compras y precios: {comprasError}. No certifiques precios nuevos desde este equipo.
+          </p>}
           <p className="ayuda columna-texto">Agrega cada pieza: ponle nombre, escoge de qué es y su medida. Las medidas van NETAS (de la pieza terminada); la app calcula el área, la fracción de hoja y la merma sola.</p>
 
           {costeo.componentes.map((c, i) => {
@@ -495,6 +509,16 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                   </div>
                 )}
 
+                {ins?.fuenteCatalogo === 'compras' && (
+                  <div className="pieza-calc" style={{fontSize:12,margin:'6px 0',color:'var(--texto,#545454)'}}>
+                    <b>Compras:</b> {ins.codigoCompras}
+                    {ins.clavesERP?.length > 0 && <span> · ERP {ins.clavesERP.join(', ')}</span>}
+                    {' · '}{ins.descripcionCompras}
+                    {Number.isFinite(ins.precioReferencia) && <span> · {pesos2(ins.precioReferencia)}/{ins.unidadCosteo}</span>}
+                    <div>{ins.estadoEconomia === 'APROBADO' ? 'Precio aprobado' : 'Costeo preliminar'} · {ins.fuenteCompra || 'Sin evidencia documental'}</div>
+                    {ins.observacionPrecio && <div>{ins.observacionPrecio}</div>}
+                  </div>
+                )}
                 {ins && (
                   <div className="pieza-med">
                     {area ? (
