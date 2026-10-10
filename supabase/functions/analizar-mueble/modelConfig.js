@@ -63,3 +63,22 @@ export function resolverModelo(fn, env = {}, { permitirGlobal = false } = {}) {
   }
   return def;
 }
+
+/**
+ * Revisión de planos: Sonnet tiene evidencia real de respuestas visuales ~27 s,
+ * mientras Opus agotó repetidamente la ventana de 45 s en modo revisión.
+ * Sólo cambia la selección de MODELO para revisiones, no la certificación:
+ * el BOM sigue sujeto a validación y confirmación humanas.
+ * Overrides inválidos fallan cerrados.
+ */
+export function resolverModeloPorPasada(fn, env = {}, { esRevision = false } = {}) {
+  if (!esRevision) return resolverModelo(fn, env);
+  const revision = String(env.ANTHROPIC_MODEL_ANALIZAR_MUEBLE_REVISION || '').trim();
+  if (!revision) return 'claude-sonnet-5-5';
+  if (!MODELOS_PERMITIDOS.has(revision)) {
+    const err = new Error('MODEL_CONFIG_INVALID para revisión');
+    err.code = 'MODEL_CONFIG_INVALID';
+    throw err;
+  }
+  return revision;
+}
