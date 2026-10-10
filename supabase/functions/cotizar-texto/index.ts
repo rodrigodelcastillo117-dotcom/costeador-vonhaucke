@@ -8,7 +8,7 @@
 //   ruta:"applt/banca_doble" y producto:"Banca doble App LT 10 usuarios". Se
 //   restauran las descripciones de campo (ruta = CLAVE de línea, producto = ID) y la
 //   regla 1 lo dice explícito. El cliente (resolverRutaProducto) tolera el formato
-//   fusionado de todos modos, así que v10 sigue funcionando mientras no se despliegue.
+//   fusionado de todos modos (defensa en profundidad).
 // ============================================================================
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
