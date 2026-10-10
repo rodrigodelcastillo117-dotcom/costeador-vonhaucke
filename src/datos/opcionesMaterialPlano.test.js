@@ -60,3 +60,45 @@ describe('regresión P-01 contra el catálogo activo de 92 insumos', () => {
     expect(opciones.map(x => x.id)).toEqual(['melamina-19']);
   });
 });
+
+
+describe('P0 — planos metal/hardware contra catálogo real (sin inventar ingeniería)', () => {
+  const reales = {
+    ptr:{id:'ptr',nombre:'Tubo / PTR 1"x2" cal. 16',seccion:'metal'},
+    ptr14:{id:'ptr-14',nombre:'Tubo / PTR cal. 14',seccion:'metal'},
+    lamina14:{id:'lamina-14',nombre:'Lamina de acero cal. 14',seccion:'metal'},
+    lamina18:{id:'lamina-18',nombre:'Lamina de acero cal. 18',seccion:'metal'},
+    bisagra:{id:'bisagra',nombre:'Bisagra',seccion:'herrajes'},
+    soldadura:{id:'soldadura',nombre:'Soldadura',seccion:'metal'},
+    niveladorPlataforma:{id:'nivelador-plataforma',nombre:'Tornillo nivelador 3/8 plataforma',seccion:'herrajes', disponibleCosteo:false},
+  };
+  it('PTR negro sin sección/calibre: muestra referencias, ninguna confirma ingeniería', () => {
+    const opts = opcionesMaterialPlano('PTR estructura metálica negra', reales);
+    expect(opts.length).toBeGreaterThan(0);
+    expect(opts.every(x => x.confirmable === false && /ptr/i.test(x.nombre))).toBe(true);
+  });
+  it('lámina negra: propone lámina pero nunca un perfil PTR ni HPL', () => {
+    const opts = opcionesMaterialPlano('lámina negra', reales);
+    expect(opts.map(x=>x.id)).toEqual(expect.arrayContaining(['lamina-14','lamina-18']));
+    expect(opts.some(x=>x.id === 'ptr-14')).toBe(false);
+    expect(opts.every(x=>!x.confirmable)).toBe(true);
+  });
+  it('si plano pide calibre 18 jamás muestra calibre 14', () => {
+    expect(opcionesMaterialPlano('lámina negra cal. 18', reales).map(x=>x.id)).toEqual(['lamina-18']);
+  });
+  it('herrajes y consumibles existentes son visibles sin liberar costeos oficiales', () => {
+    const bis = opcionesMaterialPlano('bisagra', reales);
+    const sol = opcionesMaterialPlano('soldadura', reales);
+    expect(bis.map(x=>x.id)).toEqual(['bisagra']);
+    expect(sol.map(x=>x.id)).toEqual(['soldadura']);
+    expect(bis[0].confirmable).toBe(false);
+    expect(sol[0].confirmable).toBe(false);
+  });
+  it('referencia exclusivamente de Compras nunca es confirmable ni contiene precio', () => {
+    const opts = opcionesMaterialPlano('nivelador', reales);
+    expect(opts).toHaveLength(1);
+    expect(opts[0].fuenteCatalogo).toBe('compras');
+    expect(opts[0].confirmable).toBe(false);
+    expect(opts[0].precio).toBeUndefined();
+  });
+});
