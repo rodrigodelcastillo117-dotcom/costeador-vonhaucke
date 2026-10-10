@@ -1,4 +1,4 @@
--- P1 quote creation idempotency (does not update any historical quotation).
+-- Safe P1 quote retry idempotency. No updates to legacy quotes.
 BEGIN;
 CREATE TABLE IF NOT EXISTS private_api.cotizacion_idempotencia (
   actor_email text NOT NULL,
@@ -87,45 +87,15 @@ begin
     raise exception 'folio_oficial protegido; use el flujo de emision';
   end if;
 
-  -- Same caller and key = same quote, even if the original response was lost.
-  -- Multiple intentional new quotes need different operation keys.
+  -- Serialize retries of the SAME create operation, never dedupe by content.
   IF v_idempotency_key IS NOT NULL THEN
-    IF v_idempotency_key !~ '^[a-zA-Z0-9_-]{10,100}
-    usuario,cliente,folio,estado,partidas,acomodo,totales,total,piezas,
-    huella_mp,activa,cliente_id,contacto_id,proyecto_id
-  ) values (
-    v_owner,
-    nullif(p_payload->>'cliente',''),
-    nullif(p_payload->>'folio',''),
-    'borrador',
-    v_partidas,
-    v_acomodo,
-    v_totales,
-    v_total,
-    v_piezas,
-    nullif(p_payload->>'huella_mp',''),
-    v_activa,
-    v_cliente_id,
-    v_contacto_id,
-    v_proyecto_id
-  ) returning id into v_id;
-
-  IF v_idempotency_key IS NOT NULL THEN
-    INSERT INTO private_api.cotizacion_idempotencia
-      (actor_email,request_key,cotizacion_id,payload_hash)
-    VALUES (lower(v_email),v_idempotency_key,v_id,v_payload_hash);
-  END IF;
-
-  return public.cotizacion_segura(v_id);
-end;
-$function$
- THEN
+    IF length(v_idempotency_key)<10 OR length(v_idempotency_key)>100
+       OR v_idempotency_key !~ '^[a-zA-Z0-9_-]+$' THEN
       RAISE EXCEPTION 'idempotency key invalid';
     END IF;
-    PERFORM pg_advisory_xact_lock(hashtext(lower(v_email)), hashtext(v_idempotency_key));
+    PERFORM pg_advisory_xact_lock(hashtext(lower(v_email)),hashtext(v_idempotency_key));
     v_payload_hash := md5((p_payload - '_idempotency_key')::text);
-    SELECT i.cotizacion_id, i.payload_hash
-      INTO v_prev_quote_id,v_prev_payload_hash
+    SELECT i.cotizacion_id, i.payload_hash INTO v_prev_quote_id,v_prev_payload_hash
       FROM private_api.cotizacion_idempotencia i
       WHERE i.actor_email=lower(v_email) AND i.request_key=v_idempotency_key;
     IF FOUND THEN
@@ -155,6 +125,12 @@ $function$
     v_contacto_id,
     v_proyecto_id
   ) returning id into v_id;
+
+  IF v_idempotency_key IS NOT NULL THEN
+    INSERT INTO private_api.cotizacion_idempotencia
+      (actor_email,request_key,cotizacion_id,payload_hash)
+    VALUES (lower(v_email),v_idempotency_key,v_id,v_payload_hash);
+  END IF;
 
   return public.cotizacion_segura(v_id);
 end;
