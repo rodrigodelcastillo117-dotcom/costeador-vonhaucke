@@ -128,6 +128,43 @@ describe('RESCATE Cotizar · anclas del plano Torre Sur', () => {
     expect(resolverRutaProducto('eclipse/no_existe', 'tampoco').motivo).toMatch(/no existe en Eclipse/);
   });
 
+  // ------------------------------------------------------------------------
+  //  COT-P0-002 · "ocho puestos se convierten en uno / el bench se clasifica como
+  //  mampara". Repro con las partidas REALES de las corridas 12:28Z (biombo cristal)
+  //  y 13:29Z (biombo melamina) + el banco real, tal como quedan en la cotización.
+  //  Se verifica ANTES de adoptar el parche de ChatGPT edfb13e (no verificado).
+  // ------------------------------------------------------------------------
+  it('COT-P0-002 · bench App LT 8u (biombo cristal / melamina) = 1 escritorio de 8 puestos, nunca mampara; coherencia OK con sus dependientes', async () => {
+    const { tipoDe } = await import('./espacio.js');
+    const { puestosDe } = await import('./porCuarto.js');
+    const { loQueEntendi } = await import('./entendido.js');
+    const { validarCoherenciaPrograma } = await import('./coherenciaPrograma.js');
+    const { BANCO } = await import('./banco.js');
+    const partidaDe = (c, extra = {}) => ({ id: `p-${Math.random().toString(36).slice(2, 7)}`, nombre: c.nombre, cantidad: c.cantidad, ruta: c.ruta || null, productoId: c.producto || null, precioUnitario: c.precioUnitario, ...extra });
+    const deBanco = (id, cantidad) => { const b = BANCO.find((x) => x.id === id); expect(b, `banco ${id}`).toBeTruthy(); return { id: `b-${id}`, piezaId: id, nombre: b.medidas ? `${b.nombre} (${b.medidas})` : b.nombre, cantidad, precioUnitario: b.precio, deBanco: true }; };
+    for (const biombo of ['cristal', 'melamina']) {
+      const bench = costearItem(estado, { ruta: 'applt/banca_doble', producto: 'Banca doble App LT 8 usuarios', cantidad: 1, seleccion: [{ clave: 'largoMM', valor: '1500' }, { clave: 'usuarios', valor: '8' }, { clave: 'biombo', valor: biombo }, { clave: 'color', valor: 'ivory' }] });
+      expect(bench).toBeTruthy();
+      const pb = partidaDe(bench);
+      expect(tipoDe(pb), `tipoDe("${pb.nombre}")`).toBe('escritorio');
+      expect(puestosDe(pb.nombre, pb.cantidad), `puestosDe("${pb.nombre}")`).toBe(8);
+      const esc = partidaDe(costearItem(estado, { ruta: 'eclipse/escritorio', producto: 'Escritorio Directivo Eclipse', cantidad: 1, seleccion: [{ clave: 'largoMM', valor: '2100' }, { clave: 'mano', valor: 'D' }, { clave: 'finish', valor: 'chapa' }] }));
+      const cre = partidaDe(costearItem(estado, { ruta: 'eclipse/credenza', producto: 'Credenza (baja) Eclipse', cantidad: 1, seleccion: [{ clave: 'largoMM', valor: '2100' }, { clave: 'mano', valor: 'D' }, { clave: 'finish', valor: 'chapa' }] }));
+      const partidas = [pb, esc, cre,
+        deBanco('p9-silla-operativa-win-5210', 8), deBanco('silla-alpha', 1), deBanco('p9-silla-de-visita-concerto-5470', 2),
+        deBanco('mj-1200x1200-melamina', 1), deBanco('p9-silla-sonata-2420-144', 4), deBanco('p9-recepcion-29920', 1),
+        deBanco('p9-mox-gaveta-pedestal-3780', 8), deBanco('arch-modulor-2p-900', 1)];
+      const e = loQueEntendi(partidas, [{ nombre: 'OFICINA CEO', tipo: 'privado', ancho: 4, largo: 3.2 }, { nombre: 'ÁREA OPERATIVA', tipo: 'open', ancho: 8, largo: 3.2 }]);
+      expect(e.grupos.find((g) => g.clave === 'mamparas'), `biombo=${biombo}: el bench cayó en "Mamparas"`).toBeUndefined();
+      expect(e.puestos, `biombo=${biombo}: puestos`).toBe(9);           // 8 del bench + 1 Eclipse
+      expect(e.gavetas).toBe(8);
+      expect(e.totalSillas).toBe(15);                                   // 8 WIN + 1 ALPHA + 2 CONCERTO + 4 SONATA (lo que pidió la IA)
+      const coh = validarCoherenciaPrograma(partidas);
+      expect(coh.bloqueos.map((b) => b.code), `biombo=${biombo}: coherencia`).toEqual([]);
+      expect(coh.ok).toBe(true);
+    }
+  });
+
   it('lo que NO existe sigue en null (fail-closed) pero con MOTIVO', () => {
     expect(resolverRutaProducto('nolinea', 'escritorio').motivo).toMatch(/línea "nolinea" no existe/);
     expect(resolverRutaProducto('applt', 'escritorio_ejecutivo').motivo).toMatch(/producto "escritorio_ejecutivo" no existe en App LT/);
