@@ -26,15 +26,21 @@ en asientos de escritorios ya colocados (`planner.js:290,313,353`) y no tienen p
 pasada 2 re-empaca desde cero y las piezas que no caben se pierden sin volver a `restantes`
 (`planner.js:359-369`) reportando `caben:true`. Es el mecanismo de VH-016.
 
-**VH-034 · P0 · OPEN · Cada recarga crea una cotización nueva en la nube.** `idCotizacion` es
-`useRef(null)` (`App.jsx:398`), nunca se persiste; al recargar, el autosave hace INSERT
-(`cotizaciones.js:154`). 673 filas en `cotizaciones` incluyen duplicados por esto.
+**VH-034 · P0 · FIXED (cliente) · Cada recarga creaba una cotización nueva en la nube.** `idCotizacion` era
+`useRef(null)` (`App.jsx:398`), nunca se persistía; al recargar, el autosave hacía INSERT (`cotizaciones.js:154`).
+Fix (Bloque 1): el id vive en `estado.cotizacion.id` (persiste con el estado); una sola puerta `guardarEnNube()`
+en App.jsx; el guardado va por los RPCs del servidor `crear_cotizacion_segura` (idempotente por
+`_idempotency_key` = `estado.cotizacion.claveCreacion`) y `actualizar_cotizacion_segura`; firma del contenido
+para no escribir lo mismo dos veces; una sola creación en vuelo. Fila ajena → se suelta el id (no se finge
+guardado). 12 tests `cotizaciones.guardado.test.js`. Pendiente VERIFIED: recargar en vivo y contar filas.
 
-**VH-035 · P0 · OPEN · Reabrir desde Archivo destruye la economía guardada.** `cargarCotizacionCompleta`
-trae partidas despojadas por `cotizacion_segura` (vendedor/diseño), fija `idCotizacion` (`App.jsx:1013`)
-y el siguiente autosave hace UPDATE con esas partidas sin `costoUnitario`. Además `paraGuardar` escribe
-`estado: cot.estadoComercial || 'borrador'` y `estadoComercial` nunca se asigna → cada autosave
-regresa el estado comercial a borrador.
+**VH-035 · P0 · FIXED parcial · Reabrir desde Archivo destruía la economía guardada.**
+Cliente (hecho): tras reabrir, el primer autosave sólo toma la firma y NO escribe hasta que el usuario edite;
+el cliente ya no manda `estado` comercial (antes el guard de la DB rechazaba en silencio el guardado de una
+cotización emitida). Servidor (PENDIENTE DE APLICAR): `supabase/migrations/20261010170000_actualizar_
+cotizacion_preserva_economia.sql` — quien no ve economía no la puede escribir ni borrar: el RPC strippea lo
+que entra y re-pega por `id` la economía que ya tenía la fila; el trigger de strip respeta la fusión. Sin esa
+migración, un diseñador que reabre y EDITA sigue pisando los costos de Dirección en esa fila.
 
 **VH-036 · P1 · OPEN · `costear-servidor` rechaza el 100% de las llamadas del navegador.**
 `AsistenteEspecial.jsx:179` manda `{...b}` con `margen`/`modeloCosteo`; `validarIntentCosteo` responde

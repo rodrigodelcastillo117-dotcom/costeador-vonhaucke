@@ -57,7 +57,7 @@ import Usuarios from './componentes/Usuarios.jsx';
 import Reglas from './componentes/Reglas.jsx';
 import { cargarReglas } from './datos/reglas.js';
 import { cargarAprendizajes } from './datos/aprendizaje.js';
-import { guardarCotizacion, cargarCotizacionCompleta } from './datos/cotizaciones.js';
+import { guardarCotizacion, cargarCotizacionCompleta, paraGuardar, firmaGuardado, claveCreacionNueva } from './datos/cotizaciones.js';
 import { guardarRevision } from './datos/revisiones.js';
 import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
 import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, cotizacionEmitible } from './nube.js';
@@ -219,10 +219,14 @@ export default function App() {
     // Al soltar el id, el guardado automático crea un registro limpio.
     epocaCot.current += 1;        // invalida cualquier guardado en vuelo
     idCotizacion.current = null;
+    ultimaFirmaNube.current = '';
     setEstado((e) => ({
       ...e,
       cotizacion: {
         ...e.cotizacion, partidas: [], acomodo: null, cliente: '', folio: '',
+        // Bloque 1: el id de la nube vive en el estado (persiste al recargar). Una
+        // cotización nueva = sin id y con clave de creación propia (idempotencia).
+        id: null, claveCreacion: claveCreacionNueva(),
         // No arrastrar el descuento/ajustes del cliente anterior a la nueva.
         descuentoPct: 0, contingenciaPct: 0, maniobrasPct: 0, fletePct: 0,
       },
@@ -395,19 +399,83 @@ export default function App() {
   //  ⚠️ A PROPÓSITO NO SE SOBRESCRIBE lo que estás editando con lo que venga de
   //  otro aparato. Eso borraría trabajo sin avisar. Lo de los otros aparatos
   //  aparece en "Mis cotizaciones" y se abre a mano.
-  const idCotizacion = useRef(null);
+  // Bloque 1 (2026-10-10, VH-034/VH-035). El id de la cotización en la nube vive en
+  // `estado.cotizacion.id` y por tanto se PERSISTE con el resto del estado. Antes era
+  // sólo este ref: al recargar la página nacía en null y el autosave INSERTABA otra
+  // fila (673 cotizaciones, muchas duplicadas). El ref se conserva como espejo para
+  // los closures async; la verdad es el estado.
+  const idCotizacion = useRef(estado.cotizacion?.id ?? null);
   // Época de la cotización: sube al "empezar de cero". Un guardado en vuelo que
   // resuelva DESPUÉS no debe restaurar el id viejo sobre la cotización nueva.
   const epocaCot = useRef(0);
+  // Firma de lo ÚLTIMO que el servidor confirmó. Si lo que se guardaría es idéntico,
+  // no se escribe nada (ni al reabrir desde el Archivo, ni al fijar el id).
+  const ultimaFirmaNube = useRef('');
+  // Al reabrir desde el Archivo lo que llega puede venir SIN economía (vendedor/diseño
+  // reciben las partidas despojadas). El primer "guardado" tras reabrir sólo toma la
+  // firma y NO escribe: así no se pisa en la nube la economía que Dirección sí tenía.
+  const reabiertaSinEscribir = useRef(false);
+  // Una CREACIÓN en vuelo a la vez: dos creates con la misma clave pero distinto
+  // contenido harían que el servidor rechace la segunda (y rotar la clave duplicaría).
+  // Al resolver, fijar el id cambia `estado.cotizacion` y el autosave vuelve a correr
+  // con lo más reciente, así que nada se queda sin guardar.
+  const creandoEnVuelo = useRef(false);
+
+  // ÚNICA PUERTA de guardado a la nube (autosave, verificar emisión, emitir).
+  // Devuelve el resultado de guardarCotizacion y mantiene id/clave/firma coherentes.
+  async function guardarEnNube() {
+    if (!sesion?.user?.email) return { id: idCotizacion.current, guardado: false, motivo: 'sin-sesion' };
+    const epoca = epocaCot.current;
+    const fila = paraGuardar(estado, sesion.user.email);
+    if (!fila.partidas.length) return { id: idCotizacion.current, guardado: false, motivo: 'vacia' };
+    const firma = firmaGuardado(fila);
+    if (reabiertaSinEscribir.current) {
+      reabiertaSinEscribir.current = false;
+      ultimaFirmaNube.current = firma;
+      return { id: idCotizacion.current, guardado: true, sinCambios: true };
+    }
+    if (idCotizacion.current && firma === ultimaFirmaNube.current) {
+      return { id: idCotizacion.current, guardado: true, sinCambios: true };
+    }
+    let clave = estado.cotizacion?.claveCreacion;
+    if (!idCotizacion.current) {
+      if (creandoEnVuelo.current) return { id: null, guardado: false, motivo: 'en-vuelo' };
+      if (!clave) {
+        clave = claveCreacionNueva();
+        setEstado((e) => ({ ...e, cotizacion: { ...e.cotizacion, claveCreacion: clave } }));
+      }
+      creandoEnVuelo.current = true;
+    }
+    let r;
+    try {
+      r = await guardarCotizacion(estado, sesion.user.email, idCotizacion.current, { claveCreacion: clave });
+    } finally {
+      creandoEnVuelo.current = false;
+    }
+    if (epocaCot.current !== epoca) return r;   // se empezó de cero mientras guardaba
+    if (r.guardado && r.id) {
+      ultimaFirmaNube.current = firma;
+      if (idCotizacion.current !== r.id) {
+        idCotizacion.current = r.id;
+        setEstado((e) => ({ ...e, cotizacion: { ...e.cotizacion, id: r.id } }));
+      }
+    } else if (r.soltarId) {
+      // La fila es de otro usuario o ya no existe (p. ej. otro vendedor usó este
+      // navegador): se olvida el id y la siguiente escritura crea una propia.
+      idCotizacion.current = null;
+      ultimaFirmaNube.current = '';
+      setEstado((e) => ({ ...e, cotizacion: { ...e.cotizacion, id: null, claveCreacion: claveCreacionNueva() } }));
+    } else if (r.rotarClave) {
+      setEstado((e) => ({ ...e, cotizacion: { ...e.cotizacion, claveCreacion: claveCreacionNueva() } }));
+    }
+    return r;
+  }
+
   useEffect(() => {
     if (!sesion?.user?.email) return;
     const n = estado.cotizacion?.partidas?.length || 0;
     if (!n) return;
-    const t = setTimeout(async () => {
-      const epoca = epocaCot.current;
-      const id = await guardarCotizacion(estado, sesion.user.email, idCotizacion.current);
-      if (id && epocaCot.current === epoca) idCotizacion.current = id;
-    }, 1500);
+    const t = setTimeout(() => { guardarEnNube(); }, 1500);
     return () => clearTimeout(t);
   }, [estado.cotizacion, sesion]);
 
@@ -420,20 +488,18 @@ export default function App() {
   async function verificarEmision() {
     if (!sesion?.user?.email) return { ok: false, estado: 'DESCONOCIDO', motivos: [] };
     try {
-      const epoca = epocaCot.current;
-      const id = await guardarCotizacion(estado, sesion.user.email, idCotizacion.current);
-      if (id && epocaCot.current === epoca) idCotizacion.current = id;
-      return await cotizacionEmitible(idCotizacion.current);
+      const r = await guardarEnNube();
+      if (!r.id) return { ok: false, estado: 'DESCONOCIDO', motivos: [], error: r.motivo || 'sin-id' };
+      return await cotizacionEmitible(r.id);
     } catch (e) { return { ok: false, estado: 'DESCONOCIDO', motivos: [], error: String(e?.message || e) }; }
   }
 
   async function onEmitida() {
     if (!sesion?.user?.email) return { ok: false, motivo: 'sin-sesion' };
     try {
-      const epoca = epocaCot.current;
-      const id = await guardarCotizacion(estado, sesion.user.email, idCotizacion.current);
-      if (id && epocaCot.current === epoca) idCotizacion.current = id;
-      const r = await guardarRevision(estado, idCotizacion.current);
+      const g = await guardarEnNube();
+      if (!g.id) return { ok: false, motivo: g.motivo || 'sin-id' };
+      const r = await guardarRevision(estado, g.id);
       if (r?.ok && r.nueva) mostrarAviso(`Revisión ${r.revision} guardada — se conservó lo que se emitió.`);
       return r || { ok: false, motivo: 'desconocido' };
     } catch (e) {
@@ -1010,11 +1076,15 @@ export default function App() {
               // trae la cotización COMPLETA por id (seller-safe) para poder re-editarla.
               // Si la nube falla, se cae a lo que traía la tarjeta (degradación suave).
               const full = (await cargarCotizacionCompleta(c.id)) || c;
+              epocaCot.current += 1;          // invalida guardados en vuelo de la anterior
               idCotizacion.current = c.id;   // seguir editando ESE, no crear otro
+              ultimaFirmaNube.current = '';
+              reabiertaSinEscribir.current = true;  // no pisar la nube hasta que el usuario edite
               setEstado((e) => ({
                 ...e,
                 cotizacion: {
                   ...e.cotizacion,
+                  id: c.id, claveCreacion: claveCreacionNueva(),
                   cliente: full.cliente || '', folio: full.folio || '',
                   partidas: full.partidas || [], acomodo: full.acomodo || null,
                   descuentoPct: full.totales?.descuentoPct ?? e.cotizacion.descuentoPct,
