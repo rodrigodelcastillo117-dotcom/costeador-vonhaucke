@@ -4,12 +4,21 @@
 BEGIN;
 
 -- Baseline: keep history readable. New records start as unapproved.
-ALTER TABLE public.aprendizajes
- ADD COLUMN IF NOT EXISTS aprobado_para_ia boolean NOT NULL DEFAULT false;
--- This one-time backfill preserves the behavior of pre-migration lessons.
--- Future INSERTs are forced false for unprivileged roles by the trigger.
-UPDATE public.aprendizajes SET aprobado_para_ia=true
- WHERE aprobado_para_ia=false;
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='aprendizajes'
+      AND column_name='aprobado_para_ia'
+  ) THEN
+    ALTER TABLE public.aprendizajes
+      ADD COLUMN aprobado_para_ia boolean NOT NULL DEFAULT false;
+    -- Only run once, during the first installation. Replaying this migration
+    -- MUST NOT approve sales lessons submitted after the cutoff.
+    UPDATE public.aprendizajes SET aprobado_para_ia=true
+      WHERE aprobado_para_ia=false;
+  END IF;
+END $migration$;
 
 CREATE OR REPLACE FUNCTION public.aprendizajes_revision_gate()
 RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path='' AS $$
