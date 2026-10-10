@@ -494,7 +494,9 @@ export async function costearServidor(pieza, cantidad = 1) {
     ok: false, status: 400, code: val.code, issues: val.issues,
     error: 'Despiece técnico incompleto: ' + (val.issues?.[0]?.msg || 'corrige la partida indicada.'),
   };
-  const { data, error } = await nube.functions.invoke('costear-servidor', {
+  // Rama RC solamente: costo desde BD de Compras, sin alterar la Edge estable.
+  // Antes de merge a main, homologar y promover conscientemente este endpoint.
+  const { data, error } = await nube.functions.invoke('costear-compras-rc', {
     body,
   });
   if (error) {
