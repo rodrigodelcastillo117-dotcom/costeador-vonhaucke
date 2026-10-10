@@ -16,6 +16,7 @@ import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI } from '../datos/materialMatch.js';
 import { materialDesdeLeyenda } from '../datos/materialDesdeLeyenda.js';
+import { opcionesMaterialPlano } from '../datos/opcionesMaterialPlano.js';
 import { paginaAImagen } from '../datos/pdfImagen.js';
 import { prepararPdfRapido, rasterizarPaginas, paginasAlrededor } from '../datos/pdfPipeline.js';
 import Cargando from './Cargando.jsx';
@@ -1167,7 +1168,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                 <div className="pieza-head">
                   <input className="pieza-nom" placeholder="Nombre de la pieza" value={c.nombre || ''} onChange={(e) => setPieza(i, { nombre: e.target.value })} />
                   <select className="pieza-mat" value={est.selVal} onChange={(e) => onMaterial(i, e.target.value)}>
-                    <option value="">— ¿de qué es? —</option>
+                    <option value="">{c.material_solicitado ? 'Material del plano · elegir artículo' : '— ¿de qué es? —'}</option>
                     {SECCIONES.map((sec) => (
                       <optgroup label={sec.nombre} key={sec.id}>
                         {Object.values(insumos).filter((x) => x.seccion === sec.id).map((x) => (
@@ -1183,7 +1184,18 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                 )}
                 {est.pendiente && c.material_solicitado && (
                   <div className="pieza-calc" style={{ color: 'var(--texto,#e4e4e4)' }}>
-                    Plano: {c.material_solicitado} · falta elegir/confirmar insumo de catálogo
+                    <strong>El plano especifica:</strong> {c.material_solicitado}. {est.candId ? 'Hay un artículo propuesto para confirmar.' : 'Selecciona el artículo equivalente del catálogo para continuar.'}
+                    {est.clase === 'AMBIGUOUS' && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                        {opcionesMaterialPlano(c.material_solicitado, insumos).map((op) => (
+                          <button type="button" key={op.id} className="chip"
+                            style={{ color: '#fff', background: '#303039', border: '1px solid #999', padding: '10px 12px', whiteSpace: 'normal', textAlign: 'left' }}
+                            onClick={() => onMaterial(i, op.id, { confirmado: true })}>
+                            Elegir {op.nombre}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
                 {est.pendiente && (
