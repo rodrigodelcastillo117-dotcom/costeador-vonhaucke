@@ -14,7 +14,7 @@ import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
-import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI } from '../datos/materialMatch.js';
+import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, familiaDeMaterial } from '../datos/materialMatch.js';
 import { materialDesdeLeyenda } from '../datos/materialDesdeLeyenda.js';
 import { opcionesMaterialPlano } from '../datos/opcionesMaterialPlano.js';
 import { paginaAImagen } from '../datos/pdfImagen.js';
@@ -102,6 +102,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const [analizando, setAnalizando] = useState(false);
   const [verificando, setVerificando] = useState(false); // 2ª pasada: la IA critica su propio despiece
   const [errorIA, setErrorIA] = useState('');
+  const [erroresMaterial, setErroresMaterial] = useState({});
   const [catalogoFuente, setCatalogoFuente] = useState(null); // 'canonico' | 'cliente-fallback' (#8: aviso si el catálogo central no estuvo)
   const [preguntasIA, setPreguntasIA] = useState([]);
   const [propuestaIA, setPropuestaIA] = useState(null); // despiece crudo de la IA (para re-costear con respuestas)
@@ -539,6 +540,18 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   function quitarPieza(i) { editarComponentes(b.componentes.filter((_, j) => j !== i)); }
   function onMaterial(i, insumoId, { confirmado = false } = {}) {
     const ins = insumos[insumoId]; const comps = b.componentes.slice(); const prev = comps[i];
+    // Si el plano pide melamina específica, NO se puede confirmar un faldón,
+    // un divisor, otro espesor o un tablero sin el acabado que indica el plano.
+    // Un click en el selector nativo tampoco debe saltarse el gate económico.
+    if (insumoId && prev?.material_solicitado && familiaDeMaterial(prev.material_solicitado) === 'melamina') {
+      const permitido = opcionesMaterialPlano(prev.material_solicitado, insumos)
+        .some((op) => op.id === insumoId && op.confirmable);
+      if (!permitido) {
+        setErroresMaterial((v) => ({ ...v, [i]: `No se puede asignar ${ins?.nombre || insumoId}: no coincide con el espesor y acabado solicitado en el plano. Solicita la validación del artículo correcto.` }));
+        return;
+      }
+    }
+    setErroresMaterial((v) => { const n = { ...v }; delete n[i]; return n; });
     const patch = { insumoId, nombre: prev.nombre || (ins ? ins.nombre : '') };
     if (!esArea(ins)) { patch.largoMM = undefined; patch.anchoMM = undefined; }
     // Elección/confirmación HUMANA: misma intención en ambas UIs (P0.8). El servidor verifica
@@ -1168,7 +1181,10 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                   <input className="pieza-nom" placeholder="Nombre de la pieza" value={c.nombre || ''} onChange={(e) => setPieza(i, { nombre: e.target.value })} />
                   <select className="pieza-mat" value={est.selVal} onChange={(e) => onMaterial(i, e.target.value)}>
                     <option value="">{c.material_solicitado ? `Plano: ${c.material_solicitado} · falta insumo` : '— ¿de qué es? —'}</option>
-                    {SECCIONES.map((sec) => (
+                    {c.material_solicitado && familiaDeMaterial(c.material_solicitado) === 'melamina' ? (
+                      opcionesMaterialPlano(c.material_solicitado, insumos).filter((op) => op.confirmable)
+                        .map((op) => <option value={op.id} key={op.id}>{op.nombre} · confirmar especificación</option>)
+                    ) : SECCIONES.map((sec) => (
                       <optgroup label={sec.nombre} key={sec.id}>
                         {Object.values(insumos).filter((x) => x.seccion === sec.id).map((x) => (
                           <option value={x.id} key={x.id}>{x.nombre}</option>
@@ -1178,6 +1194,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                   </select>
                   <button className="pieza-x" onClick={() => quitarPieza(i)} aria-label="quitar">×</button>
                 </div>
+                {erroresMaterial[i] && <div className="pieza-calc" role="alert" style={{ color: '#ff9198' }}>{erroresMaterial[i]}</div>}
                 {est.badge && (
                   <div className="pieza-calc" style={{ color: 'var(--ambar,#8a6d00)', fontWeight: 600 }}>🟡 {est.badge}</div>
                 )}
