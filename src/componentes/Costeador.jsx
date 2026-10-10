@@ -90,6 +90,11 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   // puede emitir a la cotización. Solo se muestra el subtotal conocido.
   const emisionC = costeoEmitible(resultado);
   const pendientesC = emisionC.pendientes || [];
+  const preciosComprasPorConfirmar = (costeo.componentes || [])
+    .filter((c) => c.insumoId && insumos[c.insumoId]?.fuenteCatalogo === 'compras'
+      && insumos[c.insumoId]?.precioCertificable !== true)
+    .map((c) => c.nombre || insumos[c.insumoId]?.nombre || c.insumoId);
+  const costoComprasPreliminar = preciosComprasPorConfirmar.length > 0;
   const incompletoC = !emisionC.emitible;
   const inteligenciaIndustrial = useMemo(
     () => analizarProductoIndustrial({ bom: costeo.componentes || [], costing: resultado }),
@@ -163,7 +168,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     : tipoDeMueble(costeo);
 
   async function agregarCotizacionVerificada() {
-    if (incompletoC || simulando || validandoCosto) return;
+    if (incompletoC || simulando || validandoCosto || costoComprasPreliminar) return;
     setErrAutoridad('');
     setValidandoCosto(true);
     try {
@@ -853,7 +858,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                 <button className="boton" onClick={volverAAlba}>Volver al costo oficial (Alba V1)</button>
               </div>
             ) : (
-              <div className="ayuda" style={{ marginBottom: 10, opacity: 0.8 }}>Costo oficial — <strong>Alba V1</strong>.</div>
+              <div className="ayuda" style={{ marginBottom: 10, opacity: 0.8 }}>{costoComprasPreliminar ? 'Costo estimado con Compras — pendiente de emisión' : 'Costo con fórmula'} — <strong>Alba V1</strong>.</div>
             )}
             <label className="etiqueta">Cuanto quieres ganar</label>
             <div className="masmenos" style={{ marginBottom: 10 }}>
@@ -864,16 +869,19 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             <div className="precio-grande" style={incompletoC ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : pesos2(precio)}</div>
             <div className="ayuda">{incompletoC ? 'Sin precio oficial: existe al menos un bloqueo técnico/económico de costeo.' : `Precio por pieza con ${margen}% de margen.`}</div>
             {incompletoC && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">⚠ Costo NO EMITIBLE — {pendientesC.length} bloqueo(s): {pendientesC.slice(0, 6).join(' · ')}{pendientesC.length > 6 ? '…' : ''}. No se puede cotizar ni emitir hasta resolverlos.</span></div>}
+            {costoComprasPreliminar && <div className="alerta ambar" role="status" style={{marginTop:10}}>
+              <span className="texto">Precio calculado con {preciosComprasPorConfirmar.length} artículo(s) de Compras todavía no certificados para emisión. Se puede comparar el costo, pero no cotizar ni imprimir como oficial: {preciosComprasPorConfirmar.slice(0,5).join(' · ')}.</span>
+            </div>}
             {!incompletoC && bajoMinimo && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">Debajo del minimo de {estado.parametros.margenMinimo}%.</span></div>}
             <div className="espacio" />
             {errAutoridad && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">⚠ {errAutoridad}</span></div>}
-            <button className="boton primario grande" disabled={incompletoC || simulando || validandoCosto}
+            <button className="boton primario grande" disabled={incompletoC || simulando || validandoCosto || costoComprasPreliminar}
               title={simulando ? 'Simulación: vuelve al costo oficial Alba para cotizar' : incompletoC ? 'No se puede cotizar mientras el motor marque bloqueos de costeo' : validandoCosto ? 'Verificando costo contra el servidor' : 'Verifica el costo autoritativo antes de agregar'}
               onClick={agregarCotizacionVerificada}>{validandoCosto ? 'Verificando costo…' : 'Agregar a la cotización'}</button>
             <div className="espacio" />
             <button className="boton grande" onClick={() => onGuardarPieza(resultado)}>Guardar como pieza</button>
             <div className="espacio" />
-            <button className="boton grande" disabled={incompletoC || simulando} title={simulando ? 'Simulación: no emite ficha oficial' : incompletoC ? 'No se puede imprimir una ficha oficial con bloqueos de costeo' : ''} onClick={() => !incompletoC && !simulando && setFichaAbierta(true)}>Ver ficha PDF</button>
+            <button className="boton grande" disabled={incompletoC || simulando || costoComprasPreliminar} title={simulando ? 'Simulación: no emite ficha oficial' : incompletoC ? 'No se puede imprimir una ficha oficial con bloqueos de costeo' : ''} onClick={() => !incompletoC && !simulando && !costoComprasPreliminar && setFichaAbierta(true)}>Ver ficha PDF</button>
           </div>
         ) : (
           <div className="tarjeta" style={{ marginTop: 16 }}>
