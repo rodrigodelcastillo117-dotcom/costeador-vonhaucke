@@ -18,6 +18,7 @@ import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, familia
 import { materialDesdeLeyenda } from '../datos/materialDesdeLeyenda.js';
 import { opcionesMaterialPlano } from '../datos/opcionesMaterialPlano.js';
 import { usarCatalogoCompras } from '../datos/usarCatalogoCompras.js';
+import ResumenConsumoMueble from './ResumenConsumoMueble.jsx';
 import ResumenASUR from './ResumenASUR.jsx';
 import { proxyParaPiezaDePlano, puedeUsarHojasDirectas } from '../datos/proxyTableroEstimado.js';
 import { mensajePendienteInsumo } from '../datos/mensajePendienteInsumo.js';
@@ -1447,7 +1448,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         </div>
       )}
 
-      <ResumenASUR componentes={b.componentes} insumos={insumos} lote={b.piezas} />
+      <ResumenConsumoMueble componentes={b.componentes} insumos={insumos} lote={b.piezas} resultado={resultado} />
       {/* PASO 4 — Resultado */}
       {paso === 3 && (
         <div className="tarjeta-precio">
