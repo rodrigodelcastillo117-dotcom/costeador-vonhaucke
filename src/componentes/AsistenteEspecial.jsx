@@ -9,7 +9,7 @@ import { calcular, precioDe, netoComponente, modeloParaPieza, costeoEmitible, bo
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos2 } from '../util.js';
 import { dinero, aCentavosEnteros } from '../motor/dinero.js';
-import { analizarRender, analizarRenderImagenes, analizarTexto, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64 } from '../nube.js';
+import { analizarRender, analizarRenderImagenes, analizarTexto, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64, leerReferenciasCompras } from '../nube.js';
 import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
@@ -17,6 +17,7 @@ import { conAcompanantes } from '../datos/autoInsumos.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, familiaDeMaterial } from '../datos/materialMatch.js';
 import { materialDesdeLeyenda } from '../datos/materialDesdeLeyenda.js';
 import { opcionesMaterialPlano } from '../datos/opcionesMaterialPlano.js';
+import { catalogoDeSugerencias } from '../datos/catalogoDeSugerencias.js';
 import { proxyParaPiezaDePlano, puedeUsarHojasDirectas } from '../datos/proxyTableroEstimado.js';
 import { mensajePendienteInsumo } from '../datos/mensajePendienteInsumo.js';
 import { costoReferenciaHerraje } from '../datos/costoReferenciaHerraje.js';
@@ -101,6 +102,20 @@ export function fusionarPreguntas(prev, incoming, confKeysSet, norm) {
 
 export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBiblioteca, expedienteInicial }) {
   const insumos = estado.insumos;
+  // Compras es fuente de IDENTIDAD, no de precio. RLS de la base impide enviar
+  // referencias técnicas a roles sin permiso. Si falla, sigue el catálogo activo.
+  const [referenciasCompras, setReferenciasCompras] = useState([]);
+  useEffect(() => {
+    let montado = true;
+    leerReferenciasCompras()
+      .then((refs) => { if (montado) setReferenciasCompras(refs); })
+      .catch(() => { if (montado) setReferenciasCompras([]); });
+    return () => { montado = false; };
+  }, []);
+  const catalogoSugerencias = useMemo(
+    () => catalogoDeSugerencias(insumos, referenciasCompras),
+    [insumos, referenciasCompras],
+  );
   const [paso, setPaso] = useState(0);
   // Acceso directo desde el resultado a la decisión que mantiene el costo pendiente.
   // Sólo navega: NUNCA responde por el usuario ni cambia el BOM automáticamente.
@@ -1254,6 +1269,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           {b.componentes.map((c, i) => {
             const ins = insumos[c.insumoId];
             const est = estadoMaterialUI(c, insumos);
+            const opcionesPieza = c.material_solicitado ? opcionesMaterialPlano(c.material_solicitado, catalogoSugerencias) : [];
             const area = esArea(ins);
             const cnt = c.piezas || 1;
             const m2 = area && c.largoMM && c.anchoMM ? (c.largoMM / 1000) * (c.anchoMM / 1000) * cnt : 0;
@@ -1295,20 +1311,20 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                 )}
                 {est.pendiente && c.material_solicitado && (
                   <div className="pieza-calc" style={{ color: 'var(--texto,#e4e4e4)' }}>
-                    <strong>El plano especifica:</strong> {c.material_solicitado}. {est.candId ? 'Hay un artículo propuesto para confirmar.' : 'Selecciona el artículo equivalente del catálogo para continuar.'}
+                    <strong>El plano especifica:</strong> {c.material_solicitado}. {opcionesPieza.length > 0 ? 'Estas son las referencias reales disponibles. La app no debe adivinar calibre, modelo ni acabado.' : 'No hay coincidencia costeable inequívoca: requiere una decisión técnica.'}
                     <div className="material-candidatos" role="group" aria-label={`Opciones de catálogo para ${c.nombre}`}>
-                      {opcionesMaterialPlano(c.material_solicitado, insumos).length > 0 ? (
-                        opcionesMaterialPlano(c.material_solicitado, insumos).map((op) => (
+                      {opcionesPieza.length > 0 ? (
+                        opcionesPieza.map((op) => (
                           op.confirmable ? (
                             <button type="button" key={op.id} className="material-candidato"
                               onClick={() => onMaterial(i, op.id, { confirmado: true })}>
                               <strong>Elegir y confirmar: {op.nombre}</strong>
-                              <span>{op.advertencia}</span>
+                              <span>{op.fuenteCatalogo === 'compras' ? 'Compras · pendiente de integrar: ' : 'Catálogo activo · '}{op.advertencia}</span>
                             </button>
                           ) : (
                             <div key={op.id} className="material-referencia" role="status">
                               <strong>Solo referencia: {op.nombre}</strong>
-                              <span>{op.advertencia}</span>
+                              <span>{op.fuenteCatalogo === 'compras' ? 'Compras · pendiente de integrar: ' : 'Catálogo activo · '}{op.advertencia}</span>
                             </div>
                           )
                         ))
