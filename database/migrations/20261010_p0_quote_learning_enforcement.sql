@@ -66,18 +66,18 @@ CREATE TRIGGER trg_aprendizajes_revision_gate
 DROP POLICY IF EXISTS aprendizajes_escribe ON public.aprendizajes;
 CREATE POLICY aprendizajes_escribe ON public.aprendizajes FOR INSERT TO authenticated
  WITH CHECK (
-   usuario = (SELECT private_api.current_request_email())
+   lower(usuario) = (SELECT private_api.current_request_email())
    AND (aprobado_para_ia = (SELECT private_api.puede_editar_config()))
  );
 DROP POLICY IF EXISTS aprendizajes_actualiza ON public.aprendizajes;
 CREATE POLICY aprendizajes_actualiza ON public.aprendizajes FOR UPDATE TO authenticated
  USING (
    (SELECT private_api.puede_editar_config())
-   OR (usuario=(SELECT private_api.current_request_email()) AND NOT aprobado_para_ia)
+   OR (lower(usuario)=(SELECT private_api.current_request_email()) AND NOT aprobado_para_ia)
  )
  WITH CHECK (
    (SELECT private_api.puede_editar_config())
-   OR (usuario=(SELECT private_api.current_request_email()) AND NOT aprobado_para_ia)
+   OR (lower(usuario)=(SELECT private_api.current_request_email()) AND NOT aprobado_para_ia)
  );
 
 REVOKE DELETE, TRUNCATE, TRIGGER, REFERENCES
