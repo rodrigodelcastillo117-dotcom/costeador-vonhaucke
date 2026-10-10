@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import path from 'node:path';
-import { hayCreds, login, armarYVerificar, verificarAcomodo, evidencia } from './lib/torreSur.js';
+import { hayCreds, login, armarYVerificar, verificarAcomodo, evidencia, TORRE_SUR } from './lib/torreSur.js';
 
 // ============================================================================
 //  E2E REAL · TORRE SUR · RUTA 1/3: "Subir el plano del cliente" (PDF real ARQ-01).
@@ -43,7 +43,8 @@ test.describe('E2E TORRE SUR · ruta PDF', () => {
     const opLector = (lecturaJson?.lectura?.areas || []).filter((a) => a.tipo === 'open' && Number(a.puestos) > 0).reduce((s, a) => s + Number(a.puestos), 0);
 
     // 2-6) Muebles → Armar → verificación común (sin corregir contadores: el lector manda).
-    await armarYVerificar(page, { ruta: 'pdf', puestos: opLector > 0 ? opLector : null, warnsCotizar });
+    // El lector cuenta puestos pero NO islas: la persona dice en cuántas bancas (el plano dibuja 2 de 4).
+    await armarYVerificar(page, { ruta: 'pdf', puestos: opLector > 0 ? opLector : null, bancas: TORRE_SUR.bancas, warnsCotizar });
 
     // 7) Acomodo real; con plano en revisión (puertas sin barrido) sólo borrador.
     await verificarAcomodo(page, { ruta: 'pdf', estadoFS: lecturaJson?.floorSpec?.validation?.state ?? null });

@@ -40,7 +40,7 @@ test.describe('E2E TORRE SUR · ruta m²', () => {
     const tiposM2 = ((await leerCot(page)).acomodo.areasM || []).map((a) => a.tipo);
     for (const t of ['open', 'privado', 'juntas', 'recepcion']) expect(tiposM2, `cuarto sin tipo "${t}"`).toContain(t);
 
-    await armarYVerificar(page, { ruta: 'm2', puestos: TORRE_SUR.puestos });
+    await armarYVerificar(page, { ruta: 'm2', puestos: TORRE_SUR.puestos, bancas: TORRE_SUR.bancas });
     await verificarAcomodo(page, { ruta: 'm2', estadoFS: null });
 
     expect(pageErrors, pageErrors.join('\n')).toHaveLength(0);

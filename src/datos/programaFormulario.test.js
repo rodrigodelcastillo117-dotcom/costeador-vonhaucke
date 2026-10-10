@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { conOperativos, programaCoherente } from './programaFormulario.js';
+import { conOperativos, conIslas, programaCoherente } from './programaFormulario.js';
 import { fraseDe } from '../componentes/ProgramaProyecto.jsx';
 
 // Estado real sembrado por el dibujo Torre Sur (8 × 3.2 m → estimación 10) y por m² (14).
@@ -29,6 +29,16 @@ describe('formulario · corregir Operativos arrastra reparto y gavetas (E2E Dibu
     const p = conOperativos({ ...BASE, gavetas: 6, gavetasManual: true }, 8);
     expect(p.gavetas).toBe(6);
     expect(p.operativos).toBe(8);
+  });
+  it('MÓDULOS FÍSICOS (opción a): 8 puestos en 2 bancas ⇒ "8 lugares repartidos en 2 bancas de 4" (lo que dibuja el plano)', () => {
+    const p = conIslas(conOperativos(BASE, 8), 2);
+    expect(p.islas).toBe(2); expect(p.porIsla).toBe(4); expect(p.gavetas).toBe(8);
+    expect(fraseDe(p)).toMatch(/^8 lugares de trabajo repartidos en 2 bancas de 4 usuarios/);
+    // cambiar los puestos después respeta las bancas: 10 en 2 → 5 por banca
+    expect(conOperativos(p, 10).porIsla).toBe(5);
+    // mínimo 1 banca; 7 en 2 → 4 por banca (ceil), nunca se pierde un puesto
+    expect(conIslas(p, 0).islas).toBe(1);
+    expect(conIslas(conOperativos(BASE, 7), 2).porIsla).toBe(4);
   });
   it('sin islas (sin plano) no inventa reparto', () => {
     const p = conOperativos({ ...BASE, islas: 0, porIsla: 0 }, 8);

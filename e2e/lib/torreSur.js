@@ -24,7 +24,7 @@ export const TORRE_SUR = {
     { nombre: 'ÁREA OPERATIVA', tipo: 'open', ancho: 8, largo: 3.2 },
     { nombre: 'RECEPCIÓN', tipo: 'recepcion', ancho: 4, largo: 2.4 },
   ],
-  puestos: 8, privados: 1, juntasPax: 8, m2EntreEjes: 132,
+  puestos: 8, bancas: 2, privados: 1, juntasPax: 8, m2EntreEjes: 132,   // el plano dibuja 2 módulos de 4
 };
 
 export const leerCot = (page) => page.evaluate((clave) => {
@@ -66,11 +66,13 @@ export async function ajustarContador(page, etiqueta, objetivo) {
  * De "Muebles" en adelante. `opts.puestos` = puestos que DEBE pedir el texto (lector o persona).
  * Devuelve { items, banco, noEnc, partidas, cotJson }.
  */
-export async function armarYVerificar(page, { ruta, puestos = null, warnsCotizar = [] }) {
+export async function armarYVerificar(page, { ruta, puestos = null, bancas = null, warnsCotizar = [] }) {
   const pasoMuebles = page.getByTestId('voni-paso-muebles');
   if (await pasoMuebles.isEnabled().catch(() => false)) await pasoMuebles.click();
   await expect(page.getByRole('button', { name: /Armar el proyecto/i })).toBeVisible({ timeout: 30000 });
   if (puestos != null) await ajustarContador(page, 'Operativos', puestos);
+  // MÓDULOS FÍSICOS (opción a): la persona dice en cuántas bancas (el plano dibuja 2 de 4).
+  if (bancas != null) await ajustarContador(page, 'Bancas', bancas);
 
   const cotResp = page.waitForResponse((r) => /cotizar-texto/.test(r.url()) && r.request().method() === 'POST', { timeout: 120000 });
   await page.getByRole('button', { name: /Armar el proyecto/i }).click();
@@ -94,6 +96,9 @@ export async function armarYVerificar(page, { ruta, puestos = null, warnsCotizar
   if (puestos != null) {
     expect(textoEnviado, `texto enviado: "${textoEnviado.slice(0, 120)}…"`).toMatch(new RegExp(`^\\s*${puestos}\\s+lugares de trabajo`));
     expect(textoEnviado, 'gavetas ≠ puestos').toMatch(new RegExp(`${puestos}\\s+gavetas`));
+  }
+  if (bancas != null && puestos != null) {
+    expect(textoEnviado, 'reparto en bancas').toMatch(new RegExp(`repartidos en ${bancas} bancas de ${Math.ceil(puestos / bancas)} usuarios`));
   }
 
   // COT-P0-008: nada se pierde — cada item/banco/noEncontrado tiene partida (costeada o pendiente).
@@ -121,6 +126,13 @@ export async function armarYVerificar(page, { ruta, puestos = null, warnsCotizar
   }
   // Golden: 8 WIN · 8 gavetas · 1 ALPHA · 2 CONCERTO (lo que depende del lector/forma se reporta, no se exige aquí)
   const cant = (re) => lote.filter((x) => re.test(norm(x.nombre))).reduce((s, x) => s + (x.cantidad || 0), 0);
+  if (bancas != null) {
+    // módulos físicos: B bancas (cantidad) de M usuarios — no 1 de 8 ni 8 de 1
+    const benches = lote.filter((x) => x.ruta === 'applt' && x.productoId === 'banca_doble');
+    const unidades = benches.reduce((s, x) => s + (x.cantidad || 0), 0);
+    expect(unidades, `bancas cotizadas: ${benches.map((b) => `${b.cantidad}× ${b.nombre}`).join(' | ')}`).toBe(bancas);
+    for (const b of benches) expect(Number(b.config?.usuarios), `usuarios por banca en "${b.nombre}"`).toBe(Math.ceil(puestos / bancas));
+  }
   if (puestos != null) {
     expect(cant(/win/), 'WIN').toBe(puestos);
     expect(cant(/gaveta|pedestal/), 'gavetas').toBe(puestos);

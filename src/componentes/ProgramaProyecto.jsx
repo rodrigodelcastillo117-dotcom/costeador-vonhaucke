@@ -19,7 +19,7 @@
 // ============================================================================
 import { useState, useMemo } from 'react';
 import { programaDelPlano, resumenDelPlano, avisosDeSala } from '../datos/programaDelPlano.js';
-import { conOperativos } from '../datos/programaFormulario.js';
+import { conOperativos, conIslas } from '../datos/programaFormulario.js';
 
 // Las líneas que de verdad se ofrecen para cada cosa. No son las 24: son las
 // que un proyectista pone en cada tipo de espacio.
@@ -143,7 +143,11 @@ export default function ProgramaProyecto({ onArmar, cargando = false, areasPlano
     archiveros: delPlano.sugeridos?.archiveros ?? 0,
     // Del plano, para que la FRASE pueda decir cómo partir los puestos y cuántas
     // salas hay. Sin plano vienen en cero y la frase sale como siempre.
-    islas: delPlano.islas, porIsla: delPlano.porIsla, salas: delPlano.salas,
+    // Bancas = módulos físicos. Sin dato del plano, 1 banca con todos los puestos (la
+    // persona lo corrige con ±); así la frase siempre dice en cuántas bancas van.
+    islas: delPlano.islas || (delPlano.operativos > 0 ? 1 : 0),
+    porIsla: delPlano.porIsla || delPlano.operativos,
+    salas: delPlano.salas,
   });
   // El aviso se recalcula con el largo que él escoja: si se pasa a 1.80, tiene
   // que enterarse AHÍ de que sus islas ya no dan para 48.
@@ -181,6 +185,14 @@ export default function ProgramaProyecto({ onArmar, cargando = false, areasPlano
             gavetas (1 por puesto). Antes el texto decía "8 lugares… bancas de 10… 10 gavetas". */}
         <Mm v={p.operativos} set={(v) => setP((x) => conOperativos(x, typeof v === 'function' ? v(x.operativos) : v))} paso={1} />
       </div>
+      {p.operativos > 0 && (
+        <div className="prog-fila">
+          {/* MÓDULOS FÍSICOS (Rodrigo, opción a): capacidad ≠ muebles. El plano Torre Sur
+              dibuja 2 bancas de 4; una de 8 (6000×2400 con sillas a ambos lados) no cabe. */}
+          <div className="prog-et"><strong>Bancas</strong><span>módulos físicos · {p.porIsla || p.operativos} puestos por banca</span></div>
+          <Mm v={p.islas || 1} min={1} set={(v) => setP((x) => conIslas(x, typeof v === 'function' ? v(x.islas || 1) : v))} />
+        </div>
+      )}
       {p.operativos > 0 && (
         <div className="prog-sub">
           <label className="etiqueta">Largo por puesto</label>

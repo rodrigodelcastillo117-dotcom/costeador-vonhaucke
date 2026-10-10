@@ -16,6 +16,17 @@ export function conOperativos(p = {}, n) {
   return { ...p, operativos, porIsla, gavetas };
 }
 
+// MÓDULOS FÍSICOS (decisión de Rodrigo 2026-10-10, COT-P0-027/002): el plano Torre Sur
+// dibuja 2 bancas de 4, no una de 8; con la topología real una banca doble de 8
+// (6000×2400) no cabe con las puertas. La persona dice EN CUÁNTAS BANCAS; el reparto
+// (porIsla = ceil(puestos/bancas)) y la frase ("N lugares repartidos en B bancas de M")
+// salen de ahí. Capacidad ≠ muebles físicos.
+export function conIslas(p = {}, n) {
+  const islas = Math.max(1, Math.round(Number(n) || 1));
+  const operativos = Math.max(0, Math.round(Number(p.operativos) || 0));
+  return { ...p, islas, porIsla: Math.ceil(operativos / islas) };
+}
+
 /** La frase sólo puede decir N puestos si el reparto y las gavetas hablan de los mismos N. */
 export function programaCoherente(p = {}) {
   const n = Number(p.operativos) || 0;

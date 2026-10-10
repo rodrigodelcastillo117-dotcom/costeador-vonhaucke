@@ -56,7 +56,7 @@ test.describe('E2E TORRE SUR · ruta Dibujo', () => {
     }
 
     // Muebles: Voni estima (8 m / 1.5 → 10); la persona corrige a 8 (sin lector no hay conteo).
-    await armarYVerificar(page, { ruta: 'dibujo', puestos: TORRE_SUR.puestos });
+    await armarYVerificar(page, { ruta: 'dibujo', puestos: TORRE_SUR.puestos, bancas: TORRE_SUR.bancas });
     await verificarAcomodo(page, { ruta: 'dibujo', estadoFS: null });
 
     expect(pageErrors, pageErrors.join('\n')).toHaveLength(0);
