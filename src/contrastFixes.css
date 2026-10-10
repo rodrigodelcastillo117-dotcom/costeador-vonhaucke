@@ -212,3 +212,43 @@ button.boton-resolver-costeo {
   .render-previas { gap: 7px !important; }
   button.boton-resolver-costeo { font-size: 13px; }
 }
+
+
+/* Root cause revisada: en otros .chip.on legacy el fondo claro de este archivo
+   coexistía con -webkit-text-fill-color: #fff !important de demoGuardrails.
+   La reparación debe cubrir TODAS las pantallas, no sólo Borrador. */
+button.chip.on[style*="--tinta"],
+button.chip.on[style*="background: #fff"],
+button.chip.on[style*="background:#fff"],
+button.chip.on[style*="#f3f3f3"],
+button.chip.on[style*="#F3F3F3"] {
+  color: #111 !important;
+  -webkit-text-fill-color: #111 !important;
+}
+button.chip[style*="background: #fff"],
+button.chip[style*="background:#fff"] {
+  -webkit-text-fill-color: #111 !important;
+}
+
+/* Ajuste iPhone de todo el dashboard: las herramientas NO se esconden;
+   cabecera más delgada, táctil y adaptable. Sólo móvil. */
+@media (max-width: 640px) {
+  .encabezado { padding: 5px 10px !important; }
+  .barra-enc { gap: 4px 8px; }
+  .marca { min-height: 29px; }
+  .marca svg, .marca img { max-height: 29px; width: auto; }
+  .acciones-enc { width: 100%; gap: 4px; justify-content: space-between; }
+  .acciones-enc .btn-enc {
+    min-height: 44px;
+    height: 44px;
+    padding: 0 8px;
+    font-size: 13px;
+    border-radius: 8px;
+  }
+  .acciones-enc .conexion { padding: 4px 6px; }
+  .acciones-enc .btn-cot { min-height: 44px; }
+}
+@media (max-width: 360px) {
+  .acciones-enc { justify-content: flex-start; }
+  .acciones-enc .btn-enc { padding: 0 7px; font-size: 12px; }
+}
