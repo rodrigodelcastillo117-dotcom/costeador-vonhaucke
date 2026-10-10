@@ -439,4 +439,13 @@ describe('P0 — acero negro requiere definir metal y acabado POR SEPARADO', () 
     const c = clasificarMaterial({solicitado:'lámina negra cal. 18',insumoId:'lamina-14',insumoNombre:'Lamina de acero cal. 14'});
     expect(c.clase).toBe(MATCH.SAME_FAMILY_CRITICAL_CONFLICT);
   });
+  it('aunque sólo exista un PTR, sin calibre/sección no autocostea a escondidas', () => {
+    const unico=[{id:'ptr-14',nombre:'Tubo / PTR cal. 14',seccion:'metal'}];
+    const c=aplicarPoliticaMaterial({nombre:'Postes',material_solicitado:'PTR estructura negra',insumoId:''},()=>null,unico);
+    expect(c.insumoId).toBe('');
+    expect(c._match.candidate_insumo_id).toBe('ptr-14');
+    expect(c.material_match).toBe(MATCH.CANDIDATE_REQUIRES_CONFIRMATION);
+    expect(c._match.autocosteable).toBe(false);
+  });
+
 });
