@@ -60,11 +60,15 @@ describe('COT-P0-025 · partidas de Voni/IA → solver con rol funcional', () =>
     const bench = anclas.find((a) => a.relation_role === 'ANCHOR_WORKSTATION');
     expect(bench.user_capacity).toBe(8);
     expect(anclas.find((a) => a.relation_role === 'ANCHOR_DESK').user_capacity).toBe(3);        // ALPHA + 2 CONCERTO
-    // y el solver (mismo código que la edge) coloca al menos 3 de las 4 anclas
+    // E2E real 14:01Z: credenza y archivero quedaban sin grupo → "sin un mueble que las reciba".
+    const apoyo = payload.piezas.filter((p) => p.relation_role === 'SUPPORT_STORAGE');
+    for (const s of apoyo) expect(s.functional_group_id, s.nombre).toBe('inferido:privado');
+    // y el solver (mismo código que la edge) coloca las 4 anclas y NO deja dependientes sin dueño
     const r = construirRespuestaAcomodo(payload.areas, payload.piezas);
     const colocadas = new Set((r.plan?.colocacion || []).map((c) => String(c.id)));
     const anclasColocadas = anclas.filter((a) => colocadas.has(String(a.id)));
-    expect(anclasColocadas.length, `status=${r.status} colocadas=${colocadas.size}/${payload.piezas.length} no_cupieron=${JSON.stringify(r.layoutSpec?.no_cupieron || null)}`).toBeGreaterThanOrEqual(3);
+    expect(anclasColocadas.length, `status=${r.status} colocadas=${colocadas.size}/${payload.piezas.length} no_cupieron=${JSON.stringify(r.layoutSpec?.no_cupieron || null)}`).toBe(4);
+    expect(r.layoutSpec?.unassigned || [], 'dependientes sin dueño').toEqual([]);
   });
 
   it('el rol inferido queda MARCADO como inferido (no se confunde con rol confirmado del programa)', () => {

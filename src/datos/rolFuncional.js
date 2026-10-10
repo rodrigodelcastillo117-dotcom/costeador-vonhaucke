@@ -76,10 +76,22 @@ export function inferirRolFuncional(piezas = []) {
     return rol ? { ...p, relation_role: rol, rol_inferido: true } : p;
   });
   // Grupo funcional por zona inferida (sólo cuando falta).
+  // E2E real Torre Sur 14:01Z: credenza y archivero (SUPPORT_STORAGE) quedaban SIN grupo
+  // y el kit-solver los trata como dependientes sin ancla → "2 piezas sin un mueble que
+  // las reciba". El guardado de apoyo va con el privado (credenza Eclipse, archivero
+  // "guarda de privado") cuando hay escritorio privado; si no, con el área operativa.
+  const hayDesk = out.some((p) => p?.relation_role === 'ANCHOR_DESK');
+  const zonaStorage = (p) => {
+    const d = destinoMarcado(p);
+    if (d === 'privado' || d === 'open' || d === 'juntas' || d === 'recepcion') return d;
+    const t = norm(`${p.ruta || ''} ${p.piezaId || ''} ${p.nombre || ''}`);
+    if (/eclipse|drift|alba|luna|anteo|directiv|ejecutiv|credenza/.test(t) && hayDesk) return 'privado';
+    return hayDesk ? 'privado' : 'open';
+  };
   const conGrupo = out.map((p) => {
     if (!p || p.functional_group_id || !p.relation_role) return p;
-    const zona = ZONA_DE_ROL[p.relation_role];
-    if (!zona) return p;                             // SUPPORT_STORAGE: suelto, no dependiente
+    const zona = p.relation_role === 'SUPPORT_STORAGE' ? zonaStorage(p) : ZONA_DE_ROL[p.relation_role];
+    if (!zona) return p;
     return { ...p, functional_group_id: `inferido:${zona}`, grupo_inferido: true };
   });
   // Capacidad de las anclas inferidas.
@@ -92,7 +104,9 @@ export function inferirRolFuncional(piezas = []) {
       return n > 1 ? { ...p, user_capacity: n } : p;
     }
     if (p.relation_role === 'ANCHOR_DESK') {
-      return { ...p, user_capacity: 1 + (visitasPorGrupo.get(p.functional_group_id) || 0) };
+      // asientos (directiva + visitas) y guardado de apoyo del mismo grupo caben en su kit
+      const guardas = conGrupo.filter((q) => q?.functional_group_id === p.functional_group_id && (q.relation_role === 'SUPPORT_STORAGE' || q.relation_role === 'UNDERDESK_STORAGE')).length;
+      return { ...p, user_capacity: Math.max(1 + (visitasPorGrupo.get(p.functional_group_id) || 0), guardas) };
     }
     return p;
   });
