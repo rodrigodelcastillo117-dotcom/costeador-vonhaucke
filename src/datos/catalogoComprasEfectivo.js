@@ -94,6 +94,16 @@ export function construirCatalogoCompras(base = {}, referencias = [], precios = 
       && Number.isFinite(Number(semilla.precio)) && Number(semilla.precio) > 0
       ? { precio: Number(semilla.precio), unidad: semilla.unidad, fuente: semilla.fuente, nota: semilla.nota || '' }
       : null;
+    // Autorización explícita del usuario (10/oct): estas tres tarifas sirven
+    // para ESTIMAR módulos ASUR aun sin factura registrada. No son compras ERP,
+    // ni se heredan a otros insumos. Cuando llega factura REAL, gana Compras.
+    const tarifaASUR = !elegido && ['solid-surface','solid-surface-azul','adhesivo-solid-surface'].includes(ref.id)
+      ? estimacionMercado : null;
+    const precioEstimadoAutorizado = tarifaASUR?.precio ?? null;
+    const economiaFinal = tarifaASUR
+      ? { precio:precioEstimadoAutorizado, estado:'ESTIMADO_AUTORIZADO_ASUR', aptoEstimacion:true, cert:false,
+          error:'Tarifa ASUR autorizada para ESTIMACIÓN por el usuario; no representa factura ni costo confirmado de Compras.' }
+      : economia;
     const externo = identidadExterna(ref.id, mapeos, elegido);
     const metadata = {
       codigoCompras:ref.id, clavesERP:externo.clavesERP, mapeosERP:externo.mapeosERP,
@@ -109,19 +119,19 @@ export function construirCatalogoCompras(base = {}, referencias = [], precios = 
       contratoPrecio:elegido?.contract_status || '', confianzaPrecio:elegido?.confidence || '',
       evidenciaPrecio:elegido?.evidence_status || '', precioId:elegido?.id ?? null,
       versionesPrecio:candidatos.map((x) => ({id:x.id,precio:num(x.cost_unit_price_mxn) ?? num(x.precio),estado:x.estado,fuente:x.source_document || x.fuente || '',claveERP:x.source_record_id || '',fecha:x.vigente_desde || ''})),
-      estadoEconomia:economia.estado, aptoEstimacion:economia.aptoEstimacion, precioCertificable:economia.cert,
-      observacionPrecio:economia.error,
+      estadoEconomia:economiaFinal.estado, aptoEstimacion:economiaFinal.aptoEstimacion, precioCertificable:economiaFinal.cert,
+      observacionPrecio:economiaFinal.error,
       // Referencia técnica provisional y bien diferenciada de factura/OC.
-      // Nunca pasa a insumo.precio ni a un subtotal oficial.
+      // Solo las tarifas ASUR autorizadas se convierten en COSTO PRELIMINAR; nunca oficial.
       estimacionMercado,
-      fuenteCatalogo:'compras', disponibleCosteo:economia.aptoEstimacion,
+      fuenteCatalogo:'compras', disponibleCosteo:economiaFinal.aptoEstimacion,
     };
     const unidad = ref.unidad_costeo || anterior?.unidad || '';
     // Solo se hereda geometría/merma del mismo ID ya conocido por el motor.
-    const insumo = {...(anterior || {}),id:ref.id,nombre:ref.nombre,seccion:ref.seccion||anterior?.seccion||'',unidad,...metadata,precioReferencia:economia.precio};
-    if (economia.aptoEstimacion) {
-      insumo.precio = economia.precio;
-      insumo.precioBase = economia.precio;
+    const insumo = {...(anterior || {}),id:ref.id,nombre:ref.nombre,seccion:ref.seccion||anterior?.seccion||'',unidad,...metadata,precioReferencia:economiaFinal.precio};
+    if (economiaFinal.aptoEstimacion) {
+      insumo.precio = economiaFinal.precio;
+      insumo.precioBase = economiaFinal.precio;
       insumo.moneda = 'MXN';
     } else {
       delete insumo.precio;
@@ -153,7 +163,7 @@ export function construirCatalogoCompras(base = {}, referencias = [], precios = 
     if (!anterior && !insumo.clase) insumo.clase = 'directa';
     result[ref.id] = insumo;
     referenciasCompletas.push(insumo);
-    if (economia.aptoEstimacion) {stats.conPrecio++; economia.cert ? stats.aprobados++ : stats.preliminares++;}
+    if (economiaFinal.aptoEstimacion) {stats.conPrecio++; economiaFinal.cert ? stats.aprobados++ : stats.preliminares++;}
     else {stats.bloqueados++; if(!elegido)stats.sinPrecio++;}
   }
   return { insumos:result, referencias:referenciasCompletas, stats };
