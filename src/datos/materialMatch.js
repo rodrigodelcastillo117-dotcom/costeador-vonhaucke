@@ -369,7 +369,12 @@ function textoCambio(solicitado = '', insumoNombre = '') {
   if (fa && fb && fa !== fb) return `Solicitado perfil ${fa} → candidato ${fb}`;
   if (conflictoAcabadoColor(solicitado, insumoNombre)) {
     if (familiaDeMaterial(solicitado) === 'metal_lamina' && coloresDe(insumoNombre).size === 0) {
-      return 'Acabado negro/solicitado NO incluido en metal crudo; costear pintura aparte';
+      // "Lámina negra" es también una denominación comercial del acero:
+      // NO significa automáticamente pintura negra aplicada en fábrica.
+      if (formaMetal(solicitado) === 'lamina') {
+        return 'Confirmar lámina negra comercial y formato; NO asumir pintura adicional';
+      }
+      return 'Acabado negro de estructura POR CONFIRMAR; no asumir pintura sin evidencia';
     }
     return 'Acabado/color distinto al solicitado';
   }
@@ -473,7 +478,7 @@ export function clasificarMaterial({ solicitado = '', insumoId = '', insumoNombr
         clase: MATCH.CANDIDATE_REQUIRES_CONFIRMATION,
         familiaSolicitada: famPide, familiaResuelta: famTiene,
         autocosteable: false, insumoIdEfectivo: '', insumoIdCandidato: insumoId,
-        motivo: `El plano no define ${faltantes}. El acabado negro, si aplica, se especifica y costea aparte; requiere decisión técnica.`,
+        motivo: `El plano no define ${faltantes}. En PTR negro, confirmar acabado; en lámina negra, confirmar material comercial y formato. No se supone pintura; requiere decisión técnica.`,
         cambio: `Sin ${faltantes}; acabado por revisar`,
       };
     }
