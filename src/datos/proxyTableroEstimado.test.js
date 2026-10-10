@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { proxyTableroParaEstimar } from './proxyTableroEstimado.js';
+import { proxyTableroParaEstimar, proxyParaPiezaDePlano, puedeUsarHojasDirectas } from './proxyTableroEstimado.js';
 import { familiaDeMaterial, aplicarPoliticaMaterial, MATCH } from './materialMatch.js';
 import { calcular, costeoEmitible } from '../motor/calculo.js';
 
@@ -41,6 +41,39 @@ describe('costo provisional automático cuando el plano pide 18mm nogal', () => 
     expect(gate.emitible).toBe(false);
     expect(gate.costoTotal).toBeNull();
     expect(gate.bloqueos.materiales_por_confirmar.length).toBeGreaterThan(0);
+  });
+  it('normaliza el contrato real de Supabase ($/m², formato tablero y fracción desactivada)', () => {
+    const conM2 = {
+      ...activo,
+      'melamina-19': { ...activo['melamina-19'], unidad: 'm2', fraccion: false, precio: 100 },
+    };
+    const spec = 'Melamina 18 mm color nogal claro';
+    const z = { forma: 'area', largoMM: 800, anchoMM: 500, hojas: 0.4 };
+    const proxy = proxyParaPiezaDePlano(spec, z, conM2);
+    expect(proxy?.id).toBe('melamina-19');
+    expect(puedeUsarHojasDirectas(proxy, conM2)).toBe(false);
+    const base = aplicarPoliticaMaterial({
+      nombre: 'Puerta de exhibidor', material_solicitado: spec, insumoId: proxy.id,
+    }, id => conM2[id], Object.values(conM2));
+    expect(base.material_match).toBe(MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED);
+    // Fracción 0.4 hojas NO se usa como 0.4 m². En su lugar manda geometría.
+    const r = calcular({ nombre: 'QA', modoManoObra: 'porcentaje', piezas: 1,
+      componentes: [{ ...base, forma: 'area', largoMM: 800, anchoMM: 500, cantidad: 1, piezas: 1 }] }, 1, conM2);
+    const d = r.detalleInsumos.find(x => x.insumoId === 'melamina-19');
+    expect(d).toBeDefined();
+    expect(d.costo).toBeCloseTo(d.comprado * 100, 2);
+    expect(r.costoUnitario).toBeGreaterThan(0);
+    expect(costeoEmitible(r).emitible).toBe(false);
+    expect(costeoEmitible(r).costoTotal).toBeNull();
+  });
+  it('rechaza $/m² con solo fracción de hoja y sin medidas, para evitar subcosteo', () => {
+    const conM2 = {
+      ...activo, 'melamina-19': { ...activo['melamina-19'], unidad: 'm2', fraccion: false },
+    };
+    expect(proxyParaPiezaDePlano('Melamina 18 mm nogal claro',
+      { forma: 'area', hojas: 0.4 }, conM2)).toBeNull();
+    expect(proxyParaPiezaDePlano('Melamina 18 mm nogal claro',
+      { forma: 'area', largoMM: 0, anchoMM: 700 }, conM2)).toBeNull();
   });
   it('no inventa precio cero ni usa candidato no aprobado por el catálogo activo', () => {
     expect(proxyTableroParaEstimar('Melamina 18 mm nogal claro', {
