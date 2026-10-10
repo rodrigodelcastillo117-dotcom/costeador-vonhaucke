@@ -77,8 +77,9 @@ describe('allowlist', () => {
 });
 
 describe('regresión #123/#124/#127: timeout de revisión de plano', () => {
-  it('mantiene el modelo inicial actual para texto e imagen', () => {
-    expect(resolverModeloPorPasada('analizar-mueble', {}, { esRevision: false })).toBe('claude-opus-5');
+  it('conserva Opus para texto, y Sonnet para imagen inicial y revisión', () => {
+    expect(resolverModeloPorPasada('analizar-mueble', {}, { esRevision: false, esVisual: false })).toBe('claude-opus-5');
+    expect(resolverModeloPorPasada('analizar-mueble', {}, { esRevision: false, esVisual: true })).toBe('claude-sonnet-5-5');
   });
   it('utiliza Sonnet para revisiones, sin cambiar el análisis inicial', () => {
     expect(resolverModeloPorPasada('analizar-mueble', {}, { esRevision: true })).toBe('claude-sonnet-5-5');
