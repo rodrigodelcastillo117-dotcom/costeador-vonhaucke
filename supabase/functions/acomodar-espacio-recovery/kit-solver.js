@@ -187,6 +187,21 @@ function candidatos(area, kw, kh, orden, deadline) {
   if (orden === 'reverse') return out.slice().reverse();
   if (orden === 'col') return out.slice().sort((a, b) => (a.x - b.x) || (a.y - b.y));
   if (orden === 'colReverse') return out.slice().sort((a, b) => (b.x - a.x) || (b.y - a.y));
+  if (orden === 'inset') {
+    // Cuarto plano grande con 2–3 mesas de juntas: row/center/reverse solían
+    // colocar los kits pegados a muro, bloqueando el acceso por el lado activo.
+    // Preferir un margen de 1m a perímetro externo, conservando el MISMO
+    // conjunto de posiciones válidas. El juez geométrico y semántico siguen
+    // decidiendo; NUNCA se publica sin aprobar ambos.
+    const margin = AISLE;
+    const deficit = ({x,y}) =>
+      Math.max(0,margin-x)
+      + Math.max(0,margin-y)
+      + Math.max(0,margin-(W-x-kw))
+      + Math.max(0,margin-(H-y-kh));
+    return out.slice().sort((a,b)=>
+      (deficit(a)-deficit(b)) || (a.y-b.y) || (a.x-b.x));
+  }
   if (orden === 'center') {
     // Candidato ACCESO-CONSCIENTE (uno más a juzgar, NO el orden por defecto):
     // prueba primero las posiciones con MÁS margen a los muros, para que los
@@ -530,7 +545,7 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
 //  Empate exacto → candidato de MENOR índice (el determinista). Por eso un caso
 //  factible del banco sólo puede MANTENERSE o MEJORAR, nunca regresar.
 // ============================================================================
-const ESTRATEGIAS_MULTI = [undefined, 'center', 'reverse', 'col', 'colReverse'];
+const ESTRATEGIAS_MULTI = [undefined, 'center', 'inset', 'reverse', 'col', 'colReverse'];
 const MAX_MULTI_MS = 4000;        // F: presupuesto TOTAL del multi (no 5× el del solver)
 const QUALITY_EXCELENTE = 85;     // umbral para corte adaptativo
 
