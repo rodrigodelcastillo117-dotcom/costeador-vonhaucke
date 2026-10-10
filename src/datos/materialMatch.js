@@ -699,7 +699,15 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
       resuelto = mejor.nombre;
       cambio = textoCambio(solicitado, mejor.nombre);
       autollenado = true;
-      if (sev.critico) {
+      // P0: El camino SIN insumoId debe obedecer al MISMO juez que el camino
+      // CON insumoId. Antes omitía la regla "PTR genérico sin calibre/sección"
+      // y podía autocostear el único candidato de la familia.
+      const evaluado = clasificarMaterial({ solicitado, insumoId: mejor.id, insumoNombre: mejor.nombre });
+      if (evaluado.clase === MATCH.CANDIDATE_REQUIRES_CONFIRMATION) {
+        clase = MATCH.CANDIDATE_REQUIRES_CONFIRMATION;
+        motivo = evaluado.motivo;
+        cambio = evaluado.cambio || cambio;
+      } else if (sev.critico) {
         clase = MATCH.SAME_FAMILY_CRITICAL_CONFLICT;
         motivo = `Candidato de la misma familia con atributo crítico distinto (${cambio || 'calibre/perfil'}): ${mejor.nombre}. Confirma antes de costear.`;
       } else {
