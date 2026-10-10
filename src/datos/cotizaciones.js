@@ -171,6 +171,19 @@ const creacionesEnCurso = new Map();
 const clavesEnMemoria = new Map();
 const SLOT_IDEMPOTENCIA = 'vh-quote-create-pending-v1';
 
+// Nunca persistir partidas/cliente/precios enteros en sessionStorage.
+// El servidor verifica aparte el hash canónico del payload: una eventual
+// colisión local no puede devolver otra cotización incorrecta.
+function huellaOperacion(texto) {
+  let a=2166136261>>>0, b=2246822519>>>0;
+  for (let i=0; i<texto.length; i++) {
+    const n=texto.charCodeAt(i);
+    a=Math.imul(a^n,16777619)>>>0;
+    b=Math.imul(b^(n+i),3266489917)>>>0;
+  }
+  return texto.length.toString(36)+'-'+a.toString(36)+'-'+b.toString(36);
+}
+
 function obtenerClaveOperacion(fingerprint) {
   // Conservar el ID de operación después de fallar la red, incluso si el
   // usuario recarga. No confundir contenido idéntico con una misma operación:
@@ -207,12 +220,13 @@ export async function guardarCotizacion(estado, usuario, id = null) {
   if (id == null && fila.partidas.length) {
     const clave = JSON.stringify([usuario, fila.folio, fila.cliente, fila.partidas, fila.acomodo, fila.totales, fila.huella_mp]);
     if (creacionesEnCurso.has(clave)) return creacionesEnCurso.get(clave);
-    const idOperacion = obtenerClaveOperacion(clave);
+    const firma=huellaOperacion(clave);
+    const idOperacion = obtenerClaveOperacion(firma);
     const promesa = persistirCotizacion({ ...fila, _idempotency_key:idOperacion }, id);
     creacionesEnCurso.set(clave, promesa);
     try {
       const resultado = await promesa;
-      if (resultado != null) liberarOperacion(clave,idOperacion);
+      if (resultado != null) liberarOperacion(firma,idOperacion);
       return resultado;
     } finally {
       if (creacionesEnCurso.get(clave) === promesa) creacionesEnCurso.delete(clave);
