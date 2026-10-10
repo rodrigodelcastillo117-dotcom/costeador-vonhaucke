@@ -72,7 +72,17 @@ Deno.serve(async (req) => {
   // la fuga por la que `pieza.margen` del body movía el precio de venta, y rechaza
   // insumo/precio/costo/factores/modeloCosteo inline en lugar de ignorarlos en silencio.
   const v = validarIntentCosteo(body);
-  if (!v.ok) return json({ ok: false, code: v.code, issues: v.issues }, 400);
+  if (!v.ok) {
+    // P0: los shadow 400 ya no deben ser opacos. Solo metadatos de validación;
+    // NUNCA cuerpos, precios, IDs de insumo, usuario ni texto del pedido en logs.
+    const campos = (v.issues || []).slice(0, 12).map((i: any) => {
+      const f = String(i.field || '');
+      return /^(cantidad|pieza(?:\\.componentes)?|componentes\\[\\d+\\](?:\\.(?:insumoId|material_match|cantidad|piezas|hojas|largoMM|anchoMM))?)$/.test(f)
+        ? f.replace(/\\[\\d+\\]/g, '[n]') : 'otro_campo';
+    });
+    console.warn(JSON.stringify({ event: 'COSTEAR_DTO_REJECTED', code: v.code, fields: campos, issues_count: (v.issues || []).length }));
+    return json({ ok: false, code: v.code, issues: v.issues }, 400);
+  }
   const intent = v.intent;
   const pieza = intent.pieza;              // { componentes, horas? } — saneado, sin dinero ni modelo
   const n = Math.max(1, Number(intent.cantidad) || 1);
