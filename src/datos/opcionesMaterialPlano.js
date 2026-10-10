@@ -79,6 +79,22 @@ function opcionesNoTablero(solicitado, insumos, limite) {
 
 export function opcionesMaterialPlano(solicitado, insumos = {}, limite = 4) {
   const familia = familiaDeMaterial(solicitado);
+  if (familia === 'superficie_solida') {
+    // ASUR: el ID es MATERIAL (m²), no adhesivo ni una tabla de MDF.
+    // Color azul del plano es una especificación: la variante blanca no lo sustituye.
+    const azulPedido = /azul|blue/i.test(normalizar(solicitado));
+    const refs = Object.values(insumos || {}).filter(x =>
+      ['solid-surface','solid-surface-azul'].includes(x?.id) && x?.activo !== false);
+    return refs.filter(x => !azulPedido || x.id === 'solid-surface-azul')
+      .map(x => ({
+        id:x.id, nombre:x.nombre, fuenteCatalogo:x.fuenteCatalogo || 'compras',
+        confirmable:x.disponibleCosteo !== false && (!azulPedido || x.id === 'solid-surface-azul'),
+        prioridad:x.id === 'solid-surface-azul' && azulPedido ? 200:30,
+        advertencia:x.precioCertificable
+          ? 'Material con precio certificado; revisar las cotas para determinar m².'
+          : 'Material y tarifa ASUR disponibles para ESTIMACIÓN; confirmar m², adhesivo y compras antes de emisión.',
+      })).sort((a,b)=>b.prioridad-a.prioridad).slice(0,limite);
+  }
   if (familia !== 'melamina') return opcionesNoTablero(solicitado, insumos, limite);
   const espPedido = espesor(solicitado);
   // Sin espesor de plano no existe un tablero verificable: no elegir 9/16/19/28 al azar.
