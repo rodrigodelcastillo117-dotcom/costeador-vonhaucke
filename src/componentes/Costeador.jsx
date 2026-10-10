@@ -251,7 +251,10 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     const prev = comps[i];
     const patch = { insumoId, nombre: prev.nombre || (ins ? ins.nombre : '') };
     if (!esArea(ins)) { patch.largoMM = undefined; patch.anchoMM = undefined; } // material no dimensional
-    if (!esFraccionHoja(ins)) patch.hojas = undefined; // material que no es por fracción de hoja
+    // Cambiar de una lámina/tablero a OTRO invalida la fracción capturada para el
+    // material anterior, incluso si AMBOS se venden por hoja. Nunca arrastrar hojas
+    // obsoletas: el usuario recaptura su cantidad o el motor deriva el m² neto.
+    if (prev.insumoId !== insumoId || !esFraccionHoja(ins)) patch.hojas = undefined;
     // Elección/confirmación HUMANA: misma intención en ambas UIs (P0.8). El servidor verifica
     // material_confirmado + insumoId y lo convierte a USER_CONFIRMED efectivo (no confía en el string).
     if (ins) Object.assign(patch, patchConfirmacionUI(insumoId));
