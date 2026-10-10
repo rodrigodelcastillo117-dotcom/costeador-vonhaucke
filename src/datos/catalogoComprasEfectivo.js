@@ -102,7 +102,7 @@ export function construirCatalogoCompras(base = {}, referencias = [], precios = 
     };
     const unidad = ref.unidad_costeo || anterior?.unidad || '';
     // Solo se hereda geometría/merma del mismo ID ya conocido por el motor.
-    const insumo = {...(anterior || {}),id:ref.id,nombre:ref.nombre,seccion:ref.seccion||anterior?.seccion||'',unidad,...metadata};
+    const insumo = {...(anterior || {}),id:ref.id,nombre:ref.nombre,seccion:ref.seccion||anterior?.seccion||'',unidad,...metadata,precioReferencia:economia.precio};
     if (economia.aptoEstimacion) {
       insumo.precio = economia.precio;
       insumo.precioBase = economia.precio;
@@ -122,6 +122,14 @@ export function construirCatalogoCompras(base = {}, referencias = [], precios = 
       } else {
         delete insumo.formato;
         insumo.fraccion = false;
+        // COSTO POR HOJA ≠ COSTO POR m²: sin formato conocido, una pieza con
+        // 2 m² no puede convertirse a 2 hojas (error de dinero material).
+        // Preservamos el importe/clave/fuente sólo para consulta.
+        delete insumo.precio;
+        delete insumo.precioBase;
+        insumo.disponibleCosteo = false;
+        insumo.estadoEconomia = 'FORMATO_PENDIENTE';
+        insumo.observacionPrecio = 'Precio por hoja disponible; faltan medidas físicas para derivar fracción/nesting.';
       }
     }
     if (!anterior && ['herrajes','electrico','graficos'].includes(insumo.seccion)) insumo.clase = 'indirecta';
