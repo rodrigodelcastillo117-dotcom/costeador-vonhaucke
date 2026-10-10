@@ -1,3 +1,5 @@
+import { INSUMOS_SEMILLA } from './insumos.js';
+
 // Lectura económica canónica de Compras/ERP, sólo en memoria de Dirección/Diseño.
 // NO persiste ni reemplaza la config legacy; evita inflar/eliminar datos históricos.
 // Los nombres, IDs, claves ERP y la fuente provienen EXCLUSIVAMENTE de Supabase.
@@ -76,6 +78,10 @@ export function construirCatalogoCompras(base = {}, referencias = [], precios = 
   }
   const stats = { catalogo:0, conPrecio:0, sinPrecio:0, preliminares:0, aprobados:0, bloqueados:0 };
   const referenciasCompletas = [];
+  // SOLO REFERENCIA identificada, nunca precio de compra ni emisión.
+  // En particular el solid surface ASUR sí existe en semillas de ingeniería,
+  // pero aún no tiene entrada verificada de compras.
+  const referenciasSemilla = new Map(INSUMOS_SEMILLA.map((x) => [x.id, x]));
   for (const ref of Array.isArray(referencias) ? referencias : []) {
     if (!ref || ref.activo === false || !ref.id || !ref.nombre) continue;
     stats.catalogo++;
@@ -83,6 +89,11 @@ export function construirCatalogoCompras(base = {}, referencias = [], precios = 
     const candidatos = (porId.get(ref.id) || []).slice().sort(ordenarPrecios);
     const elegido = candidatos[0] || null;
     const economia = evaluarPrecioCompra(elegido, ref, anterior);
+    const semilla = referenciasSemilla.get(ref.id);
+    const estimacionMercado = !elegido && semilla?.fuente && /mercado|estimado|afina/i.test(String(semilla.fuente) + ' ' + String(semilla.nota || ''))
+      && Number.isFinite(Number(semilla.precio)) && Number(semilla.precio) > 0
+      ? { precio: Number(semilla.precio), unidad: semilla.unidad, fuente: semilla.fuente, nota: semilla.nota || '' }
+      : null;
     const externo = identidadExterna(ref.id, mapeos, elegido);
     const metadata = {
       codigoCompras:ref.id, clavesERP:externo.clavesERP, mapeosERP:externo.mapeosERP,
@@ -100,6 +111,9 @@ export function construirCatalogoCompras(base = {}, referencias = [], precios = 
       versionesPrecio:candidatos.map((x) => ({id:x.id,precio:num(x.cost_unit_price_mxn) ?? num(x.precio),estado:x.estado,fuente:x.source_document || x.fuente || '',claveERP:x.source_record_id || '',fecha:x.vigente_desde || ''})),
       estadoEconomia:economia.estado, aptoEstimacion:economia.aptoEstimacion, precioCertificable:economia.cert,
       observacionPrecio:economia.error,
+      // Referencia técnica provisional y bien diferenciada de factura/OC.
+      // Nunca pasa a insumo.precio ni a un subtotal oficial.
+      estimacionMercado,
       fuenteCatalogo:'compras', disponibleCosteo:economia.aptoEstimacion,
     };
     const unidad = ref.unidad_costeo || anterior?.unidad || '';
