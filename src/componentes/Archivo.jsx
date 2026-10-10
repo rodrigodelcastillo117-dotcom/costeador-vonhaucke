@@ -13,9 +13,10 @@
 //  Abrir una la trae al proyecto actual; el archivo no se destruye desde aquí
 //  (sacar de la lista sólo la marca inactiva).
 // ============================================================================
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { listarCotizaciones, archivarCotizacion, mpCambio } from '../datos/cotizaciones.js';
 import { listarRevisiones } from '../datos/revisiones.js';
+import { armarRespaldo, validarRespaldo, nombreArchivoRespaldo, descargarJSON, leerArchivoJSON } from '../datos/respaldo.js';
 import { pesos, coincide } from '../util.js';
 
 const fechaCorta = (iso) => {
@@ -24,10 +25,38 @@ const fechaCorta = (iso) => {
   return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' });
 };
 
-export default function Archivo({ estado, onAbrir }) {
+export default function Archivo({ estado, onAbrir, veCostos = false, usuario = null, onRestaurar = null }) {
   const [lista, setLista] = useState(null);   // null = cargando
   const [busca, setBusca] = useState('');
   const [error, setError] = useState('');
+  const [respaldoMsg, setRespaldoMsg] = useState('');
+  const archivoRef = useRef(null);
+
+  // RESPALDO LOCAL DE UN CLIC (Bloque 1). Lo que vive sólo en este navegador sale a
+  // un archivo; el rol decide qué sale (ver datos/respaldo.js). Restaurar reemplaza la
+  // cotización actual (se pregunta antes) y sigue editando LA MISMA en la nube.
+  function exportarRespaldo() {
+    const r = armarRespaldo(estado, { veCostos, usuario });
+    descargarJSON(nombreArchivoRespaldo(r), r);
+    const n = r.cotizacion?.partidas?.length || 0;
+    setRespaldoMsg(`Respaldo descargado: ${n} renglón(es)${veCostos ? ', con costos, insumos y parámetros' : ', sin economía interna'}.`);
+  }
+  async function restaurarRespaldo(e) {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f || !onRestaurar) return;
+    try {
+      const r = await leerArchivoJSON(f);
+      const v = validarRespaldo(r);
+      if (!v.ok) { setRespaldoMsg(`No se restauró: ${v.motivo}`); return; }
+      const hay = (estado?.cotizacion?.partidas || []).length;
+      if (hay && !confirm(`Tienes ${hay} mueble(s) en el proyecto actual. ¿Los reemplazo con el respaldo (${r.cotizacion.cliente || 'sin cliente'}, ${r.cotizacion.partidas.length} renglones)?`)) return;
+      const res = onRestaurar(r);
+      setRespaldoMsg(res?.ok === false ? `No se restauró: ${res.motivo}` : `Respaldo restaurado: ${r.cotizacion.partidas.length} renglón(es) de ${r.cotizacion.cliente || 'sin cliente'}.`);
+    } catch (err) {
+      setRespaldoMsg(`No se restauró: ${err?.message || err}`);
+    }
+  }
 
   async function refrescar() {
     setError('');
@@ -43,6 +72,21 @@ export default function Archivo({ estado, onAbrir }) {
 
   return (
     <div className="contenido">
+      <div className="tarjeta" data-testid="respaldo-local">
+        <h3 style={{ marginTop: 0 }}>Respaldo de esta computadora</h3>
+        <p className="ayuda columna-texto">
+          Lo que tienes abierto vive también en este navegador. Descárgalo a un archivo para no perderlo
+          o para seguir en otra computadora. {veCostos ? 'Tu respaldo incluye costos, insumos y parámetros (nunca la nómina).' : 'Tu respaldo no incluye economía interna.'}
+        </p>
+        <div className="fila-botones" style={{ gap: 8 }}>
+          <button className="boton primario" style={{ minHeight: 44 }} onClick={exportarRespaldo}>Descargar respaldo</button>
+          {onRestaurar && (
+            <button className="boton" style={{ minHeight: 44 }} onClick={() => archivoRef.current?.click()}>Restaurar respaldo</button>
+          )}
+          <input ref={archivoRef} type="file" accept="application/json" style={{ display: 'none' }} onChange={restaurarRespaldo} data-testid="respaldo-archivo" />
+        </div>
+        {respaldoMsg && <div className="ayuda" style={{ marginTop: 8 }} data-testid="respaldo-msg">{respaldoMsg}</div>}
+      </div>
       <div className="tarjeta">
         <h2 style={{ marginTop: 0 }}>Presupuestos que ya hicimos</h2>
         <p className="ayuda columna-texto">

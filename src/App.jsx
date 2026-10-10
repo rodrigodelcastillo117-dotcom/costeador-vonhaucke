@@ -58,6 +58,7 @@ import Reglas from './componentes/Reglas.jsx';
 import { cargarReglas } from './datos/reglas.js';
 import { cargarAprendizajes } from './datos/aprendizaje.js';
 import { guardarCotizacion, cargarCotizacionCompleta, paraGuardar, firmaGuardado, claveCreacionNueva } from './datos/cotizaciones.js';
+import { aplicarRespaldo } from './datos/respaldo.js';
 import { guardarRevision } from './datos/revisiones.js';
 import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
 import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, cotizacionEmitible } from './nube.js';
@@ -411,15 +412,20 @@ export default function App() {
   // Firma de lo ÚLTIMO que el servidor confirmó. Si lo que se guardaría es idéntico,
   // no se escribe nada (ni al reabrir desde el Archivo, ni al fijar el id).
   const ultimaFirmaNube = useRef('');
-  // Al reabrir desde el Archivo lo que llega puede venir SIN economía (vendedor/diseño
-  // reciben las partidas despojadas). El primer "guardado" tras reabrir sólo toma la
-  // firma y NO escribe: así no se pisa en la nube la economía que Dirección sí tenía.
-  const reabiertaSinEscribir = useRef(false);
+  // Al reabrir desde el Archivo (o restaurar un respaldo) lo que llega ya ESTÁ en la
+  // nube: se fija su firma como "último guardado" para que no se escriba nada hasta que
+  // el usuario edite de verdad. (Antes era una bandera que se consumía en el siguiente
+  // guardado: una edición dentro del 1.5 s del debounce se tragaba sin escribir.)
+  const fijarFirmaComoGuardada = (estadoNuevo) => {
+    const email = sesion?.user?.email || null;
+    ultimaFirmaNube.current = firmaGuardado(paraGuardar(estadoNuevo, email));
+  };
   // Una CREACIÓN en vuelo a la vez: dos creates con la misma clave pero distinto
   // contenido harían que el servidor rechace la segunda (y rotar la clave duplicaría).
   // Al resolver, fijar el id cambia `estado.cotizacion` y el autosave vuelve a correr
   // con lo más reciente, así que nada se queda sin guardar.
   const creandoEnVuelo = useRef(false);
+  const avisoNubeCaida = useRef(false);
 
   // ÚNICA PUERTA de guardado a la nube (autosave, verificar emisión, emitir).
   // Devuelve el resultado de guardarCotizacion y mantiene id/clave/firma coherentes.
@@ -429,11 +435,6 @@ export default function App() {
     const fila = paraGuardar(estado, sesion.user.email);
     if (!fila.partidas.length) return { id: idCotizacion.current, guardado: false, motivo: 'vacia' };
     const firma = firmaGuardado(fila);
-    if (reabiertaSinEscribir.current) {
-      reabiertaSinEscribir.current = false;
-      ultimaFirmaNube.current = firma;
-      return { id: idCotizacion.current, guardado: true, sinCambios: true };
-    }
     if (idCotizacion.current && firma === ultimaFirmaNube.current) {
       return { id: idCotizacion.current, guardado: true, sinCambios: true };
     }
@@ -453,6 +454,20 @@ export default function App() {
       creandoEnVuelo.current = false;
     }
     if (epocaCot.current !== epoca) return r;   // se empezó de cero mientras guardaba
+    // AVISO CLARO cuando la nube no recibe la cotización (antes fallaba en silencio y el
+    // vendedor creía que estaba guardado). El punto del encabezado pasa a "Sin conexión"
+    // y se avisa UNA vez por racha; al volver, el punto regresa a "En línea".
+    if (r.motivo === 'red' || r.motivo === 'desconocido') {
+      setNubeEstado('sin-conexion');
+      if (!avisoNubeCaida.current) {
+        avisoNubeCaida.current = true;
+        mostrarAviso('No se pudo guardar la cotización en la nube. Sigue guardada en esta computadora; se reintenta solo al siguiente cambio.', 8000);
+      }
+    } else if (r.guardado) {
+      if (avisoNubeCaida.current) mostrarAviso('Conexión recuperada: la cotización ya está guardada en la nube.', 5000);
+      avisoNubeCaida.current = false;
+      setNubeEstado('conectado');
+    }
     if (r.guardado && r.id) {
       ultimaFirmaNube.current = firma;
       if (idCotizacion.current !== r.id) {
@@ -470,6 +485,14 @@ export default function App() {
     }
     return r;
   }
+
+  // Cambió la persona (salir / entrar otro correo): lo "ya guardado" era de la sesión
+  // anterior. Se olvida la firma para que el siguiente guardado vaya al servidor y éste
+  // decida (p. ej. 'sin acceso' → se suelta el id y se crea una propia, sin pisar la ajena).
+  useEffect(() => {
+    ultimaFirmaNube.current = '';
+    avisoNubeCaida.current = false;
+  }, [sesion?.user?.email]);
 
   useEffect(() => {
     if (!sesion?.user?.email) return;
@@ -1010,7 +1033,7 @@ export default function App() {
                 Mi cotización <span className="btn-cot-n">{nPartidas}</span>
               </button>
             )}
-            <span className="conexion" title={nubeEstado === 'conectado' ? 'Conectado: los cambios se comparten' : nubeEstado === 'sin-conexion' ? 'Sin conexión: se guarda en esta computadora' : 'Conectando…'}>
+            <span className="conexion" data-testid="nube-estado" data-estado={nubeEstado} title={nubeEstado === 'conectado' ? 'Conectado: los cambios se comparten' : nubeEstado === 'sin-conexion' ? 'Sin conexión: se guarda en esta computadora' : 'Conectando…'}>
               <span className="punto" style={{ background: nubeEstado === 'conectado' ? '#3fbf8f' : nubeEstado === 'sin-conexion' ? '#B8912F' : '#8a8480' }} />
               <span className="conexion-txt">{nubeEstado === 'conectado' ? 'En línea' : nubeEstado === 'sin-conexion' ? 'Sin conexión' : '...'}</span>
             </span>
@@ -1066,6 +1089,22 @@ export default function App() {
         {pestania === 'archivo' && (
           <Archivo
             estado={estado}
+            veCostos={veCostos}
+            usuario={sesion?.user?.email || null}
+            onRestaurar={(r) => {
+              // Restaurar un respaldo = reabrir ESA cotización (mismo id/clave): no se
+              // escribe a la nube hasta que el usuario edite (igual que abrir del Archivo).
+              try {
+                const nuevo = aplicarRespaldo(estado, r, { veCostos });
+                epocaCot.current += 1;
+                idCotizacion.current = nuevo.cotizacion?.id ?? null;
+                if (idCotizacion.current) fijarFirmaComoGuardada(nuevo); else ultimaFirmaNube.current = '';
+                setEstado(nuevo);
+                irA('cotizacion');
+                mostrarAviso(`Respaldo restaurado: ${nuevo.cotizacion?.cliente || 'sin cliente'}.`);
+                return { ok: true };
+              } catch (e) { return { ok: false, motivo: String(e?.message || e) }; }
+            }}
             onAbrir={async (c) => {
               // Abrir un presupuesto viejo trae SUS renglones al proyecto actual.
               // Se pregunta antes si ya hay algo cargado: reemplazar sin avisar es
@@ -1078,21 +1117,20 @@ export default function App() {
               const full = (await cargarCotizacionCompleta(c.id)) || c;
               epocaCot.current += 1;          // invalida guardados en vuelo de la anterior
               idCotizacion.current = c.id;   // seguir editando ESE, no crear otro
-              ultimaFirmaNube.current = '';
-              reabiertaSinEscribir.current = true;  // no pisar la nube hasta que el usuario edite
-              setEstado((e) => ({
-                ...e,
-                cotizacion: {
-                  ...e.cotizacion,
-                  id: c.id, claveCreacion: claveCreacionNueva(),
-                  cliente: full.cliente || '', folio: full.folio || '',
-                  partidas: full.partidas || [], acomodo: full.acomodo || null,
-                  descuentoPct: full.totales?.descuentoPct ?? e.cotizacion.descuentoPct,
-                  contingenciaPct: full.totales?.contingenciaPct ?? e.cotizacion.contingenciaPct,
-                  maniobrasPct: full.totales?.maniobrasPct ?? e.cotizacion.maniobrasPct,
-                  fletePct: full.totales?.fletePct ?? e.cotizacion.fletePct,
-                },
-              }));
+              const cotAbierta = {
+                ...estado.cotizacion,
+                id: c.id, claveCreacion: claveCreacionNueva(),
+                cliente: full.cliente || '', folio: full.folio || '',
+                partidas: full.partidas || [], acomodo: full.acomodo || null,
+                descuentoPct: full.totales?.descuentoPct ?? estado.cotizacion.descuentoPct,
+                contingenciaPct: full.totales?.contingenciaPct ?? estado.cotizacion.contingenciaPct,
+                maniobrasPct: full.totales?.maniobrasPct ?? estado.cotizacion.maniobrasPct,
+                fletePct: full.totales?.fletePct ?? estado.cotizacion.fletePct,
+              };
+              // Lo que se acaba de abrir YA está en la nube: no se reescribe (ni se pisa la
+              // economía que este rol no ve) hasta que el usuario edite algo.
+              fijarFirmaComoGuardada({ ...estado, cotizacion: cotAbierta });
+              setEstado((e) => ({ ...e, cotizacion: cotAbierta }));
               irA('cotizacion');
               mostrarAviso(`Abierto: ${full.cliente || c.cliente || 'sin cliente'}`);
             }}

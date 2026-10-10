@@ -15,7 +15,15 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [{
+    name: 'chromium',
+    use: {
+      ...devices['Desktop Chrome'],
+      // Entornos con un Chromium ya instalado en otra ruta (sin `playwright install`):
+      // PW_EXECUTABLE=/ruta/al/chromium npm run e2e
+      ...(process.env.PW_EXECUTABLE ? { launchOptions: { executablePath: process.env.PW_EXECUTABLE } } : {}),
+    },
+  }],
   webServer: {
     command: 'npm run dev',
     url: 'http://localhost:5173',

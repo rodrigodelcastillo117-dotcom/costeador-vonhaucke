@@ -26,21 +26,31 @@ en asientos de escritorios ya colocados (`planner.js:290,313,353`) y no tienen p
 pasada 2 re-empaca desde cero y las piezas que no caben se pierden sin volver a `restantes`
 (`planner.js:359-369`) reportando `caben:true`. Es el mecanismo de VH-016.
 
-**VH-034 · P0 · FIXED (cliente) · Cada recarga creaba una cotización nueva en la nube.** `idCotizacion` era
-`useRef(null)` (`App.jsx:398`), nunca se persistía; al recargar, el autosave hacía INSERT (`cotizaciones.js:154`).
-Fix (Bloque 1): el id vive en `estado.cotizacion.id` (persiste con el estado); una sola puerta `guardarEnNube()`
-en App.jsx; el guardado va por los RPCs del servidor `crear_cotizacion_segura` (idempotente por
-`_idempotency_key` = `estado.cotizacion.claveCreacion`) y `actualizar_cotizacion_segura`; firma del contenido
-para no escribir lo mismo dos veces; una sola creación en vuelo. Fila ajena → se suelta el id (no se finge
-guardado). 12 tests `cotizaciones.guardado.test.js`. Pendiente VERIFIED: recargar en vivo y contar filas.
+**VH-034 · P0 · FIXED · VERIFIED (E2E navegador) · Cada recarga creaba una cotización nueva en la nube.**
+`idCotizacion` era `useRef(null)`, nunca se persistía; al recargar, el autosave hacía INSERT. Fix (Bloque 1):
+el id y la `claveCreacion` (idempotencia) nacen con la cotización (`almacen.estadoInicial`) y persisten con el
+estado; una sola puerta `guardarEnNube()`; escritura por los RPCs `crear_cotizacion_segura` (idempotente) /
+`actualizar_cotizacion_segura`, nunca INSERT/UPDATE directos; firma del contenido para no reescribir lo mismo;
+una creación en vuelo a la vez; fila ajena → se suelta el id. Evidencia: `e2e/persistencia.e2e.js` en Chromium
+real con nube simulada (semántica del servidor): **100 recargas → 1 fila · 2 pestañas simultáneas → 1 fila ·
+otra computadora → misma fila · otro usuario en la misma computadora → crea la suya sin tocar la ajena ·
+caída de red → aviso + sin pérdida + recuperación**. Unit: `cotizaciones.guardado.test.js` (12).
 
-**VH-035 · P0 · FIXED parcial · Reabrir desde Archivo destruía la economía guardada.**
-Cliente (hecho): tras reabrir, el primer autosave sólo toma la firma y NO escribe hasta que el usuario edite;
-el cliente ya no manda `estado` comercial (antes el guard de la DB rechazaba en silencio el guardado de una
-cotización emitida). Servidor (PENDIENTE DE APLICAR): `supabase/migrations/20261010170000_actualizar_
-cotizacion_preserva_economia.sql` — quien no ve economía no la puede escribir ni borrar: el RPC strippea lo
-que entra y re-pega por `id` la economía que ya tenía la fila; el trigger de strip respeta la fusión. Sin esa
-migración, un diseñador que reabre y EDITA sigue pisando los costos de Dirección en esa fila.
+**VH-035 · P0 · FIXED (cliente) + FIXED en base aislada (servidor, PENDIENTE DE APLICAR) · Reabrir destruía la economía.**
+Cliente: al reabrir/restaurar se fija la firma de lo abierto como "ya guardado" → no se escribe hasta editar; el
+cliente ya no manda `estado` comercial. Servidor: `supabase/migrations/20261010170000_actualizar_cotizacion_
+preserva_economia.sql`. **Demostrado en PostgreSQL real aislado (PGlite) con los cuerpos de producción**
+(`supabase/tests/preservaEconomia.test.js`, 8 casos): ANTES, vendedor edita → Dirección pierde costo/margen, y
+diseño incluso PISA el costo con uno propio (21000 → 1); DESPUÉS, vendedor/diseño editan cantidades y renglones
+y costos/márgenes/producto_version_id quedan al centavo, no pueden colar costos, Dirección sigue pudiendo
+cambiarlos, la escritura cruda sigue strippeada y borrar un renglón sí lo borra. E2E navegador: vendedor abre,
+edita y guarda → `costoUnitario` 21000 intacto; Dirección reabre y lo ve. **Bloque en rojo hasta aplicar la
+migración en producción** (decisión de Rodrigo; hoy el servidor real sigue pisando).
+
+**VH-038 · P1 · FIXED · Sin respaldo del trabajo que vive sólo en un navegador.** `datos/respaldo.js` + tarjeta
+"Respaldo de esta computadora" en Presupuestos: exporta/restaura por rol (vendedor sin economía ni insumos;
+Dirección con todo menos nómina y finanzas), con id/clave para seguir editando LA MISMA cotización en otra
+computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fila.
 
 **VH-036 · P1 · OPEN · `costear-servidor` rechaza el 100% de las llamadas del navegador.**
 `AsistenteEspecial.jsx:179` manda `{...b}` con `margen`/`modeloCosteo`; `validarIntentCosteo` responde

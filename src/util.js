@@ -197,3 +197,13 @@ export function claseCosto(pt) {
   if (pt.costoDerivado) return { clase: 'derivado', sinCosto: false, aprox: true };
   return { clase: 'real', sinCosto: false, aprox: false };
 }
+
+// Clave de creación de una cotización (idempotencia del alta en la nube). Nace con la
+// cotización (almacen.estadoInicial / cargar) y viaja con ella: dos pestañas o dos
+// intentos del mismo borrador usan la MISMA clave → el servidor devuelve la misma fila.
+// El servidor exige [a-zA-Z0-9_-]{10,100}.
+export function claveCreacionNueva() {
+  const azar = Math.random().toString(36).slice(2, 10);
+  return `cot-${Date.now().toString(36)}-${azar}`;
+}
+export const CLAVE_CREACION_RE = /^[a-zA-Z0-9_-]{10,100}$/;

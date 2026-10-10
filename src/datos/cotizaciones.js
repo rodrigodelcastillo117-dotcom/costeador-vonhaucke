@@ -22,6 +22,7 @@
 import { nube } from '../nube.js';
 import { totalesCotizacion } from './totales.js';
 import { MOTOR_VERSION } from '../motor/calculo.js';
+import { claveCreacionNueva, CLAVE_CREACION_RE } from '../util.js';
 
 // ---------------------------------------------------------------------------
 //  HUELLA DE LA MATERIA PRIMA
@@ -150,11 +151,7 @@ export function paraGuardar(estado, usuario) {
 
 // Clave de creación: una por cotización nueva, persiste con el estado. El servidor
 // exige [a-zA-Z0-9_-]{10,100}.
-export function claveCreacionNueva() {
-  const azar = Math.random().toString(36).slice(2, 10);
-  return `cot-${Date.now().toString(36)}-${azar}`;
-}
-export const CLAVE_CREACION_RE = /^[a-zA-Z0-9_-]{10,100}$/;
+export { claveCreacionNueva, CLAVE_CREACION_RE };
 
 // Firma estable de la FILA que se guardaría (no del estado entero): si no cambia,
 // no hay nada que escribir. Excluye `usuario` (lo decide el servidor).
