@@ -57,6 +57,33 @@ export async function leerReferenciasCompras() {
   return (data || []).filter((x) => typeof x.id === 'string' && typeof x.nombre === 'string');
 }
 
+// Toda la economía del catálogo existente. Se leen tablas REALES con JWT y RLS;
+// Ventas NO puede leer estas tablas (private_api.puede_editar_config).
+// No incluye secretos; no escribe ni modifica config. Con carga fallida el
+// llamador no debe presumir que ya integró los precios de Compras.
+export async function leerCatalogoComprasEconomico() {
+  const [catalogo, precios, mapeos] = await Promise.all([
+    nube.from('insumos_catalogo')
+      .select('id,nombre,seccion,unidad_costeo,activo,clasificacion,familia,calibre,espesor_mm,formato,material,atributos')
+      .eq('activo', true).range(0, 999),
+    nube.from('insumo_precios')
+      .select('id,insumo_id,precio,precio_compra,unidad_compra,factor_conversion,estado,confidence,evidence_status,fuente,evidencia,requiere_validacion_compras,approved_at,contract_status,cost_unit,cost_unit_price_mxn,source_currency,source_price,source_unit,source_units_per_cost_unit,fx_rate,fx_date,fx_source,source_system,source_document,source_record_id,source_hash,vigente_desde,vigente_hasta')
+      .is('vigente_hasta', null).range(0, 999),
+    nube.from('insumo_mapeos_externos')
+      .select('insumo_id,external_key,estado,identity_status,source_document,source_record_id')
+      .range(0, 999),
+  ]);
+  if (catalogo.error) throw new Error('Catálogo Compras: ' + catalogo.error.message);
+  if (precios.error) throw new Error('Precios Compras: ' + precios.error.message);
+  // La tabla de mapeos tiene otra política RLS. Si niega lectura, no inventar claves:
+  // preservar source_record_id y reportar la ausencia del vínculo externo.
+  return {
+    referencias: catalogo.data || [], precios: precios.data || [],
+    mapeos: mapeos.error ? [] : (mapeos.data || []),
+    mapeosRestringidos: !!mapeos.error,
+  };
+}
+
 // ---- Sesion / acceso (control de quien entra) ----
 // --- BOVEDA DE DIRECCION -----------------------------------------------------
 // Nomina y estados financieros. La base solo entrega esta tabla a quien tiene
