@@ -71,8 +71,8 @@ export function resolverModelo(fn, env = {}, { permitirGlobal = false } = {}) {
  * el BOM sigue sujeto a validación y confirmación humanas.
  * Overrides inválidos fallan cerrados.
  */
-export function resolverModeloPorPasada(fn, env = {}, { esRevision = false } = {}) {
-  if (!esRevision) return resolverModelo(fn, env);
+export function resolverModeloPorPasada(fn, env = {}, { esRevision = false, esVisual = false } = {}) {
+  if (!esRevision && !esVisual) return resolverModelo(fn, env);
   const revision = String(env.ANTHROPIC_MODEL_ANALIZAR_MUEBLE_REVISION || '').trim();
   if (!revision) return 'claude-sonnet-5-5';
   if (!MODELOS_PERMITIDOS.has(revision)) {
