@@ -348,3 +348,29 @@ describe('identidad comercial de componentes comprados', () => {
     expect(r.insumoIdEfectivo).toBe('');
   });
 });
+
+
+describe('P0 — 18 mm se prioriza contra variante de 19 mm aprobada', () => {
+  const paneles = [
+    { id: 'melamina-16-nogal', nombre: 'Melamina Nogal Neo 16 mm' },
+    { id: 'melamina-19-nogal', nombre: 'Melamina Nogal Neo 19 mm' },
+  ];
+  it('elige 19 mm compatible aunque el catálogo ponga 16 mm primero', () => {
+    const r = aplicarPoliticaMaterial(
+      { nombre: 'Costado', material_solicitado: 'melamina nogal 18 mm', insumoId: '' },
+      () => null, paneles,
+    );
+    expect(r.insumoId).toBe('melamina-19-nogal');
+    expect(r.material_match).toBe(MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED);
+    expect(r._match.cambio).toContain('18 mm');
+    expect(r._match.confirmado_por_usuario).toBe(false);
+  });
+  it('si sólo hay 16 mm no autocostea espesor incompatible', () => {
+    const r = aplicarPoliticaMaterial(
+      { nombre: 'Costado', material_solicitado: 'melamina nogal 18 mm', insumoId: '' },
+      () => null, [paneles[0]],
+    );
+    expect(r.insumoId).toBe('');
+    expect(r.material_match).toBe(MATCH.SAME_FAMILY_CRITICAL_CONFLICT);
+  });
+});
