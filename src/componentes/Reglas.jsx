@@ -13,7 +13,7 @@
 // ============================================================================
 import { useEffect, useState } from 'react';
 import { todasLasReglas, cargarReglas, guardarRegla, borrarRegla, REGLAS_DEFAULT } from '../datos/reglas.js';
-import { cargarAprendizajes, aprendizajes as leerAprendizajes, olvidar, marcarComoRegla } from '../datos/aprendizaje.js';
+import { cargarAprendizajes, aprendizajes as leerAprendizajes, olvidar, marcarComoRegla, aprobarAprendizaje } from '../datos/aprendizaje.js';
 
 const AMBITOS = {
   acomodo: 'Acomodo en el espacio',
@@ -94,9 +94,9 @@ export default function Reglas({ puedeEditar = false }) {
           <div style={{ marginTop: 22 }}>
             <h3 style={{ marginBottom: 4 }}>Lo que ha aprendido sola</h3>
             <p className="ayuda columna-texto">
-              Cada vez que alguien le aclara algo, Voni lo guarda y lo toma en cuenta en el siguiente
-              pedido, sin que nadie tenga que aprobarlo. Si una lección salió mal, quítasela.
-              Si es de las que valen para siempre, conviértela en regla.
+              Las correcciones se guardan, pero las nuevas lecciones de Ventas quedan
+              <strong> pendientes de revisión</strong> antes de compartirse con la IA.
+              Diseño/Dirección puede aprobar, desactivar o convertir cada lección en regla.
             </p>
             <ul className="lista-reglas" style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 8 }}>
               {aprendido.map((a) => (
@@ -105,16 +105,28 @@ export default function Reglas({ puedeEditar = false }) {
                   <div className="ayuda">
                     {new Date(a.creado).toLocaleDateString('es-MX')}
                     {(a.veces || 1) > 1 && <> · <strong>corregida {a.veces} veces</strong></>}
+                    {' · '}{a.aprobado_para_ia ? <strong style={{color:'#287443'}}>Revisada · VONI puede usarla</strong> : <strong style={{color:'#a46717'}}>Pendiente de revisión · VONI no la usa aún</strong>}
                     {a.regla_clave && <> · ya es regla</>}
                   </div>
                   {puedeEditar && (
                     <div className="fila-botones" style={{ gap: 8 }}>
+                      {!a.aprobado_para_ia && <button className="boton primario" style={{minHeight:40}}
+                        onClick={async () => {
+                          setError('');
+                          try { await aprobarAprendizaje(a.id); await refrescar(); }
+                          catch(e) { setError('No se pudo aprobar la lección: ' + (e?.message||e)); }
+                        }}>Aprobar para VONI</button>}
                       <button className="boton fantasma" style={{ minHeight: 40 }}
                         onClick={() => setNueva({ ...vacia(), texto: a.texto, ambito: 'cotizacion', _deAprendizaje: a.id })}>
                         Convertirla en regla
                       </button>
                       <button className="boton fantasma" style={{ minHeight: 40 }}
-                        onClick={async () => { if (confirm('¿Que Voni olvide esta lección?')) { await olvidar(a.id); setAprendido(leerAprendizajes()); } }}>
+                        onClick={async () => {
+                          if (!confirm('¿Que Voni olvide esta lección?')) return;
+                          setError('');
+                          try { await olvidar(a.id); setAprendido(leerAprendizajes()); }
+                          catch(e) { setError('No se pudo desactivar: ' + (e?.message||e)); }
+                        }}>
                         Que la olvide
                       </button>
                     </div>

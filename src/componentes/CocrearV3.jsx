@@ -1,3 +1,5 @@
+import ResumenConsumoMueble from './ResumenConsumoMueble.jsx';
+import {usarCatalogoCompras} from '../datos/usarCatalogoCompras.js';
 import React,{useEffect,useMemo,useState} from 'react';
 import {
   cocrearDesdeIntent,construirProductSpec,extraerDNA,clasificarProducto,cocrearDeExpediente,cocrearPayload,
@@ -105,7 +107,9 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
  const [refs,setRefs]=useState(null),[refsCargando,setRefsCargando]=useState(false);
  const [catalogoCandidatos,setCatalogoCandidatos]=useState([]);
 
- const insumos=estado?.insumos||{};
+ // Diseño/Dirección: mismas versiones económicas de Compras que Costear.
+ // Ventas conserva modo seller-safe sin descargar el catálogo de costos.
+ const {insumos}=usarCatalogoCompras(estado?.insumos||{},rol==='direccion'||rol==='diseno');
  const par=useMemo(()=>parametrosEfectivos(estado,{componentes:[]}).par||estado?.parametros||{},[estado]);
  const rev=historia.length||1,bom=(intent&&intent._componentes)||[];
  const engineeringValidation=intent?._engineering_validation||null;
@@ -373,7 +377,7 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
        <div>Piezas Δ <b>{comparativaAB.delta.piezas_totales>0?'+':''}{comparativaAB.delta.piezas_totales}</b></div>
        <div>Materiales Δ <b>{comparativaAB.delta.familias_material>0?'+':''}{comparativaAB.delta.familias_material}</b></div>
        <div>Geometrías Δ <b>{comparativaAB.delta.geometrias_distintas>0?'+':''}{comparativaAB.delta.geometrias_distintas}</b></div>
-       <div>Costo Δ <b>{comparativaAB.costo_comparable?money(comparativaAB.delta.costo):'No comparable'}</b></div>
+       <div>Costo Δ <b>{puedeAprobarRol ? (comparativaAB.costo_comparable?money(comparativaAB.delta.costo):'No comparable') : 'Reservado para Diseño/Dirección'}</b></div>
      </div>
      <div style={{fontSize:9,color:'#8f98a8',marginTop:6}}>B − A · comparación determinista. Menos piezas, materiales o costo NO significa automáticamente mejor producto; VONI conserva función, desempeño e intención como restricciones.</div>
    </div>}
@@ -400,8 +404,9 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
       </div></>
     : <div className="c3-small">Baja el concepto a BOM para que VONI revise repetibilidad, complejidad y estandarización.</div>}
   </Card>
-  <Card><Label>Verdad industrial</Label><div style={{display:'grid',gap:5,fontSize:12}}><div>Costo calculado: <b>{costoConocido?money(costoOficial):'Pendiente de BOM'}</b></div><div>Estado motor: <b>{pipeline?.costo?.cost_status||'UNKNOWN'}</b></div><div>Componentes BOM: <b>{spec?.componentes?.length||0}</b></div><div>Ingeniería: <b style={{color:engineeringValidated?'#79c990':'#e0a36f'}}>{engineeringValidated?'VALIDADA':'REQUIERE VALIDACIÓN'}</b></div></div>
-   {explicacionCosteo&&<details open style={{marginTop:9,border:'1px solid #3d352d',borderRadius:9,padding:9,background:'#171513'}}>
+  {bom.length>0&&<ResumenConsumoMueble componentes={bom} insumos={insumos} lote={1} resultado={pipeline?.costo?.costeo||null} mostrarCosto={puedeAprobarRol} />}
+ <Card><Label>Verdad industrial</Label><div style={{display:'grid',gap:5,fontSize:12}}><div>Costo calculado: <b>{puedeAprobarRol ? (costoConocido?money(costoOficial):'Pendiente de BOM') : 'Solo Diseño/Dirección'}</b></div><div>Estado motor: <b>{pipeline?.costo?.cost_status||'UNKNOWN'}</b></div><div>Componentes BOM: <b>{spec?.componentes?.length||0}</b></div><div>Ingeniería: <b style={{color:engineeringValidated?'#79c990':'#e0a36f'}}>{engineeringValidated?'VALIDADA':'REQUIERE VALIDACIÓN'}</b></div></div>
+   {puedeAprobarRol&&explicacionCosteo&&<details open style={{marginTop:9,border:'1px solid #3d352d',borderRadius:9,padding:9,background:'#171513'}}>
     <summary style={{cursor:'pointer',fontWeight:800,fontSize:11}}>Cómo llegó VONI a este costo</summary>
     <div className="c3-small" style={{marginTop:6,lineHeight:1.45}}>{explicacionCosteo.ecuacion}</div>
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5,marginTop:7,fontSize:10}}>
@@ -425,9 +430,9 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
     : puedeAprobarRol
       ? <div style={{marginTop:8}}><Btn ghost onClick={validarIngenieria} disabled={!ingenieriaListaParaRevision} style={{width:'100%'}}>Validar ingeniería de esta revisión</Btn>{!ingenieriaListaParaRevision&&<div className="c3-small" style={{marginTop:5}}>Para validar: BOM con materiales + geometría completa + Despiece 3D técnico completo.</div>}</div>
       : <div className="c3-small" style={{marginTop:8}}>La liberación de ingeniería requiere Diseño o Dirección.</div>}
-   {!costoConocido&&estimado.disponible&&<div style={{background:'#1c160f',border:'1px solid #4a3a1f',borderRadius:10,padding:10,marginTop:10}}><Label>Estimado de diseño · evidencia real</Label><div style={{fontSize:17,fontWeight:900,color:'#ffe0b0'}}>≈ {money(estimado.total)} <span style={{fontSize:10,fontWeight:600,color:'#c7a98a'}}>parcial</span></div><div style={{fontSize:10,color:'#9a9a9a',margin:'2px 0 6px'}}>Cobertura {estimado.coberturaPct}% del alcance (por partidas) · confianza {estimado.confianza}</div>{estimado.items.map((it,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',gap:8,padding:'4px 0',borderTop:'1px solid #33291a',fontSize:11}}><span>{it.concepto} · {it.detalle}</span><b>{money(it.subtotal)}</b></div>)}<div style={{fontSize:10,color:'#d6a36d',marginTop:6}}><b>Pendiente por estimar</b> (no es $0): {estimado.pendientes.join(' · ')}</div><p style={{fontSize:9,color:'#8a8a8a',lineHeight:1.35,marginTop:5}}>{estimado.nota}</p></div>}
+   {puedeAprobarRol&&!costoConocido&&estimado.disponible&&<div style={{background:'#1c160f',border:'1px solid #4a3a1f',borderRadius:10,padding:10,marginTop:10}}><Label>Estimado de diseño · evidencia real</Label><div style={{fontSize:17,fontWeight:900,color:'#ffe0b0'}}>≈ {money(estimado.total)} <span style={{fontSize:10,fontWeight:600,color:'#c7a98a'}}>parcial</span></div><div style={{fontSize:10,color:'#9a9a9a',margin:'2px 0 6px'}}>Cobertura {estimado.coberturaPct}% del alcance (por partidas) · confianza {estimado.confianza}</div>{estimado.items.map((it,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',gap:8,padding:'4px 0',borderTop:'1px solid #33291a',fontSize:11}}><span>{it.concepto} · {it.detalle}</span><b>{money(it.subtotal)}</b></div>)}<div style={{fontSize:10,color:'#d6a36d',marginTop:6}}><b>Pendiente por estimar</b> (no es $0): {estimado.pendientes.join(' · ')}</div><p style={{fontSize:9,color:'#8a8a8a',lineHeight:1.35,marginTop:5}}>{estimado.nota}</p></div>}
    {refsCargando&&<p className="c3-small">Buscando referencias reales en la lista vigente…</p>}
-   {refUI&&<div className="c3-ref"><Label>Referencia comercial real</Label>{refUI.rangoPrecio&&<div style={{fontSize:17,fontWeight:900,color:'#d7f0df'}}>{refUI.rangoPrecio}</div>}{refUI.rangoCosto&&<div style={{fontSize:11,marginTop:4}}>Costo comparable autorizado: <b>{refUI.rangoCosto}</b></div>}<p style={{fontSize:9,color:'#9fb0a5',lineHeight:1.35}}>No es el costo del especial. Son precios vigentes de productos comparables; extras especiales se certifican cuando existe BOM/precio de insumo suficiente.</p>{refUI.items.slice(0,4).map((x,i)=><div className="c3-refrow" key={`${x.producto_id}-${i}`}><span>{x.capacidad?`${x.capacidad}u · `:''}{x.nombre.replace('Módulo operativo App LT ','')}</span><b>{money(x.precio,x.moneda)}</b></div>)}</div>}
+   {refUI&&<div className="c3-ref"><Label>Referencia comercial real</Label>{refUI.rangoPrecio&&<div style={{fontSize:17,fontWeight:900,color:'#d7f0df'}}>{refUI.rangoPrecio}</div>}{puedeAprobarRol&&refUI.rangoCosto&&<div style={{fontSize:11,marginTop:4}}>Costo comparable autorizado: <b>{refUI.rangoCosto}</b></div>}<p style={{fontSize:9,color:'#9fb0a5',lineHeight:1.35}}>No es el costo del especial. Son precios vigentes de productos comparables; extras especiales se certifican cuando existe BOM/precio de insumo suficiente.</p>{refUI.items.slice(0,4).map((x,i)=><div className="c3-refrow" key={`${x.producto_id}-${i}`}><span>{x.capacidad?`${x.capacidad}u · `:''}{x.nombre.replace('Módulo operativo App LT ','')}</span><b>{money(x.precio,x.moneda)}</b></div>)}</div>}
    {!costoConocido&&<p style={{color:'#d6a36d',fontSize:10,lineHeight:1.4}}>La referencia comercial es útil para presupuesto preliminar, pero no se presenta como costo certificado hasta bajar el concepto a BOM.</p>}
    <Btn onClick={agregarCotizacion} disabled={!listaParaCotizar||!onAgregar} style={{width:'100%',marginTop:5}}>{cotizadoHash===spec?.hash?'✓ En cotización':'Convertir en partida'}</Btn>
   </Card></div>

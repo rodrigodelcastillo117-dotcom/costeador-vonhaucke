@@ -88,7 +88,10 @@ describe('P0.2c · BLOCK 5 · edge emite el GANADOR (center/PASS), no el row/FAI
     const resp = construirRespuestaAcomodo(areas, df8());
     expect(resp.layoutSpec.placed).toBe(9);                    // cabe completo…
     expect(resp.layoutSpec.validation.semantic_gate.semFail).toBeGreaterThan(0); // …pero sin acceso
-    expect(resp.seleccion.metrics.candidates_evaluated).toBe(5);  // exploró TODOS (ninguno PASS)
+    // Estrategia INSET añadida: ahora hay seis candidatos, sin reducir
+    // exigencia del gate. Este caso imposible debe explorar TODOS y NO publicar.
+    expect(resp.seleccion.estrategias_totales).toBe(6);
+    expect(resp.seleccion.metrics.candidates_evaluated).toBe(resp.seleccion.estrategias_totales);
     expect(resp.render_ready).toBe(false);
     expect(resp.status).toBe('NEEDS_SEMANTIC_REVIEW');
   });

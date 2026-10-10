@@ -17,6 +17,12 @@
 //  al BOM económico. Lo demás se marca y NO se costea en $0 silenciosamente.
 // ============================================================================
 
+// Invalida la fracción de hoja si la identidad del insumo cambia, aunque ambos
+// insumos sean tableros/láminas. Evita reutilizar consumo físico de otro artículo.
+export function debeResetearHojasMaterial(insumoAnteriorId, insumoNuevoId, nuevoEsFraccionHoja) {
+  return String(insumoAnteriorId || '') !== String(insumoNuevoId || '') || !nuevoEsFraccionHoja;
+}
+
 export const MATCH = Object.freeze({
   EXACT: 'EXACT',
   EQUIVALENT_APPROVED: 'EQUIVALENT_APPROVED',
@@ -331,8 +337,13 @@ function severidadConflicto(fam, solicitado = '', insumoNombre = '') {
   const confPerfil = FAMILIAS_CRITICAS.has(fam) && conflictoPerfilMetal(solicitado, insumoNombre); // P0.13
   const confColor = conflictoAcabadoColor(solicitado, insumoNombre);                                // P0.14
   if (!confEsp && !confCal && !confPerfil && !confColor) return { conflicto: false, critico: false };
-  // Calibre/perfil distinto, o familia estructural con cualquier conflicto → SIEMPRE crítico.
-  if (confCal || confPerfil || FAMILIAS_CRITICAS.has(fam)) return { conflicto: true, critico: true };
+  // El color de un PTR/lámina RAW se obtiene mediante un proceso de acabado y
+  // NO implica otro calibre. Sí es crítico si el artículo ya tiene otro color,
+  // o si cambia perfil, espesor o calibre.
+  const pinturaPendiente = fam === 'metal_lamina' && confColor && coloresDe(insumoNombre).size === 0;
+  if (confCal || confPerfil || (FAMILIAS_CRITICAS.has(fam) && (confEsp || (confColor && !pinturaPendiente)))) {
+    return { conflicto: true, critico: true };
+  }
   // Tablero con espesor distinto: COMPATIBLE sólo si el par está en la lista APROBADA (18↔19).
   if (confEsp) {
     if (FAMILIAS_PANEL.has(fam) && espesorPanelCompatible(solicitado, insumoNombre)) return { conflicto: true, critico: false };
@@ -356,7 +367,17 @@ function textoCambio(solicitado = '', insumoNombre = '') {
   }
   const fa = formaMetal(solicitado), fb = formaMetal(insumoNombre);
   if (fa && fb && fa !== fb) return `Solicitado perfil ${fa} → candidato ${fb}`;
-  if (conflictoAcabadoColor(solicitado, insumoNombre)) return 'Acabado/color distinto al solicitado';
+  if (conflictoAcabadoColor(solicitado, insumoNombre)) {
+    if (familiaDeMaterial(solicitado) === 'metal_lamina' && coloresDe(insumoNombre).size === 0) {
+      // "Lámina negra" es también una denominación comercial del acero:
+      // NO significa automáticamente pintura negra aplicada en fábrica.
+      if (formaMetal(solicitado) === 'lamina') {
+        return 'Confirmar lámina negra comercial y formato; NO asumir pintura adicional';
+      }
+      return 'Acabado negro de estructura POR CONFIRMAR; no asumir pintura sin evidencia';
+    }
+    return 'Acabado/color distinto al solicitado';
+  }
   return '';
 }
 
@@ -443,6 +464,37 @@ export function clasificarMaterial({ solicitado = '', insumoId = '', insumoNombr
     };
   }
 
+  // Un metal nombrado genéricamente en el plano ("PTR negro" / "lámina negra")
+  // no da permiso de adivinar calibre, perfil o formato. El color es un acabado,
+  // no una especificación resistente. Mostrar artículo real como candidato, no
+  // asignarlo como materia prima EXACTA ni dar por aprobada ingeniería.
+  if (famPide === 'metal_lamina' && famTiene === 'metal_lamina') {
+    const forma = formaMetal(solicitado);
+    const faltaCalibre = calibresDe(solicitado).length === 0;
+    const faltaSeccionPTR = forma === 'tubo' && dimsPerfil(solicitado).length === 0;
+    if (faltaSeccionPTR && !faltaCalibre) {
+      // Calibre confirmado pero sección ausente: el artículo de mismo calibre
+      // sirve como referencia monetaria PRELIMINAR; no certifica peso/ingeniería.
+      return {
+        clase: MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED,
+        familiaSolicitada: famPide, familiaResuelta: famTiene,
+        autocosteable: true, insumoIdEfectivo: insumoId, insumoIdCandidato: insumoId,
+        motivo: 'Calibre declarado, sección del PTR sin definir: costo estimado, ingeniería pendiente.',
+        cambio: 'Sección PTR por confirmar (costo provisional)',
+      };
+    }
+    if (faltaCalibre) {
+      const faltantes = [faltaCalibre ? 'calibre' : null, faltaSeccionPTR ? 'sección del PTR' : null].filter(Boolean).join(' y ');
+      return {
+        clase: MATCH.CANDIDATE_REQUIRES_CONFIRMATION,
+        familiaSolicitada: famPide, familiaResuelta: famTiene,
+        autocosteable: false, insumoIdEfectivo: '', insumoIdCandidato: insumoId,
+        motivo: `El plano no define ${faltantes}. En PTR negro, confirmar acabado; en lámina negra, confirmar material comercial y formato. No se supone pintura; requiere decisión técnica.`,
+        cambio: `Sin ${faltantes}; acabado por revisar`,
+      };
+    }
+  }
+
   // Misma familia. Si no hay conflicto de atributo → EXACT. Si lo hay, la SEVERIDAD
   // decide: tableros con espesor distinto (18→19) = COMPATIBLE para estimar (autocostea,
   // "por confirmar"); calibre/perfil/grado o familia estructural = CRÍTICO (preselecciona
@@ -509,7 +561,7 @@ export function clasificarMaterial({ solicitado = '', insumoId = '', insumoNombr
 }
 
 // Puntúa coincidencia de color/acabado/espesor de un texto contra el nombre de un insumo.
-const RE_ESPESOR = /\b(9|12|16|19|25|28|30|36)\b/g;
+const RE_ESPESOR = /\b(9|12|16|18|19|25|28|30|36)\b/g;
 /**
  * MEJOR insumo de la MISMA familia para un texto de material (red de seguridad
  * determinista: un material NOMBRADO nunca debe quedar sin costear). Escoge por
@@ -533,7 +585,13 @@ export function mejorInsumoDeFamilia(texto, catalogo = []) {
     const n = `${ins.nombre || ''} ${ins.id}`.toLowerCase();
     let score = 1; // misma familia ya vale
     for (const tok of tokens) if (n.includes(tok)) score += 2;          // color/acabado
-    for (const e of espesores) if (new RegExp(`\\b${e}\\b`).test(n)) score += 3; // espesor
+    for (const e of espesores) if (new RegExp(`\\b${e}\\b`).test(n)) score += 3;
+    // Priorizar únicamente equivalencias de panel expresamente aprobadas (18↔19).
+    // Sin esto una petición 18 mm podía empatar con un panel 16 mm incompatibile.
+    if (FAMILIAS_PANEL.has(fam) && espesoresMM(texto).length && espesoresMM(ins.nombre || '').length) {
+      if (espesorPanelCompatible(texto, ins.nombre || '')) score += 5;
+      else if (conflictoEspesor(texto, ins.nombre || '')) score -= 5;
+    } // espesor
     if (score > bestScore) { bestScore = score; best = ins; }
   }
   return best;
@@ -560,6 +618,12 @@ export function candidatosDeFamilia(texto, catalogo = []) {
     let score = 1;
     for (const tok of tokens) if (n.includes(tok)) score += 2;
     for (const e of espesores) if (new RegExp(`\\b${e}\\b`).test(n)) score += 3;
+    // Priorizar únicamente equivalencias de panel expresamente aprobadas (18↔19).
+    // Sin esto una petición 18 mm podía empatar con un panel 16 mm incompatibile.
+    if (FAMILIAS_PANEL.has(fam) && espesoresMM(texto).length && espesoresMM(ins.nombre || '').length) {
+      if (espesorPanelCompatible(texto, ins.nombre || '')) score += 5;
+      else if (conflictoEspesor(texto, ins.nombre || '')) score -= 5;
+    }
     puntuados.push({ id: ins.id, nombre: ins.nombre || ins.id, score });
   }
   if (puntuados.length === 0) return { ambiguo: false, mejor: null, empatados: [] };
@@ -601,6 +665,7 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
   let cambio = clasif.cambio || '';
   let resuelto = insumoNombre || '';
   let autollenado = false;
+  let alternativas = [];
 
   // Confirmación humana explícita: promueve a USER_CONFIRMED. GUARD CROSS-FAMILY: una
   // confirmación ESTÁNDAR NO puede promover una sustitución de OTRA familia (solid surface →
@@ -632,8 +697,11 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
   //  · Candidato único con atributo crítico (calibre/perfil) → preselecciona, NO autocostea.
   //  · Sin candidato de familia → queda como clasif (NOT_AVAILABLE / pendiente de precio).
   if (!insumoIdFinal && !candidatoId && Array.isArray(catalogo)) {
-    const { ambiguo, mejor } = candidatosDeFamilia(solicitado, catalogo);
+    const { ambiguo, mejor, empatados } = candidatosDeFamilia(solicitado, catalogo);
     if (ambiguo) {
+      // Guardar candidatos sin precios para desbloquear la elección en la UI.
+      // El orden depende sólo del score técnico y NUNCA se autoriza automáticamente.
+      alternativas = empatados.slice(0, 8).map(({ id, nombre }) => ({ id, nombre }));
       clase = MATCH.AMBIGUOUS;
       motivo = `Varios candidatos de la misma familia igualmente plausibles para "${solicitado}". Elige cuál aplica.`;
     } else if (mejor) {
@@ -642,7 +710,15 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
       resuelto = mejor.nombre;
       cambio = textoCambio(solicitado, mejor.nombre);
       autollenado = true;
-      if (sev.critico) {
+      // P0: El camino SIN insumoId debe obedecer al MISMO juez que el camino
+      // CON insumoId. Antes omitía la regla "PTR genérico sin calibre/sección"
+      // y podía autocostear el único candidato de la familia.
+      const evaluado = clasificarMaterial({ solicitado, insumoId: mejor.id, insumoNombre: mejor.nombre });
+      if (evaluado.clase === MATCH.CANDIDATE_REQUIRES_CONFIRMATION) {
+        clase = MATCH.CANDIDATE_REQUIRES_CONFIRMATION;
+        motivo = evaluado.motivo;
+        cambio = evaluado.cambio || cambio;
+      } else if (sev.critico) {
         clase = MATCH.SAME_FAMILY_CRITICAL_CONFLICT;
         motivo = `Candidato de la misma familia con atributo crítico distinto (${cambio || 'calibre/perfil'}): ${mejor.nombre}. Confirma antes de costear.`;
       } else {
@@ -656,7 +732,9 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
   return {
     nombre: pieza?.nombre || 'Pieza',
     insumoId: insumoIdFinal,
-    cantidad: pieza?.cantidad || 1,
+    // Cero/NaN/negativo no deben convertirse silenciosamente en una pieza válida.
+    // El validador económico posterior es quien debe rechazarlos (fail-closed).
+    cantidad: pieza?.cantidad ?? 1,
     piezas: 1,
     iaNota: pieza?.nota || '',
     iaConf: pieza?.confianza || '',
@@ -671,6 +749,7 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
     _match: {
       clase, motivo, solicitado, resuelto, cambio, autollenado,
       candidate_insumo_id: candidatoId,
+      alternativas,
       // ¿entra al cálculo provisional? (true para COMPATIBLE/EXACT/USER_CONFIRMED)
       autocosteable: MATCH_AUTOCOSTEABLE.has(clase) && !!insumoIdFinal,
       confirmado_por_usuario: pieza?.material_confirmado === true,

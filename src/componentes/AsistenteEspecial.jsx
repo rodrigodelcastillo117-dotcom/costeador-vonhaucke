@@ -17,6 +17,9 @@ import { conAcompanantes } from '../datos/autoInsumos.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, familiaDeMaterial } from '../datos/materialMatch.js';
 import { materialDesdeLeyenda } from '../datos/materialDesdeLeyenda.js';
 import { opcionesMaterialPlano } from '../datos/opcionesMaterialPlano.js';
+import { usarCatalogoCompras } from '../datos/usarCatalogoCompras.js';
+import ResumenConsumoMueble from './ResumenConsumoMueble.jsx';
+import ResumenASUR from './ResumenASUR.jsx';
 import { proxyParaPiezaDePlano, puedeUsarHojasDirectas } from '../datos/proxyTableroEstimado.js';
 import { mensajePendienteInsumo } from '../datos/mensajePendienteInsumo.js';
 import { costoReferenciaHerraje } from '../datos/costoReferenciaHerraje.js';
@@ -100,7 +103,11 @@ export function fusionarPreguntas(prev, incoming, confKeysSet, norm) {
 }
 
 export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBiblioteca, expedienteInicial }) {
-  const insumos = estado.insumos;
+  // El catálogo de Compras incluye TODO lo capturado: código, descripción,
+  // fuente, precios y clave ERP. Vive sólo en memoria; no sobreescribe los 92
+  // insumos ni provoca autosave a config.
+  const { insumos, stats: comprasStats, estado: comprasEstado, error: comprasError } = usarCatalogoCompras(estado.insumos);
+  const catalogoSugerencias = insumos;
   const [paso, setPaso] = useState(0);
   // Acceso directo desde el resultado a la decisión que mantiene el costo pendiente.
   // Sólo navega: NUNCA responde por el usuario ni cambia el BOM automáticamente.
@@ -298,7 +305,14 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // FAIL-CLOSED (audit 2026-10-01): si el costo está incompleto NO es emitible —
   // su total es apenas un SUBTOTAL CONOCIDO, no se le pone precio ni se aprueba.
   const emision = costeoEmitible(resultado);
-  const emitible = emision.emitible;
+  // Un precio de compra REGISTRADO no es automáticamente un costo comercial
+  // autorizado. El subtotal es útil como presupuesto preliminar, pero hasta que
+  // el servidor comparta el mismo catálogo versionado NO puede emitirse.
+  const preciosComprasPorConfirmar = (b.componentes || [])
+    .filter((c) => c.insumoId && insumos[c.insumoId]?.fuenteCatalogo === 'compras'
+      && insumos[c.insumoId]?.precioCertificable !== true)
+    .map((c) => c.nombre || insumos[c.insumoId]?.nombre || c.insumoId);
+  const emitible = emision.emitible && preciosComprasPorConfirmar.length === 0;
   // P0.16: ¿hay una validación server-authority VIGENTE para el BOM actual? Cualquier cambio de
   // componente/material/medida cambia el bomHash → invalida la validación anterior.
   const validacionVigente = !!validacionSrv && validacionSrv.valido === true && validacionSrv.bomHash === bomHash(b.componentes);
@@ -309,7 +323,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // ambiguo, candidato). El COMPATIBLE sí aporta costo → hay un COSTO PROVISIONAL real, pero
   // NO emitible hasta confirmación humana. Distinto de "sin material" (hueco de datos).
   const materialesPorConfirmar = emision.bloqueos?.materiales_por_confirmar || [];
-  const soloPorConfirmar = !emitible && materialesPorConfirmar.length > 0
+  const soloPorConfirmar = !emitible
+    && (materialesPorConfirmar.length > 0 || preciosComprasPorConfirmar.length > 0)
     && piezasSinMaterial.length === 0 && (resultado.tarifasFaltantes || []).length === 0;
   // Fórmula que está aplicando AHORA la pieza (Alba para producto nuevo; legacy solo
   // si se reabrió un histórico sin re-costear). Para etiquetar el costo, no recalcula.
@@ -369,7 +384,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     const despieceTxt = (b.componentes || [])
       .filter((c) => c && (c.nombre || c.insumoId))
       .map((c) => {
-        const mat = estado.insumos?.[c.insumoId]?.nombre || '';
+        const mat = insumos?.[c.insumoId]?.nombre || '';
         const dim = (c.largoMM && c.anchoMM) ? ` ${c.largoMM}×${c.anchoMM} mm` : '';
         const etq = c.nombre || mat || 'pieza';
         return mat && mat !== etq ? `${etq} (${mat}${dim})` : `${etq}${dim}`;
@@ -619,6 +634,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   }
   function costoPieza(c, ins) {
     const p = ins.precio ?? ins.precioBase ?? 0;
+    // Precio documentado por HOJA; con formato pendiente se requiere consumo
+    // explícito en fracciones de hoja. Jamás multiplicar m² × precio por hoja.
+    if (ins.formatoPendiente && ins.unidad === 'hoja') {
+      return Number(c.hojas) > 0 ? Number(c.hojas) * Math.max(1, Number(b.piezas) || 1) * p : null;
+    }
     // Lámina del catálogo legacy: precio $/kg + formato.medida = kg por hoja.
     // Si conocemos la geometría, primero convertimos m² → kg. Multiplicar m²×$/kg
     // (lo anterior) daba subtotales físicamente imposibles como $12 para un zoclo.
@@ -667,7 +687,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
       // La IA ya estimó la fracción de hoja que rinde: el motor la usa directa
       // (hojas × precio) en vez de re-nestear áreas, que es lo que oscilaba.
-      if (z.hojas > 0 && puedeUsarHojasDirectas(base.insumoId, insumos)) {
+      if (z.hojas > 0 && (puedeUsarHojasDirectas(base.insumoId, insumos) || (insumos[base.insumoId]?.formatoPendiente && insumos[base.insumoId]?.unidad === 'hoja'))) {
         base.hojas = z.hojas;
       }
     }
@@ -1029,7 +1049,17 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
               <input id="costear-archivo" data-testid="costear-archivo" type="file" accept="image/*,application/pdf,.pdf" hidden disabled={analizando} onChange={onImagen} />
             </label>
             {errorIA && <div className="alerta roja" style={{ marginTop: 12 }}><span className="texto">{errorIA}</span></div>}
-            {catalogoFuente === 'cliente-fallback' && <div className="alerta ambar" style={{ marginTop: 12 }}><span className="texto">⚠ El catálogo central no estaba disponible: la IA usó datos locales. <strong>No cotices en firme</strong> con este análisis; confirma materiales y precios con Dirección.</span></div>}
+            {comprasEstado === 'conectado' && (
+        <div className="ayuda" role="status" style={{fontSize:12,margin:'8px 0'}}>
+          Compras: {comprasStats.catalogo} artículos técnicos · {comprasStats.conPrecio} con precio legible · {comprasStats.aprobados} aprobados · {comprasStats.preliminares} referencias preliminares · {comprasStats.bloqueados} con dato faltante o conversión pendiente.
+        </div>
+      )}
+      {comprasEstado === 'sin-conexion' && (
+        <div className="alerta ambar" role="alert" style={{margin:'8px 0'}}>
+          Catálogo técnico/economía no cargado ({comprasError}). Se conservan referencias locales, pero no certifiques precios nuevos.
+        </div>
+      )}
+      {catalogoFuente === 'cliente-fallback' && <div className="alerta ambar" style={{ marginTop: 12 }}><span className="texto">⚠ El catálogo central no estaba disponible: la IA usó datos locales. <strong>No cotices en firme</strong> con este análisis; confirma materiales y precios con Dirección.</span></div>}
           </div>
 
           <label className="etiqueta">O escríbelo tú</label>
@@ -1254,6 +1284,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           {b.componentes.map((c, i) => {
             const ins = insumos[c.insumoId];
             const est = estadoMaterialUI(c, insumos);
+            const opcionesPieza = c.material_solicitado ? opcionesMaterialPlano(c.material_solicitado, catalogoSugerencias) : [];
             const area = esArea(ins);
             const cnt = c.piezas || 1;
             const m2 = area && c.largoMM && c.anchoMM ? (c.largoMM / 1000) * (c.anchoMM / 1000) * cnt : 0;
@@ -1290,25 +1321,43 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                     ESTIMACIÓN AUTOMÁTICA · {c._estimacionAlternativa.nombre}. Costo calculado con el precio configurado de ese artículo, NO con el material exacto del plano. Espesor y acabado por confirmar. No emitible.
                   </div>
                 )}
+                {ins?.fuenteCatalogo === 'compras' && (
+                  <div className="pieza-calc" style={{fontSize:12,color:'var(--texto,#e4e4e4)',marginTop:5}}>
+                    <strong>{ins.sistemaFuente === 'user_authorized_estimate' ? 'ASUR · tarifa autorizada:' : 'Compras:'}</strong> {ins.codigoCompras}
+                    {ins.clavesERP?.length ? <span> · ERP {ins.clavesERP.join(', ')}</span> : null}
+                    {' · '}{ins.descripcionCompras}
+                    {' · '}{ins.unidadCosteo}
+                    {Number.isFinite(ins.precioReferencia) && ins.precioReferencia > 0
+                      ? <span> · Precio registrado: {pesos2(ins.precioReferencia)}/{ins.unidadCosteo}</span>
+                      : <span> · Precio pendiente</span>}
+                    <div>{ins.estadoEconomia === 'APROBADO' ? 'APROBADO' : 'COSTO PRELIMINAR / PENDIENTE'} · {ins.fuenteCompra || 'Fuente no documentada en Compras'}</div>
+                    {ins.estimacionMercado && <div style={{fontSize:12,marginTop:4}}>
+                      <strong>ASUR / referencia de mercado, NO compra registrada:</strong>{' '}
+                      {pesos2(ins.estimacionMercado.precio)}/{ins.estimacionMercado.unidad}.
+                      {' '}Debe sustituirse por la orden/factura real antes de costear oficialmente.
+                    </div>}
+                    {ins.observacionPrecio && <div>{ins.observacionPrecio}</div>}
+                  </div>
+                )}
                 {est.badge && (
                   <div className="pieza-calc" style={{ color: 'var(--ambar,#8a6d00)', fontWeight: 600 }}>🟡 {est.badge}</div>
                 )}
                 {est.pendiente && c.material_solicitado && (
                   <div className="pieza-calc" style={{ color: 'var(--texto,#e4e4e4)' }}>
-                    <strong>El plano especifica:</strong> {c.material_solicitado}. {est.candId ? 'Hay un artículo propuesto para confirmar.' : 'Selecciona el artículo equivalente del catálogo para continuar.'}
+                    <strong>El plano especifica:</strong> {c.material_solicitado}. {opcionesPieza.length > 0 ? 'Estas son las referencias reales disponibles. La app no debe adivinar calibre, modelo ni acabado.' : 'No hay coincidencia costeable inequívoca: requiere una decisión técnica.'}
                     <div className="material-candidatos" role="group" aria-label={`Opciones de catálogo para ${c.nombre}`}>
-                      {opcionesMaterialPlano(c.material_solicitado, insumos).length > 0 ? (
-                        opcionesMaterialPlano(c.material_solicitado, insumos).map((op) => (
+                      {opcionesPieza.length > 0 ? (
+                        opcionesPieza.map((op) => (
                           op.confirmable ? (
                             <button type="button" key={op.id} className="material-candidato"
                               onClick={() => onMaterial(i, op.id, { confirmado: true })}>
                               <strong>Elegir y confirmar: {op.nombre}</strong>
-                              <span>{op.advertencia}</span>
+                              <span>{op.fuenteCatalogo === 'compras' ? 'Compras · pendiente de integrar: ' : 'Catálogo activo · '}{op.advertencia}</span>
                             </button>
                           ) : (
                             <div key={op.id} className="material-referencia" role="status">
                               <strong>Solo referencia: {op.nombre}</strong>
-                              <span>{op.advertencia}</span>
+                              <span>{op.fuenteCatalogo === 'compras' ? 'Compras · pendiente de integrar: ' : 'Catálogo activo · '}{op.advertencia}</span>
                             </div>
                           )
                         ))
@@ -1344,7 +1393,13 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                 )}
                 {ins && (
                   <div className="pieza-med">
-                    {area ? (
+                    {ins.formatoPendiente && ins.unidad === 'hoja' ? (
+                      <label>Fracción de hoja real o estimada
+                        <input type="number" className="numero" step="0.01" min="0"
+                          value={c.hojas ?? ''} placeholder="0.50"
+                          onChange={(e) => setPieza(i, { hojas: parseFloat(e.target.value) || 0 })} />
+                      </label>
+                    ) : area ? (
                       <>
                         <label>Largo mm<input type="number" className="numero" min="0" value={c.largoMM || ''} onChange={(e) => setPieza(i, { largoMM: parseFloat(e.target.value) || 0 })} /></label>
                         <span className="por">×</span>
@@ -1355,7 +1410,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                     ) : (
                       <label>Cantidad ({ins.unidad})<input type="number" className="numero" step="0.01" min="0" value={c.cantidad} onChange={(e) => setPieza(i, { cantidad: parseFloat(e.target.value) || 0 })} /></label>
                     )}
-                    <span className="pieza-sub">{pesos2(costoPieza(c, ins))}</span>
+                    <span className="pieza-sub">{costoPieza(c, ins) == null || !Number.isFinite(costoPieza(c, ins)) ? 'Consumo por hoja pendiente' : pesos2(costoPieza(c, ins))}</span>
                   </div>
                 )}
                 {area && m2 > 0 && <div className="pieza-calc">= {m2.toFixed(2)} m² <span className="gris">({ins.clase === 'indirecta' ? 'comprado' : 'fabricado'})</span></div>}
@@ -1393,6 +1448,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         </div>
       )}
 
+      <ResumenConsumoMueble componentes={b.componentes} insumos={insumos} lote={b.piezas} resultado={resultado} />
       {/* PASO 4 — Resultado */}
       {paso === 3 && (
         <div className="tarjeta-precio">
@@ -1410,12 +1466,12 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
             // (p.ej. 18→19). HAY un costo provisional real, pero NO se emite/aprueba hasta
             // confirmar el material. No es un costo certificado ni completo.
             <>
-              <div className="ayuda" style={{ margin: '6px 0' }}>Costo provisional (materiales por confirmar)</div>
+              <div className="ayuda" style={{ margin: '6px 0' }}>Costo preliminar (materiales o precios de Compras por confirmar)</div>
               <div className="precio-enorme" style={{ color: 'var(--ambar,#8a6d00)', fontSize: 34 }}>{pesos2(emision.subtotalConocido)}</div>
               <div className="espacio" />
               <div className="ayuda">Precio de lista</div>
               <div className="precio-enorme" style={{ color: '#b22a22' }}>Por confirmar</div>
-              <div className="ayuda" style={{ color: '#8a6d00', marginTop: 4 }}>🟡 Costo provisional, no certificado. Confirma {materialesPorConfirmar.length} material(es) marcados POR CONFIRMAR para emitir/aprobar.</div>
+              <div className="ayuda" style={{ color: '#8a6d00', marginTop: 4 }}>🟡 Costo provisional, no certificado. Faltan {materialesPorConfirmar.length} confirmaciones técnicas y {preciosComprasPorConfirmar.length} certificaciones de precio de Compras para emitir/aprobar.</div>
             </>
           ) : (
             // FAIL-CLOSED: hay partidas sin costear → NO hay costo total ni precio.

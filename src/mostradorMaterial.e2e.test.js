@@ -51,10 +51,12 @@ describe('E2E mostrador — la IA llena el material como indica el plano (sin ro
     expect(estadoMaterialUI(c, INSUMOS).costeable).toBe(false);
   });
 
-  it('postes PTR cal.14 (igual al catálogo) → EXACT, costea normal', () => {
+  it('postes PTR cal.14 (igual calibre, falta sección) → ESTIMACIÓN, no ingeniería certificada', () => {
     const c = mapear({ nombre: 'Postes verticales', insumoId: 'ptr-14', material_solicitado: 'tubo PTR cal. 14', cantidad: 10 });
-    expect(c.insumoId).toBe('ptr-14');
-    expect(c._match.clase).toBe(MATCH.EXACT);
+    expect(c.insumoId).toBe('ptr-14'); // entra como referencia económica
+    expect(c._match.clase).toBe(MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED);
+    expect(c._match.confirmado_por_usuario).toBe(false);
+    expect(c._match.cambio).toMatch(/sección/i); // no es EXACT por faltar sección
   });
 
   it('CRÍTICO: cabezal pide lámina cal.18 pero la IA mapeó cal.14 → NO autocostea, preselecciona candidato', () => {

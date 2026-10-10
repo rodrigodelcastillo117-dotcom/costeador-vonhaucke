@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 
 const EMAIL = process.env.TEST_EMAIL;
 const PASS = process.env.TEST_PASSWORD;
@@ -124,17 +125,18 @@ test.describe('E2E autenticado · flujo real', () => {
     const descargar = page.getByRole('button', { name: /Descargar (PDF|BORRADOR)/i });
     const imprimir = page.getByRole('button', { name: /Imprimir( BORRADOR)?/i });
 
-    if (!(await descargar.count())) {
-      test.info().annotations.push({ type: 'nota', description: 'Proyecto vacío: no hay documento que emitir en esta cuenta.' });
-      return;
-    }
-
+    // Una prueba que termina con "return" cuando falta el botón da falso verde.
+    // Con el proyecto sembrado la salida PDF ES una capacidad obligatoria.
+    await expect(descargar, 'El botón de descarga PDF debe existir con proyecto real').toHaveCount(1);
     await expect(descargar).toBeEnabled();
     const dl = await Promise.all([
       page.waitForEvent('download', { timeout: 20000 }),
       descargar.click(),
     ]).then(([d]) => d);
     expect((await dl.suggestedFilename()).toLowerCase()).toMatch(/\.pdf$/);
+    const bytes=await readFile(await dl.path());
+    expect(bytes.subarray(0,5).toString('ascii')).toBe('%PDF-');
+    expect(bytes.length).toBeGreaterThan(1000);
 
     await page.evaluate(() => {
       window.__vhPrintCalled = false;
@@ -150,11 +152,9 @@ test.describe('E2E autenticado · flujo real', () => {
     await abrirProyectoActual(page);
     const descargar = page.getByRole('button', { name: /Descargar (PDF|BORRADOR)/i });
     const imprimir = page.getByRole('button', { name: /Imprimir( BORRADOR)?/i });
-    if (await descargar.count()) {
-      await expect(descargar).toBeEnabled();
-      await expect(imprimir).toBeEnabled();
-    } else {
-      test.info().annotations.push({ type: 'nota', description: 'Proyecto vacío: la pantalla no expone emisión todavía.' });
-    }
+    await expect(descargar, 'Sin botón PDF no existe salida de proyecto').toHaveCount(1);
+    await expect(imprimir, 'Sin botón imprimir no existe salida de proyecto').toHaveCount(1);
+    await expect(descargar).toBeEnabled();
+    await expect(imprimir).toBeEnabled();
   });
 });

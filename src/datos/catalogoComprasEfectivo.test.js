@@ -1,0 +1,150 @@
+import { describe, expect, it } from 'vitest';
+import { construirCatalogoCompras, evaluarPrecioCompra, ordenarPrecios } from './catalogoComprasEfectivo.js';
+import { calcular, PARAMETROS_DEFAULT, costoNetoComponente } from '../motor/calculo.js';
+
+const item = (id, nombre, unidad_costeo='pza') => ({id,nombre,unidad_costeo,seccion:unidad_costeo==='hoja'?'cubiertas':'herrajes',activo:true});
+const p = (id, data={}) => ({
+  id:100,insumo_id:id,precio:65,precio_compra:65,factor_conversion:1,
+  unidad_compra:'pza',estado:'propuesto_validado',evidence_status:'referenciada',
+  confidence:'media',fuente:'Compras, lista 2026',vigente_hasta:null,...data,
+});
+
+describe('P0: integración real de catálogo Compras 259 → motor sin precios inventados', () => {
+  it('incluye artículo comprado no presente en los 92 con su precio y procedencia', () => {
+    const r = construirCatalogoCompras({ viejo:{id:'viejo',precio:10,unidad:'pza'} }, [
+      item('nuevo','Bisagra industrial concreta','pza'),
+    ], [p('nuevo',{precio:19.50,precio_compra:19.50})],[]);
+    expect(r.insumos.nuevo.precio).toBe(19.5);
+    expect(r.insumos.nuevo.nombre).toBe('Bisagra industrial concreta');
+    expect(r.insumos.nuevo.codigoCompras).toBe('nuevo');
+    expect(r.insumos.nuevo.fuenteCompra).toMatch(/Compras/);
+    expect(r.insumos.nuevo.estadoEconomia).toBe('REFERENCIA_COMPRAS');
+    expect(r.insumos.nuevo.precioCertificable).toBe(false);
+    expect(r.insumos.viejo.precio).toBe(10);
+    expect(r.stats.catalogo).toBe(1);
+  });
+  it('preserva clave ERP, documento, precio MXN y versión de evidencia', () => {
+    const row=p('nivelador',{id:289,precio:17.73,precio_compra:17.73,estado:'propuesto',evidence_status:'documentada',
+      contract_status:'DATA_TRUTH_V1',confidence:'alta',source_system:'intelisis',source_document:'APP_LT_Pedido_38247',
+      source_record_id:'MVLUTO15188109',cost_unit:'pza',cost_unit_price_mxn:17.73,unidad_compra:'pieza'});
+    const {insumos}=construirCatalogoCompras({},[item('nivelador','Tornillo nivelador cromado')],[row],[]);
+    expect(insumos.nivelador.clavesERP).toContain('MVLUTO15188109');
+    expect(insumos.nivelador.fuenteCompra).toBe('APP_LT_Pedido_38247');
+    expect(insumos.nivelador.precio).toBe(17.73);
+    expect(insumos.nivelador.estadoEconomia).toBe('ERP_DOCUMENTADO');
+    expect(insumos.nivelador.precioCertificable).toBe(false);
+  });
+  it('preserva TODAS las versiones y prioriza precio documental ERP vs semilla', () => {
+    const seed=p('lamina',{id:12,estado:'propuesto_validado',precio:850,precio_compra:850,unidad_compra:'hoja',evidence_status:'referenciada'});
+    const truth=p('lamina',{id:287,estado:'propuesto',precio:816.48,precio_compra:816.48,unidad_compra:'hoja',
+      evidence_status:'documentada',contract_status:'DATA_TRUTH_V1',source_system:'intelisis',
+      source_document:'APP_LT_Pedido_38247',source_record_id:'MVLSLA05260202'});
+    const {insumos}=construirCatalogoCompras({},[item('lamina','Lamina negra 3x10 cal. 14','hoja')],[seed,truth],[]);
+    expect(insumos.lamina.precio).toBe(816.48);
+    expect(insumos.lamina.versionesPrecio).toHaveLength(2);
+    expect(insumos.lamina.formatoPendiente).toBe(true);
+    expect(insumos.lamina.precioCertificable).toBe(false);
+  });
+  it('MDF mismo ID en motor y Compras hereda formato 1.22x2.44, pero precio es exclusivamente ERP', () => {
+    const r=construirCatalogoCompras({},[item('mdf','MDF 19 mm','hoja')],
+      [p('mdf',{precio:720,precio_compra:720,unidad_compra:'hoja'})],[]);
+    const x=r.insumos.mdf;
+    expect(x.formato).toBeTruthy();
+    expect(x.formato.tipo).toBe('tablero');
+    expect(x.formato.medida).toBeGreaterThan(2.9);
+    expect(x.formatoOrigen).toBe('MOTOR_SEMILLA_MISMO_ID');
+    expect(x.formatoPendiente).toBe(false);
+    expect(x.precio).toBe(720);
+    const cost=calcular({componentes:[{insumoId:'mdf',forma:'area',nombre:'Frente',largoMM:1200,anchoMM:600,piezas:1}]},1,r.insumos,PARAMETROS_DEFAULT);
+    expect(cost.componentesIgnorados).toEqual([]);
+    expect(cost.materialTotal).toBeGreaterThan(0);
+  });
+  it('hoja ajena sin formato, aunque tenga nombre MDF, NO se le inventa formato 4x8', () => {
+    const r=construirCatalogoCompras({},[item('nuevo-mdf-extra','MDF industrial 19 mm','hoja')],
+      [p('nuevo-mdf-extra',{precio:800,precio_compra:800,unidad_compra:'hoja'})],[]);
+    expect(r.insumos['nuevo-mdf-extra'].formatoPendiente).toBe(true);
+    expect(r.insumos['nuevo-mdf-extra'].formato).toBeUndefined();
+  });
+  it('Lámina cal.14 hereda geometría de hoja/peso en kg, no la confunde con m²', () => {
+    const r=construirCatalogoCompras({},[item('lamina-14','Lámina acero cal. 14','hoja')],
+      [p('lamina-14',{precio:880,precio_compra:880,unidad_compra:'hoja'})],[]);
+    expect(r.insumos['lamina-14'].formato.tipo).toBe('lamina');
+    expect(r.insumos['lamina-14'].formato.medida).toBeGreaterThan(40);
+    expect(r.insumos['lamina-14'].formatoOrigen).toBe('MOTOR_SEMILLA_MISMO_ID');
+  });
+  it('hoja sin formato: un área NO cuesta pero consumo explícito de 0.5 hoja sí', () => {
+    const {insumos}=construirCatalogoCompras({},[item('hoja','Melamina nogal 16 mm','hoja')],
+      [p('hoja',{precio:600,precio_compra:600,unidad_compra:'hoja'})],[]);
+    const sinHojas=calcular({nombre:'Panel',componentes:[{insumoId:'hoja',nombre:'Panel',forma:'area',largoMM:1200,anchoMM:600,cantidad:1}]},1,insumos,PARAMETROS_DEFAULT);
+    expect(sinHojas.componentesIgnorados.some(x=>x.includes('fracción de hoja'))).toBe(true);
+    const conHojas=calcular({nombre:'Panel',componentes:[{insumoId:'hoja',nombre:'Panel',forma:'area',largoMM:1200,anchoMM:600,hojas:0.5}]},1,insumos,PARAMETROS_DEFAULT);
+    expect(conHojas.materialTotal).toBeCloseTo(300,8);
+    expect(costoNetoComponente({hojas:0.5},insumos.hoja)).toBeCloseTo(300,8);
+    expect(conHojas.componentesIgnorados).toHaveLength(0);
+  });
+  it('ASUR: las tres tarifas expresamente autorizadas alimentan presupuesto estimado sin fingir factura', () => {
+    for (const id of ['solid-surface', 'solid-surface-azul', 'adhesivo-solid-surface']) {
+      const fuente = id === 'adhesivo-solid-surface' ? 'pza' : 'm2';
+      const r = construirCatalogoCompras({},[item(id,id,fuente)],[],[]);
+      const x = r.insumos[id];
+      expect(x.nombre).toBe(id);
+      expect(x.estimacionMercado).toBeTruthy();
+      expect(x.estimacionMercado.precio).toBeGreaterThan(0);
+      expect(x.estimacionMercado.fuente).toMatch(/Mercado/);
+      expect(x.precio).toBe(x.estimacionMercado.precio);
+      expect(x.precioReferencia).toBe(x.estimacionMercado.precio);
+      expect(x.estadoEconomia).toBe('ESTIMADO_AUTORIZADO_ASUR');
+      expect(x.disponibleCosteo).toBe(true);
+      expect(x.precioCertificable).toBe(false);
+    }
+  });
+
+  it('líneas de insumo sin precio quedan a la vista pero NUNCA en $0 como si tuvieran precio', () => {
+    const x=construirCatalogoCompras({},[item('sin','Superficie sólida','m2')],[],[]).insumos.sin;
+    expect(x.disponibleCosteo).toBe(false);
+    expect(x.precio).toBeUndefined();
+    expect(x.estadoEconomia).toBe('SIN_PRECIO');
+  });
+  it('conversión kg → hoja requiere precio consistente con factor', () => {
+    const ref=item('acero','Lamina acero cal.14','hoja');
+    const valid=p('acero',{precio:816.48,precio_compra:18.3892,factor_conversion:44.4,unidad_compra:'kg'});
+    const imp=p('acero',{precio:16,precio_compra:18.3892,factor_conversion:44.4,unidad_compra:'kg'});
+    expect(evaluarPrecioCompra(valid,ref).aptoEstimacion).toBe(true);
+    expect(evaluarPrecioCompra(imp,ref).estado).toBe('PRECIO_CONVERSION_CONFLICTO');
+  });
+  it('USD sin tasa MXN no se trata como costo MXN', () => {
+    const ref=item('usd','Pintura','kg');
+    expect(evaluarPrecioCompra(p('usd',{precio:6.69,precio_compra:6.69,unidad_compra:'kg'}),ref,{moneda:'USD'}).aptoEstimacion).toBe(false);
+  });
+  it('precio aprobado + evidencia no cambia el hecho de que unidad y uso físico se comprueban', () => {
+    const approved=p('soldadura',{precio:65,precio_compra:65,unidad_compra:'kg',estado:'aprobado',
+      evidence_status:'concordante',approved_at:'2026-10-01T00:00:00Z'});
+    expect(evaluarPrecioCompra(approved,item('soldadura','Soldadura','kg')).cert).toBe(true);
+    expect(evaluarPrecioCompra(approved,item('soldadura','Soldadura','hoja')).cert).toBe(false);
+  });
+  it('sin_evidencia queda visible y costeable como comparativo pero NUNCA certificado', () => {
+    const econ=evaluarPrecioCompra(p('bisagra',{estado:'propuesto',evidence_status:'sin_evidencia'}),item('bisagra','Bisagra'));
+    expect(econ.aptoEstimacion).toBe(true);
+    expect(econ.estado).toBe('SIN_EVIDENCIA');
+    expect(econ.cert).toBe(false);
+  });
+  it('ASUR AZUL: 1.20 m x 0.60 m = 0.72 m², 1 cartucho, material $3,786 antes de mano de obra', () => {
+    const refs=[item('solid-surface-azul','Azul mineral','m2'),item('adhesivo-solid-surface','Adhesivo','pza')];
+    const {insumos}=construirCatalogoCompras({},refs,[],[]);
+    const r=calcular({nombre:'Módulo ASUR - componentes medidos',componentes:[
+      {insumoId:'solid-surface-azul',nombre:'Cubierta',forma:'area',largoMM:1200,anchoMM:600,cantidad:1},
+      {insumoId:'adhesivo-solid-surface',nombre:'Cartucho',cantidad:1},
+    ]},1,insumos,PARAMETROS_DEFAULT);
+    expect(r.materialTotal).toBeCloseTo(1200*600/1000000*3800+1050,2);
+    expect(r.componentesIgnorados).toEqual([]);
+    expect(insumos['solid-surface-azul'].precioCertificable).toBe(false);
+  });
+  it('si después aparece precio ERP ASUR real, desplaza la tarifa estimada', () => {
+    const r=construirCatalogoCompras({},[item('solid-surface-azul','Azul','m2')],[
+      p('solid-surface-azul',{precio:3699,precio_compra:3699,unidad_compra:'m2',estado:'propuesto_validado'})
+    ],[]);
+    expect(r.insumos['solid-surface-azul'].precio).toBe(3699);
+    expect(r.insumos['solid-surface-azul'].estadoEconomia).not.toBe('ESTIMADO_AUTORIZADO_ASUR');
+  });
+
+});

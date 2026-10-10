@@ -4,6 +4,7 @@
 //  + opciones y el generador de la línea arma el despiece con su guía oficial.
 //  Data-driven: agregar una línea nueva es solo pasar sus datos + generador.
 // ============================================================================
+import ResumenConsumoMueble from './ResumenConsumoMueble.jsx';
 import { useMemo, useState } from 'react';
 import { pesos } from '../util.js';
 import { imagenProducto, fichaRender } from '../datos/imagenes.js';
@@ -290,6 +291,7 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
           <div className="ayuda gris" style={{ marginTop: 8, fontSize: 11 }}>{g.nota}</div>
         </div>
 
+        {!soloVentas&&<ResumenConsumoMueble componentes={g.componentes} insumos={estado.insumos} lote={cantidad} resultado={resultado} />}
         <HojaCosto resultado={resultado} insumos={estado.insumos} pieza={pieza} parametros={par} />
           </details>
         )}

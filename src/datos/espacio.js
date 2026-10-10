@@ -44,6 +44,11 @@ export function vaBajoEscritorio(pt) {
 export function tipoDe(pt) {
   const s = sinAcento((pt.ruta || '') + ' ' + (pt.nombre || ''));
   const esMueble = /escritorio|bench|banca|estacion|mesa|credenza|archiv|gaveta|librero/.test(s);
+  // Un bench con BIOMBO DE CRISTAL sigue siendo la ESTACIÓN de trabajo;
+  // "biombo" aquí describe un accesorio, no transforma ocho puestos en cero.
+  // Se prioriza la identidad del mueble completo y luego la mampara independiente.
+  if (/bench|banca|estacion(?:es)?(?: de trabajo)?|modulo operativo|puesto(?:s)? de trabajo/.test(s)
+      && !/solamente biombo|solo biombo|biombo suelto/.test(s)) return 'escritorio';
   if (!esMueble && /mampara|privacy|muro|biombo|lambrin/.test(s)) return 'mampara';
   if (/credenza|guarda|archiv|gaveta|armario|librero|locker|torre|modulor|mox|cajon/.test(s)) return 'guarda';
   if (/soporte de pantalla|teamspace ii/.test(s)) return 'mueble';

@@ -20,6 +20,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { calcular, modeloParaPieza, precioDe, costeoEmitible, PARAMETROS_DEFAULT, MOTOR_VERSION } from "../../../src/motor/calculo.js";
 import { dinero } from "../../../src/motor/dinero.js";
 import { INSUMOS_SEMILLA, mapaInsumos } from "../../../src/datos/insumos.js";
+import { construirCatalogoCompras } from "../../../src/datos/catalogoComprasEfectivo.js";
 // DTO ESTRICTO — la MISMA frontera que usa el cliente (sin duplicar lógica). Rechaza
 // cualquier campo económico (margen, precio, costo, insumo inline, factores,
 // modeloCosteo…) del body antes de tocar el motor. Ver src/datos/validarIntentCosteo.js.
@@ -104,9 +105,22 @@ Deno.serve(async (req) => {
   // mergea con la semilla del código); solo cae a la semilla si la nube no trae.
   // Los parámetros SÍ se funden sobre los defaults. Replicarlo EXACTO es lo que
   // hace que el servidor cuadre al centavo con lo que ve el cliente hoy.
-  const insumos = (datos.insumos && typeof datos.insumos === "object" && Object.keys(datos.insumos).length)
-    ? datos.insumos
-    : mapaInsumos(INSUMOS_SEMILLA);
+  const baseLegacy = (datos.insumos && typeof datos.insumos === "object" && Object.keys(datos.insumos).length)
+    ? datos.insumos : mapaInsumos(INSUMOS_SEMILLA);
+  // RC SEPARADO (no afecta costear-servidor actual): el servidor obtiene los
+  // 259 artículos + versiones reales de precio él MISMO, nunca del body.
+  // Si Compras falla, NO vuelve en silencio a 92 ni da un costo falsamente verde.
+  const [catR,precioR,mapeoR] = await Promise.all([
+    svc.from("insumos_catalogo").select("id,nombre,seccion,unidad_costeo,activo,clasificacion,familia,calibre,espesor_mm,formato,material,atributos").eq("activo",true).range(0,999),
+    svc.from("insumo_precios").select("id,insumo_id,precio,precio_compra,unidad_compra,factor_conversion,estado,confidence,evidence_status,fuente,evidencia,proveedor,propiedades,requiere_validacion_compras,approved_by,approved_at,contract_status,cost_unit,cost_unit_price_mxn,source_currency,source_price,source_unit,source_units_per_cost_unit,fx_rate,fx_date,fx_source,source_system,source_document,source_record_id,source_hash,vigente_desde,vigente_hasta").is("vigente_hasta",null).range(0,999),
+    svc.from("insumo_mapeos_externos").select("insumo_id,external_key,estado,identity_status,source_document,source_record_id").range(0,999),
+  ]);
+  if (catR.error || precioR.error || !catR.data?.length) {
+    console.warn("CATALOGO_RC_UNAVAILABLE",{code:catR.error?.code||precioR.error?.code||"EMPTY"});
+    return json({ok:false,code:"CATALOGO_COMPRAS_UNAVAILABLE",error:"No se pudo verificar el catálogo de Compras; no se calculó ningún precio."},503);
+  }
+  const catalogoEfectivo=construirCatalogoCompras(baseLegacy,catR.data,precioR.data,mapeoR.error?[]:(mapeoR.data||[]));
+  const insumos=catalogoEfectivo.insumos;
   const parametros = { ...PARAMETROS_DEFAULT, ...(datos.parametros || {}) };
 
   // --- CAPABILITY DE CONFIRMACIÓN TÉCNICA (P0.9, servidor autoritativo) ---
@@ -171,10 +185,12 @@ Deno.serve(async (req) => {
     }
     const { count: nAprob } = await svc.from("insumo_precios")
       .select("id", { count: "exact", head: true }).eq("estado", "aprobado");
-    versionCatalogo = `cat-ap${nAprob ?? ""}-${hashConfig(usados)}`;
+    versionCatalogo = `compras-v1-ap${nAprob ?? ""}-${hashConfig(usados.map(id=>({id,precioId:insumos[id]?.precioId,precioEstado:insumos[id]?.precioEstado})))}`;
   } catch (_e) { /* catalogo_vigente puede no existir aún: no bloquea el costeo legado */ }
 
-  const noCertificados = usados.filter((id) => !evMap[id] || !evMap[id].certificable);
+  // Si una tarifa de usuario o Compras provisional entró al material, jamás
+  // certificarla porque la vista tuviera accidentalmente otra fila aprobada.
+  const noCertificados = usados.filter((id) => !evMap[id]?.certificable || insumos[id]?.precioCertificable === false);
   const requierenValidacion = usados.filter((id) => evMap[id]?.requiere_validacion_compras);
 
   // ESTADO (4 valores). El costo es legado (tiene precio), por eso 'bloqueado' solo
@@ -213,7 +229,7 @@ Deno.serve(async (req) => {
     versionMotor: MOTOR_VERSION,
     versionConfig: hashConfig(datos),
     versionCatalogo,
-    fuenteCosto: "config-legado", // el costo aún sale de config; catalogo_vigente solo certifica
+    fuenteCosto: "compras-v1-rc", // precio canonical DB con procedencia + tarifas ASUR provisionales
     calculadoEn: new Date().toISOString(),
   };
   // El precio se entrega mientras el cálculo sea posible (certificado o preliminar) Y

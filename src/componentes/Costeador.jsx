@@ -18,12 +18,15 @@ import { pesos2, pct, pct1, colorMerma } from '../util.js';
 import AnalisisEstructural from './AnalisisEstructural.jsx';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
-import { aplicarPoliticaMaterial, MATCH, estadoMaterialUI, patchConfirmacionUI } from '../datos/materialMatch.js';
+import { aplicarPoliticaMaterial, MATCH, estadoMaterialUI, patchConfirmacionUI, debeResetearHojasMaterial } from '../datos/materialMatch.js';
 import { renderSpecFromGraph } from '../datos/renderSpec.js';
 import { flagActivo } from '../datos/flags.js';
 import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
 import { recomendar as recomendarCatalogoVonHaucke } from '../voni/conocimiento.js';
 import { explicarCosteo } from '../datos/explicacionCosteo.js';
+import { usarCatalogoCompras } from '../datos/usarCatalogoCompras.js';
+import ResumenConsumoMueble from './ResumenConsumoMueble.jsx';
+import ResumenASUR from './ResumenASUR.jsx';
 
 const ATAJOS = [
   { nombre: 'Muy facil', v: 30 },
@@ -67,7 +70,8 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   const renderStale = !!costeo.imagen && sigRender !== null && sigRender !== bomSig;
   // Al cargar un costeo que ya trae imagen, fija la firma base para detectar cambios futuros.
   useEffect(() => { if (costeo.imagen && sigRender === null) setSigRender(bomSig); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [costeo.imagen]);
-  const insumos = estado.insumos;
+  const { insumos, stats: comprasStats, estado: comprasEstado, error: comprasError } = usarCatalogoCompras(estado.insumos);
+  const estadoEconomico = useMemo(() => ({...estado, insumos}), [estado, insumos]);
   const candidatosLinea = useMemo(
     () => recomendarCatalogoVonHaucke(costeo.descripcionCliente || costeo.nombre || '', 5),
     [costeo.descripcionCliente, costeo.nombre],
@@ -75,8 +79,8 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
 
   // ÚNICO camino de preparación/cálculo: la misma función alimenta a VONI.
   const vivo = useMemo(
-    () => calcularCosteoVivo(estado, costeo),
-    [estado, costeo],
+    () => calcularCosteoVivo(estadoEconomico, costeo),
+    [estadoEconomico, costeo],
   );
   const { piezaVirtual, parBase, par, esIntelisis, resultado } = vivo;
   const margen = costeo.margen ?? estado.parametros.margenObjetivo ?? PARAMETROS_DEFAULT.margenObjetivo;
@@ -88,6 +92,11 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   // puede emitir a la cotización. Solo se muestra el subtotal conocido.
   const emisionC = costeoEmitible(resultado);
   const pendientesC = emisionC.pendientes || [];
+  const preciosComprasPorConfirmar = (costeo.componentes || [])
+    .filter((c) => c.insumoId && insumos[c.insumoId]?.fuenteCatalogo === 'compras'
+      && insumos[c.insumoId]?.precioCertificable !== true)
+    .map((c) => c.nombre || insumos[c.insumoId]?.nombre || c.insumoId);
+  const costoComprasPreliminar = preciosComprasPorConfirmar.length > 0;
   const incompletoC = !emisionC.emitible;
   const inteligenciaIndustrial = useMemo(
     () => analizarProductoIndustrial({ bom: costeo.componentes || [], costing: resultado }),
@@ -126,7 +135,14 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     // `material_solicitado` lo da el analizador (v19+); si no viene, cae al nombre
     // de la pieza, que ya suele traer el material ("Cubierta superficie sólida").
     const base = aplicarPoliticaMaterial({ ...z, material_solicitado: z.material_solicitado || z.nombre }, (id) => insumos[id], Object.values(insumos));
-    if (z.forma === 'area') { base.forma = 'area'; base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1; if (z.hojas > 0) base.hojas = z.hojas; }
+    if (z.forma === 'area') {
+      base.forma = 'area'; base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
+      if (z.hojas > 0) base.hojas = z.hojas;
+    }
+    // Precio por hoja sin formato registrado: sólo usar consumo explícito.
+    // Si Voni estimó m² pero no hojas, no adivinar ni una hoja completa.
+    const material = insumos[base.insumoId];
+    if (material?.formatoPendiente && !(Number(base.hojas) > 0)) base.hojas = 0;
     return base;
   });
   async function analizarDescripcion() {
@@ -137,8 +153,10 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
         !window.confirm('Esto reemplazará las piezas actuales por lo que entienda Voni de tu descripción. ¿Seguir?')) return;
     setErrIA(''); setAnalizandoIA(true);
     try {
-      const master = await buscarProductosMaestroTexto(desc, 30);
-      const catalogo = { ...catalogoIA(), __producto_maestro: master?.items || [] };
+      // analizar-mueble espera un ARRAY de artículos, no un objeto construido
+      // con spread de un array (0:{...},1:{...}). Eso hacía perder los hints
+      // y podía degradar el matching cuando no respondía el catálogo canónico.
+      const catalogo = catalogoIA();
       const res = await analizarTexto(catalogo, desc);
       if (!res?.ok) { setErrIA(res?.error || 'No se pudo interpretar la descripción.'); return; }
       const p = res.propuesta || {};
@@ -154,7 +172,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     : tipoDeMueble(costeo);
 
   async function agregarCotizacionVerificada() {
-    if (incompletoC || simulando || validandoCosto) return;
+    if (incompletoC || simulando || validandoCosto || costoComprasPreliminar) return;
     setErrAutoridad('');
     setValidandoCosto(true);
     try {
@@ -232,7 +250,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   const esArea = (ins) => !!ins && (ins.formato?.tipo === 'tablero' || ins.unidad === 'm2');
   // Lámina/tablero se pueden capturar por FRACCION DE HOJA directa (Rafa §1):
   // el estimador escribe "0.8 de hoja" y el costo es fraccion x precio_hoja.
-  const esFraccionHoja = (ins) => !!ins && ins.fraccion && (ins.formato?.tipo === 'lamina' || ins.formato?.tipo === 'tablero');
+  const esFraccionHoja = (ins) => !!ins && ((ins.fraccion && (ins.formato?.tipo === 'lamina' || ins.formato?.tipo === 'tablero')) || (ins.formatoPendiente && ins.unidad === 'hoja'));
 
   function agregarPieza() {
     set({ componentes: [...costeo.componentes, { nombre: '', insumoId: '', cantidad: 1, piezas: 1 }] });
@@ -251,7 +269,10 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     const prev = comps[i];
     const patch = { insumoId, nombre: prev.nombre || (ins ? ins.nombre : '') };
     if (!esArea(ins)) { patch.largoMM = undefined; patch.anchoMM = undefined; } // material no dimensional
-    if (!esFraccionHoja(ins)) patch.hojas = undefined; // material que no es por fracción de hoja
+    // Cambiar de una lámina/tablero a OTRO invalida la fracción capturada para el
+    // material anterior, incluso si AMBOS se venden por hoja. Nunca arrastrar hojas
+    // obsoletas: el usuario recaptura su cantidad o el motor deriva el m² neto.
+    if (debeResetearHojasMaterial(prev.insumoId, insumoId, esFraccionHoja(ins))) patch.hojas = undefined;
     // Elección/confirmación HUMANA: misma intención en ambas UIs (P0.8). El servidor verifica
     // material_confirmado + insumoId y lo convierte a USER_CONFIRMED efectivo (no confía en el string).
     if (ins) Object.assign(patch, patchConfirmacionUI(insumoId));
@@ -261,7 +282,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   }
   // Costo neto de una pieza, respetando fracción de hoja (para el subtotal por pieza)
   function costoPieza(c, ins, n) {
-    if (c.hojas != null && ins.formato) {
+    if (c.hojas > 0 && (ins.formato || (ins.formatoPendiente && ins.unidad === 'hoja'))) {
       const precioH = ins.precio ?? ins.precioBase ?? 0;
       return Math.max(0, c.hojas) * n * precioH;
     }
@@ -300,14 +321,17 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     .map((c, i) => {
       if (!c.largoMM || !c.anchoMM) return null;
       const ins = insumos[c.insumoId];
-      if (!ins?.formato) return null;
+      // La optimización 2D sólo aplica a TABLEROS en m²; para lámina formato.medida es kg.
+      if (ins?.formato?.tipo !== 'tablero' || !ins.fraccion) return null;
       const s = sugerenciaMedida(c.largoMM, c.anchoMM, ins, estado.parametros);
       if (!s.mejor || s.actual < 1) return null;
       const areaAct = (c.largoMM / 1000) * (c.anchoMM / 1000);
       const areaNueva = (s.mejor.largoMM / 1000) * (s.mejor.anchoMM / 1000);
       const precio = ins.precio ?? ins.precioBase ?? 0;
-      const costoAct = (ins.formato.medida / s.actual) * precio;
-      const costoNuevo = (ins.formato.medida / s.mejor.piezasPorTablero) * precio;
+      // Precio del catálogo es POR HOJA. Fracción de hoja por pieza = 1/piezasPorTablero;
+      // multiplicarlo otra vez por los m² de la hoja sobrevaloraba el ahorro.
+      const costoAct = precio / s.actual;
+      const costoNuevo = precio / s.mejor.piezasPorTablero;
       return { i, nombre: c.nombre, ...s, costoAct, costoNuevo, mejora: costoAct - costoNuevo };
     })
     .filter(Boolean);
@@ -427,6 +451,13 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
         {/* 2. El despiece — pieza por medidas (costear desde cero) */}
         <div className="tarjeta">
           <h2>De qué está hecho — pieza por pieza</h2>
+          {comprasEstado === 'conectado' && <p className="ayuda" role="status">
+            Catálogo de Compras: {comprasStats.catalogo} referencias · {comprasStats.conPrecio} con precios · {comprasStats.aprobados} aprobados.
+            La referencia y su estado se muestran debajo de cada material.
+          </p>}
+          {comprasEstado === 'sin-conexion' && <p className="alerta ambar" role="alert">
+            No se pudieron leer Compras y precios: {comprasError}. No certifiques precios nuevos desde este equipo.
+          </p>}
           <p className="ayuda columna-texto">Agrega cada pieza: ponle nombre, escoge de qué es y su medida. Las medidas van NETAS (de la pieza terminada); la app calcula el área, la fracción de hoja y la merma sola.</p>
 
           {costeo.componentes.map((c, i) => {
@@ -436,7 +467,8 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             const m2 = area && c.largoMM && c.anchoMM ? (c.largoMM / 1000) * (c.anchoMM / 1000) * cnt : 0;
             const fmt = ins?.formato;
             const aprov = (par.aprovechamientoCorte || 100) / 100;
-            const fraccion = ins?.fraccion && fmt?.medida && area ? m2 / (fmt.medida * aprov) : 0;
+            // m² / peso(kg) NO es una fracción de hoja. Solo el formato de TABLERO mide m².
+            const fraccion = ins?.fraccion && fmt?.tipo === 'tablero' && fmt?.medida && area ? m2 / (fmt.medida * aprov) : 0;
             const porHojaDir = esFraccionHoja(ins);
             return (
               <div className="pieza" key={i}>
@@ -474,6 +506,37 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                   return null;
                 })()}
 
+                {Array.isArray(c._match?.alternativas) && c._match.alternativas.length > 0 && (
+                  <div className="pieza-match-alternativas" style={{ margin: '8px 0', padding: 10, border: '1px solid #e9cf8a', borderRadius: 8 }}>
+                    <strong>Elige el material correcto (misma familia):</strong>
+                    <div className="ayuda">Confirma espesor, acabado y precio; no se asignará ninguno automáticamente.</div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                      {c._match.alternativas.filter((alt) => !!insumos[alt.id]).map((alt) => (
+                        <button key={alt.id} type="button" className="chip"
+                          onClick={() => onMaterial(i, alt.id, { confirmado: true })}
+                          title={insumos[alt.id]?.nombre || alt.nombre}>
+                          {insumos[alt.id]?.nombre || alt.nombre}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {ins?.fuenteCatalogo === 'compras' && (
+                  <div className="pieza-calc" style={{fontSize:12,margin:'6px 0',color:'var(--texto,#545454)'}}>
+                    <b>{ins.sistemaFuente === 'user_authorized_estimate' ? 'ASUR · tarifa autorizada:' : 'Compras:'}</b> {ins.codigoCompras}
+                    {ins.clavesERP?.length > 0 && <span> · ERP {ins.clavesERP.join(', ')}</span>}
+                    {' · '}{ins.descripcionCompras}
+                    {Number.isFinite(ins.precioReferencia) && <span> · {pesos2(ins.precioReferencia)}/{ins.unidadCosteo}</span>}
+                    <div>{ins.estadoEconomia === 'APROBADO' ? 'Precio aprobado' : 'Costeo preliminar'} · {ins.fuenteCompra || 'Sin evidencia documental'}</div>
+                    {ins.estimacionMercado && <div style={{fontSize:12,marginTop:4}}>
+                      <strong>ASUR / referencia de mercado, NO compra registrada:</strong>{' '}
+                      {pesos2(ins.estimacionMercado.precio)}/{ins.estimacionMercado.unidad}.
+                      {' '}Debe sustituirse por la orden/factura real antes de costear oficialmente.
+                    </div>}
+                    {ins.observacionPrecio && <div>{ins.observacionPrecio}</div>}
+                  </div>
+                )}
                 {ins && (
                   <div className="pieza-med">
                     {area ? (
@@ -552,8 +615,8 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                 <span className="nom">
                   {c.nombre}
                   <div className="ayuda">
-                    neto {c.neto.toFixed(2)} {porHoja ? 'm²' : ins.unidad}
-                    {porHoja && <> <strong>≈ {fraccion.toFixed(2)} de hoja</strong></>}
+                    neto {c.neto.toFixed(2)} {fmt?.tipo === 'lamina' ? 'kg (o fracción de hoja, si fue capturada)' : (porHoja ? 'm²' : ins.unidad)}
+                    {porHoja && fmt?.tipo === 'tablero' && <> <strong>≈ {fraccion.toFixed(2)} de hoja</strong></>}
                     {/* ⚠️ Aquí salía `comprar 0.37792260145122275 tablero` (2026-08-18).
                         El motor NO está mal: para un material con `fraccion` sí se
                         compra 0.38 de hoja, y `comprar()` devuelve la fracción a
@@ -598,6 +661,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
           ))}
         </div>
 
+        <ResumenConsumoMueble componentes={costeo.componentes} insumos={insumos} lote={costeo.piezas} resultado={resultado} mostrarCosto={puedeVerComercial} />
         <ConfianzaCosteo resultado={resultado} insumos={insumos} />
 
         {/* 4. Mano de obra */}
@@ -808,7 +872,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                 <button className="boton" onClick={volverAAlba}>Volver al costo oficial (Alba V1)</button>
               </div>
             ) : (
-              <div className="ayuda" style={{ marginBottom: 10, opacity: 0.8 }}>Costo oficial — <strong>Alba V1</strong>.</div>
+              <div className="ayuda" style={{ marginBottom: 10, opacity: 0.8 }}>{costoComprasPreliminar ? 'Costo estimado con Compras — pendiente de emisión' : 'Costo con fórmula'} — <strong>Alba V1</strong>.</div>
             )}
             <label className="etiqueta">Cuanto quieres ganar</label>
             <div className="masmenos" style={{ marginBottom: 10 }}>
@@ -819,16 +883,19 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             <div className="precio-grande" style={incompletoC ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : pesos2(precio)}</div>
             <div className="ayuda">{incompletoC ? 'Sin precio oficial: existe al menos un bloqueo técnico/económico de costeo.' : `Precio por pieza con ${margen}% de margen.`}</div>
             {incompletoC && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">⚠ Costo NO EMITIBLE — {pendientesC.length} bloqueo(s): {pendientesC.slice(0, 6).join(' · ')}{pendientesC.length > 6 ? '…' : ''}. No se puede cotizar ni emitir hasta resolverlos.</span></div>}
+            {costoComprasPreliminar && <div className="alerta ambar" role="status" style={{marginTop:10}}>
+              <span className="texto">Precio calculado con {preciosComprasPorConfirmar.length} artículo(s) de Compras todavía no certificados para emisión. Se puede comparar el costo, pero no cotizar ni imprimir como oficial: {preciosComprasPorConfirmar.slice(0,5).join(' · ')}.</span>
+            </div>}
             {!incompletoC && bajoMinimo && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">Debajo del minimo de {estado.parametros.margenMinimo}%.</span></div>}
             <div className="espacio" />
             {errAutoridad && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">⚠ {errAutoridad}</span></div>}
-            <button className="boton primario grande" disabled={incompletoC || simulando || validandoCosto}
+            <button className="boton primario grande" disabled={incompletoC || simulando || validandoCosto || costoComprasPreliminar}
               title={simulando ? 'Simulación: vuelve al costo oficial Alba para cotizar' : incompletoC ? 'No se puede cotizar mientras el motor marque bloqueos de costeo' : validandoCosto ? 'Verificando costo contra el servidor' : 'Verifica el costo autoritativo antes de agregar'}
               onClick={agregarCotizacionVerificada}>{validandoCosto ? 'Verificando costo…' : 'Agregar a la cotización'}</button>
             <div className="espacio" />
             <button className="boton grande" onClick={() => onGuardarPieza(resultado)}>Guardar como pieza</button>
             <div className="espacio" />
-            <button className="boton grande" disabled={incompletoC || simulando} title={simulando ? 'Simulación: no emite ficha oficial' : incompletoC ? 'No se puede imprimir una ficha oficial con bloqueos de costeo' : ''} onClick={() => !incompletoC && !simulando && setFichaAbierta(true)}>Ver ficha PDF</button>
+            <button className="boton grande" disabled={incompletoC || simulando || costoComprasPreliminar} title={simulando ? 'Simulación: no emite ficha oficial' : incompletoC ? 'No se puede imprimir una ficha oficial con bloqueos de costeo' : ''} onClick={() => !incompletoC && !simulando && !costoComprasPreliminar && setFichaAbierta(true)}>Ver ficha PDF</button>
           </div>
         ) : (
           <div className="tarjeta" style={{ marginTop: 16 }}>

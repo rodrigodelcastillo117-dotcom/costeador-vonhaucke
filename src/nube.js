@@ -45,6 +45,45 @@ export async function escribirConfig(datosCompartidos) {
   if (error) throw error;
 }
 
+// Solo METADATOS técnicos del catálogo de Compras para identificar artículos.
+// El RLS de insumos_catalogo restringe la lectura a Diseño/Dirección; no contiene
+// precios, proveedores, conversiones ni condiciones de compra en la respuesta.
+// Estas referencias NO son insumos del motor hasta que su economía sea validada.
+export async function leerReferenciasCompras() {
+  const { data, error } = await nube.from('insumos_catalogo')
+    .select('id,nombre,seccion,unidad_costeo,activo,calibre,espesor_mm,formato,material')
+    .eq('activo', true).order('nombre').limit(500);
+  if (error) throw error;
+  return (data || []).filter((x) => typeof x.id === 'string' && typeof x.nombre === 'string');
+}
+
+// Toda la economía del catálogo existente. Se leen tablas REALES con JWT y RLS;
+// Ventas NO puede leer estas tablas (private_api.puede_editar_config).
+// No incluye secretos; no escribe ni modifica config. Con carga fallida el
+// llamador no debe presumir que ya integró los precios de Compras.
+export async function leerCatalogoComprasEconomico() {
+  const [catalogo, precios, mapeos] = await Promise.all([
+    nube.from('insumos_catalogo')
+      .select('id,nombre,seccion,unidad_costeo,activo,clasificacion,familia,calibre,espesor_mm,formato,material,atributos')
+      .eq('activo', true).range(0, 999),
+    nube.from('insumo_precios')
+      .select('id,insumo_id,precio,precio_compra,unidad_compra,factor_conversion,estado,confidence,evidence_status,fuente,evidencia,proveedor,propiedades,requiere_validacion_compras,approved_by,approved_at,contract_status,cost_unit,cost_unit_price_mxn,source_currency,source_price,source_unit,source_units_per_cost_unit,fx_rate,fx_date,fx_source,source_system,source_document,source_record_id,source_hash,vigente_desde,vigente_hasta')
+      .is('vigente_hasta', null).range(0, 999),
+    nube.from('insumo_mapeos_externos')
+      .select('insumo_id,external_key,estado,identity_status,source_document,source_record_id')
+      .range(0, 999),
+  ]);
+  if (catalogo.error) throw new Error('Catálogo Compras: ' + catalogo.error.message);
+  if (precios.error) throw new Error('Precios Compras: ' + precios.error.message);
+  // La tabla de mapeos tiene otra política RLS. Si niega lectura, no inventar claves:
+  // preservar source_record_id y reportar la ausencia del vínculo externo.
+  return {
+    referencias: catalogo.data || [], precios: precios.data || [],
+    mapeos: mapeos.error ? [] : (mapeos.data || []),
+    mapeosRestringidos: !!mapeos.error,
+  };
+}
+
 // ---- Sesion / acceso (control de quien entra) ----
 // --- BOVEDA DE DIRECCION -----------------------------------------------------
 // Nomina y estados financieros. La base solo entrega esta tabla a quien tiene
@@ -455,7 +494,9 @@ export async function costearServidor(pieza, cantidad = 1) {
     ok: false, status: 400, code: val.code, issues: val.issues,
     error: 'Despiece técnico incompleto: ' + (val.issues?.[0]?.msg || 'corrige la partida indicada.'),
   };
-  const { data, error } = await nube.functions.invoke('costear-servidor', {
+  // Rama RC solamente: costo desde BD de Compras, sin alterar la Edge estable.
+  // Antes de merge a main, homologar y promover conscientemente este endpoint.
+  const { data, error } = await nube.functions.invoke('costear-compras-rc', {
     body,
   });
   if (error) {

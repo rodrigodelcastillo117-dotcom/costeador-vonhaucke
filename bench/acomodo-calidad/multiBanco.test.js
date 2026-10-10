@@ -74,6 +74,17 @@ describe('P0.2c · GAP36 · banco multi completo (55 casos)', () => {
       const ev = sel.ganador_eval;
       const st = !ev.hardOk ? 'HARD_FAIL' : (ev.sem_status !== 'PASS' ? ev.sem_status : (ev.quality_status !== 'PASS' ? 'QUALITY_REVIEW' : (ev.placed === c.piezas.length ? 'PASS' : 'PARTIAL')));
       statusDist[st] = (statusDist[st] || 0) + 1;
+      // Diagnóstico operativo (sin cambiar juez, casos ni criterios de PASS).
+      // Lista sólo escenarios sin publicación para poder mejorar el solver.
+      if (st === 'FAIL' || st === 'HARD_FAIL') {
+        console.log('[BANCO BLOQUEADO]', JSON.stringify({
+          caso:c.nombre, factible:c.factible!==false, status:st,
+          placed:ev.placed, requested:c.piezas.length,
+          semFail:ev.semFail, semReview:ev.semReview,
+          quality:ev.quality_status,
+          winner:sel.metrics.winner_strategy,
+        }));
+      }
 
       tiempos.push(sel.metrics.elapsed_ms); maxElapsed = Math.max(maxElapsed, sel.metrics.elapsed_ms);
       ganadores[sel.metrics.winner_strategy] = (ganadores[sel.metrics.winner_strategy] || 0) + 1;

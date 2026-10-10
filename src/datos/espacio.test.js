@@ -78,3 +78,17 @@ describe('el biombo del bench no lo convierte en mampara', () => {
     expect(tipoDe({ ruta: 'privacy4', nombre: 'Muro / Panel' })).toBe('mampara');
   });
 });
+
+describe('P0 Cotizar · un bench con biombo no es una mampara aislada',()=>{
+ it('módulo App LT 8 usuarios con biombo cristal cuenta como 8 puestos',()=>{
+  const p={id:'bench8',nombre:'Módulo operativo App LT 8 usuarios (biombo cristal)',cantidad:1};
+  expect(tipoDe(p)).toBe('escritorio');
+  expect(expandirPiezas([p])).toHaveLength(1);
+ });
+ it('biombo App LT independiente SÍ sigue siendo mampara',()=>{
+  expect(tipoDe({nombre:'Biombo de cristal App LT',cantidad:1})).toBe('mampara');
+ });
+ it('banca doble App LT ocho usuarios se clasifica como escritorio',()=>{
+  expect(tipoDe({nombre:'Bench doble App LT 8 usuarios',cantidad:1})).toBe('escritorio');
+ });
+});

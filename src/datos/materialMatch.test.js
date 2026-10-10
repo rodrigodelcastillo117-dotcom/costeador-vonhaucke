@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  MATCH, MATCH_AUTOCOSTEABLE, familiaDeMaterial, clasificarMaterial, aplicarPoliticaMaterial, mejorInsumoDeFamilia, estadoMaterialUI,
+  MATCH, MATCH_AUTOCOSTEABLE, debeResetearHojasMaterial, familiaDeMaterial, clasificarMaterial, aplicarPoliticaMaterial, mejorInsumoDeFamilia, estadoMaterialUI,
 } from './materialMatch.js';
 
 // Catálogo mock como el real (ids con color/espesor) para probar la auto-precarga.
@@ -347,4 +347,105 @@ describe('identidad comercial de componentes comprados', () => {
     expect(r.clase).toBe(MATCH.CANDIDATE_REQUIRES_CONFIRMATION);
     expect(r.insumoIdEfectivo).toBe('');
   });
+});
+
+
+describe('P0 — 18 mm se prioriza contra variante de 19 mm aprobada', () => {
+  const paneles = [
+    { id: 'melamina-16-nogal', nombre: 'Melamina Nogal Neo 16 mm' },
+    { id: 'melamina-19-nogal', nombre: 'Melamina Nogal Neo 19 mm' },
+  ];
+  it('elige 19 mm compatible aunque el catálogo ponga 16 mm primero', () => {
+    const r = aplicarPoliticaMaterial(
+      { nombre: 'Costado', material_solicitado: 'melamina nogal 18 mm', insumoId: '' },
+      () => null, paneles,
+    );
+    expect(r.insumoId).toBe('melamina-19-nogal');
+    expect(r.material_match).toBe(MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED);
+    expect(r._match.cambio).toContain('18 mm');
+    expect(r._match.confirmado_por_usuario).toBe(false);
+  });
+  it('si sólo hay 16 mm no autocostea espesor incompatible', () => {
+    const r = aplicarPoliticaMaterial(
+      { nombre: 'Costado', material_solicitado: 'melamina nogal 18 mm', insumoId: '' },
+      () => null, [paneles[0]],
+    );
+    expect(r.insumoId).toBe('');
+    expect(r.material_match).toBe(MATCH.SAME_FAMILY_CRITICAL_CONFLICT);
+  });
+});
+
+
+describe('P0 — cantidades inválidas no se maquillan como una pieza', () => {
+  it('cantidad explícita cero no se convierte en 1', () => {
+    const c = aplicarPoliticaMaterial({ nombre: 'Cubierta', material_solicitado: 'melamina nogal 18 mm', cantidad: 0, insumoId: '' }, () => null, []);
+    expect(c.cantidad).toBe(0);
+  });
+  it('sin cantidad se conserva el valor por defecto legacy', () => {
+    const c = aplicarPoliticaMaterial({ nombre: 'Cubierta', material_solicitado: 'melamina nogal 18 mm', insumoId: '' }, () => null, []);
+    expect(c.cantidad).toBe(1);
+  });
+});
+
+
+describe('P0 — candidatos visibles al usuario cuando el material es ambiguo', () => {
+  it('conserva alternativas de la misma familia sin autoasignación', () => {
+    const catalogo = [
+      {id:'melamina-16-blanco', nombre:'Melamina 16 mm blanco'},
+      {id:'melamina-19-nogal', nombre:'Melamina 19 mm nogal'},
+    ];
+    const c = aplicarPoliticaMaterial({nombre:'Panel',material_solicitado:'melamina',insumoId:''},()=>null,catalogo);
+    expect(c.material_match).toBe(MATCH.AMBIGUOUS);
+    expect(c.insumoId).toBe('');
+    expect(c._match.alternativas.map(x=>x.id)).toEqual(['melamina-16-blanco','melamina-19-nogal']);
+    expect(c._match.autocosteable).toBe(false);
+  });
+});
+
+
+describe('P0 — hoja obsoleta al sustituir insumo', () => {
+  it('16mm a 19mm obliga a recapturar fracción aunque ambos son tableros', () => {
+    expect(debeResetearHojasMaterial('melamina-16','melamina-19',true)).toBe(true);
+  });
+  it('mismo insumo sigue siendo editable sin borrar hoja', () => {
+    expect(debeResetearHojasMaterial('melamina-19','melamina-19',true)).toBe(false);
+  });
+  it('cambio a material no fraccionado limpia hoja', () => {
+    expect(debeResetearHojasMaterial('melamina-19','tubo-ptr',false)).toBe(true);
+  });
+});
+
+
+describe('P0 — acero negro requiere definir metal y acabado POR SEPARADO', () => {
+  it('PTR negro sin calibre/perfil no falla falsamente por color distinto', () => {
+    const c = clasificarMaterial({solicitado:'PTR estructura metálica negra',insumoId:'ptr-14',insumoNombre:'Tubo / PTR cal. 14'});
+    expect(c.clase).toBe(MATCH.CANDIDATE_REQUIRES_CONFIRMATION);
+    expect(c.insumoIdEfectivo).toBe('');
+    expect(c.insumoIdCandidato).toBe('ptr-14');
+    expect(c.motivo).toMatch(/calibre/);
+    expect(c.motivo).toMatch(/PTR negro/i);
+  });
+  it('lámina negra sin calibre tampoco puede emitirse con calibre arbitrario', () => {
+    const c = clasificarMaterial({solicitado:'lámina negra',insumoId:'lamina-14',insumoNombre:'Lamina de acero cal. 14'});
+    expect(c.insumoIdEfectivo).toBe('');
+    expect(c.clase).toBe(MATCH.CANDIDATE_REQUIRES_CONFIRMATION);
+  });
+  it('lámina cal 14 y pintura negra puede estimar acero crudo con acabado pendiente, no certificar', () => {
+    const c = clasificarMaterial({solicitado:'lámina negra cal. 14',insumoId:'lamina-14',insumoNombre:'Lamina de acero cal. 14'});
+    expect(c.clase).toBe(MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED);
+    expect(c.cambio).toMatch(/NO asumir pintura/i);
+  });
+  it('metal CAL.18 no se sustituye por CAL.14 aunque se parezca el color', () => {
+    const c = clasificarMaterial({solicitado:'lámina negra cal. 18',insumoId:'lamina-14',insumoNombre:'Lamina de acero cal. 14'});
+    expect(c.clase).toBe(MATCH.SAME_FAMILY_CRITICAL_CONFLICT);
+  });
+  it('aunque sólo exista un PTR, sin calibre/sección no autocostea a escondidas', () => {
+    const unico=[{id:'ptr-14',nombre:'Tubo / PTR cal. 14',seccion:'metal'}];
+    const c=aplicarPoliticaMaterial({nombre:'Postes',material_solicitado:'PTR estructura negra',insumoId:''},()=>null,unico);
+    expect(c.insumoId).toBe('');
+    expect(c._match.candidate_insumo_id).toBe('ptr-14');
+    expect(c.material_match).toBe(MATCH.CANDIDATE_REQUIRES_CONFIRMATION);
+    expect(c._match.autocosteable).toBe(false);
+  });
+
 });

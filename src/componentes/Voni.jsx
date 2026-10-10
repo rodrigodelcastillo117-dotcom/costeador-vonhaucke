@@ -19,7 +19,7 @@ import { confirmarPrograma } from '../datos/confirmarPrograma.js';
 import { requirementsDeBrief } from '../datos/programaBrief.js';
 import Cargando from './Cargando.jsx';
 import EstoEntendi from './EstoEntendi.jsx';
-import { costoImplicito } from '../datos/preciosVenta.js';
+// Nunca deducir costos de fábrica a partir de precios comerciales de lista.
 import ConfirmarCandado from './ConfirmarCandado.jsx';
 
 // ⚠️ EL ESPACIO VA PRIMERO (2026-08-17). Antes era: muebles → espacio →
@@ -531,7 +531,11 @@ export default function Voni({
                   onVariante={(id, art) => setCot({ partidas: partidas.map((p) => (p.id === id ? {
                     ...p,
                     precioUnitario: art.lista,
-                    costoUnitario: costoImplicito(art.lista),   // que Dirección siga viendo utilidad coherente
+                    // Al cambiar de variante, el costo de la anterior pierde vigencia.
+                    // Precio de lista real ≠ costo de fabricación real.
+                    costoUnitario: null,
+                    costoDerivado: null,
+                    costo_estado: 'PENDIENTE_COSTO_AUTORITATIVO',
                     precioReal: true,
                     catalogo: { clave: art.clave, lista: art.lista, full: art.full, minimo: art.minimo },
                   } : p)) })}
