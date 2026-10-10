@@ -16,8 +16,16 @@
 import { BANCO } from './banco.js';
 import { medidasAwd } from './catalogoCanonico.js';
 
-const ID_BENCH_DOBLE = /bench-?doble/i;              // id de catálogo (p9-app-lt-bench-doble-*)
-const NOMBRE_BENCH_DOBLE = /\bbench\s*doble\b/i;     // nombre canónico de familia
+// RESCATE (E2E Torre Sur 14:48Z): el bench que arma Voni viene de LÍNEA con id de
+// producto `banca_doble` (ruta applt) y nombre "Banca doble APP LT…" — ninguno casaba
+// con las regex (sólo "bench-doble"), el ancla salía UNKNOWN y el juez pedía revisión.
+// `banca_doble`/`banca_sencilla` SON identidad de catálogo de la línea (CATALOG).
+const ID_BENCH_DOBLE = /bench-?doble|banca_doble/i;          // id de catálogo (p9-app-lt-bench-doble-* | applt/banca_doble)
+const ID_BENCH_SENCILLO = /bench-?sencill|banca_sencilla/i;  // banca sencilla: una sola cara
+const NOMBRE_BENCH_DOBLE = /\b(bench|banca)\s*doble\b/i;     // nombre canónico de familia
+// Guardado de apoyo (credenza/archivero): NO se le declara topología. Se probó
+// SINGLE_FACE INFERRED y el kit crece con la banda de asiento + pasillo entre kits
+// → deja de caber junto al escritorio (19/21). Queda UNKNOWN: revisión honesta.
 
 // Devuelve un placement_profile {topology, provenance, evidence} o null.
 export function topologiaDeProducto(prod = {}) {
@@ -26,6 +34,9 @@ export function topologiaDeProducto(prod = {}) {
   const nombre = String(prod.nombre || '');
   if (ID_BENCH_DOBLE.test(idStr) || ID_BENCH_DOBLE.test(clave)) {
     return { topology: 'DOUBLE_FACE', provenance: 'CATALOG', evidence: idStr || clave };
+  }
+  if (ID_BENCH_SENCILLO.test(idStr) || ID_BENCH_SENCILLO.test(clave)) {
+    return { topology: 'SINGLE_FACE', provenance: 'CATALOG', evidence: idStr || clave };
   }
   if (NOMBRE_BENCH_DOBLE.test(nombre)) {
     // Sólo el nombre coincide (sin id de catálogo): verdad más débil → INFERRED.

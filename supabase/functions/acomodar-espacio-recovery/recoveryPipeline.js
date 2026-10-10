@@ -13,6 +13,7 @@ import { auditarPuertas } from './spatial-core.js';
 import { CONTRATO, evaluarRecovery } from './recovery-core.js';
 import { resolverKitsMulti } from './kit-solver.js';
 import { mensajeVendedor } from './opciones.js';
+import { juzgarSemantico } from './semanticPlacementJudge.js';
 
 // El mensaje al vendedor viaja sin los closures `aplicar` (no serializables).
 // GAP28: las opciones se verifican con el MISMO contrato del pipeline final
@@ -35,6 +36,11 @@ export function construirRespuestaAcomodo(areas = [], piezas = []) {
   const val = validarColocacion(areas, piezasAsign, colocacion, 1);
   const doors = auditarPuertas(areas);
   const mensaje = mensajeSerializable(areas, piezasAsign, sol);
+  // COT-P0-028 (RESCATE): la respuesta sólo traía CONTEOS semánticos (semFail/semReview)
+  // y el vendedor veía "NEEDS_SEMANTIC_REVIEW" sin saber por qué. Se exponen los
+  // CÓDIGOS del juez sobre el ganador (id, rol, lado, clearance) — datos, no texto libre.
+  const semGanador = juzgarSemantico(areas, piezasAsign, colocacion);
+  const semantic_issues = (semGanador.issues || []).map((i) => ({ code: i.code, severity: i.severity, id: i.id ?? null, anchor: i.anchor ?? null, rol: i.rol ?? null, esperado: i.esperado ?? null, side: i.side ?? null, clear: i.clear ?? null }));
 
   // GATE de publicación sobre el GANADOR (contrato FINAL, FAIL-CLOSED · GAP34):
   //   render_ready ⇔ HARD PASS (evaluarRecovery) ∧ SEMANTIC PASS (GAP18: sólo 'PASS')
@@ -65,6 +71,7 @@ export function construirRespuestaAcomodo(areas = [], piezas = []) {
       doors,
       semantic: val,
       semantic_gate: { sem_status: semEval.sem_status ?? null, semantic_pass: semanticPass, semFail: semEval.semFail ?? null, quality: semEval.quality ?? null, quality_status: semEval.quality_status ?? null },
+      semantic_issues,
       min_pasillo_mm: CONTRATO.min_pasillo_mm,
     },
     seleccion: sel,

@@ -26,8 +26,18 @@ export const HARD_ACCESS_MM = 0;        // clearance ≤ 0 = inutilizable → fa
 // Objetivo de CONFORT (QualityJudge). PROVISIONAL, NO es verdad Von Haucke todavía.
 export const QUALITY_ACCESS_TARGET_MM = 600;
 
-// Rol de silla esperado por tipo de ancla (para KIT_FUNCTIONAL_RELATION_BROKEN).
-const SEAT_ROL_DE_ANCLA = { ANCHOR_WORKSTATION: 'WORK_SEAT', ANCHOR_MEETING: 'MEETING_SEAT', ANCHOR_DESK: 'EXECUTIVE_SEAT', ANCHOR_RECEPTION: 'VISITOR_SEAT' };
+// Roles de silla ACEPTADOS por tipo de ancla (para KIT_FUNCTIONAL_RELATION_BROKEN).
+// RESCATE 2026-10-10 (E2E Torre Sur, 3 rutas): un privado real lleva la silla directiva
+// Y sus sillas de visita (regla de la casa: 2 CONCERTO por privado); el juez sólo
+// aceptaba EXECUTIVE_SEAT y marcaba FAIL a las visitas → NEEDS_SEMANTIC_REVIEW sin
+// salida. Versión FUENTE (v+1); la edge desplegada sigue con la regla vieja hasta
+// que Rodrigo autorice el despliegue.
+const SEAT_ROLES_DE_ANCLA = {
+  ANCHOR_WORKSTATION: ['WORK_SEAT'],
+  ANCHOR_MEETING: ['MEETING_SEAT'],
+  ANCHOR_DESK: ['EXECUTIVE_SEAT', 'VISITOR_SEAT'],
+  ANCHOR_RECEPTION: ['VISITOR_SEAT'],
+};
 
 function rectDe(c, p) {
   const g = num(c.rot) === 90 || num(c.rot) === 270;
@@ -110,11 +120,11 @@ export function juzgarSemantico(areas = [], piezas = [], colocacion = []) {
     const colocados = colSeatPorAncla.get(id) || [];
     const slotsColocados = new Set(colocados.map((c) => c.slot_id).filter(Boolean));
     for (const s of esperados) if (!slotsColocados.has(s.slot_id)) add('SLOT_UNFILLED_REQUIRED', { anchor: id, slot: s.slot_id, severity: 'fail' });
-    const rolEsperado = SEAT_ROL_DE_ANCLA[a.rol];
+    const rolesEsperados = SEAT_ROLES_DE_ANCLA[a.rol];
     for (const c of colocados) {
       const p = byId.get(String(c.id));
       if (c.slot_id && !esperadoSlots.has(c.slot_id)) add('DEPENDENT_WRONG_SLOT', { id: c.id, slot: c.slot_id, anchor: id, severity: 'fail' });
-      if (rolEsperado && p && p.relation_role !== rolEsperado) add('KIT_FUNCTIONAL_RELATION_BROKEN', { id: c.id, rol: p.relation_role, esperado: rolEsperado, anchor: id, severity: 'fail' });
+      if (rolesEsperados && p && !rolesEsperados.includes(p.relation_role)) add('KIT_FUNCTIONAL_RELATION_BROKEN', { id: c.id, rol: p.relation_role, esperado: rolesEsperados.join('|'), anchor: id, severity: 'fail' });
     }
     const sidesEsperados = new Set(esperados.map((s) => s.side));
     const sidesColocados = new Set(colocados.map((c) => c.side).filter(Boolean));
