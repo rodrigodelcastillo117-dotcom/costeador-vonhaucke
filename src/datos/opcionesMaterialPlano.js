@@ -67,7 +67,9 @@ function opcionesNoTablero(solicitado, insumos, limite) {
     const advertencia = desdeCompras
       ? 'Existe en catálogo técnico/Compras, pero falta integrarlo y validar su unidad/precio en el motor de costeo.'
       : tipoMetal
-        ? 'Artículo disponible para comparar. Confirmar calibre, perfil, formato y acabado; negro puede requerir pintura aparte.'
+        ? (tipoMetal === 'lamina'
+            ? 'Referencia de lámina: confirmar calibre, formato y si «negra» es acero comercial. No asumir pintura.'
+            : 'Referencia PTR: confirmar calibre, sección y acabado; pintura solo si está especificada.')
         : 'Artículo del catálogo activo. Falta confirmar modelo/especificación y cantidad antes del costo oficial.';
     return { id, nombre, confirmable: false, advertencia, prioridad, fuenteCatalogo: desdeCompras ? 'compras' : 'activo' };
   }).filter(Boolean);
