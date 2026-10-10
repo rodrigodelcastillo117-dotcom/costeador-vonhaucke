@@ -443,7 +443,7 @@ Deno.serve(async (req) => {
     MODEL_ID = resolverModeloPorPasada("analizar-mueble", {
       ANTHROPIC_MODEL_ANALIZAR_MUEBLE: Deno.env.get("ANTHROPIC_MODEL_ANALIZAR_MUEBLE") ?? undefined,
       ANTHROPIC_MODEL_ANALIZAR_MUEBLE_REVISION: Deno.env.get("ANTHROPIC_MODEL_ANALIZAR_MUEBLE_REVISION") ?? undefined,
-    }, { esRevision });
+    }, { esRevision, esVisual: !soloTexto });
   } catch (e: any) {
     return await fallarAnalisis(String(e?.code || "MODEL_CONFIG_INVALID"), "Configuración de modelo inválida; contacta al administrador.", 500, "config_error");
   }
