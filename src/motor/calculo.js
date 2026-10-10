@@ -548,6 +548,23 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
       componentesIgnorados.push((comp.nombre || insumo.nombre || 'Pieza') + ' — falta consumo en fracción de hoja');
       continue;
     }
+    // P0: la IA no puede convertir geometría de LÁMINA en kg.
+    // Las láminas se compran por kg/hoja y formato.medida es PESO, no m².
+    // Exigir consumo de hoja explícito o peso validado por ingeniería.
+    if (comp.forma === 'area' && insumo.formato?.tipo === 'lamina'
+      && !(Number(comp.hojas) > 0)) {
+      componentesIgnorados.push((comp.nombre || insumo.nombre || 'Lámina')
+        + ' — falta consumo validado en fracción de hoja (las cotas m² no equivalen a kg)');
+      continue;
+    }
+    // La cantidad explícita CERO o negativa no se convierte silenciosamente a una.
+    // Aplicable al BOM nuevo con forma declarada, NO a las líneas legacy sin forma.
+    if (comp.forma && (Number(comp.piezas) === 0 && comp.piezas != null
+      || Number(comp.cantidad) < 0 && comp.cantidad != null)) {
+      componentesIgnorados.push((comp.nombre || 'Pieza')
+        + ' — cantidad inválida; revisa el despiece');
+      continue;
+    }
     // FALTA MEDIDA (audit 2026-10-08, silent P0-1): una pieza DECLARADA de ÁREA (`forma:'area'`,
     // como las que devuelve la IA del plano) necesita una medida USABLE — largo y ancho > 0, o
     // hojas > 0. Si llega sin cotas (mapIaComps puso largo/ancho 0 + cantidad 1), NO se inventa
