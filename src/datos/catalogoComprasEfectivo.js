@@ -125,11 +125,12 @@ export function construirCatalogoCompras(base = {}, referencias = [], precios = 
         // COSTO POR HOJA ≠ COSTO POR m²: sin formato conocido, una pieza con
         // 2 m² no puede convertirse a 2 hojas (error de dinero material).
         // Preservamos el importe/clave/fuente sólo para consulta.
-        delete insumo.precio;
-        delete insumo.precioBase;
-        insumo.disponibleCosteo = false;
+        // El precio por hoja SÍ es real y costea si se informa CUÁNTAS HOJAS
+        // consume. El motor bloquea automáticamente área m² sin conversión.
+        // No convertir m² × $/hoja ni asumir medidas inexistentes.
         insumo.estadoEconomia = 'FORMATO_PENDIENTE';
-        insumo.observacionPrecio = 'Precio por hoja disponible; faltan medidas físicas para derivar fracción/nesting.';
+        insumo.precioCertificable = false;
+        insumo.observacionPrecio = 'Precio por hoja disponible: introduce fracción de hoja consumida. Sin formato real no se calcula nesting/área automáticamente.';
       }
     }
     if (!anterior && ['herrajes','electrico','graficos'].includes(insumo.seccion)) insumo.clase = 'indirecta';
