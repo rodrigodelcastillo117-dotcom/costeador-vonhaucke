@@ -17,6 +17,7 @@ import { conAcompanantes } from '../datos/autoInsumos.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, familiaDeMaterial } from '../datos/materialMatch.js';
 import { materialDesdeLeyenda } from '../datos/materialDesdeLeyenda.js';
 import { opcionesMaterialPlano } from '../datos/opcionesMaterialPlano.js';
+import { proxyTableroParaEstimar } from '../datos/proxyTableroEstimado.js';
 import { paginaAImagen } from '../datos/pdfImagen.js';
 import { prepararPdfRapido, rasterizarPaginas, paginasAlrededor } from '../datos/pdfPipeline.js';
 import Cargando from './Cargando.jsx';
@@ -589,7 +590,21 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     // otra en silencio (solid surface jamás cae en MDF/HPL). Sólo EXACT/EQUIV
     // conservan insumoId; el resto queda '' + bandera `_match`.
     const materialPlano = materialDesdeLeyenda(z, p?.materiales);
-    const base = aplicarPoliticaMaterial({ ...z, material_solicitado: materialPlano || z.material_solicitado || z.nombre }, (id) => insumos[id], Object.values(insumos));
+    const especificado = materialPlano || z.material_solicitado || z.nombre;
+    const inicial = aplicarPoliticaMaterial({ ...z, material_solicitado: especificado }, (id) => insumos[id], Object.values(insumos));
+    // Costear de forma automática con una alternativa del MISMO tablero, con
+    // precio REAL configurado, SIN confirmar ingeniería ni liberar emisión.
+    // Solo 18→19 melamina: calibres estructurales y herrajes NO se sustituyen.
+    const proxy = !inicial.insumoId && proxyTableroParaEstimar(especificado, insumos);
+    const base = proxy
+      ? aplicarPoliticaMaterial({
+          ...z, insumoId: proxy.id, material_solicitado: especificado,
+          material_confirmado: false, engineering_override: false,
+        }, (id) => insumos[id], Object.values(insumos))
+      : inicial;
+    if (proxy && base.insumoId && base.material_match === 'SAME_FAMILY_COMPATIBLE_PROPOSED') {
+      base._estimacionAlternativa = { id: proxy.id, nombre: proxy.nombre, aviso: proxy.aviso };
+    }
     if (z.forma === 'area') {
       base.forma = 'area'; // se preserva: el motor usa `forma:'area'` para exigir medida (silent P0-1)
       base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
@@ -1195,6 +1210,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                   <button className="pieza-x" onClick={() => quitarPieza(i)} aria-label="quitar">×</button>
                 </div>
                 {erroresMaterial[i] && <div className="pieza-calc" role="alert" style={{ color: '#ff9198' }}>{erroresMaterial[i]}</div>}
+                {c._estimacionAlternativa && (
+                  <div className="pieza-calc" style={{ color: '#ffd88b', fontWeight: 600 }} role="status">
+                    ESTIMACIÓN AUTOMÁTICA · {c._estimacionAlternativa.nombre}. Costo calculado con el precio configurado de ese artículo, NO con el material exacto del plano. Espesor y acabado por confirmar. No emitible.
+                  </div>
+                )}
                 {est.badge && (
                   <div className="pieza-calc" style={{ color: 'var(--ambar,#8a6d00)', fontWeight: 600 }}>🟡 {est.badge}</div>
                 )}
