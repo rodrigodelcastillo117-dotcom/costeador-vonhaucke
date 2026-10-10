@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  MATCH, MATCH_AUTOCOSTEABLE, familiaDeMaterial, clasificarMaterial, aplicarPoliticaMaterial, mejorInsumoDeFamilia, estadoMaterialUI,
+  MATCH, MATCH_AUTOCOSTEABLE, debeResetearHojasMaterial, familiaDeMaterial, clasificarMaterial, aplicarPoliticaMaterial, mejorInsumoDeFamilia, estadoMaterialUI,
 } from './materialMatch.js';
 
 // Catálogo mock como el real (ids con color/espesor) para probar la auto-precarga.
@@ -399,5 +399,18 @@ describe('P0 — candidatos visibles al usuario cuando el material es ambiguo', 
     expect(c.insumoId).toBe('');
     expect(c._match.alternativas.map(x=>x.id)).toEqual(['melamina-16-blanco','melamina-19-nogal']);
     expect(c._match.autocosteable).toBe(false);
+  });
+});
+
+
+describe('P0 — hoja obsoleta al sustituir insumo', () => {
+  it('16mm a 19mm obliga a recapturar fracción aunque ambos son tableros', () => {
+    expect(debeResetearHojasMaterial('melamina-16','melamina-19',true)).toBe(true);
+  });
+  it('mismo insumo sigue siendo editable sin borrar hoja', () => {
+    expect(debeResetearHojasMaterial('melamina-19','melamina-19',true)).toBe(false);
+  });
+  it('cambio a material no fraccionado limpia hoja', () => {
+    expect(debeResetearHojasMaterial('melamina-19','tubo-ptr',false)).toBe(true);
   });
 });
