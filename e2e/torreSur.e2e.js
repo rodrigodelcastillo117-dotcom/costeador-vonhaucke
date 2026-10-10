@@ -155,6 +155,37 @@ test.describe('E2E TORRE SUR · plano real → cotización sin pérdidas', () =>
     const tras = await leerCot(page);
     expect((tras.partidas || []).length).toBe(partidas.length);
 
+    // 7) ACOMODO (COT-P0-020/025/027): con las anclas costeadas, el programa NO debe
+    //    estar bloqueado y el solver real debe recibir el programa y colocar.
+    //    AcomodoBase auto-acomoda al entrar si `programaListo`; si no dispara, se pulsa.
+    await page.getByTestId('home-cotizar').click().catch(() => {});
+    const acomodoResp = page.waitForResponse((r) => /acomodar-espacio/.test(r.url()) && r.request().method() === 'POST', { timeout: 150000 });
+    await page.getByTestId('voni-paso-acomodo').click();
+    const btnAcomodar = page.getByRole('button', { name: /^Acomodar$/ });
+    await expect(btnAcomodar).toBeVisible({ timeout: 30000 });
+    const bloqueado = await page.getByText(/No voy a acomodar un programa comercial incompleto|Todavía no:/).first().isVisible().catch(() => false);
+    expect(bloqueado, 'Acomodo bloqueado por programa incompleto (ver tooltip/mensaje)').toBe(false);
+    if (await btnAcomodar.isEnabled()) await btnAcomodar.click().catch(() => {});
+    const aco = await acomodoResp;
+    const acoJson = await aco.json().catch(() => null);
+    let piezasEnviadas = null;
+    try { piezasEnviadas = JSON.parse(aco.request().postData() || '{}').piezas?.length ?? null; } catch (_e) { /* sin body */ }
+    const colocacion = acoJson?.plan?.colocacion || [];
+    const porArea = {};
+    for (const c of colocacion) porArea[c.area ?? '?'] = (porArea[c.area ?? '?'] || 0) + 1;
+    fs.writeFileSync(path.resolve(process.cwd(), 'e2e/evidence/torre-sur-acomodo.json'), JSON.stringify({
+      fecha: new Date().toISOString(), http: aco.status(), ok: acoJson?.ok ?? null, status: acoJson?.status ?? null,
+      metodo: acoJson?.metodo ?? null, attempts_used: acoJson?.attempts_used ?? null, render_ready: acoJson?.render_ready ?? null,
+      error: acoJson?.error ?? null, piezasEnviadas, colocadas: colocacion.length, porArea,
+      noColocadas: acoJson?.noColocadas || acoJson?.plan?.noColocadas || acoJson?.rechazadas || null,
+    }, null, 2));
+    expect(aco.status(), 'acomodar-espacio HTTP').toBe(200);
+    expect(acoJson?.ok, `solver ok=false: ${JSON.stringify(acoJson?.error || acoJson?.status || '')}`).toBe(true);
+    expect(piezasEnviadas, 'el solver no recibió piezas').toBeGreaterThan(0);
+    expect(colocacion.length, 'el solver no colocó nada').toBeGreaterThan(0);
+    // El plan queda PERSISTIDO con la cotización (no sólo en pantalla).
+    await expect.poll(async () => ((await leerCot(page)).acomodo?.plan?.colocacion || []).length, { timeout: 30000 }).toBeGreaterThan(0);
+
     expect(pageErrors, pageErrors.join('\n')).toHaveLength(0);
   });
 });
