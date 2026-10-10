@@ -1235,8 +1235,19 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                   </div>
                 )}
                 {area && m2 > 0 && <div className="pieza-calc">= {m2.toFixed(2)} m² <span className="gris">({ins.clase === 'indirecta' ? 'comprado' : 'fabricado'})</span></div>}
-                {c.iaRazon && <div className="pieza-calc"><span className="gris">📐 Consumo IA: {c.iaRazon}</span></div>}
-                {c.iaNota && <div className="pieza-calc"><span className="gris">IA{c.iaConf ? ` · ${c.iaConf}` : ''}: {c.iaNota}</span></div>}
+                {(c.iaRazon || c.iaNota) && (
+                  <>
+                    <div className="pieza-razon-desktop">
+                      {c.iaRazon && <div className="pieza-calc"><span className="gris">📐 Consumo IA: {c.iaRazon}</span></div>}
+                      {c.iaNota && <div className="pieza-calc"><span className="gris">IA{c.iaConf ? ` · ${c.iaConf}` : ''}: {c.iaNota}</span></div>}
+                    </div>
+                    <details className="pieza-razon-mobile">
+                      <summary>Ver cálculo y supuestos de VONI</summary>
+                      {c.iaRazon && <div className="pieza-calc"><span className="gris">📐 Consumo IA: {c.iaRazon}</span></div>}
+                      {c.iaNota && <div className="pieza-calc"><span className="gris">IA{c.iaConf ? ` · ${c.iaConf}` : ''}: {c.iaNota}</span></div>}
+                    </details>
+                  </>
+                )}
               </div>
             );
           })}
