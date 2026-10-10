@@ -13,6 +13,6 @@ describe('avisos útiles del costeo por categoría', () => {
     expect(mensajePendienteInsumo('lámina cal.14')).toMatch(/no emitir/);
   });
   it('melamina sin insumo menciona articulo y costo sin inventar', () => {
-    expect(mensajePendienteInsumo('Melamina 18 mm nogal claro')).toMatch(/no se inventará/);
+    expect(mensajePendienteInsumo('Melamina 18 mm nogal claro')).toMatch(/no se inventará/i);
   });
 });
