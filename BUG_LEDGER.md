@@ -56,6 +56,11 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 `AsistenteEspecial.jsx:179` manda `{...b}` con `margen`/`modeloCosteo`; `validarIntentCosteo` responde
 `FORBIDDEN_FINANCIAL_FIELD`. La comparación "sombra" nunca ha recibido una respuesta del servidor.
 
+**VH-039 · P1 · OPEN · 13 funciones edge en producción fuera del repo.** 23 desplegadas, 8 invocadas por el
+cliente, 10 en el repo. Variantes paralelas (`*-strict` ×4, `-recovery`, `-preview`, `-rc`), `voni-council` (sí se
+invoca, sin código en el repo), `app` con `verify_jwt:false` y `bootstrap-temp-claude`. Detalle y clasificación en
+`INVENTARIO_IMPLEMENTACIONES.md` §7.
+
 **VH-037 · P0 · OPEN · Esquema de Supabase sin versionar.** 220 migraciones aplicadas en producción,
 0 en el repo. Ver `supabase/schema/README.md`.
 
