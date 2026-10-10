@@ -1090,9 +1090,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                     {(q.tipo === 'radio' || q.tipo === 'select') && q.opciones?.length ? (
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         {q.opciones.map((op) => (
-                          <button key={op} type="button" className={'chip' + (val === op ? ' on' : '')}
-                            onClick={() => setVal(op)}
-                            style={{ cursor: 'pointer', background: val === op ? '#f5f5f5' : '#19191e', color: val === op ? '#161616' : '#f5f5f5', border: val === op ? '2px solid #e7464b' : '1px solid #555', WebkitTextFillColor: val === op ? '#161616' : '#f5f5f5' }}>
+                          <button key={op} type="button" className="pregunta-opcion" aria-pressed={val === op}
+                            onClick={() => setVal(op)}>
                             {op}
                           </button>
                         ))}
@@ -1168,7 +1167,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                 <div className="pieza-head">
                   <input className="pieza-nom" placeholder="Nombre de la pieza" value={c.nombre || ''} onChange={(e) => setPieza(i, { nombre: e.target.value })} />
                   <select className="pieza-mat" value={est.selVal} onChange={(e) => onMaterial(i, e.target.value)}>
-                    <option value="">{c.material_solicitado ? 'Material del plano · elegir artículo' : '— ¿de qué es? —'}</option>
+                    <option value="">{c.material_solicitado ? `Plano: ${c.material_solicitado} · falta insumo` : '— ¿de qué es? —'}</option>
                     {SECCIONES.map((sec) => (
                       <optgroup label={sec.nombre} key={sec.id}>
                         {Object.values(insumos).filter((x) => x.seccion === sec.id).map((x) => (
@@ -1185,24 +1184,35 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                 {est.pendiente && c.material_solicitado && (
                   <div className="pieza-calc" style={{ color: 'var(--texto,#e4e4e4)' }}>
                     <strong>El plano especifica:</strong> {c.material_solicitado}. {est.candId ? 'Hay un artículo propuesto para confirmar.' : 'Selecciona el artículo equivalente del catálogo para continuar.'}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                    <div className="material-candidatos" role="group" aria-label={`Opciones de catálogo para ${c.nombre}`}>
                       {opcionesMaterialPlano(c.material_solicitado, insumos).length > 0 ? (
                         opcionesMaterialPlano(c.material_solicitado, insumos).map((op) => (
-                          <button type="button" key={op.id}
-                            style={{ color: '#f9f9f9', WebkitTextFillColor: '#f9f9f9', backgroundColor: '#292932', border: '1px solid #f0575e', borderRadius: 10, padding: '10px 12px', whiteSpace: 'normal', textAlign: 'left', minHeight: 44, fontWeight: 600 }}
-                            onClick={() => onMaterial(i, op.id, { confirmado: true })}>
-                            Confirmar alternativa: {op.nombre}
-                          </button>
+                          op.confirmable ? (
+                            <button type="button" key={op.id} className="material-candidato"
+                              onClick={() => onMaterial(i, op.id, { confirmado: true })}>
+                              <strong>Elegir y confirmar: {op.nombre}</strong>
+                              <span>{op.advertencia}</span>
+                            </button>
+                          ) : (
+                            <div key={op.id} className="material-referencia" role="status">
+                              <strong>Solo referencia: {op.nombre}</strong>
+                              <span>{op.advertencia}</span>
+                            </div>
+                          )
                         ))
                       ) : (
-                        <span style={{ color: '#ffb6b6' }}>No hay opciones verificables de esta familia en el catálogo cargado. Mantener pendiente y solicitar a Compras/Diseño.</span>
+                        <div role="status" className="material-sin-coincidencia">
+                          El plano ya identificó el material, pero no hay un artículo con espesor y acabado verificables en el catálogo de costeo. No se asignará uno incorrecto. Solicita a Compras/Diseño habilitarlo con precio validado.
+                        </div>
                       )}
                     </div>
                   </div>
                 )}
                 {est.pendiente && (
                   <div className="pieza-calc" style={{ color: 'var(--alerta,#b22a22)' }}>
-                    ⚠ {est.pendienteMsg}
+                    ⚠ {est.clase === 'AMBIGUOUS' && c.material_solicitado
+                      ? 'Costo pendiente: falta identificar un artículo realmente compatible con el plano.'
+                      : est.pendienteMsg}
                     {est.mostrarConfirmar && est.candId && (
                       <>{' '}<button type="button" className="chip" style={{ cursor: 'pointer' }} onClick={() => onMaterial(i, est.candId, { confirmado: true })}>Usar {insumos[est.candId]?.nombre || 'candidato'} (confirmar)</button></>
                     )}
