@@ -12,7 +12,10 @@ describe('canonical cost emit gate in critical UI',()=>{
   }
   it('Costeador bloquea cotizar y ficha con el gate canónico',()=>{
     const s=fs.readFileSync('src/componentes/Costeador.jsx','utf8');
-    expect(s).toContain('disabled={incompletoC || simulando}');
+    // El gate canónico sigue siendo obligatorio, pero Compras agrega un candado:
+    // datos técnicos/precios no certificados NO pueden emitir como oficiales.
+    expect(s).toMatch(/disabled=\{incompletoC \|\| simulando(?: \|\| costoComprasPreliminar)?\}/);
+    expect(s).toContain('costoComprasPreliminar');
     expect(s).toContain('Costo NO EMITIBLE');
   });
 });
