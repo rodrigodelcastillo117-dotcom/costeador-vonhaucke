@@ -607,9 +607,10 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       _match: { clase: 'NOT_AVAILABLE', solicitado: prev.material_solicitado || '',
         confirmado_por_usuario: false, autollenado: false, candidate_insumo_id: '' },
     });
-    // Precio en $/m²: nunca conservar una fracción de hoja de una pieza
-    // previamente ligada a un tablero por hoja.
-    if (ins?.unidad === 'm2') patch.hojas = undefined;
+    // Nunca heredar hojas estimadas por VONI para OTRO artículo o formato.
+    // Las fracciones de hoja sólo son válidas para el insumo al que pertenecían;
+    // además $/m² no puede consumir cantidad "hojas".
+    if (insumoId !== prev.insumoId || ins?.unidad === 'm2') patch.hojas = undefined;
     if (!esArea(ins)) { patch.largoMM = undefined; patch.anchoMM = undefined; }
     // Elección/confirmación HUMANA: misma intención en ambas UIs (P0.8). El servidor verifica
     // material_confirmado + insumoId y lo convierte a USER_CONFIRMED efectivo (no confía en el string).
