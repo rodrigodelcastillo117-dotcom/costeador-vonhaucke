@@ -624,6 +624,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   }
   function costoPieza(c, ins) {
     const p = ins.precio ?? ins.precioBase ?? 0;
+    // Precio documentado por HOJA; con formato pendiente se requiere consumo
+    // explícito en fracciones de hoja. Jamás multiplicar m² × precio por hoja.
+    if (ins.formatoPendiente && ins.unidad === 'hoja') {
+      return Number(c.hojas) > 0 ? Number(c.hojas) * Math.max(1, Number(b.piezas) || 1) * p : null;
+    }
     // Lámina del catálogo legacy: precio $/kg + formato.medida = kg por hoja.
     // Si conocemos la geometría, primero convertimos m² → kg. Multiplicar m²×$/kg
     // (lo anterior) daba subtotales físicamente imposibles como $12 para un zoclo.
@@ -672,7 +677,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
       // La IA ya estimó la fracción de hoja que rinde: el motor la usa directa
       // (hojas × precio) en vez de re-nestear áreas, que es lo que oscilaba.
-      if (z.hojas > 0 && puedeUsarHojasDirectas(base.insumoId, insumos)) {
+      if (z.hojas > 0 && (puedeUsarHojasDirectas(base.insumoId, insumos) || (insumos[base.insumoId]?.formatoPendiente && insumos[base.insumoId]?.unidad === 'hoja'))) {
         base.hojas = z.hojas;
       }
     }
@@ -1373,7 +1378,13 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                 )}
                 {ins && (
                   <div className="pieza-med">
-                    {area ? (
+                    {ins.formatoPendiente && ins.unidad === 'hoja' ? (
+                      <label>Fracción de hoja real o estimada
+                        <input type="number" className="numero" step="0.01" min="0"
+                          value={c.hojas ?? ''} placeholder="0.50"
+                          onChange={(e) => setPieza(i, { hojas: parseFloat(e.target.value) || 0 })} />
+                      </label>
+                    ) : area ? (
                       <>
                         <label>Largo mm<input type="number" className="numero" min="0" value={c.largoMM || ''} onChange={(e) => setPieza(i, { largoMM: parseFloat(e.target.value) || 0 })} /></label>
                         <span className="por">×</span>
@@ -1384,7 +1395,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                     ) : (
                       <label>Cantidad ({ins.unidad})<input type="number" className="numero" step="0.01" min="0" value={c.cantidad} onChange={(e) => setPieza(i, { cantidad: parseFloat(e.target.value) || 0 })} /></label>
                     )}
-                    <span className="pieza-sub">{pesos2(costoPieza(c, ins))}</span>
+                    <span className="pieza-sub">{costoPieza(c, ins) == null || !Number.isFinite(costoPieza(c, ins)) ? 'Consumo por hoja pendiente' : pesos2(costoPieza(c, ins))}</span>
                   </div>
                 )}
                 {area && m2 > 0 && <div className="pieza-calc">= {m2.toFixed(2)} m² <span className="gris">({ins.clase === 'indirecta' ? 'comprado' : 'fabricado'})</span></div>}
