@@ -337,8 +337,13 @@ function severidadConflicto(fam, solicitado = '', insumoNombre = '') {
   const confPerfil = FAMILIAS_CRITICAS.has(fam) && conflictoPerfilMetal(solicitado, insumoNombre); // P0.13
   const confColor = conflictoAcabadoColor(solicitado, insumoNombre);                                // P0.14
   if (!confEsp && !confCal && !confPerfil && !confColor) return { conflicto: false, critico: false };
-  // Calibre/perfil distinto, o familia estructural con cualquier conflicto → SIEMPRE crítico.
-  if (confCal || confPerfil || FAMILIAS_CRITICAS.has(fam)) return { conflicto: true, critico: true };
+  // El color de un PTR/lámina RAW se obtiene mediante un proceso de acabado y
+  // NO implica otro calibre. Sí es crítico si el artículo ya tiene otro color,
+  // o si cambia perfil, espesor o calibre.
+  const pinturaPendiente = fam === 'metal_lamina' && confColor && coloresDe(insumoNombre).size === 0;
+  if (confCal || confPerfil || (FAMILIAS_CRITICAS.has(fam) && (confEsp || (confColor && !pinturaPendiente)))) {
+    return { conflicto: true, critico: true };
+  }
   // Tablero con espesor distinto: COMPATIBLE sólo si el par está en la lista APROBADA (18↔19).
   if (confEsp) {
     if (FAMILIAS_PANEL.has(fam) && espesorPanelCompatible(solicitado, insumoNombre)) return { conflicto: true, critico: false };
@@ -362,7 +367,12 @@ function textoCambio(solicitado = '', insumoNombre = '') {
   }
   const fa = formaMetal(solicitado), fb = formaMetal(insumoNombre);
   if (fa && fb && fa !== fb) return `Solicitado perfil ${fa} → candidato ${fb}`;
-  if (conflictoAcabadoColor(solicitado, insumoNombre)) return 'Acabado/color distinto al solicitado';
+  if (conflictoAcabadoColor(solicitado, insumoNombre)) {
+    if (familiaDeMaterial(solicitado) === 'metal_lamina' && coloresDe(insumoNombre).size === 0) {
+      return 'Acabado negro/solicitado NO incluido en metal crudo; costear pintura aparte';
+    }
+    return 'Acabado/color distinto al solicitado';
+  }
   return '';
 }
 
@@ -447,6 +457,26 @@ export function clasificarMaterial({ solicitado = '', insumoId = '', insumoNombr
       insumoIdCandidato: insumoId,
       motivo: 'Hay un artículo candidato del catálogo, pero falta evidencia suficiente para confirmar identidad exacta.',
     };
+  }
+
+  // Un metal nombrado genéricamente en el plano ("PTR negro" / "lámina negra")
+  // no da permiso de adivinar calibre, perfil o formato. El color es un acabado,
+  // no una especificación resistente. Mostrar artículo real como candidato, no
+  // asignarlo como materia prima EXACTA ni dar por aprobada ingeniería.
+  if (famPide === 'metal_lamina' && famTiene === 'metal_lamina') {
+    const forma = formaMetal(solicitado);
+    const faltaCalibre = calibresDe(solicitado).length === 0;
+    const faltaSeccionPTR = forma === 'tubo' && dimsPerfil(solicitado).length === 0;
+    if (faltaCalibre || faltaSeccionPTR) {
+      const faltantes = [faltaCalibre ? 'calibre' : null, faltaSeccionPTR ? 'sección del PTR' : null].filter(Boolean).join(' y ');
+      return {
+        clase: MATCH.CANDIDATE_REQUIRES_CONFIRMATION,
+        familiaSolicitada: famPide, familiaResuelta: famTiene,
+        autocosteable: false, insumoIdEfectivo: '', insumoIdCandidato: insumoId,
+        motivo: `El plano no define ${faltantes}. El acabado negro, si aplica, se especifica y costea aparte; requiere decisión técnica.`,
+        cambio: `Sin ${faltantes}; acabado por revisar`,
+      };
+    }
   }
 
   // Misma familia. Si no hay conflicto de atributo → EXACT. Si lo hay, la SEVERIDAD
