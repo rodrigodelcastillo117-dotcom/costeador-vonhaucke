@@ -1198,8 +1198,16 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                   <select className="pieza-mat" value={est.selVal} onChange={(e) => onMaterial(i, e.target.value)}>
                     <option value="">{c.material_solicitado ? `Plano: ${c.material_solicitado} · falta insumo` : '— ¿de qué es? —'}</option>
                     {c.material_solicitado && familiaDeMaterial(c.material_solicitado) === 'melamina' ? (
-                      opcionesMaterialPlano(c.material_solicitado, insumos).filter((op) => op.confirmable)
-                        .map((op) => <option value={op.id} key={op.id}>{op.nombre} · confirmar especificación</option>)
+                      <>
+                        {c.insumoId && insumos[c.insumoId] && (
+                          <option value={c.insumoId} key={c.insumoId}>
+                            {c._estimacionAlternativa ? 'ESTIMACIÓN provisional: ' : 'Actual: '}{insumos[c.insumoId].nombre}
+                          </option>
+                        )}
+                        {opcionesMaterialPlano(c.material_solicitado, insumos)
+                          .filter((op) => op.confirmable && op.id !== c.insumoId)
+                          .map((op) => <option value={op.id} key={op.id}>{op.nombre} · confirmar especificación</option>)}
+                      </>
                     ) : SECCIONES.map((sec) => (
                       <optgroup label={sec.nombre} key={sec.id}>
                         {Object.values(insumos).filter((x) => x.seccion === sec.id).map((x) => (
