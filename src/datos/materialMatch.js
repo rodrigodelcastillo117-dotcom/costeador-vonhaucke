@@ -472,7 +472,18 @@ export function clasificarMaterial({ solicitado = '', insumoId = '', insumoNombr
     const forma = formaMetal(solicitado);
     const faltaCalibre = calibresDe(solicitado).length === 0;
     const faltaSeccionPTR = forma === 'tubo' && dimsPerfil(solicitado).length === 0;
-    if (faltaCalibre || faltaSeccionPTR) {
+    if (faltaSeccionPTR && !faltaCalibre) {
+      // Calibre confirmado pero sección ausente: el artículo de mismo calibre
+      // sirve como referencia monetaria PRELIMINAR; no certifica peso/ingeniería.
+      return {
+        clase: MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED,
+        familiaSolicitada: famPide, familiaResuelta: famTiene,
+        autocosteable: true, insumoIdEfectivo: insumoId, insumoIdCandidato: insumoId,
+        motivo: 'Calibre declarado, sección del PTR sin definir: costo estimado, ingeniería pendiente.',
+        cambio: 'Sección PTR por confirmar (costo provisional)',
+      };
+    }
+    if (faltaCalibre) {
       const faltantes = [faltaCalibre ? 'calibre' : null, faltaSeccionPTR ? 'sección del PTR' : null].filter(Boolean).join(' y ');
       return {
         clase: MATCH.CANDIDATE_REQUIRES_CONFIRMATION,
