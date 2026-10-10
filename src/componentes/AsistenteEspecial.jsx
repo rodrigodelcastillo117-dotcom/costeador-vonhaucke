@@ -19,6 +19,7 @@ import { materialDesdeLeyenda } from '../datos/materialDesdeLeyenda.js';
 import { opcionesMaterialPlano } from '../datos/opcionesMaterialPlano.js';
 import { proxyParaPiezaDePlano, puedeUsarHojasDirectas } from '../datos/proxyTableroEstimado.js';
 import { mensajePendienteInsumo } from '../datos/mensajePendienteInsumo.js';
+import { costoReferenciaHerraje } from '../datos/costoReferenciaHerraje.js';
 import { paginaAImagen } from '../datos/pdfImagen.js';
 import { prepararPdfRapido, rasterizarPaginas, paginasAlrededor } from '../datos/pdfPipeline.js';
 import Cargando from './Cargando.jsx';
@@ -1257,9 +1258,13 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                           {est.candId && insumos[est.candId] && (
                             <div style={{ marginTop: 8, fontWeight: 600 }}>
                               Candidato del catálogo: {insumos[est.candId].nombre}.
-                              {insumos[est.candId]?.precio > 0 || insumos[est.candId]?.precioBase > 0
-                                ? ' El precio de referencia existe, pero la especificación requiere confirmación.'
-                                : ' Falta un precio utilizable.'}
+                              {costoReferenciaHerraje(c, insumos[est.candId], b.piezas) != null ? (
+                                <div style={{ marginTop: 6, color: '#ffd88b' }}>
+                                  Referencia económica con {insumos[est.candId].nombre}: {pesos2(costoReferenciaHerraje(c, insumos[est.candId], b.piezas))} (cantidad informada: {c.cantidad}). No suma al costo oficial hasta confirmar el artículo.
+                                </div>
+                              ) : (
+                                <span> Falta validar la especificación, la unidad de consumo o el precio antes de agregarlo al costeo.</span>
+                              )}
                             </div>
                           )}
                         </div>
