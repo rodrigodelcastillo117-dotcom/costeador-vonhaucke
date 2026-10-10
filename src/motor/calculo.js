@@ -288,7 +288,7 @@ export function costoNetoComponente(comp, insumo, n = 1, par = PARAMETROS_DEFAUL
   // como "no aplica") daba `0 != null → true` → costo `0 × precio = $0`, ignorando
   // la medida/cantidad real. Un PTR de 6 m salía GRATIS. La fracción de hoja real
   // SIEMPRE es > 0; con `> 0`, un `hojas:0` cae al cálculo por área/cantidad de abajo.
-  if (comp.hojas > 0 && insumo?.formato) {
+  if (comp.hojas > 0 && (insumo?.formato || (insumo?.formatoPendiente && insumo?.unidad === 'hoja'))) {
     return noNegativo(comp.hojas * n) * precioDeInsumo(insumo, par);
   }
   return netoComponente(comp, n) * precioDeInsumo(insumo, par);
@@ -331,7 +331,7 @@ function comprarInsumo(insumo, comps, n, par) {
   for (const c of comps) {
     // P0-03: `> 0`, no `!= null` — un `hojas:0` NO debe tomar la vía de fracción
     // (que lo costearía en $0 y haría `continue`, perdiendo su cantidad/medida).
-    if (c.hojas > 0 && insumo.formato) { hojasDirectas += noNegativo(c.hojas) * n; continue; }
+    if (c.hojas > 0 && (insumo.formato || (insumo.formatoPendiente && insumo.unidad === 'hoja'))) { hojasDirectas += noNegativo(c.hojas) * n; continue; }
     const netoC = netoComponente(c, n);
     neto += netoC;
     conCorte += netoC * factorMerma;
@@ -541,6 +541,13 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     // esté "por confirmar"). Así una partida provisional sin precio muestra AMBOS problemas:
     // "por confirmar material" Y "sin precio" — nunca se oculta uno tras "Costo provisional".
     if (!precioUsable(insumo)) { componentesIgnorados.push(comp.nombre || insumo.nombre || 'Material sin precio'); continue; }
+    // Compra por HOJA sin formato físico: la única unidad válida es la fracción
+    // de hoja explícita. Área m² × $/hoja sería un precio INVENTADO. Se bloquea
+    // incluso cuando el artículo y su precio sí existen en Compras.
+    if (insumo.formatoPendiente && insumo.unidad === 'hoja' && !(Number(comp.hojas) > 0)) {
+      componentesIgnorados.push((comp.nombre || insumo.nombre || 'Pieza') + ' — falta consumo en fracción de hoja');
+      continue;
+    }
     // FALTA MEDIDA (audit 2026-10-08, silent P0-1): una pieza DECLARADA de ÁREA (`forma:'area'`,
     // como las que devuelve la IA del plano) necesita una medida USABLE — largo y ancho > 0, o
     // hojas > 0. Si llega sin cotas (mapIaComps puso largo/ancho 0 + cantidad 1), NO se inventa
