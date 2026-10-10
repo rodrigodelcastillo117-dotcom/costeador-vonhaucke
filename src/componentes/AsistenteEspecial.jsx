@@ -1323,7 +1323,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                 )}
                 {ins?.fuenteCatalogo === 'compras' && (
                   <div className="pieza-calc" style={{fontSize:12,color:'var(--texto,#e4e4e4)',marginTop:5}}>
-                    <strong>Compras:</strong> {ins.codigoCompras}
+                    <strong>{ins.sistemaFuente === 'user_authorized_estimate' ? 'ASUR · tarifa autorizada:' : 'Compras:'}</strong> {ins.codigoCompras}
                     {ins.clavesERP?.length ? <span> · ERP {ins.clavesERP.join(', ')}</span> : null}
                     {' · '}{ins.descripcionCompras}
                     {' · '}{ins.unidadCosteo}
