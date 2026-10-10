@@ -102,3 +102,23 @@ describe('P0 — planos metal/hardware contra catálogo real (sin inventar ingen
     expect(opts[0].precio).toBeUndefined();
   });
 });
+
+describe('ASUR: la IA ofrece insumo real y precio autorizado sin convertirlo en MDF', () => {
+ const catalogo={
+  'solid-surface':{id:'solid-surface',nombre:'Superficie sólida 12 mm Corian',seccion:'cubiertas',unidad:'m2',disponibleCosteo:true,precioCertificable:false},
+  'solid-surface-azul':{id:'solid-surface-azul',nombre:'Superficie sólida 12 mm AZUL mineral (ASUR)',seccion:'cubiertas',unidad:'m2',disponibleCosteo:true,precioCertificable:false},
+  'adhesivo-solid-surface':{id:'adhesivo-solid-surface',nombre:'Adhesivo acrílico solid surface',seccion:'cubiertas',unidad:'pza'},
+  mdf:{id:'mdf',nombre:'MDF 19mm',seccion:'cubiertas'},
+ };
+ it('el plano dice azul y sólo propone la tarifa azul para m2',()=>{
+   const a=opcionesMaterialPlano('superficie sólida azul de ASUR 12 mm',catalogo);
+   expect(a.map(x=>x.id)).toEqual(['solid-surface-azul']);
+   expect(a[0].confirmable).toBe(true);
+   expect(a[0].advertencia).toMatch(/ESTIMACIÓN/);
+ });
+ it('no convierte adhesivo en tablero por coincidir solid surface',()=>{
+   const a=opcionesMaterialPlano('superficie sólida 12 mm',catalogo);
+   expect(a.map(x=>x.id)).not.toContain('adhesivo-solid-surface');
+   expect(a.map(x=>x.id)).not.toContain('mdf');
+ });
+});
