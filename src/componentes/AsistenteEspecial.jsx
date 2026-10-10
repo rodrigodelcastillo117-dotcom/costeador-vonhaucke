@@ -598,7 +598,15 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       }
     }
     setErroresMaterial((v) => { const n = { ...v }; delete n[i]; return n; });
-    const patch = { insumoId, nombre: prev.nombre || (ins ? ins.nombre : '') };
+    const patch = { insumoId, nombre: prev.nombre || (ins ? ins.nombre : ''), _estimacionAlternativa: null };
+    // Limpiar el selector NO equivale a material aprobado; eliminar el rastro
+    // USER_CONFIRMED anterior y dejar la especificación del plano pendiente.
+    if (!insumoId) Object.assign(patch, {
+      material_confirmado: false, engineering_override: false, override_motivo: '',
+      candidate_insumo_id: '', material_match: 'NOT_AVAILABLE',
+      _match: { clase: 'NOT_AVAILABLE', solicitado: prev.material_solicitado || '',
+        confirmado_por_usuario: false, autollenado: false, candidate_insumo_id: '' },
+    });
     // Precio en $/m²: nunca conservar una fracción de hoja de una pieza
     // previamente ligada a un tablero por hoja.
     if (ins?.unidad === 'm2') patch.hojas = undefined;
@@ -1252,7 +1260,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
               <div className="pieza" key={i}>
                 <div className="pieza-head">
                   <input className="pieza-nom" placeholder="Nombre de la pieza" value={c.nombre || ''} onChange={(e) => setPieza(i, { nombre: e.target.value })} />
-                  <select className="pieza-mat" value={est.selVal} onChange={(e) => onMaterial(i, e.target.value)}>
+                  <select className="pieza-mat" value={est.costeable ? c.insumoId : ''} onChange={(e) => onMaterial(i, e.target.value)} aria-label={`Material para ${c.nombre || 'pieza'}`}>
                     <option value="">{c.material_solicitado ? `Plano: ${c.material_solicitado} · falta insumo` : '— ¿de qué es? —'}</option>
                     {c.material_solicitado && familiaDeMaterial(c.material_solicitado) === 'melamina' ? (
                       <>
