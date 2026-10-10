@@ -37,10 +37,9 @@ describe('regresión P-01 contra el catálogo activo de 92 insumos', () => {
     expect(opciones[0].confirmable).toBe(false);
     expect(opciones[0].advertencia).toMatch(/no identifica el acabado/i);
   });
-  it('no presenta un artículo de 19 mm genérico como equivalente confirmado', () => {
+  it('sin espesor especificado no escoge un tablero arbitrario', () => {
     const opciones = opcionesMaterialPlano('melamina nogal claro', catalogoActivo92);
-    expect(opciones).toHaveLength(1);
-    expect(opciones[0].confirmable).toBe(false);
+    expect(opciones).toEqual([]);
   });
   it('muestra el verdadero artículo Walnut 19 mm sólo cuando está en el catálogo económico', () => {
     const actualizado = {
