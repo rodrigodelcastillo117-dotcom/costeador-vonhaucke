@@ -51,7 +51,9 @@ describe('costo provisional automático cuando el plano pide 18mm nogal', () => 
     const z = { forma: 'area', largoMM: 800, anchoMM: 500, hojas: 0.4 };
     const proxy = proxyParaPiezaDePlano(spec, z, conM2);
     expect(proxy?.id).toBe('melamina-19');
-    expect(puedeUsarHojasDirectas(proxy, conM2)).toBe(false);
+    expect(puedeUsarHojasDirectas(proxy.id, conM2)).toBe(false);
+    // También si VONI seleccionó el insumo y NO entró por el fallback.
+    expect(puedeUsarHojasDirectas('melamina-19', conM2)).toBe(false);
     const base = aplicarPoliticaMaterial({
       nombre: 'Puerta de exhibidor', material_solicitado: spec, insumoId: proxy.id,
     }, id => conM2[id], Object.values(conM2));
