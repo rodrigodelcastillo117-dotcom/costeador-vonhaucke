@@ -40,7 +40,7 @@ regresa el estado comercial a borrador.
 `AsistenteEspecial.jsx:179` manda `{...b}` con `margen`/`modeloCosteo`; `validarIntentCosteo` responde
 `FORBIDDEN_FINANCIAL_FIELD`. La comparación "sombra" nunca ha recibido una respuesta del servidor.
 
-**VH-037 · P0 · OPEN · Esquema de Supabase sin versionar.** 203 migraciones aplicadas en producción,
+**VH-037 · P0 · OPEN · Esquema de Supabase sin versionar.** 220 migraciones aplicadas en producción,
 0 en el repo. Ver `supabase/schema/README.md`.
 
 ---

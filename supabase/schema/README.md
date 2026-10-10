@@ -1,6 +1,6 @@
 # Esquema de Supabase · snapshot versionado (Bloque 0)
 
-**Hallazgo (2026-10-10):** el proyecto `mtuvnbgljwbsaizjjgzs` tiene **203 migraciones
+**Hallazgo (2026-10-10):** el proyecto `mtuvnbgljwbsaizjjgzs` tiene **220 migraciones
 aplicadas** en producción y el repo tenía **cero**. Todo el esquema (tablas, RLS, RPCs
 como `emitir_revision_v2`, `cotizacion_segura`, `config_para_rol`, `safe_quote_write`,
 compuertas de emisión, sanitizadores de economía) vivía sólo en la nube: nadie podía
@@ -8,11 +8,18 @@ revisarlo en un PR, reproducirlo en local ni saber qué cambió entre dos fechas
 
 ## Qué hay aquí
 
-- `MIGRACIONES_APLICADAS.md` — las 203 versiones aplicadas, en orden, tal como las lista
+- `MIGRACIONES_APLICADAS.md` — las 220 versiones aplicadas, en orden, tal como las lista
   `supabase_migrations.schema_migrations` el 2026-10-10. Es el punto de partida.
 - `baseline/` — volcado **leído** de la base en producción (sólo lectura, sin tocar nada):
   tablas y columnas, políticas RLS, funciones/RPCs con su cuerpo, vistas, triggers,
   grants. Es una FOTO, no una migración: sirve para leer y diffear, no para aplicar.
+
+## Hueco conocido del baseline
+
+Existe un esquema `private_api` con 36 funciones (34 SECURITY DEFINER) del que dependen 34
+wrappers de `public` y varias políticas RLS. El volcado de hoy cubre sólo `public`; el
+baseline **no es autocontenido** hasta que se vuelque `private_api` también. Es el primer
+pendiente al regenerar.
 
 ## Regla desde hoy
 
