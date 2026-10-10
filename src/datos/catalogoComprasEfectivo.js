@@ -35,7 +35,7 @@ export function evaluarPrecioCompra(precio, ref, baseline = null) {
   if (monedaIncierta) return { precio:null,estado:'DIVISA_PENDIENTE',aptoEstimacion:false,cert:false,error:'Moneda sin conversión MXN documentada' };
   if (!unidad || !uOrigen || !factor) return {precio:null,estado:'UNIDAD_PENDIENTE',aptoEstimacion:false,cert:false,error:'Falta unidad o conversión' };
   if (precio.cost_unit && normalUnidad(precio.cost_unit) !== unidad) return {precio:null,estado:'UNIDAD_CONFLICTO',aptoEstimacion:false,cert:false,error:'La unidad de costo ERP difiere del catálogo' };
-  if (unidad !== uOrigen && !(unidad === 'hoja' && uOrigen === 'kg' && factor > 0))
+  if (unidad !== uOrigen && !(unidad === 'hoja' && uOrigen === 'kg' && factor > 1))
     return {precio:null,estado:'UNIDAD_CONFLICTO',aptoEstimacion:false,cert:false,error:'Conversión de unidad no autorizada' };
   const esperado = pCompra != null ? pCompra * factor : null;
   if (esperado != null && costoMXN == null && Math.abs(valorCosteable - esperado) > Math.max(0.02, 0.00005 * valorCosteable))
