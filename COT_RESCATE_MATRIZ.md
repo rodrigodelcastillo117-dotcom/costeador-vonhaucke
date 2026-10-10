@@ -92,6 +92,16 @@ Regla: **ningún `PASS CERTIFICADO` sin E2E autenticado real.** Hoy no hay ningu
 
 ---
 
+## B1. Las TRES entradas de espacio — estado real (corrida 15:01Z, `865e9d6`, servidor limpio)
+
+| Ruta | Hasta cotización | Solver (edge desplegada v5, juez viejo) | Con el juez CORREGIDO (fuente, sin desplegar) | Veredicto |
+|---|---|---|---|---|
+| **PDF** (lector) | ✅ 8/8/8, 0 warns, 23 partidas, identidad, refresh | 0 duros, pero **13/21**: el bench doble (6000×2400 con topología real) no cabe con las 3 puertas → variante mínima sin sus 8 WIN; 1 silla contra muro | `ACTIVE_SIDE_BLOCKED_BY_WALL ×1` + 8 WIN fuera | **NO certificado en acomodo** (027 real) |
+| **Dibujo** (plantilla+inputs) | ✅ ídem | 0 duros, **21/21**, cuartos correctos; `semFail 8` | `ACTIVE_SIDE_BLOCKED_BY_WALL ×6` (bench en y=600 pegado al muro: 4 sillas lado A; mesa ×2) | certificado hasta **borrador**; publicación bloqueada por 027b (solver) |
+| **m²** (132 m² + cuartos) | ✅ ídem | 0 duros, **21/21**, cuartos correctos (tras 025c); `semFail 2` (visitas) | **sólo REVIEW** (2 topologías de guardado desconocidas) — 0 fallas | certificado hasta borrador; sería publicable-con-revisión al desplegar el juez |
+
+Verificador endurecido (15:0xZ): 0 piezas sin colocar es obligatorio → la próxima corrida del PDF **debe fallar** hasta resolver 027.
+
 ## B2. Proyecto golden (Parte VIII) — estado en navegador real (corrida 13:29Z, `3cb3a1b`)
 
 | Producto / función | Esperado | Obtenido (IA + motor) | Estado |

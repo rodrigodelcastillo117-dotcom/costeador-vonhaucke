@@ -190,6 +190,10 @@ export async function verificarAcomodo(page, { ruta, estadoFS = null }) {
   const idsColocados = new Set(colocacion.map((c) => String(c.id)));
   const anclasColocadas = anclas.filter((a) => idsColocados.has(String(a.id)));
   expect(anclasColocadas.length, `anclas colocadas ${anclasColocadas.length}/${anclas.length}: faltan ${anclas.filter((a) => !idsColocados.has(String(a.id))).map((a) => a.relation_role).join(',')}`).toBe(anclas.length);
+  // PDF 15:01Z: el bench se colocó en variante MÍNIMA (ancla sin sus 8 WIN) y esto "pasaba".
+  // Un acomodo con piezas sin colocar NO es un acomodo: nada queda fuera (fail-closed).
+  const sinColocar = (reqBody?.piezas || []).filter((p) => !idsColocados.has(String(p.id)));
+  expect(sinColocar.length, `piezas SIN colocar (${sinColocar.length}/${reqBody?.piezas?.length}): ${sinColocar.map((p) => `${p.relation_role}:${p.nombre || p.id}`).slice(0, 6).join(' | ')} · no_cupieron=${JSON.stringify((acoJson?.layoutSpec?.no_cupieron || []).map((u) => ({ ancla: u.anchorId, inv: u.invariante, causa: u.certificado?.primary_cause })))}`).toBe(0);
   await expect.poll(async () => ((await leerCot(page)).acomodo?.plan?.colocacion || []).length, { timeout: 30000 }).toBeGreaterThan(0);
   // COT-P0-022: con plano en revisión sólo borrador; sin FloorSpec (dibujo/m²) debe poder guardarse en la propuesta.
   if (estadoFS && String(estadoFS).toUpperCase() !== 'PASS') {
