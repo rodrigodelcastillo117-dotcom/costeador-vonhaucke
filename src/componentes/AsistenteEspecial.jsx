@@ -589,7 +589,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     // otra en silencio (solid surface jamás cae en MDF/HPL). Sólo EXACT/EQUIV
     // conservan insumoId; el resto queda '' + bandera `_match`.
     const materialPlano = materialDesdeLeyenda(z, p?.materiales);
-    const base = aplicarPoliticaMaterial({ ...z, material_solicitado: z.material_solicitado || materialPlano || z.nombre }, (id) => insumos[id], Object.values(insumos));
+    const base = aplicarPoliticaMaterial({ ...z, material_solicitado: materialPlano || z.material_solicitado || z.nombre }, (id) => insumos[id], Object.values(insumos));
     if (z.forma === 'area') {
       base.forma = 'area'; // se preserva: el motor usa `forma:'area'` para exigir medida (silent P0-1)
       base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
