@@ -462,7 +462,8 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             const m2 = area && c.largoMM && c.anchoMM ? (c.largoMM / 1000) * (c.anchoMM / 1000) * cnt : 0;
             const fmt = ins?.formato;
             const aprov = (par.aprovechamientoCorte || 100) / 100;
-            const fraccion = ins?.fraccion && fmt?.medida && area ? m2 / (fmt.medida * aprov) : 0;
+            // m² / peso(kg) NO es una fracción de hoja. Solo el formato de TABLERO mide m².
+            const fraccion = ins?.fraccion && fmt?.tipo === 'tablero' && fmt?.medida && area ? m2 / (fmt.medida * aprov) : 0;
             const porHojaDir = esFraccionHoja(ins);
             return (
               <div className="pieza" key={i}>
@@ -518,7 +519,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
 
                 {ins?.fuenteCatalogo === 'compras' && (
                   <div className="pieza-calc" style={{fontSize:12,margin:'6px 0',color:'var(--texto,#545454)'}}>
-                    <b>Compras:</b> {ins.codigoCompras}
+                    <b>{ins.sistemaFuente === 'user_authorized_estimate' ? 'ASUR · tarifa autorizada:' : 'Compras:'}</b> {ins.codigoCompras}
                     {ins.clavesERP?.length > 0 && <span> · ERP {ins.clavesERP.join(', ')}</span>}
                     {' · '}{ins.descripcionCompras}
                     {Number.isFinite(ins.precioReferencia) && <span> · {pesos2(ins.precioReferencia)}/{ins.unidadCosteo}</span>}
@@ -609,8 +610,8 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                 <span className="nom">
                   {c.nombre}
                   <div className="ayuda">
-                    neto {c.neto.toFixed(2)} {porHoja ? 'm²' : ins.unidad}
-                    {porHoja && <> <strong>≈ {fraccion.toFixed(2)} de hoja</strong></>}
+                    neto {c.neto.toFixed(2)} {fmt?.tipo === 'lamina' ? 'kg (o fracción de hoja, si fue capturada)' : (porHoja ? 'm²' : ins.unidad)}
+                    {porHoja && fmt?.tipo === 'tablero' && <> <strong>≈ {fraccion.toFixed(2)} de hoja</strong></>}
                     {/* ⚠️ Aquí salía `comprar 0.37792260145122275 tablero` (2026-08-18).
                         El motor NO está mal: para un material con `fraccion` sí se
                         compra 0.38 de hoja, y `comprar()` devuelve la fracción a
