@@ -55,7 +55,7 @@ describe('P0: integración real de catálogo Compras 259 → motor sin precios i
     expect(costoNetoComponente({hojas:0.5},insumos.hoja)).toBeCloseTo(300,8);
     expect(conHojas.componentesIgnorados).toHaveLength(0);
   });
-  it('ASUR superficie sólida aparece con referencia de mercado, no compra real ni costo automático', () => {
+  it('ASUR: las tres tarifas expresamente autorizadas alimentan presupuesto estimado sin fingir factura', () => {
     for (const id of ['solid-surface', 'solid-surface-azul', 'adhesivo-solid-surface']) {
       const fuente = id === 'adhesivo-solid-surface' ? 'pza' : 'm2';
       const r = construirCatalogoCompras({},[item(id,id,fuente)],[],[]);
@@ -64,9 +64,10 @@ describe('P0: integración real de catálogo Compras 259 → motor sin precios i
       expect(x.estimacionMercado).toBeTruthy();
       expect(x.estimacionMercado.precio).toBeGreaterThan(0);
       expect(x.estimacionMercado.fuente).toMatch(/Mercado/);
-      expect(x.precio).toBeUndefined(); // no contabilizar precio estimado como compra real
-      expect(x.precioReferencia).toBeNull();
-      expect(x.disponibleCosteo).toBe(false);
+      expect(x.precio).toBe(x.estimacionMercado.precio);
+      expect(x.precioReferencia).toBe(x.estimacionMercado.precio);
+      expect(x.estadoEconomia).toBe('ESTIMADO_AUTORIZADO_ASUR');
+      expect(x.disponibleCosteo).toBe(true);
       expect(x.precioCertificable).toBe(false);
     }
   });
@@ -100,4 +101,23 @@ describe('P0: integración real de catálogo Compras 259 → motor sin precios i
     expect(econ.estado).toBe('SIN_EVIDENCIA');
     expect(econ.cert).toBe(false);
   });
+  it('ASUR AZUL: 1.20 m x 0.60 m = 0.72 m², 1 cartucho, material $3,786 antes de mano de obra', () => {
+    const refs=[item('solid-surface-azul','Azul mineral','m2'),item('adhesivo-solid-surface','Adhesivo','pza')];
+    const {insumos}=construirCatalogoCompras({},refs,[],[]);
+    const r=calcular({nombre:'Módulo ASUR - componentes medidos',componentes:[
+      {insumoId:'solid-surface-azul',nombre:'Cubierta',forma:'area',largoMM:1200,anchoMM:600,cantidad:1},
+      {insumoId:'adhesivo-solid-surface',nombre:'Cartucho',cantidad:1},
+    ]},1,insumos,PARAMETROS_DEFAULT);
+    expect(r.materialTotal).toBeCloseTo(1200*600/1000000*3800+1050,2);
+    expect(r.componentesIgnorados).toEqual([]);
+    expect(insumos['solid-surface-azul'].precioCertificable).toBe(false);
+  });
+  it('si después aparece precio ERP ASUR real, desplaza la tarifa estimada', () => {
+    const r=construirCatalogoCompras({},[item('solid-surface-azul','Azul','m2')],[
+      p('solid-surface-azul',{precio:3699,precio_compra:3699,unidad_compra:'m2',estado:'propuesto_validado'})
+    ],[]);
+    expect(r.insumos['solid-surface-azul'].precio).toBe(3699);
+    expect(r.insumos['solid-surface-azul'].estadoEconomia).not.toBe('ESTIMADO_AUTORIZADO_ASUR');
+  });
+
 });
