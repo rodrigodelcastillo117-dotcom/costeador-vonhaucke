@@ -90,17 +90,22 @@ export function construirCatalogoCompras(base = {}, referencias = [], precios = 
     const elegido = candidatos[0] || null;
     const economia = evaluarPrecioCompra(elegido, ref, anterior);
     const semilla = referenciasSemilla.get(ref.id);
-    const estimacionMercado = !elegido && semilla?.fuente && /mercado|estimado|afina/i.test(String(semilla.fuente) + ' ' + String(semilla.nota || ''))
+    const esTarifaAutorizada = elegido?.source_system === 'user_authorized_estimate'
+      && elegido?.source_document === 'ASUR_tarifa_referencia_20261010';
+    const estimacionMercado = (!elegido || esTarifaAutorizada)
+      && semilla?.fuente && /mercado|estimado|afina/i.test(String(semilla.fuente) + ' ' + String(semilla.nota || ''))
       && Number.isFinite(Number(semilla.precio)) && Number(semilla.precio) > 0
       ? { precio: Number(semilla.precio), unidad: semilla.unidad, fuente: semilla.fuente, nota: semilla.nota || '' }
       : null;
     // Autorización explícita del usuario (10/oct): estas tres tarifas sirven
     // para ESTIMAR módulos ASUR aun sin factura registrada. No son compras ERP,
     // ni se heredan a otros insumos. Cuando llega factura REAL, gana Compras.
-    const tarifaASUR = !elegido && ['solid-surface','solid-surface-azul','adhesivo-solid-surface'].includes(ref.id)
+    const tarifaASUR = (!elegido || esTarifaAutorizada)
+      && ['solid-surface','solid-surface-azul','adhesivo-solid-surface'].includes(ref.id)
       ? estimacionMercado : null;
-    const precioEstimadoAutorizado = tarifaASUR?.precio ?? null;
-    const economiaFinal = tarifaASUR
+    const precioEstimadoAutorizado = esTarifaAutorizada ? Number(elegido.precio)
+      : (tarifaASUR?.precio ?? null);
+    const economiaFinal = tarifaASUR && Number.isFinite(precioEstimadoAutorizado) && precioEstimadoAutorizado > 0
       ? { precio:precioEstimadoAutorizado, estado:'ESTIMADO_AUTORIZADO_ASUR', aptoEstimacion:true, cert:false,
           error:'Tarifa ASUR autorizada para ESTIMACIÓN por el usuario; no representa factura ni costo confirmado de Compras.' }
       : economia;
