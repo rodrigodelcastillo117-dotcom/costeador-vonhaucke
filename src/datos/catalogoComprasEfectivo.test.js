@@ -55,6 +55,22 @@ describe('P0: integración real de catálogo Compras 259 → motor sin precios i
     expect(costoNetoComponente({hojas:0.5},insumos.hoja)).toBeCloseTo(300,8);
     expect(conHojas.componentesIgnorados).toHaveLength(0);
   });
+  it('ASUR superficie sólida aparece con referencia de mercado, no compra real ni costo automático', () => {
+    for (const id of ['solid-surface', 'solid-surface-azul', 'adhesivo-solid-surface']) {
+      const fuente = id === 'adhesivo-solid-surface' ? 'pza' : 'm2';
+      const r = construirCatalogoCompras({},[item(id,id,fuente)],[],[]);
+      const x = r.insumos[id];
+      expect(x.nombre).toBe(id);
+      expect(x.estimacionMercado).toBeTruthy();
+      expect(x.estimacionMercado.precio).toBeGreaterThan(0);
+      expect(x.estimacionMercado.fuente).toMatch(/Mercado/);
+      expect(x.precio).toBeUndefined(); // no contabilizar precio estimado como compra real
+      expect(x.precioReferencia).toBeNull();
+      expect(x.disponibleCosteo).toBe(false);
+      expect(x.precioCertificable).toBe(false);
+    }
+  });
+
   it('líneas de insumo sin precio quedan a la vista pero NUNCA en $0 como si tuvieran precio', () => {
     const x=construirCatalogoCompras({},[item('sin','Superficie sólida','m2')],[],[]).insumos.sin;
     expect(x.disponibleCosteo).toBe(false);
