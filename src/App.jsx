@@ -62,7 +62,7 @@ import { aplicarRespaldo } from './datos/respaldo.js';
 import { guardarRevision } from './datos/revisiones.js';
 import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
 import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, cotizacionEmitible } from './nube.js';
-import { calcular, modeloParaPieza, componentesSinMaterial } from './motor/calculo.js';
+import { calcular, modeloParaPieza, pendientesDeCosteo } from './motor/calculo.js';
 import { idNuevo } from './util.js';
 import { costoImplicito, precioDeLista } from './datos/preciosVenta.js';
 import Comercial from './componentes/comercial/Comercial.jsx';
@@ -737,11 +737,17 @@ export default function App() {
     // guardaba un costoUnitario REAL en la partida del vendedor (fuga client-side).
     let costo = null;
     let margenEf = null;
+    let costoDerivado = false;
     if (veCostos) {
       costo = costoUnitario;
       if (!Number.isFinite(costo)) {
-        try { costo = calcular(costeo, n, estado.insumos, modeloParaPieza(estado.parametros, costeo).par).costoUnitario; }
-        catch (e) { costo = Number.isFinite(margen) ? precioUnitario * (1 - margen / 100) : 0; }
+        // Sólo un costo COMPLETO es costo; un subtotal se queda en null (pendiente).
+        try { costo = calcular(costeo, n, estado.insumos, modeloParaPieza(estado.parametros, costeo).par).costoOficial; }
+        catch (e) { costo = null; }
+        if (costo == null && Number.isFinite(margen) && Number.isFinite(precioUnitario) && precioUnitario > 0) {
+          costo = precioUnitario * (1 - margen / 100);   // derivado del precio: se marca, no se disfraza
+          costoDerivado = true;
+        }
       }
       margenEf = Number.isFinite(margen) ? margen : null;
     }
@@ -760,6 +766,7 @@ export default function App() {
       w: costeo.w || null, d: costeo.d || null,
       cantidad: n,
       costoUnitario: costo,
+      ...(costoDerivado ? { costoDerivado: true } : {}),
       precioUnitario,
       margen: margenEf,
       config: costeo.config || null,
@@ -775,8 +782,10 @@ export default function App() {
       // Completitud del costeo (piezas sin material en catálogo) SOLO para quien
       // ve costos: el vendedor no corre el motor y su emisión revalida por identidad
       // de catálogo, no por BOM — correr esto sin insumos lo marcaría todo "sin material".
+      // Una sola definición de "pendiente": la misma lista que vuelve INCOMPLETO al
+      // motor (material faltante, sin precio, sin cantidad), no sólo material faltante.
       ...(veCostos
-        ? (() => { const s = componentesSinMaterial(costeo.componentes, estado.insumos); return { piezasSinMaterial: s.length, nombresSinMaterial: s }; })()
+        ? (() => { const s = pendientesDeCosteo(costeo, estado.insumos, modeloParaPieza(estado.parametros, costeo).par); return { piezasSinMaterial: s.length, nombresSinMaterial: s }; })()
         : { piezasSinMaterial: 0, nombresSinMaterial: [] }),
       // Piezas EXCLUIDAS ($0 por decisión: "lo pone el cliente / otra área"). No es
       // economía (es una decisión del despiece) → viaja siempre, para que la
@@ -831,7 +840,7 @@ export default function App() {
     // guardado) hasta que se les asigne material.
     const sinMat = Array.isArray(resultado?.componentesIgnorados)
       ? resultado.componentesIgnorados
-      : componentesSinMaterial(costeo.componentes, estado.insumos);
+      : pendientesDeCosteo(costeo, estado.insumos, modeloParaPieza(estado.parametros, costeo).par);
     // Piezas excluidas ($0 por decisión): el motor ya las reporta; si no, del despiece.
     const excl = Array.isArray(resultado?.componentesExcluidos)
       ? resultado.componentesExcluidos

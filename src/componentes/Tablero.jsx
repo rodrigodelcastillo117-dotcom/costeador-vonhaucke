@@ -55,7 +55,9 @@ export default function Tablero({ estado, irA, puedeVerDireccion = true, onDirec
     const { par } = modeloParaPieza(estado.parametros, estado.ultimaPieza.pieza);
     const pts = [];
     for (let k = 1; k <= 20; k++) {
-      pts.push({ lote: k, costo: Math.round(calcular(estado.ultimaPieza.pieza, k, estado.insumos, par).costoUnitario) });
+      const r = calcular(estado.ultimaPieza.pieza, k, estado.insumos, par);
+      if (r.estadoCosto !== 'completo') return [];   // un subtotal no se grafica como costo
+      pts.push({ lote: k, costo: Math.round(r.costoOficial) });
     }
     return pts;
   }, [estado.ultimaPieza, estado.insumos, estado.parametros]);

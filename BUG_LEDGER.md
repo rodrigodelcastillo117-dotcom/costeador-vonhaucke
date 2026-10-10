@@ -56,6 +56,20 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 `AsistenteEspecial.jsx:179` manda `{...b}` con `margen`/`modeloCosteo`; `validarIntentCosteo` responde
 `FORBIDDEN_FINANCIAL_FIELD`. La comparación "sombra" nunca ha recibido una respuesta del servidor.
 
+**VH-040 · P0 · FIXED · El motor devolvía $0 en silencio y las pantallas lo pintaban como precio.**
+Causas (informe COSTEAR 2026-10-10): `calcular` entregaba `costoUnitario` como número suelto aunque faltaran
+materiales/precios/cantidades; un componente con material y precio pero SIN cantidad ni medidas costaba $0 y
+salía "completo"; `lineas.precioDePieza` sacaba precio de modelo sobre ese subtotal; Asistente, Catálogo, Tablero
+y `partidaDeCosteo` mostraban dinero sin consultar completitud; las partidas de línea nunca traían
+`piezasSinMaterial` (SIN_MATERIAL jamás disparaba); y `pesos(null)` pintaba "$0" en toda la app y el PDF.
+Fix (COSTEAR §3, sin tocar fórmulas): `calcular` devuelve `estadoCosto`, `pendientes` y `costoOficial` (null si
+incompleto); "sin cantidad ni medidas" entra a pendientes; `pendientesDeCosteo` sustituye a
+`componentesSinMaterial` en App (una sola definición de pendiente); `precioDePieza` → `precio: null` cuando el
+precio sería de modelo sobre un costeo incompleto; partidas de línea viajan con `piezasSinMaterial`/`estadoCosto`;
+Asistente/Catálogo/Tablero muestran "costeo incompleto" y no permiten agregar; costo derivado del precio se marca
+`costoDerivado`; `pesos(null|NaN|∞)` = "—". Tests: failClosed (4 nuevos), lineas.failClosed (3), util (1).
+Pendiente VERIFIED en vivo: una pieza con componente sin cantidad debe decir "Sin precio todavía" en el Asistente.
+
 **VH-039 · P1 · OPEN · 13 funciones edge en producción fuera del repo.** 23 desplegadas, 8 invocadas por el
 cliente, 10 en el repo. Variantes paralelas (`*-strict` ×4, `-recovery`, `-preview`, `-rc`), `voni-council` (sí se
 invoca, sin código en el repo), `app` con `verify_jwt:false` y `bootstrap-temp-claude`. Detalle y clasificación en

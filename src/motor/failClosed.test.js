@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calcular, costeoEmitible, bomHash, diffBOM } from './calculo.js';
+import { calcular, costeoEmitible, bomHash, diffBOM, pendientesDeCosteo } from './calculo.js';
 
 // Catálogo mínimo para los 5 tests de integridad (audit 2026-10-01).
 const insumos = {
@@ -130,5 +130,46 @@ describe('VH-017 — insumo presente SIN precio usable ⇒ pendiente, no $0', ()
     const insumos = { ...insumosBase, byrne: { id: 'byrne', nombre: 'Multicontacto Byrne', seccion: 'electrico', clase: 'directa', unidad: 'pza', precio: null } };
     const r = calcular(piezaCon({ nombre: 'Multicontacto Byrne', insumoId: 'byrne', cantidad: 2, piezas: 1 }), 1, insumos, parL);
     expect(costeoEmitible(r).costoTotal).toBeNull();
+  });
+});
+
+// ============================================================================
+//  COSTEAR §3 (2026-10-10): "costos desconocidos nunca equivalen a cero".
+// ============================================================================
+describe('COSTEAR · completitud en la salida del motor', () => {
+  it('5) componente CON material y precio pero SIN cantidad ni medidas ⇒ pendiente, no $0', () => {
+    const pieza = piezaCompleta();
+    pieza.componentes.push({ nombre: 'PTR 1"', insumoId: 'herraje', largoMM: 720 });   // sin anchoMM ni cantidad
+    const r = calcular(pieza, 1, insumos, par);
+    expect(r.estadoCosto).toBe('incompleto');
+    expect(r.costoOficial).toBeNull();
+    expect(r.pendientes.join(' ')).toMatch(/PTR 1".*sin cantidad ni medidas/);
+    expect(costeoEmitible(r).emitible).toBe(false);
+  });
+
+  it('6) precio 0 DECLARADO sigue siendo conocido (§7) y el costeo completo', () => {
+    const insumosCero = { ...insumos, herraje: { ...insumos.herraje, precio: 0 } };
+    const r = calcular(piezaCompleta(), 1, insumosCero, par);
+    expect(r.estadoCosto).toBe('completo');
+    expect(r.costoOficial).toBe(r.costoUnitario);
+  });
+
+  it('7) costeo completo ⇒ costoOficial === costoUnitario; incompleto ⇒ costoUnitario es sólo subtotal', () => {
+    const ok = calcular(piezaCompleta(), 1, insumos, par);
+    expect(ok.costoOficial).toBe(ok.costoUnitario);
+    const pieza = piezaCompleta();
+    pieza.componentes.push({ nombre: 'Luz LED', insumoId: '', cantidad: 1 });
+    const malo = calcular(pieza, 1, insumos, par);
+    expect(malo.costoOficial).toBeNull();
+    expect(malo.costoUnitario).toBeCloseTo(ok.costoUnitario, 6);   // el subtotal conocido no cambia
+  });
+
+  it('8) pendientesDeCosteo = la misma lista que vuelve incompleto al motor', () => {
+    const pieza = piezaCompleta();
+    pieza.componentes.push({ nombre: 'Luz LED', insumoId: '', cantidad: 1 });
+    pieza.componentes.push({ nombre: 'Tornillos', insumoId: 'herraje' });   // sin cantidad
+    const p = pendientesDeCosteo(pieza, insumos, par);
+    expect(p).toEqual(calcular(pieza, 1, insumos, par).componentesIgnorados);
+    expect(p).toHaveLength(2);
   });
 });

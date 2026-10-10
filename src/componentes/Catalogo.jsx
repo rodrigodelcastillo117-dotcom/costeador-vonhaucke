@@ -15,11 +15,14 @@ function recetaDe(lineaId, muebleId) {
   return PIEZAS_SEMILLA.find((p) => p.linea === lineaId && p.mueble === muebleId);
 }
 
+// Devuelve { costo, motivo }: costo null si no hay receta O si el costeo está incompleto
+// (material/precio/cantidad pendiente). Un subtotal nunca se enseña como costo.
 function costoDeLinea(lineaId, muebleId, estado) {
   const receta = recetaDe(lineaId, muebleId);
-  if (!receta) return null;
+  if (!receta) return { costo: null, motivo: 'sin receta' };
   const { par } = modeloParaPieza(estado.parametros, receta);
-  return calcular(receta, 1, estado.insumos, par).costoUnitario;
+  const r = calcular(receta, 1, estado.insumos, par);
+  return r.estadoCosto === 'completo' ? { costo: r.costoOficial, motivo: null } : { costo: null, motivo: 'costeo incompleto' };
 }
 
 export default function Catalogo({ estado, onCargar, soloVentas = false }) {
@@ -40,7 +43,7 @@ export default function Catalogo({ estado, onCargar, soloVentas = false }) {
       linea: l,
       // Vendedor (seller-safe): NO se corre el motor de costo (insumos). El precio
       // AUTORIZADO aparece al configurar en el Costeador de línea; aquí sólo se navega.
-      costo: soloVentas ? null : costoDeLinea(l.id, mueble.muebleId, estado),
+      ...(soloVentas ? { costo: null, motivo: 'ver al configurar' } : costoDeLinea(l.id, mueble.muebleId, estado)),
     }));
     // Ordenar: las que tienen costo, de menor a mayor; luego las de solo gama
     conCosto.sort((a, b) => {
@@ -55,7 +58,7 @@ export default function Catalogo({ estado, onCargar, soloVentas = false }) {
         <button className="boton fantasma" onClick={() => setMueble(null)}>‹ Otras opciones</button>
         <h2 style={{ marginTop: 14 }}>{MUEBLES[mueble.muebleId]}</h2>
         <p className="ayuda">Escoge la línea. La más barata primero.</p>
-        {conCosto.map(({ linea, costo }, idx) => (
+        {conCosto.map(({ linea, costo, motivo }, idx) => (
           <div className="tarjeta" key={linea.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -65,7 +68,7 @@ export default function Catalogo({ estado, onCargar, soloVentas = false }) {
               </div>
               <div className="ayuda">{linea.que}{REGLAS_LINEA[linea.id]?.nota ? ' · ' + REGLAS_LINEA[linea.id].nota : ''}</div>
             </div>
-            {costo != null ? <div className="dinero">{pesos(aMostrar(costo))}</div> : <span className="etiqueta-dato supuesto">{soloVentas ? 'ver al configurar' : 'sin receta'}</span>}
+            {costo != null ? <div className="dinero">{pesos(aMostrar(costo))}</div> : <span className="etiqueta-dato supuesto">{motivo || 'sin receta'}</span>}
             <button className="boton primario" onClick={() => cargar(linea, mueble.muebleId, mueble.familiaId, estado, onCargar)}>{soloVentas ? 'Configurar →' : 'Usar'}</button>
           </div>
         ))}

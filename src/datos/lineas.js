@@ -231,10 +231,22 @@ export function precioDePieza(estado, ruta, g, pieza, cantidad, config) {
   // error que estaba abierto —banca doble 1.50 de 10 usuarios salía 45% arriba
   // del precio real— porque el price-book sólo tiene anclas a módulo 1.20.
   const porUsuario = !real && ruta === 'applt' ? precioPorUsuarioAppLT(config) : null;
-  const precio = real ? precioDeLista(real.lista) : (porUsuario ? porUsuario.lista : precioModelo * factor);
+  // FAIL-CLOSED (COSTEAR §3, 2026-10-10): si el precio sale del MODELO (no hay precio real
+  // ni escalón por usuario) y el costeo está INCOMPLETO, no hay precio: sería dinero
+  // inventado sobre un subtotal. `precio: null` → la partida queda PENDIENTE y la
+  // emisión se bloquea (SIN_MATERIAL / PRECIO_INVALIDO en senales.js).
+  const incompleto = resultado.estadoCosto === 'incompleto';
+  const delModelo = !real && !porUsuario;
+  const precio = real ? precioDeLista(real.lista) : (porUsuario ? porUsuario.lista : (incompleto ? null : precioModelo * factor));
   const costo = real ? costoImplicito(real.lista)
-    : (porUsuario ? costoImplicito(porUsuario.lista / (1 - 0.40)) : resultado.costoUnitario * factor);
-  return { resultado, margen, precio, costo, real: !!real && !real.heredada, par };
+    : (porUsuario ? costoImplicito(porUsuario.lista / (1 - 0.40)) : (incompleto ? null : resultado.costoUnitario * factor));
+  return {
+    resultado, margen, precio, costo, real: !!real && !real.heredada, par,
+    estadoCosto: resultado.estadoCosto, pendientes: resultado.pendientes || [],
+    // Cuando el precio NO viene del modelo (price-book / por usuario), el despiece puede
+    // estar incompleto sin afectar el precio; aun así se reporta para no esconderlo.
+    precioPendiente: delModelo && incompleto,
+  };
 }
 
 // --- SELLER-SAFE: el vendedor NUNCA recibe economía interna ------------------
@@ -331,7 +343,7 @@ export function costearItem(estado, item, opciones = {}) {
   const pedidos = Number(sel.usuarios);
   const usados = Number(config.usuarios ?? sel.usuarios);
   let escalado = null;
-  if (Number.isFinite(pedidos) && Number.isFinite(usados) && usados > 0 && pedidos > 0 && pedidos !== usados) {
+  if (Number.isFinite(precio) && Number.isFinite(pedidos) && Number.isFinite(usados) && usados > 0 && pedidos > 0 && pedidos !== usados) {
     const porUsuario = precio / usados;
     precio = porUsuario * pedidos;
     escalado = { pedidos, usados, porUsuario };
@@ -444,6 +456,10 @@ export function costearItem(estado, item, opciones = {}) {
     // ¿El precio salió de un presupuesto real o del modelo? El sello de la
     // propuesta depende de esto, no de una lista de líneas escrita a mano.
     precioReal: pr.real,
+    // Completitud del despiece: viaja con la partida para que `bloqueosDeEmision`
+    // la vea (antes las partidas de línea NUNCA la traían y SIN_MATERIAL no disparaba).
+    piezasSinMaterial: pr.pendientes.length, nombresSinMaterial: pr.pendientes,
+    estadoCosto: pr.estadoCosto,
     // Lo que se AJUSTÓ de lo que pidió Voni, para poder decirlo en pantalla.
     avisos, candadoUsuarios, requiereProyectista,
   };
@@ -496,6 +512,8 @@ export function costearConfig(estado, ruta, productoId, config, cantidad = 1) {
     // Igual que costearItem: sin esto, una partida editada perdía el sello
     // "Firme" aunque su precio siguiera saliendo de un presupuesto real.
     precioReal: pr.real,
+    piezasSinMaterial: pr.pendientes.length, nombresSinMaterial: pr.pendientes,
+    estadoCosto: pr.estadoCosto,
     // Sin match del catálogo: se limpia cualquier variante vieja de la partida.
     catalogo: null, variantes: null,
   };
