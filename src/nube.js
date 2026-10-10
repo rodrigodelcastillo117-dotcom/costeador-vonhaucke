@@ -67,7 +67,7 @@ export async function leerCatalogoComprasEconomico() {
       .select('id,nombre,seccion,unidad_costeo,activo,clasificacion,familia,calibre,espesor_mm,formato,material,atributos')
       .eq('activo', true).range(0, 999),
     nube.from('insumo_precios')
-      .select('id,insumo_id,precio,precio_compra,unidad_compra,factor_conversion,estado,confidence,evidence_status,fuente,evidencia,requiere_validacion_compras,approved_at,contract_status,cost_unit,cost_unit_price_mxn,source_currency,source_price,source_unit,source_units_per_cost_unit,fx_rate,fx_date,fx_source,source_system,source_document,source_record_id,source_hash,vigente_desde,vigente_hasta')
+      .select('id,insumo_id,precio,precio_compra,unidad_compra,factor_conversion,estado,confidence,evidence_status,fuente,evidencia,proveedor,propiedades,requiere_validacion_compras,approved_by,approved_at,contract_status,cost_unit,cost_unit_price_mxn,source_currency,source_price,source_unit,source_units_per_cost_unit,fx_rate,fx_date,fx_source,source_system,source_document,source_record_id,source_hash,vigente_desde,vigente_hasta')
       .is('vigente_hasta', null).range(0, 999),
     nube.from('insumo_mapeos_externos')
       .select('insumo_id,external_key,estado,identity_status,source_document,source_record_id')
