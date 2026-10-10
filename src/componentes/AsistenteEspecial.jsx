@@ -17,7 +17,7 @@ import { conAcompanantes } from '../datos/autoInsumos.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, familiaDeMaterial } from '../datos/materialMatch.js';
 import { materialDesdeLeyenda } from '../datos/materialDesdeLeyenda.js';
 import { opcionesMaterialPlano } from '../datos/opcionesMaterialPlano.js';
-import { proxyTableroParaEstimar } from '../datos/proxyTableroEstimado.js';
+import { proxyParaPiezaDePlano, puedeUsarHojasDirectas } from '../datos/proxyTableroEstimado.js';
 import { mensajePendienteInsumo } from '../datos/mensajePendienteInsumo.js';
 import { paginaAImagen } from '../datos/pdfImagen.js';
 import { prepararPdfRapido, rasterizarPaginas, paginasAlrededor } from '../datos/pdfPipeline.js';
@@ -596,13 +596,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     // Costear de forma automática con una alternativa del MISMO tablero, con
     // precio REAL configurado, SIN confirmar ingeniería ni liberar emisión.
     // Solo 18→19 melamina: calibres estructurales y herrajes NO se sustituyen.
-    const proxyCandidato = !inicial.insumoId && proxyTableroParaEstimar(especificado, insumos);
-    // Para precio $/m² necesitamos cotas geométricas. Si VONI sólo entrega
-    // fracción de hoja, el motor la interpreta como $/hoja y SUBCOSTEARÍA.
-    // En ese caso no autocosteamos: queda pendiente hasta tener dimensiones.
-    const medidasValidas = Number(z.largoMM) > 0 && Number(z.anchoMM) > 0;
-    const proxy = proxyCandidato && (insumos[proxyCandidato.id]?.unidad !== 'm2' || medidasValidas)
-      ? proxyCandidato : null;
+    const proxy = !inicial.insumoId && proxyParaPiezaDePlano(especificado, z, insumos);
     const base = proxy
       ? aplicarPoliticaMaterial({
           ...z, insumoId: proxy.id, material_solicitado: especificado,
@@ -617,7 +611,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
       // La IA ya estimó la fracción de hoja que rinde: el motor la usa directa
       // (hojas × precio) en vez de re-nestear áreas, que es lo que oscilaba.
-      if (z.hojas > 0 && !(base._estimacionAlternativa && insumos[base.insumoId]?.unidad === 'm2')) {
+      if (z.hojas > 0 && puedeUsarHojasDirectas(proxy, insumos)) {
         base.hojas = z.hojas;
       }
     }
