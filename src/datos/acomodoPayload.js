@@ -57,8 +57,18 @@ export function validarFloorSpecGeom(areasM) {
  * }
  */
 // Estados de FloorSpec (de floorSpec.js / lectura de plano) que SÍ permiten
-// colocar. Para un plano leído por IA, cualquier otro estado bloquea el solver.
+// colocar y PUBLICAR. Para un plano leído por IA, cualquier otro estado bloquea
+// la PUBLICACIÓN; sólo los de FALLO bloquean además el solver.
 const FLOORSPEC_ESTADOS_OK = new Set(['PASS', 'VALID', 'OK', 'VALIDO']);
+// COT-P0-022 (RESCATE, E2E Torre Sur 2026-10-10): el validador del servidor
+// distingue `issues → FAIL` (geometría insuficiente) de `warnings → REVIEW_REQUIRED`
+// (p.ej. puertas sin barrido legible, observado por revisar). Antes el cliente
+// trataba TODO lo que no era PASS como rechazo y apagaba el solver: "No voy a
+// acomodar… (estado REVIEW_REQUIRED)" sin camino para seguir. Ahora REVIEW_REQUIRED
+// produce un payload de BORRADOR (marcado) — se acomoda, se puede revisar y
+// corregir, pero `layoutPublicable` sigue en false hasta revalidar. FAIL sigue
+// bloqueando el solver.
+const FLOORSPEC_ESTADOS_BORRADOR = new Set(['REVIEW_REQUIRED']);
 
 export function construirPayloadAcomodo({ partidas = [], areasM = [], piezasExtra = [], floorSpecEstado = null } = {}) {
   // (obj 1/2) CONFIRMADas-only: se filtra sug-* SIEMPRE, aquí, aunque el caller
@@ -85,7 +95,9 @@ export function construirPayloadAcomodo({ partidas = [], areasM = [], piezasExtr
   // GAP3 · FloorSpec de PLANO/IA: aunque la GEOMETRÍA sea válida, si el estado
   // determinista del FloorSpec no permite placement, NO se llama al solver. El
   // espacio manual/simple (sin floorSpecEstado) pasa; un plano rechazado NO.
-  if (floorSpecEstado != null && !FLOORSPEC_ESTADOS_OK.has(String(floorSpecEstado).toUpperCase())) {
+  const estadoFS = floorSpecEstado != null ? String(floorSpecEstado).toUpperCase() : null;
+  const borrador = estadoFS != null && FLOORSPEC_ESTADOS_BORRADOR.has(estadoFS);
+  if (estadoFS != null && !FLOORSPEC_ESTADOS_OK.has(estadoFS) && !borrador) {
     return { ok: false, motivo: 'FLOORSPEC_RECHAZADO', detalles: [String(floorSpecEstado)], descartadosSugeridos };
   }
 
@@ -108,5 +120,10 @@ export function construirPayloadAcomodo({ partidas = [], areasM = [], piezasExtr
     floor_hash: floorHash(areasCanon, { minPasillo: MIN_PASILLO_MM }),
     requested: piezasLimpias.length,
     descartadosSugeridos,
+    // BORRADOR: el plano está en revisión (REVIEW_REQUIRED). Se acomoda para que el
+    // usuario vea/corrija, pero NO es publicable ni emitible hasta revalidar.
+    borrador,
+    floorSpecEstado: estadoFS,
+    ...(borrador ? { motivoBorrador: `plano en revisión (${estadoFS}): acomodo de borrador, no publicable hasta revalidar el plano` } : {}),
   };
 }

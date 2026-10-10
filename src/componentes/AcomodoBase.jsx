@@ -1284,7 +1284,12 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // nunca. Se mantiene la exigencia de validación de servidor (serverAprobado) y el
   // audit local como endurecimientos adicionales (nunca aflojan).
   const layoutListo = layoutLocalValido && serverAprobado && validez.layoutEspacialValidado;
-  const layoutPublicable = layoutListo && programaListo;
+  // COT-P0-022: un plano en REVISIÓN (REVIEW_REQUIRED: puertas sin barrido, lectura
+  // por verificar) SÍ se acomoda como borrador, pero JAMÁS publica/emite. Sólo PASS
+  // (o espacio manual sin FloorSpec) publica. Revalidar el plano levanta el candado.
+  const estadoFloorSpec = floorSpec?.validation?.state ? String(floorSpec.validation.state).toUpperCase() : null;
+  const floorSpecEnRevision = estadoFloorSpec != null && !['PASS', 'VALID', 'OK', 'VALIDO'].includes(estadoFloorSpec);
+  const layoutPublicable = layoutListo && programaListo && !floorSpecEnRevision;
   const motivoLayout = [
     ...(!layout ? [] : [
       layout.unplaced > 0 ? `${layout.unplaced} sin colocar` : '',
@@ -1300,6 +1305,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   const motivoPublicacion = [
     motivoLayout,
     !programaListo ? motivoPrograma : '',
+    floorSpecEnRevision ? `plano en revisión (${estadoFloorSpec}): corrige/revalida el plano (p.ej. puertas sin barrido) antes de publicar` : '',
   ].filter(Boolean).join(' · ');
 
   // ============================================================================

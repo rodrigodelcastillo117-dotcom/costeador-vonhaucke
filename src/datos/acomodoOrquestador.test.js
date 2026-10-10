@@ -38,6 +38,14 @@ describe('acomodoOrquestador · contrato de entrada', () => {
     expect(r.motivo).toBe('FLOORSPEC_RECHAZADO');
     expect(solve).not.toHaveBeenCalled();
   });
+  it('COT-P0-022: FloorSpec REVIEW_REQUIRED (warnings) → el solver SÍ se llama y el resultado va marcado como BORRADOR', async () => {
+    const solve = vi.fn(async () => planValido());
+    const r = await resolverAcomodo({ partidas: PARTIDAS, areasM: AREAS_M, floorSpecEstado: 'REVIEW_REQUIRED', solve });
+    expect(solve).toHaveBeenCalledTimes(1);
+    expect(r.payload?.borrador).toBe(true);
+    expect(r.payload?.floorSpecEstado).toBe('REVIEW_REQUIRED');
+    expect(r.plan).toBeTruthy();
+  });
 });
 
 describe('acomodoOrquestador · repair loop (obj 8)', () => {

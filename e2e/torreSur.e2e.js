@@ -172,7 +172,17 @@ test.describe('E2E TORRE SUR · plano real → cotización sin pérdidas', () =>
     const bloqueado = await page.getByText(/No voy a acomodar un programa comercial incompleto|Todavía no:/).first().isVisible().catch(() => false);
     expect(bloqueado, 'Acomodo bloqueado por programa incompleto (ver tooltip/mensaje)').toBe(false);
     if (await btnAcomodar.isEnabled()) await btnAcomodar.click().catch(() => {});
-    const aco = await acomodoResp;
+    // Si el solver NO se llama, el fallo debe decir POR QUÉ (mensaje visible), no "timeout".
+    const aco = await acomodoResp.catch(() => null);
+    if (!aco) {
+      const msg = await page.getByText(/No voy a acomodar|no permite acomodar|No voy a/).first().textContent().catch(() => null);
+      expect(aco, `el solver nunca fue llamado. Mensaje en pantalla: ${msg || '(ninguno)'}`).toBeTruthy();
+    }
+    // COT-P0-022: con plano en REVIEW_REQUIRED se acomoda como BORRADOR y NO se publica.
+    const estadoFS = String(lecturaJson?.floorSpec?.validation?.state || '').toUpperCase();
+    if (estadoFS && estadoFS !== 'PASS') {
+      await expect(page.getByRole('button', { name: /Guardar borrador de acomodo/ }), `plano ${estadoFS}: debe ofrecer sólo borrador`).toBeVisible({ timeout: 60000 });
+    }
     const acoJson = await aco.json().catch(() => null);
     let piezasEnviadas = null;
     try { piezasEnviadas = JSON.parse(aco.request().postData() || '{}').piezas?.length ?? null; } catch (_e) { /* sin body */ }

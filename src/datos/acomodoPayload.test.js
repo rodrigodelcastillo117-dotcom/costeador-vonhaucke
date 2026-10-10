@@ -159,15 +159,27 @@ describe('acomodoPayload · construirPayloadAcomodo (P0.2 obj 1/2/3)', () => {
     expect(validarFloorSpecGeom([{ nombre: 'a', ancho: NaN, largo: 3 }]).ok).toBe(false);
   });
 
-  it('GAP3: geometría válida pero FloorSpec RECHAZADO → no payload (FLOORSPEC_RECHAZADO)', () => {
-    const r = construirPayloadAcomodo({ partidas: PARTIDAS, areasM: AREAS_M, floorSpecEstado: 'REVIEW_REQUIRED' });
-    expect(r.ok).toBe(false);
-    expect(r.motivo).toBe('FLOORSPEC_RECHAZADO');
-    expect(r.detalles).toContain('REVIEW_REQUIRED');
+  it('GAP3: geometría válida pero FloorSpec en FALLO (FAIL/REJECTED) → no payload (FLOORSPEC_RECHAZADO)', () => {
+    for (const estado of ['FAIL', 'REJECTED', 'INVALID']) {
+      const r = construirPayloadAcomodo({ partidas: PARTIDAS, areasM: AREAS_M, floorSpecEstado: estado });
+      expect(r.ok, estado).toBe(false);
+      expect(r.motivo).toBe('FLOORSPEC_RECHAZADO');
+      expect(r.detalles).toContain(estado);
+    }
   });
-  it('GAP3: FloorSpec PASS o ausente (espacio manual) → payload ok', () => {
-    expect(construirPayloadAcomodo({ partidas: PARTIDAS, areasM: AREAS_M, floorSpecEstado: 'PASS' }).ok).toBe(true);
-    expect(construirPayloadAcomodo({ partidas: PARTIDAS, areasM: AREAS_M, floorSpecEstado: null }).ok).toBe(true);
+  it('COT-P0-022: FloorSpec REVIEW_REQUIRED (warnings: puertas sin barrido) → payload de BORRADOR marcado, nunca publicable', () => {
+    const r = construirPayloadAcomodo({ partidas: PARTIDAS, areasM: AREAS_M, floorSpecEstado: 'REVIEW_REQUIRED' });
+    expect(r.ok).toBe(true);                       // antes: FLOORSPEC_RECHAZADO → "No voy a acomodar" sin salida
+    expect(r.borrador).toBe(true);
+    expect(r.floorSpecEstado).toBe('REVIEW_REQUIRED');
+    expect(r.motivoBorrador).toMatch(/revisión/);
+    expect(r.piezas.length).toBeGreaterThan(0);
+  });
+  it('GAP3: FloorSpec PASS o ausente (espacio manual) → payload ok y NO borrador', () => {
+    const pass = construirPayloadAcomodo({ partidas: PARTIDAS, areasM: AREAS_M, floorSpecEstado: 'PASS' });
+    const manual = construirPayloadAcomodo({ partidas: PARTIDAS, areasM: AREAS_M, floorSpecEstado: null });
+    expect(pass.ok).toBe(true); expect(pass.borrador).toBe(false);
+    expect(manual.ok).toBe(true); expect(manual.borrador).toBe(false);
   });
 });
 
