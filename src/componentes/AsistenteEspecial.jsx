@@ -797,7 +797,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       const r = await responderDespiece(catalogoIA(), imgs, propuestaIA, respPayload);
       if (!r?.ok) { setConfMsg(r?.error || 'No se pudo recalcular con tus respuestas.'); return; }
       let quien = null; try { quien = (await sesionActual())?.user?.email || null; } catch (_e) {}
-      guardarConfirmaciones(traza.map((x) => ({ confirmado_por: quien, producto: b.nombre || null, pregunta: x.pregunta, respuesta: x.respuesta, valor_anterior: x.supuesto || null, afecta: x.afecta, impacto: x.impacto })));
+      const registro = await guardarConfirmaciones(traza.map((x) => ({ confirmado_por: quien, producto: b.nombre || null, pregunta: x.pregunta, respuesta: x.respuesta, valor_anterior: x.supuesto || null, afecta: x.afecta, impacto: x.impacto })));
+      // La respuesta aplicada al BOM no desaparece si falla el log, pero tampoco
+      // fingimos persistencia en el historial de decisiones.
+      const avisoRegistro = registro?.ok === false
+        ? ' Atención: el historial de confirmaciones no se guardó (' + (registro.error || 'revisa permisos') + '). Guarda un borrador para conservar las decisiones.' : '';
       setConfirmadas(todas); // recordadas por key
       const confKeys = new Set(Object.keys(todas));
       const quedan = (Array.isArray(r.propuesta?.preguntas) ? r.propuesta.preguntas : []).filter((q) => !confKeys.has(normPreg(q).question_key)).length;
@@ -808,17 +812,17 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         // Cuando ya no quedan preguntas, se CONSOLIDA el BOM canónico de la revisión.
         aplicarPropuesta(r, b.imagen, b.planos, false, corrida.current, todas);
         if (quedan === 0) { setCanonico(true); setPropuestaIA(r.propuesta || propuestaIA); }
-        setConfMsg(`✓ Guardé ${Object.keys(todas).length} respuesta(s) y recalculé el costo.` + (quedan ? ` Quedan ${quedan} por confirmar.` : ' BOM consolidado: sin preguntas pendientes.'));
+        setConfMsg(`✓ Apliqué ${Object.keys(todas).length} respuesta(s) y recalculé el costo.` + (quedan ? ` Quedan ${quedan} por confirmar.` : ' BOM consolidado: sin preguntas pendientes.') + avisoRegistro);
       } else {
         // CANÓNICO: la salida de la IA NO reemplaza el BOM. Si propone cambios, se
         // ofrecen como PROPUESTA_DIFF para que el usuario ACEPTE o RECHACE.
         const iaComps = mapIaComps(r.propuesta || {});
         const d = diffBOM(b.componentes, iaComps);
         if (d.sinCambios) {
-          setConfMsg(`✓ Respuesta registrada. El BOM canónico no cambia (${bomHash(b.componentes)}).`);
+          setConfMsg(`✓ Respuesta aplicada a la revisión; el BOM canónico no cambia (${bomHash(b.componentes)}).` + avisoRegistro);
         } else {
           setPropuestaDiff({ agregar: d.agregar, modificar: d.modificar, eliminar: d.eliminar, motivo: `Respuesta a: ${Object.values(ahora).map((v) => v.pregunta).join(' · ')}`, iaComps });
-          setConfMsg('La IA propone cambios al BOM canónico. Revísalos abajo y Acepta o Rechaza — no se aplican solos.');
+          setConfMsg('La IA propone cambios al BOM canónico. Revísalos abajo y Acepta o Rechaza — no se aplican solos.' + avisoRegistro);
         }
       }
     } catch (e) {
