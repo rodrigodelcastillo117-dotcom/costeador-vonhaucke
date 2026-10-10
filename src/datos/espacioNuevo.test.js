@@ -1,5 +1,23 @@
 import { describe, it, expect } from 'vitest';
-import { areasDeM2, ladosDe, totalM2, m2QueNecesita, limpiaM2, M2_TIPICOS } from './espacioNuevo.js';
+import { areasDeM2, ladosDe, totalM2, m2QueNecesita, limpiaM2, M2_TIPICOS, cuartosDePrograma } from './espacioNuevo.js';
+
+// COT-P0-025c (E2E ruta m², Torre Sur): sin `tipo` el solver puso las 21 piezas en el
+// Open space. El tipo viaja con el cuarto desde el programa.
+describe('cuartosDePrograma · cada cuarto lleva su tipo', () => {
+  it('RED→GREEN: 132 m² · 1 privado · 1 sala de 8 · recepción → open/privado/juntas/recepcion', () => {
+    const { areas } = cuartosDePrograma({ m2: 132, privados: 1, juntas: 1, paxJuntas: 8, recepcion: true });
+    const tipos = Object.fromEntries(areas.map((a) => [a.nombre, a.tipo]));
+    expect(tipos['Privado 1']).toBe('privado');
+    expect(tipos['Sala de juntas (8 personas)']).toBe('juntas');
+    expect(tipos['Recepción']).toBe('recepcion');
+    expect(areas.find((a) => /^Open space/.test(a.nombre)).tipo).toBe('open');
+    expect(areas.every((a) => a.tipo)).toBe(true);
+  });
+  it('sin cuartos: el espacio completo es open; break room es lounge', () => {
+    expect(cuartosDePrograma({ m2: 50 }).areas.map((a) => a.tipo)).toEqual(['open']);
+    expect(cuartosDePrograma({ m2: 200, breakRoom: true }).areas.find((a) => a.nombre === 'Break room').tipo).toBe('lounge');
+  });
+});
 
 describe('de m² a plantas', () => {
   it('los lados dan los m² que se pidieron', () => {

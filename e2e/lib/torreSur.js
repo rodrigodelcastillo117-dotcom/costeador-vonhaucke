@@ -172,6 +172,19 @@ export async function verificarAcomodo(page, { ruta, estadoFS = null }) {
   // COT-P0-025: ninguna pieza viaja sin rol funcional
   expect((reqBody?.piezas || []).filter((p) => !p.relation_role).length, 'piezas sin relation_role').toBe(0);
   expect(colocacion.length, `el solver no colocó nada (status ${acoJson?.status})`).toBeGreaterThan(0);
+  // COT-P0-041b: el juez duro del solver NO puede reportar issues (OVERLAP/puerta/obstáculo)
+  // en un acomodo que se presenta como colocado. Antes esto pasaba en silencio.
+  const duros = (acoJson?.layoutSpec?.validation?.issues || []).filter((i) => i.severity === 'fail');
+  expect(duros, `issues duros del solver: ${JSON.stringify(duros)}`).toEqual([]);
+  // Guardado de apoyo (credenza/archivero) viaja como ancla propia, nunca como "gaveta" del escritorio.
+  expect((reqBody?.piezas || []).filter((p) => p.relation_role === 'SUPPORT_STORAGE').length, 'SUPPORT_STORAGE suelto en el payload (bundle viejo o regresión)').toBe(0);
+  // Cada cuarto con rol (privado/juntas/recepción) recibe al menos su ancla: nada "todo al open".
+  const areasReq = reqBody?.areas || [];
+  const tipoDeArea = (i) => String(areasReq[i]?.tipo || '').toLowerCase();
+  const porTipo = {}; for (const c of colocacion) { const t = tipoDeArea(c.area); porTipo[t] = (porTipo[t] || 0) + 1; }
+  for (const t of ['privado', 'juntas', 'recepcion']) {
+    if (areasReq.some((a) => String(a.tipo || '').toLowerCase() === t)) expect(porTipo[t] || 0, `cuarto "${t}" sin muebles: ${JSON.stringify(porTipo)}`).toBeGreaterThan(0);
+  }
   // Las 4 anclas colocadas (bench, escritorio privado, mesa, recepción)
   const anclas = (reqBody?.piezas || []).filter((p) => String(p.relation_role || '').startsWith('ANCHOR_'));
   const idsColocados = new Set(colocacion.map((c) => String(c.id)));

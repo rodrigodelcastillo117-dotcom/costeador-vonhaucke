@@ -36,6 +36,9 @@ test.describe('E2E TORRE SUR · ruta m²', () => {
     for (const re of [/^Open space/, /^Privado 1$/, new RegExp(`^Sala de juntas \\(${TORRE_SUR.juntasPax} personas\\)$`), /^Recepción$/]) {
       expect(nombres.some((n) => re.test(n)), `falta cuarto ${re}: ${nombres.join(' | ')}`).toBe(true);
     }
+    // COT-P0-025c: los cuartos del flujo m² deben llevar `tipo` (el solver filtra por él).
+    const tiposM2 = ((await leerCot(page)).acomodo.areasM || []).map((a) => a.tipo);
+    for (const t of ['open', 'privado', 'juntas', 'recepcion']) expect(tiposM2, `cuarto sin tipo "${t}"`).toContain(t);
 
     await armarYVerificar(page, { ruta: 'm2', puestos: TORRE_SUR.puestos });
     await verificarAcomodo(page, { ruta: 'm2', estadoFS: null });

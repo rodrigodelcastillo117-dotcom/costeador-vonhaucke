@@ -111,9 +111,12 @@ export function cuartosDePrograma({
 } = {}) {
   const total = limpiaM2(m2);
   const areas = [];
-  const conMedida = (nombre, metros) => {
+  // COT-P0-025c (E2E ruta m², Torre Sur 2026-10-10): los cuartos salían SIN `tipo` y el
+  // solver, que filtra áreas por tipo de rol (open/privado/juntas/recepcion), colocó las
+  // 21 piezas en el Open space. El tipo es dato del programa, no se infiere del nombre.
+  const conMedida = (nombre, metros, tipo) => {
     const m = Math.max(4, Math.round(metros));
-    areas.push({ nombre, ...ladosDe(m), m2: m });
+    areas.push({ nombre, ...(tipo ? { tipo } : {}), ...ladosDe(m), m2: m });
   };
 
   const mJuntas = m2Juntas(paxJuntas);
@@ -123,15 +126,15 @@ export function cuartosDePrograma({
   // arriba (en la pantalla) en vez de inventar un open space de 0.
   const open = Math.max(0, total - cerrado);
 
-  if (open >= 6) conMedida(`Open space (${Math.round(open)} m²)`, open);
-  for (let i = 0; i < privados; i++) conMedida(`Privado ${i + 1}`, m2Privado);
+  if (open >= 6) conMedida(`Open space (${Math.round(open)} m²)`, open, 'open');
+  for (let i = 0; i < privados; i++) conMedida(`Privado ${i + 1}`, m2Privado, 'privado');
   for (let i = 0; i < juntas; i++) {
-    conMedida(juntas === 1 ? `Sala de juntas (${paxJuntas} personas)` : `Sala de juntas ${i + 1} (${paxJuntas} personas)`, mJuntas);
+    conMedida(juntas === 1 ? `Sala de juntas (${paxJuntas} personas)` : `Sala de juntas ${i + 1} (${paxJuntas} personas)`, mJuntas, 'juntas');
   }
-  if (recepcion) conMedida('Recepción', M2_RECEPCION);
-  if (breakRoom) conMedida('Break room', M2_BREAK);
+  if (recepcion) conMedida('Recepción', M2_RECEPCION, 'recepcion');
+  if (breakRoom) conMedida('Break room', M2_BREAK, 'lounge');
 
   // Sin nada, al menos el espacio completo: nunca se devuelve vacío.
-  if (!areas.length) conMedida(`Mi espacio (${total} m²)`, total);
+  if (!areas.length) conMedida(`Mi espacio (${total} m²)`, total, 'open');
   return { areas, openM2: open, cerradoM2: cerrado };
 }
