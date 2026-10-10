@@ -555,6 +555,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     }
     setErroresMaterial((v) => { const n = { ...v }; delete n[i]; return n; });
     const patch = { insumoId, nombre: prev.nombre || (ins ? ins.nombre : '') };
+    // Precio en $/m²: nunca conservar una fracción de hoja de una pieza
+    // previamente ligada a un tablero por hoja.
+    if (ins?.unidad === 'm2') patch.hojas = undefined;
     if (!esArea(ins)) { patch.largoMM = undefined; patch.anchoMM = undefined; }
     // Elección/confirmación HUMANA: misma intención en ambas UIs (P0.8). El servidor verifica
     // material_confirmado + insumoId y lo convierte a USER_CONFIRMED efectivo (no confía en el string).
@@ -611,7 +614,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
       // La IA ya estimó la fracción de hoja que rinde: el motor la usa directa
       // (hojas × precio) en vez de re-nestear áreas, que es lo que oscilaba.
-      if (z.hojas > 0 && puedeUsarHojasDirectas(proxy, insumos)) {
+      if (z.hojas > 0 && puedeUsarHojasDirectas(base.insumoId, insumos)) {
         base.hojas = z.hojas;
       }
     }
