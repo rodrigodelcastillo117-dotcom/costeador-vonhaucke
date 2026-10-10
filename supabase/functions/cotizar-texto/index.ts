@@ -1,11 +1,14 @@
 // ============================================================================
-// Edge Function: cotizar-texto · v10
+// Edge Function: cotizar-texto · v11 CANDIDATA (DESPLEGADA = v10, ezbr 9c3c84f4…)
 // Texto natural -> renglones estructurados. La IA interpreta; el motor fija precio.
 // v10: cierre de aclaraciones + cero extras sugeridos cobrables sin aprobación.
-//
-// OPERACIÓN RESCATE 2026-10-10: este archivo se SINCRONIZÓ con la versión DESPLEGADA
-// (v10, ezbr_sha256 9c3c84f4…) — el repo traía una versión anterior (regla 9 de
-// "proponer acompañantes") que NO es la que corre. Fuente de verdad = lo desplegado.
+// v11 (NO desplegada; requiere autorización de Rodrigo): CAUSA DEMOSTRADA del
+//   "No pude costear" (E2E Torre Sur 2026-10-10): con el schema v10 SIN descripciones
+//   y la regla "Usa SOLO ruta/producto existentes", el modelo devolvía
+//   ruta:"applt/banca_doble" y producto:"Banca doble App LT 10 usuarios". Se
+//   restauran las descripciones de campo (ruta = CLAVE de línea, producto = ID) y la
+//   regla 1 lo dice explícito. El cliente (resolverRutaProducto) tolera el formato
+//   fusionado de todos modos, así que v10 sigue funcionando mientras no se despliegue.
 // ============================================================================
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
@@ -25,7 +28,9 @@ const SCHEMA = {
       items: {
         type: "object", additionalProperties: false,
         properties: {
-          ruta: { type: "string" }, producto: { type: "string" }, cantidad: { type: "number" },
+          ruta: { type: "string", description: "CLAVE EXACTA de la linea del catalogo, SOLA (ej. 'applt', 'eclipse', 'mox'). NUNCA 'linea/producto'." },
+          producto: { type: "string", description: "ID EXACTO del producto dentro de esa linea (ej. 'banca_doble', 'escritorio', 'pedestal'), NO su nombre descriptivo." },
+          cantidad: { type: "number" },
           seleccion: { type: "array", items: { type: "object", additionalProperties: false,
             properties: { clave: { type: "string" }, valor: { type: "string" } }, required: ["clave", "valor"] } },
           etiqueta: { type: "string" }, confianza: { type: "string", enum: ["alta", "media", "baja"] },
@@ -65,7 +70,7 @@ Deno.serve(async (req) => {
   const system =
     "Eres el asistente experto de cotizacion de Von Haucke. Convierte el pedido en RENGLONES estructurados del CATALOGO real. Tu NO das precios: el motor cuesta cada renglon.\n\n" +
     "REGLAS:\n" +
-    "1) Usa SOLO ruta/producto existentes. Lo inexistente va a noEncontrado; no inventes items.\n" +
+    "1) 'ruta' = la CLAVE de la linea (ej. 'applt') y 'producto' = el ID del producto (ej. 'banca_doble'), ambos EXACTOS y en campos SEPARADOS (nunca 'applt/banca_doble' ni el nombre descriptivo). Lo inexistente va a noEncontrado; no inventes items.\n" +
     "2) seleccion usa claves exactas de params y valores permitidos.\n" +
     "3) Si falta una opcion no esencial, elige default sensato y dilo en nota. No conviertas detalles opcionales en interrogatorio.\n" +
     "3-bis) MATERIAL EXPLICITO MANDA. Si no existe en el producto usa material_override; nunca sustituyas silenciosamente.\n" +

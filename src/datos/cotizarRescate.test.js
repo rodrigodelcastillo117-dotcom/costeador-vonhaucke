@@ -89,6 +89,45 @@ describe('RESCATE Cotizar · anclas del plano Torre Sur', () => {
     expect(c.ruta).toBe('applt'); expect(c.producto).toBe('banca_doble');
   });
 
+  // ------------------------------------------------------------------------
+  //  CAUSA DEMOSTRADA · payloads REALES capturados por e2e/torreSur.e2e.js (2026-10-10,
+  //  e2e/evidence/torre-sur-cotizar-texto.json): la edge v10 fusiona "linea/producto" en
+  //  `ruta` y manda el NOMBRE en `producto`. Antes: null mudo ("No pude costear").
+  // ------------------------------------------------------------------------
+  const PAYLOADS_REALES = [
+    { ruta: 'applt/banca_doble', producto: 'Banca doble App LT 10 usuarios', cantidad: 1, seleccion: [{ clave: 'largoMM', valor: '1500' }, { clave: 'usuarios', valor: '10' }, { clave: 'biombo', valor: 'cristal' }, { clave: 'color', valor: 'monarca-tx' }], etiqueta: 'Banca doble App LT, 10 usuarios, 1.50 m por puesto, biombo de cristal', esperado: { ruta: 'applt', producto: 'banca_doble' } },
+    { ruta: 'eclipse/escritorio', producto: 'Escritorio Directivo Eclipse 2.10 m', cantidad: 1, seleccion: [{ clave: 'largoMM', valor: '2100' }, { clave: 'mano', valor: 'D' }, { clave: 'finish', valor: 'walnut' }], etiqueta: 'Escritorio ejecutivo Eclipse 2100 mm, chapa walnut, mano derecha', esperado: { ruta: 'eclipse', producto: 'escritorio' } },
+    { ruta: 'eclipse/credenza', producto: 'Credenza Eclipse', cantidad: 1, seleccion: [{ clave: 'largoMM', valor: '2100' }, { clave: 'mano', valor: 'D' }, { clave: 'finish', valor: 'walnut' }], etiqueta: 'Credenza Eclipse 2100 mm, chapa walnut, mano derecha', esperado: { ruta: 'eclipse', producto: 'credenza' } },
+    { ruta: 'mox/pedestal', producto: 'Gaveta pedestal Mox', cantidad: 10, seleccion: [{ clave: 'frentes', valor: 'melamina' }], etiqueta: 'Gaveta pedestal Mox, frentes melamina, con cerradura', esperado: { ruta: 'mox', producto: 'pedestal' } },
+  ];
+  for (const p of PAYLOADS_REALES) {
+    it(`PAYLOAD REAL · ${p.etiqueta} → se resuelve a ${p.esperado.ruta}/${p.esperado.producto} y se cuesta`, () => {
+      expect(resolverRutaProducto(p.ruta, p.producto)).toMatchObject({ ...p.esperado, motivo: null });
+      const c = costearItem(estado, p);
+      expect(c, 'debe costear (antes: null → "No pude costear")').toBeTruthy();
+      expect(c.ruta).toBe(p.esperado.ruta); expect(c.producto).toBe(p.esperado.producto);
+      expect(c.precioUnitario).toBeGreaterThan(0);
+      expect(c.cantidad).toBe(p.cantidad);
+      // lo pedido NO se sustituye en silencio
+      const largo = p.seleccion.find((s) => s.clave === 'largoMM');
+      if (largo) expect(c.config.largoMM).toBe(Number(largo.valor));
+      const mano = p.seleccion.find((s) => s.clave === 'mano');
+      if (mano) expect(c.config.mano).toBe(mano.valor);
+      const finish = p.seleccion.find((s) => s.clave === 'finish');
+      if (finish) expect(c.config.finish).toBe(finish.valor);
+      const usuarios = p.seleccion.find((s) => s.clave === 'usuarios');
+      if (usuarios) { expect(c.config.usuarios).toBe(Number(usuarios.valor)); expect(c.precioProvisional).toBe(false); }
+    });
+  }
+  it('PAYLOAD REAL · el id que viene en "linea/producto" MANDA sobre el nombre descriptivo', () => {
+    // nombre contradictorio: la ruta trae credenza, el nombre dice escritorio → gana el id de la ruta
+    expect(resolverRutaProducto('eclipse/credenza', 'Escritorio Directivo')).toMatchObject({ ruta: 'eclipse', producto: 'credenza' });
+    // ruta con "/" pero producto inexistente y nombre válido → cae al nombre
+    expect(resolverRutaProducto('eclipse/no_existe', 'Credenza (baja)')).toMatchObject({ ruta: 'eclipse', producto: 'credenza' });
+    // ruta con "/" y nada válido → null con motivo
+    expect(resolverRutaProducto('eclipse/no_existe', 'tampoco').motivo).toMatch(/no existe en Eclipse/);
+  });
+
   it('lo que NO existe sigue en null (fail-closed) pero con MOTIVO', () => {
     expect(resolverRutaProducto('nolinea', 'escritorio').motivo).toMatch(/línea "nolinea" no existe/);
     expect(resolverRutaProducto('applt', 'escritorio_ejecutivo').motivo).toMatch(/producto "escritorio_ejecutivo" no existe en App LT/);

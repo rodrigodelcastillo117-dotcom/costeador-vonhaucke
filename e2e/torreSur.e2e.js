@@ -100,12 +100,21 @@ test.describe('E2E TORRE SUR · plano real → cotización sin pérdidas', () =>
     // 5) ANCLAS DEL PLANO (lo que Rodrigo vio en "No pude costear"): si la IA pidió
     //    applt/banca_doble, eclipse/escritorio, eclipse/credenza, applt/mesa_juntas,
     //    deben estar COSTEADAS (con identidad), no pendientes.
-    const pedido = (ruta, producto) => items.some((it) => it.ruta === ruta && it.producto === producto);
+    //    La edge v10 fusiona "linea/producto" en `ruta` (evidencia 2026-10-10): se normaliza
+    //    igual que resolverRutaProducto para que el assert NO se salte el ancla.
+    const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const claveDe = (it) => {
+      const r = String(it.ruta || '');
+      if (r.includes('/')) { const [a, ...b] = r.split('/'); return `${norm(a)}/${norm(b.join('/'))}`; }
+      return `${norm(r)}/${norm(it.producto)}`;
+    };
+    const pedido = (ruta, producto) => items.some((it) => claveDe(it) === `${norm(ruta)}/${norm(producto)}` || (norm(it.ruta) === norm(ruta) && norm(it.etiqueta).includes(norm(producto).slice(0, 5))));
     const costeada = (ruta, producto) => lote.find((p) => p.ruta === ruta && p.productoId === producto && p.precioUnitario > 0);
-    for (const [ruta, producto] of [['applt', 'banca_doble'], ['eclipse', 'escritorio'], ['eclipse', 'credenza'], ['applt', 'mesa_juntas']]) {
+    const pendiente = (ruta, producto) => lote.find((p) => p.requiere_costeo && (norm(p.ruta).startsWith(norm(ruta))));
+    for (const [ruta, producto] of [['applt', 'banca_doble'], ['eclipse', 'escritorio'], ['eclipse', 'credenza'], ['applt', 'mesa_juntas'], ['mox', 'pedestal']]) {
       if (!pedido(ruta, producto)) continue;
       const c = costeada(ruta, producto);
-      expect(c, `${ruta}/${producto} pedido por la IA pero NO costeado (ver evidencia JSON)`).toBeTruthy();
+      expect(c, `${ruta}/${producto} pedido por la IA pero NO costeado → quedó como ${pendiente(ruta, producto)?.motivoPendiente || 'desconocido'} (ver evidencia JSON)`).toBeTruthy();
       if (ruta === 'eclipse') expect(c.producto_id, `${ruta}/${producto} sin identidad Producto Maestro`).toBeTruthy();
     }
 

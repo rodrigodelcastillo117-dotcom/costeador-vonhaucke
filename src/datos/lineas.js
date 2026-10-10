@@ -293,14 +293,30 @@ function conIdentidadV2(p, sourceType, ref) {
 // (sin acentos/espacios/mayúsculas) y, si aun así no existe, se dice POR QUÉ.
 const normClave = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 export function resolverRutaProducto(ruta, producto) {
-  const rutaKey = LINEAS_REG[ruta] ? ruta
-    : (Object.keys(LINEAS_REG).find((k) => normClave(k) === normClave(ruta) || normClave(LINEAS_REG[k].titulo) === normClave(ruta)) || null);
+  // CAUSA DEMOSTRADA (E2E Torre Sur 2026-10-10, e2e/evidence/torre-sur-cotizar-texto.json):
+  // la edge v10 devuelve `ruta:"applt/banca_doble"` (línea Y producto fusionados con "/")
+  // y `producto:"Banca doble App LT 10 usuarios"` (nombre). Se separa el "/" y el id que
+  // viene ahí MANDA sobre el nombre descriptivo (que sólo sirve de respaldo).
+  let rutaTxt = String(ruta || '').trim();
+  let productoDeRuta = null;
+  if (rutaTxt.includes('/')) {
+    const [r, ...rest] = rutaTxt.split('/');
+    rutaTxt = r.trim();
+    productoDeRuta = rest.join('/').trim() || null;
+  }
+  const buscarRuta = (txt) => (LINEAS_REG[txt] ? txt
+    : (Object.keys(LINEAS_REG).find((k) => normClave(k) === normClave(txt) || normClave(LINEAS_REG[k].titulo) === normClave(txt)) || null));
+  const rutaKey = buscarRuta(rutaTxt);
   if (!rutaKey) return { ruta: null, producto: null, motivo: `la línea "${ruta}" no existe en el catálogo` };
   const L = LINEAS_REG[rutaKey];
-  const prod = L.productos.find((p) => p.id === producto)
-    || L.productos.find((p) => normClave(p.id) === normClave(producto) || normClave(p.nombre) === normClave(producto))
-    || null;
-  if (!prod) return { ruta: rutaKey, producto: null, motivo: `el producto "${producto}" no existe en ${L.titulo}` };
+  const buscarProd = (txt) => {
+    if (txt == null || txt === '') return null;
+    return L.productos.find((p) => p.id === txt)
+      || L.productos.find((p) => normClave(p.id) === normClave(txt) || normClave(p.nombre) === normClave(txt))
+      || null;
+  };
+  const prod = buscarProd(productoDeRuta) || buscarProd(producto);
+  if (!prod) return { ruta: rutaKey, producto: null, motivo: `el producto "${productoDeRuta || producto}" no existe en ${L.titulo}` };
   return { ruta: rutaKey, producto: prod.id, motivo: null };
 }
 
