@@ -22,14 +22,14 @@ INSERT INTO public.insumo_precios (
  fuente,evidencia,estado,confidence,evidence_status,
  requiere_validacion_compras,contract_status,creado_por,
  vigente_desde,source_price,source_currency,source_unit,source_units_per_cost_unit,
- cost_unit,cost_unit_price_mxn,source_system,source_document,source_record_id,source_hash
+ cost_unit,source_system,source_document,source_record_id,source_hash
 )
 SELECT t.insumo_id,t.precio,t.unidad,t.precio,1,
  'Tarifa de referencia ASUR autorizada por usuario (10/oct/2026); NO factura ni última compra',
  'Importe de mercado que el usuario autorizó para estimación. Sin orden de compra del proveedor.',
  'propuesto','baja','sin_evidencia',
  true,'LEGACY_UNMIGRATED','user_authorized_assumption_20261010',
- DATE '2026-10-10',t.precio,'MXN',t.unidad,1,t.unidad,t.precio,
+ DATE '2026-10-10',t.precio,'MXN',t.unidad,1,t.unidad,
  'user_authorized_estimate','ASUR_tarifa_referencia_20261010',t.insumo_id,
  md5('ASUR_tarifa_referencia_20261010:'||t.insumo_id||':'||t.precio::text)
 FROM elegibles t;
