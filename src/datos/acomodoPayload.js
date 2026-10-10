@@ -14,6 +14,7 @@
 // ============================================================================
 import { areasCanonicas, aMM } from './floorPlan.js';
 import { expandirPiezas } from './espacio.js';
+import { inferirRolFuncional } from './rolFuncional.js';
 import { marcarDestinoPartida } from './destinoAcomodo.js';
 import { programHashCanonico, floorHash } from './acomodoHash.js';
 
@@ -101,7 +102,10 @@ export function construirPayloadAcomodo({ partidas = [], areasM = [], piezasExtr
     return { ok: false, motivo: 'FLOORSPEC_RECHAZADO', detalles: [String(floorSpecEstado)], descartadosSugeridos };
   }
 
-  const piezas = expandirPiezas(reales);
+  // COT-P0-025: las partidas de Voni/IA llegan SIN rol funcional y el kit-solver no
+  // arma kits sin anclas (0 colocadas en el E2E real). Se infiere rol/grupo/capacidad
+  // y se MARCA como inferido; un rol confirmado del programa nunca se pisa.
+  const piezas = inferirRolFuncional(expandirPiezas(reales));
   // Piezas EXTRA (p.ej. copias manuales `dup-*` del proyectista): ya vienen
   // expandidas (nivel pieza). Entran al solver pero NUNCA un sug-*.
   const extra = (Array.isArray(piezasExtra) ? piezasExtra : [])

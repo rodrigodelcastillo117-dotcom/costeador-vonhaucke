@@ -151,6 +151,9 @@ export function expandirPiezas(partidas, tope = 600) {
         ruta: pt.ruta || null,
         productoId: pt.productoId || pt.producto_id || null,
         producto_version_id: productoVersionId,
+        // COT-P0-025: identidad del banco/línea (silla-win, mj-1200x1200…) viaja a la
+        // pieza del solver; antes sólo llegaba el nombre (aditivo).
+        ...(pt.piezaId ? { piezaId: pt.piezaId } : {}),
         ...(pt.functional_group_id ? { functional_group_id: pt.functional_group_id } : {}),
         ...(pt.relation_role ? { relation_role: pt.relation_role } : {}),
         ...(pt.anchor_role ? { anchor_role: pt.anchor_role } : {}),
