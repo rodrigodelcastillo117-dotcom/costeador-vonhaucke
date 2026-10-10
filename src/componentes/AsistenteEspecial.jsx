@@ -1092,7 +1092,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                         {q.opciones.map((op) => (
                           <button key={op} type="button" className={'chip' + (val === op ? ' on' : '')}
                             onClick={() => setVal(op)}
-                            style={{ cursor: 'pointer', background: val === op ? 'var(--tinta,#2B2622)' : undefined, color: val === op ? '#fff' : undefined }}>
+                            style={{ cursor: 'pointer', background: val === op ? '#f5f5f5' : '#19191e', color: val === op ? '#161616' : '#f5f5f5', border: val === op ? '2px solid #e7464b' : '1px solid #555', WebkitTextFillColor: val === op ? '#161616' : '#f5f5f5' }}>
                             {op}
                           </button>
                         ))}
