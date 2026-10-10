@@ -5,7 +5,14 @@
 > cableado vs pendiente. Cero información histórica presentada como estado actual.
 > Última actualización: 2026-10-10 (OPERACIÓN RESCATE · Cotizar, bloques 1-2).
 
-## OPERACIÓN RESCATE · COTIZAR (2026-10-10) — bloques 1-2 de 10
+## ESTADO VIGENTE · Parte XI (2026-10-10) — este bloque sustituye a todo lo de abajo como "estado actual"; lo demás es histórico por corrida
+- **CÓDIGO = `806cadb`** (`audit/final-product-completion`). **vitest 2258/2258 (268 archivos)**. Prod `5a38d2e` sin promover. **Edges activas (MCP):** cotizar-texto v12 · acomodar-espacio-recovery v6 (`d430fcb28c86…`) · leer-plano v11 · leer-plano-core v4. **Candidatas NO desplegadas:** acomodar-espacio-recovery **v7** (027b/027c), leer-plano-core **v5** + leer-plano **v12** (001). Sin migraciones/RLS. 33 legacy intactas.
+- **Cerrado en código (FIXED/TESTING, con RED→GREEN):** 027e (`99a1f8d`), 027b + 027c + §7 VONI (`a391fe7`), 001/006b cliente (`806cadb`). Detalle y tabla §12 en `COT_RESCATE_MATRIZ.md` §0.
+- **Resultado local del solver (mismo código que la edge) sobre los payloads reales 15:17Z:** PDF 22/22 PASS q87.6 publicable · Dibujo 22/22 PASS q88.0 · m² 22/22 PASS q92.9 (antes: 15/22 · 15/22 · 22/22 con 2 sillas al muro). Banco congelado: 55 casos, 39 idénticos / 16 mejoras / 0 regresiones; 0 casos con sillas contra muro (antes 16).
+- **BLOCKED (requiere a Rodrigo):** deploy de v7/v5/v12 y re-corrida E2E de las 3 rutas (Claude no ingresa credenciales). Hasta entonces el E2E real refleja v6 (15/22) y el lector v4 (sala por m²). **Veredicto: NO APTO para liberar** (mismo NO-GO; ahora por evidencia pendiente de navegador, no por defectos abiertos en código del solver).
+- **Abiertos sin tocar en esta parte:** §8 E2E persistencia/render/PDF (no construido), bloques 4-10 restantes de la matriz (010-012/014/016-018/021/023-024/030-040), puertas sin barrido (001, edge/usuario).
+
+## OPERACIÓN RESCATE · COTIZAR (2026-10-10) — bloques 1-2 de 10 (HISTÓRICO)
 - **CÓDIGO = `5c0d500`** (sobre `1efe78c`; el HEAD de la rama es el doc-commit encima). **vitest 2201/2201 (260 archivos; +1 `cotizarRescate.test.js`, +3 RESCATE en `programaRealDelPlano.test.js`) · vite build ✅ · `deno check` ⚠️ entorno (tipos npm:openai vía jsr edge-runtime.d.ts; no es la función).**
 - Matriz viva de los 42 defectos + tabla de los 4 "No pude costear": **`COT_RESCATE_MATRIZ.md`**. Ningún `PASS CERTIFICADO` (sin E2E autenticado ejecutado por Claude). Prod `5a38d2e` intacto.
 - **RETRACTADO `1efe78c`**: `incompletos` vuelve a bloquear el apply (fail-closed); preview separado del commit (`previewAplicacionPrograma`).

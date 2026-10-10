@@ -1,16 +1,16 @@
 // ============================================================================
-//  EDGE · acomodar-espacio-RECOVERY  (P0.2 · PENDIENTE DE ACTIVACIÓN)
+//  EDGE · acomodar-espacio-RECOVERY
 //
-//  ⚠️⚠️  ESTA FUENTE NO ESTÁ DESPLEGADA Y NO DEBE DESPLEGARSE SIN AUTORIZACIÓN
-//  EXPLÍCITA.  El cliente (`src/nube.js`) sigue invocando la función viva
-//  `acomodar-espacio-recovery` desplegada fuera de banda. Este archivo pone esa
-//  lógica BAJO CONTROL DE CÓDIGO (objetivo P0.2) con un contrato VERSIONADO y los
-//  invariantes duros nuevos (MUROS + CIRCULACIÓN) que el lane productivo no tiene.
-//
-//  Nivel de evidencia: PENDIENTE DE ACTIVACIÓN. Su geometría nueva NO se considera
-//  viva ni certificada en producción hasta un deploy futuro explícitamente
-//  autorizado. Al desplegar, bundlear junto con los cores compartidos de
-//  ../acomodar-espacio (acomodo-core.js, spatial-core.js, spatial-semantics.js).
+//  ESTADO REAL (2026-10-10): DESPLEGADA por Rodrigo como **v6** (ezbr d430fcb28c86…,
+//  fuente = commit 595bde1: juez acepta visitas en DESK + semantic_issues expuestos).
+//  Esta FUENTE es la **v7 candidata (COT-P0-027b/027c)**: acceso de sillas y frente de
+//  guardado en el conjunto legal del solver, búsqueda completa con backjumping, ranking
+//  completitud > review, orientaciones 180/270, topología STORAGE, calidad de acceso
+//  graduada y veredicto NO_CABE_DEMOSTRADO / NO_SE_ENCONTRO_SOLUCION /
+//  INFORMACION_INSUFICIENTE. ⚠️ NO DESPLEGAR SIN AUTORIZACIÓN EXPLÍCITA de Rodrigo:
+//    supabase functions deploy acomodar-espacio-recovery --project-ref mtuvnbgljwbsaizjjgzs --use-api
+//  El cliente (`src/nube.js`) invoca la función viva; hasta el deploy, el E2E real
+//  seguirá reflejando v6 (Torre Sur 15/22) aunque el pipeline local dé 22/22 PASS.
 //
 //  Contrato:
 //    IN  (ACOMODO_INPUT_V1):  { areas:[{nombre,ancho,largo,poly?,muros?,puertas?,
