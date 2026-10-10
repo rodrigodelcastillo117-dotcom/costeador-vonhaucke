@@ -31,7 +31,12 @@ export function proxyTableroParaEstimar(materialSolicitado, insumos = {}) {
     if (familiaDeMaterial(nombre) !== 'melamina') return false;
     if (!precioUtil(insumo) || espesor(nombre) !== 19) return false;
     if (insumo.seccion && insumo.seccion !== 'cubiertas') return false;
-    if (insumo.unidad !== 'hoja' || insumo.formato?.tipo !== 'tablero' || !(Number(insumo.formato?.medida) > 0)) return false;
+    // El catálogo activo usa m² sin fracción; el semilla usa hoja con fracción.
+    // El motor soporta ambos por geometría: m² × $/m² y hojas × $/hoja.
+    // Rechaza unidades cruzadas sin conversión canónica.
+    const porM2 = insumo.unidad === 'm2' && insumo.fraccion !== true;
+    const porHoja = insumo.unidad === 'hoja' && insumo.fraccion === true;
+    if (!(porM2 || porHoja) || insumo.formato?.tipo !== 'tablero' || !(Number(insumo.formato?.medida) > 0)) return false;
     // Una alternativa con color EXPLÍCITO distinto del solicitado no es proxy válido.
     const colorTiene = /nogal|walnut/.test(nombre) ? 'nogal'
       : /blanc/.test(nombre) ? 'blanco' : /negr/.test(nombre) ? 'negro'
