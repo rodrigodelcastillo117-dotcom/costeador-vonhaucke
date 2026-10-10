@@ -1,3 +1,5 @@
+import ResumenConsumoMueble from './ResumenConsumoMueble.jsx';
+import {usarCatalogoCompras} from '../datos/usarCatalogoCompras.js';
 import React,{useEffect,useMemo,useState} from 'react';
 import {
   cocrearDesdeIntent,construirProductSpec,extraerDNA,clasificarProducto,cocrearDeExpediente,cocrearPayload,
@@ -105,7 +107,9 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
  const [refs,setRefs]=useState(null),[refsCargando,setRefsCargando]=useState(false);
  const [catalogoCandidatos,setCatalogoCandidatos]=useState([]);
 
- const insumos=estado?.insumos||{};
+ // Diseño/Dirección: mismas versiones económicas de Compras que Costear.
+ // Ventas conserva modo seller-safe sin descargar el catálogo de costos.
+ const {insumos}=usarCatalogoCompras(estado?.insumos||{},rol==='direccion'||rol==='diseno');
  const par=useMemo(()=>parametrosEfectivos(estado,{componentes:[]}).par||estado?.parametros||{},[estado]);
  const rev=historia.length||1,bom=(intent&&intent._componentes)||[];
  const engineeringValidation=intent?._engineering_validation||null;
@@ -400,7 +404,8 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
       </div></>
     : <div className="c3-small">Baja el concepto a BOM para que VONI revise repetibilidad, complejidad y estandarización.</div>}
   </Card>
-  <Card><Label>Verdad industrial</Label><div style={{display:'grid',gap:5,fontSize:12}}><div>Costo calculado: <b>{costoConocido?money(costoOficial):'Pendiente de BOM'}</b></div><div>Estado motor: <b>{pipeline?.costo?.cost_status||'UNKNOWN'}</b></div><div>Componentes BOM: <b>{spec?.componentes?.length||0}</b></div><div>Ingeniería: <b style={{color:engineeringValidated?'#79c990':'#e0a36f'}}>{engineeringValidated?'VALIDADA':'REQUIERE VALIDACIÓN'}</b></div></div>
+  {bom.length>0&&<ResumenConsumoMueble componentes={bom} insumos={insumos} lote={1} resultado={pipeline?.costo?.costeo||null} mostrarCosto={puedeAprobarRol} />}
+ <Card><Label>Verdad industrial</Label><div style={{display:'grid',gap:5,fontSize:12}}><div>Costo calculado: <b>{costoConocido?money(costoOficial):'Pendiente de BOM'}</b></div><div>Estado motor: <b>{pipeline?.costo?.cost_status||'UNKNOWN'}</b></div><div>Componentes BOM: <b>{spec?.componentes?.length||0}</b></div><div>Ingeniería: <b style={{color:engineeringValidated?'#79c990':'#e0a36f'}}>{engineeringValidated?'VALIDADA':'REQUIERE VALIDACIÓN'}</b></div></div>
    {explicacionCosteo&&<details open style={{marginTop:9,border:'1px solid #3d352d',borderRadius:9,padding:9,background:'#171513'}}>
     <summary style={{cursor:'pointer',fontWeight:800,fontSize:11}}>Cómo llegó VONI a este costo</summary>
     <div className="c3-small" style={{marginTop:6,lineHeight:1.45}}>{explicacionCosteo.ecuacion}</div>
