@@ -1,5 +1,6 @@
 // ============================================================================
-// Edge Function: cotizar-texto · v11 (DESPLEGADA 2026-10-10 por Rodrigo, ezbr ebe5d246…)
+// Edge Function: cotizar-texto · v11 en fuente = v12 desplegada (2026-10-10, Rodrigo; doble deploy del
+//   mismo fuente: v11 ezbr ebe5d246…, v12 ezbr 4e5e3d62…; contenido idéntico a este archivo)
 // Texto natural -> renglones estructurados. La IA interpreta; el motor fija precio.
 // v10: cierre de aclaraciones + cero extras sugeridos cobrables sin aprobación.
 // v11 (autorizada y desplegada 2026-10-10): CAUSA DEMOSTRADA del

@@ -105,6 +105,16 @@ Verificador endurecido (15:0xZ): 0 piezas sin colocar es obligatorio → la pró
 
 **Corrida 15:17Z (edges v6/v11 desplegadas, 2 bancas de 4):** las 3 rutas: v11 devuelve `ruta`/`producto` separados (0 warns) → **009 PASS CERTIFICADO con la edge**; texto "8 lugares repartidos en 2 bancas de 4" y `banca_doble ×2, usuarios=4` → **013b + módulos físicos PASS CERTIFICADO**; juez v6: visitas en privado ya no fallan (**019b PASS CERTIFICADO**), `semantic_issues` en la respuesta (**028 PASS CERTIFICADO**). Acomodo: **m² 22/22** (sem: 2 sillas contra muro + 2 topologías de guardado); **PDF y Dibujo 15/22** por 027b (mecanismo arriba). Veredicto de las 3 entradas: **certificadas hasta cotización + acomodo borrador**; publicación sigue bloqueada por 027b (solver) y 001 (puertas sin barrido) — correcto, fail-closed.
 
+## B1-bis. Auditoría externa (ChatGPT, 2026-10-10) — contraste con evidencia directa
+
+| Afirmación del auditor | Verificación (lectura directa, sin escrituras) | Estado |
+|---|---|---|
+| "RLS de cotizaciones: `qa_fixture_isolation_cotizaciones` sigue con ALL permisivo; `authenticated` tiene privilegios de actualización y eliminación" | `pg_policies` (public.cotizaciones): la política es **RESTRICTIVE** (`permissive = RESTRICTIVE`, cmd ALL). Una política restrictiva sólo **recorta** lo que las permisivas conceden; no otorga nada. Su predicado aísla las filas del usuario QA (`usuario = qa-direccion@…`) para que sólo las vea/toque ese mismo usuario, y deja intactas las demás filas. Las concesiones reales son las 3 permisivas: SELECT sólo con `puede_editar_config()`; INSERT y UPDATE sólo si `usuario = email del JWT` o `puede_editar_config()`. **No existe política de DELETE** → `authenticated` no puede borrar. | **DESCARTADO CON EVIDENCIA** (no hay P0 de seguridad; no se toca RLS) |
+| "`cotizar-texto` aparece en v12; los documentos dicen v11" | Cierto: Rodrigo ejecutó el deploy dos veces (15:1xZ); v12 = mismo fuente (el auditor lo comparó byte a byte contra `index.ts` de la rama y coincide). ezbr v12 = `4e5e3d62…`. Encabezado del fuente y docs actualizados a v12. | corregido en docs |
+| "673 cotizaciones (+4) requieren clasificación" | Últimas 36 h: 212 filas de `qa-direccion@vonhaucke.mx` (fixtures de las corridas E2E, la última 15:17:43Z = corrida documentada) y 2 de `rodrigo.delcastillo@…` (11:30Z y 11:49Z). El delta es QA + pruebas manuales de Rodrigo; ninguna de las 33 legacy. | aclarado |
+| 027b, 001/006, 027e abiertos; NO-GO para liberar | Coincide con esta matriz: publicación bloqueada por 027b y 001; 027e P1 abierto. | coincide |
+| Criterio de aceptación del acomodo: 22/22 colocadas, 0 fallas duras, 0 accesos/puertas invadidos; si no cabe, explicarlo y proponer alternativa | Adoptado como criterio de cierre de 027b (es lo que ya exige `verificarAcomodo`: 0 sin colocar + 0 issues duros). | adoptado |
+
 ## B2. Proyecto golden (Parte VIII) — estado en navegador real (corrida 13:29Z, `3cb3a1b`)
 
 | Producto / función | Esperado | Obtenido (IA + motor) | Estado |
@@ -127,7 +137,7 @@ Verificador endurecido (15:0xZ): 0 piezas sin colocar es obligatorio → la pró
 
 - **Orden de autoridad completo (005/006/016):** resolver anclas contra Producto Maestro dentro de `resolverPrograma` implica cambiar el universo canónico (hoy BANCO) para 23 líneas; se hizo el puente por identidad exacta (sin sustitución) y se dejó el resto `OPEN` para no ampliar alcance sin RED/GREEN propio.
 - **Bloques 3-10:** no tocados. El mandato exige uno por uno; este corte cierra bloque 1 (parcial por falta de payload) y bloque 2 (parcial).
-- **Nada desplegado.** Prod `5a38d2e` intacto; 33 cotizaciones intactas; sin migraciones; sin RLS.
+- **Frontend no promovido.** Prod `5a38d2e` intacto; 33 cotizaciones legacy intactas; sin migraciones; sin cambios de RLS. Edges desplegadas por Rodrigo con autorización: `cotizar-texto` v12 (= v11 en fuente, doble deploy) y `acomodar-espacio-recovery` v6.
 
 ## D. Siguiente acción con mayor retorno
 
