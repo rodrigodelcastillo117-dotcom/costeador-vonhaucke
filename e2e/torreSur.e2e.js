@@ -1,215 +1,52 @@
 import { test, expect } from '@playwright/test';
-import fs from 'node:fs';
 import path from 'node:path';
+import { hayCreds, login, armarYVerificar, verificarAcomodo, evidencia } from './lib/torreSur.js';
 
 // ============================================================================
-//  E2E REAL · CASO TORRE SUR (plano ARQ-01, 104 m², Rodrigo 2026-10-10)
-//  Recorrido autenticado: Home → Cotizar (Voni) → subir el PDF real → formulario
-//  "Dime qué lleva" → Armar el proyecto → evidencia de cotizar-texto → partidas.
-//
-//  Este spec CAPTURA EVIDENCIA además de verificar: el payload de la IA (sólo
-//  ruta/producto/seleccion/etiqueta — sin texto del cliente) se guarda en
-//  e2e/evidence/torre-sur-cotizar-texto.json para fijar la causa EXACTA de cada
-//  "No pude costear". Requiere TEST_EMAIL / TEST_PASSWORD (Claude no puede
-//  ejecutarlo: no ingresa credenciales contra un backend remoto).
-//
-//  Verifica (punto 4 del mandato): NINGÚN item de la IA desaparece — cada item
-//  entra como partida costeada o como partida PENDIENTE (precio null, nunca $0).
+//  E2E REAL · TORRE SUR · RUTA 1/3: "Subir el plano del cliente" (PDF real ARQ-01).
+//  Login → Cotizar → PDF → lector (evidencia) → Muebles → Armar → cotización sin
+//  pérdidas → refresh → Acomodo real. Requiere TEST_EMAIL / TEST_PASSWORD.
 // ============================================================================
-const EMAIL = process.env.TEST_EMAIL;
-const PASS = process.env.TEST_PASSWORD;
-const hayCreds = !!(EMAIL && PASS);
-const CLAVE = 'costeador-vonhaucke-v1';
 const PDF = path.resolve(process.cwd(), 'e2e/fixtures/plano-torre-sur-arq01.pdf');
-const EVIDENCIA = path.resolve(process.cwd(), 'e2e/evidence/torre-sur-cotizar-texto.json');
 
-const leerCot = (page) => page.evaluate((clave) => {
-  try { return JSON.parse(window.localStorage.getItem(clave))?.cotizacion || {}; } catch (_e) { return {}; }
-}, CLAVE);
-
-test.describe('E2E TORRE SUR · plano real → cotización sin pérdidas', () => {
+test.describe('E2E TORRE SUR · ruta PDF', () => {
   test.skip(!hayCreds, 'Define TEST_EMAIL y TEST_PASSWORD para correr el recorrido real.');
-  test.setTimeout(240000);
+  test.setTimeout(300000);
 
-  test('PDF real → Voni arma el proyecto; cada item de la IA sobrevive (costeado o pendiente)', async ({ page }) => {
+  test('PDF real → lector → Voni arma → cotización sin pérdidas → acomodo real', async ({ page }) => {
     const pageErrors = [];
     page.on('pageerror', (e) => pageErrors.push(String(e?.message || e)));
     const warnsCotizar = [];
     page.on('console', (m) => { if (m.type() === 'warning' && /\[Cotizar\]|costearItem/.test(m.text())) warnsCotizar.push(m.text()); });
 
-    // Estado limpio y sin guía.
-    await page.addInitScript((clave) => {
-      try { if (!window.localStorage.getItem(clave)) window.localStorage.setItem(clave, JSON.stringify({ onboardingVisto: true })); } catch (_e) { /* privado */ }
-    }, CLAVE);
-
-    await page.goto('/');
-    await page.fill('#email-login', EMAIL);
-    await page.fill('#pass-login', PASS);
-    await page.getByRole('button', { name: /^Entrar$/i }).click();
-    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
-
+    await login(page);
     await page.getByTestId('home-cotizar').click();
 
-    // 1) LECTURA DEL PLANO: subir el PDF real por el input oculto de Voni.
+    // 1) LECTURA DEL PLANO por el input oculto de Voni.
     const lecturaResp = page.waitForResponse((r) => /leer-plano/.test(r.url()) && r.request().method() === 'POST', { timeout: 120000 });
     await page.getByTestId('cotizar-plano').setInputFiles(PDF);
     const lectura = await lecturaResp;
     expect(lectura.status(), 'leer-plano debe responder 200').toBe(200);
     const lecturaJson = await lectura.json().catch(() => null);
     expect(lecturaJson?.ok, `leer-plano ok=false: ${JSON.stringify(lecturaJson?.error || '')}`).toBe(true);
-    // Evidencia del LECTOR (bloque 3: ¿de dónde salen 10 puestos / sala de 6 si el plano
-    // tiene 8 y 10?): áreas con puestos, observed_program y validación. Sin imagen.
-    const EVIDENCIA_LECTURA = path.resolve(process.cwd(), 'e2e/evidence/torre-sur-leer-plano.json');
-    fs.mkdirSync(path.dirname(EVIDENCIA_LECTURA), { recursive: true });
-    fs.writeFileSync(EVIDENCIA_LECTURA, JSON.stringify({
-      fecha: new Date().toISOString(),
-      request_id: lecturaJson?.request_id ?? null,
+    evidencia('torre-sur-pdf-leer-plano.json', {
+      fecha: new Date().toISOString(), request_id: lecturaJson?.request_id ?? null,
       envolvente: lecturaJson?.lectura?.envolvente ?? null,
       areas: (lecturaJson?.lectura?.areas || []).map((a) => ({ nombre: a.nombre, tipo: a.tipo, puestos: a.puestos ?? null, confianza: a.confianza ?? null, dentroDe: a.dentroDe ?? null, puntos: (a.puntos || []).length })),
       puertas: (lecturaJson?.lectura?.puertas || []).length,
+      floorSpec_state: lecturaJson?.floorSpec?.validation?.state ?? null,
       observed_validation: lecturaJson?.floorSpec?.observed_validation ?? null,
       observed_program: (lecturaJson?.floorSpec?.observed_program || lecturaJson?.observed_program || []).map((o) => ({ source_ref: o.source_ref, type: o.type, role: o.role, zone: o.zone, quantity: o.quantity, capacity_per_unit: o.capacity_per_unit, capacity_total: o.capacity_total, dimensions: o.dimensions, confidence: o.confidence, origin: o.origin, review_required: o.review_required, issues: o.issues })),
       notas: lecturaJson?.lectura?.notas ?? [],
-    }, null, 2));
-    // Lo que el FORMULARIO de Voni va a mandar como texto (es la entrada real de cotizar-texto).
-    const textoFormulario = await page.locator('textarea').first().inputValue().catch(() => null);
+    });
+    // Puestos contados por el lector en áreas abiertas (COT-P0-003): el texto debe pedir ESE número.
+    const opLector = (lecturaJson?.lectura?.areas || []).filter((a) => a.tipo === 'open' && Number(a.puestos) > 0).reduce((s, a) => s + Number(a.puestos), 0);
 
-    // 2) MUEBLES: el formulario "Dime qué lleva" ya viene prellenado del plano.
-    await page.getByText(/^Muebles$/).first().click();
-    await expect(page.getByRole('button', { name: /Armar el proyecto/i })).toBeVisible({ timeout: 30000 });
+    // 2-6) Muebles → Armar → verificación común (sin corregir contadores: el lector manda).
+    await armarYVerificar(page, { ruta: 'pdf', puestos: opLector > 0 ? opLector : null, warnsCotizar });
 
-    // 3) ARMAR → evidencia del contrato real de cotizar-texto.
-    const cotResp = page.waitForResponse((r) => /cotizar-texto/.test(r.url()) && r.request().method() === 'POST', { timeout: 120000 });
-    await page.getByRole('button', { name: /Armar el proyecto/i }).click();
-    const cot = await cotResp;
-    const cotJson = await cot.json().catch(() => null);
-    expect(cotJson?.ok, `cotizar-texto ok=false: ${JSON.stringify(cotJson?.error || '')}`).toBe(true);
-    const items = cotJson?.propuesta?.items || [];
-    const banco = cotJson?.propuesta?.banco || [];
-    const noEnc = cotJson?.propuesta?.noEncontrado || [];
-    fs.mkdirSync(path.dirname(EVIDENCIA), { recursive: true });
-    fs.writeFileSync(EVIDENCIA, JSON.stringify({
-      fecha: new Date().toISOString(),
-      edge_rondasAclaracion: cotJson?.rondasAclaracion ?? null,
-      sugerenciasDescartadas: cotJson?.sugerenciasDescartadas ?? null,
-      items: items.map((it) => ({ ruta: it.ruta, producto: it.producto, cantidad: it.cantidad, seleccion: it.seleccion, etiqueta: it.etiqueta, material_override: it.material_override || null, sugerido: !!it.sugerido })),
-      banco: banco.map((b) => ({ id: b.id, cantidad: b.cantidad, etiqueta: b.etiqueta, sugerido: !!b.sugerido })),
-      noEncontrado: noEnc,
-      preguntas: cotJson?.propuesta?.preguntas || [],
-      warnsCotizar,
-      // El texto que armó el formulario (prellenado desde el plano): es la verdad de
-      // entrada para juzgar si "10 usuarios" lo puso el formulario o la IA.
-      textoFormulario: textoFormulario ? String(textoFormulario).slice(0, 1500) : null,
-      textoEnviado: (() => { try { return String(JSON.parse(cot.request().postData() || '{}').texto || '').slice(0, 1500); } catch (_e) { return null; } })(),
-    }, null, 2));
-
-    // 3-bis) COT-P0-003: si el lector CONTÓ puestos en el área operativa, el texto que el
-    //    formulario mandó a la IA debe pedir ESE número (no la estimación por m²).
-    const opLector = (lecturaJson?.lectura?.areas || []).filter((a) => a.tipo === 'open' && Number(a.puestos) > 0)
-      .reduce((s, a) => s + Number(a.puestos), 0);
-    const textoEnviado = (() => { try { return String(JSON.parse(cot.request().postData() || '{}').texto || ''); } catch (_e) { return ''; } })();
-    if (opLector > 0) {
-      expect(textoEnviado, `el lector contó ${opLector} puestos pero el formulario mandó: "${textoEnviado.slice(0, 120)}…"`).toMatch(new RegExp(`^\\s*${opLector}\\s+lugares de trabajo`));
-      expect(textoEnviado, 'gavetas ≠ puestos contados').toMatch(new RegExp(`${opLector}\\s+gavetas`));
-    }
-
-    // 4) NADA SE PIERDE: cada item/banco/noEncontrado tiene partida (costeada o pendiente).
-    await expect.poll(async () => ((await leerCot(page)).partidas || []).length, { timeout: 30000 }).toBeGreaterThan(0);
-    const cotz = await leerCot(page);
-    const partidas = cotz.partidas || [];
-    const lote = partidas.filter((p) => p.loteIA);
-    const esperados = items.length + banco.length + noEnc.length;
-    expect(lote.length, `items IA=${items.length} banco=${banco.length} noEnc=${noEnc.length} vs partidas del lote=${lote.length}`).toBeGreaterThanOrEqual(esperados);
-    for (const p of lote) {
-      // DESCONOCIDO ≠ $0: una partida sin precio es pendiente explícita, nunca 0.
-      if (p.precioUnitario == null) expect(p.requiere_costeo || p.price_status === 'SIN_PRECIO', `partida sin precio y sin marca: ${p.nombre}`).toBeTruthy();
-      else expect(p.precioUnitario, `precio $0 en ${p.nombre}`).toBeGreaterThan(0);
-      if (p.deBanco) expect(p.costoUnitario, `banco con costo 0 en ${p.nombre}`).not.toBe(0);
-    }
-
-    // 5) ANCLAS DEL PLANO (lo que Rodrigo vio en "No pude costear"): si la IA pidió
-    //    applt/banca_doble, eclipse/escritorio, eclipse/credenza, applt/mesa_juntas,
-    //    deben estar COSTEADAS (con identidad), no pendientes.
-    //    La edge v10 fusiona "linea/producto" en `ruta` (evidencia 2026-10-10): se normaliza
-    //    igual que resolverRutaProducto para que el assert NO se salte el ancla.
-    const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const claveDe = (it) => {
-      const r = String(it.ruta || '');
-      if (r.includes('/')) { const [a, ...b] = r.split('/'); return `${norm(a)}/${norm(b.join('/'))}`; }
-      return `${norm(r)}/${norm(it.producto)}`;
-    };
-    const pedido = (ruta, producto) => items.some((it) => claveDe(it) === `${norm(ruta)}/${norm(producto)}` || (norm(it.ruta) === norm(ruta) && norm(it.etiqueta).includes(norm(producto).slice(0, 5))));
-    const costeada = (ruta, producto) => lote.find((p) => p.ruta === ruta && p.productoId === producto && p.precioUnitario > 0);
-    const pendiente = (ruta, producto) => lote.find((p) => p.requiere_costeo && (norm(p.ruta).startsWith(norm(ruta))));
-    for (const [ruta, producto] of [['applt', 'banca_doble'], ['eclipse', 'escritorio'], ['eclipse', 'credenza'], ['applt', 'mesa_juntas'], ['mox', 'pedestal']]) {
-      if (!pedido(ruta, producto)) continue;
-      const c = costeada(ruta, producto);
-      expect(c, `${ruta}/${producto} pedido por la IA pero NO costeado → quedó como ${pendiente(ruta, producto)?.motivoPendiente || 'desconocido'} (ver evidencia JSON)`).toBeTruthy();
-      if (ruta === 'eclipse') expect(c.producto_id, `${ruta}/${producto} sin identidad Producto Maestro`).toBeTruthy();
-    }
-
-    // 6) BRIEF persistido (identidad de lo pedido) y refresh sin pérdida.
-    expect(cotz.programaBrief, 'programaBrief no persistido').toBeTruthy();
-    await page.reload();
-    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
-    const tras = await leerCot(page);
-    expect((tras.partidas || []).length).toBe(partidas.length);
-
-    // 7) ACOMODO (COT-P0-020/025/027): con las anclas costeadas, el programa NO debe
-    //    estar bloqueado y el solver real debe recibir el programa y colocar.
-    //    AcomodoBase auto-acomoda al entrar si `programaListo`; si no dispara, se pulsa.
-    await page.getByTestId('home-cotizar').click().catch(() => {});
-    const acomodoResp = page.waitForResponse((r) => /acomodar-espacio/.test(r.url()) && r.request().method() === 'POST', { timeout: 150000 });
-    // Camino humano: el stepper sólo abre paso+1. Tras recargar debe retomar donde
-    // ibas (COT-P0-038); si no, Muebles → Acomodo. Si Acomodo sigue deshabilitado con
-    // 11 partidas y plano, es un defecto real y aquí falla con el estado visible.
-    const pasoAcomodo = page.getByTestId('voni-paso-acomodo');
-    if (!(await pasoAcomodo.isEnabled())) await page.getByTestId('voni-paso-muebles').click();
-    await expect(pasoAcomodo, 'paso Acomodo deshabilitado con plano + partidas').toBeEnabled({ timeout: 15000 });
-    await pasoAcomodo.click();
-    const btnAcomodar = page.getByRole('button', { name: /^Acomodar$/ });
-    await expect(btnAcomodar).toBeVisible({ timeout: 30000 });
-    const bloqueado = await page.getByText(/No voy a acomodar un programa comercial incompleto|Todavía no:/).first().isVisible().catch(() => false);
-    expect(bloqueado, 'Acomodo bloqueado por programa incompleto (ver tooltip/mensaje)').toBe(false);
-    if (await btnAcomodar.isEnabled()) await btnAcomodar.click().catch(() => {});
-    // Si el solver NO se llama, el fallo debe decir POR QUÉ (mensaje visible), no "timeout".
-    const aco = await acomodoResp.catch(() => null);
-    if (!aco) {
-      const msg = await page.getByText(/No voy a acomodar|no permite acomodar|No voy a/).first().textContent().catch(() => null);
-      expect(aco, `el solver nunca fue llamado. Mensaje en pantalla: ${msg || '(ninguno)'}`).toBeTruthy();
-    }
-    // COT-P0-022: con plano en REVIEW_REQUIRED se acomoda como BORRADOR y NO se publica.
-    const estadoFS = String(lecturaJson?.floorSpec?.validation?.state || '').toUpperCase();
-    if (estadoFS && estadoFS !== 'PASS') {
-      await expect(page.getByRole('button', { name: /Guardar borrador de acomodo/ }), `plano ${estadoFS}: debe ofrecer sólo borrador`).toBeVisible({ timeout: 60000 });
-    }
-    const acoJson = await aco.json().catch(() => null);
-    let piezasEnviadas = null;
-    try { piezasEnviadas = JSON.parse(aco.request().postData() || '{}').piezas?.length ?? null; } catch (_e) { /* sin body */ }
-    const colocacion = acoJson?.plan?.colocacion || [];
-    const porArea = {};
-    for (const c of colocacion) porArea[c.area ?? '?'] = (porArea[c.area ?? '?'] || 0) + 1;
-    fs.writeFileSync(path.resolve(process.cwd(), 'e2e/evidence/torre-sur-acomodo.json'), JSON.stringify({
-      fecha: new Date().toISOString(), http: aco.status(), ok: acoJson?.ok ?? null, status: acoJson?.status ?? null,
-      metodo: acoJson?.metodo ?? null, attempts_used: acoJson?.attempts_used ?? null, render_ready: acoJson?.render_ready ?? null,
-      error: acoJson?.error ?? null, piezasEnviadas, colocadas: colocacion.length, porArea,
-      noColocadas: acoJson?.noColocadas || acoJson?.plan?.noColocadas || acoJson?.rechazadas || null,
-    }, null, 2));
-    // Payload y respuesta COMPLETOS (geometría de áreas con puertas/poly, piezas con
-    // roles, layoutSpec/razones del solver) para reproducir localmente con el solver
-    // vendorizado. Sin credenciales ni texto del cliente.
-    try {
-      const reqBody = JSON.parse(aco.request().postData() || '{}');
-      fs.writeFileSync(path.resolve(process.cwd(), 'e2e/evidence/torre-sur-acomodo-full.json'), JSON.stringify({
-        fecha: new Date().toISOString(), request: { areas: reqBody.areas, piezas: reqBody.piezas }, response: acoJson,
-      }, null, 2));
-    } catch (_e) { /* evidencia opcional */ }
-    expect(aco.status(), 'acomodar-espacio HTTP').toBe(200);
-    expect(acoJson?.ok, `solver ok=false: ${JSON.stringify(acoJson?.error || acoJson?.status || '')}`).toBe(true);
-    expect(piezasEnviadas, 'el solver no recibió piezas').toBeGreaterThan(0);
-    expect(colocacion.length, 'el solver no colocó nada').toBeGreaterThan(0);
-    // El plan queda PERSISTIDO con la cotización (no sólo en pantalla).
-    await expect.poll(async () => ((await leerCot(page)).acomodo?.plan?.colocacion || []).length, { timeout: 30000 }).toBeGreaterThan(0);
+    // 7) Acomodo real; con plano en revisión (puertas sin barrido) sólo borrador.
+    await verificarAcomodo(page, { ruta: 'pdf', estadoFS: lecturaJson?.floorSpec?.validation?.state ?? null });
 
     expect(pageErrors, pageErrors.join('\n')).toHaveLength(0);
   });
