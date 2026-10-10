@@ -21,25 +21,32 @@ const singleFace2 = () => [
 const sev = (sem, s) => (sem.issues || []).filter((i) => i.severity === s).length;
 
 describe('P0.2c · BLOCK 5 · multi-candidato cierra GAP13-A/D', () => {
-  it('bench DOBLE CARA pegado al muro (defecto A/D): el camino por defecto FALLA semánticamente', () => {
+  // COT-P0-027b (Parte XI §4): la expectativa "el default FALLA semánticamente" documentaba
+  // el defecto A/D y era un golden INCORRECTO (aceptaba sillas inutilizables como salida
+  // válida del solver). Con el acceso en el conjunto legal, el camino por defecto ya no
+  // pega lados activos al muro; el multi-candidato elige por CALIDAD de acceso.
+  it('bench DOBLE CARA: el camino por defecto ya NO pega el lado activo al muro (acceso en el conjunto legal)', () => {
     const areas = [{ nombre: 'OP', zone_id: 'OP', tipo: 'open', ancho: 7000, largo: 4000 }];
     const base = resolverKits(areas, df8());                       // orden por defecto (row)
     const sem = juzgarSemantico(areas, base.piezas, base.colocacion);
-    expect(sem.status).toBe('FAIL');                               // 4 lados activos contra el muro
-    expect(sev(sem, 'fail')).toBeGreaterThan(0);
-    expect((sem.issues || []).some((i) => i.code === 'ACTIVE_SIDE_BLOCKED_BY_WALL')).toBe(true);
+    expect(sem.status).toBe('PASS');
+    expect(sev(sem, 'fail')).toBe(0);
+    expect((sem.issues || []).some((i) => /BLOCKED_BY/.test(i.code))).toBe(false);
   });
 
-  it('multi-candidato elige la colocación con acceso en AMBOS lados → PASS (FAIL→PASS)', () => {
+  it('multi-candidato elige la colocación con MÁS holgura de acceso en ambos lados → PASS y mejor calidad que el base', () => {
     const areas = [{ nombre: 'OP', zone_id: 'OP', tipo: 'open', ancho: 7000, largo: 4000 }];
     const m = resolverKitsMulti(areas, df8());
     const sem = juzgarSemantico(areas, m.piezas, m.colocacion);
     expect(sem.status).toBe('PASS');                               // GAP13-A/D CERRADO
     expect(sev(sem, 'fail')).toBe(0);
-    expect(m.seleccion.ganador_orden).toBe('center');             // ganó por el juez, no por regla fija
     expect(m.metodo).toBe('kit-solver-multi-v1');
+    const base = m.seleccion.por_candidato.find((c) => c.idx === 0);
+    expect(m.seleccion.ganador_eval.quality).toBeGreaterThanOrEqual(base.quality);   // ganó por el juez
     // el ganador coloca TODO lo que colocaba el base (no empeora cobertura)
     expect(m.unplaced.length).toBeLessThanOrEqual(resolverKits(areas, df8()).unplaced.length);
+    // y ninguna silla queda con acceso apretado: 4000 − 2600 = 1400 mm repartidos → ≥600 por lado
+    expect((sem.issues || []).filter((i) => i.code === 'ACTIVE_SIDE_ACCESS_TIGHT')).toEqual([]);
   });
 
   it('determinismo: resolverKitsMulti da el mismo ganador en corridas repetidas', () => {

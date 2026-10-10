@@ -18,7 +18,7 @@
 // ============================================================================
 import { rectsSeSolapan, rectDentroPoligono, bloqueaPuertaEspacial } from './spatial-core.js';
 import { perfilDeAncla, layoutDeTopologia, rotarFacing, PROFILE_VERSION } from './placementProfiles.js';
-import { juzgarSemantico } from './semanticPlacementJudge.js';
+import { juzgarSemantico, HARD_ACCESS_MM, QUALITY_ACCESS_TARGET_MM, clearanceAcceso } from './semanticPlacementJudge.js';
 import { validarColocacion } from './acomodo-core.js';
 import { juzgarCalidad, calidadAceptable } from './qualityJudge.js';
 import { evaluarRecovery } from './recovery-core.js';
@@ -110,7 +110,8 @@ export function componerKit(anchor, sillas = [], gavetas = []) {
   // el ancla conserva la topología REAL (UNKNOWN) para que el Semantic Judge lo marque.
   const topoGeom = perfil.topology !== 'UNKNOWN' ? perfil.topology : 'SINGLE_FACE';
   const lay = layoutDeTopologia(topoGeom, aw, ad, sillas.length);
-  const piezas = [{ id: String(anchor.id), dx: lay.anchor.dx, dy: lay.anchor.dy, w: aw, d: ad, rol, topology: perfil.topology, provenance: perfil.provenance, profile_version: perfil.version, fallback_layout: perfil.topology === 'UNKNOWN' ? (perfil.fallback_layout_strategy || 'LEGACY_SINGLE_FACE') : null }];
+  // 027c: un ancla STORAGE lleva `facing` (su frente de acceso), igual que una silla.
+  const piezas = [{ id: String(anchor.id), dx: lay.anchor.dx, dy: lay.anchor.dy, w: aw, d: ad, rol, facing: lay.anchor.facing || undefined, topology: perfil.topology, provenance: perfil.provenance, profile_version: perfil.version, fallback_layout: perfil.topology === 'UNKNOWN' ? (perfil.fallback_layout_strategy || 'LEGACY_SINGLE_FACE') : null }];
   const sinColocar = [];
 
   sillas.forEach((s, i) => {
@@ -135,6 +136,26 @@ function rotarKit(kit) {
   };
 }
 
+// COT-P0-027b (banco: dif05/dif08) · VARIANTES DE ORIENTACIÓN 0/90/180/270.
+// Con sólo 0/90, dos filas de bench SINGLE_FACE en un cuarto de 4600 mm obligaban a
+// la segunda fila a dejar sus sillas contra el muro (ahora ilegal por acceso) aunque
+// la solución física es obvia: girar la segunda fila 180° (sillas hacia el pasillo,
+// benches enfrentados). 180/270 son el MISMO rectángulo que 0/90 con el layout interno
+// espejado; se emite `rot` 0/90 (lo que los validadores interpretan para dimensiones)
+// y `kit_rot` 0/90/180/270 como metadato; la orientación de cada silla viaja en
+// `facing` (ya rotado), que es lo que el juez semántico evalúa. Variantes
+// geométricamente idénticas (bench DOUBLE_FACE girado 180°) se deduplican.
+function variantesDe(k) {
+  const r90 = rotarKit(k), r180 = rotarKit(r90), r270 = rotarKit(r180);
+  const out = [], vistos = new Set();
+  for (const [kk, rot] of [[k, 0], [r90, 90], [r180, 180], [r270, 270]]) {
+    const sig = JSON.stringify(kk.piezas.map((p) => [p.rol, p.dx, p.dy, p.w, p.d, p.facing ?? null, !!p.bajoTablero]).sort());
+    if (vistos.has(sig)) continue;
+    vistos.add(sig); out.push({ k: kk, rot });
+  }
+  return out;
+}
+
 // --- zona destino de un kit --------------------------------------------------
 const nz = (s) => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '');
 const TIPO_DE_ROL = { ANCHOR_WORKSTATION: 'open', ANCHOR_DESK: 'privado', ANCHOR_MEETING: 'juntas', ANCHOR_RECEPTION: 'recepcion' };
@@ -149,14 +170,48 @@ function areasPermitidas(anchorPieza, areas) {
   return porTipo.length ? porTipo : areas.map((_, i) => i);
 }
 
-// ¿Cabe el kit (rect bruto w×d en (x,y))? Pasillo entre kits vs `ocupados`.
-function kitCabe(x, y, kw, kh, area, ocupados) {
+// --- COT-P0-027b · ACCESO DE SILLAS: invariante DURO compartido con el juez ------
+// Una silla cuyo lado de acceso (opuesto a su facing) queda a ≤ HARD_ACCESS_MM de un
+// muro u obstáculo es INUTILIZABLE (el juez la marca ACTIVE_SIDE_BLOCKED_BY_WALL/
+// OBSTACLE → FAIL). Causa demostrada (E2E Torre Sur 15:17Z, 3 rutas): el conjunto
+// legal del solver aceptaba kits pegados al muro por el lado activo; las 4 estrategias
+// que colocaban 22/22 caían en FAIL semántico y ganaba `center` con 15/22 PASS
+// (GAP18). Ahora el MISMO umbral y la MISMA geometría del juez (clearanceAcceso)
+// forman parte del conjunto legal: GAP19 aplicado al acceso. No es un margen nuevo
+// ni una excepción por caso; es el invariante que ya decidía la publicación.
+// 027c: el FRENTE de un ancla STORAGE (puertas/cajones) es un lado de acceso más.
+const conAcceso = (p) => !!p.facing && (esSilla(p.rol) || p.rol === 'ANCHOR_STORAGE');
+function accesoBloqueado(k, x, y, area) {
+  for (const p of (k.piezas || [])) {
+    if (!conAcceso(p)) continue;
+    const { clear } = clearanceAcceso({ x: x + p.dx, y: y + p.dy, w: p.w, d: p.d }, p.facing, area);
+    if (clear <= HARD_ACCESS_MM) return true;
+  }
+  return false;
+}
+// Holgura MÍNIMA de acceso de las sillas del kit en (x,y), topada al objetivo de
+// confort (QUALITY_ACCESS_TARGET_MM). Infinity si el kit no tiene sillas.
+function holguraAcceso(k, x, y, area) {
+  let min = Infinity;
+  for (const p of (k.piezas || [])) {
+    if (!conAcceso(p)) continue;
+    const { clear } = clearanceAcceso({ x: x + p.dx, y: y + p.dy, w: p.w, d: p.d }, p.facing, area);
+    if (clear < min) min = clear;
+  }
+  return Math.min(QUALITY_ACCESS_TARGET_MM, min);
+}
+
+// ¿Cabe el kit k ({w,d,piezas}) en (x,y)? Pasillo entre kits vs `ocupados`. El acceso de
+// las sillas (027b) se evalúa ANTES de otros kits: es una propiedad del kit vs el cuarto.
+function kitCabe(x, y, k, area, ocupados) {
+  const kw = k.w, kh = k.d;
   const W = num(area.ancho) || num(area.width_mm), H = num(area.largo) || num(area.depth_mm);
   if (x < 0 || y < 0 || x + kw > W + 1 || y + kh > H + 1) return 'OUT_OF_BOUNDS';
   const rect = { x, y, w: kw, d: kh };
   if (Array.isArray(area.poly) && area.poly.length >= 3 && !rectDentroPoligono(rect, area.poly)) return 'OUT_OF_POLYGON';
   for (const o of (area.obstaculos || [])) if (rectsSeSolapan(rect, { x: num(o.x), y: num(o.y), w: num(o.w), d: num(o.h) })) return 'OBSTACLE';
   for (const p of (area.puertas || [])) if (bloqueaPuertaEspacial(rect, p)) return 'DOOR';
+  if (accesoBloqueado(k, x, y, area)) return 'ACCESS';
   for (const oc of ocupados) {
     if (rectsSeSolapan(rect, oc)) return 'OVERLAP';
     if (rectsSeSolapan({ x: x - AISLE, y: y - AISLE, w: kw + 2 * AISLE, d: kh + 2 * AISLE }, oc)) return 'AISLE';
@@ -169,7 +224,8 @@ function kitCabe(x, y, kw, kh, area, ocupados) {
 // PERMUTACIONES del MISMO conjunto de candidatos (no "interior-first"): mismo set
 // legal, distinto orden de primer-ajuste, para que BLOCK 5 explore alternativas
 // sin cambiar qué posiciones son válidas.
-function candidatos(area, kw, kh, orden, deadline) {
+function candidatos(area, k, orden, deadline) {
+  const kw = k.w, kh = k.d;
   const W = num(area.ancho) || num(area.width_mm), H = num(area.largo) || num(area.depth_mm);
   const out = [];
   // GAP35.B/GAP37: la materialización respeta el deadline con un CONTADOR INDEPENDIENTE
@@ -199,6 +255,14 @@ function candidatos(area, kw, kh, orden, deadline) {
       return (da - db) || (a.x - b.x) || (a.y - b.y);
     });
   }
+  if (orden === 'access') {
+    // COT-P0-027b · Candidato ACCESO-PRIMERO: prueba antes las posiciones donde la
+    // silla con MENOS holgura de acceso tiene más (topada al objetivo de confort
+    // 600 mm, para no premiar más allá de lo útil). Determinista (desempate x,y).
+    // Un kit sin sillas (guardado, recepción) cae al orden row.
+    const h = new Map(out.map((c) => [c, holguraAcceso(k, c.x, c.y, area)]));
+    return out.slice().sort((a, b) => (h.get(b) - h.get(a)) || (a.x - b.x) || (a.y - b.y));
+  }
   return out;
 }
 
@@ -213,38 +277,40 @@ const DIAG_MAX_MS = 1500;   // GAP17.6: presupuesto de DIAGNÓSTICO, independien
 // POR ÁREA (sin sumar superficies desconectadas) y con presupuesto de diagnóstico
 // PROPIO: si el sondeo no alcanza a probar → REVIEW (nunca imposibilidad falsa).
 
-// Sonda contrafáctica: ¿cabe kw×kh en el área (VACÍA de otros kits) quitando las
-// capas indicadas? ignore.{poly,doors,obstacles} aíslan cada restricción.
-function sondearCabida(kw, kh, area, ignore, deadline) {
+// Sonda contrafáctica: ¿cabe el kit k en el área (VACÍA de otros kits) quitando las
+// capas indicadas? ignore.{poly,doors,obstacles,access} aíslan cada restricción.
+function sondearCabida(k, area, ignore, deadline) {
   const a = { ...area };
   if (ignore.doors) a.puertas = [];
   if (ignore.obstacles) a.obstaculos = [];
   if (ignore.poly) { a.poly = undefined; a.polygon = undefined; }
-  for (const c of candidatos(a, kw, kh)) {
+  const kk = ignore.access ? { w: k.w, d: k.d, piezas: [] } : k;   // sin sillas → sin invariante de acceso
+  for (const c of candidatos(a, kk)) {
     if (Date.now() > deadline) return 'TIMEOUT';
-    if (kitCabe(c.x, c.y, kw, kh, a, []) === null) return true;   // ocupados = [] (sin otros kits)
+    if (kitCabe(c.x, c.y, kk, a, []) === null) return true;   // ocupados = [] (sin otros kits)
   }
   return false;
 }
 
 // Diagnóstico de un variante (full o min) en UNA área: capas BOUNDS/POLYGON y
-// contrafácticos FULL / NO_DOORS / NO_OBSTACLES separados.
+// contrafácticos FULL / NO_DOORS / NO_OBSTACLES / NO_ACCESS separados.
 function diagnosticarEnArea(variantes, area, deadline) {
   let timeout = false;
   const anyOrient = (ignore) => {
     for (const v of variantes) {
-      const r = sondearCabida(v.w, v.d, area, ignore, deadline);
+      const r = sondearCabida(v.k, area, ignore, deadline);
       if (r === 'TIMEOUT') { timeout = true; return false; }
       if (r === true) return true;
     }
     return false;
   };
-  const fitsBounds  = anyOrient({ poly: true, doors: true, obstacles: true });    // sólo límites
-  const fitsPolygon = anyOrient({ poly: false, doors: true, obstacles: true });   // límites + contorno
-  const fitsNoDoors = anyOrient({ poly: false, doors: true, obstacles: false });  // sin puertas, CON obstáculos
-  const fitsNoObst  = anyOrient({ poly: false, doors: false, obstacles: true });  // CON puertas, sin obstáculos
-  const fitsFull    = anyOrient({ poly: false, doors: false, obstacles: false }); // todo
-  return { fitsBounds, fitsPolygon, fitsNoDoors, fitsNoObst, fitsFull, timeout };
+  const fitsBounds   = anyOrient({ poly: true, doors: true, obstacles: true, access: true });    // sólo límites
+  const fitsPolygon  = anyOrient({ poly: false, doors: true, obstacles: true, access: true });   // límites + contorno
+  const fitsNoDoors  = anyOrient({ poly: false, doors: true, obstacles: false, access: false }); // sin puertas, CON obstáculos y acceso
+  const fitsNoObst   = anyOrient({ poly: false, doors: false, obstacles: true, access: false }); // CON puertas, sin obstáculos
+  const fitsNoAccess = anyOrient({ poly: false, doors: false, obstacles: false, access: true }); // 027b: CON puertas/obstáculos, sin acceso
+  const fitsFull     = anyOrient({ poly: false, doors: false, obstacles: false, access: false });// todo
+  return { fitsBounds, fitsPolygon, fitsNoDoors, fitsNoObst, fitsNoAccess, fitsFull, timeout };
 }
 
 // Causa PROBADA en un área donde el kit NO cabe lleno (y SÍ cabe en bounds).
@@ -256,22 +322,33 @@ function causaEnArea(dx, needM2, areaM2, moduloLong, moduloShort, areaLong, area
     return causas.length ? causas : ['ASPECT_RATIO'];
   }
   if (!dx.fitsPolygon) return ['OUT_OF_POLYGON'];                   // bounds sí, contorno no
-  // fitsPolygon && !fitsFull → puerta / obstáculo (contrafáctico)
-  const doorBlocks = dx.fitsNoDoors;                               // quitar puertas lo arregla
-  const obstBlocks = dx.fitsNoObst;                                // quitar obstáculos lo arregla
-  if (doorBlocks && !obstBlocks) return ['DOOR'];
-  if (obstBlocks && !doorBlocks) return ['OBSTACLE'];
-  return ['DOOR', 'OBSTACLE'];                                     // ambos o interacción
+  // fitsPolygon && !fitsFull → puerta / obstáculo / acceso (contrafáctico: quitar UNA capa lo arregla)
+  const causas = [];
+  if (dx.fitsNoDoors) causas.push('DOOR');                          // quitar puertas lo arregla
+  if (dx.fitsNoObst) causas.push('OBSTACLE');                       // quitar obstáculos lo arregla
+  if (dx.fitsNoAccess) causas.push('ACCESS');                       // 027b: sin exigir acceso cabría (sillas al muro)
+  return causas.length ? causas : ['DOOR', 'OBSTACLE', 'ACCESS'];   // interacción de capas
 }
 
-export function certificarKit(kit, areas, { budgetExhausted, nodos, deadline: extDeadline } = {}) {
+// COT-P0-027b (Parte XI §3) · VEREDICTO de búsqueda — tres estados NO equivalentes:
+//   NO_CABE_DEMOSTRADO       · restricción física probada (sondeo exhaustivo) o búsqueda
+//                              conjunta EXHAUSTIVA sin solución (dentro del modelo: malla
+//                              100 mm, rot 0/90, pasillo 1000, acceso > HARD_ACCESS_MM).
+//   NO_SE_ENCONTRO_SOLUCION  · el solver agotó su presupuesto sin demostrar imposibilidad.
+//   INFORMACION_INSUFICIENTE · faltan dimensiones del cuarto o de alguna pieza del kit.
+function veredictoDe(kit, areas, { primary_cause, proven, budgetExhausted, busqueda }) {
+  const areasSinDims = kit.zonas.some((ai) => { const a = areas[ai] || {}; return !(num(a.ancho) || num(a.width_mm)) || !(num(a.largo) || num(a.depth_mm)); });
+  if (areasSinDims || kit.dimsFaltantes) return 'INFORMACION_INSUFICIENTE';
+  if (primary_cause === 'SEARCH_BUDGET_EXHAUSTED' || primary_cause === 'DIAGNOSTIC_BUDGET_EXHAUSTED' || budgetExhausted) return 'NO_SE_ENCONTRO_SOLUCION';
+  if (primary_cause === 'INTER_KIT_CONSTRAINT') return busqueda && busqueda.exhaustiva ? 'NO_CABE_DEMOSTRADO' : 'NO_SE_ENCONTRO_SOLUCION';
+  return proven ? 'NO_CABE_DEMOSTRADO' : 'NO_SE_ENCONTRO_SOLUCION';
+}
+
+export function certificarKit(kit, areas, { budgetExhausted, nodos, deadline: extDeadline, busqueda } = {}) {
   // GAP35.C: el diagnóstico respeta el deadline GLOBAL del multi si es más estricto
   // que su propio presupuesto (DIAG_MAX_MS). Nunca lo excede.
   const deadline = Number.isFinite(extDeadline) ? Math.min(Date.now() + DIAG_MAX_MS, extDeadline) : Date.now() + DIAG_MAX_MS;
-  const variantesFull = [
-    { rot: 0, w: kit.base.w, d: kit.base.d },
-    { rot: 90, w: kit.base.d, d: kit.base.w },
-  ];
+  const variantesFull = variantesDe(kit.base).map((v) => ({ rot: v.rot, w: v.k.w, d: v.k.d, k: v.k }));
   const needM2 = (kit.base.w * kit.base.d) / 1e6;
   const moduloW_m = kit.base.w / 1000, moduloH_m = kit.base.d / 1000;
   const moduloLong = Math.max(moduloW_m, moduloH_m), moduloShort = Math.min(moduloW_m, moduloH_m);
@@ -302,7 +379,7 @@ export function certificarKit(kit, areas, { budgetExhausted, nodos, deadline: ex
   // --- Diagnóstico de la variante MÍNIMA (anclaje+gavetas) para certificado PARCIAL.
   let partial_certificate = null;
   if (!anyFitsFull && kit.minimo) {
-    const vMin = [{ rot: 0, w: kit.minimo.w, d: kit.minimo.d }, { rot: 90, w: kit.minimo.d, d: kit.minimo.w }];
+    const vMin = variantesDe(kit.minimo).map((v) => ({ rot: v.rot, w: v.k.w, d: v.k.d, k: v.k }));
     const minFits = kit.zonas.some((ai) => diagnosticarEnArea(vMin, areas[ai], deadline).fitsFull);
     if (minFits) {
       partial_certificate = {
@@ -334,8 +411,10 @@ export function certificarKit(kit, areas, { budgetExhausted, nodos, deadline: ex
     if (causas.length > 1) { primary_cause = 'MULTI_CONSTRAINT'; secondary_causes = causas; }   // 17.3
     else primary_cause = causas[0];
   }
+  const veredicto = veredictoDe(kit, areas, { primary_cause, proven, budgetExhausted, busqueda });
 
   return {
+    veredicto,
     permitted_areas,
     orientations: variantesFull.map((v) => v.rot),
     rejected_by,
@@ -365,6 +444,7 @@ function certPartial(kit, areas, dropped, ctx) {
   return {
     primary_cause: 'PARTIAL_SEATS_DROPPED',
     proven: full.proven === true,
+    veredicto: full.veredicto,                      // 027b: el veredicto del kit completo (sillas)
     permitted_areas: full.permitted_areas,          // GAP42: multi-área también en el parcial
     partial_certificate: {
       anchor_placeable: true, minimum_fit: true, dropped_dependents: dropped,
@@ -381,7 +461,7 @@ function certPartial(kit, areas, dropped, ctx) {
 export function attachCertificates(sol, areas = [], { deadline } = {}) {
   const ctx = sol && sol._cert_ctx;
   if (!ctx) return sol;
-  const base = { budgetExhausted: ctx.budgetExhausted, nodos: ctx.nodos, deadline };
+  const base = { budgetExhausted: ctx.budgetExhausted, nodos: ctx.nodos, deadline, busqueda: ctx.busqueda };
   for (const u of (sol.unplaced || [])) {
     if (u.certificado != null) continue;
     const kit = ctx.kitsByAnchor.get(String(u.anchorId));
@@ -417,7 +497,11 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
     const dropMin = base.piezas.filter((p) => !(esAncla(p.rol) || p.bajoTablero)).map((p) => String(p.id));
     const minW = Math.max(...minimoPiezas.map((p) => p.dx + p.w)), minH = Math.max(...minimoPiezas.map((p) => p.dy + p.d));
     const minimo = { anchorId: base.anchorId, w: minW, d: minH, piezas: minimoPiezas };
-    kits.push({ anchorId: String(a.id), base, minimo, dropMin, area: num(a.w) * num(a.d), zonas: areasPermitidas(a, areas) });
+    // 027b/Parte XI: una huella que NO vino (w/d ausentes) se completó con un default
+    // de composición; queda MARCADA para que el veredicto sea INFORMACION_INSUFICIENTE,
+    // nunca una imposibilidad "demostrada" sobre medidas inventadas.
+    const dimsFaltantes = !(num(a.w) > 0 && num(a.d) > 0);
+    kits.push({ anchorId: String(a.id), base, minimo, dropMin, area: num(a.w) * num(a.d), zonas: areasPermitidas(a, areas), dimsFaltantes, variantesBase: variantesDe(base), variantesMin: variantesDe(minimo) });
   }
   kits.sort((x, y) => (y.area - x.area) || (x.anchorId < y.anchorId ? -1 : 1));
 
@@ -432,50 +516,127 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
   // de la asignación de dueño; slot/side/facing/topology del kit compuesto.
   const anchorDe = new Map(asign.map((x) => [String(x.id), x.anchor_instance_id ?? null]));
   const colocarPieza = (abs, p) => ({
-    id: p.id, area: abs.areaIdx, x: Math.round(abs.x + p.dx), y: Math.round(abs.y + p.dy), rot: abs.rot,
+    // `rot` 0/90 = orientación del rectángulo (lo que leen los validadores); `kit_rot`
+    // conserva la vuelta completa del kit (180/270 = layout espejado, ver variantesDe).
+    id: p.id, area: abs.areaIdx, x: Math.round(abs.x + p.dx), y: Math.round(abs.y + p.dy), rot: abs.rot % 180, kit_rot: abs.rot,
     anchor_instance_id: anchorDe.get(String(p.id)) ?? null,
     slot_id: p.slot_id ?? null, side: p.side ?? null, facing: p.facing ?? null,
     topology: p.topology ?? null, provenance: p.provenance ?? null, profile_version: p.profile_version ?? PROFILE_VERSION,
   });
 
   const deadline = Number.isFinite(opts.deadline) ? opts.deadline : null;   // GAP27: presupuesto compartido
+  const registrarRechazo = (kit, motivo) => { kit._rej = kit._rej || {}; kit._rej[motivo] = (kit._rej[motivo] || 0) + 1; };
+  const colocarKit = (ai, c, k, rot) => {
+    ocupadosPorArea.get(ai).push({ x: c.x, y: c.y, w: k.w, d: k.d });
+    const abs = { areaIdx: ai, x: c.x, y: c.y, rot };
+    const base = colocacion.length;
+    k.piezas.forEach((p) => colocacion.push(colocarPieza(abs, p)));
+    return base;
+  };
+  const deshacerKit = (ai, base) => { colocacion.length = base; ocupadosPorArea.get(ai).pop(); };
+
+  // ---------------------------------------------------------------------------
+  // COT-P0-027b (Parte XI §3) · FASE 1 · BÚSQUEDA COMPLETA.
+  // Causa demostrada (baseline 15:17Z, 3 rutas): la "búsqueda con backtracking" era en
+  // realidad un primer-ajuste voraz: cuando un kit no cabía se marcaba como fallido y la
+  // recursión seguía (siempre true), así que NUNCA se movía un kit anterior. Con el
+  // orden `center`, el primer bench quedaba en medio del área operativa y el segundo
+  // (3000 + pasillo 1000) ya no cabía → 15/22 "INTER_KIT_CONSTRAINT" aunque sí existía
+  // acomodo conjunto. Esta fase busca una colocación de TODOS los kits COMPLETOS (sin
+  // variante mínima) con backtracking real y BACKJUMPING dirigido por conflicto: si el
+  // kit f no cabe con ninguna posición, sólo tiene sentido mover kits que comparten
+  // zona con f; los demás propagan el fallo sin probar más posiciones. Presupuesto
+  // PROPIO (nodos/ms): si se agota, NO se afirma imposibilidad (fase1Agotada) y se cae
+  // a la fase 2 (el primer-ajuste de siempre, con variante mínima). Si la fase 1 termina
+  // SIN solución y SIN agotarse, la infactibilidad conjunta queda DEMOSTRADA dentro del
+  // modelo (malla 100 mm, rot 0/90, pasillo 1000, acceso > HARD_ACCESS_MM).
+  // Cuando el primer-ajuste ya colocaba todo, el primer camino de esta DFS es EXACTAMENTE
+  // ese camino (mismo orden de candidatos) → mismo resultado byte a byte.
+  // ---------------------------------------------------------------------------
+  const MAX_NODOS_COMPLETO = 60000, MAX_MS_COMPLETO = 1000;
+  let fase1Agotada = false;
+  // Posiciones a probar para un grupo de variantes en un área. Orden por defecto:
+  // variante por variante (byte-idéntico al camino previo). Orden `access` (027b/027c):
+  // las variantes se FUSIONAN y se ordenan por holgura de acceso, para que girar el kit
+  // (p.ej. credenza con el frente hacia el cuarto, 180°) compita con no girarlo; antes el
+  // primer-ajuste agotaba la variante 0° y nunca llegaba a 180° aunque tuviera más holgura.
+  const posicionesDe = (area, variantes, orden) => {
+    const listas = variantes.map((v) => candidatos(area, v.k, orden, deadline).map((c) => ({ ...v, x: c.x, y: c.y })));
+    if (orden !== 'access') return listas.flat();
+    const todas = listas.flat().map((p, i) => ({ p, i, h: holguraAcceso(p.k, p.x, p.y, area) }));
+    todas.sort((a, b) => (b.h - a.h) || (a.i - b.i));
+    return todas.map((t) => t.p);
+  };
+  const comparteZona = (a, b) => a.zonas.some((z) => b.zonas.includes(z));
+  const fase1Fuera = () => nodos > MAX_NODOS_COMPLETO || Date.now() - t0 > MAX_MS_COMPLETO || (deadline && Date.now() >= deadline);
+  function buscarCompleto(idx) {
+    if (idx >= kits.length) return true;
+    if (fase1Fuera()) { fase1Agotada = true; return { fallido: idx, agotado: true }; }
+    const kit = kits[idx];
+    for (const ai of kit.zonas) {
+      const area = areas[ai];
+      for (const c of posicionesDe(area, kit.variantesBase, opts.orden)) {
+        const { k, rot } = c;
+        nodos++;
+        if ((nodos & 511) === 0 && fase1Fuera()) { fase1Agotada = true; return { fallido: idx, agotado: true }; }
+        const motivo = kitCabe(c.x, c.y, k, area, ocupadosPorArea.get(ai));
+        if (motivo) { registrarRechazo(kit, motivo); continue; }
+        const base = colocarKit(ai, c, k, rot);
+        kitRes[idx] = { dropped: [] };
+        const r = buscarCompleto(idx + 1);
+        if (r === true) return true;
+        deshacerKit(ai, base); kitRes[idx] = null;
+        if (r.agotado) return r;                                        // presupuesto: abortar fase 1
+        if (!comparteZona(kit, kits[r.fallido])) return r;              // backjump: mover este kit no ayuda
+      }
+    }
+    return { fallido: idx };
+  }
+  const fase1 = kits.length ? buscarCompleto(0) : true;
+  const completa = fase1 === true;
+  if (!completa) {
+    // limpiar y caer a la FASE 2 (primer-ajuste con variante mínima; comportamiento previo)
+    colocacion.length = 0; kitRes.fill(null);
+    for (const [, arr] of ocupadosPorArea) arr.length = 0;
+  }
+
+  // FASE 2 · primer-ajuste con variante mínima (mejor parcial válido). Sólo corre si la
+  // fase 1 no logró una solución completa.
   function intentarKit(idx) {
     if (Date.now() - t0 > MAX_MS || nodos > MAX_NODOS || (deadline && Date.now() >= deadline)) { budgetExhausted = true; return idx >= kits.length; }
     if (idx >= kits.length) return true;
     const kit = kits[idx];
-    const variantes = [
-      { k: kit.base, rot: 0, drop: [] }, { k: rotarKit(kit.base), rot: 90, drop: [] },
-      { k: kit.minimo, rot: 0, drop: kit.dropMin }, { k: rotarKit(kit.minimo), rot: 90, drop: kit.dropMin },
-    ];
+    // Variantes completas primero; la mínima (sin sillas) sólo después, NUNCA mezclada en
+    // el orden `access` (un kit sin sillas tendría holgura infinita y ganaría siempre).
+    const completas = kit.variantesBase.map((v) => ({ ...v, drop: [] }));
+    const minimas = kit.variantesMin.map((v) => ({ ...v, drop: kit.dropMin }));
     let mejorMotivo = 'NO_SPACE';
     for (const ai of kit.zonas) {
       const area = areas[ai];
-      for (const { k, rot, drop } of variantes) {
-        for (const c of candidatos(area, k.w, k.d, opts.orden, deadline)) {
-          nodos++;
-          // GAP35.A: checar deadline DENTRO del barrido (no sólo al entrar a intentarKit),
-          // para que una malla grande no exceda el presupuesto. Cada 512 nodos (barato).
-          if (deadline && (nodos % 512 === 0) && Date.now() >= deadline) { budgetExhausted = true; return idx >= kits.length; }
-          const motivo = kitCabe(c.x, c.y, k.w, k.d, area, ocupadosPorArea.get(ai));
-          if (motivo) {
-            // GAP17: histograma de rechazos (SÓLO registra; no altera el flujo).
-            kit._rej = kit._rej || {}; kit._rej[motivo] = (kit._rej[motivo] || 0) + 1;
-            if (motivo !== 'AISLE') mejorMotivo = motivo; continue;
-          }
-          ocupadosPorArea.get(ai).push({ x: c.x, y: c.y, w: k.w, d: k.d });
-          const abs = { areaIdx: ai, x: c.x, y: c.y, rot };
-          const base = colocacion.length;
-          k.piezas.forEach((p) => colocacion.push(colocarPieza(abs, p)));
-          kitRes[idx] = { dropped: drop };
-          if (intentarKit(idx + 1)) return true;
-          colocacion.length = base; ocupadosPorArea.get(ai).pop(); kitRes[idx] = null;
+      for (const c of [...posicionesDe(area, completas, opts.orden), ...posicionesDe(area, minimas, opts.orden)]) {
+        const { k, rot, drop } = c;
+        nodos++;
+        // GAP35.A: checar deadline DENTRO del barrido (no sólo al entrar a intentarKit),
+        // para que una malla grande no exceda el presupuesto. Cada 512 nodos (barato).
+        if (deadline && (nodos % 512 === 0) && Date.now() >= deadline) { budgetExhausted = true; return idx >= kits.length; }
+        const motivo = kitCabe(c.x, c.y, k, area, ocupadosPorArea.get(ai));
+        if (motivo) {
+          // GAP17: histograma de rechazos (SÓLO registra; no altera el flujo).
+          registrarRechazo(kit, motivo);
+          if (motivo !== 'AISLE') mejorMotivo = motivo; continue;
         }
+        const base = colocarKit(ai, c, k, rot);
+        kitRes[idx] = { dropped: drop };
+        if (intentarKit(idx + 1)) return true;
+        deshacerKit(ai, base); kitRes[idx] = null;
       }
     }
     kitRes[idx] = { dropped: kit.base.piezas.map((p) => String(p.id)), invariante: mejorMotivo, fail: true };
     return intentarKit(idx + 1);
   }
-  intentarKit(0);
+  if (!completa) intentarKit(0);
+  // Registro de la búsqueda (aditivo): qué se demostró y qué no.
+  const busqueda = { completa, exhaustiva: !completa && !fase1Agotada, fase: completa ? 1 : 2, fase1_agotada: fase1Agotada, nodos };
 
   // Ensambla faltantes: kits sin colocar (fail) + sillas que cayeron al usar la
   // variante mínima. Motivo CAUSAL del invariante limitante (no genérico).
@@ -483,7 +644,7 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
   // OMITEN (certificados:false) y se calculan sólo para el GANADOR al final. El camino
   // por defecto (banco) mantiene certificados:true → salida byte-idéntica.
   const conCertificados = opts.certificados !== false;
-  const certCtx = { budgetExhausted, nodos, deadline };
+  const certCtx = { budgetExhausted, nodos, deadline, busqueda };
   const kitsByAnchor = new Map(kits.map((k) => [String(k.anchorId), k]));
   const unplaced = [];
   kits.forEach((kit, idx) => {
@@ -505,8 +666,8 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
   // para que no aparezca en JSON.stringify ni en spreads ({...sol}); attachCertificates lo lee
   // por acceso directo. Así la forma pública del sol (colocacion/unplaced/...) queda limpia y el
   // default sigue siendo byte-idéntico también a nivel de claves enumerables.
-  const sol = { colocacion, piezas: asign, unplaced, unassigned, metodo: 'kit-solver-v1', attempts_used: 1, _nodos: nodos };
-  Object.defineProperty(sol, '_cert_ctx', { value: { kitsByAnchor, budgetExhausted, nodos }, enumerable: false, writable: true, configurable: true });
+  const sol = { colocacion, piezas: asign, unplaced, unassigned, metodo: 'kit-solver-v1', attempts_used: 1, busqueda, _nodos: nodos };
+  Object.defineProperty(sol, '_cert_ctx', { value: { kitsByAnchor, budgetExhausted, nodos, busqueda }, enumerable: false, writable: true, configurable: true });
   return sol;
 }
 
@@ -530,7 +691,9 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
 //  Empate exacto → candidato de MENOR índice (el determinista). Por eso un caso
 //  factible del banco sólo puede MANTENERSE o MEJORAR, nunca regresar.
 // ============================================================================
-const ESTRATEGIAS_MULTI = [undefined, 'center', 'reverse', 'col', 'colReverse'];
+// 027b: `access` (acceso-primero) se suma al final: nunca desplaza al determinista en
+// empates (menor índice gana) y sólo gana si los jueces lo prefieren.
+const ESTRATEGIAS_MULTI = [undefined, 'center', 'reverse', 'col', 'colReverse', 'access'];
 const MAX_MULTI_MS = 4000;        // F: presupuesto TOTAL del multi (no 5× el del solver)
 const QUALITY_EXCELENTE = 85;     // umbral para corte adaptativo
 
@@ -582,13 +745,23 @@ function evaluarCandidato(areas, piezas, sol) {
 //  · Una PASS con menos piezas SÍ gana a una FAIL con más (cambio de STATUS, GAP18).
 //  · Pero dentro del MISMO status semántico, COMPLETENESS manda sobre reducir el número
 //    de issues (NO se sacrifica media oficina sólo para bajar de 2 reviews a 1).
+// COT-P0-027b (3er mecanismo, baseline 15:17Z): comparar el STATUS semántico completo
+// (PASS > REVIEW_REQUIRED) ANTES de la completitud premiaba al candidato que NO colocaba
+// las piezas de topología desconocida (credenza/archivero → SEMANTIC_PROFILE_UNKNOWN):
+// `center` con 15/22 PASS ganaba a 22/22 REVIEW_REQUIRED. Un REVIEW es una incertidumbre
+// pendiente, no una falla; dejar fuera una pieza para "limpiar" el review es inventar un
+// proyecto más chico. Capa 2 ahora distingue sólo FAIL (inutilizable) vs no-FAIL; los
+// reviews se comparan DESPUÉS de la completitud (capa 4). GAP18 se conserva: una PASS
+// con menos piezas sigue ganando a una FAIL con más.
 export function mejorCandidato(a, b) {
   const x = a.eval, y = b.eval;
   if (x.hardOk !== y.hardOk) return x.hardOk ? a : b;                         // 1 HARD status
   if (!x.hardOk && x.hard_issues !== y.hard_issues) return x.hard_issues < y.hard_issues ? a : b;
-  if (x.semRank !== y.semRank) return x.semRank > y.semRank ? a : b;         // 2 SEMANTIC status (PASS>REVIEW>FAIL)
-  if (x.placed !== y.placed) return x.placed > y.placed ? a : b;             // 3 COMPLETENESS (antes del detalle)
-  if (x.semFail !== y.semFail) return x.semFail < y.semFail ? a : b;         // 4 detalle de issues semánticos
+  const xFail = x.sem_status === 'FAIL', yFail = y.sem_status === 'FAIL';
+  if (xFail !== yFail) return xFail ? b : a;                                 // 2 SEMANTIC FAIL vs no-FAIL (GAP18)
+  if (x.placed !== y.placed) return x.placed > y.placed ? a : b;             // 3 COMPLETENESS
+  if (x.semFail !== y.semFail) return x.semFail < y.semFail ? a : b;         // 4 detalle semántico: fails, luego reviews
+  if (x.semRank !== y.semRank) return x.semRank > y.semRank ? a : b;         //   (PASS > REVIEW a igual completitud)
   if (x.semReview !== y.semReview) return x.semReview < y.semReview ? a : b;
   if (x.quality !== y.quality) return x.quality > y.quality ? a : b;         // 5 QUALITY (score)
   return a.idx <= b.idx ? a : b;                                             // empate → determinista

@@ -57,6 +57,13 @@ const LABEL_CAUSA = {
   DOOR: 'el barrido de una puerta', OBSTACLE: 'una columna/obstáculo',
   OUT_OF_POLYGON: 'el contorno del cuarto', INTER_KIT_CONSTRAINT: 'el espacio entre bloques',
   CONTIGUOUS_SPACE: 'espacio fragmentado', AISLE: 'el pasillo mínimo', OVERLAP: 'el traslape de bloques',
+  ACCESS: 'el acceso a las sillas o al frente del mueble (quedarían contra un muro u obstáculo)',
+};
+// COT-P0-027b (Parte XI §3/§7) · veredicto de búsqueda en palabras del vendedor.
+const VEREDICTO_TXT = {
+  NO_CABE_DEMOSTRADO: 'Imposibilidad DEMOSTRADA con la geometría actual (no es falta de tiempo de cálculo).',
+  NO_SE_ENCONTRO_SOLUCION: 'NO se encontró acomodo dentro del presupuesto de cálculo; no está demostrado que sea imposible.',
+  INFORMACION_INSUFICIENTE: 'Faltan dimensiones del cuarto o de la pieza para decidir; no es una imposibilidad.',
 };
 
 // GAP17 · causa a partir del CERTIFICADO del solver (primary_cause PROBADO). El
@@ -73,6 +80,7 @@ function causaDesdeCertificado(cert, anc, ar, nSillas) {
   const zonaField = multi ? zonas.join(', ') : (ar.nombre || ar.zone_id || null);
   const ev = {
     invariante_solver: cert.primary_cause, primary_cause: cert.primary_cause, proven: cert.proven, secondary_causes: cert.secondary_causes || [],
+    veredicto: cert.veredicto || null, veredicto_texto: VEREDICTO_TXT[cert.veredicto] || null,
     needM2, haveM2, moduloW_m: num(df.moduloW_m), moduloH_m: num(df.moduloH_m),
     areaW_m: +(areaW / 1000).toFixed(2), areaH_m: +(areaH / 1000).toFixed(2),
     search_exhausted: cert.search_exhausted, nodes_used: cert.nodes_used,
@@ -95,6 +103,7 @@ function causaDesdeCertificado(cert, anc, ar, nSillas) {
       NO_SPACE: `El mueble cabe en ${zonaTxt}, pero el conjunto completo con sillas necesita más superficie de la disponible.`,
       INTER_KIT_CONSTRAINT: `El mueble cabe en ${zonaTxt}, pero el conjunto completo con sillas no convive con los demás bloques conservando el pasillo de 1.0 m.`,
       MULTI_CONSTRAINT: `El mueble cabe en ${zonaTxt}, pero el conjunto completo con sillas falla por varias restricciones a la vez (${sec}).`,
+      ACCESS: `El mueble cabe en ${zonaTxt}, pero sus sillas sólo cabrían pegadas al muro u obstáculo, sin acceso para usarlas (probado: sin exigir acceso, sí cabrían). Opciones: girar el módulo, mover el guardado o reducir puestos.`,
     };
     return out('NO_SPACE_PARA_SILLAS', mapa[pc.full_kit_cause] || `El mueble cabe en ${zonaTxt}; sus sillas/dependientes no caben (causa: ${pc.full_kit_cause}).`);
   }
@@ -111,10 +120,16 @@ function causaDesdeCertificado(cert, anc, ar, nSillas) {
   if (cert.primary_cause === 'DIAGNOSTIC_BUDGET_EXHAUSTED')
     return out('DIAGNOSTIC_BUDGET_EXHAUSTED', `No terminé de diagnosticar la causa en ${multi ? `las zonas ${zonaTxt}` : zonaTxt} dentro del presupuesto; requiere revisión manual.`);
 
+  // 027b · faltan datos (cuarto sin medidas / pieza sin huella): jamás "imposible".
+  if (cert.veredicto === 'INFORMACION_INSUFICIENTE')
+    return out('INFORMACION_INSUFICIENTE', `No puedo decidir el acomodo en ${zonaTxt}: ${VEREDICTO_TXT.INFORMACION_INSUFICIENTE} Confirma las medidas antes de seguir.`);
+
   // GAP32 · INTER_KIT global cuando hay varias zonas (cabe aislado, no en conjunto).
+  // 027b: distingue búsqueda EXHAUSTIVA (demostrado en el modelo) de "no se encontró".
   if (cert.primary_cause === 'INTER_KIT_CONSTRAINT') {
-    if (multi) return out('INTER_KIT_CONSTRAINT', `Se intentaron las zonas ${zonaTxt}: el módulo cabe aislado, pero ninguna produce una solución conjunta que conserve el pasillo de 1.0 m entre bloques.`);
-    return out('INTER_KIT_CONSTRAINT', `El módulo cabe solo en ${zonaTxt}, pero no junto a los demás bloques conservando el pasillo de 1.0 m (el espacio se fragmenta entre muebles).`);
+    const cola = cert.veredicto === 'NO_CABE_DEMOSTRADO' ? ' Se probaron todas las combinaciones de posición y giro: no existe acomodo conjunto en este cuarto con pasillo de 1.0 m y acceso a cada silla.' : (cert.veredicto === 'NO_SE_ENCONTRO_SOLUCION' ? ' No se encontró en el presupuesto de cálculo; no está demostrado que sea imposible (revisar).' : '');
+    if (multi) return out('INTER_KIT_CONSTRAINT', `Se intentaron las zonas ${zonaTxt}: el módulo cabe aislado, pero ninguna produce una solución conjunta que conserve el pasillo de 1.0 m entre bloques.${cola}`);
+    return out('INTER_KIT_CONSTRAINT', `El módulo cabe solo en ${zonaTxt}, pero no junto a los demás bloques conservando el pasillo de 1.0 m (el espacio se fragmenta entre muebles).${cola}`);
   }
 
   // GAP22/GAP32 · MULTI-ÁREA con causas geométricas por zona.
@@ -138,6 +153,8 @@ function causaDesdeCertificado(cert, anc, ar, nSillas) {
       return out('DOOR', `El barrido de la puerta en ${zonaTxt} ocupa ese frente y no deja colocar el módulo (probado: sin la puerta, sí cabe).`);
     case 'OBSTACLE':
       return out('OBSTACLE', `Una columna/obstáculo en ${zonaTxt} ocupa el punto donde iría el módulo (probado: sin el obstáculo, sí cabe).`);
+    case 'ACCESS':
+      return out('ACCESS', `El módulo cabe en ${zonaTxt}, pero sus sillas o el frente del mueble quedarían contra el muro u obstáculo, sin acceso para usarlos (probado: sin exigir acceso, sí cabe). Opciones: girarlo, moverlo de zona o reducir puestos.`);
     case 'MULTI_CONSTRAINT': {
       const causas = [...(cert.secondary_causes || [])].filter((c) => c && c !== 'MULTI_CONSTRAINT');
       const lista = causas.map((c) => LABEL_CAUSA[c] || c).join(' y ') || 'varias restricciones';

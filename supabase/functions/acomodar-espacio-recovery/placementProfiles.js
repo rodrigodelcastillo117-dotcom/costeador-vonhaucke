@@ -19,7 +19,9 @@ export const PROFILE_VERSION = 'PP_V1';
 export const SEAT = 600;
 
 const num = (n, d = 0) => (Number.isFinite(Number(n)) ? Number(n) : d);
-const topologiasValidas = new Set(['SINGLE_FACE', 'DOUBLE_FACE', 'MEETING_TABLE', 'DESK', 'RECEPTION']);
+// COT-P1-027c · STORAGE: ancla de guardado independiente (credenza, archivero, librero).
+// Sin asientos; su verdad espacial es el FRENTE (puertas/cajones) que necesita holgura.
+const topologiasValidas = new Set(['SINGLE_FACE', 'DOUBLE_FACE', 'MEETING_TABLE', 'DESK', 'RECEPTION', 'STORAGE']);
 
 // Precedencia de fuentes de verdad (GAP5). UNKNOWN nunca pisa nada.
 const PRECEDENCIA = { CATALOG: 5, CURATED_RULE: 4, USER_CONFIRMED: 3, INFERRED: 2, UNKNOWN: 0 };
@@ -51,7 +53,8 @@ export function perfilDeAncla(anchor = {}) {
   }
   // 2. Regla CURADA de oficio SÓLO para roles con topología inequívoca. El bench
   //    operativo NO: double vs single no se decide por rol/capacidad (GAP4).
-  const curada = { ANCHOR_MEETING: 'MEETING_TABLE', ANCHOR_DESK: 'DESK', ANCHOR_RECEPTION: 'RECEPTION' }[rol];
+  //    027c: un ANCHOR_STORAGE no tiene asientos; su topología es inequívoca por rol.
+  const curada = { ANCHOR_MEETING: 'MEETING_TABLE', ANCHOR_DESK: 'DESK', ANCHOR_RECEPTION: 'RECEPTION', ANCHOR_STORAGE: 'STORAGE' }[rol];
   if (curada) candidatos.push({ topology: curada, provenance: 'CURATED_RULE', confidence: 0.9 });
   const res = resolvePlacementProfile(candidatos);
   if (res.topology === 'UNKNOWN') return { ...UNKNOWN_PROFILE };
@@ -103,11 +106,19 @@ export function layoutMeeting(aw, ad, n) {
   return { anchor: { dx: SEAT, dy: SEAT, w: aw, d: ad }, seats: seats.slice(0, n), kitW: aw + 2 * SEAT, kitD: ad + 2 * SEAT, activeSides: ['A', 'B', 'HEAD_A', 'HEAD_B'] };
 }
 
+// --- STORAGE (027c): sólo el ancla; el FRENTE (puertas/cajones) mira hacia abajo en
+// coordenadas del kit (frontFacing 'UP' = el lado de acceso es el de abajo, misma
+// convención que clearanceAcceso para sillas). Al rotar el kit, el frente gira.
+export function layoutStorage(aw, ad) {
+  return { anchor: { dx: 0, dy: 0, w: aw, d: ad, facing: 'UP' }, seats: [], kitW: aw, kitD: ad, activeSides: ['FRONT'] };
+}
+
 // Selecciona el layout de asientos según la topología del perfil.
 export function layoutDeTopologia(topology, aw, ad, n) {
   switch (topology) {
     case 'DOUBLE_FACE': return layoutDoubleFace(aw, ad, n);
     case 'MEETING_TABLE': return layoutMeeting(aw, ad, n);
+    case 'STORAGE': return layoutStorage(aw, ad);
     case 'SINGLE_FACE':
     case 'DESK':
     case 'RECEPTION':

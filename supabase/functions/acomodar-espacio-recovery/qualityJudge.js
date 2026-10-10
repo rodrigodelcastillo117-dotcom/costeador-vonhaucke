@@ -51,8 +51,13 @@ export function juzgarCalidad(areas = [], piezas = [], colocacion = [], { porPie
   const seats = colocacion.filter((c) => esDependiente((byId.get(String(c.id)) || {}).relation_role));
   const nSeats = seats.length || 1;
 
-  // 2 · ACCESO LADO ACTIVO: proporción de sillas SIN acceso apretado.
-  add('active_side_clearance', 1 - tight.length / nSeats, { tight: tight.length, seats: nSeats });
+  // 2 · ACCESO LADO ACTIVO (027b): holgura GRADUADA por silla, min(1, clear/objetivo).
+  //     Antes era binario (apretada sí/no): 11 sillas a 400 mm puntuaban 0 y perdían
+  //     contra un layout con sillas a 100 mm y otras holgadas. La holgura real manda.
+  const target0 = tight.length ? num(tight[0].target, 600) : 600;
+  const sumaHolgura = (nSeats - tight.length) + tight.reduce((s, i) => s + clamp01(num(i.clear) / target0), 0);
+  const minClear = tight.length ? Math.min(...tight.map((i) => num(i.clear))) : null;
+  add('active_side_clearance', seats.length ? sumaHolgura / nSeats : 1, { tight: tight.length, seats: nSeats, min_clear_mm: minClear, target_mm: target0 });
 
   // 3 · ACCESSIBILITY: holgura media normalizada (600 mm objetivo) de los accesos medidos.
   if (tight.length) {
@@ -147,7 +152,9 @@ export function juzgarCalidad(areas = [], piezas = [], colocacion = [], { porPie
   for (const c of Object.values(comps)) { total += c.score * c.weight; wsum += c.weight; }
   const total_score = +(100 * (wsum ? total / wsum : 0)).toFixed(2);
 
-  if (tight.length) reasons.push(`${tight.length} silla(s) con acceso apretado (<600 mm).`);
+  if (tight.length) reasons.push(`${tight.length} silla(s) con acceso apretado (<600 mm; mínimo ${minClear} mm).`);
+  const frentes = issues.filter((i) => i.code === 'STORAGE_FRONT_TIGHT');
+  if (frentes.length) reasons.push(`${frentes.length} mueble(s) de guardado con frente apretado (<600 mm).`);
   if (comps.symmetry.score < 0.8) reasons.push('Distribución de sillas poco balanceada para su topología.');
   if (comps.grouping.score < 0.8) reasons.push('Dependientes alejados de su ancla.');
   if (!reasons.length) reasons.push('Layout limpio: acceso, agrupación y orientación correctos.');

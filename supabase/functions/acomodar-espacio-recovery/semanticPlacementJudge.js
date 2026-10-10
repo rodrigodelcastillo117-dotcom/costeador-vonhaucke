@@ -54,7 +54,10 @@ function apuntaAlAncla(s, a, facing) {
 }
 // Clearance disponible en el lado de ACCESO (opuesto al facing): mínimo entre el
 // muro y el obstáculo más cercano en esa dirección dentro del ancho del asiento.
-function clearanceAcceso(s, facing, area) {
+// COT-P0-027b: exportada para que el kit-solver use EXACTAMENTE esta geometría en su
+// conjunto legal (GAP19 aplicado al acceso: el solver no puede proponer lo que el
+// juez va a tirar por inutilizable).
+export function clearanceAcceso(s, facing, area) {
   const W = num(area.ancho) || num(area.width_mm), H = num(area.largo) || num(area.depth_mm);
   let cMuro, limitador = 'wall';
   if (facing === 'DOWN') cMuro = s.y;                       // acceso arriba
@@ -157,6 +160,16 @@ export function juzgarSemantico(areas = [], piezas = [], colocacion = []) {
     } else if (clear < QUALITY_ACCESS_TARGET_MM) {
       add('ACTIVE_SIDE_ACCESS_TIGHT', { id: c.id, side: c.side, clear, target: QUALITY_ACCESS_TARGET_MM, severity: 'quality', provenance: 'PROVISIONAL' });
     }
+  }
+
+  // 5 · 027c · FRENTE de guardado (STORAGE): puertas/cajones necesitan holgura. Mismo
+  //     umbral duro/objetivo que las sillas. Sin `facing` (ancla vieja) → no se evalúa.
+  for (const c of colocacion) {
+    const p = byId.get(String(c.id)); if (!p || p.relation_role !== 'ANCHOR_STORAGE' || !c.facing) continue;
+    const area = areas[num(c.area)] || {};
+    const { clear, limitador } = clearanceAcceso(rectDe(c, p), c.facing, area);
+    if (clear <= HARD_ACCESS_MM) add(limitador === 'obstacle' ? 'STORAGE_FRONT_BLOCKED_BY_OBSTACLE' : 'STORAGE_FRONT_BLOCKED_BY_WALL', { id: c.id, clear, severity: 'fail' });
+    else if (clear < QUALITY_ACCESS_TARGET_MM) add('STORAGE_FRONT_TIGHT', { id: c.id, clear, target: QUALITY_ACCESS_TARGET_MM, severity: 'quality', provenance: 'PROVISIONAL' });
   }
 
   const hayFail = issues.some((i) => i.severity === 'fail');

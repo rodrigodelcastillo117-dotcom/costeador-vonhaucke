@@ -33,9 +33,15 @@ describe('juez semántico · privado con directiva + visitas', () => {
     expect(sem2.issues.some((i) => i.code === 'KIT_FUNCTIONAL_RELATION_BROKEN' && i.id === 'conc-2')).toBe(true);
   });
   it('COT-P0-028: la respuesta expone los CÓDIGOS semánticos del ganador (no sólo conteos)', () => {
-    const r = construirRespuestaAcomodo(AREAS, [{ id: 'cre', w: 2100, d: 600, relation_role: 'ANCHOR_STORAGE' }]);   // topología desconocida → revisión
+    // 027c: un ANCHOR_STORAGE ya tiene topología STORAGE (conocida); el ejemplo de
+    // topología desconocida es un bench sin perfil declarado (UNKNOWN → revisión).
+    const r = construirRespuestaAcomodo([{ nombre: 'OP', tipo: 'open', ancho: 6000, largo: 4000 }], [{ id: 'ws', w: 3000, d: 1200, relation_role: 'ANCHOR_WORKSTATION', user_capacity: 2, functional_group_id: 'g' }, { id: 's1', w: 600, d: 600, relation_role: 'WORK_SEAT', functional_group_id: 'g' }]);
     const issues = r.layoutSpec.validation.semantic_issues;
     expect(Array.isArray(issues)).toBe(true);
-    expect(issues.some((i) => i.code === 'SEMANTIC_PROFILE_UNKNOWN' && i.severity === 'review' && i.anchor === 'cre')).toBe(true);
+    expect(issues.some((i) => i.code === 'SEMANTIC_PROFILE_UNKNOWN' && i.severity === 'review' && i.anchor === 'ws')).toBe(true);
+    // y un ANCHOR_STORAGE ya NO es "desconocido": topología STORAGE con frente evaluable
+    const r2 = construirRespuestaAcomodo(AREAS, [{ id: 'cre', w: 2100, d: 600, relation_role: 'ANCHOR_STORAGE' }]);
+    expect(r2.layoutSpec.validation.semantic_issues.some((i) => i.code === 'SEMANTIC_PROFILE_UNKNOWN')).toBe(false);
+    expect(r2.plan.colocacion[0].topology).toBe('STORAGE');
   });
 });
