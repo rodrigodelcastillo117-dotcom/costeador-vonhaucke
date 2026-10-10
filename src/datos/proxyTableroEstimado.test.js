@@ -76,6 +76,8 @@ describe('costo provisional automático cuando el plano pide 18mm nogal', () => 
       { forma: 'area', hojas: 0.4 }, conM2)).toBeNull();
     expect(proxyParaPiezaDePlano('Melamina 18 mm nogal claro',
       { forma: 'area', largoMM: 0, anchoMM: 700 }, conM2)).toBeNull();
+    expect(proxyParaPiezaDePlano('Melamina 18 mm nogal claro',
+      { forma: 'cantidad', largoMM: 800, anchoMM: 700 }, conM2)).toBeNull();
   });
   it('no inventa precio cero ni usa candidato no aprobado por el catálogo activo', () => {
     expect(proxyTableroParaEstimar('Melamina 18 mm nogal claro', {
