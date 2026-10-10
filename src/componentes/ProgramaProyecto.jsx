@@ -19,6 +19,7 @@
 // ============================================================================
 import { useState, useMemo } from 'react';
 import { programaDelPlano, resumenDelPlano, avisosDeSala } from '../datos/programaDelPlano.js';
+import { conOperativos } from '../datos/programaFormulario.js';
 
 // Las líneas que de verdad se ofrecen para cada cosa. No son las 24: son las
 // que un proyectista pone en cada tipo de espacio.
@@ -176,7 +177,9 @@ export default function ProgramaProyecto({ onArmar, cargando = false, areasPlano
 
       <div className="prog-fila">
         <div className="prog-et"><strong>Operativos</strong><span>puestos en bench</span></div>
-        <Mm v={p.operativos} set={set('operativos')} paso={1} />
+        {/* RESCATE (E2E Dibujo/m²): corregir los puestos arrastra el reparto por banca y las
+            gavetas (1 por puesto). Antes el texto decía "8 lugares… bancas de 10… 10 gavetas". */}
+        <Mm v={p.operativos} set={(v) => setP((x) => conOperativos(x, typeof v === 'function' ? v(x.operativos) : v))} paso={1} />
       </div>
       {p.operativos > 0 && (
         <div className="prog-sub">
@@ -223,7 +226,7 @@ export default function ProgramaProyecto({ onArmar, cargando = false, areasPlano
 
       <div className="prog-fila">
         <div className="prog-et"><strong>Gavetas</strong><span>pedestal rodante · 1 por puesto</span></div>
-        <Mm v={p.gavetas} set={set('gavetas')} />
+        <Mm v={p.gavetas} set={(v) => setP((x) => ({ ...x, gavetas: typeof v === 'function' ? v(x.gavetas) : v, gavetasManual: true }))} />
       </div>
 
       <div className="prog-fila">
