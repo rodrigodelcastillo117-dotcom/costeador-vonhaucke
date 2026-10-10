@@ -668,7 +668,9 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
   return {
     nombre: pieza?.nombre || 'Pieza',
     insumoId: insumoIdFinal,
-    cantidad: pieza?.cantidad || 1,
+    // Cero/NaN/negativo no deben convertirse silenciosamente en una pieza válida.
+    // El validador económico posterior es quien debe rechazarlos (fail-closed).
+    cantidad: pieza?.cantidad ?? 1,
     piezas: 1,
     iaNota: pieza?.nota || '',
     iaConf: pieza?.confianza || '',
