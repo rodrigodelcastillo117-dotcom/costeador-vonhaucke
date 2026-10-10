@@ -252,7 +252,16 @@ export default function App() {
   const [nav, setNav] = useState([]);                     // historial para "Atrás"
   const [costeo, setCosteo] = useState(costeoEnBlanco);
   const [aviso, setAviso] = useState(''); // toast "¡Listo!"
-  const [voniPaso, setVoniPaso] = useState(1); // paso actual del asistente Voni (persiste al navegar)
+  // Paso actual del asistente Voni (persiste al navegar). COT-P0-038 (RESCATE,
+  // E2E Torre Sur 13:4xZ): tras RECARGAR con plano + 11 partidas, Voni aterrizaba en
+  // "¿Dónde va el proyecto?" y Acomodo quedaba a dos clics (el stepper sólo abre
+  // paso+1). Se retoma donde ibas según lo PERSISTIDO: plan → 3, muebles → 2, si no → 1.
+  const [voniPaso, setVoniPaso] = useState(() => {
+    const cot = estado?.cotizacion || {};
+    if (cot.acomodo?.plan?.colocacion?.length) return 3;
+    if ((cot.partidas || []).length > 0) return 2;
+    return 1;
+  });
 
   // Navegacion con historial: irA empuja el estado actual; atras lo restaura.
   // DESCARTAR EL PROYECTO DE UN GOLPE. Rodrigo: "si le pico al botón de 'vas a
