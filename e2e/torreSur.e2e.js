@@ -57,6 +57,22 @@ test.describe('E2E TORRE SUR · plano real → cotización sin pérdidas', () =>
     expect(lectura.status(), 'leer-plano debe responder 200').toBe(200);
     const lecturaJson = await lectura.json().catch(() => null);
     expect(lecturaJson?.ok, `leer-plano ok=false: ${JSON.stringify(lecturaJson?.error || '')}`).toBe(true);
+    // Evidencia del LECTOR (bloque 3: ¿de dónde salen 10 puestos / sala de 6 si el plano
+    // tiene 8 y 10?): áreas con puestos, observed_program y validación. Sin imagen.
+    const EVIDENCIA_LECTURA = path.resolve(process.cwd(), 'e2e/evidence/torre-sur-leer-plano.json');
+    fs.mkdirSync(path.dirname(EVIDENCIA_LECTURA), { recursive: true });
+    fs.writeFileSync(EVIDENCIA_LECTURA, JSON.stringify({
+      fecha: new Date().toISOString(),
+      request_id: lecturaJson?.request_id ?? null,
+      envolvente: lecturaJson?.lectura?.envolvente ?? null,
+      areas: (lecturaJson?.lectura?.areas || []).map((a) => ({ nombre: a.nombre, tipo: a.tipo, puestos: a.puestos ?? null, confianza: a.confianza ?? null, dentroDe: a.dentroDe ?? null, puntos: (a.puntos || []).length })),
+      puertas: (lecturaJson?.lectura?.puertas || []).length,
+      observed_validation: lecturaJson?.floorSpec?.observed_validation ?? null,
+      observed_program: (lecturaJson?.floorSpec?.observed_program || lecturaJson?.observed_program || []).map((o) => ({ source_ref: o.source_ref, type: o.type, role: o.role, zone: o.zone, quantity: o.quantity, capacity_per_unit: o.capacity_per_unit, capacity_total: o.capacity_total, dimensions: o.dimensions, confidence: o.confidence, origin: o.origin, review_required: o.review_required, issues: o.issues })),
+      notas: lecturaJson?.lectura?.notas ?? [],
+    }, null, 2));
+    // Lo que el FORMULARIO de Voni va a mandar como texto (es la entrada real de cotizar-texto).
+    const textoFormulario = await page.locator('textarea').first().inputValue().catch(() => null);
 
     // 2) MUEBLES: el formulario "Dime qué lleva" ya viene prellenado del plano.
     await page.getByText(/^Muebles$/).first().click();
@@ -81,6 +97,10 @@ test.describe('E2E TORRE SUR · plano real → cotización sin pérdidas', () =>
       noEncontrado: noEnc,
       preguntas: cotJson?.propuesta?.preguntas || [],
       warnsCotizar,
+      // El texto que armó el formulario (prellenado desde el plano): es la verdad de
+      // entrada para juzgar si "10 usuarios" lo puso el formulario o la IA.
+      textoFormulario: textoFormulario ? String(textoFormulario).slice(0, 1500) : null,
+      textoEnviado: (() => { try { return String(JSON.parse(cot.request().postData() || '{}').texto || '').slice(0, 1500); } catch (_e) { return null; } })(),
     }, null, 2));
 
     // 4) NADA SE PIERDE: cada item/banco/noEncontrado tiene partida (costeada o pendiente).
