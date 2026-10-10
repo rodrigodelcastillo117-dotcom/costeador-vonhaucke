@@ -22,6 +22,21 @@ describe('material explicitado en plano de exhibidor aeropuerto P-01', () => {
     },
   );
 
+  it('enriquece la melamina sin espesor con los 18 mm explícitos de la leyenda', () => {
+    expect(materialDesdeLeyenda({ nombre: 'Puertas módulo izquierdo', material_solicitado: 'melamina nogal claro' }, leyenda))
+      .toBe('Melamina 18 mm color nogal claro');
+  });
+  it('también reconoce las repisas y fondos inequívocos del mueble', () => {
+    expect(materialDesdeLeyenda({ nombre: 'Repisas superiores y fondos torre' }, leyenda))
+      .toBe('Melamina 18 mm color nogal claro');
+  });
+  it('no sustituye 19 mm indicado explícitamente ni otro acabado distinto', () => {
+    expect(materialDesdeLeyenda({ nombre: 'Puertas', material_solicitado: 'melamina 19 mm nogal' }, leyenda))
+      .toBe('melamina 19 mm nogal');
+    expect(materialDesdeLeyenda({ nombre: 'Puertas', material_solicitado: 'melamina blanca' }, leyenda))
+      .toBe('melamina blanca');
+  });
+
   it('respeta la especificación explícita de la pieza antes que la leyenda', () => {
     expect(materialDesdeLeyenda({ nombre: 'Cubierta', material_solicitado: 'Mármol blanco' }, leyenda)).toBe('Mármol blanco');
   });
