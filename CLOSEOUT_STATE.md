@@ -3,7 +3,14 @@
 > Estado VIVO y VERÍDICO para continuar entre sesiones y para auditoría de ChatGPT.
 > Regla: este archivo refleja SIEMPRE el HEAD real, los tests reales y qué quedó REALMENTE
 > cableado vs pendiente. Cero información histórica presentada como estado actual.
-> Última actualización: 2026-10-09 (6ª re-auditoría R15 ChatGPT+Grok: N acción+mensaje de VONI usan la autoridad atómica + corrección de doc sobre persistencia de confirmado_modelo).
+> Última actualización: 2026-10-10 (OPERACIÓN RESCATE · Cotizar, bloques 1-2).
+
+## OPERACIÓN RESCATE · COTIZAR (2026-10-10) — bloques 1-2 de 10
+- **CÓDIGO = `5c0d500`** (sobre `1efe78c`; el HEAD de la rama es el doc-commit encima). **vitest 2201/2201 (260 archivos; +1 `cotizarRescate.test.js`, +3 RESCATE en `programaRealDelPlano.test.js`) · vite build ✅ · `deno check` ⚠️ entorno (tipos npm:openai vía jsr edge-runtime.d.ts; no es la función).**
+- Matriz viva de los 42 defectos + tabla de los 4 "No pude costear": **`COT_RESCATE_MATRIZ.md`**. Ningún `PASS CERTIFICADO` (sin E2E autenticado ejecutado por Claude). Prod `5a38d2e` intacto.
+- **RETRACTADO `1efe78c`**: `incompletos` vuelve a bloquear el apply (fail-closed); preview separado del commit (`previewAplicacionPrograma`).
+- Cambios: identidad Producto Maestro sobrevive (`partidasDeItemsIA` + todos los roles), pendiente `NO_CANONICO` cubierto por partida de línea con identidad exacta, requerimientos sin costear = partidas PENDIENTES (precio null ≠ $0), costo BANCO = desconocido, `precioProvisional` en extrapolación, `resolverRutaProducto` con motivo, "Por agregar" legible, edge `cotizar-texto` sincronizada con v10 desplegada.
+- **Pendiente de Rodrigo:** `TEST_EMAIL=… TEST_PASSWORD=… npx playwright test e2e/torreSur.e2e.js e2e/programaP01.e2e.js` (captura el payload real de la IA en `e2e/evidence/`).
 
 ## CIERRE FINAL / RC INTEGRADO (2026-10-09)
 - **HEAD(tip) = `bb23454` · CÓDIGO = `ec0a774`** (branch `audit/final-product-completion`). Integra `release/current-20261009` (Home premium + Recharts v3 + deps) + R10 docs + fix seguridad DOMPurify 3.4.16 (ChatGPT). **2182/2182 tests + vite build ✅ + runtime npm audit 0 vulnerabilidades.** Auditado por ChatGPT (`CHATGPT_AUDIT_FINAL.md`): GO RC-para-probar, NO-GO producción final.
