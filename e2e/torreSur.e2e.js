@@ -160,7 +160,13 @@ test.describe('E2E TORRE SUR · plano real → cotización sin pérdidas', () =>
     //    AcomodoBase auto-acomoda al entrar si `programaListo`; si no dispara, se pulsa.
     await page.getByTestId('home-cotizar').click().catch(() => {});
     const acomodoResp = page.waitForResponse((r) => /acomodar-espacio/.test(r.url()) && r.request().method() === 'POST', { timeout: 150000 });
-    await page.getByTestId('voni-paso-acomodo').click();
+    // Camino humano: el stepper sólo abre paso+1. Tras recargar debe retomar donde
+    // ibas (COT-P0-038); si no, Muebles → Acomodo. Si Acomodo sigue deshabilitado con
+    // 11 partidas y plano, es un defecto real y aquí falla con el estado visible.
+    const pasoAcomodo = page.getByTestId('voni-paso-acomodo');
+    if (!(await pasoAcomodo.isEnabled())) await page.getByTestId('voni-paso-muebles').click();
+    await expect(pasoAcomodo, 'paso Acomodo deshabilitado con plano + partidas').toBeEnabled({ timeout: 15000 });
+    await pasoAcomodo.click();
     const btnAcomodar = page.getByRole('button', { name: /^Acomodar$/ });
     await expect(btnAcomodar).toBeVisible({ timeout: 30000 });
     const bloqueado = await page.getByText(/No voy a acomodar un programa comercial incompleto|Todavía no:/).first().isVisible().catch(() => false);
