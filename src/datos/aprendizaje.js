@@ -105,22 +105,38 @@ export async function anotar({ tipo, pedido, propuso, quedo, texto, usuario }) {
   }
 }
 
+// Sólo Diseño/Dirección puede promover una lección a memoria activa.
+// La política RLS y el trigger de Supabase son la autoridad (nunca el rol UI).
+export async function aprobarAprendizaje(id) {
+  const { data, error } = await nube.from('aprendizajes')
+    .update({ aprobado_para_ia: true }).eq('id', id)
+    .select('id,aprobado_para_ia').maybeSingle();
+  if (error) throw error;
+  if (!data?.aprobado_para_ia) throw new Error('No se confirmó la aprobación de Compras/VONI.');
+  const a=CACHE.find(x=>x.id===id);
+  if (a) a.aprobado_para_ia=true;
+  return data;
+}
+
 // Desactiva una lección (la Dirección la juzgó mala). No se borra: el historial
 // de en qué se equivocó Voni vale para saber si de verdad está mejorando.
 export async function olvidar(id) {
-  try {
-    await nube.from('aprendizajes').update({ activo: false }).eq('id', id);
-    CACHE = CACHE.filter((a) => a.id !== id);
-  } catch (e) { /* nada */ }
+  const { data, error } = await nube.from('aprendizajes')
+    .update({ activo: false }).eq('id', id).select('id').maybeSingle();
+  if (error) throw error;
+  if (!data?.id) throw new Error('No se pudo confirmar la desactivación de la lección.');
+  CACHE = CACHE.filter((a) => a.id !== id);
 }
 
 // Deja constancia de que una lección se volvió regla permanente.
 export async function marcarComoRegla(id, claveRegla) {
-  try {
-    await nube.from('aprendizajes').update({ regla_clave: claveRegla }).eq('id', id);
-    const a = CACHE.find((x) => x.id === id);
-    if (a) a.regla_clave = claveRegla;
-  } catch (e) { /* nada */ }
+  const { data, error } = await nube.from('aprendizajes')
+    .update({ regla_clave: claveRegla, aprobado_para_ia: true })
+    .eq('id', id).select('id').maybeSingle();
+  if (error) throw error;
+  if (!data?.id) throw new Error('No se confirmó la conversión de lección a regla.');
+  const a = CACHE.find((x) => x.id === id);
+  if (a) { a.regla_clave = claveRegla; a.aprobado_para_ia = true; }
 }
 
 // ---------------------------------------------------------------------------
