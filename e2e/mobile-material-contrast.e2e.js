@@ -27,3 +27,40 @@ test('iPhone: selected confirmation chips stay readable (not white on white)', a
   const fill = await boton.evaluate(el => getComputedStyle(el).webkitTextFillColor);
   expect(fill).toBe('rgb(255, 255, 255)');
 });
+
+
+test('iPhone: Borrador and Aprobado are legible in every state', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.evaluate(() => {
+    for (const [id, label, selected, disabled] of [
+      ['qa-borrador', 'Borrador', true, false],
+      ['qa-aprobado', 'Aprobado', false, true],
+    ]) {
+      const b = document.createElement('button');
+      b.id = id;
+      b.type = 'button';
+      b.className = 'estado-exp-opcion';
+      b.textContent = label;
+      b.setAttribute('aria-pressed', String(selected));
+      b.disabled = disabled;
+      document.body.appendChild(b);
+    }
+  });
+  const borrador = page.locator('#qa-borrador');
+  const aprobado = page.locator('#qa-aprobado');
+  await expect(borrador).toHaveCSS('color', 'rgb(255, 255, 255)');
+  await expect(borrador).toHaveCSS('background-color', 'rgb(159, 40, 50)');
+  expect(await borrador.evaluate(el => getComputedStyle(el).webkitTextFillColor)).toBe('rgb(255, 255, 255)');
+  await expect(aprobado).toBeDisabled();
+  await expect(aprobado).toHaveCSS('color', 'rgb(173, 173, 183)');
+  await expect(aprobado).toHaveCSS('background-color', 'rgb(38, 38, 44)');
+  expect(await aprobado.evaluate(el => getComputedStyle(el).webkitTextFillColor)).toBe('rgb(173, 173, 183)');
+  // Cuando la validación permite aprobar, se presenta como estado activo.
+  await aprobado.evaluate(el => {
+    el.disabled = false;
+    el.setAttribute('aria-pressed', 'true');
+  });
+  await expect(aprobado).toHaveCSS('color', 'rgb(255, 255, 255)');
+  await expect(aprobado).toHaveCSS('background-color', 'rgb(159, 40, 50)');
+});
