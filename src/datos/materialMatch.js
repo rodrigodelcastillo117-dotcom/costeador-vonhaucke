@@ -613,6 +613,7 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
   let cambio = clasif.cambio || '';
   let resuelto = insumoNombre || '';
   let autollenado = false;
+  let alternativas = [];
 
   // Confirmación humana explícita: promueve a USER_CONFIRMED. GUARD CROSS-FAMILY: una
   // confirmación ESTÁNDAR NO puede promover una sustitución de OTRA familia (solid surface →
@@ -644,8 +645,11 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
   //  · Candidato único con atributo crítico (calibre/perfil) → preselecciona, NO autocostea.
   //  · Sin candidato de familia → queda como clasif (NOT_AVAILABLE / pendiente de precio).
   if (!insumoIdFinal && !candidatoId && Array.isArray(catalogo)) {
-    const { ambiguo, mejor } = candidatosDeFamilia(solicitado, catalogo);
+    const { ambiguo, mejor, empatados } = candidatosDeFamilia(solicitado, catalogo);
     if (ambiguo) {
+      // Guardar candidatos sin precios para desbloquear la elección en la UI.
+      // El orden depende sólo del score técnico y NUNCA se autoriza automáticamente.
+      alternativas = empatados.slice(0, 8).map(({ id, nombre }) => ({ id, nombre }));
       clase = MATCH.AMBIGUOUS;
       motivo = `Varios candidatos de la misma familia igualmente plausibles para "${solicitado}". Elige cuál aplica.`;
     } else if (mejor) {
@@ -685,6 +689,7 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
     _match: {
       clase, motivo, solicitado, resuelto, cambio, autollenado,
       candidate_insumo_id: candidatoId,
+      alternativas,
       // ¿entra al cálculo provisional? (true para COMPATIBLE/EXACT/USER_CONFIRMED)
       autocosteable: MATCH_AUTOCOSTEABLE.has(clase) && !!insumoIdFinal,
       confirmado_por_usuario: pieza?.material_confirmado === true,
