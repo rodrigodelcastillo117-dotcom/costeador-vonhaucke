@@ -1329,6 +1329,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                       ? <span> · Precio registrado: {pesos2(ins.precioReferencia)}/{ins.unidadCosteo}</span>
                       : <span> · Precio pendiente</span>}
                     <div>{ins.estadoEconomia === 'APROBADO' ? 'APROBADO' : 'COSTO PRELIMINAR / PENDIENTE'} · {ins.fuenteCompra || 'Fuente no documentada en Compras'}</div>
+                    {ins.estimacionMercado && <div style={{fontSize:12,marginTop:4}}>
+                      <strong>ASUR / referencia de mercado, NO compra registrada:</strong>{' '}
+                      {pesos2(ins.estimacionMercado.precio)}/{ins.estimacionMercado.unidad}.
+                      {' '}Debe sustituirse por la orden/factura real antes de costear oficialmente.
+                    </div>}
                     {ins.observacionPrecio && <div>{ins.observacionPrecio}</div>}
                   </div>
                 )}
