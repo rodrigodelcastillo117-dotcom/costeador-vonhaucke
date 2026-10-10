@@ -337,18 +337,28 @@ export function costearSpec(spec, insumos = {}, par = {}) {
   const ignorados = costeo.componentesIgnorados || [];
   const pendMaterial = ignorados.filter((n) => comps.some((c) => (c.nombre === n) && !insumos[c.insumoId] && !c.insumo));
   const pendPrecio = ignorados.filter((n) => !pendMaterial.includes(n));
+  // P0: un precio real documentado/provisional o una tarifa ASUR aprobada PARA
+  // ESTIMACIÓN no equivale a costo certificable para EMISIÓN. Sin esta segunda
+  // barrera, Cocrear marcaba KNOWN cualquier insumo con número >0.
+  // Sólo se aplica al catálogo nuevo; las líneas legacy mantienen sus contratos.
+  const porValidarCompras = comps.filter(c => !c.excluida && c.insumoId
+    && insumos[c.insumoId]?.fuenteCatalogo === 'compras'
+    && insumos[c.insumoId]?.precioCertificable !== true)
+    .map(c => c.nombre || insumos[c.insumoId]?.nombre || c.insumoId);
+  const emitibleComercial = e.emitible && porValidarCompras.length === 0;
   let cost_status;
   if (!e.emitible) {
     cost_status = pendMaterial.length ? COST_STATUS.PENDING_MATERIAL : (pendPrecio.length ? COST_STATUS.PENDING_PRICE : COST_STATUS.UNKNOWN);
   } else {
-    const usoEstimado = comps.some((c) => { const ins = insumos[c.insumoId] || c.insumo; return ins && ins.precio == null && precioUsable(ins); });
+    const usoEstimado = porValidarCompras.length > 0
+      || comps.some((c) => { const ins = insumos[c.insumoId] || c.insumo; return ins && ins.precio == null && precioUsable(ins); });
     cost_status = usoEstimado ? COST_STATUS.ESTIMATED : COST_STATUS.KNOWN;
   }
   return {
     cost_status,
     known_cost: e.subtotalConocido ?? null,
-    official_cost: e.emitible ? e.costoTotal : null,
-    unresolved_lines: e.pendientes || [],
+    official_cost: emitibleComercial ? e.costoTotal : null,
+    unresolved_lines: [...(e.pendientes || []), ...porValidarCompras.map(n => n + ' — requiere validación de Compras')],
     estimated_amount: cost_status === COST_STATUS.ESTIMATED ? costeo.costoUnitario : null,
     certified_amount: cost_status === COST_STATUS.KNOWN ? costeo.costoUnitario : null,
     evidencia: { ignorados, excluidos: costeo.componentesExcluidos || [] },
