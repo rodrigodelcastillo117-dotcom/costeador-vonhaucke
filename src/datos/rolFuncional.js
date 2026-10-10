@@ -69,12 +69,21 @@ export function rolDePieza(p = {}) {
  * Las piezas con rol del programa se devuelven intactas (sólo se les completa grupo
  * si no lo traen, para que sus dependientes inferidos puedan encontrarlas).
  */
-export function inferirRolFuncional(piezas = []) {
+export function inferirRolFuncional(piezas = [], { areas = [] } = {}) {
   const out = (Array.isArray(piezas) ? piezas : []).map((p) => {
     if (!p || p.relation_role) return p;
     const rol = rolDePieza(p);
     return rol ? { ...p, relation_role: rol, rol_inferido: true } : p;
   });
+  // Cuarto destino por tipo (zone_id = nombre del área canónica). Sólo se usa para
+  // anclas sueltas de guardado, que no tienen filtro por tipo en el solver.
+  const areaDe = (zona) => {
+    const lista = Array.isArray(areas) ? areas : [];
+    const porTipo = lista.find((a) => a && norm(a.tipo) === zona);
+    const porNombre = lista.find((a) => a && ({ privado: /privad|ceo|direcc|gerenc/, open: /open|operativ|trabajo|bench/, juntas: /junta|consejo/, recepcion: /recepci|lobby/ }[zona] || /$^/).test(norm(a.nombre)));
+    const a = porTipo || porNombre;
+    return a ? (a.zone_id ?? a.nombre) : null;
+  };
   // Grupo funcional por zona inferida (sólo cuando falta).
   // E2E real Torre Sur 14:01Z: credenza y archivero (SUPPORT_STORAGE) quedaban SIN grupo
   // y el kit-solver los trata como dependientes sin ancla → "2 piezas sin un mueble que
@@ -90,7 +99,16 @@ export function inferirRolFuncional(piezas = []) {
   };
   const conGrupo = out.map((p) => {
     if (!p || p.functional_group_id || !p.relation_role) return p;
-    const zona = p.relation_role === 'SUPPORT_STORAGE' ? zonaStorage(p) : ZONA_DE_ROL[p.relation_role];
+    // E2E real 14:2xZ: agrupar credenza+archivero como "gavetas" del escritorio los ENCIMÓ
+    // (componerKit los pone bajo tablero: OVERLAP, hard FAIL). El guardado de apoyo es un
+    // mueble LIBRE contra muro: va como ANCLA propia (kit de sí mismo, capacidad 0) en el
+    // cuarto de su zona. Topología desconocida ⇒ el juez pide revisión, nunca falla.
+    if (p.relation_role === 'SUPPORT_STORAGE' && p.rol_inferido) {
+      const zona = zonaStorage(p);
+      const zone_id = areaDe(zona);
+      return { ...p, relation_role: 'ANCHOR_STORAGE', rol_original_inferido: 'SUPPORT_STORAGE', ...(zone_id ? { zone_id } : {}) };
+    }
+    const zona = ZONA_DE_ROL[p.relation_role];
     if (!zona) return p;
     return { ...p, functional_group_id: `inferido:${zona}`, grupo_inferido: true };
   });
@@ -104,9 +122,7 @@ export function inferirRolFuncional(piezas = []) {
       return n > 1 ? { ...p, user_capacity: n } : p;
     }
     if (p.relation_role === 'ANCHOR_DESK') {
-      // asientos (directiva + visitas) y guardado de apoyo del mismo grupo caben en su kit
-      const guardas = conGrupo.filter((q) => q?.functional_group_id === p.functional_group_id && (q.relation_role === 'SUPPORT_STORAGE' || q.relation_role === 'UNDERDESK_STORAGE')).length;
-      return { ...p, user_capacity: Math.max(1 + (visitasPorGrupo.get(p.functional_group_id) || 0), guardas) };
+      return { ...p, user_capacity: 1 + (visitasPorGrupo.get(p.functional_group_id) || 0) };
     }
     return p;
   });

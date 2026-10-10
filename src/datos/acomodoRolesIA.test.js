@@ -46,8 +46,8 @@ describe('COT-P0-025 · partidas de Voni/IA → solver con rol funcional', () =>
     const sinRol = payload.piezas.filter((p) => !p.relation_role);
     expect(sinRol.length, `piezas sin relation_role: ${sinRol.map((p) => p.nombre || p.id).join(' | ')}`).toBe(0);
     const anclas = payload.piezas.filter((p) => String(p.relation_role || '').startsWith('ANCHOR_'));
-    // 4 anclas físicas: bench (WORKSTATION), Eclipse (DESK), mesa (MEETING), recepción (RECEPTION)
-    expect(anclas.map((a) => a.relation_role).sort()).toEqual(['ANCHOR_DESK', 'ANCHOR_MEETING', 'ANCHOR_RECEPTION', 'ANCHOR_WORKSTATION']);
+    // 4 anclas físicas (bench, Eclipse, mesa, recepción) + 2 de guardado libre (credenza, archivero)
+    expect(anclas.map((a) => a.relation_role).sort()).toEqual(['ANCHOR_DESK', 'ANCHOR_MEETING', 'ANCHOR_RECEPTION', 'ANCHOR_STORAGE', 'ANCHOR_STORAGE', 'ANCHOR_WORKSTATION']);
     expect(payload.piezas.filter((p) => p.relation_role === 'WORK_SEAT')).toHaveLength(8);
     expect(payload.piezas.filter((p) => p.relation_role === 'MEETING_SEAT')).toHaveLength(4);
     expect(payload.piezas.filter((p) => p.relation_role === 'VISITOR_SEAT')).toHaveLength(2);
@@ -55,20 +55,25 @@ describe('COT-P0-025 · partidas de Voni/IA → solver con rol funcional', () =>
     // Las gavetas bajo cubierta NO viajan al solver por diseño (expandirPiezas omite
     // vaBajoEscritorio): van debajo del puesto, no ocupan piso. 8 partidas → 0 piezas.
     expect(payload.piezas.filter((p) => p.relation_role === 'UNDERDESK_STORAGE')).toHaveLength(0);
-    expect(payload.piezas.filter((p) => p.relation_role === 'SUPPORT_STORAGE')).toHaveLength(2);   // credenza + archivero
+    // E2E real 14:2xZ: como "gavetas" del escritorio se encimaban (OVERLAP). Van como anclas
+    // libres en el cuarto del privado.
+    const storage = payload.piezas.filter((p) => p.relation_role === 'ANCHOR_STORAGE');
+    expect(storage).toHaveLength(2);
+    for (const s of storage) expect(s.zone_id, s.nombre).toBe('OFICINA CEO');
     // el bench inferido lleva su capacidad real (8), no 6000/1500 = 4
     const bench = anclas.find((a) => a.relation_role === 'ANCHOR_WORKSTATION');
     expect(bench.user_capacity).toBe(8);
     expect(anclas.find((a) => a.relation_role === 'ANCHOR_DESK').user_capacity).toBe(3);        // ALPHA + 2 CONCERTO
-    // E2E real 14:01Z: credenza y archivero quedaban sin grupo → "sin un mueble que las reciba".
-    const apoyo = payload.piezas.filter((p) => p.relation_role === 'SUPPORT_STORAGE');
-    for (const s of apoyo) expect(s.functional_group_id, s.nombre).toBe('inferido:privado');
-    // y el solver (mismo código que la edge) coloca las 4 anclas y NO deja dependientes sin dueño
+    // El solver (mismo código que la edge) coloca las 6 anclas, sin dependientes sin dueño y
+    // SIN issues duros (antes: OVERLAP credenza/archivero bajo el escritorio).
     const r = construirRespuestaAcomodo(payload.areas, payload.piezas);
     const colocadas = new Set((r.plan?.colocacion || []).map((c) => String(c.id)));
     const anclasColocadas = anclas.filter((a) => colocadas.has(String(a.id)));
-    expect(anclasColocadas.length, `status=${r.status} colocadas=${colocadas.size}/${payload.piezas.length} no_cupieron=${JSON.stringify(r.layoutSpec?.no_cupieron || null)}`).toBe(4);
+    expect(anclasColocadas.length, `status=${r.status} colocadas=${colocadas.size}/${payload.piezas.length} no_cupieron=${JSON.stringify(r.layoutSpec?.no_cupieron || null)}`).toBe(anclas.length);
     expect(r.layoutSpec?.unassigned || [], 'dependientes sin dueño').toEqual([]);
+    const duros = (r.layoutSpec?.validation?.issues || []).filter((i) => i.severity === 'fail');
+    expect(duros, 'issues duros (OVERLAP/puerta/obstáculo)').toEqual([]);
+    expect(colocadas.size).toBe(payload.piezas.length);
   });
 
   it('el rol inferido queda MARCADO como inferido (no se confunde con rol confirmado del programa)', () => {
