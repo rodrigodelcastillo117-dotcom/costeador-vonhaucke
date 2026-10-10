@@ -17,6 +17,12 @@
 //  al BOM económico. Lo demás se marca y NO se costea en $0 silenciosamente.
 // ============================================================================
 
+// Invalida la fracción de hoja si la identidad del insumo cambia, aunque ambos
+// insumos sean tableros/láminas. Evita reutilizar consumo físico de otro artículo.
+export function debeResetearHojasMaterial(insumoAnteriorId, insumoNuevoId, nuevoEsFraccionHoja) {
+  return String(insumoAnteriorId || '') !== String(insumoNuevoId || '') || !nuevoEsFraccionHoja;
+}
+
 export const MATCH = Object.freeze({
   EXACT: 'EXACT',
   EQUIVALENT_APPROVED: 'EQUIVALENT_APPROVED',
