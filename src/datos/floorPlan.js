@@ -29,6 +29,14 @@ const puertaAMetros = (p = {}) => ({
   ...(p.confianza ? { confianza: p.confianza } : {}),
 });
 
+// COT-P0-003 (RESCATE 2026-10-10): `puestos` (contado por el lector) y `confianza`
+// NO son geometría pero viajan con el área: antes se tiraban aquí y el formulario de
+// Voni caía a la estimación por m² (8 m / 1.5 = 10 "puestos" donde el plano dibuja 8).
+const extrasArea = (a) => ({
+  ...(a.puestos !== null && a.puestos !== undefined && a.puestos !== '' && Number.isFinite(Number(a.puestos)) ? { puestos: Math.max(0, Math.round(Number(a.puestos))) } : {}),
+  ...(typeof a.confianza === 'string' && a.confianza ? { confianza: a.confianza } : {}),
+});
+
 export function aMM(areas = []) {
   return (areas || []).map((a) => ({
     nombre: a.nombre,
@@ -36,6 +44,7 @@ export function aMM(areas = []) {
     ...(a.dentroDe ? { dentroDe: a.dentroDe } : {}),
     ...(a.contiene ? { contiene: a.contiene } : {}),
     ...(Number.isFinite(a.nivel) ? { nivel: a.nivel } : {}),
+    ...extrasArea(a),
     ...(Number.isFinite(a.x) && Number.isFinite(a.y) ? { x: r3(a.x), y: r3(a.y) } : {}),
     ancho: r3(a.ancho),
     largo: r3(a.largo),
@@ -52,6 +61,7 @@ export function aMetros(areas = []) {
     ...(a.dentroDe ? { dentroDe: a.dentroDe } : {}),
     ...(a.contiene ? { contiene: a.contiene } : {}),
     ...(Number.isFinite(a.nivel) ? { nivel: a.nivel } : {}),
+    ...extrasArea(a),
     ...(Number.isFinite(a.x) && Number.isFinite(a.y) ? { x: d3(a.x), y: d3(a.y) } : {}),
     ancho: d3(a.ancho),
     largo: d3(a.largo),

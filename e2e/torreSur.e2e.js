@@ -103,6 +103,16 @@ test.describe('E2E TORRE SUR · plano real → cotización sin pérdidas', () =>
       textoEnviado: (() => { try { return String(JSON.parse(cot.request().postData() || '{}').texto || '').slice(0, 1500); } catch (_e) { return null; } })(),
     }, null, 2));
 
+    // 3-bis) COT-P0-003: si el lector CONTÓ puestos en el área operativa, el texto que el
+    //    formulario mandó a la IA debe pedir ESE número (no la estimación por m²).
+    const opLector = (lecturaJson?.lectura?.areas || []).filter((a) => a.tipo === 'open' && Number(a.puestos) > 0)
+      .reduce((s, a) => s + Number(a.puestos), 0);
+    const textoEnviado = (() => { try { return String(JSON.parse(cot.request().postData() || '{}').texto || ''); } catch (_e) { return ''; } })();
+    if (opLector > 0) {
+      expect(textoEnviado, `el lector contó ${opLector} puestos pero el formulario mandó: "${textoEnviado.slice(0, 120)}…"`).toMatch(new RegExp(`^\\s*${opLector}\\s+lugares de trabajo`));
+      expect(textoEnviado, 'gavetas ≠ puestos contados').toMatch(new RegExp(`${opLector}\\s+gavetas`));
+    }
+
     // 4) NADA SE PIERDE: cada item/banco/noEncontrado tiene partida (costeada o pendiente).
     await expect.poll(async () => ((await leerCot(page)).partidas || []).length, { timeout: 30000 }).toBeGreaterThan(0);
     const cotz = await leerCot(page);
