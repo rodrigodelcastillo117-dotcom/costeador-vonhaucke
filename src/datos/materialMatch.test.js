@@ -386,3 +386,18 @@ describe('P0 — cantidades inválidas no se maquillan como una pieza', () => {
     expect(c.cantidad).toBe(1);
   });
 });
+
+
+describe('P0 — candidatos visibles al usuario cuando el material es ambiguo', () => {
+  it('conserva alternativas de la misma familia sin autoasignación', () => {
+    const catalogo = [
+      {id:'melamina-16-blanco', nombre:'Melamina 16 mm blanco'},
+      {id:'melamina-19-nogal', nombre:'Melamina 19 mm nogal'},
+    ];
+    const c = aplicarPoliticaMaterial({nombre:'Panel',material_solicitado:'melamina',insumoId:''},()=>null,catalogo);
+    expect(c.material_match).toBe(MATCH.AMBIGUOUS);
+    expect(c.insumoId).toBe('');
+    expect(c._match.alternativas.map(x=>x.id)).toEqual(['melamina-16-blanco','melamina-19-nogal']);
+    expect(c._match.autocosteable).toBe(false);
+  });
+});
