@@ -304,6 +304,7 @@ export default function Voni({
                     ...p,
                     precioUnitario: art.lista,
                     costoUnitario: costoImplicito(art.lista),   // que Dirección siga viendo utilidad coherente
+                    costoDerivado: true,                        // VH-050: derivado del precio, no medido
                     precioReal: true,
                     catalogo: { clave: art.clave, lista: art.lista, full: art.full, minimo: art.minimo },
                   } : p)) })}

@@ -58,6 +58,37 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 100% de las llamadas del navegador.** `AsistenteEspecial.jsx:179` mandaba `{...b}` con `margen`/`modeloCosteo`;
 `validarIntentCosteo` respondía `FORBIDDEN_FINANCIAL_FIELD`. Pendiente VERIFIED en vivo (shadow_costeo).
 
+**VH-052 · P2 · FIXED · Componentes de EcoAcustic y TeamSpace II salían con "· undefined" en el nombre cuando
+nadie eligió color.** `configDesde` manda `color: undefined` a propósito (el color lo elige la persona) y ese
+`undefined` pisaba el default del generador; el despiece y la cotización mostraban "EcoAcustic Flex (por m²) ·
+undefined". Encontrado por la auditoría de unidades sobre los 24 generadores (1,110 componentes). Fix en los
+dos generadores: sin color, el nombre lo omite. Test `nombresSinColor.test.js` recorre TODOS los generadores con
+config por omisión y exige que ningún nombre contenga "undefined"/"null".
+
+**VH-051 · P1 · OPEN (decisión Dirección/Compras) · La IA de despiece elige materiales de un catálogo que el
+navegador no puede costear.** Leído en producción el 2026-10-11 (sin escribir): el navegador costea con
+`config.datos.insumos` (92 insumos); la edge `analizar-mueble` le ofrece a la IA `insumos_catalogo` (259 activos)
+con precios de `catalogo_vigente` (257). 167 insumos existen sólo en el servidor (cubiertas 99, ecoacustic 28,
+acabados 20, metal 8, eléctrico 5, gráficos 4, mamparas 2, herrajes 1). De esos 167, **0 tienen precio certificado**:
+165 son "propuesto" con precio y 2 no tienen precio. De los 92 compartidos, 62 tienen precio distinto en el
+servidor, pero **los 30 certificados coinciden al centavo** con config: las diferencias son propuestas de
+Compras sin certificar (y 8 cambios de base m²→hoja: mdf 210/m² vs 437/hoja). Conclusión honesta: el navegador
+NO costea mal con lo que tiene; el problema es que la IA puede señalar 167 materiales que ningún rol puede
+costear hoy, y la pieza queda "pendiente" sin decir por qué. Sólo Dirección/diseño pueden leer
+`insumos_catalogo` (RLS `cat_lee`). Decisiones: (a) Compras certifica los 165 propuestos (backlog), (b) definir
+si `catalogo_vigente` certificado sustituye a `config.datos.insumos` como fuente del motor (hoy coinciden), (c)
+mientras, mostrar "existe en el catálogo del servidor, sin precio certificado" en vez de "material inexistente"
+(cambio de UX, sin tocar precios). No se cambia la fuente de precios sin aprobación (mandato §3/§10).
+
+**VH-050 · P1 · FIXED · El costo de la banca App LT (y de todo precio de price-book o por usuario) se derivaba
+del precio y la pantalla lo etiquetaba "real".** `precioDePieza` calcula `costoImplicito(precio/0.6)` cuando el
+precio viene por usuario (App LT) o de un presupuesto cerrado, pero no marcaba `costoDerivado`; `claseCosto`
+lo clasificaba "real" y Dirección veía una utilidad "medida" sobre un costo que es precio/0.6/3.6. Verificado
+con la banca doble App LT 6 usuarios: costo 9,125 = 19,710/0.6/3.6. Fix: `precioDePieza` devuelve
+`costoDerivado`, `partidaModelo`/`costearConfig` lo propagan (también en la rama de artículo de catálogo),
+`EditarPartida.partidaEditada` lo conserva y `Voni.onVariante` lo marca. Ningún número cambia; cambia la
+etiqueta: "≈" (derivado) donde antes decía medido. 3 tests `lineas.costoDerivado.test.js`.
+
 **VH-049 · P1 · OPEN (decisión de Dirección) · Una copia vieja de la app se sirve públicamente sin sesión.** La
 función edge `app` (v4, `verify_jwt:false`, ago-2026) hace `fetch` de `storage/v1/object/public/app/index.html`
 (3,217,765 bytes, actualizado 2026-08-19) y lo devuelve como HTML. Es un build de un solo archivo de hace dos

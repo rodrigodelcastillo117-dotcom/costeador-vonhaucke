@@ -101,27 +101,30 @@ export function coloresDeEcoAcustic(prodId, config = {}) {
 
 export function generarEcoAcustic(config) {
   const c = { producto: 'panel_liso', espesor: '9', grado: 'A', corte: false, herraje: false, modelo: 'sacc003', tamano: '120', color: 'gris', ...config };
+  // Color opcional: configDesde manda `color: undefined` cuando nadie lo eligió y eso
+  // pisaba el default; el nombre salía "· undefined" (VH-052).
+  const color = c.color ? ` · ${c.color}` : '';
   const comp = [];
   let nombre = '';
   let insumoId = null;
 
   if (c.producto === 'panel_liso') {
     insumoId = PRECIO.panel_liso[c.espesor] || PRECIO.panel_liso['9'];
-    nombre = `EcoAcustic Panel liso ${c.espesor} mm · ${c.color}`;
+    nombre = `EcoAcustic Panel liso ${c.espesor} mm${color}`;
   } else if (c.producto === 'corte_linea') {
     insumoId = PRECIO.corte_linea[c.espesor] || PRECIO.corte_linea['9'];
-    nombre = `EcoAcustic Panel con corte de línea ${c.espesor} mm · ${c.color}`;
+    nombre = `EcoAcustic Panel con corte de línea ${c.espesor} mm${color}`;
   } else if (['shapes_30', 'shapes_60', 'shapes_rect_30', 'shapes_rect_60'].includes(c.producto)) {
     insumoId = PRECIO[c.producto];
-    nombre = `EcoAcustic ${ECOACUSTIC_PRODUCTOS.find((p) => p.id === c.producto).nombre} · ${c.color}`;
+    nombre = `EcoAcustic ${ECOACUSTIC_PRODUCTOS.find((p) => p.id === c.producto).nombre}${color}`;
   } else if (c.producto === 'custom') {
     const porGrado = PRECIO.custom[c.grado] || PRECIO.custom.A;
     const espesorReal = porGrado[c.espesor] ? c.espesor : '9'; // C/D no tienen 12mm: cae a 9mm
     insumoId = porGrado[espesorReal];
-    nombre = `EcoAcustic Custom grado ${c.grado}, ${espesorReal} mm · ${c.color}`;
+    nombre = `EcoAcustic Custom grado ${c.grado}, ${espesorReal} mm${color}`;
   } else if (c.producto === 'flex') {
     insumoId = c.corte ? 'eco-flex-corte' : 'eco-flex';
-    nombre = `EcoAcustic Flex${c.corte ? ' con corte' : ''} (por m²) · ${c.color}`;
+    nombre = `EcoAcustic Flex${c.corte ? ' con corte' : ''} (por m²)${color}`;
   } else if (c.producto === 'lambrin') {
     insumoId = PRECIO.lambrin;
     nombre = 'EcoAcustic Lambrín 1.20 × 2.40 m';

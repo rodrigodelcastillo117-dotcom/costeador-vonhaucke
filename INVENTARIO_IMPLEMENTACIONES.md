@@ -41,7 +41,7 @@ Leyenda de "prod": archivos de producción que la consumen (sin contar el archiv
 | Márgenes por omisión 50 vs 40 vs 30 | CONSOLIDADO (VH-019) → `margenObjetivoDe` (parametros, si no 50) | costear-servidor cambiado en código; pendiente de desplegar. |
 | `politicaVH.costoFabVH` | RETIRAR (propuesta) | prod 0; duplica Alba con otros factores. |
 | `cotizarLinea.cotizarArticulo`, `resolverComponentes.cotizarPorComponentes` | RETIRAR (propuesta) | prod 0 (solo se definen). |
-| `costoImplicito` (5 variantes de costo derivado del precio) | CONSOLIDAR → marcar `costoDerivado` siempre | prod 4; hoy `claseCosto` los etiqueta "real". |
+| `costoImplicito` (5 variantes de costo derivado del precio) | CONSOLIDADO (VH-050): los 5 productores marcan `costoDerivado`; `claseCosto` ya los etiqueta "derivado" (≈) | La función queda como única conversión Precio 2 → costo. |
 | 10 compuertas de emisión (senales ×2, voniContext, excluidas, candado, RPC `cotizacion_emitible`, `emitir_revision`, `bajoPiso`, `hayLineaInvalida`, `costeoEmitible`) | CONSOLIDADO (2026-10-11, VH-047) → servidor `evaluar_emision_cotizacion` (autoridad) + 1 proyección cliente `datos/emision.js` (`evaluarEmisionLocal`, `combinarGate`) | senales ×2, voniContext, excluidas y la lectura del RPC derivan de `emision.js`. `candado` es confirmación (no decide), `hayLineaInvalida`/`bajoPiso` son banderas de pantalla ya cubiertas por los códigos `precio_invalido`/aprobación del servidor, `costeoEmitible` es del motor de costeo. Sin migración necesaria: producción tiene 0 renglones con `estadoCosto`/`costoEstado`. |
 | RPC `emitir_revision` (legacy) usado por el cliente | SIN ACCIÓN: en producción ya es un alias de `emitir_revision_v2` (verificado 2026-10-11) | |
 | `asignar_folio_oficial`, `resolver_precio_autorizado`, `vincular_cotizacion`, `producto_cotizable` | CONSERVAR y CONECTAR | Existen en la base, el cliente no los llama; el folio del PDF es texto libre. |
@@ -54,13 +54,13 @@ Leyenda de "prod": archivos de producción que la consumen (sin contar el archiv
 | Implementación | Clase | Evidencia |
 |---|---|---|
 | 24 generadores de línea (`src/datos/<linea>.js`, 130 productos) | CONSERVAR (congelar con snapshot) → luego BOM como dato | Recetas = conocimiento industrial. `KG20 = 7.16` copiado en 8 archivos; conversiones geométricas locales en cada uno. |
-| `netoComponente` (unit-blind) | SUSTITUIR por conversión con `unidad` explícita | luna.js documenta un error 14.9×. |
+| `netoComponente` (unit-blind) | CONSERVAR con auditoría (2026-10-11); la conversión con `unidad` explícita queda como mejora, no como bug abierto | Auditados los 24 generadores con config por omisión: 1,110 componentes, 0 insumos desconocidos, 0 componentes de área cobrados en unidad no-área (el caso Luna ya está corregido en luna.js). 35 componentes por m² se declaran por `cantidad` (pintura electrostática, espuma): válido si la cantidad son m². |
 | `recetas.construirCosteo` + `PIEZAS_SEMILLA` (segundo sistema de BOM) | CONSOLIDAR | prod 2 (Asistente, Catálogo). Defaults 55/12 que el cutover Alba ya no siembra. |
 | `mapIaComps` duplicado (AsistenteEspecial + Costeador) | CONSOLIDAR | Misma función en dos pantallas. |
 | `validarIntentCosteo` | CONSERVAR y COMPARTIR cliente/servidor | Solo servidor; su cabecera miente. |
 | `costear-servidor` (sombra) | HECHO (VH-036): el cliente manda la intención saneada y validada | Pendiente VERIFIED en vivo. |
 | `costoPieza` por renglón (Costeador.jsx, AsistenteEspecial.jsx) | CONSOLIDAR en el motor | Dos cálculos paralelos sin USD ni nesting. |
-| 3 catálogos de insumos (`insumos.js` semilla, `config.datos.insumos`, `insumos_catalogo/catalogo_vigente`) | CONSOLIDAR → `catalogo_vigente` | El LLM elige ids de uno y el navegador costea con otro. |
+| 3 catálogos de insumos (`insumos.js` semilla, `config.datos.insumos`, `insumos_catalogo/catalogo_vigente`) | CONSOLIDAR → decisión pendiente (VH-051) | Medido 2026-10-11: config 92 vs servidor 259; 167 sólo en servidor y 0 de ellos certificados; los 30 certificados compartidos coinciden al centavo. Backlog de certificación en Compras, no bug del motor. |
 | `bomHash/diffBOM` | CONSERVAR (corregir clave por nombre) | prod 2. |
 
 ## 5. Interpretación de planos y acomodo

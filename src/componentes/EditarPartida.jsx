@@ -25,7 +25,7 @@ export function partidaEditada(partida, nuevo, cant, soloVentas) {
   return crearPartida({
     ...partida,
     nombre: nuevo.nombre, config: nuevo.config, cantidad: cant,
-    costoUnitario: nuevo.costoUnitario, precioUnitario: nuevo.precioUnitario, margen: nuevo.margen,
+    costoUnitario: nuevo.costoUnitario, precioUnitario: nuevo.precioUnitario, margen: nuevo.margen, costoDerivado: !!nuevo.costoDerivado,
     w: nuevo.w, d: nuevo.d, precioReal: !!nuevo.precioReal,
     // El artículo del catálogo de la NUEVA medida (o null si dejó de casar): así el
     // piso y las variantes siguen a lo que quedó.

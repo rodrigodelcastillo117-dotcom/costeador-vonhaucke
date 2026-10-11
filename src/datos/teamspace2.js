@@ -42,7 +42,7 @@ export function generarTeamspace2(config) {
   comp.push({ insumoId: 'tornilleria', nombre: 'Imán IM175 + tornillería base', cantidad: 1 });
 
   // Acabado y tornillería
-  comp.push({ insumoId: 'pintura-electrostatica', nombre: `Pintura electrostática (${c.color})`, cantidad: movil ? 5 : 3 });
+  comp.push({ insumoId: 'pintura-electrostatica', nombre: `Pintura electrostática${c.color ? ` (${c.color})` : ''}`, cantidad: movil ? 5 : 3 });
   comp.push({ insumoId: 'tornilleria', nombre: 'Tornillería (RO14GA / PI1225G / TOM8X20)', cantidad: 1 });
 
   // Eléctrico OPCIONAL (comprado, se cotiza aparte según la guía)
@@ -54,7 +54,7 @@ export function generarTeamspace2(config) {
 
   return {
     producto: c.producto,
-    nombre: `Soporte de pantalla TeamSpace II ${movil ? 'móvil' : 'fijo'} · ${c.color}`,
+    nombre: `Soporte de pantalla TeamSpace II ${movil ? 'móvil' : 'fijo'}${c.color ? ` · ${c.color}` : ''}`,
     componentes: comp,
     claves,
     electricos: c.electrico ? ['Caja START 2.2 + HDMI (se cotiza aparte)'] : [],
