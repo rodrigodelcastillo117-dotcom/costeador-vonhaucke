@@ -58,6 +58,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   // estructura que Voni entendió. No toca el costeo/dinero: el motor sigue costeando.
   const [analizandoIA, setAnalizandoIA] = useState(false);
   const [errIA, setErrIA] = useState('');
+  const [catalogoFuente, setCatalogoFuente] = useState(null);   // VH-066: 'canonico' | 'cliente-fallback'
   const [estructuraVoni, setEstructuraVoni] = useState(null);
   // RENDER STALE (Gate 6): si el despiece cambió desde que se generó la imagen, el
   // render ya NO es fiel. No lo mostramos como válido: avisamos y marcamos para regenerar.
@@ -137,13 +138,16 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     // No destruyas trabajo manual sin avisar.
     if ((costeo.componentes || []).some((c) => c.insumoId || c.nombre) &&
         !window.confirm('Esto reemplazará las piezas actuales por lo que entienda Voni de tu descripción. ¿Seguir?')) return;
-    setErrIA(''); setAnalizandoIA(true);
+    setErrIA(''); setCatalogoFuente(null); setAnalizandoIA(true);
     try {
       const res = await analizarTexto(catalogoIA(), desc);
       if (!res?.ok) { setErrIA(res?.error || 'No se pudo interpretar la descripción.'); return; }
       const p = res.propuesta || {};
       set({ nombre: costeo.nombre || p.producto || '', descripcionCliente: p.descripcionCliente || desc, componentes: conAcompanantes(mapIaComps(p)) });
       setEstructuraVoni(p.design_intent ? graphFromPropuesta(p) : null);
+      // VH-066: si el catálogo central no estuvo, la edge lo dice (`catalogoFuente`);
+      // el Asistente especial ya avisaba (#8) y esta pantalla se lo callaba.
+      setCatalogoFuente(res.catalogoFuente || null);
     } catch (err) { setErrIA(String(err?.message || err)); }
     finally { setAnalizandoIA(false); }
   }
@@ -331,6 +335,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             <span className="ayuda gris" style={{ fontSize: 12 }}>Propone piezas y estructura; tú confirmas. El precio lo calcula el motor.</span>
           </div>
           {errIA && <div className="alerta roja" style={{ marginTop: 8 }}><span className="texto">{errIA}</span></div>}
+          {catalogoFuente === 'cliente-fallback' && <div className="alerta ambar" style={{ marginTop: 8 }} data-testid="catalogo-fallback"><span className="texto">⚠ El catálogo central no estaba disponible: la IA usó datos locales. <strong>No cotices en firme</strong> con este despiece; confirma materiales y precios con Dirección.</span></div>}
           {estructuraVoni && estructuraVoni.nodes.length > 0 && (
             <div className="tarjeta" style={{ background: 'var(--panel)', borderLeft: '4px solid var(--acento, #3a6ea5)', marginTop: 10 }}>
               <div style={{ fontWeight: 700, marginBottom: 2 }}>🧠 Estructura que entendió Voni</div>

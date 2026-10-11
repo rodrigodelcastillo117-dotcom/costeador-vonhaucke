@@ -330,6 +330,14 @@ export function crearNubeFalsa({ usuarios }) {
     if (ruta.startsWith('/rest/v1/')) return json(route, []);
     // leer-plano: una lectura FIJA (plano ejecutivo con dos islas contadas) para probar
     // la compuerta de confirmación sin LLM. `f.lectura` se puede sustituir por prueba.
+    // VH-066: analizar-mueble sin LLM: una propuesta fija; `f.catalogoFuente` se sustituye por prueba
+    // ('cliente-fallback' = el catálogo central no estuvo, la UI debe avisar).
+    if (ruta === '/functions/v1/analizar-mueble') {
+      return json(route, { ok: true, request_id: 'req-mueble-1', catalogoFuente: f.catalogoFuente || 'canonico', propuesta: f.propuesta || {
+        producto: 'Mesa de prueba', tipo: 'mesa', descripcionCliente: 'Mesa de prueba', materiales: [], volumenAsumido: '', confianzaGeneral: 'media', informe: '', preguntas: [],
+        piezas: [{ nombre: 'Cubierta', insumoId: '', material_solicitado: 'MDF 16 mm', material_match: 'NOT_AVAILABLE', forma: 'area', largoMM: 1200, anchoMM: 600, cantidad: 1, hojas: 0, confianza: 'media', nota: '', razonamiento: '', semantic_role: 'top' }],
+      } });
+    }
     // VH-064: como la edge v11, viaja `floorSpec.validation`; `f.validacionPlano` se sustituye por prueba.
     if (ruta === '/functions/v1/leer-plano') {
       if (f.validacionPlano?.state === 'FAIL') return json(route, { ok: false, code: 'FLOOR_SPEC_INVALID', error: 'La lectura del plano no pasó la validación geométrica determinista.', lectura: f.lectura, floorSpec: { validation: f.validacionPlano }, request_id: 'req-fail-1' }, 422);

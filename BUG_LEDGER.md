@@ -58,6 +58,15 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 100% de las llamadas del navegador.** `AsistenteEspecial.jsx:179` mandaba `{...b}` con `margen`/`modeloCosteo`;
 `validarIntentCosteo` respondía `FORBIDDEN_FINANCIAL_FIELD`. Pendiente VERIFIED en vivo (shadow_costeo).
 
+**VH-066 · P2 · FIXED · El Modo avanzado (Costeador) callaba cuando `analizar-mueble` usó el catálogo de respaldo.**
+La edge devuelve `catalogoFuente: 'cliente-fallback'` cuando el catálogo central no estuvo y la IA ancló materiales
+con las pistas locales del navegador (#8, 2026-10-04). El Asistente especial ya avisaba "no cotices en firme"; el
+Costeador ignoraba el campo y presentaba el despiece igual que uno canónico. Fix: estado `catalogoFuente` + alerta
+ámbar (`data-testid=catalogo-fallback`) con el mismo texto que el Asistente especial. e2e nuevo
+`costeadorCatalogo.e2e.js` (2) con ruta `analizar-mueble` en la nube falsa (propuesta fija, sin LLM). Pendiente de
+decisión: unificar la alerta en un componente único para ambas pantallas (hoy el texto está duplicado a propósito
+para no tocar el Asistente especial en este tramo).
+
 **VH-065 · P1 · OPEN (edge, requiere aprobación para redesplegar) · `analizar-mueble` v32 no valida la propuesta
 de la IA en el servidor.** Leída completa 2026-10-11 (index.ts 579 líneas + requestPlan/modelConfig/telemetria).
 Lo bueno: no devuelve ningún precio (el motor costea), auth real por `permitidos`, límites 40/h usuario y 400/h
