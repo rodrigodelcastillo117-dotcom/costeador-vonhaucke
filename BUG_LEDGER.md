@@ -54,9 +54,32 @@ migración en producción** (decisión de Rodrigo; hoy el servidor real sigue pi
 Dirección con todo menos nómina y finanzas), con id/clave para seguir editando LA MISMA cotización en otra
 computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fila.
 
-**VH-036 · P1 · OPEN · `costear-servidor` rechaza el 100% de las llamadas del navegador.**
-`AsistenteEspecial.jsx:179` manda `{...b}` con `margen`/`modeloCosteo`; `validarIntentCosteo` responde
-`FORBIDDEN_FINANCIAL_FIELD`. La comparación "sombra" nunca ha recibido una respuesta del servidor.
+**VH-036 · P1 · FIXED (entrada original; la resolución está más abajo, VH-041) · `costear-servidor` rechazaba el
+100% de las llamadas del navegador.** `AsistenteEspecial.jsx:179` mandaba `{...b}` con `margen`/`modeloCosteo`;
+`validarIntentCosteo` respondía `FORBIDDEN_FINANCIAL_FIELD`. Pendiente VERIFIED en vivo (shadow_costeo).
+
+**VH-049 · P1 · OPEN (decisión de Dirección) · Una copia vieja de la app se sirve públicamente sin sesión.** La
+función edge `app` (v4, `verify_jwt:false`, ago-2026) hace `fetch` de `storage/v1/object/public/app/index.html`
+(3,217,765 bytes, actualizado 2026-08-19) y lo devuelve como HTML. Es un build de un solo archivo de hace dos
+meses: fórmulas, compuertas y pantallas viejas, alcanzable por cualquiera con la URL. El bucket `app` es público
+y tiene 242 objetos (22.6 MB). La app vigente se sirve desde Vercel. Propuesta: borrar la función `app` y, si
+nadie depende de ese bucket, hacerlo privado o vaciarlo. No se toca sin aprobación expresa (mandato §10). Mientras,
+`voni-council` (la única edge que el cliente invoca y no estaba en el repo) quedó versionada tal cual (v12).
+
+**VH-048 · P1 · FIXED · La nube falsa de E2E respondía `estado:'EMITIBLE'` a `cotizacion_emitible`, un
+estado que el servidor no emite; la decisión de bloquear en Cotizacion usaba el veredicto crudo del servidor
+en vez de la compuerta fundida.** Con 'EMITIBLE' el cliente real habría bloqueado la emisión ("No se puede
+emitir: EMITIBLE"); ningún E2E ejercitaba la emisión. Fix: `e2e/nubeFalsa.js` implementa `evaluarEmision`
+con la MISMA lectura que `private_api.evaluar_emision_cotizacion` (línea 1-based, identidad en tres grafías,
+costo sólo de la fila persistida, `costoEstado`, margen mínimo 25, estados BLOCKED/ECONOMICS_INCOMPLETE/
+APPROVAL_REQUIRED/ALLOWED), `cotizacion_emitible`, `emitir_revision(_v2)` (gate ALLOWED, total = escalera
+exacta, precioLista = Σ round(pu×cant,2), dedup por hash, `generado_v2`) y `cotizacion_revisiones_seguras`
+(sin economía para quien no la ve). `Cotizacion.conCandado` decide con `combinarGate(local, servidor)`.
+Certificación `e2e/emision.e2e.js` (3): Dirección sana → "Lista para emitir" → el PDF baja Y el servidor
+conserva la revisión con el snapshot emitido y el total exacto; vendedor sin precio → botón bloqueado antes de
+preguntar, motivo a la vista, servidor coincide; costo desconocido (sólo el servidor lo sabe) → "Faltan datos
+para cotizar", el PDF NO sale, 0 revisiones, `emitir_revision` nunca se llama. También: `pdfPropuesta` tenía
+dos helpers URL→dataUrl (uno mío de VH-046); queda uno. Suite · 13 E2E · build.
 
 **VH-047 · P1 · FIXED · Cuatro compuertas de emisión en el cliente con cuatro vocabularios; el servidor leía
 una clave de costo que el cliente nunca escribía.** El servidor es la autoridad (`private_api.evaluar_emision_cotizacion`
@@ -75,8 +98,8 @@ razones unidas; si el servidor no respondió se dice `servidorConsultado:false`)
 Cotizacion.jsx usa una sola evaluación para botones, banner, chips por línea y "¿por qué no puedo emitir?". El
 contrato de partida escribe `costoEstado` (la clave del servidor; acepta la grafía vieja) y `validarPartida` lo
 marca. `textoRazonEmision` cubre TODOS los códigos del servidor (antes `costo_no_certificado`, `ingenieria_preliminar`,
-`precio_especial_no_autoritativo`, `descuento_invalido`… salían crudos al vendedor). Pendiente (requiere migración
-aprobada): que el servidor acepte también `estadoCosto` para las cotizaciones ya guardadas con esa clave. Tests:
+`precio_especial_no_autoritativo`, `descuento_invalido`… salían crudos al vendedor). Verificado después en producción (lectura): 0 de 2,456 renglones traen `estadoCosto` o `costoEstado`, así que NO
+hace falta migración del servidor; a partir de este commit las líneas nuevas llevan la clave que el servidor lee. Tests:
 emision 13 (incluye "ningún código del servidor sale crudo ni con cifras"). Suite 1,120 · E2E · build.
 
 **VH-046 · P1 · FIXED · Las imágenes del acomodo (render 3D, foto amueblada, escenas, foto del usuario) vivían

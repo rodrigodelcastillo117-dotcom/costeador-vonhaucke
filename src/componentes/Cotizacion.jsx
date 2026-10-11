@@ -264,9 +264,12 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         try { g = await verificarEmision(); } catch (e) { g = { estado: 'DESCONOCIDO' }; }
         setGateCargando(false);
         setGate(g);
-        if (g && g.estado && g.estado !== 'ALLOWED' && g.estado !== 'DESCONOCIDO') {
+        // VH-047: la decisión sale de la compuerta única (servidor+local). Si el servidor
+        // no respondió con un estado conocido, no bloquea aquí: la DB re-evalúa al registrar.
+        const gv = combinarGate(gateLocal, g);
+        if (gv.servidorConsultado && gv.estado !== 'ALLOWED') {
           setVerPorque(true);
-          setPdfErr(`No se puede emitir: ${(ESTADO_EMISION[g.estado] || {}).titulo || g.estado}`);
+          setPdfErr(`No se puede emitir: ${(ESTADO_EMISION[gv.estado] || {}).titulo || gv.estado}`);
           return;
         }
       }

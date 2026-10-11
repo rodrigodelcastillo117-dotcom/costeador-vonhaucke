@@ -67,6 +67,68 @@ export const LECTURA_EJEMPLO = {
   puertas: [], escala: 'cota general 16.00 m', notas: [],
 };
 
+// ---- Compuerta de emisión: la MISMA lectura que private_api.evaluar_emision_cotizacion
+// (ver supabase/schema/baseline/08_private_api.sql). Lo que la nube falsa no tiene
+// (Producto Maestro, aprobaciones, política comercial) se resuelve como lo haría una
+// base vacía: sin ProductVersion → `product_version_no_corresponde`; margen mínimo 25.
+const MARGEN_MIN = 25;
+const numDe = (x) => { if (x == null || x === '') return null; const n = Number(x); return Number.isFinite(n) ? n : null; };
+const txtDe = (x) => (x == null ? '' : String(x).trim());
+const enteroTxt = (s) => /^[0-9]+$/.test(s);
+export function hashSnapshot(snap) {
+  const t = snap?.totales || {}; const nz = (x) => Number(x) || 0;
+  const total = nz(t.precioLista) - nz(t.descuento) + nz(t.contingencia) + nz(t.maniobras) + nz(t.flete) + nz(t.iva);
+  const txt = JSON.stringify({ partidas: snap?.partidas ?? null, totales: snap?.totales ?? null, total, folio: snap?.folio ?? null, cliente: snap?.cliente ?? null, acomodo: snap?.acomodo ?? null });
+  let h = 5381; for (let i = 0; i < txt.length; i++) h = ((h << 5) + h + txt.charCodeAt(i)) >>> 0;
+  return h.toString(16).padStart(8, '0');
+}
+export function evaluarEmision(fila, snap) {
+  const reasons = [], econ = [], aprob = [];
+  const ps = Array.isArray(snap?.partidas) ? snap.partidas : null;
+  if (!ps) return { state: 'BLOCKED', reasons: ['snapshot_sin_partidas'] };
+  const db = fila.partidas || [];
+  if (!ps.length) reasons.push('snapshot_sin_partidas');
+  if (ps.length !== db.length) reasons.push('partidas_no_corresponden_a_cotizacion');
+  ps.forEach((p0, i) => {
+    const p = p0 || {}; const n = i + 1;
+    const qty = numDe(p.cantidad), price = numDe(p.precioUnitario);
+    if (qty == null || qty <= 0) reasons.push(`linea_${n}_cantidad_invalida`);
+    if (price == null || price <= 0) reasons.push(`linea_${n}_precio_invalido`);
+    const d = db[i]; if (!d) { reasons.push(`linea_${n}_sin_correspondencia`); return; }
+    const idDe = (x) => txtDe(x.id) || txtDe(x.piezaId) || txtDe(x.producto_id) || txtDe(x.productoId) || txtDe(x.nombre);
+    if (!idDe(p) || !idDe(d) || idDe(p) !== idDe(d)) { reasons.push(`linea_${n}_identidad_no_coincide`); return; }
+    const pidTxt = txtDe(p.producto_id) || txtDe(p.productoId) || txtDe(p.product_id);
+    const pvidTxt = txtDe(p.producto_version_id) || txtDe(p.productoVersionId) || txtDe(p.product_version_id);
+    const pid = enteroTxt(pidTxt) ? Number(pidTxt) : null;
+    const pvid = enteroTxt(pvidTxt) ? Number(pvidTxt) : null;
+    if (pidTxt && pid == null && pvidTxt) reasons.push(`linea_${n}_producto_id_invalido`);
+    if (pvidTxt && pvid == null) reasons.push(`linea_${n}_producto_version_id_invalido`);
+    if (pid != null && pvid == null) reasons.push(`linea_${n}_sin_product_version_id`);
+    if (pid == null && pvid != null) reasons.push(`linea_${n}_sin_product_id`);
+    let cost = null;
+    if (pid != null && pvid != null) reasons.push(`linea_${n}_product_version_no_corresponde`);   // la nube falsa no tiene Producto Maestro
+    else {
+      // Legacy: el costo sale SOLO de la fila persistida; el veredicto, de `costoEstado`.
+      cost = numDe(d.costoUnitario);
+      const ce = txtDe(d.costoEstado).toLowerCase();
+      if (ce === 'preliminar') econ.push(`linea_${n}_costo_preliminar_no_certificado`);
+      else if (ce === 'incompleto' || ce === 'bloqueado') econ.push(`linea_${n}_costo_no_certificado`);
+    }
+    if (cost == null || cost <= 0) { if (!(pid != null && econ.length)) econ.push(`linea_${n}_costo_desconocido`); }
+    else if (price != null && price > 0) {
+      const m = ((price - cost) / price) * 100;
+      if (price < cost) aprob.push(`linea_${n}_precio_bajo_costo`);
+      else if (m < MARGEN_MIN) aprob.push(`linea_${n}_margen_bajo_${MARGEN_MIN}`);
+    }
+  });
+  const u = (a) => [...new Set(a)];
+  const base = { hash: hashSnapshot(snap), approval_reasons: u(aprob), margen_minimo_pct: MARGEN_MIN };
+  if (reasons.length) return { state: 'BLOCKED', reasons: u(reasons), economics: u(econ), ...base };
+  if (econ.length) return { state: 'ECONOMICS_INCOMPLETE', reasons: u(econ), ...base };
+  if (aprob.length) return { state: 'APPROVAL_REQUIRED', reasons: u(aprob), ...base };   // sin tabla de aprobaciones: nunca aprobada
+  return { state: 'ALLOWED', reasons: [], ...base };
+}
+
 export function crearNubeFalsa({ usuarios }) {
   const permitidos = new Map(Object.entries(usuarios));   // email → rol
   const f = {
@@ -74,6 +136,7 @@ export function crearNubeFalsa({ usuarios }) {
     idempotencia: new Map(),     // `${email}|${key}` → { id, hash }
     siguienteId: 100,
     creates: 0, updates: 0, llamadas: [],
+    revisiones: [],              // cotizaciones_revisiones (lo que emitir_revision conservó)
     caida: false,                // true = la red "se cayó": todo falla
     lectura: LECTURA_EJEMPLO,
     permitidos,
@@ -144,7 +207,37 @@ export function crearNubeFalsa({ usuarios }) {
         return json(route, mias);
       }
       if (fn === 'cotizacion_segura') return json(route, segura(body.p_id, email));
-      if (fn === 'cotizacion_emitible') return json(route, { ok: true, estado: 'EMITIBLE', motivos: [] });
+      if (fn === 'cotizacion_emitible') {
+        const c = f.filas.get(Number(body.p_cotizacion_id));
+        if (!c) return json(route, { ok: false, estado: 'BLOCKED', motivos: ['no_existe'] });
+        const g = evaluarEmision(c, { partidas: c.partidas, totales: c.totales || {}, total: c.total });
+        return json(route, { ok: g.state === 'ALLOWED', estado: g.state, motivos: g.reasons || [], economics: g.economics || [], hash: g.hash });
+      }
+      if (fn === 'emitir_revision' || fn === 'emitir_revision_v2') {
+        const c = f.filas.get(Number(body.p_cotizacion_id)); const snap = body.p_snapshot;
+        if (!c) return err(route, `emitir_revision_v2: la cotizacion ${body.p_cotizacion_id} no existe`);
+        if (!(c.usuario === email || editaConfig(email))) return err(route, 'emitir_revision_v2: sin permiso sobre la cotizacion');
+        if (!snap || !Array.isArray(snap.partidas) || !snap.partidas.length) return err(route, 'emitir_revision_v2: snapshot sin partidas');
+        const g = evaluarEmision(c, snap);
+        if (g.state !== 'ALLOWED') return err(route, `emitir_revision_v2: emisión bloqueada [${g.state}]: ${JSON.stringify(g.reasons)}`);
+        const t = snap.totales || {}; const nz = (x) => Number(x) || 0; const r2 = (x) => Math.round(x * 100) / 100;
+        const total = r2(nz(t.precioLista) - nz(t.descuento) + nz(t.contingencia) + nz(t.maniobras) + nz(t.flete) + nz(t.iva));
+        if (snap.total == null || r2(Number(snap.total)) !== total) return err(route, `emitir_revision_v2: el total (${snap.total}) no es la suma exacta del desglose (${total})`);
+        const plExact = r2(snap.partidas.reduce((s, x) => s + r2(nz(x.precioUnitario) * nz(x.cantidad)), 0));
+        if (r2(nz(t.precioLista)) !== plExact) return err(route, `emitir_revision_v2: precioLista (${t.precioLista}) no coincide con la suma de partidas (${plExact})`);
+        const ult = f.revisiones.filter((r) => r.cotizacion_id === c.id).sort((a, b) => b.revision - a.revision)[0];
+        if (ult && ult.hash === g.hash) return json(route, { revision: ult.revision, nueva: false, total, v: 2, gate: 'ALLOWED' });
+        const rev = (ult?.revision || 0) + 1;
+        f.revisiones.push({ id: f.revisiones.length + 1, cotizacion_id: c.id, folio: c.folio ?? null, cliente: c.cliente ?? null, revision: rev, emitida_en: new Date().toISOString(), usuario: email, total, hash: g.hash, snapshot: snap, tipo: 'generado_v2' });
+        return json(route, { revision: rev, nueva: true, total, v: 2, gate: 'ALLOWED' });
+      }
+      if (fn === 'cotizacion_revisiones_seguras') {
+        const id = Number(body.p_cotizacion_id); const c = f.filas.get(id);
+        if (!c) return err(route, 'no autorizado');
+        if (!(c.usuario === email || editaConfig(email))) return err(route, 'sin acceso');
+        const lista = f.revisiones.filter((r) => r.cotizacion_id === id).sort((a, b) => b.revision - a.revision).map((r) => (veEconomia(email) ? r : sinEconomia(r)));
+        return json(route, lista);
+      }
       if (fn === 'crear_cotizacion_segura') {
         const p = body.p_payload || {};
         if (p.estado && p.estado !== 'borrador') return err(route, 'estado protegido; use el flujo de emision');

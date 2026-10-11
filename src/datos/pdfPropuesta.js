@@ -864,25 +864,14 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
 // Baja los renders del catálogo y los deja en base64 para meterlos al PDF.
 // Si alguno no se puede traer, ese renglón sale SIN foto en vez de tumbar la
 // descarga entera: el vendedor necesita su PDF aunque falte una imagen.
-async function aDataUrl(url) {
-  if (typeof url !== 'string') return null;
-  if (url.startsWith('data:')) return url;
-  const r = await fetch(url);
-  if (!r.ok) return null;
-  const b = await r.blob();
-  return await new Promise((res) => {
-    const fr = new FileReader();
-    fr.onload = () => res(String(fr.result));
-    fr.onerror = () => res(null);
-    fr.readAsDataURL(b);
-  });
-}
 export async function cargarFotos(partidas, urlDe) {
   const fotos = {};
   await Promise.all((partidas || []).map(async (pt) => {
     const url = urlDe?.(pt);
     if (!url) return;
-    try { const d = await aDataUrl(url); if (d) fotos[pt.id] = d; } catch (e) { /* sin foto, con su renglón completo igual */ }
+    if (url.startsWith('data:')) { fotos[pt.id] = url; return; }
+    const d = await aDataURL(url);   // nunca lanza: sin foto, con su renglón completo igual
+    if (d) fotos[pt.id] = d;
   }));
   return fotos;
 }
@@ -890,7 +879,7 @@ export async function cargarFotos(partidas, urlDe) {
 // cotización; el PDF (jsPDF.addImage) necesita dataUrl. Se resuelven AQUÍ, al
 // dibujar, y nunca de vuelta al estado. Los dataUrl legacy pasan igual.
 export function cargarImagenesAcomodo(acomodo) {
-  return resolverImagenesAcomodo(acomodo, { traer: aDataUrl });
+  return resolverImagenesAcomodo(acomodo, { traer: aDataURL });
 }
 
 // Genera y DESCARGA el archivo. Devuelve el nombre por si hay que decirlo.

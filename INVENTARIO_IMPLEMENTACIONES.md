@@ -42,7 +42,7 @@ Leyenda de "prod": archivos de producción que la consumen (sin contar el archiv
 | `politicaVH.costoFabVH` | RETIRAR (propuesta) | prod 0; duplica Alba con otros factores. |
 | `cotizarLinea.cotizarArticulo`, `resolverComponentes.cotizarPorComponentes` | RETIRAR (propuesta) | prod 0 (solo se definen). |
 | `costoImplicito` (5 variantes de costo derivado del precio) | CONSOLIDAR → marcar `costoDerivado` siempre | prod 4; hoy `claseCosto` los etiqueta "real". |
-| 10 compuertas de emisión (senales ×2, voniContext, excluidas, candado, RPC `cotizacion_emitible`, `emitir_revision`, `bajoPiso`, `hayLineaInvalida`, `costeoEmitible`) | CONSOLIDADO (2026-10-11, VH-047) → servidor `evaluar_emision_cotizacion` (autoridad) + 1 proyección cliente `datos/emision.js` (`evaluarEmisionLocal`, `combinarGate`) | senales ×2, voniContext, excluidas y la lectura del RPC derivan de `emision.js`. `candado` es confirmación (no decide), `hayLineaInvalida`/`bajoPiso` son banderas de pantalla ya cubiertas por los códigos `precio_invalido`/aprobación del servidor, `costeoEmitible` es del motor de costeo. Pendiente servidor: aceptar `estadoCosto` legacy (migración). |
+| 10 compuertas de emisión (senales ×2, voniContext, excluidas, candado, RPC `cotizacion_emitible`, `emitir_revision`, `bajoPiso`, `hayLineaInvalida`, `costeoEmitible`) | CONSOLIDADO (2026-10-11, VH-047) → servidor `evaluar_emision_cotizacion` (autoridad) + 1 proyección cliente `datos/emision.js` (`evaluarEmisionLocal`, `combinarGate`) | senales ×2, voniContext, excluidas y la lectura del RPC derivan de `emision.js`. `candado` es confirmación (no decide), `hayLineaInvalida`/`bajoPiso` son banderas de pantalla ya cubiertas por los códigos `precio_invalido`/aprobación del servidor, `costeoEmitible` es del motor de costeo. Sin migración necesaria: producción tiene 0 renglones con `estadoCosto`/`costoEstado`. |
 | RPC `emitir_revision` (legacy) usado por el cliente | SIN ACCIÓN: en producción ya es un alias de `emitir_revision_v2` (verificado 2026-10-11) | |
 | `asignar_folio_oficial`, `resolver_precio_autorizado`, `vincular_cotizacion`, `producto_cotizable` | CONSERVAR y CONECTAR | Existen en la base, el cliente no los llama; el folio del PDF es texto libre. |
 | `aprobaciones.js` + RPCs `solicitar_*/resolver_aprobacion` | CONSOLIDAR | Cliente escribe la tabla `aprobaciones` directo (crm.js); la máquina de estados no tiene consumidor real. |
@@ -102,12 +102,12 @@ Leyenda de "prod": archivos de producción que la consumen (sin contar el archiv
 
 | Función (prod) | ¿La invoca el cliente? | Clase |
 |---|---|---|
-| `app` (**verify_jwt: false**, v4, ago-2026) | No | RETIRAR tras confirmar que no la usa el hosting del index |
+| `app` (**verify_jwt: false**, v4, ago-2026) | No | RETIRAR (decisión de Dirección). Leído 2026-10-11: sirve públicamente `storage/app/index.html` (3.2 MB, build de un solo archivo del 19-ago-2026; el bucket `app` tiene 242 objetos, 22.6 MB). Es una COPIA VIEJA de la app accesible sin sesión; la app vigente vive en Vercel. |
 | `bootstrap-temp-claude` (v5, ago-2026) | No | RETIRAR (nombre sugiere arranque temporal de una sesión de IA) |
 | `costear-vision` | No | RETIRAR o versionar |
 | `analizar-mueble-strict`, `leer-plano-strict`, `acomodar-espacio-strict`, `generar-render-strict` | No | RETIRAR (variantes paralelas) |
 | `leer-plano-core` | No | Decidir: ¿es la base de `leer-plano` v11? |
-| `voni-council` (v12) | **Sí** | CONSERVAR y **versionar en el repo** (su código no existe aquí) |
+| `voni-council` (v12) | **Sí** | CONSERVAR · VERSIONADA (2026-10-11): `supabase/functions/voni-council/index.ts` es el volcado exacto de la v12 desplegada. |
 | `voni-council-health` | No | RETIRAR o versionar |
 | `acomodar-espacio-recovery` (v6, actualizado hoy) | No | Decidir |
 | `analizar-mueble-preview` | No | RETIRAR (variante) |
