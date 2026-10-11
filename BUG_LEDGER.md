@@ -172,7 +172,7 @@ verificadas) + `servidor {estado, metodo, requestId, calidad}` sellado en el pla
 NO cuenta como puertas verificadas aunque el servidor diga VERIFIED (no había nada que verificar). Pruebas: 8 unit,
 2 e2e (FAIL y PARTIAL con nube falsa). No se tocó la edge.
 
-**VH-068 · P2 · OPEN (edge, requiere aprobación para redesplegar) · Huecos de validación en `acomodar-espacio` v9.**
+**VH-068 · P2 · FIXED (edge v10 DESPLEGADA 2026-10-11 con aprobación expresa "Desplegar A5") · Huecos de validación en `acomodar-espacio` v9.**
 Medido en el código desplegado: (a) el encimado contra OBSTÁCULOS (columnas) sólo se revisa para piezas con
 `spatial_spec` de clearance (`usoInvadido` gated por `requiereClearance`, index.ts:344-346); una reparación de la IA
 que ponga una guarda sobre una columna pasa `evaluar`; (b) `evaluar` pasa el área CRUDA del cliente a
@@ -188,6 +188,15 @@ importa y que discrepa del vivo (ése sí revisa obstáculos para toda pieza): c
 Propuesta (no aplicada): usar `_g` + obstáculos para toda pieza en `evaluar`, puertas ausentes ⇒ REVIEW_REQUIRED,
 `model_error` en la respuesta, insertar `ai_eventos` al inicio (como leer-plano), borrar el validador muerto.
 
+Cierre (2026-10-11): v10 corrige (a)–(f) y (g) quedó retirado en B6. Despliegue verificado: re-descarga comparada con el repo
+(3 archivos idénticos; `spatial-semantics.js` sólo difiere en el escape `\u0300-\u036f` de la regex, misma clase de caracteres).
+En vivo con qa-direccion: sin JWT 401; rectángulo 6000×4000 sin puertas con bench + 4 sillas ⇒ 5/5 colocadas,
+`status REVIEW_REQUIRED`, `puertas {total:0, verificadas:false, status:NONE}`, recomendación "El plano no trae puertas";
+cuarto en L (polígono 6 vértices) con puerta ⇒ `PASS`, escritorio y silla dentro de la L (comprobado por geometría
+independiente), `puertas VERIFIED`; `ai_eventos` ahora trae `modo repair-loop-v10`, `duration_ms` y `model_status`
+(las filas v8 traían `duration_ms null`). El encabezado del archivo sigue diciendo "PENDIENTE DE DESPLEGAR" a propósito:
+cambiarlo rompería la identidad byte a byte repo↔desplegado; se corrige en el siguiente redeploy que toque la función.
+
 **VH-066 · P2 · FIXED · El Modo avanzado (Costeador) callaba cuando `analizar-mueble` usó el catálogo de respaldo.**
 La edge devuelve `catalogoFuente: 'cliente-fallback'` cuando el catálogo central no estuvo y la IA ancló materiales
 con las pistas locales del navegador (#8, 2026-10-04). El Asistente especial ya avisaba "no cotices en firme"; el
@@ -197,7 +206,7 @@ Costeador ignoraba el campo y presentaba el despiece igual que uno canónico. Fi
 decisión: unificar la alerta en un componente único para ambas pantallas (hoy el texto está duplicado a propósito
 para no tocar el Asistente especial en este tramo).
 
-**VH-065 · P1 · OPEN (edge, requiere aprobación para redesplegar) · `analizar-mueble` v32 no valida la propuesta
+**VH-065 · P1 · FIXED (edge v33 DESPLEGADA 2026-10-11 con aprobación expresa "Desplegar A4") · `analizar-mueble` v32 no validaba la propuesta
 de la IA en el servidor.** Leída completa 2026-10-11 (index.ts 579 líneas + requestPlan/modelConfig/telemetria).
 Lo bueno: no devuelve ningún precio (el motor costea), auth real por `permitidos`, límites 40/h usuario y 400/h
 global fail-closed, modelo en lista blanca. Lo que falta, con línea: (a) `propuesta = JSON.parse(texto)` se regresa
@@ -213,6 +222,15 @@ y `motor/calculo` marca piezas sin medidas o sin precio como PENDIENTE (costeo I
 el servidor no inventa precios y el cliente no costea en $0, pero la validación de forma debería vivir en la edge.
 Propuesta (no aplicada): validador determinista en la edge tras el parse (ids ∈ catálogo o `''`+NOT_AVAILABLE,
 números finitos ≥ 0, `canonicoOk = rc.ok && rp.ok`), y marcar las pistas del cliente como "(no certificado)".
+
+Cierre (2026-10-11): v33 desplegada con `sanearPropuesta` (ids fuera de catálogo → ''+NOT_AVAILABLE anotado, números no
+finitos → 0 anotado, EXACT sin id → NOT_AVAILABLE, match desconocido → corregido), pistas del cliente marcadas
+"(catálogo local del cliente, no certificado)", `canonicoOk` exige `catalogo_vigente` Y `insumos_catalogo`. Re-descarga
+comparada: 4/4 archivos byte-idénticos al repo. En vivo con qa-direccion: sin JWT 401; descripción de escritorio con un
+id falso en el `catalogo` del cliente ⇒ `ok`, 9 piezas todas con id canónico (el modelo no usó el id falso),
+`validacion {ok:true, ajustes:[], autoridad:SERVER_CATALOG}`, `catalogoFuente canonico`, `request_id`; `ai_eventos`
+status ok, `model_id claude-opus-5`, `catalog_count 260`, tokens 20738/3687, 40.7 s. Falta provocar en vivo un ajuste
+real del validador (el modelo no mordió el id falso); la lógica está cubierta por lectura, no por prueba viva.
 
 **VH-064 · P1 · FIXED · La app tiraba la validación determinista del servidor al leer planos.** La edge
 `leer-plano` v11 (leída 2026-10-11) revalida toda la salida de la IA y devuelve `floorSpec.validation` con
