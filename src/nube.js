@@ -7,6 +7,7 @@
 import { reglasTexto } from './datos/reglas.js';
 import { aprendizajesTexto } from './datos/aprendizaje.js';
 import { validarIntentCosteo, intentDesdePieza } from './datos/validarIntentCosteo.js';
+import { renderParaPartida } from './datos/renderPartida.js';
 import { createClient } from '@supabase/supabase-js';
 
 const URL = 'https://mtuvnbgljwbsaizjjgzs.supabase.co';
@@ -368,6 +369,11 @@ export async function subirRender(dataUrl, path) {
     const { data } = nube.storage.from('renders').getPublicUrl(path);
     return { ok: true, path, url: data?.publicUrl || null };
   } catch (e) { return { ok: false, error: String(e) }; }
+}
+
+// VH-045: render de UNA partida → Storage → URL. Nunca entrega base64 al estado.
+export function renderDePartida(pt) {
+  return renderParaPartida(pt, { generar: generarRender, subir: subirRender });
 }
 
 // Guarda la metadata del render (técnico, sin base64). Devuelve {ok, id}.

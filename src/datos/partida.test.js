@@ -69,3 +69,22 @@ describe('validarPartida', () => {
     expect(campos).toEqual(expect.arrayContaining(['nombre', 'cantidad', 'precioUnitario', 'producto_version_id', 'piezasSinMaterial', 'render', 'costoUnitario']));
   });
 });
+
+describe('VH-045: claves de enlace y legado se conservan', () => {
+  it('Dirección: loteIA, enlaces al acomodo y banderas legacy sobreviven al contrato', () => {
+    const p = crearPartida({ nombre: 'X', cantidad: 1, precioUnitario: 10, loteIA: 'L1', zone_id: 'z2', instance_id: 'i9', functional_group_id: 'g1', cost_status: 'KNOWN', precioProvisional: true, usuarios: 4 }, { veCostos: true });
+    expect(p).toMatchObject({ loteIA: 'L1', zone_id: 'z2', instance_id: 'i9', functional_group_id: 'g1', cost_status: 'KNOWN', precioProvisional: true, usuarios: 4 });
+  });
+  it('Vendedor: los enlaces se conservan; los de economía los quita la regla del servidor', () => {
+    const p = crearPartida({ nombre: 'X', cantidad: 1, precioUnitario: 10, loteIA: 'L1', zone_id: 'z2', cost_status: 'KNOWN', profit: 3, supplier: 'ACME' }, { veCostos: false });
+    expect(p).toMatchObject({ loteIA: 'L1', zone_id: 'z2' });
+    expect(p).not.toHaveProperty('cost_status');
+    expect(p).not.toHaveProperty('profit');
+    expect(p).not.toHaveProperty('supplier');
+  });
+  it('las claves ausentes no aparecen ni como undefined', () => {
+    const p = crearPartida({ nombre: 'X', cantidad: 1, precioUnitario: 10 }, { veCostos: true });
+    expect(Object.keys(p)).not.toContain('zone_id');
+    expect(Object.keys(p)).not.toContain('loteIA');
+  });
+});

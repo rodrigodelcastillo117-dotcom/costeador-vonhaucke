@@ -18,7 +18,7 @@ import { imagenPartida } from '../datos/imagenes.js';
 import VoniAvatar from './VoniAvatar.jsx';
 import { confianzaDe, textoConfianza } from '../datos/confianza.js';
 import { expandirPiezas, mapaPiezas } from '../datos/espacio.js';
-import { generarRender, analizarNegocio, resolverRendersCanonicos } from '../nube.js';
+import { generarRender, renderDePartida, analizarNegocio, resolverRendersCanonicos } from '../nube.js';
 import { estadoRenderPartida, claveRenderPartida, ESTADO_RENDER } from '../datos/renderCanonico.js';
 import { textoRazonEmision, ESTADO_EMISION, razonesPorLinea } from '../datos/emisionUX.js';
 import MontoAnimado from './MontoAnimado.jsx';
@@ -170,27 +170,30 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   }, []);
   const [editando, setEditando] = useState(null);   // índice de la partida que se edita
 
+  // VH-045: el render de una partida vive en Storage; en el estado SÓLO la URL.
+  // Antes se guardaba el base64 completo en `partida.render` (estado, respaldo y
+  // nube inflados; el contrato lo descartaba al reconstruir). Un solo camino para
+  // "una" y "todas": si algo falla se avisa y la partida se queda como estaba.
   async function renderPartida(i) {
     const pt = partidas[i]; if (!pt) return;
     setErrGen(''); setGenPart(pt.id);
     try {
-      const r = await generarRender(pt.nombre || 'mueble de oficina', { tipo: pt.ruta || '' });
-      if (r?.ok) setPartida(i, { render: r.dataUrl }); else setErrGen(r?.error || 'No se pudo generar el render.');
-    } catch (e) { setErrGen('No se pudo conectar.'); }
-    finally { setGenPart(null); }
+      const r = await renderDePartida(pt);
+      if (r.ok) setPartida(i, { render: r.url }); else setErrGen(r.error);
+    } finally { setGenPart(null); }
   }
   async function renderTodas() {
     setErrGen('');
     const ps = partidas.slice();
+    const fallas = [];
     for (let i = 0; i < ps.length; i++) {
       if (ps[i].render) continue;
       setGenPart(ps[i].id);
-      // ⚠️ CATCH VACÍO, INCONSISTENTE CON renderPartida (auditoría 2026-08-19):
-      // si truena la red a media tanda, esa pieza se quedaba sin imagen y sin
-      // aviso — la versión de "un solo render" (arriba) sí avisa.
-      try { const r = await generarRender(ps[i].nombre || 'mueble', { tipo: ps[i].ruta || '' }); if (r?.ok) ps[i] = { ...ps[i], render: r.dataUrl }; else if (r?.error) setErrGen(r.error); } catch (e) { setErrGen('No se pudo conectar.'); }
+      const r = await renderDePartida(ps[i]);
+      if (r.ok) ps[i] = { ...ps[i], render: r.url }; else fallas.push(`${ps[i].nombre || 'mueble'}: ${r.error}`);
     }
     setGenPart(null); setCot({ partidas: ps });
+    if (fallas.length) setErrGen(`Sin render en ${fallas.length} mueble(s): ${fallas.join(' · ')}`);
   }
   async function urlABase64(url) {
     try { const r = await fetch(url); const b = await r.blob(); return await new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.onerror = () => res(null); fr.readAsDataURL(b); }); } catch (e) { return null; }

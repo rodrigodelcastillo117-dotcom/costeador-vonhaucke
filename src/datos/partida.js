@@ -26,6 +26,23 @@ import { sinEconomiaServidor as sinEconomia } from './economia.js';
 
 export const ORIGENES = ['costeo', 'linea', 'ia', 'banco', 'catalogo', 'cocrear', 'addon', 'manual'];
 
+// VH-045: claves de ENLACE y LEGADO que viven en renglones reales de producción
+// (inventario 2026-10-11 sobre 673 cotizaciones / 2,456 renglones) y que el
+// contrato no interpreta pero SÍ conserva tal cual. Sin esto, editar un renglón
+// viejo con el diálogo lo dejaba sin su lote de IA, sin sus enlaces al acomodo
+// (zona/instancia/grupo) y sin sus banderas de estado. Para el vendedor, las que
+// son economía (`cost_status`, `profit`, `supplier`…) las quita después la misma
+// regla del servidor (sinEconomiaServidor), no esta lista.
+export const CLAVES_ENLACE = [
+  'loteIA',
+  'zone_id', 'instance_id', 'anchor_instance_id', 'anchor_role', 'functional_group_id', 'relation_role',
+  'requirement_id', 'user_capacity', 'evidence', 'plan_tag', 'plan_source_ref', 'grouping', 'placement_profile',
+  'identity_status', 'price_status', 'product_status', 'cost_status', 'product_source_ref', 'source',
+  'bancoId', 'usuarios', 'precioAutorizado', 'precioProvisional', 'costoDesconocido', 'costoPendiente',
+  'descuento', 'supplier', 'profit',
+];
+const enlaces = (e) => Object.fromEntries(CLAVES_ENLACE.filter((k) => e[k] !== undefined).map((k) => [k, e[k]]));
+
 const num = (x) => (x == null || x === '' ? NaN : Number(x));
 const precioValido = (x) => (Number.isFinite(num(x)) && num(x) > 0 ? num(x) : null);
 const entero1 = (x) => Math.max(1, Math.round(Number.isFinite(num(x)) ? num(x) : 1));
@@ -50,6 +67,7 @@ export function crearPartida(entrada = {}, { veCostos = false, origen } = {}) {
   const lista_precio_item_id = e.lista_precio_item_id ?? e.listaPrecioItemId ?? null;
   const render = typeof e.render === 'string' && /^https?:\/\//.test(e.render) ? e.render : null;
   const base = {
+    ...enlaces(e),
     id: e.id || idNuevo('p'),
     origen: origen && ORIGENES.includes(origen) ? origen : inferirOrigen(e),
     piezaId: e.piezaId ?? null,

@@ -58,6 +58,26 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 `AsistenteEspecial.jsx:179` manda `{...b}` con `margen`/`modeloCosteo`; `validarIntentCosteo` responde
 `FORBIDDEN_FINANCIAL_FIELD`. La comparación "sombra" nunca ha recibido una respuesta del servidor.
 
+**VH-045 · P1 · FIXED · El render de una partida se guardaba en base64 dentro del estado; el diálogo de
+edición armaba el renglón a mano; el contrato tiraba claves que sí existen en producción.** Tres hallazgos
+sobre el contrato de VH-044, verificados contra producción (lectura, sin escribir): (1) `Cotizacion.jsx`
+escribía `render: dataUrl` al generar renders — 8 renglones en producción cargan base64 hoy — y el contrato lo
+descartaba al reconstruir, así que el render "se perdía" al reabrir. Ahora `datos/renderPartida.js`
+(`renderParaPartida`, puro, con `generar`/`subir` inyectados) sube la imagen al bucket público `renders`
+(`partidas/<id>/<ts>.<ext>`, mimes png/jpeg/webp que el bucket acepta) y en la partida sólo vive la URL; si
+Storage falla NO se guarda nada y se avisa por mueble; "una" y "todas" comparten el camino (el catch vacío de
+`renderTodas` desaparece). (2) `EditarPartida` armaba el renglón a mano: ahora `partidaEditada()` →
+`crearPartida` con `veCostos = !soloVentas` y lleva completitud del costeo (`piezasSinMaterial`, `estadoCosto`);
+precio null (costeo incompleto) ya no produce un delta `NaN` en pantalla. (3) **Me equivoqué en VH-044**: el
+inventario de claves sobre 673 cotizaciones / 2,456 renglones muestra 29 claves que el contrato no conocía
+(`loteIA`, `zone_id`, `instance_id`, `functional_group_id`, `cost_status`, `usuarios`, `precioProvisional`…).
+La reapertura las conservaba por no pasar por el contrato, pero editar un renglón viejo las habría borrado.
+`CLAVES_ENLACE` las conserva tal cual (no se interpretan); al vendedor, las económicas las sigue quitando la
+regla del servidor. La reapertura desde el Archivo sigue siendo passthrough A PROPÓSITO: normalizar renglones
+legacy al abrir y guardarlos reescritos sería alterar datos legacy (mandato §6). `acomodo.render3d` sigue en
+base64 (es del acomodo, no de la partida): pendiente, misma receta. Tests: renderPartida 6, EditarPartida
+contrato 4, partida +3. Suite 1,100 · E2E · build.
+
 **VH-044 · P1 · FIXED · Ocho formas de construir una partida; identidad de producto perdida; costo al
 vendedor por Banco.** Contrato único `datos/partida.js` (`crearPartida`, `validarPartida`): los 6 constructores
 de App.jsx (costeo, addons, modo avanzado, Voni/IA, Banco, artículo de línea) pasan por él. Unifica las tres
