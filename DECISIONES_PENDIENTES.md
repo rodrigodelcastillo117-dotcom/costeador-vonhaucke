@@ -22,23 +22,23 @@ Convención de esfuerzo: **S** (< 2 h con prueba), **M** (medio día), **L** (bl
 | A9 | `cotizar-servidor` v6 desplegada sin ningún caller en el cliente | 0 `invoke` en `src`; duplica en parte `evaluar_emision_cotizacion` | Cablear (bloque LÍNEA V2) o retirar | Código desplegado que nadie prueba | Retirar: nulo. Cablear: L | S / L |
 | A10 · VH-051 | 165 de 259 insumos del servidor sin precio certificado por Compras | Medido 2026-10-10 | Backlog de certificación (Compras) | La IA ancla materiales que el motor no puede costear (quedan PENDIENTE, correcto pero inútil) | Ninguno técnico | Compras |
 
-## B. Cliente — retirar código (cada uno con prueba de regresión antes)
+## B. Cliente — retirar código (cada uno con prueba de regresión antes) · **B1–B10 EJECUTADOS 2026-10-11** (10 commits en la rama; vitest 1,208 → 1,165 por los tests retirados)
 
 Re-verificado hoy con `grep` de importadores fuera de tests. **Dos filas del inventario estaban mal y ya se corrigieron**:
 `evidencia.js` SÍ se usa (flag `costing_ai_v2`) y `componentesSinMaterial` es respaldo interno del motor. No se retiran.
 
 | # | Qué | Importadores en producción | Propuesta |
 |---|-----|---------------------------|-----------|
-| B1 | `scopeModel.js` | 0 | Retirar con sus tests |
-| B2 | `politicaVH.costoFabVH` | 0 (sólo su definición) | Retirar; duplica Alba con otros factores |
-| B3 | `cotizarLinea.cotizarArticulo`, `resolverComponentes.cotizarPorComponentes` | 0 | Retirar |
-| B4 | `floorSpec.validarFloorSpec` / `validarEnvolvente` | 0 | Retirar: la validación determinista vive en la edge y el cliente ya la consume (VH-064) |
-| B5 | `planner.empacarFilas`, `guardasAMuro`, `MEET_CLR` | 0 | Retirar |
-| B6 | `acomodo-core.acomodarConReparacion` (repo y edge) | 0 | Retirar (va con A5) |
-| B7 | `datos/voni.voniTurno` | 0 (3 tests prueban código que no corre) | Retirar con sus tests |
-| B8 | `CocrearV2.jsx` | 0 | Retirar (V3 es el camino) |
-| B9 | `aprendizaje.leccionDeQuita` / `leccionDeCambio` | 0 | Retirar |
-| B10 | `humo.jsx`, `plano.jsx` | No son entradas de Vite; `plano.jsx` importa `Voni2` | Retirar |
+| B1 | **HECHO 2026-10-11** · `scopeModel.js` + tests | 0 | commit propio; suite + build en verde antes y después |
+| B2 | **HECHO 2026-10-11** · `politicaVH.costoFabVH` + tests | 0 | commit propio; suite + build en verde antes y después |
+| B3 | **HECHO 2026-10-11** · `cotizarLinea.js` + `resolverComponentes.cotizarPorComponentes` + tests | 0 | commit propio; suite + build en verde antes y después |
+| B4 | **HECHO 2026-10-11** · `floorSpec.validarFloorSpec/validarEnvolvente` + tests | 0 | commit propio; suite + build en verde antes y después |
+| B5 | **HECHO 2026-10-11** · `planner.empacarFilas/guardasAMuro/MEET_CLR` | 0 | commit propio; suite + build en verde antes y después |
+| B6 | **HECHO 2026-10-11** · `acomodo-core.acomodarConReparacion` (+`colocacionesValidas`, `recomendacionesParcial`) en el REPO y sus tests. `validarColocacion`/`resumenViolaciones` se conservan como oráculo de los tests del solver. La copia DESPLEGADA sigue en A5. | 0 | commit propio; suite + build en verde antes y después |
+| B7 | **HECHO 2026-10-11** · `datos/voni.voniTurno` (+`construirRespuesta`, sólo la usaba él) y sus tests en 3 archivos | 0 | commit propio; suite + build en verde antes y después |
+| B8 | **HECHO 2026-10-11** · `CocrearV2.jsx` | 0 | commit propio; suite + build en verde antes y después |
+| B9 | **HECHO 2026-10-11** · `aprendizaje.leccionDeQuita/leccionDeCambio` | 0 | commit propio; suite + build en verde antes y después |
+| B10 | **HECHO 2026-10-11** · `humo.jsx`, `plano.jsx` | 0 | commit propio; suite + build en verde antes y después |
 | B11 | `Voni2.jsx` + `src/voni/*` | `App.jsx` (prod 2) | **Decisión tuya**: Q&A sin LLM se conserva o se retira. No es código muerto |
 | B12 | Edges sin caller: `generar-video` v4, `bootstrap-temp-claude` v5, `costear-vision` v4, `*-strict` ×4, `analizar-mueble-preview`, `voni-council-health`, `acomodar-espacio-recovery` | 0 `invoke` en `src` | Confirmar con quien las desplegó y retirar o versionar |
 

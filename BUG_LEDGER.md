@@ -81,6 +81,12 @@ aprobación: queda como C3 en DECISIONES_PENDIENTES. `shadow_costeo` sigue en 0 
 Asistente especial ("Costear con IA"), que la pasada no recorrió → VH-036/073 siguen SIN verificar en vivo.
 Pendiente tuyo (seguridad): la cuenta de dirección de prueba tiene contraseña trivial; cámbiala o bájala a vendedor.
 
+**RETIRADAS B1–B10 · 2026-10-11 · aprobadas por Dirección ("B1–B10: retirar código muerto").** Diez commits, uno por
+módulo, cada uno con la suite completa y el build en verde antes y después (1,208 → 1,165 tests: los que se fueron
+probaban código que no corría). Detalle y lo que se conservó (p. ej. `validarColocacion` como oráculo del solver) en
+`DECISIONES_PENDIENTES.md` bloque B. Dos filas del inventario que decían "prod 0" estaban mal y NO se retiraron
+(`evidencia.js`, `componentesSinMaterial`).
+
 **VH-073 · P2 · FIXED · La comparación sombra cliente↔servidor no guardaba el motivo de los fallos.** `shadow_costeo`
 medido 2026-10-11: 41 filas desde el 2026-10-01; 8 coincidencias exactas (diff 0, todas del 2026-10-02); 7 `incompleto`;
 **26 errores HTTP 400 del 2026-10-04 al 2026-10-10 con `estado_servidor='error'` y `campos_recibidos=[ok,error,status]`
