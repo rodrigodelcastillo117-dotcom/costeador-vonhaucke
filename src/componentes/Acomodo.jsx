@@ -34,6 +34,8 @@ import PlanoAcomodo from './PlanoAcomodo.jsx';
 import PropuestaViva from './PropuestaViva.jsx';
 import DibujarPlano from './DibujarPlano.jsx';
 import EmpezarEspacio from './EmpezarEspacio.jsx';
+import ConfirmarLectura from './ConfirmarLectura.jsx';
+import { leerPlanoDeArchivo } from '../datos/leerPlanoArchivo.js';
 import Cargando from './Cargando.jsx';
 
 // Un dibujo para lo que no tiene foto. Las sillas del banco vienen de
@@ -249,69 +251,34 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // el File en la mano, sin evento. Antes los botones "Subir el plano" y
   // "Dibujar la oficina" de Voni sólo hacían `setPaso(3)`: brincaban al
   // acomodo sin abrir nada. Rodrigo: "no me abre algo para subir el plano".
+  // VH-043 (2026-10-11): UN solo orquestador de lectura (leerPlanoDeArchivo, el mismo
+  // que usa Voni) y COMPUERTA DE CONFIRMACIÓN: nada se guarda ni se acomoda hasta
+  // que la persona valide cuartos, medidas, puestos y escala (mandato §4).
+  const [lecturaPendiente, setLecturaPendiente] = useState(null);
   async function procesarPlano(file) {
     if (!file) return;
-    // ⚠️ AutoCAD NO se lee hoy, y hay que DECIRLO. Quien lee el plano es un
-    // modelo que MIRA la hoja; un .dwg es binario y un .dxf es texto de
-    // geometría, así que mandárselo devuelve basura o nada. Decir "no se pudo
-    // leer" sería mentir por omisión: el proyectista pensaría que su plano está
-    // mal. Se le dice qué hacer, que en AutoCAD son dos clics.
-    if (/\.(dwg|dxf)$/i.test(file.name)) {
-      setCargando('');
-      setError('Todavía no leo archivos de AutoCAD (.dwg / .dxf). Expórtalo a PDF desde AutoCAD '
-        + '(Imprimir → PDF) o mándame una captura de pantalla del plano: eso sí lo leo, y con las '
-        + 'cotas a la vista sale igual de exacto.');
-      return;
-    }
-    setError(''); setNotaPlano(''); setCargando('plano');
-    try {
-      const esPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
-      const b64 = esPdf ? await archivoABase64(file) : await imagenABase64(file);
-      const r = await leerPlano(b64, esPdf ? 'application/pdf' : 'image/jpeg');
-      setCargando('');
-      if (!r || !r.ok) { setError(r?.error || 'No se pudo leer el plano.'); return; }
-      const lec = r.lectura;
-      // La lectura trae la FORMA REAL de cada cuarto (polígono o círculo) en mm
-      // absolutos. `areasDeLectura` la pasa a lo que ya usa el resto de la app:
-      // posición + contorno relativo, en metros. Un cuarto declarado dentro de
-      // otro (la sala circular en medio del open space) se le entrega al padre
-      // como obstáculo, para que no le acomode muebles encima.
-      const { areas: leidas } = areasDeLectura(lec);
-      // MODO IA: al contrato canónico (1 mm) igual que dibujo y programa.
-      // recordar() ANTES para que el undo cruce el cambio de modo (gate undo/redo).
-      if (leidas.length) { recordar(); setAreas(cuantizar(leidas)); setPlanReal(true); }
-      const notas = [];
-      // Confianza HONESTA del levantamiento al frente: cuántos cuartos leí, cuánta
-      // superficie y qué tan confiable salió. Así el proyectista sabe de entrada si
-      // puede confiar en el plano o conviene revisarlo/redibujarlo (no lo descubre
-      // cuando el 3D sale raro).
-      const resumen = resumenLectura(lec);
-      // #7: conserva el plano original para la comparación y la confianza de lectura.
-      setLecturaMeta({ nivel: resumen.nivel, m2: resumen.m2, cuartos: resumen.cuartos, cotas: lec.tieneCotas });
-      try {
-        if (esPdf) { const _w = await abrirPdf(file); setPlanoImagen(await paginaAImagen(_w, 1, 1400)); }
-        else { setPlanoImagen('data:image/jpeg;base64,' + b64); }
-      } catch { setPlanoImagen(''); }
-      if (leidas.length) {
-        const etiqueta = { alta: 'Lectura confiable', media: 'Lectura con dudas', baja: 'Lectura poco confiable', nula: '' }[resumen.nivel];
-        if (etiqueta) notas.push(`${etiqueta}: ${resumen.cuartos} cuarto(s), ~${resumen.m2} m².`);
-      }
-      if (!lec.tieneCotas) notas.push('El plano no traía cotas: las medidas son estimadas, revísalas.');
-      // La revisión se enseña ANTES que las notas del modelo: si el levantamiento
-      // no cuadra como planta, el proyectista tiene que saberlo, no descubrirlo
-      // cuando el 3D salga raro.
-      const problemas = resumen.problemas;
-      if (problemas.length) notas.push('Revisa esto:', ...problemas.map((p) => '· ' + p));
-      if (!leidas.length) notas.push('No pude reconocer los cuartos. Sube el plano en mejor calidad o dibújalo con “Dibujar mi oficina”.');
-      if (lec.notas?.length) notas.push(...lec.notas);
-      setNotaPlano(notas.join(' '));
-      // Acomodar de inmediato: subir el plano y quedarse con la pantalla igual
-      // hacía pensar que no había pasado nada.
-      if (leidas.length) {
-        try { setPlan(acomodarLocal(aMM(leidas), piezas, { ajustar: false })); }
-        catch (err2) { setError('Leí el plano pero no pude acomodar: ' + String(err2?.message || err2)); }
-      }
-    } catch (err) { setCargando(''); setError('No se pudo procesar la imagen.'); }
+    setError(''); setNotaPlano(''); setLecturaPendiente(null); setCargando('plano');
+    const r = await leerPlanoDeArchivo(file);
+    setCargando('');
+    if (!r.ok) { setError(r.error || 'No se pudo leer el plano.'); return; }
+    if (!r.areas.length) { setNotaPlano(r.nota || 'No pude reconocer los cuartos. Sube el plano en mejor calidad o dibújalo con “Dibujar mi oficina”.'); return; }
+    setLecturaPendiente(r);
+  }
+  function confirmarLectura() {
+    const r = lecturaPendiente; if (!r) return;
+    const leidas = r.areas;
+    // MODO IA: al contrato canónico (1 mm) igual que dibujo y programa.
+    // recordar() ANTES para que el undo cruce el cambio de modo (gate undo/redo).
+    recordar(); setAreas(cuantizar(leidas)); setPlanReal(true);
+    // #7: conserva el plano original para la comparación y la confianza de lectura.
+    setLecturaMeta({ nivel: r.resumen?.nivel, m2: r.resumen?.m2, cuartos: r.resumen?.cuartos, cotas: r.resumen?.cotas, confirmadaEn: new Date().toISOString() });
+    setPlanoImagen(r.imagen || '');
+    setNotaPlano(r.nota || '');
+    setLecturaPendiente(null);
+    // Acomodar de inmediato: subir el plano y quedarse con la pantalla igual
+    // hacía pensar que no había pasado nada.
+    try { setPlan(acomodarLocal(aMM(leidas), piezas, { ajustar: false })); }
+    catch (err2) { setError('Leí el plano pero no pude acomodar: ' + String(err2?.message || err2)); }
   }
 
   // Lo que Voni escogió en el paso 1 se ATIENDE AL ENTRAR aquí. Va con
@@ -1069,6 +1036,12 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
                 onClick={() => acomodar()}>Acomodar</button>
               <button className="boton fantasma" style={{ minHeight: 50 }} onClick={acomodarIA} title="Alterna con IA (el acomodo normal ya es automático)">Con IA</button>
             </div>
+            {lecturaPendiente && (
+              <ConfirmarLectura lectura={lecturaPendiente}
+                onConfirmar={confirmarLectura}
+                onCorregir={() => { setLecturaPendiente(null); setDibujando(true); }}
+                onCancelar={() => { setLecturaPendiente(null); archivoRef.current?.click?.(); }} />
+            )}
             {notaPlano && <div className="alerta ambar" style={{ marginTop: 10 }}><span className="texto">{notaPlano}</span></div>}
             {/* #7: comparación HONESTA plano original vs. lo que la app entendió,
                 ANTES de dar por bueno el acomodo. Si la confianza no es alta, se

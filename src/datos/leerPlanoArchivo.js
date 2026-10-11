@@ -10,7 +10,7 @@
 //  quedó escrita una función. Aquí queda suelta y la usan los dos.
 // ============================================================================
 import { leerPlano } from '../nube.js';
-import { areasDeLectura, revisarAreas } from './planoLeido.js';
+import { areasDeLectura, revisarAreas, resumenLectura } from './planoLeido.js';
 
 const archivoABase64 = (file) => new Promise((resolve, reject) => {
   const fr = new FileReader();
@@ -36,9 +36,22 @@ const imagenABase64 = (file, max = 1600) => new Promise((resolve, reject) => {
 
 export const esCAD = (file) => /\.(dwg|dxf)$/i.test(file?.name || '');
 
+// Vista previa del plano para la pantalla de confirmación: la imagen tal cual, o la
+// página 1 del PDF rasterizada (pdfImagen, cargado bajo demanda para no pesar siempre).
+async function vistaPrevia(file, esPdf, b64) {
+  try {
+    if (!esPdf) return `data:${file.type || 'image/jpeg'};base64,${b64}`;
+    const { abrirPdf, paginaAImagen } = await import('./pdfImagen.js');
+    return await paginaAImagen(await abrirPdf(file), 1, 1400);
+  } catch { return ''; }
+}
+
 /**
  * Lee el plano de un archivo y devuelve las áreas listas para la app.
- * @returns { ok, areas, nota, error }   areas en METROS (como `areasDeLectura`)
+ * VH-043: TAMBIÉN devuelve la lectura cruda, el resumen de confianza (con la
+ * comprobación de escala) y una vista previa, para que la app pida CONFIRMACIÓN
+ * antes de usar nada. Un solo orquestador: lo usan Voni (paso 1) y Acomodo.
+ * @returns { ok, areas, lectura, resumen, imagen, nota, error }   areas en METROS
  */
 export async function leerPlanoDeArchivo(file) {
   if (!file) return { ok: false, error: 'No llegó ningún archivo.' };
@@ -56,15 +69,17 @@ export async function leerPlanoDeArchivo(file) {
     if (!r || !r.ok) return { ok: false, error: r?.error || 'No se pudo leer el plano.' };
     const lec = r.lectura;
     const { areas } = areasDeLectura(lec);
+    const resumen = resumenLectura(lec);
     const notas = [];
     if (!lec.tieneCotas) notas.push('El plano no traía cotas: las medidas son estimadas, revísalas.');
     // La revisión va ANTES de las notas del modelo: si el levantamiento no cuadra
     // como planta, el proyectista tiene que saberlo, no descubrirlo al final.
-    const problemas = revisarAreas(lec);
+    const problemas = resumen.problemas;
     if (problemas.length) notas.push('Revisa esto:', ...problemas.map((p) => '· ' + p));
     if (!areas.length) notas.push('No pude reconocer los cuartos. Sube el plano en mejor calidad o dibújalo.');
     if (lec.notas?.length) notas.push(...lec.notas);
-    return { ok: true, areas, nota: notas.join(' ') };
+    const imagen = await vistaPrevia(file, esPdf, b64);
+    return { ok: true, areas, lectura: lec, resumen: { ...resumen, cotas: !!lec.tieneCotas }, imagen, nota: notas.join(' ') };
   } catch (e) {
     // Leer un plano es tarea central: si falla, hay que dejar rastro para
     // diagnosticar (antes se tragaba `e` y el mensaje genérico no decía nada).

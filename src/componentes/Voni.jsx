@@ -12,6 +12,7 @@ import VoniAvatar from './VoniAvatar.jsx';
 import { pesos, selloPartida } from '../util.js';
 import EditarPartida from './EditarPartida.jsx';
 import EmpezarEspacio from './EmpezarEspacio.jsx';
+import ConfirmarLectura from './ConfirmarLectura.jsx';
 import { leerPlanoDeArchivo } from '../datos/leerPlanoArchivo.js';
 import { areasCanonicas, bloqueGeometria } from '../datos/floorPlan.js';
 import Cargando from './Cargando.jsx';
@@ -97,14 +98,22 @@ export default function Voni({
   const [errorPlano, setErrorPlano] = useState('');
   const [notaPlano, setNotaPlano] = useState('');
 
+  // VH-043: la lectura NO se usa hasta que la persona la confirme (mandato §4).
+  const [lecturaPendiente, setLecturaPendiente] = useState(null);
   async function subirPlanoAqui(file) {
-    setErrorPlano(''); setNotaPlano(''); setLeyendoPlano(true);
+    setErrorPlano(''); setNotaPlano(''); setLecturaPendiente(null); setLeyendoPlano(true);
     const r = await leerPlanoDeArchivo(file);
     setLeyendoPlano(false);
     if (!r.ok) { setErrorPlano(r.error); return; }
-    if (r.nota) setNotaPlano(r.nota);
-    if (!r.areas.length) return;        // no se reconoció nada: que lo intente de nuevo
-    onGuardarAcomodo?.({ ...bloqueGeometria(r.areas), plan: null, planReal: true });
+    if (!r.areas.length) { if (r.nota) setNotaPlano(r.nota); return; }   // nada reconocido: que lo intente de nuevo
+    setLecturaPendiente(r);
+  }
+  function confirmarLectura() {
+    const r = lecturaPendiente; if (!r) return;
+    const confirmada = { en: new Date().toISOString(), nivel: r.resumen?.nivel || null, m2: r.resumen?.m2 ?? null,
+      cuartos: r.areas.length, cotas: r.resumen?.cotas ?? null, problemas: r.resumen?.problemas || [] };
+    onGuardarAcomodo?.({ ...bloqueGeometria(r.areas), plan: null, planReal: true, lectura: confirmada });
+    setLecturaPendiente(null);
     setPaso(2);                          // el siguiente paso es QUÉ LLEVA, no acomodar
   }
   const [confVaciar, setConfVaciar] = useState(false);
@@ -196,13 +205,19 @@ export default function Voni({
             mensajes={['Midiendo los cuartos…', 'Sacando las áreas…', 'Contando privados y salas…']} />}
           {errorPlano && <div className="alerta roja" style={{ marginTop: 12 }}><span className="texto">{errorPlano}</span></div>}
           {notaPlano && !errorPlano && <div className="tarjeta" style={{ marginTop: 12 }}>{notaPlano}</div>}
-          <EmpezarEspacio
+          {lecturaPendiente && (
+            <ConfirmarLectura lectura={lecturaPendiente}
+              onConfirmar={confirmarLectura}
+              onCorregir={() => { setLecturaPendiente(null); setAbrirDibujo(true); setPaso(3); }}
+              onCancelar={() => { setLecturaPendiente(null); archivoRef.current?.click(); }} />
+          )}
+          {!lecturaPendiente && <EmpezarEspacio
             piezas={[]}
             subiendo={leyendoPlano}
             onSubirPlano={() => archivoRef.current?.click()}
             onDibujar={() => { setAbrirDibujo(true); setPaso(3); }}
             onListo={(areas) => { onGuardarAcomodo?.({ ...bloqueGeometria(areas), plan: null, planReal: false }); setPaso(2); }}
-          />
+          />}
           <div className="tarjeta no-imprimir voni-omitir">
             <span className="ayuda">¿Todavía no sabes el espacio?</span>
             <button className="boton fantasma" style={{ minHeight: 42 }} onClick={() => setPaso(2)}>

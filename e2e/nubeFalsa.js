@@ -54,6 +54,19 @@ const sesionDe = (email) => ({
   user: { id: idDe(email), aud: 'authenticated', role: 'authenticated', email, app_metadata: { provider: 'email' }, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' },
 });
 
+const rect = (x, y, w, h) => [{ x, y }, { x: x + w, y }, { x: x + w, y: y + h }, { x, y: y + h }];
+export const LECTURA_EJEMPLO = {
+  envolvente: { ancho: 16000, largo: 8800 }, tieneCotas: true,
+  grid: { horizontal: [8000, 8000], vertical: [8800] },
+  areas: [
+    { nombre: 'ÁREA OPERATIVA', tipo: 'open', forma: 'poligono', dentroDe: '', confianza: 'alta', circulo: { cx: 0, cy: 0, r: 0 }, puntos: rect(0, 0, 12000, 8800) },
+    { nombre: 'Isla 1', tipo: 'open', forma: 'poligono', dentroDe: 'ÁREA OPERATIVA', confianza: 'alta', circulo: { cx: 0, cy: 0, r: 0 }, puntos: rect(1000, 1000, 2180, 2110), puestos: 4 },
+    { nombre: 'Isla 2', tipo: 'open', forma: 'poligono', dentroDe: 'ÁREA OPERATIVA', confianza: 'alta', circulo: { cx: 0, cy: 0, r: 0 }, puntos: rect(5000, 1000, 2520, 2110), puestos: 4 },
+    { nombre: 'OFICINA CEO', tipo: 'privado', forma: 'poligono', dentroDe: '', confianza: 'alta', circulo: { cx: 0, cy: 0, r: 0 }, puntos: rect(12000, 0, 4000, 3200) },
+  ],
+  puertas: [], escala: 'cota general 16.00 m', notas: [],
+};
+
 export function crearNubeFalsa({ usuarios }) {
   const permitidos = new Map(Object.entries(usuarios));   // email → rol
   const f = {
@@ -62,6 +75,7 @@ export function crearNubeFalsa({ usuarios }) {
     siguienteId: 100,
     creates: 0, updates: 0, llamadas: [],
     caida: false,                // true = la red "se cayó": todo falla
+    lectura: LECTURA_EJEMPLO,
     permitidos,
     sembrarFila(fila) { const id = fila.id ?? f.siguienteId++; f.filas.set(id, { estado: 'borrador', activa: true, creado: new Date().toISOString(), actualizado: new Date().toISOString(), ...fila, id }); return id; },
   };
@@ -180,6 +194,9 @@ export function crearNubeFalsa({ usuarios }) {
       return json(route, {});   // cualquier otro RPC: vacío
     }
     if (ruta.startsWith('/rest/v1/')) return json(route, []);
+    // leer-plano: una lectura FIJA (plano ejecutivo con dos islas contadas) para probar
+    // la compuerta de confirmación sin LLM. `f.lectura` se puede sustituir por prueba.
+    if (ruta === '/functions/v1/leer-plano') return json(route, { ok: true, lectura: f.lectura });
     if (ruta.startsWith('/functions/v1/')) return json(route, {});
     if (ruta.startsWith('/storage/v1/')) return route.fulfill({ status: 404, body: '' });
     return json(route, {});

@@ -58,6 +58,16 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 `AsistenteEspecial.jsx:179` manda `{...b}` con `margen`/`modeloCosteo`; `validarIntentCosteo` responde
 `FORBIDDEN_FINANCIAL_FIELD`. La comparación "sombra" nunca ha recibido una respuesta del servidor.
 
+**VH-043 · P0 · FIXED · La lectura del plano caía al estado y al acomodo sin confirmación, y nadie
+revisaba la escala.** (mandato §4: "La IA propone; el usuario confirma la interpretación crítica"). Fix
+(2026-10-11): `ConfirmarLectura` (cuartos, medidas, puestos contados, confianza, problemas, vista previa) en
+Voni paso 1 y en Acomodo; NADA se guarda ni se acomoda hasta "Sí, así es"; "No: lo dibujo yo" / "Volver a
+subir". Lo confirmado se sella en `acomodo.lectura {en, nivel, m2, cuartos, cotas, problemas}`.
+`validarEscala`: la cota general debe cuadrar (±3 %) con la suma de los ejes que el lector ya extraía y nadie
+usaba; entra a `revisarAreas` y baja el nivel de confianza. Consolidación: Acomodo y Voni usan el MISMO
+orquestador `leerPlanoDeArchivo` (antes dos copias con base64/downscale duplicados). Tests: planoLeido (+3),
+leerPlanoArchivo (3), E2E `lecturaPlano.e2e.js` (2: confirmar → paso 2 con puestos 4+4 y sello; cancelar → nada).
+
 **VH-042 · P0 · FIXED · El PDF no salía del snapshot y la emisión fallaba con centavos.** (1) `descargarPDF`
 dibujaba el documento desde el estado vivo y totales de pantalla; ahora se arma con `datosDesdeSnapshot` del
 MISMO snapshot que conservó `emitir_revision` (o que intentó conservar), y en Presupuestos cada revisión tiene
