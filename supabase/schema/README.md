@@ -14,12 +14,17 @@ revisarlo en un PR, reproducirlo en local ni saber qué cambió entre dos fechas
   tablas y columnas, políticas RLS, funciones/RPCs con su cuerpo, vistas, triggers,
   grants. Es una FOTO, no una migración: sirve para leer y diffear, no para aplicar.
 
-## Hueco conocido del baseline
+## `private_api` (cerrado 2026-10-11)
 
 Existe un esquema `private_api` con 36 funciones (34 SECURITY DEFINER) del que dependen 34
-wrappers de `public` y varias políticas RLS. El volcado de hoy cubre sólo `public`; el
-baseline **no es autocontenido** hasta que se vuelque `private_api` también. Es el primer
-pendiente al regenerar.
+wrappers de `public` y varias políticas RLS. El volcado del 2026-10-10 cubría sólo `public`;
+`baseline/08_private_api.sql` (2026-10-11, `pg_get_functiondef`, sólo lectura) trae las 36 con
+su cuerpo. Entre ellas la autoridad de emisión (`evaluar_emision_cotizacion`,
+`emitir_revision_v2`, `cotizacion_emitible`, `requiere_aprobacion_snapshot`), la persistencia
+(`crear_cotizacion_segura`, `actualizar_cotizacion_segura`, `cotizacion_segura`) y los
+permisos (`puede_entrar`, `puede_editar_config`, `puede_ver_economia`). El espejo del cliente
+(`src/datos/emision.js`, VH-047) se escribió leyendo este archivo: cuando el servidor cambie,
+el diff de este archivo dice qué hay que reflejar.
 
 ## Regla desde hoy
 

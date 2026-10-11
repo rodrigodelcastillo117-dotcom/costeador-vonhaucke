@@ -3,7 +3,7 @@
 Snapshot de SÓLO LECTURA de **mtuvnbgljwbsaizjjgzs**, **2026-10-10**. Generado con SELECTs sobre `pg_catalog` / `information_schema` (ningún DDL, ningún DML, ningún `apply_migration`). **NO es una migración: no aplicar.** Regenerar al cierre de cada bloque.
 
 - Servidor: PostgreSQL 17.6.
-- Alcance: esquema `public` únicamente. El esquema `private_api` (36 funciones, 34 de ellas `SECURITY DEFINER`) **no** se volcó; sólo se referencia donde `public` depende de él (34 wrappers RPC, 2 triggers, y la mayoría de las políticas RLS llaman a `private_api.puede_editar_config()`, `private_api.es_direccion()`, `private_api.puede_ver_economia()` o `private_api.current_request_email()`).
+- Alcance: esquema `public` (2026-10-10) y, desde el 2026-10-11, también `private_api` (36 funciones, 34 de ellas `SECURITY DEFINER`) en `08_private_api.sql`. En los archivos 01–07 `private_api` sólo se referencia donde `public` depende de él (34 wrappers RPC, 2 triggers, y la mayoría de las políticas RLS llaman a `private_api.puede_editar_config()`, `private_api.es_direccion()`, `private_api.puede_ver_economia()` o `private_api.current_request_email()`).
 - Última migración registrada en `supabase_migrations.schema_migrations`: `20261010083653 harden_invoker_trigger_paths_20261010` (220 filas; volcadas en `../MIGRACIONES_APLICADAS.md`).
 
 ## Conteos
@@ -22,6 +22,9 @@ Snapshot de SÓLO LECTURA de **mtuvnbgljwbsaizjjgzs**, **2026-10-10**. Generado 
 | Tipos personalizados en `public` (enum/compuesto/dominio) | 0 |
 
 ## Archivos
+
+### `08_private_api.sql` (36 funciones · 2026-10-11)
+`pg_get_functiondef` de cada función de `private_api`, en orden alfabético, con una cabecera por función. Es el cuerpo real que ejecutan los 34 wrappers de `public` y las políticas RLS: autoridad de emisión (`evaluar_emision_cotizacion`, `emitir_revision_v2`, `cotizacion_emitible`, `requiere_aprobacion_snapshot`, `hash_revision`, `verificar_aprobacion`), persistencia (`crear_cotizacion_segura`, `actualizar_cotizacion_segura`, `cotizacion_segura`, `cotizaciones_mias`, `cotizaciones_seguras`, `cotizacion_revisiones_seguras`, `revisiones_seguras`), permisos (`puede_entrar`, `puede_editar_config`, `puede_ver_economia`, `es_direccion`, `current_request_email`, `config_para_rol`), Producto Maestro y precios (`resolver_precio_autorizado`, `producto_cotizable`, `registrar_producto_desde_expediente`, `vincular_cotizacion`, `asignar_folio_oficial`), cocrear y renders (`cocrear_seguro`, `guardar_cocrear_seguro`, `registrar_render_canonico`, `resolver_renders_canonicos`, `marcar_renders_stale_producto`, `canonicalizar_spatial_spec_producto_version`), aprobaciones (`solicitar_aprobacion`, `solicitar_aprobacion_snapshot`, `resolver_aprobacion`), insumos (`resolver_costo_insumo`) y el guard de estado (`guard_cotizacion_estado_directo`). La tabla `private_api.cotizacion_idempotencia` que usa `crear_cotizacion_segura` no está volcada (sólo funciones).
 
 ### `01_tablas.sql` (34 tablas)
 `CREATE TABLE` de cada tabla de `public`, reconstruido desde `pg_attribute` + `pg_attrdef` (tipo vía `format_type(atttypid, atttypmod)`, `NOT NULL`, `DEFAULT`, columnas `IDENTITY`), con PK/UNIQUE/CHECK/EXCLUDE inline (`pg_get_constraintdef`). Después, en secciones separadas: las 30 foreign keys como `ALTER TABLE ... ADD CONSTRAINT`, los 46 `CREATE INDEX` que no respaldan un constraint (`pg_indexes`), y los comentarios de tabla/columna (`obj_description` / `col_description`). Incluye las dos tablas de respaldo `*_backup_20261002`.
