@@ -22,7 +22,6 @@ const PERIM = 700;
 const WALL = 60;
 const AISLE = 1100;
 const GAP = 140;
-const MEET_CLR = 950;
 
 // VH-061: una sola lectura del nombre del cuarto (datos/cuartos.js), compartida con
 // floorSpec.zonaSemantica. Antes cada módulo tenía su regex y "Site" era 'general'
@@ -31,36 +30,7 @@ export function rolArea(nombre) {
   return rolDeCuarto(nombre);
 }
 
-function empacarFilas(cola, region, { gap = GAP, rowGap = AISLE, tope = Infinity } = {}) {
-  const { x0, y0, x1, y1 } = region;
-  const out = []; let x = x0, y = y0, rowH = 0, n = 0;
-  while (cola.length && n < tope) {
-    const p = cola[0];
-    let w = p.w, d = p.d, rot = 0;
-    if (w > (x1 - x0) && d <= (x1 - x0)) { [w, d] = [d, w]; rot = 90; }
-    if (w > (x1 - x0) || d > (y1 - y0)) break;
-    if (x + w > x1 + 1) { x = x0; y += rowH + rowGap; rowH = 0; }
-    if (y + d > y1 + 1) break;
-    out.push({ id: p.id, x, y, rot });
-    x += w + gap; rowH = Math.max(rowH, d); n++;
-    cola.shift();
-  }
-  return { out, bottom: y + rowH };
-}
-
-function guardasAMuro(cola, W, out, { desde = PERIM } = {}) {
-  if (!cola.length) return 0;
-  let x = desde, maxD = 0;
-  while (cola.length) {
-    const p = cola[0];
-    let w = p.w, d = p.d, rot = 0;
-    if (x + w > W - PERIM + 1) break;
-    out.push({ id: p.id, x, y: WALL, rot });
-    x += w + GAP; maxD = Math.max(maxD, d);
-    cola.shift();
-  }
-  return maxD ? WALL + maxD : 0;
-}
+// B5 (2026-10-11): `empacarFilas`, `guardasAMuro` y `MEET_CLR` se retiraron (sin llamadas).
 
 function empacarTodoGarantizado(base, piezas, ajustar) {
   const CIRC = regla('circulacion_min') ?? 900;
