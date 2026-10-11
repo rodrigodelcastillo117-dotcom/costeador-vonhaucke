@@ -58,6 +58,27 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 `AsistenteEspecial.jsx:179` manda `{...b}` con `margen`/`modeloCosteo`; `validarIntentCosteo` responde
 `FORBIDDEN_FINANCIAL_FIELD`. La comparación "sombra" nunca ha recibido una respuesta del servidor.
 
+**VH-047 · P1 · FIXED · Cuatro compuertas de emisión en el cliente con cuatro vocabularios; el servidor leía
+una clave de costo que el cliente nunca escribía.** El servidor es la autoridad (`private_api.evaluar_emision_cotizacion`
+→ BLOCKED / ECONOMICS_INCOMPLETE / APPROVAL_REQUIRED / ALLOWED; `emitir_revision_v2` no registra si no es ALLOWED;
+leídas de producción con `pg_get_functiondef`, sin modificar). En el cliente convivían `senales.bloqueosDeEmision`
+(CANTIDAD_INVALIDA…), `voniContext.porQueNoPuedoEmitir`, los checks sueltos de `Cotizacion.jsx` (exclusiones,
+`probEmision`) y `partida.validarPartida`, cada uno con su propia idea. Hallazgo adicional verificado: el servidor
+lee `costoEstado` ('preliminar' | 'incompleto' | 'bloqueado') en las líneas sin ProductVersion, y el cliente
+escribía `estadoCosto` ('completo' | 'incompleto'): el veredicto "costo no certificado" del servidor nunca podía
+dispararse por esa vía (hoy lo atrapaba sólo porque el costo incompleto viaja como null). Fix: `datos/emision.js`
+= espejo local del servidor (mismos estados, mismos códigos `linea_N_*`, misma lectura de identidad en tres
+grafías, misma clave `costoEstado`) + lo que sólo el cliente sabe (`linea_N_sin_material`,
+`piezas_excluidas_sin_confirmar`, `sin_partidas`); `combinarGate` funde servidor+local (gana la severidad mayor,
+razones unidas; si el servidor no respondió se dice `servidorConsultado:false`). `bloqueosDeEmision`,
+`problemasDeEmision` y `porQueNoPuedoEmitir` DERIVAN de la compuerta (misma interfaz, mismos textos);
+Cotizacion.jsx usa una sola evaluación para botones, banner, chips por línea y "¿por qué no puedo emitir?". El
+contrato de partida escribe `costoEstado` (la clave del servidor; acepta la grafía vieja) y `validarPartida` lo
+marca. `textoRazonEmision` cubre TODOS los códigos del servidor (antes `costo_no_certificado`, `ingenieria_preliminar`,
+`precio_especial_no_autoritativo`, `descuento_invalido`… salían crudos al vendedor). Pendiente (requiere migración
+aprobada): que el servidor acepte también `estadoCosto` para las cotizaciones ya guardadas con esa clave. Tests:
+emision 13 (incluye "ningún código del servidor sale crudo ni con cifras"). Suite 1,120 · E2E · build.
+
 **VH-046 · P1 · FIXED · Las imágenes del acomodo (render 3D, foto amueblada, escenas, foto del usuario) vivían
 en base64 dentro de la cotización.** Producción (lectura 2026-10-11): 14 cotizaciones con `acomodo.render3d`
 en base64, 24 MB en total, la mayor 2.9 MB; 2 con escenas en base64; 0 con URL. Cada guardado reenviaba la

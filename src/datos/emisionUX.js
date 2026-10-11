@@ -12,6 +12,19 @@ export function textoRazonEmision(code) {
   const k = m ? m[2] : String(code || '');
   const L = n ? `Línea ${n}: ` : '';
   if (/costo_desconocido/.test(k)) return `${L}falta confirmar el costo con Diseño/Dirección.`;
+  // VH-047: códigos del servidor que antes salían crudos al vendedor, y los locales.
+  if (/costo_preliminar_no_certificado/.test(k)) return `${L}su costo es preliminar; Diseño/Dirección debe certificarlo.`;
+  if (/costo_no_certificado|costo_productversion_desconocido/.test(k)) return `${L}su costeo está incompleto; complétalo antes de emitir.`;
+  if (/sin_material/.test(k)) return `${L}tiene piezas sin material asignado.`;
+  if (/sin_product_id|producto_version_id_invalido/.test(k)) return `${L}vuelve a agregarla desde su ficha (identidad de producto incompleta).`;
+  if (/ingenieria_preliminar/.test(k)) return `${L}el especial aún no tiene ingeniería aprobada.`;
+  if (/costo_especial_no_certificado/.test(k)) return `${L}el costo del especial es estimado; requiere aprobación de Dirección.`;
+  if (/precio_especial_no_autoritativo/.test(k)) return `${L}el precio no coincide con el autorizado para el especial; vuelve a cotizarla.`;
+  if (/descuento_invalido/.test(k)) return `${L}el descuento no es válido (0–100 %).`;
+  if (/^especial_/.test(k)) return `${L}el especial no está listo para cotizarse (${k.replace(/^especial_/, '').replace(/_/g, ' ').toLowerCase()}).`;
+  if (/piezas_excluidas_sin_confirmar/.test(k)) return 'Confirma las piezas excluidas antes de emitir.';
+  if (/sin_partidas|snapshot_sin_partidas/.test(k)) return 'La cotización no tiene partidas.';
+  if (/no_existe|cotizacion_no_existe/.test(k)) return 'La cotización no existe en la nube; guárdala de nuevo.';
   if (/sin_product_version_id/.test(k)) return `${L}vuelve a agregarla desde su ficha (falta versión de producto).`;
   if (/product_version_no_corresponde/.test(k)) return `${L}la versión de producto no corresponde; re-agrégala.`;
   if (/precio_bajo_costo|margen_bajo/.test(k)) return `${L}requiere aprobación de Dirección.`;
@@ -35,6 +48,7 @@ export function textoRazonEmision(code) {
 
 export const ESTADO_EMISION = {
   ALLOWED: { tono: 'verde', titulo: 'Lista para emitir' },
+  DESCONOCIDO: { tono: 'gris', titulo: 'No se pudo consultar al servidor; se vuelve a verificar al emitir' },
   ECONOMICS_INCOMPLETE: { tono: 'ambar', titulo: 'Faltan datos para cotizar (no es un error): resuélvelos para emitir' },
   APPROVAL_REQUIRED: { tono: 'ambar', titulo: 'Requiere aprobación de Dirección antes de emitir' },
   BLOCKED: { tono: 'rojo', titulo: 'No se puede emitir todavía' },

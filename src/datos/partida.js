@@ -107,7 +107,9 @@ export function crearPartida(entrada = {}, { veCostos = false, origen } = {}) {
     piezasSinMaterial: Number.isFinite(num(e.piezasSinMaterial)) ? num(e.piezasSinMaterial) : (Array.isArray(e.nombresSinMaterial) ? e.nombresSinMaterial.length : 0),
     nombresSinMaterial: Array.isArray(e.nombresSinMaterial) ? e.nombresSinMaterial : [],
     nombresExcluidos: Array.isArray(e.nombresExcluidos) ? e.nombresExcluidos : [],
-    estadoCosto: e.estadoCosto ?? null,
+    // Veredicto del costeo con la clave que LEE el servidor (evaluar_emision_cotizacion
+    // lee `costoEstado` en líneas sin ProductVersion; VH-047). Acepta la grafía vieja.
+    costoEstado: e.costoEstado ?? e.estadoCosto ?? null,
   };
   if (!veCostos) {
     // Vendedor: NUNCA economía interna en su estado — ni siquiera la clave en null
@@ -139,6 +141,7 @@ export function validarPartida(p) {
   if (p.producto_version_id != null && p.producto_id == null) issues.push({ campo: 'producto_id', msg: 'Versión sin producto.' });
   if ((p.piezasSinMaterial || 0) > 0) issues.push({ campo: 'piezasSinMaterial', msg: `${p.piezasSinMaterial} pieza(s) del despiece sin costear.` });
   if (typeof p.render === 'string' && p.render.startsWith('data:')) issues.push({ campo: 'render', msg: 'El render es base64; debe ser URL.' });
+  if (['incompleto', 'bloqueado', 'preliminar'].includes(String(p.costoEstado || '').toLowerCase())) issues.push({ campo: 'costoEstado', msg: `Costo ${p.costoEstado}: no certificado.` });
   if (p.sellerSafe && (p.costoUnitario != null || p.margen != null)) issues.push({ campo: 'costoUnitario', msg: 'Partida seller-safe con economía.' });
   return issues;
 }

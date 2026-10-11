@@ -21,6 +21,7 @@ import { expandirPiezas, mapaPiezas } from '../datos/espacio.js';
 import { generarRender, renderDePartida, imagenAcomodoAStorage, analizarNegocio, resolverRendersCanonicos } from '../nube.js';
 import { estadoRenderPartida, claveRenderPartida, ESTADO_RENDER } from '../datos/renderCanonico.js';
 import { textoRazonEmision, ESTADO_EMISION, razonesPorLinea } from '../datos/emisionUX.js';
+import { evaluarEmisionLocal, combinarGate, detalleBloqueo } from '../datos/emision.js';
 import MontoAnimado from './MontoAnimado.jsx';
 import PlanoAcomodo from './PlanoAcomodo.jsx';
 import ConfirmarCandado from './ConfirmarCandado.jsx';
@@ -238,19 +239,22 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   // de verdad produce algo que llega al cliente — sin importar por cuál
   // camino entró la partida (Voni, Cotizar de línea, lo que sea).
   const [accionPendiente, setAccionPendiente] = useState(null); // null | () => void
-  // No se puede emitir con un renglón sin cantidad o sin precio: sería inventar
-  // un número en el documento que llega al cliente (mandato Fase 1).
-  const probEmision = problemasDeEmision(partidas);
-  // Piezas excluidas de TODO el proyecto (únicas). Si hay, no se emite sin confirmar.
-  const excluidasProyecto = [...new Set(partidas.flatMap((p) => p.nombresExcluidos || []))];
-  const bloqueoExcluidas = excluidasProyecto.length > 0 && !confirmoExcluidas;
+  // VH-047 · COMPUERTA ÚNICA. Una sola evaluación local, con la forma y los códigos
+  // del servidor (evaluar_emision_cotizacion); de ella salen los botones, el banner,
+  // los chips por línea y el "¿por qué no puedo emitir?". El servidor sigue siendo la
+  // autoridad: su veredicto se funde con el local en `gateVista` (gana la severidad mayor).
+  const gateLocal = useMemo(() => evaluarEmisionLocal({ partidas, confirmoExcluidas }), [partidas, confirmoExcluidas]);
+  const probEmision = problemasDeEmision(partidas);            // textos de renglón (derivan de la misma compuerta)
+  const excluidasProyecto = gateLocal.excluidas;
+  const bloqueoExcluidas = gateLocal.motivos.includes('piezas_excluidas_sin_confirmar');
+  const bloqueoLocal = gateLocal.estado === 'BLOCKED';
+  const motivoBloqueo = bloqueoLocal ? detalleBloqueo(gateLocal.motivos[0], partidas).titulo : undefined;
   // Fail-closed: si cambia QUÉ piezas están excluidas, se re-exige la confirmación
   // (no se arrastra un "confirmo" viejo sobre una lista distinta).
   useEffect(() => { setConfirmoExcluidas(false); }, [excluidasProyecto.join('|')]);
   function conCandado(fn) {
     return async () => {
-      if (probEmision.length) { setPdfErr('No se puede emitir: ' + probEmision[0]); return; }
-      if (bloqueoExcluidas) { setPdfErr('Confirma las piezas excluidas antes de emitir.'); return; }
+      if (bloqueoLocal) { setPdfErr('No se puede emitir: ' + motivoBloqueo); return; }
       // GATE AUTORITATIVO server-side ANTES de emitir (costo/versión/margen/aprobación).
       // Degrada: si el gate no está disponible (DESCONOCIDO) no bloquea — el servidor
       // re-valida al registrar la emisión (fail-closed real vive en la DB).
@@ -270,10 +274,12 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
       else fn();
     };
   }
-  // Razones del gate, traducidas y seller-safe (motivos duros + económicos).
-  const gateRazones = gate ? [...new Set([...(gate.motivos || []), ...(gate.economics || [])])].map(textoRazonEmision) : [];
-  // Estado económico POR LÍNEA (chips pegados a cada partida). 1-based → {tono, textos}.
-  const razonesLinea = useMemo(() => razonesPorLinea(gate), [gate]);
+  // Servidor + local en una sola vista. Si el servidor no se ha consultado, es lo local.
+  const gateVista = useMemo(() => combinarGate(gateLocal, gate), [gateLocal, gate]);
+  // Razones, traducidas y seller-safe (motivos duros + económicos).
+  const gateRazones = [...new Set([...(gateVista.motivos || []), ...(gateVista.economics || [])])].map(textoRazonEmision);
+  // Estado POR LÍNEA (chips pegados a cada partida). 1-based → {tono, textos}.
+  const razonesLinea = useMemo(() => razonesPorLinea(gateVista), [gateVista]);
   async function descargarPDF() {
     setPdfErr(''); setBajandoPDF(true);
     try {
@@ -878,10 +884,10 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
             <button className={vistaCliente ? 'on' : ''} onClick={() => setVistaCliente(true)}>Como la ve el cliente</button>
           </div>
         )}
-        <button className="boton tinta cot-pdf" onClick={conCandado(descargarPDF)} disabled={bajandoPDF || probEmision.length > 0 || bloqueoExcluidas} title={probEmision.length ? probEmision[0] : (bloqueoExcluidas ? 'Confirma las piezas excluidas' : undefined)}>
+        <button className="boton tinta cot-pdf" onClick={conCandado(descargarPDF)} disabled={bajandoPDF || bloqueoLocal} title={motivoBloqueo}>
           {bajandoPDF ? 'Armando el PDF…' : 'Descargar PDF'}
         </button>
-        <button className="boton fantasma no-imprimir" style={{ minHeight: 42 }} onClick={conCandado(imprimir)} disabled={probEmision.length > 0 || bloqueoExcluidas} title={probEmision.length ? probEmision[0] : (bloqueoExcluidas ? 'Confirma las piezas excluidas' : undefined)}>Imprimir</button>
+        <button className="boton fantasma no-imprimir" style={{ minHeight: 42 }} onClick={conCandado(imprimir)} disabled={bloqueoLocal} title={motivoBloqueo}>Imprimir</button>
         {verificarEmision && (
           <button className="boton fantasma no-imprimir" style={{ minHeight: 42 }} disabled={gateCargando}
             onClick={async () => { setGateCargando(true); try { setGate(await verificarEmision()); } catch { setGate({ estado: 'DESCONOCIDO' }); } setGateCargando(false); }}>
@@ -903,10 +909,12 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
       )}
       {/* GATE DE EMISIÓN autoritativo (server-side). Explica el estado y QUÉ falta,
           en lenguaje claro y seller-safe (sin cifras de costo/margen). */}
-      {gate && gate.estado && gate.estado !== 'DESCONOCIDO' && (() => {
-        const info = ESTADO_EMISION[gate.estado] || { tono: 'rojo', titulo: gate.estado };
-        const col = info.tono === 'verde' ? '#067647' : info.tono === 'ambar' ? '#B54708' : '#B42318';
-        const bg = info.tono === 'verde' ? '#ECFDF3' : info.tono === 'ambar' ? '#FFFAEB' : '#FEF3F2';
+      {gate && gate.estado && (() => {
+        // Lo que se muestra es la FUSIÓN servidor+local; si el servidor no respondió, se dice.
+        const estadoVista = gateVista.servidorConsultado ? gateVista.estado : 'DESCONOCIDO';
+        const info = ESTADO_EMISION[estadoVista] || { tono: 'rojo', titulo: estadoVista };
+        const col = info.tono === 'verde' ? '#067647' : info.tono === 'ambar' ? '#B54708' : info.tono === 'gris' ? '#475467' : '#B42318';
+        const bg = info.tono === 'verde' ? '#ECFDF3' : info.tono === 'ambar' ? '#FFFAEB' : info.tono === 'gris' ? '#F2F4F7' : '#FEF3F2';
         return (
           <div className="no-imprimir" style={{ marginTop: 8, border: `1px solid ${col}33`, background: bg, borderRadius: 10, padding: 12, color: col }}>
             <div style={{ fontWeight: 800 }}>{info.titulo}</div>
@@ -915,7 +923,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                 {gateRazones.map((t, i) => <li key={i} style={{ fontSize: 13, margin: '2px 0' }}>{t}</li>)}
               </ul>
             )}
-            {gate.estado === 'ALLOWED' && <div style={{ fontSize: 13, marginTop: 4 }}>Todo en regla: puedes descargar el PDF definitivo.</div>}
+            {estadoVista === 'ALLOWED' && <div style={{ fontSize: 13, marginTop: 4 }}>Todo en regla: puedes descargar el PDF definitivo.</div>}
           </div>
         );
       })()}
