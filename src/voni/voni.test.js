@@ -59,10 +59,14 @@ describe('VONI seguridad adversarial', () => {
     expect(limpio.precio).toBe(100);
   });
 
-  it('5. Costeador → economía autorizada (tool permitida)', async () => {
-    const r = await ejecutarTool('get_costing', { user: USER, role: 'costeador' }, {}, PROV);
-    expect(r.ok).toBe(true);
-    expect(r.data.costo).toBe(100000);
+  it('5. "costeador" NO es un rol del servidor: un rol autodeclarado no abre economía; Diseño (rol real) sí', async () => {
+    // VH-054: el servidor emite direccion/diseno/vendedor. 'costeador' y 'cfo' son lentes.
+    const falso = await ejecutarTool('get_costing', { user: USER, role: 'costeador' }, {}, PROV);
+    expect(falso.ok).toBe(false);
+    expect(rolVeEconomia('costeador')).toBe(false);
+    const diseno = await ejecutarTool('get_costing', { user: USER, role: 'diseno' }, {}, PROV);
+    expect(diseno.ok).toBe(true);
+    expect(diseno.data.costo).toBe(100000);
   });
 
   it('6. Dirección → economía autorizada', async () => {

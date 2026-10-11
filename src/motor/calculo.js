@@ -515,6 +515,15 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     // y la emisión se bloquea. (Un precio 0 declarado SÍ es conocido, §7; un $0
     // por decisión se marca con comp.excluida, atendido arriba.)
     if (!precioUsable(insumo)) { componentesIgnorados.push(comp.nombre || insumo.nombre || 'Material sin precio'); continue; }
+    // COSTEAR §3 (2026-10-10): un componente CON material y CON precio pero SIN consumo
+    // (ni cantidad, ni largo×ancho, ni fracción de hoja) costaba $0 en silencio y el
+    // costeo salía "completo". Un PTR con sólo `largoMM` salía gratis. Es un hueco de
+    // datos igual que un material faltante → PENDIENTE, no cero.
+    const porHoja = comp.hojas > 0 && !!insumo.formato;
+    if (!porHoja && netoComponente(comp, 1) <= 0) {
+      componentesIgnorados.push(`${comp.nombre || insumo.nombre || 'Pieza'} (sin cantidad ni medidas)`);
+      continue;
+    }
     if (!grupos[comp.insumoId]) {
       grupos[comp.insumoId] = { insumo, comps: [] };
       orden.push(comp.insumoId);
@@ -655,7 +664,24 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     detalleInsumos,
     componentesIgnorados,
     componentesExcluidos,
+    // COMPLETITUD EN LA PROPIA SALIDA (COSTEAR §3). `costoUnitario` es el SUBTOTAL
+    // CONOCIDO; `costoOficial` es null mientras falte algo. Quien muestre dinero debe
+    // usar `costoOficial` (o `costeoEmitible`), nunca `costoUnitario` a secas.
+    estadoCosto: componentesIgnorados.length ? 'incompleto' : 'completo',
+    pendientes: componentesIgnorados,
+    costoOficial: componentesIgnorados.length ? null : costoUnitario,
   };
+}
+
+// Pendientes de un despiece SIN exponer el resto del resultado (para marcar partidas).
+// Única definición: la misma lista que vuelve INCOMPLETO al costeo. Sustituye a
+// `componentesSinMaterial`, que sólo veía material faltante y no precio/cantidad.
+export function pendientesDeCosteo(pieza, insumos = {}, par = PARAMETROS_DEFAULT) {
+  try {
+    return calcular(pieza, 1, insumos, par).componentesIgnorados || [];
+  } catch (e) {
+    return componentesSinMaterial(pieza?.componentes || [], insumos);
+  }
 }
 
 // -----------------------------------------------------------------------------

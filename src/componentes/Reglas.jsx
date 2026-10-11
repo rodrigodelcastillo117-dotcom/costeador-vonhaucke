@@ -13,7 +13,7 @@
 // ============================================================================
 import { useEffect, useState } from 'react';
 import { todasLasReglas, cargarReglas, guardarRegla, borrarRegla, REGLAS_DEFAULT } from '../datos/reglas.js';
-import { cargarAprendizajes, aprendizajes as leerAprendizajes, olvidar, marcarComoRegla } from '../datos/aprendizaje.js';
+import { cargarAprendizajes, aprendizajes as leerAprendizajes, olvidar, marcarComoRegla, aprobar } from '../datos/aprendizaje.js';
 
 const AMBITOS = {
   acomodo: 'Acomodo en el espacio',
@@ -98,8 +98,26 @@ export default function Reglas({ puedeEditar = false }) {
               pedido, sin que nadie tenga que aprobarlo. Si una lección salió mal, quítasela.
               Si es de las que valen para siempre, conviértela en regla.
             </p>
+            {puedeEditar && aprendido.some((a) => a.aprobado_para_ia !== true) && (
+              <div className="tarjeta" data-testid="lecciones-pendientes" style={{ padding: 12, marginBottom: 10, background: '#fff8e8', border: '1px solid #e8c77a' }}>
+                <strong>Pendientes de revisión ({aprendido.filter((a) => a.aprobado_para_ia !== true).length})</strong>
+                <p className="ayuda" style={{ marginTop: 4 }}>Lo que un vendedor anotó. No entra a lo que Voni sabe hasta que lo apruebes aquí (misma regla que la base: <code>aprobado_para_ia</code>).</p>
+                <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 8, marginTop: 8 }}>
+                  {aprendido.filter((a) => a.aprobado_para_ia !== true).map((a) => (
+                    <li key={a.id} style={{ display: 'grid', gap: 6, paddingTop: 8, borderTop: '1px solid var(--linea)' }}>
+                      <div>{a.texto}</div>
+                      <div className="ayuda">{a.usuario || 'sin autor'} · {new Date(a.creado).toLocaleDateString('es-MX')}</div>
+                      <div className="fila-botones" style={{ gap: 8 }}>
+                        <button className="boton" style={{ minHeight: 36 }} onClick={async () => { await aprobar(a.id); setAprendido(leerAprendizajes()); }}>Aprobar para Voni</button>
+                        <button className="boton fantasma" style={{ minHeight: 36 }} onClick={async () => { await olvidar(a.id); setAprendido(leerAprendizajes()); }}>Descartar</button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <ul className="lista-reglas" style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 8 }}>
-              {aprendido.map((a) => (
+              {aprendido.filter((a) => a.aprobado_para_ia === true).map((a) => (
                 <li key={a.id} className="tarjeta" style={{ padding: 12, display: 'grid', gap: 6 }}>
                   <div>{a.texto}</div>
                   <div className="ayuda">

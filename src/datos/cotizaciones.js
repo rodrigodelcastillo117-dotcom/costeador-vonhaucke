@@ -22,6 +22,7 @@
 import { nube } from '../nube.js';
 import { totalesCotizacion } from './totales.js';
 import { MOTOR_VERSION } from '../motor/calculo.js';
+import { claveCreacionNueva, CLAVE_CREACION_RE } from '../util.js';
 
 // ---------------------------------------------------------------------------
 //  HUELLA DE LA MATERIA PRIMA
@@ -118,7 +119,7 @@ export function paraGuardar(estado, usuario) {
       maniobrasPct: t.maniobrasPct,
       fletePct: t.fletePct,
       ivaPct: t.ivaPct,
-      precioLista: Math.round(t.precioLista),
+      precioLista: Math.round(t.precioLista * 100) / 100,   // a centavos: regla exacta del servidor (VH-042)
       descuento: Math.round(t.descuento),
       subtotal: Math.round(t.subtotal),
       contingencia: Math.round(t.contingencia),
@@ -126,35 +127,108 @@ export function paraGuardar(estado, usuario) {
       flete: Math.round(t.flete),
       iva: Math.round(t.iva),
       total: t.totalRedondeado,
+      // El PDF se arma DESDE este snapshot (VH-042): el anticipo también viaja.
+      anticipoPct: t.anticipoPct,
+      anticipo: t.anticipo,
     },
+    // Fecha de la propuesta (la que se imprime). El servidor la ignora al guardar.
+    fecha: cot.fecha || null,
     total: t.totalRedondeado,
     piezas: partidas.reduce((a, p) => a + (p.cantidad || 0), 0),
     huella_mp: huellaMP(estado?.insumos, estado?.parametros),
   };
 }
 
+// ---------------------------------------------------------------------------
+//  GUARDADO: UNA SOLA AUTORIDAD (Bloque 1, 2026-10-10)
+//
+//  Antes el cliente hacía INSERT/UPDATE directos a la tabla y el id de la fila vivía
+//  en un `useRef` que moría al recargar → cada recarga insertaba OTRA fila (VH-034).
+//  Ahora:
+//   1. El id vive en `estado.cotizacion.id` (se persiste con el resto del estado).
+//   2. Crear/actualizar van por los RPCs del servidor `crear_cotizacion_segura` /
+//      `actualizar_cotizacion_segura`: validan, fijan dueño, protegen estado y folio
+//      oficial, y la creación es IDEMPOTENTE por `_idempotency_key` (dos intentos
+//      del mismo borrador = la misma fila).
+//   3. `firmaGuardado` deduplica: si lo que se va a guardar es idéntico a lo último
+//      guardado, no se escribe nada.
+// ---------------------------------------------------------------------------
+
+// Clave de creación: una por cotización nueva, persiste con el estado. El servidor
+// exige [a-zA-Z0-9_-]{10,100}.
+export { claveCreacionNueva, CLAVE_CREACION_RE };
+
+// Firma estable de la FILA que se guardaría (no del estado entero): si no cambia,
+// no hay nada que escribir. Excluye `usuario` (lo decide el servidor).
+export function firmaGuardado(fila) {
+  if (!fila) return '';
+  const { usuario, ...resto } = fila;
+  const txt = JSON.stringify(resto);
+  let h = 5381;
+  for (let k = 0; k < txt.length; k++) h = ((h << 5) + h + txt.charCodeAt(k)) >>> 0;
+  return `${h.toString(36)}-${txt.length}`;
+}
+
+// Lo que se manda al servidor. `estado` (comercial) NUNCA lo escribe el cliente: sólo
+// el flujo de emisión lo mueve. Mandarlo hacía que el guardado de una cotización ya
+// emitida fallara en silencio (el guard de la DB lo rechaza).
+export function patchParaServidor(fila) {
+  const { estado, usuario, ...patch } = fila || {};
+  return patch;
+}
+
+// Clasifica el error del servidor para que el llamador decida sin leer texto suelto.
+export function clasificarErrorGuardado(e) {
+  const m = String(e?.message || e?.error?.message || e || '').toLowerCase();
+  if (!m) return 'desconocido';
+  if (m.includes('idempotency key reused')) return 'clave-reusada';
+  if (m.includes('no existe')) return 'no-existe';
+  if (m.includes('sin acceso') || m.includes('propietario') || m.includes('no autorizado') || m.includes('rol sin permiso')) return 'sin-acceso';
+  if (m.includes('no editable')) return 'no-editable';
+  return 'desconocido';
+}
+
 /**
- * Guarda (o actualiza) la cotización. Devuelve el id.
- * Nunca tumba la app: si la nube falla, el vendedor sigue cotizando y se
- * reintenta al siguiente cambio.
+ * Guarda (o actualiza) la cotización por los RPCs seguros. Devuelve
+ *   { id, guardado: boolean, motivo?: string, soltarId?: boolean, rotarClave?: boolean }
+ *  - `id`: el id vigente (el mismo que entró, o el nuevo si se creó).
+ *  - `guardado`: si el servidor confirmó la escritura.
+ *  - `soltarId`: la fila ya no es nuestra/no existe → el llamador debe olvidar el id
+ *    para que el siguiente guardado cree una cotización propia (no fingir que guardó).
+ *  - `rotarClave`: la clave de creación se reutilizó con otro contenido → generar otra.
+ * Nunca lanza: si la nube falla, el vendedor sigue cotizando y se reintenta al
+ * siguiente cambio.
  */
-export async function guardarCotizacion(estado, usuario, id = null) {
+export async function guardarCotizacion(estado, usuario, id = null, { claveCreacion = null } = {}) {
   const fila = paraGuardar(estado, usuario);
   // Sin nada dentro no se guarda: no queremos el archivo lleno de borradores
   // vacíos de cada vez que alguien abre la pantalla.
-  if (!fila.partidas.length) return id;
+  if (!fila.partidas.length) return { id, guardado: false, motivo: 'vacia' };
+  const patch = patchParaServidor(fila);
   try {
     if (id) {
-      const { error } = await nube.from('cotizaciones')
-        .update({ ...fila, actualizado: new Date().toISOString() }).eq('id', id);
-      // Si el UPDATE falla (RLS, red, CHECK), NO fingir éxito: devolver null para
-      // que el llamador no crea que guardó. El id vivo lo conserva idCotizacion.
-      return error ? null : id;
+      const { data, error } = await nube.rpc('actualizar_cotizacion_segura', { p_cotizacion_id: id, p_patch: patch });
+      if (error) {
+        const tipo = clasificarErrorGuardado(error);
+        // Fila ajena o borrada: NO seguir pegándole; la próxima vez se crea una nueva.
+        if (tipo === 'no-existe' || tipo === 'sin-acceso') return { id: null, guardado: false, motivo: tipo, soltarId: true };
+        // Emitida: no se toca (el flujo correcto es una revisión). Se conserva el id
+        // para NO duplicar.
+        return { id, guardado: false, motivo: tipo };
+      }
+      return { id: data?.id ?? id, guardado: true };
     }
-    const { data, error } = await nube.from('cotizaciones').insert(fila).select('id').single();
-    return error ? null : data.id;
+    const payload = claveCreacion && CLAVE_CREACION_RE.test(claveCreacion)
+      ? { ...patch, _idempotency_key: claveCreacion }
+      : patch;
+    const { data, error } = await nube.rpc('crear_cotizacion_segura', { p_payload: payload });
+    if (error) {
+      const tipo = clasificarErrorGuardado(error);
+      return { id: null, guardado: false, motivo: tipo, rotarClave: tipo === 'clave-reusada' };
+    }
+    return { id: data?.id ?? null, guardado: !!data?.id };
   } catch (e) {
-    return id;
+    return { id, guardado: false, motivo: 'red' };
   }
 }
 

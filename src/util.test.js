@@ -32,3 +32,12 @@ describe('claseCosto · de dónde salió el costo de una partida', () => {
     expect(claseCosto(null).clase).toBe('desconocido');
   });
 });
+
+describe('pesos · dinero desconocido no es "$0" (COSTEAR §3)', () => {
+  it('null/undefined/NaN/Infinity ⇒ "—"; 0 real ⇒ "$0"', async () => {
+    const { pesos, pesos2, SIN_DATO } = await import('./util.js');
+    for (const v of [null, undefined, NaN, Infinity, -Infinity, 'x']) { expect(pesos(v)).toBe(SIN_DATO); expect(pesos2(v)).toBe(SIN_DATO); }
+    expect(pesos(0)).toBe('$0');
+    expect(pesos(1234.6)).toBe('$1,235');
+  });
+});

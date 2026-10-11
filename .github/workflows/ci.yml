@@ -1,15 +1,20 @@
 name: CI
 
-# Corre la suite y el build en cada push y PR. Blinda "una sola verdad": nada roto
-# llega lejos sin que CI lo marque en rojo. (Se activa al agregar el remoto de GitHub.)
+# Corre la suite y el build en CADA push y PR. Blinda "una sola verdad": nada roto
+# llega lejos sin que CI lo marque en rojo.
+#
+# ⚠️ Bloque 0 (2026-10-10). Esto estuvo en `workflow_dispatch` (manual) "para evitar
+# ruido". El costo fue real: con 1,014 pruebas verdes en el repo, VH-002 (puestos
+# re-estimados por geometría) volvió a producción en beaa005 porque nadie estaba
+# obligado a correrlas. El ruido se controla con `concurrency` (se cancela la corrida
+# vieja al llegar un push nuevo), NO apagando la red de seguridad. No volver a manual.
 on:
+  push:
+  pull_request:
   workflow_dispatch:
 
-# Política permanente: NO ejecutar CI automáticamente en push/PR.
-# Las validaciones se disparan manualmente sólo cuando un bloque está listo,
-# evitando ruido, builds redundantes y notificaciones por cada commit.
 concurrency:
-  group: ci-manual-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

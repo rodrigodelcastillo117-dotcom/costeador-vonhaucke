@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  MATCH, MATCH_AUTOCOSTEABLE, familiaDeMaterial, clasificarMaterial, aplicarPoliticaMaterial, mejorInsumoDeFamilia,
+  MATCH, MATCH_AUTOCOSTEABLE, familiaDeMaterial, clasificarMaterial, aplicarPoliticaMaterial, mejorInsumoDeFamilia, alertaMaterial,
 } from './materialMatch.js';
 
 // Catálogo mock como el real (ids con color/espesor) para probar la auto-precarga.
@@ -152,5 +152,38 @@ describe('aplicarPoliticaMaterial — integra con el resolver del catálogo', ()
     const c = aplicarPoliticaMaterial({ nombre: 'Cubierta', insumoId: 'solid-surface-fantasma', material_solicitado: 'superficie sólida', cantidad: 1 }, resolver);
     expect(c.insumoId).toBe('');
     expect(c._match.clase).toBe(MATCH.NOT_AVAILABLE);
+  });
+});
+
+describe('VH-053: material del catálogo del SERVIDOR sin precio certificado', () => {
+  it('id EXACT de la IA que no existe localmente → pendiente con el id, sin sustituir por familia', () => {
+    const c = aplicarPoliticaMaterial(
+      { nombre: 'Cubierta', insumoId: 'melamina-28-ivory', material_solicitado: 'melamina ivory 28 mm', material_match: 'EXACT' },
+      () => undefined, CAT,
+    );
+    expect(c.insumoId).toBe('');                               // NO se costea con otro material
+    expect(c._match.autollenado).toBe(false);                  // aunque haya melaminas locales
+    expect(c._match.clase).toBe(MATCH.NOT_AVAILABLE);
+    expect(c._match).toMatchObject({ servidorId: 'melamina-28-ivory', sinPrecioCertificado: true });
+    expect(c._match.motivo).toMatch(/servidor.*melamina-28-ivory.*sin precio certificado/);
+    const a = alertaMaterial(c._match);
+    expect(a).toMatchObject({ tono: 'ambar', titulo: 'Material real sin precio certificado' });
+    expect(a.detalle).toMatch(/Compras/);
+  });
+  it('sin material_match EXACT, un id desconocido sigue la red de seguridad de siempre (auto-asigna por familia, y se avisa)', () => {
+    const c = aplicarPoliticaMaterial(
+      { nombre: 'Costado', insumoId: 'melamina-19-nogal', material_solicitado: 'melamina nogal 19 mm' },
+      () => undefined, CAT,
+    );
+    expect(c.insumoId).toBe('melamina-19-nogal-neo-tx');
+    expect(c._match.autollenado).toBe(true);
+    expect(alertaMaterial(c._match)).toMatchObject({ tono: 'ambar', titulo: 'Material auto-asignado por familia' });
+  });
+  it('alertaMaterial: EXACT sin auto-asignación → nada que avisar; NOT_AVAILABLE → rojo', () => {
+    const ok = aplicarPoliticaMaterial({ nombre: 'Tapa', insumoId: 'mdf', material_solicitado: 'mdf 19' }, (id) => CAT.find((x) => x.id === id), CAT);
+    expect(alertaMaterial(ok._match)).toBeNull();
+    const na = aplicarPoliticaMaterial({ nombre: 'Cubierta', insumoId: '', material_solicitado: 'superficie sólida' }, () => undefined, CAT);
+    expect(alertaMaterial(na._match)).toMatchObject({ tono: 'rojo', titulo: 'Material pendiente' });
+    expect(alertaMaterial(null)).toBeNull();
   });
 });

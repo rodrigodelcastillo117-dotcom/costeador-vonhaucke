@@ -17,6 +17,7 @@
 //  RecommendationEngine (REVIEW_PRODUCT) · Observability (trace).
 // ============================================================================
 import { aplicarCambioTexto, sugerenciasVoni, construirProductSpec, extraerDNA, clasificarProducto } from './cocrear.js';
+import { veCostosCosteo } from './roles.js';
 
 const sinAc = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
@@ -29,7 +30,7 @@ const specDe = (intent) => construirProductSpec(intent, extraerDNA(intent), clas
 
 // --- CONTEXT · seller-safe ANTES del modelo/respuesta (nunca costo/margen a ventas).
 export function voniContext(estudio = {}, role = 'direccion') {
-  const veCostos = /direccion|direcci|diseno|diseño|admin/.test(sinAc(role));
+  const veCostos = veCostosCosteo(role);   // VH-054: espejo del servidor; 'admin' ya no cuela
   const ctx = {
     role, veCostos,
     familia: estudio?.spec?.familia || null,

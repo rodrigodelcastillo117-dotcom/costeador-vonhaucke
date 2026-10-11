@@ -43,7 +43,14 @@ export function totalesCotizacion(partidas = [], cot = {}, par = {}) {
     if (!Number.isFinite(v)) { hayLineaInvalida = true; return 0; }
     return v;
   };
-  const precioLista = partidas.reduce((a, p) => a + linea(p), 0);
+  // VH-042 (2026-10-11): la suma de renglones se lleva A CENTAVOS (cada renglón
+  // redondeado a 2 decimales y la suma también), que es EXACTAMENTE lo que el
+  // servidor recalcula al emitir (`emitir_revision_v2`: Σ round(pu×cant, 2)). Antes
+  // se guardaba `Math.round(precioLista)` al peso: con cualquier precio con
+  // centavos el servidor rechazaba la emisión ("precioLista no coincide") y el PDF
+  // salía SIEMPRE como borrador.
+  const r2 = (x) => Math.round(x * 100) / 100;
+  const precioLista = r2(partidas.reduce((a, p) => a + r2(linea(p)), 0));
 
   const descuentoPct = cot.descuentoPct ?? par.descuentoPorcentaje ?? 0;
   const descuento = precioLista * (descuentoPct / 100);
@@ -64,9 +71,12 @@ export function totalesCotizacion(partidas = [], cot = {}, par = {}) {
   // El total que se IMPRIME y se GUARDA: suma de los renglones ya redondeados.
   // Ojo: Math.round(-x) ≠ -Math.round(x) en los .5 (JS redondea hacia +∞), por
   // eso el descuento se redondea en positivo y luego se resta —igual que el PDF.
-  const totalRedondeado =
-    Math.round(precioLista) - Math.round(descuento) + Math.round(contingencia)
-    + Math.round(maniobras) + Math.round(flete) + Math.round(iva);
+  // El servidor exige total == precioLista − descuento + contingencia + maniobras +
+  // flete + iva con los MISMOS valores del desglose: precioLista a centavos (arriba),
+  // los demás conceptos al peso. Por eso precioLista NO se redondea aquí al peso.
+  const totalRedondeado = r2(
+    precioLista - Math.round(descuento) + Math.round(contingencia)
+    + Math.round(maniobras) + Math.round(flete) + Math.round(iva));
 
   const anticipoPct = cot.anticipoPct ?? par.anticipoPorcentaje ?? 50;
   const anticipo = Math.round(totalRedondeado * (anticipoPct / 100));

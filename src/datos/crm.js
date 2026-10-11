@@ -4,7 +4,7 @@
 //  para tumbar la UI: devuelve { data, error } y la pantalla decide el estado.
 //  Lecturas sensibles de cotización van por `cotizacion_segura` (seller-safe).
 // ============================================================================
-import { nube } from '../nube.js';
+import { nube, solicitarAprobacionSnapshot, resolverAprobacionServidor } from '../nube.js';
 
 async function sel(q) { const { data, error } = await q; return { data: data || [], error }; }
 
@@ -57,11 +57,14 @@ export async function seleccionarEscenario(proyectoId, escenarioId) {
 // ---- Aprobaciones (N14 Deal Desk) -----------------------------------------
 export const listarAprobaciones = (cotizacionId) =>
   sel(nube.from('aprobaciones').select('*').eq('cotizacion_id', cotizacionId).order('creado', { ascending: false }));
-// Vendedor crea SIEMPRE en PENDIENTE (la RLS lo exige salvo Dirección).
-export const solicitarAprobacion = (a) => nube.from('aprobaciones').insert({ ...a, estado: 'PENDIENTE' }).select('*').maybeSingle();
-// Resolver: la RLS exige es_direccion(); si un vendedor lo intenta, falla (0 filas).
-export const resolverAprobacion = (id, estado, resuelto_por) =>
-  nube.from('aprobaciones').update({ estado, resuelto_por, resuelto_en: new Date().toISOString() }).eq('id', id);
+// VH-055: pedir y resolver van por las RPCs del servidor (hash_revision + reglas_version
+// los pone la base; `resuelto_por` sale del JWT). Escribir la tabla directo dejaba filas
+// sin reglas_version que verificar_aprobacion nunca reconoce.
+// VH-057: cola de Dirección. La RLS deja a Dirección ver todas; a los demás, las suyas.
+export const listarAprobacionesPendientes = () =>
+  sel(nube.from('aprobaciones').select('*').eq('estado', 'PENDIENTE').order('creado', { ascending: true }));
+export const solicitarAprobacion = ({ cotizacion_id, snapshot, motivo = null } = {}) => solicitarAprobacionSnapshot(cotizacion_id, snapshot, motivo);
+export const resolverAprobacion = (id, estado, _resueltoPorIgnorado = null, motivo = null) => resolverAprobacionServidor(id, estado, motivo);
 
 // ---- Revisiones (para Diff N16) -------------------------------------------
 // Seller-safe: el RPC sanitiza el snapshot por rol (vendedor sin economía) y

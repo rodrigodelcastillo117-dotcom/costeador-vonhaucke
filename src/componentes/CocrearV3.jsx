@@ -1,6 +1,6 @@
 import React,{useEffect,useMemo,useState} from 'react';
 import {
-  cocrearDesdeIntent,construirProductSpec,extraerDNA,clasificarProducto,cocrearDeExpediente,cocrearPayload,
+  cocrearDesdeIntent,construirProductSpec,extraerDNA,clasificarProducto,cocrearDeExpediente,cocrearPayload,partidaDesdeCocrear,
   hashEstable,DIMS_DEFAULT,MATERIALES_EDIT,FAMILIA,aplicarCambioTexto,
 } from '../datos/cocrear.js';
 import {prepararIntentCocrear,resumenIdeaCocrear,conceptosCocrear,aplicarConceptoCocrear,FEATURES_COCREAR,detectarAlcanceCocrear} from '../datos/cocrearWow.js';
@@ -9,7 +9,7 @@ import {estimadoDisenoCocrear} from '../datos/estimadoDiseno.js';
 import {listarCocreaciones,guardarCocrearSeguro,cargarCocrearSeguro,registrarProductoDesdeExpediente,subirRenderCanonico,voniCouncil,generarRender} from '../nube.js';
 import CocrearVisual from './CocrearVisual.jsx';
 import {parametrosEfectivos} from './Costeador.jsx';
-import {precioVenta} from '../motor/calculo.js';
+import {precioDesdeCosto,margenObjetivoDe} from '../datos/precio.js';
 import {compileRenderPrompt,renderStale} from '../datos/renderPrompt.js';
 
 const MAT_LABEL={nogal:'Nogal',roble:'Roble',encino:'Encino',maple:'Maple',laminado:'Laminado',solid_surface:'Solid surface',cristal:'Cristal',metal:'Metal',piedra:'Piedra'};
@@ -98,7 +98,7 @@ export default function Cocrear({estado,onAgregar,onIr}){
    const descripcion=`${c.descripcion}\nCLIENT BRIEF: ${nextIntent?._brief||texto}. SELECTED CONCEPT: ${nextIntent?._concepto||''} ${nextIntent?._concepto_nombre||''}. The image MUST preserve the exact current-revision geometry shown in the supplied technical reference. Do not redesign the product.`;
    const modelo=await capturarModeloPNG();
    const r=await generarRender(descripcion,{render_spec:c.render_spec,materiales:c.materiales,medidas:c.medidas,tipo:c.tipo,modo:c.modo,aspecto:'4:3',...(modelo?{imagen:modelo,mediaType:'image/png'}:{})});
-   if(r?.ok&&r.dataUrl)setRender({dataUrl:r.dataUrl,specHash:nextSpec.hash,expected:c.expected,version:c.version,concepto:nextIntent?._concepto||null});else throw new Error(r?.error||'No se pudo generar el render');
+   if(r?.ok&&r.imagen)setRender({dataUrl:r.imagen,/* VH-072: URL o dataUrl */specHash:nextSpec.hash,expected:c.expected,version:c.version,concepto:nextIntent?._concepto||null});else throw new Error(r?.error||'No se pudo generar el render');
   }catch(e){setRenderError(String(e?.message||e))}finally{setRenderCargando(false)}
  };
  const generar=()=>generarPara(intent,spec);
@@ -150,10 +150,17 @@ export default function Cocrear({estado,onAgregar,onIr}){
  const costoOficial=Number(pipeline?.costo?.official_cost),costoConocido=Number.isFinite(costoOficial)&&costoOficial>0;
  const agregarCotizacion=async()=>{
   if(!costoConocido||!onAgregar){setMensaje('Todavía no puede convertirse en partida: falta BOM/economía certificada. Las referencias comerciales no sustituyen el costeo.');return}
-  let id=expedienteId,prodId=null,versionId=null;
-  try{if(!id){const s=await guardarCocrearSeguro(null,cocrearPayload({brief:texto,intent,historia,render,insumos,par}));if(s?.ok){id=s.expediente_id;setExpedienteId(id)}}if(id){const reg=await registrarProductoDesdeExpediente(id);if(reg?.ok){prodId=reg.producto_id;versionId=reg.version_id}}if(versionId&&render&&!rStale){const c=compileRenderPrompt(spec,spec.dna);const geometryHash=hashEstable({familia:spec.familia,dimensiones:spec.dimensiones||{},caracteristicas:spec.caracteristicas||[],componentes:spec.componentes||[]});await subirRenderCanonico({expedienteId:id,productoId:prodId,productoVersionId:versionId,dataUrl:render.dataUrl,promptVersion:render.version,modo:'render',specHash:spec.hash,geometryHash,inputs:c.expected||{}})}}catch{}
-  const margen=Number.isFinite(par.margenObjetivo)?par.margenObjetivo:40,pv=precioVenta(costoOficial,par).precio;
-  onAgregar({nombre:intent?._concepto_nombre||resumen?.tipologia||'Producto co-creado',componentes:spec.componentes,w:spec.dimensiones?.ancho_mm||null,d:spec.dimensiones?.prof_mm||spec.dimensiones?.fondo_mm||null,productoId:prodId,productVersionId:versionId,precioReal:false,config:null},1,pv,margen);setCotizadoHash(spec.hash);setMensaje('✓ Revisión actual agregada a cotización.');
+  // VH-058: sin expediente guardado y Producto Maestro registrado NO hay partida (antes un
+  // try/catch vacío tragaba el error y la partida salía sin identidad ni procedencia).
+  let id=expedienteId;
+  if(!id){const s=await guardarCocrearSeguro(null,cocrearPayload({brief:texto,intent,historia,render,insumos,par}));if(!s?.ok){setMensaje(`No se pudo guardar la cocreación: ${s?.error||s?.motivo||'error del servidor'}.`);return}id=s.expediente_id;setExpedienteId(id)}
+  const reg=await registrarProductoDesdeExpediente(id);
+  if(!reg?.ok||!reg.producto_id||!reg.version_id){setMensaje(`No se pudo registrar el producto de esta revisión: ${reg?.motivo||reg?.error||'sin respuesta'}. Sin Producto Maestro la partida no se puede emitir, así que no se agrega.`);return}
+  const prodId=reg.producto_id,versionId=reg.version_id;
+  let renderUrl=null;
+  if(render&&!rStale){try{const c=compileRenderPrompt(spec,spec.dna);const geometryHash=hashEstable({familia:spec.familia,dimensiones:spec.dimensiones||{},caracteristicas:spec.caracteristicas||[],componentes:spec.componentes||[]});const up=await subirRenderCanonico({expedienteId:id,productoId:prodId,productoVersionId:versionId,dataUrl:render.dataUrl,promptVersion:render.version,modo:'render',specHash:spec.hash,geometryHash,inputs:c.expected||{}});if(up?.storage_url)renderUrl=up.storage_url}catch(e){/* el render es opcional: la partida sale sin imagen, no sin identidad */}}
+  const margen=margenObjetivoDe(par),pv=precioDesdeCosto(costoOficial,{par,margen});if(pv==null){setMensaje('Sin precio válido para esta revisión.');return}
+  onAgregar(partidaDesdeCocrear({nombre:intent?._concepto_nombre||resumen?.tipologia||'Producto co-creado',spec,prodId,versionId,expedienteId:id,renderUrl}),1,pv,margen);setCotizadoHash(spec.hash);setMensaje(renderUrl?'✓ Revisión actual agregada a cotización, con su render canónico.':'✓ Revisión actual agregada a cotización.');
  };
 
  const css=<style>{`.coc3{max-width:1240px;margin:0 auto;font-size:14px}.c3-title{font-size:clamp(30px,3vw,44px);line-height:1.06;margin:5px 0 9px}.c3-lead{font-size:16px;color:#b7b2af;max-width:850px;line-height:1.5}.c3-concepts{display:grid;grid-template-columns:320px minmax(0,1fr);gap:13px}.c3-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.c3-studio{display:grid;grid-template-columns:245px minmax(0,1fr) 300px;gap:11px;align-items:start}.c3-hero{min-height:330px;display:flex;align-items:center;justify-content:center;background:#111315;border-radius:11px;overflow:hidden}.c3-hero img{width:100%;height:auto;display:block}.c3-input{width:100%;box-sizing:border-box;background:#22201f;color:#fff;border:1px solid #444;border-radius:9px;padding:8px}.c3-small{font-size:11px;color:#9ca3ad}.c3-ref{background:#121b16;border:1px solid #28553b;border-radius:10px;padding:10px;margin-top:10px}.c3-refrow{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-top:1px solid #26352b;font-size:11px}.c3-history{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.c3-history button{background:#202225;color:#cfd3d7;border:1px solid #393d42;border-radius:999px;padding:5px 8px;font-size:10px}@media(max-width:1050px){.c3-studio{grid-template-columns:230px minmax(0,1fr)}.c3-right{grid-column:1/-1}.c3-concepts{grid-template-columns:1fr}}@media(max-width:760px){.c3-studio,.c3-concepts,.c3-cards{grid-template-columns:1fr}.c3-title{font-size:32px}}`}</style>;

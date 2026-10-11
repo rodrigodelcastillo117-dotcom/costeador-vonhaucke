@@ -13,10 +13,13 @@
 //  Abrir una la trae al proyecto actual; el archivo no se destruye desde aquí
 //  (sacar de la lista sólo la marca inactiva).
 // ============================================================================
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { listarCotizaciones, archivarCotizacion, mpCambio } from '../datos/cotizaciones.js';
 import { listarRevisiones } from '../datos/revisiones.js';
+import { armarRespaldo, validarRespaldo, nombreArchivoRespaldo, descargarJSON, leerArchivoJSON } from '../datos/respaldo.js';
+import { descargarPropuesta, datosDesdeSnapshot, cargarMarca, cargarImagenesAcomodo } from '../datos/pdfPropuesta.js';
 import { pesos, coincide } from '../util.js';
+import AprobacionesPendientes from './AprobacionesPendientes.jsx';
 
 const fechaCorta = (iso) => {
   if (!iso) return '';
@@ -24,10 +27,38 @@ const fechaCorta = (iso) => {
   return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' });
 };
 
-export default function Archivo({ estado, onAbrir }) {
+export default function Archivo({ estado, onAbrir, veCostos = false, usuario = null, onRestaurar = null, puedeAprobar = false }) {
   const [lista, setLista] = useState(null);   // null = cargando
   const [busca, setBusca] = useState('');
   const [error, setError] = useState('');
+  const [respaldoMsg, setRespaldoMsg] = useState('');
+  const archivoRef = useRef(null);
+
+  // RESPALDO LOCAL DE UN CLIC (Bloque 1). Lo que vive sólo en este navegador sale a
+  // un archivo; el rol decide qué sale (ver datos/respaldo.js). Restaurar reemplaza la
+  // cotización actual (se pregunta antes) y sigue editando LA MISMA en la nube.
+  function exportarRespaldo() {
+    const r = armarRespaldo(estado, { veCostos, usuario });
+    descargarJSON(nombreArchivoRespaldo(r), r);
+    const n = r.cotizacion?.partidas?.length || 0;
+    setRespaldoMsg(`Respaldo descargado: ${n} renglón(es)${veCostos ? ', con costos, insumos y parámetros' : ', sin economía interna'}.`);
+  }
+  async function restaurarRespaldo(e) {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f || !onRestaurar) return;
+    try {
+      const r = await leerArchivoJSON(f);
+      const v = validarRespaldo(r);
+      if (!v.ok) { setRespaldoMsg(`No se restauró: ${v.motivo}`); return; }
+      const hay = (estado?.cotizacion?.partidas || []).length;
+      if (hay && !confirm(`Tienes ${hay} mueble(s) en el proyecto actual. ¿Los reemplazo con el respaldo (${r.cotizacion.cliente || 'sin cliente'}, ${r.cotizacion.partidas.length} renglones)?`)) return;
+      const res = onRestaurar(r);
+      setRespaldoMsg(res?.ok === false ? `No se restauró: ${res.motivo}` : `Respaldo restaurado: ${r.cotizacion.partidas.length} renglón(es) de ${r.cotizacion.cliente || 'sin cliente'}.`);
+    } catch (err) {
+      setRespaldoMsg(`No se restauró: ${err?.message || err}`);
+    }
+  }
 
   async function refrescar() {
     setError('');
@@ -43,6 +74,22 @@ export default function Archivo({ estado, onAbrir }) {
 
   return (
     <div className="contenido">
+      <AprobacionesPendientes visible={puedeAprobar} />
+      <div className="tarjeta" data-testid="respaldo-local">
+        <h3 style={{ marginTop: 0 }}>Respaldo de esta computadora</h3>
+        <p className="ayuda columna-texto">
+          Lo que tienes abierto vive también en este navegador. Descárgalo a un archivo para no perderlo
+          o para seguir en otra computadora. {veCostos ? 'Tu respaldo incluye costos, insumos y parámetros (nunca la nómina).' : 'Tu respaldo no incluye economía interna.'}
+        </p>
+        <div className="fila-botones" style={{ gap: 8 }}>
+          <button className="boton primario" style={{ minHeight: 44 }} onClick={exportarRespaldo}>Descargar respaldo</button>
+          {onRestaurar && (
+            <button className="boton" style={{ minHeight: 44 }} onClick={() => archivoRef.current?.click()}>Restaurar respaldo</button>
+          )}
+          <input ref={archivoRef} type="file" accept="application/json" style={{ display: 'none' }} onChange={restaurarRespaldo} data-testid="respaldo-archivo" />
+        </div>
+        {respaldoMsg && <div className="ayuda" style={{ marginTop: 8 }} data-testid="respaldo-msg">{respaldoMsg}</div>}
+      </div>
       <div className="tarjeta">
         <h2 style={{ marginTop: 0 }}>Presupuestos que ya hicimos</h2>
         <p className="ayuda columna-texto">
@@ -137,8 +184,20 @@ function Emisiones({ cotizacionId, folio }) {
     <div style={{ marginTop: 6, display: 'grid', gap: 3 }}>
       <div className="ayuda" style={{ fontWeight: 700 }}>{revs.length} emisión(es) conservada(s):</div>
       {revs.map((r) => (
-        <div key={r.id} className="ayuda" style={{ opacity: 0.9 }}>
-          Rev. {r.revision} · {fechaCorta(r.emitida_en)} · {r.usuario || 'autor desconocido'} · {pesos(r.total)}
+        <div key={r.id} className="ayuda" style={{ opacity: 0.9, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span>Rev. {r.revision} · {fechaCorta(r.emitida_en)} · {r.usuario || 'autor desconocido'} · {pesos(r.total)}</span>
+          {r.snapshot && (
+            // VH-042: el PDF de una revisión se vuelve a generar DESDE SU SNAPSHOT conservado,
+            // no desde el estado vivo. Lo que se reimprime es exactamente lo que se emitió.
+            <button className="boton fantasma" style={{ minHeight: 30, fontSize: 12 }}
+              onClick={async () => {
+                try {
+                  const marca = await cargarMarca().catch(() => null);
+                  const snap = { ...r.snapshot, acomodo: await cargarImagenesAcomodo(r.snapshot.acomodo) };
+                  descargarPropuesta(datosDesdeSnapshot(snap, { marca, fecha: r.snapshot.fecha || fechaCorta(r.emitida_en), borrador: false, piezas: [] }));
+                } catch (e) { alert(`No se pudo generar el PDF de la revisión ${r.revision}: ${e?.message || e}`); }
+              }}>PDF de esta revisión</button>
+          )}
         </div>
       ))}
     </div>

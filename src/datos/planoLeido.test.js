@@ -190,3 +190,29 @@ describe('resumenLectura · confianza del levantamiento', () => {
     expect(resumenLectura({ areas: [] }).nivel).toBe('nula');
   });
 });
+
+// ============================================================================
+//  VH-043 (2026-10-11) · ESCALA: la cota general debe cuadrar con los ejes.
+// ============================================================================
+describe('validarEscala · cota general vs. suma de ejes', () => {
+  const base = { envolvente: { ancho: 15000, largo: 12000 }, areas: [{ nombre: 'A', tipo: 'open', forma: 'poligono', dentroDe: '', circulo: { cx: 0, cy: 0, r: 0 }, puntos: [{ x: 0, y: 0 }, { x: 15000, y: 0 }, { x: 15000, y: 12000 }, { x: 0, y: 12000 }] }] };
+  it('sin ejes no inventa problemas', async () => {
+    const { validarEscala } = await import('./planoLeido.js');
+    expect(validarEscala({ ...base, grid: { horizontal: [], vertical: [] } })).toEqual([]);
+    expect(validarEscala(base)).toEqual([]);
+  });
+  it('ejes que suman la cota general (±3 %) ⇒ sin problema', async () => {
+    const { validarEscala } = await import('./planoLeido.js');
+    expect(validarEscala({ ...base, grid: { horizontal: [4000, 4000, 4000, 3000], vertical: [6000, 6000] } })).toEqual([]);
+    expect(validarEscala({ ...base, grid: { horizontal: [5000, 5000, 5300], vertical: [6000, 6000] } })).toEqual([]);
+  });
+  it('ejes que NO cuadran ⇒ problema de escala, y baja el nivel de confianza', async () => {
+    const { validarEscala, revisarAreas, resumenLectura } = await import('./planoLeido.js');
+    const malo = { ...base, grid: { horizontal: [4000, 4000, 4000, 4000, 4000], vertical: [6000, 6000] } };   // 20 m vs 15 m
+    const p = validarEscala(malo);
+    expect(p).toHaveLength(1);
+    expect(p[0]).toMatch(/cota general de ancho \(15\.00 m\) no cuadra con la suma de los ejes \(20\.00 m\)/);
+    expect(revisarAreas(malo).join(' ')).toMatch(/revisa la escala/);
+    expect(resumenLectura(malo).nivel).not.toBe('alta');
+  });
+});

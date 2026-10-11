@@ -5,15 +5,18 @@
 //  este mismo despiece leyendo una imagen con IA).
 // ============================================================================
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { calcular, precioDe, netoComponente, modeloParaPieza, costeoEmitible, bomHash, diffBOM, aplicarDiffBOM, MOTOR_VERSION, FORMULA_ALBA_V1, formulaDePieza } from '../motor/calculo.js';
+import { precioDesdeCosto, margenObjetivoDe } from '../datos/precio.js';
+import { calcular, netoComponente, modeloParaPieza, costeoEmitible, bomHash, diffBOM, aplicarDiffBOM, MOTOR_VERSION, FORMULA_ALBA_V1, formulaDePieza } from '../motor/calculo.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos } from '../util.js';
-import { analizarRender, analizarRenderImagenes, analizarTexto, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64 } from '../nube.js';
+import { analizarRender, analizarRenderImagenes, analizarTexto, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, urlADataUrl, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64 } from '../nube.js';
+import { comoDataUrl, esURLImagen } from '../datos/renderRespuesta.js';   // VH-072
+import { filaSombra } from '../datos/sombraCosteo.js';   // VH-073
 import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
-import { aplicarPoliticaMaterial } from '../datos/materialMatch.js';
+import { aplicarPoliticaMaterial, alertaMaterial } from '../datos/materialMatch.js';
 import { abrirPdf, paginaAImagen, todasLasPaginas } from '../datos/pdfImagen.js';
 import Cargando from './Cargando.jsx';
 import Markdown from './Markdown.jsx';
@@ -138,7 +141,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const [b, setB] = useState({
     nombre: '', piezas: 1, componentes: [], imagen: null, descripcionCliente: '',
     modoManoObra: 'porcentaje',
-    margen: estado.parametros?.margenObjetivo ?? 50,
+    margen: margenObjetivoDe(estado.parametros),
   });
   const set = (parcial) => setB((prev) => ({ ...prev, ...parcial }));
 
@@ -168,14 +171,15 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // Costeador.jsx y CosteadorLinea.jsx ya traen `estado.parametros`/`par` en su
   // lista; a éste se le había quedado fuera.
   const resultado = useMemo(() => calcular(b, b.piezas, insumos, par), [b, insumos, estado.parametros]);
-  const precio = precioDe(resultado.costoUnitario, b.margen);
+  // Una sola regla costo → precio, sobre el costo OFICIAL: incompleto ⇒ null (nunca $0).
+  const precio = precioDesdeCosto(resultado.costoOficial, { par, margen: b.margen });
 
   // --- SHADOW (Fase 3): compara en paralelo el motor del servidor (JWT real, rol/costos
   // server-side) contra el resultado del cliente y lo registra. Fire-and-forget, debounced,
   // dedup por input: NUNCA bloquea ni cambia lo que ve el usuario. El usuario sigue viendo `precio`.
   const sombraRef = useRef('');
   useEffect(() => {
-    if (!(b.componentes?.length) || !(resultado.costoUnitario > 0)) return;
+    if (!(b.componentes?.length) || !(resultado.costoUnitario > 0) || precio == null) return;
     const pieza = { ...b, modeloCosteo: estado.parametros?.modeloCosteo };
     const h = hashInput({ c: b.componentes, n: b.piezas, m: b.margen });
     if (sombraRef.current === h) return; // ya comparado este input
@@ -183,21 +187,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       sombraRef.current = h;
       try {
         const srv = await costearServidor(pieza, b.piezas);
-        const precioSrv = srv?.precioVenta ?? null;
-        await registrarSombra({
-          input_hash: h,
-          motor_version: srv?.versionMotor || null,
-          version_catalogo: srv?.versionCatalogo || null,
-          estado_servidor: srv?.estado || (srv?.ok === false ? 'error' : null),
-          http_status: srv?.status ?? (srv?.ok ? 200 : null),
-          precio_cliente: Math.round(precio),
-          precio_servidor: precioSrv,
-          costo_cliente: Math.round(resultado.costoUnitario),
-          costo_servidor: srv?.costo?.costoUnitario ?? null,
-          diff: precioSrv != null ? Math.round(precio) - precioSrv : null,
-          campos_recibidos: srv && typeof srv === 'object' ? Object.keys(srv) : null,
-          nota: b.nombre || null,
-        });
+        // VH-073: el motivo del fallo viaja en la fila (antes sólo 'error' y las llaves).
+        await registrarSombra(filaSombra(srv, { inputHash: h, precioCliente: precio, costoCliente: resultado.costoUnitario, nombre: b.nombre }));
       } catch (e) { /* shadow silencioso: jamás rompe el flujo */ }
     }, 1500);
     return () => clearTimeout(t);
@@ -272,9 +263,10 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       : { tipo: 'oficina', txt: 'modern corporate office with warm oak furniture and natural daylight' };
   }
   // sube a Storage + guarda metadata; devuelve la URL para mostrar (o el dataUrl si Storage falla).
-  async function persistir(dataUrl, modo, tipo, entornoTipo) {
+  async function persistir(imagen, modo, tipo, entornoTipo) {
     const path = `nuevo/${hashInput({ n: b.nombre, c: b.componentes })}/${modo}-${Date.now()}.png`;
-    const up = await subirRender(dataUrl, path);
+    // VH-072: si ya es URL de Storage (edge v30) no se vuelve a subir; se registra esa URL.
+    const up = esURLImagen(imagen) ? { ok: true, path: null, url: imagen } : await subirRender(imagen, path);
     if (up.ok) {
       await guardarRender({
         producto_nombre: b.nombre, producto_version: null, prompt_version: PROMPT_VERSION,
@@ -327,9 +319,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         ? { modo: 'catalogo', medidas, tipo, materiales: materialesR, imagen: paginas[0], mediaType: 'image/jpeg', imagenes: paginas.slice(1, 6), preservar }
         : { modo: 'render', medidas, tipo, materiales: materialesR };
       const r = await generarRender(texto, opt);
-      if (r?.ok && r.dataUrl) {
-        aisladoDataUrl = r.dataUrl;
-        const url = await persistir(r.dataUrl, 'aislado', tipo, ent.tipo);
+      if (r?.ok && r.imagen) {
+        // VH-072: la edge v30 devuelve URL de Storage; la referencia para el ambiente
+        // necesita los bytes (se traen); la persistencia acepta URL o dataUrl.
+        aisladoDataUrl = await comoDataUrl(r.imagen, urlADataUrl);
+        const url = await persistir(r.imagen, 'aislado', tipo, ent.tipo);
         setRenders((s) => ({ ...s, aislado: url }));
         const avisos = [];
         if (geomFid === 'limitada') avisos.push('Sin plano cargado: el aislado se generó por descripción (geometría limitada). Sube el plano para fidelidad exacta.');
@@ -347,8 +341,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       const prodMime = prod ? ((String(prod).match(/data:(.*?);/) || [])[1] || 'image/png') : 'image/png';
       if (prodRaw) {
         const r = await generarRender(texto, { modo: 'ambiente', medidas, tipo, materiales: materialesR, imagen: prodRaw, mediaType: prodMime, entorno: ent.txt });
-        if (r?.ok && r.dataUrl) {
-          const url = await persistir(r.dataUrl, 'ambiente', tipo, ent.tipo);
+        if (r?.ok && r.imagen) {
+          const url = await persistir(r.imagen, 'ambiente', tipo, ent.tipo);   // VH-072
           setRenders((s) => ({ ...s, ambiente: url }));
         } else { setRenderMsg(r?.error || 'No se pudo generar el ambiente.'); }
       }
@@ -1043,7 +1037,12 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                   </select>
                   <button className="pieza-x" onClick={() => quitarPieza(i)} aria-label="quitar">×</button>
                 </div>
-                {!ins && <div className="pieza-calc" style={{ color: 'var(--alerta,#b22a22)' }}>⚠ Sin material: se costea en $0. Elige de qué es.</div>}
+                {(() => { const a = alertaMaterial(c._match); return a && (
+                  <div className="pieza-match-alerta" data-testid="alerta-material" data-tono={a.tono} style={{ background: a.tono === 'rojo' ? '#fdeaea' : '#fff4e5', border: `1px solid ${a.tono === 'rojo' ? '#e5a0a0' : '#f0c38e'}`, borderRadius: 8, padding: '6px 10px', margin: '6px 0', fontSize: 13, color: a.tono === 'rojo' ? '#7a1f1f' : '#7a4a00' }}>
+                    ⚠️ <b>{a.titulo}</b> — {a.detalle}
+                  </div>
+                ); })()}
+                {!ins && !alertaMaterial(c._match) && <div className="pieza-calc" style={{ color: 'var(--alerta,#b22a22)' }}>⚠ Sin material: la pieza queda pendiente y bloquea la emisión (no se costea en $0). Elige de qué es.</div>}
                 {ins && (
                   <div className="pieza-med">
                     {area ? (

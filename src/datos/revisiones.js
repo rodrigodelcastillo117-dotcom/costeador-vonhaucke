@@ -70,7 +70,7 @@ export async function guardarRevision(estado, cotizacionId) {
   try {
     if (!cotizacionId) return { ok: false, motivo: 'sin-cotizacion' }; // sin vínculo no hay emisión definitiva
     const snap = snapshotEmitido(estado);
-    if (!snap || !(snap.partidas || []).length) return { ok: false, motivo: 'vacia' };
+    if (!snap || !(snap.partidas || []).length) return { ok: false, motivo: 'vacia', snapshot: snap };
     // El SERVIDOR calcula el hash y el total desde el snapshot (no confía en el
     // cliente): un hash viejo/incorrecto no puede ocultar un cambio. Solo se le
     // manda el contenido conservado.
@@ -78,8 +78,9 @@ export async function guardarRevision(estado, cotizacionId) {
       p_cotizacion_id: cotizacionId,
       p_snapshot: snap,
     });
-    if (error) return { ok: false, motivo: error.message || 'rpc' };
-    return { ok: true, revision: data?.revision, nueva: !!data?.nueva };
+    // VH-042: el snapshot que se conservó es el MISMO con el que se dibuja el PDF.
+    if (error) return { ok: false, motivo: error.message || 'rpc', snapshot: snap };
+    return { ok: true, revision: data?.revision, nueva: !!data?.nueva, snapshot: snap };
   } catch (e) {
     return { ok: false, motivo: String(e?.message || e) };
   }
