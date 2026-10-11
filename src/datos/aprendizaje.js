@@ -158,23 +158,5 @@ export async function marcarComoRegla(id, claveRegla) {
   } catch (e) { /* nada */ }
 }
 
-// ---------------------------------------------------------------------------
-//  DE UNA CORRECCIÓN A UNA LECCIÓN EN ESPAÑOL
-//  Voni no aprende de un diff en JSON: aprende de una frase. Estas dos funciones
-//  convierten lo que hizo el vendedor en algo que un modelo puede obedecer y que
-//  un humano puede leer en la pantalla "Lo que Voni sabe" y decir "sí" o "no".
-// ---------------------------------------------------------------------------
-export function leccionDeQuita(partida) {
-  const n = partida?.nombre || 'ese mueble';
-  return `Cuando el pedido se parezca a éste, NO incluyas "${n}": el vendedor lo quitó de la cotización.`;
-}
-
-export function leccionDeCambio(antes, despues) {
-  if (!antes || !despues) return '';
-  const a = antes.nombre || '', d = despues.nombre || '';
-  if (a && d && a !== d) return `Donde propusiste "${a}", el vendedor lo cambió por "${d}". Prefiere el segundo.`;
-  if (antes.cantidad !== despues.cantidad) {
-    return `En un pedido como éste propusiste ${antes.cantidad} de "${a}" y el vendedor lo dejó en ${despues.cantidad}.`;
-  }
-  return '';
-}
+// B9 (2026-10-11): `leccionDeQuita` y `leccionDeCambio` se retiraron (prod 0). La lección que sí se
+// guarda es la aclaración del vendedor (CotizadorIA.responder → anotar).
