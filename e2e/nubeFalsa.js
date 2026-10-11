@@ -72,6 +72,7 @@ export const LECTURA_EJEMPLO = {
 // (Producto Maestro, aprobaciones, política comercial) se resuelve como lo haría una
 // base vacía: sin ProductVersion → `product_version_no_corresponde`; margen mínimo 25.
 const MARGEN_MIN = 25;
+const REGLAS_VERSION = 1;   // reglas_comerciales_vigentes().version de la nube falsa
 const numDe = (x) => { if (x == null || x === '') return null; const n = Number(x); return Number.isFinite(n) ? n : null; };
 const txtDe = (x) => (x == null ? '' : String(x).trim());
 const enteroTxt = (s) => /^[0-9]+$/.test(s);
@@ -82,7 +83,7 @@ export function hashSnapshot(snap) {
   let h = 5381; for (let i = 0; i < txt.length; i++) h = ((h << 5) + h + txt.charCodeAt(i)) >>> 0;
   return h.toString(16).padStart(8, '0');
 }
-export function evaluarEmision(fila, snap) {
+export function evaluarEmision(fila, snap, aprobaciones = []) {
   const reasons = [], econ = [], aprob = [];
   const ps = Array.isArray(snap?.partidas) ? snap.partidas : null;
   if (!ps) return { state: 'BLOCKED', reasons: ['snapshot_sin_partidas'] };
@@ -122,10 +123,14 @@ export function evaluarEmision(fila, snap) {
     }
   });
   const u = (a) => [...new Set(a)];
-  const base = { hash: hashSnapshot(snap), approval_reasons: u(aprob), margen_minimo_pct: MARGEN_MIN };
+  const hash = hashSnapshot(snap);
+  // verificar_aprobacion: APROBADA para ESTE hash y la versión vigente de reglas.
+  const requiere = aprob.length > 0;
+  const aprobada = !requiere || aprobaciones.some((a) => a.cotizacion_id === fila.id && a.revision_hash === hash && a.estado === 'APROBADA' && a.reglas_version === REGLAS_VERSION);
+  const base = { hash, approval_reasons: u(aprob), approval_required: requiere, approved: aprobada, margen_minimo_pct: MARGEN_MIN };
   if (reasons.length) return { state: 'BLOCKED', reasons: u(reasons), economics: u(econ), ...base };
   if (econ.length) return { state: 'ECONOMICS_INCOMPLETE', reasons: u(econ), ...base };
-  if (aprob.length) return { state: 'APPROVAL_REQUIRED', reasons: u(aprob), ...base };   // sin tabla de aprobaciones: nunca aprobada
+  if (!aprobada) return { state: 'APPROVAL_REQUIRED', reasons: u(aprob), ...base };
   return { state: 'ALLOWED', reasons: [], ...base };
 }
 
@@ -137,6 +142,9 @@ export function crearNubeFalsa({ usuarios }) {
     siguienteId: 100,
     creates: 0, updates: 0, llamadas: [],
     revisiones: [],              // cotizaciones_revisiones (lo que emitir_revision conservó)
+    aprobaciones: [],            // tabla aprobaciones (solicitar_aprobacion_snapshot / resolver_aprobacion)
+    // Dirección resuelve (misma regla que private_api.resolver_aprobacion: sólo PENDIENTE).
+    resolverAprobacion(id, estado, quien) { const a = f.aprobaciones.find((x) => x.id === id && x.estado === 'PENDIENTE'); if (!a) throw new Error(`aprobación ${id} no existe o ya fue resuelta`); Object.assign(a, { estado, resuelto_por: quien, resuelto_en: new Date().toISOString() }); return a; },
     caida: false,                // true = la red "se cayó": todo falla
     lectura: LECTURA_EJEMPLO,
     permitidos,
@@ -210,7 +218,7 @@ export function crearNubeFalsa({ usuarios }) {
       if (fn === 'cotizacion_emitible') {
         const c = f.filas.get(Number(body.p_cotizacion_id));
         if (!c) return json(route, { ok: false, estado: 'BLOCKED', motivos: ['no_existe'] });
-        const g = evaluarEmision(c, { partidas: c.partidas, totales: c.totales || {}, total: c.total });
+        const g = evaluarEmision(c, { partidas: c.partidas, totales: c.totales || {}, total: c.total }, f.aprobaciones);
         return json(route, { ok: g.state === 'ALLOWED', estado: g.state, motivos: g.reasons || [], economics: g.economics || [], hash: g.hash });
       }
       if (fn === 'emitir_revision' || fn === 'emitir_revision_v2') {
@@ -218,7 +226,7 @@ export function crearNubeFalsa({ usuarios }) {
         if (!c) return err(route, `emitir_revision_v2: la cotizacion ${body.p_cotizacion_id} no existe`);
         if (!(c.usuario === email || editaConfig(email))) return err(route, 'emitir_revision_v2: sin permiso sobre la cotizacion');
         if (!snap || !Array.isArray(snap.partidas) || !snap.partidas.length) return err(route, 'emitir_revision_v2: snapshot sin partidas');
-        const g = evaluarEmision(c, snap);
+        const g = evaluarEmision(c, snap, f.aprobaciones);
         if (g.state !== 'ALLOWED') return err(route, `emitir_revision_v2: emisión bloqueada [${g.state}]: ${JSON.stringify(g.reasons)}`);
         const t = snap.totales || {}; const nz = (x) => Number(x) || 0; const r2 = (x) => Math.round(x * 100) / 100;
         const total = r2(nz(t.precioLista) - nz(t.descuento) + nz(t.contingencia) + nz(t.maniobras) + nz(t.flete) + nz(t.iva));
@@ -230,6 +238,30 @@ export function crearNubeFalsa({ usuarios }) {
         const rev = (ult?.revision || 0) + 1;
         f.revisiones.push({ id: f.revisiones.length + 1, cotizacion_id: c.id, folio: c.folio ?? null, cliente: c.cliente ?? null, revision: rev, emitida_en: new Date().toISOString(), usuario: email, total, hash: g.hash, snapshot: snap, tipo: 'generado_v2' });
         return json(route, { revision: rev, nueva: true, total, v: 2, gate: 'ALLOWED' });
+      }
+      if (fn === 'evaluar_emision_cotizacion') {
+        const c = f.filas.get(Number(body.p_cotizacion_id));
+        if (!c) return json(route, { state: 'BLOCKED', reasons: ['cotizacion_no_existe'] });
+        if (!(c.usuario === email || editaConfig(email))) return json(route, { state: 'BLOCKED', reasons: ['sin_permiso'] });
+        return json(route, evaluarEmision(c, body.p_snapshot, f.aprobaciones));
+      }
+      if (fn === 'solicitar_aprobacion_snapshot') {
+        const c = f.filas.get(Number(body.p_cotizacion_id)); const snap = body.p_snapshot;
+        if (!c) return err(route, 'sin permiso sobre la cotizacion');
+        if (!(c.usuario === email || editaConfig(email))) return err(route, 'sin permiso sobre la cotizacion');
+        if (!snap || typeof snap !== 'object') return err(route, 'snapshot invalido');
+        const hash = hashSnapshot(snap);
+        const previa = f.aprobaciones.find((a) => a.cotizacion_id === c.id && a.revision_hash === hash && a.estado === 'PENDIENTE' && a.reglas_version === REGLAS_VERSION);
+        if (previa) return json(route, { ok: true, id: previa.id, estado: previa.estado, hash, reglas_version: REGLAS_VERSION, ya_existia: true });
+        const a = { id: f.aprobaciones.length + 1, cotizacion_id: c.id, revision_hash: hash, estado: 'PENDIENTE', descuento_solicitado: Number(snap?.totales?.descuentoPct) || 0, motivo: body.p_motivo ?? null, solicitado_por: email, creado: new Date().toISOString(), resuelto_por: null, resuelto_en: null, reglas_version: REGLAS_VERSION };
+        f.aprobaciones.push(a);
+        return json(route, { ok: true, id: a.id, estado: a.estado, hash, reglas_version: REGLAS_VERSION, ya_existia: false });
+      }
+      if (fn === 'resolver_aprobacion') {
+        if (rolDe(email) !== 'direccion') return err(route, 'solo Dirección resuelve aprobaciones');
+        if (!['APROBADA', 'RECHAZADA', 'CONTRAOFERTA'].includes(body.p_estado)) return err(route, `estado inválido: ${body.p_estado}`);
+        try { const a = f.resolverAprobacion(Number(body.p_id), body.p_estado, email); return json(route, { id: a.id, estado: a.estado, resuelto_por: a.resuelto_por }); }
+        catch (e) { return err(route, e.message); }
       }
       if (fn === 'cotizacion_revisiones_seguras') {
         const id = Number(body.p_cotizacion_id); const c = f.filas.get(id);
@@ -285,6 +317,11 @@ export function crearNubeFalsa({ usuarios }) {
         return json(route, segura(c.id, email));
       }
       return json(route, {});   // cualquier otro RPC: vacío
+    }
+    if (ruta === '/rest/v1/aprobaciones' && req.method() === 'GET') {
+      const m = /cotizacion_id=eq\.(\d+)/.exec(url.search || '');
+      const lista = f.aprobaciones.filter((a) => !m || a.cotizacion_id === Number(m[1])).filter((a) => a.solicitado_por === email || rolDe(email) === 'direccion' || editaConfig(email));
+      return json(route, lista);
     }
     if (ruta.startsWith('/rest/v1/')) return json(route, []);
     // leer-plano: una lectura FIJA (plano ejecutivo con dos islas contadas) para probar

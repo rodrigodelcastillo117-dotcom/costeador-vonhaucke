@@ -61,9 +61,9 @@ import { guardarCotizacion, cargarCotizacionCompleta, paraGuardar, firmaGuardado
 import { aplicarRespaldo } from './datos/respaldo.js';
 import { crearPartida } from './datos/partida.js';
 import { normalizarRol, veCostosCosteo } from './datos/roles.js';
-import { guardarRevision } from './datos/revisiones.js';
+import { guardarRevision, snapshotEmitido } from './datos/revisiones.js';
 import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
-import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, cotizacionEmitible } from './nube.js';
+import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, evaluarEmision, solicitarAprobacionSnapshot } from './nube.js';
 import { calcular, modeloParaPieza, pendientesDeCosteo } from './motor/calculo.js';
 import { idNuevo } from './util.js';
 import { costoImplicito, precioDeLista } from './datos/preciosVenta.js';
@@ -516,8 +516,19 @@ export default function App() {
     try {
       const r = await guardarEnNube();
       if (!r.id) return { ok: false, estado: 'DESCONOCIDO', motivos: [], error: r.motivo || 'sin-id' };
-      return await cotizacionEmitible(r.id);
+      // VH-055: el MISMO snapshot que se emitirá, para que el hash de la aprobación cuadre.
+      return await evaluarEmision(r.id, snapshotEmitido(estado));
     } catch (e) { return { ok: false, estado: 'DESCONOCIDO', motivos: [], error: String(e?.message || e) }; }
+  }
+
+  // VH-055: pedir aprobación a Dirección sobre la versión EXACTA que se va a emitir.
+  async function solicitarAprobacion(motivo) {
+    if (!sesion?.user?.email) return { ok: false, error: 'Inicia sesión para solicitar aprobación.' };
+    try {
+      const g = await guardarEnNube();
+      if (!g.id) return { ok: false, error: g.motivo || 'No se pudo guardar la cotización.' };
+      return await solicitarAprobacionSnapshot(g.id, snapshotEmitido(estado), motivo);
+    } catch (e) { return { ok: false, error: String(e?.message || e) }; }
   }
 
   async function onEmitida() {
@@ -1155,7 +1166,7 @@ export default function App() {
           : <div className="contenido"><div className="tarjeta"><p className="ayuda">El modo avanzado y el costo de fabricación son para Diseño y Dirección. Usa <strong>Cotizar un mueble</strong> para el precio recomendado.</p></div></div>
         )}
         {pestania === 'catalogo' && <Catalogo estado={estado} onCargar={onElegirDelCatalogo} soloVentas={esVendedor} />}
-        {pestania === 'cotizacion' && <Cotizacion estado={estado} setEstado={setEstado} soloVentas={esVendedor} onIr={irA} onEmitida={onEmitida} verificarEmision={verificarEmision} veCostos={veCostos} />}
+        {pestania === 'cotizacion' && <Cotizacion estado={estado} setEstado={setEstado} soloVentas={esVendedor} onIr={irA} onEmitida={onEmitida} verificarEmision={verificarEmision} onSolicitarAprobacion={solicitarAprobacion} veCostos={veCostos} />}
         {pestania === 'cotizarIA' && <div className="contenido"><CotizadorIA estado={estado} onAgregarItems={agregarItemsIA} onIr={irA} verCotizacion soloVentas={esVendedor} /></div>}
         {pestania === 'comercial' && (flagActivo('commercial_v2')
           ? <Comercial estado={estado} soloVentas={esVendedor} veCostos={veCostos} onIr={irA} usuario={sesion?.user?.email || null} />

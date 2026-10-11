@@ -99,7 +99,7 @@ function RenderChip({ estado }) {
   return <span className={`render-chip render-chip-${m.cls}`} title={`Render canónico de la revisión anclada: ${estado}`}>{m.t}</span>;
 }
 
-export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr, onEmitida, verificarEmision, veCostos = false }) {
+export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr, onEmitida, verificarEmision, onSolicitarAprobacion, veCostos = false }) {
   const [vistaClienteManual, setVistaClienteManual] = useState(false);
   const vistaCliente = soloVentas || vistaClienteManual;
   const setVistaCliente = setVistaClienteManual;
@@ -233,6 +233,8 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   const [confirmoExcluidas, setConfirmoExcluidas] = useState(false);
   const [verPorque, setVerPorque] = useState(false); // panel "¿por qué no puedo emitir?"
   const [gate, setGate] = useState(null);            // resultado del gate server-side
+  const [aprob, setAprob] = useState(null);          // VH-055: {estado:'enviando'|'ok'|'error', msg}
+  const [motivoAprob, setMotivoAprob] = useState('');
   const [gateCargando, setGateCargando] = useState(false);
   // Punto de corte real del candado (Rodrigo, 2026-08-20): a diferencia del
   // aviso temprano en Voni (que se puede saltar sin querer), esto es lo que
@@ -927,6 +929,22 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
               </ul>
             )}
             {estadoVista === 'ALLOWED' && <div style={{ fontSize: 13, marginTop: 4 }}>Todo en regla: puedes descargar el PDF definitivo.</div>}
+            {estadoVista === 'APPROVAL_REQUIRED' && onSolicitarAprobacion && (
+              <div data-testid="solicitar-aprobacion" style={{ marginTop: 10, display: 'grid', gap: 6 }}>
+                <div style={{ fontSize: 13 }}>La aprobación se firma sobre esta versión exacta: si cambias algo después, hay que pedirla de nuevo.</div>
+                <input type="text" value={motivoAprob} onChange={(e) => setMotivoAprob(e.target.value)} placeholder="Motivo para Dirección (opcional)" style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid var(--linea)' }} />
+                <button className="boton" style={{ minHeight: 40, justifySelf: 'start' }} disabled={aprob?.estado === 'enviando'}
+                  onClick={async () => {
+                    setAprob({ estado: 'enviando', msg: '' });
+                    const r = await onSolicitarAprobacion(motivoAprob.trim() || null);
+                    if (r?.ok) setAprob({ estado: 'ok', msg: r.ya_existia ? `Ya había una solicitud pendiente para esta versión (#${r.id}). Dirección la verá en el Deal Desk.` : `Solicitud enviada (#${r.id}). Dirección la verá en el Deal Desk; cuando la apruebe, vuelve a verificar.` });
+                    else setAprob({ estado: 'error', msg: r?.error || 'No se pudo solicitar la aprobación.' });
+                  }}>
+                  {aprob?.estado === 'enviando' ? 'Enviando…' : 'Solicitar aprobación a Dirección'}
+                </button>
+                {aprob?.msg && <div data-testid="aprobacion-msg" style={{ fontSize: 13, color: aprob.estado === 'error' ? '#B42318' : 'inherit' }}>{aprob.msg}</div>}
+              </div>
+            )}
           </div>
         );
       })()}

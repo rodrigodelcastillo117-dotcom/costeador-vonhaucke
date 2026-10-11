@@ -58,6 +58,31 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 100% de las llamadas del navegador.** `AsistenteEspecial.jsx:179` mandaba `{...b}` con `margen`/`modeloCosteo`;
 `validarIntentCosteo` respondía `FORBIDDEN_FINANCIAL_FIELD`. Pendiente VERIFIED en vivo (shadow_costeo).
 
+**VH-055 · P0 · FIXED · Una cotización que requería aprobación de Dirección no se podía emitir desde la app:
+nadie podía pedir la aprobación, y la verificación la habría negado aun aprobada.** Tres hechos verificados:
+(1) `crm.solicitarAprobacion` (insert directo en `aprobaciones`) no tenía ningún consumidor: la pantalla decía
+"Requiere aprobación de Dirección" sin botón para pedirla; producción tiene UNA aprobación (2026-10-04, hecha
+por RPC). (2) El insert directo crea filas sin `reglas_version`, que `verificar_aprobacion` nunca reconoce
+(exige `reglas_version = vigente`). (3) `cotizacion_emitible` evalúa un snapshot sin folio/cliente/acomodo;
+`hash_revision` incluye esos campos, así que su hash no coincide con el de una aprobación firmada sobre el
+snapshot completo: "Verificar emisión" diría APPROVAL_REQUIRED aunque `emitir_revision_v2` (snapshot completo)
+pasara. Fix cliente, sin tocar el servidor: `nube.evaluarEmision(id, snapshot)` llama
+`evaluar_emision_cotizacion` con EL MISMO snapshot (`snapshotEmitido`) que se emite; App.verificarEmision lo
+usa. `nube.solicitarAprobacionSnapshot` → RPC `solicitar_aprobacion_snapshot` (hash y reglas_version los pone
+la base); `crm.solicitarAprobacion/resolverAprobacion` delegan a las RPCs (Deal Desk sigue igual).
+Cotizacion.jsx: con APPROVAL_REQUIRED aparece "Solicitar aprobación a Dirección" con motivo opcional; avisa si
+ya existía una pendiente para esa versión exacta y que un cambio obliga a pedirla de nuevo. Nube falsa:
+`evaluar_emision_cotizacion`, `solicitar_aprobacion_snapshot`, `resolver_aprobacion`, tabla `aprobaciones`
+(verificar_aprobacion por hash + reglas_version). E2E (emision.e2e.js): margen 16 % → APPROVAL_REQUIRED → el
+vendedor la pide (#1, sin duplicar) → PDF bloqueado → Dirección aprueba → "Lista para emitir" → PDF baja y la
+revisión conservada tiene EL MISMO hash que la aprobación; el snapshot del vendedor no lleva economía.
+`cotizacion_emitible` queda en el servidor con su inconsistencia documentada (VH-056).
+
+**VH-056 · P2 · OPEN (migración, requiere aprobación) · `private_api.cotizacion_emitible` hashea un snapshot
+distinto al de la emisión.** Arma `{partidas, totales, total}` y `hash_revision` incluye folio/cliente/acomodo:
+su `hash` nunca coincide con una aprobación. El cliente ya no la usa (VH-055). Propuesta: que construya el
+snapshot con folio/cliente/acomodo de la fila, o que se retire. Sólo lectura hasta aprobación.
+
 **VH-054 · P1 · FIXED · Tres filtros de rol en el cliente que no coincidían entre sí ni con el servidor; un rol
 autodeclarado abría economía.** `voni/permisos.js` daba economía a 'costeador' y 'cfo' (roles que
 `permitidos` nunca emite: un `role:'cfo'` en la petición bastaba para que las tools económicas respondieran

@@ -500,6 +500,36 @@ export async function cotizacionEmitible(cotizacionId) {
   return data;
 }
 
+// VH-055: la verificación usa `evaluar_emision_cotizacion` con EL MISMO snapshot que
+// se emite (paraGuardar). `cotizacion_emitible` arma un snapshot sin folio/cliente/
+// acomodo y su hash no coincide con el de la aprobación firmada sobre el snapshot
+// completo: una cotización ya aprobada seguía diciendo "requiere aprobación".
+// Devuelve la forma del gate del cliente: {ok, estado, motivos, economics, hash, …}.
+export async function evaluarEmision(cotizacionId, snapshot) {
+  if (!cotizacionId) return { ok: false, estado: 'SIN_GUARDAR', motivos: ['sin_guardar'] };
+  const { data, error } = await nube.rpc('evaluar_emision_cotizacion', { p_cotizacion_id: cotizacionId, p_snapshot: snapshot });
+  if (error || !data || !data.state) return { ok: false, estado: 'DESCONOCIDO', motivos: [], error: error?.message };
+  return {
+    ok: data.state === 'ALLOWED', estado: data.state,
+    motivos: data.reasons || [], economics: data.economics || [], approval_reasons: data.approval_reasons || [],
+    hash: data.hash || null, approval_required: !!data.approval_required, approved: !!data.approved,
+  };
+}
+
+// Aprobación de Dirección por el SERVIDOR (hash y reglas_version los pone la base):
+// la fila escrita directo en `aprobaciones` sin reglas_version nunca satisface
+// verificar_aprobacion. Devuelve {ok, id, estado, hash, ya_existia} o {ok:false, error}.
+export async function solicitarAprobacionSnapshot(cotizacionId, snapshot, motivo = null) {
+  if (!cotizacionId) return { ok: false, error: 'Guarda la cotización primero.' };
+  const { data, error } = await nube.rpc('solicitar_aprobacion_snapshot', { p_cotizacion_id: cotizacionId, p_snapshot: snapshot, p_motivo: motivo || null });
+  if (error || !data) return { ok: false, error: error?.message || 'No se pudo solicitar la aprobación.' };
+  return { ok: true, ...data };
+}
+// Sólo Dirección (el servidor lo exige). estado: APROBADA | RECHAZADA | CONTRAOFERTA.
+export function resolverAprobacionServidor(id, estado, motivo = null) {
+  return nube.rpc('resolver_aprobacion', { p_id: id, p_estado: estado, p_motivo: motivo || null });
+}
+
 // VONI COUNCIL · capa de razonamiento multi-modelo (edge `voni-council`, JWT).
 // Recibe { task, request, context, constraints, lenses } y devuelve PROPUESTA/CRÍTICA
 // ({ council:{status,decision,...}, opinions:[...], execution:'PROPOSAL_ONLY' }). El

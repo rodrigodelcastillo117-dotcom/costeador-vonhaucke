@@ -55,7 +55,7 @@ test.describe('Compuerta única de emisión', () => {
     await expect(botonPDF(page)).toBeEnabled();
     await verificar(page).click();
     await expect(page.getByText(/Lista para emitir/)).toBeVisible({ timeout: 15000 });
-    expect(nube.llamadas.some((l) => l.includes('/rpc/cotizacion_emitible'))).toBe(true);
+    expect(nube.llamadas.some((l) => l.includes('/rpc/evaluar_emision_cotizacion'))).toBe(true);   // VH-055: mismo snapshot que la emisión
 
     const [descarga] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), botonPDF(page).click()]);
     expect(descarga.suggestedFilename()).toMatch(/\.pdf$/i);
@@ -108,6 +108,50 @@ test.describe('Compuerta única de emisión', () => {
     expect(bajo).toBe(false);
     expect(nube.revisiones).toHaveLength(0);
     expect(nube.llamadas.some((l) => l.includes('/rpc/emitir_revision'))).toBe(false);
+    await ctx.close();
+  });
+});
+
+test.describe('Aprobación de Dirección (VH-055)', () => {
+  test('margen bajo → requiere aprobación → el vendedor la pide desde la cotización → Dirección aprueba → emite; el hash aprobado es el hash emitido', async ({ browser }) => {
+    const nube = crearNubeFalsa({ usuarios: USUARIOS });
+    // Precio 25,000 sobre costo 21,000 = 16 % de margen (< 25 %): requiere aprobación.
+    const id = nube.sembrarFila({ usuario: 'ventas@vh.mx', cliente: 'Margen Bajo SA', partidas: [{ id: 'p5', nombre: 'Mesa de juntas', cantidad: 1, precioUnitario: 25000, costoUnitario: 21000, margen: 16 }], total: 29000, piezas: 1 });
+    const { ctx, page } = await abrirComo(browser, nube, 'ventas@vh.mx');
+
+    await expect(botonPDF(page)).toBeEnabled();   // local: nada que objetar (el vendedor no ve el costo)
+    await verificar(page).click();
+    await expect(page.getByText(/Requiere aprobación de Dirección antes de emitir/)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/Línea 1: requiere aprobación de Dirección/)).toBeVisible();
+    expect(nube.llamadas.some((l) => l.includes('/rpc/evaluar_emision_cotizacion'))).toBe(true);
+
+    // El PDF no sale sin aprobación.
+    await botonPDF(page).click();
+    await expect(page.getByText(/No se puede emitir: Requiere aprobación/)).toBeVisible({ timeout: 15000 });
+    expect(nube.revisiones).toHaveLength(0);
+
+    // Pide la aprobación desde la cotización.
+    await page.getByTestId('solicitar-aprobacion').locator('input').fill('Cliente estratégico, igualamos competencia');
+    await page.getByRole('button', { name: /Solicitar aprobación a Dirección/ }).click();
+    await expect(page.getByTestId('aprobacion-msg')).toHaveText(/Solicitud enviada \(#1\)/, { timeout: 15000 });
+    expect(nube.aprobaciones).toHaveLength(1);
+    expect(nube.aprobaciones[0]).toMatchObject({ cotizacion_id: id, estado: 'PENDIENTE', solicitado_por: 'ventas@vh.mx', motivo: 'Cliente estratégico, igualamos competencia', reglas_version: 1 });
+    // Pedirla otra vez para la misma versión no duplica.
+    await page.getByRole('button', { name: /Solicitar aprobación a Dirección/ }).click();
+    await expect(page.getByTestId('aprobacion-msg')).toHaveText(/Ya había una solicitud pendiente/, { timeout: 15000 });
+    expect(nube.aprobaciones).toHaveLength(1);
+
+    // Dirección aprueba (misma regla que resolver_aprobacion: sólo PENDIENTE, sólo Dirección).
+    nube.resolverAprobacion(1, 'APROBADA', 'rodrigo@vh.mx');
+
+    // El vendedor vuelve a verificar: ahora está lista, y emite.
+    await verificar(page).click();
+    await expect(page.getByText(/Lista para emitir/)).toBeVisible({ timeout: 15000 });
+    const [descarga] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), botonPDF(page).click()]);
+    expect(descarga.suggestedFilename()).toMatch(/\.pdf$/i);
+    await expect.poll(() => nube.revisiones.length, { timeout: 10000 }).toBe(1);
+    expect(nube.revisiones[0].hash).toBe(nube.aprobaciones[0].revision_hash);   // la versión aprobada ES la emitida
+    expect(nube.revisiones[0].snapshot.partidas[0]).not.toHaveProperty('costoUnitario');   // el vendedor nunca mandó economía
     await ctx.close();
   });
 });
