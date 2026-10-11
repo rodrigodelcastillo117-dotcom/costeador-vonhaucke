@@ -124,62 +124,9 @@ export function puntoEnPoligono([x, y], poligono = []) {
   return dentro;
 }
 
-// COTA > ESCALA > ESTIMACIÓN IA: la envolvente debe cuadrar con la suma de las cotas
-// del grid. Si el grid existe y no suma, la lectura es INVÁLIDA (el bug 178 vs 132).
-export function validarEnvolvente(envelope = {}, grid = {}, tolPct = 0.02) {
-  const issues = [];
-  const ancho = Number(envelope.width_mm ?? envelope.ancho) || 0;
-  const largo = Number(envelope.height_mm ?? envelope.largo) || 0;
-  if (ancho <= 0 || largo <= 0) issues.push({ code: 'ENVELOPE_NO_POSITIVA', msg: 'La envolvente debe ser positiva.' });
-  const sum = (a) => (Array.isArray(a) ? a.reduce((s, v) => s + (Number(v) || 0), 0) : 0);
-  const sh = sum(grid.horizontal);
-  const sv = sum(grid.vertical);
-  if (sh > 0 && ancho > 0 && Math.abs(sh - ancho) / ancho > tolPct) {
-    issues.push({ code: 'GRID_ANCHO_NO_CUADRA', msg: `La suma de cotas horizontales (${sh}) no coincide con el ancho de la envolvente (${ancho}).` });
-  }
-  if (sv > 0 && largo > 0 && Math.abs(sv - largo) / largo > tolPct) {
-    issues.push({ code: 'GRID_LARGO_NO_CUADRA', msg: `La suma de cotas verticales (${sv}) no coincide con el largo de la envolvente (${largo}).` });
-  }
-  return { ok: issues.length === 0, issues, area_m2: (ancho / 1000) * (largo / 1000) };
-}
-
-// Validador determinista del FloorSpec completo. Devuelve status VALID|INVALID.
-export function validarFloorSpec(spec = {}) {
-  const issues = [];
-  const env = validarEnvolvente(spec.envelope || {}, spec.grid || {});
-  issues.push(...env.issues);
-
-  const zonas = Array.isArray(spec.zones) ? spec.zones : [];
-  let areaZonas = 0;
-  for (const z of zonas) {
-    const poly = z.polygon || z.puntos;
-    if (poly && poly.length >= 3) {
-      const a = areaPoligono(poly);
-      if (a <= 0) issues.push({ code: 'ZONA_AREA_CERO', msg: `Zona ${z.name || z.id} con área no positiva.` });
-      areaZonas += a;
-    }
-  }
-  // La suma de zonas no puede exceder (razonablemente) la envolvente.
-  const areaEnvMM = (Number(spec.envelope?.width_mm ?? spec.envelope?.ancho) || 0) * (Number(spec.envelope?.height_mm ?? spec.envelope?.largo) || 0);
-  if (areaEnvMM > 0 && areaZonas > areaEnvMM * 1.05) {
-    issues.push({ code: 'ZONAS_EXCEDEN_ENVOLVENTE', msg: 'La suma de zonas excede la envolvente.' });
-  }
-
-  // Mobiliario DENTRO de su zona; fixtures no son sillas; cantidades coherentes.
-  const obs = Array.isArray(spec.furniture_observations) ? spec.furniture_observations : [];
-  const zonaPorId = new Map(zonas.map((z) => [z.id, z]));
-  for (const o of obs) {
-    if (o.semantic_role === ROL.FIXTURE) continue; // fixtures no se validan como mueble
-    const z = zonaPorId.get(o.zone_id);
-    const poly = z && (z.polygon || z.puntos);
-    if (poly && o.center && !puntoEnPoligono(o.center, poly)) {
-      issues.push({ code: 'MUEBLE_FUERA_DE_ZONA', msg: `Mueble ${o.id} fuera de su zona ${o.zone_id}.` });
-    }
-    if (Number(o.quantity_group ?? 1) <= 0) issues.push({ code: 'CANTIDAD_INVALIDA', msg: `Mueble ${o.id} con cantidad no positiva.` });
-  }
-
-  return { status: issues.length === 0 ? 'VALID' : 'INVALID', issues, area_m2: env.area_m2 };
-}
+// B4 (2026-10-11): `validarEnvolvente` y `validarFloorSpec` se retiraron (prod 0). La validación
+// determinista del plano vive en la edge leer-plano v11 (floorSpec.validation) y el cliente la
+// consume en datos/floorSpecAvisos.js (VH-064). Su forma de entrada no coincidía con lo que emite la edge.
 
 // --- Estado del acomodo (layout). Nada desaparece. ----------------------------
 // Invariante ABSOLUTA: requested = placed + unplaced + excluded.
