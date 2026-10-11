@@ -11,6 +11,7 @@ import { SECCIONES } from '../datos/insumos.js';
 import { pesos } from '../util.js';
 import { analizarRender, analizarRenderImagenes, analizarTexto, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, urlADataUrl, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64 } from '../nube.js';
 import { comoDataUrl, esURLImagen } from '../datos/renderRespuesta.js';   // VH-072
+import { filaSombra } from '../datos/sombraCosteo.js';   // VH-073
 import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
@@ -186,21 +187,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       sombraRef.current = h;
       try {
         const srv = await costearServidor(pieza, b.piezas);
-        const precioSrv = srv?.precioVenta ?? null;
-        await registrarSombra({
-          input_hash: h,
-          motor_version: srv?.versionMotor || null,
-          version_catalogo: srv?.versionCatalogo || null,
-          estado_servidor: srv?.estado || (srv?.ok === false ? 'error' : null),
-          http_status: srv?.status ?? (srv?.ok ? 200 : null),
-          precio_cliente: Math.round(precio),
-          precio_servidor: precioSrv,
-          costo_cliente: Math.round(resultado.costoUnitario),
-          costo_servidor: srv?.costo?.costoUnitario ?? null,
-          diff: precioSrv != null ? Math.round(precio) - precioSrv : null,
-          campos_recibidos: srv && typeof srv === 'object' ? Object.keys(srv) : null,
-          nota: b.nombre || null,
-        });
+        // VH-073: el motivo del fallo viaja en la fila (antes sólo 'error' y las llaves).
+        await registrarSombra(filaSombra(srv, { inputHash: h, precioCliente: precio, costoCliente: resultado.costoUnitario, nombre: b.nombre }));
       } catch (e) { /* shadow silencioso: jamás rompe el flujo */ }
     }, 1500);
     return () => clearTimeout(t);

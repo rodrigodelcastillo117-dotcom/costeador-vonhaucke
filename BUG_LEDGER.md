@@ -58,6 +58,23 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 100% de las llamadas del navegador.** `AsistenteEspecial.jsx:179` mandaba `{...b}` con `margen`/`modeloCosteo`;
 `validarIntentCosteo` respondía `FORBIDDEN_FINANCIAL_FIELD`. Pendiente VERIFIED en vivo (shadow_costeo).
 
+**VH-073 · P2 · FIXED · La comparación sombra cliente↔servidor no guardaba el motivo de los fallos.** `shadow_costeo`
+medido 2026-10-11: 41 filas desde el 2026-10-01; 8 coincidencias exactas (diff 0, todas del 2026-10-02); 7 `incompleto`;
+**26 errores HTTP 400 del 2026-10-04 al 2026-10-10 con `estado_servidor='error'` y `campos_recibidos=[ok,error,status]`
+y nada más**. El texto del error nunca se guardó, así que la tabla no podía responder lo único que debe: por qué no
+coinciden. Fix: `datos/sombraCosteo.filaSombra` (puro) arma la fila: `estado_servidor = error:<code|HTTP_n>`, el
+motivo (recortado) en `nota` junto al nombre del mueble, sin tocar el esquema. 5 unit. CAUSA de los 26 × 400, CONFIRMADA leyendo
+la edge desplegada (v5, actualizada 2026-10-04) y ejecutando su validador contra los dos cuerpos: el validador
+desplegado es byte-idéntico al del repo (líneas 1-140); los 400 los provocó el CLIENTE de esos días, que mandaba
+`{ pieza: {...b, modeloCosteo}, cantidad }` con `margen`/`factorDirecta`/`modeloCosteo` → `FORBIDDEN_FINANCIAL_FIELD`
+en `pieza.margen`. Eso lo corrigió VH-036 (`88bdf31`, 2026-10-11): el cuerpo saneado de HEAD pasa el validador
+desplegado sin redeploy. El 400 del servidor no trae `error` (sólo `code`+`issues`), por eso el cliente guardaba el
+texto genérico de supabase-js; `filaSombra` ahora guarda `code`. Corrección a lo que escribí antes aquí: NO era un
+desfase de contrato servidor↔cliente. Lo que SÍ está desfasado (A8): el deploy usa margen por omisión 40 (repo: 50,
+VH-041) y su `calculo.js` no tiene el check "sin cantidad ni medidas" ni `estadoCosto/pendientes/costoOficial`: el
+servidor puede llamar "certificado" a lo que el cliente ya marca incompleto. VERIFIED en vivo sigue pendiente: hace
+falta que `shadow_costeo` reciba filas nuevas con el cliente de HEAD.
+
 **VH-072 · P0 · FIXED · Todos los renders con IA se perdían en el cliente desde el 4 de octubre.** La edge
 `generar-render` v30 (desplegada 2026-10-04) ya no devuelve la imagen en base64: la guarda en Storage
 (`renders/generated/<correo>/<fecha>/<request_id>.png`) y responde `{ ok, url, storagePath, audit, request_id }`;
