@@ -98,37 +98,5 @@ export function casarComponente(ruta, comp) {
   return { clave: elegido.c, descripcion: elegido.d, lista: elegido.l, full: elegido.f, minimo: elegido.m };
 }
 
-/**
- * Cotiza una banca sumando sus componentes del catálogo.
- * @param {string} ruta
- * @param {Array} componentes  el `pieza.componentes` del despiece del modelo
- * @returns {{ estado:'ok'|'parcial'|'ninguno', precio, full, casados, cotizables, lineas, faltan }}
- *   · precio = suma de (lista × piezas) de lo casado.
- *   · estado 'ok' si casó TODO lo cotizable; 'parcial' si faltó algo; 'ninguno'
- *     si no casó nada (el llamador se queda con el modelo).
- */
-export function cotizarPorComponentes(ruta, componentes) {
-  const lineas = [];
-  const faltan = [];
-  let precio = 0, full = 0, cotizables = 0;
-  for (const comp of componentes || []) {
-    const tipo = tipoComponente(comp.nombre);
-    if (!tipo) continue;                 // canto/faldón: no es pieza suelta
-    cotizables++;
-    const piezas = Math.max(1, Number(comp.piezas) || 1);
-    const art = casarComponente(ruta, comp);
-    if (art) {
-      precio += art.lista * piezas;
-      full += (art.full || art.lista) * piezas;
-      lineas.push({ tipo, piezas, clave: art.clave, lista: art.lista, descripcion: art.descripcion });
-    } else {
-      faltan.push({ tipo, largoMM: comp.largoMM || null, nombre: comp.nombre });
-    }
-  }
-  const casados = lineas.length;
-  if (!casados) return { estado: 'ninguno', precio: 0, full: 0, casados: 0, cotizables, lineas, faltan };
-  return {
-    estado: faltan.length ? 'parcial' : 'ok',
-    precio, full, casados, cotizables, lineas, faltan,
-  };
-}
+// B3 (2026-10-11): `cotizarPorComponentes` se retiró (prod 0: sólo se definía). `tipoComponente` y
+// `casarComponente` siguen vivos (applt.js).
