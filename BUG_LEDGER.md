@@ -58,6 +58,25 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 100% de las llamadas del navegador.** `AsistenteEspecial.jsx:179` mandaba `{...b}` con `margen`/`modeloCosteo`;
 `validarIntentCosteo` respondía `FORBIDDEN_FINANCIAL_FIELD`. Pendiente VERIFIED en vivo (shadow_costeo).
 
+**VH-059 · P1 · FIXED · "Voni aprende" estaba roto en silencio y lo no revisado entraba al prompt.** Verificado
+contra la RLS de `aprendizajes` (02_rls_policies.sql): INSERT exige `usuario = correo de la sesión` y
+`aprobado_para_ia = puede_editar_config()`. El cliente mandaba `usuario: estado.usuario.correo` —un campo que
+no existe en el estado— y nunca `aprobado_para_ia`, así que la fila se rechazaba y `anotar` lo tragaba (por
+diseño "aprender nunca tumba una cotización"). Producción: 62 lecciones, 41 sin usuario (anteriores a la
+política), última 2026-10-05, ninguna después del endurecimiento del 2026-10-10. Además `aprendizajesTexto()`
+mandaba al prompt TODO lo activo sin mirar `aprobado_para_ia`: una lección de un vendedor sin revisar habría
+viajado al prompt de todos. Fix: `quienAnota()` resuelve correo y rol de la sesión; `anotar` atribuye y marca
+`aprobado_para_ia = veCostosCosteo(rol)` (misma regla que la base); al prompt sólo entra lo aprobado;
+`aprobar(id)`, `pendientesDeRevision()`; en "Lo que Voni sabe" Dirección/Diseño ven "Pendientes de revisión"
+con Aprobar/Descartar (mandato §6: evidencia, procedencia, revisión). CotizadorIA deja de inventar el campo.
+4 tests `aprendizaje.test.js`.
+
+**VH-060 · P1 · OPEN (edge, requiere despliegue) · `cotizar-texto` y `analizar-negocio` meten al prompt el texto
+de `aprendizajes` que les manda el navegador, sin leerlo de la base.** Cualquier cliente autenticado puede
+inyectar instrucciones al modelo con `body.aprendizajes`. Con VH-059 el cliente oficial sólo manda lo aprobado,
+pero la autoridad debe ser el servidor: las edges deberían leer `aprendizajes where activo and aprobado_para_ia`
+con service role e ignorar el campo del body. Cambio de edge, no se despliega sin aprobación.
+
 **VH-058 · P1 · FIXED · Convertir una cocreación en partida tragaba cualquier error y la partida salía sin
 identidad ni procedencia.** `CocrearV3.agregarCotizacion` envolvía guardar expediente → registrar Producto
 Maestro → subir render en un `try{}catch{}` vacío: si el servidor rechazaba el registro (p.ej.

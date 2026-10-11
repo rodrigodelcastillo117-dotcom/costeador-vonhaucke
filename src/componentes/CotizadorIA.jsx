@@ -198,7 +198,8 @@ export default function CotizadorIA({
       tipo: 'aclaracion',
       pedido: texto.trim(),
       texto: `Si el pedido se parece a "${resumenCorto(texto)}", ten en cuenta desde el principio: ${r}`,
-      usuario: estado?.usuario?.correo || null,
+      // VH-059: quién anota lo resuelve aprendizaje.js desde la sesión (antes se leía
+      // `estado.usuario.correo`, que no existe, y la RLS rechazaba la fila en silencio).
     });
     setTexto(nuevo);
     await interpretar(nuevo);

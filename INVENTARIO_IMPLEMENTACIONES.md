@@ -92,7 +92,7 @@ Leyenda de "prod": archivos de producción que la consumen (sin contar el archiv
 | `CocrearV2.jsx` | RETIRAR (propuesta) | prod 0. |
 | `Asistente.jsx` (wizard determinista 1 pieza) | CONSOLIDAR | Duplica precio con otra fórmula y margen 40. |
 | `aprendizaje.leccionDeQuita/leccionDeCambio` | RETIRAR (propuesta) | prod 0. |
-| Aprendizajes automáticos (texto libre del vendedor → system prompt global) | SUSTITUIR por aprendizaje con revisión y permisos | Mandato §6: evidencia, procedencia, revisión. |
+| Aprendizajes automáticos (texto libre del vendedor → system prompt global) | HECHO en cliente (VH-059): atribución por sesión, `aprobado_para_ia` como la base, sólo lo aprobado va al prompt, revisión de Dirección en "Lo que Voni sabe" | Pendiente servidor (VH-060): las edges `cotizar-texto`/`analizar-negocio` siguen aceptando `aprendizajes` del body. |
 | `nube.generarVideo` + edge `generar-video` | RETIRAR (propuesta) | prod 0. |
 | `humo.jsx`, `plano.jsx` | RETIRAR (propuesta) | No son entradas de Vite ni se importan. |
 
