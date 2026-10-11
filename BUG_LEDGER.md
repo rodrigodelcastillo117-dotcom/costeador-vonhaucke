@@ -58,6 +58,14 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 100% de las llamadas del navegador.** `AsistenteEspecial.jsx:179` mandaba `{...b}` con `margen`/`modeloCosteo`;
 `validarIntentCosteo` respondía `FORBIDDEN_FINANCIAL_FIELD`. Pendiente VERIFIED en vivo (shadow_costeo).
 
+**VH-062 · P1 · FIXED · La "auditoría" del planner tenía tres checks con `ok: true` fijo.** "Cada mueble dentro de
+su cuarto", "Nada encimado" y "Baños y servicios sin amueblar" se escribían siempre en verde, con un detalle que
+explicaba por qué *debería* ser cierto ("la malla no reutiliza celdas"), no si lo era. Un encimado por arrastre
+manual, por `sentarSillas` o por un bug de empaque salía auditado como correcto. Fix: `planner.auditoriaMedida()`
+mide los tres contra el resultado con `acomodoAudit.auditarColocacion` (el mismo auditor de la pantalla) y
+nombra las piezas en falta; "Reparto por criterio" se queda informativo. 3 tests, incluido un acomodo construido
+con encimado, pieza fuera de área y mueble en baño.
+
 **VH-061 · P2 · FIXED · Dos lecturas del nombre de un cuarto que no se hablaban; "Site" recibía muebles en el
 planner mientras floorSpec lo prohibía.** `planner.rolArea` (dónde se acomoda) y `floorSpec.zonaSemantica` (qué
 se permite) tenían cada una su regex. Medidas con 30 nombres reales coincidían salvo site/IT/rack: 'general'

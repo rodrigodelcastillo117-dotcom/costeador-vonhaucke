@@ -14,6 +14,7 @@ import { puestosDe } from './rellenar.js';
 import { dimsPieza } from './espacio.js';
 import { rolDePiezaAcomodo, zonaPermite, zonaSemantica } from './floorSpec.js';
 import { rolDeCuarto } from './cuartos.js';
+import { auditarColocacion } from './acomodoAudit.js';
 
 const zonaAceptaPieza = (p, area) => zonaPermite(rolDePiezaAcomodo(p), zonaSemantica(area?.nombre || ''));
 
@@ -314,6 +315,24 @@ export function rolCuartoBase(a, todos) {
   return 'juntas';
 }
 
+/**
+ * VH-062 · Auditoría MEDIDA del resultado del planner, en el formato de `auditoria`.
+ * Encimados y fuera-de-área los decide `acomodoAudit.auditarColocacion` (el mismo
+ * auditor de la pantalla); "servicios sin amueblar" se comprueba contra la colocación.
+ * Exportada para probarse con colocaciones construidas a mano.
+ */
+export function auditoriaMedida({ areas = [], colocacion = [], piezas = [], cuartos = [] } = {}) {
+  const byId = Object.fromEntries(piezas.map((p) => [p.id, p]));
+  const audit = auditarColocacion({ areas, colocacion, byId }, { tol: 20 });
+  const nombre = (id) => byId[id]?.nombre || id;
+  const enServicio = colocacion.filter((k) => cuartos[k.area]?.servicio);
+  return [
+    { check: 'Cada mueble dentro de su cuarto', ok: audit.fuera.length === 0, detalle: audit.fuera.length ? `${audit.fuera.length} fuera: ${audit.fuera.map((f) => nombre(f.id)).join(', ')}` : 'todas dentro de los límites de su área' },
+    { check: 'Nada encimado', ok: audit.overlaps.length === 0, detalle: audit.overlaps.length ? `${audit.overlaps.length} encimado(s): ${audit.overlaps.map((o) => `${nombre(o.a)} ↔ ${nombre(o.b)}`).join(', ')}` : 'ningún traslape' },
+    { check: 'Baños y servicios sin amueblar', ok: enServicio.length === 0, detalle: enServicio.length ? `${enServicio.length} mueble(s) en cuartos de servicio: ${enServicio.map((k) => nombre(k.id)).join(', ')}` : `${cuartos.filter((c) => c.servicio).length} cuarto(s) de servicio respetados` },
+  ];
+}
+
 function acomodarPorCuartos(areas, piezas) {
   const cuartos = areas.map((a, i) => {
     const rol = rolCuarto(a, areas);
@@ -416,9 +435,9 @@ function acomodarPorCuartos(areas, piezas) {
     .map((c) => `${c.a.nombre || 'Área ' + (c.i + 1)}: ${resumenTipos(c.asignadas.filter((p) => colocacion.some((k) => k.id === p.id)))}`);
 
   auditoria.push({ check: 'Todas las piezas colocadas', ok: caben, detalle: `${colocacion.length} de ${piezas.length}` });
-  auditoria.push({ check: 'Cada mueble dentro de su cuarto', ok: true, detalle: 'la malla sólo ocupa celdas del área' });
-  auditoria.push({ check: 'Nada encimado', ok: true, detalle: 'la malla no reutiliza celdas' });
-  auditoria.push({ check: 'Baños y servicios sin amueblar', ok: true, detalle: `${cuartos.filter((c) => c.servicio).length} cuarto(s) de servicio respetados` });
+  // VH-062: estas tres se MIDEN sobre el resultado (antes eran `ok: true` fijos, es
+  // decir, no eran auditoría). El auditor es el mismo que usa la pantalla.
+  auditoria.push(...auditoriaMedida({ areas, colocacion, piezas, cuartos }));
   auditoria.push({ check: 'Reparto por criterio', ok: true, detalle: porCuarto.join(' · ') || 'sin reparto' });
   if (!caben) notas.push(`${restantes.length} pieza(s) no caben en el plano. Quita muebles o usa otra área.`);
 

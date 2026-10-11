@@ -76,7 +76,7 @@ Leyenda de "prod": archivos de producción que la consumen (sin contar el archiv
 | 7 clasificadores por nombre (`rolArea`, `rolCuartoBase`, `zonaSemantica`, `espacio.tipoDe`, `rolDePiezaAcomodo`, `esSilla*`, `rolDeSimboloEnZona`) | CONSOLIDADO parcial (VH-061): los de CUARTOS (`rolArea`, `zonaSemantica`) leen `datos/cuartos.js`; `rolCuartoBase` la usa y agrega el tamaño | Medido 2026-10-11 con 30 nombres: ya no se contradicen ("Sala de espera" lounge/GENERICA es compatible); el único choque real era Site. Piezas y símbolos son otro dominio. |
 | Edge `acomodar-espacio` (`acomodo-core.planearDeterminista`, botón "Con IA") | SUSTITUIR o RETIRAR | Motor más débil, contrato distinto (`poly`/`polygon`, `h`/`d`), sin LLM aunque el botón diga IA. |
 | `acomodo-core.acomodarConReparacion` | RETIRAR (propuesta) | prod 0 (solo tests). |
-| 6 validadores (`acomodoAudit`, `floorSpec.violacionesSemanticas/estadoLayout`, edge `validarColocacion`, auto-auditorías `ok:true`, `auditoriaMedida`, BFS malla) | CONSOLIDAR → 1 auditor | Las auto-auditorías `ok:true` hardcodeadas no son validación. |
+| 6 validadores (`acomodoAudit`, `floorSpec.violacionesSemanticas/estadoLayout`, edge `validarColocacion`, auto-auditorías `ok:true`, `auditoriaMedida`, BFS malla) | CONSOLIDADO parcial (VH-062): las auto-auditorías del planner ya se MIDEN con `acomodoAudit` (un solo auditor geométrico para planner y pantalla) | Pendiente: `violacionesSemanticas` (semántica, otro dominio) y la edge `validarColocacion` (fuera del repo, decisión VH-039). |
 | `PlanoAcomodo.layoutAreas` y `pdfPropuesta.hojaPlano` | CONSOLIDAR | Dos dibujos de planta. |
 | `espacioNuevo.js` (m² → áreas) | CONSERVAR | prod 1 (EmpezarEspacio). |
 
