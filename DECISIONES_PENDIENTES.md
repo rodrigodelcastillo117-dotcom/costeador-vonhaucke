@@ -48,6 +48,7 @@ Re-verificado hoy con `grep` de importadores fuera de tests. **Dos filas del inv
 |---|-----|-----------|-----------|
 | C1 · VH-022 | 5 cotizaciones de vendedor con 17 partidas con `costoUnitario` ≠ 0 y 5 con `margen` (previas al strip) | Medido 2026-10-04 | RPC seller-safe + restringir SELECT base (bloque propio). NO limpiar las 5 filas: histórico |
 | C2 | 8 partidas + 14 acomodos con imágenes base64 dentro de la fila | Medido 2026-10-10 | Migración a Storage preservando la economía del vendedor. Se corre en aislado con antes/después |
+| C3 | Residuos de la verificación en vivo del 2026-10-11 con `qa-direccion@vonhaucke.mx`: 2 cotizaciones autoguardadas (sin folio, sin emitir), 2 renders en `renders/generated/qa-direccion…`, 2 `render_eventos`, 5 `ai_eventos` | Medido tras la pasada | Borrar las 2 cotizaciones y los 2 objetos de Storage; conservar los eventos (son uso real). También: cambiar la contraseña trivial de esa cuenta o bajarla a vendedor |
 
 ## D. Lo que YA está hecho y no requiere decisión (sólo que lo sepas)
 

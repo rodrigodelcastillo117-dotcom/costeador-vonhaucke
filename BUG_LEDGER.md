@@ -58,6 +58,29 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 100% de las llamadas del navegador.** `AsistenteEspecial.jsx:179` mandaba `{...b}` con `margen`/`modeloCosteo`;
 `validarIntentCosteo` respondía `FORBIDDEN_FINANCIAL_FIELD`. Pendiente VERIFIED en vivo (shadow_costeo).
 
+**VERIFICACIÓN EN VIVO · 2026-10-11 · servidor real, cuenta `qa-direccion@vonhaucke.mx` (dirección).**
+Red del entorno abierta al host de Supabase; `e2e/auth.e2e.js` (3 pruebas de login real) 3/3 en verde y
+`e2e/vivo.e2e.js` (nuevo; sólo corre con `VIVO=1` + credenciales por variable de entorno, en CI se salta) recorrió los
+cinco caminos contra las edges desplegadas, registrando cada respuesta (reporte en el scratchpad de la sesión, no en el
+repo):
+- `cotizar-texto` 200 → "Agregué 1 mueble" (escritorio App LT con precio; banca con biombo PET fue a especial por
+  `material_override`, correcto). VH-070/071 **VERIFIED en vivo**.
+- `leer-plano` 200 → compuerta con "◑ Lectura con dudas · 3 cuarto(s), ~84 m² · validación geométrica del servidor:
+  requiere revisión · ref. 3101a64e…" (la envolvente vino DERIVED, el servidor pidió revisión y el cliente lo enseñó).
+  VH-064 **VERIFIED en vivo**.
+- `acomodar-espacio` 200 `layoutSpec.status: PASS` con `doors.total: 0` → el cliente mostró "El servidor acomodó sin
+  puertas: nadie verificó accesos ni barridos". VH-067 **VERIFIED en vivo** (y confirma el hueco (c) de VH-068).
+- `analizar-mueble` 200 → despiece real de una credenza; el motor marcó costo INCOMPLETO por 2 partidas sin costear
+  (pegado de chapa, pintura en polvo): fail-closed correcto, ningún $0.
+- `generar-render` 200 → `url` de Storage (`generated/qa-direccion_vonhaucke.mx/2026-10-11/…jpg`, modelo
+  gemini-3-pro-image, 2K, audit pass/skipped) y la imagen apareció en el Costeador. VH-072 **VERIFIED en vivo**
+  (con el cliente anterior este render se habría tirado).
+Efectos en producción, medidos: 2 cotizaciones autoguardadas de `qa-direccion` (una por corrida; sin folio, sin
+emitir), 2 `render_eventos`, 2 objetos en `renders/generated/qa-direccion…`, 5 `ai_eventos`. No se borra nada sin
+aprobación: queda como C3 en DECISIONES_PENDIENTES. `shadow_costeo` sigue en 0 hoy: la sombra sólo corre en el
+Asistente especial ("Costear con IA"), que la pasada no recorrió → VH-036/073 siguen SIN verificar en vivo.
+Pendiente tuyo (seguridad): la cuenta de dirección de prueba tiene contraseña trivial; cámbiala o bájala a vendedor.
+
 **VH-073 · P2 · FIXED · La comparación sombra cliente↔servidor no guardaba el motivo de los fallos.** `shadow_costeo`
 medido 2026-10-11: 41 filas desde el 2026-10-01; 8 coincidencias exactas (diff 0, todas del 2026-10-02); 7 `incompleto`;
 **26 errores HTTP 400 del 2026-10-04 al 2026-10-10 con `estado_servidor='error'` y `campos_recibidos=[ok,error,status]`
