@@ -9,6 +9,67 @@ SHA de referencia de los fixes: hasta `198920c` (prod).
 > verdes y volvió a producción en `beaa005` porque la capa de en medio (`floorPlan`) tiraba
 > el dato y nadie lo probaba de punta a punta. Ver `src/datos/puestosCadenaCompleta.test.js`.
 
+## VERIFICACIÓN CONTRA EL ERP (Intelisis) · 2026-10-11
+
+Fuente: Drive "presupuestos cotizador vonhaucke" (Dirección). 15 "REPORTE DEL COTIZADOR DE PRECIOS" de Intelisis
+(línea APPS LT / Alba, 12/08/2026: ATPU3M, ATPU2M, ATPU75M, ATOM3, ATOM4, ATACM, ATBIOCRT5, ATFAL12ABS,
+ATFAL150ABS, ATCUBS44/45/46ABS, ATCUBD44/45/46ABS), cada uno con BOM (código, cantidad, unidad, último costo y fecha),
+horas y $/h por centro (MO y GIF), factores 30/20/200. Se pasaron los 15 por `motor/calculo.js` en modo
+`intelisis` con los MISMOS insumos, horas y factores: **15/15 cuadran al centavo** en materia prima, mano de obra,
+GIF, fabricación, gastos de operación, costo total y precio (diferencia máxima $0.04, redondeo del reporte); el
+precio de lista difiere < 1 % porque el ERP redondea a pesos enteros con una regla propia. Queda como prueba
+permanente: `src/motor/goldenIntelisis.test.js` + `src/motor/fixtures/intelisis_alba_2026-08-12.json` (16 tests).
+Conclusión: **la fórmula del motor es la oficial**; lo que falla está en los DATOS y en la PRESENTACIÓN, no en la cascada.
+
+**VH-074 · P1 · OPEN (dato en producción, requiere aprobación) · Láminas con precio POR HOJA etiquetado "kg".**
+`catalogo_vigente`/`insumo_precios`: `lamina-10` $2,270.17 "kg", `lamina-12` $1,336.56 "kg", `lamina-14` $816.48 "kg",
+`lamina-18` $571.54, `lamina-20` $455.82, `lamina-22` $378.78, todos "kg". El ERP imprime LN10310 = $2,270.17 **por
+HOJA 3×10** y LN14310 = $816.48 **por hoja** (ATPU3M, 30/07 y 05/08/2026): son precios de hoja con unidad de kilo. La
+evidencia de la propia fila lo dice ("UNIDAD canónica del código aprobada; PRECIO pendiente. Nube tenía 33 kg"): el
+precio se pegó sin convertir la unidad. Además `lamina-3x10-12` y `lamina-3x10-14` tienen filas duplicadas "hoja" y
+"kg" con el mismo número. Hoy el navegador NO lo sufre (costea con `config.datos.insumos`: lámina cal.10 $33/kg, que
+sí es consistente: una hoja 3×10 cal.10 pesa ~70 kg). El día que el motor lea `catalogo_vigente` (decisión pendiente)
+una lámina saldría ~70× más cara. Propuesta: migración que ponga `unidad_compra='hoja'` en esas 6 filas y borre las
+duplicadas "kg"; antes/después con la golden.
+
+**VH-075 · P1 · OPEN (dato en producción, requiere aprobación) · `pintura-polvo` a $6.69/kg.** El ERP cobra la pintura
+en polvo PPH a $170.47/kg (ATPU3M, 11/08/2026) y la T.D.C. de la repisa de Alba a $238.07/kg (antracita TX, 04/2026);
+los demás colores de `catalogo_vigente` van de $59 a $345/kg. $6.69 × 17.5 ≈ $117: casi seguro un precio en DÓLARES
+guardado como pesos (el riesgo que `precioDeInsumo` ya documenta). Estado `propuesto_validado` con fuente "Compras,
+lista del 2026-08-14". Propuesta: corregir precio/moneda con el documento de Compras o degradar a `propuesto` sin precio.
+
+**VH-076 · NEGOCIO (no es bug de código) · 4 de 15 piezas APPS LT se venden por debajo del costo total del ERP.**
+Lista comercial del servidor (`lista_precio_items`, fuente "linea", la que usan los presupuestos "precio estándar")
+contra el costo total Intelisis: ATPU3M lista $650 / piso $520 vs costo $1,112.58; ATPU2M $610/$490 vs $966.37;
+ATPU75M $890/$630 vs $1,022.55; ATACM $270/$220 vs $370.64. Las otras 11 están sobre costo pero entre 34 % y 76 % del
+precio de lista que el propio ERP calcula (×1.2 ×3). Dos lecturas posibles y sólo Dirección puede decidir cuál:
+(a) las horas del centro "Otros" del ERP están infladas (1.66 h para una pata en U, a $234/h de GIF), o (b) las patas
+y conductos son piezas gancho que se venden perdiendo y se recupera en la cubierta. La app no debe "corregir" nada
+aquí; debe MOSTRAR margen real contra costo ERP cuando exista (hoy `producto_version_economia` tiene 12 filas de 1,944
+productos: casi ningún producto de línea tiene costo oficial de referencia).
+
+**VH-077 · P2 · OPEN (reportado por Producción, pendiente de verificar en la app actual) · Observaciones de Rogelio y
+Alba (doc "comentarios Rogelio y Alba").** (a) la lista de materiales sólo ofrecía "MDF" sin espesores; (b) no se pueden
+combinar acabados/materiales; (c) gasto directo e indirecto "muy alto aun bajando el factor" en el ejercicio de la
+repisa (su T.D.C. da $156.98 de material: MDF19 0.028 hoja $12.26, canto ABS 22 1.4 m $14.88, laminado 0.056 hoja
+$34.88, lámina cal.14 0.025 hoja $21.24, tubular 3/4×1¾ cal.18 0.2 pza $49.91, pintura 0.1 kg $23.81; OJO: `mdf-19` NO existe ni en `config.datos.insumos` ni en `catalogo_vigente`, por eso
+Alba sólo pudo escoger "MDF"; y `laminado` vale $420/m² en el cliente pero $405.60/HOJA en el servidor: misma palabra,
+base distinta); (d) las
+descripciones del presupuesto no traen claves ni todos los componentes (riel, biombo de cristal); (e) "puestos" debe
+decir que son personas; (f) condiciones comerciales poco claras: ¿el 3 % de flete está incluido o no? Datos de
+Producción que SÍ dieron: no hay tiempos medidos por operación (sólo "30 s por operación" y el concepto histórico de
+"unidades equivalentes"); reglas de merma vigentes: tablero, pieza > 1.50 × 0.60 m = 0.5 hoja, si excede 0.60 de ancho
+× 1.50 = 1 hoja; pintura 8 m²/kg en plano (tubular rinde menos); canto: excedente por lado; perfiles tubulares de 6 m;
+lámina en anchos 0.91 y 1.22 m. Ninguna de esas reglas está hoy en el motor como política: están como `aprovechamiento
+80 %` + rejilla + `hojas` de la IA. Adoptarlas es cambio de fórmula oficial → DECISIONES A14.
+
+**Lo demás que había en el Drive, para que no se vuelva a preguntar:** 36 catálogos comerciales PDF (sin costos),
+`Escritorios Alba Precios.xlsx` (783 artículos, 625 BLOQUEADO, sólo 6 con precio de lista), dos reportes "Compras
+Acumuladas" del ERP (2,909 renglones parseados de mobiliario de madera, $294 M de $326 M; útiles para certificar costo
+unitario = compras netas / unidades por artículo ERP), 5 presupuestos reales a precio estándar (FinSus $20.6 M, Hugo
+Boss $1.74 M, LV $2.78 M, Estuco $0.51 M con 40 % de descuento, NTD Global $2.14 M) y una cotización de librero/credenza
+2025 ($17,250 y $32,915), estados financieros a junio 2026, y 3 fotos.
+
 ## REGRESIONES DETECTADAS 2026-10-10 (auditoría de código, no de síntomas)
 
 **VH-002 · P0 · REABIERTO y cerrado el mismo día.** `floorPlan.aMM/aMetros` (contrato canónico,
