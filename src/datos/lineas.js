@@ -6,6 +6,7 @@
 //   - configDesde(producto, seleccion): arma el config EXACTO que espera el
 //     generador (misma lógica que CosteadorLinea) para costear igual que la app.
 // ============================================================================
+import { precioDesdeCosto, margenObjetivoDe } from './precio.js';
 import { APPLT_PRODUCTOS, generarAppLT } from './applt.js';
 import { APP_PRODUCTOS, generarApp } from './app.js';
 import { ECLIPSE_PRODUCTOS, generarEclipse } from './eclipse.js';
@@ -214,14 +215,10 @@ export function precioDePieza(estado, ruta, g, pieza, cantidad, config) {
   const { par, esIntelisis } = modeloParaPieza(estado.parametros, g);
   const piezaFull = { ...pieza, modeloCosteo: g.modeloCosteo, factorDirecta: g.factorDirecta, factorIndirecta: g.factorIndirecta };
   const resultado = calcular(piezaFull, cantidad, estado.insumos, par);
-  const margen = estado.parametros.margenObjetivo ?? 50;
-  // El modelo Intelisis y el price-book hablan en "precio 2", que Von Haucke
-  // nunca cotiza: siempre se le quita el 40% para llegar al precio de lista.
-  // El modelo clásico no pasa por ahí (ya sale de costo × margen), así que no
-  // se le aplica: descontarlo dos veces le comería el margen.
-  const precioModelo = esIntelisis
-    ? precioDeLista(precioVenta(resultado.costoUnitario, par).lista)
-    : precioDe(resultado.costoUnitario, margen);
+  const margen = margenObjetivoDe(estado.parametros);
+  // UNA sola regla costo → precio (datos/precio.js). Sobre el costo OFICIAL: si el
+  // costeo está incompleto, precioModelo es null (no hay precio de modelo).
+  const precioModelo = precioDesdeCosto(resultado.costoOficial, { par, esIntelisis, margen });
   const real = buscarPrecioVenta(ruta, config);
   // Algunos generadores declaran un factor de calibración (Anteo escritorio:
   // inox + contrapeso + mármol sin MP cargada). Sólo afecta al modelo: si hay
@@ -235,11 +232,11 @@ export function precioDePieza(estado, ruta, g, pieza, cantidad, config) {
   // ni escalón por usuario) y el costeo está INCOMPLETO, no hay precio: sería dinero
   // inventado sobre un subtotal. `precio: null` → la partida queda PENDIENTE y la
   // emisión se bloquea (SIN_MATERIAL / PRECIO_INVALIDO en senales.js).
-  const incompleto = resultado.estadoCosto === 'incompleto';
+  const incompleto = resultado.estadoCosto === 'incompleto' || precioModelo == null;
   const delModelo = !real && !porUsuario;
-  const precio = real ? precioDeLista(real.lista) : (porUsuario ? porUsuario.lista : (incompleto ? null : precioModelo * factor));
+  const precio = real ? precioDeLista(real.lista) : (porUsuario ? porUsuario.lista : (precioModelo == null ? null : precioModelo * factor));
   const costo = real ? costoImplicito(real.lista)
-    : (porUsuario ? costoImplicito(porUsuario.lista / (1 - 0.40)) : (incompleto ? null : resultado.costoUnitario * factor));
+    : (porUsuario ? costoImplicito(porUsuario.lista / (1 - 0.40)) : (resultado.costoOficial == null ? null : resultado.costoOficial * factor));
   return {
     resultado, margen, precio, costo, real: !!real && !real.heredada, par,
     estadoCosto: resultado.estadoCosto, pendientes: resultado.pendientes || [],

@@ -5,6 +5,7 @@
 // ============================================================================
 import { useState } from 'react';
 import { FAMILIAS, MUEBLES, LINEAS, lineasDeMueble, REGLAS_LINEA } from '../datos/catalogo.js';
+import { margenObjetivoDe } from '../datos/precio.js';
 import { PIEZAS_SEMILLA } from '../datos/piezas.js';
 import { recetaBench } from '../datos/bench.js';
 import { calcular, modeloParaPieza } from '../motor/calculo.js';
@@ -33,7 +34,7 @@ export default function Catalogo({ estado, onCargar, soloVentas = false }) {
   const [busca, setBusca] = useState('');
   const [mueble, setMueble] = useState(null); // {muebleId, familiaId}
   // En modo Ventas se muestra el precio recomendado (margen objetivo), nunca el costo.
-  const margenObjetivo = estado.parametros.margenObjetivo ?? 40;
+  const margenObjetivo = margenObjetivoDe(estado.parametros);
   const aMostrar = (costo) => (soloVentas ? costo / (1 - margenObjetivo / 100) : costo);
 
   // ---- Paso 2: lineas de un mueble ----
@@ -177,7 +178,7 @@ function cargar(linea, muebleId, familiaId, estado, onCargar) {
       factorDirecta: 55,
       factorIndirecta: 12,
       preparacionHoras: 0,
-      margen: 30,
+      margen: margenObjetivoDe(estado.parametros),
     });
     return;
   }
@@ -196,7 +197,7 @@ function cargar(linea, muebleId, familiaId, estado, onCargar) {
       factorDirecta: receta.factorDirecta ?? 55,
       factorIndirecta: receta.factorIndirecta ?? 12,
       preparacionHoras: receta.preparacionHoras || 0,
-      margen: 30,
+      margen: margenObjetivoDe(estado.parametros),
     });
   } else {
     // Sin receta: arranca en blanco con nombre y linea puestos
@@ -211,7 +212,7 @@ function cargar(linea, muebleId, familiaId, estado, onCargar) {
       factorDirecta: 55,
       factorIndirecta: 12,
       preparacionHoras: 0,
-      margen: 30,
+      margen: margenObjetivoDe(estado.parametros),
     });
   }
 }

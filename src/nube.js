@@ -6,6 +6,7 @@
 // ============================================================================
 import { reglasTexto } from './datos/reglas.js';
 import { aprendizajesTexto } from './datos/aprendizaje.js';
+import { validarIntentCosteo, intentDesdePieza } from './datos/validarIntentCosteo.js';
 import { createClient } from '@supabase/supabase-js';
 
 const URL = 'https://mtuvnbgljwbsaizjjgzs.supabase.co';
@@ -331,8 +332,13 @@ export async function generarRender(descripcion, extra = {}) {
 // Llama al motor autoritativo del servidor con el JWT real del usuario. El servidor
 // resuelve rol/costos server-side e ignora lo que mande el browser. Fire-and-forget.
 export async function costearServidor(pieza, cantidad = 1) {
+  // VH-036: se manda la INTENCIÓN TÉCNICA saneada (sin margen/factores/modelo) y se
+  // valida ANTES de salir con el mismo validador que espeja el servidor.
+  const intent = intentDesdePieza(pieza, cantidad);
+  const v = validarIntentCosteo(intent);
+  if (!v.ok) return { ok: false, error: v.issues?.[0]?.msg || v.code, code: v.code, issues: v.issues, status: 400 };
   const { data, error } = await nube.functions.invoke('costear-servidor', {
-    body: { pieza, cantidad },
+    body: v.intent,
   });
   if (error) {
     let msg = error.message || 'No se pudo costear en el servidor.';

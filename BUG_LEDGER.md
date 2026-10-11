@@ -58,6 +58,18 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 `AsistenteEspecial.jsx:179` manda `{...b}` con `margen`/`modeloCosteo`; `validarIntentCosteo` responde
 `FORBIDDEN_FINANCIAL_FIELD`. La comparación "sombra" nunca ha recibido una respuesta del servidor.
 
+**VH-041 · P1 · FIXED · Siete fórmulas costo→precio y tres márgenes por omisión (VH-019).** Una sola
+regla en `datos/precio.js` (`precioDesdeCosto`, `margenObjetivoDe`, `MARGEN_OBJETIVO_DEFAULT = 50`) usada por
+lineas.precioDePieza, Asistente, Catálogo, Costeador, HojaCosto, AsistenteEspecial y CocrearV3; costear-servidor
+pasa de 40 a 50 por omisión (pendiente de desplegar). Opera sobre `costoOficial`: incompleto ⇒ null. Los niveles
+por volumen de Alba (`politicaVH.preciosVH`) se conservan como política de piso/lista, no como precio de partida.
+`costeoEnBlanco.margen` y los `margen: 30` del Catálogo ya no fijan 30: usan el margen objetivo. 5 tests `precio.test.js`.
+
+**VH-036 · P1 · FIXED · `costear-servidor` rechazaba el 100 % de las llamadas.** `intentDesdePieza` arma la
+intención técnica (sin margen/factores/modelo/precio/insumo) y `costearServidor` la valida con el mismo
+`validarIntentCosteo` que espeja el servidor antes de salir. 3 tests `costearServidor.intent.test.js`.
+Pendiente VERIFIED en vivo: la tabla `shadow_costeo` debe empezar a recibir `precio_servidor` no nulo.
+
 **VH-040 · P0 · FIXED · El motor devolvía $0 en silencio y las pantallas lo pintaban como precio.**
 Causas (informe COSTEAR 2026-10-10): `calcular` entregaba `costoUnitario` como número suelto aunque faltaran
 materiales/precios/cantidades; un componente con material y precio pero SIN cantidad ni medidas costaba $0 y

@@ -3,8 +3,8 @@
 //  Dos columnas en >=1000px; una sola abajo, con barra fija que muestra el costo.
 // ============================================================================
 import { useMemo, useState, useEffect } from 'react';
-import { calcular, precioDe, precioVenta, sugerenciaLote, sugerenciaMedida, costoNetoComponente, netoComponente, PARAMETROS_DEFAULT, modeloParaPieza, SIN_MO_SECCIONES, precioUsable } from '../motor/calculo.js';
-import { precioDeLista } from '../datos/preciosVenta.js';
+import { calcular, sugerenciaLote, sugerenciaMedida, costoNetoComponente, netoComponente, PARAMETROS_DEFAULT, modeloParaPieza, SIN_MO_SECCIONES, precioUsable } from '../motor/calculo.js';
+import { precioDesdeCosto, margenObjetivoDe } from '../datos/precio.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { AREAS_LABEL } from '../datos/areas.js';
 import { recetaBench } from '../datos/bench.js';
@@ -91,10 +91,9 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     () => calcular(piezaVirtual, costeo.piezas, insumos, par),
     [costeo, insumos, par]
   );
-  const margen = costeo.margen ?? estado.parametros.margenObjetivo ?? 40;
-  const precio = esIntelisis
-    ? precioDeLista(precioVenta(resultado.costoUnitario, par).lista)
-    : precioDe(resultado.costoUnitario, margen);
+  const margen = costeo.margen ?? margenObjetivoDe(estado.parametros);
+  // Una sola regla costo → precio, sobre el costo OFICIAL: incompleto ⇒ null (nunca $0).
+  const precio = precioDesdeCosto(resultado.costoOficial, { par, esIntelisis, margen });
   const bajoMinimo = margen < estado.parametros.margenMinimo;
   // FAIL-CLOSED (audit 2026-10-01): con partidas sin costear no hay precio ni se
   // puede emitir a la cotización. Solo se muestra el subtotal conocido.

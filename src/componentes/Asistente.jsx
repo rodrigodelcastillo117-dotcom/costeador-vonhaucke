@@ -7,8 +7,8 @@ import { FAMILIAS, MUEBLES, lineasDeMueble } from '../datos/catalogo.js';
 import Icono from './Iconos.jsx';
 import { construirCosteo } from '../recetas.js';
 import { recetaBench } from '../datos/bench.js';
-import { calcular, precioDe, precioVenta, modeloParaPieza } from '../motor/calculo.js';
-import { precioDeLista } from '../datos/preciosVenta.js';
+import { calcular, modeloParaPieza } from '../motor/calculo.js';
+import { precioDesdeCosto, margenObjetivoDe } from '../datos/precio.js';
 import { pesos } from '../util.js';
 import HojaCosto from './HojaCosto.jsx';
 import FichaPDF from './FichaPDF.jsx';
@@ -32,12 +32,11 @@ function piezaDe(c) {
 // Precio según el modelo de la pieza (clásico vs Intelisis) — mismo patrón
 // que ya usan Costeador.jsx/CosteadorLinea.jsx/lineas.js:precioDePieza().
 // No-op hoy: ninguna receta de PIEZAS_SEMILLA declara modeloCosteo todavía.
-function precioSegunModelo(costoUnitario, par, esIntelisis, margen) {
-  return esIntelisis ? precioDeLista(precioVenta(costoUnitario, par).lista) : precioDe(costoUnitario, margen);
-}
+// Una sola regla costo → precio (datos/precio.js); sobre el costo OFICIAL.
+const precioSegunModelo = (r, par, esIntelisis, margen) => precioDesdeCosto(r?.costoOficial, { par, esIntelisis, margen });
 
 export default function Asistente({ estado, onAgregarPartida, onModoAvanzado, onIr, soloVentas = false }) {
-  const margenObjetivo = estado.parametros.margenObjetivo ?? 40;
+  const margenObjetivo = margenObjetivoDe(estado.parametros);
   const [paso, setPaso] = useState('familia');
   const [familia, setFamilia] = useState(null);
   const [mueble, setMueble] = useState(null);
@@ -65,7 +64,7 @@ export default function Asistente({ estado, onAgregarPartida, onModoAvanzado, on
       const r = (tieneReceta && !soloVentas) ? calcular(piezaDe(c), 1, estado.insumos, par) : null;
       // Costeo INCOMPLETO (material/precio/cantidad faltante) ⇒ sin precio, no $0.
       const completo = r && r.estadoCosto === 'completo';
-      return { linea: l, costeo: c, precio: completo ? precioSegunModelo(r.costoUnitario, par, esIntelisis, margenObjetivo) : null, tieneReceta, incompleto: !!(r && !completo), pendientes: r?.pendientes || [] };
+      return { linea: l, costeo: c, precio: completo ? precioSegunModelo(r, par, esIntelisis, margenObjetivo) : null, tieneReceta, incompleto: !!(r && !completo), pendientes: r?.pendientes || [] };
     });
     conPrecio.sort((a, b) => {
       if (a.precio != null && b.precio != null) return a.precio - b.precio;
@@ -88,7 +87,7 @@ export default function Asistente({ estado, onAgregarPartida, onModoAvanzado, on
   // null (no 0) cuando no hay resultado o el costeo está incompleto: nunca se muestra
   // ni se agrega un precio salido de un subtotal.
   const precio = resultado && resultado.estadoCosto === 'completo'
-    ? precioSegunModelo(resultado.costoUnitario, parCosteo, costeoEsIntelisis, margenEfectivo)
+    ? precioSegunModelo(resultado, parCosteo, costeoEsIntelisis, margenEfectivo)
     : null;
 
   function escogerFamilia(f) { setFamilia(f); setPaso('mueble'); setAvisoOpcion(''); }

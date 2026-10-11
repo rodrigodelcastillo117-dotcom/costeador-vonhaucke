@@ -5,7 +5,8 @@
 //  este mismo despiece leyendo una imagen con IA).
 // ============================================================================
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { calcular, precioDe, netoComponente, modeloParaPieza, costeoEmitible, bomHash, diffBOM, aplicarDiffBOM, MOTOR_VERSION, FORMULA_ALBA_V1, formulaDePieza } from '../motor/calculo.js';
+import { precioDesdeCosto, margenObjetivoDe } from '../datos/precio.js';
+import { calcular, netoComponente, modeloParaPieza, costeoEmitible, bomHash, diffBOM, aplicarDiffBOM, MOTOR_VERSION, FORMULA_ALBA_V1, formulaDePieza } from '../motor/calculo.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos } from '../util.js';
 import { analizarRender, analizarRenderImagenes, analizarTexto, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64 } from '../nube.js';
@@ -138,7 +139,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const [b, setB] = useState({
     nombre: '', piezas: 1, componentes: [], imagen: null, descripcionCliente: '',
     modoManoObra: 'porcentaje',
-    margen: estado.parametros?.margenObjetivo ?? 50,
+    margen: margenObjetivoDe(estado.parametros),
   });
   const set = (parcial) => setB((prev) => ({ ...prev, ...parcial }));
 
@@ -168,14 +169,15 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // Costeador.jsx y CosteadorLinea.jsx ya traen `estado.parametros`/`par` en su
   // lista; a éste se le había quedado fuera.
   const resultado = useMemo(() => calcular(b, b.piezas, insumos, par), [b, insumos, estado.parametros]);
-  const precio = precioDe(resultado.costoUnitario, b.margen);
+  // Una sola regla costo → precio, sobre el costo OFICIAL: incompleto ⇒ null (nunca $0).
+  const precio = precioDesdeCosto(resultado.costoOficial, { par, margen: b.margen });
 
   // --- SHADOW (Fase 3): compara en paralelo el motor del servidor (JWT real, rol/costos
   // server-side) contra el resultado del cliente y lo registra. Fire-and-forget, debounced,
   // dedup por input: NUNCA bloquea ni cambia lo que ve el usuario. El usuario sigue viendo `precio`.
   const sombraRef = useRef('');
   useEffect(() => {
-    if (!(b.componentes?.length) || !(resultado.costoUnitario > 0)) return;
+    if (!(b.componentes?.length) || !(resultado.costoUnitario > 0) || precio == null) return;
     const pieza = { ...b, modeloCosteo: estado.parametros?.modeloCosteo };
     const h = hashInput({ c: b.componentes, n: b.piezas, m: b.margen });
     if (sombraRef.current === h) return; // ya comparado este input

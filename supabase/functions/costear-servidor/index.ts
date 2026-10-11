@@ -146,7 +146,8 @@ Deno.serve(async (req) => {
   // body — el DTO ya rechazó cualquier `margen` del cliente. Modelo 'clásico' (Alba)
   // para producto nuevo, que es el caso de costear-servidor; 'intelisis' (líneas App
   // LT) se costea aún en cliente y queda fuera de esta superficie.
-  const margen = Number(parametros.margenObjetivo ?? 40);
+  // Mismo valor por omisión que el cliente (datos/precio.js MARGEN_OBJETIVO_DEFAULT = 50, VH-019).
+  const margen = Number(parametros.margenObjetivo ?? 50);
   // FAIL-CLOSED: precioDe devuelve NaN ante margen imposible (≥100/<0) o costo no
   // finito. No se convierte en $0 ni se emite: precioVenta = null → sin precio.
   const precioRaw = precioDe(r.costoUnitario, margen);

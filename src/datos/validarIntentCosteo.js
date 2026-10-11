@@ -138,3 +138,23 @@ export function validarIntentCosteo(body) {
   };
   return { ok: true, intent };
 }
+
+/**
+ * Construye la INTENCIÓN TÉCNICA que se manda a `costear-servidor` a partir de una
+ * pieza del cliente (que sí trae margen, factores, modelo…): se queda SÓLO con lo
+ * técnico. VH-036 (2026-10-11): el cliente mandaba `{...b}` completo, el servidor
+ * respondía FORBIDDEN_FINANCIAL_FIELD y la comparación "sombra" nunca recibió nada.
+ */
+export function intentDesdePieza(pieza, cantidad = 1) {
+  const comps = Array.isArray(pieza?.componentes) ? pieza.componentes : [];
+  const limpios = comps.map((c) => {
+    const o = {};
+    for (const k of COMP_PERMITIDOS) if (c && c[k] != null) o[k] = c[k];
+    return o;
+  });
+  const horas = pieza?.horas && typeof pieza.horas === 'object'
+    ? Object.fromEntries(Object.entries(pieza.horas).filter(([, h]) => Number.isFinite(h) && h >= 0))
+    : undefined;
+  const n = Math.max(1, Math.round(Number(cantidad) || 1));
+  return { cantidad: n, pieza: { componentes: limpios, ...(horas && Object.keys(horas).length ? { horas } : {}) } };
+}
