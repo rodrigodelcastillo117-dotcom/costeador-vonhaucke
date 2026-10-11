@@ -27,7 +27,7 @@ Leyenda de "prod": archivos de producción que la consumen (sin contar el archiv
 | Pre-formas en `lineas.js` (`partidaCatalogo`, `partidaModelo`, `sellerSafePartida`, `sinPrecioVendedor`, `conIdentidadV2`) y `CotizadorIA.partidaBanco` | CONSOLIDAR (adaptadores del constructor único) | Se conservan como adaptadores de entrada, no como constructores. |
 | `precioAutorizado.js` (identidad Producto Maestro) | CONSERVAR | prod 3 (lineas, CotizadorIA, CosteadorLinea). |
 | `scopeModel.js` | RETIRAR (propuesta) | prod 0; solo tests. |
-| `evidencia.js` | RETIRAR (propuesta) | prod 0; solo lo usaba `estructura.js` y ya no. |
+| `evidencia.js` | CONSERVAR (corrección 2026-10-11) | ESTABA MAL: `estructura.js` SÍ lo importa y `AnalisisEstructural.jsx` vive en Costeador detrás del flag `costing_ai_v2`. Retirarlo rompería ese flag. Se retira sólo si Dirección retira el flag. |
 | 7 vocabularios de procedencia (`provenance.js`, `confianza.js`, `programaDelPlano.fuente`, `evidencia.js`, `util.selloPartida`, `voni/respuesta`, `datos/voni.EVID`) | CONSOLIDAR → 1 enum `detectado/inferido/sugerido/confirmado` | Hoy cada etapa aplana la procedencia de la anterior. |
 
 ## 3. Autoridad económica y emisión
@@ -36,7 +36,7 @@ Leyenda de "prod": archivos de producción que la consumen (sin contar el archiv
 |---|---|---|
 | `motor/calculo.js` `calcular` + `FORMULA_ALBA_V1` | CONSERVAR (fórmulas intocables) | prod 17. Alba cubre 7/130 productos; legacy por línea 99; horas 24. No se migra entre métodos sin validación (mandato §3). |
 | `costeoEmitible` (completitud) | CONSERVAR y hacer obligatorio | prod 4. `calcular` debe devolver estado, no número suelto. |
-| `componentesSinMaterial` | CONSOLIDADO (VH-040) → `pendientesDeCosteo`; la función vieja ya no tiene consumidores en App (RETIRAR propuesta) | |
+| `componentesSinMaterial` | CONSOLIDADO (VH-040) → `pendientesDeCosteo`. Corrección 2026-10-11: NO es código muerto, `pendientesDeCosteo` la llama como respaldo (calculo.js:683). No retirar; a lo más hacerla privada del motor. | |
 | 7 fórmulas costo→precio | CONSOLIDADO (VH-041) → `datos/precio.js` `precioDesdeCosto` | `politicaVH.preciosVH` se conserva como niveles por volumen (piso/lista), no como precio de partida. |
 | Márgenes por omisión 50 vs 40 vs 30 | CONSOLIDADO (VH-019) → `margenObjetivoDe` (parametros, si no 50) | costear-servidor cambiado en código; pendiente de desplegar. |
 | `politicaVH.costoFabVH` | RETIRAR (propuesta) | prod 0; duplica Alba con otros factores. |
@@ -93,7 +93,7 @@ Leyenda de "prod": archivos de producción que la consumen (sin contar el archiv
 | `Asistente.jsx` (wizard determinista 1 pieza) | CONSOLIDAR | Duplica precio con otra fórmula y margen 40. |
 | `aprendizaje.leccionDeQuita/leccionDeCambio` | RETIRAR (propuesta) | prod 0. |
 | Aprendizajes automáticos (texto libre del vendedor → system prompt global) | HECHO en cliente (VH-059): atribución por sesión, `aprobado_para_ia` como la base, sólo lo aprobado va al prompt, revisión de Dirección en "Lo que Voni sabe" | Pendiente servidor (VH-060): las edges `cotizar-texto`/`analizar-negocio` siguen aceptando `aprendizajes` del body. |
-| `nube.generarVideo` + edge `generar-video` | RETIRAR (propuesta) | prod 0. |
+| `nube.generarVideo` + edge `generar-video` | RETIRAR (propuesta) | Corrección 2026-10-11: el cliente ya no tiene `generarVideo` (0 referencias en `src`); sólo queda la edge `generar-video` v4 (ago-2026) desplegada sin caller. |
 | `humo.jsx`, `plano.jsx` | RETIRAR (propuesta) | No son entradas de Vite ni se importan. |
 
 ## 7. Funciones edge en producción (hallazgo VH-039)
