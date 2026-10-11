@@ -58,6 +58,35 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 100% de las llamadas del navegador.** `AsistenteEspecial.jsx:179` mandaba `{...b}` con `margen`/`modeloCosteo`;
 `validarIntentCosteo` respondía `FORBIDDEN_FINANCIAL_FIELD`. Pendiente VERIFIED en vivo (shadow_costeo).
 
+**VH-067 · P1 · FIXED · El acomodo "Con IA" tomaba `ok: true` del servidor como acomodo logrado.** La edge
+`acomodar-espacio` v9 (leída completa 2026-10-11: index.ts 513 líneas + acomodo-core/spatial-core/spatial-semantics)
+responde SIEMPRE `ok: true` HTTP 200 y pone el veredicto en `layoutSpec.status` (PASS / REVIEW_REQUIRED / PARTIAL /
+FAIL) con `validation.issues/reviews`, `noColocadas` y `puertas`. `Acomodo.acomodarIA` hacía `setPlan(r.plan)`: un
+FAIL (cero piezas) se veía como "acomodado" vacío sin explicación; un PARTIAL no decía qué faltó; las revisiones
+semánticas y las puertas sin barrido verificable se perdían. Fix: `datos/acomodoServidor.interpretarAcomodoServidor`
+(puro): FAIL o sin colocación ⇒ error con los problemas traducidos (encimado entre X y Y, fuera del cuarto, tapa
+puerta, zona que no admite…) y las piezas no colocadas con nombre; PARTIAL/REVIEW ⇒ plan usable + avisos + `auditoria`
+comparable a la del planner local (validación del servidor, todas colocadas, sin problemas geométricos, puertas
+verificadas) + `servidor {estado, metodo, requestId, calidad}` sellado en el plan guardado. "Sin puertas en el plano"
+NO cuenta como puertas verificadas aunque el servidor diga VERIFIED (no había nada que verificar). Pruebas: 8 unit,
+2 e2e (FAIL y PARTIAL con nube falsa). No se tocó la edge.
+
+**VH-068 · P2 · OPEN (edge, requiere aprobación para redesplegar) · Huecos de validación en `acomodar-espacio` v9.**
+Medido en el código desplegado: (a) el encimado contra OBSTÁCULOS (columnas) sólo se revisa para piezas con
+`spatial_spec` de clearance (`usoInvadido` gated por `requiereClearance`, index.ts:344-346); una reparación de la IA
+que ponga una guarda sobre una columna pasa `evaluar`; (b) `evaluar` pasa el área CRUDA del cliente a
+`usoInvadido`/`bloqueaPuertaEspacial` (línea 340) mientras `insideArea` usa la geometría normalizada `_g`: con áreas
+en `width_mm/puntos` (sin `ancho/largo`) toda pieza con clearance sale `FUNCTIONAL_CLEARANCE`; (c) sin arreglo
+`puertas` el plan sale `doors.verificadas=true` ⇒ PASS/render_ready (spatial-core.js:215-232) — el cliente lo
+compensa desde VH-067; (d) si la IA falla tras la pasada determinista el error se traga (`catch … break`, 430-433) y
+la respuesta no lo dice; (e) la fila `ai_eventos` que alimenta el límite 30/h se inserta al FINAL en un try vacío
+(474-481): una petición que falla antes no cuenta y si el insert falla el límite deja de operar; (f) contención en
+polígono por 5 puntos muestreados (no rect-en-polígono): un cuarto en L puede dejar un canto afuera;
+(g) `acomodo-core.js` exporta un segundo validador (`validarColocacion`, `acomodarConReparacion`) que index.ts NO
+importa y que discrepa del vivo (ése sí revisa obstáculos para toda pieza): código muerto desplegado → RETIRAR.
+Propuesta (no aplicada): usar `_g` + obstáculos para toda pieza en `evaluar`, puertas ausentes ⇒ REVIEW_REQUIRED,
+`model_error` en la respuesta, insertar `ai_eventos` al inicio (como leer-plano), borrar el validador muerto.
+
 **VH-066 · P2 · FIXED · El Modo avanzado (Costeador) callaba cuando `analizar-mueble` usó el catálogo de respaldo.**
 La edge devuelve `catalogoFuente: 'cliente-fallback'` cuando el catálogo central no estuvo y la IA ancló materiales
 con las pistas locales del navegador (#8, 2026-10-04). El Asistente especial ya avisaba "no cotices en firme"; el

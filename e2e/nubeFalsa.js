@@ -330,6 +330,9 @@ export function crearNubeFalsa({ usuarios }) {
     if (ruta.startsWith('/rest/v1/')) return json(route, []);
     // leer-plano: una lectura FIJA (plano ejecutivo con dos islas contadas) para probar
     // la compuerta de confirmación sin LLM. `f.lectura` se puede sustituir por prueba.
+    // VH-067: acomodar-espacio responde ok:true SIEMPRE; el veredicto va en layoutSpec.status.
+    // `f.acomodoServidor` se sustituye por prueba (FAIL / PARTIAL / PASS).
+    if (ruta === '/functions/v1/acomodar-espacio') return json(route, f.acomodoServidor || { ok: true, plan: { colocacion: [], caben: false }, total: 0, colocadas: 0, noColocadas: [], layoutSpec: { status: 'FAIL', validation: { issues: [], reviews: [] } } });
     // VH-066: analizar-mueble sin LLM: una propuesta fija; `f.catalogoFuente` se sustituye por prueba
     // ('cliente-fallback' = el catálogo central no estuvo, la UI debe avisar).
     if (ruta === '/functions/v1/analizar-mueble') {

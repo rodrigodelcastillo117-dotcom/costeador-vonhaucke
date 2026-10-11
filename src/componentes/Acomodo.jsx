@@ -29,6 +29,7 @@ const esSilla = (p) => p?.tipo === 'asiento' || esSillaDeTrabajo(p);
 import { escenasDeAcomodo, lineasDeEscena, tipoDeEscena } from '../datos/escenas.js';
 import { LINEAS_REG } from '../datos/lineas.js';
 import { areasDeLectura, revisarAreas, resumenLectura } from '../datos/planoLeido.js';
+import { interpretarAcomodoServidor } from '../datos/acomodoServidor.js';
 import { abrirPdf, paginaAImagen } from '../datos/pdfImagen.js';
 import PlanoAcomodo from './PlanoAcomodo.jsx';
 import PropuestaViva from './PropuestaViva.jsx';
@@ -231,8 +232,12 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     setError(''); setPlan(null); setGuardado(false); setCargando('acomodo');
     try {
       const r = await acomodarEspacio(areasMM, piezas);
-      if (!r || !r.ok) { setError(r?.error || 'No se pudo acomodar. Vuelve a intentar.'); return; }
-      setPlan(r.plan);
+      // VH-067: la edge responde ok:true SIEMPRE; el veredicto va en layoutSpec.status.
+      // Un FAIL no es un acomodo; un PARTIAL dice qué faltó; las revisiones se enseñan.
+      const i = interpretarAcomodoServidor(r, piezas);
+      if (!i.ok) { setError(i.error); return; }
+      setPlan(i.plan);
+      if (i.avisos.length) setNotaPlano(i.avisos.join(' '));
     } catch (e) {
       setError('No se pudo conectar con el asistente. Revisa tu internet y vuelve a intentar.');
     } finally {
