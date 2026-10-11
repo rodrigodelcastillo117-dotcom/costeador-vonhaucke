@@ -1,3 +1,4 @@
+import { ZONA, zonaDeCuarto } from './cuartos.js';
 // ============================================================================
 //  FloorSpec — CAPA DETERMINISTA DE VERDAD del plano (P0-PLAN).
 //
@@ -36,30 +37,11 @@ export const ROL = {
 };
 
 // Zonas semánticas reconocidas (para interpretar un símbolo DENTRO de su zona).
-export const ZONA = {
-  CEO: 'OFICINA_CEO',
-  CONSEJO: 'SALA_CONSEJO',
-  OPERATIVA: 'AREA_OPERATIVA',
-  RECEPCION: 'RECEPCION',
-  SITE: 'SITE_IT',
-  SANITARIOS: 'SANITARIOS',
-  GENERICA: 'GENERICA',
-};
+export { ZONA } from './cuartos.js';   // VH-061: la fuente es datos/cuartos.js
 
 // Normaliza el nombre libre de una zona a su tipo semántico (sin inventar zonas).
 export function zonaSemantica(nombre = '') {
-  const t = String(nombre).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-  if (/ceo|direcc|director/.test(t)) return ZONA.CEO;
-  // VH-033: "sala de" a secas NO es consejo ("Sala de capacitación", "Sala de espera"
-  // vetaban escritorios y perdían todas sus sillas). Sólo junta/consejo/reunión.
-  if (/consejo|junta|board|reunion/.test(t)) return ZONA.CONSEJO;
-  if (/operativ|open|bench|estacion|trabajo/.test(t)) return ZONA.OPERATIVA;
-  if (/recepc|lobby|acceso/.test(t)) return ZONA.RECEPCION;
-  // Sanitarios ANTES que site, y site con límites de palabra: "saNITarios" contiene
-  // "it" y "nit" — un \bit\b suelto lo clasificaba mal como SITE.
-  if (/sanitar|bano|baño|wc|toilet|hombre|mujer/.test(t)) return ZONA.SANITARIOS;
-  if (/\bsite\b|\bit\b|\bdata\b|rack|comunicac/.test(t)) return ZONA.SITE;
-  return ZONA.GENERICA;
+  return zonaDeCuarto(nombre);   // VH-061: misma lectura que planner.rolArea (datos/cuartos.js)
 }
 
 // Un símbolo tipo "silla" (círculo) se interpreta SEGÚN SU ZONA. Un sanitario NUNCA

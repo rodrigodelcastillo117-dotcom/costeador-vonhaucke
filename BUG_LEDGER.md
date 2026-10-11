@@ -58,6 +58,16 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 100% de las llamadas del navegador.** `AsistenteEspecial.jsx:179` mandaba `{...b}` con `margen`/`modeloCosteo`;
 `validarIntentCosteo` respondía `FORBIDDEN_FINANCIAL_FIELD`. Pendiente VERIFIED en vivo (shadow_costeo).
 
+**VH-061 · P2 · FIXED · Dos lecturas del nombre de un cuarto que no se hablaban; "Site" recibía muebles en el
+planner mientras floorSpec lo prohibía.** `planner.rolArea` (dónde se acomoda) y `floorSpec.zonaSemantica` (qué
+se permite) tenían cada una su regex. Medidas con 30 nombres reales coincidían salvo site/IT/rack: 'general'
+para el planner (acomodaba muebles) y SITE_IT para floorSpec (prohíbe todo mueble). Fix: `datos/cuartos.js`
+`clasificarCuarto(nombre) → {rol, zona}` es la única lectura; `rolArea` y `zonaSemantica` derivan de ella y
+`ZONA` vive ahí. Único cambio de comportamiento: site/IT/rack es 'servicio' también para el planner.
+Caracterización de 29 nombres contra la salida medida antes del cambio + Site. De los "7 clasificadores" del
+inventario, los dos de CUARTOS quedan en uno; los de PIEZAS (`espacio.tipoDe`, `rolDePiezaAcomodo`, `esSilla*`)
+y el de SÍMBOLOS (`rolDeSimboloEnZona`) clasifican cosas distintas y siguen separados a propósito.
+
 **VH-059 · P1 · FIXED · "Voni aprende" estaba roto en silencio y lo no revisado entraba al prompt.** Verificado
 contra la RLS de `aprendizajes` (02_rls_policies.sql): INSERT exige `usuario = correo de la sesión` y
 `aprobado_para_ia = puede_editar_config()`. El cliente mandaba `usuario: estado.usuario.correo` —un campo que

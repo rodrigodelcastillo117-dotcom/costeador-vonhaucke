@@ -13,6 +13,7 @@ import { enderezarTodo } from './orientacion.js';
 import { puestosDe } from './rellenar.js';
 import { dimsPieza } from './espacio.js';
 import { rolDePiezaAcomodo, zonaPermite, zonaSemantica } from './floorSpec.js';
+import { rolDeCuarto } from './cuartos.js';
 
 const zonaAceptaPieza = (p, area) => zonaPermite(rolDePiezaAcomodo(p), zonaSemantica(area?.nombre || ''));
 
@@ -22,15 +23,11 @@ const AISLE = 1100;
 const GAP = 140;
 const MEET_CLR = 950;
 
+// VH-061: una sola lectura del nombre del cuarto (datos/cuartos.js), compartida con
+// floorSpec.zonaSemantica. Antes cada módulo tenía su regex y "Site" era 'general'
+// aquí (se le acomodaban muebles) y SITE_IT allá (prohibido).
 export function rolArea(nombre) {
-  const s = (nombre || '').toLowerCase();
-  if (/ba[ñn]|w\.?c|sanit|toilet|n[úu]cleo|ducto|escaler|core|cocin|kitchen/.test(s)) return 'servicio';
-  if (/jun|consejo|board/.test(s)) return 'juntas';
-  if (/lounge|descanso|estar|comedor|break|caf[eé]|espera/.test(s)) return 'lounge';
-  if (/recep|lobby|acceso|vest[íi]b/.test(s)) return 'recepcion';
-  if (/priv|direcc|gerenc|oficina/.test(s)) return 'privado';
-  if (/open|operativ|trabajo|estaci|planta libre/.test(s)) return 'open';
-  return 'general';
+  return rolDeCuarto(nombre);
 }
 
 function empacarFilas(cola, region, { gap = GAP, rowGap = AISLE, tope = Infinity } = {}) {

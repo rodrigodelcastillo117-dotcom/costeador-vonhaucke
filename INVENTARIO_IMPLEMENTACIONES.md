@@ -73,7 +73,7 @@ Leyenda de "prod": archivos de producción que la consumen (sin contar el archiv
 | `planner.acomodarLocal` + `malla.acomodarEnForma` | CORREGIDO (VH-033): plan B para sobrantes, pasada 2 sin pérdidas, `sinColocar` por nombre | |
 | `reacomodar`, `sentarSillas`, `rellenar`, `orientacion.enderezar` | CONSOLIDAR dentro del solver | Capas que se parchan entre sí (sentar→enderezar→re-sentar). |
 | `planner.empacarFilas`, `guardasAMuro`, `MEET_CLR` | RETIRAR (propuesta) | Sin llamadas. |
-| 7 clasificadores por nombre (`rolArea`, `rolCuartoBase`, `zonaSemantica`, `espacio.tipoDe`, `rolDePiezaAcomodo`, `esSilla*`, `rolDeSimboloEnZona`) | CONSOLIDAR → 1 | Se contradicen ("Sala de espera": lounge vs CONSEJO). |
+| 7 clasificadores por nombre (`rolArea`, `rolCuartoBase`, `zonaSemantica`, `espacio.tipoDe`, `rolDePiezaAcomodo`, `esSilla*`, `rolDeSimboloEnZona`) | CONSOLIDADO parcial (VH-061): los de CUARTOS (`rolArea`, `zonaSemantica`) leen `datos/cuartos.js`; `rolCuartoBase` la usa y agrega el tamaño | Medido 2026-10-11 con 30 nombres: ya no se contradicen ("Sala de espera" lounge/GENERICA es compatible); el único choque real era Site. Piezas y símbolos son otro dominio. |
 | Edge `acomodar-espacio` (`acomodo-core.planearDeterminista`, botón "Con IA") | SUSTITUIR o RETIRAR | Motor más débil, contrato distinto (`poly`/`polygon`, `h`/`d`), sin LLM aunque el botón diga IA. |
 | `acomodo-core.acomodarConReparacion` | RETIRAR (propuesta) | prod 0 (solo tests). |
 | 6 validadores (`acomodoAudit`, `floorSpec.violacionesSemanticas/estadoLayout`, edge `validarColocacion`, auto-auditorías `ok:true`, `auditoriaMedida`, BFS malla) | CONSOLIDAR → 1 auditor | Las auto-auditorías `ok:true` hardcodeadas no son validación. |
