@@ -941,6 +941,7 @@ export function datosDesdeSnapshot(snapshot, extras = {}) {
     marca: extras.marca ?? null,
     garantia: extras.garantia ?? null,
     exclusiones: extras.exclusiones ?? null,
+    exclusionesBOM: extras.exclusionesBOM ?? [],
     // El snapshot define si fue registrada: si no hay revisión, es borrador.
     borrador: extras.borrador ?? false,
   };

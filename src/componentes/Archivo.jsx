@@ -17,6 +17,7 @@ import { useEffect, useRef, useState } from 'react';
 import { listarCotizaciones, archivarCotizacion, mpCambio } from '../datos/cotizaciones.js';
 import { listarRevisiones } from '../datos/revisiones.js';
 import { armarRespaldo, validarRespaldo, nombreArchivoRespaldo, descargarJSON, leerArchivoJSON } from '../datos/respaldo.js';
+import { descargarPropuesta, datosDesdeSnapshot, cargarMarca } from '../datos/pdfPropuesta.js';
 import { pesos, coincide } from '../util.js';
 
 const fechaCorta = (iso) => {
@@ -181,8 +182,19 @@ function Emisiones({ cotizacionId, folio }) {
     <div style={{ marginTop: 6, display: 'grid', gap: 3 }}>
       <div className="ayuda" style={{ fontWeight: 700 }}>{revs.length} emisión(es) conservada(s):</div>
       {revs.map((r) => (
-        <div key={r.id} className="ayuda" style={{ opacity: 0.9 }}>
-          Rev. {r.revision} · {fechaCorta(r.emitida_en)} · {r.usuario || 'autor desconocido'} · {pesos(r.total)}
+        <div key={r.id} className="ayuda" style={{ opacity: 0.9, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span>Rev. {r.revision} · {fechaCorta(r.emitida_en)} · {r.usuario || 'autor desconocido'} · {pesos(r.total)}</span>
+          {r.snapshot && (
+            // VH-042: el PDF de una revisión se vuelve a generar DESDE SU SNAPSHOT conservado,
+            // no desde el estado vivo. Lo que se reimprime es exactamente lo que se emitió.
+            <button className="boton fantasma" style={{ minHeight: 30, fontSize: 12 }}
+              onClick={async () => {
+                try {
+                  const marca = await cargarMarca().catch(() => null);
+                  descargarPropuesta(datosDesdeSnapshot(r.snapshot, { marca, fecha: r.snapshot.fecha || fechaCorta(r.emitida_en), borrador: false, piezas: [] }));
+                } catch (e) { alert(`No se pudo generar el PDF de la revisión ${r.revision}: ${e?.message || e}`); }
+              }}>PDF de esta revisión</button>
+          )}
         </div>
       ))}
     </div>

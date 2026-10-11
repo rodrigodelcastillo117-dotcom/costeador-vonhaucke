@@ -58,6 +58,18 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 `AsistenteEspecial.jsx:179` manda `{...b}` con `margen`/`modeloCosteo`; `validarIntentCosteo` responde
 `FORBIDDEN_FINANCIAL_FIELD`. La comparación "sombra" nunca ha recibido una respuesta del servidor.
 
+**VH-042 · P0 · FIXED · El PDF no salía del snapshot y la emisión fallaba con centavos.** (1) `descargarPDF`
+dibujaba el documento desde el estado vivo y totales de pantalla; ahora se arma con `datosDesdeSnapshot` del
+MISMO snapshot que conservó `emitir_revision` (o que intentó conservar), y en Presupuestos cada revisión tiene
+"PDF de esta revisión" que lo regenera desde su snapshot. (2) Bug latente demostrado con prueba espejo de las
+reglas exactas del servidor: `totales.precioLista` se guardaba redondeado AL PESO y `emitir_revision_v2` exige
+`round(precioLista,2) == Σ round(pu×cant,2)` → con cualquier precio con centavos la emisión se rechazaba y el
+PDF salía SIEMPRE "BORRADOR". `totales.js` lleva la suma de renglones a centavos y el total cumple
+`total == precioLista − descuento + contingencia + maniobras + flete + iva` con los mismos valores del desglose.
+Nota: en producción `emitir_revision` ya es un alias de `emitir_revision_v2` (anti-tamper): el cliente no usa un
+camino legacy distinto. Tests: `pdfSnapshot.test.js` (4). Pendiente VERIFIED en vivo: emitir una cotización con
+un precio con centavos y ver "Revisión N guardada" en vez de borrador.
+
 **VH-041 · P1 · FIXED · Siete fórmulas costo→precio y tres márgenes por omisión (VH-019).** Una sola
 regla en `datos/precio.js` (`precioDesdeCosto`, `margenObjetivoDe`, `MARGEN_OBJETIVO_DEFAULT = 50`) usada por
 lineas.precioDePieza, Asistente, Catálogo, Costeador, HojaCosto, AsistenteEspecial y CocrearV3; costear-servidor

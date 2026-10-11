@@ -119,7 +119,7 @@ export function paraGuardar(estado, usuario) {
       maniobrasPct: t.maniobrasPct,
       fletePct: t.fletePct,
       ivaPct: t.ivaPct,
-      precioLista: Math.round(t.precioLista),
+      precioLista: Math.round(t.precioLista * 100) / 100,   // a centavos: regla exacta del servidor (VH-042)
       descuento: Math.round(t.descuento),
       subtotal: Math.round(t.subtotal),
       contingencia: Math.round(t.contingencia),
@@ -127,7 +127,12 @@ export function paraGuardar(estado, usuario) {
       flete: Math.round(t.flete),
       iva: Math.round(t.iva),
       total: t.totalRedondeado,
+      // El PDF se arma DESDE este snapshot (VH-042): el anticipo también viaja.
+      anticipoPct: t.anticipoPct,
+      anticipo: t.anticipo,
     },
+    // Fecha de la propuesta (la que se imprime). El servidor la ignora al guardar.
+    fecha: cot.fecha || null,
     total: t.totalRedondeado,
     piezas: partidas.reduce((a, p) => a + (p.cantidad || 0), 0),
     huella_mp: huellaMP(estado?.insumos, estado?.parametros),

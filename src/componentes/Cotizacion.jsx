@@ -7,7 +7,8 @@ import { useState, useMemo, useEffect } from 'react';
 import MarcaLogo from './MarcaLogo.jsx';
 import { resumenPorArea, especificacion } from '../datos/resumen.js';
 import { listaPorCuarto } from '../datos/porCuarto.js';
-import { descargarPropuesta, cargarFotos, cargarMarca } from '../datos/pdfPropuesta.js';
+import { descargarPropuesta, cargarFotos, cargarMarca, datosDesdeSnapshot } from '../datos/pdfPropuesta.js';
+import { snapshotEmitido } from '../datos/revisiones.js';
 import EditarPartida, { sePuedeEditar } from './EditarPartida.jsx';
 import { pesos, leePct, selloPartida, claseCosto } from '../util.js';
 import { senalesCotizacion, senalesInsumos, problemasDeEmision } from '../datos/senales.js';
@@ -276,23 +277,23 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
       // dibuja abajo. Si no se pudo registrar, el PDF sale pero se avisa que NO es
       // una emisión definitiva.
       const reg = onEmitida ? await onEmitida() : { ok: false };
-      descargarPropuesta({
-        cot, partidas, resumen, especificacion, nPzas, fotos, marca,
-        piezas: expandirPiezas(partidas),
+      // VH-042 (mandato §4): "el PDF debe reflejar la misma revisión guardada y los
+      // mismos totales aprobados". El documento se dibuja DESDE EL SNAPSHOT que se
+      // conservó (o se intentó conservar), no del estado vivo ni de totales de pantalla.
+      const snap = reg?.snapshot || snapshotEmitido(estado);
+      descargarPropuesta(datosDesdeSnapshot(snap, {
+        fecha: cot.fecha, resumen, especificacion, fotos, marca,
+        piezas: expandirPiezas(snap.partidas || []),
         // Si NO se registró la emisión, el PDF sale MARCADO como borrador: no se
         // entrega al cliente un documento que parezca definitivo sin evidencia
         // conservada (audit 2026-10-01).
         borrador: !reg?.ok,
         // La hoja "Qué va en cada área", en palabras y con las gavetas: el
         // plano no las puede enseñar porque viven debajo de la cubierta.
-        cuartos: listaPorCuarto(partidas, estado.cotizacion?.acomodo),
+        cuartos: listaPorCuarto(snap.partidas || [], snap.acomodo),
         // Piezas excluidas (audit #3): se imprimen como cláusula explícita bajo el total.
         exclusionesBOM: excluidasProyecto,
-        totales: { precioLista, descuento, descuentoPct, subtotal, contingencia, contingenciaPct,
-          maniobras, maniobrasPct, flete, fletePct,
-          iva, ivaPct, total,
-          anticipoPct, anticipo, cliente: cot.cliente, folio: cot.folio },
-      });
+      }));
       if (!reg?.ok) {
         const necesitaAprob = /aprobaci|politica|supera/i.test(reg?.motivo || '');
         setPdfErr(necesitaAprob
