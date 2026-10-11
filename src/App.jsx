@@ -60,6 +60,7 @@ import { cargarAprendizajes } from './datos/aprendizaje.js';
 import { guardarCotizacion, cargarCotizacionCompleta, paraGuardar, firmaGuardado, claveCreacionNueva } from './datos/cotizaciones.js';
 import { aplicarRespaldo } from './datos/respaldo.js';
 import { crearPartida } from './datos/partida.js';
+import { normalizarRol, veCostosCosteo } from './datos/roles.js';
 import { guardarRevision } from './datos/revisiones.js';
 import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
 import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, cotizacionEmitible } from './nube.js';
@@ -536,12 +537,14 @@ export default function App() {
   // descarte, el efecto de sincronización con la nube (más abajo, depende de
   // accesoOk) arrancaría igual que si el permiso sí se hubiera confirmado.
   const accesoOk = !!sesion && !!permiso && permiso !== 'error';
-  const esDireccion = permiso?.rol === 'direccion';
-  const esDiseno = permiso?.rol === 'diseno';
+  // VH-054: los booleanos de rol salen de datos/roles.js (espejo del servidor).
+  const rolNorm = normalizarRol(permiso?.rol);
+  const esDireccion = rolNorm === 'direccion';
+  const esDiseno = rolNorm === 'diseno';
   // Diseno y Direccion ven costos (para despiece). Todo lo demas es vendedor: solo precio recomendado.
-  const esVendedor = !esDireccion && !esDiseno;
+  const esVendedor = rolNorm === 'vendedor';
   // Puede ver el costo de fabricacion (Costeador, Precios de material, HojaCosto).
-  const veCostos = esDireccion || esDiseno;
+  const veCostos = veCostosCosteo(rolNorm);
   // Nomina, financieros y tablero: SOLO Direccion, resuelto por su correo.
   // Ya no hay PIN: el permiso lo da la base de datos, que a los demas ni
   // siquiera les manda estos datos.

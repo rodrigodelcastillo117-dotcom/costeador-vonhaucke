@@ -7,6 +7,7 @@
 //  AQUÍ, antes de que cualquier texto llegue al modelo.
 // ============================================================================
 import { bloqueosDeEmision } from './senales.js';
+import { veEconomiaCotizacion } from './roles.js';
 
 const ROLES_RENDER = new Set(['direccion', 'diseno', 'vendedor']);
 
@@ -17,7 +18,7 @@ const ROLES_RENDER = new Set(['direccion', 'diseno', 'vendedor']);
  */
 export function construirVoniContext({ ruta = '', pantalla = '', usuario = null, cotizacion = null, costeo = null } = {}) {
   const rol = String(usuario?.rol || '').toLowerCase();
-  const veInterno = rol === 'direccion'; // sólo Dirección ve costo/margen/desglose
+  const veInterno = veEconomiaCotizacion(rol); // espejo de puede_ver_economia (VH-054)
   const partidas = Array.isArray(cotizacion?.partidas) ? cotizacion.partidas : [];
   const bloqueos = bloqueosDeEmision(partidas);
   return {

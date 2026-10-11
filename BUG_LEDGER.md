@@ -58,6 +58,18 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 100% de las llamadas del navegador.** `AsistenteEspecial.jsx:179` mandaba `{...b}` con `margen`/`modeloCosteo`;
 `validarIntentCosteo` respondía `FORBIDDEN_FINANCIAL_FIELD`. Pendiente VERIFIED en vivo (shadow_costeo).
 
+**VH-054 · P1 · FIXED · Tres filtros de rol en el cliente que no coincidían entre sí ni con el servidor; un rol
+autodeclarado abría economía.** `voni/permisos.js` daba economía a 'costeador' y 'cfo' (roles que
+`permitidos` nunca emite: un `role:'cfo'` en la petición bastaba para que las tools económicas respondieran
+costo); `datos/voni.js` aceptaba 'admin' por regex de subcadena; `voniContext.js` sólo direccion; App.jsx
+comparaba el texto crudo. El servidor decide con dos funciones (08_private_api.sql): `puede_ver_economia` =
+direccion; `puede_editar_config` = direccion|diseno. Fix: `datos/roles.js` (`normalizarRol`,
+`veEconomiaCotizacion`, `veCostosCosteo`, `esVendedor`) es la única lectura; lo desconocido cae a vendedor
+(mínimo privilegio). Los cuatro consumidores la usan; la prueba 5 de `voni.test.js` que exigía economía para
+'costeador' se invirtió a propósito: ese rol no existe en el servidor, Diseño (rol real) sí ve costeo. Nota:
+`voni-council` (edge) ya resolvía el rol desde `permitidos` y sanitizaba por su cuenta, así que el servidor
+nunca filtró economía por este hueco; el riesgo era en lo que el cliente mostraba localmente. 3 tests roles.
+
 **VH-053 · P1 · FIXED · Cuando la IA elegía un material del catálogo del servidor que el navegador no tiene, la
 pieza se sustituía en silencio por un pariente local o quedaba "sin material" sin decir por qué.** Derivado de
 VH-051 (167 ids sólo en el servidor, 0 certificados). `aplicarPoliticaMaterial` recibía un id desconocido y

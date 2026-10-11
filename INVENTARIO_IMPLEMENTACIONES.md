@@ -86,7 +86,7 @@ Leyenda de "prod": archivos de producción que la consumen (sin contar el archiv
 |---|---|---|
 | `CotizadorIA.jsx` + edge `cotizar-texto` | CONSERVAR (es "el Voni" de texto→partidas) | prod 3. |
 | `Voni.jsx` (wizard 4 pasos) | CONSERVAR | prod 2. |
-| `Voni2.jsx` + `src/voni/*` (Q&A determinista, sin LLM) | CONSOLIDAR o RETIRAR (decidir) | prod 2; `voni/permisos.js` prod 0; tres filtros de rol que no coinciden (`datos/voni`, `voniContext`, `voni/permisos`). |
+| `Voni2.jsx` + `src/voni/*` (Q&A determinista, sin LLM) | CONSOLIDAR o RETIRAR (decidir) | prod 2. Los tres filtros de rol (`datos/voni`, `voniContext`, `voni/permisos`) y App.jsx ya leen `datos/roles.js` (VH-054), espejo del servidor. |
 | `datos/voni.js` `voniTurno` (orquestador propone→valida→ejecuta) | RETIRAR (propuesta) | prod 0; 3 tests prueban código que no corre. |
 | `CocrearV3.jsx` | CONSERVAR (consolidar con Costear/Cotizar) | Live. Aplica el cambio por regex ANTES de preguntar al council. |
 | `CocrearV2.jsx` | RETIRAR (propuesta) | prod 0. |
