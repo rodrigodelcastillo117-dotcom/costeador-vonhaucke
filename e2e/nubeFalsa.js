@@ -330,6 +330,20 @@ export function crearNubeFalsa({ usuarios }) {
     if (ruta.startsWith('/rest/v1/')) return json(route, []);
     // leer-plano: una lectura FIJA (plano ejecutivo con dos islas contadas) para probar
     // la compuerta de confirmación sin LLM. `f.lectura` se puede sustituir por prueba.
+    // VH-069/070: cotizar-texto sin LLM. `f.cotizacionIA` se sustituye por prueba; por defecto una
+    // propuesta con un producto real, uno inexistente, un noEncontrado y un extra descartado.
+    if (ruta === '/functions/v1/cotizar-texto') {
+      return json(route, f.cotizacionIA || { ok: true, rondasAclaracion: 0, sugerenciasDescartadas: ['Credenza ejecutiva'], propuesta: {
+        items: [
+          // banca doble 1200×1200 · 6 usuarios · biombo pet: tiene precio REAL en preciosVenta → el vendedor sí la ve con precio
+          { ruta: 'applt', producto: 'banca_doble', cantidad: 1, seleccion: [{ clave: 'largoMM', valor: '1200' }, { clave: 'fondoMM', valor: '1200' }, { clave: 'usuarios', valor: '6' }, { clave: 'biombo', valor: 'pet' }], etiqueta: 'Banca doble 6 usuarios', confianza: 'alta', nota: '' },
+          // escritorio 1500×750: sin precio autorizado para vendedor → fail-closed, no entra en $0
+          { ruta: 'applt', producto: 'escritorio', cantidad: 2, seleccion: [{ clave: 'largoMM', valor: '1500' }, { clave: 'fondoMM', valor: '750' }], etiqueta: 'Escritorio 1.50', confianza: 'alta', nota: '' },
+          { ruta: 'linea_inexistente', producto: 'nada', cantidad: 1, seleccion: [], etiqueta: 'Mueble fantasma', confianza: 'baja', nota: '' },
+        ],
+        banco: [], preguntas: [], resumen: 'Entendí: dos escritorios de 1.50 y un mueble que no reconozco.', noEncontrado: ['Cabina acústica'],
+      } });
+    }
     // VH-067: acomodar-espacio responde ok:true SIEMPRE; el veredicto va en layoutSpec.status.
     // `f.acomodoServidor` se sustituye por prueba (FAIL / PARTIAL / PASS).
     if (ruta === '/functions/v1/acomodar-espacio') return json(route, f.acomodoServidor || { ok: true, plan: { colocacion: [], caben: false }, total: 0, colocadas: 0, noColocadas: [], layoutSpec: { status: 'FAIL', validation: { issues: [], reviews: [] } } });

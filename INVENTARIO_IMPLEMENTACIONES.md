@@ -84,7 +84,7 @@ Leyenda de "prod": archivos de producción que la consumen (sin contar el archiv
 
 | Implementación | Clase | Evidencia |
 |---|---|---|
-| `CotizadorIA.jsx` + edge `cotizar-texto` | CONSERVAR (es "el Voni" de texto→partidas) | prod 3. |
+| `CotizadorIA.jsx` + edge `cotizar-texto` v12 | CONSERVAR (es "el Voni" de texto→partidas) | prod 3. Cliente fail-closed verificado con e2e (`cotizarTexto.e2e.js`, 2026-10-11): sin precio autorizado no entra en $0, lo inexistente se dice, extras descartados se informan (VH-070), sin agregados también se explica (VH-071). Edge SIN compuerta de rol, límite ni `ai_eventos` (VH-069, requiere aprobación). |
 | `Voni.jsx` (wizard 4 pasos) | CONSERVAR | prod 2. |
 | `Voni2.jsx` + `src/voni/*` (Q&A determinista, sin LLM) | CONSOLIDAR o RETIRAR (decidir) | prod 2. Los tres filtros de rol (`datos/voni`, `voniContext`, `voni/permisos`) y App.jsx ya leen `datos/roles.js` (VH-054), espejo del servidor. |
 | `datos/voni.js` `voniTurno` (orquestador propone→valida→ejecuta) | RETIRAR (propuesta) | prod 0; 3 tests prueban código que no corre. |

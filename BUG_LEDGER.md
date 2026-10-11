@@ -58,6 +58,33 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 100% de las llamadas del navegador.** `AsistenteEspecial.jsx:179` mandaba `{...b}` con `margen`/`modeloCosteo`;
 `validarIntentCosteo` respondía `FORBIDDEN_FINANCIAL_FIELD`. Pendiente VERIFIED en vivo (shadow_costeo).
 
+**VH-069 · P1 · OPEN (edge, requiere aprobación para redesplegar) · `cotizar-texto` v12 no tiene compuerta de rol,
+límite ni telemetría.** Leída completa 2026-10-11 (header dice v11, metadatos v12). A diferencia de `leer-plano`,
+`analizar-mueble` y `acomodar-espacio`, NO consulta `permitidos`, NO limita por usuario/hora, NO escribe `ai_eventos`
+(medido: 0 filas de `cotizar-texto` en la tabla; las otras tres sí registran) y llama a `claude-opus-5` con
+`max_tokens 8000` por cada petición. Sólo la protege `verify_jwt`. Hoy los 11 usuarios de `auth.users` están en
+`permitidos` (0 sin permiso), así que la exposición actual es interna, pero sin límite ni rastro. Además recibe del
+cliente `reglas` y `aprendizajes` y los pone en el prompt como "REGLAS DE LA CASA (MANDAN)" (ya VH-060) y `catalogo`
+completo (fuente de verdad del modelo). Lo bueno: no da precios, descarta en servidor los extras `sugerido`,
+cierra aclaraciones a la tercera ronda. Propuesta (no aplicada): mismo wrapper que `leer-plano` (permitidos + rol,
+30/h usuario, 200/h global fail-closed, `ai_eventos` al inicio, `request_id`), y leer reglas/aprendizajes aprobados de
+la base en lugar del body.
+
+**VH-070 · P3 · FIXED · Los extras que la IA sugirió y el servidor descartó no se le decían al vendedor.**
+`cotizar-texto` devuelve `sugerenciasDescartadas` (regla 9: cero extras cobrables sin pedirlos); el cliente lo
+ignoraba. Ahora se enseña "Voni pensó en X, pero no lo pediste y no lo agregué" (`data-testid=sugerencias-descartadas`),
+sin cobrarlo. e2e en `cotizarTexto.e2e.js`.
+
+**VH-071 · P1 · FIXED · En Voni paso 2, si la IA no pudo agregar nada, el vendedor no veía ninguna explicación.**
+`CotizadorIA` con `pantalla='formulario'` escondía la tarjeta de resultado y el salto a 'revisar' sólo ocurre si se
+agregó algo. Un pedido cuyo único producto quedaba "sin precio autorizado" (fail-closed correcto) o fuera de catálogo
+dejaba la pantalla del formulario intacta, con el botón cambiado a "Volver a interpretar" como única pista.
+Reproducido en e2e con la nube falsa. Fix: el resultado SIN agregados se enseña siempre (avisos: sin precio, no está
+en catálogo, no pude costear, preguntas). También se cuentan `especiales` y `sugerenciasDescartadas` en el total de
+avisos. Primer e2e del camino COTIZAR con IA (`cotizarTexto.e2e.js`, 2 pruebas): el vendedor recibe con precio sólo
+lo que tiene precio real (banca doble 6u con fila en `preciosVenta`), el escritorio sin precio autorizado NO entra
+en $0, lo inexistente se dice, y la economía nunca viaja en la partida del vendedor.
+
 **VH-067 · P1 · FIXED · El acomodo "Con IA" tomaba `ok: true` del servidor como acomodo logrado.** La edge
 `acomodar-espacio` v9 (leída completa 2026-10-11: index.ts 513 líneas + acomodo-core/spatial-core/spatial-semantics)
 responde SIEMPRE `ok: true` HTTP 200 y pone el veredicto en `layoutSpec.status` (PASS / REVIEW_REQUIRED / PARTIAL /
