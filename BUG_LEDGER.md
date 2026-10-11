@@ -81,6 +81,14 @@ aprobación: queda como C3 en DECISIONES_PENDIENTES. `shadow_costeo` sigue en 0 
 Asistente especial ("Costear con IA"), que la pasada no recorrió → VH-036/073 siguen SIN verificar en vivo.
 Pendiente tuyo (seguridad): la cuenta de dirección de prueba tiene contraseña trivial; cámbiala o bájala a vendedor.
 
+**SOMBRA cliente↔servidor (VH-036/073) · intento de VERIFIED en vivo 2026-10-11 · NO APLICÓ, por diseño.** Con
+`qa-direccion`, "Costear con IA" → `analizar-mueble` 200 (escritorio ejecutivo, 8 piezas) → el motor marcó el costo
+INCOMPLETO: 2 materiales existen en el catálogo del servidor sin precio certificado por Compras (`pegado-chapa`,
+`pintura-polvo-negro-mate-8-vitracoat`) → sin precio → la sombra no corre (`resultado.costoUnitario > 0 && precio != null`).
+Es el comportamiento correcto (nunca comparar un costo parcial) y es la consecuencia práctica de A10 (165 insumos sin
+certificar): mientras Compras no certifique, la mayoría de los despieces de IA quedan INCOMPLETOS y la sombra casi
+nunca tiene qué comparar. `e2e/vivoSombra.e2e.js` (VIVO=1) deja constancia y pasa con la razón visible.
+
 **RETIRADAS B1–B10 · 2026-10-11 · aprobadas por Dirección ("B1–B10: retirar código muerto").** Diez commits, uno por
 módulo, cada uno con la suite completa y el build en verde antes y después (1,208 → 1,165 tests: los que se fueron
 probaban código que no corría). Detalle y lo que se conservó (p. ej. `validarColocacion` como oráculo del solver) en
