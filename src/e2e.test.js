@@ -6,7 +6,6 @@
 //  2 salas (12 c/u), presupuesto $2,000,000.
 // ============================================================================
 import { describe, it, expect } from 'vitest';
-import { construirScope, reconciliarScope } from './datos/scopeModel.js';
 import { planValueEngineering } from './datos/valueEngineering.js';
 import { transicion, aprobacionVigente, requiereNuevaAprobacion } from './datos/aprobaciones.js';
 import { diffRevisiones } from './datos/diffRevisiones.js';
@@ -23,25 +22,8 @@ const ZONAS = [
 ];
 
 describe('E2E Corporativo Reforma — ciclo comercial', () => {
-  it('SCOPE: alcance total = 111 posiciones, todo con evidencia', () => {
-    const s = construirScope(ZONAS);
-    expect(s.totalRequerido).toBe(80 + 6 + 1 + 24);
-    expect(s.totalZonas).toBe(4);
-    expect(s.porEstado.REVISAR).toBe(0); // todo confirmado/inferido
-  });
-
-  it('RECONCILIACIÓN: Rev1 cotiza y acomoda todo salvo 2 sillas de sala → falta', () => {
-    const s = construirScope(ZONAS);
-    const r = reconciliarScope(s, {
-      cotizadoPorZona: { 'Open office': 80, Privados: 6, 'Recepción': 1, 'Salas de junta': 24 },
-      acomodadoPorZona: { 'Open office': 80, Privados: 6, 'Recepción': 1, 'Salas de junta': 22 },
-    });
-    expect(r.hayDiscrepancia).toBe(true);
-    const sala = r.zonas.find((z) => z.nombre === 'Salas de junta');
-    expect(sala.estado).toBe('falta');
-    expect(sala.faltaAcomodar).toBe(2);
-  });
-
+  // B1 (2026-10-11): los tests de `scopeModel` (SCOPE/RECONCILIACIÓN) se retiraron junto con el
+  // módulo, que no tenía consumidores en producción. La reconciliación del test de Voni es un literal.
   it('VALUE ENGINEERING: $2,184,500 → plan prioriza ingeniería antes que descuento y alcanza', () => {
     const total = 2184500;
     const plan = planValueEngineering(PRESUPUESTO, total, [
@@ -93,9 +75,10 @@ describe('E2E Voni multilente sobre el proyecto (vendedor)', () => {
   const USER = { id: 'qa', email: 'qa@vh.mx' };
   const prov = {
     get_project_context: async () => ({ id: 1, nombre: 'Corporativo Reforma', cliente: 'ACME', presupuesto: PRESUPUESTO, total_actual: 2184500, proxima_accion: 'Enviar propuesta' }),
-    get_reconciliation: async () => reconciliarScope(construirScope(ZONAS), {
-      cotizadoPorZona: { 'Salas de junta': 24 }, acomodadoPorZona: { 'Salas de junta': 22 },
-    }),
+    get_reconciliation: async () => ({ hayDiscrepancia: true, zonas: [
+      { nombre: 'Open office', estado: 'ok', faltaAcomodar: 0 }, { nombre: 'Privados', estado: 'ok', faltaAcomodar: 0 },
+      { nombre: 'Recepción', estado: 'ok', faltaAcomodar: 0 }, { nombre: 'Salas de junta', estado: 'falta', faltaAcomodar: 2 },
+    ] }),
     get_quote: async () => ({ partidas: [{ nombre: 'Estación', precioUnitario: 20000 }], sinPrecio: [] }),
     get_approvals: async () => ([]),
     get_render_status: async () => ([]),
