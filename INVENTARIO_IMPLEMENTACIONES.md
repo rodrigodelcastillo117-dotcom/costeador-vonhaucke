@@ -88,7 +88,7 @@ Leyenda de "prod": archivos de producción que la consumen (sin contar el archiv
 | `Voni.jsx` (wizard 4 pasos) | CONSERVAR | prod 2. |
 | `Voni2.jsx` + `src/voni/*` (Q&A determinista, sin LLM) | CONSOLIDAR o RETIRAR (decidir) | prod 2. Los tres filtros de rol (`datos/voni`, `voniContext`, `voni/permisos`) y App.jsx ya leen `datos/roles.js` (VH-054), espejo del servidor. |
 | `datos/voni.js` `voniTurno` (orquestador propone→valida→ejecuta) | RETIRAR (propuesta) | prod 0; 3 tests prueban código que no corre. |
-| `CocrearV3.jsx` | CONSERVAR (consolidar con Costear/Cotizar) | Live. Aplica el cambio por regex ANTES de preguntar al council. |
+| `CocrearV3.jsx` | CONSERVAR (consolidar con Costear/Cotizar) | Live. Aplica el cambio por regex ANTES de preguntar al council. Convertir en partida ya es fail-closed y con procedencia (VH-058). Contrastar su costo con `costear-servidor` espera el despliegue (deriva en 3 archivos). |
 | `CocrearV2.jsx` | RETIRAR (propuesta) | prod 0. |
 | `Asistente.jsx` (wizard determinista 1 pieza) | CONSOLIDAR | Duplica precio con otra fórmula y margen 40. |
 | `aprendizaje.leccionDeQuita/leccionDeCambio` | RETIRAR (propuesta) | prod 0. |

@@ -34,7 +34,7 @@ export const ORIGENES = ['costeo', 'linea', 'ia', 'banco', 'catalogo', 'cocrear'
 // son economía (`cost_status`, `profit`, `supplier`…) las quita después la misma
 // regla del servidor (sinEconomiaServidor), no esta lista.
 export const CLAVES_ENLACE = [
-  'loteIA',
+  'loteIA', 'expedienteId',
   'zone_id', 'instance_id', 'anchor_instance_id', 'anchor_role', 'functional_group_id', 'relation_role',
   'requirement_id', 'user_capacity', 'evidence', 'plan_tag', 'plan_source_ref', 'grouping', 'placement_profile',
   'identity_status', 'price_status', 'product_status', 'cost_status', 'product_source_ref', 'source',

@@ -58,6 +58,16 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 100% de las llamadas del navegador.** `AsistenteEspecial.jsx:179` mandaba `{...b}` con `margen`/`modeloCosteo`;
 `validarIntentCosteo` respondía `FORBIDDEN_FINANCIAL_FIELD`. Pendiente VERIFIED en vivo (shadow_costeo).
 
+**VH-058 · P1 · FIXED · Convertir una cocreación en partida tragaba cualquier error y la partida salía sin
+identidad ni procedencia.** `CocrearV3.agregarCotizacion` envolvía guardar expediente → registrar Producto
+Maestro → subir render en un `try{}catch{}` vacío: si el servidor rechazaba el registro (p.ej.
+`expediente_incompleto_no_publicable`) la partida se agregaba igual con `producto_id` null, es decir como línea
+legacy, y podía emitirse sin Producto Maestro. Además no llevaba `source_type/source_ref` (el expediente) ni la
+URL del render canónico que acababa de subir. Fix: `cocrear.partidaDesdeCocrear()` arma el costeo con
+producto_id/version, `source_type:'expediente'`, `source_ref`, `expedienteId` (ahora clave de enlace del
+contrato), `origen:'cocrear'` y el render como URL; el flujo es fail-closed: sin expediente guardado o sin
+registro del producto NO se agrega y se dice el motivo del servidor; el render sigue siendo opcional. 2 tests.
+
 **VH-057 · P1 · FIXED · Dirección no tenía dónde ver las aprobaciones pendientes.** El Deal Desk vive dentro de un
 PROYECTO comercial y lista sólo las aprobaciones de las cotizaciones de ese proyecto; una cotización sin
 proyecto (las que nacen en el Costeador, la mayoría) pedía aprobación a un buzón que nadie abría. Fix:
