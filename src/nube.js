@@ -4,6 +4,7 @@
 //  renglon. Cuando alguien lo actualiza, a todos se les propaga en vivo.
 //  Si no hay internet, la app sigue con lo local (ver almacen.js).
 // ============================================================================
+import { leerRespuestaRender } from './datos/renderRespuesta.js';
 import { reglasTexto } from './datos/reglas.js';
 import { aprendizajesTexto } from './datos/aprendizaje.js';
 import { validarIntentCosteo, intentDesdePieza } from './datos/validarIntentCosteo.js';
@@ -331,10 +332,13 @@ export async function generarRender(descripcion, extra = {}) {
   });
   if (error) {
     let msg = error.message || 'No se pudo generar el render.';
-    try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
-    return { ok: false, error: msg };
+    let extraErr = {};
+    try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; if (j) extraErr = { code: j.code, request_id: j.request_id, audit: j.audit }; } catch (e) {}
+    return leerRespuestaRender({ ok: false, error: msg, ...extraErr });
   }
-  return data;
+  // VH-072: la edge v30 responde `url` (Storage) y sólo `dataUrl` como respaldo.
+  // Los consumidores usan `imagen` (= url || dataUrl) y `enStorage`.
+  return leerRespuestaRender(data);
 }
 
 // --- SHADOW costear-servidor (Fase 3) ----------------------------------------
@@ -366,6 +370,16 @@ export async function registrarSombra(reg) {
 
 // --- RENDER V1: subir imagen a Storage (NO base64 en JSON) + guardar metadata ---
 // Convierte un dataUrl base64 a Blob y lo sube al bucket 'renders'. Devuelve {ok, path, url}.
+// VH-072: traer una URL pública (Storage) como dataUrl, para quien necesita los bytes
+// (referencia visual de otra generación, PDF). null si no se pudo.
+export async function urlADataUrl(url) {
+  try {
+    const r = await fetch(url); if (!r.ok) return null;
+    const b = await r.blob();
+    return await new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = () => res(null); fr.readAsDataURL(b); });
+  } catch { return null; }
+}
+
 export async function subirRender(dataUrl, path) {
   try {
     const [cab, b64] = String(dataUrl).split(',');

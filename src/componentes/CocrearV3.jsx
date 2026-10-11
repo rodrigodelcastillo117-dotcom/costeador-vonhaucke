@@ -98,7 +98,7 @@ export default function Cocrear({estado,onAgregar,onIr}){
    const descripcion=`${c.descripcion}\nCLIENT BRIEF: ${nextIntent?._brief||texto}. SELECTED CONCEPT: ${nextIntent?._concepto||''} ${nextIntent?._concepto_nombre||''}. The image MUST preserve the exact current-revision geometry shown in the supplied technical reference. Do not redesign the product.`;
    const modelo=await capturarModeloPNG();
    const r=await generarRender(descripcion,{render_spec:c.render_spec,materiales:c.materiales,medidas:c.medidas,tipo:c.tipo,modo:c.modo,aspecto:'4:3',...(modelo?{imagen:modelo,mediaType:'image/png'}:{})});
-   if(r?.ok&&r.dataUrl)setRender({dataUrl:r.dataUrl,specHash:nextSpec.hash,expected:c.expected,version:c.version,concepto:nextIntent?._concepto||null});else throw new Error(r?.error||'No se pudo generar el render');
+   if(r?.ok&&r.imagen)setRender({dataUrl:r.imagen,/* VH-072: URL o dataUrl */specHash:nextSpec.hash,expected:c.expected,version:c.version,concepto:nextIntent?._concepto||null});else throw new Error(r?.error||'No se pudo generar el render');
   }catch(e){setRenderError(String(e?.message||e))}finally{setRenderCargando(false)}
  };
  const generar=()=>generarPara(intent,spec);

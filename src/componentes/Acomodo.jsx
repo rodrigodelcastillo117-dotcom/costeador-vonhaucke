@@ -682,7 +682,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
         medidas: areas.map((a) => `${a.nombre} ${a.ancho}×${a.largo} m`).join('; '),
       });
       if (!r || !r.ok) { setErrStaging(r?.error || 'No se pudo generar la vista realista.'); return; }
-      setRealista(r.dataUrl); setRealistaPreliminar(incompleto);
+      setRealista(r.imagen); setRealistaPreliminar(incompleto);   // VH-072
     } catch (e) {
       setErrStaging('No se pudo generar la vista realista: ' + String(e?.message || e));
     } finally { setGenerandoReal(false); }
@@ -739,7 +739,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
         const r = await generarEscena(esc);
         if (!r?.ok) { setErrEscena(r?.error || `No se pudo generar ${esc.nombre}.`); continue; }
         // VH-046: la escena se conserva en Storage; aquí y en la cotización, sólo la URL.
-        const up = await imagenAcomodoAStorage(r.dataUrl, { cotId: estado.cotizacion?.id, tipo: `escena-${esc.areaIndex}` });
+        const up = await imagenAcomodoAStorage(r.imagen, { cotId: estado.cotizacion?.id, tipo: `escena-${esc.areaIndex}` });   // VH-072
         if (up.ok) setImgEscena((m) => ({ ...m, [esc.areaIndex]: up.url }));
         else setErrEscena(`${esc.nombre}: ${up.error}`);
       } catch (e) {
@@ -818,7 +818,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
         imagenes,
       });
       if (!r || !r.ok) { setErrStaging(r?.error || 'No se pudo generar la oficina.'); return; }
-      const up = await imagenAcomodoAStorage(r.dataUrl, { cotId: estado.cotizacion?.id, tipo: 'oficina' });
+      const up = await imagenAcomodoAStorage(r.imagen, { cotId: estado.cotizacion?.id, tipo: 'oficina' });   // VH-072
       if (!up.ok) { setErrStaging(up.error); return; }
       setStagingUrl(up.url);
     } catch (e) { setErrStaging('No se pudo conectar.'); }
@@ -839,7 +839,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       const desc = partidas.map((p) => `${p.cantidad}× ${p.nombre}`).join(', ') || 'mobiliario de oficina Von Haucke';
       const r = await generarRender(desc, { modo: 'staging', imagen: b64, mediaType: 'image/jpeg' });
       if (!r || !r.ok) { setErrStaging(r?.error || 'No se pudo amueblar la foto.'); return; }
-      const up = await imagenAcomodoAStorage(r.dataUrl, { cotId: estado.cotizacion?.id, tipo: 'staging' });
+      const up = await imagenAcomodoAStorage(r.imagen, { cotId: estado.cotizacion?.id, tipo: 'staging' });   // VH-072
       if (!up.ok) { setErrStaging(up.error); return; }
       setStagingUrl(up.url);
     } catch (err) { setErrStaging('No se pudo procesar la foto.'); }

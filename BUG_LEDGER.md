@@ -58,6 +58,21 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 100% de las llamadas del navegador.** `AsistenteEspecial.jsx:179` mandaba `{...b}` con `margen`/`modeloCosteo`;
 `validarIntentCosteo` respondía `FORBIDDEN_FINANCIAL_FIELD`. Pendiente VERIFIED en vivo (shadow_costeo).
 
+**VH-072 · P0 · FIXED · Todos los renders con IA se perdían en el cliente desde el 4 de octubre.** La edge
+`generar-render` v30 (desplegada 2026-10-04) ya no devuelve la imagen en base64: la guarda en Storage
+(`renders/generated/<correo>/<fecha>/<request_id>.png`) y responde `{ ok, url, storagePath, audit, request_id }`;
+`dataUrl` sólo viaja si Storage falló (`storageFallback: true`). Los DIEZ consumidores del cliente leían `r.dataUrl`:
+Costeador guardaba `imagen: undefined`; `renderParaPartida` respondía "No se pudo generar el render" (exigía
+`startsWith('data:')`); Acomodo (vista realista, escenas, oficina, staging) y Cotización (`fijarRender3d`) mandaban
+`undefined` a Storage; Asistente especial y Cocrear V2/V3 caían al mensaje de error. MEDIDO en producción 2026-10-11:
+41 intentos en `render_eventos` en 30 días, 6 archivos en `renders/generated/` desde el despliegue — renders pagados a
+Gemini, auditados y guardados que la pantalla tiró como fallo. Fix: `datos/renderRespuesta.leerRespuestaRender`
+(puro) lee `url` o `dataUrl` → `imagen` + `enStorage`; `nube.generarRender` lo aplica una sola vez; los consumidores
+usan `r.imagen`; `imagenAStorage` y `renderParaPartida` NO re-suben lo que ya es URL pública; Asistente especial trae
+los bytes (`urlADataUrl`) sólo cuando necesita la imagen como referencia de la segunda generación. `ok:true` sin
+imagen ya no es éxito. Pruebas: 5 unit `renderRespuesta`, +2 `renderPartida`, +1 `imagenStorage`, 1 e2e (Costeador
+recibe la URL de Storage como imagen). Sin tocar la edge. Pendiente de decisión: enseñar `audit` (QA visual) en pantalla.
+
 **VH-069 · P1 · OPEN (edge, requiere aprobación para redesplegar) · `cotizar-texto` v12 no tiene compuerta de rol,
 límite ni telemetría.** Leída completa 2026-10-11 (header dice v11, metadatos v12). A diferencia de `leer-plano`,
 `analizar-mueble` y `acomodar-espacio`, NO consulta `permitidos`, NO limita por usuario/hora, NO escribe `ai_eventos`
@@ -162,6 +177,13 @@ descuento. Propuesta: `supabase/migrations/20261011180000_politica_comercial_pub
 expone sólo los dos umbrales y la versión a cualquier usuario permitido; con eso la compuerta local avisa junto al
 campo de descuento. No se aplica ni se cambia la política sin aprobación. Mientras, VH-062 cerró con el check
 semántico ("cada mueble en una zona que lo admite") también medido en la auditoría del planner.
+ACTUALIZACIÓN 2026-10-11 (leída `cotizar-servidor` v6, desplegada 2026-10-02, NO llamada por el cliente): esa edge ya
+devuelve `descuento_max_sin_aprobacion` y `reglas_version` a CUALQUIER rol permitido (vendedor incluido) y
+`margen_minimo_pct` sólo a Dirección; evalúa líneas con identidad de Producto Maestro contra `resolver_precio_autorizado`
+/ `resolver_precio_especial_proyecto` y la política vigente (piso, descuento, costo, margen). Es decir: la exposición
+del umbral de descuento que propone la migración ya es política del servidor; la migración sólo la hace accesible sin
+mandar líneas. Alternativa sin migración: cablear el cliente a `cotizar-servidor` para las líneas v2 (bloque LÍNEA V2,
+no trivial: hoy el cliente evalúa con `evaluar_emision_cotizacion`).
 
 **VH-062 · P1 · FIXED · La "auditoría" del planner tenía tres checks con `ok: true` fijo.** "Cada mueble dentro de
 su cuarto", "Nada encimado" y "Baños y servicios sin amueblar" se escribían siempre en verde, con un detalle que

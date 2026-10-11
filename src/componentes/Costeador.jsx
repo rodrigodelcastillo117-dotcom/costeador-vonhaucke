@@ -190,7 +190,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
       const render_spec = estructuraVoni ? renderSpecFromGraph(estructuraVoni, { materiales: d.materiales, descripcion: d.descripcion }) : null;
       const r = await generarRender(d.descripcion, { materiales: d.materiales, medidas: d.medidas, tipo: d.tipo, spec: d.spec, render_spec });
       if (!r || !r.ok) { setErrRender(r?.error || 'No se pudo generar el render.'); return; }
-      set({ imagen: r.dataUrl });
+      set({ imagen: r.imagen });   // VH-072: URL de Storage o dataUrl de respaldo
       setSigRender(bomSig); // la imagen corresponde a ESTE despiece
     } catch (e) { setErrRender('No se pudo conectar. Vuelve a intentar.'); }
     finally { setGenerando(false); }

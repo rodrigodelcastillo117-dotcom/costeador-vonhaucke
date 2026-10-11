@@ -9,7 +9,8 @@ import { precioDesdeCosto, margenObjetivoDe } from '../datos/precio.js';
 import { calcular, netoComponente, modeloParaPieza, costeoEmitible, bomHash, diffBOM, aplicarDiffBOM, MOTOR_VERSION, FORMULA_ALBA_V1, formulaDePieza } from '../motor/calculo.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos } from '../util.js';
-import { analizarRender, analizarRenderImagenes, analizarTexto, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64 } from '../nube.js';
+import { analizarRender, analizarRenderImagenes, analizarTexto, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, urlADataUrl, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64 } from '../nube.js';
+import { comoDataUrl, esURLImagen } from '../datos/renderRespuesta.js';   // VH-072
 import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
@@ -274,9 +275,10 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       : { tipo: 'oficina', txt: 'modern corporate office with warm oak furniture and natural daylight' };
   }
   // sube a Storage + guarda metadata; devuelve la URL para mostrar (o el dataUrl si Storage falla).
-  async function persistir(dataUrl, modo, tipo, entornoTipo) {
+  async function persistir(imagen, modo, tipo, entornoTipo) {
     const path = `nuevo/${hashInput({ n: b.nombre, c: b.componentes })}/${modo}-${Date.now()}.png`;
-    const up = await subirRender(dataUrl, path);
+    // VH-072: si ya es URL de Storage (edge v30) no se vuelve a subir; se registra esa URL.
+    const up = esURLImagen(imagen) ? { ok: true, path: null, url: imagen } : await subirRender(imagen, path);
     if (up.ok) {
       await guardarRender({
         producto_nombre: b.nombre, producto_version: null, prompt_version: PROMPT_VERSION,
@@ -329,9 +331,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         ? { modo: 'catalogo', medidas, tipo, materiales: materialesR, imagen: paginas[0], mediaType: 'image/jpeg', imagenes: paginas.slice(1, 6), preservar }
         : { modo: 'render', medidas, tipo, materiales: materialesR };
       const r = await generarRender(texto, opt);
-      if (r?.ok && r.dataUrl) {
-        aisladoDataUrl = r.dataUrl;
-        const url = await persistir(r.dataUrl, 'aislado', tipo, ent.tipo);
+      if (r?.ok && r.imagen) {
+        // VH-072: la edge v30 devuelve URL de Storage; la referencia para el ambiente
+        // necesita los bytes (se traen); la persistencia acepta URL o dataUrl.
+        aisladoDataUrl = await comoDataUrl(r.imagen, urlADataUrl);
+        const url = await persistir(r.imagen, 'aislado', tipo, ent.tipo);
         setRenders((s) => ({ ...s, aislado: url }));
         const avisos = [];
         if (geomFid === 'limitada') avisos.push('Sin plano cargado: el aislado se generó por descripción (geometría limitada). Sube el plano para fidelidad exacta.');
@@ -349,8 +353,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       const prodMime = prod ? ((String(prod).match(/data:(.*?);/) || [])[1] || 'image/png') : 'image/png';
       if (prodRaw) {
         const r = await generarRender(texto, { modo: 'ambiente', medidas, tipo, materiales: materialesR, imagen: prodRaw, mediaType: prodMime, entorno: ent.txt });
-        if (r?.ok && r.dataUrl) {
-          const url = await persistir(r.dataUrl, 'ambiente', tipo, ent.tipo);
+        if (r?.ok && r.imagen) {
+          const url = await persistir(r.imagen, 'ambiente', tipo, ent.tipo);   // VH-072
           setRenders((s) => ({ ...s, ambiente: url }));
         } else { setRenderMsg(r?.error || 'No se pudo generar el ambiente.'); }
       }

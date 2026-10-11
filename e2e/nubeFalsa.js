@@ -330,6 +330,8 @@ export function crearNubeFalsa({ usuarios }) {
     if (ruta.startsWith('/rest/v1/')) return json(route, []);
     // leer-plano: una lectura FIJA (plano ejecutivo con dos islas contadas) para probar
     // la compuerta de confirmación sin LLM. `f.lectura` se puede sustituir por prueba.
+    // VH-072: generar-render v30 responde `url` de Storage (no dataUrl). `f.renderServidor` se sustituye por prueba.
+    if (ruta === '/functions/v1/generar-render') return json(route, f.renderServidor || { ok: true, url: `${HOST}/storage/v1/object/public/renders/generated/e2e/2026-10-11/render-e2e.png`, storagePath: 'generated/e2e/2026-10-11/render-e2e.png', mime: 'image/png', bytes: 1234, request_id: 'req-render-1', model: 'gemini-3-pro-image', image_size: '2K', audit: { pass: true, skipped: true, reasons: [] } });
     // VH-069/070: cotizar-texto sin LLM. `f.cotizacionIA` se sustituye por prueba; por defecto una
     // propuesta con un producto real, uno inexistente, un noEncontrado y un extra descartado.
     if (ruta === '/functions/v1/cotizar-texto') {

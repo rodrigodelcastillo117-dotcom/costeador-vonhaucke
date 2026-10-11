@@ -11,6 +11,7 @@
 //
 //  Puro: recibe `generar` y `subir` inyectados para poder probarse sin red.
 // ============================================================================
+import { leerRespuestaRender } from './renderRespuesta.js';
 import { imagenAStorage, rutaImagen } from './imagenStorage.js';
 
 /** Ruta determinista por partida y momento: partidas/<id>/<ts>.<ext>. */
@@ -27,6 +28,10 @@ export async function renderParaPartida(pt, { generar, subir, ahora = Date.now()
   if (typeof generar !== 'function' || typeof subir !== 'function') return { ok: false, error: 'Render no disponible.' };
   let r;
   try { r = await generar(pt.nombre || 'mueble de oficina', { tipo: pt.ruta || '' }); } catch (e) { return { ok: false, error: 'No se pudo conectar.' }; }
-  if (!r?.ok || typeof r.dataUrl !== 'string' || !r.dataUrl.startsWith('data:')) return { ok: false, error: r?.error || 'No se pudo generar el render.' };
-  return imagenAStorage(r.dataUrl, rutaRenderPartida(pt, r.dataUrl, ahora), { subir });
+  // VH-072: la edge v30 ya guarda el render en Storage y devuelve `url`; se usa tal
+  // cual (sin copiarlo). Si llegó `dataUrl` (respaldo), se sube como antes.
+  const lr = leerRespuestaRender(r);
+  if (!lr.ok) return { ok: false, error: lr.error || 'No se pudo generar el render.' };
+  if (lr.enStorage) return { ok: true, url: lr.imagen };
+  return imagenAStorage(lr.imagen, rutaRenderPartida(pt, lr.imagen, ahora), { subir });
 }

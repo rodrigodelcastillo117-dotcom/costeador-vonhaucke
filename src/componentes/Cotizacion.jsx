@@ -217,7 +217,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
       const urls = [...new Set(partidas.map((p) => fotoPartida(p)).filter(Boolean))].slice(0, 6);
       const imagenes = (await Promise.all(urls.map(urlABase64))).filter(Boolean);
       const r = await generarRender(lista, { modo: 'oficina', medidas: ctx, imagenes });
-      if (r?.ok) await fijarRender3d(r.dataUrl); else setErrGen(r?.error || 'No se pudo generar la oficina.');
+      if (r?.ok) await fijarRender3d(r.imagen); else setErrGen(r?.error || 'No se pudo generar la oficina.');   // VH-072
     } catch (e) { setErrGen('No se pudo conectar.'); }
     finally { setGenOficina(false); }
   }

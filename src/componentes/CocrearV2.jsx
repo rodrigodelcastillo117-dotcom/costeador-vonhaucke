@@ -90,7 +90,7 @@ export default function CocrearV2({estado,onAgregar}){
 
   const generarPara=async(nextIntent,nextSpec)=>{
     if(!nextSpec)return;setRenderCargando(true);setRenderError('');
-    try{const {c,rs,descripcion}=renderPayload(nextSpec,nextIntent);const r=await generarRender(descripcion,{render_spec:rs,materiales:c.materiales,medidas:c.medidas,tipo:c.tipo,modo:c.modo,aspecto:'4:3'});if(r?.ok&&r.dataUrl)setRender({dataUrl:r.dataUrl,specHash:nextSpec.hash,expected:c.expected,version:c.version});else throw new Error(r?.error||'No se pudo generar el render');}
+    try{const {c,rs,descripcion}=renderPayload(nextSpec,nextIntent);const r=await generarRender(descripcion,{render_spec:rs,materiales:c.materiales,medidas:c.medidas,tipo:c.tipo,modo:c.modo,aspecto:'4:3'});if(r?.ok&&r.imagen)setRender({dataUrl:r.imagen,/* VH-072: URL o dataUrl */specHash:nextSpec.hash,expected:c.expected,version:c.version});else throw new Error(r?.error||'No se pudo generar el render');}
     catch(e){setRenderError(String(e?.message||e))}finally{setRenderCargando(false)}
   };
   const generar=()=>generarPara(intent,spec);

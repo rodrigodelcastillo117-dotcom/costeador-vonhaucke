@@ -31,6 +31,9 @@ export const esDataUrl = (s) => typeof s === 'string' && s.startsWith('data:');
  * base64 al que llama: si no se pudo conservar, no se finge conservado.
  */
 export async function imagenAStorage(dataUrl, path, { subir } = {}) {
+  // VH-072: lo que ya es URL pública (la edge generar-render v30 guarda en Storage)
+  // no se vuelve a subir: se conserva esa URL.
+  if (esURL(dataUrl)) return { ok: true, url: dataUrl };
   if (!esDataUrl(dataUrl)) return { ok: false, error: 'No es una imagen.' };
   if (typeof subir !== 'function') return { ok: false, error: 'Storage no disponible.' };
   const mime = mimeDe(dataUrl);

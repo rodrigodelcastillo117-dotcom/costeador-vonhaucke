@@ -22,6 +22,20 @@ describe('renderParaPartida: la partida sólo recibe URL', () => {
     expect(validarPartida(p).some((i) => i.campo === 'render')).toBe(false);
   });
 
+  it('edge v30: la respuesta trae `url` de Storage ⇒ se usa tal cual y NO se vuelve a subir (VH-072)', async () => {
+    const URL = 'https://x.supabase.co/storage/v1/object/public/renders/generated/u/2026-10-11/r.png';
+    let subidas = 0;
+    const r = await renderParaPartida(pt, {
+      generar: async () => ({ ok: true, url: URL, storagePath: 'generated/u/2026-10-11/r.png', request_id: 'req-7' }),
+      subir: async () => { subidas++; return { ok: true, url: 'https://otra' }; },
+    });
+    expect(r).toEqual({ ok: true, url: URL });
+    expect(subidas).toBe(0);
+  });
+  it('ok:true sin url ni dataUrl NO es éxito', async () => {
+    const r = await renderParaPartida(pt, { generar: async () => ({ ok: true }), subir: async () => ({ ok: true, url: 'https://x' }) });
+    expect(r.ok).toBe(false);
+  });
   it('si Storage falla, NO devuelve base64 ni finge éxito', async () => {
     const r = await renderParaPartida(pt, {
       generar: async () => ({ ok: true, dataUrl: PNG }),

@@ -106,6 +106,8 @@ Leyenda de "prod": archivos de producción que la consumen (sin contar el archiv
 | `bootstrap-temp-claude` (v5, ago-2026) | No | RETIRAR (nombre sugiere arranque temporal de una sesión de IA) |
 | `costear-vision` | No | RETIRAR o versionar |
 | `analizar-mueble-strict`, `leer-plano-strict`, `acomodar-espacio-strict`, `generar-render-strict` | No | RETIRAR (variantes paralelas) |
+| `generar-render` v30 (edge, leída 2026-10-11) | Sí (Costeador, Cotización, Acomodo, Asistente especial, Cocrear V2/V3) | CONSERVAR. Compuerta por rol, límite 30/h fail-closed, `render_eventos`, QA visual (`audit`), guarda en Storage y responde `url`. El cliente leía sólo `dataUrl` y perdía TODOS los renders desde el 2026-10-04 (VH-072, corregido en cliente). Pendiente: enseñar `audit` en pantalla. |
+| `cotizar-servidor` v6 (edge, leída 2026-10-11) | No (ningún `invoke` en `src`) | DECIDIR: evaluador de cotización v2 (Producto Maestro: `resolver_precio_autorizado`, especial de proyecto, política vigente, servicios, IVA; economía sólo a Dirección; Diseño sin dinero). Duplica en parte a `private_api.evaluar_emision_cotizacion` (la que sí usa el cliente). Devuelve `descuento_max_sin_aprobacion` a cualquier rol permitido (relevante para VH-063). O se cablea (LÍNEA V2) o se retira; hoy es código desplegado sin caller. |
 | `leer-plano-core` | No | CONSERVAR: SÍ es la base. `leer-plano` v11 es el wrapper (auth, permisos, límites, FloorSpec) y llama `leer-plano-core` para la visión (leído 2026-10-11). |
 | `voni-council` (v12) | **Sí** | CONSERVAR · VERSIONADA (2026-10-11): `supabase/functions/voni-council/index.ts` es el volcado exacto de la v12 desplegada. |
 | `voni-council-health` | No | RETIRAR o versionar |

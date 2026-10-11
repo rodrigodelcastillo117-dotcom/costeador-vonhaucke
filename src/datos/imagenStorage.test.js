@@ -13,8 +13,14 @@ describe('imagenAStorage', () => {
     const r = await imagenAStorage(JPG, 'p', { subir: async () => ({ ok: false, error: 'RLS' }) });
     expect(r).toEqual({ ok: false, error: 'RLS' });
   });
+  it('una URL pública ya está en Storage: se conserva tal cual, sin volver a subir (VH-072)', async () => {
+    let subidas = 0;
+    const r = await imagenAStorage('https://x.supabase.co/storage/v1/object/public/renders/generated/a.png', 'p', { subir: async () => { subidas++; return { ok: true, url: 'https://otra' }; } });
+    expect(r).toEqual({ ok: true, url: 'https://x.supabase.co/storage/v1/object/public/renders/generated/a.png' });
+    expect(subidas).toBe(0);
+  });
   it('rechaza lo que no es imagen o no acepta el bucket', async () => {
-    expect((await imagenAStorage('https://ya-es-url', 'p', { subir: async () => ({ ok: true, url: 'https://x' }) })).ok).toBe(false);
+    expect((await imagenAStorage('texto suelto', 'p', { subir: async () => ({ ok: true, url: 'https://x' }) })).ok).toBe(false);
     expect((await imagenAStorage('data:image/svg+xml;base64,AA', 'p', { subir: async () => ({ ok: true, url: 'https://x' }) })).error).toMatch(/no permitido/);
     expect(mimeDe('data:image/svg+xml;base64,AA')).toBe('image/svg+xml');
   });
