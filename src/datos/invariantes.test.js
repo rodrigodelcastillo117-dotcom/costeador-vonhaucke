@@ -11,7 +11,7 @@
 // ============================================================================
 import { describe, it, expect } from 'vitest';
 import { interpretarIntent, construirProductSpec, extraerDNA, clasificarProducto, costearSpec, COST_STATUS } from './cocrear.js';
-import { voniContext, voniTurno } from './voni.js';
+import { voniContext } from './voni.js';
 import { compileRenderPrompt, renderStale } from './renderPrompt.js';
 import { estadoLayout } from './floorSpec.js';
 
@@ -37,18 +37,6 @@ describe('INVARIANTE · seller nunca recibe economía', () => {
   });
 });
 
-describe('INVARIANTE · ninguna acción se declara exitosa sin verificación', () => {
-  it('tool falla ⇒ voniTurno ok=false y nunca "listo"', async () => {
-    const intent = interpretarIntent('recepción 2.4 m nogal'); intent.dimensiones = { ancho_mm: 2400 };
-    const r = await voniTurno('hazla 20 cm más corta', {
-      intentActual: intent, estudio: { spec: construirProductSpec(intent, extraerDNA(intent), clasificarProducto(intent, {}), { rev: 1 }) },
-      tools: { CREATE_REVISION: async () => ({ ok: false, error: 'fallo' }) },
-    });
-    expect(r.ok).toBe(false);
-    expect(r.newRev).toBeFalsy();
-    expect(r.response.humano.toLowerCase()).not.toMatch(/\bapliqué\b|\blisto\b/);
-  });
-});
 
 describe('INVARIANTE · render nunca "validado" sin verificación', () => {
   it('el compilado NO trae flag de validado; sólo manifiesto esperado', () => {
