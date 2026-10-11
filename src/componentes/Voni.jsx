@@ -348,6 +348,7 @@ export default function Voni({
       {editando != null && partidas[editando] && (
         <EditarPartida
           estado={estado}
+          soloVentas={soloVentas}
           partida={partidas[editando]}
           onCerrar={() => setEditando(null)}
           onGuardar={(nueva) => {

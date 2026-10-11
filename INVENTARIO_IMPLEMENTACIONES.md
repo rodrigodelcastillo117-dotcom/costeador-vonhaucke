@@ -22,7 +22,7 @@ Leyenda de "prod": archivos de producción que la consumen (sin contar el archiv
 
 | Implementación | Clase | Evidencia |
 |---|---|---|
-| 6 constructores de partida en App.jsx (`partidaDeCosteo`, addon, `onAgregarCotizacion`, `partidasDeItemsIA`, `agregarDeBanco`, `agregarArticuloLinea`) + 2 mutadores (EditarPartida, reabrir) | CONSOLIDAR → 1 `crearPartida()` con validador | Cada uno pierde campos distintos (`producto_id`, `source_ref`, `lista_precio_item_id`); nombres en conflicto `productoId`/`producto_id`, `productVersionId`/`producto_version_id`. |
+| 6 constructores de partida en App.jsx (`partidaDeCosteo`, addon, `onAgregarCotizacion`, `partidasDeItemsIA`, `agregarDeBanco`, `agregarArticuloLinea`) + 2 mutadores (EditarPartida, reabrir) | CONSOLIDADO (2026-10-11, VH-044) → `datos/partida.js` `crearPartida()` + `validarPartida()` | Los 6 pasan por el contrato; identidad unificada y conservada; vendedor sin economía. Pendiente: EditarPartida y reabrir. |
 | Pre-formas en `lineas.js` (`partidaCatalogo`, `partidaModelo`, `sellerSafePartida`, `sinPrecioVendedor`, `conIdentidadV2`) y `CotizadorIA.partidaBanco` | CONSOLIDAR (adaptadores del constructor único) | Se conservan como adaptadores de entrada, no como constructores. |
 | `precioAutorizado.js` (identidad Producto Maestro) | CONSERVAR | prod 3 (lineas, CotizadorIA, CosteadorLinea). |
 | `scopeModel.js` | RETIRAR (propuesta) | prod 0; solo tests. |
@@ -35,17 +35,17 @@ Leyenda de "prod": archivos de producción que la consumen (sin contar el archiv
 |---|---|---|
 | `motor/calculo.js` `calcular` + `FORMULA_ALBA_V1` | CONSERVAR (fórmulas intocables) | prod 17. Alba cubre 7/130 productos; legacy por línea 99; horas 24. No se migra entre métodos sin validación (mandato §3). |
 | `costeoEmitible` (completitud) | CONSERVAR y hacer obligatorio | prod 4. `calcular` debe devolver estado, no número suelto. |
-| `componentesSinMaterial` | CONSOLIDAR en `costeoEmitible` | Segundo juez, más débil (no ve insumo sin precio). prod 3. |
-| 7 fórmulas costo→precio (`precioDe` ×2.0, `precioVenta·precioDeLista` ×2.16, `politicaVH.preciosVH` ×2.21, HojaCosto ×1.45, Catálogo, costear-servidor 40 %, Cocrear) | CONSOLIDAR → 1 función + política versionada | HojaCosto muestra dos precios de lista distintos para la misma pieza. |
-| Márgenes por omisión 50 vs 40 vs 30 (calculo, lineas, Asistente, Catalogo, Costeador, Cocrear, costear-servidor, `costeoEnBlanco`) | CONSOLIDAR → 1 política (VH-019) | |
+| `componentesSinMaterial` | CONSOLIDADO (VH-040) → `pendientesDeCosteo`; la función vieja ya no tiene consumidores en App (RETIRAR propuesta) | |
+| 7 fórmulas costo→precio | CONSOLIDADO (VH-041) → `datos/precio.js` `precioDesdeCosto` | `politicaVH.preciosVH` se conserva como niveles por volumen (piso/lista), no como precio de partida. |
+| Márgenes por omisión 50 vs 40 vs 30 | CONSOLIDADO (VH-019) → `margenObjetivoDe` (parametros, si no 50) | costear-servidor cambiado en código; pendiente de desplegar. |
 | `politicaVH.costoFabVH` | RETIRAR (propuesta) | prod 0; duplica Alba con otros factores. |
 | `cotizarLinea.cotizarArticulo`, `resolverComponentes.cotizarPorComponentes` | RETIRAR (propuesta) | prod 0 (solo se definen). |
 | `costoImplicito` (5 variantes de costo derivado del precio) | CONSOLIDAR → marcar `costoDerivado` siempre | prod 4; hoy `claseCosto` los etiqueta "real". |
 | 10 compuertas de emisión (senales ×2, voniContext, excluidas, candado, RPC `cotizacion_emitible`, `emitir_revision`, `bajoPiso`, `hayLineaInvalida`, `costeoEmitible`) | CONSOLIDAR → 1 gate servidor + 1 proyección cliente | No coinciden entre sí. |
-| RPC `emitir_revision` (legacy) usado por el cliente; `emitir_revision_v2` (anti-tamper) existe y no se usa | SUSTITUIR cliente → v2 | `revisiones.js:77`. |
+| RPC `emitir_revision` (legacy) usado por el cliente | SIN ACCIÓN: en producción ya es un alias de `emitir_revision_v2` (verificado 2026-10-11) | |
 | `asignar_folio_oficial`, `resolver_precio_autorizado`, `vincular_cotizacion`, `producto_cotizable` | CONSERVAR y CONECTAR | Existen en la base, el cliente no los llama; el folio del PDF es texto libre. |
 | `aprobaciones.js` + RPCs `solicitar_*/resolver_aprobacion` | CONSOLIDAR | Cliente escribe la tabla `aprobaciones` directo (crm.js); la máquina de estados no tiene consumidor real. |
-| `pdfPropuesta.datosDesdeSnapshot` | CONSERVAR y CONECTAR | prod 0; el PDF se arma del estado vivo. Mandato §4: PDF = snapshot. |
+| `pdfPropuesta.datosDesdeSnapshot` | CONECTADO (VH-042): el PDF sale del snapshot conservado; reimpresión por revisión | |
 | `FichaPDF` (IVA sin descuento/maniobras/flete) y `window.print()` | CONSOLIDAR → un solo render de documento | prod 7. |
 
 ## 4. Costear y despiece
@@ -57,7 +57,7 @@ Leyenda de "prod": archivos de producción que la consumen (sin contar el archiv
 | `recetas.construirCosteo` + `PIEZAS_SEMILLA` (segundo sistema de BOM) | CONSOLIDAR | prod 2 (Asistente, Catálogo). Defaults 55/12 que el cutover Alba ya no siembra. |
 | `mapIaComps` duplicado (AsistenteEspecial + Costeador) | CONSOLIDAR | Misma función en dos pantallas. |
 | `validarIntentCosteo` | CONSERVAR y COMPARTIR cliente/servidor | Solo servidor; su cabecera miente. |
-| `costear-servidor` (sombra) | SUSTITUIR llamada del cliente | VH-036: rechaza el 100 % por `margen` en el payload. |
+| `costear-servidor` (sombra) | HECHO (VH-036): el cliente manda la intención saneada y validada | Pendiente VERIFIED en vivo. |
 | `costoPieza` por renglón (Costeador.jsx, AsistenteEspecial.jsx) | CONSOLIDAR en el motor | Dos cálculos paralelos sin USD ni nesting. |
 | 3 catálogos de insumos (`insumos.js` semilla, `config.datos.insumos`, `insumos_catalogo/catalogo_vigente`) | CONSOLIDAR → `catalogo_vigente` | El LLM elige ids de uno y el navegador costea con otro. |
 | `bomHash/diffBOM` | CONSERVAR (corregir clave por nombre) | prod 2. |
@@ -67,9 +67,9 @@ Leyenda de "prod": archivos de producción que la consumen (sin contar el archiv
 | Implementación | Clase | Evidencia |
 |---|---|---|
 | `leer-plano` (edge) + `planoLeido.areasDeLectura` + `floorPlan` | CONSERVAR (contrato único; `puestos` ya viaja) | prod 4. Falta compuerta de confirmación y validación de escala contra `grid`. |
-| `leerPlanoArchivo.js` y `Acomodo.procesarPlano` (dos orquestadores de la misma lectura) | CONSOLIDAR → 1 | base64/downscale duplicados. |
+| `leerPlanoArchivo.js` y `Acomodo.procesarPlano` | CONSOLIDADO (VH-043): un solo orquestador + compuerta de confirmación | |
 | `floorSpec.validarFloorSpec/validarEnvolvente` | RETIRAR o CONECTAR (decidir) | prod 0; su forma no coincide con lo que emite leer-plano. |
-| `planner.acomodarLocal` + `malla.acomodarEnForma` | CONSERVAR y CORREGIR (VH-033) | prod 3. Sillas sin plan B; pasada 2 pierde piezas y reporta `caben:true`. |
+| `planner.acomodarLocal` + `malla.acomodarEnForma` | CORREGIDO (VH-033): plan B para sobrantes, pasada 2 sin pérdidas, `sinColocar` por nombre | |
 | `reacomodar`, `sentarSillas`, `rellenar`, `orientacion.enderezar` | CONSOLIDAR dentro del solver | Capas que se parchan entre sí (sentar→enderezar→re-sentar). |
 | `planner.empacarFilas`, `guardasAMuro`, `MEET_CLR` | RETIRAR (propuesta) | Sin llamadas. |
 | 7 clasificadores por nombre (`rolArea`, `rolCuartoBase`, `zonaSemantica`, `espacio.tipoDe`, `rolDePiezaAcomodo`, `esSilla*`, `rolDeSimboloEnZona`) | CONSOLIDAR → 1 | Se contradicen ("Sala de espera": lounge vs CONSEJO). |

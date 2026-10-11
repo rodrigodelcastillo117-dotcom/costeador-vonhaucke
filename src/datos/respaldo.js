@@ -12,28 +12,13 @@
 //  otra computadora sigue editando LA MISMA cotización en la nube, no crea otra.
 // ============================================================================
 import { PARAMS_SENSIBLES } from '../almacen.js';
+import { sinEconomiaServidor as sinEconomia } from './economia.js';
 
 export const RESPALDO_VERSION = 'respaldo-vh-1';
 
-// Mismo criterio que el servidor (public.jsonb_sin_economia): se quita cualquier
-// llave que, normalizada (minúsculas, sin símbolos), caiga en este patrón, a
-// cualquier profundidad.
-const ECONOMIA = /^(costo.*|cost.*|margen.*|margin.*|utilidad.*|profit.*|materialtotal|manoobra.*|laborcost.*|indirectos.*|overhead.*|precioproveedor.*|supplierprice.*|suppliercost.*|proveedor.*|supplier.*|preciocompra.*|purchaseprice.*|purchasecost.*|precioreal.*|costoderivado.*|internalcost.*|internalmargin.*)$/;
-const normal = (k) => String(k).toLowerCase().replace(/[^a-z0-9]/g, '');
-
-export function sinEconomia(v) {
-  if (v === null || v === undefined) return v;
-  if (Array.isArray(v)) return v.map(sinEconomia);
-  if (typeof v === 'object') {
-    const out = {};
-    for (const [k, x] of Object.entries(v)) {
-      if (ECONOMIA.test(normal(k))) continue;
-      out[k] = sinEconomia(x);
-    }
-    return out;
-  }
-  return v;
-}
+// Una sola definición de "economía interna" para toda la app: datos/economia.js
+// (misma regla que el servidor, public.jsonb_sin_economia).
+export { sinEconomia };
 
 const sinSensibles = (parametros) => {
   const p = { ...(parametros || {}) };

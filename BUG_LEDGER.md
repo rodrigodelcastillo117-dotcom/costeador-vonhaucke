@@ -58,6 +58,19 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 `AsistenteEspecial.jsx:179` manda `{...b}` con `margen`/`modeloCosteo`; `validarIntentCosteo` responde
 `FORBIDDEN_FINANCIAL_FIELD`. La comparación "sombra" nunca ha recibido una respuesta del servidor.
 
+**VH-044 · P1 · FIXED · Ocho formas de construir una partida; identidad de producto perdida; costo al
+vendedor por Banco.** Contrato único `datos/partida.js` (`crearPartida`, `validarPartida`): los 6 constructores
+de App.jsx (costeo, addons, modo avanzado, Voni/IA, Banco, artículo de línea) pasan por él. Unifica las tres
+grafías de identidad (`producto_id`/`productVersionId`/`product_version_id`) y separa clave de línea
+(`productoId` texto) de Producto Maestro (`producto_id` numérico); conserva `producto_id`, `producto_version_id`,
+`lista_precio_item_id`, `source_*` y `precio_lista_snapshot` que Voni tiraba (RC2); al vendedor NUNCA le llega
+economía ni en null (RC3: Banco y EditarPartida en Voni la sembraban), con la MISMA regla que el servidor
+(`economia.sinEconomiaServidor`, espejo de `jsonb_sin_economia`; la regla estricta `sinEconomia` queda para
+documentos al cliente); cantidad entera ≥ 1; precio > 0 o null (nunca 0); costo 0 = desconocido; `render` sólo
+URL; `origen` por renglón. 8 tests `partida.test.js`. Pendiente: EditarPartida/Cocrear/CotizadorIA siguen
+armando pre-formas que ENTRAN al contrato pero no lo usan directamente (siguiente paso), y `Cotizacion.jsx:178`
+aún escribe `render: dataUrl` (base64) al generar renders — el contrato lo descarta al reconstruir, no al vuelo.
+
 **VH-043 · P0 · FIXED · La lectura del plano caía al estado y al acomodo sin confirmación, y nadie
 revisaba la escala.** (mandato §4: "La IA propone; el usuario confirma la interpretación crítica"). Fix
 (2026-10-11): `ConfirmarLectura` (cuartos, medidas, puestos contados, confianza, problemas, vista previa) en

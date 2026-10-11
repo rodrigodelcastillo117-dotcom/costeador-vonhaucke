@@ -51,3 +51,28 @@ export function sinEconomia(obj) {
 export function esClientSafe(obj) {
   return escaneaEconomia(obj).length === 0;
 }
+
+// ---------------------------------------------------------------------------
+//  ESPEJO EXACTO DEL SERVIDOR (public.jsonb_sin_economia) — para el ESTADO del
+//  vendedor (partidas, respaldo). Quita costo/margen/utilidad/proveedor/precio real…
+//  pero CONSERVA la estructura técnica (componentes, medidas, horas) que el vendedor
+//  sí puede tener: no es dinero. La regla estricta de arriba (`sinEconomia`) es para
+//  DOCUMENTOS al cliente (PDF/WOW), donde ni la estructura debe viajar.
+// ---------------------------------------------------------------------------
+const CLAVES_ECONOMIA_SERVIDOR = /^(costo.*|cost.*|margen.*|margin.*|utilidad.*|profit.*|materialtotal|manoobra.*|laborcost.*|indirectos.*|overhead.*|precioproveedor.*|supplierprice.*|suppliercost.*|proveedor.*|supplier.*|preciocompra.*|purchaseprice.*|purchasecost.*|precioreal.*|costoderivado.*|internalcost.*|internalmargin.*)$/;
+export function esClaveEconomiaServidor(key) {
+  return CLAVES_ECONOMIA_SERVIDOR.test(String(key).toLowerCase().replace(/[^a-z0-9]/g, ''));
+}
+export function sinEconomiaServidor(v) {
+  if (v === null || v === undefined) return v;
+  if (Array.isArray(v)) return v.map(sinEconomiaServidor);
+  if (typeof v === 'object') {
+    const out = {};
+    for (const [k, x] of Object.entries(v)) {
+      if (esClaveEconomiaServidor(k)) continue;
+      out[k] = sinEconomiaServidor(x);
+    }
+    return out;
+  }
+  return v;
+}

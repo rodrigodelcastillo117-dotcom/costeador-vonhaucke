@@ -59,6 +59,7 @@ import { cargarReglas } from './datos/reglas.js';
 import { cargarAprendizajes } from './datos/aprendizaje.js';
 import { guardarCotizacion, cargarCotizacionCompleta, paraGuardar, firmaGuardado, claveCreacionNueva } from './datos/cotizaciones.js';
 import { aplicarRespaldo } from './datos/respaldo.js';
+import { crearPartida } from './datos/partida.js';
 import { guardarRevision } from './datos/revisiones.js';
 import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
 import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, cotizacionEmitible } from './nube.js';
@@ -672,63 +673,20 @@ export default function App() {
   }, [accesoOk, esDireccion, estado.parametros, estado.finanzas]);
 
   // Convierte renglones costeados de la IA en partidas de cotización.
+  // VH-044: TODO renglón nace por el contrato único (datos/partida.js). Aquí sólo se
+  // traduce lo que trae cada camino; el contrato unifica nombres, decide qué economía
+  // viaja según el rol y conserva la identidad de Producto Maestro (antes este camino
+  // la tiraba: una partida de Voni llegaba a la cotización sin producto_id).
   function partidasDeItemsIA(costados) {
-    return costados.map((c) => ({
-      // Sin `producto` NO se arma `linea-undefined` (ese id falso hacía que dos
-      // muebles distintos sin clave se fundieran en un mismo renglón): sin clave,
-      // el piezaId queda null, que `mismoRenglon` ya maneja bien (audit 2026-10-01).
-      id: idNuevo('p'), piezaId: c.producto ? `linea-${c.producto}` : null, nombre: c.nombre,
-      ruta: c.ruta || null, productoId: c.producto || null, w: c.w || null, d: c.d || null,
-      // `|| 1`: piso de seguridad. Una partida FIRME siempre es ≥1 pieza; si por
-      // cualquier ruta llegara sin cantidad, jamás debe guardarse en 0 (los
-      // totales hacen precio × (cantidad||0) y perderían el renglón). No inventa
-      // cantidades de borradores viejos —eso se recupera aparte— solo evita el $0.
-      // VENDEDOR (seller-safe): la partida NO lleva economía en su estado (costo,
-      // margen, costoDerivado). El precio de venta sí (lo puede ver). Defensa en
-      // profundidad además del saneo por rol de las tools de Voni.
-      cantidad: c.cantidad || 1, costoUnitario: veCostos ? c.costoUnitario : null, precioUnitario: c.precioUnitario, margen: veCostos ? c.margen : null,
-      nota: c.nota || null, confianza: c.confianza || null, config: c.config || null,
-      precioReal: !!c.precioReal,   // manda el sello Firme/Calibrado/Estimado
-      // El artículo del catálogo con el que casó (para el piso de descuento) y,
-      // si hay varias terminaciones, las opciones para que el vendedor elija.
-      catalogo: c.catalogo || null, variantes: c.variantes || null,
-      // ¿Voni lo PROPUSO como acompañante (silla, gaveta…) o lo pidió el cliente?
-      sugerido: !!c.sugerido,
-      // Se perdían al reconstruir la partida desde cero: sin esto, ni los
-      // avisos de costearItem() llegaban a pantalla (EstoEntendi.jsx ya los
-      // esperaba, pero `avisos` nunca venía) ni el candado podía sobrevivir
-      // hasta el punto donde de verdad hace falta bloquear (Imprimir).
-      avisos: c.avisos || [],
-      candadoUsuarios: !!c.candadoUsuarios,
-      requiereProyectista: !!c.requiereProyectista,
-      // ⚠️ `deBanco` DEBE sobrevivir el mapeo (audit externo 2026-09-24). Sin él,
-      // una pieza del banco (precio real de proyecto cerrado, SIN costo de
-      // fabricación conocido) llegaba como precioReal:true / costo 0, y la
-      // pantalla le pintaba un MARGEN FALSO del 100% en vez de "costo
-      // desconocido". Con la marca, el sello y el margen la tratan como banco.
-      deBanco: !!c.deBanco,
-      // Costo DERIVADO del precio (≈ precio/3.6), no de un despiece real: la
-      // pantalla muestra su margen como aproximado, no medido (audit 2026-09-24).
-      costoDerivado: veCostos ? !!c.costoDerivado : false,
-      // Piezas excluidas ($0 por decisión) también por el camino de la IA/Voni.
+    return costados.map((c) => crearPartida({
+      ...c,
+      piezaId: c.producto ? `linea-${c.producto}` : (c.piezaId ?? null),
+      productoId: c.producto || c.productoId || null,
       nombresExcluidos: Array.isArray(c.nombresExcluidos) ? c.nombresExcluidos
         : (c.componentes || []).filter((x) => x && x.excluida).map((x) => x.nombre || 'Partida excluida'),
-    }));
+    }, { veCostos, origen: c.deBanco ? 'banco' : 'ia' }));
   }
 
-
-  // ==========================================================================
-  //  AGREGAR A LA COTIZACIÓN DESDE EL COSTEADOR DE LÍNEA / EL ASISTENTE
-  //
-  //  🐛 Estas dos funciones se pasaban como prop a las 23 pantallas de línea y
-  //  al Asistente, pero NO EXISTÍAN. Como el identificador se evalúa al crear el
-  //  JSX, y ese JSX sólo se crea cuando la pestaña activa es esa línea, el
-  //  ReferenceError tumbaba App entero justo al entrar a Cotizar de línea —
-  //  y en TODAS las líneas por igual. Pantalla en blanco, sin pista.
-  // ==========================================================================
-
-  // Arma la partida a partir del costeo que devuelve el costeador de línea.
-  // El costo se recalcula si no vino: sin él, la utilidad y el semáforo mienten.
   function partidaDeCosteo(costeo, cantidad, precioUnitario, margen, costoUnitario) {
     const n = Math.max(1, Number(cantidad) || 1);
     // VENDEDOR (seller-safe): NO se corre el motor de costo en su navegador ni se
@@ -752,22 +710,25 @@ export default function App() {
       }
       margenEf = Number.isFinite(margen) ? margen : null;
     }
-    return {
-      id: idNuevo('p'),
+    return crearPartida({
       piezaId: costeo.piezaId || null,
       nombre: costeo.nombre,
       ruta: costeo.ruta || null,
       productoId: costeo.productoId || null,
-      // Pin de la versión canónica del producto (una sola verdad): el gate de emisión
-      // exige producto_version_id en toda línea ligada a producto (Cocrear/catálogo).
+      // Identidad de Producto Maestro (Línea V2 / Cocrear): el contrato unifica grafías.
+      producto_id: costeo.producto_id ?? null,
       producto_version_id: costeo.productVersionId || costeo.producto_version_id || null,
+      source_type: costeo.source_type ?? null, source_ref: costeo.source_ref ?? null,
+      lista_precio_item_id: costeo.lista_precio_item_id ?? null,
+      precio_lista_snapshot: costeo.precio_lista_snapshot ?? null,
+      catalogo: costeo.catalogo ?? null,
       // Imagen canónica del especial co-diseñado (URL de Storage, nunca base64): la
       // misma que el cliente vio en Cocrear viaja a la partida (una sola verdad).
       render: costeo.render || null,
       w: costeo.w || null, d: costeo.d || null,
       cantidad: n,
       costoUnitario: costo,
-      ...(costoDerivado ? { costoDerivado: true } : {}),
+      costoDerivado,
       precioUnitario,
       margen: margenEf,
       config: costeo.config || null,
@@ -793,7 +754,7 @@ export default function App() {
       // cotización obligue a confirmarlas y el PDF imprima la cláusula. Sin esto, un
       // clic apurado vende el mueble sin cristal/herrajes y nadie se entera.
       nombresExcluidos: (costeo.componentes || []).filter((c) => c && c.excluida).map((c) => c.nombre || 'Partida excluida'),
-    };
+    }, { veCostos, origen: costeo.producto_version_id || costeo.productVersionId ? 'cocrear' : (costeo.ruta ? 'linea' : 'costeo') });
   }
 
   const sumarPartidas = (nuevas) => setEstado((e) => ({
@@ -812,20 +773,16 @@ export default function App() {
   function agregarModuloAddons(costeo, cantidad, precio, margen, costoUnitario, addons) {
     const n = Math.max(1, Number(cantidad) || 1);
     const base = partidaDeCosteo(costeo, cantidad, precio, margen, costoUnitario);
-    const extras = (addons || []).map((a) => ({
-      id: idNuevo('p'),
+    const extras = (addons || []).map((a) => crearPartida({
       piezaId: `addon-${a.id}`,
       nombre: a.nombre,
       ruta: a.ruta || null,
       productoId: a.productoId || null,
-      w: null, d: null,
       cantidad: (a.cantidad || 1) * n,
-      // Seller-safe: el vendedor no guarda costo (ni el derivado del precio).
-      costoUnitario: veCostos ? costoImplicito(a.lista) : null,
+      // El contrato quita el costo si el rol no ve costos; aquí es DERIVADO del precio.
+      costoUnitario: costoImplicito(a.lista), costoDerivado: true,
       precioUnitario: precioDeLista(a.lista),
-      margen: null,
-      config: null,
-    }));
+    }, { veCostos, origen: 'addon' }));
     sumarPartidas([base, ...extras]);
     mostrarAviso(extras.length ? `Agregado: ${base.nombre} + ${extras.length} accesorio(s)` : `Agregado: ${base.nombre}`);
   }
@@ -846,22 +803,22 @@ export default function App() {
     const excl = Array.isArray(resultado?.componentesExcluidos)
       ? resultado.componentesExcluidos
       : (costeo.componentes || []).filter((c) => c && c.excluida).map((c) => c.nombre || 'Partida excluida');
-    sumarPartidas([{
-      id: idNuevo('p'),
+    sumarPartidas([crearPartida({
       piezaId: costeo.piezaId || null,
       nombre: costeo.nombre || 'Mueble a la medida',
       ruta: costeo.ruta || null,
       productoId: costeo.productoId || null,
       w: costeo.w || null, d: costeo.d || null,
       cantidad: n,
-      costoUnitario: resultado?.costoUnitario ?? 0,
+      // Sólo un costo COMPLETO es costo (costoOficial); incompleto ⇒ desconocido, no 0.
+      costoUnitario: resultado?.costoOficial ?? null,
       precioUnitario: precio,
-      margen: Number.isFinite(margen) ? margen : null,
-      config: null,
+      margen,
       piezasSinMaterial: sinMat.length,
       nombresSinMaterial: sinMat,
       nombresExcluidos: excl,
-    }]);
+      estadoCosto: resultado?.estadoCosto ?? null,
+    }, { veCostos, origen: 'costeo' })]);
     mostrarAviso(`Agregado: ${costeo.nombre || 'mueble a la medida'}`);
   }
 
@@ -962,11 +919,12 @@ export default function App() {
   // Banco de precios -> agrega una partida con el precio real ya cotizado.
   function agregarDeBanco(item, cantidad) {
     const nombre = item.medidas ? `${item.nombre} (${item.medidas})` : item.nombre;
-    const partida = {
-      id: idNuevo('p'), piezaId: item.id, nombre,
-      cantidad, costoUnitario: costoDeBanco(item), precioUnitario: item.precio,
-      margen: margenDeBanco(item), deBanco: true,
-    };
+    // RC3: antes sembraba costo/margen a TODOS los roles; el contrato los quita al vendedor.
+    const partida = crearPartida({
+      piezaId: item.id, nombre,
+      cantidad, costoUnitario: costoDeBanco(item), costoDerivado: true, precioUnitario: item.precio,
+      margen: margenDeBanco(item), deBanco: true, precioReal: true,
+    }, { veCostos, origen: 'banco' });
     setEstado((e) => ({
       ...e,
       cotizacion: { ...e.cotizacion, partidas: [...(e.cotizacion.partidas || []), partida] },
@@ -980,12 +938,14 @@ export default function App() {
   // ve "—" en costo/utilidad, que es la verdad (el catálogo no trae costo).
   function agregarArticuloLinea(r) {
     if (!r || !(r.precio > 0)) return;
-    const partida = {
-      id: idNuevo('p'), piezaId: r.clave ? `linea-${r.clave}` : null, nombre: r.nombre,
+    const partida = crearPartida({
+      piezaId: r.clave ? `linea-${r.clave}` : null, nombre: r.nombre,
       ruta: r.ruta || null, productoId: r.clave || null, claveLinea: r.clave || null,
-      cantidad: 1, costoUnitario: null, precioUnitario: r.precio,
-      margen: null, deLinea: true,
-    };
+      cantidad: 1, precioUnitario: r.precio, deLinea: true, precioReal: !!r.precioReal,
+      // Identidad de Producto Maestro si el artículo la trae (Línea V2).
+      producto_id: r.producto_id ?? null, producto_version_id: r.producto_version_id ?? null,
+      lista_precio_item_id: r.lista_precio_item_id ?? null, source_type: r.source_type ?? null, source_ref: r.source_ref ?? null,
+    }, { veCostos, origen: 'linea' });
     setEstado((e) => ({
       ...e,
       cotizacion: { ...e.cotizacion, partidas: [...(e.cotizacion.partidas || []), partida] },
