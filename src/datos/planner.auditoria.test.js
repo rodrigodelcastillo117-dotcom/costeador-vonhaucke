@@ -33,6 +33,13 @@ describe('auditoriaMedida', () => {
     expect(a['Baños y servicios sin amueblar'].ok).toBe(false);
     expect(a['Baños y servicios sin amueblar'].detalle).toMatch(/Archivero/);
   });
+  it('semántica: una mesa de juntas en recepción es violación nombrada', () => {
+    const ar = [{ nombre: 'Recepción', ancho: 5000, largo: 4000 }];
+    const pz = [{ id: 'mj', nombre: 'Mesa de juntas 10', tipo: 'juntas', w: 3000, d: 1200 }];
+    const a = porCheck(auditoriaMedida({ areas: ar, colocacion: [{ id: 'mj', area: 0, x: 100, y: 100, rot: 0 }], piezas: pz, cuartos: [{ servicio: false }] }));
+    expect(a['Cada mueble en una zona que lo admite'].ok).toBe(false);
+    expect(a['Cada mueble en una zona que lo admite'].detalle).toMatch(/Mesa de juntas 10 no pertenece a Recepción/);
+  });
   it('el planner real sale con los tres checks medidos en ok', () => {
     const r = acomodarLocal(areas, piezas.slice(0, 2), {});
     const a = porCheck(r.auditoria || []);

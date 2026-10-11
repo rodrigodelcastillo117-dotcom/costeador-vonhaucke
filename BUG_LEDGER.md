@@ -58,6 +58,16 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 100% de las llamadas del navegador.** `AsistenteEspecial.jsx:179` mandaba `{...b}` con `margen`/`modeloCosteo`;
 `validarIntentCosteo` respondía `FORBIDDEN_FINANCIAL_FIELD`. Pendiente VERIFIED en vivo (shadow_costeo).
 
+**VH-063 · P2 · OPEN (migración, requiere aprobación) · El vendedor no puede saber antes de verificar que su
+descuento requerirá aprobación.** La política vigente (leída 2026-10-11: margen mínimo 25 %, descuento máximo sin
+aprobación 40 %, versión 1 aprobada el 2026-10-02) sólo la lee Dirección (RLS `rc_sel`) y la RPC
+`reglas_comerciales_vigentes` está concedida sólo a `service_role`. La pantalla deja teclear hasta 60 % y el
+vendedor descubre al final que "requiere aprobación de Dirección para este contenido", sin saber que fue el
+descuento. Propuesta: `supabase/migrations/20261011180000_politica_comercial_publica.sql` (PENDIENTE DE APLICAR)
+expone sólo los dos umbrales y la versión a cualquier usuario permitido; con eso la compuerta local avisa junto al
+campo de descuento. No se aplica ni se cambia la política sin aprobación. Mientras, VH-062 cerró con el check
+semántico ("cada mueble en una zona que lo admite") también medido en la auditoría del planner.
+
 **VH-062 · P1 · FIXED · La "auditoría" del planner tenía tres checks con `ok: true` fijo.** "Cada mueble dentro de
 su cuarto", "Nada encimado" y "Baños y servicios sin amueblar" se escribían siempre en verde, con un detalle que
 explicaba por qué *debería* ser cierto ("la malla no reutiliza celdas"), no si lo era. Un encimado por arrastre

@@ -12,7 +12,7 @@ import { regla } from './reglas.js';
 import { enderezarTodo } from './orientacion.js';
 import { puestosDe } from './rellenar.js';
 import { dimsPieza } from './espacio.js';
-import { rolDePiezaAcomodo, zonaPermite, zonaSemantica } from './floorSpec.js';
+import { rolDePiezaAcomodo, zonaPermite, zonaSemantica, violacionesSemanticas } from './floorSpec.js';
 import { rolDeCuarto } from './cuartos.js';
 import { auditarColocacion } from './acomodoAudit.js';
 
@@ -326,10 +326,13 @@ export function auditoriaMedida({ areas = [], colocacion = [], piezas = [], cuar
   const audit = auditarColocacion({ areas, colocacion, byId }, { tol: 20 });
   const nombre = (id) => byId[id]?.nombre || id;
   const enServicio = colocacion.filter((k) => cuartos[k.area]?.servicio);
+  // Semántica (floorSpec): mesa de juntas en consejo, mostrador en recepción, puestos fuera de consejo/recepción…
+  const viols = violacionesSemanticas(colocacion, areas, byId);
   return [
     { check: 'Cada mueble dentro de su cuarto', ok: audit.fuera.length === 0, detalle: audit.fuera.length ? `${audit.fuera.length} fuera: ${audit.fuera.map((f) => nombre(f.id)).join(', ')}` : 'todas dentro de los límites de su área' },
     { check: 'Nada encimado', ok: audit.overlaps.length === 0, detalle: audit.overlaps.length ? `${audit.overlaps.length} encimado(s): ${audit.overlaps.map((o) => `${nombre(o.a)} ↔ ${nombre(o.b)}`).join(', ')}` : 'ningún traslape' },
     { check: 'Baños y servicios sin amueblar', ok: enServicio.length === 0, detalle: enServicio.length ? `${enServicio.length} mueble(s) en cuartos de servicio: ${enServicio.map((k) => nombre(k.id)).join(', ')}` : `${cuartos.filter((c) => c.servicio).length} cuarto(s) de servicio respetados` },
+    { check: 'Cada mueble en una zona que lo admite', ok: viols.length === 0, detalle: viols.length ? viols.map((v) => v.motivo).join(' · ') : 'sin violaciones semánticas' },
   ];
 }
 
