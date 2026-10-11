@@ -9,6 +9,11 @@
 // ============================================================================
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+// P0.COSTEO: plan de petición PURO (informe diferido en 1ª pasada de texto + right-size).
+import { schemaSinInforme, planPass, normalizarPropuesta, NOTA_TEXTO_INICIAL } from "./requestPlan.js";
+// P0.COSTEO · Commit 2: config de modelo centralizada (fail-closed) + telemetría pura.
+import { resolverModelo, resolverModeloVisual } from "./modelConfig.js";
+import { modalidadDe, mapProviderError, telemetriaExtra, crearAcumuladorProveedor } from "./telemetria.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -40,6 +45,9 @@ const SCHEMA = {
           confianza: { type: "string", enum: ["alta", "media", "baja"] },
           nota: { type: "string" },
           razonamiento: { type: "string", description: "COMO saliste de las COTAS a esta cantidad/hojas, en una linea: cota usada → tamano de pieza → cuantas caben por hoja → fraccion. Ej: 'copete 120x55 cm (cota frontal); 3 piezas por hoja 1.22x2.44 → 0.35 hoja x 2 = 0.7 hojas'. Si lo SUPUSISTE sin cota, dilo ('supuesto, sin cota')." },
+          procedencia: { type: "string", enum: ["MEASURED", "DERIVED", "INFERRED", "ASSUMED"], description: "MEASURED=cota/texto explícito; DERIVED=cálculo directo desde evidencia visible; INFERRED=deducción estructural; ASSUMED=supuesto sin evidencia suficiente." },
+          evidencia: { type: "string", description: "Referencia breve que sostiene la pieza/medida/material: cota, vista, nota o texto del usuario. Vacío si no existe evidencia." },
+          pagina: { type: "integer", description: "Página/hoja 1..N de la evidencia principal; 0 si no aplica (texto sin archivo)." },
           // --- SEMÁNTICA ESTRUCTURAL (para el modelo/grafo del mueble, NO para el precio) ---
           semantic_role: { type: "string", description: "ROL estructural de la pieza (lo que HACE en el mueble, no su material): cubierta, faldon, lateral, gaveta, pata, respaldo, asiento, entrepano, puerta, conector, espuma, tapiz, herraje, estructura, u 'otro'. Obligatorio." },
           parent: { type: "string", description: "nombre de la pieza/módulo que la CONTIENE o a la que pertenece ('' si es de primer nivel). Ej: una gaveta pertenece a un 'cuerpo'/'módulo'; un asiento a un 'módulo de plaza'." },
@@ -92,6 +100,29 @@ const SCHEMA = {
   },
   required: ["producto", "tipo", "piezas", "descripcionCliente", "materiales", "volumenAsumido", "confianzaGeneral", "informe", "preguntas", "design_intent"],
 };
+
+const RESTRICCIONES_SCHEMA_NO_SOPORTADAS = new Set([
+  "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf",
+  "minLength", "maxLength", "maxItems",
+]);
+
+// Anthropic Structured Outputs no acepta varias restricciones JSON Schema.
+// La función usa fetch directo (sin SDK que las quite automáticamente), así que
+// saneamos SIEMPRE el schema antes de enviarlo. Esto evita que una mejora de
+// validación vuelva a tumbar Costear con un 400/502.
+function sanearSchemaClaude(valor: any): any {
+  if (Array.isArray(valor)) return valor.map(sanearSchemaClaude);
+  if (!valor || typeof valor !== "object") return valor;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(valor)) {
+    if (RESTRICCIONES_SCHEMA_NO_SOPORTADAS.has(k)) continue;
+    // minItems sólo admite 0 o 1; para cualquier otro valor es más seguro
+    // retirarlo y validar la cardinalidad en nuestra capa determinista.
+    if (k === "minItems" && ![0, 1].includes(Number(v))) continue;
+    out[k] = sanearSchemaClaude(v);
+  }
+  return out;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -177,7 +208,17 @@ Deno.serve(async (req) => {
   // TELEMETRÍA (started): cuenta el intento para el rate limit y mide duración real.
   // Un intento que falle queda 'started' (cuenta como intento, que es lo correcto
   // para una barrera de costo). Se marca 'ok' sólo al cerrar bien.
-  const modoTel = soloTexto ? "texto" : esRevision ? "revision" : "imagen";
+  // modalidad: texto / revision / pdf / imagen (= columna `modo`). pdf se distingue de
+  // imagen sólo para observabilidad; NO cambia ninguna ruta de ejecución.
+  const esPdf = !!image && !imgs.length && String(mediaType) === "application/pdf";
+  const modoTel = modalidadDe({ soloTexto, esRevision, esPdf });
+  // Campos NUEVOS de observabilidad (columnas pendientes de migración). Se llenan a lo
+  // largo del request y se escriben en un UPDATE APARTE (ver cerrarTel) para que, si la
+  // migración aún no se aplicó, la ausencia de columnas NO tumbe la telemetría base.
+  let telExtra: Record<string, unknown> = {};
+  // Métricas del PROVEEDOR acumuladas a lo largo de TODOS los intentos (incl. retry compacto).
+  // Cada intento se registra en el finally de `pedir`, aun si aborta/falla → nunca stale.
+  const metrics = crearAcumuladorProveedor();
   let evId: number | null = null;
   try {
     const { data: ev } = await svc.from("ai_eventos")
@@ -187,12 +228,38 @@ Deno.serve(async (req) => {
   } catch (_e) { /* la telemetría no debe romper el análisis */ }
   const cerrarTel = async (status: string, http: number, extra: Record<string, unknown> = {}) => {
     if (evId == null) return;
-    try { await svc.from("ai_eventos").update({ status, http_status: http, finished_at: new Date().toISOString(), duration_ms: Date.now() - t0, ...extra }).eq("id", evId); } catch (_e) { /* noop */ }
+    const m = metrics.resultado();   // attempts/duration/headers/body/tokens/status FINAL del proveedor
+    // 1) CORE (columnas que YA existen hoy) — SIEMPRE se intenta. `attempts` incluido.
+    try {
+      await svc.from("ai_eventos")
+        .update({ status, http_status: http, finished_at: new Date().toISOString(), duration_ms: Date.now() - t0, attempts: m.attempts, ...extra })
+        .eq("id", evId);
+    } catch (_e) { /* noop */ }
+    // 2) EXTRA (columnas NUEVAS, whitelist) — update aparte; si faltan columnas, no
+    //    regresa la telemetría base. retry_used es derivable de attempts>1 (no se persiste).
+    //    provider_http_status = status REAL del ÚLTIMO intento (≠ `http` nuestro, arriba).
+    try {
+      const ex = telemetriaExtra({
+        ...telExtra,
+        provider_http_status: m.provider_http_status,
+        provider_duration_ms: m.provider_duration_ms,
+        provider_headers_ms: m.provider_headers_ms,
+        provider_body_ms: m.provider_body_ms,
+        input_tokens: m.input_tokens,
+        output_tokens: m.output_tokens,
+      } as any);
+      if (Object.keys(ex).length) await svc.from("ai_eventos").update(ex).eq("id", evId);
+    } catch (_e) { /* columnas nuevas pendientes de migración */ }
+  };
+
+  const fallarAnalisis = async (code: string, mensaje: string, http = 502, modelStatus = "error") => {
+    await cerrarTel("error", http, { model_status: modelStatus, error_code: code });
+    return json({ ok: false, code, error: mensaje, request_id: requestId }, http);
   };
 
   // CATÁLOGO CANÓNICO server-side = AUTORIDAD. El catálogo que manda el cliente ya
   // NO es autoridad: sólo se usa como PISTA para ids que el servidor aún no tenga.
-  const { texto: cat, canonicoOk } = await construirCatalogo(catalogo);
+  const { texto: cat, canonicoOk, count: catCount } = await construirCatalogo(catalogo);
 
   const system =
     "Actua como el Director Operativo (COO), Jefe de Ingenieria de Producto y Experto en Costos de una fabrica de mobiliario de clase mundial (corporativo, hoteleria y retail; metalmecanica, CNC, pintura, tapiceria). Eres maestro en Lean Manufacturing, Design for Manufacturing (DFM) y optimizacion de recursos.\n\n" +
@@ -220,6 +287,7 @@ Deno.serve(async (req) => {
     "   · NO DUPLIQUES la superficie: si un tablero es MELAMINA/LAMINADO de COLOR (ej. 'MDF melamina Walnut', 'MDF con laminado nogal'), usa el tablero YA laminado (mdf-...-walnut) — ese precio YA incluye las dos caras. NO sumes aparte una hoja de 'laminado' como pieza extra: eso cuenta la superficie dos veces. Solo factura laminado/chapa por separado si es un enchapado sobre un nucleo que ya costeaste crudo.\n" +
     "   · UNA PIEZA, UNA VEZ: el mismo panel que sale en vista frontal, lateral y superior es UNA pieza. Agrupa piezas identicas en un solo renglon con su 'cantidad'.\n" +
     "   · AUTO-VERIFICA antes de responder: relee tus 'piezas' y pregunta '¿esta cantidad sale de una cota o la supuse?'. Si la supusiste, baja la 'confianza' a 'media' o 'baja' para que el humano la revise. Mejor conservador y marcado que inflado.\n" +
+    "   · En CADA pieza llena procedencia/evidencia/pagina cuando sea posible: MEASURED=cota/texto explícito; DERIVED=cálculo directo desde cotas visibles; INFERRED=deducción estructural; ASSUMED=supuesto. NO promociones ASSUMED/INFERRED a MEASURED. Si no hay archivo y sólo hay texto, pagina=0.\n" +
     "H) MODELO ESTRUCTURAL (entiende el mueble como OBJETO, no como piezas sueltas):\n" +
     "   · Rellena SIEMPRE 'design_intent' (product_type como objeto, module_count, seat_count, user_capacity, overall_dimensions si se deduce, assumptions, missing_critical_data). Si de verdad no se puede saber qué es, product_type='desconocido' y pon la ambigüedad en missing_critical_data y en una 'pregunta'.\n" +
     "   · CAPACIDAD ≠ MÓDULOS ≠ ASIENTOS (error frecuente): 'barra comunal para 6 personas' NO significa module_count=6. Si es una sola estructura monolítica, module_count=1 y user_capacity=6. Sólo pon module_count>1 si hay cuerpos/estructuras FÍSICAMENTE repetidos. seat_count es cuántos asientos físicos hay (0 si es counter/mostrador/armero/barra sin bancos). No conviertas 'lugares'/'personas' en módulos estructurales.\n" +
@@ -282,30 +350,120 @@ Deno.serve(async (req) => {
   }
 
   const contenido = [...bloquesImagen, { type: "text", text: textoTarea }];
-  const pedir = async (schema: any, sys: string, maxTok: number) => {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({
-        model: "claude-opus-5",
-        max_tokens: maxTok,
-        output_config: { effort: "medium", format: { type: "json_schema", schema } },
-        system: sys,
-        messages: [{ role: "user", content: contenido }],
-      }),
-    });
-    return await r.json();
+  const pedir = async (schema: any, sys: string, maxTok: number, effort: string, model: string) => {
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), esRevision ? 45_000 : 75_000);
+    const tFetch0 = Date.now();   // t0 de ESTE intento (telemetría; no altera comportamiento)
+    // Métricas de ESTE intento — reset per-attempt para que un abort/error NO herede valores
+    // del intento anterior. Se registran SIEMPRE en el finally (incl. abort/timeout/network).
+    let httpStatus: number | null = null;
+    let headersMs: number | null = null;
+    let bodyMs: number | null = null;
+    let usage: any = null;
+    try {
+      const r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify({
+          model,
+          max_tokens: maxTok,
+          output_config: {
+            effort,
+            format: { type: "json_schema", schema: sanearSchemaClaude(schema) },
+          },
+          system: sys + (esRevision
+            ? "\nREVISION COMPACTA: corrige BOM/cotas/material_match y sé mínimo en informe/notas; no reescribas una auditoría larga."
+            : "\nPRIORIDAD DE SALIDA: BOM completo y correcto > informe. Informe máximo ~900 palabras; razonamiento por pieza en una sola línea."),
+          messages: [{ role: "user", content: contenido }],
+        }),
+        signal: ac.signal,
+      });
+      // status y tiempo-a-headers REALES del proveedor (incl. 4xx/5xx). headersMs = tiempo hasta
+      // recibir los HEADERS HTTP (NO TTFB de tokens).
+      const tHeaders = Date.now();
+      httpStatus = r.status;
+      headersMs = tHeaders - tFetch0;
+      const raw = await r.text();
+      bodyMs = Date.now() - tHeaders;
+      let data: any = null;
+      try { data = raw ? JSON.parse(raw) : null; }
+      catch {
+        const err: any = new Error(`Respuesta no JSON del proveedor (HTTP ${r.status}).`);
+        err.code = "PROVIDER_INVALID_JSON"; err.http = r.status || 502;
+        throw err;
+      }
+      // usage INMEDIATAMENTE tras un response válido, ANTES de decidir el retry compacto.
+      if (data?.usage) usage = data.usage;
+      if (!r.ok) {
+        const err: any = new Error(data?.error?.message || `Proveedor respondió HTTP ${r.status}.`);
+        err.code = String(data?.error?.type || data?.error?.code || "PROVIDER_HTTP_ERROR");
+        err.http = r.status;
+        throw err;
+      }
+      return data;
+    } finally {
+      clearTimeout(timer);
+      // Registra ESTE intento pase lo que pase: abort/timeout → httpStatus/headersMs null y
+      // elapsedMs ≈ duración real consumida; success/4xx/5xx/invalid-json → con sus medidas.
+      metrics.registrarIntento({ httpStatus, elapsedMs: Date.now() - tFetch0, headersMs, bodyMs, usage });
+    }
   };
 
-  // Presupuesto de salida amplio: un plano rico (varias vistas + despiece + razonamiento) excede
-  // 8000 tokens fácil. 16000 también para 1 imagen (1 imagen es rápida; el timeout de 150s aguanta).
-  const MAX_TOK = 16000;
-  let data: any;
-  try { data = await pedir(SCHEMA, system, MAX_TOK); }
-  catch (e) { return json({ ok: false, error: "No se pudo llamar a Claude: " + String(e) }, 502); }
+  // P0.COSTEO · plan por pasada: en la 1ª pasada de TEXTO se DIFIERE el informe (BOM
+  // primero) y se right-sizea effort/max_tokens; imagen/plano y revisión quedan IGUAL.
+  const plan = planPass({ soloTexto, esRevision, respCount: resp.length });
+  const schemaInicial = plan.deferInforme ? schemaSinInforme(SCHEMA) : SCHEMA;
+  const systemInicial = plan.deferInforme ? (system + NOTA_TEXTO_INICIAL) : system;
+  const MAX_TOK = plan.maxTok;
 
-  if (data?.type === "error") return json({ ok: false, error: data.error?.message || "Error de la API" }, 502);
-  if (data?.stop_reason === "refusal") return json({ ok: false, error: "La IA no pudo analizar esta imagen." }, 200);
+  // CONFIG DE MODELO (fail-closed): resuelve el model_id ANTES de llamar a Anthropic.
+  // Si la config es inválida, 500 explícito y NO se quema el proveedor (no inventa modelo).
+  // Default de analizar-mueble = 'claude-opus-5' (idéntico a v28; sin override en env).
+  let MODEL_ID: string;
+  try {
+    // AISLADO (2b): NO leemos ANTHROPIC_MODEL global (lo usan Council/otras fns); sólo el
+    // override por-función o el default. permitirGlobal queda en false por defecto.
+    MODEL_ID = resolverModelo("analizar-mueble", {
+      ANTHROPIC_MODEL_ANALIZAR_MUEBLE: Deno.env.get("ANTHROPIC_MODEL_ANALIZAR_MUEBLE") ?? undefined,
+    });
+  } catch (e: any) {
+    return await fallarAnalisis(String(e?.code || "MODEL_CONFIG_INVALID"), "Configuración de modelo inválida; contacta al administrador.", 500, "config_error");
+  }
+  // 1ª pasada VISUAL (render/plano → BOM que el usuario CONFIRMA; NO fija costo — el motor costea
+  // con precios canónicos): modelo RÁPIDO para no exceder el wall-clock (Opus tardaba >75 s en el
+  // TTFT de visión → PROVIDER_TIMEOUT). Opus se conserva para texto/revisión/pasadas de costeo.
+  const esVisualPrimera = !soloTexto && !esRevision && resp.length === 0;
+  let MODEL_PASADA = MODEL_ID;
+  if (esVisualPrimera) {
+    try {
+      MODEL_PASADA = resolverModeloVisual("analizar-mueble", {
+        ANTHROPIC_MODEL_VISUAL_ANALIZAR_MUEBLE: Deno.env.get("ANTHROPIC_MODEL_VISUAL_ANALIZAR_MUEBLE") ?? undefined,
+      });
+    } catch (e: any) {
+      return await fallarAnalisis(String(e?.code || "MODEL_CONFIG_INVALID"), "Configuración de modelo visual inválida; contacta al administrador.", 500, "config_error");
+    }
+  }
+  // Telemetría (observabilidad): sólo medidas, NUNCA prompt/desc/BOM. user_input_chars =
+  // longitud del TEXTO del usuario (no el prompt total); catalog_chars/count = peso del catálogo.
+  telExtra = { model_id: MODEL_PASADA, effort: plan.effort, max_tokens: MAX_TOK, user_input_chars: desc.length, catalog_count: catCount, catalog_chars: (cat || "").length, fallback_used: false };
+
+  let data: any;
+  try { data = await pedir(schemaInicial, systemInicial, MAX_TOK, plan.effort, MODEL_PASADA); }
+  catch (e: any) {
+    const { code, modelStatus } = mapProviderError(e);
+    const mensaje = code === "PROVIDER_TIMEOUT"
+      ? "El análisis tardó demasiado. Intenta de nuevo o analiza menos hojas."
+      : "No se pudo analizar el archivo con IA. Reintenta; si persiste, sube una sola hoja.";
+    return await fallarAnalisis(code, mensaje, 502, modelStatus);
+  }
+
+  if (data?.type === "error") {
+    return await fallarAnalisis("CLAUDE_API_ERROR", data.error?.message || "Error de la API", 502, String(data?.error?.type || "api_error"));
+  }
+  if (data?.stop_reason === "refusal") {
+    await cerrarTel("refused", 200, { model_status: "refusal", error_code: "MODEL_REFUSAL" });
+    return json({ ok: false, code: "MODEL_REFUSAL", error: "La IA no pudo analizar esta imagen.", request_id: requestId }, 200);
+  }
 
   // REINTENTO COMPACTO: si aún se cortó, re-pide SIN el 'informe' (lo más pesado) y con
   // razonamiento/nota breves, garantizando que el DESPIECE (lo que necesita el costeo y el
@@ -315,16 +473,27 @@ Deno.serve(async (req) => {
     const sysCompacto = system +
       "\n\nIMPORTANTE: la respuesta anterior se CORTÓ por larga. Esta vez OMITE 'informe' (déjalo '' o muy corto), " +
       "sé BREVE en 'razonamiento' y 'nota' (media línea cada uno) y ASEGÚRATE de CERRAR el JSON completo con TODO el despiece de piezas.";
-    try { data = await pedir(schemaCompacto, sysCompacto, MAX_TOK); }
-    catch (e) { return json({ ok: false, error: "No se pudo llamar a Claude: " + String(e) }, 502); }
-    if (data?.stop_reason === "max_tokens")
-      return json({ ok: false, error: "El plano es muy extenso y el despiece no cupo aun compactando. Sube menos hojas a la vez, o súbelo por partes." }, 200);
+    try { data = await pedir(schemaCompacto, sysCompacto, MAX_TOK, plan.effort, MODEL_PASADA); }
+    catch (e: any) {
+      const { code, modelStatus } = mapProviderError(e);
+      return await fallarAnalisis(code, "No se pudo completar el reintento compacto. Analiza menos hojas.", 502, modelStatus);
+    }
+    if (data?.stop_reason === "max_tokens") {
+      await cerrarTel("partial", 200, { model_status: "max_tokens", error_code: "MODEL_TRUNCATED" });
+      return json({ ok: false, code: "MODEL_TRUNCATED", error: "El plano es muy extenso y el despiece no cupo aun compactando. Sube menos hojas a la vez, o súbelo por partes.", request_id: requestId }, 200);
+    }
   }
 
   const texto = (data?.content || []).find((b: any) => b.type === "text")?.text || "";
   let propuesta: any;
   try { propuesta = JSON.parse(texto); }
-  catch { return json({ ok: false, error: "La IA no devolvio un analisis valido (JSON incompleto). Reintenta." }, 200); }
+  catch {
+    await cerrarTel("error", 200, { model_status: String(data?.stop_reason || "invalid_json"), error_code: "INVALID_MODEL_JSON" });
+    return json({ ok: false, code: "INVALID_MODEL_JSON", error: "La IA no devolvio un analisis valido (JSON incompleto). Reintenta.", request_id: requestId }, 200);
+  }
+  // P0.COSTEO · contrato público: 'informe' SIEMPRE string. Si se difirió (1ª pasada texto),
+  // informe:"" + informe_pendiente=true (la auditoría completa se pide on-demand). NO inventa precios.
+  normalizarPropuesta(propuesta, { deferInforme: plan.deferInforme });
 
   await cerrarTel("ok", 200, { model_status: String(data?.stop_reason || "ok") });
   // #8: la fuente del catálogo viaja al cliente. 'cliente-fallback' => el canónico no
@@ -342,7 +511,7 @@ function json(obj: unknown, status = 200) {
 // cliente para no romper el análisis. Marca los insumos SIN precio certificado
 // (p.ej. superficie sólida recién dada de alta) para que la IA los trate como
 // pendientes de precio, no como inexistentes.
-async function construirCatalogo(clienteCat: any): Promise<{ texto: string; canonicoOk: boolean }> {
+async function construirCatalogo(clienteCat: any): Promise<{ texto: string; canonicoOk: boolean; count: number }> {
   const url = Deno.env.get("SUPABASE_URL");
   const srv = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const lineasServidor: string[] = [];
@@ -405,5 +574,6 @@ async function construirCatalogo(clienteCat: any): Promise<{ texto: string; cano
     }
   }
   const todo = [...lineasServidor, ...hints];
-  return { texto: todo.length ? todo.join("\n") : "(sin catalogo)", canonicoOk };
+  // count = nº de insumos ofrecidos al modelo (telemetría; mide el "peso" del catálogo).
+  return { texto: todo.length ? todo.join("\n") : "(sin catalogo)", canonicoOk, count: todo.length };
 }
