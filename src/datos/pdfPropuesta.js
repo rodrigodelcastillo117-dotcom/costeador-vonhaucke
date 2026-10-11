@@ -17,6 +17,7 @@
 // que los vendedores abren en el celular, y el paquete completo de jsPDF le
 // sumaba ~800 KB al archivo. Aquí se paga sólo lo que se usa.
 import { jsPDF } from 'jspdf/dist/jspdf.es.min.js';
+import { resolverImagenesAcomodo } from './imagenStorage.js';
 import { sinEconomia, esClientSafe } from './economia.js';
 
 const A4 = { w: 210, h: 297 };
@@ -863,25 +864,33 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
 // Baja los renders del catálogo y los deja en base64 para meterlos al PDF.
 // Si alguno no se puede traer, ese renglón sale SIN foto en vez de tumbar la
 // descarga entera: el vendedor necesita su PDF aunque falte una imagen.
+async function aDataUrl(url) {
+  if (typeof url !== 'string') return null;
+  if (url.startsWith('data:')) return url;
+  const r = await fetch(url);
+  if (!r.ok) return null;
+  const b = await r.blob();
+  return await new Promise((res) => {
+    const fr = new FileReader();
+    fr.onload = () => res(String(fr.result));
+    fr.onerror = () => res(null);
+    fr.readAsDataURL(b);
+  });
+}
 export async function cargarFotos(partidas, urlDe) {
   const fotos = {};
   await Promise.all((partidas || []).map(async (pt) => {
     const url = urlDe?.(pt);
     if (!url) return;
-    try {
-      if (url.startsWith('data:')) { fotos[pt.id] = url; return; }
-      const r = await fetch(url);
-      if (!r.ok) return;
-      const b = await r.blob();
-      fotos[pt.id] = await new Promise((res) => {
-        const fr = new FileReader();
-        fr.onload = () => res(String(fr.result));
-        fr.onerror = () => res(null);
-        fr.readAsDataURL(b);
-      });
-    } catch (e) { /* sin foto, con su renglón completo igual */ }
+    try { const d = await aDataUrl(url); if (d) fotos[pt.id] = d; } catch (e) { /* sin foto, con su renglón completo igual */ }
   }));
   return fotos;
+}
+// VH-046: `acomodo.render3d` y `acomodo.escenas[].img` viven como URL en la
+// cotización; el PDF (jsPDF.addImage) necesita dataUrl. Se resuelven AQUÍ, al
+// dibujar, y nunca de vuelta al estado. Los dataUrl legacy pasan igual.
+export function cargarImagenesAcomodo(acomodo) {
+  return resolverImagenesAcomodo(acomodo, { traer: aDataUrl });
 }
 
 // Genera y DESCARGA el archivo. Devuelve el nombre por si hay que decirlo.

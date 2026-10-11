@@ -17,7 +17,7 @@ import { useEffect, useRef, useState } from 'react';
 import { listarCotizaciones, archivarCotizacion, mpCambio } from '../datos/cotizaciones.js';
 import { listarRevisiones } from '../datos/revisiones.js';
 import { armarRespaldo, validarRespaldo, nombreArchivoRespaldo, descargarJSON, leerArchivoJSON } from '../datos/respaldo.js';
-import { descargarPropuesta, datosDesdeSnapshot, cargarMarca } from '../datos/pdfPropuesta.js';
+import { descargarPropuesta, datosDesdeSnapshot, cargarMarca, cargarImagenesAcomodo } from '../datos/pdfPropuesta.js';
 import { pesos, coincide } from '../util.js';
 
 const fechaCorta = (iso) => {
@@ -191,7 +191,8 @@ function Emisiones({ cotizacionId, folio }) {
               onClick={async () => {
                 try {
                   const marca = await cargarMarca().catch(() => null);
-                  descargarPropuesta(datosDesdeSnapshot(r.snapshot, { marca, fecha: r.snapshot.fecha || fechaCorta(r.emitida_en), borrador: false, piezas: [] }));
+                  const snap = { ...r.snapshot, acomodo: await cargarImagenesAcomodo(r.snapshot.acomodo) };
+                  descargarPropuesta(datosDesdeSnapshot(snap, { marca, fecha: r.snapshot.fecha || fechaCorta(r.emitida_en), borrador: false, piezas: [] }));
                 } catch (e) { alert(`No se pudo generar el PDF de la revisión ${r.revision}: ${e?.message || e}`); }
               }}>PDF de esta revisión</button>
           )}

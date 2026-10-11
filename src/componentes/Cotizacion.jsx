@@ -7,7 +7,7 @@ import { useState, useMemo, useEffect } from 'react';
 import MarcaLogo from './MarcaLogo.jsx';
 import { resumenPorArea, especificacion } from '../datos/resumen.js';
 import { listaPorCuarto } from '../datos/porCuarto.js';
-import { descargarPropuesta, cargarFotos, cargarMarca, datosDesdeSnapshot } from '../datos/pdfPropuesta.js';
+import { descargarPropuesta, cargarFotos, cargarMarca, cargarImagenesAcomodo, datosDesdeSnapshot } from '../datos/pdfPropuesta.js';
 import { snapshotEmitido } from '../datos/revisiones.js';
 import EditarPartida, { sePuedeEditar } from './EditarPartida.jsx';
 import { pesos, leePct, selloPartida, claseCosto } from '../util.js';
@@ -18,7 +18,7 @@ import { imagenPartida } from '../datos/imagenes.js';
 import VoniAvatar from './VoniAvatar.jsx';
 import { confianzaDe, textoConfianza } from '../datos/confianza.js';
 import { expandirPiezas, mapaPiezas } from '../datos/espacio.js';
-import { generarRender, renderDePartida, analizarNegocio, resolverRendersCanonicos } from '../nube.js';
+import { generarRender, renderDePartida, imagenAcomodoAStorage, analizarNegocio, resolverRendersCanonicos } from '../nube.js';
 import { estadoRenderPartida, claveRenderPartida, ESTADO_RENDER } from '../datos/renderCanonico.js';
 import { textoRazonEmision, ESTADO_EMISION, razonesPorLinea } from '../datos/emisionUX.js';
 import MontoAnimado from './MontoAnimado.jsx';
@@ -139,9 +139,18 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
     return null;
   };
 
-  // Adjuntar render 3D del acomodo (reescala para no inflar el estado)
+  // VH-046: la imagen del acomodo va a Storage; en la cotización SÓLO la URL.
+  // (Antes el base64 completo vivía en el estado, el respaldo y cada guardado.)
+  async function fijarRender3d(dataUrl) {
+    const up = await imagenAcomodoAStorage(dataUrl, { cotId: cot.id, tipo: 'oficina' });
+    if (up.ok) setCot({ acomodo: { ...(cot.acomodo || {}), render3d: up.url } });
+    else setErrGen(up.error);
+    return up.ok;
+  }
+  // Adjuntar render 3D del acomodo (reescala antes de subir)
   const subirRender = (file) => {
     if (!file) return;
+    setErrGen('');
     const r = new FileReader();
     r.onload = () => {
       const img = new Image();
@@ -150,7 +159,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         const sc = Math.min(1, max / Math.max(w, h)); w = Math.round(w * sc); h = Math.round(h * sc);
         const c = document.createElement('canvas'); c.width = w; c.height = h;
         c.getContext('2d').drawImage(img, 0, 0, w, h);
-        setCot({ acomodo: { ...(cot.acomodo || {}), render3d: c.toDataURL('image/jpeg', 0.85) } });
+        fijarRender3d(c.toDataURL('image/jpeg', 0.85));
       };
       img.src = r.result;
     };
@@ -207,7 +216,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
       const urls = [...new Set(partidas.map((p) => fotoPartida(p)).filter(Boolean))].slice(0, 6);
       const imagenes = (await Promise.all(urls.map(urlABase64))).filter(Boolean);
       const r = await generarRender(lista, { modo: 'oficina', medidas: ctx, imagenes });
-      if (r?.ok) setCot({ acomodo: { ...(cot.acomodo || {}), render3d: r.dataUrl } }); else setErrGen(r?.error || 'No se pudo generar la oficina.');
+      if (r?.ok) await fijarRender3d(r.dataUrl); else setErrGen(r?.error || 'No se pudo generar la oficina.');
     } catch (e) { setErrGen('No se pudo conectar.'); }
     finally { setGenOficina(false); }
   }
@@ -283,7 +292,9 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
       // VH-042 (mandato §4): "el PDF debe reflejar la misma revisión guardada y los
       // mismos totales aprobados". El documento se dibuja DESDE EL SNAPSHOT que se
       // conservó (o se intentó conservar), no del estado vivo ni de totales de pantalla.
-      const snap = reg?.snapshot || snapshotEmitido(estado);
+      const snapGuardado = reg?.snapshot || snapshotEmitido(estado);
+      // VH-046: las imágenes del acomodo son URL; el documento las trae al dibujar.
+      const snap = { ...snapGuardado, acomodo: await cargarImagenesAcomodo(snapGuardado.acomodo) };
       descargarPropuesta(datosDesdeSnapshot(snap, {
         fecha: cot.fecha, resumen, especificacion, fotos, marca,
         piezas: expandirPiezas(snap.partidas || []),

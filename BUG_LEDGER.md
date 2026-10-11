@@ -58,6 +58,18 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 `AsistenteEspecial.jsx:179` manda `{...b}` con `margen`/`modeloCosteo`; `validarIntentCosteo` responde
 `FORBIDDEN_FINANCIAL_FIELD`. La comparación "sombra" nunca ha recibido una respuesta del servidor.
 
+**VH-046 · P1 · FIXED · Las imágenes del acomodo (render 3D, foto amueblada, escenas, foto del usuario) vivían
+en base64 dentro de la cotización.** Producción (lectura 2026-10-11): 14 cotizaciones con `acomodo.render3d`
+en base64, 24 MB en total, la mayor 2.9 MB; 2 con escenas en base64; 0 con URL. Cada guardado reenviaba la
+imagen entera y el respaldo local la cargaba. Fix: `datos/imagenStorage.js` (`imagenAStorage`, `rutaImagen`,
+`resolverImagenesAcomodo`; `renderPartida.js` ahora se apoya en él) + `nube.imagenAcomodoAStorage`. Los cinco
+escritores (`Cotizacion.subirRender` foto del usuario, `Cotizacion.renderOficina`, `Acomodo.renderOficina`,
+`Acomodo.amueblarFoto`, `Acomodo.generarTodasLasEscenas`) suben a `renders/acomodo/<cotId>/<tipo>-<ts>.<ext>`
+y guardan SÓLO la URL; si Storage falla se avisa y no se guarda nada. El PDF (jsPDF necesita dataUrl) resuelve
+las URL al dibujar con `pdfPropuesta.cargarImagenesAcomodo` en los dos puntos de salida (Cotizacion.descargarPDF
+y Archivo "PDF de esta revisión"); los dataUrl legacy pasan igual, así las 14 cotizaciones viejas siguen
+imprimiendo. No se migran datos (mandato §6). Tests: imagenStorage 7. Suite · E2E · build.
+
 **VH-045 · P1 · FIXED · El render de una partida se guardaba en base64 dentro del estado; el diálogo de
 edición armaba el renglón a mano; el contrato tiraba claves que sí existen en producción.** Tres hallazgos
 sobre el contrato de VH-044, verificados contra producción (lectura, sin escribir): (1) `Cotizacion.jsx`

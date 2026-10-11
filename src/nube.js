@@ -8,6 +8,7 @@ import { reglasTexto } from './datos/reglas.js';
 import { aprendizajesTexto } from './datos/aprendizaje.js';
 import { validarIntentCosteo, intentDesdePieza } from './datos/validarIntentCosteo.js';
 import { renderParaPartida } from './datos/renderPartida.js';
+import { imagenAStorage, rutaImagen } from './datos/imagenStorage.js';
 import { createClient } from '@supabase/supabase-js';
 
 const URL = 'https://mtuvnbgljwbsaizjjgzs.supabase.co';
@@ -374,6 +375,12 @@ export async function subirRender(dataUrl, path) {
 // VH-045: render de UNA partida → Storage → URL. Nunca entrega base64 al estado.
 export function renderDePartida(pt) {
   return renderParaPartida(pt, { generar: generarRender, subir: subirRender });
+}
+
+// VH-046: imagen del ACOMODO (render 3D, foto amueblada, escena, foto del usuario)
+// → Storage → URL. `tipo` nombra el archivo; `cotId` agrupa por cotización.
+export function imagenAcomodoAStorage(dataUrl, { cotId, tipo = 'imagen' } = {}) {
+  return imagenAStorage(dataUrl, rutaImagen('acomodo', cotId, tipo, dataUrl), { subir: subirRender });
 }
 
 // Guarda la metadata del render (técnico, sin base64). Devuelve {ok, id}.

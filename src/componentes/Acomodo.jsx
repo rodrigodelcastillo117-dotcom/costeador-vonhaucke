@@ -6,7 +6,7 @@
 //  propuesta para que salga en el PDF del cliente.
 // ============================================================================
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { acomodarEspacio, leerPlano, generarRender } from '../nube.js';
+import { acomodarEspacio, leerPlano, generarRender, imagenAcomodoAStorage } from '../nube.js';
 import { TIPOS, dimsPieza, expandirPiezas, mapaPiezas, contarBajoEscritorio } from '../datos/espacio.js';
 import { imagenProducto, imagenPartida, heroLinea } from '../datos/imagenes.js';
 import { acomodarLocal } from '../datos/planner.js';
@@ -732,8 +732,11 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       setGenEscena(esc.areaIndex);
       try {
         const r = await generarEscena(esc);
-        if (r?.ok) setImgEscena((m) => ({ ...m, [esc.areaIndex]: r.dataUrl }));
-        else setErrEscena(r?.error || `No se pudo generar ${esc.nombre}.`);
+        if (!r?.ok) { setErrEscena(r?.error || `No se pudo generar ${esc.nombre}.`); continue; }
+        // VH-046: la escena se conserva en Storage; aquí y en la cotización, sólo la URL.
+        const up = await imagenAcomodoAStorage(r.dataUrl, { cotId: estado.cotizacion?.id, tipo: `escena-${esc.areaIndex}` });
+        if (up.ok) setImgEscena((m) => ({ ...m, [esc.areaIndex]: up.url }));
+        else setErrEscena(`${esc.nombre}: ${up.error}`);
       } catch (e) {
         setErrEscena(`No se pudo generar ${esc.nombre}: ${String(e?.message || e)}`);
       }
@@ -810,7 +813,9 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
         imagenes,
       });
       if (!r || !r.ok) { setErrStaging(r?.error || 'No se pudo generar la oficina.'); return; }
-      setStagingUrl(r.dataUrl);
+      const up = await imagenAcomodoAStorage(r.dataUrl, { cotId: estado.cotizacion?.id, tipo: 'oficina' });
+      if (!up.ok) { setErrStaging(up.error); return; }
+      setStagingUrl(up.url);
     } catch (e) { setErrStaging('No se pudo conectar.'); }
     finally { setStaging(false); }
   }
@@ -829,7 +834,9 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       const desc = partidas.map((p) => `${p.cantidad}× ${p.nombre}`).join(', ') || 'mobiliario de oficina Von Haucke';
       const r = await generarRender(desc, { modo: 'staging', imagen: b64, mediaType: 'image/jpeg' });
       if (!r || !r.ok) { setErrStaging(r?.error || 'No se pudo amueblar la foto.'); return; }
-      setStagingUrl(r.dataUrl);
+      const up = await imagenAcomodoAStorage(r.dataUrl, { cotId: estado.cotizacion?.id, tipo: 'staging' });
+      if (!up.ok) { setErrStaging(up.error); return; }
+      setStagingUrl(up.url);
     } catch (err) { setErrStaging('No se pudo procesar la foto.'); }
     finally { setStaging(false); }
   }
