@@ -58,6 +58,19 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 100% de las llamadas del navegador.** `AsistenteEspecial.jsx:179` mandaba `{...b}` con `margen`/`modeloCosteo`;
 `validarIntentCosteo` respondía `FORBIDDEN_FINANCIAL_FIELD`. Pendiente VERIFIED en vivo (shadow_costeo).
 
+**VH-053 · P1 · FIXED · Cuando la IA elegía un material del catálogo del servidor que el navegador no tiene, la
+pieza se sustituía en silencio por un pariente local o quedaba "sin material" sin decir por qué.** Derivado de
+VH-051 (167 ids sólo en el servidor, 0 certificados). `aplicarPoliticaMaterial` recibía un id desconocido y
+(a) si la familia existía localmente lo AUTO-ASIGNABA a otro insumo de la familia con `clase: EXACT` y
+`autollenado: true`, que el Costeador NO mostraba (su alerta sólo salía para NOT_AVAILABLE/SUBSTITUTE) y el
+Asistente especial no mostraba ninguna alerta de material; (b) si no, decía "el catálogo no tiene un insumo
+certificado para esa familia", falso: el material existe, lo que falta es el precio certificado. Fix: un id
+que la IA declara `material_match: EXACT` y no existe localmente queda PENDIENTE con `servidorId` y
+`sinPrecioCertificado`, con el motivo honesto ("existe en el catálogo del servidor como «id», sin precio
+certificado por Compras") y SIN auto-asignación (sería sustitución silenciosa). `alertaMaterial(_match)` es el
+único texto de alerta y lo pintan las dos pantallas, incluido el auto-asignado por familia (ámbar, "confírmalo").
+El Asistente especial ya no dice "se costea en $0" (desde VH-040 queda pendiente). 3 tests materialMatch.
+
 **VH-052 · P2 · FIXED · Componentes de EcoAcustic y TeamSpace II salían con "· undefined" en el nombre cuando
 nadie eligió color.** `configDesde` manda `color: undefined` a propósito (el color lo elige la persona) y ese
 `undefined` pisaba el default del generador; el despiece y la cotización mostraban "EcoAcustic Flex (por m²) ·

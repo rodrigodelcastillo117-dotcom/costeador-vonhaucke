@@ -16,7 +16,7 @@ import { pesos, pct, pct1, colorMerma } from '../util.js';
 import AnalisisEstructural from './AnalisisEstructural.jsx';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
-import { aplicarPoliticaMaterial, MATCH } from '../datos/materialMatch.js';
+import { aplicarPoliticaMaterial, alertaMaterial } from '../datos/materialMatch.js';
 import { renderSpecFromGraph } from '../datos/renderSpec.js';
 import { flagActivo } from '../datos/flags.js';
 
@@ -430,13 +430,11 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                   <button className="pieza-x" onClick={() => quitarPieza(i)} aria-label="quitar pieza">×</button>
                 </div>
 
-                {c._match && (c._match.clase === MATCH.SUBSTITUTE_REQUIRES_CONFIRMATION || c._match.clase === MATCH.NOT_AVAILABLE) && (
-                  <div className="pieza-match-alerta" style={{ background: '#fff4e5', border: '1px solid #f0c38e', borderRadius: 8, padding: '6px 10px', margin: '6px 0', fontSize: 13, color: '#7a4a00' }}>
-                    ⚠️ {c._match.clase === MATCH.NOT_AVAILABLE ? 'Material pendiente de precio real' : 'Sustitución requiere confirmación'}
-                    {c._match.solicitado ? <> — pediste <b>{c._match.solicitado}</b>.</> : '.'}{' '}
-                    {c._match.motivo} Escoge el material arriba para costearlo (no se sustituye solo).
+                {(() => { const a = alertaMaterial(c._match); return a && (
+                  <div className="pieza-match-alerta" data-testid="alerta-material" data-tono={a.tono} style={{ background: a.tono === 'rojo' ? '#fdeaea' : '#fff4e5', border: `1px solid ${a.tono === 'rojo' ? '#e5a0a0' : '#f0c38e'}`, borderRadius: 8, padding: '6px 10px', margin: '6px 0', fontSize: 13, color: a.tono === 'rojo' ? '#7a1f1f' : '#7a4a00' }}>
+                    ⚠️ <b>{a.titulo}</b> — {a.detalle}
                   </div>
-                )}
+                ); })()}
 
                 {ins && (
                   <div className="pieza-med">

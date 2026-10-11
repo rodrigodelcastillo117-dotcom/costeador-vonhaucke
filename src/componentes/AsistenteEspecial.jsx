@@ -14,7 +14,7 @@ import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
-import { aplicarPoliticaMaterial } from '../datos/materialMatch.js';
+import { aplicarPoliticaMaterial, alertaMaterial } from '../datos/materialMatch.js';
 import { abrirPdf, paginaAImagen, todasLasPaginas } from '../datos/pdfImagen.js';
 import Cargando from './Cargando.jsx';
 import Markdown from './Markdown.jsx';
@@ -1045,7 +1045,12 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                   </select>
                   <button className="pieza-x" onClick={() => quitarPieza(i)} aria-label="quitar">×</button>
                 </div>
-                {!ins && <div className="pieza-calc" style={{ color: 'var(--alerta,#b22a22)' }}>⚠ Sin material: se costea en $0. Elige de qué es.</div>}
+                {(() => { const a = alertaMaterial(c._match); return a && (
+                  <div className="pieza-match-alerta" data-testid="alerta-material" data-tono={a.tono} style={{ background: a.tono === 'rojo' ? '#fdeaea' : '#fff4e5', border: `1px solid ${a.tono === 'rojo' ? '#e5a0a0' : '#f0c38e'}`, borderRadius: 8, padding: '6px 10px', margin: '6px 0', fontSize: 13, color: a.tono === 'rojo' ? '#7a1f1f' : '#7a4a00' }}>
+                    ⚠️ <b>{a.titulo}</b> — {a.detalle}
+                  </div>
+                ); })()}
+                {!ins && !alertaMaterial(c._match) && <div className="pieza-calc" style={{ color: 'var(--alerta,#b22a22)' }}>⚠ Sin material: la pieza queda pendiente y bloquea la emisión (no se costea en $0). Elige de qué es.</div>}
                 {ins && (
                   <div className="pieza-med">
                     {area ? (
