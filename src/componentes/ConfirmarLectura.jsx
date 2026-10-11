@@ -20,6 +20,11 @@ export default function ConfirmarLectura({ lectura, onConfirmar, onCorregir, onC
           {nivelTxt}{resumen.m2 ? ` · ${resumen.cuartos} cuarto(s), ~${resumen.m2} m²` : ''}{resumen.cotas === false ? ' · sin cotas (medidas estimadas)' : ''}
         </span>
       </div>
+      {resumen.servidor && (
+        <div className="ayuda" style={{ marginTop: 4 }} data-testid="lectura-servidor" data-estado={resumen.servidor.estado}>
+          {resumen.servidor.texto}{resumen.servidor.requestId ? ` · ref. ${resumen.servidor.requestId}` : ''}
+        </div>
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: imagen ? 'repeat(auto-fit, minmax(240px, 1fr))' : '1fr', gap: 10, marginTop: 8 }}>
         {imagen && (
           <div>

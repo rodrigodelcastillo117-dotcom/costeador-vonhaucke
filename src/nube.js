@@ -294,9 +294,16 @@ export async function leerPlano(image, mediaType, refMM) {
     body: { image, mediaType, refMM },
   });
   if (error) {
+    // VH-064: en un 422 FLOOR_SPEC_INVALID el servidor manda `floorSpec.validation.issues`
+    // (qué no cuadró, con números) y `request_id`. Antes sólo sobrevivía la frase genérica.
     let msg = error.message || 'No se pudo leer el plano.';
-    try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
-    return { ok: false, error: msg };
+    let extra = {};
+    try {
+      const j = await error.context?.json?.();
+      if (j?.error) msg = j.error;
+      if (j) extra = { code: j.code, floorSpec: j.floorSpec, request_id: j.request_id };
+    } catch (e) {}
+    return { ok: false, error: msg, ...extra };
   }
   return data;
 }

@@ -67,9 +67,9 @@ Leyenda de "prod": archivos de producción que la consumen (sin contar el archiv
 
 | Implementación | Clase | Evidencia |
 |---|---|---|
-| `leer-plano` (edge) + `planoLeido.areasDeLectura` + `floorPlan` | CONSERVAR (contrato único; `puestos` ya viaja) | prod 4. Falta compuerta de confirmación y validación de escala contra `grid`. |
+| `leer-plano` (edge) + `planoLeido.areasDeLectura` + `floorPlan` | CONSERVAR (contrato único; `puestos` ya viaja) | prod 4. Compuerta de confirmación: VH-043. La validación de escala contra `grid` la hace la edge v11 (`GRID_ENVELOPE_MISMATCH`) y desde VH-064 el cliente la enseña y baja el nivel con ella. |
 | `leerPlanoArchivo.js` y `Acomodo.procesarPlano` | CONSOLIDADO (VH-043): un solo orquestador + compuerta de confirmación | |
-| `floorSpec.validarFloorSpec/validarEnvolvente` | RETIRAR o CONECTAR (decidir) | prod 0; su forma no coincide con lo que emite leer-plano. |
+| `floorSpec.validarFloorSpec/validarEnvolvente` | RETIRAR (requiere aprobación) | prod 0; su forma no coincide con lo que emite leer-plano. La validación determinista vive en la edge v11 y el cliente ya consume su `floorSpec.validation` (VH-064): no hace falta una segunda en el cliente. |
 | `planner.acomodarLocal` + `malla.acomodarEnForma` | CORREGIDO (VH-033): plan B para sobrantes, pasada 2 sin pérdidas, `sinColocar` por nombre | |
 | `reacomodar`, `sentarSillas`, `rellenar`, `orientacion.enderezar` | CONSOLIDAR dentro del solver | Capas que se parchan entre sí (sentar→enderezar→re-sentar). |
 | `planner.empacarFilas`, `guardasAMuro`, `MEET_CLR` | RETIRAR (propuesta) | Sin llamadas. |
@@ -106,7 +106,7 @@ Leyenda de "prod": archivos de producción que la consumen (sin contar el archiv
 | `bootstrap-temp-claude` (v5, ago-2026) | No | RETIRAR (nombre sugiere arranque temporal de una sesión de IA) |
 | `costear-vision` | No | RETIRAR o versionar |
 | `analizar-mueble-strict`, `leer-plano-strict`, `acomodar-espacio-strict`, `generar-render-strict` | No | RETIRAR (variantes paralelas) |
-| `leer-plano-core` | No | Decidir: ¿es la base de `leer-plano` v11? |
+| `leer-plano-core` | No | CONSERVAR: SÍ es la base. `leer-plano` v11 es el wrapper (auth, permisos, límites, FloorSpec) y llama `leer-plano-core` para la visión (leído 2026-10-11). |
 | `voni-council` (v12) | **Sí** | CONSERVAR · VERSIONADA (2026-10-11): `supabase/functions/voni-council/index.ts` es el volcado exacto de la v12 desplegada. |
 | `voni-council-health` | No | RETIRAR o versionar |
 | `acomodar-espacio-recovery` (v6, actualizado hoy) | No | Decidir |

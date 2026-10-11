@@ -271,7 +271,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     // recordar() ANTES para que el undo cruce el cambio de modo (gate undo/redo).
     recordar(); setAreas(cuantizar(leidas)); setPlanReal(true);
     // #7: conserva el plano original para la comparación y la confianza de lectura.
-    setLecturaMeta({ nivel: r.resumen?.nivel, m2: r.resumen?.m2, cuartos: r.resumen?.cuartos, cotas: r.resumen?.cotas, confirmadaEn: new Date().toISOString() });
+    setLecturaMeta({ nivel: r.resumen?.nivel, m2: r.resumen?.m2, cuartos: r.resumen?.cuartos, cotas: r.resumen?.cotas, servidor: r.resumen?.servidor || null, confirmadaEn: new Date().toISOString() });
     setPlanoImagen(r.imagen || '');
     setNotaPlano(r.nota || '');
     setLecturaPendiente(null);

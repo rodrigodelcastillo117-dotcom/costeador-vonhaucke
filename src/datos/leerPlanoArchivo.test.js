@@ -42,3 +42,44 @@ describe('leerPlanoDeArchivo', () => {
     expect(r).toMatchObject({ ok: false, error: 'Reintenta' });
   });
 });
+
+// VH-064: la validación determinista del servidor (floorSpec.validation) llega al resumen.
+describe('leerPlanoDeArchivo · validación del servidor (VH-064)', () => {
+  const PDF = { name: 'plano.pdf', type: 'application/pdf' };
+  it('PASS: respeta el nivel local y reporta el estado del servidor con su referencia', async () => {
+    leerPlano.mockResolvedValue({ ok: true, lectura: LECTURA, request_id: 'req-1', floorSpec: { validation: { state: 'PASS', issues: [], warnings: [] } } });
+    const r = await leerPlanoDeArchivo(PDF);
+    expect(r.resumen.servidor).toEqual({ estado: 'PASS', texto: expect.stringMatching(/aprobada/), requestId: 'req-1' });
+    expect(r.floorSpec).toBeTruthy();
+  });
+  it('REVIEW_REQUIRED: los avisos entran a problemas y una lectura "alta" baja a "media"', async () => {
+    leerPlano.mockResolvedValue({ ok: true, lectura: LECTURA, floorSpec: { validation: { state: 'REVIEW_REQUIRED', issues: [],
+      warnings: [{ field: 'envolvente', code: 'ASSUMED_CRITICAL_GEOMETRY' }, { field: 'areas[1]', code: 'LOW_CONFIDENCE_ZONE', zone: 'Isla 1' }] } } });
+    const r = await leerPlanoDeArchivo(PDF);
+    expect(r.resumen.servidor.estado).toBe('REVIEW_REQUIRED');
+    expect(r.resumen.nivel).not.toBe('alta');
+    expect(r.resumen.confiable).toBe(false);
+    expect(r.resumen.problemas.some((p) => /SUPUSO/.test(p))).toBe(true);
+    expect(r.resumen.problemas.some((p) => /Isla 1/.test(p))).toBe(true);
+    expect(r.nota).toMatch(/Revisa esto/);
+  });
+  it('sin floorSpec (respuesta vieja o recortada): no se declara confiable', async () => {
+    leerPlano.mockResolvedValue({ ok: true, lectura: LECTURA });
+    const r = await leerPlanoDeArchivo(PDF);
+    expect(r.resumen.servidor.estado).toBe('SIN_VALIDACION');
+    expect(r.resumen.nivel).not.toBe('alta');
+    expect(r.resumen.confiable).toBe(false);
+  });
+  it('FAIL (422): el error trae los problemas concretos y la referencia, sin inventar áreas', async () => {
+    leerPlano.mockResolvedValue({ ok: false, code: 'FLOOR_SPEC_INVALID', error: 'No pasó la validación.', request_id: 'req-9',
+      floorSpec: { validation: { state: 'FAIL', warnings: [], issues: [{ field: 'grid.horizontal', code: 'GRID_ENVELOPE_MISMATCH', sum_mm: 15400, envelope_mm: 16000, tolerance_mm: 160 }] } } });
+    const r = await leerPlanoDeArchivo(PDF);
+    expect(r.ok).toBe(false);
+    expect(r.code).toBe('FLOOR_SPEC_INVALID');
+    expect(r.requestId).toBe('req-9');
+    expect(r.error).toMatch(/No pasó la validación/);
+    expect(r.error).toMatch(/15400 mm/);
+    expect(r.error).toMatch(/req-9/);
+    expect(r.areas).toBeUndefined();
+  });
+});

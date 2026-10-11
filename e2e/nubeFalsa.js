@@ -330,7 +330,11 @@ export function crearNubeFalsa({ usuarios }) {
     if (ruta.startsWith('/rest/v1/')) return json(route, []);
     // leer-plano: una lectura FIJA (plano ejecutivo con dos islas contadas) para probar
     // la compuerta de confirmación sin LLM. `f.lectura` se puede sustituir por prueba.
-    if (ruta === '/functions/v1/leer-plano') return json(route, { ok: true, lectura: f.lectura });
+    // VH-064: como la edge v11, viaja `floorSpec.validation`; `f.validacionPlano` se sustituye por prueba.
+    if (ruta === '/functions/v1/leer-plano') {
+      if (f.validacionPlano?.state === 'FAIL') return json(route, { ok: false, code: 'FLOOR_SPEC_INVALID', error: 'La lectura del plano no pasó la validación geométrica determinista.', lectura: f.lectura, floorSpec: { validation: f.validacionPlano }, request_id: 'req-fail-1' }, 422);
+      return json(route, { ok: true, lectura: f.lectura, floorSpec: { version: 'FLOOR_SPEC_V2', validation: f.validacionPlano || { state: 'PASS', issues: [], warnings: [] } }, request_id: 'req-plano-1', strictGeometry: true });
+    }
     if (ruta.startsWith('/functions/v1/')) return json(route, {});
     if (ruta.startsWith('/storage/v1/')) return route.fulfill({ status: 404, body: '' });
     return json(route, {});

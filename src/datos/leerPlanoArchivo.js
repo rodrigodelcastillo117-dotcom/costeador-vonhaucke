@@ -11,6 +11,7 @@
 // ============================================================================
 import { leerPlano } from '../nube.js';
 import { areasDeLectura, revisarAreas, resumenLectura } from './planoLeido.js';
+import { avisosDeValidacion, problemasDeValidacion, estadoServidor, nivelCombinado, TEXTO_ESTADO_SERVIDOR } from './floorSpecAvisos.js';
 
 const archivoABase64 = (file) => new Promise((resolve, reject) => {
   const fr = new FileReader();
@@ -51,7 +52,9 @@ async function vistaPrevia(file, esPdf, b64) {
  * VH-043: TAMBIÉN devuelve la lectura cruda, el resumen de confianza (con la
  * comprobación de escala) y una vista previa, para que la app pida CONFIRMACIÓN
  * antes de usar nada. Un solo orquestador: lo usan Voni (paso 1) y Acomodo.
- * @returns { ok, areas, lectura, resumen, imagen, nota, error }   areas en METROS
+ * @returns { ok, areas, lectura, floorSpec, resumen, imagen, nota, error, code, requestId }   areas en METROS
+ * VH-064: `resumen.servidor` = { estado PASS|REVIEW_REQUIRED|FAIL|SIN_VALIDACION, texto, requestId } y
+ * `resumen.problemas` incluye los avisos deterministas del servidor.
  */
 export async function leerPlanoDeArchivo(file) {
   if (!file) return { ok: false, error: 'No llegó ningún archivo.' };
@@ -66,20 +69,39 @@ export async function leerPlanoDeArchivo(file) {
     const esPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
     const b64 = esPdf ? await archivoABase64(file) : await imagenABase64(file);
     const r = await leerPlano(b64, esPdf ? 'application/pdf' : 'image/jpeg');
-    if (!r || !r.ok) return { ok: false, error: r?.error || 'No se pudo leer el plano.' };
+    if (!r || !r.ok) {
+      // VH-064: un FAIL del servidor (422) trae los `issues` concretos; se enseñan.
+      const fallas = problemasDeValidacion(r?.floorSpec?.validation);
+      const ref = r?.request_id ? ` (ref. ${r.request_id})` : '';
+      const error = (r?.error || 'No se pudo leer el plano.') + (fallas.length ? ' ' + fallas.map((p) => '· ' + p).join(' ') : '') + ref;
+      return { ok: false, error, code: r?.code, requestId: r?.request_id || null };
+    }
     const lec = r.lectura;
     const { areas } = areasDeLectura(lec);
-    const resumen = resumenLectura(lec);
+    const local = resumenLectura(lec);
+    // VH-064: la validación determinista del SERVIDOR (procedencia MEASURED/ASSUMED,
+    // cotas vs envolvente, puertas sin barrido…) entra al resumen. El servidor puede
+    // bajar el nivel, nunca subirlo; sin validación no se declara "confiable".
+    const validacion = r.floorSpec?.validation;
+    const estado = estadoServidor(r.floorSpec);
+    const avisos = avisosDeValidacion(validacion);
+    const problemas = [...local.problemas, ...avisos.filter((a) => !local.problemas.includes(a))];
+    const nivel = nivelCombinado(local.nivel, estado);
+    const resumen = {
+      ...local, problemas, nProblemas: problemas.length, nivel,
+      confiable: nivel === 'alta' && areas.length > 0,
+      cotas: !!lec.tieneCotas,
+      servidor: { estado, texto: TEXTO_ESTADO_SERVIDOR[estado], requestId: r.request_id || null },
+    };
     const notas = [];
     if (!lec.tieneCotas) notas.push('El plano no traía cotas: las medidas son estimadas, revísalas.');
     // La revisión va ANTES de las notas del modelo: si el levantamiento no cuadra
     // como planta, el proyectista tiene que saberlo, no descubrirlo al final.
-    const problemas = resumen.problemas;
     if (problemas.length) notas.push('Revisa esto:', ...problemas.map((p) => '· ' + p));
     if (!areas.length) notas.push('No pude reconocer los cuartos. Sube el plano en mejor calidad o dibújalo.');
     if (lec.notas?.length) notas.push(...lec.notas);
     const imagen = await vistaPrevia(file, esPdf, b64);
-    return { ok: true, areas, lectura: lec, resumen: { ...resumen, cotas: !!lec.tieneCotas }, imagen, nota: notas.join(' ') };
+    return { ok: true, areas, lectura: lec, floorSpec: r.floorSpec || null, resumen, imagen, nota: notas.join(' ') };
   } catch (e) {
     // Leer un plano es tarea central: si falla, hay que dejar rastro para
     // diagnosticar (antes se tragaba `e` y el mensaje genérico no decía nada).

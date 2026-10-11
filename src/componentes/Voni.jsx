@@ -111,7 +111,8 @@ export default function Voni({
   function confirmarLectura() {
     const r = lecturaPendiente; if (!r) return;
     const confirmada = { en: new Date().toISOString(), nivel: r.resumen?.nivel || null, m2: r.resumen?.m2 ?? null,
-      cuartos: r.areas.length, cotas: r.resumen?.cotas ?? null, problemas: r.resumen?.problemas || [] };
+      cuartos: r.areas.length, cotas: r.resumen?.cotas ?? null, problemas: r.resumen?.problemas || [],
+      servidor: r.resumen?.servidor || null };   // VH-064: veredicto determinista del servidor
     onGuardarAcomodo?.({ ...bloqueGeometria(r.areas), plan: null, planReal: true, lectura: confirmada });
     setLecturaPendiente(null);
     setPaso(2);                          // el siguiente paso es QUÉ LLEVA, no acomodar

@@ -70,3 +70,55 @@ test('"Volver a subir" descarta la lectura sin tocar el estado', async ({ browse
   expect(local.cotizacion?.acomodo?.areasM?.length || 0).toBe(0);
   await context.close();
 });
+
+// VH-064: el veredicto determinista del servidor llega a la compuerta; un aviso de
+// geometría SUPUESTA baja la confianza y se lee en español. Un FAIL no abre la compuerta.
+test('REVIEW_REQUIRED del servidor: la compuerta enseña el aviso y no dice "confiable"', async ({ browser }) => {
+  const nube = crearNubeFalsa({ usuarios: USUARIOS });
+  nube.validacionPlano = { state: 'REVIEW_REQUIRED', issues: [], warnings: [{ field: 'envolvente', code: 'ASSUMED_CRITICAL_GEOMETRY' }] };
+  const context = await browser.newContext(); await nube.instalar(context);
+  await context.addInitScript(({ k, v }) => { if (!localStorage.getItem('__s')) { localStorage.setItem(k, JSON.stringify(v)); localStorage.setItem('__s', '1'); } }, { k: CLAVE_LOCAL, v: estadoLocal() });
+  const page = await context.newPage();
+  await page.goto('/');
+  await page.fill('#email-login', 'ventas@vh.mx'); await page.fill('#pass-login', 'prueba-123');
+  await page.getByRole('button', { name: /^Entrar$/i }).click();
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+  await page.locator('button.voni-principal').click();
+  await expect(page.getByText(/Soy .*Voni/i).first()).toBeVisible({ timeout: 10000 });
+  const ruta = join(mkdtempSync(join(tmpdir(), 'plano-e2e-')), 'plano.png');
+  writeFileSync(ruta, PNG_1x1);
+  await page.locator('input[type=file][accept*="pdf"]').first().setInputFiles(ruta);
+  const gate = page.getByTestId('confirmar-lectura');
+  await expect(gate).toBeVisible({ timeout: 15000 });
+  await expect(page.getByTestId('lectura-servidor')).toHaveAttribute('data-estado', 'REVIEW_REQUIRED');
+  await expect(page.getByTestId('lectura-servidor')).toContainText(/requiere revisión/);
+  await expect(page.getByTestId('lectura-nivel')).not.toContainText(/confiable/);
+  await expect(page.getByTestId('lectura-problemas')).toContainText(/SUPUSO/);
+  // Al confirmar, el veredicto del servidor queda sellado en el estado guardado.
+  await page.getByTestId('lectura-confirmar').click();
+  await expect.poll(async () => (await page.evaluate((k) => JSON.parse(localStorage.getItem(k) || '{}'), CLAVE_LOCAL)).cotizacion?.acomodo?.lectura?.servidor?.estado).toBe('REVIEW_REQUIRED');
+  await context.close();
+});
+
+test('FAIL del servidor: no hay compuerta; el error explica qué no cuadró', async ({ browser }) => {
+  const nube = crearNubeFalsa({ usuarios: USUARIOS });
+  nube.validacionPlano = { state: 'FAIL', warnings: [], issues: [{ field: 'grid.horizontal', code: 'GRID_ENVELOPE_MISMATCH', sum_mm: 15400, envelope_mm: 16000, tolerance_mm: 160 }] };
+  const context = await browser.newContext(); await nube.instalar(context);
+  await context.addInitScript(({ k, v }) => { if (!localStorage.getItem('__s')) { localStorage.setItem(k, JSON.stringify(v)); localStorage.setItem('__s', '1'); } }, { k: CLAVE_LOCAL, v: estadoLocal() });
+  const page = await context.newPage();
+  await page.goto('/');
+  await page.fill('#email-login', 'ventas@vh.mx'); await page.fill('#pass-login', 'prueba-123');
+  await page.getByRole('button', { name: /^Entrar$/i }).click();
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+  await page.locator('button.voni-principal').click();
+  await expect(page.getByText(/Soy .*Voni/i).first()).toBeVisible({ timeout: 10000 });
+  const ruta = join(mkdtempSync(join(tmpdir(), 'plano-e2e-')), 'plano.png');
+  writeFileSync(ruta, PNG_1x1);
+  await page.locator('input[type=file][accept*="pdf"]').first().setInputFiles(ruta);
+  await expect(page.getByText(/15400 mm/)).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText(/req-fail-1/)).toBeVisible();
+  await expect(page.getByTestId('confirmar-lectura')).toHaveCount(0);
+  const estado = await page.evaluate((k) => JSON.parse(localStorage.getItem(k) || '{}'), CLAVE_LOCAL);
+  expect(estado.cotizacion?.acomodo?.areasM?.length || 0).toBe(0);
+  await context.close();
+});

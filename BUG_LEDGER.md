@@ -58,6 +58,36 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 100% de las llamadas del navegador.** `AsistenteEspecial.jsx:179` mandaba `{...b}` con `margen`/`modeloCosteo`;
 `validarIntentCosteo` respondía `FORBIDDEN_FINANCIAL_FIELD`. Pendiente VERIFIED en vivo (shadow_costeo).
 
+**VH-065 · P1 · OPEN (edge, requiere aprobación para redesplegar) · `analizar-mueble` v32 no valida la propuesta
+de la IA en el servidor.** Leída completa 2026-10-11 (index.ts 579 líneas + requestPlan/modelConfig/telemetria).
+Lo bueno: no devuelve ningún precio (el motor costea), auth real por `permitidos`, límites 40/h usuario y 400/h
+global fail-closed, modelo en lista blanca. Lo que falta, con línea: (a) `propuesta = JSON.parse(texto)` se regresa
+tal cual: no comprueba que `insumoId` exista en `insumos_catalogo`, ni que `material_match=EXACT` implique id, ni
+que `hojas/cantidad/largoMM/anchoMM` sean > 0 (el esquema quita `minimum`); (b) el `catalogo` que manda el cliente
+se interpola al prompt sin validar y SIN marca distinta de las líneas canónicas (líneas 565-575), aunque el
+comentario diga "sólo pista": un id inventado por el cliente puede volver como material "del catálogo";
+(c) `canonicoOk` sólo mira `insumos_catalogo` (línea 546): si `catalogo_vigente` falla pero el catálogo responde,
+la respuesta dice `catalogoFuente: "canonico"` con TODOS los insumos marcados "SIN PRECIO CERTIFICADO"; (d) `revisar.piezas`,
+`respuestas` y `descripcion` entran al prompt sólo recortados. Mitigación vigente en el cliente, verificada:
+`materialMatch.aplicarPoliticaMaterial` convierte un id EXACT que no existe local en NOT_AVAILABLE sin precio (VH-053)
+y `motor/calculo` marca piezas sin medidas o sin precio como PENDIENTE (costeo INCOMPLETO, no emitible). Es decir:
+el servidor no inventa precios y el cliente no costea en $0, pero la validación de forma debería vivir en la edge.
+Propuesta (no aplicada): validador determinista en la edge tras el parse (ids ∈ catálogo o `''`+NOT_AVAILABLE,
+números finitos ≥ 0, `canonicoOk = rc.ok && rp.ok`), y marcar las pistas del cliente como "(no certificado)".
+
+**VH-064 · P1 · FIXED · La app tiraba la validación determinista del servidor al leer planos.** La edge
+`leer-plano` v11 (leída 2026-10-11) revalida toda la salida de la IA y devuelve `floorSpec.validation` con
+`state` PASS / REVIEW_REQUIRED / FAIL, `warnings` (envolvente SUPUESTA por el modelo, cuarto con confianza baja,
+puerta sin barrido verificable, sin cotas…) e `issues` (cotas que no suman la envolvente, vértices fuera, cuartos
+encimados, con números) y un `request_id`. El cliente (`leerPlanoDeArchivo`) sólo leía `lectura` y medía traslapes
+locales: una lectura con la envolvente supuesta salía "✓ Lectura confiable", y en un FAIL (422) la persona veía la
+frase genérica sin saber qué no cuadró. Fix: `floorSpecAvisos.js` traduce códigos a español (un código desconocido
+se enseña, no se esconde) y `nivelCombinado` deja que el servidor BAJE el nivel (REVIEW_REQUIRED o sin validación
+⇒ a lo más "media"; FAIL ⇒ "baja"), nunca lo suba; `nube.leerPlano` conserva `code/floorSpec/request_id` del error;
+la compuerta `ConfirmarLectura` muestra el veredicto (`data-testid=lectura-servidor`) y los avisos; Voni y Acomodo
+sellan `servidor` en la lectura confirmada. Pruebas: 5 unit `floorSpecAvisos`, 4 unit `leerPlanoDeArchivo`, 2 e2e
+(REVIEW_REQUIRED y FAIL con nube falsa que ahora manda `floorSpec` como la edge). No se tocó la edge.
+
 **VH-063 · P2 · OPEN (migración, requiere aprobación) · El vendedor no puede saber antes de verificar que su
 descuento requerirá aprobación.** La política vigente (leída 2026-10-11: margen mínimo 25 %, descuento máximo sin
 aprobación 40 %, versión 1 aprobada el 2026-10-02) sólo la lee Dirección (RLS `rc_sel`) y la RPC
