@@ -174,3 +174,23 @@ test.describe('Aprobación de Dirección (VH-055)', () => {
     await ctx.close();
   });
 });
+
+
+// VH-063 · El vendedor sabe ANTES de verificar que su descuento exigirá aprobación.
+test('vendedor: 45 % de descuento muestra el aviso de política junto al campo; 30 % no', async ({ browser }) => {
+  const nube = crearNubeFalsa({ usuarios: USUARIOS });
+  const context = await browser.newContext(); await nube.instalar(context);
+  await sembrarLocal(context, estadoLocal({ cotizacion: { cliente: 'ACME', partidas: [SANA] } }));
+  const page = await context.newPage();
+  await entrar(page, 'ventas@vh.mx');
+  await page.getByRole('button', { name: /^Mi cotización/ }).first().click();   // botón del encabezado
+  const campo = page.locator('label.etiqueta', { hasText: /Descuento de proyecto/ }).locator('xpath=following-sibling::input[1]');
+  await expect(campo).toBeVisible({ timeout: 15000 });
+  await campo.fill('45'); await campo.blur();
+  await expect(page.getByTestId('aviso-descuento')).toBeVisible({ timeout: 10000 });
+  await expect(page.getByTestId('aviso-descuento')).toContainText(/45% supera el máximo sin aprobación \(40%\)/);
+  await expect(page.getByTestId('aviso-descuento')).toContainText(/aprobación de Dirección/);
+  await campo.fill('30'); await campo.blur();
+  await expect(page.getByTestId('aviso-descuento')).toHaveCount(0);
+  await context.close();
+});

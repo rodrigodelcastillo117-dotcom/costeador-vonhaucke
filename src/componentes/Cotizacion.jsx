@@ -18,7 +18,8 @@ import { imagenPartida } from '../datos/imagenes.js';
 import VoniAvatar from './VoniAvatar.jsx';
 import { confianzaDe, textoConfianza } from '../datos/confianza.js';
 import { expandirPiezas, mapaPiezas } from '../datos/espacio.js';
-import { generarRender, renderDePartida, imagenAcomodoAStorage, analizarNegocio, resolverRendersCanonicos } from '../nube.js';
+import { generarRender, renderDePartida, imagenAcomodoAStorage, analizarNegocio, resolverRendersCanonicos, politicaComercialPublica } from '../nube.js';
+import { leerPolitica, avisoDescuento } from '../datos/politicaComercial.js';   // VH-063
 import { estadoRenderPartida, claveRenderPartida, ESTADO_RENDER } from '../datos/renderCanonico.js';
 import { textoRazonEmision, ESTADO_EMISION, razonesPorLinea } from '../datos/emisionUX.js';
 import { evaluarEmisionLocal, combinarGate, detalleBloqueo } from '../datos/emision.js';
@@ -108,6 +109,10 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   // Voni Cerebro, Fase 2: la narración con IA es UN clic, nunca automática —
   // cada llamada a Claude cuesta.
   const [voniCargando, setVoniCargando] = useState(false);
+  // VH-063: política pública (sólo descuento máximo sin aprobación + versión). Se carga una vez;
+  // sin dato no hay aviso (la autoridad sigue siendo el servidor al verificar).
+  const [politica, setPolitica] = useState({ vigente: false });
+  useEffect(() => { let vivo = true; politicaComercialPublica().then((d) => { if (vivo) setPolitica(leerPolitica(d)); }); return () => { vivo = false; }; }, []);
   const [voniMensaje, setVoniMensaje] = useState('');
   const [voniError, setVoniError] = useState('');
 
@@ -381,6 +386,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   const { precioLista, descuentoPct, descuento, subtotal, contingenciaPct, contingencia,
     maniobrasPct, maniobras, fletePct, flete, ivaPct, iva, baseGravable, total, totalRedondeado,
     anticipoPct, anticipo, hayLineaInvalida } = totalesCotizacion(partidas, cot, estado.parametros);
+  const avisoDesc = avisoDescuento(descuentoPct, politica);   // VH-063
   const costoTotal = partidas.reduce((a, p) => a + (p.costoUnitario || 0) * p.cantidad, 0);
   const utilidadTotal = baseGravable - costoTotal;
   const minMarkup = estado.parametros.minMarkupLinea ?? 45;
@@ -655,6 +661,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           <div className="fila-botones" style={{ justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <label className="etiqueta" style={{ margin: 0 }}>Descuento de proyecto (%)</label>
             <CampoPct valor={descuentoPct} max={60} onCambio={(v) => setCot({ descuentoPct: v })} />
+            {avisoDesc && <span className="alerta ambar" style={{ margin: 0, flexBasis: '100%' }} data-testid="aviso-descuento"><span className="texto">{avisoDesc.texto}</span></span>}
             {!soloVentas && descuentoMax != null && <button className="boton fantasma" style={{ minHeight: 40, padding: '0 12px' }} onClick={() => setCot({ descuentoPct: descuentoMax })} title={`Máximo sin bajar del piso de ${minMarkup}% SOBRE COSTO (markup). Ojo: ${minMarkup}% sobre costo equivale a ${Math.round(100 * (minMarkup / (100 + minMarkup)))}% de margen sobre precio, que es otra cuenta.`}>Máx. rentable: {descuentoMax}%</button>}
           </div>
           {/* Rodrigo, 2026-08-16: "el precio que tenemos ya es precio de lista, es el de

@@ -5,8 +5,6 @@
 //  Si no hay internet, la app sigue con lo local (ver almacen.js).
 // ============================================================================
 import { leerRespuestaRender } from './datos/renderRespuesta.js';
-import { reglasTexto } from './datos/reglas.js';
-import { aprendizajesTexto } from './datos/aprendizaje.js';
 import { validarIntentCosteo, intentDesdePieza } from './datos/validarIntentCosteo.js';
 import { renderParaPartida } from './datos/renderPartida.js';
 import { imagenAStorage, rutaImagen } from './datos/imagenStorage.js';
@@ -265,8 +263,10 @@ export async function guardarConfirmaciones(rows) {
 export async function cotizarTexto(texto, catalogo) {
   // Las reglas de oficio que Rodrigo dicta en "Lo que Voni sabe" viajan CON el
   // pedido. Sin esta línea la pantalla enseñaba reglas que el modelo nunca veía.
+  // VH-060 (2026-10-11): las reglas de la casa y los aprendizajes aprobados los lee la
+  // edge v13 DIRECTO de la base; el body ya no manda contexto (el servidor lo ignoraría).
   const { data, error } = await nube.functions.invoke('cotizar-texto', {
-    body: { texto, catalogo, reglas: reglasTexto('cotizacion'), aprendizajes: aprendizajesTexto() },
+    body: { texto, catalogo },
   });
   if (error) {
     let msg = error.message || 'No se pudo interpretar el texto.';
@@ -314,8 +314,9 @@ export async function leerPlano(image, mediaType, refMM) {
 // determinístico que ya se armó en el cliente. `alcance`: 'cotizacion' o
 // 'negocio' (este último trae candado de rol del lado del servidor).
 export async function analizarNegocio(senales, alcance = 'cotizacion') {
+  // VH-060 (2026-10-11): la edge v2 lee reglas y aprendizajes aprobados de la base.
   const { data, error } = await nube.functions.invoke('analizar-negocio', {
-    body: { senales, alcance, reglas: reglasTexto('negocio'), aprendizajes: aprendizajesTexto() },
+    body: { senales, alcance },
   });
   if (error) {
     let msg = error.message || 'No se pudo conectar con Voni.';
@@ -535,6 +536,16 @@ export async function evaluarEmision(cotizacionId, snapshot) {
     motivos: data.reasons || [], economics: data.economics || [], approval_reasons: data.approval_reasons || [],
     hash: data.hash || null, approval_required: !!data.approval_required, approved: !!data.approved,
   };
+}
+
+// VH-063: política comercial PÚBLICA (sólo descuento máximo sin aprobación y versión).
+// RPC security definer aplicada 2026-10-11 con aprobación de Dirección. Sin dato ⇒ vigente:false.
+export async function politicaComercialPublica() {
+  try {
+    const { data, error } = await nube.rpc('politica_comercial_publica');
+    if (error) return { vigente: false, error: error.message };
+    return data || { vigente: false };
+  } catch (e) { return { vigente: false, error: String(e?.message || e) }; }
 }
 
 // Aprobación de Dirección por el SERVIDOR (hash y reglas_version los pone la base):
