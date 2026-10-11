@@ -50,7 +50,9 @@ export const ZONA = {
 export function zonaSemantica(nombre = '') {
   const t = String(nombre).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   if (/ceo|direcc|director/.test(t)) return ZONA.CEO;
-  if (/consejo|junta|board|reunion|sala de/.test(t)) return ZONA.CONSEJO;
+  // VH-033: "sala de" a secas NO es consejo ("Sala de capacitación", "Sala de espera"
+  // vetaban escritorios y perdían todas sus sillas). Sólo junta/consejo/reunión.
+  if (/consejo|junta|board|reunion/.test(t)) return ZONA.CONSEJO;
   if (/operativ|open|bench|estacion|trabajo/.test(t)) return ZONA.OPERATIVA;
   if (/recepc|lobby|acceso/.test(t)) return ZONA.RECEPCION;
   // Sanitarios ANTES que site, y site con límites de palabra: "saNITarios" contiene

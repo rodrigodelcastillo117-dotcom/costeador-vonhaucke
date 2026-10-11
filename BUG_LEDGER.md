@@ -18,13 +18,15 @@ y Acomodo (`Acomodo.jsx:220,282`) guardan por esa capa → el programa volvía a
 direcciones. Test de cadena: `puestosCadenaCompleta.test.js` (5). → **FIXED** (pendiente VERIFIED en
 vivo con el PDF golden).
 
-**VH-033 · P0 · OPEN · Acomodo pierde sillas con piso de sobra.** Reproducido con `acomodarLocal`:
-24 escritorios + 48 sillas operativas en sala de 23×14 m → **48 de 72**; 1 escritorio + 48 sillas en
-"Sala de capacitación" → **0 de 49** (el nombre se clasifica CONSEJO y veta al escritorio; sin
-escritorio, `sentarSillas` no coloca ninguna silla). Causa: las sillas operativas sólo se colocan
-en asientos de escritorios ya colocados (`planner.js:290,313,353`) y no tienen plan B; además la
-pasada 2 re-empaca desde cero y las piezas que no caben se pierden sin volver a `restantes`
-(`planner.js:359-369`) reportando `caben:true`. Es el mecanismo de VH-016.
+**VH-033 · P0 · FIXED · Acomodo perdía sillas con piso de sobra.** Reproducido: 24 escritorios + 48 sillas en
+23×14 m → 48 de 72; 1 escritorio + 48 sillas en "Sala de capacitación" → 0 de 49. Tres causas, tres fixes en
+`planner.js`/`floorSpec.js` (2026-10-11): (1) las sillas operativas sólo se colocaban en asientos de escritorios
+ya puestos → ahora `colocarSobrantes` intenta en piso libre todo lo que sobró, con lo ya colocado como obstáculo
+(nada se mueve) y respetando zonas y cuartos de servicio; (2) la pasada 2 re-empacaba desde cero y PERDÍA piezas
+ya colocadas reportando `caben:true` → el intento se descarta si no vuelve a caber lo que había; (3) "sala de" a
+secas clasificaba CONSEJO y vetaba escritorios → sólo junta/consejo/reunión. El resultado trae `sinColocar` por id
+y la nota dice QUÉ no cupo (mandato §4). Ahora: 72 de 72, 49 de 49, 11 de 11; golden de Rodrigo sigue 79/79.
+Tests: `planner.sillas.test.js` (4, con invariante pedidas = colocadas + sinColocar). Pendiente VERIFIED en vivo.
 
 **VH-034 · P0 · FIXED · VERIFIED (E2E navegador) · Cada recarga creaba una cotización nueva en la nube.**
 `idCotizacion` era `useRef(null)`, nunca se persistía; al recargar, el autosave hacía INSERT. Fix (Bloque 1):
