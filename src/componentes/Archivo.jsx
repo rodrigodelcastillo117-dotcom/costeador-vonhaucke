@@ -19,6 +19,7 @@ import { listarRevisiones } from '../datos/revisiones.js';
 import { armarRespaldo, validarRespaldo, nombreArchivoRespaldo, descargarJSON, leerArchivoJSON } from '../datos/respaldo.js';
 import { descargarPropuesta, datosDesdeSnapshot, cargarMarca, cargarImagenesAcomodo } from '../datos/pdfPropuesta.js';
 import { pesos, coincide } from '../util.js';
+import AprobacionesPendientes from './AprobacionesPendientes.jsx';
 
 const fechaCorta = (iso) => {
   if (!iso) return '';
@@ -26,7 +27,7 @@ const fechaCorta = (iso) => {
   return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' });
 };
 
-export default function Archivo({ estado, onAbrir, veCostos = false, usuario = null, onRestaurar = null }) {
+export default function Archivo({ estado, onAbrir, veCostos = false, usuario = null, onRestaurar = null, puedeAprobar = false }) {
   const [lista, setLista] = useState(null);   // null = cargando
   const [busca, setBusca] = useState('');
   const [error, setError] = useState('');
@@ -73,6 +74,7 @@ export default function Archivo({ estado, onAbrir, veCostos = false, usuario = n
 
   return (
     <div className="contenido">
+      <AprobacionesPendientes visible={puedeAprobar} />
       <div className="tarjeta" data-testid="respaldo-local">
         <h3 style={{ marginTop: 0 }}>Respaldo de esta computadora</h3>
         <p className="ayuda columna-texto">

@@ -1074,6 +1074,7 @@ export default function App() {
           <Archivo
             estado={estado}
             veCostos={veCostos}
+            puedeAprobar={esDireccion}
             usuario={sesion?.user?.email || null}
             onRestaurar={(r) => {
               // Restaurar un respaldo = reabrir ESA cotización (mismo id/clave): no se

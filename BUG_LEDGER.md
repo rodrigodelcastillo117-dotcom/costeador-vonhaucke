@@ -58,6 +58,15 @@ computadora. 10 tests unit + E2E exportar→restaurar→editar sobre la misma fi
 100% de las llamadas del navegador.** `AsistenteEspecial.jsx:179` mandaba `{...b}` con `margen`/`modeloCosteo`;
 `validarIntentCosteo` respondía `FORBIDDEN_FINANCIAL_FIELD`. Pendiente VERIFIED en vivo (shadow_costeo).
 
+**VH-057 · P1 · FIXED · Dirección no tenía dónde ver las aprobaciones pendientes.** El Deal Desk vive dentro de un
+PROYECTO comercial y lista sólo las aprobaciones de las cotizaciones de ese proyecto; una cotización sin
+proyecto (las que nacen en el Costeador, la mayoría) pedía aprobación a un buzón que nadie abría. Fix:
+`AprobacionesPendientes` en el Archivo, sólo para Dirección (`esDireccion`), lista TODAS las pendientes (RLS
+`aprob_sel`: Dirección ve todas) con solicitante, motivo, descuento y versión, y resuelve por la RPC
+`resolver_aprobacion`. `crm.listarAprobacionesPendientes`. E2E: el vendedor pide → Dirección entra a su Archivo,
+ve "Aprobaciones pendientes (1)" con el motivo, aprueba → el vendedor verifica, emite y el hash coincide; el
+vendedor no ve la cola en su Archivo.
+
 **VH-055 · P0 · FIXED · Una cotización que requería aprobación de Dirección no se podía emitir desde la app:
 nadie podía pedir la aprobación, y la verificación la habría negado aun aprobada.** Tres hechos verificados:
 (1) `crm.solicitarAprobacion` (insert directo en `aprobaciones`) no tenía ningún consumidor: la pantalla decía

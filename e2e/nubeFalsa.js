@@ -320,7 +320,11 @@ export function crearNubeFalsa({ usuarios }) {
     }
     if (ruta === '/rest/v1/aprobaciones' && req.method() === 'GET') {
       const m = /cotizacion_id=eq\.(\d+)/.exec(url.search || '');
-      const lista = f.aprobaciones.filter((a) => !m || a.cotizacion_id === Number(m[1])).filter((a) => a.solicitado_por === email || rolDe(email) === 'direccion' || editaConfig(email));
+      const est = /estado=eq\.([A-Z_]+)/.exec(url.search || '');
+      const lista = f.aprobaciones
+        .filter((a) => !m || a.cotizacion_id === Number(m[1]))
+        .filter((a) => !est || a.estado === est[1])
+        .filter((a) => a.solicitado_por === email || rolDe(email) === 'direccion' || editaConfig(email));
       return json(route, lista);
     }
     if (ruta.startsWith('/rest/v1/')) return json(route, []);

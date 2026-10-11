@@ -87,6 +87,12 @@ test.describe('Compuerta única de emisión', () => {
     await verificar(page).click();
     await expect(page.getByText(/Línea 1: falta un precio válido/)).toBeVisible({ timeout: 15000 });
     expect(nube.revisiones).toHaveLength(0);
+    // La cola de aprobaciones es de Dirección: el vendedor no la ve en su Archivo.
+    await page.goto('/');
+    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+    await page.getByRole('button', { name: /Presupuestos que ya hicimos/i }).first().click();
+    await expect(page.getByTestId('respaldo-local')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('aprobaciones-pendientes')).toHaveCount(0);
     await ctx.close();
   });
 
@@ -141,8 +147,21 @@ test.describe('Aprobación de Dirección (VH-055)', () => {
     await expect(page.getByTestId('aprobacion-msg')).toHaveText(/Ya había una solicitud pendiente/, { timeout: 15000 });
     expect(nube.aprobaciones).toHaveLength(1);
 
-    // Dirección aprueba (misma regla que resolver_aprobacion: sólo PENDIENTE, sólo Dirección).
-    nube.resolverAprobacion(1, 'APROBADA', 'rodrigo@vh.mx');
+    // Dirección aprueba DESDE LA INTERFAZ (Archivo → Aprobaciones pendientes), por la RPC.
+    const cd = await browser.newContext(); await nube.instalar(cd);
+    await sembrarLocal(cd, estadoLocal());
+    const d = await cd.newPage();
+    await entrar(d, 'rodrigo@vh.mx');
+    await d.getByRole('button', { name: /Presupuestos que ya hicimos/i }).first().click();
+    const cola = d.getByTestId('aprobaciones-pendientes');
+    await expect(cola).toContainText('Aprobaciones pendientes (1)', { timeout: 15000 });
+    await expect(cola.getByTestId('aprobacion-fila')).toContainText(/Cotización \d+ · solicitó ventas@vh.mx/);
+    await expect(cola.getByTestId('aprobacion-fila')).toContainText('Cliente estratégico, igualamos competencia');
+    await cola.getByRole('button', { name: /^Aprobar$/ }).click();
+    await expect(cola).toContainText('Nada pendiente', { timeout: 15000 });
+    expect(nube.aprobaciones[0]).toMatchObject({ estado: 'APROBADA', resuelto_por: 'rodrigo@vh.mx' });
+    expect(nube.llamadas.some((l) => l.includes('/rpc/resolver_aprobacion'))).toBe(true);
+    await cd.close();
 
     // El vendedor vuelve a verificar: ahora está lista, y emite.
     await verificar(page).click();

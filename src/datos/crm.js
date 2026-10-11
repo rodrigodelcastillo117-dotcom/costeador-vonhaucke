@@ -60,6 +60,9 @@ export const listarAprobaciones = (cotizacionId) =>
 // VH-055: pedir y resolver van por las RPCs del servidor (hash_revision + reglas_version
 // los pone la base; `resuelto_por` sale del JWT). Escribir la tabla directo dejaba filas
 // sin reglas_version que verificar_aprobacion nunca reconoce.
+// VH-057: cola de Dirección. La RLS deja a Dirección ver todas; a los demás, las suyas.
+export const listarAprobacionesPendientes = () =>
+  sel(nube.from('aprobaciones').select('*').eq('estado', 'PENDIENTE').order('creado', { ascending: true }));
 export const solicitarAprobacion = ({ cotizacion_id, snapshot, motivo = null } = {}) => solicitarAprobacionSnapshot(cotizacion_id, snapshot, motivo);
 export const resolverAprobacion = (id, estado, _resueltoPorIgnorado = null, motivo = null) => resolverAprobacionServidor(id, estado, motivo);
 
