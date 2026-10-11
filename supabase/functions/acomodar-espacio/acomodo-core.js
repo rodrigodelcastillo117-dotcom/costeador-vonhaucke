@@ -140,16 +140,6 @@ export function resumenViolaciones(val) {
   return (val?.noColocadas || []).map((p) => `Pieza ${p.id}: ${p.motivo || 'inválida'}${p.codigos?.length ? ` [${p.codigos.join(',')}]` : ''}`);
 }
 
-export function recomendacionesParcial(val) {
-  const cods = new Set((val?.noColocadas || []).flatMap((p) => p.codigos || []));
-  const recs = [];
-  if (cods.has(CODIGO.OVERLAP)) recs.push('Hay traslapes: separa las piezas o baja la densidad del área.');
-  if (cods.has(CODIGO.OUTSIDE_AREA) || cods.has(CODIGO.OUTSIDE_POLYGON)) recs.push('Piezas que no caben en su área: muévelas a otra con más espacio o revisa medidas.');
-  if (cods.has(CODIGO.BLOCKS_DOOR)) recs.push('Piezas que tapan una puerta/acceso: reubícalas lejos del barrido de la puerta.');
-  if (cods.has(CODIGO.NO_SPACE) || cods.has(CODIGO.UNKNOWN_PIECE)) recs.push('No hubo superficie libre suficiente para todas las piezas.');
-  recs.push('Opciones: mover a otra área · cambiar el producto por uno más chico · acomodar a mano. No se reducen cantidades ni se inventan muebles.');
-  return recs;
-}
 
 // --------------------------------------------------------------------------
 //  PLANNER determinista (constraint solver). Coloca por construcción válido.
@@ -219,56 +209,6 @@ export function planearDeterminista(areas = [], piezas = [], opts = {}) {
   return { colocacion, noColocadas };
 }
 
-// Preserva SOLO las colocaciones válidas del intento previo (para no moverlas).
-function colocacionesValidas(colocacion, val) {
-  const okIds = new Set((val?.porPieza || []).filter((p) => p.ok).map((p) => String(p.id)));
-  return (colocacion || []).filter((c) => okIds.has(String(c?.id)));
-}
-
-// --------------------------------------------------------------------------
-//  REPAIR-LOOP. `proponer` inyectable (IA o planner). Valida entre intentos.
-// --------------------------------------------------------------------------
-export async function acomodarConReparacion({ areas, piezas, proponer, maxIntentos = 3 }) {
-  const intentos = [];
-  let mejor = null;
-  let colocacionValidaPrevia = [];
-  let violacionesPrevias = [];
-
-  for (let intento = 1; intento <= maxIntentos; intento++) {
-    let plan;
-    try {
-      plan = await proponer({ areas, piezas, intento, violacionesPrevias, colocacionValidaPrevia });
-    } catch (e) {
-      intentos.push({ intento, error: String(e?.message || e), colocadas: mejor?.val.colocadas || 0, total: piezas.length, violaciones: [] });
-      continue;
-    }
-    const colocacion = (plan && Array.isArray(plan.colocacion)) ? plan.colocacion : [];
-    const val = validarColocacion(areas, piezas, colocacion);
-    intentos.push({ intento, colocadas: val.colocadas, total: val.total, violaciones: resumenViolaciones(val) });
-
-    if (!mejor || val.colocadas > mejor.val.colocadas) mejor = { plan, colocacion, val };
-
-    if (val.ok) {
-      return {
-        ok: true, completo: true,
-        plan: { ...plan, caben: true },
-        colocacion, colocadas: val.colocadas, total: val.total,
-        porPieza: val.porPieza, noColocadas: [], recomendaciones: [], intentos,
-      };
-    }
-    colocacionValidaPrevia = colocacionesValidas(colocacion, val);
-    violacionesPrevias = resumenViolaciones(val);
-  }
-
-  const b = mejor || { plan: { colocacion: [] }, colocacion: [], val: validarColocacion(areas, piezas, []) };
-  return {
-    ok: true, completo: false,
-    plan: { ...b.plan, caben: false },
-    colocacion: b.colocacion,
-    colocadas: b.val.colocadas, total: b.val.total,
-    porPieza: b.val.porPieza,
-    noColocadas: b.val.noColocadas,
-    recomendaciones: recomendacionesParcial(b.val),
-    intentos,
-  };
-}
+// B6 (2026-10-11): `acomodarConReparacion`, `colocacionesValidas` y `recomendacionesParcial` se retiraron
+// (prod 0: index.ts nunca los importó). `validarColocacion` y `resumenViolaciones` se conservan como
+// oráculo de los tests de `planearDeterminista`.

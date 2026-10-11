@@ -35,19 +35,8 @@ export const DIV_PRECIO_2 = 0.42;
 
 const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100; // a centavos
 
-/**
- * Costo de fabricación al modo Vonhaucke, desde el material del despiece.
- * @param material total de materia prima (Σ consumo × costo última compra)
- * @param tipo una clave de FACTORES_VH (default mueble_fabricado)
- */
-export function costoFabVH(material, tipo = 'mueble_fabricado') {
-  const f = FACTORES_VH[tipo] || FACTORES_VH.mueble_fabricado;
-  const mat = r2(Math.max(0, Number(material) || 0));
-  const mo = r2(mat * f.mo);
-  const indirecto = r2(mo * f.ind);          // sobre la MO ya redondeada
-  const costoFab = r2(mat + mo + indirecto);
-  return { material: mat, mo, indirecto, costoFab, tipo };
-}
+// B2 (2026-10-11): `costoFabVH` se retiró; duplicaba la fórmula Alba con otros factores y no tenía
+// consumidores en producción. La verdad del costo de fabricación vive en motor/calculo.js + formulaAlba.js.
 
 /**
  * Los tres niveles de precio sobre un costo de fabricación.

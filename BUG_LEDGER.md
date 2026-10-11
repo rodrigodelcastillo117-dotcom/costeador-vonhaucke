@@ -81,6 +81,12 @@ aprobación: queda como C3 en DECISIONES_PENDIENTES. `shadow_costeo` sigue en 0 
 Asistente especial ("Costear con IA"), que la pasada no recorrió → VH-036/073 siguen SIN verificar en vivo.
 Pendiente tuyo (seguridad): la cuenta de dirección de prueba tiene contraseña trivial; cámbiala o bájala a vendedor.
 
+**RETIRADAS B1–B10 · 2026-10-11 · aprobadas por Dirección ("B1–B10: retirar código muerto").** Diez commits, uno por
+módulo, cada uno con la suite completa y el build en verde antes y después (1,208 → 1,165 tests: los que se fueron
+probaban código que no corría). Detalle y lo que se conservó (p. ej. `validarColocacion` como oráculo del solver) en
+`DECISIONES_PENDIENTES.md` bloque B. Dos filas del inventario que decían "prod 0" estaban mal y NO se retiraron
+(`evidencia.js`, `componentesSinMaterial`).
+
 **VH-073 · P2 · FIXED · La comparación sombra cliente↔servidor no guardaba el motivo de los fallos.** `shadow_costeo`
 medido 2026-10-11: 41 filas desde el 2026-10-01; 8 coincidencias exactas (diff 0, todas del 2026-10-02); 7 `incompleto`;
 **26 errores HTTP 400 del 2026-10-04 al 2026-10-10 con `estado_servidor='error'` y `campos_recibidos=[ok,error,status]`
@@ -113,8 +119,13 @@ los bytes (`urlADataUrl`) sólo cuando necesita la imagen como referencia de la 
 imagen ya no es éxito. Pruebas: 5 unit `renderRespuesta`, +2 `renderPartida`, +1 `imagenStorage`, 1 e2e (Costeador
 recibe la URL de Storage como imagen). Sin tocar la edge. Pendiente de decisión: enseñar `audit` (QA visual) en pantalla.
 
-**VH-069 · P1 · OPEN (edge, requiere aprobación para redesplegar) · `cotizar-texto` v12 no tiene compuerta de rol,
-límite ni telemetría.** Leída completa 2026-10-11 (header dice v11, metadatos v12). A diferencia de `leer-plano`,
+**VH-069 · P1 · FIXED (DESPLEGADO 2026-10-11 con aprobación expresa "A1+A2") · `cotizar-texto` v12 y `analizar-negocio` v1 no
+tenían compuerta de rol, límite ni telemetría.** RESOLUCIÓN: `cotizar-texto` v13 y `analizar-negocio` v2 con el mismo
+wrapper que `leer-plano` (JWT real + `permitidos` + rol, 30/h usuario y 200/h global fail-closed, `ai_eventos` al inicio con
+tokens y duración, `request_id`); el comportamiento de v12 (ruta/producto separados, cierre de aclaraciones, extras
+sugeridos descartados) se conserva íntegro. Verificado en vivo: 401 sin sesión, 400 `MISSING_CATALOG`, llamadas reales
+200 con `request_id` y filas en `ai_eventos` (`cotizar-texto` 5,403/397 tokens; `analizar-negocio` 2 filas). Respaldo
+exacto de v12/v1 guardado en la sesión para rollback (redeploy). Texto original: Leída completa 2026-10-11 (header dice v11, metadatos v12). A diferencia de `leer-plano`,
 `analizar-mueble` y `acomodar-espacio`, NO consulta `permitidos`, NO limita por usuario/hora, NO escribe `ai_eventos`
 (medido: 0 filas de `cotizar-texto` en la tabla; las otras tres sí registran) y llama a `claude-opus-5` con
 `max_tokens 8000` por cada petición. Sólo la protege `verify_jwt`. Hoy los 11 usuarios de `auth.users` están en
@@ -208,8 +219,8 @@ la compuerta `ConfirmarLectura` muestra el veredicto (`data-testid=lectura-servi
 sellan `servidor` en la lectura confirmada. Pruebas: 5 unit `floorSpecAvisos`, 4 unit `leerPlanoDeArchivo`, 2 e2e
 (REVIEW_REQUIRED y FAIL con nube falsa que ahora manda `floorSpec` como la edge). No se tocó la edge.
 
-**VH-063 · P2 · OPEN (migración, requiere aprobación) · El vendedor no puede saber antes de verificar que su
-descuento requerirá aprobación.** La política vigente (leída 2026-10-11: margen mínimo 25 %, descuento máximo sin
+**VH-063 · P2 · FIXED (migración APLICADA 2026-10-11 con aprobación expresa "A3 sólo descuento") · El vendedor no podía saber antes de verificar que su
+descuento requeriría aprobación.** RESOLUCIÓN: `public.politica_comercial_publica()` (security definer, `authenticated`) expone SÓLO `vigente`, `version` y `descuento_max_sin_aprobacion`; el margen mínimo NO viaja (decisión de Dirección). Verificado en vivo: con sesión de `qa-direccion` devuelve `{version:1, vigente:true, descuento_max_sin_aprobacion:40}`; sin sesión `permission denied`; desde SQL sin `auth.uid()` `no autorizado`. Cliente: `datos/politicaComercial` (leerPolitica/avisoDescuento, 4 unit) + aviso ámbar junto al campo de descuento en Cotización (`data-testid=aviso-descuento`, e2e vendedor 45 %→aviso, 30 %→nada). La autoridad al emitir sigue siendo el servidor. Texto original: La política vigente (leída 2026-10-11: margen mínimo 25 %, descuento máximo sin
 aprobación 40 %, versión 1 aprobada el 2026-10-02) sólo la lee Dirección (RLS `rc_sel`) y la RPC
 `reglas_comerciales_vigentes` está concedida sólo a `service_role`. La pantalla deja teclear hasta 60 % y el
 vendedor descubre al final que "requiere aprobación de Dirección para este contenido", sin saber que fue el
@@ -256,7 +267,7 @@ viajado al prompt de todos. Fix: `quienAnota()` resuelve correo y rol de la sesi
 con Aprobar/Descartar (mandato §6: evidencia, procedencia, revisión). CotizadorIA deja de inventar el campo.
 4 tests `aprendizaje.test.js`.
 
-**VH-060 · P1 · OPEN (edge, requiere despliegue) · `cotizar-texto` y `analizar-negocio` meten al prompt el texto
+**VH-060 · P1 · FIXED (servidor, 2026-10-11) · `cotizar-texto` y `analizar-negocio` meten al prompt el texto RESOLUCIÓN: las edges v13/v2 leen `reglas` activas (ámbito propio o 'general') y `aprendizajes` activos con `aprobado_para_ia` directo de la base, por `veces`, y IGNORAN `reglas`/`aprendizajes` del body; si la base no responde: 503 CONTEXTO_UNAVAILABLE. El cliente dejó de mandarlos. Medido en vivo: contexto {reglas:4, aprendizajes:25} para cotización; para 'negocio' hay 0 reglas en la tabla (no existe el ámbito 'negocio'; sí 'precio' con 7): Dirección decide si 'precio' debe alimentar a Voni negocio.
 de `aprendizajes` que les manda el navegador, sin leerlo de la base.** Cualquier cliente autenticado puede
 inyectar instrucciones al modelo con `body.aprendizajes`. Con VH-059 el cliente oficial sólo manda lo aprobado,
 pero la autoridad debe ser el servidor: las edges deberían leer `aprendizajes where activo and aprobado_para_ia`
