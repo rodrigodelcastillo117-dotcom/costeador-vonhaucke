@@ -1,5 +1,6 @@
 // ============================================================================
-// acomodar-espacio v8 · planner IA + validador espacial DETERMINISTA.
+// acomodar-espacio v10 · PENDIENTE DE DESPLEGAR (A5 · VH-068, requiere aprobación)
+// planner IA + validador espacial DETERMINISTA.
 //
 // Conserva hardening vivo: JWT, roles, rate-limit, input bounds, geometría real,
 // semántica, invariante, observabilidad y repair-loop <= 3.
@@ -124,7 +125,51 @@ function insideArea(x: number, y: number, w: number, d: number, g: any) {
     return samples.every(([sx, sy]) => Math.hypot(sx - cx, sy - cy) <= g.r + 1e-6);
   }
   const pts = (g.pts || []).map((p: any) => ({ x: n(p?.x ?? p?.[0]) - g.offsetX, y: n(p?.y ?? p?.[1]) - g.offsetY }));
-  return samples.every(([sx, sy]) => pointInPoly(sx, sy, pts));
+  if (!samples.every(([sx, sy]) => pointInPoly(sx, sy, pts))) return false;
+  // A5 (VH-068f): además de las esquinas, ninguna arista del polígono puede cruzar el
+  // interior del rectángulo (un cuarto en L dejaba un canto afuera con sólo 5 muestras).
+  const rect = { x, y, w, d };
+  for (let i = 0; i < pts.length; i++) {
+    const p1 = pts[i], p2 = pts[(i + 1) % pts.length];
+    if (segmentoCruzaInteriorRect(p1, p2, rect)) return false;
+  }
+  return true;
+}
+// ¿El segmento p1-p2 cruza el INTERIOR del rectángulo (no sólo lo toca en el borde)?
+function segmentoCruzaInteriorRect(p1: any, p2: any, r: any) {
+  const EPS = 1e-6;
+  const inX = (px: number) => px > r.x + EPS && px < r.x + r.w - EPS;
+  const inY = (py: number) => py > r.y + EPS && py < r.y + r.d - EPS;
+  // Liang-Barsky: recorte del segmento al rectángulo abierto.
+  let t0 = 0, t1 = 1; const dx = p2.x - p1.x, dy = p2.y - p1.y;
+  const clip = (p: number, q: number) => { if (p === 0) return q >= 0; const t = q / p; if (p < 0) { if (t > t1) return false; if (t > t0) t0 = t; } else { if (t < t0) return false; if (t < t1) t1 = t; } return true; };
+  if (!clip(-dx, p1.x - (r.x + EPS))) return false;
+  if (!clip(dx, (r.x + r.w - EPS) - p1.x)) return false;
+  if (!clip(-dy, p1.y - (r.y + EPS))) return false;
+  if (!clip(dy, (r.y + r.d - EPS) - p1.y)) return false;
+  if (t1 - t0 <= 1e-9) return false;
+  const mx = p1.x + dx * (t0 + t1) / 2, my = p1.y + dy * (t0 + t1) / 2;
+  return inX(mx) && inY(my);
+}
+// A5 (VH-068b): el área en el MISMO marco que las piezas (bbox normalizado, offsets restados),
+// con ancho/largo que spatial-core espera. Antes se pasaba el área CRUDA del cliente.
+function areaNormalizada(a: any) {
+  const g = a._g;
+  const sh = (o: any) => {
+    const r: any = { ...o };
+    for (const k of ["x", "bisagraX", "cx"]) if (Number.isFinite(Number(o?.[k]))) r[k] = n(o[k]) - g.offsetX;
+    for (const k of ["y", "bisagraY", "cy"]) if (Number.isFinite(Number(o?.[k]))) r[k] = n(o[k]) - g.offsetY;
+    return r;
+  };
+  return {
+    ...a,
+    ancho: g.width, largo: g.depth,
+    poly: g.kind === "polygon" ? (g.pts || []).map((p: any) => [n(p?.x ?? p?.[0]) - g.offsetX, n(p?.y ?? p?.[1]) - g.offsetY]) : undefined,
+    polygon: undefined,
+    puertas: (a?.puertas || a?.doors || []).map(sh),
+    doors: undefined,
+    obstaculos: obstacles(a).map((o: any) => ({ ...o, x: o.x - g.offsetX, y: o.y - g.offsetY })),
+  };
 }
 function overlap(a: any, b: any) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.d && a.y + a.d > b.y;
@@ -201,6 +246,18 @@ Deno.serve(async (req) => {
   if (uCnt.error || gCnt.error) return json({ ok: false, code: "RATE_LIMITER_UNAVAILABLE", error: "No se pudo verificar el limite de uso." }, 503);
   if ((uCnt.count ?? 0) >= 30) return json({ ok: false, code: "RATE_LIMITED_USER", error: "Limite de 30 acomodos por hora." }, 429);
   if ((gCnt.count ?? 0) >= 200) return json({ ok: false, code: "RATE_LIMITED_GLOBAL", error: "Demasiados acomodos en este momento." }, 429);
+
+  // A5 (VH-068e): telemetría al INICIO (cuenta también lo que falla después) y cierre al final.
+  const requestId = crypto.randomUUID();
+  const t0 = Date.now();
+  let eventId: number | null = null;
+  try {
+    const { data: ev } = await svc.from("ai_eventos").insert({
+      request_id: requestId, fn: "acomodar-espacio", email, rol, modo: "repair-loop-v10",
+      images_count: 0, payload_bytes: JSON.stringify(body).length, status: "started",
+    }).select("id").maybeSingle();
+    eventId = (ev as any)?.id ?? null;
+  } catch (_e) {}
 
   const excluded = raw.filter((p: any) => p?.excluded === true || p?.excluida === true);
   const active = raw.filter((p: any) => !(p?.excluded === true || p?.excluida === true));
@@ -336,13 +393,16 @@ Deno.serve(async (req) => {
 
     const rectsByArea: Record<string, any[]> = {};
     for (const v of valid) (rectsByArea[v.area] ||= []).push({ id: v.id, x: v.x, y: v.y, w: v.w, d: v.d });
+    const areasNorm = areaMeta.map(areaNormalizada);
     for (const v of valid) {
-      const p = pieceMap.get(v.id), a = areas[v.area];
+      const p = pieceMap.get(v.id), a = areasNorm[v.area];
       const rect = { id: v.id, x: v.x, y: v.y, w: v.w, d: v.d };
-      const puertas = a?.puertas || a?.doors || [];
-      if (puertas.some((d: any) => bloqueaPuertaEspacial(rect, d))) issues.push({ code: "BLOCKS_DOOR", id: v.id, area: v.area });
+      // A5 (VH-068a): la HUELLA de toda pieza se revisa contra obstáculos (columnas); antes sólo
+      // se revisaba el área de uso de las piezas con clearance.
+      if (a.obstaculos.some((o: any) => overlap(rect, o))) issues.push({ code: "OVERLAPS_OBSTACLE", id: v.id, area: v.area });
+      if (a.puertas.some((d: any) => bloqueaPuertaEspacial(rect, d))) issues.push({ code: "BLOCKS_DOOR", id: v.id, area: v.area });
       if (requiereClearance(p)) {
-        const inv = usoInvadido({ area: a, pieza: p, rot: v.rot, rect, otros: rectsByArea[v.area] || [], obstaculos: obstacles(a) });
+        const inv = usoInvadido({ area: a, pieza: p, rot: v.rot, rect, otros: rectsByArea[v.area] || [], obstaculos: a.obstaculos });
         if (inv) issues.push({ code: "FUNCTIONAL_CLEARANCE", id: v.id, area: v.area, collision: inv.tipo, with_id: inv.id || null });
       }
     }
@@ -362,7 +422,7 @@ Deno.serve(async (req) => {
 
     const doors = auditarPuertas(areas);
     const porPieza = canonicalPieces.map((p: any) => ({ id: String(p.id), ok: placedIds.has(String(p.id)) }));
-    const quality = evaluarCalidad(areas, canonicalPieces, placements, porPieza);
+    const quality = evaluarCalidad(areasNorm, canonicalPieces, placements, porPieza);
     return { plan, valid, issues, reviews, placedIds, unplaced, excludedIds, requested, placed, doors, quality };
   }
 
@@ -416,6 +476,7 @@ Deno.serve(async (req) => {
   const deterministicPass = detHard.length === 0 && best.unplaced.length === 0;
 
   let attemptsUsed = 0;
+  let modelError: string | null = null;   // A5 (VH-068d): un fallo del modelo ya no se traga en silencio
   for (let intento = 1; intento <= (deterministicPass ? 0 : 3); intento++) {
     attemptsUsed = intento;
     let plan: any;
@@ -428,8 +489,8 @@ Deno.serve(async (req) => {
         + `\n\nReposiciona SOLO las piezas con violacion. NO inventes muebles, NO cambies cantidades, NO reduzcas piezas para hacerlo caber. Devuelve TODAS las piezas.`;
       plan = await llamarIA(system);
     } catch (e: any) {
-      if (!best) return json({ ok: false, code: e?.code || "MODEL_UNAVAILABLE", error: e?.message || "No se pudo generar el acomodo." }, e?.http || 502);
-      break;
+      modelError = String(e?.code || e?.message || "MODEL_UNAVAILABLE").slice(0, 120);
+      break;   // se devuelve la mejor base determinista, diciendo que la IA no pudo reparar
     }
     const ev = evaluar(plan);
     if (mejorQue(ev, best)) best = ev;
@@ -438,7 +499,8 @@ Deno.serve(async (req) => {
   }
 
   const hardIssues = best.issues.filter((q: any) => q.code !== "MISSING_PLACEMENT");
-  const doorsVerified = best.doors?.verificadas === true;
+  // A5 (VH-068c): sin puertas en el plano NO hay nada verificado; antes salía PASS/render_ready.
+  const doorsVerified = best.doors?.verificadas === true && (best.doors?.total ?? 0) > 0;
   const status = hardIssues.length === 0
     ? (best.unplaced.length ? "PARTIAL" : (best.reviews.length || !doorsVerified ? "REVIEW_REQUIRED" : "PASS"))
     : (best.placed ? "PARTIAL" : "FAIL");
@@ -472,12 +534,11 @@ Deno.serve(async (req) => {
   };
 
   try {
-    await svc.from("ai_eventos").insert({
-      request_id: crypto.randomUUID(), fn: "acomodar-espacio", email, rol, modo: "repair-loop-v8",
-      images_count: 0, payload_bytes: 0,
+    if (eventId != null) await svc.from("ai_eventos").update({
       status: status === "PASS" ? "ok" : status === "REVIEW_REQUIRED" ? "review" : status === "FAIL" ? "failed" : "partial",
-      http_status: 200, attempts: Math.max(1, attemptsUsed), finished_at: new Date().toISOString(),
-    });
+      http_status: 200, attempts: Math.max(1, attemptsUsed), finished_at: new Date().toISOString(), duration_ms: Date.now() - t0,
+      error_code: modelError, model_status: modelError ? "repair_failed" : (attemptsUsed ? "repaired" : "deterministic"),
+    }).eq("id", eventId);
   } catch (_e) {}
 
   const planLimpio = {
@@ -487,7 +548,8 @@ Deno.serve(async (req) => {
   };
   const recomendaciones = [
     ...(best.unplaced.length ? ["Mover a otra area · cambiar el producto por uno mas chico · acomodar a mano. No se reducen cantidades ni se inventan muebles."] : []),
-    ...(!doorsVerified ? ["Confirma bisagra, sentido y arco de las puertas pendientes antes de liberar render/PDF oficial."] : []),
+    ...((best.doors?.total ?? 0) === 0 ? ["El plano no trae puertas: agrega al menos el acceso de cada cuarto para que el acomodo respete barridos y circulación."] : (!doorsVerified ? ["Confirma bisagra, sentido y arco de las puertas pendientes antes de liberar render/PDF oficial."] : [])),
+    ...(modelError ? ["La IA no pudo reparar el acomodo; se entrega la base determinista. Reintenta más tarde si quieres la reparación."] : []),
   ];
 
   return json({
@@ -507,6 +569,8 @@ Deno.serve(async (req) => {
     calidad: best.quality,
     puertas: best.doors,
     attempts_used: attemptsUsed,
+    model_error: modelError,
+    request_id: requestId,
     metodo: deterministicPass ? "deterministic_semantic_spatial_v10" : "deterministic_first_ai_repair_v10",
   }, 200);
 });
