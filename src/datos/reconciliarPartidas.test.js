@@ -143,3 +143,57 @@ describe('conciliación con varias zonas (release gate)', () => {
     expect(r.partidas.find((p) => p.id === 'n1').instance_id).toBe('inst:SALA B');
   });
 });
+
+describe('VH-116 · un ancla con cantidad ≥ anclas del programa en zonas distintas se reparte', () => {
+  const PROG = (o) => ({ source: 'CONFIRMADO_PROGRAMA', ...o });
+  const dosSalas = [
+    PROG({ id: 'pa', nombre: 'Mesa de juntas', bancoId: 'mj-2400x1200', cantidad: 1, relation_role: 'ANCHOR_MEETING', requirement_id: 'req:SALA A:juntas:0', instance_id: 'inst:A', functional_group_id: 'fg:A', zone_id: 'SALA A', w: 2400, d: 1200, user_capacity: 8 }),
+    PROG({ id: 'pb', nombre: 'Mesa de juntas', bancoId: 'mj-2400x1200', cantidad: 1, relation_role: 'ANCHOR_MEETING', requirement_id: 'req:SALA B:juntas:0', instance_id: 'inst:B', functional_group_id: 'fg:B', zone_id: 'SALA B', w: 2400, d: 1200, user_capacity: 8 }),
+  ];
+  it('"Mesa de juntas APP LT 2.40 × 1.20 ×2" cubre las dos salas: dos filas, una por zona, y cero mesas del programa', () => {
+    const r = reconciliarNuevasConPrograma(dosSalas, [{ id: 'm-1', nombre: 'Mesa de juntas APP LT 2.40 × 1.20', cantidad: 2, piezaId: 'linea-mesa_juntas', w: 2400, d: 1200 }]);
+    expect(r.ambiguas).toEqual([]);
+    expect(r.partidas.filter((p) => p.source === 'CONFIRMADO_PROGRAMA')).toHaveLength(0);
+    const mesas = r.partidas.filter((p) => p.relation_role === 'ANCHOR_MEETING');
+    expect(mesas).toHaveLength(2);
+    expect(mesas.map((m) => m.zone_id).sort()).toEqual(['SALA A', 'SALA B']);
+    expect(mesas.map((m) => m.instance_id).sort()).toEqual(['inst:A', 'inst:B']);
+    expect(mesas.every((m) => m.cantidad === 1 && m.repartidaPorConciliacion)).toBe(true);
+    expect(new Set(mesas.map((m) => m.id)).size).toBe(2);
+    expect(r.sustituidas.filter((s) => s.repartida)).toHaveLength(2);
+  });
+  it('cantidad 3 para dos salas: dos repartidas + 1 sobrante sin estructura', () => {
+    const r = reconciliarNuevasConPrograma(dosSalas, [{ id: 'm-1', nombre: 'Mesa de juntas APP LT 2.40 × 1.20', cantidad: 3, piezaId: 'linea-mesa_juntas', w: 2400, d: 1200 }]);
+    const mesas = r.partidas.filter((p) => p.relation_role === 'ANCHOR_MEETING');
+    expect(mesas).toHaveLength(3);
+    const sobra = mesas.find((m) => m.id === 'm-1#resto');
+    expect(sobra.cantidad).toBe(1); expect(sobra.instance_id).toBeUndefined();
+  });
+  it('cantidad 1 para dos salas sigue siendo AMBIGUA (la persona decide la zona)', () => {
+    const r = reconciliarNuevasConPrograma(dosSalas, [{ id: 'm-1', nombre: 'Mesa de juntas APP LT 2.40 × 1.20', cantidad: 1, piezaId: 'linea-mesa_juntas', w: 2400, d: 1200 }]);
+    expect(r.ambiguas).toHaveLength(1);
+    expect(r.partidas.filter((p) => p.source === 'CONFIRMADO_PROGRAMA')).toHaveLength(2);
+  });
+});
+
+describe('VH-116 · al APLICAR: la mesa ×2 ya atada a la SALA A reparte su segunda unidad a la SALA B', () => {
+  it('queda una fila por sala y la mesa del programa de la SALA B no se agrega aparte', () => {
+    const progB = { source: 'CONFIRMADO_PROGRAMA', id: 'pb', nombre: 'Mesa de juntas', bancoId: 'mj-2400x1200', cantidad: 1, relation_role: 'ANCHOR_MEETING', requirement_id: 'req:SALA B:juntas:0', instance_id: 'inst:B', functional_group_id: 'fg:B', zone_id: 'SALA B', w: 2400, d: 1200, user_capacity: 8 };
+    const mesaUsuario = { id: 'm-1', nombre: 'Mesa de juntas APP LT 2.40 × 1.20', cantidad: 2, piezaId: 'linea-mesa_juntas', w: 2400, d: 1200, relation_role: 'ANCHOR_MEETING', requirement_id: 'req:SALA A:juntas:0', instance_id: 'inst:A', functional_group_id: 'fg:A', zone_id: 'SALA A', user_capacity: 8 };
+    const r = reconciliarNuevasConPrograma([progB], [mesaUsuario]);
+    expect(r.partidas.filter((p) => p.source === 'CONFIRMADO_PROGRAMA')).toHaveLength(0);
+    const mesas = r.partidas.filter((p) => p.relation_role === 'ANCHOR_MEETING');
+    expect(mesas).toHaveLength(2);
+    expect(mesas.find((m) => m.id === 'm-1')).toMatchObject({ cantidad: 1, zone_id: 'SALA A', instance_id: 'inst:A' });
+    expect(mesas.find((m) => m.id === 'm-1#2')).toMatchObject({ cantidad: 1, zone_id: 'SALA B', instance_id: 'inst:B', repartidaPorConciliacion: true });
+  });
+});
+
+describe('VH-112 · la capacidad declarada en el nombre manda sobre la del módulo del programa', () => {
+  it('"Banca doble … 8 usuarios" vs módulo de 12 ⇒ user_capacity 8 (inferida)', () => {
+    const prog = { source: 'CONFIRMADO_PROGRAMA', id: 'p', nombre: 'Módulo operativo 12 usuarios', bancoId: 'op-12u', cantidad: 1, relation_role: 'ANCHOR_WORKSTATION', requirement_id: 'req:OP:0', instance_id: 'inst:OP', functional_group_id: 'fg:OP', zone_id: 'ÁREA OPERATIVA', w: 9000, d: 1200, user_capacity: 12 };
+    const r = reconciliarNuevasConPrograma([prog], [{ id: 'b-1', nombre: 'Banca doble APP LT 1.50 · 8 usuarios · ocupa 6.00 × 1.20 m', cantidad: 2, piezaId: 'linea-banca_doble', w: 6000, d: 1200 }]);
+    const b = r.partidas.find((p) => p.id === 'b-1');
+    expect(b.user_capacity).toBe(8); expect(b.user_capacity_inferida).toBe(true);
+  });
+});

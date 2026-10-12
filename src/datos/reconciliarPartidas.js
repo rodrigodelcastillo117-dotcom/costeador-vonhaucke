@@ -15,6 +15,7 @@
 //  se tocan precio/costo. Puro y determinista.
 // ============================================================================
 import { inferRole, esAncla, estructuraDe } from './confirmarPrograma.js';
+import { capacidadDeNombre } from './capacidadDeclarada.js';
 
 const esDelPrograma = (p) => !!p && p.source === 'CONFIRMADO_PROGRAMA';
 
@@ -51,6 +52,35 @@ export function reconciliarNuevasConPrograma(existentes = [], nuevas = [], { dec
     if (!candidatos.length) { salida.push(n); continue; }
     // 1) Identidad del requerimiento manda; 2) decisión explícita de la persona; 3) misma zona.
     const decision = decisiones && n.id != null ? decisiones[String(n.id)] : null;
+    // VH-116 (al aplicar): un ancla de la persona YA vinculada a un requerimiento (p. ej. la mesa ×2 que
+    // confirmarPrograma ató a la SALA A) y con cantidad ≥ 2 reparte sus unidades sobrantes a las anclas
+    // del programa del mismo rol en OTROS requerimientos (SALA B), en vez de dejar que el programa las
+    // agregue aparte (3 mesas para 2 salas). Cada unidad sale con la estructura de SU sala.
+    if (n.requirement_id && esAncla(rel)) {
+      const cantN0 = Math.max(1, Number(n.cantidad) || 1);
+      const otros = candidatos.filter(({ e }) => String(e.requirement_id || '') !== String(n.requirement_id));
+      const porReq = new Map();
+      for (const c of otros) { const k = String(c.e.requirement_id || c.e.instance_id || c.e.id); if (!porReq.has(k)) porReq.set(k, c); }
+      const destinos = [...porReq.values()].slice(0, Math.max(0, cantN0 - 1));
+      if (destinos.length) {
+        salida.push({ ...n, cantidad: 1, relation_role: rel });
+        destinos.forEach(({ e: prog, i: idxProg }, k) => {
+          tomados.add(idxProg);
+          sustituidas.push({ de: prog.nombre || prog.bancoId || '?', a: n.nombre || '?', rol: rel, repartida: true, zona: prog.zone_id ?? null });
+          salida.push({
+            ...n, id: `${n.id}#${k + 2}`, cantidad: 1, ...estructuraDe(prog), relation_role: rel,
+            anchor_role: n.anchor_role ?? prog.anchor_role ?? null, w: n.w ?? prog.w ?? null, d: n.d ?? prog.d ?? null,
+            ...(Number(n.user_capacity) > 0 ? { user_capacity: Number(n.user_capacity) }
+              : capacidadDeNombre(n.nombre, { w: n.w ?? prog.w, rol: rel }) ? { user_capacity: capacidadDeNombre(n.nombre, { w: n.w ?? prog.w, rol: rel }), user_capacity_inferida: true }
+              : (Number(prog.user_capacity ?? prog.usuarios) > 0 ? { user_capacity: Number(prog.user_capacity ?? prog.usuarios) } : {})),
+            sustituyePrograma: prog.bancoId || prog.piezaId || null, repartidaPorConciliacion: true,
+          });
+        });
+        const sobra = cantN0 - 1 - destinos.length;
+        if (sobra > 0) salida.push({ ...n, id: `${n.id}#resto`, cantidad: sobra, relation_role: rel, requirement_id: null, instance_id: null, functional_group_id: null, zone_id: null, anchor_instance_id: null });
+        continue;
+      }
+    }
     if (n.requirement_id) candidatos = candidatos.filter(({ e }) => String(e.requirement_id || '') === String(n.requirement_id));
     else if (decision != null) candidatos = candidatos.filter(({ e }) => String(e.id) === String(decision));
     else if (zonaDe(n)) candidatos = candidatos.filter(({ e }) => zonaDe(e) === zonaDe(n));
@@ -66,6 +96,38 @@ export function reconciliarNuevasConPrograma(existentes = [], nuevas = [], { dec
         return identidad ? `id:${identidad}` : `zona:${zonaDe(e) || ''}`;
       };
       const ejes = new Set(candidatos.map(({ e }) => ejeDe(e)));
+      // VH-116: un ancla de la persona con cantidad ≥ nº de anclas del programa en zonas distintas
+      // ("Mesa de juntas ×2" con dos salas; "Banca ×2" con dos módulos) se REPARTE: una fila por
+      // instancia del programa, cada una con SU zona/instancia, y la cantidad sobrante sin estructura.
+      // Antes quedaba ambiguo y, al no sustituir, se duplicaban las anclas (3 mesas para 2 salas).
+      const cantN0 = Math.max(1, Number(n.cantidad) || 1);
+      if (ejes.size > 1 && esAncla(rel) && cantN0 >= candidatos.length) {
+        const porEje = new Map();
+        for (const c of candidatos) { const k = ejeDe(c.e); if (!porEje.has(k)) porEje.set(k, c); }
+        const destinos = [...porEje.values()];
+        destinos.forEach(({ e: prog, i: idxProg }, k) => {
+          tomados.add(idxProg);
+          sustituidas.push({ de: prog.nombre || prog.bancoId || '?', a: n.nombre || '?', rol: rel, repartida: true, zona: prog.zone_id ?? null });
+          salida.push({
+            ...n,
+            id: k === 0 ? n.id : `${n.id}#${k + 1}`,
+            cantidad: 1,
+            ...estructuraDe(prog),
+            relation_role: rel,
+            anchor_role: n.anchor_role ?? prog.anchor_role ?? null,
+            w: n.w ?? prog.w ?? null,
+            d: n.d ?? prog.d ?? null,
+            ...(Number(n.user_capacity) > 0 ? { user_capacity: Number(n.user_capacity) }
+              : capacidadDeNombre(n.nombre, { w: n.w ?? prog.w, rol: rel }) ? { user_capacity: capacidadDeNombre(n.nombre, { w: n.w ?? prog.w, rol: rel }), user_capacity_inferida: true }
+              : (Number(prog.user_capacity ?? prog.usuarios) > 0 ? { user_capacity: Number(prog.user_capacity ?? prog.usuarios) } : {})),
+            sustituyePrograma: prog.bancoId || prog.piezaId || null,
+            repartidaPorConciliacion: true,
+          });
+        });
+        const sobra = cantN0 - destinos.length;
+        if (sobra > 0) salida.push({ ...n, id: `${n.id}#resto`, cantidad: sobra, relation_role: rel });
+        continue;
+      }
       if (ejes.size > 1) {
         ambiguas.push({ id: String(n.id), nombre: n.nombre || '?', rol: rel, opciones: candidatos.map(({ e }) => ({ id: String(e.id), nombre: e.nombre || e.bancoId || '?', zona: e.zone_id ?? null })) });
         salida.push(n); continue;
@@ -90,7 +152,10 @@ export function reconciliarNuevasConPrograma(existentes = [], nuevas = [], { dec
       w: n.w ?? prog.w ?? null,
       d: n.d ?? prog.d ?? null,
       // Capacidad: la del mueble que eligió la persona si la declara; si no, la del programa.
+      // VH-112: la capacidad que DECLARÓ la persona (explícita o en el nombre: "8 usuarios") manda sobre la
+      // del módulo del programa (un módulo de 12 no convierte una banca de 8 en una de 12: sillas encimadas).
       ...(Number(n.user_capacity) > 0 ? { user_capacity: Number(n.user_capacity) }
+        : capacidadDeNombre(n.nombre, { w: n.w ?? prog.w, rol: rel }) ? { user_capacity: capacidadDeNombre(n.nombre, { w: n.w ?? prog.w, rol: rel }), user_capacity_inferida: true }
         : (esAncla(rel) && Number(prog.user_capacity ?? prog.usuarios) > 0 ? { user_capacity: Number(prog.user_capacity ?? prog.usuarios) } : {})),
       sustituyePrograma: prog.bancoId || prog.piezaId || null,
     });

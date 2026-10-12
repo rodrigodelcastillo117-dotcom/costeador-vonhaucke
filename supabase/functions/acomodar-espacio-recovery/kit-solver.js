@@ -44,10 +44,13 @@ function capacidadDeclarada(p = {}) {
   return m && Number(m[1]) > 0 ? Number(m[1]) : null;
 }
 export function capacidadAncla(p = {}) {
-  if (num(p.user_capacity) > 0) return Math.round(num(p.user_capacity));
-  const declarada = capacidadDeclarada(p);
-  if (declarada) return declarada;
   const w = num(p.w), d = num(p.d), m = Math.max(w, d);
+  // VH-112: un puesto operativo son 1.50 m lineales; una banca de 6 m sienta como mucho 4 por cara (8 doble).
+  // Una capacidad declarada mayor (módulo del programa de 12) NO crea asientos: se sentarían encimadas.
+  const topeOperativo = p.relation_role === 'ANCHOR_WORKSTATION' && m > 0 ? 2 * Math.max(1, Math.round(m / 1500)) : Infinity;
+  if (num(p.user_capacity) > 0) return Math.min(Math.round(num(p.user_capacity)), topeOperativo);
+  const declarada = capacidadDeclarada(p);
+  if (declarada) return Math.min(declarada, topeOperativo);
   const topo = p.placement_profile?.topology || p.placement_profile || null;
   switch (p.relation_role) {
     case 'ANCHOR_WORKSTATION': return Math.max(1, Math.round(m / 1500)) * (topo === 'DOUBLE_FACE' || /\b(doble|double)\b/.test(String(p.nombre || '').toLowerCase()) ? 2 : 1);

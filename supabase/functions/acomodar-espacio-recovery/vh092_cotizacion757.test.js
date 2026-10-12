@@ -124,3 +124,26 @@ describeSem('VH-112 · capacidad de la banca', () => {
     expectSem(r.plan.colocacion.length).toBe(9);
   });
 });
+
+describeSem('VH-112b · capacidad con tope geométrico y grupos libres repartidos', () => {
+  itSem('user_capacity 12 en una banca de 6 m queda en 8 asientos; dos bancas y 16 WIN: 0 encimados', () => {
+    expectSem(capAncla({ relation_role: 'ANCHOR_WORKSTATION', w: 6000, d: 1200, user_capacity: 12 })).toBe(8);
+    const areas = [{ nombre: 'ÁREA OPERATIVA', tipo: 'open', ancho: 14000, largo: 7000, x: 0, y: 0 }];
+    const piezas = [
+      ...[1, 2].map((i) => ({ id: `b-1-${i}`, nombre: 'Banca doble APP LT 1.50 · 8 usuarios · ocupa 6.00 × 1.20 m', w: 6000, d: 1200, relation_role: 'ANCHOR_WORKSTATION', zone_id: 'ÁREA OPERATIVA', functional_group_id: 'fg:req:ÁREA OPERATIVA:operativo:0:#1', user_capacity: 12, placement_profile: { topology: 'DOUBLE_FACE', provenance: 'INFERRED' } })),
+      ...Array.from({ length: 16 }, (_, i) => ({ id: `w-1-${i + 1}`, nombre: 'Silla operativa · WIN', w: 600, d: 600, relation_role: 'WORK_SEAT', zone_id: 'ÁREA OPERATIVA', functional_group_id: 'fg:req:ÁREA OPERATIVA:operativo:0:#1' })),
+    ];
+    const r = construirSem(areas, piezas);
+    expectSem(r.layoutSpec.validation.issues.filter((i) => i.severity === 'fail')).toEqual([]);
+    expectSem(r.plan.colocacion.length).toBe(18);
+  });
+  itSem('16 SONATA de un grupo libre repartidas entre dos salas no son FUNCTIONAL_GROUP_SPLIT', () => {
+    const areas = [{ nombre: 'SALA A', tipo: 'juntas', ancho: 6000, largo: 4000, x: 0, y: 0 }, { nombre: 'SALA B', tipo: 'juntas', ancho: 6000, largo: 4000, x: 7000, y: 0 }];
+    const mesa = (id, z, g) => ({ id, nombre: 'Mesa de juntas APP LT 2.40 × 1.20', w: 2400, d: 1200, relation_role: 'ANCHOR_MEETING', zone_id: z, functional_group_id: g, user_capacity: 8 });
+    const piezas = [mesa('m-1-1', 'SALA A', 'fg:req:SALA A:juntas:0:#0'), mesa('m-1#2-1', 'SALA B', 'fg:req:SALA B:juntas:1:#0'),
+      ...Array.from({ length: 16 }, (_, i) => ({ id: `s-1-${i + 1}`, nombre: 'Silla · SONATA', w: 600, d: 600, relation_role: 'MEETING_SEAT', functional_group_id: 'fg:libre:juntas' }))];
+    const r = construirSem(areas, piezas);
+    expectSem(r.layoutSpec.validation.issues.filter((i) => i.code === 'FUNCTIONAL_GROUP_SPLIT')).toEqual([]);
+    expectSem(r.plan.colocacion.length).toBe(18);
+  });
+});
