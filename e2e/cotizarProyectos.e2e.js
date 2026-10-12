@@ -67,10 +67,20 @@ test.describe('COTIZAR · tres proyectos', () => {
       test.setTimeout(240000);
       const pageErrors = []; page.on('pageerror', (e) => pageErrors.push(String(e?.message || e)));
       const solverCalls = []; let nubeOrigen = null; let nubeApikey = null; let ultima = null;
+      // EDGE_RC_URL=http://localhost:8000/ → la petición COMPLETA (JWT real, apikey, cuerpo) va al edge RC servido
+      // con Deno (mismo index.ts: autenticación real + pipeline). Sin la variable: pipeline del edge en Node.
+      const EDGE_RC = process.env.EDGE_RC_URL || null;
       await page.route('**/functions/v1/acomodar-espacio-recovery', async (route) => {
         if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' } });
         const body = route.request().postDataJSON(); solverCalls.push(body);
         try { nubeOrigen = new URL(route.request().url()).origin; nubeApikey = route.request().headers().apikey || nubeApikey; } catch (_e) {}
+        if (EDGE_RC) {
+          const h = route.request().headers();
+          const r = await fetch(EDGE_RC, { method: 'POST', headers: { 'content-type': 'application/json', authorization: h.authorization || '', apikey: h.apikey || '' }, body: route.request().postData() });
+          const txt = await r.text(); ultima = JSON.parse(txt);
+          console.log(`[${P.clave}] edge RC (Deno) HTTP ${r.status} · status ${ultima?.layoutSpec?.status} · colocadas ${ultima?.plan?.colocacion?.length}`);
+          return route.fulfill({ status: r.status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: txt });
+        }
         ultima = construirRespuestaAcomodo(body.areas || [], body.piezas || []);
         return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(ultima) });
       });
@@ -91,6 +101,31 @@ test.describe('COTIZAR · tres proyectos', () => {
         await boton.first().click({ timeout: 3000 }).catch(() => {});
         await page.waitForTimeout(800);
       }
+      // VH-116: si una fila-ancla con cantidad > 1 podría cubrir varias zonas, la app NO reparte sola: pide decisión.
+      // La persona decide "Repartir: una por zona" (un clic por fila ambigua).
+      for (let k = 0; k < 4; k++) {
+        const repartir = page.getByTestId('ambigua-repartir');
+        if (!(await repartir.count())) break;
+        const resumen = (ps) => ps.map((p) => [p.id, p.nombre?.slice(0, 22), p.cantidad, p.source || null, p.relation_role || null, p.requirement_id || null, p.zone_id || null]);
+        const antes = (await leerCot(page)).partidas;
+        const fila = await page.getByTestId('ambigua-programa').first().getAttribute('data-id');
+        console.log(`[${P.clave}] decido repartir fila ${fila} · antes:`, JSON.stringify(resumen(antes)));
+        await repartir.first().click();
+        try {
+          // Repartir consume una instancia del programa y agrega una fila: el conteo puede no cambiar.
+          // Lo que debe desaparecer es la ambigüedad de ESA fila; y la cantidad total de ese ancla se conserva.
+          await expect.poll(async () => page.locator(`[data-testid="ambigua-programa"][data-id="${fila}"]`).count(), { timeout: 10000 }).toBe(0);
+          const despues = (await leerCot(page)).partidas;
+          const unidades = (ps, id) => ps.filter((p) => String(p.id) === id || String(p.id).startsWith(`${id}#`)).reduce((n, p) => n + (Number(p.cantidad) || 1), 0);
+          expect(unidades(despues, fila)).toBe(unidades(antes, fila));
+          console.log(`[${P.clave}] repartida ${fila} · después:`, JSON.stringify(resumen(despues.filter((p) => String(p.id).startsWith(fila)))));
+        } catch (e) {
+          console.log(`[${P.clave}] SIN CAMBIO tras repartir ${fila} · después:`, JSON.stringify(resumen((await leerCot(page)).partidas)));
+          throw e;
+        }
+        await page.waitForTimeout(500);
+      }
+      console.log(`[${P.clave}] ambiguas pendientes tras decidir:`, await page.getByTestId('ambigua-programa').count());
       const ps = (await leerCot(page)).partidas;
       // Dos filas con el mismo nombre sólo son duplicado si apuntan a la MISMA instancia/zona (una mesa
       // por sala repartida por conciliación es legítima: VH-116).

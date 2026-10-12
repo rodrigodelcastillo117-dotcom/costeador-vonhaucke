@@ -358,15 +358,22 @@ export default function Voni({
                 <div style={{ marginTop: 8, color: '#8a5a00' }} data-testid="ambiguas-programa">
                   <div style={{ fontWeight: 700 }}>Decide tú: estos muebles podrían cubrir más de un lugar del plano (no se sustituye solo)</div>
                   {ambiguasPrograma.map((a) => (
-                    <div key={a.id} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 4 }}>
-                      <span>⇄ <b>{a.nombre}</b> es para:</span>
+                    <div key={a.id} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 4 }} data-testid="ambigua-programa" data-id={a.id}>
+                      <span>⇄ <b>{a.nombre}</b>{a.cantidad > 1 ? ` ×${a.cantidad}` : ''}{a.zonaActual ? ` (hoy en ${a.zonaActual})` : ''} {a.motivo === 'CANTIDAD_MAYOR_QUE_LUGAR' ? 'tiene más unidades que lugar; ¿mover una a…?' : 'es para:'}</span>
                       {a.opciones.map((o) => (
                         <button key={o.id} type="button" className="boton fantasma" style={{ minHeight: 30 }}
                           onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta, { decisiones: { [a.id]: o.id } })}>
                           {o.zona || o.nombre}
                         </button>
                       ))}
-                      <span className="ayuda">(o déjalo como mueble aparte)</span>
+                      {/* VH-116: repartir una unidad por zona SOLO si la persona lo pide; la cantidad no prueba intención. */}
+                      {a.puedeRepartir && (
+                        <button type="button" className="boton tinta" style={{ minHeight: 30 }} data-testid="ambigua-repartir"
+                          onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta, { decisiones: { [a.id]: 'repartir' } })}>
+                          Repartir: una por {a.motivo === 'CANTIDAD_MAYOR_QUE_LUGAR' ? 'lugar faltante' : 'zona'}
+                        </button>
+                      )}
+                      <span className="ayuda">(o déjalo como está)</span>
                     </div>
                   ))}
                 </div>
