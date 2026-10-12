@@ -86,11 +86,13 @@ describe('acomodar-espacio-recovery · fuente bajo control de código (P0.2)', (
     expect(core).toContain("from './spatial-core.js'");
   });
 
-  it('PENDIENTE DE ACTIVACIÓN: no desplegada y nube.js NO repunteada', () => {
-    expect(idx).toContain('PENDIENTE DE ACTIVACIÓN');
-    expect(idx).toContain('NO ESTÁ DESPLEGADA');
-    // El cliente sigue invocando la función viva (no se repuntó a la fuente nueva
-    // ni a la productiva): contrato del recovery lane intacto.
+  it('DESPLEGADA (A18, 2026-10-12): la fuente declara el despliegue, exige sesión de usuario (VH-087) y nube.js la invoca', () => {
+    expect(idx).toContain('DESPLEGADA como v7');
+    expect(idx).not.toContain('NO ESTÁ DESPLEGADA');
+    // VH-087: la llave pública también es un JWT válido para el gateway; la función exige usuario.
+    expect(idx).toContain("code: 'UNAUTHENTICATED'");
+    expect(idx).toContain('auth.getUser()');
+    // El cliente invoca esta función (no la productiva vieja): contrato del recovery lane intacto.
     expect(nube).toContain("invoke('acomodar-espacio-recovery'");
     expect(nube).not.toContain("invoke('acomodar-espacio',");
   });

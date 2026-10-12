@@ -183,8 +183,11 @@ const FAMILIAS = [
   ['marmol_piedra',     /m[aá]rmol|marble|granito|cuarzo|quartz|piedra|onix|[oó]nix/i],
   ['acero_inoxidable',  /inoxidable|inox\b|stainless|304|316/i],
   ['aluminio',          /aluminio|aluminum|anodiz/i],
-  ['laminado_hpl',      /laminado|hpl|ecolegno|formica|high\s*pressure/i],
+  // VH-086 (2026-10-12): melamina ANTES que laminado/HPL. "Melamina / EcoLegno 19 mm" (nombre real en la
+  // config de producción y en la semilla) caía en laminado_hpl por la palabra EcoLegno y el servidor
+  // trataba melamina-19 como sustitución de otra familia: no se costeaba ni confirmada por Dirección.
   ['melamina',          /melamina|melamine|aglomerad/i],
+  ['laminado_hpl',      /laminado|hpl|ecolegno|formica|high\s*pressure/i],
   ['mdf',               /\bmdf\b|fibrofacil|tablero de fibra/i],
   ['chapa_madera',      /chapa|veneer|enchap/i],
   ['madera_solida',     /madera\s+s[oó]lida|solid\s*wood|duela|tzalam|encino macizo|roble macizo/i],

@@ -70,6 +70,27 @@ acepta `areaPintadaM2` (≥ 0) y `tubular` (booleano). `MOTOR_VERSION` → 2026-
 su huella (`huellaMP`) y se recostean sólo si alguien las reabre. Lo que cambia en dinero: sólo piezas de tablero con lado
 mayor > 1.50 m (p. ej. tapa 1.60×0.60: 1 hoja → ½ hoja) y la pintura capturada por área. Goldens Alba/Intelisis intactos.
 
+**VH-086 · P1 · FIXED 2026-10-12 · `melamina-19` se clasificaba como LAMINADO y nunca se costeaba.** Destapado por la
+prueba en vivo de `costear-servidor` v6: una tapa pedida como "melamina 19 mm" con `insumoId melamina-19` salía "por
+confirmar" sin costo, y con confirmación de Dirección seguía bloqueada. Causa: `familiaDeMaterial` evaluaba
+`laminado_hpl` (regex con "ecolegno") antes que `melamina`, y el nombre real del insumo en la config de producción y
+en la semilla es "Melamina / EcoLegno 19 mm" → familia laminado → sustitución entre familias (fail-closed, correcto
+como regla, incorrecto como dato). Afectaba al cliente (política local) y al servidor. Fix: melamina se evalúa antes
+que laminado/HPL; "Laminado plástico HPL" y "Laminado Walnut" siguen siendo laminado. Pruebas de regresión en
+`materialMatch.test.js` (familia y reconciliación server-side provisional/USER_CONFIRMED).
+
+**VH-087 · P2 · FIXED 2026-10-12 · `acomodar-espacio-recovery` aceptaba la llave pública como sesión.** `verify_jwt`
+del gateway sólo exige un JWT válido y la llave anónima lo es; la función no comprobaba usuario (las demás edges sí).
+Sin datos expuestos (sólo cómputo), pero cualquiera con la llave pública podía consumirla. Fix: Bearer + `auth.getUser()`
+→ 401 `UNAUTHENTICATED`, igual que `acomodar-espacio`. Se re-despliega como v8.
+
+**VH-088 · DATO · OPEN (decisión de Dirección) · El costeo de producción usa `config.datos.insumos` (92 insumos del
+2026-08-11), no el catálogo certificado.** Confirmado en la prueba en vivo: `melamina-19` = $320/m² y `melamina-16` =
+$900/hoja en la config, contra $483/hoja (ERP 2026-04-15) y $449–685/hoja certificados en `catalogo_vigente`. El
+cliente y `costear-servidor` replican la config a propósito (para cuadrar al centavo entre sí). Los 133 insumos
+certificados hoy sólo alimentan el Banco de precios. Decisión pendiente: migrar el motor a `catalogo_vigente` (cambia
+costos de todo lo que se cotice; requiere golden antes/después) o refrescar la config desde el catálogo certificado.
+
 **VH-083 · DATO · HECHO 2026-10-12 · A11 certificación con documento ERP.** Cruce de los 259 insumos de la semilla
 contra "Costos de Materia Prima Ultima Compra al 10082026.xlsx" (ERP Intelisis, Drive de Compras; 16,520 registros
 Artículo|Opción): 109 con registro ERP exacto (105 iguales, 4 con precio ERP más nuevo), 13 con código que el ERP no
@@ -199,8 +220,11 @@ dominio estaba fijado al deployment de `5a38d2e` (`dpl_1m4bDohVjcqL86fcGHRhJTnw2
 deployments de producción de PR #25/#26 nunca tomaron el dominio. **Rollback:** promover `dpl_1m4bDohVjcqL86fcGHRhJTnw2rJc`
 desde Vercel (un clic, sin rebuild). Rama principal única desde hoy: `c3.4-seller-safe` (A19 HECHO).
 
-**Pendiente de revisar (no se perdió, no se integró):** los 6 commits de `perfection-final` posteriores a `5a38d2e`
-(`d698eea`…`7d60204`, P0.9–P0.16) no están en producción ni en esta unificación.
+**2026-10-12 03:00 UTC · PR #29 fusionado (`e625ac4`) → `dpl_2KKcjuTdiTXF8zinYsXxwpEQkSKB` READY en el dominio.**
+Verificado en vivo: título "VH LAB · Vonhaucke", bundle `index-R6LCAvH5.js` con `MOTOR_VERSION 2026-10-12`, la política
+`produccion-rogelio-2026-10` (A14) y el gate de material (`SAME_FAMILY_COMPATIBLE_PROPOSED`, A20). CI del PR: `verify` +
+E2E en verde. **Rollback:** promover `dpl_7gK9TbAuKxFhvH5Exrc8TLrTCAvZ` (`300125d`). Los 6 commits de `perfection-final`
+(`d698eea`…`7d60204`) quedaron integrados en este PR (VH-084).
 
 ## REGRESIONES DETECTADAS 2026-10-10 (auditoría de código, no de síntomas)
 

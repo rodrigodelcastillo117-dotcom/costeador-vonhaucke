@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  MATCH, MATCH_AUTOCOSTEABLE, familiaDeMaterial, clasificarMaterial, aplicarPoliticaMaterial, mejorInsumoDeFamilia, estadoMaterialUI, alertaMaterial,
+  MATCH, MATCH_AUTOCOSTEABLE, familiaDeMaterial, clasificarMaterial, aplicarPoliticaMaterial, mejorInsumoDeFamilia, estadoMaterialUI, alertaMaterial, reconciliarMaterialServidor,
 } from './materialMatch.js';
 
 // Catálogo mock como el real (ids con color/espesor) para probar la auto-precarga.
@@ -364,5 +364,27 @@ describe('VH-053: material del catálogo del SERVIDOR sin precio certificado', (
     const na = aplicarPoliticaMaterial({ nombre: 'Cubierta', insumoId: '', material_solicitado: 'superficie sólida' }, () => undefined, CAT);
     expect(alertaMaterial(na._match)).toMatchObject({ tono: 'rojo', titulo: 'Material pendiente' });
     expect(alertaMaterial(null)).toBeNull();
+  });
+});
+
+describe('VH-086: EcoLegno es melamina (nombre real de melamina-19 en producción)', () => {
+  const CFG = {
+    'melamina-19': { id: 'melamina-19', nombre: 'Melamina / EcoLegno 19 mm', precio: 320, unidad: 'm2' },
+    'melamina-16': { id: 'melamina-16', nombre: 'Melamina 16 mm', precio: 900, unidad: 'hoja' },
+  };
+  const res = (id) => CFG[id];
+  it('familiaDeMaterial: "Melamina / EcoLegno 19 mm" y la semilla "Melamina BLANCA / EcoLegno 19 mm" son melamina; el HPL puro sigue siendo laminado', () => {
+    expect(familiaDeMaterial('Melamina / EcoLegno 19 mm')).toBe('melamina');
+    expect(familiaDeMaterial('Melamina BLANCA / EcoLegno 19 mm')).toBe('melamina');
+    expect(familiaDeMaterial('Laminado plástico HPL')).toBe('laminado_hpl');
+    expect(familiaDeMaterial('Laminado Walnut')).toBe('laminado_hpl');
+  });
+  it('servidor: melamina 19 pedida + melamina-19 del catálogo = misma familia (provisional sin provenance; USER_CONFIRMED con Dirección), no sustitución', () => {
+    const prov = reconciliarMaterialServidor({ nombre: 'Tapa', insumoId: 'melamina-19', material_solicitado: 'melamina 19 mm', largoMM: 1600, anchoMM: 600 }, res, Object.values(CFG), { puedeConfirmar: true });
+    expect(prov.insumoId).toBe('melamina-19');
+    expect(prov.material_match).toBe(MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED);
+    const conf = reconciliarMaterialServidor({ nombre: 'Tapa', insumoId: 'melamina-19', material_solicitado: 'melamina 19 mm', material_confirmado: true, largoMM: 1600, anchoMM: 600 }, res, Object.values(CFG), { puedeConfirmar: true });
+    expect(conf.insumoId).toBe('melamina-19');
+    expect(conf.material_match).toBe(MATCH.USER_CONFIRMED);
   });
 });
