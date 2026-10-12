@@ -243,6 +243,12 @@ ninguna invariante fallida, `motivoNoListo` (AcomodoBase) dice "requiere revisi�
 acomodo · kit-solver-multi-v1" aunque `plan.layoutSpec.validation` viene completo en lo guardado (21 de 25, sin problemas
 geométricos). El texto se deriva de un `serverStatus` en memoria que no se rehidrata.
 
+**ESTABILIZACIÓN POST-DEPLOY (RC, sin desplegar) · 2026-10-12.** VH-110 FIXED (veredicto por bloques) · VH-111 FIXED · VH-112 FIXED
+(P0: capacidad declarada "8 usuarios", tope físico por cara, "Banca doble" = DOUBLE_FACE) · VH-113 FIXED · VH-114 FIXED · VH-115 FIXED ·
+VH-116 FIXED (P0: ancla ×N repartida por sala/instancia) · VH-118 FIXED (nombre ASCII del PDF) · VH-108 corrección con evidencia en RC
+(revisión → modelo visual, 75 s), medición posterior BLOCKED hasta desplegar. Detalle y pruebas en `docs/auditoria/RESCATE_NOCTURNO.md`
+§ ESTABILIZACIÓN POST-DEPLOY. OPEN: renders por cuarto 1/4 aceptados (gate honesto; generador), sesiones Ventas/Diseño sin cuentas QA.
+
 ## UNIFICACIÓN DE LAS DOS LÍNEAS DE CÓDIGO · 2026-10-11/12
 
 **Hecho medible.** Producción (`costeador-vonhaucke.vercel.app`, Vercel) sirve el commit `5a38d2e` de la rama

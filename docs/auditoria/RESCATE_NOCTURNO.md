@@ -212,6 +212,94 @@ Ningún P0 reproducible: costos sin cambio de fórmula (fail-closed intacto), si
 
 Datos de prueba creados en producción: fila **833** (`Torre Sur (golden) · POST-DEPLOY 195d245`, borrador QA, con la banca girada a 90° por la prueba de edición). Nada se desactivó ni se borró; la 803 no se tocó (SQL: `rot_banca 0`, `actualizado 08:47`).
 
+## ESTABILIZACIÓN POST-DEPLOY · 2026-10-12 (rama RC `claude/costing-app-architecture-psf02g`; producción sigue en `195d245`)
+
+Mandato: que todo lo que ya existe funcione de principio a fin; sin funciones nuevas; sin merge ni deploy.
+
+### Defectos corregidos (causa raíz · corrección · prueba · SHA)
+
+| ID | P | Síntoma real | Causa raíz | Corrección | Pruebas | SHA |
+|---|---|---|---|---|---|---|
+| VH-110 | P1 | "requiere revisión: invariantes" con geometría válida | el cliente sólo conocía PASS/REVIEW_REQUIRED/PARTIAL/FAIL; `NEEDS_SEMANTIC_REVIEW` caía en un texto genérico y el edge no mandaba la lista del juez semántico (sólo conteos) | `acomodoVeredicto.js`: veredicto por bloques (geometría · colisiones · programa · anclas · semántica · evidencia · publicable) con textos por código; AcomodoBase lo usa en el motivo del render bloqueado y en un bloque `veredicto-acomodo`; edge (RC) manda `sem_issues` | `acomodoVeredicto.test.js` (10), `vh092` (+1), `acomodoVeredicto.e2e.js` (navegador, caso real 2 escritorios/3 cuartos) | `d6c21ac` |
+| VH-111 | P2 | al reabrir: "el servidor no devolvió validación del acomodo" | `estadoAcomodo` no reconocía los estados nuevos del edge y el renglón de auditoría se grababa con ese texto | ESTADOS extendidos; `describirValidacionServidor`; el renglón "Validación del servidor" se rederiva del `layoutSpec` guardado al reabrir (sirve también para lo ya guardado) | `acomodoServidor.test.js` (+2), e2e reapertura | `d6c21ac` |
+| VH-112 | **P0** | 4 de 8 WIN sin lugar en el proyecto real de Dirección (banca "8 usuarios") | sin `user_capacity` el solver asumía ⌊6000/1500⌋ = 4; la persona lo había escrito en el nombre | `capacidadDeNombre` (N usuarios/puestos/personas; "doble" × módulos) en cliente y fallback en el edge; la capacidad declarada manda sobre la del módulo del programa (12); tope físico ⌊largo/600⌋ por cara; "Banca doble" en español ⇒ DOUBLE_FACE | `espacio.test` (+2), `reconciliarPartidas.test` (+1), `confirmarPrograma.test` (+1), `vh092` (+4), `placementTopologia.test` (nuevo), banco 100 %, GAP6/15/16 | `afb5538` `b471026` `e67eb6c` |
+| VH-113 | P2 | "Se sale del área: Barrido de puerta invadido" | los renglones virtuales de puerta se listaban con la etiqueta de fuera-de-área | etiquetas "Puerta:" / "Por verificar:" | lint + e2e | `afb5538` |
+| VH-114 | P1 | "no veo dónde picarle continuar" | dentro de Voni el botón de salida decía "← Volver a la cotización" pero avanzaba al paso 4 | texto "Continuar a la propuesta →" + botón abajo (`voni-continuar-propuesta`) | `acomodoVeredicto.e2e.js` | `afb5538` |
+| VH-115 | P2 | render rechazado sin decir por qué | el edge devolvía `audit` pero el cliente sólo mostraba "no pasó la verificación" | mensaje con campos fallidos y razones del auditor; edge (RC) registra `ok/codigo` en `render_eventos` | e2e `renderEscenas` (prod) | `afb5538` |
+| VH-116 | **P0** | "Mesa de juntas ×2" con dos salas ⇒ 3 mesas (y "Banca ×2" con dos módulos ⇒ sillas encimadas) | una fila-ancla con cantidad 2 sólo sustituía una instancia del programa; la otra se agregaba aparte | reparto: una fila por instancia/zona del programa (`m-1`, `m-1#2`), también al aplicar cuando ya quedó atada a una sala; cantidad 1 con varias salas sigue siendo NEEDS_REVIEW | `reconciliarPartidas.test` (+4), e2e multizona | `b471026` |
+| — | P1 | 16 SONATA para dos salas ⇒ FUNCTIONAL_GROUP_SPLIT | un grupo `fg:libre:<destino>` (pista de destino, no kit) se juzgaba como kit roto al repartirse entre cuartos | el edge (RC) exime a `fg:libre:*`; los kits de programa siguen juntos | `vh092` (+1), e2e multizona 26/26 | `b471026` |
+| VH-118 | P1 | el PDF bajaba como "download" sin extensión | Chromium descarta el nombre con tildes o "·" ("único", "Torre Sur · POST") | nombre de archivo ASCII; el contenido conserva el texto | `pdfDownloadRecovery.test` (+1), e2e 3 proyectos | `b471026` |
+| VH-108 | P1 | timeouts de VONI | ver análisis abajo | revisión → modelo visual; límite 75 s (edge RC) | — (después: BLOCKED hasta desplegar) | `85e4dea` |
+
+### VH-108 · análisis con datos (`ai_eventos`, 7 días, `analizar-mueble`)
+
+| Versión / modo | modelo · effort | n | timeouts | p50 | p95 |
+|---|---|---|---|---|---|
+| edge anterior (05–08 oct) · texto | sin telemetría | 73 | **57 (78 %)** | 75.5 s (= límite) | 76 s |
+| edge anterior · imagen | sin telemetría | 10 | 5 (50 %) | 75.6 s | 136 s |
+| edge actual (desde 08 oct) · texto | claude-opus-5 · low · 8k | 97 | **1 (1 %)** | 38.5 s | 51 s |
+| actual · imagen 1ª pasada | claude-sonnet-5-5 · low/medium | 13 | 0 | 28–46 s | 52 s |
+| actual · revisión (foto + respuestas) | claude-opus-5 · low · 6k · **45 s** | 5 | **5 (100 %)** | 45.6 s (= límite) | — |
+| actual · revisión | claude-sonnet-5-5 · low | 7 | 0 | 33 s | 59 s |
+
+Conclusión: el "70 de 193" es casi todo de la versión anterior del edge. Lo que sigue fallando con evidencia es la REVISIÓN
+con Opus y 45 s (5/5). Corrección en RC: la revisión con imagen usa el modelo visual y el límite es 75 s como el resto.
+Entrada típica: 115 caracteres de texto, catálogo 259 insumos / 17.4 k caracteres (≈21 k tokens de entrada, 3.7 k de salida), 1 intento,
+imágenes 316–385 KB. Costo por operación estimado con esos tokens (Opus): ~US$0.35–0.45 por análisis de texto. Reintentos: ninguno
+tras timeout (el wall-clock del edge no permite 2 × 75 s); el cliente ofrece "Intenta de nuevo". Medición "después": **BLOCKED** hasta
+desplegar el edge (no autorizado); la pasada viva de hoy: 9/9 análisis de texto OK (p50 38 s).
+
+### Renders por cuarto · producción (`renderEscenas.e2e.js`, cuenta QA, presupuesto 833, 4 cuartos, 4.4 min)
+
+| Cuarto | Resultado | Auditoría de fidelidad |
+|---|---|---|
+| OFICINA CEO | rechazado (`RENDER_QA_FAILED`) | geometry_match + extra_objects: "pedestal con 2 cajones en vez de 3; se agregó una silla ejecutiva" |
+| SALA DE CONSEJO | rechazado | geometry_match + layout_match: "6 sillas en la referencia, 4 en la imagen; estructura de la mesa distinta" |
+| ÁREA OPERATIVA | **aceptado** (2.5 MB, gemini-3-pro-image) | "layout, geometría de puestos y sillas coinciden" (confianza 0.75) |
+| RECEPCIÓN | rechazado (conteo) | "salieron 0 de 1 muebles esperados" tras el reintento |
+
+Veredicto Renders: **PARTIAL** (1 de 4). El gate funciona y es honesto (ningún render rechazado se guarda como válido; ahora el
+usuario ve por qué). La tasa de aceptación del generador con el isométrico por cuarto es baja; mejorarla es ajuste de prompt/modelo con
+evidencia, no una corrección de código, y queda como pendiente visible. El render de UNA escena con el plano 2D como referencia sí pasó (45 s).
+
+### Certificación por función (estado · evidencia)
+
+| Función | Estado | Evidencia |
+|---|---|---|
+| COSTEAR · descripción (texto) | **PASS** | prod: `analizar-mueble` 9/9 hoy, `costear-servidor` v9 fail-closed (material POR CONFIRMAR ⇒ sin precio), paridad cliente↔servidor (`vivoSombra`), margen 40 ≥ 25; goldens industriales en unit (`goldenIntelisis` 16, `matrizGolden` 25, `unidadesErp` 22) |
+| COSTEAR · manual | PASS (local) | `costeadorCatalogo.e2e.js` (catálogo canónico / caído), motor con 138 insumos certificados; costeo completo con precio sólo cuando todos los insumos tienen fuente |
+| COSTEAR · foto / plano PDF | PARTIAL | `auth` "COSTEAR acepta PDF multipágina real" (prod); análisis visual real: 13/13 OK en 7 días; costeo completo final con insumos autorizados: **BLOCKED** por E4 (1,931 partidas sin costo oficial Intelisis) |
+| COTIZAR · 757 | **PASS** | prod y local: 18→12, 21/25, 4 SONATA MISSING_ANCHOR, nube, reapertura, edición manual persistida, PDF |
+| COTIZAR · 3 proyectos | **PASS** | multizona 26/26 (8+8 SONATA por sala), open plan 21/21 (8+8 WIN por banca, PASS), despacho 5/5; sin duplicados por instancia; 0 invariantes duras; nube (867–869); reapertura; PDF (`cotizarProyectos.e2e.js`) |
+| COTIZAR · emisión | PASS (local) / no ejercida en prod por mandato | `emision.e2e.js` (Dirección emite, vendedor bloqueado sin precio, margen bajo requiere aprobación, 45 % de descuento avisa); VH-103 conserva bloqueos |
+| COCREAR | **PARTIAL** | entrada y productos en prod (`auth`); lógica de render canónico/VENCIDO en unit (`cocrear*.test.js`); con expediente real: **BLOCKED** (sin expediente de prueba autorizado; la nube falsa no simula expedientes) |
+| VONI (texto, plano) | PASS | prod: `cotizar-texto` 7/7, `leer-plano` 24/25 OK (REVIEW_REQUIRED honesto) |
+| Lectura de planos | PASS | prod `vivo`: 3 cuartos, 84 m², revisión honesta; puertas; `lecturaPlano.e2e.js` |
+| Despiece / BOM | PASS | BOM fail-closed; `vivoSombra` despiece real → sombra |
+| Acomodo | **PASS** (RC) | 757 + 3 proyectos + caso real 2 escritorios; veredicto por bloques; VH-112/116 |
+| Renders | PARTIAL | tabla anterior |
+| Guardado y recuperación | **PASS** | VH-109 en prod; `persistencia.e2e.js` (100 recargas = 1 fila, dos pestañas, otra computadora, caída de red, respaldo); edición manual persistida; cierre de pestaña < 1.5 s tras el último cambio: se pierde ese cambio (comportamiento previo, documentado) |
+| PDF / impresión | PASS | descarga real (nombre ASCII), imprimir (`auth`), BORRADOR marcado sin emisión |
+| Seguridad / roles | PARTIAL | servidor PASS (401/403/columna revocada); Ventas/Diseño con sesión real: **BLOCKED** (sólo existe `qa-direccion`); local con nube falsa: vendedor sin costos (`persistencia`, `emision`) |
+| UX | PASS (lo reportado) | VH-113/114 corregidos; mensajes de acomodo en palabras |
+
+### Procedimiento mínimo para cuentas QA de Ventas y Diseño (requiere tu autorización; sin contraseñas en el chat)
+
+1. Dirección crea en Supabase Auth dos usuarios: `qa-ventas@vonhaucke.mx` y `qa-diseno@vonhaucke.mx` (contraseñas sólo en el gestor de secretos).
+2. Inserta en `public.permitidos` (email, rol) = ('qa-ventas@…','vendedor'), ('qa-diseno@…','diseno'). No se toca ningún usuario comercial.
+3. Guarda las contraseñas como secretos de CI (`TEST_PASSWORD_VENTAS`, `TEST_PASSWORD_DISENO`).
+4. Se corren `persistencia`/`emision` contra producción con esas sesiones y las sondas REST/RPC/edge por rol.
+
+### Pendientes industriales exactos
+E3 dimensiones de catálogo (1,738 PV derivables, migración escrita) · E4 costos oficiales Intelisis (1,931 partidas; en la 757 de prueba 259 insumos sin fuente de precio) · E5 aprobaciones ERP (1,763 por QA; 526 compras > 12 m; 30 reconciliación; 10 `QA_FIXTURE_*`).
+
+### Riesgos de seguridad
+Ninguno nuevo. Abiertos: sesiones reales de Ventas/Diseño sin probar en prod; `QA_FIXTURE_*` en catálogo (E5).
+
+### Release Candidate y recomendación
+RC = HEAD de la rama (ver checkpoint). Cliente + edges (`acomodar-espacio-recovery`, `generar-render`, `analizar-mueble`) cambian juntos otra vez.
+**GO para un nuevo deploy coordinado E1+E2** con el mismo protocolo (preflight, edges primero, merge, golden en prod, rollback = `195d245`), condicionado a que la suite viva se repita contra lo publicado. NO-GO para E3/E4/E5.
+
 ## RECOMENDACIÓN GO / NO-GO
 
 **GO para E1+E2 juntos desde `29522e4`** (cliente y edges a la vez; sustituye al GO condicionado desde `561b741`): los contratos cambiaron en ambos lados a la vez
