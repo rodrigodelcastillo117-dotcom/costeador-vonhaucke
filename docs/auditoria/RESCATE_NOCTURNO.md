@@ -149,6 +149,23 @@ identifican por nombre (`GOLDEN_CLIENTE`); por omisión NO tocan ningún registr
 función de la propia app ("Sacar de la lista", reversible) sólo corre con `GOLDEN_LIMPIAR=1` y nunca contra producción sin firma;
 nada de SQL de escritura a producción desde pruebas o sesiones sin firma.
 
+## DESPLIEGUE CONTROLADO E1+E2 · 2026-10-12 (autorizado por Dirección: "puedes hacer deploy" + mandato de certificación)
+
+### Fase 1 · Preflight (12:15–12:25 UTC)
+
+| # | Comprobación | Resultado |
+|---|---|---|
+| 1 | SHA publicado en Vercel | `766df46` (deployment `dpl_H9nnowoVhTzoUJ4P9tf1Dd1MdtiM`, READY, production, `isRollbackCandidate: true`) |
+| 2 | HEAD de la rama RC | `36609bd` = `29522e4` (código) + `79020dc`/`3620c5f` (docs) + `d35e85f`/`396c544`/`36609bd` (sólo `e2e/golden757.e2e.js` y docs). `git diff --name-only 29522e4 HEAD -- src supabase` = 0 archivos |
+| 3 | `3620c5f` vs `29522e4` | sólo `BUG_LEDGER.md`, `DECISIONES_PENDIENTES.md`, `docs/auditoria/RESCATE_NOCTURNO.md` |
+| 4 | Build y pruebas | `npm run build` OK (index 1,210 kB / gzip 310 kB); vitest 2,112/2,112; CI `verify` verde en `d35e85f`; CI en `36609bd` (run 604) antes del merge |
+| 5 | Compatibilidad cliente nuevo ↔ edges RC | golden 757 contra `acomodar-espacio-recovery` RC bajo Deno con JWT real (PASS). Edge nuevo ↔ cliente viejo: campos nuevos opcionales (`unassigned`, `no_cupieron`); por eso se publican primero los edges y después el cliente |
+| 6 | Versiones desplegadas y respaldo | `costear-servidor` v8 · `acomodar-espacio-recovery` v8 · `leer-plano` v11 · `leer-plano-core` v4 (`cotizar-servidor` v8 no cambia). Fuente desplegada de `acomodar-espacio-recovery` v8 descargada: 10/10 archivos idénticos a `766df46`. Respaldo = tag `prod-766df46` (push hecho) |
+| 7 | Independencia de E3/E4/E5 | `derivar_dimensiones_catalogo` y `cargar_costos_oficiales` no se invocan desde `src/` ni `supabase/functions/`; migraciones vh099/vh100 NO aplicadas (en la base sólo vh088/vh089, ya en producción). Ninguna migración se aplica en este despliegue |
+| 8 | Rollback verificable | cliente: `request_rollback`/promote a `dpl_H9nnowoVhTzoUJ4P9tf1Dd1MdtiM` (`766df46`); edges: workflow `deploy-edge` con `ref = prod-766df46` y las 4 funciones |
+
+Sin P0 nuevo, sin migración obligatoria, sin incompatibilidad crítica ⇒ se procede.
+
 ## RECOMENDACIÓN GO / NO-GO
 
 **GO para E1+E2 juntos desde `29522e4`** (cliente y edges a la vez; sustituye al GO condicionado desde `561b741`): los contratos cambiaron en ambos lados a la vez
