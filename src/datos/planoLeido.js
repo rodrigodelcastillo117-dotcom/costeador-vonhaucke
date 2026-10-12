@@ -184,6 +184,32 @@ export function areasDeLectura(lectura) {
   return { areas, envolvente: lectura?.envolvente || null, puertas };
 }
 
+// ---------------------------------------------------------------------------
+//  REVISIÓN: ¿la lectura tiene sentido como planta?
+//  Devuelve frases en español para enseñárselas al proyectista. No corrige
+//  nada por su cuenta: decir "lo leí así y esto no me cuadra" es más útil que
+//  dibujar un plano equivocado con cara de seguro.
+// ---------------------------------------------------------------------------
+// ESCALA (VH-043, 2026-10-11). El lector devuelve la cota general (envolvente) y las
+// cotas de los ejes (grid). Si el plano trae ejes, la suma de sus segmentos TIENE que
+// cuadrar con la cota general: es la única comprobación determinista de que la escala
+// no salió inventada. Nadie la revisaba. Tolerancia 3 % (redondeos de cota).
+export function validarEscala(lectura, tol = 0.03) {
+  const problemas = [];
+  const env = lectura?.envolvente;
+  const g = lectura?.grid || {};
+  const suma = (xs) => (Array.isArray(xs) ? xs.filter((x) => Number.isFinite(x) && x > 0).reduce((a, b) => a + b, 0) : 0);
+  const m = (mm) => (mm / 1000).toFixed(2);
+  const sh = suma(g.horizontal), sv = suma(g.vertical);
+  if (env?.ancho > 0 && sh > 0 && Math.abs(sh - env.ancho) > env.ancho * tol) {
+    problemas.push(`La cota general de ancho (${m(env.ancho)} m) no cuadra con la suma de los ejes (${m(sh)} m): revisa la escala.`);
+  }
+  if (env?.largo > 0 && sv > 0 && Math.abs(sv - env.largo) > env.largo * tol) {
+    problemas.push(`La cota general de largo (${m(env.largo)} m) no cuadra con la suma de los ejes (${m(sv)} m): revisa la escala.`);
+  }
+  return problemas;
+}
+
 export function revisarAreas(lectura) {
   const problemas = [];
   const env = lectura?.envolvente;
@@ -192,6 +218,10 @@ export function revisarAreas(lectura) {
     .filter((r) => r.pts && r.pts.length >= 3);
   if (!crudas.length) return ['No se reconoció ningún cuarto en el plano.'];
 
+  // 0) Escala: cota general vs. ejes (determinista, antes que todo lo demás).
+  problemas.push(...validarEscala(lectura));
+
+  // 1) Todo dentro del envolvente.
   if (env?.ancho > 0 && env?.largo > 0) {
     const fuera = crudas.filter(({ pts }) => pts.some(([x, y]) => x < -50 || y < -50 || x > env.ancho + 50 || y > env.largo + 50));
     if (fuera.length) problemas.push(`${fuera.length} cuarto(s) se salen del contorno del plano (${fuera.map((f) => f.a.nombre).join(', ')}).`);

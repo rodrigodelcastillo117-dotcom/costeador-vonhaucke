@@ -384,6 +384,32 @@ export function lineaCocreada(spec, snapshot, { cantidad = 1 } = {}) {
   return { ...base, cost_status: snapshot.cost_status, costeable: true, listaParaCotizar: true };
 }
 
+/**
+ * VH-058 · Lo que Cocrear le entrega a la cotización: un costeo con PROCEDENCIA.
+ * La partida que nace de una cocreación lleva su Producto Maestro (producto_id +
+ * producto_version_id que el servidor registró), el expediente del que salió
+ * (source_type/source_ref/expedienteId) y el render canónico como URL. Sin
+ * identidad registrada NO hay partida: eso lo decide el caller (fail-closed).
+ */
+export function partidaDesdeCocrear({ nombre, spec, prodId, versionId, expedienteId, renderUrl = null } = {}) {
+  const dims = spec?.dimensiones || {};
+  return {
+    nombre: nombre || descripcionCorta(spec || {}) || 'Producto co-creado',
+    componentes: spec?.componentes || [],
+    w: dims.ancho_mm || null,
+    d: dims.prof_mm || dims.fondo_mm || null,
+    producto_id: prodId ?? null,
+    producto_version_id: versionId ?? null,
+    source_type: 'expediente',
+    source_ref: expedienteId != null ? String(expedienteId) : null,
+    expedienteId: expedienteId ?? null,
+    render: typeof renderUrl === 'string' && /^https?:\/\//.test(renderUrl) ? renderUrl : null,
+    precioReal: false,
+    config: null,
+    origen: 'cocrear',
+  };
+}
+
 export function descripcionCorta(spec) {
   const fam = ({ RECEPCION: 'Recepción', ESCRITORIO: 'Escritorio', LOCKER: 'Smart Locker', DISPLAY: 'Exhibidor', MESA: 'Mesa', GUARDADO: 'Guardado', DESCONOCIDA: 'Producto' })[spec.familia] || 'Producto';
   const mats = (spec.materiales || []).map((m) => `${m.material}${m.tono ? ' ' + m.tono : ''}`).join(', ');

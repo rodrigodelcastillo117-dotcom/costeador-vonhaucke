@@ -174,6 +174,11 @@ export default function CotizadorIA({
         sinCostear,
         sinPrecio,
         especiales,
+        // VH-070: la edge descarta los extras que el modelo marcó `sugerido` (regla 9,
+        // cero extras cobrables sin pedirlos) y lo informa en `sugerenciasDescartadas`.
+        // Antes el cliente lo ignoraba: el vendedor no sabía que Voni había pensado en
+        // una credenza y no la cobró. Se dice, sin cobrarlo.
+        sugerenciasDescartadas: Array.isArray(r.sugerenciasDescartadas) ? r.sugerenciasDescartadas.filter(Boolean).map(String) : [],
       });
       setRespuesta('');
       // Un solo clic ("Armar el proyecto") te lleva a la pantalla de "esto
@@ -204,7 +209,8 @@ export default function CotizadorIA({
       tipo: 'aclaracion',
       pedido: texto.trim(),
       texto: `Si el pedido se parece a "${resumenCorto(texto)}", ten en cuenta desde el principio: ${r}`,
-      usuario: estado?.usuario?.correo || null,
+      // VH-059: quién anota lo resuelve aprendizaje.js desde la sesión (antes se leía
+      // `estado.usuario.correo`, que no existe, y la RLS rechazaba la fila en silencio).
     });
     setTexto(nuevo);
     await interpretar(nuevo);
@@ -213,11 +219,15 @@ export default function CotizadorIA({
   if (cargando) return <Cargando voni titulo="Voni está trabajando" mensajes={['Leyendo tu pedido…', 'Buscando en las 24 líneas…', 'Costeando cada mueble…', 'Armando la lista…']} />;
 
   const avisos = resultado
-    ? resultado.preguntas.length + resultado.noEncontrado.length + resultado.sinCostear.length + (resultado.sinPrecio?.length || 0)
+    ? resultado.preguntas.length + resultado.noEncontrado.length + resultado.sinCostear.length + (resultado.sinPrecio?.length || 0) + (resultado.especiales?.length || 0) + (resultado.sugerenciasDescartadas?.length || 0)
     : 0;
 
   const conFormulario = pantalla !== 'resultado';
-  const conResultado = pantalla !== 'formulario';
+  // VH-071: en Voni paso 2 la pantalla 'formulario' escondía el resultado y el salto a
+  // 'revisar' sólo ocurre si se agregó algo. Si Voni NO pudo agregar nada (sin precio
+  // autorizado, no está en catálogo, sin costear), el vendedor se quedaba mirando el
+  // formulario sin una palabra. El resultado sin agregados se enseña siempre.
+  const conResultado = pantalla !== 'formulario' || (!!resultado && !resultado.agregados);
 
   return (
     <div className="contenido" style={{ maxWidth: 900, paddingLeft: 0, paddingRight: 0 }}>
@@ -314,6 +324,11 @@ export default function CotizadorIA({
           {resultado.sinPrecio?.length > 0 && (
             <div className="alerta ambar" style={{ marginTop: 10 }}>
               <span className="texto">Sin precio autorizado (requiere costeo de Diseño/Dirección): {resultado.sinPrecio.join(' · ')}. No se agregó para no cotizar un precio no autorizado.</span>
+            </div>
+          )}
+          {resultado.sugerenciasDescartadas?.length > 0 && (
+            <div className="ayuda" style={{ marginTop: 10 }} data-testid="sugerencias-descartadas">
+              Voni pensó en {resultado.sugerenciasDescartadas.join(' · ')}, pero no lo pediste y no lo agregué. Si lo quieres, dilo en una aclaración.
             </div>
           )}
           {resultado.preguntas.length > 0 && (

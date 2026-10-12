@@ -222,12 +222,13 @@ export function auditarPuertas(areas = []) {
       motivo: `Puerta ${indice + 1} del área ${area + 1}: barrido no verificable`,
       confianza: puerta?.confianza || null,
     }));
+  // A5 (VH-068c): sin puertas no hay nada verificado (antes: verificadas=true con total 0).
   return {
     total: todas.length,
-    verificadas: noVerificadas.length === 0,
+    verificadas: todas.length > 0 && noVerificadas.length === 0,
     verificadasCount: todas.length - noVerificadas.length,
     noVerificadas,
-    status: noVerificadas.length ? 'UNVERIFIED' : 'VERIFIED',
+    status: todas.length === 0 ? 'NONE' : (noVerificadas.length ? 'UNVERIFIED' : 'VERIFIED'),
   };
 }
 

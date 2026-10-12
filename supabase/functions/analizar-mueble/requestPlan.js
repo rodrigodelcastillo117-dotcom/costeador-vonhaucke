@@ -33,12 +33,25 @@ export function schemaSinInforme(schema) {
 //       no redactar la auditoría COO (ésa era la consumidora de 'medium' y queda diferida).
 //       La revisión ya usaba 'low'. Imagen/plano mantienen 'medium' (lectura geométrica).
 export function planPass({ soloTexto = false, esRevision = false, respCount = 0 } = {}) {
-  const primeraPasadaTexto = !!soloTexto && !esRevision && (Number(respCount) || 0) === 0;
+  const sinResp = (Number(respCount) || 0) === 0;
+  const primeraPasadaTexto = !!soloTexto && !esRevision && sinResp;
+  // FIX timeout imagen/plano (P0): la 1ª pasada VISUAL (imagen/PDF, no revisión, sin respuestas
+  // previas) TAMBIÉN difiere el 'informe' de 8 secciones — era el tiempo dominante que agotaba el
+  // timeout del proveedor (~75 s → 502 PROVIDER_TIMEOUT). La lectura geométrica (visión) no depende
+  // del 'effort', así que imagen conserva 'medium'; sólo se le quita la generación del informe y
+  // baja maxTok a 8000 (un BOM sin informe entra holgado). El informe completo queda on-demand.
+  const primeraPasadaVisual = !soloTexto && !esRevision && sinResp;
+  const deferInforme = primeraPasadaTexto || primeraPasadaVisual;
+  // La 1ª pasada visual también baja a 'low': con 'medium' el razonamiento geométrico + salida
+  // excedia el wall-clock de la función (la plataforma la mataba sin escribir cierre -> non-2xx).
+  // 'low' + informe diferido + 8000 extrae el BOM del plano/render muy por debajo del timeout
+  // (misma estrategia que el texto). El informe de 8 secciones queda on-demand.
+  const effortBajo = esRevision || primeraPasadaTexto || primeraPasadaVisual;
   return {
     primeraPasadaTexto,
-    deferInforme: primeraPasadaTexto,
-    effort: (esRevision || primeraPasadaTexto) ? 'low' : 'medium',
-    maxTok: esRevision ? 6000 : (primeraPasadaTexto ? 8000 : 10000),
+    deferInforme,
+    effort: effortBajo ? 'low' : 'medium',
+    maxTok: esRevision ? 6000 : (deferInforme ? 8000 : 10000),
   };
 }
 

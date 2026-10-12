@@ -4,9 +4,11 @@ import fs from 'node:fs';
 describe('cotización · renders no inflan el JSON', () => {
   it('renders de partida persisten URL de Storage, nunca base64', () => {
     const s = fs.readFileSync('src/componentes/Cotizacion.jsx', 'utf8');
-    expect(s).toContain('subirRender as subirRenderNube');
-    expect(s).toContain("persistirRender(r.dataUrl, 'partidas')");
-    expect(s).toContain('render: up.url');
+    // VH-046/VH-072: los renders de partida salen de `renderDePartida` (URL de Storage, nunca base64)
+    // y la imagen del acomodo pasa por `imagenAcomodoAStorage`.
+    expect(s).toContain('renderDePartida(');
+    expect(s).toContain('render: r.url');
+    expect(s).toContain('imagenAcomodoAStorage(');
     expect(s).not.toContain('render: r.dataUrl');
     expect(s).not.toContain("render3d: c.toDataURL");
   });

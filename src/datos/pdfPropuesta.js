@@ -17,6 +17,7 @@
 // que los vendedores abren en el celular, y el paquete completo de jsPDF le
 // sumaba ~800 KB al archivo. Aquí se paga sólo lo que se usa.
 import { jsPDF } from 'jspdf/dist/jspdf.es.min.js';
+import { resolverImagenesAcomodo } from './imagenStorage.js';
 import { sinEconomia, esClientSafe } from './economia.js';
 import { deCentavosEnteros } from '../motor/dinero.js';
 
@@ -870,20 +871,17 @@ export async function cargarFotos(partidas, urlDe) {
   await Promise.all((partidas || []).map(async (pt) => {
     const url = urlDe?.(pt);
     if (!url) return;
-    try {
-      if (url.startsWith('data:')) { fotos[pt.id] = url; return; }
-      const r = await fetch(url);
-      if (!r.ok) return;
-      const b = await r.blob();
-      fotos[pt.id] = await new Promise((res) => {
-        const fr = new FileReader();
-        fr.onload = () => res(String(fr.result));
-        fr.onerror = () => res(null);
-        fr.readAsDataURL(b);
-      });
-    } catch (e) { /* sin foto, con su renglón completo igual */ }
+    if (url.startsWith('data:')) { fotos[pt.id] = url; return; }
+    const d = await aDataURL(url);   // nunca lanza: sin foto, con su renglón completo igual
+    if (d) fotos[pt.id] = d;
   }));
   return fotos;
+}
+// VH-046: `acomodo.render3d` y `acomodo.escenas[].img` viven como URL en la
+// cotización; el PDF (jsPDF.addImage) necesita dataUrl. Se resuelven AQUÍ, al
+// dibujar, y nunca de vuelta al estado. Los dataUrl legacy pasan igual.
+export function cargarImagenesAcomodo(acomodo) {
+  return resolverImagenesAcomodo(acomodo, { traer: aDataURL });
 }
 
 // Genera y DESCARGA el archivo. Devuelve el nombre por si hay que decirlo.
@@ -943,6 +941,7 @@ export function datosDesdeSnapshot(snapshot, extras = {}) {
     marca: extras.marca ?? null,
     garantia: extras.garantia ?? null,
     exclusiones: extras.exclusiones ?? null,
+    exclusionesBOM: extras.exclusionesBOM ?? [],
     // El snapshot define si fue registrada: si no hay revisión, es borrador.
     borrador: extras.borrador ?? false,
   };

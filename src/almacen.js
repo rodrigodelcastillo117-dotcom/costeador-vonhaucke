@@ -7,6 +7,7 @@
 import { PARAMETROS_DEFAULT } from './motor/calculo.js';
 import { INSUMOS_SEMILLA, mapaInsumos } from './datos/insumos.js';
 import { PIEZAS_SEMILLA } from './datos/piezas.js';
+import { claveCreacionNueva } from './util.js';
 
 const CLAVE = 'costeador-vonhaucke-v1';
 
@@ -26,7 +27,10 @@ function estadoInicial() {
     // el de HOY. Es la fecha que se IMPRIME en la propuesta (Cotizacion.jsx,
     // FichaPDF.jsx, pdfPropuesta.js) — cualquier proyecto nuevo salía fechado
     // en el pasado hasta que el vendedor lo notara y lo corrigiera a mano.
-    cotizacion: { cliente: '', folio: '', fecha: new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }), partidas: [] },
+    // `id` = fila en la nube (null hasta el primer guardado); `claveCreacion` = clave
+    // idempotente del alta. Nacen aquí para que dos pestañas del mismo navegador
+    // compartan la misma clave y NO creen dos filas (Bloque 1).
+    cotizacion: { id: null, claveCreacion: claveCreacionNueva(), cliente: '', folio: '', fecha: new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }), partidas: [] },
     historial: [], // costeos guardados, alimentan el Tablero
     // ⚠️ LOS ESTADOS FINANCIEROS TAMPOCO PUEDEN VIVIR AQUÍ. Iban como literales
     // (ingresos $74.7M, utilidad de operación −$16.15M) y acababan dentro del
@@ -77,7 +81,7 @@ export function cargar() {
       // pero si aparece un insumo nuevo en la semilla, se agrega.
       insumos: { ...base.insumos, ...(guardado.insumos || {}) },
       piezas: { ...base.piezas, ...(guardado.piezas || {}) },
-      cotizacion: { ...base.cotizacion, ...(guardado.cotizacion || {}) },
+      cotizacion: { ...base.cotizacion, ...(guardado.cotizacion || {}), claveCreacion: guardado.cotizacion?.claveCreacion || base.cotizacion.claveCreacion },
       finanzas: { ...base.finanzas, ...(guardado.finanzas || {}) },
       dir: { ...base.dir, ...(guardado.dir || {}) },
     };

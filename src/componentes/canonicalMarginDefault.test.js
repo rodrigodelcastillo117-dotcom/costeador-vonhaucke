@@ -19,7 +19,7 @@ describe('single target-margin truth',()=>{
   it('pantallas clásicas dependen de PARAMETROS_DEFAULT cuando no hay config',()=>{
     for(const file of ['src/componentes/Costeador.jsx','src/componentes/Asistente.jsx','src/componentes/Catalogo.jsx']){
       const s=fs.readFileSync(file,'utf8');
-      expect(s).toContain('PARAMETROS_DEFAULT.margenObjetivo');
+      expect(s).toMatch(/PARAMETROS_DEFAULT\.margenObjetivo|margenObjetivoDe\(/);   // una sola verdad: datos/precio.js
     }
   });
 });

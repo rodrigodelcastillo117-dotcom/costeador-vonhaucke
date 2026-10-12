@@ -7,8 +7,8 @@ import { FAMILIAS, MUEBLES, lineasDeMueble } from '../datos/catalogo.js';
 import Icono from './Iconos.jsx';
 import { construirCosteo } from '../recetas.js';
 import { recetaBench } from '../datos/bench.js';
-import { calcular, precioDe, precioVenta, modeloParaPieza, PARAMETROS_DEFAULT } from '../motor/calculo.js';
-import { precioDeLista } from '../datos/preciosVenta.js';
+import { calcular, modeloParaPieza } from '../motor/calculo.js';
+import { precioDesdeCosto, margenObjetivoDe } from '../datos/precio.js';
 import { pesos } from '../util.js';
 import HojaCosto from './HojaCosto.jsx';
 import FichaPDF from './FichaPDF.jsx';
@@ -32,12 +32,11 @@ function piezaDe(c) {
 // Precio según el modelo de la pieza (clásico vs Intelisis) — mismo patrón
 // que ya usan Costeador.jsx/CosteadorLinea.jsx/lineas.js:precioDePieza().
 // No-op hoy: ninguna receta de PIEZAS_SEMILLA declara modeloCosteo todavía.
-function precioSegunModelo(costoUnitario, par, esIntelisis, margen) {
-  return esIntelisis ? precioDeLista(precioVenta(costoUnitario, par).lista) : precioDe(costoUnitario, margen);
-}
+// Una sola regla costo → precio (datos/precio.js); sobre el costo OFICIAL.
+const precioSegunModelo = (r, par, esIntelisis, margen) => precioDesdeCosto(r?.costoOficial, { par, esIntelisis, margen });
 
 export default function Asistente({ estado, onAgregarPartida, onModoAvanzado, onIr, soloVentas = false }) {
-  const margenObjetivo = estado.parametros.margenObjetivo ?? PARAMETROS_DEFAULT.margenObjetivo;
+  const margenObjetivo = margenObjetivoDe(estado.parametros);
   const [paso, setPaso] = useState('familia');
   const [familia, setFamilia] = useState(null);
   const [mueble, setMueble] = useState(null);
@@ -63,7 +62,9 @@ export default function Asistente({ estado, onAgregarPartida, onModoAvanzado, on
       // Seller-safe: el vendedor NO corre el motor de costo (insumos). El precio
       // comercial lo da el flujo autorizado (Voni/Cotizador); aquí sólo navega.
       const r = (tieneReceta && !soloVentas) ? calcular(piezaDe(c), 1, estado.insumos, par) : null;
-      return { linea: l, costeo: c, precio: r ? precioSegunModelo(r.costoUnitario, par, esIntelisis, margenObjetivo) : null, tieneReceta };
+      // Costeo INCOMPLETO (material/precio/cantidad faltante) ⇒ sin precio, no $0.
+      const completo = r && r.estadoCosto === 'completo';
+      return { linea: l, costeo: c, precio: completo ? precioSegunModelo(r, par, esIntelisis, margenObjetivo) : null, tieneReceta, incompleto: !!(r && !completo), pendientes: r?.pendientes || [] };
     });
     conPrecio.sort((a, b) => {
       if (a.precio != null && b.precio != null) return a.precio - b.precio;
@@ -83,7 +84,11 @@ export default function Asistente({ estado, onAgregarPartida, onModoAvanzado, on
     if (!costeo || soloVentas) return null;   // seller-safe: sin motor de costo para vendedor
     return calcular(piezaDe(costeo), cantidad, estado.insumos, parCosteo);
   }, [costeo, cantidad, estado.insumos, parCosteo, soloVentas]);
-  const precio = resultado ? precioSegunModelo(resultado.costoUnitario, parCosteo, costeoEsIntelisis, margenEfectivo) : 0;
+  // null (no 0) cuando no hay resultado o el costeo está incompleto: nunca se muestra
+  // ni se agrega un precio salido de un subtotal.
+  const precio = resultado && resultado.estadoCosto === 'completo'
+    ? precioSegunModelo(resultado, parCosteo, costeoEsIntelisis, margenEfectivo)
+    : null;
 
   function escogerFamilia(f) { setFamilia(f); setPaso('mueble'); setAvisoOpcion(''); }
   function escogerMueble(m) { setMueble(m); setPaso('opcion'); setAvisoOpcion(''); }
@@ -110,6 +115,7 @@ export default function Asistente({ estado, onAgregarPartida, onModoAvanzado, on
   }
 
   function agregar() {
+    if (precio == null) return;   // fail-closed: no entra a la cotización sin precio
     onAgregarPartida(costeo, cantidad, precio, margenEfectivo);
     setPaso('listo');
   }
@@ -197,7 +203,7 @@ export default function Asistente({ estado, onAgregarPartida, onModoAvanzado, on
                   {i === 0 && o.tieneReceta && <span className="etiqueta-verde" style={{ marginLeft: 8 }}>MÁS BARATA</span>}
                 </span>
                 <span className="precio-lado" style={{ fontSize: o.tieneReceta ? undefined : 14, fontFamily: 'var(--sans)', fontWeight: 400, color: 'var(--gris)' }}>
-                  {o.tieneReceta ? pesos(o.precio) : 'aún sin receta'}
+                  {!o.tieneReceta ? 'aún sin receta' : (o.incompleto ? 'costeo incompleto' : pesos(o.precio))}
                 </span>
               </button>
             ))}
@@ -250,8 +256,17 @@ export default function Asistente({ estado, onAgregarPartida, onModoAvanzado, on
 
           <div className="tarjeta-precio">
             <div className="ayuda" style={{ marginBottom: 6 }}>{soloVentas ? 'Precio recomendado por pieza' : 'Precio de venta por pieza'}</div>
-            <div className="precio-enorme">{pesos(precio)}</div>
-            {cantidad > 1 && <div className="ayuda" style={{ marginTop: 8 }}>{cantidad} piezas = {pesos(precio * cantidad)}</div>}
+            {precio == null ? (
+              <div className="alerta ambar" style={{ margin: 0 }} data-testid="precio-pendiente">
+                <span className="texto">Sin precio todavía: el despiece tiene datos pendientes
+                  {resultado?.pendientes?.length ? ` (${resultado.pendientes.join(', ')})` : ''}. Complétalos en Modo avanzado.</span>
+              </div>
+            ) : (
+              <>
+                <div className="precio-enorme">{pesos(precio)}</div>
+                {cantidad > 1 && <div className="ayuda" style={{ marginTop: 8 }}>{cantidad} piezas = {pesos(precio * cantidad)}</div>}
+              </>
+            )}
           </div>
 
           {!soloVentas && (

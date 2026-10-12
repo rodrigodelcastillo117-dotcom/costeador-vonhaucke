@@ -4,8 +4,10 @@
 //  renglon. Cuando alguien lo actualiza, a todos se les propaga en vivo.
 //  Si no hay internet, la app sigue con lo local (ver almacen.js).
 // ============================================================================
-import { reglasTexto } from './datos/reglas.js';
-import { aprendizajesTexto } from './datos/aprendizaje.js';
+import { leerRespuestaRender } from './datos/renderRespuesta.js';
+import { validarIntentCosteo, intentDesdePieza } from './datos/validarIntentCosteo.js';
+import { renderParaPartida } from './datos/renderPartida.js';
+import { imagenAStorage, rutaImagen } from './datos/imagenStorage.js';
 import { createClient } from '@supabase/supabase-js';
 
 const URL = 'https://mtuvnbgljwbsaizjjgzs.supabase.co';
@@ -318,8 +320,10 @@ export async function guardarConfirmaciones(rows) {
 export async function cotizarTexto(texto, catalogo) {
   // Las reglas de oficio que Rodrigo dicta en "Lo que Voni sabe" viajan CON el
   // pedido. Sin esta línea la pantalla enseñaba reglas que el modelo nunca veía.
+  // VH-060 (2026-10-11): las reglas de la casa y los aprendizajes aprobados los lee la
+  // edge v13 DIRECTO de la base; el body ya no manda contexto (el servidor lo ignoraría).
   const { data, error } = await nube.functions.invoke('cotizar-texto', {
-    body: { texto, catalogo, reglas: reglasTexto('cotizacion'), aprendizajes: aprendizajesTexto() },
+    body: { texto, catalogo },
   });
   if (error) {
     let msg = error.message || 'No se pudo interpretar el texto.';
@@ -350,9 +354,16 @@ export async function leerPlano(image, mediaType, refMM) {
     body: { image, mediaType, refMM },
   });
   if (error) {
+    // VH-064: en un 422 FLOOR_SPEC_INVALID el servidor manda `floorSpec.validation.issues`
+    // (qué no cuadró, con números) y `request_id`. Antes sólo sobrevivía la frase genérica.
     let msg = error.message || 'No se pudo leer el plano.';
-    try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
-    return { ok: false, error: msg };
+    let extra = {};
+    try {
+      const j = await error.context?.json?.();
+      if (j?.error) msg = j.error;
+      if (j) extra = { code: j.code, floorSpec: j.floorSpec, request_id: j.request_id };
+    } catch (e) {}
+    return { ok: false, error: msg, ...extra };
   }
   return data;
 }
@@ -362,8 +373,9 @@ export async function leerPlano(image, mediaType, refMM) {
 // determinístico que ya se armó en el cliente. `alcance`: 'cotizacion' o
 // 'negocio' (este último trae candado de rol del lado del servidor).
 export async function analizarNegocio(senales, alcance = 'cotizacion') {
+  // VH-060 (2026-10-11): la edge v2 lee reglas y aprendizajes aprobados de la base.
   const { data, error } = await nube.functions.invoke('analizar-negocio', {
-    body: { senales, alcance, reglas: reglasTexto('negocio'), aprendizajes: aprendizajesTexto() },
+    body: { senales, alcance },
   });
   if (error) {
     let msg = error.message || 'No se pudo conectar con Voni.';
@@ -380,14 +392,16 @@ export async function generarRender(descripcion, extra = {}) {
   });
   if (error) {
     let msg = error.message || 'No se pudo generar el render.';
-    try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
-    return { ok: false, error: msg };
+    let extraErr = {};
+    try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; if (j) extraErr = { code: j.code, request_id: j.request_id, audit: j.audit }; } catch (e) {}
+    return leerRespuestaRender({ ok: false, error: msg, ...extraErr });
   }
-  if (!data) return { ok: false, error: 'El servidor de renders no devolvió respuesta.' };
-  // La edge moderna persiste directamente en Storage y devuelve `url`.
-  // Los consumidores históricos usan `dataUrl`. Normalizamos AQUÍ una sola vez
-  // para que Cocrear/Acomodo/Cotización acepten URL o data URL sin falsos fallos.
-  return data?.ok ? { ...data, dataUrl: data.dataUrl || data.url || null } : data;
+  if (!data) return leerRespuestaRender({ ok: false, error: 'El servidor de renders no devolvió respuesta.' });
+  // VH-072: la edge v30 responde `url` (Storage) y sólo `dataUrl` como respaldo. Los consumidores
+  // nuevos usan `imagen` (= url || dataUrl) y `enStorage`; los históricos leen `dataUrl`, que aquí
+  // se normaliza a url || dataUrl UNA sola vez para que acepten ambas formas sin falsos fallos.
+  const rr = leerRespuestaRender(data);
+  return rr.ok ? { ...data, ...rr, dataUrl: rr.dataUrl || rr.url || null } : rr;
 }
 
 // --- SHADOW costear-servidor (Fase 3) ----------------------------------------
@@ -417,9 +431,13 @@ export function dtoCosteoServidor(pieza = {}, cantidad = 1) {
 }
 
 export async function costearServidor(pieza, cantidad = 1) {
-  const body = dtoCosteoServidor(pieza, cantidad);
+  // VH-036: se manda la INTENCIÓN TÉCNICA saneada (sin margen/factores/modelo) y se
+  // valida ANTES de salir con el mismo validador que espeja el servidor.
+  const intent = intentDesdePieza(pieza, cantidad);
+  const v = validarIntentCosteo(intent);
+  if (!v.ok) return { ok: false, error: v.issues?.[0]?.msg || v.code, code: v.code, issues: v.issues, status: 400 };
   const { data, error } = await nube.functions.invoke('costear-servidor', {
-    body,
+    body: v.intent,
   });
   if (error) {
     let msg = error.message || 'No se pudo costear en el servidor.';
@@ -438,6 +456,16 @@ export async function registrarSombra(reg) {
 
 // --- RENDER V1: subir imagen a Storage (NO base64 en JSON) + guardar metadata ---
 // Convierte un dataUrl base64 a Blob y lo sube al bucket 'renders'. Devuelve {ok, path, url}.
+// VH-072: traer una URL pública (Storage) como dataUrl, para quien necesita los bytes
+// (referencia visual de otra generación, PDF). null si no se pudo.
+export async function urlADataUrl(url) {
+  try {
+    const r = await fetch(url); if (!r.ok) return null;
+    const b = await r.blob();
+    return await new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = () => res(null); fr.readAsDataURL(b); });
+  } catch { return null; }
+}
+
 export async function subirRender(dataUrl, path) {
   try {
     const [cab, b64] = String(dataUrl).split(',');
@@ -449,6 +477,17 @@ export async function subirRender(dataUrl, path) {
     const { data } = nube.storage.from('renders').getPublicUrl(path);
     return { ok: true, path, url: data?.publicUrl || null };
   } catch (e) { return { ok: false, error: String(e) }; }
+}
+
+// VH-045: render de UNA partida → Storage → URL. Nunca entrega base64 al estado.
+export function renderDePartida(pt) {
+  return renderParaPartida(pt, { generar: generarRender, subir: subirRender });
+}
+
+// VH-046: imagen del ACOMODO (render 3D, foto amueblada, escena, foto del usuario)
+// → Storage → URL. `tipo` nombra el archivo; `cotId` agrupa por cotización.
+export function imagenAcomodoAStorage(dataUrl, { cotId, tipo = 'imagen' } = {}) {
+  return imagenAStorage(dataUrl, rutaImagen('acomodo', cotId, tipo, dataUrl), { subir: subirRender });
 }
 
 // Guarda la metadata del render (técnico, sin base64). Devuelve {ok, id}.
@@ -573,6 +612,46 @@ export async function cotizacionEmitible(cotizacionId) {
   const { data, error } = await nube.rpc('cotizacion_emitible', { p_cotizacion_id: cotizacionId });
   if (error || !data) return { ok: false, estado: 'DESCONOCIDO', motivos: [], error: error?.message };
   return data;
+}
+
+// VH-055: la verificación usa `evaluar_emision_cotizacion` con EL MISMO snapshot que
+// se emite (paraGuardar). `cotizacion_emitible` arma un snapshot sin folio/cliente/
+// acomodo y su hash no coincide con el de la aprobación firmada sobre el snapshot
+// completo: una cotización ya aprobada seguía diciendo "requiere aprobación".
+// Devuelve la forma del gate del cliente: {ok, estado, motivos, economics, hash, …}.
+export async function evaluarEmision(cotizacionId, snapshot) {
+  if (!cotizacionId) return { ok: false, estado: 'SIN_GUARDAR', motivos: ['sin_guardar'] };
+  const { data, error } = await nube.rpc('evaluar_emision_cotizacion', { p_cotizacion_id: cotizacionId, p_snapshot: snapshot });
+  if (error || !data || !data.state) return { ok: false, estado: 'DESCONOCIDO', motivos: [], error: error?.message };
+  return {
+    ok: data.state === 'ALLOWED', estado: data.state,
+    motivos: data.reasons || [], economics: data.economics || [], approval_reasons: data.approval_reasons || [],
+    hash: data.hash || null, approval_required: !!data.approval_required, approved: !!data.approved,
+  };
+}
+
+// VH-063: política comercial PÚBLICA (sólo descuento máximo sin aprobación y versión).
+// RPC security definer aplicada 2026-10-11 con aprobación de Dirección. Sin dato ⇒ vigente:false.
+export async function politicaComercialPublica() {
+  try {
+    const { data, error } = await nube.rpc('politica_comercial_publica');
+    if (error) return { vigente: false, error: error.message };
+    return data || { vigente: false };
+  } catch (e) { return { vigente: false, error: String(e?.message || e) }; }
+}
+
+// Aprobación de Dirección por el SERVIDOR (hash y reglas_version los pone la base):
+// la fila escrita directo en `aprobaciones` sin reglas_version nunca satisface
+// verificar_aprobacion. Devuelve {ok, id, estado, hash, ya_existia} o {ok:false, error}.
+export async function solicitarAprobacionSnapshot(cotizacionId, snapshot, motivo = null) {
+  if (!cotizacionId) return { ok: false, error: 'Guarda la cotización primero.' };
+  const { data, error } = await nube.rpc('solicitar_aprobacion_snapshot', { p_cotizacion_id: cotizacionId, p_snapshot: snapshot, p_motivo: motivo || null });
+  if (error || !data) return { ok: false, error: error?.message || 'No se pudo solicitar la aprobación.' };
+  return { ok: true, ...data };
+}
+// Sólo Dirección (el servidor lo exige). estado: APROBADA | RECHAZADA | CONTRAOFERTA.
+export function resolverAprobacionServidor(id, estado, motivo = null) {
+  return nube.rpc('resolver_aprobacion', { p_id: id, p_estado: estado, p_motivo: motivo || null });
 }
 
 // VONI COUNCIL · capa de razonamiento multi-modelo (edge `voni-council`, JWT).

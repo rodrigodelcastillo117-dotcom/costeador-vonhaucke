@@ -7,7 +7,8 @@ import { useState, useMemo, useEffect } from 'react';
 import MarcaLogo from './MarcaLogo.jsx';
 import { resumenPorArea, especificacion } from '../datos/resumen.js';
 import { listaPorCuarto } from '../datos/porCuarto.js';
-import { descargarPropuesta, cargarFotos, cargarMarca } from '../datos/pdfPropuesta.js';
+import { descargarPropuesta, cargarFotos, cargarMarca, cargarImagenesAcomodo, datosDesdeSnapshot } from '../datos/pdfPropuesta.js';
+import { snapshotEmitido } from '../datos/revisiones.js';
 import EditarPartida, { sePuedeEditar } from './EditarPartida.jsx';
 import { pesos2, leePct, selloPartida, claseCosto } from '../util.js';
 import { senalesCotizacion, senalesInsumos, problemasDeEmision } from '../datos/senales.js';
@@ -17,9 +18,11 @@ import { imagenPartida } from '../datos/imagenes.js';
 import VoniAvatar from './VoniAvatar.jsx';
 import { confianzaDe, textoConfianza } from '../datos/confianza.js';
 import { expandirPiezas, mapaPiezas } from '../datos/espacio.js';
-import { generarRender, analizarNegocio, resolverRendersCanonicos, subirRender as subirRenderNube } from '../nube.js';
+import { generarRender, renderDePartida, imagenAcomodoAStorage, analizarNegocio, resolverRendersCanonicos, politicaComercialPublica } from '../nube.js';
+import { leerPolitica, avisoDescuento } from '../datos/politicaComercial.js';   // VH-063
 import { estadoRenderPartida, claveRenderPartida, ESTADO_RENDER } from '../datos/renderCanonico.js';
 import { textoRazonEmision, ESTADO_EMISION, razonesPorLinea } from '../datos/emisionUX.js';
+import { evaluarEmisionLocal, combinarGate, detalleBloqueo } from '../datos/emision.js';
 import MontoAnimado from './MontoAnimado.jsx';
 import PlanoAcomodo from './PlanoAcomodo.jsx';
 import ConfirmarCandado from './ConfirmarCandado.jsx';
@@ -99,7 +102,7 @@ function RenderChip({ estado }) {
   return <span className={`render-chip render-chip-${m.cls}`} title={`Render canónico de la revisión anclada: ${estado}`}>{m.t}</span>;
 }
 
-export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr, onEmitida, verificarEmision, veCostos = false }) {
+export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr, onEmitida, verificarEmision, onSolicitarAprobacion, veCostos = false }) {
   const [vistaClienteManual, setVistaClienteManual] = useState(false);
   const vistaCliente = soloVentas || vistaClienteManual;
   const setVistaCliente = setVistaClienteManual;
@@ -108,6 +111,10 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   // Voni Cerebro, Fase 2: la narración con IA es UN clic, nunca automática —
   // cada llamada a Claude cuesta.
   const [voniCargando, setVoniCargando] = useState(false);
+  // VH-063: política pública (sólo descuento máximo sin aprobación + versión). Se carga una vez;
+  // sin dato no hay aviso (la autoridad sigue siendo el servidor al verificar).
+  const [politica, setPolitica] = useState({ vigente: false });
+  useEffect(() => { let vivo = true; politicaComercialPublica().then((d) => { if (vivo) setPolitica(leerPolitica(d)); }); return () => { vivo = false; }; }, []);
   const [voniMensaje, setVoniMensaje] = useState('');
   const [voniError, setVoniError] = useState('');
 
@@ -140,40 +147,27 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
     return null;
   };
 
-  // Los renders persistentes viven en Storage. El estado/cotización conserva sólo
-  // una URL pequeña: nunca volvemos a meter cientos de KB/MB de base64 en `partidas`.
-  async function persistirRender(dataUrl, tipo = 'render') {
-    if (!dataUrl || !String(dataUrl).startsWith('data:image/')) {
-      return { ok: false, error: 'La imagen generada no tiene un formato válido.' };
-    }
-    const id = (globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`);
-    const path = `cotizaciones/${tipo}/${id}.img`;
-    return await subirRenderNube(dataUrl, path);
+  // VH-046: la imagen del acomodo va a Storage; en la cotización SÓLO la URL.
+  // (Antes el base64 completo vivía en el estado, el respaldo y cada guardado.)
+  async function fijarRender3d(dataUrl) {
+    const up = await imagenAcomodoAStorage(dataUrl, { cotId: cot.id, tipo: 'oficina' });
+    if (up.ok) setCot({ acomodo: { ...(cot.acomodo || {}), render3d: up.url } });
+    else setErrGen(up.error);
+    return up.ok;
   }
-
-  // Adjuntar render 3D del acomodo: se reescala y se sube a Storage; el JSON de
-  // la cotización sólo guarda la URL. Si Storage falla, NO persistimos base64.
+  // Adjuntar render 3D del acomodo (reescala antes de subir)
   const subirRender = (file) => {
     if (!file) return;
+    setErrGen('');
     const r = new FileReader();
     r.onload = () => {
       const img = new Image();
-      img.onload = async () => {
-        try {
-          const max = 1400; let w = img.width, h = img.height;
-          const sc = Math.min(1, max / Math.max(w, h)); w = Math.round(w * sc); h = Math.round(h * sc);
-          const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
-          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-          const up = await persistirRender(dataUrl, 'acomodo');
-          if (!up?.ok || !up?.url) {
-            setErrGen(up?.error || 'No se pudo guardar la imagen.');
-            return;
-          }
-          setCot({ acomodo: { ...(cot.acomodo || {}), render3d: up.url, render3d_storage_path: up.path || null } });
-        } catch (_e) {
-          setErrGen('No se pudo preparar o guardar la imagen.');
-        }
+      img.onload = () => {
+        const max = 1400; let w = img.width, h = img.height;
+        const sc = Math.min(1, max / Math.max(w, h)); w = Math.round(w * sc); h = Math.round(h * sc);
+        const c = document.createElement('canvas'); c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        fijarRender3d(c.toDataURL('image/jpeg', 0.85));
       };
       img.src = r.result;
     };
@@ -199,51 +193,31 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   }, []);
   const [editando, setEditando] = useState(null);   // índice de la partida que se edita
 
+  // VH-045: el render de una partida vive en Storage; en el estado SÓLO la URL.
+  // Antes se guardaba el base64 completo en `partida.render` (estado, respaldo y
+  // nube inflados; el contrato lo descartaba al reconstruir). Un solo camino para
+  // "una" y "todas": si algo falla se avisa y la partida se queda como estaba.
   async function renderPartida(i) {
     const pt = partidas[i]; if (!pt) return;
     setErrGen(''); setGenPart(pt.id);
     try {
-      const r = await generarRender(pt.nombre || 'mueble de oficina', { tipo: pt.ruta || '' });
-      if (!r?.ok || !r?.dataUrl) {
-        setErrGen(r?.error || 'No se pudo generar el render.');
-        return;
-      }
-      const up = await persistirRender(r.dataUrl, 'partidas');
-      if (!up?.ok || !up?.url) {
-        setErrGen(up?.error || 'Se generó el render, pero no se pudo guardar.');
-        return;
-      }
-      setPartida(i, { render: up.url, render_storage_path: up.path || null });
-    } catch (_e) { setErrGen('No se pudo conectar o guardar el render.'); }
-    finally { setGenPart(null); }
+      const r = await renderDePartida(pt);
+      if (r.ok) setPartida(i, { render: r.url }); else setErrGen(r.error);
+    } finally { setGenPart(null); }
   }
 
   async function renderTodas() {
     setErrGen('');
     const ps = partidas.slice();
-    try {
-      for (let i = 0; i < ps.length; i++) {
-        if (ps[i].render) continue;
-        setGenPart(ps[i].id);
-        const r = await generarRender(ps[i].nombre || 'mueble', { tipo: ps[i].ruta || '' });
-        if (!r?.ok || !r?.dataUrl) {
-          setErrGen(r?.error || `No se pudo generar el render de ${ps[i].nombre || 'una partida'}.`);
-          continue;
-        }
-        const up = await persistirRender(r.dataUrl, 'partidas');
-        if (!up?.ok || !up?.url) {
-          setErrGen(up?.error || `No se pudo guardar el render de ${ps[i].nombre || 'una partida'}.`);
-          continue;
-        }
-        ps[i] = { ...ps[i], render: up.url, render_storage_path: up.path || null };
-      }
-      setCot({ partidas: ps });
-    } catch (_e) {
-      setErrGen('La generación por lote se interrumpió; los renders ya guardados se conservaron.');
-      setCot({ partidas: ps });
-    } finally {
-      setGenPart(null);
+    const fallas = [];
+    for (let i = 0; i < ps.length; i++) {
+      if (ps[i].render) continue;
+      setGenPart(ps[i].id);
+      const r = await renderDePartida(ps[i]);
+      if (r.ok) ps[i] = { ...ps[i], render: r.url }; else fallas.push(`${ps[i].nombre || 'mueble'}: ${r.error}`);
     }
+    setGenPart(null); setCot({ partidas: ps });
+    if (fallas.length) setErrGen(`Sin render en ${fallas.length} mueble(s): ${fallas.join(' · ')}`);
   }
 
   async function urlADataUrl(url) {
@@ -293,18 +267,24 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   const [confirmoExcluidas, setConfirmoExcluidas] = useState(false);
   const [verPorque, setVerPorque] = useState(false); // panel "¿por qué no puedo emitir?"
   const [gate, setGate] = useState(null);            // resultado del gate server-side
+  const [aprob, setAprob] = useState(null);          // VH-055: {estado:'enviando'|'ok'|'error', msg}
+  const [motivoAprob, setMotivoAprob] = useState('');
   const [gateCargando, setGateCargando] = useState(false);
   // Punto de corte real del candado (Rodrigo, 2026-08-20): a diferencia del
   // aviso temprano en Voni (que se puede saltar sin querer), esto es lo que
   // de verdad produce algo que llega al cliente — sin importar por cuál
   // camino entró la partida (Voni, Cotizar de línea, lo que sea).
   const [accionPendiente, setAccionPendiente] = useState(null); // null | () => void
-  // No se puede emitir con un renglón sin cantidad o sin precio: sería inventar
-  // un número en el documento que llega al cliente (mandato Fase 1).
-  const probEmision = problemasDeEmision(partidas);
-  // Piezas excluidas de TODO el proyecto (únicas). Si hay, no se emite sin confirmar.
-  const excluidasProyecto = [...new Set(partidas.flatMap((p) => p.nombresExcluidos || []))];
-  const bloqueoExcluidas = excluidasProyecto.length > 0 && !confirmoExcluidas;
+  // VH-047 · COMPUERTA ÚNICA. Una sola evaluación local, con la forma y los códigos
+  // del servidor (evaluar_emision_cotizacion); de ella salen los botones, el banner,
+  // los chips por línea y el "¿por qué no puedo emitir?". El servidor sigue siendo la
+  // autoridad: su veredicto se funde con el local en `gateVista` (gana la severidad mayor).
+  const gateLocal = useMemo(() => evaluarEmisionLocal({ partidas, confirmoExcluidas }), [partidas, confirmoExcluidas]);
+  const probEmision = problemasDeEmision(partidas);            // textos de renglón (derivan de la misma compuerta)
+  const excluidasProyecto = gateLocal.excluidas;
+  const bloqueoExcluidas = gateLocal.motivos.includes('piezas_excluidas_sin_confirmar');
+  const bloqueoLocal = gateLocal.estado === 'BLOCKED';
+  const motivoBloqueo = bloqueoLocal ? detalleBloqueo(gateLocal.motivos[0], partidas).titulo : undefined;
   // Fail-closed: si cambia QUÉ piezas están excluidas, se re-exige la confirmación
   // (no se arrastra un "confirmo" viejo sobre una lista distinta).
   useEffect(() => { setConfirmoExcluidas(false); }, [excluidasProyecto.join('|')]);
@@ -451,6 +431,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   const { precioLista, descuentoPct, descuento, subtotal, contingenciaPct, contingencia,
     maniobrasPct, maniobras, fletePct, flete, ivaPct, iva, baseGravable, total, totalRedondeado,
     anticipoPct, anticipo, hayLineaInvalida, faltanPrecio, totalCompleto } = totalesCotizacion(partidas, cot, estado.parametros);
+  const avisoDesc = avisoDescuento(descuentoPct, politica);   // VH-063
   const minMarkup = estado.parametros.minMarkupLinea ?? 45;
   const factorDesc = 1 - descuentoPct / 100;
   // #11: precio DESCONOCIDO jamás se dibuja como $0. Por renglón: "Sin precio" /
@@ -729,6 +710,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           <div className="fila-botones" style={{ justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <label className="etiqueta" style={{ margin: 0 }}>Descuento de proyecto (%)</label>
             <CampoPct valor={descuentoPct} max={60} onCambio={(v) => setCot({ descuentoPct: v })} />
+            {avisoDesc && <span className="alerta ambar" style={{ margin: 0, flexBasis: '100%' }} data-testid="aviso-descuento"><span className="texto">{avisoDesc.texto}</span></span>}
             {!soloVentas && descuentoMax != null && <button className="boton fantasma" style={{ minHeight: 40, padding: '0 12px' }} onClick={() => setCot({ descuentoPct: descuentoMax })} title={`Máximo sin bajar del piso de ${minMarkup}% SOBRE COSTO (markup). Ojo: ${minMarkup}% sobre costo equivale a ${Math.round(100 * (minMarkup / (100 + minMarkup)))}% de margen sobre precio, que es otra cuenta.`}>Máx. rentable: {descuentoMax}%</button>}
           </div>
           {/* Rodrigo, 2026-08-16: "el precio que tenemos ya es precio de lista, es el de
@@ -1005,10 +987,12 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
       )}
       {/* GATE DE EMISIÓN autoritativo (server-side). Explica el estado y QUÉ falta,
           en lenguaje claro y seller-safe (sin cifras de costo/margen). */}
-      {gate && gate.estado && gate.estado !== 'DESCONOCIDO' && (() => {
-        const info = ESTADO_EMISION[gate.estado] || { tono: 'rojo', titulo: gate.estado };
-        const col = info.tono === 'verde' ? '#067647' : info.tono === 'ambar' ? '#B54708' : '#B42318';
-        const bg = info.tono === 'verde' ? '#ECFDF3' : info.tono === 'ambar' ? '#FFFAEB' : '#FEF3F2';
+      {gate && gate.estado && (() => {
+        // Lo que se muestra es la FUSIÓN servidor+local; si el servidor no respondió, se dice.
+        const estadoVista = gateVista.servidorConsultado ? gateVista.estado : 'DESCONOCIDO';
+        const info = ESTADO_EMISION[estadoVista] || { tono: 'rojo', titulo: estadoVista };
+        const col = info.tono === 'verde' ? '#067647' : info.tono === 'ambar' ? '#B54708' : info.tono === 'gris' ? '#475467' : '#B42318';
+        const bg = info.tono === 'verde' ? '#ECFDF3' : info.tono === 'ambar' ? '#FFFAEB' : info.tono === 'gris' ? '#F2F4F7' : '#FEF3F2';
         return (
           <div className="no-imprimir" style={{ marginTop: 8, border: `1px solid ${col}33`, background: bg, borderRadius: 10, padding: 12, color: col }}>
             <div style={{ fontWeight: 800 }}>{info.titulo}</div>
@@ -1017,7 +1001,23 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                 {gateRazones.map((t, i) => <li key={i} style={{ fontSize: 13, margin: '2px 0' }}>{t}</li>)}
               </ul>
             )}
-            {gate.estado === 'ALLOWED' && <div style={{ fontSize: 13, marginTop: 4 }}>Todo en regla: puedes descargar el PDF definitivo.</div>}
+            {estadoVista === 'ALLOWED' && <div style={{ fontSize: 13, marginTop: 4 }}>Todo en regla: puedes descargar el PDF definitivo.</div>}
+            {estadoVista === 'APPROVAL_REQUIRED' && onSolicitarAprobacion && (
+              <div data-testid="solicitar-aprobacion" style={{ marginTop: 10, display: 'grid', gap: 6 }}>
+                <div style={{ fontSize: 13 }}>La aprobación se firma sobre esta versión exacta: si cambias algo después, hay que pedirla de nuevo.</div>
+                <input type="text" value={motivoAprob} onChange={(e) => setMotivoAprob(e.target.value)} placeholder="Motivo para Dirección (opcional)" style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid var(--linea)' }} />
+                <button className="boton" style={{ minHeight: 40, justifySelf: 'start' }} disabled={aprob?.estado === 'enviando'}
+                  onClick={async () => {
+                    setAprob({ estado: 'enviando', msg: '' });
+                    const r = await onSolicitarAprobacion(motivoAprob.trim() || null);
+                    if (r?.ok) setAprob({ estado: 'ok', msg: r.ya_existia ? `Ya había una solicitud pendiente para esta versión (#${r.id}). Dirección la verá en el Deal Desk.` : `Solicitud enviada (#${r.id}). Dirección la verá en el Deal Desk; cuando la apruebe, vuelve a verificar.` });
+                    else setAprob({ estado: 'error', msg: r?.error || 'No se pudo solicitar la aprobación.' });
+                  }}>
+                  {aprob?.estado === 'enviando' ? 'Enviando…' : 'Solicitar aprobación a Dirección'}
+                </button>
+                {aprob?.msg && <div data-testid="aprobacion-msg" style={{ fontSize: 13, color: aprob.estado === 'error' ? '#B42318' : 'inherit' }}>{aprob.msg}</div>}
+              </div>
+            )}
           </div>
         );
       })()}

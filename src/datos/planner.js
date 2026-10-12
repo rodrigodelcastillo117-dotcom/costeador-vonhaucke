@@ -12,8 +12,10 @@ import { regla } from './reglas.js';
 import { enderezarTodo } from './orientacion.js';
 import { puestosDe } from './rellenar.js';
 import { dimsPieza } from './espacio.js';
-import { rolDePiezaAcomodo, zonaPermite, zonaSemantica } from './floorSpec.js';
+import { rolDePiezaAcomodo, zonaPermite, zonaSemantica, violacionesSemanticas } from './floorSpec.js';
 import { destinoMarcado } from './destinoAcomodo.js';
+import { rolDeCuarto } from './cuartos.js';
+import { auditarColocacion } from './acomodoAudit.js';
 
 const zonaAceptaPieza = (p, area) => zonaPermite(rolDePiezaAcomodo(p), zonaSemantica(area?.nombre || ''));
 
@@ -21,50 +23,15 @@ const PERIM = 700;
 const WALL = 60;
 const AISLE = 1100;
 const GAP = 140;
-const MEET_CLR = 950;
 
+// VH-061: una sola lectura del nombre del cuarto (datos/cuartos.js), compartida con
+// floorSpec.zonaSemantica. Antes cada módulo tenía su regex y "Site" era 'general'
+// aquí (se le acomodaban muebles) y SITE_IT allá (prohibido).
 export function rolArea(nombre) {
-  const s = (nombre || '').toLowerCase();
-  if (/ba[ñn]|w\.?c|sanit|toilet|n[úu]cleo|ducto|escaler|core|cocin|kitchen/.test(s)) return 'servicio';
-  if (/jun|consejo|board/.test(s)) return 'juntas';
-  if (/lounge|descanso|estar|comedor|break|caf[eé]|espera/.test(s)) return 'lounge';
-  if (/recep|lobby|acceso|vest[íi]b/.test(s)) return 'recepcion';
-  if (/priv|direcc|gerenc|oficina/.test(s)) return 'privado';
-  // APARTADO + PAX es el vocabulario real que vino del lector de planos del CEO.
-  if (/open|operativ|apartado|trabajo|estaci|planta libre|bench|isla/.test(s)) return 'open';
-  return 'general';
+  return rolDeCuarto(nombre);
 }
 
-function empacarFilas(cola, region, { gap = GAP, rowGap = AISLE, tope = Infinity } = {}) {
-  const { x0, y0, x1, y1 } = region;
-  const out = []; let x = x0, y = y0, rowH = 0, n = 0;
-  while (cola.length && n < tope) {
-    const p = cola[0];
-    let w = p.w, d = p.d, rot = 0;
-    if (w > (x1 - x0) && d <= (x1 - x0)) { [w, d] = [d, w]; rot = 90; }
-    if (w > (x1 - x0) || d > (y1 - y0)) break;
-    if (x + w > x1 + 1) { x = x0; y += rowH + rowGap; rowH = 0; }
-    if (y + d > y1 + 1) break;
-    out.push({ id: p.id, x, y, rot });
-    x += w + gap; rowH = Math.max(rowH, d); n++;
-    cola.shift();
-  }
-  return { out, bottom: y + rowH };
-}
-
-function guardasAMuro(cola, W, out, { desde = PERIM } = {}) {
-  if (!cola.length) return 0;
-  let x = desde, maxD = 0;
-  while (cola.length) {
-    const p = cola[0];
-    let w = p.w, d = p.d, rot = 0;
-    if (x + w > W - PERIM + 1) break;
-    out.push({ id: p.id, x, y: WALL, rot });
-    x += w + GAP; maxD = Math.max(maxD, d);
-    cola.shift();
-  }
-  return maxD ? WALL + maxD : 0;
-}
+// B5 (2026-10-11): `empacarFilas`, `guardasAMuro` y `MEET_CLR` se retiraron (sin llamadas).
 
 function empacarTodoGarantizado(base, piezas, ajustar) {
   const CIRC = regla('circulacion_min') ?? 900;
@@ -203,18 +170,60 @@ export function sentarSillas(colocacion, piezas, areas) {
   return out;
 }
 
+// VH-033 (2026-10-11) · PLAN B PARA LO QUE SOBRA. Las sillas operativas sólo se
+// colocaban en los asientos de escritorios ya colocados (`sentarSillas`); si había
+// más sillas que asientos —o el cuarto no tenía escritorio— se perdían aunque
+// sobrara piso (medido: 48 de 72 en una sala de 23×14 m; 0 de 49 en "Sala de
+// capacitación"). Aquí todo lo que quedó sin lugar se intenta colocar en piso libre:
+// lo YA colocado se le entrega al motor como obstáculo (misma idea que `reacomodar`),
+// así nada se mueve; sólo se rellena. Se respetan las zonas (zonaAceptaPieza) y los
+// cuartos de servicio. Lo que aun así no cabe se reporta por nombre en `sinColocar`.
+function colocarSobrantes(areas, colocacion, piezas) {
+  const byId = Object.fromEntries(piezas.map((p) => [p.id, p]));
+  const puestas = new Set(colocacion.map((c) => c.id));
+  let sobrantes = piezas.filter((p) => !puestas.has(p.id));
+  if (!sobrantes.length) return { colocacion, sinColocar: [] };
+  const out = colocacion.map((c) => ({ ...c }));
+  const cuartos = areas.map((a, i) => ({ a, i, rol: rolCuarto(a, areas) })).filter((c) => c.a && c.rol !== 'servicio');
+  const escritoriosEn = (i) => out.filter((c) => c.area === i && byId[c.id]?.tipo === 'escritorio').length;
+  // Primero los cuartos con escritorios (una silla operativa va cerca del trabajo),
+  // luego los más grandes.
+  cuartos.sort((x, y) => (escritoriosEn(y.i) - escritoriosEn(x.i)) || ((y.a.ancho * y.a.largo) - (x.a.ancho * x.a.largo)));
+  for (const c of cuartos) {
+    if (!sobrantes.length) break;
+    const candidatas = sobrantes.filter((p) => zonaAceptaPieza(p, c.a) && cabeEn(p, c.a));
+    if (!candidatas.length) continue;
+    const ocupado = out.filter((k) => k.area === c.i).map((k) => {
+      const p = byId[k.id]; if (!p) return null;
+      const { pw, ph } = dimsPieza(p, k.rot || 0);
+      return { x: k.x, y: k.y, w: pw, h: ph, tipo: 'fijo' };
+    }).filter(Boolean);
+    const areaConFijos = { ...c.a, obstaculos: [...(c.a.obstaculos || []), ...ocupado] };
+    const r = acomodarEnForma(areaConFijos, candidatas);
+    const nuevas = new Set(r.colocacion.map((k) => k.id));
+    for (const k of r.colocacion) out.push({ ...k, area: c.i });
+    sobrantes = sobrantes.filter((p) => !nuevas.has(p.id));
+  }
+  return { colocacion: out, sinColocar: sobrantes.map((p) => p.id) };
+}
+
 export function acomodarLocal(areas, piezas, opts = {}) {
   const r = acomodarLocalBase(areas, piezas, opts);
-  const colocacion = sentarSillas(r.colocacion, piezas, r.areas || areas);
-  if (colocacion.length === r.colocacion.length) return { ...r, colocacion };
+  const areasReales = r.areas || areas;
+  const sentadas = sentarSillas(r.colocacion, piezas, areasReales);
+  const { colocacion, sinColocar } = colocarSobrantes(areasReales, sentadas, piezas);
   const caben = colocacion.length === piezas.length;
+  const nombres = sinColocar.map((id) => {
+    const p = piezas.find((q) => q.id === id); return p?.nombre || id;
+  });
+  if (colocacion.length === r.colocacion.length && caben === r.caben) return { ...r, colocacion, sinColocar };
   return {
-    ...r, colocacion, caben,
+    ...r, colocacion, caben, sinColocar,
     auditoria: (r.auditoria || []).map((a) => (a.check === 'Todas las piezas colocadas'
       ? { ...a, ok: caben, detalle: `${colocacion.length} de ${piezas.length}` } : a)),
     notas: [
-      ...(r.notas || []).filter((n) => !/no caben en el plano/i.test(n)),
-      ...(caben ? [] : [`${piezas.length - colocacion.length} pieza(s) no caben en el plano. Quita muebles o usa otra área.`]),
+      ...(r.notas || []).filter((n) => !/no caben en el plano|no cupieron/i.test(n)),
+      ...(caben ? [] : [`${sinColocar.length} pieza(s) no caben en el plano: ${[...new Set(nombres)].slice(0, 6).join(', ')}${nombres.length > 6 ? '…' : ''}. Quita muebles o usa otra área.`]),
     ],
     resumen: caben
       ? `Los ${piezas.length} muebles quedan acomodados, con cada silla en su puesto.`
@@ -340,6 +349,27 @@ function capacidadMesa(p) {
   if (largo >= 2200) return 8;
   if (largo >= 1600) return 6;
   return 4;
+}
+
+/**
+ * VH-062 · Auditoría MEDIDA del resultado del planner, en el formato de `auditoria`.
+ * Encimados y fuera-de-área los decide `acomodoAudit.auditarColocacion` (el mismo
+ * auditor de la pantalla); "servicios sin amueblar" se comprueba contra la colocación.
+ * Exportada para probarse con colocaciones construidas a mano.
+ */
+export function auditoriaMedida({ areas = [], colocacion = [], piezas = [], cuartos = [] } = {}) {
+  const byId = Object.fromEntries(piezas.map((p) => [p.id, p]));
+  const audit = auditarColocacion({ areas, colocacion, byId }, { tol: 20 });
+  const nombre = (id) => byId[id]?.nombre || id;
+  const enServicio = colocacion.filter((k) => cuartos[k.area]?.servicio);
+  // Semántica (floorSpec): mesa de juntas en consejo, mostrador en recepción, puestos fuera de consejo/recepción…
+  const viols = violacionesSemanticas(colocacion, areas, byId);
+  return [
+    { check: 'Cada mueble dentro de su cuarto', ok: audit.fuera.length === 0, detalle: audit.fuera.length ? `${audit.fuera.length} fuera: ${audit.fuera.map((f) => nombre(f.id)).join(', ')}` : 'todas dentro de los límites de su área' },
+    { check: 'Nada encimado', ok: audit.overlaps.length === 0, detalle: audit.overlaps.length ? `${audit.overlaps.length} encimado(s): ${audit.overlaps.map((o) => `${nombre(o.a)} ↔ ${nombre(o.b)}`).join(', ')}` : 'ningún traslape' },
+    { check: 'Baños y servicios sin amueblar', ok: enServicio.length === 0, detalle: enServicio.length ? `${enServicio.length} mueble(s) en cuartos de servicio: ${enServicio.map((k) => nombre(k.id)).join(', ')}` : `${cuartos.filter((c) => c.servicio).length} cuarto(s) de servicio respetados` },
+    { check: 'Cada mueble en una zona que lo admite', ok: viols.length === 0, detalle: viols.length ? viols.map((v) => v.motivo).join(' · ') : 'sin violaciones semánticas' },
+  ];
 }
 
 function acomodarPorCuartos(areas, piezas) {
@@ -469,6 +499,11 @@ function acomodarPorCuartos(areas, piezas) {
       if (intento.length === ocupadas.length) continue;
       const r = acomodarEnForma(c.a, intento);
       const puestas = new Set(r.colocacion.map((k) => k.id));
+      // VH-033 (2026-10-11): el re-empaque arranca de cero; si alguna pieza que YA
+      // estaba colocada en este cuarto no vuelve a caber, el intento se DESCARTA
+      // (se conserva lo que había y las nuevas siguen en `restantes`). Antes se
+      // aceptaba igual: la pieza desaparecía del plano y `caben` seguía en true.
+      if (!ocupadas.every((p) => puestas.has(p.id))) continue;
       for (let k = colocacion.length - 1; k >= 0; k--) if (colocacion[k].area === c.i) colocacion.splice(k, 1);
       for (const k of r.colocacion) colocacion.push({ ...k, area: c.i });
       restantes = restantes.filter((p) => !puestas.has(p.id));
@@ -481,14 +516,16 @@ function acomodarPorCuartos(areas, piezas) {
     .map((c) => `${c.a.nombre || 'Área ' + (c.i + 1)}: ${resumenTipos(c.asignadas.filter((p) => colocacion.some((k) => k.id === p.id)))}`);
 
   auditoria.push({ check: 'Todas las piezas colocadas', ok: caben, detalle: `${colocacion.length} de ${piezas.length}` });
-  auditoria.push({ check: 'Cada mueble dentro de su cuarto', ok: true, detalle: 'la malla sólo ocupa celdas del área' });
-  auditoria.push({ check: 'Nada encimado', ok: true, detalle: 'la malla no reutiliza celdas' });
-  auditoria.push({ check: 'Baños y servicios sin amueblar', ok: true, detalle: `${cuartos.filter((c) => c.servicio).length} cuarto(s) de servicio respetados` });
+  // VH-062: estas tres se MIDEN sobre el resultado (antes eran `ok: true` fijos, es
+  // decir, no eran auditoría). El auditor es el mismo que usa la pantalla.
+  auditoria.push(...auditoriaMedida({ areas, colocacion, piezas, cuartos }));
   auditoria.push({ check: 'Reparto por criterio', ok: true, detalle: porCuarto.join(' · ') || 'sin reparto' });
   if (!caben) notas.push(`${restantes.length} pieza(s) no caben en el plano. Quita muebles o usa otra área.`);
 
   return {
     colocacion, zonas: [], caben, areas, notas, auditoria,
+    // Qué NO se pudo colocar, con nombre: el usuario debe poder verlo (mandato §4).
+    sinColocar: restantes.map((p) => p.id),
     resumen: caben
       ? `Los ${piezas.length} muebles quedan repartidos por cuarto: ${porCuarto.join(' · ')}.`
       : `Caben ${colocacion.length} de ${piezas.length}. ${porCuarto.join(' · ')}.`,

@@ -14,8 +14,28 @@ import { costearConfig, productoDe } from '../datos/lineas.js';
 import { imagenProducto } from '../datos/imagenes.js';
 import { hexDeColor } from '../datos/coloresHex.js';
 import { pesos } from '../util.js';
+import { crearPartida } from '../datos/partida.js';
 
 export const sePuedeEditar = (pt) => !!(pt && pt.ruta && pt.productoId && !pt.deBanco);
+
+// VH-045: lo que sale del diálogo pasa por el CONTRATO (crearPartida), no se arma a
+// mano. Vendedor (soloVentas): el contrato elimina costo/margen con la misma regla
+// que el servidor; Dirección los conserva. Exportada para probarse sin montar React.
+export function partidaEditada(partida, nuevo, cant, soloVentas) {
+  return crearPartida({
+    ...partida,
+    nombre: nuevo.nombre, config: nuevo.config, cantidad: cant,
+    costoUnitario: nuevo.costoUnitario, precioUnitario: nuevo.precioUnitario, margen: nuevo.margen, costoDerivado: !!nuevo.costoDerivado,
+    w: nuevo.w, d: nuevo.d, precioReal: !!nuevo.precioReal,
+    // El artículo del catálogo de la NUEVA medida (o null si dejó de casar): así el
+    // piso y las variantes siguen a lo que quedó.
+    catalogo: nuevo.catalogo || null, variantes: nuevo.variantes || null,
+    // Completitud del costeo de la nueva configuración (bloquea emisión, no guardado).
+    piezasSinMaterial: nuevo.piezasSinMaterial, nombresSinMaterial: nuevo.nombresSinMaterial, estadoCosto: nuevo.estadoCosto,
+    // Ya lo revisó una persona: la nota y la confianza de la IA sobran.
+    nota: null, confianza: null,
+  }, { veCostos: !soloVentas, origen: partida?.origen || 'linea' });
+}
 
 export default function EditarPartida({ estado, partida, onGuardar, onCerrar, soloVentas = false }) {
   const info = useMemo(() => productoDe(partida.ruta, partida.productoId), [partida.ruta, partida.productoId]);
@@ -63,7 +83,8 @@ export default function EditarPartida({ estado, partida, onGuardar, onCerrar, so
   const prod = info.producto;
   const set = (k, v) => setCfg((c) => ({ ...c, [k]: v }));
   const foto = imagenProducto(partida.ruta, partida.productoId);
-  const cambioPrecio = nuevo.precioUnitario - (partida.precioUnitario || 0);
+  // Precio null = costeo incompleto (fail-closed): no hay delta que mostrar.
+  const cambioPrecio = Number.isFinite(nuevo.precioUnitario) ? nuevo.precioUnitario - (partida.precioUnitario || 0) : 0;
 
   const Chips = ({ etiqueta, opciones, valor, alElegir, fmt, conSwatch }) => (
     <div className="ed-campo">
@@ -153,21 +174,7 @@ export default function EditarPartida({ estado, partida, onGuardar, onCerrar, so
           </div>
           <div className="fila-botones" style={{ gap: 10 }}>
             <button className="boton fantasma" style={{ minHeight: 48 }} onClick={onCerrar}>Cancelar</button>
-            <button className="boton primario" style={{ minHeight: 48 }} onClick={() => onGuardar({
-              ...partida,
-              nombre: nuevo.nombre, config: nuevo.config, cantidad: cant,
-              // VENDEDOR (seller-safe): al guardar NO se siembra costo/margen en la
-              // partida (costearConfig los deriva/calcula, pero no deben vivir en el
-              // estado del vendedor). El precio de venta sí. El servidor revalida.
-              costoUnitario: soloVentas ? null : nuevo.costoUnitario, precioUnitario: nuevo.precioUnitario,
-              margen: soloVentas ? null : nuevo.margen, w: nuevo.w, d: nuevo.d,
-              precioReal: !!nuevo.precioReal,
-              // El artículo del catálogo de la NUEVA medida (o null si dejó de
-              // casar): así el piso y las variantes siguen a lo que quedó.
-              catalogo: nuevo.catalogo || null, variantes: nuevo.variantes || null,
-              // Ya lo revisó una persona: la nota y la confianza de la IA sobran.
-              nota: null, confianza: null,
-            })}>Guardar cambios</button>
+            <button className="boton primario" style={{ minHeight: 48 }} onClick={() => onGuardar(partidaEditada(partida, nuevo, cant, soloVentas))}>Guardar cambios</button>
           </div>
         </div>
       </div>

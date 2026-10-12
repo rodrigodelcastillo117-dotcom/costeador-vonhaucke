@@ -1,6 +1,6 @@
 import React,{useEffect,useMemo,useState} from 'react';
 import {
-  cocrearDesdeIntent,construirProductSpec,extraerDNA,clasificarProducto,cocrearDeExpediente,cocrearPayload,
+  cocrearDesdeIntent,construirProductSpec,extraerDNA,clasificarProducto,cocrearDeExpediente,cocrearPayload,partidaDesdeCocrear,
   hashEstable,DIMS_DEFAULT,MATERIALES_EDIT,FAMILIA,aplicarCambioTexto,
 } from '../datos/cocrear.js';
 import {prepararIntentCocrear,resumenIdeaCocrear,conceptosCocrear,aplicarConceptoCocrear,FEATURES_COCREAR,detectarAlcanceCocrear} from '../datos/cocrearWow.js';
@@ -9,7 +9,7 @@ import {estimadoDisenoCocrear} from '../datos/estimadoDiseno.js';
 import {listarCocreaciones,guardarCocrearSeguro,cargarCocrearSeguro,registrarProductoDesdeExpediente,subirRenderCanonico,voniCouncil,generarRender,buscarProductosMaestroTexto} from '../nube.js';
 import CocrearVisual from './CocrearVisual.jsx';
 import {parametrosEfectivos} from './Costeador.jsx';
-import {precioVenta} from '../motor/calculo.js';
+import {precioDesdeCosto,margenObjetivoDe} from '../datos/precio.js';
 import {compileRenderPrompt,renderStale} from '../datos/renderPrompt.js';
 import {visualRevisionHash,visualesSincronizados} from '../datos/visualRevision.js';
 import {modeloTecnico3DDesdeSpec} from '../datos/productModel3D.js';
@@ -197,8 +197,9 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
      imagen:modelo,mediaType:'image/png',
      visual_revision_hash:c.visualRevisionHash,
    });
-   if(r?.ok&&r.dataUrl)setRender({
-     dataUrl:r.dataUrl,
+   const imgR=r?.imagen||r?.dataUrl; // VH-072: URL de Storage o dataUrl de respaldo
+   if(r?.ok&&imgR)setRender({
+     dataUrl:imgR,
      specHash:nextSpec.hash,
      visualRevisionHash:c.visualRevisionHash,
      expected:c.expected,version:c.version,concepto:nextIntent?._concepto||null
@@ -318,7 +319,7 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
     return
   }
   let id=expedienteId,prodId=null,versionId=null;
-  let avisoRender='';
+  let avisoRender='';let renderUrl=null;
   try{
     if(!id){
       const s=await guardarCocrearSeguro(null,cocrearPayload({brief:texto,intent,historia,render,insumos,par}));
@@ -337,21 +338,16 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
         dataUrl:render.dataUrl,promptVersion:render.version,modo:'render',
         specHash:spec.hash,geometryHash,inputs:rc.expected||{},
       });
-      if(!up?.ok)avisoRender=` Render canónico pendiente: ${up?.error||'no se pudo registrar'}.`;
+      if(!up?.ok)avisoRender=` Render canónico pendiente: ${up?.error||'no se pudo registrar'}.`;else if(up?.storage_url)renderUrl=up.storage_url;
     }
   }catch(e){
     setMensaje(`No se agregó a la cotización: ${String(e?.message||e)}`);
     return;
   }
-  const margen=Number.isFinite(Number(par.margenObjetivo))?Number(par.margenObjetivo):50;
-  const pv=precioVenta(costoOficial,par).precio;
-  onAgregar({
-    nombre:intent?._concepto_nombre||resumen?.tipologia||'Producto co-creado',
-    componentes:spec.componentes,
-    w:spec.dimensiones?.ancho_mm||null,
-    d:spec.dimensiones?.prof_mm||spec.dimensiones?.fondo_mm||null,
-    productoId:prodId,productVersionId:versionId,precioReal:false,config:null
-  },1,pv,margen);
+  const margen=margenObjetivoDe(par),pv=precioDesdeCosto(costoOficial,{par,margen});
+  if(pv==null){setMensaje('Sin precio válido para esta revisión: el costo oficial está incompleto.');return}
+  // VH-058: la partida nace con identidad y procedencia (expediente, Producto Maestro, render canónico).
+  onAgregar({...partidaDesdeCocrear({nombre:intent?._concepto_nombre||resumen?.tipologia||'Producto co-creado',spec,prodId,versionId,expedienteId:id,renderUrl})},1,pv,margen);
   setCotizadoHash(spec.hash);
   setMensaje(`✓ Revisión canónica agregada a cotización.${avisoRender}`);
  };

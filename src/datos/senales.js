@@ -8,6 +8,7 @@
 //  calculadas y nunca las recalcula por su cuenta.
 // ============================================================================
 import { selloPartida } from '../util.js';
+import { evaluarEmisionLocal, detalleBloqueo } from './emision.js';
 import { precioDeInsumo } from '../motor/calculo.js';
 
 // Señales de UNA cotización — el lente "auditor de este proyecto" (Voni,
@@ -63,53 +64,20 @@ export function senalesCotizacion(partidas = [], margenMinimo = 25) {
 // de forma determinista (los bloqueos son dinero: NO los decide un LLM). `problemasDeEmision`
 // (abajo) deriva de aquí sus textos, para no tener dos definiciones que se desincronicen.
 export function bloqueosDeEmision(partidas = []) {
-  const b = [];
+  // VH-047: deriva de la compuerta única (misma lectura que el servidor). Las
+  // exclusiones se confirman en la pantalla, no aquí; `sin_partidas` no es bloqueo
+  // de renglón.
+  const g = evaluarEmisionLocal({ partidas, confirmoExcluidas: true });
+  // Motivos duros + veredicto económico (costo preliminar/incompleto): ambos impiden la emisión definitiva.
+  const b = [...g.motivos, ...(g.economics || [])].filter((c) => c !== 'sin_partidas').map((c) => detalleBloqueo(c, partidas));
+  // Especial/nuevo sin costeo autorizado (línea viva 2026-10-08): tratarlo como $0 falsearía margen y precio.
   partidas.forEach((p, i) => {
+    if (p?.costoPendiente !== true) return;
     const etq = p.nombre || `Renglón ${i + 1}`;
-    // FINITO y positivo: `Infinity > 0` es true, así que un precio/cantidad Infinity
-    // (margen inválido, etc.) se colaba como "válido". Se exige Number.isFinite.
-    if (!(Number.isFinite(p.cantidad) && p.cantidad > 0)) {
-      b.push({ code: 'CANTIDAD_INVALIDA', pieza: etq, nivel: 'blocker',
-        titulo: `"${etq}" no tiene una cantidad válida.`,
-        porque: 'Sin una cantidad positiva ese renglón no suma al total (cuenta como 0) y el total sería falso.',
-        corregir: `Pon una cantidad mayor a 0 en "${etq}".` });
-    }
-    if (!(Number.isFinite(p.precioUnitario) && p.precioUnitario > 0)) {
-      b.push({ code: 'PRECIO_INVALIDO', pieza: etq, nivel: 'blocker',
-        titulo: `"${etq}" no tiene un precio válido.`,
-        porque: 'Un precio en 0 o no finito (margen imposible, costo incompleto) regala el renglón o rompe el total.',
-        corregir: `Revisa el costeo de "${etq}": que su costo esté completo y el margen sea válido (<100%).` });
-    }
-    if (p.costoPendiente === true) {
-      b.push({ code: 'COSTO_PENDIENTE', pieza: etq, nivel: 'blocker',
-        titulo: `"${etq}" todavía no tiene un costeo válido.`,
-        porque: 'Es un producto especial/nuevo y no existe un resultado de costeo autorizado; tratarlo como $0 falsearía margen y precio.',
-        corregir: `Vuelve a costear "${etq}" y resuelve sus datos pendientes antes de emitir.` });
-    }
-
-    const estadoCosto = String(p.costoEstado || '').toLowerCase();
-    if (estadoCosto === 'preliminar') {
-      b.push({ code: 'COSTO_PRELIMINAR', pieza: etq, nivel: 'blocker',
-        titulo: `"${etq}" tiene costo preliminar; todavía no está certificado.`,
-        porque: 'El cálculo existe, pero uno o más insumos todavía no tienen evidencia suficiente para convertirlo en una emisión definitiva.',
-        corregir: `Confirma los precios/evidencias pendientes de "${etq}" con Compras o Diseño y vuelve a costear hasta obtener estado certificado.` });
-    } else if (estadoCosto === 'incompleto' || estadoCosto === 'bloqueado') {
-      b.push({ code: 'COSTO_NO_CERTIFICABLE', pieza: etq, nivel: 'blocker',
-        titulo: `"${etq}" tiene un costo ${estadoCosto} y no puede emitirse.`,
-        porque: 'El servidor autoritativo indicó que el costo no reúne las condiciones mínimas para ser comercial.',
-        corregir: `Resuelve los bloqueos del costeo de "${etq}" antes de emitir.` });
-    }
-
-    const nSin = Number(p.piezasSinMaterial) || 0;
-    if (nSin > 0) {
-      const cuales = Array.isArray(p.nombresSinMaterial) && p.nombresSinMaterial.length
-        ? ` (${p.nombresSinMaterial.join(', ')})`
-        : '';
-      b.push({ code: 'SIN_MATERIAL', pieza: etq, nivel: 'blocker',
-        titulo: `"${etq}" tiene ${nSin} ${nSin === 1 ? 'pieza' : 'piezas'} sin material asignado${cuales}: se costea en $0. Asígnale material o quítala antes de emitir.`,
-        porque: 'Una pieza sin material se costea en $0, así que el costo y el margen de ese renglón son mentira.',
-        corregir: `Asígnale material${cuales || ' a esas piezas'} o quítalas de "${etq}".` });
-    }
+    b.push({ code: 'COSTO_PENDIENTE', pieza: etq, nivel: 'blocker',
+      titulo: `"${etq}" todavía no tiene un costeo válido.`,
+      porque: 'Es un producto especial/nuevo y no existe un resultado de costeo autorizado; tratarlo como $0 falsearía margen y precio.',
+      corregir: `Vuelve a costear "${etq}" y resuelve sus datos pendientes antes de emitir.` });
   });
   return b;
 }

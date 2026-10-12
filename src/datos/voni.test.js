@@ -7,7 +7,7 @@
 // ============================================================================
 import { describe, it, expect } from 'vitest';
 import { interpretarIntent, construirProductSpec, extraerDNA, clasificarProducto } from './cocrear.js';
-import { voniUnderstand, voniTurno, voniReview, voniContext, LENS } from './voni.js';
+import { voniUnderstand, voniReview, voniContext, LENS } from './voni.js';
 
 const intentRecepcion = () => { const i = interpretarIntent('recepción 2.40 m nogal iluminación'); i.dimensiones = { ancho_mm: 2400 }; return i; };
 const specDe = (intent) => construirProductSpec(intent, extraerDNA(intent), clasificarProducto(intent, {}), { rev: 1 });
@@ -44,46 +44,6 @@ describe('VONI understand · 3 intenciones distintas en una frase', () => {
   it('salida estructurada, no texto libre', () => { expect(Array.isArray(u.requested_changes)).toBe(true); expect(u.source).toBe('deterministic'); });
 });
 
-describe('VONI turno · ejecuta solo lo autorizado, crea revisión, invalida dependencias', () => {
-  it('golden decisivo: aplica corta+cálida, crea Rev, review NO cambia, stale correcto', async () => {
-    const intent = intentRecepcion();
-    const estudio = { spec: specDe(intent), rev: 1, historiaLen: 1 };
-    const r = await voniTurno('Hazla 30 cm más corta, quiero algo más cálido y dime qué mejorarías', { intentActual: intent, role: 'direccion', tools: toolsFake(), estudio });
-    expect(r.ok).toBe(true);
-    expect(r.newRev).toBeTruthy();
-    expect(r.trace.some((t) => t.step === 'verify' && t.ok)).toBe(true);
-    expect(r.applied.length).toBe(2);
-    expect(r.stale).toEqual(expect.arrayContaining(['render', 'costo', 'placement', 'cotizacion']));
-    expect(r.review).toBeTruthy();
-  });
-
-  it('tool failure ⇒ NUNCA dice "listo": reporta que no pudo', async () => {
-    const intent = intentRecepcion();
-    const r = await voniTurno('hazla 20 cm más corta', { intentActual: intent, tools: toolsFake({ falla: true }), estudio: { spec: specDe(intent), rev: 1 } });
-    expect(r.ok).toBe(false);
-    expect(r.newRev).toBeFalsy();
-    expect(r.blockers.length).toBeGreaterThan(0);
-    expect(r.response.humano).toMatch(/no pude/i);
-    expect(r.stale).not.toContain('render');
-  });
-
-  it('cambio fuera de rango fabricable ⇒ bloqueado (validador determinista)', async () => {
-    const intent = intentRecepcion();
-    // 2.40 m + 5 m = 7.40 m, por encima del máximo fabricable (6.00 m).
-    const r = await voniTurno('hazla 5 m más larga', { intentActual: intent, tools: toolsFake(), estudio: { spec: specDe(intent), rev: 1 } });
-    expect(r.ok).toBe(false);
-    expect(r.blockers.join(' ')).toMatch(/rango fabricable/i);
-    expect(r.newRev).toBeFalsy();
-  });
-
-  it('petición de solo review ⇒ no crea revisión; "no cambiaría nada" en diseño simple', async () => {
-    const intent = interpretarIntent('mesa 1.20 m laminado'); intent.dimensiones = { ancho_mm: 1200 };
-    const r = await voniTurno('¿qué mejorarías?', { intentActual: intent, tools: toolsFake(), estudio: { spec: specDe(intent), rev: 1 } });
-    expect(r.newRev).toBeFalsy();
-    expect(r.review).toBeTruthy();
-    expect(r.review.no_change).toBe(true);
-  });
-});
 
 describe('VONI context · seller-safe', () => {
   it('un vendedor NO recibe estado de costo en el contexto', () => {

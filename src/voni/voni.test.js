@@ -82,10 +82,14 @@ describe('VONI seguridad adversarial', () => {
     expect(limpio.precio).toBe(100);
   });
 
-  it('5. Costeador → economía autorizada (tool permitida)', async () => {
-    const r = await ejecutarTool('get_costing', { user: USER, role: 'costeador' }, {}, PROV);
-    expect(r.ok).toBe(true);
-    expect(r.data.costo).toBe(100000);
+  it('5. "costeador" NO es un rol del servidor: un rol autodeclarado no abre economía; Diseño (rol real) sí', async () => {
+    // VH-054: el servidor emite direccion/diseno/vendedor. 'costeador' y 'cfo' son lentes.
+    const falso = await ejecutarTool('get_costing', { user: USER, role: 'costeador' }, {}, PROV);
+    expect(falso.ok).toBe(false);
+    expect(rolVeEconomia('costeador')).toBe(false);
+    const diseno = await ejecutarTool('get_costing', { user: USER, role: 'diseno' }, {}, PROV);
+    expect(diseno.ok).toBe(true);
+    expect(diseno.data.costo).toBe(100000);
   });
 
   it('6. Dirección → economía autorizada', async () => {
@@ -228,7 +232,8 @@ describe('VONI industrial · mejor que un chatbot, no más autoritario que la ev
   it('costeador recibe recomendaciones accionables y NO llama certificado al ahorro', async () => {
     const { respuesta, intent } = await responder({
       query:'¿cómo mejorarías este mueble para desperdiciar menos?',
-      ctx:{user:USER,role:'costeador',bom:[{nombre:'Cubierta'}],costing:{costoUnitario:1000}},
+      // 'costeador' no existe en `permitidos` (prod: direccion/diseno/vendedor); roles.js lo trata como mínimo privilegio.
+      ctx:{user:USER,role:'diseno',bom:[{nombre:'Cubierta'}],costing:{costoUnitario:1000}},
       prov:PROV,
     });
     expect(intent).toBe('INDUSTRIAL_IMPROVEMENT');
@@ -249,8 +254,8 @@ describe('VONI industrial · mejor que un chatbot, no más autoritario que la ev
     expect(esClientSafe(respuesta)).toBe(true);
   });
 
-  it('tool industrial está disponible para costeador y dirección', async () => {
-    const a=await ejecutarTool('get_industrial_analysis',{user:USER,role:'costeador'},{},PROV);
+  it('tool industrial está disponible para diseño y dirección (roles reales con economía)', async () => {
+    const a=await ejecutarTool('get_industrial_analysis',{user:USER,role:'diseno'},{},PROV);
     const b=await ejecutarTool('get_industrial_analysis',{user:USER,role:'direccion'},{},PROV);
     expect(a.ok).toBe(true);
     expect(b.ok).toBe(true);

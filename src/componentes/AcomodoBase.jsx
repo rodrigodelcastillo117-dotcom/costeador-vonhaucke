@@ -6,7 +6,9 @@
 //  propuesta para que salga en el PDF del cliente.
 // ============================================================================
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { acomodarEspacio, leerPlano, generarRender } from '../nube.js';
+import { acomodarEspacio, generarRender } from '../nube.js';
+import { interpretarAcomodoServidor } from '../datos/acomodoServidor.js';   // VH-067
+import { leerPlanoDeArchivo } from '../datos/leerPlanoArchivo.js';          // VH-043
 import { TIPOS, dimsPieza, expandirPiezas, mapaPiezas, contarBajoEscritorio } from '../datos/espacio.js';
 import { imagenProducto, imagenPartida, heroLinea } from '../datos/imagenes.js';
 import { acomodarLocal } from '../datos/planner.js';
@@ -42,6 +44,7 @@ import PropuestaViva from './PropuestaViva.jsx';
 import DibujarPlano from './DibujarPlano.jsx';
 import EmpezarEspacio from './EmpezarEspacio.jsx';
 import Cargando from './Cargando.jsx';
+import ConfirmarLectura from './ConfirmarLectura.jsx';   // VH-043: compuerta de confirmación de la lectura
 
 // Un dibujo para lo que no tiene foto. Las sillas del banco vienen de
 // presupuestos y no traen render de catálogo: antes se pintaba un CUADRADO CAFÉ
@@ -110,6 +113,8 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   const [errStaging, setErrStaging] = useState('');
   const [dibujando, setDibujando] = useState(false);  // lienzo "dibuja tu oficina"
   const archivoRef = useRef(null);                    // el <input file> del plano
+  // VH-043: lectura leída pero NO aplicada hasta que la persona la confirme (cuartos, medidas, puestos, escala).
+  const [lecturaPendiente, setLecturaPendiente] = useState(null);
   // La oferta de "¿las pongo todas?" tras colocar UNA a mano.
   const [oferta, setOferta] = useState(null);   // {ids, piezaId, area, nombre}
   const [planReal, setPlanReal] = useState(!!guardadoPrevio?.planReal);   // áreas de plano/dibujo real → no crecer
@@ -221,9 +226,14 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     const solve = async (payload) => {
       const r = await acomodarEspacio(payload.areas, payload.piezas);
       if (!r?.ok || !r?.plan) throw new Error(r?.error || 'Motor espacial no disponible');
+      // VH-067: la edge responde ok:true SIEMPRE; el veredicto va en layoutSpec.status (PASS /
+      // REVIEW_REQUIRED / PARTIAL / FAIL). Un FAIL no es un acomodo; PARTIAL y REVIEW se traducen
+      // (auditoría + `servidor`) y el agregador de abajo sigue siendo la autoridad de validez.
+      const i = interpretarAcomodoServidor(r, payload.piezas);
+      if (!i.ok) throw new Error(i.error || 'El motor espacial rechazó el acomodo.');
       // G: el mensaje al vendedor viaja con el plan hasta la UI (antes se descartaba).
       const mensaje_vendedor = r.mensaje_vendedor || r.layoutSpec?.mensaje_vendedor || null;
-      return { ...r.plan, mensaje_vendedor, layoutSpec: r.layoutSpec || null, render_ready: r.render_ready === true, strictPlacement: r.strictPlacement === true };
+      return { ...i.plan, mensaje_vendedor, layoutSpec: r.layoutSpec || null, render_ready: r.render_ready === true, strictPlacement: r.strictPlacement === true };
     };
     const res = await resolverAcomodo({
       partidas, areasM: areasMetros, piezasExtra: duplicados,
@@ -407,57 +417,36 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
         + 'cotas a la vista sale igual de exacto.');
       return;
     }
-    setError(''); setNotaPlano(''); setCargando('plano');
+    // VH-043 (2026-10-11): UN solo orquestador de lectura (leerPlanoDeArchivo, el mismo que usa
+    // Voni; lee el veredicto determinista del servidor, VH-064) y COMPUERTA DE CONFIRMACIÓN: nada se
+    // guarda ni se acomoda hasta que la persona valide cuartos, medidas, puestos y escala (mandato §4).
+    setError(''); setNotaPlano(''); setLecturaPendiente(null); setCargando('plano');
+    const r = await leerPlanoDeArchivo(file);
+    setCargando('');
+    if (!r.ok) { setError(r.error || 'No se pudo leer el plano.'); return; }
+    if (!r.areas.length) { setNotaPlano(r.nota || 'No pude reconocer los cuartos. Sube el plano en mejor calidad o dibújalo con “Dibujar mi oficina”.'); return; }
+    setLecturaPendiente(r);
+  }
+  async function confirmarLectura() {
+    const r = lecturaPendiente; if (!r) return;
+    setLecturaPendiente(null);
+    const leidas = r.areas; const lec = r.lectura || {}; const floor = r.floorSpec || null;
+    setFloorSpec(floor);
+    // MODO IA: al contrato canónico (1 mm) igual que dibujo y programa.
+    // recordar() ANTES para que el undo cruce el cambio de modo (gate undo/redo).
+    recordar(); setAreas(cuantizar(leidas)); setPlanReal(true);
+    // #7: conserva el plano original para la comparación y la confianza de lectura; el veredicto
+    // del servidor (`servidor`) y la hora de confirmación quedan sellados en la lectura.
+    setLecturaMeta({
+      nivel: r.resumen?.nivel, m2: r.resumen?.m2, cuartos: r.resumen?.cuartos, cotas: !!lec.tieneCotas,
+      floorState: floor?.validation?.state || null,
+      puertasVerificadas: floor?.validation?.metrics?.doors_verified ?? null,
+      puertasPendientes: floor?.validation?.metrics?.doors_unverified ?? null,
+      servidor: r.resumen?.servidor || null, confirmadaEn: new Date().toISOString(),
+    });
+    setPlanoImagen(r.imagen || '');
+    setNotaPlano(r.nota || '');
     try {
-      const esPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
-      const b64 = esPdf ? await archivoABase64(file) : await imagenABase64(file);
-      const r = await leerPlano(b64, esPdf ? 'application/pdf' : 'image/jpeg');
-      setCargando('');
-      if (!r || !r.ok) { setError(r?.error || 'No se pudo leer el plano.'); return; }
-      const lec = r.lectura;
-      const floor = r.floorSpec || null;
-      setFloorSpec(floor);
-      // La lectura trae la FORMA REAL de cada cuarto (polígono o círculo) en mm
-      // absolutos. `areasDeLectura` la pasa a lo que ya usa el resto de la app:
-      // posición + contorno relativo, en metros. Un cuarto declarado dentro de
-      // otro (la sala circular en medio del open space) se le entrega al padre
-      // como obstáculo, para que no le acomode muebles encima.
-      const { areas: leidas } = areasDeLectura(lec);
-      // MODO IA: al contrato canónico (1 mm) igual que dibujo y programa.
-      // recordar() ANTES para que el undo cruce el cambio de modo (gate undo/redo).
-      if (leidas.length) { recordar(); setAreas(cuantizar(leidas)); setPlanReal(true); }
-      const notas = [];
-      // Confianza HONESTA del levantamiento al frente: cuántos cuartos leí, cuánta
-      // superficie y qué tan confiable salió. Así el proyectista sabe de entrada si
-      // puede confiar en el plano o conviene revisarlo/redibujarlo (no lo descubre
-      // cuando el 3D sale raro).
-      const resumen = resumenLectura(lec);
-      // #7: conserva el plano original para la comparación y la confianza de lectura.
-      setLecturaMeta({
-        nivel: resumen.nivel, m2: resumen.m2, cuartos: resumen.cuartos, cotas: lec.tieneCotas,
-        floorState: floor?.validation?.state || null,
-        puertasVerificadas: floor?.validation?.metrics?.doors_verified ?? null,
-        puertasPendientes: floor?.validation?.metrics?.doors_unverified ?? null,
-      });
-      try {
-        if (esPdf) { const _w = await abrirPdf(file); setPlanoImagen(await paginaAImagen(_w, 1, 1400)); }
-        else { setPlanoImagen('data:image/jpeg;base64,' + b64); }
-      } catch { setPlanoImagen(''); }
-      if (leidas.length) {
-        const etiqueta = { alta: 'Lectura confiable', media: 'Lectura con dudas', baja: 'Lectura poco confiable', nula: '' }[resumen.nivel];
-        if (etiqueta) notas.push(`${etiqueta}: ${resumen.cuartos} cuarto(s), ~${resumen.m2} m².`);
-      }
-      if (!lec.tieneCotas) notas.push('El plano no traía cotas: las medidas son estimadas, revísalas.');
-      // La revisión se enseña ANTES que las notas del modelo: si el levantamiento
-      // no cuadra como planta, el proyectista tiene que saberlo, no descubrirlo
-      // cuando el 3D salga raro.
-      const problemas = resumen.problemas;
-      if (problemas.length) notas.push('Revisa esto:', ...problemas.map((p) => '· ' + p));
-      if (!leidas.length) notas.push('No pude reconocer los cuartos. Sube el plano en mejor calidad o dibújalo con “Dibujar mi oficina”.');
-      if (lec.notas?.length) notas.push(...lec.notas);
-      setNotaPlano(notas.join(' '));
-      // Acomodar de inmediato: subir el plano y quedarse con la pantalla igual
-      // hacía pensar que no había pasado nada.
       if (leidas.length) {
         const mm = aMM(leidas);
         if (!programaListo) {
@@ -485,7 +474,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
           setError('Leí el plano, pero el motor espacial no respondió. El acomodo visible es sólo borrador.');
         }
       }
-    } catch (err) { setCargando(''); setError('No se pudo procesar la imagen.'); }
+    } catch (err) { setError('Leí el plano pero no pude acomodar: ' + String(err?.message || err)); }
   }
 
   // Lo que Voni escogió en el paso 1 se ATIENDE AL ENTRAR aquí. Va con
@@ -1383,6 +1372,12 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
               <button className="boton fantasma" style={{ minHeight: 50 }} disabled={!programaListo} onClick={acomodarIA}
                 title={!programaListo ? motivoPrograma : 'Alterna con IA (el acomodo normal ya es automático)'}>Con IA</button>
             </div>
+            {lecturaPendiente && (
+              <ConfirmarLectura lectura={lecturaPendiente}
+                onConfirmar={confirmarLectura}
+                onCorregir={() => { setLecturaPendiente(null); setDibujando(true); }}
+                onCancelar={() => { setLecturaPendiente(null); archivoRef.current?.click?.(); }} />
+            )}
             {notaPlano && <div className="alerta ambar" style={{ marginTop: 10 }}><span className="texto">{notaPlano}</span></div>}
             {/* #7: comparación HONESTA plano original vs. lo que la app entendió,
                 ANTES de dar por bueno el acomodo. Si la confianza no es alta, se

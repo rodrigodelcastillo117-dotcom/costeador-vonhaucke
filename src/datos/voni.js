@@ -17,6 +17,7 @@
 //  RecommendationEngine (REVIEW_PRODUCT) · Observability (trace).
 // ============================================================================
 import { aplicarCambioTexto, sugerenciasVoni, construirProductSpec, extraerDNA, clasificarProducto } from './cocrear.js';
+import { veCostosCosteo } from './roles.js';
 
 const sinAc = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
@@ -29,7 +30,7 @@ const specDe = (intent) => construirProductSpec(intent, extraerDNA(intent), clas
 
 // --- CONTEXT · seller-safe ANTES del modelo/respuesta (nunca costo/margen a ventas).
 export function voniContext(estudio = {}, role = 'direccion') {
-  const veCostos = /direccion|direcci|diseno|diseño|admin/.test(sinAc(role));
+  const veCostos = veCostosCosteo(role);   // VH-054: espejo del servidor; 'admin' ya no cuela
   const ctx = {
     role, veCostos,
     familia: estudio?.spec?.familia || null,
@@ -176,114 +177,5 @@ const humanCambio = (c) => {
   return String(c.a);
 };
 
-// Frase humana + contrato interno (WHAT/WHY/IMPACT/CONFIDENCE/EVIDENCE/BLOCKERS/NEXT).
-function construirRespuesta({ u, applied, newRev, stale, blockers, review }) {
-  const partes = [];
-  if (applied.length) partes.push(`Apliqué: ${applied.map(humanCambio).join(', ')} (Rev ${newRev.rev}).`);
-  if (u.wants_review && review) {
-    const total = review.risks.length + review.missing_decisions.length + review.maintenance.length + review.manufacturability.length;
-    partes.push(review.no_change ? 'No veo una mejora técnica justificable: lo dejaría así.' : `Revisé el diseño y veo ${total} punto(s) que vale la pena considerar.`);
-  }
-  if (u.proposals) partes.push('Veo varios caminos — dime cuál prefieres.');
-  if (!applied.length && !u.wants_review && !u.proposals) partes.push(u.questions[0] || 'No entendí un cambio concreto.');
-  if (blockers.length) partes.push(`No pude aplicar todo: ${blockers.join('; ')}.`);
-
-  const next_actions = [];
-  if (stale.includes('render')) next_actions.push('regenerar render');
-  if (stale.includes('cotizacion')) next_actions.push('actualizar cotización (nueva revisión disponible)');
-
-  return {
-    humano: partes.join(' '),
-    what: applied.length ? etiquetaDe(applied) : (u.wants_review ? 'revisión de diseño' : 'sin cambio'),
-    why: u.message,
-    impact: stale,
-    confidence: u.confidence,
-    evidence: u.evidence,
-    blockers,
-    next_actions,
-  };
-}
-
-// --- ORQUESTADOR · el loop completo. `tools` = ActionExecutor (CREATE_REVISION,
-//     REVIEW_PRODUCT). `estudio` = estado actual (spec, rev, ...). role = rol.
-export async function voniTurno(message, { intentActual, role = 'direccion', tools = {}, estudio = {} } = {}) {
-  const trace = [];
-  const u = voniUnderstand(message, intentActual);
-  trace.push({ step: 'understand', ok: true, lenses: u.lenses, changes: u.requested_changes.length, review: u.wants_review });
-
-  const sv = validarSalidaUnderstand(u);
-  if (!sv.ok) return { ok: false, understand: u, trace: [...trace, { step: 'schema', ok: false, error: sv.error }], response: { humano: 'No pude estructurar la petición.', blockers: [sv.error], next_actions: [] }, applied: [], stale: [], blockers: [sv.error] };
-
-  const ctx = voniContext(estudio, role);
-  trace.push({ step: 'context', ok: true, veCostos: ctx.veCostos });
-
-  // COUNCIL · razonamiento multi-modelo (si el ToolRegistry lo inyecta). SÓLO PROPONE
-  // y CRITICA (execution: PROPOSAL_ONLY). Jamás aplica nada: el validador determinista
-  // y el ToolRegistry siguen siendo los únicos que ejecutan. El desacuerdo nunca se
-  // oculta. Degrada silenciosamente si el council no está disponible.
-  let council = null;
-  if (tools.COUNCIL) {
-    try {
-      const c = await tools.COUNCIL(construirPeticionCouncil(message, u, ctx));
-      if (c && c.ok !== false && c.council) {
-        council = resumenConsejo(c);
-        trace.push({ step: 'council', ok: true, status: council.status, decision: council.decision });
-        if (council.disagreement) trace.push({ step: 'council_disagreement', ok: true, providers: council.provider_decisions });
-      } else {
-        trace.push({ step: 'council', ok: false, error: c?.error || 'council no disponible' });
-      }
-    } catch (e) { trace.push({ step: 'council', ok: false, error: String(e?.message || e) }); }
-  }
-
-  const applied = []; const stale = []; const blockers = []; let newRev = null;
-
-  // EXECUTE · sólo lo autorizado (los cambios concretos). La review NO cambia nada.
-  if (u.requested_changes.length) {
-    const vc = validarCambios(u.requested_changes, u.intent);
-    if (!vc.ok) { blockers.push(vc.error); trace.push({ step: 'validate', ok: false, error: vc.error }); }
-    else {
-      trace.push({ step: 'validate', ok: true });
-      try {
-        const r = await tools.CREATE_REVISION?.(u.intent, etiquetaDe(u.requested_changes));
-        if (r?.ok && r.hash && r.hash !== ctx.specHash) {
-          newRev = r; applied.push(...u.requested_changes);
-          trace.push({ step: 'execute', ok: true, rev: r.rev });
-          trace.push({ step: 'verify', ok: true, hash: r.hash });
-        } else if (r?.ok && r.hash === ctx.specHash) {
-          blockers.push('El cambio no produjo una revisión distinta.');
-          trace.push({ step: 'verify', ok: false });
-        } else {
-          blockers.push(r?.error || 'No pude aplicar el cambio.');
-          trace.push({ step: 'execute', ok: false, error: r?.error });
-        }
-      } catch (e) {
-        blockers.push('No pude aplicar el cambio: ' + String(e?.message || e));
-        trace.push({ step: 'execute', ok: false, error: String(e?.message || e) });
-      }
-    }
-  }
-
-  // DEPENDENCY INVALIDATION · sólo si de verdad hubo nueva revisión.
-  if (newRev) {
-    const tipos = new Set(u.requested_changes.map((c) => c.tipo));
-    stale.push('render');
-    if (tipos.has('dimensional') || tipos.has('material') || tipos.has('feature') || tipos.has('acabado')) stale.push('costo');
-    if (tipos.has('dimensional')) stale.push('placement');
-    stale.push('cotizacion');
-    trace.push({ step: 'invalidate', ok: true, stale });
-  }
-
-  // REVIEW · sólo propone, no aplica.
-  let review = null;
-  if (u.wants_review) {
-    try { review = tools.REVIEW_PRODUCT ? await tools.REVIEW_PRODUCT(u.intent) : voniReview(specDe(u.intent)); trace.push({ step: 'review', ok: true }); }
-    catch (e) { trace.push({ step: 'review', ok: false, error: String(e?.message || e) }); }
-  }
-
-  const response = construirRespuesta({ u, applied, newRev, stale, blockers, review });
-  // El council viaja en la respuesta como PROPUESTA/CRÍTICA (nunca como acción
-  // ejecutada). La UI muestra recomendaciones, preguntas y, si hubo desacuerdo entre
-  // modelos, lo expone — no se resuelve en silencio.
-  if (council) response.council = council;
-  return { ok: blockers.length === 0, understand: u, applied, newRev, stale, blockers, review, council, trace, response };
-}
+// B7 (2026-10-11): el orquestador `voniTurno` (propone→valida→ejecuta) se retiró: prod 0, sólo lo
+// probaban 3 archivos de tests. La capa viva es CocrearV3 + edge voni-council (propuesta, nunca ejecución).

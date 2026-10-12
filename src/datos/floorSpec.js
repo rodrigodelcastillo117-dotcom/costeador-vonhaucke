@@ -1,4 +1,5 @@
 import { destinoMarcado } from './destinoAcomodo.js';
+import { ZONA, zonaDeCuarto } from './cuartos.js';
 // ============================================================================
 //  FloorSpec — CAPA DETERMINISTA DE VERDAD del plano (P0-PLAN).
 //
@@ -37,28 +38,11 @@ export const ROL = {
 };
 
 // Zonas semánticas reconocidas (para interpretar un símbolo DENTRO de su zona).
-export const ZONA = {
-  CEO: 'OFICINA_CEO',
-  CONSEJO: 'SALA_CONSEJO',
-  OPERATIVA: 'AREA_OPERATIVA',
-  RECEPCION: 'RECEPCION',
-  SITE: 'SITE_IT',
-  SANITARIOS: 'SANITARIOS',
-  GENERICA: 'GENERICA',
-};
+export { ZONA } from './cuartos.js';   // VH-061: la fuente es datos/cuartos.js
 
 // Normaliza el nombre libre de una zona a su tipo semántico (sin inventar zonas).
 export function zonaSemantica(nombre = '') {
-  const t = String(nombre).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-  if (/ceo|direcc|director/.test(t)) return ZONA.CEO;
-  if (/consejo|junta|board|reunion|sala de/.test(t)) return ZONA.CONSEJO;
-  if (/operativ|open|bench|estacion|trabajo/.test(t)) return ZONA.OPERATIVA;
-  if (/recepc|lobby|acceso/.test(t)) return ZONA.RECEPCION;
-  // Sanitarios ANTES que site, y site con límites de palabra: "saNITarios" contiene
-  // "it" y "nit" — un \bit\b suelto lo clasificaba mal como SITE.
-  if (/sanitar|bano|baño|wc|toilet|hombre|mujer/.test(t)) return ZONA.SANITARIOS;
-  if (/\bsite\b|\bit\b|\bdata\b|rack|comunicac/.test(t)) return ZONA.SITE;
-  return ZONA.GENERICA;
+  return zonaDeCuarto(nombre);   // VH-061: misma lectura que planner.rolArea (datos/cuartos.js)
 }
 
 // Un símbolo tipo "silla" (círculo) se interpreta SEGÚN SU ZONA. Un sanitario NUNCA
@@ -289,7 +273,16 @@ export function rolDePiezaAcomodo(pieza) {
     if (/directiv|ejecutiv|presiden|gerenc|concerto/.test(t)) return ROL.EXECUTIVE_SEAT;
     if (/junta|consejo|board|sonata/.test(t)) return ROL.MEETING_SEAT;
     if (/visita|espera|confidente/.test(t)) return ROL.VISITOR_SEAT;
-    return ROL.WORK_SEAT;
+    // relation_role viene del programa comercial (payload del edge): es tan explícito
+    // como la ruta vh-dest-*.
+    const rr = String(pieza?.relation_role || '').toUpperCase();
+    if (rr && ROL[rr]) return ROL[rr];
+    // Unificación 2026-10-11 (VH-033 × semántica de asientos): una silla SIN destino
+    // marcado y SIN palabra clave ("Silla ALPHA") no se sabe de qué puesto es. Antes
+    // se asumía WORK_SEAT y entonces 10 sillas vendidas junto a una mesa de juntas,
+    // en un plano que sólo tiene la sala de juntas, se quedaban fuera (1 de 11
+    // colocadas). Lo que no se sabe no se prohíbe: queda flexible, salvo baños/site.
+    return ROL.OTHER;
   }
   return ROL.OTHER;
 }

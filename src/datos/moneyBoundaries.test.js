@@ -22,8 +22,8 @@ describe('fronteras económicas · centavos end-to-end', () => {
     const s=fs.readFileSync('src/componentes/AsistenteEspecial.jsx','utf8');
     const i=s.indexOf('await registrarSombra');
     const bloque=s.slice(i, s.indexOf('});', i)+3);
-    expect(bloque).toContain('precio_cliente: dinero(precio)');
-    expect(bloque).toContain('costo_cliente: dinero(resultado.costoUnitario)');
+    expect(bloque).toContain('precioCliente: dinero(precio)');
+    expect(bloque).toContain('costoCliente: dinero(resultado.costoUnitario)');
     expect(bloque).not.toContain('Math.round(precio)');
     expect(bloque).not.toContain('Math.round(resultado.costoUnitario)');
   });

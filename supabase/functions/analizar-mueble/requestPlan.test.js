@@ -22,11 +22,11 @@ describe('P0.COSTEO · planPass: right-size por tipo de pasada', () => {
     expect(p.maxTok).toBe(8000);
   });
 
-  it('PDF/imagen → NO difiere (effort medium, maxTok 10000): el recorte NO aplica', () => {
+  it('PDF/imagen 1ª pasada → TAMBIÉN difiere el informe (effort low, maxTok 8000): es lo desplegado (v32/v33) tras el outage de timeouts', () => {
     const p = planPass({ soloTexto: false, esRevision: false, respCount: 0 });
-    expect(p.deferInforme).toBe(false);
-    expect(p.effort).toBe('medium');
-    expect(p.maxTok).toBe(10000);
+    expect(p.deferInforme).toBe(true);
+    expect(p.effort).toBe('low');
+    expect(p.maxTok).toBe(8000);
   });
 
   it('revisión → NO difiere (effort low, maxTok 6000): intacta', () => {

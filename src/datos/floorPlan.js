@@ -1,7 +1,25 @@
 // ============================================================================
-// FLOOR PLAN · CONTRATO CANÓNICO DEL PLANO (una sola verdad del espacio)
-// areasM es fuente editable en METROS; areas es derivado en mm para motores.
-// La geometría de puerta rica (bisagra/arco) viaja completa en ambos sentidos.
+//  FLOOR PLAN · CONTRATO CANÓNICO DEL PLANO  (una sola verdad del espacio)
+//  Un proyecto tiene UN plano. Su forma vive en estado.cotizacion.acomodo:
+//    {
+//      areasM:   Area[]   // FUENTE DE VERDAD, en METROS (lo que edita el usuario)
+//      areas:    Area[]   // DERIVADO en mm (cache para el motor; nunca se edita a mano)
+//      plan:     { colocacion:[{id,area,x,y,rot}], caben, zonas, auditoria, ... }
+//      planReal: boolean  // el plano vino de un plano real/dibujado (no auto-crecer)
+//      render3d: string   // imagen fotorrealista para portada/PDF (opcional)
+//      dibujoMeta, escenas ...
+//    }
+//  Area (en metros en areasM, en mm en areas):
+//    { nombre, tipo?, dentroDe?, contiene?, nivel?, puestos?, x?, y?, ancho, largo,
+//      poly?:[[x,y]], obstaculos?:[{x,y,w,h,tipo}], puertas?:[{x,y,ancho}] }
+//  ⚠️ `puestos` (escritorios CONTADOS por el lector del plano) es dato SEMÁNTICO, no
+//  geométrico: no se convierte, se TRANSPORTA. Cuando este contrato nació (beaa005)
+//  la lista blanca de campos lo omitió y el programa volvió a re-estimar puestos por
+//  geometría (regresó VH-002: 48 "estimados" donde el plano dibujaba 8). Cualquier
+//  campo semántico nuevo que ponga el lector va en SEMANTICOS, no se agrega a mano.
+//  Reglas: areasM es la verdad; areas(mm) se deriva con aMM. x/y sólo existen si el
+//  cuarto tiene posición REAL (plano subido/dibujado). poly es relativo a la esquina.
+//  La geometría de puerta rica (bisagra/arco) viaja completa en ambos sentidos (m ↔ mm).
 // ============================================================================
 
 const r3 = (n) => Math.round((Number(n) || 0) * 1000);   // m → mm
@@ -29,6 +47,15 @@ const puertaAMetros = (p = {}) => ({
   ...(p.confianza ? { confianza: p.confianza } : {}),
 });
 
+// Campos que NO son geometría y viajan intactos en ambas direcciones (m ↔ mm).
+// `puestos`: conteo de escritorios dibujados (entero > 0) que pone leer-plano.
+const SEMANTICOS = ['puestos'];
+const semanticos = (a) => Object.fromEntries(
+  SEMANTICOS.filter((k) => Number.isFinite(a[k]) && a[k] > 0).map((k) => [k, a[k]]),
+);
+
+// Metros → mm, conservando forma (poly), huecos (obstaculos), puertas, anidamiento
+// (dentroDe/contiene), piso (nivel) y posición real (x/y). Es el DERIVADO para el motor.
 export function aMM(areas = []) {
   return (areas || []).map((a) => ({
     nombre: a.nombre,
@@ -36,6 +63,7 @@ export function aMM(areas = []) {
     ...(a.dentroDe ? { dentroDe: a.dentroDe } : {}),
     ...(a.contiene ? { contiene: a.contiene } : {}),
     ...(Number.isFinite(a.nivel) ? { nivel: a.nivel } : {}),
+    ...semanticos(a),
     ...(Number.isFinite(a.x) && Number.isFinite(a.y) ? { x: r3(a.x), y: r3(a.y) } : {}),
     ancho: r3(a.ancho),
     largo: r3(a.largo),
@@ -52,6 +80,7 @@ export function aMetros(areas = []) {
     ...(a.dentroDe ? { dentroDe: a.dentroDe } : {}),
     ...(a.contiene ? { contiene: a.contiene } : {}),
     ...(Number.isFinite(a.nivel) ? { nivel: a.nivel } : {}),
+    ...semanticos(a),
     ...(Number.isFinite(a.x) && Number.isFinite(a.y) ? { x: d3(a.x), y: d3(a.y) } : {}),
     ancho: d3(a.ancho),
     largo: d3(a.largo),

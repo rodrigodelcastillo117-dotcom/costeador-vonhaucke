@@ -1,5 +1,5 @@
 // ============================================================================
-//  Edge Function: analizar-mueble  (MEGA ANALIZADOR)
+//  Edge Function: analizar-mueble  (MEGA ANALIZADOR) · v33 PENDIENTE DE DESPLEGAR (A4, requiere aprobación)
 //  Auditoria Tecnica de Industrializacion (COO / DFM / Lean) de un mueble a
 //  partir de su imagen. Devuelve:
 //   - piezas: BOM estructurado con id de material -> lo cuesta el MOTOR.
@@ -12,7 +12,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // P0.COSTEO: plan de petición PURO (informe diferido en 1ª pasada de texto + right-size).
 import { schemaSinInforme, planPass, normalizarPropuesta, NOTA_TEXTO_INICIAL } from "./requestPlan.js";
 // P0.COSTEO · Commit 2: config de modelo centralizada (fail-closed) + telemetría pura.
-import { resolverModelo } from "./modelConfig.js";
+import { resolverModelo, resolverModeloVisual } from "./modelConfig.js";
 import { modalidadDe, mapProviderError, telemetriaExtra, crearAcumuladorProveedor } from "./telemetria.js";
 
 const CORS = {
@@ -259,7 +259,7 @@ Deno.serve(async (req) => {
 
   // CATÁLOGO CANÓNICO server-side = AUTORIDAD. El catálogo que manda el cliente ya
   // NO es autoridad: sólo se usa como PISTA para ids que el servidor aún no tenga.
-  const { texto: cat, canonicoOk, count: catCount } = await construirCatalogo(catalogo);
+  const { texto: cat, canonicoOk, count: catCount, idsServidor, idsCliente } = await construirCatalogo(catalogo);
 
   const system =
     "Actua como el Director Operativo (COO), Jefe de Ingenieria de Producto y Experto en Costos de una fabrica de mobiliario de clase mundial (corporativo, hoteleria y retail; metalmecanica, CNC, pintura, tapiceria). Eres maestro en Lean Manufacturing, Design for Manufacturing (DFM) y optimizacion de recursos.\n\n" +
@@ -429,12 +429,26 @@ Deno.serve(async (req) => {
   } catch (e: any) {
     return await fallarAnalisis(String(e?.code || "MODEL_CONFIG_INVALID"), "Configuración de modelo inválida; contacta al administrador.", 500, "config_error");
   }
+  // 1ª pasada VISUAL (render/plano → BOM que el usuario CONFIRMA; NO fija costo — el motor costea
+  // con precios canónicos): modelo RÁPIDO para no exceder el wall-clock (Opus tardaba >75 s en el
+  // TTFT de visión → PROVIDER_TIMEOUT). Opus se conserva para texto/revisión/pasadas de costeo.
+  const esVisualPrimera = !soloTexto && !esRevision && resp.length === 0;
+  let MODEL_PASADA = MODEL_ID;
+  if (esVisualPrimera) {
+    try {
+      MODEL_PASADA = resolverModeloVisual("analizar-mueble", {
+        ANTHROPIC_MODEL_VISUAL_ANALIZAR_MUEBLE: Deno.env.get("ANTHROPIC_MODEL_VISUAL_ANALIZAR_MUEBLE") ?? undefined,
+      });
+    } catch (e: any) {
+      return await fallarAnalisis(String(e?.code || "MODEL_CONFIG_INVALID"), "Configuración de modelo visual inválida; contacta al administrador.", 500, "config_error");
+    }
+  }
   // Telemetría (observabilidad): sólo medidas, NUNCA prompt/desc/BOM. user_input_chars =
   // longitud del TEXTO del usuario (no el prompt total); catalog_chars/count = peso del catálogo.
-  telExtra = { model_id: MODEL_ID, effort: plan.effort, max_tokens: MAX_TOK, user_input_chars: desc.length, catalog_count: catCount, catalog_chars: (cat || "").length, fallback_used: false };
+  telExtra = { model_id: MODEL_PASADA, effort: plan.effort, max_tokens: MAX_TOK, user_input_chars: desc.length, catalog_count: catCount, catalog_chars: (cat || "").length, fallback_used: false };
 
   let data: any;
-  try { data = await pedir(schemaInicial, systemInicial, MAX_TOK, plan.effort, MODEL_ID); }
+  try { data = await pedir(schemaInicial, systemInicial, MAX_TOK, plan.effort, MODEL_PASADA); }
   catch (e: any) {
     const { code, modelStatus } = mapProviderError(e);
     const mensaje = code === "PROVIDER_TIMEOUT"
@@ -459,7 +473,7 @@ Deno.serve(async (req) => {
     const sysCompacto = system +
       "\n\nIMPORTANTE: la respuesta anterior se CORTÓ por larga. Esta vez OMITE 'informe' (déjalo '' o muy corto), " +
       "sé BREVE en 'razonamiento' y 'nota' (media línea cada uno) y ASEGÚRATE de CERRAR el JSON completo con TODO el despiece de piezas.";
-    try { data = await pedir(schemaCompacto, sysCompacto, MAX_TOK, plan.effort, MODEL_ID); }
+    try { data = await pedir(schemaCompacto, sysCompacto, MAX_TOK, plan.effort, MODEL_PASADA); }
     catch (e: any) {
       const { code, modelStatus } = mapProviderError(e);
       return await fallarAnalisis(code, "No se pudo completar el reintento compacto. Analiza menos hojas.", 502, modelStatus);
@@ -480,11 +494,19 @@ Deno.serve(async (req) => {
   // P0.COSTEO · contrato público: 'informe' SIEMPRE string. Si se difirió (1ª pasada texto),
   // informe:"" + informe_pendiente=true (la auditoría completa se pide on-demand). NO inventa precios.
   normalizarPropuesta(propuesta, { deferInforme: plan.deferInforme });
+  // A4 (VH-065a): la propuesta de la IA se revalida de forma DETERMINISTA en el servidor
+  // (ids fuera de catálogo, números no finitos, EXACT sin id). No se inventa nada: se degrada a
+  // NOT_AVAILABLE y se reporta en `validacion`.
+  const validacion = sanearPropuesta(propuesta, idsServidor, idsCliente);
+  if (!validacion.ok) {
+    await cerrarTel("error", 200, { model_status: String(data?.stop_reason || "ok"), error_code: "INVALID_MODEL_SHAPE" });
+    return json({ ok: false, code: "INVALID_MODEL_SHAPE", error: "La IA devolvió un despiece sin forma válida. Reintenta.", validacion, request_id: requestId }, 200);
+  }
 
   await cerrarTel("ok", 200, { model_status: String(data?.stop_reason || "ok") });
   // #8: la fuente del catálogo viaja al cliente. 'cliente-fallback' => el canónico no
   // estuvo disponible y se usaron pistas locales: la UI debe avisar (no cotizar en firme).
-  return json({ ok: true, propuesta, catalogoFuente: canonicoOk ? "canonico" : "cliente-fallback", uso: data?.usage || null, request_id: requestId });
+  return json({ ok: true, propuesta, catalogoFuente: canonicoOk ? "canonico" : "cliente-fallback", validacion, uso: data?.usage || null, request_id: requestId });
 });
 
 function json(obj: unknown, status = 200) {
@@ -497,7 +519,39 @@ function json(obj: unknown, status = 200) {
 // cliente para no romper el análisis. Marca los insumos SIN precio certificado
 // (p.ej. superficie sólida recién dada de alta) para que la IA los trate como
 // pendientes de precio, no como inexistentes.
-async function construirCatalogo(clienteCat: any): Promise<{ texto: string; canonicoOk: boolean; count: number }> {
+// A4 (VH-065) · Validador determinista de la propuesta del modelo. Puro.
+//  · piezas debe ser arreglo; cada pieza objeto.
+//  · largoMM/anchoMM/cantidad/hojas: finitos y ≥ 0; si no, 0 y ajuste anotado.
+//  · insumoId fuera de catálogo (ni servidor ni pistas del cliente) → '' + NOT_AVAILABLE.
+//  · material_match EXACT sin insumoId → NOT_AVAILABLE (nunca "exacto" sin id).
+//  · material_match desconocido → NOT_AVAILABLE.
+const MATCH_OK = new Set(["EXACT", "NOT_AVAILABLE", "SUBSTITUTE_SUGGESTED", "SUBSTITUTE_REQUIRES_CONFIRMATION", "PENDING_MATERIAL", "PENDING_PRICE", "PENDING_PURCHASING"]);
+function sanearPropuesta(propuesta: any, idsServidor: Set<string>, idsCliente: Set<string>) {
+  const ajustes: any[] = [];
+  if (!propuesta || typeof propuesta !== "object" || !Array.isArray(propuesta.piezas)) return { ok: false, ajustes: [{ code: "PIEZAS_NO_ARRAY" }], piezas: 0 };
+  const num0 = (v: any) => (Number.isFinite(Number(v)) && Number(v) >= 0 ? Number(v) : null);
+  propuesta.piezas = propuesta.piezas.filter((z: any) => z && typeof z === "object");
+  propuesta.piezas.forEach((z: any, i: number) => {
+    for (const k of ["largoMM", "anchoMM", "cantidad", "hojas"]) {
+      if (z[k] == null) continue;
+      const v = num0(z[k]);
+      if (v == null) { ajustes.push({ pieza: i, field: k, code: "NUMERO_INVALIDO", value: String(z[k]).slice(0, 40) }); z[k] = 0; } else z[k] = v;
+    }
+    z.insumoId = typeof z.insumoId === "string" ? z.insumoId.trim() : "";
+    z.material_match = String(z.material_match || "").toUpperCase();
+    if (z.insumoId && !idsServidor.has(z.insumoId) && !idsCliente.has(z.insumoId)) {
+      ajustes.push({ pieza: i, field: "insumoId", code: "ID_FUERA_DE_CATALOGO", value: z.insumoId.slice(0, 60) });
+      z.nota = `${z.nota ? z.nota + " " : ""}[servidor: «${z.insumoId.slice(0, 60)}» no existe en el catálogo; pendiente de material]`;
+      z.insumoId = ""; z.material_match = "NOT_AVAILABLE";
+    }
+    if (!MATCH_OK.has(z.material_match)) { ajustes.push({ pieza: i, field: "material_match", code: "MATCH_DESCONOCIDO", value: z.material_match.slice(0, 40) }); z.material_match = z.insumoId ? "EXACT" : "NOT_AVAILABLE"; }
+    if (z.material_match === "EXACT" && !z.insumoId) { ajustes.push({ pieza: i, field: "material_match", code: "EXACT_SIN_ID" }); z.material_match = "NOT_AVAILABLE"; }
+  });
+  return { ok: true, ajustes, piezas: propuesta.piezas.length, autoridad: "SERVER_CATALOG" };
+}
+
+async function construirCatalogo(clienteCat: any): Promise<{ texto: string; canonicoOk: boolean; count: number; idsServidor: Set<string>; idsCliente: Set<string> }> {
+  const idsCliente = new Set<string>();
   const url = Deno.env.get("SUPABASE_URL");
   const srv = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const lineasServidor: string[] = [];
@@ -515,7 +569,11 @@ async function construirCatalogo(clienteCat: any): Promise<{ texto: string; cano
         `${url}/rest/v1/catalogo_vigente?select=insumo_id,unidad_compra,precio`,
         { headers: h },
       );
+      // A4 (VH-065c): el catálogo es "canónico" sólo si se leyeron DEFINICIONES Y PRECIOS.
+      // Antes bastaba con las definiciones: todo salía "SIN PRECIO CERTIFICADO" y la respuesta decía canonico.
+      let preciosOk = false;
       if (rp.ok) {
+        preciosOk = true;
         for (const c of (await rp.json()) || []) {
           if (c?.insumo_id) precios.set(c.insumo_id, { precio: c.precio, unidad: c.unidad_compra });
         }
@@ -529,7 +587,7 @@ async function construirCatalogo(clienteCat: any): Promise<{ texto: string; cano
         { headers: h },
       );
       if (rc.ok) {
-        canonicoOk = true;   // se leyó la autoridad de "qué materiales existen"
+        canonicoOk = preciosOk;   // definiciones Y precios leídos; si faltan precios, la UI debe avisar
         for (const d of (await rc.json()) || []) {
           if (!d?.id) continue;
           idsServidor.add(d.id);
@@ -552,14 +610,14 @@ async function construirCatalogo(clienteCat: any): Promise<{ texto: string; cano
   if (Array.isArray(clienteCat)) {
     for (const c of clienteCat) {
       if (c?.id && !idsServidor.has(c.id)) {
-        // Insumos que existen en el cliente (p.ej. colores/acabados) y SÍ se pueden
-        // costear: se listan como usables (NO como "confirmar"), para que el modelo
-        // los asigne y no deje piezas en $0.
-        hints.push(`${c.id} — ${c.nombre} [${c.seccion || "?"}, ${c.unidad || "?"}]`);
+        // A4 (VH-065b): las pistas del cliente se marcan como tales. El modelo puede usarlas
+        // (el motor local sí las costea), pero quedan distinguibles de la autoridad del servidor.
+        idsCliente.add(String(c.id));
+        hints.push(`${c.id} — ${String(c.nombre || "").slice(0, 80)} [${c.seccion || "?"}, ${c.unidad || "?"}] (catálogo local del cliente, no certificado)`);
       }
     }
   }
   const todo = [...lineasServidor, ...hints];
   // count = nº de insumos ofrecidos al modelo (telemetría; mide el "peso" del catálogo).
-  return { texto: todo.length ? todo.join("\n") : "(sin catalogo)", canonicoOk, count: todo.length };
+  return { texto: todo.length ? todo.join("\n") : "(sin catalogo)", canonicoOk, count: todo.length, idsServidor, idsCliente };
 }

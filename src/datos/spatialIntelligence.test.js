@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   CODIGO,
-  acomodarConReparacion,
   planearDeterminista,
   validarColocacion,
 } from '../../supabase/functions/acomodar-espacio/acomodo-core.js';
@@ -39,7 +38,10 @@ describe('Voni spatial intelligence · espacio funcional', () => {
     expect(r.noColocadas).toHaveLength(0);
     const v = validarColocacion(AREA, piezas, r.colocacion);
     expect(v.ok).toBe(true);
-    expect(v.aprobable).toBe(true);
+    // A5 (VH-068c, acomodar-espacio v10): sin puertas en el área NO hay barridos verificados,
+    // así que el layout es válido pero NO aprobable para render/PDF hasta confirmar accesos.
+    expect(v.aprobable).toBe(false);
+    expect(v.puertas.status).toBe('NONE');
   });
 });
 
@@ -76,22 +78,9 @@ describe('Voni spatial intelligence · puertas', () => {
     expect(v.advertencias[0].codigo).toBe(CODIGO.DOOR_SWING_UNKNOWN);
   });
 
-  it('el repair-loop no finge reparar metadatos de puerta que no existen', async () => {
-    const areas = [{
-      nombre: 'Acceso', ancho: 4000, largo: 3000,
-      puertas: [{ x: 0, y: 1500, ancho: 900, tieneBarrido: false }],
-    }];
-    const piezas = [{ id: 'm', nombre: 'Mueble', w: 500, d: 500 }];
-    const r = await acomodarConReparacion({
-      areas, piezas, maxIntentos: 3,
-      proponer: async () => ({ colocacion: [{ id: 'm', area: 0, x: 3000, y: 2200, rot: 0 }] }),
-    });
-    expect(r.completo).toBe(false);
-    expect(r.aprobable).toBe(false);
-    expect(r.colocadas).toBe(1);
-    expect(r.intentos).toHaveLength(1);
-    expect(r.recomendaciones.join(' ')).toMatch(/bisagra|barrido/i);
-  });
+  // B6 (2026-10-11, aprobado): `acomodarConReparacion` se retiró del repo y no existe en la edge desplegada
+  // (v10); el repair-loop vive en index.ts. La prueba de "no finge reparar puertas" se cubre con
+  // auditarPuertas (fail-closed UNVERIFIED) arriba.
 });
 
 describe('Voni spatial intelligence · calidad', () => {

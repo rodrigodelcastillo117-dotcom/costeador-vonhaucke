@@ -1,3 +1,6 @@
+// Volcado LEÍDO de producción (versión 12, 2026-10-11) vía Supabase MCP get_edge_function.
+// Antes esta función sólo existía desplegada (VH-039). Es el código que corre; cualquier
+// cambio se hace aquí primero y se despliega con aprobación expresa.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 const CORS={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};

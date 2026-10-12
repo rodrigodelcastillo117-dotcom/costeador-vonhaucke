@@ -2,8 +2,8 @@
 import { pesos2, pct1 } from '../util.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { horasTotales } from '../datos/ue.js';
-import { precioDe, precioVenta, costeoEmitible, PARAMETROS_DEFAULT, formulaDePieza, FORMULA_ALBA_V1, MOTOR_VERSION } from '../motor/calculo.js';
-import { precioDeLista } from '../datos/preciosVenta.js';
+import { PARAMETROS_DEFAULT, formulaDePieza, FORMULA_ALBA_V1, MOTOR_VERSION } from '../motor/calculo.js';
+import { precioDesdeCosto, margenObjetivoDe } from '../datos/precio.js';
 import { preciosVH } from '../datos/politicaVH.js';
 
 export default function HojaCosto({ resultado, insumos, pieza, parametros = PARAMETROS_DEFAULT, tipo = 'mueble_fabricado', mostrarVolumen = false, mostrarComercial = true }) {
@@ -17,14 +17,15 @@ export default function HojaCosto({ resultado, insumos, pieza, parametros = PARA
   const pendientes = emision.pendientes || [];
   const incompleto = !emision.emitible;
   // Los 4 rubros que pidio Ventas para imprimir (levantamiento Rafa 14.6)
-  const margenObjetivo = parametros.margenObjetivo ?? 50;
+  const margenObjetivo = margenObjetivoDe(parametros);
   const minMarkup = parametros.minMarkupLinea ?? 45;
   const materiaPrima = resultado.materialTotal;
   const costoFabricacion = resultado.costoUnitario;
   const precioMinimo = costoFabricacion * (1 + minMarkup / 100); // piso de linea (utilidad sobre costo)
   // El modelo Intelisis escupe el "precio 2", que Von Haucke nunca cotiza:
   // siempre se le quita el 40% para llegar al precio de lista.
-  const precioLista = intelisis ? precioDeLista(precioVenta(costoFabricacion, parametros).lista) : precioDe(costoFabricacion, margenObjetivo);
+  // Una sola regla costo → precio; con costeo incompleto NO hay precio de lista.
+  const precioLista = incompleto ? null : precioDesdeCosto(costoFabricacion, { par: parametros, esIntelisis: intelisis, margen: margenObjetivo });
 
   // Agrupar el material por seccion del insumo, para el desglose de arriba
   const porSeccion = {};
@@ -41,7 +42,7 @@ export default function HojaCosto({ resultado, insumos, pieza, parametros = PARA
 
   // --- Desglose VISUAL: de qué se compone el precio (vivo) ---
   // Sin costo completo no hay utilidad real: el precio es "Pendiente", no un número.
-  const utilidad = (!mostrarComercial || incompleto) ? 0 : Math.max(0, precioLista - costoFabricacion);
+  const utilidad = (!mostrarComercial || precioLista == null) ? 0 : Math.max(0, precioLista - costoFabricacion);
   const segs = [
     { k: 'Material', v: resultado.materialTotal, c: '#C6A971' },
     { k: 'Mano de obra', v: (resultado.manoObra || 0) + (resultado.preparacion || 0) + (resultado.empaque || 0), c: '#3B6FB0' },

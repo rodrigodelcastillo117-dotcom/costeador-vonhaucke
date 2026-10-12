@@ -13,16 +13,16 @@
 import { sinEconomia, esClientSafe } from '../datos/economia.js';
 
 // Roles canónicos del sistema. 'ventas' es el default seguro (menos privilegio).
+import { veCostosCosteo } from '../datos/roles.js';
+
 export const ROLES = Object.freeze(['ventas', 'diseno', 'direccion', 'proyectos', 'costeador', 'cfo']);
 
 // ¿El rol puede ver economía interna (costo/margen/insumos/proveedor)?
-// SÓLo Dirección y Diseño (== veCostos del resto de la app). Costeador se mapea a
-// Diseño para economía (es quien fabrica). CFO ve economía autorizada (precio,
-// descuento, margen, utilidad) PERO no costo real/Intelisis (eso aún no existe).
-const VE_ECONOMIA = new Set(['direccion', 'diseno', 'costeador', 'cfo']);
-
+// VH-054: una sola lectura, espejo del servidor (datos/roles.js). Sólo los roles
+// que el servidor emite (direccion, diseno) ven economía; 'costeador' y 'cfo' son
+// LENTES (ángulos de análisis), no roles, y un rol autodeclarado no da permisos.
 export function rolVeEconomia(role) {
-  return VE_ECONOMIA.has(String(role || 'ventas'));
+  return veCostosCosteo(role);
 }
 
 // Campos que NUNCA salen en modo cliente, además de la economía interna.

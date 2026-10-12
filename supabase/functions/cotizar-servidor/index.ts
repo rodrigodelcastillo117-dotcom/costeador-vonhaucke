@@ -1,32 +1,20 @@
 // ============================================================================
-//  Edge Function: cotizar-servidor  (PRECIO COMERCIAL AUTORITATIVO — C3, v3)
-// ----------------------------------------------------------------------------
-//  El navegador manda INTENCIÓN; el SERVIDOR decide TODO el dinero.
-//  - Precio: resolver_precio_autorizado (Producto Maestro + Lista vigente).
-//  - Política (descuento máx sin aprobación): reglas_comerciales (DB, versionada).
-//  - Servicios: INTENCIÓN {tipo}; el importe lo resuelve el servidor desde config
-//    (maniobras/flete %). Un servicio sin tarifa autorizada => SERVICIO_PENDIENTE_PRECIO.
-//    Servicio con tipo DUPLICADO => se rechaza (nunca se cobra dos veces el mismo tipo).
-//  - Descuento: validación explícita (NaN/Inf/<0/>100 => rechazo). Un descuento
-//    válido por encima de política se CONSERVA tal cual + requiere_aprobacion (no clamp).
-//  - version_id / variante_id: SOLO null/ausente significa "usar vigente/default".
-//    Si vienen en el request y son inválidos (0, negativo, NaN, Inf, texto) => RECHAZO.
-//  - Emisión: cotizacion_emitible=false si CUALQUIER línea es inválida, hay servicio
-//    sin precio o servicio duplicado; entonces subtotal_conocido, NUNCA total oficial.
-//    Si NO es emitible => estado_autorizacion = "bloqueada".
-//  Respuesta FILTRADA POR ROL:
-//    - vendedor: 0 economía interna (sin costo/margen/utilidad).
-//    - direccion: + costo_oficial_referencia/utilidad/margen por línea.
-//    - diseno: ESTRICTAMENTE TÉCNICO (producto/version/variante/cantidad + warnings);
-//      sin política comercial, sin lista, sin iva, sin estado de autorización.
-//  Rol del JWT.  v3: fixes A (version/variante estrictos), B (servicios dup),
-//  C (diseño técnico), D (estado bloqueada).
-//  v4: adaptador legacy -> Producto Maestro por source_type+source_ref (1 sola
-//  consulta, sin N+1); el navegador manda identidad comercial, el servidor resuelve
-//  producto_id. Ambiguo => identidad_ambigua; sin match => producto_no_resuelto.
+//  Edge Function: cotizar-servidor · VOLCADO LEÍDO DE PRODUCCIÓN (versión 6) vía
+//  Supabase MCP get_edge_function el 2026-10-11. Es el código que corre hoy.
+//
+//  Hallazgo de la unificación (VH-078): este código NO existía en ninguna rama del
+//  repo. Resuelve precio especial de proyecto (resolver_precio_especial_proyecto,
+//  ECONOMICS_INCOMPLETE, PRELIMINARY_SPECIAL) y el cliente vivo (nube.js,
+//  datos/emision.js, datos/emisionUX.js) ya consume esos campos. La copia que había
+//  en el repo (commit 7153e9d, "preserves cents end-to-end") nunca se desplegó y no
+//  tenía el precio especial; se recupera con `git show 7153e9d:supabase/functions/
+//  cotizar-servidor/index.ts` para re-aplicar los centavos sobre ESTA base (decisión
+//  A16). Cualquier cambio se hace aquí primero y se despliega con aprobación expresa.
 // ============================================================================
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+// A16 (unificación 2026-10-11): dinero comercial a CENTAVOS, portado del commit 7153e9d
+// ("preserves cents end-to-end") sobre la base desplegada (v6). Pendiente de despliegue.
 import { precioConDescuento, importePorCantidad, cargoPorcentaje, sumarMontos } from "../../../src/motor/comercialDinero.js";
 import { dinero } from "../../../src/motor/dinero.js";
 
@@ -36,26 +24,20 @@ const CORS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// Entero/numero finito > 0 (sin corrección silenciosa). Devuelve null si inválido.
 function posFinito(x: unknown): number | null {
   const n = typeof x === "number" ? x : (typeof x === "string" && x.trim() !== "" ? Number(x) : NaN);
-  if (!Number.isFinite(n) || n <= 0) return null;
-  return n;
+  return Number.isFinite(n) && n > 0 ? n : null;
 }
-// Descuento: null si inválido (NaN/Inf/fuera de [0,100]); si no, el valor EXACTO.
 function descuentoValido(x: unknown): number | null {
   if (x == null) return 0;
   const n = typeof x === "number" ? x : (typeof x === "string" && x.trim() !== "" ? Number(x) : NaN);
-  if (!Number.isFinite(n) || n < 0 || n > 100) return null;
-  return n;
+  return Number.isFinite(n) && n >= 0 && n <= 100 ? n : null;
 }
-// FIX A — Opcional estricto: ausente/null => null (usar default).
-//   Presente pero inválido => lanza REJECT (no se degrada silenciosamente a default).
 const REJECT = Symbol("reject");
 function opcionalEstricto(x: unknown): number | null | typeof REJECT {
-  if (x == null) return null;          // ausente / null => default
+  if (x == null) return null;
   const n = posFinito(x);
-  return n == null ? REJECT : n;       // presente+inválido => rechazo
+  return n == null ? REJECT : n;
 }
 
 Deno.serve(async (req) => {
@@ -81,6 +63,7 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { return json({ ok: false, error: "JSON inválido" }, 400); }
   const lineasIn = Array.isArray(body?.lineas) ? body.lineas : null;
   if (!lineasIn || !lineasIn.length) return json({ ok: false, error: "Falta 'lineas' (intención)." }, 400);
+  if (lineasIn.length > 500) return json({ ok: false, error: "Demasiadas líneas en una sola cotización." }, 413);
   const fecha = typeof body?.fecha === "string" ? body.fecha : null;
   const moneda = typeof body?.moneda === "string" ? body.moneda : null;
 
@@ -91,13 +74,15 @@ Deno.serve(async (req) => {
   const esDireccion = rol === "direccion";
   const esDiseno = rol === "diseno";
 
-  // P0.1: política comercial desde DB (no hardcode).
-  const { data: reglas } = await svc.rpc("reglas_comerciales_vigentes", { p_fecha: fecha });
+  const { data: reglas, error: reglasErr } = await svc.rpc("reglas_comerciales_vigentes", { p_fecha: fecha });
+  if (reglasErr || !reglas) return json({ ok: false, error: "No hay política comercial vigente." }, 502);
   const descuentoMax = Number((reglas as any)?.descuento_max_sin_aprobacion);
+  const margenMin = Number((reglas as any)?.margen_minimo_pct);
   const reglasVersion = (reglas as any)?.version ?? null;
-  if (!Number.isFinite(descuentoMax)) return json({ ok: false, error: "No hay política comercial vigente." }, 502);
+  if (!Number.isFinite(descuentoMax) || !Number.isFinite(margenMin)) {
+    return json({ ok: false, error: "Política comercial incompleta." }, 502);
+  }
 
-  // IVA y % de servicios desde config (no sensibles; autoridad server-side).
   let ivaPct = 16, maniobrasPct = 0, fletePct = 0;
   try {
     const { data: cfg } = await svc.from("config").select("datos").eq("id", "vonhaucke").maybeSingle();
@@ -107,11 +92,7 @@ Deno.serve(async (req) => {
     if (Number.isFinite(Number(p.fletePorcentaje))) fletePct = Number(p.fletePorcentaje);
   } catch (_e) { /* defaults */ }
 
-  // v4 — ADAPTADOR LEGACY -> PRODUCTO MAESTRO (identidad por source_type+source_ref).
-  //  El navegador manda su identidad comercial (clave de línea = source_ref, o id de
-  //  banco = source_ref); el SERVIDOR resuelve producto_id. Se resuelve TODO en UNA
-  //  sola consulta (no N+1). Match por (source_type, source_ref) que es ÚNICO; varios
-  //  => identidad_ambigua; ninguno => producto_inexistente.
+  // Adaptador legacy -> Producto Maestro.
   const refsPedidos = Array.from(new Set(
     lineasIn.map((L: any) => (L && typeof L.source_ref === "string" && L.source_ref) ? L.source_ref : null).filter(Boolean)
   )) as string[];
@@ -125,7 +106,7 @@ Deno.serve(async (req) => {
     }
   }
   function resolverProductoId(L: any): number | null | "ambiguo" {
-    const directo = posFinito(L.producto_id);
+    const directo = posFinito(L.producto_id ?? L.productoId);
     if (directo) return directo;
     const ref = (typeof L.source_ref === "string" && L.source_ref) ? L.source_ref : null;
     if (!ref) return null;
@@ -141,6 +122,8 @@ Deno.serve(async (req) => {
   let subtotal = 0;
   let requiereAprobacion = false;
   let hayLineaInvalida = false;
+  let hayEconomiaIncompleta = false;
+  let hayEspecialPreliminar = false;
 
   for (let i = 0; i < lineasIn.length; i++) {
     const L = lineasIn[i] || {};
@@ -148,10 +131,9 @@ Deno.serve(async (req) => {
     if (pidResuelto === "ambiguo") { lineas.push({ idx: i, ok: false, motivo: "identidad_ambigua" }); hayLineaInvalida = true; continue; }
     const producto_id = pidResuelto;
     const cantidad = posFinito(L.cantidad);
-    // FIX A: version/variante estrictos cuando vienen en el request.
-    const version_opt = opcionalEstricto(L.version_id);
-    const variante_opt = opcionalEstricto(L.variante_id);
-    const descuento = descuentoValido(L.descuento_solicitado);
+    const version_opt = opcionalEstricto(L.version_id ?? L.producto_version_id ?? L.productoVersionId);
+    const variante_opt = opcionalEstricto(L.variante_id ?? L.varianteId);
+    const descuento = descuentoValido(L.descuento_solicitado ?? L.descuento);
 
     if (!producto_id) { lineas.push({ idx: i, ok: false, motivo: "producto_no_resuelto" }); hayLineaInvalida = true; continue; }
     if (!cantidad) { lineas.push({ idx: i, ok: false, motivo: "cantidad_invalida" }); hayLineaInvalida = true; continue; }
@@ -161,26 +143,98 @@ Deno.serve(async (req) => {
     const version_id = version_opt as number | null;
     const variante_id = variante_opt as number | null;
 
-    const { data: res, error: resErr } = await svc.rpc("resolver_precio_autorizado", {
+    // 1) Producto de línea / pricebook normal.
+    let { data: res, error: resErr } = await svc.rpc("resolver_precio_autorizado", {
       p_producto_id: producto_id, p_version_id: version_id, p_variante_id: variante_id, p_fecha: fecha, p_moneda: moneda,
     });
-    if (resErr) { lineas.push({ idx: i, ok: false, motivo: "error_resolucion" }); hayLineaInvalida = true; continue; }
-    const r = res as any;
-    if (!r?.ok) { lineas.push({ idx: i, ok: false, motivo: r?.motivo || "sin_precio_autorizado" }); hayLineaInvalida = true; continue; }
+    let r: any = res;
+    let esEspecial = false;
+
+    // 2) Si no es línea autorizada, intenta la ruta EXPLÍCITA de especial de proyecto.
+    // Nunca se debilita resolver_precio_autorizado: el producto especial conserva su propia semántica.
+    if (resErr || !r?.ok) {
+      if (variante_id != null) {
+        lineas.push({ idx: i, ok: false, motivo: r?.motivo || "sin_precio_autorizado" });
+        hayLineaInvalida = true;
+        continue;
+      }
+      if (version_id == null) {
+        lineas.push({ idx: i, ok: false, motivo: r?.motivo === "producto_inactivo" ? "version_id_requerido_especial" : (r?.motivo || "sin_precio_autorizado") });
+        hayLineaInvalida = true;
+        continue;
+      }
+      const esp = await svc.rpc("resolver_precio_especial_proyecto", {
+        p_producto_id: producto_id, p_version_id: version_id, p_fecha: fecha, p_moneda: moneda || "MXN",
+      });
+      if (esp.error || !(esp.data as any)?.ok) {
+        const motivo = (esp.data as any)?.motivo || r?.motivo || "sin_precio_autorizado";
+        if (motivo === "ECONOMICS_INCOMPLETE") hayEconomiaIncompleta = true;
+        lineas.push({ idx: i, ok: false, motivo, economia_estado: motivo === "ECONOMICS_INCOMPLETE" ? "ECONOMICS_INCOMPLETE" : undefined });
+        hayLineaInvalida = true;
+        continue;
+      }
+      r = esp.data as any;
+      esEspecial = true;
+    }
 
     const precio_lista = Number(r.precio_lista);
+    if (!Number.isFinite(precio_lista) || precio_lista <= 0) {
+      lineas.push({ idx: i, ok: false, motivo: "precio_autorizado_invalido" }); hayLineaInvalida = true; continue;
+    }
+
     let piso: number | null = null;
-    try {
-      const { data: it } = await svc.from("lista_precio_items").select("piso_minimo").eq("id", r.lista_precio_item_id).maybeSingle();
-      if (it && it.piso_minimo != null) piso = Number(it.piso_minimo);
-    } catch (_e) { /* sin piso */ }
+    let costo: number | null = null;
+    let economiaEstado = "KNOWN";
+    let priceSource = "PRICEBOOK";
+    let commercialState = "AUTHORIZED_LINE";
+    let engineeringStatus: string | null = null;
+
+    if (esEspecial) {
+      const pFloor = Number(r.piso_minimo_interno);
+      const pCost = Number(r.costo_interno);
+      piso = Number.isFinite(pFloor) && pFloor > 0 ? pFloor : null;
+      costo = Number.isFinite(pCost) && pCost > 0 ? pCost : null;
+      economiaEstado = String(r.economia_estado || "ECONOMICS_INCOMPLETE");
+      priceSource = "PROJECT_SPECIAL_COST_SNAPSHOT";
+      commercialState = String(r.commercial_state || "PRELIMINARY_SPECIAL");
+      engineeringStatus = String(r.estado_tecnico || "preliminar");
+      if (commercialState === "PRELIMINARY_SPECIAL") hayEspecialPreliminar = true;
+      if (!costo || economiaEstado === "ECONOMICS_INCOMPLETE") hayEconomiaIncompleta = true;
+    } else {
+      try {
+        const { data: it } = await svc.from("lista_precio_items").select("piso_minimo").eq("id", r.lista_precio_item_id).maybeSingle();
+        if (it && it.piso_minimo != null && Number.isFinite(Number(it.piso_minimo))) piso = Number(it.piso_minimo);
+      } catch (_e) { /* sin piso */ }
+      try {
+        const { data: eco } = await svc.from("producto_version_economia")
+          .select("costo_oficial_referencia")
+          .eq("producto_version_id", r.version_id)
+          .maybeSingle();
+        const c = eco?.costo_oficial_referencia == null ? NaN : Number(eco.costo_oficial_referencia);
+        if (Number.isFinite(c) && c > 0) costo = c;
+      } catch (_e) { costo = null; }
+      economiaEstado = costo != null ? "KNOWN" : "ECONOMICS_INCOMPLETE";
+      if (costo == null) hayEconomiaIncompleta = true;
+    }
 
     // P0.2 + PENNIES: descuento/importe a centavos, sin redondeo al peso.
     const precio_final = precioConDescuento(precio_lista, descuento);
     if (precio_final == null) { lineas.push({ idx: i, ok: false, motivo: "precio_no_finito" }); hayLineaInvalida = true; continue; }
     const bajoPiso = piso != null && precio_final < dinero(piso);
     const sobrePolitica = descuento > descuentoMax;
-    const lineaRequiereAprob = bajoPiso || sobrePolitica;
+    const economiaCompleta = costo != null && economiaEstado !== "ECONOMICS_INCOMPLETE";
+    const bajoCosto = economiaCompleta ? precio_final < (costo as number) : false;
+    const margenPct = economiaCompleta && precio_final > 0 ? ((precio_final - (costo as number)) / precio_final) * 100 : null;
+    const margenBajo = margenPct != null && margenPct < margenMin;
+
+    const motivosAprobacion: string[] = [];
+    if (bajoPiso) motivosAprobacion.push("precio_bajo_piso");
+    if (sobrePolitica) motivosAprobacion.push("descuento_sobre_politica");
+    if (bajoCosto) motivosAprobacion.push("precio_bajo_costo");
+    if (!bajoCosto && margenBajo) motivosAprobacion.push("margen_bajo_politica");
+    if (esEspecial && ["ESTIMATED", "USER_APPROVED_ESTIMATE"].includes(economiaEstado)) motivosAprobacion.push("costo_especial_no_certificado");
+    if (esEspecial && commercialState === "PRELIMINARY_SPECIAL") motivosAprobacion.push("ingenieria_pendiente");
+    const lineaRequiereAprob = motivosAprobacion.length > 0 || (esEspecial && !!r.requiere_aprobacion);
     if (lineaRequiereAprob) requiereAprobacion = true;
 
     const importe = importePorCantidad(precio_final, cantidad);
@@ -190,27 +244,27 @@ Deno.serve(async (req) => {
     const base: any = {
       idx: i, ok: true, producto_id, version_id: r.version_id, variante_id: variante_id ?? null, cantidad,
       precio_lista, descuento_solicitado: descuento, precio_final, importe,
+      precio_fuente: priceSource,
+      commercial_state: commercialState,
+      engineering_status: engineeringStatus,
+      economia_estado: economiaEstado,
       requiere_aprobacion: lineaRequiereAprob,
-      motivo_aprobacion: lineaRequiereAprob ? (bajoPiso ? "precio_bajo_piso" : "descuento_sobre_politica") : null,
-      lista_precio_id: r.lista_precio_id, lista_precio_item_id: r.lista_precio_item_id,
-      vigencia_desde: r.vigencia_desde, vigencia_hasta: r.vigencia_hasta,
+      motivo_aprobacion: motivosAprobacion[0] ?? null,
+      motivos_aprobacion: motivosAprobacion,
+      lista_precio_id: esEspecial ? null : r.lista_precio_id,
+      lista_precio_item_id: esEspecial ? null : r.lista_precio_item_id,
+      vigencia_desde: esEspecial ? null : r.vigencia_desde,
+      vigencia_hasta: esEspecial ? null : r.vigencia_hasta,
+      expediente_id: esEspecial ? r.expediente_id : null,
     };
     if (esDireccion) {
-      let costo: number | null = null;
-      try {
-        const { data: eco } = await svc.from("producto_version_economia").select("costo_oficial_referencia").eq("producto_version_id", r.version_id).maybeSingle();
-        if (eco && eco.costo_oficial_referencia != null) costo = Number(eco.costo_oficial_referencia);
-      } catch (_e) { /* sin economía */ }
       base.costo_oficial_referencia = costo;
       base.utilidad = costo != null ? dinero(precio_final - costo) : null;
-      base.margen_pct = costo != null && precio_final > 0 ? Math.round(((precio_final - costo) / precio_final) * 1000) / 10 : null;
-      base.economia_estado = costo != null ? "conocida" : "costo_desconocido";
+      base.margen_pct = margenPct == null ? null : Math.round(margenPct * 10) / 10;
     }
     lineas.push(base);
   }
 
-  // P0.3 + FIX B: SERVICIOS = intención; el importe lo decide el servidor.
-  //   Nunca dinero del browser. Tipo DUPLICADO => rechazo (no se cobra dos veces).
   const serviciosIn = Array.isArray(body?.servicios) ? body.servicios : [];
   const servicios: any[] = [];
   let serviciosTotal = 0;
@@ -220,7 +274,6 @@ Deno.serve(async (req) => {
   for (const s of serviciosIn) {
     const tipo = String(s?.tipo || "").toLowerCase().trim();
     if (tipo && tiposVistos.has(tipo)) {
-      // FIX B: tipo repetido en el payload => rechazo explícito, sin cobrar de nuevo.
       servicios.push({ tipo, importe: null, estado: "SERVICIO_DUPLICADO" });
       hayServicioDuplicado = true;
       continue;
@@ -228,78 +281,101 @@ Deno.serve(async (req) => {
     if (tipo) tiposVistos.add(tipo);
     if (tipo === "maniobras" && maniobrasPct > 0) {
       const imp = cargoPorcentaje(subtotal, maniobrasPct);
-      if (imp == null) { servicios.push({ tipo, importe:null, estado:"SERVICIO_CALCULO_INVALIDO" }); hayServicioPendiente = true; continue; }
+      if (imp == null) { servicios.push({ tipo, importe: null, estado: "SERVICIO_CALCULO_INVALIDO" }); hayServicioPendiente = true; continue; }
       serviciosTotal = sumarMontos([serviciosTotal, imp]) ?? NaN;
       servicios.push({ tipo, importe: imp, base: "subtotal", pct: maniobrasPct });
-    }
-    else if (tipo === "flete" && fletePct > 0) {
+    } else if (tipo === "flete" && fletePct > 0) {
       const imp = cargoPorcentaje(subtotal, fletePct);
-      if (imp == null) { servicios.push({ tipo, importe:null, estado:"SERVICIO_CALCULO_INVALIDO" }); hayServicioPendiente = true; continue; }
+      if (imp == null) { servicios.push({ tipo, importe: null, estado: "SERVICIO_CALCULO_INVALIDO" }); hayServicioPendiente = true; continue; }
       serviciosTotal = sumarMontos([serviciosTotal, imp]) ?? NaN;
       servicios.push({ tipo, importe: imp, base: "subtotal", pct: fletePct });
+    } else {
+      servicios.push({ tipo: tipo || "desconocido", importe: null, estado: "SERVICIO_PENDIENTE_PRECIO" });
+      hayServicioPendiente = true;
+      requiereAprobacion = true;
     }
-    else { servicios.push({ tipo: tipo || "desconocido", importe: null, estado: "SERVICIO_PENDIENTE_PRECIO" }); hayServicioPendiente = true; requiereAprobacion = true; }
   }
 
-  // P0.4 + FIX B: emitible solo si NO hay líneas inválidas, servicios sin precio ni duplicados.
-  let cotizacion_emitible = !hayLineaInvalida && !hayServicioPendiente && !hayServicioDuplicado;
   const baseIva = sumarMontos([subtotal, serviciosTotal]);
   const iva = baseIva == null ? null : cargoPorcentaje(baseIva, ivaPct);
   const total = baseIva == null || iva == null ? null : sumarMontos([baseIva, iva]);
   if (baseIva == null || iva == null || total == null) hayLineaInvalida = true;
-  cotizacion_emitible = !hayLineaInvalida && !hayServicioPendiente && !hayServicioDuplicado;
+  const baseReady = !hayLineaInvalida && !hayServicioPendiente && !hayServicioDuplicado && !hayEconomiaIncompleta;
+  const cotizacion_emitible = baseReady && !hayEspecialPreliminar;
+  const presupuesto_preliminar_disponible = baseReady && hayEspecialPreliminar;
 
-  // P0.5: lista REAL desde la resolución (no hardcode).
   let listaInfo: any = null;
-  const primeraOk = lineas.find((l) => l.ok);
-  if (primeraOk) {
+  const primeraPricebook = lineas.find((l) => l.ok && l.lista_precio_id != null);
+  if (primeraPricebook) {
     try {
-      const { data: lp } = await svc.from("listas_precio").select("id,nombre,version,vigencia_desde,vigencia_hasta,estado").eq("id", primeraOk.lista_precio_id).maybeSingle();
+      const { data: lp } = await svc.from("listas_precio").select("id,nombre,version,vigencia_desde,vigencia_hasta,estado").eq("id", primeraPricebook.lista_precio_id).maybeSingle();
       if (lp) listaInfo = lp;
-    } catch (_e) { /* */ }
+    } catch (_e) { /* noop */ }
   }
 
-  // FIX D: si NO es emitible => "bloqueada". Si es emitible pero requiere aprobación =>
-  //   "requiere_aprobacion". Si no => "autorizado".
-  const estado_autorizacion = !cotizacion_emitible ? "bloqueada" : (requiereAprobacion ? "requiere_aprobacion" : "autorizado");
+  const estado_autorizacion = hayEconomiaIncompleta
+    ? "ECONOMICS_INCOMPLETE"
+    : hayEspecialPreliminar ? "PRELIMINARY_SPECIAL"
+    : !baseReady ? "BLOCKED"
+    : requiereAprobacion ? "APPROVAL_REQUIRED"
+    : "ALLOWED";
 
-  // FIX C: DISEÑO estrictamente técnico. Sin política, sin lista, sin iva, sin economía,
-  //   sin estado de autorización comercial. Solo validez técnica + identidad de producto.
   if (esDiseno) {
     return json({
       ok: true, rol, calculadoEn: new Date().toISOString(),
-      cotizacion_emitible,
+      estado_autorizacion, cotizacion_emitible, presupuesto_preliminar_disponible,
       lineas: lineas.map((l) => l.ok
-        ? { idx: l.idx, ok: true, producto_id: l.producto_id, version_id: l.version_id, variante_id: l.variante_id, cantidad: l.cantidad }
-        : { idx: l.idx, ok: false, motivo: l.motivo }),
+        ? { idx: l.idx, ok: true, producto_id: l.producto_id, version_id: l.version_id, variante_id: l.variante_id, cantidad: l.cantidad, precio_fuente: l.precio_fuente, commercial_state: l.commercial_state, engineering_status: l.engineering_status, economia_estado: l.economia_estado, requiere_aprobacion: l.requiere_aprobacion, motivos_aprobacion: l.motivos_aprobacion }
+        : { idx: l.idx, ok: false, motivo: l.motivo, economia_estado: l.economia_estado }),
       servicios: servicios.map((s) => ({ tipo: s.tipo, estado: s.estado ?? "ok" })),
     });
   }
 
   const meta = {
-    rol, calculadoEn: new Date().toISOString(),
-    reglas_version: reglasVersion, descuento_max_sin_aprobacion: descuentoMax,
+    rol, calculadoEn: new Date().toISOString(), reglas_version: reglasVersion,
+    margen_minimo_pct: esDireccion ? margenMin : undefined,
+    descuento_max_sin_aprobacion: descuentoMax,
     lista: listaInfo, ivaPct,
   };
-  // Totales oficiales SOLO si emitible; si no, subtotal_conocido (no total oficial).
-  const totales = cotizacion_emitible
-    ? { emitible: true, subtotal, servicios: serviciosTotal, iva, total, moneda: moneda || "MXN" }
-    : { emitible: false, subtotal_conocido: subtotal, servicios_conocidos: serviciosTotal, total_oficial: null, moneda: moneda || "MXN",
-        nota: "Cotización NO emitible: hay líneas inválidas, servicios sin precio o servicios duplicados." };
+
+  let totales: any;
+  if (cotizacion_emitible) {
+    totales = { emitible: true, subtotal, servicios: serviciosTotal, iva, total, moneda: moneda || "MXN" };
+  } else if (presupuesto_preliminar_disponible) {
+    totales = {
+      emitible: false, preliminary: true, subtotal_preliminar: subtotal, servicios_preliminares: serviciosTotal,
+      iva_preliminar: iva, total_preliminar: total, total_oficial: null, moneda: moneda || "MXN",
+      nota: "Presupuesto preliminar disponible: al menos un desarrollo especial requiere validación técnica antes de emisión definitiva."
+    };
+  } else {
+    totales = {
+      emitible: false, subtotal_conocido: subtotal, servicios_conocidos: serviciosTotal, total_oficial: null, moneda: moneda || "MXN",
+      nota: hayEconomiaIncompleta
+        ? "Cotización NO emitible: falta economía autoritativa en al menos una ProductVersion."
+        : "Cotización NO emitible: hay líneas inválidas, servicios sin precio o servicios duplicados."
+    };
+  }
 
   const lineasOut = lineas.map((l) => {
     if (!l.ok) return l;
     const o: any = {
       idx: l.idx, ok: true, producto_id: l.producto_id, version_id: l.version_id, variante_id: l.variante_id, cantidad: l.cantidad,
       precio_lista: l.precio_lista, descuento_solicitado: l.descuento_solicitado, precio_final: l.precio_final, importe: l.importe,
-      requiere_aprobacion: l.requiere_aprobacion, motivo_aprobacion: l.motivo_aprobacion,
-      lista_precio_id: l.lista_precio_id, lista_precio_item_id: l.lista_precio_item_id, vigencia_desde: l.vigencia_desde, vigencia_hasta: l.vigencia_hasta,
+      precio_fuente: l.precio_fuente, commercial_state: l.commercial_state, engineering_status: l.engineering_status,
+      economia_estado: l.economia_estado, requiere_aprobacion: l.requiere_aprobacion,
+      motivo_aprobacion: l.motivo_aprobacion, motivos_aprobacion: l.motivos_aprobacion,
+      lista_precio_id: l.lista_precio_id, lista_precio_item_id: l.lista_precio_item_id,
+      vigencia_desde: l.vigencia_desde, vigencia_hasta: l.vigencia_hasta, expediente_id: l.expediente_id,
     };
-    if (esDireccion) { o.costo_oficial_referencia = l.costo_oficial_referencia; o.utilidad = l.utilidad; o.margen_pct = l.margen_pct; o.economia_estado = l.economia_estado; }
+    if (esDireccion) {
+      o.costo_oficial_referencia = l.costo_oficial_referencia;
+      o.utilidad = l.utilidad;
+      o.margen_pct = l.margen_pct;
+    }
     return o;
   });
 
-  return json({ ok: true, rol, estado_autorizacion, cotizacion_emitible, lineas: lineasOut, servicios, totales, ...meta });
+  return json({ ok: true, rol, estado_autorizacion, cotizacion_emitible, presupuesto_preliminar_disponible, lineas: lineasOut, servicios, totales, ...meta });
 });
 
 function json(obj: unknown, status = 200) {

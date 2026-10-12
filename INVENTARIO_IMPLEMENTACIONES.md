@@ -1,0 +1,124 @@
+# Inventario de implementaciones · CONSERVAR / CONSOLIDAR / SUSTITUIR / RETIRAR
+
+**Corte:** rama `claude/costing-app-architecture-psf02g` @ `ff7e482` + producción Supabase `mtuvnbgljwbsaizjjgzs` (2026-10-10).
+**Método:** consumidores reales en código (archivos no-test que importan o invocan cada pieza), funciones edge
+desplegadas vs. invocadas por el cliente, y los cuatro informes de causa raíz del 2026-10-10. No se retira nada
+con este documento: **RETIRAR es una propuesta que requiere tu aprobación** (mandato §1 y §11).
+
+Leyenda de "prod": archivos de producción que la consumen (sin contar el archivo que la define).
+
+## 1. Persistencia e integridad de cotizaciones (Bloque 1, hecho)
+
+| Implementación | Clase | Evidencia / nota |
+|---|---|---|
+| `guardarEnNube()` en App.jsx + RPCs `crear/actualizar_cotizacion_segura` | CONSERVAR | Única puerta de guardado. Certificada: 12 unit, 8 E2E, 8 en PostgreSQL aislado. |
+| `cotizaciones.js` (paraGuardar, firma, clasificación de error) | CONSERVAR | Autoridad de la fila que se guarda. |
+| `totales.js` `totalesCotizacion` | CONSERVAR | Única fuente de la escalera de dinero (prod 4). |
+| INSERT/UPDATE directos a `cotizaciones` desde el cliente | RETIRADO | Ya no existe en la rama. |
+| `almacen.exportar/importar` (Precios.jsx, exporta TODO el estado) | SUSTITUIR por `respaldo.js` | El nuevo respalda por rol y sin nómina; el viejo exporta nómina en claro si no hay candado. Retirar cuando Dirección confirme que no lo usa. |
+| Migración `20261010170000_actualizar_cotizacion_preserva_economia` | BLOQUEADO (tu aprobación) | Sin ella, en producción vendedor/diseño siguen pisando costos de Dirección. |
+
+## 2. Contrato de partida e identidad de producto (siguiente bloque)
+
+| Implementación | Clase | Evidencia |
+|---|---|---|
+| 6 constructores de partida en App.jsx (`partidaDeCosteo`, addon, `onAgregarCotizacion`, `partidasDeItemsIA`, `agregarDeBanco`, `agregarArticuloLinea`) + 2 mutadores (EditarPartida, reabrir) | CONSOLIDADO (2026-10-11, VH-044) → `datos/partida.js` `crearPartida()` + `validarPartida()` | Los 6 pasan por el contrato; identidad unificada y conservada; vendedor sin economía. EditarPartida → `partidaEditada()` → contrato (VH-045). Reabrir desde Archivo: passthrough A PROPÓSITO (renglones legacy no se reescriben al abrir; `CLAVES_ENLACE` los protege si se editan). |
+| Render de partida: `Cotizacion.renderPartida/renderTodas` escribían base64 en `partida.render` | CONSOLIDADO (VH-045) → `datos/renderPartida.js` + `nube.renderDePartida` | Storage `renders/partidas/<id>/<ts>`; sólo URL en el estado. `acomodo.render3d`/`escenas[].img`: 5 escritores → `imagenStorage.js` (VH-046); el PDF resuelve URL→dataUrl al dibujar. |
+| Pre-formas en `lineas.js` (`partidaCatalogo`, `partidaModelo`, `sellerSafePartida`, `sinPrecioVendedor`, `conIdentidadV2`) y `CotizadorIA.partidaBanco` | CONSOLIDAR (adaptadores del constructor único) | Se conservan como adaptadores de entrada, no como constructores. |
+| `precioAutorizado.js` (identidad Producto Maestro) | CONSERVAR | prod 3 (lineas, CotizadorIA, CosteadorLinea). |
+| `scopeModel.js` | RETIRAR (propuesta) | prod 0; solo tests. |
+| `evidencia.js` | CONSERVAR (corrección 2026-10-11) | ESTABA MAL: `estructura.js` SÍ lo importa y `AnalisisEstructural.jsx` vive en Costeador detrás del flag `costing_ai_v2`. Retirarlo rompería ese flag. Se retira sólo si Dirección retira el flag. |
+| 7 vocabularios de procedencia (`provenance.js`, `confianza.js`, `programaDelPlano.fuente`, `evidencia.js`, `util.selloPartida`, `voni/respuesta`, `datos/voni.EVID`) | CONSOLIDAR → 1 enum `detectado/inferido/sugerido/confirmado` | Hoy cada etapa aplana la procedencia de la anterior. |
+
+## 3. Autoridad económica y emisión
+
+| Implementación | Clase | Evidencia |
+|---|---|---|
+| `motor/calculo.js` `calcular` + `FORMULA_ALBA_V1` | CONSERVAR (fórmulas intocables) | prod 17. Alba cubre 7/130 productos; legacy por línea 99; horas 24. No se migra entre métodos sin validación (mandato §3). |
+| `costeoEmitible` (completitud) | CONSERVAR y hacer obligatorio | prod 4. `calcular` debe devolver estado, no número suelto. |
+| `componentesSinMaterial` | CONSOLIDADO (VH-040) → `pendientesDeCosteo`. Corrección 2026-10-11: NO es código muerto, `pendientesDeCosteo` la llama como respaldo (calculo.js:683). No retirar; a lo más hacerla privada del motor. | |
+| 7 fórmulas costo→precio | CONSOLIDADO (VH-041) → `datos/precio.js` `precioDesdeCosto` | `politicaVH.preciosVH` se conserva como niveles por volumen (piso/lista), no como precio de partida. |
+| Márgenes por omisión 50 vs 40 vs 30 | CONSOLIDADO (VH-019) → `margenObjetivoDe` (parametros, si no 50) | costear-servidor cambiado en código; pendiente de desplegar. |
+| `politicaVH.costoFabVH` | RETIRAR (propuesta) | prod 0; duplica Alba con otros factores. |
+| `cotizarLinea.cotizarArticulo`, `resolverComponentes.cotizarPorComponentes` | RETIRAR (propuesta) | prod 0 (solo se definen). |
+| `costoImplicito` (5 variantes de costo derivado del precio) | CONSOLIDADO (VH-050): los 5 productores marcan `costoDerivado`; `claseCosto` ya los etiqueta "derivado" (≈) | La función queda como única conversión Precio 2 → costo. |
+| 10 compuertas de emisión (senales ×2, voniContext, excluidas, candado, RPC `cotizacion_emitible`, `emitir_revision`, `bajoPiso`, `hayLineaInvalida`, `costeoEmitible`) | CONSOLIDADO (2026-10-11, VH-047) → servidor `evaluar_emision_cotizacion` (autoridad) + 1 proyección cliente `datos/emision.js` (`evaluarEmisionLocal`, `combinarGate`) | senales ×2, voniContext, excluidas y la lectura del RPC derivan de `emision.js`. `candado` es confirmación (no decide), `hayLineaInvalida`/`bajoPiso` son banderas de pantalla ya cubiertas por los códigos `precio_invalido`/aprobación del servidor, `costeoEmitible` es del motor de costeo. Sin migración necesaria: producción tiene 0 renglones con `estadoCosto`/`costoEstado`. |
+| RPC `emitir_revision` (legacy) usado por el cliente | SIN ACCIÓN: en producción ya es un alias de `emitir_revision_v2` (verificado 2026-10-11) | |
+| `asignar_folio_oficial`, `resolver_precio_autorizado`, `vincular_cotizacion`, `producto_cotizable` | CONSERVAR y CONECTAR | Existen en la base, el cliente no los llama; el folio del PDF es texto libre. |
+| `aprobaciones.js` + RPCs `solicitar_*/resolver_aprobacion` | CONSOLIDADO (VH-055): pedir y resolver van por las RPCs del servidor; el botón de pedir aprobación existe en la cotización | `cotizacion_emitible` (servidor) hashea otro snapshot: VH-056, migración pendiente. |
+| `pdfPropuesta.datosDesdeSnapshot` | CONECTADO (VH-042): el PDF sale del snapshot conservado; reimpresión por revisión | |
+| `FichaPDF` (IVA sin descuento/maniobras/flete) y `window.print()` | CONSOLIDAR → un solo render de documento | prod 7. |
+
+## 4. Costear y despiece
+
+| Implementación | Clase | Evidencia |
+|---|---|---|
+| 24 generadores de línea (`src/datos/<linea>.js`, 130 productos) | CONSERVAR (congelar con snapshot) → luego BOM como dato | Recetas = conocimiento industrial. `KG20 = 7.16` copiado en 8 archivos; conversiones geométricas locales en cada uno. |
+| `netoComponente` (unit-blind) | CONSERVAR con auditoría (2026-10-11); la conversión con `unidad` explícita queda como mejora, no como bug abierto | Auditados los 24 generadores con config por omisión: 1,110 componentes, 0 insumos desconocidos, 0 componentes de área cobrados en unidad no-área (el caso Luna ya está corregido en luna.js). 35 componentes por m² se declaran por `cantidad` (pintura electrostática, espuma): válido si la cantidad son m². |
+| `recetas.construirCosteo` + `PIEZAS_SEMILLA` (segundo sistema de BOM) | CONSOLIDAR | prod 2 (Asistente, Catálogo). Defaults 55/12 que el cutover Alba ya no siembra. |
+| `mapIaComps` duplicado (AsistenteEspecial + Costeador) | CONSOLIDAR (parcial, VH-053: la alerta de material ya es una, `alertaMaterial`) | La función de mapeo sigue en dos pantallas. |
+| `validarIntentCosteo` | CONSERVAR y COMPARTIR cliente/servidor | Solo servidor; su cabecera miente. |
+| `costear-servidor` (sombra) | HECHO en código (VH-036/VH-041); **DESPLIEGUE PENDIENTE (aprobación)** | Medido 2026-10-11 contra la v5 desplegada (2026-10-04): el bundle del servidor difiere del repo en `index.ts` (3 líneas: margen 40→50), `motor/calculo.js` (26 líneas: fail-closed VH-040) y `validarIntentCosteo.js` (20 líneas); `insumos.js`, `formulaAlba.js` y `acabados.js` idénticos. Mientras no se despliegue, el servidor costea con el motor viejo (sin estadoCosto/pendientes): contrastar Cocrear contra él no tiene sentido todavía. |
+| `costoPieza` por renglón (Costeador.jsx, AsistenteEspecial.jsx) | CONSOLIDAR en el motor | Dos cálculos paralelos sin USD ni nesting. |
+| 3 catálogos de insumos (`insumos.js` semilla, `config.datos.insumos`, `insumos_catalogo/catalogo_vigente`) | CONSOLIDAR → decisión pendiente (VH-051) | Medido 2026-10-11: config 92 vs servidor 259; 167 sólo en servidor y 0 de ellos certificados; los 30 certificados compartidos coinciden al centavo. Backlog de certificación en Compras, no bug del motor. |
+| `bomHash/diffBOM` | CONSERVAR (corregir clave por nombre) | prod 2. |
+
+## 5. Interpretación de planos y acomodo
+
+| Implementación | Clase | Evidencia |
+|---|---|---|
+| `leer-plano` (edge) + `planoLeido.areasDeLectura` + `floorPlan` | CONSERVAR (contrato único; `puestos` ya viaja) | prod 4. Compuerta de confirmación: VH-043. La validación de escala contra `grid` la hace la edge v11 (`GRID_ENVELOPE_MISMATCH`) y desde VH-064 el cliente la enseña y baja el nivel con ella. |
+| `leerPlanoArchivo.js` y `Acomodo.procesarPlano` | CONSOLIDADO (VH-043): un solo orquestador + compuerta de confirmación | |
+| `floorSpec.validarFloorSpec/validarEnvolvente` | RETIRAR (requiere aprobación) | prod 0; su forma no coincide con lo que emite leer-plano. La validación determinista vive en la edge v11 y el cliente ya consume su `floorSpec.validation` (VH-064): no hace falta una segunda en el cliente. |
+| `planner.acomodarLocal` + `malla.acomodarEnForma` | CORREGIDO (VH-033): plan B para sobrantes, pasada 2 sin pérdidas, `sinColocar` por nombre | |
+| `reacomodar`, `sentarSillas`, `rellenar`, `orientacion.enderezar` | CONSOLIDAR dentro del solver | Capas que se parchan entre sí (sentar→enderezar→re-sentar). |
+| `planner.empacarFilas`, `guardasAMuro`, `MEET_CLR` | RETIRAR (propuesta) | Sin llamadas. |
+| 7 clasificadores por nombre (`rolArea`, `rolCuartoBase`, `zonaSemantica`, `espacio.tipoDe`, `rolDePiezaAcomodo`, `esSilla*`, `rolDeSimboloEnZona`) | CONSOLIDADO parcial (VH-061): los de CUARTOS (`rolArea`, `zonaSemantica`) leen `datos/cuartos.js`; `rolCuartoBase` la usa y agrega el tamaño | Medido 2026-10-11 con 30 nombres: ya no se contradicen ("Sala de espera" lounge/GENERICA es compatible); el único choque real era Site. Piezas y símbolos son otro dominio. |
+| Edge `acomodar-espacio` v9 (`acomodo-core.planearDeterminista` + reparación con Claude hasta 3 intentos, botón "Con IA") | SUSTITUIR o RETIRAR (decidir) | Corrección 2026-10-11: SÍ usa LLM, pero sólo para reparar cuando la pasada determinista deja problemas; valida posiciones en servidor (dentro/encimado/puertas/zona) y responde `ok:true` siempre con el veredicto en `layoutSpec.status`. El cliente ya lo lee (VH-067). Huecos del servidor en VH-068. Sigue siendo un segundo motor con contrato distinto al local. |
+| `acomodo-core.acomodarConReparacion` | RETIRAR (propuesta) | prod 0 (solo tests). |
+| 6 validadores (`acomodoAudit`, `floorSpec.violacionesSemanticas/estadoLayout`, edge `validarColocacion`, auto-auditorías `ok:true`, `auditoriaMedida`, BFS malla) | CONSOLIDADO parcial (VH-062): las auto-auditorías del planner ya se MIDEN con `acomodoAudit` (un solo auditor geométrico para planner y pantalla) | Pendiente: `violacionesSemanticas` (semántica, otro dominio) y la edge `validarColocacion` (fuera del repo, decisión VH-039). |
+| `PlanoAcomodo.layoutAreas` y `pdfPropuesta.hojaPlano` | CONSOLIDAR | Dos dibujos de planta. |
+| `espacioNuevo.js` (m² → áreas) | CONSERVAR | prod 1 (EmpezarEspacio). |
+
+## 6. VONI y Council
+
+| Implementación | Clase | Evidencia |
+|---|---|---|
+| `CotizadorIA.jsx` + edge `cotizar-texto` v12 | CONSERVAR (es "el Voni" de texto→partidas) | prod 3. Cliente fail-closed verificado con e2e (`cotizarTexto.e2e.js`, 2026-10-11): sin precio autorizado no entra en $0, lo inexistente se dice, extras descartados se informan (VH-070), sin agregados también se explica (VH-071). Edge SIN compuerta de rol, límite ni `ai_eventos` (VH-069, requiere aprobación). |
+| `Voni.jsx` (wizard 4 pasos) | CONSERVAR | prod 2. |
+| `Voni2.jsx` + `src/voni/*` (Q&A determinista, sin LLM) | CONSOLIDAR o RETIRAR (decidir) | prod 2. Los tres filtros de rol (`datos/voni`, `voniContext`, `voni/permisos`) y App.jsx ya leen `datos/roles.js` (VH-054), espejo del servidor. |
+| `datos/voni.js` `voniTurno` (orquestador propone→valida→ejecuta) | RETIRAR (propuesta) | prod 0; 3 tests prueban código que no corre. |
+| `CocrearV3.jsx` | CONSERVAR (consolidar con Costear/Cotizar) | Live. Aplica el cambio por regex ANTES de preguntar al council. Convertir en partida ya es fail-closed y con procedencia (VH-058). Contrastar su costo con `costear-servidor` espera el despliegue (deriva en 3 archivos). |
+| `CocrearV2.jsx` | RETIRAR (propuesta) | prod 0. |
+| `Asistente.jsx` (wizard determinista 1 pieza) | CONSOLIDAR | Duplica precio con otra fórmula y margen 40. |
+| `aprendizaje.leccionDeQuita/leccionDeCambio` | RETIRAR (propuesta) | prod 0. |
+| Aprendizajes automáticos (texto libre del vendedor → system prompt global) | HECHO en cliente (VH-059): atribución por sesión, `aprobado_para_ia` como la base, sólo lo aprobado va al prompt, revisión de Dirección en "Lo que Voni sabe" | Pendiente servidor (VH-060): las edges `cotizar-texto`/`analizar-negocio` siguen aceptando `aprendizajes` del body. |
+| `nube.generarVideo` + edge `generar-video` | RETIRAR (propuesta) | Corrección 2026-10-11: el cliente ya no tiene `generarVideo` (0 referencias en `src`); sólo queda la edge `generar-video` v4 (ago-2026) desplegada sin caller. |
+| `humo.jsx`, `plano.jsx` | RETIRAR (propuesta) | No son entradas de Vite ni se importan. |
+
+## 7. Funciones edge en producción (hallazgo VH-039)
+
+**23 desplegadas · 8 invocadas por el cliente (+`usuarios`) · 10 en el repo.** Las 13 siguientes NO están en el repo:
+
+| Función (prod) | ¿La invoca el cliente? | Clase |
+|---|---|---|
+| `app` (**verify_jwt: false**, v4, ago-2026) | No | RETIRAR (decisión de Dirección). Leído 2026-10-11: sirve públicamente `storage/app/index.html` (3.2 MB, build de un solo archivo del 19-ago-2026; el bucket `app` tiene 242 objetos, 22.6 MB). Es una COPIA VIEJA de la app accesible sin sesión; la app vigente vive en Vercel. |
+| `bootstrap-temp-claude` (v5, ago-2026) | No | RETIRAR (nombre sugiere arranque temporal de una sesión de IA) |
+| `costear-vision` | No | RETIRAR o versionar |
+| `analizar-mueble-strict`, `leer-plano-strict`, `acomodar-espacio-strict`, `generar-render-strict` | No | RETIRAR (variantes paralelas) |
+| `generar-render` v30 (edge, leída 2026-10-11) | Sí (Costeador, Cotización, Acomodo, Asistente especial, Cocrear V2/V3) | CONSERVAR. Compuerta por rol, límite 30/h fail-closed, `render_eventos`, QA visual (`audit`), guarda en Storage y responde `url`. El cliente leía sólo `dataUrl` y perdía TODOS los renders desde el 2026-10-04 (VH-072, corregido en cliente). Pendiente: enseñar `audit` en pantalla. |
+| `cotizar-servidor` v6 (edge, leída 2026-10-11) | No (ningún `invoke` en `src`) | DECIDIR: evaluador de cotización v2 (Producto Maestro: `resolver_precio_autorizado`, especial de proyecto, política vigente, servicios, IVA; economía sólo a Dirección; Diseño sin dinero). Duplica en parte a `private_api.evaluar_emision_cotizacion` (la que sí usa el cliente). Devuelve `descuento_max_sin_aprobacion` a cualquier rol permitido (relevante para VH-063). O se cablea (LÍNEA V2) o se retira; hoy es código desplegado sin caller. |
+| `leer-plano-core` | No | CONSERVAR: SÍ es la base. `leer-plano` v11 es el wrapper (auth, permisos, límites, FloorSpec) y llama `leer-plano-core` para la visión (leído 2026-10-11). |
+| `voni-council` (v12) | **Sí** | CONSERVAR · VERSIONADA (2026-10-11): `supabase/functions/voni-council/index.ts` es el volcado exacto de la v12 desplegada. |
+| `voni-council-health` | No | RETIRAR o versionar |
+| `acomodar-espacio-recovery` (v6, actualizado hoy) | No | Decidir |
+| `analizar-mueble-preview` | No | RETIRAR (variante) |
+| `costear-compras-rc` (v3, ayer) | No | Decidir: ¿es el trabajo de precios de Compras? |
+
+Regla desde hoy (igual que las migraciones): ninguna función edge se despliega sin su carpeta en `supabase/functions/`.
+
+## 8. Decisiones que son tuyas
+1. Aplicar la migración `20261010170000` (cierra el punto uno del mandato).
+2. Aprobar la lista RETIRAR (propuesta) de los §2–§7; se retira módulo por módulo, cada uno con su prueba de regresión antes.
+3. `app` sin JWT y `bootstrap-temp-claude`: confirmar si algo las usa antes de borrarlas.
+4. `Voni2`/`src/voni`: conservar como Q&A sin LLM o retirar.

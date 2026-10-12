@@ -261,6 +261,12 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
   const existe = id ? resolver(id) : null;
   const insumoNombre = existe?.nombre || '';
   const solicitado = pieza?.material_solicitado || '';
+  // VH-053: la IA elige del catálogo del SERVIDOR (insumos_catalogo, 259 ids); el
+  // navegador costea con el local (config, 92). Un id que la IA declara EXACT y aquí
+  // no existe es un material REAL sin precio certificado por Compras: se dice tal
+  // cual y NO se sustituye por un pariente local (sería una sustitución silenciosa).
+  const matchIA = String(pieza?.material_match || '').trim().toUpperCase();
+  const servidorId = id && !existe && matchIA === 'EXACT' ? id : '';
 
   const clasif = clasificarMaterial({ solicitado, insumoId: existe ? id : '', insumoNombre });
 
@@ -281,7 +287,13 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
 
   // RED DE SEGURIDAD: material nombrado sin id → PROPONE el mejor de la misma
   // familia, pero no lo convierte en costo autoritativo sin confirmación.
-  if (!insumoIdFinal && !candidatoId && Array.isArray(catalogo)) {
+  // VH-053: id EXACT de la IA que no existe localmente = material REAL sin precio certificado;
+  // se dice tal cual y NO se sustituye por un pariente local.
+  if (servidorId) {
+    clase = MATCH.NOT_AVAILABLE; insumoIdFinal = ''; candidatoId = null;
+    motivo = `Existe en el catálogo del servidor como «${servidorId}», pero sin precio certificado por Compras. No se costea hasta que Compras lo certifique o elijas un material local.`;
+  }
+  if (!insumoIdFinal && !candidatoId && !servidorId && Array.isArray(catalogo)) {
     const cand = mejorInsumoDeFamilia(solicitado, catalogo);
     if (cand) {
       candidatoId = cand.id;
@@ -305,6 +317,24 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
       confirmado_por_usuario: pieza?.material_confirmado === true,
       familiaSolicitada: clasif.familiaSolicitada,
       familiaResuelta: clasif.familiaResuelta,
+      ...(servidorId ? { servidorId, sinPrecioCertificado: true } : {}),
     },
   };
+}
+
+/**
+ * Texto ÚNICO para la alerta de material en pantalla (Costeador y Asistente especial).
+ * Antes cada pantalla decidía qué enseñar y el auto-asignado por familia no se veía:
+ * una sustitución dentro de la familia pasaba en silencio. Devuelve null si no hay
+ * nada que avisar.
+ * @returns {{tono:'rojo'|'ambar', titulo:string, detalle:string}|null}
+ */
+export function alertaMaterial(m) {
+  if (!m) return null;
+  const pedido = m.solicitado ? ` Pediste «${m.solicitado}».` : '';
+  if (m.sinPrecioCertificado) return { tono: 'ambar', titulo: 'Material real sin precio certificado', detalle: `${m.motivo}${pedido}` };
+  if (m.clase === MATCH.NOT_AVAILABLE) return { tono: 'rojo', titulo: 'Material pendiente', detalle: `${m.motivo}${pedido} Escoge el material arriba para costearlo (no se sustituye solo).` };
+  if (m.clase === MATCH.SUBSTITUTE_REQUIRES_CONFIRMATION) return { tono: 'ambar', titulo: 'Sustitución requiere confirmación', detalle: `${m.motivo}${pedido} Escoge el material arriba para costearlo (no se sustituye solo).` };
+  if (m.clase === MATCH.CANDIDATE_REQUIRES_CONFIRMATION || m.autollenado) return { tono: 'ambar', titulo: 'Material propuesto por familia: confírmalo', detalle: `${m.motivo}${pedido} No se costea hasta que lo confirmes o lo cambies arriba.` };
+  return null;
 }

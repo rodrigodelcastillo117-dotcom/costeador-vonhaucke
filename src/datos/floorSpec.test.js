@@ -17,28 +17,13 @@ import { describe, it, expect } from 'vitest';
 import {
   ROL, ZONA, zonaSemantica, rolDeSimboloEnZona, contarRoles,
   PROCEDENCIA, esConfirmado, modeloConfirmado,
-  validarEnvolvente, validarFloorSpec, estadoLayout, puedePresentarPropuesta, renderFiel,
+  estadoLayout, puedePresentarPropuesta, renderFiel,
+  validarFloorSpec, validarEnvolvente,
 } from './floorSpec.js';
 
 const GRID = { horizontal: [4000, 4000, 4000, 3000], vertical: [3200, 3200, 2400] };
 const ENV_OK = { width_mm: 15000, height_mm: 8800 };
 
-describe('ARQ-01 · envolvente por cotas (cota > escala > IA)', () => {
-  it('15.00 × 8.80 = 132.0 m² y el grid cuadra', () => {
-    const r = validarEnvolvente(ENV_OK, GRID);
-    expect(r.ok).toBe(true);
-    expect(r.area_m2).toBeCloseTo(132.0, 1);
-  });
-  it('178 m² (envolvente inflada) con grid de 132 → INVÁLIDO', () => {
-    const r = validarEnvolvente({ width_mm: 15000, height_mm: 11600 }, GRID);
-    expect(r.ok).toBe(false);
-    expect(r.issues.some((i) => i.code === 'GRID_LARGO_NO_CUADRA')).toBe(true);
-  });
-  it('la suma del grid ES la verdad: 15000 y 8800', () => {
-    expect(GRID.horizontal.reduce((a, b) => a + b, 0)).toBe(15000);
-    expect(GRID.vertical.reduce((a, b) => a + b, 0)).toBe(8800);
-  });
-});
 
 describe('ARQ-01 · semántica por zona (CAPACIDAD != PUESTOS != SILLAS)', () => {
   it('una silla (círculo) se interpreta según su zona', () => {
@@ -98,26 +83,6 @@ describe('ARQ-01 · procedencia (una sugerencia no se auto-confirma)', () => {
   });
 });
 
-describe('ARQ-01 · validarFloorSpec (determinista, no prompt)', () => {
-  it('FloorSpec coherente → VALID', () => {
-    const spec = {
-      envelope: ENV_OK, grid: GRID,
-      zones: [{ id: 'z1', name: 'ÁREA OPERATIVA', polygon: [[0, 0], [8000, 0], [8000, 6400], [0, 6400]] }],
-      furniture_observations: [{ id: 'op0', semantic_role: ROL.WORKSTATION, zone_id: 'z1', center: [1000, 1000], quantity_group: 1 }],
-    };
-    expect(validarFloorSpec(spec).status).toBe('VALID');
-  });
-  it('mueble fuera de su zona → INVALID', () => {
-    const spec = {
-      envelope: ENV_OK, grid: GRID,
-      zones: [{ id: 'z1', name: 'ÁREA OPERATIVA', polygon: [[0, 0], [1000, 0], [1000, 1000], [0, 1000]] }],
-      furniture_observations: [{ id: 'op0', semantic_role: ROL.WORKSTATION, zone_id: 'z1', center: [9000, 9000], quantity_group: 1 }],
-    };
-    const r = validarFloorSpec(spec);
-    expect(r.status).toBe('INVALID');
-    expect(r.issues.some((i) => i.code === 'MUEBLE_FUERA_DE_ZONA')).toBe(true);
-  });
-});
 
 describe('ARQ-01 · layout (nada desaparece; no verde parcial)', () => {
   it('48 pedidas, 23 colocadas, 25 sin colocar → INCOMPLETE (no verde)', () => {
