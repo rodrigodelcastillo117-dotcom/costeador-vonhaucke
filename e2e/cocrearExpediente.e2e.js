@@ -24,6 +24,8 @@ test.describe('COCREAR · expediente QA', () => {
         red.push({ t: Date.now(), url: u.replace(/^.*\/(rest\/v1\/rpc|functions\/v1)\//, ''), status: res.status(), ok: j?.ok ?? null, code: j?.code ?? null, error: j?.error ? String(j.error).slice(0, 160) : null });
       }
     });
+    // El modal de bienvenida (onboarding) tapa la pantalla de inicio: se marca como visto, igual que en las demás pruebas.
+    await page.addInitScript(([k, v]) => { try { if (!window.localStorage.getItem(k)) window.localStorage.setItem(k, JSON.stringify(v)); } catch (_e) {} }, ['costeador-vonhaucke-v1', { onboardingVisto: true, cotizacion: { partidas: [] } }]);
     await page.goto('/');
     await page.fill('#email-login', EMAIL); await page.fill('#pass-login', PASS);
     await page.getByRole('button', { name: /^Entrar$/i }).click();

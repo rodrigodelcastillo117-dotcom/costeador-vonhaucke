@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import fs from 'node:fs';
 import { construirRespuestaAcomodo } from '../supabase/functions/acomodar-espacio-recovery/recoveryPipeline.js';
 
 // ============================================================================
@@ -96,6 +97,8 @@ test.describe('GOLDEN 757 · plano → programa → VONI → fusión → acomodo
         return route.fulfill({ status: r.status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: txt });
       }
       const res = construirRespuestaAcomodo(body.areas || [], body.piezas || []);
+      // ACOMODO_DUMP_DIR=/ruta → petición y respuesta completas para auditarlas fuera (igual que cotizarProyectos).
+      if (process.env.ACOMODO_DUMP_DIR) { try { fs.mkdirSync(process.env.ACOMODO_DUMP_DIR, { recursive: true }); fs.writeFileSync(`${process.env.ACOMODO_DUMP_DIR}/golden757-${solverCalls.length}.json`, JSON.stringify({ peticion: body, respuesta: res }, null, 1)); } catch (_e) {} }
       return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(res) });
     });
     // Traza del guardado real (RPCs seguros): estado HTTP y respuesta de cada llamada.
@@ -189,9 +192,12 @@ test.describe('GOLDEN 757 · plano → programa → VONI → fusión → acomodo
     console.log('[golden757] status', cot.acomodo.plan.layoutSpec?.status, '· no cupieron:', JSON.stringify((cot.acomodo.plan.no_cupieron || []).map((u) => [u.anchorId, u.piezas, u.invariante])), '· unassigned:', JSON.stringify(cot.acomodo.plan.unassigned || []));
     // VH-119: el ejecutivo va DETRÁS del escritorio con su franja de acceso y las visitas al frente. En la
     // OFICINA CEO de 4.0 × 3.2 m (escritorio 2.10 + credenza 2.10 + archivero 0.90 + 3 sillas) con el pasillo de
-    // 1 m entre kits ya no cabe el archivero: 20 colocadas (antes 21 con el ejecutivo sentado junto a las visitas,
-    // que el juez semántico rechazaba). Decisión pendiente de Dirección: pasillo de 1 m en privados chicos.
-    expect(cot.acomodo.plan.colocacion.length).toBeGreaterThanOrEqual(20);
+    // 1 m entre kits, el candidato que coloca la credenza (20) deja sillas pegadas al muro en otros cuartos
+    // (semántica FAIL) y el selector prefiere el candidato semánticamente limpio: 19 colocadas, credenza y
+    // archivero reportados como "no cupo" (antes 21 con el ejecutivo sentado junto a sus visitas, que el juez
+    // rechazaba). Decisión pendiente de Dirección (§ Fase 8): pasillo de 1 m en privados chicos / selección por área.
+    expect(cot.acomodo.plan.colocacion.length).toBeGreaterThanOrEqual(19);
+    expect((cot.acomodo.plan.layoutSpec?.validation?.semantic_gate?.sem_status || '')).toBe('PASS');
     const ejecutivo = cot.acomodo.plan.colocacion.find((c) => c.id === 'p-8-1');
     expect(ejecutivo?.side, 'la silla directiva queda detrás del escritorio').toBe('BACK');
     // Las SONATA restantes: razón exacta.
