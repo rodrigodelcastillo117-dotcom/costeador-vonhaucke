@@ -14,7 +14,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 // A16 (unificación 2026-10-11): dinero comercial a CENTAVOS, portado del commit 7153e9d
-// ("preserves cents end-to-end") sobre la base desplegada (v6). Pendiente de despliegue.
+// ("preserves cents end-to-end") sobre la base desplegada (v6). Publicado como v7 el
+// 2026-10-12 con aprobación de Dirección ("hazlo todo"). v8 el mismo día: RPC de precio con el
+// JWT del usuario y fecha por omisión (v6 y v7 contestaban 502 / "no_es_especial_de_proyecto"
+// porque las RPC públicas exigen auth.uid() y la política no admite fecha nula). Sin caller en
+// el cliente todavía (A9). Versión anterior: v6 (respaldo en scratch).
 import { precioConDescuento, importePorCantidad, cargoPorcentaje, sumarMontos } from "../../../src/motor/comercialDinero.js";
 import { dinero } from "../../../src/motor/dinero.js";
 
@@ -52,8 +56,10 @@ Deno.serve(async (req) => {
   const authHeader = req.headers.get("Authorization") || "";
   if (!authHeader.startsWith("Bearer ")) return json({ ok: false, error: "No autenticado." }, 401);
   let email = "";
+  // v8: las RPC públicas resolver_precio_* exigen auth.uid() (RAISE 'no autenticado' con
+  // service_role). Se llaman con el cliente del USUARIO; las tablas internas siguen por service.
+  const userClient = createClient(URL, ANON || SERVICE, { global: { headers: { Authorization: authHeader } } });
   try {
-    const userClient = createClient(URL, ANON || SERVICE, { global: { headers: { Authorization: authHeader } } });
     const { data: u } = await userClient.auth.getUser();
     email = u?.user?.email || "";
   } catch (_e) { email = ""; }
@@ -64,7 +70,8 @@ Deno.serve(async (req) => {
   const lineasIn = Array.isArray(body?.lineas) ? body.lineas : null;
   if (!lineasIn || !lineasIn.length) return json({ ok: false, error: "Falta 'lineas' (intención)." }, 400);
   if (lineasIn.length > 500) return json({ ok: false, error: "Demasiadas líneas en una sola cotización." }, 413);
-  const fecha = typeof body?.fecha === "string" ? body.fecha : null;
+  // v8: sin fecha, reglas_comerciales_vigentes(null) devuelve null y la función contestaba 502.
+  const fecha = typeof body?.fecha === "string" && body.fecha ? body.fecha : new Date().toISOString().slice(0, 10);
   const moneda = typeof body?.moneda === "string" ? body.moneda : null;
 
   const svc = createClient(URL, SERVICE);
@@ -144,7 +151,7 @@ Deno.serve(async (req) => {
     const variante_id = variante_opt as number | null;
 
     // 1) Producto de línea / pricebook normal.
-    let { data: res, error: resErr } = await svc.rpc("resolver_precio_autorizado", {
+    let { data: res, error: resErr } = await userClient.rpc("resolver_precio_autorizado", {
       p_producto_id: producto_id, p_version_id: version_id, p_variante_id: variante_id, p_fecha: fecha, p_moneda: moneda,
     });
     let r: any = res;
@@ -163,7 +170,7 @@ Deno.serve(async (req) => {
         hayLineaInvalida = true;
         continue;
       }
-      const esp = await svc.rpc("resolver_precio_especial_proyecto", {
+      const esp = await userClient.rpc("resolver_precio_especial_proyecto", {
         p_producto_id: producto_id, p_version_id: version_id, p_fecha: fecha, p_moneda: moneda || "MXN",
       });
       if (esp.error || !(esp.data as any)?.ok) {
