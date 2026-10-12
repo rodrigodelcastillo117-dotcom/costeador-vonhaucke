@@ -265,6 +265,11 @@ melamina-19 1.60×0.60 confirmada → 0.5 hoja $272 (regla Producción), bisagra
 PTR 7 m → 2 tramos $458.28; `catalogoFuente: catalogo`, `versionCatalogo cat-ap1793…`, estado preliminar (melamina-19 y
 ptr sin documento). `config_para_rol` entrega 259 insumos curados en 1.05 MB / 0.58 s.**
 
+**2026-10-12 04:25 UTC · PR #32 (`766df46`) fusionado → Vercel sirviendo `index-BlaiRqb-.js` con "Cargar compras del ERP".
+Rama principal `c3.4-seller-safe` = producción. Pendientes que NO se tocaron por ser destructivos o de negocio: C1–C3
+(datos), B11/B12 (retiro de pantallas/edges), VH-076 (APPS LT bajo costo), rotación de la contraseña de `qa-direccion`
+(rompería el E2E autenticado de CI hasta actualizar el secret `TEST_PASSWORD`).**
+
 ## REGRESIONES DETECTADAS 2026-10-10 (auditoría de código, no de síntomas)
 
 **VH-002 · P0 · REABIERTO y cerrado el mismo día.** `floorPlan.aMM/aMetros` (contrato canónico,
