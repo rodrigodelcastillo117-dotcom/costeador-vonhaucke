@@ -134,3 +134,18 @@ describe('reglas de casa · revisión estructural de consistencia', () => {
     expect(rolDe('Puertas módulo bajo')).toBe('puerta'); expect(rolDe('Frente de cajón')).toBe('frente_cajon'); expect(rolDe('Bisagras puertas')).toBe('herraje'); expect(rolDe('Zoclo')).toBe('pata');
   });
 });
+
+describe('reglas de casa · PTR sin perfil contra varias variantes', () => {
+  const cat = [
+    { id: 'a', nombre: 'PTR 3" x 1 1/2" cal. 14' }, { id: 'b', nombre: 'Tubo / PTR cal. 14' }, { id: 'c', nombre: 'Tubo redondo 4" cal. 14' },
+    { id: 'd', nombre: 'PTR CUADRADO 1"" CALIBRE 14 PIEZA DE 6000', evidencia: { certificable: true } }, { id: 'e', nombre: 'PTR CUADRADO DE 3/4" CALIBRE 14' },
+  ];
+  it('"PTR cal.14" → el perfil por defecto de casa (1"×1"), marcado como supuesto', () => {
+    const c = aplicarPoliticaMaterial({ nombre: 'Bastidor', material_solicitado: 'PTR cal.14' }, (id) => cat.find((x) => x.id === id), cat);
+    expect(c.insumoId).toBe('d'); expect(c._match.cambio).toMatch(/perfil supuesto/);
+  });
+  it('si el pedido SÍ trae perfil, manda el perfil', () => {
+    const c = aplicarPoliticaMaterial({ nombre: 'Bastidor', material_solicitado: 'PTR 3" x 1 1/2" cal. 14' }, (id) => cat.find((x) => x.id === id), cat);
+    expect(c.insumoId).toBe('a');
+  });
+});

@@ -39,6 +39,31 @@
 | Avisos | ninguno | repisas visibles en MDF crudo vs melamina nogal (warning); respaldo de 19 mm (info) |
 | Costo unitario provisional | sin total (9 pendientes) | $12,555 provisional (14 por confirmar + pintura pendiente) |
 
+## Medición contra el catálogo REAL (config_para_rol 259 + `buscar_insumos_motor`, cuenta QA, 12-oct)
+
+Exhibidor de Dirección contra el catálogo curado de producción: **14 de 15 con insumo y precio real** (melamina color 19 $665/hoja, MDF 19 $437, tapacanto $3.04/m, PTR cal. 14 $45.13/m, lámina cal. 18 $571.54/hoja, pintura polvo negro $59.37/kg, kit LED $3,200, bisagra $19, jaladera $37.90, nivelador $17.73); costo unitario provisional $12,555; sólo el refrigerador del cliente queda pendiente.
+
+Pedidos típicos sin catálogo local, resueltos sólo con Compras (ERP). La búsqueda del servidor es por término, así que se consulta la frase sin acentos y cada palabra clave; ante empate gana lo certificado por Compras y más reciente ("lo que el taller compra de verdad"):
+
+| Pedido | Amarre (provisional, por confirmar) |
+|---|---|
+| Bisagra | BISAGRA BIDIMENSIONAL RECTA TAC 110° CIERRE SUAVE · $20.83/pza · certificado |
+| Jaladera | JALADERA BARRA 320 × Ø10 mm, 256 mm entre centros · $25/pza · certificado |
+| Tapacanto PVC | Tapacanto PVC · $3.04/m (estándar de casa) |
+| PTR cal.14 (sin perfil, 30 m lineales) | Tubo / PTR cal. 14 · $45.13/m (filas por metro; la "pieza de 6000 mm" por pza queda fuera porque la unidad no es la del consumo). Si no hubiera genérico, el perfil por defecto de casa 1"×1" marcado "perfil supuesto" |
+| Corredera 16" | CORREDERA DE PRECISIÓN EXTENSIÓN TOTAL · $69/juego · certificado |
+| Nivelador | Tornillo nivelador 3/8 plataforma 1½" cromado · $41.63/pza · certificado |
+| Cerradura | CERRADURA CON ROSETA HAFELE 22 mm · $33.68/pza · certificado |
+| Pintura electrostática negra | Pintura en polvo Negro Mate 8 Vitracoat · $120.68/kg · certificado |
+| Melamina nogal 19 mm | AGLOMERADO MELAMINA DOS CARAS 4×8 19 mm · $677/hoja (con formato, por eso cuesta por m²) |
+| Kit iluminación LED | KIT DE ILUMINACIÓN 2 LAMP 950 mm · $1,454/pza · certificado |
+| Contacto eléctrico | MULTICONTACTO LUMATESOF-N 2 contactos 127 VAC · $352/pza · certificado |
+| Lámina de acero cal. 18 | Lamina de acero cal. 18 · $571.54/hoja (el calibre decide) |
+
+Unidad compatible con el consumo: pieza de área → fila con formato; metros → fila por metro o tramo; si sólo hay filas con otra unidad, se preselecciona como crítico y no costea (evita multiplicar metros × $/pieza).
+
+Lo que NO hace: no confirma nada solo (la emisión sigue bloqueada hasta la confirmación humana), no elige entre perfiles distintos cuando el pedido trae uno, no amarra equipo externo, no inventa precio cuando la fila de Compras no lo tiene.
+
 ## Lo que sigue necesitando una decisión
 1. **Rendimiento de pintura en tubular** (m²/kg): sin esa cifra el kg de pintura en estructuras de PTR queda pendiente (A14, Producción dijo "rinde menos" sin número). Con un número de Producción, o con tu autorización para usar 8 m²/kg como piso provisional, se cierra.
 2. **VH-124** (margen 50 % vs 40 % según el momento de entrada): sigue sin corregir; requiere tu autorización (una línea).

@@ -311,7 +311,10 @@ function dimsPerfil(texto = '') {
 }
 function conflictoPerfilMetal(a = '', b = '') {
   const fa = formaMetal(a), fb = formaMetal(b);
-  if (fa && fb && fa !== fb) return true;                 // lámina vs tubo, redondo vs cuadrado, etc.
+  // "PTR"/"tubo" genérico es compatible con cuadrado o rectangular (un PTR ES un tubo cuadrado o
+  // rectangular); sólo lámina y redondo son otra cosa.
+  const esTuboCompatible = (x, y) => x === 'tubo' && (y === 'cuadrado' || y === 'rectangular');
+  if (fa && fb && fa !== fb && !esTuboCompatible(fa, fb) && !esTuboCompatible(fb, fa)) return true;   // lámina vs tubo, redondo vs cuadrado, etc.
   const da = dimsPerfil(a), db = dimsPerfil(b);
   if (da.length && db.length && !da.some((x) => db.includes(x))) return true; // 1x2 vs 3x1½
   return false;
@@ -379,7 +382,8 @@ function textoCambio(solicitado = '', insumoNombre = '') {
     return `Solicitado cal.${cA.join('/')} → candidato cal.${cB.join('/')}`;
   }
   const fa = formaMetal(solicitado), fb = formaMetal(insumoNombre);
-  if (fa && fb && fa !== fb) return `Solicitado perfil ${fa} → candidato ${fb}`;
+  const tuboOk = (x, y) => x === 'tubo' && (y === 'cuadrado' || y === 'rectangular');
+  if (fa && fb && fa !== fb && !tuboOk(fa, fb) && !tuboOk(fb, fa)) return `Solicitado perfil ${fa} → candidato ${fb}`;
   if (conflictoAcabadoColor(solicitado, insumoNombre)) {
     if (familiaDeMaterial(solicitado) === 'metal_lamina') return 'El color lo da la pintura electrostática (línea aparte); el acero va crudo';
     return 'Acabado/color distinto al solicitado';
@@ -607,7 +611,8 @@ export function candidatosDeFamilia(texto, catalogo = []) {
   for (const ins of catalogo) {
     if (!ins || !ins.id) continue;
     if (familiaDeMaterial(ins.nombre || ins.id) !== fam) continue;
-    puntuados.push({ id: ins.id, nombre: ins.nombre || ins.id, score: puntuarInsumo(texto, ins, fam) });
+    puntuados.push({ id: ins.id, nombre: ins.nombre || ins.id, score: puntuarInsumo(texto, ins, fam),
+      certificable: !!(ins.evidencia && ins.evidencia.certificable === true), actualizado: String(ins.actualizado || ''), precio: ins.precio == null ? null : Number(ins.precio) });
   }
   if (puntuados.length === 0) return { ambiguo: false, mejor: null, empatados: [] };
   puntuados.sort((a, b) => b.score - a.score);
@@ -616,14 +621,30 @@ export function candidatosDeFamilia(texto, catalogo = []) {
   // Ambiguo si hay ≥2 en la cima y (a) nada los desempató (score 1 = sólo familia), o
   // (b) difieren en un atributo que CAMBIA el costo/ingeniería (espesor/calibre): elegir
   // uno a escondidas sería inventar. Si empatan pero son intercambiables, se toma el 1º.
-  const attrs = new Set(empatados.map((e) => [...espesoresMM(e.nombre), ...calibresDe(e.nombre)].sort().join('|')));
+  // Atributos que cambian costo/ingeniería: espesor (≤ 60 mm; "PIEZA DE 6000 mm" es largo, no espesor) y calibre.
+  const attrs = new Set(empatados.map((e) => [...espesoresMM(e.nombre).filter((x) => x <= 60), ...calibresDe(e.nombre)].sort().join('|')));
   let ambiguo = empatados.length >= 2 && (top.score <= 1 || attrs.size > 1);
   // REGLAS DE CASA (2026-10-12): herraje/consumible. (a) tapacanto → el estándar de casa si está
   // entre los candidatos ("siempre es el mismo canto"); (b) empate sin variante pedida → el
   // GENÉRICO (nombre más corto) es el de casa. Sale marcado por confirmar, nunca escondido.
   if (FAMILIAS_HERRAJE.has(fam) && puntuados.length) {
     if (fam === 'tapacanto') { const std = puntuados.find((x) => x.id === 'tapacanto'); if (std) return { ambiguo: false, mejor: { ...std, generico: true }, empatados }; }
-    if (empatados.length >= 2) { const gen = [...empatados].sort((a, b) => a.nombre.length - b.nombre.length)[0]; return { ambiguo: false, mejor: { ...gen, generico: true }, empatados }; }
+    // Empate sin variante pedida → "lo que el taller compra de verdad" (Dirección 12-oct: "los herrajes
+    // vienen en la lista de compras, son los reales"): primero con precio certificado por Compras, luego
+    // la compra más reciente, luego el nombre más corto (genérico). Determinista y marcado por confirmar.
+    if (empatados.length >= 2) {
+      const gen = [...empatados].sort((a, b) => (Number(b.certificable) - Number(a.certificable)) || (b.actualizado > a.actualizado ? 1 : b.actualizado < a.actualizado ? -1 : 0) || (a.nombre.length - b.nombre.length))[0];
+      return { ambiguo: false, mejor: { ...gen, generico: true }, empatados };
+    }
+  }
+  // REGLA DE CASA (acero, 12-oct): "PTR cal.14" SIN perfil contra varias variantes de perfil → el
+  // perfil por defecto de casa (1"×1") si está entre los candidatos; si no, el genérico sin perfil
+  // ("Tubo / PTR cal. 14"); si no hay ninguno, sigue ambiguo (elegir entre 3/4" y 4" sería inventar).
+  if (fam === 'metal_lamina' && empatados.length >= 2 && !dimsPerfil(texto).length && !/\d\s*["”]/.test(texto)) {
+    const esDefault = (n) => /\b1\s*["”]+\s*(?:x|×)\s*1\s*["”]+|cuadrad[oa]\s+(?:de\s+)?1\s*["”]+|\b1\s*["”]+\s*(?:cal|calibre)|\b25\s*x\s*25\b/i.test(n);
+    const sinPerfil = (n) => !dimsPerfil(n).length && !/\d\s*["”]/.test(n) && !/redond|cuadrad|rectangul/i.test(n);
+    const def = empatados.find((e) => esDefault(e.nombre)) || empatados.find((e) => sinPerfil(e.nombre));
+    if (def) return { ambiguo: false, mejor: { ...def, generico: true, perfilSupuesto: true }, empatados };
   }
   return { ambiguo, mejor: ambiguo ? null : top, empatados };
 }
@@ -715,9 +736,9 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
         insumoIdFinal = mejor.id;
         clase = MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED;
         motivo = mejor.generico
-          ? `Estándar de casa (genérico del catálogo): ${mejor.nombre}. Confírmalo o elige la variante.`
+          ? `${mejor.certificable ? 'Última compra certificada por Compras' : 'Estándar de casa (genérico del catálogo)'}: ${mejor.nombre}. Confírmalo o elige la variante.`
           : `Auto-asignado por familia (provisional): ${mejor.nombre}.${cambio ? ' ' + cambio + '.' : ''} ${FAMILIAS_HERRAJE.has(familiaDeMaterial(solicitado)) ? 'Confírmalo o elige la variante.' : 'Confirma acabado/espesor.'}`;
-        if (mejor.generico && !cambio) cambio = 'estándar de casa';
+        if (mejor.generico && !cambio) cambio = mejor.perfilSupuesto ? 'perfil supuesto 1"×1" (regla de casa)' : 'estándar de casa';
       }
     }
   }
