@@ -199,8 +199,11 @@ dominio estaba fijado al deployment de `5a38d2e` (`dpl_1m4bDohVjcqL86fcGHRhJTnw2
 deployments de producción de PR #25/#26 nunca tomaron el dominio. **Rollback:** promover `dpl_1m4bDohVjcqL86fcGHRhJTnw2rJc`
 desde Vercel (un clic, sin rebuild). Rama principal única desde hoy: `c3.4-seller-safe` (A19 HECHO).
 
-**Pendiente de revisar (no se perdió, no se integró):** los 6 commits de `perfection-final` posteriores a `5a38d2e`
-(`d698eea`…`7d60204`, P0.9–P0.16) no están en producción ni en esta unificación.
+**2026-10-12 03:00 UTC · PR #29 fusionado (`e625ac4`) → `dpl_2KKcjuTdiTXF8zinYsXxwpEQkSKB` READY en el dominio.**
+Verificado en vivo: título "VH LAB · Vonhaucke", bundle `index-R6LCAvH5.js` con `MOTOR_VERSION 2026-10-12`, la política
+`produccion-rogelio-2026-10` (A14) y el gate de material (`SAME_FAMILY_COMPATIBLE_PROPOSED`, A20). CI del PR: `verify` +
+E2E en verde. **Rollback:** promover `dpl_7gK9TbAuKxFhvH5Exrc8TLrTCAvZ` (`300125d`). Los 6 commits de `perfection-final`
+(`d698eea`…`7d60204`) quedaron integrados en este PR (VH-084).
 
 ## REGRESIONES DETECTADAS 2026-10-10 (auditoría de código, no de síntomas)
 
