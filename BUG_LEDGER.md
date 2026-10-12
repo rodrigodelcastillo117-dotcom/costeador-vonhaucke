@@ -217,6 +217,21 @@ Producción (sólo lectura, 2026-10-12 04:24–05:15 UTC): pasada en vivo 9 PASS
 sin filas nuevas desde el 10-oct (21 `error:HTTP_400` previas a VH-083/084); `leer-plano` 29/33 REVIEW_REQUIRED por puertas
 sin barrido; 602 cotizaciones QA en 7 días.
 
+**VH-109 · P0 · FIXED (`29522e4`, sin desplegar) · el acomodo nunca llegaba a la nube.** Todas las cotizaciones guardadas hoy
+traían `acomodo.plan` null / 0 colocadas aunque el encabezado dijera "En línea". Causa: `guardarAcomodo` (App.jsx) escribía el
+acomodo en un objeto nuevo con el mismo contenido cada vez que AcomodoBase guardaba solo (600 ms); el re-render hacía que
+AcomodoBase guardara otra vez → ciclo cada ~650 ms que reiniciaba el autosave a la nube (1.5 s de calma) para siempre.
+Corrección: fusión idempotente por contenido (`src/datos/acomodoEstado.js`, 4 pruebas); sin cambios ⇒ mismo estado. Evidencia:
+golden 757 — `actualizar_cotizacion_segura` con plan (36 KB) 1.5 s después del acomodo; `cotizacion_segura` y SQL devuelven
+12 partidas / 21 colocadas / 4 sin colocar (fila 803); reabrir desde el Archivo idéntico. El código del ciclo es anterior a la
+rama: producción (`766df46`) lo tiene hoy.
+
+**VH-090b · P0 · FIXED (`29522e4`) · conciliación multi-zona.** Al APLICAR el programa, la SONATA de la persona no se fusionaba
+(el panel sí la anunciaba): `confirmarPrograma` parcha una fila del programa con `zone_id` y la otra no, y el eje de ambigüedad
+las veía como dos zonas aunque cuelgan de la misma mesa. Ahora el eje es la ancla/grupo (o requerimiento/instancia) y la zona
+sólo decide sin identidad; `requirement_id` > decisión explícita > zona; varias zonas ⇒ NEEDS_REVIEW (panel en Voni), nunca
+sustitución automática; parciales ajustan el resto; capacidad distinta se avisa. 14 pruebas + golden.
+
 ## UNIFICACIÓN DE LAS DOS LÍNEAS DE CÓDIGO · 2026-10-11/12
 
 **Hecho medible.** Producción (`costeador-vonhaucke.vercel.app`, Vercel) sirve el commit `5a38d2e` de la rama

@@ -48,6 +48,9 @@ VH-105 (render al reabrir Cocrear), VH-106, VH-107.
 | VH-105 | P1 | Cocrear | `reabrir` → `setRender(null)`: el render fotográfico no está en el payload `cocrear` | sólo se guardaban specHash/expected; la URL canónica vive en `expedientes.render_aislado_url` (la devuelve `cocrear_seguro`) | `CocrearV3.jsx` | al reabrir se recupera la URL canónica y se muestra; `renderStale` lo marca VENCIDO si las firmas no cuadran (fail-closed) y ofrece regenerar | sin e2e (requiere expediente real con render) | `88d458b` | **PARCIAL** (código; probar con expediente real) | bajo |
 | VH-106 | P1 | VONI | — | — | `CocrearV3.jsx`, `voni-council` | auditoría: degradación controlada existente ("Council no pudo responder", cambio aplicado al modelo se conserva); `cotizar-texto` en vivo OK (20 s); no se invierten tokens en más pruebas de IA | pasada en vivo | — | **PASS** (auditoría) | — |
 | VH-108 | P1 | Costear/IA | `analizar-mueble` 502 PROVIDER_TIMEOUT en la pasada en vivo (06:40); `ai_eventos` 7 d: 123 ok / 70 PROVIDER_TIMEOUT | latencia del proveedor con PDF/descripciones largas; el edge ya reintenta (attempts) y la UI ofrece "Intenta de nuevo"; sin cola ni degradación a menos hojas automática | `analizar-mueble` (edge) | sin cambio esta noche (requiere decidir presupuesto de tiempo/modelo; no se gastan más llamadas de IA) | pasada en vivo | — | **ABIERTO** (P1, intermitente) | — |
+| VH-109 | **P0** | Guardado | ninguna cotización en la nube traía el plan del acomodo (`cotizaciones.acomodo.plan` null / 0 colocadas en TODAS las filas de hoy, aun con "En línea" en el encabezado) | ciclo AcomodoBase → `guardarAcomodo` (App) → AcomodoBase: el guardado automático (600 ms) escribía el MISMO contenido en un objeto nuevo, el componente se re-renderizaba y volvía a guardar cada ~650 ms; el autosave a la nube (1.5 s de calma) nunca se disparaba | `App.jsx` (`guardarAcomodo`), `acomodoEstado.js` (nuevo) | fusión idempotente por contenido: sin cambios ⇒ mismo estado (React no re-renderiza) ⇒ el ciclo se corta ⇒ el autosave sale 1.5 s después (`actualizar_cotizacion_segura` 36 KB con plan) | `acomodoEstado.test.js` (4) · golden757: autosave real → `cotizacion_segura` devuelve 12 partidas y 21 colocadas; reabrir desde el Archivo idéntico | `29522e4` | **PASS** (persistencia real verificada en la nube, filas 802/803) | nulo (sólo evita escrituras idénticas) |
+| VH-090b | P0 | Cotizar | release gate: en la 757 la SONATA de la persona NO se fusionaba al APLICAR (sí en el panel): quedaban 2 filas MEETING del programa | al aplicar, `confirmarPrograma` parcha la CONCERTO del programa con `zone_id` y la SONATA queda sin él; el eje de ambigüedad `zona|ancla` las veía como dos zonas aunque cuelgan de la MISMA mesa | `reconciliarPartidas.js`, `Voni.jsx`, `App.jsx` | eje de identidad = ancla/grupo (dependientes) o requerimiento/instancia (anclas); la zona sólo decide sin identidad. Orden: `requirement_id` > decisión explícita de la persona > zona; varias zonas posibles ⇒ **NEEDS_REVIEW** (panel `ambiguas-programa`, se decide por zona), nunca sustitución automática; cantidad parcial ajusta el resto del programa; capacidad distinta se avisa | `reconciliarPartidas.test.js` (14: dos salas ambiguas, zona explícita, decisión explícita, dos despachos mismo rol, dos grupos WIN en zonas distintas, parcial 6 de 8 → restan 2, banca 8 vs módulo 10, `requirement_id` manda sobre zona) · golden757 (≤1 fila MEETING del programa; p-10 hereda MEETING_SEAT + ancla) | `29522e4` | **PASS** | bajo |
+| VH-095b | P1 | Acomodo | `planner.stress.test.js`: las WIN 17–20 se sentaban en "Dirección" (violación de zona) al heredar el rol WORK_SEAT explícito | `sentarSillas` traía sillas pendientes a cualquier área con escritorio sin consultar `zonaPermite` | `planner.js` | una silla pendiente sólo se trae a un área donde su rol está permitido; la regla de zonas (`floorSpec.zonaPermite`) se conserva tal cual (silla operativa sólo en Área Operativa) | `planner.stress.test.js`, `floorSpec.test.js`, `planner.test.js` (35) | `29522e4` | **PASS** | bajo |
 | VH-107 | P1 | Render | — | — | `AcomodoBase.jsx` | auditoría: el render final queda bloqueado mientras el acomodo no sea PASS/render_ready (gate dura existente, visible en golden: "render bloqueado hasta cerrar el acomodo"); ahora además bloquea con referencias sin identidad | golden757 (captura) | — | **PASS** (auditoría) | — |
 
 ## CHECKPOINTS
@@ -56,6 +59,7 @@ VH-105 (render al reabrir Cocrear), VH-106, VH-107.
 |---|---|---|---|---|---|---|---|---|
 | 05:25 | `0e155a8` | VH-090, VH-094, VH-099 (cliente) | resto | vitest 2,088 · PW local 28+2 | prod: 9 PASS, re-corrida en curso | ninguno | ninguna | Bloque A: A2 conflictos con 3 decisiones, A3 elegibilidad, A4 diagnóstico por pieza |
 | 06:50 | `561b741` | + VH-095 zonas por rol explícito, VH-103 UX, VH-096-rc1 tests en vivo | VH-098 (edge), VH-100 (decisión), VH-103 (dato), VH-105 (prueba real), VH-108 (proveedor IA) | vitest 2,099 · PW local **44/44** · golden757 PASS · vivo: 4 de 5 caminos (ver tabla) | prod: acomodo 0 colocadas con edge v8 (evidencia "antes"); IA intermitente | ninguno | ninguna nueva | Entrega: reporte ejecutivo y GO/NO-GO |
+| 08:50 | `29522e4` | release gate E1+E2: VH-090b (conciliación multi-zona), VH-109 (persistencia del acomodo), VH-095b (planner); golden 757 contra el edge RC bajo Deno con JWT real y persistencia real | VH-098 (edge), VH-100, VH-103, VH-105, VH-108 (sin cambio) | vitest **2,112/2,112** (264 archivos) · golden757 PASS en ambos modos (Node y edge RC Deno) · PW local: ver tabla | — | ninguno | ninguna nueva | GO/NO-GO abajo |
 | 06:20 | `88d458b` | Bloque A completo (VH-090…096), B (VH-097; VH-098 parcial), C (VH-099 cliente, VH-101 parcial, VH-102 auditado, VH-103 UX), D (VH-105 código, VH-106/107 auditados) | VH-098 (edge), VH-100 (decisión), VH-103 (dato), VH-105 (prueba real) | vitest 2,099/2,099 · build OK · PW: golden757 PASS, programaP01/VH090 PASS, acomodo ×3 PASS, lecturaPlano 5/5 | prod: pasada en vivo re-corrida (resultado abajo) | ninguno | regresión temporal en `bench/acomodo` (visitas en recepción) detectada y corregida en la misma hora; OOM del kit propio detectado por bisección y corregido | Bloque E: suite Playwright completa, reporte ejecutivo |
 
 ## REPORTE EJECUTIVO (se cierra al final de la noche; cifras de ejecuciones reales de esta sesión)
@@ -84,14 +88,64 @@ VH-105 (render al reabrir Cocrear), VH-106, VH-107.
 | vitest (unit + goldens + edge JS) | **2,099 / 2,099 PASS** (263 archivos) | `npx vitest run` sobre `HEAD` |
 | build Vite | PASS | `npm run build` |
 | Playwright local, nube falsa + credenciales QA (todo menos `live-ai`/`vivo`) | **44 / 44 PASS**, 0 omitidos (5.9 min) | `pw_local5.log` |
+| Golden 757 · release gate (`29522e4`, edge RC servido con Deno + JWT real, persistencia real en la nube y reapertura desde el Archivo) | PASS 16.8 s: 18→12, 25 al solver, 21 colocadas, 0 `fail`, 4 SONATA MISSING_ANCHOR, fila 803 = 12/21 por RPC y SQL | `e2e/golden757.e2e.js` con `EDGE_RC_URL=http://localhost:8000/` |
+| vitest · release gate | **2,112 / 2,112 PASS** (264 archivos) | `npx vitest run` sobre `29522e4` |
 | Golden 757 (plano ARQ-01 + 18 partidas reales, solver REAL del edge en Node, login real) | PASS: 18→12 partidas, 21/25 colocadas, 0 solapes, diagnóstico por pieza, recarga idéntica | `e2e/golden757.e2e.js`, capturas `golden_acomodo*.png` |
 | Pasada en vivo contra producción (`766df46`, cuenta QA) | `auth` 8/8 · `live-ai-smoke` 1/1 · `vivoSombra` PASS (analizar-mueble + costear-servidor reales; costeo pendiente por gate de material, por diseño) | `pw_prod*.log`, `reporte_vivo*.json` |
 | `vivo` 5 caminos en producción (06:40 UTC) | login OK · `cotizar-texto` OK (20 s) · `leer-plano` OK real (3 cuartos, 84 m², REVIEW_REQUIRED honesto) · `acomodar-espacio-recovery` 200 pero **0 colocadas** (edge v8 de producción: la partida de VONI no trae rol → evidencia "antes" de VH-092; en RC el mismo caso coloca) · `analizar-mueble` **502 PROVIDER_TIMEOUT** (intermitente: 70 de 193 llamadas en 7 días; una corrida antes había respondido en 40 s) · `generar-render` no se alcanzó (depende del anterior) | `pw_prod5_full.log`, `reporte_vivo5.json` |
 
 
+## RELEASE GATE E1+E2 · 2026-10-12 08:50 UTC · RC `29522e4` (sin merge, sin deploy)
+
+Revisión independiente de `0ce826e` pidió dos cosas; ambas quedaron con prueba dedicada.
+
+**1. Conciliación en proyectos con varias zonas** (`reconciliarNuevasConPrograma`): respeta `requirement_id`, `zone_id`, ancla, grupo funcional y
+confirmaciones explícitas; ambigüedad ⇒ NEEDS_REVIEW (la persona decide por zona en Voni), nunca sustitución automática.
+
+| Caso | Resultado |
+|---|---|
+| Dos salas con mesas distintas, silla de juntas nueva sin `requirement_id` ni zona | **ambigua** → NEEDS_REVIEW, nada se sustituye |
+| Misma silla con `zone_id` explícito | sustituye sólo la sala de esa zona |
+| Misma silla con decisión explícita (`decisiones[id] = fila`) | sustituye la fila elegida |
+| Dos despachos con escritorio del mismo rol, escritorio nuevo sin identidad | ambigua → NEEDS_REVIEW; con un solo despacho sustituye |
+| Dos grupos WIN en zonas distintas, WIN nueva sin zona | ambigua; con zona, sólo ese grupo |
+| Cantidad parcial (6 WIN nuevas vs 8 del programa) | sustituye 6 y deja 2 del programa (`cantidadAjustadaPorConciliacion`) |
+| Capacidad distinta (banca 8 vs módulo 10) | sustituye y avisa `capacidadDistinta` |
+| `requirement_id` presente | manda sobre la zona |
+| 757: SONATA de la persona vs CONCERTO+SONATA del programa (misma mesa) | mismo kit ⇒ no es ambigüedad; sustituye la SONATA (mismo modelo) |
+
+**2. Golden 757 contra el servidor RC real** (`EDGE_RC_URL`): el navegador manda la petición COMPLETA (JWT real de `qa-direccion`,
+apikey, cuerpo) al `acomodar-espacio-recovery` del RC servido con Deno 2.9.7 (mismo `index.ts`: autenticación real contra Supabase +
+pipeline). Resultado (16.8 s): 18 → **12** partidas, 1 ancla por rol, WIN 8, ALPHA 1; **25** al solver, **21** colocadas, 0 `fail` en
+`layoutSpec.validation.issues`; las 4 no colocadas son las **Silla · SONATA** ×4 con causa `MISSING_ANCHOR` (la mesa 1.20×1.20 de la
+persona tiene 4 lugares y la ocupan las 4 CONCERTO confirmadas del programa; acción: agregar mesa/lugar o quitar las de más); banca
+APP LT `p-1-1` 6000×1200 colocada; sin "juntass"/"capacidad del catálogo". Persistencia REAL: autosave → `actualizar_cotizacion_segura`
+(36 KB con plan) → `cotizacion_segura` devuelve las mismas 12 partidas y 21 colocadas (fila 803, verificado también por SQL:
+`n_partidas 12 · n_colocadas 21 · n_unassigned 4`) → se vacía el estado local, se recarga y se reabre desde "Presupuestos anteriores":
+mismas partidas, mismo acomodo, misma fila (no se reescribe sola). El mismo golden pasa en modo Node (pipeline del edge sin Deno).
+
+**Hallazgo nuevo del gate: VH-109 (P0).** Antes de esta corrección NINGUNA fila de hoy en la nube traía el plan (27 filas del golden,
+todas `plan null`/0 colocadas) aunque el encabezado decía "En línea". Causa y corrección en la matriz. Esto afectaba a producción hoy
+(el código del ciclo es anterior a esta rama): el acomodo se perdía al cambiar de computadora o reabrir desde el Archivo.
+
+**Pruebas del gate:** vitest 2,112/2,112 (264 archivos) · `reconciliarPartidas.test.js` 14 · `acomodoEstado.test.js` 4 ·
+`planner.stress/floorSpec/planner` 35 · golden757 PASS (Node y edge RC Deno) · Playwright local (nube falsa + QA): ver tabla.
+
+**Rollback:** cliente → redeploy de `c3.4-seller-safe` @ `766df46` en Vercel (sin migraciones que revertir: E3/E4 no se aplican);
+edges → `deploy-edge` con el código de `766df46` (vuelven `acomodar-espacio-recovery` v8, `costear-servidor` v8, `leer-plano` v11,
+`leer-plano-core` v4). Los datos guardados por el RC son compatibles hacia atrás (campos adicionales en JSON; el cliente viejo los ignora).
+
+**Limitaciones que quedan:** (a) el edge RC se certificó bajo Deno local con JWT real, no en la instancia desplegada (el bundler del
+workflow es el mismo); (b) `costear-servidor` v9 sólo probado por su motor compartido en Node; (c) el autosave sigue siendo
+"1.5 s de calma": si alguien cierra la pestaña antes, se pierde lo último (comportamiento previo, no cambiado); (d) VH-108 IA
+intermitente; (e) E3/E4/E5 siguen BLOQUEADAS (sin firma).
+
+**Limpieza:** las 27 filas de prueba del golden en la cuenta QA (`cliente = 'Torre Sur (golden)'`, ids 766–802, borradores de hoy)
+quedaron `activa = false` (reversible); la 803 se conserva como evidencia.
+
 ## RECOMENDACIÓN GO / NO-GO
 
-**GO condicionado a desplegar cliente y edges JUNTOS (E1+E2)** desde `561b741`: los contratos cambiaron en ambos lados a la vez
+**GO para E1+E2 juntos desde `29522e4`** (cliente y edges a la vez; sustituye al GO condicionado desde `561b741`): los contratos cambiaron en ambos lados a la vez
 (`relation_role` inferido y `zone_id` por destino en el payload; `unassigned`/`no_cupieron` y guardas sueltas en el edge;
 `asientos` en `leer-plano-core`/`leer-plano`). Desplegar sólo el cliente deja el acomodo mejor que hoy (roles inferidos
 llegan al edge v8, que ya los coloca) pero sin guardas sueltas ni visitas; desplegar sólo edges no cambia lo que ve la persona.
@@ -99,7 +153,7 @@ llegan al edge v8, que ya los coloca) pero sin guardas sueltas ni visitas; despl
 **NO-GO para:** aplicar migraciones de datos (E3/E4) y cualquier cambio de precios (E5) sin tu firma; retirar `QA_FIXTURE_*`;
 rotar la contraseña de `qa-direccion` (rompe el secreto `TEST_PASSWORD` de CI: tú lo actualizas).
 
-Riesgos residuales: (1) VH-108 proveedor de IA intermitente; (2) topología doble de bancas sólo con perfil de catálogo
+Riesgos residuales: (0) VH-109 corregido en cliente: sin E1 el acomodo sigue sin llegar a la nube; (1) VH-108 proveedor de IA intermitente; (2) topología doble de bancas sólo con perfil de catálogo
 declarado; (3) 489 insumos ERP «hoja» sin formato quedan PENDIENTE hasta capturar su hoja; (4) 1,931 partidas siguen sin
 costo oficial hasta cargar el reporte Intelisis; (5) las correcciones de edges están probadas en Node con el mismo código,
 no en Deno desplegado (el workflow `deploy-edge` las bundlea igual que hoy).
