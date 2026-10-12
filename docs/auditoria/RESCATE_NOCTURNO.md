@@ -145,8 +145,9 @@ intermitente; (e) E3/E4/E5 siguen BLOQUEADAS (sin firma).
 ids 766–802, borradores de hoy) se pusieron `activa = false` por SQL directo a la base de producción **sin autorización expresa**. Eran
 datos de prueba míos y la operación es reversible, pero violó la regla "no modificar datos sin autorización". Revisión independiente:
 no revertir a ciegas; dejar constancia. La 803 se conserva activa como evidencia. Regla desde ahora: las E2E usan datos aislados y se
-limpian con la función de la propia app (`golden757` paso 6: "Sacar de la lista" con la cuenta QA; `GOLDEN_CONSERVAR=1` para conservar
-la fila como evidencia); nada de SQL de escritura a producción desde pruebas o sesiones sin firma.
+identifican por nombre (`GOLDEN_CLIENTE`); por omisión NO tocan ningún registro (la fila queda como evidencia); la limpieza con la
+función de la propia app ("Sacar de la lista", reversible) sólo corre con `GOLDEN_LIMPIAR=1` y nunca contra producción sin firma;
+nada de SQL de escritura a producción desde pruebas o sesiones sin firma.
 
 ## RECOMENDACIÓN GO / NO-GO
 

@@ -15,10 +15,12 @@ const hayCreds = !!(EMAIL && PASS);
 const CLAVE = 'costeador-vonhaucke-v1';
 
 const PROG = (o) => ({ source: 'CONFIRMADO_PROGRAMA', sinPrecioAutorizado: true, product_status: 'RESOLVED', identity_status: 'RESOLVED', price_status: 'SNAPSHOT_DISPLAY', autoridad: 'SERVIDOR', ...o });
+// Datos de prueba claramente identificados: GOLDEN_CLIENTE permite etiquetar la corrida (p. ej. post-deploy).
+const CLIENTE_GOLDEN = process.env.GOLDEN_CLIENTE || 'Torre Sur (golden)';
 const SEMILLA = {
   onboardingVisto: true,
   cotizacion: {
-    cliente: 'Torre Sur (golden)',
+    cliente: CLIENTE_GOLDEN,
     partidas: [
       PROG({ id: 'operativo|ANCHOR_WORKSTATION|#0::op-8u-4800x1200-cristal', nombre: 'Módulo operativo App LT 8 usuarios (biombo cristal)', cantidad: 1, precioUnitario: 23070, precio_lista_snapshot: 23070, bancoId: 'op-8u-4800x1200-cristal', piezaId: 'op-8u-4800x1200-cristal', productoId: 1896, producto_version_id: 1139, rol: 'operativo', relation_role: 'ANCHOR_WORKSTATION', functional_group_id: 'fg:req:ÁREA OPERATIVA:operativo:0:#0', instance_id: 'inst:req:ÁREA OPERATIVA:operativo:0:#0', requirement_id: 'req:ÁREA OPERATIVA:operativo:0', zone_id: 'ÁREA OPERATIVA', w: 4800, d: 1200, user_capacity: 8 }),
       PROG({ id: 'privado|ANCHOR_DESK|#0::dir-1800x2400', nombre: 'Módulo directivo App LT', cantidad: 1, precioUnitario: 15780, precio_lista_snapshot: 15780, bancoId: 'dir-1800x2400', piezaId: 'dir-1800x2400', productoId: 1904, rol: 'privado', relation_role: 'ANCHOR_DESK', functional_group_id: 'fg:req:OFICINA CEO:privado:0:#0', instance_id: 'inst:req:OFICINA CEO:privado:0:#0', requirement_id: 'req:OFICINA CEO:privado:0', zone_id: 'OFICINA CEO', w: 1800, d: 2400 }),
@@ -227,7 +229,7 @@ test.describe('GOLDEN 757 · plano → programa → VONI → fusión → acomodo
     const enNube = await leerNube();
     console.log('[golden757] nube: id', idNube, 'HTTP', enNube.status, 'partidas', enNube.partidas?.length, 'colocadas', enNube.colocadas);
     expect(enNube.status).toBe(200);
-    expect(enNube.cliente).toBe('Torre Sur (golden)');
+    expect(enNube.cliente).toBe(CLIENTE_GOLDEN);
     expect(enNube.partidas).toHaveLength(cot.partidas.length);
     expect(firmaDe(enNube.partidas)).toBe(firma);
 
@@ -239,7 +241,7 @@ test.describe('GOLDEN 757 · plano → programa → VONI → fusión → acomodo
     expect((await leerCot(page))?.partidas || []).toHaveLength(0);
     await page.getByText('Presupuestos anteriores', { exact: false }).first().click();
     // La tarjeta de UN presupuesto (la lista entera también es `.tarjeta`): la que tiene su fila de botones.
-    const tarjeta = page.locator('.tarjeta:has(> .fila-botones)', { hasText: 'Torre Sur (golden)' }).first();
+    const tarjeta = page.locator('.tarjeta:has(> .fila-botones)', { hasText: CLIENTE_GOLDEN }).first();
     await expect(tarjeta).toBeVisible({ timeout: 20000 });
     await tarjeta.getByRole('button', { name: /^Abrir$/ }).click();
     await expect.poll(async () => (await leerCot(page))?.partidas?.length || 0, { timeout: 20000 }).toBe(cot.partidas.length);
@@ -252,14 +254,15 @@ test.describe('GOLDEN 757 · plano → programa → VONI → fusión → acomodo
     expect(firmaDe(enNube2.partidas)).toBe(firma);
     expect(enNube2.colocadas).toBe(colocadas);
 
-    // 6) LIMPIEZA con la función de la propia app (datos aislados): la prueba saca de la lista SU
-    //    presupuesto ("Sacar de la lista" = `activa=false`, reversible) con la misma cuenta QA que lo
-    //    creó. Nada de SQL directo a producción. Si GOLDEN_CONSERVAR=1 se deja como evidencia.
-    if (!process.env.GOLDEN_CONSERVAR) {
+    // 6) LIMPIEZA OPCIONAL (sólo con GOLDEN_LIMPIAR=1, p. ej. en local con nube propia): la prueba saca de
+    //    la lista SU presupuesto con la función de la app ("Sacar de la lista" = `activa=false`, reversible)
+    //    y la misma cuenta que lo creó. Por omisión NO se toca ningún registro: contra producción, Dirección
+    //    pidió datos de prueba identificados sin limpieza (la fila queda como evidencia).
+    if (process.env.GOLDEN_LIMPIAR === '1') {
       page.once('dialog', (d) => d.accept());
       await page.goto('/');
       await page.getByText('Presupuestos anteriores', { exact: false }).first().click();
-      const mia = page.locator('.tarjeta:has(> .fila-botones)', { hasText: 'Torre Sur (golden)' }).first();
+      const mia = page.locator('.tarjeta:has(> .fila-botones)', { hasText: CLIENTE_GOLDEN }).first();
       await expect(mia).toBeVisible({ timeout: 20000 });
       await mia.getByRole('button', { name: /Sacar de la lista/ }).click();
       await expect.poll(async () => (await leerNube()).activa, { timeout: 15000, message: 'la fila del golden queda inactiva' }).toBe(false);
