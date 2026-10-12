@@ -95,6 +95,7 @@ test.describe('E2E autenticado · flujo real', () => {
 
   test('salidas de propuesta: descarga PDF real e imprimir responde cuando hay proyecto', async ({ page }) => {
     await sembrarProyecto(page);
+    await page.getByText('Más herramientas').click();   // el atajo vive plegado en <details>
     await page.getByRole('button', { name: /Proyecto actual/i }).click();
     const descargar = page.getByRole('button', { name: /Descargar (PDF|BORRADOR)/i });
     const imprimir = page.getByRole('button', { name: /Imprimir( BORRADOR)?/i });
@@ -122,6 +123,7 @@ test.describe('E2E autenticado · flujo real', () => {
 
   test('cotización: botones de salida nunca quedan muertos cuando existe un proyecto', async ({ page }) => {
     await sembrarProyecto(page);
+    await page.getByText('Más herramientas').click();   // el atajo vive plegado en <details>
     const actual = page.getByRole('button', { name: /Proyecto actual/i });
     await actual.click();
     const descargar = page.getByRole('button', { name: /Descargar (PDF|BORRADOR)/i });
