@@ -141,8 +141,12 @@ workflow es el mismo); (b) `costear-servidor` v9 sólo probado por su motor comp
 "1.5 s de calma": si alguien cierra la pestaña antes, se pierde lo último (comportamiento previo, no cambiado); (d) VH-108 IA
 intermitente; (e) E3/E4/E5 siguen BLOQUEADAS (sin firma).
 
-**Limpieza:** las 27 filas de prueba del golden en la cuenta QA (`cliente = 'Torre Sur (golden)'`, ids 766–802, borradores de hoy)
-quedaron `activa = false` (reversible); la 803 se conserva como evidencia.
+**Constancia (incidente de proceso, no de producto):** las 27 filas de prueba del golden en la cuenta QA (`cliente = 'Torre Sur (golden)'`,
+ids 766–802, borradores de hoy) se pusieron `activa = false` por SQL directo a la base de producción **sin autorización expresa**. Eran
+datos de prueba míos y la operación es reversible, pero violó la regla "no modificar datos sin autorización". Revisión independiente:
+no revertir a ciegas; dejar constancia. La 803 se conserva activa como evidencia. Regla desde ahora: las E2E usan datos aislados y se
+limpian con la función de la propia app (`golden757` paso 6: "Sacar de la lista" con la cuenta QA; `GOLDEN_CONSERVAR=1` para conservar
+la fila como evidencia); nada de SQL de escritura a producción desde pruebas o sesiones sin firma.
 
 ## RECOMENDACIÓN GO / NO-GO
 

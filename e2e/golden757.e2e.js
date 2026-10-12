@@ -200,7 +200,7 @@ test.describe('GOLDEN 757 · plano → programa → VONI → fusión → acomodo
       const tok = k ? (JSON.parse(window.localStorage.getItem(k) || '{}').access_token || null) : null;
       const r = await fetch(`${origen}/rest/v1/rpc/cotizacion_segura`, { method: 'POST', headers: { 'content-type': 'application/json', apikey, authorization: `Bearer ${tok}` }, body: JSON.stringify({ p_id: id }) });
       const j = await r.json().catch(() => null);
-      return { status: r.status, partidas: j?.partidas || null, colocadas: j?.acomodo?.plan?.colocacion?.length ?? null, cliente: j?.cliente ?? null };
+      return { status: r.status, partidas: j?.partidas || null, colocadas: j?.acomodo?.plan?.colocacion?.length ?? null, cliente: j?.cliente ?? null, activa: j?.activa ?? null };
     }, [nubeOrigen, nubeApikey, idNube]);
     {
       const raw = (k) => page.evaluate((kk) => window.localStorage.getItem(kk) || '', k);
@@ -243,6 +243,20 @@ test.describe('GOLDEN 757 · plano → programa → VONI → fusión → acomodo
     const enNube2 = await leerNube();
     expect(firmaDe(enNube2.partidas)).toBe(firma);
     expect(enNube2.colocadas).toBe(colocadas);
+
+    // 6) LIMPIEZA con la función de la propia app (datos aislados): la prueba saca de la lista SU
+    //    presupuesto ("Sacar de la lista" = `activa=false`, reversible) con la misma cuenta QA que lo
+    //    creó. Nada de SQL directo a producción. Si GOLDEN_CONSERVAR=1 se deja como evidencia.
+    if (!process.env.GOLDEN_CONSERVAR) {
+      page.once('dialog', (d) => d.accept());
+      await page.goto('/');
+      await page.getByText('Presupuestos anteriores', { exact: false }).first().click();
+      const mia = page.locator('.tarjeta:has(> .fila-botones)', { hasText: 'Torre Sur (golden)' }).first();
+      await expect(mia).toBeVisible({ timeout: 20000 });
+      await mia.getByRole('button', { name: /Sacar de la lista/ }).click();
+      await expect.poll(async () => (await leerNube()).activa, { timeout: 15000, message: 'la fila del golden queda inactiva' }).toBe(false);
+      console.log('[golden757] limpieza: fila', idNube, 'activa=false (por la app, cuenta QA)');
+    }
     expect(pageErrors, pageErrors.join('\n')).toHaveLength(0);
   });
 });
