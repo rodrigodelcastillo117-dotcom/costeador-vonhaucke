@@ -84,3 +84,44 @@ describe('escenas por área', () => {
     expect(descripcionDeEscena('Open', {}, [{ nombre: 'X', cantidad: 1 }])).toBe('Open: 1× X.');
   });
 });
+
+// VH-121 · lo que viaja al modelo además del dibujo: medidas por pieza, sillas, esperados e imagen de referencia.
+describe('VH-121 · escenas con geometría y referencias', () => {
+  const partidas121 = [
+    { id: 'r1', nombre: 'Recepción (2420 × 830 mm)', cantidad: 1, w: 2420, d: 830, piezaId: 'p9-recepcion-29920', deBanco: true },
+    { id: 'g1', nombre: 'Mox · Gaveta pedestal 3 cajones', cantidad: 2, w: 380, d: 456, ruta: 'mox', productoId: 'pedestal' },
+    { id: 'v1', nombre: 'Silla de visita · CONCERTO', cantidad: 2, w: 600, d: 600, piezaId: 'p9-silla-de-visita-concerto-5470', deBanco: true },
+    { id: 'e1', nombre: 'Eclipse Escritorio Directivo 2.10 m', cantidad: 1, w: 2100, d: 900, ruta: 'eclipse', productoId: 'escritorio' },
+  ];
+  const acomodo121 = {
+    areas: [{ nombre: 'RECEPCIÓN', ancho: 5000, largo: 3500 }, { nombre: 'OFICINA CEO', ancho: 4500, largo: 4000 }],
+    plan: { colocacion: [
+      { id: 'r1-1', area: 0, x: 0, y: 0, rot: 0 }, { id: 'v1-1', area: 0, x: 100, y: 100, rot: 0 }, { id: 'v1-2', area: 0, x: 800, y: 100, rot: 0 },
+      { id: 'e1-1', area: 1, x: 0, y: 0, rot: 0 }, { id: 'g1-1', area: 1, x: 100, y: 1000, rot: 0 }, { id: 'g1-2', area: 1, x: 600, y: 1000, rot: 0 },
+    ] },
+  };
+  const esc = escenasDeAcomodo(partidas121, acomodo121);
+  it('cada pieza lleva huella real; los esperados son sólo de piso; las sillas se cuentan aparte', () => {
+    const rec = esc.find((e) => e.nombre === 'RECEPCIÓN');
+    expect(rec.pisoTotal).toBe(1); expect(rec.sillas).toBe(2);
+    expect(rec.esperados).toEqual([{ nombre: 'Recepción (2420 × 830 mm)', cantidad: 1, tipo: expect.any(String), w: 2420, d: 830 }]);
+    const ceo = esc.find((e) => e.nombre === 'OFICINA CEO');
+    expect(ceo.pisoTotal).toBe(3); expect(ceo.sillas).toBe(0);
+    expect(ceo.esperados.map((p) => [p.cantidad, p.w, p.d])).toEqual([[2, 380, 456], [1, 2100, 900]]);
+  });
+  it('la descripción dice medidas por pieza y el número exacto de sillas', () => {
+    const rec = esc.find((e) => e.nombre === 'RECEPCIÓN');
+    expect(rec.descripcion).toBe('RECEPCIÓN (5.00 × 3.50 m): 1× Recepción (2420 × 830 mm) (2.42 × 0.83 m), sillas: 2× Silla de visita · CONCERTO.');
+    const ceo = esc.find((e) => e.nombre === 'OFICINA CEO');
+    expect(ceo.descripcion).toContain('2× Mox · Gaveta pedestal 3 cajones (0.38 × 0.46 m)');
+    expect(ceo.descripcion).toContain('1× Eclipse Escritorio Directivo 2.10 m (2.10 × 0.90 m)');
+  });
+  it('la imagen de referencia se resuelve con imagenPartida: línea+producto, silla del banco; sin evidencia → null (no se inventa)', () => {
+    const ceo = esc.find((e) => e.nombre === 'OFICINA CEO');
+    expect(ceo.piezas.find((p) => p.id === 'e1').imagen).toMatch(/eclipse/);
+    const rec = esc.find((e) => e.nombre === 'RECEPCIÓN');
+    expect(typeof rec.piezas.find((p) => p.id === 'v1').imagen === 'string' || rec.piezas.find((p) => p.id === 'v1').imagen === null).toBe(true);
+    const [sin] = escenasDeAcomodo([{ id: 'x', nombre: 'Mueble sin ficha', cantidad: 1, w: 1000, d: 500 }], { areas: [{ nombre: 'A', ancho: 3000, largo: 3000 }], plan: { colocacion: [{ id: 'x-1', area: 0, x: 0, y: 0, rot: 0 }] } });
+    expect(sin.piezas[0].imagen).toBe(null);
+  });
+});

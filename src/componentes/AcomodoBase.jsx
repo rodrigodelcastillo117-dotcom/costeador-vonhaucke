@@ -975,6 +975,19 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     } finally { setGenerandoReal(false); }
   }
 
+  // Cualquier URL de imagen → base64 (sin el prefijo data:), null si no se pudo.
+  async function urlABase64(url) {
+    if (!url) return null;
+    try {
+      const r = await fetch(url); const b = await r.blob();
+      return await new Promise((res) => {
+        const fr = new FileReader();
+        fr.onload = () => res(String(fr.result).split(',')[1]);
+        fr.onerror = () => res(null);
+        fr.readAsDataURL(b);
+      });
+    } catch (e) { return null; }
+  }
   // Trae el render de catálogo de una pieza como base64, para mandárselo al
   // modelo como referencia del producto REAL.
   async function fotoDeProducto(ruta, productoId) {
@@ -998,16 +1011,21 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     const svg = nodo?.querySelector('svg.plano');
     if (!svg) return { ok: false, error: 'No se pudo leer el dibujo de ' + esc.nombre };
     const dibujo = await isoAJpeg(svg, 1024);
-    // Los renders de los muebles de ESTE cuarto, los más presentes primero.
+    // Los renders de los muebles de ESTE cuarto, los más presentes primero. VH-121: la imagen la resuelve
+    // `escenas.js` con `imagenPartida` (render propio, línea+producto, foto de silla o portada de la línea);
+    // antes sólo línea+producto y las piezas de VONI/banco iban sin referencia (producción 12-oct: 8 de 9
+    // intentos con una sola imagen).
     const fotos = [];
     for (const p of esc.piezas.slice(0, 5)) {
-      const f = await fotoDeProducto(p.ruta, p.productoId);
+      const f = p.imagen ? await urlABase64(p.imagen) : await fotoDeProducto(p.ruta, p.productoId);
       if (f) fotos.push(f);
     }
     return generarRender(esc.descripcion, {
       modo: 'escena',
       imagen: dibujo, mediaType: 'image/jpeg',
       imagenes: fotos,
+      // VH-121: piezas de piso esperadas (cantidad, medidas) y sillas del plano: prompt, contador y auditor.
+      esperados: esc.esperados, sillas: esc.sillas,
       cuarto: tipoDeEscena(esc.nombre),
       lineas: lineasDeEscena(esc).map((r) => (LINEAS_REG?.[r]?.titulo || r)),
       medidas: `${(esc.anchoMM / 1000).toFixed(2)} × ${(esc.largoMM / 1000).toFixed(2)} m (${esc.m2} m2)`,
