@@ -237,11 +237,13 @@ export function confirmarPrograma(propuesta, { existentes = [], sustituir = [] }
   // VH-090: pool por ROL a secas, sólo con filas que describió una persona (no del
   // programa): "Silla · SONATA ×4" cubre el MEETING_SEAT propuesto aunque el programa
   // pida otro modelo. Se consume DESPUÉS del pool exacto.
+  // También cubre una fila del PROGRAMA del mismo rol atada a la MISMA ancla (mismo kit): al
+  // sustituir la mesa, las sillas ya confirmadas de esa sala no se vuelven a agregar.
   const poolRol = new Map();
   for (const e of ex) {
-    if (e.rel && !esAncla(e.rel) && !esDelPrograma(e.raw)) {
+    if (e.rel && !esAncla(e.rel)) {
       if (!poolRol.has(e.rel)) poolRol.set(e.rel, []);
-      poolRol.get(e.rel).push({ idx: e._i, rem: e.cantidad });
+      poolRol.get(e.rel).push({ idx: e._i, rem: e.cantidad, programa: esDelPrograma(e.raw), ancla: e.raw.anchor_instance_id || null });
     }
   }
   for (const dep of depsProp) {
@@ -249,7 +251,8 @@ export function confirmarPrograma(propuesta, { existentes = [], sustituir = [] }
     const k = `${dep.relation_role}|${dep.bancoId}`;
     let need = Math.max(1, Number(dep.cantidad) || 1);
     const exactas = poolDep.get(k) || [];
-    const porRol = (poolRol.get(dep.relation_role) || []).filter((e) => !exactas.includes(e) && !usados.has(e.idx));
+    const porRol = (poolRol.get(dep.relation_role) || []).filter((e) => !exactas.includes(e) && !usados.has(e.idx)
+      && (!e.programa || (e.ancla && dep.anchor_instance_id && String(e.ancla) === String(dep.anchor_instance_id))));
     const entries = [...exactas, ...porRol];
     // 1) EXACTO primero (estable bajo reorden: cada ancla toma la fila de su tamaño).
     const exacta = entries.find((e) => e.rem === need);
