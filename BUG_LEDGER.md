@@ -58,6 +58,18 @@ sin id y hay UN pariente compatible de la misma familia, ahora se autollena como
 vez de quedar sin costo; la emisión sigue bloqueada hasta confirmar. Pruebas: vitest 2,028/2,028, Playwright 25/25,
 build limpio. Nota: `costear-servidor` sigue sin desplegar (A17); hasta entonces el gate server-side no corre en vivo.
 
+**VH-085 · FÓRMULA · HECHO 2026-10-12 (A14, aprobación expresa) · Reglas de merma de Producción como política del motor.**
+Nuevo `src/motor/politicaMerma.js` (+14 pruebas): (1) tablero: pieza con lado mayor > 1.50 m cobra ½ hoja si el lado
+menor ≤ 0.60 m y 1 hoja si es mayor, en lugar de la rejilla; las piezas ≤ 1.50 m siguen con la fracción real de la
+rejilla (la que reproduce los T.D.C. de Alba); una pieza más grande que el tablero ahora cobra 1 hoja por regla Y sigue
+avisando "no cabe" (antes caía al 80 % genérico). (2) pintura en polvo: `areaPintadaM2` → kg a 8 m²/kg (plano); en
+tubular Producción dijo "rinde menos" sin cifra → el componente queda PENDIENTE y bloquea la emisión (no se inventa un
+rendimiento ni sale $0); con `cantidad` en kg capturada se respeta el estimador. (3) tubo 6 m y lámina 0.91/1.22 ya
+eran política (TRAMO6, formatos 3x10/4x8). (4) excedente de canto por lado: sin cifra, sigue `mermaCorte`. El DTO
+acepta `areaPintadaM2` (≥ 0) y `tubular` (booleano). `MOTOR_VERSION` → 2026-10-12: las cotizaciones emitidas conservan
+su huella (`huellaMP`) y se recostean sólo si alguien las reabre. Lo que cambia en dinero: sólo piezas de tablero con lado
+mayor > 1.50 m (p. ej. tapa 1.60×0.60: 1 hoja → ½ hoja) y la pintura capturada por área. Goldens Alba/Intelisis intactos.
+
 **VH-083 · DATO · HECHO 2026-10-12 · A11 certificación con documento ERP.** Cruce de los 259 insumos de la semilla
 contra "Costos de Materia Prima Ultima Compra al 10082026.xlsx" (ERP Intelisis, Drive de Compras; 16,520 registros
 Artículo|Opción): 109 con registro ERP exacto (105 iguales, 4 con precio ERP más nuevo), 13 con código que el ERP no
@@ -81,7 +93,7 @@ y conductos son piezas gancho que se venden perdiendo y se recupera en la cubier
 aquí; debe MOSTRAR margen real contra costo ERP cuando exista (hoy `producto_version_economia` tiene 12 filas de 1,944
 productos: casi ningún producto de línea tiene costo oficial de referencia).
 
-**VH-077 · P2 · OPEN (reportado por Producción, pendiente de verificar en la app actual) · Observaciones de Rogelio y
+**VH-077 · P2 · PARCIAL (reglas de merma → VH-085/A14 HECHO; (a)–(f) de UI/catálogo siguen abiertos) · Observaciones de Rogelio y
 Alba (doc "comentarios Rogelio y Alba").** (a) la lista de materiales sólo ofrecía "MDF" sin espesores; (b) no se pueden
 combinar acabados/materiales; (c) gasto directo e indirecto "muy alto aun bajando el factor" en el ejercicio de la
 repisa (su T.D.C. da $156.98 de material: MDF19 0.028 hoja $12.26, canto ABS 22 1.4 m $14.88, laminado 0.056 hoja

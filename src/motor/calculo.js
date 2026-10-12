@@ -8,12 +8,15 @@
 import { costoAlba, tipoAlba } from './formulaAlba.js';
 import { optimizarCorte2D, optimizarCorte1D } from './optimizacionCorte.js';
 import { requiereConfirmacion } from '../datos/materialMatch.js';
+import { hojasPorPiezaProduccion, esPinturaPolvo, kgPinturaPorArea, REGLAS_MERMA_PRODUCCION } from './politicaMerma.js';
 
 // VERSIÓN DEL MOTOR — entra en la huella de cada cotización (cotizaciones.js:
 // huellaMP) para que, si la FÓRMULA cambia (no solo un precio), una cotización
 // vieja se marque "calculada con otro motor" en vez de reusarse a ciegas.
 // ⚠️ SÚBELA cuando cambie cómo se calcula el costo (factores, cascada, nesting).
-export const MOTOR_VERSION = '2026-10-03';
+// 2026-10-12: política de merma de Producción (A14): piso de ½/1 hoja por pieza grande de
+// tablero y pintura en polvo a 8 m²/kg desde `areaPintadaM2`. Ver politicaMerma.js.
+export const MOTOR_VERSION = '2026-10-12';
 
 // FÓRMULA OFICIAL de producto nuevo (cutover 2026-10-01). Von Haucke convierte el
 // BOM en costo con la fórmula de ALBA (MO% por tipo de material + GI; ver
@@ -269,8 +272,14 @@ export function precioUsable(insumo) {
 // costar cero —todavía no lo capturas—; jamás puede costar menos que nada.
 const noNegativo = (x) => (Number.isFinite(x) && x > 0 ? x : 0);
 
-export function netoComponente(comp, n = 1) {
+export function netoComponente(comp, n = 1, insumo = null) {
   const piezasComp = noNegativo((comp.piezas || 1) * n);
+  // A14 · pintura en polvo por ÁREA PINTADA (Producción: 8 m²/kg en plano). Tubular sin cifra
+  // oficial → null → 0 → el guard "sin consumo" lo deja PENDIENTE (nunca $0 ni inventado).
+  if (comp.areaPintadaM2 > 0 && esPinturaPolvo(insumo)) {
+    const kg = kgPinturaPorArea(noNegativo(comp.areaPintadaM2), { tubular: comp.tubular === true });
+    return kg == null ? 0 : kg * piezasComp;
+  }
   if (comp.largoMM && comp.anchoMM) {
     return (noNegativo(comp.largoMM) / 1000) * (noNegativo(comp.anchoMM) / 1000) * piezasComp; // m2
   }
@@ -291,7 +300,7 @@ export function costoNetoComponente(comp, insumo, n = 1, par = PARAMETROS_DEFAUL
   if (comp.hojas > 0 && insumo?.formato) {
     return noNegativo(comp.hojas * n) * precioDeInsumo(insumo, par);
   }
-  return netoComponente(comp, n) * precioDeInsumo(insumo, par);
+  return netoComponente(comp, n, insumo) * precioDeInsumo(insumo, par);
 }
 
 // -----------------------------------------------------------------------------
@@ -327,17 +336,30 @@ function comprarInsumo(insumo, comps, n, par) {
   // merma falsa). Se acumula aparte y se suma al final.
   let hojasDirectas = 0;
   const medidaFmt = insumo.formato ? insumo.formato.medida : 0;
+  // A14: rastro de las piezas a las que se les aplicó la regla de Producción (½ / 1 hoja).
+  const reglasProduccion = [];
 
   for (const c of comps) {
     // P0-03: `> 0`, no `!= null` — un `hojas:0` NO debe tomar la vía de fracción
     // (que lo costearía en $0 y haría `continue`, perdiendo su cantidad/medida).
     if (c.hojas > 0 && insumo.formato) { hojasDirectas += noNegativo(c.hojas) * n; continue; }
-    const netoC = netoComponente(c, n);
+    const netoC = netoComponente(c, n, insumo);
     neto += netoC;
     conCorte += netoC * factorMerma;
     if (c.largoMM && c.anchoMM && insumo.formato) {
       const ppt = piezasPorTablero(c.largoMM, c.anchoMM, { ...par, veta: insumo.veta });
       const piezasComp = (c.piezas || 1) * n;
+      // A14 · REGLA DE PRODUCCIÓN (Rogelio, fórmula oficial 2026-10-12): pieza de TABLERO con
+      // lado mayor > 1.50 m cobra ½ hoja (lado menor ≤ 0.60) o 1 hoja (lado menor > 0.60), en
+      // vez de la rejilla. Las piezas chicas siguen con la fracción real de la rejilla.
+      const reglaHojas = insumo.formato.tipo === 'tablero' ? hojasPorPiezaProduccion(c.largoMM, c.anchoMM) : null;
+      if (reglaHojas != null) {
+        hojasExactas += reglaHojas * piezasComp;
+        tablerosRejilla += Math.ceil(reglaHojas * piezasComp - 1e-9);
+        if (ppt === 0) hayPiezaQueNoCabe = true; // más grande que el formato: se cobra la hoja y se avisa
+        reglasProduccion.push({ pieza: c.nombre || 'Pieza', largoMM: c.largoMM, anchoMM: c.anchoMM, hojasPorPieza: reglaHojas });
+        continue;
+      }
       // ⚠️ 2026-08-19: una pieza que NO cabe en ningun tablero (ppt=0 — más
       // grande que el formato completo, p.ej. una cubierta cuadrada de 1.50 m
       // en tablero de 1.22 x 2.44) se marcaba "no cabe" pero SU AREA SE
@@ -400,6 +422,7 @@ function comprarInsumo(insumo, comps, n, par) {
       desperdicio: (comprado - neto) * precioUnidad,
       pct: comprado > 0 ? ((comprado - neto) / comprado) * 100 : 0,
       precio, noCabe: hayPiezaQueNoCabe, fraccion: true,
+      ...(reglasProduccion.length ? { reglaProduccion: REGLAS_MERMA_PRODUCCION.version, piezasRegla: reglasProduccion } : {}),
     });
   }
 
@@ -546,7 +569,7 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     // costeo salía "completo". Un PTR con sólo `largoMM` salía gratis. Es un hueco de
     // datos igual que un material faltante → PENDIENTE, no cero.
     const porHoja = comp.hojas > 0 && !!insumo.formato;
-    if (!porHoja && netoComponente(comp, 1) <= 0) {
+    if (!porHoja && netoComponente(comp, 1, insumo) <= 0) {
       componentesIgnorados.push(`${comp.nombre || insumo.nombre || 'Pieza'} (sin cantidad ni medidas)`);
       continue;
     }

@@ -30,7 +30,9 @@ const PROHIBIDOS = /^(margen|precio|preciobase|precioreal|preciounitario|costo|c
 // Se EXCLUYE a propósito `excluida`: marcar una partida como $0 es una decisión
 // comercial que vive en la Cotización (con confirmación humana), no en la intención
 // cruda de costeo — dejar que el cliente la mande aquí sería una fuga fail-OPEN.
-const COMP_PERMITIDOS = ['insumoId', 'nombre', 'cantidad', 'largoMM', 'anchoMM', 'piezas', 'hojas', 'material_solicitado', 'material_match', 'material_confirmado', 'engineering_override', 'override_motivo'];
+const COMP_PERMITIDOS = ['insumoId', 'nombre', 'cantidad', 'largoMM', 'anchoMM', 'piezas', 'hojas', 'material_solicitado', 'material_match', 'material_confirmado', 'engineering_override', 'override_motivo',
+  // A14 (2026-10-12): pintura en polvo por área pintada (m²) y bandera tubular → el motor convierte a kg (8 m²/kg).
+  'areaPintadaM2', 'tubular'];
 
 // MATERIAL_PENDING (P0-05): estados de match en los que la IA NO asignó insumoId
 // porque el catálogo no tiene la familia/precio. El componente NO se inventa ni se
@@ -120,7 +122,7 @@ export function validarIntentCosteo(body) {
     if (!idOk && !esPendiente) {
       issues.push({ field: `componentes[${i}].insumoId`, msg: 'insumoId (string) es obligatorio, salvo material pendiente declarado (material_solicitado + material_match pendiente); el precio lo resuelve el servidor.' });
     }
-    for (const campo of ['largoMM', 'anchoMM', 'cantidad', 'piezas', 'hojas']) {
+    for (const campo of ['largoMM', 'anchoMM', 'cantidad', 'piezas', 'hojas', 'areaPintadaM2']) {
       if (c[campo] != null && !(finito(c[campo]) && c[campo] >= 0)) issues.push({ field: `componentes[${i}].${campo}`, msg: `${campo} debe ser un número finito ≥ 0.` });
     }
     if (c.largoMM > 100000 || c.anchoMM > 100000) issues.push({ field: `componentes[${i}]`, msg: 'Dimensión fuera de rango razonable.' });
@@ -134,6 +136,7 @@ export function validarIntentCosteo(body) {
       // INTENCIÓN de confirmación humana (P0.6): booleano explícito, DISTINTO del string de
       // match. El servidor lo convierte a estado efectivo (USER_CONFIRMED) sólo si el insumoId
       // existe; jamás se deriva de material_match='USER_CONFIRMED' mandado por el browser.
+      if (campo === 'tubular') { if (c.tubular === true) limpio.tubular = true; continue; }
       if (campo === 'material_confirmado') { if (c.material_confirmado === true) limpio.material_confirmado = true; continue; }
       // ENGINEERING_OVERRIDE (cross-family): intención booleana + motivo auditable. El servidor
       // sólo lo HONRA con capability Diseño/Dirección (índice/reconcile); aquí sólo se sanea.
