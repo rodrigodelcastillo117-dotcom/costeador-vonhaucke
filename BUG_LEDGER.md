@@ -245,7 +245,7 @@ geométricos). El texto se deriva de un `serverStatus` en memoria que no se rehi
 
 **ESTABILIZACIÓN POST-DEPLOY (RC, sin desplegar) · 2026-10-12.** VH-110 FIXED (veredicto por bloques) · VH-111 FIXED · VH-112 FIXED
 (P0: capacidad declarada "8 usuarios", tope físico por cara, "Banca doble" = DOUBLE_FACE) · VH-113 FIXED · VH-114 FIXED · VH-115 FIXED ·
-VH-116 FIXED (P0: ancla ×N se reparte por sala/instancia SÓLO con decisión explícita de la persona; sin decisión NEEDS_REVIEW; `f822151`) · VH-118 FIXED (nombre ASCII del PDF) · VH-119 FIXED (P1: despacho privado = ejecutivo detrás + visitas al frente; el juez admite ambos; `72fa84b`) · VH-108 corrección con evidencia en RC
+VH-116 FIXED (P0: ancla ×N se reparte por sala/instancia SÓLO con decisión explícita de la persona; sin decisión NEEDS_REVIEW; `f822151`) · VH-118 FIXED (nombre ASCII del PDF) · VH-119 FIXED (P1: despacho privado = ejecutivo detrás + visitas al frente; el juez admite ambos; `72fa84b`) · VH-120 FIXED (capacidad con fuente; `56167dc`) · VH-121 FIXED en RC (renders por cuarto: referencias de producto, medidas y sillas al modelo, contador y auditor informados; medición live BLOCKED hasta deploy) · VH-108 corrección con evidencia en RC
 (revisión → modelo visual, 75 s), medición posterior BLOCKED hasta desplegar. Detalle y pruebas en `docs/auditoria/RESCATE_NOCTURNO.md`
 § ESTABILIZACIÓN POST-DEPLOY. OPEN: renders por cuarto 1/4 aceptados (gate honesto; generador), sesiones Ventas/Diseño sin cuentas QA.
 
