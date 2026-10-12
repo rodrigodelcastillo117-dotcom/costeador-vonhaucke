@@ -126,8 +126,11 @@ describeSem('VH-112 · capacidad de la banca', () => {
 });
 
 describeSem('VH-112b · capacidad con tope geométrico y grupos libres repartidos', () => {
-  itSem('user_capacity 12 en una banca de 6 m queda en 8 asientos; dos bancas y 16 WIN: 0 encimados', () => {
-    expectSem(capAncla({ relation_role: 'ANCHOR_WORKSTATION', w: 6000, d: 1200, user_capacity: 12 })).toBe(8);
+  itSem('user_capacity explícita se respeta hasta el tope físico (6 m: 20; 1.5 m: 4); dos bancas de 12 y 16 WIN: 0 encimados', () => {
+    expectSem(capAncla({ relation_role: 'ANCHOR_WORKSTATION', w: 6000, d: 1200, user_capacity: 12 })).toBe(12);
+    expectSem(capAncla({ relation_role: 'ANCHOR_WORKSTATION', w: 6000, d: 1200, user_capacity: 40 })).toBe(20);
+    expectSem(capAncla({ relation_role: 'ANCHOR_WORKSTATION', w: 1500, d: 750, user_capacity: 8 })).toBe(4);
+    expectSem(capAncla({ relation_role: 'ANCHOR_WORKSTATION', w: 4800, d: 1200, user_capacity: 8 })).toBe(8);
     const areas = [{ nombre: 'ÁREA OPERATIVA', tipo: 'open', ancho: 14000, largo: 7000, x: 0, y: 0 }];
     const piezas = [
       ...[1, 2].map((i) => ({ id: `b-1-${i}`, nombre: 'Banca doble APP LT 1.50 · 8 usuarios · ocupa 6.00 × 1.20 m', w: 6000, d: 1200, relation_role: 'ANCHOR_WORKSTATION', zone_id: 'ÁREA OPERATIVA', functional_group_id: 'fg:req:ÁREA OPERATIVA:operativo:0:#1', user_capacity: 12, placement_profile: { topology: 'DOUBLE_FACE', provenance: 'INFERRED' } })),
@@ -145,5 +148,18 @@ describeSem('VH-112b · capacidad con tope geométrico y grupos libres repartido
     const r = construirSem(areas, piezas);
     expectSem(r.layoutSpec.validation.issues.filter((i) => i.code === 'FUNCTIONAL_GROUP_SPLIT')).toEqual([]);
     expectSem(r.plan.colocacion.length).toBe(18);
+  });
+});
+
+describeSem('VH-112c · topología desconocida no encima sillas', () => {
+  itSem('dos bancas de 6 m sin perfil (una cara) con 16 WIN: 0 encimados; lo que no cabe se reporta', () => {
+    const areas = [{ nombre: 'ÁREA OPERATIVA', tipo: 'open', ancho: 14000, largo: 7000, x: 0, y: 0 }];
+    const piezas = [
+      ...[1, 2].map((i) => ({ id: `b-1-${i}`, nombre: 'Módulo operativo', w: 6000, d: 1200, relation_role: 'ANCHOR_WORKSTATION', zone_id: 'ÁREA OPERATIVA', functional_group_id: 'fg:req:X', user_capacity: 12 })),
+      ...Array.from({ length: 16 }, (_, i) => ({ id: `w-1-${i + 1}`, nombre: 'Silla operativa · WIN', w: 600, d: 600, relation_role: 'WORK_SEAT', zone_id: 'ÁREA OPERATIVA', functional_group_id: 'fg:req:X' })),
+    ];
+    const r = construirSem(areas, piezas);
+    expectSem(r.layoutSpec.validation.issues.filter((i) => i.code === 'OVERLAP')).toEqual([]);
+    expectSem(r.plan.colocacion.filter((c) => /^w-/.test(c.id)).length + (r.layoutSpec.no_cupieron?.length || 0) + (r.layoutSpec.unassigned?.length || 0)).toBe(16);
   });
 });

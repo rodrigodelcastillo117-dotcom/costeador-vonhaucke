@@ -45,9 +45,10 @@ function capacidadDeclarada(p = {}) {
 }
 export function capacidadAncla(p = {}) {
   const w = num(p.w), d = num(p.d), m = Math.max(w, d);
-  // VH-112: un puesto operativo son 1.50 m lineales; una banca de 6 m sienta como mucho 4 por cara (8 doble).
-  // Una capacidad declarada mayor (módulo del programa de 12) NO crea asientos: se sentarían encimadas.
-  const topeOperativo = p.relation_role === 'ANCHOR_WORKSTATION' && m > 0 ? 2 * Math.max(1, Math.round(m / 1500)) : Infinity;
+  // VH-112: tope FÍSICO de asientos de un operativo: una silla de 600 mm por cara y por cada 600 mm de
+  // largo (dos caras). El bench doble de catálogo 4800×1200 para 8 cabe (16 posibles); un módulo de 12
+  // sobre 6 m también (20). Lo que no cabe físicamente no se sienta: antes se encimaban.
+  const topeOperativo = p.relation_role === 'ANCHOR_WORKSTATION' && m > 0 ? 2 * Math.max(1, Math.floor(m / 600)) : Infinity;
   if (num(p.user_capacity) > 0) return Math.min(Math.round(num(p.user_capacity)), topeOperativo);
   const declarada = capacidadDeclarada(p);
   if (declarada) return Math.min(declarada, topeOperativo);
@@ -159,7 +160,12 @@ export function componerKit(anchor, sillas = [], gavetas = []) {
   // GAP4: topología UNKNOWN NO es verdad; la geometría usa el fallback LEGACY, pero
   // el ancla conserva la topología REAL (UNKNOWN) para que el Semantic Judge lo marque.
   const topoGeom = perfil.topology !== 'UNKNOWN' ? perfil.topology : 'SINGLE_FACE';
-  const lay = layoutDeTopologia(topoGeom, aw, ad, sillas.length);
+  // VH-112: tope FÍSICO de lugares por cara (una silla de 600 mm cada 600 mm). Con topología desconocida
+  // (una cara) y 12 sillas en 6 m, antes se repartían a 500 mm y salían encimadas; lo que no cabe queda
+  // sin colocar y se reporta, no se encima.
+  const caras = topoGeom === 'DOUBLE_FACE' ? 2 : (topoGeom === 'SINGLE_FACE' ? 1 : 0);
+  const topeFisico = caras ? caras * Math.max(1, Math.floor(aw / SEAT)) : Infinity;
+  const lay = layoutDeTopologia(topoGeom, aw, ad, Math.min(sillas.length, topeFisico));
   const piezas = [{ id: String(anchor.id), dx: lay.anchor.dx, dy: lay.anchor.dy, w: aw, d: ad, rol, topology: perfil.topology, provenance: perfil.provenance, profile_version: perfil.version, fallback_layout: perfil.topology === 'UNKNOWN' ? (perfil.fallback_layout_strategy || 'LEGACY_SINGLE_FACE') : null }];
   const sinColocar = [];
 
