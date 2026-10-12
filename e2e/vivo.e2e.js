@@ -98,8 +98,11 @@ test('cinco caminos contra el servidor real', async ({ browser }) => {
   // 3) ACOMODO con IA (acomodar-espacio real)
   try {
     await page.goto('/');
-    await page.getByRole('button', { name: /Ver todo lo de cotizar/ }).click();
-    await page.getByRole('button', { name: /Acomodo en el espacio \(IA\)/ }).first().click();
+    await page.getByTestId('home-cotizar').click();
+    await page.getByTestId('voni-paso-muebles').click();
+    const stepAco = page.getByTestId('voni-paso-acomodo');
+    await expect(stepAco).toBeEnabled({ timeout: 15000 });
+    await stepAco.click();
     const conIA = page.getByRole('button', { name: /^Con IA$/ });
     await expect(conIA).toBeVisible({ timeout: 20000 });
     const esperaAco = page.waitForResponse((r) => r.url().includes('/functions/v1/acomodar-espacio'), { timeout: 150000 });
@@ -120,10 +123,9 @@ test('cinco caminos contra el servidor real', async ({ browser }) => {
   // 4) COSTEAR (analizar-mueble real) y 5) RENDER (generar-render real)
   try {
     await page.goto('/');
-    await page.getByRole('button', { name: /¿Cuánto nos cuesta fabricarlo\?/ }).first().click();
-    await page.getByRole('button', { name: /Costear a mano/i }).first().click();
-    await expect(page.locator('#desc-voni')).toBeVisible({ timeout: 10000 });
-    await page.fill('#desc-voni', 'Credenza ejecutiva 1800 x 500 x 750 mm en MDF 16 mm con chapa de encino, 2 puertas abatibles y 2 cajones, base de acero');
+    await page.getByTestId('home-costear').click();
+    await expect(page.locator('#costear-descripcion')).toBeVisible({ timeout: 15000 });
+    await page.fill('#costear-descripcion', 'Credenza ejecutiva 1800 x 500 x 750 mm en MDF 16 mm con chapa de encino, 2 puertas abatibles y 2 cajones, base de acero');
     const esperaAn = page.waitForResponse((r) => r.url().includes('/functions/v1/analizar-mueble'), { timeout: 150000 });
     await page.getByRole('button', { name: /Analizar con Voni/ }).click();
     await esperaAn;
@@ -135,9 +137,9 @@ test('cinco caminos contra el servidor real', async ({ browser }) => {
   guardar();
   try {
     const esperaRen = page.waitForResponse((r) => r.url().includes('/functions/v1/generar-render'), { timeout: 240000 });
-    await page.getByRole('button', { name: /Generar render con IA/ }).click();
+    await page.getByRole('button', { name: /Generar render|Regenerar render/ }).first().click();
     const resRen = await esperaRen;
-    const img = page.locator('img.ficha-foto');
+    const img = page.locator('img[alt="aislado"], img[alt="ambiente"], img.ficha-foto').first();
     await img.waitFor({ timeout: 20000 }).catch(() => {});
     if (await img.isVisible().catch(() => false)) { const src = await img.getAttribute('src'); anota('generar-render', resRen.status() === 200 && /^https?:\/\//.test(src), `${resRen.status()} · ${src.slice(0, 160)}`); }
     else { const e = reporte.edges.filter((x) => x.edge === 'generar-render').pop(); anota('generar-render', false, `${resRen.status()} · ${(e?.cuerpo || '').slice(0, 220)}`); }
