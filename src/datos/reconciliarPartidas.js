@@ -32,9 +32,16 @@ export function reconciliarNuevasConPrograma(existentes = [], nuevas = []) {
 
   for (const n of nu) {
     const rel = n.relation_role || inferRole(n);
-    if (!rel) { salida.push(n); continue; }
-    const prog = ex.find((e, i) => !tomados.has(i) && esDelPrograma(e) && (e.relation_role || inferRole(e)) === rel);
-    if (!prog) { salida.push(n); continue; }
+    // Idempotente: una fila que YA sustituyó a una del programa no vuelve a consumir otra
+    // (p. ej. SONATA ya conciliada no se come también a CONCERTO en la segunda aplicación).
+    if (!rel || n.sustituyePrograma) { salida.push(n); continue; }
+    const candidatos = ex.map((e, i) => ({ e, i })).filter(({ e, i }) => !tomados.has(i) && esDelPrograma(e) && (e.relation_role || inferRole(e)) === rel);
+    if (!candidatos.length) { salida.push(n); continue; }
+    // Mismo rol: prefiere la fila del programa cuyo producto es el MISMO modelo (silla-sonata ⊂
+    // p9-silla-sonata-…); si no, la primera. Así SONATA sustituye a SONATA y no a CONCERTO.
+    const idN = String(n.piezaId || n.bancoId || '').toLowerCase();
+    const mismoModelo = candidatos.find(({ e }) => { const b = String(e.bancoId || e.piezaId || '').toLowerCase(); return b && idN.includes(b.replace(/^silla-/, 'silla-')); });
+    const prog = (mismoModelo || candidatos[0]).e;
     tomados.add(ex.indexOf(prog));
     sustituidas.push({ de: prog.nombre || prog.bancoId || '?', a: n.nombre || '?', rol: rel });
     salida.push({

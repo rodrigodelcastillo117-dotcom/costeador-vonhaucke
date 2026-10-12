@@ -16,6 +16,7 @@ import ConfirmarLectura from './ConfirmarLectura.jsx';
 import { leerPlanoDeArchivo } from '../datos/leerPlanoArchivo.js';
 import { areasCanonicas, bloqueGeometria } from '../datos/floorPlan.js';
 import { proponerProgramaDelPlano, aplicarPrograma } from '../datos/programaRealDelPlano.js';
+import { reconciliarNuevasConPrograma } from '../datos/reconciliarPartidas.js';
 import { requirementsDeBrief } from '../datos/programaBrief.js';
 import Cargando from './Cargando.jsx';
 import EstoEntendi from './EstoEntendi.jsx';
@@ -208,6 +209,13 @@ export default function Voni({
   // VH-091: conflictos que la persona decidió CONSERVAR (sólo oculta el aviso; nada cambia en la cotización).
   const [conflictosConservados, setConflictosConservados] = useState(() => new Set());
   const faltantesPrograma = reconPrograma ? reconPrograma.confirmacion.confirmadas : [];
+  // VH-090: duplicados que ya viven en el proyecto (programa aplicado antes de describir con VONI):
+  // se enseñan ANTES de aplicar y se fusionan con el mismo botón.
+  const duplicadosPrograma = useMemo(() => {
+    const prog = partidas.filter((p) => p.source === 'CONFIRMADO_PROGRAMA');
+    const persona = partidas.filter((p) => p.source !== 'CONFIRMADO_PROGRAMA');
+    return prog.length && persona.length ? reconciliarNuevasConPrograma(prog, persona).sustituidas : [];
+  }, [partidas]);
   // VH-090: existentes del usuario que cubren el programa y aún no están vinculados (sin instance/anchor).
   const reutilizadosPrograma = reconPrograma
     ? (reconPrograma.confirmacion.enriquecidos || []).filter((e) => { const p = partidas.find((x) => String(x.id) === String(e.id)); return p && !p.instance_id && !p.anchor_instance_id; })
@@ -321,7 +329,7 @@ export default function Voni({
           lleve derecho ahí, sin un clic de más. */}
       {paso === 2 && (
         <>
-          {propuestaPrograma && (faltantesPrograma.length > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0) && (
+          {propuestaPrograma && (faltantesPrograma.length > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0 || duplicadosPrograma.length > 0) && (
             <div className="tarjeta no-imprimir" style={{ borderColor: '#8bbcaf', background: '#eef6f3' }}>
               <strong style={{ color: '#174f45' }}>✨ Programa detectado del plano</strong>
               <p className="ayuda" style={{ marginTop: 4 }}>
@@ -332,6 +340,14 @@ export default function Voni({
                   <div style={{ fontWeight: 700, color: '#174f45' }}>Por agregar</div>
                   {faltantesPrograma.map((p) => (
                     <div key={p.id}>✓ {p.cantidad}× {p.nombre}{p.w ? ` · ${(p.w / 1000).toFixed(2)}×${((p.d || 0) / 1000).toFixed(2)} m` : ''}</div>
+                  ))}
+                </div>
+              )}
+              {duplicadosPrograma.length > 0 && (
+                <div style={{ marginTop: 8 }} data-testid="duplicados-programa">
+                  <div style={{ fontWeight: 700, color: '#174f45' }}>Ya describiste estos muebles: el programa los tenía con producto genérico y se fusionan (no se duplican)</div>
+                  {duplicadosPrograma.map((d, i) => (
+                    <div key={i}>⇄ <b>{d.a}</b> sustituye a <span style={{ color: '#6b645c' }}>{d.de}</span></div>
                   ))}
                 </div>
               )}
@@ -356,9 +372,9 @@ export default function Voni({
               )}
               <div style={{ marginTop: 12 }}>
                 <button type="button" className="boton primario"
-                  disabled={!onAplicarPrograma || (faltantesPrograma.length === 0 && reutilizadosPrograma.length === 0)}
+                  disabled={!onAplicarPrograma || (faltantesPrograma.length === 0 && reutilizadosPrograma.length === 0 && duplicadosPrograma.length === 0)}
                   onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta)}>
-                  {faltantesPrograma.length ? 'Aplicar programa detectado' : 'Vincular lo que ya tengo al plano'}
+                  {faltantesPrograma.length ? 'Aplicar programa detectado' : duplicadosPrograma.length ? `Fusionar ${duplicadosPrograma.length} duplicado(s) con el programa` : 'Vincular lo que ya tengo al plano'}
                 </button>
                 {reutilizadosPrograma.length > 0 && (
                   <span className="ayuda" style={{ marginLeft: 10 }}>{reutilizadosPrograma.length} mueble(s) que ya describiste cubren el programa: se vinculan a su zona, no se duplican.</span>

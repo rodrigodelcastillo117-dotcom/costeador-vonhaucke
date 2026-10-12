@@ -865,8 +865,16 @@ export default function App() {
         return patch ? { ...p, ...patch } : p;
       });
       const nuevas = confirmacion.confirmadas.map(partidaComercialDesdeConfirmado);
-      if (!nuevas.length && !enriquecidos.length && !fuera.size) return prev;    // idempotente: nada que hacer
-      return { ...prev, cotizacion: { ...prev.cotizacion, partidas: [...patched, ...nuevas] } };
+      // VH-090: proyectos que YA traían duplicados (programa aplicado antes de describir con VONI,
+      // como la cotización 757): al aplicar/vincular se concilian las filas de la persona contra las
+      // genéricas del programa del mismo rol. Idempotente: sin equivalentes no cambia nada.
+      const todas = [...patched, ...nuevas];
+      const delPrograma = todas.filter((p) => p.source === 'CONFIRMADO_PROGRAMA');
+      const dePersona = todas.filter((p) => p.source !== 'CONFIRMADO_PROGRAMA');
+      const rec = reconciliarNuevasConPrograma(delPrograma, dePersona);
+      const conciliadas = rec.sustituidas.length ? rec.partidas : todas;
+      if (!nuevas.length && !enriquecidos.length && !fuera.size && !rec.sustituidas.length) return prev;    // idempotente: nada que hacer
+      return { ...prev, cotizacion: { ...prev.cotizacion, partidas: conciliadas } };
     });
     // Libera el lock tras el commit (microtask: después del setEstado batcheado).
     Promise.resolve().then(() => { aplicandoProgramaRef.current = false; });
