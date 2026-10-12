@@ -14,7 +14,11 @@ export function textoRazonEmision(code) {
   if (/costo_desconocido/.test(k)) return `${L}falta confirmar el costo con Diseño/Dirección.`;
   // VH-047: códigos del servidor que antes salían crudos al vendedor, y los locales.
   if (/costo_preliminar_no_certificado/.test(k)) return `${L}su costo es preliminar: todavía falta certificar sus precios/evidencias con Diseño/Dirección.`;
-  if (/costo_no_certificado|costo_productversion_desconocido/.test(k)) return `${L}su costeo está incompleto; complétalo antes de emitir.`;
+  // VH-103: sin economía oficial de la versión de producto (1,931 partidas de lista así en producción):
+  // no es un error del vendedor ni se inventa; Dirección carga el costo industrial (reporte de costos
+  // Intelisis / expediente). La cotización se conserva como borrador.
+  if (/costo_productversion_desconocido/.test(k)) return `${L}este producto no tiene costo industrial oficial cargado en el catálogo; Dirección debe cargarlo (reporte de costos / expediente). Conserva la cotización como borrador mientras tanto.`;
+  if (/costo_no_certificado/.test(k)) return `${L}su costeo está incompleto; complétalo antes de emitir.`;
   if (/costo_preliminar|costo_no_certificado/.test(k)) return `${L}el costo existe, pero todavía falta certificar sus precios/evidencias.`;
   if (/sin_material/.test(k)) return `${L}tiene piezas sin material asignado.`;
   if (/sin_product_id|producto_version_id_invalido/.test(k)) return `${L}vuelve a agregarla desde su ficha (identidad de producto incompleta).`;
