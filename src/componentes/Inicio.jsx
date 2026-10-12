@@ -5,8 +5,7 @@
 // ============================================================================
 import { useMemo, useState } from 'react';
 import Icono from './Iconos.jsx';
-import VoniAvatar from './VoniAvatar.jsx';
-import { heroLinea } from '../datos/imagenes.js';
+import { heroLinea, fotoProducto } from '../datos/imagenes.js';
 import { buscarProductos } from '../datos/buscarProducto.js';
 import { pesos } from '../util.js';
 import { flagActivo } from '../datos/flags.js';
@@ -170,15 +169,34 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
     // para no mostrar un importe que parezca total final.
     const totalCot = (cot.partidas || []).reduce((s, p) => s + (Number.isFinite(Number(p.precioUnitario)) ? Number(p.precioUnitario) * (p.cantidad || 0) : 0), 0);
     const faltanCot = (cot.partidas || []).filter((p) => p.price_status === 'SIN_PRECIO' || p.precioUnitario == null).length;
+    // Fotografías reales del catálogo Von Haucke (bucket público `app/catalogo`): la
+    // pantalla de entrada enseña el producto, no íconos genéricos.
+    const FOTO = {
+      cotizar: fotoProducto('cirque', 'mesajuntas'),
+      costear: heroLinea('alba'),
+      cocrear: heroLinea('tetris'),
+      linea: heroLinea('applt'),
+      acomodo: fotoProducto('eclipse', 'mesa_consejo'),
+      manual: heroLinea('modulor'),
+      varios: fotoProducto('applt', 'banca_doble'),
+      banco: heroLinea('via'),
+      archivo: fotoProducto('ergo4', 'recepcion'),
+      reglas: heroLinea('worklounge'),
+      tablero: heroLinea('eclipse'),
+      usuarios: heroLinea('cirque'),
+    };
+    const Atajo = ({ foto, titulo, sub, onClick, testid }) => (
+      <button className="vh-atajo" onClick={onClick} data-testid={testid}>
+        {foto ? <img className="vh-atajo-foto" src={foto} alt="" loading="lazy" /> : <span className="vh-atajo-foto vh-atajo-sin" />}
+        <span className="vh-atajo-txt"><strong>{titulo}</strong><span>{sub}</span></span>
+        <span className="vh-atajo-ir" aria-hidden="true">→</span>
+      </button>
+    );
     return (
-      <div className="inicio inicio-terminal inicio-operativo">
-        <div className="inicio-op-cab">
-          <div>
-            <div className="inicio-overline"><span className="ov-dot" />VH · TALLER DIGITAL</div>
-            <h1 className="inicio-op-titulo">¿Qué vas a hacer?</h1>
-            <div className="inicio-lead">Tres caminos. Sin menús intermedios.</div>
-          </div>
-          <span className="ds-live"><span className="ds-pulse" />MOTOR ACTIVO</span>
+      <div className="inicio inicio-terminal inicio-vh">
+        <div className="vh-cab">
+          <h1 className="vh-titulo">¿Qué vas a hacer?</h1>
+          <p className="vh-sub">Cotiza, costea o diseña. Cada botón abre directo su flujo, sin menús intermedios.</p>
         </div>
 
         {nPartidas > 0 && (
@@ -202,56 +220,73 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
           </div>
         )}
 
-        <div className={'inicio-op-grid' + (veCostos ? '' : ' vendedor')}>
-          <button className="inicio-op-card principal" data-testid="home-cotizar" onClick={() => onIr('voni')}>
-            <span className="inicio-op-icon"><VoniAvatar tam={56} variante="cara" /></span>
-            <span className="inicio-op-k">COTIZAR</span>
-            <strong>Preparar propuesta para cliente</strong>
-            <span>Sube plano/PDF o describe lo que necesita el cliente; VONI arma la propuesta y te lleva al acomodo/PDF.</span>
-            <b>Empezar cotización →</b>
+        <div className={'vh-caminos' + (veCostos ? '' : ' dos')}>
+          <button className="vh-camino principal" data-testid="home-cotizar" onClick={() => onIr('voni')}>
+            <img className="vh-camino-foto" src={FOTO.cotizar} alt="" />
+            <span className="vh-camino-velo" aria-hidden="true" />
+            <span className="vh-camino-txt">
+              <span className="vh-k">01 · Cotizar</span>
+              <strong>Preparar propuesta para cliente</strong>
+              <span>Sube el plano o describe lo que necesita el cliente. Voni arma la propuesta, el acomodo y el PDF.</span>
+              <b>Empezar cotización →</b>
+            </span>
           </button>
 
           {veCostos && (
-            <button className="inicio-op-card" data-testid="home-costear" onClick={() => onIr('especial')}>
-              <span className="inicio-op-icon"><Icono nombre="despiece" tam={30} /></span>
-              <span className="inicio-op-k">COSTEAR</span>
-              <strong>Costear un producto nuevo</strong>
-              <span><u>Sube PDF, plano, render o foto</u>, o descríbelo. VONI propone el despiece y el motor calcula.</span>
-              <b>Subir PDF / costear →</b>
+            <button className="vh-camino" data-testid="home-costear" onClick={() => onIr('especial')}>
+              <img className="vh-camino-foto" src={FOTO.costear} alt="" />
+              <span className="vh-camino-velo" aria-hidden="true" />
+              <span className="vh-camino-txt">
+                <span className="vh-k">02 · Costear</span>
+                <strong>Costear un producto nuevo</strong>
+                <span>PDF, plano, render o foto. Voni propone el despiece y el motor calcula el costo real.</span>
+                <b>Subir PDF / costear →</b>
+              </span>
             </button>
           )}
 
-          <button className="inicio-op-card" data-testid="home-cocrear" onClick={() => onIr('cocrear')}>
-            <span className="inicio-op-icon"><Icono nombre="especial" tam={30} /></span>
-            <span className="inicio-op-k">COCREAR</span>
-            <strong>Diseñar un producto nuevo</strong>
-            <span>Empieza desde la necesidad y baja el concepto a una solución fabricable.</span>
-            <b>Empezar cocreación →</b>
+          <button className="vh-camino" data-testid="home-cocrear" onClick={() => onIr('cocrear')}>
+            <img className="vh-camino-foto" src={FOTO.cocrear} alt="" />
+            <span className="vh-camino-velo" aria-hidden="true" />
+            <span className="vh-camino-txt">
+              <span className="vh-k">{veCostos ? '03' : '02'} · Cocrear</span>
+              <strong>Diseñar un producto nuevo</strong>
+              <span>De la necesidad del cliente a una solución fabricable, con Voni como copiloto.</span>
+              <b>Empezar cocreación →</b>
+            </span>
           </button>
         </div>
 
-        <details className="inicio-op-mas">
-          <summary>Más herramientas</summary>
-          <div className="atajos">
-            <button className="atajo" onClick={() => setVista('cotizarlinea')}>Cotizar de línea <span>producto conocido</span></button>
-            {nPartidas > 0 && <button className="atajo" onClick={() => onIr('cotizacion')}>Proyecto actual <span>ver, imprimir o descargar</span></button>}
-            {nPartidas > 0 && <button className="atajo" onClick={() => onIr('acomodo')}>Acomodo <span>plano y distribución</span></button>}
-            {veCostos && <button className="atajo" onClick={() => onIr('costeador')}>Costeo manual <span>despiece pieza por pieza</span></button>}
-            {flagActivo('commercial_v2') && <button className="atajo" onClick={() => onIr('comercial')}>Comercial · Proyectos <span>pipeline y propuestas</span></button>}
-            <button className="atajo" onClick={() => onIr('cotizarIA')}>Cotizar varios con IA <span>varios muebles de un jalón</span></button>
-            <button className="atajo" onClick={() => onIr('banco')}>Banco de precios <span>lo ya vendido</span></button>
-            <button className="atajo" onClick={() => onIr('archivo')}>Presupuestos anteriores <span>buscar y reabrir</span></button>
-            <button className="atajo" onClick={() => onIr('reglas')}>Lo que Voni sabe <span>reglas de oficio</span></button>
-            {esDireccion && <button className="atajo" onClick={() => onIr('tablero')}>Dirección <span>ver el negocio</span></button>}
-            {esDireccion && <button className="atajo" onClick={() => onIr('usuarios')}>Usuarios y accesos <span>permisos</span></button>}
+        <section className="vh-herr" aria-labelledby="vh-herr-titulo">
+          <div className="vh-herr-cab">
+            <h2 id="vh-herr-titulo">Más herramientas</h2>
+            <span>Lo de todos los días, a un clic.</span>
           </div>
-        </details>
+          <div className="vh-herr-grid">
+            {nPartidas > 0 && <Atajo foto={null} titulo="Proyecto actual" sub="ver, imprimir o descargar" onClick={() => onIr('cotizacion')} />}
+            {nPartidas > 0 && <Atajo foto={FOTO.acomodo} titulo="Acomodo" sub="plano y distribución" onClick={() => onIr('acomodo')} />}
+            <Atajo foto={FOTO.linea} titulo="Cotizar de línea" sub="producto conocido" onClick={() => setVista('cotizarlinea')} />
+            <Atajo foto={FOTO.varios} titulo="Cotizar varios con IA" sub="varios muebles de un jalón" onClick={() => onIr('cotizarIA')} />
+            {veCostos && <Atajo foto={FOTO.manual} titulo="Costeo manual" sub="despiece pieza por pieza" onClick={() => onIr('costeador')} />}
+            <Atajo foto={FOTO.banco} titulo="Banco de precios" sub="lo ya vendido" onClick={() => onIr('banco')} />
+            <Atajo foto={FOTO.archivo} titulo="Presupuestos anteriores" sub="buscar y reabrir" onClick={() => onIr('archivo')} />
+            {flagActivo('commercial_v2') && <Atajo foto={FOTO.tablero} titulo="Comercial · Proyectos" sub="pipeline y propuestas" onClick={() => onIr('comercial')} />}
+            <Atajo foto={FOTO.reglas} titulo="Lo que Voni sabe" sub="reglas de oficio" onClick={() => onIr('reglas')} />
+            {esDireccion && <Atajo foto={FOTO.tablero} titulo="Dirección" sub="ver el negocio" onClick={() => onIr('tablero')} />}
+            {esDireccion && <Atajo foto={FOTO.usuarios} titulo="Usuarios y accesos" sub="permisos" onClick={() => onIr('usuarios')} />}
+          </div>
+        </section>
 
         {favoritas.length > 0 && (
-          <div className="favoritas">
+          <div className="favoritas vh-favs">
             <div className="favoritas-lbl">Tus líneas más usadas</div>
             <div className="favoritas-chips">
-              {favoritas.map((l) => <button key={l.ruta} className="favorita" onClick={() => onIr(l.ruta)}>{l.titulo}</button>)}
+              {favoritas.map((l) => (
+                <button key={l.ruta} className="favorita vh-fav" onClick={() => onIr(l.ruta)}>
+                  {heroLinea(l.ruta) && <img src={heroLinea(l.ruta)} alt="" loading="lazy" />}
+                  {l.titulo}
+                </button>
+              ))}
             </div>
           </div>
         )}
