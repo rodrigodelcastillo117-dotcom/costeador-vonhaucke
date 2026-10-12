@@ -133,6 +133,109 @@ describe('VH-017 — insumo presente SIN precio usable ⇒ pendiente, no $0', ()
   });
 });
 
+
+describe('PENNIES + física de material · emisión', () => {
+  it('una pieza que no cabe en el formato de compra BLOQUEA emisión', () => {
+    const ins = {
+      hoja: {
+        id:'hoja', nombre:'MDF 18', seccion:'cubiertas', clase:'directa',
+        unidad:'hoja', precio:1000,
+        formato:{ medida:2.9768 }, fraccion:true,
+      },
+    };
+    const pieza = {
+      nombre:'Cubierta imposible',
+      componentes:[{ nombre:'Cubierta 1500x1500', insumoId:'hoja', largoMM:1500, anchoMM:1500, piezas:1 }],
+    };
+    const r = calcular(pieza, 1, ins, { ...par, tableroLargoMM:2440, tableroAnchoMM:1220 });
+    expect(r.detalleInsumos[0].noCabe).toBe(true);
+    const e = costeoEmitible(r);
+    expect(e.emitible).toBe(false);
+    expect(e.costoTotal).toBeNull();
+    expect(e.bloqueos.formato_incompatible.length).toBeGreaterThan(0);
+  });
+
+  it('un costo no finito jamás se vuelve costo autorizado', () => {
+    const e = costeoEmitible({ costoUnitario: Infinity, componentesIgnorados: [], detalleInsumos: [] });
+    expect(e.emitible).toBe(false);
+    expect(e.costoTotal).toBeNull();
+    expect(e.bloqueos.costo_invalido).toBe(true);
+  });
+});
+
+
+  it('costoUnitario null jamás se autoriza como $0', () => {
+    const e = costeoEmitible({ costoUnitario: null, componentesIgnorados: [], detalleInsumos: [] });
+    expect(e.emitible).toBe(false);
+    expect(e.costoTotal).toBeNull();
+    expect(e.bloqueos.costo_invalido).toBe(true);
+  });
+
+
+describe('Intelisis · completitud de tarifas por centro activo', () => {
+  const ins = {
+    mdf: {
+      id:'mdf', nombre:'MDF', seccion:'cubiertas', clase:'directa',
+      unidad:'hoja', precio:1000, formato:{medida:2.9768,largoMM:2440,anchoMM:1220}, fraccion:true,
+    },
+  };
+  const pieza = {
+    nombre:'Pieza Intelisis',
+    modeloCosteo:'intelisis',
+    modoManoObra:'horas',
+    horas:{ carpinteria:2, pintura:0, acabados:0, tapiceria:0, pm:0, otros:0 },
+    componentes:[{nombre:'Cubierta',insumoId:'mdf',largoMM:1200,anchoMM:600,piezas:1}],
+  };
+  const baseIntelisis = {
+    ...par,
+    modeloCosteo:'intelisis',
+    usarCostoPorArea:true,
+    costoHoraArea:{pm:0,carpinteria:54.55,pintura:0,acabados:0,tapiceria:0,otros:0},
+    costoHoraGIF:{pm:0,carpinteria:190.82,pintura:0,acabados:0,tapiceria:0,otros:0},
+    gastosOperacionPct:30,
+  };
+
+  it('centro activo con MO+GIF explícitos permanece emitible', () => {
+    const r=calcular(pieza,1,ins,baseIntelisis);
+    expect(r.tarifasFaltantes).toEqual([]);
+    expect(costeoEmitible(r).emitible).toBe(true);
+  });
+
+  it('falta MO en centro activo => no emitible', () => {
+    const r=calcular(pieza,1,ins,{
+      ...baseIntelisis,
+      costoHoraArea:{...baseIntelisis.costoHoraArea,carpinteria:0},
+    });
+    expect(r.tarifasFaltantes).toContain('MO:carpinteria');
+    const e=costeoEmitible(r);
+    expect(e.emitible).toBe(false);
+    expect(e.bloqueos.tarifas_faltantes).toContain('MO:carpinteria');
+  });
+
+  it('falta GIF en centro activo => no emitible', () => {
+    const r=calcular(pieza,1,ins,{
+      ...baseIntelisis,
+      costoHoraGIF:{...baseIntelisis.costoHoraGIF,carpinteria:0},
+    });
+    expect(r.tarifasFaltantes).toContain('GIF:carpinteria');
+    expect(costeoEmitible(r).emitible).toBe(false);
+  });
+
+  it('centros inactivos pueden tener tarifa 0 sin bloquear', () => {
+    const r=calcular(pieza,1,ins,baseIntelisis);
+    expect(r.tarifasFaltantes).not.toContain('MO:pintura');
+    expect(r.tarifasFaltantes).not.toContain('GIF:pintura');
+    expect(costeoEmitible(r).emitible).toBe(true);
+  });
+
+  it('modelo clásico/Alba no usa este gate', () => {
+    const clasica={...pieza,modeloCosteo:'clasico',modoManoObra:'porcentaje',horas:null};
+    const r=calcular(clasica,1,ins,{...par,modeloCosteo:'clasico'});
+    expect(r.tarifasFaltantes).toEqual([]);
+    expect(costeoEmitible(r).emitible).toBe(true);
+  });
+});
+
 // ============================================================================
 //  COSTEAR §3 (2026-10-10): "costos desconocidos nunca equivalen a cero".
 // ============================================================================

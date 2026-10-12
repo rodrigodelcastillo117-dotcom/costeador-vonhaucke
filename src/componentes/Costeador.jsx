@@ -3,7 +3,9 @@
 //  Dos columnas en >=1000px; una sola abajo, con barra fija que muestra el costo.
 // ============================================================================
 import { useMemo, useState, useEffect } from 'react';
-import { calcular, sugerenciaLote, sugerenciaMedida, costoNetoComponente, netoComponente, PARAMETROS_DEFAULT, modeloParaPieza, SIN_MO_SECCIONES, precioUsable } from '../motor/calculo.js';
+import { sugerenciaLote, sugerenciaMedida, costoNetoComponente, netoComponente, costeoEmitible, PARAMETROS_DEFAULT, SIN_MO_SECCIONES, precioUsable } from '../motor/calculo.js';
+import { calcularCosteoVivo, parametrosEfectivosCosteo } from '../motor/costeoVivo.js';
+export { parametrosEfectivosCosteo as parametrosEfectivos } from '../motor/costeoVivo.js';
 import { precioDesdeCosto, margenObjetivoDe } from '../datos/precio.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { AREAS_LABEL } from '../datos/areas.js';
@@ -11,14 +13,17 @@ import { recetaBench } from '../datos/bench.js';
 import HojaCosto from './HojaCosto.jsx';
 import FichaPDF from './FichaPDF.jsx';
 import MiniRender, { tipoDeMueble, dimsDeMueble } from './MiniRender.jsx';
-import { generarRender, analizarTexto } from '../nube.js';
-import { pesos, pct, pct1, colorMerma } from '../util.js';
+import { generarRender, analizarTexto, buscarProductosMaestroTexto } from '../nube.js';
+import { pesos2, pct, pct1, colorMerma } from '../util.js';
 import AnalisisEstructural from './AnalisisEstructural.jsx';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
 import { aplicarPoliticaMaterial, alertaMaterial } from '../datos/materialMatch.js';
 import { renderSpecFromGraph } from '../datos/renderSpec.js';
 import { flagActivo } from '../datos/flags.js';
+import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
+import { recomendar as recomendarCatalogoVonHaucke } from '../voni/conocimiento.js';
+import { explicarCosteo } from '../datos/explicacionCosteo.js';
 
 const ATAJOS = [
   { nombre: 'Muy facil', v: 30 },
@@ -27,15 +32,6 @@ const ATAJOS = [
   { nombre: 'Dificil', v: 70 },
   { nombre: 'Muy dificil', v: 90 },
 ];
-
-export function parametrosEfectivos(estado, costeo) {
-  return {
-    ...estado.parametros,
-    factorIndirectosFabrica: costeo.factorIndirectosFabrica ?? estado.parametros.factorIndirectosFabrica,
-    mermaProceso: costeo.mermaProceso ?? estado.parametros.mermaProceso,
-    empaquePorPieza: costeo.empaquePorPieza ?? estado.parametros.empaquePorPieza,
-  };
-}
 
 // Nadie escribe "1500" cuando piensa en una cubierta de 1.50 m. Al teclear 1.50
 // en un campo de milímetros, la app calculaba 1.5 mm × 0.9 mm = 0.00 m² y
@@ -49,7 +45,7 @@ const MM_MINIMO = 10;
 export const pareceMetros = (v) => Number(v) > 0 && Number(v) < MM_MINIMO;
 export const aMilimetros = (v) => (pareceMetros(v) ? Math.round(Number(v) * 1000) : Number(v) || 0);
 
-export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizacion, onGuardarPieza }) {
+export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizacion, onGuardarPieza, puedeVerComercial = true }) {
   const [abiertas, setAbiertas] = useState({ cubiertas: true });
   const [fichaAbierta, setFichaAbierta] = useState(false);
   const [generando, setGenerando] = useState(false);
@@ -58,6 +54,8 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   // estructura que Voni entendió. No toca el costeo/dinero: el motor sigue costeando.
   const [analizandoIA, setAnalizandoIA] = useState(false);
   const [errIA, setErrIA] = useState('');
+  const [validandoCosto, setValidandoCosto] = useState(false);
+  const [errAutoridad, setErrAutoridad] = useState('');
   const [catalogoFuente, setCatalogoFuente] = useState(null);   // VH-066: 'canonico' | 'cliente-fallback'
   const [estructuraVoni, setEstructuraVoni] = useState(null);
   // RENDER STALE (Gate 6): si el despiece cambió desde que se generó la imagen, el
@@ -71,35 +69,34 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   // Al cargar un costeo que ya trae imagen, fija la firma base para detectar cambios futuros.
   useEffect(() => { if (costeo.imagen && sigRender === null) setSigRender(bomSig); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [costeo.imagen]);
   const insumos = estado.insumos;
-
-  const piezaVirtual = {
-    nombre: costeo.nombre,
-    componentes: costeo.componentes,
-    horas: costeo.horas,
-    modoManoObra: costeo.modoManoObra,
-    modeloCosteo: costeo.modeloCosteo,
-    factorDirecta: costeo.factorDirecta,
-    factorIndirecta: costeo.factorIndirecta,
-    preparacionHoras: costeo.preparacionHoras,
-  };
-  const parBase = parametrosEfectivos(estado, costeo);
-  // Modelo de costeo (clásico vs Intelisis): mismo patrón que ya usan
-  // CosteadorLinea.jsx/lineas.js:precioDePieza(). No-op hoy — `costeo` en
-  // esta pantalla nunca nace de una pieza de línea, siempre en blanco, desde
-  // AsistenteEspecial o desde Catálogo (ninguno declara modeloCosteo todavía).
-  const { par, esIntelisis } = modeloParaPieza(parBase, piezaVirtual);
-  const resultado = useMemo(
-    () => calcular(piezaVirtual, costeo.piezas, insumos, par),
-    [costeo, insumos, par]
+  const candidatosLinea = useMemo(
+    () => recomendarCatalogoVonHaucke(costeo.descripcionCliente || costeo.nombre || '', 5),
+    [costeo.descripcionCliente, costeo.nombre],
   );
+
+  // ÚNICO camino de preparación/cálculo: la misma función alimenta a VONI.
+  const vivo = useMemo(
+    () => calcularCosteoVivo(estado, costeo),
+    [estado, costeo],
+  );
+  const { piezaVirtual, parBase, par, esIntelisis, resultado } = vivo;
   const margen = costeo.margen ?? margenObjetivoDe(estado.parametros);
   // Una sola regla costo → precio, sobre el costo OFICIAL: incompleto ⇒ null (nunca $0).
   const precio = precioDesdeCosto(resultado.costoOficial, { par, esIntelisis, margen });
   const bajoMinimo = margen < estado.parametros.margenMinimo;
   // FAIL-CLOSED (audit 2026-10-01): con partidas sin costear no hay precio ni se
   // puede emitir a la cotización. Solo se muestra el subtotal conocido.
-  const pendientesC = resultado.componentesIgnorados || [];
-  const incompletoC = pendientesC.length > 0;
+  const emisionC = costeoEmitible(resultado);
+  const pendientesC = emisionC.pendientes || [];
+  const incompletoC = !emisionC.emitible;
+  const inteligenciaIndustrial = useMemo(
+    () => analizarProductoIndustrial({ bom: costeo.componentes || [], costing: resultado }),
+    [costeo.componentes, resultado],
+  );
+  const explicacionCosteo = useMemo(
+    () => explicarCosteo(resultado, { nombre: costeo.nombre, cantidad: costeo.piezas }),
+    [resultado, costeo.nombre, costeo.piezas],
+  );
   // SIMULADOR vs OFICIAL (cutover 2026-10-02). El costo OFICIAL usa Alba (sin factores a
   // mano y sin horas). En cuanto el usuario fija un factorDirecta/Indirecta o usa modo
   // horas, está SIMULANDO: no es oficial y no puede emitir/cotizar/aprobar. Volver a
@@ -140,7 +137,9 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
         !window.confirm('Esto reemplazará las piezas actuales por lo que entienda Voni de tu descripción. ¿Seguir?')) return;
     setErrIA(''); setCatalogoFuente(null); setAnalizandoIA(true);
     try {
-      const res = await analizarTexto(catalogoIA(), desc);
+      const master = await buscarProductosMaestroTexto(desc, 30);
+      const catalogo = { ...catalogoIA(), __producto_maestro: master?.items || [] };
+      const res = await analizarTexto(catalogo, desc);
       if (!res?.ok) { setErrIA(res?.error || 'No se pudo interpretar la descripción.'); return; }
       const p = res.propuesta || {};
       set({ nombre: costeo.nombre || p.producto || '', descripcionCliente: p.descripcionCliente || desc, componentes: conAcompanantes(mapIaComps(p)) });
@@ -156,6 +155,20 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   const vistaTipo = (estructuraVoni?.design_intent?.product_type && estructuraVoni.design_intent.product_type !== 'unknown')
     ? tipoDeMueble({ nombre: estructuraVoni.design_intent.product_type })
     : tipoDeMueble(costeo);
+
+  async function agregarCotizacionVerificada() {
+    if (incompletoC || simulando || validandoCosto) return;
+    setErrAutoridad('');
+    setValidandoCosto(true);
+    try {
+      const r = await onAgregarCotizacion(resultado, precio, margen);
+      if (r?.ok === false) setErrAutoridad(r.error || 'No se pudo verificar el costo.');
+    } catch (e) {
+      setErrAutoridad(String(e?.message || e || 'No se pudo verificar el costo.'));
+    } finally {
+      setValidandoCosto(false);
+    }
+  }
 
   // --- Render de calidad con IA (Gemini), inspirado en lo que se costea ---
   // Resumen de ESTRUCTURA (lo que Voni entendió) para que el render arme el objeto
@@ -335,6 +348,15 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             <span className="ayuda gris" style={{ fontSize: 12 }}>Propone piezas y estructura; tú confirmas. El precio lo calcula el motor.</span>
           </div>
           {errIA && <div className="alerta roja" style={{ marginTop: 8 }}><span className="texto">{errIA}</span></div>}
+          {candidatosLinea.length > 0 && (
+            <div className="alerta" style={{ marginTop: 8, display: 'block', background: '#eef6f3', borderColor: '#8bbcaf', color: '#174f45' }}>
+              <strong>Antes de hacerlo a la medida:</strong> VONI encontró posibles líneas Von Haucke existentes.
+              <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:6 }}>
+                {candidatosLinea.map((l)=><span key={l.ruta} className="chip" style={{background:'#fff'}}><b>{l.linea}</b> · {l.productos?.length||0} variante(s)</span>)}
+              </div>
+              <div className="ayuda" style={{marginTop:6,color:'#356b62'}}>Son candidatos, no una coincidencia certificada. Revisa línea/variante antes de construir un especial; si ninguna resuelve el brief, Von Haucke sí puede fabricarlo a la medida.</div>
+            </div>
+          )}
           {catalogoFuente === 'cliente-fallback' && <div className="alerta ambar" style={{ marginTop: 8 }} data-testid="catalogo-fallback"><span className="texto">⚠ El catálogo central no estaba disponible: la IA usó datos locales. <strong>No cotices en firme</strong> con este despiece; confirma materiales y precios con Dirección.</span></div>}
           {estructuraVoni && estructuraVoni.nodes.length > 0 && (
             <div className="tarjeta" style={{ background: 'var(--panel)', borderLeft: '4px solid var(--acento, #3a6ea5)', marginTop: 10 }}>
@@ -466,7 +488,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                       <label>Cantidad ({ins.unidad})<input type="number" className="numero" step="0.01" min="0" value={c.cantidad}
                         onChange={(e) => setCantidad(i, parseFloat(e.target.value) || 0)} /></label>
                     )}
-                    <span className="pieza-sub">{precioUsable(ins) ? pesos(costoPieza(c, ins, costeo.piezas)) : <strong style={{ color: '#B42318' }} title="Material sin precio: pendiente de capturar (no cuenta como $0)">Pendiente</strong>}</span>
+                    <span className="pieza-sub">{precioUsable(ins) ? pesos2(costoPieza(c, ins, costeo.piezas)) : <strong style={{ color: '#B42318' }} title="Material sin precio: pendiente de capturar (no cuenta como $0)">Pendiente</strong>}</span>
                   </div>
                 )}
                 {porHojaDir && c.hojas > 0 && (
@@ -532,20 +554,20 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                   </div>
                 </span>
                 <span className={`semaforo ${colorMerma(c.pct)}`}>{pct(c.pct)}</span>
-                <span className="sub">{pesos(c.desperdicio)}</span>
+                <span className="sub">{pesos2(c.desperdicio)}</span>
               </div>
             );
           })}
           {resultado.desperdicio > 0 && (
             <div className="fila-botones" style={{ justifyContent: 'space-between', marginTop: 10 }}>
               <strong>SE VA AL BOTE DE BASURA</strong>
-              <strong className="dinero rojo">{pesos(resultado.desperdicio)}</strong>
+              <strong className="dinero rojo">{pesos2(resultado.desperdicio)}</strong>
             </div>
           )}
           {sugerencia && (
             <div className="alerta ambar" style={{ marginTop: 12 }}>
               <span className="texto">
-                Si en vez de {costeo.piezas} haces {sugerencia.piezas}, cada pieza baja a {pesos(sugerencia.costoUnitario)} — {pesos(sugerencia.ahorroPorPieza)} menos.
+                Si en vez de {costeo.piezas} haces {sugerencia.piezas}, cada pieza baja a {pesos2(sugerencia.costoUnitario)} — {pesos2(sugerencia.ahorroPorPieza)} menos.
               </span>
               <button className="boton" onClick={() => set({ piezas: sugerencia.piezas })}>Cambiar a {sugerencia.piezas}</button>
             </div>
@@ -556,7 +578,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             <div className="alerta ambar" style={{ marginTop: 12 }} key={s.i}>
               <span className="texto">
                 Esta pieza de {(s.actual === 1) ? 'solo deja 1 pieza' : `${s.actual} piezas`} por tablero. Si el cliente acepta{' '}
-                <strong>{(s.mejor.largoMM / 1000).toFixed(2)} × {(s.mejor.anchoMM / 1000).toFixed(2)}</strong>, caben {s.mejor.piezasPorTablero} por tablero y el material baja de {pesos(s.costoAct)} a {pesos(s.costoNuevo)} por pieza.
+                <strong>{(s.mejor.largoMM / 1000).toFixed(2)} × {(s.mejor.anchoMM / 1000).toFixed(2)}</strong>, caben {s.mejor.piezasPorTablero} por tablero y el material baja de {pesos2(s.costoAct)} a {pesos2(s.costoNuevo)} por pieza.
               </span>
               <button className="boton" onClick={() => aplicarMedida(s.i, s.mejor.largoMM, s.mejor.anchoMM)}>
                 Usar {(s.mejor.largoMM / 1000).toFixed(2)}×{(s.mejor.anchoMM / 1000).toFixed(2)}
@@ -589,7 +611,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                     <span className="nom">{label}</span>
                     <input type="number" className="numero" step="0.01" min="0" value={h}
                       onChange={(e) => set({ horas: { ...costeo.horas, [area]: parseFloat(e.target.value) || 0 } })} />
-                    <span className="sub">{pesos(h * costoArea)}</span>
+                    <span className="sub">{pesos2(h * costoArea)}</span>
                   </div>
                 );
               })}
@@ -682,48 +704,140 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             (default 30%), así que mostraba un "precio de lista" distinto al precio
             grande para la MISMA pieza. Se le pasa el margen efectivo. (Para piezas
             de catálogo/Intelisis la hoja usa la lista ×3 y este override no aplica.) */}
-        <HojaCosto resultado={resultado} insumos={insumos} pieza={piezaVirtual} parametros={{ ...par, margenObjetivo: margen }} tipo={costeo.tipoProducto} mostrarVolumen={true} />
+        <HojaCosto resultado={resultado} insumos={insumos} pieza={piezaVirtual} parametros={{ ...par, margenObjetivo: margen }} tipo={costeo.tipoProducto} mostrarVolumen={puedeVerComercial} mostrarComercial={puedeVerComercial} />
 
-        <div className="tarjeta roja" style={{ marginTop: 16 }}>
-          {/* SIMULADOR vs OFICIAL: un costo oficial SIEMPRE es Alba. Con factores a mano
-              esto es una simulación y no puede emitir/cotizar. */}
-          {simulando ? (
-            <div className="alerta" style={{ border: '1px solid #8a6d00', borderRadius: 8, padding: 10, marginBottom: 10 }}>
-              <div style={{ fontWeight: 700 }}>⚠ SIMULADOR — NO OFICIAL</div>
-              <div className="ayuda" style={{ margin: '4px 0 8px' }}>Los factores manuales NO modifican el costo certificado del expediente (Alba V1). No se puede cotizar, aprobar ni emitir desde aquí.</div>
-              <button className="boton" onClick={volverAAlba}>Volver al costo oficial (Alba V1)</button>
-            </div>
-          ) : (
-            <div className="ayuda" style={{ marginBottom: 10, opacity: 0.8 }}>Costo oficial — <strong>Alba V1</strong>.</div>
-          )}
-          <label className="etiqueta">Cuanto quieres ganar</label>
-          <div className="masmenos" style={{ marginBottom: 10 }}>
-            <input type="range" min="0" max="70" value={margen}
-              onChange={(e) => set({ margen: parseInt(e.target.value) })} style={{ flex: 1 }} />
-            <span className="valor">{margen}%</span>
+        <details className="tarjeta" open style={{ marginTop: 12, borderLeft:'4px solid #5b4636' }}>
+          <summary style={{ cursor:'pointer', fontWeight:800 }}>Así calculé este mueble · auditoría matemática</summary>
+          <div className="ayuda" style={{ marginTop:6 }}>{explicacionCosteo.ecuacion}</div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:6,marginTop:10}}>
+            <div><div className="ayuda">Material directo</div><strong>{pesos2(explicacionCosteo.matematicas.material_directo)}</strong></div>
+            <div><div className="ayuda">Material indirecto</div><strong>{pesos2(explicacionCosteo.matematicas.material_indirecto)}</strong></div>
+            <div><div className="ayuda">Mano de obra</div><strong>{pesos2(explicacionCosteo.matematicas.mano_obra)}</strong></div>
+            <div><div className="ayuda">Indirectos fábrica</div><strong>{pesos2(explicacionCosteo.matematicas.indirectos_fabrica)}</strong></div>
+            <div><div className="ayuda">Preparación + empaque</div><strong>{pesos2((explicacionCosteo.matematicas.preparacion||0)+(explicacionCosteo.matematicas.empaque||0))}</strong></div>
+            <div><div className="ayuda">Costo unitario</div><strong>{pesos2(explicacionCosteo.matematicas.costo_unitario||0)}</strong></div>
           </div>
-          <div className="precio-grande" style={incompletoC ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : pesos(precio)}</div>
-          <div className="ayuda">{incompletoC ? 'Sin precio: faltan partidas por costear.' : `Precio por pieza con ${margen}% de margen.`}</div>
-          {incompletoC && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">⚠ Costo INCOMPLETO — faltan por costear {pendientesC.length} partida(s): {pendientesC.slice(0, 6).join(', ')}{pendientesC.length > 6 ? '…' : ''}. No se puede cotizar ni emitir.</span></div>}
-          {!incompletoC && bajoMinimo && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">Debajo del minimo de {estado.parametros.margenMinimo}%.</span></div>}
-          <div className="espacio" />
-          {/* Emisión OFICIAL solo cuando es Alba (no simulación) y el costo está completo. */}
-          <button className="boton primario grande" disabled={incompletoC || simulando} title={simulando ? 'Simulación: vuelve al costo oficial Alba para cotizar' : incompletoC ? 'No se puede cotizar un costo incompleto' : ''} onClick={() => !incompletoC && !simulando && onAgregarCotizacion(resultado, precio, margen)}>Agregar a la cotización</button>
-          <div className="espacio" />
-          <button className="boton grande" onClick={() => onGuardarPieza(resultado)}>Guardar como pieza</button>
-          <div className="espacio" />
-          <button className="boton grande" disabled={incompletoC || simulando} title={simulando ? 'Simulación: no emite ficha oficial' : incompletoC ? 'No se puede imprimir una ficha con precio incompleto' : ''} onClick={() => !incompletoC && !simulando && setFichaAbierta(true)}>Ver ficha PDF</button>
+          <div className="ayuda" style={{marginTop:8}}>
+            Fórmula: <b>{explicacionCosteo.formula}</b>
+            {explicacionCosteo.modelo ? <><span> · modelo </span><b>{explicacionCosteo.modelo}</b></> : null}
+            {explicacionCosteo.matematicas.merma_proceso_pct ? <><span> · merma proceso </span><b>{explicacionCosteo.matematicas.merma_proceso_pct}%</b></> : null}
+            {explicacionCosteo.corte ? <><span> · kerf </span><b>{explicacionCosteo.corte.kerfMM} mm</b><span> · recorte </span><b>{explicacionCosteo.corte.recorteOrillaMM} mm</b></> : null}
+          </div>
+          {explicacionCosteo.supuestos.map((s,i)=><div key={'xsu'+i} className="alerta ambar" style={{marginTop:7}}><span className="texto">⚠ {s}</span></div>)}
+          {explicacionCosteo.bloqueos.map((s,i)=><div key={'xbl'+i} className="alerta roja" style={{marginTop:7}}><span className="texto">✕ {s}</span></div>)}
+          {!!explicacionCosteo.insumos.length && (
+            <div style={{marginTop:10}}>
+              <div className="etiqueta">Material por material</div>
+              {explicacionCosteo.insumos.map((x)=>(
+                <div key={x.id||x.nombre} style={{padding:'7px 0',borderTop:'1px solid var(--linea)'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',gap:8}}>
+                    <strong style={{fontSize:12}}>{x.nombre}</strong><span className="mono">{pesos2(x.costo||0)}</span>
+                  </div>
+                  <div className="ayuda">
+                    {x.metodo ? x.metodo.replace(/_/g,' ').toLowerCase() : 'método no etiquetado'}
+                    {x.tipo_alba ? <><span> · Alba: </span>{x.tipo_alba}</> : null}
+                    {x.desperdicio_pct!=null ? <><span> · desperdicio </span>{x.desperdicio_pct}%</> : null}
+                    {x.corte_2d?.eficiencia_pct!=null ? <><span> · nesting 2D </span>{x.corte_2d.eficiencia_pct}%</> : null}
+                    {x.corte_1d?.eficiencia_pct!=null ? <><span> · corte 1D </span>{x.corte_1d.eficiencia_pct}%</> : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="ayuda gris" style={{marginTop:8}}>{explicacionCosteo.nota}</div>
+        </details>
+
+        <div className="tarjeta" style={{ marginTop: 12, borderLeft: '4px solid #315e52' }}>
+          <div className="fila" style={{ justifyContent:'space-between', gap:8, alignItems:'start' }}>
+            <div>
+              <strong>VONI · Mejora de fabricación</strong>
+              <div className="ayuda">El costo oficial NO cambia. Esta capa encuentra oportunidades deterministas de corte, retazo, repetibilidad y datos faltantes.</div>
+            </div>
+            <span className="chip">{inteligenciaIndustrial?.matematica?.formula_oficial || resultado.formulaCosteo || '—'}</span>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,minmax(0,1fr))', gap:6, marginTop:10 }}>
+            <div><div className="ayuda">Eficiencia 2D</div><strong>{inteligenciaIndustrial?.eficiencia?.corte_2d_global_pct == null ? '—' : `${inteligenciaIndustrial.eficiencia.corte_2d_global_pct}%`}</strong></div>
+            <div><div className="ayuda">Desperdicio calculado</div><strong>{pesos2(inteligenciaIndustrial?.eficiencia?.desperdicio_costo_calculado || 0)}</strong></div>
+            <div><div className="ayuda">Supuestos</div><strong>{inteligenciaIndustrial?.matematica?.supuestos?.length || 0}</strong></div>
+          </div>
+          {(inteligenciaIndustrial?.matematica?.supuestos || []).slice(0,2).map((s,i)=>(
+            <div key={'sup'+i} className="alerta ambar" style={{ marginTop:8 }}><span className="texto">⚠ {s.detalle}</span></div>
+          ))}
+          {(inteligenciaIndustrial?.recomendaciones || []).slice(0,3).map((r,i)=>(
+            <div key={'rec'+i} style={{ marginTop:8, paddingTop:8, borderTop:'1px solid var(--linea)' }}>
+              <div style={{ fontWeight:700, fontSize:12 }}>{r.tipo?.replace(/_/g,' ')}</div>
+              <div className="ayuda">{r.accion}</div>
+              {r.ahorro_certificado === false && <div className="ayuda gris" style={{ fontSize:11 }}>Advisory · requiere validación de Diseño/Producción antes de modificar BOM o declarar ahorro.</div>}
+            </div>
+          ))}
+          {!(inteligenciaIndustrial?.recomendaciones || []).length && !(inteligenciaIndustrial?.bloqueos || []).length && (
+            <div className="ayuda verde" style={{ marginTop:8 }}>Sin mejora determinista obvia con la evidencia actual. VONI no inventa ahorro.</div>
+          )}
+          <details style={{ marginTop:10, borderTop:'1px solid var(--linea)', paddingTop:8 }}>
+            <summary style={{ cursor:'pointer', fontWeight:700, fontSize:12 }}>¿Por qué cuesta esto?</summary>
+            <div className="ayuda" style={{ marginTop:7 }}>{explicacionCosteo.ecuacion}</div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(2,minmax(0,1fr))', gap:5, marginTop:7, fontSize:11 }}>
+              <span>Material <b>{pesos2(explicacionCosteo.matematicas.material_total)}</b></span>
+              <span>MO <b>{pesos2(explicacionCosteo.matematicas.mano_obra)}</b></span>
+              <span>GI fábrica <b>{pesos2(explicacionCosteo.matematicas.indirectos_fabrica)}</b></span>
+              <span>Costo unitario <b>{pesos2(explicacionCosteo.matematicas.costo_unitario)}</b></span>
+            </div>
+            {(explicacionCosteo.supuestos || []).map((s,i)=><div key={i} className="ayuda gris" style={{ marginTop:4 }}>• {s}</div>)}
+            <div className="ayuda gris" style={{ marginTop:6, fontSize:10 }}>{explicacionCosteo.nota}</div>
+          </details>
         </div>
+
+        {puedeVerComercial ? (
+          <div className="tarjeta roja" style={{ marginTop: 16 }}>
+            {/* Dirección controla la capa comercial; Diseño conserva sólo la capa técnica. */}
+            {simulando ? (
+              <div className="alerta" style={{ border: '1px solid #8a6d00', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                <div style={{ fontWeight: 700 }}>⚠ SIMULADOR — NO OFICIAL</div>
+                <div className="ayuda" style={{ margin: '4px 0 8px' }}>Los factores manuales NO modifican el costo certificado del expediente (Alba V1). No se puede cotizar, aprobar ni emitir desde aquí.</div>
+                <button className="boton" onClick={volverAAlba}>Volver al costo oficial (Alba V1)</button>
+              </div>
+            ) : (
+              <div className="ayuda" style={{ marginBottom: 10, opacity: 0.8 }}>Costo oficial — <strong>Alba V1</strong>.</div>
+            )}
+            <label className="etiqueta">Cuanto quieres ganar</label>
+            <div className="masmenos" style={{ marginBottom: 10 }}>
+              <input type="range" min="0" max="70" value={margen}
+                onChange={(e) => set({ margen: parseInt(e.target.value) })} style={{ flex: 1 }} />
+              <span className="valor">{margen}%</span>
+            </div>
+            <div className="precio-grande" style={incompletoC ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : pesos2(precio)}</div>
+            <div className="ayuda">{incompletoC ? 'Sin precio oficial: existe al menos un bloqueo técnico/económico de costeo.' : `Precio por pieza con ${margen}% de margen.`}</div>
+            {incompletoC && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">⚠ Costo NO EMITIBLE — {pendientesC.length} bloqueo(s): {pendientesC.slice(0, 6).join(' · ')}{pendientesC.length > 6 ? '…' : ''}. No se puede cotizar ni emitir hasta resolverlos.</span></div>}
+            {!incompletoC && bajoMinimo && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">Debajo del minimo de {estado.parametros.margenMinimo}%.</span></div>}
+            <div className="espacio" />
+            {errAutoridad && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">⚠ {errAutoridad}</span></div>}
+            <button className="boton primario grande" disabled={incompletoC || simulando || validandoCosto}
+              title={simulando ? 'Simulación: vuelve al costo oficial Alba para cotizar' : incompletoC ? 'No se puede cotizar mientras el motor marque bloqueos de costeo' : validandoCosto ? 'Verificando costo contra el servidor' : 'Verifica el costo autoritativo antes de agregar'}
+              onClick={agregarCotizacionVerificada}>{validandoCosto ? 'Verificando costo…' : 'Agregar a la cotización'}</button>
+            <div className="espacio" />
+            <button className="boton grande" onClick={() => onGuardarPieza(resultado)}>Guardar como pieza</button>
+            <div className="espacio" />
+            <button className="boton grande" disabled={incompletoC || simulando} title={simulando ? 'Simulación: no emite ficha oficial' : incompletoC ? 'No se puede imprimir una ficha oficial con bloqueos de costeo' : ''} onClick={() => !incompletoC && !simulando && setFichaAbierta(true)}>Ver ficha PDF</button>
+          </div>
+        ) : (
+          <div className="tarjeta" style={{ marginTop: 16 }}>
+            <h2>Cierre técnico</h2>
+            <div className="ayuda">Diseño puede revisar BOM y costo técnico. Precio de venta, margen, descuentos y documentos comerciales son de Dirección/Ventas.</div>
+            {incompletoC && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">⚠ Costo técnico incompleto — {pendientesC.slice(0, 6).join(' · ')}</span></div>}
+            <div className="espacio" />
+            <button className="boton grande" onClick={() => onGuardarPieza(resultado)}>Guardar como pieza</button>
+          </div>
+        )}
       </div>
 
-      {fichaAbierta && (
+      {puedeVerComercial && fichaAbierta && (
         <FichaPDF estado={estado} costeo={costeo} cantidad={costeo.piezas} precioUnitario={precio} onCerrar={() => setFichaAbierta(false)} />
       )}
 
       {/* Barra fija inferior para pantallas angostas */}
       <div className="barra-fija no-imprimir">
-        <span>{simulando ? 'Simulación' : incompletoC ? 'Subtotal conocido' : 'Cuesta hacer 1 pieza'} <strong className="mono">{pesos(resultado.costoUnitario)}</strong></span>
-        <span className="precio-grande" style={(incompletoC || simulando) ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : simulando ? 'No oficial' : pesos(precio)}</span>
+        <span>{simulando ? 'Simulación' : incompletoC ? 'Subtotal conocido' : 'Cuesta hacer 1 pieza'} <strong className="mono">{pesos2(resultado.costoUnitario)}</strong></span>
+        {puedeVerComercial && <span className="precio-grande" style={(incompletoC || simulando) ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : simulando ? 'No oficial' : pesos2(precio)}</span>}
       </div>
     </div>
   );
@@ -780,7 +894,7 @@ function GuiaManoObra({ resultado }) {
   return (
     <div style={{ marginTop: 12 }}>
       <div className="ayuda">
-        Con este factor, la mano de obra es <strong>{pesos(resultado.manoObra)}</strong> — {pct(moShare * 100)} del costo de fabricar.
+        Con este factor, la mano de obra es <strong>{pesos2(resultado.manoObra)}</strong> — {pct(moShare * 100)} del costo de fabricar.
       </div>
       {mezclaFloja && (
         <div className="alerta ambar" style={{ marginTop: 8 }}>

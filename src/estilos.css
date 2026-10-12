@@ -2926,3 +2926,46 @@ body::before {
     box-shadow: 0 26px 60px -20px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.1);
   }
 }
+
+
+/* Recovery UX · home simple y directo */
+.inicio-operativo{max-width:1180px;margin:0 auto}
+.inicio-op-cab{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;padding:32px 0 18px;border-bottom:1px solid var(--linea)}
+.inicio-op-titulo{margin:6px 0 4px;font-size:clamp(32px,5vw,58px);line-height:.98;letter-spacing:-.045em}
+.inicio-op-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:20px}
+.inicio-op-grid.vendedor{grid-template-columns:repeat(2,minmax(0,1fr))}
+.inicio-op-card{display:flex;flex-direction:column;align-items:flex-start;text-align:left;min-height:245px;padding:22px;border:1px solid var(--linea-fuerte,var(--linea));border-radius:18px;background:var(--panel,#fff);color:var(--carbon,#171717);cursor:pointer;transition:.16s ease}
+.inicio-op-card:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(0,0,0,.08)}
+.inicio-op-card.principal{background:linear-gradient(145deg,rgba(49,94,82,.12),var(--panel,#fff) 62%);border-color:#94aaa4}
+.inicio-op-icon{display:grid;place-items:center;width:58px;height:58px;border-radius:14px;background:rgba(0,0,0,.045);margin-bottom:18px}
+.inicio-op-k{font-size:11px;font-weight:900;letter-spacing:.13em;color:#a52b24;margin-bottom:6px}
+.inicio-op-card strong{font-size:22px;line-height:1.12;letter-spacing:-.02em;margin-bottom:8px}
+.inicio-op-card>span:not(.inicio-op-icon):not(.inicio-op-k){font-size:13px;line-height:1.48;color:var(--texto-secundario,#666)}
+.inicio-op-card>b{margin-top:auto;padding-top:20px;font-size:13px}
+.inicio-op-directos{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:14px}
+.inicio-op-mas{margin-top:12px;border:1px solid var(--linea);border-radius:12px;background:var(--panel,#fff);overflow:hidden}
+.inicio-op-mas>summary{cursor:pointer;list-style:none;padding:14px 16px;font-weight:800}
+.inicio-op-mas>summary::-webkit-details-marker{display:none}
+.inicio-op-mas>summary::after{content:'＋';float:right;font-size:18px;font-weight:400}
+.inicio-op-mas[open]>summary::after{content:'−'}
+.inicio-op-mas[open]>summary{border-bottom:1px solid var(--linea)}
+.inicio-op-mas .atajos{padding:10px}
+@media(max-width:900px){.inicio-op-grid,.inicio-op-grid.vendedor{grid-template-columns:1fr}.inicio-op-directos{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.inicio-op-cab{align-items:flex-start;flex-direction:column}.inicio-op-directos{grid-template-columns:1fr}.inicio-op-card{min-height:205px}}
+
+@media print {
+  body.vh-print-borrador .cot-cliente { position: relative; }
+  body.vh-print-borrador .cot-cliente::before {
+    content: "BORRADOR · NO REGISTRADO";
+    position: fixed;
+    inset: 42% auto auto 50%;
+    transform: translate(-50%,-50%) rotate(-28deg);
+    font-size: 46px;
+    font-weight: 900;
+    letter-spacing: .08em;
+    color: rgba(160,0,0,.16);
+    z-index: 9999;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+}

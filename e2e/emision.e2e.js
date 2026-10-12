@@ -28,7 +28,8 @@ async function entrar(page, email) {
 }
 const inputCliente = (page) => page.locator('label.etiqueta', { hasText: /^Cliente$/ }).locator('xpath=following-sibling::input[1]');
 async function abrirPrimeraDelArchivo(page) {
-  await page.getByRole('button', { name: /Presupuestos que ya hicimos/i }).first().click();
+  await page.getByText('Más herramientas').click();   // inicio vivo: tres tarjetas + atajos plegados
+  await page.getByRole('button', { name: /^Presupuestos anteriores/ }).click();
   await expect(page.getByTestId('respaldo-local')).toBeVisible({ timeout: 10000 });
   page.once('dialog', (d) => d.accept());
   await page.getByRole('button', { name: /^Abrir$/ }).first().click();
@@ -78,8 +79,9 @@ test.describe('Compuerta única de emisión', () => {
     nube.sembrarFila({ usuario: 'ventas@vh.mx', cliente: 'Acme', partidas: [{ id: 'p2', nombre: 'Especial a medida', cantidad: 1, precioUnitario: null }], total: 0, piezas: 1 });
     const { ctx, page } = await abrirComo(browser, nube, 'ventas@vh.mx');
 
-    await expect(botonPDF(page)).toBeDisabled();
-    await expect(botonPDF(page)).toHaveAttribute('title', /no tiene un precio válido/);
+    // Línea viva: el botón no se bloquea; el documento sale marcado BORRADOR y la emisión definitiva no ocurre.
+    await expect(botonPDF(page)).toHaveText(/Descargar BORRADOR/);
+    await expect(botonPDF(page)).toHaveAttribute('title', /BORRADOR/);
     await expect(page.getByText(/No se puede emitir todavía/).first()).toBeVisible();
     await page.getByRole('button', { name: /¿Por qué no puedo emitir\?/ }).click();
     await expect(page.getByText(/"Especial a medida" no tiene un precio válido/)).toBeVisible();
@@ -90,7 +92,8 @@ test.describe('Compuerta única de emisión', () => {
     // La cola de aprobaciones es de Dirección: el vendedor no la ve en su Archivo.
     await page.goto('/');
     await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
-    await page.getByRole('button', { name: /Presupuestos que ya hicimos/i }).first().click();
+    await page.getByText('Más herramientas').click();   // inicio vivo: tres tarjetas + atajos plegados
+  await page.getByRole('button', { name: /^Presupuestos anteriores/ }).click();
     await expect(page.getByTestId('respaldo-local')).toBeVisible({ timeout: 10000 });
     await expect(page.getByTestId('aprobaciones-pendientes')).toHaveCount(0);
     await ctx.close();
@@ -107,11 +110,11 @@ test.describe('Compuerta única de emisión', () => {
     await expect(page.getByText(/Faltan datos para cotizar/)).toBeVisible({ timeout: 15000 });
     await expect(page.getByText(/Línea 1: falta confirmar el costo con Diseño\/Dirección/)).toBeVisible();
 
-    let bajo = false; page.once('download', () => { bajo = true; });
+    // Línea viva: sale un BORRADOR (nunca "clic y no pasó nada"), pero NO se registra emisión.
     await botonPDF(page).click();
-    await expect(page.getByText(/No se puede emitir: Faltan datos para cotizar/)).toBeVisible({ timeout: 15000 });
-    await page.waitForTimeout(1500);
-    expect(bajo).toBe(false);
+    const aviso = page.locator('.aviso.rojo', { hasText: /BORRADOR · NO REGISTRADO/ });
+    await expect(aviso).toBeVisible({ timeout: 20000 });
+    await expect(aviso).toContainText(/Faltan datos para cotizar/);
     expect(nube.revisiones).toHaveLength(0);
     expect(nube.llamadas.some((l) => l.includes('/rpc/emitir_revision'))).toBe(false);
     await ctx.close();
@@ -133,8 +136,11 @@ test.describe('Aprobación de Dirección (VH-055)', () => {
 
     // El PDF no sale sin aprobación.
     await botonPDF(page).click();
-    await expect(page.getByText(/No se puede emitir: Requiere aprobación/)).toBeVisible({ timeout: 15000 });
+    const avisoAprob = page.locator('.aviso.rojo', { hasText: /BORRADOR · NO REGISTRADO/ });
+    await expect(avisoAprob).toBeVisible({ timeout: 20000 });
+    await expect(avisoAprob).toContainText(/Requiere aprobación de Dirección/);
     expect(nube.revisiones).toHaveLength(0);
+    await avisoAprob.getByRole('button', { name: /Entendido/ }).click();
 
     // Pide la aprobación desde la cotización.
     await page.getByTestId('solicitar-aprobacion').locator('input').fill('Cliente estratégico, igualamos competencia');
@@ -152,7 +158,8 @@ test.describe('Aprobación de Dirección (VH-055)', () => {
     await sembrarLocal(cd, estadoLocal());
     const d = await cd.newPage();
     await entrar(d, 'rodrigo@vh.mx');
-    await d.getByRole('button', { name: /Presupuestos que ya hicimos/i }).first().click();
+    await d.getByText('Más herramientas').click();
+    await d.getByRole('button', { name: /^Presupuestos anteriores/ }).click();
     const cola = d.getByTestId('aprobaciones-pendientes');
     await expect(cola).toContainText('Aprobaciones pendientes (1)', { timeout: 15000 });
     await expect(cola.getByTestId('aprobacion-fila')).toContainText(/Cotización \d+ · solicitó ventas@vh.mx/);

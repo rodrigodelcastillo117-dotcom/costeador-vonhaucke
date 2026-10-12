@@ -1,7 +1,15 @@
 import { nube } from '../nube.js';
+import { dinero } from '../motor/dinero.js';
 
 const normal=(s='')=>String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-const money=(n,moneda='MXN')=>new Intl.NumberFormat('es-MX',{style:'currency',currency:moneda||'MXN',maximumFractionDigits:0}).format(Number(n)||0);
+const money=(n,moneda='MXN')=>{
+  const v=dinero(n);
+  if(!Number.isFinite(v)) return '—';
+  return new Intl.NumberFormat('es-MX',{
+    style:'currency',currency:moneda||'MXN',
+    minimumFractionDigits:2,maximumFractionDigits:2,
+  }).format(v);
+};
 
 function capacidadDeNombre(nombre=''){
   const m=normal(nombre).match(/(\d{1,2})\s*(?:usuarios?|lugares?|puestos?)/);

@@ -20,12 +20,14 @@
 export const MATCH = Object.freeze({
   EXACT: 'EXACT',
   EQUIVALENT_APPROVED: 'EQUIVALENT_APPROVED',
+  USER_CONFIRMED: 'USER_CONFIRMED',
+  CANDIDATE_REQUIRES_CONFIRMATION: 'CANDIDATE_REQUIRES_CONFIRMATION',
   SUBSTITUTE_REQUIRES_CONFIRMATION: 'SUBSTITUTE_REQUIRES_CONFIRMATION',
   NOT_AVAILABLE: 'NOT_AVAILABLE',
 });
 
 // Sólo EXACT y equivalencias autorizadas alimentan el BOM automáticamente.
-export const MATCH_AUTOCOSTEABLE = new Set([MATCH.EXACT, MATCH.EQUIVALENT_APPROVED]);
+export const MATCH_AUTOCOSTEABLE = new Set([MATCH.EXACT, MATCH.EQUIVALENT_APPROVED, MATCH.USER_CONFIRMED]);
 
 // Familias canónicas de material. El orden importa: la primera regex que pega
 // gana, así que las familias MÁS específicas van ANTES que las genéricas
@@ -62,6 +64,37 @@ export function familiaDeMaterial(texto) {
     if (re.test(t)) return fam;
   }
   return '';
+}
+
+function espesoresMM(texto='') {
+  const t=String(texto||'').toLowerCase();
+  const out=new Set();
+  for (const m of t.matchAll(/\b(\d+(?:[.,]\d+)?)\s*mm\b/g)) {
+    const n=Number(String(m[1]).replace(',','.'));
+    if(Number.isFinite(n) && n>0) out.add(n);
+  }
+  return [...out];
+}
+
+function conflictoEspesor(a='',b='') {
+  const A=espesoresMM(a), B=espesoresMM(b);
+  if(!A.length || !B.length) return false;
+  return !A.some((x)=>B.includes(x));
+}
+
+const STOP_IDENTIDAD = new Set([
+  'pieza','piezas','componente','componentes','material','accesorio','accesorios',
+  'cubierta','costado','frente','panel','base','estructura','soporte','para','con',
+]);
+function tokensIdentidad(texto='') {
+  const t=String(texto||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  return (t.match(/[a-z0-9-]{4,}/g)||[]).filter((x)=>!STOP_IDENTIDAD.has(x));
+}
+function identidadComercialExacta(solicitado='', insumoNombre='') {
+  const pide=[...new Set(tokensIdentidad(solicitado))];
+  if(pide.length<2) return false;
+  const tiene=new Set(tokensIdentidad(insumoNombre));
+  return pide.every((x)=>tiene.has(x));
 }
 
 // Equivalencias PRE-AUTORIZADAS (misma familia tratada como intercambiable).
@@ -105,21 +138,47 @@ export function clasificarMaterial({ solicitado = '', insumoId = '', insumoNombr
     };
   }
 
-  // Hay id. Si no sabemos qué pidió (texto vacío/no reconocible), confiamos en
-  // el id resuelto como EXACT: no hay evidencia de sustitución cruzada.
+  // Hay id, pero no sabemos qué pidió. Eso es CANDIDATO, no evidencia de
+  // exactitud. Antes la ausencia de contraste se interpretaba como PASS.
   if (!famPide) {
+    // Componentes comprados (herrajes/equipamiento) pueden no pertenecer a una
+    // familia de MP. Sólo se aceptan como EXACT cuando la identidad textual es
+    // suficientemente específica y coincide con el artículo real del catálogo.
+    if (identidadComercialExacta(solicitado, insumoNombre)) {
+      return {
+        clase: MATCH.EXACT,
+        familiaSolicitada: '',
+        familiaResuelta: famTiene,
+        autocosteable: true,
+        insumoIdEfectivo: insumoId,
+        motivo: 'Identidad comercial específica coincide con el artículo del catálogo.',
+      };
+    }
     return {
-      clase: MATCH.EXACT,
+      clase: MATCH.CANDIDATE_REQUIRES_CONFIRMATION,
       familiaSolicitada: '',
       familiaResuelta: famTiene,
-      autocosteable: true,
-      insumoIdEfectivo: insumoId,
-      motivo: 'Material asignado del catálogo (sin familia explícita que contrastar).',
+      autocosteable: false,
+      insumoIdEfectivo: '',
+      insumoIdCandidato: insumoId,
+      motivo: 'Hay un artículo candidato del catálogo, pero falta evidencia suficiente para confirmar identidad exacta.',
     };
   }
 
-  // Misma familia → EXACT.
+  // Misma familia no basta si una especificación explícita contradice al
+  // candidato (p.ej. melamina 19 mm pedida vs 16 mm resuelta).
   if (famTiene && famTiene === famPide) {
+    if (conflictoEspesor(solicitado, insumoNombre)) {
+      return {
+        clase: MATCH.CANDIDATE_REQUIRES_CONFIRMATION,
+        familiaSolicitada: famPide,
+        familiaResuelta: famTiene,
+        autocosteable: false,
+        insumoIdEfectivo: '',
+        insumoIdCandidato: insumoId,
+        motivo: 'La familia coincide, pero el espesor explícito no coincide; requiere confirmación.',
+      };
+    }
     return {
       clase: MATCH.EXACT,
       familiaSolicitada: famPide,
@@ -212,19 +271,35 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
   const clasif = clasificarMaterial({ solicitado, insumoId: existe ? id : '', insumoNombre });
 
   let insumoIdFinal = clasif.insumoIdEfectivo;
+  let candidatoId = clasif.insumoIdCandidato || null;
   let clase = clasif.clase;
   let motivo = clasif.motivo;
   let autollenado = false;
+
+  // Confirmación humana explícita: sólo entonces un candidato conocido puede
+  // entrar al BOM económico.
+  if (pieza?.material_confirmado === true && existe) {
+    insumoIdFinal = id;
+    candidatoId = id;
+    clase = MATCH.USER_CONFIRMED;
+    motivo = `Material confirmado por usuario: ${existe.nombre || id}.`;
+  }
+
+  // RED DE SEGURIDAD: material nombrado sin id → PROPONE el mejor de la misma
+  // familia, pero no lo convierte en costo autoritativo sin confirmación.
+  // VH-053: id EXACT de la IA que no existe localmente = material REAL sin precio certificado;
+  // se dice tal cual y NO se sustituye por un pariente local.
   if (servidorId) {
-    clase = MATCH.NOT_AVAILABLE; insumoIdFinal = '';
+    clase = MATCH.NOT_AVAILABLE; insumoIdFinal = ''; candidatoId = null;
     motivo = `Existe en el catálogo del servidor como «${servidorId}», pero sin precio certificado por Compras. No se costea hasta que Compras lo certifique o elijas un material local.`;
   }
-  // RED DE SEGURIDAD: material nombrado sin id → auto-precarga de la MISMA familia.
-  if (!insumoIdFinal && !servidorId && Array.isArray(catalogo)) {
+  if (!insumoIdFinal && !candidatoId && !servidorId && Array.isArray(catalogo)) {
     const cand = mejorInsumoDeFamilia(solicitado, catalogo);
     if (cand) {
-      insumoIdFinal = cand.id; clase = MATCH.EXACT; autollenado = true;
-      motivo = `Auto-asignado por familia: ${cand.nombre || cand.id}. Revisa que sea el acabado correcto.`;
+      candidatoId = cand.id;
+      clase = MATCH.CANDIDATE_REQUIRES_CONFIRMATION;
+      autollenado = true;
+      motivo = `Candidato por familia: ${cand.nombre || cand.id}. Confirma acabado/espesor antes de costear.`;
     }
   }
 
@@ -238,6 +313,8 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
     iaRazon: pieza?.razonamiento || '',
     _match: {
       clase, motivo, solicitado, autollenado,
+      candidate_insumo_id: candidatoId,
+      confirmado_por_usuario: pieza?.material_confirmado === true,
       familiaSolicitada: clasif.familiaSolicitada,
       familiaResuelta: clasif.familiaResuelta,
       ...(servidorId ? { servidorId, sinPrecioCertificado: true } : {}),
@@ -258,6 +335,6 @@ export function alertaMaterial(m) {
   if (m.sinPrecioCertificado) return { tono: 'ambar', titulo: 'Material real sin precio certificado', detalle: `${m.motivo}${pedido}` };
   if (m.clase === MATCH.NOT_AVAILABLE) return { tono: 'rojo', titulo: 'Material pendiente', detalle: `${m.motivo}${pedido} Escoge el material arriba para costearlo (no se sustituye solo).` };
   if (m.clase === MATCH.SUBSTITUTE_REQUIRES_CONFIRMATION) return { tono: 'ambar', titulo: 'Sustitución requiere confirmación', detalle: `${m.motivo}${pedido} Escoge el material arriba para costearlo (no se sustituye solo).` };
-  if (m.autollenado) return { tono: 'ambar', titulo: 'Material auto-asignado por familia', detalle: `${m.motivo}${pedido} Confírmalo o cámbialo arriba.` };
+  if (m.clase === MATCH.CANDIDATE_REQUIRES_CONFIRMATION || m.autollenado) return { tono: 'ambar', titulo: 'Material propuesto por familia: confírmalo', detalle: `${m.motivo}${pedido} No se costea hasta que lo confirmes o lo cambies arriba.` };
   return null;
 }

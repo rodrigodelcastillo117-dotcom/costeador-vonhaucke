@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { renderSpecFromGraph, visualProfileFromContext, RENDER_SPEC_VERSION } from './renderSpec.js';
+import { compileRenderPrompt, renderStale } from './renderPrompt.js';
 
 const graph = (design_intent, nodes, relations = []) => ({
   schema_version: 'structural_graph_v1', design_intent, nodes, relations,
@@ -73,5 +74,47 @@ describe('renderSpecFromGraph — contrato tipado', () => {
   it('grafo vacío → null (no revienta)', () => {
     expect(renderSpecFromGraph(null)).toBe(null);
     expect(renderSpecFromGraph({ nodes: [] })).toBe(null);
+  });
+});
+
+
+describe('Cocrear render fidelity · fail-closed', () => {
+  it('render legado sin specHash se considera stale', async () => {
+    const { renderStale } = await import('./renderPrompt.js');
+    expect(renderStale({ dataUrl: 'https://example.test/r.png' }, { hash: 'spec-actual' })).toBe(true);
+  });
+  it('misma firma de spec + misma firma visual sigue vigente', async () => {
+    const { renderStale, compileRenderPrompt } = await import('./renderPrompt.js');
+    const spec = { hash:'abc', familia:'mesa', dimensiones:{ancho_mm:1200}, materiales:[], acabados:[], caracteristicas:[], capacidad:null, componentes:[] };
+    const c = compileRenderPrompt(spec, {});
+    expect(renderStale({ specHash:'abc', visualRevisionHash:c.visualRevisionHash }, spec)).toBe(false);
+  });
+  it('firma distinta queda stale', async () => {
+    const { renderStale } = await import('./renderPrompt.js');
+    expect(renderStale({ specHash: 'abc' }, { hash: 'def' })).toBe(true);
+  });
+});
+
+
+describe('render visual revision contract', () => {
+  it('compileRenderPrompt carries the canonical visual signature', () => {
+    const spec = { hash:'spec-x', familia:'mesa', dimensiones:{ancho_mm:1200,prof_mm:600,alto_mm:750}, materiales:[{material:'nogal'}], acabados:[], caracteristicas:[], capacidad:{personas:4}, componentes:[] };
+    const r = compileRenderPrompt(spec, {});
+    expect(r.visualRevisionHash).toBeTruthy();
+  });
+
+  it('render without visual signature is stale against a current spec', () => {
+    const spec = { hash:'spec-x', familia:'mesa', dimensiones:{ancho_mm:1200,prof_mm:600,alto_mm:750}, materiales:[{material:'nogal'}], acabados:[], caracteristicas:[], capacidad:{personas:4}, componentes:[] };
+    expect(renderStale({specHash:'spec-x'}, spec)).toBe(true);
+  });
+
+  it('changing a material invalidates an otherwise matching render', () => {
+    const a = { hash:'spec-a', familia:'mesa', dimensiones:{ancho_mm:1200}, materiales:[{material:'nogal'}], acabados:[], caracteristicas:[], capacidad:null, componentes:[] };
+    const compiled = compileRenderPrompt(a, {});
+    const render = { specHash:'spec-a', visualRevisionHash:compiled.visualRevisionHash };
+    expect(renderStale(render, a)).toBe(false);
+    const b = { ...a, materiales:[{material:'roble'}] };
+    // specHash deliberately kept same to prove visual signature catches it too.
+    expect(renderStale(render, b)).toBe(true);
   });
 });

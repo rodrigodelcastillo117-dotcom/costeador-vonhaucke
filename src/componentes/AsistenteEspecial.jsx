@@ -8,7 +8,8 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import { precioDesdeCosto, margenObjetivoDe } from '../datos/precio.js';
 import { calcular, netoComponente, modeloParaPieza, costeoEmitible, bomHash, diffBOM, aplicarDiffBOM, MOTOR_VERSION, FORMULA_ALBA_V1, formulaDePieza } from '../motor/calculo.js';
 import { SECCIONES } from '../datos/insumos.js';
-import { pesos } from '../util.js';
+import { pesos2 } from '../util.js';
+import { dinero, aCentavosEnteros } from '../motor/dinero.js';
 import { analizarRender, analizarRenderImagenes, analizarTexto, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, urlADataUrl, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64 } from '../nube.js';
 import { comoDataUrl, esURLImagen } from '../datos/renderRespuesta.js';   // VH-072
 import { filaSombra } from '../datos/sombraCosteo.js';   // VH-073
@@ -18,6 +19,7 @@ import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
 import { aplicarPoliticaMaterial, alertaMaterial } from '../datos/materialMatch.js';
 import { abrirPdf, paginaAImagen, todasLasPaginas } from '../datos/pdfImagen.js';
+import { prepararPdfRapido, rasterizarPaginas, paginasAlrededor } from '../datos/pdfPipeline.js';
 import Cargando from './Cargando.jsx';
 import Markdown from './Markdown.jsx';
 import InformeIA from './InformeIA.jsx';
@@ -180,7 +182,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const sombraRef = useRef('');
   useEffect(() => {
     if (!(b.componentes?.length) || !(resultado.costoUnitario > 0) || precio == null) return;
-    const pieza = { ...b, modeloCosteo: estado.parametros?.modeloCosteo };
+    const pieza = b; // costear-servidor recibe sólo intención técnica (VH-036); el servidor es dueño de modelo/config/dinero
     const h = hashInput({ c: b.componentes, n: b.piezas, m: b.margen });
     if (sombraRef.current === h) return; // ya comparado este input
     const t = setTimeout(async () => {
@@ -188,7 +190,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       try {
         const srv = await costearServidor(pieza, b.piezas);
         // VH-073: el motivo del fallo viaja en la fila (antes sólo 'error' y las llaves).
-        await registrarSombra(filaSombra(srv, { inputHash: h, precioCliente: precio, costoCliente: resultado.costoUnitario, nombre: b.nombre }));
+        await registrarSombra(filaSombra(srv, { inputHash: h, precioCliente: dinero(precio), costoCliente: dinero(resultado.costoUnitario), nombre: b.nombre }));
       } catch (e) { /* shadow silencioso: jamás rompe el flujo */ }
     }, 1500);
     return () => clearTimeout(t);
@@ -249,8 +251,10 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // si se reabrió un histórico sin re-costear). Para etiquetar el costo, no recalcula.
   const formulaActual = formulaDePieza(b);
   const esHistoricoLegacy = !!formulaGuardada && formulaActual !== FORMULA_ALBA_V1;
-  // Render DESACTUALIZADO: el BOM cambió desde que se generó el render → el render ya no corresponde.
-  const renderObsoleto = (renders.aislado || renders.ambiente) && renderHash && renderHash !== hashInput({ c: b.componentes });
+  // Firma CANÓNICA del render: sólo datos persistentes/reproducibles.
+  // BOM + dimensiones + materiales. Si cualquiera cambia, el render deja de ser canónico.
+  const renderFirmaActual = hashInput({ c: b.componentes, d: [dimsR.w, dimsR.d], mats: materialesR });
+  const renderObsoleto = !!(renders.aislado || renders.ambiente) && renderHash !== renderFirmaActual;
   // Falta información crítica para ilustrar fielmente: se avisa, NO se inventa.
   const faltaCritico = !b.nombre?.trim() || !(b.componentes?.length) || !(dimsR.w > 0);
 
@@ -272,12 +276,12 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         producto_nombre: b.nombre, producto_version: null, prompt_version: PROMPT_VERSION,
         categoria: tipo, ancho_mm: dimsR.w, fondo_mm: dimsR.d, alto_mm: null, modo,
         storage_path: up.path, storage_url: up.url,
-        inputs: { materiales: materialesR, notas: b.descripcionCliente || null, piezas: (b.componentes || []).length, entorno: entornoTipo || null },
+        inputs: { materiales: materialesR, notas: b.descripcionCliente || null, piezas: (b.componentes || []).length, entorno: entornoTipo || null, render_hash: renderFirmaActual },
         costo_estado: costoEstado || 'preliminar', estado: 'preliminar',
       });
       return up.url;
     }
-    return dataUrl; // fallback visual; NO se guarda base64 en metadata
+    return imagen; // sólo fallback visual; nunca se persiste base64 en metadata
   }
 
   async function generarRenders() {
@@ -314,6 +318,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     // 1) PRODUCTO AISLADO — el PLANO (todas sus vistas) es la fuente de verdad de la forma (modo catálogo).
     //    Sin plano, cae a 'render' por texto (menos fiel, se avisa).
     let aisladoDataUrl = null;
+    let aisladoUrl = null;
     try {
       const opt = paginas.length
         ? { modo: 'catalogo', medidas, tipo, materiales: materialesR, imagen: paginas[0], mediaType: 'image/jpeg', imagenes: paginas.slice(1, 6), preservar }
@@ -336,7 +341,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     // 2) EN AMBIENTE — coloca el MISMO producto (usa el aislado ya renderizado como referencia,
     //    o el plano) en su ENTORNO real inferido (supermercado para exhibidores, oficina si no).
     try {
-      const prod = aisladoDataUrl || b.imagen;
+      const prodUrl = aisladoUrl || null;
+      let prod = aisladoDataUrl || b.imagen;
+      if (!prod && prodUrl) prod = await urlABase64(prodUrl);
       const prodRaw = prod ? String(prod).split(',')[1] : '';
       const prodMime = prod ? ((String(prod).match(/data:(.*?);/) || [])[1] || 'image/png') : 'image/png';
       if (prodRaw) {
@@ -347,7 +354,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         } else { setRenderMsg(r?.error || 'No se pudo generar el ambiente.'); }
       }
     } catch (e) { setRenderMsg('Error en ambiente: ' + String(e)); }
-    setRenderHash(hashInput({ c: b.componentes })); // amarra el render al BOM con que se generó
+    setRenderHash(renderFirmaActual); // BOM + dimensiones + materiales exactos
     setRenderizando(false);
   }
 
@@ -380,7 +387,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         // IDENTIDAD DE REVISIÓN congelada (audit 2026-10-01): mismo bom_hash + mismo
         // catálogo + mismo motor ⇒ mismo costo a centavos. Guardamos todo lo que define
         // esa identidad para poder reconstruir/verificar cualquier revisión.
-        costo: { costoUnitario: Math.round(resultado.costoUnitario), subtotalConocido: Math.round(emision.subtotalConocido), costoTotal: emitible ? Math.round(resultado.costoUnitario) : null, materialTotal: Math.round(resultado.materialTotal), manoObra: Math.round(resultado.manoObra), indirectosFabrica: Math.round(resultado.indirectosFabrica), precio: emitible ? Math.round(precio) : null, margen: b.margen, estado_costo: estadoCostoGuardar, pendientes: piezasSinMaterial, bom_hash: bomHash(b.componentes), analysis_id: b.analysisId ?? null, version_motor: MOTOR_VERSION, formula_version: formulaDePieza(b), version_catalogo: 'config-legado', factorDirecta: b.factorDirecta ?? null, factorIndirecta: b.factorIndirecta ?? null, fecha: new Date().toISOString() },
+        costo: { costoUnitario: dinero(resultado.costoUnitario), subtotalConocido: dinero(emision.subtotalConocido), costoTotal: emitible ? dinero(resultado.costoUnitario) : null, materialTotal: dinero(resultado.materialTotal), manoObra: dinero(resultado.manoObra), indirectosFabrica: dinero(resultado.indirectosFabrica), precio: emitible ? dinero(precio) : null, margen: b.margen, estado_costo: estadoCostoGuardar, pendientes: emision.pendientes, bom_hash: bomHash(b.componentes), analysis_id: b.analysisId ?? null, version_motor: MOTOR_VERSION, formula_version: formulaDePieza(b), version_catalogo: 'config-legado', factorDirecta: b.factorDirecta ?? null, factorIndirecta: b.factorIndirecta ?? null, render_hash: renderHash === renderFirmaActual ? renderHash : null, fecha: new Date().toISOString() },
         confirmaciones: Object.entries(confirmadas).map(([question_key, v]) => ({ question_key, pregunta: v.pregunta, respuesta: v.respuesta })),
         plano_urls: planoUrls.length ? planoUrls : (expId ? undefined : []),
         render_aislado_url: soloHttp(renders.aislado), render_ambiente_url: soloHttp(renders.ambiente),
@@ -420,7 +427,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     setExpId(e.id); setRevActual(e.revision || 1); setEtiquetasTxt((e.etiquetas || []).join(', ')); setEstadoExp(e.estado || 'borrador');
     setConfirmadas(Object.fromEntries((e.confirmaciones || []).map((c) => [c.question_key || ('k_' + kpreg(c.pregunta).replace(/\s+/g, '_')), { pregunta: c.pregunta, respuesta: c.respuesta }])));
     setRenders({ aislado: e.render_aislado_url || null, ambiente: e.render_ambiente_url || null });
-    setRenderHash(e.analysis_hash || null); // el render guardado corresponde a ese BOM (no marcar obsoleto al abrir)
+    setRenderHash(e.costo?.render_hash || null); // legacy sin firma queda NO canónico hasta regenerar
     setCostoEstado(e.costo?.estado_costo || null); setCostoGuardado(e.costo || null); setExpMsg(''); setConfMsg(''); setPreguntasIA([]); setAnalisis(null);
     // Un expediente guardado trae un BOM YA CONSOLIDADO: es canónico. Su hash debe
     // coincidir con el guardado (misma identidad de revisión al cerrar/reabrir).
@@ -556,11 +563,22 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     }
   }
 
+  function requiereVerificacionVisual(propuesta, paginas = 1) {
+    if (!propuesta || typeof propuesta !== 'object') return false;
+    if (paginas > 1) return true; // varias vistas: conviene reconciliar cotas entre hojas
+    if (propuesta.confianzaGeneral !== 'alta') return true;
+    if ((propuesta.piezas || []).some((p) => p?.confianza === 'baja' || p?.material_match !== 'EXACT')) return true;
+    if ((propuesta.preguntas || []).some((q) => q?.impacto === 'alto')) return true;
+    if ((propuesta.design_intent?.missing_critical_data || []).length) return true;
+    return false;
+  }
+
   // Una imagen (render/hoja). Paso 1: analiza. Paso 2 (solo imágenes, no PDF crudo):
   // la IA verifica su propio despiece contra las cotas. Devuelve true si ok.
   async function analizarYLlenar(base64, mediaType, dataUrl, corridaId) {
     const v1 = await analizarRender(catalogoIA(), base64, mediaType);
-    if (!v1?.ok || mediaType === 'application/pdf') return aplicarPropuesta(v1, dataUrl, [base64], true, corridaId);
+    if (!v1?.ok || mediaType === 'application/pdf' || !requiereVerificacionVisual(v1.propuesta, 1))
+      return aplicarPropuesta(v1, dataUrl, [base64], true, corridaId);
     setVerificando(true);
     const v2 = await verificarDespiece(catalogoIA(), [base64], v1.propuesta);
     setVerificando(false);
@@ -571,7 +589,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // Varias hojas del mismo mueble (plano multipágina). Paso 1 analiza, paso 2 verifica.
   async function analizarImagenes(imagenes, dataUrlPreview, corridaId) {
     const v1 = await analizarRenderImagenes(catalogoIA(), imagenes);
-    if (!v1?.ok) return aplicarPropuesta(v1, dataUrlPreview, imagenes, true, corridaId);
+    if (!v1?.ok || !requiereVerificacionVisual(v1.propuesta, imagenes.length))
+      return aplicarPropuesta(v1, dataUrlPreview, imagenes, true, corridaId);
     setVerificando(true);
     const v2 = await verificarDespiece(catalogoIA(), imagenes, v1.propuesta);
     setVerificando(false);
@@ -673,12 +692,12 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         // Abre el PDF en el navegador y manda SOLO la hoja del mueble como imagen
         // (lo que la IA sí lee bien). Si pdf.js falla → PDF crudo (como antes).
         try {
-          const doc = await abrirPdf(file);
-          if (doc.numPaginas > 1) {
-            const preview = await paginaAImagen(doc, 1, 1400);
-            setPdfSel({ doc, numPaginas: doc.numPaginas, pagina: 1, preview });
+          const prep = await prepararPdfRapido(file, { previewPx: 1200 });
+          const doc = prep.doc;
+          if (prep.numPaginas > 1) {
+            setPdfSel({ doc, numPaginas: prep.numPaginas, pagina: 1, preview: prep.preview, msAFirstPreview: prep.msAFirstPreview });
             setAnalizando(false);
-            return; // espera a que elija la hoja (la corrida se abre al analizar)
+            return; // preview rápido; el trabajo pesado ocurre sólo al confirmar
           }
           const cid = nuevaCorrida();
           const dataUrl = await paginaAImagen(doc, 1);
@@ -739,8 +758,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     setPdfSel(null); setErrorIA(''); setAnalizando(true);
     const cid = nuevaCorrida();
     try {
-      const imgs = await todasLasPaginas(sel.doc, 1600);
-      await analizarImagenes(imgs, sel.preview, cid);
+      const paginas = sel.numPaginas <= 8
+        ? Array.from({ length: sel.numPaginas }, (_, i) => i + 1)
+        : paginasAlrededor(sel.pagina, sel.numPaginas, 3);
+      const raster = await rasterizarPaginas(sel.doc, paginas, { maxPx: 1600, concurrency: 3 });
+      await analizarImagenes(raster.map((x) => x.base64), sel.preview, cid);
     } catch (err) {
       setErrorIA('No se pudieron procesar las hojas. Intenta subir la hoja principal como imagen.');
     } finally {
@@ -775,7 +797,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
             style={{ maxWidth: '100%', border: '1px solid rgba(0,0,0,.18)', borderRadius: 8, display: 'block' }} />
         )}
         <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
-          <button className="boton primario grande" onClick={analizarTodasPdf}>Analizar las {pdfSel.numPaginas} hojas juntas (un mueble)</button>
+          <button className="boton primario grande" onClick={analizarTodasPdf}>{pdfSel.numPaginas > 8 ? 'Analizar vistas cercanas (máx. 7)' : `Analizar las ${pdfSel.numPaginas} hojas juntas (un mueble)`}</button>
           <button className="boton grande" onClick={analizarPaginaPdf}>Solo esta hoja</button>
           <button className="boton fantasma" onClick={() => setPdfSel(null)}>Cancelar</button>
         </div>
@@ -810,7 +832,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
             <div className="espacio" />
             <label className={'boton ' + (analizando ? 'fantasma' : 'primario')} style={{ display: 'inline-flex', cursor: analizando ? 'default' : 'pointer' }}>
               {analizando ? 'Analizando…' : 'Subir render o plano (PDF)'}
-              <input type="file" accept="image/*,application/pdf,.pdf" hidden disabled={analizando} onChange={onImagen} />
+              <input id="costear-archivo" data-testid="costear-archivo" type="file" accept="image/*,application/pdf,.pdf" hidden disabled={analizando} onChange={onImagen} />
             </label>
             {errorIA && <div className="alerta roja" style={{ marginTop: 12 }}><span className="texto">{errorIA}</span></div>}
             {catalogoFuente === 'cliente-fallback' && <div className="alerta ambar" style={{ marginTop: 12 }}><span className="texto">⚠ El catálogo central no estaba disponible: la IA usó datos locales. <strong>No cotices en firme</strong> con este análisis; confirma materiales y precios con Dirección.</span></div>}
@@ -824,8 +846,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
               qué material y cómo está hecho — no sólo el nombre. Entre más detalle,
               mejor el render y las sugerencias. (Rodrigo: "que te pregunte qué mueble
               es y tú lo describas".) */}
-          <label className="etiqueta">Descríbelo para que la IA lo entienda</label>
-          <textarea rows={3} placeholder="Ej. Sillas de espera de aeropuerto, estructura de aluminio, asiento y respaldo de hule espuma negra tapizado, conectores cada 2 asientos."
+          {/* label ligada al control (htmlFor/id): sin esta asociación el nombre
+              accesible no existía — lectores de pantalla no anunciaban el campo y
+              getByLabel() no lo encontraba (causa raíz del smoke LIVE AI, #16). */}
+          <label className="etiqueta" htmlFor="costear-descripcion">Descríbelo para que la IA lo entienda</label>
+          <textarea id="costear-descripcion" rows={3} placeholder="Ej. Sillas de espera de aeropuerto, estructura de aluminio, asiento y respaldo de hule espuma negra tapizado, conectores cada 2 asientos."
             value={b.descripcionCliente || ''} onChange={(e) => set({ descripcionCliente: e.target.value })}
             style={{ width: '100%', resize: 'vertical', padding: 10, borderRadius: 8, border: '1px solid var(--linea)', fontFamily: 'inherit', fontSize: 15 }} />
           <div className="ayuda">Material, estructura, acabados, detalles (conectores, patas, cajones…). Alimenta el render con IA y a Voni.</div>
@@ -1056,7 +1081,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                     ) : (
                       <label>Cantidad ({ins.unidad})<input type="number" className="numero" step="0.01" min="0" value={c.cantidad} onChange={(e) => setPieza(i, { cantidad: parseFloat(e.target.value) || 0 })} /></label>
                     )}
-                    <span className="pieza-sub">{pesos(costoPieza(c, ins))}</span>
+                    <span className="pieza-sub">{pesos2(costoPieza(c, ins))}</span>
                   </div>
                 )}
                 {area && m2 > 0 && <div className="pieza-calc">= {m2.toFixed(2)} m² <span className="gris">({ins.clase === 'indirecta' ? 'comprado' : 'fabricado'})</span></div>}
@@ -1090,17 +1115,17 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           {emitible ? (
             <>
               <div className="ayuda" style={{ margin: '6px 0' }}>Cuesta hacer 1 pieza</div>
-              <div className="precio-enorme" style={{ color: 'var(--tinta)', fontSize: 38 }}>{pesos(resultado.costoUnitario)}</div>
+              <div className="precio-enorme" style={{ color: 'var(--tinta)', fontSize: 38 }}>{pesos2(resultado.costoUnitario)}</div>
               <div className="espacio" />
               <div className="ayuda">Precio de lista ({b.margen}% margen)</div>
-              <div className="precio-enorme">{pesos(precio)}</div>
+              <div className="precio-enorme">{pesos2(precio)}</div>
             </>
           ) : (
             // FAIL-CLOSED: hay partidas sin costear → NO hay costo total ni precio.
             // Solo se muestra lo que sí se conoce; el total y el precio quedan "Pendiente".
             <>
               <div className="ayuda" style={{ margin: '6px 0' }}>Subtotal conocido (solo lo que ya tiene material)</div>
-              <div className="precio-enorme" style={{ color: 'var(--tinta)', fontSize: 34 }}>{pesos(emision.subtotalConocido)}</div>
+              <div className="precio-enorme" style={{ color: 'var(--tinta)', fontSize: 34 }}>{pesos2(emision.subtotalConocido)}</div>
               <div className="espacio" />
               <div className="ayuda">Costo total</div>
               <div className="precio-enorme" style={{ color: '#b22a22' }}>Pendiente</div>
@@ -1109,7 +1134,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           )}
           <div className="espacio" />
           <div className="ayuda columna-texto" style={{ textAlign: 'left' }}>
-            Material {pesos(resultado.materialTotal)} · Mano de obra {pesos(resultado.manoObra)} · Fábrica {pesos(resultado.indirectosFabrica)}
+            Material {pesos2(resultado.materialTotal)} · Mano de obra {pesos2(resultado.manoObra)} · Fábrica {pesos2(resultado.indirectosFabrica)}
           </div>
           {/* Método de costeo — discreto. Alba V1 para producto nuevo; histórico legacy al reabrir. */}
           <div className="ayuda columna-texto" style={{ textAlign: 'left', marginTop: 2, opacity: 0.8 }}>
@@ -1121,10 +1146,13 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
               <button className="boton" style={{ marginTop: 6 }} onClick={reCostearConAlba}>Re-costear con método vigente (Alba V1)</button>
             </div>
           )}
-          {costoGuardado && Math.abs((costoGuardado.costoUnitario || 0) - Math.round(resultado.costoUnitario)) > 0 && (
+          {costoGuardado
+            && aCentavosEnteros(costoGuardado.costoUnitario) != null
+            && aCentavosEnteros(resultado.costoUnitario) != null
+            && aCentavosEnteros(costoGuardado.costoUnitario) !== aCentavosEnteros(resultado.costoUnitario) && (
             <div className="ayuda columna-texto" style={{ textAlign: 'left', marginTop: 6 }}>
-              Re-costeo con catálogo de hoy: guardado {pesos(costoGuardado.costoUnitario)} → hoy {pesos(resultado.costoUnitario)}
-              {' '}(Δ {pesos(Math.round(resultado.costoUnitario) - (costoGuardado.costoUnitario || 0))}). Guarda para actualizar el expediente.
+              Re-costeo con catálogo de hoy: guardado {pesos2(costoGuardado.costoUnitario)} → hoy {pesos2(resultado.costoUnitario)}
+              {' '}(Δ {pesos2(dinero(Number(resultado.costoUnitario) - Number(costoGuardado.costoUnitario)))}). Guarda para actualizar el expediente.
             </div>
           )}
 

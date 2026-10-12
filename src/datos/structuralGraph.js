@@ -106,6 +106,9 @@ export function graphFromPropuesta(propuesta = {}) {
       processes: [],
       source: 'ai',
       confidence: conf,
+      evidence_state: p.procedencia || null,
+      evidence: p.evidencia || '',
+      evidence_page: Number.isInteger(Number(p.pagina)) ? Number(p.pagina) : null,
       assumptions: [],
       // Pide confirmación si no hay material o si el LLM no está seguro.
       requires_confirmation: !p.insumoId || norm(p.confianza) === 'baja',
@@ -178,10 +181,15 @@ export function graphFromBom(piezas = [], meta = {}) {
       geometry,
       orientation: null,
       processes: [],
-      source: p._src || 'ai',
-      confidence: p._confidence ?? 0.5,
+      source: p._src || p.source || 'ai',
+      confidence: p._confidence ?? p.confidence ?? 0.5,
+      evidence_state: p.procedencia || p.provenance || p.evidence_state || null,
+      evidence: p.evidencia || p.evidence || '',
+      evidence_page: Number.isInteger(Number(p.pagina ?? p.evidence_page))
+        ? Number(p.pagina ?? p.evidence_page) : null,
       assumptions: [],
-      requires_confirmation: !p.insumoId,
+      requires_confirmation: !p.insumoId
+        || ['ASSUMED','INFERRED'].includes(String(p.procedencia || p.provenance || p.evidence_state || '').toUpperCase()),
     };
   });
   const relations = [];
@@ -225,6 +233,9 @@ export function structuralGraphToBom(graph) {
     semantic_role: n.semantic_role,
     source: n.source || 'ai',
     confidence: n.confidence ?? null,
+    procedencia: n.evidence_state || null,
+    evidencia: n.evidence || '',
+    pagina: n.evidence_page ?? null,
     requiere_confirmacion: !!n.requires_confirmation,
   }));
   return { ok: true, filas };

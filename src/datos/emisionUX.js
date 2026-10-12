@@ -13,8 +13,9 @@ export function textoRazonEmision(code) {
   const L = n ? `Línea ${n}: ` : '';
   if (/costo_desconocido/.test(k)) return `${L}falta confirmar el costo con Diseño/Dirección.`;
   // VH-047: códigos del servidor que antes salían crudos al vendedor, y los locales.
-  if (/costo_preliminar_no_certificado/.test(k)) return `${L}su costo es preliminar; Diseño/Dirección debe certificarlo.`;
+  if (/costo_preliminar_no_certificado/.test(k)) return `${L}su costo es preliminar: todavía falta certificar sus precios/evidencias con Diseño/Dirección.`;
   if (/costo_no_certificado|costo_productversion_desconocido/.test(k)) return `${L}su costeo está incompleto; complétalo antes de emitir.`;
+  if (/costo_preliminar|costo_no_certificado/.test(k)) return `${L}el costo existe, pero todavía falta certificar sus precios/evidencias.`;
   if (/sin_material/.test(k)) return `${L}tiene piezas sin material asignado.`;
   if (/sin_product_id|producto_version_id_invalido/.test(k)) return `${L}vuelve a agregarla desde su ficha (identidad de producto incompleta).`;
   if (/ingenieria_preliminar/.test(k)) return `${L}el especial aún no tiene ingeniería aprobada.`;

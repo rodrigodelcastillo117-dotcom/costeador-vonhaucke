@@ -1,0 +1,3152 @@
+[
+  {
+    "articulo": "ATPU3M",
+    "descripcion": "PATA TIPO \"U\" DE 900 X 720 mm MODELO APPS LT; METALICA -- ATPU3M",
+    "fecha_cotizacion": "12/08/2026 04:30:01 p. m.",
+    "factores": {
+      "gastos_operacion": 30,
+      "utilidad": 20,
+      "precio_lista": 200
+    },
+    "materiales": [
+      {
+        "codigo": "MVLUTU22540002",
+        "descripcion": "TUERCA HEXAGONAL Ø 3/8\" GALVANIZADO - \"TU38HE\"",
+        "cantidad": 2,
+        "unidad": "pieza",
+        "ultimo_costo": 0.39,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLURO26522902",
+        "descripcion": "RONDANA PLANA Ø 1/4\" Ø 3/4\" EXTERIOR GALVANIZADO--RO14GA",
+        "cantidad": 12,
+        "unidad": "pieza",
+        "ultimo_costo": 0.18,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLUPI06650053",
+        "descripcion": "PIJA CABEZA HEXAGONAL DE 3/8 \" CON ARANDELA INTEGRADA DE 14 X 19 mm GALVANIZADA - \"PI1419HG\"",
+        "cantidad": 12,
+        "unidad": "pieza",
+        "ultimo_costo": 0.53,
+        "fecha_ultimo_costo": "05/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLUTO15188109",
+        "descripcion": "TORNILLO NIVELADOR Ø 3/8\" X 1 1/2\" PLATAFORMA CONICA DE Ø 2\" X 5/8\" CROMADO - \"TO38112CNIC/TO382CNIC\"",
+        "cantidad": 2,
+        "unidad": "pieza",
+        "ultimo_costo": 17.73,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.088,
+        "unidad": "kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MLESLA05261100",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 10 -- LN10310",
+        "cantidad": 0.031,
+        "unidad": "hoja",
+        "ultimo_costo": 2270.17,
+        "fecha_ultimo_costo": "30/07/2026",
+        "categoria": "METAL"
+      },
+      {
+        "codigo": "MVLSLA05260202",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 14 ACERO 1008 - LN14310",
+        "cantidad": 0.003,
+        "unidad": "hoja",
+        "ultimo_costo": 816.48,
+        "fecha_ultimo_costo": "05/08/2026",
+        "categoria": "METAL"
+      },
+      {
+        "codigo": "MVLSTU03310401",
+        "descripcion": "TUBULAR INDUSTRIAL RECTANGULAR 1 1/2\" X 3\" CALIBRE 18 PIEZA DE 6000 mm - \"TRE181123\"",
+        "cantidad": 0.417,
+        "unidad": "pieza",
+        "ultimo_costo": 383.28,
+        "fecha_ultimo_costo": "07/08/2026",
+        "categoria": "METAL"
+      }
+    ],
+    "costos": {
+      "materia_prima": {
+        "madera": null,
+        "metal": 232.65,
+        "herraje": 38.4,
+        "acrilico": null,
+        "silleria": null,
+        "otros": 21.36,
+        "total": 292.42
+      },
+      "mano_obra": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.0132,
+            "costo_hora": 394.35,
+            "costo": 5.21
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.1668,
+            "costo_hora": 56.34,
+            "costo": 9.4
+          },
+          {
+            "centro": "Madera",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 1.6628,
+            "costo_hora": 61.98,
+            "costo": 103.06
+          }
+        ],
+        "total": 117.66
+      },
+      "gastos_indirectos": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.0132,
+            "costo_hora": 1796.61,
+            "costo": 23.72
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.1668,
+            "costo_hora": 193.59,
+            "costo": 32.29
+          },
+          {
+            "centro": "Madera",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 1.6628,
+            "costo_hora": 234.39,
+            "costo": 389.743692
+          }
+        ],
+        "total": 445.75
+      },
+      "total_fabricacion": 855.83,
+      "horas_centro_trabajo": 0.3,
+      "gastos_operacion": 256.75,
+      "costo_total": 1112.58,
+      "utilidad": 222.52,
+      "precio": 1335.1,
+      "incremento_descuento": 2670.19,
+      "precio_lista": 4006.0,
+      "nota_horas_centro_trabajo": "En el PDF la columna 'Horas Centro Trabajo' del resumen imprime 0.3, valor que coincide con el factor de gastos de operacion (30%); se registra tal como aparece."
+    },
+    "verificacion": {
+      "suma_mp_mo_gi": 855.83,
+      "total_fabricacion": 855.83,
+      "diferencia": 0.0,
+      "cuadra": true
+    }
+  },
+  {
+    "articulo": "ATCUBS44ABS",
+    "descripcion": "CUBIERTA RECTANGULAR DE 1200 X 600 X 28 mm MODELO APPS LT CON TAPA REGISTRABLE METALICA; EN MELAMINA CON CANTOS ABS -- ATCUBS44ABS",
+    "fecha_cotizacion": "12/08/2026 04:33:40 p. m.",
+    "factores": {
+      "gastos_operacion": 30,
+      "utilidad": 20,
+      "precio_lista": 200
+    },
+    "materiales": [
+      {
+        "codigo": "MVLUTO35644402",
+        "descripcion": "TORNILLO CABEZA FILLSTER PHILLIPS Ø10 X 3/4\" AUTOROSCANTE T 23 GALVANIZADO -- TOAU1034",
+        "cantidad": 2,
+        "unidad": "pieza",
+        "ultimo_costo": 0.89,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLURO26522902",
+        "descripcion": "RONDANA PLANA Ø 1/4\" Ø 3/4\" EXTERIOR GALVANIZADO--RO14GA",
+        "cantidad": 4,
+        "unidad": "pieza",
+        "ultimo_costo": 0.18,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLUPI10350002",
+        "descripcion": "PIJA CABEZA FIJADORA PHILLIPS 10 X 15 mm GALVANIZADO - \"PI1015G\"",
+        "cantidad": 4,
+        "unidad": "pieza",
+        "ultimo_costo": 0.25,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.012,
+        "unidad": "Kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.001,
+        "unidad": "Kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLPPC00501505",
+        "descripcion": "PERFIL DE CANTO ANCHO 32 mm ESPESOR 2 mm EN ABS - \"PEABS32\"",
+        "cantidad": 3.984,
+        "unidad": "m",
+        "ultimo_costo": 15.99,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "MADERA"
+      },
+      {
+        "codigo": "MVLMCC06060000",
+        "descripcion": "CHAPACINTA PVC ANCHO 32 mm - \"CH32PVC\"",
+        "cantidad": 1.186,
+        "unidad": "m",
+        "ultimo_costo": 4.88,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "MADERA"
+      },
+      {
+        "codigo": "MVLMAG01280800",
+        "descripcion": "AGLOMERADO MELAMINA DOS CARAS HOJA 4 X 8 ESPESOR 28 mm -- AME2848",
+        "cantidad": 0.25,
+        "unidad": "hoja",
+        "ultimo_costo": 1026.9,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "MADERA"
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.001,
+        "unidad": "Kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLSLA05260402",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"LN18310\"",
+        "cantidad": 0.001,
+        "unidad": "hoja",
+        "ultimo_costo": 571.54,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "METAL"
+      },
+      {
+        "codigo": "MVLSLA05260402",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"LN18310\"",
+        "cantidad": 0.001,
+        "unidad": "hoja",
+        "ultimo_costo": 571.54,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "METAL"
+      },
+      {
+        "codigo": "MVLSLA05260502",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+        "cantidad": 0.021,
+        "unidad": "Hoja",
+        "ultimo_costo": 434.78,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "METAL"
+      }
+    ],
+    "costos": {
+      "materia_prima": {
+        "madera": 326.22,
+        "metal": 10.27,
+        "herraje": 3.5,
+        "acrilico": null,
+        "silleria": null,
+        "otros": 2.39,
+        "total": 342.38
+      },
+      "mano_obra": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.0055,
+            "costo_hora": 394.35,
+            "costo": 2.17
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.044,
+            "costo_hora": 56.34,
+            "costo": 2.48
+          },
+          {
+            "centro": "Madera",
+            "horas": 0.8324,
+            "costo_hora": 54.55,
+            "costo": 45.41
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 0.254,
+            "costo_hora": 61.98,
+            "costo": 15.74
+          }
+        ],
+        "total": 65.8
+      },
+      "gastos_indirectos": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.0055,
+            "costo_hora": 1796.61,
+            "costo": 9.88
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.044,
+            "costo_hora": 193.59,
+            "costo": 8.52
+          },
+          {
+            "centro": "Madera",
+            "horas": 0.8324,
+            "costo_hora": 190.82,
+            "costo": 158.84
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 0.254,
+            "costo_hora": 234.39,
+            "costo": 59.53506
+          }
+        ],
+        "total": 236.77
+      },
+      "total_fabricacion": 644.95,
+      "horas_centro_trabajo": 0.3,
+      "gastos_operacion": 193.49,
+      "costo_total": 838.43,
+      "utilidad": 167.69,
+      "precio": 1006.12,
+      "incremento_descuento": 2012.24,
+      "precio_lista": 3019.0,
+      "nota_horas_centro_trabajo": "En el PDF la columna 'Horas Centro Trabajo' del resumen imprime 0.3, valor que coincide con el factor de gastos de operacion (30%); se registra tal como aparece."
+    },
+    "verificacion": {
+      "suma_mp_mo_gi": 644.95,
+      "total_fabricacion": 644.95,
+      "diferencia": 0.0,
+      "cuadra": true
+    }
+  },
+  {
+    "articulo": "ATFAL12ABS",
+    "descripcion": "CONDUCTO FALDON PARA ESCRITORIO DE 800 X 379 X 177 mm MODELO APPS LT CON MELAMINA CANTO ABS; METALICO -- ATFAL12ABS",
+    "fecha_cotizacion": "12/08/2026 04:57:00 p. m.",
+    "factores": {
+      "gastos_operacion": 30,
+      "utilidad": 20,
+      "precio_lista": 200
+    },
+    "materiales": [
+      {
+        "codigo": "MTLECI00B20035",
+        "descripcion": "CINTURON DE 400 X 4.8 mm EN PLASTICO COLOR BLANCO CON UÑA",
+        "cantidad": 3,
+        "unidad": "pieza",
+        "ultimo_costo": 1.87,
+        "fecha_ultimo_costo": "10/08/2026",
+        "categoria": "OTRO"
+      },
+      {
+        "codigo": "MVLURO26522901",
+        "descripcion": "RONDANA PLANA Ø 1/4\" Ø 3/4\" EXTERIOR PAVONADO--RO14PA",
+        "cantidad": 5,
+        "unidad": "pieza",
+        "ultimo_costo": 0.28,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLUPI06650053",
+        "descripcion": "PIJA CABEZA HEXAGONAL DE 3/8 \" CON ARANDELA INTEGRADA DE 14 X 19 mm GALVANIZADA - \"PI1419HG\"",
+        "cantidad": 5,
+        "unidad": "pieza",
+        "ultimo_costo": 0.53,
+        "fecha_ultimo_costo": "05/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLUTO14538604",
+        "descripcion": "TORNILLO PERILLA Ø 1/4\" X 7/8\" EN GALVANIZADO CABEZA Ø 1 1/4\" X 1/4\" CON PERFORACION DE Ø 1/8\" X 3/16\" DE PROFUNDIDAD ALUMINIO NATURAL - \"COAL11434\"",
+        "cantidad": 2,
+        "unidad": "pieza",
+        "ultimo_costo": 55.8,
+        "fecha_ultimo_costo": "04/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLUTU22520002",
+        "descripcion": "TUERCA HEXAGONAL Ø1/4\" GALVANIZADO -- TU14HE",
+        "cantidad": 2,
+        "unidad": "pieza",
+        "ultimo_costo": 0.22,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLMAG01280500",
+        "descripcion": "AGLOMERADO MELAMINA DOS CARAS HOJA 4 X 8 ESPESOR 16 mm -- AME1648",
+        "cantidad": 0.111,
+        "unidad": "Hoja",
+        "ultimo_costo": 612.0,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "MADERA"
+      },
+      {
+        "codigo": "MVLPPC00491505",
+        "descripcion": "PERFIL DE CANTO ANCHO 22 mm ESPESOR 2 mm EN ABS - \"PEABS22\"",
+        "cantidad": 2.484,
+        "unidad": "m",
+        "ultimo_costo": 13.24,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "MADERA"
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.069,
+        "unidad": "Kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLSLA05260502",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+        "cantidad": 0.115,
+        "unidad": "Hoja",
+        "ultimo_costo": 434.78,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "METAL"
+      }
+    ],
+    "costos": {
+      "materia_prima": {
+        "madera": 100.82,
+        "metal": 50.0,
+        "herraje": 113.43,
+        "acrilico": null,
+        "silleria": null,
+        "otros": 20.02,
+        "total": 284.28
+      },
+      "mano_obra": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.0033,
+            "costo_hora": 394.35,
+            "costo": 1.3
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.064,
+            "costo_hora": 56.34,
+            "costo": 3.61
+          },
+          {
+            "centro": "Madera",
+            "horas": 0.295,
+            "costo_hora": 54.55,
+            "costo": 16.09
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 0.1198,
+            "costo_hora": 61.98,
+            "costo": 7.43
+          }
+        ],
+        "total": 28.43
+      },
+      "gastos_indirectos": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.0033,
+            "costo_hora": 1796.61,
+            "costo": 5.93
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.064,
+            "costo_hora": 193.59,
+            "costo": 12.39
+          },
+          {
+            "centro": "Madera",
+            "horas": 0.295,
+            "costo_hora": 190.82,
+            "costo": 56.29
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 0.1198,
+            "costo_hora": 234.39,
+            "costo": 28.079922
+          }
+        ],
+        "total": 102.69
+      },
+      "total_fabricacion": 415.39,
+      "horas_centro_trabajo": 0.3,
+      "gastos_operacion": 124.62,
+      "costo_total": 540.01,
+      "utilidad": 108.0,
+      "precio": 648.01,
+      "incremento_descuento": 1296.02,
+      "precio_lista": 1945.0,
+      "nota_horas_centro_trabajo": "En el PDF la columna 'Horas Centro Trabajo' del resumen imprime 0.3, valor que coincide con el factor de gastos de operacion (30%); se registra tal como aparece."
+    },
+    "verificacion": {
+      "suma_mp_mo_gi": 415.4,
+      "total_fabricacion": 415.39,
+      "diferencia": 0.01,
+      "cuadra": true
+    }
+  },
+  {
+    "articulo": "ATPU75M",
+    "descripcion": "PATA TIPO \"U\" DE 750 X 720 mm MODELO APPS LT; METALICA -- ATPU75M",
+    "fecha_cotizacion": "12/08/2026 04:28:58 p. m.",
+    "factores": {
+      "gastos_operacion": 30,
+      "utilidad": 20,
+      "precio_lista": 200
+    },
+    "materiales": [
+      {
+        "codigo": "MVLURO26522902",
+        "descripcion": "RONDANA PLANA Ø 1/4\" Ø 3/4\" EXTERIOR GALVANIZADO--RO14GA",
+        "cantidad": 12,
+        "unidad": "pieza",
+        "ultimo_costo": 0.18,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLUPI06650053",
+        "descripcion": "PIJA CABEZA HEXAGONAL DE 3/8 \" CON ARANDELA INTEGRADA DE 14 X 19 mm GALVANIZADA - \"PI1419HG\"",
+        "cantidad": 12,
+        "unidad": "pieza",
+        "ultimo_costo": 0.53,
+        "fecha_ultimo_costo": "05/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLUTO15188109",
+        "descripcion": "TORNILLO NIVELADOR Ø 3/8\" X 1 1/2\" PLATAFORMA CONICA DE Ø 2\" X 5/8\" CROMADO - \"TO38112CNIC/TO382CNIC\"",
+        "cantidad": 2,
+        "unidad": "pieza",
+        "ultimo_costo": 17.73,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.084,
+        "unidad": "kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MLESLA05261100",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 10 -- LN10310",
+        "cantidad": 0.031,
+        "unidad": "hoja",
+        "ultimo_costo": 2270.17,
+        "fecha_ultimo_costo": "30/07/2026",
+        "categoria": "METAL"
+      },
+      {
+        "codigo": "MVLSLA05260202",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 14 ACERO 1008 - LN14310",
+        "cantidad": 0.003,
+        "unidad": "hoja",
+        "ultimo_costo": 816.48,
+        "fecha_ultimo_costo": "05/08/2026",
+        "categoria": "METAL"
+      },
+      {
+        "codigo": "MVLSTU03310401",
+        "descripcion": "TUBULAR INDUSTRIAL RECTANGULAR 1 1/2\" X 3\" CALIBRE 18 PIEZA DE 6000 mm - \"TRE181123\"",
+        "cantidad": 0.393,
+        "unidad": "pieza",
+        "ultimo_costo": 383.28,
+        "fecha_ultimo_costo": "07/08/2026",
+        "categoria": "METAL"
+      },
+      {
+        "codigo": "MVLUTU22540002",
+        "descripcion": "TUERCA HEXAGONAL Ø 3/8\" GALVANIZADO - \"TU38HE\"",
+        "cantidad": 2,
+        "unidad": "pieza",
+        "ultimo_costo": 0.39,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      }
+    ],
+    "costos": {
+      "materia_prima": {
+        "madera": null,
+        "metal": 223.45,
+        "herraje": 38.4,
+        "acrilico": null,
+        "silleria": null,
+        "otros": 20.68,
+        "total": 282.54
+      },
+      "mano_obra": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.0099,
+            "costo_hora": 394.35,
+            "costo": 3.9
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.1498,
+            "costo_hora": 56.34,
+            "costo": 8.44
+          },
+          {
+            "centro": "Madera",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 1.5012,
+            "costo_hora": 61.98,
+            "costo": 93.04
+          }
+        ],
+        "total": 105.39
+      },
+      "gastos_indirectos": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.0099,
+            "costo_hora": 1796.61,
+            "costo": 17.79
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.1498,
+            "costo_hora": 193.59,
+            "costo": 29.0
+          },
+          {
+            "centro": "Madera",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 1.5012,
+            "costo_hora": 234.39,
+            "costo": 351.866268
+          }
+        ],
+        "total": 398.65
+      },
+      "total_fabricacion": 786.58,
+      "horas_centro_trabajo": 0.3,
+      "gastos_operacion": 235.97,
+      "costo_total": 1022.55,
+      "utilidad": 204.51,
+      "precio": 1227.06,
+      "incremento_descuento": 2454.12,
+      "precio_lista": 3682.0,
+      "nota_horas_centro_trabajo": "En el PDF la columna 'Horas Centro Trabajo' del resumen imprime 0.3, valor que coincide con el factor de gastos de operacion (30%); se registra tal como aparece."
+    },
+    "verificacion": {
+      "suma_mp_mo_gi": 786.58,
+      "total_fabricacion": 786.58,
+      "diferencia": 0.0,
+      "cuadra": true
+    }
+  },
+  {
+    "articulo": "ATCUBD46ABS",
+    "descripcion": "CUBIERTA RECTANGULAR DE 1800 X 1200 X 28MM MODELO APPS LT CON DOS PUERTAS METALICAS; EN MELAMINA CON CANTOS ABS -- ATCUBD46ABS",
+    "fecha_cotizacion": "12/08/2026 04:39:22 p. m.",
+    "factores": {
+      "gastos_operacion": 30,
+      "utilidad": 20,
+      "precio_lista": 200
+    },
+    "materiales": [
+      {
+        "codigo": "MVLUTO35644402",
+        "descripcion": "TORNILLO CABEZA FILLSTER PHILLIPS Ø10 X 3/4\" AUTOROSCANTE T 23 GALVANIZADO -- TOAU1034",
+        "cantidad": 4,
+        "unidad": "pieza",
+        "ultimo_costo": 0.89,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLURO26522902",
+        "descripcion": "RONDANA PLANA Ø 1/4\" Ø 3/4\" EXTERIOR GALVANIZADO--RO14GA",
+        "cantidad": 8,
+        "unidad": "pieza",
+        "ultimo_costo": 0.18,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLUPI10350002",
+        "descripcion": "PIJA CABEZA FIJADORA PHILLIPS 10 X 15 mm GALVANIZADO - \"PI1015G\"",
+        "cantidad": 8,
+        "unidad": "pieza",
+        "ultimo_costo": 0.25,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLMCC06060000",
+        "descripcion": "CHAPACINTA PVC ANCHO 32 mm - \"CH32PVC\"",
+        "cantidad": 2.372,
+        "unidad": "m",
+        "ultimo_costo": 4.88,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "MADERA"
+      },
+      {
+        "codigo": "MVLPPC00501505",
+        "descripcion": "PERFIL DE CANTO ANCHO 32 mm ESPESOR 2 mm EN ABS - \"PEABS32\"",
+        "cantidad": 6.384,
+        "unidad": "m",
+        "ultimo_costo": 15.99,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "MADERA"
+      },
+      {
+        "codigo": "MVLMAG01280800",
+        "descripcion": "AGLOMERADO MELAMINA DOS CARAS HOJA 4 X 8 ESPESOR 28 mm -- AME2848",
+        "cantidad": 1,
+        "unidad": "Hoja",
+        "ultimo_costo": 1026.9,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "MADERA"
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.002,
+        "unidad": "Kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.002,
+        "unidad": "Kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.024,
+        "unidad": "Kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLSLA05260402",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"LN18310\"",
+        "cantidad": 0.002,
+        "unidad": "hoja",
+        "ultimo_costo": 571.54,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "METAL"
+      },
+      {
+        "codigo": "MVLSLA05260402",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"LN18310\"",
+        "cantidad": 0.002,
+        "unidad": "hoja",
+        "ultimo_costo": 571.54,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "METAL"
+      },
+      {
+        "codigo": "MVLSLA05260502",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+        "cantidad": 0.042,
+        "unidad": "Hoja",
+        "ultimo_costo": 434.78,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "METAL"
+      }
+    ],
+    "costos": {
+      "materia_prima": {
+        "madera": 1140.56,
+        "metal": 20.55,
+        "herraje": 7.0,
+        "acrilico": null,
+        "silleria": null,
+        "otros": 4.77,
+        "total": 1172.88
+      },
+      "mano_obra": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.011,
+            "costo_hora": 394.35,
+            "costo": 4.34
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.088,
+            "costo_hora": 56.34,
+            "costo": 4.96
+          },
+          {
+            "centro": "Madera",
+            "horas": 1.2458,
+            "costo_hora": 54.55,
+            "costo": 67.96
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 0.508,
+            "costo_hora": 61.98,
+            "costo": 31.49
+          }
+        ],
+        "total": 108.74
+      },
+      "gastos_indirectos": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.011,
+            "costo_hora": 1796.61,
+            "costo": 19.76
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.088,
+            "costo_hora": 193.59,
+            "costo": 17.04
+          },
+          {
+            "centro": "Madera",
+            "horas": 1.2458,
+            "costo_hora": 190.82,
+            "costo": 237.72
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 0.508,
+            "costo_hora": 234.39,
+            "costo": 119.07012
+          }
+        ],
+        "total": 393.59
+      },
+      "total_fabricacion": 1675.21,
+      "horas_centro_trabajo": 0.3,
+      "gastos_operacion": 502.56,
+      "costo_total": 2177.77,
+      "utilidad": 435.56,
+      "precio": 2613.33,
+      "incremento_descuento": 5226.66,
+      "precio_lista": 7844.0,
+      "nota_horas_centro_trabajo": "En el PDF la columna 'Horas Centro Trabajo' del resumen imprime 0.3, valor que coincide con el factor de gastos de operacion (30%); se registra tal como aparece."
+    },
+    "verificacion": {
+      "suma_mp_mo_gi": 1675.21,
+      "total_fabricacion": 1675.21,
+      "diferencia": 0.0,
+      "cuadra": true
+    }
+  },
+  {
+    "articulo": "ATCUBS45ABS",
+    "descripcion": "CUBIERTA RECTANGULAR DE 1500 X 600 X 28 MM MODELO APPS LT CON PUERTA METALICA; EN MELAMINA CON CANTOS ABS -- ATCUBS45ABS",
+    "fecha_cotizacion": "12/08/2026 04:34:31 p. m.",
+    "factores": {
+      "gastos_operacion": 30,
+      "utilidad": 20,
+      "precio_lista": 200
+    },
+    "materiales": [
+      {
+        "codigo": "MVLURO26522902",
+        "descripcion": "RONDANA PLANA Ø 1/4\" Ø 3/4\" EXTERIOR GALVANIZADO--RO14GA",
+        "cantidad": 4,
+        "unidad": "pieza",
+        "ultimo_costo": 0.18,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLUPI10350002",
+        "descripcion": "PIJA CABEZA FIJADORA PHILLIPS 10 X 15 mm GALVANIZADO - \"PI1015G\"",
+        "cantidad": 4,
+        "unidad": "pieza",
+        "ultimo_costo": 0.25,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLUTO35644402",
+        "descripcion": "TORNILLO CABEZA FILLSTER PHILLIPS Ø10 X 3/4\" AUTOROSCANTE T 23 GALVANIZADO -- TOAU1034",
+        "cantidad": 2,
+        "unidad": "pieza",
+        "ultimo_costo": 0.89,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.001,
+        "unidad": "Kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.012,
+        "unidad": "Kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLPPC00501505",
+        "descripcion": "PERFIL DE CANTO ANCHO 32 mm ESPESOR 2 mm EN ABS - \"PEABS32\"",
+        "cantidad": 4.584,
+        "unidad": "m",
+        "ultimo_costo": 15.99,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "MADERA"
+      },
+      {
+        "codigo": "MVLMAG01280800",
+        "descripcion": "AGLOMERADO MELAMINA DOS CARAS HOJA 4 X 8 ESPESOR 28 mm -- AME2848",
+        "cantidad": 0.5,
+        "unidad": "hoja",
+        "ultimo_costo": 1026.9,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "MADERA"
+      },
+      {
+        "codigo": "MVLMCC06060000",
+        "descripcion": "CHAPACINTA PVC ANCHO 32 mm - \"CH32PVC\"",
+        "cantidad": 1.186,
+        "unidad": "m",
+        "ultimo_costo": 4.88,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "MADERA"
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.001,
+        "unidad": "Kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLSLA05260402",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"LN18310\"",
+        "cantidad": 0.001,
+        "unidad": "hoja",
+        "ultimo_costo": 571.54,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "METAL"
+      },
+      {
+        "codigo": "MVLSLA05260402",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"LN18310\"",
+        "cantidad": 0.001,
+        "unidad": "hoja",
+        "ultimo_costo": 571.54,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "METAL"
+      },
+      {
+        "codigo": "MVLSLA05260502",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+        "cantidad": 0.021,
+        "unidad": "Hoja",
+        "ultimo_costo": 434.78,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "METAL"
+      }
+    ],
+    "costos": {
+      "materia_prima": {
+        "madera": 592.54,
+        "metal": 10.27,
+        "herraje": 3.5,
+        "acrilico": null,
+        "silleria": null,
+        "otros": 2.39,
+        "total": 608.7
+      },
+      "mano_obra": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.0055,
+            "costo_hora": 394.35,
+            "costo": 2.17
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.044,
+            "costo_hora": 56.34,
+            "costo": 2.48
+          },
+          {
+            "centro": "Madera",
+            "horas": 0.9358,
+            "costo_hora": 54.55,
+            "costo": 51.05
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 0.254,
+            "costo_hora": 61.98,
+            "costo": 15.74
+          }
+        ],
+        "total": 71.44
+      },
+      "gastos_indirectos": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.0055,
+            "costo_hora": 1796.61,
+            "costo": 9.88
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.044,
+            "costo_hora": 193.59,
+            "costo": 8.52
+          },
+          {
+            "centro": "Madera",
+            "horas": 0.9358,
+            "costo_hora": 190.82,
+            "costo": 178.57
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 0.254,
+            "costo_hora": 234.39,
+            "costo": 59.53506
+          }
+        ],
+        "total": 256.5
+      },
+      "total_fabricacion": 936.64,
+      "horas_centro_trabajo": 0.3,
+      "gastos_operacion": 280.99,
+      "costo_total": 1217.63,
+      "utilidad": 243.53,
+      "precio": 1461.16,
+      "incremento_descuento": 2922.32,
+      "precio_lista": 4384.0,
+      "nota_horas_centro_trabajo": "En el PDF la columna 'Horas Centro Trabajo' del resumen imprime 0.3, valor que coincide con el factor de gastos de operacion (30%); se registra tal como aparece."
+    },
+    "verificacion": {
+      "suma_mp_mo_gi": 936.64,
+      "total_fabricacion": 936.64,
+      "diferencia": 0.0,
+      "cuadra": true
+    }
+  },
+  {
+    "articulo": "ATOM3",
+    "descripcion": "OMEGA PARA CUBIERTA DE 850 X 100 X 17 mm MODELO APPS LT CON TORNILLERIA; METALICA -- ATOM3",
+    "fecha_cotizacion": "12/08/2026 04:59:54 p. m.",
+    "factores": {
+      "gastos_operacion": 30,
+      "utilidad": 20,
+      "precio_lista": 200
+    },
+    "materiales": [
+      {
+        "codigo": "MVLUPI06650053",
+        "descripcion": "PIJA CABEZA HEXAGONAL DE 3/8 \" CON ARANDELA INTEGRADA DE 14 X 19 mm GALVANIZADA - \"PI1419HG\"",
+        "cantidad": 8,
+        "unidad": "pieza",
+        "ultimo_costo": 0.53,
+        "fecha_ultimo_costo": "05/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.026,
+        "unidad": "Kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLSLA05260202",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 14 ACERO 1008 - LN14310",
+        "cantidad": 0.042,
+        "unidad": "Hoja",
+        "ultimo_costo": 816.48,
+        "fecha_ultimo_costo": "05/08/2026",
+        "categoria": "METAL"
+      }
+    ],
+    "costos": {
+      "materia_prima": {
+        "madera": null,
+        "metal": 34.29,
+        "herraje": null,
+        "acrilico": null,
+        "silleria": null,
+        "otros": 8.67,
+        "total": 42.97
+      },
+      "mano_obra": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.0033,
+            "costo_hora": 394.35,
+            "costo": 1.3
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.072,
+            "costo_hora": 56.34,
+            "costo": 4.06
+          },
+          {
+            "centro": "Madera",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 0.1116,
+            "costo_hora": 61.98,
+            "costo": 6.92
+          }
+        ],
+        "total": 12.28
+      },
+      "gastos_indirectos": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.0033,
+            "costo_hora": 1796.61,
+            "costo": 5.93
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.072,
+            "costo_hora": 193.59,
+            "costo": 13.94
+          },
+          {
+            "centro": "Madera",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 0.1116,
+            "costo_hora": 234.39,
+            "costo": 26.157924
+          }
+        ],
+        "total": 46.03
+      },
+      "total_fabricacion": 101.27,
+      "horas_centro_trabajo": 0.3,
+      "gastos_operacion": 30.38,
+      "costo_total": 131.64,
+      "utilidad": 26.33,
+      "precio": 157.97,
+      "incremento_descuento": 315.95,
+      "precio_lista": 478.0,
+      "nota_horas_centro_trabajo": "En el PDF la columna 'Horas Centro Trabajo' del resumen imprime 0.3, valor que coincide con el factor de gastos de operacion (30%); se registra tal como aparece."
+    },
+    "verificacion": {
+      "suma_mp_mo_gi": 101.28,
+      "total_fabricacion": 101.27,
+      "diferencia": 0.01,
+      "cuadra": true
+    }
+  },
+  {
+    "articulo": "ATCUBS46ABS",
+    "descripcion": "CUBIERTA RECTANGULAR DE 1800 X 600 mm MODELO APPS LT PARA BANCA SENCILLA, CON TAPA REGISTRABLE METALICA; EN MELAMINA CON CANTOS ABS -- ATCUBS46ABS",
+    "fecha_cotizacion": "12/08/2026 04:35:39 p. m.",
+    "factores": {
+      "gastos_operacion": 30,
+      "utilidad": 20,
+      "precio_lista": 200
+    },
+    "materiales": [
+      {
+        "codigo": "MVLURO26522902",
+        "descripcion": "RONDANA PLANA Ø 1/4\" Ø 3/4\" EXTERIOR GALVANIZADO--RO14GA",
+        "cantidad": 4,
+        "unidad": "pieza",
+        "ultimo_costo": 0.18,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLUTO35644402",
+        "descripcion": "TORNILLO CABEZA FILLSTER PHILLIPS Ø10 X 3/4\" AUTOROSCANTE T 23 GALVANIZADO -- TOAU1034",
+        "cantidad": 2,
+        "unidad": "pieza",
+        "ultimo_costo": 0.89,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLUPI10350002",
+        "descripcion": "PIJA CABEZA FIJADORA PHILLIPS 10 X 15 mm GALVANIZADO - \"PI1015G\"",
+        "cantidad": 4,
+        "unidad": "pieza",
+        "ultimo_costo": 0.25,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.012,
+        "unidad": "Kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLMCC06060000",
+        "descripcion": "CHAPACINTA PVC ANCHO 32 mm - \"CH32PVC\"",
+        "cantidad": 1.186,
+        "unidad": "m",
+        "ultimo_costo": 4.88,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "MADERA"
+      },
+      {
+        "codigo": "MVLMAG01280800",
+        "descripcion": "AGLOMERADO MELAMINA DOS CARAS HOJA 4 X 8 ESPESOR 28 mm -- AME2848",
+        "cantidad": 0.5,
+        "unidad": "Hoja",
+        "ultimo_costo": 1026.9,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "MADERA"
+      },
+      {
+        "codigo": "MVLPPC00501505",
+        "descripcion": "PERFIL DE CANTO ANCHO 32 mm ESPESOR 2 mm EN ABS - \"PEABS32\"",
+        "cantidad": 5.184,
+        "unidad": "m",
+        "ultimo_costo": 15.99,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "MADERA"
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.001,
+        "unidad": "Kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.001,
+        "unidad": "Kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLSLA05260402",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"LN18310\"",
+        "cantidad": 0.001,
+        "unidad": "hoja",
+        "ultimo_costo": 571.54,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "METAL"
+      },
+      {
+        "codigo": "MVLSLA05260402",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"LN18310\"",
+        "cantidad": 0.001,
+        "unidad": "hoja",
+        "ultimo_costo": 571.54,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "METAL"
+      },
+      {
+        "codigo": "MVLSLA05260502",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+        "cantidad": 0.021,
+        "unidad": "Hoja",
+        "ultimo_costo": 434.78,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "METAL"
+      }
+    ],
+    "costos": {
+      "materia_prima": {
+        "madera": 602.13,
+        "metal": 10.27,
+        "herraje": 3.5,
+        "acrilico": null,
+        "silleria": null,
+        "otros": 2.39,
+        "total": 618.29
+      },
+      "mano_obra": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.0055,
+            "costo_hora": 394.35,
+            "costo": 2.17
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.044,
+            "costo_hora": 56.34,
+            "costo": 2.48
+          },
+          {
+            "centro": "Madera",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 0.254,
+            "costo_hora": 61.98,
+            "costo": 15.74
+          }
+        ],
+        "total": 20.39
+      },
+      "gastos_indirectos": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.0055,
+            "costo_hora": 1796.61,
+            "costo": 9.88
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.044,
+            "costo_hora": 193.59,
+            "costo": 8.52
+          },
+          {
+            "centro": "Madera",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 0.254,
+            "costo_hora": 234.39,
+            "costo": 59.53506
+          }
+        ],
+        "total": 77.93
+      },
+      "total_fabricacion": 716.62,
+      "horas_centro_trabajo": 0.3,
+      "gastos_operacion": 214.99,
+      "costo_total": 931.6,
+      "utilidad": 186.32,
+      "precio": 1117.92,
+      "incremento_descuento": 2235.84,
+      "precio_lista": 3358.0,
+      "nota_horas_centro_trabajo": "En el PDF la columna 'Horas Centro Trabajo' del resumen imprime 0.3, valor que coincide con el factor de gastos de operacion (30%); se registra tal como aparece."
+    },
+    "verificacion": {
+      "suma_mp_mo_gi": 716.61,
+      "total_fabricacion": 716.62,
+      "diferencia": -0.01,
+      "cuadra": true
+    }
+  },
+  {
+    "articulo": "ATFAL150ABS",
+    "descripcion": "CONDUCTO FALDON PARA ESCRITORIO DE 900 X 379 X 177 mm MODELO APPS LT CON MELAMINA CANTO ABS; METALICO -- ATFAL150ABS",
+    "fecha_cotizacion": "12/08/2026 04:58:41 p. m.",
+    "factores": {
+      "gastos_operacion": 30,
+      "utilidad": 20,
+      "precio_lista": 200
+    },
+    "materiales": [
+      {
+        "codigo": "MTLECI00B20035",
+        "descripcion": "CINTURON DE 400 X 4.8 mm EN PLASTICO COLOR BLANCO CON UÑA",
+        "cantidad": 3,
+        "unidad": "pieza",
+        "ultimo_costo": 1.87,
+        "fecha_ultimo_costo": "10/08/2026",
+        "categoria": "OTRO"
+      },
+      {
+        "codigo": "MVLURO26522901",
+        "descripcion": "RONDANA PLANA Ø 1/4\" Ø 3/4\" EXTERIOR PAVONADO--RO14PA",
+        "cantidad": 5,
+        "unidad": "pieza",
+        "ultimo_costo": 0.28,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLUPI06650053",
+        "descripcion": "PIJA CABEZA HEXAGONAL DE 3/8 \" CON ARANDELA INTEGRADA DE 14 X 19 mm GALVANIZADA - \"PI1419HG\"",
+        "cantidad": 5,
+        "unidad": "pieza",
+        "ultimo_costo": 0.53,
+        "fecha_ultimo_costo": "05/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLUTO14538604",
+        "descripcion": "TORNILLO PERILLA Ø 1/4\" X 7/8\" EN GALVANIZADO CABEZA Ø 1 1/4\" X 1/4\" CON PERFORACION DE Ø 1/8\" X 3/16\" DE PROFUNDIDAD ALUMINIO NATURAL - \"COAL11434\"",
+        "cantidad": 2,
+        "unidad": "pieza",
+        "ultimo_costo": 55.8,
+        "fecha_ultimo_costo": "04/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLUTU22520002",
+        "descripcion": "TUERCA HEXAGONAL Ø1/4\" GALVANIZADO -- TU14HE",
+        "cantidad": 2,
+        "unidad": "pieza",
+        "ultimo_costo": 0.22,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLMAG01280500",
+        "descripcion": "AGLOMERADO MELAMINA DOS CARAS HOJA 4 X 8 ESPESOR 16 mm -- AME1648",
+        "cantidad": 0.167,
+        "unidad": "Hoja",
+        "ultimo_costo": 612.0,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "MADERA"
+      },
+      {
+        "codigo": "MVLPPC00491505",
+        "descripcion": "PERFIL DE CANTO ANCHO 22 mm ESPESOR 2 mm EN ABS - \"PEABS22\"",
+        "cantidad": 2.724,
+        "unidad": "m",
+        "ultimo_costo": 13.24,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "MADERA"
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.076,
+        "unidad": "Kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLSLA05260502",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+        "cantidad": 0.115,
+        "unidad": "Hoja",
+        "ultimo_costo": 434.78,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "METAL"
+      }
+    ],
+    "costos": {
+      "materia_prima": {
+        "madera": 138.27,
+        "metal": 50.0,
+        "herraje": 113.43,
+        "acrilico": null,
+        "silleria": null,
+        "otros": 21.22,
+        "total": 322.92
+      },
+      "mano_obra": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.0033,
+            "costo_hora": 394.35,
+            "costo": 1.3
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.036,
+            "costo_hora": 56.34,
+            "costo": 2.03
+          },
+          {
+            "centro": "Madera",
+            "horas": 0.4779,
+            "costo_hora": 54.55,
+            "costo": 26.07
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 0.1198,
+            "costo_hora": 61.98,
+            "costo": 7.43
+          }
+        ],
+        "total": 36.82
+      },
+      "gastos_indirectos": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.0033,
+            "costo_hora": 1796.61,
+            "costo": 5.93
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.036,
+            "costo_hora": 193.59,
+            "costo": 6.97
+          },
+          {
+            "centro": "Madera",
+            "horas": 0.4779,
+            "costo_hora": 190.82,
+            "costo": 91.19
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 0.1198,
+            "costo_hora": 234.39,
+            "costo": 28.079922
+          }
+        ],
+        "total": 132.17
+      },
+      "total_fabricacion": 491.92,
+      "horas_centro_trabajo": 0.3,
+      "gastos_operacion": 147.58,
+      "costo_total": 639.49,
+      "utilidad": 127.9,
+      "precio": 767.39,
+      "incremento_descuento": 1534.78,
+      "precio_lista": 2303.0,
+      "nota_horas_centro_trabajo": "En el PDF la columna 'Horas Centro Trabajo' del resumen imprime 0.3, valor que coincide con el factor de gastos de operacion (30%); se registra tal como aparece."
+    },
+    "verificacion": {
+      "suma_mp_mo_gi": 491.91,
+      "total_fabricacion": 491.92,
+      "diferencia": -0.01,
+      "cuadra": true
+    }
+  },
+  {
+    "articulo": "ATOM4",
+    "descripcion": "OMEGA PARA CUBIERTA DE 1150 X 100 X 17 mm MODELO APPS LT CON TORNILLERIA; METALICA -- ATOM4",
+    "fecha_cotizacion": "12/08/2026 05:03:26 p. m.",
+    "factores": {
+      "gastos_operacion": 30,
+      "utilidad": 20,
+      "precio_lista": 200
+    },
+    "materiales": [
+      {
+        "codigo": "MVLUPI06650053",
+        "descripcion": "PIJA CABEZA HEXAGONAL DE 3/8 \" CON ARANDELA INTEGRADA DE 14 X 19 mm GALVANIZADA - \"PI1419HG\"",
+        "cantidad": 8,
+        "unidad": "pieza",
+        "ultimo_costo": 0.53,
+        "fecha_ultimo_costo": "05/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.036,
+        "unidad": "Kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLSLA05260202",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 14 ACERO 1008 - LN14310",
+        "cantidad": 0.071,
+        "unidad": "Hoja",
+        "ultimo_costo": 816.48,
+        "fecha_ultimo_costo": "05/08/2026",
+        "categoria": "METAL"
+      }
+    ],
+    "costos": {
+      "materia_prima": {
+        "madera": null,
+        "metal": 57.97,
+        "herraje": null,
+        "acrilico": null,
+        "silleria": null,
+        "otros": 10.38,
+        "total": 68.35
+      },
+      "mano_obra": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.0033,
+            "costo_hora": 394.35,
+            "costo": 1.3
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.096,
+            "costo_hora": 56.34,
+            "costo": 5.41
+          },
+          {
+            "centro": "Madera",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 0.1242,
+            "costo_hora": 61.98,
+            "costo": 7.7
+          }
+        ],
+        "total": 14.41
+      },
+      "gastos_indirectos": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.0033,
+            "costo_hora": 1796.61,
+            "costo": 5.93
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.096,
+            "costo_hora": 193.59,
+            "costo": 18.58
+          },
+          {
+            "centro": "Madera",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 0.1242,
+            "costo_hora": 234.39,
+            "costo": 29.111238
+          }
+        ],
+        "total": 53.63
+      },
+      "total_fabricacion": 136.38,
+      "horas_centro_trabajo": 0.3,
+      "gastos_operacion": 40.91,
+      "costo_total": 177.29,
+      "utilidad": 35.46,
+      "precio": 212.75,
+      "incremento_descuento": 425.51,
+      "precio_lista": 639.0,
+      "nota_horas_centro_trabajo": "En el PDF la columna 'Horas Centro Trabajo' del resumen imprime 0.3, valor que coincide con el factor de gastos de operacion (30%); se registra tal como aparece."
+    },
+    "verificacion": {
+      "suma_mp_mo_gi": 136.39,
+      "total_fabricacion": 136.38,
+      "diferencia": 0.01,
+      "cuadra": true
+    }
+  },
+  {
+    "articulo": "ATPU2M",
+    "descripcion": "PATA TIPO \"U\" DE 600 X 720 mm MODELO APPS LT; METALICA -- ATPU2M",
+    "fecha_cotizacion": "12/08/2026 04:22:55 p. m.",
+    "factores": {
+      "gastos_operacion": 30,
+      "utilidad": 20,
+      "precio_lista": 200
+    },
+    "materiales": [
+      {
+        "codigo": "MVLURO26522902",
+        "descripcion": "RONDANA PLANA Ø 1/4\" Ø 3/4\" EXTERIOR GALVANIZADO--RO14GA",
+        "cantidad": 8,
+        "unidad": "pieza",
+        "ultimo_costo": 0.18,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLUPI06650053",
+        "descripcion": "PIJA CABEZA HEXAGONAL DE 3/8 \" CON ARANDELA INTEGRADA DE 14 X 19 mm GALVANIZADA - \"PI1419HG\"",
+        "cantidad": 8,
+        "unidad": "pieza",
+        "ultimo_costo": 0.53,
+        "fecha_ultimo_costo": "05/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLUTO15188109",
+        "descripcion": "TORNILLO NIVELADOR Ø 3/8\" X 1 1/2\" PLATAFORMA CONICA DE Ø 2\" X 5/8\" CROMADO - \"TO38112CNIC/TO382CNIC\"",
+        "cantidad": 2,
+        "unidad": "pieza",
+        "ultimo_costo": 17.73,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.08,
+        "unidad": "kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MLESLA05261100",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 10 -- LN10310",
+        "cantidad": 0.035,
+        "unidad": "hoja",
+        "ultimo_costo": 2270.17,
+        "fecha_ultimo_costo": "30/07/2026",
+        "categoria": "METAL"
+      },
+      {
+        "codigo": "MVLSLA05260202",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 14 ACERO 1008 - LN14310",
+        "cantidad": 0.003,
+        "unidad": "hoja",
+        "ultimo_costo": 816.48,
+        "fecha_ultimo_costo": "05/08/2026",
+        "categoria": "METAL"
+      },
+      {
+        "codigo": "MVLSTU03310401",
+        "descripcion": "TUBULAR INDUSTRIAL RECTANGULAR 1 1/2\" X 3\" CALIBRE 18 PIEZA DE 6000 mm - \"TRE181123\"",
+        "cantidad": 0.361,
+        "unidad": "pieza",
+        "ultimo_costo": 383.28,
+        "fecha_ultimo_costo": "07/08/2026",
+        "categoria": "METAL"
+      },
+      {
+        "codigo": "MVLUTU22540002",
+        "descripcion": "TUERCA HEXAGONAL Ø 3/8\" GALVANIZADO - \"TU38HE\"",
+        "cantidad": 2,
+        "unidad": "pieza",
+        "ultimo_costo": 0.39,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      }
+    ],
+    "costos": {
+      "materia_prima": {
+        "madera": null,
+        "metal": 220.27,
+        "herraje": 37.68,
+        "acrilico": null,
+        "silleria": null,
+        "otros": 17.88,
+        "total": 275.83
+      },
+      "mano_obra": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.0066,
+            "costo_hora": 394.35,
+            "costo": 2.6
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.1434,
+            "costo_hora": 56.34,
+            "costo": 8.08
+          },
+          {
+            "centro": "Madera",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 1.4078,
+            "costo_hora": 61.98,
+            "costo": 87.26
+          }
+        ],
+        "total": 97.94
+      },
+      "gastos_indirectos": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.0066,
+            "costo_hora": 1796.61,
+            "costo": 11.86
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.1434,
+            "costo_hora": 193.59,
+            "costo": 27.76
+          },
+          {
+            "centro": "Madera",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 1.4078,
+            "costo_hora": 234.39,
+            "costo": 329.974242
+          }
+        ],
+        "total": 369.59
+      },
+      "total_fabricacion": 743.36,
+      "horas_centro_trabajo": 0.3,
+      "gastos_operacion": 223.01,
+      "costo_total": 966.37,
+      "utilidad": 193.27,
+      "precio": 1159.64,
+      "incremento_descuento": 2319.28,
+      "precio_lista": 3483.0,
+      "nota_horas_centro_trabajo": "En el PDF la columna 'Horas Centro Trabajo' del resumen imprime 0.3, valor que coincide con el factor de gastos de operacion (30%); se registra tal como aparece."
+    },
+    "verificacion": {
+      "suma_mp_mo_gi": 743.36,
+      "total_fabricacion": 743.36,
+      "diferencia": 0.0,
+      "cuadra": true
+    }
+  },
+  {
+    "articulo": "ATCUBD44ABS",
+    "descripcion": "CUBIERTA CUADRADA DE 1200 X 1200 mm MODELO APPS LT PARA BANCA DOBLE, CON DOS TAPAS REGISTRABLE METALICA; EN MELAMINA CON CANTOS ABS -- ATCUBD44ABS",
+    "fecha_cotizacion": "12/08/2026 04:36:59 p. m.",
+    "factores": {
+      "gastos_operacion": 30,
+      "utilidad": 20,
+      "precio_lista": 200
+    },
+    "materiales": [
+      {
+        "codigo": "MVLURO26522902",
+        "descripcion": "RONDANA PLANA Ø 1/4\" Ø 3/4\" EXTERIOR GALVANIZADO--RO14GA",
+        "cantidad": 8,
+        "unidad": "pieza",
+        "ultimo_costo": 0.18,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLUTO35644402",
+        "descripcion": "TORNILLO CABEZA FILLSTER PHILLIPS Ø10 X 3/4\" AUTOROSCANTE T 23 GALVANIZADO -- TOAU1034",
+        "cantidad": 4,
+        "unidad": "pieza",
+        "ultimo_costo": 0.89,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLUPI10350002",
+        "descripcion": "PIJA CABEZA FIJADORA PHILLIPS 10 X 15 mm GALVANIZADO - \"PI1015G\"",
+        "cantidad": 8,
+        "unidad": "pieza",
+        "ultimo_costo": 0.25,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLMAG01280800",
+        "descripcion": "AGLOMERADO MELAMINA DOS CARAS HOJA 4 X 8 ESPESOR 28 mm -- AME2848",
+        "cantidad": 0.5,
+        "unidad": "Hoja",
+        "ultimo_costo": 1026.9,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "MADERA"
+      },
+      {
+        "codigo": "MVLMCC06060000",
+        "descripcion": "CHAPACINTA PVC ANCHO 32 mm - \"CH32PVC\"",
+        "cantidad": 2.372,
+        "unidad": "m",
+        "ultimo_costo": 4.88,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "MADERA"
+      },
+      {
+        "codigo": "MVLPPC00501505",
+        "descripcion": "PERFIL DE CANTO ANCHO 32 mm ESPESOR 2 mm EN ABS - \"PEABS32\"",
+        "cantidad": 5.184,
+        "unidad": "m",
+        "ultimo_costo": 15.99,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "MADERA"
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.002,
+        "unidad": "Kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.002,
+        "unidad": "Kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.024,
+        "unidad": "Kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLSLA05260402",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"LN18310\"",
+        "cantidad": 0.002,
+        "unidad": "hoja",
+        "ultimo_costo": 571.54,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "METAL"
+      },
+      {
+        "codigo": "MVLSLA05260402",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"LN18310\"",
+        "cantidad": 0.002,
+        "unidad": "hoja",
+        "ultimo_costo": 571.54,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "METAL"
+      },
+      {
+        "codigo": "MVLSLA05260502",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+        "cantidad": 0.042,
+        "unidad": "Hoja",
+        "ultimo_costo": 434.78,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "METAL"
+      }
+    ],
+    "costos": {
+      "materia_prima": {
+        "madera": 607.92,
+        "metal": 20.55,
+        "herraje": 7.0,
+        "acrilico": null,
+        "silleria": null,
+        "otros": 4.77,
+        "total": 640.24
+      },
+      "mano_obra": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.011,
+            "costo_hora": 394.35,
+            "costo": 4.34
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.088,
+            "costo_hora": 56.34,
+            "costo": 4.96
+          },
+          {
+            "centro": "Madera",
+            "horas": 1.4068,
+            "costo_hora": 54.55,
+            "costo": 76.74
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 0.508,
+            "costo_hora": 61.98,
+            "costo": 31.49
+          }
+        ],
+        "total": 117.52
+      },
+      "gastos_indirectos": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.011,
+            "costo_hora": 1796.61,
+            "costo": 19.76
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.088,
+            "costo_hora": 193.59,
+            "costo": 17.04
+          },
+          {
+            "centro": "Madera",
+            "horas": 1.4068,
+            "costo_hora": 190.82,
+            "costo": 268.45
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 0.508,
+            "costo_hora": 234.39,
+            "costo": 119.07012
+          }
+        ],
+        "total": 424.31
+      },
+      "total_fabricacion": 1182.08,
+      "horas_centro_trabajo": 0.3,
+      "gastos_operacion": 354.62,
+      "costo_total": 1536.7,
+      "utilidad": 307.34,
+      "precio": 1844.04,
+      "incremento_descuento": 3688.08,
+      "precio_lista": 5533.0,
+      "nota_horas_centro_trabajo": "En el PDF la columna 'Horas Centro Trabajo' del resumen imprime 0.3, valor que coincide con el factor de gastos de operacion (30%); se registra tal como aparece."
+    },
+    "verificacion": {
+      "suma_mp_mo_gi": 1182.07,
+      "total_fabricacion": 1182.08,
+      "diferencia": -0.01,
+      "cuadra": true
+    }
+  },
+  {
+    "articulo": "ATACM",
+    "descripcion": "CONDUCTO ACOMETIDA DE 220 X 649 X 75 MM MODELO APPS LT CON TORNILLERIA; METALICO -- ATACM",
+    "fecha_cotizacion": "12/08/2026 04:32:08 p. m.",
+    "factores": {
+      "gastos_operacion": 30,
+      "utilidad": 20,
+      "precio_lista": 200
+    },
+    "materiales": [
+      {
+        "codigo": "MVLURO26543002",
+        "descripcion": "RONDANA PLANA Ø 3/8\" Ø 1\" EXTERIOR CALIBRE 12 GALVANIZADO--RP381E",
+        "cantidad": 2,
+        "unidad": "pieza",
+        "ultimo_costo": 0.34,
+        "fecha_ultimo_costo": "04/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MLEUTO12170002",
+        "descripcion": "TORNILLO CABEZA BOTON ALLEN Ø 3/8\" X 1\" GALVANIZADO--TOA381BG",
+        "cantidad": 2,
+        "unidad": "pieza",
+        "ultimo_costo": 3.4,
+        "fecha_ultimo_costo": "04/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.052,
+        "unidad": "kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.03,
+        "unidad": "kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLSLA05260202",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 14 ACERO 1008 - LN14310",
+        "cantidad": 0.006,
+        "unidad": "hoja",
+        "ultimo_costo": 816.48,
+        "fecha_ultimo_costo": "05/08/2026",
+        "categoria": "METAL"
+      },
+      {
+        "codigo": "MVLSLA05260502",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+        "cantidad": 0.084,
+        "unidad": "hoja",
+        "ultimo_costo": 434.78,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "METAL"
+      },
+      {
+        "codigo": "MVLSLA05260502",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+        "cantidad": 0.048,
+        "unidad": "hoja",
+        "ultimo_costo": 434.78,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "METAL"
+      }
+    ],
+    "costos": {
+      "materia_prima": {
+        "madera": null,
+        "metal": 62.29,
+        "herraje": 7.47,
+        "acrilico": null,
+        "silleria": null,
+        "otros": 13.98,
+        "total": 83.73
+      },
+      "mano_obra": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.0099,
+            "costo_hora": 394.35,
+            "costo": 3.9
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.108,
+            "costo_hora": 56.34,
+            "costo": 6.08
+          },
+          {
+            "centro": "Madera",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 0.5152,
+            "costo_hora": 61.98,
+            "costo": 31.93
+          }
+        ],
+        "total": 41.92
+      },
+      "gastos_indirectos": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.0099,
+            "costo_hora": 1796.61,
+            "costo": 17.79
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.108,
+            "costo_hora": 193.59,
+            "costo": 20.91
+          },
+          {
+            "centro": "Madera",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 0.5152,
+            "costo_hora": 234.39,
+            "costo": 120.757728
+          }
+        ],
+        "total": 159.45
+      },
+      "total_fabricacion": 285.11,
+      "horas_centro_trabajo": 0.3,
+      "gastos_operacion": 85.53,
+      "costo_total": 370.64,
+      "utilidad": 74.13,
+      "precio": 444.77,
+      "incremento_descuento": 889.54,
+      "precio_lista": 1335.0,
+      "nota_horas_centro_trabajo": "En el PDF la columna 'Horas Centro Trabajo' del resumen imprime 0.3, valor que coincide con el factor de gastos de operacion (30%); se registra tal como aparece."
+    },
+    "verificacion": {
+      "suma_mp_mo_gi": 285.1,
+      "total_fabricacion": 285.11,
+      "diferencia": -0.01,
+      "cuadra": true
+    }
+  },
+  {
+    "articulo": "ATCUBD45ABS",
+    "descripcion": "CUBIERTA RECTANGULAR DE 1500 X 1200 mm MODELO APPS LT PARA BANCA DOBLE, CON DOS TAPAS REGISTRABLE METALICA; EN MELAMINA CON CANTOS ABS -- ATCUBD45ABS",
+    "fecha_cotizacion": "12/08/2026 04:38:31 p. m.",
+    "factores": {
+      "gastos_operacion": 30,
+      "utilidad": 20,
+      "precio_lista": 200
+    },
+    "materiales": [
+      {
+        "codigo": "MVLUTO35644402",
+        "descripcion": "TORNILLO CABEZA FILLSTER PHILLIPS Ø10 X 3/4\" AUTOROSCANTE T 23 GALVANIZADO -- TOAU1034",
+        "cantidad": 4,
+        "unidad": "pieza",
+        "ultimo_costo": 0.89,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLUPI10350002",
+        "descripcion": "PIJA CABEZA FIJADORA PHILLIPS 10 X 15 mm GALVANIZADO - \"PI1015G\"",
+        "cantidad": 8,
+        "unidad": "pieza",
+        "ultimo_costo": 0.25,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLURO26522902",
+        "descripcion": "RONDANA PLANA Ø 1/4\" Ø 3/4\" EXTERIOR GALVANIZADO--RO14GA",
+        "cantidad": 8,
+        "unidad": "pieza",
+        "ultimo_costo": 0.18,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "HERRAJE"
+      },
+      {
+        "codigo": "MVLMCC06060000",
+        "descripcion": "CHAPACINTA PVC ANCHO 32 mm - \"CH32PVC\"",
+        "cantidad": 2.372,
+        "unidad": "m",
+        "ultimo_costo": 4.88,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "MADERA"
+      },
+      {
+        "codigo": "MVLPPC00501505",
+        "descripcion": "PERFIL DE CANTO ANCHO 32 mm ESPESOR 2 mm EN ABS - \"PEABS32\"",
+        "cantidad": 5.784,
+        "unidad": "m",
+        "ultimo_costo": 15.99,
+        "fecha_ultimo_costo": "11/08/2026",
+        "categoria": "MADERA"
+      },
+      {
+        "codigo": "MVLMAG01280800",
+        "descripcion": "AGLOMERADO MELAMINA DOS CARAS HOJA 4 X 8 ESPESOR 28 mm -- AME2848",
+        "cantidad": 1,
+        "unidad": "Hoja",
+        "ultimo_costo": 1026.9,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "MADERA"
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.002,
+        "unidad": "Kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.002,
+        "unidad": "Kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLQPP00000000",
+        "descripcion": "PINTURA EN POLVO - \"PPH\"",
+        "cantidad": 0.024,
+        "unidad": "Kg",
+        "ultimo_costo": 170.47,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLSLA05260402",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"LN18310\"",
+        "cantidad": 0.002,
+        "unidad": "hoja",
+        "ultimo_costo": 571.54,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "METAL"
+      },
+      {
+        "codigo": "MVLSLA05260402",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"LN18310\"",
+        "cantidad": 0.002,
+        "unidad": "hoja",
+        "ultimo_costo": 571.54,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "METAL"
+      },
+      {
+        "codigo": "MVLSLA05260502",
+        "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+        "cantidad": 0.042,
+        "unidad": "Hoja",
+        "ultimo_costo": 434.78,
+        "fecha_ultimo_costo": "12/08/2026",
+        "categoria": "METAL"
+      }
+    ],
+    "costos": {
+      "materia_prima": {
+        "madera": 1130.96,
+        "metal": 20.55,
+        "herraje": 7.0,
+        "acrilico": null,
+        "silleria": null,
+        "otros": 4.77,
+        "total": 1163.28
+      },
+      "mano_obra": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.011,
+            "costo_hora": 394.35,
+            "costo": 4.34
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.088,
+            "costo_hora": 56.34,
+            "costo": 4.96
+          },
+          {
+            "centro": "Madera",
+            "horas": 1.4852,
+            "costo_hora": 54.55,
+            "costo": 81.02
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 0.508,
+            "costo_hora": 61.98,
+            "costo": 31.49
+          }
+        ],
+        "total": 121.8
+      },
+      "gastos_indirectos": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0.011,
+            "costo_hora": 1796.61,
+            "costo": 19.76
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.088,
+            "costo_hora": 193.59,
+            "costo": 17.04
+          },
+          {
+            "centro": "Madera",
+            "horas": 1.4852,
+            "costo_hora": 190.82,
+            "costo": 283.41
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": 0.508,
+            "costo_hora": 234.39,
+            "costo": 119.07012
+          }
+        ],
+        "total": 439.28
+      },
+      "total_fabricacion": 1724.36,
+      "horas_centro_trabajo": 0.3,
+      "gastos_operacion": 517.31,
+      "costo_total": 2241.67,
+      "utilidad": 448.33,
+      "precio": 2690.0,
+      "incremento_descuento": 5380.0,
+      "precio_lista": 8074.0,
+      "nota_horas_centro_trabajo": "En el PDF la columna 'Horas Centro Trabajo' del resumen imprime 0.3, valor que coincide con el factor de gastos de operacion (30%); se registra tal como aparece."
+    },
+    "verificacion": {
+      "suma_mp_mo_gi": 1724.36,
+      "total_fabricacion": 1724.36,
+      "diferencia": 0.0,
+      "cuadra": true
+    }
+  },
+  {
+    "articulo": "ATBIOCRT5",
+    "descripcion": "BIOMBO DIVISOR DE 1400 X 400 X 32 mm MODELO APPS LT CON SOPORTES; EN CRISTAL TRANSPARENTE 6 mm TEMPLADO -- ATBIOCRT5",
+    "fecha_cotizacion": "12/08/2026 04:46:41 p. m.",
+    "factores": {
+      "gastos_operacion": 30,
+      "utilidad": 20,
+      "precio_lista": 200
+    },
+    "materiales": [
+      {
+        "codigo": "MDCRCR01030102",
+        "descripcion": "CRISTAL TRANSPARENTE DE 1400 X 390 mm ESPESOR 6 mm TEMPLADO CON CANTOS PULIDOS, ESQUINAS REDONDEADAS RADIO 10 mm -- ATBIOCRT5-CR",
+        "cantidad": 1,
+        "unidad": "pieza",
+        "ultimo_costo": 567.5,
+        "fecha_ultimo_costo": "05/11/2025",
+        "categoria": null
+      },
+      {
+        "codigo": "MLEXSO310000V9",
+        "descripcion": "SOPORTE PARA MAMPARA ROAD MONTAJE SOBRE CUBIERTA, PARA ESPESOR PARA VIDRIOS O PANELES DE 4 A 16 mm, CYMISA - \"SOVROAD\"",
+        "cantidad": 2,
+        "unidad": "pieza",
+        "ultimo_costo": 116.42,
+        "fecha_ultimo_costo": "04/08/2026",
+        "categoria": null
+      },
+      {
+        "codigo": "MVLUPI03472101",
+        "descripcion": "PIJA CABEZA PLANA PHILLIPS 8 X 1\" PARA TABLAROCA PAVONADO - \"PITR1\"",
+        "cantidad": 4,
+        "unidad": "pieza",
+        "ultimo_costo": 0.21,
+        "fecha_ultimo_costo": "04/08/2026",
+        "categoria": "HERRAJE"
+      }
+    ],
+    "costos": {
+      "materia_prima": {
+        "madera": null,
+        "metal": null,
+        "herraje": 0.82,
+        "acrilico": null,
+        "silleria": null,
+        "otros": 800.33,
+        "total": 801.15
+      },
+      "mano_obra": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0,
+            "costo_hora": 394.35,
+            "costo": 0.0
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.3402,
+            "costo_hora": 56.34,
+            "costo": 19.17
+          },
+          {
+            "centro": "Madera",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          }
+        ],
+        "total": 19.17
+      },
+      "gastos_indirectos": {
+        "por_centro": [
+          {
+            "centro": "Metal",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Pintura",
+            "horas": 0,
+            "costo_hora": 1796.61,
+            "costo": 0.0
+          },
+          {
+            "centro": "Acabados",
+            "horas": 0.3402,
+            "costo_hora": 193.59,
+            "costo": 65.86
+          },
+          {
+            "centro": "Madera",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Acrílicos",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Tapicería",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          },
+          {
+            "centro": "Otros",
+            "horas": null,
+            "costo_hora": null,
+            "costo": null
+          }
+        ],
+        "total": 65.86
+      },
+      "total_fabricacion": 886.18,
+      "horas_centro_trabajo": 0.3,
+      "gastos_operacion": 265.85,
+      "costo_total": 1152.03,
+      "utilidad": 230.41,
+      "precio": 1382.44,
+      "incremento_descuento": 2764.88,
+      "precio_lista": 4148.0,
+      "nota_horas_centro_trabajo": "En el PDF la columna 'Horas Centro Trabajo' del resumen imprime 0.3, valor que coincide con el factor de gastos de operacion (30%); se registra tal como aparece."
+    },
+    "verificacion": {
+      "suma_mp_mo_gi": 886.18,
+      "total_fabricacion": 886.18,
+      "diferencia": 0.0,
+      "cuadra": true
+    }
+  }
+]

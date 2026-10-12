@@ -31,7 +31,8 @@ export function clasificarCuarto(nombre) {
   if (/lounge|descanso|estar|comedor|break|caf[e]|espera/.test(t)) return { rol: 'lounge', zona: ZONA.GENERICA };
   if (/recep|lobby|acceso|vestib/.test(t)) return { rol: 'recepcion', zona: ZONA.RECEPCION };
   if (/priv|gerenc|oficina/.test(t)) return { rol: 'privado', zona: ZONA.GENERICA };
-  if (/open|operativ|trabajo|estaci|planta libre|bench/.test(t)) return { rol: 'open', zona: ZONA.OPERATIVA };
+  // 'apartado' y 'pax' son el vocabulario real que vino del lector de planos del CEO (línea viva 2026-10-08).
+  if (/open|operativ|apartado|trabajo|estaci|planta libre|bench|isla|\bpax\b/.test(t)) return { rol: 'open', zona: ZONA.OPERATIVA };
   return { rol: 'general', zona: ZONA.GENERICA };
 }
 export const rolDeCuarto = (nombre) => clasificarCuarto(nombre).rol;

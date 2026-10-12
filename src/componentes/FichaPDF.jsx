@@ -8,7 +8,8 @@ import { useEffect } from 'react';
 import MarcaLogo from './MarcaLogo.jsx';
 import MiniRender, { tipoDeMueble, dimsDeMueble } from './MiniRender.jsx';
 import { imagenProducto, heroLinea } from '../datos/imagenes.js';
-import { pesos } from '../util.js';
+import { pesos2 } from '../util.js';
+import { importePorCantidad, cargoPorcentaje, sumarMontos } from '../motor/comercialDinero.js';
 import { LINEAS } from '../datos/catalogo.js';
 
 // Foto real del lounge/showroom VH (2026-08-18, la mandó Rodrigo). Portada de
@@ -62,10 +63,10 @@ export default function FichaPDF({ estado, costeo, cantidad = 1, precioUnitario 
   const lineaObj = LINEAS.find((l) => l.nombre === costeo.linea);
   const que = lineaObj?.que && !lineaObj.confirmar ? lineaObj.que : '';
 
-  const importe = precioUnitario * cantidad;
+  const importe = importePorCantidad(precioUnitario, cantidad);
   const ivaPct = estado.parametros?.ivaPorcentaje ?? 16;
-  const iva = importe * (ivaPct / 100);
-  const total = importe + iva;
+  const iva = importe == null ? null : cargoPorcentaje(importe, ivaPct);
+  const total = importe == null || iva == null ? null : sumarMontos([importe, iva]);
 
   const anticipoPct = estado.parametros?.anticipoPorcentaje ?? 50;
 
@@ -167,15 +168,15 @@ export default function FichaPDF({ estado, costeo, cantidad = 1, precioUnitario 
               <tr>
                 <td>{costeo.nombre || 'Mueble a la medida'}</td>
                 <td className="num">{cantidad}</td>
-                <td className="num">{pesos(precioUnitario)}</td>
-                <td className="num">{pesos(importe)}</td>
+                <td className="num">{pesos2(precioUnitario)}</td>
+                <td className="num">{pesos2(importe)}</td>
               </tr>
             </tbody>
           </table>
           <div className="ficha-totales">
-            <div><span>Subtotal</span><b>{pesos(importe)}</b></div>
-            <div><span>IVA {ivaPct}%</span><b>{pesos(iva)}</b></div>
-            <div className="ficha-total"><span>Total</span><b>{pesos(total)}</b></div>
+            <div><span>Subtotal</span><b>{pesos2(importe)}</b></div>
+            <div><span>IVA {ivaPct}%</span><b>{pesos2(iva)}</b></div>
+            <div className="ficha-total"><span>Total</span><b>{pesos2(total)}</b></div>
           </div>
         </section>
 

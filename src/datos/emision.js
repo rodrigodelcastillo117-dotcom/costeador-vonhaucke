@@ -97,6 +97,8 @@ const CODIGO_LEGADO = {
   sin_product_version_id: 'SIN_PRODUCT_VERSION_ID', sin_product_id: 'SIN_PRODUCT_ID',
   producto_id_invalido: 'PRODUCTO_ID_INVALIDO', producto_version_id_invalido: 'PRODUCTO_VERSION_ID_INVALIDO',
   piezas_excluidas_sin_confirmar: 'EXCLUIDAS_SIN_CONFIRMAR', sin_partidas: 'SIN_PARTIDAS',
+  // Veredicto del costeo (línea viva 2026-10-08): preliminar bloquea la emisión definitiva.
+  costo_preliminar_no_certificado: 'COSTO_PRELIMINAR', costo_no_certificado: 'COSTO_NO_CERTIFICABLE',
 };
 
 export function detalleBloqueo(code, partidas = []) {

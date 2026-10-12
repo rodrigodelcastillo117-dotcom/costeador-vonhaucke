@@ -106,3 +106,21 @@ describe('problemasDeEmision', () => {
     expect(problemasDeEmision(p)).toEqual([]);
   });
 });
+
+
+  it('especial nuevo con costoPendiente bloquea aunque ya tenga precio de venta', () => {
+    const p = [{
+      nombre:'Especial nuevo', cantidad:1, precioUnitario:25000,
+      costoUnitario:null, costoPendiente:true,
+    }];
+    const probs = problemasDeEmision(p);
+    expect(probs.some(x => /costeo válido/i.test(x))).toBe(true);
+  });
+
+  it('costo desconocido histórico de banco sigue permitido si NO es costoPendiente', () => {
+    const p = [{
+      nombre:'Silla banco', cantidad:1, precioUnitario:5210,
+      costoUnitario:null, deBanco:true,
+    }];
+    expect(problemasDeEmision(p)).toEqual([]);
+  });

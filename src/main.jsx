@@ -5,6 +5,8 @@ import SinPantallaBlanca from './componentes/SinPantallaBlanca.jsx';
 import { registrarError } from './datos/telemetria.js';
 import './fuentes.css';
 import './estilos.css';
+import './demoGuardrails.css';
+import './contrastFixes.css';
 import './runtimeGuardrails.js';
 
 // ============================================================================
@@ -22,8 +24,8 @@ import './runtimeGuardrails.js';
 
 function pintarFallo(titulo, detalle) {
   const raiz = document.getElementById('raiz');
-  if (!raiz || raiz.dataset.fallo === '1') return;   // no encimar dos errores
-  if (raiz.childElementCount > 0) return;            // React ya pintó algo: no estorbar
+  if (!raiz || raiz.dataset.fallo === '1') return;
+  if (raiz.childElementCount > 0) return;
   raiz.dataset.fallo = '1';
   const caja = document.createElement('div');
   caja.style.cssText = 'max-width:720px;margin:40px auto;padding:24px;font:15px/1.5 system-ui,sans-serif;color:#1E1B1A';
@@ -33,7 +35,7 @@ function pintarFallo(titulo, detalle) {
     '<p style="color:#6b645c;margin:0 0 16px">Esto es un error de la app, no de tu internet ni de tu sesión. ' +
     'Copia el detalle de abajo y mándamelo: con eso se arregla de una.</p>' +
     '<button id="vh-copiar" style="padding:10px 16px;border:1px solid #B22A22;background:#B22A22;color:#fff;border-radius:8px;cursor:pointer">Copiar el detalle</button> ' +
-    '<button id="vh-recargar" style="padding:10px 16px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer">Recargar</button>' +
+    '<button id="vh-recargar" style="padding:10px 16px;border:1px solid #ddd;background:#fff;color:#111;border-radius:8px;cursor:pointer">Recargar</button>' +
     '<pre style="white-space:pre-wrap;font-size:12px;background:#f3f1ed;padding:14px;border-radius:8px;margin-top:16px;max-height:320px;overflow:auto"></pre>';
   caja.querySelector('pre').textContent = txt;
   raiz.appendChild(caja);

@@ -2,6 +2,7 @@
 // RENDER PROMPT COMPILER (Cocrear) · ProductSpec → render contract.
 // ============================================================================
 import { FAMILIA, colorMaterial } from './cocrear.js';
+import { visualRevisionHash } from './visualRevision.js';
 
 export const RENDER_PROMPT_VERSION = 'cocrear_render_v3_reference_locked';
 
@@ -120,12 +121,19 @@ export function compileRenderPrompt(spec, dna = {}) {
     aspecto: '4:3',
     expected: { geometry: { product_type: rs.product_type, forma: rs.forma, ...rs.counts }, finish: rs.finishes, features: rs.mandatory },
     specHash: spec?.hash || null,
+    visualRevisionHash: visualRevisionHash(spec || {}),
   };
 }
 
 export function renderStale(renderGuardado, specActual) {
-  if (!renderGuardado?.specHash || !specActual?.hash) return false;
-  return renderGuardado.specHash !== specActual.hash;
+  // Fail-closed: si existe render pero falta cualquiera de las firmas, NO podemos
+  // demostrar que corresponde a la ProductSpec actual. Sólo "sin render" no es stale.
+  if (!renderGuardado) return false;
+  if (!renderGuardado.specHash || !specActual?.hash) return true;
+  if (renderGuardado.specHash !== specActual.hash) return true;
+  const currentVisual = visualRevisionHash(specActual || {});
+  if (!renderGuardado.visualRevisionHash) return true;
+  return renderGuardado.visualRevisionHash !== currentVisual;
 }
 
 export function diffFidelidad(expViejo = {}, expNuevo = {}) {

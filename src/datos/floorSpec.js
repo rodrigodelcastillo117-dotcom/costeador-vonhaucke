@@ -1,3 +1,4 @@
+import { destinoMarcado } from './destinoAcomodo.js';
 import { ZONA, zonaDeCuarto } from './cuartos.js';
 // ============================================================================
 //  FloorSpec — CAPA DETERMINISTA DE VERDAD del plano (P0-PLAN).
@@ -124,9 +125,91 @@ export function puntoEnPoligono([x, y], poligono = []) {
   return dentro;
 }
 
-// B4 (2026-10-11): `validarEnvolvente` y `validarFloorSpec` se retiraron (prod 0). La validación
-// determinista del plano vive en la edge leer-plano v11 (floorSpec.validation) y el cliente la
-// consume en datos/floorSpecAvisos.js (VH-064). Su forma de entrada no coincidía con lo que emite la edge.
+// COTA > ESCALA > ESTIMACIÓN IA: la envolvente debe cuadrar con la suma de las cotas
+// del grid. Si el grid existe y no suma, la lectura es INVÁLIDA (el bug 178 vs 132).
+export function validarEnvolvente(envelope = {}, grid = {}, tolPct = 0.02) {
+  const issues = [];
+  const ancho = Number(envelope.width_mm ?? envelope.ancho) || 0;
+  const largo = Number(envelope.height_mm ?? envelope.largo) || 0;
+  if (ancho <= 0 || largo <= 0) issues.push({ code: 'ENVELOPE_NO_POSITIVA', msg: 'La envolvente debe ser positiva.' });
+  const sum = (a) => (Array.isArray(a) ? a.reduce((s, v) => s + (Number(v) || 0), 0) : 0);
+  const sh = sum(grid.horizontal);
+  const sv = sum(grid.vertical);
+  if (sh > 0 && ancho > 0 && Math.abs(sh - ancho) / ancho > tolPct) {
+    issues.push({ code: 'GRID_ANCHO_NO_CUADRA', msg: `La suma de cotas horizontales (${sh}) no coincide con el ancho de la envolvente (${ancho}).` });
+  }
+  if (sv > 0 && largo > 0 && Math.abs(sv - largo) / largo > tolPct) {
+    issues.push({ code: 'GRID_LARGO_NO_CUADRA', msg: `La suma de cotas verticales (${sv}) no coincide con el largo de la envolvente (${largo}).` });
+  }
+  return { ok: issues.length === 0, issues, area_m2: (ancho / 1000) * (largo / 1000) };
+}
+
+// Validador determinista del FloorSpec completo. Devuelve status VALID|INVALID.
+export function validarFloorSpec(spec = {}) {
+  const issues = [];
+  const env = validarEnvolvente(spec.envelope || {}, spec.grid || {});
+  issues.push(...env.issues);
+
+  const zonas = Array.isArray(spec.zones) ? spec.zones : [];
+  let areaZonas = 0;
+  for (const z of zonas) {
+    const poly = z.polygon || z.puntos;
+    if (poly && poly.length >= 3) {
+      const a = areaPoligono(poly);
+      if (a <= 0) issues.push({ code: 'ZONA_AREA_CERO', msg: `Zona ${z.name || z.id} con área no positiva.` });
+      areaZonas += a;
+    }
+  }
+  // La suma de zonas no puede exceder (razonablemente) la envolvente.
+  const areaEnvMM = (Number(spec.envelope?.width_mm ?? spec.envelope?.ancho) || 0) * (Number(spec.envelope?.height_mm ?? spec.envelope?.largo) || 0);
+  if (areaEnvMM > 0 && areaZonas > areaEnvMM * 1.05) {
+    issues.push({ code: 'ZONAS_EXCEDEN_ENVOLVENTE', msg: 'La suma de zonas excede la envolvente.' });
+  }
+
+  // Mobiliario DENTRO de su zona; fixtures no son sillas; cantidades coherentes.
+  const obs = Array.isArray(spec.furniture_observations) ? spec.furniture_observations : [];
+  const zonaPorId = new Map(zonas.map((z) => [z.id, z]));
+  const idsObs = new Set();
+  for (const o of obs) {
+    const oid = o?.id != null ? String(o.id) : '';
+    if (!oid) {
+      issues.push({ code: 'MUEBLE_SIN_ID', msg: 'Hay una observación de mobiliario sin id.' });
+    } else if (idsObs.has(oid)) {
+      issues.push({ code: 'MUEBLE_ID_DUPLICADO', msg: `Mueble ${oid} aparece más de una vez.` });
+    } else {
+      idsObs.add(oid);
+    }
+
+    const z = zonaPorId.get(o.zone_id);
+    if (!z) {
+      issues.push({ code: 'ZONA_REFERENCIADA_INEXISTENTE', msg: `Mueble ${o.id || '?'} refiere una zona inexistente (${o.zone_id || 'sin zone_id'}).` });
+      continue;
+    }
+
+    if (Number(o.quantity_group ?? 1) <= 0) {
+      issues.push({ code: 'CANTIDAD_INVALIDA', msg: `Mueble ${o.id} con cantidad no positiva.` });
+    }
+
+    if (o.semantic_role !== ROL.FIXTURE) {
+      const poly = z.polygon || z.puntos;
+      if (poly && o.center && !puntoEnPoligono(o.center, poly)) {
+        issues.push({ code: 'MUEBLE_FUERA_DE_ZONA', msg: `Mueble ${o.id} fuera de su zona ${o.zone_id}.` });
+      }
+
+      // Semántica dura: una observación ya clasificada no puede contradecir una
+      // zona inequívoca. "Mesa de juntas en sanitario" no es un dato válido.
+      const zonaTipo = zonaSemantica(z.name || z.nombre || '');
+      if (!zonaPermite(o.semantic_role, zonaTipo)) {
+        issues.push({
+          code: 'ROL_NO_PERTENECE_A_ZONA',
+          msg: `Mueble ${o.id} (${o.semantic_role}) no pertenece a ${z.name || z.nombre || o.zone_id}.`,
+        });
+      }
+    }
+  }
+
+  return { status: issues.length === 0 ? 'VALID' : 'INVALID', issues, area_m2: env.area_m2 };
+}
 
 // --- Estado del acomodo (layout). Nada desaparece. ----------------------------
 // Invariante ABSOLUTA: requested = placed + unplaced + excluded.
@@ -172,16 +255,35 @@ export function renderFiel({ rendered = 0, placed = 0 } = {}) {
 // Mapea una pieza del acomodo (tipo/nombre) a su ROL semántico.
 export function rolDePiezaAcomodo(pieza) {
   const t = `${pieza?.tipo || ''} ${pieza?.nombre || ''}`.toLowerCase();
+  const destino = destinoMarcado(pieza);
+  const esAsiento = /silla|asiento|chair|seat|sillón|sillon/.test(t);
+
+  // El destino explícito viaja desde la cotización/Voni y manda sobre heurísticas
+  // genéricas. Así la auditoría local habla el mismo idioma que el edge.
+  if (esAsiento && destino === 'juntas') return ROL.MEETING_SEAT;
+  if (esAsiento && destino === 'privado') return ROL.EXECUTIVE_SEAT;
+  if (esAsiento && destino === 'recepcion') return ROL.VISITOR_SEAT;
+  if (esAsiento && destino === 'open') return ROL.WORK_SEAT;
+
   if (/mesa de junta|mesa junta|mesa de consejo|sala de junta|board|consejo/.test(t)) return ROL.TABLE;
   if (/recepci|mostrador|módulo recep|modulo recep/.test(t)) return ROL.RECEPTION;
   if (/escritorio|bench|puesto|estacion|estación|workstation|operativ/.test(t)) return ROL.WORKSTATION;
-  // ⚠️ NO toda "mesa" es mesa de juntas. Una mesa de centro/café/lounge es
-  // FLEXIBLE: marcarla TABLE la volvía violación en recepción/operativa (falso
-  // positivo). Solo la mesa de JUNTAS/CONSEJO (regla explícita de arriba) es
-  // TABLE; una mesa genérica cae a OTHER → flexible (§3-G: no inventar
-  // incompatibilidad para un rol que no es claramente de junta).
   if (/archiv|credenza|gaveta|pedestal|guarda|storage/.test(t)) return ROL.STORAGE;
-  if (/silla|asiento|chair|seat/.test(t)) return ROL.WORK_SEAT;
+  if (esAsiento) {
+    if (/directiv|ejecutiv|presiden|gerenc|concerto/.test(t)) return ROL.EXECUTIVE_SEAT;
+    if (/junta|consejo|board|sonata/.test(t)) return ROL.MEETING_SEAT;
+    if (/visita|espera|confidente/.test(t)) return ROL.VISITOR_SEAT;
+    // relation_role viene del programa comercial (payload del edge): es tan explícito
+    // como la ruta vh-dest-*.
+    const rr = String(pieza?.relation_role || '').toUpperCase();
+    if (rr && ROL[rr]) return ROL[rr];
+    // Unificación 2026-10-11 (VH-033 × semántica de asientos): una silla SIN destino
+    // marcado y SIN palabra clave ("Silla ALPHA") no se sabe de qué puesto es. Antes
+    // se asumía WORK_SEAT y entonces 10 sillas vendidas junto a una mesa de juntas,
+    // en un plano que sólo tiene la sala de juntas, se quedaban fuera (1 de 11
+    // colocadas). Lo que no se sabe no se prohíbe: queda flexible, salvo baños/site.
+    return ROL.OTHER;
+  }
   return ROL.OTHER;
 }
 
@@ -199,7 +301,15 @@ export function zonaPermite(rol, zonaTipo) {
       return zonaTipo === ZONA.RECEPCION;
     case ROL.WORKSTATION: // puestos operativos: no en consejo ni recepción
       return zonaTipo !== ZONA.CONSEJO && zonaTipo !== ZONA.RECEPCION;
-    default:              // sillas, guarda, otros: flexibles (ya filtrados sanitarios/site)
+    case ROL.MEETING_SEAT:
+      return zonaTipo === ZONA.CONSEJO;
+    case ROL.EXECUTIVE_SEAT:
+      return zonaTipo === ZONA.CEO;
+    case ROL.WORK_SEAT:
+      return zonaTipo === ZONA.OPERATIVA;
+    case ROL.VISITOR_SEAT:
+      return [ZONA.RECEPCION, ZONA.CEO, ZONA.CONSEJO].includes(zonaTipo);
+    default:
       return true;
   }
 }

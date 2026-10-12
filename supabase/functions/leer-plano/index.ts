@@ -1,237 +1,291 @@
 // ============================================================================
-//  Edge Function: leer-plano  (LEE UN PLANO / LAYOUT y saca las ÁREAS)
-//  Recibe la imagen de un plano (AutoCAD exportado a imagen/PDF-render) y
-//  devuelve la lista de cuartos/áreas con su FORMA REAL y sus medidas en mm,
-//  para pre-llenar el acomodo. Si no hay cotas, estima y lo marca.
-//  Requiere ANTHROPIC_API_KEY.
-//
-//  v2 (2026-08-16) — POR QUÉ CAMBIÓ EL ESQUEMA:
-//  Rodrigo subió una planta orgánica (sala de juntas CIRCULAR de Ø7 m dentro
-//  del open space, recepción TRIANGULAR, break room TRAPEZOIDAL y las oficinas
-//  detrás de un muro CURVO) y la app dibujó nueve cajas rectas encimadas. No
-//  fue que el modelo leyera mal: el esquema sólo tenía ancho/largo, así que la
-//  única respuesta posible era una caja. Ahora cada área entrega su CONTORNO
-//  (polígono en mm) o su círculo, más el ENVOLVENTE del conjunto tomado de la
-//  cota general. El motor de acomodo y el plano ya sabían trabajar con
-//  polígonos (venía del lienzo "Dibujar mi oficina"); el lector era el único
-//  eslabón que no los producía.
+// leer-plano · WRAPPER SEGURO de producción.
+// Auth + permisos + límites + observabilidad + validación determinista FloorSpec.
+// La visión vive en `leer-plano-core`; este archivo nunca confía ciegamente en IA.
 // ============================================================================
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-
-const PUNTO = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    x: { type: "number", description: "mm desde el borde IZQUIERDO del envolvente." },
-    y: { type: "number", description: "mm desde el borde SUPERIOR del envolvente (crece hacia abajo)." },
-  },
-  required: ["x", "y"],
-};
-
-const SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    envolvente: {
-      type: "object",
-      additionalProperties: false,
-      description: "Caja que encierra TODO el conjunto construido, tomada de la cota general del plano.",
-      properties: {
-        ancho: { type: "number", description: "Ancho total en mm (eje horizontal)." },
-        largo: { type: "number", description: "Largo total en mm (eje vertical)." },
-      },
-      required: ["ancho", "largo"],
-    },
-    // COTAS DEL GRID (ejes). Permiten VALIDAR la envolvente de forma determinista:
-    // la suma de los segmentos debe cuadrar con ancho/largo (cota > escala > IA).
-    grid: {
-      type: "object",
-      additionalProperties: false,
-      description: "Las cotas de los ejes, segmento por segmento, en mm. Ej. ejes A-E con 4.00+4.00+4.00+3.00 → horizontal:[4000,4000,4000,3000]. Vacío si el plano no trae cotas de ejes.",
-      properties: {
-        horizontal: { type: "array", items: { type: "number" }, description: "Segmentos horizontales (entre ejes verticales A,B,C…) en mm, de izquierda a derecha." },
-        vertical: { type: "array", items: { type: "number" }, description: "Segmentos verticales (entre ejes horizontales 1,2,3…) en mm, de arriba a abajo." },
-      },
-      required: ["horizontal", "vertical"],
-    },
-    areas: {
-      type: "array",
-      description: "Un cuarto/área por entrada, con su FORMA REAL en mm.",
-      items: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          nombre: { type: "string", description: "Nombre o uso del cuarto tal como se lee en el plano (ej. 'Oficina 1', 'Recepción')." },
-          tipo: { type: "string", enum: ["open", "privado", "juntas", "recepcion", "lounge", "servicio"], description: "Para qué se usa el cuarto." },
-          // El esquema viejo sólo tenía ancho/largo y por eso una sala circular
-          // salía cuadrada y un open space en L salía rectangular.
-          forma: { type: "string", enum: ["poligono", "circulo"], description: "'circulo' SÓLO si el cuarto es realmente redondo/ovalado; si no, 'poligono'." },
-          puntos: {
-            type: "array",
-            description: "Contorno del cuarto en orden (horario), en mm absolutos. Obligatorio si forma='poligono': 4 puntos si es rectangular, 3 si es triangular, 4 si es trapecio, y de 8 a 16 si algún muro es CURVO (puntos sobre la curva). Si forma='circulo', deja la lista vacía.",
-            items: PUNTO,
-          },
-          circulo: {
-            type: "object",
-            additionalProperties: false,
-            description: "Sólo si forma='circulo'. Si es polígono, manda ceros.",
-            properties: {
-              cx: { type: "number", description: "Centro x en mm." },
-              cy: { type: "number", description: "Centro y en mm." },
-              r: { type: "number", description: "Radio en mm (la mitad del diámetro que dice la cota)." },
-            },
-            required: ["cx", "cy", "r"],
-          },
-          // Una sala de juntas circular DENTRO del open space no es un traslape:
-          // es un cuarto anidado. Sin este campo la validación la rechazaba.
-          dentroDe: { type: "string", description: "Nombre del área que CONTIENE a ésta (una sala cerrada dentro del open space). Cadena vacía si no está dentro de ninguna." },
-          // El número de puestos NO se estima por área: es el conteo de los
-          // escritorios REALMENTE DIBUJADOS en esta zona. Viaja como dato duro
-          // para que el cliente no lo recalcule por geometría (antes salían 18
-          // donde el plano dibujaba 8).
-          puestos: { type: "integer", description: "SÓLO para zonas/islas de trabajo con escritorios DIBUJADOS: cuenta los puestos (escritorios/posiciones) que REALMENTE se ven dibujados en ESTA zona. NO estimes por área: cuenta uno por cada escritorio con su silla. 0 para cuartos sin puestos de trabajo (privados, salas, servicio, recepción, o el salón contenedor cuyos puestos ya están en sus islas)." },
-          confianza: { type: "string", enum: ["alta", "media", "baja"] },
-        },
-        required: ["nombre", "tipo", "forma", "puntos", "circulo", "dentroDe", "puestos", "confianza"],
-      },
-    },
-    // Sin puertas, el motor amuebla tapando accesos y además no puede
-    // comprobar que se LLEGUE caminando a cada puesto. Van aparte de las áreas
-    // porque una puerta pertenece al muro, no al cuarto.
-    puertas: {
-      type: "array",
-      description: "Puertas y accesos del plano. Suelen verse como un vano en el muro, a veces con el arco de barrido o marcados en otro color.",
-      items: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          x: { type: "number", description: "Centro del vano, mm desde el borde izquierdo del envolvente." },
-          y: { type: "number", description: "Centro del vano, mm desde el borde superior del envolvente." },
-          ancho: { type: "number", description: "Ancho del vano en mm (una puerta normal ~900)." },
-        },
-        required: ["x", "y", "ancho"],
-      },
-    },
-    escala: { type: "string", description: "De qué cota saliste para la escala (ej. 'cota general 30.00 m en el borde inferior')." },
-    tieneCotas: { type: "boolean", description: "¿El plano trae cotas/medidas legibles?" },
-    notas: { type: "array", items: { type: "string" }, description: "Supuestos; pide 1 medida de referencia si no hay cotas." },
-  },
-  required: ["envolvente", "grid", "areas", "puertas", "escala", "tieneCotas", "notas"],
-};
-
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
-  if (req.method !== "POST") return json({ ok: false, error: "Usa POST" }, 405);
-
-  const key = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!key) return json({ ok: false, error: "Falta ANTHROPIC_API_KEY" }, 500);
-
-  let body: any;
-  try { body = await req.json(); } catch { return json({ ok: false, error: "JSON invalido" }, 400); }
-  const { image, mediaType = "image/jpeg", refMM } = body || {};
-  if (!image) return json({ ok: false, error: "Falta la imagen del plano." }, 400);
-  const esPdf = mediaType === "application/pdf";
-
-  const system =
-    "Eres un arquitecto que levanta la planta de un plano de oficina. Te doy la imagen de un plano. " +
-    "Devuelve la FORMA REAL de cada cuarto en MILÍMETROS. No aproximes a rectángulos: si un cuarto es " +
-    "triangular, trapezoidal, curvo o redondo, dilo con sus puntos.\n\n" +
-    "TRABAJA EN ESTE ORDEN:\n" +
-    "PASO 1 · ESCALA Y ENVOLVENTE. Busca primero las cotas generales (las flechas largas de los bordes, " +
-    "tipo '30.00 m' abajo y '20.00 m' a la izquierda) y con ellas fija el envolvente en mm. TODO lo demás " +
-    "se mide contra esa escala; no inventes medidas redondas que no vengan del plano.\n" +
-    "PASO 2 · CONTORNOS. Recorre el plano cuarto por cuarto y traza su contorno con puntos, en mm.\n" +
-    "PASO 3 · PUERTAS. Marca el centro y el ancho de CADA puerta o acceso. Son el vano en el muro, muchas\n" +
-    "veces con el arco de barrido dibujado o pintadas de otro color. Sin ellas el acomodo tapa las entradas.\n\n" +
-    "SISTEMA DE COORDENADAS:\n" +
-    "· El origen (0,0) es la esquina SUPERIOR IZQUIERDA del envolvente.\n" +
-    "· x crece hacia la derecha; y crece hacia ABAJO.\n" +
-    "· Todos los puntos van en mm absolutos dentro del envolvente.\n\n" +
-    "CÓMO DESCRIBIR CADA FORMA:\n" +
-    "· Rectangular → 4 puntos (las esquinas).\n" +
-    "· Triangular → 3 puntos. Trapezoidal → 4 puntos, con sus lados inclinados de verdad.\n" +
-    "· Muro CURVO (por ejemplo un pasillo curvo que separa el open space de las oficinas) → traza la curva " +
-    "con 8 a 16 puntos sobre ella; el resto del contorno con sus esquinas. NO la conviertas en línea recta.\n" +
-    "· Sala REDONDA u ovalada → forma='circulo' con centro y radio (la cota suele dar el diámetro: el radio " +
-    "es la mitad). Deja 'puntos' vacío.\n" +
-    "· Un cuarto CERRADO que está DENTRO de otro (una sala de juntas en medio del open space) se declara " +
-    "igual, y además pone en 'dentroDe' el nombre del área que lo contiene. Eso NO es un error de traslape.\n\n" +
-    "REGLAS:\n" +
-    "1) Si el plano trae COTAS, úsalas (tieneCotas=true). Normaliza a mm (si ves metros, ×1000).\n" +
-    "2) Si NO hay cotas, ESTIMA con proporciones y estándares (puerta ~900 mm, mobiliario típico), marca " +
-    "confianza 'baja' y en 'notas' pide 1 medida de referencia real para calibrar.\n" +
-    (refMM ? `3) El usuario indica que una referencia mide ${refMM} mm; úsala para escalar.\n` : "") +
-    "4) Nombra cada área como la nombra el plano; si no tiene nombre, 'Área 1', 'Área 2'.\n" +
-    "5) No inventes cuartos que no estén en el plano, y no te saltes ninguno.\n" +
-    "6) Clasifica en 'tipo': open (área abierta de trabajo), privado (oficina cerrada de 1-2 personas), " +
-    "juntas (sala de juntas/consejo), recepcion, lounge (comedor/estar), servicio (baño, cocineta, ducto, " +
-    "escalera, bodega, SITE/IT). Los de servicio NO se amueblan.\n" +
-    "7) ISLAS DE TRABAJO (CRÍTICO para contar puestos bien). Dentro de un área 'open' suele haber uno o varios " +
-    "CLUSTERS de escritorios/bancas dibujados (grupos de rectángulos con una silla/círculo cada uno, p.ej. dos " +
-    "bloques de 4 posiciones). Declara CADA cluster como un área aparte con tipo='open', su contorno REAL " +
-    "(sólo el cluster, no todo el salón) y 'dentroDe'=nombre del área que lo contiene. NO estimes los puestos " +
-    "dividiendo el salón entero: el número de puestos sale de los escritorios DIBUJADOS en cada isla. Pon ese " +
-    "conteo en el campo 'puestos' de la isla (cuenta uno por cada escritorio con su silla que veas dibujado). " +
-    "El salón contenedor lleva puestos=0 (sus puestos ya están repartidos en las islas). No embebas el número en " +
-    "el nombre; va en 'puestos'. Si el open no tiene mobiliario dibujado, no inventes islas.\n" +
-    "8) NO es mobiliario ni cuarto: las líneas PUNTEADAS/azules de DUCTOS HVAC (a veces con una X), las líneas de " +
-    "corte, los ejes y las cotas. Ignóralos. Los SANITARIOS son tipo='servicio' (no fabricamos escusados ni " +
-    "lavabos): no los cuentes como sillas ni muebles.\n" +
-    "9) GRID: extrae las cotas de los ejes a 'grid' (horizontal y vertical, en mm, segmento por segmento). " +
-    "La SUMA de cada lista debe cuadrar con la envolvente — si no cuadra, revísala: la cota manda sobre el dibujo.\n\n" +
-    "ANTES DE RESPONDER, COMPRUEBA:\n" +
-    "a) El envolvente coincide con la cota general del plano.\n" +
-    "b) Ningún punto se sale del envolvente (0 ≤ x ≤ ancho, 0 ≤ y ≤ largo).\n" +
-    "c) Dos áreas que NO están anidadas no se encinan: si comparten muro, comparten esos puntos.\n" +
-    "d) La suma de las superficies no pasa la del envolvente.\n" +
-    "e) Cada contorno tiene los puntos suficientes para que su forma se reconozca sin la imagen.\n" +
-    "f) Cada puerta cae SOBRE un muro, no en medio de un cuarto ni en el aire.";
-
-  const apiBody = {
-    model: "claude-opus-5",
-    max_tokens: 8000,
-    output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } },
-    system,
-    messages: [{
-      role: "user",
-      content: [
-        esPdf
-          ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: image } }
-          : { type: "image", source: { type: "base64", media_type: mediaType, data: image } },
-        { type: "text", text: "Levanta este plano: envolvente por las cotas generales y luego el contorno real de cada cuarto, en mm." },
-      ],
-    }],
-  };
-
-  let data: any;
-  try {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify(apiBody),
-    });
-    data = await r.json();
-  } catch (e) {
-    return json({ ok: false, error: "No se pudo llamar a Claude: " + String(e) }, 502);
-  }
-
-  if (data?.type === "error") return json({ ok: false, error: data.error?.message || "Error de la API" }, 502);
-  if (data?.stop_reason === "refusal") return json({ ok: false, error: "No se pudo leer el plano." }, 200);
-
-  const txt = (data?.content || []).find((b: any) => b.type === "text")?.text || "";
-  let lectura: any;
-  try { lectura = JSON.parse(txt); }
-  catch { return json({ ok: false, error: "La IA no devolvió una lectura válida. Reintenta." }, 200); }
-
-  return json({ ok: true, lectura, uso: data?.usage || null });
-});
-
 function json(obj: unknown, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { ...CORS, "content-type": "application/json" } });
 }
+const finite = (x: any) => Number.isFinite(Number(x));
+const num = (x: any) => Number(x);
+const PROV = new Set(["MEASURED","DERIVED","INFERRED","ASSUMED"]);
+const provenance = (x: any) => {
+  const p = String(x || "").toUpperCase();
+  return PROV.has(p) ? p : "UNKNOWN";
+};
+const evidenceMeta = (x: any) => ({
+  provenance: provenance(x?.procedencia),
+  evidence: typeof x?.evidencia === "string" ? x.evidencia.slice(0, 500) : "",
+  page: Number.isInteger(Number(x?.pagina)) && Number(x?.pagina) > 0 ? Number(x.pagina) : null,
+  confidence: x?.confianza || null,
+});
+const b64bytes = (s: string) => {
+  const n = (s || "").length;
+  const pad = s.endsWith("==") ? 2 : s.endsWith("=") ? 1 : 0;
+  return Math.max(0, Math.floor(n * 3 / 4) - pad);
+};
+function polygonArea(points: any[]) {
+  if (!Array.isArray(points) || points.length < 3) return 0;
+  let a = 0;
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i], q = points[(i + 1) % points.length];
+    a += num(p.x) * num(q.y) - num(q.x) * num(p.y);
+  }
+  return Math.abs(a) / 2;
+}
+function areaOf(a: any) {
+  if (a?.forma === "circulo") {
+    const r = num(a?.circulo?.r);
+    return finite(r) && r > 0 ? Math.PI * r * r : 0;
+  }
+  return polygonArea(a?.puntos || []);
+}
+function roleOf(tipo: string) {
+  const t = String(tipo || "").toLowerCase();
+  return ({ open: "operational", privado: "private_office", juntas: "meeting", recepcion: "reception", lounge: "lounge", servicio: "service" } as Record<string,string>)[t] || "unknown";
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  if (req.method !== "POST") return json({ ok: false, code: "METHOD_NOT_ALLOWED", error: "Usa POST" }, 405);
+
+  const URL = Deno.env.get("SUPABASE_URL");
+  const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const ANON = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!URL || !SERVICE) return json({ ok: false, code: "SERVER_CONFIG", error: "Falta configuración del servidor." }, 500);
+
+  // Seguridad viva de producción: JWT real + rol permitido. No se delega al front.
+  const authHeader = req.headers.get("Authorization") || "";
+  if (!authHeader.startsWith("Bearer ")) return json({ ok: false, code: "UNAUTHENTICATED", error: "No autenticado." }, 401);
+  const userClient = createClient(URL, ANON || SERVICE, { global: { headers: { Authorization: authHeader } } });
+  const { data: ud, error: ue } = await userClient.auth.getUser();
+  const email = ud?.user?.email || "";
+  if (ue || !email) return json({ ok: false, code: "UNAUTHENTICATED", error: "Sesión inválida." }, 401);
+
+  const svc = createClient(URL, SERVICE);
+  const { data: permit, error: pe } = await svc.from("permitidos").select("rol").eq("email", email).maybeSingle();
+  if (pe || !permit) return json({ ok: false, code: "FORBIDDEN", error: "Usuario no autorizado." }, 403);
+  const rol = String(permit.rol || "").toLowerCase();
+  if (!["direccion", "diseno", "vendedor"].includes(rol)) return json({ ok: false, code: "FORBIDDEN_CAPABILITY", error: "Tu rol no puede leer planos." }, 403);
+
+  let body: any;
+  try { body = await req.json(); }
+  catch { return json({ ok: false, code: "INVALID_JSON", error: "JSON inválido." }, 400); }
+
+  const image = typeof body?.image === "string" ? body.image : "";
+  const mediaType = String(body?.mediaType || "image/jpeg");
+  const MIME_OK = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
+  if (!image) return json({ ok: false, code: "MISSING_IMAGE", error: "Falta el plano." }, 400);
+  if (!MIME_OK.has(mediaType)) return json({ ok: false, code: "UNSUPPORTED_MEDIA_TYPE", error: "Formato no soportado." }, 415);
+  const bytes = b64bytes(image);
+  if (bytes > 25_000_000) return json({ ok: false, code: "PAYLOAD_TOO_LARGE", error: "El plano excede 25 MB decodificados." }, 413);
+  if (body?.refMM != null && (!finite(body.refMM) || num(body.refMM) <= 0 || num(body.refMM) > 1_000_000)) {
+    return json({ ok: false, code: "INVALID_REFERENCE", error: "refMM debe ser una medida positiva razonable." }, 400);
+  }
+
+  // Límite fail-closed: si el contador no responde, no se llama al modelo.
+  const desde = new Date(Date.now() - 3_600_000).toISOString();
+  const [uCount, gCount] = await Promise.all([
+    svc.from("ai_eventos").select("id", { count: "exact", head: true }).eq("fn", "leer-plano").eq("email", email).gte("created_at", desde),
+    svc.from("ai_eventos").select("id", { count: "exact", head: true }).eq("fn", "leer-plano").gte("created_at", desde),
+  ]);
+  if (uCount.error || gCount.error) return json({ ok: false, code: "RATE_LIMITER_UNAVAILABLE", error: "No se pudo verificar el límite de lectura de planos." }, 503);
+  if ((uCount.count ?? 0) >= 30) return json({ ok: false, code: "RATE_LIMITED_USER", error: "Límite de 30 lecturas de plano por hora." }, 429);
+  if ((gCount.count ?? 0) >= 200) return json({ ok: false, code: "RATE_LIMITED_GLOBAL", error: "Demasiadas lecturas de plano en este momento." }, 429);
+
+  const requestId = crypto.randomUUID();
+  const t0 = Date.now();
+  let eventId: number | null = null;
+  try {
+    const { data: ev } = await svc.from("ai_eventos").insert({
+      request_id: requestId, fn: "leer-plano", email, rol,
+      modo: mediaType === "application/pdf" ? "pdf" : "imagen",
+      images_count: 1, payload_bytes: bytes, status: "started",
+    }).select("id").maybeSingle();
+    eventId = (ev as any)?.id ?? null;
+  } catch (_e) {}
+  const finish = async (status: string, http: number, code?: string) => {
+    if (eventId == null) return;
+    try {
+      await svc.from("ai_eventos").update({
+        status, http_status: http, finished_at: new Date().toISOString(),
+        duration_ms: Date.now() - t0, error_code: code || null,
+      }).eq("id", eventId);
+    } catch (_e) {}
+  };
+
+  // Core separado: el secreto del modelo no necesita vivir en este wrapper.
+  let upstream: Response;
+  try {
+    upstream = await fetch(`${URL}/functions/v1/leer-plano-core`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "Authorization": authHeader, "apikey": ANON || SERVICE },
+      body: JSON.stringify(body),
+    });
+  } catch (_e) {
+    await finish("error", 502, "UPSTREAM_UNREACHABLE");
+    return json({ ok: false, code: "UPSTREAM_UNREACHABLE", error: "No se pudo contactar el lector de planos.", request_id: requestId }, 502);
+  }
+
+  let data: any;
+  try { data = await upstream.json(); }
+  catch {
+    await finish("error", 502, "UPSTREAM_INVALID_JSON");
+    return json({ ok: false, code: "UPSTREAM_INVALID_JSON", error: "El lector no devolvió JSON válido.", request_id: requestId }, 502);
+  }
+  if (!upstream.ok || !data?.ok) {
+    await finish("error", upstream.status || 502, data?.code || "UPSTREAM_ERROR");
+    return json({ ...data, request_id: requestId }, upstream.status || 502);
+  }
+
+  // ------------------------------------------------------------------------
+  // FloorSpec: toda salida de IA se revalida de manera determinista.
+  // ------------------------------------------------------------------------
+  const l = data.lectura || {};
+  const issues: any[] = [];
+  const warnings: any[] = [];
+  const W = num(l?.envolvente?.ancho), H = num(l?.envolvente?.largo);
+  if (!finite(W) || !finite(H) || W <= 0 || H <= 0 || W > 500_000 || H > 500_000) issues.push({ field: "envolvente", code: "INVALID_ENVELOPE" });
+  const envelopeEvidence = evidenceMeta(l?.envolvente);
+  if (envelopeEvidence.provenance === "ASSUMED") warnings.push({ field: "envolvente", code: "ASSUMED_CRITICAL_GEOMETRY", message: "La envolvente depende de un supuesto; requiere confirmación antes de liberar." });
+  if (envelopeEvidence.provenance === "UNKNOWN") warnings.push({ field: "envolvente", code: "UNKNOWN_GEOMETRY_PROVENANCE", message: "La procedencia de la envolvente no quedó estructurada." });
+
+  const gh = Array.isArray(l?.grid?.horizontal) ? l.grid.horizontal : [];
+  const gv = Array.isArray(l?.grid?.vertical) ? l.grid.vertical : [];
+  const badGrid = [...gh, ...gv].some((x: any) => !finite(x) || num(x) <= 0);
+  if (badGrid) issues.push({ field: "grid", code: "INVALID_GRID_SEGMENT" });
+  const sumH = gh.reduce((a: number, x: any) => a + num(x), 0);
+  const sumV = gv.reduce((a: number, x: any) => a + num(x), 0);
+  if (l?.tieneCotas && finite(W) && gh.length) {
+    const tol = Math.max(50, W * 0.01);
+    if (Math.abs(sumH - W) > tol) issues.push({ field: "grid.horizontal", code: "GRID_ENVELOPE_MISMATCH", sum_mm: sumH, envelope_mm: W, tolerance_mm: tol });
+  }
+  if (l?.tieneCotas && finite(H) && gv.length) {
+    const tol = Math.max(50, H * 0.01);
+    if (Math.abs(sumV - H) > tol) issues.push({ field: "grid.vertical", code: "GRID_ENVELOPE_MISMATCH", sum_mm: sumV, envelope_mm: H, tolerance_mm: tol });
+  }
+  if (l?.tieneCotas && (!gh.length || !gv.length)) warnings.push({ field: "grid", code: "COTAS_WITHOUT_COMPLETE_GRID" });
+  if (!l?.tieneCotas) warnings.push({ field: "tieneCotas", code: "NO_DIMENSION_AUTHORITY", message: "Plano estimado: requiere referencia real antes de liberar." });
+
+  const areas = Array.isArray(l?.areas) ? l.areas : [];
+  if (!areas.length) issues.push({ field: "areas", code: "NO_AREAS" });
+  const nameList = areas.map((a: any) => String(a?.nombre || "").trim()).filter(Boolean);
+  const names = new Set(nameList);
+  if (names.size !== nameList.length) issues.push({ field: "areas", code: "DUPLICATE_ZONE_NAME" });
+  let topArea = 0;
+  const normalizedZones: any[] = [];
+
+  for (let i = 0; i < areas.length; i++) {
+    const a = areas[i] || {};
+    const name = String(a.nombre || "").trim();
+    if (!name) issues.push({ field: `areas[${i}].nombre`, code: "MISSING_ZONE_NAME" });
+    if (!["poligono","circulo"].includes(a.forma)) issues.push({ field: `areas[${i}].forma`, code: "INVALID_SHAPE" });
+    const parent = String(a.dentroDe || "").trim();
+    if (parent && !names.has(parent)) issues.push({ field: `areas[${i}].dentroDe`, code: "UNKNOWN_PARENT_ZONE", value: parent });
+    if (parent && parent === name) issues.push({ field: `areas[${i}].dentroDe`, code: "SELF_PARENT_ZONE" });
+    const puestos = num(a.puestos);
+    if (!Number.isInteger(puestos) || puestos < 0 || puestos > 10000) issues.push({ field: `areas[${i}].puestos`, code: "INVALID_WORKSTATION_COUNT" });
+    if (String(a.confianza || "").toLowerCase() === "baja") warnings.push({ field: `areas[${i}]`, code: "LOW_CONFIDENCE_ZONE", zone: name });
+
+    if (a.forma === "poligono") {
+      const pts = Array.isArray(a.puntos) ? a.puntos : [];
+      if (pts.length < 3) issues.push({ field: `areas[${i}].puntos`, code: "POLYGON_NEEDS_3_POINTS" });
+      for (let j = 0; j < pts.length; j++) {
+        const x = num(pts[j]?.x), y = num(pts[j]?.y);
+        if (!finite(x) || !finite(y)) issues.push({ field: `areas[${i}].puntos[${j}]`, code: "NON_FINITE_POINT" });
+        else if (finite(W) && finite(H) && (x < 0 || y < 0 || x > W || y > H)) issues.push({ field: `areas[${i}].puntos[${j}]`, code: "POINT_OUTSIDE_ENVELOPE", x, y });
+      }
+      if (polygonArea(pts) <= 1) issues.push({ field: `areas[${i}].puntos`, code: "ZERO_AREA_POLYGON" });
+    } else if (a.forma === "circulo") {
+      const cx = num(a?.circulo?.cx), cy = num(a?.circulo?.cy), r = num(a?.circulo?.r);
+      if (![cx,cy,r].every(finite) || r <= 0) issues.push({ field: `areas[${i}].circulo`, code: "INVALID_CIRCLE" });
+      else if (finite(W) && finite(H) && (cx-r < 0 || cy-r < 0 || cx+r > W || cy+r > H)) issues.push({ field: `areas[${i}].circulo`, code: "CIRCLE_OUTSIDE_ENVELOPE" });
+    }
+
+    const sqm = areaOf(a) / 1_000_000;
+    if (!parent) topArea += sqm;
+    normalizedZones.push({
+      id: `zone_${i+1}`, source_index: i, name, source_tipo: a.tipo,
+      zone_role: roleOf(a.tipo), shape: a.forma,
+      points_mm: a.forma === "poligono" ? a.puntos : [],
+      circle_mm: a.forma === "circulo" ? a.circulo : null,
+      parent_name: parent || null, observed_workstations: puestos,
+      confidence: a.confianza, area_m2: Math.round(sqm * 100) / 100,
+      evidence: evidenceMeta(a),
+    });
+    const aProv = provenance(a?.procedencia);
+    if (aProv === "ASSUMED") warnings.push({ field: `areas[${i}]`, code: "ASSUMED_ZONE_GEOMETRY", zone: name, message: "Geometría de zona basada en supuesto; requiere confirmación." });
+  }
+
+  const envArea = finite(W) && finite(H) ? (W * H / 1_000_000) : 0;
+  if (envArea > 0 && topArea > envArea * 1.08) issues.push({ field: "areas", code: "TOP_LEVEL_AREA_EXCEEDS_ENVELOPE", top_level_m2: Math.round(topArea*100)/100, envelope_m2: Math.round(envArea*100)/100 });
+
+  // Puertas: x/y/ancho siguen siendo hard geometry. El barrido incompleto NO se
+  // inventa: baja el FloorSpec a REVIEW_REQUIRED y bloquea liberación automática.
+  const doors = Array.isArray(l?.puertas) ? l.puertas : [];
+  if (!doors.length) warnings.push({ field: "puertas", code: "NO_DOORS_DETECTED" });
+  let verifiedDoors = 0;
+  for (let i = 0; i < doors.length; i++) {
+    const d = doors[i] || {};
+    const dEvidence = evidenceMeta(d);
+    const x = num(d.x), y = num(d.y), w = num(d.ancho);
+    if (dEvidence.provenance === "ASSUMED") warnings.push({ field: `puertas[${i}]`, code: "ASSUMED_DOOR_GEOMETRY", message: "Puerta basada en supuesto; requiere confirmación." });
+    if (![x,y,w].every(finite) || w <= 0) issues.push({ field: `puertas[${i}]`, code: "INVALID_DOOR" });
+    else if (finite(W) && finite(H) && (x < 0 || y < 0 || x > W || y > H || w > Math.max(W,H))) issues.push({ field: `puertas[${i}]`, code: "DOOR_OUTSIDE_ENVELOPE" });
+
+    if (d.tieneBarrido === true) {
+      const dir = String(d.sentido || "");
+      const sw = num(d.barridoDeg);
+      if (![d.bisagraX, d.bisagraY, d.anguloCerradaDeg, sw].every(finite) || sw <= 0 || !["horario", "antihorario"].includes(dir)) {
+        issues.push({ field: `puertas[${i}]`, code: "INVALID_DOOR_SWING_EVIDENCE" });
+      } else {
+        const hx = num(d.bisagraX), hy = num(d.bisagraY);
+        if (finite(W) && finite(H) && (hx < 0 || hy < 0 || hx > W || hy > H)) issues.push({ field: `puertas[${i}]`, code: "DOOR_HINGE_OUTSIDE_ENVELOPE" });
+        else verifiedDoors++;
+      }
+    } else {
+      warnings.push({ field: `puertas[${i}]`, code: "DOOR_SWING_UNVERIFIED", message: "Puerta detectada sin bisagra/sentido/arco verificable." });
+    }
+  }
+
+  const validationState = issues.length ? "FAIL" : warnings.length ? "REVIEW_REQUIRED" : "PASS";
+  const floorSpec = {
+    version: "FLOOR_SPEC_V2",
+    envelope: { width_mm: W, depth_mm: H, area_m2: Math.round(envArea * 100) / 100, evidence: envelopeEvidence },
+    grid_mm: { horizontal: gh, vertical: gv },
+    zones: normalizedZones,
+    doors_mm: doors.map((d: any) => ({ ...d, evidence_meta: evidenceMeta(d) })),
+    source: {
+      scale_evidence: l?.escala || "",
+      has_dimensions: !!l?.tieneCotas,
+      notes: Array.isArray(l?.notas) ? l.notas : [],
+      evidence_policy: "MEASURED>DERIVED>INFERRED>ASSUMED",
+    },
+    validation: {
+      state: validationState, issues, warnings,
+      metrics: {
+        top_level_area_m2: Math.round(topArea*100)/100,
+        envelope_area_m2: Math.round(envArea*100)/100,
+        zones: areas.length, doors: doors.length,
+        doors_verified: verifiedDoors,
+        doors_unverified: Math.max(0, doors.length - verifiedDoors),
+      },
+    },
+  };
+
+  if (issues.length) {
+    await finish("rejected", 422, "FLOOR_SPEC_INVALID");
+    return json({ ok: false, code: "FLOOR_SPEC_INVALID", error: "La lectura del plano no pasó la validación geométrica determinista.", lectura: l, floorSpec, request_id: requestId }, 422);
+  }
+
+  await finish("ok", 200, validationState === "REVIEW_REQUIRED" ? "REVIEW_REQUIRED" : undefined);
+  return json({ ...data, request_id: requestId, floorSpec, strictGeometry: true }, 200);
+});

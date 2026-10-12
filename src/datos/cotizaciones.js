@@ -22,6 +22,7 @@
 import { nube } from '../nube.js';
 import { totalesCotizacion } from './totales.js';
 import { MOTOR_VERSION } from '../motor/calculo.js';
+import { dinero } from '../motor/dinero.js';
 import { claveCreacionNueva, CLAVE_CREACION_RE } from '../util.js';
 
 // ---------------------------------------------------------------------------
@@ -95,10 +96,34 @@ export function mpCambio(cot, insumosHoy, parHoy) {
 //  GUARDAR / LEER
 // ---------------------------------------------------------------------------
 
+// Nunca persistir blobs/base64 gigantes dentro de cotizaciones. Los binarios
+// viven en Storage; la fila conserva URL/path/hash y datos estructurados.
+export function compactarPayloadNube(valor) {
+  const visto = new WeakSet();
+  const walk = (v) => {
+    if (typeof v === 'string') {
+      if (v.length < 120000) return v;
+      const s = v.trim();
+      const dataUrl = /^data:(image|application\/pdf|application\/octet-stream)[^,]*;base64,/i.test(s);
+      const base64Puro = /^[A-Za-z0-9+/=\r\n]+$/.test(s) && s.length > 200000;
+      return (dataUrl || base64Puro) ? null : v;
+    }
+    if (!v || typeof v !== 'object') return v;
+    if (v instanceof Date) return v.toISOString();
+    if (Array.isArray(v)) return v.map(walk);
+    if (visto.has(v)) return null;
+    visto.add(v);
+    const out = {};
+    for (const [k,x] of Object.entries(v)) out[k] = walk(x);
+    return out;
+  };
+  return walk(valor);
+}
+
 /** Lo que de verdad se guarda. Se deja fuera todo lo que no es la cotización. */
 export function paraGuardar(estado, usuario) {
   const cot = estado?.cotizacion || {};
-  const partidas = cot.partidas || [];
+  const partidas = compactarPayloadNube(cot.partidas || []);
   // La MISMA escalera de dinero que ve el cliente en pantalla y firma en el PDF
   // (src/datos/totales.js), no una suma cruda aparte. Antes aquí se guardaba
   // `Math.round(Σ precio×cantidad)` —la suma de renglones SIN descuento, maniobras,
@@ -110,7 +135,7 @@ export function paraGuardar(estado, usuario) {
     usuario: usuario || null,
     estado: cot.estadoComercial || 'borrador',
     partidas,
-    acomodo: cot.acomodo || null,
+    acomodo: compactarPayloadNube(cot.acomodo || null),
     // Se guarda el desglose completo, no solo los pct: así una reimpresión o el
     // Archivo reproducen el total al peso sin recalcular con parámetros de hoy.
     totales: {
@@ -119,13 +144,15 @@ export function paraGuardar(estado, usuario) {
       maniobrasPct: t.maniobrasPct,
       fletePct: t.fletePct,
       ivaPct: t.ivaPct,
-      precioLista: Math.round(t.precioLista * 100) / 100,   // a centavos: regla exacta del servidor (VH-042)
-      descuento: Math.round(t.descuento),
-      subtotal: Math.round(t.subtotal),
-      contingencia: Math.round(t.contingencia),
-      maniobras: Math.round(t.maniobras),
-      flete: Math.round(t.flete),
-      iva: Math.round(t.iva),
+      anticipoPct: t.anticipoPct,
+      anticipo: dinero(t.anticipo),
+      precioLista: dinero(t.precioLista),
+      descuento: dinero(t.descuento),
+      subtotal: dinero(t.subtotal),
+      contingencia: dinero(t.contingencia),
+      maniobras: dinero(t.maniobras),
+      flete: dinero(t.flete),
+      iva: dinero(t.iva),
       total: t.totalRedondeado,
       // El PDF se arma DESDE este snapshot (VH-042): el anticipo también viaja.
       anticipoPct: t.anticipoPct,
@@ -306,7 +333,7 @@ export function referenciasParaVoni(cotizaciones, insumosHoy, tope = 40, parHoy)
       if (!vistos.has(k)) {
         vistos.set(k, {
           nombre: p.nombre,
-          precio: Math.round(p.precioUnitario),
+          precio: dinero(p.precioUnitario),
           cliente: c.cliente || null,
           fecha: (c.actualizado || c.creado || '').slice(0, 10),
           mpCambio: viejo,

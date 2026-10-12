@@ -42,13 +42,13 @@ document.addEventListener('pointerdown', (e) => {
   const btn = hit?.closest?.('button');
   if (!btn || !btn.disabled) return;
   const label = (btn.textContent || '').trim().toLowerCase();
-  if (!label.includes('imprimir') && !label.includes('descargar pdf') && !label.includes('convertir en partida')) return;
-
   const title = btn.getAttribute('title')?.trim();
+  const explicit = btn.getAttribute('data-disabled-reason')?.trim();
+  const busy = /generando|analizando|verificando|cargando|guardando|subiendo|armando/.test(label);
   const blocking = nearestBlockingMessage();
-  const why = title || blocking?.txt || 'Hay una validación pendiente antes de poder continuar.';
-  showToast(`Acción bloqueada: ${why}`);
-  blocking?.el?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+  const why = explicit || title || (busy ? 'La operación está en curso.' : blocking?.txt) || 'Esta acción necesita completar un paso anterior.';
+  showToast(`Todavía no: ${why}`);
+  if (!busy) blocking?.el?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
 }, true);
 
 // If a browser print dialog cannot be opened, the native call may fail silently

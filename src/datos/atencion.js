@@ -49,12 +49,17 @@ export function hechosDireccion({ proyectos = [], cotizaciones = [] } = {}) {
   const perdidas = proyectos.filter((p) => String(p.etapa).toUpperCase() === 'PERDIDA');
   const motivosPerdida = {};
   for (const p of perdidas) { const m = p.motivo_perdida || 'OTRO'; motivosPerdida[m] = (motivosPerdida[m] || 0) + 1; }
+  const ganadasConTotal = ganadas.filter((p) => p?.total_final != null && Number.isFinite(Number(p.total_final)));
+  const ganadasSinTotal = ganadas.length - ganadasConTotal.length;
+  const montoGanadoConocido = ganadasConTotal.reduce((s, p) => s + Number(p.total_final), 0);
   return {
     proyectosActivos: proyectos.filter(esProyectoActivo).length,
     porEtapa,
     ganadas: ganadas.length,
     perdidas: perdidas.length,
-    montoGanado: ganadas.reduce((s, p) => s + (Number(p.total_final) || 0), 0),
+    montoGanado: ganadasSinTotal ? null : montoGanadoConocido,
+    montoGanadoConocido,
+    ganadasSinTotal,
     motivosPerdida,
     // 33 borradores NO cuentan como ventas: sólo se cuentan cotizaciones con folio_oficial.
     cotizacionesOficiales: cotizaciones.filter((c) => c.folio_oficial).length,

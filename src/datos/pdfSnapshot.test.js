@@ -18,7 +18,7 @@ const reglaServidor = (snap) => {
   const t = snap.totales;
   const suma = t.precioLista - t.descuento + t.contingencia + t.maniobras + t.flete + t.iva;
   const pl = (snap.partidas || []).reduce((a, p) => a + r2(p.precioUnitario * p.cantidad), 0);
-  return { totalCuadra: snap.total === suma, precioListaCuadra: r2(t.precioLista) === r2(pl) };
+  return { totalCuadra: r2(snap.total) === r2(suma), precioListaCuadra: r2(t.precioLista) === r2(pl) };
 };
 
 const estadoDe = (partidas, cot = {}) => ({

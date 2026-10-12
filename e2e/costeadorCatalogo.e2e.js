@@ -16,8 +16,8 @@ async function abrirModoAvanzado(browser, nube) {
   await page.getByRole('button', { name: /^Entrar$/i }).click();
   await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
   if (await page.getByRole('dialog', { name: /Guía de uso/i }).isVisible().catch(() => false)) await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: /¿Cuánto nos cuesta fabricarlo\?/ }).first().click();   // abre el bloque Costear
-  await page.getByRole('button', { name: /Costear a mano/i }).first().click();
+  await page.getByText('Más herramientas').click();   // inicio vivo: tres tarjetas + atajos plegados
+  await page.getByRole('button', { name: /^Costeo manual/ }).click();
   await expect(page.locator('#desc-voni')).toBeVisible({ timeout: 10000 });
   await page.fill('#desc-voni', 'Mesa de juntas de MDF 16 mm para 8 personas');
   await page.getByRole('button', { name: /Analizar con Voni/ }).click();

@@ -9,6 +9,144 @@ SHA de referencia de los fixes: hasta `198920c` (prod).
 > verdes y volvió a producción en `beaa005` porque la capa de en medio (`floorPlan`) tiraba
 > el dato y nadie lo probaba de punta a punta. Ver `src/datos/puestosCadenaCompleta.test.js`.
 
+## VERIFICACIÓN CONTRA EL ERP (Intelisis) · 2026-10-11
+
+Fuente: Drive "presupuestos cotizador vonhaucke" (Dirección). 15 "REPORTE DEL COTIZADOR DE PRECIOS" de Intelisis
+(línea APPS LT / Alba, 12/08/2026: ATPU3M, ATPU2M, ATPU75M, ATOM3, ATOM4, ATACM, ATBIOCRT5, ATFAL12ABS,
+ATFAL150ABS, ATCUBS44/45/46ABS, ATCUBD44/45/46ABS), cada uno con BOM (código, cantidad, unidad, último costo y fecha),
+horas y $/h por centro (MO y GIF), factores 30/20/200. Se pasaron los 15 por `motor/calculo.js` en modo
+`intelisis` con los MISMOS insumos, horas y factores: **15/15 cuadran al centavo** en materia prima, mano de obra,
+GIF, fabricación, gastos de operación, costo total y precio (diferencia máxima $0.04, redondeo del reporte); el
+precio de lista difiere < 1 % porque el ERP redondea a pesos enteros con una regla propia. Queda como prueba
+permanente: `src/motor/goldenIntelisis.test.js` + `src/motor/fixtures/intelisis_alba_2026-08-12.json` (16 tests).
+Conclusión: **la fórmula del motor es la oficial**; lo que falla está en los DATOS y en la PRESENTACIÓN, no en la cascada.
+
+**VH-074 · P1 · OPEN (dato en producción, requiere aprobación) · Láminas con precio POR HOJA etiquetado "kg".**
+`catalogo_vigente`/`insumo_precios`: `lamina-10` $2,270.17 "kg", `lamina-12` $1,336.56 "kg", `lamina-14` $816.48 "kg",
+`lamina-18` $571.54, `lamina-20` $455.82, `lamina-22` $378.78, todos "kg". El ERP imprime LN10310 = $2,270.17 **por
+HOJA 3×10** y LN14310 = $816.48 **por hoja** (ATPU3M, 30/07 y 05/08/2026): son precios de hoja con unidad de kilo. La
+evidencia de la propia fila lo dice ("UNIDAD canónica del código aprobada; PRECIO pendiente. Nube tenía 33 kg"): el
+precio se pegó sin convertir la unidad. Además `lamina-3x10-12` y `lamina-3x10-14` tienen filas duplicadas "hoja" y
+"kg" con el mismo número. Hoy el navegador NO lo sufre (costea con `config.datos.insumos`: lámina cal.10 $33/kg, que
+sí es consistente: una hoja 3×10 cal.10 pesa ~70 kg). El día que el motor lea `catalogo_vigente` (decisión pendiente)
+una lámina saldría ~70× más cara. Propuesta: migración que ponga `unidad_compra='hoja'` en esas 6 filas y borre las
+duplicadas "kg"; antes/después con la golden.
+
+**VH-075 · P1 · OPEN (dato en producción, requiere aprobación) · `pintura-polvo` a $6.69/kg.** El ERP cobra la pintura
+en polvo PPH a $170.47/kg (ATPU3M, 11/08/2026) y la T.D.C. de la repisa de Alba a $238.07/kg (antracita TX, 04/2026);
+los demás colores de `catalogo_vigente` van de $59 a $345/kg. $6.69 × 17.5 ≈ $117: casi seguro un precio en DÓLARES
+guardado como pesos (el riesgo que `precioDeInsumo` ya documenta). Estado `propuesto_validado` con fuente "Compras,
+lista del 2026-08-14". Propuesta: corregir precio/moneda con el documento de Compras o degradar a `propuesto` sin precio.
+
+**VH-076 · NEGOCIO (no es bug de código) · 4 de 15 piezas APPS LT se venden por debajo del costo total del ERP.**
+Lista comercial del servidor (`lista_precio_items`, fuente "linea", la que usan los presupuestos "precio estándar")
+contra el costo total Intelisis: ATPU3M lista $650 / piso $520 vs costo $1,112.58; ATPU2M $610/$490 vs $966.37;
+ATPU75M $890/$630 vs $1,022.55; ATACM $270/$220 vs $370.64. Las otras 11 están sobre costo pero entre 34 % y 76 % del
+precio de lista que el propio ERP calcula (×1.2 ×3). Dos lecturas posibles y sólo Dirección puede decidir cuál:
+(a) las horas del centro "Otros" del ERP están infladas (1.66 h para una pata en U, a $234/h de GIF), o (b) las patas
+y conductos son piezas gancho que se venden perdiendo y se recupera en la cubierta. La app no debe "corregir" nada
+aquí; debe MOSTRAR margen real contra costo ERP cuando exista (hoy `producto_version_economia` tiene 12 filas de 1,944
+productos: casi ningún producto de línea tiene costo oficial de referencia).
+
+**VH-077 · P2 · OPEN (reportado por Producción, pendiente de verificar en la app actual) · Observaciones de Rogelio y
+Alba (doc "comentarios Rogelio y Alba").** (a) la lista de materiales sólo ofrecía "MDF" sin espesores; (b) no se pueden
+combinar acabados/materiales; (c) gasto directo e indirecto "muy alto aun bajando el factor" en el ejercicio de la
+repisa (su T.D.C. da $156.98 de material: MDF19 0.028 hoja $12.26, canto ABS 22 1.4 m $14.88, laminado 0.056 hoja
+$34.88, lámina cal.14 0.025 hoja $21.24, tubular 3/4×1¾ cal.18 0.2 pza $49.91, pintura 0.1 kg $23.81; OJO: `mdf-19` NO existe ni en `config.datos.insumos` ni en `catalogo_vigente`, por eso
+Alba sólo pudo escoger "MDF"; y `laminado` vale $420/m² en el cliente pero $405.60/HOJA en el servidor: misma palabra,
+base distinta); (d) las
+descripciones del presupuesto no traen claves ni todos los componentes (riel, biombo de cristal); (e) "puestos" debe
+decir que son personas; (f) condiciones comerciales poco claras: ¿el 3 % de flete está incluido o no? Datos de
+Producción que SÍ dieron: no hay tiempos medidos por operación (sólo "30 s por operación" y el concepto histórico de
+"unidades equivalentes"); reglas de merma vigentes: tablero, pieza > 1.50 × 0.60 m = 0.5 hoja, si excede 0.60 de ancho
+× 1.50 = 1 hoja; pintura 8 m²/kg en plano (tubular rinde menos); canto: excedente por lado; perfiles tubulares de 6 m;
+lámina en anchos 0.91 y 1.22 m. Ninguna de esas reglas está hoy en el motor como política: están como `aprovechamiento
+80 %` + rejilla + `hojas` de la IA. Adoptarlas es cambio de fórmula oficial → DECISIONES A14.
+
+**Lo demás que había en el Drive, para que no se vuelva a preguntar:** 36 catálogos comerciales PDF (sin costos),
+`Escritorios Alba Precios.xlsx` (783 artículos, 625 BLOQUEADO, sólo 6 con precio de lista), dos reportes "Compras
+Acumuladas" del ERP (2,909 renglones parseados de mobiliario de madera, $294 M de $326 M; útiles para certificar costo
+unitario = compras netas / unidades por artículo ERP), 5 presupuestos reales a precio estándar (FinSus $20.6 M, Hugo
+Boss $1.74 M, LV $2.78 M, Estuco $0.51 M con 40 % de descuento, NTD Global $2.14 M) y una cotización de librero/credenza
+2025 ($17,250 y $32,915), estados financieros a junio 2026, y 3 fotos.
+
+## UNIFICACIÓN DE LAS DOS LÍNEAS DE CÓDIGO · 2026-10-11/12
+
+**Hecho medible.** Producción (`costeador-vonhaucke.vercel.app`, Vercel) sirve el commit `5a38d2e` de la rama
+`claude/perfection-final-20261006`; la rama por defecto de GitHub (`c3.4-seller-safe`) y mi rama de trabajo
+(`2d33918`) venían de la misma base (`1d5a0c1`, 2026-10-05) pero divergieron: 643 commits de un lado, 49 del otro,
+397 archivos distintos. Todo lo auditado y corregido en el ledger desde VH-023 vivía en la línea que NADIE usa.
+
+**Qué se hizo.** Merge de `2d33918` SOBRE `5a38d2e` (base = lo que corren los usuarios). 37 archivos en conflicto,
+resueltos uno por uno conservando de cada lado lo que tenía prueba: del lado vivo, autoridad del servidor en costeo,
+totales a centavos (`datos/totales.js`), render de oficina, PDF; del lado auditado, lectura de planos fail-closed con
+confirmación (VH-064), interpretación del acomodo del servidor (VH-067), catálogo con fallback, política comercial
+pública, intención de costeo validada (VH-036), un solo juez costo→precio (VH-041/VH-019), VH-033, VH-047, VH-062.
+Después del merge: 47 archivos de prueba no cargaban (un `}` perdido en `planner.capacidadMesa`); luego 5 pruebas
+rojas; al cierre **vitest 778 archivos / 1,965 pruebas / 0 fallas, build limpio**, marcadores nuevos presentes en el
+bundle (`catalogo-fallback`, `lectura-servidor`, `politica_comercial_publica`).
+
+**Decisiones de semántica tomadas en el merge (revisables):**
+- Una silla SIN destino marcado y SIN palabra clave ("Silla ALPHA") deja de asumirse `WORK_SEAT`: queda flexible
+  (`ROL.OTHER`), salvo baños/site. Con la regla viva, 10 sillas vendidas con una mesa de juntas en un plano que sólo
+  tiene la sala de juntas se quedaban fuera (1 de 11 colocadas). Las sillas con destino (`ruta vh-dest-*`,
+  `relation_role`) o con palabra clave siguen con la regla estricta del lado vivo.
+- `bloqueosDeEmision` también traduce el veredicto económico (`COSTO_PRELIMINAR`, `COSTO_NO_CERTIFICABLE`): antes sólo
+  los motivos duros; un costo preliminar no bloqueaba la emisión definitiva en pantalla.
+- B4/B6/B8 del plan de retiro quedan parcialmente sin efecto: el lado vivo usa `validarFloorSpec/validarEnvolvente`
+  (acomodoPayload) y lee `CocrearV2`; se conservan. `acomodarConReparacion` sí se retiró.
+- Pruebas de texto fuente del lado vivo (canonicalMarginDefault, liveQuoteEmissionGate, moneyBoundaries,
+  renderStoragePolicy, pdfMoneyTrust, derivedCostTrust, voni) se adaptaron al código unificado SIN cambiar la intención
+  que verifican; `voni.test` usaba el rol 'costeador', que no existe en `permitidos` (direccion 7, diseno 3, vendedor 1).
+
+**VH-078 · P1 · FIXED EN REPO (despliegue pendiente, A16) · `cotizar-servidor` desplegado (v6) NO existía en ninguna
+rama.** Comparación byte a byte de las 23 edges desplegadas (`get_edge_function`) contra el repo: el servidor de
+cotización que corre resuelve precio especial de proyecto (`resolver_precio_especial_proyecto`, `ECONOMICS_INCOMPLETE`,
+`PRELIMINARY_SPECIAL`) y el cliente vivo ya consume esos campos; la copia del repo (`7153e9d`, "preserves cents") nunca
+se desplegó y no tenía el precio especial. Se volcó el código desplegado al repo y se le portó encima el manejo a
+centavos de `7153e9d` (prueba `quoteEmissionAuthority` en verde). Hasta que se despliegue, el servidor redondea al peso
+(`Math.round`) mientras el cliente suma a centavos.
+
+**VH-079 · P2 · OPEN (despliegue pendiente, A17/A18) · Edges con fuente adelantada al desplegado.** `costear-servidor`
+desplegado (v5, 2026-10-04) no tiene el juez `costeoEmitible`, redondea al peso y usa margen por omisión 40 (el
+cliente usa 50). Su copia del motor (`calculo.js` del 2026-10-04) **sí reproduce los 15 reportes del ERP al
+centavo** (golden corrido contra el snapshot desplegado): no hay riesgo de fórmula, sólo de gating y redondeo.
+`acomodar-espacio-recovery` fuente (2026-10-10, RESCATE Torre Sur) acepta sillas de visita en privado y expone
+`semantic_issues`; el desplegado (v6) no. `usuarios`: el repo tenía el header CORS más estrecho que el desplegado; se
+igualó al desplegado. `analizar-mueble`, `acomodar-espacio` (sólo el escape `\u0300`), `analizar-negocio`,
+`cotizar-texto`, `generar-render`, `generar-video`, `leer-plano`, `leer-plano-core`, `voni-council`: repo = desplegado.
+Sin fuente en el repo: `acomodar-espacio-strict`, `analizar-mueble-preview/-strict`, `app`, `bootstrap-temp-claude`,
+`costear-compras-rc`, `costear-vision`, `generar-render-strict`, `leer-plano-strict`, `voni-council-health` (B12).
+
+**VH-080 · P0 · FIXED (unificación, mismo PR) · Dos pantallas se caían tras el merge por identificadores perdidos.**
+La suite unitaria (1,965 verdes) y el build NO lo detectaron; lo detectó el e2e en navegador: `HojaCosto` usaba
+`costeoEmitible` sin importarlo (Costeo manual → "Esta pantalla se atoró") y `Cotizacion` usaba `gateVista` sin
+definirlo (abrir una cotización del archivo → misma pantalla). Un tercero latente en `AsistenteEspecial.persistir`
+(`storagePath/storageUrl/dataUrl` indefinidos; venía así desde mi línea, VH-072) se habría caído al guardar el render.
+Se pasó un linter `no-undef` (ESLint 9, sólo esa regla) sobre todo `src`: 0 indefinidos restantes (`__APP_VERSION__` es
+`define` de Vite). Regla nueva para el repo: un merge no está verificado sin `no-undef` + e2e en navegador.
+
+**VH-081 · P1 · FIXED (unificación) · El acomodo "Con IA" caía a borrador local cuando el servidor decía FAIL.** En la
+línea viva, `acomodar()` atrapaba cualquier excepción del solver con "Motor espacial no disponible. Usé acomodo local
+como borrador" y seguía con `reacomodar` local; el orquestador (`acomodoOrquestador`) reintentaba 3 veces el mismo
+payload y devolvía "No se pudo acomodar. Vuelve a intentar." sin el motivo. Un veredicto FAIL del servidor (qué no cupo,
+qué se encimó) es una respuesta, no una caída: ahora viaja etiquetado (`veredictoServidor`), el orquestador deja de
+reintentar y devuelve `status: 'FAIL'` con el motivo, y la pantalla lo enseña en rojo sin sustituirlo por un borrador.
+Las notas de un acomodo del servidor (piezas sin colocar, puertas sin verificar) se muestran en ámbar, no en letra gris.
+E2E `acomodoServidor` (FAIL y PARTIAL) en verde con el harness vivo (programa coherente: el cliente vivo no acomoda
+programas incompletos, decisión de producto que se respeta).
+
+**Semántica viva adoptada en los e2e de emisión:** el documento SIEMPRE sale como BORRADOR ("Descargar BORRADOR" +
+aviso "BORRADOR · NO REGISTRADO · <motivo>"); lo que se bloquea fail-closed es la emisión definitiva (sin
+`emitir_revision`, sin revisión conservada). Mis specs esperaban el botón deshabilitado; se adaptaron a esa decisión
+(viene de la queja real "clic y no pasó nada").
+
+**Verificación al cierre de la unificación:** vitest 778 archivos / 1,965 pruebas / 0 fallas · build limpio ·
+`no-undef` 0 · Playwright 25 pasan / 16 se saltan (requieren `TEST_EMAIL`/`TEST_PASSWORD` del flujo autenticado real).
+
+**Pendiente de revisar (no se perdió, no se integró):** los 6 commits de `perfection-final` posteriores a `5a38d2e`
+(`d698eea`…`7d60204`, P0.9–P0.16) no están en producción ni en esta unificación.
+
 ## REGRESIONES DETECTADAS 2026-10-10 (auditoría de código, no de síntomas)
 
 **VH-002 · P0 · REABIERTO y cerrado el mismo día.** `floorPlan.aMM/aMetros` (contrato canónico,
@@ -80,6 +218,14 @@ emitir), 2 `render_eventos`, 2 objetos en `renders/generated/qa-direccion…`, 5
 aprobación: queda como C3 en DECISIONES_PENDIENTES. `shadow_costeo` sigue en 0 hoy: la sombra sólo corre en el
 Asistente especial ("Costear con IA"), que la pasada no recorrió → VH-036/073 siguen SIN verificar en vivo.
 Pendiente tuyo (seguridad): la cuenta de dirección de prueba tiene contraseña trivial; cámbiala o bájala a vendedor.
+
+**SOMBRA cliente↔servidor (VH-036/073) · intento de VERIFIED en vivo 2026-10-11 · NO APLICÓ, por diseño.** Con
+`qa-direccion`, "Costear con IA" → `analizar-mueble` 200 (escritorio ejecutivo, 8 piezas) → el motor marcó el costo
+INCOMPLETO: 2 materiales existen en el catálogo del servidor sin precio certificado por Compras (`pegado-chapa`,
+`pintura-polvo-negro-mate-8-vitracoat`) → sin precio → la sombra no corre (`resultado.costoUnitario > 0 && precio != null`).
+Es el comportamiento correcto (nunca comparar un costo parcial) y es la consecuencia práctica de A10 (165 insumos sin
+certificar): mientras Compras no certifique, la mayoría de los despieces de IA quedan INCOMPLETOS y la sombra casi
+nunca tiene qué comparar. `e2e/vivoSombra.e2e.js` (VIVO=1) deja constancia y pasa con la razón visible.
 
 **RETIRADAS B1–B10 · 2026-10-11 · aprobadas por Dirección ("B1–B10: retirar código muerto").** Diez commits, uno por
 módulo, cada uno con la suite completa y el build en verde antes y después (1,208 → 1,165 tests: los que se fueron
@@ -164,7 +310,7 @@ verificadas) + `servidor {estado, metodo, requestId, calidad}` sellado en el pla
 NO cuenta como puertas verificadas aunque el servidor diga VERIFIED (no había nada que verificar). Pruebas: 8 unit,
 2 e2e (FAIL y PARTIAL con nube falsa). No se tocó la edge.
 
-**VH-068 · P2 · OPEN (edge, requiere aprobación para redesplegar) · Huecos de validación en `acomodar-espacio` v9.**
+**VH-068 · P2 · FIXED (edge v10 DESPLEGADA 2026-10-11 con aprobación expresa "Desplegar A5") · Huecos de validación en `acomodar-espacio` v9.**
 Medido en el código desplegado: (a) el encimado contra OBSTÁCULOS (columnas) sólo se revisa para piezas con
 `spatial_spec` de clearance (`usoInvadido` gated por `requiereClearance`, index.ts:344-346); una reparación de la IA
 que ponga una guarda sobre una columna pasa `evaluar`; (b) `evaluar` pasa el área CRUDA del cliente a
@@ -180,6 +326,15 @@ importa y que discrepa del vivo (ése sí revisa obstáculos para toda pieza): c
 Propuesta (no aplicada): usar `_g` + obstáculos para toda pieza en `evaluar`, puertas ausentes ⇒ REVIEW_REQUIRED,
 `model_error` en la respuesta, insertar `ai_eventos` al inicio (como leer-plano), borrar el validador muerto.
 
+Cierre (2026-10-11): v10 corrige (a)–(f) y (g) quedó retirado en B6. Despliegue verificado: re-descarga comparada con el repo
+(3 archivos idénticos; `spatial-semantics.js` sólo difiere en el escape `\u0300-\u036f` de la regex, misma clase de caracteres).
+En vivo con qa-direccion: sin JWT 401; rectángulo 6000×4000 sin puertas con bench + 4 sillas ⇒ 5/5 colocadas,
+`status REVIEW_REQUIRED`, `puertas {total:0, verificadas:false, status:NONE}`, recomendación "El plano no trae puertas";
+cuarto en L (polígono 6 vértices) con puerta ⇒ `PASS`, escritorio y silla dentro de la L (comprobado por geometría
+independiente), `puertas VERIFIED`; `ai_eventos` ahora trae `modo repair-loop-v10`, `duration_ms` y `model_status`
+(las filas v8 traían `duration_ms null`). El encabezado del archivo sigue diciendo "PENDIENTE DE DESPLEGAR" a propósito:
+cambiarlo rompería la identidad byte a byte repo↔desplegado; se corrige en el siguiente redeploy que toque la función.
+
 **VH-066 · P2 · FIXED · El Modo avanzado (Costeador) callaba cuando `analizar-mueble` usó el catálogo de respaldo.**
 La edge devuelve `catalogoFuente: 'cliente-fallback'` cuando el catálogo central no estuvo y la IA ancló materiales
 con las pistas locales del navegador (#8, 2026-10-04). El Asistente especial ya avisaba "no cotices en firme"; el
@@ -189,7 +344,7 @@ Costeador ignoraba el campo y presentaba el despiece igual que uno canónico. Fi
 decisión: unificar la alerta en un componente único para ambas pantallas (hoy el texto está duplicado a propósito
 para no tocar el Asistente especial en este tramo).
 
-**VH-065 · P1 · OPEN (edge, requiere aprobación para redesplegar) · `analizar-mueble` v32 no valida la propuesta
+**VH-065 · P1 · FIXED (edge v33 DESPLEGADA 2026-10-11 con aprobación expresa "Desplegar A4") · `analizar-mueble` v32 no validaba la propuesta
 de la IA en el servidor.** Leída completa 2026-10-11 (index.ts 579 líneas + requestPlan/modelConfig/telemetria).
 Lo bueno: no devuelve ningún precio (el motor costea), auth real por `permitidos`, límites 40/h usuario y 400/h
 global fail-closed, modelo en lista blanca. Lo que falta, con línea: (a) `propuesta = JSON.parse(texto)` se regresa
@@ -205,6 +360,15 @@ y `motor/calculo` marca piezas sin medidas o sin precio como PENDIENTE (costeo I
 el servidor no inventa precios y el cliente no costea en $0, pero la validación de forma debería vivir en la edge.
 Propuesta (no aplicada): validador determinista en la edge tras el parse (ids ∈ catálogo o `''`+NOT_AVAILABLE,
 números finitos ≥ 0, `canonicoOk = rc.ok && rp.ok`), y marcar las pistas del cliente como "(no certificado)".
+
+Cierre (2026-10-11): v33 desplegada con `sanearPropuesta` (ids fuera de catálogo → ''+NOT_AVAILABLE anotado, números no
+finitos → 0 anotado, EXACT sin id → NOT_AVAILABLE, match desconocido → corregido), pistas del cliente marcadas
+"(catálogo local del cliente, no certificado)", `canonicoOk` exige `catalogo_vigente` Y `insumos_catalogo`. Re-descarga
+comparada: 4/4 archivos byte-idénticos al repo. En vivo con qa-direccion: sin JWT 401; descripción de escritorio con un
+id falso en el `catalogo` del cliente ⇒ `ok`, 9 piezas todas con id canónico (el modelo no usó el id falso),
+`validacion {ok:true, ajustes:[], autoridad:SERVER_CATALOG}`, `catalogoFuente canonico`, `request_id`; `ai_eventos`
+status ok, `model_id claude-opus-5`, `catalog_count 260`, tokens 20738/3687, 40.7 s. Falta provocar en vivo un ajuste
+real del validador (el modelo no mordió el id falso); la lógica está cubierta por lectura, no por prueba viva.
 
 **VH-064 · P1 · FIXED · La app tiraba la validación determinista del servidor al leer planos.** La edge
 `leer-plano` v11 (leída 2026-10-11) revalida toda la salida de la IA y devuelve `floorSpec.validation` con

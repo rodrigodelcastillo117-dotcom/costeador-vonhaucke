@@ -283,10 +283,12 @@ function ValueEngineeringPanel({ presupuesto, total, cots = [] }) {
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <KPI t="Presupuesto" v={dinero(presupuesto)} />
         <KPI t="Propuesta" v={dinero(total)} />
-        <KPI t="Diferencia" v={plan.faltaBajar <= 0 ? '—' : dinero(plan.faltaBajar)} alerta={plan.faltaBajar > 0} />
+        <KPI t="Diferencia" v={plan.faltaBajar == null ? '—' : plan.faltaBajar <= 0 ? '—' : dinero(plan.faltaBajar)} alerta={plan.faltaBajar != null && plan.faltaBajar > 0} />
       </div>
-      {sinPresupuesto
-        ? <p className="ayuda" style={{ marginTop: 10 }}>Este proyecto aún no tiene presupuesto objetivo. Captúralo en los datos del proyecto para comparar la propuesta contra él.</p>
+      {plan.estado === 'NO_EVALUABLE'
+        ? <p className="ayuda" style={{ marginTop: 10 }}>{plan.motivo === 'PRESUPUESTO_DESCONOCIDO'
+            ? 'Este proyecto aún no tiene presupuesto objetivo. Captúralo en los datos del proyecto para comparar la propuesta contra él.'
+            : 'Todavía no existe un total autoritativo de propuesta; no calculo una diferencia ficticia hasta tenerlo.'}</p>
         : plan.yaEnPresupuesto
           ? <p className="ayuda" style={{ marginTop: 10 }}>La propuesta ya está dentro del presupuesto ✓</p>
           : <>

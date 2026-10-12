@@ -10,7 +10,7 @@ const ANTES = [
   ['Oficina CEO', 'privado', 'OFICINA_CEO'], ['Dirección General', 'privado', 'OFICINA_CEO'], ['Privado', 'privado', 'GENERICA'],
   ['Gerencia', 'privado', 'GENERICA'], ['Lounge', 'lounge', 'GENERICA'], ['Cafetería', 'lounge', 'GENERICA'], ['Cocina', 'servicio', 'GENERICA'],
   ['Comedor', 'lounge', 'GENERICA'], ['Área operativa', 'open', 'AREA_OPERATIVA'], ['Open space', 'open', 'AREA_OPERATIVA'],
-  ['Isla 1', 'general', 'GENERICA'], ['Capacitación', 'general', 'GENERICA'], ['Sala de capacitación', 'general', 'GENERICA'],
+  ['Isla 1', 'open', 'AREA_OPERATIVA'],   // vocabulario del lector del CEO: una isla es área operativa ['Capacitación', 'general', 'GENERICA'], ['Sala de capacitación', 'general', 'GENERICA'],
   ['Archivo', 'general', 'GENERICA'], ['Bodega', 'general', 'GENERICA'], ['Baños', 'servicio', 'SANITARIOS'], ['Pasillo', 'general', 'GENERICA'],
   ['War room', 'general', 'GENERICA'], ['Huddle', 'general', 'GENERICA'], ['Phone booth', 'general', 'GENERICA'], ['Cabina', 'general', 'GENERICA'],
   ['Sala de descanso', 'lounge', 'GENERICA'], ['Terraza', 'general', 'GENERICA'],

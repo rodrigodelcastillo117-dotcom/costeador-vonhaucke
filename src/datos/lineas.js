@@ -32,6 +32,7 @@ import { FEATHER_PRODUCTOS, generarFeather } from './feather.js';
 import { WORKLOUNGE_PRODUCTOS, generarWorklounge } from './worklounge.js';
 import { CIRQUE_PRODUCTOS, generarCirque } from './cirque.js';
 import { ECOACUSTIC_PRODUCTOS, generarEcoAcustic } from './ecoacustic.js';
+import { MELAMINA_POR_ESPESOR, PINTURA_COLORES } from './acabados.js';
 import { calcular, precioDe, precioVenta, modeloParaPieza } from '../motor/calculo.js';
 import { buscarPrecioVenta, costoImplicito, precioDeLista } from './preciosVenta.js';
 import { factorDeLinea } from './factoresLinea.js';
@@ -237,11 +238,11 @@ export function precioDePieza(estado, ruta, g, pieza, cantidad, config) {
   const precio = real ? precioDeLista(real.lista) : (porUsuario ? porUsuario.lista : (precioModelo == null ? null : precioModelo * factor));
   const costo = real ? costoImplicito(real.lista)
     : (porUsuario ? costoImplicito(porUsuario.lista / (1 - 0.40)) : (resultado.costoOficial == null ? null : resultado.costoOficial * factor));
+  // VH-050: cuando el costo se DERIVA del precio (price-book o escalón por usuario,
+  // costoImplicito ≈ precio/3.6) no es un costo medido; la partida lo dice.
+  const costoDerivado = !!real || !!porUsuario;
   return {
-    resultado, margen, precio, costo, real: !!real && !real.heredada, par,
-    // VH-050: cuando el costo se DERIVA del precio (price-book o escalón por usuario,
-    // costoImplicito ≈ precio/3.6) no es un costo medido; la partida lo dice.
-    costoDerivado: !!(real || porUsuario),
+    resultado, margen, precio, costo, costoDerivado, real: !!real && !real.heredada, par,
     estadoCosto: resultado.estadoCosto, pendientes: resultado.pendientes || [],
     // Cuando el precio NO viene del modelo (price-book / por usuario), el despiece puede
     // estar incompleto sin afectar el precio; aun así se reporta para no esconderlo.
@@ -452,7 +453,7 @@ export function costearItem(estado, item, opciones = {}) {
   const partidaModelo = {
     ruta: item.ruta, linea: L.titulo, producto: prod.id, nombre: nb.nombre,
     cantidad, costoUnitario: pr.costo, precioUnitario: precio, margen, pieza,
-    costoDerivado: pr.costoDerivado,
+    costoDerivado: !!pr.costoDerivado,
     w: nb.w, d: nb.d, config,
     // ¿El precio salió de un presupuesto real o del modelo? El sello de la
     // propuesta depende de esto, no de una lista de líneas escrita a mano.
@@ -500,8 +501,7 @@ export function costearConfig(estado, ruta, productoId, config, cantidad = 1) {
     const a = res.articulo;
     return {
       nombre: nb.nombre, config: cfg, cantidad: n,
-      costoUnitario: costoImplicito(a.full || a.lista), precioUnitario: a.lista,
-      costoDerivado: true,   // VH-050: derivado del Precio 2, no medido
+      costoUnitario: costoImplicito(a.full || a.lista), costoDerivado: true, precioUnitario: a.lista,   // VH-050: derivado del Precio 2, no medido
       margen, w: nb.w, d: nb.d, precioReal: true,
       catalogo: { clave: a.clave, lista: a.lista, full: a.full, minimo: a.minimo },
       variantes: res.estado === 'varios' ? res.candidatos.slice(0, 8) : null,
@@ -509,7 +509,7 @@ export function costearConfig(estado, ruta, productoId, config, cantidad = 1) {
   }
   return {
     nombre: nb.nombre, config: cfg, cantidad: n,
-    costoUnitario: pr.costo, precioUnitario: pr.precio, costoDerivado: pr.costoDerivado,
+    costoUnitario: pr.costo, precioUnitario: pr.precio, costoDerivado: !!pr.costoDerivado,
     margen, w: nb.w, d: nb.d,
     // Igual que costearItem: sin esto, una partida editada perdía el sello
     // "Firme" aunque su precio siguiera saliendo de un presupuesto real.
@@ -560,6 +560,10 @@ export function catalogoIA() {
         if (p.biombo) params.biombo = [null, 'cristal', 'melamina'];
         for (const sel of p.selects || []) params[sel.key] = sel.opciones.map((o) => o.id);
         if (p.finishes) params.finish = p.finishes.map((f) => f.id);
+        // Colores/acabados disponibles por producto. Antes VONI conocía el producto
+        // pero no veía sus colores reales, así que "Blanco Absoluto" o "Nogal Neo"
+        // terminaban como texto libre en vez de configuración trazable.
+        if (p.colores) params.color = p.colores.map((x) => x?.id || x).filter(Boolean);
         const checks = (p.checks || []).map((c) => c.key);
         return { id: p.id, nombre: p.nombre, params, checks };
       }),
@@ -582,6 +586,14 @@ export function catalogoIA() {
       ...(b.medidas ? { medidas: b.medidas } : {}),
       ...(b.usuarios ? { usuarios: b.usuarios } : {}),
     })),
+  };
+  // Acabados globales REALES. Son conocimiento para VONI, no permiso universal:
+  // cada producto sigue limitando qué combinación es válida en su generador.
+  out.__acabados = {
+    nota: 'Catálogo global real; validar compatibilidad por producto antes de aplicar.',
+    melamina: Object.entries(MELAMINA_POR_ESPESOR).flatMap(([espesor, rows]) =>
+      (rows || []).map((x) => ({ id:x.id, nombre:x.label, espesorMM:Number(espesor), codigo:x.codigo || null }))),
+    pintura: (PINTURA_COLORES || []).map((x) => ({ id:x.id, nombre:x.label, codigo:x.codigo || null })),
   };
   return out;
 }

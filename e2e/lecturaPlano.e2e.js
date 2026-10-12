@@ -20,7 +20,7 @@ test('subir plano → confirmar lectura → paso 2, con puestos contados y lectu
   await page.fill('#email-login', 'ventas@vh.mx'); await page.fill('#pass-login', 'prueba-123');
   await page.getByRole('button', { name: /^Entrar$/i }).click();
   await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
-  await page.locator('button.voni-principal').click();
+  await page.getByTestId('home-cotizar').click();
   await expect(page.getByText(/Soy .*Voni/i).first()).toBeVisible({ timeout: 10000 });
 
   // Subir un plano (la nube falsa contesta con la lectura fija).
@@ -59,7 +59,7 @@ test('"Volver a subir" descarta la lectura sin tocar el estado', async ({ browse
   await page.fill('#email-login', 'ventas@vh.mx'); await page.fill('#pass-login', 'prueba-123');
   await page.getByRole('button', { name: /^Entrar$/i }).click();
   await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
-  await page.locator('button.voni-principal').click();
+  await page.getByTestId('home-cotizar').click();
   const ruta = join(mkdtempSync(join(tmpdir(), 'plano-e2e-')), 'plano.png');
   writeFileSync(ruta, PNG_1x1);
   await page.locator('input[type=file][accept*="pdf"]').first().setInputFiles(ruta);
@@ -83,7 +83,7 @@ test('REVIEW_REQUIRED del servidor: la compuerta enseña el aviso y no dice "con
   await page.fill('#email-login', 'ventas@vh.mx'); await page.fill('#pass-login', 'prueba-123');
   await page.getByRole('button', { name: /^Entrar$/i }).click();
   await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
-  await page.locator('button.voni-principal').click();
+  await page.getByTestId('home-cotizar').click();
   await expect(page.getByText(/Soy .*Voni/i).first()).toBeVisible({ timeout: 10000 });
   const ruta = join(mkdtempSync(join(tmpdir(), 'plano-e2e-')), 'plano.png');
   writeFileSync(ruta, PNG_1x1);
@@ -110,7 +110,7 @@ test('FAIL del servidor: no hay compuerta; el error explica qué no cuadró', as
   await page.fill('#email-login', 'ventas@vh.mx'); await page.fill('#pass-login', 'prueba-123');
   await page.getByRole('button', { name: /^Entrar$/i }).click();
   await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
-  await page.locator('button.voni-principal').click();
+  await page.getByTestId('home-cotizar').click();
   await expect(page.getByText(/Soy .*Voni/i).first()).toBeVisible({ timeout: 10000 });
   const ruta = join(mkdtempSync(join(tmpdir(), 'plano-e2e-')), 'plano.png');
   writeFileSync(ruta, PNG_1x1);

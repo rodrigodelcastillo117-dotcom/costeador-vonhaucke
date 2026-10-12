@@ -17,7 +17,7 @@
 //
 //  Todo en METROS (es lo que devuelve `areasDeLectura` y lo que guarda `areasM`).
 // ============================================================================
-import { rolCuartoBase } from './planner.js';
+import { rolCuartoBase, rolArea, tipoAreaConfiable } from './planner.js';
 
 // El rol de un cuarto: lo que declaró el lector, su nombre, o —si ninguno de
 // los dos dice nada, "Sala 12" sin `tipo`— su TAMAÑO. Mismo criterio que usa el
@@ -39,6 +39,10 @@ export const rolDe = (a, todos) => rolCuartoBase(aMM(a), (todos && todos.length 
 // Una ZONA es un área dibujada DENTRO de otra (las islas punteadas del open
 // space). Un CUARTO tiene muros propios.
 const esZona = (a) => !!a?.dentroDe;
+
+// "Detectado" exige evidencia semántica directa: tipo confiable o nombre
+// inequívoco. Si el rol salió sólo por tamaño, es ESTIMADO, no "del plano".
+const rolSemanticoDetectado = (a) => tipoAreaConfiable(a) || rolArea(a?.nombre) !== 'general';
 
 const FONDO_BENCH = 1.2;      // m, fondo de una hilera de bench
 const SILLA = 0.66;           // m, lo que pide una silla detrás de la cubierta
@@ -67,7 +71,14 @@ export function puestosPorIsla(area, largoPuestoMM = 1500) {
 // impar deja una silla sola en la cabecera o un lugar vacío. Se redondea HACIA
 // ABAJO al par: más vale prometer 8 que no quepan 9.
 const M2_POR_PERSONA = 4;        // con su paso alrededor de la mesa
-export const personasEnSala = (m2) => Math.max(4, 2 * Math.floor((m2 || 0) / M2_POR_PERSONA / 2));
+export const personasEnSala = (m2) => {
+  const area = Number(m2);
+  if (!Number.isFinite(area) || area <= 0) return 0;
+  const capacidadPar = 2 * Math.floor(area / M2_POR_PERSONA / 2);
+  // No inventar un "mínimo de 4" si la geometría ni siquiera lo soporta.
+  // Una sala sólo recibe capacidad 4+ cuando su área alcanza la propia regla.
+  return capacidadPar >= 4 ? capacidadPar : 0;
+};
 
 // ¿Sobra lugar en la sala para una credenza? Rodrigo: "me hubiera gustado que
 // me propusiera, si es que hay espacio, una credenza para guardar cosas o poner
@@ -166,6 +177,8 @@ export function programaDelPlano(areas, opts = {}) {
   salasA.forEach((a, i) => {
     if (!(m2Salas[i] > 0)) {
       avisos.push(`No pude leer bien las medidas de "${a.nombre || 'una sala'}" (salió en 0 m²) — revisa el plano o corrígela a mano.`);
+    } else if (salas[i] === 0) {
+      avisos.push(`"${a.nombre || 'Sala'}" tiene ${m2Salas[i].toFixed(1)} m²: con la regla de ${M2_POR_PERSONA} m²/persona no certifico capacidad de 4; requiere revisar geometría/mobiliario.`);
     }
   });
   // SUGERENCIA DE OFICIO (no es "del plano"): acompañantes naturales de cada puesto.
@@ -185,9 +198,11 @@ export function programaDelPlano(areas, opts = {}) {
   // geometría de zonas se detecta; los PUESTOS se ESTIMAN por área (el plano no
   // detecta sillas aún) y hay que confirmarlos; sillas/gavetas/archiveros se SUGIEREN.
   const fuente = {
-    privados: 'detectado',     // zonas con muros propios en el plano
-    salas: 'detectado',
-    recepcion: 'detectado',
+    privados: privados.every(rolSemanticoDetectado) ? 'detectado' : 'estimado',
+    salas: salasA.every(rolSemanticoDetectado) ? 'detectado' : 'estimado',
+    recepcion: recepcion
+      ? (lista.filter((a) => rolDe(a, lista) === 'recepcion').every(rolSemanticoDetectado) ? 'detectado' : 'estimado')
+      : 'detectado',
     // CONTADO del dibujo (el lector contó los escritorios) vs ESTIMADO por área.
     operativos: contado ? 'detectado' : 'estimado',
     sillasOperativas: 'sugerido',
@@ -206,6 +221,14 @@ export function programaDelPlano(areas, opts = {}) {
     sugeridos,
     fuente,
     salasInfo: salasA.map((a, i) => ({ nombre: a.nombre, m2: m2Salas[i], caben: salas[i] })),
+    // #19: identidad por-zona (nombre/id del área) para conservarla hasta el
+    // ProgramRequirement. P0.3 la enriquecerá (evidencia/confianza); aquí no se tira.
+    zonas: {
+      operativo: (islasA[0] || abiertos[0]) ? { nombre: (islasA[0] || abiertos[0]).nombre, id: (islasA[0] || abiertos[0]).id || null } : null,
+      privados: privados.map((a) => ({ nombre: a.nombre, id: a.id || null })),
+      juntas: salasA.map((a) => ({ nombre: a.nombre, id: a.id || null })),
+      recepcion: (() => { const a = lista.find((x) => rolDe(x, lista) === 'recepcion'); return a ? { nombre: a.nombre, id: a.id || null } : null; })(),
+    },
     islas: islasA.length,
     porIsla,
     avisos,

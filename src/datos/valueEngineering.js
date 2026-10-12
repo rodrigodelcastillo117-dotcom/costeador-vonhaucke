@@ -6,6 +6,8 @@
 //  selecciona el conjunto mínimo que mete la propuesta en presupuesto. El
 //  descuento va SIEMPRE al final (primero ingeniería de valor, luego descuento).
 // ============================================================================
+import { aCentavosEnteros, deCentavosEnteros } from '../motor/dinero.js';
+
 export const PRIORIDAD_VE = ['sustitucion', 'configuracion', 'acabado', 'opcional', 'descuento'];
 const prioIdx = (o) => { const i = PRIORIDAD_VE.indexOf(o.tipo); return i === -1 ? PRIORIDAD_VE.length : i; };
 
@@ -15,28 +17,51 @@ const prioIdx = (o) => { const i = PRIORIDAD_VE.indexOf(o.tipo); return i === -1
  * Devuelve el plan: cuánto falta bajar, qué opciones seleccionar (en orden) y si alcanza.
  */
 export function planValueEngineering(presupuesto, totalActual, opciones) {
-  const faltaBajar = Math.round((Number(totalActual) || 0) - (Number(presupuesto) || 0)); // >0 si está arriba
+  const presupuestoC = presupuesto == null ? null : aCentavosEnteros(presupuesto);
+  const totalC = totalActual == null ? null : aCentavosEnteros(totalActual);
+
+  // UNKNOWN nunca se convierte en ZERO. Sin ambos importes no existe comparación
+  // económica legítima y por lo tanto tampoco existe "falta por bajar".
+  if (presupuestoC == null || totalC == null) {
+    return {
+      estado: 'NO_EVALUABLE',
+      faltaBajar: null,
+      yaEnPresupuesto: null,
+      seleccionadas: [],
+      ahorroTotal: null,
+      nuevoTotal: totalC == null ? null : deCentavosEnteros(totalC),
+      alcanza: null,
+      usaDescuento: false,
+      motivo: presupuestoC == null ? 'PRESUPUESTO_DESCONOCIDO' : 'TOTAL_DESCONOCIDO',
+    };
+  }
+
+  const faltaBajarC = totalC - presupuestoC; // >0 si está arriba
   const candidatas = (opciones || [])
-    .filter((o) => Number(o.delta) < 0)                    // sólo las que ahorran
-    .sort((a, b) => prioIdx(a) - prioIdx(b) || (a.delta - b.delta)); // prioridad, luego mayor ahorro
+    .map((o) => ({ ...o, _deltaC: aCentavosEnteros(o?.delta) }))
+    .filter((o) => o._deltaC != null && o._deltaC < 0)
+    .sort((a, b) => prioIdx(a) - prioIdx(b) || (a._deltaC - b._deltaC));
 
   const seleccionadas = [];
-  let ahorro = 0;
-  if (faltaBajar > 0) {
+  let ahorroC = 0;
+  if (faltaBajarC > 0) {
     for (const o of candidatas) {
-      if (ahorro >= faltaBajar) break;
-      seleccionadas.push(o);
-      ahorro += -Math.round(Number(o.delta));
+      if (ahorroC >= faltaBajarC) break;
+      const { _deltaC, ...publica } = o;
+      seleccionadas.push(publica);
+      ahorroC += -_deltaC;
     }
   }
-  const nuevoTotal = Math.round((Number(totalActual) || 0) - ahorro);
+
+  const nuevoTotalC = totalC - ahorroC;
   return {
-    faltaBajar,
-    yaEnPresupuesto: faltaBajar <= 0,
+    estado: 'EVALUADO',
+    faltaBajar: deCentavosEnteros(Math.max(0, faltaBajarC)),
+    yaEnPresupuesto: faltaBajarC <= 0,
     seleccionadas,
-    ahorroTotal: ahorro,
-    nuevoTotal,
-    alcanza: nuevoTotal <= (Number(presupuesto) || 0),
+    ahorroTotal: deCentavosEnteros(ahorroC),
+    nuevoTotal: deCentavosEnteros(nuevoTotalC),
+    alcanza: nuevoTotalC <= presupuestoC,
     usaDescuento: seleccionadas.some((o) => o.tipo === 'descuento'),
   };
 }

@@ -17,6 +17,11 @@ import {
 import { hoyNecesitaAtencion, hechosDireccion } from '../datos/atencion.js';
 import { diffRevisiones } from '../datos/diffRevisiones.js';
 import { conocimientoDe } from './conocimiento.js';
+import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
+import { buscarMaterialTecnico, describirFormatoTecnico } from '../datos/materialKnowledge.js';
+import { construirPrecedentesCosteo } from '../datos/precedentesCosteo.js';
+import { nube, buscarProductosMaestroTexto } from '../nube.js';
+import { explicarCosteo } from '../datos/explicacionCosteo.js';
 
 const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
 
@@ -31,9 +36,15 @@ export const proveedorReal = {
     const { data: p } = await obtenerProyecto(ctx.project_id);
     if (!p) return null;
     const { data: cots } = await listarCotizacionesDeProyecto(ctx.project_id);
-    const total_actual = (cots || []).reduce((s, c) => s + num(c.total), 0);
+    const cotizaciones = cots || [];
+    const validas = cotizaciones.filter((c) => c?.total != null && Number.isFinite(Number(c.total)));
+    const sinTotal = cotizaciones.filter((c) => !(c?.total != null && Number.isFinite(Number(c.total))));
+    const total_conocido = validas.reduce((s, c) => s + Number(c.total), 0);
+    // Si falta un total, la suma parcial NO se promociona a total_actual.
+    const total_actual = sinTotal.length ? null : total_conocido;
     return { id: p.id, nombre: p.nombre, cliente: p.clientes?.nombre_comercial || null, etapa: p.etapa,
       vendedor: p.vendedor_responsable, presupuesto: p.presupuesto, total_actual,
+      total_conocido, cotizaciones_sin_total: sinTotal.length,
       proxima_accion: p.proxima_accion, fecha_proxima_accion: p.fecha_proxima_accion };
   },
   get_scope: async () => null, // sin fuente de scope por zonas (no se fabrica)
@@ -93,7 +104,7 @@ export const proveedorReal = {
     if (ctx.project_id == null) return null;
     // Fuente real del layout: cotizaciones.acomodo (no una columna de proyectos).
     const { data } = await acomodosDeProyecto(ctx.project_id);
-    const conAcomodo = (data || []).filter((c) => c.acomodo);
+    const conAcomodo = data || []; // query ya filtra acomodo IS NOT NULL sin descargarlo
     return { tieneAcomodo: conAcomodo.length > 0, cotizaciones: conAcomodo.map((c) => c.folio || `Cot ${c.id}`), warnings: [] };
   },
   get_render_status: async () => [], // renders técnicos viven en expediente/producto, no por proyecto
@@ -116,11 +127,69 @@ export const proveedorReal = {
     ? { componentes: ctx.bom, contradicciones: [] }
     : { disponible: false, nota: 'Abre el Costeador para ver el BOM certificado de una pieza.' }),
   get_costing: async (ctx) => (ctx.costing
-    ? ctx.costing
+    ? { ...ctx.costing, explicacion: explicarCosteo(ctx.costing, { nombre: ctx.product_name || ctx.nombre || '' }) }
     : { disponible: false, nota: 'El costo se consolida por pieza en el Costeador; no hay un total de proyecto inventado aquí.' }),
+  get_cost_explanation: async (ctx) => {
+    if(!ctx.costing) return { disponible:false, nota:'Abre un mueble en Costear para explicar su matemática real.' };
+    return { disponible:true, ...explicarCosteo(ctx.costing,{ nombre:ctx.product_name||ctx.nombre||'Costeo actual' }) };
+  },
+  get_industrial_analysis: async (ctx) => {
+    const bom = Array.isArray(ctx.bom) ? ctx.bom : [];
+    const costing = ctx.costing || null;
+    if (!bom.length && !costing) {
+      return { disponible:false, nota:'Abre o selecciona un producto con BOM/costeo para analizarlo industrialmente.' };
+    }
+    return { disponible:true, ...analizarProductoIndustrial({ bom, costing }) };
+  },
+  get_costing_precedents: async (ctx) => {
+    const bom=Array.isArray(ctx.bom)?ctx.bom:[];
+    if(!bom.length) return { disponible:false, precedentes:[], nota:'Sin BOM actual no hay una base honesta para medir similitud.' };
+    const {data:revs,error}=await nube.from('expediente_revisiones')
+      .select('id,expediente_id,rev,creado,nombre,bom,costo,producto_id,producto_version_id')
+      .not('bom','is',null).order('creado',{ascending:false}).limit(80);
+    if(error) return { disponible:false, precedentes:[], nota:'No se pudo consultar la memoria técnica autorizada.' };
+    const versionIds=[...new Set((revs||[]).map((x)=>Number(x.producto_version_id)).filter(Number.isFinite))];
+    let ecos=[];
+    if(versionIds.length){
+      const r=await nube.from('producto_version_economia')
+        .select('producto_version_id,costo_oficial_referencia,formula_version,fuente,actualizado')
+        .in('producto_version_id',versionIds);
+      ecos=r.data||[];
+    }
+    return {
+      disponible:true,
+      precedentes:construirPrecedentesCosteo(bom,revs||[],ecos),
+      politica:'Precedente = comparación, no autoridad. El costo vigente siempre lo recalcula el motor con BOM/precios actuales.',
+    };
+  },
+  get_material_technical: async (ctx, args) => {
+    const items = buscarMaterialTecnico(ctx.materialesTecnicos || [], args?.query || '');
+    return {
+      disponible: items.length > 0,
+      items: items.map((m) => ({
+        ...m,
+        formato_texto: describirFormatoTecnico(m),
+      })),
+      nota: items.length ? null : 'No encontré un material técnico coincidente en el catálogo cargado.',
+    };
+  },
   // Conocimiento del catálogo Von Haucke (líneas, materiales, a la medida). Usa la
   // consulta del usuario (args.query) para recomendar/explicar. No es económico.
   get_catalog_knowledge: async (ctx, args) => conocimientoDe(args?.query || ''),
-  get_product: async () => null,
-  search_products: async () => [],
+
+  // Producto Maestro REAL, seller-safe: identidad/taxonomía/versionado, jamás costo/margen.
+  get_product: async (_ctx, args) => {
+    const id=Number(args?.id);
+    if(!Number.isFinite(id)) return null;
+    const {data,error}=await nube.from('productos')
+      .select('id,nombre,codigo,source_type,familia,estado,activo,version_tecnica_vigente_id')
+      .eq('id',id).maybeSingle();
+    if(error) return null;
+    return data||null;
+  },
+
+  search_products: async (_ctx, args) => {
+    const r=await buscarProductosMaestroTexto(args?.query||'',25);
+    return r?.ok ? (r.items||[]) : [];
+  },
 };

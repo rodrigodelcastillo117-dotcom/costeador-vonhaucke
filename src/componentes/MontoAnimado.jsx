@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { pesos } from '../util.js';
+import { pesos2 } from '../util.js';
 
 // Monto de dinero que "cuenta" hasta su valor (deleite premium al cambiar cantidades
-// o descuento). Formatea con pesos() en cada cuadro. Respeta prefers-reduced-motion:
+// o descuento). Formatea con pesos2() en cada cuadro para no perder centavos. Respeta prefers-reduced-motion:
 // si está activo, muestra el valor final sin animar. Si el valor no es finito, cae a
-// pesos() tal cual (no inventa un número bonito).
+// pesos2() tal cual (no inventa un número bonito).
 export default function MontoAnimado({ valor, ms = 650 }) {
   const destino = Number(valor);
   const [mostrado, setMostrado] = useState(Number.isFinite(destino) ? destino : 0);
@@ -29,6 +29,6 @@ export default function MontoAnimado({ valor, ms = 650 }) {
     return () => cancelAnimationFrame(raf);
   }, [destino, ms]);
 
-  if (!Number.isFinite(destino)) return <>{pesos(valor)}</>;
-  return <>{pesos(Math.round(mostrado))}</>;
+  if (!Number.isFinite(destino)) return <>{pesos2(valor)}</>;
+  return <>{pesos2(mostrado)}</>;
 }

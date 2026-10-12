@@ -6,6 +6,7 @@
 //  por pruebas (calculo.test.js).
 // ============================================================================
 import { costoAlba, tipoAlba } from './formulaAlba.js';
+import { optimizarCorte2D, optimizarCorte1D } from './optimizacionCorte.js';
 
 // VERSIÓN DEL MOTOR — entra en la huella de cada cotización (cotizaciones.js:
 // huellaMP) para que, si la FÓRMULA cambia (no solo un precio), una cotización
@@ -454,6 +455,22 @@ function gifPorHoras(horas, piezas, par) {
   return total * piezas;
 }
 
+// Gate de DATOS, no cambio de fórmula: Intelisis sólo es autorizable cuando
+// cada centro realmente usado trae sus dos tarifas explícitas (MO + GIF).
+// Evita que un 0/faltante caiga al costoHora global o a GIF=0 y subcostee.
+function tarifasFaltantesIntelisis(horas, par) {
+  const faltan = [];
+  for (const area of AREAS) {
+    const h = Number(horas?.[area] || 0);
+    if (!(h > 0)) continue;
+    const mo = Number(par?.costoHoraArea?.[area]);
+    const gif = Number(par?.costoHoraGIF?.[area]);
+    if (!(Number.isFinite(mo) && mo > 0)) faltan.push(`MO:${area}`);
+    if (!(Number.isFinite(gif) && gif > 0)) faltan.push(`GIF:${area}`);
+  }
+  return faltan;
+}
+
 // -----------------------------------------------------------------------------
 //  FORMULA DE ALBA (estimaciones, 2026-08-18) — MO% y GI por tipo de material
 //  (ver motor/formulaAlba.js). Se aplica por GRUPO DE INSUMO, el mismo
@@ -549,6 +566,40 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     // llevan mano de obra real (pintar, tapizar).
     if (SIN_MO_SECCIONES.has(insumo.seccion)) materialSinMO += r.costo;
     desperdicioTotal += r.desperdicio;
+    const optimizacionCorte = insumo.formato?.largoMM && insumo.formato?.anchoMM
+      ? optimizarCorte2D({
+          componentes: comps,
+          formato: insumo.formato,
+          veta: !!insumo.veta,
+          kerfMM: par.kerfMM,
+          recorteOrillaMM: par.recorteOrillaMM,
+          lote: n,
+        })
+      : null;
+
+    // Advisory 1D para PTR/perfiles. El COSTO oficial sigue exactamente igual:
+    // sólo analizamos la lista de cortes cuando el BOM trae largos + número de
+    // piezas explícitos. Si el legacy sólo trae metros agregados, el optimizador
+    // devuelve SIN_PIEZAS_LINEALES y VONI lo marca como dato pendiente.
+    const optimizacionCorte1D = insumo.formato?.tipo === 'tramo'
+      && Number(insumo.formato?.medida) > 0
+      ? optimizarCorte1D({
+          componentes: comps.map((x) => ({ ...x, forma: 'lineal' })),
+          largoTramoMM: Number(insumo.formato.medida) * 1000,
+          kerfMM: par.kerfMM,
+          recortePuntaMM: Number(insumo.formato.recortePuntaMM) || 0,
+          lote: n,
+        })
+      : null;
+    const tipoAlbaAplicado = SIN_MO_SECCIONES.has(insumo.seccion)
+      ? 'compraventa'
+      : tipoAlba({ seccion: insumo.seccion, nombre: insumo.nombre });
+    const tieneFraccionDirecta = comps.some((x)=>Number(x?.hojas)>0);
+    const tieneGeometria = comps.some((x)=>Number(x?.largoMM)>0&&Number(x?.anchoMM)>0);
+    const usaAprovechamientoGenerico = !!(
+      insumo.fraccion &&
+      comps.some((x)=>!(Number(x?.hojas)>0) && !(Number(x?.largoMM)>0&&Number(x?.anchoMM)>0))
+    );
     detalleInsumos.push({
       insumoId: id,
       nombre: insumo.nombre,
@@ -556,7 +607,19 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
       clase: insumo.clase || 'directa',
       unidad: insumo.unidad,
       formato: insumo.formato,
+      veta: !!insumo.veta,
       nombresComponentes: comps.map((c) => c.nombre).filter(Boolean),
+      optimizacionCorte,
+      optimizacionCorte1D,
+      tipoAlbaAplicado,
+      metodoConsumo: tieneFraccionDirecta
+        ? 'FRACCION_DIRECTA_RAFA'
+        : insumo.fraccion
+          ? (tieneGeometria ? 'RENDIMIENTO_GEOMETRICO' : 'APROVECHAMIENTO_GENERICO')
+          : insumo.inventario
+            ? 'INVENTARIO_CONTINUO'
+            : insumo.formato ? 'FORMATO_COMPLETO' : 'CONSUMO_DIRECTO',
+      usaAprovechamientoGenerico,
       ...r,
     });
   }
@@ -641,6 +704,9 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
 
   const costoLoteConMerma = costoLote / (1 - merma);
   const costoUnitario = costoLoteConMerma / n;
+  const tarifasFaltantes = modeloCosteo === 'intelisis'
+    ? tarifasFaltantesIntelisis(pieza.horas, par)
+    : [];
 
   return {
     piezas: n,
@@ -658,12 +724,16 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     gastosOperacion,
     costoFabricacion,
     modeloCosteo,
+    formulaCosteo: formulaDePieza(pieza),
+    mermaProcesoPct: merma * 100,
+    parametrosCorte: { kerfMM: par.kerfMM, recorteOrillaMM: par.recorteOrillaMM, aprovechamientoCorte: par.aprovechamientoCorte },
     costoLote,
     costoLoteConMerma,
     costoUnitario,
     detalleInsumos,
     componentesIgnorados,
     componentesExcluidos,
+    tarifasFaltantes,
     // COMPLETITUD EN LA PROPIA SALIDA (COSTEAR §3). `costoUnitario` es el SUBTOTAL
     // CONOCIDO; `costoOficial` es null mientras falte algo. Quien muestre dinero debe
     // usar `costoOficial` (o `costeoEmitible`), nunca `costoUnitario` a secas.
@@ -693,14 +763,33 @@ export function pendientesDeCosteo(pieza, insumos = {}, par = PARAMETROS_DEFAULT
 //  Las EXCLUIDAS_CONFIRMADAS (comp.excluida) NO cuentan: son $0 por decisión.
 // -----------------------------------------------------------------------------
 export function costeoEmitible(resultado) {
-  const pendientes = (resultado && resultado.componentesIgnorados) || [];
+  const faltantes = [...((resultado && resultado.componentesIgnorados) || [])];
+  const formatosInvalidos = (resultado?.detalleInsumos || [])
+    .filter((d) => d?.noCabe)
+    .map((d) => `${d.nombre || d.insumoId || 'Material'}: una o más piezas no caben en el formato de compra`);
+  const tarifasFaltantes = [...((resultado && resultado.tarifasFaltantes) || [])];
+  const costoRaw = resultado?.costoUnitario;
+  const costo = costoRaw == null || costoRaw === '' ? NaN : Number(costoRaw);
+  const costoCorrupto = !Number.isFinite(costo) || costo < 0;
+
+  const pendientes = [...faltantes, ...formatosInvalidos, ...tarifasFaltantes.map((x) => `Tarifa Intelisis faltante: ${x}`)];
+  if (costoCorrupto) pendientes.push('Costo unitario inválido/no finito');
+
+  const emitible = pendientes.length === 0;
   return {
-    emitible: pendientes.length === 0,
+    emitible,
     pendientes,
-    subtotalConocido: (resultado && resultado.costoUnitario) || 0,
-    // costoTotal es null mientras haya pendientes: no hay un total que autorizar.
-    costoTotal: pendientes.length === 0 ? ((resultado && resultado.costoUnitario) || 0) : null,
-    estadoCosto: pendientes.length === 0 ? 'completo' : 'incompleto',
+    bloqueos: {
+      datos_faltantes: faltantes,
+      formato_incompatible: formatosInvalidos,
+      tarifas_faltantes: tarifasFaltantes,
+      costo_invalido: costoCorrupto,
+    },
+    subtotalConocido: Number.isFinite(costo) && costo >= 0 ? costo : 0,
+    // Nunca existe costoTotal autorizado mientras haya una incompatibilidad física
+    // o numérica, aunque el motor haya podido calcular un subtotal aproximado.
+    costoTotal: emitible ? costo : null,
+    estadoCosto: emitible ? 'completo' : 'incompleto',
   };
 }
 

@@ -12,15 +12,16 @@ const CAT = [
   { id: 'laminado-walnut', nombre: 'Laminado plastico 4x8 Walnut (nogal)', seccion: 'cubiertas' },
 ];
 
-describe('VONI hace su trabajo: material nombrado NUNCA queda sin costear (auto-precarga)', () => {
-  it('"melamina nogal claro 19mm" sin id del LLM → auto-asigna melamina nogal 19', () => {
+describe('VONI propone materiales sin auto-certificarlos', () => {
+  it('"melamina nogal claro 19mm" sin id del LLM → propone candidato, no lo costea solo', () => {
     const c = aplicarPoliticaMaterial(
       { nombre: 'Costado melamina nogal claro 19 mm', insumoId: '', material_solicitado: 'melamina nogal claro 19 mm' },
       () => undefined, CAT,
     );
-    expect(c.insumoId).toBe('melamina-19-nogal-neo-tx'); // misma familia + color + espesor
+    expect(c.insumoId).toBe('');
+    expect(c._match.candidate_insumo_id).toBe('melamina-19-nogal-neo-tx');
     expect(c._match.autollenado).toBe(true);
-    expect(c._match.clase).toBe(MATCH.EXACT);
+    expect(c._match.clase).toBe(MATCH.CANDIDATE_REQUIRES_CONFIRMATION);
   });
   it('mejorInsumoDeFamilia respeta el ESPESOR (16 vs 19)', () => {
     expect(mejorInsumoDeFamilia('tapa melamina blanca 16', CAT).id).toBe('melamina-16-blanco-absoluto');
@@ -106,22 +107,28 @@ describe('clasificarMaterial — la política', () => {
     expect(r.motivo).toMatch(/superficie solida|superficie sólida/i);
   });
 
-  it('sin familia explícita pero con id válido → EXACT (confía en el id)', () => {
+  it('sin familia explícita pero con id válido → candidato, no EXACT', () => {
     const r = clasificarMaterial({ solicitado: '', insumoId: 'melamina-16', insumoNombre: 'Melamina BLANCA 16 mm' });
-    expect(r.clase).toBe(MATCH.EXACT);
-    expect(r.autocosteable).toBe(true);
+    expect(r.clase).toBe(MATCH.CANDIDATE_REQUIRES_CONFIRMATION);
+    expect(r.autocosteable).toBe(false);
+    expect(r.insumoIdEfectivo).toBe('');
+    expect(r.insumoIdCandidato).toBe('melamina-16');
   });
 
-  it('misma familia distinto color/espesor → EXACT (melamina ↔ melamina)', () => {
-    const r = clasificarMaterial({ solicitado: 'melamina de color 19', insumoId: 'melamina-16', insumoNombre: 'Melamina BLANCA 16 mm' });
-    expect(r.clase).toBe(MATCH.EXACT);
+  it('misma familia con espesor contradictorio requiere confirmación', () => {
+    const r = clasificarMaterial({ solicitado: 'melamina de color 19 mm', insumoId: 'melamina-16', insumoNombre: 'Melamina BLANCA 16 mm' });
+    expect(r.clase).toBe(MATCH.CANDIDATE_REQUIRES_CONFIRMATION);
+    expect(r.autocosteable).toBe(false);
+    expect(r.insumoIdEfectivo).toBe('');
   });
 });
 
 describe('MATCH_AUTOCOSTEABLE — qué entra al BOM solo', () => {
-  it('sólo EXACT y EQUIVALENT_APPROVED', () => {
+  it('sólo EXACT, EQUIVALENT_APPROVED y USER_CONFIRMED', () => {
     expect(MATCH_AUTOCOSTEABLE.has(MATCH.EXACT)).toBe(true);
     expect(MATCH_AUTOCOSTEABLE.has(MATCH.EQUIVALENT_APPROVED)).toBe(true);
+    expect(MATCH_AUTOCOSTEABLE.has(MATCH.USER_CONFIRMED)).toBe(true);
+    expect(MATCH_AUTOCOSTEABLE.has(MATCH.CANDIDATE_REQUIRES_CONFIRMATION)).toBe(false);
     expect(MATCH_AUTOCOSTEABLE.has(MATCH.SUBSTITUTE_REQUIRES_CONFIRMATION)).toBe(false);
     expect(MATCH_AUTOCOSTEABLE.has(MATCH.NOT_AVAILABLE)).toBe(false);
   });
@@ -155,6 +162,51 @@ describe('aplicarPoliticaMaterial — integra con el resolver del catálogo', ()
   });
 });
 
+
+describe('confirmación humana de material candidato', () => {
+  it('material_confirmado promueve un id existente a USER_CONFIRMED y lo hace costeable', () => {
+    const c = aplicarPoliticaMaterial(
+      {
+        nombre:'Cubierta',
+        insumoId:'melamina-16-blanco-absoluto',
+        material_solicitado:'',
+        material_confirmado:true,
+        cantidad:1,
+      },
+      (id) => CAT.find((x) => x.id === id),
+      CAT,
+    );
+    expect(c.insumoId).toBe('melamina-16-blanco-absoluto');
+    expect(c._match.clase).toBe(MATCH.USER_CONFIRMED);
+    expect(c._match.confirmado_por_usuario).toBe(true);
+    expect(MATCH_AUTOCOSTEABLE.has(c._match.clase)).toBe(true);
+  });
+});
+
+
+describe('identidad comercial de componentes comprados', () => {
+  it('nombre comercial específico + artículo real del catálogo puede ser EXACT sin familia MP', () => {
+    const r = clasificarMaterial({
+      solicitado:'portamonitor Loktec',
+      insumoId:'portamonitor-loktec-d7a',
+      insumoNombre:'Portamonitor Loktec D7A',
+    });
+    expect(r.clase).toBe(MATCH.EXACT);
+    expect(r.insumoIdEfectivo).toBe('portamonitor-loktec-d7a');
+    expect(r.autocosteable).toBe(true);
+  });
+
+  it('texto genérico sin familia sigue siendo candidato, no exacto', () => {
+    const r = clasificarMaterial({
+      solicitado:'accesorio',
+      insumoId:'portamonitor-loktec-d7a',
+      insumoNombre:'Portamonitor Loktec D7A',
+    });
+    expect(r.clase).toBe(MATCH.CANDIDATE_REQUIRES_CONFIRMATION);
+    expect(r.insumoIdEfectivo).toBe('');
+  });
+});
+
 describe('VH-053: material del catálogo del SERVIDOR sin precio certificado', () => {
   it('id EXACT de la IA que no existe localmente → pendiente con el id, sin sustituir por familia', () => {
     const c = aplicarPoliticaMaterial(
@@ -175,9 +227,11 @@ describe('VH-053: material del catálogo del SERVIDOR sin precio certificado', (
       { nombre: 'Costado', insumoId: 'melamina-19-nogal', material_solicitado: 'melamina nogal 19 mm' },
       () => undefined, CAT,
     );
-    expect(c.insumoId).toBe('melamina-19-nogal-neo-tx');
-    expect(c._match.autollenado).toBe(true);
-    expect(alertaMaterial(c._match)).toMatchObject({ tono: 'ambar', titulo: 'Material auto-asignado por familia' });
+    // Política viva (2026-10-08): el pariente de familia es CANDIDATO, no costo autoritativo sin confirmación.
+    expect(c.insumoId).toBe('');
+    expect(c._match.clase).toBe(MATCH.CANDIDATE_REQUIRES_CONFIRMATION);
+    expect(c._match.candidate_insumo_id).toBe('melamina-19-nogal-neo-tx');
+    expect(alertaMaterial(c._match)).toMatchObject({ tono: 'ambar', titulo: 'Material propuesto por familia: confírmalo' });
   });
   it('alertaMaterial: EXACT sin auto-asignación → nada que avisar; NOT_AVAILABLE → rojo', () => {
     const ok = aplicarPoliticaMaterial({ nombre: 'Tapa', insumoId: 'mdf', material_solicitado: 'mdf 19' }, (id) => CAT.find((x) => x.id === id), CAT);

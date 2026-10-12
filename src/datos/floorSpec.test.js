@@ -18,6 +18,7 @@ import {
   ROL, ZONA, zonaSemantica, rolDeSimboloEnZona, contarRoles,
   PROCEDENCIA, esConfirmado, modeloConfirmado,
   estadoLayout, puedePresentarPropuesta, renderFiel,
+  validarFloorSpec, validarEnvolvente,
 } from './floorSpec.js';
 
 const GRID = { horizontal: [4000, 4000, 4000, 3000], vertical: [3200, 3200, 2400] };
@@ -126,7 +127,8 @@ describe('placement semántico · un mueble no va en cualquier zona', () => {
     mesa: { id: 'mesa', tipo: 'mesa', nombre: 'Mesa de juntas APP LT' },
     recep: { id: 'recep', tipo: 'recepcion', nombre: 'Módulo recepción' },
     esc: { id: 'esc', tipo: 'escritorio', nombre: 'Escritorio operativo' },
-    silla: { id: 'silla', tipo: 'silla', nombre: 'Silla operativa' },
+    silla: { id: 'silla', tipo: 'silla', nombre: 'Silla operativa', ruta: 'vh-dest-opn' },
+    sillaJuntas: { id: 'sillaJuntas', tipo: 'asiento', nombre: 'Silla SONATA', ruta: 'vh-dest-mtg' },
   };
 
   it('mesa de juntas en CEO = violación; en Consejo = OK', () => {
@@ -149,14 +151,59 @@ describe('placement semántico · un mueble no va en cualquier zona', () => {
     expect(violacionesSemanticas([{ id: 'mesa', area: 4 }], areas, byId)).toHaveLength(1);
   });
 
-  it('una silla operativa es flexible: no se bloquea en zonas de trabajo/genéricas', () => {
+  it('una silla operativa explícita sólo pasa en Área Operativa', () => {
     expect(violacionesSemanticas([{ id: 'silla', area: 2 }], areas, byId)).toHaveLength(0);
-    expect(violacionesSemanticas([{ id: 'silla', area: 0 }], areas, byId)).toHaveLength(0);
+    expect(violacionesSemanticas([{ id: 'silla', area: 0 }], areas, byId)).toHaveLength(1);
+  });
+
+  it('una SONATA marcada para juntas no puede escapar al open', () => {
+    expect(violacionesSemanticas([{ id: 'sillaJuntas', area: 1 }], areas, byId)).toHaveLength(0);
+    expect(violacionesSemanticas([{ id: 'sillaJuntas', area: 2 }], areas, byId)).toHaveLength(1);
+    expect(rolDePiezaAcomodo(byId.sillaJuntas)).toBe(ROL2.MEETING_SEAT);
   });
 
   it('helpers directos', () => {
     expect(rolDePiezaAcomodo(byId.mesa)).toBe(ROL2.TABLE);
     expect(zonaPermite(ROL2.TABLE, ZONA2.CEO)).toBe(false);
     expect(zonaPermite(ROL2.TABLE, ZONA2.CONSEJO)).toBe(true);
+  });
+});
+
+
+describe('FloorSpec hardening · referencias y semántica', () => {
+  it('observación que refiere zona inexistente ⇒ INVALID', () => {
+    const spec = {
+      envelope: { width_mm: 5000, height_mm: 4000 },
+      zones: [{ id:'z1', name:'Área Operativa', polygon:[[0,0],[5000,0],[5000,4000],[0,4000]] }],
+      furniture_observations: [{ id:'m1', semantic_role: ROL.WORKSTATION, zone_id:'z404', center:[1000,1000] }],
+    };
+    const r = validarFloorSpec(spec);
+    expect(r.status).toBe('INVALID');
+    expect(r.issues.some((i) => i.code === 'ZONA_REFERENCIADA_INEXISTENTE')).toBe(true);
+  });
+
+  it('ids de observación duplicados ⇒ INVALID', () => {
+    const spec = {
+      envelope: { width_mm: 5000, height_mm: 4000 },
+      zones: [{ id:'z1', name:'Área Operativa', polygon:[[0,0],[5000,0],[5000,4000],[0,4000]] }],
+      furniture_observations: [
+        { id:'dup', semantic_role: ROL.WORKSTATION, zone_id:'z1', center:[1000,1000] },
+        { id:'dup', semantic_role: ROL.WORK_SEAT, zone_id:'z1', center:[2000,1000] },
+      ],
+    };
+    const r = validarFloorSpec(spec);
+    expect(r.status).toBe('INVALID');
+    expect(r.issues.some((i) => i.code === 'MUEBLE_ID_DUPLICADO')).toBe(true);
+  });
+
+  it('rol semántico incompatible con la zona ⇒ INVALID', () => {
+    const spec = {
+      envelope: { width_mm: 5000, height_mm: 4000 },
+      zones: [{ id:'z1', name:'SANITARIOS H', polygon:[[0,0],[5000,0],[5000,4000],[0,4000]] }],
+      furniture_observations: [{ id:'mesa', semantic_role: ROL.TABLE, zone_id:'z1', center:[1000,1000] }],
+    };
+    const r = validarFloorSpec(spec);
+    expect(r.status).toBe('INVALID');
+    expect(r.issues.some((i) => i.code === 'ROL_NO_PERTENECE_A_ZONA')).toBe(true);
   });
 });

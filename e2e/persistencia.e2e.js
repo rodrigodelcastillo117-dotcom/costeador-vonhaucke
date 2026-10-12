@@ -40,7 +40,8 @@ async function irACotizacion(page) {
 }
 const inputCliente = (page) => page.locator('label.etiqueta', { hasText: /^Cliente$/ }).locator('xpath=following-sibling::input[1]');
 async function irAArchivo(page) {
-  await page.getByRole('button', { name: /Presupuestos que ya hicimos/i }).first().click();
+  await page.getByText('Más herramientas').click();   // inicio vivo: tres tarjetas + atajos plegados
+  await page.getByRole('button', { name: /^Presupuestos anteriores/ }).click();
   await expect(page.getByTestId('respaldo-local')).toBeVisible({ timeout: 10000 });
 }
 async function abrirPrimeraDelArchivo(page) {

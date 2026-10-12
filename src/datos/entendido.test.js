@@ -44,7 +44,6 @@ describe('lo que Voni entendió', () => {
   });
 
   it('CACHA los privados que se quedarían vacíos', () => {
-    // 2 privados y un solo escritorio individual (la banca es de open space).
     expect(r.avisos.some((a) => /privado\(s\) y hay 1 escritorio/.test(a.texto))).toBe(true);
   });
 
@@ -73,5 +72,33 @@ describe('lo que Voni entendió', () => {
     const vacio = loQueEntendi([], []);
     expect(vacio.grupos).toEqual([]);
     expect(vacio.puestos).toBe(0);
+  });
+
+  it('caso CEO: SONATA de juntas no se cuenta como silla de trabajo ni crea sobrante falso', () => {
+    const ceo = loQueEntendi([
+      { id: 'bench', nombre: 'Banca doble APP LT 1.50 · 8 usuarios', cantidad: 3 },
+      { id: 'priv', nombre: 'Eclipse Escritorio Directivo 2.10 m', cantidad: 4 },
+      { id: 'win', nombre: 'Silla operativa · WIN', cantidad: 24 },
+      { id: 'alpha', nombre: 'Silla directiva ALPHA', cantidad: 4 },
+      { id: 'sonata', nombre: 'Silla · SONATA', cantidad: 20 },
+      { id: 'visita', nombre: 'Silla de visita · CONCERTO', cantidad: 8 },
+      { id: 'gav', nombre: 'Mox · Gaveta pedestal 3 cajones', cantidad: 24 },
+      { id: 'j1', nombre: 'Mesa de juntas APP LT 2.40 × 1.20', cantidad: 1 },
+      { id: 'j2', nombre: 'Cirque · Mesa de juntas 2.40', cantidad: 2 },
+    ], [
+      { nombre: 'PRIVADO 1', tipo: 'privado', ancho: 4.5, largo: 3 },
+      { nombre: 'PRIVADO 2', tipo: 'privado', ancho: 4.5, largo: 3 },
+      { nombre: 'PRIVADO 3', tipo: 'privado', ancho: 4.5, largo: 3 },
+      { nombre: 'PRIVADO 4', tipo: 'privado', ancho: 4.5, largo: 3 },
+      { nombre: 'APARTADO 1 (6 PAX)', tipo: 'open', ancho: 6.75, largo: 3.5 },
+    ]);
+
+    expect(ceo.puestos).toBe(28);          // 24 bench + 4 privados
+    expect(ceo.sillas).toBe(28);           // 24 WIN + 4 ALPHA
+    expect(ceo.visitas).toBe(8);
+    expect(ceo.reunion).toBe(20);          // SONATA aparte
+    expect(ceo.totalSillas).toBe(56);
+    expect(ceo.gavetas).toBe(24);
+    expect(ceo.avisos.some((a) => /sillas de trabajo.*sobran/i.test(a.texto))).toBe(false);
   });
 });

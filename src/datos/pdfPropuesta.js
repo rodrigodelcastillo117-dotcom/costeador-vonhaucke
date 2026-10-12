@@ -19,6 +19,7 @@
 import { jsPDF } from 'jspdf/dist/jspdf.es.min.js';
 import { resolverImagenesAcomodo } from './imagenStorage.js';
 import { sinEconomia, esClientSafe } from './economia.js';
+import { deCentavosEnteros } from '../motor/dinero.js';
 
 const A4 = { w: 210, h: 297 };
 const M = { izq: 16, der: 16, arriba: 16, abajo: 18 };
@@ -28,8 +29,13 @@ const TINTA = [30, 27, 26];
 const GRIS = [116, 110, 104];
 const LINEA = [222, 216, 208];
 
-// El signo va ANTES del peso: '-$22,612', no '$-22,612'.
-const pesos = (n) => (n < 0 ? '-' : '') + '$' + Math.abs(Math.round(n || 0)).toLocaleString('es-MX');
+// El signo va ANTES del peso y el documento comercial conserva centavos.
+const pesos = (n) => {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return '—';
+  const abs = Math.abs(v).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${v < 0 ? '-' : ''}\$${abs}`;
+};
 
 // ⚠️ jsPDF dibuja con las 14 fuentes base de PDF (Helvetica), que NO tienen el
 // menos tipográfico "−", ni las comillas curvas, ni la raya larga. Cuando se
@@ -717,9 +723,11 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
       try { doc.addImage(img, 'JPEG', X.foto, y, COL.foto - 2, (COL.foto - 2) * 0.75); } catch (e) { /* si no se pudo, va sin foto */ }
     }
     doc.text(String(pt.cantidad), X.cant, yTexto, { align: 'right' });
-    doc.text(pesos(pt.precioUnitario || 0), X.uni, yTexto, { align: 'right' });
+    // #11: precio DESCONOCIDO en el PDF jamás se dibuja como $0 → "Sin precio"/"Pendiente".
+    const sinPrecioPt = pt.precioUnitario == null || pt.price_status === 'SIN_PRECIO';
+    doc.text(sinPrecioPt ? 'Sin precio' : pesos(pt.precioUnitario), X.uni, yTexto, { align: 'right' });
     doc.setFont('helvetica', 'bold');
-    doc.text(pesos((pt.precioUnitario || 0) * pt.cantidad), X.imp, yTexto, { align: 'right' });
+    doc.text(sinPrecioPt ? 'Pendiente' : pesos(Number.isFinite(Number(pt.precioUnitario)) && Number.isFinite(Number(pt.cantidad)) ? Number(pt.precioUnitario) * Number(pt.cantidad) : NaN), X.imp, yTexto, { align: 'right' });
     y += altoFila;
     doc.setDrawColor(...LINEA); doc.setLineWidth(0.15);
     doc.line(M.izq, y - 1.5, A4.w - M.der, y - 1.5);
@@ -740,24 +748,16 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
     // pantalla (Cotizacion.jsx:222, que SÍ hace -Math.round(descuento)) cada
     // vez que el descuento cae justo en .50 (pasa seguido con 10%/15% redondos).
     // Se pre-redondea aquí, en positivo, ANTES de negar — igual que pantalla.
-    totales.descuento > 0 ? [`Descuento de proyecto ${totales.descuentoPct}%`, -Math.round(totales.descuento), false] : null,
+    totales.descuento > 0 ? [`Descuento de proyecto ${totales.descuentoPct}%`, -totales.descuento, false] : null,
     totales.descuento > 0 ? ['Subtotal', totales.subtotal, false] : null,
     totales.contingencia > 0 ? [`Imprevistos de obra ${totales.contingenciaPct}%`, totales.contingencia, false] : null,
     totales.maniobras > 0 ? [`Maniobras e instalación ${totales.maniobrasPct}%`, totales.maniobras, false] : null,
     totales.flete > 0 ? [`Flete ${totales.fletePct}%`, totales.flete, false] : null,
     [`IVA ${totales.ivaPct}%`, totales.iva, false],
   ].filter(Boolean);
-  // ⚠️ EL TOTAL SE ARMA CON LOS RENGLONES QUE SE IMPRIMEN, NO CON EL FLOTANTE
-  // (2026-08-17). Cada renglón se redondea al pintarlo y el TOTAL venía sin
-  // redondear: en la hoja de la FIRMA los renglones sumaban $305,160 y el total
-  // decía $305,161. **Un peso, en el documento que el cliente firma.** Un
-  // cliente que suma con la calculadora encuentra eso en diez segundos y ya no
-  // te cree ningún otro número. Se suman los MISMOS pesos que se ven, así que
-  // el papel cuadra siempre; la diferencia contra el flotante nunca pasa de un
-  // peso por renglón y va donde tiene que ir: en el total impreso.
-  const totalImpreso = escalera
-    .filter(([et]) => et !== 'Subtotal')       // el subtotal es un parcial, no suma
-    .reduce((a, [, monto]) => a + Math.round(monto), 0);
+  // El total del papel ES el total canónico calculado una sola vez en
+  // totalesCotizacion(). No se reconstruye ni se redondea otra vez al imprimir.
+  const totalImpreso = totales.totalRedondeado;
   escalera.push(['TOTAL', totalImpreso, true]);
   if (y + 8 * escalera.length + 12 > A4.h - M.abajo) { pie(); doc.addPage(); y = M.arriba; }
   regla(0.5, TINTA); y += 7;
@@ -775,10 +775,12 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
   // El anticipo va aquí porque es la condición que decide si se firma o no.
   if (totales.anticipoPct) {
     doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...GRIS);
-    // Del total IMPRESO, no del flotante: si no, anticipo + saldo no dan el total
-    // que está tres renglones arriba, y es el renglón que decide la firma.
-    const antImpreso = Math.round(totalImpreso * (totales.anticipoPct / 100));
-    doc.text(`Anticipo ${totales.anticipoPct}%: ${pesos(antImpreso)}  ·  Saldo contra entrega: ${pesos(totalImpreso - antImpreso)}`,
+    // Anticipo y saldo salen del mismo total autoritativo en centavos enteros.
+    const antImpreso = totales.anticipo;
+    const saldoImpreso = Number.isInteger(totales.totalCentavos) && Number.isInteger(totales.anticipoCentavos)
+      ? deCentavosEnteros(totales.totalCentavos - totales.anticipoCentavos)
+      : totalImpreso - antImpreso;
+    doc.text(`Anticipo ${totales.anticipoPct}%: ${pesos(antImpreso)}  ·  Saldo contra entrega: ${pesos(saldoImpreso)}`,
       A4.w - M.der, y, { align: 'right' });
     y += 8;
   }
@@ -945,6 +947,12 @@ export function datosDesdeSnapshot(snapshot, extras = {}) {
   };
 }
 
+export function nombreArchivoPropuesta(datos = {}) {
+  const nombre = [datos?.borrador ? 'BORRADOR' : null, 'Propuesta', datos?.cot?.folio, datos?.cot?.cliente]
+    .filter(Boolean).join(' ').replace(/[\\/:*?"<>|]/g, '').trim() || 'Propuesta Vonhaucke';
+  return `${nombre}.pdf`;
+}
+
 export function descargarPropuesta(datos) {
   // Defensa en profundidad: el PDF nunca sale con economía interna aunque el
   // llamador se equivoque. Sólo sanea las partidas (es donde viven los costos);
@@ -957,10 +965,9 @@ export function descargarPropuesta(datos) {
   // evidencia conservada (audit 2026-10-01). Un banner solo se ve en la pantalla
   // del vendedor; esta marca viaja con el PDF.
   if (datos.borrador) marcarBorrador(doc);
-  const nombre = [datos.borrador ? 'BORRADOR' : null, 'Propuesta', datos.cot.folio, datos.cot.cliente]
-    .filter(Boolean).join(' ').replace(/[\\/:*?"<>|]/g, '').trim() || 'Propuesta Vonhaucke';
-  doc.save(`${nombre}.pdf`);
-  return `${nombre}.pdf`;
+  const archivo = nombreArchivoPropuesta(datos);
+  doc.save(archivo);
+  return archivo;
 }
 
 // ⚠️ LA PRIMERA HOJA ES EL CIERRE (Rodrigo, 2026-08-17): *"en la primera página

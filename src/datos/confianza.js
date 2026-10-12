@@ -30,9 +30,15 @@ export const esFirme = (pt) => !!(pt?.precioReal || pt?.deBanco);
  * más que un archivero de $3,000, y es la que te van a comparar.
  */
 export function confianzaDe(partidas = []) {
-  const importe = (p) => (p.precioUnitario || 0) * (p.cantidad || 0);
-  const total = partidas.reduce((s, p) => s + importe(p), 0);
-  const firmes = partidas.filter(esFirme);
+  const importe = (p) => {
+    const pu=p?.precioUnitario, q=p?.cantidad;
+    if (pu == null || q == null || !Number.isFinite(Number(pu)) || !Number.isFinite(Number(q))) return null;
+    return Number(pu)*Number(q);
+  };
+  const desconocidas=partidas.filter((p)=>importe(p)==null);
+  const conocidas=partidas.filter((p)=>importe(p)!=null);
+  const total = conocidas.reduce((s, p) => s + importe(p), 0);
+  const firmes = conocidas.filter(esFirme);
   const montoFirme = firmes.reduce((s, p) => s + importe(p), 0);
 
   // Las líneas que hoy sostienen el número con el modelo. Son la lista de
@@ -41,13 +47,18 @@ export function confianzaDe(partidas = []) {
   for (const p of partidas) {
     if (esFirme(p)) continue;
     const k = nombreLinea(p);
-    flojas.set(k, (flojas.get(k) || 0) + importe(p));
+    const imp=importe(p);
+    if(imp==null) continue;
+    flojas.set(k, (flojas.get(k) || 0) + imp);
   }
 
   return {
     total,
     montoFirme,
-    pct: total > 0 ? Math.round((montoFirme / total) * 100) : 0,
+    pct: desconocidas.length ? null : (total > 0 ? Math.round((montoFirme / total) * 100) : 0),
+    pctConocido: total > 0 ? Math.round((montoFirme / total) * 100) : 0,
+    completa: desconocidas.length===0,
+    nDesconocidas: desconocidas.length,
     nFirmes: firmes.length,
     nPartidas: partidas.length,
     // De mayor a menor: la primera de la lista es la que más urge anclar.
@@ -60,6 +71,7 @@ export function confianzaDe(partidas = []) {
 /** Cómo se le dice al vendedor, en una frase que puede usar. */
 export function textoConfianza(c) {
   if (!c || !c.nPartidas) return null;
+  if (c.completa === false) return `${c.nDesconocidas} renglón(es) no tienen precio/cantidad verificable; no calculo un porcentaje de confianza falso.`;
   if (c.pct >= 90) return 'Casi todo el precio sale de proyectos ya cerrados: lo puedes defender renglón por renglón.';
   if (c.pct >= 60) return 'La mayor parte del precio sale de proyectos ya cerrados. Lo demás lo calcula el modelo.';
   if (c.pct >= 25) return 'Buena parte del precio la calcula el modelo. Antes de comprometerte, confírmalo con Dirección.';

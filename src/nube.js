@@ -82,16 +82,31 @@ export async function salir() { try { await nube.auth.signOut(); } catch (e) {} 
 // con una sesión de recuperación: ahí se pone la nueva SIN pedir la anterior
 // (justo porque no la recuerda).
 export async function pedirRecuperacion(email) {
-  const { error } = await nube.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
-  if (error) return { ok: false, error: error.message || 'No se pudo enviar el correo.' };
-  return { ok: true };
+  try {
+    const redirectTo = new URL('/', window.location.origin).toString();
+    const { error } = await conTimeout(
+      nube.auth.resetPasswordForEmail(email, { redirectTo }),
+      12000, 'recuperación de contraseña',
+    );
+    if (error) return { ok: false, error: error.message || 'No se pudo enviar el correo.' };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e?.message || 'No se pudo enviar el correo.' };
+  }
 }
 
 // Re-autentica al usuario con su contraseña ACTUAL. Sin esto, cualquiera que
 // se encuentre una sesión abierta puede cambiar la clave y quedarse la cuenta.
 export async function verificarContrasena(email, actual) {
-  const { error } = await nube.auth.signInWithPassword({ email, password: actual });
-  return !error;
+  try {
+    const { error } = await conTimeout(
+      nube.auth.signInWithPassword({ email, password: actual }),
+      12000, 'verificación de contraseña',
+    );
+    return !error;
+  } catch (_e) {
+    return false;
+  }
 }
 
 // Cierra la sesión en los DEMÁS dispositivos, no en éste.
@@ -106,9 +121,16 @@ export async function cerrarOtrasSesiones() {
 }
 
 export async function cambiarContrasena(nueva) {
-  const { error } = await nube.auth.updateUser({ password: nueva });
-  if (error) return { ok: false, error: error.message || 'No se pudo cambiar la contraseña.' };
-  return { ok: true };
+  try {
+    const { error } = await conTimeout(
+      nube.auth.updateUser({ password: nueva }),
+      12000, 'cambio de contraseña',
+    );
+    if (error) return { ok: false, error: error.message || 'No se pudo cambiar la contraseña.' };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e?.message || 'No se pudo cambiar la contraseña.' };
+  }
 }
 
 // Devuelve el permiso del correo (rol/nombre) o null si de verdad no esta en
@@ -209,6 +231,41 @@ export async function analizarRenderImagenes(catalogo, imagenes) {
 // asiento y respaldo tapizados, conector cada 2 asientos") y la IA lo interpreta como
 // OBJETO (analizar-mueble v17, modo texto). Devuelve el MISMO { ok, propuesta } que la
 // ruta de imagen, ya con design_intent + semantic_role por pieza. Sin imagen.
+// Búsqueda seller-safe en Producto Maestro para alimentar a VONI con candidatos
+// REALES sin mandar 1,941 renglones al prompt. Usa términos discriminantes del brief
+// y devuelve identidad/linaje técnico, nunca economía.
+export async function buscarProductosMaestroTexto(texto, limite = 30) {
+  try {
+    const stop=new Set(['para','con','sin','una','uno','unos','unas','que','del','las','los','por','como','este','esta','mueble','muebles','quiero','hacer','necesito','modelo','linea','línea']);
+    const bruto=String(texto||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const base=[...new Set(bruto.match(/[a-z0-9]{3,}/g)||[])].filter(x=>!stop.has(x));
+    // Vocabulario de oficio/ERP: el usuario habla "cancelería"; el maestro puede
+    // decir mampara, biombo, divisor, cristal o Privacy 4. Se EXPANDE la búsqueda,
+    // pero nunca se inventa un producto: todos los resultados siguen viniendo de DB.
+    const extra=[];
+    if(/cancel|division|privacidad|muro de cristal/.test(bruto)) extra.push('mampara','biombo','divisor','cristal','privacy');
+    if(/acustic|sonor/.test(bruto)) extra.push('acustico','pet','biombo','mampara');
+    if(/vidrio|cristal/.test(bruto)) extra.push('cristal','templado','satinado','laminado');
+    if(/operativ|workstation|bench|estacion/.test(bruto)) extra.push('app','bench','operativo');
+    if(/recep|lobby|mostrador/.test(bruto)) extra.push('recepcion','cirque','alba');
+    const terms=[...new Set([...base.sort((a,b)=>b.length-a.length).slice(0,6),...extra])].slice(0,12);
+    if(!terms.length) return {ok:true,items:[]};
+    const cols='id,nombre,codigo,source_type,familia,estado,activo,version_tecnica_vigente_id';
+    const ors=[];
+    for(const t of terms){ors.push(`nombre.ilike.%${t}%`,`codigo.ilike.%${t}%`,`familia.ilike.%${t}%`)}
+    const {data,error}=await nube.from('productos').select(cols).eq('activo',true).or(ors.join(',')).limit(Math.min(60,Math.max(5,limite*2)));
+    if(error) return {ok:false,items:[],error:error.message};
+    // Ranking local por número de términos presentes; evita que una coincidencia
+    // trivial le gane a una pieza que realmente dice "biombo cristal App LT".
+    const scored=(data||[]).map(x=>{
+      const hay=`${x.nombre||''} ${x.codigo||''} ${x.familia||''}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const score=terms.reduce((s,t)=>s+(hay.includes(t)?1:0),0);
+      return {...x,_score:score};
+    }).filter(x=>x._score>0).sort((a,b)=>b._score-a._score||String(a.nombre).localeCompare(String(b.nombre),'es'));
+    return {ok:true,items:scored.slice(0,limite).map(({_score,...x})=>x)};
+  } catch(e) { return {ok:false,items:[],error:String(e?.message||e)}; }
+}
+
 export async function analizarTexto(catalogo, descripcion) {
   const { data, error } = await nube.functions.invoke('analizar-mueble', {
     body: { catalogo, descripcion },
@@ -278,7 +335,9 @@ export async function cotizarTexto(texto, catalogo) {
 
 // Acomodo de mobiliario en una o varias áreas (Claude propone posiciones).
 export async function acomodarEspacio(areas, piezas) {
-  const { data, error } = await nube.functions.invoke('acomodar-espacio', {
+  // Recovery lane: preview usa el solver nuevo en una Edge paralela para no
+  // tocar producción hasta certificar el flujo real completo.
+  const { data, error } = await nube.functions.invoke('acomodar-espacio-recovery', {
     body: { areas, piezas },
   });
   if (error) {
@@ -337,14 +396,40 @@ export async function generarRender(descripcion, extra = {}) {
     try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; if (j) extraErr = { code: j.code, request_id: j.request_id, audit: j.audit }; } catch (e) {}
     return leerRespuestaRender({ ok: false, error: msg, ...extraErr });
   }
-  // VH-072: la edge v30 responde `url` (Storage) y sólo `dataUrl` como respaldo.
-  // Los consumidores usan `imagen` (= url || dataUrl) y `enStorage`.
-  return leerRespuestaRender(data);
+  if (!data) return leerRespuestaRender({ ok: false, error: 'El servidor de renders no devolvió respuesta.' });
+  // VH-072: la edge v30 responde `url` (Storage) y sólo `dataUrl` como respaldo. Los consumidores
+  // nuevos usan `imagen` (= url || dataUrl) y `enStorage`; los históricos leen `dataUrl`, que aquí
+  // se normaliza a url || dataUrl UNA sola vez para que acepten ambas formas sin falsos fallos.
+  const rr = leerRespuestaRender(data);
+  return rr.ok ? { ...data, ...rr, dataUrl: rr.dataUrl || rr.url || null } : rr;
 }
 
 // --- SHADOW costear-servidor (Fase 3) ----------------------------------------
 // Llama al motor autoritativo del servidor con el JWT real del usuario. El servidor
 // resuelve rol/costos server-side e ignora lo que mande el browser. Fire-and-forget.
+export function dtoCosteoServidor(pieza = {}, cantidad = 1) {
+  const componentes = (Array.isArray(pieza?.componentes) ? pieza.componentes : []).map((c) => ({
+    ...(typeof c?.insumoId === 'string' ? { insumoId: c.insumoId } : {}),
+    ...(typeof c?.nombre === 'string' ? { nombre: c.nombre.slice(0, 200) } : {}),
+    ...(Number.isFinite(Number(c?.cantidad)) ? { cantidad: Number(c.cantidad) } : {}),
+    ...(Number.isFinite(Number(c?.largoMM)) ? { largoMM: Number(c.largoMM) } : {}),
+    ...(Number.isFinite(Number(c?.anchoMM)) ? { anchoMM: Number(c.anchoMM) } : {}),
+    ...(Number.isFinite(Number(c?.piezas)) ? { piezas: Number(c.piezas) } : {}),
+    ...(Number.isFinite(Number(c?.hojas)) ? { hojas: Number(c.hojas) } : {}),
+    ...(typeof c?.material_solicitado === 'string' ? { material_solicitado: c.material_solicitado.slice(0, 200) } : {}),
+    ...(typeof c?.material_match === 'string' ? { material_match: c.material_match.slice(0, 40) } : {}),
+  }));
+  const horas = pieza?.horas && typeof pieza.horas === 'object'
+    ? Object.fromEntries(Object.entries(pieza.horas)
+        .filter(([,v]) => Number.isFinite(Number(v)) && Number(v) >= 0)
+        .map(([k,v]) => [k, Number(v)]))
+    : undefined;
+  return {
+    cantidad: Math.max(1, Math.round(Number(cantidad) || 1)),
+    pieza: { componentes, ...(horas && Object.keys(horas).length ? { horas } : {}) },
+  };
+}
+
 export async function costearServidor(pieza, cantidad = 1) {
   // VH-036: se manda la INTENCIÓN TÉCNICA saneada (sin margen/factores/modelo) y se
   // valida ANTES de salir con el mismo validador que espeja el servidor.
@@ -494,6 +579,13 @@ export async function registrarProductoDesdeExpediente(expedienteId) {
 export async function subirRenderCanonico({ expedienteId, productoId, productoVersionId, dataUrl, promptVersion, modo = 'render', specHash, geometryHash = null, inputs = {} }) {
   try {
     if (!dataUrl) return { ok: false, error: 'sin imagen' };
+    if (!specHash) return { ok: false, error: 'render canónico sin spec_hash: no se puede demostrar la revisión' };
+    if (!geometryHash) return { ok: false, error: 'render canónico sin visual/geometry hash: no se puede demostrar sincronía' };
+    const canonicalInputs = {
+      ...(inputs || {}),
+      visual_revision_hash: geometryHash,
+      spec_hash: specHash,
+    };
     const blob = await (await fetch(dataUrl)).blob();
     const ext = ((blob.type || 'image/png').split('/')[1] || 'png').replace('jpeg', 'jpg');
     // Path ÚNICO (insert simple): evita el camino de UPSERT (que exigiría también la
@@ -505,7 +597,7 @@ export async function subirRenderCanonico({ expedienteId, productoId, productoVe
     const { data, error } = await nube.rpc('registrar_render_canonico', {
       p_producto_id: productoId ?? null, p_producto_version_id: productoVersionId ?? null, p_expediente_id: expedienteId ?? null,
       p_storage_path: path, p_storage_url: storageUrl, p_prompt_version: promptVersion || null, p_modo: modo,
-      p_spec_hash: specHash || null, p_geometry_hash: geometryHash, p_inputs: inputs || {},
+      p_spec_hash: specHash, p_geometry_hash: geometryHash, p_inputs: canonicalInputs,
     });
     if (error) return { ok: false, error: error.message, storage_url: storageUrl, storage_path: path };
     return { ok: true, ...(data || {}), storage_url: storageUrl, storage_path: path };

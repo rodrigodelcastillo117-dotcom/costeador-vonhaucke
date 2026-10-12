@@ -8,7 +8,7 @@ import { FAMILIAS, MUEBLES, LINEAS, lineasDeMueble, REGLAS_LINEA } from '../dato
 import { margenObjetivoDe } from '../datos/precio.js';
 import { PIEZAS_SEMILLA } from '../datos/piezas.js';
 import { recetaBench } from '../datos/bench.js';
-import { calcular, modeloParaPieza } from '../motor/calculo.js';
+import { calcular, modeloParaPieza, PARAMETROS_DEFAULT } from '../motor/calculo.js';
 import { pesos, idNuevo, coincide } from '../util.js';
 
 // Busca receta semilla para una linea+mueble

@@ -84,3 +84,107 @@ describe('auditarColocacion', () => {
     expect(audit.overlaps).toHaveLength(0);   // el motor no encima muebles
   });
 });
+
+
+describe('auditoría funcional reforzada', () => {
+  it('falla una silla de juntas que perdió su mesa ancla', () => {
+    const byId = {
+      s1: { nombre: 'Silla de juntas', tipo: 'asiento', w: 600, d: 600 },
+    };
+    const r = auditarColocacion({
+      areas: [{ nombre: 'Sala Juntas', tipo: 'juntas', ancho: 5000, largo: 4000 }],
+      colocacion: [{ id: 's1', area: 0, x: 1000, y: 1000, rot: 0 }],
+      byId,
+    });
+    expect(r.ok).toBe(false);
+    expect(r.relacionesRotas.some(x => x.tipo === 'silla_juntas_sin_mesa_valida')).toBe(true);
+  });
+
+  it('acepta silla de juntas cuando la mesa ancla existe', () => {
+    const byId = {
+      m1: { nombre: 'Mesa de juntas para 4 personas', tipo: 'juntas', w: 1800, d: 900 },
+      s1: { nombre: 'Silla de juntas', tipo: 'asiento', w: 600, d: 600 },
+    };
+    const r = auditarColocacion({
+      areas: [{ nombre: 'Sala Juntas', tipo: 'juntas', ancho: 6000, largo: 5000 }],
+      colocacion: [
+        { id: 'm1', area: 0, x: 1500, y: 1500, rot: 0 },
+        { id: 's1', area: 0, x: 1500, y: 700, rot: 0, anchor_id: 'm1', alrededorDe: 'm1' },
+      ],
+      byId,
+    });
+    expect(r.relacionesRotas).toHaveLength(0);
+  });
+
+  it('falla una zona físicamente saturada aunque no haya overlaps', () => {
+    const byId = {
+      a: { nombre: 'Mesa A', w: 2000, d: 2000 },
+      b: { nombre: 'Mesa B', w: 2000, d: 2000 },
+    };
+    const r = auditarColocacion({
+      areas: [{ ancho: 4000, largo: 3000 }],
+      colocacion: [
+        { id: 'a', area: 0, x: 0, y: 0 },
+        { id: 'b', area: 0, x: 2000, y: 0 },
+      ],
+      byId,
+    });
+    expect(r.overlaps).toHaveLength(0);
+    expect(r.densidadCritica.length).toBeGreaterThan(0);
+    expect(r.ok).toBe(false);
+  });
+});
+
+
+  it('falla si una silla de juntas apunta a un mueble que no es mesa', () => {
+    const byId = {
+      fake: { nombre: 'Archivero', tipo: 'guarda', w: 900, d: 450 },
+      s1: { nombre: 'Silla de juntas', tipo: 'asiento', w: 600, d: 600 },
+    };
+    const r = auditarColocacion({
+      areas: [{ nombre:'Sala Juntas', tipo:'juntas', ancho:5000, largo:4000 }],
+      colocacion: [
+        { id:'fake', area:0, x:0, y:0 },
+        { id:'s1', area:0, x:1500, y:1000, anchor_id:'fake' },
+      ],
+      byId,
+    });
+    expect(r.ok).toBe(false);
+    expect(r.relacionesRotas.some(x => x.tipo === 'silla_juntas_sin_mesa_valida')).toBe(true);
+  });
+
+  it('falla si el ancla está en otro cuarto aunque exista', () => {
+    const byId = {
+      d1: { nombre:'Escritorio operativo', tipo:'escritorio', w:1500, d:700 },
+      s1: { nombre:'Silla operativa', tipo:'asiento', w:600, d:600 },
+    };
+    const r = auditarColocacion({
+      areas: [
+        { nombre:'Open 1', tipo:'open', ancho:5000, largo:4000 },
+        { nombre:'Open 2', tipo:'open', ancho:5000, largo:4000 },
+      ],
+      colocacion: [
+        { id:'d1', area:0, x:0, y:0 },
+        { id:'s1', area:1, x:1000, y:1000, anchor_id:'d1' },
+      ],
+      byId,
+    });
+    expect(r.ok).toBe(false);
+    expect(r.relacionesRotas.some(x => x.tipo === 'silla_trabajo_sin_escritorio_valido')).toBe(true);
+  });
+
+  it('un storage denso no genera falso FAIL por densidad', () => {
+    const byId = {
+      a:{ nombre:'Archivo A', w:2000, d:2000 },
+      b:{ nombre:'Archivo B', w:2000, d:2000 },
+    };
+    const r = auditarColocacion({
+      areas:[{ nombre:'Archivo / Storage', tipo:'storage', ancho:4000, largo:3000 }],
+      colocacion:[
+        { id:'a', area:0, x:0, y:0 },
+        { id:'b', area:0, x:2000, y:0 },
+      ],
+      byId,
+    });
+    expect(r.densidadCritica).toHaveLength(0);
+  });

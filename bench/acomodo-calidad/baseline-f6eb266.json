@@ -1,0 +1,34 @@
+{
+  "_comment": "ARTEFACTO BASELINE INMUTABLE (GAP1). Registro histórico del comportamiento P0.2b/arranque ANTES de P0.2c bloque 2. NO MODIFICAR durante P0.2c: el examen histórico no cambia aunque cambie el código. Los tests target vivos están en targetP02c.test.js.",
+  "baseline_sha": "f6eb266f7174d588663d50a40e6587fd5c6409ff",
+  "baseline_sha_short": "f6eb266",
+  "module_blobs": {
+    "supabase/functions/acomodar-espacio-recovery/kit-solver.js": "40aa626b6b3dbf731c367d24a08bd7e692dde5b5",
+    "supabase/functions/acomodar-espacio-recovery/opciones.js": "af68d4406a83a61f0d16c38cfdcb02c3eebc3b41",
+    "bench/acomodo/judge.js": "bae25c1c5d5a2662b581737e7992ef3cf32ea997"
+  },
+  "A": {
+    "caso": "workstation DOUBLE_FACE cap 8",
+    "expected_p02c": "4+4",
+    "observed_baseline": "8+0",
+    "observed_sides": 1
+  },
+  "B": {
+    "caso": "meeting cap 10 (w=5000)",
+    "expected_p02c": "4+4+1+1",
+    "observed_baseline": "7+3+0+0",
+    "observed_top_bottom_sides": [7, 3, 0]
+  },
+  "C": {
+    "caso": "NO_SPACE con area disponible > area requerida",
+    "need_m2": 8.6,
+    "have_m2": 30,
+    "baseline_wrongly_used_area_as_cause": true,
+    "expected_p02c": "invariante real (OUT_OF_POLYGON/DOOR/OBSTACLE/AISLE/ASPECT_RATIO/...), nunca superficie cuando have>need"
+  },
+  "D": {
+    "caso": "microcoherencia de presentacion",
+    "observed_baseline": ["• • doble vineta", "1 puesto(s)"],
+    "corrected_in_block1": ["una sola vineta (la pone el <li>)", "1 puesto / 2 puestos"]
+  }
+}

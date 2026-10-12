@@ -61,3 +61,17 @@ describe('esDefinitiva — un documento sin registro NO es definitivo', () => {
     expect(esDefinitiva(undefined)).toBe(false);
   });
 });
+
+
+  it('cambiar sólo CENTAVOS cambia el hash local', () => {
+    const a = snapshotEmitido(estado({ partidas: [{ id:'p1', nombre:'Banca doble', cantidad:2, precioUnitario:17600.10, costoUnitario:9000.10 }] }));
+    const b = snapshotEmitido(estado({ partidas: [{ id:'p1', nombre:'Banca doble', cantidad:2, precioUnitario:17600.11, costoUnitario:9000.10 }] }));
+    expect(hashContenido(a)).not.toBe(hashContenido(b));
+  });
+
+  it('precio/costo desconocido no tiene la misma firma que cero real', () => {
+    const base = snapshotEmitido(estado());
+    const nulo = {...base, partidas:[{...base.partidas[0], precioUnitario:null, costoUnitario:null}]};
+    const cero = {...base, partidas:[{...base.partidas[0], precioUnitario:0, costoUnitario:0}]};
+    expect(hashContenido(nulo)).not.toBe(hashContenido(cero));
+  });

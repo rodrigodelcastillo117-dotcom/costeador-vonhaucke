@@ -68,7 +68,18 @@ export function bloqueosDeEmision(partidas = []) {
   // exclusiones se confirman en la pantalla, no aquí; `sin_partidas` no es bloqueo
   // de renglón.
   const g = evaluarEmisionLocal({ partidas, confirmoExcluidas: true });
-  return g.motivos.filter((c) => c !== 'sin_partidas').map((c) => detalleBloqueo(c, partidas));
+  // Motivos duros + veredicto económico (costo preliminar/incompleto): ambos impiden la emisión definitiva.
+  const b = [...g.motivos, ...(g.economics || [])].filter((c) => c !== 'sin_partidas').map((c) => detalleBloqueo(c, partidas));
+  // Especial/nuevo sin costeo autorizado (línea viva 2026-10-08): tratarlo como $0 falsearía margen y precio.
+  partidas.forEach((p, i) => {
+    if (p?.costoPendiente !== true) return;
+    const etq = p.nombre || `Renglón ${i + 1}`;
+    b.push({ code: 'COSTO_PENDIENTE', pieza: etq, nivel: 'blocker',
+      titulo: `"${etq}" todavía no tiene un costeo válido.`,
+      porque: 'Es un producto especial/nuevo y no existe un resultado de costeo autorizado; tratarlo como $0 falsearía margen y precio.',
+      corregir: `Vuelve a costear "${etq}" y resuelve sus datos pendientes antes de emitir.` });
+  });
+  return b;
 }
 
 // Lista de textos (compatibilidad): [] cuando se puede emitir; si trae algo, la UI no

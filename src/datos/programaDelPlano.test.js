@@ -4,7 +4,7 @@
 //  El plano de prueba: 8 islas de 4.5 × 3.5 m, 5 privados, 2 salas, recepción.
 // ============================================================================
 import { describe, it, expect } from 'vitest';
-import { programaDelPlano, puestosPorIsla, resumenDelPlano, avisosDeSala } from './programaDelPlano.js';
+import { programaDelPlano, puestosPorIsla, resumenDelPlano, avisosDeSala, personasEnSala } from './programaDelPlano.js';
 
 const isla = (n) => ({ nombre: `Área Op. ${n}`, tipo: 'open', ancho: 4.5, largo: 3.5, dentroDe: 'Pasillo' });
 const PLANO = [
@@ -139,5 +139,18 @@ describe('rolDe: respaldo por tamaño cuando no hay tipo ni nombre reconocible',
   it('el cuarto chico genérico sí cuenta como privado', () => {
     const pr = programaDelPlano(AREAS, { largoPuesto: 1500 });
     expect(pr.privados).toBe(1);
+  });
+});
+
+
+describe('capacidad de juntas fail-closed', () => {
+  it('0 m² no inventa cuatro personas', () => {
+    expect(personasEnSala(0)).toBe(0);
+  });
+  it('área insuficiente para cuatro según la regla no certifica capacidad', () => {
+    expect(personasEnSala(12)).toBe(0);
+  });
+  it('16 m² sí soporta cuatro según 4 m²/persona', () => {
+    expect(personasEnSala(16)).toBe(4);
   });
 });

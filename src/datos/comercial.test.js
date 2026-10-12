@@ -117,3 +117,31 @@ describe('N13 value engineering', () => {
     expect(plan.seleccionadas).toEqual([]);
   });
 });
+
+
+describe('value engineering · UNKNOWN nunca es ZERO', () => {
+  it('sin presupuesto queda NO_EVALUABLE', () => {
+    const r = planValueEngineering(null, 100000, []);
+    expect(r.estado).toBe('NO_EVALUABLE');
+    expect(r.faltaBajar).toBeNull();
+    expect(r.yaEnPresupuesto).toBeNull();
+    expect(r.alcanza).toBeNull();
+  });
+
+  it('sin total autoritativo queda NO_EVALUABLE', () => {
+    const r = planValueEngineering(100000, null, []);
+    expect(r.estado).toBe('NO_EVALUABLE');
+    expect(r.motivo).toBe('TOTAL_DESCONOCIDO');
+  });
+
+  it('opera a centavos y no redondea al peso', () => {
+    const r = planValueEngineering(1000.10, 1050.55, [
+      { id:'a', tipo:'sustitucion', descripcion:'A', delta:-50.45 },
+    ]);
+    expect(r.estado).toBe('EVALUADO');
+    expect(r.faltaBajar).toBe(50.45);
+    expect(r.ahorroTotal).toBe(50.45);
+    expect(r.nuevoTotal).toBe(1000.10);
+    expect(r.alcanza).toBe(true);
+  });
+});

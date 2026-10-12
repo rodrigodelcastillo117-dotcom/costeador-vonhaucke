@@ -10,7 +10,7 @@ import { listaPorCuarto } from '../datos/porCuarto.js';
 import { descargarPropuesta, cargarFotos, cargarMarca, cargarImagenesAcomodo, datosDesdeSnapshot } from '../datos/pdfPropuesta.js';
 import { snapshotEmitido } from '../datos/revisiones.js';
 import EditarPartida, { sePuedeEditar } from './EditarPartida.jsx';
-import { pesos, leePct, selloPartida, claseCosto } from '../util.js';
+import { pesos2, leePct, selloPartida, claseCosto } from '../util.js';
 import { senalesCotizacion, senalesInsumos, problemasDeEmision } from '../datos/senales.js';
 import { porQueNoPuedoEmitir } from '../datos/voniContext.js';
 import { totalesCotizacion } from '../datos/totales.js';
@@ -26,6 +26,7 @@ import { evaluarEmisionLocal, combinarGate, detalleBloqueo } from '../datos/emis
 import MontoAnimado from './MontoAnimado.jsx';
 import PlanoAcomodo from './PlanoAcomodo.jsx';
 import ConfirmarCandado from './ConfirmarCandado.jsx';
+import { evaluarAcomodoCliente, cotizacionSinAcomodoNoValidado } from '../datos/acomodoCliente.js';
 
 // El render IA de la partida manda; si no, la foto de catálogo; y si es una
 // silla del banco (que no tiene línea), su foto de presupuesto.
@@ -92,6 +93,7 @@ function EstadoLinea({ info }) {
 function RenderChip({ estado }) {
   const MAP = {
     VIGENTE: { t: 'Render vigente', cls: 'ok' },
+    PENDIENTE_VALIDACION: { t: 'Render pendiente de validar', cls: 'pendiente' },
     STALE: { t: 'Render histórico (stale)', cls: 'stale' },
     SIN_RENDER_VALIDO: { t: 'Sin render de esta versión', cls: 'none' },
   };
@@ -169,9 +171,15 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
       };
       img.src = r.result;
     };
+    r.onerror = () => setErrGen('No se pudo leer la imagen.');
     r.readAsDataURL(file);
   };
-  const quitarRender = () => { const a = { ...(cot.acomodo || {}) }; delete a.render3d; setCot({ acomodo: a }); };
+  const quitarRender = () => {
+    const a = { ...(cot.acomodo || {}) };
+    delete a.render3d;
+    delete a.render3d_storage_path;
+    setCot({ acomodo: a });
+  };
 
   // --- Renders de calidad con IA (Gemini) ---
   const [genPart, setGenPart] = useState(null); // id de partida en proceso
@@ -197,6 +205,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
       if (r.ok) setPartida(i, { render: r.url }); else setErrGen(r.error);
     } finally { setGenPart(null); }
   }
+
   async function renderTodas() {
     setErrGen('');
     const ps = partidas.slice();
@@ -210,21 +219,41 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
     setGenPart(null); setCot({ partidas: ps });
     if (fallas.length) setErrGen(`Sin render en ${fallas.length} mueble(s): ${fallas.join(' · ')}`);
   }
+
+  async function urlADataUrl(url) {
+    if (!url) return null;
+    if (String(url).startsWith('data:')) return String(url);
+    try {
+      const r = await fetch(url);
+      if (!r.ok) return null;
+      const b = await r.blob();
+      return await new Promise((res) => {
+        const fr = new FileReader();
+        fr.onload = () => res(String(fr.result));
+        fr.onerror = () => res(null);
+        fr.readAsDataURL(b);
+      });
+    } catch (_e) { return null; }
+  }
+
   async function urlABase64(url) {
     try { const r = await fetch(url); const b = await r.blob(); return await new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.onerror = () => res(null); fr.readAsDataURL(b); }); } catch (e) { return null; }
   }
   async function renderOficina() {
-    setErrGen(''); setGenOficina(true);
-    try {
-      const lista = partidas.map((p) => `${p.cantidad}× ${p.nombre}`).join(', ') || 'mobiliario de oficina Von Haucke';
-      const ctx = cot.acomodo?.areas?.length ? `${cot.acomodo.areas.length} área(s) de trabajo` : '';
-      // Fotos reales de los productos cotizados → referencia (específico a las líneas VH).
-      const urls = [...new Set(partidas.map((p) => fotoPartida(p)).filter(Boolean))].slice(0, 6);
-      const imagenes = (await Promise.all(urls.map(urlABase64))).filter(Boolean);
-      const r = await generarRender(lista, { modo: 'oficina', medidas: ctx, imagenes });
-      if (r?.ok) await fijarRender3d(r.imagen); else setErrGen(r?.error || 'No se pudo generar la oficina.');   // VH-072
-    } catch (e) { setErrGen('No se pudo conectar.'); }
-    finally { setGenOficina(false); }
+    if (!acomodoClienteGate?.mostrar) {
+      setErrGen(acomodoClienteGate?.existe
+        ? `El acomodo todavía no está validado para cliente: ${(acomodoClienteGate.razones || []).join(' · ') || acomodoClienteGate.estado}. Revísalo en Acomodo primero.`
+        : 'Primero crea y valida el acomodo del proyecto.');
+      return;
+    }
+    // Un render "bonito" generado sólo con la lista de compras no es una propuesta
+    // exacta. El layout visual vive en Acomodo; ahí existe la referencia isométrica
+    // limpia y el QA puede comparar posición/orientación antes de certificar.
+    if (!cotCliente.acomodo?.render3d) {
+      setErrGen('Para un render exacto, genéralo desde Acomodo → Render de mi oficina. Ahí VONI usa el layout real como referencia; desde Cotización no voy a inventar una oficina genérica.');
+      return;
+    }
+    setErrGen('El render vigente ya viene del Acomodo validado. Para regenerarlo sin perder fidelidad, vuelve a Acomodo.');
   }
 
   // DESCARGAR de verdad: se genera el archivo y se baja. Antes esto abría el
@@ -259,109 +288,118 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   // Fail-closed: si cambia QUÉ piezas están excluidas, se re-exige la confirmación
   // (no se arrastra un "confirmo" viejo sobre una lista distinta).
   useEffect(() => { setConfirmoExcluidas(false); }, [excluidasProyecto.join('|')]);
-  function conCandado(fn) {
-    return async () => {
-      if (bloqueoLocal) { setPdfErr('No se puede emitir: ' + motivoBloqueo); return; }
-      // GATE AUTORITATIVO server-side ANTES de emitir (costo/versión/margen/aprobación).
-      // Degrada: si el gate no está disponible (DESCONOCIDO) no bloquea — el servidor
-      // re-valida al registrar la emisión (fail-closed real vive en la DB).
-      if (verificarEmision) {
-        setGateCargando(true);
-        let g = null;
-        try { g = await verificarEmision(); } catch (e) { g = { estado: 'DESCONOCIDO' }; }
-        setGateCargando(false);
-        setGate(g);
-        // VH-047: la decisión sale de la compuerta única (servidor+local). Si el servidor
-        // no respondió con un estado conocido, no bloquea aquí: la DB re-evalúa al registrar.
-        const gv = combinarGate(gateLocal, g);
-        if (gv.servidorConsultado && gv.estado !== 'ALLOWED') {
-          setVerPorque(true);
-          setPdfErr(`No se puede emitir: ${(ESTADO_EMISION[gv.estado] || {}).titulo || gv.estado}`);
-          return;
-        }
+  // Un documento SIEMPRE debe poder salir como BORRADOR. Lo que se bloquea
+  // fail-closed es la EMISIÓN DEFINITIVA, no el botón. Así un vendedor nunca
+  // vuelve a sentir "clic y no pasó nada" por un gate, RPC o aprobación pendiente.
+  async function resolverModoDocumento() {
+    const razones = [];
+    if (probEmision.length) razones.push(probEmision[0]);
+    if (bloqueoExcluidas) razones.push('Falta confirmar las piezas excluidas.');
+    if (partidas.some((p) => p.candadoUsuarios || p.requiereProyectista)) {
+      razones.push('Requiere revisión/confirmación de proyecto antes de emitir definitivo.');
+    }
+
+    let g = null;
+    if (!razones.length && verificarEmision) {
+      setGateCargando(true);
+      try { g = await verificarEmision(); }
+      catch (e) { g = { estado: 'DESCONOCIDO', error: String(e?.message || e) }; }
+      finally { setGateCargando(false); }
+      setGate(g);
+      const estadoGate = g?.estado || 'DESCONOCIDO';
+      if (estadoGate !== 'ALLOWED') {
+        setVerPorque(true);
+        const titulo = estadoGate === 'DESCONOCIDO'
+          ? 'No se pudo verificar la emisión'
+          : ((ESTADO_EMISION[estadoGate] || {}).titulo || estadoGate);
+        razones.push(titulo);
       }
-      if (partidas.some((p) => p.candadoUsuarios || p.requiereProyectista)) setAccionPendiente(() => fn);
-      else fn();
-    };
+    }
+
+    if (razones.length) return { definitivo: false, motivo: razones.join(' · '), gate: g };
+
+    const reg = onEmitida ? await onEmitida() : { ok: false, motivo: 'sin-registro-emision' };
+    if (!reg?.ok) {
+      return {
+        definitivo: false,
+        motivo: /aprobaci|politica|supera/i.test(reg?.motivo || '')
+          ? 'Requiere aprobación de Dirección.'
+          : 'No se pudo conservar la revisión inmutable.',
+        gate: g,
+      };
+    }
+    return { definitivo: true, motivo: '', gate: g };
   }
-  // Servidor + local en una sola vista. Si el servidor no se ha consultado, es lo local.
+
+  // Servidor + local en una sola vista (VH-047). Si el servidor no se ha consultado, es lo local.
   const gateVista = useMemo(() => combinarGate(gateLocal, gate), [gateLocal, gate]);
-  // Razones, traducidas y seller-safe (motivos duros + económicos).
+  // Razones del gate, traducidas y seller-safe (motivos duros + económicos).
   const gateRazones = [...new Set([...(gateVista.motivos || []), ...(gateVista.economics || [])])].map(textoRazonEmision);
-  // Estado POR LÍNEA (chips pegados a cada partida). 1-based → {tono, textos}.
+  // Estado económico POR LÍNEA (chips pegados a cada partida). 1-based → {tono, textos}.
   const razonesLinea = useMemo(() => razonesPorLinea(gateVista), [gateVista]);
   async function descargarPDF() {
+    if (bajandoPDF) return;
     setPdfErr(''); setBajandoPDF(true);
     try {
-      // Los renders se traen ANTES de armar el documento: si se dibujara sin
-      // esperarlos, el PDF saldría con los recuadros vacíos.
-      // El logo y la foto de la casa van en la MISMA espera que las fotos: la
-      // portada sin logo es justo lo que Rodrigo no quiere volver a ver.
-      // El PDF usa la MISMA resolución canónica que la pantalla: render vigente de la
-      // versión anclada; nunca catálogo por nombre ni un render stale como vigente.
-      const [fotos, marca] = await Promise.all([cargarFotos(partidas, fotoResuelta), cargarMarca()]);
-      // Evidencia PRIMERO (audit 2026-10-01): se conserva la revisión ANTES de
-      // entregar el documento. El contenido que se congela es el mismo que se
-      // dibuja abajo. Si no se pudo registrar, el PDF sale pero se avisa que NO es
-      // una emisión definitiva.
-      const reg = onEmitida ? await onEmitida() : { ok: false };
-      // VH-042 (mandato §4): "el PDF debe reflejar la misma revisión guardada y los
-      // mismos totales aprobados". El documento se dibuja DESDE EL SNAPSHOT que se
-      // conservó (o se intentó conservar), no del estado vivo ni de totales de pantalla.
-      const snapGuardado = reg?.snapshot || snapshotEmitido(estado);
-      // VH-046: las imágenes del acomodo son URL; el documento las trae al dibujar.
-      const snap = { ...snapGuardado, acomodo: await cargarImagenesAcomodo(snapGuardado.acomodo) };
-      descargarPropuesta(datosDesdeSnapshot(snap, {
-        fecha: cot.fecha, resumen, especificacion, fotos, marca,
-        piezas: expandirPiezas(snap.partidas || []),
-        // Si NO se registró la emisión, el PDF sale MARCADO como borrador: no se
-        // entrega al cliente un documento que parezca definitivo sin evidencia
-        // conservada (audit 2026-10-01).
-        borrador: !reg?.ok,
-        // La hoja "Qué va en cada área", en palabras y con las gavetas: el
-        // plano no las puede enseñar porque viven debajo de la cubierta.
-        cuartos: listaPorCuarto(snap.partidas || [], snap.acomodo),
-        // Piezas excluidas (audit #3): se imprimen como cláusula explícita bajo el total.
+      const modo = await resolverModoDocumento();
+      const [fotos, marca, render3dPdf] = await Promise.all([
+        cargarFotos(partidas, fotoResuelta),
+        cargarMarca(),
+        urlADataUrl(cotCliente.acomodo?.render3d),
+      ]);
+      const cotParaPdf = cotCliente.acomodo?.render3d
+        ? { ...cotCliente, acomodo: { ...cotCliente.acomodo, render3d: render3dPdf || null } }
+        : cotCliente;
+
+      descargarPropuesta({
+        cot: cotParaPdf, partidas, resumen, especificacion, nPzas, fotos, marca,
+        piezas: expandirPiezas(partidas),
+        borrador: !modo.definitivo,
+        cuartos: listaPorCuarto(partidas, cotCliente.acomodo),
         exclusionesBOM: excluidasProyecto,
-      }));
-      if (!reg?.ok) {
-        const necesitaAprob = /aprobaci|politica|supera/i.test(reg?.motivo || '');
-        setPdfErr(necesitaAprob
-          ? '⚠️ Salió como BORRADOR: el descuento supera la política comercial y requiere APROBACIÓN DE DIRECCIÓN antes de emitirse en definitiva. No cuenta como emisión oficial.'
-          : '⚠️ Se generó el PDF, pero NO se registró la emisión (su evidencia no quedó conservada): NO cuenta como emisión definitiva. Revisa tu conexión e inténtalo de nuevo.');
+        totales: { precioLista, descuento, descuentoPct, subtotal, contingencia, contingenciaPct,
+          maniobras, maniobrasPct, flete, fletePct,
+          iva, ivaPct, total,
+          anticipoPct, anticipo, cliente: cot.cliente, folio: cot.folio },
+      });
+
+      if (!modo.definitivo) {
+        setPdfErr(`PDF descargado como BORRADOR · NO REGISTRADO. ${modo.motivo || 'Falta validación para emitir definitivo.'}`);
       }
     } catch (e) {
-      // Si algo falla, queda el camino de siempre en vez de dejarlo sin nada.
-      setPdfErr('No se pudo generar el archivo; se abrirá la impresión para guardarlo como PDF.');
-      imprimir();
-    } finally { setBajandoPDF(false); }
+      setPdfErr('No se pudo generar el PDF: ' + String(e?.message || e));
+    } finally {
+      setBajandoPDF(false);
+    }
   }
 
   // Imprimir: nombra el archivo, y espera que las fotos (remotas) decodifiquen
   // antes de imprimir para que NUNCA salga una partida sin imagen en el PDF.
   async function imprimir() {
-    // Misma regla que el PDF (audit 2026-10-01): conservar la evidencia ANTES de
-    // una salida definitiva. Si no se registró, NO se imprime como definitiva.
-    const reg = onEmitida ? await onEmitida() : { ok: false };
-    if (!reg?.ok) {
-      const necesitaAprob = /aprobaci|politica|supera/i.test(reg?.motivo || '');
-      setPdfErr(necesitaAprob
-        ? 'No se imprime como definitiva: el descuento supera la política y requiere APROBACIÓN DE DIRECCIÓN. Mientras tanto usa "Descargar PDF" (sale como borrador).'
-        : 'No se registró la emisión: no se imprime como definitiva. Usa "Descargar PDF" (sale marcado como borrador) o revisa tu conexión y reintenta.');
-      return;
-    }
+    setPdfErr('');
+    const modo = await resolverModoDocumento();
     const prev = document.title;
-    document.title = ['Propuesta', cot.folio, cot.cliente].filter(Boolean).join(' ').trim() || 'Propuesta Vonhaucke';
+    const tituloBase = ['Propuesta', cot.folio, cot.cliente].filter(Boolean).join(' ').trim() || 'Propuesta Vonhaucke';
+    document.title = modo.definitivo ? tituloBase : `BORRADOR - ${tituloBase}`;
+    if (!modo.definitivo) document.body.classList.add('vh-print-borrador');
     try {
       const imgs = Array.from(document.querySelectorAll('.cot-cliente img'));
       await Promise.all(imgs.map((im) => (im.decode ? im.decode().catch(() => {}) : Promise.resolve())));
-    } catch (e) { /* seguir de todas formas */ }
-    window.print();
-    setTimeout(() => { document.title = prev; }, 800);
-    // Abrir el diálogo de impresión NO prueba que se imprimió ni que el cliente
-    // recibió algo (audit 2026-10-01): aquí NO se registra una revisión. La
-    // emisión definitiva (con evidencia conservada) es "Descargar PDF".
+      if (typeof window.vhPrint === 'function') window.vhPrint();
+      else window.print();
+      if (!modo.definitivo) {
+        setPdfErr(`Impresión abierta como BORRADOR · NO REGISTRADO. ${modo.motivo || 'Falta validación para emitir definitivo.'}`);
+      }
+    } catch (e) {
+      setPdfErr('No se pudo abrir la impresión: ' + String(e?.message || e));
+    } finally {
+      setTimeout(() => {
+        document.title = prev;
+        document.body.classList.remove('vh-print-borrador');
+      }, 1200);
+    }
   }
+
   const setPartida = (i, parcial) => { const ps = partidas.slice(); ps[i] = { ...ps[i], ...parcial }; setCot({ partidas: ps }); };
   const quitar = (i) => {
     const pt = partidas[i];
@@ -369,28 +407,40 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
     setCot({ partidas: partidas.filter((_, j) => j !== i) });
   };
 
-  // El acomodo dice qué mueble quedó en qué cuarto; con eso el resumen reparte
-  // el importe por área. Si todavía no hay acomodo, sale una sola agrupación
-  // ("Sin ubicar") en vez de mentir con áreas inventadas.
-  const resumen = useMemo(() => resumenPorArea(partidas, estado.cotizacion?.acomodo), [partidas, estado.cotizacion?.acomodo]);
+  // Gate espacial independiente del gate financiero. Una cotización SIN layout
+  // puede emitirse; un layout presente sólo se muestra al cliente si está validado.
+  const acomodoClienteGate = useMemo(
+    () => evaluarAcomodoCliente(cot.acomodo, partidas),
+    [cot.acomodo, partidas],
+  );
+  const cotCliente = useMemo(
+    () => cotizacionSinAcomodoNoValidado(cot, partidas).cot,
+    [cot, partidas],
+  );
+
+  // El resumen por área también usa sólo acomodo validado. Si el layout es
+  // borrador/legacy/partial, no inventamos áreas en el documento del cliente.
+  const resumen = useMemo(() => resumenPorArea(partidas, cotCliente.acomodo), [partidas, cotCliente.acomodo]);
 
   // TODA la escalera de dinero —suma, descuento, subtotal, imprevistos, maniobras,
   // flete, IVA, total, anticipo— sale de UNA sola función (src/datos/totales.js),
   // la misma que guarda cotizaciones.js y con la que se arma el PDF. Antes esto
   // se calculaba inline aquí, otra vez en el PDF y de forma DISTINTA (sin IVA ni
   // descuento) al guardar: tres números para el mismo folio. `totalRedondeado` =
-  // suma de los renglones ya redondeados al peso = lo que el cliente ve y firma
-  // (el PDF cuadra al peso porque suma esos mismos renglones); `total` es el
-  // flotante, uso interno. MANIOBRAS/FLETE van sobre el subtotal ya descontado,
+  // el total canónico a centavos que cliente, PDF y archivo deben compartir;
+  // `total` queda sólo para diagnóstico. MANIOBRAS/FLETE van sobre el subtotal ya descontado,
   // igual que en el papel de Von Haucke.
   const { precioLista, descuentoPct, descuento, subtotal, contingenciaPct, contingencia,
     maniobrasPct, maniobras, fletePct, flete, ivaPct, iva, baseGravable, total, totalRedondeado,
-    anticipoPct, anticipo, hayLineaInvalida } = totalesCotizacion(partidas, cot, estado.parametros);
+    anticipoPct, anticipo, hayLineaInvalida, faltanPrecio, totalCompleto } = totalesCotizacion(partidas, cot, estado.parametros);
   const avisoDesc = avisoDescuento(descuentoPct, politica);   // VH-063
-  const costoTotal = partidas.reduce((a, p) => a + (p.costoUnitario || 0) * p.cantidad, 0);
-  const utilidadTotal = baseGravable - costoTotal;
   const minMarkup = estado.parametros.minMarkupLinea ?? 45;
   const factorDesc = 1 - descuentoPct / 100;
+  // #11: precio DESCONOCIDO jamás se dibuja como $0. Por renglón: "Sin precio" /
+  // "Pendiente". El servidor lo valida al emitir.
+  const sinPrecioPt = (pt) => pt.precioUnitario == null || pt.price_status === 'SIN_PRECIO';
+  const unitTxt = (pt) => (sinPrecioPt(pt) ? 'Sin precio' : pesos2(pt.precioUnitario));
+  const importeTxt = (pt) => (sinPrecioPt(pt) ? 'Pendiente' : pesos2(pt.precioUnitario * pt.cantidad));
   const markupPartida = (pt) => (pt.costoUnitario > 0 ? ((pt.precioUnitario * factorDesc - pt.costoUnitario) / pt.costoUnitario) * 100 : null);
   // El vendedor NO tiene costo (seller-safe): su piso se mide contra el PRECIO
   // MÍNIMO autorizado del catálogo (`catalogo.minimo`, un precio, no un costo). Si
@@ -485,11 +535,12 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           que es el trabajo que de verdad sube la exactitud. */}
       {!soloVentas && partidas.length > 0 && (() => {
         const c = confianzaDe(partidas);
+        const evaluable = typeof c.pct === 'number';
         return (
-          <div className={`confianza no-imprimir ${c.pct >= 60 ? 'ok' : c.pct >= 25 ? 'media' : 'baja'}`}>
-            <div className="confianza-barra"><span style={{ width: `${c.pct}%` }} /></div>
+          <div className={`confianza no-imprimir ${!evaluable ? 'baja' : c.pct >= 60 ? 'ok' : c.pct >= 25 ? 'media' : 'baja'}`}>
+            <div className="confianza-barra"><span style={{ width: `${evaluable ? c.pct : 0}%` }} /></div>
             <div className="confianza-txt">
-              <strong>{c.pct}% del precio sale de proyectos ya cerrados.</strong>{' '}
+              <strong>{evaluable ? `${c.pct}% del precio sale de proyectos ya cerrados.` : 'Confianza de precio no evaluable.'}</strong>{' '}
               <span className="gris">{textoConfianza(c)}</span>
               {c.lineasFlojas.length > 0 && (
                 <div className="ayuda" style={{ marginTop: 4 }}>
@@ -531,13 +582,13 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                     2026-08-18: "ellos precio unitario, cantidad y total". Antes
                     esta fila sólo enseñaba el total, y el unitario —el número
                     que el cliente pregunta primero— no salía por ningún lado. */}
-                <span className="vt-unit"><span className="vt-rot">c/u</span>{pesos(pt.precioUnitario)}</span>
+                <span className="vt-unit"><span className="vt-rot">c/u</span>{unitTxt(pt)}</span>
                 <span className="masmenos">
                   <button style={{ width: 44, height: 44 }} onClick={() => setPartida(i, { cantidad: Math.max(1, pt.cantidad - 1) })} aria-label="Menos">−</button>
                   <span className="valor">{pt.cantidad}</span>
                   <button style={{ width: 44, height: 44 }} onClick={() => setPartida(i, { cantidad: pt.cantidad + 1 })} aria-label="Más">+</button>
                 </span>
-                <span className="vt-importe"><span className="vt-rot">total</span>{pesos(pt.precioUnitario * pt.cantidad)}</span>
+                <span className="vt-importe"><span className="vt-rot">total</span>{importeTxt(pt)}</span>
                 {sePuedeEditar(pt) && (
                   <button className="icono-btn" title="Editar medidas, acabado y cantidad" aria-label={`Editar ${pt.nombre}`} onClick={() => setEditando(i)}>
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
@@ -605,10 +656,10 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                           <RenderChip estado={estadoRenderDe(pt).estado} />
                           {bajo && <div className="ayuda rojo">Debajo del mínimo de {estado.parametros.margenMinimo}%</div>}</td>
                         <td className="num"><span className="masmenos"><button onClick={() => setPartida(i, { cantidad: Math.max(1, pt.cantidad - 1) })}>−</button><span className="valor">{pt.cantidad}</span><button onClick={() => setPartida(i, { cantidad: pt.cantidad + 1 })}>+</button></span></td>
-                        <td className="num">{pesos(pt.precioUnitario)}</td>
-                        <td className="num" title={cc.aprox ? 'Costo aproximado (derivado del precio, no del despiece real)' : undefined}>{sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos(pt.costoUnitario)}</td>
-                        <td className="num">{sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos(util)}</td>
-                        <td className="num">{pesos(pt.precioUnitario * pt.cantidad)}</td>
+                        <td className="num">{unitTxt(pt)}</td>
+                        <td className="num" title={cc.aprox ? 'Costo aproximado (derivado del precio, no del despiece real)' : undefined}>{sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos2(pt.costoUnitario)}</td>
+                        <td className="num">{sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos2(util)}</td>
+                        <td className="num">{importeTxt(pt)}</td>
                         {/* ⚠️ AQUÍ NO HABÍA CÓMO EDITAR (2026-08-17). El lápiz
                             estaba escrito SÓLO dentro del bloque `soloVentas`, o
                             sea que en el rol de Dirección/Diseño —el que usa
@@ -644,9 +695,9 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                     <div className="cot-nombre">{pt.nombre}<EstadoLinea info={razonesLinea.get(i + 1)} /></div>
                     <div className="cot-linea">
                       <span className="masmenos"><button style={{ width: 44, height: 44 }} onClick={() => setPartida(i, { cantidad: Math.max(1, pt.cantidad - 1) })}>−</button><span className="valor">{pt.cantidad}</span><button style={{ width: 44, height: 44 }} onClick={() => setPartida(i, { cantidad: pt.cantidad + 1 })}>+</button></span>
-                      <span className="cot-importe">{pesos(pt.precioUnitario * pt.cantidad)}</span>
+                      <span className="cot-importe">{importeTxt(pt)}</span>
                     </div>
-                    <div className="cot-datos"><span>Precio c/u: <b>{pesos(pt.precioUnitario)}</b></span><span>Costo: {sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos(pt.costoUnitario)}</span><span>Utilidad: {sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos(util)}</span></div>
+                    <div className="cot-datos"><span>Precio c/u: <b>{unitTxt(pt)}</b></span><span>Costo: {sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos2(pt.costoUnitario)}</span><span>Utilidad: {sinCosto ? '—' : (cc.aprox ? '≈ ' : '') + pesos2(util)}</span></div>
                     <button className="boton fantasma" style={{ minHeight: 44, marginTop: 10 }} onClick={() => quitar(i)}>Quitar</button>
                   </div>
                 );
@@ -697,7 +748,8 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
             <button className="boton" style={{ minHeight: 46 }} disabled={genPart != null || genOficina} onClick={renderTodas}>
               {genPart != null ? 'Generando muebles…' : 'Una foto de cada mueble'}
             </button>
-            <button className="boton" style={{ minHeight: 46 }} disabled={genOficina || genPart != null} onClick={renderOficina}>
+            <button className="boton" style={{ minHeight: 46 }} disabled={genOficina || genPart != null || !acomodoClienteGate.mostrar} onClick={renderOficina}
+              title={!acomodoClienteGate.mostrar ? (acomodoClienteGate.existe ? 'Valida primero el acomodo' : 'Crea primero un acomodo') : undefined}>
               {genOficina ? 'Generando oficina…' : 'Una imagen de la oficina completa'}
             </button>
             {onIr && partidas.length > 0 && <button className="boton" style={{ minHeight: 46 }} onClick={() => onIr('acomodo')}>Ver el acomodo en 3D</button>}
@@ -705,7 +757,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           {(genOficina || genPart != null) && (
             <div className="render-gen" style={{ position: 'relative', height: 90 }}><span className="render-gen-spin" /><span>{genOficina ? 'Creando el render de la oficina… (10–20 s)' : 'Generando renders de los muebles…'}</span></div>
           )}
-          {cot.acomodo?.render3d && !genOficina && (
+          {acomodoClienteGate.mostrar && cotCliente.acomodo?.render3d && !genOficina && (
             <div>
               <img src={cot.acomodo.render3d} alt="Render de oficina" style={{ width: '100%', maxWidth: 360, borderRadius: 10, border: '1px solid var(--linea)', display: 'block' }} />
               <div className="ayuda verde" style={{ marginTop: 4 }}>Listo: ya aparece en la propuesta y en el PDF.</div>
@@ -713,10 +765,16 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
             </div>
           )}
           <label className="enlace-sutil" style={{ cursor: 'pointer' }}>
-            {cot.acomodo?.render3d ? 'o subir otra imagen mía' : 'o subir una imagen mía'}
+            {cotCliente.acomodo?.render3d ? 'o subir otra imagen mía' : 'o subir una imagen mía'}
             <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => subirRender(e.target.files?.[0])} />
           </label>
-          {errGen && <div className="alerta roja"><span className="texto">{errGen}</span></div>}
+          {acomodoClienteGate.existe && !acomodoClienteGate.mostrar && (
+            <div className="alerta" style={{ background:'#fff8e6', borderColor:'#d8a800', color:'#5e4700' }}>
+              <span className="texto"><strong>Acomodo no certificado para cliente.</strong>{' '}
+                {(acomodoClienteGate.razones || []).join(' · ') || acomodoClienteGate.estado}. La cotización puede emitirse, pero el plano/3D se omitirá hasta validarlo.</span>
+            </div>
+          )}
+                    {errGen && <div className="alerta roja"><span className="texto">{errGen}</span></div>}
         </div>
 
         {/* ---------- CLIENTE · Propuesta premium (SIEMPRE imprime) ---------- */}
@@ -757,14 +815,14 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                         {b.m2 > 0 && <>{b.m2} m² · </>}{especificacion(b)}
                       </div>
                     </div>
-                    <div className="propx-res-tot">{pesos(b.total)}</div>
+                    <div className="propx-res-tot">{pesos2(b.total)}</div>
                   </div>
                   <ul className="propx-res-lista">
                     {b.renglones.map((r, k) => (
                       <li key={k}>
                         <span className="propx-res-cant">{r.cantidad}</span>
                         <span className="propx-res-item">{r.nombre}</span>
-                        <span className="propx-res-imp">{pesos(r.importe)}</span>
+                        <span className="propx-res-imp">{pesos2(r.importe)}</span>
                       </li>
                     ))}
                   </ul>
@@ -789,28 +847,28 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                         2026-08-16): es una señal interna para el vendedor, y
                         leer "sujeto a confirmación" en 5 de 6 renglones debilita
                         la propuesta. Sigue visible en "Mis números". */}
-                    <div className="propx-sub"><span className="propx-unit">{pesos(pt.precioUnitario)} c/u</span></div>
+                    <div className="propx-sub"><span className="propx-unit">{unitTxt(pt)} c/u</span></div>
                   </div>
                   <div className="propx-cant"><span className="propx-cant-n">{pt.cantidad}</span><span className="propx-cant-l">{pt.cantidad === 1 ? 'pza' : 'pzas'}</span></div>
-                  <div className="propx-importe">{pesos(pt.precioUnitario * pt.cantidad)}</div>
+                  <div className="propx-importe">{importeTxt(pt)}</div>
                 </article>
               );
             })}
           </section>
 
           {/* Distribución en el espacio */}
-          {(cot.acomodo?.plan || cot.acomodo?.render3d) && (
+          {(cotCliente.acomodo?.plan || cotCliente.acomodo?.render3d) && (
             <section className="propx-acomodo">
               <h2 className="propx-h2">Distribución en el espacio</h2>
-              {cot.acomodo?.render3d && (
+              {cotCliente.acomodo?.render3d && (
                 <figure className="propx-render3d">
                   <img src={cot.acomodo.render3d} alt="Vista 3D del acomodo" />
                   <figcaption>Vista 3D de referencia del acomodo con mobiliario Vonhaucke</figcaption>
                 </figure>
               )}
               {/* El plano SVG solo si NO hay render de IA (el render Gemini manda). */}
-              {cot.acomodo?.plan && !cot.acomodo?.render3d && (
-                <PlanoAcomodo areas={cot.acomodo.areas} plan={cot.acomodo.plan} byId={mapaPiezas(expandirPiezas(partidas))} modo="iso" />
+              {cotCliente.acomodo?.plan && !cotCliente.acomodo?.render3d && (
+                <PlanoAcomodo areas={cotCliente.acomodo.areas} plan={cotCliente.acomodo.plan} byId={mapaPiezas(expandirPiezas(partidas))} modo="iso" />
               )}
             </section>
           )}
@@ -825,27 +883,33 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                   oficio lee "precio de lista" y su siguiente frase es "¿y mi
                   descuento de lista?". El PDF ya lo llamaba bien. Ahora los dos
                   documentos dicen lo mismo. */}
-              <div className="propx-tot-row"><span>Suma de los renglones</span><b>{pesos(precioLista)}</b></div>
-              {descuento > 0 && <div className="propx-tot-row"><span>Descuento {descuentoPct}%</span><b className="rojo">− {pesos(descuento)}</b></div>}
+              <div className="propx-tot-row"><span>Suma de los renglones</span><b>{pesos2(precioLista)}</b></div>
+              {descuento > 0 && <div className="propx-tot-row"><span>Descuento {descuentoPct}%</span><b className="rojo">− {pesos2(descuento)}</b></div>}
               {/* Sin descuento, "Subtotal" imprimía EXACTAMENTE el mismo número
                   que el renglón de arriba: dos renglones idénticos justo donde el
                   cliente baja la vista a buscar el precio. Se lee como si se
                   hubiera caído el descuento. Igual que en el PDF: sólo aparece
                   cuando de verdad hay algo que restar. */}
-              {descuento > 0 && <div className="propx-tot-row"><span>Subtotal</span><b>{pesos(subtotal)}</b></div>}
-              {contingencia > 0 && <div className="propx-tot-row"><span>Imprevistos de obra {contingenciaPct}%</span><b>{pesos(contingencia)}</b></div>}
-              {maniobras > 0 && <div className="propx-tot-row"><span>Maniobras e instalación {maniobrasPct}%</span><b>{pesos(maniobras)}</b></div>}
-              {flete > 0 && <div className="propx-tot-row"><span>Flete {fletePct}%</span><b>{pesos(flete)}</b></div>}
-              <div className="propx-tot-row"><span>IVA {estado.parametros.ivaPorcentaje}%</span><b>{pesos(iva)}</b></div>
+              {descuento > 0 && <div className="propx-tot-row"><span>Subtotal</span><b>{pesos2(subtotal)}</b></div>}
+              {contingencia > 0 && <div className="propx-tot-row"><span>Imprevistos de obra {contingenciaPct}%</span><b>{pesos2(contingencia)}</b></div>}
+              {maniobras > 0 && <div className="propx-tot-row"><span>Maniobras e instalación {maniobrasPct}%</span><b>{pesos2(maniobras)}</b></div>}
+              {flete > 0 && <div className="propx-tot-row"><span>Flete {fletePct}%</span><b>{pesos2(flete)}</b></div>}
+              <div className="propx-tot-row"><span>IVA {estado.parametros.ivaPorcentaje}%</span><b>{pesos2(iva)}</b></div>
               {/* Fail-closed: si un renglón tiene precio inválido (NaN/Infinity), NO se
                   muestra un total barato falso — se marca inválido y la emisión ya está
                   bloqueada (problemasDeEmision). */}
               {hayLineaInvalida ? (
                 <div className="propx-tot-grand"><span>TOTAL</span><b style={{ color: '#b3261e' }}>⚠ Cálculo inválido</b></div>
+              ) : faltanPrecio > 0 ? (
+                // #7: no presentamos un total "definitivo" si faltan precios por resolver.
+                <>
+                  <div className="propx-tot-grand"><span>TOTAL (incompleto)</span><b style={{ color: '#8a5a00' }}>⚠ faltan {faltanPrecio} precio{faltanPrecio === 1 ? '' : 's'}</b></div>
+                  <div className="propx-tot-anticipo">Subtotal con precios conocidos: <b>{pesos2(precioLista)}</b>. El servidor valida los precios al emitir.</div>
+                </>
               ) : (
                 <>
                   <div className="propx-tot-grand"><span>TOTAL</span><b><MontoAnimado valor={totalRedondeado} /></b></div>
-                  <div className="propx-tot-anticipo">Anticipo {anticipoPct}%: <b>{pesos(anticipo)}</b> · Saldo contra entrega: <b>{pesos(totalRedondeado - anticipo)}</b></div>
+                  <div className="propx-tot-anticipo">Anticipo {anticipoPct}%: <b>{pesos2(anticipo)}</b> · Saldo contra entrega: <b>{pesos2(totalRedondeado - anticipo)}</b></div>
                 </>
               )}
             </div>
@@ -896,10 +960,14 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
             <button className={vistaCliente ? 'on' : ''} onClick={() => setVistaCliente(true)}>Como la ve el cliente</button>
           </div>
         )}
-        <button className="boton tinta cot-pdf" onClick={conCandado(descargarPDF)} disabled={bajandoPDF || bloqueoLocal} title={motivoBloqueo}>
-          {bajandoPDF ? 'Armando el PDF…' : 'Descargar PDF'}
+        <button className="boton tinta cot-pdf" onClick={descargarPDF} disabled={bajandoPDF}
+          title={(probEmision.length || bloqueoExcluidas) ? 'Se descargará como BORRADOR hasta resolver las validaciones pendientes.' : 'Descargar propuesta'}>
+          {bajandoPDF ? 'Armando el PDF…' : (probEmision.length || bloqueoExcluidas) ? 'Descargar BORRADOR' : 'Descargar PDF'}
         </button>
-        <button className="boton fantasma no-imprimir" style={{ minHeight: 42 }} onClick={conCandado(imprimir)} disabled={bloqueoLocal} title={motivoBloqueo}>Imprimir</button>
+        <button className="boton fantasma no-imprimir" style={{ minHeight: 42 }} onClick={imprimir}
+          title={(probEmision.length || bloqueoExcluidas) ? 'Se imprimirá como BORRADOR hasta resolver las validaciones pendientes.' : 'Imprimir propuesta'}>
+          {(probEmision.length || bloqueoExcluidas) ? 'Imprimir BORRADOR' : 'Imprimir'}
+        </button>
         {verificarEmision && (
           <button className="boton fantasma no-imprimir" style={{ minHeight: 42 }} disabled={gateCargando}
             onClick={async () => { setGateCargando(true); try { setGate(await verificarEmision()); } catch { setGate({ estado: 'DESCONOCIDO' }); } setGateCargando(false); }}>

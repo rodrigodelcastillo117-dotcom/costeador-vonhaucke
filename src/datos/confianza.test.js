@@ -38,3 +38,21 @@ describe('qué tan firme es la propuesta', () => {
     expect(textoConfianza(confianzaDe([P('a', 100, 1, false, 'X')]))).toMatch(/modelo/);
   });
 });
+
+
+  it('una partida sin precio vuelve la confianza NO evaluable, no mejora el porcentaje', () => {
+    const c=confianzaDe([
+      {id:'a',precioUnitario:10000,cantidad:1,precioReal:true,linea:'Firme'},
+      {id:'b',precioUnitario:null,cantidad:1,precioReal:false,linea:'Desconocida'},
+    ]);
+    expect(c.pct).toBeNull();
+    expect(c.completa).toBe(false);
+    expect(c.nDesconocidas).toBe(1);
+    expect(textoConfianza(c)).toMatch(/no tienen precio\/cantidad verificable/i);
+  });
+
+  it('cero real sigue siendo un número conocido, distinto de null', () => {
+    const c=confianzaDe([{id:'a',precioUnitario:0,cantidad:1,precioReal:true,linea:'Cero real'}]);
+    expect(c.completa).toBe(true);
+    expect(c.pct).toBe(0);
+  });

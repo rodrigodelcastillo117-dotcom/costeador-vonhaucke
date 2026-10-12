@@ -40,9 +40,15 @@ export function lenteVentas(datos = {}, ctx = {}) {
     bloqueos.push(bloqueo('Renglones sin precio autorizado', `${quote.sinPrecio.length} partida(s) sin precio; no se puede cotizar completo.`, URGENCIA.BLOQUEANTE));
   }
   if (proy) {
-    if (proy.presupuesto != null && proy.total_actual != null) {
+    if (Number(proy.cotizaciones_sin_total) > 0) {
+      bloqueos.push(bloqueo(
+        'Total de proyecto incompleto',
+        `${proy.cotizaciones_sin_total} cotización(es) no tienen total autoritativo; no concluyo presupuesto con una suma parcial.`,
+        URGENCIA.ALTA,
+      ));
+    } else if (proy.presupuesto != null && proy.total_actual != null) {
       const delta = num(proy.total_actual) - num(proy.presupuesto);
-      if (delta > 0) findings.push(afirmacion(`La propuesta está $${Math.round(delta).toLocaleString('es-MX')} arriba del presupuesto.`, TIPO_AFIRMACION.HECHO, { source_type: 'proyecto', confidence: 0.95 }));
+      if (delta > 0) findings.push(afirmacion(`La propuesta está ${Math.round(delta).toLocaleString('es-MX')} arriba del presupuesto.`, TIPO_AFIRMACION.HECHO, { source_type: 'proyecto', confidence: 0.95 }));
     }
     if (!proy.proxima_accion) bloqueos.push(bloqueo('Sin próxima acción', 'Este proyecto no tiene un siguiente paso agendado.', URGENCIA.MEDIA));
   }
@@ -84,6 +90,43 @@ export function lenteDiseno(datos = {}, ctx = {}) {
     bloqueos.push(bloqueo('Avisos de layout', `${layout.warnings.length} aviso(s) de circulación/choque.`, URGENCIA.MEDIA));
   }
   return { lente: 'diseno', pregunta: '¿Cabe, funciona y cumple?', findings, bloqueos, estado: bloqueos.length ? ESTADO.ATENCION : ESTADO.OK };
+}
+
+// ---- LENTE INDUSTRIAL: ¿cómo lo fabrico mejor, con menos riesgo y desperdicio? ----
+export function lenteIndustrial(datos = {}, ctx = {}) {
+  const findings = []; const bloqueos = [];
+  const a = datos.get_industrial_analysis;
+  if (!a || a.disponible === false) {
+    bloqueos.push(bloqueo('Análisis industrial no disponible', a?.nota || 'Falta BOM/costeo del producto.', URGENCIA.ALTA));
+    return { lente:'industrial', pregunta:'¿Cómo lo fabrico mejor?', findings, bloqueos, estado:ESTADO.ATENCION };
+  }
+  for (const b of a.bloqueos || []) {
+    bloqueos.push(bloqueo(b.titulo || b.code || 'Bloqueo industrial', b.detalle || '', URGENCIA.ALTA));
+  }
+  for (const h of a.hallazgos || []) {
+    if (h.tipo === 'CORTE_2D') {
+      findings.push(afirmacion(
+        `${h.material}: eficiencia de corte advisory ${h.eficiencia_pct ?? 'N/D'}%.`,
+        TIPO_AFIRMACION.HECHO,
+        { source_type:'motor_corte', confidence: h.completo ? 0.9 : 0.6 },
+      ));
+    }
+  }
+  for (const r of a.recomendaciones || []) {
+    findings.push(afirmacion(
+      `${r.accion} ${r.ahorro_certificado === false ? '(ahorro potencial, no certificado)' : ''}`.trim(),
+      TIPO_AFIRMACION.INFERENCIA,
+      { source_type:'analisis_industrial', confidence:r.confianza ?? 0.7 },
+    ));
+  }
+  if (a.eficiencia?.corte_2d_global_pct != null) {
+    findings.push(afirmacion(
+      `Eficiencia global de corte 2D: ${a.eficiencia.corte_2d_global_pct}%.`,
+      TIPO_AFIRMACION.HECHO,
+      { source_type:'motor_corte', confidence:0.9 },
+    ));
+  }
+  return { lente:'industrial', pregunta:'¿Cómo lo fabrico mejor?', findings, bloqueos, estado: bloqueos.length ? ESTADO.ATENCION : ESTADO.OK };
 }
 
 // ---- LENTE PROYECTOS: ¿lo vendido está listo para ejecutarse? --------------
@@ -130,6 +173,7 @@ export function lenteCfo(datos = {}, ctx = {}) {
 
 export const LENTES = Object.freeze({
   ventas: lenteVentas, costeador: lenteCosteador, diseno: lenteDiseno,
+  industrial: lenteIndustrial,
   proyectos: lenteProyectos, direccion: lenteDireccion, cfo: lenteCfo,
 });
 

@@ -3,7 +3,7 @@
 //  El acceso a nomina/financieros/tablero NO se pide con un PIN: lo resuelve
 //  la base de datos por el correo de quien entro (tabla `permitidos`).
 // ============================================================================
-import { useEffect, useRef, useState, lazy, Suspense } from 'react';
+import { useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
 import Icono from './componentes/Iconos.jsx';
 import MarcaLogo from './componentes/MarcaLogo.jsx';
 // Diferidos (carga bajo demanda): recharts (Tablero) y pdfjs (AsistenteEspecial) son
@@ -11,21 +11,22 @@ import MarcaLogo from './componentes/MarcaLogo.jsx';
 // no deben pesar en la carga inicial del vendedor. (ver AsistenteEspecial abajo)
 const Tablero = lazy(() => import('./componentes/Tablero.jsx'));
 import Costeador, { parametrosEfectivos } from './componentes/Costeador.jsx';
-import Catalogo from './componentes/Catalogo.jsx';
-import Cotizacion from './componentes/Cotizacion.jsx';
-import CotizadorIA from './componentes/CotizadorIA.jsx';
-import CambiarContrasena from './componentes/CambiarContrasena.jsx';
-import Acomodo from './componentes/Acomodo.jsx';
-import Cocrear from './componentes/Cocrear.jsx';
-import Voni from './componentes/Voni.jsx';
-import Precios from './componentes/Precios.jsx';
-import Guia from './componentes/Guia.jsx';
+const Catalogo = lazy(() => import('./componentes/Catalogo.jsx'));
+const Cotizacion = lazy(() => import('./componentes/Cotizacion.jsx'));
+const CotizadorIA = lazy(() => import('./componentes/CotizadorIA.jsx'));
+const CambiarContrasena = lazy(() => import('./componentes/CambiarContrasena.jsx'));
+const Acomodo = lazy(() => import('./componentes/Acomodo.jsx'));
+const Cocrear = lazy(() => import('./componentes/Cocrear.jsx'));
+const Voni = lazy(() => import('./componentes/Voni.jsx'));
+const Precios = lazy(() => import('./componentes/Precios.jsx'));
+const Guia = lazy(() => import('./componentes/Guia.jsx'));
 import SinPantallaBlanca from './componentes/SinPantallaBlanca.jsx';
 import Inicio from './componentes/Inicio.jsx';
-import Asistente from './componentes/Asistente.jsx';
+const Asistente = lazy(() => import('./componentes/Asistente.jsx'));
 const AsistenteEspecial = lazy(() => import('./componentes/AsistenteEspecial.jsx'));
-import Biblioteca from './componentes/Biblioteca.jsx';
-import CosteadorLinea from './componentes/CosteadorLinea.jsx';
+const Biblioteca = lazy(() => import('./componentes/Biblioteca.jsx'));
+const CosteadorLinea = lazy(() => import('./componentes/CosteadorLinea.jsx'));
+import { aplicarPrograma, partidaComercialDesdeConfirmado } from './datos/programaRealDelPlano.js';
 import { APPLT_PRODUCTOS, generarAppLT } from './datos/applt.js';
 import { APP_PRODUCTOS, generarApp } from './datos/app.js';
 import { ECLIPSE_PRODUCTOS, generarEclipse } from './datos/eclipse.js';
@@ -50,11 +51,11 @@ import { ALBA_PRODUCTOS, generarAlba } from './datos/alba.js';
 import { FEATHER_PRODUCTOS, generarFeather } from './datos/feather.js';
 import { WORKLOUNGE_PRODUCTOS, generarWorklounge } from './datos/worklounge.js';
 import { CIRQUE_PRODUCTOS, generarCirque } from './datos/cirque.js';
-import Banco from './componentes/Banco.jsx';
-import Archivo from './componentes/Archivo.jsx';
+const Banco = lazy(() => import('./componentes/Banco.jsx'));
+const Archivo = lazy(() => import('./componentes/Archivo.jsx'));
 import Login from './componentes/Login.jsx';
-import Usuarios from './componentes/Usuarios.jsx';
-import Reglas from './componentes/Reglas.jsx';
+const Usuarios = lazy(() => import('./componentes/Usuarios.jsx'));
+const Reglas = lazy(() => import('./componentes/Reglas.jsx'));
 import { cargarReglas } from './datos/reglas.js';
 import { cargarAprendizajes } from './datos/aprendizaje.js';
 import { guardarCotizacion, cargarCotizacionCompleta, paraGuardar, firmaGuardado, claveCreacionNueva } from './datos/cotizaciones.js';
@@ -63,11 +64,14 @@ import { crearPartida } from './datos/partida.js';
 import { normalizarRol, veCostosCosteo } from './datos/roles.js';
 import { guardarRevision, snapshotEmitido } from './datos/revisiones.js';
 import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
-import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, evaluarEmision, solicitarAprobacionSnapshot } from './nube.js';
+import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, costearServidor, evaluarEmision, solicitarAprobacionSnapshot } from './nube.js';
 import { calcular, modeloParaPieza, pendientesDeCosteo } from './motor/calculo.js';
+import { calcularCosteoVivo } from './motor/costeoVivo.js';
+import { aCentavosEnteros, dinero } from './motor/dinero.js';
 import { idNuevo } from './util.js';
 import { costoImplicito, precioDeLista } from './datos/preciosVenta.js';
-import Comercial from './componentes/comercial/Comercial.jsx';
+import { catalogoTecnicoMateriales } from './datos/materialKnowledge.js';
+const Comercial = lazy(() => import('./componentes/comercial/Comercial.jsx'));
 import Voni2 from './componentes/Voni2.jsx';
 import { flagActivo } from './datos/flags.js';
 
@@ -124,8 +128,10 @@ function costeoEnBlanco() {
     // CUTOVER A ALBA (2026-10-02): el costo OFICIAL por defecto es Alba (sin factores a
     // mano). El 55/12 legacy ya no se siembra: así "Ver detalle" de un producto Alba no
     // se recostea en Legacy55. Mover un factor a mano = SIMULACIÓN no oficial (Costeador).
-    // margen null = usa el margen objetivo de parámetros (una sola política, VH-019).
-    factorDirecta: null, factorIndirecta: null, preparacionHoras: 0, margen: null,
+    factorDirecta: null, factorIndirecta: null, preparacionHoras: 0,
+    // null = hereda margenObjetivo de la configuración canónica. Un margen sólo
+    // se guarda aquí cuando el usuario lo elige explícitamente.
+    margen: null,
   };
 }
 
@@ -347,7 +353,18 @@ export default function App() {
     // pide la anterior (justo porque no la recuerda).
     const off = alCambiarSesion((s, evento) => {
       setSesion(s);
-      if (evento === 'PASSWORD_RECOVERY') { setRecuperando(true); setPestania('contrasena'); }
+      if (evento === 'PASSWORD_RECOVERY') {
+        setRecuperando(true);
+        setPestania('contrasena');
+        // Supabase ya consumió el fragmento de recovery y creó la sesión.
+        // Quitamos access_token/refresh_token de la barra de direcciones para
+        // que no queden en screenshots, copy/paste, historial o soporte.
+        try {
+          if (window.location.hash) {
+            history.replaceState(null, '', window.location.pathname + window.location.search);
+          }
+        } catch (_e) {}
+      }
     });
     return () => { clearTimeout(limite); off(); };
   }, []);
@@ -456,7 +473,8 @@ export default function App() {
     } finally {
       creandoEnVuelo.current = false;
     }
-    if (epocaCot.current !== epoca) return r;   // se empezó de cero mientras guardaba
+    // Se empezó de cero mientras guardaba: NADA de lo guardado vale para la cotización viva.
+    if (epocaCot.current !== epoca) return { id: null, guardado: false, motivo: 'epoca' };
     // AVISO CLARO cuando la nube no recibe la cotización (antes fallaba en silencio y el
     // vendedor creía que estaba guardado). El punto del encabezado pasa a "Sin conexión"
     // y se avisa UNA vez por racha; al volver, el punto regresa a "En línea".
@@ -515,7 +533,8 @@ export default function App() {
     if (!sesion?.user?.email) return { ok: false, estado: 'DESCONOCIDO', motivos: [] };
     try {
       const r = await guardarEnNube();
-      if (!r.id) return { ok: false, estado: 'DESCONOCIDO', motivos: [], error: r.motivo || 'sin-id' };
+      // Sólo se gatea lo que SÍ quedó guardado (o sin cambios): nunca una versión vieja.
+      if (!r.id || !r.guardado) return { ok: false, estado: 'DESCONOCIDO', motivos: [], error: r.motivo || 'sin-id' };
       // VH-055: el MISMO snapshot que se emitirá, para que el hash de la aprobación cuadre.
       return await evaluarEmision(r.id, snapshotEmitido(estado));
     } catch (e) { return { ok: false, estado: 'DESCONOCIDO', motivos: [], error: String(e?.message || e) }; }
@@ -535,7 +554,7 @@ export default function App() {
     if (!sesion?.user?.email) return { ok: false, motivo: 'sin-sesion' };
     try {
       const g = await guardarEnNube();
-      if (!g.id) return { ok: false, motivo: g.motivo || 'sin-id' };
+      if (!g.id || !g.guardado) return { ok: false, motivo: g.motivo || 'no-se-guardo-estado-vivo' };
       const r = await guardarRevision(estado, g.id);
       if (r?.ok && r.nueva) mostrarAviso(`Revisión ${r.revision} guardada — se conservó lo que se emitió.`);
       return r || { ok: false, motivo: 'desconocido' };
@@ -555,7 +574,24 @@ export default function App() {
   // Diseno y Direccion ven costos (para despiece). Todo lo demas es vendedor: solo precio recomendado.
   const esVendedor = rolNorm === 'vendedor';
   // Puede ver el costo de fabricacion (Costeador, Precios de material, HojaCosto).
-  const veCostos = veCostosCosteo(rolNorm);
+  const veCostos = esDireccion || esDiseno;   // = veCostosCosteo(rolNorm): una sola verdad de quién ve costos
+  // Catálogo técnico seller-safe: VONI puede conocer formatos/unidades/materiales
+  // sin recibir precios ni costos, incluso para vendedores.
+  const materialesTecnicosVoni = useMemo(
+    () => catalogoTecnicoMateriales(estado?.insumos || {}),
+    [estado?.insumos],
+  );
+
+  // VONI mira EXACTAMENTE el mismo resultado vivo que Costeador. No existe un
+  // "costeo para IA" paralelo. Si no hay BOM o el rol no ve economía, no se crea.
+  const voniCosting = useMemo(() => {
+    if (!veCostos || !(costeo?.componentes || []).length) return null;
+    try {
+      return calcularCosteoVivo(estado, costeo).resultado;
+    } catch (_e) {
+      return null;
+    }
+  }, [veCostos, estado, costeo]);
   // Nomina, financieros y tablero: SOLO Direccion, resuelto por su correo.
   // Ya no hay PIN: el permiso lo da la base de datos, que a los demas ni
   // siquiera les manda estos datos.
@@ -712,17 +748,19 @@ export default function App() {
     let margenEf = null;
     let costoDerivado = false;
     if (veCostos) {
-      costo = costoUnitario;
-      if (!Number.isFinite(costo)) {
-        // Sólo un costo COMPLETO es costo; un subtotal se queda en null (pendiente).
-        try { costo = calcular(costeo, n, estado.insumos, modeloParaPieza(estado.parametros, costeo).par).costoOficial; }
-        catch (e) { costo = null; }
-        if (costo == null && Number.isFinite(margen) && Number.isFinite(precioUnitario) && precioUnitario > 0) {
-          costo = precioUnitario * (1 - margen / 100);   // derivado del precio: se marca, no se disfraza
-          costoDerivado = true;
+      costo = costoUnitario != null && Number.isFinite(Number(costoUnitario))
+        ? Number(costoUnitario)
+        : null;
+      if (costo == null) {
+        try {
+          const calculado = calcular(costeo, n, estado.insumos, modeloParaPieza(estado.parametros, costeo).par).costoOficial;
+          costo = calculado != null && Number.isFinite(Number(calculado)) ? Number(calculado) : null;
+        } catch (_e) {
+          // FAIL-CLOSED: jamás derivar costo desde precio/margen ni sustituir por $0.
+          costo = null;
         }
       }
-      margenEf = Number.isFinite(margen) ? margen : null;
+      margenEf = costo != null && Number.isFinite(margen) ? margen : null;
     }
     return crearPartida({
       piezaId: costeo.piezaId || null,
@@ -742,6 +780,7 @@ export default function App() {
       w: costeo.w || null, d: costeo.d || null,
       cantidad: n,
       costoUnitario: costo,
+      costoPendiente: veCostos && costo == null,
       costoDerivado,
       precioUnitario,
       margen: margenEf,
@@ -775,6 +814,48 @@ export default function App() {
     ...e, cotizacion: { ...e.cotizacion, partidas: [...(e.cotizacion?.partidas || []), ...nuevas] },
   }));
 
+  // P0.1 · "Aplicar programa detectado": confirma la PROPUESTA contra lo ya
+  // cotizado (reconcilia, idempotente) y agrega SÓLO las partidas nuevas como
+  // PARTIDAS COMERCIALES canónicas (adapter dedicado, NO partidaDeCosteo). El
+  // precio es snapshot de DISPLAY (nunca $0, nunca firme); el servidor lo revalida.
+  //
+  // ATÓMICO (#8): la reconciliación corre DENTRO de setEstado(prev=>...), así dos
+  // clicks seguidos (antes del rerender) ven el estado ya actualizado por el
+  // primero → el segundo reconcilia y no duplica. `aplicandoPrograma` evita reentradas.
+  const aplicandoProgramaRef = useRef(false);
+  function aplicarProgramaDetectado(propuesta) {
+    if (!propuesta) return { confirmadas: 0, conflictos: [], pendientes: [] };
+    // Vista para la UI (contra el estado actual): conflictos y pendientes a mostrar.
+    const vista = aplicarPrograma(propuesta, { existentes: estado.cotizacion?.partidas || [] });
+    if (aplicandoProgramaRef.current) {
+      return { confirmadas: 0, conflictos: vista.conflictos || [], pendientes: propuesta.pendientes || [] };
+    }
+    aplicandoProgramaRef.current = true;
+    setEstado((prev) => {
+      const existentes = prev.cotizacion?.partidas || [];
+      const { confirmacion } = aplicarPrograma(propuesta, { existentes });
+      const enriquecidos = confirmacion.enriquecidos || [];
+      // #4: ENRIQUECE en el sitio los existentes reutilizados (WIN/gavetas apuntan
+      // ahora al ancla APP LT) — sólo metadata estructural, sin tocar economics.
+      const porId = new Map(enriquecidos.map((e) => [String(e.id), e.patch]));
+      const patched = existentes.map((p) => {
+        const patch = porId.get(String(p.id));
+        // #10: la semántica estructural vive SÓLO top-level (un dueño). NO se copia a config.
+        return patch ? { ...p, ...patch } : p;
+      });
+      const nuevas = confirmacion.confirmadas.map(partidaComercialDesdeConfirmado);
+      if (!nuevas.length && !enriquecidos.length) return prev;    // idempotente: nada que hacer
+      return { ...prev, cotizacion: { ...prev.cotizacion, partidas: [...patched, ...nuevas] } };
+    });
+    // Libera el lock tras el commit (microtask: después del setEstado batcheado).
+    Promise.resolve().then(() => { aplicandoProgramaRef.current = false; });
+    return {
+      confirmadas: (vista.confirmacion?.confirmadas || []).length,
+      conflictos: vista.conflictos || [],
+      pendientes: propuesta.pendientes || [],
+    };
+  }
+
   // Asistente y costeador de línea sencillo: una partida.
   function agregarDesdeAsistente(costeo, cantidad, precio, margen) {
     const p = partidaDeCosteo(costeo, cantidad, precio, margen);
@@ -793,8 +874,9 @@ export default function App() {
       ruta: a.ruta || null,
       productoId: a.productoId || null,
       cantidad: (a.cantidad || 1) * n,
-      // El contrato quita el costo si el rol no ve costos; aquí es DERIVADO del precio.
-      costoUnitario: costoImplicito(a.lista), costoDerivado: true,
+      // Seller-safe: el vendedor no guarda costo (ni el derivado del precio).
+      costoUnitario: veCostos ? costoImplicito(a.lista) : null,
+      costoDerivado: veCostos,
       precioUnitario: precioDeLista(a.lista),
     }, { veCostos, origen: 'addon' }));
     sumarPartidas([base, ...extras]);
@@ -805,35 +887,76 @@ export default function App() {
   // Costear especial (modo avanzado). Mismo bug: estas tres se pasaban como prop
   // y no existían, así que "Costear especial" y "Catálogo" también morían en
   // blanco. `resultado` es el cálculo; el mueble en sí vive en `costeo`.
-  function onAgregarCotizacion(resultado, precio, margen) {
+  async function onAgregarCotizacion(resultado, precio, margen) {
     const n = Math.max(1, Number(costeo.piezas) || 1);
-    // Piezas sin material: el motor ya las reporta; si no vino el resultado, se
-    // deriva del despiece. Viaja con la partida para bloquear la emisión (no el
-    // guardado) hasta que se les asigne material.
+
+    // GATE AUTORITATIVO: antes de convertir un costeo NUEVO en una línea comercial,
+    // el servidor recalcula con la configuración real. Un centavo de diferencia
+    // implica estado no reproducible y falla cerrado.
+    let autoridad;
+    try {
+      autoridad = await costearServidor(costeo, n);
+    } catch (_e) {
+      const error = 'No se agregó: no pude verificar el costo con el servidor.';
+      mostrarAviso(error, 8000);
+      return { ok: false, error };
+    }
+    if (!autoridad?.ok) {
+      const error = 'No se agregó: ' + (autoridad?.error || 'el servidor no pudo verificar este costeo.');
+      mostrarAviso(error, 8000);
+      return { ok: false, error };
+    }
+    if (autoridad.estado === 'incompleto' || autoridad.estado === 'bloqueado') {
+      const error = `No se agregó: el costo autoritativo está ${autoridad.estado}.`;
+      mostrarAviso(error, 8000);
+      return { ok: false, error };
+    }
+
+    const costoClienteRaw = resultado?.costoUnitario;
+    const costoServidorRaw = autoridad?.costo?.costoUnitario;
+    const clienteC = aCentavosEnteros(costoClienteRaw);
+    const servidorC = aCentavosEnteros(costoServidorRaw);
+    if (clienteC == null || servidorC == null) {
+      const error = 'No se agregó: el costo no es finito o no quedó certificado.';
+      mostrarAviso(error, 8000);
+      return { ok: false, error };
+    }
+    if (clienteC !== servidorC) {
+      const delta = Math.abs(clienteC - servidorC) / 100;
+      const error = `No se agregó: cliente y servidor difieren $${delta.toFixed(2)}. Recarga y vuelve a costear.`;
+      mostrarAviso(error, 9000);
+      return { ok: false, error };
+    }
+
+    const costoServidor = dinero(costoServidorRaw);
     const sinMat = Array.isArray(resultado?.componentesIgnorados)
       ? resultado.componentesIgnorados
       : pendientesDeCosteo(costeo, estado.insumos, modeloParaPieza(estado.parametros, costeo).par);
-    // Piezas excluidas ($0 por decisión): el motor ya las reporta; si no, del despiece.
     const excl = Array.isArray(resultado?.componentesExcluidos)
       ? resultado.componentesExcluidos
       : (costeo.componentes || []).filter((c) => c && c.excluida).map((c) => c.nombre || 'Partida excluida');
-    sumarPartidas([crearPartida({
+
+    sumarPartidas([{
+      id: idNuevo('p'),
       piezaId: costeo.piezaId || null,
       nombre: costeo.nombre || 'Mueble a la medida',
       ruta: costeo.ruta || null,
       productoId: costeo.productoId || null,
       w: costeo.w || null, d: costeo.d || null,
       cantidad: n,
-      // Sólo un costo COMPLETO es costo (costoOficial); incompleto ⇒ desconocido, no 0.
-      costoUnitario: resultado?.costoOficial ?? null,
+      costoUnitario: costoServidor,
+      costoPendiente: false,
+      costoEstado: autoridad.estado || null,
+      versionMotor: autoridad.versionMotor || null,
+      versionCatalogo: autoridad.versionCatalogo || null,
       precioUnitario: precio,
       margen,
       piezasSinMaterial: sinMat.length,
       nombresSinMaterial: sinMat,
       nombresExcluidos: excl,
-      estadoCosto: resultado?.estadoCosto ?? null,
-    }, { veCostos, origen: 'costeo' })]);
-    mostrarAviso(`Agregado: ${costeo.nombre || 'mueble a la medida'}`);
+    }]);
+    mostrarAviso(`Agregado y verificado: ${costeo.nombre || 'mueble a la medida'}`);
+    return { ok: true, costoUnitario: costoServidor, estado: autoridad.estado };
   }
 
   // Guarda el despiece actual como pieza reutilizable del catálogo interno.
@@ -868,7 +991,7 @@ export default function App() {
   // igual con distinto acabado SÍ son renglones distintos.
   const mismoRenglon = (a, b) =>
     a.nombre === b.nombre &&
-    Math.round(a.precioUnitario || 0) === Math.round(b.precioUnitario || 0) &&
+    aCentavosEnteros(a.precioUnitario) === aCentavosEnteros(b.precioUnitario) &&
     (a.piezaId || null) === (b.piezaId || null) &&
     (a.ruta || null) === (b.ruta || null) &&
     (a.productoId || null) === (b.productoId || null) &&
@@ -889,7 +1012,11 @@ export default function App() {
     setEstado((e) => {
       const previas = e.cotizacion.partidas || [];
       const base = opts.reemplaza ? previas.filter((p) => p.loteIA !== opts.reemplaza) : previas;
-      return { ...e, cotizacion: { ...e.cotizacion, partidas: juntarIguales([...base, ...partidas]) } };
+      // #5: una interpretación NUEVA REEMPLAZA el brief (no se queda pegado el
+      // anterior). Si opts trae programaBrief (hubo interpretación), manda; si no,
+      // se conserva el existente (fue un add que no vino del intérprete).
+      const programaBrief = ('programaBrief' in opts) ? opts.programaBrief : e.cotizacion.programaBrief;
+      return { ...e, cotizacion: { ...e.cotizacion, partidas: juntarIguales([...base, ...partidas]), ...(programaBrief !== undefined ? { programaBrief } : {}) } };
     });
     mostrarAviso(`¡Listo! ${partidas.length} mueble(s) en tu proyecto`);
   }
@@ -923,7 +1050,7 @@ export default function App() {
     if (!p) return 0;
     const esSilleria = item?.categoria === 'Sillería';
     const precio2 = esSilleria ? p : p / 0.60;
-    return Math.round(costoImplicito(precio2));
+    return dinero(costoImplicito(precio2));
   };
   const margenDeBanco = (item) => {
     const c = costoDeBanco(item), p = Number(item?.precio) || 0;
@@ -1067,7 +1194,14 @@ export default function App() {
           // Cotizar como partida con producto_id + producto_version_id ya fijados
           // (partidaDeCosteo). Sin esta prop el botón nunca aparecía y el camino
           // Cocrear→Cotizar quedaba muerto (una sola verdad de producto).
-          <Cocrear estado={estado} soloVentas={esVendedor} onIr={irA} onAgregar={agregarDesdeAsistente} />
+          <Cocrear
+            estado={estado}
+            soloVentas={esVendedor}
+            rol={esDireccion ? 'direccion' : esDiseno ? 'diseno' : 'ventas'}
+            usuarioEmail={sesion?.user?.email || null}
+            onIr={irA}
+            onAgregar={agregarDesdeAsistente}
+          />
         )}
         {pestania === 'banco' && <Banco onAgregar={agregarDeBanco} onIr={irA} />}
         {pestania === 'archivo' && (
@@ -1111,6 +1245,8 @@ export default function App() {
                 contingenciaPct: full.totales?.contingenciaPct ?? estado.cotizacion.contingenciaPct,
                 maniobrasPct: full.totales?.maniobrasPct ?? estado.cotizacion.maniobrasPct,
                 fletePct: full.totales?.fletePct ?? estado.cotizacion.fletePct,
+                ivaPct: full.totales?.ivaPct ?? estado.cotizacion.ivaPct,
+                anticipoPct: full.totales?.anticipoPct ?? estado.cotizacion.anticipoPct,
               };
               // Lo que se acaba de abrir YA está en la nube: no se reescribe (ni se pisa la
               // economía que este rol no ve) hasta que el usuario edite algo.
@@ -1161,7 +1297,8 @@ export default function App() {
           ? (
             <div className="contenido">
               <Costeador estado={estado} costeo={costeo} setCosteo={setCosteo}
-                onAgregarCotizacion={onAgregarCotizacion} onGuardarPieza={onGuardarPieza} />
+                onAgregarCotizacion={onAgregarCotizacion} onGuardarPieza={onGuardarPieza}
+                puedeVerComercial={esDireccion} />
             </div>
           )
           : <div className="contenido"><div className="tarjeta"><p className="ayuda">El modo avanzado y el costo de fabricación son para Diseño y Dirección. Usa <strong>Cotizar un mueble</strong> para el precio recomendado.</p></div></div>
@@ -1179,11 +1316,12 @@ export default function App() {
             paso={voniPaso} setPaso={setVoniPaso}
             onAgregarItems={agregarItemsProyecto}
             onGuardarAcomodo={guardarAcomodo}
+            onAplicarPrograma={aplicarProgramaDetectado}
             onIr={irA}
           />
         )}
         {pestania === 'contrasena' && <CambiarContrasena email={sesion?.user?.email} recuperacion={recuperando} onListo={() => { setRecuperando(false); irInicio(); }} />}
-        {pestania === 'acomodo' && <Acomodo estado={estado} onIr={irA} onGuardarAcomodo={guardarAcomodo} />}
+        {pestania === 'acomodo' && <Acomodo estado={estado} onIr={irA} onGuardarAcomodo={guardarAcomodo} onAplicarPrograma={aplicarProgramaDetectado} />}
         {pestania === 'precios' && (veCostos
           ? <Precios estado={estado} setEstado={setEstado} puedeVerDireccion={desbloqueado} onDireccion={null} />
           : <div className="contenido"><div className="tarjeta"><p className="ayuda">Los precios de materiales son costos y solo los ven Diseño y Dirección.</p></div></div>
@@ -1235,6 +1373,8 @@ export default function App() {
                 // Fuente económica autorizada: SÓLO veCostos, y sólo el BOM del
                 // costeo actual (la tool igual bloquea a vendedor/cliente).
                 bom: veCostos ? (costeo?.componentes || null) : null,
+                costing: veCostos ? voniCosting : null,
+                materialesTecnicos: materialesTecnicosVoni,
                 clientSafe: false,
               }}
               onCerrar={() => setVoniAbierto(false)}
