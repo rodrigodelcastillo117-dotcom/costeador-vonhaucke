@@ -84,12 +84,33 @@ del gateway sólo exige un JWT válido y la llave anónima lo es; la función no
 Sin datos expuestos (sólo cómputo), pero cualquiera con la llave pública podía consumirla. Fix: Bearer + `auth.getUser()`
 → 401 `UNAUTHENTICATED`, igual que `acomodar-espacio`. Se re-despliega como v8.
 
-**VH-088 · DATO · OPEN (decisión de Dirección) · El costeo de producción usa `config.datos.insumos` (92 insumos del
-2026-08-11), no el catálogo certificado.** Confirmado en la prueba en vivo: `melamina-19` = $320/m² y `melamina-16` =
-$900/hoja en la config, contra $483/hoja (ERP 2026-04-15) y $449–685/hoja certificados en `catalogo_vigente`. El
-cliente y `costear-servidor` replican la config a propósito (para cuadrar al centavo entre sí). Los 133 insumos
-certificados hoy sólo alimentan el Banco de precios. Decisión pendiente: migrar el motor a `catalogo_vigente` (cambia
-costos de todo lo que se cotice; requiere golden antes/después) o refrescar la config desde el catálogo certificado.
+**VH-088 · ARQUITECTURA · HECHO 2026-10-12 (Dirección: "ya migra el motor al catálogo de todas las compras") · El motor
+costea con el CATÁLOGO, no con la foto de config.** Antes: cliente y `costear-servidor` usaban `config.datos.insumos`
+(92 insumos del 2026-08-11; melamina-19 a $320/m², melamina-16 a $900/hoja) y los 133 certificados sólo alimentaban el
+Banco de precios. Ahora:
+· **Datos**: TODO el archivo del ERP con costo entró al catálogo: 10,964 registros nuevos (`clasificacion='erp'`,
+  ids `erp-<clave>[-<opción>]`, unidad normalizada, sección/familia por heurística, formato de tablero/tramo cuando el
+  nombre lo permite) + 10,964 filas DATA_TRUTH_V1 con documento y hash. 1,660 con compra ≤ 24 meses quedaron
+  **aprobadas** (RPC por lote con sesión de dirección); 9,304 con compra más antigua quedaron `propuesto_validado`
+  (tienen precio, cuestan, pero NO certifican y lo dicen). 1,108 BLOQUEADOS en el ERP entraron `activo=false`.
+  5,446 registros del archivo SIN costo no se cargaron (no hay qué costear; nunca $0).
+· **SQL** (`20261012043000_vh088_catalogo_motor.sql`): `private_api.insumo_motor` (forma del motor: precio NULL =
+  pendiente), `catalogo_motor(incluir_erp, ids)`, `buscar_insumos_motor(q, límite)`, `aprobar_precios_lote(ids)`;
+  `config_para_rol` entrega a direccion/diseno `insumos` desde el catálogo (`insumosFuente='catalogo'`); vendedor sigue
+  sin economía.
+· **Servidor**: `costear-servidor` arma `insumos` con `catalogo_motor(false, idsDeLaPieza)`; si el catálogo no responde,
+  cae a config/semilla y lo AVISA (`catalogoFuente='config-fallback'` + warning). `analizar-mueble` sólo ofrece a la
+  IA el catálogo CURADO (`clasificacion<>'erp'`): 11k nombres no caben en un prompt y la IA no debe elegir a ciegas.
+· **Cliente**: `aplicarCompartido` conserva `insumosFuente`; la suscripción en vivo a `config` re-lee por la RPC (el
+  payload crudo traía la foto); `Precios.jsx` es sólo lectura cuando los precios vienen del catálogo (un precio cambia
+  con una compra o un documento, no a mano); Costeador y Asistente especial tienen **"Buscar en todo el catálogo"**
+  (`BuscadorInsumo.jsx`, RPC `buscar_insumos_motor`) para elegir a mano un insumo del ERP: la elección humana viaja
+  como USER_CONFIRMED y el insumo entra al mapa local para que pantalla y servidor cuadren.
+· **Lo que cambia en dinero**: todo costeo de direccion/diseno usa ahora el precio vigente del catálogo (p. ej.
+  melamina-19 $544/hoja en vez de $320/m²; melamina-16 $450/hoja en vez de $900). Las cotizaciones emitidas conservan su
+  huella; se recostean sólo si se reabren.
+· **Límites honestos**: los insumos del ERP sin formato conocido se costean por su unidad de compra (pza/m/kg/hoja),
+  sin rejilla ni merma; 2 insumos curados siguen sin precio (portamonitor Loktec); la IA no ve el ERP (se busca a mano).
 
 **VH-083 · DATO · HECHO 2026-10-12 · A11 certificación con documento ERP.** Cruce de los 259 insumos de la semilla
 contra "Costos de Materia Prima Ultima Compra al 10082026.xlsx" (ERP Intelisis, Drive de Compras; 16,520 registros

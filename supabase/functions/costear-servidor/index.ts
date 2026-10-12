@@ -89,14 +89,24 @@ Deno.serve(async (req) => {
   if (cfgErr) return json({ ok: false, error: "No se pudo leer la configuración." }, 502);
   const datos = (cfg?.datos as any) || {};
 
-  // Mismo ensamblado que el cliente (App.jsx `aplicarCompartido`): la config de la
-  // NUBE es la autoridad viva. Si trae `insumos`, el cliente los REEMPLAZA (no
-  // mergea con la semilla del código); solo cae a la semilla si la nube no trae.
-  // Los parámetros SÍ se funden sobre los defaults. Replicarlo EXACTO es lo que
-  // hace que el servidor cuadre al centavo con lo que ve el cliente hoy.
-  const insumos = (datos.insumos && typeof datos.insumos === "object" && Object.keys(datos.insumos).length)
-    ? datos.insumos
-    : mapaInsumos(INSUMOS_SEMILLA);
+  // VH-088 (2026-10-12, Dirección): el motor costea con el CATÁLOGO (insumos_catalogo ⨝ catalogo_vigente)
+  // vía la RPC catalogo_motor — la MISMA fuente que recibe el cliente en config_para_rol — y no con la
+  // foto config.datos.insumos. Se piden el catálogo curado + los ids concretos de la pieza (los ERP
+  // que haya elegido a mano el usuario). Si el catálogo no responde, se cae a config/semilla y se
+  // AVISA (catalogoFuente='config-fallback'): nunca en silencio.
+  const idsPieza: string[] = [...new Set(((pieza.componentes || []) as any[]).map((c: any) => String(c?.insumoId || "")).filter(Boolean))];
+  let insumos: Record<string, any> | null = null;
+  let catalogoFuente: "catalogo" | "config-fallback" = "catalogo";
+  try {
+    const { data: cat, error: catErr } = await svc.rpc("catalogo_motor", { p_incluir_erp: false, p_ids: idsPieza.length ? idsPieza : null });
+    if (!catErr && cat && typeof cat === "object" && Object.keys(cat).length) insumos = cat as Record<string, any>;
+  } catch (_e) { /* fallback abajo */ }
+  if (!insumos) {
+    catalogoFuente = "config-fallback";
+    insumos = (datos.insumos && typeof datos.insumos === "object" && Object.keys(datos.insumos).length)
+      ? datos.insumos
+      : mapaInsumos(INSUMOS_SEMILLA);
+  }
   const parametros = { ...PARAMETROS_DEFAULT, ...(datos.parametros || {}) };
 
   // --- CAPABILITY DE CONFIRMACIÓN TÉCNICA (P0.9, servidor autoritativo) ---
@@ -143,6 +153,7 @@ Deno.serve(async (req) => {
   const emision = costeoEmitible(r);
   const faltan: string[] = Array.isArray(r.componentesIgnorados) ? r.componentesIgnorados : [];
   const warnings: string[] = [];
+  if (catalogoFuente === 'config-fallback') warnings.push('Catálogo central no disponible: costo con la configuración de respaldo. No cotices en firme.');
   if (faltan.length) warnings.push(`${faltan.length} pieza(s) sin material/precio usable: ${faltan.join(", ")}`);
   for (const b of emision.bloqueos?.formato_incompatible || []) warnings.push(b);
   if (emision.bloqueos?.costo_invalido) warnings.push("Costo calculado inválido/no finito.");
@@ -241,10 +252,10 @@ Deno.serve(async (req) => {
     componentesIgnorados: faltan,
   };
   const evidencia = { usados: usados.length, certificados: usados.length - noCertificados.length, noCertificados: noCertificados.length };
-  if (esDiseno) return json({ ok: true, estado, piezas: n, costo: tecnico, evidencia, ...meta, warnings });
+  if (esDiseno) return json({ ok: true, estado, piezas: n, costo: tecnico, evidencia, ...meta, catalogoFuente, warnings });
 
   // Dirección: todo (incluye precio, margen, desglose completo y evidencia).
-  return json({ ok: true, estado, piezas: n, precioVenta: hayPrecio ? precioVenta : null, margen, costo: tecnico, evidencia, desglose: r, ...meta, warnings });
+  return json({ ok: true, estado, piezas: n, precioVenta: hayPrecio ? precioVenta : null, margen, costo: tecnico, evidencia, desglose: r, ...meta, catalogoFuente, warnings });
 });
 
 function json(obj: unknown, status = 200) {

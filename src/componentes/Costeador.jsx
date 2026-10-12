@@ -19,6 +19,7 @@ import AnalisisEstructural from './AnalisisEstructural.jsx';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, alertaMaterial } from '../datos/materialMatch.js';
+import BuscadorInsumo from './BuscadorInsumo.jsx';
 import { renderSpecFromGraph } from '../datos/renderSpec.js';
 import { flagActivo } from '../datos/flags.js';
 import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
@@ -45,7 +46,7 @@ const MM_MINIMO = 10;
 export const pareceMetros = (v) => Number(v) > 0 && Number(v) < MM_MINIMO;
 export const aMilimetros = (v) => (pareceMetros(v) ? Math.round(Number(v) * 1000) : Number(v) || 0);
 
-export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizacion, onGuardarPieza, puedeVerComercial = true }) {
+export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizacion, onGuardarPieza, puedeVerComercial = true, onAgregarInsumo = null }) {
   const [abiertas, setAbiertas] = useState({ cubiertas: true });
   const [fichaAbierta, setFichaAbierta] = useState(false);
   const [generando, setGenerando] = useState(false);
@@ -248,8 +249,10 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     comps[i] = { ...comps[i], ...parcial };
     set({ componentes: comps });
   }
-  function onMaterial(i, insumoId, { confirmado = false } = {}) {
-    const ins = insumos[insumoId];
+  function onMaterial(i, insumoId, { confirmado = false } = {}, insumoNuevo = null) {
+    // VH-088: si el insumo viene del buscador (ERP) todavía no está en `insumos` (llega en el siguiente
+    // render vía onAgregarInsumo); se usa el objeto recibido para decidir medidas/fracción.
+    const ins = insumos[insumoId] || (insumoNuevo && insumoNuevo.id === insumoId ? insumoNuevo : undefined);
     const comps = costeo.componentes.slice();
     const prev = comps[i];
     const patch = { insumoId, nombre: prev.nombre || (ins ? ins.nombre : '') };
@@ -451,14 +454,19 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                     <option value="">— ¿de qué es? —</option>
                     {SECCIONES.map((sec) => (
                       <optgroup label={sec.nombre} key={sec.id}>
-                        {Object.values(insumos).filter((x) => x.seccion === sec.id).map((x) => (
+                        {Object.values(insumos).filter((x) => x.seccion === sec.id && (x.clasificacion !== 'erp' || x.id === c.insumoId)).map((x) => (
                           <option value={x.id} key={x.id}>{x.nombre}</option>
                         ))}
                       </optgroup>
                     ))}
+                    {/* VH-088: un insumo del ERP elegido a mano (fuera de las secciones curadas) sigue visible en el selector */}
+                    {c.insumoId && insumos[c.insumoId] && !SECCIONES.some((sec) => sec.id === insumos[c.insumoId].seccion) && (
+                      <optgroup label="Catálogo ERP"><option value={c.insumoId}>{insumos[c.insumoId].nombre}</option></optgroup>
+                    )}
                   </select>
                   <button className="pieza-x" onClick={() => quitarPieza(i)} aria-label="quitar pieza">×</button>
                 </div>
+                {onAgregarInsumo && <BuscadorInsumo onElegir={(ins) => { onAgregarInsumo(ins); onMaterial(i, ins.id, { confirmado: true }, ins); }} />}
 
                 {(() => {
                   const est = estadoMaterialUI(c, insumos);

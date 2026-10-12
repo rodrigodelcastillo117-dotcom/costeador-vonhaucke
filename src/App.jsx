@@ -168,6 +168,9 @@ const firmaDir = (d) => JSON.stringify([d.nomina, d.finanzas]);
 function aplicarCompartido(estado, datos) {
   const nuevo = { ...estado };
   if (datos.insumos) nuevo.insumos = datos.insumos;
+  // VH-088: de dónde salieron los insumos ('catalogo' = catálogo certificado vía config_para_rol;
+  // 'config-fallback' = foto de config). Precios.jsx lo usa para no dejar editar lo que no manda.
+  if (datos.insumosFuente) nuevo.insumosFuente = datos.insumosFuente;
   if (datos.piezas) nuevo.piezas = datos.piezas;
   // Los parametros se FUNDEN: lo compartido no debe borrar la nomina que
   // Direccion ya tenga cargada desde su boveda.
@@ -616,6 +619,12 @@ export default function App() {
   const aplicandoRemoto = useRef(false);   // true = el cambio vino de la nube, no re-subir
   const ultimoCompartido = useRef('');     // JSON de lo ultimo compartido, para no reescribir igual
   const timerNube = useRef(null);
+  // VH-088: un insumo elegido a mano del catálogo grande (ERP) entra al mapa del motor local para
+  // que el costeo en pantalla coincida con el del servidor (que lo resuelve por id).
+  const agregarInsumoCatalogo = (ins) => {
+    if (!ins || !ins.id) return;
+    setEstado((e) => (e.insumos && e.insumos[ins.id] ? e : { ...e, insumos: { ...e.insumos, [ins.id]: ins } }));
+  };
   const ultimoDireccion = useRef('');   // firma de la boveda, para no reescribir igual
   const avisoGuardadoLocal = useRef(false); // ya se avisó que localStorage no guarda (no repetir en cada tecla)
 
@@ -665,13 +674,17 @@ export default function App() {
     // La suscripción en vivo a `config` trae precios/costos de insumos: SOLO para
     // quien ve costos (Dirección/Diseño). El vendedor no la necesita y, tras el
     // cierre de RLS de config, tampoco podría leerla. Para el vendedor es no-op.
-    const desuscribir = veCostos ? suscribirConfig((datos) => {
-      if (!datos || !datos.insumos) return;
-      const f = firma(datos);
-      if (f === ultimoCompartido.current) return; // es mi propio cambio, ignorar
-      aplicandoRemoto.current = true;
-      ultimoCompartido.current = f;
-      setEstado((e) => aplicarCompartido(e, datos));
+    // VH-088: el payload en vivo trae la fila cruda de `config` (insumos de la foto), no el catálogo.
+    // Se usa sólo como SEÑAL y se vuelve a leer por la RPC, que arma los insumos desde el catálogo.
+    const desuscribir = veCostos ? suscribirConfig(() => {
+      leerConfig().then((datos) => {
+        if (!vivo || !datos || !datos.insumos) return;
+        const f = firma(datos);
+        if (f === ultimoCompartido.current) return; // es mi propio cambio, ignorar
+        aplicandoRemoto.current = true;
+        ultimoCompartido.current = f;
+        setEstado((e) => aplicarCompartido(e, datos));
+      }).catch(() => {});
     }) : () => {};
     return () => { vivo = false; desuscribir(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1291,7 +1304,7 @@ export default function App() {
         {pestania === 'worklounge' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Work Lounge" productos={WORKLOUNGE_PRODUCTOS} generar={generarWorklounge} onAgregar={agregarDesdeAsistente} /></div>}
         {pestania === 'cirque' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Cirque" productos={CIRQUE_PRODUCTOS} generar={generarCirque} onAgregar={agregarDesdeAsistente} /></div>}
         {pestania === 'especial' && (veCostos
-          ? <div className="contenido"><AsistenteEspecial estado={estado} onVerDetalle={(bor) => { setCosteo({ ...costeoEnBlanco(), ...bor, factorDirecta: bor.factorDirecta ?? null, factorIndirecta: bor.factorIndirecta ?? null }); irA('costeador'); }} onInicio={irInicio} onBiblioteca={() => irA('biblioteca')} expedienteInicial={expedienteAbierto} /></div>
+          ? <div className="contenido"><AsistenteEspecial estado={estado} onAgregarInsumo={agregarInsumoCatalogo} onVerDetalle={(bor) => { setCosteo({ ...costeoEnBlanco(), ...bor, factorDirecta: bor.factorDirecta ?? null, factorIndirecta: bor.factorIndirecta ?? null }); irA('costeador'); }} onInicio={irInicio} onBiblioteca={() => irA('biblioteca')} expedienteInicial={expedienteAbierto} /></div>
           : <div className="contenido"><div className="tarjeta"><p className="ayuda">Costear desde cero es para Diseño y Dirección.</p></div></div>
         )}
         {pestania === 'biblioteca' && (veCostos
@@ -1307,7 +1320,7 @@ export default function App() {
             <div className="contenido">
               <Costeador estado={estado} costeo={costeo} setCosteo={setCosteo}
                 onAgregarCotizacion={onAgregarCotizacion} onGuardarPieza={onGuardarPieza}
-                puedeVerComercial={esDireccion} />
+                puedeVerComercial={esDireccion} onAgregarInsumo={agregarInsumoCatalogo} />
             </div>
           )
           : <div className="contenido"><div className="tarjeta"><p className="ayuda">El modo avanzado y el costo de fabricación son para Diseño y Dirección. Usa <strong>Cotizar un mueble</strong> para el precio recomendado.</p></div></div>

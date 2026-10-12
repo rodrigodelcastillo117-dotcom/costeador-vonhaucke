@@ -566,7 +566,7 @@ async function construirCatalogo(clienteCat: any): Promise<{ texto: string; cano
       // 1) PRECIOS VIGENTES (lo que SÍ tiene precio certificado/propuesto).
       const precios = new Map<string, { precio: any; unidad: string }>();
       const rp = await fetch(
-        `${url}/rest/v1/catalogo_vigente?select=insumo_id,unidad_compra,precio`,
+        `${url}/rest/v1/catalogo_vigente?select=insumo_id,unidad_compra,precio&clasificacion=neq.erp`,
         { headers: h },
       );
       // A4 (VH-065c): el catálogo es "canónico" sólo si se leyeron DEFINICIONES Y PRECIOS.
@@ -578,12 +578,15 @@ async function construirCatalogo(clienteCat: any): Promise<{ texto: string; cano
           if (c?.insumo_id) precios.set(c.insumo_id, { precio: c.precio, unidad: c.unidad_compra });
         }
       }
-      // 2) TODAS LAS DEFINICIONES ACTIVAS = autoridad de "qué materiales EXISTEN".
+      // VH-088 (2026-10-12): el catálogo trae ~11k registros del ERP (clasificacion 'erp'); a la IA
+      // sólo se le ofrece el catálogo CURADO (vigente/nuevo/directa/indirecta). Los ERP se buscan a mano
+      // en el Costeador y el motor los costea igual desde catalogo_motor().
+      // 2) TODAS LAS DEFINICIONES ACTIVAS CURADAS = autoridad de "qué materiales EXISTEN".
       //    Una definición activa SIN precio vigente (p.ej. superficie sólida recién
       //    dada de alta) se lista como SIN PRECIO CERTIFICADO — existe, pero su
       //    precio está pendiente; NUNCA se costea en $0 ni se sustituye por otra.
       const rc = await fetch(
-        `${url}/rest/v1/insumos_catalogo?select=id,nombre,seccion,unidad_costeo,activo&activo=eq.true&order=seccion`,
+        `${url}/rest/v1/insumos_catalogo?select=id,nombre,seccion,unidad_costeo,activo&activo=eq.true&clasificacion=neq.erp&order=seccion`,
         { headers: h },
       );
       if (rc.ok) {
