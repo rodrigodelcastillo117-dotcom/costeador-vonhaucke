@@ -252,6 +252,93 @@ export default function Voni({
   // botón fue "agregar y acomodar", saltamos al paso 2.
   const agregarEnProyecto = (items, opts) => onAgregarItems(items, opts);
 
+  // UX (12-oct): las decisiones que pide el plano (programa detectado, duplicados, conflictos) van DESPUÉS de lo que
+  // la persona describe y ANTES de revisar la lista: primero cuentas qué lleva, luego decides lo que el plano propone.
+  const panelPrograma = (
+    <>
+    {propuestaPrograma && (faltantesPrograma.length > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0 || duplicadosPrograma.length > 0 || ambiguasPrograma.length > 0) && (
+      <div className="tarjeta no-imprimir" style={{ borderColor: '#8bbcaf', background: '#eef6f3', color: '#174f45' }}>
+        <strong style={{ color: '#174f45' }}>✨ Programa detectado del plano</strong>
+        <p className="ayuda" style={{ marginTop: 4 }}>
+          Productos reales del catálogo. Se agrega SÓLO lo que falta (no duplica lo ya cotizado). El precio lo revalida el servidor al emitir.
+        </p>
+        {faltantesPrograma.length > 0 && (
+          <div style={{ marginTop: 8 }}>
+            <div style={{ fontWeight: 700, color: '#174f45' }}>Por agregar</div>
+            {faltantesPrograma.map((p) => (
+              <div key={p.id}>✓ {p.cantidad}× {p.nombre}{p.w ? ` · ${(p.w / 1000).toFixed(2)}×${((p.d || 0) / 1000).toFixed(2)} m` : ''}</div>
+            ))}
+          </div>
+        )}
+        {duplicadosPrograma.length > 0 && (
+          <div style={{ marginTop: 8 }} data-testid="duplicados-programa">
+            <div style={{ fontWeight: 700, color: '#174f45' }}>Ya describiste estos muebles: el programa los tenía con producto genérico y se fusionan (no se duplican)</div>
+            {duplicadosPrograma.map((d, i) => (
+              <div key={i}>⇄ <b>{d.a}</b> sustituye a <span style={{ color: '#6b645c' }}>{d.de}</span>{d.parcial ? <span className="ayuda"> · quedan {d.restante} del programa</span> : null}{d.capacidadDistinta ? <span className="ayuda"> · ojo: el plano pedía {d.capacidadPrograma} usuarios y tu mueble es de {d.capacidadNueva}</span> : null}</div>
+            ))}
+          </div>
+        )}
+        {ambiguasPrograma.length > 0 && (
+          <div style={{ marginTop: 8, color: '#8a5a00' }} data-testid="ambiguas-programa">
+            <div style={{ fontWeight: 700 }}>Decide tú: estos muebles podrían cubrir más de un lugar del plano (no se sustituye solo)</div>
+            {ambiguasPrograma.map((a) => (
+              <div key={a.id} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 4 }} data-testid="ambigua-programa" data-id={a.id}>
+                <span>⇄ <b>{a.nombre}</b>{a.cantidad > 1 ? ` ×${a.cantidad}` : ''}{a.zonaActual ? ` (hoy en ${a.zonaActual})` : ''} {a.motivo === 'CANTIDAD_MAYOR_QUE_LUGAR' ? 'tiene más unidades que lugar; ¿mover una a…?' : 'es para:'}</span>
+                {a.opciones.map((o) => (
+                  <button key={o.id} type="button" className="boton fantasma" style={{ minHeight: 30 }}
+                    onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta, { decisiones: { [a.id]: o.id } })}>
+                    {o.zona || o.nombre}
+                  </button>
+                ))}
+                {/* VH-116: repartir una unidad por zona SOLO si la persona lo pide; la cantidad no prueba intención. */}
+                {a.puedeRepartir && (
+                  <button type="button" className="boton tinta" style={{ minHeight: 30 }} data-testid="ambigua-repartir"
+                    onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta, { decisiones: { [a.id]: 'repartir' } })}>
+                    Repartir: una por {a.motivo === 'CANTIDAD_MAYOR_QUE_LUGAR' ? 'lugar faltante' : 'zona'}
+                  </button>
+                )}
+                <span className="ayuda">(o déjalo como está)</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {pendientesPrograma.length > 0 && (
+          <div style={{ marginTop: 8, color: '#8a5a00' }}>
+            <div style={{ fontWeight: 700 }}>Pendiente de confirmar (no se sustituye solo)</div>
+            {pendientesPrograma.map((p, i) => (
+              <div key={i}>⚠ {p.rol}{p.faltante?.requested?.model ? ` · ${p.faltante.requested.model}` : ''} — {p.faltante?.reason || 'NEEDS_CONFIRMATION'}</div>
+            ))}
+          </div>
+        )}
+        {conflictosPrograma.length > 0 && (
+          <div style={{ marginTop: 8, color: '#8a1f1f' }}>
+            <div style={{ fontWeight: 700 }}>Conflicto (decide tú)</div>
+            {conflictosPrograma.filter((c) => !conflictosConservados.has(c.slot)).map((c, i) => (
+              <ConflictoPrograma key={i} c={c}
+                onConservar={() => setConflictosConservados((prev) => new Set([...prev, c.slot]))}
+                onSustituir={onAplicarPrograma ? () => onAplicarPrograma?.(propuestaPrograma.propuesta, { sustituir: [c.slot] }) : null}
+                onAmbos={onAplicarPrograma ? () => onAplicarPrograma?.(propuestaPrograma.propuesta, { mantenerAmbos: [c.slot] }) : null} />
+            ))}
+          </div>
+        )}
+        <div style={{ marginTop: 12 }}>
+          <button type="button" className="boton primario"
+            disabled={!onAplicarPrograma || (faltantesPrograma.length === 0 && reutilizadosPrograma.length === 0 && duplicadosPrograma.length === 0)}
+            onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta)}>
+            {faltantesPrograma.length ? 'Aplicar programa detectado' : duplicadosPrograma.length ? `Fusionar ${duplicadosPrograma.length} duplicado(s) con el programa` : 'Vincular lo que ya tengo al plano'}
+          </button>
+          {reutilizadosPrograma.length > 0 && (
+            <span className="ayuda" style={{ marginLeft: 10 }}>{reutilizadosPrograma.length} mueble(s) que ya describiste cubren el programa: se vinculan a su zona, no se duplican.</span>
+          )}
+          {conflictosPrograma.length > 0 && (
+            <span style={{ marginLeft: 10, color: '#8a1f1f', fontWeight: 700 }}>Decide cada conflicto arriba; lo demás sí se aplica.</span>
+          )}
+        </div>
+      </div>
+    )}
+    </>
+  );
+
   return (
     <div className="contenido voni" style={{ maxWidth: 1000 }}>
       <div className="voni-cab no-imprimir">
@@ -332,86 +419,6 @@ export default function Voni({
           lleve derecho ahí, sin un clic de más. */}
       {paso === 2 && (
         <>
-          {propuestaPrograma && (faltantesPrograma.length > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0 || duplicadosPrograma.length > 0 || ambiguasPrograma.length > 0) && (
-            <div className="tarjeta no-imprimir" style={{ borderColor: '#8bbcaf', background: '#eef6f3', color: '#174f45' }}>
-              <strong style={{ color: '#174f45' }}>✨ Programa detectado del plano</strong>
-              <p className="ayuda" style={{ marginTop: 4 }}>
-                Productos reales del catálogo. Se agrega SÓLO lo que falta (no duplica lo ya cotizado). El precio lo revalida el servidor al emitir.
-              </p>
-              {faltantesPrograma.length > 0 && (
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ fontWeight: 700, color: '#174f45' }}>Por agregar</div>
-                  {faltantesPrograma.map((p) => (
-                    <div key={p.id}>✓ {p.cantidad}× {p.nombre}{p.w ? ` · ${(p.w / 1000).toFixed(2)}×${((p.d || 0) / 1000).toFixed(2)} m` : ''}</div>
-                  ))}
-                </div>
-              )}
-              {duplicadosPrograma.length > 0 && (
-                <div style={{ marginTop: 8 }} data-testid="duplicados-programa">
-                  <div style={{ fontWeight: 700, color: '#174f45' }}>Ya describiste estos muebles: el programa los tenía con producto genérico y se fusionan (no se duplican)</div>
-                  {duplicadosPrograma.map((d, i) => (
-                    <div key={i}>⇄ <b>{d.a}</b> sustituye a <span style={{ color: '#6b645c' }}>{d.de}</span>{d.parcial ? <span className="ayuda"> · quedan {d.restante} del programa</span> : null}{d.capacidadDistinta ? <span className="ayuda"> · ojo: el plano pedía {d.capacidadPrograma} usuarios y tu mueble es de {d.capacidadNueva}</span> : null}</div>
-                  ))}
-                </div>
-              )}
-              {ambiguasPrograma.length > 0 && (
-                <div style={{ marginTop: 8, color: '#8a5a00' }} data-testid="ambiguas-programa">
-                  <div style={{ fontWeight: 700 }}>Decide tú: estos muebles podrían cubrir más de un lugar del plano (no se sustituye solo)</div>
-                  {ambiguasPrograma.map((a) => (
-                    <div key={a.id} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 4 }} data-testid="ambigua-programa" data-id={a.id}>
-                      <span>⇄ <b>{a.nombre}</b>{a.cantidad > 1 ? ` ×${a.cantidad}` : ''}{a.zonaActual ? ` (hoy en ${a.zonaActual})` : ''} {a.motivo === 'CANTIDAD_MAYOR_QUE_LUGAR' ? 'tiene más unidades que lugar; ¿mover una a…?' : 'es para:'}</span>
-                      {a.opciones.map((o) => (
-                        <button key={o.id} type="button" className="boton fantasma" style={{ minHeight: 30 }}
-                          onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta, { decisiones: { [a.id]: o.id } })}>
-                          {o.zona || o.nombre}
-                        </button>
-                      ))}
-                      {/* VH-116: repartir una unidad por zona SOLO si la persona lo pide; la cantidad no prueba intención. */}
-                      {a.puedeRepartir && (
-                        <button type="button" className="boton tinta" style={{ minHeight: 30 }} data-testid="ambigua-repartir"
-                          onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta, { decisiones: { [a.id]: 'repartir' } })}>
-                          Repartir: una por {a.motivo === 'CANTIDAD_MAYOR_QUE_LUGAR' ? 'lugar faltante' : 'zona'}
-                        </button>
-                      )}
-                      <span className="ayuda">(o déjalo como está)</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {pendientesPrograma.length > 0 && (
-                <div style={{ marginTop: 8, color: '#8a5a00' }}>
-                  <div style={{ fontWeight: 700 }}>Pendiente de confirmar (no se sustituye solo)</div>
-                  {pendientesPrograma.map((p, i) => (
-                    <div key={i}>⚠ {p.rol}{p.faltante?.requested?.model ? ` · ${p.faltante.requested.model}` : ''} — {p.faltante?.reason || 'NEEDS_CONFIRMATION'}</div>
-                  ))}
-                </div>
-              )}
-              {conflictosPrograma.length > 0 && (
-                <div style={{ marginTop: 8, color: '#8a1f1f' }}>
-                  <div style={{ fontWeight: 700 }}>Conflicto (decide tú)</div>
-                  {conflictosPrograma.filter((c) => !conflictosConservados.has(c.slot)).map((c, i) => (
-                    <ConflictoPrograma key={i} c={c}
-                      onConservar={() => setConflictosConservados((prev) => new Set([...prev, c.slot]))}
-                      onSustituir={onAplicarPrograma ? () => onAplicarPrograma?.(propuestaPrograma.propuesta, { sustituir: [c.slot] }) : null}
-                      onAmbos={onAplicarPrograma ? () => onAplicarPrograma?.(propuestaPrograma.propuesta, { mantenerAmbos: [c.slot] }) : null} />
-                  ))}
-                </div>
-              )}
-              <div style={{ marginTop: 12 }}>
-                <button type="button" className="boton primario"
-                  disabled={!onAplicarPrograma || (faltantesPrograma.length === 0 && reutilizadosPrograma.length === 0 && duplicadosPrograma.length === 0)}
-                  onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta)}>
-                  {faltantesPrograma.length ? 'Aplicar programa detectado' : duplicadosPrograma.length ? `Fusionar ${duplicadosPrograma.length} duplicado(s) con el programa` : 'Vincular lo que ya tengo al plano'}
-                </button>
-                {reutilizadosPrograma.length > 0 && (
-                  <span className="ayuda" style={{ marginLeft: 10 }}>{reutilizadosPrograma.length} mueble(s) que ya describiste cubren el programa: se vinculan a su zona, no se duplican.</span>
-                )}
-                {conflictosPrograma.length > 0 && (
-                  <span style={{ marginLeft: 10, color: '#8a1f1f', fontWeight: 700 }}>Decide cada conflicto arriba; lo demás sí se aplica.</span>
-                )}
-              </div>
-            </div>
-          )}
           <div style={{ display: (subpaso2 === 'describir' && !hay) ? undefined : 'none' }}>
             <div className="voni-saludo">
               <VoniAvatar tam={64} variante="cara" anim="bob" />
@@ -425,6 +432,8 @@ export default function Voni({
             onListo={() => setSubpaso2('revisar')}
             soloVentas={soloVentas}
           />
+
+          {subpaso2 === 'describir' && panelPrograma}
 
           {/* Puente manual, por si vuelves a un proyecto que YA tenía muebles
               (resultado es estado local: no sobrevive a recargar la página) y
@@ -443,6 +452,8 @@ export default function Voni({
               ‹ Volver a describir o agregar más
             </button>
           )}
+
+          {subpaso2 === 'revisar' && panelPrograma}
 
           {subpaso2 === 'revisar' && (
           <div className="tarjeta">

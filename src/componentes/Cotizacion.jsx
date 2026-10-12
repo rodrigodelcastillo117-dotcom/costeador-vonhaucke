@@ -3,6 +3,7 @@
 //  Al IMPRIMIR siempre sale la propuesta al cliente (nunca la tabla interna),
 //  con cantidad visible y diseño editorial Von Haucke (68 años).
 // ============================================================================
+import { CabPaso } from './SeccionPaso.jsx';
 import { useState, useMemo, useEffect } from 'react';
 import MarcaLogo from './MarcaLogo.jsx';
 import { resumenPorArea, especificacion } from '../datos/resumen.js';
@@ -483,6 +484,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
     <div className="contenido cotizacion-pg">
       {/* Editor de datos (solo pantalla) */}
       <div className="tarjeta no-imprimir">
+        <CabPaso n={1} titulo="Datos de la propuesta" estado={cot.cliente ? 'hecho' : 'activo'} nota={cot.folio ? `Folio ${cot.folio}` : 'Cliente, folio y fecha; salen en el documento.'} />
         <div style={{ marginBottom: 12 }}><MarcaLogo alto={42} /></div>
         <div className="form-3">
           <div><label className="etiqueta">Cliente</label><input type="text" value={cot.cliente} onChange={(e) => setCot({ cliente: e.target.value })} /></div>
@@ -572,6 +574,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         {/* ---------- VENDEDOR · lista simple: solo precio, sin costo ni margen ---------- */}
         {soloVentas && (
           <div className="tarjeta no-imprimir">
+            <CabPaso n={2} titulo="Muebles y precios" estado="activo" nota={`${partidas.length} renglón(es)`} />
             <h3 style={{ marginBottom: 2 }}>Muebles de la propuesta</h3>
             <p className="ayuda" style={{ marginTop: 0, marginBottom: 10 }}>Ajusta cantidades o quita lo que no va. El cliente ve la propuesta de abajo.</p>
             {partidas.map((pt, i) => (
@@ -609,6 +612,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         {/* ---------- INTERNA · Mis números (nunca imprime) ---------- */}
         {!vistaCliente && (
           <div className="tarjeta cot-interna no-imprimir">
+            <CabPaso n={2} titulo="Muebles y precios" estado="activo" nota={`${partidas.length} renglón(es) · tus números; el cliente no los ve`} />
             {(senalesProyecto.length > 0 || senalesInsumosProyecto.length > 0) && (
               <div style={{ display: 'grid', gap: 8, marginBottom: 14 }}>
                 {[...senalesProyecto, ...senalesInsumosProyecto].map((s, i) => (
@@ -709,6 +713,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
 
         {/* Controles comerciales (no imprimen) */}
         <div className="tarjeta no-imprimir" style={{ display: 'grid', gap: 10 }}>
+          <CabPaso n={3} titulo="Ajustes comerciales" estado="activo" nota="Descuento, imprevistos, instalación y flete; se aplican sobre el precio de venta." />
           <div className="fila-botones" style={{ justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <label className="etiqueta" style={{ margin: 0 }}>Descuento de proyecto (%)</label>
             <CampoPct valor={descuentoPct} max={60} onCambio={(v) => setCot({ descuentoPct: v })} />
@@ -743,7 +748,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
 
         {/* Renders con IA (no imprimen) */}
         <div className="tarjeta no-imprimir" style={{ display: 'grid', gap: 10 }}>
-          <div><strong>Imágenes de la propuesta</strong> <span className="ayuda" style={{ display: 'inline' }}>· las genera la IA, estilo Vonhaucke</span></div>
+          <CabPaso n={4} titulo="Imágenes de la propuesta" estado={cotCliente.acomodo?.render3d ? 'hecho' : 'activo'} nota="Las genera la IA, estilo Vonhaucke; también puedes subir una tuya." />
           <div className="fila-botones" style={{ gap: 10, flexWrap: 'wrap' }}>
             <button className="boton" style={{ minHeight: 46 }} disabled={genPart != null || genOficina} onClick={renderTodas}>
               {genPart != null ? 'Generando muebles…' : 'Una foto de cada mueble'}
@@ -770,14 +775,17 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           </label>
           {acomodoClienteGate.existe && !acomodoClienteGate.mostrar && (
             <div className="alerta" style={{ background:'#fff8e6', borderColor:'#d8a800', color:'#5e4700' }}>
-              <span className="texto"><strong>Acomodo no certificado para cliente.</strong>{' '}
-                {(acomodoClienteGate.razones || []).join(' · ') || acomodoClienteGate.estado}. La cotización puede emitirse, pero el plano/3D se omitirá hasta validarlo.</span>
+              <span className="texto"><strong>El plano del acomodo todavía no sale en la propuesta:</strong>{' '}
+                {(acomodoClienteGate.razones || []).join(' · ') || acomodoClienteGate.estado}. Ciérralo en el paso 3 (Acomodo); la cotización sí puede emitirse mientras tanto.</span>
             </div>
           )}
                     {errGen && <div className="alerta roja"><span className="texto">{errGen}</span></div>}
         </div>
 
         {/* ---------- CLIENTE · Propuesta premium (SIEMPRE imprime) ---------- */}
+        <div className="no-imprimir" style={{ marginTop: 14 }}>
+          <CabPaso n={5} titulo="Documento para el cliente" estado="activo" nota="Así lo verá el cliente; abajo lo descargas en PDF o lo imprimes." />
+        </div>
         <div className={`cot-cliente ${vistaCliente ? 'activa' : ''}`}>
           {/* Portada */}
           <section className="propx-cover">

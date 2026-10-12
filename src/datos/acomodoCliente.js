@@ -2,6 +2,16 @@ import { expandirPiezas, mapaPiezas } from './espacio.js';
 import { auditarColocacion } from './acomodoAudit.js';
 import { violacionesSemanticas } from './floorSpec.js';
 
+const TEXTO_ESTADO_ESPACIAL = {
+  PARTIAL: 'faltan muebles por colocar',
+  NEEDS_SEMANTIC_REVIEW: 'tiene observaciones de orientación o asientos por revisar',
+  QUALITY_REVIEW_REQUIRED: 'la calidad del acomodo (accesos, agrupación) requiere revisión',
+  NEEDS_REVIEW_METADATA: 'faltan datos del catálogo para validarlo',
+  REVIEW_REQUIRED: 'tiene observaciones por revisar',
+  NEEDS_REVIEW: 'tiene observaciones por revisar',
+  FAIL: 'el acomodo no es válido',
+};
+
 function areasMM(acomodo={}) {
   if (Array.isArray(acomodo.areas) && acomodo.areas.length) return acomodo.areas;
   if (Array.isArray(acomodo.areasM)) {
@@ -72,10 +82,11 @@ export function evaluarAcomodoCliente(acomodo, partidas=[]) {
     return {
       existe:true, mostrar:ok, valido:ok,
       estado: ok ? 'VALIDADO_ESPACIAL' : 'ESPACIAL_NO_APROBADO',
+      // En pantalla, en palabras (antes: "estado espacial NEEDS_REVIEW · render_ready=false").
       razones: ok ? [] : [
-        status && status!=='PASS' ? `estado espacial ${status}` : null,
-        !ready ? 'render_ready=false' : null,
-        !invariant ? 'invariante de cantidades inválida' : null,
+        status && status!=='PASS' ? (TEXTO_ESTADO_ESPACIAL[status] || `el acomodo quedó en estado ${status}`) : null,
+        !ready ? 'el servidor no lo dio por listo para enseñarse al cliente' : null,
+        !invariant ? 'las cantidades del plano no cuadran con la cotización' : null,
       ].filter(Boolean),
       source:'PLACEMENT_SPEC_V2',
     };

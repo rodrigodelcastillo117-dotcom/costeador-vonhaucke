@@ -5,6 +5,7 @@
 //  dibuja el plano a escala (PLANTA o 3D) y VERIFICA que caben. Se guarda en la
 //  propuesta para que salga en el PDF del cliente.
 // ============================================================================
+import SeccionPaso from './SeccionPaso.jsx';
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { acomodarEspacio, generarRender } from '../nube.js';
 import { interpretarAcomodoServidor } from '../datos/acomodoServidor.js';   // VH-067
@@ -83,22 +84,6 @@ function archivoABase64(file) {
 // aMM (metros→mm) y areasCanonicas (loader) viven en src/datos/floorPlan.js — el
 // contrato canónico único del plano. Aquí sólo se consumen.
 
-
-// UX por pasos (12-oct): cada sección del acomodo se numera y dice en qué estado va. Todo queda
-// visible siempre (nada se esconde ni se quita); sólo se ordena y se nombra en español llano.
-function SeccionAcomodo({ n, titulo, estado = 'pend', nota = '', oculto = false, testid, children }) {
-  const icono = estado === 'hecho' ? '✓' : String(n);
-  return (
-    <section className={`tarjeta no-imprimir acomodo-seccion acomodo-seccion-${estado}`} data-testid={testid} data-estado={estado} style={oculto ? { display: 'none' } : undefined}>
-      <div className="acomodo-seccion-cab">
-        <span className="acomodo-seccion-num" aria-hidden="true">{icono}</span>
-        <h2 style={{ margin: 0 }}>{titulo}</h2>
-        {nota ? <span className="ayuda acomodo-seccion-nota">{nota}</span> : null}
-      </div>
-      {children}
-    </section>
-  );
-}
 
 export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial = null, abrirDibujo = false, onConsumido, pendientesPrograma = [], bloqueosPrograma = [], textoSalida = '← Volver a la cotización' }) {
   const partidas = (estado.cotizacion?.partidas) || [];
@@ -1388,7 +1373,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       <input ref={archivoRef} type="file" accept="image/*,application/pdf,.pdf,.dwg,.dxf" style={{ display: 'none' }} onChange={subirPlano} />
 
       {/* ── 1 · TU ESPACIO ─────────────────────────────────────────────── */}
-      <SeccionAcomodo n={1} titulo="Tu espacio" estado={estadoS1} oculto={dibujando} testid="acomodo-s1"
+      <SeccionPaso n={1} titulo="Tu espacio" estado={estadoS1} oculto={dibujando} testid="acomodo-s1"
         nota={areas.length ? `${areas.length} área(s) · ${piezas.length} muebles` : 'Plano, dibujo o metros: dinos dónde va.'}>
         <p className="ayuda columna-texto">
           {/* No decir "ya acomodamos" antes de tener dónde: era el mismo vicio
@@ -1506,10 +1491,10 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
             )}
           </>
         )}
-      </SeccionAcomodo>
+      </SeccionPaso>
 
       {/* ── 2 · ACOMODAR ───────────────────────────────────────────────── */}
-      <SeccionAcomodo n={2} titulo="Acomodar" estado={estadoS2} oculto={dibujando} testid="acomodo-s2" nota={notaS2}>
+      <SeccionPaso n={2} titulo="Acomodar" estado={estadoS2} oculto={dibujando} testid="acomodo-s2" nota={notaS2}>
         <div className="fila-botones" style={{ gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           <button className="boton primario grande" data-testid="acomodo-acomodar" style={{ minHeight: 52, flex: '1 1 260px' }}
                 disabled={!areas.length || !programaListo}
@@ -1604,10 +1589,10 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
             </div>
           </div>
         )}
-      </SeccionAcomodo>
+      </SeccionPaso>
 
       {/* ── 3 · REVISA Y CORRIGE ───────────────────────────────────────── */}
-      <SeccionAcomodo n={3} titulo="Revisa y corrige" estado={estadoS3} oculto={dibujando} testid="acomodo-s3"
+      <SeccionPaso n={3} titulo="Revisa y corrige" estado={estadoS3} oculto={dibujando} testid="acomodo-s3"
         nota={!plan ? 'Aquí verás el plano y podrás mover muebles a mano.' : aMano ? 'Arrastra, gira o quita; Voni respeta lo que muevas.' : 'Planta o 3D; corrige a mano lo que no te convenza.'}>
         {plan && (
           <>
@@ -1859,10 +1844,10 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
           ))}
           </>
         )}
-      </SeccionAcomodo>
+      </SeccionPaso>
 
       {/* ── 4 · VERLO EN FOTO ──────────────────────────────────────────── */}
-      <SeccionAcomodo n={4} titulo="Verlo en foto" estado={estadoS4} oculto={dibujando} testid="acomodo-s4"
+      <SeccionPaso n={4} titulo="Verlo en foto" estado={estadoS4} oculto={dibujando} testid="acomodo-s4"
         nota={!plan ? 'Cuando esté acomodado, Voni lo convierte en imágenes para el cliente.' : 'Imágenes con IA a partir de tu acomodo; el servidor verifica que no invente muebles.'}>
         {plan && (
           <>
@@ -1976,10 +1961,10 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
           )}
         </div>
       )}
-      </SeccionAcomodo>
+      </SeccionPaso>
 
       {/* ── 5 · GUARDAR Y CONTINUAR ────────────────────────────────────── */}
-      <SeccionAcomodo n={5} titulo="Guardar y continuar" estado={estadoS5} oculto={dibujando} testid="acomodo-s5"
+      <SeccionPaso n={5} titulo="Guardar y continuar" estado={estadoS5} oculto={dibujando} testid="acomodo-s5"
         nota={!plan ? 'Puedes continuar sin acomodo; la propuesta sale sin plano.' : guardado ? 'Guardado en la propuesta.' : 'Guarda el acomodo en la propuesta y sigue.'}>
         <div className="fila-botones no-imprimir" style={{ gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           {onGuardarAcomodo && !guardado && <button className="boton" style={{ minHeight: 46 }} disabled={!programaListo}
@@ -1994,7 +1979,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
         {guardado && <div className={guardadoValido ? 'ayuda verde no-imprimir' : 'ayuda no-imprimir'} style={{ marginTop: 6 }}>
             {guardadoValido ? '✓ Acomodo validado y guardado. Ya puede aparecer en la propuesta/PDF.' : 'Borrador guardado. No se presenta al cliente como acomodo final hasta quedar válido.'}
           </div>}
-      </SeccionAcomodo>
+      </SeccionPaso>
     </div>
   );
 }
