@@ -225,6 +225,9 @@ export default function Voni({
     : [];
   const conflictosPrograma = reconPrograma ? reconPrograma.conflictos : [];
 
+
+  const pendientesPrograma = propuestaPrograma ? (propuestaPrograma.propuesta.pendientes || []) : [];
+
   // PILOTO AUTOMÁTICO (Dirección 12-oct: "que la IA haga la mayoría de las cosas"): cuando el plano
   // trae programa y NO hay nada que decidir (sin conflictos abiertos, sin filas ambiguas, sin
   // pendientes de confirmar), se aplica solo: agrega lo que falta, fusiona duplicados y vincula lo
@@ -238,13 +241,16 @@ export default function Voni({
     if (!(nFalt || nDup || nReu)) return;
     const hayDecision = conflictosPrograma.some((c) => !conflictosConservados.has(c.slot)) || ambiguasPrograma.length > 0 || pendientesPrograma.length > 0;
     if (hayDecision) return;
-    const firma = `${JSON.stringify(propuestaPrograma.propuesta).length}|${partidas.map((p) => `${p.id}:${p.cantidad}`).join(',')}`;
+    // UNA sola aplicación por programa detectado (firma del programa, no de la lista): si tras aplicar
+    // quedara algo (p.ej. un duplicado que la conciliación no resolvió), lo decide la persona con el
+    // botón; el piloto no vuelve a disparar hasta que se lea otro plano. Evita cualquier bucle.
+    const prop = propuestaPrograma.propuesta || {};
+    const firma = JSON.stringify([prop.plano_id || prop.id || null, (prop.items || prop.programa || prop.faltantes || []).map((x) => x && (x.id || x.rol || x.requirement_id)).slice(0, 80), JSON.stringify(prop).length]);
     if (pilotoRef.current === firma) return;
     pilotoRef.current = firma;
     onAplicarPrograma(propuestaPrograma.propuesta);
     setAvisoPiloto(`Piloto automático: apliqué el programa del plano (${nFalt} por agregar, ${nDup} duplicado(s) fusionado(s), ${nReu} vinculado(s)). No quité nada; revisa la lista y cambia lo que quieras.`);
   }, [propuestaPrograma, partidas, faltantesPrograma.length, duplicadosPrograma.length, reutilizadosPrograma.length, conflictosPrograma, conflictosConservados, ambiguasPrograma.length, pendientesPrograma.length]); // eslint-disable-line react-hooks/exhaustive-deps
-  const pendientesPrograma = propuestaPrograma ? (propuestaPrograma.propuesta.pendientes || []) : [];
 
   // #7: suma SÓLO precios conocidos (null/undefined NO cuenta como 0) y expone
   // cuántos faltan, para no presentar un total incompleto como definitivo.
