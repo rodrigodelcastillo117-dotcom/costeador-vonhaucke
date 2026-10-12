@@ -48,3 +48,19 @@ describe('floorSpecAvisos', () => {
     expect(nivelCombinado('nula', 'FAIL')).toBe('nula');
   });
 });
+
+describe('VH-094 · avisos repetidos se resumen con conteo', () => {
+  it('5 puertas sin barrido → un solo renglón, sin índices internos', () => {
+    const warnings = [0, 1, 2, 3, 4].map((i) => ({ field: `puertas[${i}]`, code: 'DOOR_SWING_UNVERIFIED' }));
+    const out = avisosDeValidacion({ warnings });
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatch(/^5 puertas sin bisagra/);
+    expect(out[0]).not.toMatch(/puertas\[/);
+  });
+  it('una sola puerta conserva el texto individual; otros códigos no se tocan', () => {
+    const out = avisosDeValidacion({ warnings: [{ field: 'puertas[0]', code: 'DOOR_SWING_UNVERIFIED' }, { code: 'NO_DIMENSION_AUTHORITY' }] });
+    expect(out).toHaveLength(2);
+    expect(out[0]).toMatch(/El plano no trae cotas/);
+    expect(out[1]).toMatch(/^Una puerta \[puertas\[0\]\]/);
+  });
+});

@@ -167,6 +167,71 @@ unitario = compras netas / unidades por artículo ERP), 5 presupuestos reales a 
 Boss $1.74 M, LV $2.78 M, Estuco $0.51 M con 40 % de descuento, NTD Global $2.14 M) y una cotización de librero/credenza
 2025 ($17,250 y $32,915), estados financieros a junio 2026, y 3 fotos.
 
+## RC RESCATE P0 · 2026-10-12 (rama `claude/costing-app-architecture-psf02g`, RC-1 `3b0020c`) · NADA DESPLEGADO
+
+Matriz completa con reproducción, causa raíz, pruebas y estado: `docs/RC_2026-10-12_MATRIZ_P0.md`. Resumen:
+
+**VH-097 · P0-02 · HECHO (RC) · Precio por hoja/pza/kg/m multiplicado por m².** `erp-accr348` ($1,018.50/hoja, sin
+formato) + cubierta 1200×600 costaba 0.72 × 1,018.50 = $733.32. `incompatibilidadUnidad()` en `calculo.js` bloquea con
+motivo (PENDIENTE) cuando el consumo requiere geometría y el insumo no es m² ni trae formato con medida; `hojas` exige
+formato. 22 pruebas (`unidadesErp.test.js`), goldens intactos. Servidor: mismo motor, pendiente desplegar v9.
+
+**VH-098 · P0-04 · HECHO (RC) · `fuenteCosto: "config-legado"` fijo.** `costear-servidor` registra la fuente real
+(`catalogo` | `config-fallback`), con respaldo topa el estado en `preliminar`; el snapshot del especial guarda la
+versión/fuente del servidor (null si no validó). Pendiente desplegar.
+
+**VH-090 · P0 · HECHO (RC) · Duplicados VONI-texto ↔ programa del plano** (cotización 757 real: 18 sillas para 10
+puestos, dos mesas de juntas, dos módulos directivos). `reconciliarNuevasConPrograma` (nuevo) + `confirmarPrograma`
+reutiliza por ROL el equivalente que eligió la persona, que hereda la estructura (instancia/grupo/zona/ancla/capacidad).
+
+**VH-091 · P1 · HECHO (RC) · "Aplicar programa" muerto por conflicto.** Botón por conflicto "Sustituir por el
+propuesto" (`sustituir` explícito → `reemplazados`); el principal vive cuando hay vinculables.
+
+**VH-092 · P0 · HECHO (RC) · Solver deja 25 piezas "sin un mueble que las reciba".** Las partidas de VONI no traían
+`relation_role`; `expandirPiezas` lo infiere (misma regla que el programa) y agrupa por destino; `kit-solver` adopta
+huérfanos en anclas con cupo. Reproducción real en `vh092_cotizacion757.test.js`.
+
+**VH-093 · P1 · HECHO (RC, edge sin desplegar) · Sala de consejo con 10 sillas → mesa de 4.** `leer-plano-core` cuenta
+`asientos` dibujados; `programaDelPlano` los usa como capacidad DETECTADA.
+
+**VH-094 · P2 · HECHO (RC) · "silla de juntass", "capacidad del catálogo", 5 avisos `[puertas[i]]` idénticos.**
+
+**VH-095 · P0 · HECHO (RC) · Módulo de 8 usuarios dibujado como línea.** `tipoDe` lo clasificaba 'mampara' por la
+palabra "biombo" → 4800×80. Ahora escritorio 4800×1200.
+
+**VH-096 · tests · HECHO (RC) · pasada en vivo colgada** (modal de guía + selector del home viejo).
+
+**VH-099 · P0-05 · BLOQUEADO (migración escrita, NO aplicada) · 1,931 PVs sin dimensiones.** Evidencia textual para
+1,738 (`legacy_meta.medidas` 148 + nombre Intelisis "DE a X b X c MM" 1,590): `derivar_dimensiones_catalogo(p_aplicar)`
+las escribe PRELIMINAR con fuente/evidencia por medida. Requiere autorización.
+
+**VH-100 · P0-01 · BLOQUEADO (RPC escrito, NO aplicado) · 1,931 partidas sin costo oficial.** `cargar_costos_oficiales
+(documento, filas)` vincula el reporte de costo Intelisis por clave a `producto_version_economia` con procedencia.
+Requiere el reporte (dato humano) y autorización. 10 filas `QA_FIXTURE_*` viven en producción (retirar con firma).
+
+**P0-03 · BLOQUEADO (decisión) · 1,763 precios aprobados por `qa-direccion` el 12-oct (02–03 h UTC)**: todos con
+documento+hash+sistema; moneda asumida MXN (sin columna en el Excel); IVA desconocido; 526 con última compra > 12 meses
+presentados como vigentes; 30 `reconciliacion` (1-oct) sin documento ni hash. No se revirtió ni recertificó nada.
+
+Producción (sólo lectura, 2026-10-12 04:24–05:15 UTC): pasada en vivo 9 PASS / 2 FAIL por test (VH-096); `shadow_costeo`
+sin filas nuevas desde el 10-oct (21 `error:HTTP_400` previas a VH-083/084); `leer-plano` 29/33 REVIEW_REQUIRED por puertas
+sin barrido; 602 cotizaciones QA en 7 días.
+
+**VH-109 · P0 · FIXED (`29522e4`, sin desplegar) · el acomodo nunca llegaba a la nube.** Todas las cotizaciones guardadas hoy
+traían `acomodo.plan` null / 0 colocadas aunque el encabezado dijera "En línea". Causa: `guardarAcomodo` (App.jsx) escribía el
+acomodo en un objeto nuevo con el mismo contenido cada vez que AcomodoBase guardaba solo (600 ms); el re-render hacía que
+AcomodoBase guardara otra vez → ciclo cada ~650 ms que reiniciaba el autosave a la nube (1.5 s de calma) para siempre.
+Corrección: fusión idempotente por contenido (`src/datos/acomodoEstado.js`, 4 pruebas); sin cambios ⇒ mismo estado. Evidencia:
+golden 757 — `actualizar_cotizacion_segura` con plan (36 KB) 1.5 s después del acomodo; `cotizacion_segura` y SQL devuelven
+12 partidas / 21 colocadas / 4 sin colocar (fila 803); reabrir desde el Archivo idéntico. El código del ciclo es anterior a la
+rama: producción (`766df46`) lo tiene hoy.
+
+**VH-090b · P0 · FIXED (`29522e4`) · conciliación multi-zona.** Al APLICAR el programa, la SONATA de la persona no se fusionaba
+(el panel sí la anunciaba): `confirmarPrograma` parcha una fila del programa con `zone_id` y la otra no, y el eje de ambigüedad
+las veía como dos zonas aunque cuelgan de la misma mesa. Ahora el eje es la ancla/grupo (o requerimiento/instancia) y la zona
+sólo decide sin identidad; `requirement_id` > decisión explícita > zona; varias zonas ⇒ NEEDS_REVIEW (panel en Voni), nunca
+sustitución automática; parciales ajustan el resto; capacidad distinta se avisa. 14 pruebas + golden.
+
 ## UNIFICACIÓN DE LAS DOS LÍNEAS DE CÓDIGO · 2026-10-11/12
 
 **Hecho medible.** Producción (`costeador-vonhaucke.vercel.app`, Vercel) sirve el commit `5a38d2e` de la rama
@@ -264,6 +329,11 @@ insumos activos; `catalogo_vigente` 10,113 filas, 1,783 certificables. Smoke en 
 melamina-19 1.60×0.60 confirmada → 0.5 hoja $272 (regla Producción), bisagra ERP `erp-bibipi` ×4 → $79.40 (aprobado),
 PTR 7 m → 2 tramos $458.28; `catalogoFuente: catalogo`, `versionCatalogo cat-ap1793…`, estado preliminar (melamina-19 y
 ptr sin documento). `config_para_rol` entrega 259 insumos curados en 1.05 MB / 0.58 s.**
+
+**2026-10-12 04:25 UTC · PR #32 (`766df46`) fusionado → Vercel sirviendo `index-BlaiRqb-.js` con "Cargar compras del ERP".
+Rama principal `c3.4-seller-safe` = producción. Pendientes que NO se tocaron por ser destructivos o de negocio: C1–C3
+(datos), B11/B12 (retiro de pantallas/edges), VH-076 (APPS LT bajo costo), rotación de la contraseña de `qa-direccion`
+(rompería el E2E autenticado de CI hasta actualizar el secret `TEST_PASSWORD`).**
 
 ## REGRESIONES DETECTADAS 2026-10-10 (auditoría de código, no de síntomas)
 

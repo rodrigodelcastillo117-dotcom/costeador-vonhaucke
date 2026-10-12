@@ -14,7 +14,8 @@
 // ============================================================================
 import { areasCanonicas, aMM } from './floorPlan.js';
 import { expandirPiezas } from './espacio.js';
-import { marcarDestinoPartida } from './destinoAcomodo.js';
+import { marcarDestinoPartida, destinoMarcado } from './destinoAcomodo.js';
+import { rolFromRel } from './confirmarPrograma.js';
 import { programHashCanonico, floorHash } from './acomodoHash.js';
 
 // Pasillo mínimo de circulación (mm) — parte del input geométrico para el hash.
@@ -90,6 +91,24 @@ export function construirPayloadAcomodo({ partidas = [], areasM = [], piezasExtr
   }
 
   const piezas = expandirPiezas(reales);
+  // VH-096: una pieza sin zona asignada (la describió una persona, no viene del programa) va a la
+  // PRIMERA área cuyo tipo corresponde a su destino (privado/juntas/open/recepcion), deducido del
+  // texto de la partida o, si no dice nada, de su rol. Así una credenza directiva no cae en sanitarios.
+  const tipoPorDestino = { privado: 'privado', juntas: 'juntas', open: 'open', operativo: 'open', recepcion: 'recepcion' };
+  const areaPorTipo = (tipo) => areasCanon.find((a) => String(a?.tipo || '').toLowerCase() === tipo);
+  for (const pz of piezas) {
+    if (pz.zone_id != null) continue;
+    const destino = destinoMarcado(pz) || rolFromRel(pz.relation_role) || ({ SUPPORT_STORAGE: 'privado', VISITOR_SEAT: 'privado' })[pz.relation_role] || null;
+    const area = destino ? areaPorTipo(tipoPorDestino[destino] || destino) : null;
+    if (area) pz.zone_id = area.zone_id ?? area.nombre;
+  }
+  // VH-092: una REFERENCIA (sin identidad de catálogo NI precio) sí se acomoda para que la
+  // persona vea el borrador, pero queda listada con UNRESOLVED_PRODUCT y el acomodo NUNCA
+  // se publica como VALIDADO mientras exista. PRELIMINAR (identidad sin precio autorizado, o
+  // huella supuesta) se etiqueta; sólo `sug-*` se excluye del solver (ya arriba).
+  const referencias = piezas.filter((pz) => pz.elegibilidad === 'REFERENCIA')
+    .map((pz) => ({ id: pz.id, nombre: pz.nombre, codigo: 'UNRESOLVED_PRODUCT', motivo: 'Sin identidad de catálogo ni precio autorizado: se dibuja como borrador, no cuenta como mobiliario validado.' }));
+  const preliminar = piezas.some((pz) => pz.elegibilidad !== 'CONFIRMADO' || pz.huella_fuente === 'INFERIDA');
   // Piezas EXTRA (p.ej. copias manuales `dup-*` del proyectista): ya vienen
   // expandidas (nivel pieza). Entran al solver pero NUNCA un sug-*.
   const extra = (Array.isArray(piezasExtra) ? piezasExtra : [])
@@ -108,5 +127,13 @@ export function construirPayloadAcomodo({ partidas = [], areasM = [], piezasExtr
     floor_hash: floorHash(areasCanon, { minPasillo: MIN_PASILLO_MM }),
     requested: piezasLimpias.length,
     descartadosSugeridos,
+    referencias,                             // VH-092: piezas sin identidad ni precio (UNRESOLVED_PRODUCT): bloquean VALIDADO
+    preliminar,                              // VH-092: alguna pieza no CONFIRMADA o con huella INFERIDA
+    resumenElegibilidad: {
+      confirmadas: piezasLimpias.filter((pz) => pz.elegibilidad === 'CONFIRMADO').length,
+      preliminares: piezasLimpias.filter((pz) => pz.elegibilidad === 'PRELIMINAR').length,
+      huellasInferidas: piezasLimpias.filter((pz) => pz.huella_fuente === 'INFERIDA').length,
+      referencias: referencias.length,
+    },
   };
 }

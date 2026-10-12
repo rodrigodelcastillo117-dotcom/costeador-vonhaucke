@@ -83,11 +83,14 @@ export function sentarSillas(colocacion, piezas, areas) {
   );
   const out = colocacion.map((c) => ({ ...c }));
 
-  const idxCompatible = (arr, escritorioP, pw = null, ph = null) => {
+  const idxCompatible = (arr, escritorioP, pw = null, ph = null, permitida = null) => {
     const fg = escritorioP?.functional_group_id || null;
     const candidatos = [];
     for (let i = 0; i < arr.length; i++) {
       const pp = byId[arr[i]?.id] || arr[i];
+      // Una silla pendiente sólo se trae a un área donde su rol está permitido (una WIN no
+      // se sienta en Dirección aunque ahí haya quedado un escritorio por desborde).
+      if (permitida && !permitida(pp)) continue;
       const pg = pp?.functional_group_id || null;
       // Con grupo explícito: misma familia primero; piezas sin grupo son fallback.
       // Una silla de OTRO grupo nunca se roba.
@@ -130,10 +133,11 @@ export function sentarSillas(colocacion, piezas, areas) {
     const libres = [...sillas];
     for (const { c, h } of escritorios) {
       const escritorioP = byId[c.id] || {};
+      const permitidaAqui = (pp) => zonaAceptaPieza(pp, A);
       let idx0 = idxCompatible(libres, escritorioP);
       let s0 = idx0 >= 0 ? byId[libres[idx0]?.id] : null;
       if (!s0) {
-        idx0 = idxCompatible(sinLugar, escritorioP);
+        idx0 = idxCompatible(sinLugar, escritorioP, null, null, permitidaAqui);
         s0 = idx0 >= 0 ? sinLugar[idx0] : null;
       }
       if (!s0) continue;
@@ -141,7 +145,7 @@ export function sentarSillas(colocacion, piezas, areas) {
       const { pw, ph } = dimsPieza(s0, 0);
       for (const s of puestosDe(c, h, pw, ph, byId[c.id]?.nombre)) {
         const idxLibre = idxCompatible(libres, escritorioP, pw, ph);
-        const idxPend = idxCompatible(sinLugar, escritorioP, pw, ph);
+        const idxPend = idxCompatible(sinLugar, escritorioP, pw, ph, permitidaAqui);
         if (idxLibre < 0 && idxPend < 0) break;
 
         const caja = { x: s.x, y: s.y, w: pw, d: ph };

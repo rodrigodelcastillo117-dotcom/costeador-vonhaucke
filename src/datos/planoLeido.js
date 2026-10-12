@@ -158,6 +158,7 @@ export function areasDeLectura(lectura) {
         puertasPendientes.push({
           x: m(p.x - b.x),
           y: m(p.y - b.y),
+          ...(anchoConocido ? { ancho: m(Number(p.ancho)) } : {}),
           motivo: !anchoConocido ? 'ANCHO_PUERTA_DESCONOCIDO' : 'BARRIDO_PUERTA_NO_VERIFICADO',
         });
       }
@@ -166,6 +167,7 @@ export function areasDeLectura(lectura) {
       nombre: a.nombre || 'Área',
       ...(a.tipo ? { tipo: a.tipo } : {}),
       ...(Number.isFinite(a.puestos) && a.puestos > 0 ? { puestos: a.puestos } : {}),
+      ...(Number.isFinite(Number(a.asientos)) && Number(a.asientos) > 0 ? { asientos: Number(a.asientos) } : {}),
       ...(a.confianza ? { confianza: a.confianza } : {}),
       ...(a.procedencia ? { procedencia: a.procedencia } : {}),
       ...(a.evidencia ? { evidencia: a.evidencia } : {}),

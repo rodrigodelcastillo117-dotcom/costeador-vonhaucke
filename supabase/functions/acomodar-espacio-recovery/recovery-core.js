@@ -160,6 +160,9 @@ export function invariantesRelacionales(piezas = [], colocacion = []) {
   const issues = [];
   for (const [id, r] of rectById) {
     if (!esDepRol(r.rol)) continue;
+    // VH-096: una guarda de piso (SUPPORT_STORAGE) SUELTA es un kit propio, no un dependiente
+    // sin ancla: credenza/archivero se colocan con su huella en su zona.
+    if (!r.anchor && r.rol === 'SUPPORT_STORAGE') continue;
     if (!r.anchor) { issues.push({ code: 'DEPENDENT_UNASSIGNED', severity: 'fail', id }); continue; }
     const anc = rectById.get(r.anchor);
     if (!anc || !esAnclaRol(anc.rol)) { issues.push({ code: 'DEPENDENT_DETACHED', severity: 'fail', id, motivo: 'ancla no colocada' }); continue; }

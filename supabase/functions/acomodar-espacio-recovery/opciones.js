@@ -30,7 +30,13 @@ const LABEL = {
   MEETING_SEAT: 'silla de juntas', VISITOR_SEAT: 'silla de visita',
   UNDERDESK_STORAGE: 'gaveta', SUPPORT_STORAGE: 'gaveta',
 };
-const plural = (n, sing) => `${n} ${sing}${n === 1 ? '' : 's'}`;
+// VH-094: pluraliza la PRIMERA palabra ("silla de juntas" → "sillas de juntas"), nunca "juntass".
+const plural = (n, sing) => {
+  if (n === 1) return `${n} ${sing}`;
+  const [cab, ...resto] = String(sing).split(' ');
+  const cabP = /s$/i.test(cab) ? cab : `${cab}s`;
+  return `${n} ${[cabP, ...resto].join(' ')}`;
+};
 const TIPO_DE_ROL = { ANCHOR_WORKSTATION: 'open', ANCHOR_DESK: 'privado', ANCHOR_MEETING: 'juntas', ANCHOR_RECEPTION: 'recepcion' };
 
 function huellaAncla(a) {
@@ -183,7 +189,12 @@ export function mensajeVendedor(areas = [], piezas = [], sol = {}, opts = {}) {
   // 1 · QUÉ no cupó
   const conteo = new Map();
   for (const id of faltanIds) { const p = byId.get(String(id)); if (!p) continue; conteo.set(p.relation_role, (conteo.get(p.relation_role) || 0) + 1); }
-  const pendientes = [...conteo.entries()].map(([rol, n]) => ({ rol, n, texto: plural(n, LABEL[rol] || 'pieza') }));
+  const pendientes = [...conteo.entries()].map(([rol, n]) => {
+    if (LABEL[rol]) return { rol, n, texto: plural(n, LABEL[rol]) };
+    // Sin rol conocido: nómbralas, no las escondas en "N piezas".
+    const nombres = [...new Set(faltanIds.map((id) => byId.get(String(id))).filter((p) => p && p.relation_role === rol).map((p) => p.nombre).filter(Boolean))];
+    return { rol, n, texto: nombres.length ? `${n} pieza${n === 1 ? '' : 's'} (${nombres.slice(0, 5).join(', ')}${nombres.length > 5 ? '…' : ''})` : plural(n, 'pieza') };
+  });
 
   // 2 · POR QUÉ (causal, con el área REAL del kit que falló)
   const motivos = [];
@@ -199,7 +210,12 @@ export function mensajeVendedor(areas = [], piezas = [], sol = {}, opts = {}) {
     const zonaMotivo = c.zona != null ? c.zona : (ar.nombre || ar.zone_id || `área ${ai + 1}`);
     motivos.push({ anchorId: u.anchorId, invariante: c.invariante, invariante_solver: u.invariante || 'NO_SPACE', zona: zonaMotivo, texto: c.texto, evidencia: c.evidencia });
   }
-  if (unassigned.length) motivos.push({ invariante: 'DEPENDENT_UNASSIGNED', texto: `${plural(unassigned.length, 'pieza')} sin un mueble que las reciba (se superó la capacidad del catálogo).` });
+  if (unassigned.length) {
+    // VH-094: decir QUÉ piezas y POR QUÉ (sin ancla con cupo), no "capacidad del catálogo".
+    const nombres = [...new Set(unassigned.map((id) => byId.get(String(id))?.nombre).filter(Boolean))];
+    const lista = nombres.slice(0, 6).join(', ') + (nombres.length > 6 ? '…' : '');
+    motivos.push({ invariante: 'DEPENDENT_UNASSIGNED', texto: `${plural(unassigned.length, 'pieza')} sin un escritorio/mesa con lugar que las reciba${lista ? ` (${lista})` : ''}: sobran sillas o gavetas para los muebles cotizados, o falta su mueble.` });
+  }
 
   // 3 · QUÉ hacer — candidatos auto-verificados por simulación.
   const grupoDe = (id) => byId.get(String(id))?.functional_group_id;

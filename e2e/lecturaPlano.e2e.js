@@ -6,7 +6,7 @@ import { test, expect } from '@playwright/test';
 import { writeFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { crearNubeFalsa, estadoLocal, CLAVE_LOCAL } from './nubeFalsa.js';
+import { crearNubeFalsa, estadoLocal, CLAVE_LOCAL, LECTURA_EJEMPLO } from './nubeFalsa.js';
 
 const USUARIOS = { 'ventas@vh.mx': 'vendedor' };
 const PNG_1x1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
@@ -120,5 +120,44 @@ test('FAIL del servidor: no hay compuerta; el error explica qué no cuadró', as
   await expect(page.getByTestId('confirmar-lectura')).toHaveCount(0);
   const estado = await page.evaluate((k) => JSON.parse(localStorage.getItem(k) || '{}'), CLAVE_LOCAL);
   expect(estado.cotizacion?.acomodo?.areasM?.length || 0).toBe(0);
+  await context.close();
+});
+
+// VH-097 (2026-10-12): puertas sin barrido verificable → UN panel comprensible, una puerta por
+// renglón con su cuarto y posición; confirmar la lectura NO aprueba el barrido (quedan pendientes).
+test('puertas sin barrido: panel por puerta, sin índices internos; confirmar deja las puertas pendientes', async ({ browser }) => {
+  const nube = crearNubeFalsa({ usuarios: USUARIOS });
+  nube.lectura = { ...LECTURA_EJEMPLO, puertas: [
+    { x: 3400, y: 3200, ancho: 900, tieneBarrido: false, sentido: 'desconocido', bisagraX: 0, bisagraY: 0, anguloCerradaDeg: 0, barridoDeg: 0, confianza: 'media' },
+    { x: 9000, y: 2200, ancho: 900, tieneBarrido: false, sentido: 'desconocido', bisagraX: 0, bisagraY: 0, anguloCerradaDeg: 0, barridoDeg: 0, confianza: 'baja' },
+  ] };
+  nube.validacionPlano = { state: 'REVIEW_REQUIRED', issues: [], warnings: [{ field: 'puertas[0]', code: 'DOOR_SWING_UNVERIFIED' }, { field: 'puertas[1]', code: 'DOOR_SWING_UNVERIFIED' }] };
+  const context = await browser.newContext(); await nube.instalar(context);
+  await context.addInitScript(({ k, v }) => { if (!localStorage.getItem('__s')) { localStorage.setItem(k, JSON.stringify(v)); localStorage.setItem('__s', '1'); } }, { k: CLAVE_LOCAL, v: estadoLocal() });
+  const page = await context.newPage();
+  await page.goto('/');
+  await page.fill('#email-login', 'ventas@vh.mx'); await page.fill('#pass-login', 'prueba-123');
+  await page.getByRole('button', { name: /^Entrar$/i }).click();
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+  await page.getByTestId('home-cotizar').click();
+  const ruta = join(mkdtempSync(join(tmpdir(), 'plano-e2e-')), 'plano.png');
+  writeFileSync(ruta, PNG_1x1);
+  await page.locator('input[type=file][accept*="pdf"]').first().setInputFiles(ruta);
+  const gate = page.getByTestId('confirmar-lectura');
+  await expect(gate).toBeVisible({ timeout: 15000 });
+  const panel = page.getByTestId('lectura-puertas-pendientes');
+  await expect(panel).toBeVisible();
+  // (una puerta en el borde entre dos cuartos se lista en ambos: por eso ≥ 2)
+  await expect(panel).toContainText(/Detecté \d+ puertas cuyo sentido de apertura no puedo confirmar/);
+  expect(await panel.locator('li').count()).toBeGreaterThanOrEqual(2);
+  await expect(panel).not.toContainText(/puertas\[/);
+  // El aviso del servidor se resume con conteo, no 2 renglones idénticos.
+  await expect(gate).not.toContainText(/Una puerta \[puertas\[1\]\]/);
+  await page.getByTestId('lectura-confirmar').click();
+  await expect(gate).toBeHidden();
+  const despues = await page.evaluate((k) => JSON.parse(localStorage.getItem(k) || '{}'), CLAVE_LOCAL);
+  const pendientes = (despues.cotizacion.acomodo.areasM || []).flatMap((a) => a.puertasPendientes || []);
+  expect(pendientes.length).toBeGreaterThanOrEqual(2);                 // confirmar NO inventa barrido
+  expect(pendientes.every((p) => p.motivo === 'BARRIDO_PUERTA_NO_VERIFICADO')).toBe(true);
   await context.close();
 });

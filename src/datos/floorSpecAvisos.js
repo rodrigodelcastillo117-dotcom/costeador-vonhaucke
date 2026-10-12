@@ -55,19 +55,40 @@ const TEXTO_PROBLEMA = {
   DOOR_HINGE_OUTSIDE_ENVELOPE: (i) => `La bisagra de una puerta${campo(i)} cae fuera de la envolvente.`,
 };
 
-function traducir(lista, tabla, prefijo) {
+// VH-094: avisos REPETIDOS por elemento (5 puertas sin barrido → 5 renglones con
+// `[puertas[i]]`) se resumen en UNO con conteo. Los problemas (FAIL) no se resumen:
+// cada uno nombra algo distinto que hay que corregir.
+const RESUMEN_AVISO = {
+  DOOR_SWING_UNVERIFIED: (n) => `${n} puerta${n === 1 ? '' : 's'} sin bisagra ni sentido de abatimiento verificable: el acomodo no bloquea su barrido hasta que lo confirmes.`,
+  ASSUMED_DOOR_GEOMETRY: (n) => `${n} puerta${n === 1 ? '' : 's'} ubicada${n === 1 ? '' : 's'} por supuesto, no por el plano.`,
+  ASSUMED_ZONE_GEOMETRY: (n) => `${n} cuarto${n === 1 ? '' : 's'} con forma supuesta por el modelo, no leída del plano.`,
+  LOW_CONFIDENCE_ZONE: (n) => `El modelo tiene poca confianza en ${n} cuarto${n === 1 ? '' : 's'}.`,
+};
+
+function traducir(lista, tabla, prefijo, { resumir = false } = {}) {
   if (!Array.isArray(lista)) return [];
-  return lista.map((x) => {
+  const out = [];
+  const conteo = new Map();
+  for (const x of lista) {
     const code = String(x?.code || '').trim();
+    if (resumir && RESUMEN_AVISO[code]) {
+      conteo.set(code, { n: (conteo.get(code)?.n || 0) + 1, zonas: [...(conteo.get(code)?.zonas || []), x?.zone].filter(Boolean) });
+      continue;
+    }
     const fn = tabla[code];
-    if (fn) return fn(x);
+    if (fn) { out.push(fn(x)); continue; }
     // Código desconocido: se enseña, no se esconde (un aviso perdido es peor que uno feo).
-    return `${prefijo} del servidor: ${code || 'SIN_CÓDIGO'}${campo(x)}${x?.message ? ` · ${x.message}` : ''}`;
-  });
+    out.push(`${prefijo} del servidor: ${code || 'SIN_CÓDIGO'}${campo(x)}${x?.message ? ` · ${x.message}` : ''}`);
+  }
+  for (const [code, { n, zonas }] of conteo) {
+    if (n === 1) { const x = lista.find((y) => String(y?.code || '').trim() === code); out.push(tabla[code](x)); continue; }
+    out.push(RESUMEN_AVISO[code](n) + (zonas.length ? ` (${[...new Set(zonas)].join(', ')})` : ''));
+  }
+  return out;
 }
 
 /** Avisos (warnings) de `floorSpec.validation`, en español. */
-export const avisosDeValidacion = (validation) => traducir(validation?.warnings, TEXTO_AVISO, 'Aviso');
+export const avisosDeValidacion = (validation) => traducir(validation?.warnings, TEXTO_AVISO, 'Aviso', { resumir: true });
 /** Problemas (issues) de `floorSpec.validation`, en español. */
 export const problemasDeValidacion = (validation) => traducir(validation?.issues, TEXTO_PROBLEMA, 'Problema');
 

@@ -19,14 +19,18 @@ test('Costear con IA → despiece real → sombra contra costear-servidor', asyn
     edges.push({ edge: u.split('/functions/v1/')[1], status: res.status(), cuerpo });
     console.log(`[edge] ${res.status()} ${u.split('/functions/v1/')[1]} ${(cuerpo || '').slice(0, 300)}`);
   });
+  await page.addInitScript(() => {
+    try { const k = 'costeador-vonhaucke-v1'; const s = JSON.parse(window.localStorage.getItem(k) || '{}'); s.onboardingVisto = true; window.localStorage.setItem(k, JSON.stringify(s)); } catch (_e) {}
+  });
   await page.goto('/');
   await page.fill('#email-login', process.env.TEST_EMAIL); await page.fill('#pass-login', process.env.TEST_PASSWORD);
   await page.getByRole('button', { name: /^Entrar$/i }).click();
   await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 30000 });
   if (await page.getByRole('dialog', { name: /Guía de uso/i }).isVisible().catch(() => false)) await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: /¿Cuánto nos cuesta fabricarlo\?/ }).first().click();
-  await page.getByRole('button', { name: /^Costear con IA/ }).first().click();
-  const caja = page.locator('textarea[placeholder^="Ej. Sillas de espera"]');
+  // VH-096: home nuevo ("¿Qué vas a hacer?") → test ids, no el texto viejo "¿Cuánto nos cuesta fabricarlo?".
+  await page.getByTestId('home-costear').click();
+  await expect(page.getByText(/Qué vas a costear/i)).toBeVisible({ timeout: 15000 });
+  const caja = page.locator('#costear-descripcion');
   await expect(caja).toBeVisible({ timeout: 15000 });
   await caja.fill('Escritorio ejecutivo 1800 x 800 x 750 mm, cubierta de MDF 19 mm con chapa de nogal, faldón frontal, base de acero pintado en negro');
   const esperaAn = page.waitForResponse((r) => r.url().includes('/functions/v1/analizar-mueble'), { timeout: 150000 });
@@ -37,7 +41,7 @@ test('Costear con IA → despiece real → sombra contra costear-servidor', asyn
   await page.waitForTimeout(4000);
   // La sombra SÓLO corre con costo completo y precio (AsistenteEspecial: `resultado.costoUnitario > 0 && precio != null`).
   // Un despiece con materiales del servidor sin precio certificado queda INCOMPLETO y no se compara: es correcto.
-  const pendientes = await page.getByText(/sin precio certificado/).count();
+  const pendientes = await page.getByText(/sin precio certificado|Costo pendiente|POR CONFIRMAR/i).count();
   await esperaSrv;
   if (srvRes) {
     const cuerpoSrv = await srvRes.json().catch(() => null);

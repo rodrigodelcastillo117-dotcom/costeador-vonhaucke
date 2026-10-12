@@ -257,6 +257,11 @@ export function rolDePiezaAcomodo(pieza) {
   const t = `${pieza?.tipo || ''} ${pieza?.nombre || ''}`.toLowerCase();
   const destino = destinoMarcado(pieza);
   const esAsiento = /silla|asiento|chair|seat|sillón|sillon/.test(t);
+  // VH-095: el ROL FUNCIONAL explícito (programa comercial / conciliación) manda sobre el nombre.
+  // "Silla CONCERTO (visita 4 pts)" con relation_role MEETING_SEAT es silla de juntas: el nombre
+  // decía "visita" y la auditoría local la marcaba "en zona equivocada" dentro de la sala.
+  const rrExpl = String(pieza?.relation_role || '').toUpperCase();
+  if (rrExpl && ROL[rrExpl]) return ROL[rrExpl];
 
   // El destino explícito viaja desde la cotización/Voni y manda sobre heurísticas
   // genéricas. Así la auditoría local habla el mismo idioma que el edge.

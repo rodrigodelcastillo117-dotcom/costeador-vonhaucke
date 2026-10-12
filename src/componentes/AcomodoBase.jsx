@@ -30,6 +30,7 @@ import { construirPayloadAcomodo } from '../datos/acomodoPayload.js';
 import { evaluarInvariantesAcomodo, derivarValidez } from '../datos/acomodoInvariantes.js';
 import { resolverAcomodo } from '../datos/acomodoOrquestador.js';
 import { formatearMensajeVendedor } from '../datos/mensajeAcomodo.js';
+import { diagnosticoNoColocadas } from '../datos/diagnosticoAcomodo.js';
 
 // Para la paleta, SILLA es todo lo que se sienta: la operativa, la de visita y
 // también el sillón y el banco. Rodrigo lo pidió partido en dos: "lado
@@ -239,7 +240,11 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       }
       // G: el mensaje al vendedor viaja con el plan hasta la UI (antes se descartaba).
       const mensaje_vendedor = r.mensaje_vendedor || r.layoutSpec?.mensaje_vendedor || null;
-      return { ...i.plan, mensaje_vendedor, layoutSpec: r.layoutSpec || null, render_ready: r.render_ready === true, strictPlacement: r.strictPlacement === true };
+      // VH-093: lo que el servidor sabe de cada pieza NO colocada viaja con el plan
+      // (dependientes sin ancla, kits que no cupieron con su invariante).
+      const unassigned = Array.isArray(r.unassigned) ? r.unassigned : [];
+      const no_cupieron = Array.isArray(r.no_cupieron) ? r.no_cupieron : (Array.isArray(r.unplaced) && r.unplaced.length && typeof r.unplaced[0] === 'object' ? r.unplaced : []);
+      return { ...i.plan, mensaje_vendedor, unassigned, no_cupieron, layoutSpec: r.layoutSpec || null, render_ready: r.render_ready === true, strictPlacement: r.strictPlacement === true };
     };
     const res = await resolverAcomodo({
       partidas, areasM: areasMetros, piezasExtra: duplicados,
@@ -556,6 +561,11 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // G · mensaje al vendedor del edge recovery (qué no cupó + por qué + opciones).
   // Defensivo: null si el edge no lo manda (edge viejo desplegado) → UI sin cambio.
   const msgVendedor = formatearMensajeVendedor(plan?.mensaje_vendedor);
+  // VH-093: diagnóstico por pieza (código + acción), con lo excluido por falta de identidad (VH-092).
+  const diagnostico = useMemo(
+    () => (plan && payloadAcomodo.ok ? diagnosticoNoColocadas({ piezas: payloadAcomodo.piezas, plan, excluidas: [], areas: areasMM }) : []),
+    [plan, payloadAcomodo, areasMM],
+  );
   // Las pendientes AGRUPADAS por producto, conservando el orden en que se
   // pidieron. `ids` es la lista de las que faltan de ese producto: su largo es
   // la cuenta que se enseña y baja sola conforme se van colocando.
@@ -1236,7 +1246,9 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // nunca. Se mantiene la exigencia de validación de servidor (serverAprobado) y el
   // audit local como endurecimientos adicionales (nunca aflojan).
   const layoutListo = layoutLocalValido && serverAprobado && validez.layoutEspacialValidado;
-  const layoutPublicable = layoutListo && programaListo;
+  // VH-092: un acomodo con referencias sin identidad o PRELIMINAR (medidas supuestas / productos sin
+  // precio autorizado) se puede trabajar y ver, pero NO se publica como VALIDADO.
+  const layoutPublicable = layoutListo && programaListo && !(payloadAcomodo.referencias?.length);
   const motivoLayout = [
     ...(!layout ? [] : [
       layout.unplaced > 0 ? `${layout.unplaced} sin colocar` : '',
@@ -1248,6 +1260,8 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     serverStrict && serverStatus && serverStatus !== 'PASS' ? `revisión espacial: ${serverStatus}` : '',
     serverStrict && plan?.render_ready !== true ? 'validación de puertas/clearances pendiente' : '',
     fallasInvariantes.length ? `invariantes: ${[...new Set(fallasInvariantes.map((f) => f.code))].join('/')}` : '',
+    // VH-092: una referencia sin identidad ni precio se dibuja, pero nunca publica un acomodo VALIDADO.
+    (payloadAcomodo.referencias?.length || 0) > 0 ? `${payloadAcomodo.referencias.length} mueble(s) sin identidad de catálogo ni precio (resuélvelos o quítalos)` : '',
   ].filter(Boolean).join(' · ');
   const motivoPublicacion = [
     motivoLayout,
@@ -1443,6 +1457,29 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
             {msgVendedor.sinOpcion && <div style={{ marginTop: 4 }}>{msgVendedor.sinOpcion}</div>}
           </div>
         )}
+        {diagnostico.length > 0 && (
+          <div className="tarjeta" style={{ marginTop: 12 }} data-testid="diagnostico-acomodo">
+            <strong>Qué no quedó colocado y por qué ({diagnostico.length})</strong>
+            <div className="ayuda" style={{ marginTop: 2 }}>Cada renglón dice la causa exacta y qué hacer. No se quita nada solo.</div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse', marginTop: 6 }}>
+                <thead><tr style={{ textAlign: 'left', color: '#6b645c' }}><th>Mueble</th><th>Zona</th><th>Medida (fuente)</th><th>Causa</th><th>Qué hacer</th></tr></thead>
+                <tbody>
+                  {diagnostico.slice(0, 40).map((f) => (
+                    <tr key={f.id} style={{ borderTop: '1px solid var(--linea)' }}>
+                      <td>{f.nombre}</td>
+                      <td>{f.zona}</td>
+                      <td>{f.w && f.d ? `${(f.w / 1000).toFixed(2)} × ${(f.d / 1000).toFixed(2)} m` : '—'} <span className="ayuda">({f.huella_fuente})</span></td>
+                      <td><code>{f.codigo}</code>{f.motivo ? <span className="ayuda"> · {f.motivo}</span> : null}</td>
+                      <td>{f.accion}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {diagnostico.length > 40 && <div className="ayuda">… y {diagnostico.length - 40} más.</div>}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* STAGING VIRTUAL con IA: foto real del espacio → amueblada con lo cotizado */}
@@ -1483,6 +1520,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
           {chequeo && (
             <div className={`alerta ${chequeo.ok ? '' : 'ambar'}`} style={chequeo.ok ? { background: '#e9f5f1', borderColor: 'var(--verde)', color: '#0b5c54' } : undefined}>
               <span className="texto">
+                {payloadAcomodo.preliminar && <span className="ia-badge" title="Hay productos sin precio autorizado o medidas supuestas por tipo: el acomodo es un borrador hasta confirmarlos." style={{ marginRight: 8 }}>PRELIMINAR</span>}
                 {chequeo.ok ? '✓ Todo cabe.' : chequeo.sinColocar > 0
                   ? `⚠ Faltan ${chequeo.sinColocar} mueble(s) por colocar.`
                   : `⚠ ${chequeo.nProblemas} ajuste(s) por revisar.`}

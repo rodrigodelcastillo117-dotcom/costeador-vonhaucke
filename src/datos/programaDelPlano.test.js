@@ -154,3 +154,20 @@ describe('capacidad de juntas fail-closed', () => {
     expect(personasEnSala(16)).toBe(4);
   });
 });
+
+// VH-093 (2026-10-12): la sala de consejo del plano real traía 10 sillas dibujadas y la app
+// proponía "mesa de 4" porque sólo estimaba por m². Si el lector contó asientos, mandan.
+import { programaDelPlano as programaDelPlanoVH093 } from './programaDelPlano.js';
+describe('VH-093 · asientos contados en salas de juntas', () => {
+  it('10 sillas dibujadas → sala de 10 (detectado), aunque el área sólo dé para 4 por m²', () => {
+    const areas = [{ nombre: 'SALA DE CONSEJO', tipo: 'juntas', ancho: 7, largo: 3.2, asientos: 10 }];
+    const p = programaDelPlanoVH093(areas);
+    expect(p.salas).toEqual([10]);
+    expect(p.fuente.salasCapacidad).toBe('detectado');
+  });
+  it('sin asientos contados se conserva la regla de m²/persona (estimado)', () => {
+    const p = programaDelPlanoVH093([{ nombre: 'SALA', tipo: 'juntas', ancho: 7, largo: 3.2 }]);
+    expect(p.salas).toEqual([4]);
+    expect(p.fuente.salasCapacidad).toBe('estimado');
+  });
+});

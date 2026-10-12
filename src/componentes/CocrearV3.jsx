@@ -280,7 +280,15 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
  };
 
  const guardar=async()=>{if(!intent)return;setGuardando(true);setMensaje('');try{const r=await guardarCocrearSeguro(expedienteId,cocrearPayload({brief:texto,intent,historia,render,insumos,par}));if(!r?.ok)throw new Error(r?.error||'No se pudo guardar');if(r.expediente_id)setExpedienteId(r.expediente_id);setGuardado(true);setMensaje('✓ Co-creación guardada.');}catch(e){setMensaje(`No se pudo guardar: ${String(e?.message||e)}`)}setGuardando(false)};
- const reabrir=async id=>{try{const r=await cargarCocrearSeguro(id);const est=r?.ok?cocrearDeExpediente({cocrear:r.cocrear}):null;if(!est?.intent)throw new Error('Expediente sin intención válida');setIntent(est.intent);setHistoria(est.historia?.length?est.historia:[{rev:1,label:'Reabierta',intent:est.intent}]);setTexto(est.brief||est.intent?._brief||'');setExpedienteId(id);setRender(null);setFase('studio')}catch(e){setMensaje(String(e?.message||e))}};
+ const reabrir=async id=>{try{const r=await cargarCocrearSeguro(id);const est=r?.ok?cocrearDeExpediente({cocrear:r.cocrear}):null;if(!est?.intent)throw new Error('Expediente sin intención válida');setIntent(est.intent);setHistoria(est.historia?.length?est.historia:[{rev:1,label:'Reabierta',intent:est.intent}]);setTexto(est.brief||est.intent?._brief||'');setExpedienteId(id);
+  // VH-105: el render fotográfico NO se guarda en el payload cocrear (sólo specHash/expected); el
+  // canónico vive en Storage y el expediente trae su URL (render_aislado_url). Se RECUPERA en vez de
+  // perderse; si sus firmas no coinciden con la revisión reabierta, `renderStale` lo marca VENCIDO
+  // (fail-closed) y se ofrece regenerar. Nunca se presenta como fiel a otra revisión.
+  const urlCanonica=typeof r?.render_aislado_url==='string'&&/^https?:\/\//.test(r.render_aislado_url)?r.render_aislado_url:null;
+  if(urlCanonica)setRender({dataUrl:urlCanonica,specHash:est.render?.specHash||null,visualRevisionHash:est.render?.visualRevisionHash||null,expected:est.render?.expected||null,version:est.render?.version||null,concepto:est.intent?._concepto||null,recuperado:true});
+  else setRender(null);
+  setFase('studio')}catch(e){setMensaje(String(e?.message||e))}};
 
  const validarIngenieria=()=>{
   if(!puedeAprobarRol){

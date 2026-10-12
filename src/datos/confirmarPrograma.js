@@ -19,8 +19,8 @@
 import { BANCO } from './banco.js';
 
 const norm = (s = '') => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-const esAncla = (rel) => typeof rel === 'string' && rel.startsWith('ANCHOR_');
-const bancoDe = (it) => it.bancoId || it.piezaId || null;
+export const esAncla = (rel) => typeof rel === 'string' && rel.startsWith('ANCHOR_');
+export const bancoDe = (it) => it.bancoId || it.piezaId || null;
 
 // Rol por IDENTIDAD de catálogo (#3): si conocemos el id del banco, el rol sale de
 // su metadata (tipo/nombre), no del texto comercial.
@@ -34,6 +34,9 @@ function rolPorId(id) {
     if (/visit|concerto/.test(t)) return 'VISITOR_SEAT';
     return 'WORK_SEAT';
   }
+  // VH-092: la recepción del banco (p9-recepcion-…) viene con tipo 'guarda' en su ficha y caía
+  // en UNDERDESK_STORAGE; el mostrador de recepción es un ANCLA.
+  if (/recepci|mostrador|lobby/.test(t)) return 'ANCHOR_RECEPTION';
   // Gaveta/pedestal rodante = UNDERDESK (aunque su nombre diga "archivero/papelero");
   // archivero/credenza de piso (tipo almacen) = SUPPORT. El orden importa.
   if (/gaveta|pedestal|cajoner/.test(t)) return 'UNDERDESK_STORAGE';
@@ -45,7 +48,7 @@ function rolPorId(id) {
   return null;
 }
 
-function rolFromRel(rel) {
+export function rolFromRel(rel) {
   switch (rel) {
     case 'ANCHOR_WORKSTATION': case 'WORK_SEAT': case 'UNDERDESK_STORAGE': return 'operativo';
     case 'ANCHOR_DESK': case 'EXECUTIVE_SEAT': case 'VISITOR_SEAT': return 'privado';
@@ -56,7 +59,7 @@ function rolFromRel(rel) {
 }
 
 // Rol funcional de un item existente: explícito, o inferido del nombre (legacy).
-function inferRole(item) {
+export function inferRole(item) {
   if (item.relation_role) return item.relation_role;
   const porId = rolPorId(bancoDe(item));          // #3: identidad de catálogo primero
   if (porId) return porId;
@@ -67,6 +70,8 @@ function inferRole(item) {
   if (silla && /visita|confidente/.test(t)) return 'VISITOR_SEAT';
   if (silla && /junta|consejo|meeting|board/.test(t)) return 'MEETING_SEAT';
   if (/gaveta|pedestal|cajonera/.test(t)) return 'UNDERDESK_STORAGE';
+  // VH-092: guardas de piso (credenza, archivero, librero…) son dependientes de apoyo.
+  if (/credenza|archivero|librero|armario|locker|guarda de piso/.test(t)) return 'SUPPORT_STORAGE';
   if (/mesa|table/.test(t) && /junta|consejo|meeting|board/.test(t)) return 'ANCHOR_MEETING';
   if (/recepci|mostrador|lobby/.test(t) && !silla) return 'ANCHOR_RECEPTION';
   if (/escritorio|bench|banca|estacion|workstation/.test(t) && !silla) {
@@ -79,7 +84,7 @@ function rolDe(item) { return item.rol || rolFromRel(item.relation_role || infer
 
 // Parche de METADATA ESTRUCTURAL (sin tocar precio/costo/descripción/revisiones).
 // Al reutilizar un existente, se le injerta su relación con el ancla confirmada.
-function estructuraDe(part) {
+export function estructuraDe(part) {
   return {
     relation_role: part.relation_role ?? null,
     anchor_role: part.anchor_role ?? null,
@@ -141,7 +146,17 @@ function aItemConfirmado(part, { slot = null, estado }) {
  * @param {object} propuesta  resultado de resolverPrograma (usa `.partidas`).
  * @param {object} opts.existentes  partidas ya en la cotización (schema real o de este flujo).
  */
-export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
+// Una partida que NO vino del programa (VONI texto, banco, catálogo, especial): la
+// describió una persona. Si ocupa el mismo slot funcional que el ancla propuesta, es
+// el MISMO requerimiento con otro producto → se reutiliza y se enriquece (la palabra
+// del usuario gana al producto genérico del programa). Sólo programa-vs-programa es
+// conflicto real (p. ej. cambió el brief y el slot ya tiene otra mesa).
+const esDelPrograma = (raw) => raw && raw.source === 'CONFIRMADO_PROGRAMA';
+
+export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], mantenerAmbos = [] } = {}) {
+  const sustituirSet = new Set((Array.isArray(sustituir) ? sustituir : []).map(String));
+  const ambosSet = new Set((Array.isArray(mantenerAmbos) ? mantenerAmbos : []).map(String));
+  const reemplazados = [];                        // ids de existentes sustituidos por decisión explícita
   const partidas = (propuesta && Array.isArray(propuesta.partidas)) ? propuesta.partidas : [];
   const anchorsProp = partidas.filter((p) => esAncla(p.relation_role));
   const depsProp = partidas.filter((p) => !esAncla(p.relation_role));
@@ -182,9 +197,34 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
         usados.add(prev._i);                      // reutiliza: lo re-emitimos como EXISTENTE
         sinCambio.push(aItemConfirmado(a, { slot, estado: 'EXISTENTE' }));
         if (prev.raw && prev.raw.id != null) enriquecidos.push({ id: prev.raw.id, patch: estructuraDe(a) });
+      } else if (!esDelPrograma(prev.raw)) {
+        // VH-090: mismo slot, producto que ELIGIÓ una persona → se conserva ESE producto y
+        // se le injerta la estructura del programa (rol, instancia, grupo, zona, capacidad).
+        // Nunca se duplica el ancla ni se bloquea el botón por esto.
+        usados.add(prev._i);
+        sinCambio.push(aItemConfirmado({ ...prev.raw, ...estructuraDe(a), bancoId: prev.banco, relation_role: a.relation_role, rol: a.rol || rolFromRel(a.relation_role) }, { slot, estado: 'EXISTENTE_EQUIVALENTE' }));
+        if (prev.raw && prev.raw.id != null) enriquecidos.push({ id: prev.raw.id, patch: { ...estructuraDe(a), relation_role: a.relation_role, ...(prev.raw.w == null && a.w != null ? { w: a.w } : {}), ...(prev.raw.d == null && a.d != null ? { d: a.d } : {}) } });
+      } else if (sustituirSet.has(slot)) {
+        // Decisión explícita de la persona: el propuesto SUSTITUYE al existente del programa.
+        usados.add(prev._i);
+        if (prev.raw && prev.raw.id != null) reemplazados.push(prev.raw.id);
+        confirmadas.push(aItemConfirmado(a, { slot, estado: 'CONFIRMADO' }));
+      } else if (ambosSet.has(slot)) {
+        // Decisión explícita: son DOS requerimientos distintos → el existente se queda y el
+        // propuesto entra como ancla adicional (slot propio, misma zona/grupo).
+        confirmadas.push(aItemConfirmado(a, { slot: `${slot}+`, estado: 'CONFIRMADO' }));
       } else {
-        // CONFLICTO: se CONSERVA lo existente (queda en intactos), NO se sustituye.
-        conflictos.push({ slot, existente: { bancoId: prev.banco, nombre: prev.raw.nombre ?? null }, propuesto: { bancoId: a.bancoId, nombre: a.nombre ?? null }, code: 'SLOT_OCUPADO_PRODUCTO_DISTINTO' });
+        // CONFLICTO programa-vs-programa: se CONSERVA lo existente, NO se sustituye solo. Se
+        // entrega TODO lo que la persona necesita ver para decidir (VH-091): cantidades, producto,
+        // identidad, medidas, precio de lista y cuántos dependientes cuelgan del existente.
+        const depsExistentes = ex.filter((e) => e.raw && e.raw.anchor_instance_id && prev.raw.instance_id && String(e.raw.anchor_instance_id) === String(prev.raw.instance_id));
+        conflictos.push({
+          slot, code: 'SLOT_OCUPADO_PRODUCTO_DISTINTO',
+          existente: { id: prev.raw.id ?? null, bancoId: prev.banco, nombre: prev.raw.nombre ?? null, cantidad: prev.cantidad, w: prev.raw.w ?? null, d: prev.raw.d ?? null, precio: Number(prev.raw.precioUnitario ?? prev.raw.precio_lista_snapshot) || null, productoId: prev.raw.productoId ?? null, usuarios: prev.raw.user_capacity ?? prev.raw.usuarios ?? null },
+          propuesto: { bancoId: a.bancoId, nombre: a.nombre ?? null, cantidad: Math.max(1, Number(a.cantidad) || 1), w: a.w ?? null, d: a.d ?? null, precio: Number(a.precio_lista_snapshot ?? a.precio) || null, productoId: a.identidad?.producto_id ?? a.productoId ?? null, usuarios: a.user_capacity ?? a.usuarios ?? null },
+          dependientes: depsExistentes.reduce((n, e) => n + e.cantidad, 0),
+          dependientesFilas: depsExistentes.length,
+        });
       }
     } else {
       confirmadas.push(aItemConfirmado(a, { slot, estado: 'CONFIRMADO' }));
@@ -208,11 +248,26 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
     if (ex[en.idx].raw.id != null) enriquecidos.push({ id: ex[en.idx].raw.id, patch: estructuraDe(dep) });
     en.rem = 0;
   };
+  // VH-090: pool por ROL a secas, sólo con filas que describió una persona (no del
+  // programa): "Silla · SONATA ×4" cubre el MEETING_SEAT propuesto aunque el programa
+  // pida otro modelo. Se consume DESPUÉS del pool exacto.
+  // También cubre una fila del PROGRAMA del mismo rol atada a la MISMA ancla (mismo kit): al
+  // sustituir la mesa, las sillas ya confirmadas de esa sala no se vuelven a agregar.
+  const poolRol = new Map();
+  for (const e of ex) {
+    if (e.rel && !esAncla(e.rel)) {
+      if (!poolRol.has(e.rel)) poolRol.set(e.rel, []);
+      poolRol.get(e.rel).push({ idx: e._i, rem: e.cantidad, programa: esDelPrograma(e.raw), ancla: e.raw.anchor_instance_id || null });
+    }
+  }
   for (const dep of depsProp) {
     const slot = `${dep.rol || rolFromRel(dep.relation_role)}|${dep.relation_role}|${dep.anchor_instance_id || ''}`;
     const k = `${dep.relation_role}|${dep.bancoId}`;
     let need = Math.max(1, Number(dep.cantidad) || 1);
-    const entries = poolDep.get(k) || [];
+    const exactas = poolDep.get(k) || [];
+    const porRol = (poolRol.get(dep.relation_role) || []).filter((e) => !exactas.includes(e) && !usados.has(e.idx)
+      && (!e.programa || (e.ancla && dep.anchor_instance_id && String(e.ancla) === String(dep.anchor_instance_id))));
+    const entries = [...exactas, ...porRol];
     // 1) EXACTO primero (estable bajo reorden: cada ancla toma la fila de su tamaño).
     const exacta = entries.find((e) => e.rem === need);
     if (exacta) { consumir(exacta, dep); need = 0; }
@@ -229,6 +284,8 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
   // existentes que el programa no tocó: intactos (normaliza bancoId desde piezaId
   // para que la lista de items sea homogénea aguas abajo).
   const intactos = ex.filter((e) => !usados.has(e._i)).map((e) => ({ ...e.raw, bancoId: bancoDe(e.raw) }));
+  // Los sustituidos por decisión explícita se van de `items` (no quedan en intactos: usados).
+
   const items = [...intactos, ...sinCambio, ...confirmadas];
   const propias = [...confirmadas, ...sinCambio];
 
@@ -238,6 +295,7 @@ export function confirmarPrograma(propuesta, { existentes = [] } = {}) {
     sinCambio,
     conflictos,
     enriquecidos,                                  // #4: parches estructurales para existentes reutilizados
+    reemplazados,                                  // VH-091: ids de existentes sustituidos por decisión explícita
     resumen: {
       total: items.length,
       nuevas: confirmadas.length,

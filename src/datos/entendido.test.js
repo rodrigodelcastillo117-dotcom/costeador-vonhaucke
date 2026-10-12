@@ -102,3 +102,34 @@ describe('lo que Voni entendió', () => {
     expect(ceo.avisos.some((a) => /sillas de trabajo.*sobran/i.test(a.texto))).toBe(false);
   });
 });
+
+// VH-095 (2026-10-12): el "sobran 8" de la cotización 757 era por partidas DUPLICADAS
+// (programa + VONI). Con la conciliación, las cuentas por función cuadran.
+import { reconciliarNuevasConPrograma as reconciliarVH095 } from './reconciliarPartidas.js';
+import { loQueEntendi as loQueEntendiVH095 } from './entendido.js';
+describe('VH-095 · capacidad por función tras conciliar', () => {
+  const programa = [
+    { id: 'a1', nombre: 'Módulo operativo App LT 8 usuarios (biombo cristal)', bancoId: 'op-8u-4800x1200-cristal', relation_role: 'ANCHOR_WORKSTATION', instance_id: 'i:op', functional_group_id: 'fg:op', user_capacity: 8, cantidad: 1, precioUnitario: 23070, source: 'CONFIRMADO_PROGRAMA' },
+    { id: 'd1', nombre: 'Silla operativa WIN', bancoId: 'silla-win', relation_role: 'WORK_SEAT', anchor_instance_id: 'i:op', functional_group_id: 'fg:op', cantidad: 8, precioUnitario: 5210, source: 'CONFIRMADO_PROGRAMA' },
+    { id: 'd2', nombre: 'Silla SONATA (visita 4 pts)', bancoId: 'silla-sonata', relation_role: 'MEETING_SEAT', anchor_instance_id: 'i:mj', cantidad: 4, precioUnitario: 2420, source: 'CONFIRMADO_PROGRAMA' },
+  ];
+  const texto = [
+    { id: 'p1', nombre: 'Banca doble APP LT 1.50 · 8 usuarios · ocupa 6.00 × 1.20 m', piezaId: 'linea-banca_doble', productoId: 'banca_doble', cantidad: 1, precioUnitario: 26145, w: 6000, d: 1200 },
+    { id: 'p2', nombre: 'Silla operativa · WIN', piezaId: 'p9-silla-operativa-win-5210', cantidad: 8, precioUnitario: 5210 },
+    { id: 'p3', nombre: 'Silla · SONATA', piezaId: 'p9-silla-sonata-2420-144', cantidad: 4, precioUnitario: 2420 },
+  ];
+  it('sin conciliar las cuentas se inflan (16 puestos / 16 sillas); conciliado: 8 para 8, sin "sobran"', () => {
+    const sin = loQueEntendiVH095([...programa, ...texto]);
+    expect(sin.grupos.find((g) => g.clave === 'puestos').cuentaTotal).toBe(16);
+    expect(sin.grupos.find((g) => g.clave === 'sillas').cuentaTotal).toBe(16);
+    const { partidas } = reconciliarVH095(programa, texto);
+    const con = loQueEntendiVH095(partidas);
+    expect(con.avisos.some((a) => /sobran/.test(a.texto))).toBe(false);
+    const puestos = con.grupos.find((g) => g.clave === 'puestos');
+    const sillas = con.grupos.find((g) => g.clave === 'sillas');
+    expect(puestos.cuentaTotal).toBe(8);
+    expect(sillas.cuentaTotal).toBe(8);
+    // las SONATA de juntas no cuentan como sillas de trabajo
+    expect(con.grupos.find((g) => g.clave === 'reunion')?.cuentaTotal || 0).toBe(4);
+  });
+});
