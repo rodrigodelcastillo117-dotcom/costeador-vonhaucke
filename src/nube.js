@@ -46,6 +46,14 @@ export async function buscarInsumosMotor(q, limite = 30) {
   return Array.isArray(data) ? data : [];
 }
 
+// VH-089: carga de compras del ERP desde la app (sólo Dirección). Lotes de catálogo + precios ya
+// preparados por erpCarga.js; el servidor aplica las reglas (sin duplicar, DATA_TRUTH, aprobación ≤24 m).
+export async function cargarErpLote(documento, catalogo, precios) {
+  const { data, error } = await nube.rpc('cargar_erp_ultima_compra', { p_documento: documento, p_catalogo: catalogo, p_precios: precios });
+  if (error) throw error;
+  return data || {};
+}
+
 export async function escribirConfig(datosCompartidos) {
   const { error } = await nube
     .from('config')

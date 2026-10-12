@@ -211,6 +211,13 @@ export function crearNubeFalsa({ usuarios }) {
       // VH-088: búsqueda en el catálogo grande; la nube falsa no tiene ERP → vacío (la UI avisa).
       if (fn === 'buscar_insumos_motor') return json(route, f.busquedaInsumos || []);
       if (fn === 'catalogo_motor') return json(route, f.catalogoMotor || {});
+      // VH-089: carga de compras del ERP; la nube falsa contesta con los conteos del lote (sin tocar nada).
+      if (fn === 'cargar_erp_ultima_compra') {
+        if (!editaConfig(email)) return err(route, 'no autorizado: sólo Dirección carga compras del ERP', 400);
+        const cat = Array.isArray(body.p_catalogo) ? body.p_catalogo : []; const pre = Array.isArray(body.p_precios) ? body.p_precios : [];
+        f.cargasErp = (f.cargasErp || []).concat([{ documento: body.p_documento, catalogo: cat.length, precios: pre.length }]);
+        return json(route, { catalogo_nuevos: cat.length, catalogo_existentes: 0, precios_nuevos: pre.length, precios_duplicados: 0, aprobados: pre.filter((p) => p.estado === 'propuesto').length, errores: [] });
+      }
       // VH-063: política pública (sólo descuento máximo + versión). `f.politica` se sustituye por prueba.
       if (fn === 'politica_comercial_publica') return json(route, f.politica || { vigente: true, version: REGLAS_VERSION, descuento_max_sin_aprobacion: 40 });
       if (fn === 'cotizaciones_mias') {

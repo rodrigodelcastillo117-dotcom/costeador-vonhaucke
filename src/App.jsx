@@ -55,6 +55,7 @@ const Banco = lazy(() => import('./componentes/Banco.jsx'));
 const Archivo = lazy(() => import('./componentes/Archivo.jsx'));
 import Login from './componentes/Login.jsx';
 const Usuarios = lazy(() => import('./componentes/Usuarios.jsx'));
+const CargaERP = lazy(() => import('./componentes/CargaERP.jsx'));
 const Reglas = lazy(() => import('./componentes/Reglas.jsx'));
 import { cargarReglas } from './datos/reglas.js';
 import { cargarAprendizajes } from './datos/aprendizaje.js';
@@ -1349,6 +1350,7 @@ export default function App() {
           : <div className="contenido"><div className="tarjeta"><p className="ayuda">Los precios de materiales son costos y solo los ven Diseño y Dirección.</p></div></div>
         )}
         {pestania === 'usuarios' && esDireccion && <Usuarios onAviso={mostrarAviso} miCorreo={sesion?.user?.email || ''} />}
+        {pestania === 'carga-erp' && esDireccion && <CargaERP onAviso={mostrarAviso} />}
         {/* Lo que Voni sabe: lo leen todos (el motor lo aplica igual para
             todos), pero dictar o corregir una regla es de Diseño y Dirección. */}
         {pestania === 'reglas' && <Reglas puedeEditar={veCostos} />}

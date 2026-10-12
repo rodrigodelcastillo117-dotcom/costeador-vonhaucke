@@ -275,6 +275,7 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
             <Atajo foto={FOTO.reglas} titulo="Lo que Voni sabe" sub="reglas de oficio" onClick={() => onIr('reglas')} />
             {esDireccion && <Atajo foto={FOTO.tablero} titulo="Dirección" sub="ver el negocio" onClick={() => onIr('tablero')} />}
             {esDireccion && <Atajo foto={FOTO.usuarios} titulo="Usuarios y accesos" sub="permisos" onClick={() => onIr('usuarios')} />}
+            {esDireccion && <Atajo foto={FOTO.banco} titulo="Cargar compras del ERP" sub="precios con documento" onClick={() => onIr('carga-erp')} />}
           </div>
         </section>
 
