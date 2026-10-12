@@ -17,7 +17,7 @@
 //  Todo en mm. Puro (Deno + node). Reusa helpers vendorizados de ./spatial-core.js.
 // ============================================================================
 import { rectsSeSolapan, rectDentroPoligono, bloqueaPuertaEspacial } from './spatial-core.js';
-import { perfilDeAncla, layoutDeTopologia, rotarFacing, PROFILE_VERSION } from './placementProfiles.js';
+import { perfilDeAncla, layoutDeTopologia, rotarFacing, PROFILE_VERSION, ACCESO_EJECUTIVO } from './placementProfiles.js';
 import { juzgarSemantico } from './semanticPlacementJudge.js';
 import { validarColocacion } from './acomodo-core.js';
 import { juzgarCalidad, calidadAceptable } from './qualityJudge.js';
@@ -201,13 +201,18 @@ export function componerKit(anchor, sillas = [], gavetas = []) {
     const gw = num(g.w, 400), gd = num(g.d, 500);
     piezas.push({ id: String(g.id), dx: lay.anchor.dx + Math.min(Math.max(0, aw - gw), i * (gw + 50)), dy: lay.anchor.dy + Math.max(0, ad - gd), w: gw, d: gd, rol: g.relation_role, bajoTablero: true, slot_id: `storage_${i + 1}` });
   });
-  return { anchorId: String(anchor.id), w: lay.kitW, d: lay.kitD, piezas, sinColocar };
+  // VH-119b: la franja de acceso del ejecutivo (DESK, arriba del kit) es CIRCULACIÓN, no mueble: el pasillo
+  // de 1 m entre kits se mide desde la silla, no desde la franja (una credenza detrás del ejecutivo es lo normal).
+  const accesoLado = topoGeom === 'DESK' && lay.anchor.dy >= ACCESO_EJECUTIVO ? 'top' : null;
+  return { anchorId: String(anchor.id), w: lay.kitW, d: lay.kitD, piezas, sinColocar, accesoLado };
 }
 
 // Rota un kit 90° (intercambia dims; gira coords internas).
 function rotarKit(kit) {
   return {
     anchorId: kit.anchorId, w: kit.d, d: kit.w, sinColocar: kit.sinColocar,
+    // (x,y)→(H-(y+h), x): la franja de arriba queda a la DERECHA del kit girado.
+    accesoLado: kit.accesoLado === 'top' ? 'right' : (kit.accesoLado === 'right' ? 'bottom' : (kit.accesoLado === 'bottom' ? 'left' : (kit.accesoLado === 'left' ? 'top' : null))),
     // Conserva metadata semántica y ROTA el facing cardinal (GAP3). `side` semántico
     // (A/B/HEAD_A/HEAD_B/FRONT) se conserva; `facing` absoluto gira con el bloque.
     piezas: kit.piezas.map((p) => ({ id: p.id, rol: p.rol, bajoTablero: p.bajoTablero, w: p.d, d: p.w, dx: kit.d - (p.dy + p.d), dy: p.dx, slot_id: p.slot_id, side: p.side, facing: rotarFacing(p.facing, 90), topology: p.topology, provenance: p.provenance, profile_version: p.profile_version, fallback_layout: p.fallback_layout })),
@@ -229,16 +234,27 @@ function areasPermitidas(anchorPieza, areas) {
 }
 
 // ¿Cabe el kit (rect bruto w×d en (x,y))? Pasillo entre kits vs `ocupados`.
-function kitCabe(x, y, kw, kh, area, ocupados) {
+// Rect de un kit SIN su franja de acceso (para medir el pasillo entre kits). VH-119b.
+function rectPasillo(x, y, kw, kh, accesoLado) {
+  const a = ACCESO_EJECUTIVO;
+  if (accesoLado === 'top') return { x, y: y + a, w: kw, d: Math.max(0, kh - a) };
+  if (accesoLado === 'bottom') return { x, y, w: kw, d: Math.max(0, kh - a) };
+  if (accesoLado === 'left') return { x: x + a, y, w: Math.max(0, kw - a), d: kh };
+  if (accesoLado === 'right') return { x, y, w: Math.max(0, kw - a), d: kh };
+  return { x, y, w: kw, d: kh };
+}
+function kitCabe(x, y, kw, kh, area, ocupados, accesoLado = null) {
   const W = num(area.ancho) || num(area.width_mm), H = num(area.largo) || num(area.depth_mm);
   if (x < 0 || y < 0 || x + kw > W + 1 || y + kh > H + 1) return 'OUT_OF_BOUNDS';
   const rect = { x, y, w: kw, d: kh };
+  const pas = rectPasillo(x, y, kw, kh, accesoLado);
   if (Array.isArray(area.poly) && area.poly.length >= 3 && !rectDentroPoligono(rect, area.poly)) return 'OUT_OF_POLYGON';
   for (const o of (area.obstaculos || [])) if (rectsSeSolapan(rect, { x: num(o.x), y: num(o.y), w: num(o.w), d: num(o.h) })) return 'OBSTACLE';
   for (const p of (area.puertas || [])) if (bloqueaPuertaEspacial(rect, p)) return 'DOOR';
   for (const oc of ocupados) {
     if (rectsSeSolapan(rect, oc)) return 'OVERLAP';
-    if (rectsSeSolapan({ x: x - AISLE, y: y - AISLE, w: kw + 2 * AISLE, d: kh + 2 * AISLE }, oc)) return 'AISLE';
+    // Pasillo: entre los rects SIN franja de acceso (la franja es piso libre; no se encima, pero no suma pasillo).
+    if (rectsSeSolapan({ x: pas.x - AISLE, y: pas.y - AISLE, w: pas.w + 2 * AISLE, d: pas.d + 2 * AISLE }, oc.pasillo || oc)) return 'AISLE';
   }
   return null;
 }
@@ -540,13 +556,13 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
           // GAP35.A: checar deadline DENTRO del barrido (no sólo al entrar a intentarKit),
           // para que una malla grande no exceda el presupuesto. Cada 512 nodos (barato).
           if (deadline && (nodos % 512 === 0) && Date.now() >= deadline) { budgetExhausted = true; return idx >= kits.length; }
-          const motivo = kitCabe(c.x, c.y, k.w, k.d, area, ocupadosPorArea.get(ai));
+          const motivo = kitCabe(c.x, c.y, k.w, k.d, area, ocupadosPorArea.get(ai), k.accesoLado || null);
           if (motivo) {
             // GAP17: histograma de rechazos (SÓLO registra; no altera el flujo).
             kit._rej = kit._rej || {}; kit._rej[motivo] = (kit._rej[motivo] || 0) + 1;
             if (motivo !== 'AISLE') mejorMotivo = motivo; continue;
           }
-          ocupadosPorArea.get(ai).push({ x: c.x, y: c.y, w: k.w, d: k.d });
+          ocupadosPorArea.get(ai).push({ x: c.x, y: c.y, w: k.w, d: k.d, pasillo: rectPasillo(c.x, c.y, k.w, k.d, k.accesoLado || null) });
           const abs = { areaIdx: ai, x: c.x, y: c.y, rot };
           const base = colocacion.length;
           k.piezas.forEach((p) => colocacion.push(colocarPieza(abs, p)));

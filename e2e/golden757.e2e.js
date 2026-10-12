@@ -186,7 +186,14 @@ test.describe('GOLDEN 757 · plano → programa → VONI → fusión → acomodo
     // Cero invariantes geométricos duros (solapes, fuera de bounds, puertas, obstáculos) en el veredicto del edge.
     const issuesDuros = (cot.acomodo.plan.layoutSpec?.validation?.issues || []).filter((i) => i.severity === 'fail');
     expect(issuesDuros, JSON.stringify(issuesDuros)).toHaveLength(0);
-    expect(cot.acomodo.plan.colocacion.length).toBeGreaterThanOrEqual(21);
+    console.log('[golden757] status', cot.acomodo.plan.layoutSpec?.status, '· no cupieron:', JSON.stringify((cot.acomodo.plan.no_cupieron || []).map((u) => [u.anchorId, u.piezas, u.invariante])), '· unassigned:', JSON.stringify(cot.acomodo.plan.unassigned || []));
+    // VH-119: el ejecutivo va DETRÁS del escritorio con su franja de acceso y las visitas al frente. En la
+    // OFICINA CEO de 4.0 × 3.2 m (escritorio 2.10 + credenza 2.10 + archivero 0.90 + 3 sillas) con el pasillo de
+    // 1 m entre kits ya no cabe el archivero: 20 colocadas (antes 21 con el ejecutivo sentado junto a las visitas,
+    // que el juez semántico rechazaba). Decisión pendiente de Dirección: pasillo de 1 m en privados chicos.
+    expect(cot.acomodo.plan.colocacion.length).toBeGreaterThanOrEqual(20);
+    const ejecutivo = cot.acomodo.plan.colocacion.find((c) => c.id === 'p-8-1');
+    expect(ejecutivo?.side, 'la silla directiva queda detrás del escritorio').toBe('BACK');
     // Las SONATA restantes: razón exacta.
     const diag = await page.getByTestId('diagnostico-acomodo').innerText().catch(() => '');
     console.log('[golden757] no colocadas + diagnóstico:', JSON.stringify(((await leerCot(page))?.acomodo?.plan?.unassigned || (await leerCot(page))?.acomodo?.plan?.no_cupieron || []).map((u) => [u.id, u.reason_code || u.code || u.reason || null])), '·', diag.replace(/\s+/g, ' ').slice(0, 500));

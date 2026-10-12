@@ -267,3 +267,31 @@ describeSem('VH-120 · capacidad con fuente y tope geométrico', () => {
     expectSem(r.layoutSpec.status).not.toBe('PASS');
   });
 });
+
+// VH-119b · la franja de acceso del ejecutivo es CIRCULACIÓN: el pasillo de 1 m se mide desde la silla, no
+// desde la franja. OFICINA CEO del golden 757 (4.0 × 3.2 m): la credenza vuelve a caber detrás del ejecutivo;
+// el archivero de 0.90 ya no cabe con el pasillo de 1 m y se reporta (no se encima ni se esconde).
+describeSem('VH-119b · credenza detrás del ejecutivo en el privado de 4.0 × 3.2', () => {
+  const ceo = [{ nombre: 'OFICINA CEO', tipo: 'privado', ancho: 4000, largo: 3200, x: 0, y: 0 }];
+  const base = [
+    { id: 'p-2-1', nombre: 'Eclipse Escritorio Directivo 2.10 m', w: 2100, d: 900, tipo: 'escritorio', relation_role: 'ANCHOR_DESK', functional_group_id: 'fg:libre:privado', zone_id: 'OFICINA CEO' },
+    { id: 'p-8-1', nombre: 'Silla directiva ALPHA', w: 600, d: 600, tipo: 'asiento', relation_role: 'EXECUTIVE_SEAT', functional_group_id: 'fg:libre:privado', zone_id: 'OFICINA CEO' },
+    { id: 'p-9-1', nombre: 'Silla de visita · CONCERTO', w: 600, d: 600, tipo: 'asiento', relation_role: 'VISITOR_SEAT', functional_group_id: 'fg:libre:privado', zone_id: 'OFICINA CEO' },
+    { id: 'p-9-2', nombre: 'Silla de visita · CONCERTO', w: 600, d: 600, tipo: 'asiento', relation_role: 'VISITOR_SEAT', functional_group_id: 'fg:libre:privado', zone_id: 'OFICINA CEO' },
+    { id: 'p-3-1', nombre: 'Eclipse Credenza baja 2.10', w: 2100, d: 600, tipo: 'archivo', relation_role: 'SUPPORT_STORAGE', functional_group_id: 'fg:libre:general', zone_id: 'OFICINA CEO' },
+  ];
+  itSem('escritorio + 3 sillas + credenza: todo colocado, ejecutivo BACK, credenza sin encimar y a ≥ 1 m de la silla', () => {
+    const r = construirSem(ceo, base);
+    expectSem(r.plan.colocacion).toHaveLength(5);
+    const by = Object.fromEntries(r.plan.colocacion.map((c) => [c.id, c]));
+    expectSem(by['p-8-1'].side).toBe('BACK');
+    expectSem(r.layoutSpec.validation.issues.filter((i) => i.severity === 'fail')).toEqual([]);
+    expectSem(r.seleccion.ganador_eval.hardOk).toBe(true);
+  });
+  itSem('con el archivero de 0.90 además: 5 de 6, el archivero se reporta como no cupo (pasillo de 1 m), nunca encimado', () => {
+    const r = construirSem(ceo, [...base, { id: 'p-6-1', nombre: 'Modulor Archivero horizontal 0.90', w: 749, d: 900, tipo: 'archivo', relation_role: 'SUPPORT_STORAGE', functional_group_id: 'fg:libre:general', zone_id: 'OFICINA CEO' }]);
+    expectSem(r.plan.colocacion).toHaveLength(5);
+    expectSem((r.no_cupieron || []).map((u) => u.anchorId)).toEqual(['p-6-1']);
+    expectSem(r.layoutSpec.status).not.toBe('PASS');
+  });
+});

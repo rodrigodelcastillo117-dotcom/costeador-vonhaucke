@@ -71,7 +71,7 @@ Re-verificado hoy con `grep` de importadores fuera de tests. **Dos filas del inv
 | E4 | Aplicar `20261012061000_vh100_cargar_costos_oficiales.sql` y cargar el reporte de costo Intelisis por clave | 1,931 partidas sin economía; RPC con procedencia | **tú consigues el reporte**; luego se carga y se demuestra cotizar→autorizar→emitir v2→PDF→reabrir con datos aislados |
 | E5 | P0-03: re-firmar el lote de 1,763 (approved_by real) o degradarlo a `propuesto_validado`; regla "compra > 12 m no es vigente" (526); documentar o degradar los 30 `reconciliacion`; retirar `QA_FIXTURE_*` (10) | SQL en la matriz | decisión tuya; no se toca sin firma |
 
-| E6 | Nuevo deploy coordinado E1+E2 del RC de estabilización (VH-108/110–118): cliente + `acomodar-espacio-recovery` + `generar-render` + `analizar-mueble` | § ESTABILIZACIÓN POST-DEPLOY; vitest y Playwright locales verdes; golden + 3 proyectos | mismo protocolo que el 12-oct; rollback `195d245` |
+| E6 | Nuevo deploy coordinado E1+E2 del RC de estabilización (VH-108/110–122, cierre definitivo del 12-oct): cliente + `acomodar-espacio-recovery` + `generar-render` + `analizar-mueble` (plan y rollback en § Fase 8 del cierre) | § ESTABILIZACIÓN POST-DEPLOY; vitest y Playwright locales verdes; golden + 3 proyectos | mismo protocolo que el 12-oct; rollback `195d245` |
 | E7 | Crear cuentas QA `qa-ventas` / `qa-diseno` (Auth + `permitidos`) para certificar roles en producción | procedimiento mínimo en el gate | tú las creas; sin contraseñas en el chat |
 
 ## D. Lo que YA está hecho y no requiere decisión (sólo que lo sepas)
