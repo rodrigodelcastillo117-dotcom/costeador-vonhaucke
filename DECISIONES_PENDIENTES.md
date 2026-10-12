@@ -61,6 +61,16 @@ Re-verificado hoy con `grep` de importadores fuera de tests. **Dos filas del inv
 | C2 | 8 partidas + 14 acomodos con imágenes base64 dentro de la fila | Medido 2026-10-10 | Migración a Storage preservando la economía del vendedor. Se corre en aislado con antes/después |
 | C3 | Residuos de la verificación en vivo del 2026-10-11 con `qa-direccion@vonhaucke.mx`: 2 cotizaciones autoguardadas (sin folio, sin emitir), 2 renders en `renders/generated/qa-direccion…`, 2 `render_eventos`, 5 `ai_eventos` | Medido tras la pasada | Borrar las 2 cotizaciones y los 2 objetos de Storage; conservar los eventos (son uso real). También: cambiar la contraseña trivial de esa cuenta o bajarla a vendedor |
 
+## E. RC Rescate P0 (2026-10-12) — autorizaciones para salir de la rama
+
+| # | Qué | Evidencia | Propuesta |
+|---|-----|-----------|-----------|
+| E1 | Desplegar cliente (Vercel) desde la rama: P0-02, P0-04 cliente, VH-090/091/092/094/095/096 | 2,088 pruebas verdes, build OK, `docs/RC_2026-10-12_MATRIZ_P0.md` | PR a `c3.4-seller-safe` + merge + deploy |
+| E2 | Desplegar edges `costear-servidor` v9, `acomodar-espacio-recovery` v9, `leer-plano-core`, `leer-plano` | mismo RC | workflow `deploy-edge` |
+| E3 | Aplicar `20261012060000_vh099_dimensiones_catalogo.sql` y correr `derivar_dimensiones_catalogo(true)` | dry-run: 1,738 PVs derivables (PRELIMINAR, con evidencia) | aplicar + dry-run + aplicar |
+| E4 | Aplicar `20261012061000_vh100_cargar_costos_oficiales.sql` y cargar el reporte de costo Intelisis por clave | 1,931 partidas sin economía; RPC con procedencia | **tú consigues el reporte**; luego se carga y se demuestra cotizar→autorizar→emitir v2→PDF→reabrir con datos aislados |
+| E5 | P0-03: re-firmar el lote de 1,763 (approved_by real) o degradarlo a `propuesto_validado`; regla "compra > 12 m no es vigente" (526); documentar o degradar los 30 `reconciliacion`; retirar `QA_FIXTURE_*` (10) | SQL en la matriz | decisión tuya; no se toca sin firma |
+
 ## D. Lo que YA está hecho y no requiere decisión (sólo que lo sepas)
 
 Lectura de planos (VH-064), acomodo con IA (VH-067), Costeador (VH-066), Cotizar con IA (VH-070/071) y render
