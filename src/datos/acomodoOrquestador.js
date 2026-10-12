@@ -86,6 +86,7 @@ export async function resolverAcomodo({ partidas = [], areasM = [], piezasExtra 
   // (obj 8) Repair loop ≤ max. Cada intento re-impone fijas y evalúa.
   let planPrev = planGuardado;
   let mejor = null;
+  let ultimoError = null;
   for (let intento = 1; intento <= maxIntentos; intento++) {
     const esUltimo = intento === maxIntentos;
     let planBruto;
@@ -93,6 +94,12 @@ export async function resolverAcomodo({ partidas = [], areasM = [], piezasExtra 
       planBruto = await solve(payload, { intento, fijas, planPrev });
     } catch (e) {
       trace.push({ intento, accion: 'SOLVE_ERROR', status: 'FAIL', porque: String(e?.message || e), invariantesFallados: ['SOLVE_ERROR'], piezasMovidas: [] });
+      // VH-067: un veredicto FAIL del servidor es una respuesta, no una caída: repetir el mismo
+      // payload no lo cambia y su motivo (qué no cupo, qué se encimó) debe llegar a la pantalla.
+      if (e?.veredictoServidor) {
+        return { ok: false, status: 'FAIL', render_ready: false, conservadoManual: false, motivo: 'SERVIDOR_FAIL', error: String(e.message), payload, plan: null, evaluacion: null, trace };
+      }
+      ultimoError = String(e?.message || e);
       continue;
     }
     const plan = reimponerFijas(planBruto || { colocacion: [] }, fijas);
@@ -120,5 +127,6 @@ export async function resolverAcomodo({ partidas = [], areasM = [], piezasExtra 
   return {
     ok: false, status, render_ready: false, conservadoManual: false, payload,
     plan: mejor ? mejor.plan : null, evaluacion: evalFinal, trace,
+    ...(mejor ? {} : { error: ultimoError }),
   };
 }

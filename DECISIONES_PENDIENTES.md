@@ -64,7 +64,7 @@ Re-verificado hoy con `grep` de importadores fuera de tests. **Dos filas del inv
 
 Lectura de planos (VH-064), acomodo con IA (VH-067), Costeador (VH-066), Cotizar con IA (VH-070/071) y render
 (VH-072, P0) ya leen las respuestas del servidor con criterio fail-closed y están cubiertos por e2e con nube falsa.
-Suite al corte: vitest 1,199 · Playwright 23 · build limpio · CI 561–565 en verde.
+Suite al corte (línea unificada, 2026-10-12): vitest 1,965 · Playwright 25 (+16 que requieren credenciales) · build limpio · `no-undef` 0.
 
 ---
 Formato para aprobar: responde con los códigos (p. ej. "A1, A3 sólo descuento, B1–B10, C2") y se ejecuta en ese

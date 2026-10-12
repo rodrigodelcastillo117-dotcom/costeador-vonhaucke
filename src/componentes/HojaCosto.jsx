@@ -2,7 +2,7 @@
 import { pesos2, pct1 } from '../util.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { horasTotales } from '../datos/ue.js';
-import { PARAMETROS_DEFAULT, formulaDePieza, FORMULA_ALBA_V1, MOTOR_VERSION } from '../motor/calculo.js';
+import { costeoEmitible, PARAMETROS_DEFAULT, formulaDePieza, FORMULA_ALBA_V1, MOTOR_VERSION } from '../motor/calculo.js';
 import { precioDesdeCosto, margenObjetivoDe } from '../datos/precio.js';
 import { preciosVH } from '../datos/politicaVH.js';
 

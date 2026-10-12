@@ -230,7 +230,13 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       // REVIEW_REQUIRED / PARTIAL / FAIL). Un FAIL no es un acomodo; PARTIAL y REVIEW se traducen
       // (auditoría + `servidor`) y el agregador de abajo sigue siendo la autoridad de validez.
       const i = interpretarAcomodoServidor(r, payload.piezas);
-      if (!i.ok) throw new Error(i.error || 'El motor espacial rechazó el acomodo.');
+      if (!i.ok) {
+        // Veredicto del servidor (FAIL): es una respuesta, no una caída. Se enseña tal cual y NO
+        // se sustituye por un borrador local (eso sería fail-open: VH-067).
+        const err = new Error(i.error || 'El motor espacial rechazó el acomodo.');
+        err.veredictoServidor = true;
+        throw err;
+      }
       // G: el mensaje al vendedor viaja con el plan hasta la UI (antes se descartaba).
       const mensaje_vendedor = r.mensaje_vendedor || r.layoutSpec?.mensaje_vendedor || null;
       return { ...i.plan, mensaje_vendedor, layoutSpec: r.layoutSpec || null, render_ready: r.render_ready === true, strictPlacement: r.strictPlacement === true };
@@ -296,6 +302,8 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       try {
         const res = await ejecutarAcomodo({ deCero, areasMetros: areas });
         if (res.status === 'SIN_LAYOUT') { setPlan(null); setError(`No voy a acomodar: ${motivoNoListo(res)}.`); return; }
+        // Veredicto FAIL del servidor: se enseña su motivo; NO se cae a un borrador local (VH-067).
+        if (res.status === 'FAIL') { setPlan(null); setError(res.error || 'El motor espacial rechazó el acomodo.'); return; }
         if (res.plan) {
           setPlan(res.plan);
           setError(res.render_ready ? '' : `Acomodo ${motivoNoListo(res)}. Corrige antes de render/PDF.`);
@@ -303,6 +311,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
         }
         setError('Motor espacial no disponible. Usé acomodo local como borrador.');
       } catch (e) {
+        if (e?.veredictoServidor) { setPlan(null); setError(String(e.message)); return; }
         setError('Motor espacial no disponible. Usé acomodo local como borrador.');
       } finally {
         setCargando('');
@@ -382,11 +391,11 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     try {
       const res = await ejecutarAcomodo({ deCero: true, areasMetros: areas });
       if (res.status === 'SIN_LAYOUT') { setError(`No se pudo acomodar: ${motivoNoListo(res)}.`); return; }
-      if (!res.plan) { setError('No se pudo acomodar. Vuelve a intentar.'); return; }
+      if (!res.plan) { setError(res.error || 'No se pudo acomodar. Vuelve a intentar.'); return; }
       setPlan(res.plan);
       if (!res.render_ready) setError(`Acomodo ${motivoNoListo(res)}. Corrige antes de render/PDF.`);
     } catch (e) {
-      setError('No se pudo conectar con el asistente. Revisa tu internet y vuelve a intentar.');
+      setError(e?.veredictoServidor ? String(e.message) : 'No se pudo conectar con el asistente. Revisa tu internet y vuelve a intentar.');
     } finally {
       setCargando('');
     }
@@ -1858,7 +1867,9 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
           </div>
 
           {chequeo && !chequeo.ok && <ul className="lista-ia">{chequeo.problemas.map((p, i) => <li key={i}>{p}</li>)}</ul>}
-          {plan.notas?.length > 0 && <div className="ayuda gris" style={{ marginTop: 8 }}><strong>Notas:</strong> {plan.notas.join(' · ')}</div>}
+          {/* Las notas de un acomodo del SERVIDOR son avisos (piezas sin colocar, puertas sin verificar): ámbar, no letra gris. */}
+          {plan.servidor && plan.notas?.length > 0 && <div className="alerta ambar" style={{ marginTop: 8 }}><span className="texto">{plan.notas.join(' ')}</span></div>}
+          {!plan.servidor && plan.notas?.length > 0 && <div className="ayuda gris" style={{ marginTop: 8 }}><strong>Notas:</strong> {plan.notas.join(' · ')}</div>}
           <div className="ayuda gris" style={{ marginTop: 8, fontSize: 12 }}>Plano esquemático a escala. La IA propone; el sistema verifica bordes y traslapes.</div>
         </div>
       )}

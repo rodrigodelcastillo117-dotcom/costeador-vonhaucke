@@ -118,6 +118,32 @@ igualó al desplegado. `analizar-mueble`, `acomodar-espacio` (sólo el escape `\
 Sin fuente en el repo: `acomodar-espacio-strict`, `analizar-mueble-preview/-strict`, `app`, `bootstrap-temp-claude`,
 `costear-compras-rc`, `costear-vision`, `generar-render-strict`, `leer-plano-strict`, `voni-council-health` (B12).
 
+**VH-080 · P0 · FIXED (unificación, mismo PR) · Dos pantallas se caían tras el merge por identificadores perdidos.**
+La suite unitaria (1,965 verdes) y el build NO lo detectaron; lo detectó el e2e en navegador: `HojaCosto` usaba
+`costeoEmitible` sin importarlo (Costeo manual → "Esta pantalla se atoró") y `Cotizacion` usaba `gateVista` sin
+definirlo (abrir una cotización del archivo → misma pantalla). Un tercero latente en `AsistenteEspecial.persistir`
+(`storagePath/storageUrl/dataUrl` indefinidos; venía así desde mi línea, VH-072) se habría caído al guardar el render.
+Se pasó un linter `no-undef` (ESLint 9, sólo esa regla) sobre todo `src`: 0 indefinidos restantes (`__APP_VERSION__` es
+`define` de Vite). Regla nueva para el repo: un merge no está verificado sin `no-undef` + e2e en navegador.
+
+**VH-081 · P1 · FIXED (unificación) · El acomodo "Con IA" caía a borrador local cuando el servidor decía FAIL.** En la
+línea viva, `acomodar()` atrapaba cualquier excepción del solver con "Motor espacial no disponible. Usé acomodo local
+como borrador" y seguía con `reacomodar` local; el orquestador (`acomodoOrquestador`) reintentaba 3 veces el mismo
+payload y devolvía "No se pudo acomodar. Vuelve a intentar." sin el motivo. Un veredicto FAIL del servidor (qué no cupo,
+qué se encimó) es una respuesta, no una caída: ahora viaja etiquetado (`veredictoServidor`), el orquestador deja de
+reintentar y devuelve `status: 'FAIL'` con el motivo, y la pantalla lo enseña en rojo sin sustituirlo por un borrador.
+Las notas de un acomodo del servidor (piezas sin colocar, puertas sin verificar) se muestran en ámbar, no en letra gris.
+E2E `acomodoServidor` (FAIL y PARTIAL) en verde con el harness vivo (programa coherente: el cliente vivo no acomoda
+programas incompletos, decisión de producto que se respeta).
+
+**Semántica viva adoptada en los e2e de emisión:** el documento SIEMPRE sale como BORRADOR ("Descargar BORRADOR" +
+aviso "BORRADOR · NO REGISTRADO · <motivo>"); lo que se bloquea fail-closed es la emisión definitiva (sin
+`emitir_revision`, sin revisión conservada). Mis specs esperaban el botón deshabilitado; se adaptaron a esa decisión
+(viene de la queja real "clic y no pasó nada").
+
+**Verificación al cierre de la unificación:** vitest 778 archivos / 1,965 pruebas / 0 fallas · build limpio ·
+`no-undef` 0 · Playwright 25 pasan / 16 se saltan (requieren `TEST_EMAIL`/`TEST_PASSWORD` del flujo autenticado real).
+
 **Pendiente de revisar (no se perdió, no se integró):** los 6 commits de `perfection-final` posteriores a `5a38d2e`
 (`d698eea`…`7d60204`, P0.9–P0.16) no están en producción ni en esta unificación.
 

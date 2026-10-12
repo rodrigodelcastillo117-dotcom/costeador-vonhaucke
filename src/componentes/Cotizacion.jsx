@@ -331,10 +331,12 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
     return { definitivo: true, motivo: '', gate: g };
   }
 
+  // Servidor + local en una sola vista (VH-047). Si el servidor no se ha consultado, es lo local.
+  const gateVista = useMemo(() => combinarGate(gateLocal, gate), [gateLocal, gate]);
   // Razones del gate, traducidas y seller-safe (motivos duros + económicos).
-  const gateRazones = gate ? [...new Set([...(gate.motivos || []), ...(gate.economics || [])])].map(textoRazonEmision) : [];
+  const gateRazones = [...new Set([...(gateVista.motivos || []), ...(gateVista.economics || [])])].map(textoRazonEmision);
   // Estado económico POR LÍNEA (chips pegados a cada partida). 1-based → {tono, textos}.
-  const razonesLinea = useMemo(() => razonesPorLinea(gate), [gate]);
+  const razonesLinea = useMemo(() => razonesPorLinea(gateVista), [gateVista]);
   async function descargarPDF() {
     if (bajandoPDF) return;
     setPdfErr(''); setBajandoPDF(true);

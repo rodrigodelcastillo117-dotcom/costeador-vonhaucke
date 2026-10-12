@@ -275,13 +275,13 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       await guardarRender({
         producto_nombre: b.nombre, producto_version: null, prompt_version: PROMPT_VERSION,
         categoria: tipo, ancho_mm: dimsR.w, fondo_mm: dimsR.d, alto_mm: null, modo,
-        storage_path: storagePath, storage_url: storageUrl,
+        storage_path: up.path, storage_url: up.url,
         inputs: { materiales: materialesR, notas: b.descripcionCliente || null, piezas: (b.componentes || []).length, entorno: entornoTipo || null, render_hash: renderFirmaActual },
         costo_estado: costoEstado || 'preliminar', estado: 'preliminar',
       });
-      return storageUrl;
+      return up.url;
     }
-    return dataUrl; // sólo fallback visual; nunca se persiste base64 en metadata
+    return imagen; // sólo fallback visual; nunca se persiste base64 en metadata
   }
 
   async function generarRenders() {
