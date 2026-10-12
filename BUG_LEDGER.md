@@ -232,6 +232,17 @@ las veía como dos zonas aunque cuelgan de la misma mesa. Ahora el eje es la anc
 sólo decide sin identidad; `requirement_id` > decisión explícita > zona; varias zonas ⇒ NEEDS_REVIEW (panel en Voni), nunca
 sustitución automática; parciales ajustan el resto; capacidad distinta se avisa. 14 pruebas + golden.
 
+**DESPLEGADO 2026-10-12 12:39 UTC · `195d245` (código `29522e4`) + edges v9/v9/v12/v5.** Certificación real en producción en
+`docs/auditoria/RESCATE_NOCTURNO.md` § DESPLIEGUE CONTROLADO. GO sin rollback.
+
+**VH-110 · P1 · OPEN · mensaje de acomodo confuso.** Cuando el juez semántico deja el acomodo en `NEEDS_SEMANTIC_REVIEW` sin
+ninguna invariante fallida, `motivoNoListo` (AcomodoBase) dice "requiere revisión: invariantes". Debe decir qué revisión falta
+(semántica: perfil/orientación de piezas inferidas) y qué hacer. Visto en producción con 2 escritorios APP LT en 3 cuartos leídos.
+
+**VH-111 · P2 · OPEN · al reabrir un acomodo guardado, la tarjeta "Voni revisó ANTES…" dice "el servidor no devolvió validación del
+acomodo · kit-solver-multi-v1" aunque `plan.layoutSpec.validation` viene completo en lo guardado (21 de 25, sin problemas
+geométricos). El texto se deriva de un `serverStatus` en memoria que no se rehidrata.
+
 ## UNIFICACIÓN DE LAS DOS LÍNEAS DE CÓDIGO · 2026-10-11/12
 
 **Hecho medible.** Producción (`costeador-vonhaucke.vercel.app`, Vercel) sirve el commit `5a38d2e` de la rama

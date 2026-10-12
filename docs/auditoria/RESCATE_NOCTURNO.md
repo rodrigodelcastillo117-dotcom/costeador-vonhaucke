@@ -166,6 +166,52 @@ nada de SQL de escritura a producción desde pruebas o sesiones sin firma.
 
 Sin P0 nuevo, sin migración obligatoria, sin incompatibilidad crítica ⇒ se procede.
 
+### Fase 2 · Publicación coordinada (12:32–12:40 UTC)
+
+| Paso | Resultado |
+|---|---|
+| CI del PR #33 sobre `ff25ea7` | `verify` ✔ (12:24) · `E2E público + autenticado` ✔ (12:29) |
+| Edges primero (compatibles con el cliente viejo) | workflow `deploy-edge` run 38249672095 desde la rama (código `29522e4`), ✔ 12:33: `costear-servidor` **v9** · `acomodar-espacio-recovery` **v9** · `leer-plano-core` **v5** · `leer-plano` **v12** (`cotizar-servidor` sigue v8) |
+| Cliente | merge PR #33 → `c3.4-seller-safe` = **`195d245`** (12:34); Vercel `dpl_CvmDei64RacaGRvagqhD9PkEbgzS` READY 12:39, alias `costeador-vonhaucke.vercel.app`, `githubCommitSha 195d245` |
+| Ventana con contratos mixtos | ~6 min (edges v9 + cliente `766df46`): campos nuevos opcionales, sin errores en logs |
+| Bundle servido | 29 chunks descargados: contienen "Qué no quedó colocado y por qué", `diagnostico-acomodo`, `ambiguas-programa`, `MISSING_ANCHOR`, "sustituye a" (textos nuevos del RC) |
+
+### Fase 3/4 · Certificación real contra producción publicada (12:42–13:03 UTC, cuenta QA Dirección, sin mocks)
+
+**Prueba A · Cotización 757** (`golden757.e2e.js` con `EDGE_REAL=1`, cliente de prueba `Torre Sur (golden) · POST-DEPLOY 195d245`, fila **833**): 18 → **12** partidas · 1 ancla por rol (banca p-1, Eclipse p-2, mesa p-4, recepción p-11) · WIN ×8 en una fila · ALPHA ×1 · banca `p-1-1` 6000×1200 colocada · **25** al solver · **21** colocadas · `layoutSpec.status PARTIAL`, **0** issues `fail` (sin colisiones, fuera de límites ni puertas bloqueadas) · 4 **Silla · SONATA** `MISSING_ANCHOR` con acción ("agrega el mueble que la recibe o quita la de más"; no es NO_SPACE) · sin "juntass"/"capacidad del catálogo" · 0 errores de consola · edge real: 6 POST 200 `acomodar-espacio-recovery` **version 9** en `function_edge_logs` 12:42:45–47. PASS 17.2 s.
+
+**Prueba B · Persistencia VH-109** (obligatoria): autosave → `actualizar_cotizacion_segura` 36,845 B con plan (12:42:48) → `cotizacion_segura` devuelve 12 partidas / 21 colocadas → estado local vaciado + recarga + "Presupuestos anteriores" → Abrir: mismas partidas, mismo plan, misma fila (no se reescribe sola). SQL: fila 833 `n_partidas 12 · n_colocadas 21 · n_unassigned 4 · fails 0 · áreas 0–3`. **Edición manual** (`golden757Edicion.e2e.js`): reabrir 833, Planta → "Acomodar a mano" → tocar la banca → ⟳: `p-1-1` rot 0 → **90**, ninguna pieza perdida ni duplicada (21 = 21), la nube recibe la edición (SQL: `rot_banca 90`, 13:03:05), estado local vaciado, recarga, reabrir desde el Archivo: la banca sigue girada. PASS 15.6 s (captura `golden_edicion_prod.png`). "En línea" ya no es la evidencia: lo es el RPC y el SQL.
+
+**Prueba C · Costear** (suite viva `vivoSombra` + `live-ai-smoke` + `auth`): `analizar-mueble` real 200 (escritorio ejecutivo 1800×800×750, credenza 1800×500×750) · `costear-servidor` **v9** 200 `estado: incompleto`, `precioVenta: null` (fail-closed: material POR CONFIRMAR ⇒ sin precio, nunca $0 ni certificado por fallback), desglose material 1,815.75 / mano de obra 272.36 / indirectos 817.09 / desperdicio 278.78 = costo unitario 2,905.20, margen 40 (≥ 25) · paridad cliente↔servidor verificada por la sombra (PASS) · precio por hoja con formato: `unidadesErp.test.js` (22) en CI; en vivo el gate de material impide un costo falso. **PASS** (manual y plano/foto: cubiertos por `auth` "COSTEAR acepta PDF multipágina real" y por el flujo de despiece; sin cambio de fórmulas).
+
+**Prueba D · Cotizar y Cocrear**: identificación y conflictos (fusión 18→12) ✔ · guardar/reabrir ✔ · PDF de vista previa: `auth` "descarga PDF real e imprimir responde" ✔ · Cocrear "entra al estudio de co-diseño" ✔ · transferencia Cocrear y recuperación del render canónico con expediente real: **BLOCKED** (no hay expediente de prueba autorizado; cubierto por `cocrear.recuperarRender.test.js` en unit). Avisos vigentes y honestos en Cotizar: "259 de 259 insumos no traen registrado de dónde salió su precio" y "2 insumos en $0" (E4/E5, sin cambio).
+
+**Prueba E · Roles y seguridad**: servidor — edge sin JWT **401**; `cotizaciones.partidas` por REST **denegado** con anon y con sesión Dirección (revocación por columna vigente); RPC `cotizaciones_mias` sin sesión **401**; metadata con sesión 200. Sesiones Ventas/Diseño en producción: **BLOCKED** (la única cuenta de prueba en `permitidos` es `qa-direccion`); la separación por rol está cubierta en la suite local con nube falsa (44/44) y por los RPC seller-safe. Sin forma de manipular precios desde el navegador (RPC `actualizar_cotizacion_segura` protege `estado`/`folio_oficial`; precios no viajan).
+
+**Suite viva completa** (`auth` 8 + `live-ai-smoke` 1 + `vivoSombra` 1 + `vivo` 1): **10/11**. Falla `vivo` "cinco caminos" por su propia expectativa (exige PASS o "no pudo colocar"): el acomodo del proyecto de prueba (2 escritorios APP LT en 3 cuartos leídos) ahora coloca **2/2** sin issues y con puertas VERIFIED, pero el juez semántico lo deja en `NEEDS_SEMANTIC_REVIEW` (perfil UNKNOWN de piezas inferidas) y el render queda bloqueado por diseño; el cliente lo resume como "requiere revisión: invariantes" aunque ninguna invariante falló (**mensaje mejorable, VH-110 P1**). Antes del deploy ese mismo camino daba 0 colocadas con v8.
+
+### Fase 5 · Decisión de rollback
+
+Ningún P0 reproducible: costos sin cambio de fórmula (fail-closed intacto), sin pérdida ni duplicación de partidas (12 = 12 tras cada reapertura), guardado persistente verificado dos veces, sin emisión, sin filtración por rol, geometría nunca marcada VALIDADA en falso (PARTIAL / NEEDS_SEMANTIC_REVIEW honestos), cliente y edge compatibles. **No se ejecuta rollback.** Rollback sigue preparado: Vercel → `dpl_H9nnowoVhTzoUJ4P9tf1Dd1MdtiM` (`766df46`); edges → `deploy-edge` `ref=prod-766df46`.
+
+### Fase 6 · Entrega
+
+1. SHA desplegado: **`195d245`** (merge de `ff25ea7`; código `29522e4`). Antes: `766df46`.
+2. Edges: `acomodar-espacio-recovery` v9 · `costear-servidor` v9 · `leer-plano` v12 · `leer-plano-core` v5 · `cotizar-servidor` v8 (sin cambio).
+3. Tests: vitest 2,112/2,112 · CI verify ✔ · CI E2E ✔ · Playwright local 44/44 · suite viva prod 10/11 (ver arriba) · golden 757 prod PASS · edición manual prod PASS.
+4. Golden 757 antes/después: producción `766df46` + edge v8: 9 de 34 colocadas, duplicados ×2, "18 sillas para 10 puestos" → producción `195d245` + v9: 18→12 partidas, 21 de 25, diagnóstico por pieza, 0 invariantes duros.
+5. Persistencia real: confirmada por RPC y SQL (fila 833: 12/21, edición manual rot 90 persistida y reabierta).
+6. Costear: **PASS** (fail-closed, paridad, margen ≥ 25, fuente real; sin cambio de fórmulas).
+7. Cotizar: **PASS** (conciliación, guardar/reabrir, PDF preliminar); emisión comercial no probada por mandato.
+8. Cocrear: **PASS parcial** (entrada, productos) · render canónico con expediente real **BLOCKED**.
+9. Acomodo: **PASS** (757 en producción; `vivo` 2/2 con revisión semántica honesta).
+10. Seguridad: **PASS** servidor · sesiones Ventas/Diseño **BLOCKED** (sin cuentas de prueba).
+11. Errores nuevos y regresiones: ninguno P0. Nuevos P1/P2 visibles: **VH-110** mensaje "requiere revisión: invariantes" cuando lo que falta es la revisión semántica; **VH-111** (P2) al reabrir un acomodo guardado la tarjeta dice "el servidor no devolvió validación del acomodo" aunque `layoutSpec.validation` viene en el plan guardado.
+12. Resultado: **GO** (publicado; sin rollback).
+13. Pendientes reales: E3 (dimensiones de catálogo), E4 (costos oficiales Intelisis: 259 insumos sin fuente de precio en la 757 de prueba), E5 (aprobaciones ERP) — bloqueados sin firma; VH-108 timeout intermitente de IA (no apareció en esta pasada; sigue abierto); VH-110/111 arriba.
+
+Datos de prueba creados en producción: fila **833** (`Torre Sur (golden) · POST-DEPLOY 195d245`, borrador QA, con la banca girada a 90° por la prueba de edición). Nada se desactivó ni se borró; la 803 no se tocó (SQL: `rot_banca 0`, `actualizado 08:47`).
+
 ## RECOMENDACIÓN GO / NO-GO
 
 **GO para E1+E2 juntos desde `29522e4`** (cliente y edges a la vez; sustituye al GO condicionado desde `561b741`): los contratos cambiaron en ambos lados a la vez
