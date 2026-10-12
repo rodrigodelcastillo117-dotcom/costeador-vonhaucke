@@ -211,11 +211,14 @@ export default function Voni({
   const faltantesPrograma = reconPrograma ? reconPrograma.confirmacion.confirmadas : [];
   // VH-090: duplicados que ya viven en el proyecto (programa aplicado antes de describir con VONI):
   // se enseñan ANTES de aplicar y se fusionan con el mismo botón.
-  const duplicadosPrograma = useMemo(() => {
+  const conciliacion = useMemo(() => {
     const prog = partidas.filter((p) => p.source === 'CONFIRMADO_PROGRAMA');
     const persona = partidas.filter((p) => p.source !== 'CONFIRMADO_PROGRAMA');
-    return prog.length && persona.length ? reconciliarNuevasConPrograma(prog, persona).sustituidas : [];
+    return prog.length && persona.length ? reconciliarNuevasConPrograma(prog, persona) : { sustituidas: [], ambiguas: [] };
   }, [partidas]);
+  const duplicadosPrograma = conciliacion.sustituidas;
+  // Release gate: equivalencias AMBIGUAS (varias zonas posibles) → la persona decide; nunca se sustituye solo.
+  const ambiguasPrograma = conciliacion.ambiguas || [];
   // VH-090: existentes del usuario que cubren el programa y aún no están vinculados (sin instance/anchor).
   const reutilizadosPrograma = reconPrograma
     ? (reconPrograma.confirmacion.enriquecidos || []).filter((e) => { const p = partidas.find((x) => String(x.id) === String(e.id)); return p && !p.instance_id && !p.anchor_instance_id; })
@@ -329,7 +332,7 @@ export default function Voni({
           lleve derecho ahí, sin un clic de más. */}
       {paso === 2 && (
         <>
-          {propuestaPrograma && (faltantesPrograma.length > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0 || duplicadosPrograma.length > 0) && (
+          {propuestaPrograma && (faltantesPrograma.length > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0 || duplicadosPrograma.length > 0 || ambiguasPrograma.length > 0) && (
             <div className="tarjeta no-imprimir" style={{ borderColor: '#8bbcaf', background: '#eef6f3' }}>
               <strong style={{ color: '#174f45' }}>✨ Programa detectado del plano</strong>
               <p className="ayuda" style={{ marginTop: 4 }}>
@@ -347,7 +350,24 @@ export default function Voni({
                 <div style={{ marginTop: 8 }} data-testid="duplicados-programa">
                   <div style={{ fontWeight: 700, color: '#174f45' }}>Ya describiste estos muebles: el programa los tenía con producto genérico y se fusionan (no se duplican)</div>
                   {duplicadosPrograma.map((d, i) => (
-                    <div key={i}>⇄ <b>{d.a}</b> sustituye a <span style={{ color: '#6b645c' }}>{d.de}</span></div>
+                    <div key={i}>⇄ <b>{d.a}</b> sustituye a <span style={{ color: '#6b645c' }}>{d.de}</span>{d.parcial ? <span className="ayuda"> · quedan {d.restante} del programa</span> : null}{d.capacidadDistinta ? <span className="ayuda"> · ojo: el plano pedía {d.capacidadPrograma} usuarios y tu mueble es de {d.capacidadNueva}</span> : null}</div>
+                  ))}
+                </div>
+              )}
+              {ambiguasPrograma.length > 0 && (
+                <div style={{ marginTop: 8, color: '#8a5a00' }} data-testid="ambiguas-programa">
+                  <div style={{ fontWeight: 700 }}>Decide tú: estos muebles podrían cubrir más de un lugar del plano (no se sustituye solo)</div>
+                  {ambiguasPrograma.map((a) => (
+                    <div key={a.id} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 4 }}>
+                      <span>⇄ <b>{a.nombre}</b> es para:</span>
+                      {a.opciones.map((o) => (
+                        <button key={o.id} type="button" className="boton fantasma" style={{ minHeight: 30 }}
+                          onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta, { decisiones: { [a.id]: o.id } })}>
+                          {o.zona || o.nombre}
+                        </button>
+                      ))}
+                      <span className="ayuda">(o déjalo como mueble aparte)</span>
+                    </div>
                   ))}
                 </div>
               )}

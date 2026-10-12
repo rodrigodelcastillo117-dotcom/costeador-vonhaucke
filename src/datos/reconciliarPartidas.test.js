@@ -65,3 +65,81 @@ describe('VH-090 · reconciliarNuevasConPrograma', () => {
     expect(r2.partidas.filter((p) => p.relation_role === 'ANCHOR_WORKSTATION')).toHaveLength(1);
   });
 });
+
+// ---------------------------------------------------------------------------
+//  Release gate (2026-10-13): conciliación en proyectos con varias zonas.
+//  Respeta requirement_id / zone_id / ancla / grupo; ambigüedad ⇒ NEEDS_REVIEW.
+// ---------------------------------------------------------------------------
+const P = (o) => ({ source: 'CONFIRMADO_PROGRAMA', sinPrecioAutorizado: true, cantidad: 1, ...o });
+const mesa = (zona, banco, w) => P({ id: `mj:${zona}`, nombre: `Mesa de juntas ${w / 1000} m`, bancoId: banco, relation_role: 'ANCHOR_MEETING', requirement_id: `req:${zona}:juntas:0`, instance_id: `inst:${zona}`, functional_group_id: `fg:${zona}`, zone_id: zona, w, d: 1200 });
+const escritorio = (zona) => P({ id: `dir:${zona}`, nombre: 'Módulo directivo App LT', bancoId: 'dir-1800x2400', relation_role: 'ANCHOR_DESK', requirement_id: `req:${zona}:privado:0`, instance_id: `inst:${zona}`, functional_group_id: `fg:${zona}`, zone_id: zona, w: 1800, d: 2400 });
+const win = (zona, n) => P({ id: `win:${zona}`, nombre: 'Silla operativa WIN', bancoId: 'silla-win', relation_role: 'WORK_SEAT', anchor_instance_id: `inst:${zona}`, functional_group_id: `fg:${zona}`, zone_id: zona, cantidad: n });
+
+describe('conciliación con varias zonas (release gate)', () => {
+  it('dos salas con mesas distintas: una mesa nueva SIN zona es ambigua → NEEDS_REVIEW, nada se sustituye', () => {
+    const prog = [mesa('SALA A', 'mj-2400x1200', 2400), mesa('SALA B', 'mj-3000x1200', 3000)];
+    const nueva = { id: 'n1', nombre: 'Mesa de juntas APP LT 1.20 × 1.20', piezaId: 'linea-mesa_juntas', productoId: 'mesa_juntas', cantidad: 1, precioUnitario: 8214, w: 1200, d: 1200 };
+    const r = reconciliarNuevasConPrograma(prog, [nueva]);
+    expect(r.sustituidas).toHaveLength(0);
+    expect(r.ambiguas).toHaveLength(1);
+    expect(r.ambiguas[0].opciones.map((o) => o.zona).sort()).toEqual(['SALA A', 'SALA B']);
+    expect(r.partidas).toHaveLength(3);                                  // las dos del programa + la nueva, intactas
+  });
+  it('con zona explícita en la nueva partida sólo sustituye en ESA sala', () => {
+    const prog = [mesa('SALA A', 'mj-2400x1200', 2400), mesa('SALA B', 'mj-3000x1200', 3000)];
+    const r = reconciliarNuevasConPrograma(prog, [{ id: 'n1', nombre: 'Mesa de juntas APP LT 1.20 × 1.20', piezaId: 'linea-mesa_juntas', productoId: 'mesa_juntas', cantidad: 1, precioUnitario: 8214, zone_id: 'SALA B', w: 1200, d: 1200 }]);
+    expect(r.ambiguas).toHaveLength(0);
+    expect(r.sustituidas).toHaveLength(1);
+    expect(r.partidas.find((p) => p.id === 'mj:SALA A')).toBeTruthy();   // la otra sala no se toca
+    expect(r.partidas.find((p) => p.id === 'n1').instance_id).toBe('inst:SALA B');
+  });
+  it('decisión explícita de la persona resuelve la ambigüedad sin inventar zona', () => {
+    const prog = [mesa('SALA A', 'mj-2400x1200', 2400), mesa('SALA B', 'mj-3000x1200', 3000)];
+    const nueva = { id: 'n1', nombre: 'Mesa de juntas APP LT 1.20 × 1.20', piezaId: 'linea-mesa_juntas', productoId: 'mesa_juntas', cantidad: 1, precioUnitario: 8214 };
+    const r = reconciliarNuevasConPrograma(prog, [nueva], { decisiones: { n1: 'mj:SALA A' } });
+    expect(r.ambiguas).toHaveLength(0);
+    expect(r.partidas.find((p) => p.id === 'n1').zone_id).toBe('SALA A');
+    expect(r.partidas.find((p) => p.id === 'mj:SALA B')).toBeTruthy();
+  });
+  it('dos despachos con escritorios del mismo rol: un escritorio nuevo sin zona NO sustituye arbitrariamente', () => {
+    const prog = [escritorio('DESPACHO 1'), escritorio('DESPACHO 2')];
+    const r = reconciliarNuevasConPrograma(prog, [{ id: 'n1', nombre: 'Eclipse Escritorio Directivo 2.10 m', piezaId: 'linea-escritorio', productoId: 'escritorio', cantidad: 1, precioUnitario: 81470, w: 2100, d: 900 }]);
+    expect(r.sustituidas).toHaveLength(0);
+    expect(r.ambiguas[0].rol).toBe('ANCHOR_DESK');
+  });
+  it('un solo despacho: sí sustituye (no hay ambigüedad) y hereda requirement/zona', () => {
+    const r = reconciliarNuevasConPrograma([escritorio('DESPACHO 1')], [{ id: 'n1', nombre: 'Eclipse Escritorio Directivo 2.10 m', piezaId: 'linea-escritorio', productoId: 'escritorio', cantidad: 1, precioUnitario: 81470, w: 2100, d: 900 }]);
+    expect(r.sustituidas).toHaveLength(1);
+    expect(r.partidas.find((p) => p.id === 'n1').requirement_id).toBe('req:DESPACHO 1:privado:0');
+  });
+  it('dos grupos WIN en zonas distintas: 8 WIN nuevas sin zona → ambiguo; con zona → sustituye sólo ese grupo', () => {
+    const prog = [win('OPERATIVA 1', 8), win('OPERATIVA 2', 6)];
+    const sinZona = reconciliarNuevasConPrograma(prog, [{ id: 'n1', nombre: 'Silla operativa · WIN', piezaId: 'p9-silla-operativa-win-5210', cantidad: 8, precioUnitario: 5210 }]);
+    expect(sinZona.ambiguas).toHaveLength(1);
+    expect(sinZona.partidas.filter((p) => p.relation_role === 'WORK_SEAT' && p.source === 'CONFIRMADO_PROGRAMA')).toHaveLength(2);
+    const conZona = reconciliarNuevasConPrograma(prog, [{ id: 'n1', nombre: 'Silla operativa · WIN', piezaId: 'p9-silla-operativa-win-5210', cantidad: 8, precioUnitario: 5210, zone_id: 'OPERATIVA 2' }]);
+    expect(conZona.sustituidas).toHaveLength(1);
+    expect(conZona.partidas.find((p) => p.id === 'win:OPERATIVA 1').cantidad).toBe(8);   // intacto
+  });
+  it('cantidad parcial: 6 WIN nuevas contra 8 del programa (misma zona) → 6 de la persona + 2 del programa, nunca se borra el requerimiento', () => {
+    const r = reconciliarNuevasConPrograma([win('OPERATIVA 1', 8)], [{ id: 'n1', nombre: 'Silla operativa · WIN', piezaId: 'p9-silla-operativa-win-5210', cantidad: 6, precioUnitario: 5210 }]);
+    expect(r.sustituidas[0].parcial).toBe(true);
+    expect(r.sustituidas[0].restante).toBe(2);
+    const resto = r.partidas.find((p) => p.id === 'win:OPERATIVA 1');
+    expect(resto.cantidad).toBe(2);
+    expect(resto.cantidadAjustadaPorConciliacion).toBe(true);
+    expect(r.partidas.find((p) => p.id === 'n1').anchor_instance_id).toBe('inst:OPERATIVA 1');
+  });
+  it('configuración distinta: banca de 8 contra módulo de 10 → sustituye pero lo marca (capacidadDistinta)', () => {
+    const prog = [P({ id: 'op', nombre: 'Módulo operativo App LT 10 usuarios', bancoId: 'op-10u-6000x1200-cristal', relation_role: 'ANCHOR_WORKSTATION', requirement_id: 'req:op', instance_id: 'inst:op', functional_group_id: 'fg:op', zone_id: 'OPERATIVA', user_capacity: 10, w: 6000, d: 1200 })];
+    const r = reconciliarNuevasConPrograma(prog, [{ id: 'n1', nombre: 'Banca doble APP LT 1.50 · 8 usuarios', piezaId: 'linea-banca_doble', productoId: 'banca_doble', cantidad: 1, precioUnitario: 26145, w: 6000, d: 1200, user_capacity: 8 }]);
+    expect(r.sustituidas[0].capacidadDistinta).toBe(true);
+    expect(r.sustituidas[0].capacidadPrograma).toBe(10);
+    expect(r.partidas.find((p) => p.id === 'n1').user_capacity).toBe(8);        // la de la persona, no la del programa
+  });
+  it('requirement_id explícito manda sobre la zona', () => {
+    const prog = [mesa('SALA A', 'mj-2400x1200', 2400), mesa('SALA B', 'mj-3000x1200', 3000)];
+    const r = reconciliarNuevasConPrograma(prog, [{ id: 'n1', nombre: 'Mesa de juntas 1.20', piezaId: 'linea-mesa_juntas', productoId: 'mesa_juntas', cantidad: 1, precioUnitario: 1, requirement_id: 'req:SALA B:juntas:0', zone_id: 'SALA A' }]);
+    expect(r.partidas.find((p) => p.id === 'n1').instance_id).toBe('inst:SALA B');
+  });
+});

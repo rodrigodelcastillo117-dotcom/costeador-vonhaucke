@@ -28,6 +28,7 @@ const Biblioteca = lazy(() => import('./componentes/Biblioteca.jsx'));
 const CosteadorLinea = lazy(() => import('./componentes/CosteadorLinea.jsx'));
 import { aplicarPrograma, partidaComercialDesdeConfirmado } from './datos/programaRealDelPlano.js';
 import { reconciliarNuevasConPrograma } from './datos/reconciliarPartidas.js';
+import { fusionarAcomodo } from './datos/acomodoEstado.js';
 import { APPLT_PRODUCTOS, generarAppLT } from './datos/applt.js';
 import { APP_PRODUCTOS, generarApp } from './datos/app.js';
 import { ECLIPSE_PRODUCTOS, generarEclipse } from './datos/eclipse.js';
@@ -262,7 +263,15 @@ export default function App() {
   // dijiste dónde va"), se perdía `planReal` de un plano REAL subido, y se
   // perdía el render de la portada del PDF.
   function guardarAcomodo(datos, silencioso) {
-    setEstado((e) => ({ ...e, cotizacion: { ...e.cotizacion, acomodo: { ...(e.cotizacion?.acomodo || {}), ...datos } } }));
+    // VH-109: idempotente. AcomodoBase guarda solo (600 ms) y cada guardado re-renderizaba el
+    // acomodo con un objeto NUEVO del mismo contenido → AcomodoBase volvía a guardar → ciclo
+    // cada ~650 ms que reiniciaba para siempre el autosave (1.5 s) a la nube: el plan nunca
+    // llegaba a `cotizaciones.acomodo`. Si no cambió nada, se devuelve el MISMO estado.
+    setEstado((e) => {
+      const fusion = fusionarAcomodo(e.cotizacion?.acomodo, datos);
+      if (fusion.sinCambios) return e;
+      return { ...e, cotizacion: { ...e.cotizacion, acomodo: fusion.acomodo } };
+    });
     if (!silencioso) mostrarAviso('Acomodo guardado en la propuesta');
   }
 
@@ -843,6 +852,7 @@ export default function App() {
     // VH-091: `opts.sustituir` = slots cuyo conflicto la persona resolvió a favor del propuesto.
     const sustituir = Array.isArray(opts.sustituir) ? opts.sustituir : [];
     const mantenerAmbos = Array.isArray(opts.mantenerAmbos) ? opts.mantenerAmbos : [];
+    const decisiones = opts.decisiones && typeof opts.decisiones === 'object' ? opts.decisiones : {};
     // Vista para la UI (contra el estado actual): conflictos y pendientes a mostrar.
     const vista = aplicarPrograma(propuesta, { existentes: estado.cotizacion?.partidas || [], sustituir, mantenerAmbos });
     if (aplicandoProgramaRef.current) {
@@ -871,7 +881,7 @@ export default function App() {
       const todas = [...patched, ...nuevas];
       const delPrograma = todas.filter((p) => p.source === 'CONFIRMADO_PROGRAMA');
       const dePersona = todas.filter((p) => p.source !== 'CONFIRMADO_PROGRAMA');
-      const rec = reconciliarNuevasConPrograma(delPrograma, dePersona);
+      const rec = reconciliarNuevasConPrograma(delPrograma, dePersona, { decisiones });
       const conciliadas = rec.sustituidas.length ? rec.partidas : todas;
       if (!nuevas.length && !enriquecidos.length && !fuera.size && !rec.sustituidas.length) return prev;    // idempotente: nada que hacer
       return { ...prev, cotizacion: { ...prev.cotizacion, partidas: conciliadas } };

@@ -43,7 +43,7 @@ const SEMILLA = {
       planReal: true,
       areasM: [
         { nombre: 'OFICINA CEO', tipo: 'privado', ancho: 4, largo: 3.2, x: 0, y: 0, puestos: 1 },
-        { nombre: 'SALA DE CONSEJO', tipo: 'juntas', ancho: 7, largo: 3.2, x: 8, y: 0, asientos: 10 },
+        { nombre: 'SALA DE CONSEJO', tipo: 'juntas', ancho: 7, largo: 3.2, x: 8, y: 0 },   // (la lectura real de producción no traía asientos; con asientos:10 el panel propone mesa de 10 como conflicto, probado aparte)
         { nombre: 'ÁREA OPERATIVA', tipo: 'open', ancho: 8, largo: 3.2, x: 0, y: 3.2, puestos: 8 },
         { nombre: 'RECEPCIÓN', tipo: 'recepcion', ancho: 4, largo: 2.4, x: 0, y: 6.4 },
         { nombre: 'SITE (IT)', tipo: 'servicio', ancho: 4, largo: 2.4, x: 8, y: 6.4 },
@@ -63,14 +63,41 @@ test.describe('GOLDEN 757 · plano → programa → VONI → fusión → acomodo
 
   test('el proyecto de las capturas queda coherente de extremo a extremo', async ({ page }) => {
     const pageErrors = []; page.on('pageerror', (e) => pageErrors.push(String(e?.message || e)));
+    page.on('console', (m) => { const t = m.text(); if (/\[unhandled\]/i.test(t)) console.log('[golden757][consola]', t.slice(0, 300)); });
+    await page.addInitScript(() => { window.addEventListener('unhandledrejection', (e) => console.log('[unhandled]', String(e.reason?.stack || e.reason?.message || e.reason).slice(0, 400))); });
     const solverCalls = [];
-    // SOLVER REAL del edge (recoveryPipeline) corriendo en Node sobre el payload que manda el cliente.
+    // SOLVER REAL del edge. Dos modos:
+    //  · por omisión: recoveryPipeline del edge ejecutado en Node sobre el payload del cliente;
+    //  · EDGE_RC_URL=http://localhost:8000 → la petición COMPLETA (JWT real, apikey, cuerpo) se
+    //    reenvía al edge RC servido bajo Deno (mismo index.ts: auth real con Supabase + pipeline),
+    //    y la respuesta del edge es la que recibe el cliente. Certificación del artefacto RC.
+    const EDGE_RC = process.env.EDGE_RC_URL || null;
+    let nubeOrigen = null; let nubeApikey = null;
     await page.route('**/functions/v1/acomodar-espacio-recovery', async (route) => {
       if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' } });
       const body = route.request().postDataJSON();
       solverCalls.push(body);
+      try { nubeOrigen = new URL(route.request().url()).origin; nubeApikey = route.request().headers().apikey || nubeApikey; } catch (_e) {}
+      if (EDGE_RC) {
+        const h = route.request().headers();
+        const r = await fetch(EDGE_RC, { method: 'POST', headers: { 'content-type': 'application/json', authorization: h.authorization || '', apikey: h.apikey || '' }, body: route.request().postData() });
+        const txt = await r.text();
+        console.log(`[golden757] edge RC (Deno) HTTP ${r.status} · ${txt.slice(0, 160)}`);
+        return route.fulfill({ status: r.status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: txt });
+      }
       const res = construirRespuestaAcomodo(body.areas || [], body.piezas || []);
       return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(res) });
+    });
+    // Traza del guardado real (RPCs seguros): estado HTTP y respuesta de cada llamada.
+    const guardados = [];
+    page.on('request', (req) => { if (/\/rest\/v1\/rpc\/(crear|actualizar)_cotizacion_segura/.test(req.url())) console.log('[golden757] petición', req.url().split('/rpc/')[1], 'bytes', (req.postData() || '').length, new Date().toISOString()); });
+    page.on('requestfailed', (req) => { if (/supabase|rpc/.test(req.url())) console.log('[golden757] petición FALLÓ', req.url().slice(0, 120), req.failure()?.errorText); });
+    page.on('response', async (res) => {
+      const u = res.url();
+      if (!/\/rest\/v1\/rpc\/(crear|actualizar)_cotizacion_segura/.test(u)) return;
+      const txt = await res.text().catch(() => '');
+      guardados.push({ rpc: u.split('/rpc/')[1], status: res.status(), body: txt.slice(0, 200) });
+      console.log('[golden757] guardado', u.split('/rpc/')[1], 'HTTP', res.status(), txt.slice(0, 200));
     });
     await page.addInitScript(([k, v]) => { try { if (!window.localStorage.getItem(k)) window.localStorage.setItem(k, JSON.stringify(v)); } catch (_e) {} }, [CLAVE, SEMILLA]);
     await page.goto('/');
@@ -85,6 +112,14 @@ test.describe('GOLDEN 757 · plano → programa → VONI → fusión → acomodo
     await expect(page.getByText(/Programa detectado del plano/i)).toBeVisible({ timeout: 15000 });
     await expect(page.getByTestId('duplicados-programa')).toBeVisible();
     await expect(page.getByText(/Banca doble APP LT.*sustituye a/i)).toBeVisible();
+    {
+      const antesClick = (await leerCot(page)).partidas;
+      const { reconciliarNuevasConPrograma } = await import('../src/datos/reconciliarPartidas.js');
+      const r = reconciliarNuevasConPrograma(antesClick.filter((p) => p.source === 'CONFIRMADO_PROGRAMA'), antesClick.filter((p) => p.source !== 'CONFIRMADO_PROGRAMA'));
+      console.log('[golden757] conciliación (Node, estado del navegador):', JSON.stringify(r.sustituidas.map((x) => [x.de, x.a])), 'ambiguas', JSON.stringify(r.ambiguas));
+      console.log('[golden757] p-10:', JSON.stringify(antesClick.find((p) => p.id === 'p-10')));
+      console.log('[golden757] panel:', (await page.getByTestId('duplicados-programa').innerText().catch(() => 'sin panel')).slice(0, 600));
+    }
     const boton = page.getByRole('button', { name: /Fusionar \d+ duplicado|Aplicar programa detectado|Vincular lo que ya tengo/i });
     await expect(boton).toBeEnabled();
     await boton.click();
@@ -100,6 +135,7 @@ test.describe('GOLDEN 757 · plano → programa → VONI → fusión → acomodo
     expect(rol(ps, 'ANCHOR_RECEPTION')).toHaveLength(1); expect(rol(ps, 'ANCHOR_RECEPTION')[0].id).toBe('p-11');
     expect(ps.filter((p) => /ALPHA/i.test(p.nombre))).toHaveLength(1);
     expect(ps.filter((p) => /WIN/i.test(p.nombre)).reduce((n, p) => n + p.cantidad, 0)).toBe(8);
+    console.log('[golden757] tras fusión:', JSON.stringify(ps.map((p) => [p.id.slice(0, 40), p.nombre.slice(0, 30), p.cantidad, p.relation_role || null, p.source || null])));
     expect(ps.filter((p) => p.source === 'CONFIRMADO_PROGRAMA' && /SONATA|CONCERTO/.test(p.nombre)).length).toBeLessThanOrEqual(1);
     expect(ps.find((p) => p.id === 'p-8').anchor_instance_id).toBeTruthy();         // ALPHA atada al escritorio
     expect(ps.find((p) => p.id === 'p-1').precioUnitario).toBe(26145);              // precio intacto
@@ -137,19 +173,76 @@ test.describe('GOLDEN 757 · plano → programa → VONI → fusión → acomodo
     const colocadas = cot.acomodo.plan.colocacion.length;
     console.log(`[golden757] piezas al solver: ${payload.piezas.length} · colocadas: ${colocadas} (antes en producción: 9 de 34)`);
     expect(cot.acomodo.plan.colocacion.some((c) => c.id === 'p-1-1')).toBe(true);     // la banca se colocó
+    // Cero invariantes geométricos duros (solapes, fuera de bounds, puertas, obstáculos) en el veredicto del edge.
+    const issuesDuros = (cot.acomodo.plan.layoutSpec?.validation?.issues || []).filter((i) => i.severity === 'fail');
+    expect(issuesDuros, JSON.stringify(issuesDuros)).toHaveLength(0);
+    expect(cot.acomodo.plan.colocacion.length).toBeGreaterThanOrEqual(21);
+    // Las SONATA restantes: razón exacta.
+    const diag = await page.getByTestId('diagnostico-acomodo').innerText().catch(() => '');
+    console.log('[golden757] no colocadas + diagnóstico:', JSON.stringify(((await leerCot(page))?.acomodo?.plan?.unassigned || (await leerCot(page))?.acomodo?.plan?.no_cupieron || []).map((u) => [u.id, u.reason_code || u.code || u.reason || null])), '·', diag.replace(/\s+/g, ' ').slice(0, 500));
+    if (colocadas < payload.piezas.length) expect(diag).toMatch(/MISSING_ANCHOR/);
     // Lo que no cupo tiene diagnóstico por pieza, sin "juntass" ni "capacidad del catálogo".
     const cuerpo = await page.locator('main').innerText();
     expect(cuerpo).not.toMatch(/juntass/);
     expect(cuerpo).not.toMatch(/capacidad del catálogo/);
     if (colocadas < payload.piezas.length) await expect(page.getByTestId('diagnostico-acomodo')).toBeVisible();
 
-    // 4) GUARDAR / REABRIR: recarga → mismas partidas y mismo acomodo.
-    const firma = JSON.stringify(cot.partidas.map((p) => [p.id, p.cantidad, p.relation_role]).sort());
+    // 4) GUARDAR (persistencia REAL): el autosave (1.5 s) manda la cotización a la nube; se lee de
+    //    vuelta por el RPC seller-safe `cotizacion_segura` con el JWT de la sesión y debe traer las
+    //    MISMAS 12 partidas y el plan con las mismas colocadas.
+    const firmaDe = (ps) => JSON.stringify((ps || []).map((p) => [p.id, p.cantidad, p.relation_role ?? null]).sort());
+    const firma = firmaDe(cot.partidas);
+    await expect.poll(async () => (await leerCot(page))?.id || null, { timeout: 20000 }).not.toBeNull();
+    const idNube = (await leerCot(page)).id;
+    expect(nubeOrigen && nubeApikey, 'origen/apikey de la nube capturados del tráfico real').toBeTruthy();
+    const leerNube = () => page.evaluate(async ([origen, apikey, id]) => {
+      const k = Object.keys(window.localStorage).find((x) => /^sb-.*-auth-token$/.test(x));
+      const tok = k ? (JSON.parse(window.localStorage.getItem(k) || '{}').access_token || null) : null;
+      const r = await fetch(`${origen}/rest/v1/rpc/cotizacion_segura`, { method: 'POST', headers: { 'content-type': 'application/json', apikey, authorization: `Bearer ${tok}` }, body: JSON.stringify({ p_id: id }) });
+      const j = await r.json().catch(() => null);
+      return { status: r.status, partidas: j?.partidas || null, colocadas: j?.acomodo?.plan?.colocacion?.length ?? null, cliente: j?.cliente ?? null };
+    }, [nubeOrigen, nubeApikey, idNube]);
+    {
+      const raw = (k) => page.evaluate((kk) => window.localStorage.getItem(kk) || '', k);
+      const a = await raw(CLAVE); await page.waitForTimeout(2000); const b = await raw(CLAVE);
+      if (a !== b) {
+        const A = JSON.parse(a).cotizacion, B = JSON.parse(b).cotizacion;
+        const difs = Object.keys({ ...A, ...B }).filter((k) => JSON.stringify(A[k]) !== JSON.stringify(B[k]));
+        const difsAc = Object.keys({ ...(A.acomodo || {}), ...(B.acomodo || {}) }).filter((k) => JSON.stringify(A.acomodo?.[k]) !== JSON.stringify(B.acomodo?.[k]));
+        const PA = A.acomodo?.plan || {}, PB = B.acomodo?.plan || {};
+        const difsPlan = Object.keys({ ...PA, ...PB }).filter((k) => JSON.stringify(PA[k]) !== JSON.stringify(PB[k]));
+        console.log('[golden757] solverCalls hasta ahora:', solverCalls.length, new Date().toISOString());
+        console.log('[golden757] estado.cotizacion CAMBIA solo cada <2 s · claves:', JSON.stringify(difs), 'acomodo:', JSON.stringify(difsAc), 'plan:', JSON.stringify(difsPlan), difsPlan.map((k) => `${k}: ${JSON.stringify(PA[k]).slice(0, 120)} → ${JSON.stringify(PB[k]).slice(0, 120)}`).join(' | ').slice(0, 900));
+      } else console.log('[golden757] estado.cotizacion estable 2 s', new Date().toISOString(), 'solverCalls', solverCalls.length);
+    }
+    await expect.poll(async () => (await leerNube()).colocadas, { timeout: 30000, message: 'el plan del acomodo llega a la nube' }).toBe(colocadas);
+    const enNube = await leerNube();
+    console.log('[golden757] nube: id', idNube, 'HTTP', enNube.status, 'partidas', enNube.partidas?.length, 'colocadas', enNube.colocadas);
+    expect(enNube.status).toBe(200);
+    expect(enNube.cliente).toBe('Torre Sur (golden)');
+    expect(enNube.partidas).toHaveLength(cot.partidas.length);
+    expect(firmaDe(enNube.partidas)).toBe(firma);
+
+    // 5) REABRIR desde otra computadora: se vacía el estado local, se recarga y se abre el presupuesto
+    //    desde "Presupuestos anteriores" (RPC `cotizacion_segura`) → mismas partidas y mismo acomodo.
+    await page.evaluate(([k, v]) => window.localStorage.setItem(k, JSON.stringify(v)), [CLAVE, { onboardingVisto: true, cotizacion: { partidas: [] } }]);
     await page.reload();
     await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
+    expect((await leerCot(page))?.partidas || []).toHaveLength(0);
+    await page.getByText('Presupuestos anteriores', { exact: false }).first().click();
+    // La tarjeta de UN presupuesto (la lista entera también es `.tarjeta`): la que tiene su fila de botones.
+    const tarjeta = page.locator('.tarjeta:has(> .fila-botones)', { hasText: 'Torre Sur (golden)' }).first();
+    await expect(tarjeta).toBeVisible({ timeout: 20000 });
+    await tarjeta.getByRole('button', { name: /^Abrir$/ }).click();
+    await expect.poll(async () => (await leerCot(page))?.partidas?.length || 0, { timeout: 20000 }).toBe(cot.partidas.length);
     const cot2 = await leerCot(page);
-    expect(JSON.stringify(cot2.partidas.map((p) => [p.id, p.cantidad, p.relation_role]).sort())).toBe(firma);
-    expect(cot2.acomodo.plan.colocacion.length).toBe(colocadas);
+    expect(cot2.id).toBe(idNube);
+    expect(firmaDe(cot2.partidas)).toBe(firma);
+    expect(cot2.acomodo?.plan?.colocacion?.length ?? 0).toBe(colocadas);
+    // Reabierto no reescribe la nube solo (no cambió nada): la fila sigue igual.
+    const enNube2 = await leerNube();
+    expect(firmaDe(enNube2.partidas)).toBe(firma);
+    expect(enNube2.colocadas).toBe(colocadas);
     expect(pageErrors, pageErrors.join('\n')).toHaveLength(0);
   });
 });
