@@ -365,6 +365,9 @@ export function crearNubeFalsa({ usuarios }) {
       return json(route, { ok: true, lectura: f.lectura, floorSpec: { version: 'FLOOR_SPEC_V2', validation: f.validacionPlano || { state: 'PASS', issues: [], warnings: [] } }, request_id: 'req-plano-1', strictGeometry: true });
     }
     if (ruta.startsWith('/functions/v1/')) return json(route, {});
+    // Imágenes PÚBLICAS de marca y catálogo (sólo lectura, sin sesión): pasan a la red real
+    // para que el inicio con fotografía se vea como en producción. Todo lo demás de Storage: 404.
+    if (route.request().method() === 'GET' && ruta.startsWith('/storage/v1/object/public/app/')) return route.continue();
     if (ruta.startsWith('/storage/v1/')) return route.fulfill({ status: 404, body: '' });
     return json(route, {});
   }

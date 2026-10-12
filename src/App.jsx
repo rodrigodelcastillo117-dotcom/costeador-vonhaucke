@@ -1148,11 +1148,20 @@ export default function App() {
               <span className="punto" style={{ background: nubeEstado === 'conectado' ? '#3fbf8f' : nubeEstado === 'sin-conexion' ? '#B8912F' : '#8a8480' }} />
               <span className="conexion-txt">{nubeEstado === 'conectado' ? 'En línea' : nubeEstado === 'sin-conexion' ? 'Sin conexión' : '...'}</span>
             </span>
-            <button className="btn-enc" onClick={() => setMostrarGuia((v) => !v)}>Guía</button>
-            {esDireccion && (
-              <button className="btn-enc" onClick={() => irA('usuarios')}>Usuarios</button>
-            )}
-            <button className="btn-enc" onClick={() => { setRecuperando(false); irA('contrasena'); }}>Contraseña</button>
+            {/* Cuenta: lo que no es trabajo (guía, usuarios, contraseña) va en un menú;
+                Salir se queda a la vista. */}
+            <details className="menu-cuenta">
+              <summary className="btn-enc" title={sesion.user.email}>
+                <span className="menu-cuenta-ini" aria-hidden="true">{String(sesion.user.email || '?').slice(0, 1).toUpperCase()}</span>
+                Cuenta
+              </summary>
+              <div className="menu-cuenta-lista" role="menu">
+                <span className="menu-cuenta-correo">{sesion.user.email}</span>
+                <button role="menuitem" onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); setMostrarGuia((v) => !v); }}>Guía</button>
+                {esDireccion && <button role="menuitem" onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); irA('usuarios'); }}>Usuarios</button>}
+                <button role="menuitem" onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); setRecuperando(false); irA('contrasena'); }}>Contraseña</button>
+              </div>
+            </details>
             <button className="btn-enc" onClick={hacerLogout} title={sesion.user.email}>Salir</button>
           </div>
         </div>
