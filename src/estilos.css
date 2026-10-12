@@ -3055,3 +3055,17 @@ body::before {
 .menu-cuenta-correo { font-size: 12px; color: var(--gris); padding: 6px 10px 8px; border-bottom: 1px solid var(--linea); margin-bottom: 4px; word-break: break-all; }
 .menu-cuenta-lista button { text-align: left; padding: 9px 10px; border: 0; background: transparent; border-radius: 8px; font: inherit; font-weight: 600; color: var(--tinta); cursor: pointer; }
 .menu-cuenta-lista button:hover { background: var(--panel, #f4f2ef); }
+
+/* ── Acomodo por pasos (UX 12-oct): secciones numeradas, todo visible ───────────── */
+.acomodo-seccion { margin-top: 14px; }
+.acomodo-seccion-cab { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.acomodo-seccion-num {
+  display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 999px;
+  font-weight: 800; background: var(--papel); color: var(--gris); border: 1px solid var(--linea-fuerte, var(--linea)); flex: 0 0 auto;
+}
+.acomodo-seccion-nota { margin-top: 0; flex: 1 1 200px; }
+.acomodo-seccion-activo { border-color: var(--rojo); }
+.acomodo-seccion-activo .acomodo-seccion-num { background: var(--rojo); color: #fff; border-color: var(--rojo); }
+.acomodo-seccion-hecho .acomodo-seccion-num { background: var(--verde); color: #fff; border-color: var(--verde); }
+.acomodo-seccion-pend { opacity: .72; }
+.acomodo-seccion-pend:hover, .acomodo-seccion-pend:focus-within { opacity: 1; }

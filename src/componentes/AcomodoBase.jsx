@@ -83,6 +83,23 @@ function archivoABase64(file) {
 // aMM (metros→mm) y areasCanonicas (loader) viven en src/datos/floorPlan.js — el
 // contrato canónico único del plano. Aquí sólo se consumen.
 
+
+// UX por pasos (12-oct): cada sección del acomodo se numera y dice en qué estado va. Todo queda
+// visible siempre (nada se esconde ni se quita); sólo se ordena y se nombra en español llano.
+function SeccionAcomodo({ n, titulo, estado = 'pend', nota = '', oculto = false, testid, children }) {
+  const icono = estado === 'hecho' ? '✓' : String(n);
+  return (
+    <section className={`tarjeta no-imprimir acomodo-seccion acomodo-seccion-${estado}`} data-testid={testid} data-estado={estado} style={oculto ? { display: 'none' } : undefined}>
+      <div className="acomodo-seccion-cab">
+        <span className="acomodo-seccion-num" aria-hidden="true">{icono}</span>
+        <h2 style={{ margin: 0 }}>{titulo}</h2>
+        {nota ? <span className="ayuda acomodo-seccion-nota">{nota}</span> : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
 export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial = null, abrirDibujo = false, onConsumido, pendientesPrograma = [], bloqueosPrograma = [], textoSalida = '← Volver a la cotización' }) {
   const partidas = (estado.cotizacion?.partidas) || [];
   const sugerenciasPendientes = Array.isArray(pendientesPrograma) ? pendientesPrograma : [];
@@ -1289,7 +1306,8 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     plan, evaluacion: evalInvariantes, programaListo, motivoPrograma,
     referencias: payloadAcomodo.referencias || [], preliminar: !!payloadAcomodo.preliminar,
     nombresSinColocar: (plan?.unassigned || []).map((u) => u?.nombre).filter(Boolean),
-  }), [plan, evalInvariantes, programaListo, motivoPrograma, payloadAcomodo]);
+    nombreDe: (id) => byId[id]?.nombre || null,     // en pantalla el nombre del mueble, nunca «d-1»
+  }), [plan, evalInvariantes, programaListo, motivoPrograma, payloadAcomodo, byId]);
   const motivoLayout = [
     ...(!layout ? [] : [
       layout.unplaced > 0 ? `${layout.unplaced} sin colocar` : '',
@@ -1355,16 +1373,23 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
 
   const usados = Object.keys(TIPOS).filter((t) => piezas.some((p) => p.tipo === t));
 
+  // UX por pasos (12-oct): un solo orden de trabajo, visible completo, nada escondido:
+  //   1 Tu espacio → 2 Acomodar → 3 Revisa y corrige → 4 Verlo en foto → 5 Guardar y continuar.
+  const estadoS1 = areas.length ? 'hecho' : 'activo';
+  const estadoS2 = !areas.length ? 'pend' : !plan ? 'activo' : (veredicto.estado === 'PASS' ? 'hecho' : 'activo');
+  const estadoS3 = !plan ? 'pend' : (layoutPublicable ? 'hecho' : 'activo');
+  const estadoS4 = !plan ? 'pend' : 'activo';
+  const estadoS5 = !plan ? 'pend' : (guardado ? 'hecho' : 'activo');
+  const notaS2 = !areas.length ? 'Primero el espacio.' : !plan ? 'Voni coloca cada mueble a escala.' : veredicto.estado === 'PASS' ? 'Validado.' : veredicto.estado === 'PARCIAL' ? 'Parcial: faltan muebles por colocar (abajo).' : 'Con observaciones: revísalas abajo.';
+
   return (
     <div className="contenido" style={{ maxWidth: 1000 }}>
       {dibujando && <DibujarPlano onListo={usarDibujo} onCancelar={() => setDibujando(false)} />}
-      <div className="tarjeta no-imprimir" style={dibujando ? { display: 'none' } : undefined}>
-        {/* VH-114: dentro de Voni este botón AVANZA al paso 4 (Propuesta); el texto lo decide quien monta el componente. */}
-        <button className="boton fantasma" style={{ minHeight: 40, marginBottom: 10 }} data-testid="acomodo-salida" onClick={() => onIr('cotizacion')}>{textoSalida}</button>
-        {/* El selector de archivo vive AQUÍ y no dentro del panel de áreas,
-            porque `EmpezarEspacio` lo dispara cuando todavía no hay ninguna. */}
-        <input ref={archivoRef} type="file" accept="image/*,application/pdf,.pdf,.dwg,.dxf" style={{ display: 'none' }} onChange={subirPlano} />
-        <h2>Tu espacio en 3D</h2>
+      <input ref={archivoRef} type="file" accept="image/*,application/pdf,.pdf,.dwg,.dxf" style={{ display: 'none' }} onChange={subirPlano} />
+
+      {/* ── 1 · TU ESPACIO ─────────────────────────────────────────────── */}
+      <SeccionAcomodo n={1} titulo="Tu espacio" estado={estadoS1} oculto={dibujando} testid="acomodo-s1"
+        nota={areas.length ? `${areas.length} área(s) · ${piezas.length} muebles` : 'Plano, dibujo o metros: dinos dónde va.'}>
         <p className="ayuda columna-texto">
           {/* No decir "ya acomodamos" antes de tener dónde: era el mismo vicio
               de inventarse el espacio, ahora en el texto. */}
@@ -1377,13 +1402,6 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
                 : <>Espacio cargado para <strong>{piezas.length}</strong> muebles. Falta ejecutar y validar el acomodo; todavía no lo considero terminado.</>}
           {bajoEscritorio > 0 && <> Aparte van <strong>{bajoEscritorio}</strong> {bajoEscritorio === 1 ? 'gaveta' : 'gavetas'} debajo de la cubierta: se cobran, pero <strong>no ocupan piso</strong>, por eso no se dibujan sueltas.</>}
         </p>
-        {/* ⚠️ ANTES EL CARTEL DE ARRIBA MENTÍA (auditoría 2026-08-19): decía
-            "ya acomodamos TODOS" usando el número YA RECORTADO por el tope de
-            `expandirPiezas`, sin ninguna señal de que faltaba algo. Con un
-            proyecto de cientos de piezas, el proyectista no tenía forma de
-            enterarse. Ahora, si de verdad se recortó, se dice con todas sus
-            letras — no se cobra menos (el precio sigue viniendo de `partidas`
-            completo), sólo el DIBUJO deja algunas piezas fuera. */}
         {piezas.truncado && (
           <div className="alerta ambar">
             <span className="texto">
@@ -1391,7 +1409,6 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
             </span>
           </div>
         )}
-
         {piezas.length === 0 ? (
           <div className="alerta ambar"><span className="texto">Tu cotización está vacía. Agrega muebles primero (Cotizar con IA) y regresa.</span></div>
         ) : !areas.length ? (
@@ -1438,12 +1455,8 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
                 Subir plano (PDF o foto)
                 <input type="file" accept="image/*,application/pdf,.pdf,.dwg,.dxf" style={{ display: 'none' }} onChange={subirPlano} />
               </label>
-              {/* `onClick={acomodar}` le pasaba el EVENTO del clic como opciones:
-                  funcionaba de milagro (`deCero` salía undefined). Explícito. */}
-              <button className="boton primario" data-testid="acomodo-acomodar" style={{ minHeight: 50, marginLeft: 'auto' }}
-                disabled={!programaListo} title={!programaListo ? motivoPrograma : (nAMano ? `Acomoda lo que falta sin mover los ${nAMano} que pusiste tú.` : undefined)} onClick={() => acomodar()}>Acomodar</button>
-              <button className="boton fantasma" style={{ minHeight: 50 }} disabled={!programaListo} onClick={acomodarIA}
-                title={!programaListo ? motivoPrograma : 'Alterna con IA (el acomodo normal ya es automático)'}>Con IA</button>
+              
+              
             </div>
             {lecturaPendiente && (
               <ConfirmarLectura lectura={lecturaPendiente}
@@ -1493,9 +1506,70 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
             )}
           </>
         )}
+      </SeccionAcomodo>
+
+      {/* ── 2 · ACOMODAR ───────────────────────────────────────────────── */}
+      <SeccionAcomodo n={2} titulo="Acomodar" estado={estadoS2} oculto={dibujando} testid="acomodo-s2" nota={notaS2}>
+        <div className="fila-botones" style={{ gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <button className="boton primario grande" data-testid="acomodo-acomodar" style={{ minHeight: 52, flex: '1 1 260px' }}
+                disabled={!areas.length || !programaListo}
+                title={!areas.length ? 'Primero dinos dónde va el proyecto (paso 1).' : !programaListo ? motivoPrograma : (nAMano ? `Acomoda lo que falta sin mover los ${nAMano} que pusiste tú.` : undefined)}
+                onClick={() => acomodar()}>{plan ? 'Volver a acomodar' : 'Acomodar'}</button>
+          <button className="boton fantasma" style={{ minHeight: 52 }} disabled={!areas.length || !programaListo} onClick={acomodarIA}
+                title={!areas.length ? 'Primero dinos dónde va el proyecto (paso 1).' : !programaListo ? motivoPrograma : 'Alterna con IA (el acomodo normal ya es automático)'}>Con IA</button>
+        </div>
         {error && <div className="alerta roja" style={{ marginTop: 12 }}><span className="texto">{error}</span></div>}
-        {/* G · mensaje al vendedor: SIEMPRE visible cuando el acomodo dejó pendientes,
-            sin importar el modo (manual o no). Qué no cupó + por qué + qué hacer. */}
+        {plan && (
+          <>
+            {chequeo && (
+            <div className={`alerta ${chequeo.ok ? '' : 'ambar'}`} style={chequeo.ok ? { background: '#e9f5f1', borderColor: 'var(--verde)', color: '#0b5c54' } : undefined}>
+              <span className="texto">
+                {payloadAcomodo.preliminar && <span className="ia-badge" title="Hay productos sin precio autorizado o medidas supuestas por tipo: el acomodo es un borrador hasta confirmarlos." style={{ marginRight: 8 }}>PRELIMINAR</span>}
+                {chequeo.ok ? '✓ Todo cabe.' : chequeo.sinColocar > 0
+                  ? `⚠ Faltan ${chequeo.sinColocar} mueble(s) por colocar.`
+                  : `⚠ ${chequeo.nProblemas} ajuste(s) por revisar.`}
+                {chequeo.puestos > 0 && <> {' '}<strong>{chequeo.puestos} puestos de trabajo</strong> en {chequeo.areaPiso} m²
+                  {chequeo.m2Persona ? ` · ${chequeo.m2Persona} m² por persona` : ''}.</>}
+              </span>
+            </div>
+          )}
+            {plan.resumen && <p className="ayuda" style={{ marginTop: 4 }}>{plan.resumen}</p>}
+            {plan && (
+            <div className="voni-audit no-imprimir" data-testid="veredicto-acomodo" data-estado={veredicto.estado}>
+              <div className="voni-audit-t">
+                {veredicto.estado === 'PASS' ? 'Acomodo validado:' : veredicto.estado === 'FALLA' ? 'El acomodo tiene fallas:' : veredicto.estado === 'PARCIAL' ? 'Acomodo parcial: esto es lo que falta' : 'Acomodo válido en geometría; esto es lo que falta revisar:'}
+              </div>
+              <div className="voni-audit-grid">
+                {veredicto.bloques.map((b) => (
+                  <span className={`voni-check ${b.ok === true ? 'ok' : 'warn'}`} key={b.clave} data-bloque={b.clave} data-ok={String(b.ok)}>
+                    <b>{b.ok === true ? '✓' : b.ok === false ? '⚠' : '·'}</b> {b.titulo}<em> · {b.texto}</em>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+            {plan.auditoria?.length > 0 && (
+            <div className="voni-audit no-imprimir">
+              <div className="voni-audit-t">
+                {vencida ? 'Voni revisó ANTES de que cambiaras el proyecto:' : 'Voni revisó:'}
+              </div>
+              {vencida && (
+                <p className="ayuda" style={{ margin: '2px 0 6px' }}>
+                  El proyecto cambió después de esta revisión, así que ya no vale.
+                  Toca <strong>“Que lo acomode Voni otra vez”</strong> para que la vuelva a hacer.
+                </p>
+              )}
+              <div className="voni-audit-grid" style={vencida ? { opacity: 0.45 } : undefined}>
+                {auditoriaMedida.map((a, k) => (
+                  <span className={`voni-check ${vencida ? 'warn' : (a.ok ? 'ok' : 'warn')}`} key={k}>
+                    <b>{vencida ? '·' : (a.ok ? '✓' : '⚠')}</b> {a.check}{a.detalle ? <em> · {a.detalle}</em> : null}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          </>
+        )}
         {msgVendedor && (
           <div className="tarjeta" style={{ background: '#fff7ed', border: '1px solid #fdba74', color: '#7c2d12', marginTop: 12 }}>
             <strong>{msgVendedor.titulo}</strong>
@@ -1530,141 +1604,22 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
             </div>
           </div>
         )}
-      </div>
+      </SeccionAcomodo>
 
-      {/* STAGING VIRTUAL con IA: foto real del espacio → amueblada con lo cotizado */}
-      {piezas.length > 0 && (
-        <div className="tarjeta">
-          <h2>Amuebla una foto real (IA)</h2>
-          <p className="ayuda columna-texto">Sube una foto del espacio del cliente (aunque esté vacío) y la IA lo amuebla con los muebles de esta cotización, respetando muros, ventanas y perspectiva. Ideal para la propuesta: <em>“así se vería tu oficina”.</em></p>
-          <div className="fila-botones" style={{ gap: 10, flexWrap: 'wrap' }}>
-            <label className="boton primario" style={{ minHeight: 48, display: 'inline-flex', alignItems: 'center', cursor: staging ? 'default' : 'pointer', pointerEvents: staging ? 'none' : 'auto', opacity: staging ? 0.6 : 1 }}>
-              {staging ? 'Generando…' : stagingUrl ? 'Probar con otra foto' : 'Subir foto y amueblar'}
-              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={amueblarFoto} disabled={staging} />
-            </label>
-            <button className="boton" style={{ minHeight: 48 }} disabled={staging || (plan && !layoutListo)} title={plan && !layoutListo ? `Acomodo incompleto (${motivoLayout})` : ''} onClick={renderOficina}>Render de mi oficina (IA)</button>
-          </div>
-          <div className="ayuda">O genera la oficina fotorrealista desde tus áreas/dibujo, sin foto.</div>
-          {plan && !layoutListo && (
-            <div className="alerta ambar" style={{ marginTop: 10 }}><span className="texto">
-              🔒 El render final está bloqueado hasta cerrar el acomodo: {motivoLayout}. (El 2D/3D de arriba sí lo puedes editar y reacomodar.)
-            </span></div>
-          )}
-          {errStaging && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">{errStaging}</span></div>}
-          {staging && <div className="render-gen" style={{ position: 'relative', height: 180, marginTop: 12 }}><span className="render-gen-spin" /><span>La IA está amueblando el espacio…</span></div>}
-          {stagingUrl && !staging && (
-            <div style={{ marginTop: 12 }}>
-              <img src={stagingUrl} alt="Espacio amueblado por IA" style={{ width: '100%', borderRadius: 12, border: '1px solid var(--linea)' }} />
-              <div className="fila-botones" style={{ gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
-                <button className="boton primario" style={{ minHeight: 46 }} onClick={guardarStaging}>Guardar en la propuesta</button>
-                {onIr && <button className="boton" style={{ minHeight: 46 }} onClick={() => onIr('cotizacion')}>Ver propuesta →</button>}
-              </div>
-              {guardado && <div className="ayuda verde" style={{ marginTop: 6 }}>Guardado. Ya aparece en el PDF de la propuesta.</div>}
-            </div>
-          )}
-        </div>
-      )}
-
-      {plan && (
-        <div className="tarjeta">
-          {chequeo && (
-            <div className={`alerta ${chequeo.ok ? '' : 'ambar'}`} style={chequeo.ok ? { background: '#e9f5f1', borderColor: 'var(--verde)', color: '#0b5c54' } : undefined}>
-              <span className="texto">
-                {payloadAcomodo.preliminar && <span className="ia-badge" title="Hay productos sin precio autorizado o medidas supuestas por tipo: el acomodo es un borrador hasta confirmarlos." style={{ marginRight: 8 }}>PRELIMINAR</span>}
-                {chequeo.ok ? '✓ Todo cabe.' : chequeo.sinColocar > 0
-                  ? `⚠ Faltan ${chequeo.sinColocar} mueble(s) por colocar.`
-                  : `⚠ ${chequeo.nProblemas} ajuste(s) por revisar.`}
-                {chequeo.puestos > 0 && <> {' '}<strong>{chequeo.puestos} puestos de trabajo</strong> en {chequeo.areaPiso} m²
-                  {chequeo.m2Persona ? ` · ${chequeo.m2Persona} m² por persona` : ''}.</>}
-              </span>
-            </div>
-          )}
-          {plan.resumen && <p className="ayuda" style={{ marginTop: 4 }}>{plan.resumen}</p>}
-
-          {/* 🐛 La tarjeta se contradecía a sí misma: arriba "⚠ Faltan 8 mueble(s)"
-              y abajo "✓ Todas las piezas colocadas · 36 de 36". La revisión se
-              hizo cuando había 36 piezas; después se agregaron más y nadie la
-              volvió a correr. Si la cuenta viva no coincide con la guardada, la
-              revisión está VENCIDA — y eso se dice, no se esconde. */}
-          {plan.auditoria?.length > 0 && (
-            <div className="voni-audit no-imprimir">
-              <div className="voni-audit-t">
-                {vencida ? 'Voni revisó ANTES de que cambiaras el proyecto:' : 'Voni revisó:'}
-              </div>
-              {vencida && (
-                <p className="ayuda" style={{ margin: '2px 0 6px' }}>
-                  El proyecto cambió después de esta revisión, así que ya no vale.
-                  Toca <strong>“Que lo acomode Voni otra vez”</strong> para que la vuelva a hacer.
-                </p>
-              )}
-              <div className="voni-audit-grid" style={vencida ? { opacity: 0.45 } : undefined}>
-                {auditoriaMedida.map((a, k) => (
-                  <span className={`voni-check ${vencida ? 'warn' : (a.ok ? 'ok' : 'warn')}`} key={k}>
-                    <b>{vencida ? '·' : (a.ok ? '✓' : '⚠')}</b> {a.check}{a.detalle ? <em> · {a.detalle}</em> : null}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* VH-110: qué ya está validado y qué falta revisar, por bloque. Nunca pinta PASS una revisión pendiente. */}
-          {plan && (
-            <div className="voni-audit no-imprimir" data-testid="veredicto-acomodo" data-estado={veredicto.estado}>
-              <div className="voni-audit-t">
-                {veredicto.estado === 'PASS' ? 'Acomodo validado:' : veredicto.estado === 'FALLA' ? 'El acomodo tiene fallas:' : veredicto.estado === 'PARCIAL' ? 'Acomodo parcial: esto es lo que falta' : 'Acomodo válido en geometría; esto es lo que falta revisar:'}
-              </div>
-              <div className="voni-audit-grid">
-                {veredicto.bloques.map((b) => (
-                  <span className={`voni-check ${b.ok === true ? 'ok' : 'warn'}`} key={b.clave} data-bloque={b.clave} data-ok={String(b.ok)}>
-                    <b>{b.ok === true ? '✓' : b.ok === false ? '⚠' : '·'}</b> {b.titulo}<em> · {b.texto}</em>
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Toggle planta / 3D */}
-          <div className="fila-botones no-imprimir" style={{ gap: 8, marginTop: 8 }}>
-            <button className={`boton ${modo === 'planta' ? 'primario' : 'fantasma'}`} style={{ minHeight: 42 }} onClick={() => setModo('planta')}>Planta</button>
-            <button className={`boton ${aMano ? 'tinta' : 'fantasma'}`} style={{ minHeight: 42 }}
+      {/* ── 3 · REVISA Y CORRIGE ───────────────────────────────────────── */}
+      <SeccionAcomodo n={3} titulo="Revisa y corrige" estado={estadoS3} oculto={dibujando} testid="acomodo-s3"
+        nota={!plan ? 'Aquí verás el plano y podrás mover muebles a mano.' : aMano ? 'Arrastra, gira o quita; Voni respeta lo que muevas.' : 'Planta o 3D; corrige a mano lo que no te convenza.'}>
+        {plan && (
+          <>
+            <div className="fila-botones no-imprimir" style={{ gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+              <button className={`boton ${modo === 'planta' ? 'primario' : 'fantasma'}`} style={{ minHeight: 42 }} onClick={() => setModo('planta')}>Planta</button>
+              <button className={`boton ${modo === 'iso' ? 'primario' : 'fantasma'}`} style={{ minHeight: 42 }} onClick={() => setModo('iso')}>Vista 3D</button>
+              <button className={`boton ${aMano ? 'tinta' : 'fantasma'}`} style={{ minHeight: 42 }}
               onClick={() => { setAMano((v) => !v); setModo('planta'); setEnLaMano(null); setSelPieza(null); }}>
               {aMano ? 'Terminar de acomodar' : 'Acomodar a mano'}
             </button>
-            <button className={`boton ${modo === 'iso' ? 'primario' : 'fantasma'}`} style={{ minHeight: 42 }} onClick={() => setModo('iso')}>Vista 3D</button>
-            {plan && !layoutListo ? (
-              <button className="boton fantasma" style={{ minHeight: 42 }} disabled={generandoReal} title={`Vista preliminar — acomodo incompleto (${motivoLayout})`} onClick={() => vistaRealista(true)}>
-                {generandoReal ? 'Generando…' : `Vista preliminar (${layout?.unplaced || 0} pendientes)`}
-              </button>
-            ) : (
-              <button className="boton" style={{ minHeight: 42 }} disabled={generandoReal || !plan} onClick={() => vistaRealista(false)}>
-                {generandoReal ? 'Generando…' : realista ? 'Volver a generar' : 'Vista realista (IA)'}
-              </button>
-            )}
-            {/* ✨ PROPUESTA VIVA: presentación cinematográfica para el cliente. */}
-            <button className="boton primario" style={{ minHeight: 42 }} disabled={!plan || !areas.length || !layoutPublicable}
-              title={!layoutPublicable && plan ? `Todavía no es propuesta final: ${motivoPublicacion}` : undefined}
-              onClick={() => setVivaAbierta(true)}>
-              ✨ Propuesta Viva
-            </button>
-            {onGuardarAcomodo && !guardado && <button className="boton" style={{ minHeight: 42, marginLeft: 'auto' }} disabled={!programaListo}
-              title={!programaListo ? motivoPrograma : undefined} onClick={guardarEnPropuesta}>
-              {layoutPublicable ? 'Guardar en la propuesta' : 'Guardar borrador de acomodo'}
-            </button>}
-            {guardado && <button className={guardadoValido ? 'boton primario' : 'boton'} style={{ minHeight: 42, marginLeft: 'auto' }} onClick={() => onIr('cotizacion')}>
-              {guardadoValido ? 'Ver cotización con el acomodo →' : 'Ver cotización (borrador de acomodo) →'}
-            </button>}
-          </div>
-          {guardado && <div className={guardadoValido ? 'ayuda verde no-imprimir' : 'ayuda no-imprimir'} style={{ marginTop: 6 }}>
-            {guardadoValido ? '✓ Acomodo validado y guardado. Ya puede aparecer en la propuesta/PDF.' : 'Borrador guardado. No se presenta al cliente como acomodo final hasta quedar válido.'}
-          </div>}
-
-          {vivaAbierta && (
-            <PropuestaViva areas={areasMM} plan={plan} byId={byId}
-              nombre={clienteNombre || 'Tu nueva oficina'} cliente={null}
-              inversion={inversionCliente > 0 ? inversionCliente : null}
-              onCerrar={() => setVivaAbierta(false)} />
-          )}
-          <PlanoAcomodo areas={areasMM} plan={plan} byId={byId} modo={modo}
+            </div>
+            <PlanoAcomodo areas={areasMM} plan={plan} byId={byId} modo={modo}
             editable={aMano && modo === 'planta'} sel={selPieza}
             hayEnMano={!!enLaMano}
             onTocarPieza={(id) => { setSelPieza(id); setSelEl(null); setEnLaMano(null); }}
@@ -1676,8 +1631,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
             onTocarElemento={(id) => { setSelEl(id); setSelPieza(null); setEnLaMano(null); }}
             onMoverElemento={moverElemento}
             onGirarElemento={girarElemento} onQuitarElemento={quitarElemento} />
-
-          {aMano && modo === 'planta' && (
+            {aMano && modo === 'planta' && (
             <div className="tarjeta" style={{ marginTop: 12 }}>
               <h3 style={{ marginTop: 0 }}>Tus muebles</h3>
               <p className="ayuda columna-texto">
@@ -1837,12 +1791,15 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
               )}
             </div>
           )}
-          {/* QUÉ VA EN CADA CUARTO, POR ESCRITO (Rodrigo, 2026-08-17).
-              El 3D enseña dónde queda cada mueble, pero nadie lee un isométrico
-              por teléfono ni lo pega en un correo. Y hay dos cosas que el dibujo
-              NO PUEDE decir: las gavetas —viven bajo la cubierta, no se
-              dibujan— y cuántas sillas quedaron en cada cuarto. */}
-          {porCuarto.length > 0 && (
+            <div className="plano-leyenda">
+            {usados.map((t) => (
+              <span className="leg" key={t}><span className="leg-color" style={{ background: TIPOS[t].color }} />{TIPOS[t].label}</span>
+            ))}
+          </div>
+            {chequeo && !chequeo.ok && <ul className="lista-ia">{chequeo.problemas.map((p, i) => <li key={i}>{p}</li>)}</ul>}
+            {plan.servidor && plan.notas?.length > 0 && <div className="alerta ambar" style={{ marginTop: 8 }}><span className="texto">{plan.notas.join(' ')}</span></div>}
+            {!plan.servidor && plan.notas?.length > 0 && <div className="ayuda gris" style={{ marginTop: 8 }}><strong>Notas:</strong> {plan.notas.join(' · ')}</div>}
+            {porCuarto.length > 0 && (
             <div className="tarjeta" style={{ marginTop: 14 }}>
               <div className="fila" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                 <h3 style={{ margin: 0 }}>Qué va en cada cuarto</h3>
@@ -1889,24 +1846,49 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
               </div>
             </div>
           )}
-
-          {/* Copia OCULTA del isométrico sin etiquetas ni rejilla: es la que se
-              le manda a Gemini. Si se le manda la visible, el modelo copia el
-              texto del piso dentro de la foto. */}
-          <div ref={isoLimpioRef} style={{ position: 'absolute', left: -99999, top: 0, width: 1280 }} aria-hidden="true">
+            <div className="ayuda gris" style={{ marginTop: 8, fontSize: 12 }}>Plano esquemático a escala. La IA propone; el sistema verifica bordes y traslapes.</div>
+            <div ref={isoLimpioRef} style={{ position: 'absolute', left: -99999, top: 0, width: 1280 }} aria-hidden="true">
             <PlanoAcomodo areas={areasMM} plan={plan} byId={byId} modo="iso" limpio />
           </div>
-          {/* Y una copia oculta POR CUARTO: de ahí sale el dibujo que se le manda
-              al modelo para que la escena sea de ESE cuarto y no de una oficina
-              genérica. Cada una lleva sólo su área y sólo sus muebles. */}
-          {escenas.map((esc) => (
+            {escenas.map((esc) => (
             <div key={esc.areaIndex} aria-hidden="true"
               ref={(n) => { if (n) escenasRef.current[esc.areaIndex] = n; }}
               style={{ position: 'absolute', left: -99999, top: 0, width: 1024 }}>
               <PlanoAcomodo areas={esc.recorte.areas} plan={esc.recorte.plan} byId={byId} modo="iso" limpio />
             </div>
           ))}
-          {realista && (
+          </>
+        )}
+      </SeccionAcomodo>
+
+      {/* ── 4 · VERLO EN FOTO ──────────────────────────────────────────── */}
+      <SeccionAcomodo n={4} titulo="Verlo en foto" estado={estadoS4} oculto={dibujando} testid="acomodo-s4"
+        nota={!plan ? 'Cuando esté acomodado, Voni lo convierte en imágenes para el cliente.' : 'Imágenes con IA a partir de tu acomodo; el servidor verifica que no invente muebles.'}>
+        {plan && (
+          <>
+            <div className="fila-botones no-imprimir" style={{ gap: 8, flexWrap: 'wrap' }}>
+              {plan && !layoutListo ? (
+              <button className="boton fantasma" style={{ minHeight: 42 }} disabled={generandoReal} title={`Vista preliminar — acomodo incompleto (${motivoLayout})`} onClick={() => vistaRealista(true)}>
+                {generandoReal ? 'Generando…' : `Vista preliminar (${layout?.unplaced || 0} pendientes)`}
+              </button>
+            ) : (
+              <button className="boton" style={{ minHeight: 42 }} disabled={generandoReal || !plan} onClick={() => vistaRealista(false)}>
+                {generandoReal ? 'Generando…' : realista ? 'Volver a generar' : 'Vista realista (IA)'}
+              </button>
+            )}
+              <button className="boton primario" style={{ minHeight: 42 }} disabled={!plan || !areas.length || !layoutPublicable}
+              title={!layoutPublicable && plan ? `Todavía no es propuesta final: ${motivoPublicacion}` : undefined}
+              onClick={() => setVivaAbierta(true)}>
+              ✨ Propuesta Viva
+            </button>
+            </div>
+            {vivaAbierta && (
+            <PropuestaViva areas={areasMM} plan={plan} byId={byId}
+              nombre={clienteNombre || 'Tu nueva oficina'} cliente={null}
+              inversion={inversionCliente > 0 ? inversionCliente : null}
+              onCerrar={() => setVivaAbierta(false)} />
+          )}
+            {realista && (
             <div style={{ marginTop: 12, position: 'relative' }}>
               {realistaPreliminar && (
                 <div className="alerta ambar" style={{ marginBottom: 8 }}>
@@ -1917,9 +1899,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
               <div className="ayuda gris">{realistaPreliminar ? 'Vista preliminar: faltan piezas por colocar. Útil para enseñar la dirección, no para cerrar.' : 'Generada con IA a partir de tu acomodo: respeta cuántos muebles hay y dónde van.'}</div>
             </div>
           )}
-
-          {/* UNA FOTO POR CUARTO — lo que pidió Rodrigo */}
-          {escenas.length > 0 && (
+            {escenas.length > 0 && (
             <div className="tarjeta no-imprimir" style={{ marginTop: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <strong>Cómo se vería cada área</strong>
@@ -1963,20 +1943,58 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
               </div>
             </div>
           )}
-
-          <div className="plano-leyenda">
-            {usados.map((t) => (
-              <span className="leg" key={t}><span className="leg-color" style={{ background: TIPOS[t].color }} />{TIPOS[t].label}</span>
-            ))}
+          </>
+        )}
+        {piezas.length > 0 && (
+        <div className="tarjeta">
+          <h2>Amuebla una foto real (IA)</h2>
+          <p className="ayuda columna-texto">Sube una foto del espacio del cliente (aunque esté vacío) y la IA lo amuebla con los muebles de esta cotización, respetando muros, ventanas y perspectiva. Ideal para la propuesta: <em>“así se vería tu oficina”.</em></p>
+          <div className="fila-botones" style={{ gap: 10, flexWrap: 'wrap' }}>
+            <label className="boton primario" style={{ minHeight: 48, display: 'inline-flex', alignItems: 'center', cursor: staging ? 'default' : 'pointer', pointerEvents: staging ? 'none' : 'auto', opacity: staging ? 0.6 : 1 }}>
+              {staging ? 'Generando…' : stagingUrl ? 'Probar con otra foto' : 'Subir foto y amueblar'}
+              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={amueblarFoto} disabled={staging} />
+            </label>
+            <button className="boton" style={{ minHeight: 48 }} disabled={staging || (plan && !layoutListo)} title={plan && !layoutListo ? `Acomodo incompleto (${motivoLayout})` : ''} onClick={renderOficina}>Render de mi oficina (IA)</button>
           </div>
-
-          {chequeo && !chequeo.ok && <ul className="lista-ia">{chequeo.problemas.map((p, i) => <li key={i}>{p}</li>)}</ul>}
-          {/* Las notas de un acomodo del SERVIDOR son avisos (piezas sin colocar, puertas sin verificar): ámbar, no letra gris. */}
-          {plan.servidor && plan.notas?.length > 0 && <div className="alerta ambar" style={{ marginTop: 8 }}><span className="texto">{plan.notas.join(' ')}</span></div>}
-          {!plan.servidor && plan.notas?.length > 0 && <div className="ayuda gris" style={{ marginTop: 8 }}><strong>Notas:</strong> {plan.notas.join(' · ')}</div>}
-          <div className="ayuda gris" style={{ marginTop: 8, fontSize: 12 }}>Plano esquemático a escala. La IA propone; el sistema verifica bordes y traslapes.</div>
+          <div className="ayuda">O genera la oficina fotorrealista desde tus áreas/dibujo, sin foto.</div>
+          {plan && !layoutListo && (
+            <div className="alerta ambar" style={{ marginTop: 10 }}><span className="texto">
+              🔒 El render final está bloqueado hasta cerrar el acomodo: {motivoLayout}. (El 2D/3D de arriba sí lo puedes editar y reacomodar.)
+            </span></div>
+          )}
+          {errStaging && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">{errStaging}</span></div>}
+          {staging && <div className="render-gen" style={{ position: 'relative', height: 180, marginTop: 12 }}><span className="render-gen-spin" /><span>La IA está amueblando el espacio…</span></div>}
+          {stagingUrl && !staging && (
+            <div style={{ marginTop: 12 }}>
+              <img src={stagingUrl} alt="Espacio amueblado por IA" style={{ width: '100%', borderRadius: 12, border: '1px solid var(--linea)' }} />
+              <div className="fila-botones" style={{ gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
+                <button className="boton primario" style={{ minHeight: 46 }} onClick={guardarStaging}>Guardar en la propuesta</button>
+                {onIr && <button className="boton" style={{ minHeight: 46 }} onClick={() => onIr('cotizacion')}>Ver propuesta →</button>}
+              </div>
+              {guardado && <div className="ayuda verde" style={{ marginTop: 6 }}>Guardado. Ya aparece en el PDF de la propuesta.</div>}
+            </div>
+          )}
         </div>
       )}
+      </SeccionAcomodo>
+
+      {/* ── 5 · GUARDAR Y CONTINUAR ────────────────────────────────────── */}
+      <SeccionAcomodo n={5} titulo="Guardar y continuar" estado={estadoS5} oculto={dibujando} testid="acomodo-s5"
+        nota={!plan ? 'Puedes continuar sin acomodo; la propuesta sale sin plano.' : guardado ? 'Guardado en la propuesta.' : 'Guarda el acomodo en la propuesta y sigue.'}>
+        <div className="fila-botones no-imprimir" style={{ gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          {onGuardarAcomodo && !guardado && <button className="boton" style={{ minHeight: 46 }} disabled={!programaListo}
+              title={!programaListo ? motivoPrograma : undefined} onClick={guardarEnPropuesta}>
+              {layoutPublicable ? 'Guardar en la propuesta' : 'Guardar borrador de acomodo'}
+            </button>}
+          {guardado && <button className={guardadoValido ? 'boton primario' : 'boton'} style={{ minHeight: 46 }} onClick={() => onIr('cotizacion')}>
+              {guardadoValido ? 'Ver cotización con el acomodo →' : 'Ver cotización (borrador de acomodo) →'}
+            </button>}
+          <button className="boton primario" style={{ minHeight: 46 }} data-testid="acomodo-salida" onClick={() => onIr('cotizacion')}>{textoSalida}</button>
+        </div>
+        {guardado && <div className={guardadoValido ? 'ayuda verde no-imprimir' : 'ayuda no-imprimir'} style={{ marginTop: 6 }}>
+            {guardadoValido ? '✓ Acomodo validado y guardado. Ya puede aparecer en la propuesta/PDF.' : 'Borrador guardado. No se presenta al cliente como acomodo final hasta quedar válido.'}
+          </div>}
+      </SeccionAcomodo>
     </div>
   );
 }

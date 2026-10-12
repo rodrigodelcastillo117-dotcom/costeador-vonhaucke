@@ -32,7 +32,7 @@ describe('VH-110 · explicarAcomodo separa qué está validado de qué falta', (
     const sem = r.bloques.find((x) => x.clave === 'semantica');
     expect(sem.texto).toMatch(/«s1» no mira a su mesa/);
     expect(sem.texto).toMatch(/«s2» pegada al muro/);
-    expect(sem.texto).toMatch(/topología de «mesa»/);
+    expect(sem.texto).toMatch(/de qué lados se sienta la gente en «mesa»/);
     expect(r.semantica.detalleDisponible).toBe(true);
   });
   it('PARTIAL con dependientes sin ancla ⇒ PARCIAL y nombra las piezas', () => {

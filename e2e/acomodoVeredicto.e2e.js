@@ -71,7 +71,7 @@ test.describe('VH-110/111 · veredicto del acomodo', () => {
     await expect(bloque('semantica')).toHaveAttribute('data-ok', 'false');
     await expect(bloque('publicable')).toHaveAttribute('data-ok', 'false');
     const semTexto = await bloque('semantica').innerText();
-    expect(semTexto).toMatch(/topología|orientación|asientos/);
+    expect(semTexto).toMatch(/topología|orientación|asientos|se sienta/);
     const texto = await page.locator('main').innerText();
     expect(texto).not.toMatch(/requiere revisión: invariantes/);
     expect(texto).not.toMatch(/no devolvió validación/);

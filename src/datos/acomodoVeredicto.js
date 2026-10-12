@@ -26,41 +26,44 @@ export const TEXTO_ESTADO_SERVIDOR = {
   SIN_VALIDACION: 'el servidor no devolvió validación del acomodo',
 };
 
-const idDe = (i) => (i?.id != null ? ` «${i.id}»` : '');
-const anclaDe = (i) => (i?.anchor != null ? ` de «${i.anchor}»` : '');
+// UX (12-oct): en pantalla va el NOMBRE del mueble, nunca el id interno («d-1»). `nombreDe` lo resuelve
+// quien tiene la lista de piezas (AcomodoBase); sin resolutor se conserva el id entre comillas.
+const etiqueta = (id, nombreDe) => { const n = typeof nombreDe === 'function' ? nombreDe(id) : null; return n ? `«${n}»` : `«${id}»`; };
+const idDe = (i, nd) => (i?.id != null ? ` ${etiqueta(i.id, nd)}` : '');
+const anclaDe = (i, nd) => (i?.anchor != null ? ` de ${etiqueta(i.anchor, nd)}` : '');
 
 // Códigos del juez semántico del edge (semanticPlacementJudge.js) en palabras.
 const TEXTO_SEMANTICO = {
-  SEMANTIC_PROFILE_UNKNOWN: (i) => `el catálogo no declara la topología de${i?.anchor != null ? ` «${i.anchor}»` : ' un ancla'} (de qué lados se sienta la gente): se revisa a mano`,
-  SLOT_UNFILLED_REQUIRED: (i) => `lugar ${i?.slot ? `«${i.slot}» ` : ''}${anclaDe(i).trim()} sin silla`,
-  DEPENDENT_WRONG_SLOT: (i) => `silla${idDe(i)} en un lugar que no corresponde a su mueble`,
-  KIT_FUNCTIONAL_RELATION_BROKEN: (i) => `pieza${idDe(i)} no es del tipo que su mueble espera (${i?.rol || '?'} vs ${i?.esperado || '?'})`,
-  ANCHOR_TOPOLOGY_BROKEN: (i) => `«${i?.anchor ?? '?'}» tiene sillas sólo de un lado y es de dos caras`,
-  SLOT_DOUBLE_OCCUPIED: (i) => `dos sillas en el mismo lugar${anclaDe(i)}`,
-  INVALID_FACING: (i) => `silla${idDe(i)} sin orientación conocida`,
-  DEPENDENT_WRONG_ORIENTATION: (i) => `silla${idDe(i)} no mira a su mesa/escritorio`,
-  ACTIVE_SIDE_BLOCKED_BY_WALL: (i) => `silla${idDe(i)} pegada al muro: no hay espacio para sentarse`,
-  ACTIVE_SIDE_BLOCKED_BY_OBSTACLE: (i) => `silla${idDe(i)} bloqueada por una columna u obstáculo`,
-  ACTIVE_SIDE_ACCESS_TIGHT: (i) => `silla${idDe(i)} con acceso justo (${i?.clear ?? '?'} mm; se buscan ${i?.target ?? '?'} mm)`,
+  SEMANTIC_PROFILE_UNKNOWN: (i, nd) => `el catálogo no dice de qué lados se sienta la gente en ${i?.anchor != null ? etiqueta(i.anchor, nd) : 'un mueble'}: revísalo a mano`,
+  SLOT_UNFILLED_REQUIRED: (i, nd) => `falta una silla en ${i?.slot ? `el lugar «${i.slot}» ` : 'un lugar '}${anclaDe(i, nd).trim()}`,
+  DEPENDENT_WRONG_SLOT: (i, nd) => `silla${idDe(i, nd)} en un lugar que no corresponde a su mueble`,
+  KIT_FUNCTIONAL_RELATION_BROKEN: (i, nd) => `pieza${idDe(i, nd)} no es del tipo que su mueble espera (${i?.rol || '?'} vs ${i?.esperado || '?'})`,
+  ANCHOR_TOPOLOGY_BROKEN: (i, nd) => `${etiqueta(i?.anchor ?? '?', nd)} tiene sillas sólo de un lado y es de dos caras`,
+  SLOT_DOUBLE_OCCUPIED: (i, nd) => `dos sillas en el mismo lugar${anclaDe(i, nd)}`,
+  INVALID_FACING: (i, nd) => `silla${idDe(i, nd)} sin orientación conocida`,
+  DEPENDENT_WRONG_ORIENTATION: (i, nd) => `silla${idDe(i, nd)} no mira a su mesa/escritorio`,
+  ACTIVE_SIDE_BLOCKED_BY_WALL: (i, nd) => `silla${idDe(i, nd)} pegada al muro: no hay espacio para sentarse`,
+  ACTIVE_SIDE_BLOCKED_BY_OBSTACLE: (i, nd) => `silla${idDe(i, nd)} bloqueada por una columna u obstáculo`,
+  ACTIVE_SIDE_ACCESS_TIGHT: (i, nd) => `silla${idDe(i, nd)} con acceso justo (${i?.clear ?? '?'} mm; se buscan ${i?.target ?? '?'} mm)`,
 };
 
-export function textoSemantico(issue) {
+export function textoSemantico(issue, nombreDe = null) {
   const code = String(issue?.code || '').trim();
-  if (TEXTO_SEMANTICO[code]) return TEXTO_SEMANTICO[code](issue);
-  return `observación semántica del servidor: ${code || 'SIN_CÓDIGO'}${idDe(issue)}`;
+  if (TEXTO_SEMANTICO[code]) return TEXTO_SEMANTICO[code](issue, nombreDe);
+  return `observación semántica del servidor: ${code || 'SIN_CÓDIGO'}${idDe(issue, nombreDe)}`;
 }
 
 // Observaciones semánticas disponibles en el plan: la lista completa si el edge la manda
 // (`seleccion.ganador_eval.sem_issues`), si no, los conteos de `semantic_gate`.
-export function observacionesSemanticas(layoutSpec) {
+export function observacionesSemanticas(layoutSpec, nombreDe = null) {
   const gate = layoutSpec?.validation?.semantic_gate || null;
   const lista = layoutSpec?.seleccion?.ganador_eval?.sem_issues;
   const estadoSem = gate?.sem_status || layoutSpec?.seleccion?.ganador_eval?.sem_status || null;
   if (Array.isArray(lista)) {
     return {
       estado: estadoSem,
-      fallas: lista.filter((i) => i.severity === 'fail').map(textoSemantico),
-      revisiones: lista.filter((i) => i.severity !== 'fail').map(textoSemantico),
+      fallas: lista.filter((i) => i.severity === 'fail').map((i) => textoSemantico(i, nombreDe)),
+      revisiones: lista.filter((i) => i.severity !== 'fail').map((i) => textoSemantico(i, nombreDe)),
       conteo: { fail: lista.filter((i) => i.severity === 'fail').length, review: lista.filter((i) => i.severity !== 'fail').length },
       detalleDisponible: true,
     };
@@ -91,10 +94,11 @@ const TEXTO_INVARIANTE = {
   DEPENDENT_DETACHED: 'una silla/guarda lejos de su mueble',
   DEPENDENT_UNASSIGNED: 'silla/guarda sin mueble que la reciba',
 };
-const textoInvariante = (i) => {
+const textoInvariante = (i, nombreDe = null) => {
   const code = String(i?.code || '');
   const base = TEXTO_INVARIANTE[code] || code.toLowerCase().replace(/_/g, ' ');
-  const n = Array.isArray(i?.ids) && i.ids.length ? ` (${i.ids.slice(0, 3).join(', ')}${i.ids.length > 3 ? '…' : ''})` : (i?.id != null ? ` («${i.id}»)` : '');
+  const nom = (id) => (typeof nombreDe === 'function' && nombreDe(id)) || String(id);
+  const n = Array.isArray(i?.ids) && i.ids.length ? ` (${i.ids.slice(0, 3).map(nom).join(', ')}${i.ids.length > 3 ? '…' : ''})` : (i?.id != null ? ` (${etiqueta(i.id, nombreDe)})` : '');
   return `${base}${n}`;
 };
 
@@ -124,7 +128,8 @@ export function notasCapacidad(layoutSpec) {
   return uniq(out);
 }
 
-export function explicarAcomodo({ plan = null, evaluacion = null, programaListo = true, motivoPrograma = '', referencias = [], preliminar = false, nombresSinColocar = [] } = {}) {
+export function explicarAcomodo({ plan = null, evaluacion = null, programaListo = true, motivoPrograma = '', referencias = [], preliminar = false, nombresSinColocar = [], nombreDe = null } = {}) {
+  const textoInv = (i) => textoInvariante(i, nombreDe);
   const spec = plan?.layoutSpec || null;
   const statusSrv = String(spec?.status || '').toUpperCase() || null;
   const issues = (evaluacion?.issues || plan?.invariantes?.issues || spec?.validation?.issues || []).filter(Boolean);
@@ -135,7 +140,7 @@ export function explicarAcomodo({ plan = null, evaluacion = null, programaListo 
   const nSin = Array.isArray(sinColocar) ? sinColocar.length : Number(sinColocar) || 0;
   const unassigned = Array.isArray(plan?.unassigned) ? plan.unassigned : [];
   const noCupieron = Array.isArray(plan?.no_cupieron) ? plan.no_cupieron : [];
-  const sem = observacionesSemanticas(spec);
+  const sem = observacionesSemanticas(spec, nombreDe);
   const renderReady = plan?.render_ready === true || spec?.validation?.render_ready === true;
   const statusAgg = String(evaluacion?.status || plan?.invariantes?.status || '').toUpperCase() || null;
 
@@ -143,12 +148,12 @@ export function explicarAcomodo({ plan = null, evaluacion = null, programaListo 
   // 1 · Geometría (dentro del cuarto, cuartos válidos, sin fantasmas).
   const geoF = porClase(fallas, 'geometria');
   bloques.push({ clave: 'geometria', titulo: 'Geometría', ok: !plan ? null : geoF.length === 0,
-    texto: !plan ? 'sin acomodo todavía' : geoF.length ? uniq(geoF.map(textoInvariante)).join(' · ') : 'todos los muebles dentro de su cuarto' });
+    texto: !plan ? 'sin acomodo todavía' : geoF.length ? uniq(geoF.map(textoInv)).join(' · ') : 'todos los muebles dentro de su cuarto' });
   // 2 · Colisiones y circulación.
   const colF = porClase(fallas, 'colisiones'); const colR = porClase(revisiones, 'colisiones');
   // ok sólo cuando no hay fallas NI revisiones pendientes (una puerta sin verificar no está validada).
   bloques.push({ clave: 'colisiones', titulo: 'Colisiones y circulación', ok: !plan ? null : (colF.length === 0 && colR.length === 0),
-    texto: !plan ? '—' : colF.length ? uniq(colF.map(textoInvariante)).join(' · ') : (colR.length ? `sin colisiones; por revisar: ${uniq(colR.map(textoInvariante)).join(' · ')}` : 'sin encimados ni puertas tapadas') });
+    texto: !plan ? '—' : colF.length ? uniq(colF.map(textoInv)).join(' · ') : (colR.length ? `sin colisiones; por revisar: ${uniq(colR.map(textoInv)).join(' · ')}` : 'sin encimados ni puertas tapadas') });
   // 3 · Programa comercial.
   bloques.push({ clave: 'programa', titulo: 'Programa comercial', ok: !!programaListo,
     texto: programaListo ? 'anclas del programa confirmadas' : (motivoPrograma || 'programa incompleto') });
@@ -160,7 +165,7 @@ export function explicarAcomodo({ plan = null, evaluacion = null, programaListo 
   const textoAnclas = !plan ? '—' : anclasOk ? 'cada silla y guarda tiene su mueble y su lugar'
     : uniq([
       nSin ? `${nSin} sin colocar${nombres.length ? `: ${nombres.slice(0, 4).join(', ')}${nombres.length > 4 ? '…' : ''}` : ''}` : '',
-      ...ancF.map(textoInvariante),
+      ...ancF.map(textoInv),
     ]).join(' · ');
   bloques.push({ clave: 'anclas', titulo: 'Anclas y dependientes', ok: !plan ? null : anclasOk,
     texto: capNotas.length ? `${textoAnclas} · ${capNotas.join(' · ')}` : textoAnclas, capacidad: capNotas });
@@ -192,7 +197,7 @@ export function explicarAcomodo({ plan = null, evaluacion = null, programaListo 
   if (quality && !pendientes.length) pendientes.push(quality);
   // Otras revisiones (no clasificadas) del agregador o del edge: se dicen, nunca se pierden.
   const otrasR = revisiones.filter((i) => claseDe(i.code) === 'otros');
-  if (otrasR.length) pendientes.push(`por revisar: ${uniq(otrasR.map(textoInvariante)).join(' · ')}`);
+  if (otrasR.length) pendientes.push(`por revisar: ${uniq(otrasR.map(textoInv)).join(' · ')}`);
   if (!pendientes.length && plan && (statusSrv === 'REVIEW_REQUIRED' || statusSrv === 'NEEDS_REVIEW')) pendientes.push('observaciones del servidor por revisar');
   const estado = !plan ? 'SIN_PLAN'
     : (fallas.length || statusSrv === 'FAIL') ? 'FALLA'

@@ -333,7 +333,7 @@ export default function Voni({
       {paso === 2 && (
         <>
           {propuestaPrograma && (faltantesPrograma.length > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0 || duplicadosPrograma.length > 0 || ambiguasPrograma.length > 0) && (
-            <div className="tarjeta no-imprimir" style={{ borderColor: '#8bbcaf', background: '#eef6f3' }}>
+            <div className="tarjeta no-imprimir" style={{ borderColor: '#8bbcaf', background: '#eef6f3', color: '#174f45' }}>
               <strong style={{ color: '#174f45' }}>✨ Programa detectado del plano</strong>
               <p className="ayuda" style={{ marginTop: 4 }}>
                 Productos reales del catálogo. Se agrega SÓLO lo que falta (no duplica lo ya cotizado). El precio lo revalida el servidor al emitir.
@@ -539,10 +539,6 @@ export default function Voni({
       {/* ---------------- PASO 3 · ACOMODO ---------------- */}
       {paso === 3 && (
         <>
-          <div className="tarjeta no-imprimir voni-omitir">
-            <span className="ayuda">¿No tienes planos ni medidas del lugar?</span>
-            <button className="boton fantasma" style={{ minHeight: 42 }} onClick={() => setPaso(4)}>Omitir el acomodo, ir a la propuesta →</button>
-          </div>
           <Acomodo
             estado={estado}
             onGuardarAcomodo={onGuardarAcomodo}
@@ -554,7 +550,8 @@ export default function Voni({
           />
           {/* VH-114: Rodrigo, 12-oct: "no veo dónde picarle continuar". El paso a la propuesta
               también vive abajo, donde termina de acomodar. */}
-          <div className="tarjeta no-imprimir" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <div className="tarjeta no-imprimir voni-omitir">
+            <span className="ayuda">¿No tienes planos ni medidas del lugar? Puedes seguir sin acomodo: la propuesta sale sin plano.</span>
             <button className="boton primario" style={{ minHeight: 46 }} data-testid="voni-continuar-propuesta" onClick={() => setPaso(4)}>Continuar a la propuesta →</button>
           </div>
         </>

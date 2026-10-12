@@ -80,7 +80,7 @@ describe('VH-111 · estados del edge que antes se leían como "sin validación"'
     const v = i.plan.auditoria.find((a) => a.check === 'Validación del servidor');
     expect(v.ok).toBe(false);
     expect(v.detalle).toMatch(/falta la revisión semántica/);
-    expect(v.detalle).toMatch(/topología de «a»/);
+    expect(v.detalle).toMatch(/se sienta la gente en «a»/);
     expect(v.detalle).not.toMatch(/no devolvió/);
     expect(i.plan.servidor.estado).toBe('NEEDS_SEMANTIC_REVIEW');
   });
