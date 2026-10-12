@@ -166,6 +166,7 @@ export function areasDeLectura(lectura) {
       nombre: a.nombre || 'Área',
       ...(a.tipo ? { tipo: a.tipo } : {}),
       ...(Number.isFinite(a.puestos) && a.puestos > 0 ? { puestos: a.puestos } : {}),
+      ...(Number.isFinite(Number(a.asientos)) && Number(a.asientos) > 0 ? { asientos: Number(a.asientos) } : {}),
       ...(a.confianza ? { confianza: a.confianza } : {}),
       ...(a.procedencia ? { procedencia: a.procedencia } : {}),
       ...(a.evidencia ? { evidencia: a.evidencia } : {}),

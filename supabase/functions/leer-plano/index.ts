@@ -193,6 +193,9 @@ Deno.serve(async (req: Request) => {
     if (parent && parent === name) issues.push({ field: `areas[${i}].dentroDe`, code: "SELF_PARENT_ZONE" });
     const puestos = num(a.puestos);
     if (!Number.isInteger(puestos) || puestos < 0 || puestos > 10000) issues.push({ field: `areas[${i}].puestos`, code: "INVALID_WORKSTATION_COUNT" });
+    // VH-093: asientos de sala (sillas dibujadas alrededor de la mesa). Opcional (modelo viejo → 0).
+    const asientos = a.asientos == null ? 0 : num(a.asientos);
+    if (!Number.isInteger(asientos) || asientos < 0 || asientos > 1000) issues.push({ field: `areas[${i}].asientos`, code: "INVALID_SEAT_COUNT" });
     if (String(a.confianza || "").toLowerCase() === "baja") warnings.push({ field: `areas[${i}]`, code: "LOW_CONFIDENCE_ZONE", zone: name });
 
     if (a.forma === "poligono") {
@@ -217,7 +220,7 @@ Deno.serve(async (req: Request) => {
       zone_role: roleOf(a.tipo), shape: a.forma,
       points_mm: a.forma === "poligono" ? a.puntos : [],
       circle_mm: a.forma === "circulo" ? a.circulo : null,
-      parent_name: parent || null, observed_workstations: puestos,
+      parent_name: parent || null, observed_workstations: puestos, observed_seats: asientos,
       confidence: a.confianza, area_m2: Math.round(sqm * 100) / 100,
       evidence: evidenceMeta(a),
     });

@@ -38,6 +38,11 @@ async function planoPNG(page) {
 test('cinco caminos contra el servidor real', async ({ browser }) => {
   const context = await browser.newContext();
   const page = await context.newPage();
+  // VH-096: marcar la guía como vista ANTES de montar (igual que auth.e2e.js); el modal
+  // "Guía de uso" interceptaba el clic y la pasada en vivo se colgaba 15 min.
+  await page.addInitScript(() => {
+    try { const k = 'costeador-vonhaucke-v1'; const s = JSON.parse(window.localStorage.getItem(k) || '{}'); s.onboardingVisto = true; window.localStorage.setItem(k, JSON.stringify(s)); } catch (_e) {}
+  });
   // Registro de TODAS las respuestas de edges reales (sin cuerpos de imagen).
   page.on('response', async (res) => {
     const u = res.url();
@@ -58,7 +63,7 @@ test('cinco caminos contra el servidor real', async ({ browser }) => {
 
   // 1) COTIZAR con IA (cotizar-texto real)
   try {
-    await page.locator('button.voni-principal').click();
+    await page.getByTestId('home-cotizar').click();
     await expect(page.getByText(/Soy .*Voni/i).first()).toBeVisible({ timeout: 10000 });
     await page.getByRole('button', { name: /Empezar por los muebles/ }).click();
     const caja = page.locator('textarea.ia-textarea').first();

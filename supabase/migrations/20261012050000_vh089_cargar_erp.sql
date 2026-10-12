@@ -93,4 +93,4 @@ end;
 $$;
 
 grant execute on function public.cargar_erp_ultima_compra(text, jsonb, jsonb) to authenticated;
-revoke all on function public.cargar_erp_ultima_compra(text, jsonb, jsonb) from anon;
+revoke all on function public.cargar_erp_ultima_compra(text, jsonb, jsonb) from public, anon;

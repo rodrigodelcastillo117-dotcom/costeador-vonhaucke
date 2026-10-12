@@ -286,6 +286,44 @@ export function netoComponente(comp, n = 1, insumo = null) {
   return noNegativo((comp.cantidad || 0) * n);
 }
 
+// -----------------------------------------------------------------------------
+//  P0-02 (2026-10-12) · COMPATIBILIDAD UNIDAD ↔ CONSUMO.
+//  Un precio por HOJA / PIEZA / KG / METRO jamás se multiplica directo por m².
+//  `netoComponente` devuelve m² cuando la pieza trae largo×ancho; eso sólo es
+//  dinero si el insumo se vende por m² o si trae `formato` (hoja/tablero/lámina
+//  con medida: la conversión técnica documentada). Los 489 insumos ERP «hoja»
+//  sin formato (p. ej. erp-accr348 $1,018.50/hoja) caían al camino
+//  `!insumo.formato` y cobraban m² × $/hoja: una cubierta 1200×600 salía en
+//  $733 en vez de ¼ hoja. Aquí se BLOQUEA (pendiente con motivo), nunca se
+//  inventa una conversión. Igual para `comp.hojas` sin formato: la fracción de
+//  hoja exige saber qué hoja es.
+// -----------------------------------------------------------------------------
+const UNIDADES_AREA = new Set(['m2', 'm²', 'mt2', 'm^2', 'metro cuadrado', 'metros cuadrados']);
+export function unidadNormalizada(u) {
+  return String(u ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+export function formatoUsable(insumo) {
+  const f = insumo?.formato;
+  return !!f && typeof f === 'object' && Number(f.medida) > 0;
+}
+/**
+ * Motivo por el que el consumo del componente NO se puede expresar en la unidad
+ * del insumo (null = compatible). Puro; lo usa el motor (cliente y servidor).
+ */
+export function incompatibilidadUnidad(comp, insumo) {
+  if (!comp || !insumo) return null;
+  const unidad = unidadNormalizada(insumo.unidad);
+  const conFormato = formatoUsable(insumo);
+  if (Number(comp.hojas) > 0 && !conFormato) {
+    return `fracción de hoja sobre un material sin formato (precio por ${unidad || 'unidad'}): falta la hoja de referencia`;
+  }
+  const porArea = Number(comp.largoMM) > 0 && Number(comp.anchoMM) > 0 && !(Number(comp.hojas) > 0);
+  if (!porArea) return null;
+  if (Number(comp.areaPintadaM2) > 0 && esPinturaPolvo(insumo)) return null; // va por kg (A14)
+  if (conFormato || UNIDADES_AREA.has(unidad)) return null;
+  return `precio por ${unidad || 'unidad'} sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada`;
+}
+
 // Costo NETO de material de un componente (area x precio, antes de redondear a
 // tablero). Sirve para mostrar el subtotal por renglon en la interfaz.
 // FRACCION DE HOJA DIRECTA (Rafa §1, 2026-09-23): si el componente trae
@@ -300,6 +338,9 @@ export function costoNetoComponente(comp, insumo, n = 1, par = PARAMETROS_DEFAUL
   if (comp.hojas > 0 && insumo?.formato) {
     return noNegativo(comp.hojas * n) * precioDeInsumo(insumo, par);
   }
+  // P0-02: unidad incompatible con el consumo → $0 visible en el renglón (el motor lo
+  // deja PENDIENTE con motivo; nunca m² × $/hoja).
+  if (incompatibilidadUnidad(comp, insumo)) return 0;
   return netoComponente(comp, n, insumo) * precioDeInsumo(insumo, par);
 }
 
@@ -564,6 +605,10 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     // esté "por confirmar"). Así una partida provisional sin precio muestra AMBOS problemas:
     // "por confirmar material" Y "sin precio" — nunca se oculta uno tras "Costo provisional".
     if (!precioUsable(insumo)) { componentesIgnorados.push(comp.nombre || insumo.nombre || 'Material sin precio'); continue; }
+    // P0-02: precio por hoja/pza/kg/m y consumo por largo×ancho (m²) sin formato → PENDIENTE con
+    // motivo. Bloquea en cliente Y servidor (mismo motor); no se inventa la conversión.
+    const incompatible = incompatibilidadUnidad(comp, insumo);
+    if (incompatible) { componentesIgnorados.push(`${comp.nombre || insumo.nombre || 'Pieza'} (${incompatible})`); continue; }
     // COSTEAR §3 (2026-10-10): un componente CON material y CON precio pero SIN consumo
     // (ni cantidad, ni largo×ancho, ni fracción de hoja) costaba $0 en silencio y el
     // costeo salía "completo". Un PTR con sólo `largoMM` salía gratis. Es un hueco de

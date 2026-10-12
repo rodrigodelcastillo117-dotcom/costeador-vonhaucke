@@ -74,6 +74,14 @@ function Pasos({ paso, setPaso, puedeAvanzar, hechoPaso }) {
   );
 }
 
+// VH-091: "juntas|ANCHOR_MEETING|#0" → "Mesa de juntas 1" (nunca el id interno en pantalla).
+const etiquetaSlot = (slot) => {
+  const [rol, rel, ord] = String(slot || '').split('|');
+  const base = ({ ANCHOR_MEETING: 'Mesa de juntas', ANCHOR_DESK: 'Escritorio privado', ANCHOR_WORKSTATION: 'Estación operativa', ANCHOR_RECEPTION: 'Recepción' })[rel] || rol || 'Mueble';
+  const n = Number(String(ord || '').replace('#', '')) + 1;
+  return Number.isFinite(n) && n > 0 ? `${base} ${n}` : base;
+};
+
 export default function Voni({
   estado, setEstado, soloVentas = false, veCostos = false,
   onAgregarItems, onGuardarAcomodo, onIr, onAplicarPrograma,
@@ -166,6 +174,10 @@ export default function Voni({
     [propuestaPrograma, partidas],
   );
   const faltantesPrograma = reconPrograma ? reconPrograma.confirmacion.confirmadas : [];
+  // VH-090: existentes del usuario que cubren el programa y aún no están vinculados (sin instance/anchor).
+  const reutilizadosPrograma = reconPrograma
+    ? (reconPrograma.confirmacion.enriquecidos || []).filter((e) => { const p = partidas.find((x) => String(x.id) === String(e.id)); return p && !p.instance_id && !p.anchor_instance_id; })
+    : [];
   const conflictosPrograma = reconPrograma ? reconPrograma.conflictos : [];
   const pendientesPrograma = propuestaPrograma ? (propuestaPrograma.propuesta.pendientes || []) : [];
 
@@ -301,18 +313,30 @@ export default function Voni({
                 <div style={{ marginTop: 8, color: '#8a1f1f' }}>
                   <div style={{ fontWeight: 700 }}>Conflicto (decide tú)</div>
                   {conflictosPrograma.map((c, i) => (
-                    <div key={i}>✗ {c.slot}: ya existe {c.existente?.bancoId} vs propuesto {c.propuesto?.bancoId}</div>
+                    <div key={i} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 4 }}>
+                      <span>✗ {etiquetaSlot(c.slot)}: ya tienes <b>{c.existente?.nombre || c.existente?.bancoId}</b>; el plano propone <b>{c.propuesto?.nombre || c.propuesto?.bancoId}</b>.</span>
+                      {c.code === 'SLOT_OCUPADO_PRODUCTO_DISTINTO' && onAplicarPrograma && (
+                        <button type="button" className="boton fantasma" style={{ minHeight: 32 }}
+                          onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta, { sustituir: [c.slot] })}>
+                          Sustituir por el propuesto
+                        </button>
+                      )}
+                      <span className="ayuda">(o conserva el tuyo: no se sustituye solo)</span>
+                    </div>
                   ))}
                 </div>
               )}
               <div style={{ marginTop: 12 }}>
                 <button type="button" className="boton primario"
-                  disabled={!onAplicarPrograma || faltantesPrograma.length === 0}
+                  disabled={!onAplicarPrograma || (faltantesPrograma.length === 0 && reutilizadosPrograma.length === 0)}
                   onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta)}>
-                  Aplicar programa detectado
+                  {faltantesPrograma.length ? 'Aplicar programa detectado' : 'Vincular lo que ya tengo al plano'}
                 </button>
+                {reutilizadosPrograma.length > 0 && (
+                  <span className="ayuda" style={{ marginLeft: 10 }}>{reutilizadosPrograma.length} mueble(s) que ya describiste cubren el programa: se vinculan a su zona, no se duplican.</span>
+                )}
                 {conflictosPrograma.length > 0 && (
-                  <span style={{ marginLeft: 10, color: '#8a1f1f', fontWeight: 700 }}>Programa INCOMPLETO / NEEDS_REVIEW por conflictos.</span>
+                  <span style={{ marginLeft: 10, color: '#8a1f1f', fontWeight: 700 }}>Decide cada conflicto arriba; lo demás sí se aplica.</span>
                 )}
               </div>
             </div>

@@ -167,7 +167,10 @@ export function programaDelPlano(areas, opts = {}) {
   }
 
   const m2Salas = salasA.map((a) => (a.ancho || 0) * (a.largo || 0));
-  const salas = m2Salas.map(personasEnSala);
+  // VH-093: si el lector CONTÓ las sillas dibujadas alrededor de la mesa (`asientos`), ésa es
+  // la capacidad (DETECTADA); la regla de m²/persona queda sólo para salas sin sillas dibujadas.
+  // Antes una sala de consejo con 10 sillas dibujadas salía "mesa de 4" por 22 m².
+  const salas = salasA.map((a, i) => (Number.isFinite(a.asientos) && a.asientos > 0 ? a.asientos : personasEnSala(m2Salas[i])));
   // ⚠️ "0 m²: da para 4 personas" ERA UNA CONTRADICCIÓN MUDA (auditoría
   // 2026-08-19). `personasEnSala` siempre pone un piso de 4 (Rodrigo: una
   // sala de juntas real nunca es para menos), pero eso NO distingue "sala
@@ -200,6 +203,7 @@ export function programaDelPlano(areas, opts = {}) {
   const fuente = {
     privados: privados.every(rolSemanticoDetectado) ? 'detectado' : 'estimado',
     salas: salasA.every(rolSemanticoDetectado) ? 'detectado' : 'estimado',
+    salasCapacidad: salasA.length && salasA.every((a) => Number.isFinite(a.asientos) && a.asientos > 0) ? 'detectado' : 'estimado',
     recepcion: recepcion
       ? (lista.filter((a) => rolDe(a, lista) === 'recepcion').every(rolSemanticoDetectado) ? 'detectado' : 'estimado')
       : 'detectado',

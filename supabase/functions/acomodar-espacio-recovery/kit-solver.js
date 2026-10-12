@@ -62,19 +62,41 @@ export function asignarDuenos(piezas = []) {
   const porId = (id) => byId.get(String(id));
   const sortId = (a, b) => (String(a.id) < String(b.id) ? -1 : 1);
 
+  // VH-092 (2026-10-12): ANCLAS de todos los grupos, para adoptar dependientes HUÉRFANOS
+  // (silla/gaveta sin ancla en su grupo) en un ancla compatible con cupo libre. Antes una
+  // silla que describió la persona sin metadata moría como "sin un mueble que la reciba"
+  // aunque hubiera un escritorio con lugar al lado.
+  const todasAnclas = [];
+  const huerfanos = [];
+  const anclaDe = (rolDep) => ({
+    WORK_SEAT: ['ANCHOR_WORKSTATION'], EXECUTIVE_SEAT: ['ANCHOR_DESK'], VISITOR_SEAT: ['ANCHOR_DESK', 'ANCHOR_RECEPTION'],
+    MEETING_SEAT: ['ANCHOR_MEETING'], UNDERDESK_STORAGE: ['ANCHOR_WORKSTATION', 'ANCHOR_DESK'], SUPPORT_STORAGE: ['ANCHOR_DESK', 'ANCHOR_MEETING', 'ANCHOR_WORKSTATION'],
+  })[rolDep] || [];
+
   for (const [, { anclas, deps }] of grupos) {
-    if (!anclas.length) { for (const d of deps) { porId(d.id).anchor_instance_id = null; unassigned.push(String(d.id)); } continue; }
+    if (!anclas.length) { for (const d of deps) { porId(d.id).anchor_instance_id = null; huerfanos.push(d); } continue; }
     const an = anclas.slice().sort(sortId).map((a) => ({ id: String(a.id), cap: capacidadAncla(a), seats: 0, gav: 0, rol: a.relation_role }));
     const sillas = deps.filter((d) => esSilla(d.relation_role)).sort(sortId);
     const gavetas = deps.filter((d) => esGaveta(d.relation_role)).sort(sortId);
     for (const s of sillas) {
       const a = an.find((x) => x.seats < x.cap) || an[0];
-      if (a && a.seats < a.cap) { porId(s.id).anchor_instance_id = a.id; a.seats++; } else { porId(s.id).anchor_instance_id = null; unassigned.push(String(s.id)); }
+      if (a && a.seats < a.cap) { porId(s.id).anchor_instance_id = a.id; a.seats++; } else { porId(s.id).anchor_instance_id = null; huerfanos.push(s); }
     }
     for (const gv of gavetas) {
       const a = an.find((x) => x.gav < x.cap) || an[0];
-      if (a && a.gav < a.cap) { porId(gv.id).anchor_instance_id = a.id; a.gav++; } else { porId(gv.id).anchor_instance_id = null; unassigned.push(String(gv.id)); }
+      if (a && a.gav < a.cap) { porId(gv.id).anchor_instance_id = a.id; a.gav++; } else { porId(gv.id).anchor_instance_id = null; huerfanos.push(gv); }
     }
+    todasAnclas.push(...an);
+  }
+  // Adopción: ancla compatible (por rol) con cupo, en orden determinista; misma zona primero.
+  for (const d of huerfanos.sort(sortId)) {
+    const roles = anclaDe(d.relation_role);
+    const zonaDep = d.zone_id != null ? String(d.zone_id) : null;
+    const cands = todasAnclas.filter((x) => roles.includes(x.rol));
+    const libre = (x) => (esSilla(d.relation_role) ? x.seats < x.cap : x.gav < x.cap);
+    const a = cands.find((x) => libre(x) && zonaDep && String(porId(x.id)?.zone_id ?? '') === zonaDep) || cands.find(libre);
+    if (a) { porId(d.id).anchor_instance_id = a.id; porId(d.id).adoptado_por = a.id; if (esSilla(d.relation_role)) a.seats++; else a.gav++; }
+    else unassigned.push(String(d.id));
   }
   return { piezas: out, unassigned };
 }

@@ -4,6 +4,8 @@
 //  partidas de la cotización a piezas individuales con su huella real.
 // ============================================================================
 import { topologiaDeProducto } from './placementTopologia.js';
+import { inferRole, esAncla } from './confirmarPrograma.js';
+import { inferirDestinoPartida } from './destinoAcomodo.js';
 
 export const TIPOS = {
   escritorio: { label: 'Escritorios', color: '#3b6fb0', alto: 730 },
@@ -43,7 +45,9 @@ export function vaBajoEscritorio(pt) {
 
 export function tipoDe(pt) {
   const s = sinAcento((pt.ruta || '') + ' ' + (pt.nombre || ''));
-  const esMueble = /escritorio|bench|banca|estacion|mesa|credenza|archiv|gaveta|librero/.test(s);
+  // VH-095: "Módulo operativo App LT 8 usuarios (biombo cristal)" caía en 'mampara' por la
+  // palabra "biombo" → enderezarAlto lo volvía 4800×80 y el bench se dibujaba como una LÍNEA.
+  const esMueble = /escritorio|bench|banca|estacion|mesa|credenza|archiv|gaveta|librero|modulo|operativo|directivo|recepcion/.test(s);
   if (!esMueble && /mampara|privacy|muro|biombo|lambrin/.test(s)) return 'mampara';
   if (/credenza|guarda|archiv|gaveta|armario|librero|locker|torre|modulor|mox|cajon/.test(s)) return 'guarda';
   if (/soporte de pantalla|teamspace ii/.test(s)) return 'mueble';
@@ -124,7 +128,16 @@ export function expandirPiezas(partidas, tope = 600) {
   let real = 0;
   for (const pt of partidas || []) {
     if (vaBajoEscritorio(pt)) continue;
-    const tipo = tipoDe(pt);
+    // VH-092: el solver (kit-solver) sólo coloca piezas con ROL. Las partidas que describe
+    // una persona (VONI texto / banco) no lo traen → se infiere aquí (misma regla que
+    // confirmarPrograma) para que un escritorio sea ancla y una silla busque su mueble,
+    // en vez de salir "sin un mueble que las reciba".
+    const relInferida = pt.relation_role || inferRole(pt) || null;
+    const destino = inferirDestinoPartida(pt);
+    let tipo = tipoDe(pt);
+    if (esAncla(relInferida) && (tipo === 'mampara' || tipo === 'mueble')) {
+      tipo = ({ ANCHOR_WORKSTATION: 'escritorio', ANCHOR_DESK: 'escritorio', ANCHOR_MEETING: 'juntas', ANCHOR_RECEPTION: 'recepcion' })[relInferida] || tipo;
+    }
     let w = pt.w, d = pt.d;
     if (tipo !== 'asiento' && (!w || !d)) {
       const explicitas = dimensionesEnNombre(pt.nombre, tipo);
@@ -151,8 +164,11 @@ export function expandirPiezas(partidas, tope = 600) {
         ruta: pt.ruta || null,
         productoId: pt.productoId || pt.producto_id || null,
         producto_version_id: productoVersionId,
-        ...(pt.functional_group_id ? { functional_group_id: pt.functional_group_id } : {}),
-        ...(pt.relation_role ? { relation_role: pt.relation_role } : {}),
+        // VH-092: grupo por DESTINO cuando la partida no trae grupo (las sillas sueltas de
+        // "privado" buscan el escritorio suelto de "privado"); rol explícito o inferido.
+        ...(pt.functional_group_id ? { functional_group_id: pt.functional_group_id } : (relInferida ? { functional_group_id: `fg:libre:${destino || 'general'}` } : {})),
+        ...(relInferida ? { relation_role: relInferida } : {}),
+        ...(!pt.relation_role && relInferida ? { relation_role_inferida: true } : {}),
         ...(pt.anchor_role ? { anchor_role: pt.anchor_role } : {}),
         // P0.2 obj6: identidad estable de zona/requerimiento/ancla a NIVEL de grupo
         // (compartida por todas las instancias de la partida) — para que el

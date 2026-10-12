@@ -27,6 +27,7 @@ const AsistenteEspecial = lazy(() => import('./componentes/AsistenteEspecial.jsx
 const Biblioteca = lazy(() => import('./componentes/Biblioteca.jsx'));
 const CosteadorLinea = lazy(() => import('./componentes/CosteadorLinea.jsx'));
 import { aplicarPrograma, partidaComercialDesdeConfirmado } from './datos/programaRealDelPlano.js';
+import { reconciliarNuevasConPrograma } from './datos/reconciliarPartidas.js';
 import { APPLT_PRODUCTOS, generarAppLT } from './datos/applt.js';
 import { APP_PRODUCTOS, generarApp } from './datos/app.js';
 import { ECLIPSE_PRODUCTOS, generarEclipse } from './datos/eclipse.js';
@@ -837,17 +838,22 @@ export default function App() {
   // clicks seguidos (antes del rerender) ven el estado ya actualizado por el
   // primero → el segundo reconcilia y no duplica. `aplicandoPrograma` evita reentradas.
   const aplicandoProgramaRef = useRef(false);
-  function aplicarProgramaDetectado(propuesta) {
+  function aplicarProgramaDetectado(propuesta, opts = {}) {
     if (!propuesta) return { confirmadas: 0, conflictos: [], pendientes: [] };
+    // VH-091: `opts.sustituir` = slots cuyo conflicto la persona resolvió a favor del propuesto.
+    const sustituir = Array.isArray(opts.sustituir) ? opts.sustituir : [];
     // Vista para la UI (contra el estado actual): conflictos y pendientes a mostrar.
-    const vista = aplicarPrograma(propuesta, { existentes: estado.cotizacion?.partidas || [] });
+    const vista = aplicarPrograma(propuesta, { existentes: estado.cotizacion?.partidas || [], sustituir });
     if (aplicandoProgramaRef.current) {
       return { confirmadas: 0, conflictos: vista.conflictos || [], pendientes: propuesta.pendientes || [] };
     }
     aplicandoProgramaRef.current = true;
     setEstado((prev) => {
-      const existentes = prev.cotizacion?.partidas || [];
-      const { confirmacion } = aplicarPrograma(propuesta, { existentes });
+      const existentes0 = prev.cotizacion?.partidas || [];
+      const { confirmacion } = aplicarPrograma(propuesta, { existentes: existentes0, sustituir });
+      // VH-091: los sustituidos por decisión explícita salen del proyecto.
+      const fuera = new Set((confirmacion.reemplazados || []).map(String));
+      const existentes = fuera.size ? existentes0.filter((p) => !fuera.has(String(p.id))) : existentes0;
       const enriquecidos = confirmacion.enriquecidos || [];
       // #4: ENRIQUECE en el sitio los existentes reutilizados (WIN/gavetas apuntan
       // ahora al ancla APP LT) — sólo metadata estructural, sin tocar economics.
@@ -858,7 +864,7 @@ export default function App() {
         return patch ? { ...p, ...patch } : p;
       });
       const nuevas = confirmacion.confirmadas.map(partidaComercialDesdeConfirmado);
-      if (!nuevas.length && !enriquecidos.length) return prev;    // idempotente: nada que hacer
+      if (!nuevas.length && !enriquecidos.length && !fuera.size) return prev;    // idempotente: nada que hacer
       return { ...prev, cotizacion: { ...prev.cotizacion, partidas: [...patched, ...nuevas] } };
     });
     // Libera el lock tras el commit (microtask: después del setEstado batcheado).
@@ -1022,17 +1028,26 @@ export default function App() {
   }
 
   function agregarItemsProyecto(costados, opts = {}) {
-    const partidas = partidasDeItemsIA(costados).map((p) => ({ ...p, loteIA: opts.lote || null }));
+    const nuevas = partidasDeItemsIA(costados).map((p) => ({ ...p, loteIA: opts.lote || null }));
+    let sustituidas = [];
     setEstado((e) => {
       const previas = e.cotizacion.partidas || [];
-      const base = opts.reemplaza ? previas.filter((p) => p.loteIA !== opts.reemplaza) : previas;
+      const base0 = opts.reemplaza ? previas.filter((p) => p.loteIA !== opts.reemplaza) : previas;
+      // VH-090: lo que describe la persona SUSTITUYE a la partida genérica del programa del
+      // plano con el mismo rol (y hereda su estructura para el acomodo). Antes se duplicaba.
+      const rec = reconciliarNuevasConPrograma(base0, nuevas);
+      sustituidas = rec.sustituidas;
+      const base = rec.partidas.slice(0, rec.partidas.length - nuevas.length);
+      const partidas = rec.partidas.slice(rec.partidas.length - nuevas.length);
       // #5: una interpretación NUEVA REEMPLAZA el brief (no se queda pegado el
       // anterior). Si opts trae programaBrief (hubo interpretación), manda; si no,
       // se conserva el existente (fue un add que no vino del intérprete).
       const programaBrief = ('programaBrief' in opts) ? opts.programaBrief : e.cotizacion.programaBrief;
       return { ...e, cotizacion: { ...e.cotizacion, partidas: juntarIguales([...base, ...partidas]), ...(programaBrief !== undefined ? { programaBrief } : {}) } };
     });
-    mostrarAviso(`¡Listo! ${partidas.length} mueble(s) en tu proyecto`);
+    mostrarAviso(sustituidas.length
+      ? `¡Listo! ${nuevas.length} mueble(s) en tu proyecto · ${sustituidas.length} del programa del plano sustituido(s) por lo que describiste`
+      : `¡Listo! ${nuevas.length} mueble(s) en tu proyecto`);
   }
 
   // Cotizador con IA (suelto) -> agrega y navega a 'cotizacion' o 'acomodo'.

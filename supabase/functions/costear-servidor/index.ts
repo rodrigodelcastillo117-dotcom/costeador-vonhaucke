@@ -198,6 +198,13 @@ Deno.serve(async (req) => {
     warnings.push("Costo con material(es) histórico(s) (LEGACY_SELECTED): estado tope 'preliminar' hasta confirmar el material.");
     estado = estadoTopado as typeof estado;
   }
+  // P0-04 (2026-10-12): el costo de RESPALDO (config-fallback) NUNCA es 'certificado'. Sólo el
+  // catálogo central (catalogo_motor, precios aprobados con documento) certifica; si no estuvo,
+  // el estado se topa en 'preliminar' aunque la evidencia por insumo diga certificable.
+  if (catalogoFuente === "config-fallback" && estado === "certificado") {
+    estado = "preliminar";
+    warnings.push("Costo con configuración de respaldo (no catálogo central): estado tope 'preliminar'. No es certificable.");
+  }
 
   // Precio: SIEMPRE con el margen OBJETIVO del servidor (config/params), NUNCA del
   // body — el DTO ya rechazó cualquier `margen` del cliente. Modelo 'clásico' (Alba)
@@ -214,8 +221,11 @@ Deno.serve(async (req) => {
   const meta = {
     versionMotor: MOTOR_VERSION,
     versionConfig: hashConfig(datos),
-    versionCatalogo,
-    fuenteCosto: "config-legado", // el costo aún sale de config; catalogo_vigente solo certifica
+    // P0-04: la fuente REAL del costo de este snapshot, nunca una etiqueta fija.
+    //  'catalogo'        → insumos/precios de catalogo_motor (catálogo central, aprobados con documento)
+    //  'config-fallback' → configuración de respaldo (catálogo no disponible): preliminar, no certificable
+    versionCatalogo: catalogoFuente === "catalogo" ? versionCatalogo : `config-fallback-${versionCatalogo}`,
+    fuenteCosto: catalogoFuente,
     calculadoEn: new Date().toISOString(),
   };
   // El precio se entrega mientras el cálculo sea posible (certificado o preliminar) Y
