@@ -165,11 +165,13 @@ export function componerKit(anchor, sillas = [], gavetas = []) {
   // sin colocar y se reporta, no se encima.
   const caras = topoGeom === 'DOUBLE_FACE' ? 2 : (topoGeom === 'SINGLE_FACE' ? 1 : 0);
   const topeFisico = caras ? caras * Math.max(1, Math.floor(aw / SEAT)) : Infinity;
-  const lay = layoutDeTopologia(topoGeom, aw, ad, Math.min(sillas.length, topeFisico));
+  // VH-119: en un escritorio el ejecutivo va primero (slot BACK) y las visitas después (FRONT).
+  const ordenadas = topoGeom === 'DESK' ? [...sillas.filter((s) => s.relation_role === 'EXECUTIVE_SEAT'), ...sillas.filter((s) => s.relation_role !== 'EXECUTIVE_SEAT')] : sillas;
+  const lay = layoutDeTopologia(topoGeom, aw, ad, Math.min(ordenadas.length, topeFisico), ordenadas.map((s) => s.relation_role));
   const piezas = [{ id: String(anchor.id), dx: lay.anchor.dx, dy: lay.anchor.dy, w: aw, d: ad, rol, topology: perfil.topology, provenance: perfil.provenance, profile_version: perfil.version, fallback_layout: perfil.topology === 'UNKNOWN' ? (perfil.fallback_layout_strategy || 'LEGACY_SINGLE_FACE') : null }];
   const sinColocar = [];
 
-  sillas.forEach((s, i) => {
+  ordenadas.forEach((s, i) => {
     const slot = lay.seats[i];
     if (slot) piezas.push({ id: String(s.id), dx: slot.dx, dy: slot.dy, w: SEAT, d: SEAT, rol: s.relation_role, slot_id: slot.slot_id, side: slot.side, facing: slot.facing });
     else sinColocar.push(String(s.id));

@@ -163,3 +163,52 @@ describeSem('VH-112c · topología desconocida no encima sillas', () => {
     expectSem(r.plan.colocacion.filter((c) => /^w-/.test(c.id)).length + (r.layoutSpec.no_cupieron?.length || 0) + (r.layoutSpec.unassigned?.length || 0)).toBe(16);
   });
 });
+
+// ============================================================================
+//  VH-119 (2026-10-12) · DESPACHO PRIVADO: el solver sentaba al ejecutivo JUNTO a sus visitas (fila única
+//  SINGLE_FACE) y el juez no admitía visitas en un escritorio → TODO despacho con sillas de visita caía en
+//  NEEDS_SEMANTIC_REVIEW (proyectos 867 y 869 reproducidos contra el edge RC en Deno). Ahora: ejecutivo
+//  detrás (BACK), visitas al frente (FRONT); el juez exige exactamente eso.
+// ============================================================================
+import { layoutDesk, layoutDeTopologia as layoutTopo119 } from './placementProfiles.js';
+import { juzgarSemantico as juzgar119 } from './semanticPlacementJudge.js';
+describeSem('VH-119 · escritorio privado: ejecutivo detrás, visitas al frente', () => {
+  const areas = [{ nombre: 'OFICINA DIRECCIÓN', tipo: 'privado', ancho: 4500, largo: 4000, x: 0, y: 0 }];
+  const piezas = [
+    { id: 'e-1-1', nombre: 'Eclipse Escritorio Directivo 2.10 m', w: 2100, d: 900, tipo: 'escritorio', relation_role: 'ANCHOR_DESK', functional_group_id: 'fg:libre:privado', zone_id: 'OFICINA DIRECCIÓN' },
+    { id: 'a-1-1', nombre: 'Silla directiva ALPHA', w: 600, d: 600, tipo: 'asiento', relation_role: 'EXECUTIVE_SEAT', functional_group_id: 'fg:libre:privado', zone_id: 'OFICINA DIRECCIÓN' },
+    { id: 'v-1-1', nombre: 'Silla de visita · CONCERTO', w: 600, d: 600, tipo: 'asiento', relation_role: 'VISITOR_SEAT', functional_group_id: 'fg:libre:privado', zone_id: 'OFICINA DIRECCIÓN' },
+    { id: 'v-1-2', nombre: 'Silla de visita · CONCERTO', w: 600, d: 600, tipo: 'asiento', relation_role: 'VISITOR_SEAT', functional_group_id: 'fg:libre:privado', zone_id: 'OFICINA DIRECCIÓN' },
+    { id: 'c-1-1', nombre: 'Eclipse Credenza baja 2.10', w: 2100, d: 600, tipo: 'archivo', relation_role: 'SUPPORT_STORAGE', functional_group_id: 'fg:libre:general', zone_id: 'OFICINA DIRECCIÓN' },
+  ];
+  itSem('layoutDesk: ejecutivo en BACK (mira al escritorio), visitas en FRONT, en el orden de las sillas', () => {
+    const lay = layoutDesk(2100, 900, 3, ['VISITOR_SEAT', 'EXECUTIVE_SEAT', 'VISITOR_SEAT']);
+    expectSem(lay.seats.map((s) => [s.slot_id, s.side, s.facing])).toEqual([['seat_F1', 'FRONT', 'UP'], ['seat_X1', 'BACK', 'DOWN'], ['seat_F2', 'FRONT', 'UP']]);
+    // franja de acceso 600 + silla ejecutiva 600 + tablero 900 + visitas 600 = 2700
+    expectSem(lay.anchor.dy).toBe(1200); expectSem(lay.seats[1].dy).toBe(600); expectSem(lay.seats[0].dy).toBe(2100); expectSem(lay.kitD).toBe(2700);
+    expectSem(layoutTopo119('DESK', 2100, 900, 1).seats[0].side).toBe('BACK');          // sin roles: la primera es el ejecutivo
+    expectSem(layoutTopo119('DESK', 2100, 900, 0).kitD).toBe(900);
+  });
+  itSem('pipeline completo: 5 piezas colocadas, ejecutivo detrás, visitas al frente, sin sem_issues, status != NEEDS_SEMANTIC_REVIEW', () => {
+    const r = construirSem(areas, piezas);
+    const col = r.plan.colocacion; const porId = Object.fromEntries(col.map((c) => [c.id, c]));
+    expectSem(col).toHaveLength(5);
+    expectSem([porId['a-1-1'].side, porId['v-1-1'].side, porId['v-1-2'].side]).toEqual(['BACK', 'FRONT', 'FRONT']);
+    expectSem(porId['a-1-1'].y).toBeLessThan(porId['e-1-1'].y);                          // detrás = arriba del tablero
+    expectSem(porId['v-1-1'].y).toBeGreaterThan(porId['e-1-1'].y);
+    expectSem(r.seleccion.ganador_eval.sem_issues).toEqual([]);
+    expectSem(r.layoutSpec.status).not.toBe('NEEDS_SEMANTIC_REVIEW');
+    expectSem(r.layoutSpec.validation.issues.filter((i) => i.severity === 'fail')).toEqual([]);
+  });
+  itSem('el juez sigue fallando si el ejecutivo queda al FRENTE o una silla operativa cuelga del escritorio', () => {
+    const r = construirSem(areas, piezas);
+    const col = r.plan.colocacion.map((c) => (c.id === 'a-1-1' ? { ...c, side: 'FRONT' } : c));
+    const issues = juzgar119(areas, piezas, col).issues;
+    expectSem(issues.filter((i) => i.code === 'KIT_FUNCTIONAL_RELATION_BROKEN').map((i) => i.id)).toEqual(['a-1-1']);
+    const piezasMal = piezas.map((p) => (p.id === 'v-1-2' ? { ...p, relation_role: 'WORK_SEAT' } : p));
+    const r2 = construirSem(areas, piezasMal);
+    // una silla operativa no cuelga de un escritorio: queda sin mueble que la reciba y el acomodo es PARCIAL, no se encima ni se disfraza
+    expectSem(r2.unassigned).toEqual(['v-1-2']);
+    expectSem(r2.layoutSpec.status).toBe('PARTIAL');
+  });
+});

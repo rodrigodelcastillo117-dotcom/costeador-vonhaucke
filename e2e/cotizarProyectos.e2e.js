@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import fs from 'node:fs';
 import { construirRespuestaAcomodo } from '../supabase/functions/acomodar-espacio-recovery/recoveryPipeline.js';
 
 // ============================================================================
@@ -151,6 +152,11 @@ test.describe('COTIZAR · tres proyectos', () => {
       const colocadas = cot.acomodo.plan.colocacion.length;
       const fails = (cot.acomodo.plan.layoutSpec?.validation?.issues || []).filter((i) => i.severity === 'fail');
       console.log(`[${P.clave}] partidas ${ps.length} · piezas al solver ${payload.piezas.length} · colocadas ${colocadas} · status ${cot.acomodo.plan.layoutSpec?.status} · unassigned ${JSON.stringify(cot.acomodo.plan.unassigned || [])} · fails ${fails.length}`);
+      // ACOMODO_DUMP_DIR=/ruta → guarda petición y respuesta completas del edge para auditarlas fuera.
+      if (process.env.ACOMODO_DUMP_DIR) {
+        fs.mkdirSync(process.env.ACOMODO_DUMP_DIR, { recursive: true });
+        fs.writeFileSync(`${process.env.ACOMODO_DUMP_DIR}/${P.clave}.json`, JSON.stringify({ peticion: payload, respuesta: ultima, acomodo: cot.acomodo, partidas: ps }, null, 1));
+      }
       console.log(`[${P.clave}] anclas al solver:`, JSON.stringify(payload.piezas.filter((x) => /^ANCHOR/.test(x.relation_role || '')).map((x) => [x.id, x.instance_id || null, x.user_capacity || null, x.placement_profile?.topology || x.placement_profile || null, x.functional_group_id || null])));
       console.log(`[${P.clave}] sillas colocadas por ancla:`, JSON.stringify(Object.entries(cot.acomodo.plan.colocacion.filter((c) => /w-1|s-1/.test(c.id)).reduce((m, c) => { m[c.anchor_instance_id || '∅'] = (m[c.anchor_instance_id || '∅'] || 0) + 1; return m; }, {}))));
       expect(payload.piezas.length).toBe(P.piezasEsperadas);
