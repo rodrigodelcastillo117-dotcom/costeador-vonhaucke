@@ -47,6 +47,7 @@ VH-105 (render al reabrir Cocrear), VH-106, VH-107.
 | VH-104 | P1 | Guardado/PDF | — | — | — | e2e existentes: persistencia (6: 100 recargas, 2 pestañas, vendedor/Dirección, otra computadora, sin internet, respaldo) y emisión (5: PDF, bloqueos, aprobación) | Playwright local (ver checkpoint) | — | **PASS** (local, nube falsa) · emisión real en producción no se ejecuta (irreversible) | — |
 | VH-105 | P1 | Cocrear | `reabrir` → `setRender(null)`: el render fotográfico no está en el payload `cocrear` | sólo se guardaban specHash/expected; la URL canónica vive en `expedientes.render_aislado_url` (la devuelve `cocrear_seguro`) | `CocrearV3.jsx` | al reabrir se recupera la URL canónica y se muestra; `renderStale` lo marca VENCIDO si las firmas no cuadran (fail-closed) y ofrece regenerar | sin e2e (requiere expediente real con render) | `88d458b` | **PARCIAL** (código; probar con expediente real) | bajo |
 | VH-106 | P1 | VONI | — | — | `CocrearV3.jsx`, `voni-council` | auditoría: degradación controlada existente ("Council no pudo responder", cambio aplicado al modelo se conserva); `cotizar-texto` en vivo OK (20 s); no se invierten tokens en más pruebas de IA | pasada en vivo | — | **PASS** (auditoría) | — |
+| VH-108 | P1 | Costear/IA | `analizar-mueble` 502 PROVIDER_TIMEOUT en la pasada en vivo (06:40); `ai_eventos` 7 d: 123 ok / 70 PROVIDER_TIMEOUT | latencia del proveedor con PDF/descripciones largas; el edge ya reintenta (attempts) y la UI ofrece "Intenta de nuevo"; sin cola ni degradación a menos hojas automática | `analizar-mueble` (edge) | sin cambio esta noche (requiere decidir presupuesto de tiempo/modelo; no se gastan más llamadas de IA) | pasada en vivo | — | **ABIERTO** (P1, intermitente) | — |
 | VH-107 | P1 | Render | — | — | `AcomodoBase.jsx` | auditoría: el render final queda bloqueado mientras el acomodo no sea PASS/render_ready (gate dura existente, visible en golden: "render bloqueado hasta cerrar el acomodo"); ahora además bloquea con referencias sin identidad | golden757 (captura) | — | **PASS** (auditoría) | — |
 
 ## CHECKPOINTS
@@ -54,7 +55,8 @@ VH-105 (render al reabrir Cocrear), VH-106, VH-107.
 | Hora (UTC) | SHA | Cerrados | Abiertos | Tests | E2E real | Cambios DB | Regresiones | Próximo |
 |---|---|---|---|---|---|---|---|---|
 | 05:25 | `0e155a8` | VH-090, VH-094, VH-099 (cliente) | resto | vitest 2,088 · PW local 28+2 | prod: 9 PASS, re-corrida en curso | ninguno | ninguna | Bloque A: A2 conflictos con 3 decisiones, A3 elegibilidad, A4 diagnóstico por pieza |
-| 06:20 | `HEAD` (tras `88d458b`) | Bloque A completo (VH-090…096), B (VH-097; VH-098 parcial), C (VH-099 cliente, VH-101 parcial, VH-102 auditado, VH-103 UX), D (VH-105 código, VH-106/107 auditados) | VH-098 (edge), VH-100 (decisión), VH-103 (dato), VH-105 (prueba real) | vitest 2,099/2,099 · build OK · PW: golden757 PASS, programaP01/VH090 PASS, acomodo ×3 PASS, lecturaPlano 5/5 | prod: pasada en vivo re-corrida (resultado abajo) | ninguno | regresión temporal en `bench/acomodo` (visitas en recepción) detectada y corregida en la misma hora; OOM del kit propio detectado por bisección y corregido | Bloque E: suite Playwright completa, reporte ejecutivo |
+| 06:50 | `561b741` | + VH-095 zonas por rol explícito, VH-103 UX, VH-096-rc1 tests en vivo | VH-098 (edge), VH-100 (decisión), VH-103 (dato), VH-105 (prueba real), VH-108 (proveedor IA) | vitest 2,099 · PW local **44/44** · golden757 PASS · vivo: 4 de 5 caminos (ver tabla) | prod: acomodo 0 colocadas con edge v8 (evidencia "antes"); IA intermitente | ninguno | ninguna nueva | Entrega: reporte ejecutivo y GO/NO-GO |
+| 06:20 | `88d458b` | Bloque A completo (VH-090…096), B (VH-097; VH-098 parcial), C (VH-099 cliente, VH-101 parcial, VH-102 auditado, VH-103 UX), D (VH-105 código, VH-106/107 auditados) | VH-098 (edge), VH-100 (decisión), VH-103 (dato), VH-105 (prueba real) | vitest 2,099/2,099 · build OK · PW: golden757 PASS, programaP01/VH090 PASS, acomodo ×3 PASS, lecturaPlano 5/5 | prod: pasada en vivo re-corrida (resultado abajo) | ninguno | regresión temporal en `bench/acomodo` (visitas en recepción) detectada y corregida en la misma hora; OOM del kit propio detectado por bisección y corregido | Bloque E: suite Playwright completa, reporte ejecutivo |
 
 ## REPORTE EJECUTIVO (se cierra al final de la noche; cifras de ejecuciones reales de esta sesión)
 
@@ -83,4 +85,21 @@ VH-105 (render al reabrir Cocrear), VH-106, VH-107.
 | build Vite | PASS | `npm run build` |
 | Playwright local, nube falsa + credenciales QA (todo menos `live-ai`/`vivo`) | **44 / 44 PASS**, 0 omitidos (5.9 min) | `pw_local5.log` |
 | Golden 757 (plano ARQ-01 + 18 partidas reales, solver REAL del edge en Node, login real) | PASS: 18→12 partidas, 21/25 colocadas, 0 solapes, diagnóstico por pieza, recarga idéntica | `e2e/golden757.e2e.js`, capturas `golden_acomodo*.png` |
-| Pasada en vivo contra producción (`766df46`, cuenta QA) | `auth` 8/8 · `live-ai-smoke` 1/1 · `vivoSombra` PASS (analizar-mueble + costear-servidor reales; costeo pendiente por gate de material, por diseño) · `vivo` 5 caminos: ver última fila | `pw_prod*.log`, `reporte_vivo*.json` |
+| Pasada en vivo contra producción (`766df46`, cuenta QA) | `auth` 8/8 · `live-ai-smoke` 1/1 · `vivoSombra` PASS (analizar-mueble + costear-servidor reales; costeo pendiente por gate de material, por diseño) | `pw_prod*.log`, `reporte_vivo*.json` |
+| `vivo` 5 caminos en producción (06:40 UTC) | login OK · `cotizar-texto` OK (20 s) · `leer-plano` OK real (3 cuartos, 84 m², REVIEW_REQUIRED honesto) · `acomodar-espacio-recovery` 200 pero **0 colocadas** (edge v8 de producción: la partida de VONI no trae rol → evidencia "antes" de VH-092; en RC el mismo caso coloca) · `analizar-mueble` **502 PROVIDER_TIMEOUT** (intermitente: 70 de 193 llamadas en 7 días; una corrida antes había respondido en 40 s) · `generar-render` no se alcanzó (depende del anterior) | `pw_prod5_full.log`, `reporte_vivo5.json` |
+
+
+## RECOMENDACIÓN GO / NO-GO
+
+**GO condicionado a desplegar cliente y edges JUNTOS (E1+E2)** desde `561b741`: los contratos cambiaron en ambos lados a la vez
+(`relation_role` inferido y `zone_id` por destino en el payload; `unassigned`/`no_cupieron` y guardas sueltas en el edge;
+`asientos` en `leer-plano-core`/`leer-plano`). Desplegar sólo el cliente deja el acomodo mejor que hoy (roles inferidos
+llegan al edge v8, que ya los coloca) pero sin guardas sueltas ni visitas; desplegar sólo edges no cambia lo que ve la persona.
+
+**NO-GO para:** aplicar migraciones de datos (E3/E4) y cualquier cambio de precios (E5) sin tu firma; retirar `QA_FIXTURE_*`;
+rotar la contraseña de `qa-direccion` (rompe el secreto `TEST_PASSWORD` de CI: tú lo actualizas).
+
+Riesgos residuales: (1) VH-108 proveedor de IA intermitente; (2) topología doble de bancas sólo con perfil de catálogo
+declarado; (3) 489 insumos ERP «hoja» sin formato quedan PENDIENTE hasta capturar su hoja; (4) 1,931 partidas siguen sin
+costo oficial hasta cargar el reporte Intelisis; (5) las correcciones de edges están probadas en Node con el mismo código,
+no en Deno desplegado (el workflow `deploy-edge` las bundlea igual que hoy).
