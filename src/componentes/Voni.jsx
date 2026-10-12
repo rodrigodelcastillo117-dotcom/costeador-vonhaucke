@@ -224,6 +224,26 @@ export default function Voni({
     ? (reconPrograma.confirmacion.enriquecidos || []).filter((e) => { const p = partidas.find((x) => String(x.id) === String(e.id)); return p && !p.instance_id && !p.anchor_instance_id; })
     : [];
   const conflictosPrograma = reconPrograma ? reconPrograma.conflictos : [];
+
+  // PILOTO AUTOMÁTICO (Dirección 12-oct: "que la IA haga la mayoría de las cosas"): cuando el plano
+  // trae programa y NO hay nada que decidir (sin conflictos abiertos, sin filas ambiguas, sin
+  // pendientes de confirmar), se aplica solo: agrega lo que falta, fusiona duplicados y vincula lo
+  // ya descrito. Las decisiones (Repartir, conflictos, pendientes) siguen siendo de la persona.
+  // Una sola vez por (programa, lista): idempotente, nunca quita nada.
+  const pilotoRef = useRef('');
+  const [avisoPiloto, setAvisoPiloto] = useState('');
+  useEffect(() => {
+    if (!propuestaPrograma || typeof onAplicarPrograma !== 'function') return;
+    const nFalt = faltantesPrograma.length, nDup = duplicadosPrograma.length, nReu = reutilizadosPrograma.length;
+    if (!(nFalt || nDup || nReu)) return;
+    const hayDecision = conflictosPrograma.some((c) => !conflictosConservados.has(c.slot)) || ambiguasPrograma.length > 0 || pendientesPrograma.length > 0;
+    if (hayDecision) return;
+    const firma = `${JSON.stringify(propuestaPrograma.propuesta).length}|${partidas.map((p) => `${p.id}:${p.cantidad}`).join(',')}`;
+    if (pilotoRef.current === firma) return;
+    pilotoRef.current = firma;
+    onAplicarPrograma(propuestaPrograma.propuesta);
+    setAvisoPiloto(`Piloto automático: apliqué el programa del plano (${nFalt} por agregar, ${nDup} duplicado(s) fusionado(s), ${nReu} vinculado(s)). No quité nada; revisa la lista y cambia lo que quieras.`);
+  }, [propuestaPrograma, partidas, faltantesPrograma.length, duplicadosPrograma.length, reutilizadosPrograma.length, conflictosPrograma, conflictosConservados, ambiguasPrograma.length, pendientesPrograma.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const pendientesPrograma = propuestaPrograma ? (propuestaPrograma.propuesta.pendientes || []) : [];
 
   // #7: suma SÓLO precios conocidos (null/undefined NO cuenta como 0) y expone
@@ -332,6 +352,11 @@ export default function Voni({
           lleve derecho ahí, sin un clic de más. */}
       {paso === 2 && (
         <>
+          {avisoPiloto && (
+            <div className="tarjeta no-imprimir" data-testid="piloto-programa" style={{ borderColor: '#8bbcaf', background: '#eef6f3', color: '#174f45' }}>
+              <strong>✨ {avisoPiloto}</strong>
+            </div>
+          )}
           {propuestaPrograma && (faltantesPrograma.length > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0 || duplicadosPrograma.length > 0 || ambiguasPrograma.length > 0) && (
             <div className="tarjeta no-imprimir" style={{ borderColor: '#8bbcaf', background: '#eef6f3' }}>
               <strong style={{ color: '#174f45' }}>✨ Programa detectado del plano</strong>

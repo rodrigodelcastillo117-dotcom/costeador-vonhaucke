@@ -71,3 +71,16 @@ Lo que NO hace: no confirma nada solo (la emisión sigue bloqueada hasta la conf
 ## Lo que sigue necesitando una decisión
 1. **Margen por cantidad**: Dirección quiere que al preguntar "¿cuántas piezas iguales?" el margen dependa de la cantidad (1 pieza → 40 %; lista → 50 %). Falta la tabla intermedia (¿2–5? ¿6–20? ¿21+?). No se inventa: hasta recibirla, toda cantidad usa la política vigente y la pantalla lo dice.
 2. Los precios ERP entran como provisionales; la auditoría P0-03 (1,763 aprobaciones por `qa-direccion`) sigue pendiente.
+
+## Piloto automático (Dirección 12-oct: "que la IA haga la mayoría de las cosas, que deje lo menos para el humano, casi automatizado, pero real")
+
+Automatiza **acciones**, no **aprobaciones**: nada provisional se disfraza de aprobado y la emisión sigue exigiendo una persona.
+
+| Dónde | Antes (humano) | Ahora (solo) | Queda para la persona |
+|---|---|---|---|
+| Costear · preguntas de la IA | contestar cada pregunta | `autoRespuestas.js`: espesor 19, tapacanto estándar, pintura electrostática en acero, niveladores, zoclo, bisagras/jaladeras por puerta, refuerzo por claro; supuestos de impacto bajo se conservan como preliminares; cada respuesta lleva "(regla de casa)" y es editable | medidas y preguntas de impacto alto/medio sin regla; pulsar "Aplicar respuestas" (una llamada real a la IA) |
+| Costear · materiales | confirmar renglón por renglón (14 en el exhibidor) | amarrados por regla de casa / Compras, provisionales | **una** decisión: "Confirmar los N propuestos" (queda como confirmación de la persona); los sin material (equipo externo) |
+| Costear · biblioteca | nombre y palabras clave a mano | nombre del producto y palabras clave (tipo, producto, materiales) prellenados | estado borrador/aprobado y guardar |
+| Cotizar · programa del plano | "Aplicar programa detectado" / "Fusionar duplicados" / "Vincular" | se aplica solo cuando NO hay nada que decidir; aviso "Piloto automático: apliqué el programa…"; idempotente; nunca quita nada | conflictos, filas ambiguas (Repartir, VH-116), pendientes de confirmar |
+| Cotizar · acomodo | (ya era 1-clic) | se acomoda solo al tener muebles y espacio | acomodar a mano, continuar a la propuesta |
+| Emisión / aprobación | humana | humana | humana (regla de Dirección) |

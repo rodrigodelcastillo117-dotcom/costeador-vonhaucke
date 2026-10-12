@@ -21,6 +21,7 @@ import { mapIaComps as mapIaCompsCompartido } from '../datos/mapIaComps.js';
 import { amarrarPendientesERP } from '../datos/amarreERP.js';
 import { buscarInsumosMotor } from '../nube.js';
 import { resumenMotor } from '../datos/resumenMotor.js';
+import { respuestasPorReglaDeCasa } from '../datos/autoRespuestas.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, alertaMaterial } from '../datos/materialMatch.js';
 import BuscadorInsumo from './BuscadorInsumo.jsx';
 import { paginaAImagen } from '../datos/pdfImagen.js';
@@ -513,6 +514,27 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // máxima: una edición humana NO la puede revertir la IA en silencio (sus cambios
   // van por PROPUESTA_DIFF). Sobre el canónico, cada edición ensucia la revisión.
   const editarComponentes = (comps) => { set({ componentes: comps }); if (canonico) setBomDirty(true); };
+
+  // PILOTO AUTOMÁTICO (Dirección 12-oct): las preguntas que una regla de casa sabe contestar se
+  // contestan solas (visibles y editables, marcadas "regla de casa"); la persona sólo ve las que
+  // requieren criterio. Nada se manda a la IA sin que la persona pulse "Aplicar respuestas".
+  const [autoDetalle, setAutoDetalle] = useState([]);
+  useEffect(() => {
+    if (!preguntasIA.length) { setAutoDetalle([]); return; }
+    const auto = respuestasPorReglaDeCasa(preguntasIA.map(normPreg));
+    setAutoDetalle(auto.detalle);
+    setRespuestas((prev) => { const next = { ...prev }; for (const k of Object.keys(auto.respuestas)) if (!String(next[k] || '').trim()) next[k] = auto.respuestas[k]; return next; });
+  }, [preguntasIA]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Materiales propuestos por regla de casa (amarrados, por confirmar) y pendientes de verdad.
+  const propuestosPorRegla = b.componentes.filter((c) => c.insumoId && estadoMaterialUI(c, insumos).badgeTipo === 'confirmar');
+  const sinMaterial = b.componentes.filter((c) => !c.insumoId && !c.excluida);
+  // UNA decisión humana en vez de una por renglón: confirma todo lo que la política amarró (queda
+  // como confirmación de la persona, igual que si hubiera pulsado cada "Confirmar").
+  function confirmarPropuestos() {
+    const comps = b.componentes.map((c) => (c.insumoId && estadoMaterialUI(c, insumos).badgeTipo === 'confirmar' ? { ...c, ...patchConfirmacionUI(c.insumoId) } : c));
+    editarComponentes(comps);
+    setConfMsg(`✓ Confirmaste ${propuestosPorRegla.length} material(es) propuestos por regla de casa.`);
+  }
   function agregarParte(p) {
     const comp = { nombre: p.label, insumoId: p.material, piezas: 1, cantidad: 1 };
     if (p.kind === 'area' && p.dims) { comp.largoMM = p.dims[0]; comp.anchoMM = p.dims[1]; }
@@ -574,6 +596,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     // Un ANÁLISIS NUEVO (subiste otro plano) nombra el producto desde el plano, para que el nombre
     // NO se quede pegado de un producto anterior. Una re-corrida con respuestas conserva el nombre.
     setB((prev) => ({ ...prev, nombre: nuevoAnalisis ? (p.producto || prev.nombre || '') : (prev.nombre || p.producto || ''), componentes: comps, imagen: dataUrl || null, planos: paginas, descripcionCliente: p.descripcionCliente || '', materiales: Array.isArray(p.materiales) ? p.materiales : [], analysisId: corrida.current }));
+    if (!etiquetasTxt.trim()) setEtiquetasTxt([p.tipo, p.design_intent?.product_type, ...((Array.isArray(p.materiales) ? p.materiales : []).slice(0, 3))].filter(Boolean).map((x) => String(x).trim()).filter((x, i, a) => x && a.indexOf(x) === i).join(', '));
     setAnalisis({
       descripcionCliente: p.descripcionCliente || '',
       materiales: Array.isArray(p.materiales) ? p.materiales : [],
@@ -955,6 +978,21 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         <div>
           <div className="pregunta">¿De qué está hecho?</div>
           <div className="pregunta-sub">Toca las piezas que lleva. Luego ajusta su material y medida.</div>
+          {b.componentes.length > 0 && (propuestosPorRegla.length > 0 || sinMaterial.length > 0 || autoDetalle.length > 0) && (
+            <div className="tarjeta" data-testid="piloto-costear" style={{ background: 'var(--panel)', borderLeft: '4px solid var(--rojo,#E5484D)', margin: '12px 0' }}>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>Piloto automático</div>
+              <div className="ayuda" style={{ marginBottom: 8 }}>
+                {propuestosPorRegla.length > 0 && <span>{propuestosPorRegla.length} material(es) amarrados por regla de casa, por confirmar. </span>}
+                {autoDetalle.length > 0 && <span>{autoDetalle.length} pregunta(s) contestadas por regla de casa (puedes cambiarlas abajo). </span>}
+                {sinMaterial.length > 0 && <span style={{ color: '#8a6d00' }}>{sinMaterial.length} sin material: {sinMaterial.map((c) => c.nombre).join(', ')} (esto sí lo decides tú). </span>}
+                {propuestosPorRegla.length === 0 && sinMaterial.length === 0 && <span>Materiales completos.</span>}
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {propuestosPorRegla.length > 0 && <button type="button" className="boton primario" data-testid="piloto-confirmar" onClick={confirmarPropuestos}>Confirmar los {propuestosPorRegla.length} propuestos</button>}
+                {paso === 1 && b.componentes.length > 0 && <button type="button" className="boton" onClick={() => setPaso(3)}>Ver precio ›</button>}
+              </div>
+            </div>
+          )}
 
           {/* Voni razona el conjunto (no piezas sueltas): avisa de relaciones que no
               cuadran. Determinista; propone/detecta, no cambia costo. */}
@@ -1204,6 +1242,23 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       {/* PASO 4 — Resultado */}
       {paso === 3 && (
         <div className="tarjeta-precio">
+          <div style={{ textAlign: 'left' }}>
+          {b.componentes.length > 0 && (propuestosPorRegla.length > 0 || sinMaterial.length > 0 || autoDetalle.length > 0) && (
+            <div className="tarjeta" data-testid="piloto-costear" style={{ background: 'var(--panel)', borderLeft: '4px solid var(--rojo,#E5484D)', margin: '12px 0' }}>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>Piloto automático</div>
+              <div className="ayuda" style={{ marginBottom: 8 }}>
+                {propuestosPorRegla.length > 0 && <span>{propuestosPorRegla.length} material(es) amarrados por regla de casa, por confirmar. </span>}
+                {autoDetalle.length > 0 && <span>{autoDetalle.length} pregunta(s) contestadas por regla de casa (puedes cambiarlas abajo). </span>}
+                {sinMaterial.length > 0 && <span style={{ color: '#8a6d00' }}>{sinMaterial.length} sin material: {sinMaterial.map((c) => c.nombre).join(', ')} (esto sí lo decides tú). </span>}
+                {propuestosPorRegla.length === 0 && sinMaterial.length === 0 && <span>Materiales completos.</span>}
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {propuestosPorRegla.length > 0 && <button type="button" className="boton primario" data-testid="piloto-confirmar" onClick={confirmarPropuestos}>Confirmar los {propuestosPorRegla.length} propuestos</button>}
+                
+              </div>
+            </div>
+          )}
+          </div>
           <div className="ficha-linea">{b.nombre || 'Producto nuevo'}</div>
           {emitible ? (
             <>

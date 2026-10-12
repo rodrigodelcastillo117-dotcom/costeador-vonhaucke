@@ -122,9 +122,11 @@ test.describe('GOLDEN 757 · plano → programa → VONI → fusión → acomodo
     // 1) COTIZAR → Muebles: el panel enseña los duplicados ANTES de tocar nada y ofrece fusionarlos.
     await page.getByTestId('home-cotizar').click();
     await page.getByTestId('voni-paso-muebles').click();
-    await expect(page.getByText(/Programa detectado del plano/i)).toBeVisible({ timeout: 15000 });
-    await expect(page.getByTestId('duplicados-programa')).toBeVisible();
-    await expect(page.getByText(/Banca doble APP LT.*sustituye a/i)).toBeVisible();
+    // PILOTO AUTOMÁTICO (12-oct): si no hay nada que decidir, la fusión ya ocurrió sola y el panel
+    // lo dice; si hubiera algo que decidir, el panel de duplicados sigue ahí para la persona.
+    await expect(page.getByTestId('piloto-programa').or(page.getByTestId('duplicados-programa')).first()).toBeVisible({ timeout: 15000 });
+    const piloto = await page.getByTestId('piloto-programa').count();
+    if (!piloto) await expect(page.getByText(/Banca doble APP LT.*sustituye a/i)).toBeVisible();
     {
       const antesClick = (await leerCot(page)).partidas;
       const { reconciliarNuevasConPrograma } = await import('../src/datos/reconciliarPartidas.js');
@@ -134,8 +136,7 @@ test.describe('GOLDEN 757 · plano → programa → VONI → fusión → acomodo
       console.log('[golden757] panel:', (await page.getByTestId('duplicados-programa').innerText().catch(() => 'sin panel')).slice(0, 600));
     }
     const boton = page.getByRole('button', { name: /Fusionar \d+ duplicado|Aplicar programa detectado|Vincular lo que ya tengo/i });
-    await expect(boton).toBeEnabled();
-    await boton.click();
+    if (await boton.count() && await boton.first().isEnabled().catch(() => false)) await boton.first().click();
 
     // 2) CERO duplicados injustificados: un ancla por rol; las sillas del usuario atadas a su ancla.
     await expect.poll(async () => (await leerCot(page)).partidas.length, { timeout: 10000 }).toBeLessThan(18);
