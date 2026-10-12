@@ -71,7 +71,18 @@ test.describe('COTIZAR · tres proyectos', () => {
       // EDGE_RC_URL=http://localhost:8000/ → la petición COMPLETA (JWT real, apikey, cuerpo) va al edge RC servido
       // con Deno (mismo index.ts: autenticación real + pipeline). Sin la variable: pipeline del edge en Node.
       const EDGE_RC = process.env.EDGE_RC_URL || null;
+      // EDGE_REAL=1 → NO se intercepta: la petición va al edge DESPLEGADO (certificación post-deploy, igual que golden757).
+      const EDGE_REAL = !!process.env.EDGE_REAL;
+      if (EDGE_REAL) page.on('response', async (res) => {
+        if (!/\/functions\/v1\/acomodar-espacio-recovery/.test(res.url()) || res.request().method() !== 'POST') return;
+        const txt = await res.text().catch(() => ''); try { ultima = JSON.parse(txt); } catch (_e) { ultima = null; }
+        console.log(`[${P.clave}] edge REAL HTTP ${res.status()} · status ${ultima?.layoutSpec?.status} · colocadas ${ultima?.plan?.colocacion?.length}`);
+      });
       await page.route('**/functions/v1/acomodar-espacio-recovery', async (route) => {
+        if (EDGE_REAL) {
+          if (route.request().method() === 'POST') { try { solverCalls.push(route.request().postDataJSON()); nubeOrigen = new URL(route.request().url()).origin; nubeApikey = route.request().headers().apikey || nubeApikey; } catch (_e) {} }
+          return route.continue();
+        }
         if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' } });
         const body = route.request().postDataJSON(); solverCalls.push(body);
         try { nubeOrigen = new URL(route.request().url()).origin; nubeApikey = route.request().headers().apikey || nubeApikey; } catch (_e) {}
