@@ -18,6 +18,7 @@ import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, alertaMaterial } from '../datos/materialMatch.js';
+import BuscadorInsumo from './BuscadorInsumo.jsx';
 import { paginaAImagen } from '../datos/pdfImagen.js';
 import { prepararPdfRapido, rasterizarPaginas, paginasAlrededor } from '../datos/pdfPipeline.js';
 import Cargando from './Cargando.jsx';
@@ -97,7 +98,7 @@ export function fusionarPreguntas(prev, incoming, confKeysSet, norm) {
   return [...byKey.values()];
 }
 
-export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBiblioteca, expedienteInicial }) {
+export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBiblioteca, expedienteInicial, onAgregarInsumo = null }) {
   const insumos = estado.insumos;
   const [paso, setPaso] = useState(0);
   const [analizando, setAnalizando] = useState(false);
@@ -510,8 +511,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     const comps = b.componentes.slice(); comps[i] = { ...comps[i], ...parcial }; editarComponentes(comps);
   }
   function quitarPieza(i) { editarComponentes(b.componentes.filter((_, j) => j !== i)); }
-  function onMaterial(i, insumoId, { confirmado = false } = {}) {
-    const ins = insumos[insumoId]; const comps = b.componentes.slice(); const prev = comps[i];
+  function onMaterial(i, insumoId, { confirmado = false } = {}, insumoNuevo = null) {
+    // VH-088: insumo del buscador (ERP) aún no está en `insumos`; se usa el objeto recibido.
+    const ins = insumos[insumoId] || (insumoNuevo && insumoNuevo.id === insumoId ? insumoNuevo : undefined); const comps = b.componentes.slice(); const prev = comps[i];
     const patch = { insumoId, nombre: prev.nombre || (ins ? ins.nombre : '') };
     if (!esArea(ins)) { patch.largoMM = undefined; patch.anchoMM = undefined; }
     // Elección/confirmación HUMANA: misma intención en ambas UIs (P0.8). El servidor verifica
@@ -1116,14 +1118,18 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                     <option value="">— ¿de qué es? —</option>
                     {SECCIONES.map((sec) => (
                       <optgroup label={sec.nombre} key={sec.id}>
-                        {Object.values(insumos).filter((x) => x.seccion === sec.id).map((x) => (
+                        {Object.values(insumos).filter((x) => x.seccion === sec.id && (x.clasificacion !== 'erp' || x.id === c.insumoId)).map((x) => (
                           <option value={x.id} key={x.id}>{x.nombre}</option>
                         ))}
                       </optgroup>
                     ))}
+                    {c.insumoId && insumos[c.insumoId] && !SECCIONES.some((sec) => sec.id === insumos[c.insumoId].seccion) && (
+                      <optgroup label="Catálogo ERP"><option value={c.insumoId}>{insumos[c.insumoId].nombre}</option></optgroup>
+                    )}
                   </select>
                   <button className="pieza-x" onClick={() => quitarPieza(i)} aria-label="quitar">×</button>
                 </div>
+                {onAgregarInsumo && <BuscadorInsumo onElegir={(ins) => { onAgregarInsumo(ins); onMaterial(i, ins.id, { confirmado: true }, ins); }} />}
                 {c._match?.sinPrecioCertificado && (() => { const a = alertaMaterial(c._match); return a && (
                   <div className="pieza-match-alerta" data-testid="alerta-material" data-tono="ambar" style={{ background: '#fff4e5', border: '1px solid #f0c38e', borderRadius: 8, padding: '6px 10px', margin: '6px 0', fontSize: 13, color: '#7a4a00' }}>
                     ⚠️ <b>{a.titulo}</b> — {a.detalle}

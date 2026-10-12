@@ -55,6 +55,7 @@ export default function Precios({ estado, setEstado, puedeVerDireccion = true, o
   // aparecía con días de antigüedad — y ese hueco crece cada día que pasa.
   const setPrecio = (id, precio) =>
     setEstado({ ...estado, insumos: { ...estado.insumos, [id]: { ...estado.insumos[id], precio, actualizado: new Date().toISOString().slice(0, 10) } } });
+  const desdeCatalogo = estado.insumosFuente === 'catalogo';
 
   async function alImportar(e) {
     const f = e.target.files?.[0];
@@ -168,6 +169,12 @@ export default function Precios({ estado, setEstado, puedeVerDireccion = true, o
         </div>
       </div>
 
+      {/* VH-088: los precios del motor vienen del catálogo certificado (ERP/Compras), no se editan aquí. */}
+      {desdeCatalogo && (
+        <div className="alerta ambar" data-testid="precios-desde-catalogo" style={{ marginBottom: 12 }}>
+          <span className="texto">Estos precios vienen del <strong>catálogo certificado</strong> (ERP Intelisis / Compras) y son los mismos que usa el servidor. Aquí son de sólo lectura: un precio se cambia con una compra o un documento nuevo en el catálogo, no a mano.</span>
+        </div>
+      )}
       {/* Precios por seccion */}
       {SECCIONES.map((sec) => {
         const insSec = Object.values(estado.insumos).filter((i) => i.seccion === sec.id);
@@ -194,8 +201,10 @@ export default function Precios({ estado, setEstado, puedeVerDireccion = true, o
                       </td>
                       <td>{ins.unidad}</td>
                       <td className="num">
-                        <CampoNumero valor={ins.precio} ancho={120} clase={`numero ${capturado ? 'capturado' : ''}`}
-                          onCambio={(n) => setPrecio(ins.id, n)} />
+                        {desdeCatalogo
+                          ? (ins.precio == null ? <span className="semaforo ambar">sin precio vigente</span> : <span className={ins.evidencia?.certificable ? '' : 'gris'} title={ins.evidencia?.estado || ''}>{pesos2(ins.precio)}</span>)
+                          : <CampoNumero valor={ins.precio} ancho={120} clase={`numero ${capturado ? 'capturado' : ''}`}
+                              onCambio={(n) => setPrecio(ins.id, n)} />}
                       </td>
                       <td>{viejo ? <span className="semaforo ambar">{dias} días</span> : <span className="gris">{ins.actualizado}</span>}</td>
                     </tr>

@@ -208,6 +208,9 @@ export function crearNubeFalsa({ usuarios }) {
       const body = req.postDataJSON?.() || {};
       if (!email || !rolDe(email)) return err(route, 'no autorizado', 401);
       if (fn === 'config_para_rol') return json(route, {});
+      // VH-088: búsqueda en el catálogo grande; la nube falsa no tiene ERP → vacío (la UI avisa).
+      if (fn === 'buscar_insumos_motor') return json(route, f.busquedaInsumos || []);
+      if (fn === 'catalogo_motor') return json(route, f.catalogoMotor || {});
       // VH-063: política pública (sólo descuento máximo + versión). `f.politica` se sustituye por prueba.
       if (fn === 'politica_comercial_publica') return json(route, f.politica || { vigente: true, version: REGLAS_VERSION, descuento_max_sin_aprobacion: 40 });
       if (fn === 'cotizaciones_mias') {

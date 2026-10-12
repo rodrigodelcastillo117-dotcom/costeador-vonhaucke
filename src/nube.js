@@ -38,6 +38,14 @@ export async function leerConfig() {
   return data || {};
 }
 
+// VH-088: búsqueda en TODO el catálogo activo (curado + ERP) para elegir un insumo a mano en el
+// Costeador. Devuelve insumos en la forma del motor (misma RPC que arma config_para_rol).
+export async function buscarInsumosMotor(q, limite = 30) {
+  const { data, error } = await nube.rpc('buscar_insumos_motor', { p_q: String(q || ''), p_limite: limite });
+  if (error) throw error;
+  return Array.isArray(data) ? data : [];
+}
+
 export async function escribirConfig(datosCompartidos) {
   const { error } = await nube
     .from('config')
