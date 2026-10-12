@@ -112,6 +112,16 @@ Banco de precios. Ahora:
 · **Límites honestos**: los insumos del ERP sin formato conocido se costean por su unidad de compra (pza/m/kg/hoja),
   sin rejilla ni merma; 2 insumos curados siguen sin precio (portamonitor Loktec); la IA no ve el ERP (se busca a mano).
 
+**VH-089 · HERRAMIENTA · HECHO 2026-10-12 · "Cargar compras del ERP" desde la app (Dirección).** Para que la carga del
+ERP no dependa de mí: pantalla `CargaERP.jsx` (atajo en Inicio → Más herramientas) que lee el .xlsx de Intelisis en el
+navegador sin dependencias (`xlsxMinimo.js`: ZIP + XML con DecompressionStream), prepara catálogo y precios con la misma
+lógica del cargador del día (`erpCarga.js`, probada con un libro sintético en `src/datos/fixtures/`) y manda lotes de 400
+a la RPC `cargar_erp_ultima_compra` (`20261012050000_vh089_cargar_erp.sql`): resuelve cada registro Artículo|Opción al
+insumo ya conocido (provenance o `atributos.erp`) antes de crear uno nuevo, no duplica (mismo registro + precio +
+fecha), exige DATA_TRUTH_V1, aprueba lo comprado en ≤ 24 meses y deja lo más viejo preliminar; sólo rol dirección.
+Resultado en pantalla: nuevos / actualizados / precios nuevos / certificados / ya estaban / errores. e2e 3/3 con la nube
+falsa. Rutina sugerida: Compras exporta el reporte el día 1 de cada mes y Dirección lo sube; nada más.
+
 **VH-083 · DATO · HECHO 2026-10-12 · A11 certificación con documento ERP.** Cruce de los 259 insumos de la semilla
 contra "Costos de Materia Prima Ultima Compra al 10082026.xlsx" (ERP Intelisis, Drive de Compras; 16,520 registros
 Artículo|Opción): 109 con registro ERP exacto (105 iguales, 4 con precio ERP más nuevo), 13 con código que el ERP no
@@ -246,6 +256,14 @@ Verificado en vivo: título "VH LAB · Vonhaucke", bundle `index-R6LCAvH5.js` co
 `produccion-rogelio-2026-10` (A14) y el gate de material (`SAME_FAMILY_COMPATIBLE_PROPOSED`, A20). CI del PR: `verify` +
 E2E en verde. **Rollback:** promover `dpl_7gK9TbAuKxFhvH5Exrc8TLrTCAvZ` (`300125d`). Los 6 commits de `perfection-final`
 (`d698eea`…`7d60204`) quedaron integrados en este PR (VH-084).
+
+**2026-10-12 04:05 UTC · PR #30 (`34f28f2`) y PR #31 (`d0fa484`) fusionados → Vercel sirviendo `index-Cj30MoXP.js` (buscador
+ERP, `insumosFuente`, Precios sólo lectura). Edges desde GitHub Actions: `costear-servidor` v8 (catálogo + fix melamina),
+`analizar-mueble` v34 (sólo catálogo curado), `acomodar-espacio-recovery` v8 (sesión obligatoria). ERP reactivado: 9,856
+insumos activos; `catalogo_vigente` 10,113 filas, 1,783 certificables. Smoke en vivo de `costear-servidor`: tapa
+melamina-19 1.60×0.60 confirmada → 0.5 hoja $272 (regla Producción), bisagra ERP `erp-bibipi` ×4 → $79.40 (aprobado),
+PTR 7 m → 2 tramos $458.28; `catalogoFuente: catalogo`, `versionCatalogo cat-ap1793…`, estado preliminar (melamina-19 y
+ptr sin documento). `config_para_rol` entrega 259 insumos curados en 1.05 MB / 0.58 s.**
 
 ## REGRESIONES DETECTADAS 2026-10-10 (auditoría de código, no de síntomas)
 

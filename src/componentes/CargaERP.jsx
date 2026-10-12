@@ -1,0 +1,120 @@
+// ============================================================================
+//  CARGAR COMPRAS DEL ERP (VH-089) · sólo Dirección.
+//  Sube el reporte "Costos de Materia Prima Última Compra" (.xlsx) de Intelisis tal cual lo exporta
+//  Compras. Se lee en el navegador (xlsxMinimo.js, sin dependencias), se prepara con la misma lógica
+//  del cargador del 2026-10-12 (erpCarga.js) y se manda por lotes a la RPC cargar_erp_ultima_compra,
+//  que: resuelve cada registro al insumo ya conocido, no duplica precios, exige documento/registro/hash
+//  (DATA_TRUTH_V1), aprueba lo comprado en ≤ 24 meses y deja lo más viejo como preliminar.
+//  Nada de esto inventa precios: lo que no tiene costo en el ERP no entra.
+// ============================================================================
+import { useState } from 'react';
+import { leerPrimeraHoja, filasAObjetos } from '../datos/xlsxMinimo.js';
+import { registroDesdeFila, prepararCargaErp } from '../datos/erpCarga.js';
+import { cargarErpLote } from '../nube.js';
+
+const LOTE = 400;
+
+export default function CargaERP({ onAviso }) {
+  const [archivo, setArchivo] = useState(null);
+  const [prep, setPrep] = useState(null);     // { catalogo, precios, resumen }
+  const [leyendo, setLeyendo] = useState(false);
+  const [cargando, setCargando] = useState(false);
+  const [avance, setAvance] = useState({ hecho: 0, total: 0 });
+  const [resultado, setResultado] = useState(null);
+  const [error, setError] = useState('');
+
+  async function alElegir(e) {
+    const f = e.target.files && e.target.files[0];
+    setPrep(null); setResultado(null); setError('');
+    if (!f) return;
+    setArchivo(f); setLeyendo(true);
+    try {
+      const buf = await f.arrayBuffer();
+      const filas = await leerPrimeraHoja(buf);
+      const { encabezados, registros } = filasAObjetos(filas);
+      if (!encabezados.some((h) => /^art[ií]culo$/i.test(h)) || !encabezados.some((h) => /costo .*ltima compra/i.test(h))) {
+        throw new Error(`El archivo no parece el reporte de Última Compra del ERP (encabezados: ${encabezados.filter(Boolean).slice(0, 6).join(', ')}…).`);
+      }
+      const regs = registros.map(registroDesdeFila).filter(Boolean);
+      setPrep(prepararCargaErp(regs, { documento: f.name }));
+    } catch (err) {
+      setError(err?.message || 'No se pudo leer el archivo.');
+    } finally { setLeyendo(false); }
+  }
+
+  async function cargar() {
+    if (!prep || !archivo) return;
+    setCargando(true); setError(''); setResultado(null);
+    const tot = Math.max(Math.ceil(prep.catalogo.length / LOTE), 1) + Math.ceil(prep.precios.length / LOTE);
+    setAvance({ hecho: 0, total: tot });
+    const acc = { catalogo_nuevos: 0, catalogo_existentes: 0, precios_nuevos: 0, precios_duplicados: 0, aprobados: 0, errores: [] };
+    const suma = (r) => { for (const k of ['catalogo_nuevos', 'catalogo_existentes', 'precios_nuevos', 'precios_duplicados', 'aprobados']) acc[k] += Number(r?.[k] || 0); if (Array.isArray(r?.errores)) acc.errores.push(...r.errores); };
+    try {
+      // 1) todo el catálogo primero (los precios lo referencian), 2) luego los precios.
+      for (let i = 0; i < prep.catalogo.length; i += LOTE) {
+        suma(await cargarErpLote(archivo.name, prep.catalogo.slice(i, i + LOTE), []));
+        setAvance((a) => ({ ...a, hecho: a.hecho + 1 }));
+      }
+      if (!prep.catalogo.length) setAvance((a) => ({ ...a, hecho: a.hecho + 1 }));
+      for (let i = 0; i < prep.precios.length; i += LOTE) {
+        suma(await cargarErpLote(archivo.name, [], prep.precios.slice(i, i + LOTE)));
+        setAvance((a) => ({ ...a, hecho: a.hecho + 1 }));
+      }
+      setResultado(acc);
+      onAviso?.(`ERP cargado: ${acc.precios_nuevos} precios nuevos (${acc.aprobados} certificados), ${acc.catalogo_nuevos} insumos nuevos.`, 8000);
+    } catch (err) {
+      setError(`La carga se detuvo: ${err?.message || err}. Lo ya cargado se conserva; vuelve a subir el archivo: no se duplica.`);
+      setResultado(acc);
+    } finally { setCargando(false); }
+  }
+
+  const r = prep?.resumen;
+  return (
+    <div className="contenido">
+      <div className="tarjeta">
+        <h2>Cargar compras del ERP</h2>
+        <p className="ayuda">Sube el reporte <strong>Costos de Materia Prima · Última Compra</strong> de Intelisis (.xlsx) tal como lo exporta Compras. Cada precio entra con su documento, registro y fecha; lo comprado en los últimos 24 meses queda certificado, lo más viejo queda preliminar (cuesta, pero no certifica) y lo que no tiene costo no entra.</p>
+        <input type="file" accept=".xlsx" onChange={alElegir} disabled={leyendo || cargando} data-testid="carga-erp-archivo" />
+        {leyendo && <p className="ayuda">Leyendo el archivo…</p>}
+        {error && <div className="alerta roja" data-testid="carga-erp-error"><span className="texto">{error}</span></div>}
+        {r && !resultado && (
+          <div data-testid="carga-erp-resumen">
+            <table className="datos" style={{ marginTop: 8 }}>
+              <tbody>
+                <tr><td>Renglones en el archivo</td><td className="num">{r.filas}</td></tr>
+                <tr><td>Con costo (entran)</td><td className="num">{prep.catalogo.length}</td></tr>
+                <tr><td>Sin costo (no entran, nunca $0)</td><td className="num">{r.sinCosto}</td></tr>
+                <tr><td>Compra ≤ 24 meses (se certifican)</td><td className="num">{r.recientes}</td></tr>
+                <tr><td>Compra más antigua (preliminares)</td><td className="num">{r.antiguos}</td></tr>
+                <tr><td>Bloqueados en el ERP (entran inactivos)</td><td className="num">{r.bloqueados}</td></tr>
+                {Object.keys(r.sinUnidad).length > 0 && <tr><td>Unidad no reconocida (no entran)</td><td className="num">{Object.entries(r.sinUnidad).map(([u, n]) => `${u}: ${n}`).join(', ')}</td></tr>}
+              </tbody>
+            </table>
+            <p className="ayuda">Los registros que ya estaban con el mismo precio y fecha no se duplican. Al terminar, los precios nuevos quedan en el catálogo que usa el motor.</p>
+            <button className="boton" onClick={cargar} disabled={cargando} data-testid="carga-erp-cargar">{cargando ? `Cargando… ${avance.hecho}/${avance.total}` : 'Cargar al catálogo'}</button>
+          </div>
+        )}
+        {resultado && (
+          <div data-testid="carga-erp-resultado">
+            <h3>Resultado</h3>
+            <table className="datos">
+              <tbody>
+                <tr><td>Insumos nuevos en el catálogo</td><td className="num">{resultado.catalogo_nuevos}</td></tr>
+                <tr><td>Insumos ya conocidos (actualizados)</td><td className="num">{resultado.catalogo_existentes}</td></tr>
+                <tr><td>Precios nuevos</td><td className="num">{resultado.precios_nuevos}</td></tr>
+                <tr><td>De ellos, certificados (≤ 24 meses)</td><td className="num">{resultado.aprobados}</td></tr>
+                <tr><td>Ya estaban (sin cambio)</td><td className="num">{resultado.precios_duplicados}</td></tr>
+                <tr><td>Con error</td><td className="num">{resultado.errores.length}</td></tr>
+              </tbody>
+            </table>
+            {resultado.errores.length > 0 && (
+              <details><summary>Ver errores ({resultado.errores.length})</summary>
+                <ul>{resultado.errores.slice(0, 50).map((e, i) => <li key={i}><code>{e.registro}</code>: {e.error}</li>)}</ul>
+              </details>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
