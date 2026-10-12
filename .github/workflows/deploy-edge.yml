@@ -1,0 +1,47 @@
+name: Deploy edge functions
+
+# Despliegue manual de edge functions a Supabase. Requiere el secret SUPABASE_ACCESS_TOKEN
+# (token personal de https://supabase.com/dashboard/account/tokens). El token nunca entra al repo.
+# Uso: Actions → "Deploy edge functions" → Run workflow → funciones separadas por espacio.
+on:
+  workflow_dispatch:
+    inputs:
+      funciones:
+        description: 'Funciones a desplegar (separadas por espacio)'
+        required: true
+        default: 'costear-servidor acomodar-espacio-recovery'
+      ref_proyecto:
+        description: 'Project ref de Supabase'
+        required: true
+        default: 'mtuvnbgljwbsaizjjgzs'
+
+concurrency:
+  group: deploy-edge
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar secret
+        shell: bash
+        run: |
+          if [[ -z "$SUPABASE_ACCESS_TOKEN" ]]; then
+            echo "::error::Falta el secret SUPABASE_ACCESS_TOKEN (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Desplegar
+        shell: bash
+        run: |
+          set -euo pipefail
+          for fn in ${{ github.event.inputs.funciones }}; do
+            echo "== $fn"
+            supabase functions deploy "$fn" --project-ref "${{ github.event.inputs.ref_proyecto }}"
+            echo "- \`$fn\` desplegada desde \`${GITHUB_SHA::7}\`" >> "$GITHUB_STEP_SUMMARY"
+          done

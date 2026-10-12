@@ -7,12 +7,16 @@
 // ============================================================================
 import { costoAlba, tipoAlba } from './formulaAlba.js';
 import { optimizarCorte2D, optimizarCorte1D } from './optimizacionCorte.js';
+import { requiereConfirmacion } from '../datos/materialMatch.js';
+import { hojasPorPiezaProduccion, esPinturaPolvo, kgPinturaPorArea, REGLAS_MERMA_PRODUCCION } from './politicaMerma.js';
 
 // VERSIÓN DEL MOTOR — entra en la huella de cada cotización (cotizaciones.js:
 // huellaMP) para que, si la FÓRMULA cambia (no solo un precio), una cotización
 // vieja se marque "calculada con otro motor" en vez de reusarse a ciegas.
 // ⚠️ SÚBELA cuando cambie cómo se calcula el costo (factores, cascada, nesting).
-export const MOTOR_VERSION = '2026-10-03';
+// 2026-10-12: política de merma de Producción (A14): piso de ½/1 hoja por pieza grande de
+// tablero y pintura en polvo a 8 m²/kg desde `areaPintadaM2`. Ver politicaMerma.js.
+export const MOTOR_VERSION = '2026-10-12';
 
 // FÓRMULA OFICIAL de producto nuevo (cutover 2026-10-01). Von Haucke convierte el
 // BOM en costo con la fórmula de ALBA (MO% por tipo de material + GI; ver
@@ -268,8 +272,14 @@ export function precioUsable(insumo) {
 // costar cero —todavía no lo capturas—; jamás puede costar menos que nada.
 const noNegativo = (x) => (Number.isFinite(x) && x > 0 ? x : 0);
 
-export function netoComponente(comp, n = 1) {
+export function netoComponente(comp, n = 1, insumo = null) {
   const piezasComp = noNegativo((comp.piezas || 1) * n);
+  // A14 · pintura en polvo por ÁREA PINTADA (Producción: 8 m²/kg en plano). Tubular sin cifra
+  // oficial → null → 0 → el guard "sin consumo" lo deja PENDIENTE (nunca $0 ni inventado).
+  if (comp.areaPintadaM2 > 0 && esPinturaPolvo(insumo)) {
+    const kg = kgPinturaPorArea(noNegativo(comp.areaPintadaM2), { tubular: comp.tubular === true });
+    return kg == null ? 0 : kg * piezasComp;
+  }
   if (comp.largoMM && comp.anchoMM) {
     return (noNegativo(comp.largoMM) / 1000) * (noNegativo(comp.anchoMM) / 1000) * piezasComp; // m2
   }
@@ -290,7 +300,7 @@ export function costoNetoComponente(comp, insumo, n = 1, par = PARAMETROS_DEFAUL
   if (comp.hojas > 0 && insumo?.formato) {
     return noNegativo(comp.hojas * n) * precioDeInsumo(insumo, par);
   }
-  return netoComponente(comp, n) * precioDeInsumo(insumo, par);
+  return netoComponente(comp, n, insumo) * precioDeInsumo(insumo, par);
 }
 
 // -----------------------------------------------------------------------------
@@ -326,17 +336,30 @@ function comprarInsumo(insumo, comps, n, par) {
   // merma falsa). Se acumula aparte y se suma al final.
   let hojasDirectas = 0;
   const medidaFmt = insumo.formato ? insumo.formato.medida : 0;
+  // A14: rastro de las piezas a las que se les aplicó la regla de Producción (½ / 1 hoja).
+  const reglasProduccion = [];
 
   for (const c of comps) {
     // P0-03: `> 0`, no `!= null` — un `hojas:0` NO debe tomar la vía de fracción
     // (que lo costearía en $0 y haría `continue`, perdiendo su cantidad/medida).
     if (c.hojas > 0 && insumo.formato) { hojasDirectas += noNegativo(c.hojas) * n; continue; }
-    const netoC = netoComponente(c, n);
+    const netoC = netoComponente(c, n, insumo);
     neto += netoC;
     conCorte += netoC * factorMerma;
     if (c.largoMM && c.anchoMM && insumo.formato) {
       const ppt = piezasPorTablero(c.largoMM, c.anchoMM, { ...par, veta: insumo.veta });
       const piezasComp = (c.piezas || 1) * n;
+      // A14 · REGLA DE PRODUCCIÓN (Rogelio, fórmula oficial 2026-10-12): pieza de TABLERO con
+      // lado mayor > 1.50 m cobra ½ hoja (lado menor ≤ 0.60) o 1 hoja (lado menor > 0.60), en
+      // vez de la rejilla. Las piezas chicas siguen con la fracción real de la rejilla.
+      const reglaHojas = insumo.formato.tipo === 'tablero' ? hojasPorPiezaProduccion(c.largoMM, c.anchoMM) : null;
+      if (reglaHojas != null) {
+        hojasExactas += reglaHojas * piezasComp;
+        tablerosRejilla += Math.ceil(reglaHojas * piezasComp - 1e-9);
+        if (ppt === 0) hayPiezaQueNoCabe = true; // más grande que el formato: se cobra la hoja y se avisa
+        reglasProduccion.push({ pieza: c.nombre || 'Pieza', largoMM: c.largoMM, anchoMM: c.anchoMM, hojasPorPieza: reglaHojas });
+        continue;
+      }
       // ⚠️ 2026-08-19: una pieza que NO cabe en ningun tablero (ppt=0 — más
       // grande que el formato completo, p.ej. una cubierta cuadrada de 1.50 m
       // en tablero de 1.22 x 2.44) se marcaba "no cabe" pero SU AREA SE
@@ -399,6 +422,7 @@ function comprarInsumo(insumo, comps, n, par) {
       desperdicio: (comprado - neto) * precioUnidad,
       pct: comprado > 0 ? ((comprado - neto) / comprado) * 100 : 0,
       precio, noCabe: hayPiezaQueNoCabe, fraccion: true,
+      ...(reglasProduccion.length ? { reglaProduccion: REGLAS_MERMA_PRODUCCION.version, piezasRegla: reglasProduccion } : {}),
     });
   }
 
@@ -523,21 +547,29 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
   // un hueco de datos. No cuenta como PENDIENTE_COSTO: no vuelve el costeo INCOMPLETO.
   // Se registra aparte para dejar rastro de qué se excluyó y por qué.
   const componentesExcluidos = [];
+  // GATE "POR CONFIRMAR" (audit 2026-10-08): partidas con material PROVISIONAL/pendiente de
+  // confirmar (COMPATIBLE 18→19, CRÍTICO calibre, AMBIGUO, CANDIDATO). Pueden aportar un
+  // SUBTOTAL provisional (COMPATIBLE sí tiene insumo+precio), pero BLOQUEAN la emisión hasta
+  // confirmación humana (USER_CONFIRMED). No se cuentan como "sin material" (hueco de datos).
+  const materialesPorConfirmar = [];
   for (const comp of componentes) {
     if (comp.excluida) { componentesExcluidos.push(comp.nombre || 'Partida excluida'); continue; }
+    const porConfirmar = requiereConfirmacion(comp);
+    if (porConfirmar) materialesPorConfirmar.push(comp.nombre || 'Pieza por confirmar');
     const insumo = insumos[comp.insumoId] || comp.insumo;
-    if (!insumo) { componentesIgnorados.push(comp.nombre || 'Pieza sin material'); continue; }
-    // VH-017: insumo PRESENTE pero sin precio usable = PENDIENTE DE PRECIO, no $0.
-    // Entra a la misma lista que un material faltante → el costeo queda INCOMPLETO
-    // y la emisión se bloquea. (Un precio 0 declarado SÍ es conocido, §7; un $0
-    // por decisión se marca con comp.excluida, atendido arriba.)
+    // Sin insumo (crítico/ambiguo/candidato sin id): ya quedó en materialesPorConfirmar; no se
+    // duplica como "sin material" (su pendiente es "confirmar", no "hueco de datos").
+    if (!insumo) { if (!porConfirmar) componentesIgnorados.push(comp.nombre || 'Pieza sin material'); continue; }
+    // P0.15: insumo PRESENTE pero SIN precio usable = PENDIENTE DE PRECIO, SIEMPRE (aunque además
+    // esté "por confirmar"). Así una partida provisional sin precio muestra AMBOS problemas:
+    // "por confirmar material" Y "sin precio" — nunca se oculta uno tras "Costo provisional".
     if (!precioUsable(insumo)) { componentesIgnorados.push(comp.nombre || insumo.nombre || 'Material sin precio'); continue; }
     // COSTEAR §3 (2026-10-10): un componente CON material y CON precio pero SIN consumo
     // (ni cantidad, ni largo×ancho, ni fracción de hoja) costaba $0 en silencio y el
     // costeo salía "completo". Un PTR con sólo `largoMM` salía gratis. Es un hueco de
     // datos igual que un material faltante → PENDIENTE, no cero.
     const porHoja = comp.hojas > 0 && !!insumo.formato;
-    if (!porHoja && netoComponente(comp, 1) <= 0) {
+    if (!porHoja && netoComponente(comp, 1, insumo) <= 0) {
       componentesIgnorados.push(`${comp.nombre || insumo.nombre || 'Pieza'} (sin cantidad ni medidas)`);
       continue;
     }
@@ -733,6 +765,7 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     detalleInsumos,
     componentesIgnorados,
     componentesExcluidos,
+    materialesPorConfirmar,
     tarifasFaltantes,
     // COMPLETITUD EN LA PROPIA SALIDA (COSTEAR §3). `costoUnitario` es el SUBTOTAL
     // CONOCIDO; `costoOficial` es null mientras falte algo. Quien muestre dinero debe
@@ -768,11 +801,20 @@ export function costeoEmitible(resultado) {
     .filter((d) => d?.noCabe)
     .map((d) => `${d.nombre || d.insumoId || 'Material'}: una o más piezas no caben en el formato de compra`);
   const tarifasFaltantes = [...((resultado && resultado.tarifasFaltantes) || [])];
+  // GATE ECONÓMICO (audit 2026-10-08): materiales PROVISIONALES / por confirmar. Su costo
+  // puede existir como SUBTOTAL, pero NO libera la emisión hasta confirmación humana
+  // (USER_CONFIRMED). Incluye COMPATIBLE 18→19 (que SÍ tiene costo) y crítico/ambiguo/candidato.
+  const porConfirmar = [...((resultado && resultado.materialesPorConfirmar) || [])];
   const costoRaw = resultado?.costoUnitario;
   const costo = costoRaw == null || costoRaw === '' ? NaN : Number(costoRaw);
   const costoCorrupto = !Number.isFinite(costo) || costo < 0;
 
-  const pendientes = [...faltantes, ...formatosInvalidos, ...tarifasFaltantes.map((x) => `Tarifa Intelisis faltante: ${x}`)];
+  const pendientes = [
+    ...faltantes,
+    ...formatosInvalidos,
+    ...tarifasFaltantes.map((x) => `Tarifa Intelisis faltante: ${x}`),
+    ...porConfirmar.map((x) => `Material por confirmar: ${x}`),
+  ];
   if (costoCorrupto) pendientes.push('Costo unitario inválido/no finito');
 
   const emitible = pendientes.length === 0;
@@ -783,11 +825,13 @@ export function costeoEmitible(resultado) {
       datos_faltantes: faltantes,
       formato_incompatible: formatosInvalidos,
       tarifas_faltantes: tarifasFaltantes,
+      materiales_por_confirmar: porConfirmar,
       costo_invalido: costoCorrupto,
     },
     subtotalConocido: Number.isFinite(costo) && costo >= 0 ? costo : 0,
-    // Nunca existe costoTotal autorizado mientras haya una incompatibilidad física
-    // o numérica, aunque el motor haya podido calcular un subtotal aproximado.
+    // Nunca existe costoTotal autorizado mientras haya una incompatibilidad física,
+    // numérica o un material provisional por confirmar, aunque el motor haya podido
+    // calcular un subtotal aproximado.
     costoTotal: emitible ? costo : null,
     estadoCosto: emitible ? 'completo' : 'incompleto',
   };
@@ -800,7 +844,10 @@ export function costeoEmitible(resultado) {
 //  No depende del orden en que vengan las piezas.
 // -----------------------------------------------------------------------------
 function firmaComponente(c = {}) {
-  // La identidad de una partida: su nombre + material + medidas/cantidad efectivas.
+  // La identidad de una partida: su nombre + material + medidas/cantidad efectivas +
+  // ESTADO DE MATERIAL. Dos partidas con el MISMO insumoId pero distinto estado de
+  // confirmación (provisional "por confirmar" vs USER_CONFIRMED) NO son el mismo BOM:
+  // una es emitible y la otra no, así que deben dar firmas distintas (audit 2026-10-08).
   return [
     String(c.nombre || '').trim().toLowerCase(),
     String(c.insumoId || ''),
@@ -808,6 +855,13 @@ function firmaComponente(c = {}) {
     c.hojas != null ? Number(c.hojas) : '',
     Number(c.cantidad || 0), Number(c.piezas || 1),
     c.excluida ? 'X' : '',
+    // ESTADO DE MATERIAL (audit 2026-10-08, P0.7): la ESPECIFICACIÓN pedida, la clase EFECTIVA
+    // y el candidato. Dos partidas con el mismo insumoId pero distinto material_solicitado
+    // (melamina 18 vs 16) o distinto candidato crítico cambian de firma: una revisión
+    // provisional nunca parece idéntica a otra con especificación/confirmación distinta.
+    String(c.material_solicitado || '').trim().toLowerCase(),
+    String(c.material_match || c?._match?.clase || ''),
+    String(c.candidate_insumo_id || c?._match?.candidate_insumo_id || ''),
   ].join('|');
 }
 

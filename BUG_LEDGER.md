@@ -21,22 +21,67 @@ precio de lista difiere < 1 % porque el ERP redondea a pesos enteros con una reg
 permanente: `src/motor/goldenIntelisis.test.js` + `src/motor/fixtures/intelisis_alba_2026-08-12.json` (16 tests).
 Conclusión: **la fórmula del motor es la oficial**; lo que falla está en los DATOS y en la PRESENTACIÓN, no en la cascada.
 
-**VH-074 · P1 · OPEN (dato en producción, requiere aprobación) · Láminas con precio POR HOJA etiquetado "kg".**
-`catalogo_vigente`/`insumo_precios`: `lamina-10` $2,270.17 "kg", `lamina-12` $1,336.56 "kg", `lamina-14` $816.48 "kg",
-`lamina-18` $571.54, `lamina-20` $455.82, `lamina-22` $378.78, todos "kg". El ERP imprime LN10310 = $2,270.17 **por
-HOJA 3×10** y LN14310 = $816.48 **por hoja** (ATPU3M, 30/07 y 05/08/2026): son precios de hoja con unidad de kilo. La
-evidencia de la propia fila lo dice ("UNIDAD canónica del código aprobada; PRECIO pendiente. Nube tenía 33 kg"): el
-precio se pegó sin convertir la unidad. Además `lamina-3x10-12` y `lamina-3x10-14` tienen filas duplicadas "hoja" y
-"kg" con el mismo número. Hoy el navegador NO lo sufre (costea con `config.datos.insumos`: lámina cal.10 $33/kg, que
-sí es consistente: una hoja 3×10 cal.10 pesa ~70 kg). El día que el motor lea `catalogo_vigente` (decisión pendiente)
-una lámina saldría ~70× más cara. Propuesta: migración que ponga `unidad_compra='hoja'` en esas 6 filas y borre las
-duplicadas "kg"; antes/después con la golden.
+**VH-074 · NO-ES-BUG (corregido 2026-10-12: la entrada anterior ESTABA EQUIVOCADA) · Láminas "kg".**
+Releído el modelo de `insumo_precios`: `unidad_compra` es la unidad en que se COMPRA (kg), `precio_compra` el precio
+por esa unidad ($21.49/kg), `factor_conversion` cuántas unidades de compra hay en una unidad de costeo (62.2 kg por
+hoja 3×10 cal.12) y `precio` el resultado POR UNIDAD DE COSTEO (hoja): 21.4881 × 62.2 = $1,336.56/hoja, igual que el
+ERP. La alarma "~70× más cara" venía de leer `precio` como si fuera por kg. El cliente (`config.datos.insumos`,
+láminas a $/kg con formato de hoja entera) y el servidor (hoja = kg × factor) son consistentes entre sí y con el
+ERP. Las 6 filas siguen `propuesto` con confianza baja porque su documento es el código, no el ERP (A11 no las
+alcanzó: la semilla no trae su código Intelisis). No se cambió ningún dato.
 
-**VH-075 · P1 · OPEN (dato en producción, requiere aprobación) · `pintura-polvo` a $6.69/kg.** El ERP cobra la pintura
-en polvo PPH a $170.47/kg (ATPU3M, 11/08/2026) y la T.D.C. de la repisa de Alba a $238.07/kg (antracita TX, 04/2026);
-los demás colores de `catalogo_vigente` van de $59 a $345/kg. $6.69 × 17.5 ≈ $117: casi seguro un precio en DÓLARES
-guardado como pesos (el riesgo que `precioDeInsumo` ya documenta). Estado `propuesto_validado` con fuente "Compras,
-lista del 2026-08-14". Propuesta: corregir precio/moneda con el documento de Compras o degradar a `propuesto` sin precio.
+**VH-075 · P1 · FIXED EN PRODUCCIÓN 2026-10-12 (aprobado "hazlo todo") · `pintura-polvo` a $6.69/kg era USD guardado como MXN.**
+Confirmado en la semilla: `insumos.js` define `pintura-polvo` = "Pintura en polvo A101 basic white", **6.69 USD**/kg; la
+fila 96 de `insumo_precios` perdió la moneda. El ERP registra A101 BASIC WHITE a $115.949073 MXN/kg (última compra
+2026-08-04; 115.95/6.69 = TC 17.33). Hecho: fila 96 cerrada (`vigente_hasta=2026-10-11`, append-only respetado) y
+fila 479 nueva DATA_TRUTH_V1 (ERP MVLQPP00000000|A101) aprobada vía RPC. `catalogo_vigente.pintura-polvo` =
+$115.949073/kg, `aprobado`, certificable.
+
+**VH-082 · P1 · MITIGADO 2026-10-12 (requiere Compras) · `caja-byrne` a $167/pza era USD guardado como MXN.** Misma
+causa que VH-075: la semilla dice 167 **USD**; la fila 136 lo guardó como pesos. No hay registro ERP para cruzar. Hecho:
+fila 136 cerrada; fila 480 `propuesto`, $2,894.11 (167 × TC 17.33 implícito en la compra ERP del 2026-08-04),
+`requiere_validacion_compras=true`, confianza baja: NO certifica hasta que Compras confirme precio y moneda. Los otros
+dos insumos en USD de la semilla (`portamonitor-loktec-d7a/-ma8`) no tienen fila en el servidor; quedan "sin precio".
+Lección: el banco de precios del servidor no tiene columna de moneda para filas LEGACY; cualquier carga desde la
+semilla debe convertir o rechazar `moneda ≠ MXN`.
+
+**VH-084 · INTEGRACIÓN · HECHO 2026-10-12 (A20) · Material Gate de `perfection-final` fusionado en la línea unificada.**
+Seis commits posteriores a producción (`d698eea`…`7d60204`) que nunca entraron a `c3.4`: política de material de 4
+clases (EXACT / COMPATIBLE provisional / CRÍTICO / AMBIGUO-SUSTITUTO), gate económico `materialesPorConfirmar` en el
+motor y en `costeoEmitible`, reconciliación server-side del `material_match` en `costear-servidor` (el navegador no es
+autoridad; capability de confirmación por rol; LEGACY sólo por provenance), aprobación en AsistenteEspecial sólo con
+validación del servidor a centavos, y la 1ª pasada visual de `analizar-mueble` con informe diferido (fix del timeout).
+Conflictos en `materialMatch.js`, su test, `Costeador.jsx`, `AsistenteEspecial.jsx` y `requestPlan.test.js`: se
+conservaron las dos líneas (VH-053 "existe en el servidor sin precio certificado" sigue como NOT_AVAILABLE ámbar, con
+`alertaMaterial` y el `data-testid` que usan los e2e). Cambio de comportamiento visible: cuando la IA nombra un material
+sin id y hay UN pariente compatible de la misma familia, ahora se autollena como costo PROVISIONAL "POR CONFIRMAR" en
+vez de quedar sin costo; la emisión sigue bloqueada hasta confirmar. Pruebas: vitest 2,028/2,028, Playwright 25/25,
+build limpio. Nota: `costear-servidor` sigue sin desplegar (A17); hasta entonces el gate server-side no corre en vivo.
+
+**VH-085 · FÓRMULA · HECHO 2026-10-12 (A14, aprobación expresa) · Reglas de merma de Producción como política del motor.**
+Nuevo `src/motor/politicaMerma.js` (+14 pruebas): (1) tablero: pieza con lado mayor > 1.50 m cobra ½ hoja si el lado
+menor ≤ 0.60 m y 1 hoja si es mayor, en lugar de la rejilla; las piezas ≤ 1.50 m siguen con la fracción real de la
+rejilla (la que reproduce los T.D.C. de Alba); una pieza más grande que el tablero ahora cobra 1 hoja por regla Y sigue
+avisando "no cabe" (antes caía al 80 % genérico). (2) pintura en polvo: `areaPintadaM2` → kg a 8 m²/kg (plano); en
+tubular Producción dijo "rinde menos" sin cifra → el componente queda PENDIENTE y bloquea la emisión (no se inventa un
+rendimiento ni sale $0); con `cantidad` en kg capturada se respeta el estimador. (3) tubo 6 m y lámina 0.91/1.22 ya
+eran política (TRAMO6, formatos 3x10/4x8). (4) excedente de canto por lado: sin cifra, sigue `mermaCorte`. El DTO
+acepta `areaPintadaM2` (≥ 0) y `tubular` (booleano). `MOTOR_VERSION` → 2026-10-12: las cotizaciones emitidas conservan
+su huella (`huellaMP`) y se recostean sólo si alguien las reabre. Lo que cambia en dinero: sólo piezas de tablero con lado
+mayor > 1.50 m (p. ej. tapa 1.60×0.60: 1 hoja → ½ hoja) y la pintura capturada por área. Goldens Alba/Intelisis intactos.
+
+**VH-083 · DATO · HECHO 2026-10-12 · A11 certificación con documento ERP.** Cruce de los 259 insumos de la semilla
+contra "Costos de Materia Prima Ultima Compra al 10082026.xlsx" (ERP Intelisis, Drive de Compras; 16,520 registros
+Artículo|Opción): 109 con registro ERP exacto (105 iguales, 4 con precio ERP más nuevo), 13 con código que el ERP no
+tiene, 137 sin código Intelisis en la semilla. Insertadas 110 filas DATA_TRUTH_V1 (ids 370–479, provenance con hash)
+y aprobadas 103 vía `aprobar_precio` con sesión de rol dirección; 7 quedan `propuesto_validado` por compra con más de
+24 meses (regla mía, no de Dirección: melamina sand ×3, gris humo 28, gris unido axalta, acrílico traslúcido 3,
+tubular ¾). `catalogo_vigente`: **aprobados 30 → 133**, propuesto 61, propuesto_validado 63, sin precio 2. Rastro:
+`supabase/datos/2026-10-12_a11_certificacion_erp.sql`. Lo que NO se certificó y por qué: 61 `propuesto` son
+"código SEMILLA sin fuente" (acrílicos, cristales, herrajes, PTR, telas…) y 63 `propuesto_validado` vienen de T.D.C.,
+lista Compras o Sonara sin registro ERP cruzable. Importante: el navegador costea con `config.datos.insumos` (92
+insumos, 2026-08-11), no con `catalogo_vigente`; la certificación mejora al servidor (`costear-servidor` cuando se
+despliegue, A17) y al Banco de precios, no al costeo local de hoy.
 
 **VH-076 · NEGOCIO (no es bug de código) · 4 de 15 piezas APPS LT se venden por debajo del costo total del ERP.**
 Lista comercial del servidor (`lista_precio_items`, fuente "linea", la que usan los presupuestos "precio estándar")
@@ -48,7 +93,7 @@ y conductos son piezas gancho que se venden perdiendo y se recupera en la cubier
 aquí; debe MOSTRAR margen real contra costo ERP cuando exista (hoy `producto_version_economia` tiene 12 filas de 1,944
 productos: casi ningún producto de línea tiene costo oficial de referencia).
 
-**VH-077 · P2 · OPEN (reportado por Producción, pendiente de verificar en la app actual) · Observaciones de Rogelio y
+**VH-077 · P2 · PARCIAL (reglas de merma → VH-085/A14 HECHO; (a)–(f) de UI/catálogo siguen abiertos) · Observaciones de Rogelio y
 Alba (doc "comentarios Rogelio y Alba").** (a) la lista de materiales sólo ofrecía "MDF" sin espesores; (b) no se pueden
 combinar acabados/materiales; (c) gasto directo e indirecto "muy alto aun bajando el factor" en el ejercicio de la
 repisa (su T.D.C. da $156.98 de material: MDF19 0.028 hoja $12.26, canto ABS 22 1.4 m $14.88, laminado 0.056 hoja
@@ -99,7 +144,7 @@ bundle (`catalogo-fallback`, `lectura-servidor`, `politica_comercial_publica`).
   renderStoragePolicy, pdfMoneyTrust, derivedCostTrust, voni) se adaptaron al código unificado SIN cambiar la intención
   que verifican; `voni.test` usaba el rol 'costeador', que no existe en `permitidos` (direccion 7, diseno 3, vendedor 1).
 
-**VH-078 · P1 · FIXED EN REPO (despliegue pendiente, A16) · `cotizar-servidor` desplegado (v6) NO existía en ninguna
+**VH-078 · P1 · FIXED Y DESPLEGADO 2026-10-12 (v7 centavos; v8 RPC con JWT de usuario + fecha por omisión, verificado en vivo) · `cotizar-servidor` desplegado (v6) NO existía en ninguna
 rama.** Comparación byte a byte de las 23 edges desplegadas (`get_edge_function`) contra el repo: el servidor de
 cotización que corre resuelve precio especial de proyecto (`resolver_precio_especial_proyecto`, `ECONOMICS_INCOMPLETE`,
 `PRELIMINARY_SPECIAL`) y el cliente vivo ya consume esos campos; la copia del repo (`7153e9d`, "preserves cents") nunca
