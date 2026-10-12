@@ -17,6 +17,11 @@ import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
+import { mapIaComps as mapIaCompsCompartido } from '../datos/mapIaComps.js';
+import { amarrarPendientesERP } from '../datos/amarreERP.js';
+import { buscarInsumosMotor } from '../nube.js';
+import { resumenMotor } from '../datos/resumenMotor.js';
+import { respuestasPorReglaDeCasa } from '../datos/autoRespuestas.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, alertaMaterial } from '../datos/materialMatch.js';
 import BuscadorInsumo from './BuscadorInsumo.jsx';
 import { paginaAImagen } from '../datos/pdfImagen.js';
@@ -144,16 +149,22 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const [b, setB] = useState({
     nombre: '', piezas: 1, componentes: [], imagen: null, descripcionCliente: '',
     modoManoObra: 'porcentaje',
-    margen: margenObjetivoDe(estado.parametros),
+    // VH-124: null = hereda SIEMPRE el margen de la configuración canónica (margenObjetivo), aunque
+    // llegue después de montar. Antes se fijaba una sola vez al entrar y, si la nube tardaba, se
+    // quedaba el 50 % local: dos personas veían precios distintos según cuánto tardó en cargar.
+    // Sólo un expediente reabierto trae su propio margen guardado.
+    margen: null,
   });
   const set = (parcial) => setB((prev) => ({ ...prev, ...parcial }));
+  const margenEfectivo = b.margen ?? margenObjetivoDe(estado.parametros);
+  const margenOrigen = b.margen != null ? 'del expediente guardado' : 'política vigente (1 pieza)';
 
   // Razonamiento estructural (determinista): Voni lee el despiece como CONJUNTO y
   // avisa de relaciones que no cuadran (gaveta sin cuerpo, faldón vertical, asientos
   // sin estructura…). Propone/detecta; NO cambia costo ni medidas.
   const revisionEstructural = useMemo(
-    () => revisarEstructura({ componentes: b.componentes, descripcion: b.descripcionCliente }),
-    [b.componentes, b.descripcionCliente],
+    () => revisarEstructura({ componentes: b.componentes, descripcion: b.descripcionCliente, insumos }),
+    [b.componentes, b.descripcionCliente, insumos],
   );
   // ESTRUCTURA QUE ENTENDIÓ VONI: el grafo construido desde la SEMÁNTICA del intérprete
   // canónico (analizar-mueble: design_intent + semantic_role/relaciones). Es el mueble
@@ -175,7 +186,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // lista; a éste se le había quedado fuera.
   const resultado = useMemo(() => calcular(b, b.piezas, insumos, par), [b, insumos, estado.parametros]);
   // Una sola regla costo → precio, sobre el costo OFICIAL: incompleto ⇒ null (nunca $0).
-  const precio = precioDesdeCosto(resultado.costoOficial, { par, margen: b.margen });
+  const precio = precioDesdeCosto(resultado.costoOficial, { par, margen: margenEfectivo });
 
   // --- SHADOW (Fase 3): compara en paralelo el motor del servidor (JWT real, rol/costos
   // server-side) contra el resultado del cliente y lo registra. Fire-and-forget, debounced,
@@ -184,7 +195,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   useEffect(() => {
     if (!(b.componentes?.length) || !(resultado.costoUnitario > 0) || precio == null) return;
     const pieza = b; // costear-servidor recibe sólo intención técnica (VH-036); el servidor es dueño de modelo/config/dinero
-    const h = hashInput({ c: b.componentes, n: b.piezas, m: b.margen });
+    const h = hashInput({ c: b.componentes, n: b.piezas, m: margenEfectivo });
     if (sombraRef.current === h) return; // ya comparado este input
     const t = setTimeout(async () => {
       sombraRef.current = h;
@@ -443,11 +454,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         // IDENTIDAD DE REVISIÓN congelada (audit 2026-10-01): mismo bom_hash + mismo
         // catálogo + mismo motor ⇒ mismo costo a centavos. Guardamos todo lo que define
         // esa identidad para poder reconstruir/verificar cualquier revisión.
-        costo: { costoUnitario: dinero(resultado.costoUnitario), subtotalConocido: dinero(emision.subtotalConocido), costoTotal: emitibleGuardar ? dinero(resultado.costoUnitario) : null, materialTotal: dinero(resultado.materialTotal), manoObra: dinero(resultado.manoObra), indirectosFabrica: dinero(resultado.indirectosFabrica), precio: emitibleGuardar ? dinero(precio) : null, margen: b.margen, estado_costo: estadoCostoGuardar, validado_servidor: emitibleGuardar && estadoGuardar === 'aprobado' ? (validacionSrv?.bomHash === bomHash(b.componentes)) : false, pendientes: emision.pendientes, bom_hash: bomHash(b.componentes), analysis_id: b.analysisId ?? null, version_motor: MOTOR_VERSION, formula_version: formulaDePieza(b), version_catalogo: (validacionSrv?.bomHash === bomHash(b.componentes) ? validacionSrv?.versionCatalogo : null) ?? null, fuente_costo: (validacionSrv?.bomHash === bomHash(b.componentes) ? validacionSrv?.fuenteCosto : null) ?? 'sin-validacion-servidor', factorDirecta: b.factorDirecta ?? null, factorIndirecta: b.factorIndirecta ?? null, render_hash: renderHash === renderFirmaActual ? renderHash : null, fecha: new Date().toISOString() },
+        costo: { costoUnitario: dinero(resultado.costoUnitario), subtotalConocido: dinero(emision.subtotalConocido), costoTotal: emitibleGuardar ? dinero(resultado.costoUnitario) : null, materialTotal: dinero(resultado.materialTotal), manoObra: dinero(resultado.manoObra), indirectosFabrica: dinero(resultado.indirectosFabrica), precio: emitibleGuardar ? dinero(precio) : null, margen: margenEfectivo, estado_costo: estadoCostoGuardar, validado_servidor: emitibleGuardar && estadoGuardar === 'aprobado' ? (validacionSrv?.bomHash === bomHash(b.componentes)) : false, pendientes: emision.pendientes, bom_hash: bomHash(b.componentes), analysis_id: b.analysisId ?? null, version_motor: MOTOR_VERSION, formula_version: formulaDePieza(b), version_catalogo: (validacionSrv?.bomHash === bomHash(b.componentes) ? validacionSrv?.versionCatalogo : null) ?? null, fuente_costo: (validacionSrv?.bomHash === bomHash(b.componentes) ? validacionSrv?.fuenteCosto : null) ?? 'sin-validacion-servidor', factorDirecta: b.factorDirecta ?? null, factorIndirecta: b.factorIndirecta ?? null, render_hash: renderHash === renderFirmaActual ? renderHash : null, fecha: new Date().toISOString() },
         confirmaciones: Object.entries(confirmadas).map(([question_key, v]) => ({ question_key, pregunta: v.pregunta, respuesta: v.respuesta })),
         plano_urls: planoUrls.length ? planoUrls : (expId ? undefined : []),
         render_aislado_url: soloHttp(renders.aislado), render_ambiente_url: soloHttp(renders.ambiente),
-        analysis_hash: hashInput({ c: b.componentes, n: b.piezas, m: b.margen }),
+        analysis_hash: hashInput({ c: b.componentes, n: b.piezas, m: margenEfectivo }),
       };
       if (planoUrls.length === 0 && !expId) exp.plano_urls = [];
       if (exp.plano_urls === undefined) delete exp.plano_urls; // al actualizar sin planos nuevos, no pisa los guardados
@@ -479,7 +490,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     const factorDirectaHist = esAlbaGuardada ? undefined : (c.factorDirecta ?? 55);
     const factorIndirectaHist = esAlbaGuardada ? undefined : (c.factorIndirecta ?? 12);
     setFormulaGuardada(c.formula_version || formulaDePieza({ factorDirecta: factorDirectaHist, factorIndirecta: factorIndirectaHist }));
-    setB((prev) => ({ ...prev, nombre: e.nombre || '', componentes: Array.isArray(e.bom) ? e.bom : [], piezas: 1, margen: e.costo?.margen ?? prev.margen, descripcionCliente: e.descripcion || '', materiales: Array.isArray(e.materiales) ? e.materiales : [], planos: [], imagen: null, factorDirecta: factorDirectaHist, factorIndirecta: factorIndirectaHist, analysisId: id }));
+    setB((prev) => ({ ...prev, nombre: e.nombre || '', componentes: Array.isArray(e.bom) ? e.bom : [], piezas: 1, margen: e.costo?.margen ?? null, descripcionCliente: e.descripcion || '', materiales: Array.isArray(e.materiales) ? e.materiales : [], planos: [], imagen: null, factorDirecta: factorDirectaHist, factorIndirecta: factorIndirectaHist, analysisId: id }));
     setExpId(e.id); setRevActual(e.revision || 1); setEtiquetasTxt((e.etiquetas || []).join(', ')); setEstadoExp(e.estado || 'borrador');
     setConfirmadas(Object.fromEntries((e.confirmaciones || []).map((c) => [c.question_key || ('k_' + kpreg(c.pregunta).replace(/\s+/g, '_')), { pregunta: c.pregunta, respuesta: c.respuesta }])));
     setRenders({ aislado: e.render_aislado_url || null, ambiente: e.render_ambiente_url || null });
@@ -503,6 +514,27 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // máxima: una edición humana NO la puede revertir la IA en silencio (sus cambios
   // van por PROPUESTA_DIFF). Sobre el canónico, cada edición ensucia la revisión.
   const editarComponentes = (comps) => { set({ componentes: comps }); if (canonico) setBomDirty(true); };
+
+  // PILOTO AUTOMÁTICO (Dirección 12-oct): las preguntas que una regla de casa sabe contestar se
+  // contestan solas (visibles y editables, marcadas "regla de casa"); la persona sólo ve las que
+  // requieren criterio. Nada se manda a la IA sin que la persona pulse "Aplicar respuestas".
+  const [autoDetalle, setAutoDetalle] = useState([]);
+  useEffect(() => {
+    if (!preguntasIA.length) { setAutoDetalle([]); return; }
+    const auto = respuestasPorReglaDeCasa(preguntasIA.map(normPreg));
+    setAutoDetalle(auto.detalle);
+    setRespuestas((prev) => { const next = { ...prev }; for (const k of Object.keys(auto.respuestas)) if (!String(next[k] || '').trim()) next[k] = auto.respuestas[k]; return next; });
+  }, [preguntasIA]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Materiales propuestos por regla de casa (amarrados, por confirmar) y pendientes de verdad.
+  const propuestosPorRegla = b.componentes.filter((c) => c.insumoId && estadoMaterialUI(c, insumos).badgeTipo === 'confirmar');
+  const sinMaterial = b.componentes.filter((c) => !c.insumoId && !c.excluida);
+  // UNA decisión humana en vez de una por renglón: confirma todo lo que la política amarró (queda
+  // como confirmación de la persona, igual que si hubiera pulsado cada "Confirmar").
+  function confirmarPropuestos() {
+    const comps = b.componentes.map((c) => (c.insumoId && estadoMaterialUI(c, insumos).badgeTipo === 'confirmar' ? { ...c, ...patchConfirmacionUI(c.insumoId) } : c));
+    editarComponentes(comps);
+    setConfMsg(`✓ Confirmaste ${propuestosPorRegla.length} material(es) propuestos por regla de casa.`);
+  }
   function agregarParte(p) {
     const comp = { nombre: p.label, insumoId: p.material, piezas: 1, cantidad: 1 };
     if (p.kind === 'area' && p.dims) { comp.largoMM = p.dims[0]; comp.anchoMM = p.dims[1]; }
@@ -534,19 +566,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
 
   // Mapea el despiece CRUDO de la IA a los `componentes` del motor. Única fuente de
   // esta conversión (la usan aplicarPropuesta y el camino de PROPUESTA_DIFF).
-  const mapIaComps = (p) => (p?.piezas || []).map((z) => {
-    // POLÍTICA DE MATERIAL (misma que Costeador): nunca sustituye una familia por
-    // otra en silencio (solid surface jamás cae en MDF/HPL). Sólo EXACT/EQUIV
-    // conservan insumoId; el resto queda '' + bandera `_match`.
-    const base = aplicarPoliticaMaterial({ ...z, material_solicitado: z.material_solicitado || z.nombre }, (id) => insumos[id], Object.values(insumos));
-    if (z.forma === 'area') {
-      base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
-      // La IA ya estimó la fracción de hoja que rinde: el motor la usa directa
-      // (hojas × precio) en vez de re-nestear áreas, que es lo que oscilaba.
-      if (z.hojas > 0) base.hojas = z.hojas;
-    }
-    return base;
-  });
+  // Mapper compartido (src/datos/mapIaComps.js): política de material + hojas de tablero por el MOTOR (A14).
+  const mapIaComps = (p) => mapIaCompsCompartido(p, insumos);
 
   function aplicarPropuesta(res, dataUrl, planos, nuevoAnalisis = false, corridaId = null, yaConf = null) {
     // DESCARTE de respuesta async vieja: si ya empezó otra corrida (otro plano), ignórala.
@@ -554,12 +575,28 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     if (!res?.ok) { setErrorIA(res?.error || 'No se pudo analizar.'); return false; }
     setCatalogoFuente(res.catalogoFuente || null);   // #8: si fue 'cliente-fallback', se avisa (no cotizar en firme)
     const p = res.propuesta || {};
-    const comps = conAcompanantes(mapIaComps(p));
+    const comps = conAcompanantes(mapIaComps(p), insumos);
+    // REGLA DE CASA (12-oct, Dirección): lo que quede pendiente se busca en TODO el catálogo de Compras
+    // (ERP) y entra PROVISIONAL (por confirmar). Asíncrono: no bloquea la propuesta; si llega tarde
+    // (otra corrida ya empezó) se descarta. Se fusiona por posición+nombre sobre el BOM vigente.
+    amarrarPendientesERP(comps, { buscar: buscarInsumosMotor, agregarInsumo: onAgregarInsumo || (() => {}), insumos })
+      .then(({ comps: amarrados, amarrados: lista }) => {
+        if (!lista.length || !aceptaCorrida(corridaId, corrida.current)) return;
+        setB((prev) => {
+          const act = Array.isArray(prev.componentes) ? prev.componentes : [];
+          if (act.length !== amarrados.length) return prev;
+          const fus = act.map((c, i) => (c && amarrados[i] && c.nombre === amarrados[i].nombre && !c.insumoId && amarrados[i].insumoId ? { ...c, ...amarrados[i] } : (c && amarrados[i] && c.nombre === amarrados[i].nombre && !c.insumoId && amarrados[i].candidate_insumo_id ? { ...c, material_match: amarrados[i].material_match, candidate_insumo_id: amarrados[i].candidate_insumo_id, _match: amarrados[i]._match } : c)));
+          return { ...prev, componentes: fus };
+        });
+        setConfMsg(`Catálogo de Compras: ${lista.length} material(es) amarrado(s) con precio real, por confirmar: ${lista.map((x) => x.insumoNombre).slice(0, 5).join(', ')}${lista.length > 5 ? '…' : ''}.`);
+      })
+      .catch(() => {});
     // planos: TODAS las páginas/vistas del plano (base64 raw) para referencia múltiple del render.
     const paginas = Array.isArray(planos) && planos.length ? planos : (dataUrl ? [String(dataUrl).split(',')[1]] : []);
     // Un ANÁLISIS NUEVO (subiste otro plano) nombra el producto desde el plano, para que el nombre
     // NO se quede pegado de un producto anterior. Una re-corrida con respuestas conserva el nombre.
     setB((prev) => ({ ...prev, nombre: nuevoAnalisis ? (p.producto || prev.nombre || '') : (prev.nombre || p.producto || ''), componentes: comps, imagen: dataUrl || null, planos: paginas, descripcionCliente: p.descripcionCliente || '', materiales: Array.isArray(p.materiales) ? p.materiales : [], analysisId: corrida.current }));
+    if (!etiquetasTxt.trim()) setEtiquetasTxt([p.tipo, p.design_intent?.product_type, ...((Array.isArray(p.materiales) ? p.materiales : []).slice(0, 3))].filter(Boolean).map((x) => String(x).trim()).filter((x, i, a) => x && a.indexOf(x) === i).join(', '));
     setAnalisis({
       descripcionCliente: p.descripcionCliente || '',
       materiales: Array.isArray(p.materiales) ? p.materiales : [],
@@ -941,6 +978,21 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         <div>
           <div className="pregunta">¿De qué está hecho?</div>
           <div className="pregunta-sub">Toca las piezas que lleva. Luego ajusta su material y medida.</div>
+          {b.componentes.length > 0 && (propuestosPorRegla.length > 0 || sinMaterial.length > 0 || autoDetalle.length > 0) && (
+            <div className="tarjeta" data-testid="piloto-costear" style={{ background: 'var(--panel)', borderLeft: '4px solid var(--rojo,#E5484D)', margin: '12px 0' }}>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>Piloto automático</div>
+              <div className="ayuda" style={{ marginBottom: 8 }}>
+                {propuestosPorRegla.length > 0 && <span>{propuestosPorRegla.length} material(es) amarrados por regla de casa, por confirmar. </span>}
+                {autoDetalle.length > 0 && <span>{autoDetalle.length} pregunta(s) contestadas por regla de casa (puedes cambiarlas abajo). </span>}
+                {sinMaterial.length > 0 && <span style={{ color: '#8a6d00' }}>{sinMaterial.length} sin material: {sinMaterial.map((c) => c.nombre).join(', ')} (esto sí lo decides tú). </span>}
+                {propuestosPorRegla.length === 0 && sinMaterial.length === 0 && <span>Materiales completos.</span>}
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {propuestosPorRegla.length > 0 && <button type="button" className="boton primario" data-testid="piloto-confirmar" onClick={confirmarPropuestos}>Confirmar los {propuestosPorRegla.length} propuestos</button>}
+                {paso === 1 && b.componentes.length > 0 && <button type="button" className="boton" onClick={() => setPaso(3)}>Ver precio ›</button>}
+              </div>
+            </div>
+          )}
 
           {/* Voni razona el conjunto (no piezas sueltas): avisa de relaciones que no
               cuadran. Determinista; propone/detecta, no cambia costo. */}
@@ -1093,7 +1145,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           {analisis?.informe && (
             <div className="ia-informe-bloque">
               <div className="ia-informe-titulo">Auditoría técnica de industrialización</div>
-              <InformeIA informe={analisis.informe} />
+              <InformeIA motor={resumenMotor(resultado)} informe={analisis.informe} />
             </div>
           )}
           <div className="chips">
@@ -1190,13 +1242,30 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       {/* PASO 4 — Resultado */}
       {paso === 3 && (
         <div className="tarjeta-precio">
+          <div style={{ textAlign: 'left' }}>
+          {b.componentes.length > 0 && (propuestosPorRegla.length > 0 || sinMaterial.length > 0 || autoDetalle.length > 0) && (
+            <div className="tarjeta" data-testid="piloto-costear" style={{ background: 'var(--panel)', borderLeft: '4px solid var(--rojo,#E5484D)', margin: '12px 0' }}>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>Piloto automático</div>
+              <div className="ayuda" style={{ marginBottom: 8 }}>
+                {propuestosPorRegla.length > 0 && <span>{propuestosPorRegla.length} material(es) amarrados por regla de casa, por confirmar. </span>}
+                {autoDetalle.length > 0 && <span>{autoDetalle.length} pregunta(s) contestadas por regla de casa (puedes cambiarlas abajo). </span>}
+                {sinMaterial.length > 0 && <span style={{ color: '#8a6d00' }}>{sinMaterial.length} sin material: {sinMaterial.map((c) => c.nombre).join(', ')} (esto sí lo decides tú). </span>}
+                {propuestosPorRegla.length === 0 && sinMaterial.length === 0 && <span>Materiales completos.</span>}
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {propuestosPorRegla.length > 0 && <button type="button" className="boton primario" data-testid="piloto-confirmar" onClick={confirmarPropuestos}>Confirmar los {propuestosPorRegla.length} propuestos</button>}
+                
+              </div>
+            </div>
+          )}
+          </div>
           <div className="ficha-linea">{b.nombre || 'Producto nuevo'}</div>
           {emitible ? (
             <>
               <div className="ayuda" style={{ margin: '6px 0' }}>Cuesta hacer 1 pieza</div>
               <div className="precio-enorme" style={{ color: 'var(--tinta)', fontSize: 38 }}>{pesos2(resultado.costoUnitario)}</div>
               <div className="espacio" />
-              <div className="ayuda">Precio de lista ({b.margen}% margen)</div>
+              <div className="ayuda" data-testid="costear-margen">Precio de lista ({margenEfectivo}% margen · {margenOrigen})</div>
               <div className="precio-enorme">{pesos2(precio)}</div>
             </>
           ) : soloPorConfirmar ? (
@@ -1349,7 +1418,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       ) : (
         <div className="fila-botones">
           <button className="boton primario grande" onClick={() => onVerDetalle(b)}>Ver detalle completo (Alba V1)</button>
-          <button className="boton grande" onClick={() => { setB({ nombre: '', piezas: 1, componentes: [], modoManoObra: 'porcentaje', margen: b.margen }); setPaso(0); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({}); setConfirmadas({}); setConfMsg(''); setAnalisis(null); setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); setRenderHash(null); setRevActual(1); setCanonico(false); setPropuestaDiff(null); setBomDirty(false); setFormulaGuardada(null); corrida.current++; }}>Empezar otro</button>
+          <button className="boton grande" onClick={() => { setB({ nombre: '', piezas: 1, componentes: [], modoManoObra: 'porcentaje', margen: null }); setPaso(0); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({}); setConfirmadas({}); setConfMsg(''); setAnalisis(null); setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); setRenderHash(null); setRevActual(1); setCanonico(false); setPropuestaDiff(null); setBomDirty(false); setFormulaGuardada(null); corrida.current++; }}>Empezar otro</button>
         </div>
       )}
     </div>

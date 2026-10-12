@@ -10,21 +10,26 @@
 
 // Rol semántico de una pieza a partir de su nombre (heurística de taller, es-MX).
 const ROLES = [
+  ['herraje', /\b(herraje|tornill\w*|bisagras?|correderas?|niveladores?|jaladeras?|cerraduras?)\b/i],
+  ['frente_cajon', /\bfrentes?\b/i],
   ['cubierta', /\b(cubierta|tapa|top|sobre|superficie)\b/i],
   ['faldon', /\bfald[oó]n\b/i],
-  ['lateral', /\b(lateral|costado|panel lateral)\b/i],
+  ['lateral', /\b(lateral|laterales|costados?|panel lateral)\b/i],
   ['gaveta', /\b(gaveta|caj[oó]n|cajonera)\b/i],
-  ['pata', /\b(pata|base|estructura|bastidor|travesa[ñn]o|poste|soporte)\b/i],
+  ['pata', /\b(pata|base|estructura|bastidor|travesa[ñn]o|poste|soporte|zoclo|z[oó]calo)\b/i],
   ['respaldo', /\brespaldo\b/i],
   ['asiento', /\b(asiento|banca|silla|plaza|butaca)\b/i],
-  ['entrepano', /\b(entrepa[ñn]o|repisa|estante)\b/i],
-  ['puerta', /\bpuerta\b/i],
+  ['entrepano', /\b(entrepa[ñn]os?|repisas?|estantes?|anaquel)\b/i],
+  ['fondo', /\b(fondo|trasero|panel trasero)\b/i],
+  ['puerta', /\bpuertas?\b/i],
   ['conector', /\b(conector|uni[oó]n|ensamble|acoplador)\b/i],
   ['espuma', /\b(espuma|hule espuma|poliuretano|acolchad)\b/i],
   ['tapiz', /\b(tapiz|tela|piel|vinil|ecopiel|tapizado)\b/i],
-  ['herraje', /\b(herraje|tornill|bisagra|corredera|nivelador|jaladera)\b/i],
   ['cristal', /\b(cristal|vidrio|templado)\b/i],
 ];
+
+import { familiaDeMaterial, espesoresDe } from './materialMatch.js';
+import { REGLAS_TALLER } from './reglasTaller.js';
 
 // STRUCTURAL_LINT: etiqueta interna. Esto es un guardrail determinista (regex/heurística),
 // NO el motor de comprensión del mueble (ese es analizar-mueble → structuralGraph).
@@ -51,7 +56,7 @@ function tipoIntencion(desc = '') {
  * @param {{componentes?:Array, descripcion?:string, piezas?:number}} entrada
  * @returns {{roles: object, observaciones: Array<{nivel:string, mensaje:string, pieza?:string}>, resumen: object}}
  */
-export function revisarEstructura({ componentes = [], descripcion = '' } = {}) {
+export function revisarEstructura({ componentes = [], descripcion = '', insumos = null } = {}) {
   const comps = Array.isArray(componentes) ? componentes.filter((c) => c && (c.nombre || c.insumoId)) : [];
   const conRol = comps.map((c) => ({ ...c, _rol: rolDe(c.nombre || c.insumoId || '') }));
   const roles = {};
@@ -107,6 +112,42 @@ export function revisarEstructura({ componentes = [], descripcion = '' } = {}) {
   if (intencion === 'asientos' && hay('cubierta') && nAsiento === 0 && nRespaldo === 0) {
     obs.push({ nivel: 'warning',
       mensaje: 'La descripción habla de asientos, pero el despiece parece una superficie (cubierta) sin asientos/respaldos. Revisa si es el mueble correcto.' });
+  }
+
+  // ---- REGLAS DE CASA (2026-10-12) · consistencia de materiales. Deterministas; avisan, no cambian solas.
+  const nombreMat = (c) => (insumos && c.insumoId && insumos[c.insumoId] && insumos[c.insumoId].nombre) || c.material_solicitado || '';
+  const fam = (c) => familiaDeMaterial(nombreMat(c));
+  const PANEL_VISIBLE = new Set(['cubierta', 'lateral', 'entrepano', 'puerta', 'faldon', 'frente_cajon']);
+  const PANELES = new Set(['melamina', 'laminado_hpl', 'chapa_madera', 'madera_solida']);
+  const hayAcabadoTablero = conRol.some((c) => PANEL_VISIBLE.has(c._rol) && PANELES.has(fam(c)));
+  // Laca/pintura PARA TABLERO (la electrostática del acero no cuenta: va en el metal).
+  const hayLaca = conRol.some((c) => /\blaca|lacad|barniz|pintura.*(mdf|madera|tablero|repisa|panel)/i.test(`${c.nombre || ''} ${c.material_solicitado || ''}`));
+  // 8) Pieza VISIBLE en MDF crudo mientras el resto va en melamina/laminado y no hay laca.
+  if (hayAcabadoTablero && !hayLaca) {
+    for (const c of conRol) {
+      if (PANEL_VISIBLE.has(c._rol) && fam(c) === 'mdf') {
+        obs.push({ nivel: 'warning', pieza: c.nombre, regla: 'acabado_consistente',
+          mensaje: `«${c.nombre}» va en MDF crudo mientras el resto lleva melamina/laminado. O lleva laca (línea aparte) o cámbiala a melamina del mismo acabado; si no, se ve distinta.` });
+      }
+    }
+  }
+  // 9) Respaldo/fondo con sobre-espesor (> 12 mm): normalmente 9–12 mm; se avisa, no se cambia.
+  for (const c of conRol) {
+    if (c._rol !== 'respaldo' && c._rol !== 'fondo') continue;
+    const esp = espesoresDe(nombreMat(c)).filter((x) => x <= 60);
+    if (esp.length && Math.min(...esp) > REGLAS_TALLER.respaldo.espesorMaxMM) {
+      obs.push({ nivel: 'info', pieza: c.nombre, regla: 'respaldo_espesor',
+        mensaje: `«${c.nombre}» en ${Math.min(...esp)} mm: un respaldo/fondo suele ir en 9–12 mm (más barato y ligero). Déjalo si es portante o visible por detrás.` });
+    }
+  }
+  // 10) Entrepaño/repisa con claro ≥ 800 mm: recomendar travesaño según la carga (no se agrega solo).
+  for (const c of conRol) {
+    if (c._rol !== 'entrepano') continue;
+    const claro = Math.max(Number(c.largoMM) || 0, Number(c.anchoMM) || 0);
+    if (claro >= REGLAS_TALLER.refuerzo.claroMM) {
+      obs.push({ nivel: 'info', pieza: c.nombre, regla: 'refuerzo_claro',
+        mensaje: `«${c.nombre}» tiene ${claro} mm de claro: si cargará productos pesados (≥ 15 kg), agrega un travesaño trasero o un canto grueso para que no pandee.` });
+    }
   }
 
   if (obs.length === 0) obs.push({ nivel: 'info', mensaje: 'La estructura se ve coherente con las piezas capturadas.' });

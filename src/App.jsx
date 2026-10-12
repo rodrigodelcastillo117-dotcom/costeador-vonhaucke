@@ -853,6 +853,9 @@ export default function App() {
     const sustituir = Array.isArray(opts.sustituir) ? opts.sustituir : [];
     const mantenerAmbos = Array.isArray(opts.mantenerAmbos) ? opts.mantenerAmbos : [];
     const decisiones = opts.decisiones && typeof opts.decisiones === 'object' ? opts.decisiones : {};
+    // Piloto automático: `opts.sinNuevas` = sólo fusiona duplicados y vincula lo ya descrito; NO agrega
+    // productos nuevos al proyecto (agregar renglones comerciales sigue siendo decisión de la persona).
+    const sinNuevas = opts.sinNuevas === true;
     // Vista para la UI (contra el estado actual): conflictos y pendientes a mostrar.
     const vista = aplicarPrograma(propuesta, { existentes: estado.cotizacion?.partidas || [], sustituir, mantenerAmbos });
     if (aplicandoProgramaRef.current) {
@@ -874,7 +877,7 @@ export default function App() {
         // #10: la semántica estructural vive SÓLO top-level (un dueño). NO se copia a config.
         return patch ? { ...p, ...patch } : p;
       });
-      const nuevas = confirmacion.confirmadas.map(partidaComercialDesdeConfirmado);
+      const nuevas = sinNuevas ? [] : confirmacion.confirmadas.map(partidaComercialDesdeConfirmado);
       // VH-090: proyectos que YA traían duplicados (programa aplicado antes de describir con VONI,
       // como la cotización 757): al aplicar/vincular se concilian las filas de la persona contra las
       // genéricas del programa del mismo rol. Idempotente: sin equivalentes no cambia nada.
