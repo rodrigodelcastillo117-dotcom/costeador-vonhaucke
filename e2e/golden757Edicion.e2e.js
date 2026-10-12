@@ -25,13 +25,22 @@ test.describe('GOLDEN 757 · edición manual del acomodo persiste de verdad', ()
     await page.getByRole('button', { name: /^Entrar$/i }).click();
     await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
 
-    const abrir = async () => {
-      await page.getByText('Presupuestos anteriores', { exact: false }).first().click();
-      const tarjeta = page.locator('.tarjeta:has(> .fila-botones)', { hasText: CLIENTE }).first();
-      await expect(tarjeta).toBeVisible({ timeout: 20000 });
-      await tarjeta.getByRole('button', { name: /^Abrir$/ }).click();
-      await expect.poll(async () => (await leerCot(page))?.partidas?.length || 0, { timeout: 20000 }).toBeGreaterThan(0);
-      return leerCot(page);
+    // Abre el presupuesto golden MÁS RECIENTE QUE YA TENGA ACOMODO: golden757 guarda (autosave) antes de
+    // acomodar, así que, corriendo en paralelo, la tarjeta más nueva puede ser una corrida a medias.
+    const abrir = async (conPlan = true, idBuscado = null) => {
+      for (let i = 0; i < 6; i++) {
+        await page.getByText('Presupuestos anteriores', { exact: false }).first().click();
+        const tarjeta = page.locator('.tarjeta:has(> .fila-botones)', { hasText: CLIENTE }).nth(i);
+        await expect(tarjeta).toBeVisible({ timeout: 20000 });
+        await tarjeta.getByRole('button', { name: /^Abrir$/ }).click();
+        await expect.poll(async () => (await leerCot(page))?.partidas?.length || 0, { timeout: 20000 }).toBeGreaterThan(0);
+        const cot = await leerCot(page);
+        const sirve = idBuscado != null ? String(cot?.id) === String(idBuscado) : (!conPlan || (cot?.acomodo?.plan?.colocacion || []).length > 0);
+        if (sirve) return cot;
+        console.log('[golden757-edicion] tarjeta', i, idBuscado != null ? `es ${cot?.id}, busco ${idBuscado}` : 'sin acomodo (corrida a medias)', '; pruebo la siguiente');
+        await page.getByRole('button', { name: /^Inicio$/ }).click();
+      }
+      throw new Error('ningún presupuesto golden reciente tiene acomodo');
     };
     const cot0 = await abrir();
     const id = cot0.id; expect(id).toBeTruthy();
@@ -81,7 +90,7 @@ test.describe('GOLDEN 757 · edición manual del acomodo persiste de verdad', ()
     await page.evaluate(([k, v]) => window.localStorage.setItem(k, JSON.stringify(v)), [CLAVE, { onboardingVisto: true, cotizacion: { partidas: [] } }]);
     await page.reload();
     await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
-    const cot2 = await abrir();
+    const cot2 = await abrir(true, id);                // el MISMO presupuesto, aunque otra corrida haya creado uno más nuevo
     expect(cot2.id).toBe(id);
     expect(cot2.partidas.length).toBe(cot0.partidas.length);
     expect(firmaCol(cot2.acomodo?.plan)).toBe(despues);

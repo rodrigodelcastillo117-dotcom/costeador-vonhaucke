@@ -133,7 +133,8 @@ test.describe('GOLDEN 757 · plano → programa → VONI → fusión → acomodo
       const r = reconciliarNuevasConPrograma(antesClick.filter((p) => p.source === 'CONFIRMADO_PROGRAMA'), antesClick.filter((p) => p.source !== 'CONFIRMADO_PROGRAMA'));
       console.log('[golden757] conciliación (Node, estado del navegador):', JSON.stringify(r.sustituidas.map((x) => [x.de, x.a])), 'ambiguas', JSON.stringify(r.ambiguas));
       console.log('[golden757] p-10:', JSON.stringify(antesClick.find((p) => p.id === 'p-10')));
-      console.log('[golden757] panel:', (await page.getByTestId('duplicados-programa').innerText().catch(() => 'sin panel')).slice(0, 600));
+      // Con el piloto el panel ya no existe: innerText SIN timeout esperaría para siempre (hasta el timeout del test).
+      console.log('[golden757] panel:', (await page.getByTestId('duplicados-programa').innerText({ timeout: 1500 }).catch(() => 'sin panel (piloto)')).slice(0, 600));
     }
     const boton = page.getByRole('button', { name: /Fusionar \d+ duplicado|Aplicar programa detectado|Vincular lo que ya tengo/i });
     if (await boton.count() && await boton.first().isEnabled().catch(() => false)) await boton.first().click();

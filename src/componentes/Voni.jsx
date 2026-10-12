@@ -230,15 +230,17 @@ export default function Voni({
 
   // PILOTO AUTOMÁTICO (Dirección 12-oct: "que la IA haga la mayoría de las cosas"): cuando el plano
   // trae programa y NO hay nada que decidir (sin conflictos abiertos, sin filas ambiguas, sin
-  // pendientes de confirmar), se aplica solo: agrega lo que falta, fusiona duplicados y vincula lo
-  // ya descrito. Las decisiones (Repartir, conflictos, pendientes) siguen siendo de la persona.
-  // Una sola vez por (programa, lista): idempotente, nunca quita nada.
+  // pendientes de confirmar), el piloto hace solo lo NO aditivo: fusiona duplicados y vincula al
+  // plano lo que la persona ya describió. NUNCA agrega productos nuevos al proyecto: lo que falta
+  // según el plano se propone con el botón de un click (agregar renglones comerciales es decisión
+  // humana; si el piloto los agregara, una cotización de 2 piezas podría volverse de 11).
+  // Una sola vez por programa detectado: idempotente, nunca quita nada.
   const pilotoRef = useRef('');
   const [avisoPiloto, setAvisoPiloto] = useState('');
   useEffect(() => {
     if (!propuestaPrograma || typeof onAplicarPrograma !== 'function') return;
     const nFalt = faltantesPrograma.length, nDup = duplicadosPrograma.length, nReu = reutilizadosPrograma.length;
-    if (!(nFalt || nDup || nReu)) return;
+    if (!(nDup || nReu)) return;
     const hayDecision = conflictosPrograma.some((c) => !conflictosConservados.has(c.slot)) || ambiguasPrograma.length > 0 || pendientesPrograma.length > 0;
     if (hayDecision) return;
     // UNA sola aplicación por programa detectado (firma del programa, no de la lista): si tras aplicar
@@ -248,8 +250,8 @@ export default function Voni({
     const firma = JSON.stringify([prop.plano_id || prop.id || null, (prop.items || prop.programa || prop.faltantes || []).map((x) => x && (x.id || x.rol || x.requirement_id)).slice(0, 80), JSON.stringify(prop).length]);
     if (pilotoRef.current === firma) return;
     pilotoRef.current = firma;
-    onAplicarPrograma(propuestaPrograma.propuesta);
-    setAvisoPiloto(`Piloto automático: apliqué el programa del plano (${nFalt} por agregar, ${nDup} duplicado(s) fusionado(s), ${nReu} vinculado(s)). No quité nada; revisa la lista y cambia lo que quieras.`);
+    onAplicarPrograma(propuestaPrograma.propuesta, { sinNuevas: true });
+    setAvisoPiloto(`Piloto automático: ${nDup} duplicado(s) fusionado(s) y ${nReu} renglón(es) vinculado(s) al plano. No quité ni agregué nada${nFalt ? `; el plano pide ${nFalt} producto(s) más: revísalos abajo y agrégalos con un click si van` : ''}.`);
   }, [propuestaPrograma, partidas, faltantesPrograma.length, duplicadosPrograma.length, reutilizadosPrograma.length, conflictosPrograma, conflictosConservados, ambiguasPrograma.length, pendientesPrograma.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // #7: suma SÓLO precios conocidos (null/undefined NO cuenta como 0) y expone
