@@ -191,7 +191,10 @@ export function auditarGruposFuncionales(piezas = [], colocacion = []) {
     const colocados = miembros.map((p) => ({ p, c: byCol.get(String(p.id)) })).filter((x) => x.c);
     if (!colocados.length) continue;
     const areas = new Set(colocados.map((x) => Number(x.c.area)));
-    if (areas.size > 1) {
+    // Un grupo `fg:libre:<destino>` no es un kit: es la pista de destino de filas que describió una
+    // persona ("16 SONATA para las salas de juntas"). Que se reparta entre dos salas es lo correcto,
+    // no una invariante rota. Los grupos de programa/kit (fg:req:…) sí deben quedar juntos.
+    if (areas.size > 1 && !String(gid).startsWith('fg:libre:')) {
       for (const { p } of colocados) issues.push({ code: CODIGO.FUNCTIONAL_GROUP_SPLIT, id: String(p.id), group: gid });
     }
     for (const { p, c } of colocados) {

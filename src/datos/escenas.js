@@ -23,6 +23,7 @@
 //  por eso se puede probar. La llamada vive en la pantalla.
 // ============================================================================
 import { tipoDe } from './espacio.js';
+import { imagenPartida } from './imagenes.js';
 
 // El id de una pieza colocada es `<idPartida>-<n>`. Igual que en resumen.js.
 const partidaDe = (idPieza) => String(idPieza).replace(/-\d+$/, '');
@@ -66,7 +67,10 @@ export function escenasDeAcomodo(partidas, acomodo) {
     const piezas = [...m.entries()]
       .map(([pid, cantidad]) => {
         const p = porId[pid];
-        return { id: pid, nombre: p.nombre, cantidad, ruta: p.ruta || null, productoId: p.productoId || null, tipo: tipoDe(p) };
+        // VH-121: medidas reales e imagen de referencia del producto (render de catálogo, foto de silla o
+        // portada de la línea: el MISMO resolutor que usan la propuesta y el PDF). Antes la escena sólo
+        // buscaba por línea+producto y las piezas de VONI/banco llegaban al modelo sin ninguna referencia.
+        return { id: pid, nombre: p.nombre, cantidad, ruta: p.ruta || null, productoId: p.productoId || null, tipo: tipoDe(p), w: Number(p.w) > 0 ? Number(p.w) : null, d: Number(p.d) > 0 ? Number(p.d) : null, imagen: imagenPartida(p) || null };
       })
       // Lo grande primero: es lo que define la escena y lo que el modelo debe
       // acertar. Si hay que recortar la lista, que se caigan los accesorios.
@@ -77,6 +81,11 @@ export function escenasDeAcomodo(partidas, acomodo) {
     // le pide al modelo poner "una silla en cada puesto" por su cuenta —contarlas
     // aquí lo obligaría a acertar un número que él mismo decide cómo repartir.
     const pisoTotal = piezas.reduce((s, p) => (p.tipo === 'asiento' ? s : s + p.cantidad), 0);
+    // VH-121: cuántas sillas dibuja el plano en este cuarto (el modelo las ponía "una por puesto" y salían
+    // 4 donde el dibujo tenía 6) y la lista de piezas DE PISO esperadas con medidas, para el prompt, el
+    // contador y el auditor del servidor.
+    const sillas = piezas.reduce((s, p) => (p.tipo === 'asiento' ? s + p.cantidad : s), 0);
+    const esperados = piezas.filter((p) => p.tipo !== 'asiento').map((p) => ({ nombre: p.nombre, cantidad: p.cantidad, tipo: p.tipo, w: p.w, d: p.d }));
 
     escenas.push({
       areaIndex: i,
@@ -86,6 +95,8 @@ export function escenasDeAcomodo(partidas, acomodo) {
       m2: Math.round(((area.ancho || 0) * (area.largo || 0)) / 1e6 * 10) / 10,
       piezas,
       pisoTotal,
+      sillas,
+      esperados,
       // El recorte para dibujar SÓLO este cuarto: el área en el origen y su
       // colocación reindexada a 0. Así se puede rasterizar el isométrico de una
       // sola habitación en vez del piso completo.
@@ -105,7 +116,14 @@ export function escenasDeAcomodo(partidas, acomodo) {
  * era justo lo que no le llegaba.
  */
 export function descripcionDeEscena(nombre, area, piezas) {
-  const lista = piezas.map((p) => `${p.cantidad}× ${p.nombre}`).join(', ');
+  // VH-121: cada pieza con su huella real (ancho × fondo) cuando la trae; las sillas se dicen aparte con su número.
+  const medida = (p) => (p.w && p.d ? ` (${(p.w / 1000).toFixed(2)} × ${(p.d / 1000).toFixed(2)} m)` : '');
+  const deSuelo = piezas.filter((p) => p.tipo !== 'asiento');
+  const sillas = piezas.filter((p) => p.tipo === 'asiento');
+  const lista = [
+    ...deSuelo.map((p) => `${p.cantidad}× ${p.nombre}${medida(p)}`),
+    ...(sillas.length ? [`sillas: ${sillas.map((p) => `${p.cantidad}× ${p.nombre}`).join(', ')}`] : []),
+  ].join(', ');
   const med = area?.ancho && area?.largo
     ? `${(area.ancho / 1000).toFixed(2)} × ${(area.largo / 1000).toFixed(2)} m`
     : '';

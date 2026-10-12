@@ -948,8 +948,12 @@ export function datosDesdeSnapshot(snapshot, extras = {}) {
 }
 
 export function nombreArchivoPropuesta(datos = {}) {
+  // VH-118: con acentos o "·" en el cliente ("único", "Torre Sur · POST") Chromium descartaba el nombre y
+  // bajaba el archivo como "download" sin extensión. El nombre del archivo va en ASCII (sin tildes, "·" → "-");
+  // el contenido del PDF conserva el texto original.
+  const ascii = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[·•]/g, '-').replace(/[^\x20-\x7E]/g, '');
   const nombre = [datos?.borrador ? 'BORRADOR' : null, 'Propuesta', datos?.cot?.folio, datos?.cot?.cliente]
-    .filter(Boolean).join(' ').replace(/[\\/:*?"<>|]/g, '').trim() || 'Propuesta Vonhaucke';
+    .filter(Boolean).map(ascii).join(' ').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim() || 'Propuesta Vonhaucke';
   return `${nombre}.pdf`;
 }
 

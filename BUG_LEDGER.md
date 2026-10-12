@@ -232,6 +232,23 @@ las veía como dos zonas aunque cuelgan de la misma mesa. Ahora el eje es la anc
 sólo decide sin identidad; `requirement_id` > decisión explícita > zona; varias zonas ⇒ NEEDS_REVIEW (panel en Voni), nunca
 sustitución automática; parciales ajustan el resto; capacidad distinta se avisa. 14 pruebas + golden.
 
+**DESPLEGADO 2026-10-12 12:39 UTC · `195d245` (código `29522e4`) + edges v9/v9/v12/v5.** Certificación real en producción en
+`docs/auditoria/RESCATE_NOCTURNO.md` § DESPLIEGUE CONTROLADO. GO sin rollback.
+
+**VH-110 · P1 · OPEN · mensaje de acomodo confuso.** Cuando el juez semántico deja el acomodo en `NEEDS_SEMANTIC_REVIEW` sin
+ninguna invariante fallida, `motivoNoListo` (AcomodoBase) dice "requiere revisión: invariantes". Debe decir qué revisión falta
+(semántica: perfil/orientación de piezas inferidas) y qué hacer. Visto en producción con 2 escritorios APP LT en 3 cuartos leídos.
+
+**VH-111 · P2 · OPEN · al reabrir un acomodo guardado, la tarjeta "Voni revisó ANTES…" dice "el servidor no devolvió validación del
+acomodo · kit-solver-multi-v1" aunque `plan.layoutSpec.validation` viene completo en lo guardado (21 de 25, sin problemas
+geométricos). El texto se deriva de un `serverStatus` en memoria que no se rehidrata.
+
+**ESTABILIZACIÓN POST-DEPLOY (RC, sin desplegar) · 2026-10-12.** VH-110 FIXED (veredicto por bloques) · VH-111 FIXED · VH-112 FIXED
+(P0: capacidad declarada "8 usuarios", tope físico por cara, "Banca doble" = DOUBLE_FACE) · VH-113 FIXED · VH-114 FIXED · VH-115 FIXED ·
+VH-116 FIXED (P0: ancla ×N se reparte por sala/instancia SÓLO con decisión explícita de la persona; sin decisión NEEDS_REVIEW; `f822151`) · VH-118 FIXED (nombre ASCII del PDF) · VH-119 FIXED (P1: despacho privado = ejecutivo detrás + visitas al frente; el juez admite ambos; `72fa84b`) · VH-120 FIXED (capacidad con fuente; `56167dc`) · VH-121 FIXED en RC (renders por cuarto: referencias de producto, medidas y sillas al modelo, contador y auditor informados; medición live BLOCKED hasta deploy) · VH-122 FIXED (CI ya no quema una llamada real de Opus por push/PR) · VH-119b FIXED (franja de acceso = circulación; golden 757 21 → 19 colocadas con semántica PASS: decisión D1 de Dirección) · **Cierre definitivo `57da582`: vitest 2,171 · Playwright 51/51 · Deno RC 757 + 3 proyectos; GO condicionado (D1, D2)** · VH-108 corrección con evidencia en RC
+(revisión → modelo visual, 75 s), medición posterior BLOCKED hasta desplegar. Detalle y pruebas en `docs/auditoria/RESCATE_NOCTURNO.md`
+§ ESTABILIZACIÓN POST-DEPLOY. OPEN: renders por cuarto 1/4 aceptados (gate honesto; generador), sesiones Ventas/Diseño sin cuentas QA.
+
 ## UNIFICACIÓN DE LAS DOS LÍNEAS DE CÓDIGO · 2026-10-11/12
 
 **Hecho medible.** Producción (`costeador-vonhaucke.vercel.app`, Vercel) sirve el commit `5a38d2e` de la rama

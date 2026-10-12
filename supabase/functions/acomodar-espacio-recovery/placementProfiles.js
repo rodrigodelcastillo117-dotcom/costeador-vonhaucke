@@ -103,13 +103,38 @@ export function layoutMeeting(aw, ad, n) {
   return { anchor: { dx: SEAT, dy: SEAT, w: aw, d: ad }, seats: seats.slice(0, n), kitW: aw + 2 * SEAT, kitD: ad + 2 * SEAT, activeSides: ['A', 'B', 'HEAD_A', 'HEAD_B'] };
 }
 
-// Selecciona el layout de asientos según la topología del perfil.
-export function layoutDeTopologia(topology, aw, ad, n) {
+// --- DESK (VH-119): escritorio privado = ejecutivo DETRÁS del tablero (lado BACK, mira hacia el
+// escritorio/abajo) y visitas AL FRENTE (lado FRONT, miran hacia arriba). Antes el escritorio usaba la
+// fila única (SINGLE_FACE) y el ejecutivo quedaba sentado JUNTO a sus visitas, del mismo lado; el juez
+// semántico, además, no admitía visitas en un escritorio → todo despacho caía en NEEDS_SEMANTIC_REVIEW.
+// `roles` (en el orden de las sillas) decide qué asiento es ejecutivo; sin roles, el primero lo es.
+// Kit: w × (acceso+SEAT si hay ejecutivo + d + SEAT si hay visitas). Misma SEAT=600 de siempre; no se inventa nada.
+// El kit reserva además la franja de ACCESO del ejecutivo detrás de su silla (ACCESO_EJECUTIVO = 600 mm,
+// el mismo objetivo de confort del QualityJudge): sin ella el barrido por filas pegaba la silla al muro
+// (clearance 0 → fail duro de acceso) y el selector prefería un candidato centrado que dejaba la credenza
+// sin colocar. Las visitas acceden por el frente (lado libre del cuarto), no necesitan franja en el kit.
+export const ACCESO_EJECUTIVO = 600;
+export function layoutDesk(aw, ad, n, roles = null) {
+  const rs = Array.isArray(roles) && roles.length ? roles.slice(0, n) : Array.from({ length: n }, (_, i) => (i === 0 ? 'EXECUTIVE_SEAT' : 'VISITOR_SEAT'));
+  const nExec = rs.filter((r) => r === 'EXECUTIVE_SEAT').length;
+  const nVis = rs.length - nExec;
+  const anchorDy = nExec ? ACCESO_EJECUTIVO + SEAT : 0;
+  const back = Array.from({ length: nExec }, (_, i) => ({ dx: centrar(i, nExec || 1, aw), dy: ACCESO_EJECUTIVO, w: SEAT, d: SEAT, slot_id: `seat_X${i + 1}`, side: 'BACK', facing: 'DOWN' }));
+  const front = Array.from({ length: nVis }, (_, i) => ({ dx: centrar(i, nVis || 1, aw), dy: anchorDy + ad, w: SEAT, d: SEAT, slot_id: `seat_F${i + 1}`, side: 'FRONT', facing: 'UP' }));
+  // Los asientos salen en el MISMO orden que `roles` (componerKit asigna sillas[i] → seats[i]).
+  let ib = 0, iF = 0;
+  const seats = rs.map((r) => (r === 'EXECUTIVE_SEAT' ? back[ib++] : front[iF++]));
+  return { anchor: { dx: 0, dy: anchorDy, w: aw, d: ad }, seats, kitW: aw, kitD: ad + anchorDy + (nVis ? SEAT : 0), activeSides: [...(nExec ? ['BACK'] : []), ...(nVis ? ['FRONT'] : [])] };
+}
+
+// Selecciona el layout de asientos según la topología del perfil. `roles`: relation_role de las
+// sillas en orden (sólo lo usa DESK para distinguir ejecutivo de visitas).
+export function layoutDeTopologia(topology, aw, ad, n, roles = null) {
   switch (topology) {
     case 'DOUBLE_FACE': return layoutDoubleFace(aw, ad, n);
     case 'MEETING_TABLE': return layoutMeeting(aw, ad, n);
+    case 'DESK': return layoutDesk(aw, ad, n, roles);
     case 'SINGLE_FACE':
-    case 'DESK':
     case 'RECEPTION':
     default: return layoutSingleFace(aw, ad, n);
   }

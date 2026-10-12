@@ -22,7 +22,10 @@ function sanitizar(v) {
 }
 
 test('LIVE AI smoke · Costear llama analizar-mueble real y devuelve BOM', async ({ page }, testInfo) => {
-  test.skip(!(EMAIL && PASS), 'Requiere cuenta de prueba autenticada.');
+  // VH-122: esta prueba quema una llamada REAL a analizar-mueble (Opus, ~20 k tokens de entrada) y CI la corría
+  // en cada push Y en cada PR (ai_eventos 12-oct: 47 análisis de texto de la cuenta QA en 24 h, todos con el
+  // mismo brief de 116 caracteres). Ahora sólo corre a pedido: LIVE_AI=1 (igual que VIVO=1 / RENDER_PROD=1).
+  test.skip(!(EMAIL && PASS && process.env.LIVE_AI === '1'), 'Requiere cuenta de prueba autenticada y LIVE_AI=1 (llamada real de IA, con costo).');
   test.setTimeout(140000);
 
   // Determinista (#9): marca onboarding visto ANTES de montar para que el modal

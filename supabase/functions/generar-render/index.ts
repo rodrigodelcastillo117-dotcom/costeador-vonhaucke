@@ -6,6 +6,8 @@
 // ============================================================================
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+// VH-121: lo que el modelo y el auditor saben del cuarto además del dibujo (puro, probado con vitest).
+import { normalizarEsperados, preguntaConteo, bloqueGeometriaEscena, promptAuditoria } from "./render-core.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -85,7 +87,9 @@ Deno.serve(async (req) => {
     const bytes = imgs.reduce((s: number, i: any) => s + (typeof i === "string" ? b64bytes(i) : 0), 0);
     if (bytes > 21_000_000) return json({ ok: false, code: "PAYLOAD_TOO_LARGE", error: "Las imágenes de referencia son demasiado grandes." }, 413);
   }
-  const { descripcion = "", materiales = [], medidas = "", tipo = "", spec = "", render_spec = null, imagen = "", imagenes = [], mediaType = "image/jpeg", modo = "render", aspecto = "", cuarto = "", lineas = [], conteoPiso = null, entorno = "", preservar = "", calidad = "2K" } = body || {};
+  const { descripcion = "", materiales = [], medidas = "", tipo = "", spec = "", render_spec = null, imagen = "", imagenes = [], mediaType = "image/jpeg", modo = "render", aspecto = "", cuarto = "", lineas = [], conteoPiso = null, entorno = "", preservar = "", calidad = "2K", esperados = [], sillas = null } = body || {};
+  // VH-121: piezas de piso esperadas (cantidad, medidas, tipo) y sillas que dibuja el plano, para el prompt, el contador y el auditor.
+  const esperadosN = normalizarEsperados(esperados);
   // MIME allowlist: sólo formatos de imagen/plano soportados (evita payloads raros).
   const MIME_OK = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
   if (imagen && mediaType && !MIME_OK.has(String(mediaType))) {
@@ -234,6 +238,8 @@ Deno.serve(async (req) => {
           "desk or a different design — a client will compare this image against the product sheet. "
         : "") +
       `What is in this room: ${descripcion}. ` +
+      // VH-121: medidas reales por pieza y número exacto de sillas del plano (geometría, no estilo).
+      bloqueGeometriaEscena({ esperados: esperadosN, sillas }) +
       (Array.isArray(lineas) && lineas.length ? `Von Haucke product line(s): ${lineas.join(", ")}. ` : "") +
       (medidas ? `Room size: ${medidas}. ` : "") +
       "ENVIRONMENT: make the room identity unmistakable from architecture, scale, circulation and fixtures. Infer finishes from the declared room/project context; never force a generic corporate-office palette onto retail, airport, healthcare, hospitality or industrial spaces. " +
@@ -353,25 +359,16 @@ Deno.serve(async (req) => {
 
   async function auditarVisual(generada: string, mimeGenerada: string): Promise<any> {
     if (!imagen || !generada) return { pass: true, skipped: true, reasons: [] };
-    const auditPrompt = [
-      "You are a strict QA inspector for architectural/product visualization.",
-      "REFERENCE IMAGE = source of truth. GENERATED IMAGE = candidate output.",
-      "Evaluate only what can be visually verified. Do not reward beauty over accuracy.",
-      `MODE=${modo}; ROOM=${cuarto || "n/a"}; ENVIRONMENT=${entorno || "n/a"}; EXPECTED_FLOOR_COUNT=${conteoPiso ?? "n/a"}.`,
-      "Return ONLY JSON with keys:",
-      '{"pass":boolean,"geometry_match":"PASS|FAIL|UNKNOWN","layout_match":"PASS|FAIL|UNKNOWN","environment_match":"PASS|FAIL|UNKNOWN","extra_objects":"PASS|FAIL|UNKNOWN","natural_camera":"PASS|FAIL|UNKNOWN","reasons":[string],"confidence":0-1}.',
-      "FAIL geometry_match if the product silhouette, module count, supports/legs, doors, shelves or major proportions differ.",
-      "FAIL layout_match for room/placement modes if furniture positions/orientations/room organization materially differ from reference.",
-      "FAIL environment_match if the declared room/environment does not read clearly or becomes a generic unrelated office.",
-      "FAIL extra_objects if new floor-standing furniture/partitions/rooms are invented.",
-      "FAIL natural_camera for dollhouse/aerial/fisheye/physically implausible perspective when a natural view is required.",
-      "pass=true only if every relevant critical field is PASS; UNKNOWN may remain only for non-relevant fields."
-    ].join("\n");
+    // VH-121: el auditor recibe lo esperado (piezas de piso con medidas, sillas) y las referencias de
+    // producto, para juzgar la geometría contra la FICHA y no contra una caja del isométrico.
+    const refsProducto = (Array.isArray(imagenes) ? imagenes : []).filter((im: any) => typeof im === "string" && im).slice(0, 5);
+    const auditPrompt = promptAuditoria({ modo, cuarto, entorno, conteoPiso, esperados: esperadosN, sillas, nRefs: refsProducto.length });
     const refMime = String(mediaType || "image/jpeg").startsWith("image/") ? mediaType : "image/jpeg";
     const bodyAudit = {
       contents:[{role:"user",parts:[
         {text:auditPrompt},
-        {text:"REFERENCE IMAGE:"},{inlineData:{mimeType:refMime,data:imagen}},
+        {text:"REFERENCE IMAGE (diagram):"},{inlineData:{mimeType:refMime,data:imagen}},
+        ...refsProducto.flatMap((im: string, i: number) => [{text:`PRODUCT REFERENCE ${i + 1}:`},{inlineData:{mimeType:"image/jpeg",data:im}}]),
         {text:"GENERATED IMAGE:"},{inlineData:{mimeType:mimeGenerada,data:generada}}
       ]}],
       generationConfig:{responseMimeType:"application/json",temperature:0}
@@ -440,12 +437,9 @@ Deno.serve(async (req) => {
     const MAX_INTENTOS = 2;   // 1 imagen inicial + 1 rehecha; más que eso es mucho tiempo y costo por render
     let contents: any[] = [{ role: "user", parts }, { role: "model", parts: [{ inlineData: { mimeType: mime, data: inline.data } }] }];
     for (let intento = 1; intento <= MAX_INTENTOS; intento++) {
-      const preguntaConteo =
-        "Count ONLY the floor-standing furniture pieces visible in the image you just produced: desks, benches, " +
-        "storage units, meeting tables, privacy screens — anything that stands directly on the floor. Do NOT count " +
-        "chairs, monitors, mugs, notebooks or anything sitting on top of another piece. " +
-        "Answer with ONLY the total number, digits only, no words, no punctuation.";
-      contents = [...contents, { role: "user", parts: [{ text: preguntaConteo }] }];
+      // VH-121: el contador enumera LO QUE SE ESPERA en el cuarto (antes no contaba mostradores: "0 de 1").
+      const textoPregunta = preguntaConteo(esperadosN, conteoEsperado);
+      contents = [...contents, { role: "user", parts: [{ text: textoPregunta }] }];
       const rc = await llamarGemini(contents, textConfig);
       // Si el contador falla (cuota, red), se entrega la imagen que ya hay: un
       // error del CONTADOR no tiene por qué tumbar un render que sí se generó.
@@ -483,6 +477,11 @@ Deno.serve(async (req) => {
   // Para modos con referencia, compara fuente vs resultado antes de persistir.
   const audit = await auditarVisual(inline.data, mime);
   if (!audit.pass && !audit.skipped) {
+    // VH-115: telemetría del rechazo (campos que fallaron) para diagnosticar falsos negativos del auditor.
+    try {
+      const fallidos = ["geometry_match", "layout_match", "environment_match", "extra_objects", "natural_camera"].filter((k) => (audit as any)?.[k] === "FAIL");
+      await svc.from("render_eventos").update({ ok: false, codigo: `${audit.code || "RENDER_QA_FAILED"}:${fallidos.join("+") || "sin_campo"}` }).eq("request_id", requestId);
+    } catch (_e) { /* best-effort */ }
     return json({
       ok:false,
       code:audit.code || "RENDER_QA_FAILED",
@@ -491,6 +490,8 @@ Deno.serve(async (req) => {
       request_id:requestId,
     }, audit.code==="AUDIT_UNAVAILABLE" ? 503 : 200);
   }
+
+  try { await svc.from("render_eventos").update({ ok: true, codigo: audit.skipped ? "SIN_AUDITORIA" : "QA_PASS" }).eq("request_id", requestId); } catch (_e) { /* best-effort */ }
 
   // PERFORMANCE: no devolver ~2 MB de base64 al navegador sólo para que lo
   // vuelva a subir. El servidor ya tiene los bytes y service-role: persiste una

@@ -17,7 +17,9 @@ import { BANCO } from './banco.js';
 import { medidasAwd } from './catalogoCanonico.js';
 
 const ID_BENCH_DOBLE = /bench-?doble/i;              // id de catálogo (p9-app-lt-bench-doble-*)
-const NOMBRE_BENCH_DOBLE = /\bbench\s*doble\b/i;     // nombre canónico de familia
+// VH-112: la persona escribe "Banca doble" (VONI/banco: "Banca doble APP LT 1.50 · 8 usuarios"); sin esto el
+// ancla quedaba UNKNOWN → una sola cara → 8 sillas en 4 lugares (encimadas).
+const NOMBRE_BENCH_DOBLE = /\b(bench|banca|banco)\s*doble\b/i;     // nombre canónico de familia
 
 // Devuelve un placement_profile {topology, provenance, evidence} o null.
 export function topologiaDeProducto(prod = {}) {

@@ -28,3 +28,11 @@ describe('descarga PDF real',()=>{
     expect(b).toContain('if (datos.borrador) marcarBorrador(doc)');
   });
 });
+
+// VH-118: el nombre del archivo es ASCII (Chromium descartaba "único"/"·" y bajaba "download" sin .pdf).
+import { it as itN, expect as exN } from 'vitest';
+import { nombreArchivoPropuesta as nombreN } from './pdfPropuesta.js';
+itN('nombreArchivoPropuesta: tildes y "·" se vuelven ASCII y conserva .pdf', () => {
+  exN(nombreN({ cot: { folio: 'QA-002', cliente: 'PRUEBA despacho único · r4' } })).toBe('Propuesta QA-002 PRUEBA despacho unico - r4.pdf');
+  exN(nombreN({ cot: { cliente: 'Torre Sur (golden) · POST-DEPLOY' }, borrador: true })).toBe('BORRADOR Propuesta Torre Sur (golden) - POST-DEPLOY.pdf');
+});

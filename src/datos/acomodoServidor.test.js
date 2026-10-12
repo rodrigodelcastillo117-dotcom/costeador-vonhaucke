@@ -70,3 +70,23 @@ describe('interpretarAcomodoServidor', () => {
     expect(interpretarAcomodoServidor(r, PIEZAS).avisos[0]).toMatch(/meeting table.*no le corresponde/);
   });
 });
+
+describe('VH-111 · estados del edge que antes se leían como "sin validación"', () => {
+  it('NEEDS_SEMANTIC_REVIEW: plan usable, estado reconocido, auditoría con la revisión semántica', () => {
+    const r = base({ layoutSpec: { status: 'NEEDS_SEMANTIC_REVIEW', validation: { issues: [], reviews: [], semantic_gate: { sem_status: 'REVIEW_REQUIRED', semFail: 0, semReview: 2 } },
+      seleccion: { ganador_eval: { sem_status: 'REVIEW_REQUIRED', semFail: 0, semReview: 2, sem_issues: [{ code: 'SEMANTIC_PROFILE_UNKNOWN', anchor: 'a', severity: 'review' }, { code: 'SEMANTIC_PROFILE_UNKNOWN', anchor: 'c', severity: 'review' }] } } } });
+    const i = interpretarAcomodoServidor(r, PIEZAS);
+    expect(i.ok).toBe(true); expect(i.estado).toBe('NEEDS_SEMANTIC_REVIEW');
+    const v = i.plan.auditoria.find((a) => a.check === 'Validación del servidor');
+    expect(v.ok).toBe(false);
+    expect(v.detalle).toMatch(/falta la revisión semántica/);
+    expect(v.detalle).toMatch(/topología de «a»/);
+    expect(v.detalle).not.toMatch(/no devolvió/);
+    expect(i.plan.servidor.estado).toBe('NEEDS_SEMANTIC_REVIEW');
+  });
+  it('QUALITY_REVIEW_REQUIRED y NEEDS_REVIEW_METADATA también se reconocen', () => {
+    expect(estadoAcomodo({ layoutSpec: { status: 'QUALITY_REVIEW_REQUIRED' } })).toBe('QUALITY_REVIEW_REQUIRED');
+    expect(estadoAcomodo({ layoutSpec: { status: 'NEEDS_REVIEW_METADATA' } })).toBe('NEEDS_REVIEW_METADATA');
+    expect(estadoAcomodo({ layoutSpec: { status: 'LO_QUE_SEA' } })).toBe('SIN_VALIDACION');
+  });
+});

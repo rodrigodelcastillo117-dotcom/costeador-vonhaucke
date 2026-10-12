@@ -27,7 +27,10 @@ export const HARD_ACCESS_MM = 0;        // clearance ≤ 0 = inutilizable → fa
 export const QUALITY_ACCESS_TARGET_MM = 600;
 
 // Rol de silla esperado por tipo de ancla (para KIT_FUNCTIONAL_RELATION_BROKEN).
-const SEAT_ROL_DE_ANCLA = { ANCHOR_WORKSTATION: 'WORK_SEAT', ANCHOR_MEETING: 'MEETING_SEAT', ANCHOR_DESK: 'EXECUTIVE_SEAT', ANCHOR_RECEPTION: 'VISITOR_SEAT' };
+// VH-119: un escritorio privado recibe a su ejecutivo (lado BACK) Y a sus visitas (lado FRONT); antes sólo
+// admitía EXECUTIVE_SEAT y toda silla de visita se marcaba KIT_FUNCTIONAL_RELATION_BROKEN.
+const SEAT_ROL_DE_ANCLA = { ANCHOR_WORKSTATION: ['WORK_SEAT'], ANCHOR_MEETING: ['MEETING_SEAT'], ANCHOR_DESK: ['EXECUTIVE_SEAT', 'VISITOR_SEAT'], ANCHOR_RECEPTION: ['VISITOR_SEAT'] };
+const LADO_DE_ROL_EN_ESCRITORIO = { EXECUTIVE_SEAT: 'BACK', VISITOR_SEAT: 'FRONT' };
 
 function rectDe(c, p) {
   const g = num(c.rot) === 90 || num(c.rot) === 270;
@@ -65,10 +68,12 @@ function clearanceAcceso(s, facing, area) {
 }
 
 // Slots esperados (slot_id + side) de un ancla, por su topología confirmada.
-function slotsEsperados(anchorPieza, nDeps) {
+function slotsEsperados(anchorPieza, deps) {
   const topo = anchorPieza._topology;
   if (!topo || topo === 'UNKNOWN') return null;
-  const lay = layoutDeTopologia(topo, num(anchorPieza.w), num(anchorPieza.d), nDeps);
+  // VH-119: mismo orden que componerKit (ejecutivo primero) para que los slots esperados coincidan.
+  const ordenadas = [...deps.filter((d) => d.relation_role === 'EXECUTIVE_SEAT'), ...deps.filter((d) => d.relation_role !== 'EXECUTIVE_SEAT')];
+  const lay = layoutDeTopologia(topo, num(anchorPieza.w), num(anchorPieza.d), deps.length, ordenadas.map((d) => d.relation_role));
   return lay.seats.map((s) => ({ slot_id: s.slot_id, side: s.side }));
 }
 
@@ -104,7 +109,7 @@ export function juzgarSemantico(areas = [], piezas = [], colocacion = []) {
   for (const [id, a] of anclas) {
     if (!a.topology || a.topology === 'UNKNOWN') continue;
     const deps = depsPorAncla.get(id) || [];
-    const esperados = slotsEsperados(a.pieza, deps.length);
+    const esperados = slotsEsperados(a.pieza, deps);
     if (!esperados) continue;
     const esperadoSlots = new Set(esperados.map((s) => s.slot_id));
     const colocados = colSeatPorAncla.get(id) || [];
@@ -114,7 +119,9 @@ export function juzgarSemantico(areas = [], piezas = [], colocacion = []) {
     for (const c of colocados) {
       const p = byId.get(String(c.id));
       if (c.slot_id && !esperadoSlots.has(c.slot_id)) add('DEPENDENT_WRONG_SLOT', { id: c.id, slot: c.slot_id, anchor: id, severity: 'fail' });
-      if (rolEsperado && p && p.relation_role !== rolEsperado) add('KIT_FUNCTIONAL_RELATION_BROKEN', { id: c.id, rol: p.relation_role, esperado: rolEsperado, anchor: id, severity: 'fail' });
+      if (rolEsperado && p && !rolEsperado.includes(p.relation_role)) add('KIT_FUNCTIONAL_RELATION_BROKEN', { id: c.id, rol: p.relation_role, esperado: rolEsperado.join('|'), anchor: id, severity: 'fail' });
+      // VH-119: en el escritorio, el ejecutivo detrás (BACK) y las visitas al frente (FRONT); al revés es relación rota.
+      else if (a.rol === 'ANCHOR_DESK' && p && c.side && LADO_DE_ROL_EN_ESCRITORIO[p.relation_role] && c.side !== LADO_DE_ROL_EN_ESCRITORIO[p.relation_role]) add('KIT_FUNCTIONAL_RELATION_BROKEN', { id: c.id, rol: p.relation_role, side: c.side, esperado: LADO_DE_ROL_EN_ESCRITORIO[p.relation_role], anchor: id, severity: 'fail' });
     }
     const sidesEsperados = new Set(esperados.map((s) => s.side));
     const sidesColocados = new Set(colocados.map((c) => c.side).filter(Boolean));

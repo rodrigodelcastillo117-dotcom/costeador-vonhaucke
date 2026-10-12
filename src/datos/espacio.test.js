@@ -78,3 +78,37 @@ describe('el biombo del bench no lo convierte en mampara', () => {
     expect(tipoDe({ ruta: 'privacy4', nombre: 'Muro / Panel' })).toBe('mampara');
   });
 });
+
+// VH-112 · la capacidad declarada en el nombre viaja al solver (sin inventar nada).
+import { describe as dCap, it as iCap, expect as eCap } from 'vitest';
+import { capacidadDeNombre, expandirPiezas as expandirCap } from './espacio.js';
+dCap('VH-112 · capacidadDeNombre', () => {
+  iCap('lee "8 usuarios", "6 puestos", "10 personas"; sin número y banca doble ⇒ 2 × módulos; sin evidencia ⇒ null', () => {
+    eCap(capacidadDeNombre('Banca doble APP LT 1.50 · 8 usuarios · ocupa 6.00 × 1.20 m')).toBe(8);
+    eCap(capacidadDeNombre('Módulo operativo 6 puestos')).toBe(6);
+    eCap(capacidadDeNombre('Mesa de juntas para 10 personas')).toBe(10);
+    eCap(capacidadDeNombre('Banca doble APP LT', { w: 6000, rol: 'ANCHOR_WORKSTATION' })).toBe(8);
+    eCap(capacidadDeNombre('Banca doble APP LT', { w: 6000, rol: 'ANCHOR_MEETING' })).toBe(null);
+    eCap(capacidadDeNombre('Escritorio APP LT 1.50 × 0.75')).toBe(null);
+  });
+  iCap('expandirPiezas: la banca "8 usuarios" sale con user_capacity 8 (inferida); con user_capacity explícito gana el explícito', () => {
+    const [b] = expandirCap([{ id: 'b', nombre: 'Banca doble APP LT 1.50 · 8 usuarios · ocupa 6.00 × 1.20 m', cantidad: 1, w: 6000, d: 1200, piezaId: 'linea-banca_doble', productoId: 'banca_doble' }]);
+    eCap(b.relation_role).toBe('ANCHOR_WORKSTATION'); eCap(b.user_capacity).toBe(8); eCap(b.user_capacity_inferida).toBe(true);
+    const [c] = expandirCap([{ id: 'c', nombre: 'Banca doble APP LT 1.50 · 8 usuarios', cantidad: 1, w: 6000, d: 1200, user_capacity: 6, piezaId: 'linea-banca_doble', productoId: 'banca_doble' }]);
+    eCap(c.user_capacity).toBe(6); eCap(c.user_capacity_inferida).toBeUndefined();
+  });
+});
+
+// VH-120 · la fuente de la capacidad viaja al solver; `usuarios` (VONI: "3 bancas de 8") ya no se pierde.
+dCap('VH-120 · capacity_source en el payload del solver', () => {
+  iCap('usuarios de la persona ⇒ USUARIO; ficha del banco ⇒ CATALOGO; nombre ⇒ INFERIDA (+ user_capacity_inferida)', () => {
+    const [u] = expandirCap([{ id: 'u', nombre: 'Banca doble APP LT', cantidad: 1, w: 6000, d: 1200, usuarios: 12, piezaId: 'linea-banca_doble', productoId: 'banca_doble' }]);
+    eCap(u.user_capacity).toBe(12); eCap(u.capacity_source).toBe('USUARIO'); eCap(u.user_capacity_inferida).toBeUndefined();
+    const [c] = expandirCap([{ id: 'c', nombre: 'Bench doble APP LT 4.80', cantidad: 1, w: 4800, d: 1200, usuarios: 8, deBanco: true, origen: 'banco', piezaId: 'p9-app-lt-bench-doble-8' }]);
+    eCap(c.user_capacity).toBe(8); eCap(c.capacity_source).toBe('CATALOGO');
+    const [i] = expandirCap([{ id: 'i', nombre: 'Banca doble APP LT 1.50 · 8 usuarios · ocupa 6.00 × 1.20 m', cantidad: 1, w: 6000, d: 1200, piezaId: 'linea-banca_doble', productoId: 'banca_doble' }]);
+    eCap(i.user_capacity).toBe(8); eCap(i.capacity_source).toBe('INFERIDA'); eCap(i.user_capacity_inferida).toBe(true);
+    const [s] = expandirCap([{ id: 's', nombre: 'Escritorio APP LT 1.50 × 0.75', cantidad: 1, w: 1500, d: 750, piezaId: 'linea-escritorio', productoId: 'escritorio' }]);
+    eCap(s.user_capacity).toBeUndefined(); eCap(s.capacity_source).toBeUndefined();
+  });
+});

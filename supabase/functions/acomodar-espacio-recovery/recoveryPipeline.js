@@ -66,6 +66,9 @@ export function construirRespuestaAcomodo(areas = [], piezas = []) {
       semantic: val,
       semantic_gate: { sem_status: semEval.sem_status ?? null, semantic_pass: semanticPass, semFail: semEval.semFail ?? null, quality: semEval.quality ?? null, quality_status: semEval.quality_status ?? null },
       min_pasillo_mm: CONTRATO.min_pasillo_mm,
+      // VH-120: capacidad por ancla con su fuente (CATALOGO/USUARIO/INFERIDA/DECLARADA/GEOMETRICA), tope geométrico y
+      // conflicto. Informativo: no cambia status ni ranking; la estimación geométrica es PRELIMINAR y se dice.
+      capacidad: piezasAsign.filter((p) => p.capacidad && /^ANCHOR_/.test(String(p.relation_role || ''))).map((p) => ({ id: String(p.id), nombre: p.nombre ?? null, rol: p.relation_role, ...p.capacidad })),
     },
     seleccion: sel,
     mensaje_vendedor: mensaje,

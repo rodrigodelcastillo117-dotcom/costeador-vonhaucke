@@ -352,7 +352,9 @@ Deno.serve(async (req) => {
   const contenido = [...bloquesImagen, { type: "text", text: textoTarea }];
   const pedir = async (schema: any, sys: string, maxTok: number, effort: string, model: string) => {
     const ac = new AbortController();
-    const timer = setTimeout(() => ac.abort(), esRevision ? 45_000 : 75_000);
+    // VH-108 (evidencia ai_eventos 7 d): la REVISIÓN con 45 s abortaba 5 de 5 veces con Opus
+    // (p50 45.6 s = el límite); el resto de modos usa 75 s con 1 % de timeouts. Mismo límite.
+    const timer = setTimeout(() => ac.abort(), 75_000);
     const tFetch0 = Date.now();   // t0 de ESTE intento (telemetría; no altera comportamiento)
     // Métricas de ESTE intento — reset per-attempt para que un abort/error NO herede valores
     // del intento anterior. Se registran SIEMPRE en el finally (incl. abort/timeout/network).
@@ -433,8 +435,12 @@ Deno.serve(async (req) => {
   // con precios canónicos): modelo RÁPIDO para no exceder el wall-clock (Opus tardaba >75 s en el
   // TTFT de visión → PROVIDER_TIMEOUT). Opus se conserva para texto/revisión/pasadas de costeo.
   const esVisualPrimera = !soloTexto && !esRevision && resp.length === 0;
+  // VH-108: la REVISIÓN (foto/plano + respuestas) también va al modelo rápido de visión. Evidencia
+  // (ai_eventos, 7 días): revisión con Opus = 5/5 PROVIDER_TIMEOUT; con el modelo visual = 0/7,
+  // p50 33 s, p95 59 s. El costeo lo hace el motor con precios canónicos, no el modelo.
+  const usarModeloVisual = esVisualPrimera || (esRevision && !soloTexto);
   let MODEL_PASADA = MODEL_ID;
-  if (esVisualPrimera) {
+  if (usarModeloVisual) {
     try {
       MODEL_PASADA = resolverModeloVisual("analizar-mueble", {
         ANTHROPIC_MODEL_VISUAL_ANALIZAR_MUEBLE: Deno.env.get("ANTHROPIC_MODEL_VISUAL_ANALIZAR_MUEBLE") ?? undefined,

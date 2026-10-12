@@ -244,3 +244,19 @@ describe('VH-091 · tres decisiones con vista previa', () => {
     expect(r2.sinCambio.some((i) => i.relation_role === 'MEETING_SEAT')).toBe(true);        // sus sillas se reutilizan, no se duplican
   });
 });
+
+// VH-112 · al reutilizar la banca de la persona como EXISTENTE_EQUIVALENTE, su capacidad declarada ("8 usuarios")
+// manda sobre la del módulo propuesto (12).
+import { describe as dC, it as iC, expect as eC } from 'vitest';
+import { confirmarPrograma as confC } from './confirmarPrograma.js';
+dC('VH-112 · capacidad declarada al enriquecer', () => {
+  iC('el patch conserva user_capacity 8 aunque el módulo del programa diga 12', () => {
+    const propuesta = { partidas: [{ rol: 'operativo', relation_role: 'ANCHOR_WORKSTATION', bancoId: 'op-12u', nombre: 'Módulo operativo 12 usuarios', cantidad: 1, requirement_id: 'req:OP:0', instance_id: 'inst:OP', functional_group_id: 'fg:OP', zone_id: 'ÁREA OPERATIVA', w: 9000, d: 1200, user_capacity: 12 }], pendientes: [] };
+    const existentes = [{ id: 'b-1', nombre: 'Banca doble APP LT 1.50 · 8 usuarios · ocupa 6.00 × 1.20 m', cantidad: 2, piezaId: 'linea-banca_doble', w: 6000, d: 1200 }];
+    const r = confC(propuesta, { existentes });
+    const patch = (r.enriquecidos || []).find((e) => String(e.id) === 'b-1')?.patch;
+    eC(patch).toBeTruthy();
+    eC(patch.user_capacity).toBe(8);
+    eC(patch.instance_id).toBe('inst:OP');
+  });
+});

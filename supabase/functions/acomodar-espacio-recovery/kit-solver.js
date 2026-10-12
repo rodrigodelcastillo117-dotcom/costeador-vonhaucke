@@ -17,7 +17,7 @@
 //  Todo en mm. Puro (Deno + node). Reusa helpers vendorizados de ./spatial-core.js.
 // ============================================================================
 import { rectsSeSolapan, rectDentroPoligono, bloqueaPuertaEspacial } from './spatial-core.js';
-import { perfilDeAncla, layoutDeTopologia, rotarFacing, PROFILE_VERSION } from './placementProfiles.js';
+import { perfilDeAncla, layoutDeTopologia, rotarFacing, PROFILE_VERSION, ACCESO_EJECUTIVO } from './placementProfiles.js';
 import { juzgarSemantico } from './semanticPlacementJudge.js';
 import { validarColocacion } from './acomodo-core.js';
 import { juzgarCalidad, calidadAceptable } from './qualityJudge.js';
@@ -37,16 +37,48 @@ const esGaveta = (r) => ['UNDERDESK_STORAGE', 'SUPPORT_STORAGE'].includes(r);
 const num = (n, def = 0) => (Number.isFinite(Number(n)) ? Number(n) : def);
 
 // Capacidad de sillas que hospeda un ancla (determinista, del catálogo/dims).
+// VH-112: capacidad declarada en el nombre ("8 usuarios") o por topología doble (cliente viejo sin user_capacity).
+function capacidadDeclarada(p = {}) {
+  const t = String(p.nombre || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const m = t.match(/(\d+)\s*(usuarios?|puestos?|personas?|plazas?|lugares?|users?|seats?)\b/);
+  return m && Number(m[1]) > 0 ? Number(m[1]) : null;
+}
 export function capacidadAncla(p = {}) {
-  if (num(p.user_capacity) > 0) return Math.round(num(p.user_capacity));
   const w = num(p.w), d = num(p.d), m = Math.max(w, d);
+  // VH-112: tope FÍSICO de asientos de un operativo: una silla de 600 mm por cara y por cada 600 mm de
+  // largo (dos caras). El bench doble de catálogo 4800×1200 para 8 cabe (16 posibles); un módulo de 12
+  // sobre 6 m también (20). Lo que no cabe físicamente no se sienta: antes se encimaban.
+  const topeOperativo = p.relation_role === 'ANCHOR_WORKSTATION' && m > 0 ? 2 * Math.max(1, Math.floor(m / 600)) : Infinity;
+  if (num(p.user_capacity) > 0) return Math.min(Math.round(num(p.user_capacity)), topeOperativo);
+  const declarada = capacidadDeclarada(p);
+  if (declarada) return Math.min(declarada, topeOperativo);
+  const topo = p.placement_profile?.topology || p.placement_profile || null;
   switch (p.relation_role) {
-    case 'ANCHOR_WORKSTATION': return Math.max(1, Math.round(m / 1500));
+    case 'ANCHOR_WORKSTATION': return Math.max(1, Math.round(m / 1500)) * (topo === 'DOUBLE_FACE' || /\b(doble|double)\b/.test(String(p.nombre || '').toLowerCase()) ? 2 : 1);
     case 'ANCHOR_DESK':        return 1;
     case 'ANCHOR_MEETING':     return Math.max(2, 2 * Math.max(1, Math.floor(w / PITCH)) + 2 * Math.max(0, Math.floor(d / PITCH)));
     case 'ANCHOR_RECEPTION':   return Math.max(1, Math.round(w / 800));   // sillas de visita en recepción
     default:                   return 0;
   }
+}
+
+// VH-120 · la MISMA capacidad con su FUENTE y su tope geométrico, para que el cliente distinga lo declarado
+// (CATALOGO/USUARIO), lo leído del nombre (INFERIDA) y lo estimado por geometría (GEOMETRICA, preliminar).
+// `conflicto` cuando lo declarado supera lo que cabe (una silla cada 600 mm por cara): esas personas no se
+// sientan encimadas, quedan sin lugar y se reporta.
+export function capacidadConFuente(p = {}) {
+  const w = num(p.w), d = num(p.d), m = Math.max(w, d);
+  const topeGeometrico = p.relation_role === 'ANCHOR_WORKSTATION' && m > 0 ? 2 * Math.max(1, Math.floor(m / 600)) : null;
+  const explicita = num(p.user_capacity) > 0 ? Math.round(num(p.user_capacity)) : null;
+  const delNombre = explicita == null ? capacidadDeclarada(p) : null;
+  const declarada = explicita ?? delNombre;
+  const fuente = declarada == null ? 'GEOMETRICA'
+    : (['CATALOGO', 'USUARIO', 'INFERIDA'].includes(p.capacity_source) ? p.capacity_source
+      : (explicita != null && !p.user_capacity_inferida ? 'DECLARADA' : 'INFERIDA'));
+  const usada = capacidadAncla(p);
+  const conflicto = declarada != null && topeGeometrico != null && declarada > topeGeometrico ? 'CAPACIDAD_SUPERA_GEOMETRIA'
+    : (declarada == null && esAncla(p.relation_role) && p.relation_role !== 'ANCHOR_DESK' ? 'CAPACIDAD_ESTIMADA' : null);
+  return { capacidad: usada, declarada, fuente, tope_geometrico: topeGeometrico, preliminar: fuente === 'GEOMETRICA', conflicto };
 }
 
 // --- A · ASIGNACIÓN DE DUEÑO -------------------------------------------------
@@ -80,6 +112,8 @@ export function asignarDuenos(piezas = []) {
 
   // Guardas de piso: siempre SUELTAS (kit propio sin sillas), nunca bajo cubierta.
   for (const p of out) if (p.relation_role === 'SUPPORT_STORAGE') { p.standalone = true; p.anchor_instance_id = null; }
+  // VH-120: cada ancla sale con su capacidad resuelta, su FUENTE y su tope geométrico (aditivo, serializable).
+  for (const p of out) if (esAncla(p.relation_role)) { const c = capacidadConFuente(p); p.capacidad = { usada: c.capacidad, declarada: c.declarada, fuente: c.fuente, tope_geometrico: c.tope_geometrico, preliminar: c.preliminar, conflicto: c.conflicto }; }
   for (const [, { anclas, deps: deps0 }] of grupos) {
     const deps = deps0.filter((d) => d.relation_role !== 'SUPPORT_STORAGE');
     if (!anclas.length) { for (const d of deps) { porId(d.id).anchor_instance_id = null; huerfanos.push(d); } continue; }
@@ -147,11 +181,18 @@ export function componerKit(anchor, sillas = [], gavetas = []) {
   // GAP4: topología UNKNOWN NO es verdad; la geometría usa el fallback LEGACY, pero
   // el ancla conserva la topología REAL (UNKNOWN) para que el Semantic Judge lo marque.
   const topoGeom = perfil.topology !== 'UNKNOWN' ? perfil.topology : 'SINGLE_FACE';
-  const lay = layoutDeTopologia(topoGeom, aw, ad, sillas.length);
+  // VH-112: tope FÍSICO de lugares por cara (una silla de 600 mm cada 600 mm). Con topología desconocida
+  // (una cara) y 12 sillas en 6 m, antes se repartían a 500 mm y salían encimadas; lo que no cabe queda
+  // sin colocar y se reporta, no se encima.
+  const caras = topoGeom === 'DOUBLE_FACE' ? 2 : (topoGeom === 'SINGLE_FACE' ? 1 : 0);
+  const topeFisico = caras ? caras * Math.max(1, Math.floor(aw / SEAT)) : Infinity;
+  // VH-119: en un escritorio el ejecutivo va primero (slot BACK) y las visitas después (FRONT).
+  const ordenadas = topoGeom === 'DESK' ? [...sillas.filter((s) => s.relation_role === 'EXECUTIVE_SEAT'), ...sillas.filter((s) => s.relation_role !== 'EXECUTIVE_SEAT')] : sillas;
+  const lay = layoutDeTopologia(topoGeom, aw, ad, Math.min(ordenadas.length, topeFisico), ordenadas.map((s) => s.relation_role));
   const piezas = [{ id: String(anchor.id), dx: lay.anchor.dx, dy: lay.anchor.dy, w: aw, d: ad, rol, topology: perfil.topology, provenance: perfil.provenance, profile_version: perfil.version, fallback_layout: perfil.topology === 'UNKNOWN' ? (perfil.fallback_layout_strategy || 'LEGACY_SINGLE_FACE') : null }];
   const sinColocar = [];
 
-  sillas.forEach((s, i) => {
+  ordenadas.forEach((s, i) => {
     const slot = lay.seats[i];
     if (slot) piezas.push({ id: String(s.id), dx: slot.dx, dy: slot.dy, w: SEAT, d: SEAT, rol: s.relation_role, slot_id: slot.slot_id, side: slot.side, facing: slot.facing });
     else sinColocar.push(String(s.id));
@@ -160,13 +201,18 @@ export function componerKit(anchor, sillas = [], gavetas = []) {
     const gw = num(g.w, 400), gd = num(g.d, 500);
     piezas.push({ id: String(g.id), dx: lay.anchor.dx + Math.min(Math.max(0, aw - gw), i * (gw + 50)), dy: lay.anchor.dy + Math.max(0, ad - gd), w: gw, d: gd, rol: g.relation_role, bajoTablero: true, slot_id: `storage_${i + 1}` });
   });
-  return { anchorId: String(anchor.id), w: lay.kitW, d: lay.kitD, piezas, sinColocar };
+  // VH-119b: la franja de acceso del ejecutivo (DESK, arriba del kit) es CIRCULACIÓN, no mueble: el pasillo
+  // de 1 m entre kits se mide desde la silla, no desde la franja (una credenza detrás del ejecutivo es lo normal).
+  const accesoLado = topoGeom === 'DESK' && lay.anchor.dy >= ACCESO_EJECUTIVO ? 'top' : null;
+  return { anchorId: String(anchor.id), w: lay.kitW, d: lay.kitD, piezas, sinColocar, accesoLado };
 }
 
 // Rota un kit 90° (intercambia dims; gira coords internas).
 function rotarKit(kit) {
   return {
     anchorId: kit.anchorId, w: kit.d, d: kit.w, sinColocar: kit.sinColocar,
+    // (x,y)→(H-(y+h), x): la franja de arriba queda a la DERECHA del kit girado.
+    accesoLado: kit.accesoLado === 'top' ? 'right' : (kit.accesoLado === 'right' ? 'bottom' : (kit.accesoLado === 'bottom' ? 'left' : (kit.accesoLado === 'left' ? 'top' : null))),
     // Conserva metadata semántica y ROTA el facing cardinal (GAP3). `side` semántico
     // (A/B/HEAD_A/HEAD_B/FRONT) se conserva; `facing` absoluto gira con el bloque.
     piezas: kit.piezas.map((p) => ({ id: p.id, rol: p.rol, bajoTablero: p.bajoTablero, w: p.d, d: p.w, dx: kit.d - (p.dy + p.d), dy: p.dx, slot_id: p.slot_id, side: p.side, facing: rotarFacing(p.facing, 90), topology: p.topology, provenance: p.provenance, profile_version: p.profile_version, fallback_layout: p.fallback_layout })),
@@ -188,16 +234,27 @@ function areasPermitidas(anchorPieza, areas) {
 }
 
 // ¿Cabe el kit (rect bruto w×d en (x,y))? Pasillo entre kits vs `ocupados`.
-function kitCabe(x, y, kw, kh, area, ocupados) {
+// Rect de un kit SIN su franja de acceso (para medir el pasillo entre kits). VH-119b.
+function rectPasillo(x, y, kw, kh, accesoLado) {
+  const a = ACCESO_EJECUTIVO;
+  if (accesoLado === 'top') return { x, y: y + a, w: kw, d: Math.max(0, kh - a) };
+  if (accesoLado === 'bottom') return { x, y, w: kw, d: Math.max(0, kh - a) };
+  if (accesoLado === 'left') return { x: x + a, y, w: Math.max(0, kw - a), d: kh };
+  if (accesoLado === 'right') return { x, y, w: Math.max(0, kw - a), d: kh };
+  return { x, y, w: kw, d: kh };
+}
+function kitCabe(x, y, kw, kh, area, ocupados, accesoLado = null) {
   const W = num(area.ancho) || num(area.width_mm), H = num(area.largo) || num(area.depth_mm);
   if (x < 0 || y < 0 || x + kw > W + 1 || y + kh > H + 1) return 'OUT_OF_BOUNDS';
   const rect = { x, y, w: kw, d: kh };
+  const pas = rectPasillo(x, y, kw, kh, accesoLado);
   if (Array.isArray(area.poly) && area.poly.length >= 3 && !rectDentroPoligono(rect, area.poly)) return 'OUT_OF_POLYGON';
   for (const o of (area.obstaculos || [])) if (rectsSeSolapan(rect, { x: num(o.x), y: num(o.y), w: num(o.w), d: num(o.h) })) return 'OBSTACLE';
   for (const p of (area.puertas || [])) if (bloqueaPuertaEspacial(rect, p)) return 'DOOR';
   for (const oc of ocupados) {
     if (rectsSeSolapan(rect, oc)) return 'OVERLAP';
-    if (rectsSeSolapan({ x: x - AISLE, y: y - AISLE, w: kw + 2 * AISLE, d: kh + 2 * AISLE }, oc)) return 'AISLE';
+    // Pasillo: entre los rects SIN franja de acceso (la franja es piso libre; no se encima, pero no suma pasillo).
+    if (rectsSeSolapan({ x: pas.x - AISLE, y: pas.y - AISLE, w: pas.w + 2 * AISLE, d: pas.d + 2 * AISLE }, oc.pasillo || oc)) return 'AISLE';
   }
   return null;
 }
@@ -499,13 +556,13 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
           // GAP35.A: checar deadline DENTRO del barrido (no sólo al entrar a intentarKit),
           // para que una malla grande no exceda el presupuesto. Cada 512 nodos (barato).
           if (deadline && (nodos % 512 === 0) && Date.now() >= deadline) { budgetExhausted = true; return idx >= kits.length; }
-          const motivo = kitCabe(c.x, c.y, k.w, k.d, area, ocupadosPorArea.get(ai));
+          const motivo = kitCabe(c.x, c.y, k.w, k.d, area, ocupadosPorArea.get(ai), k.accesoLado || null);
           if (motivo) {
             // GAP17: histograma de rechazos (SÓLO registra; no altera el flujo).
             kit._rej = kit._rej || {}; kit._rej[motivo] = (kit._rej[motivo] || 0) + 1;
             if (motivo !== 'AISLE') mejorMotivo = motivo; continue;
           }
-          ocupadosPorArea.get(ai).push({ x: c.x, y: c.y, w: k.w, d: k.d });
+          ocupadosPorArea.get(ai).push({ x: c.x, y: c.y, w: k.w, d: k.d, pasillo: rectPasillo(c.x, c.y, k.w, k.d, k.accesoLado || null) });
           const abs = { areaIdx: ai, x: c.x, y: c.y, rot };
           const base = colocacion.length;
           k.piezas.forEach((p) => colocacion.push(colocarPieza(abs, p)));
@@ -613,9 +670,16 @@ function evaluarCandidato(areas, piezas, sol) {
     quality_components = q.components; quality_reasons = q.reasons;
   }
 
+  // VH-110: la lista de observaciones semánticas viaja al cliente (antes sólo los conteos),
+  // para que la pantalla diga QUÉ revisar (silla sin mirar a su mesa, lugar sin silla, etc.).
+  const sem_issues = (sem.issues || []).map((i) => ({
+    code: i.code, severity: i.severity ?? null,
+    ...(i.id != null ? { id: i.id } : {}), ...(i.anchor != null ? { anchor: i.anchor } : {}),
+    ...(i.slot != null ? { slot: i.slot } : {}), ...(i.clear != null ? { clear: i.clear } : {}), ...(i.target != null ? { target: i.target } : {}),
+  }));
   return {
     placed, hardOk, hard_issues: hardFails.length,
-    sem_status: sem.status, semFail, semReview, semantic_pass, semRank,
+    sem_status: sem.status, semFail, semReview, semantic_pass, semRank, sem_issues,
     quality, quality_status, quality_components, quality_reasons,
   };
 }

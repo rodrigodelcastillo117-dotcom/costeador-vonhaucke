@@ -115,8 +115,23 @@ test('cinco caminos contra el servidor real', async ({ browser }) => {
     const e = reporte.edges.filter((x) => x.edge === 'acomodar-espacio').pop();
     const estadoSrv = (e?.cuerpo || '').match(/"status":"[A-Z_]+"/)?.[0] || '';
     const texto = hayRoja ? await bad.textContent() : (await amb.isVisible().catch(() => false) ? await amb.textContent() : 'plan dibujado sin avisos');
-    // FAIL del servidor con error explicado en pantalla también es comportamiento correcto (VH-067).
-    anota('acomodar-espacio', resAco.status() === 200 && (!hayRoja || /no pudo colocar/.test(texto)), `${resAco.status()} ${estadoSrv} · ${texto}`.slice(0, 260));
+    // Veredicto explícito: PASS, o geometría válida con revisión semántica/calidad legítima
+    // (NEEDS_SEMANTIC_REVIEW / QUALITY_REVIEW_REQUIRED / REVIEW_REQUIRED) con TODAS las piezas
+    // colocadas, es comportamiento correcto; también un FAIL explicado en pantalla (VH-067).
+    // Lo que NO se acepta: piezas sin colocar sin decirlo, o una alerta roja sin explicación.
+    const cuerpo = (() => { try { return JSON.parse(e?.cuerpo || '{}'); } catch (_e) { return {}; } })();
+    const spec = cuerpo.layoutSpec || {};
+    const estado = String(spec.status || cuerpo.status || '');
+    const colocadas = Array.isArray(cuerpo.plan?.colocacion) ? cuerpo.plan.colocacion.length : 0;
+    const total = Number(spec.requested) || colocadas;
+    const fallasDuras = (spec.validation?.issues || []).filter((i) => i.severity === 'fail').length;
+    const aceptable = resAco.status() === 200 && (
+      (estado === 'PASS')
+      || (['NEEDS_SEMANTIC_REVIEW', 'QUALITY_REVIEW_REQUIRED', 'REVIEW_REQUIRED'].includes(estado) && colocadas === total && fallasDuras === 0 && !hayRoja)
+      || (hayRoja && /no pudo colocar/.test(texto))
+    );
+    const veredictoUI = await page.getByTestId('veredicto-acomodo').getAttribute('data-estado').catch(() => null);
+    anota('acomodar-espacio', aceptable, `${resAco.status()} ${estadoSrv} · ${colocadas}/${total} colocadas · ${fallasDuras} fallas duras · UI ${veredictoUI || 'sin veredicto'} · ${texto}`.slice(0, 300));
   } catch (e) { anota('acomodar-espacio', false, String(e.message).slice(0, 200)); }
   guardar();
 

@@ -143,3 +143,86 @@ describe('conciliación con varias zonas (release gate)', () => {
     expect(r.partidas.find((p) => p.id === 'n1').instance_id).toBe('inst:SALA B');
   });
 });
+
+// ============================================================================
+//  VH-116 · REPARTO SÓLO CON DECISIÓN EXPLÍCITA. La cantidad no prueba intención: sin decisión,
+//  NEEDS_REVIEW con opciones; nada se mueve, nada se pierde, nada se duplica sin justificación.
+// ============================================================================
+describe('VH-116 · anclas con cantidad > 1 frente a varias zonas', () => {
+  const PROG = (o) => ({ source: 'CONFIRMADO_PROGRAMA', ...o });
+  const mesaProg = (z, idx, extra = {}) => PROG({ id: `p${z}`, nombre: 'Mesa de juntas', bancoId: 'mj-2400x1200', cantidad: 1, relation_role: 'ANCHOR_MEETING', requirement_id: `req:SALA ${z}:juntas:${idx}`, instance_id: `inst:${z}`, functional_group_id: `fg:${z}`, zone_id: `SALA ${z}`, w: 2400, d: 1200, user_capacity: 8, precioUnitario: 9000, ...extra });
+  const mesaUsuario = (extra = {}) => ({ id: 'm-1', nombre: 'Mesa de juntas APP LT 2.40 × 1.20', cantidad: 2, piezaId: 'linea-mesa_juntas', precioUnitario: 9800, w: 2400, d: 1200, ...extra });
+  const mesas = (r) => r.partidas.filter((p) => p.relation_role === 'ANCHOR_MEETING');
+  const unidades = (r) => mesas(r).reduce((s, p) => s + (Number(p.cantidad) || 1), 0);
+
+  it('1 · mesa ×2 ya atada a A, programa con B: sin decisión NEEDS_REVIEW (puedeRepartir), nada se mueve ni se pierde', () => {
+    const r = reconciliarNuevasConPrograma([mesaProg('B', 1)], [mesaUsuario({ relation_role: 'ANCHOR_MEETING', requirement_id: 'req:SALA A:juntas:0', instance_id: 'inst:A', functional_group_id: 'fg:A', zone_id: 'SALA A' })]);
+    expect(r.ambiguas).toHaveLength(1);
+    expect(r.ambiguas[0]).toMatchObject({ id: 'm-1', puedeRepartir: true, motivo: 'CANTIDAD_MAYOR_QUE_LUGAR', cantidad: 2 });
+    expect(r.ambiguas[0].opciones.map((o) => o.zona)).toEqual(['SALA B']);
+    expect(r.sustituidas).toEqual([]);
+    expect(mesas(r).find((m) => m.id === 'm-1')).toMatchObject({ cantidad: 2, zone_id: 'SALA A' });
+    expect(r.partidas.find((p) => p.id === 'pB')).toBeTruthy();              // la mesa del programa de B sigue (requerimiento distinto, no duplicado)
+  });
+  it('1b · con decisión "repartir": una unidad a B, la instancia B del programa se consume, cantidades completas', () => {
+    const r = reconciliarNuevasConPrograma([mesaProg('B', 1)], [mesaUsuario({ relation_role: 'ANCHOR_MEETING', requirement_id: 'req:SALA A:juntas:0', instance_id: 'inst:A', functional_group_id: 'fg:A', zone_id: 'SALA A' })], { decisiones: { 'm-1': 'repartir' } });
+    expect(r.ambiguas).toEqual([]);
+    expect(r.partidas.filter((p) => p.source === 'CONFIRMADO_PROGRAMA')).toHaveLength(0);
+    expect(mesas(r).map((m) => [m.id, m.cantidad, m.zone_id, m.instance_id, m.precioUnitario, m.piezaId]).sort((a, b) => a[0].length - b[0].length)).toEqual([
+      ['m-1', 1, 'SALA A', 'inst:A', 9800, 'linea-mesa_juntas'], ['m-1#2', 1, 'SALA B', 'inst:B', 9800, 'linea-mesa_juntas']]);
+    expect(unidades(r)).toBe(2);
+  });
+  it('2 · mesa ×2 expresamente para A (decisión = conservar / opción A): las dos se quedan en A y B no se toca', () => {
+    const existentes = [mesaProg('B', 1)];
+    const nueva = mesaUsuario({ relation_role: 'ANCHOR_MEETING', requirement_id: 'req:SALA A:juntas:0', instance_id: 'inst:A', functional_group_id: 'fg:A', zone_id: 'SALA A' });
+    const r = reconciliarNuevasConPrograma(existentes, [nueva], { decisiones: { 'm-1': 'conservar' } });
+    expect(r.ambiguas).toEqual([]);
+    expect(mesas(r).find((m) => m.id === 'm-1')).toMatchObject({ cantidad: 2, zone_id: 'SALA A' });
+    expect(r.partidas.find((p) => p.id === 'pB')).toBeTruthy();
+  });
+  it('3 · modelos/medidas distintos: el reparto conserva identidad, precio y medidas de la persona y marca capacidad distinta', () => {
+    const progB = mesaProg('B', 1, { nombre: 'Mesa de juntas 1.20', bancoId: 'mj-1200x1200', w: 1200, d: 1200, user_capacity: 4 });
+    const r = reconciliarNuevasConPrograma([progB], [mesaUsuario({ relation_role: 'ANCHOR_MEETING', requirement_id: 'req:SALA A:juntas:0', instance_id: 'inst:A', zone_id: 'SALA A', user_capacity: 8 })], { decisiones: { 'm-1': 'repartir' } });
+    const b = mesas(r).find((m) => m.id === 'm-1#2');
+    expect(b).toMatchObject({ zone_id: 'SALA B', w: 2400, d: 1200, precioUnitario: 9800, piezaId: 'linea-mesa_juntas', user_capacity: 8, sustituyePrograma: 'mj-1200x1200' });
+  });
+  it('4 · dos bancas en dos zonas operativas (antes de aplicar): sin decisión NEEDS_REVIEW; con "repartir" una por zona', () => {
+    const bancaProg = (z) => PROG({ id: `b${z}`, nombre: 'Módulo operativo', bancoId: 'op-8u', cantidad: 1, relation_role: 'ANCHOR_WORKSTATION', requirement_id: `req:${z}:op:0`, instance_id: `inst:${z}`, functional_group_id: `fg:${z}`, zone_id: z, w: 4800, d: 1200, user_capacity: 8 });
+    const nueva = { id: 'b-1', nombre: 'Banca doble APP LT 1.50 · 8 usuarios · ocupa 6.00 × 1.20 m', cantidad: 2, piezaId: 'linea-banca_doble', precioUnitario: 26145, w: 6000, d: 1200 };
+    const sin = reconciliarNuevasConPrograma([bancaProg('OPERATIVA 1'), bancaProg('OPERATIVA 2')], [nueva]);
+    expect(sin.ambiguas).toHaveLength(1); expect(sin.ambiguas[0].puedeRepartir).toBe(true); expect(sin.sustituidas).toEqual([]);
+    expect(sin.partidas.filter((p) => p.source === 'CONFIRMADO_PROGRAMA')).toHaveLength(2);
+    const con = reconciliarNuevasConPrograma([bancaProg('OPERATIVA 1'), bancaProg('OPERATIVA 2')], [nueva], { decisiones: { 'b-1': 'repartir' } });
+    expect(con.partidas.filter((p) => p.source === 'CONFIRMADO_PROGRAMA')).toHaveLength(0);
+    expect(con.partidas.filter((p) => p.relation_role === 'ANCHOR_WORKSTATION').map((p) => [p.cantidad, p.zone_id, p.user_capacity]).sort()).toEqual([[1, 'OPERATIVA 1', 8], [1, 'OPERATIVA 2', 8]]);
+  });
+  it('5 · tres salas y cantidades parciales: 2 para 3 no se reparte solo (habría que inferir qué sala pierde); se elige sala; 3 cubre las tres; 4 deja resto', () => {
+    const tres = () => [mesaProg('A', 0), mesaProg('B', 1), mesaProg('C', 2)];
+    const sin = reconciliarNuevasConPrograma(tres(), [mesaUsuario()]);
+    expect(sin.ambiguas).toHaveLength(1);
+    expect(sin.ambiguas[0]).toMatchObject({ id: 'm-1', cantidad: 2, puedeRepartir: false });
+    expect(sin.ambiguas[0].opciones.map((o) => o.zona)).toEqual(['SALA A', 'SALA B', 'SALA C']);
+    expect(sin.partidas.filter((p) => p.source === 'CONFIRMADO_PROGRAMA')).toHaveLength(3);     // nada se consume sin decisión
+    const forzado = reconciliarNuevasConPrograma(tres(), [mesaUsuario()], { decisiones: { 'm-1': 'repartir' } });
+    expect(forzado.ambiguas).toHaveLength(1);                                                   // 'repartir' con cantidad parcial no se acepta
+    const eligeA = reconciliarNuevasConPrograma(tres(), [mesaUsuario()], { decisiones: { 'm-1': 'pA' } });
+    expect(eligeA.ambiguas).toEqual([]);
+    expect(eligeA.partidas.map((p) => [p.id, p.cantidad, p.zone_id]).sort()).toEqual([['m-1', 2, 'SALA A'], ['pB', 1, 'SALA B'], ['pC', 1, 'SALA C']]);
+    expect(unidades(eligeA)).toBe(4);                                                           // 2 (decisión de la persona) + B + C: nada se pierde
+    const justo = reconciliarNuevasConPrograma(tres(), [mesaUsuario({ cantidad: 3 })], { decisiones: { 'm-1': 'repartir' } });
+    expect(justo.partidas.filter((p) => p.source === 'CONFIRMADO_PROGRAMA')).toHaveLength(0);
+    expect(justo.partidas.map((p) => p.zone_id).sort()).toEqual(['SALA A', 'SALA B', 'SALA C']);
+    expect(unidades(justo)).toBe(3);
+    const sobra = reconciliarNuevasConPrograma(tres(), [mesaUsuario({ cantidad: 4 })], { decisiones: { 'm-1': 'repartir' } });
+    expect(sobra.partidas.find((p) => p.id === 'm-1#resto')).toMatchObject({ cantidad: 1, precioUnitario: 9800 });
+    expect(unidades(sobra)).toBe(4);
+  });
+  it('6 · idempotente: volver a aplicar sobre el resultado no cambia nada', () => {
+    const r1 = reconciliarNuevasConPrograma([mesaProg('A', 0), mesaProg('B', 1)], [mesaUsuario()], { decisiones: { 'm-1': 'repartir' } });
+    const prog = r1.partidas.filter((p) => p.source === 'CONFIRMADO_PROGRAMA');
+    const persona = r1.partidas.filter((p) => p.source !== 'CONFIRMADO_PROGRAMA');
+    const r2 = reconciliarNuevasConPrograma(prog, persona);
+    expect(r2.sustituidas).toEqual([]); expect(r2.ambiguas).toEqual([]);
+    expect(r2.partidas.map((p) => [p.id, p.cantidad, p.zone_id]).sort()).toEqual(r1.partidas.map((p) => [p.id, p.cantidad, p.zone_id]).sort());
+  });
+});

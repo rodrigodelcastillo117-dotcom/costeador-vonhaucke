@@ -13,7 +13,11 @@
 //  Aquí vive la lectura. Puro: sin red ni React. Nunca inventa colocaciones.
 // ============================================================================
 
-export const ESTADOS = ['PASS', 'REVIEW_REQUIRED', 'PARTIAL', 'FAIL'];
+import { ESTADOS_SERVIDOR, TEXTO_ESTADO_SERVIDOR, describirValidacionServidor } from './acomodoVeredicto.js';
+
+// VH-111: el edge también responde NEEDS_SEMANTIC_REVIEW / QUALITY_REVIEW_REQUIRED /
+// NEEDS_REVIEW_METADATA. Antes no estaban aquí y se leían como "sin validación".
+export const ESTADOS = ESTADOS_SERVIDOR;
 
 export function estadoAcomodo(r) {
   const s = String(r?.layoutSpec?.status || '').toUpperCase();
@@ -47,13 +51,7 @@ const traducir = (lista) => (Array.isArray(lista) ? lista : []).map((x) => {
   return `Aviso del servidor: ${code || 'SIN_CÓDIGO'}${id(x)}`;
 });
 
-export const TEXTO_ESTADO = {
-  PASS: 'acomodo validado por el servidor',
-  REVIEW_REQUIRED: 'acomodo válido, con puntos a revisar',
-  PARTIAL: 'acomodo parcial: hay muebles sin colocar',
-  FAIL: 'el servidor no pudo colocar ningún mueble',
-  SIN_VALIDACION: 'el servidor no devolvió validación del acomodo',
-};
+export const TEXTO_ESTADO = TEXTO_ESTADO_SERVIDOR;
 
 /**
  * @param {object} r      respuesta cruda de la edge
@@ -92,7 +90,8 @@ export function interpretarAcomodoServidor(r, piezas = []) {
   else if (puertasOk === false) avisos.push('Hay puertas cuyo barrido el servidor no pudo verificar.');
 
   const auditoria = [
-    { check: 'Validación del servidor', ok: estado === 'PASS', detalle: `${TEXTO_ESTADO[estado]}${r.metodo ? ` · ${r.metodo}` : ''}` },
+    // VH-111: el detalle sale del estado real del edge (incluidas las revisiones semánticas y sus observaciones).
+    { check: 'Validación del servidor', ok: estado === 'PASS', detalle: describirValidacionServidor(r.layoutSpec, r.metodo || null).detalle },
     { check: 'Todas las piezas colocadas', ok: noColocadas.length === 0 && colocacion.length >= total, detalle: `${colocacion.length} de ${total}` },
     { check: 'Sin problemas geométricos', ok: problemas.length === 0, detalle: problemas.length ? problemas.join(' · ') : 'ninguno reportado' },
     { check: 'Puertas verificadas', ok: puertasOk === true, detalle: !puertas ? 'sin dato' : puertas.total === 0 ? 'ninguna puerta en el plano' : `${puertas.verificadasCount ?? '?'} de ${puertas.total}` },
