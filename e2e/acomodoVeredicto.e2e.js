@@ -89,6 +89,12 @@ test.describe('VH-110/111 · veredicto del acomodo', () => {
     expect(texto2).not.toMatch(/no devolvió validación/);
     expect(texto2).toMatch(/falta la revisión semántica|revisión semántica/i);
     expect((await leerCot(page)).acomodo.plan.colocacion).toHaveLength(2);
+
+    // VH-114: desde el acomodo se puede CONTINUAR a la propuesta (abajo y en el botón de salida).
+    await expect(page.getByTestId('acomodo-salida')).toHaveText(/Continuar a la propuesta/);
+    await page.getByTestId('voni-continuar-propuesta').click();
+    await expect(page.getByTestId('voni-paso-propuesta')).toHaveClass(/voni-paso-activo/, { timeout: 10000 });
+    await expect(page.getByText(/FOLIO DE LA PROPUESTA/i)).toBeVisible({ timeout: 10000 });
     expect(pageErrors, pageErrors.join('\n')).toHaveLength(0);
   });
 });

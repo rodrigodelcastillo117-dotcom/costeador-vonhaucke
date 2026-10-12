@@ -83,7 +83,7 @@ function archivoABase64(file) {
 // aMM (metros→mm) y areasCanonicas (loader) viven en src/datos/floorPlan.js — el
 // contrato canónico único del plano. Aquí sólo se consumen.
 
-export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial = null, abrirDibujo = false, onConsumido, pendientesPrograma = [], bloqueosPrograma = [] }) {
+export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial = null, abrirDibujo = false, onConsumido, pendientesPrograma = [], bloqueosPrograma = [], textoSalida = '← Volver a la cotización' }) {
   const partidas = (estado.cotizacion?.partidas) || [];
   const sugerenciasPendientes = Array.isArray(pendientesPrograma) ? pendientesPrograma : [];
   const programaPropuesto = sugerenciasPendientes.length > 0;
@@ -1025,7 +1025,15 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       try {
         const r = await generarEscena(esc);
         if (r?.ok) setImgEscena((m) => ({ ...m, [esc.areaIndex]: r.dataUrl }));
-        else setErrEscena(r?.error || `No se pudo generar ${esc.nombre}.`);
+        else {
+          // VH-115: cuando la auditoría de fidelidad rechaza el render, se dice POR QUÉ (campos que
+          // fallaron y razones del auditor), no sólo "no pasó la verificación".
+          const a = r?.audit || null;
+          const campos = a ? ['geometry_match', 'layout_match', 'environment_match', 'extra_objects', 'natural_camera'].filter((k) => a[k] === 'FAIL') : [];
+          const razones = Array.isArray(a?.reasons) ? a.reasons.filter(Boolean).slice(0, 3) : [];
+          const detalle = [campos.length ? `falló: ${campos.map((k) => ({ geometry_match: 'geometría del mueble', layout_match: 'distribución', environment_match: 'ambiente', extra_objects: 'muebles inventados', natural_camera: 'cámara' })[k]).join(', ')}` : '', ...razones].filter(Boolean).join(' · ');
+          setErrEscena(`${esc.nombre}: ${r?.error || 'no se pudo generar.'}${detalle ? ` (${detalle})` : ''}`);
+        }
       } catch (e) {
         setErrEscena(`No se pudo generar ${esc.nombre}: ${String(e?.message || e)}`);
       }
@@ -1177,10 +1185,15 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     // (footprint con giro == dimsPieza; mismo modelo de tolerancia en ambos ejes).
     const audit = auditarColocacion({ areas: areasMM, colocacion: plan.colocacion || [], byId }, { tol: 20 });
     const nombreDe = (id) => byId[id]?.nombre || id;
-    const fuera = audit.fuera.map((f) => nombreDe(f.id));
+    // VH-113: los renglones de PUERTA (barrido invadido / sin barrido verificable) son avisos de
+    // circulación, no "se sale del área"; se etiquetan por su tipo.
+    const fuera = audit.fuera.filter((f) => f.tipo !== 'puerta' && f.tipo !== 'puerta_pendiente').map((f) => nombreDe(f.id));
+    const puertas = audit.fuera.filter((f) => f.tipo === 'puerta' || f.tipo === 'puerta_pendiente').map((f) => String(f.id));
     const enc = new Set();
     for (const o of audit.overlaps) { enc.add(nombreDe(o.a)); enc.add(nombreDe(o.b)); }
-    const problemas = [...new Set(fuera)].map((n) => `Se sale del área: ${n}`).concat([...enc].map((n) => `Encimado: ${n}`));
+    const problemas = [...new Set(fuera)].map((n) => `Se sale del área: ${n}`)
+      .concat([...enc].map((n) => `Encimado: ${n}`))
+      .concat([...new Set(puertas)].map((n) => (/invadido/i.test(n) ? `Puerta: ${n}` : `Por verificar: ${n}`)));
     // NÚMEROS QUE SÍ DICEN ALGO. El "% de ocupación de piso" era inútil —
     // Rodrigo: "está pésimo, no es eso"— y además mentía: dividía la superficie
     // de TODAS las piezas (incluidas las que no cupieron) entre el piso. Un
@@ -1328,7 +1341,8 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     <div className="contenido" style={{ maxWidth: 1000 }}>
       {dibujando && <DibujarPlano onListo={usarDibujo} onCancelar={() => setDibujando(false)} />}
       <div className="tarjeta no-imprimir" style={dibujando ? { display: 'none' } : undefined}>
-        <button className="boton fantasma" style={{ minHeight: 40, marginBottom: 10 }} onClick={() => onIr('cotizacion')}>← Volver a la cotización</button>
+        {/* VH-114: dentro de Voni este botón AVANZA al paso 4 (Propuesta); el texto lo decide quien monta el componente. */}
+        <button className="boton fantasma" style={{ minHeight: 40, marginBottom: 10 }} data-testid="acomodo-salida" onClick={() => onIr('cotizacion')}>{textoSalida}</button>
         {/* El selector de archivo vive AQUÍ y no dentro del panel de áreas,
             porque `EmpezarEspacio` lo dispara cuando todavía no hay ninguna. */}
         <input ref={archivoRef} type="file" accept="image/*,application/pdf,.pdf,.dwg,.dxf" style={{ display: 'none' }} onChange={subirPlano} />

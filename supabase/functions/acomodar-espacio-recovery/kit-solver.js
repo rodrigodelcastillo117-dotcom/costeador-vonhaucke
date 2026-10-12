@@ -37,11 +37,20 @@ const esGaveta = (r) => ['UNDERDESK_STORAGE', 'SUPPORT_STORAGE'].includes(r);
 const num = (n, def = 0) => (Number.isFinite(Number(n)) ? Number(n) : def);
 
 // Capacidad de sillas que hospeda un ancla (determinista, del catálogo/dims).
+// VH-112: capacidad declarada en el nombre ("8 usuarios") o por topología doble (cliente viejo sin user_capacity).
+function capacidadDeclarada(p = {}) {
+  const t = String(p.nombre || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const m = t.match(/(\d+)\s*(usuarios?|puestos?|personas?|plazas?|lugares?|users?|seats?)\b/);
+  return m && Number(m[1]) > 0 ? Number(m[1]) : null;
+}
 export function capacidadAncla(p = {}) {
   if (num(p.user_capacity) > 0) return Math.round(num(p.user_capacity));
+  const declarada = capacidadDeclarada(p);
+  if (declarada) return declarada;
   const w = num(p.w), d = num(p.d), m = Math.max(w, d);
+  const topo = p.placement_profile?.topology || p.placement_profile || null;
   switch (p.relation_role) {
-    case 'ANCHOR_WORKSTATION': return Math.max(1, Math.round(m / 1500));
+    case 'ANCHOR_WORKSTATION': return Math.max(1, Math.round(m / 1500)) * (topo === 'DOUBLE_FACE' || /\b(doble|double)\b/.test(String(p.nombre || '').toLowerCase()) ? 2 : 1);
     case 'ANCHOR_DESK':        return 1;
     case 'ANCHOR_MEETING':     return Math.max(2, 2 * Math.max(1, Math.floor(w / PITCH)) + 2 * Math.max(0, Math.floor(d / PITCH)));
     case 'ANCHOR_RECEPTION':   return Math.max(1, Math.round(w / 800));   // sillas de visita en recepción

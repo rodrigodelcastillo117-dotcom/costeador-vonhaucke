@@ -103,3 +103,24 @@ describeSem('VH-110 · sem_issues en la respuesta', () => {
     for (const i of ge.sem_issues) expectSem(typeof i.code).toBe('string');
   });
 });
+
+// VH-112 · el solver sienta a los 8 WIN en la banca "8 usuarios" aunque el cliente no mande user_capacity.
+import { capacidadAncla as capAncla } from './kit-solver.js';
+describeSem('VH-112 · capacidad de la banca', () => {
+  itSem('capacidadAncla: user_capacity > nombre "8 usuarios" > topología doble > ancho/1500', () => {
+    expectSem(capAncla({ relation_role: 'ANCHOR_WORKSTATION', w: 6000, d: 1200, user_capacity: 8 })).toBe(8);
+    expectSem(capAncla({ relation_role: 'ANCHOR_WORKSTATION', w: 6000, d: 1200, nombre: 'Banca doble APP LT 1.50 · 8 usuarios · ocupa 6.00 × 1.20 m' })).toBe(8);
+    expectSem(capAncla({ relation_role: 'ANCHOR_WORKSTATION', w: 6000, d: 1200, nombre: 'Banca doble APP LT', placement_profile: { topology: 'DOUBLE_FACE' } })).toBe(8);
+    expectSem(capAncla({ relation_role: 'ANCHOR_WORKSTATION', w: 6000, d: 1200, nombre: 'Módulo operativo' })).toBe(4);
+  });
+  itSem('8 WIN + banca "8 usuarios" sin user_capacity: 0 sin asignar', () => {
+    const areas = [{ nombre: 'ÁREA OPERATIVA', tipo: 'open', ancho: 8000, largo: 3200, x: 0, y: 0 }];
+    const piezas = [
+      { id: 'b-1', nombre: 'Banca doble APP LT 1.50 · 8 usuarios · ocupa 6.00 × 1.20 m', w: 6000, d: 1200, relation_role: 'ANCHOR_WORKSTATION', zone_id: 'ÁREA OPERATIVA', functional_group_id: 'fg:libre:operativo', placement_profile: { topology: 'DOUBLE_FACE', provenance: 'INFERRED' } },
+      ...Array.from({ length: 8 }, (_, i) => ({ id: `w-${i + 1}`, nombre: 'Silla operativa · WIN', w: 600, d: 600, relation_role: 'WORK_SEAT', zone_id: 'ÁREA OPERATIVA', functional_group_id: 'fg:libre:operativo' })),
+    ];
+    const r = construirSem(areas, piezas);
+    expectSem(r.layoutSpec.unassigned).toHaveLength(0);
+    expectSem(r.plan.colocacion.length).toBe(9);
+  });
+});

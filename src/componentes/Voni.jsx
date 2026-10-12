@@ -543,7 +543,13 @@ export default function Voni({
             onIr={(r) => setPaso(r === 'cotizacion' ? 4 : 2)}
             abrirDibujo={abrirDibujo}
             onConsumido={() => setAbrirDibujo(false)}
+            textoSalida="Continuar a la propuesta →"
           />
+          {/* VH-114: Rodrigo, 12-oct: "no veo dónde picarle continuar". El paso a la propuesta
+              también vive abajo, donde termina de acomodar. */}
+          <div className="tarjeta no-imprimir" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button className="boton primario" style={{ minHeight: 46 }} data-testid="voni-continuar-propuesta" onClick={() => setPaso(4)}>Continuar a la propuesta →</button>
+          </div>
         </>
       )}
 

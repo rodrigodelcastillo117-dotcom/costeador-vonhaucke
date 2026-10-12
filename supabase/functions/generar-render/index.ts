@@ -483,6 +483,11 @@ Deno.serve(async (req) => {
   // Para modos con referencia, compara fuente vs resultado antes de persistir.
   const audit = await auditarVisual(inline.data, mime);
   if (!audit.pass && !audit.skipped) {
+    // VH-115: telemetría del rechazo (campos que fallaron) para diagnosticar falsos negativos del auditor.
+    try {
+      const fallidos = ["geometry_match", "layout_match", "environment_match", "extra_objects", "natural_camera"].filter((k) => (audit as any)?.[k] === "FAIL");
+      await svc.from("render_eventos").update({ ok: false, codigo: `${audit.code || "RENDER_QA_FAILED"}:${fallidos.join("+") || "sin_campo"}` }).eq("request_id", requestId);
+    } catch (_e) { /* best-effort */ }
     return json({
       ok:false,
       code:audit.code || "RENDER_QA_FAILED",
@@ -491,6 +496,8 @@ Deno.serve(async (req) => {
       request_id:requestId,
     }, audit.code==="AUDIT_UNAVAILABLE" ? 503 : 200);
   }
+
+  try { await svc.from("render_eventos").update({ ok: true, codigo: audit.skipped ? "SIN_AUDITORIA" : "QA_PASS" }).eq("request_id", requestId); } catch (_e) { /* best-effort */ }
 
   // PERFORMANCE: no devolver ~2 MB de base64 al navegador sólo para que lo
   // vuelva a subir. El servidor ya tiene los bytes y service-role: persiste una
