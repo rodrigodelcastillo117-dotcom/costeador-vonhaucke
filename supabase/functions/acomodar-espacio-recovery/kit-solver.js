@@ -613,9 +613,16 @@ function evaluarCandidato(areas, piezas, sol) {
     quality_components = q.components; quality_reasons = q.reasons;
   }
 
+  // VH-110: la lista de observaciones semánticas viaja al cliente (antes sólo los conteos),
+  // para que la pantalla diga QUÉ revisar (silla sin mirar a su mesa, lugar sin silla, etc.).
+  const sem_issues = (sem.issues || []).map((i) => ({
+    code: i.code, severity: i.severity ?? null,
+    ...(i.id != null ? { id: i.id } : {}), ...(i.anchor != null ? { anchor: i.anchor } : {}),
+    ...(i.slot != null ? { slot: i.slot } : {}), ...(i.clear != null ? { clear: i.clear } : {}), ...(i.target != null ? { target: i.target } : {}),
+  }));
   return {
     placed, hardOk, hard_issues: hardFails.length,
-    sem_status: sem.status, semFail, semReview, semantic_pass, semRank,
+    sem_status: sem.status, semFail, semReview, semantic_pass, semRank, sem_issues,
     quality, quality_status, quality_components, quality_reasons,
   };
 }

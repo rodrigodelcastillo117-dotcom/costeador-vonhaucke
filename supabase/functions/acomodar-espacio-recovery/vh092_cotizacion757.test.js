@@ -84,3 +84,22 @@ describe('VH-092 · las partidas de VONI entran al solver con ROL y encuentran s
     if (unassigned.length) expect(txt).toMatch(/sin un escritorio\/mesa con lugar/);
   });
 });
+
+// VH-110: la lista de observaciones semánticas del ganador viaja al cliente (antes sólo conteos).
+import { describe as describeSem, it as itSem, expect as expectSem } from 'vitest';
+import { construirRespuestaAcomodo as construirSem } from './recoveryPipeline.js';
+describeSem('VH-110 · sem_issues en la respuesta', () => {
+  itSem('seleccion.ganador_eval.sem_issues es un arreglo con code/severity y cuadra con los conteos', () => {
+    const areas = [{ nombre: 'ÁREA OPERATIVA', tipo: 'open', ancho: 6000, largo: 7000, x: 0, y: 0 }];
+    const piezas = [
+      { id: 'd1', nombre: 'Escritorio APP LT 1.50 × 0.75', w: 1500, d: 750, relation_role: 'ANCHOR_WORKSTATION', zone_id: 'ÁREA OPERATIVA', functional_group_id: 'fg:libre:general' },
+      { id: 'd2', nombre: 'Escritorio APP LT 1.50 × 0.75', w: 1500, d: 750, relation_role: 'ANCHOR_WORKSTATION', zone_id: 'ÁREA OPERATIVA', functional_group_id: 'fg:libre:general' },
+    ];
+    const r = construirSem(areas, piezas);
+    const ge = r.layoutSpec.seleccion.ganador_eval;
+    expectSem(Array.isArray(ge.sem_issues)).toBe(true);
+    expectSem(ge.sem_issues.filter((i) => i.severity === 'fail').length).toBe(ge.semFail);
+    expectSem(ge.sem_issues.filter((i) => i.severity === 'review').length).toBe(ge.semReview);
+    for (const i of ge.sem_issues) expectSem(typeof i.code).toBe('string');
+  });
+});

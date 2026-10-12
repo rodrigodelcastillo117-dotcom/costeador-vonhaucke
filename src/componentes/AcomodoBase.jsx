@@ -8,6 +8,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { acomodarEspacio, generarRender } from '../nube.js';
 import { interpretarAcomodoServidor } from '../datos/acomodoServidor.js';   // VH-067
+import { explicarAcomodo, describirValidacionServidor } from '../datos/acomodoVeredicto.js';   // VH-110 / VH-111
 import { leerPlanoDeArchivo } from '../datos/leerPlanoArchivo.js';          // VH-043
 import { TIPOS, dimsPieza, expandirPiezas, mapaPiezas, contarBajoEscritorio } from '../datos/espacio.js';
 import { imagenProducto, imagenPartida, heroLinea } from '../datos/imagenes.js';
@@ -281,8 +282,11 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       if (res.motivo === 'SIN_PARTIDAS_CONFIRMADAS') return 'no hay muebles confirmados para acomodar';
       return 'falta definir un plano/espacio válido';
     }
+    // VH-110: se dice QUÉ falta (geometría, colisiones, anclas, revisión semántica, evidencia),
+    // nunca un "invariantes" genérico cuando ninguna invariante falló.
+    const v = explicarAcomodo({ plan: res.plan, evaluacion: res.evaluacion, programaListo, motivoPrograma, referencias: payloadAcomodo.referencias || [], preliminar: !!payloadAcomodo.preliminar });
+    if (v.resumen) return (res.status === 'NEEDS_REVIEW' ? 'requiere revisión · ' : '') + v.resumen;
     const fallas = [...new Set((res.evaluacion?.issues || []).filter((i) => i.severity === 'fail').map((i) => i.code))];
-    if (res.status === 'NEEDS_REVIEW') return `requiere revisión: ${fallas.join('/') || 'invariantes'}`;
     if (res.status === 'PARTIAL') return `parcial: faltan ${res.evaluacion?.unplaced?.length || 0} por colocar`;
     return fallas.join('/') || res.status;
   }
@@ -1249,6 +1253,12 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // VH-092: un acomodo con referencias sin identidad o PRELIMINAR (medidas supuestas / productos sin
   // precio autorizado) se puede trabajar y ver, pero NO se publica como VALIDADO.
   const layoutPublicable = layoutListo && programaListo && !(payloadAcomodo.referencias?.length);
+  // VH-110: veredicto por bloques (geometría · colisiones · programa · anclas · semántica · evidencia · publicable).
+  const veredicto = useMemo(() => explicarAcomodo({
+    plan, evaluacion: evalInvariantes, programaListo, motivoPrograma,
+    referencias: payloadAcomodo.referencias || [], preliminar: !!payloadAcomodo.preliminar,
+    nombresSinColocar: (plan?.unassigned || []).map((u) => u?.nombre).filter(Boolean),
+  }), [plan, evalInvariantes, programaListo, motivoPrograma, payloadAcomodo]);
   const motivoLayout = [
     ...(!layout ? [] : [
       layout.unplaced > 0 ? `${layout.unplaced} sin colocar` : '',
@@ -1257,11 +1267,10 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       (chequeo?.nViolaciones || 0) > 0 ? `${chequeo.nViolaciones} en zona equivocada` : '',
     ]),
     requiereValidacionServidor && !serverStrict ? 'falta validación espacial del servidor' : '',
-    serverStrict && serverStatus && serverStatus !== 'PASS' ? `revisión espacial: ${serverStatus}` : '',
-    serverStrict && plan?.render_ready !== true ? 'validación de puertas/clearances pendiente' : '',
-    fallasInvariantes.length ? `invariantes: ${[...new Set(fallasInvariantes.map((f) => f.code))].join('/')}` : '',
-    // VH-092: una referencia sin identidad ni precio se dibuja, pero nunca publica un acomodo VALIDADO.
-    (payloadAcomodo.referencias?.length || 0) > 0 ? `${payloadAcomodo.referencias.length} mueble(s) sin identidad de catálogo ni precio (resuélvelos o quítalos)` : '',
+    // Lo que el servidor y el agregador piden revisar, en palabras (antes: "revisión espacial: NEEDS_REVIEW"
+    // e "invariantes: …" aunque ninguna invariante hubiera fallado).
+    ...veredicto.pendientes.filter((t) => !/^anclas:/.test(t) || !(layout?.unplaced > 0)),
+    serverStrict && plan?.render_ready !== true && !veredicto.pendientes.length ? 'validación de puertas/clearances pendiente' : '',
   ].filter(Boolean).join(' · ');
   const motivoPublicacion = [
     motivoLayout,
@@ -1283,8 +1292,17 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // ============================================================================
   const auditoriaMedida = useMemo(() => {
     const base = plan?.auditoria || [];
-    if (!chequeo) return base;
-    return base.map((a) => {
+    // VH-111: el renglón "Validación del servidor" se vuelve a derivar del plan guardado
+    // (`layoutSpec.status`), no del texto que se grabó al acomodar: un acomodo reabierto enseña
+    // el mismo veredicto, y los estados que el cliente viejo no conocía ya no salen como
+    // "el servidor no devolvió validación".
+    const conServidor = base.map((a) => {
+      if (!/validación del servidor/i.test(a.check) || !plan?.layoutSpec?.status) return a;
+      const d = describirValidacionServidor(plan.layoutSpec, plan?.servidor?.metodo || null);
+      return { ...a, ok: d.ok, detalle: d.detalle };
+    });
+    if (!chequeo) return conServidor;
+    return conServidor.map((a) => {
       if (/encimad/i.test(a.check)) {
         return { ...a, ok: chequeo.nEncimados === 0,
           detalle: chequeo.nEncimados
@@ -1551,6 +1569,22 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
                 {auditoriaMedida.map((a, k) => (
                   <span className={`voni-check ${vencida ? 'warn' : (a.ok ? 'ok' : 'warn')}`} key={k}>
                     <b>{vencida ? '·' : (a.ok ? '✓' : '⚠')}</b> {a.check}{a.detalle ? <em> · {a.detalle}</em> : null}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* VH-110: qué ya está validado y qué falta revisar, por bloque. Nunca pinta PASS una revisión pendiente. */}
+          {plan && (
+            <div className="voni-audit no-imprimir" data-testid="veredicto-acomodo" data-estado={veredicto.estado}>
+              <div className="voni-audit-t">
+                {veredicto.estado === 'PASS' ? 'Acomodo validado:' : veredicto.estado === 'FALLA' ? 'El acomodo tiene fallas:' : veredicto.estado === 'PARCIAL' ? 'Acomodo parcial: esto es lo que falta' : 'Acomodo válido en geometría; esto es lo que falta revisar:'}
+              </div>
+              <div className="voni-audit-grid">
+                {veredicto.bloques.map((b) => (
+                  <span className={`voni-check ${b.ok === true ? 'ok' : 'warn'}`} key={b.clave} data-bloque={b.clave} data-ok={String(b.ok)}>
+                    <b>{b.ok === true ? '✓' : b.ok === false ? '⚠' : '·'}</b> {b.titulo}<em> · {b.texto}</em>
                   </span>
                 ))}
               </div>
