@@ -45,6 +45,19 @@ dos insumos en USD de la semilla (`portamonitor-loktec-d7a/-ma8`) no tienen fila
 Lección: el banco de precios del servidor no tiene columna de moneda para filas LEGACY; cualquier carga desde la
 semilla debe convertir o rechazar `moneda ≠ MXN`.
 
+**VH-084 · INTEGRACIÓN · HECHO 2026-10-12 (A20) · Material Gate de `perfection-final` fusionado en la línea unificada.**
+Seis commits posteriores a producción (`d698eea`…`7d60204`) que nunca entraron a `c3.4`: política de material de 4
+clases (EXACT / COMPATIBLE provisional / CRÍTICO / AMBIGUO-SUSTITUTO), gate económico `materialesPorConfirmar` en el
+motor y en `costeoEmitible`, reconciliación server-side del `material_match` en `costear-servidor` (el navegador no es
+autoridad; capability de confirmación por rol; LEGACY sólo por provenance), aprobación en AsistenteEspecial sólo con
+validación del servidor a centavos, y la 1ª pasada visual de `analizar-mueble` con informe diferido (fix del timeout).
+Conflictos en `materialMatch.js`, su test, `Costeador.jsx`, `AsistenteEspecial.jsx` y `requestPlan.test.js`: se
+conservaron las dos líneas (VH-053 "existe en el servidor sin precio certificado" sigue como NOT_AVAILABLE ámbar, con
+`alertaMaterial` y el `data-testid` que usan los e2e). Cambio de comportamiento visible: cuando la IA nombra un material
+sin id y hay UN pariente compatible de la misma familia, ahora se autollena como costo PROVISIONAL "POR CONFIRMAR" en
+vez de quedar sin costo; la emisión sigue bloqueada hasta confirmar. Pruebas: vitest 2,028/2,028, Playwright 25/25,
+build limpio. Nota: `costear-servidor` sigue sin desplegar (A17); hasta entonces el gate server-side no corre en vivo.
+
 **VH-083 · DATO · HECHO 2026-10-12 · A11 certificación con documento ERP.** Cruce de los 259 insumos de la semilla
 contra "Costos de Materia Prima Ultima Compra al 10082026.xlsx" (ERP Intelisis, Drive de Compras; 16,520 registros
 Artículo|Opción): 109 con registro ERP exacto (105 iguales, 4 con precio ERP más nuevo), 13 con código que el ERP no

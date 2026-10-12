@@ -17,8 +17,8 @@ import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
-import { aplicarPoliticaMaterial, alertaMaterial } from '../datos/materialMatch.js';
-import { abrirPdf, paginaAImagen, todasLasPaginas } from '../datos/pdfImagen.js';
+import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, alertaMaterial } from '../datos/materialMatch.js';
+import { paginaAImagen } from '../datos/pdfImagen.js';
 import { prepararPdfRapido, rasterizarPaginas, paginasAlrededor } from '../datos/pdfPipeline.js';
 import Cargando from './Cargando.jsx';
 import Markdown from './Markdown.jsx';
@@ -206,6 +206,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // Biblioteca
   const [etiquetasTxt, setEtiquetasTxt] = useState('');
   const [estadoExp, setEstadoExp] = useState('borrador');
+  // P0.16: validación SERVER-AUTHORITY vigente para el BOM hash actual (null = sin validar).
+  const [validacionSrv, setValidacionSrv] = useState(null); // { valido, razon, estado, costoUnitario, bomHash }
+  const [validandoSrv, setValidandoSrv] = useState(false);
   const [guardandoExp, setGuardandoExp] = useState(false);
   const [expId, setExpId] = useState(null);
   const [expMsg, setExpMsg] = useState('');
@@ -247,6 +250,15 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // su total es apenas un SUBTOTAL CONOCIDO, no se le pone precio ni se aprueba.
   const emision = costeoEmitible(resultado);
   const emitible = emision.emitible;
+  // P0.16: ¿hay una validación server-authority VIGENTE para el BOM actual? Cualquier cambio de
+  // componente/material/medida cambia el bomHash → invalida la validación anterior.
+  const validacionVigente = !!validacionSrv && validacionSrv.valido === true && validacionSrv.bomHash === bomHash(b.componentes);
+  // POR CONFIRMAR (audit 2026-10-08): materiales provisionales (18→19 compatible, crítico,
+  // ambiguo, candidato). El COMPATIBLE sí aporta costo → hay un COSTO PROVISIONAL real, pero
+  // NO emitible hasta confirmación humana. Distinto de "sin material" (hueco de datos).
+  const materialesPorConfirmar = emision.bloqueos?.materiales_por_confirmar || [];
+  const soloPorConfirmar = !emitible && materialesPorConfirmar.length > 0
+    && piezasSinMaterial.length === 0 && (resultado.tarifasFaltantes || []).length === 0;
   // Fórmula que está aplicando AHORA la pieza (Alba para producto nuevo; legacy solo
   // si se reabrió un histórico sin re-costear). Para etiquetar el costo, no recalcula.
   const formulaActual = formulaDePieza(b);
@@ -360,6 +372,39 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
 
   // Guarda (o actualiza) el producto como EXPEDIENTE en la biblioteca: nombre, etiquetas, BOM,
   // costo (snapshot con fecha), render y plano (a Storage). Editable luego por Diseño.
+  // P0.16 — AUTORIDAD DEL SERVIDOR para aprobar. El juez local (costeoEmitible) NO basta: el
+  // mismo BOM puede verse EXACT/emitible en el cliente pero el servidor (que reclasifica sin
+  // provenance, exige confirmación/capability y compara a centavos) lo marca provisional/
+  // incompleto. Devuelve { valido, razon, estado, costoUnitario, bomHash }.
+  async function validarServidorParaAprobar() {
+    const hashActual = bomHash(b.componentes);
+    try {
+      const srv = await costearServidor({ ...b }, b.piezas);
+      const costoSrv = srv?.costo?.costoUnitario;
+      const estadoSrv = srv?.estado || null;
+      const ok = srv?.ok === true;
+      const costoFinito = Number.isFinite(Number(costoSrv));
+      const estadoOK = ok && !!estadoSrv && estadoSrv !== 'incompleto' && estadoSrv !== 'bloqueado';
+      const cL = aCentavosEnteros(resultado.costoUnitario);
+      const cS = costoFinito ? aCentavosEnteros(costoSrv) : null;
+      const cuadra = cL != null && cS != null && cL === cS;   // costo técnico local == servidor, a centavos
+      const valido = ok && estadoOK && costoFinito && cuadra;
+      let razon = '';
+      if (!ok) razon = 'el servidor no validó el costo.';
+      else if (!estadoOK) razon = `el servidor marca el costo como ${estadoSrv || 'no emitible'} (faltan confirmaciones de material).`;
+      else if (!costoFinito) razon = 'el costo del servidor no es finito.';
+      else if (!cuadra) razon = `el costo local (${pesos2(resultado.costoUnitario)}) no coincide con el del servidor (${pesos2(costoSrv)}).`;
+      const v = { valido, razon, estado: estadoSrv, costoUnitario: costoSrv, bomHash: hashActual };
+      setValidacionSrv(v);
+      if (estadoSrv) setCostoEstado(estadoSrv);
+      return v;
+    } catch (_e) {
+      const v = { valido: false, razon: 'no se pudo contactar al servidor de costeo.', bomHash: hashActual };
+      setValidacionSrv(v);
+      return v;
+    }
+  }
+
   async function guardarEnBiblioteca() {
     if (guardandoExp) return;
     if (!b.nombre?.trim() || !(b.componentes?.length)) { setExpMsg('Falta nombre y despiece para guardar.'); return; }
@@ -378,8 +423,17 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       // FAIL-CLOSED al guardar: un costo incompleto NUNCA se guarda como APROBADO ni
       // con un precio "oficial". Se degrada a borrador, estado_costo=incompleto y
       // precio=null. Así la biblioteca no conserva un número de venta sin respaldo.
-      const estadoGuardar = emitible ? estadoExp : 'borrador';
-      const estadoCostoGuardar = !emitible ? 'incompleto' : (costoEstado || 'preliminar');
+      // P0.16: APROBAR exige validación SERVER-AUTHORITY del BOM actual. Si el servidor bloquea
+      // o el costo no cuadra a centavos → se degrada a borrador (precio/costoTotal = null).
+      let aprobadoBloqueado = false;
+      if (emitible && estadoExp === 'aprobado') {
+        const v = await validarServidorParaAprobar();
+        if (!v.valido) { aprobadoBloqueado = true; setExpMsg(`No se puede aprobar: ${v.razon} Se guarda como borrador.`); }
+      }
+      const estadoGuardar = aprobadoBloqueado ? 'borrador' : (emitible ? estadoExp : 'borrador');
+      // Tras un bloqueo del servidor NO se persiste costoTotal ni precio (sin respaldo server-authority).
+      const emitibleGuardar = emitible && !aprobadoBloqueado;
+      const estadoCostoGuardar = !emitibleGuardar ? 'incompleto' : (costoEstado || 'preliminar');
       const exp = {
         nombre: b.nombre.trim(), etiquetas, estado: estadoGuardar,
         producto_tipo: tipoDeMueble(b), ancho_mm: dimsR.w, fondo_mm: dimsR.d, alto_mm: null,
@@ -387,7 +441,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         // IDENTIDAD DE REVISIÓN congelada (audit 2026-10-01): mismo bom_hash + mismo
         // catálogo + mismo motor ⇒ mismo costo a centavos. Guardamos todo lo que define
         // esa identidad para poder reconstruir/verificar cualquier revisión.
-        costo: { costoUnitario: dinero(resultado.costoUnitario), subtotalConocido: dinero(emision.subtotalConocido), costoTotal: emitible ? dinero(resultado.costoUnitario) : null, materialTotal: dinero(resultado.materialTotal), manoObra: dinero(resultado.manoObra), indirectosFabrica: dinero(resultado.indirectosFabrica), precio: emitible ? dinero(precio) : null, margen: b.margen, estado_costo: estadoCostoGuardar, pendientes: emision.pendientes, bom_hash: bomHash(b.componentes), analysis_id: b.analysisId ?? null, version_motor: MOTOR_VERSION, formula_version: formulaDePieza(b), version_catalogo: 'config-legado', factorDirecta: b.factorDirecta ?? null, factorIndirecta: b.factorIndirecta ?? null, render_hash: renderHash === renderFirmaActual ? renderHash : null, fecha: new Date().toISOString() },
+        costo: { costoUnitario: dinero(resultado.costoUnitario), subtotalConocido: dinero(emision.subtotalConocido), costoTotal: emitibleGuardar ? dinero(resultado.costoUnitario) : null, materialTotal: dinero(resultado.materialTotal), manoObra: dinero(resultado.manoObra), indirectosFabrica: dinero(resultado.indirectosFabrica), precio: emitibleGuardar ? dinero(precio) : null, margen: b.margen, estado_costo: estadoCostoGuardar, validado_servidor: emitibleGuardar && estadoGuardar === 'aprobado' ? (validacionSrv?.bomHash === bomHash(b.componentes)) : false, pendientes: emision.pendientes, bom_hash: bomHash(b.componentes), analysis_id: b.analysisId ?? null, version_motor: MOTOR_VERSION, formula_version: formulaDePieza(b), version_catalogo: 'config-legado', factorDirecta: b.factorDirecta ?? null, factorIndirecta: b.factorIndirecta ?? null, render_hash: renderHash === renderFirmaActual ? renderHash : null, fecha: new Date().toISOString() },
         confirmaciones: Object.entries(confirmadas).map(([question_key, v]) => ({ question_key, pregunta: v.pregunta, respuesta: v.respuesta })),
         plano_urls: planoUrls.length ? planoUrls : (expId ? undefined : []),
         render_aislado_url: soloHttp(renders.aislado), render_ambiente_url: soloHttp(renders.ambiente),
@@ -456,10 +510,13 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     const comps = b.componentes.slice(); comps[i] = { ...comps[i], ...parcial }; editarComponentes(comps);
   }
   function quitarPieza(i) { editarComponentes(b.componentes.filter((_, j) => j !== i)); }
-  function onMaterial(i, insumoId) {
+  function onMaterial(i, insumoId, { confirmado = false } = {}) {
     const ins = insumos[insumoId]; const comps = b.componentes.slice(); const prev = comps[i];
     const patch = { insumoId, nombre: prev.nombre || (ins ? ins.nombre : '') };
     if (!esArea(ins)) { patch.largoMM = undefined; patch.anchoMM = undefined; }
+    // Elección/confirmación HUMANA: misma intención en ambas UIs (P0.8). El servidor verifica
+    // material_confirmado + insumoId y lo convierte a USER_CONFIRMED efectivo (no confía en el string).
+    if (ins) Object.assign(patch, patchConfirmacionUI(insumoId));
     comps[i] = { ...prev, ...patch }; editarComponentes(comps);
   }
   function costoPieza(c, ins) {
@@ -962,6 +1019,10 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                 const colImp = q.impacto === 'alto' ? '#8a2d00' : q.impacto === 'medio' ? '#8a6d00' : '#555';
                 const val = respuestas[q.question_key] ?? '';
                 const setVal = (v) => setRespuestas((s) => ({ ...s, [q.question_key]: v }));
+                // Opciones reales (sin vacías): una opción '' se pintaba como píldora blanca
+                // pre-seleccionada. Y la selección usaba var(--tinta), que en tema oscuro es CLARO
+                // (#ECE9E4) → blanco-sobre-blanco. Se usa el rojo de marca (siempre legible).
+                const ops = (q.opciones || []).map((o) => String(o)).filter((o) => o.trim() !== '');
                 return (
                   <div key={q.question_key} style={{ borderTop: i ? '1px solid var(--borde)' : 'none', paddingTop: i ? 10 : 0, marginTop: i ? 10 : 0 }}>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 4 }}>
@@ -971,12 +1032,12 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                     </div>
                     <div style={{ fontWeight: 600, marginBottom: 2 }}>{q.pregunta}</div>
                     {q.supuesto && <div className="ayuda" style={{ marginBottom: 6 }}>Supuesto IA: {q.supuesto}</div>}
-                    {(q.tipo === 'radio' || q.tipo === 'select') && q.opciones?.length ? (
+                    {(q.tipo === 'radio' || q.tipo === 'select') && ops.length ? (
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        {q.opciones.map((op) => (
+                        {ops.map((op) => (
                           <button key={op} type="button" className={'chip' + (val === op ? ' on' : '')}
                             onClick={() => setVal(op)}
-                            style={{ cursor: 'pointer', background: val === op ? 'var(--tinta,#2B2622)' : undefined, color: val === op ? '#fff' : undefined }}>
+                            style={{ cursor: 'pointer', background: val === op ? 'var(--rojo,#E5484D)' : undefined, color: val === op ? '#fff' : undefined, borderColor: val === op ? 'var(--rojo,#E5484D)' : undefined }}>
                             {op}
                           </button>
                         ))}
@@ -1043,6 +1104,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           {b.componentes.length === 0 && <p className="ayuda">Aún no agregas piezas. Toca una de arriba para empezar.</p>}
           {b.componentes.map((c, i) => {
             const ins = insumos[c.insumoId];
+            const est = estadoMaterialUI(c, insumos);
             const area = esArea(ins);
             const cnt = c.piezas || 1;
             const m2 = area && c.largoMM && c.anchoMM ? (c.largoMM / 1000) * (c.anchoMM / 1000) * cnt : 0;
@@ -1050,7 +1112,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
               <div className="pieza" key={i}>
                 <div className="pieza-head">
                   <input className="pieza-nom" placeholder="Nombre de la pieza" value={c.nombre || ''} onChange={(e) => setPieza(i, { nombre: e.target.value })} />
-                  <select className="pieza-mat" value={c.insumoId || ''} onChange={(e) => onMaterial(i, e.target.value)}>
+                  <select className="pieza-mat" value={est.selVal} onChange={(e) => onMaterial(i, e.target.value)}>
                     <option value="">— ¿de qué es? —</option>
                     {SECCIONES.map((sec) => (
                       <optgroup label={sec.nombre} key={sec.id}>
@@ -1062,12 +1124,22 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                   </select>
                   <button className="pieza-x" onClick={() => quitarPieza(i)} aria-label="quitar">×</button>
                 </div>
-                {(() => { const a = alertaMaterial(c._match); return a && (
-                  <div className="pieza-match-alerta" data-testid="alerta-material" data-tono={a.tono} style={{ background: a.tono === 'rojo' ? '#fdeaea' : '#fff4e5', border: `1px solid ${a.tono === 'rojo' ? '#e5a0a0' : '#f0c38e'}`, borderRadius: 8, padding: '6px 10px', margin: '6px 0', fontSize: 13, color: a.tono === 'rojo' ? '#7a1f1f' : '#7a4a00' }}>
+                {c._match?.sinPrecioCertificado && (() => { const a = alertaMaterial(c._match); return a && (
+                  <div className="pieza-match-alerta" data-testid="alerta-material" data-tono="ambar" style={{ background: '#fff4e5', border: '1px solid #f0c38e', borderRadius: 8, padding: '6px 10px', margin: '6px 0', fontSize: 13, color: '#7a4a00' }}>
                     ⚠️ <b>{a.titulo}</b> — {a.detalle}
                   </div>
                 ); })()}
-                {!ins && !alertaMaterial(c._match) && <div className="pieza-calc" style={{ color: 'var(--alerta,#b22a22)' }}>⚠ Sin material: la pieza queda pendiente y bloquea la emisión (no se costea en $0). Elige de qué es.</div>}
+                {est.badge && (
+                  <div className="pieza-calc" data-testid="alerta-material" data-tono="ambar" style={{ color: 'var(--ambar,#8a6d00)', fontWeight: 600 }}>🟡 {est.badge}</div>
+                )}
+                {est.pendiente && !c._match?.sinPrecioCertificado && (
+                  <div className="pieza-calc" data-testid="alerta-material" data-tono="rojo" style={{ color: 'var(--alerta,#b22a22)' }}>
+                    ⚠ {est.pendienteMsg}
+                    {est.mostrarConfirmar && est.candId && (
+                      <>{' '}<button type="button" className="chip" style={{ cursor: 'pointer' }} onClick={() => onMaterial(i, est.candId, { confirmado: true })}>Usar {insumos[est.candId]?.nombre || 'candidato'} (confirmar)</button></>
+                    )}
+                  </div>
+                )}
                 {ins && (
                   <div className="pieza-med">
                     {area ? (
@@ -1119,6 +1191,18 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
               <div className="espacio" />
               <div className="ayuda">Precio de lista ({b.margen}% margen)</div>
               <div className="precio-enorme">{pesos2(precio)}</div>
+            </>
+          ) : soloPorConfirmar ? (
+            // PROVISIONAL: todo el BOM está costeado, pero ≥1 material es "por confirmar"
+            // (p.ej. 18→19). HAY un costo provisional real, pero NO se emite/aprueba hasta
+            // confirmar el material. No es un costo certificado ni completo.
+            <>
+              <div className="ayuda" style={{ margin: '6px 0' }}>Costo provisional (materiales por confirmar)</div>
+              <div className="precio-enorme" style={{ color: 'var(--ambar,#8a6d00)', fontSize: 34 }}>{pesos2(emision.subtotalConocido)}</div>
+              <div className="espacio" />
+              <div className="ayuda">Precio de lista</div>
+              <div className="precio-enorme" style={{ color: '#b22a22' }}>Por confirmar</div>
+              <div className="ayuda" style={{ color: '#8a6d00', marginTop: 4 }}>🟡 Costo provisional, no certificado. Confirma {materialesPorConfirmar.length} material(es) marcados POR CONFIRMAR para emitir/aprobar.</div>
             </>
           ) : (
             // FAIL-CLOSED: hay partidas sin costear → NO hay costo total ni precio.
@@ -1218,9 +1302,26 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10, flexWrap: 'wrap' }}>
               <span className="ayuda">Estado:</span>
               <button type="button" className={'chip' + ((estadoExp === 'borrador' || !emitible) ? ' on' : '')} onClick={() => setEstadoExp('borrador')} style={{ cursor: 'pointer', background: (estadoExp === 'borrador' || !emitible) ? 'var(--tinta,#2B2622)' : undefined, color: (estadoExp === 'borrador' || !emitible) ? '#fff' : undefined }}>Borrador</button>
-              {/* FAIL-CLOSED: no se puede APROBAR un costo incompleto. Solo borrador. */}
-              <button type="button" disabled={!emitible} className={'chip' + ((estadoExp === 'aprobado' && emitible) ? ' on' : '')} onClick={() => emitible && setEstadoExp('aprobado')} title={emitible ? '' : 'No se puede aprobar: faltan partidas por costear'} style={{ cursor: emitible ? 'pointer' : 'not-allowed', opacity: emitible ? 1 : 0.5, background: (estadoExp === 'aprobado' && emitible) ? 'var(--ok,#1a7f37)' : undefined, color: (estadoExp === 'aprobado' && emitible) ? '#fff' : undefined }}>Aprobado</button>
+              {/* FAIL-CLOSED + P0.16: no se puede APROBAR sin validación SERVER-AUTHORITY vigente
+                  del BOM actual. Al clic se valida con costear-servidor; sólo pasa a 'aprobado'
+                  si el servidor no bloquea y el costo cuadra a centavos. */}
+              <button type="button" disabled={!emitible || validandoSrv}
+                className={'chip' + ((estadoExp === 'aprobado' && emitible && validacionVigente) ? ' on' : '')}
+                onClick={async () => {
+                  if (!emitible || validandoSrv) return;
+                  setValidandoSrv(true);
+                  try {
+                    const v = await validarServidorParaAprobar();
+                    if (v.valido) { setEstadoExp('aprobado'); setExpMsg('✓ Validado por el servidor: listo para aprobar.'); }
+                    else { setEstadoExp('borrador'); setExpMsg(`No se puede aprobar: ${v.razon}`); }
+                  } finally { setValidandoSrv(false); }
+                }}
+                title={emitible ? 'Aprobar requiere validación del servidor' : 'No se puede aprobar: faltan partidas por costear'}
+                style={{ cursor: emitible ? 'pointer' : 'not-allowed', opacity: emitible && !validandoSrv ? 1 : 0.5, background: (estadoExp === 'aprobado' && emitible && validacionVigente) ? 'var(--ok,#1a7f37)' : undefined, color: (estadoExp === 'aprobado' && emitible && validacionVigente) ? '#fff' : undefined }}>
+                {validandoSrv ? 'Validando…' : 'Aprobado'}
+              </button>
               {!emitible && <span className="ayuda" style={{ color: '#b22a22' }}>Incompleto → solo borrador</span>}
+              {emitible && estadoExp === 'aprobado' && !validacionVigente && <span className="ayuda" style={{ color: '#8a6d00' }}>Validación del servidor pendiente (cambió el BOM): re-valida para aprobar.</span>}
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
               <button className="boton primario" disabled={guardandoExp} onClick={guardarEnBiblioteca}>

@@ -18,7 +18,7 @@ import { pesos2, pct, pct1, colorMerma } from '../util.js';
 import AnalisisEstructural from './AnalisisEstructural.jsx';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
-import { aplicarPoliticaMaterial, alertaMaterial } from '../datos/materialMatch.js';
+import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, alertaMaterial } from '../datos/materialMatch.js';
 import { renderSpecFromGraph } from '../datos/renderSpec.js';
 import { flagActivo } from '../datos/flags.js';
 import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
@@ -248,13 +248,16 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     comps[i] = { ...comps[i], ...parcial };
     set({ componentes: comps });
   }
-  function onMaterial(i, insumoId) {
+  function onMaterial(i, insumoId, { confirmado = false } = {}) {
     const ins = insumos[insumoId];
     const comps = costeo.componentes.slice();
     const prev = comps[i];
     const patch = { insumoId, nombre: prev.nombre || (ins ? ins.nombre : '') };
     if (!esArea(ins)) { patch.largoMM = undefined; patch.anchoMM = undefined; } // material no dimensional
     if (!esFraccionHoja(ins)) patch.hojas = undefined; // material que no es por fracción de hoja
+    // Elección/confirmación HUMANA: misma intención en ambas UIs (P0.8). El servidor verifica
+    // material_confirmado + insumoId y lo convierte a USER_CONFIRMED efectivo (no confía en el string).
+    if (ins) Object.assign(patch, patchConfirmacionUI(insumoId));
     comps[i] = { ...prev, ...patch };
     // Adhesivo automático: elegir superficie sólida arrastra su adhesivo de uniones.
     set({ componentes: conAcompanantes(comps) });
@@ -444,7 +447,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                 <div className="pieza-head">
                   <input className="pieza-nom" placeholder="Nombre de la pieza (ej. Cubierta)" value={c.nombre || ''}
                     onChange={(e) => setPieza(i, { nombre: e.target.value })} />
-                  <select className="pieza-mat" value={c.insumoId || ''} onChange={(e) => onMaterial(i, e.target.value)}>
+                  <select className="pieza-mat" value={estadoMaterialUI(c, insumos).selVal} onChange={(e) => onMaterial(i, e.target.value)}>
                     <option value="">— ¿de qué es? —</option>
                     {SECCIONES.map((sec) => (
                       <optgroup label={sec.nombre} key={sec.id}>
@@ -457,11 +460,29 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                   <button className="pieza-x" onClick={() => quitarPieza(i)} aria-label="quitar pieza">×</button>
                 </div>
 
-                {(() => { const a = alertaMaterial(c._match); return a && (
-                  <div className="pieza-match-alerta" data-testid="alerta-material" data-tono={a.tono} style={{ background: a.tono === 'rojo' ? '#fdeaea' : '#fff4e5', border: `1px solid ${a.tono === 'rojo' ? '#e5a0a0' : '#f0c38e'}`, borderRadius: 8, padding: '6px 10px', margin: '6px 0', fontSize: 13, color: a.tono === 'rojo' ? '#7a1f1f' : '#7a4a00' }}>
-                    ⚠️ <b>{a.titulo}</b> — {a.detalle}
-                  </div>
-                ); })()}
+                {(() => {
+                  const est = estadoMaterialUI(c, insumos);
+                  const sinCert = c._match?.sinPrecioCertificado ? alertaMaterial(c._match) : null;
+                  if (sinCert) return (
+                    <div className="pieza-match-alerta" data-testid="alerta-material" data-tono="ambar" style={{ background: '#fff4e5', border: '1px solid #f0c38e', borderRadius: 8, padding: '6px 10px', margin: '6px 0', fontSize: 13, color: '#7a4a00' }}>
+                      ⚠️ <b>{sinCert.titulo}</b> — {sinCert.detalle}
+                    </div>
+                  );
+                  if (est.badge) return (
+                    <div className="pieza-match-alerta" data-testid="alerta-material" data-tono="ambar" style={{ background: '#fff8e5', border: '1px solid #e9cf8a', borderRadius: 8, padding: '6px 10px', margin: '6px 0', fontSize: 13, color: '#7a5a00', fontWeight: 600 }}>
+                      🟡 {est.badge}{c._match?.solicitado ? <> — pediste <b>{c._match.solicitado}</b>.</> : ''}
+                    </div>
+                  );
+                  if (est.pendiente && est.pendienteMsg) return (
+                    <div className="pieza-match-alerta" data-testid="alerta-material" data-tono="rojo" style={{ background: '#fff4e5', border: '1px solid #f0c38e', borderRadius: 8, padding: '6px 10px', margin: '6px 0', fontSize: 13, color: '#7a4a00' }}>
+                      ⚠️ {est.pendienteMsg}{c._match?.solicitado ? <> — pediste <b>{c._match.solicitado}</b>.</> : ''}
+                      {est.mostrarConfirmar && est.candId && (
+                        <>{' '}<button type="button" className="chip" style={{ cursor: 'pointer' }} onClick={() => onMaterial(i, est.candId, { confirmado: true })}>Usar {insumos[est.candId]?.nombre || 'candidato'} (confirmar)</button></>
+                      )}
+                    </div>
+                  );
+                  return null;
+                })()}
 
                 {ins && (
                   <div className="pieza-med">
