@@ -27,6 +27,7 @@ export const SEAT = 600;      // huella de silla (mm)
 export const PITCH = 650;     // separación entre sillas alrededor de mesa
 export const AISLE = 1000;    // pasillo mínimo ENTRE kits
 export const GRID = 100;      // malla de candidatos
+export const VISITAS_POR_ESCRITORIO = 2;   // sillas de visita que recibe un escritorio privado además de su ejecutivo
 const MAX_MS = 2000;          // presupuesto de tiempo por caso
 const MAX_NODOS = 200000;     // tope de nodos de backtracking
 
@@ -68,17 +69,31 @@ export function asignarDuenos(piezas = []) {
   // aunque hubiera un escritorio con lugar al lado.
   const todasAnclas = [];
   const huerfanos = [];
+  // Sólo sillas y gavetas rodantes se adoptan (caben en el kit de su mueble). Una guarda de
+  // piso (credenza/archivero: SUPPORT_STORAGE) NO va bajo ninguna cubierta: es pieza SUELTA
+  // con su propia huella (abajo, `standalone`). Visita sólo junto a un escritorio privado,
+  // igual que el validador semántico del cliente.
   const anclaDe = (rolDep) => ({
     WORK_SEAT: ['ANCHOR_WORKSTATION'], EXECUTIVE_SEAT: ['ANCHOR_DESK'], VISITOR_SEAT: ['ANCHOR_DESK', 'ANCHOR_RECEPTION'],
-    MEETING_SEAT: ['ANCHOR_MEETING'], UNDERDESK_STORAGE: ['ANCHOR_WORKSTATION', 'ANCHOR_DESK'], SUPPORT_STORAGE: ['ANCHOR_DESK', 'ANCHOR_MEETING', 'ANCHOR_WORKSTATION'],
+    MEETING_SEAT: ['ANCHOR_MEETING'], UNDERDESK_STORAGE: ['ANCHOR_WORKSTATION', 'ANCHOR_DESK'],
   })[rolDep] || [];
 
-  for (const [, { anclas, deps }] of grupos) {
+  // Guardas de piso: siempre SUELTAS (kit propio sin sillas), nunca bajo cubierta.
+  for (const p of out) if (p.relation_role === 'SUPPORT_STORAGE') { p.standalone = true; p.anchor_instance_id = null; }
+  for (const [, { anclas, deps: deps0 }] of grupos) {
+    const deps = deps0.filter((d) => d.relation_role !== 'SUPPORT_STORAGE');
     if (!anclas.length) { for (const d of deps) { porId(d.id).anchor_instance_id = null; huerfanos.push(d); } continue; }
-    const an = anclas.slice().sort(sortId).map((a) => ({ id: String(a.id), cap: capacidadAncla(a), seats: 0, gav: 0, rol: a.relation_role }));
+    // VISITAS: un escritorio privado recibe su ejecutivo (cap) MÁS hasta 2 sillas de visita al
+    // frente; antes competían por el mismo cupo de 1 y la visita siempre quedaba "sin mueble".
+    const an = anclas.slice().sort(sortId).map((a) => ({ id: String(a.id), cap: capacidadAncla(a), seats: 0, gav: 0, vis: 0, visCap: a.relation_role === 'ANCHOR_DESK' ? VISITAS_POR_ESCRITORIO : a.relation_role === 'ANCHOR_RECEPTION' ? capacidadAncla(a) : 0, rol: a.relation_role }));
     const sillas = deps.filter((d) => esSilla(d.relation_role)).sort(sortId);
     const gavetas = deps.filter((d) => esGaveta(d.relation_role)).sort(sortId);
     for (const s of sillas) {
+      if (s.relation_role === 'VISITOR_SEAT') {
+        const a = an.find((x) => x.vis < x.visCap);
+        if (a) { porId(s.id).anchor_instance_id = a.id; a.vis++; } else { porId(s.id).anchor_instance_id = null; huerfanos.push(s); }
+        continue;
+      }
       const a = an.find((x) => x.seats < x.cap) || an[0];
       if (a && a.seats < a.cap) { porId(s.id).anchor_instance_id = a.id; a.seats++; } else { porId(s.id).anchor_instance_id = null; huerfanos.push(s); }
     }
@@ -93,9 +108,10 @@ export function asignarDuenos(piezas = []) {
     const roles = anclaDe(d.relation_role);
     const zonaDep = d.zone_id != null ? String(d.zone_id) : null;
     const cands = todasAnclas.filter((x) => roles.includes(x.rol));
-    const libre = (x) => (esSilla(d.relation_role) ? x.seats < x.cap : x.gav < x.cap);
+    const esVis = d.relation_role === 'VISITOR_SEAT';
+    const libre = (x) => (esVis ? x.vis < x.visCap : esSilla(d.relation_role) ? x.seats < x.cap : x.gav < x.cap);
     const a = cands.find((x) => libre(x) && zonaDep && String(porId(x.id)?.zone_id ?? '') === zonaDep) || cands.find(libre);
-    if (a) { porId(d.id).anchor_instance_id = a.id; porId(d.id).adoptado_por = a.id; if (esSilla(d.relation_role)) a.seats++; else a.gav++; }
+    if (a) { porId(d.id).anchor_instance_id = a.id; porId(d.id).adoptado_por = a.id; if (esVis) a.vis++; else if (esSilla(d.relation_role)) a.seats++; else a.gav++; }
     else unassigned.push(String(d.id));
   }
   return { piezas: out, unassigned };
@@ -423,7 +439,9 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
   const t0 = Date.now();
   const { piezas: asign, unassigned } = asignarDuenos(piezas);
 
-  const anclas = asign.filter((p) => esAncla(p.relation_role)).sort((a, b) => (String(a.id) < String(b.id) ? -1 : 1));
+  // VH-096: una guarda de piso suelta (SUPPORT_STORAGE, `standalone`) forma su propio kit sin
+  // sillas: se coloca con su huella real en su zona, en vez de "no tener mueble que la reciba".
+  const anclas = asign.filter((p) => esAncla(p.relation_role) || p.standalone === true).sort((a, b) => (String(a.id) < String(b.id) ? -1 : 1));
   const depsDe = (anchorId) => asign.filter((p) => String(p.anchor_instance_id) === String(anchorId));
   const kits = [];
   for (const a of anclas) {
@@ -435,8 +453,11 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
     // Variante MÍNIMA (mejor parcial válido, E): ancla + gavetas bajo tablero, sin
     // sillas. Si el kit completo no cabe, al menos se coloca el ancla y las sillas
     // caen como "no cupieron" (nunca sueltas ni encimadas).
-    const minimoPiezas = base.piezas.filter((p) => esAncla(p.rol) || p.bajoTablero);
-    const dropMin = base.piezas.filter((p) => !(esAncla(p.rol) || p.bajoTablero)).map((p) => String(p.id));
+    // El ancla del kit (también una guarda suelta `standalone`) SIEMPRE forma parte del mínimo:
+    // sin esto `Math.max(...[])` daba -Infinity y la malla de candidatos corría sin fin (OOM).
+    const esDelMinimo = (p) => esAncla(p.rol) || p.bajoTablero || String(p.id) === String(base.anchorId);
+    const minimoPiezas = base.piezas.filter(esDelMinimo);
+    const dropMin = base.piezas.filter((p) => !esDelMinimo(p)).map((p) => String(p.id));
     const minW = Math.max(...minimoPiezas.map((p) => p.dx + p.w)), minH = Math.max(...minimoPiezas.map((p) => p.dy + p.d));
     const minimo = { anchorId: base.anchorId, w: minW, d: minH, piezas: minimoPiezas };
     kits.push({ anchorId: String(a.id), base, minimo, dropMin, area: num(a.w) * num(a.d), zonas: areasPermitidas(a, areas) });

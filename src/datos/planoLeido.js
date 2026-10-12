@@ -158,6 +158,7 @@ export function areasDeLectura(lectura) {
         puertasPendientes.push({
           x: m(p.x - b.x),
           y: m(p.y - b.y),
+          ...(anchoConocido ? { ancho: m(Number(p.ancho)) } : {}),
           motivo: !anchoConocido ? 'ANCHO_PUERTA_DESCONOCIDO' : 'BARRIDO_PUERTA_NO_VERIFICADO',
         });
       }

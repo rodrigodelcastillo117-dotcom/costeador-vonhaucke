@@ -11,6 +11,7 @@ export default function ConfirmarLectura({ lectura, onConfirmar, onCorregir, onC
   const { areas = [], resumen = {}, imagen = '', nota = '' } = lectura;
   const nivelTxt = { alta: '✓ Lectura confiable', media: '◑ Lectura con dudas', baja: '⚠ Lectura poco confiable', nula: '✗ No reconocí cuartos' }[resumen.nivel] || '';
   const puestos = areas.reduce((s, a) => s + (Number.isFinite(a.puestos) ? a.puestos : 0), 0);
+  const puertasPendientes = areas.flatMap((a) => (a.puertasPendientes || []).map((pp) => ({ area: a.nombre || 'Área', x: Number(pp.x) || 0, y: Number(pp.y) || 0, ancho: Number(pp.ancho) || null, motivo: pp.motivo })));
   const puedeConfirmar = areas.length > 0;
   return (
     <div className="tarjeta" style={{ marginTop: 12 }} data-testid="confirmar-lectura">
@@ -47,6 +48,20 @@ export default function ConfirmarLectura({ lectura, onConfirmar, onCorregir, onC
       {resumen.problemas?.length > 0 && (
         <div className="alerta ambar" style={{ marginTop: 8 }} data-testid="lectura-problemas">
           <span className="texto">Revisa esto: {resumen.problemas.join(' · ')}</span>
+        </div>
+      )}
+      {/* VH-097: puertas cuyo sentido de apertura NO se pudo confirmar, UNA por renglón, con su
+          cuarto y posición. Confirmar la lectura NO aprueba el barrido: quedan pendientes y el
+          acomodo las trata como vano sin bloquear su barrido hasta que alguien lo confirme. */}
+      {puertasPendientes.length > 0 && (
+        <div className="tarjeta" style={{ marginTop: 8, background: 'var(--panel)' }} data-testid="lectura-puertas-pendientes">
+          <strong>Detecté {puertasPendientes.length} puerta{puertasPendientes.length === 1 ? '' : 's'} cuyo sentido de apertura no puedo confirmar.</strong>
+          <div className="ayuda" style={{ marginTop: 2 }}>Revisa estas ubicaciones antes de validar el acomodo. Al confirmar la lectura, estas puertas siguen PENDIENTES (no se inventa bisagra ni sentido).</div>
+          <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: 13 }}>
+            {puertasPendientes.map((pp, i) => (
+              <li key={i}>{pp.area} · a {pp.x.toFixed(2)} m, {pp.y.toFixed(2)} m del origen del cuarto{pp.ancho ? ` · vano ${pp.ancho.toFixed(2)} m` : ''} · {pp.motivo === 'ANCHO_PUERTA_DESCONOCIDO' ? 'sin ancho verificable' : 'sin bisagra ni sentido'}</li>
+            ))}
+          </ul>
         </div>
       )}
       {!resumen.problemas?.length && nota && <div className="ayuda" style={{ marginTop: 8 }}>{nota}</div>}

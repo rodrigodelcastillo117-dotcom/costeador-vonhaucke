@@ -49,7 +49,7 @@ const puertaAMetros = (p = {}) => ({
 
 // Campos que NO son geometría y viajan intactos en ambas direcciones (m ↔ mm).
 // `puestos`: conteo de escritorios dibujados (entero > 0) que pone leer-plano.
-const SEMANTICOS = ['puestos'];
+const SEMANTICOS = ['puestos', 'asientos'];
 const semanticos = (a) => Object.fromEntries(
   SEMANTICOS.filter((k) => Number.isFinite(a[k]) && a[k] > 0).map((k) => [k, a[k]]),
 );
@@ -70,6 +70,9 @@ export function aMM(areas = []) {
     ...(a.poly ? { poly: a.poly.map(([x, y]) => [r3(x), r3(y)]) } : {}),
     ...(a.obstaculos?.length ? { obstaculos: a.obstaculos.map((o) => ({ x: r3(o.x), y: r3(o.y), w: r3(o.w), h: r3(o.h), tipo: o.tipo })) } : {}),
     ...(a.puertas?.length ? { puertas: a.puertas.map(puertaAMM) } : {}),
+    // VH-097: las puertas cuyo barrido NO se verificó viajan con el área (posición y motivo):
+    // antes se perdían al confirmar la lectura y el acomodo ya no sabía que había puertas sin barrido.
+    ...(a.puertasPendientes?.length ? { puertasPendientes: a.puertasPendientes.map((p) => ({ x: r3(p.x), y: r3(p.y), ...(Number.isFinite(p.ancho) ? { ancho: r3(p.ancho) } : {}), motivo: p.motivo })) } : {}),
   }));
 }
 
@@ -87,6 +90,7 @@ export function aMetros(areas = []) {
     ...(a.poly ? { poly: a.poly.map(([x, y]) => [d3(x), d3(y)]) } : {}),
     ...(a.obstaculos?.length ? { obstaculos: a.obstaculos.map((o) => ({ x: d3(o.x), y: d3(o.y), w: d3(o.w), h: d3(o.h), tipo: o.tipo })) } : {}),
     ...(a.puertas?.length ? { puertas: a.puertas.map(puertaAMetros) } : {}),
+    ...(a.puertasPendientes?.length ? { puertasPendientes: a.puertasPendientes.map((p) => ({ x: d3(p.x), y: d3(p.y), ...(Number.isFinite(p.ancho) ? { ancho: d3(p.ancho) } : {}), motivo: p.motivo })) } : {}),
   }));
 }
 

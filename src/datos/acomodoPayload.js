@@ -14,7 +14,8 @@
 // ============================================================================
 import { areasCanonicas, aMM } from './floorPlan.js';
 import { expandirPiezas } from './espacio.js';
-import { marcarDestinoPartida } from './destinoAcomodo.js';
+import { marcarDestinoPartida, destinoMarcado } from './destinoAcomodo.js';
+import { rolFromRel } from './confirmarPrograma.js';
 import { programHashCanonico, floorHash } from './acomodoHash.js';
 
 // Pasillo mínimo de circulación (mm) — parte del input geométrico para el hash.
@@ -90,6 +91,17 @@ export function construirPayloadAcomodo({ partidas = [], areasM = [], piezasExtr
   }
 
   const piezas = expandirPiezas(reales);
+  // VH-096: una pieza sin zona asignada (la describió una persona, no viene del programa) va a la
+  // PRIMERA área cuyo tipo corresponde a su destino (privado/juntas/open/recepcion), deducido del
+  // texto de la partida o, si no dice nada, de su rol. Así una credenza directiva no cae en sanitarios.
+  const tipoPorDestino = { privado: 'privado', juntas: 'juntas', open: 'open', operativo: 'open', recepcion: 'recepcion' };
+  const areaPorTipo = (tipo) => areasCanon.find((a) => String(a?.tipo || '').toLowerCase() === tipo);
+  for (const pz of piezas) {
+    if (pz.zone_id != null) continue;
+    const destino = destinoMarcado(pz) || rolFromRel(pz.relation_role) || ({ SUPPORT_STORAGE: 'privado', VISITOR_SEAT: 'privado' })[pz.relation_role] || null;
+    const area = destino ? areaPorTipo(tipoPorDestino[destino] || destino) : null;
+    if (area) pz.zone_id = area.zone_id ?? area.nombre;
+  }
   // VH-092: una REFERENCIA (sin identidad de catálogo NI precio) sí se acomoda para que la
   // persona vea el borrador, pero queda listada con UNRESOLVED_PRODUCT y el acomodo NUNCA
   // se publica como VALIDADO mientras exista. PRELIMINAR (identidad sin precio autorizado, o
