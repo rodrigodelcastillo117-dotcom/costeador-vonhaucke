@@ -1,11 +1,12 @@
 // ============================================================================
-//  EDGE · acomodar-espacio-RECOVERY  (P0.2 · PENDIENTE DE ACTIVACIÓN)
+//  EDGE · acomodar-espacio-RECOVERY
 //
-//  ⚠️⚠️  ESTA FUENTE NO ESTÁ DESPLEGADA Y NO DEBE DESPLEGARSE SIN AUTORIZACIÓN
-//  EXPLÍCITA.  El cliente (`src/nube.js`) sigue invocando la función viva
-//  `acomodar-espacio-recovery` desplegada fuera de banda. Este archivo pone esa
-//  lógica BAJO CONTROL DE CÓDIGO (objetivo P0.2) con un contrato VERSIONADO y los
-//  invariantes duros nuevos (MUROS + CIRCULACIÓN) que el lane productivo no tiene.
+//  DESPLEGADA como v7 el 2026-10-12 (A18, aprobación de Dirección "hazlo todo") desde
+//  GitHub Actions (`deploy-edge.yml`, commit e625ac4). El cliente (`src/nube.js`) la
+//  invoca para el acomodo. Este archivo es la fuente BAJO CONTROL DE CÓDIGO con un
+//  contrato VERSIONADO y los invariantes duros (MUROS + CIRCULACIÓN).
+//  VH-087 (2026-10-12): exige sesión de usuario (Bearer de un usuario real, no la
+//  llave pública); antes contestaba a cualquiera con la llave anónima.
 //
 //  Nivel de evidencia: PENDIENTE DE ACTIVACIÓN. Su geometría nueva NO se considera
 //  viva ni certificada en producción hasta un deploy futuro explícitamente
@@ -23,6 +24,7 @@
 // Cores VENDORIZADOS en este directorio (cada función Edge de Supabase se empaqueta
 // desde su PROPIO directorio: los imports cruzados a ../acomodar-espacio fallaban al
 // desplegar). Copias de acomodar-espacio/{acomodo-core,spatial-core}.js.
+import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { prepararGruposFuncionales } from './acomodo-core.js';
 import { construirRespuestaAcomodo } from './recoveryPipeline.js';
 
@@ -48,6 +50,20 @@ function normalizarEntrada(body: any) {
 (globalThis as any).Deno?.serve?.(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ ok: false, error: 'method not allowed' }, 405);
+
+  // VH-087: el gateway valida que el JWT sea válido, pero la llave pública (anon) también lo
+  // es. Se exige un USUARIO autenticado, igual que en acomodar-espacio/costear-servidor.
+  const auth = req.headers.get('Authorization') || '';
+  if (!auth.startsWith('Bearer ')) return json({ ok: false, code: 'UNAUTHENTICATED', error: 'No autenticado.' }, 401);
+  try {
+    const URL = Deno.env.get('SUPABASE_URL') || '';
+    const ANON = Deno.env.get('SUPABASE_ANON_KEY') || '';
+    const uc = createClient(URL, ANON, { global: { headers: { Authorization: auth } } });
+    const { data: ud, error: ue } = await uc.auth.getUser();
+    if (ue || !ud?.user?.email) return json({ ok: false, code: 'UNAUTHENTICATED', error: 'Sesión inválida.' }, 401);
+  } catch (_e) {
+    return json({ ok: false, code: 'UNAUTHENTICATED', error: 'Sesión inválida.' }, 401);
+  }
 
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, error: 'invalid json' }, 400); }
