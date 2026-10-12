@@ -33,3 +33,4 @@ scratchpad/*
 !scratchpad/*.md
 .vercel
 .env*
+pw.prod.tmp*.config.mjs
