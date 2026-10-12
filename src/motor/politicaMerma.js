@@ -15,8 +15,8 @@
 //     regla aplica; piezas ≤ 1.50 × 0.60 siguen con la fracción real de la rejilla, que es lo
 //     que reproduce los T.D.C. de Alba al centavo).
 //   · SÍ: kg de pintura a partir del área plana (8 m²/kg).
-//   · NO: rendimiento de pintura en TUBULAR (sin cifra → null, el componente queda pendiente,
-//     nunca $0 ni un número inventado).
+//   · SÍ (desde 2026-10-12, Dirección: "es 8"): rendimiento de pintura en TUBULAR = 8 m²/kg,
+//     igual que en plano. Antes era null (pendiente) por falta de cifra.
 //   · NO: excedente de canto por lado (sin cifra → sigue mermaCorte del insumo).
 // ============================================================================
 
@@ -24,7 +24,8 @@ export const REGLAS_MERMA_PRODUCCION = Object.freeze({
   version: 'produccion-rogelio-2026-10',
   tablero: Object.freeze({ largoMM: 1500, anchoMM: 600 }),
   pinturaPlanaM2PorKg: 8,
-  pinturaTubularM2PorKg: null, // Producción: "rinde menos"; sin cifra no se inventa
+  // Producción dijo "rinde menos" sin cifra; Dirección fijó el número el 12-oct-2026 ("es 8").
+  pinturaTubularM2PorKg: 8,
   tramoM: 6,
   laminaAnchosMM: Object.freeze([914, 1220]),
 });
@@ -53,8 +54,8 @@ export function esPinturaPolvo(insumo) {
 }
 
 /**
- * kg de pintura en polvo para un área (m²). Plana: área / 8. Tubular: null (sin cifra
- * oficial → el motor lo deja PENDIENTE, no inventa).
+ * kg de pintura en polvo para un área (m²). Plana: área / 8. Tubular: área / 8 (Dirección,
+ * 12-oct-2026). Si alguna vez vuelve a null, el motor deja el componente PENDIENTE, no inventa.
  */
 export function kgPinturaPorArea(areaM2, { tubular = false } = {}) {
   const a = Number(areaM2);

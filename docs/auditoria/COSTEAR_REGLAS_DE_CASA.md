@@ -64,7 +64,10 @@ Unidad compatible con el consumo: pieza de área → fila con formato; metros �
 
 Lo que NO hace: no confirma nada solo (la emisión sigue bloqueada hasta la confirmación humana), no elige entre perfiles distintos cuando el pedido trae uno, no amarra equipo externo, no inventa precio cuando la fila de Compras no lo tiene.
 
+## Decisiones recibidas después (12-oct, tarde)
+1. **Pintura en tubular = 8 m²/kg** (Dirección: "es 8"). Codificado en `politicaMerma.js` (`pinturaTubularM2PorKg: 8`); el kg de pintura de las estructuras de PTR ya costea.
+2. **VH-124 corregido**: Costear ya no fija el margen al entrar; hereda SIEMPRE el `margenObjetivo` de la configuración (hoy 40 %, "1 pieza"), y sólo un expediente reabierto trae el suyo. La pantalla dice de dónde sale ("política vigente (1 pieza)" / "del expediente guardado"). El 50 % es el de los precios de lista para cotizar, no el de costear una pieza.
+
 ## Lo que sigue necesitando una decisión
-1. **Rendimiento de pintura en tubular** (m²/kg): sin esa cifra el kg de pintura en estructuras de PTR queda pendiente (A14, Producción dijo "rinde menos" sin número). Con un número de Producción, o con tu autorización para usar 8 m²/kg como piso provisional, se cierra.
-2. **VH-124** (margen 50 % vs 40 % según el momento de entrada): sigue sin corregir; requiere tu autorización (una línea).
-3. Los precios ERP entran como provisionales; la auditoría P0-03 (1,763 aprobaciones por `qa-direccion`) sigue pendiente.
+1. **Margen por cantidad**: Dirección quiere que al preguntar "¿cuántas piezas iguales?" el margen dependa de la cantidad (1 pieza → 40 %; lista → 50 %). Falta la tabla intermedia (¿2–5? ¿6–20? ¿21+?). No se inventa: hasta recibirla, toda cantidad usa la política vigente y la pantalla lo dice.
+2. Los precios ERP entran como provisionales; la auditoría P0-03 (1,763 aprobaciones por `qa-direccion`) sigue pendiente.

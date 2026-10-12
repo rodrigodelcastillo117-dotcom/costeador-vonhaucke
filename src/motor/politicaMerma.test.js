@@ -60,11 +60,11 @@ describe('regla de tablero de Producción (literal de Rogelio)', () => {
   });
 });
 
-describe('pintura en polvo por área pintada (8 m²/kg plano; tubular sin cifra → pendiente)', () => {
-  it('kgPinturaPorArea: 0.8 m² → 0.1 kg; tubular → null; área 0/negativa → null', () => {
+describe('pintura en polvo por área pintada (8 m²/kg plano y tubular, Dirección 12-oct)', () => {
+  it('kgPinturaPorArea: 0.8 m² → 0.1 kg; tubular → 0.1 kg; área 0/negativa → null', () => {
     expect(kgPinturaPorArea(0.8)).toBeCloseTo(0.1, 12);
     expect(kgPinturaPorArea(8)).toBe(1);
-    expect(kgPinturaPorArea(0.8, { tubular: true })).toBeNull();
+    expect(kgPinturaPorArea(0.8, { tubular: true })).toBeCloseTo(0.1, 9);
     expect(kgPinturaPorArea(0)).toBeNull();
     expect(kgPinturaPorArea(-2)).toBeNull();
   });
@@ -87,10 +87,10 @@ describe('pintura en polvo por área pintada (8 m²/kg plano; tubular sin cifra 
     const comp = { nombre: 'Tapa', insumoId: 'melamina-19', largoMM: 400, anchoMM: 200, areaPintadaM2: 5 };
     expect(netoComponente(comp, 1, INS['melamina-19'])).toBeCloseTo(0.08, 12);
   });
-  it('tubular pintado sin cantidad: NO se inventa rendimiento → queda PENDIENTE y bloquea (nunca $0)', () => {
+  it('tubular pintado por área: desde el 12-oct (Dirección: "es 8") costea a 8 m²/kg como el plano', () => {
     const r = calcular({ componentes: [{ nombre: 'Tubular pintado', insumoId: 'pintura-polvo', areaPintadaM2: 0.8, tubular: true }] }, 1, INS, par);
-    expect(r.componentesIgnorados).toEqual(['Tubular pintado (sin cantidad ni medidas)']);
-    expect(costeoEmitible(r).emitible).toBe(false);
+    expect(r.componentesIgnorados).toEqual([]);
+    expect(r.detalleInsumos[0].neto).toBeCloseTo(0.1, 9);
   });
   it('tubular pintado CON kg capturados (cantidad): se respeta la cantidad del estimador', () => {
     const r = calcular({ componentes: [{ nombre: 'Tubular pintado', insumoId: 'pintura-polvo', cantidad: 0.2, tubular: true }] }, 1, INS, par);

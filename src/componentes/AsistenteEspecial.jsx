@@ -148,9 +148,15 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const [b, setB] = useState({
     nombre: '', piezas: 1, componentes: [], imagen: null, descripcionCliente: '',
     modoManoObra: 'porcentaje',
-    margen: margenObjetivoDe(estado.parametros),
+    // VH-124: null = hereda SIEMPRE el margen de la configuración canónica (margenObjetivo), aunque
+    // llegue después de montar. Antes se fijaba una sola vez al entrar y, si la nube tardaba, se
+    // quedaba el 50 % local: dos personas veían precios distintos según cuánto tardó en cargar.
+    // Sólo un expediente reabierto trae su propio margen guardado.
+    margen: null,
   });
   const set = (parcial) => setB((prev) => ({ ...prev, ...parcial }));
+  const margenEfectivo = b.margen ?? margenObjetivoDe(estado.parametros);
+  const margenOrigen = b.margen != null ? 'del expediente guardado' : 'política vigente (1 pieza)';
 
   // Razonamiento estructural (determinista): Voni lee el despiece como CONJUNTO y
   // avisa de relaciones que no cuadran (gaveta sin cuerpo, faldón vertical, asientos
@@ -179,7 +185,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // lista; a éste se le había quedado fuera.
   const resultado = useMemo(() => calcular(b, b.piezas, insumos, par), [b, insumos, estado.parametros]);
   // Una sola regla costo → precio, sobre el costo OFICIAL: incompleto ⇒ null (nunca $0).
-  const precio = precioDesdeCosto(resultado.costoOficial, { par, margen: b.margen });
+  const precio = precioDesdeCosto(resultado.costoOficial, { par, margen: margenEfectivo });
 
   // --- SHADOW (Fase 3): compara en paralelo el motor del servidor (JWT real, rol/costos
   // server-side) contra el resultado del cliente y lo registra. Fire-and-forget, debounced,
@@ -188,7 +194,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   useEffect(() => {
     if (!(b.componentes?.length) || !(resultado.costoUnitario > 0) || precio == null) return;
     const pieza = b; // costear-servidor recibe sólo intención técnica (VH-036); el servidor es dueño de modelo/config/dinero
-    const h = hashInput({ c: b.componentes, n: b.piezas, m: b.margen });
+    const h = hashInput({ c: b.componentes, n: b.piezas, m: margenEfectivo });
     if (sombraRef.current === h) return; // ya comparado este input
     const t = setTimeout(async () => {
       sombraRef.current = h;
@@ -447,11 +453,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         // IDENTIDAD DE REVISIÓN congelada (audit 2026-10-01): mismo bom_hash + mismo
         // catálogo + mismo motor ⇒ mismo costo a centavos. Guardamos todo lo que define
         // esa identidad para poder reconstruir/verificar cualquier revisión.
-        costo: { costoUnitario: dinero(resultado.costoUnitario), subtotalConocido: dinero(emision.subtotalConocido), costoTotal: emitibleGuardar ? dinero(resultado.costoUnitario) : null, materialTotal: dinero(resultado.materialTotal), manoObra: dinero(resultado.manoObra), indirectosFabrica: dinero(resultado.indirectosFabrica), precio: emitibleGuardar ? dinero(precio) : null, margen: b.margen, estado_costo: estadoCostoGuardar, validado_servidor: emitibleGuardar && estadoGuardar === 'aprobado' ? (validacionSrv?.bomHash === bomHash(b.componentes)) : false, pendientes: emision.pendientes, bom_hash: bomHash(b.componentes), analysis_id: b.analysisId ?? null, version_motor: MOTOR_VERSION, formula_version: formulaDePieza(b), version_catalogo: (validacionSrv?.bomHash === bomHash(b.componentes) ? validacionSrv?.versionCatalogo : null) ?? null, fuente_costo: (validacionSrv?.bomHash === bomHash(b.componentes) ? validacionSrv?.fuenteCosto : null) ?? 'sin-validacion-servidor', factorDirecta: b.factorDirecta ?? null, factorIndirecta: b.factorIndirecta ?? null, render_hash: renderHash === renderFirmaActual ? renderHash : null, fecha: new Date().toISOString() },
+        costo: { costoUnitario: dinero(resultado.costoUnitario), subtotalConocido: dinero(emision.subtotalConocido), costoTotal: emitibleGuardar ? dinero(resultado.costoUnitario) : null, materialTotal: dinero(resultado.materialTotal), manoObra: dinero(resultado.manoObra), indirectosFabrica: dinero(resultado.indirectosFabrica), precio: emitibleGuardar ? dinero(precio) : null, margen: margenEfectivo, estado_costo: estadoCostoGuardar, validado_servidor: emitibleGuardar && estadoGuardar === 'aprobado' ? (validacionSrv?.bomHash === bomHash(b.componentes)) : false, pendientes: emision.pendientes, bom_hash: bomHash(b.componentes), analysis_id: b.analysisId ?? null, version_motor: MOTOR_VERSION, formula_version: formulaDePieza(b), version_catalogo: (validacionSrv?.bomHash === bomHash(b.componentes) ? validacionSrv?.versionCatalogo : null) ?? null, fuente_costo: (validacionSrv?.bomHash === bomHash(b.componentes) ? validacionSrv?.fuenteCosto : null) ?? 'sin-validacion-servidor', factorDirecta: b.factorDirecta ?? null, factorIndirecta: b.factorIndirecta ?? null, render_hash: renderHash === renderFirmaActual ? renderHash : null, fecha: new Date().toISOString() },
         confirmaciones: Object.entries(confirmadas).map(([question_key, v]) => ({ question_key, pregunta: v.pregunta, respuesta: v.respuesta })),
         plano_urls: planoUrls.length ? planoUrls : (expId ? undefined : []),
         render_aislado_url: soloHttp(renders.aislado), render_ambiente_url: soloHttp(renders.ambiente),
-        analysis_hash: hashInput({ c: b.componentes, n: b.piezas, m: b.margen }),
+        analysis_hash: hashInput({ c: b.componentes, n: b.piezas, m: margenEfectivo }),
       };
       if (planoUrls.length === 0 && !expId) exp.plano_urls = [];
       if (exp.plano_urls === undefined) delete exp.plano_urls; // al actualizar sin planos nuevos, no pisa los guardados
@@ -483,7 +489,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     const factorDirectaHist = esAlbaGuardada ? undefined : (c.factorDirecta ?? 55);
     const factorIndirectaHist = esAlbaGuardada ? undefined : (c.factorIndirecta ?? 12);
     setFormulaGuardada(c.formula_version || formulaDePieza({ factorDirecta: factorDirectaHist, factorIndirecta: factorIndirectaHist }));
-    setB((prev) => ({ ...prev, nombre: e.nombre || '', componentes: Array.isArray(e.bom) ? e.bom : [], piezas: 1, margen: e.costo?.margen ?? prev.margen, descripcionCliente: e.descripcion || '', materiales: Array.isArray(e.materiales) ? e.materiales : [], planos: [], imagen: null, factorDirecta: factorDirectaHist, factorIndirecta: factorIndirectaHist, analysisId: id }));
+    setB((prev) => ({ ...prev, nombre: e.nombre || '', componentes: Array.isArray(e.bom) ? e.bom : [], piezas: 1, margen: e.costo?.margen ?? null, descripcionCliente: e.descripcion || '', materiales: Array.isArray(e.materiales) ? e.materiales : [], planos: [], imagen: null, factorDirecta: factorDirectaHist, factorIndirecta: factorIndirectaHist, analysisId: id }));
     setExpId(e.id); setRevActual(e.revision || 1); setEtiquetasTxt((e.etiquetas || []).join(', ')); setEstadoExp(e.estado || 'borrador');
     setConfirmadas(Object.fromEntries((e.confirmaciones || []).map((c) => [c.question_key || ('k_' + kpreg(c.pregunta).replace(/\s+/g, '_')), { pregunta: c.pregunta, respuesta: c.respuesta }])));
     setRenders({ aislado: e.render_aislado_url || null, ambiente: e.render_ambiente_url || null });
@@ -1204,7 +1210,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
               <div className="ayuda" style={{ margin: '6px 0' }}>Cuesta hacer 1 pieza</div>
               <div className="precio-enorme" style={{ color: 'var(--tinta)', fontSize: 38 }}>{pesos2(resultado.costoUnitario)}</div>
               <div className="espacio" />
-              <div className="ayuda">Precio de lista ({b.margen}% margen)</div>
+              <div className="ayuda" data-testid="costear-margen">Precio de lista ({margenEfectivo}% margen · {margenOrigen})</div>
               <div className="precio-enorme">{pesos2(precio)}</div>
             </>
           ) : soloPorConfirmar ? (
@@ -1357,7 +1363,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       ) : (
         <div className="fila-botones">
           <button className="boton primario grande" onClick={() => onVerDetalle(b)}>Ver detalle completo (Alba V1)</button>
-          <button className="boton grande" onClick={() => { setB({ nombre: '', piezas: 1, componentes: [], modoManoObra: 'porcentaje', margen: b.margen }); setPaso(0); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({}); setConfirmadas({}); setConfMsg(''); setAnalisis(null); setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); setRenderHash(null); setRevActual(1); setCanonico(false); setPropuestaDiff(null); setBomDirty(false); setFormulaGuardada(null); corrida.current++; }}>Empezar otro</button>
+          <button className="boton grande" onClick={() => { setB({ nombre: '', piezas: 1, componentes: [], modoManoObra: 'porcentaje', margen: null }); setPaso(0); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({}); setConfirmadas({}); setConfMsg(''); setAnalisis(null); setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); setRenderHash(null); setRevActual(1); setCanonico(false); setPropuestaDiff(null); setBomDirty(false); setFormulaGuardada(null); corrida.current++; }}>Empezar otro</button>
         </div>
       )}
     </div>
