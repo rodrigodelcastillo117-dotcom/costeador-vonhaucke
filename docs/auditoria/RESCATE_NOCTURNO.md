@@ -74,3 +74,13 @@ VH-105 (render al reabrir Cocrear), VH-106, VH-107.
 13. **E2E corridas de verdad:** ver tabla final (unit, Playwright local con nube falsa + credenciales QA, golden 757 con el solver real del edge en Node, pasada en vivo contra producción).
 14. **Regresiones detectadas y resueltas:** (a) bench local de acomodo: visitas en recepción sin cupo tras VH-096 → corregido (recepción recibe visitas); (b) OOM del solver al hacer kit propio una guarda (mínimo vacío) → corregido; (c) primera versión de VH-092 excluía del solver fixtures sin identidad → se cambió a "se dibuja, no valida"; (d) tests en vivo con selectores viejos → corregidos.
 15. **Para desplegar con seguridad:** ver `DECISIONES_PENDIENTES.md` §E (E1 cliente, E2 edges, E3 dimensiones, E4 costos oficiales, E5 precios ERP). Orden recomendado: E1+E2 juntos (cliente y edges comparten contratos: `relation_role`, `unassigned`, `asientos`), después E3, E4/E5 con datos y firma.
+
+## PRUEBAS EJECUTADAS DE VERDAD (cierre de la noche)
+
+| Suite | Resultado | Dónde |
+|---|---|---|
+| vitest (unit + goldens + edge JS) | **2,099 / 2,099 PASS** (263 archivos) | `npx vitest run` sobre `HEAD` |
+| build Vite | PASS | `npm run build` |
+| Playwright local, nube falsa + credenciales QA (todo menos `live-ai`/`vivo`) | **44 / 44 PASS**, 0 omitidos (5.9 min) | `pw_local5.log` |
+| Golden 757 (plano ARQ-01 + 18 partidas reales, solver REAL del edge en Node, login real) | PASS: 18→12 partidas, 21/25 colocadas, 0 solapes, diagnóstico por pieza, recarga idéntica | `e2e/golden757.e2e.js`, capturas `golden_acomodo*.png` |
+| Pasada en vivo contra producción (`766df46`, cuenta QA) | `auth` 8/8 · `live-ai-smoke` 1/1 · `vivoSombra` PASS (analizar-mueble + costear-servidor reales; costeo pendiente por gate de material, por diseño) · `vivo` 5 caminos: ver última fila | `pw_prod*.log`, `reporte_vivo*.json` |
