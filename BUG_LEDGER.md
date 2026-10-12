@@ -144,6 +144,16 @@ aviso "BORRADOR · NO REGISTRADO · <motivo>"); lo que se bloquea fail-closed es
 **Verificación al cierre de la unificación:** vitest 778 archivos / 1,965 pruebas / 0 fallas · build limpio ·
 `no-undef` 0 · Playwright 25 pasan / 16 se saltan (requieren `TEST_EMAIL`/`TEST_PASSWORD` del flujo autenticado real).
 
+**PRODUCCIÓN RE-APUNTADA · 2026-10-12 00:58 UTC.** PR #27 fusionado a `c3.4-seller-safe` (merge `28874ab`, CI verde:
+`verify` + e2e autenticado 39/39 contra el backend real). Vercel construyó `dpl_GRhGG2vdtbzK4uTrBPjdLM7TeuAY`
+(bundle `index-Cw4Etvhx.js`); se verificó en ese deployment que el bundle trae los marcadores de la línea unificada
+(`catalogo-fallback`, `politica_comercial_publica`, inicio de tres caminos; en el chunk de Acomodo `lectura-servidor` y
+el veredicto del servidor) y se promovió al dominio `costeador-vonhaucke.vercel.app` con `request_promote`. Comprobado
+después en el dominio real: sirve `index-Cw4Etvhx.js`, smoke en navegador sin errores de runtime. Antes del cambio el
+dominio estaba fijado al deployment de `5a38d2e` (`dpl_1m4bDohVjcqL86fcGHRhJTnw2rJc`, bundle `index-vjBoM8Ia.js`); los
+deployments de producción de PR #25/#26 nunca tomaron el dominio. **Rollback:** promover `dpl_1m4bDohVjcqL86fcGHRhJTnw2rJc`
+desde Vercel (un clic, sin rebuild). Rama principal única desde hoy: `c3.4-seller-safe` (A19 HECHO).
+
 **Pendiente de revisar (no se perdió, no se integró):** los 6 commits de `perfection-final` posteriores a `5a38d2e`
 (`d698eea`…`7d60204`, P0.9–P0.16) no están en producción ni en esta unificación.
 
