@@ -4,6 +4,7 @@
 //  Es la Fase 1 del flujo "render → preguntas → costo" (la Fase 2 pre-llena
 //  este mismo despiece leyendo una imagen con IA).
 // ============================================================================
+import { CabPaso } from './SeccionPaso.jsx';
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { precioDesdeCosto, margenObjetivoDe } from '../datos/precio.js';
 import { calcular, netoComponente, modeloParaPieza, costeoEmitible, bomHash, diffBOM, aplicarDiffBOM, MOTOR_VERSION, FORMULA_ALBA_V1, formulaDePieza } from '../motor/calculo.js';
@@ -82,6 +83,13 @@ const PARTES = [
 
 
 const N_PASOS = 4;
+// Nombres de los pasos de Costear (UX 12-oct): lo que la persona hace en cada uno.
+const PASOS_COSTEAR = [
+  { clave: 'describir', titulo: 'Describir', desc: 'Nombre, foto o plano.' },
+  { clave: 'despiece', titulo: 'Despiece', desc: 'Piezas, medidas y dudas.' },
+  { clave: 'manoobra', titulo: 'Mano de obra', desc: 'Se calcula sola (Alba V1).' },
+  { clave: 'precio', titulo: 'Precio', desc: 'Costo, render y guardar.' },
+];
 
 // ¿Esta respuesta async pertenece a la corrida vigente? (anti-contaminación de estado entre
 // productos). corridaId null = llamada sin id (legado) → se acepta. Pura y testeable.
@@ -868,11 +876,23 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
 
   return (
     <div className="asistente">
-      <div className="progreso">
-        {Array.from({ length: N_PASOS }).map((_, i) => (
-          <span key={i} className={`punto ${i <= paso ? 'activo' : ''}`} />
-        ))}
+      {/* UX por pasos (12-oct): los cuatro pasos con nombre y estado; se puede volver a uno ya alcanzado. */}
+      <div className="voni-pasos no-imprimir" data-testid="costear-pasos">
+        {PASOS_COSTEAR.map((p, i) => {
+          const hecho = i < paso && (i === 0 ? !!b.nombre.trim() : i === 1 ? b.componentes.length > 0 : true);
+          const estado = i === paso ? 'activo' : hecho ? 'hecho' : 'pend';
+          const habilitado = i <= paso || (i === paso + 1 && puedeSeguir);
+          return (
+            <button key={p.clave} type="button" data-testid={`costear-paso-${p.clave}`} className={`voni-paso voni-paso-${estado}`}
+              disabled={!habilitado} title={!habilitado ? (i === 1 ? 'Primero dale nombre al mueble.' : i === 2 ? 'Primero elige las piezas.' : 'Sigue el orden de los pasos.') : undefined}
+              onClick={() => habilitado && setPaso(i)}>
+              <span className="voni-paso-num">{hecho ? '✓' : i + 1}</span>
+              <span className="voni-paso-tx"><span className="voni-paso-t">{p.titulo}</span><span className="voni-paso-d">{p.desc}</span></span>
+            </button>
+          );
+        })}
       </div>
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
         <button className="boton fantasma" onClick={() => (paso === 0 ? onInicio() : setPaso(paso - 1))}>
           ‹ {paso === 0 ? 'Inicio' : 'Atrás'}
@@ -1190,6 +1210,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       {/* PASO 4 — Resultado */}
       {paso === 3 && (
         <div className="tarjeta-precio">
+          <div style={{ textAlign: 'left' }}><CabPaso n="a" titulo="Costo y precio" estado={emitible ? 'hecho' : 'activo'} nota={emitible ? 'Completo: todos los insumos tienen costo.' : 'Fail-closed: sin costo total hasta costear todo.'} /></div>
           <div className="ficha-linea">{b.nombre || 'Producto nuevo'}</div>
           {emitible ? (
             <>
@@ -1261,6 +1282,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           {/* RENDER V1 — ilustra el producto definido; no lo modifica */}
           <div className="espacio" />
           <div style={{ borderTop: '1px solid var(--borde)', paddingTop: 14, textAlign: 'left' }}>
+            <CabPaso n="b" titulo="Render del producto" estado={(renders.aislado || renders.ambiente) ? 'hecho' : 'activo'} nota="Ilustra lo ya definido; no cambia medidas ni materiales." />
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <strong>Generar render</strong>
               <span className="chip" style={{ background: costoIncompleto ? '#b22a22' : (costoEstado === 'certificado') ? 'var(--ok,#1a7f37)' : '#8a6d00', color: '#fff', fontSize: 12 }}>
@@ -1299,7 +1321,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           {/* GUARDAR EN BIBLIOTECA */}
           <div className="espacio" />
           <div style={{ borderTop: '1px solid var(--borde)', paddingTop: 14, textAlign: 'left' }}>
-            <strong>Guardar en biblioteca</strong>
+            <CabPaso n="c" titulo="Guardar en biblioteca" estado={expId ? 'hecho' : 'activo'} nota="Queda a la mano de Diseño: plano, despiece, costo y render." />
             <p className="ayuda" style={{ margin: '6px 0' }}>Queda a la mano del equipo de Diseño, buscable por palabra clave, con plano, despiece, costo y render.</p>
             <label className="etiqueta">Nombre</label>
             <input type="text" value={b.nombre || ''} onChange={(e) => set({ nombre: e.target.value })} style={{ width: '100%' }} />
