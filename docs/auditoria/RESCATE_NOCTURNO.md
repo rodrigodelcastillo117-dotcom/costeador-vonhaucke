@@ -60,6 +60,7 @@ VH-105 (render al reabrir Cocrear), VH-106, VH-107.
 | 05:25 | `0e155a8` | VH-090, VH-094, VH-099 (cliente) | resto | vitest 2,088 · PW local 28+2 | prod: 9 PASS, re-corrida en curso | ninguno | ninguna | Bloque A: A2 conflictos con 3 decisiones, A3 elegibilidad, A4 diagnóstico por pieza |
 | 06:50 | `561b741` | + VH-095 zonas por rol explícito, VH-103 UX, VH-096-rc1 tests en vivo | VH-098 (edge), VH-100 (decisión), VH-103 (dato), VH-105 (prueba real), VH-108 (proveedor IA) | vitest 2,099 · PW local **44/44** · golden757 PASS · vivo: 4 de 5 caminos (ver tabla) | prod: acomodo 0 colocadas con edge v8 (evidencia "antes"); IA intermitente | ninguno | ninguna nueva | Entrega: reporte ejecutivo y GO/NO-GO |
 | 08:50 | `29522e4` | release gate E1+E2: VH-090b (conciliación multi-zona), VH-109 (persistencia del acomodo), VH-095b (planner); golden 757 contra el edge RC bajo Deno con JWT real y persistencia real | VH-098 (edge), VH-100, VH-103, VH-105, VH-108 (sin cambio) | vitest **2,112/2,112** (264 archivos) · golden757 PASS en ambos modos (Node y edge RC Deno) · PW local **44/44** | — | ninguno | ninguna nueva | GO/NO-GO abajo |
+| 16:10 | `e67eb6c` | estabilización post-deploy: VH-110/111/112/113/114/115/116/118 corregidos; VH-108 con evidencia; certificación 757 + 3 proyectos + renders prod | E3/E4/E5, cuentas QA Ventas/Diseño, expediente Cocrear, VH-108 después | vitest 2,140 · PW local 49/49 · prod: 757 PASS, edición PASS, renders 1/4 | — | ninguno | VH-116 y VH-112 eran P0 latentes en producción | GO para nuevo deploy E1+E2 coordinado |
 | 06:20 | `88d458b` | Bloque A completo (VH-090…096), B (VH-097; VH-098 parcial), C (VH-099 cliente, VH-101 parcial, VH-102 auditado, VH-103 UX), D (VH-105 código, VH-106/107 auditados) | VH-098 (edge), VH-100 (decisión), VH-103 (dato), VH-105 (prueba real) | vitest 2,099/2,099 · build OK · PW: golden757 PASS, programaP01/VH090 PASS, acomodo ×3 PASS, lecturaPlano 5/5 | prod: pasada en vivo re-corrida (resultado abajo) | ninguno | regresión temporal en `bench/acomodo` (visitas en recepción) detectada y corregida en la misma hora; OOM del kit propio detectado por bisección y corregido | Bloque E: suite Playwright completa, reporte ejecutivo |
 
 ## REPORTE EJECUTIVO (se cierra al final de la noche; cifras de ejecuciones reales de esta sesión)
@@ -296,8 +297,13 @@ E3 dimensiones de catálogo (1,738 PV derivables, migración escrita) · E4 cost
 ### Riesgos de seguridad
 Ninguno nuevo. Abiertos: sesiones reales de Ventas/Diseño sin probar en prod; `QA_FIXTURE_*` en catálogo (E5).
 
+### Pruebas del RC de estabilización (código final `e67eb6c`, docs `23c8976`+)
+vitest **2,140 / 2,140** (266 archivos) · Playwright local (nube falsa + cuenta QA, sin `live-ai`/`vivo`/`renderEscenas`) **49 / 49** (6.3 min; incluye
+`acomodoVeredicto`, `cotizarProyectos` ×3, `golden757`, `golden757Edicion`) · producción: golden 757 PASS, edición manual PASS, suite viva 10/11 (vivo
+con expectativa corregida pendiente de volver a correr), renders por cuarto 1/4.
+
 ### Release Candidate y recomendación
-RC = HEAD de la rama (ver checkpoint). Cliente + edges (`acomodar-espacio-recovery`, `generar-render`, `analizar-mueble`) cambian juntos otra vez.
+RC = `e67eb6c` (código) en la rama; PR #34 (borrador) acumula docs + código de estabilización. Cliente + edges (`acomodar-espacio-recovery`, `generar-render`, `analizar-mueble`) cambian juntos otra vez.
 **GO para un nuevo deploy coordinado E1+E2** con el mismo protocolo (preflight, edges primero, merge, golden en prod, rollback = `195d245`), condicionado a que la suite viva se repita contra lo publicado. NO-GO para E3/E4/E5.
 
 ## RECOMENDACIÓN GO / NO-GO
