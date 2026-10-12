@@ -78,7 +78,7 @@ test('cinco caminos contra el servidor real', async ({ browser }) => {
   // 2) PLANO (leer-plano real) → compuerta con veredicto del servidor
   try {
     await page.goto('/');
-    await page.locator('button.voni-principal').click();
+    await page.getByTestId('home-cotizar').click();
     await expect(page.getByText(/Soy .*Voni/i).first()).toBeVisible({ timeout: 10000 });
     const png = await planoPNG(await context.newPage()).catch(() => null);
     const input = page.locator('input[type=file][accept*="pdf"]').first();

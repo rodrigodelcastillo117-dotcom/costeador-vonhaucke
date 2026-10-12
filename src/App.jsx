@@ -842,15 +842,16 @@ export default function App() {
     if (!propuesta) return { confirmadas: 0, conflictos: [], pendientes: [] };
     // VH-091: `opts.sustituir` = slots cuyo conflicto la persona resolvió a favor del propuesto.
     const sustituir = Array.isArray(opts.sustituir) ? opts.sustituir : [];
+    const mantenerAmbos = Array.isArray(opts.mantenerAmbos) ? opts.mantenerAmbos : [];
     // Vista para la UI (contra el estado actual): conflictos y pendientes a mostrar.
-    const vista = aplicarPrograma(propuesta, { existentes: estado.cotizacion?.partidas || [], sustituir });
+    const vista = aplicarPrograma(propuesta, { existentes: estado.cotizacion?.partidas || [], sustituir, mantenerAmbos });
     if (aplicandoProgramaRef.current) {
       return { confirmadas: 0, conflictos: vista.conflictos || [], pendientes: propuesta.pendientes || [] };
     }
     aplicandoProgramaRef.current = true;
     setEstado((prev) => {
       const existentes0 = prev.cotizacion?.partidas || [];
-      const { confirmacion } = aplicarPrograma(propuesta, { existentes: existentes0, sustituir });
+      const { confirmacion } = aplicarPrograma(propuesta, { existentes: existentes0, sustituir, mantenerAmbos });
       // VH-091: los sustituidos por decisión explícita salen del proyecto.
       const fuera = new Set((confirmacion.reemplazados || []).map(String));
       const existentes = fuera.size ? existentes0.filter((p) => !fuera.has(String(p.id))) : existentes0;

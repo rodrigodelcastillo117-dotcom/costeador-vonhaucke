@@ -153,8 +153,9 @@ function aItemConfirmado(part, { slot = null, estado }) {
 // conflicto real (p. ej. cambió el brief y el slot ya tiene otra mesa).
 const esDelPrograma = (raw) => raw && raw.source === 'CONFIRMADO_PROGRAMA';
 
-export function confirmarPrograma(propuesta, { existentes = [], sustituir = [] } = {}) {
+export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], mantenerAmbos = [] } = {}) {
   const sustituirSet = new Set((Array.isArray(sustituir) ? sustituir : []).map(String));
+  const ambosSet = new Set((Array.isArray(mantenerAmbos) ? mantenerAmbos : []).map(String));
   const reemplazados = [];                        // ids de existentes sustituidos por decisión explícita
   const partidas = (propuesta && Array.isArray(propuesta.partidas)) ? propuesta.partidas : [];
   const anchorsProp = partidas.filter((p) => esAncla(p.relation_role));
@@ -208,9 +209,22 @@ export function confirmarPrograma(propuesta, { existentes = [], sustituir = [] }
         usados.add(prev._i);
         if (prev.raw && prev.raw.id != null) reemplazados.push(prev.raw.id);
         confirmadas.push(aItemConfirmado(a, { slot, estado: 'CONFIRMADO' }));
+      } else if (ambosSet.has(slot)) {
+        // Decisión explícita: son DOS requerimientos distintos → el existente se queda y el
+        // propuesto entra como ancla adicional (slot propio, misma zona/grupo).
+        confirmadas.push(aItemConfirmado(a, { slot: `${slot}+`, estado: 'CONFIRMADO' }));
       } else {
-        // CONFLICTO programa-vs-programa: se CONSERVA lo existente, NO se sustituye solo.
-        conflictos.push({ slot, existente: { id: prev.raw.id ?? null, bancoId: prev.banco, nombre: prev.raw.nombre ?? null }, propuesto: { bancoId: a.bancoId, nombre: a.nombre ?? null }, code: 'SLOT_OCUPADO_PRODUCTO_DISTINTO' });
+        // CONFLICTO programa-vs-programa: se CONSERVA lo existente, NO se sustituye solo. Se
+        // entrega TODO lo que la persona necesita ver para decidir (VH-091): cantidades, producto,
+        // identidad, medidas, precio de lista y cuántos dependientes cuelgan del existente.
+        const depsExistentes = ex.filter((e) => e.raw && e.raw.anchor_instance_id && prev.raw.instance_id && String(e.raw.anchor_instance_id) === String(prev.raw.instance_id));
+        conflictos.push({
+          slot, code: 'SLOT_OCUPADO_PRODUCTO_DISTINTO',
+          existente: { id: prev.raw.id ?? null, bancoId: prev.banco, nombre: prev.raw.nombre ?? null, cantidad: prev.cantidad, w: prev.raw.w ?? null, d: prev.raw.d ?? null, precio: Number(prev.raw.precioUnitario ?? prev.raw.precio_lista_snapshot) || null, productoId: prev.raw.productoId ?? null, usuarios: prev.raw.user_capacity ?? prev.raw.usuarios ?? null },
+          propuesto: { bancoId: a.bancoId, nombre: a.nombre ?? null, cantidad: Math.max(1, Number(a.cantidad) || 1), w: a.w ?? null, d: a.d ?? null, precio: Number(a.precio_lista_snapshot ?? a.precio) || null, productoId: a.identidad?.producto_id ?? a.productoId ?? null, usuarios: a.user_capacity ?? a.usuarios ?? null },
+          dependientes: depsExistentes.reduce((n, e) => n + e.cantidad, 0),
+          dependientesFilas: depsExistentes.length,
+        });
       }
     } else {
       confirmadas.push(aItemConfirmado(a, { slot, estado: 'CONFIRMADO' }));

@@ -212,3 +212,35 @@ describe('VH-090 · lo que describió una persona manda sobre el producto genér
     expect(mesas[0].bancoId).not.toBe(conf.existente.bancoId);
   });
 });
+
+describe('VH-091 · tres decisiones con vista previa', () => {
+  const base = () => {
+    const b = confirmarPrograma(resolverPrograma({ salas: [4] }, { linea: 'App LT' }), { existentes: [] });
+    return b.items.map((it, i) => ({ ...it, id: `prog-${i}`, precioUnitario: it.precio_lista_snapshot }));
+  };
+  const prop10 = () => resolverPrograma({ salas: [10] }, { linea: 'App LT' });
+  it('el conflicto trae todo lo que hay que ver: cantidades, medidas, precio, identidad y dependientes', () => {
+    const r = confirmarPrograma(prop10(), { existentes: base() });
+    const c = r.conflictos.find((x) => x.code === 'SLOT_OCUPADO_PRODUCTO_DISTINTO');
+    expect(c.existente.cantidad).toBe(1);
+    expect(c.existente.w).toBe(900); expect(c.existente.d).toBe(900);
+    expect(c.existente.precio).toBe(4260);
+    expect(c.propuesto.w).toBeGreaterThan(900);
+    expect(c.propuesto.precio).toBeGreaterThan(0);
+    expect(c.propuesto.productoId).toBeTruthy();
+    expect(c.dependientes).toBe(4);                 // las 4 sillas de la sala cuelgan de la mesa existente
+  });
+  it('"mantener ambos": el existente se queda y el propuesto entra como ancla adicional, sin tocar lo demás', () => {
+    const ex = base();
+    const r1 = confirmarPrograma(prop10(), { existentes: ex });
+    const slot = r1.conflictos[0].slot;
+    const r2 = confirmarPrograma(prop10(), { existentes: ex, mantenerAmbos: [slot] });
+    expect(r2.conflictos).toHaveLength(0);
+    expect(r2.reemplazados).toHaveLength(0);
+    const mesas = r2.items.filter((i) => i.relation_role === 'ANCHOR_MEETING');
+    expect(mesas).toHaveLength(2);
+    expect(new Set(mesas.map((m) => m.bancoId)).size).toBe(2);
+    expect(r2.items.some((i) => i.id === 'prog-0')).toBe(true);                            // la mesa existente, intacta
+    expect(r2.sinCambio.some((i) => i.relation_role === 'MEETING_SEAT')).toBe(true);        // sus sillas se reutilizan, no se duplican
+  });
+});

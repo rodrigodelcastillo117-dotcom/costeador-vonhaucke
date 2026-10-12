@@ -6,6 +6,7 @@
 import { topologiaDeProducto } from './placementTopologia.js';
 import { inferRole, esAncla } from './confirmarPrograma.js';
 import { inferirDestinoPartida } from './destinoAcomodo.js';
+import { BANCO } from './banco.js';
 
 export const TIPOS = {
   escritorio: { label: 'Escritorios', color: '#3b6fb0', alto: 730 },
@@ -123,6 +124,29 @@ export function contarBajoEscritorio(partidas) {
 }
 
 const TOPE_PARTIDA = 300;
+
+// ---------------------------------------------------------------------------
+//  VH-092 · ELEGIBILIDAD para el solver (tres estados, nunca mezclados):
+//   A 'CONFIRMADO'  identidad de catálogo válida + precio/snapshot → mobiliario cotizado.
+//   B 'PRELIMINAR'  identidad válida sin precio autorizado (programa en borrador).
+//   C 'REFERENCIA'  sin identidad verificable → NO entra al solver (UNRESOLVED_PRODUCT).
+//  Y la PROCEDENCIA de la huella: SPATIAL_SPEC > PARTIDA (w/d) > NOMBRE (medidas en el
+//  texto) > INFERIDA (huella por tipo). Un acomodo con huellas INFERIDAS es PRELIMINAR.
+// ---------------------------------------------------------------------------
+const BANCO_IDS = new Set(BANCO.map((b) => b.id));
+export function identidadDePartida(pt = {}) {
+  if (pt.productoId || pt.producto_id || pt.producto_version_id || pt.lista_precio_item_id) return true;
+  const b = pt.bancoId || pt.piezaId;
+  if (b && BANCO_IDS.has(String(b))) return true;
+  if (b && /^(linea-|op-|dir-|mj-|rec-|esc-|ger-)/.test(String(b))) return true;
+  return false;
+}
+export function elegibilidadDePartida(pt = {}) {
+  if (!identidadDePartida(pt)) return 'REFERENCIA';
+  const precioOk = Number(pt.precioUnitario) > 0 || Number(pt.precio_lista_snapshot) > 0 || pt.price_status === 'SNAPSHOT_DISPLAY';
+  return precioOk ? 'CONFIRMADO' : 'PRELIMINAR';
+}
+
 export function expandirPiezas(partidas, tope = 600) {
   const out = [];
   let real = 0;
@@ -134,16 +158,21 @@ export function expandirPiezas(partidas, tope = 600) {
     // en vez de salir "sin un mueble que las reciba".
     const relInferida = pt.relation_role || inferRole(pt) || null;
     const destino = inferirDestinoPartida(pt);
+    const elegibilidad = elegibilidadDePartida(pt);
     let tipo = tipoDe(pt);
+    let huellaFuente = (pt.spatial_spec || pt.atributos?.spatial_spec) ? 'SPATIAL_SPEC' : (pt.w && pt.d ? 'PARTIDA' : 'INFERIDA');
     if (esAncla(relInferida) && (tipo === 'mampara' || tipo === 'mueble')) {
       tipo = ({ ANCHOR_WORKSTATION: 'escritorio', ANCHOR_DESK: 'escritorio', ANCHOR_MEETING: 'juntas', ANCHOR_RECEPTION: 'recepcion' })[relInferida] || tipo;
     }
     let w = pt.w, d = pt.d;
     if (tipo !== 'asiento' && (!w || !d)) {
       const explicitas = dimensionesEnNombre(pt.nombre, tipo);
-      if (explicitas) { w = w || explicitas.w; d = d || explicitas.d; }
+      if (explicitas) { w = w || explicitas.w; d = d || explicitas.d; if (huellaFuente === 'INFERIDA') huellaFuente = 'NOMBRE'; }
     }
     if (tipo === 'asiento' || !w || !d) { [w, d] = HUELLA[tipo] || HUELLA.mueble; }
+    // Una silla tiene huella ESTÁNDAR (600×600, la misma que usa el servidor): no es una
+    // medida "supuesta" que vuelva PRELIMINAR el acomodo. Lo supuesto es un mueble sin medida.
+    if (tipo === 'asiento') huellaFuente = 'ESTANDAR';
     if (tipo === 'guarda' || tipo === 'mampara') ({ w, d } = enderezarAlto(w, d, tipo));
     [w, d] = huellaReal(pt.nombre, w, d, tipo);
     const n = Math.max(1, Math.min(pt.cantidad || 1, TOPE_PARTIDA));
@@ -189,6 +218,8 @@ export function expandirPiezas(partidas, tope = 600) {
         ...(pt.source ? { source: pt.source } : {}),
         ...(Number.isFinite(Number(pt.max_anchor_distance_mm)) ? { max_anchor_distance_mm: Number(pt.max_anchor_distance_mm) } : {}),
         relation_index: k + 1,
+        elegibilidad,
+        huella_fuente: huellaFuente,
         ...(spatialSpec ? { spatial_spec: spatialSpec } : {}),
       });
     }

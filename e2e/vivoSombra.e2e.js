@@ -41,7 +41,7 @@ test('Costear con IA → despiece real → sombra contra costear-servidor', asyn
   await page.waitForTimeout(4000);
   // La sombra SÓLO corre con costo completo y precio (AsistenteEspecial: `resultado.costoUnitario > 0 && precio != null`).
   // Un despiece con materiales del servidor sin precio certificado queda INCOMPLETO y no se compara: es correcto.
-  const pendientes = await page.getByText(/sin precio certificado/).count();
+  const pendientes = await page.getByText(/sin precio certificado|Costo pendiente|POR CONFIRMAR/i).count();
   await esperaSrv;
   if (srvRes) {
     const cuerpoSrv = await srvRes.json().catch(() => null);

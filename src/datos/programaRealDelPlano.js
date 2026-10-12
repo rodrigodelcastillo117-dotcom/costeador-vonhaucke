@@ -183,8 +183,8 @@ export function proponerProgramaDelPlano(areas, { linea = 'App LT', brief = null
 }
 
 /** APLICA la propuesta: CONFIRMA (acto explícito) y produce partidas comerciales. */
-export function aplicarPrograma(propuesta, { existentes = [], sustituir = [] } = {}) {
-  const confirmacion = confirmarPrograma(propuesta, { existentes, sustituir });
+export function aplicarPrograma(propuesta, { existentes = [], sustituir = [], mantenerAmbos = [] } = {}) {
+  const confirmacion = confirmarPrograma(propuesta, { existentes, sustituir, mantenerAmbos });
   return {
     confirmacion,
     partidas: partidasParaAcomodo(confirmacion),

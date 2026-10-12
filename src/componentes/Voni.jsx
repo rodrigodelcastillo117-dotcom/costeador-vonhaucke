@@ -74,6 +74,38 @@ function Pasos({ paso, setPaso, puedeAvanzar, hechoPaso }) {
   );
 }
 
+// VH-091 · PANEL DE RESOLUCIÓN por conflicto: la persona ve qué tiene, qué propone el plano,
+// medidas, precio de lista, identidad y cuántos dependientes cuelgan, y decide una de TRES
+// cosas. Nada se sustituye solo; nada obliga a rehacer el proyecto.
+const mm = (w, d) => (Number(w) > 0 && Number(d) > 0 ? `${(w / 1000).toFixed(2)} × ${(d / 1000).toFixed(2)} m` : '—');
+const money = (v) => (Number.isFinite(Number(v)) && v != null ? `$${Number(v).toLocaleString('es-MX', { maximumFractionDigits: 0 })}` : 'sin precio de lista');
+function ConflictoPrograma({ c, onConservar, onSustituir, onAmbos }) {
+  const e = c.existente || {}; const p = c.propuesto || {};
+  const filas = [
+    ['Producto', e.nombre || e.bancoId || '—', p.nombre || p.bancoId || '—'],
+    ['Identidad', e.bancoId ? `${e.bancoId}${e.productoId ? ` · #${e.productoId}` : ''}` : '—', p.bancoId ? `${p.bancoId}${p.productoId ? ` · #${p.productoId}` : ''}` : '—'],
+    ['Cantidad', String(e.cantidad ?? 1), String(p.cantidad ?? 1)],
+    ['Medidas', mm(e.w, e.d), mm(p.w, p.d)],
+    ['Usuarios', e.usuarios ?? '—', p.usuarios ?? '—'],
+    ['Precio de lista', money(e.precio), money(p.precio)],
+  ];
+  return (
+    <div className="tarjeta" style={{ marginTop: 8, border: '1px solid #e0b4b4', background: '#fff8f8' }} data-testid="conflicto-programa">
+      <div style={{ fontWeight: 700 }}>✗ {etiquetaSlot(c.slot)}: ya tienes un producto en este lugar y el plano propone otro.</div>
+      <table style={{ width: '100%', marginTop: 6, fontSize: 14, borderCollapse: 'collapse' }}>
+        <thead><tr><th style={{ textAlign: 'left' }}></th><th style={{ textAlign: 'left' }}>Lo que ya tienes</th><th style={{ textAlign: 'left' }}>Lo que propone el plano</th></tr></thead>
+        <tbody>{filas.map(([k, a, b]) => <tr key={k}><td style={{ color: '#6b645c', paddingRight: 8 }}>{k}</td><td>{a}</td><td>{b}</td></tr>)}</tbody>
+      </table>
+      {c.dependientes > 0 && <div className="ayuda" style={{ marginTop: 4 }}>De tu producto actual dependen {c.dependientes} silla(s)/guarda(s) ({c.dependientesFilas} renglón(es)); al sustituirlo se re-atan al propuesto y no se duplican.</div>}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+        <button type="button" className="boton fantasma" style={{ minHeight: 34 }} onClick={onConservar}>Conservar el mío</button>
+        {onSustituir && <button type="button" className="boton primario" style={{ minHeight: 34 }} onClick={onSustituir}>Sustituir por el propuesto</button>}
+        {onAmbos && <button type="button" className="boton fantasma" style={{ minHeight: 34 }} onClick={onAmbos}>Mantener ambos (son dos muebles distintos)</button>}
+      </div>
+    </div>
+  );
+}
+
 // VH-091: "juntas|ANCHOR_MEETING|#0" → "Mesa de juntas 1" (nunca el id interno en pantalla).
 const etiquetaSlot = (slot) => {
   const [rol, rel, ord] = String(slot || '').split('|');
@@ -173,6 +205,8 @@ export default function Voni({
     () => (propuestaPrograma ? aplicarPrograma(propuestaPrograma.propuesta, { existentes: partidas }) : null),
     [propuestaPrograma, partidas],
   );
+  // VH-091: conflictos que la persona decidió CONSERVAR (sólo oculta el aviso; nada cambia en la cotización).
+  const [conflictosConservados, setConflictosConservados] = useState(() => new Set());
   const faltantesPrograma = reconPrograma ? reconPrograma.confirmacion.confirmadas : [];
   // VH-090: existentes del usuario que cubren el programa y aún no están vinculados (sin instance/anchor).
   const reutilizadosPrograma = reconPrograma
@@ -312,17 +346,11 @@ export default function Voni({
               {conflictosPrograma.length > 0 && (
                 <div style={{ marginTop: 8, color: '#8a1f1f' }}>
                   <div style={{ fontWeight: 700 }}>Conflicto (decide tú)</div>
-                  {conflictosPrograma.map((c, i) => (
-                    <div key={i} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 4 }}>
-                      <span>✗ {etiquetaSlot(c.slot)}: ya tienes <b>{c.existente?.nombre || c.existente?.bancoId}</b>; el plano propone <b>{c.propuesto?.nombre || c.propuesto?.bancoId}</b>.</span>
-                      {c.code === 'SLOT_OCUPADO_PRODUCTO_DISTINTO' && onAplicarPrograma && (
-                        <button type="button" className="boton fantasma" style={{ minHeight: 32 }}
-                          onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta, { sustituir: [c.slot] })}>
-                          Sustituir por el propuesto
-                        </button>
-                      )}
-                      <span className="ayuda">(o conserva el tuyo: no se sustituye solo)</span>
-                    </div>
+                  {conflictosPrograma.filter((c) => !conflictosConservados.has(c.slot)).map((c, i) => (
+                    <ConflictoPrograma key={i} c={c}
+                      onConservar={() => setConflictosConservados((prev) => new Set([...prev, c.slot]))}
+                      onSustituir={onAplicarPrograma ? () => onAplicarPrograma?.(propuestaPrograma.propuesta, { sustituir: [c.slot] }) : null}
+                      onAmbos={onAplicarPrograma ? () => onAplicarPrograma?.(propuestaPrograma.propuesta, { mantenerAmbos: [c.slot] }) : null} />
                   ))}
                 </div>
               )}
