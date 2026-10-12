@@ -2978,6 +2978,8 @@ body::before {
    ========================================================================== */
 .inicio-vh { padding-top: 34px; }
 .vh-cab { display: flex; flex-direction: column; gap: 8px; padding: 6px 0 22px; }
+.vh-marca { display: inline-flex; align-items: center; gap: 9px; font-family: var(--mono2); font-size: 13px; font-weight: 700; letter-spacing: .28em; color: #FFB4AE; }
+.vh-marca-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--t-red); box-shadow: 0 0 12px rgba(229,72,77,.9); }
 .vh-titulo { margin: 0; font-family: var(--grot); font-weight: 700; font-size: clamp(34px, 5vw, 58px); line-height: .98; letter-spacing: -.035em; color: #fff; }
 .vh-sub { margin: 0; color: var(--t-dim); font-size: 16px; max-width: 60ch; line-height: 1.45; }
 

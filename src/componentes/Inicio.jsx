@@ -195,6 +195,7 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
     return (
       <div className="inicio inicio-terminal inicio-vh">
         <div className="vh-cab">
+          <div className="vh-marca"><span className="vh-marca-dot" aria-hidden="true" />VH LAB</div>
           <h1 className="vh-titulo">¿Qué vas a hacer?</h1>
           <p className="vh-sub">Cotiza, costea o diseña. Cada botón abre directo su flujo, sin menús intermedios.</p>
         </div>
