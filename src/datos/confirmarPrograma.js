@@ -206,8 +206,10 @@ export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], 
         sinCambio.push(aItemConfirmado({ ...prev.raw, ...estructuraDe(a), bancoId: prev.banco, relation_role: a.relation_role, rol: a.rol || rolFromRel(a.relation_role) }, { slot, estado: 'EXISTENTE_EQUIVALENTE' }));
         // VH-112: si la persona declaró la capacidad (explícita o en el nombre, "8 usuarios"), esa manda sobre
         // la del módulo del programa (un módulo de 12 no convierte su banca de 8 en una de 12).
-        const capPersona = Number(prev.raw?.user_capacity) > 0 ? Number(prev.raw.user_capacity) : capacidadDeNombre(prev.raw?.nombre, { w: prev.raw?.w ?? a.w, rol: a.relation_role });
-        if (prev.raw && prev.raw.id != null) enriquecidos.push({ id: prev.raw.id, patch: { ...estructuraDe(a), relation_role: a.relation_role, ...(capPersona ? { user_capacity: capPersona } : {}), ...(prev.raw.w == null && a.w != null ? { w: a.w } : {}), ...(prev.raw.d == null && a.d != null ? { d: a.d } : {}) } });
+        const capExplicita = Number(prev.raw?.user_capacity ?? prev.raw?.usuarios) > 0 ? Number(prev.raw.user_capacity ?? prev.raw.usuarios) : null;
+        const capPersona = capExplicita ?? capacidadDeNombre(prev.raw?.nombre, { w: prev.raw?.w ?? a.w, rol: a.relation_role });
+        // VH-120: la leída del nombre viaja marcada como INFERIDA (evidencia más débil); la explícita conserva su fuente.
+        if (prev.raw && prev.raw.id != null) enriquecidos.push({ id: prev.raw.id, patch: { ...estructuraDe(a), relation_role: a.relation_role, ...(capPersona ? { user_capacity: capPersona, ...(capExplicita ? {} : { user_capacity_inferida: true }) } : {}), ...(prev.raw.w == null && a.w != null ? { w: a.w } : {}), ...(prev.raw.d == null && a.d != null ? { d: a.d } : {}) } });
       } else if (sustituirSet.has(slot)) {
         // Decisión explícita de la persona: el propuesto SUSTITUYE al existente del programa.
         usados.add(prev._i);

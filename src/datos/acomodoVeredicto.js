@@ -110,6 +110,20 @@ const uniq = (arr) => [...new Set(arr.filter(Boolean))];
  * @param {boolean}     o.preliminar     medidas supuestas / productos sin precio autorizado
  * @param {Array}       o.nombresSinColocar  nombres de las piezas sin colocar (para el texto)
  */
+// VH-120 · capacidad por ancla con su FUENTE (del edge: layoutSpec.validation.capacidad). Lo estimado por
+// geometría se dice como preliminar; lo declarado que no cabe se dice con números; nada se oculta.
+const TEXTO_FUENTE = { CATALOGO: 'ficha del catálogo', USUARIO: 'declarada por ti', INFERIDA: 'leída del nombre', DECLARADA: 'declarada', GEOMETRICA: 'estimada por geometría (preliminar)' };
+export function notasCapacidad(layoutSpec) {
+  const lista = Array.isArray(layoutSpec?.validation?.capacidad) ? layoutSpec.validation.capacidad : [];
+  const out = [];
+  for (const c of lista) {
+    const nombre = String(c.nombre || c.id || 'ancla').slice(0, 40);
+    if (c.conflicto === 'CAPACIDAD_SUPERA_GEOMETRIA') out.push(`${nombre}: capacidad ${TEXTO_FUENTE[c.fuente] || c.fuente} ${c.declarada}, pero geométricamente caben ${c.tope_geometrico} (una silla cada 600 mm por cara): se sientan ${c.usada}, el resto queda sin lugar`);
+    else if (c.conflicto === 'CAPACIDAD_ESTIMADA') out.push(`${nombre}: capacidad ${c.usada} ${TEXTO_FUENTE.GEOMETRICA}, no es capacidad industrial`);
+  }
+  return uniq(out);
+}
+
 export function explicarAcomodo({ plan = null, evaluacion = null, programaListo = true, motivoPrograma = '', referencias = [], preliminar = false, nombresSinColocar = [] } = {}) {
   const spec = plan?.layoutSpec || null;
   const statusSrv = String(spec?.status || '').toUpperCase() || null;
@@ -142,12 +156,14 @@ export function explicarAcomodo({ plan = null, evaluacion = null, programaListo 
   const ancF = porClase(fallas, 'anclas');
   const nombres = uniq([...nombresSinColocar, ...unassigned.map((u) => u?.nombre), ...noCupieron.map((u) => u?.nombre)]);
   const anclasOk = ancF.length === 0 && nSin === 0 && unassigned.length === 0;
+  const capNotas = notasCapacidad(spec);
+  const textoAnclas = !plan ? '—' : anclasOk ? 'cada silla y guarda tiene su mueble y su lugar'
+    : uniq([
+      nSin ? `${nSin} sin colocar${nombres.length ? `: ${nombres.slice(0, 4).join(', ')}${nombres.length > 4 ? '…' : ''}` : ''}` : '',
+      ...ancF.map(textoInvariante),
+    ]).join(' · ');
   bloques.push({ clave: 'anclas', titulo: 'Anclas y dependientes', ok: !plan ? null : anclasOk,
-    texto: !plan ? '—' : anclasOk ? 'cada silla y guarda tiene su mueble y su lugar'
-      : uniq([
-        nSin ? `${nSin} sin colocar${nombres.length ? `: ${nombres.slice(0, 4).join(', ')}${nombres.length > 4 ? '…' : ''}` : ''}` : '',
-        ...ancF.map(textoInvariante),
-      ]).join(' · ') });
+    texto: capNotas.length ? `${textoAnclas} · ${capNotas.join(' · ')}` : textoAnclas, capacidad: capNotas });
   // 5 · Revisión semántica (orientación, asientos, topología de kits).
   const semOk = !plan ? null : (statusSrv === 'PASS' || sem.estado === 'PASS' || (!sem.estado && statusSrv !== 'NEEDS_SEMANTIC_REVIEW' && statusSrv !== 'NEEDS_REVIEW_METADATA'));
   let semTexto;

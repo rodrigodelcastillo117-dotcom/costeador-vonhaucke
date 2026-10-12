@@ -62,6 +62,25 @@ export function capacidadAncla(p = {}) {
   }
 }
 
+// VH-120 · la MISMA capacidad con su FUENTE y su tope geométrico, para que el cliente distinga lo declarado
+// (CATALOGO/USUARIO), lo leído del nombre (INFERIDA) y lo estimado por geometría (GEOMETRICA, preliminar).
+// `conflicto` cuando lo declarado supera lo que cabe (una silla cada 600 mm por cara): esas personas no se
+// sientan encimadas, quedan sin lugar y se reporta.
+export function capacidadConFuente(p = {}) {
+  const w = num(p.w), d = num(p.d), m = Math.max(w, d);
+  const topeGeometrico = p.relation_role === 'ANCHOR_WORKSTATION' && m > 0 ? 2 * Math.max(1, Math.floor(m / 600)) : null;
+  const explicita = num(p.user_capacity) > 0 ? Math.round(num(p.user_capacity)) : null;
+  const delNombre = explicita == null ? capacidadDeclarada(p) : null;
+  const declarada = explicita ?? delNombre;
+  const fuente = declarada == null ? 'GEOMETRICA'
+    : (['CATALOGO', 'USUARIO', 'INFERIDA'].includes(p.capacity_source) ? p.capacity_source
+      : (explicita != null && !p.user_capacity_inferida ? 'DECLARADA' : 'INFERIDA'));
+  const usada = capacidadAncla(p);
+  const conflicto = declarada != null && topeGeometrico != null && declarada > topeGeometrico ? 'CAPACIDAD_SUPERA_GEOMETRIA'
+    : (declarada == null && esAncla(p.relation_role) && p.relation_role !== 'ANCHOR_DESK' ? 'CAPACIDAD_ESTIMADA' : null);
+  return { capacidad: usada, declarada, fuente, tope_geometrico: topeGeometrico, preliminar: fuente === 'GEOMETRICA', conflicto };
+}
+
 // --- A · ASIGNACIÓN DE DUEÑO -------------------------------------------------
 export function asignarDuenos(piezas = []) {
   const grupos = new Map();
@@ -93,6 +112,8 @@ export function asignarDuenos(piezas = []) {
 
   // Guardas de piso: siempre SUELTAS (kit propio sin sillas), nunca bajo cubierta.
   for (const p of out) if (p.relation_role === 'SUPPORT_STORAGE') { p.standalone = true; p.anchor_instance_id = null; }
+  // VH-120: cada ancla sale con su capacidad resuelta, su FUENTE y su tope geométrico (aditivo, serializable).
+  for (const p of out) if (esAncla(p.relation_role)) { const c = capacidadConFuente(p); p.capacidad = { usada: c.capacidad, declarada: c.declarada, fuente: c.fuente, tope_geometrico: c.tope_geometrico, preliminar: c.preliminar, conflicto: c.conflicto }; }
   for (const [, { anclas, deps: deps0 }] of grupos) {
     const deps = deps0.filter((d) => d.relation_role !== 'SUPPORT_STORAGE');
     if (!anclas.length) { for (const d of deps) { porId(d.id).anchor_instance_id = null; huerfanos.push(d); } continue; }

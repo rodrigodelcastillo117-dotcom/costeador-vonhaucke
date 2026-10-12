@@ -212,3 +212,58 @@ describeSem('VH-119 · escritorio privado: ejecutivo detrás, visitas al frente'
     expectSem(r2.layoutSpec.status).toBe('PARTIAL');
   });
 });
+
+// ============================================================================
+//  VH-120 (Fase 3) · CAPACIDAD CON FUENTE. APP LT 4800×1200 y 6000×1200, una y dos bancas, varias cantidades de
+//  usuarios. La capacidad declarada (CATALOGO/USUARIO) manda hasta el tope FÍSICO (una silla cada 600 mm por
+//  cara, preliminar); lo que no cabe queda sin lugar y se reporta como conflicto; nunca dos personas en un lugar.
+// ============================================================================
+import { capacidadConFuente } from './kit-solver.js';
+describeSem('VH-120 · capacidad con fuente y tope geométrico', () => {
+  const banca = (id, w, extra = {}) => ({ id, nombre: 'Banca doble APP LT', w, d: 1200, tipo: 'escritorio', relation_role: 'ANCHOR_WORKSTATION', functional_group_id: 'fg:op', zone_id: 'OPERATIVA', placement_profile: { topology: 'DOUBLE_FACE', provenance: 'CATALOG' }, ...extra });
+  const sillas = (n) => Array.from({ length: n }, (_, i) => ({ id: `w-${i + 1}`, nombre: 'Silla operativa · WIN', w: 600, d: 600, tipo: 'asiento', relation_role: 'WORK_SEAT', functional_group_id: 'fg:op', zone_id: 'OPERATIVA' }));
+  const area = [{ nombre: 'OPERATIVA', tipo: 'open', ancho: 14000, largo: 8000, x: 0, y: 0 }];
+  const solapes = (r) => {
+    const by = Object.fromEntries(r.plan.piezas.map((p) => [p.id, p])); const col = r.plan.colocacion; const out = [];
+    const box = (c) => { const p = by[c.id]; const g = c.rot % 180 !== 0; return { x: c.x, y: c.y, w: g ? p.d : p.w, d: g ? p.w : p.d }; };
+    for (let i = 0; i < col.length; i++) for (let j = i + 1; j < col.length; j++) { const a = box(col[i]), b = box(col[j]); if (a.x < b.x + b.w - 5 && a.x + a.w > b.x + 5 && a.y < b.y + b.d - 5 && a.y + a.d > b.y + 5) out.push([col[i].id, col[j].id]); }
+    return out;
+  };
+  itSem('fuentes: CATALOGO / USUARIO / INFERIDA / GEOMETRICA; tope 16 en 4.80 m y 20 en 6.00 m', () => {
+    expectSem(capacidadConFuente(banca('b', 4800, { user_capacity: 8, capacity_source: 'CATALOGO' }))).toMatchObject({ capacidad: 8, declarada: 8, fuente: 'CATALOGO', tope_geometrico: 16, preliminar: false, conflicto: null });
+    expectSem(capacidadConFuente(banca('b', 6000, { user_capacity: 12, capacity_source: 'USUARIO' }))).toMatchObject({ capacidad: 12, fuente: 'USUARIO', tope_geometrico: 20, conflicto: null });
+    expectSem(capacidadConFuente(banca('b', 6000, { nombre: 'Banca doble APP LT 1.50 · 8 usuarios' }))).toMatchObject({ capacidad: 8, fuente: 'INFERIDA' });
+    expectSem(capacidadConFuente(banca('b', 6000, { nombre: 'Módulo operativo' }))).toMatchObject({ capacidad: 8, declarada: null, fuente: 'GEOMETRICA', preliminar: true, conflicto: 'CAPACIDAD_ESTIMADA' });
+    expectSem(capacidadConFuente(banca('b', 4800, { user_capacity: 40, capacity_source: 'USUARIO' }))).toMatchObject({ capacidad: 16, declarada: 40, tope_geometrico: 16, conflicto: 'CAPACIDAD_SUPERA_GEOMETRIA' });
+    expectSem(capacidadConFuente({ id: 'e', nombre: 'Escritorio', w: 1800, d: 800, relation_role: 'ANCHOR_DESK' })).toMatchObject({ capacidad: 1, fuente: 'GEOMETRICA', tope_geometrico: null, conflicto: null });
+  });
+  for (const [w, cap, n, esperadas, sinLugar] of [[4800, 8, 8, 8, 0], [4800, 8, 12, 8, 4], [4800, 16, 16, 16, 0], [6000, 8, 8, 8, 0], [6000, 12, 12, 12, 0], [6000, 20, 20, 20, 0], [6000, 40, 24, 20, 4]]) {
+    itSem(`una banca ${w}×1200 capacidad ${cap} con ${n} sillas ⇒ ${esperadas} sentadas, ${sinLugar} sin lugar, sin solapes`, () => {
+      const r = construirSem(area, [banca('b-1', w, { user_capacity: cap, capacity_source: 'USUARIO' }), ...sillas(n)]);
+      const sentadas = r.plan.colocacion.filter((c) => c.id.startsWith('w-')).length;
+      expectSem(sentadas).toBe(esperadas);
+      expectSem((r.unassigned || []).length + (r.no_cupieron || []).reduce((s, u) => s + u.piezas.filter((id) => id.startsWith('w-')).length, 0)).toBe(sinLugar);
+      expectSem(solapes(r)).toEqual([]);
+      const capInfo = r.layoutSpec.validation.capacidad.find((c) => c.id === 'b-1');
+      expectSem(capInfo).toMatchObject({ fuente: 'USUARIO', declarada: cap, usada: Math.min(cap, 2 * Math.floor(w / 600)) });
+      if (cap > 2 * Math.floor(w / 600)) expectSem(capInfo.conflicto).toBe('CAPACIDAD_SUPERA_GEOMETRIA'); else expectSem(capInfo.conflicto).toBe(null);
+      if (sinLugar) expectSem(r.layoutSpec.status).not.toBe('PASS');
+    });
+  }
+  itSem('dos bancas 6000×1200 de 8 con 16 sillas ⇒ 8 + 8, PASS, sin solapes; con 20 sillas ⇒ 16 sentadas y 4 sin lugar', () => {
+    const dos = [banca('b-1', 6000, { user_capacity: 8, capacity_source: 'CATALOGO' }), banca('b-2', 6000, { user_capacity: 8, capacity_source: 'CATALOGO' })];
+    const r = construirSem(area, [...dos, ...sillas(16)]);
+    const porAncla = {}; for (const p of r.plan.piezas) if (p.relation_role === 'WORK_SEAT' && p.anchor_instance_id) porAncla[p.anchor_instance_id] = (porAncla[p.anchor_instance_id] || 0) + 1;
+    expectSem(porAncla).toEqual({ 'b-1': 8, 'b-2': 8 });
+    expectSem(r.plan.colocacion).toHaveLength(18); expectSem(solapes(r)).toEqual([]); expectSem(r.layoutSpec.status).toBe('PASS');
+    const r2 = construirSem(area, [...dos, ...sillas(20)]);
+    expectSem(r2.plan.colocacion.filter((c) => c.id.startsWith('w-'))).toHaveLength(16);
+    expectSem(r2.unassigned).toHaveLength(4); expectSem(solapes(r2)).toEqual([]); expectSem(r2.layoutSpec.status).not.toBe('PASS');
+  });
+  itSem('banca sin topología declarada (UNKNOWN) no es doble: una cara, nunca dos personas en un lugar', () => {
+    const r = construirSem(area, [banca('b-1', 6000, { user_capacity: 12, capacity_source: 'USUARIO', placement_profile: undefined }), ...sillas(12)]);
+    expectSem(solapes(r)).toEqual([]);
+    expectSem(r.plan.colocacion.filter((c) => c.id.startsWith('w-')).length).toBeLessThanOrEqual(10);   // ⌊6000/600⌋ por la única cara
+    expectSem(r.layoutSpec.status).not.toBe('PASS');
+  });
+});

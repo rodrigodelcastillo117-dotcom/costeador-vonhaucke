@@ -4,7 +4,7 @@
 //  partidas de la cotización a piezas individuales con su huella real.
 // ============================================================================
 import { topologiaDeProducto } from './placementTopologia.js';
-import { capacidadDeNombre } from './capacidadDeclarada.js';
+import { capacidadDeNombre, fuenteCapacidad } from './capacidadDeclarada.js';
 import { inferRole, esAncla } from './confirmarPrograma.js';
 import { inferirDestinoPartida } from './destinoAcomodo.js';
 import { BANCO } from './banco.js';
@@ -209,8 +209,9 @@ export function expandirPiezas(partidas, tope = 600) {
         ...(pt.requirement_id ? { requirement_id: pt.requirement_id } : {}),
         ...(pt.zone_id ? { zone_id: pt.zone_id } : {}),
         ...(pt.anchor_instance_id ? { anchor_instance_id: pt.anchor_instance_id } : {}),
-        ...(Number(pt.user_capacity) > 0 ? { user_capacity: Number(pt.user_capacity) }
-          : (capacidadDeNombre(pt.nombre, { w, rol: relInferida }) ? { user_capacity: capacidadDeNombre(pt.nombre, { w, rol: relInferida }), user_capacity_inferida: true } : {})),
+        // VH-112/VH-120: capacidad con su FUENTE (CATALOGO | USUARIO | INFERIDA). `usuarios` (lo que dijo la persona
+        // o la ficha del banco) también cuenta: antes sólo se leía `user_capacity` y "3 bancas de 8" perdía el 8.
+        ...(() => { const fc = fuenteCapacidad(pt, { w, rol: relInferida }); return fc.capacidad ? { user_capacity: fc.capacidad, capacity_source: fc.fuente, ...(fc.fuente === 'INFERIDA' ? { user_capacity_inferida: true } : {}) } : {}; })(),
         // P0.2c GAP6: la topología de colocación VIAJA desde la identidad del
         // producto (catálogo). Aditivo: sólo aparece si hay evidencia (p.ej. bench
         // doble). perfilDeAncla la lee server-side; ausente → UNKNOWN+fallback.

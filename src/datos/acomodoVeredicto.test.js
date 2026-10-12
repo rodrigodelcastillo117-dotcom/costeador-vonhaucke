@@ -88,3 +88,24 @@ describe('VH-111 · describirValidacionServidor reconoce todos los estados del e
     expect(textoSemantico({ code: 'RARO', id: 'z' })).toMatch(/RARO «z»/);
   });
 });
+
+// VH-120 · el veredicto dice de dónde salió la capacidad y qué no cupo, con números.
+import { describe as dCap, it as iCap, expect as eCap } from 'vitest';
+import { notasCapacidad, explicarAcomodo as explicarCap } from './acomodoVeredicto.js';
+dCap('VH-120 · notasCapacidad', () => {
+  iCap('declarada que no cabe ⇒ frase con números; estimada ⇒ preliminar; sin conflicto ⇒ nada', () => {
+    const spec = { status: 'PARTIAL', validation: { issues: [], capacidad: [
+      { id: 'b-1', nombre: 'Banca doble APP LT', fuente: 'USUARIO', declarada: 40, usada: 20, tope_geometrico: 20, conflicto: 'CAPACIDAD_SUPERA_GEOMETRIA' },
+      { id: 'm-1', nombre: 'Mesa de juntas', fuente: 'GEOMETRICA', declarada: null, usada: 8, tope_geometrico: null, conflicto: 'CAPACIDAD_ESTIMADA' },
+      { id: 'b-2', nombre: 'Banca', fuente: 'CATALOGO', declarada: 8, usada: 8, tope_geometrico: 20, conflicto: null },
+    ] } };
+    const notas = notasCapacidad(spec);
+    eCap(notas).toHaveLength(2);
+    eCap(notas[0]).toContain('declarada por ti 40'); eCap(notas[0]).toContain('caben 20'); eCap(notas[0]).toContain('se sientan 20');
+    eCap(notas[1]).toContain('estimada por geometría (preliminar)');
+    const v = explicarCap({ plan: { layoutSpec: spec, unassigned: [{ id: 'w-21', nombre: 'Silla WIN' }], colocacion: [] } });
+    const anclas = v.bloques.find((b) => b.clave === 'anclas');
+    eCap(anclas.ok).toBe(false); eCap(anclas.texto).toContain('caben 20'); eCap(anclas.capacidad).toHaveLength(2);
+    eCap(notasCapacidad({ validation: {} })).toEqual([]);
+  });
+});
