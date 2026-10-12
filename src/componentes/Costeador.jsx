@@ -13,11 +13,13 @@ import { recetaBench } from '../datos/bench.js';
 import HojaCosto from './HojaCosto.jsx';
 import FichaPDF from './FichaPDF.jsx';
 import MiniRender, { tipoDeMueble, dimsDeMueble } from './MiniRender.jsx';
-import { generarRender, analizarTexto, buscarProductosMaestroTexto } from '../nube.js';
+import { generarRender, analizarTexto, buscarProductosMaestroTexto, buscarInsumosMotor } from '../nube.js';
+import { amarrarPendientesERP } from '../datos/amarreERP.js';
 import { pesos2, pct, pct1, colorMerma } from '../util.js';
 import AnalisisEstructural from './AnalisisEstructural.jsx';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
+import { mapIaComps as mapIaCompsCompartido } from '../datos/mapIaComps.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, alertaMaterial } from '../datos/materialMatch.js';
 import BuscadorInsumo from './BuscadorInsumo.jsx';
 import { renderSpecFromGraph } from '../datos/renderSpec.js';
@@ -119,17 +121,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   // Mapea el despiece CRUDO de la IA a los `componentes` del motor (misma conversión
   // que el Asistente especial). Un insumoId que no exista queda '' → el motor lo marca
   // como pendiente (fail-closed), nunca lo inventa.
-  const mapIaComps = (p) => (p?.piezas || []).map((z) => {
-    // POLÍTICA DE MATERIAL: jamás sustituye solid surface por MDF/HPL en silencio.
-    // Sólo EXACT/EQUIVALENT_APPROVED conservan insumoId; una sustitución de otra
-    // familia o un material inexistente quedan '' + bandera `_match` para la UI
-    // (el motor los marca pendientes, nunca los costea en $0 disfrazados).
-    // `material_solicitado` lo da el analizador (v19+); si no viene, cae al nombre
-    // de la pieza, que ya suele traer el material ("Cubierta superficie sólida").
-    const base = aplicarPoliticaMaterial({ ...z, material_solicitado: z.material_solicitado || z.nombre }, (id) => insumos[id], Object.values(insumos));
-    if (z.forma === 'area') { base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1; if (z.hojas > 0) base.hojas = z.hojas; }
-    return base;
-  });
+  const mapIaComps = (p) => mapIaCompsCompartido(p, insumos);
   async function analizarDescripcion() {
     const desc = (costeo.descripcionCliente || '').trim();
     if (desc.length < 8) { setErrIA('Describe el mueble (material, partes, uso) para que Voni lo entienda.'); return; }
@@ -143,7 +135,12 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
       const res = await analizarTexto(catalogo, desc);
       if (!res?.ok) { setErrIA(res?.error || 'No se pudo interpretar la descripción.'); return; }
       const p = res.propuesta || {};
-      set({ nombre: costeo.nombre || p.producto || '', descripcionCliente: p.descripcionCliente || desc, componentes: conAcompanantes(mapIaComps(p)) });
+      const compsIA = conAcompanantes(mapIaComps(p), insumos);
+      set({ nombre: costeo.nombre || p.producto || '', descripcionCliente: p.descripcionCliente || desc, componentes: compsIA });
+      // Regla de casa (12-oct): pendientes → catálogo de Compras (ERP), provisional por confirmar.
+      amarrarPendientesERP(compsIA, { buscar: buscarInsumosMotor, agregarInsumo: onAgregarInsumo || (() => {}), insumos })
+        .then(({ comps: amarrados, amarrados: lista }) => { if (lista.length) set({ componentes: amarrados }); })
+        .catch(() => {});
       setEstructuraVoni(p.design_intent ? graphFromPropuesta(p) : null);
       // VH-066: si el catálogo central no estuvo, la edge lo dice (`catalogoFuente`);
       // el Asistente especial ya avisaba (#8) y esta pantalla se lo callaba.
@@ -263,7 +260,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     if (ins) Object.assign(patch, patchConfirmacionUI(insumoId));
     comps[i] = { ...prev, ...patch };
     // Adhesivo automático: elegir superficie sólida arrastra su adhesivo de uniones.
-    set({ componentes: conAcompanantes(comps) });
+    set({ componentes: conAcompanantes(comps, insumos) });
   }
   // Costo neto de una pieza, respetando fracción de hoja (para el subtotal por pieza)
   function costoPieza(c, ins, n) {

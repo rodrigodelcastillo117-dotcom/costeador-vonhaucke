@@ -17,6 +17,10 @@ import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
+import { mapIaComps as mapIaCompsCompartido } from '../datos/mapIaComps.js';
+import { amarrarPendientesERP } from '../datos/amarreERP.js';
+import { buscarInsumosMotor } from '../nube.js';
+import { resumenMotor } from '../datos/resumenMotor.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, alertaMaterial } from '../datos/materialMatch.js';
 import BuscadorInsumo from './BuscadorInsumo.jsx';
 import { paginaAImagen } from '../datos/pdfImagen.js';
@@ -152,8 +156,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // avisa de relaciones que no cuadran (gaveta sin cuerpo, faldón vertical, asientos
   // sin estructura…). Propone/detecta; NO cambia costo ni medidas.
   const revisionEstructural = useMemo(
-    () => revisarEstructura({ componentes: b.componentes, descripcion: b.descripcionCliente }),
-    [b.componentes, b.descripcionCliente],
+    () => revisarEstructura({ componentes: b.componentes, descripcion: b.descripcionCliente, insumos }),
+    [b.componentes, b.descripcionCliente, insumos],
   );
   // ESTRUCTURA QUE ENTENDIÓ VONI: el grafo construido desde la SEMÁNTICA del intérprete
   // canónico (analizar-mueble: design_intent + semantic_role/relaciones). Es el mueble
@@ -534,19 +538,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
 
   // Mapea el despiece CRUDO de la IA a los `componentes` del motor. Única fuente de
   // esta conversión (la usan aplicarPropuesta y el camino de PROPUESTA_DIFF).
-  const mapIaComps = (p) => (p?.piezas || []).map((z) => {
-    // POLÍTICA DE MATERIAL (misma que Costeador): nunca sustituye una familia por
-    // otra en silencio (solid surface jamás cae en MDF/HPL). Sólo EXACT/EQUIV
-    // conservan insumoId; el resto queda '' + bandera `_match`.
-    const base = aplicarPoliticaMaterial({ ...z, material_solicitado: z.material_solicitado || z.nombre }, (id) => insumos[id], Object.values(insumos));
-    if (z.forma === 'area') {
-      base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
-      // La IA ya estimó la fracción de hoja que rinde: el motor la usa directa
-      // (hojas × precio) en vez de re-nestear áreas, que es lo que oscilaba.
-      if (z.hojas > 0) base.hojas = z.hojas;
-    }
-    return base;
-  });
+  // Mapper compartido (src/datos/mapIaComps.js): política de material + hojas de tablero por el MOTOR (A14).
+  const mapIaComps = (p) => mapIaCompsCompartido(p, insumos);
 
   function aplicarPropuesta(res, dataUrl, planos, nuevoAnalisis = false, corridaId = null, yaConf = null) {
     // DESCARTE de respuesta async vieja: si ya empezó otra corrida (otro plano), ignórala.
@@ -554,7 +547,22 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     if (!res?.ok) { setErrorIA(res?.error || 'No se pudo analizar.'); return false; }
     setCatalogoFuente(res.catalogoFuente || null);   // #8: si fue 'cliente-fallback', se avisa (no cotizar en firme)
     const p = res.propuesta || {};
-    const comps = conAcompanantes(mapIaComps(p));
+    const comps = conAcompanantes(mapIaComps(p), insumos);
+    // REGLA DE CASA (12-oct, Dirección): lo que quede pendiente se busca en TODO el catálogo de Compras
+    // (ERP) y entra PROVISIONAL (por confirmar). Asíncrono: no bloquea la propuesta; si llega tarde
+    // (otra corrida ya empezó) se descarta. Se fusiona por posición+nombre sobre el BOM vigente.
+    amarrarPendientesERP(comps, { buscar: buscarInsumosMotor, agregarInsumo: onAgregarInsumo || (() => {}), insumos })
+      .then(({ comps: amarrados, amarrados: lista }) => {
+        if (!lista.length || !aceptaCorrida(corridaId, corrida.current)) return;
+        setB((prev) => {
+          const act = Array.isArray(prev.componentes) ? prev.componentes : [];
+          if (act.length !== amarrados.length) return prev;
+          const fus = act.map((c, i) => (c && amarrados[i] && c.nombre === amarrados[i].nombre && !c.insumoId && amarrados[i].insumoId ? { ...c, ...amarrados[i] } : (c && amarrados[i] && c.nombre === amarrados[i].nombre && !c.insumoId && amarrados[i].candidate_insumo_id ? { ...c, material_match: amarrados[i].material_match, candidate_insumo_id: amarrados[i].candidate_insumo_id, _match: amarrados[i]._match } : c)));
+          return { ...prev, componentes: fus };
+        });
+        setConfMsg(`Catálogo de Compras: ${lista.length} material(es) amarrado(s) con precio real, por confirmar: ${lista.map((x) => x.insumoNombre).slice(0, 5).join(', ')}${lista.length > 5 ? '…' : ''}.`);
+      })
+      .catch(() => {});
     // planos: TODAS las páginas/vistas del plano (base64 raw) para referencia múltiple del render.
     const paginas = Array.isArray(planos) && planos.length ? planos : (dataUrl ? [String(dataUrl).split(',')[1]] : []);
     // Un ANÁLISIS NUEVO (subiste otro plano) nombra el producto desde el plano, para que el nombre
@@ -1093,7 +1101,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           {analisis?.informe && (
             <div className="ia-informe-bloque">
               <div className="ia-informe-titulo">Auditoría técnica de industrialización</div>
-              <InformeIA informe={analisis.informe} />
+              <InformeIA motor={resumenMotor(resultado)} informe={analisis.informe} />
             </div>
           )}
           <div className="chips">

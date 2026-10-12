@@ -1,0 +1,45 @@
+# Costear · reglas de casa y amarre al catálogo (2026-10-12)
+
+**Origen.** Dirección pegó la salida real de Costear para un exhibidor de 3 módulos (2400 × 700 × 2200, melamina nogal, estructura PTR negra, LED, refrigerador del cliente): 15 renglones, **6 con costo y 9 "Costo pendiente"**, PTR y lámina marcados "crítico: acabado/color distinto", auditoría narrativa con "~6.1 hojas" frente a 3.35 hojas sumadas por la IA, repisas visibles en MDF crudo, respaldo de 19 mm, metrajes "supuestos". Pidió "un 9 de 10" y contestó las seis preguntas de taller:
+
+| Pregunta | Respuesta de Dirección | Regla codificada |
+|---|---|---|
+| Espesores/materiales por función | "sí" (propón tú) | avisos de consistencia (`revisionEstructural`): MDF crudo visible vs melamina sin laca; respaldo > 12 mm; claro ≥ 800 mm |
+| Tapacanto | "siempre es el mismo canto" | insumo estándar `tapacanto`; metros por cantos visibles (cubierta/puerta/frente 4, costado 2, entrepaño 1, respaldo 0) |
+| Acero | "todo es visible, lleva pintura electro" | pintura electrostática siempre; m² = metros × perímetro del perfil (1"×1" si no se declara) + lámina × 2 caras; el color del acero no es conflicto crítico |
+| Herrajes | "vienen en la lista de compras" | familias de herraje/consumible; genérico de casa ante empate; amarre a Compras (ERP) de lo pendiente |
+| Refuerzos / zoclo / niveladores | "por coherencia… si tú recomiendas que lleve, ponlo" | refuerzo: aviso por claro; zoclo 100 mm en gabinete bajo sin base; 4 niveladores por módulo |
+| ¿La IA amarra sola? | "sí autorizo que la IA amarre"; "que se usen todos los precios de compras, son los reales" | amarre provisional (POR CONFIRMAR) al catálogo curado y, si no hay, a todo el catálogo de Compras (`buscar_insumos_motor`) |
+
+**Principios que no cambian.** Nada entra confirmado: todo amarre automático es `SAME_FAMILY_COMPATIBLE_PROPOSED` (costea provisional, **bloquea la emisión** hasta confirmación humana). Nunca $0 ni precio inventado: un insumo sin precio queda pendiente. Equipo externo (refrigerador, pantalla, etc.) nunca se amarra ("de vidrio" no lo convierte en cristal). Cada partida que nace de una regla lleva `_regla` y su cálculo en la nota.
+
+## Qué se codificó (módulos y pruebas)
+
+| Módulo | Qué hace | Pruebas |
+|---|---|---|
+| `src/datos/reglasTaller.js` | tabla de reglas de casa (versión `casa-2026-10-12`), metros de canto por rol, perímetro de perfil, m² de pintura | `reglasTaller.test.js` (18) |
+| `src/datos/materialMatch.js` | familias nuevas (tapacanto, bisagra, corredera, jaladera, nivelador, cerradura, pintura, iluminación, eléctrico, adhesivo, tornillería, equipo externo); puntuación con acentos/plural, **calibre** (+3) y polvo por kg (+2); genérico de casa ante empate; acero con color distinto = no crítico; variante de herraje no nombrada = provisional | `materialMatch.test.js` (40, intactas) |
+| `src/datos/mapIaComps.js` | mapper único IA → BOM (antes duplicado); en TABLERO la hoja la decide el motor (rejilla + A14), la fracción de la IA queda como `iaHojas`; en lámina irregular sigue la fracción directa | `reglasTaller.test.js` |
+| `src/datos/autoInsumos.js` | acompañantes por geometría: zoclo, niveladores, tapacanto (completa la línea de la IA si era supuesto), pintura (pone `areaPintadaM2`/`tubular` a la línea de la IA o la crea) | `autoInsumos.test.js` (6, intactas) + `reglasTaller.test.js` |
+| `src/datos/amarreERP.js` | pendientes → búsqueda en todo el catálogo de Compras; prefiere filas con precio; mismo criterio de familia/calibre; crítico → preselecciona sin costear; sin red → no cambia nada | `amarreERP.test.js` (6) |
+| `src/datos/revisionEstructural.js` | roles (plural, frente de cajón, herraje primero, zoclo = base); reglas 8–10 de consistencia | `revisionEstructural.test.js` (8, intactas) |
+| `src/datos/resumenMotor.js` + `InformeIA.jsx` | la sección "Merma y nesting" de la auditoría enseña **los números del motor** (m², hojas, merma real, método por insumo, provisional vs sin costo); el texto de la IA queda etiquetado como narrativo | `goldenExhibidor.test.js` |
+| `AsistenteEspecial.jsx`, `Costeador.jsx` | usan el mapper compartido, pasan `insumos` a reglas y revisión, disparan el amarre ERP asíncrono (descartado si otra corrida empezó) | Playwright local |
+
+## Antes / después con el exhibidor de Dirección (catálogo semilla, sin ERP)
+
+| | Antes (salida pegada) | Después |
+|---|---|---|
+| Renglones con insumo | 6 de 15 | **14 de 15** (sólo el refrigerador del cliente queda pendiente, con motivo "equipo externo") |
+| PTR cal.14 negro / lámina negra | "crítico: acabado/color distinto", sin costo | provisional: "el color lo da la pintura electrostática"; PTR cal. 14 (el calibre decide), lámina cal. 18 |
+| Tapacanto | 18 m "supuesto" | 27.16 m por geometría (laterales 6.4 · cubiertas 9 · puertas 4.74 · repisas bajas 2.28 · repisas MDF 4.74); la nota conserva "la IA suponía 18 m" |
+| Pintura | "~3 m² supuesto", sin costo | 4.97 m² por geometría (30 m × 1"×1" supuesto = 3.05 + lámina 0.96 × 2 caras); **kg pendiente** porque Producción no dio rendimiento en tubular (A14) |
+| Hojas de tablero | IA: 3.35 (área pura); auditoría narrativa: "~6.1" | **motor: 4.81 hojas, merma real 30 %** (melamina 4.31 + MDF 0.5), por rejilla + regla A14 |
+| Auditoría | cifras del modelo | sección 03 con los números del motor y la narrativa etiquetada |
+| Avisos | ninguno | repisas visibles en MDF crudo vs melamina nogal (warning); respaldo de 19 mm (info) |
+| Costo unitario provisional | sin total (9 pendientes) | $12,555 provisional (14 por confirmar + pintura pendiente) |
+
+## Lo que sigue necesitando una decisión
+1. **Rendimiento de pintura en tubular** (m²/kg): sin esa cifra el kg de pintura en estructuras de PTR queda pendiente (A14, Producción dijo "rinde menos" sin número). Con un número de Producción, o con tu autorización para usar 8 m²/kg como piso provisional, se cierra.
+2. **VH-124** (margen 50 % vs 40 % según el momento de entrada): sigue sin corregir; requiere tu autorización (una línea).
+3. Los precios ERP entran como provisionales; la auditoría P0-03 (1,763 aprobaciones por `qa-direccion`) sigue pendiente.

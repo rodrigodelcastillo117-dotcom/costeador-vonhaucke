@@ -174,11 +174,28 @@ export function estadoConTopeLegacy(estadoBase, componentes = []) {
 // (p.ej. "superficie sólida" antes que "madera", "acero inoxidable" antes que
 // "metal/lámina", "melamina/mdf" antes que "madera").
 const FAMILIAS = [
+  // Equipo que suministra el cliente o se compra aparte (refrigerador, pantalla…): nunca es
+  // "cristal" por decir "de vidrio". Sin candidatos en catálogo → queda pendiente con su motivo.
+  ['equipo_externo',    /refrigera|enfriador|congelador|vitrina refrigerada|televis|electrodom[eé]stico|computadora|cafetera|microondas/i],
   ['superficie_solida', /solid\s*surface|superficie\s+s[oó]lida|corian|krion|staron|hi-?macs|avonite|montelli/i],
   ['pet_acustico',      /\bpet\b|ac[uú]stic|sonara|poli[eé]ster ac/i],
   ['termoformado',      /termoform|membrana\s*pvc|vacuum\s*form/i],
   ['acrilico',          /acr[ií]lic|plexi|pmma/i],
   ['policarbonato',     /policarbonat|polycarbon|lexan/i],
+  // REGLAS DE CASA (2026-10-12): herrajes y consumibles tienen familia propia para que la IA
+  // los AMARRE al catálogo (autorizado por Dirección) en vez de dejarlos "costo pendiente".
+  // Van ANTES que cristal/metal para que "jaladera de acero" sea herraje, no lámina.
+  ['tapacanto',         /tapa\s*canto|cubre\s*canto|chapacinta|canto\s*(?:pvc|abs)|cubrecanto/i],
+  ['herraje_bisagra',   /bisagra|\bhinge/i],
+  ['herraje_corredera', /corredera|\bslide|\briel\b/i],
+  ['herraje_jaladera',  /jaladera|tirador|\bhandle|manija/i],
+  ['herraje_nivelador', /nivelador|regat[oó]n|leveler|leveller/i],
+  ['herraje_cerradura', /cerradura|\block\b/i],
+  ['pintura_polvo',     /\bpintura\b|electrost[aá]tic|\bpowder\b|\blaca\b|lacado/i],
+  ['iluminacion',       /\bled\b|luminaria|iluminaci[oó]n|tira\s*led/i],
+  ['electrico',         /contacto|multicontacto|caja\s+el[eé]ctrica|\busb\b|byrne/i],
+  ['adhesivo',          /adhesivo|pegamento|resistol|silic[oó]n/i],
+  ['tornilleria',       /tornill|\bpija|taquete|rondana|tuerca/i],
   ['cristal',           /cristal|vidrio|templado|glass/i],
   ['marmol_piedra',     /m[aá]rmol|marble|granito|cuarzo|quartz|piedra|onix|[oó]nix/i],
   ['acero_inoxidable',  /inoxidable|inox\b|stainless|304|316/i],
@@ -240,6 +257,20 @@ function conflictoCalibre(a='',b='') {
   return !A.some((x)=>B.includes(x));
 }
 
+// Familias de HERRAJE / CONSUMIBLE (reglas de casa 2026-10-12): ante varios candidatos sin
+// variante pedida, el GENÉRICO (nombre más corto) es el estándar de casa, marcado por confirmar.
+export const FAMILIAS_HERRAJE = new Set(['tapacanto', 'herraje_bisagra', 'herraje_corredera', 'herraje_jaladera', 'herraje_nivelador', 'herraje_cerradura', 'pintura_polvo', 'iluminacion', 'electrico', 'adhesivo', 'tornilleria']);
+/** Espesores en mm que nombra un texto (exportado para las reglas de casa). */
+export function espesoresDe(texto = '') { return espesoresMM(texto); }
+// ¿Lo pedido nombra una VARIANTE de herraje que el candidato no tiene? ("bisagra cierre suave"
+// vs "Bisagra"): se compara por raíces de palabra; si falta alguna → variante por confirmar.
+const STOP_HERRAJE = new Set(['para', 'con', 'del', 'los', 'las', 'una', 'uno', 'por', 'sin', 'puerta', 'puertas', 'cajon', 'cajones', 'gaveta', 'gavetas', 'mueble', 'kit', 'juego', 'pza', 'pieza', 'piezas']);
+const raiz = (w) => String(w).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/(es|s)$/, '');
+function varianteHerrajeNoCubierta(solicitado = '', insumoNombre = '') {
+  const pide = [...new Set((String(solicitado).match(/[a-záéíóúñ0-9]{3,}/gi) || []).map(raiz).filter((w) => !STOP_HERRAJE.has(w)))];
+  const tiene = new Set((String(insumoNombre).match(/[a-záéíóúñ0-9]{3,}/gi) || []).map(raiz));
+  return pide.filter((w) => !tiene.has(w));
+}
 // Familias de TABLERO (donde ciertas variantes de espesor PUEDEN ser compatibles para estimar).
 const FAMILIAS_PANEL = new Set(['melamina', 'mdf', 'laminado_hpl', 'chapa_madera', 'madera_solida']);
 // Familias donde un cambio de espesor/calibre/perfil es CRÍTICO (estructural/funcional):
@@ -321,6 +352,9 @@ function severidadConflicto(fam, solicitado = '', insumoNombre = '') {
   const confPerfil = FAMILIAS_CRITICAS.has(fam) && conflictoPerfilMetal(solicitado, insumoNombre); // P0.13
   const confColor = conflictoAcabadoColor(solicitado, insumoNombre);                                // P0.14
   if (!confEsp && !confCal && !confPerfil && !confColor) return { conflicto: false, critico: false };
+  // REGLA DE CASA (2026-10-12): en acero/lámina/PTR el COLOR lo da la pintura electrostática
+  // (línea aparte); el perfil va crudo. Sólo color distinto, mismo calibre/perfil → NO crítico.
+  if (fam === 'metal_lamina' && !confEsp && !confCal && !confPerfil && confColor) return { conflicto: true, critico: false, pintura: true };
   // Calibre/perfil distinto, o familia estructural con cualquier conflicto → SIEMPRE crítico.
   if (confCal || confPerfil || FAMILIAS_CRITICAS.has(fam)) return { conflicto: true, critico: true };
   // Tablero con espesor distinto: COMPATIBLE sólo si el par está en la lista APROBADA (18↔19).
@@ -346,7 +380,10 @@ function textoCambio(solicitado = '', insumoNombre = '') {
   }
   const fa = formaMetal(solicitado), fb = formaMetal(insumoNombre);
   if (fa && fb && fa !== fb) return `Solicitado perfil ${fa} → candidato ${fb}`;
-  if (conflictoAcabadoColor(solicitado, insumoNombre)) return 'Acabado/color distinto al solicitado';
+  if (conflictoAcabadoColor(solicitado, insumoNombre)) {
+    if (familiaDeMaterial(solicitado) === 'metal_lamina') return 'El color lo da la pintura electrostática (línea aparte); el acero va crudo';
+    return 'Acabado/color distinto al solicitado';
+  }
   return '';
 }
 
@@ -400,7 +437,9 @@ export function clasificarMaterial({ solicitado = '', insumoId = '', insumoNombr
       familiaResuelta: '',
       autocosteable: false,
       insumoIdEfectivo: '',
-      motivo: famPide
+      motivo: famPide === 'equipo_externo'
+        ? 'Equipo externo (lo suministra el cliente o se compra aparte): no se costea como material; déjalo pendiente o captúralo como compra-venta.'
+        : famPide
         ? `Se pidió ${famPide.replace(/_/g, ' ')} y el catálogo no tiene un insumo certificado para esa familia.`
         : 'No hay material asignado y no se pudo reconocer lo pedido.',
     };
@@ -439,6 +478,18 @@ export function clasificarMaterial({ solicitado = '', insumoId = '', insumoNombr
   // candidato pero NO autocostea ni es equivalencia aprobada).
   if (famTiene && famTiene === famPide) {
     const sev = severidadConflicto(famPide, solicitado, insumoNombre);
+    // Herraje/consumible: "bisagra cierre suave" contra "Bisagra" NO es exacto: variante por confirmar.
+    if (!sev.conflicto && FAMILIAS_HERRAJE.has(famPide)) {
+      const faltan = varianteHerrajeNoCubierta(solicitado, insumoNombre);
+      if (faltan.length) {
+        return {
+          clase: MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED, familiaSolicitada: famPide, familiaResuelta: famTiene,
+          autocosteable: true, insumoIdEfectivo: insumoId, insumoIdCandidato: insumoId,
+          cambio: `Variante pedida («${faltan.join(' ')}») no está en el nombre del catálogo`,
+          motivo: `Herraje de la misma familia; la variante pedida («${faltan.join(' ')}») no consta en «${insumoNombre}». Entra provisional: confírmalo.`,
+        };
+      }
+    }
     if (!sev.conflicto) {
       return {
         clase: MATCH.EXACT,
@@ -509,21 +560,35 @@ const RE_ESPESOR = /\b(9|12|16|19|25|28|30|36)\b/g;
  * @param {Array<{id:string,nombre?:string,seccion?:string}>} catalogo  Object.values(insumos)
  * @returns {{id:string,nombre?:string}|null}
  */
+// Puntuación de un insumo contra lo pedido (una sola función para mejorInsumoDeFamilia y
+// candidatosDeFamilia). Normaliza acentos y plural/género ("electrostática" = "electrostatica",
+// "negra" = "negro"), premia espesor (+3) y CALIBRE (+3: "cal.14" escoge el PTR cal. 14, no el 16)
+// y, en pintura, el polvo por kg (+2) sobre la maquila, que es lo que Producción compra.
+const STOP_SCORE = new Set(['melamina', 'laminado', 'madera', 'panel', 'costado', 'lateral', 'repisa', 'repisas', 'frente', 'frentes', 'cubierta', 'entrepano', 'puerta', 'para', 'con', 'del', 'los', 'las', 'mdf', 'acero', 'lamina', 'cal', 'calibre']);
+const normTok = (w) => { let x = String(w).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); if (x.length > 4) x = x.replace(/(as|os|es)$/, '').replace(/[ao]$/, ''); else if (x.length > 3) x = x.replace(/s$/, ''); return x; };
+function puntuarInsumo(texto, ins, fam) {
+  const t = String(texto).toLowerCase();
+  const tokens = (t.match(/[a-záéíóúñ]{3,}/gi) || []).filter((w) => !STOP_SCORE.has(w.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))).map(normTok);
+  const espesores = t.match(RE_ESPESOR) || [];
+  const calibres = calibresDe(t);
+  const nRaw = `${ins.nombre || ''} ${ins.id}`.toLowerCase();
+  const nTok = new Set((nRaw.match(/[a-záéíóúñ]{3,}/gi) || []).map(normTok));
+  let score = 1; // misma familia ya vale
+  for (const tok of tokens) if (nTok.has(tok) || nRaw.includes(tok)) score += 2;          // color/acabado/variante
+  for (const e of espesores) if (new RegExp(`\\b${e}\\b`).test(nRaw)) score += 3;         // espesor
+  const calIns = calibresDe(nRaw);
+  for (const c of calibres) if (calIns.includes(c)) score += 3;                              // calibre
+  if (fam === 'pintura_polvo' && ins.unidad === 'kg') score += 2;                            // polvo por kg (Producción)
+  return score;
+}
 export function mejorInsumoDeFamilia(texto, catalogo = []) {
   const fam = familiaDeMaterial(texto);
   if (!fam || !Array.isArray(catalogo)) return null;
-  const t = String(texto).toLowerCase();
-  const STOP = new Set(['melamina', 'laminado', 'madera', 'panel', 'costado', 'lateral', 'repisa', 'repisas', 'frente', 'frentes', 'cubierta', 'entrepano', 'puerta', 'para', 'con', 'del', 'los', 'las', 'mdf', 'acero', 'lamina']);
-  const tokens = (t.match(/[a-záéíóúñ]{3,}/gi) || []).filter((w) => !STOP.has(w));
-  const espesores = t.match(RE_ESPESOR) || [];
   let best = null, bestScore = -1;
   for (const ins of catalogo) {
     if (!ins || !ins.id) continue;
     if (familiaDeMaterial(ins.nombre || ins.id) !== fam) continue;
-    const n = `${ins.nombre || ''} ${ins.id}`.toLowerCase();
-    let score = 1; // misma familia ya vale
-    for (const tok of tokens) if (n.includes(tok)) score += 2;          // color/acabado
-    for (const e of espesores) if (new RegExp(`\\b${e}\\b`).test(n)) score += 3; // espesor
+    const score = puntuarInsumo(texto, ins, fam);
     if (score > bestScore) { bestScore = score; best = ins; }
   }
   return best;
@@ -538,19 +603,11 @@ export function mejorInsumoDeFamilia(texto, catalogo = []) {
 export function candidatosDeFamilia(texto, catalogo = []) {
   const fam = familiaDeMaterial(texto);
   if (!fam || !Array.isArray(catalogo)) return { ambiguo: false, mejor: null, empatados: [] };
-  const t = String(texto).toLowerCase();
-  const STOP = new Set(['melamina', 'laminado', 'madera', 'panel', 'costado', 'lateral', 'repisa', 'repisas', 'frente', 'frentes', 'cubierta', 'entrepano', 'puerta', 'para', 'con', 'del', 'los', 'las', 'mdf', 'acero', 'lamina']);
-  const tokens = (t.match(/[a-záéíóúñ]{3,}/gi) || []).filter((w) => !STOP.has(w));
-  const espesores = t.match(RE_ESPESOR) || [];
   const puntuados = [];
   for (const ins of catalogo) {
     if (!ins || !ins.id) continue;
     if (familiaDeMaterial(ins.nombre || ins.id) !== fam) continue;
-    const n = `${ins.nombre || ''} ${ins.id}`.toLowerCase();
-    let score = 1;
-    for (const tok of tokens) if (n.includes(tok)) score += 2;
-    for (const e of espesores) if (new RegExp(`\\b${e}\\b`).test(n)) score += 3;
-    puntuados.push({ id: ins.id, nombre: ins.nombre || ins.id, score });
+    puntuados.push({ id: ins.id, nombre: ins.nombre || ins.id, score: puntuarInsumo(texto, ins, fam) });
   }
   if (puntuados.length === 0) return { ambiguo: false, mejor: null, empatados: [] };
   puntuados.sort((a, b) => b.score - a.score);
@@ -560,7 +617,14 @@ export function candidatosDeFamilia(texto, catalogo = []) {
   // (b) difieren en un atributo que CAMBIA el costo/ingeniería (espesor/calibre): elegir
   // uno a escondidas sería inventar. Si empatan pero son intercambiables, se toma el 1º.
   const attrs = new Set(empatados.map((e) => [...espesoresMM(e.nombre), ...calibresDe(e.nombre)].sort().join('|')));
-  const ambiguo = empatados.length >= 2 && (top.score <= 1 || attrs.size > 1);
+  let ambiguo = empatados.length >= 2 && (top.score <= 1 || attrs.size > 1);
+  // REGLAS DE CASA (2026-10-12): herraje/consumible. (a) tapacanto → el estándar de casa si está
+  // entre los candidatos ("siempre es el mismo canto"); (b) empate sin variante pedida → el
+  // GENÉRICO (nombre más corto) es el de casa. Sale marcado por confirmar, nunca escondido.
+  if (FAMILIAS_HERRAJE.has(fam) && puntuados.length) {
+    if (fam === 'tapacanto') { const std = puntuados.find((x) => x.id === 'tapacanto'); if (std) return { ambiguo: false, mejor: { ...std, generico: true }, empatados }; }
+    if (empatados.length >= 2) { const gen = [...empatados].sort((a, b) => a.nombre.length - b.nombre.length)[0]; return { ambiguo: false, mejor: { ...gen, generico: true }, empatados }; }
+  }
   return { ambiguo, mejor: ambiguo ? null : top, empatados };
 }
 
@@ -633,7 +697,7 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
   //  · Candidato único compatible (p.ej. melamina color) → autocostea PROVISIONAL.
   //  · Candidato único con atributo crítico (calibre/perfil) → preselecciona, NO autocostea.
   //  · Sin candidato de familia → queda como clasif (NOT_AVAILABLE / pendiente de precio).
-  if (!insumoIdFinal && !candidatoId && !servidorId && Array.isArray(catalogo)) {
+  if (!insumoIdFinal && !candidatoId && !servidorId && Array.isArray(catalogo) && familiaDeMaterial(solicitado) !== 'equipo_externo') {
     const { ambiguo, mejor } = candidatosDeFamilia(solicitado, catalogo);
     if (ambiguo) {
       clase = MATCH.AMBIGUOUS;
@@ -650,7 +714,10 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
       } else {
         insumoIdFinal = mejor.id;
         clase = MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED;
-        motivo = `Auto-asignado por familia (provisional): ${mejor.nombre}.${cambio ? ' ' + cambio + '.' : ''} Confirma acabado/espesor.`;
+        motivo = mejor.generico
+          ? `Estándar de casa (genérico del catálogo): ${mejor.nombre}. Confírmalo o elige la variante.`
+          : `Auto-asignado por familia (provisional): ${mejor.nombre}.${cambio ? ' ' + cambio + '.' : ''} ${FAMILIAS_HERRAJE.has(familiaDeMaterial(solicitado)) ? 'Confírmalo o elige la variante.' : 'Confirma acabado/espesor.'}`;
+        if (mejor.generico && !cambio) cambio = 'estándar de casa';
       }
     }
   }
@@ -758,3 +825,7 @@ export function patchConfirmacionUI(insumoId) {
     _match: { clase: MATCH.USER_CONFIRMED, confirmado_por_usuario: true, autollenado: false, autocosteable: true, candidate_insumo_id: insumoId },
   };
 }
+
+// Reglas de casa (amarre ERP): se exponen la severidad y el texto de cambio sin cambiar la API interna.
+export const severidadConflicto_ = severidadConflicto;
+export const textoCambio_ = textoCambio;
