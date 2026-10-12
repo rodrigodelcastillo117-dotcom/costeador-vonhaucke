@@ -72,8 +72,16 @@ test.describe('GOLDEN 757 · plano → programa → VONI → fusión → acomodo
     //    reenvía al edge RC servido bajo Deno (mismo index.ts: auth real con Supabase + pipeline),
     //    y la respuesta del edge es la que recibe el cliente. Certificación del artefacto RC.
     const EDGE_RC = process.env.EDGE_RC_URL || null;
+    //  · EDGE_REAL=1 → NO se intercepta: la petición va al edge DESPLEGADO (validación post-deploy).
+    const EDGE_REAL = !!process.env.EDGE_REAL;
     let nubeOrigen = null; let nubeApikey = null;
     await page.route('**/functions/v1/acomodar-espacio-recovery', async (route) => {
+      if (EDGE_REAL) {
+        if (route.request().method() === 'POST') {
+          try { solverCalls.push(route.request().postDataJSON()); nubeOrigen = new URL(route.request().url()).origin; nubeApikey = route.request().headers().apikey || nubeApikey; } catch (_e) {}
+        }
+        return route.continue();
+      }
       if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' } });
       const body = route.request().postDataJSON();
       solverCalls.push(body);
