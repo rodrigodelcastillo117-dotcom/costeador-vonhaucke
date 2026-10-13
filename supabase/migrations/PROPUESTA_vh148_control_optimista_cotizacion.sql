@@ -1,0 +1,27 @@
+-- ============================================================================
+--  PROPUESTA · VH-148 · control optimista de versión en actualizar_cotizacion_segura.
+--  ⚠️ NO APLICAR sin autorización de Dirección (prefijo PROPUESTA_: no entra en `db push`).
+--  Defecto reproducido (2026-10-13): el autosave manda la fila completa (partidas, acomodo, totales)
+--  1.5 s después de cada cambio y la RPC hace `select ... for update` y escribe el patch tal cual:
+--  gana el último que escribe. Dos pestañas (o dos dispositivos) sobre la misma cotización se
+--  pisan en silencio: la pestaña B manda SU copia vieja de `partidas` y borra lo que A acababa de
+--  guardar. No hay versión ni `actualizado` esperado en el contrato.
+--  Propuesta mínima (sin fusionar BOM/costos/acomodos incompatibles de forma automática):
+--   · parámetro opcional p_actualizado_esperado timestamptz;
+--   · si viene y es distinto de la fila → excepción 'CONFLICTO_VERSION' con la fecha del servidor;
+--   · el cliente, al recibirla, recarga la fila (cotizacion_segura), avisa "otra persona cambió esta
+--     cotización" y NO fusiona: la persona decide (recargar o volver a aplicar su cambio).
+--   · compatibilidad: los clientes viejos no mandan el parámetro → comportamiento actual.
+-- ============================================================================
+-- create or replace function private_api.actualizar_cotizacion_segura(p_cotizacion_id bigint, p_patch jsonb, p_actualizado_esperado timestamptz default null)
+-- ...
+--   select * into v_c from public.cotizaciones where id=p_cotizacion_id for update;
+--   if p_actualizado_esperado is not null and v_c.actualizado is distinct from p_actualizado_esperado then
+--     raise exception 'CONFLICTO_VERSION: la cotización cambió en el servidor (%). Recarga antes de guardar.', v_c.actualizado
+--       using errcode = '40001';
+--   end if;
+-- ... (resto idéntico al cuerpo de producción; ver supabase/tests/fixtures/private_api_prod_20261013.sql)
+-- public.actualizar_cotizacion_segura(p_cotizacion_id, p_patch, p_actualizado_esperado) = wrapper igual al actual.
+-- Rollback: volver a crear la función con la firma de dos parámetros (cuerpo del fixture).
+-- Cliente (rama, pendiente): guardarCotizacion manda `p_actualizado_esperado` = `actualizado` devuelto por el
+-- último cotizacion_segura/actualizar; ante 40001 → recargar y avisar, sin fusionar.
