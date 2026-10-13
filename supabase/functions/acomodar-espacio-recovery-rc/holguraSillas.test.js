@@ -86,6 +86,21 @@ describe('VH-A10-02 · el kit reserva la holgura para retirar la silla', () => {
     expect(r.colocacion.map((c) => c.id)).toEqual(['dir']);
     expect(r.unplaced).toEqual([expect.objectContaining({ anchorId: 'dir', invariante: 'NO_SPACE_PARA_SILLAS', piezas: ['alpha'] })]);
   });
+  it('C3 · JUNTAS 6.05 × 4.01 m con puerta al centro del muro largo: la holgura gana a la alineación', () => {
+    // El orden "lado largo con lado largo" ponía el kit COMPACTO alineado antes que el kit con holgura (cuadrado
+    // en esta mesa de 6): las dos sillas frente a la puerta quedaban a 85 mm. Girada, con su holgura, sí cabe.
+    const area = { nombre: 'JUNTAS', tipo: 'juntas', ancho: 6050, largo: 4010, poly: [[0, 0], [6050, 0], [6050, 4010], [0, 4010]],
+      obstaculos: [{ x: 2175, y: -915, w: 1830, h: 1830, tipo: 'puerta' }],
+      puertas: [{ x: 3090, y: 0, ancho: 930, tieneBarrido: true, bisagraX: 3560, bisagraY: 0, anguloCerradaDeg: 180, sentido: 'antihorario', barridoDeg: 90 }] };
+    const piezas = [
+      { id: 'mesa', nombre: 'Mesa de juntas App LT', relation_role: 'ANCHOR_MEETING', w: 2400, d: 1200, user_capacity: 8, zone_id: 'JUNTAS', functional_group_id: 'fg:m' },
+      ...Array.from({ length: 6 }, (_, i) => ({ id: `s${i + 1}`, nombre: 'Silla CONCERTO', relation_role: 'MEETING_SEAT', anchor_role: 'ANCHOR_MEETING', anchor_instance_id: 'mesa', functional_group_id: 'fg:m', w: 600, d: 600, zone_id: 'JUNTAS' })),
+    ];
+    const r = construirRespuestaAcomodo([area], piezas);
+    expect(r.plan.colocacion).toHaveLength(7);
+    expect(problemasDeAcceso([area], r)).toEqual([]);
+    expect(r.status).toBe('PASS');
+  });
   it('la holgura nunca cae sobre una columna', () => {
     const areas = [{ nombre: 'OPERATIVA', tipo: 'open', ancho: 6000, largo: 5000, puertas: [], obstaculos: [{ x: 2600, y: 700, w: 400, h: 400, tipo: 'columna' }] }];
     const r = resolverKitsMulti(areas, banca('b', 4800, 8));

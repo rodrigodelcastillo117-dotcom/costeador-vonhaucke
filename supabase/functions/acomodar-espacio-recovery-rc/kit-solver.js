@@ -595,10 +595,13 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
     if (Date.now() - t0 > MAX_MS || nodos > MAX_NODOS || (deadline && Date.now() >= deadline)) { budgetExhausted = true; return idx >= kits.length; }
     if (idx >= kits.length) return true;
     const kit = kits[idx];
+    // `nivel` = preferencia dura entre familias de variantes: 0 completo CON holgura, 1 compacto (sin holgura),
+    // 2 mínimo (sin sillas). La alineación con el cuarto (VH-154) sólo ordena DENTRO de cada nivel: antes un
+    // compacto "alineado" se probaba antes que el kit con holgura y las sillas quedaban a 85 mm (C3 JUNTAS).
     const variantes = [
-      { k: kit.base, rot: 0, drop: [] }, { k: rotarKit(kit.base), rot: 90, drop: [] },
-      ...(kit.compacto ? [{ k: kit.compacto, rot: 0, drop: [] }, { k: rotarKit(kit.compacto), rot: 90, drop: [] }] : []),
-      { k: kit.minimo, rot: 0, drop: kit.dropMin }, { k: rotarKit(kit.minimo), rot: 90, drop: kit.dropMin },
+      { k: kit.base, rot: 0, drop: [], nivel: 0 }, { k: rotarKit(kit.base), rot: 90, drop: [], nivel: 0 },
+      ...(kit.compacto ? [{ k: kit.compacto, rot: 0, drop: [], nivel: 1 }, { k: rotarKit(kit.compacto), rot: 90, drop: [], nivel: 1 }] : []),
+      { k: kit.minimo, rot: 0, drop: kit.dropMin, nivel: 2 }, { k: rotarKit(kit.minimo), rot: 90, drop: kit.dropMin, nivel: 2 },
     ];
     // VH-154 (RC, D6): el DFS tomaba la PRIMERA variante que cabía. En un cuarto alargado (4×7 m) la mesa de
     // juntas 2400×1200 entraba con su lado largo cruzado al cuarto y las sillas de cabecera quedaban a 200 mm
@@ -610,7 +613,7 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
       const cuartoAncho = W > H;
       return [...variantes].sort((a, b) => {
         const alineado = (v) => (Math.abs(v.k.w - v.k.d) <= 0.1 * Math.max(v.k.w, v.k.d)) ? 0 : ((v.k.w > v.k.d) === cuartoAncho ? -1 : 1);
-        return alineado(a) - alineado(b);
+        return (a.nivel - b.nivel) || (alineado(a) - alineado(b));
       });
     };
     // VH-154 (RC): una mesa de juntas con sillas alrededor necesita holgura a los muros por los cuatro lados; se
