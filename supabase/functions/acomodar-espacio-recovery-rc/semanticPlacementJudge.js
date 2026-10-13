@@ -73,7 +73,8 @@ function slotsEsperados(anchorPieza, deps) {
   if (!topo || topo === 'UNKNOWN') return null;
   // VH-119: mismo orden que componerKit (ejecutivo primero) para que los slots esperados coincidan.
   const ordenadas = [...deps.filter((d) => d.relation_role === 'EXECUTIVE_SEAT'), ...deps.filter((d) => d.relation_role !== 'EXECUTIVE_SEAT')];
-  const lay = layoutDeTopologia(topo, num(anchorPieza.w), num(anchorPieza.d), deps.length, ordenadas.map((d) => d.relation_role));
+  // VH-A10-03: la variante de distribución con la que se compuso el kit (mesa sólo-lados-largos) define los lugares.
+  const lay = layoutDeTopologia(topo, num(anchorPieza.w), num(anchorPieza.d), deps.length, ordenadas.map((d) => d.relation_role), { variante: anchorPieza._variant || null });
   return lay.seats.map((s) => ({ slot_id: s.slot_id, side: s.side }));
 }
 
@@ -85,7 +86,7 @@ export function juzgarSemantico(areas = [], piezas = [], colocacion = []) {
   const anclas = new Map();
   for (const c of colocacion) {
     const p = byId.get(String(c.id)); if (!p || !esAncla(p.relation_role)) continue;
-    anclas.set(String(c.id), { pieza: { ...p, _topology: c.topology ?? null }, rect: rectDe(c, p), rol: p.relation_role, topology: c.topology ?? null });
+    anclas.set(String(c.id), { pieza: { ...p, _topology: c.topology ?? null, _variant: c.layout_variant ?? null }, rect: rectDe(c, p), rol: p.relation_role, topology: c.topology ?? null });
   }
   const depsPorAncla = new Map();
   for (const p of piezas) {

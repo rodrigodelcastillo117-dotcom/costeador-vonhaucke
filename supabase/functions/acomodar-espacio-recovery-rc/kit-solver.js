@@ -17,7 +17,7 @@
 //  Todo en mm. Puro (Deno + node). Reusa helpers vendorizados de ./spatial-core.js.
 // ============================================================================
 import { rectsSeSolapan, rectDentroPoligono, bloqueaPuertaEspacial } from './spatial-core.js';
-import { perfilDeAncla, layoutDeTopologia, rotarFacing, PROFILE_VERSION, ACCESO_EJECUTIVO, PITCH_JUNTAS } from './placementProfiles.js';
+import { perfilDeAncla, layoutDeTopologia, rotarFacing, PROFILE_VERSION, ACCESO_EJECUTIVO, PITCH_JUNTAS, VARIANTE_LADOS_LARGOS, admiteLadosLargos } from './placementProfiles.js';
 import { juzgarSemantico } from './semanticPlacementJudge.js';
 import { validarColocacion } from './acomodo-core.js';
 import { juzgarCalidad, calidadAceptable } from './qualityJudge.js';
@@ -174,7 +174,7 @@ function perimetroSillas(w, d, n) {
 // (SINGLE_FACE / DOUBLE_FACE / MEETING_TABLE / DESK / RECEPTION), no de la geometría
 // a secas. Cada silla cae en un SLOT (slot_id/side/facing). La topología NO se
 // infiere de la capacidad: DOUBLE_FACE sólo si el ancla la declara.
-export function componerKit(anchor, sillas = [], gavetas = [], { conFranjas = true } = {}) {
+export function componerKit(anchor, sillas = [], gavetas = [], { conFranjas = true, variante = null } = {}) {
   const aw = num(anchor.w, 1200), ad = num(anchor.d, 600);
   const rol = anchor.relation_role;
   const perfil = perfilDeAncla(anchor);
@@ -188,8 +188,11 @@ export function componerKit(anchor, sillas = [], gavetas = [], { conFranjas = tr
   const topeFisico = caras ? caras * Math.max(1, Math.floor(aw / SEAT)) : Infinity;
   // VH-119: en un escritorio el ejecutivo va primero (slot BACK) y las visitas después (FRONT).
   const ordenadas = topoGeom === 'DESK' ? [...sillas.filter((s) => s.relation_role === 'EXECUTIVE_SEAT'), ...sillas.filter((s) => s.relation_role !== 'EXECUTIVE_SEAT')] : sillas;
-  const lay = layoutDeTopologia(topoGeom, aw, ad, Math.min(ordenadas.length, topeFisico), ordenadas.map((s) => s.relation_role));
-  const piezas = [{ id: String(anchor.id), dx: lay.anchor.dx, dy: lay.anchor.dy, w: aw, d: ad, rol, topology: perfil.topology, provenance: perfil.provenance, profile_version: perfil.version, fallback_layout: perfil.topology === 'UNKNOWN' ? (perfil.fallback_layout_strategy || 'LEGACY_SINGLE_FACE') : null }];
+  // VH-A10-03: variante de distribución (sólo mesa de juntas: 'LADOS_LARGOS'); viaja en el ancla para que el
+  // juez semántico espere los mismos lugares.
+  const varianteUsada = topoGeom === 'MEETING_TABLE' && variante === VARIANTE_LADOS_LARGOS && admiteLadosLargos(aw, Math.min(ordenadas.length, topeFisico)) ? VARIANTE_LADOS_LARGOS : null;
+  const lay = layoutDeTopologia(topoGeom, aw, ad, Math.min(ordenadas.length, topeFisico), ordenadas.map((s) => s.relation_role), { variante: varianteUsada });
+  const piezas = [{ id: String(anchor.id), dx: lay.anchor.dx, dy: lay.anchor.dy, w: aw, d: ad, rol, topology: perfil.topology, provenance: perfil.provenance, profile_version: perfil.version, fallback_layout: perfil.topology === 'UNKNOWN' ? (perfil.fallback_layout_strategy || 'LEGACY_SINGLE_FACE') : null, ...(varianteUsada ? { layout_variant: varianteUsada } : {}) }];
   const sinColocar = [];
 
   ordenadas.forEach((s, i) => {
@@ -260,7 +263,7 @@ function rotarKit(kit) {
     franjas: (kit.franjas || []).map(girar),
     // Conserva metadata semántica y ROTA el facing cardinal (GAP3). `side` semántico
     // (A/B/HEAD_A/HEAD_B/FRONT) se conserva; `facing` absoluto gira con el bloque.
-    piezas: kit.piezas.map((p) => ({ id: p.id, rol: p.rol, bajoTablero: p.bajoTablero, w: p.d, d: p.w, dx: kit.d - (p.dy + p.d), dy: p.dx, slot_id: p.slot_id, side: p.side, facing: rotarFacing(p.facing, 90), topology: p.topology, provenance: p.provenance, profile_version: p.profile_version, fallback_layout: p.fallback_layout })),
+    piezas: kit.piezas.map((p) => ({ id: p.id, rol: p.rol, bajoTablero: p.bajoTablero, w: p.d, d: p.w, dx: kit.d - (p.dy + p.d), dy: p.dx, slot_id: p.slot_id, side: p.side, facing: rotarFacing(p.facing, 90), topology: p.topology, provenance: p.provenance, profile_version: p.profile_version, fallback_layout: p.fallback_layout, ...(p.layout_variant ? { layout_variant: p.layout_variant } : {}) })),
   };
 }
 
@@ -558,6 +561,10 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
     // VH-A10-02: respaldo COMPACTO (sin franjas de acceso, el kit de antes). Sólo se usa si el kit con su
     // holgura no cabe en ningún lado: el mueble no se pierde y el juez semántico sigue marcando la silla
     // pegada al muro (nunca PASS). Sin sillas no hay franjas y el compacto es el mismo kit.
+    // VH-A10-03: mesa de juntas cuyas sillas caben sólo en los lados largos → variante con holgura que se prueba
+    // DESPUÉS de la canónica con holgura y ANTES del compacto (acceso para todas > cabeceras sin acceso).
+    const largos = base.piezas.some((p) => p.rol === 'ANCHOR_MEETING') ? componerKit(a, sillas, gavetas, { variante: VARIANTE_LADOS_LARGOS }) : null;
+    const ladosLargos = largos && largos.piezas.some((p) => p.layout_variant === VARIANTE_LADOS_LARGOS) ? largos : null;
     const compactoKit = componerKit(a, sillas, gavetas, { conFranjas: false });
     const compacto = compactoKit.w !== base.w || compactoKit.d !== base.d || compactoKit.franjas.length !== base.franjas.length ? compactoKit : null;
     base.sinColocar.forEach((id) => unassigned.push(id));
@@ -576,7 +583,7 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
     const dropMin = base.piezas.filter((p) => !esDelMinimo(p)).map((p) => String(p.id));
     const minW = Math.max(...minimoPiezas.map((p) => p.dx + p.w)), minH = Math.max(...minimoPiezas.map((p) => p.dy + p.d));
     const minimo = { anchorId: base.anchorId, w: minW, d: minH, piezas: minimoPiezas, cuerpo: { x: 0, y: 0, w: minW, d: minH }, franjas: [] };
-    kits.push({ anchorId: String(a.id), base, compacto, minimo, dropMin, area: num(a.w) * num(a.d), zonas: areasPermitidas(a, areas) });
+    kits.push({ anchorId: String(a.id), base, ladosLargos, compacto, minimo, dropMin, area: num(a.w) * num(a.d), zonas: areasPermitidas(a, areas) });
   }
   kits.sort((x, y) => (y.area - x.area) || (x.anchorId < y.anchorId ? -1 : 1));
 
@@ -595,6 +602,7 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
     anchor_instance_id: anchorDe.get(String(p.id)) ?? null,
     slot_id: p.slot_id ?? null, side: p.side ?? null, facing: p.facing ?? null,
     topology: p.topology ?? null, provenance: p.provenance ?? null, profile_version: p.profile_version ?? PROFILE_VERSION,
+    ...(p.layout_variant ? { layout_variant: p.layout_variant } : {}),
   });
 
   const deadline = Number.isFinite(opts.deadline) ? opts.deadline : null;   // GAP27: presupuesto compartido
@@ -602,11 +610,13 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
     if (Date.now() - t0 > MAX_MS || nodos > MAX_NODOS || (deadline && Date.now() >= deadline)) { budgetExhausted = true; return idx >= kits.length; }
     if (idx >= kits.length) return true;
     const kit = kits[idx];
-    // `nivel` = preferencia dura entre familias de variantes: 0 completo CON holgura, 1 compacto (sin holgura),
-    // 2 mínimo (sin sillas). La alineación con el cuarto (VH-154) sólo ordena DENTRO de cada nivel: antes un
-    // compacto "alineado" se probaba antes que el kit con holgura y las sillas quedaban a 85 mm (C3 JUNTAS).
+    // `nivel` = preferencia dura entre familias de variantes: 0 completo CON holgura (canónico), 0.5 mesa de
+    // juntas sólo-lados-largos con holgura (VH-A10-03), 1 compacto (sin holgura), 2 mínimo (sin sillas). La
+    // alineación con el cuarto (VH-154) sólo ordena DENTRO de cada nivel: antes un compacto "alineado" se
+    // probaba antes que el kit con holgura y las sillas quedaban a 85 mm (C3 JUNTAS).
     const variantes = [
       { k: kit.base, rot: 0, drop: [], nivel: 0 }, { k: rotarKit(kit.base), rot: 90, drop: [], nivel: 0 },
+      ...(kit.ladosLargos ? [{ k: kit.ladosLargos, rot: 0, drop: [], nivel: 0.5 }, { k: rotarKit(kit.ladosLargos), rot: 90, drop: [], nivel: 0.5 }] : []),
       ...(kit.compacto ? [{ k: kit.compacto, rot: 0, drop: [], nivel: 1 }, { k: rotarKit(kit.compacto), rot: 90, drop: [], nivel: 1 }] : []),
       { k: kit.minimo, rot: 0, drop: kit.dropMin, nivel: 2 }, { k: rotarKit(kit.minimo), rot: 90, drop: kit.dropMin, nivel: 2 },
     ];
