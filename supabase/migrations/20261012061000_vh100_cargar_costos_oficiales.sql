@@ -12,7 +12,8 @@
 --  queda en producto_version_economia con su procedencia. NUNCA deriva costo
 --  desde precio de venta ni aplica márgenes.
 --
---  p_filas: [{codigo, costo, moneda?, fecha?, formula_version?}, …]
+--  p_filas: [{codigo, costo, moneda?, fecha?, formula_version?, producto_id?}, …]
+--  (producto_id es obligatorio cuando el código está duplicado en productos)
 -- ============================================================================
 create or replace function public.cargar_costos_oficiales(p_documento text, p_filas jsonb)
 returns jsonb
@@ -31,7 +32,9 @@ begin
   end if;
   if coalesce(btrim(p_documento), '') = '' then raise exception 'documento requerido (nombre + fecha del reporte Intelisis)'; end if;
   if p_filas is null or jsonb_typeof(p_filas) <> 'array' then raise exception 'p_filas debe ser un arreglo'; end if;
-  v_hash := encode(digest(p_filas::text, 'sha256'), 'hex');
+  -- pgcrypto vive en el esquema `extensions` en Supabase (verificado 2026-10-13): sin calificar, `digest` no existe
+  -- con este search_path y la carga fallaba en la primera fila.
+  v_hash := encode(extensions.digest(p_filas::text, 'sha256'), 'hex');
 
   for f in select * from jsonb_array_elements(p_filas) loop
     v_codigo := nullif(btrim(f->>'codigo'), '');
@@ -45,8 +48,18 @@ begin
       -- Sin tipo de cambio documentado no se convierte: se rechaza, no se adivina.
       rechazadas := rechazadas || jsonb_build_object('codigo', v_codigo, 'motivo', 'MONEDA_NO_MXN'); n_sin_costo := n_sin_costo + 1; continue;
     end if;
+    -- 2026-10-13: hay códigos DUPLICADOS en productos (ATOM3, ATPU2M/3M/4M/75M, ATFAL150ABS: el artículo ERP y
+    -- una ficha "App LT · …"). Con `limit 1` el costo caía en cualquiera de los dos. Ahora: con más de un producto
+    -- activo para el código, se exige `producto_id` explícito en la fila; si no viene, se RECHAZA (no se adivina).
+    if (select count(*) from public.productos p where p.codigo = v_codigo and p.activo) > 1 and nullif(f->>'producto_id', '') is null then
+      rechazadas := rechazadas || jsonb_build_object('codigo', v_codigo, 'motivo', 'CODIGO_DUPLICADO',
+        'productos', (select jsonb_agg(p.id order by p.id) from public.productos p where p.codigo = v_codigo and p.activo));
+      n_sin_producto := n_sin_producto + 1; continue;
+    end if;
     select coalesce(p.version_tecnica_vigente_id, (select pv.id from public.producto_versiones pv where pv.producto_id = p.id order by pv.creado desc limit 1))
-      into v_pv from public.productos p where p.codigo = v_codigo and p.activo limit 1;
+      into v_pv from public.productos p
+     where p.codigo = v_codigo and p.activo and (nullif(f->>'producto_id', '') is null or p.id = (f->>'producto_id')::bigint)
+     limit 1;
     if v_pv is null then n_sin_producto := n_sin_producto + 1; rechazadas := rechazadas || jsonb_build_object('codigo', v_codigo, 'motivo', 'SIN_PRODUCTO'); continue; end if;
     insert into public.producto_version_economia (producto_version_id, costo_oficial_referencia, formula_version, fuente, actualizado)
     values (v_pv, v_costo, coalesce(nullif(f->>'formula_version', ''), 'intelisis-reporte'),

@@ -1,0 +1,380 @@
+{
+ "documento": "Reportes del cotizador Intelisis APP LT 12/08/2026 (15) + tarifas reales pedido 38247 · regla Dirección 2026-10-13",
+ "ind_planta_hora": 82.3743,
+ "filas_rpc": [
+  {
+   "codigo": "ATACM",
+   "costo": 195.27,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez"
+  },
+  {
+   "codigo": "ATBIOCRT5",
+   "costo": 854.72,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez"
+  },
+  {
+   "codigo": "ATCUBD44ABS",
+   "costo": 979.95,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez"
+  },
+  {
+   "codigo": "ATCUBD45ABS",
+   "costo": 1515.93,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez"
+  },
+  {
+   "codigo": "ATCUBD46ABS",
+   "costo": 1486.03,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez"
+  },
+  {
+   "codigo": "ATCUBS44ABS",
+   "costo": 533.52,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez"
+  },
+  {
+   "codigo": "ATCUBS45ABS",
+   "costo": 816.9,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez"
+  },
+  {
+   "codigo": "ATFAL12ABS",
+   "costo": 365.45,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez"
+  },
+  {
+   "codigo": "ATFAL150ABS",
+   "costo": 429.87,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez"
+  },
+  {
+   "codigo": "ATOM3",
+   "costo": 75.29,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez"
+  },
+  {
+   "codigo": "ATOM4",
+   "costo": 106.66,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez"
+  },
+  {
+   "codigo": "ATPU2M",
+   "costo": 547.41,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez"
+  },
+  {
+   "codigo": "ATPU3M",
+   "costo": 615.23,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez"
+  },
+  {
+   "codigo": "ATPU75M",
+   "costo": 572.94,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez"
+  }
+ ],
+ "detalle": [
+  {
+   "codigo": "ATACM",
+   "costo": 195.27,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez",
+   "desglose": {
+    "mp": 83.75,
+    "mo": 59.37,
+    "ind": 52.15,
+    "horas": {
+     "pm": 0.5152,
+     "carpinteria": 0,
+     "acabados": 0.108,
+     "pintura": 0.0099
+    }
+   }
+  },
+  {
+   "codigo": "ATBIOCRT5",
+   "costo": 854.72,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez",
+   "desglose": {
+    "mp": 801.18,
+    "mo": 25.51,
+    "ind": 28.02,
+    "horas": {
+     "pm": 0,
+     "carpinteria": 0,
+     "acabados": 0.3402,
+     "pintura": 0
+    }
+   }
+  },
+  {
+   "codigo": "ATCUBD44ABS",
+   "costo": 979.95,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez",
+   "desglose": {
+    "mp": 640.24,
+    "mo": 173.83,
+    "ind": 165.89,
+    "horas": {
+     "pm": 0.508,
+     "carpinteria": 1.4068,
+     "acabados": 0.088,
+     "pintura": 0.011
+    }
+   }
+  },
+  {
+   "codigo": "ATCUBD45ABS",
+   "costo": 1515.93,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez",
+   "desglose": {
+    "mp": 1163.28,
+    "mo": 180.3,
+    "ind": 172.34,
+    "horas": {
+     "pm": 0.508,
+     "carpinteria": 1.4852,
+     "acabados": 0.088,
+     "pintura": 0.011
+    }
+   }
+  },
+  {
+   "codigo": "ATCUBD46ABS",
+   "costo": 1486.03,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez",
+   "desglose": {
+    "mp": 1172.88,
+    "mo": 160.53,
+    "ind": 152.62,
+    "horas": {
+     "pm": 0.508,
+     "carpinteria": 1.2458,
+     "acabados": 0.088,
+     "pintura": 0.011
+    }
+   }
+  },
+  {
+   "codigo": "ATCUBS44ABS",
+   "costo": 533.52,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez",
+   "desglose": {
+    "mp": 342.38,
+    "mo": 97.57,
+    "ind": 93.57,
+    "horas": {
+     "pm": 0.254,
+     "carpinteria": 0.8324,
+     "acabados": 0.044,
+     "pintura": 0.0055
+    }
+   }
+  },
+  {
+   "codigo": "ATCUBS45ABS",
+   "costo": 816.9,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez",
+   "desglose": {
+    "mp": 608.7,
+    "mo": 106.11,
+    "ind": 102.09,
+    "horas": {
+     "pm": 0.254,
+     "carpinteria": 0.9358,
+     "acabados": 0.044,
+     "pintura": 0.0055
+    }
+   }
+  },
+  {
+   "codigo": "ATCUBS46ABS",
+   "costo": 672.1,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez",
+   "desglose": {
+    "mp": 618.29,
+    "mo": 28.81,
+    "ind": 25.0,
+    "horas": {
+     "pm": 0.254,
+     "carpinteria": 0,
+     "acabados": 0.044,
+     "pintura": 0.0055
+    }
+   },
+   "excluir": true
+  },
+  {
+   "codigo": "ATFAL12ABS",
+   "costo": 365.45,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez",
+   "desglose": {
+    "mp": 284.28,
+    "mo": 41.46,
+    "ind": 39.71,
+    "horas": {
+     "pm": 0.1198,
+     "carpinteria": 0.295,
+     "acabados": 0.064,
+     "pintura": 0.0033
+    }
+   }
+  },
+  {
+   "codigo": "ATFAL150ABS",
+   "costo": 429.87,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez",
+   "desglose": {
+    "mp": 322.93,
+    "mo": 54.47,
+    "ind": 52.47,
+    "horas": {
+     "pm": 0.1198,
+     "carpinteria": 0.4779,
+     "acabados": 0.036,
+     "pintura": 0.0033
+    }
+   }
+  },
+  {
+   "codigo": "ATOM3",
+   "costo": 75.29,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez",
+   "desglose": {
+    "mp": 42.96,
+    "mo": 16.93,
+    "ind": 15.4,
+    "horas": {
+     "pm": 0.1116,
+     "carpinteria": 0,
+     "acabados": 0.072,
+     "pintura": 0.0033
+    }
+   }
+  },
+  {
+   "codigo": "ATOM4",
+   "costo": 106.66,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez",
+   "desglose": {
+    "mp": 68.35,
+    "mo": 19.9,
+    "ind": 18.41,
+    "horas": {
+     "pm": 0.1242,
+     "carpinteria": 0,
+     "acabados": 0.096,
+     "pintura": 0.0033
+    }
+   }
+  },
+  {
+   "codigo": "ATPU2M",
+   "costo": 547.41,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez",
+   "desglose": {
+    "mp": 275.83,
+    "mo": 143.26,
+    "ind": 128.32,
+    "horas": {
+     "pm": 1.4078,
+     "carpinteria": 0,
+     "acabados": 0.1434,
+     "pintura": 0.0066
+    }
+   }
+  },
+  {
+   "codigo": "ATPU3M",
+   "costo": 615.23,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez",
+   "desglose": {
+    "mp": 292.41,
+    "mo": 171.02,
+    "ind": 151.8,
+    "horas": {
+     "pm": 1.6628,
+     "carpinteria": 0,
+     "acabados": 0.1668,
+     "pintura": 0.0132
+    }
+   }
+  },
+  {
+   "codigo": "ATPU75M",
+   "costo": 572.94,
+   "moneda": "MXN",
+   "fecha": "2026-08-12",
+   "formula_version": "direccion-2026-10-13:mp_ultimo_costo+horas_estandar*mo_real+ind_planta_una_vez",
+   "desglose": {
+    "mp": 282.53,
+    "mo": 153.59,
+    "ind": 136.82,
+    "horas": {
+     "pm": 1.5012,
+     "carpinteria": 0,
+     "acabados": 0.1498,
+     "pintura": 0.0099
+    }
+   }
+  }
+ ],
+ "notas": [
+  "ATCUBS46ABS: el reporte no trae carpintería; costo incompleto ($672.10). Estimado con carpintería 0.79–1.04 h: $802–$843 (lab/applt/estimaciones). NO se carga hasta tener el dato."
+ ]
+}
