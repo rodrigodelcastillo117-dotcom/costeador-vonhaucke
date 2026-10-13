@@ -78,8 +78,10 @@ export function prepararCargaErp(registros, { documento, hoy = new Date() } = {}
     if (!activo) resumen.bloqueados++;
     const d = nombre.toLowerCase();
     let formato = null, fraccion = false, mermaCorte = 0;
-    if (unidad === 'hoja' && ['melamina', 'mdf', 'laminado_hpl', 'chapa_madera', 'acrilico'].includes(fam) && RE_HOJA_4X8.test(d)) { formato = TABLERO; fraccion = true; mermaCorte = 6; }
-    else if (unidad === 'hoja' && ['melamina', 'mdf', 'laminado_hpl', 'chapa_madera', 'acrilico'].includes(fam) && RE_HOJA_5X8.test(d)) { formato = TABLERO5X8; fraccion = true; mermaCorte = 6; }
+    // VH-146b: 5×8 PRIMERO (más específico). Una hoja 5×8 descrita en metros ("1.52 X 2.44") también casa con
+    // el patrón 4×8 por el "2.44"; probado en supabase/tests/formatoHojasErp.test.js. Un 4×8 nunca trae 5 X 8 / 1.52.
+    if (unidad === 'hoja' && ['melamina', 'mdf', 'laminado_hpl', 'chapa_madera', 'acrilico'].includes(fam) && RE_HOJA_5X8.test(d)) { formato = TABLERO5X8; fraccion = true; mermaCorte = 6; }
+    else if (unidad === 'hoja' && ['melamina', 'mdf', 'laminado_hpl', 'chapa_madera', 'acrilico'].includes(fam) && RE_HOJA_4X8.test(d)) { formato = TABLERO; fraccion = true; mermaCorte = 6; }
     else if (unidad === 'hoja' && fam === 'metal_lamina') { mermaCorte = 8; }
     else if (unidad === 'm' && seccion === 'metal' && /\bptr\b|tubular|\btubo\b|perfil|[aá]ngulo|solera|redondo|cuadrado/.test(d)) { formato = TRAMO6; mermaCorte = 5; }
     const clase = (seccion === 'herrajes' || seccion === 'electrico') ? 'indirecta' : 'directa';
