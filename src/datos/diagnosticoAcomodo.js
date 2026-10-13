@@ -30,7 +30,9 @@ const DEL_SERVIDOR = {
   ZONE_MISMATCH: 'INCOMPATIBLE_ZONE', DEPENDENT_UNASSIGNED: 'MISSING_ANCHOR', ANCHOR_UNPLACED: 'DEPENDENCY_MISMATCH',
 };
 const esAncla = (r) => typeof r === 'string' && r.startsWith('ANCHOR_');
-const FUENTE_TXT = { SPATIAL_SPEC: 'ficha técnica', PARTIDA: 'partida', NOMBRE: 'nombre comercial', INFERIDA: 'supuesta por tipo', ESTANDAR: 'estándar' };
+// VH-A10-06: CATALOGO = medida de la ficha del banco. ESTANDAR = la sillería del catálogo no trae medida: se dibuja
+// con 600 × 600 y se dice que es supuesta (no vuelve PRELIMINAR el acomodo, VH-092, pero tampoco se calla).
+const FUENTE_TXT = { SPATIAL_SPEC: 'ficha técnica', PARTIDA: 'partida', CATALOGO: 'ficha del catálogo', NOMBRE: 'nombre comercial', INFERIDA: 'supuesta por tipo', ESTANDAR: 'estándar 600 × 600, supuesta (sin medida en el catálogo)' };
 
 /**
  * @param {{piezas:Array, plan:object|null, excluidas?:Array, areas?:Array}} x

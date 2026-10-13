@@ -286,7 +286,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     }
     // VH-110: se dice QUÉ falta (geometría, colisiones, anclas, revisión semántica, evidencia),
     // nunca un "invariantes" genérico cuando ninguna invariante falló.
-    const v = explicarAcomodo({ plan: res.plan, evaluacion: res.evaluacion, programaListo, motivoPrograma, referencias: payloadAcomodo.referencias || [], preliminar: !!payloadAcomodo.preliminar });
+    const v = explicarAcomodo({ plan: res.plan, evaluacion: res.evaluacion, programaListo, motivoPrograma, referencias: payloadAcomodo.referencias || [], preliminar: !!payloadAcomodo.preliminar, huellasEstandar: payloadAcomodo.huellasEstandar || 0 });
     if (v.resumen) return (res.status === 'NEEDS_REVIEW' ? 'requiere revisión · ' : '') + v.resumen;
     const fallas = [...new Set((res.evaluacion?.issues || []).filter((i) => i.severity === 'fail').map((i) => i.code))];
     if (res.status === 'PARTIAL') return `parcial: faltan ${res.evaluacion?.unplaced?.length || 0} por colocar`;
@@ -1298,6 +1298,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   const veredicto = useMemo(() => explicarAcomodo({
     plan, evaluacion: evalInvariantes, programaListo, motivoPrograma,
     referencias: payloadAcomodo.referencias || [], preliminar: !!payloadAcomodo.preliminar,
+    huellasEstandar: payloadAcomodo.huellasEstandar || 0,
     nombresSinColocar: (plan?.unassigned || []).map((u) => u?.nombre).filter(Boolean),
   }), [plan, evalInvariantes, programaListo, motivoPrograma, payloadAcomodo]);
   const motivoLayout = [

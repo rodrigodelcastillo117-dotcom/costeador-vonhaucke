@@ -124,7 +124,7 @@ export function notasCapacidad(layoutSpec) {
   return uniq(out);
 }
 
-export function explicarAcomodo({ plan = null, evaluacion = null, programaListo = true, motivoPrograma = '', referencias = [], preliminar = false, nombresSinColocar = [] } = {}) {
+export function explicarAcomodo({ plan = null, evaluacion = null, programaListo = true, motivoPrograma = '', referencias = [], preliminar = false, nombresSinColocar = [], huellasEstandar = 0 } = {}) {
   const spec = plan?.layoutSpec || null;
   const statusSrv = String(spec?.status || '').toUpperCase() || null;
   const issues = (evaluacion?.issues || plan?.invariantes?.issues || spec?.validation?.issues || []).filter(Boolean);
@@ -176,10 +176,16 @@ export function explicarAcomodo({ plan = null, evaluacion = null, programaListo 
   // 6 · Evidencia de medidas y productos.
   const nRef = Array.isArray(referencias) ? referencias.length : 0;
   const evOk = nRef === 0 && !preliminar;
+  // VH-A10-06: la sillería del catálogo no trae medida; su huella estándar (600 × 600) se DICE supuesta. No cambia
+  // el estado del bloque (contrato VH-092), sólo deja de ser silenciosa.
+  const nEst = Number(huellasEstandar) || 0;
+  const notaEstandar = nEst > 0 ? `${nEst} silla(s) con huella estándar 600 × 600, supuesta: el catálogo no trae su medida` : '';
   bloques.push({ clave: 'evidencia', titulo: 'Evidencia de medidas', ok: evOk,
-    texto: evOk ? 'medidas y productos con identidad de catálogo' : uniq([
+    texto: uniq([
+      evOk ? 'medidas y productos con identidad de catálogo' : '',
       nRef ? `${nRef} mueble(s) sin identidad de catálogo ni precio` : '',
       preliminar ? 'medidas supuestas por tipo o productos sin precio autorizado' : '',
+      notaEstandar,
     ]).join(' · ') });
   // 7 · Resultado publicable.
   const todoOk = bloques.every((b) => b.ok === true);

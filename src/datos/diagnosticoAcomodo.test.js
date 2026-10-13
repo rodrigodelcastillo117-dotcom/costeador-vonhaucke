@@ -104,4 +104,12 @@ describe('VH-A10-04 · sillas sin lugar junto a un mueble que sí cupo', () => {
     expect(f.accion).not.toMatch(/pasillo de 1\.00 m/);
     expect(f.accion).toMatch(/600 mm/);
   });
+  // VH-A10-06: la fuente de la medida se dice en palabras; la de la silla, como supuesta (sin medida de catálogo).
+  it('fuente de la medida: la estándar de la silla se dice supuesta; la de ficha, "ficha del catálogo"', () => {
+    const [f] = diagnosticoNoColocadas({ piezas: piezasK, plan: planK });
+    expect(f.huella_fuente).toMatch(/estándar 600 × 600/);
+    expect(f.huella_fuente).toMatch(/supuesta/);
+    const [g] = diagnosticoNoColocadas({ piezas: [{ id: 'g', nombre: 'Gabinete', relation_role: 'SUPPORT_STORAGE', w: 900, d: 450, huella_fuente: 'CATALOGO' }], plan: { colocacion: [] } });
+    expect(g.huella_fuente).toBe('ficha del catálogo');
+  });
 });

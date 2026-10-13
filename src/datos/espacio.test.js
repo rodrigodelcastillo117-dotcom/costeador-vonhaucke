@@ -112,3 +112,25 @@ dCap('VH-120 · capacity_source en el payload del solver', () => {
     eCap(s.user_capacity).toBeUndefined(); eCap(s.capacity_source).toBeUndefined();
   });
 });
+
+// ACOMODO 10 · VH-A10-06 (P0-05): la huella REAL del catálogo cuando la partida no trae ancho × fondo. Las partidas
+// del banco guardan la medida sólo en el TEXTO del nombre ("(4500 × 1200 mm)"); si la persona edita el nombre, el
+// acomodo caía a la huella genérica por tipo (1.50 × 0.75 m para un bench de 4.50 × 1.20) aunque el catálogo sí la tenga.
+dCap('VH-A10-06 · huella de catálogo antes que la huella por tipo', () => {
+  iCap('pieza del banco sin w/d y con el nombre editado ⇒ medida de su ficha, fuente CATALOGO', () => {
+    const [b] = expandirCap([{ id: 'b', piezaId: 'op-6u-4500x1200', nombre: 'Bench equipo ventas', cantidad: 1, precioUnitario: 36260 }]);
+    eCap([b.w, b.d, b.huella_fuente]).toEqual([4500, 1200, 'CATALOGO']);
+  });
+  iCap('guarda con alto en la ficha (900 × 1570 × 450): la huella es frente × fondo, no el alto', () => {
+    const [g] = expandirCap([{ id: 'g', piezaId: 'gabinete-multiusos', nombre: 'Gabinete', cantidad: 1, precioUnitario: 11790 }]);
+    eCap([g.w, g.d, g.huella_fuente]).toEqual([900, 450, 'CATALOGO']);
+  });
+  iCap('la medida capturada en la partida manda sobre la ficha', () => {
+    const [b] = expandirCap([{ id: 'b', piezaId: 'op-6u-4500x1200', nombre: 'Bench', cantidad: 1, w: 3000, d: 1200 }]);
+    eCap([b.w, b.d, b.huella_fuente]).toEqual([3000, 1200, 'PARTIDA']);
+  });
+  iCap('sin medida en ningún lado: huella por tipo, marcada INFERIDA (visible como supuesta)', () => {
+    const [x] = expandirCap([{ id: 'x', nombre: 'Mueble especial', cantidad: 1 }]);
+    eCap(x.huella_fuente).toBe('INFERIDA');
+  });
+});

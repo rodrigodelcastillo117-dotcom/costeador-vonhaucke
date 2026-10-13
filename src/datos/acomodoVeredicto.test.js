@@ -109,3 +109,22 @@ dCap('VH-120 · notasCapacidad', () => {
     eCap(notasCapacidad({ validation: {} })).toEqual([]);
   });
 });
+
+// ACOMODO 10 · VH-A10-06: la sillería del catálogo NO trae medida; el acomodo la dibuja con la huella estándar
+// 600 × 600. Eso no vuelve PRELIMINAR el acomodo (contrato VH-092), pero tampoco se calla: el bloque de evidencia
+// dice cuántas piezas usan esa huella y que es supuesta.
+describe('VH-A10-06 · huella estándar de sillas, visible', () => {
+  const plan = { layoutSpec: { status: 'PASS', validation: { issues: [], render_ready: true, semantic_gate: { sem_status: 'PASS', semantic_pass: true } } }, render_ready: true };
+  it('con sillas de huella estándar: el bloque de evidencia lo dice y sigue en verde', () => {
+    const v = explicarAcomodo({ plan, evaluacion: { status: 'PASS', issues: [], unplaced: [] }, huellasEstandar: 21 });
+    const ev = v.bloques.find((b) => b.clave === 'evidencia');
+    expect(ev.ok).toBe(true);
+    expect(ev.texto).toMatch(/21 silla\(s\) con huella estándar 600 × 600/);
+    expect(ev.texto).toMatch(/supuesta/);
+    expect(v.estado).toBe('PASS');
+  });
+  it('sin sillas estándar el texto no cambia', () => {
+    const v = explicarAcomodo({ plan, evaluacion: { status: 'PASS', issues: [], unplaced: [] } });
+    expect(v.bloques.find((b) => b.clave === 'evidencia').texto).toBe('medidas y productos con identidad de catálogo');
+  });
+});

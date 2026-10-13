@@ -68,7 +68,7 @@ export async function acomodarLab({ partidas, areasM }) {
   };
   const res = await resolverAcomodo({ partidas, areasM, solve });
   const plan = res.plan ? { ...res.plan, render_ready: res.render_ready === true, layoutSpec: { ...(res.plan.layoutSpec || {}), status: res.status } } : null;
-  const veredicto = plan ? explicarAcomodo({ plan, evaluacion: res.evaluacion, referencias: res.payload?.referencias || [], preliminar: !!res.payload?.preliminar }) : null;
+  const veredicto = plan ? explicarAcomodo({ plan, evaluacion: res.evaluacion, referencias: res.payload?.referencias || [], preliminar: !!res.payload?.preliminar, huellasEstandar: res.payload?.huellasEstandar || 0 }) : null;
   return { res, respuesta, veredicto };
 }
 
