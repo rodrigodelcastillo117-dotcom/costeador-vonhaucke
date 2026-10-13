@@ -1,0 +1,11 @@
+{
+  "costoNormal": 1875.23,
+  "marcado": "true",
+  "costoDificil": 2106.66,
+  "reqDificultad": "dificil",
+  "costoSrvDificil": 2106.66,
+  "sube": true,
+  "paridad": true,
+  "costoDeVueltaNormal": 1875.23,
+  "regresaIgual": true
+}

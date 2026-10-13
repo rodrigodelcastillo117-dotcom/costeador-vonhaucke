@@ -10,6 +10,8 @@
 // ============================================================================
 import { aplicarPoliticaMaterial, MATCH } from './materialMatch.js';
 
+const RE_M2 = /^(m2|m²|mt2|m\^2|metros? cuadrados?)$/i;
+
 // ESPEJO DE P0.12 (VH-157): el servidor (costear-servidor, origenSpecConfiable=false) degrada todo
 // EXACT que viene de una spec del cliente sin confirmación humana a "por confirmar" y NO emite.
 // El navegador debe decir lo MISMO: si aquí quedara EXACT/emitible, el precio en pantalla y el del
@@ -51,7 +53,15 @@ export function mapIaComps(p, insumos = {}) {
         base.iaHojas = z.hojas;
         const ins = base.insumoId ? resolver(base.insumoId) : null;
         const esTablero = !!ins && ins.formato && ins.formato.tipo === 'tablero' && base.largoMM > 0 && base.anchoMM > 0;
-        if (!esTablero) base.hojas = z.hojas;   // lámina irregular / sin geometría: fracción directa
+        // A/B lab 2026-10-13 (mesa de centro): la IA expresó la cubierta de cristal templado 1000×600 como "0.2 de hoja"
+        // sobre un material que se VENDE POR m² y no tiene formato de hoja. Copiar esa fracción dispara el candado P0-02
+        // ("falta la hoja de referencia") y el costo quedaba incompleto con la geometría a la mano. Con largo×ancho y
+        // precio por m², el consumo es el área: la fracción de la IA sólo se muestra.
+        // El candidato cuenta igual: al confirmarlo, la fracción de hoja no debe quedarse pegada.
+        const insM2 = ins || (base.candidate_insumo_id ? resolver(base.candidate_insumo_id) : null);
+        const porM2SinFormato = !!insM2 && !(Number(insM2.formato?.medida) > 0) && RE_M2.test(String(insM2.unidad || '').trim()) && base.largoMM > 0 && base.anchoMM > 0;
+        if (porM2SinFormato) delete base.hojas;   // (llegaba copiada desde la propuesta)
+        else if (!esTablero) base.hojas = z.hojas;   // lámina irregular / sin geometría: fracción directa
       }
     }
     return base;
