@@ -1,0 +1,21 @@
+{
+  "fixture": "lab/costear/mesa_trabajo.png",
+  "producto": "Mesa de trabajo 1500 × 700 × 750",
+  "respuestas": [
+    { "patron": "pata", "valor": "4", "evidencia": "plano: 4 PATAS DE 731" },
+    { "patron": "nivelador", "valor": "4", "evidencia": "plano: 4 NIVELADORES" },
+    { "patron": "larguero", "valor": "2", "evidencia": "plano: 2 LARGUEROS DE 1350" },
+    { "patron": "travesa", "valor": "2", "evidencia": "plano: 2 TRAVESAÑOS DE 600" },
+    { "patron": "ptr|metros de|tubo|estructura", "valor": "6.82", "evidencia": "plano: TOTAL 6.82 m" },
+    { "patron": "tapacanto|canto", "valor": "4.4", "evidencia": "plano: TAPACANTO PERIMETRAL (4.40 m)" }
+  ],
+  "esperado": [
+    { "clave": "cubierta", "patron": "cubierta", "ids": "^melamina-19$|^erp-.*mel", "piezas": 1, "dims": [1500, 700], "tol": 20 },
+    { "clave": "tapacanto_m", "patron": "tapacanto|canto", "ids": "tapacanto|cubrecanto", "metros": [4.2, 4.6] },
+    { "clave": "estructura_ptr_m", "patron": "ptr|pata|larguero|travesa|estructura", "noPatron": "pintura|nivelador", "ids": "^ptr$|^erp-ptr", "metros": [6.6, 7.0], "suma": true },
+    { "clave": "faldon", "patron": "fald", "ids": "^lamina-18$|^erp-lam", "piezas": 1, "dims": [1400, 300], "tol": 20 },
+    { "clave": "pintura_ral9016", "patron": "pintura", "ids": "pintura-polvo-blanco-ral-9016", "presente": true, "evidencia": "plano: PINTURA EN POLVO BLANCO RAL 9016 (existe EXACTO en el catálogo curado)" },
+    { "clave": "niveladores", "patron": "nivelador", "ids": "nivelador", "cantidad": 4 }
+  ],
+  "extrasPermitidos": "soldadura|torniller|escuadra|tapon|regat|consumible"
+}

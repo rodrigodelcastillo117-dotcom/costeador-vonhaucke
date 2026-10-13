@@ -1,0 +1,15 @@
+{
+  "fixture": "lab/costear/mesa_centro.png",
+  "producto": "Mesa de centro 1000 × 600 × 420",
+  "respuestas": [
+    { "patron": "poste|pata", "valor": "4", "evidencia": "plano: 4 POSTES DE 392" },
+    { "patron": "marco", "valor": "2", "evidencia": "plano: 2 MARCOS RECTANGULARES" },
+    { "patron": "metros|tubular|tubo", "valor": "7.17", "evidencia": "plano: TOTAL 7.17 m" }
+  ],
+  "esperado": [
+    { "clave": "cristal_m2", "patron": "cristal|cubierta", "ids": "^cristal-templado$|^erp-cri", "areaM2": 0.6, "tolPct": 5 },
+    { "clave": "tubular_m", "patron": "tubular|tubo|base|marco|poste", "noPatron": "cromad|ecocrom|acabado", "ids": "^tubular-redondo-34$|^erp-tub", "metros": [7.0, 7.4], "tramos6m": true, "suma": true },
+    { "clave": "cromado", "patron": "crom|ecocrom|acabado", "ids": "ecocrom|crom", "presente": true, "evidencia": "plano: ACABADO CROMADO (ECOCROM); superficie del tubo ≈ π × 19 mm × 7.17 m = 0.43 m²" }
+  ],
+  "extrasPermitidos": "soldadura|tope|regat|silic|pulido|canto|consumible"
+}

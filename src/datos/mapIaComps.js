@@ -28,6 +28,14 @@ export function mapIaComps(p, insumos = {}) {
   return (p?.piezas || []).map((z) => {
     const base = espejoP012(aplicarPoliticaMaterial({ ...z, material_solicitado: z.material_solicitado || z.nombre }, resolver, catalogo));
     base.forma = z.forma || (z.largoMM && z.anchoMM ? 'area' : 'pieza');
+    // LINEALES (VH-160): la IA manda el largo de UNA pieza en largoMM y el número de piezas en cantidad
+    // ("Base PTR", largoMM 5000, cantidad 1). Antes se descartaba largoMM y el motor recibía 1 m. Los metros
+    // son largoMM/1000 × piezas. Si la IA ya puso los metros en cantidad (cantidad ≈ largoMM/1000), no se multiplica.
+    if (base.forma === 'lineal' && Number(z.largoMM) > 0) {
+      const m1 = Number(z.largoMM) / 1000, n = Number(z.cantidad) > 0 ? Number(z.cantidad) : 1;
+      base.cantidad = Math.abs(n - m1) <= 0.05 ? n : Math.round(m1 * n * 1000) / 1000;
+      base.largoLinealMM = Number(z.largoMM); base.piezasLineales = Math.abs(n - m1) <= 0.05 ? 1 : n;
+    }
     if (base.forma === 'area') {
       base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
       if (z.hojas > 0) {

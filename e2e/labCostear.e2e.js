@@ -4,11 +4,16 @@
 // LAB_COSTEAR_IMG + TEST_EMAIL/TEST_PASSWORD (cuenta QA). Gasta 1–2 llamadas de IA.
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs'; import path from 'node:path';
-const EMAIL = process.env.TEST_EMAIL; const PASS = process.env.TEST_PASSWORD; const IMG = process.env.LAB_COSTEAR_IMG;
+// LAB_HOJA = hoja de control (lab/costear/hojas_control/*.json): fixture, respuestas CON EVIDENCIA del plano, pieza ERP a
+// mano y BOM esperado. Con hoja, el laboratorio sólo contesta lo que el plano demuestra; lo demás queda por confirmar.
+const HOJA = process.env.LAB_HOJA ? JSON.parse(fs.readFileSync(process.env.LAB_HOJA, 'utf8')) : null;
+const EMAIL = process.env.TEST_EMAIL; const PASS = process.env.TEST_PASSWORD; const IMG = process.env.LAB_COSTEAR_IMG || (HOJA && HOJA.fixture);
 const SALIDA = process.env.LAB_OUT || 'test-results-prod/lab-costear';
 const NOMBRE = process.env.LAB_COSTEAR_NOMBRE || `Credenza Nogal (lab P0-C ${new Date().toISOString().slice(0, 16)})`;
-const ERP_BUSCAR = process.env.LAB_ERP_BUSCAR || 'MDF NATURAL 9 mm';
-const ERP_PATRON = new RegExp(process.env.LAB_ERP_PATRON || 'MDF8|ESPESOR 9 mm', 'i');
+const ERP_BUSCAR = process.env.LAB_ERP_BUSCAR || (HOJA ? HOJA.erp?.buscar : null) || 'MDF NATURAL 9 mm';
+const ERP_PATRON = new RegExp(process.env.LAB_ERP_PATRON || (HOJA ? HOJA.erp?.patron : null) || 'MDF8|ESPESOR 9 mm', 'i');
+const ERP_PIEZA = new RegExp((HOJA ? HOJA.erp?.pieza : null) || 'respaldo|9 mm', 'i');
+const HAY_ERP_A_MANO = !HOJA || !!HOJA.erp;
 const pesosNum = (t) => { const m = String(t || '').replace(/[^0-9.,-]/g, '').replace(/,/g, ''); const n = Number(m); return Number.isFinite(n) ? n : null; };
 const CLAVE = 'costeador-vonhaucke-v1';
 const leerCot = (page) => page.evaluate((k) => { try { return JSON.parse(window.localStorage.getItem(k))?.cotizacion || null; } catch (_e) { return null; } }, CLAVE);
@@ -72,8 +77,8 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   let erp = { intentado: false };
   const filas = page.locator('.pieza'); const n = await filas.count();
   let idx = -1;
-  for (let i = 0; i < n; i++) { const nom = (await filas.nth(i).locator('.pieza-nom').inputValue().catch(() => '')).toLowerCase(); if (/respaldo|9 mm/.test(nom)) { idx = i; break; } }
-  if (idx < 0) for (let i = 0; i < n; i++) { const al = await filas.nth(i).getByTestId('alerta-material').allInnerTexts().catch(() => []); if (al.some((a) => /⚠ /.test(a))) { idx = i; break; } }
+  if (HAY_ERP_A_MANO) for (let i = 0; i < n; i++) { const nom = (await filas.nth(i).locator('.pieza-nom').inputValue().catch(() => '')).toLowerCase(); if (ERP_PIEZA.test(nom)) { idx = i; break; } }
+  if (HAY_ERP_A_MANO && idx < 0 && !HOJA) for (let i = 0; i < n; i++) { const al = await filas.nth(i).getByTestId('alerta-material').allInnerTexts().catch(() => []); if (al.some((a) => /⚠ /.test(a))) { idx = i; break; } }
   if (idx >= 0 && (await filas.nth(idx).getByTestId('buscar-insumo-abrir').count())) {
     erp.intentado = true; erp.pieza = await filas.nth(idx).locator('.pieza-nom').inputValue();
     await filas.nth(idx).getByTestId('buscar-insumo-abrir').click();
@@ -107,6 +112,19 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
     if (erp.elegido && /respaldo|(^|[^0-9])9 ?mm/i.test(pregunta)) { respuestas.push({ pregunta, elegido: '(sin responder: ya resuelta con ERP)' }); continue; }
     const chips = bq.locator('button.chip');
     const num = bq.locator('input[type=number]');
+    if (HOJA) {
+      // Sólo lo que el plano demuestra (hoja de control). Sin evidencia → no se contesta (queda por confirmar).
+      const r = (HOJA.respuestas || []).find((x) => new RegExp(x.patron, 'i').test(pregunta));
+      if (!r) { respuestas.push({ pregunta, elegido: '(sin responder: el plano no lo dice)' }); continue; }
+      if (await chips.count()) {
+        const textos = (await chips.allInnerTexts()).map((t) => t.trim());
+        const op = r.opcion ? textos.find((t) => new RegExp(r.opcion, 'i').test(t)) : null;
+        if (op) { await chips.filter({ hasText: new RegExp('^' + op.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$') }).first().click(); respuestas.push({ pregunta, elegido: op, opciones: textos, evidencia: r.evidencia }); }
+        else respuestas.push({ pregunta, elegido: '(sin responder: ninguna opción coincide con el plano)', opciones: textos, evidencia: r.evidencia });
+      } else if ((await num.count()) && r.valor != null) { await num.fill(String(r.valor)); respuestas.push({ pregunta, elegido: String(r.valor), evidencia: r.evidencia }); }
+      else respuestas.push({ pregunta, elegido: '(sin responder)', evidencia: r.evidencia });
+      continue;
+    }
     if (await chips.count()) {
       const textos = (await chips.allInnerTexts()).map((t) => t.trim());
       const noVale = (t) => /^otro$|por definir|pendiente/i.test(t);
@@ -239,5 +257,12 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   guarda('edges.json', edges.map((e) => ({ ...e, body: JSON.stringify(e.body || {}).slice(0, 6000), req: e.req ? JSON.stringify(e.req).slice(0, 6000) : null })));
   const ultimoSrv = edges.filter((e) => e.fn === 'costear-servidor').pop();
   guarda('8-dto-servidor.json', { req: ultimoSrv?.req ?? null, res: ultimoSrv?.body ?? null });
+  if (HOJA) {
+    // Corrección técnica del BOM FINAL (el que costeó el servidor) contra la hoja de control del fixture.
+    const { compararConHoja, componentesDeDto } = await import('./hojaControl.js');
+    const hc = compararConHoja(componentesDeDto({ req: ultimoSrv?.req ?? null }), HOJA);
+    guarda('9-hoja-control.json', { producto: HOJA.producto, ...hc, estadoServidor: ultimoSrv?.body?.estado ?? null, respuestas });
+    console.log('[lab-costear] hoja de control', JSON.stringify(hc.resumen), JSON.stringify(hc.filas.filter((f) => f.estado !== 'PASS').map((f) => `${f.estado} ${f.clave}: ${f.motivos.join(' · ')}`)));
+  }
   console.log('[lab-costear] reabierta', JSON.stringify(reabierta));
 });

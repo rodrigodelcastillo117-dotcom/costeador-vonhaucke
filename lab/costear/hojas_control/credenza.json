@@ -1,0 +1,168 @@
+{
+  "fixture": "lab/costear/credenza_nogal.png",
+  "producto": "Credenza nogal 1800 × 450 × 750 (cuerpo 650 sobre base PTR de 100)",
+  "erp": {
+    "pieza": "respaldo|9 ?mm",
+    "buscar": "MDF NATURAL 9 mm",
+    "patron": "MDF8|ESPESOR 9 mm",
+    "evidencia": "plano: RESPALDO MDF 9 mm; el curado no tiene 9 mm"
+  },
+  "respuestas": [
+    {
+      "patron": "divis",
+      "valor": "2",
+      "evidencia": "3 puertas = 3 módulos → 2 divisiones"
+    },
+    {
+      "patron": "entrepa",
+      "valor": "3",
+      "evidencia": "plano: 1 ENTREPAÑO POR MÓDULO × 3"
+    },
+    {
+      "patron": "bisagra",
+      "valor": "6",
+      "evidencia": "plano: 2 BISAGRAS C/U × 3 puertas"
+    },
+    {
+      "patron": "jaladera",
+      "valor": "3",
+      "evidencia": "plano: JALADERA RECTA por puerta"
+    },
+    {
+      "patron": "nivelador|pata",
+      "valor": "4",
+      "evidencia": "plano: 2 patas en frontal × 2 en lateral"
+    },
+    {
+      "patron": "puerta",
+      "valor": "3",
+      "evidencia": "plano: 3 PUERTAS ABATIBLES"
+    },
+    {
+      "patron": "enchap|caras|cubierta y frente",
+      "opcion": "todas|visibles",
+      "evidencia": "plano: CUERPO ... ENCHAPADO NOGAL (la cubierta es parte del cuerpo)"
+    },
+    {
+      "patron": "19 ?mm.*18|18 ?mm.*19|en lugar de 18",
+      "opcion": "^s[ií]|19",
+      "evidencia": "regla de casa aprobada 2026-10-08: 18 ↔ 19 mm"
+    }
+  ],
+  "esperado": [
+    {
+      "clave": "laterales",
+      "patron": "lateral",
+      "ids": "^(mdf|erp-mdf19)$",
+      "piezas": 2,
+      "dims": [
+        650,
+        450
+      ],
+      "tol": 40
+    },
+    {
+      "clave": "cubierta_y_piso",
+      "patron": "cubierta|fondo|piso|tapa|base de cuerpo",
+      "noPatron": "chapa|ptr|pintura",
+      "ids": "^(mdf|erp-mdf19)$",
+      "piezas": 2,
+      "dims": [
+        1800,
+        450
+      ],
+      "tol": 60
+    },
+    {
+      "clave": "puertas",
+      "patron": "puerta|frente",
+      "ids": "^(mdf|erp-mdf19)$",
+      "piezas": 3,
+      "dims": [
+        630,
+        580
+      ],
+      "tol": 30
+    },
+    {
+      "clave": "chapa_nogal_m2",
+      "patron": "chapa|enchap",
+      "ids": "^(chapa|erp-ch)",
+      "areaM2": 2.491,
+      "tolPct": 15,
+      "evidencia": "caras exteriores: 2 laterales 650×450 + 3 puertas 630×580 + cubierta 1800×450"
+    },
+    {
+      "clave": "entrepanos",
+      "patron": "entrepa",
+      "ids": "^melamina-16",
+      "piezas": 3,
+      "dims": [
+        577,
+        430
+      ],
+      "tol": 50
+    },
+    {
+      "clave": "divisiones",
+      "patron": "divis",
+      "ids": "^melamina-16",
+      "piezas": 2,
+      "dims": [
+        614,
+        430
+      ],
+      "tol": 60,
+      "inferido": true,
+      "evidencia": "no dibujadas: \"1 ENTREPAÑO POR MÓDULO\" con 3 puertas implica 3 módulos → 2 divisiones"
+    },
+    {
+      "clave": "respaldo",
+      "patron": "respaldo",
+      "ids": "mdf8|mdf-9",
+      "piezas": 1,
+      "dims": [
+        1800,
+        650
+      ],
+      "tol": 60
+    },
+    {
+      "clave": "base_ptr_m",
+      "patron": "ptr|base",
+      "noPatron": "pintura",
+      "ids": "^ptr-14$|^erp-ptr",
+      "metros": [
+        4.9,
+        6.0
+      ],
+      "inferido": true,
+      "evidencia": "no acotado: marco 2×(1800+450) + 4 patas de 100 + 2 travesaños ≈ 5.72 m"
+    },
+    {
+      "clave": "pintura",
+      "patron": "pintura",
+      "ids": "pintura",
+      "presente": true
+    },
+    {
+      "clave": "bisagras",
+      "patron": "bisagra",
+      "ids": "bisagra|erp-bi",
+      "cantidad": 6
+    },
+    {
+      "clave": "jaladeras",
+      "patron": "jaladera",
+      "ids": "jaladera|erp-ja",
+      "cantidad": 3
+    },
+    {
+      "clave": "niveladores",
+      "patron": "nivelador",
+      "ids": "nivelador",
+      "cantidad": 4
+    }
+  ],
+  "extrasPermitidos": "tapacanto|canto|torniller|soldadura|pegamento|adhesivo|pegado|zoclo"
+}
