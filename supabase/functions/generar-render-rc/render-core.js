@@ -95,3 +95,41 @@ export function promptAuditoria({ modo = '', cuarto = '', entorno = '', conteoPi
     'pass=true only if every relevant critical field is PASS; UNKNOWN may remain only for non-relevant fields.',
   ].filter(Boolean).join('\n');
 }
+
+// VH-161 · CONTADOR CON MODELO DE VISIÓN. El contador anterior le pedía TEXTO al modelo de GENERACIÓN de imágenes
+// y en las 4 áreas de la corrida C1 (13-oct) devolvió vacío: el conteo nunca se verificó y el auditor afirmó
+// "12 sillas" donde la imagen tiene 10. Ahora se pregunta al modelo de visión (el del auditor) por JSON, y
+// se cuentan también las SILLAS, que es justo lo que se equivocaba.
+/**
+ * @param {unknown} esperados
+ * @param {number|string|null} [sillas]
+ * @returns {string}
+ */
+export function preguntaConteoJson(esperados, sillas) {
+  const txt = textoEsperados(esperados);
+  return (
+    'You are counting objects in ONE photograph. Count carefully, one by one, including objects partly hidden behind others.\n' +
+    '1) "piso": floor-standing furniture pieces (desks, benches, tables, reception counters, storage units, credenzas, pedestals, privacy screens that stand on the floor). ' +
+    'A long bench of joined desks counts as ONE piece if it is one continuous module. Do NOT count chairs.' +
+    (txt ? ` The room is supposed to contain: ${txt}.` : '') + '\n' +
+    '2) "sillas": every chair or seat of any kind.\n' +
+    (Number(sillas) > 0 ? `(The project expects ${Number(sillas)} chairs; report what you SEE, not that number.)\n` : '') +
+    'Answer ONLY with JSON: {"piso": <integer>, "sillas": <integer>, "notas": "<one short sentence>"}'
+  );
+}
+
+/**
+ * @param {{piso?: unknown, sillas?: unknown}|null} resp
+ * @param {{piso?: unknown, sillas?: unknown}} esperado
+ * @returns {{ ok: boolean, sinRespuesta: boolean, piso: number|null, sillas: number|null, diferencias: string[] }}
+ */
+export function evaluarConteo(resp, esperado = {}) {
+  const ent = (v) => (Number.isInteger(Number(v)) && v !== null && v !== '' ? Number(v) : null);
+  const piso = resp ? ent(resp.piso) : null, sil = resp ? ent(resp.sillas) : null;
+  const eP = n(esperado.piso) > 0 ? n(esperado.piso) : null, eS = esperado.sillas != null && n(esperado.sillas, -1) >= 0 ? n(esperado.sillas) : null;
+  if (piso === null && sil === null) return { ok: false, sinRespuesta: true, piso: null, sillas: null, diferencias: [] };
+  const diferencias = [];
+  if (eP !== null && piso !== eP) diferencias.push(`muebles de piso: ${piso ?? '?'} de ${eP}`);
+  if (eS !== null && sil !== eS) diferencias.push(`sillas: ${sil ?? '?'} de ${eS}`);
+  return { ok: diferencias.length === 0, sinRespuesta: false, piso, sillas: sil, diferencias };
+}

@@ -35,3 +35,15 @@ describe('VH-121 · render-core', () => {
     expect(sin).toContain('No product reference images were supplied'); expect(sin).toContain('do not invent product details'); expect(sin).not.toContain('EXPECTED FLOOR-STANDING FURNITURE');
   });
 });
+
+describe('VH-161 · contador con modelo de visión', () => {
+  it('cuenta sillas además de muebles de piso y detecta 10 de 12', async () => {
+    const { evaluarConteo, preguntaConteoJson } = await import('./render-core.js');
+    expect(preguntaConteoJson([{ nombre: 'Módulo operativo 12u', cantidad: 1 }], 12)).toMatch(/"sillas"/);
+    expect(evaluarConteo({ piso: 1, sillas: 10 }, { piso: 1, sillas: 12 })).toMatchObject({ ok: false, diferencias: ['sillas: 10 de 12'] });
+    expect(evaluarConteo({ piso: 1, sillas: 12 }, { piso: 1, sillas: 12 }).ok).toBe(true);
+    expect(evaluarConteo({ piso: 2, sillas: 8 }, { piso: 1, sillas: 8 }).diferencias).toEqual(['muebles de piso: 2 de 1']);
+    expect(evaluarConteo(null, { piso: 1 })).toMatchObject({ ok: false, sinRespuesta: true });
+    expect(evaluarConteo({ piso: 1 }, { piso: 1, sillas: null }).ok).toBe(true);   // sin sillas esperadas, no se exige
+  });
+});

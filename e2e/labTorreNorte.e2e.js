@@ -157,8 +157,11 @@ test.describe('LAB · plano Torre Norte', () => {
       render.imagenes = await page.locator('img[alt*="área"], img[alt*="area"], figure img').count();
       render.escenasGuardadas = ((await leerCot(page))?.acomodo?.escenas || []).length;
       render.llamadas = (edges['generar-render'] || []).map((e) => e.status);
-      const guardar = page.getByRole('button', { name: /Guardar en la propuesta/ });
-      if (await guardar.count()) { await guardar.first().click(); render.guardado = true; }
+      // El "Guardar en la propuesta" de las ESCENAS vive junto a "Volver a generar" (hay otros dos para áreas/plan).
+      const filaEsc = page.locator('.fila-botones', { has: page.getByRole('button', { name: /Volver a generar/ }) });
+      const guardar = filaEsc.getByRole('button', { name: /Guardar en la propuesta/ });
+      if (await guardar.count()) { await guardar.first().click(); render.guardado = true; await page.waitForTimeout(2500); }
+      render.escenasGuardadas = ((await leerCot(page))?.acomodo?.escenas || []).filter((e) => e && (e.img || e.url)).length;
       await page.screenshot({ path: path.join(SALIDA, '6-render.png'), fullPage: true });
     }
     guarda('6-render.json', render);
@@ -175,7 +178,15 @@ test.describe('LAB · plano Torre Norte', () => {
     await page.screenshot({ path: path.join(SALIDA, '7-propuesta.png'), fullPage: true });
     console.log('[lab] PDF', etiquetaPdf, fs.statSync(pdfPath).size, 'bytes');
 
-    // 8) Reabrir desde otra "computadora".
+    // 8) Reabrir desde otra "computadora". Antes se guarda la FIRMA de lo que quedó (identidad de cada partida y
+    //    posición de cada mueble) para comparar campo a campo, no sólo conteos.
+    await page.waitForTimeout(4000);   // último autosave
+    const firma = (c) => ({
+      partidas: (c?.partidas || []).map((p) => ({ k: `${p.productoId ?? ''}|${p.piezaId ?? ''}|${p.nombre ?? ''}`, cantidad: p.cantidad, precioUnitario: p.precioUnitario ?? null, costoUnitario: p.costoUnitario ?? null, sugerido: !!(p.sugerido || p.sugeridoPlano), noCobrar: !!p.noCobrar })).sort((a, b) => a.k.localeCompare(b.k)),
+      colocacion: (c?.acomodo?.plan?.colocacion || []).map((x) => ({ id: x.id, area: x.area, x: Math.round(x.x), y: Math.round(x.y), rot: x.rot || 0, side: x.side || null })).sort((a, b) => String(a.id).localeCompare(String(b.id))),
+      escenas: (c?.acomodo?.escenas || []).map((e) => e.nombre || e.area || null),
+    });
+    const firmaAntes = firma(await leerCot(page));
     await page.evaluate(([k, v]) => window.localStorage.setItem(k, JSON.stringify(v)), [CLAVE, { onboardingVisto: true, cotizacion: { partidas: [] } }]);
     await page.reload();
     await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
@@ -185,7 +196,17 @@ test.describe('LAB · plano Torre Norte', () => {
     await tarjeta.getByRole('button', { name: /^Abrir$/ }).click();
     await expect.poll(async () => (await leerCot(page))?.id || null, { timeout: 20000 }).toBe(id);
     const cotD = await leerCot(page);
-    guarda('8-reabierta.json', { id: cotD.id, partidas: cotD.partidas.length, colocadas: cotD.acomodo?.plan?.colocacion?.length ?? null, areas: cotD.acomodo?.areasM?.length ?? null, escenas: (cotD.acomodo?.escenas || []).length });
+    const firmaDespues = firma(cotD);
+    const difs = [];
+    const porK = (L) => Object.fromEntries(L.map((x) => [x.k, x]));
+    const pa = porK(firmaAntes.partidas), pd = porK(firmaDespues.partidas);
+    for (const k of new Set([...Object.keys(pa), ...Object.keys(pd)])) if (JSON.stringify(pa[k]) !== JSON.stringify(pd[k])) difs.push({ tipo: 'partida', k, antes: pa[k] || null, despues: pd[k] || null });
+    const ca = Object.fromEntries(firmaAntes.colocacion.map((x) => [x.id, x])), cd = Object.fromEntries(firmaDespues.colocacion.map((x) => [x.id, x]));
+    for (const k of new Set([...Object.keys(ca), ...Object.keys(cd)])) if (JSON.stringify(ca[k]) !== JSON.stringify(cd[k])) difs.push({ tipo: 'colocacion', k, antes: ca[k] || null, despues: cd[k] || null });
+    if (JSON.stringify(firmaAntes.escenas) !== JSON.stringify(firmaDespues.escenas)) difs.push({ tipo: 'escenas', antes: firmaAntes.escenas, despues: firmaDespues.escenas });
+    const cobrablesSugeridas = firmaDespues.partidas.filter((p) => p.sugerido && !p.noCobrar).length;
+    guarda('8-reabierta.json', { id: cotD.id, partidas: cotD.partidas.length, colocadas: cotD.acomodo?.plan?.colocacion?.length ?? null, areas: cotD.acomodo?.areasM?.length ?? null, escenas: (cotD.acomodo?.escenas || []).length, identica: difs.length === 0, diferencias: difs, cobrablesSugeridas, firmaAntes, firmaDespues });
+    console.log('[lab] identidad tras reabrir', JSON.stringify({ identica: difs.length === 0, diferencias: difs.length, cobrablesSugeridas }));
     guarda('edges.json', edges);
     guarda('pageErrors.json', pageErrors);
     console.log('[lab] reabierta', JSON.stringify({ partidas: cotD.partidas.length, colocadas: cotD.acomodo?.plan?.colocacion?.length ?? null, errores: pageErrors.length }));

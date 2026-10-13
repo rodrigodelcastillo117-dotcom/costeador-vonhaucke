@@ -7,7 +7,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 // VH-121: lo que el modelo y el auditor saben del cuarto además del dibujo (puro, probado con vitest).
-import { normalizarEsperados, preguntaConteo, bloqueGeometriaEscena, promptAuditoria } from "./render-core.js";
+import { normalizarEsperados, preguntaConteo, bloqueGeometriaEscena, promptAuditoria, preguntaConteoJson, evaluarConteo } from "./render-core.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -431,41 +431,50 @@ Deno.serve(async (req) => {
   // devuelve un ERROR en vez de una foto que ya sabemos que está mal —enseñarle
   // al cliente un render con escritorios de más es peor que no tener foto—.
   const conteoEsperado = Number(conteoPiso);
-  const verificable = (modo === "acomodo" || modo === "escena") && Number.isFinite(conteoEsperado) && conteoEsperado > 0;
+  const sillasEsperadas = Number.isFinite(Number(sillas)) && Number(sillas) >= 0 && sillas !== null ? Number(sillas) : null;
+  const verificable = (modo === "acomodo" || modo === "escena") && ((Number.isFinite(conteoEsperado) && conteoEsperado > 0) || (sillasEsperadas !== null && sillasEsperadas > 0));
   let contadorSinRespuesta = false;
+  let conteoFinal: any = null;
+  // VH-161: el CONTADOR usa el modelo de VISIÓN del auditor (JSON, temperatura 0), no el de generación de imágenes,
+  // que devolvía texto vacío; y cuenta SILLAS además de muebles de piso.
+  async function contarVision(data: string, mimeImg: string): Promise<any> {
+    try {
+      const ac = new AbortController(), timer = setTimeout(() => ac.abort(), 25_000);
+      let rr;
+      try {
+        rr = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${AUDIT_MODEL}:generateContent?key=${key}`, {
+          method: "POST", headers: { "content-type": "application/json" }, signal: ac.signal,
+          body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: preguntaConteoJson(esperadosN, sillasEsperadas) }, { inlineData: { mimeType: mimeImg, data } }] }], generationConfig: { responseMimeType: "application/json", temperature: 0 } }),
+        });
+      } finally { clearTimeout(timer); }
+      const j = await rr.json();
+      if (!rr.ok || j?.error) return null;
+      const txt = (j?.candidates?.[0]?.content?.parts || []).map((p: any) => p.text || "").join("").trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
+      return JSON.parse(txt);
+    } catch (_e) { return null; }
+  }
   if (verificable) {
-    const textConfig = { responseModalities: ["TEXT"] };
-    const MAX_INTENTOS = 2;   // 1 imagen inicial + 1 rehecha; más que eso es mucho tiempo y costo por render
-    contadorSinRespuesta = false;
+    const MAX_INTENTOS = 2;   // 1 imagen inicial + 1 rehecha
     let contents: any[] = [{ role: "user", parts }, { role: "model", parts: [{ inlineData: { mimeType: mime, data: inline.data } }] }];
     for (let intento = 1; intento <= MAX_INTENTOS; intento++) {
-      // VH-121: el contador enumera LO QUE SE ESPERA en el cuarto (antes no contaba mostradores: "0 de 1").
-      const textoPregunta = preguntaConteo(esperadosN, conteoEsperado);
-      contents = [...contents, { role: "user", parts: [{ text: textoPregunta }] }];
-      const rc = await llamarGemini(contents, textConfig);
-      // Si el contador falla (cuota, red), se entrega la imagen que ya hay: un
-      // error del CONTADOR no tiene por qué tumbar un render que sí se generó.
-      if (rc.error) break;
-      const textoConteo = (rc.data?.candidates?.[0]?.content?.parts || []).map((p: any) => p.text || "").join("").trim();
-      // Q5·3 (VH-125): medido en Torre Norte, el contador devolvía texto VACÍO ("salieron ? de N") y la imagen
-      // se tiraba como si el conteo no cuadrara. Sin respuesta no hay evidencia de error: se trata igual que
-      // una falla del contador (cuota/red) y decide el AUDITOR VISUAL, que sí compara conteo, layout y
-      // objetos extra contra el diagrama y las referencias. Los umbrales del auditor no cambian.
-      if (!textoConteo) { contadorSinRespuesta = true; break; }
-      const numConteo = parseInt((textoConteo.match(/\d+/) || [])[0] || "", 10);
-      contents = [...contents, { role: "model", parts: [{ text: textoConteo || "?" }] }];
-      if (Number.isFinite(numConteo) && numConteo === conteoEsperado) break;   // cuadra: esta imagen se queda
+      const resp = await contarVision(inline.data, mime);
+      const ev = evaluarConteo(resp, { piso: conteoEsperado, sillas: sillasEsperadas });
+      conteoFinal = { ...ev, intento, notas: String(resp?.notas || "").slice(0, 200) };
+      if (ev.sinRespuesta) { contadorSinRespuesta = true; break; }      // sin evidencia de error: decide el auditor visual
+      if (ev.ok) break;
       if (intento === MAX_INTENTOS) {
         return json({
           ok: false,
-          error: `No se pudo generar una foto con el conteo exacto de muebles (salieron ${Number.isFinite(numConteo) ? numConteo : "?"} de ${conteoEsperado} esperados). Usa el plano, que sí es exacto, o vuelve a intentar.`,
-          code: "RENDER_COUNT_MISMATCH", conteo: Number.isFinite(numConteo) ? numConteo : null, conteoTexto: textoConteo.slice(0, 200), request_id: requestId, referencias: (Array.isArray(imagenes) ? imagenes.filter((im: any) => typeof im === "string" && im).length : 0), con_dibujo: !!imagen,
+          error: `No se pudo generar una foto con el conteo exacto (${ev.diferencias.join("; ")}). Usa el plano, que sí es exacto, o vuelve a intentar.`,
+          code: "RENDER_COUNT_MISMATCH", conteo: { piso: ev.piso, sillas: ev.sillas }, esperado: { piso: conteoEsperado || null, sillas: sillasEsperadas }, request_id: requestId,
+          referencias: (Array.isArray(imagenes) ? imagenes.filter((im: any) => typeof im === "string" && im).length : 0),
         }, 200);
       }
       const correccion =
-        `You just counted ${Number.isFinite(numConteo) ? numConteo : "an incorrect number of"} floor-standing pieces, but EXACTLY ${conteoEsperado} are required — not one more, not one less. ` +
-        "Regenerate the ENTIRE image from scratch: same room, same camera angle, same materials and lighting, but fix the count of floor-standing furniture so it is exactly correct. " +
-        "If there were too many, remove the extras completely — do not just shrink or hide them. If there were too few, add the missing ones in the empty floor space, matching the style of the rest.";
+        `The image has the wrong number of objects (${ev.diferencias.join("; ")}). ` +
+        "Regenerate the ENTIRE image from scratch: same room, same camera angle, same materials and lighting, but make the counts EXACT — " +
+        `${conteoEsperado > 0 ? `exactly ${conteoEsperado} floor-standing furniture pieces` : ""}${conteoEsperado > 0 && sillasEsperadas ? " and " : ""}${sillasEsperadas ? `exactly ${sillasEsperadas} chairs, all of them clearly visible` : ""}. ` +
+        "Do not hide chairs behind other objects or outside the frame; widen the framing if needed.";
       contents = [...contents, { role: "user", parts: [{ text: correccion }] }];
       const ri = await llamarGemini(contents, imageGenConfig, usedModel);
       if (ri.error) return json({ ok: false, error: ri.error }, 502);
@@ -486,7 +495,14 @@ Deno.serve(async (req) => {
   const audit: any = await auditarVisual(inline.data, mime);
   // Q5·3: sin imágenes de referencia de producto el auditor sólo pudo comparar contra el diagrama; se dice.
   const nRefs = Array.isArray(imagenes) ? imagenes.filter((im: any) => typeof im === "string" && im).length : 0;
-  if (audit && typeof audit === "object") { audit.fidelidad_producto = nRefs ? "CON_REFERENCIAS" : "SIN_REFERENCIAS"; audit.contador = contadorSinRespuesta ? "SIN_RESPUESTA" : "OK"; }
+  if (audit && typeof audit === "object") {
+    audit.fidelidad_producto = nRefs ? "CON_REFERENCIAS" : "SIN_REFERENCIAS";
+    audit.contador = !verificable ? "NO_APLICA" : contadorSinRespuesta ? "SIN_RESPUESTA" : "OK";
+    audit.conteo = conteoFinal;
+    // VH-161: sin referencia del producto el auditor sólo comparó contra el dibujo: la fidelidad de geometría y
+    // acabado DEL PRODUCTO no es verificable y no se reporta como PASS (la imagen se entrega como ilustrativa).
+    audit.geometria_producto = nRefs ? (audit.geometry_match ?? null) : "NO_VERIFICABLE";
+  }
   if (!audit.pass && !audit.skipped) {
     // VH-115: telemetría del rechazo (campos que fallaron) para diagnosticar falsos negativos del auditor.
     try {
