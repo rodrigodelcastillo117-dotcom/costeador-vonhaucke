@@ -179,6 +179,13 @@ export default function CotizadorIA({
         // Antes el cliente lo ignoraba: el vendedor no sabía que Voni había pensado en
         // una credenza y no la cobró. Se dice, sin cobrarlo.
         sugerenciasDescartadas: Array.isArray(r.sugerenciasDescartadas) ? r.sugerenciasDescartadas.filter(Boolean).map(String) : [],
+        // Q5·2: la edge RC manda lo sugerido con cantidades en `recomendadas` (no cobrable). Se enseña
+        // con número para que el vendedor decida en una aclaración; la edge actual no lo manda y se cae
+        // a las etiquetas de `sugerenciasDescartadas`.
+        recomendadas: [
+          ...((r.recomendadas?.items || []).map((x) => `${Math.max(1, Math.round(Number(x?.cantidad) || 1))}× ${x?.etiqueta || x?.producto || x?.ruta || 'mueble'}`)),
+          ...((r.recomendadas?.banco || []).map((x) => `${Math.max(1, Math.round(Number(x?.cantidad) || 1))}× ${x?.etiqueta || BANCO.find((p) => p.id === x?.id)?.nombre || x?.id || 'pieza'}`)),
+        ],
       });
       setRespuesta('');
       // Un solo clic ("Armar el proyecto") te lleva a la pantalla de "esto
@@ -328,7 +335,7 @@ export default function CotizadorIA({
           )}
           {resultado.sugerenciasDescartadas?.length > 0 && (
             <div className="ayuda" style={{ marginTop: 10 }} data-testid="sugerencias-descartadas">
-              Voni pensó en {resultado.sugerenciasDescartadas.join(' · ')}, pero no lo pediste y no lo agregué. Si lo quieres, dilo en una aclaración.
+              Voni pensó en {(resultado.recomendadas?.length ? resultado.recomendadas : resultado.sugerenciasDescartadas).join(' · ')}, pero no lo pediste y no lo agregué. Si lo quieres, dilo en una aclaración.
             </div>
           )}
           {resultado.preguntas.length > 0 && (

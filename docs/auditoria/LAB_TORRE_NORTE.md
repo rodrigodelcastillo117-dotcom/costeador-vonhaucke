@@ -102,3 +102,21 @@ VH-136 (puertas), VH-138 (TOTAL del PDF), VH-139 (aviso de sala), supuestos prel
 - Smoke 14/14 (auth, catálogo, cierre de navegador, golden 757 con edge real; registro 1328).
 - Mismo laboratorio contra producción (registro 1329, QA): la D08 se confirmó como acceso doble hacia adentro desde la compuerta y la lectura quedó sin avisos de puerta; acomodo 35/39; render 2/5 válidos (los otros 3 rechazados por la verificación de fidelidad, sin inventar imagen); PDF borrador con TOTAL $405,915.44 y saldo correcto; reabierta idéntica con 2 escenas; 0 errores de página.
 - Pendiente de diseño: VH-137 (leer la planta de mobiliario), VH-140 (columnas), VH-141 (aplicar por líneas), VH-125 (contador del render).
+
+## 8. Segunda vuelta P1 (2026-10-13, cliente de la rama con lector de producción, registro 1336)
+
+Con el programa por líneas de la rama (`mejorComposicion`: menos clases distintas → topología declarada → módulo mayor)
+y las recomendaciones de casa por línea:
+
+| paso | antes (1295/1329) | ahora (1336) |
+|---|---|---|
+| lectura | 8 áreas · ~308 m² · 18 puestos · D08 pendiente | igual; 51 s (**VH-142**: el cliente cortaba a 60 s y la lectura tarda 50–85 s → tope 120 s) |
+| operativa 16 puestos | 1 App LT 12 + 1 App LT 4 (12 + 4 WIN) | **2 × App LT 8 usuarios** (8 + 8 WIN), como MOB-01 |
+| acomodo | 35/39 PARTIAL (4 WIN sin lugar) | **39/39 · PASS · semántica PASS** |
+| guardado / reapertura | 11/35 | 11 partidas / 39 colocadas / 8 áreas · reabierto idéntico · 0 errores |
+| render por área (`generar-render` v31) | 0/5 (1295) · 2/5 (1329) | **1/5** en 474 s: layout FAIL ×2, "sillas extra no pedidas" ×1, contador "?" ×2 (VH-125) |
+| PDF | TOTAL "—" → $405,915.44 | BORRADOR 7.3 MB con total |
+
+Hoja de control: prueba 3 ahora ✓ (8 + 8). Las credenzas, archivero, café y visitas siguen como recomendaciones por
+línea en Muebles ("Agregar"), no cotizadas solas. La mejora de renders se mide aparte en RC
+(`docs/auditoria/Q5_RC_CINCO_PUNTOS.md`, § 3).

@@ -28,8 +28,12 @@ test('reabrir y generar renders por área', async ({ page }) => {
   await expect(tarjeta).toBeVisible({ timeout: 20000 });
   await tarjeta.getByRole('button', { name: /^Abrir$/ }).click();
   await expect.poll(async () => (await leerCot(page))?.acomodo?.plan?.colocacion?.length ?? 0, { timeout: 30000 }).toBeGreaterThan(0);
+  // Un presupuesto reabierto cae en la vista clásica: el acomodo se abre con "Ver el acomodo en 3D";
+  // si la app está en el flujo por pasos, el paso Acomodo de Voni.
+  const ver3d = page.getByRole('button', { name: /Ver el acomodo en 3D/ });
   const stepAcomodo = page.getByTestId('voni-paso-acomodo');
-  await expect(stepAcomodo).toBeEnabled({ timeout: 15000 }); await stepAcomodo.click();
+  if (await ver3d.count()) await ver3d.first().click();
+  else { await expect(stepAcomodo).toBeEnabled({ timeout: 15000 }); await stepAcomodo.click(); }
   const btnRender = page.getByRole('button', { name: /Generar las \d+ áreas|Generar la imagen del área/ });
   await expect(btnRender.first()).toBeVisible({ timeout: 20000 });
   const etiqueta = await btnRender.first().innerText();
