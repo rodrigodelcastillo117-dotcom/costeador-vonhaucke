@@ -33,16 +33,20 @@ export const REGLAS_MERMA_PRODUCCION = Object.freeze({
 /**
  * Hojas de tablero que Producción cobra por UNA pieza grande, o null si la regla no
  * aplica (pieza chica → rejilla / fracción real).
- *  · lado mayor > 1.50 m y lado menor ≤ 0.60 m  → 0.5 hoja
- *  · lado mayor > 1.50 m y lado menor > 0.60 m  → 1 hoja
- *  · lado mayor ≤ 1.50 m                        → null (sin regla)
+ *  · lado mayor ≥ 1.50 m y lado menor ≤ 0.60 m  → 0.5 hoja
+ *  · lado mayor ≥ 1.50 m y lado menor > 0.60 m  → 1 hoja
+ *  · lado mayor < 1.50 m                        → null (sin regla)   (VH-183: inclusivo, como Intelisis)
  * La orientación no importa (la pieza se gira en el tablero).
  */
 export function hojasPorPiezaProduccion(largoMM, anchoMM, reglas = REGLAS_MERMA_PRODUCCION.tablero) {
   const a = Number(largoMM), b = Number(anchoMM);
   if (!(a > 0) || !(b > 0)) return null;
   const mayor = Math.max(a, b), menor = Math.min(a, b);
-  if (mayor <= reglas.largoMM) return null;
+  // VH-183 (prueba ciega ERP 2026-10-13): con `>` estricto, una cubierta de EXACTAMENTE 1500×600 caía a la rejilla, donde
+  // dos de 600 no caben en 1200 útiles (orilla 10 mm por lado + kerf 6 mm) → 1 hoja entera: costaba el DOBLE que una de
+  // 1800×600 (½ hoja). El REPORTE DEL COTIZADOR Intelisis (12/08/2026) cobra ATCUBS45ABS 1500×600 = 0.5 hoja AME2848 y
+  // ATCUBD45ABS 1500×1200 = 1 hoja: el límite de 1.50 m es INCLUSIVO. Pendiente de ratificación de Producción.
+  if (mayor < reglas.largoMM) return null;
   return menor <= reglas.anchoMM ? 0.5 : 1;
 }
 

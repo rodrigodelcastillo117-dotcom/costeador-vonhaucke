@@ -24,6 +24,7 @@ import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
 import { mapIaComps as mapIaCompsCompartido, propuestaConPiezas } from '../datos/mapIaComps.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, alertaMaterial } from '../datos/materialMatch.js';
+import { aplicarAHermanas } from '../datos/materialHermanas.js';
 import BuscadorInsumo from './BuscadorInsumo.jsx';
 import { renderSpecFromGraph } from '../datos/renderSpec.js';
 import { flagActivo } from '../datos/flags.js';
@@ -268,7 +269,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     comps[i] = { ...comps[i], ...parcial };
     set({ componentes: comps });
   }
-  function onMaterial(i, insumoId, { confirmado = false } = {}, insumoNuevo = null) {
+  function onMaterial(i, insumoId, { confirmado = false, hermanas = false } = {}, insumoNuevo = null) {
     // VH-088: si el insumo viene del buscador (ERP) todavía no está en `insumos` (llega en el siguiente
     // render vía onAgregarInsumo); se usa el objeto recibido para decidir medidas/fracción.
     const ins = insumos[insumoId] || (insumoNuevo && insumoNuevo.id === insumoId ? insumoNuevo : undefined);
@@ -283,8 +284,11 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     // material_confirmado + insumoId y lo convierte a USER_CONFIRMED efectivo (no confía en el string).
     if (ins) Object.assign(patch, patchConfirmacionUI(insumoId));
     comps[i] = { ...prev, ...patch };
+    // VH-179: el artículo exacto elegido en el buscador vale para las demás piezas del MISMO material sin decisión humana.
+    const parche = (c) => ({ ...c, insumoId, ...patchMedidas(c, ins), ...(esFraccionHoja(ins) ? {} : { hojas: undefined }), ...(ins ? patchConfirmacionUI(insumoId) : {}) });
+    const finales = hermanas ? aplicarAHermanas(comps, i, prev.insumoId, insumoId, parche).comps : comps;
     // Adhesivo automático: elegir superficie sólida arrastra su adhesivo de uniones.
-    set({ componentes: conAcompanantes(comps, insumos) });
+    set({ componentes: conAcompanantes(finales, insumos) });
   }
   // Costo neto de una pieza, respetando fracción de hoja (para el subtotal por pieza)
   function costoPieza(c, ins, n) {
@@ -487,7 +491,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                   </select>
                   <button className="pieza-x" onClick={() => quitarPieza(i)} aria-label="quitar pieza">×</button>
                 </div>
-                {onAgregarInsumo && <BuscadorInsumo onElegir={(ins) => { onAgregarInsumo(ins); onMaterial(i, ins.id, { confirmado: true }, ins); }} />}
+                {onAgregarInsumo && <BuscadorInsumo onElegir={(ins) => { onAgregarInsumo(ins); onMaterial(i, ins.id, { confirmado: true, hermanas: true }, ins); }} />}
 
                 {(() => {
                   const est = estadoMaterialUI(c, insumos);

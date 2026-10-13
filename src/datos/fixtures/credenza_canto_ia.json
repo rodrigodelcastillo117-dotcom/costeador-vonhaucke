@@ -1,0 +1,175 @@
+{
+ "fuente": "lab/rescate/r1/credenza/8-dto-servidor.json (2026-10-13, analizar-mueble-rc Opus 5.5) sin el renglón que agrega la regla de casa",
+ "componentes": [
+  {
+   "insumoId": "erp-mdf19",
+   "nombre": "Cubierta superior",
+   "cantidad": 1,
+   "largoMM": 1800,
+   "anchoMM": 450,
+   "piezas": 1,
+   "material_solicitado": "MDF 18 mm enchapado nogal natural"
+  },
+  {
+   "insumoId": "erp-mdf19",
+   "nombre": "Piso inferior",
+   "cantidad": 1,
+   "largoMM": 1764,
+   "anchoMM": 450,
+   "piezas": 1,
+   "material_solicitado": "MDF 18 mm enchapado nogal natural"
+  },
+  {
+   "insumoId": "erp-mdf19",
+   "nombre": "Laterales exteriores",
+   "cantidad": 1,
+   "largoMM": 650,
+   "anchoMM": 450,
+   "piezas": 2,
+   "material_solicitado": "MDF 18 mm enchapado nogal natural"
+  },
+  {
+   "insumoId": "melamina-16",
+   "nombre": "Divisiones verticales interiores",
+   "cantidad": 1,
+   "largoMM": 614,
+   "anchoMM": 441,
+   "piezas": 2,
+   "material_solicitado": "Melamina blanca 16 mm"
+  },
+  {
+   "insumoId": "melamina-16",
+   "nombre": "Entrepaños",
+   "cantidad": 1,
+   "largoMM": 576,
+   "anchoMM": 420,
+   "piezas": 3,
+   "material_solicitado": "Melamina blanca 16 mm"
+  },
+  {
+   "insumoId": "erp-mdf19",
+   "nombre": "Puertas abatibles",
+   "cantidad": 1,
+   "largoMM": 630,
+   "anchoMM": 580,
+   "piezas": 3,
+   "material_solicitado": "MDF 18 mm enchapado nogal natural"
+  },
+  {
+   "insumoId": "erp-mdf8",
+   "nombre": "Respaldo",
+   "cantidad": 1,
+   "largoMM": 1764,
+   "anchoMM": 632,
+   "piezas": 1,
+   "hojas": 0.37,
+   "material_solicitado": "MDF 9 mm"
+  },
+  {
+   "insumoId": "chapa-madera",
+   "nombre": "Chapa nogal cubierta (cara superior)",
+   "cantidad": 1,
+   "largoMM": 1800,
+   "anchoMM": 450,
+   "piezas": 1,
+   "material_solicitado": "Chapa nogal natural"
+  },
+  {
+   "insumoId": "chapa-madera",
+   "nombre": "Chapa nogal laterales exteriores",
+   "cantidad": 1,
+   "largoMM": 650,
+   "anchoMM": 450,
+   "piezas": 2,
+   "material_solicitado": "Chapa nogal natural"
+  },
+  {
+   "insumoId": "chapa-madera",
+   "nombre": "Chapa nogal frentes puerta",
+   "cantidad": 1,
+   "largoMM": 630,
+   "anchoMM": 580,
+   "piezas": 3,
+   "material_solicitado": "Chapa nogal natural"
+  },
+  {
+   "insumoId": "pegado-chapa",
+   "nombre": "Pegado de chapa",
+   "cantidad": 6,
+   "piezas": 1,
+   "material_solicitado": "Pegado de chapa"
+  },
+  {
+   "insumoId": "",
+   "nombre": "Canto visible",
+   "cantidad": 12,
+   "piezas": 1,
+   "material_solicitado": "Canto nogal"
+  },
+  {
+   "insumoId": "ptr-14",
+   "nombre": "Base PTR largueros",
+   "cantidad": 3.6,
+   "piezas": 1,
+   "material_solicitado": "PTR 1x1 cal.14"
+  },
+  {
+   "insumoId": "ptr-14",
+   "nombre": "Base PTR travesaños",
+   "cantidad": 1.35,
+   "piezas": 1,
+   "material_solicitado": "PTR 1x1 cal.14"
+  },
+  {
+   "insumoId": "ptr-14",
+   "nombre": "Patas PTR",
+   "cantidad": 0.4,
+   "piezas": 1,
+   "material_solicitado": "PTR 1x1 cal.14"
+  },
+  {
+   "insumoId": "pintura-electrostatica",
+   "nombre": "Pintura electrostática negra base",
+   "cantidad": 1,
+   "largoMM": 5350,
+   "anchoMM": 100,
+   "piezas": 1,
+   "material_solicitado": "Pintura electrostática negra"
+  },
+  {
+   "insumoId": "soldadura",
+   "nombre": "Soldadura base",
+   "cantidad": 0.2,
+   "piezas": 1,
+   "material_solicitado": "Soldadura"
+  },
+  {
+   "insumoId": "nivelador",
+   "nombre": "Niveladores",
+   "cantidad": 4,
+   "piezas": 1,
+   "material_solicitado": "Niveladores"
+  },
+  {
+   "insumoId": "bisagra",
+   "nombre": "Bisagras",
+   "cantidad": 6,
+   "piezas": 1,
+   "material_solicitado": "Bisagra"
+  },
+  {
+   "insumoId": "jaladera",
+   "nombre": "Jaladera recta 300 mm",
+   "cantidad": 3,
+   "piezas": 1,
+   "material_solicitado": "Jaladera recta 300 mm"
+  },
+  {
+   "insumoId": "tornilleria",
+   "nombre": "Tornillería",
+   "cantidad": 1,
+   "piezas": 1,
+   "material_solicitado": "Tornillería"
+  }
+ ]
+}
