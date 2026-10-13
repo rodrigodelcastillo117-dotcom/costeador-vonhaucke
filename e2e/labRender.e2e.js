@@ -49,8 +49,40 @@ test('reabrir y generar renders por área', async ({ page }) => {
     imagenes: await page.locator('img[alt*="área"], img[alt*="area"], figure img').count(),
     escenasGuardadas: (cot?.acomodo?.escenas || []).length, pageErrors: pageErrors.length,
   };
+  // Cinco etapas (Dirección 13-oct): generada · validada · persistida · reabierta · en PDF. Ninguna se infiere de otra.
+  const etapas = { generadas: edges.filter((e) => e.status === 200 && (e.ok === true || e.code === 'RENDER_QA_FAILED')).length, validadas: edges.filter((e) => e.ok === true && e.audit?.pass === true).length, persistidas: 0, reabiertas: 0, enPdf: null };
+  const guardar = page.getByRole('button', { name: /Guardar en la propuesta/ });
+  if (await guardar.count()) { await guardar.first().click(); await page.waitForTimeout(2500); }
+  await expect.poll(async () => ((await leerCot(page))?.acomodo?.escenas || []).length, { timeout: 15000 }).toBeGreaterThanOrEqual(0);
+  const escenas = (await leerCot(page))?.acomodo?.escenas || [];
+  etapas.persistidas = escenas.filter((e) => e && (e.url || e.imagen || e.dataUrl)).length;
+  etapas.escenas = escenas.map((e) => ({ area: e.area || e.nombre || null, url: String(e.url || e.imagen || e.dataUrl || '').slice(0, 90) }));
+  // Reabrir desde otra pestaña (misma cuenta) y comprobar que las escenas vuelven y sus URLs cargan.
+  const id = (await leerCot(page))?.id;
+  if (id && etapas.persistidas) {
+    const ctx2 = await page.context().browser().newContext(); const p2 = await ctx2.newPage();
+    await p2.addInitScript(([k, v]) => { try { window.localStorage.setItem(k, JSON.stringify(v)); window.localStorage.setItem('__lab', '1'); } catch (_e) {} }, [CLAVE, { onboardingVisto: true, cotizacion: { partidas: [] } }]);
+    await p2.goto('/'); await p2.fill('#email-login', EMAIL); await p2.fill('#pass-login', PASS); await p2.getByRole('button', { name: /^Entrar$/i }).click();
+    await expect(p2.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 30000 });
+    await p2.getByText('Presupuestos anteriores', { exact: false }).first().click();
+    const t2 = p2.locator('.tarjeta:has(> .fila-botones)', { hasText: CLIENTE }).first(); await expect(t2).toBeVisible({ timeout: 20000 }); await t2.getByRole('button', { name: /^Abrir$/ }).click();
+    await expect.poll(async () => (await leerCot(p2))?.id || null, { timeout: 30000 }).toBe(id);
+    const esc2 = (await leerCot(p2))?.acomodo?.escenas || [];
+    let cargan = 0;
+    for (const e of esc2) { const u = e.url || e.imagen; if (u && /^https?:/.test(u)) { const r = await p2.request.get(u).catch(() => null); if (r && r.ok()) cargan++; } }
+    etapas.reabiertas = cargan; etapas.reabiertasEscenas = esc2.length;
+    // PDF desde la cotización reabierta: ¿incluye las imágenes? (bytes y, si hay pdftotext, conteo de /Image)
+    const btnPdf = p2.getByRole('button', { name: /Descargar PDF|Descargar BORRADOR/ });
+    if (await btnPdf.count()) {
+      const ver3d = p2.getByRole('button', { name: /Ver la propuesta|Propuesta/ }); if (await ver3d.count()) { /* ya estamos en la vista clásica */ }
+      const [d] = await Promise.all([p2.waitForEvent('download', { timeout: 120000 }), btnPdf.first().click()]).catch(() => [null]);
+      if (d) { const out = path.join(SALIDA, 'propuesta.pdf'); await d.saveAs(out); const buf = fs.readFileSync(out); etapas.enPdf = { bytes: buf.length, imagenesEnPdf: (buf.toString('latin1').match(/\/Subtype\s*\/Image/g) || []).length }; }
+    }
+    await ctx2.close();
+  }
   fs.writeFileSync(path.join(SALIDA, 'edges.json'), JSON.stringify(edges, null, 2));
-  fs.writeFileSync(path.join(SALIDA, 'resumen.json'), JSON.stringify(resumen, null, 2));
+  fs.writeFileSync(path.join(SALIDA, 'resumen.json'), JSON.stringify({ ...resumen, etapas }, null, 2));
   await page.screenshot({ path: path.join(SALIDA, 'render.png'), fullPage: true });
   console.log('[lab-render]', JSON.stringify(resumen));
+  console.log('[lab-render] ETAPAS', JSON.stringify(etapas));
 });

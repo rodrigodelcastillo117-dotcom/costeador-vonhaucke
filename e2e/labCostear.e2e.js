@@ -194,6 +194,38 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   const reabierta = { tarjeta: tarjetaTxt.replace(/\s+/g, ' ').slice(0, 200), piezas: piezasR.length, mismoBom, costoAntes: res3.precios[0] || null, costoDespues: resR.precios[0] || null, mismoCosto: (res3.precios[0] || null) === (resR.precios[0] || null), resultado: resR, pageErrors: pageErrors.length };
   guarda('6-reabierta.json', { reabierta, piezas: piezasR });
   await page.screenshot({ path: path.join(SALIDA, '6-reabierta.png'), fullPage: true });
+
+  // 7) Transferencia a Cotizar: "Ver detalle completo (Alba V1)" → Costeador → "Agregar a la cotización".
+  //    El botón sólo se habilita con costo COMPLETO; si está deshabilitado se registra el motivo (no es PASS).
+  const transfer = { intentado: false };
+  const verDet = page.getByRole('button', { name: /Ver detalle completo/ });
+  if (await verDet.count()) {
+    await verDet.first().click(); await page.waitForTimeout(2500);
+    const btnAdd = page.getByRole('button', { name: /Agregar a la cotización/ });
+    transfer.intentado = (await btnAdd.count()) > 0;
+    if (transfer.intentado) {
+      transfer.habilitado = await btnAdd.first().isEnabled();
+      transfer.title = await btnAdd.first().getAttribute('title').catch(() => null);
+      const antes = ((await leerCot(page))?.partidas || []).length;
+      if (transfer.habilitado) {
+        const nSrv = edges.filter((e) => e.fn === 'costear-servidor').length;
+        await btnAdd.first().click();
+        await expect.poll(() => edges.filter((e) => e.fn === 'costear-servidor').length, { timeout: 60000 }).toBeGreaterThan(nSrv).catch(() => {});
+        await page.waitForTimeout(3000);
+        const srv2 = edges.filter((e) => e.fn === 'costear-servidor').pop();
+        const cot = await leerCot(page); const partidas = cot?.partidas || [];
+        const nueva = partidas[partidas.length - 1] || null;
+        transfer.partidasAntes = antes; transfer.partidasDespues = partidas.length;
+        transfer.partida = nueva ? { nombre: nueva.nombre, cantidad: nueva.cantidad, costoUnitario: nueva.costoUnitario, precioUnitario: nueva.precioUnitario, cost_status: nueva.cost_status, fuente_costo: nueva.fuente_costo } : null;
+        transfer.servidor = srv2 ? { estado: srv2.body?.estado, costoUnitario: srv2.body?.costoUnitario, precioVenta: srv2.body?.precioVenta, fuenteCosto: srv2.body?.fuenteCosto } : null;
+        transfer.paridad = nueva && srv2?.body?.costoUnitario != null && nueva.costoUnitario != null ? Math.round(Number(nueva.costoUnitario) * 100) === Math.round(Number(srv2.body.costoUnitario) * 100) : null;
+      }
+      transfer.main = (await page.locator('main').innerText()).slice(0, 1500);
+    }
+    await page.screenshot({ path: path.join(SALIDA, '7-transferencia.png'), fullPage: true });
+  }
+  guarda('7-transferencia.json', transfer);
+  console.log('[lab-costear] transferencia', JSON.stringify({ ...transfer, main: undefined }));
   guarda('edges.json', edges.map((e) => ({ ...e, body: JSON.stringify(e.body || {}).slice(0, 4000) })));
   console.log('[lab-costear] reabierta', JSON.stringify(reabierta));
 });
