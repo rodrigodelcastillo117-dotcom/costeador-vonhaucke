@@ -27,9 +27,22 @@ const NOMBRE_BENCH_DOBLE = /\b(bench|banca|banco)\s*doble\b/i;     // nombre can
 // producto), no una inferencia por capacidad: 4u/6u/8u/10u/12u × 1200 ⇒ DOUBLE_FACE (n/2 + n/2 enfrentados).
 // Un operativo de fondo ≤ 600 (una sola hilera) NO entra aquí.
 const esModuloOperativoAppLT = (p) => p && String(p.linea || '') === 'App LT' && /operativ|bench/i.test(String(p.categoria || '')) && String(p.tipo || '') === 'modulo';
+// Ids candidatos de una partida/pieza: productoId suele ser el id NUMÉRICO de la base (p.ej. 1898) y el id del
+// banco viaja en piezaId o en el id de instancia ("operativo|ANCHOR_WORKSTATION|#0::op-12u-7200x1200-cristal-1").
+// Corrida C1 (13-oct): con sólo el primero, la regla nunca encontraba el módulo y el ancla quedaba UNKNOWN.
+function idsCandidatos(prod) {
+  const out = [];
+  for (const v of [prod.piezaId, prod.productoId, prod.producto_id, prod.id, prod.clave]) {
+    const t = String(v ?? '').trim(); if (!t) continue;
+    out.push(t);
+    const tras = t.includes('::') ? t.split('::').pop() : '';
+    if (tras) { out.push(tras); out.push(tras.replace(/-\d+$/, '')); }   // sufijo de instancia "-1"
+  }
+  return [...new Set(out)];
+}
 function topologiaAppLT1200(prod) {
-  const idStr = String(prod.productoId || prod.producto_id || prod.piezaId || prod.id || '');
-  const cat = esModuloOperativoAppLT(prod) ? prod : BANCO.find((x) => x.id === idStr && esModuloOperativoAppLT(x));
+  const ids = idsCandidatos(prod);
+  const cat = esModuloOperativoAppLT(prod) ? prod : BANCO.find((x) => ids.includes(x.id) && esModuloOperativoAppLT(x));
   if (!cat) return null;
   const { d } = medidasAwd(cat.medidas) || {};
   if (d !== 1200) return null;
