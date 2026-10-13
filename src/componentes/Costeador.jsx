@@ -132,7 +132,10 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     setErrIA(''); setCatalogoFuente(null); setAnalizandoIA(true);
     try {
       const master = await buscarProductosMaestroTexto(desc, 30);
-      const catalogo = { ...catalogoIA(), __producto_maestro: master?.items || [] };
+      // VH-144: la edge sólo lee las pistas del cliente si `catalogo` es un ARREGLO (Array.isArray);
+      // esparcirlo en un objeto las descartaba en silencio (ERP elegidos a mano incluidos). El campo
+      // `__producto_maestro` no lo lee ninguna función: se quita.
+      const catalogo = catalogoIA();
       const res = await analizarTexto(catalogo, desc);
       if (!res?.ok) { setErrIA(res?.error || 'No se pudo interpretar la descripción.'); return; }
       const p = res.propuesta || {};
