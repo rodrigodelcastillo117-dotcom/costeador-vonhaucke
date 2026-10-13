@@ -72,7 +72,11 @@ describe('gemelo ERP: lo pedido manda (VH-152b)', () => {
     const encino = { id: 'erp-ch122244sb-m1099', nombre: "CHAPA DE MADERA HOJA 4' X 8' (SABANA NATURAL) · CHAPA DE MADERA ENCINO ROJO FLAMA", unidad: 'hoja', precio: 1250, formato: chapa.formato, clasificacion: 'erp', actualizado: '2026-01-01', evidencia: { certificable: true } };
     const nogal = { ...encino, id: 'erp-ch-nogal', nombre: "CHAPA DE MADERA HOJA 4' X 8' (SABANA NATURAL) · CHAPA DE MADERA NOGAL AMERICANO" };
     expect(esGemeloExacto(chapa, encino, 'Chapa de madera sabana natural nogal · Chapa nogal natural, frentes de puerta')).toBe(false);
-    expect(esGemeloExacto(chapa, nogal, 'Chapa de madera sabana natural nogal · Chapa nogal natural, frentes de puerta')).toBe(true);
+    // Auditoría 13-oct: la ausencia de especie en el curado NO prueba igualdad con un ERP que sí la declara. Una chapa
+    // genérica y una de nogal no son el mismo artículo (antes esto era true).
+    expect(esGemeloExacto(chapa, nogal, 'Chapa de madera sabana natural nogal · Chapa nogal natural, frentes de puerta')).toBe(false);
+    const chapaNogal = { ...chapa, id: 'chapa-nogal', nombre: 'Chapa de madera nogal (sabana natural)' };
+    expect(esGemeloExacto(chapaNogal, nogal, 'Chapa nogal natural, frentes de puerta')).toBe(true);
     const { propuestos } = await proponerGemelosErp([{ nombre: 'Jaladeras rectas 300 mm', insumoId: 'jaladera', material_solicitado: 'jaladera' }], { insumos: { jaladera: jal }, buscar: async () => [jal128] });
     expect(propuestos).toEqual([]);
   });
@@ -88,5 +92,61 @@ describe('gemelo ERP: no peor que el curado (VH-152c)', () => {
     const ped = 'MDF 18 mm enchapado nogal natural · Lateral exterior (cuerpo)';
     expect(esGemeloExacto(mdf, mdf19, ped)).toBe(true);
     expect(esGemeloExacto(mdf, mdf16, ped)).toBe(false);
+  });
+});
+
+describe('gemelo ERP estricto (auditoría 13-oct): ninguna diferencia de acabado, color, espesor, calibre, formato o unidad', () => {
+  const fmt = { medida: 2.9768, largoMM: 2440, anchoMM: 1220 };
+  const base = { id: 'mdf', nombre: 'MDF 19 mm', unidad: 'hoja', precio: 437, formato: fmt, fraccion: true, evidencia: { certificable: false } };
+  const erp = (id, nombre, extra = {}) => ({ id, nombre, unidad: 'hoja', precio: 431, formato: fmt, clasificacion: 'erp', evidencia: { certificable: true }, ...extra });
+  it('rechaza cada diferencia y acepta el idéntico', async () => {
+    const { esGemeloExacto } = await import('./gemeloErp.js');
+    expect(esGemeloExacto(base, erp('erp-mdf19', 'MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm'))).toBe(true);
+    expect(esGemeloExacto(base, erp('e1', 'MDF HOJA 4 X 8 ESPESOR 16 mm'))).toBe(false);                   // espesor
+    expect(esGemeloExacto(base, erp('e2', 'MDF HOJA 4 X 8 ESPESOR 16/19 mm'))).toBe(false);                // conjunto distinto
+    expect(esGemeloExacto(base, erp('e3', 'MDF NEGRO HOJA 4 X 8 ESPESOR 19 mm'))).toBe(false);             // color que el curado no declara
+    expect(esGemeloExacto(base, erp('e4', 'MDF HOJA 4 X 8 ESPESOR 19 mm ACABADO MATE'))).toBe(false);      // acabado
+    expect(esGemeloExacto(base, erp('e5', 'MDF HOJA 5 X 8 ESPESOR 19 mm', { formato: { medida: 3.721, largoMM: 2440, anchoMM: 1525 } }))).toBe(false); // formato
+    expect(esGemeloExacto(base, erp('e6', 'MDF HOJA 4 X 8 ESPESOR 19 mm', { formato: undefined }))).toBe(false); // formato ausente ≠ igual
+    expect(esGemeloExacto(base, erp('e7', 'MDF HOJA 4 X 8 ESPESOR 19 mm', { unidad: 'm2' }))).toBe(false); // unidad
+    expect(esGemeloExacto({ ...base, unidad: '' }, erp('e8', 'MDF HOJA 4 X 8 ESPESOR 19 mm', { unidad: '' }))).toBe(false); // unidad ausente
+    const ptr = { id: 'ptr-14', nombre: 'Tubo / PTR cal. 14', unidad: 'm', precio: 270, evidencia: { certificable: false } };
+    expect(esGemeloExacto(ptr, { id: 'erp-ptr18', nombre: 'PTR 1 X 1 CAL. 18', unidad: 'm', clasificacion: 'erp', evidencia: { certificable: true } })).toBe(false); // calibre
+    // Sin ningún atributo contrastable (sólo familia + unidad) no hay identidad exacta.
+    const nivel = { id: 'nivelador', nombre: 'Nivelador', unidad: 'pza', precio: 70, evidencia: { certificable: false } };
+    expect(esGemeloExacto(nivel, { id: 'erp-niv', nombre: 'NIVELADOR', unidad: 'pza', clasificacion: 'erp', evidencia: { certificable: true } })).toBe(false);
+  });
+  it('el gemelo queda PROPUESTO (por confirmar), nunca confirmado', async () => {
+    const { proponerGemelosErp } = await import('./gemeloErp.js');
+    const { requiereConfirmacion } = await import('./materialMatch.js');
+    const { comps, propuestos } = await proponerGemelosErp([{ nombre: 'Lateral', insumoId: 'mdf', material_solicitado: 'MDF 19 mm' }], { insumos: { mdf: base }, buscar: async () => [erp('erp-mdf19', 'MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm')] });
+    expect(propuestos.length).toBe(1);
+    expect(comps[0].material_confirmado).not.toBe(true);
+    expect(comps[0]._match.confirmado_por_usuario).not.toBe(true);
+    expect(requiereConfirmacion(comps[0])).toBe(true);
+  });
+});
+
+describe('búsqueda tardía no sobrescribe cambios manuales (auditoría 13-oct)', () => {
+  const prop = (nombre, previo, id) => ({ nombre, insumoId: id, candidate_insumo_id: id, material_match: 'SAME_FAMILY_COMPATIBLE_PROPOSED', _match: { gemelo: true, previo } });
+  it('material elegido a mano, confirmación, cambio de medida, fila borrada o renombrada', async () => {
+    const { fusionarGemelosEnBom } = await import('./gemeloErp.js');
+    const propuestos = [prop('Lateral', 'mdf', 'erp-mdf19'), prop('Cubierta', 'mdf', 'erp-mdf19')];
+    // 1) la persona eligió otro material mientras corría la búsqueda (onMaterial confirma): se respeta.
+    const a = fusionarGemelosEnBom([{ nombre: 'Lateral', insumoId: 'melamina-16', material_confirmado: true }, { nombre: 'Cubierta', insumoId: 'mdf' }], propuestos);
+    expect(a[0].insumoId).toBe('melamina-16');
+    expect(a[1].insumoId).toBe('erp-mdf19');
+    // 2) confirmó el curado tal cual: se respeta.
+    const b = fusionarGemelosEnBom([{ nombre: 'Lateral', insumoId: 'mdf', material_confirmado: true }, { nombre: 'Cubierta', insumoId: 'mdf', _match: { confirmado_por_usuario: true } }], propuestos);
+    expect(b.map((c) => c.insumoId)).toEqual(['mdf', 'mdf']);
+    // 3) cambió la medida: el gemelo entra pero la medida manual se conserva.
+    const c = fusionarGemelosEnBom([{ nombre: 'Lateral', insumoId: 'mdf', largoMM: 777, anchoMM: 450 }, { nombre: 'Cubierta', insumoId: 'mdf' }], propuestos);
+    expect(c[0]).toMatchObject({ insumoId: 'erp-mdf19', largoMM: 777, anchoMM: 450 });
+    // 4) borró una fila: no se aplica nada (no se puede casar por posición con seguridad).
+    const d0 = [{ nombre: 'Cubierta', insumoId: 'mdf' }];
+    expect(fusionarGemelosEnBom(d0, propuestos)).toBe(d0);
+    // 5) renombró la pieza: no se toca.
+    const e = fusionarGemelosEnBom([{ nombre: 'Lateral izquierdo', insumoId: 'mdf' }, { nombre: 'Cubierta', insumoId: 'mdf' }], propuestos);
+    expect(e[0].insumoId).toBe('mdf');
   });
 });

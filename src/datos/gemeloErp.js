@@ -6,16 +6,38 @@
 // TÉCNICAMENTE (misma familia, mismo espesor/calibre, misma unidad y formato compatible) y el ERP sí es
 // certificable. Es una PROPUESTA (SAME_FAMILY_COMPATIBLE_PROPOSED, por confirmar); nunca sustituye en
 // silencio y nunca toca un material que la persona ya confirmó a mano.
-import { familiaDeMaterial, espesoresDe, MATCH, severidadConflicto_ } from './materialMatch.js';
+import { familiaDeMaterial, espesoresDe, MATCH, severidadConflicto_, coloresExplicitos } from './materialMatch.js';
 
 const calibres = (t = '') => [...String(t).toLowerCase().matchAll(/\bcal(?:ibre)?\.?\s*(\d{1,2})\b/g)].map((m) => Number(m[1]));
 // Todas las medidas en mm cuentan (una jaladera de 128 mm NO es gemela de una de 300 mm); el tope de 60 mm sólo
 // aplica a tableros, donde "PIEZA DE 6000 mm" es largo y no espesor.
 const esPanel = (fam) => ['mdf', 'melamina', 'laminado_hpl', 'chapa_madera', 'aglomerado', 'acrilico', 'cristal', 'triplay'].includes(fam);
-const espesoresPara = (t = '', fam = '') => (esPanel(fam) ? espesoresDe(t).filter((x) => x <= 60) : espesoresDe(t));
+// "16/19 mm" declara DOS medidas; el parser general sólo ve la que lleva "mm". Aquí se cuentan todas.
+const medidasConBarra = (t = '') => [...String(t).toLowerCase().matchAll(/\b(\d+(?:[.,]\d+)?(?:\s*\/\s*\d+(?:[.,]\d+)?)+)\s*mm\b/g)]
+  .flatMap((m) => m[1].split('/').map((x) => Number(x.trim().replace(',', '.')))).filter((n) => Number.isFinite(n) && n > 0);
+const medidasMM = (t = '') => [...new Set([...espesoresDe(t), ...medidasConBarra(t)])];
+const espesoresPara = (t = '', fam = '') => (esPanel(fam) ? medidasMM(t).filter((x) => x <= 60) : medidasMM(t));
 const unidadNorm = (u = '') => { const s = String(u || '').toLowerCase().trim(); return s === 'pieza' ? 'pza' : s === 'jgo' ? 'juego' : s; };
 const esCertificable = (ins) => !!(ins && ins.evidencia && ins.evidencia.certificable === true);
-const mismoConjunto = (a, b) => (!a.length && !b.length) || (a.length > 0 && b.length > 0 && a.some((x) => b.includes(x)));
+// Igualdad de CONJUNTOS (no basta con que compartan un valor: "16/19 mm" no es "19 mm").
+const mismoConjunto = (a, b) => { const A = [...new Set(a)].sort(), B = [...new Set(b)].sort(); return A.length === B.length && A.every((x, i) => x === B[i]); };
+// Acabados explícitos (auditoría 13-oct: el gemelo no acepta diferencias de acabado). 'natural' no cuenta: en tableros
+// significa "crudo/sin recubrir", que es el estado por omisión del curado.
+const ACABADOS = [
+  ['mate', /\bmate\b|matte/], ['brillante', /brillant|gloss/], ['satinado', /satin/], ['cromo', /cromad|\bcromo\b|chrome/],
+  ['anodizado', /anodiz/], ['galvanizado', /galvaniz/], ['inoxidable', /inoxidable|\binox\b/], ['niquel', /n[ií]quel/],
+  ['laca', /\blaca\b|lacad/], ['texturizado', /textur/], ['poro_abierto', /poro abierto/], ['poro_sellado', /poro sellado/],
+];
+const acabadosDe = (t = '') => { const s = String(t).toLowerCase(); return ACABADOS.filter(([, re]) => re.test(s)).map(([k]) => k).sort(); };
+const formatoIgual = (a, b) => {
+  const fa = a && a.formato, fb = b && b.formato;
+  if (!fa && !fb) return true;
+  if (!fa || !fb) return false;                                   // uno trae formato y el otro no: ausencia ≠ igualdad
+  const dims = (f) => [Number(f.largoMM) || 0, Number(f.anchoMM) || 0].sort((x, y) => y - x);
+  const [la, aa] = dims(fa), [lb, ab] = dims(fb);
+  if (la > 0 && lb > 0) return Math.abs(la - lb) <= la * 0.01 && Math.abs(aa - ab) <= aa * 0.01;
+  return Number(fa.medida) > 0 && Math.abs(Number(fa.medida) - Number(fb.medida)) <= Number(fa.medida) * 0.01;
+};
 
 /** ¿`fila` (ERP) es gemelo técnico exacto de `curado`? `pedido` = lo que pidió la persona/plano (material_solicitado + nombre de pieza):
  *  una medida o una especie/color explícita en el pedido que el ERP no cumple descalifica al gemelo. */
@@ -24,17 +46,25 @@ export function esGemeloExacto(curado, fila, pedido = '') {
   if (fila.clasificacion !== 'erp' && !String(fila.id).startsWith('erp-')) return false;
   const famC = familiaDeMaterial(curado.nombre || curado.id), famF = familiaDeMaterial(fila.nombre || fila.id);
   if (!famC || famC !== famF) return false;
-  if (!mismoConjunto(espesoresPara(curado.nombre, famC), espesoresPara(fila.nombre, famF))) return false;
-  if (!mismoConjunto(calibres(curado.nombre), calibres(fila.nombre))) return false;
+  const espC = espesoresPara(curado.nombre, famC), espF = espesoresPara(fila.nombre, famF);
+  const calC = calibres(curado.nombre), calF = calibres(fila.nombre);
+  if (!mismoConjunto(espC, espF)) return false;
+  if (!mismoConjunto(calC, calF)) return false;
+  // Color/especie y acabado: comparación SIMÉTRICA. Si el ERP declara "NEGRO", "ENCINO" o "CROMADO" y el curado no lo
+  // declara (o al revés), no es el mismo artículo: la ausencia de un atributo NO prueba igualdad.
+  if (!mismoConjunto(coloresExplicitos(curado.nombre), coloresExplicitos(fila.nombre))) return false;
+  if (!mismoConjunto(acabadosDe(curado.nombre), acabadosDe(fila.nombre))) return false;
+  if (!formatoIgual(curado, fila)) return false;
+  // Identidad mínima: sin NINGÚN atributo contrastable (medida, calibre o formato) en ambos lados, la coincidencia sería
+  // sólo de familia + unidad, y eso no es "exacto".
+  if (!espC.length && !calC.length && !(curado.formato && fila.formato)) return false;
   // Lo PEDIDO manda: "jaladera recta 300 mm" vs ERP 128 mm, o "chapa nogal" vs ERP "ENCINO ROJO" → no es gemelo.
   // El gemelo no puede ser PEOR que el curado: si el curado ya difería de lo pedido en lo mismo (p.ej. pidió
   // MDF 18 mm, curado y ERP son 19 mm, par aprobado 18↔19), el gemelo no añade conflicto y sigue siendo gemelo.
   const ped = String(pedido || '').trim();
   if (ped && severidadConflicto_(famC, ped, fila.nombre || '').conflicto
       && !severidadConflicto_(famC, ped, curado.nombre || '').conflicto) return false;
-  if (unidadNorm(curado.unidad) !== unidadNorm(fila.unidad)) return false;
-  // Si el curado se consume por área con formato, el ERP también debe traer formato (si no, P0-02 lo deja pendiente).
-  if (curado.formato && curado.fraccion && !(fila.formato && fila.formato.medida > 0)) return false;
+  if (!unidadNorm(curado.unidad) || unidadNorm(curado.unidad) !== unidadNorm(fila.unidad)) return false;
   return true;
 }
 

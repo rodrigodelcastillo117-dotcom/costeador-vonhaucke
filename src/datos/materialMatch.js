@@ -869,3 +869,5 @@ export function difiereDeLoPedido(cambio = '') {
 // Reglas de casa (amarre ERP): se exponen la severidad y el texto de cambio sin cambiar la API interna.
 export const severidadConflicto_ = severidadConflicto;
 export const textoCambio_ = textoCambio;
+// Colores/especies explícitos de un texto (sin el marcador genérico 'color/madera'): para comparaciones SIMÉTRICAS.
+export function coloresExplicitos(texto = '') { return [...coloresDe(texto)].filter((c) => c !== '_madera_generico').sort(); }
