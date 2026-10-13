@@ -76,12 +76,27 @@ function comunM2(A, B) {
   return (n * PASO * PASO) / 1e6;
 }
 
+// ACOMODO 10 · VH-A10-01: un documento con varias plantas (una por hoja) trae los cuartos de cada nivel en el
+// MISMO sistema de coordenadas. Dos cosas son de la misma planta salvo que ambas declaren nivel (u hoja) y
+// sean distintos. Sin esto, la DIRECCIÓN del nivel 2 se volvía un "cuarto" (obstáculo) dentro de la SALA DE
+// JUNTAS del nivel 1, y sus columnas y puertas caían en cuartos de otra planta.
+const nivelDe = (o) => String(o?.nivel ?? '').trim();
+const hojaDe = (o) => (Number.isInteger(Number(o?.pagina)) && Number(o.pagina) > 0 ? Number(o.pagina) : null);
+export function mismaPlanta(a, b) {
+  const na = nivelDe(a), nb = nivelDe(b);
+  if (na && nb) return na === nb;
+  const ha = hojaDe(a), hb = hojaDe(b);
+  if (ha != null && hb != null) return ha === hb;
+  return true;
+}
+
 function anidamientos(crudas) {
   const padre = new Map();
   for (let i = 0; i < crudas.length; i++) {
     for (let j = 0; j < crudas.length; j++) {
       if (i === j) continue;
       const hijo = crudas[i], cand = crudas[j];
+      if (!mismaPlanta(hijo.a, cand.a)) continue;
       const aH = areaM2(hijo.pts), aC = areaM2(cand.pts);
       if (!(aC > aH)) continue;
       const dentro = comunM2(hijo.pts, cand.pts) / (aH || 1);
@@ -139,7 +154,7 @@ export function areasDeLectura(lectura) {
   const duenoDeColumna = new Map();
   columnas.forEach((c, k) => {
     let mejor = -1, mejorM2 = Infinity;
-    crudas.forEach(({ pts }, i) => { if (dentroPoly(pts, c.x, c.y)) { const a2 = areaM2(pts); if (a2 < mejorM2) { mejorM2 = a2; mejor = i; } } });
+    crudas.forEach(({ a, pts }, i) => { if (mismaPlanta(a, c) && dentroPoly(pts, c.x, c.y)) { const a2 = areaM2(pts); if (a2 < mejorM2) { mejorM2 = a2; mejor = i; } } });
     if (mejor >= 0) duenoDeColumna.set(k, mejor);
   });
   const nombreDe = (i) => crudas[i].a.nombre || 'Área';
@@ -157,7 +172,7 @@ export function areasDeLectura(lectura) {
       const lado = Number(c.lado) > 0 ? Number(c.lado) : 400;
       obst.push({ x: m(c.x - b.x - lado / 2), y: m(c.y - b.y - lado / 2), w: m(lado), h: m(lado), tipo: 'columna', ...(c.clave ? { clave: String(c.clave) } : {}) });
     });
-    const suyas = puertas.filter((p) => cercaDe(pts, p.x, p.y, TOCA_PUERTA));
+    const suyas = puertas.filter((p) => mismaPlanta(a, p) && cercaDe(pts, p.x, p.y, TOCA_PUERTA));
     const puertasPendientes = [];
     for (const p of suyas) {
       const anchoConocido = Number.isFinite(Number(p.ancho)) && Number(p.ancho) > 0;
@@ -262,6 +277,7 @@ export function revisarAreas(lectura) {
     for (let j = i + 1; j < crudas.length; j++) {
       if (anidado(i, j)) continue;
       const A = crudas[i], B = crudas[j];
+      if (!mismaPlanta(A.a, B.a)) continue;   // VH-A10-01: plantas distintas se dibujan encimadas a propósito
       const m2 = comunM2(A.pts, B.pts);
       const menor = Math.min(areaM2(A.pts), areaM2(B.pts));
       if (m2 > 1 && m2 > menor * 0.05) problemas.push(`"${A.a.nombre}" y "${B.a.nombre}" se enciman ${m2.toFixed(1)} m².`);
@@ -269,7 +285,10 @@ export function revisarAreas(lectura) {
   }
 
   if (env?.ancho > 0 && env?.largo > 0) {
-    const sum = crudas.reduce((s, r, i) => s + (padre.has(i) ? 0 : areaM2(r.pts)), 0);
+    // VH-A10-01: el contorno es de UNA planta; con varios niveles la suma se compara nivel por nivel.
+    const porNivel = new Map();
+    crudas.forEach((r, i) => { const k = nivelDe(r.a); porNivel.set(k, (porNivel.get(k) || 0) + (padre.has(i) ? 0 : areaM2(r.pts))); });
+    const sum = Math.max(...porNivel.values());
     const total = (env.ancho * env.largo) / 1e6;
     if (sum > total * 1.05) problemas.push(`Los cuartos suman ${sum.toFixed(0)} m² y el plano mide ${total.toFixed(0)} m².`);
   }

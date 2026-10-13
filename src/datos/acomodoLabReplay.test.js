@@ -15,9 +15,26 @@ describe('Laboratorio COTIZAR · el replay reconstruye la corrida real', () => {
   });
   // Fidelidad: si el replay no reconstruye EXACTAMENTE las áreas que la app guardó, cualquier
   // conclusión sobre el acomodo sería sobre otro plano.
-  it.each(CASOS_LAB_COTIZAR)('%s: áreas idénticas a las guardadas por la app', (c) => {
+  it.each(CASOS_LAB_COTIZAR.filter((c) => c !== 'C4_dos_niveles'))('%s: áreas idénticas a las guardadas por la app', (c) => {
     const ev = evidenciaLab(c);
     expect(cuantizar(areasDesdeLectura(ev.lectura, ev.puertasConfirmadas))).toEqual(cuantizar(ev.acomodoGuardado.areasM));
+  });
+  // VH-A10-01: en C4 la app guardó artefactos del NIVEL 2 dentro de los cuartos del nivel 1. Con la corrección,
+  // la única diferencia contra lo guardado es que ya no están; forma, medidas y puertas de la hoja 1 son iguales.
+  it('C4_dos_niveles: sin artefactos del nivel 2; lo demás idéntico a lo guardado', () => {
+    const ev = evidenciaLab('C4_dos_niveles');
+    const nuevas = cuantizar(areasDesdeLectura(ev.lectura, ev.puertasConfirmadas));
+    const guardadas = cuantizar(ev.acomodoGuardado.areasM);
+    expect(nuevas.map((a) => a.nombre)).toEqual(guardadas.map((a) => a.nombre));
+    expect(nuevas.every((a) => a.nivel === 'NIVEL 1' && !a.dentroDe && !a.contiene)).toBe(true);
+    expect(nuevas.flatMap((a) => a.obstaculos || []).filter((o) => o.tipo !== 'puerta')).toEqual([]);   // ni "cuarto" ni la columna P1 del nivel 2
+    // Las puertas de la hoja 2 (x = 10 m) ya no caen en cuartos del nivel 1.
+    const hoja1 = (a) => (a.puertas || []).filter((p) => !(Math.abs(p.x + a.x - 10) < 0.01));
+    guardadas.forEach((g, i) => {
+      const n = nuevas[i];
+      expect([n.x, n.y, n.ancho, n.largo, n.poly, n.tipo]).toEqual([g.x, g.y, g.ancho, g.largo, g.poly, g.tipo]);
+      expect(n.puertas || []).toEqual(hoja1(g));
+    });
   });
 });
 
@@ -26,7 +43,7 @@ const ESPERADO = {
   C1_recto: { veredicto: 'PASS', colocadas: 25, total: 25 },
   C2_curvo: { veredicto: 'PARCIAL', colocadas: 28, total: 41 },
   C3_sin_cotas: { veredicto: 'PARCIAL', colocadas: 19, total: 21 },
-  C4_dos_niveles: { veredicto: 'PARCIAL', colocadas: 10, total: 19 },
+  C4_dos_niveles: { veredicto: 'PASS', colocadas: 19, total: 19 },        // VH-A10-01 (antes PARCIAL 10/19)
   C5_ele: { veredicto: 'REVISION', colocadas: 38, total: 38 },
   C6_inyeccion: { veredicto: 'PASS', colocadas: 25, total: 25 },
 };
