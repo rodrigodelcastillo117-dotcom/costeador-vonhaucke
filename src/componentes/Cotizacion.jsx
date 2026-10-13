@@ -360,6 +360,9 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         totales: { precioLista, descuento, descuentoPct, subtotal, contingencia, contingenciaPct,
           maniobras, maniobrasPct, flete, fletePct,
           iva, ivaPct, total,
+          // VH-138: el PDF imprime `totalRedondeado` (y saca anticipo/saldo de los centavos enteros);
+          // sin estos campos el papel decía "TOTAL —" con la escalera y el anticipo correctos.
+          totalRedondeado, totalCentavos, anticipoCentavos,
           anticipoPct, anticipo, cliente: cot.cliente, folio: cot.folio },
       });
 
@@ -432,7 +435,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   // igual que en el papel de Von Haucke.
   const { precioLista, descuentoPct, descuento, subtotal, contingenciaPct, contingencia,
     maniobrasPct, maniobras, fletePct, flete, ivaPct, iva, baseGravable, total, totalRedondeado,
-    anticipoPct, anticipo, hayLineaInvalida, faltanPrecio, totalCompleto } = totalesCotizacion(partidas, cot, estado.parametros);
+    anticipoPct, anticipo, hayLineaInvalida, faltanPrecio, totalCompleto, totalCentavos, anticipoCentavos } = totalesCotizacion(partidas, cot, estado.parametros);
   const avisoDesc = avisoDescuento(descuentoPct, politica);   // VH-063
   const minMarkup = estado.parametros.minMarkupLinea ?? 45;
   const factorDesc = 1 - descuentoPct / 100;

@@ -224,7 +224,7 @@ export function programaDelPlano(areas, opts = {}) {
     guardas,
     sugeridos,
     fuente,
-    salasInfo: salasA.map((a, i) => ({ nombre: a.nombre, m2: m2Salas[i], caben: salas[i] })),
+    salasInfo: salasA.map((a, i) => ({ nombre: a.nombre, m2: m2Salas[i], caben: salas[i], ...(Number(a.asientos) > 0 ? { asientos: Number(a.asientos) } : {}) })),
     // #19: identidad por-zona (nombre/id del área) para conservarla hasta el
     // ProgramRequirement. P0.3 la enriquecerá (evidencia/confianza); aquí no se tira.
     zonas: {
@@ -279,9 +279,12 @@ export function resumenDelPlano(pr) {
  */
 export function avisosDeSala(pr, personasPedidas) {
   const out = [];
-  const n = personasPedidas || 0;
-  if (!pr?.hayPlano || !n) return out;
+  if (!pr?.hayPlano) return out;
   for (const s of pr.salasInfo || []) {
+    // VH-139: con varias salas, cada una se compara con SUS asientos leídos del plano (consejo 10,
+    // creativa 6), no con un solo número para todas ("SALA CREATIVA da para 6 y pediste 10" era falso).
+    const n = Number(s.asientos) > 0 ? Number(s.asientos) : (personasPedidas || 0);
+    if (!n) continue;
     const m2 = Math.round(s.m2);
     if (n > s.caben) {
       out.push(`${s.nombre} mide ${m2} m²: da para ${s.caben} personas, y pediste ${n}. Va a quedar apretada.`);
