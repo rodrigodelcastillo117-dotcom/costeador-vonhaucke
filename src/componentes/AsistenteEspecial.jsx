@@ -1325,7 +1325,10 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           )}
           {preguntasIA.length > 0 && (
             <div className="ayuda columna-texto" style={{ textAlign: 'left', marginTop: 8, color: '#8a6d00' }}>
-              Costo preliminar — {preguntasIA.length} decisión(es) pendiente(s): {preguntasIA.map((q) => normPreg(q).pregunta).join(' · ')}. No es obligatorio; puedes cotizar así.
+              Costo preliminar — {preguntasIA.length} decisión(es) pendiente(s): {preguntasIA.map((q) => normPreg(q).pregunta).join(' · ')}.{' '}
+              {emitible
+                ? 'No es obligatorio contestarlas; el costo ya se puede emitir como preliminar.'
+                : 'Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.'}
             </div>
           )}
 
