@@ -1,0 +1,71 @@
+{
+  "erp": {
+    "intentado": false
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta principal",
+      "material": "Melamina 19 mm, Gris Humo LM",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Retorno",
+      "material": "Melamina 19 mm, Gris Humo LM",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Panel lateral largo (pata panel)",
+      "material": "Melamina 19 mm, Gris Humo LM",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Panel lateral corto (pata panel retorno)",
+      "material": "Melamina 19 mm, Gris Humo LM",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Faldón",
+      "material": "Melamina 19 mm, Gris Humo LM",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Tapacanto PVC 2 mm gris, cantos visibles",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Cajonera móvil 3 gavetas (comprada)",
+      "material": "Cajonera movil",
+      "alertas": [
+        "⚠ Costo pendiente — falta confirmar material."
+      ]
+    },
+    {
+      "nombre": "Tornillería y herrajes de ensamble",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («ensamble») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$3,524.02",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 4 decisión(es) pendiente(s): ¿Los paneles laterales y el faldón van en el mismo Gris Humo de la cubierta? · ¿Cuántos metros de cantos llevan tapacanto visible? · ¿Se acepta el tapacanto PVC genérico del catálogo para el 2 mm gris? · ¿El retorno de 800 mm incluye la zona bajo la cubierta principal?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $2,196.89 · Mano de obra $331.78 · Fábrica $995.35",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

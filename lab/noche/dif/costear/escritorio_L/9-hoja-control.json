@@ -1,0 +1,128 @@
+{
+  "producto": "Escritorio en L 1600 × 1500 × 750, melamina 19 mm Gris Humo",
+  "resumen": {
+    "esperados": 6,
+    "pass": 4,
+    "fail": 2,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 0,
+    "renglonesBom": 8,
+    "veredicto": "FAIL"
+  },
+  "filas": [
+    {
+      "clave": "cubierta",
+      "renglones": 1,
+      "materiales": [
+        "melamina-19-gris-humo-lm"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: CUBIERTA PRINCIPAL MELAMINA 19 mm GRIS HUMO 1600 × 700",
+      "inferido": false,
+      "piezas": 1
+    },
+    {
+      "clave": "retorno",
+      "renglones": 2,
+      "materiales": [
+        "melamina-19-gris-humo-lm"
+      ],
+      "estado": "FAIL",
+      "motivos": [
+        "duplicado: 2 piezas, el plano dice 1",
+        "medida distinta (esperado 800×500 ±20): 731×500"
+      ],
+      "evidencia": "plano: RETORNO 800 × 500 MISMO MATERIAL",
+      "inferido": false,
+      "piezas": 2
+    },
+    {
+      "clave": "paneles",
+      "renglones": 1,
+      "materiales": [
+        "melamina-19-gris-humo-lm"
+      ],
+      "estado": "FAIL",
+      "motivos": [
+        "faltan piezas: 2, el plano dice 3",
+        "área 1.023 m², el plano da 1.389 m² (±6 %)"
+      ],
+      "evidencia": "plano: 2 DE 731 × 700 + 1 DE 731 × 500 = 1.389 m²",
+      "inferido": false,
+      "piezas": 2,
+      "areaM2": 1.023
+    },
+    {
+      "clave": "faldon",
+      "renglones": 1,
+      "materiales": [
+        "melamina-19-gris-humo-lm"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: FALDÓN MELAMINA 19 mm 1500 × 300, UNA PIEZA",
+      "inferido": false,
+      "piezas": 1
+    },
+    {
+      "clave": "cajonera",
+      "renglones": 1,
+      "materiales": [
+        ""
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: CAJONERA MÓVIL 3 GAVETAS (COMPRADA). El curado \"Cajonera movil\" no dice cuántas gavetas: lo correcto es proponerla y pedir confirmación (sin material hasta que la persona confirme), o amarrarla si la persona confirma.",
+      "inferido": false,
+      "cantidad": 1
+    },
+    {
+      "clave": "tapacanto",
+      "renglones": 1,
+      "materiales": [
+        "tapacanto"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: TAPACANTO PVC 2 mm GRIS EN CANTOS VISIBLES (metros por regla de casa)",
+      "inferido": false
+    }
+  ],
+  "sobran": [
+    {
+      "nombre": "Tornillería y herrajes de ensamble",
+      "insumoId": "tornilleria",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Los paneles laterales y el faldón van en el mismo Gris Humo de la cubierta?",
+      "elegido": "(sin responder: ninguna opción coincide con el plano)",
+      "opciones": [
+        "Sí, mismo color",
+        "Otro color"
+      ],
+      "evidencia": "plano: 3 PANELES LATERALES (2 DE 731 × 700 Y 1 DE 731 × 500)"
+    },
+    {
+      "pregunta": "¿Cuántos metros de cantos llevan tapacanto visible?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Se acepta el tapacanto PVC genérico del catálogo para el 2 mm gris?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿El retorno de 800 mm incluye la zona bajo la cubierta principal?",
+      "elegido": "(sin responder: ninguna opción coincide con el plano)",
+      "opciones": [
+        "Sí, 800 total",
+        "No, 800 más el traslape"
+      ],
+      "evidencia": "plano: RETORNO 800 × 500"
+    }
+  ]
+}

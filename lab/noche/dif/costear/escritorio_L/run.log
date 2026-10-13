@@ -2,3 +2,45 @@
 Running 1 test using 1 worker
 
 [1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Escritorio en L con retorno, patas panel de melamina y cajonera móvil","tipo":"escritorio","piezas":[{"nombre":"Cubierta principal","insumoId":"melamina-19-gris-humo-lm","material_solicitado":"Melamina 19 mm Gris Humo","material_match":"EXACT","forma":"area","larg
+
+[lab-costear] analizar-mueble 200 en 21 s · piezas 8 · lote 1
+
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Escritorio en L con cubierta y retorno de melamina Gris Humo 19 mm","tipo":"escritorio","piezas":[{"nombre":"Cubierta principal","insumoId":"melamina-19-gris-humo-lm","material_solicitado":"melamina 19 mm gris humo","material_match":"EXACT","forma":"area","largoMM
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":3524.02,"materialTotal":2196.89,"manoObra":331.78,"indirectosFabrica":995.35,"desperdicio":1091.49,"detalleInsumos":[{"insumoId":"melamina-19-gris-humo-lm","nombre":"Melamina 19 mm, Gris Humo LM","sec
+
+[lab-costear] BOM inicial {"piezas":8,"pendientes":["Cajonera móvil 3 gavetas (comprada)"],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Los paneles laterales y el faldón van en el mismo Gris Humo de la cubierta?","elegido":"(sin responder: ninguna opción coincide con el plano)","opciones":["Sí, mismo color","Otro color"],"evidencia":"plano: 3 PANELES LATERALES (2 DE 731 × 700 Y 1 DE 731 × 500)"},{"pregunta":"¿Cuántos metros de cantos llevan tapacanto visible?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Se acepta el tapacanto PVC genérico del catálogo para el 2 mm gris?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿El retorno de 800 mm incluye la zona bajo la cubierta principal?","elegido":"(sin responder: ninguna opción coincide con el plano)","opciones":["Sí, 800 total","No, 800 más el traslape"],"evidencia":"plano: RETORNO 800 × 500"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":3524.02,"materialTotal":2196.89,"manoObra":331.78,"indirectosFabrica":995.35,"desperdicio":1091.49,"detalleInsumos":[{"insumoId":"melamina-19-gris-humo-lm","nombre":"Melamina 19 mm, Gris Humo LM","sec
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 5 propuestos","diferencias":"2 difieren de lo pedido y se confirman uno por uno: Tapacanto PVC 2 mm gris, cantos visibles, Tornillería y herrajes de ensamble. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$3,524.02","Por confirmar"],"margen":null,"estado":"Costo preliminar — 4 decisión(es) pendiente(s): ¿Los paneles laterales y el faldón van en el mismo Gris Humo de la cubierta? · ¿Cuántos metros de cantos llevan tapacanto visible? · ¿Se acepta el tapacanto PVC genérico del catálogo para el 2 mm gris? · ¿El retorno de 800 mm incluye la zona bajo la cubierta principal?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $2,196.89 · Mano de obra $331.78 · Fábrica $995.35","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":3524.02,"costoSrv":3524.02,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":3922.16,"materialTotal":2196.89,"manoObra":431.32,"indirectosFabrica":1293.95,"desperdicio":1091.49,"detalleInsumos":[{"insumoId":"melamina-19-gris-humo-lm","nombre":"Melamina 19 mm, Gris Humo LM","se
+
+[lab-costear] dificultad {"costoNormal":3524.02,"marcado":"true","costoDificil":3922.16,"reqDificultad":"dificil","costoSrvDificil":3922.16,"sube":true,"paridad":true,"costoDeVueltaNormal":3524.02,"regresaIgual":true}
+
+[lab-costear] expedientes POST 201 [{"id":73}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":3524.02,"materialTotal":2196.89,"manoObra":331.78,"indirectosFabrica":995.35,"desperdicio":1091.49,"detalleInsumos":[{"insumoId":"melamina-19-gris-humo-lm","nombre":"Melamina 19 mm, Gris Humo LM","sec
+
+[lab-costear] guardado {"status":201,"id":73,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":3524.02,"materialTotal":2196.89,"manoObra":331.78,"indirectosFabrica":995.35,"desperdicio":1091.49,"detalleInsumos":[{"insumoId":"melamina-19-gris-humo-lm","nombre":"Melamina 19 mm, Gris Humo LM","sec
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":6,"pass":4,"fail":2,"riesgo":0,"sobrantesNoPermitidos":0,"renglonesBom":8,"veredicto":"FAIL"} ["FAIL retorno: duplicado: 2 piezas, el plano dice 1 · medida distinta (esperado 800×500 ±20): 731×500","FAIL paneles: faltan piezas: 2, el plano dice 3 · área 1.023 m², el plano da 1.389 m² (±6 %)"]
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB dif escritorio_L 1013-1617 BORRADOR escritorio escritorio en L Melamina gris humo 19 mm","piezas":8,"mismoBom":true,"costoAntes":"$3,524.02","costoDespues":"$3,524.02","mismoCosto":true,"resultado":{"precios":["$3,524.02","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $2,196.89 · Mano de obra $331.78 · Fábrica $995.35","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.7m)

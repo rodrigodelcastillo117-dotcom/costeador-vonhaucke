@@ -1,0 +1,70 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB dif escritorio_L 1013-1617 BORRADOR escritorio escritorio en L Melamina gris humo 19 mm",
+    "piezas": 8,
+    "mismoBom": true,
+    "costoAntes": "$3,524.02",
+    "costoDespues": "$3,524.02",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$3,524.02",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $2,196.89 · Mano de obra $331.78 · Fábrica $995.35",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta principal",
+      "material": "Melamina 19 mm, Gris Humo LM",
+      "alertas": []
+    },
+    {
+      "nombre": "Retorno",
+      "material": "Melamina 19 mm, Gris Humo LM",
+      "alertas": []
+    },
+    {
+      "nombre": "Panel lateral largo (pata panel)",
+      "material": "Melamina 19 mm, Gris Humo LM",
+      "alertas": []
+    },
+    {
+      "nombre": "Panel lateral corto (pata panel retorno)",
+      "material": "Melamina 19 mm, Gris Humo LM",
+      "alertas": []
+    },
+    {
+      "nombre": "Faldón",
+      "material": "Melamina 19 mm, Gris Humo LM",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto PVC 2 mm gris, cantos visibles",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Cajonera móvil 3 gavetas (comprada)",
+      "material": "Cajonera movil",
+      "alertas": [
+        "⚠ Costo pendiente — falta confirmar material."
+      ]
+    },
+    {
+      "nombre": "Tornillería y herrajes de ensamble",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («ensamble») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}
