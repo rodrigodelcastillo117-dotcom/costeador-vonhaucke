@@ -115,7 +115,7 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
     } else if (await num.count()) {
       // Datos del plano del fixture (no inventados): 3 módulos con 1 entrepaño c/u, 2 divisiones, base PTR marco
       // 2×(1.80+0.45) + 4 patas de 0.10 ≈ 5 m, 6 bisagras, 3 jaladeras, 4 niveladores.
-      const v = /divisi/i.test(pregunta) ? '2' : /entrepa/i.test(pregunta) ? '3' : /ptr|desarrollo|metros|tubo/i.test(pregunta) ? '5' : /nivelador|pata/i.test(pregunta) ? '4' : /bisagra/i.test(pregunta) ? '6' : /jaladera/i.test(pregunta) ? '3' : /puerta/i.test(pregunta) ? '3' : null;
+      const v = /divisi/i.test(pregunta) ? '2' : /entrepa/i.test(pregunta) ? '3' : /nivelador|pata/i.test(pregunta) ? '4' : /ptr|desarrollo|metros|tubo/i.test(pregunta) ? '5' : /bisagra/i.test(pregunta) ? '6' : /jaladera/i.test(pregunta) ? '3' : /puerta/i.test(pregunta) ? '3' : null;
       if (v) { await num.fill(v); respuestas.push({ pregunta, elegido: v }); }
     }
   }

@@ -60,3 +60,20 @@ describe('piezas con tamaño de hoja (VH-151)', () => {
     expect(r.map((x) => [x.nombre, x.motivo])).toEqual([['Chapa caras vistas', 'TAMANO_HOJA'], ['Cubierta larga', 'EXCEDE_FORMATO'], ['Sin insumo pero hoja', 'TAMANO_HOJA']]);
   });
 });
+
+describe('gemelo ERP: lo pedido manda (VH-152b)', () => {
+  it('una jaladera de 128 mm no es gemela de "Jaladeras rectas 300 mm"; una chapa ENCINO no es gemela si se pidió nogal', async () => {
+    const { esGemeloExacto, proponerGemelosErp } = await import('./gemeloErp.js');
+    const jal = { id: 'jaladera', nombre: 'Jaladera', unidad: 'pza', precio: 37.9, evidencia: { certificable: false } };
+    const jal128 = { id: 'erp-jal0791583', nombre: 'JALADERA ALUMINIO DE 128 mm CODIGO 079-1583', unidad: 'pza', precio: 21.41, clasificacion: 'erp', actualizado: '2026-01-01', evidencia: { certificable: true } };
+    expect(esGemeloExacto(jal, jal128)).toBe(false);                       // 128 mm vs sin medida en el curado: no es exacto
+    expect(esGemeloExacto(jal, jal128, 'jaladera · Jaladeras rectas 300 mm')).toBe(false);
+    const chapa = { id: 'chapa-madera', nombre: 'Chapa de madera (sabana natural)', unidad: 'hoja', precio: 540, formato: { medida: 2.9768, largoMM: 2440, anchoMM: 1220 }, fraccion: true, evidencia: { certificable: false } };
+    const encino = { id: 'erp-ch122244sb-m1099', nombre: "CHAPA DE MADERA HOJA 4' X 8' (SABANA NATURAL) · CHAPA DE MADERA ENCINO ROJO FLAMA", unidad: 'hoja', precio: 1250, formato: chapa.formato, clasificacion: 'erp', actualizado: '2026-01-01', evidencia: { certificable: true } };
+    const nogal = { ...encino, id: 'erp-ch-nogal', nombre: "CHAPA DE MADERA HOJA 4' X 8' (SABANA NATURAL) · CHAPA DE MADERA NOGAL AMERICANO" };
+    expect(esGemeloExacto(chapa, encino, 'Chapa de madera sabana natural nogal · Chapa nogal natural, frentes de puerta')).toBe(false);
+    expect(esGemeloExacto(chapa, nogal, 'Chapa de madera sabana natural nogal · Chapa nogal natural, frentes de puerta')).toBe(true);
+    const { propuestos } = await proponerGemelosErp([{ nombre: 'Jaladeras rectas 300 mm', insumoId: 'jaladera', material_solicitado: 'jaladera' }], { insumos: { jaladera: jal }, buscar: async () => [jal128] });
+    expect(propuestos).toEqual([]);
+  });
+});

@@ -327,6 +327,7 @@ const COLORES = [
   ['blanco', /\bblanc[oa]s?\b|white/], ['negro', /\bnegr[oa]s?\b|black/], ['nogal', /nogal|walnut/],
   ['roble', /roble|\boak\b/], ['gris', /\bgris\b|gray|grey/], ['antracite', /antracit[ea]/],
   ['maple', /maple|\barce\b/], ['cedro', /cedro/], ['wengue', /wengu[eé]/], ['haya', /\bhaya\b|beech/],
+  ['encino', /encino/], ['fresno', /fresno|\bash\b/], ['caoba', /caoba|mahogany/], ['pino', /\bpino\b|\bpine\b/],
 ];
 function coloresDe(texto = '') {
   const t = String(texto).toLowerCase();
@@ -337,12 +338,15 @@ function coloresDe(texto = '') {
 }
 function conflictoAcabadoColor(solicitado = '', insumoNombre = '') {
   const A = coloresDe(solicitado), B = coloresDe(insumoNombre);
-  const MADERAS = new Set(['nogal', 'roble', 'maple', 'cedro', 'wengue', 'haya', 'antracite']);
+  const MADERAS = new Set(['nogal', 'roble', 'maple', 'cedro', 'wengue', 'haya', 'antracite', 'encino', 'fresno', 'caoba', 'pino']);
+  // Especies CONCRETAS que nombra el insumo (VH-152b): "CHAPA DE MADERA ENCINO ROJO" no es "color madera"
+  // genérico; si la persona pidió nogal, es otra especie → conflicto.
+  const especiesB = [...B].filter((x) => MADERAS.has(x));
   for (const c of A) {
     if (c === '_madera_generico') continue;               // lo pedido genérico no exige color exacto
     if (B.has(c)) continue;                                // el color pedido está en el insumo
-    if (B.has('_madera_generico') && MADERAS.has(c)) continue; // pidió madera concreta, insumo es "color/madera"
-    return true;                                           // p.ej. pidió BLANCO y el insumo es color/madera
+    if (B.has('_madera_generico') && MADERAS.has(c) && especiesB.length === 0) continue; // pidió madera concreta, insumo es "color/madera" genérico
+    return true;                                           // p.ej. pidió BLANCO y el insumo es color/madera, o pidió NOGAL y el insumo es ENCINO
   }
   return false;
 }

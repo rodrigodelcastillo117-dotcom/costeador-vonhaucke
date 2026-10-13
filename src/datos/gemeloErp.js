@@ -6,22 +6,29 @@
 // TÉCNICAMENTE (misma familia, mismo espesor/calibre, misma unidad y formato compatible) y el ERP sí es
 // certificable. Es una PROPUESTA (SAME_FAMILY_COMPATIBLE_PROPOSED, por confirmar); nunca sustituye en
 // silencio y nunca toca un material que la persona ya confirmó a mano.
-import { familiaDeMaterial, espesoresDe, MATCH } from './materialMatch.js';
+import { familiaDeMaterial, espesoresDe, MATCH, severidadConflicto_ } from './materialMatch.js';
 
 const calibres = (t = '') => [...String(t).toLowerCase().matchAll(/\bcal(?:ibre)?\.?\s*(\d{1,2})\b/g)].map((m) => Number(m[1]));
-const espesores = (t = '') => espesoresDe(t).filter((x) => x <= 60);
+// Todas las medidas en mm cuentan (una jaladera de 128 mm NO es gemela de una de 300 mm); el tope de 60 mm sólo
+// aplica a tableros, donde "PIEZA DE 6000 mm" es largo y no espesor.
+const esPanel = (fam) => ['mdf', 'melamina', 'laminado_hpl', 'chapa_madera', 'aglomerado', 'acrilico', 'cristal', 'triplay'].includes(fam);
+const espesoresPara = (t = '', fam = '') => (esPanel(fam) ? espesoresDe(t).filter((x) => x <= 60) : espesoresDe(t));
 const unidadNorm = (u = '') => { const s = String(u || '').toLowerCase().trim(); return s === 'pieza' ? 'pza' : s === 'jgo' ? 'juego' : s; };
 const esCertificable = (ins) => !!(ins && ins.evidencia && ins.evidencia.certificable === true);
 const mismoConjunto = (a, b) => (!a.length && !b.length) || (a.length > 0 && b.length > 0 && a.some((x) => b.includes(x)));
 
-/** ¿`fila` (ERP) es gemelo técnico exacto de `curado`? */
-export function esGemeloExacto(curado, fila) {
+/** ¿`fila` (ERP) es gemelo técnico exacto de `curado`? `pedido` = lo que pidió la persona/plano (material_solicitado + nombre de pieza):
+ *  una medida o una especie/color explícita en el pedido que el ERP no cumple descalifica al gemelo. */
+export function esGemeloExacto(curado, fila, pedido = '') {
   if (!curado || !fila || !fila.id || String(fila.id) === String(curado.id)) return false;
   if (fila.clasificacion !== 'erp' && !String(fila.id).startsWith('erp-')) return false;
   const famC = familiaDeMaterial(curado.nombre || curado.id), famF = familiaDeMaterial(fila.nombre || fila.id);
   if (!famC || famC !== famF) return false;
-  if (!mismoConjunto(espesores(curado.nombre), espesores(fila.nombre))) return false;
+  if (!mismoConjunto(espesoresPara(curado.nombre, famC), espesoresPara(fila.nombre, famF))) return false;
   if (!mismoConjunto(calibres(curado.nombre), calibres(fila.nombre))) return false;
+  // Lo PEDIDO manda: "jaladera recta 300 mm" vs ERP 128 mm, o "chapa nogal" vs ERP "ENCINO ROJO" → no es gemelo.
+  const ped = String(pedido || '').trim();
+  if (ped && severidadConflicto_(famC, ped, fila.nombre || '').conflicto) return false;
   if (unidadNorm(curado.unidad) !== unidadNorm(fila.unidad)) return false;
   // Si el curado se consume por área con formato, el ERP también debe traer formato (si no, P0-02 lo deja pendiente).
   if (curado.formato && curado.fraccion && !(fila.formato && fila.formato.medida > 0)) return false;
@@ -29,8 +36,8 @@ export function esGemeloExacto(curado, fila) {
 }
 
 /** El mejor gemelo certificable entre varias filas del ERP: certificable, luego compra más reciente, luego precio presente. */
-export function mejorGemeloCertificable(curado, filas = []) {
-  const ok = (Array.isArray(filas) ? filas : []).filter((f) => esGemeloExacto(curado, f) && esCertificable(f) && f.precio != null);
+export function mejorGemeloCertificable(curado, filas = [], pedido = '') {
+  const ok = (Array.isArray(filas) ? filas : []).filter((f) => esGemeloExacto(curado, f, pedido) && esCertificable(f) && f.precio != null);
   if (!ok.length) return null;
   ok.sort((a, b) => (String(b.actualizado || '') > String(a.actualizado || '') ? 1 : String(b.actualizado || '') < String(a.actualizado || '') ? -1 : 0) || String(a.id).localeCompare(String(b.id)));
   return ok[0];
@@ -67,7 +74,8 @@ export async function proponerGemelosErp(componentes = [], { insumos = {}, busca
       for (const qq of consultas) { let r = []; try { r = await buscar(qq, 60); } catch (_e) { r = []; } for (const f of (r || [])) if (f && f.id && !vistos.has(f.id)) { vistos.add(f.id); filas.push(f); } }
       cache.set(q, filas);
     }
-    const g = mejorGemeloCertificable(curado, filas);
+    const pedido = [c.material_solicitado, c.nombre].filter(Boolean).join(' · ');
+    const g = mejorGemeloCertificable(curado, filas, pedido);
     if (!g) continue;
     if (typeof agregarInsumo === 'function') agregarInsumo(g);
     const previo = c.insumoId;
