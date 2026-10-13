@@ -41,7 +41,10 @@ export function tipoAlba({ seccion, nombre, material } = {}) {
   // cubierta" o una "pata" es metal (20% MO), no la cubierta misma (15%).
   // ⚠️ "melamina" contiene "lamina": la lámina de acero se pide con lookbehind
   // para no clasificar una cubierta de MELAMINA como metal.
-  if (/estructura|mampara|gaveta|archivero|\bpata\b|omega|conducto|\briel\b|charola|\bptr\b|\btubo\b|(?<!me)l[aá]mina|\bacero\b/.test(t)) return 'metal';
+  // VH-177 (2026-10-13, aprobado por Rodrigo): "LAMINADO plástico / HPL" es un recubrimiento de cubierta, no
+  // lámina de acero: la lámina se pide como palabra completa (lámina/láminas), no "laminado/laminada".
+  // El acero laminado sigue siendo metal por "acero".
+  if (/estructura|mampara|gaveta|archivero|\bpata\b|omega|conducto|\briel\b|charola|\bptr\b|\btubo\b|(?<!me)l[aá]minas?\b|\bacero\b/.test(t)) return 'metal';
   if (/cubierta/.test(t)) return 'cubierta';
   return 'general';
 }

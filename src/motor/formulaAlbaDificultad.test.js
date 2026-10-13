@@ -109,3 +109,12 @@ describe('Alba × dificultad · motor y paridad cliente/servidor', () => {
     }
   });
 });
+
+describe('VH-177 · el laminado plástico (HPL) es cubierta, no lámina de acero', () => {
+  it('HPL de cubiertas → cubierta (15 %); la lámina de acero sigue siendo metal', () => {
+    expect(tipoAlba({ seccion: 'cubiertas', nombre: 'Laminado plastico / Ecolegno (HPL)' })).toBe('cubierta');
+    expect(tipoAlba({ seccion: 'cubiertas', nombre: 'Laminado plastico 4x8 Walnut (nogal)' })).toBe('cubierta');
+    for (const n of ['LAMINA ROLADA EN FRIO CAL 18', 'Lámina cal 16', 'LAMINA GALVANIZADA', 'acero laminado en frío', 'CONDUCTO EN LAMINA PINTADA']) expect(tipoAlba({ nombre: n }), n).toBe('metal');
+    expect(tipoAlba({ seccion: 'cubiertas', nombre: 'Melamina 16 mm' })).toBe('cubierta');
+  });
+});
