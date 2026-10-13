@@ -209,8 +209,8 @@ export function componerKit(anchor, sillas = [], gavetas = [], { conFranjas = tr
   // columna. El kit crece lo que haga falta (`pads`) y guarda aparte su CUERPO (lo que ocupa piso: mueble y
   // sillas) y sus FRANJAS (piso libre: pueden compartirse con otra franja, nunca con un mueble, un muro,
   // una columna ni el barrido de una puerta). `conFranjas: false` da el kit compacto de antes (respaldo).
-  return conFranjas ? conHolgura({ anchorId: String(anchor.id), w: lay.kitW, d: lay.kitD, piezas, sinColocar })
-    : { anchorId: String(anchor.id), w: lay.kitW, d: lay.kitD, piezas, sinColocar, cuerpo: bboxPiezas(piezas), franjas: [] };
+  const kit = { anchorId: String(anchor.id), w: lay.kitW, d: lay.kitD, piezas, sinColocar };
+  return conFranjas ? conHolgura(kit) : compactoDe(kit);
 }
 
 // VH-A10-02 · franja de acceso detrás de una silla (coordenadas locales del kit): del lado opuesto a hacia
@@ -229,8 +229,15 @@ function bboxPiezas(piezas) {
   const x1 = Math.max(...piezas.map((p) => p.dx + p.w)), y1 = Math.max(...piezas.map((p) => p.dy + p.d));
   return { x: x0, y: y0, w: x1 - x0, d: y1 - y0 };
 }
+const franjasDe = (kit) => kit.piezas.filter((p) => esSilla(p.rol)).map((p) => franjaDetras(p)).filter(Boolean);
+// Kit compacto (el de antes): sin crecer. Conserva sólo las franjas que ya caben DENTRO del kit (la del ejecutivo
+// del escritorio, VH-119b); las demás sillas quedan sin holgura reservada y el juez lo marca.
+function compactoDe(kit) {
+  const dentro = (f) => f.x >= 0 && f.y >= 0 && f.x + f.w <= kit.w && f.y + f.d <= kit.d;
+  return { ...kit, cuerpo: bboxPiezas(kit.piezas), franjas: franjasDe(kit).filter(dentro) };
+}
 function conHolgura(kit) {
-  const franjas = kit.piezas.filter((p) => esSilla(p.rol)).map((p) => franjaDetras(p)).filter(Boolean);
+  const franjas = franjasDe(kit);
   const xs = [0, ...franjas.map((f) => f.x)], ys = [0, ...franjas.map((f) => f.y)];
   const izq = Math.max(0, -Math.min(...xs)), arr = Math.max(0, -Math.min(...ys));
   const der = Math.max(0, Math.max(kit.w, ...franjas.map((f) => f.x + f.w)) - kit.w);
@@ -240,7 +247,6 @@ function conHolgura(kit) {
     ...kit, w: kit.w + izq + der, d: kit.d + arr + aba, piezas,
     cuerpo: bboxPiezas(piezas),
     franjas: franjas.map((f) => ({ x: f.x + izq, y: f.y + arr, w: f.w, d: f.d })),
-    pads: { izq, arr, der, aba },
   };
 }
 
@@ -552,7 +558,8 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
     // VH-A10-02: respaldo COMPACTO (sin franjas de acceso, el kit de antes). Sólo se usa si el kit con su
     // holgura no cabe en ningún lado: el mueble no se pierde y el juez semántico sigue marcando la silla
     // pegada al muro (nunca PASS). Sin sillas no hay franjas y el compacto es el mismo kit.
-    const compacto = base.franjas.length ? componerKit(a, sillas, gavetas, { conFranjas: false }) : null;
+    const compactoKit = componerKit(a, sillas, gavetas, { conFranjas: false });
+    const compacto = compactoKit.w !== base.w || compactoKit.d !== base.d || compactoKit.franjas.length !== base.franjas.length ? compactoKit : null;
     base.sinColocar.forEach((id) => unassigned.push(id));
     // Variante MÍNIMA (mejor parcial válido, E): ancla + gavetas bajo tablero, sin
     // sillas. Si el kit completo no cabe, al menos se coloca el ancla y las sillas
