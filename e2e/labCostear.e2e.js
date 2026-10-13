@@ -102,7 +102,7 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   for (let i = 0; i < nB; i++) {
     const bq = bloques.nth(i); const pregunta = (await bq.locator('div[style*="font-weight: 600"]').first().innerText().catch(() => '')).trim();
     // La pieza que ya se resolvió a mano con el ERP (respaldo 9 mm) no se vuelve a decidir aquí: la IA no ve el ERP.
-    if (erp.elegido && /respaldo|9 mm/i.test(pregunta)) { respuestas.push({ pregunta, elegido: '(sin responder: ya resuelta con ERP)' }); continue; }
+    if (erp.elegido && /respaldo|(^|[^0-9])9 ?mm/i.test(pregunta)) { respuestas.push({ pregunta, elegido: '(sin responder: ya resuelta con ERP)' }); continue; }
     const chips = bq.locator('button.chip');
     const num = bq.locator('input[type=number]');
     if (await chips.count()) {
@@ -133,9 +133,13 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   console.log('[lab-costear] tras confirmar', JSON.stringify({ confirmacion, resultado: res3 }));
 
   // 3b) Paso Precio (la pantalla va por pasos: 0 describir · 1 despiece/materiales · 3 precio + biblioteca).
-  const verPrecio = page.getByRole('button', { name: /Ver precio|Siguiente/ }).first();
-  await expect(verPrecio).toBeVisible({ timeout: 60000 });
-  await verPrecio.click(); await page.waitForTimeout(1500);
+  // "Ver precio ›" salta directo al paso 3; si no está, "Siguiente ›" avanza un paso a la vez (máx. 3).
+  await expect(page.getByRole('button', { name: /Ver precio|Siguiente/ }).first()).toBeVisible({ timeout: 60000 });
+  for (let k = 0; k < 3 && !(await page.locator('.precio-enorme').count()); k++) {
+    const vp = page.getByRole('button', { name: /Ver precio/ }); const sg = page.getByRole('button', { name: /Siguiente/ });
+    if (await vp.count()) await vp.first().click(); else if (await sg.count()) await sg.first().click(); else break;
+    await page.waitForTimeout(1500);
+  }
   await expect(page.locator('.precio-enorme').first()).toBeVisible({ timeout: 20000 });
   const res3b = await leerResultado(page); const piezas3b = await leerPiezas(page);
   guarda('3b-precio.json', { resultado: res3b, piezas: piezas3b });
@@ -176,8 +180,11 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   await expect(page.locator('.pieza').first()).toBeVisible({ timeout: 30000 });
   await page.waitForTimeout(4000);
   const piezasR1 = await leerPiezas(page);
-  const verPrecio2 = page.getByRole('button', { name: /Ver precio|Siguiente/ }).first();
-  if (await verPrecio2.count()) { await verPrecio2.click(); await page.waitForTimeout(1500); }
+  for (let k = 0; k < 3 && !(await page.locator('.precio-enorme').count()); k++) {
+    const vp = page.getByRole('button', { name: /Ver precio/ }); const sg = page.getByRole('button', { name: /Siguiente/ });
+    if (await vp.count()) await vp.first().click(); else if (await sg.count()) await sg.first().click(); else break;
+    await page.waitForTimeout(1500);
+  }
   await expect(page.locator('.precio-enorme').first()).toBeVisible({ timeout: 20000 }).catch(() => {});
   const resR = await leerResultado(page); const piezasR = piezasR1.length ? piezasR1 : await leerPiezas(page);
   const mismoBom = JSON.stringify(piezas3.map((p) => [p.nombre, p.material])) === JSON.stringify(piezasR.map((p) => [p.nombre, p.material]));
