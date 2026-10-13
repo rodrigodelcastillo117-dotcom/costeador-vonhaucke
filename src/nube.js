@@ -365,8 +365,11 @@ export async function acomodarEspacio(areas, piezas) {
 }
 
 // Lee un plano (imagen) y devuelve las áreas con medidas (Claude visión).
+// L1: `VITE_LEER_PLANO_FN` permite apuntar el cliente LOCAL a la copia RC del lector (leer-plano-rc) para
+// medir antes de promover. En producción no se define y se usa 'leer-plano'.
+const FN_LEER_PLANO = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_LEER_PLANO_FN) || 'leer-plano';
 export async function leerPlano(image, mediaType, refMM) {
-  const { data, error } = await nube.functions.invoke('leer-plano', {
+  const { data, error } = await nube.functions.invoke(FN_LEER_PLANO, {
     body: { image, mediaType, refMM },
   });
   if (error) {
