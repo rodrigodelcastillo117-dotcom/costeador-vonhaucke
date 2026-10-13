@@ -19,7 +19,7 @@ Método: fixtures fijos (reutilizan el corpus L1 y el plano Torre Norte) → cor
 |---|---|---|---|---|
 | 1 | ANALIZAR-MUEBLE | 18 mm y cal. 14 conservados; chapa/tapacanto/PTR genéricos marcados EXACT | igual geometría; EXACT sólo con familia+espesor/calibre+acabado; reporta la nota maliciosa | **PASS** (1 sustitución discutible, ver nota) |
 | 2 | COTIZAR-TEXTO | 2 partidas pedidas → 5 renglones cobrables / 17 unidades (14 sillas no pedidas); tras 2 aclaraciones la pregunta crítica desaparece | 2 partidas pedidas → 2 renglones / 3 unidades; 14 sillas en `recomendadas` (no cobrables); pregunta `CRITICO:` se conserva | **PASS** |
-| 3 | RENDERS | Torre Norte: 1/5 válidos (local, 2026-10-13); 2/5 en la corrida de producción anterior; fallas: layout, sillas extra, contador "?" | ver § 3 | ver § 3 |
+| 3 | RENDERS | Torre Norte reg. 1336: 1/5 válidos (2/5 en 1329); fallas: layout ×2, sillas extra, contador "?" ×2 | RC v1 3/5 · RC v2 **4/5**, 0 "?", referencias 1–2 por área verificadas, 1 rechazo honesto del auditor | **PASS** (condición: cliente lea `fidelidad_producto`) |
 | 4 | REGLAS DE CASA | "19 mm" contestaba la regla aunque el plano dijera 18 mm | lo explícito gana: "Se respeta lo pedido: 18 mm… 19 mm alternativa por confirmar"; 3 pruebas unitarias | **PASS** |
 | 5 | G12 inyección | el lector, analizar-mueble y cotizar-texto ya NO obedecían las notas maliciosas (sin defensa escrita) | defensa explícita en 4 prompts; lector además lee columnas 2/2 y barridos 5/6; los tres reportan la nota como contenido | **PASS** (sin regresión; prod ya resistía estas tres sondas) |
 
@@ -159,7 +159,31 @@ contador (igual que cuota/red, caso ya previsto en el código) y la imagen pasa 
 conteo, layout y objetos extra contra diagrama y referencias; la respuesta dice `audit.contador` (`OK` /
 `SIN_RESPUESTA`) y `audit.fidelidad_producto` (`CON_REFERENCIAS` / `SIN_REFERENCIAS`) para que el cliente pueda
 distinguir, cuando se decida, un render verificado con producto de uno verificado sólo contra el diagrama.
-Resultado RC v2: __PENDIENTE_RC2__
+**4/5 válidos** en 272 s (misma app, mismo registro 1336; `generar-render-rc` v3):
+
+| llamada | resultado | referencias |
+|---|---|---|
+| 1 dirección | ✓ "executive workstation and mesh office chair match the geometry of the product references… counts, placement and perspective strictly correspond to the diagram" | 1 |
+| 2 consejo | ✓ "10-chair arrangement align with the reference diagram… table power modules" | 1 |
+| 3 creativa | ✓ "1 conference table and 6 chairs" | 1 |
+| 4 operativa (2 bancas de 8, 16 sillas) | ✗ RENDER_QA_FAILED · layout FAIL: "Desk orientation… differ; visible chair count does not match the expected 16" — **rechazo honesto del auditor**, umbrales intactos | 2 |
+| 5 recepción | ✓ · `fidelidad_producto: SIN_REFERENCIAS` (sin imagen de producto; el auditor sólo pudo comparar con el diagrama) | 0 |
+
+| | producción v31 | RC v1 | RC v2 |
+|---|---|---|---|
+| válidos / 5 | 1 (y 2 en la corrida 1329) | 3 | **4** |
+| rechazos del auditor | 2 layout + 1 sillas extra | 0 | 1 layout (operativa 16 sillas) |
+| contador "?" (imagen tirada sin evidencia) | 2 | 2 | 0 |
+| tiempo | 474 s | 283 s | 272 s |
+
+Las tres corridas son una muestra pequeña (5 áreas cada una, un registro); la varianza del modelo existe. Lo que sí es
+determinista: el prompt ya no autoriza sillas/monitores extra (la falla "unrequested office chairs" desapareció en RC
+v1 y v2), las referencias llegan y se verifican por corrida, y la imagen ya no se descarta por un contador mudo. La
+operativa de 16 puestos sigue siendo el caso difícil (dos bancas + 16 sillas): el auditor la rechaza cuando el conteo
+no cuadra, que es lo que debe hacer. **PASS con condición**: promover junto con el cliente que lea
+`fidelidad_producto` para no presentar como "verificado con producto" un render sin referencias (hoy no hay consumidor
+de ese campo; es un cambio de cliente pendiente de autorización, no de la edge).
+
 
 
 ## 4. REGLAS DE CASA (cliente, `autoRespuestas.js`; ya en la rama, no requiere edge)
@@ -198,7 +222,7 @@ rechazo quede escrito en la salida. **PASS, sin regresión.** No se probó inyec
 | analizar-mueble | 29 → 32 s | 21.6k/4.1k → 22.2k/5.1k |
 | cotizar-texto (3 casos) | 18/14/7 → 17/14/6 s | ~47k/1.3k → ~47k/1.2k |
 | leer-plano C6 | 55 → 52 s | n/d (no expone uso) |
-| generar-render | ver § 3 | n/d |
+| generar-render (5 áreas) | 474 → 283 → 272 s | n/d (la edge no expone uso) |
 
 ## 7. Regresiones y verificación
 
