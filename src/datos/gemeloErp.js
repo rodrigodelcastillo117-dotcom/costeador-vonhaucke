@@ -58,8 +58,15 @@ export async function proponerGemelosErp(componentes = [], { insumos = {}, busca
     const curado = insumos[c.insumoId];
     if (!curado || esCertificable(curado)) continue;
     const q = consultaGemelo(curado); if (q.length < 3) continue;
+    // Dos consultas (con y sin "mm": el ERP escribe "ESPESOR 19 mm" y también "19MM"/"19 MM") y tope 60: la búsqueda
+    // del servidor es ILIKE por tokens y con 30 filas los enchapados tapaban al "MDF NATURAL ... 19 mm".
+    const consultas = [...new Set([q, q.replace(/\bmm\b/g, '').replace(/\s+/g, ' ').trim()])].filter((x) => x.length >= 3);
     let filas = cache.get(q);
-    if (!filas) { try { filas = await buscar(q, 30); } catch (_e) { filas = []; } cache.set(q, filas || []); }
+    if (!filas) {
+      filas = []; const vistos = new Set();
+      for (const qq of consultas) { let r = []; try { r = await buscar(qq, 60); } catch (_e) { r = []; } for (const f of (r || [])) if (f && f.id && !vistos.has(f.id)) { vistos.add(f.id); filas.push(f); } }
+      cache.set(q, filas);
+    }
     const g = mejorGemeloCertificable(curado, filas);
     if (!g) continue;
     if (typeof agregarInsumo === 'function') agregarInsumo(g);
