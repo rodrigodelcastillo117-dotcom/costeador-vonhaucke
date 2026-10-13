@@ -84,6 +84,8 @@ const OMEGA = {
   simple: { 1200: { clave: 'ATOM3', len: 800 }, 1500: { clave: 'ATOM4', len: 1100 }, 1800: { clave: 'ATOM4', len: 1100 }, 2100: { clave: 'ATOM5', len: 1400 }, 2400: { clave: 'ATOM6', len: 1700 } },
   doble:  { 1200: { clave: 'ATOMCU3', len: 800 }, 1500: { clave: 'ATOMCU4', len: 1100 }, 1800: { clave: 'ATOMCU5', len: 1400 }, 2100: { clave: 'ATOMCU5', len: 1400 }, 2400: { clave: 'ATOMCU6', len: 1700 } },
 };
+// Omega de BANCA (guía p24-25): 2 por cubierta; en 1800 es ATOM5 (no ATOM4 como en escritorio).
+const OMEGA_BANCA = { 1200: { clave: 'ATOM3', len: 800 }, 1500: { clave: 'ATOM4', len: 1100 }, 1800: { clave: 'ATOM5', len: 1400 } };
 function omegaPara(largoMM, fondoMM) {
   const t = fondoMM > 600 ? 'doble' : 'simple';
   const k = [1200, 1500, 1800, 2100, 2400].find((x) => largoMM <= x) || 2100;
@@ -201,6 +203,11 @@ const HORAS_CLAVE = {
   ATFAL150ABS: { carpinteria: 0.4779, pintura: 0.0033, acabados: 0.036, otros: 0.1198 },
   ATBIOCRT5: { acabados: 0.3402 },
   ATACM: { acabados: 0.108, pintura: 0.0099, otros: 0.5152 },
+  // Pedido real 38247 · PPyPTiempo (horas SOLICITADAS = estándar del ERP), 2026-10-13. Con estas tres, la banca
+  // doble 6U de 1200 suma EXACTAMENTE las horas del libro "Coste APP LT" (metal 12.776, pint 0.1331, acab 2.002, carp 4.2204).
+  ATPU4M: { acabados: 0.1896, pintura: 0.0132, otros: 2.1556 },
+  ATRICDB4: { acabados: 0.1464, pintura: 0.0066, otros: 0.8432 },
+  CIEPLA01300778: { acabados: 0.02, pintura: 0.0011, otros: 0.056 },
 };
 const HZERO = () => ({ pm: 0, carpinteria: 0, pintura: 0, acabados: 0, tapiceria: 0, otros: 0 });
 function addH(dst, src, k = 1) { for (const a in src) dst[a] = (dst[a] || 0) + src[a] * k; return dst; }
@@ -218,7 +225,7 @@ function hOmega(clave, len) {
   if (HORAS_CLAVE[clave]) return HORAS_CLAVE[clave];
   return { otros: 0.09 + 0.00003 * len, acabados: 0.08, pintura: 0.0033 };
 }
-function hRiel(len) { return { otros: 0.12 + 0.00005 * len, acabados: 0.09, pintura: 0.004 }; } // estimado (sin dato Intelisis)
+function hRiel(len, clave) { return HORAS_CLAVE[clave] || { otros: 0.12 + 0.00005 * len, acabados: 0.09, pintura: 0.004 }; } // estimado si la clave no tiene medición
 function hFaldon(clave, largo) {
   if (HORAS_CLAVE[clave]) return HORAS_CLAVE[clave];
   return { carpinteria: Math.max(0.2, 0.295 + 0.00061 * (largo - 1200)), acabados: 0.05, pintura: 0.0033, otros: 0.12 };
@@ -297,18 +304,30 @@ export function generarAppLT(config) {
   }
 
   // ---------------- BANCA DOBLE ----------------
+  // Armado según la guía ESP-DCC-IDP-003 (p24-25, cuadros 3-8) y verificado contra el pedido real 38247
+  // (6U 1200 = 2 ATPU4M + 2 ATPU75M + 6 ATOM3 + 3 ATCUBD44ABS + 3 ATRICDB4 + 1 ATACM + 4 placas unión):
+  // patas U de 1200 en los EXTREMOS y ATPU75M "entre lugares" (c−1), 2 omegas ATOM por cubierta, placas unión
+  // 2 por junta y la acometida ATACM dentro del módulo. Antes: ATPU4M × (c+1), 1 omega ATOMCU por cubierta,
+  // sin placas ni acometida (y la acometida se trataba como eléctrico aparte). Ver src/datos/appltArmado.js.
   else if (c.producto === 'banca_doble') {
     const L = c.largoMM, n = c.usuarios || 4; const pares = Math.max(1, Math.round(n / 2));
     nombre = `Banca doble APP LT ${(L / 1000).toFixed(2)} · ${n} usuarios`;
-    const kc = CUBIERTA_BD[L] || `ATCUBD·${L}`, o = omegaPara(L, 1200), r = RIEL.DB[L];
+    const kc = CUBIERTA_BD[L] || `ATCUBD·${L}`, o = OMEGA_BANCA[L] || omegaPara(L, 600), r = RIEL.DB[L];
     for (let i = 0; i < pares; i++) add(cubierta(`Cubierta doble (${kc})`, MELAMINA, L, 1200));
-    const p = PATA[1200];
-    comp.push(metalLineal(PTR, `Pata U (${p.clave})`, pataPTR(p.claro) * 1000, pares + 1));
-    comp.push(metalLineal(PTR, `Refuerzo omega (${o.clave})`, o.len, pares));
+    const pe = PATA[1200], pi = PATA[750];
+    comp.push(metalLineal(PTR, `Pata U extremos (${pe.clave})`, pataPTR(pe.claro) * 1000, 2));
+    if (pares > 1) comp.push(metalLineal(PTR, `Pata U entre lugares (${pi.clave})`, pataPTR(pi.claro) * 1000, pares - 1));
+    comp.push(metalLineal(PTR, `Refuerzo omega (${o.clave}) · 2 por cubierta`, o.len, 2 * pares));
     if (r) comp.push(metalLineal(PTR, `Riel con ducto (${r.clave})`, r.len, pares));
-    claves.push(kc, p.clave, o.clave, r?.clave);
-    addH(H, hCubierta(L, 1200, kc), pares); addH(H, hPata(p.clave, p.claro), pares + 1); addH(H, hOmega(o.clave, o.len), pares);
-    if (r) addH(H, hRiel(r.len), pares);
+    if (pares > 1) comp.push(metalLineal(PTR, 'Placa unión (QCIPLAUES · CIEPLA01300778) · 2 por junta', 200, 2 * (pares - 1)));
+    comp.push(metalLineal(PTR, 'Acometida (ATACM)', 650));
+    claves.push(kc, pe.clave, pares > 1 ? pi.clave : null, o.clave, r?.clave, pares > 1 ? 'CIEPLA01300778' : null, 'ATACM');
+    addH(H, hCubierta(L, 1200, kc), pares); addH(H, hPata(pe.clave, pe.claro), 2);
+    if (pares > 1) addH(H, hPata(pi.clave, pi.claro), pares - 1);
+    addH(H, hOmega(o.clave, o.len), 2 * pares);
+    if (r) addH(H, hRiel(r.len, r.clave), pares);
+    if (pares > 1) addH(H, HORAS_CLAVE.CIEPLA01300778, 2 * (pares - 1));
+    addH(H, HORAS_CLAVE.ATACM);
     if (c.biombo) { addBiombo(comp, claves, L, c.biombo, pares); addH(H, hBiombo(BIOMBO[c.biombo]?.[L]?.clave), pares); }
     if (c.laterales) { addLaterales(comp, claves, 1200, c.biombo); addH(H, hBiombo(null), 2); }
     if (c.divisores && pares > 1) { addDivisores(comp, 600, c.biombo, 2 * (pares - 1)); addH(H, hBiombo(null), 2 * (pares - 1)); }
