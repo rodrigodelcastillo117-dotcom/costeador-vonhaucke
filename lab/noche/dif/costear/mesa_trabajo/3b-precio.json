@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$2,406.40",
+      "$4,010.66"
+    ],
+    "margen": "Precio de lista (40% margen · política vigente (1 pieza))",
+    "estado": "Costo preliminar — 2 decisión(es) pendiente(s): ¿Qué tipo de nivelador se usa? · ¿Cuántas mesas se fabricarán?. No es obligatorio contestarlas; el costo ya se puede emitir como preliminar.",
+    "linea": "Material $1,398.88 · Mano de obra $251.88 · Fábrica $755.64",
+    "pendiente": false,
+    "porConfirmar": false
+  },
+  "piezas": []
+}
