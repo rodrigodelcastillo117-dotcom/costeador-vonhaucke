@@ -99,3 +99,17 @@ describe('resolverYConfirmar · GOLDEN APP LT 10 directo (P0.1 · #5)', () => {
     expect(gavetas).toHaveLength(0);
   });
 });
+
+describe('P1 · agregar una recomendación de casa por línea', () => {
+  it('aplicarPrograma con incluir agrega SÓLO esa recomendación como partida comercial', async () => {
+    const { proponerPrograma, aplicarPrograma: aplicar, claveRecomendacion: clave } = await import('./programaRealDelPlano.js');
+    const { propuesta } = proponerPrograma({ privados: 1 }, { linea: 'App LT' });
+    const visitas = propuesta.recomendaciones.find((r) => r.relation_role === 'VISITOR_SEAT');
+    const sin = aplicar(propuesta, { existentes: [] });
+    expect(sin.partidas.some((p) => p.relation_role === 'VISITOR_SEAT')).toBe(false);
+    const con = aplicar(propuesta, { existentes: [], incluir: [clave(visitas)] });
+    const v = con.partidas.filter((p) => p.relation_role === 'VISITOR_SEAT');
+    expect(v).toHaveLength(1); expect(v[0].cantidad).toBe(2);
+    expect(con.partidas.some((p) => p.relation_role === 'SUPPORT_STORAGE')).toBe(false);
+  });
+});

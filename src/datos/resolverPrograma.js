@@ -366,6 +366,34 @@ export function expandirDependientes(ancla, { capacidad = null, storageRequested
   return out;
 }
 
+// --- RECOMENDACIONES DE CASA (P1): acompañantes que Von Haucke propone por zona; se agregan por línea. ---
+export const REGLAS_RECOMENDACION = {
+  privado: [
+    { relation_role: 'VISITOR_SEAT', anchor_role: 'ANCHOR_DESK', cantidad: 2, regla: 'Un privado recibe visitas: 2 sillas frente al escritorio.' },
+    { relation_role: 'SUPPORT_STORAGE', anchor_role: 'ANCHOR_DESK', cantidad: 1, regla: 'Credenza detrás del directivo: guardado y apoyo.' },
+  ],
+  juntas: [
+    { relation_role: 'SUPPORT_STORAGE', anchor_role: 'ANCHOR_MEETING', cantidad: 1, regla: 'Credenza en sala de juntas: café, guardado y equipo.', minCapacidad: 6 },
+  ],
+  recepcion: [
+    { relation_role: 'WORK_SEAT', anchor_role: 'ANCHOR_RECEPTION', cantidad: 1, regla: 'El mostrador siempre lleva su silla operativa.' },
+    { relation_role: 'VISITOR_SEAT', anchor_role: 'ANCHOR_RECEPTION', cantidad: 2, regla: 'Sillas de espera para visitas en recepción.' },
+  ],
+};
+export function recomendacionesDeCasa(anclas = []) {
+  const out = [];
+  for (const ancla of anclas) {
+    const reglas = REGLAS_RECOMENDACION[ancla.rol] || [];
+    for (const r of reglas) {
+      if (r.minCapacidad && Number(ancla.usuarios || 0) < r.minCapacidad) continue;
+      const prod = /SEAT$/.test(r.relation_role) ? asientoPara(r.relation_role) : guardaPara(r.relation_role);
+      const d = dependiente(prod, { ancla, relation_role: r.relation_role, anchor_role: r.anchor_role, cantidad: r.cantidad, inclusion: 'optional_recommendation' });
+      if (d) out.push({ ...d, regla: r.regla, origen: 'regla_de_casa' });
+    }
+  }
+  return out;
+}
+
 // --- ORQUESTADOR: programa → ProgramRequirement[] + PROPUESTA. ---
 // `programa`: { operativos, privados, salas:[capacidades], recepcion, brief? }.
 //   brief.operativosStorage: true → gavetas pasan a 'requested' (partida comercial).
@@ -439,7 +467,11 @@ export function resolverPrograma(programa = {}, { linea = LINEA_DEFAULT } = {}) 
 
   // partidas comerciales = anclas + dependientes NO opcionales (mandatory/requested).
   const comerciales = [...anclas, ...dependientes.filter((d) => d.inclusion !== 'optional_recommendation')];
-  const recomendaciones = dependientes.filter((d) => d.inclusion === 'optional_recommendation');
+  // P1 (Dirección 13-oct: "el plano nunca viene con muebles con nombre; nos toca proponer la mejor versión"):
+  // RECOMENDACIONES DE CASA por zona (visitas y credenza en privados, credenza en juntas, silla y visitas en
+  // recepción). NUNCA entran solas a la cotización ni a `dependientes` (golden #11): viven en `recomendaciones`
+  // y la persona las agrega por línea.
+  const recomendaciones = [...dependientes.filter((d) => d.inclusion === 'optional_recommendation'), ...recomendacionesDeCasa(anclas)];
   const partidas = comerciales;
 
   // Compuertas SEPARADAS a nivel propuesta (no se mezclan).

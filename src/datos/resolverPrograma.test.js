@@ -234,3 +234,23 @@ describe('P1 · desempate de composición (plano Torre Norte: 16 puestos en dos 
     expect(c14).toEqual(['a6', 'a8']);      // 12+2 no existe aquí; 8+6 gana a… (sólo hay 8+6)
   });
 });
+
+describe('P1 · recomendaciones de casa (se agregan por línea, nunca solas)', () => {
+  it('privado → 2 visitas + credenza en recomendaciones; partidas y dependientes NO cambian', () => {
+    const r = resolverPrograma({ privados: 1 }, { linea: 'App LT' });
+    const casa = r.recomendaciones.filter((x) => x.origen === 'regla_de_casa');
+    expect(casa.map((x) => [x.relation_role, x.cantidad]).sort()).toEqual([['SUPPORT_STORAGE', 1], ['VISITOR_SEAT', 2]]);
+    expect(casa.every((x) => x.inclusion === 'optional_recommendation' && x.regla)).toBe(true);
+    expect(r.partidas.some((x) => x.relation_role === 'VISITOR_SEAT')).toBe(false);
+    expect(r.dependientes.some((x) => x.origen === 'regla_de_casa')).toBe(false);
+  });
+  it('recepción → silla operativa + 2 visitas recomendadas; dependientes sigue en 0 (golden #11)', () => {
+    const r = resolverPrograma({ recepcion: true }, { linea: 'App LT' });
+    expect(r.dependientes).toHaveLength(0);
+    expect(r.recomendaciones.map((x) => x.relation_role).sort()).toEqual(['VISITOR_SEAT', 'WORK_SEAT']);
+  });
+  it('juntas de 10 → credenza recomendada; juntas de 4 → sin credenza', () => {
+    expect(resolverPrograma({ salas: [10] }).recomendaciones.some((x) => x.relation_role === 'SUPPORT_STORAGE')).toBe(true);
+    expect(resolverPrograma({ salas: [4] }).recomendaciones.some((x) => x.relation_role === 'SUPPORT_STORAGE')).toBe(false);
+  });
+});

@@ -38,10 +38,15 @@ RC v3 (regla del arco: arco dibujado = bisagra y sentido; sin marcadores como pu
 | plano | áreas | m² | puestos | asientos | tipo | puertas | barridos | columnas | env | s |
 |---|---|---|---|---|---|---|---|---|---|---|
 | C1 recto | 7/7 | 7/7 | 7/7 | 7/7 | 7/7 | 6/6 | 5/6 | 2/2 | ✓ | 54 |
-| C2 curvo | (pendiente) | | | | | | | | | |
-| C3 barra gráfica | (pendiente) | | | | | | | | | |
-| C4 dos niveles | (pendiente) | | | | | | | | | |
-| C5 planta en L | (pendiente) | | | | | | | | | |
+| C2 curvo | 6/6 | 6/6 | 6/6 | 5/6 | 6/6 | 5/5 | 4/5 | 3/3 | ✓ | 77 |
+| C3 barra gráfica | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 4/4 | 3/4 | 6/6 | ✓ | 59 |
+| C4 dos niveles | 6/6 | 6/6 | 6/6 | 6/6 | 6/6 | 4/4 | 3/4 | 1/1 | ✓ | 51 |
+| C5 planta en L | 6/6 | 6/6 | 6/6 | 6/6 | 4/6 | 6/6 | 5/6 | 2/2 | ✓ | 52 |
+
+Barridos: en todos los planos se verificaron todas las puertas sencillas (el máximo posible: las dobles quedan para que
+la persona confirme con VH-136). Columnas: 14/14. Niveles: 6/6 áreas con su nivel y página. Lo que queda: la sala
+circular de 10 sillas se cuenta como 12 (dos corridas de tres; el modelo repite el punto de partida) y "CAFÉ" sale
+como servicio en vez de lounge (no cambia el programa: ninguno se amuebla solo).
 
 ## Cliente (en la rama, sin desplegar)
 

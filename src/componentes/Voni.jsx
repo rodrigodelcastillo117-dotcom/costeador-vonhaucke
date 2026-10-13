@@ -15,7 +15,7 @@ import EmpezarEspacio from './EmpezarEspacio.jsx';
 import ConfirmarLectura from './ConfirmarLectura.jsx';
 import { leerPlanoDeArchivo } from '../datos/leerPlanoArchivo.js';
 import { areasCanonicas, bloqueGeometria } from '../datos/floorPlan.js';
-import { proponerProgramaDelPlano, aplicarPrograma } from '../datos/programaRealDelPlano.js';
+import { proponerProgramaDelPlano, aplicarPrograma, claveRecomendacion } from '../datos/programaRealDelPlano.js';
 import { reconciliarNuevasConPrograma } from '../datos/reconciliarPartidas.js';
 import { requirementsDeBrief } from '../datos/programaBrief.js';
 import Cargando from './Cargando.jsx';
@@ -237,6 +237,14 @@ export default function Voni({
 
 
   const pendientesPrograma = propuestaPrograma ? (propuestaPrograma.propuesta.pendientes || []) : [];
+  // P1: recomendaciones de casa (visitas, credenzas, silla de recepción) que AÚN no están en la lista: se
+  // agregan por línea; nunca solas. Una recomendación cuenta como cubierta si ya hay una partida con el
+  // mismo rol atada a la misma ancla.
+  const recomendacionesCasa = useMemo(() => {
+    const recs = (propuestaPrograma?.propuesta?.recomendaciones || []).filter((r) => r.origen === 'regla_de_casa');
+    const cubiertas = new Set(partidas.map((p) => `${p.relation_role}|${p.anchor_instance_id}`));
+    return recs.filter((r) => !cubiertas.has(`${r.relation_role}|${r.anchor_instance_id}`));
+  }, [propuestaPrograma, partidas]);
 
   // PILOTO AUTOMÁTICO (Dirección 12-oct: "que la IA haga la mayoría de las cosas"): cuando el plano
   // trae programa y NO hay nada que decidir (sin conflictos abiertos, sin filas ambiguas, sin
@@ -375,7 +383,7 @@ export default function Voni({
               <strong>✨ {avisoPiloto}</strong>
             </div>
           )}
-          {propuestaPrograma && (faltantesPrograma.length > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0 || duplicadosPrograma.length > 0 || ambiguasPrograma.length > 0) && (
+          {propuestaPrograma && (faltantesPrograma.length > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0 || duplicadosPrograma.length > 0 || ambiguasPrograma.length > 0 || recomendacionesCasa.length > 0) && (
             <div className="tarjeta no-imprimir" style={{ borderColor: '#8bbcaf', background: '#eef6f3' }}>
               <strong style={{ color: '#174f45' }}>✨ Programa detectado del plano</strong>
               <p className="ayuda" style={{ marginTop: 4 }}>
@@ -386,6 +394,18 @@ export default function Voni({
                   <div style={{ fontWeight: 700, color: '#174f45' }}>Por agregar</div>
                   {faltantesPrograma.map((p) => (
                     <div key={p.id}>✓ {p.cantidad}× {p.nombre}{p.w ? ` · ${(p.w / 1000).toFixed(2)}×${((p.d || 0) / 1000).toFixed(2)} m` : ''}</div>
+                  ))}
+                </div>
+              )}
+              {recomendacionesCasa.length > 0 && (
+                <div style={{ marginTop: 8 }} data-testid="recomendaciones-casa">
+                  <div style={{ fontWeight: 700, color: '#174f45' }}>Recomendadas por regla de casa (no se agregan solas)</div>
+                  {recomendacionesCasa.map((r) => (
+                    <div key={claveRecomendacion(r)} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 3 }} data-testid="recomendacion-casa">
+                      <span>➕ {r.cantidad}× {r.nombre}{r.zone_id ? ` · ${r.zone_id}` : ''} <span className="ayuda" style={{ display: 'inline' }}>· {r.regla}</span></span>
+                      <button type="button" className="boton fantasma" style={{ minHeight: 30 }} disabled={!onAplicarPrograma}
+                        onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta, { incluir: [claveRecomendacion(r)] })}>Agregar</button>
+                    </div>
                   ))}
                 </div>
               )}
