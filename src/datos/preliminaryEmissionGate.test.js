@@ -19,3 +19,14 @@ describe('costo preliminar · borrador sí, emisión definitiva no', () => {
     expect(s).toContain('costo_preliminar_no_certificado');
   });
 });
+
+describe('VH-035c · bloqueo por recosteo pendiente con texto para la persona', () => {
+  it('los tres motivos y el genérico; nunca el código crudo', async () => {
+    const { textoRazonEmision } = await import('./emisionUX.js');
+    expect(textoRazonEmision('linea_1_recosteo_pendiente_producto_cambiado')).toBe('Línea 1: cambió el producto, su versión o su despiece; su costo anterior ya no vale y Dirección debe recostearla antes de emitir.');
+    expect(textoRazonEmision('linea_2_recosteo_pendiente_material_cambiado')).toMatch(/^Línea 2: cambió un material/);
+    expect(textoRazonEmision('linea_3_recosteo_pendiente_lote_cambiado')).toMatch(/cantidad y su costo depende del lote/);
+    expect(textoRazonEmision('linea_4_recosteo_pendiente_recosteo')).toMatch(/^Línea 4: cambió después de costearse/);
+    for (const c of ['linea_1_recosteo_pendiente_producto_cambiado', 'linea_4_recosteo_pendiente_recosteo']) expect(textoRazonEmision(c)).not.toMatch(/recosteo_pendiente|_/);
+  });
+});
