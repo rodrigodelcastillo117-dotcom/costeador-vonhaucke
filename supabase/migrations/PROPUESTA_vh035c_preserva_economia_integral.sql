@@ -48,7 +48,10 @@
 --        · partida NUEVA, o existente SIN identidad guardada que ahora la trae: producto_id debe
 --          existir en productos (si no, raise) y producto_version_id se FIJA a la versión técnica
 --          vigente del servidor; si el cliente mandó otra, se sustituye y se anota en
---          `cambios_rechazados` (visible al vendedor para que la UI lo muestre).
+--          `cambios_rechazados` (visible al vendedor para que la UI lo muestre). Un `productoId`
+--          TEXTUAL (clave de línea del catálogo, p.ej. 'banca_doble') no es id de Producto Maestro:
+--          no se valida ni se fija versión (igual que pin_product_versions_in_partidas). Corrección
+--          2026-10-13: antes se rechazaba con 22023 todo renglón de línea nuevo del vendedor.
 --        · piezaId / bom_hash / material siguen siendo del cliente: su cambio NO se rechaza,
 --          invalida la economía (STALE).
 --
@@ -74,6 +77,17 @@
 --      `linea_N_recosteo_pendiente_<motivo>` leídos de la fila (private_api.motivos_recosteo_pendiente)
 --      y degrada el estado a ECONOMICS_INCOMPLETE (o los añade a `economics` si ya era BLOCKED).
 --      cotizacion_emitible y emitir_revision_v2 pasan por ese wrapper ⇒ ninguna STALE se emite.
+--
+--   7. COMPOSICIÓN CON VH-148 (control optimista, PROPUESTA_vh148_control_optimista_cotizacion.sql).
+--      Este archivo es el DUEÑO del núcleo económico ÚNICO: private_api.actualizar_cotizacion_segura
+--      (bigint, jsonb), DOS argumentos, sin DEFAULT. VH-148 no lo redefine: su sobrecarga de TRES
+--      argumentos (sin DEFAULT) valida acceso, bloquea la fila, compara `actualizado` (40001) y DELEGA
+--      aquí. ⇒ ORDEN DE APLICACIÓN: CUALQUIER ORDEN (vh035c→vh148 o vh148→vh035c); en ambos, el
+--      guardado con p_actualizado_esperado pasa por la fusión, el STALE, el rechazo de re-pin y la
+--      autoridad protegida de este archivo. Al final se verifica que ninguna sobrecarga de
+--      actualizar_cotizacion_segura tenga DEFAULT (eso detecta el borrador VIEJO de VH-148, que traía
+--      una copia del cuerpo SIN estas protecciones y un DEFAULT que volvía ambiguas las llamadas de
+--      dos argumentos: si aparece, este archivo aborta). Prueba: supabase/tests/composicionVh035cVh148.test.js.
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
@@ -301,7 +315,13 @@ begin
         using errcode = '42501';
     end if;
     -- Renglón nuevo, o existente sin identidad guardada que ahora la trae: la versión la fija el servidor.
-    v_pid_txt := private_api.identidad_producto_partida(n)->>'producto_id';
+    -- Sólo para el id de Producto Maestro: `producto_id`/`product_id` (validados aunque sean basura) o
+    -- `productoId` NUMÉRICO. Un `productoId` textual es la CLAVE DE LÍNEA del catálogo ('banca_doble',
+    -- 'escritorio'; src/datos/partida.js#crearPartida lo emite así con producto_id:null) y, como en
+    -- pin_product_versions_in_partidas, no se valida contra productos: antes de esta corrección todo
+    -- renglón de línea NUEVO del vendedor se rechazaba con 22023 (supabase/tests/composicionVh035cVh148.test.js).
+    v_pid_txt := coalesce(nullif(n->>'producto_id',''), nullif(n->>'product_id',''),
+                          case when n->>'productoId' ~ '^[0-9]+$' then n->>'productoId' end);
     if v_pid_txt is not null and (v is null or (private_api.identidad_producto_partida(v)->>'producto_id') is null) then
       if v_pid_txt !~ '^[0-9]+$' then
         raise exception 'producto_id invalido (partida %): %', nid, v_pid_txt using errcode = '22023';
@@ -557,37 +577,213 @@ begin
   return public.cotizacion_segura(p_cotizacion_id);
 end $$;
 
+-- Postcondición (composición con VH-148): ninguna sobrecarga de actualizar_cotizacion_segura lleva
+-- DEFAULT ⇒ `f(id, patch)` casa sólo con este núcleo y `f(id, patch, ts)` sólo con la de VH-148.
+do $$
+declare v_malas text;
+begin
+  select string_agg(p.oid::regprocedure::text, ', ') into v_malas
+  from pg_proc p join pg_namespace s on s.oid = p.pronamespace
+  where s.nspname in ('public','private_api') and p.proname = 'actualizar_cotizacion_segura' and p.pronargdefaults > 0;
+  if v_malas is not null then
+    raise exception 'VH-035c: sobrecargas con DEFAULT (llamadas ambiguas; ¿borrador viejo de VH-148?): %', v_malas;
+  end if;
+end $$;
+
 -- ============================================================================
---  ROLLBACK (si se aplicó y hay que volver a producción tal cual 2026-10-13):
---    1) Ejecutar de supabase/tests/fixtures/private_api_prod_20261013.sql los bloques
---       `private_api.actualizar_cotizacion_segura` (líneas 39-147) y
---       `public.strip_seller_economics_on_cotizacion_write` (líneas 150-177): son los cuerpos de
---       producción (md5 de actualizar_cotizacion_segura en el encabezado de ese fixture).
---    2) Restaurar el wrapper de producción de la compuerta (supabase/schema/baseline/03_funciones.sql:535):
---         create or replace function public.evaluar_emision_cotizacion(p_cotizacion_id bigint, p_snapshot jsonb)
---         returns jsonb language plpgsql stable set search_path to 'pg_catalog','public','private_api' as $f$
---         begin
---           if auth.uid() is null then raise exception 'no autenticado'; end if;
---           return private_api.evaluar_emision_cotizacion(p_cotizacion_id, p_snapshot);
---         end $f$;
---    3) drop function if exists private_api.motivos_recosteo_pendiente(bigint);
---       drop function if exists private_api.fusionar_economia_partidas(jsonb, jsonb);
---       drop function if exists private_api.claves_procedencia_partida();
---       drop function if exists private_api.claves_autoridad_partida();
---       drop function if exists private_api.economia_por_lote(jsonb);
---       drop function if exists private_api.campos_material_cambiados(jsonb, jsonb);
---       drop function if exists private_api.huella_material(jsonb);
---       drop function if exists private_api.huella_material_filas(jsonb, text);
---       drop function if exists private_api.es_clave_material(text);
---       drop function if exists private_api.campos_identidad_cambiados(jsonb, jsonb);
---       drop function if exists private_api.identidad_producto_partida(jsonb);
---       drop function if exists private_api.repegar_economia(jsonb, jsonb);
---       drop function if exists private_api.clave_elemento(jsonb);
---       drop function if exists private_api.economia_recursiva(jsonb);
---       drop function if exists private_api.economia_de_partida(jsonb);
---       drop function if exists private_api.es_clave_economia(text);
+--  ROLLBACK (si se aplicó y hay que volver a producción tal cual 2026-10-13).
+--  No se ejecuta con este archivo: está dentro de un comentario de bloque. Para revertir: copiar lo
+--  que hay entre los marcadores y correrlo tal cual. Hace, en una transacción:
+--    1) Devuelve el núcleo private_api.actualizar_cotizacion_segura(bigint, jsonb) y
+--       public.strip_seller_economics_on_cotizacion_write al cuerpo de producción BYTE A BYTE
+--       (copiados de supabase/tests/fixtures/private_api_prod_20261013.sql, líneas 39-148 y 150-178;
+--       md5 de actualizar_cotizacion_segura en el encabezado de ese fixture).
+--    2) Restaura el wrapper de producción de la compuerta (supabase/schema/baseline/03_funciones.sql:535).
+--    3) Quita las funciones auxiliares de esta propuesta (después de 1 y 2: ya nadie las llama).
 --    4) Datos: nada que revertir. No se reescriben filas. Las marcas `cost_stale` (con su
 --       `economia_previa`) y `cambios_rechazados` que hayan quedado son inertes: normalize las deja,
 --       jsonb_sin_economia esconde `cost_stale` al vendedor, Dirección las quita al recostear.
 --       `vh.economia_preservada` es un set_config local a la transacción: no deja rastro.
+--  Composición: NO toca la sobrecarga de tres argumentos de VH-148 ni cotizacion_segura. Si VH-148
+--  está aplicada, sigue funcionando: su control de versión delega ahora en el núcleo de producción.
+--  Probado en supabase/tests/composicionVh035cVh148.test.js.
 -- ============================================================================
+/*
+-- >>> ROLLBACK VH-035c INICIO
+begin;
+
+CREATE OR REPLACE FUNCTION private_api.actualizar_cotizacion_segura(p_cotizacion_id bigint, p_patch jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  v_email text := auth.jwt()->>'email';
+  v_role text;
+  v_c public.cotizaciones%rowtype;
+  v_owner text;
+  v_partidas jsonb;
+  v_acomodo jsonb;
+  v_totales jsonb;
+  v_total numeric;
+  v_piezas integer;
+  v_activa boolean;
+  v_cliente_id bigint;
+  v_contacto_id bigint;
+  v_proyecto_id bigint;
+begin
+  if v_email is null or not public.puede_entrar() then
+    raise exception 'no autorizado';
+  end if;
+  if p_patch is null or jsonb_typeof(p_patch) <> 'object' then
+    raise exception 'patch invalido';
+  end if;
+
+  select lower(p.rol) into v_role
+  from public.permitidos p
+  where lower(p.email)=lower(v_email)
+  limit 1;
+  if v_role not in ('direccion','diseno','vendedor') then
+    raise exception 'rol sin permiso';
+  end if;
+
+  select * into v_c from public.cotizaciones where id=p_cotizacion_id for update;
+  if not found then raise exception 'cotizacion no existe'; end if;
+  if not (lower(coalesce(v_c.usuario,''))=lower(v_email) or public.puede_editar_config()) then
+    raise exception 'sin acceso';
+  end if;
+  if lower(coalesce(v_c.estado,'borrador')) <> 'borrador' then
+    raise exception 'cotizacion no editable en estado %',v_c.estado;
+  end if;
+
+  if p_patch ? 'estado' and lower(coalesce(p_patch->>'estado','borrador')) <> 'borrador' then
+    raise exception 'estado protegido; use el flujo de emision';
+  end if;
+  if p_patch ? 'folio_oficial' and nullif(p_patch->>'folio_oficial','') is distinct from v_c.folio_oficial then
+    raise exception 'folio_oficial protegido; use el flujo de emision';
+  end if;
+
+  v_owner := v_c.usuario;
+  if p_patch ? 'usuario' then
+    if v_role not in ('direccion','diseno') then
+      if lower(coalesce(p_patch->>'usuario','')) <> lower(coalesce(v_c.usuario,'')) then
+        raise exception 'propietario protegido';
+      end if;
+    elsif nullif(trim(p_patch->>'usuario'),'') is not null then
+      select p.email into v_owner
+      from public.permitidos p
+      where lower(p.email)=lower(trim(p_patch->>'usuario'))
+      limit 1;
+      if v_owner is null then raise exception 'usuario propietario invalido'; end if;
+    end if;
+  end if;
+
+  v_partidas := case when p_patch ? 'partidas' then p_patch->'partidas' else v_c.partidas end;
+  v_acomodo := case when p_patch ? 'acomodo' then p_patch->'acomodo' else v_c.acomodo end;
+  v_totales := case when p_patch ? 'totales' then p_patch->'totales' else v_c.totales end;
+  if jsonb_typeof(coalesce(v_partidas,'[]'::jsonb)) <> 'array' then raise exception 'partidas debe ser arreglo'; end if;
+  if v_acomodo is not null and jsonb_typeof(v_acomodo) not in ('array','object') then raise exception 'acomodo invalido'; end if;
+  if v_totales is not null and jsonb_typeof(v_totales) <> 'object' then raise exception 'totales invalido'; end if;
+
+  v_total := v_c.total;
+  if p_patch ? 'total' then begin v_total := coalesce(nullif(p_patch->>'total','')::numeric,0); exception when others then raise exception 'total invalido'; end; end if;
+  v_piezas := v_c.piezas;
+  if p_patch ? 'piezas' then begin v_piezas := coalesce(nullif(p_patch->>'piezas','')::integer,0); exception when others then raise exception 'piezas invalido'; end; end if;
+  v_activa := v_c.activa;
+  if p_patch ? 'activa' then begin v_activa := (p_patch->>'activa')::boolean; exception when others then raise exception 'activa invalida'; end; end if;
+  v_cliente_id := v_c.cliente_id;
+  if p_patch ? 'cliente_id' then begin v_cliente_id := nullif(p_patch->>'cliente_id','')::bigint; exception when others then raise exception 'cliente_id invalido'; end; end if;
+  v_contacto_id := v_c.contacto_id;
+  if p_patch ? 'contacto_id' then begin v_contacto_id := nullif(p_patch->>'contacto_id','')::bigint; exception when others then raise exception 'contacto_id invalido'; end; end if;
+  v_proyecto_id := v_c.proyecto_id;
+  if p_patch ? 'proyecto_id' then begin v_proyecto_id := nullif(p_patch->>'proyecto_id','')::bigint; exception when others then raise exception 'proyecto_id invalido'; end; end if;
+  if v_total < 0 then raise exception 'total no puede ser negativo'; end if;
+  if v_piezas < 0 then raise exception 'piezas no puede ser negativo'; end if;
+
+  update public.cotizaciones
+  set usuario=v_owner,
+      cliente=case when p_patch ? 'cliente' then nullif(p_patch->>'cliente','') else cliente end,
+      folio=case when p_patch ? 'folio' then nullif(p_patch->>'folio','') else folio end,
+      partidas=v_partidas,
+      acomodo=v_acomodo,
+      totales=v_totales,
+      total=v_total,
+      piezas=v_piezas,
+      huella_mp=case when p_patch ? 'huella_mp' then nullif(p_patch->>'huella_mp','') else huella_mp end,
+      activa=v_activa,
+      cliente_id=v_cliente_id,
+      contacto_id=v_contacto_id,
+      proyecto_id=v_proyecto_id,
+      actualizado=now()
+  where id=p_cotizacion_id;
+
+  return public.cotizacion_segura(p_cotizacion_id);
+end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.strip_seller_economics_on_cotizacion_write()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  v_email text := auth.jwt()->>'email';
+  v_is_seller boolean := false;
+begin
+  if v_email is null then
+    return new;
+  end if;
+
+  select exists(
+    select 1 from public.permitidos p
+    where lower(p.email)=lower(v_email) and lower(p.rol)='vendedor'
+  ) into v_is_seller;
+
+  if v_is_seller and not public.puede_ver_economia() then
+    new.partidas := public.jsonb_sin_economia(new.partidas);
+    new.totales := public.jsonb_sin_economia(new.totales);
+    new.acomodo := public.jsonb_sin_economia(new.acomodo);
+  end if;
+  return new;
+end;
+$function$
+;
+
+
+CREATE OR REPLACE FUNCTION public.evaluar_emision_cotizacion(p_cotizacion_id bigint, p_snapshot jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE
+ SET search_path TO 'pg_catalog', 'public', 'private_api'
+AS $function$
+      begin
+        if auth.uid() is null then raise exception 'no autenticado'; end if;
+        return private_api.evaluar_emision_cotizacion(p_cotizacion_id, p_snapshot);
+      end
+      $function$
+;
+
+drop function if exists private_api.motivos_recosteo_pendiente(bigint);
+drop function if exists private_api.fusionar_economia_partidas(jsonb, jsonb);
+drop function if exists private_api.claves_procedencia_partida();
+drop function if exists private_api.claves_autoridad_partida();
+drop function if exists private_api.economia_por_lote(jsonb);
+drop function if exists private_api.campos_material_cambiados(jsonb, jsonb);
+drop function if exists private_api.huella_material(jsonb);
+drop function if exists private_api.huella_material_filas(jsonb, text);
+drop function if exists private_api.es_clave_material(text);
+drop function if exists private_api.campos_identidad_cambiados(jsonb, jsonb);
+drop function if exists private_api.identidad_producto_partida(jsonb);
+drop function if exists private_api.repegar_economia(jsonb, jsonb);
+drop function if exists private_api.clave_elemento(jsonb);
+drop function if exists private_api.economia_recursiva(jsonb);
+drop function if exists private_api.economia_de_partida(jsonb);
+drop function if exists private_api.es_clave_economia(text);
+
+NOTIFY pgrst, 'reload schema';
+commit;
+-- <<< ROLLBACK VH-035c FIN
+*/

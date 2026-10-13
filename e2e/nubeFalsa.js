@@ -13,6 +13,12 @@
 //     simula en cambio la migración 20261010170000 (NO aplicada en producción): strippea lo que
 //     entra y RE-PEGA la economía vieja. Ambas semánticas están probadas contra PostgreSQL real
 //     en supabase/tests/preservaEconomia.test.js; ver docs/auditoria/VH035_SQL_VS_MOCK.md.
+//     `crearNubeFalsa({ preservaEconomia: 'vh035c' })` simula PROPUESTA_vh035c_preserva_economia_integral.sql
+//     (tampoco aplicada): fusión recursiva, STALE por producto/material/lote, re-pin rechazado (42501),
+//     autoridad protegida, normalize de cost_status y compuerta de emisión que lee `cost_stale` de la
+//     fila. Espejo de la SQL probada en supabase/tests/preservaEconomiaIntegral.test.js y
+//     composicionVh035cVh148.test.js; e2e en e2e/persistenciaVh035c.e2e.js. El DEFAULT (false) sigue
+//     siendo producción hoy: e2e/persistencia.e2e.js:125 queda ROJO a propósito.
 //   - VH-148 (control optimista, PROPUESTA_vh148_control_optimista_cotizacion.sql, probada contra
 //     PostgreSQL real en supabase/tests/controlOptimista.test.js): `cotizacion_segura` devuelve
 //     `actualizado`; `actualizar_cotizacion_segura` honra `p_actualizado_esperado` si viene en el body
@@ -52,8 +58,209 @@ function fusionar(viejas, nuevas) {
   });
 }
 
+// ============================================================================
+//  ESPEJO JS DE PROPUESTA_vh035c_preserva_economia_integral.sql (crearNubeFalsa({ preservaEconomia: 'vh035c' })).
+//  Mismas reglas, mismo orden y mismos mensajes que la SQL (probada contra PostgreSQL real en
+//  supabase/tests/preservaEconomiaIntegral.test.js y, compuesta con VH-148, en
+//  supabase/tests/composicionVh035cVh148.test.js):
+//   · fusión RECURSIVA de la economía guardada (repegarVh035c), arreglos casados por id/piezaId/clave/key/codigo
+//     o por forma idéntica sin economía;
+//   · STALE (cost_status UNKNOWN + cost_stale{motivo,campos,previo,economia_previa}) por identidad de
+//     producto, por material (huella a cualquier profundidad) y por cantidad en economía por lote;
+//   · re-pin de producto_id/producto_version_id en partida existente → error 42501; renglón nuevo con
+//     producto_id: debe existir (f.productos) y la versión la fija el servidor (cambios_rechazados);
+//   · autoridad (aprobado…) nunca escribible y procedencia congelada en partida existente;
+//   · la compuerta de emisión suma `linea_N_recosteo_pendiente_<motivo>` leído de la FILA.
+// ============================================================================
+const tipoJ = (x) => (x === null ? 'null' : Array.isArray(x) ? 'array' : typeof x);
+const esObjeto = (x) => tipoJ(x) === 'object';
+const tiene = (o, k) => esObjeto(o) && Object.prototype.hasOwnProperty.call(o, k);
+// `->>` de Postgres: texto del valor; null/ausente → null.
+const txtJ = (x) => (x === undefined || x === null ? null : (typeof x === 'object' ? JSON.stringify(x) : String(x)));
+const nzJ = (x) => { const s = txtJ(x); return s === '' ? null : s; };
+const numJ = (x) => { const s = nzJ(x); if (s == null || typeof x === 'boolean') return null; const n = Number(s); return Number.isFinite(n) ? n : null; };
+// Igualdad jsonb (claves sin orden). `undefined` = SQL NULL (clave ausente), distinto de JSON null.
+const canonJ = (x) => {
+  if (x === undefined) return '\u0000ausente';
+  if (Array.isArray(x)) return `[${x.map(canonJ).join(',')}]`;
+  if (esObjeto(x)) return `{${Object.keys(x).sort().map((k) => `${JSON.stringify(k)}:${canonJ(x[k])}`).join(',')}}`;
+  return JSON.stringify(x);
+};
+const esClaveEconomia = (k) => ECONOMIA.test(String(k).toLowerCase().replace(/[^a-z0-9]/g, ''));
+const vacioJ = (x) => (esObjeto(x) && Object.keys(x).length === 0) || (Array.isArray(x) && x.length === 0);
+const claveElemento = (e) => (esObjeto(e) ? (nzJ(e.id) ?? nzJ(e.piezaId) ?? nzJ(e.clave) ?? nzJ(e.key) ?? nzJ(e.codigo)) : null);
+
+export function economiaRecursiva(p) {
+  if (!esObjeto(p) && !Array.isArray(p)) return {};
+  if (Array.isArray(p)) { let alguna = false; const out = p.map((v) => { const s = economiaRecursiva(v); if (!vacioJ(s)) alguna = true; return s; }); return alguna ? out : []; }
+  const out = {};
+  for (const [k, v] of Object.entries(p)) {
+    if (esClaveEconomia(k)) out[k] = v;
+    else if (esObjeto(v) || Array.isArray(v)) { const s = economiaRecursiva(v); if (!vacioJ(s)) out[k] = s; }
+  }
+  return out;
+}
+
+export function repegarVh035c(vieja, nueva) {
+  if (vieja === undefined || nueva === undefined) return nueva;
+  if (esObjeto(nueva) && esObjeto(vieja)) {
+    const out = { ...nueva };
+    for (const [k, vv] of Object.entries(vieja)) {
+      if (esClaveEconomia(k)) out[k] = vv;
+      else if (tiene(nueva, k) && (esObjeto(vv) || Array.isArray(vv)) && tipoJ(nueva[k]) === tipoJ(vv)) out[k] = repegarVh035c(vv, nueva[k]);
+    }
+    return out;
+  }
+  if (Array.isArray(nueva) && Array.isArray(vieja)) {
+    return nueva.map((ne, i) => {
+      let ve;
+      if (esObjeto(ne)) {
+        const clave = claveElemento(ne);
+        if (clave != null) { const c = vieja.filter((e) => claveElemento(e) === clave); if (c.length === 1) ve = c[0]; }
+        if (ve === undefined) {
+          const forma = canonJ(ne);
+          if (esObjeto(vieja[i]) && canonJ(sinEconomia(vieja[i])) === forma) ve = vieja[i];
+          else ve = vieja.find((e) => esObjeto(e) && canonJ(sinEconomia(e)) === forma);
+        }
+      }
+      return ve === undefined ? ne : repegarVh035c(ve, ne);
+    });
+  }
+  return nueva;
+}
+
+const identidadProducto = (p) => ({
+  producto_id: nzJ(p?.producto_id) ?? nzJ(p?.productoId) ?? nzJ(p?.product_id),
+  producto_version_id: nzJ(p?.producto_version_id) ?? nzJ(p?.productoVersionId) ?? nzJ(p?.product_version_id),
+  piezaId: nzJ(p?.piezaId) ?? nzJ(p?.pieza_id),
+  bom_hash: nzJ(p?.bom_hash) ?? nzJ(p?.bomHash),
+});
+const camposIdentidadCambiados = (v, n) => {
+  const a = identidadProducto(v), b = identidadProducto(n);
+  return ['producto_id', 'producto_version_id', 'piezaId', 'bom_hash'].filter((k) => a[k] !== b[k] && !(k === 'bom_hash' && (a[k] == null || b[k] == null)));
+};
+const esClaveMaterial = (k) => /^(material|materiales|materialid|materialclave|acabado|acabados|acabadoid|acabadofid|finish|insumoid|insumo|insumoclave|tela|textura|color|calibre|espesor|clave|sku|bom)$/.test(String(k).toLowerCase().replace(/[^a-z0-9]/g, ''));
+function huellaFilas(p, ruta = '', out = []) {
+  if (Array.isArray(p)) { for (const v of p) huellaFilas(v, `${ruta}[${claveElemento(v) ?? '*'}]`, out); return out; }
+  if (!esObjeto(p)) return out;
+  for (const [k, v] of Object.entries(p)) {
+    if (esClaveEconomia(k)) continue;
+    if (esClaveMaterial(k)) out.push([`${ruta}.${k}`, v]);
+    else if (esObjeto(v) || Array.isArray(v)) huellaFilas(v, `${ruta}.${k}`, out);
+  }
+  return out;
+}
+const huellaMaterial = (p) => {
+  const g = {};
+  for (const [r, v] of huellaFilas(p)) (g[r] ||= []).push(v);
+  return Object.fromEntries(Object.entries(g).map(([r, vs]) => [r, vs.map(canonJ).sort()]));
+};
+const camposMaterialCambiados = (v, n) => {
+  const hv = huellaMaterial(v), hn = huellaMaterial(n);
+  return [...new Set([...Object.keys(hv), ...Object.keys(hn)])].sort().filter((k) => canonJ(hv[k]) !== canonJ(hn[k]));
+};
+const tieneClaveProfunda = (p, k) => (Array.isArray(p) ? p.some((x) => tieneClaveProfunda(x, k)) : esObjeto(p) && (tiene(p, k) || Object.values(p).some((x) => tieneClaveProfunda(x, k))));
+const economiaPorLote = (p) => ['true', '1'].includes(String(txtJ(p?.costo_por_lote) ?? '').toLowerCase())
+  || ['true', '1'].includes(String(txtJ(p?.economia_por_lote) ?? '').toLowerCase())
+  || tieneClaveProfunda(p, 'costoLote') || tieneClaveProfunda(p, 'costoLoteConMerma');
+const CLAVES_AUTORIDAD = ['aprobado', 'aprobado_por', 'aprobado_en', 'aprobacion', 'estado_costo', 'precio_autorizado', 'precioAutorizado'];
+const CLAVES_PROCEDENCIA = ['lista_precio_item_id', 'listaPrecioItemId', 'precio_lista_snapshot', 'source_type', 'source_ref', 'price_status', 'identity_status', 'product_status', 'product_source_ref', 'economia_por_lote'];
+const errSql = (code, message) => Object.assign(new Error(message), { code });
+
+// private_api.fusionar_economia_partidas: `nuevas` ya viene SIN economía (lo que manda el rol que no la ve).
+// `productos`: Map id → version_tecnica_vigente_id (la tabla productos de la nube falsa).
+export function fusionarVh035c(viejas, nuevas, productos = new Map()) {
+  if (!Array.isArray(nuevas)) return nuevas;
+  return nuevas.map((n) => {
+    if (!esObjeto(n)) return n;
+    const rechazos = [];
+    let res = { ...n }; delete res.cambios_rechazados;
+    const nid = txtJ(n.id);
+    const v = nid != null && Array.isArray(viejas) ? viejas.find((e) => esObjeto(e) && txtJ(e.id) === nid) : undefined;
+    // (4) identidad de producto protegida en partida existente.
+    const cambiosId = v ? camposIdentidadCambiados(v, n) : [];
+    if (v && (cambiosId.includes('producto_id') || cambiosId.includes('producto_version_id')) && identidadProducto(v).producto_id != null) {
+      throw errSql('42501', `identidad de producto protegida (partida ${nid}): producto_id/producto_version_id solo cambian con un renglon nuevo o por Direccion`);
+    }
+    // Renglón nuevo (o sin identidad guardada): la versión la fija el servidor. productoId textual = clave de línea.
+    const pidTxt = nzJ(n.producto_id) ?? nzJ(n.product_id) ?? (/^[0-9]+$/.test(txtJ(n.productoId) ?? '') ? txtJ(n.productoId) : null);
+    if (pidTxt != null && (!v || identidadProducto(v).producto_id == null)) {
+      if (!/^[0-9]+$/.test(pidTxt)) throw errSql('22023', `producto_id invalido (partida ${nid}): ${pidTxt}`);
+      const pid = Number(pidTxt);
+      if (!productos.has(pid)) throw errSql('23503', `producto_id ${pid} no existe (partida ${nid})`);
+      const vigente = productos.get(pid);
+      const pvid = identidadProducto(n).producto_version_id;
+      if (vigente != null && (pvid == null || pvid !== String(vigente))) {
+        if (pvid != null) rechazos.push({ campo: 'producto_version_id', motivo: 'VERSION_FIJADA_POR_SERVIDOR' });
+        delete res.productoVersionId; delete res.product_version_id;
+        res = { ...res, producto_id: pid, producto_version_id: vigente };
+      }
+    }
+    // (5) autoridad: nunca la escribe el rol sin economía.
+    const nuloOFalso = (x) => x === null || x === false;
+    for (const k of CLAVES_AUTORIDAD) {
+      if (v) {
+        if (tiene(v, k) && canonJ(n[k]) !== canonJ(v[k])) { rechazos.push({ campo: k, motivo: 'AUTORIDAD_SOLO_DIRECCION' }); res[k] = v[k]; }
+        else if (!tiene(v, k) && tiene(n, k) && !nuloOFalso(n[k])) { rechazos.push({ campo: k, motivo: 'AUTORIDAD_SOLO_DIRECCION' }); delete res[k]; }
+      } else if (tiene(n, k) && !nuloOFalso(n[k])) { rechazos.push({ campo: k, motivo: 'AUTORIDAD_SOLO_DIRECCION' }); delete res[k]; }
+    }
+    // Procedencia: congelada en partida existente.
+    if (v) {
+      for (const k of CLAVES_PROCEDENCIA) {
+        if (tiene(v, k) && canonJ(n[k]) !== canonJ(v[k])) { rechazos.push({ campo: k, motivo: 'PROCEDENCIA_CONGELADA' }); res[k] = v[k]; }
+        else if (!tiene(v, k) && tiene(n, k)) { rechazos.push({ campo: k, motivo: 'PROCEDENCIA_CONGELADA' }); delete res[k]; }
+      }
+    }
+    if (!v) { if (rechazos.length) res.cambios_rechazados = rechazos; return res; }
+    // (2)(3) ¿la economía guardada sigue describiendo esta partida?
+    let motivo = null; const campos = [];
+    if (cambiosId.length) { motivo = 'RECOSTEO_PRODUCTO_CAMBIADO'; campos.push(...cambiosId); }
+    const mat = camposMaterialCambiados(v, n);
+    if (mat.length) { motivo = motivo ?? 'RECOSTEO_MATERIAL_CAMBIADO'; campos.push(...mat); }
+    if (numJ(v.cantidad) !== numJ(n.cantidad) && economiaPorLote(v)) { motivo = motivo ?? 'RECOSTEO_LOTE_CAMBIADO'; campos.push('cantidad'); }
+    if (motivo == null) res = repegarVh035c(v, res);
+    else {
+      let previa;
+      if (esObjeto(v.cost_stale) && tiene(v.cost_stale, 'economia_previa')) previa = v.cost_stale.economia_previa;
+      else { previa = economiaRecursiva(v); delete previa.cost_status; delete previa.cost_stale; }
+      res = { ...res, cost_status: 'UNKNOWN', cost_stale: { motivo, campos, previo: { ...identidadProducto(v), cantidad: v.cantidad === undefined ? null : v.cantidad }, economia_previa: previa } };
+    }
+    if (rechazos.length) res.cambios_rechazados = rechazos;
+    return res;
+  });
+}
+
+// public.normalizar_cost_status_partidas (trigger trg_normalize_economics_status): cost_status siempre presente.
+const COST_STATUS_VALIDOS = ['KNOWN', 'KNOWN_ZERO', 'ESTIMATED', 'USER_APPROVED_ESTIMATE', 'PENDING_PRICE', 'PENDING_MATERIAL', 'UNKNOWN', 'NOT_APPLICABLE', 'NO_ACCESS', 'INVALID'];
+export function normalizarCostStatus(ps) {
+  if (!Array.isArray(ps)) return ps;
+  return ps.map((pt) => {
+    if (!esObjeto(pt)) return pt;
+    let st = String(nzJ(pt.cost_status) ?? nzJ(pt.costo_estado) ?? '').toUpperCase();
+    const c = numJ(pt.costoUnitario);
+    if (st === '') st = c == null ? 'UNKNOWN' : c > 0 ? 'KNOWN' : c === 0 ? 'UNKNOWN' : 'INVALID';
+    if (!COST_STATUS_VALIDOS.includes(st)) st = 'UNKNOWN';
+    return { ...pt, cost_status: st };
+  });
+}
+
+// private_api.motivos_recosteo_pendiente + wrapper public.evaluar_emision_cotizacion de VH-035c.
+export function motivosRecosteoPendiente(fila) {
+  return (fila?.partidas || []).map((p, i) => (esObjeto(p) && tiene(p, 'cost_stale')
+    ? `linea_${i + 1}_recosteo_pendiente_${String((esObjeto(p.cost_stale) ? nzJ(p.cost_stale.motivo) : null) ?? 'RECOSTEO').replaceAll('RECOSTEO_', '').toLowerCase()}`
+    : null)).filter(Boolean);
+}
+export function compuertaConRecosteo(g, fila) {
+  const st = motivosRecosteoPendiente(fila);
+  if (!st.length) return g;
+  if (g.state === 'BLOCKED') return { ...g, economics: [...(g.economics || []), ...st] };
+  return { ...g, state: 'ECONOMICS_INCOMPLETE', reasons: [...st, ...(g.state === 'ECONOMICS_INCOMPLETE' ? (g.reasons || []) : [])], recosteo_pendiente: true };
+}
+
 const b64u = (o) => Buffer.from(JSON.stringify(o)).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
 const jwt = (email) => `${b64u({ alg: 'HS256', typ: 'JWT' })}.${b64u({ sub: idDe(email), email, role: 'authenticated', aud: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600 })}.firma`;
+// Token de la sesión falsa de `email` (para llamar a la nube falsa desde el navegador como otro dispositivo).
+export const tokenDe = (email) => jwt(email);
 const idDe = (email) => {
   let h = 0; for (const c of email) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   const hex = h.toString(16).padStart(8, '0');
@@ -145,11 +352,15 @@ export function evaluarEmision(fila, snap, aprobaciones = []) {
   return { state: 'ALLOWED', reasons: [], ...base };
 }
 
-// `preservaEconomia` (default false = producción hoy): true = semántica de la migración 20261010170000.
+// `preservaEconomia` (default false = producción hoy): true = semántica de la migración 20261010170000;
+// 'vh035c' = PROPUESTA_vh035c (compuesta con VH-148: el control de versión va ANTES y delega en el mismo núcleo).
 // `rpcVieja` (default false = con PROPUESTA_vh148): true = producción SIN la migración VH-148 (cotizacion_segura
 // no devuelve `actualizado` y la sobrecarga de tres argumentos no existe → PostgREST 404 PGRST202).
 export function crearNubeFalsa({ usuarios, preservaEconomia = false, rpcVieja = false }) {
   const permitidos = new Map(Object.entries(usuarios));   // email → rol
+  const modo035c = preservaEconomia === 'vh035c';
+  // Compuerta de emisión: con VH-035c el wrapper suma los motivos de recosteo pendiente de la FILA.
+  const compuerta = (fila, snap) => { const g = evaluarEmision(fila, snap, f.aprobaciones); return modo035c ? compuertaConRecosteo(g, fila) : g; };
   const f = {
     filas: new Map(),            // id → fila cotizaciones
     idempotencia: new Map(),     // `${email}|${key}` → { id, hash }
@@ -163,7 +374,15 @@ export function crearNubeFalsa({ usuarios, preservaEconomia = false, rpcVieja = 
     caida: false,                // true = la red "se cayó": todo falla
     lectura: LECTURA_EJEMPLO,
     permitidos,
-    sembrarFila(fila) { const id = fila.id ?? f.siguienteId++; f.filas.set(id, { estado: 'borrador', activa: true, creado: new Date().toISOString(), actualizado: new Date().toISOString(), ...fila, id }); return id; },
+    sembrarFila(fila) {
+      const id = fila.id ?? f.siguienteId++;
+      // VH-035c: el trigger de normalize corre también en el INSERT (cost_status siempre presente).
+      const partidas = modo035c && Array.isArray(fila.partidas) ? normalizarCostStatus(fila.partidas) : fila.partidas;
+      f.filas.set(id, { estado: 'borrador', activa: true, creado: new Date().toISOString(), actualizado: new Date().toISOString(), ...fila, ...(partidas !== undefined ? { partidas } : {}), id });
+      return id;
+    },
+    // VH-035c: tabla `productos` (id → version_tecnica_vigente_id) para validar renglones nuevos con producto_id.
+    productos: new Map(),
   };
   const rolDe = (email) => permitidos.get(email) || null;
   const veEconomia = (email) => rolDe(email) === 'direccion';
@@ -183,7 +402,9 @@ export function crearNubeFalsa({ usuarios, preservaEconomia = false, rpcVieja = 
     const payload = { ok: true, id: c.id, folio: c.folio ?? null, folio_oficial: c.folio_oficial ?? null, cliente: c.cliente ?? null, estado: c.estado, total: c.total ?? 0, piezas: c.piezas ?? 0, activa: c.activa, cliente_id: null, contacto_id: null, proyecto_id: null, partidas: c.partidas || [], totales: c.totales ?? null, acomodo: c.acomodo ?? null, creado: c.creado, ...(rpcVieja ? {} : { actualizado: c.actualizado }) };
     return veEconomia(email) ? payload : sinEconomia(payload);
   };
-  const err = (route, message, status = 400) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify({ code: 'P0001', message, details: null, hint: null }) });
+  const err = (route, message, status = 400, code = 'P0001') => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify({ code, message, details: null, hint: null }) });
+  // Status HTTP con que PostgREST entrega cada SQLSTATE que levanta VH-035c.
+  const STATUS_SQLSTATE = { 42501: 403, 22023: 400, 23503: 409 };
   // VH-148: el error de conflicto como lo entrega PostgREST (code = SQLSTATE, details = DETAIL, hint = HINT).
   // El cliente decide por `code`/mensaje, no por el status HTTP (PostgREST reporta la clase 40 como 500;
   // aquí se usa 409 por legibilidad en los reportes: ambas rutas las cubre el cliente).
@@ -259,7 +480,7 @@ export function crearNubeFalsa({ usuarios, preservaEconomia = false, rpcVieja = 
       if (fn === 'cotizacion_emitible') {
         const c = f.filas.get(Number(body.p_cotizacion_id));
         if (!c) return json(route, { ok: false, estado: 'BLOCKED', motivos: ['no_existe'] });
-        const g = evaluarEmision(c, { partidas: c.partidas, totales: c.totales || {}, total: c.total }, f.aprobaciones);
+        const g = compuerta(c, { partidas: c.partidas, totales: c.totales || {}, total: c.total });
         return json(route, { ok: g.state === 'ALLOWED', estado: g.state, motivos: g.reasons || [], economics: g.economics || [], hash: g.hash });
       }
       if (fn === 'emitir_revision' || fn === 'emitir_revision_v2') {
@@ -267,7 +488,7 @@ export function crearNubeFalsa({ usuarios, preservaEconomia = false, rpcVieja = 
         if (!c) return err(route, `emitir_revision_v2: la cotizacion ${body.p_cotizacion_id} no existe`);
         if (!(c.usuario === email || editaConfig(email))) return err(route, 'emitir_revision_v2: sin permiso sobre la cotizacion');
         if (!snap || !Array.isArray(snap.partidas) || !snap.partidas.length) return err(route, 'emitir_revision_v2: snapshot sin partidas');
-        const g = evaluarEmision(c, snap, f.aprobaciones);
+        const g = compuerta(c, snap);
         if (g.state !== 'ALLOWED') return err(route, `emitir_revision_v2: emisión bloqueada [${g.state}]: ${JSON.stringify(g.reasons)}`);
         const t = snap.totales || {}; const nz = (x) => Number(x) || 0; const r2 = (x) => Math.round(x * 100) / 100;
         const total = r2(nz(t.precioLista) - nz(t.descuento) + nz(t.contingencia) + nz(t.maniobras) + nz(t.flete) + nz(t.iva));
@@ -284,7 +505,7 @@ export function crearNubeFalsa({ usuarios, preservaEconomia = false, rpcVieja = 
         const c = f.filas.get(Number(body.p_cotizacion_id));
         if (!c) return json(route, { state: 'BLOCKED', reasons: ['cotizacion_no_existe'] });
         if (!(c.usuario === email || editaConfig(email))) return json(route, { state: 'BLOCKED', reasons: ['sin_permiso'] });
-        return json(route, evaluarEmision(c, body.p_snapshot, f.aprobaciones));
+        return json(route, compuerta(c, body.p_snapshot));
       }
       if (fn === 'solicitar_aprobacion_snapshot') {
         const c = f.filas.get(Number(body.p_cotizacion_id)); const snap = body.p_snapshot;
@@ -351,9 +572,13 @@ export function crearNubeFalsa({ usuarios, preservaEconomia = false, rpcVieja = 
         let partidas = 'partidas' in patch ? patch.partidas : c.partidas;
         if (!Array.isArray(partidas)) return err(route, 'partidas debe ser arreglo');
         if ('partidas' in patch && !veEconomia(email)) {
-          if (preservaEconomia) partidas = fusionar(c.partidas, sinEconomia(partidas));   // migración 20261010170000 (NO en producción)
+          if (modo035c) {                                                               // PROPUESTA_vh035c (NO en producción)
+            try { partidas = fusionarVh035c(c.partidas, sinEconomia(partidas), f.productos); }
+            catch (e) { if (!e.code) throw e; return err(route, e.message, STATUS_SQLSTATE[e.code] || 400, e.code); }   // nada se escribe
+          } else if (preservaEconomia) partidas = fusionar(c.partidas, sinEconomia(partidas));   // migración 20261010170000 (NO en producción)
           else if (strippeaEscritura(email)) partidas = sinEconomia(partidas);          // producción hoy: el trigger strippea al vendedor; la economía vieja se PIERDE
         }                                                                                // diseño en producción: escribe tal cual (ni strip ni fusión)
+        if (modo035c) partidas = normalizarCostStatus(partidas);   // trg_normalize_economics_status
         Object.assign(c, {
           cliente: 'cliente' in patch ? (patch.cliente || null) : c.cliente,
           folio: 'folio' in patch ? (patch.folio || null) : c.folio,

@@ -10,29 +10,50 @@
 --
 --  Decisión de Dirección: control optimista COMPLETO en RC (sin fusión automática de BOM/costos/acomodos):
 --   1. `cotizacion_segura` expone `actualizado` (hoy devuelve `creado` pero NO `actualizado`).
---   2. `actualizar_cotizacion_segura` acepta `p_actualizado_esperado timestamptz` (opcional). Si viene y
---      es distinto del `actualizado` de la fila → excepción SQLSTATE 40001 (serialization_failure) con
---      mensaje 'CONFLICTO_VERSION: ... (<actualizado ISO del servidor>)', DETAIL 'actualizado=<ISO>'.
---      NADA se escribe (la excepción aborta la transacción antes del UPDATE).
+--   2. Nueva sobrecarga `actualizar_cotizacion_segura(p_cotizacion_id, p_patch, p_actualizado_esperado
+--      timestamptz)`. Si p_actualizado_esperado no es NULL y es distinto del `actualizado` de la fila →
+--      excepción SQLSTATE 40001 (serialization_failure) con mensaje 'CONFLICTO_VERSION: ... (<actualizado
+--      ISO del servidor>)', DETAIL 'actualizado=<ISO>'. NADA se escribe (la excepción aborta la
+--      transacción antes del UPDATE). NULL explícito = sin control (misma semántica que dos argumentos).
 --   3. El cliente (detrás de la bandera VITE_CONTROL_OPTIMISTA / localStorage vh:controlOptimista) NO
 --      reintenta ni fusiona: conserva lo local, enseña el conflicto y la persona decide ("Ver la versión
 --      del servidor" o "Volver a aplicar mis cambios"). Ver src/datos/conflictoGuardado.js.
 --   4. Compatibilidad: la firma pública de DOS argumentos se conserva (clientes viejos → sin control,
 --      comportamiento actual). PostgREST escoge la sobrecarga por los nombres de los argumentos del body.
 --
---  Cuerpo = producción (supabase/tests/fixtures/private_api_prod_20261013.sql, md5 84da6ec0…) + la
---  verificación; nada más cambia. Probado contra PostgreSQL real (PGlite) en
---  supabase/tests/controlOptimista.test.js. Rollback al final del archivo.
+--  COMPOSICIÓN (rediseño 2026-10-13, ver docs/auditoria/VH148_CONTROL_OPTIMISTA.md § Composición):
+--   · El NÚCLEO económico es UNO solo: private_api.actualizar_cotizacion_segura(bigint, jsonb) de DOS
+--     argumentos. Su dueño es VH-035c (PROPUESTA_vh035c_preserva_economia_integral.sql) si se aplica;
+--     si no, es el cuerpo de producción. ESTE ARCHIVO NO LO TOCA (ni lo borra ni lo redefine).
+--   · La sobrecarga privada de TRES argumentos NO lleva copia del cuerpo de guardado: valida las mismas
+--     compuertas previas que el núcleo (sesión, patch, rol, existencia, acceso, estado borrador) para no
+--     revelar la versión a quien no tiene acceso, BLOQUEA la fila (SELECT … FOR UPDATE), compara
+--     `actualizado` contra p_actualizado_esperado (40001 + DETAIL) y DELEGA en el núcleo de dos
+--     argumentos. El candado se conserva hasta el fin de la transacción: entre la comparación y el
+--     UPDATE del núcleo nadie puede escribir la fila.
+--   · NINGUNA sobrecarga lleva DEFAULT ⇒ `f(id, patch)` sólo casa con la de dos argumentos y
+--     `f(id, patch, ts)` sólo con la de tres: no hay "function ... is not unique" en ningún orden.
+--   ⇒ ORDEN DE APLICACIÓN CON VH-035c: CUALQUIER ORDEN. Si VH-035c se aplica antes, el guardado con
+--     versión ya pasa por su fusión; si se aplica después, su CREATE OR REPLACE del núcleo de dos
+--     argumentos queda automáticamente detrás del control de versión. Lo mismo con
+--     20261010170000 / vh035b (mismo núcleo, mismo nombre y firma). Probado en
+--     supabase/tests/composicionVh035cVh148.test.js (ambos órdenes + rollback de cada uno).
+--   · Requisito: el núcleo de dos argumentos debe existir (siempre existe en producción). Al inicio se
+--     verifica; al final se verifica que ninguna sobrecarga tenga DEFAULT.
 --
---  ⚠️ ORDEN CON LAS OTRAS PROPUESTAS (vh035b / 20261010170000): esas redefinen
---  private_api.actualizar_cotizacion_segura(bigint, jsonb) con DOS argumentos. Si se aplican DESPUÉS de
---  esta, Postgres queda con dos sobrecargas (2 y 3 args con default) y TODA llamada con dos argumentos
---  falla con "function ... is not unique". Aplicar primero aquéllas y ésta al final, o rebasear sus
---  cuerpos sobre la firma de tres argumentos. (Por eso aquí se hace DROP de la firma de dos argumentos
---  en private_api antes de crear la nueva.)
+--  Probado contra PostgreSQL real (PGlite) en supabase/tests/controlOptimista.test.js. Rollback al
+--  final del archivo (no toca el núcleo de dos argumentos: deja a VH-035c intacto si estaba).
 -- ============================================================================
 
 begin;
+
+-- Precondición: existe el núcleo de dos argumentos (producción o VH-035c) en el que se delega.
+do $$
+begin
+  if to_regprocedure('private_api.actualizar_cotizacion_segura(bigint, jsonb)') is null then
+    raise exception 'VH-148: falta private_api.actualizar_cotizacion_segura(bigint, jsonb); la sobrecarga de tres argumentos delega en ella';
+  end if;
+end $$;
 
 -- ----------------------------------------------------------------------------
 -- 1) cotizacion_segura: mismo cuerpo de producción + 'actualizado' en el payload.
@@ -70,12 +91,15 @@ end $function$
 ;
 
 -- ----------------------------------------------------------------------------
--- 2) actualizar_cotizacion_segura (private_api): firma de TRES argumentos con default.
---    Se elimina la de dos para que no haya ambigüedad (ver nota de orden arriba).
+-- 2) actualizar_cotizacion_segura (private_api): sobrecarga de TRES argumentos SIN default.
+--    No contiene el cuerpo de guardado: compuertas previas + candado + versión → delega en el núcleo
+--    de DOS argumentos (que se deja como esté: producción o VH-035c).
+--    DROP previo: si quedó instalada la versión anterior de esta propuesta (3 args CON default y copia
+--    del cuerpo), CREATE OR REPLACE no puede quitar un DEFAULT; se recrea limpia.
 -- ----------------------------------------------------------------------------
-DROP FUNCTION IF EXISTS private_api.actualizar_cotizacion_segura(bigint, jsonb);
+DROP FUNCTION IF EXISTS private_api.actualizar_cotizacion_segura(bigint, jsonb, timestamptz);
 
-CREATE OR REPLACE FUNCTION private_api.actualizar_cotizacion_segura(p_cotizacion_id bigint, p_patch jsonb, p_actualizado_esperado timestamptz DEFAULT NULL)
+CREATE FUNCTION private_api.actualizar_cotizacion_segura(p_cotizacion_id bigint, p_patch jsonb, p_actualizado_esperado timestamptz)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -85,25 +109,23 @@ declare
   v_email text := auth.jwt()->>'email';
   v_role text;
   v_c public.cotizaciones%rowtype;
-  v_owner text;
-  v_partidas jsonb;
-  v_acomodo jsonb;
-  v_totales jsonb;
-  v_total numeric;
-  v_piezas integer;
-  v_activa boolean;
-  v_cliente_id bigint;
-  v_contacto_id bigint;
-  v_proyecto_id bigint;
   v_actualizado_iso text;
 begin
+  -- NULL explícito = sin control: exactamente la firma de dos argumentos.
+  if p_actualizado_esperado is null then
+    return private_api.actualizar_cotizacion_segura(p_cotizacion_id, p_patch);
+  end if;
+
+  -- Mismas compuertas y en el MISMO ORDEN que el núcleo, ANTES de comparar versiones: quien no
+  -- tiene sesión/rol/acceso recibe el mismo error que con dos argumentos y nunca la versión de la
+  -- fila (un vendedor ajeno recibe 'sin acceso', no 'CONFLICTO_VERSION'). El núcleo las repite al
+  -- delegar (idempotentes, misma transacción).
   if v_email is null or not public.puede_entrar() then
     raise exception 'no autorizado';
   end if;
   if p_patch is null or jsonb_typeof(p_patch) <> 'object' then
     raise exception 'patch invalido';
   end if;
-
   select lower(p.rol) into v_role
   from public.permitidos p
   where lower(p.email)=lower(v_email)
@@ -112,6 +134,8 @@ begin
     raise exception 'rol sin permiso';
   end if;
 
+  -- Candado de la fila hasta el fin de la transacción: el núcleo vuelve a pedirlo (mismo dueño, no
+  -- espera) y nadie más puede escribir entre esta comparación y su UPDATE.
   select * into v_c from public.cotizaciones where id=p_cotizacion_id for update;
   if not found then raise exception 'cotizacion no existe'; end if;
   if not (lower(coalesce(v_c.usuario,''))=lower(v_email) or public.puede_editar_config()) then
@@ -123,10 +147,9 @@ begin
 
   -- VH-148 · CONTROL OPTIMISTA. Si el cliente dice desde qué versión edita y la fila ya no es ésa,
   -- se aborta ANTES de tocar nada: la decisión (recargar o volver a aplicar) es de la persona, no
-  -- del servidor. Sin el parámetro (clientes viejos) el comportamiento es el de siempre.
-  -- La fecha viaja en el mismo formato ISO que `cotizacion_segura` (to_json), para que el cliente
-  -- pueda devolverla tal cual en el siguiente intento.
-  if p_actualizado_esperado is not null and v_c.actualizado is distinct from p_actualizado_esperado then
+  -- del servidor. La fecha viaja en el mismo formato ISO que `cotizacion_segura` (to_json), para que
+  -- el cliente pueda devolverla tal cual en el siguiente intento.
+  if v_c.actualizado is distinct from p_actualizado_esperado then
     v_actualizado_iso := to_json(v_c.actualizado)#>>'{}';
     raise exception 'CONFLICTO_VERSION: la cotización cambió en el servidor (%). Recarga antes de guardar.', v_actualizado_iso
       using errcode = '40001',
@@ -134,68 +157,9 @@ begin
             hint = 'Vuelve a cargar la cotización (cotizacion_segura) y decide: ver la versión del servidor o volver a aplicar tus cambios con el actualizado nuevo.';
   end if;
 
-  if p_patch ? 'estado' and lower(coalesce(p_patch->>'estado','borrador')) <> 'borrador' then
-    raise exception 'estado protegido; use el flujo de emision';
-  end if;
-  if p_patch ? 'folio_oficial' and nullif(p_patch->>'folio_oficial','') is distinct from v_c.folio_oficial then
-    raise exception 'folio_oficial protegido; use el flujo de emision';
-  end if;
-
-  v_owner := v_c.usuario;
-  if p_patch ? 'usuario' then
-    if v_role not in ('direccion','diseno') then
-      if lower(coalesce(p_patch->>'usuario','')) <> lower(coalesce(v_c.usuario,'')) then
-        raise exception 'propietario protegido';
-      end if;
-    elsif nullif(trim(p_patch->>'usuario'),'') is not null then
-      select p.email into v_owner
-      from public.permitidos p
-      where lower(p.email)=lower(trim(p_patch->>'usuario'))
-      limit 1;
-      if v_owner is null then raise exception 'usuario propietario invalido'; end if;
-    end if;
-  end if;
-
-  v_partidas := case when p_patch ? 'partidas' then p_patch->'partidas' else v_c.partidas end;
-  v_acomodo := case when p_patch ? 'acomodo' then p_patch->'acomodo' else v_c.acomodo end;
-  v_totales := case when p_patch ? 'totales' then p_patch->'totales' else v_c.totales end;
-  if jsonb_typeof(coalesce(v_partidas,'[]'::jsonb)) <> 'array' then raise exception 'partidas debe ser arreglo'; end if;
-  if v_acomodo is not null and jsonb_typeof(v_acomodo) not in ('array','object') then raise exception 'acomodo invalido'; end if;
-  if v_totales is not null and jsonb_typeof(v_totales) <> 'object' then raise exception 'totales invalido'; end if;
-
-  v_total := v_c.total;
-  if p_patch ? 'total' then begin v_total := coalesce(nullif(p_patch->>'total','')::numeric,0); exception when others then raise exception 'total invalido'; end; end if;
-  v_piezas := v_c.piezas;
-  if p_patch ? 'piezas' then begin v_piezas := coalesce(nullif(p_patch->>'piezas','')::integer,0); exception when others then raise exception 'piezas invalido'; end; end if;
-  v_activa := v_c.activa;
-  if p_patch ? 'activa' then begin v_activa := (p_patch->>'activa')::boolean; exception when others then raise exception 'activa invalida'; end; end if;
-  v_cliente_id := v_c.cliente_id;
-  if p_patch ? 'cliente_id' then begin v_cliente_id := nullif(p_patch->>'cliente_id','')::bigint; exception when others then raise exception 'cliente_id invalido'; end; end if;
-  v_contacto_id := v_c.contacto_id;
-  if p_patch ? 'contacto_id' then begin v_contacto_id := nullif(p_patch->>'contacto_id','')::bigint; exception when others then raise exception 'contacto_id invalido'; end; end if;
-  v_proyecto_id := v_c.proyecto_id;
-  if p_patch ? 'proyecto_id' then begin v_proyecto_id := nullif(p_patch->>'proyecto_id','')::bigint; exception when others then raise exception 'proyecto_id invalido'; end; end if;
-  if v_total < 0 then raise exception 'total no puede ser negativo'; end if;
-  if v_piezas < 0 then raise exception 'piezas no puede ser negativo'; end if;
-
-  update public.cotizaciones
-  set usuario=v_owner,
-      cliente=case when p_patch ? 'cliente' then nullif(p_patch->>'cliente','') else cliente end,
-      folio=case when p_patch ? 'folio' then nullif(p_patch->>'folio','') else folio end,
-      partidas=v_partidas,
-      acomodo=v_acomodo,
-      totales=v_totales,
-      total=v_total,
-      piezas=v_piezas,
-      huella_mp=case when p_patch ? 'huella_mp' then nullif(p_patch->>'huella_mp','') else huella_mp end,
-      activa=v_activa,
-      cliente_id=v_cliente_id,
-      contacto_id=v_contacto_id,
-      proyecto_id=v_proyecto_id,
-      actualizado=now()
-  where id=p_cotizacion_id;
-
-  return public.cotizacion_segura(p_cotizacion_id);
+  -- Versión correcta: el guardado es EL MISMO que el de dos argumentos (núcleo único; con VH-035c
+  -- aplicado incluye fusión de economía, STALE, rechazo de re-pin y autoridad protegida).
+  return private_api.actualizar_cotizacion_segura(p_cotizacion_id, p_patch);
 end;
 $function$
 ;
@@ -238,6 +202,18 @@ REVOKE ALL ON FUNCTION public.actualizar_cotizacion_segura(bigint, jsonb, timest
 GRANT EXECUTE ON FUNCTION public.actualizar_cotizacion_segura(p_cotizacion_id bigint, p_patch jsonb, p_actualizado_esperado timestamptz) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.actualizar_cotizacion_segura(p_cotizacion_id bigint, p_patch jsonb, p_actualizado_esperado timestamptz) TO service_role;
 
+-- Postcondición: ninguna sobrecarga (pública o privada) lleva DEFAULT ⇒ ninguna llamada es ambigua.
+do $$
+declare v_malas text;
+begin
+  select string_agg(p.oid::regprocedure::text, ', ') into v_malas
+  from pg_proc p join pg_namespace s on s.oid = p.pronamespace
+  where s.nspname in ('public','private_api') and p.proname = 'actualizar_cotizacion_segura' and p.pronargdefaults > 0;
+  if v_malas is not null then
+    raise exception 'VH-148: sobrecargas con DEFAULT (llamadas ambiguas): %', v_malas;
+  end if;
+end $$;
+
 -- PostgREST cachea el esquema: sin esto la sobrecarga nueva no se ve hasta el siguiente reload.
 NOTIFY pgrst, 'reload schema';
 
@@ -245,13 +221,16 @@ commit;
 
 -- ============================================================================
 --  ROLLBACK (no se ejecuta con este archivo: está dentro de un comentario de bloque).
---  Para revertir: copiar lo que hay entre los marcadores y correrlo tal cual. Devuelve los cuerpos
---  de producción byte a byte (fixture private_api_prod_20261013.sql) y quita la sobrecarga pública.
+--  Para revertir: copiar lo que hay entre los marcadores y correrlo tal cual. Quita las dos
+--  sobrecargas de TRES argumentos y devuelve cotizacion_segura a producción byte a byte (fixture
+--  private_api_prod_20261013.sql). NO toca el núcleo private_api.actualizar_cotizacion_segura(bigint,
+--  jsonb) ni el wrapper público de dos argumentos (esta propuesta no los cambió): si VH-035c estaba
+--  aplicada, sigue aplicada y funcionando.
 --  El cliente, además, debe quedar con la bandera APAGADA (VITE_CONTROL_OPTIMISTA sin definir y sin
 --  `vh:controlOptimista` en localStorage); con la bandera apagada nunca manda p_actualizado_esperado,
 --  así que el cliente nuevo también funciona contra la base revertida.
---  La prueba supabase/tests/controlOptimista.test.js corre este bloque y verifica que la firma de dos
---  argumentos sigue funcionando después.
+--  Pruebas: supabase/tests/controlOptimista.test.js (sobre producción) y
+--  supabase/tests/composicionVh035cVh148.test.js (sobre VH-035c, en ambos órdenes).
 -- ============================================================================
 /*
 -- >>> ROLLBACK VH-148 INICIO
@@ -286,117 +265,6 @@ begin
   end if;
   return public.jsonb_sin_economia(payload);
 end $function$
-;
-
-CREATE OR REPLACE FUNCTION private_api.actualizar_cotizacion_segura(p_cotizacion_id bigint, p_patch jsonb)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-declare
-  v_email text := auth.jwt()->>'email';
-  v_role text;
-  v_c public.cotizaciones%rowtype;
-  v_owner text;
-  v_partidas jsonb;
-  v_acomodo jsonb;
-  v_totales jsonb;
-  v_total numeric;
-  v_piezas integer;
-  v_activa boolean;
-  v_cliente_id bigint;
-  v_contacto_id bigint;
-  v_proyecto_id bigint;
-begin
-  if v_email is null or not public.puede_entrar() then
-    raise exception 'no autorizado';
-  end if;
-  if p_patch is null or jsonb_typeof(p_patch) <> 'object' then
-    raise exception 'patch invalido';
-  end if;
-
-  select lower(p.rol) into v_role
-  from public.permitidos p
-  where lower(p.email)=lower(v_email)
-  limit 1;
-  if v_role not in ('direccion','diseno','vendedor') then
-    raise exception 'rol sin permiso';
-  end if;
-
-  select * into v_c from public.cotizaciones where id=p_cotizacion_id for update;
-  if not found then raise exception 'cotizacion no existe'; end if;
-  if not (lower(coalesce(v_c.usuario,''))=lower(v_email) or public.puede_editar_config()) then
-    raise exception 'sin acceso';
-  end if;
-  if lower(coalesce(v_c.estado,'borrador')) <> 'borrador' then
-    raise exception 'cotizacion no editable en estado %',v_c.estado;
-  end if;
-
-  if p_patch ? 'estado' and lower(coalesce(p_patch->>'estado','borrador')) <> 'borrador' then
-    raise exception 'estado protegido; use el flujo de emision';
-  end if;
-  if p_patch ? 'folio_oficial' and nullif(p_patch->>'folio_oficial','') is distinct from v_c.folio_oficial then
-    raise exception 'folio_oficial protegido; use el flujo de emision';
-  end if;
-
-  v_owner := v_c.usuario;
-  if p_patch ? 'usuario' then
-    if v_role not in ('direccion','diseno') then
-      if lower(coalesce(p_patch->>'usuario','')) <> lower(coalesce(v_c.usuario,'')) then
-        raise exception 'propietario protegido';
-      end if;
-    elsif nullif(trim(p_patch->>'usuario'),'') is not null then
-      select p.email into v_owner
-      from public.permitidos p
-      where lower(p.email)=lower(trim(p_patch->>'usuario'))
-      limit 1;
-      if v_owner is null then raise exception 'usuario propietario invalido'; end if;
-    end if;
-  end if;
-
-  v_partidas := case when p_patch ? 'partidas' then p_patch->'partidas' else v_c.partidas end;
-  v_acomodo := case when p_patch ? 'acomodo' then p_patch->'acomodo' else v_c.acomodo end;
-  v_totales := case when p_patch ? 'totales' then p_patch->'totales' else v_c.totales end;
-  if jsonb_typeof(coalesce(v_partidas,'[]'::jsonb)) <> 'array' then raise exception 'partidas debe ser arreglo'; end if;
-  if v_acomodo is not null and jsonb_typeof(v_acomodo) not in ('array','object') then raise exception 'acomodo invalido'; end if;
-  if v_totales is not null and jsonb_typeof(v_totales) <> 'object' then raise exception 'totales invalido'; end if;
-
-  v_total := v_c.total;
-  if p_patch ? 'total' then begin v_total := coalesce(nullif(p_patch->>'total','')::numeric,0); exception when others then raise exception 'total invalido'; end; end if;
-  v_piezas := v_c.piezas;
-  if p_patch ? 'piezas' then begin v_piezas := coalesce(nullif(p_patch->>'piezas','')::integer,0); exception when others then raise exception 'piezas invalido'; end; end if;
-  v_activa := v_c.activa;
-  if p_patch ? 'activa' then begin v_activa := (p_patch->>'activa')::boolean; exception when others then raise exception 'activa invalida'; end; end if;
-  v_cliente_id := v_c.cliente_id;
-  if p_patch ? 'cliente_id' then begin v_cliente_id := nullif(p_patch->>'cliente_id','')::bigint; exception when others then raise exception 'cliente_id invalido'; end; end if;
-  v_contacto_id := v_c.contacto_id;
-  if p_patch ? 'contacto_id' then begin v_contacto_id := nullif(p_patch->>'contacto_id','')::bigint; exception when others then raise exception 'contacto_id invalido'; end; end if;
-  v_proyecto_id := v_c.proyecto_id;
-  if p_patch ? 'proyecto_id' then begin v_proyecto_id := nullif(p_patch->>'proyecto_id','')::bigint; exception when others then raise exception 'proyecto_id invalido'; end; end if;
-  if v_total < 0 then raise exception 'total no puede ser negativo'; end if;
-  if v_piezas < 0 then raise exception 'piezas no puede ser negativo'; end if;
-
-  update public.cotizaciones
-  set usuario=v_owner,
-      cliente=case when p_patch ? 'cliente' then nullif(p_patch->>'cliente','') else cliente end,
-      folio=case when p_patch ? 'folio' then nullif(p_patch->>'folio','') else folio end,
-      partidas=v_partidas,
-      acomodo=v_acomodo,
-      totales=v_totales,
-      total=v_total,
-      piezas=v_piezas,
-      huella_mp=case when p_patch ? 'huella_mp' then nullif(p_patch->>'huella_mp','') else huella_mp end,
-      activa=v_activa,
-      cliente_id=v_cliente_id,
-      contacto_id=v_contacto_id,
-      proyecto_id=v_proyecto_id,
-      actualizado=now()
-  where id=p_cotizacion_id;
-
-  return public.cotizacion_segura(p_cotizacion_id);
-end;
-$function$
 ;
 
 NOTIFY pgrst, 'reload schema';

@@ -16,6 +16,10 @@ Entregables:
 - `supabase/tests/preservaEconomia.test.js` intacto (24 casos: 23 ✓ + 1 `it.fails` intencional) como documentación de vh035b.
 - Verificación de apilado (script efímero, no versionado): base + `20261010170000` + vh035b + vh035c → misma conducta que
   vh035c sola (economía anidada íntegra, re-pin rechazado).
+- **Composición con VH-148 (§8)**: `supabase/tests/composicionVh035cVh148.test.js` — 21 casos, ambos órdenes de
+  aplicación y rollback de cada archivo. **Orden de aplicación con VH-148: cualquier orden.**
+- **Nube falsa**: `crearNubeFalsa({ preservaEconomia: 'vh035c' })` en `e2e/nubeFalsa.js` (espejo JS; paridad SQL↔espejo en
+  `supabase/tests/espejoNubeFalsaVh035c.test.js`, 15 casos) y `e2e/persistenciaVh035c.e2e.js` (3 escenarios en Chromium).
 
 ## 1. Qué cambia respecto a vh035b (decisión de Dirección: corregir el diseño antes de aplicar)
 
@@ -101,12 +105,15 @@ de 180 líneas de `private_api.evaluar_emision_cotizacion`: menor superficie, in
 
 ## 4. Rollback
 
-Está al final de la PROPUESTA. Resumen: (1) reinstalar `private_api.actualizar_cotizacion_segura` y
-`public.strip_seller_economics_on_cotizacion_write` desde `private_api_prod_20261013.sql` (líneas 39-147 y 150-177);
-(2) restaurar el wrapper de `public.evaluar_emision_cotizacion` de `03_funciones.sql:535` (3 líneas); (3) `drop function`
-de las 16 ayudas de `private_api` (lista explícita en el archivo); (4) datos: nada; `cost_stale`/`cambios_rechazados`
-que hayan quedado son inertes y Dirección los quita al recostear; `vh.economia_preservada` es `set_config` local a la
-transacción. Verificar `md5(pg_get_functiondef)` contra el encabezado del fixture.
+Está al final de la PROPUESTA, ahora como bloque **ejecutable** entre `-- >>> ROLLBACK VH-035c INICIO` / `FIN` (dentro
+de `/* */`, en una transacción). Hace: (1) reinstala `private_api.actualizar_cotizacion_segura(bigint, jsonb)` y
+`public.strip_seller_economics_on_cotizacion_write` con los cuerpos de `private_api_prod_20261013.sql` copiados byte a byte
+(líneas 39-148 y 150-178); (2) restaura el wrapper de `public.evaluar_emision_cotizacion` de `03_funciones.sql:535`;
+(3) `drop function` de las 16 ayudas de `private_api`; (4) datos: nada; `cost_stale`/`cambios_rechazados` que hayan
+quedado son inertes y Dirección los quita al recostear; `vh.economia_preservada` es `set_config` local a la transacción.
+**No toca** la sobrecarga de tres argumentos de VH-148 ni `cotizacion_segura`: si VH-148 está aplicada, su control de
+versión sigue y delega en el núcleo de producción. Probado en `composicionVh035cVh148.test.js`: tras el rollback,
+`md5(pg_get_functiondef)` del núcleo, del trigger de strip y de la compuerta = los de producción.
 
 ## 5. Limitaciones residuales
 
@@ -131,17 +138,32 @@ transacción. Verificar `md5(pg_get_functiondef)` contra el encabezado del fixtu
 8. Harness: `resolver_precio_autorizado` y `resolver_precio_especial_proyecto` son stubs (lista de precios mínima; sin
    expedientes). La compuerta `evaluar_emision_cotizacion` y `emitir_revision_v2` son los cuerpos reales del baseline del
    2026-10-11, no `pg_get_functiondef` del 13 (las dos RPC de guardado sí lo son).
-9. **Coordinación con VH-148** (`PROPUESTA_vh148_control_optimista_cotizacion.sql`): define una sobrecarga
-   `private_api.actualizar_cotizacion_segura(bigint, jsonb, timestamptz)` con **su propio cuerpo** (producción + control
-   optimista) **sin el bloque VH-035**. Si se aplican ambas, un guardado con `p_actualizado_esperado` esquivaría toda esta
-   protección. Antes de autorizar cualquiera de las dos, la de 3 argumentos debe delegar en la de 2 (o incorporar el
-   mismo bloque). No se tocó vh148 (es de otro agente).
+9. ~~**Coordinación con VH-148**: el borrador de VH-148 traía su propio cuerpo sin el bloque VH-035.~~ **Resuelto
+   2026-10-13** (§8): la de 3 argumentos ya delega en este núcleo; cualquier orden de aplicación.
+10. **Ruido de procedencia** (observado al componer, no corregido): `crearPartida` emite `source_type`, `source_ref`,
+   `lista_precio_item_id` y `precio_lista_snapshot` como `null` en todo renglón. Si la partida guardada no tenía esas
+   claves, cada guardado del vendedor deja `cambios_rechazados` con 4 entradas `PROCEDENCIA_CONGELADA` (los `null` se
+   quitan; nada se pierde). No afecta economía ni emisión, pero la UI que muestre `cambios_rechazados` mostraría ruido.
+   Opción: tratar `null` como "no enviado" en la clase PROCEDENCIA (como ya se hace con AUTORIDAD). Decisión pendiente.
 
-## 6. Lo que necesitaría la nube falsa (`e2e/nubeFalsa.js`; NO se editó, para su dueño)
+## 6. Nube falsa (`e2e/nubeFalsa.js`) — **IMPLEMENTADO 2026-10-13**
 
-Hoy el mock tiene `crearNubeFalsa({ usuarios, preservaEconomia, rpcVieja })`: `preservaEconomia:false` = producción,
-`true` = fusión plana de 2026-10-10 (`fusionar`, aplicada dentro del RPC `actualizar_cotizacion_segura`). El archivo está
-en edición por otro agente (VH-148), así que se citan símbolos, no líneas. Para representar vh035c:
+Hecho: `crearNubeFalsa({ preservaEconomia: 'vh035c' })` (el default `false` sigue siendo producción, así que
+`e2e/persistencia.e2e.js:125` sigue ROJO a propósito). Espejo JS exportado: `fusionarVh035c` (fusión recursiva
+`repegarVh035c`, STALE por producto/material/lote, re-pin → 42501, producto inexistente → 23503, `producto_id` basura →
+22023, autoridad/procedencia con `cambios_rechazados`), `normalizarCostStatus` (trigger normalize, en INSERT y UPDATE),
+`motivosRecosteoPendiente` + `compuertaConRecosteo` aplicados a `cotizacion_emitible`, `evaluar_emision_cotizacion` y
+`emitir_revision(_v2)`; `f.productos` (Map id → versión vigente). El control de versión VH-148 corre antes, igual que en SQL.
+Paridad: `supabase/tests/espejoNubeFalsaVh035c.test.js` pasa 15 entradas por la SQL real y por el espejo y exige el mismo
+resultado o el mismo SQLSTATE y mensaje. Spec: `e2e/persistenciaVh035c.e2e.js` — (1) el escenario de
+`persistencia.e2e.js:103` con la nube vh035c → verde sin debilitar la aserción `costoUnitario 21000`; (2) el vendedor cambia
+la pieza del renglón por la RPC de tres argumentos → `RECOSTEO_PRODUCTO_CAMBIADO`, "Línea 1: recosteo_pendiente_producto_cambiado"
+y "Faltan datos para cotizar" para vendedor y Dirección, PDF = BORRADOR, 0 revisiones, y un segundo guardado con la versión
+vieja → 40001 sin cambios; (3) desde la interfaz, botón "+" en un mueble con `costo_por_lote` → `RECOSTEO_LOTE_CAMBIADO` y
+emisión bloqueada. Lo que la UI todavía no hace: traducir `recosteo_pendiente_*` a texto humano (sale el código por el
+fallback de `textoRazonEmision`) ni mostrar `cambios_rechazados`.
+
+Lista original de requisitos (cumplida):
 
 1. Nueva opción (p. ej. `preservaEconomia: 'vh035c'`) que en la rama `fn === 'actualizar_cotizacion_segura'` sustituya
    `fusionar(c.partidas, sinEconomia(partidas))` por una fusión **recursiva** (`sinEconomia` ya es recursiva; falta el
@@ -173,8 +195,45 @@ en edición por otro agente (VH-148), así que se citan símbolos, no líneas. P
 3. **Marca de lote**: que el cliente de Dirección (`App.jsx`, `partidaDeCosteo`) escriba `costo_por_lote:true` cuando el
    costo venga de `calcular()`; sin eso, el punto 3 es letra muerta para las partidas costeadas con el motor.
 4. **Huella de material**: ¿incluir dimensiones (`w`, `d`, `largoMM`…)? ¿`color` sí o no? Hoy: `color` sí, dimensiones no.
-5. **VH-148**: ordenar la coexistencia de las dos PROPUESTAS (la de 3 argumentos debe delegar en la de 2).
+5. ~~**VH-148**: ordenar la coexistencia~~ **Resuelto** (§8): cualquier orden.
 6. **Cliente de Dirección**: al recostear debe quitar `cost_stale`/`cost_status` del patch (el test lo hace a mano) y puede
    limpiar `cambios_rechazados`; conviene que la UI muestre `cambios_rechazados` al vendedor y `cost_stale.motivo` a Dirección.
-7. **Nube falsa**: autorizar la opción `preservaEconomia:'vh035c'` y el nuevo spec (sección 6) para que el golden vuelva a
-   verde representando el servidor migrado, no el actual.
+7. ~~**Nube falsa**~~ **Hecho** (§6): opción `preservaEconomia:'vh035c'` + `e2e/persistenciaVh035c.e2e.js`; el golden de
+   producción (`persistencia.e2e.js:125`) se dejó rojo a propósito.
+8. **Procedencia `null`** (§5.10): ¿tratar `null` como "no enviado" para no llenar `cambios_rechazados` de ruido?
+9. **Texto UI** para `linea_N_recosteo_pendiente_<motivo>` en `src/datos/emisionUX.js` (hoy sale el código crudo).
+
+## 8. Composición con VH-148 (control optimista) — orden de aplicación: **CUALQUIER ORDEN**
+
+- **Núcleo único**: `private_api.actualizar_cotizacion_segura(bigint, jsonb)` (dos argumentos, sin `DEFAULT`) es de este
+  archivo. VH-148 (`PROPUESTA_vh148_control_optimista_cotizacion.sql`) ya no lo borra ni lo copia: su sobrecarga privada
+  `(bigint, jsonb, timestamptz)` (sin `DEFAULT`) valida las mismas compuertas previas, hace `SELECT … FOR UPDATE`, compara
+  `actualizado` contra `p_actualizado_esperado` (40001 + `DETAIL 'actualizado=<ISO>'`) y **delega** aquí. Wrappers
+  públicos: 2 args → privada de 2; 3 args → privada de 3.
+- vh035c → vh148: el 3-args nace delegando en este núcleo. vh148 → vh035c: este `CREATE OR REPLACE` sustituye el núcleo y el
+  3-args queda detrás sin tocar nada. En los dos órdenes, un guardado con versión pasa por fusión, STALE, rechazo de re-pin y
+  autoridad protegida, y las llamadas de dos argumentos no son ambiguas.
+- Al final de este archivo un `DO` verifica que ninguna sobrecarga de `actualizar_cotizacion_segura` tenga `DEFAULT`: si
+  quedara instalado el **borrador viejo** de VH-148 (copia del cuerpo + `DEFAULT`), este archivo aborta en vez de componer
+  en silencio.
+- Rollback independiente: el de VH-148 no toca el núcleo (VH-035c sigue); el de este archivo no toca el 3-args ni
+  `cotizacion_segura` (VH-148 sigue, sobre el núcleo de producción).
+- **Corrección hallada al componer** (en `fusionar_economia_partidas`): un `productoId` **textual** (clave de línea:
+  `'banca_doble'`, que `crearPartida` emite con `producto_id: null`) se trataba como `producto_id` y **todo renglón de línea
+  NUEVO del vendedor se rechazaba con 22023** ("producto_id invalido … banca_doble"). Ahora el pin del servidor sólo considera
+  `producto_id`/`product_id` (validados aunque sean basura) o `productoId` numérico, igual que
+  `pin_product_versions_in_partidas`. Probado en `composicionVh035cVh148.test.js` (b2) y en la paridad del espejo.
+
+Cómo verificar:
+
+```
+npx vitest run supabase/tests/composicionVh035cVh148.test.js supabase/tests/preservaEconomiaIntegral.test.js \
+  supabase/tests/controlOptimista.test.js supabase/tests/preservaEconomia.test.js supabase/tests/espejoNubeFalsaVh035c.test.js
+PW_EXECUTABLE=/opt/pw-browsers/chromium npx playwright test e2e/persistenciaVh035c.e2e.js e2e/persistencia.e2e.js --reporter=line
+#   → persistenciaVh035c 3/3 ✓; persistencia 5 ✓ · 1 ✗ exactamente en persistencia.e2e.js:125 (VH-035, a propósito)
+```
+
+En RC (cuando Dirección autorice, en cualquier orden): tras aplicar ambas,
+`select p.oid::regprocedure, p.pronargdefaults from pg_proc p where p.proname='actualizar_cotizacion_segura'` → 4 filas,
+todas con 0; `md5(pg_get_functiondef('private_api.actualizar_cotizacion_segura(bigint,jsonb)'::regprocedure))` = el de
+VH-035c; y `prosrc` del 3-args no contiene `update public.cotizaciones`.
