@@ -122,6 +122,15 @@ export function coincide(consulta, ...campos) {
   });
 }
 
+/**
+ * Orden estable por relevancia de una búsqueda ya filtrada con `coincide`: 0 = la consulta está en el
+ * nombre, 1 = en campos de identidad (clave, medidas, línea), 2 = sólo en descripción u otros. No quita nada.
+ */
+export function ordenarPorRelevancia(lista, consulta, nombreDe = (p) => [p.nombre], identidadDe = (p) => [p.clave, p.medidas, p.linea]) {
+  const rango = (p) => (coincide(consulta, ...nombreDe(p)) ? 0 : coincide(consulta, ...nombreDe(p), ...identidadDe(p)) ? 1 : 2);
+  return lista.map((p, i) => [rango(p), i, p]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map((x) => x[2]);
+}
+
 export function pct1(n) {
   if (n == null || n === '' || isNaN(n) || !isFinite(n)) return '—';
   return Number(n).toFixed(1) + '%';

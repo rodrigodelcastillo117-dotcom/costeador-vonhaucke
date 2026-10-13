@@ -5,7 +5,7 @@
 import { useState, useMemo } from 'react';
 import { BANCO_CATEGORIAS, BANCO_FUENTES, BANCO_LINEAS, bancoUnico } from '../datos/banco.js';
 import { CATALOGO_INDEX, CATALOGO_LINEAS } from '../datos/catalogoIndex.js';
-import { pesos, coincide} from '../util.js';
+import { pesos, coincide, ordenarPorRelevancia } from '../util.js';
 import { fotoSilla } from '../datos/imagenesSilleria.js';
 
 export default function Banco({ onAgregar, onIr }) {
@@ -17,7 +17,7 @@ export default function Banco({ onAgregar, onIr }) {
 
   const q = busca.trim().toLowerCase();
   const lista = useMemo(() => {
-    return bancoUnico().filter((p) => {
+    const r = bancoUnico().filter((p) => {
       if (cat !== 'todas' && p.categoria !== cat) return false;
       if (linea !== 'todas' && p.linea !== linea) return false;
       if (!q) return true;
@@ -25,6 +25,10 @@ export default function Banco({ onAgregar, onIr }) {
       // medidas, y también la redacción literal del presupuesto.
       return coincide(q, p.nombre, p.descripcion, p.clave, p.medidas, p.material, p.linea, p.categoria);
     });
+    // Relevancia (Operación 10/10, M1): "archivero" mostraba primero una recepción y "credenza" otra, porque
+    // su descripción menciona la palabra; los 14 archiveros reales quedaban abajo. No se quita ningún
+    // resultado: primero lo que trae la palabra en el NOMBRE, luego en clave/medidas, luego el resto.
+    return q ? ordenarPorRelevancia(r, q) : r;
   }, [q, cat, linea]);
 
   const porCat = {};
@@ -34,11 +38,14 @@ export default function Banco({ onAgregar, onIr }) {
   // compraron. El CATÁLOGO son los 114 productos de las 23 líneas, sacados de
   // las guías oficiales, con sus medidas y claves reales. Un vendedor busca en
   // los dos a la vez, así que la misma búsqueda barre ambos.
-  const catalogo = useMemo(() => CATALOGO_INDEX.filter((p) => {
-    if (linea !== 'todas' && p.linea !== linea) return false;
-    if (!q) return true;
-    return coincide(q, p.linea, p.nombre, p.medidas, p.opciones, p.claves);
-  }), [q, linea]);
+  const catalogo = useMemo(() => {
+    const r = CATALOGO_INDEX.filter((p) => {
+      if (linea !== 'todas' && p.linea !== linea) return false;
+      if (!q) return true;
+      return coincide(q, p.linea, p.nombre, p.medidas, p.opciones, p.claves);
+    });
+    return q ? ordenarPorRelevancia(r, q, (p) => [p.nombre], (p) => [p.linea, p.medidas, p.claves]) : r;
+  }, [q, linea]);
   const catPorLinea = {};
   for (const p of catalogo) (catPorLinea[p.linea] ||= []).push(p);
 

@@ -449,7 +449,9 @@ export function crearNubeFalsa({ usuarios, preservaEconomia = false, rpcVieja = 
   async function manejar(route) {
     const req = route.request();
     const url = new URL(req.url());
-    const ruta = url.pathname;
+    // El dev server de laboratorio corre con VITE_*_FN=<fn>-rc (sólo desarrollo): la nube falsa contesta la
+    // misma Edge con o sin sufijo -rc (O-4, resiliencia 10/10).
+    const ruta = url.pathname.replace(/^(\/functions\/v1\/[a-z-]+?)-rc$/, '$1');
     f.llamadas.push(`${req.method()} ${ruta}${url.search}`);
     if (f.caida) return route.abort('connectionfailed');
 

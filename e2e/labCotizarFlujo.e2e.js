@@ -77,7 +77,8 @@ test('COTIZAR real por texto o manual: partidas → guardar → nube → PDF →
   const verCot = page.getByRole('button', { name: /Ver mi cotización/ });
   if (await verCot.count()) await verCot.first().click().catch(() => {});
   // El campo de la Cotización tiene etiqueta "Cliente" (sin placeholder); el de VONI, placeholder.
-  const cli = (await page.getByLabel(/^Cliente$/).count()) ? page.getByLabel(/^Cliente$/).first() : page.getByPlaceholder(/cliente/i).first();
+  const cli = page.getByLabel(/^Cliente$/).or(page.getByPlaceholder(/cliente/i)).first();
+  await cli.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
   if ((await cli.count()) && !(await cli.inputValue().catch(() => ''))) await cli.fill(CLIENTE);
   const tG = Date.now();
   await expect.poll(async () => (await leerCot(page))?.id || null, { timeout: 45000 }).not.toBeNull().catch((e) => { guarda('rpcs.json', rpcs); guarda('ERROR_guardado.txt', String(e)); throw e; }); T('guardarSeg', tG);
@@ -95,7 +96,7 @@ test('COTIZAR real por texto o manual: partidas → guardar → nube → PDF →
   console.log('[lab-cot] nube', id, JSON.stringify(nube));
 
   // 3) PDF: la compuerta decide BORRADOR o definitivo; se registra el porqué. El PDF vive en "Mi cotización".
-  await page.getByRole('button', { name: /Mi cotización/ }).first().click().catch(() => {});
+  await page.getByRole('button', { name: /Mi cotización/ }).first().click({ timeout: 10000 }).catch(() => {});
   await page.waitForTimeout(1500);
   const btnPdf = page.getByRole('button', { name: /Descargar PDF|Descargar BORRADOR/ }).first();
   await expect(btnPdf).toBeVisible({ timeout: 20000 });
