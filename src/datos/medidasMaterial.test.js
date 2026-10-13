@@ -34,3 +34,14 @@ describe('VH-167 · cambiar de material nunca borra la medida de la pieza', () =
   });
   it('sin insumo no toca nada', () => { expect(patchMedidas(lateral, null)).toEqual({}); });
 });
+
+import { piezasDeExpediente } from './medidasMaterial.js';
+describe('VH-171 · el lote sobrevive a guardar y reabrir', () => {
+  it('reabre con las piezas guardadas; expediente viejo sin dato → 1', () => {
+    expect(piezasDeExpediente({ costo: { piezas: 10 } })).toBe(10);
+    expect(piezasDeExpediente({ costo: {} })).toBe(1);
+    expect(piezasDeExpediente({})).toBe(1);
+    expect(piezasDeExpediente({ costo: { piezas: 0 } })).toBe(1);
+    expect(piezasDeExpediente({ costo: { piezas: '3' } })).toBe(3);
+  });
+});

@@ -303,3 +303,26 @@ describe('VH-169b · un escritorio con cajonera comprada no es gabinete', () => 
     expect(conAcompanantes(cajonero, insumos).some((c) => c._regla === 'zoclo')).toBe(true);
   });
 });
+
+describe('VH-170 · tapacanto duplicado: idempotente entre pasadas', () => {
+  const mesa = () => [
+    { nombre: 'Cubierta 2400×1200', insumoId: 'melamina-28-walnut', largoMM: 2400, anchoMM: 1200, piezas: 1, cantidad: 1 },
+    { nombre: 'Tapacanto PVC 2 mm Walnut perímetro cubierta', insumoId: 'tapacanto', material_solicitado: 'Tapacanto PVC 2 mm Walnut', cantidad: 7.2 },
+    { nombre: 'Panel lateral base 722×1000', insumoId: 'melamina-28-walnut', largoMM: 1000, anchoMM: 722, piezas: 2, cantidad: 1 },
+    { nombre: 'Faldón central 2000×300', insumoId: 'melamina-19-walnut', largoMM: 2000, anchoMM: 300, piezas: 1, cantidad: 1 },
+    { nombre: 'Tapacanto PVC paneles base y faldón', insumoId: 'tapacanto', material_solicitado: 'Tapacanto PVC', cantidad: 12 },
+  ];
+  it('1ª pasada: un renglón vivo por geometría (15.24 m) y el otro excluido', () => {
+    const r = conAcompanantes(mesa(), insumos);
+    const vivos = r.filter((c) => c.insumoId === 'tapacanto' && !c.excluida);
+    expect(vivos).toHaveLength(1); expect(vivos[0].cantidad).toBeCloseTo(15.24, 2);
+    expect(r.filter((c) => c.insumoId === 'tapacanto' && c.excluida)).toHaveLength(1);
+    expect(Object.keys(r).some((k) => k === '-1')).toBe(false);
+  });
+  it('2ª pasada con la IA proponiendo otra vez el duplicado: sigue un solo renglón vivo', () => {
+    const r1 = conAcompanantes(mesa(), insumos);
+    const reanalisis = [...r1.filter((c) => !c.excluida), { nombre: 'Tapacanto PVC paneles base y faldón', insumoId: 'tapacanto', material_solicitado: 'Tapacanto PVC', cantidad: 12 }];
+    const r2 = conAcompanantes(reanalisis, insumos);
+    expect(r2.filter((c) => c.insumoId === 'tapacanto' && !c.excluida)).toHaveLength(1);
+  });
+});

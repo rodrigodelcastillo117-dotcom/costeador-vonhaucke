@@ -20,7 +20,8 @@ export function filaSombra(srv, { inputHash, precioCliente, costoCliente, nombre
   const fallo = !srv || srv.ok === false;
   const precioSrv = !fallo && Number.isFinite(Number(srv?.precioVenta)) ? Number(srv.precioVenta) : null;
   const costoSrv = !fallo && Number.isFinite(Number(srv?.costo?.costoUnitario)) ? Number(srv.costo.costoUnitario) : null;
-  const pc = Math.round(Number(precioCliente));
+  // VH-170: precio pendiente (null) no es $0: sin precio no hay diferencia de precio que registrar.
+  const pc = precioCliente == null || precioCliente === '' ? NaN : Math.round(Number(precioCliente));
   const codigo = fallo ? recorta(srv?.code || (srv?.status ? `HTTP_${srv.status}` : 'SIN_RESPUESTA'), 40) : null;
   const motivo = fallo
     ? recorta(srv?.error || srv?.issues?.[0]?.msg || 'sin detalle', 160)

@@ -31,3 +31,13 @@ describe('filaSombra', () => {
     expect(f.nota.length).toBeLessThanOrEqual(120 + 3 + 4 + 160);
   });
 });
+
+describe('VH-170 · sombra con precio pendiente', () => {
+  it('precio del cliente null → precio_cliente null y sin diff; el costo sí se compara', () => {
+    const f = filaSombra({ ok: true, estado: 'incompleto', precioVenta: 8555.92, costo: { costoUnitario: 5133.55 } }, { inputHash: 'h', precioCliente: null, costoCliente: 5072.85, nombre: 'mesa' });
+    expect(f.precio_cliente).toBeNull();
+    expect(f.diff).toBeNull();
+    expect(f.costo_cliente).toBe(5073);
+    expect(f.costo_servidor).toBe(5133.55);
+  });
+});

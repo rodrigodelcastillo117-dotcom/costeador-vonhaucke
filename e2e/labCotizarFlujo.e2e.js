@@ -48,7 +48,7 @@ test('COTIZAR real por texto o manual: partidas → guardar → nube → PDF →
     await page.getByRole('button', { name: /Armar la lista de muebles/ }).click();
     const fin = page.getByText(/Agregué \d+ mueble|No pude armar ningún mueble/).first();
     await expect(fin).toBeVisible({ timeout: 180000 }); T('interpretarSeg', t0);
-    entrada = { texto: TEXTO, resultado: await fin.innerText(), descartadas: await page.getByTestId('sugerencias-descartadas').innerText().catch(() => ''), pantalla: (await page.locator('main').innerText()).slice(0, 6000) };
+    entrada = { texto: TEXTO, resultado: await fin.innerText({ timeout: 5000 }), descartadas: await page.getByTestId('sugerencias-descartadas').innerText({ timeout: 2000 }).catch(() => ''), pantalla: (await page.locator('main').innerText({ timeout: 5000 }).catch(() => '')).slice(0, 6000) };
   } else {
     await page.getByText('Banco de precios', { exact: false }).first().click();
     const caja = page.getByPlaceholder(/Busca como se te ocurra/); await expect(caja).toBeVisible({ timeout: 15000 });
@@ -57,7 +57,7 @@ test('COTIZAR real por texto o manual: partidas → guardar → nube → PDF →
       await caja.fill(q); await page.waitForTimeout(600);
       const fila = page.locator('.banco-add').first();
       if (!(await fila.count())) { entrada.agregados.push({ q, agregado: null }); continue; }
-      const nombre = await fila.locator('xpath=..').locator('.banco-nombre').innerText().catch(() => '');
+      const nombre = await fila.locator('xpath=..').locator('.banco-nombre').innerText({ timeout: 2000 }).catch(() => '');
       await fila.getByRole('button', { name: /^Agregar$/ }).click(); await page.waitForTimeout(400);
       entrada.agregados.push({ q, agregado: nombre.replace(/\s+/g, ' ').slice(0, 160) });
     }

@@ -35,3 +35,13 @@ export function patchMedidas(prev = {}, ins = null) {
   if (!conMedida(prev)) return { largoMM: undefined, anchoMM: undefined };
   return { largoMM: undefined, anchoMM: undefined, medidaPrevia: { largoMM: prev.largoMM, anchoMM: prev.anchoMM } };
 }
+
+/**
+ * VH-171 (mesa de trabajo lote 10, 10/10): al reabrir un expediente de Costear el lote se forzaba a 1 pieza;
+ * el costo unitario del lote (10 piezas comparten hojas) se perdía y la transferencia a Cotizar salía con
+ * cantidad 1 y otro costo. El lote viaja en `costo.piezas`; los expedientes viejos sin el dato abren en 1.
+ */
+export function piezasDeExpediente(e = {}) {
+  const n = Math.round(Number(e?.costo?.piezas));
+  return Number.isFinite(n) && n >= 1 ? n : 1;
+}

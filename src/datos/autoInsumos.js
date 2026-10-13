@@ -112,17 +112,23 @@ export function conAcompanantes(componentes = [], insumos = null) {
         ? `Regla de casa con lo que dice el plano: SÓLO cantos frontales (un canto por pieza, respaldo sin canto) = ${r2(metros)} m (${detalle.join(' · ')}). El color iguala el acabado.`
         : `Regla de casa: cantos visibles por tipo de pieza (cubierta/puerta/frente 4 lados, costado 2, entrepaño 1, respaldo 0) = ${r2(metros)} m (${detalle.join(' · ')}). El color iguala el acabado.`;
       const tapas = conRol().filter((x) => x.fam === 'tapacanto' && !x.c.excluida);
-      const existente = tapas[0];
+      // El renglón que lleva el metraje por geometría: el que ya calculó la regla, o el primero de la IA.
+      const existente = tapas.find((x) => x.c._regla === 'tapacanto') || tapas[0];
       if (metros > 0 && existente && !existente.c._regla && !existente.c.cantidad_confirmada) {
         const idx = comps.indexOf(existente.c);
-        // VH-169: varios renglones de tapacanto de la IA se sumaban (16.2 m contra 8.66 m del plano). El total por
-        // geometría va al primero; los demás quedan EXCLUIDOS y visibles con su motivo (la persona puede revertirlo).
-        const otros = tapas.slice(1).filter((x) => !x.c.cantidad_confirmada && !x.c._regla);
-        const iaTotal = [existente, ...otros].reduce((s, x) => s + (Number(x.c.cantidad) || 0), 0);
-        comps[idx] = { ...existente.c, iaCantidad: existente.c.cantidad, cantidad: r2(metros), _regla: 'tapacanto', iaNota: `${nota}${iaTotal > 0 ? ` (la IA suponía ${r2(iaTotal)} m en ${1 + otros.length} renglón(es)).` : ''}` };
-        for (const o of otros) {
+        const iaTotal = tapas.filter((x) => !x.c.cantidad_confirmada && !x.c._regla).reduce((s, x) => s + (Number(x.c.cantidad) || 0), 0);
+        comps[idx] = { ...existente.c, iaCantidad: existente.c.cantidad, cantidad: r2(metros), _regla: 'tapacanto', iaNota: `${nota}${iaTotal > 0 ? ` (la IA suponía ${r2(iaTotal)} m en ${tapas.filter((x) => !x.c.cantidad_confirmada && !x.c._regla).length} renglón(es)).` : ''}` };
+      }
+      // VH-169/170: varios renglones de tapacanto de la IA se sumaban (16.2 m contra 8.66 m del plano; 27.2 m contra
+      // 15.2 m en la mesa de juntas). Los que NO son el renglón por geometría quedan EXCLUIDOS y visibles con su
+      // motivo — también en pasadas posteriores (la IA los vuelve a proponer al re-analizar). Idempotente.
+      if (metros > 0 && existente && (existente.c._regla || comps.find((c) => c && c._regla === 'tapacanto'))) {
+        const vivo = comps.find((c) => c && c._regla === 'tapacanto' && !c.excluida);
+        for (const o of tapas) {
+          if (!vivo || o.c === vivo || o.c === existente.c || o.c.cantidad_confirmada || o.c._regla === 'tapacanto') continue;
           const j = comps.indexOf(o.c);
-          comps[j] = { ...o.c, excluida: true, _regla: 'tapacanto_duplicado', iaNota: `Incluido en «${existente.c.nombre}» (tapacanto por geometría, ${r2(metros)} m). La IA lo había puesto aparte con ${o.c.cantidad} m: se excluye para no contarlo dos veces.` };
+          if (j < 0) continue;
+          comps[j] = { ...o.c, excluida: true, _regla: 'tapacanto_duplicado', iaNota: `Incluido en «${vivo.nombre}» (tapacanto por geometría, ${vivo.cantidad} m). La IA lo había puesto aparte con ${o.c.cantidad} m: se excluye para no contarlo dos veces.` };
         }
       } else if (metros > 0 && !existente) {
         comps.push(pieza({ nombre: 'Tapacanto (cantos visibles)', material_solicitado: 'Tapacanto PVC', cantidad: r2(metros), piezas: 1, forma: 'lineal' }, insumos, 'tapacanto', nota));
