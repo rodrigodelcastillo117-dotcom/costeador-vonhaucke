@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   resolverOperativos, resolverPrivado, resolverJuntas, resolverRecepcion,
-  resolverPrograma, medidasAwd, componerOperativos,
+  resolverPrograma, medidasAwd, componerOperativos, mejorComposicion,
 } from './resolverPrograma.js';
 
 const esReal = (p) => p && p.bancoId && !String(p.bancoId).startsWith('sug-')
@@ -206,5 +206,31 @@ describe('resolverPrograma · compuertas 2 y 3 por partida (P0.1 · #12)', () =>
     expect(a.price_status).toBe('SNAPSHOT_DISPLAY');
     expect(a.precio_lista_snapshot).toBe(28540);
     expect(a.autoridad).toBe('SERVIDOR');
+  });
+});
+
+describe('P1 · desempate de composición (plano Torre Norte: 16 puestos en dos bancas de 8)', () => {
+  it('16 usuarios App LT → 2 × op-8u (módulos iguales con topología declarada), no 12u + 4u', () => {
+    const r = resolverOperativos(16, { linea: 'App LT' });
+    expect(r.faltante).toBe(0);
+    const ids = r.resoluciones.map((x) => x.bancoId || x.id || x.productoId || '').join(' ');
+    expect(r.resoluciones).toHaveLength(2);
+    expect(ids).toMatch(/op-8u/);
+    expect(ids).not.toMatch(/op-12u|op-4u/);
+    expect(r.resoluciones.every((x) => x.placement_profile?.topology === 'DOUBLE_FACE')).toBe(true);
+  });
+  it('20 usuarios → 2 × 10u (iguales) en vez de 12u + 8u', () => {
+    const r = resolverOperativos(20, { linea: 'App LT' });
+    expect(r.resoluciones.map((x) => x.usuarios)).toEqual([10, 10]);
+  });
+  it('10 usuarios sigue siendo un solo 10u (sin regresión del golden)', () => {
+    const r = resolverOperativos(10, { linea: 'App LT' });
+    expect(r.resoluciones.map((x) => x.usuarios)).toEqual([10]);
+  });
+  it('mejorComposicion prefiere menos referencias y luego topología declarada', () => {
+    const mods = [{ id: 'a12', usuarios: 12 }, { id: 'a8', usuarios: 8 }, { id: 'a6', usuarios: 6 }, { id: 'a4', usuarios: 4 }];
+    expect(mejorComposicion(mods, 16, 2).map((c) => [c.modulo.id, c.cantidad])).toEqual([['a8', 2]]);
+    const c14 = mejorComposicion(mods, 14, 2).map((c) => c.modulo.id).sort();
+    expect(c14).toEqual(['a6', 'a8']);      // 12+2 no existe aquí; 8+6 gana a… (sólo hay 8+6)
   });
 });

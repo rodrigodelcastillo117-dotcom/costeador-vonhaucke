@@ -37,7 +37,7 @@ import {
   vistaCanonica, identidadDe, autoridadPrecio, medidasAwd,
   asientoPara, guardaPara, buscarEnColeccion,
 } from './catalogoCanonico.js';
-import { placementProfileDeResolucion } from './placementTopologia.js';
+import { placementProfileDeResolucion, topologiaDeProducto } from './placementTopologia.js';
 
 export { medidasAwd };   // única fuente del parser de medidas
 
@@ -151,11 +151,56 @@ export function componerOperativos(n, modulos) {
     else { const bw = best - N; const sw = s - N; if (sw < bw || (sw === bw && dp[s] < dp[best])) best = s; }
   }
   if (best === -1) return { combo: [], total: 0, faltante: N };
-  const cuenta = new Map();
-  let s = best;
-  while (s > 0) { const m = modulos[from[s]]; cuenta.set(m.id, (cuenta.get(m.id) || 0) + 1); s -= Number(m.usuarios) || 0; }
-  const combo = [...cuenta.entries()].map(([id, cantidad]) => ({ modulo: modulos.find((m) => m.id === id), cantidad }));
-  return { combo, total: best, faltante: 0 };
+  // P1 (Dirección 13-oct, plano Torre Norte): entre composiciones con el MISMO excedente y el MISMO número de
+  // módulos (16 → 12+4 ó 8+8), el DP escogía por orden de iteración. Ahora se desempata con criterio de
+  // taller: (1) módulos iguales (una sola referencia: se fabrica, se instala y se acomoda mejor),
+  // (2) módulos con topología declarada (bench doble conocido → el acomodo no cae en revisión semántica),
+  // (3) el módulo mayor más grande (determinista). 16 → 2 × 8u; 10 → 10u sigue igual.
+  const k = dp[best];
+  const mejor = mejorComposicion(modulos, best, k) || (() => {
+    const cuenta = new Map();
+    let s = best;
+    while (s > 0) { const m = modulos[from[s]]; cuenta.set(m.id, (cuenta.get(m.id) || 0) + 1); s -= Number(m.usuarios) || 0; }
+    return [...cuenta.entries()].map(([id, cantidad]) => ({ modulo: modulos.find((m) => m.id === id), cantidad }));
+  })();
+  return { combo: mejor, total: best, faltante: 0 };
+}
+
+const topologiaDeclarada = (m) => !!(topologiaDeProducto(m) || Number(m?.usuarios) === 8);
+
+/** Enumera las composiciones (multiconjuntos) de `modulos` que suman `total` con exactamente `k` módulos y
+ *  devuelve la mejor por: menos referencias distintas → más módulos con topología declarada → mayor módulo. */
+export function mejorComposicion(modulos, total, k) {
+  const mods = modulos.slice().sort((a, b) => (Number(b.usuarios) || 0) - (Number(a.usuarios) || 0));
+  let mejor = null, mejorClave = null;
+  const cuenta = new Array(mods.length).fill(0);
+  let visitadas = 0;
+  const rec = (i, restantes, suma) => {
+    if (visitadas > 50000) return;
+    if (restantes === 0) {
+      visitadas++;
+      if (suma !== total) return;
+      const usados = cuenta.map((c, j) => [c, mods[j]]).filter(([c]) => c > 0);
+      const distintas = usados.length;
+      const conTopo = usados.reduce((s, [c, m]) => s + (topologiaDeclarada(m) ? c : 0), 0);
+      const mayor = Math.max(...usados.map(([, m]) => Number(m.usuarios) || 0));
+      const clave = [distintas, -conTopo, -mayor];
+      if (!mejorClave || clave.some((v, idx) => v !== mejorClave[idx]) && (() => { for (let idx = 0; idx < clave.length; idx++) { if (clave[idx] !== mejorClave[idx]) return clave[idx] < mejorClave[idx]; } return false; })()) {
+        mejorClave = clave; mejor = usados.map(([c, m]) => ({ modulo: m, cantidad: c }));
+      }
+      return;
+    }
+    if (i >= mods.length) return;
+    const u = Number(mods[i].usuarios) || 0;
+    for (let c = Math.min(restantes, Math.floor((total - suma) / u)); c >= 0; c--) {
+      cuenta[i] = c;
+      rec(i + 1, restantes - c, suma + c * u);
+      cuenta[i] = 0;
+      if (visitadas > 50000) return;
+    }
+  };
+  rec(0, k, 0);
+  return mejor;
 }
 
 // --- OPERATIVOS: N usuarios → módulo(s) real(es) (anclas). ---
