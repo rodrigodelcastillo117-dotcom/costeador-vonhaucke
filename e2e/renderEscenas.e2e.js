@@ -57,5 +57,12 @@ test.describe('renders por cuarto · producción', () => {
       if (!r.ok && r.code === 'RENDER_QA_FAILED') expect(r.fallidos.length + r.razones.length, 'la auditoría dice por qué').toBeGreaterThan(0);
     }
     expect(imgs).toBe(respuestas.filter((r) => r.ok).length);
+    // P1 (orden nocturna 2026-10-13): "se rechaza con buena explicación" ≠ "se generó una imagen fiel y aceptada".
+    // El contrato de arriba puede pasar con 0 aceptados; eso se reporta aparte y, si se exige
+    // (RENDER_EXIGE_ACEPTADO=1), falla.
+    const aceptados = respuestas.filter((r) => r.ok).length;
+    test.info().annotations.push({ type: 'generacion', description: `${aceptados}/${respuestas.length} renders aceptados por el auditor` });
+    console.log(`[render] GENERACIÓN: ${aceptados}/${respuestas.length} aceptados (0 aceptados NO es PASS de generación; sólo del contrato de rechazo explicado)`);
+    if (process.env.RENDER_EXIGE_ACEPTADO === '1') expect(aceptados, 'generación: al menos un render aceptado').toBeGreaterThan(0);
   });
 });

@@ -46,11 +46,15 @@ test.describe('COCREAR · expediente QA', () => {
     console.log('[cocrear] reabierto:', titulo, '· revisiones:', (textoStudio.match(/R\d · /g) || []).length);
     // Guardar: escribe en el expediente de prueba (dato QA identificado).
     const guardar = page.getByRole('button', { name: /^Guardar$/ }).first();
-    if (await guardar.count() && await guardar.isEnabled()) {
-      await guardar.click();
-      await expect(page.getByText(/Co-creación guardada|No se pudo guardar/)).toBeVisible({ timeout: 20000 });
-      console.log('[cocrear] guardar:', (await page.getByText(/Co-creación guardada|No se pudo guardar/).first().innerText()).slice(0, 80));
-    } else console.log('[cocrear] botón Guardar no disponible:', await guardar.count(), await guardar.getAttribute('title').catch(() => null));
+    // P1 (orden nocturna 2026-10-13): guardar ausente, deshabilitado o con error DEBE fallar la prueba;
+    // antes sólo se escribía en el log y la prueba quedaba verde sin haber guardado nada.
+    expect(await guardar.count(), 'el botón Guardar debe existir en el expediente reabierto').toBeGreaterThan(0);
+    expect(await guardar.isEnabled(), `Guardar deshabilitado (${await guardar.getAttribute('title').catch(() => null)})`).toBe(true);
+    await guardar.click();
+    await expect(page.getByText(/Co-creación guardada|No se pudo guardar/)).toBeVisible({ timeout: 20000 });
+    const msgGuardar = (await page.getByText(/Co-creación guardada|No se pudo guardar/).first().innerText()).slice(0, 120);
+    console.log('[cocrear] guardar:', msgGuardar);
+    expect(msgGuardar, 'guardar debe confirmar, no fallar').toMatch(/Co-creación guardada/);
     // Render real sólo a pedido (cuesta): registra resultado o rechazo con motivo.
     if (process.env.COCREAR_RENDER === '1') {
       const render = page.getByRole('button', { name: /Generar render/i }).first();
@@ -59,7 +63,7 @@ test.describe('COCREAR · expediente QA', () => {
         await expect.poll(() => red.some((r) => /generar-render/.test(r.url)), { timeout: 150000 }).toBe(true);
         await page.waitForTimeout(1500);
         await page.screenshot({ path: testInfo.outputPath('cocrear-3-render.png'), fullPage: true });
-      } else console.log('[cocrear] Generar render no disponible:', await render.count(), await render.getAttribute('title').catch(() => null));
+      } else throw new Error(`COCREAR_RENDER=1 pero "Generar render" no disponible (count=${await render.count()}, title=${await render.getAttribute('title').catch(() => null)})`);
     }
     // Nunca: registrar producto / cotizar.
     const registrar = page.getByRole('button', { name: /Registrar|Dar de alta|Cotizar/i });
