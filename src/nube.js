@@ -375,6 +375,8 @@ const envFn = (k, def) => (typeof import.meta !== 'undefined' && import.meta.env
 const FN_ANALIZAR = envFn('VITE_ANALIZAR_MUEBLE_FN', 'analizar-mueble');
 const FN_COTIZAR_TEXTO = envFn('VITE_COTIZAR_TEXTO_FN', 'cotizar-texto');
 const FN_GENERAR_RENDER = envFn('VITE_GENERAR_RENDER_FN', 'generar-render');
+// RC: costear-servidor-rc mide la paridad cliente/servidor con el motor de la rama (sólo en desarrollo).
+const FN_COSTEAR = (() => { const v = envFn('VITE_COSTEAR_FN', 'costear-servidor'); return v.startsWith('costear-servidor') ? v : 'costear-servidor'; })();
 // Carril de recuperación: el preview NUNCA invoca la Edge productiva 'acomodar-espacio'. El override
 // (RC: acomodar-espacio-recovery-rc, sólo para medir) debe quedarse dentro del carril o se ignora.
 const FN_ACOMODAR = (() => { const v = envFn('VITE_ACOMODAR_FN', 'acomodar-espacio-recovery'); return v.startsWith('acomodar-espacio-recovery') ? v : 'acomodar-espacio-recovery'; })();
@@ -476,7 +478,7 @@ export async function costearServidor(pieza, cantidad = 1) {
   const intent = intentDesdePieza(pieza, cantidad);
   const v = validarIntentCosteo(intent);
   if (!v.ok) return { ok: false, error: v.issues?.[0]?.msg || v.code, code: v.code, issues: v.issues, status: 400 };
-  const { data, error } = await nube.functions.invoke('costear-servidor', {
+  const { data, error } = await nube.functions.invoke(FN_COSTEAR, {
     body: v.intent,
   });
   if (error) {

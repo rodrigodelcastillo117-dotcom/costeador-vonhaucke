@@ -48,7 +48,7 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   page.on('response', async (res) => {
     const u = res.url();
     const m = u.match(/\/functions\/v1\/([a-z0-9-]+)/);
-    if (m) { let j = null; try { j = await res.json(); } catch (_e) {} let req = null; try { req = m[1] === 'costear-servidor' ? JSON.parse(res.request().postData() || 'null') : null; } catch (_e) {} edges.push({ fn: m[1], status: res.status(), body: j, req }); console.log('[lab-costear] edge', m[1], res.status(), JSON.stringify(j || {}).slice(0, 300)); return; }
+    if (m) { let j = null; try { j = await res.json(); } catch (_e) {} let req = null; try { req = m[1].startsWith('costear-servidor') ? JSON.parse(res.request().postData() || 'null') : null; } catch (_e) {} edges.push({ fn: m[1], status: res.status(), body: j, req }); console.log('[lab-costear] edge', m[1], res.status(), JSON.stringify(j || {}).slice(0, 300)); return; }
     if (/\/rest\/v1\/expedientes/.test(u) && res.request().method() !== 'GET') { let j = null; try { j = await res.json(); } catch (_e) {} rest.push({ method: res.request().method(), status: res.status(), body: j }); console.log('[lab-costear] expedientes', res.request().method(), res.status(), JSON.stringify(j || {}).slice(0, 200)); }
   });
   await page.addInitScript(() => { try { const k = 'costeador-vonhaucke-v1'; const s = JSON.parse(window.localStorage.getItem(k) || '{}'); s.onboardingVisto = true; window.localStorage.setItem(k, JSON.stringify(s)); } catch (_e) {} });
@@ -182,10 +182,10 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
 
   // 4) Sombra: la última respuesta de costear-servidor vs el costo en pantalla.
   await page.waitForTimeout(6000);
-  const srv = edges.filter((e) => e.fn === 'costear-servidor').pop();
+  const srv = edges.filter((e) => e.fn.startsWith('costear-servidor')).pop();
   const costoCliente = res3.precios.length && !res3.pendiente ? pesosNum(res3.precios[0]) : null;
   const costoSrv = srv?.body?.costoUnitario ?? srv?.body?.resultado?.costoUnitario ?? srv?.body?.costo?.costoUnitario ?? null;
-  const paridad = { costoCliente, costoSrv, estadoSrv: srv?.body?.estado ?? srv?.body?.estadoCosto ?? null, iguales: costoCliente != null && costoSrv != null ? Math.round(costoCliente * 100) === Math.round(Number(costoSrv) * 100) : null, llamadasSrv: edges.filter((e) => e.fn === 'costear-servidor').length };
+  const paridad = { costoCliente, costoSrv, estadoSrv: srv?.body?.estado ?? srv?.body?.estadoCosto ?? null, iguales: costoCliente != null && costoSrv != null ? Math.round(costoCliente * 100) === Math.round(Number(costoSrv) * 100) : null, llamadasSrv: edges.filter((e) => e.fn.startsWith('costear-servidor')).length };
   guarda('4-paridad.json', { paridad, servidor: srv?.body ?? null });
   console.log('[lab-costear] paridad', JSON.stringify(paridad));
 
@@ -238,11 +238,11 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
       transfer.title = await btnAdd.first().getAttribute('title').catch(() => null);
       const antes = ((await leerCot(page))?.partidas || []).length;
       if (transfer.habilitado) {
-        const nSrv = edges.filter((e) => e.fn === 'costear-servidor').length;
+        const nSrv = edges.filter((e) => e.fn.startsWith('costear-servidor')).length;
         await btnAdd.first().click();
-        await expect.poll(() => edges.filter((e) => e.fn === 'costear-servidor').length, { timeout: 60000 }).toBeGreaterThan(nSrv).catch(() => {});
+        await expect.poll(() => edges.filter((e) => e.fn.startsWith('costear-servidor')).length, { timeout: 60000 }).toBeGreaterThan(nSrv).catch(() => {});
         await page.waitForTimeout(3000);
-        const srv2 = edges.filter((e) => e.fn === 'costear-servidor').pop();
+        const srv2 = edges.filter((e) => e.fn.startsWith('costear-servidor')).pop();
         const cot = await leerCot(page); const partidas = cot?.partidas || [];
         const nueva = partidas[partidas.length - 1] || null;
         transfer.partidasAntes = antes; transfer.partidasDespues = partidas.length;
@@ -257,7 +257,7 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   guarda('7-transferencia.json', transfer);
   console.log('[lab-costear] transferencia', JSON.stringify({ ...transfer, main: undefined }));
   guarda('edges.json', edges.map((e) => ({ ...e, body: JSON.stringify(e.body || {}).slice(0, 6000), req: e.req ? JSON.stringify(e.req).slice(0, 6000) : null })));
-  const ultimoSrv = edges.filter((e) => e.fn === 'costear-servidor').pop();
+  const ultimoSrv = edges.filter((e) => e.fn.startsWith('costear-servidor')).pop();
   guarda('8-dto-servidor.json', { req: ultimoSrv?.req ?? null, res: ultimoSrv?.body ?? null });
   if (HOJA) {
     // Corrección técnica del BOM FINAL (el que costeó el servidor) contra la hoja de control del fixture.
