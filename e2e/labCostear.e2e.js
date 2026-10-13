@@ -66,7 +66,7 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   await page.getByTestId('costear-archivo').setInputFiles(IMG);
   const an = await esperaAn; const anBody = await an.json().catch(() => null);
   console.log('[lab-costear] analizar-mueble', an.status(), 'en', ((Date.now() - t0) / 1000).toFixed(0), 's · piezas', anBody?.propuesta?.piezas?.length);
-  await expect(page.locator('.pieza').first()).toBeVisible({ timeout: 60000 });
+  await expect(page.locator('.pieza').first()).toBeVisible({ timeout: 150000 });   // análisis + verificación pueden sumar >60 s
   await page.waitForTimeout(5000);   // verificación / amarre ERP automático
   const piezas1 = await leerPiezas(page); const res1 = await leerResultado(page);
   guarda('1-bom-inicial.json', { piezas: piezas1, resultado: res1, analizar: { status: an.status(), piezas: anBody?.propuesta?.piezas?.length, producto: anBody?.propuesta?.producto, uso: anBody?.uso } });
