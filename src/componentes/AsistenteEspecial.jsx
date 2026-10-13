@@ -24,6 +24,7 @@ import { resumenMotor } from '../datos/resumenMotor.js';
 import { respuestasPorReglaDeCasa, esSupuestoPreliminar } from '../datos/autoRespuestas.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, alertaMaterial } from '../datos/materialMatch.js';
 import { conservarMaterialesConfirmados } from '../datos/conservarConfirmados.js';
+import { proponerGemelosErp, fusionarGemelosEnBom, piezasConTamanoDeHoja } from '../datos/gemeloErp.js';
 import BuscadorInsumo from './BuscadorInsumo.jsx';
 import { paginaAImagen } from '../datos/pdfImagen.js';
 import { prepararPdfRapido, rasterizarPaginas, paginasAlrededor } from '../datos/pdfPipeline.js';
@@ -263,6 +264,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // su total es apenas un SUBTOTAL CONOCIDO, no se le pone precio ni se aprueba.
   const emision = costeoEmitible(resultado);
   const emitible = emision.emitible;
+  // VH-151: piezas cuyo largo×ancho es el tamaño de la HOJA comercial (o excede el formato): la IA confundió hoja con pieza.
+  const piezasTamanoHoja = useMemo(() => piezasConTamanoDeHoja(b.componentes, insumos), [b.componentes, insumos]);
+  const esTamanoHoja = (nombre) => piezasTamanoHoja.find((x) => x.nombre === nombre) || null;
   // P0.16: ¿hay una validación server-authority VIGENTE para el BOM actual? Cualquier cambio de
   // componente/material/medida cambia el bomHash → invalida la validación anterior.
   const validacionVigente = !!validacionSrv && validacionSrv.valido === true && validacionSrv.bomHash === bomHash(b.componentes);
@@ -591,6 +595,16 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           return { ...prev, componentes: fus };
         });
         setConfMsg(`Catálogo de Compras: ${lista.length} material(es) amarrado(s) con precio real, por confirmar: ${lista.map((x) => x.insumoNombre).slice(0, 5).join(', ')}${lista.length > 5 ? '…' : ''}.`);
+      })
+      .catch(() => {});
+    // VH-152 (Dirección 13-oct): si un curado SIN precio certificable tiene gemelo técnico exacto en Compras
+    // con precio real certificable, se PROPONE el gemelo (provisional, por confirmar). Asíncrono y tardío:
+    // sólo se fusiona sobre piezas que siguen con el mismo curado y sin confirmación humana.
+    proponerGemelosErp(comps, { insumos, buscar: buscarInsumosMotor, agregarInsumo: onAgregarInsumo || (() => {}) })
+      .then(({ comps: conGemelos, propuestos }) => {
+        if (!propuestos.length || !aceptaCorrida(corridaId, corrida.current)) return;
+        setB((prev) => ({ ...prev, componentes: fusionarGemelosEnBom(Array.isArray(prev.componentes) ? prev.componentes : [], conGemelos) }));
+        setConfMsg((m) => `${m ? m + ' ' : ''}Compras tiene el mismo material con precio certificado para ${propuestos.length} pieza(s): ${propuestos.map((x) => `${x.nombre} → ${x.insumoNombre}`).slice(0, 4).join('; ')}${propuestos.length > 4 ? '…' : ''}. Propuesto por confirmar.`);
       })
       .catch(() => {});
     // planos: TODAS las páginas/vistas del plano (base64 raw) para referencia múltiple del render.
@@ -1192,6 +1206,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                     ⚠️ <b>{a.titulo}</b> — {a.detalle}
                   </div>
                 ); })()}
+                {esTamanoHoja(c.nombre) && (
+                  <div className="pieza-calc" data-testid="alerta-material" data-tono="rojo" data-motivo="tamano-hoja" style={{ color: 'var(--alerta,#b22a22)', fontWeight: 600 }}>
+                    ⚠ {esTamanoHoja(c.nombre).motivo === 'TAMANO_HOJA' ? `Medida de HOJA, no de pieza (${c.largoMM}×${c.anchoMM} mm): pon el largo×ancho de la pieza real; la hoja la calcula el motor.` : `La pieza (${c.largoMM}×${c.anchoMM} mm) excede el formato de compra (${esTamanoHoja(c.nombre).formato} mm): divídela o corrige la medida.`}
+                  </div>
+                )}
                 {est.badge && (
                   <div className="pieza-calc" data-testid="alerta-material" data-tono="ambar" style={{ color: 'var(--ambar,#8a6d00)', fontWeight: 600 }}>🟡 {est.badge}</div>
                 )}
@@ -1323,6 +1342,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           {costoIncompleto && (
             <div className="alerta roja" style={{ marginTop: 10, textAlign: 'left' }}>
               <span className="texto">⚠ <strong>Costo INCOMPLETO</strong> — <strong>faltan por costear {piezasSinMaterial.length} partida(s)</strong>: {piezasSinMaterial.slice(0, 6).join(', ')}{piezasSinMaterial.length > 6 ? '…' : ''}. Asígnales material en el despiece (arriba) o márcalas como excluidas. Hasta entonces no hay costo total ni precio.</span>
+            </div>
+          )}
+          {piezasTamanoHoja.length > 0 && (
+            <div className="alerta roja" style={{ marginTop: 10, textAlign: 'left' }} data-testid="alerta-tamano-hoja">
+              <span className="texto">⚠ <strong>{piezasTamanoHoja.length} pieza(s) con medida de hoja, no de pieza</strong>: {piezasTamanoHoja.map((x) => `${x.nombre} (${x.largoMM}×${x.anchoMM})`).join(', ')}. El motor no las puede costear hasta que tengan el largo×ancho real (VH-151).</span>
             </div>
           )}
           {preguntasIA.length > 0 && (
