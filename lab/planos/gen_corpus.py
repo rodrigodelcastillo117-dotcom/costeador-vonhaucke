@@ -75,12 +75,18 @@ def dibujar(plan, ax):
             else:
                 ax.add_patch(Rectangle((cx - w / 2, cy - d / 2), w, d, fc='#dde8f5', ec=INK, lw=THIN))
                 lado = n // 2
-                for i in range(lado):
-                    x = cx - w / 2 + (i + 0.5) * w / lado
-                    ax.add_patch(Circle((x, cy - d / 2 - 0.45), 0.25, fc='white', ec=INK, lw=THIN))
-                    ax.add_patch(Circle((x, cy + d / 2 + 0.45), 0.25, fc='white', ec=INK, lw=THIN))
-                if n % 2:
-                    ax.add_patch(Circle((cx + w / 2 + 0.45, cy), 0.25, fc='white', ec=INK, lw=THIN))
+                if w >= d:   # sillas a lo largo del lado LARGO, nunca encimadas
+                    for i in range(lado):
+                        x = cx - w / 2 + (i + 0.5) * w / lado
+                        ax.add_patch(Circle((x, cy - d / 2 - 0.45), 0.25, fc='white', ec=INK, lw=THIN))
+                        ax.add_patch(Circle((x, cy + d / 2 + 0.45), 0.25, fc='white', ec=INK, lw=THIN))
+                    if n % 2: ax.add_patch(Circle((cx + w / 2 + 0.45, cy), 0.25, fc='white', ec=INK, lw=THIN))
+                else:
+                    for i in range(lado):
+                        y = cy - d / 2 + (i + 0.5) * d / lado
+                        ax.add_patch(Circle((cx - w / 2 - 0.45, y), 0.25, fc='white', ec=INK, lw=THIN))
+                        ax.add_patch(Circle((cx + w / 2 + 0.45, y), 0.25, fc='white', ec=INK, lw=THIN))
+                    if n % 2: ax.add_patch(Circle((cx, cy + d / 2 + 0.45), 0.25, fc='white', ec=INK, lw=THIN))
     # puertas: hueco blanco en el muro + hoja + arco
     for p in plan.puertas:
         x, y, a = p['x'], p['y'], p['ancho']
@@ -180,11 +186,12 @@ def c2():
     p.area('SALA CREATIVA', 'juntas', pts=[(8, 8), (16, 8), (16, 14), (8, 14)], asientos=6, dims='8.00 × 6.00 m')
     p.area('SERVICIOS', 'servicio', pts=[(0, 8), (8, 8), (8, 14), (0, 14)], dims='8.00 × 6.00 m')
     p.escritorios(7, 1.2, 4, 4, dx=2.2, dy=1.7); p.mesa(20, 4, 2.4, 2.4, 10, redonda=True); p.mesa(12, 11, 2.4, 1.2, 6)
+    p.muebles.append(dict(tipo='escritorio', x=1.2, y=1.0, w=2.0, d=0.7, silla=True))
     p.muebles.append(dict(tipo='escritorio', x=20, y=10, w=2.1, d=0.9, silla=True))
     p.puerta(12, 8, 0.9, 'abajo', 'izq', 'adentro', clave='D01'); p.puerta(16, 11, 0.9, 'der', 'izq', 'adentro', clave='D02')
     p.puerta(4, 8, 0.9, 'abajo', 'der', 'adentro', clave='D03'); p.puerta(21, 8, 0.9, 'abajo', 'izq', 'adentro', clave='D04')
     p.puerta(3, 0, 1.8, 'arriba', doble=True, abre='adentro', clave='D05')
-    p.columna(8, 4, clave='P1'); p.columna(14, 4, clave='P2'); p.columna(12, 11, 0.4, clave='P3')
+    p.columna(8, 4, clave='P1'); p.columna(14, 4, clave='P2'); p.columna(9, 13, 0.4, clave='P3')
     guardar([p], 'C2_curvo', 'C2 · curvo 24×14')
 
 # ---------------- C3 · sin cotas numéricas, sólo barra gráfica; 6 columnas ----------------

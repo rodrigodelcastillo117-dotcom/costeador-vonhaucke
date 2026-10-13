@@ -251,7 +251,10 @@ Deno.serve(async (req: Request) => {
     const dEvidence = evidenceMeta(d);
     const x = num(d.x), y = num(d.y), w = num(d.ancho);
     if (dEvidence.provenance === "ASSUMED") warnings.push({ field: `puertas[${i}]`, code: "ASSUMED_DOOR_GEOMETRY", message: "Puerta basada en supuesto; requiere confirmación." });
-    if (![x,y,w].every(finite) || w <= 0) issues.push({ field: `puertas[${i}]`, code: "INVALID_DOOR" });
+    // L1: un vano con posición válida pero SIN ancho legible no tira la lectura entera: queda como aviso y el
+    // cliente lo trata como puerta pendiente (ANCHO_PUERTA_DESCONOCIDO). Sólo una puerta sin posición es inválida.
+    if (![x,y].every(finite)) issues.push({ field: `puertas[${i}]`, code: "INVALID_DOOR" });
+    else if (!finite(w) || w <= 0) warnings.push({ field: `puertas[${i}]`, code: "DOOR_WIDTH_UNKNOWN", message: "Vano sin ancho legible: confirma la cota antes de aprobar el acomodo." });
     else if (finite(W) && finite(H) && (x < 0 || y < 0 || x > W || y > H || w > Math.max(W,H))) issues.push({ field: `puertas[${i}]`, code: "DOOR_OUTSIDE_ENVELOPE" });
 
     if (d.tieneBarrido === true) {

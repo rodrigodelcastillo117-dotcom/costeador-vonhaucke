@@ -143,6 +143,8 @@ Deno.serve(async (req) => {
     "6) PUERTAS: detecta cada puerta real y su vano. Si se ve el arco de apertura, extrae la BISAGRA, la hoja cerrada y el SENTIDO del arco. Una puerta DOBLE (dos hojas con dos arcos, acceso principal) es UNA puerta con el ancho total del vano y tieneBarrido=false (dos bisagras: el usuario confirma); no la partas en dos ni inventes una sola bisagra.",
     "CONTRATO DE PUERTA: anguloCerradaDeg usa 0=derecha, 90=abajo, 180=izquierda, 270=arriba. Como y crece hacia abajo, 'horario' es el giro visual horario.",
     "tieneBarrido=true SÓLO si puedes identificar bisagra + sentido + arco. Entonces barridoDeg es el arco visible (normalmente 90) y confianza refleja legibilidad.",
+    "REGLA DEL ARCO: si el arco de barrido ESTÁ DIBUJADO, la bisagra es el extremo del vano del que parte el arco (el punto de giro de la hoja) y el sentido lo da el propio arco: eso ES evidencia suficiente → tieneBarrido=true con confianza media/alta y evidencia 'arco dibujado'. No exijas una cota de bisagra. Sólo cuando NO hay arco dibujado (vano liso, acceso doble) deja tieneBarrido=false.",
+    "NO registres como puerta marcadores, símbolos, cotas, ejes ni vanos sin ancho legible: si dudas, omítelo y anótalo en notas. Cada puerta registrada debe tener ancho > 0.",
     "Si NO ves el arco/bisagra/sentido con suficiente evidencia: tieneBarrido=false, sentido='desconocido', bisagraX=0, bisagraY=0, anguloCerradaDeg=0, barridoDeg=0. NO ADIVINES.",
     "Un vano sin hoja/arco puede registrarse como acceso pero debe quedar tieneBarrido=false; el wrapper exigirá revisión antes de liberar.",
     "7) SERVICIOS: baños, SITE/IT, cocineta, ductos y escaleras son tipo='servicio' y no se amueblan.",
