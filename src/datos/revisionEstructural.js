@@ -16,7 +16,9 @@ const ROLES = [
   ['faldon', /\bfald[oó]n\b/i],
   ['lateral', /\b(lateral|laterales|costados?|panel lateral)\b/i],
   ['gaveta', /\b(gaveta|caj[oó]n|cajonera)\b/i],
-  ['pata', /\b(pata|base|estructura|bastidor|travesa[ñn]o|poste|soporte|zoclo|z[oó]calo)\b/i],
+  // VH-163b (2026-10-13, mesa de trabajo V5): sólo reconocía singulares; "Patas PTR", "Travesaños", "Postes"
+  // caían en 'otro' → falso bloqueo "cubierta sin soporte" y la regla de niveladores no se disparaba.
+  ['pata', /\b(patas?|bases?|estructuras?|bastidor(es)?|travesa[ñn]os?|postes?|soportes?|largueros?|pedestal(es)?|zoclos?|z[oó]calos?)\b/i],
   ['respaldo', /\brespaldo\b/i],
   ['asiento', /\b(asiento|banca|silla|plaza|butaca)\b/i],
   ['entrepano', /\b(entrepa[ñn]os?|repisas?|estantes?|anaquel)\b/i],

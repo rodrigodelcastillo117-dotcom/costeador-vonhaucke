@@ -79,3 +79,18 @@ describe('VH-163 · mueble de piso sin soporte', () => {
     expect(bloq(revisarEstructura({ componentes: [{ nombre: 'Cubierta superior' }, { nombre: 'Laterales' }], descripcion: 'credenza' }))).toEqual([]);
   });
 });
+
+describe('VH-163b · soportes en plural (falso bloqueo en mesa de trabajo V5)', () => {
+  it('el BOM real de la mesa de trabajo (Patas/Largueros/Travesaños PTR) NO se bloquea', async () => {
+    const { revisarEstructura, rolDe } = await import('./revisionEstructural.js');
+    for (const n of ['Patas PTR 1x2 cal.16', 'Largueros PTR 1x2 cal.16', 'Travesaños PTR 1x2 cal.16', 'Postes verticales tubular redondo', 'Bases metálicas', 'Pedestales']) expect(rolDe(n)).toBe('pata');
+    const comps = ['Cubierta melamina blanca 19 mm', 'Tapacanto PVC 2 mm perimetral', 'Patas PTR 1x2 cal.16', 'Largueros PTR 1x2 cal.16', 'Travesaños PTR 1x2 cal.16', 'Faldón lámina cal.18', 'Pintura en polvo blanco RAL 9016', 'Niveladores', 'Soldadura'].map((nombre) => ({ nombre }));
+    const r = revisarEstructura({ componentes: comps, descripcion: 'mesa · mesa de trabajo recta con estructura PTR y faldón' });
+    expect(r.observaciones.filter((o) => o.nivel === 'blocker')).toEqual([]);
+  });
+  it('sin ningún soporte (ni en plural) sigue bloqueando', async () => {
+    const { revisarEstructura } = await import('./revisionEstructural.js');
+    const r = revisarEstructura({ componentes: [{ nombre: 'Cubierta melamina' }, { nombre: 'Faldón lámina' }, { nombre: 'Tapacanto' }], descripcion: 'mesa de trabajo' });
+    expect(r.observaciones.filter((o) => o.nivel === 'blocker').map((o) => o.regla)).toEqual(['sin_soporte']);
+  });
+});

@@ -1328,13 +1328,17 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           ) : (
             // FAIL-CLOSED: hay partidas sin costear → NO hay costo total ni precio.
             // Solo se muestra lo que sí se conoce; el total y el precio quedan "Pendiente".
+            // VH-166: si todo tiene material, el bloqueo es otro (estructura, formato, tarifa): se dice cuál,
+            // no "hasta costear todo" (mesa de trabajo V5 decía eso con las 9 piezas costeadas).
             <>
-              <div className="ayuda" style={{ margin: '6px 0' }}>Subtotal conocido (solo lo que ya tiene material)</div>
+              <div className="ayuda" style={{ margin: '6px 0' }}>{piezasSinMaterial.length ? 'Subtotal conocido (solo lo que ya tiene material)' : 'Costo calculado (todavía no se puede dar por bueno)'}</div>
               <div className="precio-enorme" style={{ color: 'var(--tinta)', fontSize: 34 }}>{pesos2(emision.subtotalConocido)}</div>
               <div className="espacio" />
               <div className="ayuda">Costo total</div>
               <div className="precio-enorme" style={{ color: '#b22a22' }}>Pendiente</div>
-              <div className="ayuda" style={{ color: '#b22a22', marginTop: 4 }}>No se calcula precio de lista hasta costear todo.</div>
+              {piezasSinMaterial.length
+                ? <div className="ayuda" style={{ color: '#b22a22', marginTop: 4 }}>No se calcula precio de lista hasta costear todo.</div>
+                : <div className="ayuda" data-testid="costear-motivo-bloqueo" style={{ color: '#b22a22', marginTop: 4 }}>No se calcula precio de lista hasta resolver: {(emision.pendientes || []).slice(0, 4).join(' · ') || 'un bloqueo del motor'}{(emision.pendientes || []).length > 4 ? '…' : ''}</div>}
             </>
           )}
           <div className="espacio" />
