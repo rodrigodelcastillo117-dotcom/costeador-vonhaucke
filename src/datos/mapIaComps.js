@@ -8,6 +8,7 @@
 //    quedaba corta. En LÁMINA irregular la fracción directa de la IA sigue mandando (Rafa §1).
 //  · Piezas LINEALES: `cantidad` son metros; `forma` viaja para las reglas de casa.
 // ============================================================================
+import { procedenciaCanonica } from '../voni/especialidades.js';
 import { aplicarPoliticaMaterial, MATCH } from './materialMatch.js';
 
 const RE_M2 = /^(m2|m²|mt2|m\^2|metros? cuadrados?)$/i;
@@ -39,6 +40,11 @@ export function mapIaComps(p, insumos = {}) {
   return piezas.map((z) => {
     const base = espejoP012(aplicarPoliticaMaterial({ ...z, material_solicitado: z.material_solicitado || z.nombre }, resolver, catalogo));
     base.forma = z.forma || (z.largoMM && z.anchoMM ? 'area' : 'pieza');
+    // VONI Ingeniería: procedencia de la IA por pieza (OBSERVADO/INFERIDO/SUPUESTO/DESCONOCIDO) + su evidencia, para que
+    // una suposición nunca se confunda con un dato. No viaja al servidor (validarIntentCosteo la ignora al sanear).
+    base.procedencia = procedenciaCanonica(z.procedencia);
+    if (z.evidencia) base.evidencia = String(z.evidencia).slice(0, 240);
+    if (Number.isFinite(Number(z.pagina)) && Number(z.pagina) > 0) base.pagina = Number(z.pagina);
     // LINEALES (VH-160): la IA manda el largo de UNA pieza en largoMM y el número de piezas en cantidad
     // ("Base PTR", largoMM 5000, cantidad 1). Antes se descartaba largoMM y el motor recibía 1 m. Los metros
     // son largoMM/1000 × piezas. Si la IA ya puso los metros en cantidad (cantidad ≈ largoMM/1000), no se multiplica.

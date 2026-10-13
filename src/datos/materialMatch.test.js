@@ -405,7 +405,8 @@ describe('VH-158 · diferencia frente a lo pedido no se confirma en bloque', () 
   it('AsistenteEspecial: el botón en bloque excluye las diferencias y cada una tiene su aceptación explícita', async () => {
     const fs = await import('node:fs');
     const s = fs.readFileSync('src/componentes/AsistenteEspecial.jsx', 'utf8');
-    expect(s).toContain("!difiereDeLoPedido(e.cambio) ? { ...c, ...patchConfirmacionUI(c.insumoId) } : c");
+    // VONI Ingeniería (2026-10-13): además excluye piezas inferidas/supuestas; la exclusión de diferencias sigue igual.
+    expect(s).toContain("!difiereDeLoPedido(e.cambio) && !noObservada(c) ? { ...c, ...patchConfirmacionUI(c.insumoId) } : c");
     expect(s).toContain('data-testid="confirmar-con-diferencia"');
     expect(s).toContain('data-testid="piloto-con-diferencia"');
   });

@@ -28,6 +28,7 @@ import { validarIntentCosteo } from "../../../src/datos/validarIntentCosteo.js";
 // contra el catálogo autoritativo con la MISMA lógica determinista compartida (sin duplicar).
 // P0.9: la confirmación técnica de material (USER_CONFIRMED) la autoriza el SERVIDOR por rol.
 import { reconciliarMaterialServidor, puedeConfirmarMaterial, estadoConTopeLegacy } from "../../../src/datos/materialMatch.js";
+import { revisarEstructura } from "../../../src/datos/revisionEstructural.js";
 // COCREAR 10 (D-02/D-03): costeo y validación de ingeniería de una CO-CREACIÓN guardada. El navegador
 // sólo manda { accion:"cocrear", expediente_id, validar_ingenieria?, visual_hash? }; el BOM se lee del
 // expediente (service role) y la fila resultante la lee registrar_producto_desde_expediente.
@@ -114,6 +115,11 @@ async function costearConMotor(svc: any, pieza: any, n: number, puedeConfirmar: 
   // costo no finito y piezas que NO CABEN en el formato de compra. No duplicamos
   // la definición de emitibilidad en la Edge.
   const emision = costeoEmitible(r);
+  // VONI Ingeniería en el servidor autoritativo: los bloqueos que NO dependen de una decisión humana (material con función
+  // equivocada, cantidad imposible) se aplican aquí también; un cliente alterado no se los salta. Los "aceptables"
+  // (duplicado, conteo distinto a la descripción) y los que requieren medidas generales los decide la persona en pantalla.
+  const bloqueosIng = revisarEstructura({ componentes: piezaReconciliada.componentes, insumos: insumos as any, descripcion: "" })
+    .observaciones.filter((o: any) => o.nivel === "blocker" && !o.aceptable);
   const faltan: string[] = Array.isArray(r.componentesIgnorados) ? r.componentesIgnorados : [];
   const warnings: string[] = [];
   if (catalogoFuente === 'config-fallback') warnings.push('Catálogo central no disponible: costo con la configuración de respaldo. No cotices en firme.');
@@ -156,8 +162,9 @@ async function costearConMotor(svc: any, pieza: any, n: number, puedeConfirmar: 
   // ESTADO (4 valores). El costo es legado (tiene precio), por eso 'bloqueado' solo
   // aplicaría en modo costo-desde-catálogo (futuro); hoy: incompleto | preliminar | certificado.
   let estado: "certificado" | "preliminar" | "incompleto" | "bloqueado";
-  if (!emision.emitible) {
+  if (!emision.emitible || bloqueosIng.length) {
     estado = "incompleto";
+    for (const o of bloqueosIng) warnings.push(`Ingeniería: ${o.mensaje}`);
   } else if (noCertificados.length === 0) {
     estado = "certificado";
   } else {

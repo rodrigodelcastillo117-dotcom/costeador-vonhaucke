@@ -21,6 +21,7 @@ import { filaSombra } from '../datos/sombraCosteo.js';   // VH-073
 import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { clasificarCosto } from '../datos/estadoCosto.js';
+import { especialidadActiva } from '../voni/especialidades.js';
 import { decidirReemplazo } from '../datos/guardaPropuesta.js';
 import { evaluarLectura, elegirLectura } from '../datos/lecturaIncompleta.js';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
@@ -93,6 +94,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const [verificando, setVerificando] = useState(false); // 2ª pasada: la IA critica su propio despiece
   // VH-178: lectura de la IA incoherente con el propio mueble ({ motivos, reintento, revisada }); bloquea emitir hasta revisar.
   const [lecturaIA, setLecturaIA] = useState(null);
+  const ingenieriaOn = especialidadActiva('ingenieria');   // VONI Ingeniería (bandera VITE_VONI_INGENIERIA)
   const [errorIA, setErrorIA] = useState('');
   const [catalogoFuente, setCatalogoFuente] = useState(null); // 'canonico' | 'cliente-fallback' (#8: aviso si el catálogo central no estuvo)
   const [preguntasIA, setPreguntasIA] = useState([]);
@@ -149,7 +151,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // sin estructura…). Propone/detecta; NO cambia costo ni medidas.
   const revisionEstructural = useMemo(
     () => revisarEstructura({ componentes: b.componentes, descripcion: [b.descripcionCliente, b.tipoMueble].filter(Boolean).join(' · '), insumos,
-      medidasGenerales: b.medidasGenerales || propuestaIA?.design_intent?.overall_dimensions || '', aceptadas: b.revisionesAceptadas || [] }),
+      medidasGenerales: b.medidasGenerales || propuestaIA?.design_intent?.overall_dimensions || '', aceptadas: b.revisionesAceptadas || [], ingenieria: ingenieriaOn }),
     [b.componentes, b.descripcionCliente, b.tipoMueble, insumos, b.medidasGenerales, b.revisionesAceptadas, propuestaIA],
   );
   // ESTRUCTURA QUE ENTENDIÓ VONI: el grafo construido desde la SEMÁNTICA del intérprete
@@ -569,14 +571,18 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // VH-158: lo que difiere de lo pedido (p.ej. jaladera embutida redonda para «rectas 300 mm») NO entra al
   // botón de confirmar en bloque: se revisa y confirma fila por fila, con la diferencia a la vista.
   const propuestosConDiferencia = propuestosTodos.filter((c) => difiereDeLoPedido(estadoMaterialUI(c, insumos).cambio));
-  const propuestosPorRegla = propuestosTodos.filter((c) => !difiereDeLoPedido(estadoMaterialUI(c, insumos).cambio));
+  // VONI Ingeniería: una pieza INFERIDA o SUPUESTA por la IA no se confirma en bloque (lab credenza: divisiones no dibujadas
+  // quedaban 'confirmadas' con un material adivinado). Se confirma renglón por renglón, viendo su evidencia.
+  const noObservada = (c) => ingenieriaOn && (c.procedencia === 'INFERIDO' || c.procedencia === 'SUPUESTO');
+  const propuestosPorRegla = propuestosTodos.filter((c) => !difiereDeLoPedido(estadoMaterialUI(c, insumos).cambio) && !noObservada(c));
+  const propuestosNoObservados = propuestosTodos.filter((c) => !difiereDeLoPedido(estadoMaterialUI(c, insumos).cambio) && noObservada(c));
   const sinMaterial = b.componentes.filter((c) => !c.insumoId && !c.excluida);
   // UNA decisión humana en vez de una por renglón: confirma todo lo que la política amarró (queda
   // como confirmación de la persona, igual que si hubiera pulsado cada "Confirmar").
   function confirmarPropuestos() {
-    const comps = b.componentes.map((c) => { const e = c.insumoId ? estadoMaterialUI(c, insumos) : null; return (e && e.badgeTipo === 'confirmar' && !difiereDeLoPedido(e.cambio) ? { ...c, ...patchConfirmacionUI(c.insumoId) } : c); });
+    const comps = b.componentes.map((c) => { const e = c.insumoId ? estadoMaterialUI(c, insumos) : null; return (e && e.badgeTipo === 'confirmar' && !difiereDeLoPedido(e.cambio) && !noObservada(c) ? { ...c, ...patchConfirmacionUI(c.insumoId) } : c); });
     editarComponentes(comps);
-    setConfMsg(`✓ Confirmaste ${propuestosPorRegla.length} material(es) propuestos por regla de casa.`);
+    setConfMsg(`✓ Confirmaste ${propuestosPorRegla.length} material(es) propuestos por regla de casa.${propuestosNoObservados.length ? ` Quedan ${propuestosNoObservados.length} pieza(s) que la IA infirió o supuso (${propuestosNoObservados.map((c) => c.nombre).slice(0, 4).join(', ')}): confírmalas una por una.` : ''}`);
   }
   function agregarParte(p) {
     const comp = { nombre: p.label, insumoId: p.material, piezas: 1, cantidad: 1 };
@@ -1277,6 +1283,12 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
               <div className="pieza" key={i}>
                 <div className="pieza-head">
                   <input className="pieza-nom" placeholder="Nombre de la pieza" value={c.nombre || ''} onChange={(e) => setPieza(i, { nombre: e.target.value })} />
+                  {ingenieriaOn && c.procedencia && c.procedencia !== 'DESCONOCIDO' && (
+                    <span className="chip" data-testid="procedencia-pieza" title={[c.evidencia, c.pagina ? `pág. ${c.pagina}` : ''].filter(Boolean).join(' · ') || 'Sin evidencia citada'}
+                      style={{ fontSize: 10, marginLeft: 4, background: c.material_confirmado ? 'var(--ok,#1a7f37)' : c.procedencia === 'OBSERVADO' ? '#3b6ea5' : '#8a6d00', color: '#fff' }}>
+                      {c.material_confirmado ? 'CONFIRMADA' : c.procedencia === 'OBSERVADO' ? 'OBSERVADA' : c.procedencia === 'INFERIDO' ? 'INFERIDA' : 'SUPUESTA'}
+                    </span>
+                  )}
                   <select className="pieza-mat" value={est.selVal} onChange={(e) => onMaterial(i, e.target.value)}>
                     <option value="">— ¿de qué es? —</option>
                     {SECCIONES.map((sec) => (

@@ -58,7 +58,7 @@ function tipoIntencion(desc = '') {
  * @param {{componentes?:Array, descripcion?:string, piezas?:number}} entrada
  * @returns {{roles: object, observaciones: Array<{nivel:string, mensaje:string, pieza?:string}>, resumen: object}}
  */
-export function revisarEstructura({ componentes = [], descripcion = '', insumos = null, medidasGenerales = '', aceptadas = [] } = {}) {
+export function revisarEstructura({ componentes = [], descripcion = '', insumos = null, medidasGenerales = '', aceptadas = [], ingenieria = true } = {}) {
   const comps = Array.isArray(componentes) ? componentes.filter((c) => c && (c.nombre || c.insumoId)) : [];
   const conRol = comps.map((c) => ({ ...c, _rol: rolDe(c.nombre || c.insumoId || '') }));
   const roles = {};
@@ -167,7 +167,7 @@ export function revisarEstructura({ componentes = [], descripcion = '', insumos 
   if (obs.length === 0) obs.push({ nivel: 'info', mensaje: 'La estructura se ve coherente con las piezas capturadas.' });
   // ---- VALIDADORES MÍNIMOS DE INGENIERÍA (Entrega A, 2026-10-13). Deterministas: no corrigen solos; un BLOCKER impide
   //      emitir hasta que la persona corrija la pieza (o, en los que pueden ser legítimos, declare que lo revisó).
-  validadoresIngenieria({ conRol, comps, descripcion, insumos, medidasGenerales, fam, obs });
+  if (ingenieria) validadoresIngenieria({ conRol, comps, descripcion, insumos, medidasGenerales, fam, obs });
   const ok = new Set(Array.isArray(aceptadas) ? aceptadas : []);
   for (const o of obs) if (o.clave && o.aceptable && ok.has(o.clave)) { o.nivel = 'info'; o.aceptada = true; o.mensaje = `Revisado por una persona: ${o.mensaje}`; }
   return { roles, observaciones: obs, resumen: { piezas: comps.length, intencion, nAsiento, nRespaldo } };
