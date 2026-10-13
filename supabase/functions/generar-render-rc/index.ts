@@ -432,9 +432,11 @@ Deno.serve(async (req) => {
   // al cliente un render con escritorios de más es peor que no tener foto—.
   const conteoEsperado = Number(conteoPiso);
   const verificable = (modo === "acomodo" || modo === "escena") && Number.isFinite(conteoEsperado) && conteoEsperado > 0;
+  let contadorSinRespuesta = false;
   if (verificable) {
     const textConfig = { responseModalities: ["TEXT"] };
     const MAX_INTENTOS = 2;   // 1 imagen inicial + 1 rehecha; más que eso es mucho tiempo y costo por render
+    contadorSinRespuesta = false;
     let contents: any[] = [{ role: "user", parts }, { role: "model", parts: [{ inlineData: { mimeType: mime, data: inline.data } }] }];
     for (let intento = 1; intento <= MAX_INTENTOS; intento++) {
       // VH-121: el contador enumera LO QUE SE ESPERA en el cuarto (antes no contaba mostradores: "0 de 1").
@@ -445,6 +447,11 @@ Deno.serve(async (req) => {
       // error del CONTADOR no tiene por qué tumbar un render que sí se generó.
       if (rc.error) break;
       const textoConteo = (rc.data?.candidates?.[0]?.content?.parts || []).map((p: any) => p.text || "").join("").trim();
+      // Q5·3 (VH-125): medido en Torre Norte, el contador devolvía texto VACÍO ("salieron ? de N") y la imagen
+      // se tiraba como si el conteo no cuadrara. Sin respuesta no hay evidencia de error: se trata igual que
+      // una falla del contador (cuota/red) y decide el AUDITOR VISUAL, que sí compara conteo, layout y
+      // objetos extra contra el diagrama y las referencias. Los umbrales del auditor no cambian.
+      if (!textoConteo) { contadorSinRespuesta = true; break; }
       const numConteo = parseInt((textoConteo.match(/\d+/) || [])[0] || "", 10);
       contents = [...contents, { role: "model", parts: [{ text: textoConteo || "?" }] }];
       if (Number.isFinite(numConteo) && numConteo === conteoEsperado) break;   // cuadra: esta imagen se queda
@@ -476,7 +483,10 @@ Deno.serve(async (req) => {
 
   // QA VISUAL posterior: el render no se certifica sólo porque Gemini devolvió bytes.
   // Para modos con referencia, compara fuente vs resultado antes de persistir.
-  const audit = await auditarVisual(inline.data, mime);
+  const audit: any = await auditarVisual(inline.data, mime);
+  // Q5·3: sin imágenes de referencia de producto el auditor sólo pudo comparar contra el diagrama; se dice.
+  const nRefs = Array.isArray(imagenes) ? imagenes.filter((im: any) => typeof im === "string" && im).length : 0;
+  if (audit && typeof audit === "object") { audit.fidelidad_producto = nRefs ? "CON_REFERENCIAS" : "SIN_REFERENCIAS"; audit.contador = contadorSinRespuesta ? "SIN_RESPUESTA" : "OK"; }
   if (!audit.pass && !audit.skipped) {
     // VH-115: telemetría del rechazo (campos que fallaron) para diagnosticar falsos negativos del auditor.
     try {

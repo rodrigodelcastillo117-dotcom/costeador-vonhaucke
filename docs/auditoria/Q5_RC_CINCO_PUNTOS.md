@@ -134,7 +134,33 @@ forma de saber qué contestó.
 1/5 válidos en 474 s. La corrida anterior en producción (registro 1329) dio 2/5 con las mismas familias
 de fallo (layout ×3). La falla 5 es exactamente lo que el prompt permitía ("you may add a task chair").
 
-**RC**: __PENDIENTE_RC_RENDER__
+**RC v1** (mismo registro 1336, misma app, `generar-render-rc`, 283 s):
+
+| llamada | resultado | referencias de producto que llegaron |
+|---|---|---|
+| 1 | RENDER_COUNT_MISMATCH · `conteoTexto: ""` (el contador **no contestó nada**) | 1 |
+| 2 | ✓ válido · auditor: "Chair geometry accurately matches product reference 1… 10-chair count align with the reference diagram" | 1 |
+| 3 | ✓ válido · "Furniture models, counts, and layout match reference specifications" | 1 |
+| 4 | RENDER_COUNT_MISMATCH · `conteoTexto: ""` | 2 |
+| 5 | ✓ válido (recepción) · "reception desk matches expected 2-user proportions" | **0** (el módulo de recepción no tiene imagen de producto) |
+
+**3/5 válidos** (producción 1/5 sobre el mismo registro), **cero rechazos del auditor** (antes: layout ×2, sillas
+extra ×1), 283 s contra 474 s. Las referencias **sí llegan** (`referencias` 1–2 por área; `con_dibujo` true en las
+cinco). Hallazgos:
+
+- **VH-125 con causa**: el "salieron ? de N" no es un conteo distinto; el contador (segunda llamada a Gemini con
+  `responseModalities: ["TEXT"]`) devuelve texto vacío, el código lo lee como "no cuadra", rehace la imagen, vuelve
+  a recibir vacío y tira la imagen. Dos de cinco renders se perdieron así en ambas corridas.
+- **Fidelidad sin referencias**: la recepción se certificó con 0 imágenes de producto; el auditor sólo pudo comparar
+  con el diagrama. Rodrigo: "no certifiques fidelidad sin referencias".
+
+**RC v2** (cambio mínimo, sin tocar umbrales del auditor): si el contador no contesta nada, se trata como falla del
+contador (igual que cuota/red, caso ya previsto en el código) y la imagen pasa al **auditor visual**, que sí verifica
+conteo, layout y objetos extra contra diagrama y referencias; la respuesta dice `audit.contador` (`OK` /
+`SIN_RESPUESTA`) y `audit.fidelidad_producto` (`CON_REFERENCIAS` / `SIN_REFERENCIAS`) para que el cliente pueda
+distinguir, cuando se decida, un render verificado con producto de uno verificado sólo contra el diagrama.
+Resultado RC v2: __PENDIENTE_RC2__
+
 
 ## 4. REGLAS DE CASA (cliente, `autoRespuestas.js`; ya en la rama, no requiere edge)
 
