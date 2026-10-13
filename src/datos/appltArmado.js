@@ -63,3 +63,41 @@ export function armadoBancaDobleAppLT({ usuarios, largoMM, biombo = null } = {})
   const completo = componentes.every((x) => x.importe != null);
   return { ok: completo && !pendientes.length, componentes, lista: completo ? componentes.reduce((s, x) => s + x.importe, 0) : null, pendientes };
 }
+
+// ============================================================================
+//  ACOMODO 10 · VH-A10-07 · TOPOLOGÍA DE UNA BANCA QUE ACOMODA COTIZAR (misma guía, sin BOM ni precios).
+//  Doble (fondo 1200): 2 usuarios por cubierta → usuarios PARES, c = usuarios / 2. Sencilla (fondo 600): 1 por
+//  cubierta. Largo de cubierta = largo de la banca ÷ c, y sólo existe 1200/1500/1800. Cada banca es UNA isla con
+//  UNA acometida ATACM (GE p24-25 cuadro 6; Dirección: "sólo 2 si los 8 usuarios están en dos islas de 4").
+//  Lo que no cuadra NO se corrige solo: queda pendiente "consultar con Diseño" (la guía lo dice así).
+// ============================================================================
+const LARGOS_GUIA = [1200, 1500, 1800];
+export function topologiaBancaAppLT({ w, d, usuarios } = {}) {
+  const W = Number(w), D = Number(d), U = Number(usuarios);
+  const pendientes = [];
+  const tipo = D === 1200 ? 'doble' : D === 600 ? 'sencilla' : null;
+  if (!tipo) pendientes.push(`Fondo de ${Number.isFinite(D) ? D : '?'} mm: la guía sólo define banca doble (1200) y sencilla (600).`);
+  if (!(Number.isInteger(U) && U >= 1)) pendientes.push('La banca no declara cuántos usuarios lleva.');
+  else if (tipo === 'doble' && U % 2) pendientes.push(`${U} usuarios en banca doble no está en la guía (2 usuarios por cubierta: debe ser par).`);
+  const cubiertas = tipo && Number.isInteger(U) && U >= 1 ? (tipo === 'doble' ? U / 2 : U) : null;
+  const largoCubiertaMM = Number.isInteger(cubiertas) && cubiertas > 0 && W > 0 ? W / cubiertas : null;
+  if (largoCubiertaMM != null && !LARGOS_GUIA.includes(largoCubiertaMM)) pendientes.push(`Cubiertas de ${Math.round(largoCubiertaMM)} mm: la guía sólo define 1200, 1500 y 1800 mm.`);
+  const dentroDeGuia = pendientes.length === 0;
+  return { tipo, usuarios: Number.isFinite(U) ? U : null, cubiertas: dentroDeGuia ? cubiertas : null, largoCubiertaMM: dentroDeGuia ? largoCubiertaMM : null, acometidas: 1, dentroDeGuia, pendientes };
+}
+
+const esBancaAppLT = (p) => p?.relation_role === 'ANCHOR_WORKSTATION' && (/app\s*lt/i.test(String(p?.nombre || '')) || String(p?.linea || '') === 'App LT');
+
+/** Islas APP LT de un acomodo (piezas expandidas del payload): topología por banca, acometidas y lo fuera de guía. */
+export function islasAppLT(piezas = [], colocacion = []) {
+  const colocadas = new Set((colocacion || []).map((c) => String(c.id)));
+  const islas = (piezas || []).filter(esBancaAppLT).map((p) => ({
+    id: String(p.id), nombre: p.nombre || String(p.id), colocada: colocadas.has(String(p.id)),
+    ...topologiaBancaAppLT({ w: p.w, d: p.d, usuarios: p.user_capacity }),
+  }));
+  return {
+    islas,
+    acometidas: islas.filter((i) => i.dentroDeGuia).reduce((s, i) => s + i.acometidas, 0),
+    fueraDeGuia: islas.filter((i) => !i.dentroDeGuia).map((i) => ({ id: i.id, nombre: i.nombre, pendientes: i.pendientes })),
+  };
+}

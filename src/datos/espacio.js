@@ -216,6 +216,8 @@ export function expandirPiezas(partidas, tope = 600) {
         nombre: pt.nombre,
         w, d, tipo,
         ruta: pt.ruta || null,
+        // VH-A10-07: la línea viaja para juzgar la banca contra su guía (APP LT); no entra al program_hash.
+        ...(pt.linea ? { linea: pt.linea } : {}),
         productoId: pt.productoId || pt.producto_id || null,
         producto_version_id: productoVersionId,
         // VH-092: grupo por DESTINO cuando la partida no trae grupo (las sillas sueltas de

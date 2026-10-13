@@ -40,12 +40,12 @@ describe('Laboratorio COTIZAR · el replay reconstruye la corrida real', () => {
 
 // Estado medido del acomodo por plano. Cada corrección de ACOMODO_10 mueve esta tabla con su prueba.
 const ESPERADO = {
-  C1_recto: { veredicto: 'PASS', colocadas: 25, total: 25 },
-  C2_curvo: { veredicto: 'PARCIAL', colocadas: 29, total: 41 },         // VH-A10-02: la mesa de consejo entra; sus 12 sillas no (sala circular de 5 m)
-  C3_sin_cotas: { veredicto: 'PARCIAL', colocadas: 20, total: 21 },     // VH-A10-02: el módulo directivo de PRIVADO B entra; su silla no
-  C4_dos_niveles: { veredicto: 'PASS', colocadas: 19, total: 19 },        // VH-A10-01 (antes PARCIAL 10/19)
-  C5_ele: { veredicto: 'PASS', colocadas: 38, total: 38 },              // VH-A10-02 (columna) + VH-A10-03 (consejo 6+6): antes REVISION
-  C6_inyeccion: { veredicto: 'PASS', colocadas: 25, total: 25 },
+  C1_recto: { veredicto: 'PASS', colocadas: 25, total: 25, islas: 1 },
+  C2_curvo: { veredicto: 'PARCIAL', colocadas: 29, total: 41, islas: 2 },         // VH-A10-02: la mesa de consejo entra; sus 12 sillas no (sala circular de 5 m)
+  C3_sin_cotas: { veredicto: 'PARCIAL', colocadas: 20, total: 21, islas: 1 },     // VH-A10-02: el módulo directivo de PRIVADO B entra; su silla no
+  C4_dos_niveles: { veredicto: 'PASS', colocadas: 19, total: 19, islas: 1 },        // VH-A10-01 (antes PARCIAL 10/19)
+  C5_ele: { veredicto: 'PASS', colocadas: 38, total: 38, islas: 2 },              // VH-A10-02 (columna) + VH-A10-03 (consejo 6+6): antes REVISION
+  C6_inyeccion: { veredicto: 'PASS', colocadas: 25, total: 25, islas: 1 },
 };
 
 describe('Laboratorio COTIZAR · acomodo por plano (sin IA)', () => {
@@ -59,5 +59,11 @@ describe('Laboratorio COTIZAR · acomodo por plano (sin IA)', () => {
     expect(r.res.payload.piezas.some((p) => p.sugeridoPlano || String(p.id).startsWith('sug-'))).toBe(false);
     // PASS sólo con render listo; nada parcial se publica.
     expect(r.res.render_ready).toBe(e.veredicto === 'PASS');
+    // VH-A10-07: cada banca APP LT del laboratorio es un módulo del catálogo dentro de guía: una isla, una acometida.
+    const bancas = r.veredicto.bloques.find((b) => b.clave === 'bancas');
+    expect(bancas.ok).toBe(true);
+    expect(bancas.texto).toMatch(new RegExp(`${e.islas} isla.* ${e.islas} acometida`));
+    // VH-A10-06: la sillería (sin medida en el catálogo) se dice supuesta.
+    expect(r.veredicto.bloques.find((b) => b.clave === 'evidencia').texto).toMatch(/huella estándar 600 × 600, supuesta/);
   }, 20000);
 });

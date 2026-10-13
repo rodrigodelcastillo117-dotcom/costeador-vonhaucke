@@ -28,6 +28,7 @@ import { auditarColocacion } from '../datos/acomodoAudit.js';
 // para SELLAR program_hash/floor_hash en el plan persistido y para BLOQUEAR la
 // publicación ante fallas de invariantes que el edge vivo pudiera no reportar.
 import { construirPayloadAcomodo } from '../datos/acomodoPayload.js';
+import { islasAppLT } from '../datos/appltArmado.js';
 import { evaluarInvariantesAcomodo, derivarValidez } from '../datos/acomodoInvariantes.js';
 import { resolverAcomodo } from '../datos/acomodoOrquestador.js';
 import { formatearMensajeVendedor } from '../datos/mensajeAcomodo.js';
@@ -286,7 +287,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     }
     // VH-110: se dice QUÉ falta (geometría, colisiones, anclas, revisión semántica, evidencia),
     // nunca un "invariantes" genérico cuando ninguna invariante falló.
-    const v = explicarAcomodo({ plan: res.plan, evaluacion: res.evaluacion, programaListo, motivoPrograma, referencias: payloadAcomodo.referencias || [], preliminar: !!payloadAcomodo.preliminar, huellasEstandar: payloadAcomodo.huellasEstandar || 0 });
+    const v = explicarAcomodo({ plan: res.plan, evaluacion: res.evaluacion, programaListo, motivoPrograma, referencias: payloadAcomodo.referencias || [], preliminar: !!payloadAcomodo.preliminar, huellasEstandar: payloadAcomodo.huellasEstandar || 0, bancas: islasAppLT(payloadAcomodo.piezas || [], res.plan?.colocacion || []) });
     if (v.resumen) return (res.status === 'NEEDS_REVIEW' ? 'requiere revisión · ' : '') + v.resumen;
     const fallas = [...new Set((res.evaluacion?.issues || []).filter((i) => i.severity === 'fail').map((i) => i.code))];
     if (res.status === 'PARTIAL') return `parcial: faltan ${res.evaluacion?.unplaced?.length || 0} por colocar`;
@@ -1299,6 +1300,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     plan, evaluacion: evalInvariantes, programaListo, motivoPrograma,
     referencias: payloadAcomodo.referencias || [], preliminar: !!payloadAcomodo.preliminar,
     huellasEstandar: payloadAcomodo.huellasEstandar || 0,
+    bancas: islasAppLT(payloadAcomodo.piezas || [], plan?.colocacion || []),   // VH-A10-07
     nombresSinColocar: (plan?.unassigned || []).map((u) => u?.nombre).filter(Boolean),
   }), [plan, evalInvariantes, programaListo, motivoPrograma, payloadAcomodo]);
   const motivoLayout = [

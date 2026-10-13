@@ -24,6 +24,7 @@ import { bloqueGeometria } from './floorPlan.js';
 import { resolverAcomodo } from './acomodoOrquestador.js';
 import { interpretarAcomodoServidor } from './acomodoServidor.js';
 import { explicarAcomodo } from './acomodoVeredicto.js';
+import { islasAppLT } from './appltArmado.js';
 import { construirRespuestaAcomodo } from '../../supabase/functions/acomodar-espacio-recovery-rc/recoveryPipeline.js';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../lab/noche/p10x/cotizar');
@@ -68,7 +69,7 @@ export async function acomodarLab({ partidas, areasM }) {
   };
   const res = await resolverAcomodo({ partidas, areasM, solve });
   const plan = res.plan ? { ...res.plan, render_ready: res.render_ready === true, layoutSpec: { ...(res.plan.layoutSpec || {}), status: res.status } } : null;
-  const veredicto = plan ? explicarAcomodo({ plan, evaluacion: res.evaluacion, referencias: res.payload?.referencias || [], preliminar: !!res.payload?.preliminar, huellasEstandar: res.payload?.huellasEstandar || 0 }) : null;
+  const veredicto = plan ? explicarAcomodo({ plan, evaluacion: res.evaluacion, referencias: res.payload?.referencias || [], preliminar: !!res.payload?.preliminar, huellasEstandar: res.payload?.huellasEstandar || 0, bancas: islasAppLT(res.payload?.piezas || [], plan.colocacion || []) }) : null;
   return { res, respuesta, veredicto };
 }
 
