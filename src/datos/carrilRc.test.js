@@ -14,9 +14,10 @@ describe('carril RC publicado', () => {
     expect(nube).toContain("const FN_COSTEAR = CARRIL_RC ? 'costear-servidor-rc' :");
     expect(nube).not.toMatch(/FN_(LEER_PLANO|COTIZAR_TEXTO|GENERAR_RENDER|ACOMODAR) = CARRIL_RC/);
   });
-  it('sin la bandera definida (pruebas, build normal) el carril está apagado', async () => {
+  it('el carril se enciende sólo con VERCEL_ENV=preview y CARRIL_RC=si (también al correr en el build de Vercel)', async () => {
     const m = await import('../nube.js');
-    expect(m.CARRIL_RC).toBe(false);
+    const esperado = process.env.VERCEL_ENV === 'preview' && process.env.CARRIL_RC === 'si';
+    expect(m.CARRIL_RC).toBe(esperado);
   });
   it('la app avisa visiblemente que es un link de prueba', () => {
     const app = fs.readFileSync('src/App.jsx', 'utf8');
