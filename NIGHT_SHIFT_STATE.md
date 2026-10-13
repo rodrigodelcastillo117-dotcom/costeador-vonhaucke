@@ -22,7 +22,7 @@ Checkpoints por commit pequeño; este archivo se actualiza al cerrar cada bloque
 
 - **Q5 · cinco prompts** (`docs/auditoria/Q5_RC_CINCO_PUNTOS.md`): 1 analizar-mueble PASS · 2 cotizar-texto PASS ·
   3 renders RC v1 3/5 (prod 1/5), RC v2 (contador vacío → auditor) **midiéndose** · 4 reglas de casa PASS · 5 G12 PASS.
-  Pendiente: resultado RC v2, Playwright local, GO/NO-GO.
+  RC v2 renders **4/5** (prod 1/5). Playwright local 50 ✓ / 8 omitidos (labs con llave) / 1 ✗ `golden757Edicion` por login lento bajo carga (59 specs + lab concurrente); **solo pasa en 14 s**. GO/NO-GO en el informe.
 - **L1 lectura** (`docs/auditoria/LECTURA_PLANOS_L1.md`): RC columnas 14/14, dos niveles, barra gráfica; promoción pendiente de autorización.
 - **P1 programa / lab Torre Norte** (`docs/auditoria/LAB_TORRE_NORTE.md` § 8): 39/39 PASS, VH-142 (tope 120 s).
 - **Autopilot no aditivo** (VH-135), VH-136/138/139 (en producción c8dd2b3).
@@ -33,8 +33,8 @@ Checkpoints por commit pequeño; este archivo se actualiza al cerrar cada bloque
 | bloque | estado | evidencia |
 |---|---|---|
 | Fase 0 preservar | **HECHO** (este archivo) | — |
-| P0-A VH-035 integridad económica | pendiente | `supabase/migrations/20261010170000_actualizar_cotizacion_preserva_economia.sql`, `supabase/tests/preservaEconomia.test.js` (PGlite; fixture `private_api_baseline_20261010.sql` — hay que compararla con los cuerpos de producción de HOY) |
-| P0-B ERP → motor | en curso (traza de código + reconfirmación SQL) | — |
+| P0-A VH-035 integridad económica | en curso (agente: casos adversariales en PGlite, SQL vs mock) | `supabase/migrations/20261010170000_actualizar_cotizacion_preserva_economia.sql`, `supabase/tests/preservaEconomia.test.js` (PGlite; fixture `private_api_baseline_20261010.sql` — hay que compararla con los cuerpos de producción de HOY) |
+| P0-B ERP → motor | **HECHO (RC)**: traza completa, paridad 15/15 a centavos, política con conteos, 2 PROPUESTAS sin aplicar; 4 defectos de cliente corregidos (VH-143/144/145/146) | `docs/auditoria/ERP_PRECIOS_ELEGIBILIDAD.md`, `lab/erp/`, `supabase/migrations/PROPUESTA_vh146_*`, `PROPUESTA_vh147_*` |
 | P0-C COSTEAR real | pendiente | — |
 | P0-D COTIZAR real | pendiente | Torre Norte = escenario; segundo proyecto desde cero |
 | P1 concurrencia / tests falsos | pendiente | — |
@@ -50,4 +50,15 @@ Checkpoints por commit pequeño; este archivo se actualiza al cerrar cada bloque
 
 ## 4. Archivos tocados esta noche
 
-(se actualiza por bloque)
+| commit | qué |
+|---|---|
+| `c2d99e1` | NIGHT_SHIFT_STATE inicial |
+| `9e697a7` | Q5 § 3 RC v2 renders |
+| `0849600` VH-143 | `senales.js` (+`fuenteDeInsumo`), `Costeador.jsx` ConfianzaCosteo, test |
+| `702ebb7` VH-144 | `Costeador.jsx` pistas como arreglo |
+| `95c0207` VH-145 | `datos/aplicarCompartido.js` (+test), `App.jsx` import |
+| `c24a771` VH-146 | `erpCarga.js` patrón 4' X 8' y 5×8, test |
+| `8871b54` | `supabase/tests/fixtures/private_api_prod_20261013.sql` |
+| `0e76cb6` | `docs/auditoria/ERP_PRECIOS_ELEGIBILIDAD.md`, `lab/erp/verificar_rpc.mjs`, 2 PROPUESTAS |
+
+PR borrador: https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/pull/37 (sólo para CI; no mergear).
