@@ -44,7 +44,7 @@
       "evidencia": "plano: CUERPO ... ENCHAPADO NOGAL (la cubierta es parte del cuerpo)"
     },
     {
-      "patron": "19 ?mm.*18|18 ?mm.*19|en lugar de 18",
+      "patron": "19 ?mm|18 ?mm",
       "opcion": "^s[ií]|19",
       "evidencia": "regla de casa aprobada 2026-10-08: 18 ↔ 19 mm"
     }

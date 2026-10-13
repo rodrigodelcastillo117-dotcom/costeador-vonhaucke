@@ -114,15 +114,17 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
     const num = bq.locator('input[type=number]');
     if (HOJA) {
       // Sólo lo que el plano demuestra (hoja de control). Sin evidencia → no se contesta (queda por confirmar).
-      const r = (HOJA.respuestas || []).find((x) => new RegExp(x.patron, 'i').test(pregunta));
-      if (!r) { respuestas.push({ pregunta, elegido: '(sin responder: el plano no lo dice)' }); continue; }
+      const candidatas = (HOJA.respuestas || []).filter((x) => new RegExp(x.patron, 'i').test(pregunta));
+      if (!candidatas.length) { respuestas.push({ pregunta, elegido: '(sin responder: el plano no lo dice)' }); continue; }
       if (await chips.count()) {
         const textos = (await chips.allInnerTexts()).map((t) => t.trim());
-        const op = r.opcion ? textos.find((t) => new RegExp(r.opcion, 'i').test(t)) : null;
+        // Se prueba cada respuesta con evidencia que aplica a la pregunta hasta que una opción coincida.
+        let op = null, r = candidatas[0];
+        for (const x of candidatas) { const o = x.opcion ? textos.find((t) => new RegExp(x.opcion, 'i').test(t)) : null; if (o) { op = o; r = x; break; } }
         if (op) { await chips.filter({ hasText: new RegExp('^' + op.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$') }).first().click(); respuestas.push({ pregunta, elegido: op, opciones: textos, evidencia: r.evidencia }); }
         else respuestas.push({ pregunta, elegido: '(sin responder: ninguna opción coincide con el plano)', opciones: textos, evidencia: r.evidencia });
-      } else if ((await num.count()) && r.valor != null) { await num.fill(String(r.valor)); respuestas.push({ pregunta, elegido: String(r.valor), evidencia: r.evidencia }); }
-      else respuestas.push({ pregunta, elegido: '(sin responder)', evidencia: r.evidencia });
+      } else if ((await num.count()) && candidatas.some((x) => x.valor != null)) { const r = candidatas.find((x) => x.valor != null); await num.fill(String(r.valor)); respuestas.push({ pregunta, elegido: String(r.valor), evidencia: r.evidencia }); }
+      else respuestas.push({ pregunta, elegido: '(sin responder)', evidencia: candidatas[0].evidencia });
       continue;
     }
     if (await chips.count()) {

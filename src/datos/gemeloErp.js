@@ -6,7 +6,7 @@
 // TÉCNICAMENTE (misma familia, mismo espesor/calibre, misma unidad y formato compatible) y el ERP sí es
 // certificable. Es una PROPUESTA (SAME_FAMILY_COMPATIBLE_PROPOSED, por confirmar); nunca sustituye en
 // silencio y nunca toca un material que la persona ya confirmó a mano.
-import { familiaDeMaterial, espesoresDe, MATCH, severidadConflicto_, coloresExplicitos } from './materialMatch.js';
+import { familiaDeMaterial, espesoresDe, MATCH, severidadConflicto_, coloresExplicitos, fechaUltimaCompra } from './materialMatch.js';
 
 const calibres = (t = '') => [...String(t).toLowerCase().matchAll(/\bcal(?:ibre)?\.?\s*(\d{1,2})\b/g)].map((m) => Number(m[1]));
 // Todas las medidas en mm cuentan (una jaladera de 128 mm NO es gemela de una de 300 mm); el tope de 60 mm sólo
@@ -72,7 +72,8 @@ export function esGemeloExacto(curado, fila, pedido = '') {
 export function mejorGemeloCertificable(curado, filas = [], pedido = '') {
   const ok = (Array.isArray(filas) ? filas : []).filter((f) => esGemeloExacto(curado, f, pedido) && esCertificable(f) && f.precio != null);
   if (!ok.length) return null;
-  ok.sort((a, b) => (String(b.actualizado || '') > String(a.actualizado || '') ? 1 : String(b.actualizado || '') < String(a.actualizado || '') ? -1 : 0) || String(a.id).localeCompare(String(b.id)));
+  // Compra REAL más reciente (no la fecha de modificación del registro).
+  ok.sort((a, b) => { const fa = fechaUltimaCompra(a), fb = fechaUltimaCompra(b); return (fb > fa ? 1 : fb < fa ? -1 : 0) || String(a.id).localeCompare(String(b.id)); });
   return ok[0];
 }
 
@@ -114,7 +115,7 @@ export async function proponerGemelosErp(componentes = [], { insumos = {}, busca
     const previo = c.insumoId;
     c.insumoId = g.id; c.candidate_insumo_id = g.id; c.material_match = MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED;
     c._match = { ...(c._match || {}), clase: MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED, candidate_insumo_id: g.id, resuelto: g.nombre, erp: true, gemelo: true, previo, autollenado: true, autocosteable: true,
-      motivo: `Compras tiene el MISMO material con precio real de última compra${g.actualizado ? ` (${String(g.actualizado).slice(0, 10)})` : ''}: ${g.nombre}. Sustituye al curado «${curado.nombre}» (sin precio certificado). Provisional: confírmalo.` };
+      motivo: `Compras tiene el MISMO material con precio real de última compra${fechaUltimaCompra(g) ? ` (${fechaUltimaCompra(g)})` : ''}: ${g.nombre}. Sustituye al curado «${curado.nombre}» (sin precio certificado). Provisional: confírmalo.` };
     propuestos.push({ nombre: c.nombre, previo, id: g.id, insumoNombre: g.nombre, precio: g.precio == null ? null : Number(g.precio), precioPrevio: curado.precio ?? curado.precioBase ?? null });
   }
   return { comps: out, propuestos };

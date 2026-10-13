@@ -616,7 +616,7 @@ export function candidatosDeFamilia(texto, catalogo = []) {
     if (!ins || !ins.id) continue;
     if (familiaDeMaterial(ins.nombre || ins.id) !== fam) continue;
     puntuados.push({ id: ins.id, nombre: ins.nombre || ins.id, score: puntuarInsumo(texto, ins, fam),
-      certificable: !!(ins.evidencia && ins.evidencia.certificable === true), actualizado: String(ins.actualizado || ''), precio: ins.precio == null ? null : Number(ins.precio) });
+      certificable: !!(ins.evidencia && ins.evidencia.certificable === true), actualizado: String(ins.actualizado || ''), ultimaCompra: fechaUltimaCompra(ins), precio: ins.precio == null ? null : Number(ins.precio) });
   }
   if (puntuados.length === 0) return { ambiguo: false, mejor: null, empatados: [] };
   puntuados.sort((a, b) => b.score - a.score);
@@ -637,7 +637,7 @@ export function candidatosDeFamilia(texto, catalogo = []) {
     // vienen en la lista de compras, son los reales"): primero con precio certificado por Compras, luego
     // la compra más reciente, luego el nombre más corto (genérico). Determinista y marcado por confirmar.
     if (empatados.length >= 2) {
-      const gen = [...empatados].sort((a, b) => (Number(b.certificable) - Number(a.certificable)) || (b.actualizado > a.actualizado ? 1 : b.actualizado < a.actualizado ? -1 : 0) || (a.nombre.length - b.nombre.length))[0];
+      const gen = [...empatados].sort((a, b) => (Number(b.certificable) - Number(a.certificable)) || (b.ultimaCompra > a.ultimaCompra ? 1 : b.ultimaCompra < a.ultimaCompra ? -1 : 0) || (a.nombre.length - b.nombre.length))[0];
       return { ambiguo: false, mejor: { ...gen, generico: true }, empatados };
     }
   }
@@ -849,6 +849,17 @@ export function patchConfirmacionUI(insumoId) {
     candidate_insumo_id: insumoId,
     _match: { clase: MATCH.USER_CONFIRMED, confirmado_por_usuario: true, autollenado: false, autocosteable: true, candidate_insumo_id: insumoId },
   };
+}
+
+// FECHA REAL DE ÚLTIMA COMPRA (auditoría ERP 13-oct). `actualizado` es la fecha de compra SÓLO en filas del ERP
+// (catalogo_motor la toma de insumo_precios.vigente_desde); en curados/LEGACY es la fecha de CARGA y no sirve
+// para decir "la compra más reciente". Se usa evidencia.ultima_compra (vh147) si existe; si no, `actualizado`
+// sólo para ERP; si no, '' (sin compra documentada: ordena al final).
+export function fechaUltimaCompra(ins = {}) {
+  const ev = ins && ins.evidencia;
+  if (ev && ev.ultima_compra) return String(ev.ultima_compra).slice(0, 10);
+  const esErp = String(ins?.id || '').startsWith('erp-') || ins?.clasificacion === 'erp' || ev?.origen_precio === 'ERP';
+  return esErp && ins.actualizado ? String(ins.actualizado).slice(0, 10) : '';
 }
 
 // ¿El texto de cambio declara una DIFERENCIA real frente a lo pedido (espesor/calibre/perfil, variante o

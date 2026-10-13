@@ -150,3 +150,18 @@ describe('búsqueda tardía no sobrescribe cambios manuales (auditoría 13-oct)'
     expect(e[0].insumoId).toBe('mdf');
   });
 });
+
+describe('prioridad por fecha REAL de última compra (auditoría ERP 13-oct)', () => {
+  it('ordena por evidencia.ultima_compra; en curados `actualizado` (fecha de carga) no cuenta como compra', async () => {
+    const { mejorGemeloCertificable } = await import('./gemeloErp.js');
+    const { fechaUltimaCompra } = await import('./materialMatch.js');
+    expect(fechaUltimaCompra({ id: 'mdf', actualizado: '2026-10-12' })).toBe('');
+    expect(fechaUltimaCompra({ id: 'erp-x', actualizado: '2024-03-01T00:00:00Z' })).toBe('2024-03-01');
+    expect(fechaUltimaCompra({ id: 'erp-x', actualizado: '2026-10-12', evidencia: { ultima_compra: '2023-05-02' } })).toBe('2023-05-02');
+    const fmt = { medida: 2.9768, largoMM: 2440, anchoMM: 1220 };
+    const cur = { id: 'mdf', nombre: 'MDF 19 mm', unidad: 'hoja', formato: fmt, evidencia: { certificable: false } };
+    const a = { id: 'erp-a', nombre: 'MDF HOJA 4 X 8 ESPESOR 19 mm', unidad: 'hoja', precio: 400, formato: fmt, clasificacion: 'erp', actualizado: '2026-10-12', evidencia: { certificable: true, ultima_compra: '2022-01-10' } };
+    const b = { ...a, id: 'erp-b', precio: 431, actualizado: '2025-01-01', evidencia: { certificable: true, ultima_compra: '2025-06-30' } };
+    expect(mejorGemeloCertificable(cur, [a, b]).id).toBe('erp-b');   // a se "modificó" después, pero b se COMPRÓ después
+  });
+});
