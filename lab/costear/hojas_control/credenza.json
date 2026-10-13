@@ -137,7 +137,8 @@
         6.0
       ],
       "inferido": true,
-      "evidencia": "no acotado: marco 2×(1800+450) + 4 patas de 100 + 2 travesaños ≈ 5.72 m"
+      "evidencia": "no acotado: marco 2×(1800+450) + 4 patas de 100 + 2 travesaños ≈ 5.72 m (puede venir en varios renglones: patas, marco, travesaños)",
+      "suma": true
     },
     {
       "clave": "pintura",
