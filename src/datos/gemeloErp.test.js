@@ -77,3 +77,16 @@ describe('gemelo ERP: lo pedido manda (VH-152b)', () => {
     expect(propuestos).toEqual([]);
   });
 });
+
+describe('gemelo ERP: no peor que el curado (VH-152c)', () => {
+  it('pidió MDF 18 mm; curado y ERP son 19 mm → el ERP sí es gemelo (no añade conflicto); un ERP 16 mm no', async () => {
+    const { esGemeloExacto } = await import('./gemeloErp.js');
+    const fmt = { medida: 2.9768, largoMM: 2440, anchoMM: 1220 };
+    const mdf = { id: 'mdf', nombre: 'MDF 19 mm', unidad: 'hoja', precio: 437, formato: fmt, fraccion: true, evidencia: { certificable: false } };
+    const mdf19 = { id: 'erp-mdf19', nombre: 'MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm', unidad: 'hoja', precio: 431.04, formato: fmt, clasificacion: 'erp', actualizado: '2026-06-01', evidencia: { certificable: true } };
+    const mdf16 = { ...mdf19, id: 'erp-mdf16', nombre: 'MDF NATURAL HOJA 4 X 8 ESPESOR 16 mm' };
+    const ped = 'MDF 18 mm enchapado nogal natural · Lateral exterior (cuerpo)';
+    expect(esGemeloExacto(mdf, mdf19, ped)).toBe(true);
+    expect(esGemeloExacto(mdf, mdf16, ped)).toBe(false);
+  });
+});

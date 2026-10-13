@@ -1,0 +1,44 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:38:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:38:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Credenza Nogal 3 puertas 1800x450x750 mm","tipo":"guarda","piezas":[{"nombre":"Lateral exterior (cuerpo)","insumoId":"mdf","material_solicitado":"MDF 18 mm enchapado nogal natural","material_match":"SUBSTITUTE_SUGGESTED","forma":"area","largoMM":650,"anchoMM":450,
+
+[lab-costear] analizar-mueble 200 en 9 s · piezas 1
+
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Credenza Nogal 1800 mm 3 puertas","tipo":"guarda","piezas":[{"nombre":"Lateral exterior (cuerpo)","insumoId":"mdf","material_solicitado":"MDF 18 mm enchapado nogal natural","material_match":"SUBSTITUTE_SUGGESTED","forma":"area","largoMM":650,"anchoMM":450,"cantida
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":2939.94,"materialTotal":1803.61,"manoObra":284.08,"indirectosFabrica":852.24,"desperdicio":754.43,"detalleInsumos":[{"insumoId":"mdf","nombre":"MDF 19 mm","seccion":"cubiertas","costo":801.17,"certifi
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":2939.94,"materialTotal":1803.61,"manoObra":284.08,"indirectosFabrica":852.24,"desperdicio":754.43,"detalleInsumos":[{"insumoId":"mdf","nombre":"MDF 19 mm","seccion":"cubiertas","costo":801.17,"certifi
+
+[lab-costear] BOM inicial {"piezas":13,"pendientes":["Respaldo"],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":3093.54,"materialTotal":1899.61,"manoObra":298.48,"indirectosFabrica":895.44,"desperdicio":754.43,"detalleInsumos":[{"insumoId":"mdf","nombre":"MDF 19 mm","seccion":"cubiertas","costo":801.17,"certifi
+
+[lab-costear] tras ERP {"erp":{"intentado":true,"pieza":"Respaldo","resultados":6,"elegido":"MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\" · hoja · ERP $240.00 / hoja · certificado · 2026-06-01 Usar"},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas []
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"preliminar","piezas":1,"precioVenta":6631.29,"margen":40,"costo":{"costoUnitario":3978.77,"materialTotal":2401.84,"manoObra":394.23,"indirectosFabrica":1182.7,"desperdicio":758.04,"detalleInsumos":[{"insumoId":"mdf","nombre":"MDF 19 mm","seccion":"cubiertas","costo":801.17,"cert
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 12 propuestos"},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$3,978.77","$6,631.29"],"margen":"Precio de lista (40% margen · política vigente (1 pieza))","estado":"COSTO PRELIMINAR","linea":"Material $2,401.84 · Mano de obra $394.23 · Fábrica $1,182.70","pendiente":false,"porConfirmar":false}
+
+[lab-costear] paridad {"costoCliente":3978.77,"costoSrv":3978.77,"estadoSrv":"preliminar","iguales":true,"llamadasSrv":4}
+
+[lab-costear] expedientes POST 201 [{"id":21}]
+
+[lab-costear] guardado {"status":201,"id":21,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"preliminar","piezas":1,"precioVenta":6631.29,"margen":40,"costo":{"costoUnitario":3978.77,"materialTotal":2401.84,"manoObra":394.23,"indirectosFabrica":1182.7,"desperdicio":758.04,"detalleInsumos":[{"insumoId":"mdf","nombre":"MDF 19 mm","seccion":"cubiertas","costo":801.17,"cert
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"preliminar","piezas":1,"precioVenta":6631.29,"margen":40,"costo":{"costoUnitario":3978.77,"materialTotal":2401.84,"manoObra":394.23,"indirectosFabrica":1182.7,"desperdicio":758.04,"detalleInsumos":[{"insumoId":"mdf","nombre":"MDF 19 mm","seccion":"cubiertas","costo":801.17,"cert
+
+[lab-costear] transferencia {"intentado":true,"habilitado":true,"title":"Verifica el costo autoritativo antes de agregar","partidasAntes":0,"partidasDespues":1,"partida":{"nombre":"(lab V2 corrida 11) Credenza Nogal","cantidad":1,"costoUnitario":3978.77,"precioUnitario":6631.289966222223},"servidor":{"estado":"preliminar","precioVenta":6631.29,"fuenteCosto":"catalogo"},"paridad":null}
+
+[lab-costear] reabierta {"tarjeta":"sin render (lab V2 corrida 11) Credenza Nogal BORRADOR guarda credenza 3 puertas MDF enchapado nogal Lista: $6,631 · preliminar","piezas":13,"mismoBom":true,"costoAntes":"$3,978.77","costoDespues":"$3,978.77","mismoCosto":true,"resultado":{"precios":["$3,978.77","$6,631.29"],"margen":"Precio de lista (40% margen · del expediente guardado)","estado":"COSTO PRELIMINAR","linea":"Material $2,401.84 · Mano de obra $394.23 · Fábrica $1,182.70","pendiente":false,"porConfirmar":false},"pageErrors":0}
+
+  1 passed (1.5m)

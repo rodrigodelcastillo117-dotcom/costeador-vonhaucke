@@ -1,0 +1,89 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render (lab V2 corrida 11) Credenza Nogal BORRADOR guarda credenza 3 puertas MDF enchapado nogal Lista: $6,631 · preliminar",
+    "piezas": 13,
+    "mismoBom": true,
+    "costoAntes": "$3,978.77",
+    "costoDespues": "$3,978.77",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$3,978.77",
+        "$6,631.29"
+      ],
+      "margen": "Precio de lista (40% margen · del expediente guardado)",
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $2,401.84 · Mano de obra $394.23 · Fábrica $1,182.70",
+      "pendiente": false,
+      "porConfirmar": false
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Lateral exterior (cuerpo)",
+      "material": "MDF 19 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Cubierta y fondo (cuerpo)",
+      "material": "MDF 19 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Puertas abatibles",
+      "material": "MDF 19 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Chapa nogal, caras exteriores laterales",
+      "material": "Chapa Walnut Burl (poro sellado)",
+      "alertas": []
+    },
+    {
+      "nombre": "Chapa nogal, frentes de puerta",
+      "material": "Chapa Walnut Burl (poro sellado)",
+      "alertas": []
+    },
+    {
+      "nombre": "Entrepano interior (1 por modulo)",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Respaldo",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Base PTR 1x1 cal.14",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Pintura electrostatica base",
+      "material": "Pintura electrostatica",
+      "alertas": []
+    },
+    {
+      "nombre": "Bisagras",
+      "material": "BISAGRA BIDIMENSIONAL INSERTA G01H91079CGGWS CON BASE G01B2182ZG60L1 (EN JUEGO 1 BASE Y 1 BISAGRA)-- \"\" BIBIPI\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Jaladeras rectas",
+      "material": "JALADERA EMBUTIDA DE ALUMINIO REDONDO COLOR PLATA, ANODIZADO MARCA HAFELE MODELO 151.75.903 - \"JAEM15175902\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto (cantos visibles)",
+      "material": "Tapacanto PVC",
+      "alertas": []
+    }
+  ]
+}

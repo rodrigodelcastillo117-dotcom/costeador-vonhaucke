@@ -27,8 +27,11 @@ export function esGemeloExacto(curado, fila, pedido = '') {
   if (!mismoConjunto(espesoresPara(curado.nombre, famC), espesoresPara(fila.nombre, famF))) return false;
   if (!mismoConjunto(calibres(curado.nombre), calibres(fila.nombre))) return false;
   // Lo PEDIDO manda: "jaladera recta 300 mm" vs ERP 128 mm, o "chapa nogal" vs ERP "ENCINO ROJO" → no es gemelo.
+  // El gemelo no puede ser PEOR que el curado: si el curado ya difería de lo pedido en lo mismo (p.ej. pidió
+  // MDF 18 mm, curado y ERP son 19 mm, par aprobado 18↔19), el gemelo no añade conflicto y sigue siendo gemelo.
   const ped = String(pedido || '').trim();
-  if (ped && severidadConflicto_(famC, ped, fila.nombre || '').conflicto) return false;
+  if (ped && severidadConflicto_(famC, ped, fila.nombre || '').conflicto
+      && !severidadConflicto_(famC, ped, curado.nombre || '').conflicto) return false;
   if (unidadNorm(curado.unidad) !== unidadNorm(fila.unidad)) return false;
   // Si el curado se consume por área con formato, el ERP también debe traer formato (si no, P0-02 lo deja pendiente).
   if (curado.formato && curado.fraccion && !(fila.formato && fila.formato.medida > 0)) return false;
