@@ -23,6 +23,7 @@ import { buscarInsumosMotor } from '../nube.js';
 import { resumenMotor } from '../datos/resumenMotor.js';
 import { respuestasPorReglaDeCasa, esSupuestoPreliminar } from '../datos/autoRespuestas.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, alertaMaterial } from '../datos/materialMatch.js';
+import { conservarMaterialesConfirmados } from '../datos/conservarConfirmados.js';
 import BuscadorInsumo from './BuscadorInsumo.jsx';
 import { paginaAImagen } from '../datos/pdfImagen.js';
 import { prepararPdfRapido, rasterizarPaginas, paginasAlrededor } from '../datos/pdfPipeline.js';
@@ -596,7 +597,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     const paginas = Array.isArray(planos) && planos.length ? planos : (dataUrl ? [String(dataUrl).split(',')[1]] : []);
     // Un ANÁLISIS NUEVO (subiste otro plano) nombra el producto desde el plano, para que el nombre
     // NO se quede pegado de un producto anterior. Una re-corrida con respuestas conserva el nombre.
-    setB((prev) => ({ ...prev, nombre: nuevoAnalisis ? (p.producto || prev.nombre || '') : (prev.nombre || p.producto || ''), componentes: comps, imagen: dataUrl || null, planos: paginas, descripcionCliente: p.descripcionCliente || '', materiales: Array.isArray(p.materiales) ? p.materiales : [], analysisId: corrida.current }));
+    setB((prev) => ({ ...prev, nombre: nuevoAnalisis ? (p.producto || prev.nombre || '') : (prev.nombre || p.producto || ''), componentes: nuevoAnalisis ? comps : conservarMaterialesConfirmados(prev.componentes, comps) /* VH-150: lo elegido a mano sobrevive al recálculo */, imagen: dataUrl || null, planos: paginas, descripcionCliente: p.descripcionCliente || '', materiales: Array.isArray(p.materiales) ? p.materiales : [], analysisId: corrida.current }));
     if (!etiquetasTxt.trim()) setEtiquetasTxt([p.tipo, p.design_intent?.product_type, ...((Array.isArray(p.materiales) ? p.materiales : []).slice(0, 3))].filter(Boolean).map((x) => String(x).trim()).filter((x, i, a) => x && a.indexOf(x) === i).join(', '));
     setAnalisis({
       descripcionCliente: p.descripcionCliente || '',
