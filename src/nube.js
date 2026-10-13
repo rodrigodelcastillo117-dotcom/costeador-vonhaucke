@@ -377,11 +377,14 @@ const envFn = (k, def) => (typeof import.meta !== 'undefined' && import.meta.env
 // VITE_LEER_PLANO_FN definido en el build de producción apuntaba la app real a la copia RC. Ahora va por envFn
 // (sólo en desarrollo) y restringido a 'leer-plano*'.
 const FN_LEER_PLANO = (() => { const v = envFn('VITE_LEER_PLANO_FN', 'leer-plano'); return /^leer-plano(-rc)?$/.test(v) ? v : 'leer-plano'; })();
-const FN_ANALIZAR = envFn('VITE_ANALIZAR_MUEBLE_FN', 'analizar-mueble');
+// Carril RC publicado (link de prueba): sólo builds de Preview de Vercel con CARRIL_RC=si (ver vite.config.js).
+// Nombres fijos, no tomados de variables: el preview no puede apuntar a otra función que no sea su copia -rc.
+export const CARRIL_RC = typeof __CARRIL_RC__ !== 'undefined' && __CARRIL_RC__ === true;
+const FN_ANALIZAR = CARRIL_RC ? 'analizar-mueble-rc' : envFn('VITE_ANALIZAR_MUEBLE_FN', 'analizar-mueble');
 const FN_COTIZAR_TEXTO = envFn('VITE_COTIZAR_TEXTO_FN', 'cotizar-texto');
 const FN_GENERAR_RENDER = envFn('VITE_GENERAR_RENDER_FN', 'generar-render');
 // RC: costear-servidor-rc mide la paridad cliente/servidor con el motor de la rama (sólo en desarrollo).
-const FN_COSTEAR = (() => { const v = envFn('VITE_COSTEAR_FN', 'costear-servidor'); return v.startsWith('costear-servidor') ? v : 'costear-servidor'; })();
+const FN_COSTEAR = CARRIL_RC ? 'costear-servidor-rc' : (() => { const v = envFn('VITE_COSTEAR_FN', 'costear-servidor'); return v.startsWith('costear-servidor') ? v : 'costear-servidor'; })();
 // Carril de recuperación: el preview NUNCA invoca la Edge productiva 'acomodar-espacio'. El override
 // (RC: acomodar-espacio-recovery-rc, sólo para medir) debe quedarse dentro del carril o se ignora.
 const FN_ACOMODAR = (() => { const v = envFn('VITE_ACOMODAR_FN', 'acomodar-espacio-recovery'); return v.startsWith('acomodar-espacio-recovery') ? v : 'acomodar-espacio-recovery'; })();

@@ -34,6 +34,9 @@ export default defineConfig(({ mode }) => {
       __BUILD_DATE__: JSON.stringify(new Date().toISOString()),
       __APP_VERSION__: JSON.stringify(appVersion),
       __PORTABLE__: JSON.stringify(portable),
+      // Carril RC publicado: SÓLO un build de Preview de Vercel (VERCEL_ENV=preview) con CARRIL_RC=si apunta Costear
+      // a las Edge -rc. En producción VERCEL_ENV=production y queda en false aunque la variable exista por error.
+      __CARRIL_RC__: JSON.stringify(process.env.VERCEL_ENV === 'preview' && process.env.CARRIL_RC === 'si'),
     },
     build: {
       target: 'es2018',

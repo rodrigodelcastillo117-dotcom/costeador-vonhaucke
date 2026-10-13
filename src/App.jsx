@@ -78,7 +78,7 @@ import { guardarRevision, snapshotEmitido } from './datos/revisiones.js';
 import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
 import { leerBorradorCosteo, guardarBorradorCosteo, borrarBorradorCosteo } from './datos/borradorCosteo.js';
 import { crearSeguroDobleClic, firmaAgregado } from './datos/dobleClic.js';
-import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, costearServidor, evaluarEmision, solicitarAprobacionSnapshot } from './nube.js';
+import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, costearServidor, evaluarEmision, solicitarAprobacionSnapshot, CARRIL_RC } from './nube.js';
 import { calcular, modeloParaPieza, pendientesDeCosteo } from './motor/calculo.js';
 import { calcularCosteoVivo } from './motor/costeoVivo.js';
 import { aCentavosEnteros, dinero } from './motor/dinero.js';
@@ -1424,6 +1424,11 @@ export default function App() {
 
   return (
     <div>
+      {CARRIL_RC && (
+        <div data-testid="carril-rc" className="no-imprimir" style={{ background: '#B42318', color: '#fff', textAlign: 'center', fontSize: 12, padding: '4px 8px' }}>
+          LINK DE PRUEBA (RC) · Costear usa el motor en prueba · no es producción · lo que guardes queda en la base real: márcalo como prueba
+        </div>
+      )}
       <header className="encabezado no-imprimir">
         <div className="barra-enc">
           <div className="marca" onClick={irInicio} role="button" title="Ir al inicio">
