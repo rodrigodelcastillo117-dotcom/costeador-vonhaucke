@@ -23,7 +23,8 @@ function comparar(ctl, L) {
     okArea++;
     const m2 = areaM2(m); const dM2 = Math.abs(m2 - c.m2) / Math.max(c.m2, 1);
     const m2ok = dM2 <= 0.08; okM2 += m2ok;
-    const pOk = (m.puestos || 0) === (c.puestos || 0); okPuestos += pOk;
+    // privado/recepción: el programa los cuenta por TIPO (1 escritorio por cuarto); el lector puede traer 0 o 1.
+    const pOk = (m.puestos || 0) === (c.puestos || 0) || (['privado', 'recepcion'].includes(c.tipo) && (m.puestos || 0) <= (c.puestos || 0)); okPuestos += pOk;
     const sOk = (m.asientos || 0) === (c.asientos || 0); okAsientos += sOk;
     const tOk = m.tipo === c.tipo; okTipo += tOk;
     const pg = Number.isInteger(m.pagina) ? m.pagina : null;

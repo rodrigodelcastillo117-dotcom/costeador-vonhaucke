@@ -177,9 +177,9 @@ Deno.serve(async (req: Request) => {
 
   const areas = Array.isArray(l?.areas) ? l.areas : [];
   if (!areas.length) issues.push({ field: "areas", code: "NO_AREAS" });
-  const nameList = areas.map((a: any) => String(a?.nombre || "").trim()).filter(Boolean);
-  const names = new Set(nameList);
-  if (names.size !== nameList.length) issues.push({ field: "areas", code: "DUPLICATE_ZONE_NAME" });
+  const nameList = areas.map((a: any) => `${String(a?.nivel || "").trim()}::${String(a?.nombre || "").trim()}`).filter((x: string) => !x.endsWith("::"));
+  const names = new Set(areas.map((a: any) => String(a?.nombre || "").trim()).filter(Boolean));
+  if (new Set(nameList).size !== nameList.length) issues.push({ field: "areas", code: "DUPLICATE_ZONE_NAME" });
   let topArea = 0;
   const normalizedZones: any[] = [];
 
@@ -229,7 +229,17 @@ Deno.serve(async (req: Request) => {
   }
 
   const envArea = finite(W) && finite(H) ? (W * H / 1_000_000) : 0;
-  if (envArea > 0 && topArea > envArea * 1.08) issues.push({ field: "areas", code: "TOP_LEVEL_AREA_EXCEEDS_ENVELOPE", top_level_m2: Math.round(topArea*100)/100, envelope_m2: Math.round(envArea*100)/100 });
+  // L1 · NIVELES: la suma de cuartos raíz se compara contra la envolvente POR NIVEL (un documento con dos
+  // plantas trae el doble de m²; antes se rechazaba entero con TOP_LEVEL_AREA_EXCEEDS_ENVELOPE).
+  const porNivel = new Map<string, number>();
+  for (let i = 0; i < areas.length; i++) {
+    const a = areas[i] || {};
+    if (String(a.dentroDe || "").trim()) continue;
+    const k = String(a.nivel || "").trim() || "";
+    porNivel.set(k, (porNivel.get(k) || 0) + areaOf(a) / 1_000_000);
+  }
+  const topPorNivel = Math.max(0, ...porNivel.values());
+  if (envArea > 0 && topPorNivel > envArea * 1.08) issues.push({ field: "areas", code: "TOP_LEVEL_AREA_EXCEEDS_ENVELOPE", top_level_m2: Math.round(topPorNivel*100)/100, envelope_m2: Math.round(envArea*100)/100 });
 
   // Puertas: x/y/ancho siguen siendo hard geometry. El barrido incompleto NO se
   // inventa: baja el FloorSpec a REVIEW_REQUIRED y bloquea liberación automática.
