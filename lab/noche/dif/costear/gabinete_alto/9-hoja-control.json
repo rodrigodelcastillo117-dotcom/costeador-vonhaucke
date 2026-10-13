@@ -1,0 +1,128 @@
+{
+  "producto": "Gabinete alto 2 puertas 800 × 450 × 2000, melamina 19 mm Soft Grey (entrada PDF)",
+  "resumen": {
+    "esperados": 10,
+    "pass": 2,
+    "fail": 8,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 0,
+    "renglonesBom": 2,
+    "veredicto": "FAIL"
+  },
+  "filas": [
+    {
+      "clave": "laterales",
+      "renglones": 1,
+      "materiales": [
+        "melamina-19-soft-grey"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: 2 LATERALES 2000 × 450",
+      "inferido": false,
+      "piezas": 2
+    },
+    {
+      "clave": "techo_piso",
+      "renglones": 0,
+      "materiales": [],
+      "estado": "FAIL",
+      "motivos": [
+        "omitido: ningún renglón del BOM corresponde"
+      ],
+      "evidencia": "plano: TECHO Y PISO 762 × 450 (2)",
+      "inferido": false
+    },
+    {
+      "clave": "entrepanos",
+      "renglones": 0,
+      "materiales": [],
+      "estado": "FAIL",
+      "motivos": [
+        "omitido: ningún renglón del BOM corresponde"
+      ],
+      "evidencia": "plano: 4 ENTREPAÑOS AJUSTABLES 760 × 430",
+      "inferido": false
+    },
+    {
+      "clave": "puertas",
+      "renglones": 0,
+      "materiales": [],
+      "estado": "FAIL",
+      "motivos": [
+        "omitido: ningún renglón del BOM corresponde"
+      ],
+      "evidencia": "plano: 2 PUERTAS 397 × 1896",
+      "inferido": false
+    },
+    {
+      "clave": "zoclo",
+      "renglones": 0,
+      "materiales": [],
+      "estado": "FAIL",
+      "motivos": [
+        "omitido: ningún renglón del BOM corresponde"
+      ],
+      "evidencia": "plano: ZOCLO FRONTAL 762 × 100",
+      "inferido": false
+    },
+    {
+      "clave": "respaldo_sin_material",
+      "renglones": 0,
+      "materiales": [],
+      "estado": "FAIL",
+      "motivos": [
+        "omitido: ningún renglón del BOM corresponde"
+      ],
+      "evidencia": "plano: RESPALDO MDF 6 mm 1980 × 780. No hay MDF 6 mm en el catálogo (sólo perfocel 5.5 mm): lo correcto es dejarlo sin material con su motivo.",
+      "inferido": false
+    },
+    {
+      "clave": "bisagras",
+      "renglones": 0,
+      "materiales": [],
+      "estado": "FAIL",
+      "motivos": [
+        "omitido: ningún renglón del BOM corresponde"
+      ],
+      "evidencia": "plano: 8 BISAGRAS CIERRE SUAVE (4 POR PUERTA)",
+      "inferido": false
+    },
+    {
+      "clave": "jaladeras",
+      "renglones": 0,
+      "materiales": [],
+      "estado": "FAIL",
+      "motivos": [
+        "omitido: ningún renglón del BOM corresponde"
+      ],
+      "evidencia": "plano: 2 JALADERAS 160 mm",
+      "inferido": false
+    },
+    {
+      "clave": "niveladores",
+      "renglones": 0,
+      "materiales": [],
+      "estado": "FAIL",
+      "motivos": [
+        "omitido: ningún renglón del BOM corresponde"
+      ],
+      "evidencia": "plano: 4 NIVELADORES",
+      "inferido": false
+    },
+    {
+      "clave": "tapacanto",
+      "renglones": 1,
+      "materiales": [
+        "tapacanto"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: TAPACANTO EN CANTOS VISIBLES Y PERÍMETRO DE PUERTAS",
+      "inferido": false
+    }
+  ],
+  "sobran": [],
+  "estadoServidor": "preliminar",
+  "respuestas": []
+}

@@ -1,0 +1,29 @@
+{
+  "erp": {
+    "intentado": false
+  },
+  "piezas": [
+    {
+      "nombre": "Laterales",
+      "material": "Melamina 19 mm, Soft Grey",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Tapacanto (cantos visibles)",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: estándar de casa"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

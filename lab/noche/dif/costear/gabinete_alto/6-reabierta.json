@@ -1,0 +1,34 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB dif gabinete_alto 1013-1619 BORRADOR guarda Lista: $2,117 · preliminar",
+    "piezas": 2,
+    "mismoBom": true,
+    "costoAntes": "$1,270.39",
+    "costoDespues": "$1,270.39",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$1,270.39",
+        "$2,117.31"
+      ],
+      "margen": "Precio de lista (40% margen · del expediente guardado)",
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $793.99 · Mano de obra $119.10 · Fábrica $357.30",
+      "pendiente": false,
+      "porConfirmar": false
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Laterales",
+      "material": "Melamina 19 mm, Soft Grey",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto (cantos visibles)",
+      "material": "Tapacanto PVC",
+      "alertas": []
+    }
+  ]
+}

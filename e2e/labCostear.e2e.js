@@ -212,8 +212,9 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
       for (let k = 0; k < 3 && !(await page.locator('.precio-enorme').count()); k++) { const vp = page.locator('.asistente').getByRole('button', { name: /Ver precio|Siguiente/ }); if (await vp.count()) await vp.first().click({ timeout: 10000 }); await page.waitForTimeout(1200); }
       const rd = await leerResultado(page);
       dif.costoDificil = rd.precios.length && !rd.pendiente ? pesosNum(rd.precios[0]) : null;
-      await page.waitForTimeout(6000);
-      const srvD = edges.filter((e) => e.fn.startsWith('costear-servidor')).slice(n0).pop();
+      // Espera la respuesta del servidor CON la dificultad (no un tiempo fijo: el edge a veces tarda > 6 s).
+      for (let t = 0; t < 40 && !edges.slice(n0).some((e) => e.fn.startsWith('costear-servidor') && e.req?.pieza?.dificultad); t++) await page.waitForTimeout(500);
+      const srvD = edges.filter((e) => e.fn.startsWith('costear-servidor')).slice(n0).filter((e) => e.req?.pieza?.dificultad).pop();
       dif.reqDificultad = srvD?.req?.pieza?.dificultad ?? null;
       dif.costoSrvDificil = srvD?.body?.costo?.costoUnitario ?? srvD?.body?.costoUnitario ?? null;
       dif.sube = dif.costoDificil != null && dif.costoDificil > dif.costoNormal;
