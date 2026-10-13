@@ -1,0 +1,61 @@
+{
+  "confirmacion": {
+    "ofrecida": true,
+    "texto": "Confirmar los 2 propuestos",
+    "diferencias": "4 difieren de lo pedido y se confirman uno por uno: Piso y techo, Entrepaño fijo, Tapacanto PVC 2 mm Walnut cantos frontales, Tornillería ensamble.",
+    "diferenciasAceptadas": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Lateral",
+      "material": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT",
+      "alertas": []
+    },
+    {
+      "nombre": "Piso y techo",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Solicitado hoja 5×8 → candidato hoja 4×8 Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Entrepaño fijo",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Solicitado hoja 5×8 → candidato hoja 4×8 Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Respaldo",
+      "material": "Melamina 16 mm, Walnut",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto PVC 2 mm Walnut cantos frontales",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Nivelador",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Tornillería ensamble",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («respaldo atornillado union») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}
