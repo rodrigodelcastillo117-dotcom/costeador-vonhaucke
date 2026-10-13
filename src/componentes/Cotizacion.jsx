@@ -488,7 +488,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
       <div className="tarjeta no-imprimir">
         <div style={{ marginBottom: 12 }}><MarcaLogo alto={42} /></div>
         <div className="form-3">
-          <div><label className="etiqueta">Cliente</label><input type="text" value={cot.cliente} onChange={(e) => setCot({ cliente: e.target.value })} /></div>
+          <div><label className="etiqueta" htmlFor="cot-cliente">Cliente</label><input id="cot-cliente" type="text" value={cot.cliente} onChange={(e) => setCot({ cliente: e.target.value })} /></div>
           {/* Rodrigo, probándola en el celular: "no entiendo eso de Folio, ¿quién
               lo pone? ¿qué es?". Tenía razón: era una caja vacía sin una palabra
               que la explicara. Es el número con el que ESTA propuesta se va a

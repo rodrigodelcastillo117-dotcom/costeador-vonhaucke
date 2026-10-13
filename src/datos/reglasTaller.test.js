@@ -274,15 +274,42 @@ describe('VH-169 · librero 5×8: zoclo sólo en gabinete bajo y tapacanto sin d
     const z = conAcompanantes(credenza, insumos).find((c) => c._regla === 'zoclo');
     expect(z && z.largoMM).toBe(1800);
   });
-  it('"cantos frontales": un canto por pieza = 8.66 m; el segundo renglón queda excluido y visible', () => {
+  it('"cantos frontales": un canto por pieza = 8.66 m; el segundo renglón se integra con rastro (VH-175)', () => {
     const r = conAcompanantes(librero(), insumos);
     const tapas = r.filter((c) => c.insumoId === 'tapacanto');
-    expect(tapas).toHaveLength(2);
-    const vivo = tapas.filter((c) => !c.excluida);
-    expect(vivo).toHaveLength(1);
-    expect(vivo[0].cantidad).toBeCloseTo(2 * 1.8 + 2 * 0.844 + 4 * 0.844, 2);
-    const fuera = tapas.find((c) => c.excluida);
-    expect(fuera._regla).toBe('tapacanto_duplicado'); expect(fuera.iaNota).toMatch(/no contarlo dos veces/);
+    expect(tapas).toHaveLength(1);
+    expect(tapas[0].excluida).toBeUndefined();
+    expect(tapas[0].cantidad).toBeCloseTo(2 * 1.8 + 2 * 0.844 + 4 * 0.844, 2);
+    expect(tapas[0].iaDuplicados).toHaveLength(1);
+    expect(tapas[0].iaNota).toMatch(/no se cuenta dos veces/);
+    // Idempotente: otra pasada (o la IA re-proponiendo el mismo renglón) no duplica el rastro ni el metraje.
+    const r2 = conAcompanantes(r, insumos);
+    expect(r2.filter((c) => c.insumoId === 'tapacanto')).toHaveLength(1);
+    expect(r2.find((c) => c.insumoId === 'tapacanto').iaDuplicados).toHaveLength(1);
+  });
+  it('VH-175 · paridad: lo que costea el cliente es lo mismo que viaja al servidor (sin depender de `excluida`)', async () => {
+    const { intentDesdePieza, validarIntentCosteo } = await import('./validarIntentCosteo.js');
+    const { calcular } = await import('../motor/calculo.js');
+    const r = conAcompanantes(librero(), insumos);
+    const v = validarIntentCosteo(intentDesdePieza({ componentes: r }, 1));
+    expect(v.ok).toBe(true);
+    const cli = calcular({ nombre: 'librero', modoManoObra: 'porcentaje', componentes: r }, 1, insumos);
+    const srv = calcular({ nombre: 'librero', modoManoObra: 'porcentaje', componentes: v.intent.pieza.componentes }, 1, insumos);
+    expect(cli.costoUnitario).toBeGreaterThan(0); expect(srv.costoUnitario).toBe(cli.costoUnitario);
+  });
+  it('VH-175 · un expediente guardado con el renglón `tapacanto_duplicado` excluido se integra al reabrir', () => {
+    const viejo = conAcompanantes(librero(), insumos).map((c) => c);
+    const vivo = viejo.find((c) => c.insumoId === 'tapacanto');
+    const legado = [...viejo, { nombre: 'Tapacanto IA aparte', insumoId: 'tapacanto', cantidad: 12, piezas: 1, excluida: true, _regla: 'tapacanto_duplicado' }];
+    const r = conAcompanantes(legado, insumos);
+    expect(r.filter((c) => c.insumoId === 'tapacanto')).toHaveLength(1);
+    expect(r.find((c) => c.insumoId === 'tapacanto').cantidad).toBe(vivo.cantidad);
+  });
+  it('VH-175 · un tapacanto con cantidad confirmada por la persona nunca se integra ni se quita', () => {
+    const base = librero().map((c) => (c.insumoId === 'tapacanto' && /frente piso/i.test(c.nombre) ? { ...c, cantidad_confirmada: true } : c));
+    const antes = base.filter((c) => c.insumoId === 'tapacanto' && c.cantidad_confirmada).length; expect(antes).toBe(1);
+    const r = conAcompanantes(base, insumos);
+    expect(r.filter((c) => c.insumoId === 'tapacanto' && c.cantidad_confirmada).length).toBe(antes);
   });
 });
 
@@ -312,23 +339,25 @@ describe('VH-170 · tapacanto duplicado: idempotente entre pasadas', () => {
     { nombre: 'Faldón central 2000×300', insumoId: 'melamina-19-walnut', largoMM: 2000, anchoMM: 300, piezas: 1, cantidad: 1 },
     { nombre: 'Tapacanto PVC paneles base y faldón', insumoId: 'tapacanto', material_solicitado: 'Tapacanto PVC', cantidad: 12 },
   ];
-  it('1ª pasada: un renglón vivo por geometría (15.24 m) y el otro excluido', () => {
+  it('1ª pasada: un renglón vivo por geometría (15.24 m); el otro se integra con rastro (VH-175)', () => {
     const r = conAcompanantes(mesa(), insumos);
     const vivos = r.filter((c) => c.insumoId === 'tapacanto' && !c.excluida);
     expect(vivos).toHaveLength(1); expect(vivos[0].cantidad).toBeCloseTo(15.24, 2);
-    expect(r.filter((c) => c.insumoId === 'tapacanto' && c.excluida)).toHaveLength(1);
+    expect(r.filter((c) => c.insumoId === 'tapacanto')).toHaveLength(1);
+    expect(vivos[0].iaDuplicados).toEqual([{ nombre: 'Tapacanto PVC paneles base y faldón', cantidad: 12 }]);
     expect(Object.keys(r).some((k) => k === '-1')).toBe(false);
   });
   it('2ª pasada con la IA proponiendo otra vez el duplicado: sigue un solo renglón vivo', () => {
     const r1 = conAcompanantes(mesa(), insumos);
     const reanalisis = [...r1.filter((c) => !c.excluida), { nombre: 'Tapacanto PVC paneles base y faldón', insumoId: 'tapacanto', material_solicitado: 'Tapacanto PVC', cantidad: 12 }];
     const r2 = conAcompanantes(reanalisis, insumos);
-    expect(r2.filter((c) => c.insumoId === 'tapacanto' && !c.excluida)).toHaveLength(1);
+    expect(r2.filter((c) => c.insumoId === 'tapacanto')).toHaveLength(1);
+    expect(r2.find((c) => c.insumoId === 'tapacanto').iaDuplicados).toHaveLength(1);   // el rastro no se duplica
   });
 });
 
 describe('VH-174 · las reglas de casa se re-aplican después del amarre ERP (idempotentes)', () => {
-  it('un renglón "Canto de paneles…" sin material que luego se amarra a tapacanto queda excluido; dos pasadas no cambian nada', () => {
+  it('un renglón "Canto de paneles…" sin material que luego se amarra a tapacanto se integra; dos pasadas no cambian nada', () => {
     const base = [
       { nombre: 'Cubierta 2400×1200', insumoId: 'melamina-28-walnut', cantidad: 1, piezas: 1, largoMM: 2400, anchoMM: 1200 },
       { nombre: 'Panel lateral base 722×1000', insumoId: 'melamina-28-walnut', cantidad: 1, piezas: 2, largoMM: 1000, anchoMM: 722 },
@@ -340,8 +369,9 @@ describe('VH-174 · las reglas de casa se re-aplican después del amarre ERP (id
     expect(r1.find((c) => /Canto de paneles/.test(c.nombre)).excluida).toBeFalsy();   // aún no es tapacanto
     const amarrado = r1.map((c) => (/Canto de paneles/.test(c.nombre) ? { ...c, insumoId: 'tapacanto' } : c));
     const r2 = conAcompanantes(amarrado, insumos);
-    expect(r2.find((c) => /Canto de paneles/.test(c.nombre)).excluida).toBe(true);
-    expect(r2.filter((c) => c.insumoId === 'tapacanto' && !c.excluida).map((c) => c.cantidad)).toEqual([15.24]);
+    expect(r2.find((c) => /Canto de paneles/.test(c.nombre))).toBeUndefined();
+    expect(r2.filter((c) => c.insumoId === 'tapacanto').map((c) => c.cantidad)).toEqual([15.24]);
+    expect(r2.find((c) => c.insumoId === 'tapacanto').iaNota).toMatch(/Canto de paneles de base.*12 m/);
     expect(conAcompanantes(r2, insumos)).toEqual(r2);   // idempotente
   });
 });

@@ -76,7 +76,8 @@ test('COTIZAR real por texto o manual: partidas → guardar → nube → PDF →
   // 2) Cotización: cliente (si la pantalla lo pide aquí) y guardado real.
   const verCot = page.getByRole('button', { name: /Ver mi cotización/ });
   if (await verCot.count()) await verCot.first().click().catch(() => {});
-  const cli = page.getByPlaceholder(/cliente/i).first();
+  // El campo de la Cotización tiene etiqueta "Cliente" (sin placeholder); el de VONI, placeholder.
+  const cli = (await page.getByLabel(/^Cliente$/).count()) ? page.getByLabel(/^Cliente$/).first() : page.getByPlaceholder(/cliente/i).first();
   if ((await cli.count()) && !(await cli.inputValue().catch(() => ''))) await cli.fill(CLIENTE);
   const tG = Date.now();
   await expect.poll(async () => (await leerCot(page))?.id || null, { timeout: 45000 }).not.toBeNull().catch((e) => { guarda('rpcs.json', rpcs); guarda('ERROR_guardado.txt', String(e)); throw e; }); T('guardarSeg', tG);

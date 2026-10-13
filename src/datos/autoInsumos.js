@@ -120,15 +120,30 @@ export function conAcompanantes(componentes = [], insumos = null) {
         comps[idx] = { ...existente.c, iaCantidad: existente.c.cantidad, cantidad: r2(metros), _regla: 'tapacanto', iaNota: `${nota}${iaTotal > 0 ? ` (la IA suponía ${r2(iaTotal)} m en ${tapas.filter((x) => !x.c.cantidad_confirmada && !x.c._regla).length} renglón(es)).` : ''}` };
       }
       // VH-169/170: varios renglones de tapacanto de la IA se sumaban (16.2 m contra 8.66 m del plano; 27.2 m contra
-      // 15.2 m en la mesa de juntas). Los que NO son el renglón por geometría quedan EXCLUIDOS y visibles con su
-      // motivo — también en pasadas posteriores (la IA los vuelve a proponer al re-analizar). Idempotente.
+      // 15.2 m en la mesa de juntas). VH-175: marcarlos `excluida` rompía la paridad — el contrato de costeo
+      // (validarIntentCosteo) NO acepta `excluida` del cliente a propósito, y el servidor cobraba el duplicado
+      // ($5,128.49 contra $5,072.85). Como es una corrección técnica determinista (igual que reemplazar el metraje
+      // supuesto de la IA por el de geometría), el supuesto duplicado se INTEGRA al renglón por geometría: sale del
+      // BOM y queda su rastro en `iaDuplicados` + la nota del renglón vivo. Idempotente (la IA lo vuelve a proponer
+      // al re-analizar). Lo que la persona confirmó a mano nunca se toca.
       if (metros > 0 && existente && (existente.c._regla || comps.find((c) => c && c._regla === 'tapacanto'))) {
-        const vivo = comps.find((c) => c && c._regla === 'tapacanto' && !c.excluida);
-        for (const o of tapas) {
-          if (!vivo || o.c === vivo || o.c === existente.c || o.c.cantidad_confirmada || o.c._regla === 'tapacanto') continue;
-          const j = comps.indexOf(o.c);
-          if (j < 0) continue;
-          comps[j] = { ...o.c, excluida: true, _regla: 'tapacanto_duplicado', iaNota: `Incluido en «${vivo.nombre}» (tapacanto por geometría, ${vivo.cantidad} m). La IA lo había puesto aparte con ${o.c.cantidad} m: se excluye para no contarlo dos veces.` };
+        const iv = comps.findIndex((c) => c && c._regla === 'tapacanto' && !c.excluida);
+        if (iv >= 0) {
+          // Expedientes guardados con la versión anterior (renglón `excluida` + _regla 'tapacanto_duplicado') también se integran.
+          const legado = comps.filter((c) => c && c.excluida && c._regla === 'tapacanto_duplicado').map((c) => ({ c }));
+          const fuera = [...tapas, ...legado].filter((o) => o.c !== comps[iv] && o.c !== existente.c && !o.c.cantidad_confirmada && o.c._regla !== 'tapacanto' && comps.indexOf(o.c) >= 0);
+          if (fuera.length) {
+            const vivo = comps[iv];
+            const previos = Array.isArray(vivo.iaDuplicados) ? vivo.iaDuplicados : [];
+            const clave = (d) => `${d.nombre}|${d.cantidad}`;
+            const vistos = new Set(previos.map(clave));
+            const nuevos = fuera.map((o) => ({ nombre: o.c.nombre || 'Tapacanto', cantidad: Number(o.c.cantidad) || 0 })).filter((d) => !vistos.has(clave(d)) && vistos.add(clave(d)));
+            const todos = [...previos, ...nuevos];
+            const notaDup = ` Integrado aquí (no se cuenta dos veces): ${todos.map((d) => `«${d.nombre}» ${r2(d.cantidad)} m`).join(', ')} — la geometría ya incluye esos cantos.`;
+            comps[iv] = { ...vivo, iaDuplicados: todos, iaNota: `${String(vivo.iaNota || '').replace(/ Integrado aquí \(no se cuenta dos veces\):.*$/, '')}${notaDup}` };
+            const quitar = new Set(fuera.map((o) => o.c));
+            for (let j = comps.length - 1; j >= 0; j--) if (quitar.has(comps[j])) comps.splice(j, 1);
+          }
         }
       } else if (metros > 0 && !existente) {
         comps.push(pieza({ nombre: 'Tapacanto (cantos visibles)', material_solicitado: 'Tapacanto PVC', cantidad: r2(metros), piezas: 1, forma: 'lineal' }, insumos, 'tapacanto', nota));
