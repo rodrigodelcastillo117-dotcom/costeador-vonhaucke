@@ -101,3 +101,14 @@ producción, modificar precios, eliminar funcionalidades, limpiar pruebas para a
 | 5 COSTEAR | paridad al centavo con diferencias aceptadas (corrida 12); bloqueo honesto en 2 decisiones de diseño (corrida 14) | `lab/noche/costear/corrida11…14` |
 | 6 COTIZAR/renders | acomodo C1 VALIDADO; propuesta bloqueada por P0-01; renders 5 etapas 4/4 | `lab/noche/cotizar_c1/corrida3`, `lab/noche/render_v2` |
 | control final | revisión de integración + CI `verify` reparado; overrides de Edge sólo en desarrollo | `docs/auditoria/INTEGRACION_PR37.md` |
+
+## Estado V3 · criterio 9.5 verificable (matriz `docs/auditoria/MATRIZ_V3.md`)
+
+| frente | estado | evidencia |
+|---|---|---|
+| VH-035c + VH-148 | composición en cualquier orden probada en PGlite (21); E2E con simulador 3/3 + 7/7; dos sesiones reales BLOCKED (SQL no aplicado) | `supabase/tests/composicionVh035cVh148.test.js` |
+| Costear (3 familias) | hoja de control PASS en credenza 12/12, mesa de centro 3/3, mesa de trabajo 6/6; paridad al centavo; guardar/reabrir idéntico; ninguna llega a costo firme (precios sin certificar / decisiones de diseño) | `lab/noche/costear_v4/` |
+| defectos nuevos | VH-164, VH-164b, VH-165, VH-163b, VH-166 corregidos con prueba | `BUG_LEDGER.md` (entrada V3) |
+| Cotizar | C1 VALIDADO; C5 FAIL (fuera de cuarto); C2 parcial; identidad idéntica al reabrir en los tres; propuesta BORRADOR por P0-01 | `lab/noche/cotizar_v3/` |
+| Renders | v6: 3 de 4 áreas por las 5 etapas; contador sin anclaje = conteo manual; 1 rechazo honesto (10 de 12) | `lab/noche/render_v6/` |
+| Edge RC desplegadas hoy | `costear-servidor-rc` (corrida 17), `generar-render-rc` VH-161b (corrida 18) | Actions "Deploy edge functions" |
