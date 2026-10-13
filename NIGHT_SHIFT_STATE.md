@@ -72,3 +72,20 @@ Checkpoints por commit pequeño; este archivo se actualiza al cerrar cada bloque
 | labs | `e2e/labCostear.e2e.js`, `e2e/labConcurrencia.e2e.js`, `e2e/labRender.e2e.js`; evidencia en `lab/noche/` |
 
 PR borrador: https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/pull/37 (sólo para CI; no mergear). Informe final: `docs/auditoria/NOCHE_2026-10-13_INFORME.md`.
+
+---
+
+# SEGUNDA VUELTA · decisiones de Dirección (2026-10-13, tras revisar `d2bbb9c`)
+
+Veredicto de Dirección: NO-GO a producción; continuar en RC sin perder nada. Prohibido: merge, deploy, migraciones en
+producción, modificar precios, eliminar funcionalidades, limpiar pruebas para aparentar éxito.
+
+| decisión | qué pide | dónde se trabaja | estado |
+|---|---|---|---|
+| 1 ERP | validez histórica ≠ actualidad (24 m salvo validación comercial documentada más reciente); precio antiguo usable en PRELIMINAR con fecha visible y advertencia; nunca certificado como reposición sin evidencia; `vh147` como implementación real probada en base aislada | SQL PROPUESTA + PGlite + cliente (fecha/advertencia) | en curso |
+| 2 VH-035b | NO aplicar aún; corregir economía anidada, STALE por producto/versión/BOM/material, costos por lote al cambiar cantidad, repin sin validación del servidor, preservar aprobaciones/estados; histórico para auditoría; antes/después PGlite + roles + E2E real; sin relajar tests | PROPUESTA vh035c + tests | en curso (agente) |
+| 3 formatos ERP | completar `vh146` en aislado; auditar formatos, `fraccion`/`mermaCorte=6` vs fórmula industrial; consumos y costos antes/después 4×8 y 5×8; sin merma sin respaldo | PGlite + tests del motor | en curso (agente) |
+| 4 VH-148 | control optimista completo en RC: RPC, cliente (conflicto detectado, trabajo local conservado, recuperación explícita), pruebas, reversión; sin desplegar | PROPUESTA vh148 completa + cliente tras bandera | en curso (agente) |
+| 5 COSTEAR | prioridad funcional: corrida 8 no cerrada; investigar por qué VONI usa curados habiendo ERP exacto; VH-151 (hoja ≠ pieza, chapa por caras reales, cantidades estables con evidencia, ambigüedad se pregunta, selecciones manuales sobreviven, paridad al centavo sobre el MISMO BOM); ciclo desde cero con transferencia a Cotizar; Pendiente ≠ PASS | cliente + analizar-mueble-rc + labs | en curso (yo) |
+| 6 COTIZAR/renders | topología App LT 12u y sillas con 200 mm; no VALIDADO con conflictos; renders: generada / validada / persistida / reabierta / en PDF, por separado | catálogo topología + lab render por etapas | pendiente |
+| control final | revisión de integración del PR #37 (126 archivos, 43 commits) en bloques verificables: SQL, cliente, pruebas, prompts, docs; CI verify PASS / E2E FAIL por VH-035 se mantiene visible | doc de integración | pendiente |
