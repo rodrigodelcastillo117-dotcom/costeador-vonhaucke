@@ -95,3 +95,10 @@ Advertencia de la hoja respetada: no se forzaron las 69 unidades al piso; lo pen
 
 VH-136 (puertas), VH-138 (TOTAL del PDF), VH-139 (aviso de sala), supuestos preliminares fuera de `confirmaciones`
 (observación de Dirección), `e2e/labTorreNorte.e2e.js` y `e2e/labPdfReabrir.e2e.js`. Sin desplegar: requiere autorización.
+
+## 7. Despliegue y verificación en producción (2026-10-13)
+
+- Producción: merge `c8dd2b3` (PR #36) · Vercel `dpl_Bm7FFwdPLFZJEg9cnHsEGeua7bF3` READY · alias `costeador-vonhaucke.vercel.app`. Rollback: `dpl_9ehp8cSU7bvH3hptvETpU1tHPPHv` (ccf76f8).
+- Smoke 14/14 (auth, catálogo, cierre de navegador, golden 757 con edge real; registro 1328).
+- Mismo laboratorio contra producción (registro 1329, QA): la D08 se confirmó como acceso doble hacia adentro desde la compuerta y la lectura quedó sin avisos de puerta; acomodo 35/39; render 2/5 válidos (los otros 3 rechazados por la verificación de fidelidad, sin inventar imagen); PDF borrador con TOTAL $405,915.44 y saldo correcto; reabierta idéntica con 2 escenas; 0 errores de página.
+- Pendiente de diseño: VH-137 (leer la planta de mobiliario), VH-140 (columnas), VH-141 (aplicar por líneas), VH-125 (contador del render).
