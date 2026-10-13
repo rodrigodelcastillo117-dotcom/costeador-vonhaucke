@@ -93,7 +93,10 @@ describe('acomodar-espacio-recovery · fuente bajo control de código (P0.2)', (
     expect(idx).toContain("code: 'UNAUTHENTICATED'");
     expect(idx).toContain('auth.getUser()');
     // El cliente invoca esta función (no la productiva vieja): contrato del recovery lane intacto.
-    expect(nube).toContain("invoke('acomodar-espacio-recovery'");
+    // La constante FN_ACOMODAR vale 'acomodar-espacio-recovery' por omisión y sólo admite copias del carril.
+    expect(nube).toContain('invoke(FN_ACOMODAR');
+    expect(nube).toContain("envFn('VITE_ACOMODAR_FN', 'acomodar-espacio-recovery')");
+    expect(nube).toContain("v.startsWith('acomodar-espacio-recovery') ? v : 'acomodar-espacio-recovery'");
     expect(nube).not.toContain("invoke('acomodar-espacio',");
   });
 });

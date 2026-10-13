@@ -37,12 +37,18 @@ describe('P0.2c · GAP6 · topología desde el catálogo real → resolverKits',
 });
 
 describe('P0.2c · GAP6 · clasificación de fuentes (SOURCE_FOUND/PARTIAL/MISSING)', () => {
-  it('bench doble → SOURCE_FOUND; operativo 8u sin "doble" → SOURCE_PARTIAL; silla sin dims → SOURCE_MISSING', () => {
+  it('bench doble → SOURCE_FOUND; operativo App LT fondo 1200 → SOURCE_FOUND por receta (VH-153); operativo fondo 600 → SOURCE_PARTIAL; silla sin dims → SOURCE_MISSING', () => {
     const benchDoble = BANCO.find((p) => p.id === 'p9-app-lt-bench-doble-23340');
+    // VH-153: antes "operativo 8u sin 'doble'" quedaba PARTIAL. La receta de App LT (applt.js) define
+    // fondo 1200 = banca doble (CUBIERTA_BD + omega ATOMCU para fondo > 600): es fuente de CATÁLOGO.
     const op8 = BANCO.find((p) => p.id === 'op-8u-4800x1200-cristal');
+    // Fondo 600: la receta lo hace sencillo; la topología de cara (1 o 2 lados) sigue sin confirmar.
+    const op1 = BANCO.find((p) => p.id === 'op-1u-1500x600');
     const silla = BANCO.find((p) => p.categoria === 'Sillería' && !p.medidas) || { categoria: 'Sillería' };
     expect(clasificarFuenteTopologia(benchDoble)).toBe('SOURCE_FOUND');
-    expect(clasificarFuenteTopologia(op8)).toBe('SOURCE_PARTIAL');
+    expect(clasificarFuenteTopologia(op8)).toBe('SOURCE_FOUND');
+    expect(topologiaDeProducto(op8).evidence).toMatch(/applt\.js/);
+    expect(clasificarFuenteTopologia(op1)).toBe('SOURCE_PARTIAL');
     expect(clasificarFuenteTopologia(silla)).toBe('SOURCE_MISSING');
   });
   it('inventario: hay al menos una familia SOURCE_FOUND real', () => {
