@@ -139,6 +139,18 @@ async function costearConMotor(svc: any, pieza: any, n: number, puedeConfirmar: 
   } catch (_e) { /* catalogo_vigente puede no existir aún: no bloquea el costeo legado */ }
 
   const noCertificados = usados.filter((id) => !evMap[id] || !evMap[id].certificable);
+  // Entrega A (Dirección 2026-10-13): "validado" exige que cada precio certificable tenga aprobación HUMANA. Las
+  // aprobaciones hechas por la cuenta de prueba (qa-*) o por procesos (reconciliacion) no cuentan. Sólo lectura.
+  let aprobacionHumana = false;
+  try {
+    if (usados.length && noCertificados.length === 0) {
+      const { data: ap } = await svc.from("insumo_precios").select("insumo_id, approved_by")
+        .in("insumo_id", usados).eq("estado", "aprobado").is("vigente_hasta", null);
+      const humano = (e: string | null) => !!e && /@/.test(e) && !/^qa-|^test|^prueba/i.test(e);
+      const conHumano = new Set((ap || []).filter((x: any) => humano(x.approved_by)).map((x: any) => x.insumo_id));
+      aprobacionHumana = usados.every((id) => conHumano.has(id));
+    }
+  } catch (_e) { aprobacionHumana = false; }
   const requierenValidacion = usados.filter((id) => evMap[id]?.requiere_validacion_compras);
 
   // ESTADO (4 valores). El costo es legado (tiene precio), por eso 'bloqueado' solo
@@ -330,10 +342,10 @@ Deno.serve(async (req) => {
     componentesIgnorados: faltan,
   };
   const evidencia = { usados: usados.length, certificados: usados.length - noCertificados.length, noCertificados: noCertificados.length };
-  if (esDiseno) return json({ ok: true, estado, piezas: n, costo: tecnico, evidencia, ...meta, catalogoFuente, warnings });
+  if (esDiseno) return json({ ok: true, estado, aprobacionHumana, piezas: n, costo: tecnico, evidencia, ...meta, catalogoFuente, warnings });
 
   // Dirección: todo (incluye precio, margen, desglose completo y evidencia).
-  return json({ ok: true, estado, piezas: n, precioVenta: hayPrecio ? precioVenta : null, margen, costo: tecnico, evidencia, desglose: r, ...meta, catalogoFuente, warnings });
+  return json({ ok: true, estado, aprobacionHumana, piezas: n, precioVenta: hayPrecio ? precioVenta : null, margen, costo: tecnico, evidencia, desglose: r, ...meta, catalogoFuente, warnings });
 });
 
 function json(obj: unknown, status = 200) {

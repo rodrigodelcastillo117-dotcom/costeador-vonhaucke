@@ -1,0 +1,308 @@
+{
+ "fuente": "BOM reales de lab/rescate/r1 y lab/costear/ciego_erp/r1 (8-dto-servidor.json, 2026-10-13)",
+ "boms": {
+  "gabinete_alto": [
+   {
+    "nombre": "Lateral",
+    "insumoId": "melamina-19-soft-grey",
+    "cantidad": 1,
+    "piezas": 2,
+    "largoMM": 2000,
+    "anchoMM": 450,
+    "material_solicitado": "Melamina 19 mm Soft Grey (HOJA 4 × 8)"
+   },
+   {
+    "nombre": "Techo y piso",
+    "insumoId": "melamina-19-soft-grey",
+    "cantidad": 1,
+    "piezas": 2,
+    "largoMM": 762,
+    "anchoMM": 450,
+    "material_solicitado": "Melamina 19 mm Soft Grey (HOJA 4 × 8)"
+   },
+   {
+    "nombre": "Entrepaño ajustable",
+    "insumoId": "melamina-19-soft-grey",
+    "cantidad": 1,
+    "piezas": 4,
+    "largoMM": 760,
+    "anchoMM": 430,
+    "material_solicitado": "Melamina 19 mm Soft Grey (HOJA 4 × 8)"
+   },
+   {
+    "nombre": "Puerta",
+    "insumoId": "melamina-19-soft-grey",
+    "cantidad": 1,
+    "piezas": 2,
+    "largoMM": 1896,
+    "anchoMM": 397,
+    "material_solicitado": "Melamina 19 mm Soft Grey (HOJA 4 × 8)"
+   },
+   {
+    "nombre": "Zoclo frontal",
+    "insumoId": "melamina-19-soft-grey",
+    "cantidad": 1,
+    "piezas": 1,
+    "largoMM": 762,
+    "anchoMM": 100,
+    "material_solicitado": "Melamina 19 mm Soft Grey (HOJA 4 × 8)"
+   },
+   {
+    "nombre": "Respaldo",
+    "insumoId": "",
+    "cantidad": 1,
+    "piezas": 1,
+    "largoMM": 1980,
+    "anchoMM": 780,
+    "material_solicitado": "MDF 6 mm 1980 × 780 (una pieza)",
+    "hojas": 0.52
+   },
+   {
+    "nombre": "Tapacanto PVC 2 mm Soft Grey",
+    "insumoId": "tapacanto",
+    "cantidad": 19.4,
+    "piezas": 1,
+    "material_solicitado": "Tapacanto PVC 2 mm Soft Grey"
+   },
+   {
+    "nombre": "Bisagra cierre suave",
+    "insumoId": "bisagra",
+    "cantidad": 8,
+    "piezas": 1,
+    "material_solicitado": "Bisagra cierre suave"
+   },
+   {
+    "nombre": "Jaladera 160 mm",
+    "insumoId": "jaladera",
+    "cantidad": 2,
+    "piezas": 1,
+    "material_solicitado": "Jaladera 160 mm"
+   },
+   {
+    "nombre": "Nivelador",
+    "insumoId": "nivelador",
+    "cantidad": 4,
+    "piezas": 1,
+    "material_solicitado": "Nivelador"
+   },
+   {
+    "nombre": "Soportes de entrepaño y tornillería",
+    "insumoId": "tornilleria",
+    "cantidad": 1,
+    "piezas": 1,
+    "material_solicitado": "Tornillería y soportes de entrepaño"
+   }
+  ],
+  "biombo_ATBIOCRT5": [
+   {
+    "nombre": "Panel de cristal templado claro 6 mm",
+    "insumoId": "cristal-templado-6",
+    "cantidad": 1,
+    "piezas": 1,
+    "largoMM": 1400,
+    "anchoMM": 400,
+    "material_solicitado": "Cristal transparente templado 6 mm"
+   },
+   {
+    "nombre": "Soporte/clamp metálico de sujeción a cubierta (APPS LT)",
+    "insumoId": "pintura-polvo-ivory",
+    "cantidad": 2,
+    "piezas": 1,
+    "material_solicitado": "Soporte tipo clamp/escuadra metálica línea APPS LT, acabado pintura en polvo"
+   },
+   {
+    "nombre": "Perfil de aluminio remate/portacristal",
+    "insumoId": "",
+    "cantidad": 1.4,
+    "piezas": 1,
+    "material_solicitado": "Perfil de aluminio de remate para cristal 6 mm (conjunto 32 mm con soporte)"
+   },
+   {
+    "nombre": "Tornillería y hules de montaje",
+    "insumoId": "tornilleria",
+    "cantidad": 1,
+    "piezas": 1,
+    "material_solicitado": "Kit de tornillería + empaques de hule para montaje de cristal"
+   }
+  ],
+  "credenza": [
+   {
+    "nombre": "Cubierta superior",
+    "insumoId": "erp-mdf19",
+    "cantidad": 1,
+    "piezas": 1,
+    "largoMM": 1800,
+    "anchoMM": 450,
+    "material_solicitado": "MDF 18 mm enchapado nogal natural"
+   },
+   {
+    "nombre": "Piso inferior",
+    "insumoId": "erp-mdf19",
+    "cantidad": 1,
+    "piezas": 1,
+    "largoMM": 1764,
+    "anchoMM": 450,
+    "material_solicitado": "MDF 18 mm enchapado nogal natural"
+   },
+   {
+    "nombre": "Laterales exteriores",
+    "insumoId": "erp-mdf19",
+    "cantidad": 1,
+    "piezas": 2,
+    "largoMM": 650,
+    "anchoMM": 450,
+    "material_solicitado": "MDF 18 mm enchapado nogal natural"
+   },
+   {
+    "nombre": "Divisiones verticales interiores",
+    "insumoId": "melamina-16",
+    "cantidad": 1,
+    "piezas": 2,
+    "largoMM": 614,
+    "anchoMM": 441,
+    "material_solicitado": "Melamina blanca 16 mm"
+   },
+   {
+    "nombre": "Entrepaños",
+    "insumoId": "melamina-16",
+    "cantidad": 1,
+    "piezas": 3,
+    "largoMM": 576,
+    "anchoMM": 420,
+    "material_solicitado": "Melamina blanca 16 mm"
+   },
+   {
+    "nombre": "Puertas abatibles",
+    "insumoId": "erp-mdf19",
+    "cantidad": 1,
+    "piezas": 3,
+    "largoMM": 630,
+    "anchoMM": 580,
+    "material_solicitado": "MDF 18 mm enchapado nogal natural"
+   },
+   {
+    "nombre": "Respaldo",
+    "insumoId": "erp-mdf8",
+    "cantidad": 1,
+    "piezas": 1,
+    "largoMM": 1764,
+    "anchoMM": 632,
+    "material_solicitado": "MDF 9 mm",
+    "hojas": 0.37
+   },
+   {
+    "nombre": "Chapa nogal cubierta (cara superior)",
+    "insumoId": "chapa-madera",
+    "cantidad": 1,
+    "piezas": 1,
+    "largoMM": 1800,
+    "anchoMM": 450,
+    "material_solicitado": "Chapa nogal natural"
+   },
+   {
+    "nombre": "Chapa nogal laterales exteriores",
+    "insumoId": "chapa-madera",
+    "cantidad": 1,
+    "piezas": 2,
+    "largoMM": 650,
+    "anchoMM": 450,
+    "material_solicitado": "Chapa nogal natural"
+   },
+   {
+    "nombre": "Chapa nogal frentes puerta",
+    "insumoId": "chapa-madera",
+    "cantidad": 1,
+    "piezas": 3,
+    "largoMM": 630,
+    "anchoMM": 580,
+    "material_solicitado": "Chapa nogal natural"
+   },
+   {
+    "nombre": "Pegado de chapa",
+    "insumoId": "pegado-chapa",
+    "cantidad": 6,
+    "piezas": 1,
+    "material_solicitado": "Pegado de chapa"
+   },
+   {
+    "nombre": "Canto visible",
+    "insumoId": "",
+    "cantidad": 12,
+    "piezas": 1,
+    "material_solicitado": "Canto nogal"
+   },
+   {
+    "nombre": "Base PTR largueros",
+    "insumoId": "ptr-14",
+    "cantidad": 3.6,
+    "piezas": 1,
+    "material_solicitado": "PTR 1x1 cal.14"
+   },
+   {
+    "nombre": "Base PTR travesaños",
+    "insumoId": "ptr-14",
+    "cantidad": 1.35,
+    "piezas": 1,
+    "material_solicitado": "PTR 1x1 cal.14"
+   },
+   {
+    "nombre": "Patas PTR",
+    "insumoId": "ptr-14",
+    "cantidad": 0.4,
+    "piezas": 1,
+    "material_solicitado": "PTR 1x1 cal.14"
+   },
+   {
+    "nombre": "Pintura electrostática negra base",
+    "insumoId": "pintura-electrostatica",
+    "cantidad": 1,
+    "piezas": 1,
+    "largoMM": 5350,
+    "anchoMM": 100,
+    "material_solicitado": "Pintura electrostática negra"
+   },
+   {
+    "nombre": "Soldadura base",
+    "insumoId": "soldadura",
+    "cantidad": 0.2,
+    "piezas": 1,
+    "material_solicitado": "Soldadura"
+   },
+   {
+    "nombre": "Niveladores",
+    "insumoId": "nivelador",
+    "cantidad": 4,
+    "piezas": 1,
+    "material_solicitado": "Niveladores"
+   },
+   {
+    "nombre": "Bisagras",
+    "insumoId": "bisagra",
+    "cantidad": 6,
+    "piezas": 1,
+    "material_solicitado": "Bisagra"
+   },
+   {
+    "nombre": "Jaladera recta 300 mm",
+    "insumoId": "jaladera",
+    "cantidad": 3,
+    "piezas": 1,
+    "material_solicitado": "Jaladera recta 300 mm"
+   },
+   {
+    "nombre": "Tornillería",
+    "insumoId": "tornilleria",
+    "cantidad": 1,
+    "piezas": 1,
+    "material_solicitado": "Tornillería"
+   },
+   {
+    "nombre": "Tapacanto (cantos visibles)",
+    "insumoId": "tapacanto",
+    "cantidad": 32.64,
+    "piezas": 1,
+    "material_solicitado": "Tapacanto PVC"
+   }
+  ]
+ }
+}

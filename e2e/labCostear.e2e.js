@@ -35,9 +35,11 @@ async function leerResultado(page) {
   const main = await page.locator('main').innerText().catch(() => '');
   const precios = await page.locator('.precio-enorme').allInnerTexts().catch(() => []);
   const margen = await page.getByTestId('costear-margen').innerText({ timeout: 1000 }).catch(() => null);
-  const estado = (main.match(/COSTO (INCOMPLETO|CERTIFICADO|PRELIMINAR)[^\n]*/i) || [])[0] || null;
+  const estado = (main.match(/COSTO (INCOMPLETO|CERTIFICADO|PRELIMINAR|VALIDADO|BLOQUEADO)[^\n]*/i) || [])[0] || null;
   const linea = (main.match(/Material \$[^\n]*/) || [])[0] || null;
-  return { precios: precios.map((x) => x.trim()), margen, estado, linea, pendiente: /\bPendiente\b/.test(precios.join(' ')), porConfirmar: /Por confirmar/.test(precios.join(' ')) };
+  const estado3 = await page.getByTestId('estado-costo-detalle').innerText({ timeout: 1000 }).catch(() => null);
+  const validadores = await page.locator('[data-testid^="validador-"]').allInnerTexts().catch(() => []);
+  return { precios: precios.map((x) => x.trim()), margen, estado, estado3, validadores, linea, pendiente: /\bPendiente\b/.test(precios.join(' ')), porConfirmar: /Por confirmar/.test(precios.join(' ')) };
 }
 
 test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir', async ({ page }) => {

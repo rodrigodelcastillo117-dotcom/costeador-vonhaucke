@@ -20,6 +20,7 @@ import { comoDataUrl, esURLImagen } from '../datos/renderRespuesta.js';   // VH-
 import { filaSombra } from '../datos/sombraCosteo.js';   // VH-073
 import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { revisarEstructura } from '../datos/revisionEstructural.js';
+import { clasificarCosto } from '../datos/estadoCosto.js';
 import { decidirReemplazo } from '../datos/guardaPropuesta.js';
 import { evaluarLectura, elegirLectura } from '../datos/lecturaIncompleta.js';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
@@ -147,8 +148,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // avisa de relaciones que no cuadran (gaveta sin cuerpo, faldón vertical, asientos
   // sin estructura…). Propone/detecta; NO cambia costo ni medidas.
   const revisionEstructural = useMemo(
-    () => revisarEstructura({ componentes: b.componentes, descripcion: [b.descripcionCliente, b.tipoMueble].filter(Boolean).join(' · '), insumos }),
-    [b.componentes, b.descripcionCliente, b.tipoMueble, insumos],
+    () => revisarEstructura({ componentes: b.componentes, descripcion: [b.descripcionCliente, b.tipoMueble].filter(Boolean).join(' · '), insumos,
+      medidasGenerales: b.medidasGenerales || propuestaIA?.design_intent?.overall_dimensions || '', aceptadas: b.revisionesAceptadas || [] }),
+    [b.componentes, b.descripcionCliente, b.tipoMueble, insumos, b.medidasGenerales, b.revisionesAceptadas, propuestaIA],
   );
   // ESTRUCTURA QUE ENTENDIÓ VONI: el grafo construido desde la SEMÁNTICA del intérprete
   // canónico (analizar-mueble: design_intent + semantic_role/relaciones). Es el mueble
@@ -254,6 +256,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const bloqueosLectura = lecturaIA && !lecturaIA.revisada ? lecturaIA.motivos.map((m) => `Lectura de la IA incompleta: ${m}`) : [];
   const emision = (bloqueosEstructura.length || bloqueosLectura.length) ? { ...emision0, emitible: false, pendientes: [...(emision0.pendientes || []), ...bloqueosEstructura.map((o) => `Estructura: ${o.mensaje}`), ...bloqueosLectura] } : emision0;
   const emitible = emision.emitible;
+  // Estado para la persona en TRES niveles (validado / preliminar / bloqueado) con sus motivos: misma regla que se guarda.
+  const estadoCosto3 = clasificarCosto({ emision, servidor: validacionSrv && validacionSrv.bomHash === bomHash(b.componentes)
+    ? { estado: validacionSrv.estado, aprobacionHumana: validacionSrv.aprobacionHumana, bomVigente: true } : null });
   // VH-151: piezas cuyo largo×ancho es el tamaño de la HOJA comercial (o excede el formato): la IA confundió hoja con pieza.
   const piezasTamanoHoja = useMemo(() => piezasConTamanoDeHoja(b.componentes, insumos), [b.componentes, insumos]);
   const esTamanoHoja = (nombre) => piezasTamanoHoja.find((x) => x.nombre === nombre) || null;
@@ -402,7 +407,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       else if (!costoFinito) razon = 'el costo del servidor no es finito.';
       else if (!cuadra) razon = `el costo local (${pesos2(resultado.costoUnitario)}) no coincide con el del servidor (${pesos2(costoSrv)}).`;
       // P0-04: la fuente y versión REAL del catálogo con que el servidor costeó viajan al snapshot.
-      const v = { valido, razon, estado: estadoSrv, costoUnitario: costoSrv, bomHash: hashActual, versionCatalogo: srv?.versionCatalogo || null, fuenteCosto: srv?.fuenteCosto || srv?.catalogoFuente || null };
+      const v = { valido, razon, estado: estadoSrv, costoUnitario: costoSrv, bomHash: hashActual, versionCatalogo: srv?.versionCatalogo || null, fuenteCosto: srv?.fuenteCosto || srv?.catalogoFuente || null, aprobacionHumana: srv?.aprobacionHumana === true };
       setValidacionSrv(v);
       if (estadoSrv) setCostoEstado(estadoSrv);
       return v;
@@ -450,7 +455,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         // catálogo + mismo motor ⇒ mismo costo a centavos. Guardamos todo lo que define
         // esa identidad para poder reconstruir/verificar cualquier revisión.
         // VH-171: el lote es parte del costeo (costo unitario de 10 ≠ de 1): se guarda para reabrir igual.
-        costo: { costoUnitario: dinero(resultado.costoUnitario), piezas: Math.max(1, Number(b.piezas) || 1), subtotalConocido: dinero(emision.subtotalConocido), costoTotal: emitibleGuardar ? dinero(resultado.costoUnitario) : null, materialTotal: dinero(resultado.materialTotal), manoObra: dinero(resultado.manoObra), indirectosFabrica: dinero(resultado.indirectosFabrica), precio: emitibleGuardar ? dinero(precio) : null, margen: margenEfectivo, estado_costo: estadoCostoGuardar, validado_servidor: emitibleGuardar && estadoGuardar === 'aprobado' ? (validacionSrv?.bomHash === bomHash(b.componentes)) : false, pendientes: emision.pendientes, bom_hash: bomHash(b.componentes), analysis_id: b.analysisId ?? null, version_motor: MOTOR_VERSION, formula_version: formulaDePieza(b), version_catalogo: (validacionSrv?.bomHash === bomHash(b.componentes) ? validacionSrv?.versionCatalogo : null) ?? null, fuente_costo: (validacionSrv?.bomHash === bomHash(b.componentes) ? validacionSrv?.fuenteCosto : null) ?? 'sin-validacion-servidor', factorDirecta: b.factorDirecta ?? null, factorIndirecta: b.factorIndirecta ?? null, dificultad: b.dificultad ?? null, lectura_ia: lecturaIA ?? null, render_hash: renderHash === renderFirmaActual ? renderHash : null, fecha: new Date().toISOString() },
+        costo: { costoUnitario: dinero(resultado.costoUnitario), piezas: Math.max(1, Number(b.piezas) || 1), subtotalConocido: dinero(emision.subtotalConocido), costoTotal: emitibleGuardar ? dinero(resultado.costoUnitario) : null, materialTotal: dinero(resultado.materialTotal), manoObra: dinero(resultado.manoObra), indirectosFabrica: dinero(resultado.indirectosFabrica), precio: emitibleGuardar ? dinero(precio) : null, margen: margenEfectivo, estado_costo: estadoCostoGuardar, validado_servidor: emitibleGuardar && estadoGuardar === 'aprobado' ? (validacionSrv?.bomHash === bomHash(b.componentes)) : false, pendientes: emision.pendientes, bom_hash: bomHash(b.componentes), analysis_id: b.analysisId ?? null, version_motor: MOTOR_VERSION, formula_version: formulaDePieza(b), version_catalogo: (validacionSrv?.bomHash === bomHash(b.componentes) ? validacionSrv?.versionCatalogo : null) ?? null, fuente_costo: (validacionSrv?.bomHash === bomHash(b.componentes) ? validacionSrv?.fuenteCosto : null) ?? 'sin-validacion-servidor', factorDirecta: b.factorDirecta ?? null, factorIndirecta: b.factorIndirecta ?? null, dificultad: b.dificultad ?? null, estado_costo_3: estadoCosto3.estado, motivos_estado_costo: estadoCosto3.motivos, lectura_ia: lecturaIA ?? null, medidas_generales: b.medidasGenerales || null, revisiones_aceptadas: b.revisionesAceptadas || [], render_hash: renderHash === renderFirmaActual ? renderHash : null, fecha: new Date().toISOString() },
         confirmaciones: Object.entries(confirmadas).map(([question_key, v]) => ({ question_key, pregunta: v.pregunta, respuesta: v.respuesta })),
         plano_urls: planoUrls.length ? planoUrls : (expId ? undefined : []),
         render_aislado_url: soloHttp(renders.aislado), render_ambiente_url: soloHttp(renders.ambiente),
@@ -488,6 +493,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     setFormulaGuardada(c.formula_version || formulaDePieza({ factorDirecta: factorDirectaHist, factorIndirecta: factorIndirectaHist }));
     setB((prev) => ({ ...prev, nombre: e.nombre || '', componentes: Array.isArray(e.bom) ? e.bom : [], piezas: piezasDeExpediente(e), margen: e.costo?.margen ?? null, descripcionCliente: e.descripcion || '', materiales: Array.isArray(e.materiales) ? e.materiales : [], planos: [], imagen: null, factorDirecta: factorDirectaHist, factorIndirecta: factorIndirectaHist, dificultad: esAlbaGuardada && c.dificultad != null ? c.dificultad : undefined, analysisId: id }));
     setLecturaIA(c.lectura_ia && Array.isArray(c.lectura_ia.motivos) ? c.lectura_ia : null);
+    // Validadores de Ingeniería: las medidas generales y lo que una persona ya dio por revisado vuelven con el expediente.
+    setB((prev) => ({ ...prev, medidasGenerales: c.medidas_generales || '', revisionesAceptadas: Array.isArray(c.revisiones_aceptadas) ? c.revisiones_aceptadas : [] }));
     setExpId(e.id); setRevActual(e.revision || 1); setEtiquetasTxt((e.etiquetas || []).join(', ')); setEstadoExp(e.estado || 'borrador');
     setConfirmadas(Object.fromEntries((e.confirmaciones || []).map((c) => [c.question_key || ('k_' + kpreg(c.pregunta).replace(/\s+/g, '_')), { pregunta: c.pregunta, respuesta: c.respuesta }])));
     setRenders({ aislado: e.render_aislado_url || null, ambiente: e.render_ambiente_url || null });
@@ -649,7 +656,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     const paginas = Array.isArray(planos) && planos.length ? planos : (dataUrl ? [String(dataUrl).split(',')[1]] : []);
     // Un ANÁLISIS NUEVO (subiste otro plano) nombra el producto desde el plano, para que el nombre
     // NO se quede pegado de un producto anterior. Una re-corrida con respuestas conserva el nombre.
-    setB((prev) => ({ ...prev, tipoMueble: [p.design_intent?.product_type, p.producto, p.tipo].filter((x) => x && x !== 'unknown').join(' · ') || prev.tipoMueble || '', nombre: nuevoAnalisis ? (p.producto || prev.nombre || '') : (prev.nombre || p.producto || ''), componentes: nuevoAnalisis ? comps : conservarMaterialesConfirmados(prev.componentes, comps) /* VH-150: lo elegido a mano sobrevive al recálculo */, imagen: dataUrl || null, planos: paginas, descripcionCliente: p.descripcionCliente || '', materiales: Array.isArray(p.materiales) ? p.materiales : [], analysisId: corrida.current }));
+    setB((prev) => ({ ...prev, tipoMueble: [p.design_intent?.product_type, p.producto, p.tipo].filter((x) => x && x !== 'unknown').join(' · ') || prev.tipoMueble || '', medidasGenerales: p.design_intent?.overall_dimensions || (nuevoAnalisis ? '' : prev.medidasGenerales || ''), revisionesAceptadas: nuevoAnalisis ? [] : (prev.revisionesAceptadas || []), nombre: nuevoAnalisis ? (p.producto || prev.nombre || '') : (prev.nombre || p.producto || ''), componentes: nuevoAnalisis ? comps : conservarMaterialesConfirmados(prev.componentes, comps) /* VH-150: lo elegido a mano sobrevive al recálculo */, imagen: dataUrl || null, planos: paginas, descripcionCliente: p.descripcionCliente || '', materiales: Array.isArray(p.materiales) ? p.materiales : [], analysisId: corrida.current }));
     if (!etiquetasTxt.trim()) setEtiquetasTxt([p.tipo, p.design_intent?.product_type, ...((Array.isArray(p.materiales) ? p.materiales : []).slice(0, 3))].filter(Boolean).map((x) => String(x).trim()).filter((x, i, a) => x && a.indexOf(x) === i).join(', '));
     setAnalisis({
       descripcionCliente: p.descripcionCliente || '',
@@ -1088,8 +1095,12 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
             <div className="tarjeta" style={{ background: 'var(--panel)', borderLeft: '4px solid var(--ambar, #d8a800)', margin: '12px 0' }}>
               <div style={{ fontWeight: 700, marginBottom: 6 }}>🧠 Voni revisó la estructura</div>
               {revisionEstructural.observaciones.filter((o) => o.nivel !== 'info').map((o, i) => (
-                <div key={i} className="ayuda" style={{ marginBottom: 6, color: o.nivel === 'warning' ? '#8a6d00' : 'inherit' }}>
-                  {o.nivel === 'warning' ? '⚠ ' : '• '}{o.mensaje}
+                <div key={i} className="ayuda" data-testid={o.regla ? `validador-${o.regla}` : undefined} style={{ marginBottom: 6, color: o.nivel === 'blocker' ? 'var(--alerta,#b22a22)' : o.nivel === 'warning' ? '#8a6d00' : 'inherit' }}>
+                  {o.nivel === 'blocker' ? '⛔ ' : o.nivel === 'warning' ? '⚠ ' : '• '}{o.mensaje}
+                  {o.nivel === 'blocker' && o.aceptable && o.clave && (
+                    <>{' '}<button type="button" className="chip" data-testid="validador-revisado" style={{ cursor: 'pointer' }}
+                      onClick={() => setB((prev) => ({ ...prev, revisionesAceptadas: [...new Set([...(prev.revisionesAceptadas || []), o.clave])] }))}>Lo revisé: es correcto</button></>
+                  )}
                 </div>
               ))}
               <div className="ayuda gris" style={{ fontSize: 11, marginTop: 4 }}>Voni sólo propone y detecta; el costo lo calcula el motor.</div>
@@ -1457,20 +1468,24 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           )}
           {preguntasIA.length > 0 && (
             <div className="ayuda columna-texto" style={{ textAlign: 'left', marginTop: 8, color: '#8a6d00' }}>
-              Costo preliminar — {preguntasIA.length} decisión(es) pendiente(s): {preguntasIA.map((q) => normPreg(q).pregunta).join(' · ')}.{' '}
+              {preguntasIA.length} decisión(es) pendiente(s): {preguntasIA.map((q) => normPreg(q).pregunta).join(' · ')}.{' '}
               {emitible
                 ? 'No es obligatorio contestarlas; el costo ya se puede emitir como preliminar.'
                 : 'Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.'}
             </div>
           )}
 
+          <div className="ayuda columna-texto" data-testid="estado-costo-detalle" style={{ textAlign: 'left', marginTop: 8 }}>
+            <strong style={{ color: estadoCosto3.estado === 'bloqueado' ? 'var(--alerta,#b22a22)' : estadoCosto3.estado === 'validado' ? 'var(--ok,#1a7f37)' : '#8a6d00' }}>{estadoCosto3.etiqueta}</strong>
+            {estadoCosto3.motivos.length > 0 && <> — {estadoCosto3.motivos.join(' · ')}</>}
+          </div>
           {/* RENDER V1 — ilustra el producto definido; no lo modifica */}
           <div className="espacio" />
           <div style={{ borderTop: '1px solid var(--borde)', paddingTop: 14, textAlign: 'left' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <strong>Generar render</strong>
-              <span className="chip" style={{ background: costoIncompleto ? '#b22a22' : (costoEstado === 'certificado') ? 'var(--ok,#1a7f37)' : '#8a6d00', color: '#fff', fontSize: 12 }}>
-                {costoIncompleto ? 'COSTO INCOMPLETO' : costoEstado === 'certificado' ? 'COSTO CERTIFICADO' : 'COSTO PRELIMINAR'}
+              <span className="chip" data-testid="estado-costo" style={{ background: estadoCosto3.estado === 'bloqueado' ? '#b22a22' : estadoCosto3.estado === 'validado' ? 'var(--ok,#1a7f37)' : '#8a6d00', color: '#fff', fontSize: 12 }}>
+                {estadoCosto3.etiqueta}
               </span>
               <span className="chip" style={{ background: geomFid === 'alta' ? 'var(--ok,#1a7f37)' : geomFid === 'media' ? '#8a6d00' : '#8a2d00', color: '#fff', fontSize: 12 }}>
                 GEOMETRÍA: {geomFid === 'alta' ? 'ALTA' : geomFid === 'media' ? 'MEDIA' : 'LIMITADA'}
