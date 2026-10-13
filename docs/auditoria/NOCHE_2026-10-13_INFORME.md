@@ -58,14 +58,14 @@ MDF 9 mm; con nota maliciosa). Cuenta QA (Dirección), app de la rama, edges de 
 
 | paso | corrida 6 (antes de VH-150) | corrida 7 (con VH-150) |
 |---|---|---|
-| analizar-mueble | 13 piezas, 1 pendiente (respaldo 9 mm) | __C7_BOM__ |
+| analizar-mueble | 13 piezas, 1 pendiente (respaldo 9 mm) | 12 piezas, 5 pendientes (laterales, cubierta/fondo, puertas: "varios materiales posibles"; respaldo; canto) |
 | ERP a mano | respaldo → `erp-mdf8` "MDF NATURAL 4×8 9 mm" $240/hoja **aprobado** (ERP) | igual |
-| preguntas de Voni | 18→19 mm + chapa (decisión humana, lab) · divisiones 2 · canto | __C7_PREG__ |
-| recálculo con respuestas | BOM 14 piezas; **el respaldo volvió a "sin material"** (VH-150) | __C7_RECALC__ |
-| precio | "Subtotal conocido $4,605.73 · Costo total **Pendiente**" (material $2,801.41 · MO $451.08 · fábrica $1,353.24) | __C7_PRECIO__ |
-| sombra costear-servidor | `incompleto` 4 272.87 sobre un BOM anterior → no comparable | __C7_PARIDAD__ |
-| guardar | expediente **16** "Guardado en la biblioteca" (201) | __C7_GUARDADO__ |
-| reabrir desde biblioteca | 14 piezas, mismo BOM, mismo costo, COSTO PRELIMINAR, 0 errores | __C7_REABIERTA__ |
+| preguntas de Voni | 18→19 mm + chapa (decisión humana, lab) · divisiones 2 · canto | 19 mm sí · chapa natural · canto · (entrepaños y PTR en metros **no contestadas** por el lab → ver corrida 8) |
+| recálculo con respuestas | BOM 14 piezas; **el respaldo volvió a "sin material"** (VH-150) | BOM 13 piezas; **el respaldo conservó `erp-mdf8`** (VH-150 verificado) |
+| precio | "Subtotal conocido $4,605.73 · Costo total **Pendiente**" (material $2,801.41 · MO $451.08 · fábrica $1,353.24) | "Subtotal conocido $4,497.20 · Costo total **Pendiente**" por 2 preguntas numéricas sin contestar (material $2,733.95 · MO $440.81 · fábrica $1,322.44) |
+| sombra costear-servidor | `incompleto` 4 272.87 sobre un BOM anterior → no comparable | `incompleto` 4 164.34 (sombra sobre BOM previo) → no comparable; se cierra en corrida 8 |
+| guardar | expediente **16** "Guardado en la biblioteca" (201) | expediente **17** (201) |
+| reabrir desde biblioteca | 14 piezas, mismo BOM, mismo costo, COSTO PRELIMINAR, 0 errores | 13 piezas, mismo BOM, mismo costo $4,497.20, COSTO PRELIMINAR, 0 errores |
 
 Defectos reproducidos y corregidos esta noche en este ciclo: mensaje contradictorio "puedes cotizar así" con costo
 provisional (`2d20985`), amarre ERP tardío pisaba ediciones (VH-149), recálculo perdía materiales elegidos a mano
