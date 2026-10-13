@@ -1,0 +1,618 @@
+{
+  "req": {
+    "cantidad": 1,
+    "pieza": {
+      "componentes": [
+        {
+          "insumoId": "melamina-19-soft-grey",
+          "nombre": "Lateral",
+          "cantidad": 1,
+          "largoMM": 2000,
+          "anchoMM": 450,
+          "piezas": 2,
+          "material_solicitado": "Melamina 19 mm Soft Grey (HOJA 4 × 8)",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "melamina-19-soft-grey",
+          "nombre": "Techo y piso",
+          "cantidad": 1,
+          "largoMM": 762,
+          "anchoMM": 450,
+          "piezas": 2,
+          "material_solicitado": "Melamina 19 mm Soft Grey (HOJA 4 × 8)",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "melamina-19-soft-grey",
+          "nombre": "Entrepaño ajustable",
+          "cantidad": 1,
+          "largoMM": 760,
+          "anchoMM": 430,
+          "piezas": 4,
+          "material_solicitado": "Melamina 19 mm Soft Grey (HOJA 4 × 8)",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "melamina-19-soft-grey",
+          "nombre": "Puerta",
+          "cantidad": 1,
+          "largoMM": 1896,
+          "anchoMM": 397,
+          "piezas": 2,
+          "material_solicitado": "Melamina 19 mm Soft Grey (HOJA 4 × 8)",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "melamina-19-soft-grey",
+          "nombre": "Zoclo frontal",
+          "cantidad": 1,
+          "largoMM": 762,
+          "anchoMM": 100,
+          "piezas": 1,
+          "material_solicitado": "Melamina 19 mm Soft Grey (HOJA 4 × 8)",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "",
+          "nombre": "Respaldo",
+          "cantidad": 1,
+          "largoMM": 1980,
+          "anchoMM": 780,
+          "piezas": 1,
+          "hojas": 0.52,
+          "material_solicitado": "MDF 6 mm 1980 × 780 (una pieza)",
+          "material_match": "AMBIGUOUS",
+          "pendiente": true
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC 2 mm Soft Grey",
+          "cantidad": 19.4,
+          "piezas": 1,
+          "material_solicitado": "Tapacanto PVC 2 mm Soft Grey",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "bisagra",
+          "nombre": "Bisagra cierre suave",
+          "cantidad": 8,
+          "piezas": 1,
+          "material_solicitado": "Bisagra cierre suave",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "jaladera",
+          "nombre": "Jaladera 160 mm",
+          "cantidad": 2,
+          "piezas": 1,
+          "material_solicitado": "Jaladera 160 mm",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador",
+          "cantidad": 4,
+          "piezas": 1,
+          "material_solicitado": "Nivelador",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornillería/soportes entrepaño",
+          "cantidad": 1,
+          "piezas": 1,
+          "material_solicitado": "Tornillería y soportes de entrepaño",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        }
+      ]
+    }
+  },
+  "res": {
+    "ok": true,
+    "estado": "incompleto",
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 4491.38,
+      "materialTotal": 2764.15,
+      "manoObra": 431.81,
+      "indirectosFabrica": 1295.42,
+      "desperdicio": 955.87,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-19-soft-grey",
+          "nombre": "Melamina 19 mm, Soft Grey",
+          "seccion": "cubiertas",
+          "costo": 2359.09,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "costo": 61.34,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "bisagra",
+          "nombre": "Bisagra",
+          "seccion": "herrajes",
+          "costo": 152,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "jaladera",
+          "nombre": "Jaladera",
+          "seccion": "herrajes",
+          "costo": 75.8,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "costo": 70.92,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "costo": 45,
+          "certificable": true,
+          "evidencia": "aprobado"
+        }
+      ],
+      "componentesIgnorados": []
+    },
+    "evidencia": {
+      "usados": 6,
+      "certificados": 2,
+      "noCertificados": 4
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 2420.425949090909,
+      "materialIndirecto": 343.72,
+      "materialTotal": 2764.145949090909,
+      "desperdicio": 955.8651654306022,
+      "manoObra": 431.80789236363637,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 17.84016125450232,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 3195.9538414545455,
+      "indirectosFabrica": 1295.423677090909,
+      "gastosOperacion": 0,
+      "costoFabricacion": 4491.377518545454,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 4491.377518545454,
+      "costoLoteConMerma": 4491.377518545454,
+      "costoUnitario": 4491.377518545454,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-19-soft-grey",
+          "nombre": "Melamina 19 mm, Soft Grey",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Lateral",
+            "Techo y piso",
+            "Entrepaño ajustable",
+            "Puerta",
+            "Zoclo frontal"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": true,
+            "certificable": false,
+            "hojas": 3,
+            "piezas_solicitadas": 11,
+            "piezas_colocadas": 11,
+            "placements": [
+              {
+                "id": "Lateral#1",
+                "nombre": "Lateral",
+                "x": 10,
+                "y": 10,
+                "w": 2000,
+                "h": 450,
+                "rot": 0,
+                "hoja": 1
+              },
+              {
+                "id": "Lateral#2",
+                "nombre": "Lateral",
+                "x": 10,
+                "y": 464,
+                "w": 2000,
+                "h": 450,
+                "rot": 0,
+                "hoja": 1
+              },
+              {
+                "id": "Puerta#1",
+                "nombre": "Puerta",
+                "x": 10,
+                "y": 10,
+                "w": 1896,
+                "h": 397,
+                "rot": 0,
+                "hoja": 2
+              },
+              {
+                "id": "Puerta#2",
+                "nombre": "Puerta",
+                "x": 10,
+                "y": 411,
+                "w": 1896,
+                "h": 397,
+                "rot": 0,
+                "hoja": 2
+              },
+              {
+                "id": "Techo y piso#1",
+                "nombre": "Techo y piso",
+                "x": 1910,
+                "y": 10,
+                "w": 450,
+                "h": 762,
+                "rot": 90,
+                "hoja": 2
+              },
+              {
+                "id": "Techo y piso#2",
+                "nombre": "Techo y piso",
+                "x": 10,
+                "y": 10,
+                "w": 450,
+                "h": 762,
+                "rot": 90,
+                "hoja": 3
+              },
+              {
+                "id": "Entrepaño ajustable#1",
+                "nombre": "Entrepaño ajustable",
+                "x": 10,
+                "y": 776,
+                "w": 760,
+                "h": 430,
+                "rot": 0,
+                "hoja": 3
+              },
+              {
+                "id": "Entrepaño ajustable#2",
+                "nombre": "Entrepaño ajustable",
+                "x": 464,
+                "y": 10,
+                "w": 430,
+                "h": 760,
+                "rot": 90,
+                "hoja": 3
+              },
+              {
+                "id": "Entrepaño ajustable#3",
+                "nombre": "Entrepaño ajustable",
+                "x": 774,
+                "y": 774,
+                "w": 760,
+                "h": 430,
+                "rot": 0,
+                "hoja": 3
+              },
+              {
+                "id": "Entrepaño ajustable#4",
+                "nombre": "Entrepaño ajustable",
+                "x": 898,
+                "y": 10,
+                "w": 430,
+                "h": 760,
+                "rot": 90,
+                "hoja": 3
+              },
+              {
+                "id": "Zoclo frontal#1",
+                "nombre": "Zoclo frontal",
+                "x": 1538,
+                "y": 10,
+                "w": 762,
+                "h": 100,
+                "rot": 0,
+                "hoja": 3
+              }
+            ],
+            "remanentes": [
+              {
+                "hoja": 3,
+                "x": 1538,
+                "y": 114,
+                "w": 892,
+                "h": 1096,
+                "area_mm2": 977632
+              },
+              {
+                "hoja": 2,
+                "x": 10,
+                "y": 812,
+                "w": 2420,
+                "h": 398,
+                "area_mm2": 963160
+              },
+              {
+                "hoja": 3,
+                "x": 1332,
+                "y": 114,
+                "w": 1098,
+                "h": 660,
+                "area_mm2": 724680
+              },
+              {
+                "hoja": 1,
+                "x": 10,
+                "y": 918,
+                "w": 2420,
+                "h": 292,
+                "area_mm2": 706640
+              },
+              {
+                "hoja": 1,
+                "x": 2014,
+                "y": 10,
+                "w": 416,
+                "h": 1200,
+                "area_mm2": 499200
+              },
+              {
+                "hoja": 2,
+                "x": 1910,
+                "y": 776,
+                "w": 520,
+                "h": 434,
+                "area_mm2": 225680
+              },
+              {
+                "hoja": 3,
+                "x": 1332,
+                "y": 10,
+                "w": 206,
+                "h": 764,
+                "area_mm2": 157384
+              },
+              {
+                "hoja": 3,
+                "x": 2304,
+                "y": 10,
+                "w": 126,
+                "h": 1200,
+                "area_mm2": 151200
+              }
+            ],
+            "issues": [],
+            "area_piezas_mm2": 5374624,
+            "area_comprada_mm2": 8930400,
+            "desperdicio_mm2": 3555776,
+            "eficiencia_pct": 61.69219467401285,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 5.374624000000001,
+          "comprado": 9.02060606060606,
+          "unidades": 3.0303030303030303,
+          "costo": 2359.090909090909,
+          "desperdicio": 953.5061254306022,
+          "pct": 40.41837140553613,
+          "precio": 778.5,
+          "noCabe": false,
+          "fraccion": true,
+          "reglaProduccion": "produccion-rogelio-2026-10",
+          "piezasRegla": [
+            {
+              "pieza": "Lateral",
+              "largoMM": 2000,
+              "anchoMM": 450,
+              "hojasPorPieza": 0.5
+            },
+            {
+              "pieza": "Puerta",
+              "largoMM": 1896,
+              "anchoMM": 397,
+              "hojasPorPieza": 0.5
+            }
+          ]
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "rollo",
+            "corto": "rollo",
+            "medida": 50,
+            "nombre": "rollo de 50 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Tapacanto PVC 2 mm Soft Grey"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 19.4,
+          "comprado": 20.176,
+          "unidades": null,
+          "costo": 61.33504,
+          "desperdicio": 2.3590399999999994,
+          "pct": 3.846153846153846,
+          "precio": 3.04,
+          "noCabe": false
+        },
+        {
+          "insumoId": "bisagra",
+          "nombre": "Bisagra",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Bisagra cierre suave"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 8,
+          "comprado": 8,
+          "unidades": null,
+          "costo": 152,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 19,
+          "noCabe": false
+        },
+        {
+          "insumoId": "jaladera",
+          "nombre": "Jaladera",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Jaladera 160 mm"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 2,
+          "comprado": 2,
+          "unidades": null,
+          "costo": 75.8,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 37.9,
+          "noCabe": false
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Nivelador"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 4,
+          "comprado": 4,
+          "unidades": null,
+          "costo": 70.92,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 17.73,
+          "noCabe": false
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "juego",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Tornillería/soportes entrepaño"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 1,
+          "unidades": null,
+          "costo": 45,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 45,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Respaldo",
+        "Tapacanto PVC 2 mm Soft Grey",
+        "Bisagra cierre suave",
+        "Jaladera 160 mm",
+        "Tornillería/soportes entrepaño"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "completo",
+      "pendientes": [],
+      "costoOficial": 4491.377518545454
+    },
+    "versionMotor": "2026-10-13",
+    "versionConfig": "cfglu0aa4",
+    "versionCatalogo": "cat-ap1793-cfgi3m4ga",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T18:50:18.132Z",
+    "catalogoFuente": "catalogo",
+    "warnings": []
+  }
+}
