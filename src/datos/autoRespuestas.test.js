@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { respuestasPorReglaDeCasa } from './autoRespuestas.js';
+import { respuestasPorReglaDeCasa, esSupuestoPreliminar } from './autoRespuestas.js';
 
 const P = [
   { question_key: 'largo_cubierta_mm', pregunta: 'Largo de la cubierta principal (mm)', tipo: 'number', impacto: 'alto', afecta: 'cubierta', supuesto: '2100' },
@@ -29,5 +29,17 @@ describe('piloto automático · respuestas por regla de casa', () => {
   it('entrada vacía o rota no revienta', () => {
     expect(respuestasPorReglaDeCasa()).toEqual({ respuestas: {}, detalle: [], pendientes: [] });
     expect(respuestasPorReglaDeCasa([null, {}]).pendientes).toEqual([]);
+  });
+});
+
+describe('supuestos preliminares (no son confirmaciones)', () => {
+  it('la respuesta que conserva un supuesto de impacto bajo se reconoce como preliminar; las reglas de casa no', () => {
+    const r = respuestasPorReglaDeCasa([
+      { question_key: 'cajones', pregunta: '¿Cuántos cajones lleva la gaveta?', supuesto: '3 cajones', impacto: 'bajo' },
+      { question_key: 'tapacanto', pregunta: '¿Qué tapacanto lleva?', impacto: 'medio' },
+    ]);
+    expect(esSupuestoPreliminar(r.respuestas.cajones)).toBe(true);
+    expect(esSupuestoPreliminar(r.respuestas.tapacanto)).toBe(false);
+    expect(esSupuestoPreliminar('')).toBe(false);
   });
 });

@@ -28,6 +28,10 @@ const REGLAS = [
  * @param {{aceptarSupuestosBajo?: boolean}} [o]  aceptar el supuesto de la IA cuando el impacto es bajo
  * @returns {{respuestas: Record<string,string>, detalle: Array<{question_key:string, regla:string, respuesta:string}>, pendientes: Array<string>}}
  */
+/** Marca de las respuestas que SÓLO conservan un supuesto de la IA (no son confirmación de nadie). */
+export const PREFIJO_SUPUESTO = 'Conserva tu supuesto como preliminar:';
+export const esSupuestoPreliminar = (texto) => String(texto || '').trim().startsWith(PREFIJO_SUPUESTO);
+
 export function respuestasPorReglaDeCasa(preguntas = [], { aceptarSupuestosBajo = true } = {}) {
   const respuestas = {}, detalle = [], pendientes = [];
   for (const q of (preguntas || [])) {
@@ -41,7 +45,7 @@ export function respuestasPorReglaDeCasa(preguntas = [], { aceptarSupuestosBajo 
     }
     // Sin regla: si la IA ya trae un supuesto y el impacto es bajo, se conserva como preliminar.
     if (aceptarSupuestosBajo && q.supuesto && String(q.impacto || '').toLowerCase() === 'bajo') {
-      respuestas[q.question_key] = `Conserva tu supuesto como preliminar: ${q.supuesto} (impacto bajo; regla de casa)`;
+      respuestas[q.question_key] = `${PREFIJO_SUPUESTO} ${q.supuesto} (impacto bajo; regla de casa)`;
       detalle.push({ question_key: q.question_key, regla: 'supuesto_impacto_bajo', respuesta: q.supuesto });
       continue;
     }

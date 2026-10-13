@@ -171,3 +171,19 @@ describe('VH-093 · asientos contados en salas de juntas', () => {
     expect(p.fuente.salasCapacidad).toBe('estimado');
   });
 });
+
+describe('VH-139 · avisos de sala con varias salas', () => {
+  it('cada sala se compara con sus propios asientos del plano', () => {
+    const pr = { hayPlano: true, salasInfo: [
+      { nombre: 'SALA DE CONSEJO', m2: 35, caben: 10, asientos: 10 },
+      { nombre: 'SALA CREATIVA', m2: 30, caben: 6, asientos: 6 },
+    ] };
+    const av = avisosDeSala(pr, 10).join(' | ');
+    expect(av).not.toMatch(/SALA CREATIVA mide 30 m²: da para 6 personas, y pediste 10/);
+    expect(av).not.toMatch(/apretada/);
+  });
+  it('sin asientos leídos se usa lo pedido (comportamiento anterior)', () => {
+    const pr = { hayPlano: true, salasInfo: [{ nombre: 'Sala', m2: 30, caben: 6 }] };
+    expect(avisosDeSala(pr, 10).join(' | ')).toMatch(/apretada/);
+  });
+});

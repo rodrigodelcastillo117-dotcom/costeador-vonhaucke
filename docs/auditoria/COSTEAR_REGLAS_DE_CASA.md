@@ -84,3 +84,10 @@ Automatiza **acciones**, no **aprobaciones**: nada provisional se disfraza de ap
 | Cotizar · programa del plano | "Fusionar duplicados" / "Vincular lo que ya tengo" | se hace solo cuando NO hay nada que decidir: fusiona duplicados y vincula al plano lo ya descrito; aviso "Piloto automático: N fusionados, M vinculados"; idempotente; nunca quita ni AGREGA nada | **agregar los productos que el plano pide** (botón "Aplicar programa detectado", un click): agregar renglones comerciales es decisión humana. Primera versión los agregaba sola y una cotización semilla de 2 piezas pasaba a 11 (acomodo roto; detectado por acomodoVeredicto/acomodoP02). También: conflictos, filas ambiguas (Repartir, VH-116), pendientes de confirmar |
 | Cotizar · acomodo | (ya era 1-clic) | se acomoda solo al tener muebles y espacio | acomodar a mano, continuar a la propuesta |
 | Emisión / aprobación | humana | humana | humana (regla de Dirección) |
+
+## Despliegue (2026-10-12)
+
+- Producción: merge `ccf76f8` (PR #35) · Vercel `dpl_9ehp8cSU7bvH3hptvETpU1tHPPHv` READY, alias `costeador-vonhaucke.vercel.app`. Sólo cliente y documentación; ninguna edge, migración, precio ni permiso cambió.
+- Gates: CI verify + E2E en `6426ac0` · Playwright local 51/51 · vitest 272 archivos / 2,212 · smoke en producción 14/14 (auth, catálogo, cierre de navegador, golden 757 con edge real).
+- Rollback: `dpl_3R2vP55WCYyB58U1eB9pAbdcq34v` (273cf3a).
+- Pendiente de Dirección: tabla de margen por cantidad (1 pza 40 %, lista 50 %, cortes intermedios); escala de dificultad (opcional); autorización aparte para la rama UX.

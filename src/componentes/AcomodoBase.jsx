@@ -45,6 +45,8 @@ import PlanoAcomodo from './PlanoAcomodo.jsx';
 import PropuestaViva from './PropuestaViva.jsx';
 import DibujarPlano from './DibujarPlano.jsx';
 import EmpezarEspacio from './EmpezarEspacio.jsx';
+import PuertaConfirmar from './PuertaConfirmar.jsx';
+import { confirmarPuertaEnArea, puertasSinConfirmar } from '../datos/puertasConfirmar.js';
 import Cargando from './Cargando.jsx';
 import ConfirmarLectura from './ConfirmarLectura.jsx';   // VH-043: compuerta de confirmación de la lectura
 
@@ -866,6 +868,14 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     }));
   }
 
+  // VH-136: confirmar bisagra/sentido de una puerta que la lectura dejó pendiente, sin entrar a
+  // "acomodar a mano". Es decisión de la persona; el acomodo debe volver a correr después.
+  const puertasPorConfirmar = puertasSinConfirmar(areas);
+  function confirmarPuertaLeida(areaIdx, idx, d) {
+    recordar(); setGuardado(false);
+    setAreas((as) => as.map((a, i) => (i === areaIdx ? confirmarPuertaEnArea(a, idx, d) : a)));
+  }
+
   function quitarElemento(id) {
     const { clase, area, idx } = partesEl(id);
     recordar(); setGuardado(false); geometriaEditadaPorUsuario();
@@ -1438,6 +1448,16 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
                 Subir plano (PDF o foto)
                 <input type="file" accept="image/*,application/pdf,.pdf,.dwg,.dxf" style={{ display: 'none' }} onChange={subirPlano} />
               </label>
+              {puertasPorConfirmar.length > 0 && (
+                <div className="tarjeta" style={{ width: '100%', background: 'var(--panel)' }} data-testid="acomodo-puertas-pendientes">
+                  <strong>{puertasPorConfirmar.length} puerta{puertasPorConfirmar.length === 1 ? '' : 's'} sin sentido de apertura confirmado.</strong>
+                  <div className="ayuda" style={{ marginTop: 2 }}>Dime cómo abre{puertasPorConfirmar.length === 1 ? '' : 'n'} y vuelve a acomodar; mientras, el acomodo queda en revisión.</div>
+                  {puertasPorConfirmar.map((q) => (
+                    <PuertaConfirmar key={`${q.areaIdx}:${q.idx}`} puerta={q.puerta} area={areas[q.areaIdx]}
+                      onConfirmar={(d) => confirmarPuertaLeida(q.areaIdx, q.idx, d)} />
+                  ))}
+                </div>
+              )}
               {/* `onClick={acomodar}` le pasaba el EVENTO del clic como opciones:
                   funcionaba de milagro (`deCero` salía undefined). Explícito. */}
               <button className="boton primario" data-testid="acomodo-acomodar" style={{ minHeight: 50, marginLeft: 'auto' }}

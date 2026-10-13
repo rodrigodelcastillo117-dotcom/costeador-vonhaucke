@@ -39,6 +39,10 @@ describe('contrato comercial · una sola verdad a centavos', () => {
     expect(s).toContain('const antImpreso = totales.anticipo');
     expect(s).not.toContain('a + Math.round(monto)');
     expect(s).not.toContain('Math.round(totalImpreso *');
+    // VH-138: quien manda a imprimir DEBE entregar el total canónico (y los centavos del anticipo).
+    // Sin esto el papel decía "TOTAL —" con la escalera y el anticipo correctos (lab Torre Norte, 13-oct).
+    const q=fs.readFileSync('src/componentes/Cotizacion.jsx','utf8');
+    expect(q).toContain('totalRedondeado, totalCentavos, anticipoCentavos,');
   });
 
   it('la pantalla comercial usa pesos2 en la escalera y total animado conserva centavos', () => {

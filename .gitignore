@@ -34,3 +34,4 @@ scratchpad/*
 .vercel
 .env*
 pw.prod.tmp*.config.mjs
+test-results-prod/
