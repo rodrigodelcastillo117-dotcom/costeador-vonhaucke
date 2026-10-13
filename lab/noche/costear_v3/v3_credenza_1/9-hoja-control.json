@@ -1,0 +1,192 @@
+{
+  "producto": "Credenza nogal 1800 × 450 × 750 (cuerpo 650 sobre base PTR de 100)",
+  "resumen": {
+    "esperados": 12,
+    "pass": 7,
+    "fail": 4,
+    "riesgo": 1,
+    "sobrantesNoPermitidos": 0,
+    "renglonesBom": 11,
+    "veredicto": "FAIL"
+  },
+  "filas": [
+    {
+      "clave": "laterales",
+      "renglones": 1,
+      "materiales": [
+        "erp-mdf19"
+      ],
+      "estado": "FAIL",
+      "motivos": [
+        "medida distinta (esperado 650×450 ±40): 1800×450"
+      ],
+      "evidencia": null,
+      "inferido": false,
+      "piezas": 2
+    },
+    {
+      "clave": "cubierta_y_piso",
+      "renglones": 0,
+      "materiales": [],
+      "estado": "FAIL",
+      "motivos": [
+        "material fuera de la familia esperada (^(mdf|erp-mdf19)$): Tapacanto [tapacanto]"
+      ],
+      "evidencia": null,
+      "inferido": false
+    },
+    {
+      "clave": "puertas",
+      "renglones": 1,
+      "materiales": [
+        "erp-mdf19"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "piezas": 3
+    },
+    {
+      "clave": "chapa_nogal_m2",
+      "renglones": 1,
+      "materiales": [
+        "chapa-madera"
+      ],
+      "estado": "FAIL",
+      "motivos": [
+        "área 2.977 m², el plano da 2.491 m² (±15 %)"
+      ],
+      "evidencia": "caras exteriores: 2 laterales 650×450 + 3 puertas 630×580 + cubierta 1800×450",
+      "inferido": false,
+      "areaM2": 2.977
+    },
+    {
+      "clave": "entrepanos",
+      "renglones": 1,
+      "materiales": [
+        "melamina-16"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "piezas": 3
+    },
+    {
+      "clave": "divisiones",
+      "renglones": 0,
+      "materiales": [],
+      "estado": "RIESGO",
+      "motivos": [
+        "omitido: ningún renglón del BOM corresponde (inferido: el plano no lo acota)"
+      ],
+      "evidencia": "no dibujadas: \"1 ENTREPAÑO POR MÓDULO\" con 3 puertas implica 3 módulos → 2 divisiones",
+      "inferido": true
+    },
+    {
+      "clave": "respaldo",
+      "renglones": 1,
+      "materiales": [
+        "erp-mdf8"
+      ],
+      "estado": "FAIL",
+      "motivos": [
+        "medida distinta (esperado 1800×650 ±60): 1800×550"
+      ],
+      "evidencia": null,
+      "inferido": false,
+      "piezas": 1
+    },
+    {
+      "clave": "base_ptr_m",
+      "renglones": 1,
+      "materiales": [
+        "ptr-14"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "no acotado: marco 2×(1800+450) + 4 patas de 100 + 2 travesaños ≈ 5.72 m",
+      "inferido": true,
+      "metros": 5
+    },
+    {
+      "clave": "pintura",
+      "renglones": 1,
+      "materiales": [
+        "pintura-electrostatica"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false
+    },
+    {
+      "clave": "bisagras",
+      "renglones": 1,
+      "materiales": [
+        "bisagra"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "cantidad": 6
+    },
+    {
+      "clave": "jaladeras",
+      "renglones": 1,
+      "materiales": [
+        "jaladera"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "cantidad": 3
+    },
+    {
+      "clave": "niveladores",
+      "renglones": 1,
+      "materiales": [
+        "nivelador"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "cantidad": 4
+    }
+  ],
+  "sobran": [],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "MDF 18 mm enchapado: usar MDF 19 mm crudo + chapa de madera nogal?",
+      "elegido": "(sin responder: ninguna opción coincide con el plano)",
+      "opciones": [
+        "Si, MDF 19 + chapa",
+        "Otro"
+      ],
+      "evidencia": "plano: CUERPO ... ENCHAPADO NOGAL (la cubierta es parte del cuerpo)"
+    },
+    {
+      "pregunta": "Respaldo 9 mm: que material usar?",
+      "elegido": "(sin responder: ya resuelta con ERP)"
+    },
+    {
+      "pregunta": "Cuantos travesanos lleva la base PTR?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "Tipo de canto en cuerpo y puertas",
+      "elegido": "(sin responder: ninguna opción coincide con el plano)",
+      "opciones": [
+        "Tapacanto PVC",
+        "ABS 3 mm",
+        "Chapa en canto"
+      ],
+      "evidencia": "plano: 3 PUERTAS ABATIBLES"
+    }
+  ]
+}

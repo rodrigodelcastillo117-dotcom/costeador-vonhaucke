@@ -1,0 +1,348 @@
+{
+  "req": {
+    "cantidad": 1,
+    "pieza": {
+      "componentes": [
+        {
+          "insumoId": "erp-mdf19",
+          "nombre": "Cubierta superior",
+          "cantidad": 1,
+          "largoMM": 1800,
+          "anchoMM": 450,
+          "piezas": 1,
+          "material_solicitado": "MDF 18 mm enchapado nogal natural (base MDF 19 mm + chapa, confirmado)",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "chapa-walnut",
+          "nombre": "Chapa nogal cubierta superior",
+          "cantidad": 1,
+          "largoMM": 1800,
+          "anchoMM": 450,
+          "piezas": 1,
+          "material_solicitado": "Chapa nogal natural",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto (cantos visibles)",
+          "cantidad": 9,
+          "piezas": 1,
+          "material_solicitado": "Tapacanto PVC",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        }
+      ]
+    }
+  },
+  "res": {
+    "ok": true,
+    "estado": "incompleto",
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 963.16,
+      "materialTotal": 601.97,
+      "manoObra": 90.3,
+      "indirectosFabrica": 270.89,
+      "desperdicio": 262.5,
+      "detalleInsumos": [
+        {
+          "insumoId": "erp-mdf19",
+          "nombre": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+          "seccion": "cubiertas",
+          "costo": 215.52,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "chapa-walnut",
+          "nombre": "Chapa Walnut Burl (poro sellado)",
+          "seccion": "cubiertas",
+          "costo": 358,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "costo": 28.45,
+          "certificable": false,
+          "evidencia": "propuesto"
+        }
+      ],
+      "componentesIgnorados": []
+    },
+    "evidencia": {
+      "usados": 3,
+      "certificados": 2,
+      "noCertificados": 1
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 601.9744,
+      "materialIndirecto": 0,
+      "materialTotal": 601.9744,
+      "desperdicio": 262.49991464660036,
+      "manoObra": 90.29615999999999,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 15,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 692.2705599999999,
+      "indirectosFabrica": 270.88848,
+      "gastosOperacion": 0,
+      "costoFabricacion": 963.15904,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 963.15904,
+      "costoLoteConMerma": 963.15904,
+      "costoUnitario": 963.15904,
+      "detalleInsumos": [
+        {
+          "insumoId": "erp-mdf19",
+          "nombre": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Cubierta superior"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": true,
+            "certificable": false,
+            "hojas": 1,
+            "piezas_solicitadas": 1,
+            "piezas_colocadas": 1,
+            "placements": [
+              {
+                "id": "Cubierta superior#1",
+                "nombre": "Cubierta superior",
+                "x": 10,
+                "y": 10,
+                "w": 1800,
+                "h": 450,
+                "rot": 0,
+                "hoja": 1
+              }
+            ],
+            "remanentes": [
+              {
+                "hoja": 1,
+                "x": 10,
+                "y": 464,
+                "w": 2420,
+                "h": 746,
+                "area_mm2": 1805320
+              },
+              {
+                "hoja": 1,
+                "x": 1814,
+                "y": 10,
+                "w": 616,
+                "h": 1200,
+                "area_mm2": 739200
+              }
+            ],
+            "issues": [],
+            "area_piezas_mm2": 810000,
+            "area_comprada_mm2": 2976800,
+            "desperdicio_mm2": 2166800,
+            "eficiencia_pct": 27.892561983471076,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.81,
+          "comprado": 1.4884,
+          "unidades": 0.5,
+          "costo": 215.52,
+          "desperdicio": 98.23217414673474,
+          "pct": 45.579145391023914,
+          "precio": 431.04,
+          "noCabe": false,
+          "fraccion": true,
+          "reglaProduccion": "produccion-rogelio-2026-10",
+          "piezasRegla": [
+            {
+              "pieza": "Cubierta superior",
+              "largoMM": 1800,
+              "anchoMM": 450,
+              "hojasPorPieza": 0.5
+            }
+          ]
+        },
+        {
+          "insumoId": "chapa-walnut",
+          "nombre": "Chapa Walnut Burl (poro sellado)",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": true,
+          "nombresComponentes": [
+            "Chapa nogal cubierta superior"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": true,
+            "certificable": false,
+            "hojas": 1,
+            "piezas_solicitadas": 1,
+            "piezas_colocadas": 1,
+            "placements": [
+              {
+                "id": "Chapa nogal cubierta superior#1",
+                "nombre": "Chapa nogal cubierta superior",
+                "x": 10,
+                "y": 10,
+                "w": 1800,
+                "h": 450,
+                "rot": 0,
+                "hoja": 1
+              }
+            ],
+            "remanentes": [
+              {
+                "hoja": 1,
+                "x": 10,
+                "y": 464,
+                "w": 2420,
+                "h": 746,
+                "area_mm2": 1805320
+              },
+              {
+                "hoja": 1,
+                "x": 1814,
+                "y": 10,
+                "w": 616,
+                "h": 1200,
+                "area_mm2": 739200
+              }
+            ],
+            "issues": [],
+            "area_piezas_mm2": 810000,
+            "area_comprada_mm2": 2976800,
+            "desperdicio_mm2": 2166800,
+            "eficiencia_pct": 27.892561983471076,
+            "parametros": {
+              "veta": true,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.81,
+          "comprado": 1.4884,
+          "unidades": 0.5,
+          "costo": 358,
+          "desperdicio": 163.17334049986562,
+          "pct": 45.579145391023914,
+          "precio": 716,
+          "noCabe": false,
+          "fraccion": true,
+          "reglaProduccion": "produccion-rogelio-2026-10",
+          "piezasRegla": [
+            {
+              "pieza": "Chapa nogal cubierta superior",
+              "largoMM": 1800,
+              "anchoMM": 450,
+              "hojasPorPieza": 0.5
+            }
+          ]
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "rollo",
+            "corto": "rollo",
+            "medida": 50,
+            "nombre": "rollo de 50 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Tapacanto (cantos visibles)"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 9,
+          "comprado": 9.36,
+          "unidades": null,
+          "costo": 28.4544,
+          "desperdicio": 1.0943999999999983,
+          "pct": 3.84615384615384,
+          "precio": 3.04,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Cubierta superior"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "completo",
+      "pendientes": [],
+      "costoOficial": 963.15904
+    },
+    "versionMotor": "2026-10-12",
+    "versionConfig": "cfg16qbljb",
+    "versionCatalogo": "cat-ap1793-cfg1luqyly",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T11:38:57.046Z",
+    "catalogoFuente": "catalogo",
+    "warnings": []
+  }
+}

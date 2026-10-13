@@ -1,0 +1,417 @@
+{
+  "req": {
+    "cantidad": 1,
+    "pieza": {
+      "componentes": [
+        {
+          "insumoId": "melamina-19",
+          "nombre": "Cubierta melamina blanca 19 mm",
+          "cantidad": 1,
+          "largoMM": 1500,
+          "anchoMM": 700,
+          "piezas": 1,
+          "material_solicitado": "melamina blanca 19 mm",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC 2 mm perimetral",
+          "cantidad": 4.4,
+          "piezas": 1,
+          "material_solicitado": "tapacanto PVC 2 mm",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "ptr",
+          "nombre": "Patas PTR 1x2 cal.16",
+          "cantidad": 2.924,
+          "piezas": 1,
+          "material_solicitado": "PTR 1\" x 2\" cal. 16",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "ptr",
+          "nombre": "Largueros PTR 1x2 cal.16",
+          "cantidad": 2.7,
+          "piezas": 1,
+          "material_solicitado": "PTR 1\" x 2\" cal. 16",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "ptr",
+          "nombre": "Travesanos PTR 1x2 cal.16",
+          "cantidad": 1.2,
+          "piezas": 1,
+          "material_solicitado": "PTR 1\" x 2\" cal. 16",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "lamina-18",
+          "nombre": "Faldon lamina cal.18",
+          "cantidad": 1,
+          "largoMM": 1400,
+          "anchoMM": 300,
+          "piezas": 1,
+          "hojas": 0.14,
+          "material_solicitado": "lamina de acero cal. 18",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "pintura-polvo-blanco-ral-9016-009-13120",
+          "nombre": "Pintura en polvo blanco RAL 9016",
+          "cantidad": 1,
+          "piezas": 1,
+          "material_solicitado": "pintura en polvo blanco RAL 9016",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true,
+          "areaPintadaM2": 1.88,
+          "tubular": true
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Niveladores",
+          "cantidad": 4,
+          "piezas": 1,
+          "material_solicitado": "niveladores",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        }
+      ],
+      "horas": {
+        "pm": 0,
+        "carpinteria": 0,
+        "pintura": 0,
+        "acabados": 0,
+        "tapiceria": 0
+      }
+    }
+  },
+  "res": {
+    "ok": true,
+    "estado": "incompleto",
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 1989.25,
+      "materialTotal": 1167.13,
+      "manoObra": 205.53,
+      "indirectosFabrica": 616.59,
+      "desperdicio": 550.32,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-19",
+          "nombre": "Melamina BLANCA / EcoLegno 19 mm",
+          "seccion": "cubiertas",
+          "costo": 544,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "costo": 13.91,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "ptr",
+          "nombre": "Tubo / PTR 1\"x2\" cal. 16",
+          "seccion": "metal",
+          "costo": 458.28,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "lamina-18",
+          "nombre": "Lamina de acero cal. 18",
+          "seccion": "metal",
+          "costo": 80.02,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "costo": 70.92,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        }
+      ],
+      "componentesIgnorados": [
+        "Pintura en polvo blanco RAL 9016 (sin cantidad ni medidas)"
+      ]
+    },
+    "evidencia": {
+      "usados": 5,
+      "certificados": 0,
+      "noCertificados": 5
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 1096.2066399999999,
+      "materialIndirecto": 70.92,
+      "materialTotal": 1167.12664,
+      "desperdicio": 550.3225778231658,
+      "manoObra": 205.529776,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 18.749181814844693,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 1372.656416,
+      "indirectosFabrica": 616.589328,
+      "gastosOperacion": 0,
+      "costoFabricacion": 1989.245744,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 1989.245744,
+      "costoLoteConMerma": 1989.245744,
+      "costoUnitario": 1989.245744,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-19",
+          "nombre": "Melamina BLANCA / EcoLegno 19 mm",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Cubierta melamina blanca 19 mm"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": true,
+            "certificable": false,
+            "hojas": 1,
+            "piezas_solicitadas": 1,
+            "piezas_colocadas": 1,
+            "placements": [
+              {
+                "id": "Cubierta melamina blanca 19 mm#1",
+                "nombre": "Cubierta melamina blanca 19 mm",
+                "x": 10,
+                "y": 10,
+                "w": 1500,
+                "h": 700,
+                "rot": 0,
+                "hoja": 1
+              }
+            ],
+            "remanentes": [
+              {
+                "hoja": 1,
+                "x": 10,
+                "y": 714,
+                "w": 2420,
+                "h": 496,
+                "area_mm2": 1200320
+              },
+              {
+                "hoja": 1,
+                "x": 1514,
+                "y": 10,
+                "w": 916,
+                "h": 1200,
+                "area_mm2": 1099200
+              }
+            ],
+            "issues": [],
+            "area_piezas_mm2": 1050000,
+            "area_comprada_mm2": 2976800,
+            "desperdicio_mm2": 1926800,
+            "eficiencia_pct": 36.15702479338843,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1.0499999999999998,
+          "comprado": 2.9768,
+          "unidades": 1,
+          "costo": 544,
+          "desperdicio": 352.11609782316583,
+          "pct": 64.72722386455254,
+          "precio": 544,
+          "noCabe": false,
+          "fraccion": true
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "rollo",
+            "corto": "rollo",
+            "medida": 50,
+            "nombre": "rollo de 50 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Tapacanto PVC 2 mm perimetral"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 4.4,
+          "comprado": 4.5760000000000005,
+          "unidades": null,
+          "costo": 13.911040000000002,
+          "desperdicio": 0.5350400000000005,
+          "pct": 3.8461538461538494,
+          "precio": 3.04,
+          "noCabe": false
+        },
+        {
+          "insumoId": "ptr",
+          "nombre": "Tubo / PTR 1\"x2\" cal. 16",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "tramo",
+            "corto": "tramo",
+            "medida": 6,
+            "nombre": "tramo de 6 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Patas PTR 1x2 cal.16",
+            "Largueros PTR 1x2 cal.16",
+            "Travesanos PTR 1x2 cal.16"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": {
+            "disponible": false,
+            "issues": [
+              "SIN_PIEZAS_LINEALES"
+            ],
+            "advisory": true
+          },
+          "tipoAlbaAplicado": "metal",
+          "metodoConsumo": "FORMATO_COMPLETO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 6.824000000000001,
+          "comprado": 12,
+          "unidades": 2,
+          "costo": 458.28,
+          "desperdicio": 197.67143999999996,
+          "pct": 43.133333333333326,
+          "precio": 38.19,
+          "noCabe": false
+        },
+        {
+          "insumoId": "lamina-18",
+          "nombre": "Lamina de acero cal. 18",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "lamina",
+            "corto": "lamina",
+            "medida": 28.4,
+            "nombre": "lamina 1.22 x 2.44"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Faldon lamina cal.18"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "metal",
+          "metodoConsumo": "FRACCION_DIRECTA_RAFA",
+          "usaAprovechamientoGenerico": false,
+          "neto": 3.976,
+          "comprado": 3.976,
+          "unidades": 0.14,
+          "costo": 80.0156,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 571.54,
+          "noCabe": false,
+          "fraccion": true
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Niveladores"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 4,
+          "comprado": 4,
+          "unidades": null,
+          "costo": 70.92,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 17.73,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [
+        "Pintura en polvo blanco RAL 9016 (sin cantidad ni medidas)"
+      ],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [],
+      "tarifasFaltantes": [],
+      "estadoCosto": "incompleto",
+      "pendientes": [
+        "Pintura en polvo blanco RAL 9016 (sin cantidad ni medidas)"
+      ],
+      "costoOficial": null
+    },
+    "versionMotor": "2026-10-12",
+    "versionConfig": "cfglu0aa4",
+    "versionCatalogo": "cat-ap1793-cfgtsykd5",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T11:49:21.008Z",
+    "catalogoFuente": "catalogo",
+    "warnings": [
+      "1 pieza(s) sin material/precio usable: Pintura en polvo blanco RAL 9016 (sin cantidad ni medidas)"
+    ]
+  }
+}

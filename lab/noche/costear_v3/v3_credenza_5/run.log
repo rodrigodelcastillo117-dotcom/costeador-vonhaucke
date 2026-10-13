@@ -1,0 +1,41 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Credenza Nogal 3 puertas 1800x450x750","tipo":"guarda","piezas":[{"nombre":"Laterales cuerpo (enchapado nogal exterior)","insumoId":"mdf","material_solicitado":"MDF 18 mm enchapado nogal natural","material_match":"SUBSTITUTE_SUGGESTED","forma":"area","largoMM":650
+
+[lab-costear] analizar-mueble 200 en 35 s · piezas 17
+
+  1) [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('.pieza').first()
+    Expected: visible
+    Timeout: 60000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" locator('.pieza').first() with timeout 60000ms
+      - waiting for locator('.pieza').first()
+
+
+      67 |   const an = await esperaAn; const anBody = await an.json().catch(() => null);
+      68 |   console.log('[lab-costear] analizar-mueble', an.status(), 'en', ((Date.now() - t0) / 1000).toFixed(0), 's · piezas', anBody?.propuesta?.piezas?.length);
+    > 69 |   await expect(page.locator('.pieza').first()).toBeVisible({ timeout: 60000 });
+         |                                                ^
+      70 |   await page.waitForTimeout(5000);   // verificación / amarre ERP automático
+      71 |   const piezas1 = await leerPiezas(page); const res1 = await leerResultado(page);
+      72 |   guarda('1-bom-inicial.json', { piezas: piezas1, resultado: res1, analizar: { status: an.status(), piezas: anBody?.propuesta?.piezas?.length, producto: anBody?.propuesta?.producto, uso: anBody?.uso } });
+        at /home/user/costeador-vonhaucke/e2e/labCostear.e2e.js:69:48
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/labCostear.e2e.js-COSTEAR--dd0a4--sombra-→-guardar-→-reabrir-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/labCostear.e2e.js-COSTEAR--dd0a4--sombra-→-guardar-→-reabrir-chromium/error-context.md
+
+
+  1 failed
+    [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir 

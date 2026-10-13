@@ -1,0 +1,23 @@
+{
+  "confirmacion": {
+    "ofrecida": true,
+    "texto": "Confirmar los 1 propuestos",
+    "diferencias": "",
+    "diferenciasAceptadas": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta cristal templado 9 mm",
+      "material": "Cristal templado 9 mm",
+      "alertas": []
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

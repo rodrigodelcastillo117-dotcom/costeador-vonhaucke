@@ -1,0 +1,46 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble 200 {"ok":true,"propuesta":{"producto":"Credenza Nogal 1800 mm, 3 puertas abatibles","tipo":"guarda","piezas":[{"nombre":"Cubierta superior","insumoId":"","material_solicitado":"MDF 18 mm enchapado nogal natural","material_match":"SUBSTITUTE_SUGGESTED","forma":"area","largoMM":1800,"anchoMM":450,"cantid
+
+[lab-costear] analizar-mueble 200 en 26 s · piezas 12
+
+[lab-costear] edge analizar-mueble 200 {"ok":true,"propuesta":{"producto":"Credenza Nogal 1800 mm 3 puertas","tipo":"guarda","piezas":[{"nombre":"Cubierta superior","insumoId":"","material_solicitado":"MDF 18 mm enchapado nogal natural","material_match":"SUBSTITUTE_SUGGESTED","forma":"area","largoMM":1800,"anchoMM":450,"cantidad":1,"hoja
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":0,"materialTotal":0,"manoObra":0,"indirectosFabrica":0,"desperdicio":0,"detalleInsumos":[],"componentesIgnorados":[]},"evidencia":{"usados":0,"certificados":0,"noCertificados":0},"desglose":{"piezas":
+
+[lab-costear] BOM inicial {"piezas":2,"pendientes":["Cubierta superior"],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] recalculo 200
+
+[lab-costear] edge analizar-mueble 200 {"ok":true,"propuesta":{"producto":"Credenza Nogal 1800 mm, 3 puertas abatibles","tipo":"guarda","piezas":[{"nombre":"Cubierta superior","insumoId":"mdf","material_solicitado":"MDF 18 mm enchapado nogal natural (base MDF 19 mm + chapa, confirmado)","material_match":"EXACT","forma":"area","largoMM":1
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":917.63,"materialTotal":573.52,"manoObra":86.03,"indirectosFabrica":258.08,"desperdicio":261.41,"detalleInsumos":[{"insumoId":"erp-mdf19","nombre":"MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\
+
+[lab-costear] respuestas [{"pregunta":"MDF 18 mm no existe en catalogo. Que base usar para el enchapado nogal?","elegido":"MDF 19 mm + chapa","opciones":["MDF 19 mm + chapa","MDF 16 mm + chapa","MDF 25 mm Walnut","Por definir"],"evidencia":"regla de casa aprobada 2026-10-08: 18 ↔ 19 mm"},{"pregunta":"Cuantas divisiones verticales interiores hay?","elegido":"2","evidencia":"3 puertas = 3 módulos → 2 divisiones"},{"pregunta":"Como se compra el MDF 9 mm del respaldo?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"Acabado del enchapado nogal?","elegido":"(sin responder: ninguna opción coincide con el plano)","opciones":["Barniz mate","Barniz brillante","Natural sellado"],"evidencia":"plano: CUERPO ... ENCHAPADO NOGAL (la cubierta es parte del cuerpo)"}]
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":963.16,"materialTotal":601.97,"manoObra":90.3,"indirectosFabrica":270.89,"desperdicio":262.5,"detalleInsumos":[{"insumoId":"erp-mdf19","nombre":"MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\""
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 2 propuestos","diferencias":"1 difieren de lo pedido y se confirman uno por uno: Cubierta superior.","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$963.16","Por confirmar"],"margen":null,"estado":"Costo preliminar — 2 decisión(es) pendiente(s): Como se compra el MDF 9 mm del respaldo? · Acabado del enchapado nogal?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $601.97 · Mano de obra $90.30 · Fábrica $270.89","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":963.16,"costoSrv":963.16,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":3}
+
+[lab-costear] expedientes POST 201 [{"id":26}]
+
+[lab-costear] guardado {"status":201,"id":26,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":963.16,"materialTotal":601.97,"manoObra":90.3,"indirectosFabrica":270.89,"desperdicio":262.5,"detalleInsumos":[{"insumoId":"erp-mdf19","nombre":"MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\""
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":12,"pass":0,"fail":10,"riesgo":2,"sobrantesNoPermitidos":0,"renglonesBom":3,"veredicto":"FAIL"} ["FAIL laterales: omitido: ningún renglón del BOM corresponde","FAIL cubierta_y_piso: faltan piezas: 1, el plano dice 2","FAIL puertas: omitido: ningún renglón del BOM corresponde","FAIL chapa_nogal_m2: área 0.81 m², el plano da 2.491 m² (±15 %)","FAIL entrepanos: omitido: ningún renglón del BOM corresponde","RIESGO divisiones: omitido: ningún renglón del BOM corresponde (inferido: el plano no lo acota)","FAIL respaldo: omitido: ningún renglón del BOM corresponde","RIESGO base_ptr_m: omitido: ningún renglón del BOM corresponde (inferido: el plano no lo acota)","FAIL pintura: omitido: ningún renglón del BOM corresponde","FAIL bisagras: omitido: ningún renglón del BOM corresponde","FAIL jaladeras: omitido: ningún renglón del BOM corresponde","FAIL niveladores: omitido: ningún renglón del BOM corresponde"]
+
+[lab-costear] reabierta {"tarjeta":"sin render (lab V3) credenza corrida 2 BORRADOR guarda credenza","piezas":3,"mismoBom":true,"costoAntes":"$963.16","costoDespues":"$963.16","mismoCosto":true,"resultado":{"precios":["$963.16","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $601.97 · Mano de obra $90.30 · Fábrica $270.89","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.6m)

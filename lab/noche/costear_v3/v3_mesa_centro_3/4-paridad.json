@@ -1,0 +1,196 @@
+{
+  "paridad": {
+    "costoCliente": 5242.16,
+    "costoSrv": 5086.06,
+    "estadoSrv": "incompleto",
+    "iguales": false,
+    "llamadasSrv": 2
+  },
+  "servidor": {
+    "ok": true,
+    "estado": "incompleto",
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 5086.06,
+      "materialTotal": 3163.15,
+      "manoObra": 476.62,
+      "indirectosFabrica": 1446.29,
+      "desperdicio": 1125,
+      "detalleInsumos": [
+        {
+          "insumoId": "cristal-templado",
+          "nombre": "Cristal templado 9 mm",
+          "seccion": "mamparas",
+          "costo": 821.1,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "tubular-redondo-34",
+          "nombre": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+          "seccion": "metal",
+          "costo": 992.05,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "ptr-10",
+          "nombre": "Tubo / PTR cal. 10",
+          "seccion": "metal",
+          "costo": 1350,
+          "certificable": false,
+          "evidencia": "propuesto"
+        }
+      ],
+      "componentesIgnorados": [
+        "Pintura electrostática (acero) (sin cantidad ni medidas)"
+      ]
+    },
+    "evidencia": {
+      "usados": 3,
+      "certificados": 0,
+      "noCertificados": 3
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 2342.0512,
+      "materialIndirecto": 821.1,
+      "materialTotal": 3163.1512,
+      "desperdicio": 1125,
+      "manoObra": 476.62124000000006,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 20.350590115194752,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 3639.7724399999997,
+      "indirectosFabrica": 1446.28572,
+      "gastosOperacion": 0,
+      "costoFabricacion": 5086.05816,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 5086.05816,
+      "costoLoteConMerma": 5086.05816,
+      "costoUnitario": 5086.05816,
+      "detalleInsumos": [
+        {
+          "insumoId": "cristal-templado",
+          "nombre": "Cristal templado 9 mm",
+          "seccion": "mamparas",
+          "clase": "indirecta",
+          "unidad": "m2",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Cubierta cristal templado 9 mm, canto pulido"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cristal",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.6,
+          "comprado": 0.6,
+          "unidades": null,
+          "costo": 821.1,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 1368.5,
+          "noCabe": false
+        },
+        {
+          "insumoId": "tubular-redondo-34",
+          "nombre": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "tramo",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Marcos rectangulares de base 900x500 (superior e inferior)",
+            "Postes verticales de base"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 7.167999999999999,
+          "comprado": 7.167999999999999,
+          "unidades": null,
+          "costo": 992.0512,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 138.4,
+          "noCabe": false
+        },
+        {
+          "insumoId": "ptr-10",
+          "nombre": "Tubo / PTR cal. 10",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "tramo",
+            "corto": "tramo",
+            "medida": 6,
+            "nombre": "tramo de 6 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Soldadura base tubular"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": {
+            "disponible": false,
+            "issues": [
+              "SIN_PIEZAS_LINEALES"
+            ],
+            "advisory": true
+          },
+          "tipoAlbaAplicado": "metal",
+          "metodoConsumo": "FORMATO_COMPLETO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 6,
+          "unidades": 1,
+          "costo": 1350,
+          "desperdicio": 1125,
+          "pct": 83.33333333333334,
+          "precio": 225,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [
+        "Pintura electrostática (acero) (sin cantidad ni medidas)"
+      ],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Acabado cromado de la base (EcoCrom)",
+        "Niveladores / topes de cubierta"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "incompleto",
+      "pendientes": [
+        "Pintura electrostática (acero) (sin cantidad ni medidas)"
+      ],
+      "costoOficial": null
+    },
+    "versionMotor": "2026-10-12",
+    "versionConfig": "cfglu0aa4",
+    "versionCatalogo": "cat-ap1793-cfg1udsjs5",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T11:50:26.727Z",
+    "catalogoFuente": "catalogo",
+    "warnings": [
+      "1 pieza(s) sin material/precio usable: Pintura electrostática (acero) (sin cantidad ni medidas)"
+    ]
+  }
+}

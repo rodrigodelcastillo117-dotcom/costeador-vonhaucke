@@ -1,0 +1,110 @@
+{
+  "paridad": {
+    "costoCliente": 870.37,
+    "costoSrv": 870.37,
+    "estadoSrv": "preliminar",
+    "iguales": true,
+    "llamadasSrv": 2
+  },
+  "servidor": {
+    "ok": true,
+    "estado": "preliminar",
+    "piezas": 1,
+    "precioVenta": 1450.61,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 870.37,
+      "materialTotal": 821.1,
+      "manoObra": 8.21,
+      "indirectosFabrica": 41.06,
+      "desperdicio": 0,
+      "detalleInsumos": [
+        {
+          "insumoId": "cristal-templado",
+          "nombre": "Cristal templado 9 mm",
+          "seccion": "mamparas",
+          "costo": 821.1,
+          "certificable": false,
+          "evidencia": "propuesto"
+        }
+      ],
+      "componentesIgnorados": []
+    },
+    "evidencia": {
+      "usados": 1,
+      "certificados": 0,
+      "noCertificados": 1
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 0,
+      "materialIndirecto": 821.1,
+      "materialTotal": 821.1,
+      "desperdicio": 0,
+      "manoObra": 8.211,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 0,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 829.311,
+      "indirectosFabrica": 41.05500000000001,
+      "gastosOperacion": 0,
+      "costoFabricacion": 870.366,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 870.366,
+      "costoLoteConMerma": 870.366,
+      "costoUnitario": 870.366,
+      "detalleInsumos": [
+        {
+          "insumoId": "cristal-templado",
+          "nombre": "Cristal templado 9 mm",
+          "seccion": "mamparas",
+          "clase": "indirecta",
+          "unidad": "m2",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Cubierta cristal templado 9 mm"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cristal",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.6,
+          "comprado": 0.6,
+          "unidades": null,
+          "costo": 821.1,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 1368.5,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [],
+      "tarifasFaltantes": [],
+      "estadoCosto": "completo",
+      "pendientes": [],
+      "costoOficial": 870.366
+    },
+    "versionMotor": "2026-10-12",
+    "versionConfig": "cfglu0aa4",
+    "versionCatalogo": "cat-ap1793-cfg17r1wdy",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T11:54:13.962Z",
+    "catalogoFuente": "catalogo",
+    "warnings": [
+      "Costo preliminar — 1 de 1 insumo(s) sin precio certificado.",
+      "1 insumo(s) requieren validación de Compras."
+    ]
+  }
+}

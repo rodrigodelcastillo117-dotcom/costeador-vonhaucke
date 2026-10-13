@@ -1,0 +1,81 @@
+{
+  "producto": "Mesa de centro 1000 × 600 × 420",
+  "resumen": {
+    "esperados": 3,
+    "pass": 2,
+    "fail": 1,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 1,
+    "renglonesBom": 7,
+    "veredicto": "FAIL"
+  },
+  "filas": [
+    {
+      "clave": "cristal_m2",
+      "renglones": 1,
+      "materiales": [
+        "cristal-templado"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "areaM2": 0.6
+    },
+    {
+      "clave": "tubular_m",
+      "renglones": 2,
+      "materiales": [
+        "tubular-redondo-34"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "metros": 7.168
+    },
+    {
+      "clave": "cromado",
+      "renglones": 0,
+      "materiales": [],
+      "estado": "FAIL",
+      "motivos": [
+        "material fuera de la familia esperada (ecocrom|crom): Acabado cromado de la base (EcoCrom) [vacío]"
+      ],
+      "evidencia": "plano: ACABADO CROMADO (ECOCROM); superficie del tubo ≈ π × 19 mm × 7.17 m = 0.43 m²",
+      "inferido": false
+    }
+  ],
+  "sobran": [
+    {
+      "nombre": "Soldadura base tubular",
+      "insumoId": "ptr-10",
+      "permitido": true
+    },
+    {
+      "nombre": "Niveladores / topes de cubierta",
+      "insumoId": "nivelador",
+      "permitido": true
+    },
+    {
+      "nombre": "Pintura electrostática (acero)",
+      "insumoId": "pintura-polvo-ivory",
+      "permitido": false
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Cómo se apoya el cristal en la base?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántas mesas se requieren?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿El cromado se hace con EcoCrom propio o con proveedor externo?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

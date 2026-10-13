@@ -1,0 +1,57 @@
+{
+  "confirmacion": {
+    "ofrecida": true,
+    "texto": "Confirmar los 5 propuestos",
+    "diferencias": "1 difieren de lo pedido y se confirman uno por uno: Niveladores / topes de cubierta. ",
+    "diferenciasAceptadas": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta cristal templado 9 mm, canto pulido",
+      "material": "Cristal templado 9 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Marcos rectangulares de base 900x500 (superior e inferior)",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": []
+    },
+    {
+      "nombre": "Postes verticales de base",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": []
+    },
+    {
+      "nombre": "Acabado cromado de la base (EcoCrom)",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": [
+        "⚠ Costo pendiente — confirma material (crítico: Solicitado perfil tubo → candidato redondo). Usar Tubular redondo 3/4\" cal. 18 (tramo 6 m) (confirmar)"
+      ]
+    },
+    {
+      "nombre": "Soldadura base tubular",
+      "material": "Tubo / PTR cal. 10",
+      "alertas": []
+    },
+    {
+      "nombre": "Niveladores / topes de cubierta",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («top apoyo cubierta») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Pintura electrostática (acero)",
+      "material": "Pintura en polvo, Ivory",
+      "alertas": []
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

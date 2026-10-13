@@ -1,0 +1,738 @@
+{
+  "req": {
+    "cantidad": 1,
+    "pieza": {
+      "componentes": [
+        {
+          "insumoId": "erp-mdf19",
+          "nombre": "Cuerpo MDF 18 mm enchapado nogal (2 laterales 450x632, cubierta y fondo 1800x450)",
+          "cantidad": 1,
+          "largoMM": 1800,
+          "anchoMM": 450,
+          "piezas": 2,
+          "material_solicitado": "MDF 18 mm enchapado nogal natural",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "chapa-madera",
+          "nombre": "Chapa de nogal natural (cuerpo y puertas)",
+          "cantidad": 1,
+          "largoMM": 2440,
+          "anchoMM": 1220,
+          "piezas": 1,
+          "material_solicitado": "Enchapado nogal natural",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "erp-mdf19",
+          "nombre": "Puertas abatibles MDF enchapado nogal 580x630",
+          "cantidad": 1,
+          "largoMM": 630,
+          "anchoMM": 580,
+          "piezas": 3,
+          "material_solicitado": "MDF 18 mm enchapado nogal",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "melamina-16",
+          "nombre": "Entrepaño interior melamina blanca 16 mm",
+          "cantidad": 1,
+          "largoMM": 580,
+          "anchoMM": 430,
+          "piezas": 3,
+          "material_solicitado": "Melamina blanca 16 mm",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "erp-mdf8",
+          "nombre": "Respaldo MDF 9 mm",
+          "cantidad": 1,
+          "largoMM": 1800,
+          "anchoMM": 550,
+          "piezas": 1,
+          "hojas": 0.33,
+          "material_solicitado": "MDF 9 mm",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "ptr-14",
+          "nombre": "Base PTR 1x1 cal.14 (marco y zócalo)",
+          "cantidad": 5,
+          "piezas": 1,
+          "material_solicitado": "PTR 1x1 cal.14",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "pintura-electrostatica",
+          "nombre": "Pintura electrostática negra base",
+          "cantidad": 1,
+          "largoMM": 5000,
+          "anchoMM": 100,
+          "piezas": 1,
+          "material_solicitado": "Pintura electrostática negra",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED",
+          "areaPintadaM2": 0.51,
+          "tubular": true
+        },
+        {
+          "insumoId": "bisagra",
+          "nombre": "Bisagras",
+          "cantidad": 6,
+          "piezas": 1,
+          "material_solicitado": "Bisagras",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "jaladera",
+          "nombre": "Jaladeras rectas 300 mm",
+          "cantidad": 3,
+          "piezas": 1,
+          "material_solicitado": "Jaladera recta 300 mm",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Niveladores",
+          "cantidad": 4,
+          "piezas": 1,
+          "material_solicitado": "Niveladores",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto",
+          "cantidad": 25.32,
+          "piezas": 1,
+          "material_solicitado": "Tapacanto",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        }
+      ]
+    }
+  },
+  "res": {
+    "ok": true,
+    "estado": "incompleto",
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 3189.56,
+      "materialTotal": 1936.51,
+      "manoObra": 313.26,
+      "indirectosFabrica": 939.79,
+      "desperdicio": 323.36,
+      "detalleInsumos": [
+        {
+          "insumoId": "erp-mdf19",
+          "nombre": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+          "seccion": "cubiertas",
+          "costo": 646.56,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "chapa-madera",
+          "nombre": "Chapa de madera (sabana natural)",
+          "seccion": "cubiertas",
+          "costo": 540,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "melamina-16",
+          "nombre": "Melamina BLANCA 16 mm",
+          "seccion": "cubiertas",
+          "costo": 135,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "erp-mdf8",
+          "nombre": "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\"",
+          "seccion": "cubiertas",
+          "costo": 79.2,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "ptr-14",
+          "nombre": "Tubo / PTR cal. 14",
+          "seccion": "metal",
+          "costo": 270.78,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "bisagra",
+          "nombre": "Bisagra",
+          "seccion": "herrajes",
+          "costo": 114,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "costo": 70.92,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "costo": 80.05,
+          "certificable": false,
+          "evidencia": "propuesto"
+        }
+      ],
+      "componentesIgnorados": []
+    },
+    "evidencia": {
+      "usados": 8,
+      "certificados": 2,
+      "noCertificados": 6
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 1751.591712,
+      "materialIndirecto": 184.92000000000002,
+      "materialTotal": 1936.511712,
+      "desperdicio": 323.3590598097285,
+      "manoObra": 313.2617568,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 17.884405061628883,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 2249.7734688,
+      "indirectosFabrica": 939.7852704,
+      "gastosOperacion": 0,
+      "costoFabricacion": 3189.5587391999998,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 3189.5587391999998,
+      "costoLoteConMerma": 3189.5587391999998,
+      "costoUnitario": 3189.5587391999998,
+      "detalleInsumos": [
+        {
+          "insumoId": "erp-mdf19",
+          "nombre": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Cuerpo MDF 18 mm enchapado nogal (2 laterales 450x632, cubierta y fondo 1800x450)",
+            "Puertas abatibles MDF enchapado nogal 580x630"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": true,
+            "certificable": false,
+            "hojas": 2,
+            "piezas_solicitadas": 5,
+            "piezas_colocadas": 5,
+            "placements": [
+              {
+                "id": "Cuerpo MDF 18 mm enchapado nogal (2 laterales 450x632, cubierta y fondo 1800x450)#1",
+                "nombre": "Cuerpo MDF 18 mm enchapado nogal (2 laterales 450x632, cubierta y fondo 1800x450)",
+                "x": 10,
+                "y": 10,
+                "w": 1800,
+                "h": 450,
+                "rot": 0,
+                "hoja": 1
+              },
+              {
+                "id": "Cuerpo MDF 18 mm enchapado nogal (2 laterales 450x632, cubierta y fondo 1800x450)#2",
+                "nombre": "Cuerpo MDF 18 mm enchapado nogal (2 laterales 450x632, cubierta y fondo 1800x450)",
+                "x": 10,
+                "y": 464,
+                "w": 1800,
+                "h": 450,
+                "rot": 0,
+                "hoja": 1
+              },
+              {
+                "id": "Puertas abatibles MDF enchapado nogal 580x630#1",
+                "nombre": "Puertas abatibles MDF enchapado nogal 580x630",
+                "x": 1814,
+                "y": 10,
+                "w": 580,
+                "h": 630,
+                "rot": 90,
+                "hoja": 1
+              },
+              {
+                "id": "Puertas abatibles MDF enchapado nogal 580x630#2",
+                "nombre": "Puertas abatibles MDF enchapado nogal 580x630",
+                "x": 10,
+                "y": 10,
+                "w": 580,
+                "h": 630,
+                "rot": 90,
+                "hoja": 2
+              },
+              {
+                "id": "Puertas abatibles MDF enchapado nogal 580x630#3",
+                "nombre": "Puertas abatibles MDF enchapado nogal 580x630",
+                "x": 594,
+                "y": 10,
+                "w": 580,
+                "h": 630,
+                "rot": 90,
+                "hoja": 2
+              }
+            ],
+            "remanentes": [
+              {
+                "hoja": 2,
+                "x": 1178,
+                "y": 10,
+                "w": 1252,
+                "h": 1200,
+                "area_mm2": 1502400
+              },
+              {
+                "hoja": 2,
+                "x": 10,
+                "y": 644,
+                "w": 2420,
+                "h": 566,
+                "area_mm2": 1369720
+              },
+              {
+                "hoja": 1,
+                "x": 10,
+                "y": 918,
+                "w": 2420,
+                "h": 292,
+                "area_mm2": 706640
+              },
+              {
+                "hoja": 1,
+                "x": 1814,
+                "y": 644,
+                "w": 616,
+                "h": 566,
+                "area_mm2": 348656
+              }
+            ],
+            "issues": [],
+            "area_piezas_mm2": 2716200,
+            "area_comprada_mm2": 5953600,
+            "desperdicio_mm2": 3237400,
+            "eficiencia_pct": 46.76652892561983,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 2.7162,
+          "comprado": 4.465199999999999,
+          "unidades": 1.5,
+          "costo": 646.5600000000001,
+          "desperdicio": 253.25482397205042,
+          "pct": 39.16957807041116,
+          "precio": 431.04,
+          "noCabe": false,
+          "fraccion": true,
+          "reglaProduccion": "produccion-rogelio-2026-10",
+          "piezasRegla": [
+            {
+              "pieza": "Cuerpo MDF 18 mm enchapado nogal (2 laterales 450x632, cubierta y fondo 1800x450)",
+              "largoMM": 1800,
+              "anchoMM": 450,
+              "hojasPorPieza": 0.5
+            }
+          ]
+        },
+        {
+          "insumoId": "chapa-madera",
+          "nombre": "Chapa de madera (sabana natural)",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": true,
+          "nombresComponentes": [
+            "Chapa de nogal natural (cuerpo y puertas)"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": false,
+            "certificable": false,
+            "hojas": 0,
+            "piezas_solicitadas": 1,
+            "piezas_colocadas": 0,
+            "placements": [],
+            "remanentes": [],
+            "issues": [
+              {
+                "code": "PIEZA_NO_CABE",
+                "id": "Chapa de nogal natural (cuerpo y puertas)#1",
+                "w": 2440,
+                "h": 1220
+              }
+            ],
+            "area_piezas_mm2": 0,
+            "area_comprada_mm2": 0,
+            "desperdicio_mm2": 0,
+            "eficiencia_pct": 0,
+            "parametros": {
+              "veta": true,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 2.9768,
+          "comprado": 2.9768,
+          "unidades": 1,
+          "costo": 540,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 540,
+          "noCabe": true,
+          "fraccion": true,
+          "reglaProduccion": "produccion-rogelio-2026-10",
+          "piezasRegla": [
+            {
+              "pieza": "Chapa de nogal natural (cuerpo y puertas)",
+              "largoMM": 2440,
+              "anchoMM": 1220,
+              "hojasPorPieza": 1
+            }
+          ]
+        },
+        {
+          "insumoId": "melamina-16",
+          "nombre": "Melamina BLANCA 16 mm",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Entrepaño interior melamina blanca 16 mm"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": true,
+            "certificable": false,
+            "hojas": 1,
+            "piezas_solicitadas": 3,
+            "piezas_colocadas": 3,
+            "placements": [
+              {
+                "id": "Entrepaño interior melamina blanca 16 mm#1",
+                "nombre": "Entrepaño interior melamina blanca 16 mm",
+                "x": 10,
+                "y": 10,
+                "w": 430,
+                "h": 580,
+                "rot": 90,
+                "hoja": 1
+              },
+              {
+                "id": "Entrepaño interior melamina blanca 16 mm#2",
+                "nombre": "Entrepaño interior melamina blanca 16 mm",
+                "x": 10,
+                "y": 594,
+                "w": 430,
+                "h": 580,
+                "rot": 90,
+                "hoja": 1
+              },
+              {
+                "id": "Entrepaño interior melamina blanca 16 mm#3",
+                "nombre": "Entrepaño interior melamina blanca 16 mm",
+                "x": 444,
+                "y": 10,
+                "w": 430,
+                "h": 580,
+                "rot": 90,
+                "hoja": 1
+              }
+            ],
+            "remanentes": [
+              {
+                "hoja": 1,
+                "x": 878,
+                "y": 10,
+                "w": 1552,
+                "h": 1200,
+                "area_mm2": 1862400
+              },
+              {
+                "hoja": 1,
+                "x": 444,
+                "y": 594,
+                "w": 1986,
+                "h": 616,
+                "area_mm2": 1223376
+              }
+            ],
+            "issues": [],
+            "area_piezas_mm2": 748200,
+            "area_comprada_mm2": 2976800,
+            "desperdicio_mm2": 2228600,
+            "eficiencia_pct": 25.764462809917354,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.7482,
+          "comprado": 0.89304,
+          "unidades": 0.3,
+          "costo": 135,
+          "desperdicio": 21.89532383767804,
+          "pct": 16.21875839828003,
+          "precio": 450,
+          "noCabe": false,
+          "fraccion": true
+        },
+        {
+          "insumoId": "erp-mdf8",
+          "nombre": "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\"",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Respaldo MDF 9 mm"
+          ],
+          "optimizacionCorte": {
+            "disponible": false,
+            "issues": [
+              "SIN_PIEZAS_RECTANGULARES"
+            ]
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "FRACCION_DIRECTA_RAFA",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.982344,
+          "comprado": 0.982344,
+          "unidades": 0.33,
+          "costo": 79.2,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 240,
+          "noCabe": false,
+          "fraccion": true
+        },
+        {
+          "insumoId": "ptr-14",
+          "nombre": "Tubo / PTR cal. 14",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "tramo",
+            "corto": "tramo",
+            "medida": 6,
+            "nombre": "tramo de 6 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Base PTR 1x1 cal.14 (marco y zócalo)"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": {
+            "disponible": false,
+            "issues": [
+              "SIN_PIEZAS_LINEALES"
+            ],
+            "advisory": true
+          },
+          "tipoAlbaAplicado": "metal",
+          "metodoConsumo": "FORMATO_COMPLETO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 5,
+          "comprado": 6,
+          "unidades": 1,
+          "costo": 270.78000000000003,
+          "desperdicio": 45.13,
+          "pct": 16.666666666666664,
+          "precio": 45.13,
+          "noCabe": false
+        },
+        {
+          "insumoId": "bisagra",
+          "nombre": "Bisagra",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Bisagras"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 6,
+          "comprado": 6,
+          "unidades": null,
+          "costo": 114,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 19,
+          "noCabe": false
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Niveladores"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 4,
+          "comprado": 4,
+          "unidades": null,
+          "costo": 70.92,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 17.73,
+          "noCabe": false
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "rollo",
+            "corto": "rollo",
+            "medida": 50,
+            "nombre": "rollo de 50 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Tapacanto"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 25.32,
+          "comprado": 26.332800000000002,
+          "unidades": null,
+          "costo": 80.05171200000001,
+          "desperdicio": 3.0789120000000065,
+          "pct": 3.846153846153854,
+          "precio": 3.04,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Pintura electrostática negra base",
+        "Jaladeras rectas 300 mm"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "completo",
+      "pendientes": [],
+      "costoOficial": 3189.5587391999998
+    },
+    "versionMotor": "2026-10-12",
+    "versionConfig": "cfglu0aa4",
+    "versionCatalogo": "cat-ap1793-cfg18djkfp",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T11:35:02.325Z",
+    "catalogoFuente": "catalogo",
+    "warnings": [
+      "Chapa de madera (sabana natural): una o más piezas no caben en el formato de compra"
+    ]
+  }
+}

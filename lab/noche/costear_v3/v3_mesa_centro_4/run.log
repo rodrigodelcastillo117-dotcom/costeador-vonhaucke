@@ -1,0 +1,40 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Mesa de centro con cubierta de cristal templado y base tubular cromada","tipo":"mesa","piezas":[{"nombre":"Cubierta cristal templado 9 mm","insumoId":"cristal-templado","material_solicitado":"cristal templado 9 mm, canto pulido","material_match":"EXACT","forma":"a
+
+[lab-costear] analizar-mueble 200 en 7 s · piezas 1
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":870.37,"materialTotal":821.1,"manoObra":8.21,"indirectosFabrica":41.06,"desperdicio":0,"detalleInsumos":[{"insumoId":"cristal-templado","nombre":"Cristal templado 9 mm","seccion":"mamparas","costo":82
+
+[lab-costear] BOM inicial {"piezas":1,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas []
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"preliminar","piezas":1,"precioVenta":1450.61,"margen":40,"costo":{"costoUnitario":870.37,"materialTotal":821.1,"manoObra":8.21,"indirectosFabrica":41.06,"desperdicio":0,"detalleInsumos":[{"insumoId":"cristal-templado","nombre":"Cristal templado 9 mm","seccion":"mamparas","costo"
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 1 propuestos","diferencias":"","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$870.37","$1,450.61"],"margen":"Precio de lista (40% margen · política vigente (1 pieza))","estado":"COSTO PRELIMINAR","linea":"Material $821.10 · Mano de obra $8.21 · Fábrica $41.06","pendiente":false,"porConfirmar":false}
+
+[lab-costear] paridad {"costoCliente":870.37,"costoSrv":870.37,"estadoSrv":"preliminar","iguales":true,"llamadasSrv":2}
+
+[lab-costear] expedientes POST 201 [{"id":32}]
+
+[lab-costear] guardado {"status":201,"id":32,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"preliminar","piezas":1,"precioVenta":1450.61,"margen":40,"costo":{"costoUnitario":870.37,"materialTotal":821.1,"manoObra":8.21,"indirectosFabrica":41.06,"desperdicio":0,"detalleInsumos":[{"insumoId":"cristal-templado","nombre":"Cristal templado 9 mm","seccion":"mamparas","costo"
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"preliminar","piezas":1,"precioVenta":1450.61,"margen":40,"costo":{"costoUnitario":870.37,"materialTotal":821.1,"manoObra":8.21,"indirectosFabrica":41.06,"desperdicio":0,"detalleInsumos":[{"insumoId":"cristal-templado","nombre":"Cristal templado 9 mm","seccion":"mamparas","costo"
+
+[lab-costear] transferencia {"intentado":true,"habilitado":true,"title":"Verifica el costo autoritativo antes de agregar","partidasAntes":0,"partidasDespues":1,"partida":{"nombre":"(lab V3) mesa_centro corrida 4","cantidad":1,"costoUnitario":870.37,"precioUnitario":1450.6100000000001},"servidor":{"estado":"preliminar","precioVenta":1450.61,"fuenteCosto":"catalogo"},"paridad":null}
+
+[lab-costear] hoja de control {"esperados":3,"pass":1,"fail":2,"riesgo":0,"sobrantesNoPermitidos":0,"renglonesBom":1,"veredicto":"FAIL"} ["FAIL tubular_m: omitido: ningún renglón del BOM corresponde","FAIL cromado: omitido: ningún renglón del BOM corresponde"]
+
+[lab-costear] reabierta {"tarjeta":"sin render (lab V3) mesa_centro corrida 4 BORRADOR mesa mesa de centro Lista: $1,451 · preliminar","piezas":1,"mismoBom":true,"costoAntes":"$870.37","costoDespues":"$870.37","mismoCosto":true,"resultado":{"precios":["$870.37","$1,450.61"],"margen":"Precio de lista (40% margen · del expediente guardado)","estado":"COSTO PRELIMINAR","linea":"Material $821.10 · Mano de obra $8.21 · Fábrica $41.06","pendiente":false,"porConfirmar":false},"pageErrors":0}
+
+  1 passed (51.7s)

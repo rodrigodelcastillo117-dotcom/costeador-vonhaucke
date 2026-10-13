@@ -1,0 +1,35 @@
+{
+  "confirmacion": {
+    "ofrecida": true,
+    "texto": "Confirmar los 2 propuestos",
+    "diferencias": "1 difieren de lo pedido y se confirman uno por uno: Cubierta superior.",
+    "diferenciasAceptadas": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta superior",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Chapa nogal cubierta superior",
+      "material": "Chapa Walnut Burl (poro sellado)",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto (cantos visibles)",
+      "material": "Tapacanto PVC",
+      "alertas": []
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

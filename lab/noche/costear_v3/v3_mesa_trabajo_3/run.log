@@ -1,0 +1,42 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Mesa de trabajo 1500x700x750 mm con estructura PTR y cubierta de melamina blanca","tipo":"mesa","piezas":[{"nombre":"Cubierta melamina blanca 19 mm","insumoId":"melamina-19","material_solicitado":"melamina blanca 19 mm","material_match":"EXACT","forma":"area","lar
+
+[lab-costear] analizar-mueble 200 en 18 s · piezas 8
+
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Mesa de trabajo 1500x700x750 con estructura PTR y faldón de lámina","tipo":"mesa","piezas":[{"nombre":"Cubierta melamina blanca 19 mm","insumoId":"melamina-19","material_solicitado":"Melamina blanca 19 mm","material_match":"EXACT","forma":"area","largoMM":1500,"an
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1839.33,"materialTotal":1082.3,"manoObra":189.26,"indirectosFabrica":567.78,"desperdicio":549.79,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno 19 mm","seccion":"cubi
+
+[lab-costear] BOM inicial {"piezas":8,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"Cuantas mesas se requieren?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"Tipo de nivelador?","elegido":"(sin responder: ninguna opción coincide con el plano)","opciones":["Conico 3/8","Plataforma 1 1/2\"","Otro"],"evidencia":"plano: 4 NIVELADORES"}]
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1989.25,"materialTotal":1167.13,"manoObra":205.53,"indirectosFabrica":616.59,"desperdicio":550.32,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno 19 mm","seccion":"cub
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 8 propuestos","diferencias":"","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$2,090.50","$3,484.17"],"margen":"Precio de lista (40% margen · política vigente (1 pieza))","estado":"Costo preliminar — 2 decisión(es) pendiente(s): Cuantas mesas se requieren? · Tipo de nivelador?. No es obligatorio contestarlas; el costo ya se puede emitir como preliminar.","linea":"Material $1,223.38 · Mano de obra $216.78 · Fábrica $650.34","pendiente":false,"porConfirmar":false}
+
+[lab-costear] paridad {"costoCliente":2090.5,"costoSrv":1989.25,"estadoSrv":"incompleto","iguales":false,"llamadasSrv":2}
+
+[lab-costear] expedientes POST 201 [{"id":29}]
+
+[lab-costear] guardado {"status":201,"id":29,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1989.25,"materialTotal":1167.13,"manoObra":205.53,"indirectosFabrica":616.59,"desperdicio":550.32,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno 19 mm","seccion":"cub
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1989.25,"materialTotal":1167.13,"manoObra":205.53,"indirectosFabrica":616.59,"desperdicio":550.32,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno 19 mm","seccion":"cub
+
+[lab-costear] transferencia {"intentado":true,"habilitado":true,"title":"Verifica el costo autoritativo antes de agregar","partidasAntes":0,"partidasDespues":0,"partida":null,"servidor":{"estado":"incompleto","precioVenta":null,"fuenteCosto":"catalogo"},"paridad":null}
+
+[lab-costear] hoja de control {"esperados":6,"pass":6,"fail":0,"riesgo":0,"sobrantesNoPermitidos":0,"renglonesBom":8,"veredicto":"PASS"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render (lab V3) mesa_trabajo corrida 3 BORRADOR mesa mesa de trabajo recta con estructura PTR y faldon Melamina blanca 19 mm Lista: $3,484 · preliminar","piezas":8,"mismoBom":true,"costoAntes":"$2,090.50","costoDespues":"$2,090.50","mismoCosto":true,"resultado":{"precios":["$2,090.50","$3,484.17"],"margen":"Precio de lista (40% margen · del expediente guardado)","estado":"COSTO PRELIMINAR","linea":"Material $1,223.38 · Mano de obra $216.78 · Fábrica $650.34","pendiente":false,"porConfirmar":false},"pageErrors":0}
+
+  1 passed (1.2m)

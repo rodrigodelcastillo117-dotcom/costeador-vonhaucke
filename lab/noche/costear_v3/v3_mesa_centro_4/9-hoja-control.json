@@ -1,0 +1,51 @@
+{
+  "producto": "Mesa de centro 1000 × 600 × 420",
+  "resumen": {
+    "esperados": 3,
+    "pass": 1,
+    "fail": 2,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 0,
+    "renglonesBom": 1,
+    "veredicto": "FAIL"
+  },
+  "filas": [
+    {
+      "clave": "cristal_m2",
+      "renglones": 1,
+      "materiales": [
+        "cristal-templado"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "areaM2": 0.6
+    },
+    {
+      "clave": "tubular_m",
+      "renglones": 0,
+      "materiales": [],
+      "estado": "FAIL",
+      "motivos": [
+        "omitido: ningún renglón del BOM corresponde"
+      ],
+      "evidencia": null,
+      "inferido": false
+    },
+    {
+      "clave": "cromado",
+      "renglones": 0,
+      "materiales": [],
+      "estado": "FAIL",
+      "motivos": [
+        "omitido: ningún renglón del BOM corresponde"
+      ],
+      "evidencia": "plano: ACABADO CROMADO (ECOCROM); superficie del tubo ≈ π × 19 mm × 7.17 m = 0.43 m²",
+      "inferido": false
+    }
+  ],
+  "sobran": [],
+  "estadoServidor": "preliminar",
+  "respuestas": []
+}
