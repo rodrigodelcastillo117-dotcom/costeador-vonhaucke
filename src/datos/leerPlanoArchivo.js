@@ -76,7 +76,9 @@ export async function leerPlanoDeArchivo(file) {
   try {
     const esPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
     const b64 = esPdf ? await archivoABase64(file) : await imagenABase64(file);
-    const r = await conTimeout(leerPlano(b64, esPdf ? 'application/pdf' : 'image/jpeg'), 60000);
+    // VH-142 (lab Torre Norte): el lector tarda 50–85 s en planos de buena calidad (medido en el corpus L1);
+    // con 60 s el cliente cortaba lecturas válidas ("tardó demasiado"). 120 s cubre lo medido con margen.
+    const r = await conTimeout(leerPlano(b64, esPdf ? 'application/pdf' : 'image/jpeg'), 120000);
     if (!r || !r.ok) {
       // VH-064: un FAIL del servidor (422) trae los `issues` concretos; se enseñan.
       const fallas = problemasDeValidacion(r?.floorSpec?.validation);
