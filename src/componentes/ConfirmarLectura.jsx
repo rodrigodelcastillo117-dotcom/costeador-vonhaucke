@@ -60,6 +60,12 @@ export default function ConfirmarLectura({ lectura, onConfirmar, onCorregir, onC
           </div>
         </div>
       </div>
+      {(resumen.columnas > 0 || (resumen.niveles || []).length > 1) && (
+        <div className="ayuda" style={{ marginTop: 6 }} data-testid="lectura-estructura">
+          {resumen.columnas > 0 && <span>{resumen.columnas} columna{resumen.columnas === 1 ? '' : 's'} estructural{resumen.columnas === 1 ? '' : 'es'} leída{resumen.columnas === 1 ? '' : 's'} (no son muebles; el acomodo las respeta). </span>}
+          {(resumen.niveles || []).length > 1 && <span>El documento trae {resumen.niveles.length} niveles ({resumen.niveles.join(' · ')}): por ahora se usa <strong>{resumen.niveles[0]}</strong>; los demás niveles se cotizan como otro proyecto.</span>}
+        </div>
+      )}
       {problemasVisibles.length > 0 && (
         <div className="alerta ambar" style={{ marginTop: 8 }} data-testid="lectura-problemas">
           <span className="texto">Revisa esto: {problemasVisibles.join(' · ')}</span>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { areasDeLectura, revisarAreas, contornoMM, areaM2, resumenLectura } from './planoLeido.js';
+import { areasDeLectura, revisarAreas, contornoMM, areaM2, resumenLectura, nivelesDeLectura } from './planoLeido.js';
 
 // ---------------------------------------------------------------------------
 //  El plano REAL de Rodrigo (Plano_Organico_Con_Medidas.pdf, 2026-08-16):
@@ -259,5 +259,37 @@ describe('validarEscala · cota general vs. suma de ejes', () => {
     expect(p[0]).toMatch(/cota general de ancho \(15\.00 m\) no cuadra con la suma de los ejes \(20\.00 m\)/);
     expect(revisarAreas(malo).join(' ')).toMatch(/revisa la escala/);
     expect(resumenLectura(malo).nivel).not.toBe('alta');
+  });
+});
+
+describe('L1 · columnas y niveles de la lectura', () => {
+  const rect = (nombre, x, y, w, h, extra = {}) => ({ nombre, tipo: 'open', forma: 'poligono', dentroDe: '', confianza: 'alta', circulo: { cx: 0, cy: 0, r: 0 },
+    puntos: [{ x, y }, { x: x + w, y }, { x: x + w, y: y + h }, { x, y: y + h }], ...extra });
+  it('una columna cae como obstáculo "columna" del cuarto más chico que la contiene, en coordenadas locales', () => {
+    const L = { envolvente: { ancho: 20000, largo: 12000 }, tieneCotas: true,
+      areas: [rect('OPERATIVA', 0, 0, 11000, 7000), rect('ISLA', 1000, 1000, 4000, 3000, { dentroDe: 'OPERATIVA' })],
+      puertas: [], columnas: [{ x: 7000, y: 8000, lado: 400, clave: 'P1' }, { x: 2000, y: 2000, lado: 400, clave: 'P2' }, { x: 15000, y: 11000, lado: 400, clave: 'P9' }] };
+    const r = areasDeLectura(L);
+    const op = r.areas.find((a) => a.nombre === 'OPERATIVA'); const isla = r.areas.find((a) => a.nombre === 'ISLA');
+    // P1 (7,8) está fuera de OPERATIVA (7 m de alto) → sin cuarto; P2 cae en la ISLA (más chica), no en OPERATIVA.
+    expect((op.obstaculos || []).filter((o) => o.tipo === 'columna')).toHaveLength(0);
+    const col = (isla.obstaculos || []).find((o) => o.tipo === 'columna');
+    expect(col).toBeTruthy();
+    expect([col.x, col.y, col.w, col.h, col.clave]).toEqual([0.8, 0.8, 0.4, 0.4, 'P2']);
+    expect(r.columnas).toBe(3); expect(r.columnasSinCuarto).toBe(2);
+    expect(resumenLectura(L).columnas).toBe(3);
+  });
+  it('las áreas conservan su nivel y el resumen enumera los niveles del documento', () => {
+    const L = { envolvente: { ancho: 16000, largo: 10000 }, tieneCotas: true, puertas: [], columnas: [],
+      areas: [rect('RECEPCIÓN', 0, 0, 8000, 5000, { nivel: 'NIVEL 1', pagina: 1 }), rect('OPERATIVA 2', 0, 0, 10000, 10000, { nivel: 'NIVEL 2', pagina: 2 })] };
+    expect(nivelesDeLectura(L)).toEqual(['NIVEL 1', 'NIVEL 2']);
+    const r = areasDeLectura(L);
+    expect(r.areas.map((a) => a.nivel)).toEqual(['NIVEL 1', 'NIVEL 2']);
+    expect(resumenLectura(L).niveles).toEqual(['NIVEL 1', 'NIVEL 2']);
+  });
+  it('sin columnas ni niveles nada cambia (lectura vieja)', () => {
+    const L = { envolvente: { ancho: 20000, largo: 12000 }, tieneCotas: true, areas: [rect('OPERATIVA', 0, 0, 11000, 7000)], puertas: [] };
+    const r = areasDeLectura(L);
+    expect(r.columnas).toBe(0); expect(r.niveles).toEqual([]); expect(r.areas[0].nivel).toBeUndefined(); expect(r.areas[0].obstaculos).toBeUndefined();
   });
 });

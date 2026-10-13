@@ -5,7 +5,7 @@
 
 ```
 cd lab/planos && python3 gen_corpus.py
-TEST_EMAIL=… TEST_PASSWORD=… CORPUS_DIR=. node medir.mjs            # producción
+NODE_USE_ENV_PROXY=1 TEST_EMAIL=… TEST_PASSWORD=… CORPUS_DIR=. node medir.mjs            # producción (NODE_USE_ENV_PROXY si hay proxy)
 TEST_EMAIL=… TEST_PASSWORD=… CORPUS_DIR=. LEER_FN=leer-plano-rc node medir.mjs   # RC
 ```
 Los PDFs y las lecturas no se versionan (se regeneran). Los planos reales de Dirección se agregan como carpetas con su `control.json`.

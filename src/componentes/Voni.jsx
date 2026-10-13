@@ -158,11 +158,16 @@ export default function Voni({
     // Si la persona confirmó las puertas pendientes en la compuerta, los avisos de puerta ya no aplican.
     const puertasConfirmadas = !!(editada && Array.isArray(editada.areas));
     const problemas = (r.resumen?.problemas || []).filter((t) => !(puertasConfirmadas && /puerta/i.test(t)));
+    // L1: documento con varias plantas → se usa la primera (las áreas de otros niveles no se mezclan en la misma planta).
+    const niveles = Array.isArray(r.resumen?.niveles) ? r.resumen.niveles : [];
+    const areasUsadas = niveles.length > 1 ? r.areas.filter((a) => !a.nivel || a.nivel === niveles[0]) : r.areas;
     const confirmada = { en: new Date().toISOString(), nivel: r.resumen?.nivel || null, m2: r.resumen?.m2 ?? null,
-      cuartos: r.areas.length, cotas: r.resumen?.cotas ?? null, problemas,
+      cuartos: areasUsadas.length, cotas: r.resumen?.cotas ?? null, problemas,
+      ...(niveles.length > 1 ? { nivelUsado: niveles[0], nivelesDocumento: niveles } : {}),
+      ...(r.resumen?.columnas ? { columnas: r.resumen.columnas } : {}),
       ...(puertasConfirmadas ? { puertasConfirmadasPorPersona: true } : {}),
       servidor: r.resumen?.servidor || null };   // VH-064: veredicto determinista del servidor
-    onGuardarAcomodo?.({ ...bloqueGeometria(r.areas), plan: null, planReal: true, lectura: confirmada });
+    onGuardarAcomodo?.({ ...bloqueGeometria(areasUsadas), plan: null, planReal: true, lectura: confirmada });
     setLecturaPendiente(null);
     setPaso(2);                          // el siguiente paso es QUÉ LLEVA, no acomodar
   }

@@ -134,6 +134,14 @@ export function areasDeLectura(lectura) {
   }
 
   const puertas = (lectura?.puertas || []).filter((p) => Number.isFinite(p?.x) && Number.isFinite(p?.y));
+  // L1 (VH-140): columnas/obstáculos fijos del plano → obstáculo 'columna' del cuarto MÁS CHICO que las contiene.
+  const columnas = (lectura?.columnas || []).filter((c) => Number.isFinite(c?.x) && Number.isFinite(c?.y));
+  const duenoDeColumna = new Map();
+  columnas.forEach((c, k) => {
+    let mejor = -1, mejorM2 = Infinity;
+    crudas.forEach(({ pts }, i) => { if (dentroPoly(pts, c.x, c.y)) { const a2 = areaM2(pts); if (a2 < mejorM2) { mejorM2 = a2; mejor = i; } } });
+    if (mejor >= 0) duenoDeColumna.set(k, mejor);
+  });
   const nombreDe = (i) => crudas[i].a.nombre || 'Área';
   const padreDe = new Map();
   for (const [h, p] of padre) padreDe.set(nombreDe(h), nombreDe(p));
@@ -143,6 +151,11 @@ export function areasDeLectura(lectura) {
     const obst = (hijos.get(a.nombre) || []).map((hp) => {
       const hb = bbox(hp);
       return { x: m(hb.x - b.x), y: m(hb.y - b.y), w: m(hb.x2 - hb.x), h: m(hb.y2 - hb.y), tipo: 'cuarto' };
+    });
+    columnas.forEach((c, k) => {
+      if (duenoDeColumna.get(k) !== idx) return;
+      const lado = Number(c.lado) > 0 ? Number(c.lado) : 400;
+      obst.push({ x: m(c.x - b.x - lado / 2), y: m(c.y - b.y - lado / 2), w: m(lado), h: m(lado), tipo: 'columna', ...(c.clave ? { clave: String(c.clave) } : {}) });
     });
     const suyas = puertas.filter((p) => cercaDe(pts, p.x, p.y, TOCA_PUERTA));
     const puertasPendientes = [];
@@ -172,6 +185,7 @@ export function areasDeLectura(lectura) {
       ...(a.procedencia ? { procedencia: a.procedencia } : {}),
       ...(a.evidencia ? { evidencia: a.evidencia } : {}),
       ...(Number.isInteger(Number(a.pagina)) && Number(a.pagina) > 0 ? { pagina: Number(a.pagina) } : {}),
+      ...(String(a.nivel || '').trim() ? { nivel: String(a.nivel).trim() } : {}),
       ...(padreDe.has(nombreDe(idx)) ? { dentroDe: padreDe.get(nombreDe(idx)) } : {}),
       ...((hijos.get(a.nombre) || []).length ? { contiene: (hijos.get(a.nombre) || []).length } : {}),
       x: m(b.x), y: m(b.y),
@@ -183,7 +197,13 @@ export function areasDeLectura(lectura) {
     };
   });
 
-  return { areas, envolvente: lectura?.envolvente || null, puertas };
+  const columnasSinCuarto = columnas.filter((_, k) => !duenoDeColumna.has(k)).length;
+  return { areas, envolvente: lectura?.envolvente || null, puertas, columnas: columnas.length, columnasSinCuarto, niveles: nivelesDeLectura(lectura) };
+}
+
+/** Niveles/plantas distintos que declaran las áreas (documentos con varias plantas). */
+export function nivelesDeLectura(lectura) {
+  return [...new Set((lectura?.areas || []).map((a) => String(a?.nivel || '').trim()).filter(Boolean))];
 }
 
 // ---------------------------------------------------------------------------
@@ -303,7 +323,11 @@ export function resumenLectura(lectura) {
     || !Number.isFinite(Number(p.bisagraY))
   ).length;
   const nivel = !crudas.length ? 'nula' : problemas.length === 0 ? 'alta' : problemas.length <= 2 ? 'media' : 'baja';
+  const columnas = (lectura?.columnas || []).filter((c) => Number.isFinite(c?.x) && Number.isFinite(c?.y));
+  const niveles = nivelesDeLectura(lectura);
   return {
+    columnas: columnas.length,
+    niveles,
     cuartos: crudas.length,
     m2: +m2.toFixed(1),
     puertas: puertas.length,
