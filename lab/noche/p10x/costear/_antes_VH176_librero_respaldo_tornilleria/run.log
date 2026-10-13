@@ -1,0 +1,60 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Librero abierto 900x1800x350 mm en aglomerado melamina Walnut 28 mm","tipo":"guarda","piezas":[{"nombre":"Laterales","insumoId":"melamina-28-walnut","material_solicitado":"Aglomerado melamina dos caras 28 mm acabado Walnut, HOJA 5 × 8 (1525 × 2440)","material_matc
+
+[lab-costear] analizar-mueble 200 en 23 s · piezas 8 · lote 1
+
+[lab-costear] edge analizar-mueble-rc 502 {"ok":false,"code":"PROVIDER_TIMEOUT","error":"El análisis tardó demasiado. Intenta de nuevo o analiza menos hojas.","request_id":"7c895a50-37be-4198-a4fd-204e22c75e5d"}
+
+[lab-costear] BOM inicial {"piezas":8,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":true,"pieza":"Laterales","resultados":0,"elegido":null},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Se confirma que la melamina 28 mm Walnut del catalogo se compra en hoja 5x8 (1525x2440)?","elegido":"(sin responder: ninguna opción coincide con el plano)","opciones":["Si","No, es 4x8","Por definir"],"evidencia":"plano: HOJA 5 × 8 (1525 × 2440)"},{"pregunta":"¿Usar tapacanto PVC generico del catalogo o tapacanto Walnut 2 mm especifico?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuantos libreros se fabrican?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 1 propuestos","diferencias":"7 difieren de lo pedido y se confirman uno por uno: Laterales, Piso y techo, Entrepanos fijos, Respaldo, Tapacanto PVC 2 mm Walnut (cantos frontales), Tapacanto PVC frontal piso, techo y entrepanos, Tornilleria de ensamble y respaldo. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$4,322.86","Pendiente"],"margen":null,"estado":"Costo INCOMPLETO — faltan por costear 1 partida(s): Respaldo (fracción de hoja sobre un material sin formato (precio por juego): falta la hoja de referencia). Asígnales material en el despiece (arriba) o márcalas como excluidas. Hasta entonces no hay costo total ni precio.","linea":"Material $2,687.30 · Mano de obra $408.89 · Fábrica $1,226.67","pendiente":true,"porConfirmar":false}
+
+[lab-costear] paridad {"costoCliente":null,"costoSrv":null,"estadoSrv":null,"iguales":null,"llamadasSrv":0}
+
+[lab-costear] expedientes POST 201 [{"id":61}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":4348.48,"materialTotal":2703.31,"manoObra":411.29,"indirectosFabrica":1233.88,"desperdicio":1215.42,"detalleInsumos":[{"insumoId":"melamina-28-walnut","nombre":"Melamina 28 mm, Walnut","seccion":"cubi
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":4348.48,"materialTotal":2703.31,"manoObra":411.29,"indirectosFabrica":1233.88,"desperdicio":1215.42,"detalleInsumos":[{"insumoId":"melamina-28-walnut","nombre":"Melamina 28 mm, Walnut","seccion":"cubi
+
+[lab-costear] guardado {"status":201,"id":61,"mensaje":null}
+
+  1) [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir 
+
+    Test timeout of 720000ms exceeded.
+
+    Error: locator.click: Test timeout of 720000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: /Ver biblioteca/ })
+
+
+      214 |
+      215 |   // 6) Biblioteca → reabrir → comparar.
+    > 216 |   await page.getByRole('button', { name: /Ver biblioteca/ }).click();
+          |                                                              ^
+      217 |   await expect(page.getByText('Biblioteca de productos')).toBeVisible({ timeout: 15000 });
+      218 |   const item = page.getByRole('button', { name: new RegExp(NOMBRE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) }).first();
+      219 |   await expect(item).toBeVisible({ timeout: 20000 });
+        at /home/user/costeador-vonhaucke/e2e/labCostear.e2e.js:216:62
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/labCostear.e2e.js-COSTEAR--dd0a4--sombra-→-guardar-→-reabrir-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/labCostear.e2e.js-COSTEAR--dd0a4--sombra-→-guardar-→-reabrir-chromium/error-context.md
+
+
+  Slow test file: [chromium] › e2e/labCostear.e2e.js (12.0m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  1 failed
+    [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir 

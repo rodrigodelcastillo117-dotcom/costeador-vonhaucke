@@ -1,0 +1,72 @@
+{
+  "confirmacion": {
+    "ofrecida": true,
+    "texto": "Confirmar los 1 propuestos",
+    "diferencias": "7 difieren de lo pedido y se confirman uno por uno: Laterales, Piso y techo, Entrepanos fijos, Respaldo, Tapacanto PVC 2 mm Walnut (cantos frontales), Tapacanto PVC frontal piso, techo y entrepanos, Tornilleria de ensamble y respaldo. ",
+    "diferenciasAceptadas": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Laterales",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Solicitado hoja 5×8 → candidato hoja 4×8 Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Piso y techo",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Solicitado hoja 5×8 → candidato hoja 4×8 Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Entrepanos fijos",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Solicitado hoja 5×8 → candidato hoja 4×8 Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Respaldo",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tapacanto PVC 2 mm Walnut (cantos frontales)",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tapacanto PVC frontal piso, techo y entrepanos",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Tornilleria de ensamble y respaldo",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («ensamble respaldo atornillado») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

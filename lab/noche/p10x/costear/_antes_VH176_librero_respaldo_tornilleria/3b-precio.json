@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$4,322.86",
+      "Pendiente"
+    ],
+    "margen": null,
+    "estado": "Costo INCOMPLETO — faltan por costear 1 partida(s): Respaldo (fracción de hoja sobre un material sin formato (precio por juego): falta la hoja de referencia). Asígnales material en el despiece (arriba) o márcalas como excluidas. Hasta entonces no hay costo total ni precio.",
+    "linea": "Material $2,687.30 · Mano de obra $408.89 · Fábrica $1,226.67",
+    "pendiente": true,
+    "porConfirmar": false
+  },
+  "piezas": []
+}

@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$1,836.39",
+      "$3,060.65"
+    ],
+    "margen": "Precio de lista (40% margen · política vigente (1 pieza))",
+    "estado": "Costo preliminar — 2 decisión(es) pendiente(s): ¿El faldón va solo al frente o también atrás? · ¿Qué tipo de nivelador?. No es obligatorio contestarlas; el costo ya se puede emitir como preliminar.",
+    "linea": "Material $10,822.06 · Mano de obra $1,885.46 · Fábrica $5,656.37",
+    "pendiente": false,
+    "porConfirmar": false
+  },
+  "piezas": []
+}

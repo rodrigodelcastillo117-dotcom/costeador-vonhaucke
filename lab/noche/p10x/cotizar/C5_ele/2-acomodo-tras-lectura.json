@@ -1,0 +1,863 @@
+{
+  "areasM": [
+    {
+      "nombre": "OPERATIVA",
+      "tipo": "open",
+      "nivel": "NIVEL 1",
+      "puestos": 20,
+      "x": 0,
+      "y": 0,
+      "ancho": 14,
+      "largo": 8,
+      "poly": [
+        [
+          0,
+          0
+        ],
+        [
+          14,
+          0
+        ],
+        [
+          14,
+          8
+        ],
+        [
+          0,
+          8
+        ]
+      ],
+      "obstaculos": [
+        {
+          "x": 6.8,
+          "y": 3.8,
+          "w": 0.4,
+          "h": 0.4,
+          "tipo": "columna",
+          "clave": "P1"
+        },
+        {
+          "x": 6.1,
+          "y": 7.1,
+          "w": 1.8,
+          "h": 1.8,
+          "tipo": "puerta"
+        },
+        {
+          "x": 13.1,
+          "y": 1.1,
+          "w": 1.8,
+          "h": 1.8,
+          "tipo": "puerta"
+        },
+        {
+          "x": 13.1,
+          "y": 5,
+          "w": 1.8,
+          "h": 1.8,
+          "tipo": "puerta"
+        }
+      ],
+      "puertas": [
+        {
+          "x": 7,
+          "y": 8,
+          "ancho": 0.9,
+          "tieneBarrido": true,
+          "bisagraX": 7.45,
+          "bisagraY": 8,
+          "anguloCerradaDeg": 180,
+          "sentido": "horario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        },
+        {
+          "x": 14,
+          "y": 2,
+          "ancho": 0.9,
+          "tieneBarrido": true,
+          "bisagraX": 14,
+          "bisagraY": 1.55,
+          "anguloCerradaDeg": 90,
+          "sentido": "antihorario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        },
+        {
+          "x": 14,
+          "y": 5.9,
+          "ancho": 0.9,
+          "tieneBarrido": true,
+          "bisagraX": 14,
+          "bisagraY": 5.45,
+          "anguloCerradaDeg": 90,
+          "sentido": "antihorario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        }
+      ]
+    },
+    {
+      "nombre": "DIRECCIÓN",
+      "tipo": "privado",
+      "nivel": "NIVEL 1",
+      "puestos": 1,
+      "x": 14,
+      "y": 0,
+      "ancho": 8,
+      "largo": 4,
+      "poly": [
+        [
+          0,
+          0
+        ],
+        [
+          8,
+          0
+        ],
+        [
+          8,
+          4
+        ],
+        [
+          0,
+          4
+        ]
+      ],
+      "obstaculos": [
+        {
+          "x": -0.9,
+          "y": 1.1,
+          "w": 1.8,
+          "h": 1.8,
+          "tipo": "puerta"
+        }
+      ],
+      "puertas": [
+        {
+          "x": 0,
+          "y": 2,
+          "ancho": 0.9,
+          "tieneBarrido": true,
+          "bisagraX": 0,
+          "bisagraY": 1.55,
+          "anguloCerradaDeg": 90,
+          "sentido": "antihorario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        }
+      ]
+    },
+    {
+      "nombre": "SALA DE CONSEJO",
+      "tipo": "juntas",
+      "nivel": "NIVEL 1",
+      "asientos": 12,
+      "x": 14,
+      "y": 4,
+      "ancho": 8,
+      "largo": 4,
+      "poly": [
+        [
+          0,
+          0
+        ],
+        [
+          8,
+          0
+        ],
+        [
+          8,
+          4
+        ],
+        [
+          0,
+          4
+        ]
+      ],
+      "obstaculos": [
+        {
+          "x": -0.9,
+          "y": 1,
+          "w": 1.8,
+          "h": 1.8,
+          "tipo": "puerta"
+        }
+      ],
+      "puertas": [
+        {
+          "x": 0,
+          "y": 1.9,
+          "ancho": 0.9,
+          "tieneBarrido": true,
+          "bisagraX": 0,
+          "bisagraY": 1.45,
+          "anguloCerradaDeg": 90,
+          "sentido": "antihorario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        }
+      ]
+    },
+    {
+      "nombre": "PASILLO",
+      "tipo": "servicio",
+      "nivel": "NIVEL 1",
+      "x": 0,
+      "y": 8,
+      "ancho": 14,
+      "largo": 2,
+      "poly": [
+        [
+          0,
+          0
+        ],
+        [
+          14,
+          0
+        ],
+        [
+          14,
+          2
+        ],
+        [
+          0,
+          2
+        ]
+      ],
+      "obstaculos": [
+        {
+          "x": 6.8,
+          "y": 0.8,
+          "w": 0.4,
+          "h": 0.4,
+          "tipo": "columna",
+          "clave": "P2"
+        },
+        {
+          "x": 6.1,
+          "y": -0.9,
+          "w": 1.8,
+          "h": 1.8,
+          "tipo": "puerta"
+        },
+        {
+          "x": 1.9,
+          "y": 1.1,
+          "w": 1.8,
+          "h": 1.8,
+          "tipo": "puerta"
+        },
+        {
+          "x": 9,
+          "y": 1.1,
+          "w": 1.8,
+          "h": 1.8,
+          "tipo": "puerta"
+        }
+      ],
+      "puertas": [
+        {
+          "x": 7,
+          "y": 0,
+          "ancho": 0.9,
+          "tieneBarrido": true,
+          "bisagraX": 7.45,
+          "bisagraY": 0,
+          "anguloCerradaDeg": 180,
+          "sentido": "horario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        },
+        {
+          "x": 2.8,
+          "y": 2,
+          "ancho": 0.9,
+          "tieneBarrido": true,
+          "bisagraX": 2.35,
+          "bisagraY": 2,
+          "anguloCerradaDeg": 0,
+          "sentido": "horario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        },
+        {
+          "x": 9.9,
+          "y": 2,
+          "ancho": 0.9,
+          "tieneBarrido": true,
+          "bisagraX": 10.35,
+          "bisagraY": 2,
+          "anguloCerradaDeg": 180,
+          "sentido": "antihorario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        }
+      ]
+    },
+    {
+      "nombre": "RECEPCIÓN",
+      "tipo": "recepcion",
+      "nivel": "NIVEL 1",
+      "puestos": 1,
+      "x": 0,
+      "y": 10,
+      "ancho": 7,
+      "largo": 6,
+      "poly": [
+        [
+          0,
+          0
+        ],
+        [
+          7,
+          0
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          0,
+          6
+        ]
+      ],
+      "obstaculos": [
+        {
+          "x": 1.9,
+          "y": -0.9,
+          "w": 1.8,
+          "h": 1.8,
+          "tipo": "puerta"
+        }
+      ],
+      "puertas": [
+        {
+          "x": 2.8,
+          "y": 0,
+          "ancho": 0.9,
+          "tieneBarrido": true,
+          "bisagraX": 2.35,
+          "bisagraY": 0,
+          "anguloCerradaDeg": 0,
+          "sentido": "horario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        },
+        {
+          "x": 3.95,
+          "y": 6,
+          "ancho": 0.9,
+          "tieneBarrido": true,
+          "bisagraX": 4.4,
+          "bisagraY": 6,
+          "anguloCerradaDeg": 180,
+          "sentido": "horario",
+          "barridoDeg": 90,
+          "confianza": "usuario_confirmado"
+        },
+        {
+          "x": 3.05,
+          "y": 6,
+          "ancho": 0.9,
+          "tieneBarrido": true,
+          "bisagraX": 2.6,
+          "bisagraY": 6,
+          "anguloCerradaDeg": 0,
+          "sentido": "antihorario",
+          "barridoDeg": 90,
+          "confianza": "usuario_confirmado"
+        }
+      ]
+    },
+    {
+      "nombre": "CAFÉ",
+      "tipo": "servicio",
+      "nivel": "NIVEL 1",
+      "x": 7,
+      "y": 10,
+      "ancho": 7,
+      "largo": 6,
+      "poly": [
+        [
+          0,
+          0
+        ],
+        [
+          7,
+          0
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          0,
+          6
+        ]
+      ],
+      "obstaculos": [
+        {
+          "x": 2,
+          "y": -0.9,
+          "w": 1.8,
+          "h": 1.8,
+          "tipo": "puerta"
+        }
+      ],
+      "puertas": [
+        {
+          "x": 2.9,
+          "y": 0,
+          "ancho": 0.9,
+          "tieneBarrido": true,
+          "bisagraX": 3.35,
+          "bisagraY": 0,
+          "anguloCerradaDeg": 180,
+          "sentido": "antihorario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        }
+      ]
+    }
+  ],
+  "areas": [
+    {
+      "nombre": "OPERATIVA",
+      "tipo": "open",
+      "nivel": "NIVEL 1",
+      "puestos": 20,
+      "x": 0,
+      "y": 0,
+      "ancho": 14000,
+      "largo": 8000,
+      "poly": [
+        [
+          0,
+          0
+        ],
+        [
+          14000,
+          0
+        ],
+        [
+          14000,
+          8000
+        ],
+        [
+          0,
+          8000
+        ]
+      ],
+      "obstaculos": [
+        {
+          "x": 6800,
+          "y": 3800,
+          "w": 400,
+          "h": 400,
+          "tipo": "columna",
+          "clave": "P1"
+        },
+        {
+          "x": 6100,
+          "y": 7100,
+          "w": 1800,
+          "h": 1800,
+          "tipo": "puerta"
+        },
+        {
+          "x": 13100,
+          "y": 1100,
+          "w": 1800,
+          "h": 1800,
+          "tipo": "puerta"
+        },
+        {
+          "x": 13100,
+          "y": 5000,
+          "w": 1800,
+          "h": 1800,
+          "tipo": "puerta"
+        }
+      ],
+      "puertas": [
+        {
+          "x": 7000,
+          "y": 8000,
+          "ancho": 900,
+          "tieneBarrido": true,
+          "bisagraX": 7450,
+          "bisagraY": 8000,
+          "anguloCerradaDeg": 180,
+          "sentido": "horario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        },
+        {
+          "x": 14000,
+          "y": 2000,
+          "ancho": 900,
+          "tieneBarrido": true,
+          "bisagraX": 14000,
+          "bisagraY": 1550,
+          "anguloCerradaDeg": 90,
+          "sentido": "antihorario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        },
+        {
+          "x": 14000,
+          "y": 5900,
+          "ancho": 900,
+          "tieneBarrido": true,
+          "bisagraX": 14000,
+          "bisagraY": 5450,
+          "anguloCerradaDeg": 90,
+          "sentido": "antihorario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        }
+      ]
+    },
+    {
+      "nombre": "DIRECCIÓN",
+      "tipo": "privado",
+      "nivel": "NIVEL 1",
+      "puestos": 1,
+      "x": 14000,
+      "y": 0,
+      "ancho": 8000,
+      "largo": 4000,
+      "poly": [
+        [
+          0,
+          0
+        ],
+        [
+          8000,
+          0
+        ],
+        [
+          8000,
+          4000
+        ],
+        [
+          0,
+          4000
+        ]
+      ],
+      "obstaculos": [
+        {
+          "x": -900,
+          "y": 1100,
+          "w": 1800,
+          "h": 1800,
+          "tipo": "puerta"
+        }
+      ],
+      "puertas": [
+        {
+          "x": 0,
+          "y": 2000,
+          "ancho": 900,
+          "tieneBarrido": true,
+          "bisagraX": 0,
+          "bisagraY": 1550,
+          "anguloCerradaDeg": 90,
+          "sentido": "antihorario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        }
+      ]
+    },
+    {
+      "nombre": "SALA DE CONSEJO",
+      "tipo": "juntas",
+      "nivel": "NIVEL 1",
+      "asientos": 12,
+      "x": 14000,
+      "y": 4000,
+      "ancho": 8000,
+      "largo": 4000,
+      "poly": [
+        [
+          0,
+          0
+        ],
+        [
+          8000,
+          0
+        ],
+        [
+          8000,
+          4000
+        ],
+        [
+          0,
+          4000
+        ]
+      ],
+      "obstaculos": [
+        {
+          "x": -900,
+          "y": 1000,
+          "w": 1800,
+          "h": 1800,
+          "tipo": "puerta"
+        }
+      ],
+      "puertas": [
+        {
+          "x": 0,
+          "y": 1900,
+          "ancho": 900,
+          "tieneBarrido": true,
+          "bisagraX": 0,
+          "bisagraY": 1450,
+          "anguloCerradaDeg": 90,
+          "sentido": "antihorario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        }
+      ]
+    },
+    {
+      "nombre": "PASILLO",
+      "tipo": "servicio",
+      "nivel": "NIVEL 1",
+      "x": 0,
+      "y": 8000,
+      "ancho": 14000,
+      "largo": 2000,
+      "poly": [
+        [
+          0,
+          0
+        ],
+        [
+          14000,
+          0
+        ],
+        [
+          14000,
+          2000
+        ],
+        [
+          0,
+          2000
+        ]
+      ],
+      "obstaculos": [
+        {
+          "x": 6800,
+          "y": 800,
+          "w": 400,
+          "h": 400,
+          "tipo": "columna",
+          "clave": "P2"
+        },
+        {
+          "x": 6100,
+          "y": -900,
+          "w": 1800,
+          "h": 1800,
+          "tipo": "puerta"
+        },
+        {
+          "x": 1900,
+          "y": 1100,
+          "w": 1800,
+          "h": 1800,
+          "tipo": "puerta"
+        },
+        {
+          "x": 9000,
+          "y": 1100,
+          "w": 1800,
+          "h": 1800,
+          "tipo": "puerta"
+        }
+      ],
+      "puertas": [
+        {
+          "x": 7000,
+          "y": 0,
+          "ancho": 900,
+          "tieneBarrido": true,
+          "bisagraX": 7450,
+          "bisagraY": 0,
+          "anguloCerradaDeg": 180,
+          "sentido": "horario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        },
+        {
+          "x": 2800,
+          "y": 2000,
+          "ancho": 900,
+          "tieneBarrido": true,
+          "bisagraX": 2350,
+          "bisagraY": 2000,
+          "anguloCerradaDeg": 0,
+          "sentido": "horario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        },
+        {
+          "x": 9900,
+          "y": 2000,
+          "ancho": 900,
+          "tieneBarrido": true,
+          "bisagraX": 10350,
+          "bisagraY": 2000,
+          "anguloCerradaDeg": 180,
+          "sentido": "antihorario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        }
+      ]
+    },
+    {
+      "nombre": "RECEPCIÓN",
+      "tipo": "recepcion",
+      "nivel": "NIVEL 1",
+      "puestos": 1,
+      "x": 0,
+      "y": 10000,
+      "ancho": 7000,
+      "largo": 6000,
+      "poly": [
+        [
+          0,
+          0
+        ],
+        [
+          7000,
+          0
+        ],
+        [
+          7000,
+          6000
+        ],
+        [
+          0,
+          6000
+        ]
+      ],
+      "obstaculos": [
+        {
+          "x": 1900,
+          "y": -900,
+          "w": 1800,
+          "h": 1800,
+          "tipo": "puerta"
+        }
+      ],
+      "puertas": [
+        {
+          "x": 2800,
+          "y": 0,
+          "ancho": 900,
+          "tieneBarrido": true,
+          "bisagraX": 2350,
+          "bisagraY": 0,
+          "anguloCerradaDeg": 0,
+          "sentido": "horario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        },
+        {
+          "x": 3950,
+          "y": 6000,
+          "ancho": 900,
+          "tieneBarrido": true,
+          "bisagraX": 4400,
+          "bisagraY": 6000,
+          "anguloCerradaDeg": 180,
+          "sentido": "horario",
+          "barridoDeg": 90,
+          "confianza": "usuario_confirmado"
+        },
+        {
+          "x": 3050,
+          "y": 6000,
+          "ancho": 900,
+          "tieneBarrido": true,
+          "bisagraX": 2600,
+          "bisagraY": 6000,
+          "anguloCerradaDeg": 0,
+          "sentido": "antihorario",
+          "barridoDeg": 90,
+          "confianza": "usuario_confirmado"
+        }
+      ]
+    },
+    {
+      "nombre": "CAFÉ",
+      "tipo": "servicio",
+      "nivel": "NIVEL 1",
+      "x": 7000,
+      "y": 10000,
+      "ancho": 7000,
+      "largo": 6000,
+      "poly": [
+        [
+          0,
+          0
+        ],
+        [
+          7000,
+          0
+        ],
+        [
+          7000,
+          6000
+        ],
+        [
+          0,
+          6000
+        ]
+      ],
+      "obstaculos": [
+        {
+          "x": 2000,
+          "y": -900,
+          "w": 1800,
+          "h": 1800,
+          "tipo": "puerta"
+        }
+      ],
+      "puertas": [
+        {
+          "x": 2900,
+          "y": 0,
+          "ancho": 900,
+          "tieneBarrido": true,
+          "bisagraX": 3350,
+          "bisagraY": 0,
+          "anguloCerradaDeg": 180,
+          "sentido": "antihorario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        }
+      ]
+    }
+  ],
+  "plan": null,
+  "planReal": true,
+  "lectura": {
+    "en": "2026-10-13T13:57:26.816Z",
+    "nivel": "media",
+    "m2": 288,
+    "cuartos": 6,
+    "cotas": true,
+    "problemas": [],
+    "columnas": 2,
+    "puertasConfirmadasPorPersona": true,
+    "servidor": {
+      "estado": "REVIEW_REQUIRED",
+      "texto": "validación geométrica del servidor: requiere revisión",
+      "requestId": "c0545e4c-6135-469a-8c66-0a7048086f91"
+    }
+  }
+}

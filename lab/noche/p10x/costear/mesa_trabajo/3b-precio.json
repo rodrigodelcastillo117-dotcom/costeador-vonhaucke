@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$2,289.40",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 2 decisión(es) pendiente(s): ¿Cuántas mesas se requieren? · ¿Cómo se fija la cubierta a la estructura?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $1,333.88 · Mano de obra $238.88 · Fábrica $716.64",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

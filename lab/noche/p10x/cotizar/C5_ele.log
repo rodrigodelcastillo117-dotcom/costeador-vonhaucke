@@ -1,0 +1,44 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labTorreNorte.e2e.js:23:3 › LAB · plano Torre Norte › ARQ-01 + MOB-01: lectura → programa → acomodo → guardar → render → PDF → reabrir
+[chromium] › e2e/labTorreNorte.e2e.js:23:3 › LAB · plano Torre Norte › ARQ-01 + MOB-01: lectura → programa → acomodo → guardar → render → PDF → reabrir
+[lab] edge leer-plano-rc HTTP 200 11166 bytes
+
+[lab] lectura en 58.0 s · ◑ Lectura con dudas · 6 cuarto(s), ~288 m²
+
+[lab] puertas confirmadas por la persona: [{"texto":"RECEPCIÓN · pared de abajo (a 3.50 m, 6.00 m del origen del cuarto) · vano 1.80 m · vano ancho: suele ser doble Hojas: Una hoja Doble (dos hojas) Abre: Hacia adentro del cuarto Hacia afuera Confirmar ","doble":true,"abre":"adentro"}]
+
+[lab] puertas en estado: [["OPERATIVA",[[7,8,0.9,true,"horario",false],[14,2,0.9,true,"antihorario",false],[14,5.9,0.9,true,"antihorario",false]],0],["DIRECCIÓN",[[0,2,0.9,true,"antihorario",false]],0],["SALA DE CONSEJO",[[0,1.9,0.9,true,"antihorario",false]],0],["PASILLO",[[7,0,0.9,true,"horario",false],[2.8,2,0.9,true,"horario",false],[9.9,2,0.9,true,"antihorario",false]],0],["RECEPCIÓN",[[2.8,0,0.9,true,"horario",false],[3.95,6,0.9,true,"horario",false],[3.05,6,0.9,true,"antihorario",false]],0],["CAFÉ",[[2.9,0,0.9,true,"antihorario",false]],0]]
+
+[lab] programa propuesto: (sin panel de programa)
+
+[lab] partidas 0 → 9 [["Módulo operativo App LT 10 usuarios (biombo cristal)",1,"ANCHOR_WORKSTATION",28540],["Módulo operativo App LT 10 usuarios (biombo cristal)",1,"ANCHOR_WORKSTATION",28540],["Módulo directivo App LT",1,"ANCHOR_DESK",15780],["Mesa de consejo Eclipse",1,"ANCHOR_MEETING",96720],["Módulo recepción 2 usuarios",1,"ANCHOR_RECEPTION",29920],["Silla operativa WIN",10,"WORK_SEAT",5210],["Silla operativa WIN",10,"WORK_SEAT",5210],["Silla directiva ALPHA",1,"EXECUTIVE_SEAT",11950],["Silla CONCERTO (visita 4 pts)",12,"MEETING_SEAT",5140]]
+
+[lab] edge acomodar-espacio-recovery-rc HTTP 200 55632 bytes
+
+[lab] edge acomodar-espacio-recovery-rc HTTP 200 55630 bytes
+
+[lab] edge acomodar-espacio-recovery-rc HTTP 200 55632 bytes
+
+[lab] botón Acomodar habilitado: true
+
+[lab] edge acomodar-espacio-recovery-rc HTTP 200 55630 bytes
+
+[lab] edge acomodar-espacio-recovery-rc HTTP 200 55632 bytes
+
+[lab] edge acomodar-espacio-recovery-rc HTTP 200 55632 bytes
+
+[lab] acomodo: colocadas 38 status NEEDS_REVIEW veredicto REVISION
+
+[lab] nube id 1705 {"status":200,"partidas":9,"colocadas":38,"areas":6,"cliente":"(lab 10) C5_ele"}
+
+[lab] render {"intentado":false,"omitido":"LAB_SIN_RENDER=1 (renders medidos aparte: lab/noche/render_v6)"}
+
+[lab] PDF Descargar BORRADOR 7250332 bytes
+
+[lab] identidad tras reabrir {"identica":true,"diferencias":0,"cobrablesSugeridas":0}
+
+[lab] reabierta {"partidas":9,"colocadas":38,"errores":0}
+
+  1 passed (1.6m)

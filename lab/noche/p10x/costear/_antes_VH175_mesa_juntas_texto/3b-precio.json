@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$5,072.85",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 6 decisión(es) pendiente(s): ¿Qué caja de conexiones se instala en la cubierta? · ¿Quién suministra acometida y cableado a piso/muro? · ¿Se cantean también los bordes vistos de laterales y faldón? · ¿Ensamble fijo (pegado/taquete) o desmontable knock-down? · ¿Cuántos pasacables adicionales lleva la cubierta? · ¿Cuántas mesas se fabrican en este pedido?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $3,375.08 · Mano de obra $421.20 · Fábrica $1,276.57",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

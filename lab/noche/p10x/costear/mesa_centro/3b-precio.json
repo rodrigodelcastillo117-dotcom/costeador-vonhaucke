@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$3,040.03",
+      "$5,066.72"
+    ],
+    "margen": "Precio de lista (40% margen · política vigente (1 pieza))",
+    "estado": "Costo preliminar — 3 decisión(es) pendiente(s): ¿Como se fija el cristal a la base? · ¿Lleva niveladores o tapones de piso? · ¿El cristal es claro o con tinte?. No es obligatorio contestarlas; el costo ya se puede emitir como preliminar.",
+    "linea": "Material $2,026.47 · Mano de obra $249.29 · Fábrica $764.28",
+    "pendiente": false,
+    "porConfirmar": false
+  },
+  "piezas": []
+}

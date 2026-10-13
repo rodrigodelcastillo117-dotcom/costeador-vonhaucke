@@ -1,0 +1,10 @@
+{
+  "paridad": {
+    "costoCliente": null,
+    "costoSrv": null,
+    "estadoSrv": null,
+    "iguales": null,
+    "llamadasSrv": 0
+  },
+  "servidor": null
+}

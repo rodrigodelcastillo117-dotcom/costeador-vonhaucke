@@ -1,0 +1,40 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Mesa de trabajo 1500x700x750 mm con estructura PTR y faldón de lámina","tipo":"mesa","piezas":[{"nombre":"Cubierta melamina blanca 19 mm","insumoId":"melamina-19","material_solicitado":"melamina blanca 19 mm","material_match":"EXACT","forma":"area","largoMM":1500,
+
+[lab-costear] analizar-mueble 200 en 23 s · piezas 8 · lote 1
+
+[lab-costear] edge analizar-mueble-rc 200 {"ok":false,"code":"INVALID_MODEL_SHAPE","error":"La IA devolvió un despiece mal formado (piezas dentro de un texto). Reintenta.","request_id":"500867a3-d503-453b-93d2-833ae8fb57f7"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":2289.4,"materialTotal":1333.88,"manoObra":238.88,"indirectosFabrica":716.64,"desperdicio":732.38,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno 19 mm","seccion":"cubi
+
+[lab-costear] BOM inicial {"piezas":8,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Cuántas mesas se requieren?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cómo se fija la cubierta a la estructura?","elegido":"(sin responder: ninguna opción coincide con el plano)","opciones":["Escuadras atornilladas","Placa soldada con tornillo","Por definir"],"evidencia":"plano: TOTAL 6.82 m"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":2289.4,"materialTotal":1333.88,"manoObra":238.88,"indirectosFabrica":716.64,"desperdicio":732.38,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno 19 mm","seccion":"cubi
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 7 propuestos","diferencias":"1 difieren de lo pedido y se confirman uno por uno: Pintura en polvo blanco RAL 9016. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$2,289.40","Por confirmar"],"margen":null,"estado":"Costo preliminar — 2 decisión(es) pendiente(s): ¿Cuántas mesas se requieren? · ¿Cómo se fija la cubierta a la estructura?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $1,333.88 · Mano de obra $238.88 · Fábrica $716.64","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":2289.4,"costoSrv":2289.4,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] expedientes POST 201 [{"id":70}]
+
+[lab-costear] guardado {"status":201,"id":70,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":2289.4,"materialTotal":1333.88,"manoObra":238.88,"indirectosFabrica":716.64,"desperdicio":732.38,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno 19 mm","seccion":"cubi
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":6,"pass":6,"fail":0,"riesgo":0,"sobrantesNoPermitidos":0,"renglonesBom":8,"veredicto":"PASS"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render p10f_mesa_trabajo BORRADOR mesa mesa de trabajo recta con estructura de PTR Melamina blanca 19 mm","piezas":8,"mismoBom":true,"costoAntes":"$2,289.40","costoDespues":"$2,289.40","mismoCosto":true,"resultado":{"precios":["$2,289.40","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $1,333.88 · Mano de obra $238.88 · Fábrica $716.64","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.3m)

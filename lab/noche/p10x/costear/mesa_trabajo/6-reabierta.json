@@ -1,0 +1,66 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render p10f_mesa_trabajo BORRADOR mesa mesa de trabajo recta con estructura de PTR Melamina blanca 19 mm",
+    "piezas": 8,
+    "mismoBom": true,
+    "costoAntes": "$2,289.40",
+    "costoDespues": "$2,289.40",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$2,289.40",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $1,333.88 · Mano de obra $238.88 · Fábrica $716.64",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta melamina blanca 19 mm",
+      "material": "Melamina BLANCA / EcoLegno 19 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto PVC 2 mm perimetral",
+      "material": "Tapacanto PVC",
+      "alertas": []
+    },
+    {
+      "nombre": "Patas PTR 1x2 cal.16",
+      "material": "Tubo / PTR 1\"x2\" cal. 16",
+      "alertas": []
+    },
+    {
+      "nombre": "Largueros PTR 1x2 cal.16",
+      "material": "Tubo / PTR 1\"x2\" cal. 16",
+      "alertas": []
+    },
+    {
+      "nombre": "Travesaños PTR 1x2 cal.16",
+      "material": "Tubo / PTR 1\"x2\" cal. 16",
+      "alertas": []
+    },
+    {
+      "nombre": "Faldón lámina cal.18",
+      "material": "Lamina de acero cal. 18",
+      "alertas": []
+    },
+    {
+      "nombre": "Pintura en polvo blanco RAL 9016",
+      "material": "Pintura en polvo, Blanco RAL 9016 009/13120",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («estructura faldon») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    }
+  ]
+}

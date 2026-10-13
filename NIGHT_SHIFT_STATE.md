@@ -112,3 +112,8 @@ producción, modificar precios, eliminar funcionalidades, limpiar pruebas para a
 | Cotizar | C1 VALIDADO; C5 FAIL (fuera de cuarto); C2 parcial; identidad idéntica al reabrir en los tres; propuesta BORRADOR por P0-01 | `lab/noche/cotizar_v3/` |
 | Renders | v6: 3 de 4 áreas por las 5 etapas; contador sin anclaje = conteo manual; 1 rechazo honesto (10 de 12) | `lab/noche/render_v6/` |
 | Edge RC desplegadas hoy | `costear-servidor-rc` (corrida 17), `generar-render-rc` VH-161b (corrida 18) | Actions "Deploy edge functions" |
+
+## Estado OPERACIÓN 10/10 (matriz `docs/auditoria/MATRIZ_10.md`)
+- 24 proyectos E2E contra la nube real (QA): 9 PASS REPRODUCIDO, 5 RIESGO, 8 FAIL CONFIRMADO, 2 BLOCKED. Evidencia en `lab/noche/p10x/`, `lab/noche/p10/` y `lab/noche/cocrear10/`.
+- NO-GO para promover la rama. GO técnico para el hotfix de VH-173 (P0 en producción), pendiente de autorización.
+- Nada aplicado en producción: ni SQL, ni cliente, ni Edge productiva. Edge `-rc` redesplegadas (corrida 20).

@@ -1,0 +1,12 @@
+[
+  {
+    "texto": "RECEPCIÓN · pared de arriba (a 4.00 m, 0.00 m del origen del cuarto) · vano 1.60 m · vano ancho: suele ser doble Hojas: Una hoja Doble (dos hojas) Abre: Hacia adentro del cuarto Hacia afuera Confirmar",
+    "doble": true,
+    "abre": "adentro"
+  },
+  {
+    "texto": "OPERATIVA 2 · pared de arriba (a 4.00 m, 0.00 m del origen del cuarto) · vano 1.60 m · vano ancho: suele ser doble Hojas: Una hoja Doble (dos hojas) Abre: Hacia adentro del cuarto Hacia afuera Confirm",
+    "doble": true,
+    "abre": "adentro"
+  }
+]

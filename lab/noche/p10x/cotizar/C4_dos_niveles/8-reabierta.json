@@ -1,0 +1,264 @@
+{
+  "id": 1704,
+  "partidas": 5,
+  "colocadas": 10,
+  "areas": 3,
+  "escenas": 0,
+  "identica": true,
+  "diferencias": [],
+  "cobrablesSugeridas": 0,
+  "firmaAntes": {
+    "partidas": [
+      {
+        "k": "1896|op-8u-4800x1200-cristal|Módulo operativo App LT 8 usuarios (biombo cristal)",
+        "cantidad": 1,
+        "precioUnitario": 23070,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1905|rec-2420x830|Módulo recepción 2 usuarios",
+        "cantidad": 1,
+        "precioUnitario": 29920,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1912|mj-2400x1200|Mesa de juntas App LT",
+        "cantidad": 1,
+        "precioUnitario": 7870,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1923|silla-win|Silla operativa WIN",
+        "cantidad": 8,
+        "precioUnitario": 5210,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1925|silla-concerto|Silla CONCERTO (visita 4 pts)",
+        "cantidad": 8,
+        "precioUnitario": 5140,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      }
+    ],
+    "colocacion": [
+      {
+        "id": "operativo|ANCHOR_WORKSTATION|#0::op-8u-4800x1200-cristal-1",
+        "area": 2,
+        "x": 0,
+        "y": 600,
+        "rot": 0,
+        "side": null
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA 1:operativo:0:#0::silla-win-1",
+        "area": 2,
+        "x": 300,
+        "y": 0,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA 1:operativo:0:#0::silla-win-2",
+        "area": 2,
+        "x": 1500,
+        "y": 0,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA 1:operativo:0:#0::silla-win-3",
+        "area": 2,
+        "x": 2700,
+        "y": 0,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA 1:operativo:0:#0::silla-win-4",
+        "area": 2,
+        "x": 3900,
+        "y": 0,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA 1:operativo:0:#0::silla-win-5",
+        "area": 2,
+        "x": 300,
+        "y": 1800,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA 1:operativo:0:#0::silla-win-6",
+        "area": 2,
+        "x": 1500,
+        "y": 1800,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA 1:operativo:0:#0::silla-win-7",
+        "area": 2,
+        "x": 2700,
+        "y": 1800,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA 1:operativo:0:#0::silla-win-8",
+        "area": 2,
+        "x": 3900,
+        "y": 1800,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "recepcion|ANCHOR_RECEPTION|#0::rec-2420x830-1",
+        "area": 0,
+        "x": 0,
+        "y": 0,
+        "rot": 0,
+        "side": null
+      }
+    ],
+    "escenas": []
+  },
+  "firmaDespues": {
+    "partidas": [
+      {
+        "k": "1896|op-8u-4800x1200-cristal|Módulo operativo App LT 8 usuarios (biombo cristal)",
+        "cantidad": 1,
+        "precioUnitario": 23070,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1905|rec-2420x830|Módulo recepción 2 usuarios",
+        "cantidad": 1,
+        "precioUnitario": 29920,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1912|mj-2400x1200|Mesa de juntas App LT",
+        "cantidad": 1,
+        "precioUnitario": 7870,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1923|silla-win|Silla operativa WIN",
+        "cantidad": 8,
+        "precioUnitario": 5210,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1925|silla-concerto|Silla CONCERTO (visita 4 pts)",
+        "cantidad": 8,
+        "precioUnitario": 5140,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      }
+    ],
+    "colocacion": [
+      {
+        "id": "operativo|ANCHOR_WORKSTATION|#0::op-8u-4800x1200-cristal-1",
+        "area": 2,
+        "x": 0,
+        "y": 600,
+        "rot": 0,
+        "side": null
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA 1:operativo:0:#0::silla-win-1",
+        "area": 2,
+        "x": 300,
+        "y": 0,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA 1:operativo:0:#0::silla-win-2",
+        "area": 2,
+        "x": 1500,
+        "y": 0,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA 1:operativo:0:#0::silla-win-3",
+        "area": 2,
+        "x": 2700,
+        "y": 0,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA 1:operativo:0:#0::silla-win-4",
+        "area": 2,
+        "x": 3900,
+        "y": 0,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA 1:operativo:0:#0::silla-win-5",
+        "area": 2,
+        "x": 300,
+        "y": 1800,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA 1:operativo:0:#0::silla-win-6",
+        "area": 2,
+        "x": 1500,
+        "y": 1800,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA 1:operativo:0:#0::silla-win-7",
+        "area": 2,
+        "x": 2700,
+        "y": 1800,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA 1:operativo:0:#0::silla-win-8",
+        "area": 2,
+        "x": 3900,
+        "y": 1800,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "recepcion|ANCHOR_RECEPTION|#0::rec-2420x830-1",
+        "area": 0,
+        "x": 0,
+        "y": 0,
+        "rot": 0,
+        "side": null
+      }
+    ],
+    "escenas": []
+  }
+}

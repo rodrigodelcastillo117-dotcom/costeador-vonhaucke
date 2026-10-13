@@ -1,0 +1,29 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCotizarFlujo.e2e.js:22:1 › COTIZAR real por texto o manual: partidas → guardar → nube → PDF → reabrir idéntico
+[chromium] › e2e/labCotizarFlujo.e2e.js:22:1 › COTIZAR real por texto o manual: partidas → guardar → nube → PDF → reabrir idéntico
+[lab-cot] partidas [
+  [ 'App LT · Módulo operativo (4500 × 1200 mm)', 1, 36260, null ],
+  [ 'App LT · Mesa de juntas (2400 × 1200 mm)', 1, 7870, null ],
+  [ 'App · Escritorio gerencial (1800 × 1500 mm)', 1, 21750, null ],
+  [ 'Ergonova 4 · Recepción (1520 × 840 mm)', 1, 14859, null ]
+]
+
+[lab-cot] rpc crear_cotizacion_segura 200 {"id": 1707, "ok": true, "folio": null, "total": 105832.68, "activa": true, "creado": "2026-10-13T14:03:30.890651+00:00", "estado": "borrador", "piezas": 4, "acomodo": null, "cliente": "(lab 10) M1 cotizar manual", "totales": {"iva": 14597.61, "flete": 8073.9, "total": 105832.68, "ivaPct": 16, "anti
+
+[lab-cot] nube 1707 {"status":200,"partidas":4,"cliente":"(lab 10) M1 cotizar manual","estado":"borrador"}
+
+[lab-cot] rpc cotizacion_segura 200 {"id": 1707, "ok": true, "folio": null, "total": 105832.68, "activa": true, "creado": "2026-10-13T14:03:30.890651+00:00", "estado": "borrador", "piezas": 4, "acomodo": null, "cliente": "(lab 10) M1 cotizar manual", "totales": {"iva": 14597.61, "flete": 8073.9, "total": 105832.68, "ivaPct": 16, "anti
+
+[lab-cot] rpc evaluar_emision_cotizacion 200 {"hash": "9b605ca43d0c7668141b5daa05440a04", "state": "ALLOWED", "reasons": [], "approved": true, "approval_reasons": [], "approval_required": false, "margen_minimo_pct": 25}
+
+[lab-cot] rpc cotizaciones_mias 200 [{"id": 1707, "folio": null, "total": 105832.68, "activa": true, "creado": "2026-10-13T14:03:30.890651+00:00", "estado": "borrador", "piezas": 4, "cliente": "(lab 10) M1 cotizar manual", "usuario": "qa-direccion@vonhaucke.mx", "partidas": [{"nombre": "App LT · Módulo operativo (4500 × 1200 mm)", "ca
+
+[lab-cot] rpc cotizaciones_mias 200 [{"id": 1707, "folio": null, "total": 105832.68, "activa": true, "creado": "2026-10-13T14:03:30.890651+00:00", "estado": "borrador", "piezas": 4, "cliente": "(lab 10) M1 cotizar manual", "usuario": "qa-direccion@vonhaucke.mx", "partidas": [{"nombre": "App LT · Módulo operativo (4500 × 1200 mm)", "ca
+
+[lab-cot] rpc cotizacion_segura 200 {"id": 1707, "ok": true, "folio": null, "total": 105832.68, "activa": true, "creado": "2026-10-13T14:03:30.890651+00:00", "estado": "borrador", "piezas": 4, "acomodo": null, "cliente": "(lab 10) M1 cotizar manual", "totales": {"iva": 14597.61, "flete": 8073.9, "total": 105832.68, "ivaPct": 16, "anti
+
+[lab-cot] RESUMEN {"modo":"manual","id":1707,"partidas":4,"identica":true,"cobrablesSugeridas":0,"pdf":"Descargar PDF","tiempos":{"guardarSeg":1.935,"pdfSeg":1.517,"reabrirSeg":4.436},"pageErrors":0}
+
+  1 passed (38.8s)

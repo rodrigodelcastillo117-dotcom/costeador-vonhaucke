@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$3,443.02",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 3 decisión(es) pendiente(s): ¿Cuántos metros de tapacanto en cantos visibles? · ¿El tapacanto PVC gris 2 mm es del catálogo genérico? · ¿El retorno de 800 mm se traslapa con la cubierta?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $2,151.89 · Mano de obra $322.78 · Fábrica $968.35",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

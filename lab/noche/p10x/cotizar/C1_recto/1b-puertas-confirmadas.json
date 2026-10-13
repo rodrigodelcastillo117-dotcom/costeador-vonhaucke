@@ -1,0 +1,17 @@
+[
+  {
+    "texto": "PASILLO · pared de abajo (a 3.90 m, 2.00 m del origen del cuarto) · vano 0.90 m Hojas: Una hoja Doble (dos hojas) Bisagra (de pie adentro, frente a la puerta): Izquierda Derecha Abre: Hacia adentro de",
+    "doble": false,
+    "abre": "adentro"
+  },
+  {
+    "texto": "RECEPCIÓN · pared de arriba (a 3.90 m, 0.00 m del origen del cuarto) · vano 0.90 m Hojas: Una hoja Doble (dos hojas) Bisagra (de pie adentro, frente a la puerta): Izquierda Derecha Abre: Hacia adentro",
+    "doble": false,
+    "abre": "adentro"
+  },
+  {
+    "texto": "RECEPCIÓN · pared de abajo (a 3.90 m, 3.00 m del origen del cuarto) · vano 1.60 m · vano ancho: suele ser doble Hojas: Una hoja Doble (dos hojas) Abre: Hacia adentro del cuarto Hacia afuera Confirmar ",
+    "doble": true,
+    "abre": "adentro"
+  }
+]

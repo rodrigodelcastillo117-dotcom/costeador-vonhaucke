@@ -1,0 +1,70 @@
+{
+  "confirmacion": {
+    "ofrecida": true,
+    "texto": "Confirmar los 3 propuestos",
+    "diferencias": "5 difieren de lo pedido y se confirman uno por uno: Tapacanto PVC 2 mm Walnut perímetro cubierta, Tapacanto cantos vistos de base (supuesto), Nivelador, Caja de conexiones eléctricas central, Tornillería y escuadras de ensamble. ",
+    "diferenciasAceptadas": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta 2400×1200",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": [
+        "⚠ Medida de HOJA, no de pieza (2400×1200 mm): pon el largo×ancho de la pieza real; la hoja la calcula el motor."
+      ]
+    },
+    {
+      "nombre": "Panel lateral base 722×1000",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": []
+    },
+    {
+      "nombre": "Faldón central 2000×300",
+      "material": "Melamina 19 mm, Walnut",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto PVC 2 mm Walnut perímetro cubierta",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tapacanto cantos vistos de base (supuesto)",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Nivelador",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («roscado») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Caja de conexiones eléctricas central",
+      "material": "Caja electrica generica (contactos+USB)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («conexion cubierta») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tornillería y escuadras de ensamble",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («escuadra ensamble knock down») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

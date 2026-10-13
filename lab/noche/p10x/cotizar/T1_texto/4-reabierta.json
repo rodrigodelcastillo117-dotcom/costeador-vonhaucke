@@ -1,0 +1,150 @@
+{
+ "id": 1668,
+ "identica": true,
+ "diferencias": [],
+ "cobrablesSugeridas": 0,
+ "firmaAntes": {
+  "cliente": "(lab 10) T1 cotizar",
+  "partidas": [
+   {
+    "k": "|dir-1800x2400|Módulo directivo App LT (1800 × 2400 mm)",
+    "cantidad": 1,
+    "precioUnitario": 15780,
+    "costoUnitario": null,
+    "sugerido": false,
+    "noCobrar": false
+   },
+   {
+    "k": "|mj-2400x1200|Mesa de juntas App LT (2400 × 1200 mm)",
+    "cantidad": 1,
+    "precioUnitario": 7870,
+    "costoUnitario": null,
+    "sugerido": false,
+    "noCobrar": false
+   },
+   {
+    "k": "|p9-silla-de-visita-concerto-5470|Silla de visita · CONCERTO",
+    "cantidad": 2,
+    "precioUnitario": 5470,
+    "costoUnitario": null,
+    "sugerido": false,
+    "noCobrar": false
+   },
+   {
+    "k": "|p9-silla-de-visita-re570cbt-3664|Silla de visita · RE570CBT",
+    "cantidad": 8,
+    "precioUnitario": 3664,
+    "costoUnitario": null,
+    "sugerido": false,
+    "noCobrar": false
+   },
+   {
+    "k": "|p9-silla-operativa-gamma-e-3990|Silla operativa · GAMMA-E",
+    "cantidad": 6,
+    "precioUnitario": 3990,
+    "costoUnitario": null,
+    "sugerido": false,
+    "noCobrar": false
+   },
+   {
+    "k": "|rec-2420x830|Módulo recepción 2 usuarios (2420 × 830 mm)",
+    "cantidad": 1,
+    "precioUnitario": 29920,
+    "costoUnitario": null,
+    "sugerido": false,
+    "noCobrar": false
+   },
+   {
+    "k": "|silla-alpha|Silla directiva ALPHA",
+    "cantidad": 1,
+    "precioUnitario": 11950,
+    "costoUnitario": null,
+    "sugerido": false,
+    "noCobrar": false
+   },
+   {
+    "k": "banca_doble|linea-banca_doble|Banca doble APP LT 1.50 · 6 usuarios · ocupa 4.50 × 1.20 m",
+    "cantidad": 1,
+    "precioUnitario": 19710,
+    "costoUnitario": 9125,
+    "sugerido": false,
+    "noCobrar": false
+   }
+  ]
+ },
+ "firmaDespues": {
+  "cliente": "(lab 10) T1 cotizar",
+  "partidas": [
+   {
+    "k": "|dir-1800x2400|Módulo directivo App LT (1800 × 2400 mm)",
+    "cantidad": 1,
+    "precioUnitario": 15780,
+    "costoUnitario": null,
+    "sugerido": false,
+    "noCobrar": false
+   },
+   {
+    "k": "|mj-2400x1200|Mesa de juntas App LT (2400 × 1200 mm)",
+    "cantidad": 1,
+    "precioUnitario": 7870,
+    "costoUnitario": null,
+    "sugerido": false,
+    "noCobrar": false
+   },
+   {
+    "k": "|p9-silla-de-visita-concerto-5470|Silla de visita · CONCERTO",
+    "cantidad": 2,
+    "precioUnitario": 5470,
+    "costoUnitario": null,
+    "sugerido": false,
+    "noCobrar": false
+   },
+   {
+    "k": "|p9-silla-de-visita-re570cbt-3664|Silla de visita · RE570CBT",
+    "cantidad": 8,
+    "precioUnitario": 3664,
+    "costoUnitario": null,
+    "sugerido": false,
+    "noCobrar": false
+   },
+   {
+    "k": "|p9-silla-operativa-gamma-e-3990|Silla operativa · GAMMA-E",
+    "cantidad": 6,
+    "precioUnitario": 3990,
+    "costoUnitario": null,
+    "sugerido": false,
+    "noCobrar": false
+   },
+   {
+    "k": "|rec-2420x830|Módulo recepción 2 usuarios (2420 × 830 mm)",
+    "cantidad": 1,
+    "precioUnitario": 29920,
+    "costoUnitario": null,
+    "sugerido": false,
+    "noCobrar": false
+   },
+   {
+    "k": "|silla-alpha|Silla directiva ALPHA",
+    "cantidad": 1,
+    "precioUnitario": 11950,
+    "costoUnitario": null,
+    "sugerido": false,
+    "noCobrar": false
+   },
+   {
+    "k": "banca_doble|linea-banca_doble|Banca doble APP LT 1.50 · 6 usuarios · ocupa 4.50 × 1.20 m",
+    "cantidad": 1,
+    "precioUnitario": 19710,
+    "costoUnitario": 9125,
+    "sugerido": false,
+    "noCobrar": false
+   }
+  ]
+ },
+ "tiempos": {
+  "interpretarSeg": 20.196,
+  "guardarSeg": 0.042,
+  "pdfSeg": 1.326,
+  "reabrirSeg": 4.614
+ }
+}

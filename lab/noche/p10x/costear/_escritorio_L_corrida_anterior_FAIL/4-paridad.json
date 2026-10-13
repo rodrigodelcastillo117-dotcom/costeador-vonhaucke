@@ -1,0 +1,310 @@
+{
+  "paridad": {
+    "costoCliente": 3443.02,
+    "costoSrv": 3443.02,
+    "estadoSrv": "incompleto",
+    "iguales": true,
+    "llamadasSrv": 2
+  },
+  "servidor": {
+    "ok": true,
+    "estado": "incompleto",
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 3443.02,
+      "materialTotal": 2151.89,
+      "manoObra": 322.78,
+      "indirectosFabrica": 968.35,
+      "desperdicio": 1091.49,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-19-gris-humo-lm",
+          "nombre": "Melamina 19 mm, Gris Humo LM",
+          "seccion": "cubiertas",
+          "costo": 2110.5,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "costo": 41.39,
+          "certificable": false,
+          "evidencia": "propuesto"
+        }
+      ],
+      "componentesIgnorados": [
+        "Cajonera móvil 3 gavetas (comprada)"
+      ]
+    },
+    "evidencia": {
+      "usados": 2,
+      "certificados": 1,
+      "noCertificados": 1
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 2151.885344,
+      "materialIndirecto": 0,
+      "materialTotal": 2151.885344,
+      "desperdicio": 1091.490746284332,
+      "manoObra": 322.78280159999997,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 15,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 2474.6681455999997,
+      "indirectosFabrica": 968.3484047999999,
+      "gastosOperacion": 0,
+      "costoFabricacion": 3443.0165503999997,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 3443.0165503999997,
+      "costoLoteConMerma": 3443.0165503999997,
+      "costoUnitario": 3443.0165503999997,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-19-gris-humo-lm",
+          "nombre": "Melamina 19 mm, Gris Humo LM",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Cubierta principal",
+            "Retorno",
+            "Panel lateral (pata panel) grande",
+            "Panel lateral (pata panel) retorno",
+            "Faldón"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": true,
+            "certificable": false,
+            "hojas": 2,
+            "piezas_solicitadas": 6,
+            "piezas_colocadas": 6,
+            "placements": [
+              {
+                "id": "Cubierta principal#1",
+                "nombre": "Cubierta principal",
+                "x": 10,
+                "y": 10,
+                "w": 1600,
+                "h": 700,
+                "rot": 0,
+                "hoja": 1
+              },
+              {
+                "id": "Panel lateral (pata panel) grande#1",
+                "nombre": "Panel lateral (pata panel) grande",
+                "x": 1614,
+                "y": 10,
+                "w": 731,
+                "h": 700,
+                "rot": 0,
+                "hoja": 1
+              },
+              {
+                "id": "Panel lateral (pata panel) grande#2",
+                "nombre": "Panel lateral (pata panel) grande",
+                "x": 10,
+                "y": 10,
+                "w": 700,
+                "h": 731,
+                "rot": 90,
+                "hoja": 2
+              },
+              {
+                "id": "Faldón#1",
+                "nombre": "Faldón",
+                "x": 10,
+                "y": 745,
+                "w": 1500,
+                "h": 300,
+                "rot": 0,
+                "hoja": 2
+              },
+              {
+                "id": "Retorno#1",
+                "nombre": "Retorno",
+                "x": 1514,
+                "y": 10,
+                "w": 800,
+                "h": 500,
+                "rot": 0,
+                "hoja": 2
+              },
+              {
+                "id": "Panel lateral (pata panel) retorno#1",
+                "nombre": "Panel lateral (pata panel) retorno",
+                "x": 714,
+                "y": 10,
+                "w": 500,
+                "h": 731,
+                "rot": 90,
+                "hoja": 2
+              }
+            ],
+            "remanentes": [
+              {
+                "hoja": 1,
+                "x": 10,
+                "y": 714,
+                "w": 2420,
+                "h": 496,
+                "area_mm2": 1200320
+              },
+              {
+                "hoja": 2,
+                "x": 1514,
+                "y": 514,
+                "w": 916,
+                "h": 696,
+                "area_mm2": 637536
+              },
+              {
+                "hoja": 2,
+                "x": 10,
+                "y": 1049,
+                "w": 2420,
+                "h": 161,
+                "area_mm2": 389620
+              },
+              {
+                "hoja": 2,
+                "x": 1218,
+                "y": 514,
+                "w": 1212,
+                "h": 231,
+                "area_mm2": 279972
+              },
+              {
+                "hoja": 2,
+                "x": 1218,
+                "y": 10,
+                "w": 296,
+                "h": 735,
+                "area_mm2": 217560
+              },
+              {
+                "hoja": 2,
+                "x": 2318,
+                "y": 10,
+                "w": 112,
+                "h": 1200,
+                "area_mm2": 134400
+              }
+            ],
+            "issues": [],
+            "area_piezas_mm2": 3358900,
+            "area_comprada_mm2": 5953600,
+            "desperdicio_mm2": 2594700,
+            "eficiencia_pct": 57.8323002754821,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 3.3589,
+          "comprado": 6.945866666666666,
+          "unidades": 2.3333333333333335,
+          "costo": 2110.5,
+          "desperdicio": 1089.899002284332,
+          "pct": 51.64174377087571,
+          "precio": 904.5,
+          "noCabe": false,
+          "fraccion": true,
+          "reglaProduccion": "produccion-rogelio-2026-10",
+          "piezasRegla": [
+            {
+              "pieza": "Cubierta principal",
+              "largoMM": 1600,
+              "anchoMM": 700,
+              "hojasPorPieza": 1
+            }
+          ]
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "rollo",
+            "corto": "rollo",
+            "medida": 50,
+            "nombre": "rollo de 50 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Tapacanto PVC 2 mm gris en cantos visibles"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 13.09,
+          "comprado": 13.6136,
+          "unidades": null,
+          "costo": 41.385344,
+          "desperdicio": 1.5917440000000003,
+          "pct": 3.8461538461538463,
+          "precio": 3.04,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [
+        "Cajonera móvil 3 gavetas (comprada)"
+      ],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Tapacanto PVC 2 mm gris en cantos visibles"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "incompleto",
+      "pendientes": [
+        "Cajonera móvil 3 gavetas (comprada)"
+      ],
+      "costoOficial": null
+    },
+    "versionMotor": "2026-10-13",
+    "versionConfig": "cfglu0aa4",
+    "versionCatalogo": "cat-ap1793-cfgbmbegl",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T13:23:18.027Z",
+    "catalogoFuente": "catalogo",
+    "warnings": [
+      "1 pieza(s) sin material/precio usable: Cajonera móvil 3 gavetas (comprada)"
+    ]
+  }
+}

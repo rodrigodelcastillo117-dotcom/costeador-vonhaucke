@@ -1,0 +1,69 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render p10e_mesa_juntas_texto BORRADOR mesa mesa de juntas rectangular con base de paneles laterales Melamina acabado nogal (Walnut) 28 y 19 mm",
+    "piezas": 7,
+    "mismoBom": true,
+    "costoAntes": "$5,072.85",
+    "costoDespues": "$5,072.85",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$5,072.85",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $3,375.08 · Mano de obra $421.20 · Fábrica $1,276.57",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta 2400×1200",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": [
+        "⚠ Medida de HOJA, no de pieza (2400×1200 mm): pon el largo×ancho de la pieza real; la hoja la calcula el motor."
+      ]
+    },
+    {
+      "nombre": "Panel lateral base 722×1000",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": []
+    },
+    {
+      "nombre": "Faldón central 2000×300",
+      "material": "Melamina 19 mm, Walnut",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto PVC 2 mm Walnut perímetro cubierta",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Nivelador",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («roscado») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Caja de conexiones eléctricas central",
+      "material": "Caja electrica generica (contactos+USB)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («empotrada cubierta») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tornillería y escuadras de ensamble",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («escuadra ensamble knock down») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

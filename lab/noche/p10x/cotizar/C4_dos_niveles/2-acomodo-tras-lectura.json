@@ -1,0 +1,473 @@
+{
+  "areasM": [
+    {
+      "nombre": "RECEPCIÓN",
+      "tipo": "recepcion",
+      "dentroDe": "OPERATIVA 2",
+      "nivel": "NIVEL 1",
+      "x": 0,
+      "y": 0,
+      "ancho": 8,
+      "largo": 5,
+      "poly": [
+        [
+          0,
+          0
+        ],
+        [
+          8,
+          0
+        ],
+        [
+          8,
+          5
+        ],
+        [
+          0,
+          5
+        ]
+      ],
+      "obstaculos": [
+        {
+          "x": 4.79,
+          "y": 4.73,
+          "w": 0.5,
+          "h": 0.5,
+          "tipo": "columna",
+          "clave": "P1"
+        }
+      ],
+      "puertas": [
+        {
+          "x": 3.6,
+          "y": 0,
+          "ancho": 0.8,
+          "tieneBarrido": true,
+          "bisagraX": 3.2,
+          "bisagraY": 0,
+          "anguloCerradaDeg": 0,
+          "sentido": "horario",
+          "barridoDeg": 90,
+          "confianza": "usuario_confirmado"
+        },
+        {
+          "x": 4.4,
+          "y": 0,
+          "ancho": 0.8,
+          "tieneBarrido": true,
+          "bisagraX": 4.8,
+          "bisagraY": 0,
+          "anguloCerradaDeg": 180,
+          "sentido": "antihorario",
+          "barridoDeg": 90,
+          "confianza": "usuario_confirmado"
+        }
+      ]
+    },
+    {
+      "nombre": "SALA DE JUNTAS",
+      "tipo": "juntas",
+      "contiene": 1,
+      "nivel": "NIVEL 1",
+      "asientos": 8,
+      "x": 8,
+      "y": 0,
+      "ancho": 8,
+      "largo": 5,
+      "poly": [
+        [
+          0,
+          0
+        ],
+        [
+          8,
+          0
+        ],
+        [
+          8,
+          5
+        ],
+        [
+          0,
+          5
+        ]
+      ],
+      "obstaculos": [
+        {
+          "x": 2,
+          "y": 0,
+          "w": 6,
+          "h": 5,
+          "tipo": "cuarto"
+        },
+        {
+          "x": 3.18,
+          "y": 4.1,
+          "w": 1.8,
+          "h": 1.8,
+          "tipo": "puerta"
+        },
+        {
+          "x": 0.975,
+          "y": 1.575,
+          "w": 2.05,
+          "h": 2.05,
+          "tipo": "puerta"
+        }
+      ],
+      "puertas": [
+        {
+          "x": 4.08,
+          "y": 5,
+          "ancho": 0.9,
+          "tieneBarrido": true,
+          "bisagraX": 4.5,
+          "bisagraY": 5,
+          "anguloCerradaDeg": 180,
+          "sentido": "horario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        },
+        {
+          "x": 2,
+          "y": 2.6,
+          "ancho": 1.15,
+          "tieneBarrido": true,
+          "bisagraX": 2,
+          "bisagraY": 2.03,
+          "anguloCerradaDeg": 90,
+          "sentido": "antihorario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        }
+      ]
+    },
+    {
+      "nombre": "OPERATIVA 1",
+      "tipo": "open",
+      "contiene": 1,
+      "nivel": "NIVEL 1",
+      "puestos": 8,
+      "x": 0,
+      "y": 5,
+      "ancho": 16,
+      "largo": 5,
+      "poly": [
+        [
+          0,
+          0
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          16,
+          5
+        ],
+        [
+          0,
+          5
+        ]
+      ],
+      "obstaculos": [
+        {
+          "x": 10,
+          "y": 0,
+          "w": 6,
+          "h": 5,
+          "tipo": "cuarto"
+        },
+        {
+          "x": 11.18,
+          "y": -0.9,
+          "w": 1.8,
+          "h": 1.8,
+          "tipo": "puerta"
+        },
+        {
+          "x": 8.975,
+          "y": 1.325,
+          "w": 2.05,
+          "h": 2.05,
+          "tipo": "puerta"
+        }
+      ],
+      "puertas": [
+        {
+          "x": 12.08,
+          "y": 0,
+          "ancho": 0.9,
+          "tieneBarrido": true,
+          "bisagraX": 12.5,
+          "bisagraY": 0,
+          "anguloCerradaDeg": 180,
+          "sentido": "horario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        },
+        {
+          "x": 10,
+          "y": 2.35,
+          "ancho": 1.15,
+          "tieneBarrido": true,
+          "bisagraX": 10,
+          "bisagraY": 2.92,
+          "anguloCerradaDeg": 270,
+          "sentido": "horario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        }
+      ]
+    }
+  ],
+  "areas": [
+    {
+      "nombre": "RECEPCIÓN",
+      "tipo": "recepcion",
+      "dentroDe": "OPERATIVA 2",
+      "nivel": "NIVEL 1",
+      "x": 0,
+      "y": 0,
+      "ancho": 8000,
+      "largo": 5000,
+      "poly": [
+        [
+          0,
+          0
+        ],
+        [
+          8000,
+          0
+        ],
+        [
+          8000,
+          5000
+        ],
+        [
+          0,
+          5000
+        ]
+      ],
+      "obstaculos": [
+        {
+          "x": 4790,
+          "y": 4730,
+          "w": 500,
+          "h": 500,
+          "tipo": "columna",
+          "clave": "P1"
+        }
+      ],
+      "puertas": [
+        {
+          "x": 3600,
+          "y": 0,
+          "ancho": 800,
+          "tieneBarrido": true,
+          "bisagraX": 3200,
+          "bisagraY": 0,
+          "anguloCerradaDeg": 0,
+          "sentido": "horario",
+          "barridoDeg": 90,
+          "confianza": "usuario_confirmado"
+        },
+        {
+          "x": 4400,
+          "y": 0,
+          "ancho": 800,
+          "tieneBarrido": true,
+          "bisagraX": 4800,
+          "bisagraY": 0,
+          "anguloCerradaDeg": 180,
+          "sentido": "antihorario",
+          "barridoDeg": 90,
+          "confianza": "usuario_confirmado"
+        }
+      ]
+    },
+    {
+      "nombre": "SALA DE JUNTAS",
+      "tipo": "juntas",
+      "contiene": 1,
+      "nivel": "NIVEL 1",
+      "asientos": 8,
+      "x": 8000,
+      "y": 0,
+      "ancho": 8000,
+      "largo": 5000,
+      "poly": [
+        [
+          0,
+          0
+        ],
+        [
+          8000,
+          0
+        ],
+        [
+          8000,
+          5000
+        ],
+        [
+          0,
+          5000
+        ]
+      ],
+      "obstaculos": [
+        {
+          "x": 2000,
+          "y": 0,
+          "w": 6000,
+          "h": 5000,
+          "tipo": "cuarto"
+        },
+        {
+          "x": 3180,
+          "y": 4100,
+          "w": 1800,
+          "h": 1800,
+          "tipo": "puerta"
+        },
+        {
+          "x": 975,
+          "y": 1575,
+          "w": 2050,
+          "h": 2050,
+          "tipo": "puerta"
+        }
+      ],
+      "puertas": [
+        {
+          "x": 4080,
+          "y": 5000,
+          "ancho": 900,
+          "tieneBarrido": true,
+          "bisagraX": 4500,
+          "bisagraY": 5000,
+          "anguloCerradaDeg": 180,
+          "sentido": "horario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        },
+        {
+          "x": 2000,
+          "y": 2600,
+          "ancho": 1150,
+          "tieneBarrido": true,
+          "bisagraX": 2000,
+          "bisagraY": 2030,
+          "anguloCerradaDeg": 90,
+          "sentido": "antihorario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        }
+      ]
+    },
+    {
+      "nombre": "OPERATIVA 1",
+      "tipo": "open",
+      "contiene": 1,
+      "nivel": "NIVEL 1",
+      "puestos": 8,
+      "x": 0,
+      "y": 5000,
+      "ancho": 16000,
+      "largo": 5000,
+      "poly": [
+        [
+          0,
+          0
+        ],
+        [
+          16000,
+          0
+        ],
+        [
+          16000,
+          5000
+        ],
+        [
+          0,
+          5000
+        ]
+      ],
+      "obstaculos": [
+        {
+          "x": 10000,
+          "y": 0,
+          "w": 6000,
+          "h": 5000,
+          "tipo": "cuarto"
+        },
+        {
+          "x": 11180,
+          "y": -900,
+          "w": 1800,
+          "h": 1800,
+          "tipo": "puerta"
+        },
+        {
+          "x": 8975,
+          "y": 1325,
+          "w": 2050,
+          "h": 2050,
+          "tipo": "puerta"
+        }
+      ],
+      "puertas": [
+        {
+          "x": 12080,
+          "y": 0,
+          "ancho": 900,
+          "tieneBarrido": true,
+          "bisagraX": 12500,
+          "bisagraY": 0,
+          "anguloCerradaDeg": 180,
+          "sentido": "horario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        },
+        {
+          "x": 10000,
+          "y": 2350,
+          "ancho": 1150,
+          "tieneBarrido": true,
+          "bisagraX": 10000,
+          "bisagraY": 2920,
+          "anguloCerradaDeg": 270,
+          "sentido": "horario",
+          "barridoDeg": 90,
+          "confianza": "media"
+        }
+      ]
+    }
+  ],
+  "plan": null,
+  "planReal": true,
+  "lectura": {
+    "en": "2026-10-13T13:55:56.544Z",
+    "nivel": "baja",
+    "m2": 220,
+    "cuartos": 3,
+    "cotas": true,
+    "problemas": [
+      "\"SALA DE JUNTAS\" y \"OPERATIVA 2\" se enciman 10.0 m².",
+      "\"OPERATIVA 1\" y \"OPERATIVA 2\" se enciman 50.0 m².",
+      "Los cuartos suman 220 m² y el plano mide 160 m².",
+      "El documento trae 2 niveles (NIVEL 1 · NIVEL 2): se usa el primero; los demás se cotizan como otro proyecto."
+    ],
+    "nivelUsado": "NIVEL 1",
+    "nivelesDocumento": [
+      "NIVEL 1",
+      "NIVEL 2"
+    ],
+    "columnas": 1,
+    "puertasConfirmadasPorPersona": true,
+    "servidor": {
+      "estado": "REVIEW_REQUIRED",
+      "texto": "validación geométrica del servidor: requiere revisión",
+      "requestId": "67172b28-7be7-4ff5-a0c6-b45a1a7b2aa5"
+    }
+  }
+}

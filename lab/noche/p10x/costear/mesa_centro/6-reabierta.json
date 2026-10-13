@@ -1,0 +1,54 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render p10f_mesa_centro BORRADOR mesita mesa de centro con cubierta de cristal Cristal templado 9 mm Lista: $5,067 · preliminar",
+    "piezas": 6,
+    "mismoBom": true,
+    "costoAntes": "$3,040.03",
+    "costoDespues": "$3,040.03",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$3,040.03",
+        "$5,066.72"
+      ],
+      "margen": "Precio de lista (40% margen · del expediente guardado)",
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $2,026.47 · Mano de obra $249.29 · Fábrica $764.28",
+      "pendiente": false,
+      "porConfirmar": false
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta cristal templado 9 mm canto pulido",
+      "material": "Cristal templado 9 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Marco rectangular base 900x500 (tubular redondo 3/4 cal.18)",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": []
+    },
+    {
+      "nombre": "Postes verticales 392 mm",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": []
+    },
+    {
+      "nombre": "Acabado cromado de la base (EcoCrom)",
+      "material": "EcoCrom",
+      "alertas": []
+    },
+    {
+      "nombre": "Soldadura de la base",
+      "material": "Soldadura",
+      "alertas": []
+    },
+    {
+      "nombre": "Niveladores / tapones de piso",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    }
+  ]
+}

@@ -1,0 +1,562 @@
+{
+  "paridad": {
+    "costoCliente": 1836.39,
+    "costoSrv": 1836.39,
+    "estadoSrv": "preliminar",
+    "iguales": true,
+    "llamadasSrv": 2
+  },
+  "servidor": {
+    "ok": true,
+    "estado": "preliminar",
+    "piezas": 10,
+    "precioVenta": 3060.65,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 1836.39,
+      "materialTotal": 10822.06,
+      "manoObra": 1885.46,
+      "indirectosFabrica": 5656.37,
+      "desperdicio": 3670.11,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-19",
+          "nombre": "Melamina BLANCA / EcoLegno 19 mm",
+          "seccion": "cubiertas",
+          "costo": 5440,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "costo": 139.11,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "ptr",
+          "nombre": "Tubo / PTR 1\"x2\" cal. 16",
+          "seccion": "metal",
+          "costo": 2749.68,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "lamina-18",
+          "nombre": "Lamina de acero cal. 18",
+          "seccion": "metal",
+          "costo": 571.54,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "pintura-polvo-blanco-ral-9016-009-13120",
+          "nombre": "Pintura en polvo, Blanco RAL 9016 009/13120",
+          "seccion": "acabados",
+          "costo": 562.53,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "costo": 709.2,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "soldadura",
+          "nombre": "Soldadura",
+          "seccion": "metal",
+          "costo": 650,
+          "certificable": true,
+          "evidencia": "aprobado"
+        }
+      ],
+      "componentesIgnorados": []
+    },
+    "evidencia": {
+      "usados": 7,
+      "certificados": 2,
+      "noCertificados": 5
+    },
+    "desglose": {
+      "piezas": 10,
+      "materialDirecto": 9550.330399999999,
+      "materialIndirecto": 1271.7271375,
+      "materialTotal": 10822.057537499999,
+      "desperdicio": 3670.1057782316584,
+      "manoObra": 1885.4559875,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 19.742311611543826,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 12707.513524999998,
+      "indirectosFabrica": 5656.3679625,
+      "gastosOperacion": 0,
+      "costoFabricacion": 18363.8814875,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 18363.8814875,
+      "costoLoteConMerma": 18363.8814875,
+      "costoUnitario": 1836.3881487499998,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-19",
+          "nombre": "Melamina BLANCA / EcoLegno 19 mm",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Cubierta melamina blanca 19 mm"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": true,
+            "certificable": false,
+            "hojas": 10,
+            "piezas_solicitadas": 10,
+            "piezas_colocadas": 10,
+            "placements": [
+              {
+                "id": "Cubierta melamina blanca 19 mm#1",
+                "nombre": "Cubierta melamina blanca 19 mm",
+                "x": 10,
+                "y": 10,
+                "w": 1500,
+                "h": 700,
+                "rot": 0,
+                "hoja": 1
+              },
+              {
+                "id": "Cubierta melamina blanca 19 mm#10",
+                "nombre": "Cubierta melamina blanca 19 mm",
+                "x": 10,
+                "y": 10,
+                "w": 1500,
+                "h": 700,
+                "rot": 0,
+                "hoja": 2
+              },
+              {
+                "id": "Cubierta melamina blanca 19 mm#2",
+                "nombre": "Cubierta melamina blanca 19 mm",
+                "x": 10,
+                "y": 10,
+                "w": 1500,
+                "h": 700,
+                "rot": 0,
+                "hoja": 3
+              },
+              {
+                "id": "Cubierta melamina blanca 19 mm#3",
+                "nombre": "Cubierta melamina blanca 19 mm",
+                "x": 10,
+                "y": 10,
+                "w": 1500,
+                "h": 700,
+                "rot": 0,
+                "hoja": 4
+              },
+              {
+                "id": "Cubierta melamina blanca 19 mm#4",
+                "nombre": "Cubierta melamina blanca 19 mm",
+                "x": 10,
+                "y": 10,
+                "w": 1500,
+                "h": 700,
+                "rot": 0,
+                "hoja": 5
+              },
+              {
+                "id": "Cubierta melamina blanca 19 mm#5",
+                "nombre": "Cubierta melamina blanca 19 mm",
+                "x": 10,
+                "y": 10,
+                "w": 1500,
+                "h": 700,
+                "rot": 0,
+                "hoja": 6
+              },
+              {
+                "id": "Cubierta melamina blanca 19 mm#6",
+                "nombre": "Cubierta melamina blanca 19 mm",
+                "x": 10,
+                "y": 10,
+                "w": 1500,
+                "h": 700,
+                "rot": 0,
+                "hoja": 7
+              },
+              {
+                "id": "Cubierta melamina blanca 19 mm#7",
+                "nombre": "Cubierta melamina blanca 19 mm",
+                "x": 10,
+                "y": 10,
+                "w": 1500,
+                "h": 700,
+                "rot": 0,
+                "hoja": 8
+              },
+              {
+                "id": "Cubierta melamina blanca 19 mm#8",
+                "nombre": "Cubierta melamina blanca 19 mm",
+                "x": 10,
+                "y": 10,
+                "w": 1500,
+                "h": 700,
+                "rot": 0,
+                "hoja": 9
+              },
+              {
+                "id": "Cubierta melamina blanca 19 mm#9",
+                "nombre": "Cubierta melamina blanca 19 mm",
+                "x": 10,
+                "y": 10,
+                "w": 1500,
+                "h": 700,
+                "rot": 0,
+                "hoja": 10
+              }
+            ],
+            "remanentes": [
+              {
+                "hoja": 1,
+                "x": 10,
+                "y": 714,
+                "w": 2420,
+                "h": 496,
+                "area_mm2": 1200320
+              },
+              {
+                "hoja": 2,
+                "x": 10,
+                "y": 714,
+                "w": 2420,
+                "h": 496,
+                "area_mm2": 1200320
+              },
+              {
+                "hoja": 3,
+                "x": 10,
+                "y": 714,
+                "w": 2420,
+                "h": 496,
+                "area_mm2": 1200320
+              },
+              {
+                "hoja": 4,
+                "x": 10,
+                "y": 714,
+                "w": 2420,
+                "h": 496,
+                "area_mm2": 1200320
+              },
+              {
+                "hoja": 5,
+                "x": 10,
+                "y": 714,
+                "w": 2420,
+                "h": 496,
+                "area_mm2": 1200320
+              },
+              {
+                "hoja": 6,
+                "x": 10,
+                "y": 714,
+                "w": 2420,
+                "h": 496,
+                "area_mm2": 1200320
+              },
+              {
+                "hoja": 7,
+                "x": 10,
+                "y": 714,
+                "w": 2420,
+                "h": 496,
+                "area_mm2": 1200320
+              },
+              {
+                "hoja": 8,
+                "x": 10,
+                "y": 714,
+                "w": 2420,
+                "h": 496,
+                "area_mm2": 1200320
+              },
+              {
+                "hoja": 9,
+                "x": 10,
+                "y": 714,
+                "w": 2420,
+                "h": 496,
+                "area_mm2": 1200320
+              },
+              {
+                "hoja": 10,
+                "x": 10,
+                "y": 714,
+                "w": 2420,
+                "h": 496,
+                "area_mm2": 1200320
+              },
+              {
+                "hoja": 1,
+                "x": 1514,
+                "y": 10,
+                "w": 916,
+                "h": 1200,
+                "area_mm2": 1099200
+              },
+              {
+                "hoja": 2,
+                "x": 1514,
+                "y": 10,
+                "w": 916,
+                "h": 1200,
+                "area_mm2": 1099200
+              }
+            ],
+            "issues": [],
+            "area_piezas_mm2": 10500000,
+            "area_comprada_mm2": 29768000,
+            "desperdicio_mm2": 19268000,
+            "eficiencia_pct": 36.15702479338843,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 10.499999999999998,
+          "comprado": 29.768,
+          "unidades": 10,
+          "costo": 5440,
+          "desperdicio": 3521.160978231658,
+          "pct": 64.72722386455254,
+          "precio": 544,
+          "noCabe": false,
+          "fraccion": true
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "rollo",
+            "corto": "rollo",
+            "medida": 50,
+            "nombre": "rollo de 50 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Tapacanto PVC 2 mm perimetral"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 44,
+          "comprado": 45.760000000000005,
+          "unidades": null,
+          "costo": 139.11040000000003,
+          "desperdicio": 5.350400000000016,
+          "pct": 3.846153846153857,
+          "precio": 3.04,
+          "noCabe": false
+        },
+        {
+          "insumoId": "ptr",
+          "nombre": "Tubo / PTR 1\"x2\" cal. 16",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "tramo",
+            "corto": "tramo",
+            "medida": 6,
+            "nombre": "tramo de 6 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Patas PTR 1x2 cal.16",
+            "Largueros PTR 1x2 cal.16",
+            "Travesaños PTR 1x2 cal.16"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": {
+            "disponible": false,
+            "issues": [
+              "SIN_PIEZAS_LINEALES"
+            ],
+            "advisory": true
+          },
+          "tipoAlbaAplicado": "metal",
+          "metodoConsumo": "FORMATO_COMPLETO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 68.24,
+          "comprado": 72,
+          "unidades": 12,
+          "costo": 2749.68,
+          "desperdicio": 143.59440000000018,
+          "pct": 5.222222222222229,
+          "precio": 38.19,
+          "noCabe": false
+        },
+        {
+          "insumoId": "lamina-18",
+          "nombre": "Lamina de acero cal. 18",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "lamina",
+            "corto": "lamina",
+            "medida": 28.4,
+            "nombre": "lamina 1.22 x 2.44"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Faldón lámina cal.18"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "metal",
+          "metodoConsumo": "FRACCION_DIRECTA_RAFA",
+          "usaAprovechamientoGenerico": false,
+          "neto": 28.4,
+          "comprado": 28.4,
+          "unidades": 1,
+          "costo": 571.54,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 571.54,
+          "noCabe": false,
+          "fraccion": true
+        },
+        {
+          "insumoId": "pintura-polvo-blanco-ral-9016-009-13120",
+          "nombre": "Pintura en polvo, Blanco RAL 9016 009/13120",
+          "seccion": "acabados",
+          "clase": "indirecta",
+          "unidad": "kg",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Pintura en polvo blanco RAL 9016"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 2.3499999999999996,
+          "comprado": 2.3499999999999996,
+          "unidades": null,
+          "costo": 562.5271375,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 239.37325,
+          "noCabe": false
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Niveladores"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 40,
+          "comprado": 40,
+          "unidades": null,
+          "costo": 709.2,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 17.73,
+          "noCabe": false
+        },
+        {
+          "insumoId": "soldadura",
+          "nombre": "Soldadura",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "kg",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Soldadura"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 10,
+          "comprado": 10,
+          "unidades": null,
+          "costo": 650,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 65,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [],
+      "tarifasFaltantes": [],
+      "estadoCosto": "completo",
+      "pendientes": [],
+      "costoOficial": 1836.3881487499998
+    },
+    "versionMotor": "2026-10-13",
+    "versionConfig": "cfglu0aa4",
+    "versionCatalogo": "cat-ap1793-cfg1n9drjb",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T13:21:56.377Z",
+    "catalogoFuente": "catalogo",
+    "warnings": [
+      "Costo preliminar — 5 de 7 insumo(s) sin precio certificado.",
+      "4 insumo(s) requieren validación de Compras."
+    ]
+  }
+}

@@ -1,0 +1,133 @@
+‹ Atrás
+Inicio
+Voni · asistente de proyecto
+Voni
+tu asistente de proyecto
+PROYECTO PARA
+Espacio
+¿Dónde va el proyecto?
+2
+Muebles
+¿Qué lleva?
+3
+Acomodo
+Dónde va cada cosa.
+4
+Propuesta
+Lista para el cliente.
+✨ Programa detectado del plano
+
+Productos reales del catálogo. Se agrega SÓLO lo que falta (no duplica lo ya cotizado). El precio lo revalida el servidor al emitir.
+
+Por agregar
+✓ 1× Módulo operativo App LT 10 usuarios (biombo cristal) · 6.00×1.20 m
+✓ 1× Módulo operativo App LT 10 usuarios (biombo cristal) · 6.00×1.20 m
+✓ 1× Módulo directivo App LT · 1.80×2.40 m
+✓ 1× Mesa de consejo Eclipse · 4.80×1.20 m
+✓ 1× Módulo recepción 2 usuarios · 2.42×0.83 m
+✓ 10× Silla operativa WIN
+✓ 10× Silla operativa WIN
+✓ 1× Silla directiva ALPHA
+✓ 12× Silla CONCERTO (visita 4 pts)
+Recomendadas por regla de casa (no se agregan solas)
+➕ 2× Silla SONATA (visita 4 pts) · DIRECCIÓN · Un privado recibe visitas: 2 sillas frente al escritorio.
+Agregar
+➕ 1× Archivero Modulor 2 puertas + 1 entrepaño · DIRECCIÓN · Credenza detrás del directivo: guardado y apoyo.
+Agregar
+➕ 1× Archivero Modulor 2 puertas + 1 entrepaño · SALA DE CONSEJO · Credenza en sala de juntas: café, guardado y equipo.
+Agregar
+➕ 1× Silla operativa WIN · RECEPCIÓN · El mostrador siempre lleva su silla operativa.
+Agregar
+➕ 2× Silla SONATA (visita 4 pts) · RECEPCIÓN · Sillas de espera para visitas en recepción.
+Agregar
+Aplicar programa detectado
+
+¡Hola! Soy Voni. Cuéntame qué necesita tu cliente —en palabras normales— y te armo el proyecto: muebles, acomodo y propuesta.
+
+¿Qué necesita tu cliente?
+
+Escríbelo en palabras normales, como te lo pidieron. Lo convierto en muebles de nuestras líneas, con su precio.
+
+Dime qué lleva y yo lo armo
+
+Contesta con los botones. Si prefieres escribirlo —o ya tienes el correo del cliente para pegar— usa el recuadro de abajo: es la misma Voni.
+
+Del plano: 20 puestos operativos (contados del plano) · 1 privado · 1 sala de juntas (12) · recepción. Te sugiero (ajústalo): 20 sillas · 20 gavetas · 1 archivero(s) de privado. Ya lo llené con eso; cambia lo que quieras.
+Operativos
+puestos en bench
+−
+20
++
+LARGO POR PUESTO
+1200
+1500
+1800
+LÍNEA
+App LT
+App
+Río
+Cirque
+Vía
+Flex
+SILLA
+WIN
+WIN-CAB
+GAMMA-E
+DEX
+C4-EM-BNF
+C4-EL-BNF-CAB
+Privados
+oficinas cerradas
+−
+1
++
+ESCRITORIO
+1800
+2100
+2400
+LÍNEA
+App LT
+App
+Eclipse
+Alba
+Luna
+Eclipse Drift
+Anteo
+SILLA DIRECTIVA
+ALPHA
+ENERGY
+SILLA DE VISITA · VAN 2 POR PRIVADO
+CONCERTO
+DELTA
+SONATA
+RE570GT
+Con credenza
+Sala de juntas
+para cuántas personas
+−
+12
++
+SILLA
+CONCERTO
+DELTA
+SONATA
+RE570GT
+Gavetas
+pedestal rodante · 1 por puesto
+−
+20
++
+Archiveros
+guarda de privado
+−
+1
++
+Lleva recepción
+33 personas
+20 lugares de trabajo repartidos en 1 bancas de 20 usuarios cada una, de la línea applt de 1.50 m por puesto, 20 sillas operativas WIN, 1 oficinas privadas, cada una con escritorio ejecutivo de la línea eclipse de 2.10 m y su credenza, 1 sillas directivas ALPHA y 2 sillas de visita CONCERTO, una sala de juntas para 12 personas con su mesa de juntas y sus 12 sillas de visita SONATA, una recepción con su mostrador, 20 gavetas rodantes (pedestal), 1 archiveros
+Armar el proyecto →
+O ESCRÍBELO / PÉGALO
+Oficina operativa
+Área ejecutiva
+Bench + guardas
+Armar la lista de muebles

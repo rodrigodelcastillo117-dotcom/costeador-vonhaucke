@@ -1,0 +1,85 @@
+{
+ "id": 1707,
+ "identica": true,
+ "diferencias": [],
+ "cobrablesSugeridas": 0,
+ "firmaAntes": {
+  "cliente": "(lab 10) M1 cotizar manual",
+  "partidas": [
+   {
+    "k": "|p9-app-escritorio-gerencial-21750|App · Escritorio gerencial (1800 × 1500 mm)",
+    "cantidad": 1,
+    "precioUnitario": 21750,
+    "costoUnitario": 10069.44,
+    "sugerido": false,
+    "noCobrar": false
+   },
+   {
+    "k": "|p9-app-lt-mesa-de-juntas-7870|App LT · Mesa de juntas (2400 × 1200 mm)",
+    "cantidad": 1,
+    "precioUnitario": 7870,
+    "costoUnitario": 3643.52,
+    "sugerido": false,
+    "noCobrar": false
+   },
+   {
+    "k": "|p9-app-lt-modulo-operativo-36260|App LT · Módulo operativo (4500 × 1200 mm)",
+    "cantidad": 1,
+    "precioUnitario": 36260,
+    "costoUnitario": 16787.04,
+    "sugerido": false,
+    "noCobrar": false
+   },
+   {
+    "k": "|p9-ergonova-4-recepcion-14859|Ergonova 4 · Recepción (1520 × 840 mm)",
+    "cantidad": 1,
+    "precioUnitario": 14859,
+    "costoUnitario": 6879.17,
+    "sugerido": false,
+    "noCobrar": false
+   }
+  ]
+ },
+ "firmaDespues": {
+  "cliente": "(lab 10) M1 cotizar manual",
+  "partidas": [
+   {
+    "k": "|p9-app-escritorio-gerencial-21750|App · Escritorio gerencial (1800 × 1500 mm)",
+    "cantidad": 1,
+    "precioUnitario": 21750,
+    "costoUnitario": 10069.44,
+    "sugerido": false,
+    "noCobrar": false
+   },
+   {
+    "k": "|p9-app-lt-mesa-de-juntas-7870|App LT · Mesa de juntas (2400 × 1200 mm)",
+    "cantidad": 1,
+    "precioUnitario": 7870,
+    "costoUnitario": 3643.52,
+    "sugerido": false,
+    "noCobrar": false
+   },
+   {
+    "k": "|p9-app-lt-modulo-operativo-36260|App LT · Módulo operativo (4500 × 1200 mm)",
+    "cantidad": 1,
+    "precioUnitario": 36260,
+    "costoUnitario": 16787.04,
+    "sugerido": false,
+    "noCobrar": false
+   },
+   {
+    "k": "|p9-ergonova-4-recepcion-14859|Ergonova 4 · Recepción (1520 × 840 mm)",
+    "cantidad": 1,
+    "precioUnitario": 14859,
+    "costoUnitario": 6879.17,
+    "sugerido": false,
+    "noCobrar": false
+   }
+  ]
+ },
+ "tiempos": {
+  "guardarSeg": 1.935,
+  "pdfSeg": 1.517,
+  "reabrirSeg": 4.436
+ }
+}

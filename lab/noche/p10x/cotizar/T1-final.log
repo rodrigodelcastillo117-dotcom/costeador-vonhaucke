@@ -1,0 +1,42 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCotizarFlujo.e2e.js:22:1 › COTIZAR real por texto o manual: partidas → guardar → nube → PDF → reabrir idéntico
+[chromium] › e2e/labCotizarFlujo.e2e.js:22:1 › COTIZAR real por texto o manual: partidas → guardar → nube → PDF → reabrir idéntico
+[lab-cot] edge cotizar-texto-rc 200 2554 bytes
+
+[lab-cot] rpc crear_cotizacion_segura 200 {"id": 1668, "ok": true, "folio": null, "total": 195862.36, "activa": true, "creado": "2026-10-13T13:29:06.609094+00:00", "estado": "borrador", "piezas": 21, "acomodo": null, "cliente": null, "totales": {"iva": 27015.5, "flete": 14942.2, "total": 195862.36, "ivaPct": 16, "anticipo": 97931.18, "flete
+
+[lab-cot] partidas [
+  [
+    'Banca doble APP LT 1.50 · 6 usuarios · ocupa 4.50 × 1.20 m',
+    1,
+    19710,
+    null
+  ],
+  [ 'Mesa de juntas App LT (2400 × 1200 mm)', 1, 7870, null ],
+  [ 'Silla de visita · RE570CBT', 8, 3664, null ],
+  [ 'Silla operativa · GAMMA-E', 6, 3990, null ],
+  [ 'Módulo directivo App LT (1800 × 2400 mm)', 1, 15780, null ],
+  [ 'Silla directiva ALPHA', 1, 11950, null ],
+  [ 'Silla de visita · CONCERTO', 2, 5470, null ],
+  [ 'Módulo recepción 2 usuarios (2420 × 830 mm)', 1, 29920, null ]
+]
+
+[lab-cot] rpc actualizar_cotizacion_segura 200 {"id": 1668, "ok": true, "folio": null, "total": 195862.36, "activa": true, "creado": "2026-10-13T13:29:06.609094+00:00", "estado": "borrador", "piezas": 21, "acomodo": null, "cliente": "(lab 10) T1 cotizar", "totales": {"iva": 27015.5, "flete": 14942.2, "total": 195862.36, "ivaPct": 16, "anticipo":
+
+[lab-cot] nube 1668 {"status":200,"partidas":8,"cliente":"(lab 10) T1 cotizar","estado":"borrador"}
+
+[lab-cot] rpc cotizacion_segura 200 {"id": 1668, "ok": true, "folio": null, "total": 195862.36, "activa": true, "creado": "2026-10-13T13:29:06.609094+00:00", "estado": "borrador", "piezas": 21, "acomodo": null, "cliente": "(lab 10) T1 cotizar", "totales": {"iva": 27015.5, "flete": 14942.2, "total": 195862.36, "ivaPct": 16, "anticipo":
+
+[lab-cot] rpc evaluar_emision_cotizacion 200 {"hash": "a9bb87e96dfa669bfdd451a21a90ed47", "state": "ECONOMICS_INCOMPLETE", "reasons": ["linea_2_costo_desconocido", "linea_3_costo_desconocido", "linea_4_costo_desconocido", "linea_5_costo_desconocido", "linea_6_costo_desconocido", "linea_7_costo_desconocido", "linea_8_costo_desconocido"], "appro
+
+[lab-cot] rpc cotizaciones_mias 200 [{"id": 1669, "folio": null, "total": 18272.55, "activa": true, "creado": "2026-10-13T13:29:09.569684+00:00", "estado": "borrador", "piezas": 5, "cliente": null, "usuario": "qa-direccion@vonhaucke.mx", "partidas": [{"nombre": "Mesa de juntas", "cantidad": 1, "precioUnitario": 4260}, {"nombre": "Sill
+
+[lab-cot] rpc cotizaciones_mias 200 [{"id": 1669, "folio": null, "total": 18272.55, "activa": true, "creado": "2026-10-13T13:29:09.569684+00:00", "estado": "borrador", "piezas": 5, "cliente": null, "usuario": "qa-direccion@vonhaucke.mx", "partidas": [{"nombre": "Mesa de juntas", "cantidad": 1, "precioUnitario": 4260}, {"nombre": "Sill
+
+[lab-cot] rpc cotizacion_segura 200 {"id": 1668, "ok": true, "folio": null, "total": 195862.36, "activa": true, "creado": "2026-10-13T13:29:06.609094+00:00", "estado": "borrador", "piezas": 21, "acomodo": null, "cliente": "(lab 10) T1 cotizar", "totales": {"iva": 27015.5, "flete": 14942.2, "total": 195862.36, "ivaPct": 16, "anticipo":
+
+[lab-cot] RESUMEN {"modo":"texto","id":1668,"partidas":8,"identica":true,"cobrablesSugeridas":0,"pdf":"Descargar PDF","tiempos":{"interpretarSeg":20.196,"guardarSeg":0.042,"pdfSeg":1.326,"reabrirSeg":4.614},"pageErrors":0}
+
+  1 passed (44.3s)

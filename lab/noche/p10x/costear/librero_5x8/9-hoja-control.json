@@ -1,0 +1,107 @@
+{
+  "producto": "Librero abierto 900 × 350 × 1800, melamina 28 mm Walnut en HOJA 5 × 8",
+  "resumen": {
+    "esperados": 6,
+    "pass": 4,
+    "fail": 2,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 0,
+    "renglonesBom": 7,
+    "veredicto": "FAIL"
+  },
+  "filas": [
+    {
+      "clave": "laterales",
+      "renglones": 1,
+      "materiales": [
+        "erp-ame28152-b709"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: 2 LATERALES 1800 × 350, AGLOMERADO MELAMINA 28 mm WALNUT HOJA 5 × 8 (ERP AME28152 WALNUT es el único 28 mm Walnut 5×8)",
+      "inferido": false,
+      "piezas": 2
+    },
+    {
+      "clave": "piso_techo",
+      "renglones": 0,
+      "materiales": [],
+      "estado": "FAIL",
+      "motivos": [
+        "material fuera de la familia esperada (^erp-ame28152-b709$): Piso y techo [melamina-28-walnut]"
+      ],
+      "evidencia": "plano: PISO Y TECHO 844 × 350 (2)",
+      "inferido": false
+    },
+    {
+      "clave": "entrepanos",
+      "renglones": 0,
+      "materiales": [],
+      "estado": "FAIL",
+      "motivos": [
+        "material fuera de la familia esperada (^erp-ame28152-b709$): Entrepaños fijos [melamina-28-walnut]"
+      ],
+      "evidencia": "plano: 4 ENTREPAÑOS FIJOS 844 × 330",
+      "inferido": false
+    },
+    {
+      "clave": "respaldo",
+      "renglones": 1,
+      "materiales": [
+        "melamina-16-walnut"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: RESPALDO MELAMINA 16 mm WALNUT 1800 × 900, UNA PIEZA (el plano no fija formato del respaldo)",
+      "inferido": false,
+      "piezas": 1
+    },
+    {
+      "clave": "tapacanto_m",
+      "renglones": 1,
+      "materiales": [
+        "tapacanto"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: SÓLO CANTOS FRONTALES → 2 × 1.80 + 2 × 0.844 + 4 × 0.844 = 8.66 m",
+      "inferido": false,
+      "metros": 8.66
+    },
+    {
+      "clave": "niveladores",
+      "renglones": 1,
+      "materiales": [
+        "nivelador"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: 4 NIVELADORES",
+      "inferido": false,
+      "cantidad": 4
+    }
+  ],
+  "sobran": [
+    {
+      "nombre": "Tornillería de ensamble y respaldo",
+      "insumoId": "tornilleria",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "El plano pide hoja 5x8 (1525x2440). ¿Se confirma ese formato en lugar de 1.22x2.44?",
+      "elegido": "(sin responder: ninguna opción coincide con el plano)",
+      "opciones": [
+        "Hoja 5x8 1525x2440",
+        "Hoja 1.22x2.44"
+      ],
+      "evidencia": "plano: HOJA 5 × 8 (1525 × 2440)"
+    },
+    {
+      "pregunta": "¿Se acepta tapacanto PVC del catalogo para el color Walnut 2 mm?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

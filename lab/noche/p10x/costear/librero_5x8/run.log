@@ -1,0 +1,42 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Librero abierto 900x1800x350 mm, melamina Walnut","tipo":"guarda","piezas":[{"nombre":"Laterales","insumoId":"melamina-28-walnut","material_solicitado":"Aglomerado melamina dos caras 28 mm acabado Walnut, HOJA 5 × 8 (1525 × 2440)","material_match":"EXACT","forma":
+
+[lab-costear] analizar-mueble 200 en 23 s · piezas 9 · lote 1
+
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Librero abierto 900x1800x350 mm, aglomerado melamina Walnut 28 mm","tipo":"guarda","piezas":[{"nombre":"Laterales","insumoId":"melamina-28-walnut","material_solicitado":"Aglomerado melamina dos caras 28 mm acabado Walnut, hoja 5 × 8 (1525 × 2440)","material_match"
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":5296.88,"materialTotal":3296.06,"manoObra":500.2,"indirectosFabrica":1500.61,"desperdicio":1492.27,"detalleInsumos":[{"insumoId":"melamina-28-walnut","nombre":"Melamina 28 mm, Walnut","seccion":"cubie
+
+[lab-costear] BOM inicial {"piezas":7,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":3159.92,"materialTotal":1960.46,"manoObra":299.86,"indirectosFabrica":899.59,"desperdicio":721.99,"detalleInsumos":[{"insumoId":"melamina-28-walnut","nombre":"Melamina 28 mm, Walnut","seccion":"cubier
+
+[lab-costear] tras ERP {"erp":{"intentado":true,"pieza":"Laterales","resultados":1,"elegido":"AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT · hoja · ERP $1,924.20 / hoja · propuesto_validado · 2022-12-17 Usar"},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"El plano pide hoja 5x8 (1525x2440). ¿Se confirma ese formato en lugar de 1.22x2.44?","elegido":"(sin responder: ninguna opción coincide con el plano)","opciones":["Hoja 5x8 1525x2440","Hoja 1.22x2.44"],"evidencia":"plano: HOJA 5 × 8 (1525 × 2440)"},{"pregunta":"¿Se acepta tapacanto PVC del catalogo para el color Walnut 2 mm?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":3159.92,"materialTotal":1960.46,"manoObra":299.86,"indirectosFabrica":899.59,"desperdicio":721.99,"detalleInsumos":[{"insumoId":"melamina-28-walnut","nombre":"Melamina 28 mm, Walnut","seccion":"cubier
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 2 propuestos","diferencias":"4 difieren de lo pedido y se confirman uno por uno: Piso y techo, Entrepaños fijos, Tapacanto PVC 2 mm Walnut, cantos frontales laterales, Tornillería de ensamble y respaldo. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$3,159.92","Pendiente"],"margen":null,"estado":"Costo INCOMPLETO — faltan por costear 1 partida(s): Laterales (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada). Asígnales material en el despiece (arriba) o márcalas como excluidas. Hasta entonces no hay costo total ni precio.","linea":"Material $1,960.46 · Mano de obra $299.86 · Fábrica $899.59","pendiente":true,"porConfirmar":false}
+
+[lab-costear] paridad {"costoCliente":null,"costoSrv":3159.92,"estadoSrv":"incompleto","iguales":null,"llamadasSrv":3}
+
+[lab-costear] expedientes POST 201 [{"id":67}]
+
+[lab-costear] guardado {"status":201,"id":67,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":3159.92,"materialTotal":1960.46,"manoObra":299.86,"indirectosFabrica":899.59,"desperdicio":721.99,"detalleInsumos":[{"insumoId":"melamina-28-walnut","nombre":"Melamina 28 mm, Walnut","seccion":"cubier
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":6,"pass":4,"fail":2,"riesgo":0,"sobrantesNoPermitidos":0,"renglonesBom":7,"veredicto":"FAIL"} ["FAIL piso_techo: material fuera de la familia esperada (^erp-ame28152-b709$): Piso y techo [melamina-28-walnut]","FAIL entrepanos: material fuera de la familia esperada (^erp-ame28152-b709$): Entrepaños fijos [melamina-28-walnut]"]
+
+[lab-costear] reabierta {"tarjeta":"sin render p10e_librero_5x8 BORRADOR guarda librero abierto 5 niveles Aglomerado melamina Walnut 28 mm","piezas":7,"mismoBom":true,"costoAntes":"$3,159.92","costoDespues":"$3,159.92","mismoCosto":true,"resultado":{"precios":["$3,159.92","Pendiente"],"margen":null,"estado":"Costo INCOMPLETO — faltan por costear 1 partida(s): Laterales (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada). Asígnales material en el despiece (arriba) o márcalas como excluidas. Hasta entonces no hay costo total ni precio.","linea":"Material $1,960.46 · Mano de obra $299.86 · Fábrica $899.59","pendiente":true,"porConfirmar":false},"pageErrors":0}
+
+  1 passed (1.7m)

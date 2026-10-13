@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$5,072.85",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 6 decisión(es) pendiente(s): ¿Qué módulo eléctrico se usa en la cubierta? · ¿Cuántos pasacables/grommets adicionales lleva la cubierta? · ¿La mesa se entrega armada o knock-down (desmontable)? · ¿Se cantea todo el perímetro de paneles laterales y faldón? · ¿Requiere charola/ducto de cableado bajo la cubierta? · ¿Cuántas mesas se fabrican en este pedido?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $3,375.08 · Mano de obra $421.20 · Fábrica $1,276.57",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}
