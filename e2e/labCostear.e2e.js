@@ -203,13 +203,13 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   // después es el costo normal de siempre). Registra; la aserción dura vive en las pruebas unitarias.
   if (costoCliente != null) {
     const dif = { costoNormal: costoCliente };
-    const irA = async (rx) => { for (let k = 0; k < 4 && !(await page.getByTestId('costear-dificultad').count()); k++) { await page.getByRole('button', { name: rx }).first().click(); await page.waitForTimeout(800); } };
+    const irA = async (rx) => { for (let k = 0; k < 4 && !(await page.getByTestId('costear-dificultad').count()); k++) { await page.locator('.asistente').getByRole('button', { name: rx }).first().click({ timeout: 10000 }); await page.waitForTimeout(800); } };
     await irA(/Atrás/);
     if (await page.getByTestId('costear-dificultad').count()) {
-      await page.getByTestId('dificultad-dificil').click();
+      await page.getByTestId('dificultad-dificil').click({ timeout: 10000 });
       dif.marcado = await page.getByTestId('dificultad-dificil').getAttribute('aria-checked');
       const n0 = edges.filter((e) => e.fn.startsWith('costear-servidor')).length;
-      for (let k = 0; k < 3 && !(await page.locator('.precio-enorme').count()); k++) { const vp = page.getByRole('button', { name: /Ver precio|Siguiente/ }); if (await vp.count()) await vp.first().click(); await page.waitForTimeout(1200); }
+      for (let k = 0; k < 3 && !(await page.locator('.precio-enorme').count()); k++) { const vp = page.locator('.asistente').getByRole('button', { name: /Ver precio|Siguiente/ }); if (await vp.count()) await vp.first().click({ timeout: 10000 }); await page.waitForTimeout(1200); }
       const rd = await leerResultado(page);
       dif.costoDificil = rd.precios.length && !rd.pendiente ? pesosNum(rd.precios[0]) : null;
       await page.waitForTimeout(6000);
@@ -220,8 +220,8 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
       dif.paridad = dif.costoDificil != null && dif.costoSrvDificil != null ? Math.round(dif.costoDificil * 100) === Math.round(Number(dif.costoSrvDificil) * 100) : null;
       await page.screenshot({ path: path.join(SALIDA, '4b-dificil.png'), fullPage: true });
       await irA(/Atrás/);
-      await page.getByTestId('dificultad-normal').click();
-      for (let k = 0; k < 3 && !(await page.locator('.precio-enorme').count()); k++) { const vp = page.getByRole('button', { name: /Ver precio|Siguiente/ }); if (await vp.count()) await vp.first().click(); await page.waitForTimeout(1200); }
+      await page.getByTestId('dificultad-normal').click({ timeout: 10000 });
+      for (let k = 0; k < 3 && !(await page.locator('.precio-enorme').count()); k++) { const vp = page.locator('.asistente').getByRole('button', { name: /Ver precio|Siguiente/ }); if (await vp.count()) await vp.first().click({ timeout: 10000 }); await page.waitForTimeout(1200); }
       const rn = await leerResultado(page);
       dif.costoDeVueltaNormal = rn.precios.length && !rn.pendiente ? pesosNum(rn.precios[0]) : null;
       dif.regresaIgual = dif.costoDeVueltaNormal === dif.costoNormal;
