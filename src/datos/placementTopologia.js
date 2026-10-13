@@ -21,6 +21,21 @@ const ID_BENCH_DOBLE = /bench-?doble/i;              // id de catálogo (p9-app-
 // ancla quedaba UNKNOWN → una sola cara → 8 sillas en 4 lugares (encimadas).
 const NOMBRE_BENCH_DOBLE = /\b(bench|banca|banco)\s*doble\b/i;     // nombre canónico de familia
 
+// VH-153 (Dirección 13-oct, D6): los MÓDULOS OPERATIVOS App LT de fondo 1200 son banca doble POR SU PROPIA
+// DEFINICIÓN DE PRODUCTO: applt.js arma esos módulos con cubiertas "banca doble" (CUBIERTA_BD, fondo 1200) y
+// omega doble (ATOMCU, `fondoMM > 600 ? 'doble' : 'simple'`). Es evidencia de CATÁLOGO (la receta del
+// producto), no una inferencia por capacidad: 4u/6u/8u/10u/12u × 1200 ⇒ DOUBLE_FACE (n/2 + n/2 enfrentados).
+// Un operativo de fondo ≤ 600 (una sola hilera) NO entra aquí.
+const esModuloOperativoAppLT = (p) => p && String(p.linea || '') === 'App LT' && /operativ|bench/i.test(String(p.categoria || '')) && String(p.tipo || '') === 'modulo';
+function topologiaAppLT1200(prod) {
+  const idStr = String(prod.productoId || prod.producto_id || prod.piezaId || prod.id || '');
+  const cat = esModuloOperativoAppLT(prod) ? prod : BANCO.find((x) => x.id === idStr && esModuloOperativoAppLT(x));
+  if (!cat) return null;
+  const { d } = medidasAwd(cat.medidas) || {};
+  if (d !== 1200) return null;
+  return { topology: 'DOUBLE_FACE', provenance: 'CATALOG', evidence: `${cat.id}: módulo operativo App LT fondo 1200 = banca doble (receta applt.js: cubierta CUBIERTA_BD + omega ATOMCU para fondo > 600)` };
+}
+
 // Devuelve un placement_profile {topology, provenance, evidence} o null.
 export function topologiaDeProducto(prod = {}) {
   const idStr = String(prod.productoId || prod.producto_id || prod.piezaId || prod.id || '');
@@ -29,6 +44,8 @@ export function topologiaDeProducto(prod = {}) {
   if (ID_BENCH_DOBLE.test(idStr) || ID_BENCH_DOBLE.test(clave)) {
     return { topology: 'DOUBLE_FACE', provenance: 'CATALOG', evidence: idStr || clave };
   }
+  const appLT = topologiaAppLT1200(prod);
+  if (appLT) return appLT;
   if (NOMBRE_BENCH_DOBLE.test(nombre)) {
     // Sólo el nombre coincide (sin id de catálogo): verdad más débil → INFERRED.
     return { topology: 'DOUBLE_FACE', provenance: 'INFERRED', confidence: 0.5, evidence: `nombre:${nombre}` };
