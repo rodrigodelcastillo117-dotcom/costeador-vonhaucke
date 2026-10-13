@@ -124,3 +124,19 @@ describe('problemasDeEmision', () => {
     }];
     expect(problemasDeEmision(p)).toEqual([]);
   });
+
+describe('fuente del insumo (VH-143)', () => {
+  it('lee `fuente` (semilla) o `evidencia.fuente` (catalogo_motor); sin ninguna es "sin fuente"', async () => {
+    const { fuenteDeInsumo } = await import('./senales.js');
+    expect(fuenteDeInsumo({ fuente: 'Compras 2026-08' })).toBe('Compras 2026-08');
+    expect(fuenteDeInsumo({ evidencia: { fuente: 'Compras · ERP Intelisis última compra' } })).toBe('Compras · ERP Intelisis última compra');
+    expect(fuenteDeInsumo({ evidencia: {} })).toBeNull();
+    expect(fuenteDeInsumo(undefined)).toBeNull();
+  });
+  it('senalesInsumos no marca como sin fuente a los insumos de catalogo_motor', () => {
+    const r = senalesInsumos([{ id: 'a', evidencia: { fuente: 'ERP' } }, { id: 'b', fuente: 'semilla' }]);
+    expect(r).toEqual([]);
+    const r2 = senalesInsumos([{ id: 'a', evidencia: { fuente: 'ERP' } }, { id: 'c' }]);
+    expect(r2[0].texto).toMatch(/^1 de 2 insumos/);
+  });
+});

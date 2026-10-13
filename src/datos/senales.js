@@ -91,9 +91,14 @@ export function problemasDeEmision(partidas = []) {
 // Señales del catálogo de insumos — cuántos no traen registrado de dónde
 // salió su precio. Hoy esa cuenta solo la sabía `scripts/revisa-precios.mjs`
 // corriendo aparte; aquí se vuelve una señal viva dentro de la app.
+// VH-143: `insumo_motor` (catalogo_motor) entrega la fuente del precio en `evidencia.fuente`, no en
+// `fuente`; la semilla local la trae en `fuente`. Leer sólo una de las dos marcaba como "sin fuente"
+// a TODO el catálogo certificado (ERP aprobado incluido).
+export const fuenteDeInsumo = (i) => (i && (i.fuente || i.evidencia?.fuente)) || null;
+
 export function senalesInsumos(insumos = [], par) {
   if (!insumos.length) return [];
-  const sinFuente = insumos.filter((i) => !i.fuente);
+  const sinFuente = insumos.filter((i) => !fuenteDeInsumo(i));
   if (!sinFuente.length) return [];
   const lista = [{
     tipo: 'ambar',

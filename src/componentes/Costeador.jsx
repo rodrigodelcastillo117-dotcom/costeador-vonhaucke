@@ -2,6 +2,7 @@
 //  COSTEADOR - la pantalla principal de trabajo (master 7.2)
 //  Dos columnas en >=1000px; una sola abajo, con barra fija que muestra el costo.
 // ============================================================================
+import { fuenteDeInsumo } from '../datos/senales.js';
 import { useMemo, useState, useEffect } from 'react';
 import { sugerenciaLote, sugerenciaMedida, costoNetoComponente, netoComponente, costeoEmitible, PARAMETROS_DEFAULT, SIN_MO_SECCIONES, precioUsable } from '../motor/calculo.js';
 import { calcularCosteoVivo, parametrosEfectivosCosteo } from '../motor/costeoVivo.js';
@@ -877,9 +878,10 @@ function ConfianzaCosteo({ resultado, insumos }) {
   const det = (resultado.detalleInsumos || []).filter((d) => (d.costo || 0) > 0);
   const matTot = det.reduce((a, d) => a + d.costo, 0);
   if (matTot <= 0) return null;
-  const conFuente = det.filter((d) => insumos[d.insumoId]?.fuente).reduce((a, d) => a + d.costo, 0);
+  // VH-143: la fuente puede venir en `fuente` (semilla) o en `evidencia.fuente` (catalogo_motor).
+  const conFuente = det.filter((d) => fuenteDeInsumo(insumos[d.insumoId])).reduce((a, d) => a + d.costo, 0);
   const pctV = Math.round((conFuente / matTot) * 100);
-  const sinFuente = det.filter((d) => !insumos[d.insumoId]?.fuente);
+  const sinFuente = det.filter((d) => !fuenteDeInsumo(insumos[d.insumoId]));
   const palabra = pctV >= 80 ? 'sólido' : pctV >= 50 ? 'parcial' : 'flojo';
   return (
     <div className="tarjeta">
