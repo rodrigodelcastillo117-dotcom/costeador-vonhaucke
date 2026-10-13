@@ -1,0 +1,27 @@
+-- ============================================================================
+--  PROPUESTA · VH-147 · política versionada ERP_ULTIMA_COMPRA_V1 de elegibilidad de precios
+--  de última compra. ⚠️ NO APLICAR: requiere que Dirección fije la VENTANA (meses) y autorice.
+--  No cambia `estado` de ningún precio, no toca fórmulas, márgenes, precios de lista ni
+--  aprobaciones de venta. Añade a `catalogo_vigente` dos columnas calculadas y redefine
+--  `certificable` como (aprobado sin validación pendiente) OR elegible_erp.
+--  Parámetro: private_api.ventana_erp_meses() — valor a decidir (12 / 24 / 36 / 60 / sin ventana).
+-- ============================================================================
+-- create or replace function private_api.ventana_erp_meses() returns integer language sql immutable as $$ select 24 $$;
+--
+-- create or replace view public.catalogo_vigente as
+-- with ranked as ( ... igual que hoy ... )
+-- select ..., estado, evidence_status, confidence, requiere_validacion_compras,
+--   (source_system = 'erp_intelisis' and contract_status = 'DATA_TRUTH_V1'
+--     and source_document is not null and source_record_id is not null
+--     and (source_currency = 'MXN' or (fx_rate is not null and fx_date is not null and fx_source is not null))
+--     and cost_unit = unidad_costeo and coalesce(cost_unit_price_mxn,0) > 0
+--     and activo and vigente_hasta is null
+--     and vigente_desde >= (current_date - make_interval(months => private_api.ventana_erp_meses()))) as elegible_erp,
+--   case when source_system <> 'erp_intelisis' then null
+--        when vigente_desde < (current_date - make_interval(months => private_api.ventana_erp_meses()))
+--          then 'ultima compra ' || vigente_desde || ' fuera de ventana de ' || private_api.ventana_erp_meses() || ' meses'
+--        ... end as motivo_no_elegible,
+--   ((estado = 'aprobado' and not requiere_validacion_compras) or elegible_erp) as certificable,
+--   ...
+-- Conteos al 2026-10-13 por ventana (ver docs/auditoria/ERP_PRECIOS_ELEGIBILIDAD.md § 4):
+--   12 m → 1 159 · 24 m → 1 650 · 36 m → 1 970 · 60 m → 3 000 · sin ventana → 9 966.

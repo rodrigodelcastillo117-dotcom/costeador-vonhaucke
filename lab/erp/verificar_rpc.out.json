@@ -1,0 +1,127 @@
+{
+  "filas": [
+    {
+      "id": "erp-ame1948-b14",
+      "origen": "306 MXN/hoja ×1",
+      "mxn": 306,
+      "vigente": "NO VIGENTE",
+      "motor": "306 hoja formato=tablero ev=propuesto_validado/false",
+      "paridad": "✓"
+    },
+    {
+      "id": "erp-mdf18h",
+      "origen": "725.4 MXN/hoja ×1",
+      "mxn": 725.4,
+      "vigente": "NO VIGENTE",
+      "motor": "725.4 hoja formato=- ev=propuesto_validado/false",
+      "paridad": "✓"
+    },
+    {
+      "id": "erp-ame28152-b14",
+      "origen": "645.37 MXN/hoja ×1",
+      "mxn": 645.37,
+      "vigente": "NO VIGENTE",
+      "motor": "645.37 hoja formato=- ev=propuesto_validado/false",
+      "paridad": "✓"
+    },
+    {
+      "id": "erp-ac1cv2412",
+      "origen": "1085.28 MXN/hoja ×1",
+      "mxn": 1085.28,
+      "vigente": "NO VIGENTE",
+      "motor": "1085.28 hoja formato=- ev=propuesto_validado/false",
+      "paridad": "✓"
+    },
+    {
+      "id": "erp-af212316-6",
+      "origen": "436.9 MXN/pza ×1",
+      "mxn": 436.9,
+      "vigente": "NO VIGENTE",
+      "motor": "436.9 pza formato=- ev=propuesto_validado/false",
+      "paridad": "✓"
+    },
+    {
+      "id": "erp-12n5g3-a",
+      "origen": "280 MXN/pieza ×1",
+      "mxn": 280,
+      "vigente": "NO VIGENTE",
+      "motor": "280 pza formato=- ev=aprobado/true",
+      "paridad": "✓"
+    },
+    {
+      "id": "erp-9071205",
+      "origen": "86.2068 MXN/pieza ×1",
+      "mxn": 86.2068,
+      "vigente": "NO VIGENTE",
+      "motor": "86.2068 pza formato=- ev=propuesto_validado/false",
+      "paridad": "✓"
+    },
+    {
+      "id": "erp-baan124",
+      "origen": "13 MXN/pza ×1",
+      "mxn": 13,
+      "vigente": "NO VIGENTE",
+      "motor": "13 pza formato=- ev=propuesto_validado/false",
+      "paridad": "✓"
+    },
+    {
+      "id": "erp-adco169",
+      "origen": "2090 MXN/pza ×1",
+      "mxn": 2090,
+      "vigente": "NO VIGENTE",
+      "motor": "2090 pza formato=- ev=aprobado/true",
+      "paridad": "✓"
+    },
+    {
+      "id": "erp-20awg",
+      "origen": "17.29 MXN/pieza ×1",
+      "mxn": 17.29,
+      "vigente": "NO VIGENTE",
+      "motor": "17.29 pza formato=- ev=aprobado/true",
+      "paridad": "✓"
+    },
+    {
+      "id": "erp-cnacus",
+      "origen": "68.98 MXN/pza ×1",
+      "mxn": 68.98,
+      "vigente": "NO VIGENTE",
+      "motor": "68.98 pza formato=- ev=aprobado/true",
+      "paridad": "✓"
+    },
+    {
+      "id": "erp-1810-89",
+      "origen": "1633.5489 MXN/pieza ×1",
+      "mxn": 1633.5489,
+      "vigente": "NO VIGENTE",
+      "motor": "1633.5489 pza formato=- ev=propuesto_validado/false",
+      "paridad": "✓"
+    },
+    {
+      "id": "erp-bmtppi3g114635",
+      "origen": "4300 MXN/pza ×1",
+      "mxn": 4300,
+      "vigente": "NO VIGENTE",
+      "motor": "4300 pza formato=- ev=propuesto_validado/false",
+      "paridad": "✓"
+    },
+    {
+      "id": "erp-abbio4crt-cr",
+      "origen": "878.45 MXN/pieza ×1",
+      "mxn": 878.45,
+      "vigente": "NO VIGENTE",
+      "motor": "878.45 pza formato=- ev=aprobado/true",
+      "paridad": "✓"
+    },
+    {
+      "id": "erp-bi155bm3n",
+      "origen": "186.88 MXN/pieza ×1",
+      "mxn": 186.88,
+      "vigente": "NO VIGENTE",
+      "motor": "186.88 pza formato=- ev=aprobado/true",
+      "paridad": "✓"
+    }
+  ],
+  "ok": 15,
+  "total": 15,
+  "motorKeys": 274
+}
