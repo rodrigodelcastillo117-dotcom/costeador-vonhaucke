@@ -1,0 +1,48 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:38:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:38:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Credenza Nogal 3 puertas 1800x450x750","tipo":"guarda","piezas":[{"nombre":"Laterales de cuerpo (enchapado nogal)","insumoId":"mdf","material_solicitado":"MDF 18 mm enchapado nogal natural","material_match":"SUBSTITUTE_SUGGESTED","forma":"area","largoMM":650,"anch
+
+[lab-costear] analizar-mueble 200 en 24 s · piezas 12
+
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Credenza Nogal 1800x450x750 mm, 3 puertas abatibles","tipo":"guarda","piezas":[{"nombre":"Laterales de cuerpo (enchapado nogal)","insumoId":"mdf","material_solicitado":"MDF 18 mm enchapado nogal natural (nucleo crudo)","material_match":"SUBSTITUTE_SUGGESTED","form
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":3137.27,"materialTotal":1926.95,"manoObra":302.58,"indirectosFabrica":907.74,"desperdicio":830.23,"detalleInsumos":[{"insumoId":"mdf","nombre":"MDF 19 mm","seccion":"cubiertas","costo":801.17,"certifi
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":3119.79,"materialTotal":1916.02,"manoObra":300.94,"indirectosFabrica":902.83,"desperdicio":825.91,"detalleInsumos":[{"insumoId":"erp-mdf19","nombre":"MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"
+
+[lab-costear] BOM inicial {"piezas":14,"pendientes":["Respaldo MDF 9 mm"],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":3273.39,"materialTotal":2012.02,"manoObra":315.34,"indirectosFabrica":946.03,"desperdicio":825.91,"detalleInsumos":[{"insumoId":"erp-mdf19","nombre":"MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"
+
+[lab-costear] tras ERP {"erp":{"intentado":true,"pieza":"Respaldo MDF 9 mm","resultados":6,"elegido":"MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\" · hoja · ERP $240.00 / hoja · certificado · 2026-06-01 Usar"},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] recalculo 200
+
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Credenza Nogal 1800x450x750 mm","tipo":"guarda","piezas":[{"nombre":"Laterales de cuerpo (nucleo MDF 18 mm)","insumoId":"mdf","material_solicitado":"MDF 18 mm enchapado nogal natural","material_match":"SUBSTITUTE_SUGGESTED","forma":"area","largoMM":650,"anchoMM":4
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":3521.27,"materialTotal":2166.95,"manoObra":338.58,"indirectosFabrica":1015.74,"desperdicio":975.9,"detalleInsumos":[{"insumoId":"mdf","nombre":"MDF 19 mm","seccion":"cubiertas","costo":801.17,"certifi
+
+[lab-costear] respuestas [{"pregunta":"Configuracion de la base PTR?","elegido":"Marco perimetral con zocalo","opciones":["Marco perimetral con zocalo","4 patas con travesano","Otro"]},{"pregunta":"Tipo de chapa nogal?","elegido":"Sabana natural","opciones":["Sabana natural","Walnut Burl","Por definir"]}]
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":4009.6,"materialTotal":2449.04,"manoObra":390.14,"indirectosFabrica":1170.42,"desperdicio":975.74,"detalleInsumos":[{"insumoId":"erp-mdf19","nombre":"MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 8 propuestos","diferencias":"5 difieren de lo pedido y se confirman uno por uno: Laterales de cuerpo (nucleo MDF 18 mm), Cubierta y fondo de cuerpo (nucleo MDF 18 mm), Puertas abatibles (nucleo MDF), Pintura electrostatica negra, base, Jaladeras rectas 300 mm.","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$4,375.61","Por confirmar"],"margen":null,"estado":"Costo preliminar — 1 decisión(es) pendiente(s): Cuantos divisores verticales interiores?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $2,652.38 · Mano de obra $430.81 · Fábrica $1,292.42","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":4375.61,"costoSrv":4009.6,"estadoSrv":"incompleto","iguales":false,"llamadasSrv":5}
+
+[lab-costear] expedientes POST 201 [{"id":23}]
+
+[lab-costear] guardado {"status":201,"id":23,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":4009.6,"materialTotal":2449.04,"manoObra":390.14,"indirectosFabrica":1170.42,"desperdicio":975.74,"detalleInsumos":[{"insumoId":"erp-mdf19","nombre":"MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] reabierta {"tarjeta":"sin render (lab V2 corrida 13) Credenza Nogal BORRADOR guarda credenza 3 puertas MDF con chapa de nogal natural","piezas":14,"mismoBom":true,"costoAntes":"$4,375.61","costoDespues":"$4,375.61","mismoCosto":true,"resultado":{"precios":["$4,375.61","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $2,652.38 · Mano de obra $430.81 · Fábrica $1,292.42","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (2.4m)

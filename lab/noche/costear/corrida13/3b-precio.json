@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$4,375.61",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 1 decisión(es) pendiente(s): Cuantos divisores verticales interiores?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $2,652.38 · Mano de obra $430.81 · Fábrica $1,292.42",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

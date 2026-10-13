@@ -392,7 +392,8 @@ describe('VH-086: EcoLegno es melamina (nombre real de melamina-19 en producció
 describe('VH-158 · diferencia frente a lo pedido no se confirma en bloque', () => {
   it('espesor, calibre, perfil, variante y color son diferencias; reglas de casa no', async () => {
     const { difiereDeLoPedido } = await import('./materialMatch.js');
-    expect(difiereDeLoPedido('Solicitado 18 mm → candidato 19 mm')).toBe(true);
+    expect(difiereDeLoPedido('Solicitado 18 mm → candidato 19 mm')).toBe(false); // par aprobado 18↔19 = regla de casa
+    expect(difiereDeLoPedido('Solicitado 16 mm → candidato 19 mm')).toBe(true);
     expect(difiereDeLoPedido('Solicitado cal.14 → candidato cal.18')).toBe(true);
     expect(difiereDeLoPedido('Variante pedida («recta 300») no está en el nombre del catálogo')).toBe(true);
     expect(difiereDeLoPedido('Acabado/color distinto al solicitado')).toBe(true);

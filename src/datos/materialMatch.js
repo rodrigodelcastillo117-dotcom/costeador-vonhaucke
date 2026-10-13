@@ -855,7 +855,15 @@ export function patchConfirmacionUI(insumoId) {
 // acabado/color)? Las reglas de casa ('estándar de casa', 'perfil supuesto…', 'el color lo da la pintura…')
 // no son diferencias. Una diferencia NUNCA se confirma en bloque: la persona la ve y decide fila por fila (VH-158).
 export function difiereDeLoPedido(cambio = '') {
-  return /^(Solicitado |Variante pedida|Acabado\/color distinto)/.test(String(cambio || ''));
+  const t = String(cambio || '');
+  // Un cambio de espesor de tablero dentro de los pares APROBADOS por negocio (18↔19, 2026-10-08) es regla
+  // de casa, no diferencia: puede ir en el bloque.
+  const m = t.match(/^Solicitado ([\d/.]+) mm → candidato ([\d/.]+) mm$/);
+  if (m) {
+    const A = m[1].split('/').map(Number), B = m[2].split('/').map(Number);
+    if (A.every((a) => B.every((b) => a === b || PARES_ESPESOR_PANEL_COMPATIBLE.has(parEspesor(a, b))))) return false;
+  }
+  return /^(Solicitado |Variante pedida|Acabado\/color distinto)/.test(t);
 }
 
 // Reglas de casa (amarre ERP): se exponen la severidad y el texto de cambio sin cambiar la API interna.

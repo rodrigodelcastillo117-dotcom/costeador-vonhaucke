@@ -1,0 +1,98 @@
+{
+  "confirmacion": {
+    "ofrecida": true,
+    "texto": "Confirmar los 8 propuestos",
+    "diferencias": "5 difieren de lo pedido y se confirman uno por uno: Laterales de cuerpo (nucleo MDF 18 mm), Cubierta y fondo de cuerpo (nucleo MDF 18 mm), Puertas abatibles (nucleo MDF), Pintura electrostatica negra, base, Jaladeras rectas 300 mm.",
+    "diferenciasAceptadas": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Laterales de cuerpo (nucleo MDF 18 mm)",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Solicitado 18 mm → candidato 19 mm Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Cubierta y fondo de cuerpo (nucleo MDF 18 mm)",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Solicitado 18 mm → candidato 19 mm Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Chapa nogal natural sabana, cubierta y fondo (cara exterior)",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": []
+    },
+    {
+      "nombre": "Chapa nogal natural, laterales exteriores",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": []
+    },
+    {
+      "nombre": "Puertas abatibles (nucleo MDF)",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Solicitado 18 mm → candidato 19 mm Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Chapa nogal, frentes de puerta",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": []
+    },
+    {
+      "nombre": "Entrepano interior melamina blanca 16 mm (1 por modulo)",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Respaldo MDF 9 mm",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Base PTR 1x1 cal.14, marco perimetral con zocalo",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Pintura electrostatica negra, base",
+      "material": "Pintura electrostatica",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Bisagras",
+      "material": "Bisagra",
+      "alertas": []
+    },
+    {
+      "nombre": "Jaladeras rectas 300 mm",
+      "material": "JALADERA EMBUTIDA DE ALUMINIO REDONDO COLOR PLATA, ANODIZADO MARCA HAFELE MODELO 151.75.903 - \"JAEM15175902\"",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («recta 300») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto (cantos visibles)",
+      "material": "Tapacanto PVC",
+      "alertas": []
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}
