@@ -108,6 +108,9 @@ describe('guardar_cocrear_seguro con el payload real de Cocrear', () => {
   });
 });
 
+// COCREAR 10: estos dos `it.fails` describen la base de PRODUCCIÓN (baseline), que sigue igual hasta que
+// se aplique supabase/migrations/PROPUESTA_cocrear_costo_servidor.sql. Con la propuesta, ambos
+// requisitos se cumplen: ver supabase/tests/cocrearCostoServidor.test.js (D-02 y D-03).
 describe('registrar_producto_desde_expediente (defectos vigentes)', () => {
   it.fails('D-02 REQUISITO: el servidor no acepta como costo oficial un costSnapshot escrito por el cliente sin BOM', async () => {
     // Un vendedor llama la RPC directamente con un costSnapshot inventado y SIN componentes.
