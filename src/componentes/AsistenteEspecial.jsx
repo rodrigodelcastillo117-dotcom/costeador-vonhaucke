@@ -9,15 +9,9 @@ import { patchMedidas, piezasDeExpediente } from '../datos/medidasMaterial.js';
 import { precioDesdeCosto, margenObjetivoDe } from '../datos/precio.js';
 import { calcular, netoComponente, modeloParaPieza, costeoEmitible, bomHash, diffBOM, aplicarDiffBOM, MOTOR_VERSION, FORMULA_ALBA_V1, formulaDePieza } from '../motor/calculo.js';
 import { DIFICULTAD, factorDificultad } from '../motor/dificultad.js';
-
 // Niveles de dificultad con ejemplos REALES (piezas APP LT medidas contra horas estándar del ERP).
-const NIVELES_DIFICULTAD = [
-  ['muy_facil', 'Muy fácil', 'Mucho material y poco trabajo: cubiertas grandes, faldones (p.ej. ATCUBD46, ATFAL150).'],
-  ['facil', 'Fácil', 'Piezas planas sencillas con material de valor: cubierta 1500, omega larga (ATCUBD45, ATOM4).'],
-  ['normal', 'Normal', 'La fórmula de siempre. Cubierta 1200, omega ATOM3, módulo APP LT completo.'],
-  ['dificil', 'Difícil', 'Estructura soldada con muchos cortes: patas U (ATPU2M/3M/75M).'],
-  ['muy_dificil', 'Muy difícil', 'Mucho trabajo sobre poco material: acometidas, cajas, piezas con muchos dobleces (ATACM).'],
-];
+// Compartidos con Cocrear (un solo texto).
+import { NIVELES_DIFICULTAD } from '../datos/dificultadNiveles.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos2 } from '../util.js';
 import { dinero, aCentavosEnteros } from '../motor/dinero.js';
@@ -44,36 +38,8 @@ import Cargando from './Cargando.jsx';
 import Markdown from './Markdown.jsx';
 import InformeIA from './InformeIA.jsx';
 
-// Reduce una imagen a máx `lado` px y la devuelve como base64 JPEG (payload chico + más barato)
-function reducirImagen(file, lado = 1600) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      const escala = Math.min(1, lado / Math.max(img.width, img.height));
-      const w = Math.round(img.width * escala), h = Math.round(img.height * escala);
-      const c = document.createElement('canvas'); c.width = w; c.height = h;
-      c.getContext('2d').drawImage(img, 0, 0, w, h);
-      URL.revokeObjectURL(url);
-      resolve({ base64: c.toDataURL('image/jpeg', 0.85).split(',')[1], mediaType: 'image/jpeg' });
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No se pudo leer la imagen.')); };
-    img.src = url;
-  });
-}
-
-// Un PDF (plano) va TAL CUAL a la IA, sin rasterizar: Claude lo lee como
-// documento y rasterizarlo perdería las cotas. Mismo patrón que leerPlanoArchivo.
-function archivoABase64(file) {
-  return new Promise((resolve, reject) => {
-    const fr = new FileReader();
-    fr.onload = () => resolve(String(fr.result).split(',')[1]);
-    fr.onerror = () => reject(new Error('No se pudo leer el archivo.'));
-    fr.readAsDataURL(file);
-  });
-}
-
-const esPDF = (file) => file?.type === 'application/pdf' || /\.pdf$/i.test(file?.name || '');
+// Carga de imagen/plano: el MISMO flujo que usa Cocrear para su imagen de referencia (N-04).
+import { reducirImagen, archivoABase64, esPDF, validarArchivoImagen } from '../datos/cargaImagen.js';
 
 // Paleta de piezas comunes: al tocar una, se agrega al despiece con un material
 // por defecto y medidas de arranque. kind define cómo se mete (área/lineal/pieza).
@@ -831,12 +797,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    const MAX_MB = 50; // el PDF se lee local y se manda SOLO una hoja (chica)
-    if (file.size > MAX_MB * 1024 * 1024) {
-      setErrorIA(`El archivo pesa ${(file.size / 1048576).toFixed(0)} MB (máximo ${MAX_MB} MB). `
-        + 'Comprímelo o sube la hoja del mueble como imagen.');
-      return;
-    }
+    // Mismo filtro que la imagen de referencia de Cocrear (datos/cargaImagen.js): tamaño máx. 50 MB.
+    const invalido = validarArchivoImagen(file, { aceptaPdf: true });
+    if (invalido) { setErrorIA(invalido); return; }
     setErrorIA(''); setAnalizando(true);
     try {
       if (esPDF(file)) {

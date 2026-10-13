@@ -68,7 +68,10 @@ describe('COCREAR · persistencia del expediente (D-07, D-08 corregidos)', () =>
     expect(renderStale(render, spec)).toBe(false);
 
     const payload = cocrearPayload({ brief: BRIEF_RECEPCION, intent, historia, render });
-    expect(JSON.stringify(payload)).not.toContain('https://x/render.png'); // no viaja la imagen
+    // COCREAR 10 (D-06): ahora SÍ viaja la URL pública del render (Storage) para recuperarlo al
+    // reabrir; lo que nunca viaja es la imagen en base64 (ver cocrearRender10.test.js).
+    expect(payload.render.url).toBe('https://x/render.png');
+    expect(JSON.stringify(payload)).not.toContain('data:image');
     const reabierto = cocrearDeExpediente({ cocrear: JSON.parse(JSON.stringify(payload)) });
     const spec2 = specDeEstudio(reabierto.intent, reabierto.historia);
     expect(spec2.hash).toBe(spec.hash);
@@ -123,7 +126,8 @@ describe('COCREAR · de concepto a producto (defectos vigentes)', () => {
     expect(resultados.some((r) => r.bom > 0 && r.costo != null)).toBe(true);
   });
 
-  it.fails('D-05 REQUISITO: el core no acepta una validación de ingeniería firmada por un rol sin autoridad', () => {
+  // COCREAR 10: corregido (`validacionAutorizada`, cocrear.js). La autoridad real es la fila del servidor.
+  it('D-05 REQUISITO: el core no acepta una validación de ingeniería firmada por un rol sin autoridad', () => {
     const insumos = { tablero: { id: 'tablero', nombre: 'Tablero melamina', seccion: 'cubiertas', clase: 'directa', unidad: 'hoja', precio: 600, formato: { medida: 2.9768 }, fraccion: true, mermaCorte: 0 } };
     const par = { aprovechamientoCorte: 80, margenObjetivo: 40, mermaProceso: 0, modeloCosteo: 'clasico' };
     const intent = { ...prepararIntentCocrear('mesa de trabajo de melamina 1.50 m'), caracteristicas: [] };
