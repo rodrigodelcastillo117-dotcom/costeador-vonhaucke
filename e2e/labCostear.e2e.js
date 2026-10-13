@@ -1,0 +1,181 @@
+// LABORATORIO · ciclo COSTEAR real (P0-C): imagen de mueble → Voni → BOM → material ERP a mano →
+// costo del motor → sombra costear-servidor (paridad a centavos) → guardar expediente → biblioteca →
+// reabrir → comparar. Registra, no afirma: cada paso deja su evidencia en LAB_OUT. Sólo con
+// LAB_COSTEAR_IMG + TEST_EMAIL/TEST_PASSWORD (cuenta QA). Gasta 1–2 llamadas de IA.
+import { test, expect } from '@playwright/test';
+import fs from 'node:fs'; import path from 'node:path';
+const EMAIL = process.env.TEST_EMAIL; const PASS = process.env.TEST_PASSWORD; const IMG = process.env.LAB_COSTEAR_IMG;
+const SALIDA = process.env.LAB_OUT || 'test-results-prod/lab-costear';
+const NOMBRE = process.env.LAB_COSTEAR_NOMBRE || `Credenza Nogal (lab P0-C ${new Date().toISOString().slice(0, 16)})`;
+const ERP_BUSCAR = process.env.LAB_ERP_BUSCAR || 'MDF NATURAL 9 mm';
+const ERP_PATRON = new RegExp(process.env.LAB_ERP_PATRON || 'MDF8|ESPESOR 9 mm', 'i');
+const pesosNum = (t) => { const m = String(t || '').replace(/[^0-9.,-]/g, '').replace(/,/g, ''); const n = Number(m); return Number.isFinite(n) ? n : null; };
+const guarda = (n, o) => fs.writeFileSync(path.join(SALIDA, n), typeof o === 'string' ? o : JSON.stringify(o, null, 2));
+
+async function leerPiezas(page) {
+  const filas = page.locator('.pieza'); const n = await filas.count(); const out = [];
+  for (let i = 0; i < n; i++) {
+    const f = filas.nth(i);
+    const nombre = await f.locator('.pieza-nom').inputValue().catch(() => '');
+    const sel = f.locator('select.pieza-mat');
+    const material = (await sel.count()) ? await sel.evaluate((s) => s.options[s.selectedIndex]?.textContent || '') : '';
+    const alertas = await f.getByTestId('alerta-material').allInnerTexts().catch(() => []);
+    out.push({ nombre, material: material.trim(), alertas: alertas.map((a) => a.trim()).filter(Boolean) });
+  }
+  return out;
+}
+async function leerResultado(page) {
+  const main = await page.locator('main').innerText().catch(() => '');
+  const precios = await page.locator('.precio-enorme').allInnerTexts().catch(() => []);
+  const margen = await page.getByTestId('costear-margen').innerText({ timeout: 1000 }).catch(() => null);
+  const estado = (main.match(/COSTO (INCOMPLETO|CERTIFICADO|PRELIMINAR)[^\n]*/i) || [])[0] || null;
+  const linea = (main.match(/Material \$[^\n]*/) || [])[0] || null;
+  return { precios: precios.map((x) => x.trim()), margen, estado, linea, pendiente: /\bPendiente\b/.test(precios.join(' ')), porConfirmar: /Por confirmar/.test(precios.join(' ')) };
+}
+
+test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir', async ({ page }) => {
+  test.skip(!(EMAIL && PASS && IMG), 'Define TEST_EMAIL, TEST_PASSWORD y LAB_COSTEAR_IMG.');
+  test.setTimeout(12 * 60 * 1000); fs.mkdirSync(SALIDA, { recursive: true });
+  const edges = []; const rest = []; const pageErrors = [];
+  page.on('pageerror', (e) => pageErrors.push(String(e)));
+  page.on('response', async (res) => {
+    const u = res.url();
+    const m = u.match(/\/functions\/v1\/([a-z0-9-]+)/);
+    if (m) { let j = null; try { j = await res.json(); } catch (_e) {} edges.push({ fn: m[1], status: res.status(), body: j }); console.log('[lab-costear] edge', m[1], res.status(), JSON.stringify(j || {}).slice(0, 300)); return; }
+    if (/\/rest\/v1\/expedientes/.test(u) && res.request().method() !== 'GET') { let j = null; try { j = await res.json(); } catch (_e) {} rest.push({ method: res.request().method(), status: res.status(), body: j }); console.log('[lab-costear] expedientes', res.request().method(), res.status(), JSON.stringify(j || {}).slice(0, 200)); }
+  });
+  await page.addInitScript(() => { try { const k = 'costeador-vonhaucke-v1'; const s = JSON.parse(window.localStorage.getItem(k) || '{}'); s.onboardingVisto = true; window.localStorage.setItem(k, JSON.stringify(s)); } catch (_e) {} });
+  await page.goto('/');
+  await page.fill('#email-login', EMAIL); await page.fill('#pass-login', PASS);
+  await page.getByRole('button', { name: /^Entrar$/i }).click();
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 30000 });
+  if (await page.getByRole('dialog', { name: /Guía de uso/i }).isVisible().catch(() => false)) await page.keyboard.press('Escape');
+  await page.getByTestId('home-costear').click();
+  await expect(page.getByTestId('costear-archivo')).toBeAttached({ timeout: 15000 });
+
+  // 1) Imagen → Voni (analizar-mueble). La subida dispara el análisis.
+  const esperaAn = page.waitForResponse((r) => r.url().includes('/functions/v1/analizar-mueble'), { timeout: 180000 });
+  const t0 = Date.now();
+  await page.getByTestId('costear-archivo').setInputFiles(IMG);
+  const an = await esperaAn; const anBody = await an.json().catch(() => null);
+  console.log('[lab-costear] analizar-mueble', an.status(), 'en', ((Date.now() - t0) / 1000).toFixed(0), 's · piezas', anBody?.propuesta?.piezas?.length);
+  await expect(page.locator('.pieza').first()).toBeVisible({ timeout: 60000 });
+  await page.waitForTimeout(5000);   // verificación / amarre ERP automático
+  const piezas1 = await leerPiezas(page); const res1 = await leerResultado(page);
+  guarda('1-bom-inicial.json', { piezas: piezas1, resultado: res1, analizar: { status: an.status(), piezas: anBody?.propuesta?.piezas?.length, producto: anBody?.propuesta?.producto, uso: anBody?.uso } });
+  await page.screenshot({ path: path.join(SALIDA, '1-bom-inicial.png'), fullPage: true });
+  console.log('[lab-costear] BOM inicial', JSON.stringify({ piezas: piezas1.length, pendientes: piezas1.filter((p) => p.alertas.some((a) => /⚠ /.test(a))).map((p) => p.nombre), resultado: res1 }));
+
+  // 2) Material ERP a mano para la pieza pendiente (respaldo MDF 9 mm → ERP MDF NATURAL 9 mm).
+  let erp = { intentado: false };
+  const filas = page.locator('.pieza'); const n = await filas.count();
+  let idx = -1;
+  for (let i = 0; i < n; i++) { const nom = (await filas.nth(i).locator('.pieza-nom').inputValue().catch(() => '')).toLowerCase(); if (/respaldo|9 mm/.test(nom)) { idx = i; break; } }
+  if (idx < 0) for (let i = 0; i < n; i++) { const al = await filas.nth(i).getByTestId('alerta-material').allInnerTexts().catch(() => []); if (al.some((a) => /⚠ /.test(a))) { idx = i; break; } }
+  if (idx >= 0 && (await filas.nth(idx).getByTestId('buscar-insumo-abrir').count())) {
+    erp.intentado = true; erp.pieza = await filas.nth(idx).locator('.pieza-nom').inputValue();
+    await filas.nth(idx).getByTestId('buscar-insumo-abrir').click();
+    const caja = filas.nth(idx).getByTestId('buscador-insumo').locator('input[type=search]');
+    await caja.fill(ERP_BUSCAR);
+    const lista = filas.nth(idx).locator('.buscador-insumo-lista li');
+    await expect(lista.first()).toBeVisible({ timeout: 20000 }).catch(() => {});
+    erp.resultados = await lista.allInnerTexts().catch(() => []);
+    const li = lista.filter({ hasText: ERP_PATRON }).first();
+    if (await li.count()) { erp.elegido = (await li.innerText()).replace(/\s+/g, ' ').slice(0, 160); await li.getByRole('button', { name: /^Usar$/ }).click(); await page.waitForTimeout(3000); }
+    else erp.elegido = null;
+  }
+  const piezas2 = await leerPiezas(page); const res2 = await leerResultado(page);
+  guarda('2-tras-erp.json', { erp, piezas: piezas2, resultado: res2 });
+  await page.screenshot({ path: path.join(SALIDA, '2-tras-erp.png'), fullPage: true });
+  console.log('[lab-costear] tras ERP', JSON.stringify({ erp: { ...erp, resultados: (erp.resultados || []).length }, resultado: res2 }));
+
+  // 2b) Preguntas de Voni (decisiones de material que el catálogo no resuelve solo). En el laboratorio las
+  //     contesta la cuenta QA (rol Dirección) con la opción realista de taller y queda registrado como decisión
+  //     humana, no como dato del plano: 18 mm pedido → "MDF 19 + chapa" (alternativa de casa), chapa natural,
+  //     base "Patas + travesaños", respaldo "MDF 9 mm".
+  const respuestas = [];
+  // Cada pregunta trae chips (radio) o un número. Decisión humana del laboratorio: en radios se elige la opción
+  // que conserva lo pedido (nogal/chapa/19 mm como alternativa de casa) o la primera que no sea "Otro"; en números,
+  // lo que dice el plano del fixture (2 divisiones internas, 4 niveladores).
+  const bloques = page.locator('div:has(> div > span.chip:text-matches("^IMPACTO"))');
+  const nB = await bloques.count();
+  for (let i = 0; i < nB; i++) {
+    const bq = bloques.nth(i); const pregunta = (await bq.locator('div[style*="font-weight: 600"]').first().innerText().catch(() => '')).trim();
+    const chips = bq.locator('button.chip');
+    const num = bq.locator('input[type=number]');
+    if (await chips.count()) {
+      const textos = (await chips.allInnerTexts()).map((t) => t.trim());
+      let elegido = textos.find((t) => /nogal|chapa|19/i.test(t) && !/^otro$/i.test(t)) || textos.find((t) => !/^otro$/i.test(t)) || null;
+      if (elegido) { await chips.filter({ hasText: new RegExp('^' + elegido.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$') }).first().click(); respuestas.push({ pregunta, elegido, opciones: textos }); }
+    } else if (await num.count()) {
+      const v = /divisi/i.test(pregunta) ? '2' : /nivelador|pata/i.test(pregunta) ? '4' : /bisagra/i.test(pregunta) ? '6' : /jaladera/i.test(pregunta) ? '3' : null;
+      if (v) { await num.fill(v); respuestas.push({ pregunta, elegido: v }); }
+    }
+  }
+  const aplicar = page.getByRole('button', { name: /Aplicar respuestas y recalcular/ });
+  if (respuestas.length && (await aplicar.count())) { await aplicar.click(); await page.waitForTimeout(6000); }
+  console.log('[lab-costear] respuestas', JSON.stringify(respuestas));
+
+  // 3) Confirmación humana (QA = Dirección) de los materiales propuestos por regla, si la app lo ofrece.
+  let confirmacion = { ofrecida: false, respuestas };
+  const btnConf = page.getByTestId('piloto-confirmar');
+  if (await btnConf.count()) { confirmacion = { ofrecida: true, texto: await btnConf.first().innerText() }; await btnConf.first().click(); await page.waitForTimeout(3000); }
+  const piezas3 = await leerPiezas(page); const res3 = await leerResultado(page);
+  guarda('3-tras-confirmar.json', { confirmacion, piezas: piezas3, resultado: res3 });
+  await page.screenshot({ path: path.join(SALIDA, '3-tras-confirmar.png'), fullPage: true });
+  console.log('[lab-costear] tras confirmar', JSON.stringify({ confirmacion, resultado: res3 }));
+
+  // 3b) Paso Precio (la pantalla va por pasos: 0 describir · 1 despiece/materiales · 3 precio + biblioteca).
+  const verPrecio = page.getByRole('button', { name: /Ver precio|Siguiente/ }).first();
+  if (await verPrecio.count()) { await verPrecio.click(); await page.waitForTimeout(1500); }
+  await expect(page.locator('.precio-enorme').first()).toBeVisible({ timeout: 20000 });
+  const res3b = await leerResultado(page); const piezas3b = await leerPiezas(page);
+  guarda('3b-precio.json', { resultado: res3b, piezas: piezas3b });
+  await page.screenshot({ path: path.join(SALIDA, '3b-precio.png'), fullPage: true });
+  console.log('[lab-costear] precio', JSON.stringify(res3b));
+  Object.assign(res3, res3b);
+
+  // 4) Sombra: la última respuesta de costear-servidor vs el costo en pantalla.
+  await page.waitForTimeout(6000);
+  const srv = edges.filter((e) => e.fn === 'costear-servidor').pop();
+  const costoCliente = res3.precios.length && !res3.pendiente ? pesosNum(res3.precios[0]) : null;
+  const costoSrv = srv?.body?.costoUnitario ?? srv?.body?.resultado?.costoUnitario ?? srv?.body?.costo?.costoUnitario ?? null;
+  const paridad = { costoCliente, costoSrv, estadoSrv: srv?.body?.estado ?? srv?.body?.estadoCosto ?? null, iguales: costoCliente != null && costoSrv != null ? Math.round(costoCliente * 100) === Math.round(Number(costoSrv) * 100) : null, llamadasSrv: edges.filter((e) => e.fn === 'costear-servidor').length };
+  guarda('4-paridad.json', { paridad, servidor: srv?.body ?? null });
+  console.log('[lab-costear] paridad', JSON.stringify(paridad));
+
+  // 5) Guardar expediente en la biblioteca.
+  const btnGuardar = page.getByRole('button', { name: /^(Guardar|Actualizar) en biblioteca$/ }).first();
+  await expect(btnGuardar).toBeVisible({ timeout: 10000 });
+  const bloqueG = page.locator('div', { has: page.locator('strong', { hasText: 'Guardar en biblioteca' }) }).last();
+  await bloqueG.locator('input[type=text]').first().fill(NOMBRE);
+  const esperaExp = page.waitForResponse((r) => /\/rest\/v1\/expedientes/.test(r.url()) && r.request().method() === 'POST', { timeout: 30000 }).catch(() => null);
+  await btnGuardar.click();
+  const rExp = await esperaExp; let expId = null; try { const j = await rExp?.json(); expId = Array.isArray(j) ? j[0]?.id : j?.id; } catch (_e) {}
+  await page.waitForTimeout(2000);
+  const msg = await page.locator('main').innerText();
+  const guardado = { status: rExp?.status() ?? null, id: expId ?? null, mensaje: (msg.match(/Guardad[oa][^\n]*|Actualizad[oa][^\n]*|No se pudo[^\n]*/) || [])[0] || null };
+  guarda('5-guardado.json', guardado); console.log('[lab-costear] guardado', JSON.stringify(guardado));
+  await page.screenshot({ path: path.join(SALIDA, '5-guardado.png'), fullPage: true });
+
+  // 6) Biblioteca → reabrir → comparar.
+  await page.getByRole('button', { name: /Ver biblioteca/ }).click();
+  await expect(page.getByText('Biblioteca de productos')).toBeVisible({ timeout: 15000 });
+  const item = page.getByRole('button', { name: new RegExp(NOMBRE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) }).first();
+  await expect(item).toBeVisible({ timeout: 20000 });
+  const tarjetaTxt = await item.innerText();
+  await item.click();
+  await expect(page.locator('.pieza').first()).toBeVisible({ timeout: 30000 });
+  await page.waitForTimeout(4000);
+  const piezasR1 = await leerPiezas(page);
+  const verPrecio2 = page.getByRole('button', { name: /Ver precio|Siguiente/ }).first();
+  if (await verPrecio2.count()) { await verPrecio2.click(); await page.waitForTimeout(1500); }
+  await expect(page.locator('.precio-enorme').first()).toBeVisible({ timeout: 20000 }).catch(() => {});
+  const resR = await leerResultado(page); const piezasR = piezasR1.length ? piezasR1 : await leerPiezas(page);
+  const mismoBom = JSON.stringify(piezas3.map((p) => [p.nombre, p.material])) === JSON.stringify(piezasR.map((p) => [p.nombre, p.material]));
+  const reabierta = { tarjeta: tarjetaTxt.replace(/\s+/g, ' ').slice(0, 200), piezas: piezasR.length, mismoBom, costoAntes: res3.precios[0] || null, costoDespues: resR.precios[0] || null, mismoCosto: (res3.precios[0] || null) === (resR.precios[0] || null), resultado: resR, pageErrors: pageErrors.length };
+  guarda('6-reabierta.json', { reabierta, piezas: piezasR });
+  await page.screenshot({ path: path.join(SALIDA, '6-reabierta.png'), fullPage: true });
+  guarda('edges.json', edges.map((e) => ({ ...e, body: JSON.stringify(e.body || {}).slice(0, 4000) })));
+  console.log('[lab-costear] reabierta', JSON.stringify(reabierta));
+});
