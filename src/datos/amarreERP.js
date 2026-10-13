@@ -78,3 +78,21 @@ export async function amarrarPendientesERP(comps = [], { buscar, agregarInsumo, 
   }
   return { comps: out, amarrados, sinCandidato };
 }
+
+// VH-149 · Fusión del amarre ASÍNCRONO sobre el BOM vigente. El amarre llega tarde (búsquedas en el ERP)
+// y la persona pudo haber editado la pieza mientras tanto (cantidad, largo, nombre, excluir…). Antes se
+// hacía `{ ...c, ...amarrado }` y el objeto amarrado —calculado sobre el BOM VIEJO— pisaba esas ediciones.
+// Ahora sólo viajan los campos de MATERIAL del amarre, y sólo a piezas que siguen sin material.
+const CAMPOS_AMARRE = ['insumoId', 'material_match', 'candidate_insumo_id', '_match'];
+export function fusionarAmarreEnBom(actuales = [], amarrados = []) {
+  const act = Array.isArray(actuales) ? actuales : [];
+  if (!Array.isArray(amarrados) || act.length !== amarrados.length) return act;
+  return act.map((c, i) => {
+    const a = amarrados[i];
+    if (!c || !a || c.nombre !== a.nombre || c.insumoId || c.excluida) return c;
+    if (!a.insumoId && !a.candidate_insumo_id) return c;
+    const parche = {};
+    for (const k of CAMPOS_AMARRE) if (a[k] !== undefined) parche[k] = a[k];
+    return { ...c, ...parche };
+  });
+}

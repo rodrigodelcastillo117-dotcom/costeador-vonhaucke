@@ -72,3 +72,24 @@ describe('amarre ERP · unidad compatible con el consumo', () => {
     expect(r.comps[0].insumoId).toBe(''); expect(r.comps[0].material_match).toBe(MATCH.SAME_FAMILY_CRITICAL_CONFLICT); expect(r.comps[0]._match.cambio).toMatch(/unidad/);
   });
 });
+
+describe('fusionarAmarreEnBom (VH-149): el amarre tardío no pisa lo que la persona editó', () => {
+  it('copia sólo insumoId/material_match/candidate/_match; conserva cantidad, medidas y nombre editados', async () => {
+    const { fusionarAmarreEnBom } = await import('./amarreERP.js');
+    const viejo = { nombre: 'Lateral', cantidad: 2, largoMM: 650, anchoMM: 450, material_match: 'NOT_AVAILABLE' };
+    const amarrado = { ...viejo, insumoId: 'erp-mdf19', material_match: 'SAME_FAMILY_COMPATIBLE_PROPOSED', candidate_insumo_id: 'erp-mdf19', _match: { clase: 'SAME_FAMILY_COMPATIBLE_PROPOSED', erp: true } };
+    const editado = { ...viejo, cantidad: 4, largoMM: 700 };   // la persona cambió cantidad y largo mientras buscaba el ERP
+    const r = fusionarAmarreEnBom([editado], [amarrado]);
+    expect(r[0]).toMatchObject({ cantidad: 4, largoMM: 700, insumoId: 'erp-mdf19', material_match: 'SAME_FAMILY_COMPATIBLE_PROPOSED', candidate_insumo_id: 'erp-mdf19' });
+    expect(r[0]._match.erp).toBe(true);
+  });
+  it('si la persona ya eligió material o excluyó la pieza, el amarre no la toca; si cambió el nombre o el largo del BOM, no fusiona', async () => {
+    const { fusionarAmarreEnBom } = await import('./amarreERP.js');
+    const a = { nombre: 'Lateral', insumoId: 'erp-x', _match: { erp: true } };
+    expect(fusionarAmarreEnBom([{ nombre: 'Lateral', insumoId: 'mdf' }], [a])[0].insumoId).toBe('mdf');
+    expect(fusionarAmarreEnBom([{ nombre: 'Lateral', excluida: true }], [a])[0].insumoId).toBeUndefined();
+    expect(fusionarAmarreEnBom([{ nombre: 'Costado' }], [a])[0].insumoId).toBeUndefined();
+    const dos = fusionarAmarreEnBom([{ nombre: 'Lateral' }, { nombre: 'Otra' }], [a]);
+    expect(dos[0].insumoId).toBeUndefined();   // longitud distinta: el BOM cambió, no se fusiona nada
+  });
+});

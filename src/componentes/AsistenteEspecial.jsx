@@ -18,7 +18,7 @@ import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
 import { mapIaComps as mapIaCompsCompartido } from '../datos/mapIaComps.js';
-import { amarrarPendientesERP } from '../datos/amarreERP.js';
+import { amarrarPendientesERP, fusionarAmarreEnBom } from '../datos/amarreERP.js';
 import { buscarInsumosMotor } from '../nube.js';
 import { resumenMotor } from '../datos/resumenMotor.js';
 import { respuestasPorReglaDeCasa, esSupuestoPreliminar } from '../datos/autoRespuestas.js';
@@ -585,7 +585,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         setB((prev) => {
           const act = Array.isArray(prev.componentes) ? prev.componentes : [];
           if (act.length !== amarrados.length) return prev;
-          const fus = act.map((c, i) => (c && amarrados[i] && c.nombre === amarrados[i].nombre && !c.insumoId && amarrados[i].insumoId ? { ...c, ...amarrados[i] } : (c && amarrados[i] && c.nombre === amarrados[i].nombre && !c.insumoId && amarrados[i].candidate_insumo_id ? { ...c, material_match: amarrados[i].material_match, candidate_insumo_id: amarrados[i].candidate_insumo_id, _match: amarrados[i]._match } : c)));
+          // VH-149: sólo campos de material, sobre piezas que siguen sin material (no pisa ediciones hechas mientras llegaba).
+          const fus = fusionarAmarreEnBom(act, amarrados);
           return { ...prev, componentes: fus };
         });
         setConfMsg(`Catálogo de Compras: ${lista.length} material(es) amarrado(s) con precio real, por confirmar: ${lista.map((x) => x.insumoNombre).slice(0, 5).join(', ')}${lista.length > 5 ? '…' : ''}.`);
