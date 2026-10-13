@@ -93,3 +93,15 @@ describe('fusionarAmarreEnBom (VH-149): el amarre tardío no pisa lo que la pers
     expect(dos[0].insumoId).toBeUndefined();   // longitud distinta: el BOM cambió, no se fusiona nada
   });
 });
+
+describe('VH-155: las medidas del nombre de la pieza cuentan para el conflicto', () => {
+  it('"Jaladeras rectas 300 mm" con material_solicitado "jaladera" NO acepta una jaladera de 128 mm como compatible: queda candidata crítica, sin costear', async () => {
+    const { amarrarPendientesERP } = await import('./amarreERP.js');
+    const buscar = async () => [{ id: 'erp-jal128', nombre: 'JALADERA ALUMINIO DE 128 mm CODIGO 079-1583', unidad: 'pza', precio: 45, clasificacion: 'erp', evidencia: { certificable: true } }];
+    const { comps, amarrados } = await amarrarPendientesERP([{ nombre: 'Jaladeras rectas 300 mm', material_solicitado: 'jaladera', material_match: 'NOT_AVAILABLE', forma: 'pieza', cantidad: 3 }], { buscar, insumos: {} });
+    expect(comps[0].insumoId).toBeUndefined();
+    expect(comps[0].material_match).toBe('SAME_FAMILY_CRITICAL_CONFLICT');
+    expect(comps[0].candidate_insumo_id).toBe('erp-jal128');
+    expect(amarrados[0].critico).toBe(true);
+  });
+});

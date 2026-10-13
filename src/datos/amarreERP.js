@@ -62,8 +62,12 @@ export async function amarrarPendientesERP(comps = [], { buscar, agregarInsumo, 
     const { ambiguo, mejor } = candidatosDeFamilia(solicitado, conPrecio.length ? conPrecio : utiles);
     if (ambiguo || !mejor) { sinCandidato.push(c.nombre || solicitado); continue; }
     const fila = (filas || []).find((f) => f.id === mejor.id) || mejor;
-    const sev = severidadConflicto_(fam, solicitado, fila.nombre || '');
-    const cambio = unidadForzada ? `unidad de Compras (${fila.unidad || '?'}) distinta a como se consume la pieza` : textoCambio_(solicitado, fila.nombre || '');
+    // VH-155: las medidas explícitas del NOMBRE de la pieza ("Jaladeras rectas 300 mm") cuentan para el conflicto
+    // aunque `material_solicitado` sólo diga "jaladera": antes un candidato de 128 mm entraba como propuesta
+    // compatible y la confirmación en bloque lo daba por bueno.
+    const solicitadoConDims = [solicitado, String(c.nombre || '')].filter(Boolean).join(' · ');
+    const sev = severidadConflicto_(fam, solicitadoConDims, fila.nombre || '');
+    const cambio = unidadForzada ? `unidad de Compras (${fila.unidad || '?'}) distinta a como se consume la pieza` : textoCambio_(solicitadoConDims, fila.nombre || '');
     if (typeof agregarInsumo === 'function') agregarInsumo(fila);
     if (sev.critico || unidadForzada) {
       c.material_match = MATCH.SAME_FAMILY_CRITICAL_CONFLICT; c.candidate_insumo_id = fila.id;
