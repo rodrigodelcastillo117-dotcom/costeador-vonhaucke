@@ -13,6 +13,8 @@ describe('recovery lane · solver aislado',()=>{
     expect(s).toContain("envFn('VITE_ACOMODAR_FN', 'acomodar-espacio-recovery')");
     expect(s).toContain("v.startsWith('acomodar-espacio-recovery') ? v : 'acomodar-espacio-recovery'");
     expect(s).not.toMatch(/invoke\('acomodar-espacio'[,)]/);
+    // Los overrides VITE_*_FN sólo valen en desarrollo (labs); el build publicado usa siempre las Edge productivas.
+    expect(s).toContain('import.meta.env.DEV === true && import.meta.env[k]');
   });
 
   it('la UI no dice que ya acomodó antes de validar',()=>{

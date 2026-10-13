@@ -369,7 +369,9 @@ export async function acomodarEspacio(areas, piezas) {
 // L1: `VITE_LEER_PLANO_FN` permite apuntar el cliente LOCAL a la copia RC del lector (leer-plano-rc) para
 // medir antes de promover. En producción no se define y se usa 'leer-plano'.
 const FN_LEER_PLANO = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_LEER_PLANO_FN) || 'leer-plano';
-const envFn = (k, def) => (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[k]) || def;
+// Overrides de Edge (RC) SÓLO en el servidor de desarrollo (npm run dev, labs). En un build de producción o de
+// preview se ignoran: una VITE_*_FN olvidada en Vercel no puede repuntar el cliente publicado a una Edge -rc.
+const envFn = (k, def) => (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV === true && import.meta.env[k]) || def;
 const FN_ANALIZAR = envFn('VITE_ANALIZAR_MUEBLE_FN', 'analizar-mueble');
 const FN_COTIZAR_TEXTO = envFn('VITE_COTIZAR_TEXTO_FN', 'cotizar-texto');
 const FN_GENERAR_RENDER = envFn('VITE_GENERAR_RENDER_FN', 'generar-render');
