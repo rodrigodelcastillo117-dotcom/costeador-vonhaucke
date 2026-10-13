@@ -2,3 +2,45 @@
 Running 1 test using 1 worker
 
 [1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Escritorio en L 1600x700 con retorno 800x500, melamina 19 mm Gris Humo","tipo":"escritorio","piezas":[{"nombre":"Cubierta principal","insumoId":"melamina-19-gris-humo-lm","material_solicitado":"Melamina 19 mm Gris Humo","material_match":"EXACT","forma":"area","lar
+
+[lab-costear] analizar-mueble 200 en 28 s · piezas 10 · lote 1
+
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Escritorio en L con retorno, melamina 19 mm Gris Humo","tipo":"escritorio","piezas":[{"nombre":"Cubierta principal","insumoId":"melamina-19-gris-humo-lm","material_solicitado":"Melamina 19 mm Gris Humo","material_match":"EXACT","forma":"area","largoMM":1600,"ancho
+
+[lab-costear] BOM inicial {"piezas":10,"pendientes":["Cajonera movil 3 gavetas"],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":10579.12,"materialTotal":6118.03,"manoObra":1115.27,"indirectosFabrica":3345.82,"desperdicio":1092.06,"detalleInsumos":[{"insumoId":"melamina-19-gris-humo-lm","nombre":"Melamina 19 mm, Gris Humo LM","
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Paneles laterales y faldón van en el mismo Gris Humo que la cubierta?","elegido":"(sin responder: ninguna opción coincide con el plano)","opciones":["Sí, Gris Humo","Otro color"],"evidencia":"plano: 3 PANELES LATERALES (2 DE 731 × 700 Y 1 DE 731 × 500)"},{"pregunta":"¿Cuántos escritorios se fabricarán?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Acabado de la cajonera móvil?","elegido":"(sin responder: ninguna opción coincide con el plano)","opciones":["Igual al escritorio","Metálica estándar","Por definir"],"evidencia":"plano: CAJONERA MÓVIL 3 GAVETAS (COMPRADA, 1 PIEZA)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":10579.12,"materialTotal":6118.03,"manoObra":1115.27,"indirectosFabrica":3345.82,"desperdicio":1092.06,"detalleInsumos":[{"insumoId":"melamina-19-gris-humo-lm","nombre":"Melamina 19 mm, Gris Humo LM","
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 8 propuestos","diferencias":"1 difieren de lo pedido y se confirman uno por uno: Tapacanto PVC 2 mm gris. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$10,579.12","Por confirmar"],"margen":null,"estado":"Costo preliminar — 3 decisión(es) pendiente(s): ¿Paneles laterales y faldón van en el mismo Gris Humo que la cubierta? · ¿Cuántos escritorios se fabricarán? · ¿Acabado de la cajonera móvil?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $6,118.03 · Mano de obra $1,115.27 · Fábrica $3,345.82","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":10579.12,"costoSrv":10579.12,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":11917.45,"materialTotal":6118.03,"manoObra":1449.86,"indirectosFabrica":4349.57,"desperdicio":1092.06,"detalleInsumos":[{"insumoId":"melamina-19-gris-humo-lm","nombre":"Melamina 19 mm, Gris Humo LM","
+
+[lab-costear] dificultad {"costoNormal":10579.12,"marcado":"true","costoDificil":11917.45,"reqDificultad":"dificil","costoSrvDificil":11917.45,"sube":true,"paridad":true,"costoDeVueltaNormal":10579.12,"regresaIgual":true}
+
+[lab-costear] expedientes POST 201 [{"id":82}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":10579.12,"materialTotal":6118.03,"manoObra":1115.27,"indirectosFabrica":3345.82,"desperdicio":1092.06,"detalleInsumos":[{"insumoId":"melamina-19-gris-humo-lm","nombre":"Melamina 19 mm, Gris Humo LM","
+
+[lab-costear] guardado {"status":201,"id":82,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":10579.12,"materialTotal":6118.03,"manoObra":1115.27,"indirectosFabrica":3345.82,"desperdicio":1092.06,"detalleInsumos":[{"insumoId":"melamina-19-gris-humo-lm","nombre":"Melamina 19 mm, Gris Humo LM","
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":6,"pass":3,"fail":3,"riesgo":0,"sobrantesNoPermitidos":0,"renglonesBom":10,"veredicto":"FAIL"} ["FAIL cubierta: duplicado: 3 piezas, el plano dice 1 · medida distinta (esperado 1600×700 ±20): 731×700","FAIL retorno: duplicado: 2 piezas, el plano dice 1 · medida distinta (esperado 800×500 ±20): 731×500","FAIL paneles: omitido: ningún renglón del BOM corresponde"]
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB dif escritorio_L 1013-1846 BORRADOR escritorio escritorio en L con retorno Melamina gris humo 19 mm","piezas":10,"mismoBom":true,"costoAntes":"$10,579.12","costoDespues":"$10,579.12","mismoCosto":true,"resultado":{"precios":["$10,579.12","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $6,118.03 · Mano de obra $1,115.27 · Fábrica $3,345.82","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.9m)

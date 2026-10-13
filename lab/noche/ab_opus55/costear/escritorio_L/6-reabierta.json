@@ -1,0 +1,78 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB dif escritorio_L 1013-1846 BORRADOR escritorio escritorio en L con retorno Melamina gris humo 19 mm",
+    "piezas": 10,
+    "mismoBom": true,
+    "costoAntes": "$10,579.12",
+    "costoDespues": "$10,579.12",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$10,579.12",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $6,118.03 · Mano de obra $1,115.27 · Fábrica $3,345.82",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta principal",
+      "material": "Melamina 19 mm, Gris Humo LM",
+      "alertas": []
+    },
+    {
+      "nombre": "Cubierta retorno",
+      "material": "Melamina 19 mm, Gris Humo LM",
+      "alertas": []
+    },
+    {
+      "nombre": "Panel lateral (pata panel) cubierta principal",
+      "material": "Melamina 19 mm, Gris Humo LM",
+      "alertas": []
+    },
+    {
+      "nombre": "Panel lateral (pata panel) retorno",
+      "material": "Melamina 19 mm, Gris Humo LM",
+      "alertas": []
+    },
+    {
+      "nombre": "Faldon frontal",
+      "material": "Melamina 19 mm, Gris Humo LM",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto PVC 2 mm gris",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Cajonera movil 3 gavetas",
+      "material": "Cajonera movil",
+      "alertas": [
+        "⚠ Costo pendiente — falta confirmar material."
+      ]
+    },
+    {
+      "nombre": "Escuadras union",
+      "material": "Pata metalica comprada",
+      "alertas": []
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Tornilleria/minifix",
+      "material": "Tornilleria",
+      "alertas": []
+    }
+  ]
+}

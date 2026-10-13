@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$10,579.12",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 3 decisión(es) pendiente(s): ¿Paneles laterales y faldón van en el mismo Gris Humo que la cubierta? · ¿Cuántos escritorios se fabricarán? · ¿Acabado de la cajonera móvil?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $6,118.03 · Mano de obra $1,115.27 · Fábrica $3,345.82",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}
