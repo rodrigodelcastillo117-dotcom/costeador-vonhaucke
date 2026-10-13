@@ -78,10 +78,20 @@ function tokensProducto(x) {
   return norm(vals.join(' '));
 }
 
+const PALABRAS_DE_PREGUNTA = new Set([
+  'que', 'cual', 'cuales', 'como', 'donde', 'linea', 'lineas', 'sirve', 'sirven', 'servir', 'recomiendas',
+  'recomienda', 'recomiendame', 'sugieres', 'sugiere', 'para', 'con', 'sin', 'esto', 'este', 'esta', 'eso',
+  'existe', 'existen', 'tienen', 'tiene', 'hay', 'von', 'haucke', 'producto', 'productos', 'mueble', 'muebles',
+  'quiero', 'necesito', 'puedo', 'del', 'las', 'los', 'una', 'uno', 'unos', 'unas',
+]);
+
 export function recomendar(query, max = 8) {
   const q = norm(query);
   if (!q.trim()) return [];
-  const palabras = q.split(/\s+/).filter((x) => x.length >= 3);
+  // Palabras de la PREGUNTA (no del mueble) no puntúan: "¿Qué línea me sirve?" recomendaba
+  // EcoAcustic porque "linea" aparece en "Panel con corte de línea" (auditoría COCREAR_VONI_10, D-12).
+  const palabras = q.replace(/[^a-z0-9ñ\s]/g, ' ').split(/\s+/)
+    .filter((x) => x.length >= 3 && !PALABRAS_DE_PREGUNTA.has(x));
   const out = [];
   for (const l of catalogoVonHauckeCompacto()) {
     const hay = tokensProducto(l);

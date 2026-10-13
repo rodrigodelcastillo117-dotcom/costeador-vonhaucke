@@ -338,6 +338,25 @@ function sintetizar(intent, resultadosLente) {
   const vistos = new Set();
   const bloqueosUnicos = bloqueos.filter((b) => (vistos.has(b.titulo) ? false : (vistos.add(b.titulo), true)));
 
+  // CONSULTA = la pregunta no se reconoció como ninguna revisión concreta. Sin un solo hallazgo
+  // ni bloqueo, "Todo en orden" sería un falso verde (p.ej. "¿qué regla de canto aplica?" o el
+  // chip de Cocrear "¿Esto ya existe en Von Haucke?"). Se pide la información que falta.
+  // (auditoría COCREAR_VONI_10, D-11)
+  if (intent === 'CONSULTA' && !bloqueosUnicos.length && !evidencia.length) {
+    return respuestaEstructurada({
+      que_paso: 'No tengo evidencia para responder eso todavía.',
+      por_que: 'La pregunta no corresponde a una revisión que pueda comprobar con las fuentes de esta pantalla.',
+      impacto: 'No interpreto la falta de datos como "todo en orden".',
+      confianza: 0,
+      accion: 'Precisa qué quieres revisar: "¿qué falta?", "¿está lista para enviarse?", "explícame este costo" o el mueble/zona para recomendarte una línea.',
+      evidencia: [],
+      urgencia: URGENCIA.BAJA,
+      estado: ESTADO.DESCONOCIDO,
+      lentes: lentesUsadas,
+      bloqueos: [],
+    });
+  }
+
   const hayBloqueante = bloqueosUnicos.some((b) => b.urgencia === URGENCIA.BLOQUEANTE);
   const estado = hayBloqueante ? ESTADO.BLOQUEADO : (bloqueosUnicos.length ? ESTADO.ATENCION : ESTADO.OK);
 

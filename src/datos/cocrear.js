@@ -572,6 +572,29 @@ export function sugerenciasVoni(spec) {
 
 export const COCREAR_PERSIST_VERSION = 'cocrear_studio_v1';
 
+// Firma del render que viaja al expediente (sin el base64). `renderStale` exige specHash Y
+// visualRevisionHash: si sólo se guardaba specHash, todo render reabierto salía VENCIDO aunque
+// fuera de la misma revisión (auditoría COCREAR_VONI_10, D-07).
+function renderPersistible(render) {
+  if (!render) return null;
+  return {
+    specHash: render.specHash ?? null,
+    visualRevisionHash: render.visualRevisionHash ?? null,
+    expected: render.expected ?? null,
+    version: render.version ?? null,
+  };
+}
+
+// Cocrear mide el fondo como `prof_mm`; `guardar_cocrear_seguro` lee `spec.dimensiones.fondo_mm`
+// para expedientes.fondo_mm (y de ahí producto_versiones.dimensiones). Sin el alias el fondo se
+// perdía en el registro del producto (auditoría COCREAR_VONI_10, D-08). No cambia la intención
+// ni el spec hash: sólo la forma en que el payload expone la misma medida al servidor.
+function dimensionesPersistibles(dims) {
+  const d = { ...(dims || {}) };
+  if (d.fondo_mm == null && d.prof_mm != null) d.fondo_mm = d.prof_mm;
+  return d;
+}
+
 export function cocrearAExpediente(estado = {}) {
   const intent = estado.intent || {};
   const rev = (estado.historia?.length) || 1;
@@ -592,7 +615,7 @@ export function cocrearAExpediente(estado = {}) {
       brief: estado.brief || '',
       intent,
       historia: (estado.historia || []).map((h) => ({ rev: h.rev, label: h.label, intent: h.intent })),
-      render: estado.render ? { specHash: estado.render.specHash, expected: estado.render.expected } : null,
+      render: renderPersistible(estado.render),
       specHash: spec.hash,
     },
   };
@@ -614,12 +637,12 @@ export function cocrearPayload(estado = {}) {
     version: COCREAR_PERSIST_VERSION,
     nombre: descripcionCorta(spec),
     familia: spec.familia,
-    spec: { familia: spec.familia, dimensiones: spec.dimensiones || {}, componentes },
+    spec: { familia: spec.familia, dimensiones: dimensionesPersistibles(spec.dimensiones), componentes },
     brief: estado.brief || '',
     intent,
     historia: (estado.historia || []).map((h) => ({ rev: h.rev, label: h.label, intent: h.intent })),
     costSnapshot: { status: snap.cost_status, known_cost: snap.known_cost, official_cost: snap.official_cost },
-    render: estado.render ? { specHash: estado.render.specHash, expected: estado.render.expected } : null,
+    render: renderPersistible(estado.render),
     specHash: spec.hash,
   };
 }
