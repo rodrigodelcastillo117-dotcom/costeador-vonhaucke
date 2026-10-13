@@ -5,6 +5,7 @@
 //  este mismo despiece leyendo una imagen con IA).
 // ============================================================================
 import { useMemo, useState, useEffect, useRef } from 'react';
+import { patchMedidas } from '../datos/medidasMaterial.js';
 import { precioDesdeCosto, margenObjetivoDe } from '../datos/precio.js';
 import { calcular, netoComponente, modeloParaPieza, costeoEmitible, bomHash, diffBOM, aplicarDiffBOM, MOTOR_VERSION, FORMULA_ALBA_V1, formulaDePieza } from '../motor/calculo.js';
 import { SECCIONES } from '../datos/insumos.js';
@@ -561,7 +562,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     // VH-088: insumo del buscador (ERP) aún no está en `insumos`; se usa el objeto recibido.
     const ins = insumos[insumoId] || (insumoNuevo && insumoNuevo.id === insumoId ? insumoNuevo : undefined); const comps = b.componentes.slice(); const prev = comps[i];
     const patch = { insumoId, nombre: prev.nombre || (ins ? ins.nombre : '') };
-    if (!esArea(ins)) { patch.largoMM = undefined; patch.anchoMM = undefined; }
+    // VH-167: la medida es del plano, no del material: un tablero por hoja sin formato la conserva (el motor lo
+    // deja pendiente); sólo un material por pieza/metro la saca del consumo y queda guardada en `medidaPrevia`.
+    Object.assign(patch, patchMedidas(prev, ins));
     // Elección/confirmación HUMANA: misma intención en ambas UIs (P0.8). El servidor verifica
     // material_confirmado + insumoId y lo convierte a USER_CONFIRMED efectivo (no confía en el string).
     if (ins) Object.assign(patch, patchConfirmacionUI(insumoId));

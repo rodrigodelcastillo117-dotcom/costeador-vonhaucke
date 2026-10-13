@@ -3,7 +3,7 @@ import { metrosDeCanto, perimetroPerfilMM, areaPintadaTubularM2, ladosConCanto, 
 import { conAcompanantes } from './autoInsumos.js';
 import { mapIaComps } from './mapIaComps.js';
 import { revisarEstructura, rolDe } from './revisionEstructural.js';
-import { familiaDeMaterial, aplicarPoliticaMaterial, clasificarMaterial, MATCH, requiereConfirmacion } from './materialMatch.js';
+import { familiaDeMaterial, aplicarPoliticaMaterial, clasificarMaterial, MATCH, requiereConfirmacion, difiereDeLoPedido, formatoHojaDe } from './materialMatch.js';
 import { INSUMOS_SEMILLA, mapaInsumos } from './insumos.js';
 import { calcular } from '../motor/calculo.js';
 
@@ -226,5 +226,80 @@ describe('VH-165 · la soldadura no es un perfil de acero', () => {
     ] }, insumos), insumos);
     expect(r.find((c) => /cromado/i.test(c.nombre)).cantidad).toBeCloseTo(0.43, 2);
     expect(r.find((c) => /soldadura/i.test(c.nombre)).insumoId || '').not.toMatch(/^ptr|^tub/);
+  });
+});
+
+describe('VH-168 · el formato de hoja es identidad del tablero', () => {
+  const cur4x8 = { id: 'melamina-28-walnut', nombre: 'Melamina 28 mm, Walnut', unidad: 'hoja', formato: { tipo: 'tablero', largoMM: 2440, anchoMM: 1220, medida: 2.977 } };
+  const erp5x8 = { id: 'erp-ame28152-b709', nombre: 'AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT', unidad: 'hoja', formato: null };
+  const pol = (sol, ins) => aplicarPoliticaMaterial({ nombre: 'Entrepaños', insumoId: ins.id, material_solicitado: sol, material_match: 'EXACT' }, (id) => (id === ins.id ? ins : null), [ins]);
+  it('pedido 5×8 contra curado 4×8: no es EXACT, es diferencia que exige confirmación', () => {
+    for (const sol of ['Aglomerado melamina dos caras 28 mm acabado Walnut, hoja 5 x 8', 'melamina 28 mm walnut 5×8 (1525 × 2440)', 'melamina 28 mm walnut hoja 1.525 x 2.44 m']) {
+      const p = pol(sol, cur4x8);
+      expect(p.material_match).not.toBe('EXACT');
+      expect(p._match?.cambio || '').toMatch(/hoja 5×8 → candidato hoja 4×8/);
+      expect(difiereDeLoPedido(p._match?.cambio)).toBe(true);
+    }
+  });
+  it('pedido 5×8 contra el ERP 5×8 (formato sólo en el nombre): sigue siendo exacto', () => {
+    expect(pol('Aglomerado melamina 28 mm Walnut, hoja 5 x 8', erp5x8).material_match).toBe('EXACT');
+  });
+  it('si lo pedido no dice formato, no se inventa diferencia (ausencia no es diferencia)', () => {
+    expect(pol('Aglomerado melamina dos caras 28 mm acabado Walnut', cur4x8).material_match).toBe('EXACT');
+  });
+  it('PTR 1" x 2" no se lee como formato de hoja', () => {
+    expect(formatoHojaDe('PTR 1" x 2" cal. 16')).toBeNull();
+    expect(formatoHojaDe('Lámina cal. 18 hoja 4 x 8')).toEqual([1220, 2440]);
+    expect(formatoHojaDe('lámina 3 x 10 cal 12')).toEqual([914, 3048]);
+  });
+});
+
+describe('VH-169 · librero 5×8: zoclo sólo en gabinete bajo y tapacanto sin duplicar', () => {
+  const librero = () => [
+    { nombre: 'Laterales', insumoId: 'melamina-28-walnut', largoMM: 1800, anchoMM: 350, piezas: 2, cantidad: 1 },
+    { nombre: 'Piso y techo', insumoId: 'melamina-28-walnut', largoMM: 844, anchoMM: 350, piezas: 2, cantidad: 1 },
+    { nombre: 'Entrepaños fijos', insumoId: 'melamina-28-walnut', largoMM: 844, anchoMM: 330, piezas: 4, cantidad: 1 },
+    { nombre: 'Respaldo', insumoId: 'melamina-16-walnut', largoMM: 1800, anchoMM: 900, piezas: 1, cantidad: 1 },
+    { nombre: 'Tapacanto PVC 2 mm Walnut, cantos frontales de laterales', insumoId: 'tapacanto', material_solicitado: 'Tapacanto PVC 2 mm Walnut', cantidad: 3.6, forma: 'lineal' },
+    { nombre: 'Tapacanto PVC 2 mm Walnut, frente piso/techo/entrepaños', insumoId: 'tapacanto', material_solicitado: 'Tapacanto PVC 2 mm Walnut', cantidad: 5.064, forma: 'lineal' },
+    { nombre: 'Niveladores', insumoId: 'nivelador', cantidad: 4 },
+  ];
+  it('un librero de 1800 mm no recibe zoclo; una credenza baja sí, con el largo de la cubierta', () => {
+    expect(conAcompanantes(librero(), insumos).some((c) => c._regla === 'zoclo')).toBe(false);
+    const credenza = [
+      { nombre: 'Laterales', insumoId: 'mdf', largoMM: 650, anchoMM: 450, piezas: 2, cantidad: 1 },
+      { nombre: 'Cubierta', insumoId: 'mdf', largoMM: 1800, anchoMM: 450, piezas: 1, cantidad: 1 },
+      { nombre: 'Puertas', insumoId: 'mdf', largoMM: 630, anchoMM: 580, piezas: 3, cantidad: 1 },
+    ];
+    const z = conAcompanantes(credenza, insumos).find((c) => c._regla === 'zoclo');
+    expect(z && z.largoMM).toBe(1800);
+  });
+  it('"cantos frontales": un canto por pieza = 8.66 m; el segundo renglón queda excluido y visible', () => {
+    const r = conAcompanantes(librero(), insumos);
+    const tapas = r.filter((c) => c.insumoId === 'tapacanto');
+    expect(tapas).toHaveLength(2);
+    const vivo = tapas.filter((c) => !c.excluida);
+    expect(vivo).toHaveLength(1);
+    expect(vivo[0].cantidad).toBeCloseTo(2 * 1.8 + 2 * 0.844 + 4 * 0.844, 2);
+    const fuera = tapas.find((c) => c.excluida);
+    expect(fuera._regla).toBe('tapacanto_duplicado'); expect(fuera.iaNota).toMatch(/no contarlo dos veces/);
+  });
+});
+
+describe('VH-169b · un escritorio con cajonera comprada no es gabinete', () => {
+  it('sin zoclo en el escritorio en L; con zoclo si las gavetas son fabricadas en un gabinete bajo', () => {
+    const escritorio = [
+      { nombre: 'Cubierta principal', insumoId: 'melamina-19-gris-humo-lm', largoMM: 1600, anchoMM: 700, piezas: 1, cantidad: 1 },
+      { nombre: 'Panel lateral 731x700', insumoId: 'melamina-19-gris-humo-lm', largoMM: 731, anchoMM: 700, piezas: 2, cantidad: 1 },
+      { nombre: 'Faldón', insumoId: 'melamina-19-gris-humo-lm', largoMM: 1500, anchoMM: 300, piezas: 1, cantidad: 1 },
+      { nombre: 'Cajonera móvil 3 gavetas (comprada)', insumoId: 'cajonera-movil', cantidad: 1 },
+    ];
+    expect(conAcompanantes(escritorio, insumos).some((c) => c._regla === 'zoclo')).toBe(false);
+    const cajonero = [
+      { nombre: 'Laterales', insumoId: 'mdf', largoMM: 700, anchoMM: 450, piezas: 2, cantidad: 1 },
+      { nombre: 'Cubierta', insumoId: 'mdf', largoMM: 500, anchoMM: 450, piezas: 1, cantidad: 1 },
+      { nombre: 'Frentes de gaveta', insumoId: 'mdf', largoMM: 480, anchoMM: 200, piezas: 3, cantidad: 1 },
+    ];
+    expect(conAcompanantes(cajonero, insumos).some((c) => c._regla === 'zoclo')).toBe(true);
   });
 });

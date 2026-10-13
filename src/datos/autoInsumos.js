@@ -67,12 +67,21 @@ export function conAcompanantes(componentes = [], insumos = null) {
   const hayFam = (f) => conRol().some((x) => x.fam === f);
   const hayRol = (r) => conRol().some((x) => x.rol === r);
 
-  // 2) Zoclo en gabinete bajo sin base.
-  const esGabinete = hayRol('lateral') && (hayRol('puerta') || hayRol('entrepano') || hayRol('gaveta'));
-  if (esGabinete && !hayRol('pata') && !comps.some((c) => c && c._regla === 'zoclo')) {
+  // 2) Zoclo en gabinete BAJO sin base. VH-169 (librero 5×8): sin cubierta tomaba el LARGO del costado
+  //    (su altura, 1800 mm) como largo del zoclo, y lo ponía en un librero alto. Ahora: sólo gabinete bajo
+  //    (costado ≤ 1100 mm), largo = pieza horizontal (cubierta / piso / techo / base); sin ella no se adivina.
+  // VH-169b (escritorio en L): una "cajonera móvil 3 gavetas (comprada)" daba rol gaveta y el escritorio recibía zoclo.
+  // Gabinete = caja FABRICADA: puertas/entrepaños/gavetas con medida, no artículos comprados.
+  const hayRolFab = (r) => conRol().some((x) => x.rol === r && Number(x.c.largoMM) > 0 && Number(x.c.anchoMM) > 0);
+  const esGabinete = hayRol('lateral') && (hayRolFab('puerta') || hayRolFab('entrepano') || hayRolFab('gaveta') || hayRolFab('frente_cajon'));
+  const cosZ = conRol().find((x) => x.rol === 'lateral');
+  const altoCostado = cosZ ? Math.max(Number(cosZ.c.largoMM) || 0, Number(cosZ.c.anchoMM) || 0) : 0;
+  const esBajo = altoCostado > 0 && altoCostado <= REGLAS_TALLER.zoclo.gabineteBajoMaxMM;
+  if (esGabinete && esBajo && !hayRol('pata') && !hayRol('zoclo') && !comps.some((c) => c && c._regla === 'zoclo')) {
     const cub = conRol().filter((x) => x.rol === 'cubierta' && x.c.largoMM > 0);
-    const cos = conRol().find((x) => x.rol === 'lateral');
-    const largo = cub.length ? cub.reduce((s, x) => s + Number(x.c.largoMM) * Math.max(1, Number(x.c.piezas) || 1), 0) : Number(cos && cos.c.largoMM) || 0;
+    const horiz = cub.length ? cub : conRol().filter((x) => /\b(piso|techo|base de cuerpo|fondo inferior)\b/i.test(x.c.nombre || '') && x.c.largoMM > 0);
+    const cos = cosZ;
+    const largo = cub.length ? cub.reduce((s, x) => s + Number(x.c.largoMM) * Math.max(1, Number(x.c.piezas) || 1), 0) : horiz.length ? Math.max(...horiz.map((x) => Number(x.c.largoMM))) : 0;
     if (largo > 0 && cos) {
       comps.push(pieza({ nombre: 'Zoclo (regla de casa)', material_solicitado: nombreMaterial(cos.c, insumos), largoMM: largo, anchoMM: REGLAS_TALLER.zoclo.altoMM, piezas: 1, cantidad: 1, forma: 'area' }, insumos, 'zoclo',
         `Regla de casa: gabinete bajo sin base → zoclo de ${REGLAS_TALLER.zoclo.altoMM} mm (durabilidad y vista), ${largo} mm de largo, mismo material que los costados. Bórralo si no aplica.`));
@@ -88,19 +97,33 @@ export function conAcompanantes(componentes = [], insumos = null) {
   // 4) Tapacanto en cantos visibles de las piezas de tablero. Si la IA ya puso la línea, su metraje
   //    era un SUPUESTO: la geometría manda y se deja constancia de lo que decía la IA.
   {
-    const paneles = conRol().filter((x) => PANELES.has(x.fam) && x.c.largoMM > 0 && x.c.anchoMM > 0);
+    const paneles = conRol().filter((x) => PANELES.has(x.fam) && x.c.largoMM > 0 && x.c.anchoMM > 0 && !x.c.excluida);
+    // El plano manda sobre el supuesto de casa: "sólo cantos frontales" (en el renglón de tapacanto o en la
+    // descripción) = un canto por pieza.
+    const soloFrontal = conRol().some((x) => x.fam === 'tapacanto' && /frontal|s[oó]lo (el |en el )?frente|cantos? del frente/i.test(`${x.c.nombre || ''} ${x.c.material_solicitado || ''} ${x.c.nota || ''}`));
     if (paneles.length) {
       const detalle = []; let metros = 0;
       for (const x of paneles) {
-        const rol = x.rol === 'lateral' ? 'costado' : x.rol;
+        const rol = soloFrontal ? (x.rol === 'respaldo' || x.rol === 'fondo' ? 'respaldo' : 'entrepano') : x.rol === 'lateral' ? 'costado' : x.rol;
         const m = metrosDeCanto({ largoMM: x.c.largoMM, anchoMM: x.c.anchoMM, piezas: x.c.piezas || 1, rol });
         if (m > 0) { metros += m; detalle.push(`${x.c.nombre}: ${r2(m)} m`); }
       }
-      const nota = `Regla de casa: cantos visibles por tipo de pieza (cubierta/puerta/frente 4 lados, costado 2, entrepaño 1, respaldo 0) = ${r2(metros)} m (${detalle.join(' · ')}). El color iguala el acabado.`;
-      const existente = conRol().find((x) => x.fam === 'tapacanto');
+      const nota = soloFrontal
+        ? `Regla de casa con lo que dice el plano: SÓLO cantos frontales (un canto por pieza, respaldo sin canto) = ${r2(metros)} m (${detalle.join(' · ')}). El color iguala el acabado.`
+        : `Regla de casa: cantos visibles por tipo de pieza (cubierta/puerta/frente 4 lados, costado 2, entrepaño 1, respaldo 0) = ${r2(metros)} m (${detalle.join(' · ')}). El color iguala el acabado.`;
+      const tapas = conRol().filter((x) => x.fam === 'tapacanto' && !x.c.excluida);
+      const existente = tapas[0];
       if (metros > 0 && existente && !existente.c._regla && !existente.c.cantidad_confirmada) {
         const idx = comps.indexOf(existente.c);
-        comps[idx] = { ...existente.c, iaCantidad: existente.c.cantidad, cantidad: r2(metros), _regla: 'tapacanto', iaNota: `${nota}${Number(existente.c.cantidad) > 0 ? ` (la IA suponía ${existente.c.cantidad} m).` : ''}` };
+        // VH-169: varios renglones de tapacanto de la IA se sumaban (16.2 m contra 8.66 m del plano). El total por
+        // geometría va al primero; los demás quedan EXCLUIDOS y visibles con su motivo (la persona puede revertirlo).
+        const otros = tapas.slice(1).filter((x) => !x.c.cantidad_confirmada && !x.c._regla);
+        const iaTotal = [existente, ...otros].reduce((s, x) => s + (Number(x.c.cantidad) || 0), 0);
+        comps[idx] = { ...existente.c, iaCantidad: existente.c.cantidad, cantidad: r2(metros), _regla: 'tapacanto', iaNota: `${nota}${iaTotal > 0 ? ` (la IA suponía ${r2(iaTotal)} m en ${1 + otros.length} renglón(es)).` : ''}` };
+        for (const o of otros) {
+          const j = comps.indexOf(o.c);
+          comps[j] = { ...o.c, excluida: true, _regla: 'tapacanto_duplicado', iaNota: `Incluido en «${existente.c.nombre}» (tapacanto por geometría, ${r2(metros)} m). La IA lo había puesto aparte con ${o.c.cantidad} m: se excluye para no contarlo dos veces.` };
+        }
       } else if (metros > 0 && !existente) {
         comps.push(pieza({ nombre: 'Tapacanto (cantos visibles)', material_solicitado: 'Tapacanto PVC', cantidad: r2(metros), piezas: 1, forma: 'lineal' }, insumos, 'tapacanto', nota));
       }

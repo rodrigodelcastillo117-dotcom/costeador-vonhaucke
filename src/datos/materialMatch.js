@@ -290,6 +290,7 @@ const FAMILIAS_CRITICAS = new Set(['metal_lamina', 'acero_inoxidable', 'aluminio
 // asume que "cualquier tablero de otro espesor es equivalente": 28→19, 36→19, 16→19, 9→19
 // pueden cambiar construcción (doble tablero/engrosado), rigidez, hojas, laminación, canto,
 // peso y proceso → CRÍTICO. Ampliar esta lista es una DECISIÓN de negocio, no un supuesto.
+const PANELES_FORMATO = new Set(['melamina', 'mdf', 'laminado_hpl', 'chapa_madera', 'madera_solida', 'metal_lamina', 'acrilico', 'policarbonato', 'pet_acustico']);
 const PARES_ESPESOR_PANEL_COMPATIBLE = new Set([
   '18|19',   // 18 mm (no existe en catálogo) ↔ 19 mm estándar, mismo acabado — aprobado 2026-10-08
 ]);
@@ -361,6 +362,32 @@ function conflictoAcabadoColor(solicitado = '', insumoNombre = '') {
 
 // ¿El conflicto de atributo entre lo pedido y el candidato es CRÍTICO (ingeniería), COMPATIBLE
 // (inocuo para estimar) o sólo VARIANTE (acabado/color, por confirmar)? Determinista.
+// VH-168 (2026-10-13, librero 5×8): el FORMATO de hoja es identidad del tablero. "Melamina 28 mm Walnut, hoja
+// 5×8" contra el curado 4×8 salía EXACT (mismo espesor, familia y acabado) y el confirmado masivo lo aceptaba.
+// Se lee el formato de lo pedido y del insumo (nombre o `formato` declarado). Sólo cuenta si AMBOS lo dicen
+// (la ausencia no es igualdad ni diferencia). Pies comerciales 3–5 × 8–10, o medidas en mm/m de hoja.
+const FORMATOS_PIES = { '4x8': [1220, 2440], '5x8': [1525, 2440], '4x10': [1220, 3050], '3x10': [914, 3048], '5x10': [1525, 3050], '4x9': [1220, 2745] };
+export function formatoHojaDe(texto = '', formato = null) {
+  if (formato && Number(formato.largoMM) > 0 && Number(formato.anchoMM) > 0) {
+    const a = Math.min(Number(formato.largoMM), Number(formato.anchoMM)), b = Math.max(Number(formato.largoMM), Number(formato.anchoMM));
+    return [a, b];
+  }
+  const t = String(texto || '').toLowerCase();
+  const p = t.match(/(?:^|[^\d.,])([345])\s*['’]?\s*(?:x|×)\s*(8|9|10)\s*['’]?(?![\d.,]*\s*(?:mm|cm|"|”))/);
+  if (p && FORMATOS_PIES[`${p[1]}x${p[2]}`]) return FORMATOS_PIES[`${p[1]}x${p[2]}`];
+  const mm = t.match(/\b(9\d\d|1[0-6]\d\d)\s*(?:x|×)\s*(2[4-9]\d\d|3[0-1]\d\d)\b/) || t.match(/\b(2[4-9]\d\d|3[0-1]\d\d)\s*(?:x|×)\s*(9\d\d|1[0-6]\d\d)\b/);
+  if (mm) { const a = Number(mm[1]), b = Number(mm[2]); return [Math.min(a, b), Math.max(a, b)]; }
+  const m = t.match(/\b([01][.,]\d{2,3})\s*(?:x|×)\s*([23][.,]\d{2,3})\s*m?\b/);
+  if (m) { const a = Math.round(Number(m[1].replace(',', '.')) * 1000), b = Math.round(Number(m[2].replace(',', '.')) * 1000); return [a, b]; }
+  return null;
+}
+const nombreFormato = (f) => { const e = Object.entries(FORMATOS_PIES).find(([, v]) => Math.abs(v[0] - f[0]) <= 25 && Math.abs(v[1] - f[1]) <= 25); return e ? e[0].replace('x', '×') : `${f[0]}×${f[1]} mm`; };
+function conflictoFormato(solicitado = '', insumoNombre = '', insumoFormato = null) {
+  const a = formatoHojaDe(solicitado), b = formatoHojaDe(insumoNombre, insumoFormato);
+  if (!a || !b) return null;
+  return Math.abs(a[0] - b[0]) > 25 || Math.abs(a[1] - b[1]) > 25 ? `Solicitado hoja ${nombreFormato(a)} → candidato hoja ${nombreFormato(b)}` : null;
+}
+
 function severidadConflicto(fam, solicitado = '', insumoNombre = '') {
   const confEsp = conflictoEspesor(solicitado, insumoNombre);
   const confCal = conflictoCalibre(solicitado, insumoNombre);
@@ -438,7 +465,7 @@ const EQUIVALENCIAS_APROBADAS = new Set([
  * @returns {{clase:string, familiaSolicitada:string, familiaResuelta:string,
  *            autocosteable:boolean, insumoIdEfectivo:string, motivo:string}}
  */
-export function clasificarMaterial({ solicitado = '', insumoId = '', insumoNombre = '' } = {}) {
+export function clasificarMaterial({ solicitado = '', insumoId = '', insumoNombre = '', insumoFormato = null } = {}) {
   const famPide = familiaDeMaterial(solicitado);
   const famTiene = familiaDeMaterial(insumoNombre || insumoId);
   const tieneId = !!String(insumoId || '').trim();
@@ -505,6 +532,15 @@ export function clasificarMaterial({ solicitado = '', insumoId = '', insumoNombr
           motivo: `Herraje de la misma familia; la variante pedida («${faltan.join(' ')}») no consta en «${insumoNombre}». Entra provisional: confírmalo.`,
         };
       }
+    }
+    // VH-168: mismo material en otro FORMATO de hoja no es exacto: cambia el aprovechamiento y el precio.
+    const cambioFmt = PANELES_FORMATO.has(famPide) ? conflictoFormato(solicitado, insumoNombre, insumoFormato) : null;
+    if (!sev.conflicto && cambioFmt) {
+      return {
+        clase: MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED, familiaSolicitada: famPide, familiaResuelta: famTiene,
+        autocosteable: true, insumoIdEfectivo: insumoId, insumoIdCandidato: insumoId, cambio: cambioFmt,
+        motivo: `Mismo material, otro formato de hoja (${cambioFmt}). Entra provisional: confirma el formato.`,
+      };
     }
     if (!sev.conflicto) {
       return {
@@ -685,7 +721,7 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
   const matchIA = String(pieza?.material_match || '').trim().toUpperCase();
   const servidorId = id && !existe && matchIA === 'EXACT' ? id : '';
 
-  const clasif = clasificarMaterial({ solicitado, insumoId: existe ? id : '', insumoNombre });
+  const clasif = clasificarMaterial({ solicitado, insumoId: existe ? id : '', insumoNombre, insumoFormato: existe?.formato || null });
 
   let insumoIdFinal = clasif.insumoIdEfectivo;
   let candidatoId = clasif.insumoIdCandidato || null;

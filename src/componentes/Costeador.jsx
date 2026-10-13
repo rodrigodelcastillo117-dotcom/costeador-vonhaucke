@@ -3,6 +3,7 @@
 //  Dos columnas en >=1000px; una sola abajo, con barra fija que muestra el costo.
 // ============================================================================
 import { revisarEstructura } from '../datos/revisionEstructural.js';
+import { patchMedidas } from '../datos/medidasMaterial.js';
 import { fuenteDeInsumo } from '../datos/senales.js';
 import { useMemo, useState, useEffect } from 'react';
 import { sugerenciaLote, sugerenciaMedida, costoNetoComponente, netoComponente, costeoEmitible, PARAMETROS_DEFAULT, SIN_MO_SECCIONES, precioUsable } from '../motor/calculo.js';
@@ -264,7 +265,9 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     const comps = costeo.componentes.slice();
     const prev = comps[i];
     const patch = { insumoId, nombre: prev.nombre || (ins ? ins.nombre : '') };
-    if (!esArea(ins)) { patch.largoMM = undefined; patch.anchoMM = undefined; } // material no dimensional
+    // VH-167: la medida es del plano, no del material: un tablero por hoja sin formato la conserva (el motor lo
+    // deja pendiente); sólo un material por pieza/metro la saca del consumo y queda guardada en `medidaPrevia`.
+    Object.assign(patch, patchMedidas(prev, ins));
     if (!esFraccionHoja(ins)) patch.hojas = undefined; // material que no es por fracción de hoja
     // Elección/confirmación HUMANA: misma intención en ambas UIs (P0.8). El servidor verifica
     // material_confirmado + insumoId y lo convierte a USER_CONFIRMED efectivo (no confía en el string).
