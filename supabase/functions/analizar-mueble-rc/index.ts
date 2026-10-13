@@ -508,6 +508,15 @@ Deno.serve(async (req) => {
   // (ids fuera de catálogo, números no finitos, EXACT sin id). No se inventa nada: se degrada a
   // NOT_AVAILABLE y se reporta en `validacion`.
   const validacion = sanearPropuesta(propuesta, idsServidor, idsCliente);
+  // VH-162 (servidor): salida JSON DEGENERADA — otras piezas metidas dentro de un texto con comillas simples
+  // ("relacion_con":"','procedencia':'MEASURED',...{'nombre':'Piso inferior'}"). Parsea, pero el despiece real se perdió:
+  // se rechaza como forma inválida para que el cliente reintente en vez de aceptar 1 pieza de 12.
+  const RE_INCRUSTADO = /['"]\s*,\s*['"]?(procedencia|evidencia|nombre|insumoId|forma)['"]?\s*:\s*['"]|\{\s*['"]nombre['"]\s*:/;
+  const degenerada = (Array.isArray(propuesta?.piezas) ? propuesta.piezas : []).some((x: any) => x && Object.values(x).some((v: any) => typeof v === "string" && RE_INCRUSTADO.test(v)));
+  if (degenerada) {
+    await cerrarTel("error", 200, { model_status: String(data?.stop_reason || "ok"), error_code: "INVALID_MODEL_SHAPE" });
+    return json({ ok: false, code: "INVALID_MODEL_SHAPE", error: "La IA devolvió un despiece mal formado (piezas dentro de un texto). Reintenta.", request_id: requestId }, 200);
+  }
   if (!validacion.ok) {
     await cerrarTel("error", 200, { model_status: String(data?.stop_reason || "ok"), error_code: "INVALID_MODEL_SHAPE" });
     return json({ ok: false, code: "INVALID_MODEL_SHAPE", error: "La IA devolvió un despiece sin forma válida. Reintenta.", validacion, request_id: requestId }, 200);
