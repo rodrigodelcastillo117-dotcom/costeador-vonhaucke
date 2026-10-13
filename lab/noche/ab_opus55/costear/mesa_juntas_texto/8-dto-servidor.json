@@ -1,0 +1,503 @@
+{
+  "req": {
+    "cantidad": 1,
+    "pieza": {
+      "componentes": [
+        {
+          "insumoId": "melamina-28-walnut",
+          "nombre": "Cubierta 2400 × 1200",
+          "cantidad": 1,
+          "largoMM": 2400,
+          "anchoMM": 1200,
+          "piezas": 1,
+          "material_solicitado": "Melamina 28 mm acabado Walnut",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC 2 mm Walnut perímetro cubierta",
+          "cantidad": 15.24,
+          "piezas": 1,
+          "material_solicitado": "Tapacanto PVC 2 mm Walnut, 7.2 m",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "melamina-28-walnut",
+          "nombre": "Panel lateral base 1000 × 722",
+          "cantidad": 1,
+          "largoMM": 1000,
+          "anchoMM": 722,
+          "piezas": 2,
+          "material_solicitado": "Melamina 28 mm Walnut",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "melamina-19-walnut",
+          "nombre": "Faldón central 2000 × 300",
+          "cantidad": 1,
+          "largoMM": 2000,
+          "anchoMM": 300,
+          "piezas": 1,
+          "material_solicitado": "Melamina 19 mm Walnut",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador",
+          "cantidad": 4,
+          "piezas": 1,
+          "material_solicitado": "Nivelador regulable para base de melamina",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "caja-electrica",
+          "nombre": "Caja de conexiones eléctricas central",
+          "cantidad": 1,
+          "piezas": 1,
+          "material_solicitado": "Caja de conexiones eléctricas (contactos/USB) al centro de la cubierta",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornillería y herraje de ensamble (minifix/escuadras)",
+          "cantidad": 1,
+          "piezas": 1,
+          "material_solicitado": "Tornillería y conectores de ensamble knock-down",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        }
+      ]
+    }
+  },
+  "res": {
+    "ok": true,
+    "estado": "incompleto",
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 5072.85,
+      "materialTotal": 3375.08,
+      "manoObra": 421.2,
+      "indirectosFabrica": 1276.57,
+      "desperdicio": 488.34,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-28-walnut",
+          "nombre": "Melamina 28 mm, Walnut",
+          "seccion": "cubiertas",
+          "costo": 2226,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "costo": 48.18,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "melamina-19-walnut",
+          "nombre": "Melamina 19 mm, Walnut",
+          "seccion": "cubiertas",
+          "costo": 335.98,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "costo": 70.92,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "caja-electrica",
+          "nombre": "Caja electrica generica (contactos+USB)",
+          "seccion": "electrico",
+          "costo": 649,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "costo": 45,
+          "certificable": true,
+          "evidencia": "aprobado"
+        }
+      ],
+      "componentesIgnorados": []
+    },
+    "evidencia": {
+      "usados": 6,
+      "certificados": 3,
+      "noCertificados": 3
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 2610.1577839999995,
+      "materialIndirecto": 764.92,
+      "materialTotal": 3375.0777839999996,
+      "desperdicio": 488.34296497285675,
+      "manoObra": 421.1976676,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 16.13686613820431,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 3796.2754515999995,
+      "indirectosFabrica": 1276.5730027999998,
+      "gastosOperacion": 0,
+      "costoFabricacion": 5072.848454399999,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 5072.848454399999,
+      "costoLoteConMerma": 5072.848454399999,
+      "costoUnitario": 5072.848454399999,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-28-walnut",
+          "nombre": "Melamina 28 mm, Walnut",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Cubierta 2400 × 1200",
+            "Panel lateral base 1000 × 722"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": false,
+            "certificable": false,
+            "hojas": 1,
+            "piezas_solicitadas": 3,
+            "piezas_colocadas": 2,
+            "placements": [
+              {
+                "id": "Panel lateral base 1000 × 722#1",
+                "nombre": "Panel lateral base 1000 × 722",
+                "x": 10,
+                "y": 10,
+                "w": 722,
+                "h": 1000,
+                "rot": 90,
+                "hoja": 1
+              },
+              {
+                "id": "Panel lateral base 1000 × 722#2",
+                "nombre": "Panel lateral base 1000 × 722",
+                "x": 736,
+                "y": 10,
+                "w": 722,
+                "h": 1000,
+                "rot": 90,
+                "hoja": 1
+              }
+            ],
+            "remanentes": [
+              {
+                "hoja": 1,
+                "x": 1462,
+                "y": 10,
+                "w": 968,
+                "h": 1200,
+                "area_mm2": 1161600
+              },
+              {
+                "hoja": 1,
+                "x": 10,
+                "y": 1014,
+                "w": 2420,
+                "h": 196,
+                "area_mm2": 474320
+              }
+            ],
+            "issues": [
+              {
+                "code": "PIEZA_NO_CABE",
+                "id": "Cubierta 2400 × 1200#1",
+                "w": 2400,
+                "h": 1200
+              }
+            ],
+            "area_piezas_mm2": 1444000,
+            "area_comprada_mm2": 2976800,
+            "desperdicio_mm2": 1532800,
+            "eficiencia_pct": 49.72451790633609,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 4.324,
+          "comprado": 4.961333333333333,
+          "unidades": 1.6666666666666665,
+          "costo": 2225.9999999999995,
+          "desperdicio": 285.95216339693627,
+          "pct": 12.846009137328677,
+          "precio": 1335.6,
+          "noCabe": false,
+          "fraccion": true,
+          "reglaProduccion": "produccion-rogelio-2026-10",
+          "piezasRegla": [
+            {
+              "pieza": "Cubierta 2400 × 1200",
+              "largoMM": 2400,
+              "anchoMM": 1200,
+              "hojasPorPieza": 1
+            }
+          ]
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "rollo",
+            "corto": "rollo",
+            "medida": 50,
+            "nombre": "rollo de 50 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Tapacanto PVC 2 mm Walnut perímetro cubierta"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 15.24,
+          "comprado": 15.8496,
+          "unidades": null,
+          "costo": 48.182784000000005,
+          "desperdicio": 1.853184000000001,
+          "pct": 3.8461538461538485,
+          "precio": 3.04,
+          "noCabe": false
+        },
+        {
+          "insumoId": "melamina-19-walnut",
+          "nombre": "Melamina 19 mm, Walnut",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Faldón central 2000 × 300"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": true,
+            "certificable": false,
+            "hojas": 1,
+            "piezas_solicitadas": 1,
+            "piezas_colocadas": 1,
+            "placements": [
+              {
+                "id": "Faldón central 2000 × 300#1",
+                "nombre": "Faldón central 2000 × 300",
+                "x": 10,
+                "y": 10,
+                "w": 2000,
+                "h": 300,
+                "rot": 0,
+                "hoja": 1
+              }
+            ],
+            "remanentes": [
+              {
+                "hoja": 1,
+                "x": 10,
+                "y": 314,
+                "w": 2420,
+                "h": 896,
+                "area_mm2": 2168320
+              },
+              {
+                "hoja": 1,
+                "x": 2014,
+                "y": 10,
+                "w": 416,
+                "h": 1200,
+                "area_mm2": 499200
+              }
+            ],
+            "issues": [],
+            "area_piezas_mm2": 600000,
+            "area_comprada_mm2": 2976800,
+            "desperdicio_mm2": 2376800,
+            "eficiencia_pct": 20.66115702479339,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.6,
+          "comprado": 1.4884,
+          "unidades": 0.5,
+          "costo": 335.975,
+          "desperdicio": 200.53761757592045,
+          "pct": 59.688255845202896,
+          "precio": 671.95,
+          "noCabe": false,
+          "fraccion": true,
+          "reglaProduccion": "produccion-rogelio-2026-10",
+          "piezasRegla": [
+            {
+              "pieza": "Faldón central 2000 × 300",
+              "largoMM": 2000,
+              "anchoMM": 300,
+              "hojasPorPieza": 0.5
+            }
+          ]
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Nivelador"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 4,
+          "comprado": 4,
+          "unidades": null,
+          "costo": 70.92,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 17.73,
+          "noCabe": false
+        },
+        {
+          "insumoId": "caja-electrica",
+          "nombre": "Caja electrica generica (contactos+USB)",
+          "seccion": "electrico",
+          "clase": "indirecta",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Caja de conexiones eléctricas central"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "compraventa",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 1,
+          "unidades": null,
+          "costo": 649,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 649,
+          "noCabe": false
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "juego",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Tornillería y herraje de ensamble (minifix/escuadras)"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 1,
+          "unidades": null,
+          "costo": 45,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 45,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Tapacanto PVC 2 mm Walnut perímetro cubierta",
+        "Nivelador",
+        "Caja de conexiones eléctricas central",
+        "Tornillería y herraje de ensamble (minifix/escuadras)"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "completo",
+      "pendientes": [],
+      "costoOficial": 5072.848454399999
+    },
+    "versionMotor": "2026-10-13",
+    "versionConfig": "cfglu0aa4",
+    "versionCatalogo": "cat-ap1793-cfg1ja5v37",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T18:55:11.630Z",
+    "catalogoFuente": "catalogo",
+    "warnings": []
+  }
+}

@@ -1,0 +1,143 @@
+{
+  "producto": "Mesa de juntas 2400 × 1200 × 750 descrita sólo con texto",
+  "resumen": {
+    "esperados": 6,
+    "pass": 6,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 0,
+    "renglonesBom": 7,
+    "veredicto": "PASS"
+  },
+  "filas": [
+    {
+      "clave": "cubierta",
+      "renglones": 1,
+      "materiales": [
+        "melamina-28-walnut"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "texto: cubierta melamina 28 mm Walnut 2400 × 1200",
+      "inferido": false,
+      "piezas": 1
+    },
+    {
+      "clave": "tapacanto_m",
+      "renglones": 1,
+      "materiales": [
+        "tapacanto"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "texto: tapacanto en todo el perímetro de la cubierta (7.2 m) + regla de casa aprobada por Dirección (cantos visibles: paneles laterales 2 lados, faldón 4 lados) = 15.24 m. El texto no excluye esos cantos; la IA lo preguntó.",
+      "inferido": false,
+      "metros": 15.24
+    },
+    {
+      "clave": "paneles",
+      "renglones": 1,
+      "materiales": [
+        "melamina-28-walnut"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "texto: dos paneles laterales 722 × 1000, melamina 28 mm Walnut",
+      "inferido": false,
+      "piezas": 2
+    },
+    {
+      "clave": "faldon",
+      "renglones": 1,
+      "materiales": [
+        "melamina-19-walnut"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "texto: faldón central melamina 19 mm Walnut 2000 × 300",
+      "inferido": false,
+      "piezas": 1
+    },
+    {
+      "clave": "niveladores",
+      "renglones": 1,
+      "materiales": [
+        "nivelador"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "texto: Cuatro niveladores",
+      "inferido": false,
+      "cantidad": 4
+    },
+    {
+      "clave": "caja_electrica",
+      "renglones": 1,
+      "materiales": [
+        "caja-electrica"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "texto: Una caja de conexiones eléctricas (si no hay curado, sin material con motivo; nunca otro artículo)",
+      "inferido": false,
+      "cantidad": 1
+    }
+  ],
+  "sobran": [
+    {
+      "nombre": "Tornillería y herraje de ensamble (minifix/escuadras)",
+      "insumoId": "tornilleria",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Qué modelo de caja de conexiones se usará?",
+      "elegido": "(sin responder: ninguna opción coincide con el plano)",
+      "opciones": [
+        "Byrne Phase 2",
+        "Byrne Node (USB+luz)",
+        "Caja genérica contactos+USB",
+        "Por definir"
+      ],
+      "evidencia": "texto: Una caja de conexiones eléctricas"
+    },
+    {
+      "pregunta": "¿Cuántos pasacables/grommets adicionales lleva la cubierta?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Se cantean todos los cantos vistos de laterales y faldón?",
+      "elegido": "(sin responder: ninguna opción coincide con el plano)",
+      "opciones": [
+        "Sí, todos los vistos",
+        "Sólo cubierta",
+        "Todos los cantos (4 caras)"
+      ],
+      "evidencia": "texto: dos paneles laterales de 722 × 1000"
+    },
+    {
+      "pregunta": "¿Ensamble fijo (taquete/cola) o desmontable knock-down?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Tipo de nivelador?",
+      "elegido": "(sin responder: ninguna opción coincide con el plano)",
+      "opciones": [
+        "Cónico cromado 3/8",
+        "Con plataforma 1 1/2\"",
+        "Oculto"
+      ],
+      "evidencia": "texto: Cuatro niveladores"
+    },
+    {
+      "pregunta": "¿Cuántas mesas se fabricarán?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Se incluye acometida/chicote y canalización hasta piso?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}
