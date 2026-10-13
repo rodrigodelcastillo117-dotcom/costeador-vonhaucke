@@ -3,12 +3,16 @@
 //  Supabase y responde como el servidor:
 //   - auth por contraseña (JWT sin firma, suficiente para supabase-js),
 //   - `permitidos` por rol, `config_para_rol`, `direccion`, `reglas`, `aprendizajes`,
-//   - RPCs de cotización con la MISMA semántica que la base DESPUÉS de la migración
-//     20261010170000: creación idempotente por `_idempotency_key`, dueño/rol,
-//     `cotizacion_segura` sin economía para quien no la ve, y
-//     `actualizar_cotizacion_segura` que strippea lo que entra y RE-PEGA la economía
-//     que ya tenía la fila (ver supabase/tests/preservaEconomia.test.js, que prueba
-//     esa semántica contra PostgreSQL real).
+//   - RPCs de cotización con la semántica de PRODUCCIÓN HOY (cuerpos leídos el 2026-10-13,
+//     supabase/tests/fixtures/private_api_prod_20261013.sql): creación idempotente por
+//     `_idempotency_key`, dueño/rol, `cotizacion_segura` sin economía para quien no la ve, y
+//     `actualizar_cotizacion_segura` que escribe lo que llega; el trigger
+//     trg_strip_seller_economics strippea SÓLO al rol 'vendedor' (diseño escribe tal cual) y
+//     NADA re-pega la economía que ya tenía la fila → hoy el vendedor que reabre y guarda
+//     PIERDE los costos de Dirección (VH-035, P0). `crearNubeFalsa({ preservaEconomia: true })`
+//     simula en cambio la migración 20261010170000 (NO aplicada en producción): strippea lo que
+//     entra y RE-PEGA la economía vieja. Ambas semánticas están probadas contra PostgreSQL real
+//     en supabase/tests/preservaEconomia.test.js; ver docs/auditoria/VH035_SQL_VS_MOCK.md.
 //  Vive en el proceso de Playwright, así que SOBREVIVE recargas y pestañas: es la
 //  "base de datos" del escenario. Nada toca producción.
 // ============================================================================
@@ -134,7 +138,8 @@ export function evaluarEmision(fila, snap, aprobaciones = []) {
   return { state: 'ALLOWED', reasons: [], ...base };
 }
 
-export function crearNubeFalsa({ usuarios }) {
+// `preservaEconomia` (default false = producción hoy): true = semántica de la migración 20261010170000.
+export function crearNubeFalsa({ usuarios, preservaEconomia = false }) {
   const permitidos = new Map(Object.entries(usuarios));   // email → rol
   const f = {
     filas: new Map(),            // id → fila cotizaciones
@@ -153,6 +158,8 @@ export function crearNubeFalsa({ usuarios }) {
   const rolDe = (email) => permitidos.get(email) || null;
   const veEconomia = (email) => rolDe(email) === 'direccion';
   const editaConfig = (email) => ['direccion', 'diseno'].includes(rolDe(email));
+  // Qué escritura se strippea: producción = trg_strip_seller_economics (sólo 'vendedor'); migración = todo rol sin economía.
+  const strippeaEscritura = (email) => (preservaEconomia ? !veEconomia(email) : rolDe(email) === 'vendedor');
   const emailDe = (req) => {
     const auth = req.headers()['authorization'] || '';
     const m = /^Bearer (.+)$/.exec(auth); if (!m) return null;
@@ -313,13 +320,16 @@ export function crearNubeFalsa({ usuarios }) {
         if ('estado' in patch && patch.estado !== 'borrador') return err(route, 'estado protegido; use el flujo de emision');
         let partidas = 'partidas' in patch ? patch.partidas : c.partidas;
         if (!Array.isArray(partidas)) return err(route, 'partidas debe ser arreglo');
-        if (!veEconomia(email) && 'partidas' in patch) partidas = fusionar(c.partidas, sinEconomia(partidas));   // VH-035
+        if ('partidas' in patch && !veEconomia(email)) {
+          if (preservaEconomia) partidas = fusionar(c.partidas, sinEconomia(partidas));   // migración 20261010170000 (NO en producción)
+          else if (strippeaEscritura(email)) partidas = sinEconomia(partidas);          // producción hoy: el trigger strippea al vendedor; la economía vieja se PIERDE
+        }                                                                                // diseño en producción: escribe tal cual (ni strip ni fusión)
         Object.assign(c, {
           cliente: 'cliente' in patch ? (patch.cliente || null) : c.cliente,
           folio: 'folio' in patch ? (patch.folio || null) : c.folio,
           partidas,
-          acomodo: 'acomodo' in patch ? (veEconomia(email) ? patch.acomodo : sinEconomia(patch.acomodo)) : c.acomodo,
-          totales: 'totales' in patch ? (veEconomia(email) ? patch.totales : sinEconomia(patch.totales)) : c.totales,
+          acomodo: 'acomodo' in patch ? (strippeaEscritura(email) ? sinEconomia(patch.acomodo) : patch.acomodo) : c.acomodo,
+          totales: 'totales' in patch ? (strippeaEscritura(email) ? sinEconomia(patch.totales) : patch.totales) : c.totales,
           total: 'total' in patch ? Number(patch.total) || 0 : c.total,
           piezas: 'piezas' in patch ? Number(patch.piezas) || 0 : c.piezas,
           huella_mp: 'huella_mp' in patch ? patch.huella_mp : c.huella_mp,
