@@ -1,0 +1,18 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labRender.e2e.js:10:1 › reabrir y generar renders por área
+[chromium] › e2e/labRender.e2e.js:10:1 › reabrir y generar renders por área
+[lab-render] edge generar-render-rc 200 {"ok":false,"code":"RENDER_QA_FAILED","referencias":1,"con_dibujo":true,"audit":{"pass":false,"layout":"FAIL","extra":"PASS","reasons":["Chair count is incomplete compared to the required 12 chairs in the diagram layout.","Furniture geometry and materials accurately match product specifications."]}}
+
+[lab-render] edge generar-render-rc 200 {"ok":true,"referencias":1,"con_dibujo":true,"audit":{"pass":true,"layout":"PASS","extra":"PASS","reasons":["The office chair geometry closely matches the product reference details.","Desk layout and placement align with the reference diagram requirements.","The private office environment is clearly defined with plausible eye-level perspective."]}}
+
+[lab-render] edge generar-render-rc 200 {"ok":false,"code":"RENDER_QA_FAILED","referencias":1,"con_dibujo":true,"audit":{"pass":false,"layout":"FAIL","extra":"FAIL","reasons":["Chair geometry includes armrests not present in Product Reference 1.","Unplanned credenza cabinet added along back wall.","Floor-standing object count exceeds expected count due to extra cabinet."]}}
+
+[lab-render] edge generar-render-rc 200 {"ok":true,"referencias":0,"con_dibujo":true,"audit":{"pass":true,"layout":"PASS","extra":"PASS","reasons":["Furniture count and placement match the diagram.","Environment depicts a reception space with natural perspective."]}}
+
+[lab-render] {"cliente":"(lab V2) C1 recto RC 3","boton":"Generar las 4 áreas","segundos":233,"fn":["generar-render-rc"],"llamadas":4,"validas":2,"fallas":["RENDER_QA_FAILED","RENDER_QA_FAILED"],"referencias":[1,1,1,0],"con_dibujo":[true,true,true,true],"imagenes":2,"escenasGuardadas":0,"pageErrors":0}
+
+[lab-render] ETAPAS {"generadas":4,"validadas":2,"persistidas":2,"reabiertas":0,"enPdf":{"bytes":12321596,"imagenesEnPdf":5},"botonGuardarEscenas":1,"escenas":[{"area":"DIRECCIÓN","img":"https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/renders/generated/qa-dir"},{"area":"RECEPCIÓN","img":"https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/renders/generated/qa-dir"}],"reabiertasEscenas":2,"reabiertasEnLinea":0}
+
+  1 passed (4.4m)

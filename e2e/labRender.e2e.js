@@ -51,12 +51,20 @@ test('reabrir y generar renders por área', async ({ page }) => {
   };
   // Cinco etapas (Dirección 13-oct): generada · validada · persistida · reabierta · en PDF. Ninguna se infiere de otra.
   const etapas = { generadas: edges.filter((e) => e.status === 200 && (e.ok === true || e.code === 'RENDER_QA_FAILED')).length, validadas: edges.filter((e) => e.ok === true && e.audit?.pass === true).length, persistidas: 0, reabiertas: 0, enPdf: null };
-  const guardar = page.getByRole('button', { name: /Guardar en la propuesta/ });
-  if (await guardar.count()) { await guardar.first().click(); await page.waitForTimeout(2500); }
-  await expect.poll(async () => ((await leerCot(page))?.acomodo?.escenas || []).length, { timeout: 15000 }).toBeGreaterThanOrEqual(0);
+  // Hay varios "Guardar en la propuesta" (staging de áreas/plan y el de las ESCENAS). El de las escenas vive en la
+  // misma fila que "Volver a generar"; antes se pulsaba el primero (áreas/plan) y las escenas nunca se guardaban.
+  const filaEscenas = page.locator('.fila-botones', { has: page.getByRole('button', { name: /Volver a generar/ }) });
+  const guardar = filaEscenas.getByRole('button', { name: /Guardar en la propuesta/ });
+  etapas.botonGuardarEscenas = await guardar.count();
+  if (etapas.botonGuardarEscenas) { await guardar.first().click(); await page.waitForTimeout(2500); }
+  // La app guarda cada escena como { nombre, m2, img } (img = dataURL local; al subir a la nube → URL de Storage).
+  const imgDe = (e) => (e && (e.img || e.url || e.imagen || e.dataUrl)) || '';
+  await expect.poll(async () => ((await leerCot(page))?.acomodo?.escenas || []).filter(imgDe).length, { timeout: 20000 }).toBeGreaterThan(0).catch(() => {});
   const escenas = (await leerCot(page))?.acomodo?.escenas || [];
-  etapas.persistidas = escenas.filter((e) => e && (e.url || e.imagen || e.dataUrl)).length;
-  etapas.escenas = escenas.map((e) => ({ area: e.area || e.nombre || null, url: String(e.url || e.imagen || e.dataUrl || '').slice(0, 90) }));
+  etapas.persistidas = escenas.filter(imgDe).length;
+  etapas.escenas = escenas.map((e) => ({ area: e.area || e.nombre || null, img: String(imgDe(e)).slice(0, 90) }));
+  // Espera a que el autosave suba las imágenes a Storage y guarde la fila (la reapertura lee la NUBE).
+  await page.waitForTimeout(12000);
   // Reabrir desde otra pestaña (misma cuenta) y comprobar que las escenas vuelven y sus URLs cargan.
   const id = (await leerCot(page))?.id;
   if (id && etapas.persistidas) {
@@ -69,8 +77,13 @@ test('reabrir y generar renders por área', async ({ page }) => {
     await expect.poll(async () => (await leerCot(p2))?.id || null, { timeout: 30000 }).toBe(id);
     const esc2 = (await leerCot(p2))?.acomodo?.escenas || [];
     let cargan = 0;
-    for (const e of esc2) { const u = e.url || e.imagen; if (u && /^https?:/.test(u)) { const r = await p2.request.get(u).catch(() => null); if (r && r.ok()) cargan++; } }
-    etapas.reabiertas = cargan; etapas.reabiertasEscenas = esc2.length;
+    let enLinea = 0;
+    // Se carga cada imagen EN EL NAVEGADOR reabierto (lo que ve la persona). p2.request.get no sirve aquí: su
+    // cliente HTTP no pasa por la configuración del navegador y daba 0 aunque las URLs respondan 200.
+    const urls = esc2.map(imgDe).filter((u) => /^https?:/.test(u)); enLinea = esc2.map(imgDe).filter((u) => /^data:image\//.test(u)).length;
+    const okImgs = await p2.evaluate((us) => Promise.all(us.map((u) => new Promise((r) => { const i = new Image(); i.onload = () => r(i.naturalWidth > 0); i.onerror = () => r(false); i.src = u; }))), urls).catch(() => []);
+    cargan = okImgs.filter(Boolean).length;
+    etapas.reabiertas = cargan; etapas.reabiertasEscenas = esc2.length; etapas.reabiertasEnLinea = enLinea;
     // PDF desde la cotización reabierta: ¿incluye las imágenes? (bytes y, si hay pdftotext, conteo de /Image)
     const btnPdf = p2.getByRole('button', { name: /Descargar PDF|Descargar BORRADOR/ });
     if (await btnPdf.count()) {

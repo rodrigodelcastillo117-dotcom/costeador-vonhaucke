@@ -1,0 +1,57 @@
+{
+  "cliente": "(lab V2) C1 recto RC 3",
+  "boton": "Generar las 4 áreas",
+  "segundos": 204,
+  "fn": [
+    "generar-render-rc"
+  ],
+  "llamadas": 4,
+  "validas": 4,
+  "fallas": [],
+  "referencias": [
+    1,
+    1,
+    1,
+    0
+  ],
+  "con_dibujo": [
+    true,
+    true,
+    true,
+    true
+  ],
+  "imagenes": 4,
+  "escenasGuardadas": 2,
+  "pageErrors": 0,
+  "etapas": {
+    "generadas": 4,
+    "validadas": 4,
+    "persistidas": 4,
+    "reabiertas": 4,
+    "enPdf": {
+      "bytes": 16427258,
+      "imagenesEnPdf": 7
+    },
+    "botonGuardarEscenas": 1,
+    "escenas": [
+      {
+        "area": "OPERATIVA",
+        "img": "https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/renders/generated/qa-dir"
+      },
+      {
+        "area": "DIRECCIÓN",
+        "img": "https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/renders/generated/qa-dir"
+      },
+      {
+        "area": "SALA DE JUNTAS",
+        "img": "https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/renders/generated/qa-dir"
+      },
+      {
+        "area": "RECEPCIÓN",
+        "img": "https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/renders/generated/qa-dir"
+      }
+    ],
+    "reabiertasEscenas": 4,
+    "reabiertasEnLinea": 0
+  }
+}

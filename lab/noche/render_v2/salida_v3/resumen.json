@@ -1,0 +1,52 @@
+{
+  "cliente": "(lab V2) C1 recto RC 3",
+  "boton": "Generar las 4 áreas",
+  "segundos": 233,
+  "fn": [
+    "generar-render-rc"
+  ],
+  "llamadas": 4,
+  "validas": 2,
+  "fallas": [
+    "RENDER_QA_FAILED",
+    "RENDER_QA_FAILED"
+  ],
+  "referencias": [
+    1,
+    1,
+    1,
+    0
+  ],
+  "con_dibujo": [
+    true,
+    true,
+    true,
+    true
+  ],
+  "imagenes": 2,
+  "escenasGuardadas": 0,
+  "pageErrors": 0,
+  "etapas": {
+    "generadas": 4,
+    "validadas": 2,
+    "persistidas": 2,
+    "reabiertas": 0,
+    "enPdf": {
+      "bytes": 12321596,
+      "imagenesEnPdf": 5
+    },
+    "botonGuardarEscenas": 1,
+    "escenas": [
+      {
+        "area": "DIRECCIÓN",
+        "img": "https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/renders/generated/qa-dir"
+      },
+      {
+        "area": "RECEPCIÓN",
+        "img": "https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/renders/generated/qa-dir"
+      }
+    ],
+    "reabiertasEscenas": 2,
+    "reabiertasEnLinea": 0
+  }
+}

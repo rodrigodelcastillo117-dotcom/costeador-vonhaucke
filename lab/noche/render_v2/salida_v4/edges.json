@@ -1,0 +1,113 @@
+[
+  {
+    "fn": "generar-render-rc",
+    "status": 200,
+    "ok": true,
+    "code": null,
+    "error": null,
+    "audit": {
+      "pass": true,
+      "geometry_match": "PASS",
+      "layout_match": "PASS",
+      "environment_match": "PASS",
+      "extra_objects": "PASS",
+      "natural_camera": "PASS",
+      "reasons": [
+        "The layout, chair count (12), desk structure with glass dividers, and product geometries match the reference requirements accurately."
+      ],
+      "confidence": 0.7,
+      "fidelidad_producto": "CON_REFERENCIAS",
+      "contador": "SIN_RESPUESTA"
+    },
+    "referencias": 1,
+    "con_dibujo": true,
+    "conteo": null,
+    "conteoTexto": null,
+    "model": "gemini-3-pro-image",
+    "bytes": 2396559
+  },
+  {
+    "fn": "generar-render-rc",
+    "status": 200,
+    "ok": true,
+    "code": null,
+    "error": null,
+    "audit": {
+      "pass": true,
+      "geometry_match": "PASS",
+      "layout_match": "PASS",
+      "environment_match": "PASS",
+      "extra_objects": "PASS",
+      "natural_camera": "PASS",
+      "reasons": [
+        "The chair matches product reference 1 in structure, base, and mesh design.",
+        "Furniture and chair counts accord with specified parameters for a private office scene.",
+        "Camera perspective and room rendering are natural and correct."
+      ],
+      "confidence": 0.85,
+      "fidelidad_producto": "CON_REFERENCIAS",
+      "contador": "SIN_RESPUESTA"
+    },
+    "referencias": 1,
+    "con_dibujo": true,
+    "conteo": null,
+    "conteoTexto": null,
+    "model": "gemini-3-pro-image",
+    "bytes": 2129254
+  },
+  {
+    "fn": "generar-render-rc",
+    "status": 200,
+    "ok": true,
+    "code": null,
+    "error": null,
+    "audit": {
+      "pass": true,
+      "geometry_match": "PASS",
+      "layout_match": "PASS",
+      "environment_match": "PASS",
+      "extra_objects": "PASS",
+      "natural_camera": "PASS",
+      "reasons": [
+        "The 8 chairs and conference table accurately mirror the layout diagram and product reference details."
+      ],
+      "confidence": 0.7,
+      "fidelidad_producto": "CON_REFERENCIAS",
+      "contador": "SIN_RESPUESTA"
+    },
+    "referencias": 1,
+    "con_dibujo": true,
+    "conteo": null,
+    "conteoTexto": null,
+    "model": "gemini-3-pro-image",
+    "bytes": 2361285
+  },
+  {
+    "fn": "generar-render-rc",
+    "status": 200,
+    "ok": true,
+    "code": null,
+    "error": null,
+    "audit": {
+      "pass": true,
+      "geometry_match": "PASS",
+      "layout_match": "PASS",
+      "environment_match": "PASS",
+      "extra_objects": "PASS",
+      "natural_camera": "PASS",
+      "reasons": [
+        "The generated image correctly depicts a single purple reception module matching the diagram placement and dimensions.",
+        "No extra furniture was added and the camera angle provides a natural perspective of the reception area."
+      ],
+      "confidence": 0.7,
+      "fidelidad_producto": "SIN_REFERENCIAS",
+      "contador": "SIN_RESPUESTA"
+    },
+    "referencias": 0,
+    "con_dibujo": true,
+    "conteo": null,
+    "conteoTexto": null,
+    "model": "gemini-3-pro-image",
+    "bytes": 2245771
+  }
+]

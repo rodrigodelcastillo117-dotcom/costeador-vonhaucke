@@ -1,0 +1,18 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labRender.e2e.js:10:1 › reabrir y generar renders por área
+[chromium] › e2e/labRender.e2e.js:10:1 › reabrir y generar renders por área
+[lab-render] edge generar-render-rc 200 {"ok":true,"referencias":1,"con_dibujo":true,"audit":{"pass":true,"layout":"PASS","extra":"PASS","reasons":["The layout, chair count (12), desk structure with glass dividers, and product geometries match the reference requirements accurately."]}}
+
+[lab-render] edge generar-render-rc 200 {"ok":true,"referencias":1,"con_dibujo":true,"audit":{"pass":true,"layout":"PASS","extra":"PASS","reasons":["The chair matches product reference 1 in structure, base, and mesh design.","Furniture and chair counts accord with specified parameters for a private office scene.","Camera perspective and room rendering are natural and correct."]}}
+
+[lab-render] edge generar-render-rc 200 {"ok":true,"referencias":1,"con_dibujo":true,"audit":{"pass":true,"layout":"PASS","extra":"PASS","reasons":["The 8 chairs and conference table accurately mirror the layout diagram and product reference details."]}}
+
+[lab-render] edge generar-render-rc 200 {"ok":true,"referencias":0,"con_dibujo":true,"audit":{"pass":true,"layout":"PASS","extra":"PASS","reasons":["The generated image correctly depicts a single purple reception module matching the diagram placement and dimensions.","No extra furniture was added and the camera angle provides a natural perspective of the reception area."]}}
+
+[lab-render] {"cliente":"(lab V2) C1 recto RC 3","boton":"Generar las 4 áreas","segundos":204,"fn":["generar-render-rc"],"llamadas":4,"validas":4,"fallas":[],"referencias":[1,1,1,0],"con_dibujo":[true,true,true,true],"imagenes":4,"escenasGuardadas":2,"pageErrors":0}
+
+[lab-render] ETAPAS {"generadas":4,"validadas":4,"persistidas":4,"reabiertas":4,"enPdf":{"bytes":16427258,"imagenesEnPdf":7},"botonGuardarEscenas":1,"escenas":[{"area":"OPERATIVA","img":"https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/renders/generated/qa-dir"},{"area":"DIRECCIÓN","img":"https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/renders/generated/qa-dir"},{"area":"SALA DE JUNTAS","img":"https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/renders/generated/qa-dir"},{"area":"RECEPCIÓN","img":"https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/renders/generated/qa-dir"}],"reabiertasEscenas":4,"reabiertasEnLinea":0}
+
+  1 passed (3.9m)

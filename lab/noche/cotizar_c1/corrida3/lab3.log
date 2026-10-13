@@ -1,0 +1,42 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labTorreNorte.e2e.js:23:3 › LAB · plano Torre Norte › ARQ-01 + MOB-01: lectura → programa → acomodo → guardar → render → PDF → reabrir
+[chromium] › e2e/labTorreNorte.e2e.js:23:3 › LAB · plano Torre Norte › ARQ-01 + MOB-01: lectura → programa → acomodo → guardar → render → PDF → reabrir
+[lab] edge leer-plano HTTP 200 12042 bytes
+
+[lab] lectura en 52.4 s · ◑ Lectura con dudas · 7 cuarto(s), ~240 m²
+
+[lab] puertas confirmadas por la persona: [{"texto":"RECEPCIÓN · pared de abajo (a 4.00 m, 3.00 m del origen del cuarto) · vano 1.60 m · vano ancho: suele ser doble Hojas: Una hoja Doble (dos hojas) Abre: Hacia adentro del cuarto Hacia afuera Confirmar ","doble":true,"abre":"adentro"}]
+
+[lab] puertas en estado: [["OPERATIVA",[[5.5,7,0.9,true,"horario",false]],0],["DIRECCIÓN",[[2.5,4,0.9,true,"horario",false]],0],["ARCHIVO",[[2.5,0,0.9,true,"horario",false],[2.5,3,0.9,true,"antihorario",false]],0],["SALA DE JUNTAS",[[2,7,0.9,true,"antihorario",false]],0],["PASILLO",[[5.5,0,0.9,true,"horario",false],[18,0,0.9,true,"antihorario",false],[13.5,0,0.9,true,"antihorario",false],[4,2,0.9,true,"horario",false]],0],["RECEPCIÓN",[[4,0,0.9,true,"horario",false],[4.4,3,0.8,true,"horario",false],[3.6,3,0.8,true,"antihorario",false]],0],["CAFETERÍA",[],0]]
+
+[lab] programa propuesto: (sin panel de programa)
+
+[lab] partidas 0 → 7 [["Módulo operativo App LT 12 usuarios (biombo cristal)",1,"ANCHOR_WORKSTATION",34010],["Módulo directivo App LT",1,"ANCHOR_DESK",15780],["Mesa de juntas App LT",1,"ANCHOR_MEETING",7870],["Módulo recepción 2 usuarios",1,"ANCHOR_RECEPTION",29920],["Silla operativa WIN",12,"WORK_SEAT",5210],["Silla directiva ALPHA",1,"EXECUTIVE_SEAT",11950],["Silla CONCERTO (visita 4 pts)",8,"MEETING_SEAT",5140]]
+
+[lab] edge acomodar-espacio-recovery-rc HTTP 200 38078 bytes
+
+[lab] botón Acomodar habilitado: true
+
+[lab] edge acomodar-espacio-recovery-rc HTTP 200 38078 bytes
+
+[lab] acomodo: colocadas 25 status PASS veredicto PASS
+
+[lab] nube id 1485 {"status":200,"partidas":7,"colocadas":25,"areas":7,"cliente":"(lab V2) C1 recto RC 3"}
+
+[lab] edge generar-render-rc HTTP 200 924 bytes
+
+[lab] edge generar-render-rc HTTP 200 876 bytes
+
+[lab] edge generar-render-rc HTTP 200 542 bytes
+
+[lab] edge generar-render-rc HTTP 200 892 bytes
+
+[lab] render {"intentado":true,"segundos":219.217,"imagenes":3,"escenasGuardadas":0,"llamadas":[],"guardado":true}
+
+[lab] PDF Descargar BORRADOR 7291587 bytes
+
+[lab] reabierta {"partidas":7,"colocadas":25,"errores":0}
+
+  1 passed (5.0m)

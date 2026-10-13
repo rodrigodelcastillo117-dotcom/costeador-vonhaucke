@@ -1,0 +1,116 @@
+[
+  {
+    "fn": "generar-render-rc",
+    "status": 200,
+    "ok": false,
+    "code": "RENDER_QA_FAILED",
+    "error": "El render se generó, pero no pasó la verificación de fidelidad. No se guardó como render válido.",
+    "audit": {
+      "pass": false,
+      "geometry_match": "PASS",
+      "layout_match": "FAIL",
+      "environment_match": "PASS",
+      "extra_objects": "PASS",
+      "natural_camera": "PASS",
+      "reasons": [
+        "Chair count is incomplete compared to the required 12 chairs in the diagram layout.",
+        "Furniture geometry and materials accurately match product specifications."
+      ],
+      "confidence": 0.72,
+      "fidelidad_producto": "CON_REFERENCIAS",
+      "contador": "SIN_RESPUESTA"
+    },
+    "referencias": 1,
+    "con_dibujo": true,
+    "conteo": null,
+    "conteoTexto": null,
+    "model": null,
+    "bytes": null
+  },
+  {
+    "fn": "generar-render-rc",
+    "status": 200,
+    "ok": true,
+    "code": null,
+    "error": null,
+    "audit": {
+      "pass": true,
+      "geometry_match": "PASS",
+      "layout_match": "PASS",
+      "environment_match": "PASS",
+      "extra_objects": "PASS",
+      "natural_camera": "PASS",
+      "reasons": [
+        "The office chair geometry closely matches the product reference details.",
+        "Desk layout and placement align with the reference diagram requirements.",
+        "The private office environment is clearly defined with plausible eye-level perspective."
+      ],
+      "confidence": 0.72,
+      "fidelidad_producto": "CON_REFERENCIAS",
+      "contador": "OK"
+    },
+    "referencias": 1,
+    "con_dibujo": true,
+    "conteo": null,
+    "conteoTexto": null,
+    "model": "gemini-3-pro-image",
+    "bytes": 2154891
+  },
+  {
+    "fn": "generar-render-rc",
+    "status": 200,
+    "ok": false,
+    "code": "RENDER_QA_FAILED",
+    "error": "El render se generó, pero no pasó la verificación de fidelidad. No se guardó como render válido.",
+    "audit": {
+      "pass": false,
+      "geometry_match": "FAIL",
+      "layout_match": "FAIL",
+      "environment_match": "PASS",
+      "extra_objects": "FAIL",
+      "natural_camera": "PASS",
+      "reasons": [
+        "Chair geometry includes armrests not present in Product Reference 1.",
+        "Unplanned credenza cabinet added along back wall.",
+        "Floor-standing object count exceeds expected count due to extra cabinet."
+      ],
+      "confidence": 0.65,
+      "fidelidad_producto": "CON_REFERENCIAS",
+      "contador": "SIN_RESPUESTA"
+    },
+    "referencias": 1,
+    "con_dibujo": true,
+    "conteo": null,
+    "conteoTexto": null,
+    "model": null,
+    "bytes": null
+  },
+  {
+    "fn": "generar-render-rc",
+    "status": 200,
+    "ok": true,
+    "code": null,
+    "error": null,
+    "audit": {
+      "pass": true,
+      "geometry_match": "PASS",
+      "layout_match": "PASS",
+      "environment_match": "PASS",
+      "extra_objects": "PASS",
+      "natural_camera": "PASS",
+      "reasons": [
+        "Furniture count and placement match the diagram.",
+        "Environment depicts a reception space with natural perspective."
+      ],
+      "confidence": 0.7,
+      "fidelidad_producto": "SIN_REFERENCIAS",
+      "contador": "SIN_RESPUESTA"
+    },
+    "referencias": 0,
+    "con_dibujo": true,
+    "conteo": null,
+    "conteoTexto": null,
+    "model": "gemini-3-pro-image",
+    "bytes": 2873891
+  }
+]
