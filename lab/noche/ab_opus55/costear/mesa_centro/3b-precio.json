@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$3,360.87",
+      "Pendiente"
+    ],
+    "margen": null,
+    "estado": "Costo INCOMPLETO — faltan por costear 1 partida(s): Cubierta cristal templado 9 mm canto pulido (fracción de hoja sobre un material sin formato (precio por m2): falta la hoja de referencia). Asígnales material en el despiece (arriba) o márcalas como excluidas. Hasta entonces no hay costo total ni precio.",
+    "linea": "Material $1,867.15 · Mano de obra $373.43 · Fábrica $1,120.29",
+    "pendiente": true,
+    "porConfirmar": false
+  },
+  "piezas": []
+}

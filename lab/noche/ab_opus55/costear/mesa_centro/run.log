@@ -2,3 +2,39 @@
 Running 1 test using 1 worker
 
 [1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Mesa de centro cristal templado 9 mm con base tubular cromada","tipo":"mesita","piezas":[{"nombre":"Cubierta cristal templado 9 mm canto pulido","insumoId":"cristal-templado","material_solicitado":"Cristal templado 9 mm, canto pulido, 1000 × 600","material_match":
+
+[lab-costear] analizar-mueble 200 en 19 s · piezas 5 · lote 1
+
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Mesa de centro cristal templado 1000x600x420 con base tubular cromada","tipo":"mesita","piezas":[{"nombre":"Cubierta cristal templado 9 mm canto pulido","insumoId":"cristal-templado","material_solicitado":"cristal templado 9 mm, canto pulido","material_match":"EXA
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":3360.87,"materialTotal":1867.15,"manoObra":373.43,"indirectosFabrica":1120.29,"desperdicio":0,"detalleInsumos":[{"insumoId":"tubular-redondo-34","nombre":"Tubular redondo 3/4\" cal. 18 (tramo 6 m)","s
+
+[lab-costear] BOM inicial {"piezas":6,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Cómo se fija el cristal a la base?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuántas mesas se fabricarán?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":3360.87,"materialTotal":1867.15,"manoObra":373.43,"indirectosFabrica":1120.29,"desperdicio":0,"detalleInsumos":[{"insumoId":"tubular-redondo-34","nombre":"Tubular redondo 3/4\" cal. 18 (tramo 6 m)","s
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 6 propuestos","diferencias":"","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$3,360.87","Pendiente"],"margen":null,"estado":"Costo INCOMPLETO — faltan por costear 1 partida(s): Cubierta cristal templado 9 mm canto pulido (fracción de hoja sobre un material sin formato (precio por m2): falta la hoja de referencia). Asígnales material en el despiece (arriba) o márcalas como excluidas. Hasta entonces no hay costo total ni precio.","linea":"Material $1,867.15 · Mano de obra $373.43 · Fábrica $1,120.29","pendiente":true,"porConfirmar":false}
+
+[lab-costear] paridad {"costoCliente":null,"costoSrv":3360.87,"estadoSrv":"incompleto","iguales":null,"llamadasSrv":2}
+
+[lab-costear] expedientes POST 201 [{"id":85}]
+
+[lab-costear] guardado {"status":201,"id":85,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":3360.87,"materialTotal":1867.15,"manoObra":373.43,"indirectosFabrica":1120.29,"desperdicio":0,"detalleInsumos":[{"insumoId":"tubular-redondo-34","nombre":"Tubular redondo 3/4\" cal. 18 (tramo 6 m)","s
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":3,"pass":3,"fail":0,"riesgo":0,"sobrantesNoPermitidos":0,"renglonesBom":6,"veredicto":"PASS"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB dif mesa_centro 1013-1852 BORRADOR mesita mesa de centro Cristal templado 9 mm","piezas":6,"mismoBom":true,"costoAntes":"$3,360.87","costoDespues":"$3,360.87","mismoCosto":true,"resultado":{"precios":["$3,360.87","Pendiente"],"margen":null,"estado":"Costo INCOMPLETO — faltan por costear 1 partida(s): Cubierta cristal templado 9 mm canto pulido (fracción de hoja sobre un material sin formato (precio por m2): falta la hoja de referencia). Asígnales material en el despiece (arriba) o márcalas como excluidas. Hasta entonces no hay costo total ni precio.","linea":"Material $1,867.15 · Mano de obra $373.43 · Fábrica $1,120.29","pendiente":true,"porConfirmar":false},"pageErrors":0}
+
+  1 passed (1.5m)

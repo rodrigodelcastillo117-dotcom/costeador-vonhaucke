@@ -1,0 +1,48 @@
+{
+  "confirmacion": {
+    "ofrecida": true,
+    "texto": "Confirmar los 6 propuestos",
+    "diferencias": "",
+    "diferenciasAceptadas": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta cristal templado 9 mm canto pulido",
+      "material": "Cristal templado 9 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Base tubular redondo 3/4\" cal.18 (2 marcos 900x500 + 4 postes 392)",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": []
+    },
+    {
+      "nombre": "Acabado cromado EcoCrom base",
+      "material": "EcoCrom",
+      "alertas": []
+    },
+    {
+      "nombre": "Soldadura uniones base",
+      "material": "Soldadura",
+      "alertas": []
+    },
+    {
+      "nombre": "Topes/ventosas para cristal",
+      "material": "Silicon",
+      "alertas": []
+    },
+    {
+      "nombre": "Regatones/tapones piso",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

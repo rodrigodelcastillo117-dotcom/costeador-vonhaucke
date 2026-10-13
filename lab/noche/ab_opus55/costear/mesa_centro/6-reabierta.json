@@ -1,0 +1,54 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB dif mesa_centro 1013-1852 BORRADOR mesita mesa de centro Cristal templado 9 mm",
+    "piezas": 6,
+    "mismoBom": true,
+    "costoAntes": "$3,360.87",
+    "costoDespues": "$3,360.87",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$3,360.87",
+        "Pendiente"
+      ],
+      "margen": null,
+      "estado": "Costo INCOMPLETO — faltan por costear 1 partida(s): Cubierta cristal templado 9 mm canto pulido (fracción de hoja sobre un material sin formato (precio por m2): falta la hoja de referencia). Asígnales material en el despiece (arriba) o márcalas como excluidas. Hasta entonces no hay costo total ni precio.",
+      "linea": "Material $1,867.15 · Mano de obra $373.43 · Fábrica $1,120.29",
+      "pendiente": true,
+      "porConfirmar": false
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta cristal templado 9 mm canto pulido",
+      "material": "Cristal templado 9 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Base tubular redondo 3/4\" cal.18 (2 marcos 900x500 + 4 postes 392)",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": []
+    },
+    {
+      "nombre": "Acabado cromado EcoCrom base",
+      "material": "EcoCrom",
+      "alertas": []
+    },
+    {
+      "nombre": "Soldadura uniones base",
+      "material": "Soldadura",
+      "alertas": []
+    },
+    {
+      "nombre": "Topes/ventosas para cristal",
+      "material": "Silicon",
+      "alertas": []
+    },
+    {
+      "nombre": "Regatones/tapones piso",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    }
+  ]
+}

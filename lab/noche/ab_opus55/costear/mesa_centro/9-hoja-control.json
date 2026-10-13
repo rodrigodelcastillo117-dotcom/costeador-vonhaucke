@@ -1,0 +1,78 @@
+{
+  "producto": "Mesa de centro 1000 × 600 × 420",
+  "resumen": {
+    "esperados": 3,
+    "pass": 3,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 0,
+    "renglonesBom": 6,
+    "veredicto": "PASS"
+  },
+  "filas": [
+    {
+      "clave": "cristal_m2",
+      "renglones": 1,
+      "materiales": [
+        "cristal-templado"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "areaM2": 0.6
+    },
+    {
+      "clave": "tubular_m",
+      "renglones": 1,
+      "materiales": [
+        "tubular-redondo-34"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "metros": 7.17
+    },
+    {
+      "clave": "cromado",
+      "renglones": 1,
+      "materiales": [
+        "ecocrom"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: ACABADO CROMADO (ECOCROM); superficie del tubo ≈ π × 19 mm × 7.17 m = 0.43 m²",
+      "inferido": false,
+      "cantidad": 0.43
+    }
+  ],
+  "sobran": [
+    {
+      "nombre": "Soldadura uniones base",
+      "insumoId": "soldadura",
+      "permitido": true
+    },
+    {
+      "nombre": "Topes/ventosas para cristal",
+      "insumoId": "silicon",
+      "permitido": true
+    },
+    {
+      "nombre": "Regatones/tapones piso",
+      "insumoId": "nivelador",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Cómo se fija el cristal a la base?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántas mesas se fabricarán?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}
