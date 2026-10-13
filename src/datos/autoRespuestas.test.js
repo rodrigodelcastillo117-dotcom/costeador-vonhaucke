@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { respuestasPorReglaDeCasa, esSupuestoPreliminar } from './autoRespuestas.js';
+import { respuestasPorReglaDeCasa, esSupuestoPreliminar, explicitoDe } from './autoRespuestas.js';
 
 const P = [
   { question_key: 'largo_cubierta_mm', pregunta: 'Largo de la cubierta principal (mm)', tipo: 'number', impacto: 'alto', afecta: 'cubierta', supuesto: '2100' },
@@ -41,5 +41,23 @@ describe('supuestos preliminares (no son confirmaciones)', () => {
     expect(esSupuestoPreliminar(r.respuestas.cajones)).toBe(true);
     expect(esSupuestoPreliminar(r.respuestas.tapacanto)).toBe(false);
     expect(esSupuestoPreliminar('')).toBe(false);
+  });
+});
+
+describe('Q5·4 · lo explícito gana a la regla de casa', () => {
+  it('"MDF 18 mm" pedido no se vuelve 19 mm: se respeta y el 19 queda como alternativa por confirmar', () => {
+    const r = respuestasPorReglaDeCasa([{ question_key: 'espesor_costados', pregunta: '¿Espesor de los costados de melamina?', supuesto: 'MDF 18 mm según plano', impacto: 'medio', opciones: ['16 mm', '19 mm', '25 mm'] }]);
+    expect(r.respuestas.espesor_costados).toMatch(/^Se respeta lo pedido: 18 mm\./);
+    expect(r.respuestas.espesor_costados).toMatch(/19 mm .*alternativa por confirmar/);
+    expect(r.detalle[0].regla).toBe('espesor_panel:explicito_gana');
+    expect(r.detalle[0].explicito).toBe('18 mm');
+  });
+  it('sin dato explícito la regla contesta como antes (19 mm)', () => {
+    const r = respuestasPorReglaDeCasa([{ question_key: 'espesor_cubierta', pregunta: 'Espesor de cubierta', opciones: ['16 mm', '19 mm', '25 mm'], impacto: 'medio' }]);
+    expect(r.respuestas.espesor_cubierta).toMatch(/^19 mm/);
+  });
+  it('un calibre explícito en acero se conserva', () => {
+    expect(explicitoDe({ pregunta: '¿Acabado del PTR?', supuesto: 'PTR cal. 14 pintado' }, 'pintura_acero')).toBe('calibre 14');
+    expect(explicitoDe({ pregunta: '¿Espesor del respaldo?' }, 'espesor_respaldo')).toBeNull();
   });
 });

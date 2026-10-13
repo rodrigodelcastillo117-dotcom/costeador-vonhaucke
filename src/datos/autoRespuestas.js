@@ -28,6 +28,24 @@ const REGLAS = [
  * @param {{aceptarSupuestosBajo?: boolean}} [o]  aceptar el supuesto de la IA cuando el impacto es bajo
  * @returns {{respuestas: Record<string,string>, detalle: Array<{question_key:string, regla:string, respuesta:string}>, pendientes: Array<string>}}
  */
+/** Dato explícito (espesor en mm o calibre) que trae la pregunta/supuesto para las reglas de espesor y pintura/acero. */
+export function explicitoDe(q, clave) {
+  const fuente = `${q?.supuesto || ''} ${q?.afecta || ''} ${q?.pregunta || ''}`;
+  if (/^espesor_/.test(clave)) {
+    const m = fuente.match(/\b(\d{1,2}(?:[.,]\d)?)\s*mm\b/i);
+    return m ? `${m[1].replace(',', '.')} mm` : null;
+  }
+  if (clave === 'pintura_acero') {
+    const m = fuente.match(/\bcal(?:ibre)?\.?\s*(\d{1,2})\b/i);
+    return m ? `calibre ${m[1]}` : null;
+  }
+  return null;
+}
+const alternativaDeCasa = (clave) => (clave === 'espesor_panel'
+  ? 'Si el catálogo no lo tiene, 19 mm (estándar de casa) queda como alternativa por confirmar; no se sustituye solo.'
+  : clave === 'espesor_respaldo' ? `Estándar de casa: ${REGLAS_TALLER.respaldo.espesorMaxMM} mm o menos; se conserva lo pedido.`
+  : 'El estándar de casa queda como alternativa por confirmar; no se sustituye solo.');
+
 /** Marca de las respuestas que SÓLO conservan un supuesto de la IA (no son confirmación de nadie). */
 export const PREFIJO_SUPUESTO = 'Conserva tu supuesto como preliminar:';
 export const esSupuestoPreliminar = (texto) => String(texto || '').trim().startsWith(PREFIJO_SUPUESTO);
@@ -40,6 +58,16 @@ export function respuestasPorReglaDeCasa(preguntas = [], { aceptarSupuestosBajo 
     const ops = Array.isArray(q.opciones) ? q.opciones.map(String).filter((o) => o.trim()) : [];
     const regla = REGLAS.find((r) => r.re.test(texto));
     if (regla) {
+      // Q5·4 (Dirección 13-oct): LO EXPLÍCITO GANA. Si la pregunta, lo que afecta o el supuesto de la IA traen un
+      // espesor/calibre explícito del plano o del cliente (p. ej. "MDF 18 mm", "cal. 14"), la regla de casa NO lo
+      // pisa: se conserva lo pedido y el estándar se ofrece como alternativa identificada, por confirmar.
+      const explicito = explicitoDe(q, regla.clave);
+      if (explicito) {
+        const r = `Se respeta lo pedido: ${explicito}. ${alternativaDeCasa(regla.clave)}`;
+        respuestas[q.question_key] = `${r} (regla de casa)`;
+        detalle.push({ question_key: q.question_key, regla: `${regla.clave}:explicito_gana`, respuesta: r, explicito });
+        continue;
+      }
       const r = regla.responder(q, ops);
       if (r) { respuestas[q.question_key] = `${r} (regla de casa)`; detalle.push({ question_key: q.question_key, regla: regla.clave, respuesta: r }); continue; }
     }

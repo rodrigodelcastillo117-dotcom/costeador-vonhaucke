@@ -217,7 +217,7 @@ export async function adminUsuarios(accion, payload) {
 // con verify_jwt: manda la sesión del usuario. Devuelve { ok, propuesta } con
 // { piezas, informe (Markdown), descripcionCliente, materiales, ... } o { ok:false, error }.
 export async function analizarRender(catalogo, image, mediaType) {
-  const { data, error } = await nube.functions.invoke('analizar-mueble', {
+  const { data, error } = await nube.functions.invoke(FN_ANALIZAR, {
     body: { catalogo, image, mediaType },
   });
   if (error) {
@@ -232,7 +232,7 @@ export async function analizarRender(catalogo, image, mediaType) {
 // Varias HOJAS del MISMO mueble (plano multipágina rasterizado a imágenes). La IA
 // las integra en un solo despiece. Mismo retorno que analizarRender.
 export async function analizarRenderImagenes(catalogo, imagenes) {
-  const { data, error } = await nube.functions.invoke('analizar-mueble', {
+  const { data, error } = await nube.functions.invoke(FN_ANALIZAR, {
     body: { catalogo, imagenes },
   });
   if (error) {
@@ -283,7 +283,7 @@ export async function buscarProductosMaestroTexto(texto, limite = 30) {
 }
 
 export async function analizarTexto(catalogo, descripcion) {
-  const { data, error } = await nube.functions.invoke('analizar-mueble', {
+  const { data, error } = await nube.functions.invoke(FN_ANALIZAR, {
     body: { catalogo, descripcion },
   });
   if (error) {
@@ -300,7 +300,7 @@ export async function analizarTexto(catalogo, descripcion) {
 // (la verificación es una mejora, no un requisito — nunca deja al usuario sin nada).
 export async function verificarDespiece(catalogo, imagenes, propuesta) {
   try {
-    const { data, error } = await nube.functions.invoke('analizar-mueble', {
+    const { data, error } = await nube.functions.invoke(FN_ANALIZAR, {
       body: { catalogo, imagenes, revisar: propuesta },
     });
     if (error || !data?.ok) return { ok: true, propuesta, verificado: false };
@@ -314,7 +314,7 @@ export async function verificarDespiece(catalogo, imagenes, propuesta) {
 // (verdad confirmada: sobrescribe supuestos). respuestas = [{pregunta, respuesta}].
 export async function responderDespiece(catalogo, imagenes, propuesta, respuestas) {
   try {
-    const { data, error } = await nube.functions.invoke('analizar-mueble', {
+    const { data, error } = await nube.functions.invoke(FN_ANALIZAR, {
       body: { catalogo, imagenes, revisar: propuesta, respuestas },
     });
     if (error || !data?.ok) {
@@ -338,7 +338,7 @@ export async function cotizarTexto(texto, catalogo) {
   // pedido. Sin esta línea la pantalla enseñaba reglas que el modelo nunca veía.
   // VH-060 (2026-10-11): las reglas de la casa y los aprendizajes aprobados los lee la
   // edge v13 DIRECTO de la base; el body ya no manda contexto (el servidor lo ignoraría).
-  const { data, error } = await nube.functions.invoke('cotizar-texto', {
+  const { data, error } = await nube.functions.invoke(FN_COTIZAR_TEXTO, {
     body: { texto, catalogo },
   });
   if (error) {
@@ -368,6 +368,10 @@ export async function acomodarEspacio(areas, piezas) {
 // L1: `VITE_LEER_PLANO_FN` permite apuntar el cliente LOCAL a la copia RC del lector (leer-plano-rc) para
 // medir antes de promover. En producción no se define y se usa 'leer-plano'.
 const FN_LEER_PLANO = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_LEER_PLANO_FN) || 'leer-plano';
+const envFn = (k, def) => (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[k]) || def;
+const FN_ANALIZAR = envFn('VITE_ANALIZAR_MUEBLE_FN', 'analizar-mueble');
+const FN_COTIZAR_TEXTO = envFn('VITE_COTIZAR_TEXTO_FN', 'cotizar-texto');
+const FN_GENERAR_RENDER = envFn('VITE_GENERAR_RENDER_FN', 'generar-render');
 export async function leerPlano(image, mediaType, refMM) {
   const { data, error } = await nube.functions.invoke(FN_LEER_PLANO, {
     body: { image, mediaType, refMM },
@@ -406,7 +410,7 @@ export async function analizarNegocio(senales, alcance = 'cotizacion') {
 
 // Genera un render fotorrealista del mueble descrito (Gemini). extra: {materiales, medidas, tipo, imagen, mediaType}.
 export async function generarRender(descripcion, extra = {}) {
-  const { data, error } = await nube.functions.invoke('generar-render', {
+  const { data, error } = await nube.functions.invoke(FN_GENERAR_RENDER, {
     body: { descripcion, ...extra },
   });
   if (error) {
