@@ -111,6 +111,6 @@ describe('contrato DTO (cliente → costear-servidor)', () => {
 
 describe('versión del motor', () => {
   it('la fórmula cambió → MOTOR_VERSION avanzó (las cotizaciones viejas conservan su huella)', () => {
-    expect(MOTOR_VERSION).toBe('2026-10-12');
+    expect(MOTOR_VERSION).toBe('2026-10-13'); // 2026-10-13: la rejilla usa el formato del insumo (MOTOR_FORMATO_REJILLA.md)
   });
 });

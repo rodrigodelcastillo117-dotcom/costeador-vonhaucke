@@ -16,7 +16,18 @@ import { hojasPorPiezaProduccion, esPinturaPolvo, kgPinturaPorArea, REGLAS_MERMA
 // ⚠️ SÚBELA cuando cambie cómo se calcula el costo (factores, cascada, nesting).
 // 2026-10-12: política de merma de Producción (A14): piso de ½/1 hoja por pieza grande de
 // tablero y pintura en polvo a 8 m²/kg desde `areaPintadaM2`. Ver politicaMerma.js.
-export const MOTOR_VERSION = '2026-10-12';
+// 2026-10-13 (RC, sin desplegar; requiere autorización de Dirección): la rejilla de corte usa las medidas del
+// FORMATO DEL INSUMO cuando las trae (5×8 = 2440×1525, lámina 3×10 = 3048×914) en vez de las globales 2440×1220.
+// Para todo insumo 4×8 el resultado es idéntico. Ver docs/auditoria/MOTOR_FORMATO_REJILLA.md.
+export const MOTOR_VERSION = '2026-10-13';
+
+// Parámetros de corte con las medidas del formato del insumo (si las declara). Sin medidas → globales (4×8).
+export function parametrosDeFormato(par, insumo) {
+  const f = insumo && insumo.formato;
+  const L = Number(f && f.largoMM), A = Number(f && f.anchoMM);
+  if (!(L > 0 && A > 0)) return par;
+  return { ...par, tableroLargoMM: Math.max(L, A), tableroAnchoMM: Math.min(L, A) };
+}
 
 // FÓRMULA OFICIAL de producto nuevo (cutover 2026-10-01). Von Haucke convierte el
 // BOM en costo con la fórmula de ALBA (MO% por tipo de material + GI; ver
@@ -388,7 +399,7 @@ function comprarInsumo(insumo, comps, n, par) {
     neto += netoC;
     conCorte += netoC * factorMerma;
     if (c.largoMM && c.anchoMM && insumo.formato) {
-      const ppt = piezasPorTablero(c.largoMM, c.anchoMM, { ...par, veta: insumo.veta });
+      const ppt = piezasPorTablero(c.largoMM, c.anchoMM, { ...parametrosDeFormato(par, insumo), veta: insumo.veta });
       const piezasComp = (c.piezas || 1) * n;
       // A14 · REGLA DE PRODUCCIÓN (Rogelio, fórmula oficial 2026-10-12): pieza de TABLERO con
       // lado mayor > 1.50 m cobra ½ hoja (lado menor ≤ 0.60) o 1 hoja (lado menor > 0.60), en
@@ -1057,14 +1068,15 @@ export function sugerenciaLote(pieza, piezas, insumos, parametros) {
 // -----------------------------------------------------------------------------
 export function sugerenciaMedida(largoMM, anchoMM, insumo, parametros) {
   const par = { ...PARAMETROS_DEFAULT, ...parametros };
-  const actual = piezasPorTablero(largoMM, anchoMM, { ...par, veta: insumo.veta });
+  const parF = parametrosDeFormato(par, insumo);
+  const actual = piezasPorTablero(largoMM, anchoMM, { ...parF, veta: insumo.veta });
   let mejor = null;
   for (let dl = -80; dl <= 0; dl += 5) {
     for (let da = -80; da <= 0; da += 5) {
       const L = largoMM + dl;
       const A = anchoMM + da;
       if (L <= 0 || A <= 0) continue;
-      const ppt = piezasPorTablero(L, A, { ...par, veta: insumo.veta });
+      const ppt = piezasPorTablero(L, A, { ...parF, veta: insumo.veta });
       if (ppt > actual && (!mejor || ppt > mejor.piezasPorTablero)) {
         mejor = { largoMM: L, anchoMM: A, piezasPorTablero: ppt };
       }

@@ -100,25 +100,24 @@ describe('VH-146 · formato de hoja ERP en el motor (650×450 ×2 + 1800×450 ×
     console.log(linea('(ii) ERP 4×8 @306/hoja', mat));
   });
 
-  it('(iii) 5×8: con los parámetros por omisión la rejilla sigue siendo la del 4×8 (0.8333 hojas) → 3.1008 m²; sólo cambia la medida', () => {
+  it('(iii) 5×8: desde MOTOR 2026-10-13 la rejilla usa el formato del insumo (2440×1525) → 0.70 hojas; antes 0.8333 como si fuera 4×8', () => {
+    // ANTES (MOTOR 2026-10-12, defecto documentado por esta misma prueba): piezasPorTablero leía par.tableroAnchoMM=1220
+    // y un 5×8 rendía 2/6 + ½ = 0.8333 hojas → $537.81 a $645.37/hoja. Corregido en calculo.js (parametrosDeFormato).
     const { r, mat } = costear(erp5x8);
-    const hojas = 2 / 6 + 0.5;
+    const hojas = 2 / 10 + 0.5;                                       // 650×450: 10 por hoja 5×8 (antes 6) + ½ hoja regla Producción
     expect(r.estadoCosto).toBe('completo');
-    expect(mat.unidades).toBeCloseTo(hojas, 6);                      // misma fracción que 4×8: piezasPorTablero lee par.tableroAnchoMM=1220
-    expect(mat.comprado).toBeCloseTo(hojas * 3.721, 6);              // 3.1008 m² (medida distinta)
-    expect(mat.costo).toBeCloseTo(hojas * 645.37, 6);                // $537.81
-    console.log(linea('(iii) ERP 5×8 @645.37/hoja (par. 2440×1220)', mat));
-    // A igual precio, la hoja 5×8 cuesta lo mismo que la 4×8 con los parámetros por omisión: la ventaja de la hoja
-    // grande NO entra al costo salvo que los parámetros del tablero digan 2440×1525.
-    const a306 = costear(erp5x8a306).mat;
-    expect(a306.costo).toBeCloseTo(costear(erp4x8).mat.costo, 6);
-    const conPar = costear(erp5x8a306, { ...PARAMETROS_DEFAULT, tableroLargoMM: 2440, tableroAnchoMM: 1525 }).mat;
     expect(piezasPorTablero(650, 450, { tableroAnchoMM: 1525 })).toBe(10);
-    expect(conPar.unidades).toBeCloseTo(2 / 10 + 0.5, 6);            // 0.70 hojas
-    expect(conPar.costo).toBeCloseTo(0.7 * 306, 6);                  // $214.20 (vs $255.00)
-    expect(conPar.costo).toBeLessThan(a306.costo);
-    console.log(linea('(iii) ERP 5×8 @306/hoja (par. 2440×1220)', a306));
-    console.log(linea('(iii) ERP 5×8 @306/hoja (par. 2440×1525)', conPar));
+    expect(mat.unidades).toBeCloseTo(hojas, 6);                      // 0.70 hojas
+    expect(mat.comprado).toBeCloseTo(hojas * 3.721, 6);              // 2.6047 m²
+    expect(mat.costo).toBeCloseTo(hojas * 645.37, 6);                // $451.76 (antes $537.81)
+    console.log(linea('(iii) ERP 5×8 @645.37/hoja (formato 2440×1525)', mat));
+    // A igual precio por hoja, el 5×8 ya cuesta MENOS que el 4×8 (rinde más piezas); pasar los parámetros a mano da lo mismo.
+    const a306 = costear(erp5x8a306).mat;
+    expect(a306.costo).toBeCloseTo(0.7 * 306, 6);                    // $214.20
+    expect(a306.costo).toBeLessThan(costear(erp4x8).mat.costo);      // < $255.00
+    const conPar = costear(erp5x8a306, { ...PARAMETROS_DEFAULT, tableroLargoMM: 2440, tableroAnchoMM: 1525 }).mat;
+    expect(conPar.costo).toBeCloseTo(a306.costo, 9);
+    console.log(linea('(iii) ERP 5×8 @306/hoja (formato 2440×1525)', a306));
   });
 
   it('misma fórmula que los tableros curados: melamina-16 y mdf dan la MISMA fracción (0.8333) y costo = fracción × precio', () => {
