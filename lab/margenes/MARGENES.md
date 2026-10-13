@@ -3,30 +3,36 @@
 `margenes.json` sale de `npx vitest run lab/margenes/margenes.test.js`. Recorre los 24 precios reales del price-book
 (`PRECIOS_VENTA`, presupuestos cerrados) y los costea con el modelo de la app.
 
-## 1. El único módulo con costo REAL: APP LT banca doble 6U 1200 (pedido 38247)
+## 1. El único módulo con costo REAL: APP LT banca doble 6U 1200 (pedido 38247) — REGLA OFICIAL
 
-Regla de Dirección: material a costo de compra + horas estándar × tarifa real. Los indirectos de la tarifa real se
-cobran 2 o 3 veces, según Dirección; el factor exacto está por confirmar.
+Regla de Dirección (2026-10-13):
+- costo = material a costo de compra + horas estándar × mano de obra real por área + **indirectos contados UNA vez**;
+- la tarifa de indirectos de planta es 1 / Σ(1/ind_área) = **$82.37/h**: cada área del archivo cargaba el gasto de toda la planta;
+- se aplica a las 19.13 h del módulo.
 
-| Indirectos contados | Módulo sin biombo | Margen a lista $12,380 | Módulo + 3 biombos satinados | Margen a $17,660 (pedido real) | Margen a $17,600 (Mixue 226030134) |
-|---|---:|---:|---:|---:|---:|
-| 1 vez la tarifa del archivo (inflada) | $11,572.25 | 6.5 % | $14,359.89 | 18.7 % | 18.4 % |
-| ÷2 | $8,749.14 | 29.3 % | $11,450.97 | 35.2 % | 34.9 % |
-| ÷3 | $7,808.10 | 36.9 % | $10,481.33 | 40.6 % | 40.4 % |
+| | Módulo sin biombo | Módulo + 3 biombos satinados |
+|---|---:|---:|
+| Material | $4,197.59 | $6,757.37 |
+| Mano de obra | $1,728.44 | $1,747.19 |
+| Indirectos (una vez) | $1,575.94 | $1,595.53 |
+| **Costo** | **$7,501.97** | **$10,179.78** (biombo $892.60 c/u) |
+| Venta real | $12,380 (lista, pedido 38247) | $17,660 (pedido 38247) · $17,600 (Mixue 226030134) |
+| **Margen** | **39.4 %** | **42.4 %** · 42.2 % |
+| Mínimo autorizado del catálogo ($9,170) | 18.2 % → **debajo del piso de 25 %** | — |
 
-Biombo ATBIOCRS4: material consumido en el pedido $853.26 (cristal $623.23 + 2 soportes) + 0.25 h de acabados a tarifa real.
+La tarifa del archivo por área ($5,646.22 de indirectos, costo $11,572.25) inflaba el gasto y queda solo para comparar.
 
 ## 2. Qué tan bien costea hoy el modelo de la app (mismo 6U, sin biombo)
 
-| | Modelo de la app | Costo real (regla Dirección) |
+| | Modelo de la app | Costo oficial |
 |---|---:|---:|
-| Material | $2,894.85 | $4,197.59 (**el modelo va 31 % bajo**) |
-| Mano de obra | $1,187.36 (tarifa estándar) | $1,728.44 (tarifa real) |
-| Indirectos | $4,426.60 (tarifa estándar) | $5,646.22 ÷ 2 o ÷ 3 |
-| Fabricación | $8,508.81 | $8,749.14 (÷2) / $7,808.10 (÷3) |
+| Material | $2,894.85 (aproximado: PTR/m, melamina por área) | $4,197.59 (−31 %) |
+| Mano de obra | $1,187.36 (tarifa estándar ERP) | $1,728.44 |
+| Indirectos | $4,426.60 (estándar, suma por área) | $1,575.94 |
+| Fabricación | $8,508.81 (**+13 % sobre el oficial**) | $7,501.97 |
 
-Las horas ya son idénticas a las del ERP (armado de la guía + horas reales por pieza). **El material del modelo
-es aproximado** (PTR por metro y melamina por área); los márgenes de abajo salen **optimistas** en la parte de material.
+Las horas ya son idénticas a las del ERP. No se cambiaron las tarifas del generador: si se corrige solo la tarifa,
+el modelo baja a $6,199 (17 % abajo del oficial) porque el material sigue aproximado. Primero hace falta el material real por medida.
 
 ## 3. Los 24 precios reales contra el costo del MODELO de la app (tarifa estándar, material aproximado)
 

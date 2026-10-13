@@ -23,12 +23,16 @@ describe('APP LT · banca doble según la guía ESP-DCC-IDP-003', () => {
   it('1800 usa la omega ATOM5 (no ATOM4)', () => {
     expect(armadoBancaDobleAppLT({ usuarios: 2, largoMM: 1800 }).componentes.find((x) => x.rol.startsWith('omega')).clave).toBe('ATOM5');
   });
-  it('lo que la guía no define no se inventa: 1050 mm, usuarios impares, 8U', () => {
+  it('lo que la guía no define no se inventa: 1050 mm, usuarios impares', () => {
     expect(armadoBancaDobleAppLT({ usuarios: 6, largoMM: 1050 })).toMatchObject({ ok: false, lista: null });
     expect(armadoBancaDobleAppLT({ usuarios: 5, largoMM: 1200 }).ok).toBe(false);
+  });
+  it('8U en UNA isla: 1 acometida (Dirección); 2 islas de 4 = dos bancas de 4, cada una con la suya', () => {
     const ocho = armadoBancaDobleAppLT({ usuarios: 8, largoMM: 1200 });
-    expect(ocho.ok).toBe(false);
-    expect(ocho.pendientes.join(' ')).toMatch(/8U/);
+    expect(ocho.ok).toBe(true);
+    expect(Object.fromEntries(ocho.componentes.map((x) => [x.clave, x.cantidad]))).toEqual({ ATCUBD44ABS: 4, ATPU4M: 2, ATPU75M: 3, ATOM3: 8, ATRICDB4: 4, CIEPLA01300778: 6, ATACM: 1 });
+    const cuatro = armadoBancaDobleAppLT({ usuarios: 4, largoMM: 1200 });
+    expect(2 * cuatro.componentes.find((x) => x.clave === 'ATACM').cantidad).toBe(2);
   });
   it('biombo satinado del pedido: 3 ATBIOCRS4 por módulo de 6U, a la lista vigente del catálogo', () => {
     const r = armadoBancaDobleAppLT({ usuarios: 6, largoMM: 1200, biombo: 'cristal_satinado' });

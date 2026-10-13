@@ -8,7 +8,11 @@
 //    Omega ATOM3/4/5 ................... 2c         (GE p24-25 cuadro 5; vistas inferiores)
 //    Riel ATRICDB4/5/6 ................. c          (GE p24-25 cuadro 3)
 //    Placa unión CIEPLA01300778 ........ 2(c − 1)   (GE p25 cuadro 7) — INCLUIDA sin cargo (Dirección)
-//    Acometida ATACM ................... 1          (GE p24-25 cuadro 6)
+//    Acometida ATACM ................... 1 por ISLA  (GE p24-25 cuadro 6; Dirección 2026-10-13: "sólo 2 si los 8
+//                                                    usuarios están en dos islas separadas de 4" → cada isla es
+//                                                    su propia banca y se arma por separado)
+//  ⚠ El artículo ERP del 8U (TATO84812ABY01) trae las horas de EXACTAMENTE 3 ATACM (16.994 h metal = 15.9636 + 2×0.5152):
+//    contradice la regla de 1 por isla; se reporta a Dirección, no se copia.
 //    Biombo (opcional) ................. c
 //
 //  Verificado contra el pedido real 38247 (6U, 1200): 2 + 2 + 6 + 3 + 3 + 4 + 1 = idéntico.
@@ -34,7 +38,6 @@ export function armadoBancaDobleAppLT({ usuarios, largoMM, biombo = null } = {})
   const m = POR_MEDIDA[largoMM];
   if (!m) pendientes.push(`La guía sólo define cubiertas de 1200, 1500 y 1800 mm (pediste ${largoMM}).`);
   if (!(usuarios >= 2) || usuarios % 2) pendientes.push(`Banca doble = 2 usuarios por cubierta: ${usuarios} usuarios no está en la guía.`);
-  if (usuarios > 6) pendientes.push('8U o más: el ERP del 8U (TATO84812ABY01) sugiere más acometidas o soportería de biombo; falta su desglose real.');
   if (pendientes.length && (!m || !(usuarios >= 2) || usuarios % 2)) return { ok: false, componentes: [], lista: null, pendientes };
   const c = usuarios / 2;
   const filas = [

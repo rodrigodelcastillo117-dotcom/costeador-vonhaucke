@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { costoOficialModuloAppLT, costoErpModuloAppLT, listaModuloAppLT, decodificarOpcion, precioMaterial, TARIFA_REAL_APPLT, pisoPorMargen } from './appltCosto.js';
+import { costoOficialModuloAppLT, costoErpModuloAppLT, listaModuloAppLT, decodificarOpcion, precioMaterial, TARIFA_REAL_APPLT, pisoPorMargen, tarifaIndirectoPlanta } from './appltCosto.js';
 import { APPLT_DATOS } from './appltDatos.js';
 import { articuloPorClave } from './preciosLinea.js';
 
@@ -34,7 +34,7 @@ describe('APP LT · TATO63612AB001 · datos del pedido real', () => {
 });
 
 describe('APP LT · costo oficial (regla de Dirección)', () => {
-  const r = costoOficialModuloAppLT('A118B770C770');
+  const r = costoOficialModuloAppLT('A118B770C770', undefined, { indirectos: 'por_area' });
   it('acabado del pedido (metal charcoal A118, madera light ash B770, plástico C770): $11,572.25', () => {
     expect(r.completo).toBe(true);
     expect(r.materiaPrima).toBe(4197.59);
@@ -61,7 +61,7 @@ describe('APP LT · costo oficial (regla de Dirección)', () => {
     expect(r.pendientes.join(' ')).toMatch(/Entregas: 1\.15 h/);
   });
   it('otro acabado se costea con SUS compras (Frosty White B744/C744, pintura A112)', () => {
-    const f = costoOficialModuloAppLT('A112B744C744');
+    const f = costoOficialModuloAppLT('A112B744C744', undefined, { indirectos: 'por_area' });
     expect(f.total).toBe(11174.11);
     expect(f.materiales.every((m) => m.fuente === 'compra')).toBe(true);
   });
@@ -78,29 +78,34 @@ describe('APP LT · costo oficial (regla de Dirección)', () => {
 });
 
 describe('APP LT · margen contra el piso de 25 %', () => {
-  it('a lista ($12,380) el módulo deja 6.5 %: está DEBAJO del piso; el precio mínimo con 25 % es $15,429.67', () => {
+  it('con indirectos UNA vez: a lista ($12,380) deja 39.4 %; con 25 % el precio mínimo sería $10,002.63', () => {
     const costo = costoOficialModuloAppLT('A118B770C770').total;
-    const margen = (12380 - costo) / 12380;
-    expect(margen).toBeCloseTo(0.0653, 3);
-    expect(pisoPorMargen(costo, 25)).toBe(15429.67);
+    expect(pisoPorMargen(costo, 25)).toBe(10002.63);
+  });
+  it('el MÍNIMO autorizado del catálogo ($9,170) queda DEBAJO del piso de 25 % (deja 18.2 %)', () => {
+    const costo = costoOficialModuloAppLT('A118B770C770').total;
+    expect((9170 - costo) / 9170).toBeCloseTo(0.1819, 3);
   });
 });
 
-describe('APP LT · indirectos contados una sola vez (Dirección: la tarifa real los cobra 2 o 3 veces)', () => {
-  it('÷2: indirectos $2,823.11 → costo $8,749.14 (margen a lista 29.3 %)', () => {
-    const r = costoOficialModuloAppLT('A118B770C770', undefined, { vecesContado: 2 });
-    expect(r.indirectos).toBe(2823.11);
-    expect(r.total).toBe(8749.14);
-    expect((12380 - r.total) / 12380).toBeCloseTo(0.2933, 3);
+describe('APP LT · indirectos contados UNA vez (regla de Dirección, oficial)', () => {
+  it('tarifa de planta = 1 / Σ(1/ind_i) = $82.37/h (se despeja de las tarifas del ERP)', () => {
+    expect(tarifaIndirectoPlanta()).toBeCloseTo(82.3743, 3);
   });
-  it('÷3: indirectos $1,882.07 → costo $7,808.10 (margen a lista 36.9 %)', () => {
-    const r = costoOficialModuloAppLT('A118B770C770', undefined, { vecesContado: 3 });
-    expect(r.indirectos).toBe(1882.07);
-    expect(r.total).toBe(7808.10);
+  it('módulo 6U en el acabado del pedido: $7,501.97 (MP 4,197.59 + MO 1,728.44 + IND 1,575.94) → 39.4 % a lista', () => {
+    const r = costoOficialModuloAppLT('A118B770C770');
+    expect(r.modoIndirectos).toBe('una_vez');
+    expect(r.indirectos).toBe(1575.94);
+    expect(r.total).toBe(7501.97);
+    expect((12380 - r.total) / 12380).toBeCloseTo(0.394, 3);
+    expect(r.porArea.pintura.ind).toBe(10.96);   // antes $523.16: la pintura cargaba el gasto de toda la planta
   });
-  it('la mano de obra y el material no cambian; un factor < 1 se rechaza', () => {
-    const a = costoOficialModuloAppLT(), b = costoOficialModuloAppLT('A118B770C770', undefined, { vecesContado: 3 });
+  it('la tarifa del archivo por área (infla el gasto) sólo queda para comparar: $11,572.25', () => {
+    expect(costoOficialModuloAppLT('A118B770C770', undefined, { indirectos: 'por_area' }).total).toBe(11572.25);
+  });
+  it('la mano de obra y el material no cambian; un modo desconocido se rechaza', () => {
+    const a = costoOficialModuloAppLT(), b = costoOficialModuloAppLT('A118B770C770', undefined, { indirectos: 'por_area' });
     expect(b.manoObra).toBe(a.manoObra); expect(b.materiaPrima).toBe(a.materiaPrima);
-    expect(() => costoOficialModuloAppLT('A118B770C770', undefined, { vecesContado: 0.5 })).toThrow();
+    expect(() => costoOficialModuloAppLT('A118B770C770', undefined, { indirectos: 'x' })).toThrow();
   });
 });
