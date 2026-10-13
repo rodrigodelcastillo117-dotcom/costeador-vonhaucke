@@ -4,7 +4,7 @@ test('dbg sombra', async ({ page }) => {
   const log = [];
   page.on('console', (m) => { if (['error', 'warning'].includes(m.type())) log.push(`[${m.type()}] ${m.text().slice(0, 300)}`); });
   page.on('pageerror', (e) => log.push('[pageerror] ' + String(e).slice(0, 300)));
-  page.on('request', (r) => { if (/functions\/v1/.test(r.url())) log.push('[req] ' + r.url().split('/functions/v1/')[1]); });
+  page.on('response', async (r) => { if (/functions\/v1|rest\/v1/.test(r.url()) && r.status() >= 400) { let b = ''; try { b = (await r.text()).slice(0, 200); } catch (_e) {} log.push('[resp ' + r.status() + '] ' + r.url().replace(/^.*\/(functions|rest)\/v1\//, '').slice(0, 120) + ' ' + b); } if (/functions\/v1/.test(r.url()) && r.status() < 400) log.push('[ok ' + r.status() + '] ' + r.url().split('/functions/v1/')[1]); });
   await page.addInitScript(() => { try { const k = 'costeador-vonhaucke-v1'; const s = JSON.parse(window.localStorage.getItem(k) || '{}'); s.onboardingVisto = true; window.localStorage.setItem(k, JSON.stringify(s)); } catch (_e) {} });
   await page.goto('/');
   await page.fill('#email-login', process.env.TEST_EMAIL); await page.fill('#pass-login', process.env.TEST_PASSWORD);
