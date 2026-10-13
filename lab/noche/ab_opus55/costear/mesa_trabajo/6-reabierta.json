@@ -1,0 +1,74 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB dif mesa_trabajo 1013-1855 BORRADOR mesa mesa de trabajo recta Melamina blanca 19 mm Lista: $3,675 · preliminar",
+    "piezas": 10,
+    "mismoBom": true,
+    "costoAntes": "$2,205.19",
+    "costoDespues": "$2,205.19",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$2,205.19",
+        "$3,675.31"
+      ],
+      "margen": "Precio de lista (40% margen · del expediente guardado)",
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $1,287.09 · Mano de obra $229.52 · Fábrica $688.57",
+      "pendiente": false,
+      "porConfirmar": false
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta",
+      "material": "Melamina BLANCA / EcoLegno 19 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto perimetral",
+      "material": "Tapacanto PVC",
+      "alertas": []
+    },
+    {
+      "nombre": "Pata PTR",
+      "material": "Tubo / PTR 1\"x2\" cal. 16",
+      "alertas": []
+    },
+    {
+      "nombre": "Larguero PTR",
+      "material": "Tubo / PTR 1\"x2\" cal. 16",
+      "alertas": []
+    },
+    {
+      "nombre": "Travesaño PTR",
+      "material": "Tubo / PTR 1\"x2\" cal. 16",
+      "alertas": []
+    },
+    {
+      "nombre": "Faldón lámina",
+      "material": "Lamina de acero cal. 18",
+      "alertas": []
+    },
+    {
+      "nombre": "Pintura en polvo blanco RAL 9016",
+      "material": "Pintura en polvo, Blanco RAL 9016 009/13120",
+      "alertas": []
+    },
+    {
+      "nombre": "Nivelador",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Soldadura",
+      "material": "Soldadura",
+      "alertas": []
+    },
+    {
+      "nombre": "Tornillería fijación cubierta/faldón",
+      "material": "Tornilleria",
+      "alertas": []
+    }
+  ]
+}
