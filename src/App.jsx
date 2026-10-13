@@ -205,6 +205,10 @@ export default function App() {
   const [voniAbierto, setVoniAbierto] = useState(false);
   const [inicioVista, setInicioVista] = useState('home'); // sub-vista del Inicio (home/costear/cotizar)
   const [expedienteAbierto, setExpedienteAbierto] = useState(null); // expediente de biblioteca a reabrir en el asistente
+  // COCREAR 10 (D-01): puente Cocrear → Costear → Cocrear. Lleva la semilla (nombre, medidas, materiales,
+  // funciones, descripción, imagen de referencia) al asistente y la SESIÓN de Cocrear para regresar a ella
+  // con el despiece (retorno). Vive aquí porque Cocrear y Costear son pantallas distintas.
+  const [puenteCocrear, setPuenteCocrear] = useState(null);
   const [prodInicial, setProdInicial] = useState(null);   // producto que pidió el buscador
   // ⚠️ LA BÚSQUEDA Y EL ACORDEÓN VIVEN AQUÍ, NO EN `Inicio`. App DESMONTA
   // Inicio al navegar, así que cada "Atrás" repliega el acordeón y borra lo que
@@ -1504,6 +1508,9 @@ export default function App() {
             usuarioEmail={sesion?.user?.email || null}
             onIr={irA}
             onAgregar={agregarDesdeAsistente}
+            puente={puenteCocrear}
+            onPasarACostear={veCostos ? (p) => { setExpedienteAbierto(null); setPuenteCocrear({ ...p, retorno: null }); irA('especial'); } : null}
+            onPuenteConsumido={() => setPuenteCocrear(null)}
           />
         )}
         {pestania === 'banco' && <Banco onAgregar={agregarDeBanco} onIr={irA} />}
@@ -1590,7 +1597,9 @@ export default function App() {
         {pestania === 'worklounge' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Work Lounge" productos={WORKLOUNGE_PRODUCTOS} generar={generarWorklounge} onAgregar={agregarDesdeAsistente} /></div>}
         {pestania === 'cirque' && <div className="contenido"><CosteadorLinea onIr={irA} productoInicial={prodInicial} linea={pestania} soloVentas={esVendedor} estado={estado} titulo="Costeador Cirque" productos={CIRQUE_PRODUCTOS} generar={generarCirque} onAgregar={agregarDesdeAsistente} /></div>}
         {pestania === 'especial' && (veCostos
-          ? <div className="contenido"><AsistenteEspecial estado={estado} onAgregarInsumo={agregarInsumoCatalogo} onVerDetalle={(bor) => { setCosteo({ ...costeoEnBlanco(), ...bor, factorDirecta: bor.factorDirecta ?? null, factorIndirecta: bor.factorIndirecta ?? null }); irA('costeador'); }} onInicio={irInicio} onBiblioteca={() => irA('biblioteca')} expedienteInicial={expedienteAbierto} /></div>
+          ? <div className="contenido"><AsistenteEspecial estado={estado} onAgregarInsumo={agregarInsumoCatalogo} onVerDetalle={(bor) => { setCosteo({ ...costeoEnBlanco(), ...bor, factorDirecta: bor.factorDirecta ?? null, factorIndirecta: bor.factorIndirecta ?? null }); irA('costeador'); }} onInicio={irInicio} onBiblioteca={() => irA('biblioteca')} expedienteInicial={expedienteAbierto}
+              semillaCocrear={puenteCocrear?.semilla || null}
+              onVolverCocrear={puenteCocrear ? (retorno) => { setPuenteCocrear((p) => (p ? { ...p, retorno: retorno || null } : p)); irA('cocrear'); } : null} /></div>
           : <div className="contenido"><div className="tarjeta"><p className="ayuda">Costear desde cero es para Diseño y Dirección.</p></div></div>
         )}
         {pestania === 'biblioteca' && (veCostos

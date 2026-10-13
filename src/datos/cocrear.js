@@ -228,16 +228,23 @@ export function extraerDNA(intent) {
   };
 }
 
-export function clasificarProducto(intent, { parent = null } = {}) {
+export function clasificarProducto(intent, { parent: parentArg = null } = {}) {
+  // COCREAR 10 (D-01): un concepto que se bajó a BOM desde un mueble de LÍNEA trae su linaje
+  // (`intent._linaje`, ver cocrearPuente.js). Sin padre explícito se usa ése, para que TODAS las
+  // vistas (estudio, payload, servidor) clasifiquen igual: especial derivado, nunca "nuevo".
+  const parent = parentArg || (intent?._linaje && typeof intent._linaje === 'object' ? intent._linaje : null);
   if (!parent) {
     return { clasificacion: CLASIFICACION.NEW_SPECIAL, parent_product_id: null, parent_product_version: null, change_set: [], motivos: ['sin producto padre: especial nuevo'] };
   }
   const change_set = [];
   const motivos = [];
-  const anchoPide = intent.dimensiones?.ancho_mm;
-  const anchoPadre = parent.dimensiones?.ancho_mm;
-  if (anchoPide != null && anchoPadre != null && Math.abs(anchoPide - anchoPadre) >= 1) {
-    change_set.push({ campo: 'dimension.ancho_mm', de: anchoPadre, a: anchoPide, tipo: 'dimensional' });
+  // Ancho, fondo y alto: cualquiera que el padre declare y que cambie es un cambio dimensional.
+  for (const k of ['ancho_mm', 'prof_mm', 'alto_mm']) {
+    const pide = k === 'prof_mm' ? (intent.dimensiones?.prof_mm ?? intent.dimensiones?.fondo_mm) : intent.dimensiones?.[k];
+    const padre = k === 'prof_mm' ? (parent.dimensiones?.prof_mm ?? parent.dimensiones?.fondo_mm) : parent.dimensiones?.[k];
+    if (pide != null && padre != null && Math.abs(pide - padre) >= 1) {
+      change_set.push({ campo: `dimension.${k}`, de: padre, a: pide, tipo: 'dimensional' });
+    }
   }
   const permitidos = (parent.materialesPermitidos || []).map(sinAcentos);
   const coloresOk = (parent.coloresPermitidos || []).map(sinAcentos);
@@ -266,6 +273,9 @@ export function clasificarProducto(intent, { parent = null } = {}) {
 }
 
 export function construirProductSpec(intent, dna, clasif, { rev = 1, componentes = [], id = null, engineering_validated = false, engineering_validation = null } = {}) {
+  // Dificultad de fabricación (motor/dificultad.js): técnica, no económica. Sólo entra al spec
+  // cuando se declaró; `undefined` no cambia el hash de los specs que ya existían.
+  const dificultad = intent?._dificultad != null && intent._dificultad !== 'normal' ? intent._dificultad : undefined;
   const spec = {
     id: id || ('ps_' + hashEstable({ t: intent.textoOriginal, rev }).slice(1)),
     rev,
@@ -284,6 +294,7 @@ export function construirProductSpec(intent, dna, clasif, { rev = 1, componentes
     caracteristicas: intent.caracteristicas,
     capacidad: intent.capacidad,
     componentes,
+    dificultad,
     engineering_validated: engineering_validated === true,
     engineering_validation: engineering_validation || null,
     dna,
@@ -293,12 +304,28 @@ export function construirProductSpec(intent, dna, clasif, { rev = 1, componentes
 }
 
 const FEATURES_CRITICAS = ['electronica', 'cerraduras', 'ventilacion', 'iluminacion_integrada', 'estructural'];
+
+// COCREAR 10 (D-05): la evidencia de validación viaja en el JSON del cliente; por sí sola no
+// prueba nada. Defensa en profundidad: una evidencia firmada por un rol SIN autoridad técnica
+// (vendedor/ventas) no valida. La autoridad real es la fila del servidor (costear-servidor ·
+// cocrear_costeo_servidor): la UI deriva "validada" de esa respuesta, no de este JSON.
+export const ROLES_VALIDAN_INGENIERIA = Object.freeze(['diseno', 'direccion']);
+export function validacionAutorizada(spec) {
+  if (spec?.engineering_validated !== true) return false;
+  const ev = spec.engineering_validation;
+  if (!ev || typeof ev !== 'object') return true;           // validación explícita sin firma de rol (contrato previo)
+  if (ev.fuente === 'costear-servidor') return true;         // la firmó el servidor
+  if (ev.rol == null) return true;
+  return ROLES_VALIDAN_INGENIERIA.includes(String(ev.rol).toLowerCase());
+}
+
 export function estadoIngenieria(spec) {
   const criticas = (spec.caracteristicas || []).filter((c) => FEATURES_CRITICAS.includes(c));
+  const validada = validacionAutorizada(spec);
 
   // Una feature crítica exige validación aun ANTES de tener BOM. "Sin BOM" no
   // puede esconder que ya sabemos que hay electricidad/estructura/ventilación.
-  if (criticas.length && spec.engineering_validated !== true) {
+  if (criticas.length && !validada) {
     return {
       estado: ENG_STATUS.REQUIRES_VALIDATION,
       faltantes: [...new Set([...criticas, ...(!(spec.componentes || []).length ? ['BOM'] : [])])],
@@ -312,7 +339,8 @@ export function estadoIngenieria(spec) {
 
   // Sólo una validación EXPLÍCITA puede convertir un especial en ingeniería validada.
   // La IA/BOM propuesto nunca se auto-certifica por tener precios completos.
-  if (spec.engineering_validated === true) {
+  // COCREAR 10 (D-05): y sólo si la firma una autoridad técnica (Diseño/Dirección) o el servidor.
+  if (validacionAutorizada(spec)) {
     return {
       estado: ENG_STATUS.VALIDATED,
       faltantes: [],
@@ -350,7 +378,7 @@ export function manufacturabilidad(spec) {
     return { estado: MFG_STATUS.UNKNOWN, requisitos: ['BOM'], motivos: ['sin despiece: manufacturabilidad por determinar'] };
   }
   const especial = [CLASIFICACION.NEW_SPECIAL, CLASIFICACION.DERIVED_SPECIAL].includes(spec.clasificacion);
-  if (especial && spec.engineering_validated !== true) {
+  if (especial && !validacionAutorizada(spec)) {
     return {
       estado: MFG_STATUS.REQUIRES_VALIDATION,
       requisitos: ['VALIDACION_INGENIERIA'],
@@ -365,7 +393,8 @@ export function costearSpec(spec, insumos = {}, par = {}) {
   if (!comps.length) {
     return { cost_status: COST_STATUS.UNKNOWN, known_cost: null, official_cost: null, unresolved_lines: ['sin BOM'], estimated_amount: null, certified_amount: null, evidencia: { motivo: 'sin despiece' }, costeo: null };
   }
-  const costeo = calcular({ nombre: spec.familia, piezas: 1, componentes: comps, modoManoObra: 'porcentaje' }, 1, insumos, par);
+  // Alba V1 × dificultad (motor/dificultad.js): mismo motor y misma pieza técnica que el servidor.
+  const costeo = calcular({ nombre: spec.familia, piezas: 1, componentes: comps, modoManoObra: 'porcentaje', ...(spec.dificultad != null ? { dificultad: spec.dificultad } : {}) }, 1, insumos, par);
   const e = costeoEmitible(costeo);
   const ignorados = costeo.componentesIgnorados || [];
   const pendMaterial = ignorados.filter((n) => comps.some((c) => (c.nombre === n) && !insumos[c.insumoId] && !c.insumo));
@@ -402,7 +431,7 @@ export function lineaCocreada(spec, snapshot, { cantidad = 1 } = {}) {
   }
 
   const especial = [CLASIFICACION.NEW_SPECIAL, CLASIFICACION.DERIVED_SPECIAL].includes(spec.clasificacion);
-  if (especial && spec.engineering_validated !== true) {
+  if (especial && !validacionAutorizada(spec)) {
     return {
       ...base,
       cost_status: snapshot.cost_status,
@@ -437,6 +466,8 @@ export function partidaDesdeCocrear({ nombre, spec, prodId, versionId, expedient
     source_ref: expedienteId != null ? String(expedienteId) : null,
     expedienteId: expedienteId ?? null,
     render: typeof renderUrl === 'string' && /^https?:\/\//.test(renderUrl) ? renderUrl : null,
+    // Alba V1 × dificultad: la partida se costea con la MISMA dificultad que el servidor.
+    ...(spec?.dificultad != null ? { dificultad: spec.dificultad } : {}),
     precioReal: false,
     config: null,
     origen: 'cocrear',
@@ -623,14 +654,27 @@ export const COCREAR_PERSIST_VERSION = 'cocrear_studio_v1';
 // Firma del render que viaja al expediente (sin el base64). `renderStale` exige specHash Y
 // visualRevisionHash: si sólo se guardaba specHash, todo render reabierto salía VENCIDO aunque
 // fuera de la misma revisión (auditoría COCREAR_VONI_10, D-07).
+//
+// COCREAR 10 (D-06): además de la firma viaja la URL PÚBLICA del render (Storage), igual que el
+// Costeador guarda `render_aislado_url` + `costo.render_hash`. Nunca viaja base64 (`data:`): si
+// el render sólo existe como dataUrl, la UI lo sube a Storage ANTES de guardar.
+const esURLPublica = (u) => typeof u === 'string' && /^https?:\/\//.test(u);
 function renderPersistible(render) {
   if (!render) return null;
+  const url = esURLPublica(render.url) ? render.url : (esURLPublica(render.dataUrl) ? render.dataUrl : null);
   return {
     specHash: render.specHash ?? null,
     visualRevisionHash: render.visualRevisionHash ?? null,
     expected: render.expected ?? null,
     version: render.version ?? null,
+    ...(url ? { url } : {}),
   };
+}
+
+// N-04: imagen de referencia del cliente. Sólo su URL pública (Storage), nunca base64.
+function referenciaPersistible(ref) {
+  if (!ref || !esURLPublica(ref.url)) return null;
+  return { url: ref.url, mediaType: typeof ref.mediaType === 'string' ? ref.mediaType : null, nombre: typeof ref.nombre === 'string' ? ref.nombre.slice(0, 120) : null };
 }
 
 // Cocrear mide el fondo como `prof_mm`; `guardar_cocrear_seguro` lee `spec.dimensiones.fondo_mm`
@@ -672,25 +716,45 @@ export function cocrearAExpediente(estado = {}) {
 export function cocrearDeExpediente(expediente) {
   const c = expediente?.cocrear;
   if (!c || !c.intent) return null;
-  return { brief: c.brief || '', intent: c.intent, historia: Array.isArray(c.historia) ? c.historia : [], render: c.render || null };
+  return {
+    brief: c.brief || '', intent: c.intent, historia: Array.isArray(c.historia) ? c.historia : [], render: c.render || null,
+    referencia: c.referencia && esURLPublica(c.referencia.url) ? c.referencia : null,
+  };
+}
+
+/**
+ * El ProductSpec CANÓNICO de una co-creación guardada, reconstruido SÓLO desde su intención y su
+ * historia (rev = número de revisiones). Es la misma cuenta que hace `cocrearPayload` y la que
+ * repite el SERVIDOR (costear-servidor, modo cocrear) para no confiar en lo que diga el payload.
+ * Sin validación de ingeniería: ésa no vive en el JSON del cliente (D-03/D-05).
+ */
+export function specDeCocreacion(intent = {}, historia = []) {
+  const rev = (Array.isArray(historia) && historia.length) || 1;
+  const componentes = Array.isArray(intent?._componentes) ? intent._componentes : [];
+  return construirProductSpec(intent || {}, extraerDNA(intent || {}), clasificarProducto(intent || {}, {}), { rev, componentes });
 }
 
 export function cocrearPayload(estado = {}) {
   const intent = estado.intent || {};
-  const rev = (estado.historia?.length) || 1;
-  const componentes = Array.isArray(intent._componentes) ? intent._componentes : [];
-  const spec = construirProductSpec(intent, extraerDNA(intent), clasificarProducto(intent, {}), { rev, componentes });
+  const spec = specDeCocreacion(intent, estado.historia || []);
+  const componentes = spec.componentes;
   const snap = costearSpec(spec, estado.insumos || {}, estado.par || {});
+  const referencia = referenciaPersistible(estado.referencia);
   return {
     version: COCREAR_PERSIST_VERSION,
     nombre: descripcionCorta(spec),
     familia: spec.familia,
-    spec: { familia: spec.familia, dimensiones: dimensionesPersistibles(spec.dimensiones), componentes },
+    spec: { familia: spec.familia, dimensiones: dimensionesPersistibles(spec.dimensiones), componentes, ...(spec.dificultad != null ? { dificultad: spec.dificultad } : {}) },
     brief: estado.brief || '',
     intent,
     historia: (estado.historia || []).map((h) => ({ rev: h.rev, label: h.label, intent: h.intent })),
-    costSnapshot: { status: snap.cost_status, known_cost: snap.known_cost, official_cost: snap.official_cost },
+    // COCREAR 10 (D-02): el navegador YA NO manda importes. Sólo el ESTADO del cálculo local, rotulado
+    // como no autoritativo. El costo que se registra/emite sale de costear-servidor (fila
+    // `cocrear_costeo_servidor`, ligada al analysis_hash de ESTA revisión). Con el servidor viejo, un
+    // estado sin importe falla CERRADO en `registrar_producto_desde_expediente` (nunca adopta un número).
+    costSnapshot: { status: snap.cost_status, fuente: 'navegador_no_autoritativo' },
     render: renderPersistible(estado.render),
+    ...(referencia ? { referencia } : {}),
     specHash: spec.hash,
   };
 }

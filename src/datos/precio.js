@@ -35,3 +35,37 @@ export function precioDesdeCosto(costo, { par = PARAMETROS_DEFAULT, esIntelisis 
   else p = precioDe(costo, margen ?? margenObjetivoDe(par));
   return Number.isFinite(p) && p >= 0 ? p : null;
 }
+
+// ============================================================================
+//  PRECIO SUGERIDO DE UN MUEBLE CO-CREADO (COCREAR 10, Dirección 2026-10-13)
+//  "Co-creación puede ser un mueble nuevo o cambiar medidas de uno de línea; ahí sí sería costear
+//   y nosotros poner un precio."
+//   - El precio de catálogo de los muebles de LÍNEA no se toca: esto sólo aplica a lo co-creado.
+//   - precio = costo ÷ (1 − margen), con el margen de POLÍTICA (margenObjetivo) y nunca por debajo
+//     del PISO de margen (margenMinimo, 25 % por omisión): si la política bajara del piso, manda el piso.
+//   - costo incompleto (null/NaN/∞/≤0) → precio null = "Por confirmar". Jamás $0 ni inventado.
+//  Una sola función: la usan la UI de Cocrear y el servidor (costear-servidor, modo cocrear).
+// ============================================================================
+export const PISO_MARGEN_DEFAULT = 25;
+
+export function pisoMargenDe(par) {
+  const m = Number(par?.margenMinimo);
+  return Number.isFinite(m) && m >= 0 && m < 100 ? m : PISO_MARGEN_DEFAULT;
+}
+
+/**
+ * @param costo  costo OFICIAL unitario (el del servidor cuando se registra o se emite)
+ * @returns {{precio:number|null, margen:number|null, piso:number, motivo:string|null}}
+ */
+export function precioSugeridoCocreado(costo, { par = PARAMETROS_DEFAULT } = {}) {
+  const piso = pisoMargenDe(par);
+  const c = Number(costo);
+  if (costo == null || !Number.isFinite(c) || c <= 0) {
+    return { precio: null, margen: null, piso, motivo: 'Por confirmar: el costo está incompleto (no se inventa precio).' };
+  }
+  const objetivo = margenObjetivoDe(par);
+  const margen = Math.max(objetivo, piso);
+  const precio = precioDesdeCosto(c, { par, margen });
+  if (precio == null || !(precio > 0)) return { precio: null, margen: null, piso, motivo: 'Por confirmar: el margen de política no es válido.' };
+  return { precio, margen, piso, motivo: margen > objetivo ? `El margen de política (${objetivo} %) está bajo el piso: se aplicó el piso de ${piso} %.` : null };
+}

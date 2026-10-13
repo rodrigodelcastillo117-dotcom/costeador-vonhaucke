@@ -1,15 +1,24 @@
-import React,{useEffect,useMemo,useState} from 'react';
+import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {
   cocrearDesdeIntent,construirProductSpec,extraerDNA,clasificarProducto,cocrearDeExpediente,cocrearPayload,partidaDesdeCocrear,
-  hashEstable,DIMS_DEFAULT,MATERIALES_EDIT,FAMILIA,aplicarCambioTexto,
+  hashEstable,DIMS_DEFAULT,MATERIALES_EDIT,FAMILIA,aplicarCambioTexto,specDeCocreacion,
 } from '../datos/cocrear.js';
 import {prepararIntentCocrear,resumenIdeaCocrear,conceptosCocrear,aplicarConceptoCocrear,FEATURES_COCREAR,detectarAlcanceCocrear} from '../datos/cocrearWow.js';
 import {referenciasComercialesCocrear,formatearReferenciaCocrear} from '../datos/cocrearReferencias.js';
 import {estimadoDisenoCocrear} from '../datos/estimadoDiseno.js';
-import {listarCocreaciones,guardarCocrearSeguro,cargarCocrearSeguro,registrarProductoDesdeExpediente,subirRenderCanonico,voniCouncil,generarRender,buscarProductosMaestroTexto} from '../nube.js';
+import {listarCocreaciones,guardarCocrearSeguro,cargarCocrearSeguro,registrarProductoDesdeExpediente,subirRenderCanonico,voniCouncil,generarRender,buscarProductosMaestroTexto,costearCocreacionServidor,imagenCocrearAStorage} from '../nube.js';
+// COCREAR 10 (D-01): puente Cocrear → Costeo (mueble de línea escalado o mueble nuevo vía Costear).
+import {lineasEscalables,bajarLineaABom,reescalarSiAplica,sincronizarFuncionesPendientes,semillaCostearDesdeCocrear,aplicarRetornoCosteo,despieceVigente} from '../datos/cocrearPuente.js';
+import {costearConfig} from '../datos/lineas.js';
+// COCREAR 10 (D-02/D-03): la verdad de dinero y de ingeniería es la del servidor.
+import {validacionDesdeFila} from '../datos/cocrearServidor.js';
+// N-04: el MISMO flujo de carga de imagen que Costear.
+import {reducirImagen,validarArchivoImagen} from '../datos/cargaImagen.js';
+import {NIVELES_DIFICULTAD} from '../datos/dificultadNiveles.js';
+import {DIFICULTAD} from '../motor/dificultad.js';
 import CocrearVisual from './CocrearVisual.jsx';
 import {parametrosEfectivos} from './Costeador.jsx';
-import {precioDesdeCosto,margenObjetivoDe} from '../datos/precio.js';
+import {precioSugeridoCocreado} from '../datos/precio.js';
 import {compileRenderPrompt,renderStale} from '../datos/renderPrompt.js';
 import {visualRevisionHash,visualesSincronizados} from '../datos/visualRevision.js';
 import {modeloTecnico3DDesdeSpec} from '../datos/productModel3D.js';
@@ -95,23 +104,49 @@ async function capturarModeloPNG(expectedVisualHash){
 }
 function Card({children,style={}}){return <div style={{background:'#171717',border:'1px solid #303236',borderRadius:14,padding:14,...style}}>{children}</div>}
 function Label({children}){return <div style={{fontSize:10,letterSpacing:1.25,textTransform:'uppercase',color:'#8992a2',fontWeight:800,marginBottom:7}}>{children}</div>}
+// N-04: imagen de referencia del cliente (foto, boceto, render). Misma carga que Costear (cargaImagen.js).
+function ReferenciaImagen({referencia,onCargar,onQuitar,error}){
+ const src=referencia?.dataUrl||referencia?.url||null;
+ return <div style={{marginTop:10,display:'flex',gap:9,alignItems:'center',flexWrap:'wrap'}}>
+  {src&&<img src={src} alt="Imagen de referencia" data-testid="cocrear-referencia-preview" style={{width:84,height:62,objectFit:'cover',borderRadius:8,border:'1px solid #444'}}/>}
+  <label style={{borderRadius:10,padding:'8px 12px',fontSize:12,fontWeight:800,border:'1px solid #50545a',color:'#fff',cursor:'pointer'}}>{src?'Cambiar imagen de referencia':'Subir imagen de referencia'}<input data-testid="cocrear-referencia" type="file" accept="image/*" hidden onChange={onCargar}/></label>
+  {src&&<button type="button" onClick={onQuitar} style={{background:'none',border:0,color:'#aaa',cursor:'pointer',fontSize:11}}>Quitar</button>}
+  <span className="c3-small">Foto, boceto o render del cliente: viaja a Costear para el análisis IA y se guarda con la co-creación.</span>
+  {error&&<span style={{color:'#ffb4aa',fontSize:11}}>{error}</span>}
+ </div>;
+}
 function Btn({children,onClick,disabled=false,ghost=false,style={}}){return <button type="button" disabled={disabled} onClick={onClick} style={{borderRadius:10,padding:'9px 13px',fontSize:13,fontWeight:800,border:ghost?'1px solid #50545a':'1px solid #d13b30',background:ghost?'transparent':disabled?'#34211f':'#c93429',color:disabled?'#776b69':'#fff',cursor:disabled?'not-allowed':'pointer',...style}}>{children}</button>}
 
-export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail=null}){
+export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail=null,puente=null,onPasarACostear=null,onPuenteConsumido=null}){
  const [fase,setFase]=useState('inicio'),[texto,setTexto]=useState(''),[intent,setIntent]=useState(null),[historia,setHistoria]=useState([]),[conceptos,setConceptos]=useState([]);
  const [analisis,setAnalisis]=useState(null),[aiError,setAiError]=useState(''),[pensando,setPensando]=useState(false),[nl,setNl]=useState(''),[mensaje,setMensaje]=useState('');
  const [guardando,setGuardando]=useState(false),[guardado,setGuardado]=useState(false),[expedienteId,setExpedienteId]=useState(null),[guardadas,setGuardadas]=useState([]),[guardadasError,setGuardadasError]=useState(''),[guardadasReload,setGuardadasReload]=useState(0);
  const [render,setRender]=useState(null),[renderCargando,setRenderCargando]=useState(false),[renderError,setRenderError]=useState(''),[comparA,setComparA]=useState(null),[cotizadoHash,setCotizadoHash]=useState(null);
  const [refs,setRefs]=useState(null),[refsCargando,setRefsCargando]=useState(false);
  const [catalogoCandidatos,setCatalogoCandidatos]=useState([]);
+ // COCREAR 10: imagen de referencia (N-04), mueble de línea a escalar (D-01) y verdad del servidor (D-02/D-03).
+ const [referencia,setReferencia]=useState(null),[refError,setRefError]=useState('');
+ const [lineaSel,setLineaSel]=useState({ruta:'',productoId:''});
+ const [servidor,setServidor]=useState(null),[costeandoSrv,setCosteandoSrv]=useState(false);
 
  const insumos=estado?.insumos||{};
  const par=useMemo(()=>parametrosEfectivos(estado,{componentes:[]}).par||estado?.parametros||{},[estado]);
  const rev=historia.length||1,bom=(intent&&intent._componentes)||[];
- const engineeringValidation=intent?._engineering_validation||null;
+ // Seller-safe: el vendedor jamás ve costo ni margen (ni el cálculo local).
+ const veCostos=rol==='direccion'||rol==='diseno';
+ // El spec tal como lo reconstruye el SERVIDOR (sin validación en el JSON): contra él se compara la
+ // respuesta de costear-servidor. Cualquier cambio (medida, BOM, revisión) la deja sin vigencia.
+ const specBase=useMemo(()=>intent?specDeCocreacion(intent,historia):null,[intent,historia]);
+ const servidorVigente=!!(servidor?.ok&&specBase&&servidor.spec_hash===specBase.hash);
+ // D-03: "VALIDADA" sólo si el SERVIDOR la validó para ESTA revisión. La evidencia del JSON del
+ // cliente ya no cuenta (D-05).
+ const engineeringValidation=servidorVigente&&servidor.ingenieria_validada?{
+   fuente:'costear-servidor',validador:servidor.validada_por||null,fecha:servidor.validada_en||null,
+   visual_hash:servidor.visual_hash||null,motivo:'Validada en el servidor: costo emitible, sin bloqueos estructurales y misma revisión.',
+ }:null;
  const engineeringValidated=!!(
-   intent?._engineering_validated
-   && engineeringValidation?.visual_hash
+   engineeringValidation
+   && engineeringValidation.visual_hash
    && engineeringValidation.visual_hash===visualRevisionHash(
      construirProductSpec(intent,extraerDNA(intent),clasificarProducto(intent,{}),{rev,componentes:bom})
    )
@@ -133,7 +168,9 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
  const resumen=useMemo(()=>intent?resumenIdeaCocrear(intent,texto):null,[intent,texto]);
  const modelo3d=useMemo(()=>spec?modeloTecnico3DDesdeSpec(spec):null,[spec]);
  const visualSync=useMemo(()=>spec?visualesSincronizados({spec,render,model3d:modelo3d}):{synchronized:true},[spec,render,modelo3d]);
- const rStale=!!(render&&spec&&(renderStale(render,spec)||!visualSync.render_ok));
+ // El render se firma contra el spec BASE (el que reconstruye el servidor, sin la validación de ingeniería):
+ // validar la ingeniería no cambia el producto, así que no debe vencer el render ni su firma guardada (D-06).
+ const rStale=!!(render&&specBase&&(renderStale(render,specBase)||!visualSync.render_ok));
  const refUI=useMemo(()=>formatearReferenciaCocrear(refs),[refs]);
  const estimado=useMemo(()=>estimadoDisenoCocrear(intent,insumos),[intent,insumos]);
  const desarrollo=useMemo(()=>spec?diagnosticoDesarrolloProducto(spec):null,[spec]);
@@ -150,11 +187,13 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
    pipeline?.costo?.official_cost,
  ):null,[comparSpecA,spec,comparPipelineA,pipeline]);
  const puedeAprobarRol=rol==='direccion'||rol==='diseno';
- const ingenieriaListaParaRevision=!!(
-   spec?.componentes?.length
-   && desarrollo?.estado==='ANALIZADO'
-   && modelo3d?.status==='EXPLODED_READY'
- );
+ // Despiece 3D completo (largo × ancho × espesor en TODAS las piezas): diagnóstico visible. No bloquea:
+ // un BOM real lleva PTR por metro y herrajes por pieza, que nunca tienen las tres medidas, y eso
+ // dejaba "Validar ingeniería" inalcanzable (D-01/D-03). La compuerta autoritativa la corre el
+ // SERVIDOR: rol, costo emitible, validador estructural y misma revisión.
+ const despiece3DCompleto=!!(desarrollo?.estado==='ANALIZADO'&&modelo3d?.status==='EXPLODED_READY');
+ const piezasPendientes=(spec?.componentes||[]).filter(c=>c&&!c.excluida&&(!c.insumoId||c._funcion));
+ const ingenieriaListaParaRevision=!!(spec?.componentes?.length&&!piezasPendientes.length);
  const alcance=useMemo(()=>detectarAlcanceCocrear(texto||intent?._brief||''),[texto,intent]);
 
  useEffect(()=>{
@@ -167,10 +206,19 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
  },[fase,guardadasReload]);
  useEffect(()=>{if(fase!=='studio'||!intent)return;let live=true;setRefsCargando(true);referenciasComercialesCocrear(intent).then(r=>{if(live)setRefs(r)}).finally(()=>{if(live)setRefsCargando(false)});return()=>{live=false}},[fase,intent?._concepto,intent?.capacidad_personas,intent?.familia]);
 
- const reset=()=>{setFase('inicio');setIntent(null);setHistoria([]);setConceptos([]);setAnalisis(null);setAiError('');setRender(null);setMensaje('');setExpedienteId(null);setComparA(null);setRefs(null)};
+ const reset=()=>{setFase('inicio');setIntent(null);setHistoria([]);setConceptos([]);setAnalisis(null);setAiError('');setRender(null);setMensaje('');setExpedienteId(null);setComparA(null);setRefs(null);setReferencia(null);setServidor(null);setLineaSel({ruta:'',productoId:''})};
+ // D-01: el BOM sigue a la revisión. Un BOM de LÍNEA se re-escala desde su padre al cambiar medidas; uno de
+ // COSTEAR deja de valer si cambian (no se estira en silencio); las funciones sin despiece quedan pendientes.
+ const avisoBom=useRef('');
+ const prepararRevision=(next)=>{
+  avisoBom.current='';
+  if(next?._puente?.tipo==='linea_escalada'){const r=reescalarSiAplica(next,{insumos});if(r.motivo)avisoBom.current=r.motivo;return r.intent;}
+  if(next?._puente?.tipo==='costear'&&!despieceVigente(next)){const {_componentes,_puente,...resto}=next;avisoBom.current='Cambiaste medidas: el despiece de Costear era para las anteriores y se quitó. Vuelve a pasarlo a Costear.';return resto;}
+  return sincronizarFuncionesPendientes(next);
+ };
  const commit=(next,label)=>{
   // Cualquier cambio técnico/visual invalida la aprobación de ingeniería previa.
-  const limpio={...next,_engineering_validated:false,_engineering_validation:null};
+  const limpio={...prepararRevision(next),_engineering_validated:false,_engineering_validation:null};
   setIntent(limpio);
   setHistoria(h=>[...h,{rev:h.length+1,intent:clone(limpio),label}]);
   setGuardado(false);
@@ -179,6 +227,7 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
   setRender(null);
   setRenderError('');
   setCotizadoHash(null);
+  if(avisoBom.current)setMensaje(avisoBom.current);
  };
 
  const generarPara=async(nextIntent,nextSpec)=>{
@@ -206,7 +255,7 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
    });else throw new Error(r?.error||'No se pudo generar el render');
   }catch(e){setRenderError(String(e?.message||e))}finally{setRenderCargando(false)}
  };
- const generar=()=>generarPara(intent,spec);
+ const generar=()=>generarPara(intent,specBase);
 
  const analizarIdea=async()=>{
   const brief=texto.trim();if(!brief||pensando)return;setPensando(true);setAiError('');setMensaje('');
@@ -255,6 +304,114 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
  const setTone=tono=>commit({...intent,materiales:[{material:intent.materiales?.[0]?.material||'laminado',tono},...(intent.materiales||[]).slice(1)]},`Tono: ${tono||'natural'}`);
  const toggleFeature=f=>{const s=new Set(intent.caracteristicas||[]);s.has(f)?s.delete(f):s.add(f);commit({...intent,caracteristicas:[...s]},`${s.has(f)?'Agregar':'Quitar'} ${FEATURES_COCREAR.find(([k])=>k===f)?.[1]||f}`)};
 
+ // ---------------------------------------------------------------------------
+ //  D-01 · BAJAR A BOM
+ // ---------------------------------------------------------------------------
+ const lineas=useMemo(()=>lineasEscalables(),[]);
+ const productosLinea=lineas.find(l=>l.ruta===lineaSel.ruta)?.productos||[];
+ // Sugerencia: la primera línea escalable que VONI propuso como candidata para este brief.
+ useEffect(()=>{
+  if(lineaSel.ruta||!catalogoCandidatos.length)return;
+  const l=catalogoCandidatos.map(c=>lineas.find(x=>x.ruta===c.ruta)).find(Boolean);
+  if(l)setLineaSel({ruta:l.ruta,productoId:l.productos[0]?.id||''});
+ },[catalogoCandidatos,lineas,lineaSel.ruta]);
+ const bajarDesdeLinea=()=>{
+  if(!intent||!lineaSel.ruta||!lineaSel.productoId){setMensaje('Elige la línea y el producto de catálogo del que parte el cambio de medidas.');return}
+  const r=bajarLineaABom(intent,{ruta:lineaSel.ruta,productoId:lineaSel.productoId,dificultad:intent._dificultad},{insumos});
+  if(!r.ok){setMensaje(r.motivo);return}
+  commit(r.intent,`BOM desde ${r.padre.nombre} (escalado a ${intent.dimensiones?.ancho_mm||'?'} mm)`);
+  setMensaje(`✓ Despiece de ${r.padre.nombre} escalado a las medidas del concepto (${r.escalado.trazas.length} pieza(s) ajustada(s)). El tablero se cobra por acomodo en hoja.${r.escalado.avisos.length?' Revisa los avisos.':''}`);
+ };
+ const quitarBom=()=>{if(!intent)return;const {_componentes,_puente,_linaje,...resto}=intent;commit(resto,'Quitar BOM');setMensaje('BOM quitado: el concepto vuelve a "Pendiente de BOM".')};
+ const setDificultad=d=>commit({...intent,_dificultad:d==='normal'?undefined:d},`Dificultad: ${NIVELES_DIFICULTAD.find(([k])=>k===d)?.[1]||d}`);
+ // Mueble nuevo: la MISMA vía que Costear (análisis IA → BOM). Se lleva la sesión para volver aquí.
+ const pasarACostear=()=>{
+  if(!intent)return;
+  if(!onPasarACostear||!veCostos){setMensaje('Costear desde cero es de Diseño y Dirección: guarda la co-creación y pídeles que la bajen a BOM.');return}
+  const semilla=semillaCostearDesdeCocrear(intent,{brief:texto,nombre:intent._concepto_nombre||resumen?.tipologia||'Producto co-creado',expedienteId,imagen:referencia});
+  onPasarACostear({semilla,sesion:{texto,intent:clone(intent),historia:clone(historia),expedienteId,render,referencia,servidor}});
+ };
+ // Regreso de Costear (o de cualquier otra pantalla): se recupera la sesión y, si trae BOM, entra como revisión nueva.
+ const puenteAplicado=useRef(null);
+ useEffect(()=>{
+  if(!puente?.sesion||puenteAplicado.current===puente)return;
+  puenteAplicado.current=puente;
+  const s=puente.sesion;
+  setTexto(s.texto||'');setHistoria(s.historia?.length?s.historia:[{rev:1,intent:s.intent,label:'Sesión recuperada'}]);setIntent(s.intent);
+  setExpedienteId(s.expedienteId??null);setRender(s.render||null);setReferencia(s.referencia||null);setServidor(s.servidor||null);setFase('studio');
+  if(puente.retorno){
+   const r=aplicarRetornoCosteo(s.intent,puente.retorno);
+   if(r.ok){
+    const limpio={...sincronizarFuncionesPendientes(r.intent),_engineering_validated:false,_engineering_validation:null};
+    setIntent(limpio);setHistoria(h=>[...(s.historia||[]),{rev:(s.historia?.length||0)+1,intent:clone(limpio),label:`BOM desde Costear (${r.intent._componentes.length} piezas)`}]);
+    setRender(null);setGuardado(false);setCotizadoHash(null);
+    setMensaje(`✓ Regresó de Costear con ${r.intent._componentes.length} pieza(s). Es una revisión nueva: costéala en el servidor y valida ingeniería.`);
+   }else setMensaje(r.motivo);
+  }else setMensaje('Sesión de Cocrear recuperada (no regresó despiece de Costear).');
+  onPuenteConsumido?.();
+ },[puente]);
+
+ // ---------------------------------------------------------------------------
+ //  N-04 · IMAGEN DE REFERENCIA (mismo flujo de carga que Costear)
+ // ---------------------------------------------------------------------------
+ const onReferencia=async e=>{
+  const file=e.target.files?.[0];e.target.value='';setRefError('');
+  if(!file)return;
+  const invalido=validarArchivoImagen(file,{aceptaPdf:false});
+  if(invalido){setRefError(invalido);return}
+  try{
+   const r=await reducirImagen(file);
+   setReferencia({base64:r.base64,mediaType:r.mediaType,dataUrl:`data:${r.mediaType};base64,${r.base64}`,url:null,nombre:file.name||'referencia.jpg'});
+   setGuardado(false);
+  }catch(err){setRefError(String(err?.message||err))}
+ };
+
+ // ---------------------------------------------------------------------------
+ //  D-06 · antes de guardar, render y referencia van a Storage (nunca base64 en el expediente)
+ // ---------------------------------------------------------------------------
+ const asegurarImagenes=async(id)=>{
+  let r=render,ref=referencia;const avisos=[];
+  if(r&&!r.url&&/^data:/.test(String(r.dataUrl||''))){
+   const up=await imagenCocrearAStorage(r.dataUrl,{id:id||'tmp',tipo:'render'});
+   if(up.ok){r={...r,url:up.url,dataUrl:up.url};setRender(r)}else avisos.push(`El render no se pudo conservar (${up.error}).`);
+  }
+  if(ref&&!ref.url&&ref.dataUrl){
+   const up=await imagenCocrearAStorage(ref.dataUrl,{id:id||'tmp',tipo:'referencia'});
+   if(up.ok){ref={...ref,url:up.url};setReferencia(ref)}else avisos.push(`La imagen de referencia no se pudo conservar (${up.error}).`);
+  }
+  return {render:r,referencia:ref,avisos};
+ };
+ const guardarActual=async()=>{
+  const img=await asegurarImagenes(expedienteId);
+  const r=await guardarCocrearSeguro(expedienteId,cocrearPayload({brief:texto,intent,historia,render:img.render,referencia:img.referencia,insumos,par}));
+  if(!r?.ok)throw new Error(r?.error||'No se pudo guardar');
+  const id=r.expediente_id||expedienteId;
+  if(id)setExpedienteId(id);
+  setGuardado(true);
+  return {id,avisos:img.avisos};
+ };
+
+ // ---------------------------------------------------------------------------
+ //  D-02 / D-03 · el servidor costea (y, si se pide, valida ingeniería) la revisión GUARDADA
+ // ---------------------------------------------------------------------------
+ const costearEnServidor=async({validar=false}={})=>{
+  if(!intent||costeandoSrv)return null;
+  if(!bom.length){setMensaje('Primero baja el concepto a BOM: sin despiece el servidor no tiene qué costear.');return null}
+  setCosteandoSrv(true);setMensaje('');
+  try{
+   const g=await guardarActual();
+   if(!g.id)throw new Error('La co-creación no quedó guardada.');
+   const r=await costearCocreacionServidor(g.id,validar?{validarIngenieria:true,visualHash:visualRevisionHash(spec)}:{});
+   if(!r?.ok){setMensaje(`El servidor no costeó: ${r?.error||'sin respuesta'}`);return null}
+   setServidor(r);
+   const avisos=g.avisos.length?` ${g.avisos.join(' ')}`:'';
+   if(validar)setMensaje(r.ingenieria_validada?`✓ Ingeniería validada por el servidor (${r.validada_por||usuarioEmail||rol}). Cualquier cambio posterior la invalida.${avisos}`:`No se validó: ${r.validacion?.motivo||'el servidor no la aprobó'}${avisos}`);
+   else setMensaje(`✓ Costeado en el servidor: ${r.estado}.${r.precioPorConfirmar?' Precio por confirmar.':''}${avisos}`);
+   return r;
+  }catch(e){setMensaje(`No se pudo costear en el servidor: ${String(e?.message||e)}`);return null}
+  finally{setCosteandoSrv(false)}
+ };
+
  const pedirVoni=async()=>{
   const frase=nl.trim();if(!frase||pensando)return;setPensando(true);setMensaje('');
   const cambio=cambioCanonico(intent,frase);const next=cambio.aplico?cambio.next:intent;
@@ -281,63 +438,88 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
   setPensando(false)
  };
 
- const guardar=async()=>{if(!intent)return;setGuardando(true);setMensaje('');try{const r=await guardarCocrearSeguro(expedienteId,cocrearPayload({brief:texto,intent,historia,render,insumos,par}));if(!r?.ok)throw new Error(r?.error||'No se pudo guardar');if(r.expediente_id)setExpedienteId(r.expediente_id);setGuardado(true);setMensaje('✓ Co-creación guardada.');}catch(e){setMensaje(`No se pudo guardar: ${String(e?.message||e)}`)}setGuardando(false)};
+ const guardar=async()=>{if(!intent)return;setGuardando(true);setMensaje('');try{const g=await guardarActual();setMensaje(`✓ Co-creación guardada.${g.avisos.length?' '+g.avisos.join(' '):''}`);}catch(e){setMensaje(`No se pudo guardar: ${String(e?.message||e)}`)}setGuardando(false)};
  const reabrir=async id=>{try{const r=await cargarCocrearSeguro(id);const est=r?.ok?cocrearDeExpediente({cocrear:r.cocrear}):null;if(!est?.intent)throw new Error('Expediente sin intención válida');setIntent(est.intent);setHistoria(est.historia?.length?est.historia:[{rev:1,label:'Reabierta',intent:est.intent}]);setTexto(est.brief||est.intent?._brief||'');setExpedienteId(id);
+  // N-04 y D-02/D-03: la referencia y la verdad del servidor (costo/validación de esa revisión) vuelven con el expediente.
+  setReferencia(est.referencia?{...est.referencia,base64:null,dataUrl:est.referencia.url}:null);
+  setServidor(validacionDesdeFila(r.validacion_servidor));setCotizadoHash(null);setMensaje('');
   // VH-105: el render fotográfico NO se guarda en el payload cocrear (sólo specHash/expected); el
   // canónico vive en Storage y el expediente trae su URL (render_aislado_url). Se RECUPERA en vez de
   // perderse; si sus firmas no coinciden con la revisión reabierta, `renderStale` lo marca VENCIDO
   // (fail-closed) y se ofrece regenerar. Nunca se presenta como fiel a otra revisión.
-  const urlCanonica=typeof r?.render_aislado_url==='string'&&/^https?:\/\//.test(r.render_aislado_url)?r.render_aislado_url:null;
+  // D-06: primero la URL que guardó Cocrear junto con su firma; si no, la canónica del expediente.
+  const urlCanonica=[est.render?.url,r?.render_aislado_url].find(u=>typeof u==='string'&&/^https?:\/\//.test(u))||null;
   if(urlCanonica)setRender({dataUrl:urlCanonica,specHash:est.render?.specHash||null,visualRevisionHash:est.render?.visualRevisionHash||null,expected:est.render?.expected||null,version:est.render?.version||null,concepto:est.intent?._concepto||null,recuperado:true});
   else setRender(null);
   setFase('studio')}catch(e){setMensaje(String(e?.message||e))}};
 
- const validarIngenieria=()=>{
+ // D-03: "Validar ingeniería" ya no es un sello en el JSON del cliente. Guarda la revisión y le pide al
+ // SERVIDOR que la valide (rol, costo emitible, validador estructural, misma revisión visual); lo que
+ // responde el servidor es lo que se muestra y lo que lee el registro del producto.
+ const validarIngenieria=async()=>{
   if(!puedeAprobarRol){
     setMensaje('Sólo Diseño o Dirección pueden validar ingeniería.');
     return;
   }
   if(!ingenieriaListaParaRevision){
-    setMensaje('Ingeniería todavía no puede validarse: completa materiales y geometría del BOM hasta tener un Despiece 3D completo.');
+    setMensaje('Ingeniería todavía no puede validarse: falta el BOM o hay piezas pendientes (sin material o funciones sin despiece).');
     return;
   }
   const visual_hash=visualRevisionHash(spec);
-  const evidencia={
-    validador:usuarioEmail||rol,
-    rol,
-    fecha:new Date().toISOString(),
-    visual_hash,
-    spec_hash_prevalidacion:spec.hash,
-    motivo:'BOM, geometría, materiales y fabricabilidad revisados explícitamente en Cocrear.',
-  };
-  const next={...intent,_engineering_validated:true,_engineering_validation:evidencia};
-  setIntent(next);
-  setHistoria(h=>[...h,{rev:h.length+1,intent:clone(next),label:`Ingeniería validada · ${rol}`}]);
-  setGuardado(false);
+  const evidencia={validador:usuarioEmail||rol,rol,visual_hash,spec_hash_prevalidacion:spec.hash};
   setCotizadoHash(null);
-  setMensaje(`✓ Ingeniería validada por ${usuarioEmail||rol}. Cualquier cambio posterior invalidará esta aprobación.`);
+  const r=await costearEnServidor({validar:true});
+  if(r&&r.ingenieria_validada&&r.visual_hash!==evidencia.visual_hash)setMensaje('El servidor validó otra revisión visual: vuelve a validar.');
  };
 
+ // Cálculo LOCAL (vista previa para Diseño/Dirección): mismo motor, pero NO es el costo que se guarda ni se emite.
  const costoRaw=pipeline?.costo?.official_cost;
  const costoOficial=Number(costoRaw),costoConocido=costoRaw!=null&&Number.isFinite(costoOficial)&&costoOficial>=0;
+ const precioLocal=useMemo(()=>veCostos?precioSugeridoCocreado(costoConocido?costoOficial:null,{par}):null,[veCostos,costoConocido,costoOficial,par]);
+ // Lo oficial: la respuesta del servidor para ESTA revisión.
+ const costoServidor=servidorVigente&&Number.isFinite(Number(servidor?.costo?.costoUnitario))?Number(servidor.costo.costoUnitario):null;
+ const precioServidor=servidorVigente&&Number(servidor?.precioSugerido)>0?Number(servidor.precioSugerido):null;
   const listaParaCotizar=pipeline?.lineaCotizacion?.listaParaCotizar===true;
   const bloqueosCocrear=pipeline?.blockers||[];
+ // Referencia comercial: el precio de LISTA del mueble de catálogo del que parte el cambio de medidas
+ // (no se toca; sólo se compara). Al vendedor sólo se le muestra si es un artículo real del catálogo.
+ const referenciaPadre=useMemo(()=>{
+  const pz=intent?._puente;
+  if(pz?.tipo!=='linea_escalada'||!pz.base)return null;
+  try{
+   const r=costearConfig(estado,pz.ruta,pz.producto,{largoMM:pz.base.ancho_mm,fondoMM:pz.base.prof_mm,diametroMM:pz.base.ancho_mm},1);
+   const precio=Number(r?.precioUnitario);
+   if(!(precio>0)||(!veCostos&&!r?.precioReal))return null;
+   return {precio,nombre:pz.padre,real:!!r?.precioReal};
+  }catch{return null}
+ },[intent?._puente,estado,veCostos]);
+ const precioComparable=precioServidor??precioLocal?.precio??null;
+ const debajoDelPadre=!!(referenciaPadre&&precioComparable!=null&&precioComparable<referenciaPadre.precio);
+ const MOTIVO_REGISTRO={
+   costo_servidor_pendiente:'el servidor todavía no costeó esta revisión guardada',
+   expediente_incompleto_no_publicable:'el costo del servidor está incompleto',
+   costo_estado_con_valor_invalido:'el servidor aún usa el registro anterior (falta aplicar PROPUESTA_cocrear_costo_servidor.sql); no se registra con un costo del navegador',
+ };
  const agregarCotizacion=async()=>{
   if(!listaParaCotizar||!onAgregar){
     const motivo=pipeline?.lineaCotizacion?.motivo||bloqueosCocrear[0]||'falta validación del producto';
     setMensaje(`Todavía no puede convertirse en partida: ${motivo}. El costo calculado no sustituye la validación de ingeniería.`);
     return
   }
+  // D-02: el precio de la partida es el que sugirió el SERVIDOR para esta revisión (costo de
+  // costear-servidor + margen de política con piso). Sin él: "Por confirmar", nunca $0.
+  if(precioServidor==null){
+    setMensaje('Sin precio del servidor para esta revisión: costéala en el servidor (si el costo está incompleto, el precio queda "Por confirmar").');
+    return
+  }
   let id=expedienteId,prodId=null,versionId=null;
   let avisoRender='';let renderUrl=null;
   try{
-    if(!id){
-      const s=await guardarCocrearSeguro(null,cocrearPayload({brief:texto,intent,historia,render,insumos,par}));
-      if(!s?.ok||!s?.expediente_id)throw new Error(s?.error||'No se pudo crear el expediente canónico.');
-      id=s.expediente_id;setExpedienteId(id);
-    }
+    const g=await guardarActual();
+    id=g.id;
+    if(!id)throw new Error('No se pudo crear el expediente canónico.');
     const reg=await registrarProductoDesdeExpediente(id);
-    if(!reg?.ok||!reg?.version_id)throw new Error(reg?.error||'No se pudo registrar la revisión canónica del producto.');
+    if(!reg?.ok||!reg?.version_id)throw new Error(reg?.error||(reg?.motivo?`No se pudo registrar la revisión canónica: ${MOTIVO_REGISTRO[reg.motivo]||reg.motivo}.`:'No se pudo registrar la revisión canónica del producto.'));
     prodId=reg.producto_id;versionId=reg.version_id;
 
     if(render&&!rStale){
@@ -346,7 +528,7 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
       const up=await subirRenderCanonico({
         expedienteId:id,productoId:prodId,productoVersionId:versionId,
         dataUrl:render.dataUrl,promptVersion:render.version,modo:'render',
-        specHash:spec.hash,geometryHash,inputs:rc.expected||{},
+        specHash:specBase.hash,geometryHash,inputs:rc.expected||{},
       });
       if(!up?.ok)avisoRender=` Render canónico pendiente: ${up?.error||'no se pudo registrar'}.`;else if(up?.storage_url)renderUrl=up.storage_url;
     }
@@ -354,8 +536,9 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
     setMensaje(`No se agregó a la cotización: ${String(e?.message||e)}`);
     return;
   }
-  const margen=margenObjetivoDe(par),pv=precioDesdeCosto(costoOficial,{par,margen});
-  if(pv==null){setMensaje('Sin precio válido para esta revisión: el costo oficial está incompleto.');return}
+  const pv=precioServidor;
+  // El margen sólo viaja para quien ve economía (seller-safe: App lo descarta para el vendedor).
+  const margen=veCostos?(servidor?.margen??precioSugeridoCocreado(costoServidor,{par}).margen):null;
   // VH-058: la partida nace con identidad y procedencia (expediente, Producto Maestro, render canónico).
   onAgregar({...partidaDesdeCocrear({nombre:intent?._concepto_nombre||resumen?.tipologia||'Producto co-creado',spec,prodId,versionId,expedienteId:id,renderUrl})},1,pv,margen);
   setCotizadoHash(spec.hash);
@@ -364,14 +547,14 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
 
  const css=<style>{`.coc3{max-width:1240px;margin:0 auto;font-size:14px}.c3-title{font-size:clamp(30px,3vw,44px);line-height:1.06;margin:5px 0 9px}.c3-lead{font-size:16px;color:#b7b2af;max-width:850px;line-height:1.5}.c3-concepts{display:grid;grid-template-columns:320px minmax(0,1fr);gap:13px}.c3-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.c3-studio{display:grid;grid-template-columns:245px minmax(0,1fr) 300px;gap:11px;align-items:start}.c3-hero{min-height:330px;display:flex;align-items:center;justify-content:center;background:#111315;border-radius:11px;overflow:hidden}.c3-hero img{width:100%;height:auto;display:block}.c3-input{width:100%;box-sizing:border-box;background:#22201f;color:#fff;border:1px solid #444;border-radius:9px;padding:8px}.c3-small{font-size:11px;color:#9ca3ad}.c3-ref{background:#121b16;border:1px solid #28553b;border-radius:10px;padding:10px;margin-top:10px}.c3-refrow{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-top:1px solid #26352b;font-size:11px}.c3-history{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.c3-history button{background:#202225;color:#cfd3d7;border:1px solid #393d42;border-radius:999px;padding:5px 8px;font-size:10px}@media(max-width:1050px){.c3-studio{grid-template-columns:230px minmax(0,1fr)}.c3-right{grid-column:1/-1}.c3-concepts{grid-template-columns:1fr}}@media(max-width:760px){.c3-studio,.c3-concepts,.c3-cards{grid-template-columns:1fr}.c3-title{font-size:32px}}`}</style>;
 
- if(fase==='inicio')return <div className="contenido coc3">{css}<Label>VON HAUCKE · COCREAR</Label><h1 className="c3-title">¿Qué quieres crear?</h1><p className="c3-lead">Describe el problema o la idea. VONI propone direcciones de diseño; al elegir una, render, modelo técnico y referencias comerciales quedan amarrados al mismo concepto.</p><Card style={{marginTop:16}}><textarea value={texto} onChange={e=>setTexto(e.target.value)} rows={4} placeholder="Ej. Hub colaborativo para 8 personas, vegetación integrada, cableado oculto y escalable a 12…" className="c3-input" style={{fontSize:15,padding:13}}/><div style={{display:'flex',gap:6,flexWrap:'wrap',marginTop:9}}>{EJEMPLOS.map((e,i)=><button key={i} onClick={()=>setTexto(e)} style={{background:'#242220',color:'#ddd',border:'1px solid #414141',borderRadius:999,padding:'6px 9px',fontSize:10,cursor:'pointer'}}>{e.split(',')[0]}</button>)}</div><div style={{display:'flex',gap:8,marginTop:12}}><Btn onClick={analizarIdea} disabled={!texto.trim()||pensando}>{pensando?'VONI analizando…':'Crear conceptos con VONI →'}</Btn><Btn ghost onClick={desdeCero}>Empezar desde cero</Btn></div></Card>{guardadasError&&<div style={{marginTop:14,padding:'8px 10px',border:'1px solid #70483e',borderRadius:9,color:'#ffb4aa',fontSize:11,display:'flex',justifyContent:'space-between',gap:8,alignItems:'center'}}><span>No pude cargar tus co-creaciones guardadas: {guardadasError}</span><button type="button" onClick={()=>setGuardadasReload(x=>x+1)} style={{background:'transparent',border:'1px solid #8b5a4d',color:'#ffd0c6',borderRadius:7,padding:'5px 8px',cursor:'pointer'}}>Reintentar</button></div>}{guardadas.length>0&&<div style={{marginTop:18}}><Label>Guardadas</Label><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:7}}>{guardadas.map(x=><button key={x.id} onClick={()=>reabrir(x.id)} style={{textAlign:'left',background:'#171717',border:'1px solid #333',borderRadius:9,padding:10,color:'#fff',cursor:'pointer'}}><strong>{x.nombre||'Co-creación'}</strong><div className="c3-small">{x.producto_tipo||'Producto especial'} · reabrir</div></button>)}</div></div>}</div>;
+ if(fase==='inicio')return <div className="contenido coc3">{css}<Label>VON HAUCKE · COCREAR</Label><h1 className="c3-title">¿Qué quieres crear?</h1><p className="c3-lead">Describe el problema o la idea. VONI propone direcciones de diseño; al elegir una, render, modelo técnico y referencias comerciales quedan amarrados al mismo concepto.</p><Card style={{marginTop:16}}><textarea value={texto} onChange={e=>setTexto(e.target.value)} rows={4} placeholder="Ej. Hub colaborativo para 8 personas, vegetación integrada, cableado oculto y escalable a 12…" className="c3-input" style={{fontSize:15,padding:13}}/><div style={{display:'flex',gap:6,flexWrap:'wrap',marginTop:9}}>{EJEMPLOS.map((e,i)=><button key={i} onClick={()=>setTexto(e)} style={{background:'#242220',color:'#ddd',border:'1px solid #414141',borderRadius:999,padding:'6px 9px',fontSize:10,cursor:'pointer'}}>{e.split(',')[0]}</button>)}</div><div style={{display:'flex',gap:8,marginTop:12}}><Btn onClick={analizarIdea} disabled={!texto.trim()||pensando}>{pensando?'VONI analizando…':'Crear conceptos con VONI →'}</Btn><Btn ghost onClick={desdeCero}>Empezar desde cero</Btn></div><ReferenciaImagen referencia={referencia} onCargar={onReferencia} onQuitar={()=>setReferencia(null)} error={refError}/></Card>{guardadasError&&<div style={{marginTop:14,padding:'8px 10px',border:'1px solid #70483e',borderRadius:9,color:'#ffb4aa',fontSize:11,display:'flex',justifyContent:'space-between',gap:8,alignItems:'center'}}><span>No pude cargar tus co-creaciones guardadas: {guardadasError}</span><button type="button" onClick={()=>setGuardadasReload(x=>x+1)} style={{background:'transparent',border:'1px solid #8b5a4d',color:'#ffd0c6',borderRadius:7,padding:'5px 8px',cursor:'pointer'}}>Reintentar</button></div>}{guardadas.length>0&&<div style={{marginTop:18}}><Label>Guardadas</Label><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:7}}>{guardadas.map(x=><button key={x.id} onClick={()=>reabrir(x.id)} style={{textAlign:'left',background:'#171717',border:'1px solid #333',borderRadius:9,padding:10,color:'#fff',cursor:'pointer'}}><strong>{x.nombre||'Co-creación'}</strong><div className="c3-small">{x.producto_tipo||'Producto especial'} · reabrir</div></button>)}</div></div>}</div>;
 
  if(fase==='conceptos')return <div className="contenido coc3">{css}<div style={{display:'flex',justifyContent:'space-between',alignItems:'start'}}><div><Label>VONI · lectura de idea</Label><h1 style={{fontSize:29,margin:'2px 0'}}>Tres direcciones, una misma intención</h1></div><Btn ghost onClick={reset}>‹ Nueva idea</Btn></div>{alcance.scope==='project'&&<div style={{background:'#10233a',border:'1px solid #2b5f8f',borderRadius:12,padding:'12px 14px',margin:'12px 0'}}><strong style={{color:'#cfe6ff'}}>Esto es un PROYECTO completo{alcance.personas?` (~${alcance.personas} personas)`:''}, no un solo mueble.</strong><p style={{fontSize:13,color:'#b9c7d6',margin:'5px 0 9px',lineHeight:1.45}}>Cocrear desarrolla un sistema a la vez. Para el proyecto entero conviene el <b>Cotizador por plano</b>: sube tu plano y te arma el <b>programa por área</b> (recepción, operativos, salas, dirección…) → productos → acomodo. Cada sistema lo afinas aquí en Cocrear.</p>{onIr&&<Btn onClick={()=>onIr('cotizarIA')}>Ir al Cotizador por plano →</Btn>}</div>}<div className="c3-concepts" style={{marginTop:13}}><Card><Label>Lo que entendimos</Label><p style={{fontSize:14,lineHeight:1.45}}>{resumen?.necesidad}</p><div style={{display:'grid',gap:5,fontSize:12,color:'#c8c8c8'}}><div><b>Tipología:</b> {resumen?.tipologia}</div><div><b>Capacidad:</b> {resumen?.capacidad}</div><div><b>Envolvente:</b> {resumen?.envolvente}</div><div><b>Claves:</b> {resumen?.claves?.join(' · ')||'por definir'}</div></div><hr style={{borderColor:'#303236',margin:'13px 0'}}/><Label>Análisis VONI Council</Label>{aiError?<p style={{color:'#ffb4aa',fontSize:11}}>Council no disponible: {aiError}</p>:<p style={{fontSize:12,lineHeight:1.45,color:'#ddd'}}>{councilText(analisis)||'VONI revisó intención, uso y fabricabilidad.'}</p>}</Card><div>{catalogoCandidatos.length>0&&<Card style={{marginBottom:10,borderColor:'#3f5d49'}}><Label>Primero · ¿ya existe en Von Haucke?</Label><div style={{fontSize:11,color:'#bdd7c5',lineHeight:1.45,marginBottom:8}}>VONI encontró candidatos reales del portafolio. Son referencia, no linaje confirmado: si uno resuelve el brief, conviene configurarlo antes de inventar un especial.</div><div style={{display:'flex',gap:5,flexWrap:'wrap'}}>{catalogoCandidatos.slice(0,8).map(l=><span key={l.ruta} style={{padding:'5px 8px',borderRadius:999,border:'1px solid #476650',fontSize:10,color:'#d9efe0'}}><b>{l.linea}</b>{l.productos?.length?` · ${l.productos.length} variantes`:''}</span>)}</div></Card>}<Label>Elige una dirección</Label><div className="c3-cards">{conceptos.map(c=><Card key={c.id} style={{display:'flex',flexDirection:'column',minHeight:215}}><div style={{color:'#d33b30',fontSize:22,fontWeight:900}}>{c.id}</div><h2 style={{fontSize:17,margin:'6px 0 3px'}}>{c.nombre}</h2><div style={{fontSize:9,color:'#999',fontWeight:800,textTransform:'uppercase'}}>{c.subtitulo}</div><p style={{fontSize:12,lineHeight:1.42,flex:1}}>{c.descripcion}</p><Btn onClick={()=>elegirConcepto(c)}>Desarrollar →</Btn></Card>)}</div></div></div></div>;
 
  const dims=intent?.dimensiones||{},feats=new Set(intent?.caracteristicas||[]),mat=intent?.materiales?.[0]?.material||'laminado',tone=intent?.materiales?.[0]?.tono||null;
  return <div className="contenido coc3">{css}<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:9}}><div><button onClick={()=>setFase('inicio')} style={{background:'none',border:0,color:'#aaa',cursor:'pointer'}}>‹ Nueva idea</button><strong style={{marginLeft:9,fontSize:17}}>{intent?._concepto?`Concepto ${intent._concepto} · `:''}{intent?._concepto_nombre||resumen?.tipologia||'Producto co-creado'}</strong><span style={{fontSize:9,color:'#8992a2',marginLeft:7}}>REV {rev}</span></div><div style={{display:'flex',gap:6}}><Btn ghost onClick={()=>setComparA(comparA?null:clone(intent))}>{comparA?'Salir A/B':'Comparar A/B'}</Btn><Btn ghost onClick={guardar} disabled={guardando}>{guardando?'Guardando…':guardado?'✓ Guardado':'Guardar'}</Btn></div></div>
  <div className="c3-studio">
-  <Card><Label>Diseño</Label><div style={{marginBottom:9}}><small>Tipología</small><select value={intent?.familia||FAMILIA.DESCONOCIDA} onChange={e=>setFamilia(e.target.value)} className="c3-input" style={{marginTop:3}}>{FAMILY_OPTIONS.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></div>{intent?.tipologia_cocrear==='operativo_colaborativo'&&<div style={{marginBottom:9}}><small>Personas / puestos</small><input type="number" min="2" max="24" value={intent.capacidad_personas||6} onChange={e=>setCap(e.target.value)} className="c3-input" style={{marginTop:3}}/></div>}<div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:4,marginBottom:10}}>{[['ancho_mm','Ancho'],['prof_mm','Fondo'],['alto_mm','Alto']].map(([k,l])=><label key={k} style={{fontSize:9,color:'#aaa'}}>{l}<input type="number" value={dims[k]||0} onChange={e=>setDim(k,e.target.value)} className="c3-input" style={{padding:5,marginTop:2}}/></label>)}</div><Label>Material</Label><div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:4}}>{MATERIALES_EDIT.map(m=><button key={m} onClick={()=>setMaterial(m)} style={{padding:'6px 2px',borderRadius:7,border:mat===m?'2px solid #d33b30':'1px solid #414141',background:'#22201f',color:'#fff',fontSize:9}}>{MAT_LABEL[m]||m}</button>)}</div><Label>Tono</Label><div style={{display:'flex',gap:4}}>{[['claro','Claro'],[null,'Natural'],['oscuro','Oscuro']].map(([v,l])=><button key={l} onClick={()=>setTone(v)} style={{flex:1,padding:6,borderRadius:7,border:tone===v?'2px solid #d33b30':'1px solid #414141',background:'#22201f',color:'#fff',fontSize:9}}>{l}</button>)}</div><Label>Funciones</Label><div style={{display:'flex',flexWrap:'wrap',gap:4}}>{FEATURES_COCREAR.map(([k,l])=><button key={k} onClick={()=>toggleFeature(k)} style={{padding:'5px 6px',borderRadius:999,border:feats.has(k)?'1px solid #d33b30':'1px solid #414141',background:feats.has(k)?'#3b211f':'transparent',color:'#fff',fontSize:9}}>{feats.has(k)?'✓ ':'+ '}{l}</button>)}</div></Card>
+  <Card><Label>Diseño</Label><div style={{marginBottom:9}}><small>Tipología</small><select value={intent?.familia||FAMILIA.DESCONOCIDA} onChange={e=>setFamilia(e.target.value)} className="c3-input" style={{marginTop:3}}>{FAMILY_OPTIONS.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></div>{intent?.tipologia_cocrear==='operativo_colaborativo'&&<div style={{marginBottom:9}}><small>Personas / puestos</small><input type="number" min="2" max="24" value={intent.capacidad_personas||6} onChange={e=>setCap(e.target.value)} className="c3-input" style={{marginTop:3}}/></div>}<div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:4,marginBottom:10}}>{[['ancho_mm','Ancho'],['prof_mm','Fondo'],['alto_mm','Alto']].map(([k,l])=><label key={k} style={{fontSize:9,color:'#aaa'}}>{l}<input type="number" value={dims[k]||0} onChange={e=>setDim(k,e.target.value)} className="c3-input" style={{padding:5,marginTop:2}}/></label>)}</div><Label>Material</Label><div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:4}}>{MATERIALES_EDIT.map(m=><button key={m} onClick={()=>setMaterial(m)} style={{padding:'6px 2px',borderRadius:7,border:mat===m?'2px solid #d33b30':'1px solid #414141',background:'#22201f',color:'#fff',fontSize:9}}>{MAT_LABEL[m]||m}</button>)}</div><Label>Tono</Label><div style={{display:'flex',gap:4}}>{[['claro','Claro'],[null,'Natural'],['oscuro','Oscuro']].map(([v,l])=><button key={l} onClick={()=>setTone(v)} style={{flex:1,padding:6,borderRadius:7,border:tone===v?'2px solid #d33b30':'1px solid #414141',background:'#22201f',color:'#fff',fontSize:9}}>{l}</button>)}</div><Label>Funciones</Label><div style={{display:'flex',flexWrap:'wrap',gap:4}}>{FEATURES_COCREAR.map(([k,l])=><button key={k} onClick={()=>toggleFeature(k)} style={{padding:'5px 6px',borderRadius:999,border:feats.has(k)?'1px solid #d33b30':'1px solid #414141',background:feats.has(k)?'#3b211f':'transparent',color:'#fff',fontSize:9}}>{feats.has(k)?'✓ ':'+ '}{l}</button>)}</div><Label>Imagen de referencia</Label><ReferenciaImagen referencia={referencia} onCargar={onReferencia} onQuitar={()=>{setReferencia(null);setGuardado(false)}} error={refError}/></Card>
 
   <div>{comparA?<Card><Label>Comparación A/B · ingeniería</Label><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:7}}><CocrearVisual spec={comparSpecA} intent={comparA}/><CocrearVisual spec={spec} intent={intent}/></div>
    {comparativaAB&&<div style={{marginTop:9,padding:9,border:'1px solid #363a3f',borderRadius:9}}>
@@ -379,7 +562,7 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
        <div>Piezas Δ <b>{comparativaAB.delta.piezas_totales>0?'+':''}{comparativaAB.delta.piezas_totales}</b></div>
        <div>Materiales Δ <b>{comparativaAB.delta.familias_material>0?'+':''}{comparativaAB.delta.familias_material}</b></div>
        <div>Geometrías Δ <b>{comparativaAB.delta.geometrias_distintas>0?'+':''}{comparativaAB.delta.geometrias_distintas}</b></div>
-       <div>Costo Δ <b>{comparativaAB.costo_comparable?money(comparativaAB.delta.costo):'No comparable'}</b></div>
+       <div>Costo Δ <b>{!veCostos?'—':comparativaAB.costo_comparable?money(comparativaAB.delta.costo):'No comparable'}</b></div>
      </div>
      <div style={{fontSize:9,color:'#8f98a8',marginTop:6}}>B − A · comparación determinista. Menos piezas, materiales o costo NO significa automáticamente mejor producto; VONI conserva función, desempeño e intención como restricciones.</div>
    </div>}
@@ -406,8 +589,43 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
       </div></>
     : <div className="c3-small">Baja el concepto a BOM para que VONI revise repetibilidad, complejidad y estandarización.</div>}
   </Card>
-  <Card><Label>Verdad industrial</Label><div style={{display:'grid',gap:5,fontSize:12}}><div>Costo calculado: <b>{costoConocido?money(costoOficial):'Pendiente de BOM'}</b></div><div>Estado motor: <b>{pipeline?.costo?.cost_status||'UNKNOWN'}</b></div><div>Componentes BOM: <b>{spec?.componentes?.length||0}</b></div><div>Ingeniería: <b style={{color:engineeringValidated?'#79c990':'#e0a36f'}}>{engineeringValidated?'VALIDADA':'REQUIERE VALIDACIÓN'}</b></div></div>
-   {explicacionCosteo&&<details open style={{marginTop:9,border:'1px solid #3d352d',borderRadius:9,padding:9,background:'#171513'}}>
+  <Card>
+   <Label>Bajar a BOM · costeo real</Label>
+   {bom.length
+    ? <div style={{fontSize:11,lineHeight:1.45}} data-testid="cocrear-bom">
+       <div><b>{intent?._puente?.tipo==='linea_escalada'?`Escalado de ${intent._puente.padre}`:intent?._puente?.tipo==='costear'?'Despiece de Costear':'Despiece'}</b> · {bom.length} pieza(s){piezasPendientes.length?<span style={{color:'#ffb4aa'}}> · {piezasPendientes.length} pendiente(s)</span>:null}</div>
+       {intent?._puente?.metodo&&<div className="c3-small" style={{marginTop:3}}>{intent._puente.metodo}</div>}
+       {(intent?._puente?.trazas||[]).slice(0,5).map((t,i)=><div key={i} className="c3-small" style={{marginTop:3}}>↔ {t.pieza}: {t.de} → {t.a} <span style={{color:'#7f8993'}}>({t.regla})</span></div>)}
+       {(intent?._puente?.avisos||[]).map((a,i)=><div key={'a'+i} style={{marginTop:4,fontSize:10,color:'#e0b478'}}>⚠ {a}</div>)}
+       {piezasPendientes.map((c,i)=><div key={'p'+i} style={{marginTop:4,fontSize:10,color:'#ff9b91'}}>✕ {c.nombre}: sin material, el costo queda incompleto (no se inventa).</div>)}
+       {referenciaPadre&&<div style={{marginTop:6,fontSize:10,color:debajoDelPadre?'#ffb4aa':'#bdd7c5'}}>{debajoDelPadre?'⚠ ':''}Precio de lista de {referenciaPadre.nombre}{referenciaPadre.real?' (catálogo)':' (modelo de la línea)'}: <b>{money(referenciaPadre.precio)}</b>.{debajoDelPadre?' El precio sugerido del especial queda por DEBAJO: revisa la dificultad o que Dirección decida el precio (no se ajusta solo).':' Referencia: no se toca.'}</div>}
+       {!despiece3DCompleto&&<div className="c3-small" style={{marginTop:4}}>Despiece 3D parcial: hay piezas sin largo × ancho × espesor (PTR por metro, herrajes). Es informativo; la validación la hace el servidor.</div>}
+       <div style={{display:'flex',gap:6,marginTop:8,flexWrap:'wrap'}}><Btn ghost onClick={quitarBom}>Quitar BOM</Btn>{veCostos&&onPasarACostear&&<Btn ghost onClick={pasarACostear}>Afinar en Costear</Btn>}</div>
+      </div>
+    : <div style={{display:'grid',gap:8}}>
+       <div className="c3-small">Para costear de verdad, el concepto necesita despiece. Dos caminos:</div>
+       <div style={{border:'1px solid #34383c',borderRadius:9,padding:8}}>
+        <b style={{fontSize:11}}>A · Cambiar medidas de un mueble de línea</b>
+        <select data-testid="cocrear-linea" value={lineaSel.ruta} onChange={e=>{const l=lineas.find(x=>x.ruta===e.target.value);setLineaSel({ruta:e.target.value,productoId:l?.productos[0]?.id||''})}} className="c3-input" style={{marginTop:5}}><option value="">Línea…</option>{lineas.map(l=><option key={l.ruta} value={l.ruta}>{l.titulo}</option>)}</select>
+        <select data-testid="cocrear-producto-linea" value={lineaSel.productoId} onChange={e=>setLineaSel(x=>({...x,productoId:e.target.value}))} disabled={!lineaSel.ruta} className="c3-input" style={{marginTop:4}}><option value="">Producto…</option>{productosLinea.map(p=><option key={p.id} value={p.id}>{p.nombre}</option>)}</select>
+        <Btn onClick={bajarDesdeLinea} disabled={!lineaSel.ruta||!lineaSel.productoId} style={{width:'100%',marginTop:6}}>Partir de este mueble →</Btn>
+        <div className="c3-small" style={{marginTop:4}}>Usa su despiece real y lo escala a {dims.ancho_mm||'?'} × {dims.prof_mm||dims.fondo_mm||'?'} mm. El tablero se cobra por acomodo en hoja, no por regla de tres. Su precio de catálogo no se toca.</div>
+       </div>
+       <div style={{border:'1px solid #34383c',borderRadius:9,padding:8}}>
+        <b style={{fontSize:11}}>B · Mueble nuevo</b>
+        <div className="c3-small" style={{marginTop:3}}>Pasa nombre, medidas, materiales, funciones y descripción{referencia?' (con la imagen de referencia)':''} al asistente de Costear (análisis IA → BOM) y regresa con el despiece.</div>
+        <Btn onClick={pasarACostear} disabled={!veCostos||!onPasarACostear} style={{width:'100%',marginTop:6}}>Pasar a Costear →</Btn>
+        {!veCostos&&<div className="c3-small" style={{marginTop:4}}>Costear desde cero es de Diseño y Dirección: guarda la co-creación y pídeles que la bajen a BOM.</div>}
+       </div>
+      </div>}
+   <Label>Dificultad de fabricación (Alba V1)</Label>
+   <div role="radiogroup" aria-label="Dificultad de fabricación" style={{display:'flex',gap:4,flexWrap:'wrap'}}>{NIVELES_DIFICULTAD.map(([k,l])=>{const activo=(intent?._dificultad||'normal')===k;return <button key={k} type="button" role="radio" aria-checked={activo} data-testid={`cocrear-dificultad-${k}`} onClick={()=>setDificultad(k)} style={{padding:'5px 7px',borderRadius:999,border:activo?'1px solid #d33b30':'1px solid #414141',background:activo?'#3b211f':'transparent',color:'#fff',fontSize:9}}>{l} ×{DIFICULTAD[k]}</button>})}</div>
+   <div className="c3-small" style={{marginTop:4}}>{(NIVELES_DIFICULTAD.find(([k])=>k===(intent?._dificultad||'normal'))||[])[2]}</div>
+  </Card>
+  <Card><Label>Verdad industrial</Label><div style={{display:'grid',gap:5,fontSize:12}}>{veCostos&&<div>Costo calculado (local, vista previa): <b>{costoConocido?money(costoOficial):'Pendiente de BOM'}</b></div>}{veCostos&&<div>Estado motor: <b>{pipeline?.costo?.cost_status||'UNKNOWN'}</b></div>}<div>Componentes BOM: <b>{spec?.componentes?.length||0}</b></div><div>Servidor: <b data-testid="cocrear-estado-servidor">{servidorVigente?servidor.estado:(servidor?'vencido: la revisión cambió':'sin costear')}</b></div>{veCostos&&servidorVigente&&<div>Costo del servidor: <b>{costoServidor!=null?money(costoServidor):'incompleto'}</b></div>}<div>Precio sugerido: <b data-testid="cocrear-precio">{precioServidor!=null?money(precioServidor):(servidorVigente?'Por confirmar':'—')}</b></div>{veCostos&&!servidorVigente&&precioLocal?.precio!=null&&<div className="c3-small">Vista previa local: {money(precioLocal.precio)} (margen {precioLocal.margen} %, piso {precioLocal.piso} %). No se guarda ni se emite: el precio oficial lo da el servidor.</div>}{veCostos&&!servidorVigente&&costoConocido===false&&bom.length>0&&<div className="c3-small">Precio: Por confirmar (costo incompleto).</div>}<div>Ingeniería: <b style={{color:engineeringValidated?'#79c990':'#e0a36f'}}>{engineeringValidated?'VALIDADA':'REQUIERE VALIDACIÓN'}</b></div></div>
+   <Btn ghost onClick={()=>costearEnServidor()} disabled={!bom.length||costeandoSrv} style={{width:'100%',marginTop:8}}>{costeandoSrv?'Costeando en el servidor…':'Costear en el servidor'}</Btn>
+   {servidorVigente&&!servidor.ingenieria_validada&&servidor.validacion?.motivo&&<div style={{marginTop:6,fontSize:10,color:'#ff9b91'}}>✕ {servidor.validacion.motivo}</div>}
+   {veCostos&&explicacionCosteo&&<details open style={{marginTop:9,border:'1px solid #3d352d',borderRadius:9,padding:9,background:'#171513'}}>
     <summary style={{cursor:'pointer',fontWeight:800,fontSize:11}}>Cómo llegó VONI a este costo</summary>
     <div className="c3-small" style={{marginTop:6,lineHeight:1.45}}>{explicacionCosteo.ecuacion}</div>
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5,marginTop:7,fontSize:10}}>
@@ -427,11 +645,11 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
     <div className="c3-small" style={{marginTop:6}}>{explicacionCosteo.nota}</div>
    </details>}
    {engineeringValidated
-    ? <div style={{marginTop:8,padding:8,border:'1px solid #28553b',borderRadius:8,fontSize:10,color:'#bfe8ca'}}>✓ Validada por {engineeringValidation?.validador||engineeringValidation?.rol||'ingeniería'} · {engineeringValidation?.fecha?new Date(engineeringValidation.fecha).toLocaleString('es-MX'):'fecha registrada'} · ligada a esta revisión visual.</div>
+    ? <div style={{marginTop:8,padding:8,border:'1px solid #28553b',borderRadius:8,fontSize:10,color:'#bfe8ca'}}>✓ Validada en el servidor por {engineeringValidation?.validador||'ingeniería'} · {engineeringValidation?.fecha?new Date(engineeringValidation.fecha).toLocaleString('es-MX'):'fecha registrada'} · ligada a esta revisión visual.</div>
     : puedeAprobarRol
-      ? <div style={{marginTop:8}}><Btn ghost onClick={validarIngenieria} disabled={!ingenieriaListaParaRevision} style={{width:'100%'}}>Validar ingeniería de esta revisión</Btn>{!ingenieriaListaParaRevision&&<div className="c3-small" style={{marginTop:5}}>Para validar: BOM con materiales + geometría completa + Despiece 3D técnico completo.</div>}</div>
+      ? <div style={{marginTop:8}}><Btn ghost onClick={validarIngenieria} disabled={!ingenieriaListaParaRevision||costeandoSrv} style={{width:'100%'}}>Validar ingeniería de esta revisión</Btn><div className="c3-small" style={{marginTop:5}}>{ingenieriaListaParaRevision?'La valida el servidor: guarda esta revisión, la costea y revisa rol, costo emitible, estructura y que sea la misma revisión visual.':'Para validar: BOM con materiales y sin piezas pendientes.'}</div></div>
       : <div className="c3-small" style={{marginTop:8}}>La liberación de ingeniería requiere Diseño o Dirección.</div>}
-   {!costoConocido&&estimado.disponible&&<div style={{background:'#1c160f',border:'1px solid #4a3a1f',borderRadius:10,padding:10,marginTop:10}}><Label>Estimado de diseño · evidencia real</Label><div style={{fontSize:17,fontWeight:900,color:'#ffe0b0'}}>≈ {money(estimado.total)} <span style={{fontSize:10,fontWeight:600,color:'#c7a98a'}}>parcial</span></div><div style={{fontSize:10,color:'#9a9a9a',margin:'2px 0 6px'}}>Cobertura {estimado.coberturaPct}% del alcance (por partidas) · confianza {estimado.confianza}</div>{estimado.items.map((it,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',gap:8,padding:'4px 0',borderTop:'1px solid #33291a',fontSize:11}}><span>{it.concepto} · {it.detalle}</span><b>{money(it.subtotal)}</b></div>)}<div style={{fontSize:10,color:'#d6a36d',marginTop:6}}><b>Pendiente por estimar</b> (no es $0): {estimado.pendientes.join(' · ')}</div><p style={{fontSize:9,color:'#8a8a8a',lineHeight:1.35,marginTop:5}}>{estimado.nota}</p></div>}
+   {veCostos&&!costoConocido&&estimado.disponible&&<div style={{background:'#1c160f',border:'1px solid #4a3a1f',borderRadius:10,padding:10,marginTop:10}}><Label>Estimado de diseño · evidencia real</Label><div style={{fontSize:17,fontWeight:900,color:'#ffe0b0'}}>≈ {money(estimado.total)} <span style={{fontSize:10,fontWeight:600,color:'#c7a98a'}}>parcial</span></div><div style={{fontSize:10,color:'#9a9a9a',margin:'2px 0 6px'}}>Cobertura {estimado.coberturaPct}% del alcance (por partidas) · confianza {estimado.confianza}</div>{estimado.items.map((it,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',gap:8,padding:'4px 0',borderTop:'1px solid #33291a',fontSize:11}}><span>{it.concepto} · {it.detalle}</span><b>{money(it.subtotal)}</b></div>)}<div style={{fontSize:10,color:'#d6a36d',marginTop:6}}><b>Pendiente por estimar</b> (no es $0): {estimado.pendientes.join(' · ')}</div><p style={{fontSize:9,color:'#8a8a8a',lineHeight:1.35,marginTop:5}}>{estimado.nota}</p></div>}
    {refsCargando&&<p className="c3-small">Buscando referencias reales en la lista vigente…</p>}
    {refUI&&<div className="c3-ref"><Label>Referencia comercial real</Label>{refUI.rangoPrecio&&<div style={{fontSize:17,fontWeight:900,color:'#d7f0df'}}>{refUI.rangoPrecio}</div>}{refUI.rangoCosto&&<div style={{fontSize:11,marginTop:4}}>Costo comparable autorizado: <b>{refUI.rangoCosto}</b></div>}<p style={{fontSize:9,color:'#9fb0a5',lineHeight:1.35}}>No es el costo del especial. Son precios vigentes de productos comparables; extras especiales se certifican cuando existe BOM/precio de insumo suficiente.</p>{refUI.items.slice(0,4).map((x,i)=><div className="c3-refrow" key={`${x.producto_id}-${i}`}><span>{x.capacidad?`${x.capacidad}u · `:''}{x.nombre.replace('Módulo operativo App LT ','')}</span><b>{money(x.precio,x.moneda)}</b></div>)}</div>}
    {!costoConocido&&<p style={{color:'#d6a36d',fontSize:10,lineHeight:1.4}}>La referencia comercial es útil para presupuesto preliminar, pero no se presenta como costo certificado hasta bajar el concepto a BOM.</p>}

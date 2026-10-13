@@ -6,6 +6,7 @@
 // ============================================================================
 import { leerRespuestaRender } from './datos/renderRespuesta.js';
 import { validarIntentCosteo, intentDesdePieza } from './datos/validarIntentCosteo.js';
+import { validarSolicitudCocrear } from './datos/cocrearServidor.js';
 import { renderParaPartida } from './datos/renderPartida.js';
 import { imagenAStorage, rutaImagen } from './datos/imagenStorage.js';
 import { createClient } from '@supabase/supabase-js';
@@ -494,6 +495,40 @@ export async function costearServidor(pieza, cantidad = 1) {
     return { ok: false, error: msg, status };
   }
   return data;
+}
+
+// COCREAR 10 (D-02/D-03) · costeo y validación de ingeniería de una CO-CREACIÓN GUARDADA en el
+// servidor. Sólo viaja la identidad ({accion:'cocrear', expediente_id, validar_ingenieria, visual_hash}):
+// el servidor lee el BOM del expediente, corre el MISMO motor y guarda el resultado (la fila que lee
+// registrar_producto_desde_expediente). Respuesta filtrada por rol (vendedor: precio, nunca costo).
+// Con la Edge vieja (sin modo cocrear) el servidor responde 400: se devuelve `noSoportado` y la UI
+// lo dice; nunca se cae a un costo calculado en el navegador.
+export async function costearCocreacionServidor(expedienteId, { validarIngenieria = false, visualHash = null } = {}) {
+  const sol = validarSolicitudCocrear({
+    accion: 'cocrear', expediente_id: Number(expedienteId),
+    ...(validarIngenieria ? { validar_ingenieria: true } : {}),
+    ...(visualHash ? { visual_hash: visualHash } : {}),
+  });
+  if (!sol.ok) return { ok: false, code: sol.code, error: sol.issues?.[0]?.msg || sol.code, status: 400 };
+  const { data, error } = await nube.functions.invoke(FN_COSTEAR, {
+    body: { accion: 'cocrear', expediente_id: sol.solicitud.expedienteId, ...(sol.solicitud.validarIngenieria ? { validar_ingenieria: true, visual_hash: sol.solicitud.visualHash } : {}) },
+  });
+  if (error) {
+    let msg = mensajeErrorEdge(error, 'No se pudo costear la co-creación en el servidor.');
+    const status = error.context?.status;
+    let code = null; let issues = null;
+    try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; code = j?.code || null; issues = j?.issues || null; } catch (e) {}
+    // La Edge sin modo cocrear valida el body como costeo normal → 400 INVALID_INPUT (cantidad/pieza).
+    const noSoportado = status === 400 && code === 'INVALID_INPUT' && Array.isArray(issues) && issues.some((x) => x?.field === 'cantidad' || x?.field === 'pieza');
+    return { ok: false, error: noSoportado ? 'El servidor de costeo aún no tiene el modo cocrear (falta desplegar costear-servidor-rc y aplicar PROPUESTA_cocrear_costo_servidor.sql). No se usa un costo del navegador.' : msg, status, code, noSoportado };
+  }
+  return data || { ok: false, error: 'El servidor de costeo no respondió.' };
+}
+
+// N-04 / D-06 · imagen de Cocrear (referencia del cliente o render) → Storage → URL pública.
+// Mismo flujo VH-045 que el resto de la app (imagenAStorage + subirRender): nunca base64 en el estado.
+export function imagenCocrearAStorage(dataUrl, { id = 'tmp', tipo = 'imagen' } = {}) {
+  return imagenAStorage(dataUrl, rutaImagen('cocrear', id, tipo, dataUrl), { subir: subirRender });
 }
 
 // Registra la comparación cliente vs servidor SIN datos sensibles (ni tokens ni passwords).

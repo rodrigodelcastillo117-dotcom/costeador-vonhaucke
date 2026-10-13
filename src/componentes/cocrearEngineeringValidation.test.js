@@ -15,11 +15,21 @@ describe('Cocrear engineering validation path',()=>{
     expect(s).toContain('Sólo Diseño o Dirección pueden validar ingeniería.');
   });
 
-  it('aprobación exige BOM/geometría/3D completos y queda ligada a visual hash',()=>{
+  // COCREAR 10 (D-03): la aprobación ya no es un sello en el JSON del cliente. La decide el SERVIDOR
+  // (rol, costo emitible, validador estructural y misma revisión visual) sobre la revisión guardada.
+  // El despiece 3D completo sigue calculándose y se muestra como diagnóstico: exigirlo hacía la
+  // validación inalcanzable para un BOM real (PTR por metro, herrajes por pieza).
+  it('aprobación: BOM sin pendientes, la decide el servidor y queda ligada a visual hash',()=>{
     expect(s).toContain("desarrollo?.estado==='ANALIZADO'");
     expect(s).toContain("modelo3d?.status==='EXPLODED_READY'");
     expect(s).toContain('const visual_hash=visualRevisionHash(spec)');
     expect(s).toContain('spec_hash_prevalidacion:spec.hash');
+    expect(s).toContain('const ingenieriaListaParaRevision=!!(spec?.componentes?.length&&!piezasPendientes.length)');
+    expect(s).toContain('costearCocreacionServidor(g.id,validar?{validarIngenieria:true,visualHash:visualRevisionHash(spec)}:{})');
+    // VALIDADA sólo si la validó el servidor para ESTA revisión (spec hash del servidor = el actual).
+    expect(s).toContain('const servidorVigente=!!(servidor?.ok&&specBase&&servidor.spec_hash===specBase.hash)');
+    expect(s).toContain("fuente:'costear-servidor'");
+    expect(s).not.toContain('_engineering_validated:true');
   });
 
   it('cualquier commit canónico invalida aprobación previa',()=>{
