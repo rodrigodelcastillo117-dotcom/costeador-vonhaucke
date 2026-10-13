@@ -31,7 +31,7 @@ export const MODELO_DEFAULT = Object.freeze({
 // Opus se conserva para texto/revisión/pasadas de costeo. Default allowlisted; override por env;
 // fail-closed igual que resolverModelo.
 export const MODELO_VISUAL_DEFAULT = Object.freeze({
-  "analizar-mueble": "claude-sonnet-5-5",
+  "analizar-mueble": "claude-opus-5-5",   // EXPERIMENTO RC (2026-10-13): A/B de lectura de planos; producción sigue en sonnet-5-5
 });
 export function resolverModeloVisual(fn, env = {}) {
   const k = "ANTHROPIC_MODEL_VISUAL_" + String(fn || "").toUpperCase().replace(/[^A-Z0-9]+/g, "_");
