@@ -43,13 +43,20 @@ export const TARIFAS_PLANTA = Object.freeze({
   indirectoHora: 82.374303,   // 1 / Σ(1/ind_área) del pedido 38247: el gasto de planta contado UNA vez
 });
 
-/** Costo de fabricación POR HORAS con la regla de Dirección. horas = { pm, carpinteria, acabados, pintura }. */
+/** Costo de fabricación POR HORAS con la regla de Dirección. horas = { pm, carpinteria, acabados, pintura }.
+ *  Auditoría externa 2026-10-13: un área SIN dato (ausente, null, '' o no numérica) contaba como 0 h en silencio.
+ *  Ahora se suma igual (subtotal), pero se reporta en `faltan` y `completo:false`: quien lo use como costo debe
+ *  tratarlo como incompleto. Un 0 EXPLÍCITO sí es dato (pieza de metal sin carpintería). */
 export function costoPorHoras(material, horas = {}, t = TARIFAS_PLANTA) {
   const mat = Number(material) || 0;
-  let mo = 0, h = 0;
-  for (const [area, tarifa] of Object.entries(t.mo)) { const x = Number(horas?.[area]) || 0; mo += x * tarifa; h += x; }
+  let mo = 0, h = 0; const faltan = [];
+  for (const [area, tarifa] of Object.entries(t.mo)) {
+    const v = horas?.[area]; const x = v === null || v === undefined || v === '' ? NaN : Number(v);
+    if (!Number.isFinite(x) || x < 0) { faltan.push(area); continue; }
+    mo += x * tarifa; h += x;
+  }
   const gi = h * t.indirectoHora;
-  return { material: mat, mo, gi, fab: mat + mo + gi, horas: h };
+  return { material: mat, mo, gi, fab: mat + mo + gi, horas: h, faltan, completo: faltan.length === 0 };
 }
 
 /** La dificultad con la que el % de Alba da EXACTAMENTE el costo por horas (sin acotar: un valor fuera de

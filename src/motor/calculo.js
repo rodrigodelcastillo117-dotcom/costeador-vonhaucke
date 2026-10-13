@@ -20,7 +20,7 @@ import { hojasPorPiezaProduccion, esPinturaPolvo, kgPinturaPorArea, REGLAS_MERMA
 // 2026-10-13 (RC, sin desplegar; requiere autorización de Dirección): la rejilla de corte usa las medidas del
 // FORMATO DEL INSUMO cuando las trae (5×8 = 2440×1525, lámina 3×10 = 3048×914) en vez de las globales 2440×1220.
 // Para todo insumo 4×8 el resultado es idéntico. Ver docs/auditoria/MOTOR_FORMATO_REJILLA.md.
-export const MOTOR_VERSION = '2026-10-13';
+export const MOTOR_VERSION = '2026-10-13b';
 
 // Parámetros de corte con las medidas del formato del insumo (si las declara). Sin medidas → globales (4×8).
 export function parametrosDeFormato(par, insumo) {

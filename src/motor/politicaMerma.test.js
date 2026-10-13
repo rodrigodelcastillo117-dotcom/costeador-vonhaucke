@@ -14,12 +14,15 @@ const par = { ...PARAMETROS_DEFAULT, margenObjetivo: 50 };
 const mat = (r) => r.detalleInsumos.find((d) => d.insumoId === 'melamina-19' || d.id === 'melamina-19' || d.nombre === 'Melamina 19') || r.detalleInsumos[0];
 
 describe('regla de tablero de Producción (literal de Rogelio)', () => {
-  it('> 1.50 × ≤ 0.60 → ½ hoja; > 1.50 × > 0.60 → 1 hoja; ≤ 1.50 → sin regla (rejilla)', () => {
+  it('≥ 1.50 × ≤ 0.60 → ½ hoja; ≥ 1.50 × > 0.60 → 1 hoja; < 1.50 → sin regla (rejilla)', () => {
     expect(hojasPorPiezaProduccion(1600, 600)).toBe(0.5);
     expect(hojasPorPiezaProduccion(600, 1600)).toBe(0.5);   // orientación indiferente
     expect(hojasPorPiezaProduccion(2400, 600)).toBe(0.5);
     expect(hojasPorPiezaProduccion(1600, 700)).toBe(1);
-    expect(hojasPorPiezaProduccion(1500, 600)).toBeNull();  // exactamente 1.50: sin regla
+    // VH-183: 1.50 exacto SÍ entra (Intelisis ATCUBS45ABS 1500×600 = 0.5 hoja; ATCUBD45ABS 1500×1200 = 1 hoja).
+    expect(hojasPorPiezaProduccion(1500, 600)).toBe(0.5);
+    expect(hojasPorPiezaProduccion(1500, 1200)).toBe(1);
+    expect(hojasPorPiezaProduccion(1499, 600)).toBeNull();
     expect(hojasPorPiezaProduccion(1400, 700)).toBeNull();
     expect(hojasPorPiezaProduccion(400, 200)).toBeNull();
     expect(hojasPorPiezaProduccion(0, 600)).toBeNull();
@@ -111,6 +114,21 @@ describe('contrato DTO (cliente → costear-servidor)', () => {
 
 describe('versión del motor', () => {
   it('la fórmula cambió → MOTOR_VERSION avanzó (las cotizaciones viejas conservan su huella)', () => {
-    expect(MOTOR_VERSION).toBe('2026-10-13'); // 2026-10-13: la rejilla usa el formato del insumo (MOTOR_FORMATO_REJILLA.md)
+    expect(MOTOR_VERSION).toBe('2026-10-13b'); // 13b: regla de tablero de Producción inclusiva en 1.50 m (VH-183); 13: rejilla con el formato del insumo
   });
+});
+
+// VH-183 · cubiertas APP LT contra el REPORTE DEL COTIZADOR Intelisis (lab/applt/componentes, 12/08/2026): fracción de
+// hoja AME2848 4×8 que cobra el ERP para cada medida. El motor debe cobrar la MISMA fracción (rejilla o regla).
+describe('VH-183 · fracción de hoja de las cubiertas reales (Intelisis) = la del motor', () => {
+  const casos = [
+    ['ATCUBS44ABS', 1200, 600, 0.25], ['ATCUBS45ABS', 1500, 600, 0.5], ['ATCUBS46ABS', 1800, 600, 0.5],
+    ['ATCUBD44ABS', 1200, 1200, 0.5], ['ATCUBD45ABS', 1500, 1200, 1], ['ATCUBD46ABS', 1800, 1200, 1],
+  ];
+  for (const [clave, l, a, hojas] of casos) {
+    it(`${clave} ${l}×${a} → ${hojas} hoja`, () => {
+      const r = calcular({ componentes: [{ nombre: 'Cubierta', insumoId: 'melamina-19', largoMM: l, anchoMM: a }] }, 1, INS, par);
+      expect(mat(r).unidades).toBeCloseTo(hojas, 9);
+    });
+  }
 });

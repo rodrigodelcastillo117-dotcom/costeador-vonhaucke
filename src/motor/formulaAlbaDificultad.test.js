@@ -118,3 +118,15 @@ describe('VH-177 · el laminado plástico (HPL) es cubierta, no lámina de acero
     expect(tipoAlba({ seccion: 'cubiertas', nombre: 'Melamina 16 mm' })).toBe('cubierta');
   });
 });
+
+describe('costoPorHoras · horas faltantes no se vuelven cero en silencio (auditoría externa 2026-10-13)', () => {
+  it('área ausente o null → completo:false y la lista de áreas faltantes; el 0 explícito sí es dato', () => {
+    const r = costoPorHoras(100, { pm: 1, pintura: 0, acabados: 0 });
+    expect(r.completo).toBe(false);
+    expect(r.faltan).toEqual(['carpinteria']);
+    const ok = costoPorHoras(100, { pm: 1, carpinteria: 0, pintura: 0, acabados: 0 });
+    expect(ok.completo).toBe(true);
+    expect(ok.faltan).toEqual([]);
+    expect(costoPorHoras(100, { pm: 'x', carpinteria: null, pintura: -1, acabados: '' }).faltan).toEqual(['pm', 'carpinteria', 'acabados', 'pintura']);
+  });
+});

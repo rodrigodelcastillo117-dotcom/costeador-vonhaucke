@@ -366,9 +366,13 @@ describe('VH-174 · las reglas de casa se re-aplican después del amarre ERP (id
       { nombre: 'Canto de paneles de base (laterales y faldón)', insumoId: '', material_solicitado: 'canto de paneles', cantidad: 12 },
     ];
     const r1 = conAcompanantes(base, insumos);
-    expect(r1.find((c) => /Canto de paneles/.test(c.nombre)).excluida).toBeFalsy();   // aún no es tapacanto
+    // VH-180: "Canto de paneles…" ya es familia tapacanto por su nombre: se integra desde la PRIMERA pasada (antes
+    // esperaba al amarre ERP). El resultado final es el mismo y el amarre posterior no cambia nada.
+    expect(r1.find((c) => /Canto de paneles/.test(c.nombre))).toBeUndefined();
+    expect(r1.filter((c) => c.insumoId === 'tapacanto').map((c) => c.cantidad)).toEqual([15.24]);
     const amarrado = r1.map((c) => (/Canto de paneles/.test(c.nombre) ? { ...c, insumoId: 'tapacanto' } : c));
     const r2 = conAcompanantes(amarrado, insumos);
+    expect(r2).toEqual(r1);
     expect(r2.find((c) => /Canto de paneles/.test(c.nombre))).toBeUndefined();
     expect(r2.filter((c) => c.insumoId === 'tapacanto').map((c) => c.cantidad)).toEqual([15.24]);
     expect(r2.find((c) => c.insumoId === 'tapacanto').iaNota).toMatch(/Canto de paneles de base.*12 m/);

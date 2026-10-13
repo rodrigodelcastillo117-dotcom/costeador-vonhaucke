@@ -16,7 +16,8 @@
     {
       "patron": "formato|hoja|5 ?x ?8|4 ?x ?8",
       "valor": "5",
-      "evidencia": "plano: HOJA 5 × 8 (1525 × 2440)"
+      "evidencia": "plano: HOJA 5 × 8 (1525 × 2440)",
+      "opcion": "5 ?x ?8"
     }
   ],
   "esperado": [

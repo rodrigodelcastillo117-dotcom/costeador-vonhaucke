@@ -30,6 +30,7 @@ import { buscarInsumosMotor } from '../nube.js';
 import { resumenMotor } from '../datos/resumenMotor.js';
 import { respuestasPorReglaDeCasa, esSupuestoPreliminar } from '../datos/autoRespuestas.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, alertaMaterial, difiereDeLoPedido } from '../datos/materialMatch.js';
+import { aplicarAHermanas } from '../datos/materialHermanas.js';
 import { conservarMaterialesConfirmados } from '../datos/conservarConfirmados.js';
 import { proponerGemelosErp, fusionarGemelosEnBom, piezasConTamanoDeHoja } from '../datos/gemeloErp.js';
 import BuscadorInsumo from './BuscadorInsumo.jsx';
@@ -579,17 +580,19 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     const comps = b.componentes.slice(); comps[i] = { ...comps[i], ...parcial }; editarComponentes(comps);
   }
   function quitarPieza(i) { editarComponentes(b.componentes.filter((_, j) => j !== i)); }
-  function onMaterial(i, insumoId, { confirmado = false } = {}, insumoNuevo = null) {
+  function onMaterial(i, insumoId, { confirmado = false, hermanas = false } = {}, insumoNuevo = null) {
     // VH-088: insumo del buscador (ERP) aún no está en `insumos`; se usa el objeto recibido.
     const ins = insumos[insumoId] || (insumoNuevo && insumoNuevo.id === insumoId ? insumoNuevo : undefined); const comps = b.componentes.slice(); const prev = comps[i];
-    const patch = { insumoId, nombre: prev.nombre || (ins ? ins.nombre : '') };
     // VH-167: la medida es del plano, no del material: un tablero por hoja sin formato la conserva (el motor lo
     // deja pendiente); sólo un material por pieza/metro la saca del consumo y queda guardada en `medidaPrevia`.
-    Object.assign(patch, patchMedidas(prev, ins));
     // Elección/confirmación HUMANA: misma intención en ambas UIs (P0.8). El servidor verifica
     // material_confirmado + insumoId y lo convierte a USER_CONFIRMED efectivo (no confía en el string).
-    if (ins) Object.assign(patch, patchConfirmacionUI(insumoId));
-    comps[i] = { ...prev, ...patch }; editarComponentes(comps);
+    const parche = (c) => ({ ...c, insumoId, nombre: c.nombre || (ins ? ins.nombre : ''), ...patchMedidas(c, ins), ...(ins ? patchConfirmacionUI(insumoId) : {}) });
+    comps[i] = parche(prev);
+    // VH-179: el artículo exacto elegido en el buscador vale para las demás piezas del MISMO material sin decisión humana.
+    const { comps: finales, aplicadas } = hermanas ? aplicarAHermanas(comps, i, prev.insumoId, insumoId, parche) : { comps, aplicadas: [] };
+    editarComponentes(finales);
+    if (aplicadas.length) setConfMsg(`También apliqué ${ins?.nombre || insumoId} a ${aplicadas.length} pieza(s) del mismo material: ${aplicadas.join(', ')}.`);
   }
   function costoPieza(c, ins) {
     const neto = netoComponente(c, b.piezas); const p = ins.precio ?? ins.precioBase ?? 0;
@@ -1278,7 +1281,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                   </select>
                   <button className="pieza-x" onClick={() => quitarPieza(i)} aria-label="quitar">×</button>
                 </div>
-                {onAgregarInsumo && <BuscadorInsumo onElegir={(ins) => { onAgregarInsumo(ins); onMaterial(i, ins.id, { confirmado: true }, ins); }} />}
+                {onAgregarInsumo && <BuscadorInsumo onElegir={(ins) => { onAgregarInsumo(ins); onMaterial(i, ins.id, { confirmado: true, hermanas: true }, ins); }} />}
                 {c._match?.sinPrecioCertificado && (() => { const a = alertaMaterial(c._match); return a && (
                   <div className="pieza-match-alerta" data-testid="alerta-material" data-tono="ambar" style={{ background: '#fff4e5', border: '1px solid #f0c38e', borderRadius: 8, padding: '6px 10px', margin: '6px 0', fontSize: 13, color: '#7a4a00' }}>
                     ⚠️ <b>{a.titulo}</b> — {a.detalle}

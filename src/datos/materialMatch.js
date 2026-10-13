@@ -185,12 +185,18 @@ const FAMILIAS = [
   // REGLAS DE CASA (2026-10-12): herrajes y consumibles tienen familia propia para que la IA
   // los AMARRE al catálogo (autorizado por Dirección) en vez de dejarlos "costo pendiente".
   // Van ANTES que cristal/metal para que "jaladera de acero" sea herraje, no lámina.
-  ['tapacanto',         /tapa\s*canto|cubre\s*canto|chapacinta|canto\s*(?:pvc|abs)|cubrecanto/i],
+  // VH-180 (lab credenza 2026-10-13): la IA nombra el renglón "Canto nogal" / "Canto visible"; sin familia, la regla de
+  // casa no lo veía y agregaba OTRO tapacanto (12 m + 32.64 m, y el de la IA sin material dejaba el costo incompleto).
+  // Un texto que EMPIEZA por "canto(s)" es la cinta de canto; "chapa de canto"/"MDF con canto" no empiezan así.
+  ['tapacanto',         /tapa\s*canto|cubre\s*canto|chapacinta|canto\s*(?:pvc|abs)|cubrecanto|^\s*cantos?\b|perfil\s+de\s+canto/i],
   ['herraje_bisagra',   /bisagra|\bhinge/i],
   ['herraje_corredera', /corredera|\bslide|\briel\b/i],
   ['herraje_jaladera',  /jaladera|tirador|\bhandle|manija/i],
   ['herraje_nivelador', /nivelador|regat[oó]n|leveler|leveller/i],
   ['herraje_cerradura', /cerradura|\block\b/i],
+  // VH-181 (prueba ciega ERP 2026-10-13, biombo ATBIOCRT5): "Soporte tipo clamp/escuadra metálica…, acabado pintura en
+  // polvo" se amarraba a PINTURA y cobraba 2 kg ($337.12) en vez de 2 soportes. El objeto manda sobre su acabado.
+  ['herraje_soporte',   /\bsoporte|escuadra|\bclamp\b|m[eé]nsula|bracket/i],
   ['pintura_polvo',     /\bpintura\b|electrost[aá]tic|\bpowder\b|\blaca\b|lacado/i],
   // VH-164 (2026-10-13): el ACABADO metálico (EcoCrom/cromado/niquelado) es un renglón propio, no
   // acero. Sólo cuando el texto EMPIEZA por el acabado ("cromado (EcoCrom) en base tubular",
@@ -249,6 +255,10 @@ export function familiaDeMaterial(texto) {
     }
     if (mejor) return mejor.fam;
   }
+  // VH-181: la pintura es material sólo cuando el texto EMPIEZA por ella ("Pintura electrostática negra"). Mencionada
+  // como acabado de otra cosa sin material base reconocible ("Base metálica pintura electrostática") no se adivina:
+  // sin familia, la pieza queda pendiente para que la persona diga de qué es.
+  if (primera === 'pintura_polvo' && !/^\s*(?:(?:la|el)\s+)?(?:pintura|acabado|esmalte|laca|lacado|electrost|powder|recubrimiento)/i.test(t)) return '';
   return primera;
 }
 
@@ -291,7 +301,7 @@ function conflictoCalibre(a='',b='') {
 
 // Familias de HERRAJE / CONSUMIBLE (reglas de casa 2026-10-12): ante varios candidatos sin
 // variante pedida, el GENÉRICO (nombre más corto) es el estándar de casa, marcado por confirmar.
-export const FAMILIAS_HERRAJE = new Set(['tapacanto', 'herraje_bisagra', 'herraje_corredera', 'herraje_jaladera', 'herraje_nivelador', 'herraje_cerradura', 'pintura_polvo', 'iluminacion', 'electrico', 'adhesivo', 'tornilleria']);
+export const FAMILIAS_HERRAJE = new Set(['tapacanto', 'herraje_soporte', 'herraje_bisagra', 'herraje_corredera', 'herraje_jaladera', 'herraje_nivelador', 'herraje_cerradura', 'pintura_polvo', 'iluminacion', 'electrico', 'adhesivo', 'tornilleria']);
 /** Espesores en mm que nombra un texto (exportado para las reglas de casa). */
 export function espesoresDe(texto = '') { return espesoresMM(texto); }
 // ¿Lo pedido nombra una VARIANTE de herraje que el candidato no tiene? ("bisagra cierre suave"
@@ -412,8 +422,18 @@ function conflictoFormato(solicitado = '', insumoNombre = '', insumoFormato = nu
   return Math.abs(a[0] - b[0]) > 25 || Math.abs(a[1] - b[1]) > 25 ? `Solicitado hoja ${nombreFormato(a)} → candidato hoja ${nombreFormato(b)}` : null;
 }
 
+// VH-182 (prueba ciega ERP 2026-10-13): "Canto ABS para cubierta 28 mm" contra "Perfil de canto ABS 32 mm" salía como
+// conflicto CRÍTICO de espesor y dejaba la cubierta sin canto. Los 28 mm son del TABLERO; el canto es más ancho para
+// rebajarse al ras. Regla técnica con evidencia (REPORTE DEL COTIZADOR Intelisis 12/08/2026, lab/applt/componentes):
+// las 6 cubiertas de 28 mm llevan PEABS32 y los faldones de 16 mm, PEABS22. Sólo esos pares; lo demás sigue igual.
+const CANTO_POR_TABLERO_MM = Object.freeze({ 28: [32], 16: [22] });
+function cantoCubreTablero(solicitado = '', insumoNombre = '') {
+  const A = espesoresMM(solicitado), B = espesoresMM(insumoNombre);
+  return A.length > 0 && B.length > 0 && A.every((a) => (CANTO_POR_TABLERO_MM[a] || []).some((x) => B.includes(x)));
+}
+
 function severidadConflicto(fam, solicitado = '', insumoNombre = '') {
-  const confEsp = conflictoEspesor(solicitado, insumoNombre);
+  const confEsp = fam === 'tapacanto' && cantoCubreTablero(solicitado, insumoNombre) ? false : conflictoEspesor(solicitado, insumoNombre);
   const confCal = conflictoCalibre(solicitado, insumoNombre);
   const confPerfil = FAMILIAS_CRITICAS.has(fam) && conflictoPerfilMetal(solicitado, insumoNombre); // P0.13
   const confColor = conflictoAcabadoColor(solicitado, insumoNombre);                                // P0.14
@@ -437,7 +457,7 @@ function severidadConflicto(fam, solicitado = '', insumoNombre = '') {
 // "Solicitado cal.14 → candidato cal.18". '' si no hay un atributo contrastable.
 function textoCambio(solicitado = '', insumoNombre = '') {
   const eA = espesoresMM(solicitado), eB = espesoresMM(insumoNombre);
-  if (eA.length && eB.length && !eA.some((x) => eB.includes(x))) {
+  if (eA.length && eB.length && !eA.some((x) => eB.includes(x)) && !(familiaDeMaterial(solicitado) === 'tapacanto' && cantoCubreTablero(solicitado, insumoNombre))) {
     return `Solicitado ${eA.join('/')} mm → candidato ${eB.join('/')} mm`;
   }
   const cA = calibresDe(solicitado), cB = calibresDe(insumoNombre);

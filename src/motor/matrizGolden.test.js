@@ -9,23 +9,25 @@
 //  con INSUMOS_SEMILLA + PARAMETROS_DEFAULT. Para re-generar tras un cambio
 //  INTENCIONAL del método, correr el mismo barrido y actualizar los números con
 //  su explicación (igual que los golden de Alba/Alpura).
+//  2026-10-13 (VH-183): la regla de tablero de Producción es inclusiva en 1.50 m, como cobra Intelisis; se movieron 4
+//  escritorios con piezas de exactamente 1500 mm (comentario en cada fila).
 // ============================================================================
 import { describe, it, expect, beforeAll } from 'vitest';
 
 // [ruta, producto, costoUnitario, precioUnitario]
 const MATRIZ = [
-  ['applt', 'escritorio', 3703.77, 8000.14],
-  ['app', 'escritorio', 4074.15, 8800.16],
+  ['applt', 'escritorio', 2974.27, 6424.43],   // VH-183: cubierta 1500×600 = ½ hoja (antes 1 hoja por la rejilla)
+  ['app', 'escritorio', 3271.70, 7066.88],     // VH-183: cubierta 1500×600 = ½ hoja
   ['via', 'escritorio', 2949.51, 5899.01],
   ['rio', 'bench_recto_sencillo', 2933.35, 5866.70],
-  ['feather', 'escritorio', 3577.91, 7155.81],
+  ['feather', 'escritorio', 3039.21, 6078.42], // VH-183: cubierta 1500×600 = ½ hoja
   ['cirque', 'escritorio', 5840.78, 11681.57],
   ['spine', 'ducto', 1356.79, 2713.57],
   ['ergo4', 'banca_sencilla', 5244.35, 10488.71],
   ['alba', 'escritorio', 4297.82, 8595.64],
   ['eclipse', 'escritorio', 12580.56, 27220.00],
   ['drift', 'escritorio', 3172.15, 6344.30],
-  ['luna', 'escritorio', 8630.48, 17260.97],
+  ['luna', 'escritorio', 8809.16, 17618.33],   // VH-183: faldón 1500×320 = ½ hoja por regla (antes ⅓ por rejilla)
   ['flex', 'escritorio', 2824.12, 5648.25],
   ['anteo', 'escritorio', 31605.94, 63211.88],
   ['mox', 'rodante', 1486.11, 3210.00],

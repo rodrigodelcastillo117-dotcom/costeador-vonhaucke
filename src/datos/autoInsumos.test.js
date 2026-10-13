@@ -31,3 +31,18 @@ describe('conAcompanantes — adhesivo automático de superficie sólida', () =>
     expect(base).toHaveLength(1);
   });
 });
+
+// VH-180 · lab credenza 2026-10-13 (BOM real de la IA): "Canto visible" / material "Canto nogal" no tenía familia; la
+// regla de casa agregaba "Tapacanto (cantos visibles)" 32.64 m APARTE y el renglón de la IA (12 m, sin material) dejaba
+// el costo del servidor en "incompleto". Debe quedar UN solo renglón de canto, con el metraje de la regla de casa.
+import credenza from './fixtures/credenza_canto_ia.json';
+import { INSUMOS_SEMILLA, mapaInsumos } from './insumos.js';
+describe('VH-180 · el canto que la IA nombra "Canto …" es el mismo renglón que la regla de casa', () => {
+  it('credenza: un solo renglón de canto vivo, con el metraje por geometría', () => {
+    const r = conAcompanantes(credenza.componentes.map((c) => ({ ...c })), mapaInsumos(INSUMOS_SEMILLA));
+    const cantos = r.filter((c) => c && !c.excluida && /canto/i.test(`${c.nombre} ${c.material_solicitado || ''}`));
+    expect(cantos).toHaveLength(1);
+    expect(cantos[0].cantidad).toBeGreaterThan(20);           // regla de casa (32.64 m en el lab), no los 12 m supuestos
+    expect(cantos[0]._regla).toBe('tapacanto');
+  });
+});
