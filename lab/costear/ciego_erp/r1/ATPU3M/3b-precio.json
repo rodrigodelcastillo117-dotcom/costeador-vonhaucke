@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$775.76",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 8 decisión(es) pendiente(s): ¿Cuántas patas tipo U se requieren? · ¿Qué sección de perfil lleva la pata? · ¿Calibre del perfil metálico? · ¿Color/acabado de la pintura en polvo? · Los 720 mm de altura, ¿son totales incluyendo nivelador? · ¿Apoyo en piso con nivelador o con zapata/placa corrida? · ¿La pata requiere paso de cableado interno o canalización? · ¿Lleva placa superior barrenada para fijar a cubierta?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $430.98 · Mano de obra $86.20 · Fábrica $258.59",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

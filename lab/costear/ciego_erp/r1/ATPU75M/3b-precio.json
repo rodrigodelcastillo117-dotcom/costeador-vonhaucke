@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$837.96",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 8 decisión(es) pendiente(s): ¿Cuántas patas tipo U se requieren? · ¿Qué sección de tubo/PTR lleva la pata? · ¿Calibre del tubo? · ¿Color de pintura en polvo? · ¿750 mm es el ancho y 720 mm la altura de la U? · ¿Lleva niveladores o zapata/regatón? · ¿Lleva placa superior barrenada para fijar cubierta? · ¿La pata lleva canalización de cableado interna (modelo App LT)?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $465.53 · Mano de obra $93.11 · Fábrica $279.32",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

@@ -1,0 +1,51 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATPU2M 1013-2017 BORRADOR otro pata estructural metálica tipo \"U\" para mesa/escritorio (línea App LT) Tubo de acero estructural",
+    "piezas": 5,
+    "mismoBom": true,
+    "costoAntes": "$683.52",
+    "costoDespues": "$683.52",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$683.52",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $379.73 · Mano de obra $75.95 · Fábrica $227.84",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Marco tipo U (PTR doblado/soldado) 600 × 720 mm",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Soldadura de esquinas U (2 uniones)",
+      "material": "Soldadura",
+      "alertas": []
+    },
+    {
+      "nombre": "Placa de fijación a cubierta (lámina cal.12, 120 × 80 mm)",
+      "material": "Lamina de acero cal. 12",
+      "alertas": []
+    },
+    {
+      "nombre": "Niveladores 3/8\"",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Acabado pintura en polvo (negro mate, supuesto)",
+      "material": "Pintura en polvo, Negro Mate 8 Vitracoat",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («color especificado») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB dif gabinete_alto 1013-2017 BORRADOR guarda gabinete alto 2 puertas Melamina gris Soft Grey",
+    "piezas": 11,
+    "mismoBom": true,
+    "costoAntes": "$4,491.38",
+    "costoDespues": "$4,491.38",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$4,491.38",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $2,764.15 · Mano de obra $431.81 · Fábrica $1,295.42",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Lateral",
+      "material": "Melamina 19 mm, Soft Grey",
+      "alertas": []
+    },
+    {
+      "nombre": "Techo y piso",
+      "material": "Melamina 19 mm, Soft Grey",
+      "alertas": []
+    },
+    {
+      "nombre": "Entrepaño ajustable",
+      "material": "Melamina 19 mm, Soft Grey",
+      "alertas": []
+    },
+    {
+      "nombre": "Puerta",
+      "material": "Melamina 19 mm, Soft Grey",
+      "alertas": []
+    },
+    {
+      "nombre": "Zoclo frontal",
+      "material": "Melamina 19 mm, Soft Grey",
+      "alertas": []
+    },
+    {
+      "nombre": "Respaldo",
+      "material": "— ¿de qué es? —",
+      "alertas": [
+        "⚠ Varios materiales posibles — elige de cuál es."
+      ]
+    },
+    {
+      "nombre": "Tapacanto PVC 2 mm Soft Grey",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Bisagra cierre suave",
+      "material": "Bisagra",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («cierre suave») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Jaladera 160 mm",
+      "material": "Jaladera",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («160») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Nivelador",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Tornillería / soportes entrepaño",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («soport entrepano») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

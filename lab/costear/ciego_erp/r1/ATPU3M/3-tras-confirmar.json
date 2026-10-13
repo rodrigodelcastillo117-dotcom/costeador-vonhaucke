@@ -1,0 +1,59 @@
+{
+  "confirmacion": {
+    "ofrecida": true,
+    "texto": "Confirmar los 4 propuestos",
+    "diferencias": "3 difieren de lo pedido y se confirman uno por uno: Pintura en polvo negro mate, Nivelador cónico 3/8\", Tornillería de fijación a cubierta. ",
+    "diferenciasAceptadas": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Travesaño horizontal superior de la U (PTR)",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Montante vertical de la U (PTR)",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Placa de fijación superior a cubierta (lámina cal. 14)",
+      "material": "Lamina de acero cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Soldadura de ensamble de la U",
+      "material": "Soldadura",
+      "alertas": []
+    },
+    {
+      "nombre": "Pintura en polvo negro mate",
+      "material": "Pintura en polvo, Negro Mate 8 Vitracoat",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («electrostatica color especificado supuesto») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Nivelador cónico 3/8\"",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («roscado apoyo piso») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tornillería de fijación a cubierta",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («fijar placa cubierta») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

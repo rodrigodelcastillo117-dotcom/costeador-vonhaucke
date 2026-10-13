@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$3,159.92",
+      "Pendiente"
+    ],
+    "margen": null,
+    "estado": "Costo INCOMPLETO — faltan por costear 1 partida(s): Lateral (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada). Asígnales material en el despiece (arriba) o márcalas como excluidas. Hasta entonces no hay costo total ni precio.",
+    "linea": "Material $1,960.46 · Mano de obra $299.86 · Fábrica $899.59",
+    "pendiente": true,
+    "porConfirmar": false
+  },
+  "piezas": []
+}

@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$683.52",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 7 decisión(es) pendiente(s): ¿Cuántas patas tipo U se requieren? · ¿Qué calibre y sección de PTR para la pata? · ¿Color de pintura en polvo? · ¿Lleva placa superior barrenada para fijación a cubierta? · ¿Qué tipo de apoyo al piso? · ¿La pata lleva ducto/pasacables interno para electrificación App LT? · ¿Los 720 mm son altura total terminada (incluyendo cubierta) o altura de la pata sola?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $379.73 · Mano de obra $75.95 · Fábrica $227.84",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

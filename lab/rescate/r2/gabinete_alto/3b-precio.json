@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$4,491.38",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 3 decisión(es) pendiente(s): ¿Cómo costeamos el respaldo MDF 6 mm (no está en catálogo)? · ¿Cuántas piezas se fabricarán? · ¿Lleva cerradura?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $2,764.15 · Mano de obra $431.81 · Fábrica $1,295.42",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

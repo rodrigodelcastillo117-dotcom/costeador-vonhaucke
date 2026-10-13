@@ -1,0 +1,348 @@
+{
+  "req": {
+    "cantidad": 1,
+    "pieza": {
+      "componentes": [
+        {
+          "insumoId": "cristal-templado",
+          "nombre": "Cubierta cristal templado 9 mm canto pulido",
+          "cantidad": 1,
+          "largoMM": 1000,
+          "anchoMM": 600,
+          "piezas": 1,
+          "material_solicitado": "Cristal templado 9 mm, canto pulido",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "tubular-redondo-34",
+          "nombre": "Marco rectangular tubular 900x500",
+          "cantidad": 5.6,
+          "piezas": 1,
+          "material_solicitado": "Tubular redondo 3/4\" cal. 18",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "tubular-redondo-34",
+          "nombre": "Poste tubular 392",
+          "cantidad": 1.568,
+          "piezas": 1,
+          "material_solicitado": "Tubular redondo 3/4\" cal. 18",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "ecocrom",
+          "nombre": "Acabado cromado base (EcoCrom)",
+          "cantidad": 0.43,
+          "piezas": 1,
+          "material_solicitado": "Cromado (EcoCrom)",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "soldadura",
+          "nombre": "Soldadura uniones base",
+          "cantidad": 0.1,
+          "piezas": 1,
+          "material_solicitado": "Soldadura MIG",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "silicon",
+          "nombre": "Topes/ventosas de apoyo cristal",
+          "cantidad": 4,
+          "piezas": 1,
+          "material_solicitado": "Topes de silicón/ventosas transparentes",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Niveladores",
+          "cantidad": 4,
+          "piezas": 1,
+          "material_solicitado": "Nivelador",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        }
+      ],
+      "horas": {
+        "pm": 0,
+        "carpinteria": 0,
+        "pintura": 0,
+        "acabados": 0,
+        "tapiceria": 0
+      }
+    }
+  },
+  "res": {
+    "ok": true,
+    "estado": "preliminar",
+    "piezas": 1,
+    "precioVenta": 7051.22,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 4230.73,
+      "materialTotal": 2687.97,
+      "manoObra": 381.59,
+      "indirectosFabrica": 1161.18,
+      "desperdicio": 0,
+      "detalleInsumos": [
+        {
+          "insumoId": "cristal-templado",
+          "nombre": "Cristal templado 9 mm",
+          "seccion": "mamparas",
+          "costo": 821.1,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "tubular-redondo-34",
+          "nombre": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+          "seccion": "metal",
+          "costo": 992.05,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "ecocrom",
+          "nombre": "EcoCrom",
+          "seccion": "acabados",
+          "costo": 77.4,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "soldadura",
+          "nombre": "Soldadura",
+          "seccion": "metal",
+          "costo": 6.5,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "silicon",
+          "nombre": "Silicon",
+          "seccion": "mamparas",
+          "costo": 720,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "costo": 70.92,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        }
+      ],
+      "componentesIgnorados": []
+    },
+    "evidencia": {
+      "usados": 6,
+      "certificados": 3,
+      "noCertificados": 3
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 1075.9512,
+      "materialIndirecto": 1612.02,
+      "materialTotal": 2687.9712,
+      "desperdicio": 0,
+      "manoObra": 381.58524000000006,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 35.464920713876246,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 3069.55644,
+      "indirectosFabrica": 1161.17772,
+      "gastosOperacion": 0,
+      "costoFabricacion": 4230.73416,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 4230.73416,
+      "costoLoteConMerma": 4230.73416,
+      "costoUnitario": 4230.73416,
+      "detalleInsumos": [
+        {
+          "insumoId": "cristal-templado",
+          "nombre": "Cristal templado 9 mm",
+          "seccion": "mamparas",
+          "clase": "indirecta",
+          "unidad": "m2",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Cubierta cristal templado 9 mm canto pulido"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cristal",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.6,
+          "comprado": 0.6,
+          "unidades": null,
+          "costo": 821.1,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 1368.5,
+          "noCabe": false
+        },
+        {
+          "insumoId": "tubular-redondo-34",
+          "nombre": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "tramo",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Marco rectangular tubular 900x500",
+            "Poste tubular 392"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 7.167999999999999,
+          "comprado": 7.167999999999999,
+          "unidades": null,
+          "costo": 992.0512,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 138.4,
+          "noCabe": false
+        },
+        {
+          "insumoId": "ecocrom",
+          "nombre": "EcoCrom",
+          "seccion": "acabados",
+          "clase": "directa",
+          "unidad": "m2",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Acabado cromado base (EcoCrom)"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.43,
+          "comprado": 0.43,
+          "unidades": null,
+          "costo": 77.4,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 180,
+          "noCabe": false
+        },
+        {
+          "insumoId": "soldadura",
+          "nombre": "Soldadura",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "kg",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Soldadura uniones base"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.1,
+          "comprado": 0.1,
+          "unidades": null,
+          "costo": 6.5,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 65,
+          "noCabe": false
+        },
+        {
+          "insumoId": "silicon",
+          "nombre": "Silicon",
+          "seccion": "mamparas",
+          "clase": "indirecta",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Topes/ventosas de apoyo cristal"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "metal",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 4,
+          "comprado": 4,
+          "unidades": null,
+          "costo": 720,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 180,
+          "noCabe": false
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Niveladores"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 4,
+          "comprado": 4,
+          "unidades": null,
+          "costo": 70.92,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 17.73,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [],
+      "tarifasFaltantes": [],
+      "estadoCosto": "completo",
+      "pendientes": [],
+      "costoOficial": 4230.73416
+    },
+    "versionMotor": "2026-10-13",
+    "versionConfig": "cfglu0aa4",
+    "versionCatalogo": "cat-ap1793-cfg13eg7n1",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T20:22:38.654Z",
+    "catalogoFuente": "catalogo",
+    "warnings": [
+      "Costo preliminar — 3 de 6 insumo(s) sin precio certificado.",
+      "1 insumo(s) requieren validación de Compras."
+    ]
+  }
+}

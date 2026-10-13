@@ -8,4 +8,10 @@
 | ATCUBS44ABS | incompleto | 441.24 / 342.38 | 28.87% | 705.98 / 644.95 | 9.46% | chapacinta, lamina, pintura | — | — | — |
 | ATCUBS45ABS | incompleto | 1348.88 / 608.7 | 121.6% | 2158.21 / 936.64 | 130.42% | chapacinta, herraje, lamina, pintura | otro | — | Canto ABS perimetral 2-3 mm, Tapa registrable metálica + herraje (App LT), Maquinado de calado para tapa registrable (operación CNC) |
 | ATCUBS46ABS | incompleto | 848.32 / 618.29 | 37.2% | 1366.31 / 716.62 | 90.66% | chapacinta, lamina, pintura | — | — | — |
-| ATFAL12ABS | NO CORRIÓ | | | | | sin DTO | | | |
+| ATFAL12ABS | incompleto | 260.33 / 284.28 | -8.42% | 455.02 / 415.39 | 9.54% | — | otro | tablero app 19 vs erp 16 | Escuadras de fijación a cubierta |
+| ATFAL150ABS | incompleto | 591 / 322.92 | 83.02% | 1016.4 / 491.92 | 106.62% | — | nivelador | — | — |
+| ATOM3 | incompleto | 79.66 / 42.97 | 85.39% | 143.39 / 101.27 | 41.59% | — | — | lamina app 18 vs erp 14 | — |
+| ATOM4 | incompleto | 94.05 / 68.35 | 37.6% | 169.29 / 136.38 | 24.13% | — | — | lamina app 18 vs erp 14 | — |
+| ATPU2M | incompleto | 379.73 / 275.83 | 37.67% | 683.52 / 743.36 | -8.05% | — | — | lamina app 12 vs erp 10,14 | — |
+| ATPU3M | incompleto | 430.98 / 292.42 | 47.38% | 775.76 / 855.83 | -9.36% | — | — | — | — |
+| ATPU75M | incompleto | 465.53 / 282.54 | 64.77% | 837.96 / 786.58 | 6.53% | — | — | — | — |

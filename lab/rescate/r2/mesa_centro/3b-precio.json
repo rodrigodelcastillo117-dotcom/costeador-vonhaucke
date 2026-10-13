@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$4,230.73",
+      "$7,051.22"
+    ],
+    "margen": "Precio de lista (40% margen · política vigente (1 pieza))",
+    "estado": "Costo preliminar — 2 decisión(es) pendiente(s): ¿Se incluyen ventosas/topes entre cristal y base? · ¿Cuántas mesas se fabricarán?. No es obligatorio contestarlas; el costo ya se puede emitir como preliminar.",
+    "linea": "Material $2,687.97 · Mano de obra $381.59 · Fábrica $1,161.18",
+    "pendiente": false,
+    "porConfirmar": false
+  },
+  "piezas": []
+}

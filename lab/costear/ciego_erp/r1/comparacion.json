@@ -861,9 +861,732 @@
  {
   "clave": "ATFAL12ABS",
   "texto": "Conducto faldon para escritorio de 800 x 379 x 177 mm modelo apps lt con melamina canto abs; metalico",
-  "corrio": false,
+  "corrio": true,
   "erp_mp": 284.28,
   "erp_total": 415.39,
-  "error": "sin DTO"
+  "familias": [
+   {
+    "familia": "canto",
+    "estado": "OK",
+    "erp": {
+     "cant": "2.484 m (22)",
+     "subs": [
+      "22"
+     ],
+     "importe": 32.89
+    },
+    "app": {
+     "renglones": [
+      "Canto ABS perimetral del panel [tapacanto]"
+     ],
+     "subs": [],
+     "costo": 7.46
+    }
+   },
+   {
+    "familia": "herraje",
+    "estado": "OK",
+    "erp": {
+     "cant": "17 pieza",
+     "subs": [],
+     "importe": 121.7
+    },
+    "app": {
+     "renglones": [
+      "Tornillería de ensamble [tornilleria]"
+     ],
+     "subs": [],
+     "costo": 45
+    }
+   },
+   {
+    "familia": "lamina",
+    "estado": "OK",
+    "erp": {
+     "cant": "0.115 hoja (20)",
+     "subs": [
+      "20"
+     ],
+     "importe": 50
+    },
+    "app": {
+     "renglones": [
+      "Charola metálica portacables (lámina doblada) [lamina-20]"
+     ],
+     "subs": [
+      "20"
+     ],
+     "costo": 26.75
+    }
+   },
+   {
+    "familia": "otro",
+    "estado": "SOBRA",
+    "erp": null,
+    "app": {
+     "renglones": [
+      "Escuadras de fijación a cubierta [SIN MATERIAL]"
+     ],
+     "subs": [],
+     "costo": 0
+    }
+   },
+   {
+    "familia": "pintura",
+    "estado": "OK",
+    "erp": {
+     "cant": "0.069 kg",
+     "subs": [],
+     "importe": 11.76
+    },
+    "app": {
+     "renglones": [
+      "Acabado pintura en polvo charola metálica [pintura-polvo-negro-mate-8-vitracoat]"
+     ],
+     "subs": [],
+     "costo": 120.68
+    }
+   },
+   {
+    "familia": "tablero",
+    "estado": "ESPEC_DISTINTA",
+    "erp": {
+     "cant": "0.111 hoja (16)",
+     "subs": [
+      "16"
+     ],
+     "importe": 67.93
+    },
+    "app": {
+     "renglones": [
+      "Panel frontal faldón melamina [melamina-19]"
+     ],
+     "subs": [
+      "19"
+     ],
+     "costo": 60.44
+    }
+   }
+  ],
+  "estado_servidor": "incompleto",
+  "piezas_ia": 6,
+  "sin_material": [
+   "Escuadras de fijación a cubierta"
+  ],
+  "app_mp": 260.33,
+  "app_mo": 48.67,
+  "app_gi": 146.01,
+  "app_total": 455.02,
+  "dif_mp_pct": -8.42,
+  "dif_total_pct": 9.54,
+  "faltan": [],
+  "sobran": [
+   "otro"
+  ],
+  "espec": [
+   "tablero app 19 vs erp 16"
+  ]
+ },
+ {
+  "clave": "ATFAL150ABS",
+  "texto": "Conducto faldon para escritorio de 900 x 379 x 177 mm modelo apps lt con melamina canto abs; metalico",
+  "corrio": true,
+  "erp_mp": 322.92,
+  "erp_total": 491.92,
+  "familias": [
+   {
+    "familia": "canto",
+    "estado": "OK",
+    "erp": {
+     "cant": "2.724 m (22)",
+     "subs": [
+      "22"
+     ],
+     "importe": 36.07
+    },
+    "app": {
+     "renglones": [
+      "Canto ABS 22 mm perimetral [canto-abs-22]",
+      "Perfil de canto aluminio App LT (remate) [perfil-canto-applt]"
+     ],
+     "subs": [],
+     "costo": 144.64
+    }
+   },
+   {
+    "familia": "herraje",
+    "estado": "OK",
+    "erp": {
+     "cant": "17 pieza",
+     "subs": [],
+     "importe": 121.7
+    },
+    "app": {
+     "renglones": [
+      "Tornillería y escuadras de fijación a cubierta [tornilleria]"
+     ],
+     "subs": [],
+     "costo": 45
+    }
+   },
+   {
+    "familia": "lamina",
+    "estado": "OK",
+    "erp": {
+     "cant": "0.115 hoja (20)",
+     "subs": [
+      "20"
+     ],
+     "importe": 50
+    },
+    "app": {
+     "renglones": [
+      "Charola/base metálica portacables cal. 20 [lamina-20]"
+     ],
+     "subs": [
+      "20"
+     ],
+     "costo": 112.35
+    }
+   },
+   {
+    "familia": "nivelador",
+    "estado": "SOBRA",
+    "erp": null,
+    "app": {
+     "renglones": [
+      "Niveladores [nivelador-plataforma]"
+     ],
+     "subs": [],
+     "costo": 166.52
+    }
+   },
+   {
+    "familia": "pintura",
+    "estado": "OK",
+    "erp": {
+     "cant": "0.076 kg",
+     "subs": [],
+     "importe": 12.96
+    },
+    "app": {
+     "renglones": [
+      "Pintura en polvo negro mate para charola metálica [pintura-polvo-negro-mate-8-vitracoat]"
+     ],
+     "subs": [],
+     "costo": 30.17
+    }
+   },
+   {
+    "familia": "tablero",
+    "estado": "OK",
+    "erp": {
+     "cant": "0.167 hoja (16)",
+     "subs": [
+      "16"
+     ],
+     "importe": 102.2
+    },
+    "app": {
+     "renglones": [
+      "Panel frontal de faldón melamina [melamina-16]",
+      "Panel posterior / tapa de registro melamina [melamina-16]",
+      "Tapas laterales / costados melamina [melamina-16]"
+     ],
+     "subs": [
+      "16"
+     ],
+     "costo": 92.31
+    }
+   }
+  ],
+  "estado_servidor": "incompleto",
+  "piezas_ia": 8,
+  "sin_material": [],
+  "app_mp": 591,
+  "app_mo": 106.35,
+  "app_gi": 319.05,
+  "app_total": 1016.4,
+  "dif_mp_pct": 83.02,
+  "dif_total_pct": 106.62,
+  "faltan": [],
+  "sobran": [
+   "nivelador"
+  ],
+  "espec": []
+ },
+ {
+  "clave": "ATOM3",
+  "texto": "Omega para cubierta de 850 x 100 x 17 mm modelo apps lt con tornilleria; metalica",
+  "corrio": true,
+  "erp_mp": 42.97,
+  "erp_total": 101.27,
+  "familias": [
+   {
+    "familia": "herraje",
+    "estado": "OK",
+    "erp": {
+     "cant": "8 pieza",
+     "subs": [],
+     "importe": 4.24
+    },
+    "app": {
+     "renglones": [
+      "Juego de tornillería de fijación omega-cubierta [tornilleria]"
+     ],
+     "subs": [],
+     "costo": 45
+    }
+   },
+   {
+    "familia": "lamina",
+    "estado": "ESPEC_DISTINTA",
+    "erp": {
+     "cant": "0.042 hoja (14)",
+     "subs": [
+      "14"
+     ],
+     "importe": 34.29
+    },
+    "app": {
+     "renglones": [
+      "Perfil omega lámina doblada 850 × 100 × 17 mm [lamina-18]"
+     ],
+     "subs": [
+      "18"
+     ],
+     "costo": 32.7
+    }
+   },
+   {
+    "familia": "pintura",
+    "estado": "OK",
+    "erp": {
+     "cant": "0.026 kg",
+     "subs": [],
+     "importe": 4.43
+    },
+    "app": {
+     "renglones": [
+      "Pintura en polvo negro mate (acabado del omega) [pintura-polvo-negro]"
+     ],
+     "subs": [],
+     "costo": 1.96
+    }
+   }
+  ],
+  "estado_servidor": "incompleto",
+  "piezas_ia": 3,
+  "sin_material": [],
+  "app_mp": 79.66,
+  "app_mo": 15.93,
+  "app_gi": 47.8,
+  "app_total": 143.39,
+  "dif_mp_pct": 85.39,
+  "dif_total_pct": 41.59,
+  "faltan": [],
+  "sobran": [],
+  "espec": [
+   "lamina app 18 vs erp 14"
+  ]
+ },
+ {
+  "clave": "ATOM4",
+  "texto": "Omega para cubierta de 1150 x 100 x 17 mm modelo apps lt con tornilleria; metalica",
+  "corrio": true,
+  "erp_mp": 68.35,
+  "erp_total": 136.38,
+  "familias": [
+   {
+    "familia": "herraje",
+    "estado": "OK",
+    "erp": {
+     "cant": "8 pieza",
+     "subs": [],
+     "importe": 4.24
+    },
+    "app": {
+     "renglones": [
+      "Tornillería de fijación omega-cubierta [tornilleria]"
+     ],
+     "subs": [],
+     "costo": 45
+    }
+   },
+   {
+    "familia": "lamina",
+    "estado": "ESPEC_DISTINTA",
+    "erp": {
+     "cant": "0.071 hoja (14)",
+     "subs": [
+      "14"
+     ],
+     "importe": 57.97
+    },
+    "app": {
+     "renglones": [
+      "Omega (perfil lámina doblada) 1150 × 100 × 17 mm [lamina-18]"
+     ],
+     "subs": [
+      "18"
+     ],
+     "costo": 37.73
+    }
+   },
+   {
+    "familia": "pintura",
+    "estado": "OK",
+    "erp": {
+     "cant": "0.036 kg",
+     "subs": [],
+     "importe": 6.14
+    },
+    "app": {
+     "renglones": [
+      "Pintura en polvo negro mate (acabado de la omega) [pintura-polvo-negro]"
+     ],
+     "subs": [],
+     "costo": 11.31
+    }
+   }
+  ],
+  "estado_servidor": "incompleto",
+  "piezas_ia": 3,
+  "sin_material": [],
+  "app_mp": 94.05,
+  "app_mo": 18.81,
+  "app_gi": 56.43,
+  "app_total": 169.29,
+  "dif_mp_pct": 37.6,
+  "dif_total_pct": 24.13,
+  "faltan": [],
+  "sobran": [],
+  "espec": [
+   "lamina app 18 vs erp 14"
+  ]
+ },
+ {
+  "clave": "ATPU2M",
+  "texto": "Pata tipo \"u\" de 600 x 720 mm modelo apps lt; metalica",
+  "corrio": true,
+  "erp_mp": 275.83,
+  "erp_total": 743.36,
+  "familias": [
+   {
+    "familia": "herraje",
+    "estado": "OK",
+    "erp": {
+     "cant": "18 pieza",
+     "subs": [],
+     "importe": 6.46
+    },
+    "app": {
+     "renglones": [
+      "Soldadura de esquinas U (2 uniones) [soldadura]"
+     ],
+     "subs": [],
+     "costo": 65
+    }
+   },
+   {
+    "familia": "lamina",
+    "estado": "ESPEC_DISTINTA",
+    "erp": {
+     "cant": "0.035 hoja (10) + 0.003 hoja (14)",
+     "subs": [
+      "10",
+      "14"
+     ],
+     "importe": 81.91
+    },
+    "app": {
+     "renglones": [
+      "Placa de fijación a cubierta (lámina cal.12, 120 × 80 mm) [lamina-12]"
+     ],
+     "subs": [
+      "12"
+     ],
+     "costo": 5.02
+    }
+   },
+   {
+    "familia": "nivelador",
+    "estado": "OK",
+    "erp": {
+     "cant": "2 pieza",
+     "subs": [],
+     "importe": 35.46
+    },
+    "app": {
+     "renglones": [
+      "Niveladores 3/8\" [nivelador]"
+     ],
+     "subs": [],
+     "costo": 35.46
+    }
+   },
+   {
+    "familia": "pintura",
+    "estado": "OK",
+    "erp": {
+     "cant": "0.08 kg",
+     "subs": [],
+     "importe": 13.64
+    },
+    "app": {
+     "renglones": [
+      "Acabado pintura en polvo (negro mate, supuesto) [pintura-polvo-negro-mate-8-vitracoat]"
+     ],
+     "subs": [],
+     "costo": 3.47
+    }
+   },
+   {
+    "familia": "tubular",
+    "estado": "OK",
+    "erp": {
+     "cant": "0.361 pieza",
+     "subs": [],
+     "importe": 138.36
+    },
+    "app": {
+     "renglones": [
+      "Marco tipo U (PTR doblado/soldado) 600 × 720 mm [ptr-14]"
+     ],
+     "subs": [],
+     "costo": 270.78
+    }
+   }
+  ],
+  "estado_servidor": "incompleto",
+  "piezas_ia": 5,
+  "sin_material": [],
+  "app_mp": 379.73,
+  "app_mo": 75.95,
+  "app_gi": 227.84,
+  "app_total": 683.52,
+  "dif_mp_pct": 37.67,
+  "dif_total_pct": -8.05,
+  "faltan": [],
+  "sobran": [],
+  "espec": [
+   "lamina app 12 vs erp 10,14"
+  ]
+ },
+ {
+  "clave": "ATPU3M",
+  "texto": "Pata tipo \"u\" de 900 x 720 mm modelo apps lt; metalica",
+  "corrio": true,
+  "erp_mp": 292.42,
+  "erp_total": 855.83,
+  "familias": [
+   {
+    "familia": "herraje",
+    "estado": "OK",
+    "erp": {
+     "cant": "26 pieza",
+     "subs": [],
+     "importe": 9.3
+    },
+    "app": {
+     "renglones": [
+      "Soldadura de ensamble de la U [soldadura]",
+      "Tornillería de fijación a cubierta [tornilleria]"
+     ],
+     "subs": [],
+     "costo": 110
+    }
+   },
+   {
+    "familia": "lamina",
+    "estado": "OK",
+    "erp": {
+     "cant": "0.031 hoja (10) + 0.003 hoja (14)",
+     "subs": [
+      "10",
+      "14"
+     ],
+     "importe": 72.83
+    },
+    "app": {
+     "renglones": [
+      "Placa de fijación superior a cubierta (lámina cal. 14) [lamina-14]"
+     ],
+     "subs": [
+      "14"
+     ],
+     "costo": 6.14
+    }
+   },
+   {
+    "familia": "nivelador",
+    "estado": "OK",
+    "erp": {
+     "cant": "2 pieza",
+     "subs": [],
+     "importe": 35.46
+    },
+    "app": {
+     "renglones": [
+      "Nivelador cónico 3/8\" [nivelador]"
+     ],
+     "subs": [],
+     "costo": 35.46
+    }
+   },
+   {
+    "familia": "pintura",
+    "estado": "OK",
+    "erp": {
+     "cant": "0.088 kg",
+     "subs": [],
+     "importe": 15
+    },
+    "app": {
+     "renglones": [
+      "Pintura en polvo negro mate [pintura-polvo-negro-mate-8-vitracoat]"
+     ],
+     "subs": [],
+     "costo": 8.6
+    }
+   },
+   {
+    "familia": "tubular",
+    "estado": "OK",
+    "erp": {
+     "cant": "0.417 pieza",
+     "subs": [],
+     "importe": 159.83
+    },
+    "app": {
+     "renglones": [
+      "Travesaño horizontal superior de la U (PTR) [ptr-14]",
+      "Montante vertical de la U (PTR) [ptr-14]"
+     ],
+     "subs": [],
+     "costo": 270.78
+    }
+   }
+  ],
+  "estado_servidor": "incompleto",
+  "piezas_ia": 7,
+  "sin_material": [],
+  "app_mp": 430.98,
+  "app_mo": 86.2,
+  "app_gi": 258.59,
+  "app_total": 775.76,
+  "dif_mp_pct": 47.38,
+  "dif_total_pct": -9.36,
+  "faltan": [],
+  "sobran": [],
+  "espec": []
+ },
+ {
+  "clave": "ATPU75M",
+  "texto": "Pata tipo \"u\" de 750 x 720 mm modelo apps lt; metalica",
+  "corrio": true,
+  "erp_mp": 282.54,
+  "erp_total": 786.58,
+  "familias": [
+   {
+    "familia": "herraje",
+    "estado": "OK",
+    "erp": {
+     "cant": "26 pieza",
+     "subs": [],
+     "importe": 9.3
+    },
+    "app": {
+     "renglones": [
+      "Soldadura MIG de uniones de la U [soldadura]",
+      "Tornillería de montaje a cubierta [tornilleria]"
+     ],
+     "subs": [],
+     "costo": 110
+    }
+   },
+   {
+    "familia": "lamina",
+    "estado": "OK",
+    "erp": {
+     "cant": "0.031 hoja (10) + 0.003 hoja (14)",
+     "subs": [
+      "10",
+      "14"
+     ],
+     "importe": 72.83
+    },
+    "app": {
+     "renglones": [
+      "Placa de refuerzo/fijación a cubierta (lámina doblada) [lamina-14]"
+     ],
+     "subs": [
+      "14"
+     ],
+     "costo": 45.97
+    }
+   },
+   {
+    "familia": "nivelador",
+    "estado": "OK",
+    "erp": {
+     "cant": "2 pieza",
+     "subs": [],
+     "importe": 35.46
+    },
+    "app": {
+     "renglones": [
+      "Niveladores [nivelador]"
+     ],
+     "subs": [],
+     "costo": 35.46
+    }
+   },
+   {
+    "familia": "pintura",
+    "estado": "OK",
+    "erp": {
+     "cant": "0.084 kg",
+     "subs": [],
+     "importe": 14.32
+    },
+    "app": {
+     "renglones": [
+      "Pintura en polvo (acabado pata) [pintura-polvo-negro-mate-8-vitracoat]"
+     ],
+     "subs": [],
+     "costo": 3.32
+    }
+   },
+   {
+    "familia": "tubular",
+    "estado": "OK",
+    "erp": {
+     "cant": "0.393 pieza",
+     "subs": [],
+     "importe": 150.63
+    },
+    "app": {
+     "renglones": [
+      "Montante vertical de pata U (PTR) [ptr-14]",
+      "Travesaño horizontal de pata U (PTR) [ptr-14]"
+     ],
+     "subs": [],
+     "costo": 270.78
+    }
+   }
+  ],
+  "estado_servidor": "incompleto",
+  "piezas_ia": 7,
+  "sin_material": [],
+  "app_mp": 465.53,
+  "app_mo": 93.11,
+  "app_gi": 279.32,
+  "app_total": 837.96,
+  "dif_mp_pct": 64.77,
+  "dif_total_pct": 6.53,
+  "faltan": [],
+  "sobran": [],
+  "espec": []
  }
 ]

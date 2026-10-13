@@ -21,3 +21,24 @@ Running 1 test using 1 worker
 
 [lab-costear] precio {"precios":["$169.29","Por confirmar"],"margen":null,"estado":"Costo preliminar — 5 decisión(es) pendiente(s): ¿Calibre de la lámina de la omega? · ¿Cuántas omegas se requieren? · ¿Acabado/color de la omega? · ¿Lleva barrenos/ranuras de fijación punzonados? · ¿Tipo de tornillería incluida?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $94.05 · Mano de obra $18.81 · Fábrica $56.43","pendiente":false,"porConfirmar":true}
 
+[lab-costear] paridad {"costoCliente":169.29,"costoSrv":169.29,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":191.86,"materialTotal":94.05,"manoObra":24.45,"indirectosFabrica":73.36,"desperdicio":7.55,"detalleInsumos":[{"insumoId":"lamina-18","nombre":"Lamina de acero cal. 18","seccion":"metal","costo":37.73,
+
+[lab-costear] dificultad {"costoNormal":169.29,"marcado":"true","costoDificil":191.86,"reqDificultad":"dificil","costoSrvDificil":191.86,"sube":true,"paridad":true,"costoDeVueltaNormal":169.29,"regresaIgual":true}
+
+[lab-costear] expedientes POST 201 [{"id":110}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":169.29,"materialTotal":94.05,"manoObra":18.81,"indirectosFabrica":56.43,"desperdicio":7.55,"detalleInsumos":[{"insumoId":"lamina-18","nombre":"Lamina de acero cal. 18","seccion":"metal","costo":37.73,
+
+[lab-costear] guardado {"status":201,"id":110,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":169.29,"materialTotal":94.05,"manoObra":18.81,"indirectosFabrica":56.43,"desperdicio":7.55,"detalleInsumos":[{"insumoId":"lamina-18","nombre":"Lamina de acero cal. 18","seccion":"metal","costo":37.73,
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":0,"pass":0,"fail":0,"riesgo":0,"sobrantesNoPermitidos":2,"renglonesBom":3,"veredicto":"FAIL"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB ciego ATOM4 1013-2016 BORRADOR otro accesorio estructural: perfil omega metálico de refuerzo bajo cubierta (línea App LT) Lámina de acero doblada","piezas":3,"mismoBom":true,"costoAntes":"$169.29","costoDespues":"$169.29","mismoCosto":true,"resultado":{"precios":["$169.29","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $94.05 · Mano de obra $18.81 · Fábrica $56.43","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.4m)

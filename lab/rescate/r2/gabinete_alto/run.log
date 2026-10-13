@@ -1,0 +1,46 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Gabinete alto 2 puertas 800x450x2000 mm, melamina 19 mm Soft Grey","tipo":"guarda","piezas":[{"nombre":"Lateral","insumoId":"melamina-19-soft-grey","material_solicitado":"Melamina 19 mm Soft Grey (HOJA 4 × 8)","material_match":"EXACT","forma":"area","largoMM":2000
+
+[lab-costear] analizar-mueble 200 en 25 s · piezas 11 · lote 1
+
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Gabinete alto 2 puertas 800x450x2000 melamina Soft Grey","tipo":"guarda","piezas":[{"nombre":"Lateral","insumoId":"melamina-19-soft-grey","material_solicitado":"Melamina 19 mm Soft Grey (HOJA 4 × 8)","material_match":"EXACT","forma":"area","largoMM":2000,"anchoMM"
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":4491.38,"materialTotal":2764.15,"manoObra":431.81,"indirectosFabrica":1295.42,"desperdicio":955.87,"detalleInsumos":[{"insumoId":"melamina-19-soft-grey","nombre":"Melamina 19 mm, Soft Grey","seccion":
+
+[lab-costear] BOM inicial {"piezas":11,"pendientes":["Respaldo"],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Cómo costeamos el respaldo MDF 6 mm (no está en catálogo)?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuántas piezas se fabricarán?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Lleva cerradura?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":4491.38,"materialTotal":2764.15,"manoObra":431.81,"indirectosFabrica":1295.42,"desperdicio":955.87,"detalleInsumos":[{"insumoId":"melamina-19-soft-grey","nombre":"Melamina 19 mm, Soft Grey","seccion":
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 6 propuestos","diferencias":"4 difieren de lo pedido y se confirman uno por uno: Tapacanto PVC 2 mm Soft Grey, Bisagra cierre suave, Jaladera 160 mm, Tornillería / soportes entrepaño. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$4,491.38","Por confirmar"],"margen":null,"estado":"Costo preliminar — 3 decisión(es) pendiente(s): ¿Cómo costeamos el respaldo MDF 6 mm (no está en catálogo)? · ¿Cuántas piezas se fabricarán? · ¿Lleva cerradura?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $2,764.15 · Mano de obra $431.81 · Fábrica $1,295.42","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":4491.38,"costoSrv":4491.38,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":5009.55,"materialTotal":2764.15,"manoObra":561.35,"indirectosFabrica":1684.05,"desperdicio":955.87,"detalleInsumos":[{"insumoId":"melamina-19-soft-grey","nombre":"Melamina 19 mm, Soft Grey","seccion":
+
+[lab-costear] dificultad {"costoNormal":4491.38,"marcado":"true","costoDificil":5009.55,"reqDificultad":"dificil","costoSrvDificil":5009.55,"sube":true,"paridad":true,"costoDeVueltaNormal":4491.38,"regresaIgual":true}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":4491.38,"materialTotal":2764.15,"manoObra":431.81,"indirectosFabrica":1295.42,"desperdicio":955.87,"detalleInsumos":[{"insumoId":"melamina-19-soft-grey","nombre":"Melamina 19 mm, Soft Grey","seccion":
+
+[lab-costear] expedientes POST 201 [{"id":112}]
+
+[lab-costear] guardado {"status":201,"id":112,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":4491.38,"materialTotal":2764.15,"manoObra":431.81,"indirectosFabrica":1295.42,"desperdicio":955.87,"detalleInsumos":[{"insumoId":"melamina-19-soft-grey","nombre":"Melamina 19 mm, Soft Grey","seccion":
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":10,"pass":10,"fail":0,"riesgo":0,"sobrantesNoPermitidos":0,"renglonesBom":11,"veredicto":"PASS"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB dif gabinete_alto 1013-2017 BORRADOR guarda gabinete alto 2 puertas Melamina gris Soft Grey","piezas":11,"mismoBom":true,"costoAntes":"$4,491.38","costoDespues":"$4,491.38","mismoCosto":true,"resultado":{"precios":["$4,491.38","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $2,764.15 · Mano de obra $431.81 · Fábrica $1,295.42","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.8m)

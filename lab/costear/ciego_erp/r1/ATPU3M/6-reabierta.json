@@ -1,0 +1,65 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATPU3M 1013-2019 BORRADOR otro pata estructural tipo \"U\" metálica para mesa/escritorio (línea App LT) Perfil de acero (tubo rectangular)",
+    "piezas": 7,
+    "mismoBom": true,
+    "costoAntes": "$775.76",
+    "costoDespues": "$775.76",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$775.76",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $430.98 · Mano de obra $86.20 · Fábrica $258.59",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Travesaño horizontal superior de la U (PTR)",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Montante vertical de la U (PTR)",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Placa de fijación superior a cubierta (lámina cal. 14)",
+      "material": "Lamina de acero cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Soldadura de ensamble de la U",
+      "material": "Soldadura",
+      "alertas": []
+    },
+    {
+      "nombre": "Pintura en polvo negro mate",
+      "material": "Pintura en polvo, Negro Mate 8 Vitracoat",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («electrostatica color especificado supuesto») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Nivelador cónico 3/8\"",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («roscado apoyo piso») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tornillería de fijación a cubierta",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («fijar placa cubierta») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

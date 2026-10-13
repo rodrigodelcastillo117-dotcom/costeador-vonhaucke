@@ -25,3 +25,22 @@ Running 1 test using 1 worker
 
 [lab-costear] paridad {"costoCliente":3724.61,"costoSrv":3724.61,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
 
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":4149.3,"materialTotal":2308.96,"manoObra":460.09,"indirectosFabrica":1380.26,"desperdicio":1091.71,"detalleInsumos":[{"insumoId":"melamina-19-gris-humo-lm","nombre":"Melamina 19 mm, Gris Humo LM","sec
+
+[lab-costear] dificultad {"costoNormal":3724.61,"marcado":"true","costoDificil":4149.3,"reqDificultad":"dificil","costoSrvDificil":4149.3,"sube":true,"paridad":true,"costoDeVueltaNormal":3724.61,"regresaIgual":true}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":3724.61,"materialTotal":2308.96,"manoObra":353.91,"indirectosFabrica":1061.74,"desperdicio":1091.71,"detalleInsumos":[{"insumoId":"melamina-19-gris-humo-lm","nombre":"Melamina 19 mm, Gris Humo LM","se
+
+[lab-costear] expedientes POST 201 [{"id":109}]
+
+[lab-costear] guardado {"status":201,"id":109,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":3724.61,"materialTotal":2308.96,"manoObra":353.91,"indirectosFabrica":1061.74,"desperdicio":1091.71,"detalleInsumos":[{"insumoId":"melamina-19-gris-humo-lm","nombre":"Melamina 19 mm, Gris Humo LM","se
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":6,"pass":6,"fail":0,"riesgo":0,"sobrantesNoPermitidos":0,"renglonesBom":9,"veredicto":"PASS"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB dif escritorio_L 1013-2015 BORRADOR escritorio escritorio en L Melamina gris humo 19 mm","piezas":9,"mismoBom":true,"costoAntes":"$3,724.61","costoDespues":"$3,724.61","mismoCosto":true,"resultado":{"precios":["$3,724.61","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $2,308.96 · Mano de obra $353.91 · Fábrica $1,061.74","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.7m)

@@ -1,0 +1,71 @@
+{
+  "producto": "PATA TIPO \"U\" DE 600 X 720 mm MODELO APPS LT; METALICA -- ATPU2M",
+  "resumen": {
+    "esperados": 0,
+    "pass": 0,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 4,
+    "renglonesBom": 5,
+    "veredicto": "FAIL"
+  },
+  "filas": [],
+  "sobran": [
+    {
+      "nombre": "Marco tipo U (PTR doblado/soldado) 600 × 720 mm",
+      "insumoId": "ptr-14",
+      "permitido": false
+    },
+    {
+      "nombre": "Soldadura de esquinas U (2 uniones)",
+      "insumoId": "soldadura",
+      "permitido": true
+    },
+    {
+      "nombre": "Placa de fijación a cubierta (lámina cal.12, 120 × 80 mm)",
+      "insumoId": "lamina-12",
+      "permitido": false
+    },
+    {
+      "nombre": "Niveladores 3/8\"",
+      "insumoId": "nivelador",
+      "permitido": false
+    },
+    {
+      "nombre": "Acabado pintura en polvo (negro mate, supuesto)",
+      "insumoId": "pintura-polvo-negro-mate-8-vitracoat",
+      "permitido": false
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Cuántas patas tipo U se requieren?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Qué calibre y sección de PTR para la pata?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Color de pintura en polvo?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Lleva placa superior barrenada para fijación a cubierta?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Qué tipo de apoyo al piso?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿La pata lleva ducto/pasacables interno para electrificación App LT?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Los 720 mm son altura total terminada (incluyendo cubierta) o altura de la pata sola?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

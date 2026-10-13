@@ -1,0 +1,85 @@
+{
+  "producto": "PATA TIPO \"U\" DE 750 X 720 mm MODELO APPS LT; METALICA -- ATPU75M",
+  "resumen": {
+    "esperados": 0,
+    "pass": 0,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 5,
+    "renglonesBom": 7,
+    "veredicto": "FAIL"
+  },
+  "filas": [],
+  "sobran": [
+    {
+      "nombre": "Montante vertical de pata U (PTR)",
+      "insumoId": "ptr-14",
+      "permitido": false
+    },
+    {
+      "nombre": "Travesaño horizontal de pata U (PTR)",
+      "insumoId": "ptr-14",
+      "permitido": false
+    },
+    {
+      "nombre": "Placa de refuerzo/fijación a cubierta (lámina doblada)",
+      "insumoId": "lamina-14",
+      "permitido": false
+    },
+    {
+      "nombre": "Soldadura MIG de uniones de la U",
+      "insumoId": "soldadura",
+      "permitido": true
+    },
+    {
+      "nombre": "Pintura en polvo (acabado pata)",
+      "insumoId": "pintura-polvo-negro-mate-8-vitracoat",
+      "permitido": false
+    },
+    {
+      "nombre": "Niveladores",
+      "insumoId": "nivelador",
+      "permitido": false
+    },
+    {
+      "nombre": "Tornillería de montaje a cubierta",
+      "insumoId": "tornilleria",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Cuántas patas tipo U se requieren?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Qué sección de tubo/PTR lleva la pata?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Calibre del tubo?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Color de pintura en polvo?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿750 mm es el ancho y 720 mm la altura de la U?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Lleva niveladores o zapata/regatón?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Lleva placa superior barrenada para fijar cubierta?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿La pata lleva canalización de cableado interna (modelo App LT)?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

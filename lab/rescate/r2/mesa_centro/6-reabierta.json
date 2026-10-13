@@ -1,0 +1,59 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB dif mesa_centro 1013-2021 BORRADOR mesita mesa de centro Cristal templado 9 mm Lista: $7,051 · preliminar",
+    "piezas": 7,
+    "mismoBom": true,
+    "costoAntes": "$4,230.73",
+    "costoDespues": "$4,230.73",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$4,230.73",
+        "$7,051.22"
+      ],
+      "margen": "Precio de lista (40% margen · del expediente guardado)",
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $2,687.97 · Mano de obra $381.59 · Fábrica $1,161.18",
+      "pendiente": false,
+      "porConfirmar": false
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta cristal templado 9 mm canto pulido",
+      "material": "Cristal templado 9 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Marco rectangular tubular 900x500",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": []
+    },
+    {
+      "nombre": "Poste tubular 392",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": []
+    },
+    {
+      "nombre": "Acabado cromado base (EcoCrom)",
+      "material": "EcoCrom",
+      "alertas": []
+    },
+    {
+      "nombre": "Soldadura uniones base",
+      "material": "Soldadura",
+      "alertas": []
+    },
+    {
+      "nombre": "Topes/ventosas de apoyo cristal",
+      "material": "Silicon",
+      "alertas": []
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    }
+  ]
+}

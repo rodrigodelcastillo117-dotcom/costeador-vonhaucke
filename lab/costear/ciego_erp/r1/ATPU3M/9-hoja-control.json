@@ -1,0 +1,85 @@
+{
+  "producto": "PATA TIPO \"U\" DE 900 X 720 mm MODELO APPS LT; METALICA -- ATPU3M",
+  "resumen": {
+    "esperados": 0,
+    "pass": 0,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 5,
+    "renglonesBom": 7,
+    "veredicto": "FAIL"
+  },
+  "filas": [],
+  "sobran": [
+    {
+      "nombre": "Travesaño horizontal superior de la U (PTR)",
+      "insumoId": "ptr-14",
+      "permitido": false
+    },
+    {
+      "nombre": "Montante vertical de la U (PTR)",
+      "insumoId": "ptr-14",
+      "permitido": false
+    },
+    {
+      "nombre": "Placa de fijación superior a cubierta (lámina cal. 14)",
+      "insumoId": "lamina-14",
+      "permitido": false
+    },
+    {
+      "nombre": "Soldadura de ensamble de la U",
+      "insumoId": "soldadura",
+      "permitido": true
+    },
+    {
+      "nombre": "Pintura en polvo negro mate",
+      "insumoId": "pintura-polvo-negro-mate-8-vitracoat",
+      "permitido": false
+    },
+    {
+      "nombre": "Nivelador cónico 3/8\"",
+      "insumoId": "nivelador",
+      "permitido": false
+    },
+    {
+      "nombre": "Tornillería de fijación a cubierta",
+      "insumoId": "tornilleria",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Cuántas patas tipo U se requieren?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Qué sección de perfil lleva la pata?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Calibre del perfil metálico?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Color/acabado de la pintura en polvo?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "Los 720 mm de altura, ¿son totales incluyendo nivelador?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Apoyo en piso con nivelador o con zapata/placa corrida?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿La pata requiere paso de cableado interno o canalización?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Lleva placa superior barrenada para fijar a cubierta?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Pata tipo \"U\" metálica 900 × 720 mm, modelo App LT","tipo":"otro","piezas":[{"nombre":"Travesaño horizontal superior de la U (PTR)","insumoId":"ptr-14","material_solicitado":"Perfil metálico PTR rectangular cal. 14 (sección no especificada; supuesto 3\" x 1 1/2\
+
+[lab-costear] analizar-mueble 200 en 40 s · piezas 7 · lote 1
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":775.76,"materialTotal":430.98,"manoObra":86.2,"indirectosFabrica":258.59,"desperdicio":170.96,"detalleInsumos":[{"insumoId":"ptr-14","nombre":"Tubo / PTR cal. 14","seccion":"metal","costo":270.78,"cer
+
+[lab-costear] BOM inicial {"piezas":7,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Cuántas patas tipo U se requieren?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Qué sección de perfil lleva la pata?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Calibre del perfil metálico?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Color/acabado de la pintura en polvo?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"Los 720 mm de altura, ¿son totales incluyendo nivelador?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Apoyo en piso con nivelador o con zapata/placa corrida?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿La pata requiere paso de cableado interno o canalización?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Lleva placa superior barrenada para fijar a cubierta?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 4 propuestos","diferencias":"3 difieren de lo pedido y se confirman uno por uno: Pintura en polvo negro mate, Nivelador cónico 3/8\", Tornillería de fijación a cubierta. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$775.76","Por confirmar"],"margen":null,"estado":"Costo preliminar — 8 decisión(es) pendiente(s): ¿Cuántas patas tipo U se requieren? · ¿Qué sección de perfil lleva la pata? · ¿Calibre del perfil metálico? · ¿Color/acabado de la pintura en polvo? · Los 720 mm de altura, ¿son totales incluyendo nivelador? · ¿Apoyo en piso con nivelador o con zapata/placa corrida? · ¿La pata requiere paso de cableado interno o canalización? · ¿Lleva placa superior barrenada para fijar a cubierta?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $430.98 · Mano de obra $86.20 · Fábrica $258.59","pendiente":false,"porConfirmar":true}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":775.76,"materialTotal":430.98,"manoObra":86.2,"indirectosFabrica":258.59,"desperdicio":170.96,"detalleInsumos":[{"insumoId":"ptr-14","nombre":"Tubo / PTR cal. 14","seccion":"metal","costo":270.78,"cer
+
+[lab-costear] paridad {"costoCliente":775.76,"costoSrv":775.76,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":879.19,"materialTotal":430.98,"manoObra":112.05,"indirectosFabrica":336.16,"desperdicio":170.96,"detalleInsumos":[{"insumoId":"ptr-14","nombre":"Tubo / PTR cal. 14","seccion":"metal","costo":270.78,"c
+
+[lab-costear] dificultad {"costoNormal":775.76,"marcado":"true","costoDificil":879.19,"reqDificultad":"dificil","costoSrvDificil":879.19,"sube":true,"paridad":true,"costoDeVueltaNormal":775.76,"regresaIgual":true}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":775.76,"materialTotal":430.98,"manoObra":86.2,"indirectosFabrica":258.59,"desperdicio":170.96,"detalleInsumos":[{"insumoId":"ptr-14","nombre":"Tubo / PTR cal. 14","seccion":"metal","costo":270.78,"cer
+
+[lab-costear] expedientes POST 201 [{"id":113}]
+
+[lab-costear] guardado {"status":201,"id":113,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":775.76,"materialTotal":430.98,"manoObra":86.2,"indirectosFabrica":258.59,"desperdicio":170.96,"detalleInsumos":[{"insumoId":"ptr-14","nombre":"Tubo / PTR cal. 14","seccion":"metal","costo":270.78,"cer
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":0,"pass":0,"fail":0,"riesgo":0,"sobrantesNoPermitidos":5,"renglonesBom":7,"veredicto":"FAIL"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB ciego ATPU3M 1013-2019 BORRADOR otro pata estructural tipo \"U\" metálica para mesa/escritorio (línea App LT) Perfil de acero (tubo rectangular)","piezas":7,"mismoBom":true,"costoAntes":"$775.76","costoDespues":"$775.76","mismoCosto":true,"resultado":{"precios":["$775.76","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $430.98 · Mano de obra $86.20 · Fábrica $258.59","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.5m)

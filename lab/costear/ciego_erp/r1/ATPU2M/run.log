@@ -1,0 +1,44 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Pata metálica tipo \"U\" 600 × 720 mm, modelo App LT","tipo":"otro","piezas":[{"nombre":"Marco tipo U (PTR doblado/soldado) 600 × 720 mm","insumoId":"ptr-14","material_solicitado":"PTR metálico (calibre no especificado) para pata tipo U modelo App LT","material_ma
+
+[lab-costear] analizar-mueble 200 en 36 s · piezas 5 · lote 1
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":683.52,"materialTotal":379.73,"manoObra":75.95,"indirectosFabrica":227.84,"desperdicio":183.53,"detalleInsumos":[{"insumoId":"ptr-14","nombre":"Tubo / PTR cal. 14","seccion":"metal","costo":270.78,"ce
+
+[lab-costear] BOM inicial {"piezas":5,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Cuántas patas tipo U se requieren?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Qué calibre y sección de PTR para la pata?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Color de pintura en polvo?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Lleva placa superior barrenada para fijación a cubierta?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Qué tipo de apoyo al piso?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿La pata lleva ducto/pasacables interno para electrificación App LT?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Los 720 mm son altura total terminada (incluyendo cubierta) o altura de la pata sola?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":683.52,"materialTotal":379.73,"manoObra":75.95,"indirectosFabrica":227.84,"desperdicio":183.53,"detalleInsumos":[{"insumoId":"ptr-14","nombre":"Tubo / PTR cal. 14","seccion":"metal","costo":270.78,"ce
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 4 propuestos","diferencias":"1 difieren de lo pedido y se confirman uno por uno: Acabado pintura en polvo (negro mate, supuesto). ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$683.52","Por confirmar"],"margen":null,"estado":"Costo preliminar — 7 decisión(es) pendiente(s): ¿Cuántas patas tipo U se requieren? · ¿Qué calibre y sección de PTR para la pata? · ¿Color de pintura en polvo? · ¿Lleva placa superior barrenada para fijación a cubierta? · ¿Qué tipo de apoyo al piso? · ¿La pata lleva ducto/pasacables interno para electrificación App LT? · ¿Los 720 mm son altura total terminada (incluyendo cubierta) o altura de la pata sola?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $379.73 · Mano de obra $75.95 · Fábrica $227.84","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":683.52,"costoSrv":683.52,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":774.66,"materialTotal":379.73,"manoObra":98.73,"indirectosFabrica":296.19,"desperdicio":183.53,"detalleInsumos":[{"insumoId":"ptr-14","nombre":"Tubo / PTR cal. 14","seccion":"metal","costo":270.78,"ce
+
+[lab-costear] dificultad {"costoNormal":683.52,"marcado":"true","costoDificil":774.66,"reqDificultad":"dificil","costoSrvDificil":774.66,"sube":true,"paridad":true,"costoDeVueltaNormal":683.52,"regresaIgual":true}
+
+[lab-costear] expedientes POST 201 [{"id":111}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":683.52,"materialTotal":379.73,"manoObra":75.95,"indirectosFabrica":227.84,"desperdicio":183.53,"detalleInsumos":[{"insumoId":"ptr-14","nombre":"Tubo / PTR cal. 14","seccion":"metal","costo":270.78,"ce
+
+[lab-costear] guardado {"status":201,"id":111,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":683.52,"materialTotal":379.73,"manoObra":75.95,"indirectosFabrica":227.84,"desperdicio":183.53,"detalleInsumos":[{"insumoId":"ptr-14","nombre":"Tubo / PTR cal. 14","seccion":"metal","costo":270.78,"ce
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":0,"pass":0,"fail":0,"riesgo":0,"sobrantesNoPermitidos":4,"renglonesBom":5,"veredicto":"FAIL"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB ciego ATPU2M 1013-2017 BORRADOR otro pata estructural metálica tipo \"U\" para mesa/escritorio (línea App LT) Tubo de acero estructural","piezas":5,"mismoBom":true,"costoAntes":"$683.52","costoDespues":"$683.52","mismoCosto":true,"resultado":{"precios":["$683.52","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $379.73 · Mano de obra $75.95 · Fábrica $227.84","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.4m)

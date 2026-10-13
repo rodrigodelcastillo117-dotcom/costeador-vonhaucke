@@ -1,0 +1,65 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATPU75M 1013-2020 BORRADOR otro pata estructural tipo \"U\" metálica para mesa/bench (modelo App LT) Tubo de acero estructural",
+    "piezas": 7,
+    "mismoBom": true,
+    "costoAntes": "$837.96",
+    "costoDespues": "$837.96",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$837.96",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $465.53 · Mano de obra $93.11 · Fábrica $279.32",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Montante vertical de pata U (PTR)",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Travesaño horizontal de pata U (PTR)",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Placa de refuerzo/fijación a cubierta (lámina doblada)",
+      "material": "Lamina de acero cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Soldadura MIG de uniones de la U",
+      "material": "Soldadura",
+      "alertas": []
+    },
+    {
+      "nombre": "Pintura en polvo (acabado pata)",
+      "material": "Pintura en polvo, Negro Mate 8 Vitracoat",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («acabado electrostatica color especificado supuesto») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («base pata») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tornillería de montaje a cubierta",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («fijacion pata cubierta») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}
