@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$1,760.54",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 1 decisión(es) pendiente(s): ¿El faldon va solo al frente o tambien atras?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $10,400.67 · Mano de obra $1,801.18 · Fábrica $5,403.54",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

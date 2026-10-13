@@ -2,3 +2,43 @@
 Running 1 test using 1 worker
 
 [1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Mesa de trabajo 1500x700x750 mm con cubierta de melamina blanca y estructura PTR","tipo":"mesa","piezas":[{"nombre":"Cubierta melamina blanca 19 mm","insumoId":"melamina-19","material_solicitado":"melamina blanca 19 mm","material_match":"EXACT","forma":"area","lar
+
+[lab-costear] analizar-mueble 200 en 21 s · piezas 8 · lote 10
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":10,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1760.54,"materialTotal":10400.67,"manoObra":1801.18,"indirectosFabrica":5403.54,"desperdicio":3670.11,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno 19 mm","seccion"
+
+[lab-costear] BOM inicial {"piezas":8,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿El faldon va solo al frente o tambien atras?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":10,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1760.54,"materialTotal":10400.67,"manoObra":1801.18,"indirectosFabrica":5403.54,"desperdicio":3670.11,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno 19 mm","seccion"
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 7 propuestos","diferencias":"1 difieren de lo pedido y se confirman uno por uno: Pintura en polvo blanco RAL 9016. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$1,760.54","Por confirmar"],"margen":null,"estado":"Costo preliminar — 1 decisión(es) pendiente(s): ¿El faldon va solo al frente o tambien atras?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $10,400.67 · Mano de obra $1,801.18 · Fábrica $5,403.54","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":1760.54,"costoSrv":1760.54,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":10,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1976.68,"materialTotal":10400.67,"manoObra":2341.53,"indirectosFabrica":7024.6,"desperdicio":3670.11,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno 19 mm","seccion":
+
+[lab-costear] dificultad {"costoNormal":1760.54,"marcado":"true","costoDificil":1976.68,"reqDificultad":"dificil","costoSrvDificil":1976.68,"sube":true,"paridad":true,"costoDeVueltaNormal":1760.54,"regresaIgual":true}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":10,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1760.54,"materialTotal":10400.67,"manoObra":1801.18,"indirectosFabrica":5403.54,"desperdicio":3670.11,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno 19 mm","seccion"
+
+[lab-costear] expedientes POST 201 [{"id":79}]
+
+[lab-costear] guardado {"status":201,"id":79,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":10,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1760.54,"materialTotal":10400.67,"manoObra":1801.18,"indirectosFabrica":5403.54,"desperdicio":3670.11,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno 19 mm","seccion"
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":6,"pass":6,"fail":0,"riesgo":0,"sobrantesNoPermitidos":0,"renglonesBom":8,"veredicto":"PASS"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB dif mesa_trabajo_lote10 1013-1627 BORRADOR mesa mesa de trabajo recta con estructura PTR Melamina blanca 19 mm","piezas":8,"mismoBom":true,"costoAntes":"$1,760.54","costoDespues":"$1,760.54","mismoCosto":true,"resultado":{"precios":["$1,760.54","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $10,400.67 · Mano de obra $1,801.18 · Fábrica $5,403.54","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.2m)
