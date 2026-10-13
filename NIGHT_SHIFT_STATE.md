@@ -89,3 +89,15 @@ producción, modificar precios, eliminar funcionalidades, limpiar pruebas para a
 | 5 COSTEAR | prioridad funcional: corrida 8 no cerrada; investigar por qué VONI usa curados habiendo ERP exacto; VH-151 (hoja ≠ pieza, chapa por caras reales, cantidades estables con evidencia, ambigüedad se pregunta, selecciones manuales sobreviven, paridad al centavo sobre el MISMO BOM); ciclo desde cero con transferencia a Cotizar; Pendiente ≠ PASS | cliente + analizar-mueble-rc + labs | en curso (yo) |
 | 6 COTIZAR/renders | topología App LT 12u y sillas con 200 mm; no VALIDADO con conflictos; renders: generada / validada / persistida / reabierta / en PDF, por separado | catálogo topología + lab render por etapas | pendiente |
 | control final | revisión de integración del PR #37 (126 archivos, 43 commits) en bloques verificables: SQL, cliente, pruebas, prompts, docs; CI verify PASS / E2E FAIL por VH-035 se mantiene visible | doc de integración | pendiente |
+
+## Estado al cierre de la segunda vuelta (código en `b4b6ca2`; informe `docs/auditoria/NOCHE_2026-10-13_INFORME_V2.md`)
+
+| decisión | estado | evidencia |
+|---|---|---|
+| 1 ERP | PROPUESTA vh147 en SQL real, 17 pruebas PGlite; no aplicada | `supabase/tests/erpPolitica.test.js`, `docs/auditoria/ERP_POLITICA_PRUEBAS.md` |
+| 2 VH-035b → vh035c | PROPUESTA integral, 32 pruebas PGlite; no aplicada; riesgo de orden con vh148 | `supabase/tests/preservaEconomiaIntegral.test.js`, `docs/auditoria/VH035C_INTEGRAL.md` |
+| 3 formatos | PROPUESTA vh146, 28 + 8 pruebas; hallazgos de motor (merma inerte, 5×8 sobrecostea) | `supabase/tests/formatoHojasErp.test.js`, `src/motor/formatoHojaErp.test.js` |
+| 4 VH-148 | cliente tras bandera + PROPUESTA; 13 + 25 + 4 pruebas; no desplegado | `docs/auditoria/VH148_CONTROL_OPTIMISTA.md` |
+| 5 COSTEAR | paridad al centavo con diferencias aceptadas (corrida 12); bloqueo honesto en 2 decisiones de diseño (corrida 14) | `lab/noche/costear/corrida11…14` |
+| 6 COTIZAR/renders | acomodo C1 VALIDADO; propuesta bloqueada por P0-01; renders 5 etapas 4/4 | `lab/noche/cotizar_c1/corrida3`, `lab/noche/render_v2` |
+| control final | revisión de integración + CI `verify` reparado; overrides de Edge sólo en desarrollo | `docs/auditoria/INTEGRACION_PR37.md` |
