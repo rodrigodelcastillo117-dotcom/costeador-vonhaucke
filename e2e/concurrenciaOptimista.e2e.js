@@ -6,6 +6,15 @@
 //      lo local de B NO se pierde, aparece el aviso y el autosave queda en pausa;
 //    · "Volver a aplicar mis cambios" → B guarda encima con la versión fresca (un clic);
 //    · "Ver la versión del servidor" → carga lo del servidor y respalda lo local en esta computadora.
+//  Segunda vuelta (auditoría: "conserva ambas versiones y exige resolución explícita; prueba guardado,
+//  conflicto, recuperación y reapertura"):
+//    · tras "Ver la versión del servidor" las DOS versiones siguen vivas (aviso RespaldoConflicto con lo
+//      que difiere) y sobreviven una recarga;
+//    · "Recuperar mis cambios" = fusión de tres vías POR CAMPO encima de la versión ACTUAL del servidor,
+//      guardada con su `actualizado` (sin 40001); si reemplaza algo que la otra persona también cambió,
+//      pide confirmación;
+//    · reabrir en otra computadora trae lo recuperado de B + lo de A que B no tocó;
+//    · "Descartar mi respaldo" pide confirmación y sólo entonces borra la clave.
 //  Navegador real (Chromium) + nube falsa con la semántica de PROPUESTA_vh148 (ver nubeFalsa.js;
 //  probada contra PostgreSQL real en supabase/tests/controlOptimista.test.js). No toca producción.
 //
@@ -42,6 +51,10 @@ async function entrar(page, email) {
   if (await page.getByRole('dialog', { name: /Guía de uso/i }).isVisible().catch(() => false)) await page.keyboard.press('Escape');
 }
 const inputCliente = (page) => page.locator('label.etiqueta', { hasText: /^Cliente$/ }).locator('xpath=following-sibling::input[1]');
+const inputFolio = (page) => page.locator('label.etiqueta', { hasText: /^Folio de la propuesta$/ }).locator('xpath=following-sibling::div[1]//input');
+const avisoRespaldo = (page) => page.getByTestId('respaldo-conflicto');
+const leerRespaldo = (page, id) => page.evaluate((k) => JSON.parse(localStorage.getItem(k) || 'null'), `costeador-vonhaucke-conflicto-${id}`);
+const filaDif = (page, campo) => avisoRespaldo(page).locator(`tr[data-campo="${campo}"]`);
 const leerLocal = (page) => page.evaluate((k) => JSON.parse(localStorage.getItem(k) || '{}'), CLAVE_LOCAL);
 const banner = (page) => page.getByTestId('conflicto-guardado');
 async function abrirPrimeraDelArchivo(page) {
@@ -55,6 +68,36 @@ async function abrirPrimeraDelArchivo(page) {
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 const esperarGuardado = async (nube, cond, ms = 8000) => expect.poll(() => cond(nube), { timeout: ms }).toBe(true);
 const intentosDeGuardado = (nube) => nube.llamadas.filter((l) => l.includes('/rest/v1/rpc/actualizar_cotizacion_segura')).length;
+// Diálogos (confirm) registrados; `responder` decide aceptar (true) o cancelar (false) cada uno.
+function registrarDialogos(page) {
+  const vistos = []; let responder = () => true;
+  // abrirPrimeraDelArchivo deja un `once('dialog', accept)` sin consumir si no hubo confirm al abrir:
+  // se quita para que NINGÚN confirm de estas pruebas se acepte solo.
+  page.removeAllListeners('dialog');
+  page.on('dialog', async (d) => { vistos.push(d.message()); if (responder(d.message())) await d.accept(); else await d.dismiss(); });
+  return { vistos, responderCon(fn) { responder = fn; } };
+}
+// A y B abren la misma fila; A cambia lo suyo y guarda; B cambia lo suyo → 40001; B escoge "Ver la versión
+// del servidor". Devuelve las pestañas y la versión que A dejó.
+async function conflictoYVersionDelServidor(browser, nube, id, { editaA, editaB }) {
+  const A = await pestana(browser, nube), B = await pestana(browser, nube);
+  await entrar(A.page, 'ventas@vh.mx'); await abrirPrimeraDelArchivo(A.page);
+  await entrar(B.page, 'ventas@vh.mx'); await abrirPrimeraDelArchivo(B.page);
+  const updatesAntes = nube.updates;
+  await editaA(A.page);
+  await esperarGuardado(nube, (n) => n.updates === updatesAntes + 1);
+  const versionA = nube.filas.get(id).actualizado;
+  const filaTrasA = JSON.parse(JSON.stringify(nube.filas.get(id)));
+  await editaB(B.page);
+  await expect(banner(B.page)).toBeVisible({ timeout: 10000 });
+  await expect(banner(B.page).getByTestId('conflicto-explicacion')).toContainText(/guarda tu versión COMPLETA y reemplaza lo que la otra persona cambió/);
+  expect(nube.conflictos).toBe(1);
+  expect(nube.filas.get(id), 'el rechazo no tocó la fila').toEqual(filaTrasA);
+  await banner(B.page).getByRole('button', { name: 'Ver la versión del servidor' }).click();
+  await expect(banner(B.page)).toBeHidden({ timeout: 10000 });
+  await expect(avisoRespaldo(B.page)).toBeVisible({ timeout: 10000 });
+  return { A, B, versionA, filaTrasA };
+}
 
 test.describe('VH-148 · control optimista entre dos pestañas', () => {
   test('A guarda; B (copia vieja) es rechazada, conserva lo suyo, el autosave se pausa; "Volver a aplicar" y "Ver la versión del servidor" funcionan', async ({ browser }) => {
@@ -183,6 +226,7 @@ test.describe('VH-148 · control optimista entre dos pestañas', () => {
     expect(nube.conflictos).toBe(0);
     expect(nube.esperados.every((v) => v === undefined)).toBe(true);
     await expect(banner(B.page)).toBeHidden();
+    await expect(avisoRespaldo(B.page)).toBeHidden();             // sin bandera tampoco hay aviso de respaldo
     await A.context.close(); await B.context.close();
   });
 
@@ -202,5 +246,151 @@ test.describe('VH-148 · control optimista entre dos pestañas', () => {
     await esperarGuardado(nube, (n) => n.filas.get(id).cliente === 'Oxxo Centro 2');
     expect(nube.esperados).toEqual([undefined, undefined]);
     await A.context.close();
+  });
+  test('recuperación + reapertura: B recupera SU folio encima del cliente de A, guarda con la versión fresca (sin 40001) y al reabrir en otra computadora están los dos', async ({ browser }) => {
+    test.setTimeout(150_000);
+    const nube = crearNubeFalsa({ usuarios: USUARIOS });
+    const id = nube.sembrarFila({ usuario: 'ventas@vh.mx', cliente: 'Bimbo', partidas: [PARTIDA], total: 55680, piezas: 1 });
+
+    // --- guardado (A) y conflicto (B): nada se sobrescribe ---
+    const { A, B, versionA } = await conflictoYVersionDelServidor(browser, nube, id, {
+      editaA: (p) => inputCliente(p).fill('Bimbo Norte'),     // A sólo toca el cliente
+      editaB: (p) => inputFolio(p).fill('F-B-77'),            // B sólo toca el folio
+    });
+    expect(nube.filas.get(id)).toMatchObject({ cliente: 'Bimbo Norte', folio: null, actualizado: versionA });
+    const dialogosB = registrarDialogos(B.page);
+
+    // --- las DOS versiones vivas: la del servidor en pantalla, la de B en el respaldo y en el aviso ---
+    await expect(inputCliente(B.page)).toHaveValue('Bimbo Norte');
+    await expect(inputFolio(B.page)).toHaveValue('');
+    const respaldo = await leerRespaldo(B.page, id);
+    expect(respaldo.cotizacion).toMatchObject({ id, cliente: 'Bimbo', folio: 'F-B-77' });
+    expect(respaldo.base).toMatchObject({ cliente: 'Bimbo', folio: '' });      // desde dónde editaba B
+    await expect(filaDif(B.page, 'cliente')).toHaveAttribute('data-distinto', '1');
+    await expect(filaDif(B.page, 'cliente')).toContainText('Bimbo');
+    await expect(filaDif(B.page, 'cliente')).toContainText('Bimbo Norte');
+    await expect(filaDif(B.page, 'folio')).toContainText('F-B-77');
+    await expect(filaDif(B.page, 'partidas')).toHaveAttribute('data-distinto', '0');
+    await expect(filaDif(B.page, 'total')).toBeVisible();
+    await expect(avisoRespaldo(B.page).getByTestId('respaldo-plan')).toContainText('Se aplicarán tus cambios en: Folio.');
+    await expect(avisoRespaldo(B.page).getByTestId('respaldo-plan')).toContainText('Se queda lo de la otra persona en: Cliente.');
+    await expect(avisoRespaldo(B.page).getByTestId('respaldo-plan')).not.toContainText(/REEMPLAZAR/);
+    // ver la versión del servidor no escribe nada, y el respaldo NO se resuelve solo
+    const intentos = intentosDeGuardado(nube);
+    await esperar(2500);
+    expect(intentosDeGuardado(nube)).toBe(intentos);
+    await expect(avisoRespaldo(B.page)).toBeVisible();
+
+    // --- el respaldo sobrevive una recarga (sigue en esta computadora, con su base) ---
+    await B.page.reload();
+    await expect(avisoRespaldo(B.page)).toBeVisible({ timeout: 20000 });
+    expect(await leerRespaldo(B.page, id)).toEqual(respaldo);
+    expect(intentosDeGuardado(nube), 'recargar no escribe').toBe(intentos);
+
+    // --- "Recuperar mis cambios": relee el servidor, aplica SOLO el folio, guarda con la versión fresca ---
+    await avisoRespaldo(B.page).getByRole('button', { name: 'Recuperar mis cambios' }).click();
+    await esperarGuardado(nube, (n) => n.filas.get(id).folio === 'F-B-77');
+    expect(dialogosB.vistos, 'sin choque no se pide confirmación').toEqual([]);
+    expect(nube.esperados.at(-1), 'se guardó encima de la versión ACTUAL del servidor').toBe(versionA);
+    expect(nube.conflictos, 'sin 40001 al recuperar').toBe(1);
+    expect(nube.filas.get(id)).toMatchObject({ cliente: 'Bimbo Norte', folio: 'F-B-77' });   // lo de A se quedó
+    const versionR = nube.filas.get(id).actualizado;
+    expect(versionR).not.toBe(versionA);
+    await expect(avisoRespaldo(B.page)).toBeHidden({ timeout: 10000 });
+    await expect(B.page.locator('.toast')).toContainText(/recuperaste tus cambios \(Folio\) encima de la versión del servidor/i, { timeout: 10000 });
+    expect(await leerRespaldo(B.page, id), 'el respaldo se retiró sólo tras el guardado confirmado').toBeNull();
+    // (tras la recarga la app vuelve a Inicio: lo vivo se lee del estado local, no de los inputs)
+    await expect.poll(async () => (await leerLocal(B.page)).cotizacion.actualizado).toBe(versionR);
+    expect((await leerLocal(B.page)).cotizacion).toMatchObject({ id, cliente: 'Bimbo Norte', folio: 'F-B-77' });
+    const intentosTras = intentosDeGuardado(nube);
+    await esperar(2500);
+    expect(intentosDeGuardado(nube), 'el autosave no reenvía lo recuperado').toBe(intentosTras);
+    expect(nube.filas.size).toBe(1);
+
+    // --- CERRAR y REABRIR en otra computadora (contexto nuevo, localStorage vacío) ---
+    await A.context.close(); await B.context.close();
+    const C = await pestana(browser, nube);
+    await entrar(C.page, 'ventas@vh.mx'); await abrirPrimeraDelArchivo(C.page);
+    await expect(inputCliente(C.page)).toHaveValue('Bimbo Norte');   // de A (B no lo tocó)
+    await expect(inputFolio(C.page)).toHaveValue('F-B-77');          // de B (recuperado)
+    expect((await leerLocal(C.page)).cotizacion).toMatchObject({ id, cliente: 'Bimbo Norte', folio: 'F-B-77', actualizado: versionR });
+    expect((await leerLocal(C.page)).cotizacion.partidas).toHaveLength(1);
+    await expect(avisoRespaldo(C.page)).toBeHidden();
+    await expect(banner(C.page)).toBeHidden();
+    // y se sigue editando normal desde la versión recuperada
+    await inputCliente(C.page).fill('Bimbo Norte 2');
+    await esperarGuardado(nube, (n) => n.filas.get(id).cliente === 'Bimbo Norte 2');
+    expect(nube.esperados.at(-1)).toBe(versionR);
+    expect(nube.filas.get(id).folio).toBe('F-B-77');
+    expect(nube.conflictos).toBe(1);
+    await C.context.close();
+  });
+
+  test('choque: los dos cambiaron el cliente → "Recuperar" pide confirmación; cancelar no toca nada; aceptar reemplaza con la versión fresca', async ({ browser }) => {
+    test.setTimeout(120_000);
+    const nube = crearNubeFalsa({ usuarios: USUARIOS });
+    const id = nube.sembrarFila({ usuario: 'ventas@vh.mx', cliente: 'Sigma', partidas: [PARTIDA], total: 55680, piezas: 1 });
+    const { A, B, versionA } = await conflictoYVersionDelServidor(browser, nube, id, {
+      editaA: (p) => inputCliente(p).fill('Sigma Norte'),
+      editaB: (p) => inputCliente(p).fill('Sigma Sur'),
+    });
+    await expect(avisoRespaldo(B.page).getByTestId('respaldo-plan')).toContainText('Los dos cambiaron Cliente: tu versión REEMPLAZARÁ la de la otra persona');
+    const d = registrarDialogos(B.page);
+    // cancelar → nada cambia (ni servidor ni respaldo)
+    d.responderCon(() => false);
+    const updates = nube.updates, intentos = intentosDeGuardado(nube);
+    await avisoRespaldo(B.page).getByRole('button', { name: 'Recuperar mis cambios' }).click();
+    await expect.poll(() => d.vistos.length).toBe(1);
+    expect(d.vistos[0]).toMatch(/La otra persona también cambió: Cliente\./);
+    await esperar(2000);
+    expect(nube.updates).toBe(updates);
+    expect(intentosDeGuardado(nube)).toBe(intentos);
+    expect(nube.filas.get(id).cliente).toBe('Sigma Norte');
+    await expect(inputCliente(B.page)).toHaveValue('Sigma Norte');
+    expect((await leerRespaldo(B.page, id)).cotizacion.cliente).toBe('Sigma Sur');
+    await expect(avisoRespaldo(B.page)).toBeVisible();
+    // aceptar → la versión de B reemplaza, con la versión fresca, sin 40001
+    d.responderCon(() => true);
+    await avisoRespaldo(B.page).getByRole('button', { name: 'Recuperar mis cambios' }).click();
+    await esperarGuardado(nube, (n) => n.filas.get(id).cliente === 'Sigma Sur');
+    expect(d.vistos).toHaveLength(2);
+    expect(nube.esperados.at(-1)).toBe(versionA);
+    expect(nube.conflictos).toBe(1);
+    await expect(avisoRespaldo(B.page)).toBeHidden({ timeout: 10000 });
+    expect(await leerRespaldo(B.page, id)).toBeNull();
+    await A.context.close(); await B.context.close();
+  });
+
+  test('"Descartar mi respaldo" pide confirmación: cancelar lo conserva; aceptar borra la clave y no toca el servidor', async ({ browser }) => {
+    test.setTimeout(120_000);
+    const nube = crearNubeFalsa({ usuarios: USUARIOS });
+    const id = nube.sembrarFila({ usuario: 'ventas@vh.mx', cliente: 'Lamosa', partidas: [PARTIDA], total: 55680, piezas: 1 });
+    const { A, B } = await conflictoYVersionDelServidor(browser, nube, id, {
+      editaA: (p) => inputCliente(p).fill('Lamosa Norte'),
+      editaB: (p) => inputFolio(p).fill('F-DESC'),
+    });
+    const clave = `costeador-vonhaucke-conflicto-${id}`;
+    const d = registrarDialogos(B.page);
+    const filaAntes = JSON.parse(JSON.stringify(nube.filas.get(id)));
+    const intentos = intentosDeGuardado(nube);
+    d.responderCon(() => false);
+    await avisoRespaldo(B.page).getByRole('button', { name: 'Descartar mi respaldo' }).click();
+    await expect.poll(() => d.vistos.length).toBe(1);
+    expect(d.vistos[0]).toMatch(/^¿Descartar tu respaldo de las \d{2}:\d{2}\?/);
+    expect(d.vistos[0]).toMatch(/NO se puede recuperar/);
+    await esperar(500);
+    expect(await B.page.evaluate((k) => localStorage.getItem(k) !== null, clave), 'sin confirmar, la clave se queda').toBe(true);
+    await expect(avisoRespaldo(B.page)).toBeVisible();
+    d.responderCon(() => true);
+    await avisoRespaldo(B.page).getByRole('button', { name: 'Descartar mi respaldo' }).click();
+    await expect(avisoRespaldo(B.page)).toBeHidden({ timeout: 10000 });
+    expect(d.vistos).toHaveLength(2);
+    expect(await B.page.evaluate((k) => localStorage.getItem(k), clave), 'confirmado: la clave ya no existe').toBeNull();
+    await expect(B.page.locator('.toast')).toContainText(/Respaldo descartado/i, { timeout: 10000 });
+    await esperar(2000);
+    expect(intentosDeGuardado(nube), 'descartar no escribe').toBe(intentos);
+    expect(nube.filas.get(id)).toEqual(filaAntes);
+    await expect(inputFolio(B.page)).toHaveValue('');
+    await A.context.close(); await B.context.close();
   });
 });

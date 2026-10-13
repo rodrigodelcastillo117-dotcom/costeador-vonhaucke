@@ -63,8 +63,14 @@ const Reglas = lazy(() => import('./componentes/Reglas.jsx'));
 import { cargarReglas } from './datos/reglas.js';
 import { cargarAprendizajes } from './datos/aprendizaje.js';
 import { guardarCotizacion, cargarCotizacionCompleta, paraGuardar, firmaGuardado, claveCreacionNueva } from './datos/cotizaciones.js';
-import { controlOptimistaActivo, esperadoParaGuardar, conflictoDesdeResultado, claveRespaldoConflicto, respaldoConflicto, aplicarFilaServidor } from './datos/conflictoGuardado.js';
+import {
+  controlOptimistaActivo, esperadoParaGuardar, conflictoDesdeResultado, respaldoConflicto, aplicarFilaServidor,
+  camposMezcla, mezclarRespaldo, resumenDiferencias, confirmacionRecuperar, confirmacionDescartar,
+  leerRespaldoConflicto, guardarRespaldoConflicto, descartarRespaldoConflicto, retirarRespaldoRecuperado, ETIQUETAS_CAMPO,
+} from './datos/conflictoGuardado.js';
 import ConflictoGuardado from './componentes/ConflictoGuardado.jsx';
+import RespaldoConflicto from './componentes/RespaldoConflicto.jsx';
+import { totalesCotizacion } from './datos/totales.js';
 import { aplicarRespaldo } from './datos/respaldo.js';
 import { crearPartida } from './datos/partida.js';
 import { normalizarRol, veCostosCosteo } from './datos/roles.js';
@@ -226,6 +232,7 @@ export default function App() {
     idCotizacion.current = null;
     ultimaFirmaNube.current = '';
     fijarConflicto(null);         // VH-148: la cotización nueva no arrastra el conflicto de la anterior
+    baseNube.current = null;      // VH-148: sin versión del servidor conocida
     setEstado((e) => ({
       ...e,
       cotizacion: {
@@ -465,23 +472,52 @@ export default function App() {
   const conflictoRef = useRef(null);
   const [resolviendoConflicto, setResolviendoConflicto] = useState(false);
   const fijarConflicto = (c) => { conflictoRef.current = c; setConflicto(c); };
+  // VH-148 · BASE de la fusión de tres vías: lo que esta pestaña sabe que está en el servidor (campos
+  // comparables de la cotización al abrirla, al cargar la versión del servidor y tras cada guardado
+  // confirmado). Viaja dentro del respaldo de conflicto para que "Recuperar mis cambios" sepa qué
+  // campos cambió la persona. No persiste al recargar: sin base, la recuperación trata todo campo
+  // distinto como choque y pide confirmación (documento completo).
+  const baseNube = useRef(null);
+  // VH-148 · el respaldo de conflicto de la cotización abierta (localStorage). `versionRespaldo` se
+  // incrementa tras escribir/retirar para releerlo. `recuperandoRef` frena el autosave mientras
+  // "Recuperar mis cambios" está guardando (evita un segundo envío con la versión ya vieja).
+  const [versionRespaldo, setVersionRespaldo] = useState(0);
+  const recuperandoRef = useRef(false);
+  const idAbierta = estado.cotizacion?.id ?? null;
+  // Porcentajes EFECTIVOS (los que se guardan en `totales`): local puede tener `ivaPct` vacío = "el de
+  // parámetros" y el servidor guarda 16; comparados crudos serían cambios fantasma.
+  const normalizarPct = (cot) => {
+    const c = cot || {};
+    const t = totalesCotizacion(c.partidas || [], c, estado.parametros || {});
+    return { ...c, descuentoPct: t.descuentoPct, contingenciaPct: t.contingenciaPct, maniobrasPct: t.maniobrasPct, fletePct: t.fletePct, ivaPct: t.ivaPct, anticipoPct: t.anticipoPct };
+  };
+  const comparables = (cot) => camposMezcla(normalizarPct(cot));
+  const respaldoActual = useMemo(() => {
+    if (!controlOptimista || idAbierta == null) return null;
+    try { return leerRespaldoConflicto(localStorage, idAbierta); } catch { return null; }
+  }, [controlOptimista, idAbierta, versionRespaldo]);   // versionRespaldo: releer tras escribir/retirar
 
   // ÚNICA PUERTA de guardado a la nube (autosave, verificar emisión, emitir).
   // Devuelve el resultado de guardarCotizacion y mantiene id/clave/firma coherentes.
   // `reaplicar` (VH-148): la persona pidió volver a aplicar lo suyo encima de la versión del
   // servidor; `esperado` es esa versión fresca (del error 40001 o de recargar la fila).
-  async function guardarEnNube({ reaplicar = false, esperado = undefined } = {}) {
+  // `estadoForzado` (VH-148, recuperar el respaldo): el estado ya mezclado que se acaba de fijar con
+  // setEstado y que el closure de este render todavía no ve.
+  async function guardarEnNube({ reaplicar = false, esperado = undefined, estadoForzado = null } = {}) {
     if (!sesion?.user?.email) return { id: idCotizacion.current, guardado: false, motivo: 'sin-sesion' };
     // Con un conflicto sin resolver nada se guarda solo (ni autosave ni emisión): la decisión es de la persona.
     if (conflictoRef.current && !reaplicar) return { id: idCotizacion.current, guardado: false, motivo: 'conflicto-pendiente' };
+    // Mientras "Recuperar mis cambios" guarda, nadie más manda nada (ese guardado ES el de este estado).
+    if (recuperandoRef.current && !estadoForzado) return { id: idCotizacion.current, guardado: false, motivo: 'en-vuelo' };
+    const est = estadoForzado || estado;
     const epoca = epocaCot.current;
-    const fila = paraGuardar(estado, sesion.user.email);
+    const fila = paraGuardar(est, sesion.user.email);
     if (!fila.partidas.length) return { id: idCotizacion.current, guardado: false, motivo: 'vacia' };
     const firma = firmaGuardado(fila);
     if (idCotizacion.current && firma === ultimaFirmaNube.current) {
       return { id: idCotizacion.current, guardado: true, sinCambios: true };
     }
-    let clave = estado.cotizacion?.claveCreacion;
+    let clave = est.cotizacion?.claveCreacion;
     if (!idCotizacion.current) {
       if (creandoEnVuelo.current) return { id: null, guardado: false, motivo: 'en-vuelo' };
       if (!clave) {
@@ -494,8 +530,8 @@ export default function App() {
     try {
       // VH-148: la versión desde la que se edita (o la fresca, al volver a aplicar). Sólo viaja con la
       // bandera prendida y una versión conocida; si no, la llamada es la de siempre (dos argumentos).
-      const version = reaplicar ? esperado : estado.cotizacion?.actualizado;
-      r = await guardarCotizacion(estado, sesion.user.email, idCotizacion.current, {
+      const version = reaplicar ? esperado : est.cotizacion?.actualizado;
+      r = await guardarCotizacion(est, sesion.user.email, idCotizacion.current, {
         claveCreacion: clave,
         actualizadoEsperado: esperadoParaGuardar(version, controlOptimista),
       });
@@ -526,11 +562,12 @@ export default function App() {
     }
     if (r.guardado && r.id) {
       ultimaFirmaNube.current = firma;
+      baseNube.current = comparables(est.cotizacion);   // VH-148: esto es lo que ahora está en el servidor
       if (reaplicar) fijarConflicto(null);   // VH-148: lo local ya quedó encima de la versión del servidor
       // VH-148: la versión que el servidor acaba de escribir (null con la RPC vieja → sin control
       // en el siguiente guardado). Se escribe SIEMPRE para no arrastrar una versión rancia.
       const actualizado = r.actualizado ?? null;
-      if (idCotizacion.current !== r.id || (estado.cotizacion?.actualizado ?? null) !== actualizado) {
+      if (idCotizacion.current !== r.id || (est.cotizacion?.actualizado ?? null) !== actualizado) {
         idCotizacion.current = r.id;
         setEstado((e) => ({ ...e, cotizacion: { ...e.cotizacion, id: r.id, actualizado } }));
       }
@@ -539,6 +576,7 @@ export default function App() {
       // navegador): se olvida el id y la siguiente escritura crea una propia.
       idCotizacion.current = null;
       ultimaFirmaNube.current = '';
+      baseNube.current = null;
       setEstado((e) => ({ ...e, cotizacion: { ...e.cotizacion, id: null, claveCreacion: claveCreacionNueva(), actualizado: null } }));
     } else if (r.rotarClave) {
       setEstado((e) => ({ ...e, cotizacion: { ...e.cotizacion, claveCreacion: claveCreacionNueva() } }));
@@ -555,13 +593,23 @@ export default function App() {
     const id = idCotizacion.current ?? estado.cotizacion?.id ?? null;
     setResolviendoConflicto(true);
     try {
-      try { localStorage.setItem(claveRespaldoConflicto(id), JSON.stringify(respaldoConflicto(estado, c))); }
+      // Se apila sobre un respaldo anterior sin resolver (nunca se pisa) y lleva la base para la
+      // recuperación campo por campo.
+      let respaldado = false;
+      try { respaldado = guardarRespaldoConflicto(localStorage, id, respaldoConflicto(estado, c, { base: baseNube.current })); }
       catch (e) { console.error('[VH-148] no se pudo respaldar lo local antes de cargar el servidor:', e); }
+      if (!respaldado) {
+        // Sin respaldo NO se carga el servidor: se perdería lo local. La persona puede "Volver a aplicar".
+        mostrarAviso('No se pudo guardar una copia de tus cambios en esta computadora; no se cargó la versión del servidor. Tus cambios siguen en pantalla.', 8000);
+        return;
+      }
+      setVersionRespaldo((v) => v + 1);
       const full = id != null ? await cargarCotizacionCompleta(id) : null;
       if (!full) { mostrarAviso('No se pudo leer la versión del servidor. Tus cambios siguen en esta computadora; intenta de nuevo.', 7000); return; }
       epocaCot.current += 1;   // invalida guardados en vuelo de lo local
       const cot = aplicarFilaServidor(estado.cotizacion, full);
       fijarFirmaComoGuardada({ ...estado, cotizacion: cot });   // lo que llega YA está en la nube: no se reescribe
+      baseNube.current = comparables(cot);
       setEstado((e) => ({ ...e, cotizacion: cot }));
       fijarConflicto(null);
       mostrarAviso('Se cargó la versión del servidor. Tus cambios quedaron respaldados en esta computadora.', 7000);
@@ -569,6 +617,63 @@ export default function App() {
       setResolviendoConflicto(false);
     }
   }
+  // 3) Recuperar mis cambios (desde el respaldo): se RELEE la versión actual del servidor, se aplica
+  //    el respaldo encima con la fusión de tres vías por campo (conflictoGuardado.js · mezclarRespaldo)
+  //    y se guarda con el `actualizado` recién leído. Si eso reemplaza algo que la otra persona también
+  //    cambió, se pide confirmación. El respaldo se retira SÓLO si el servidor confirmó el guardado.
+  async function recuperarMisCambios() {
+    const resp = respaldoActual;
+    const id = idCotizacion.current ?? estado.cotizacion?.id ?? null;
+    if (!resp || id == null || conflictoRef.current) return;
+    setResolviendoConflicto(true);
+    recuperandoRef.current = true;
+    try {
+      const full = await cargarCotizacionCompleta(id);
+      if (!full) { mostrarAviso('No se pudo leer la versión actual del servidor. Tu respaldo sigue en esta computadora; intenta de nuevo.', 7000); return; }
+      const servidorCot = aplicarFilaServidor(estado.cotizacion, full);
+      const mezcla = mezclarRespaldo({ base: resp.base ?? null, local: resp.cotizacion, servidor: servidorCot, normalizar: normalizarPct });
+      if (!mezcla.aplicados.length) {
+        // Nada que aplicar: el servidor ya tiene todo lo del respaldo (no se pierde información).
+        retirarRespaldoRecuperado(localStorage, id, { guardado: true });
+        setVersionRespaldo((v) => v + 1);
+        mostrarAviso('Tu respaldo ya coincidía con la versión del servidor; se retiró de esta computadora.', 6000);
+        return;
+      }
+      const pregunta = confirmacionRecuperar(mezcla);
+      if (pregunta && !confirm(pregunta)) return;   // la persona no aceptó reemplazar lo ajeno: nada cambia
+      epocaCot.current += 1;   // invalida cualquier guardado en vuelo de lo que había en pantalla
+      const nuevo = { ...estado, cotizacion: { ...servidorCot, ...mezcla.cotizacion, actualizado: servidorCot.actualizado } };
+      setEstado(nuevo);
+      const r = await guardarEnNube({ estadoForzado: nuevo });
+      if (r.guardado) {
+        retirarRespaldoRecuperado(localStorage, id, r);
+        setVersionRespaldo((v) => v + 1);
+        const campos = mezcla.aplicados.map((k) => ETIQUETAS_CAMPO[k] || k).join(', ');
+        mostrarAviso(`Listo: recuperaste tus cambios (${campos}) encima de la versión del servidor. El respaldo se retiró de esta computadora.`, 7000);
+      } else if (r.motivo !== 'conflicto') {
+        mostrarAviso(`No se pudo guardar lo recuperado (${r.motivo || 'sin detalle'}). Tu respaldo sigue en esta computadora.`, 7000);
+      }
+      // motivo 'conflicto': alguien guardó entre la lectura y el guardado → reaparece el aviso; el respaldo se queda.
+    } finally {
+      recuperandoRef.current = false;
+      setResolviendoConflicto(false);
+    }
+  }
+  // 4) Descartar mi respaldo: SÓLO con confirmación explícita.
+  function descartarMiRespaldo() {
+    const id = idCotizacion.current ?? estado.cotizacion?.id ?? null;
+    if (id == null) return;
+    const ok = descartarRespaldoConflicto(localStorage, id, (r) => confirm(confirmacionDescartar(r)));
+    if (ok) {
+      setVersionRespaldo((v) => v + 1);
+      mostrarAviso('Respaldo descartado. En pantalla sigue la versión del servidor.', 5000);
+    }
+  }
+  // Lo que difiere entre el respaldo y lo que está en pantalla (la versión del servidor), y qué haría
+  // "Recuperar" (vista previa; al pulsar se recalcula contra la versión más reciente del servidor).
+  const totalDe = (cot) => totalesCotizacion(cot?.partidas || [], cot || {}, estado.parametros || {}).totalRedondeado;
+  const filasRespaldo = respaldoActual ? resumenDiferencias(respaldoActual.cotizacion, estado.cotizacion, { totalDe, normalizar: normalizarPct }) : [];
+  const mezclaRespaldo = respaldoActual ? mezclarRespaldo({ base: respaldoActual.base ?? null, local: respaldoActual.cotizacion, servidor: estado.cotizacion, normalizar: normalizarPct }) : null;
   // 2) Volver a aplicar mis cambios: UN clic explícito re-guarda lo local con la versión fresca del
   //    servidor. Si alguien volvió a guardar en medio, el aviso reaparece con la hora nueva (sin bucle).
   async function reaplicarMisCambios() {
@@ -1289,6 +1394,9 @@ export default function App() {
         {/* VH-148: otra persona guardó antes; lo local sigue aquí y la persona decide. Visible en
             cualquier pantalla porque el autosave está en pausa mientras no se resuelva. */}
         <ConflictoGuardado conflicto={conflicto} ocupado={resolviendoConflicto} onVerServidor={verVersionDelServidor} onReaplicar={reaplicarMisCambios} />
+        {/* VH-148: las DOS versiones siguen vivas hasta que la persona decida (recuperar / descartar). */}
+        <RespaldoConflicto respaldo={respaldoActual} filas={filasRespaldo} mezcla={mezclaRespaldo} ocupado={resolviendoConflicto} bloqueado={!!conflicto}
+          onRecuperar={recuperarMisCambios} onDescartar={descartarMiRespaldo} />
         {/* Red de seguridad: un error de render ya no deja la app en blanco. */}
         <SinPantallaBlanca resetKey={pestania} onInicio={irInicio}>
         <Suspense fallback={(
@@ -1348,6 +1456,7 @@ export default function App() {
                 epocaCot.current += 1;
                 idCotizacion.current = nuevo.cotizacion?.id ?? null;
                 if (idCotizacion.current) fijarFirmaComoGuardada(nuevo); else ultimaFirmaNube.current = '';
+                baseNube.current = null;   // VH-148: un respaldo restaurado no sabe qué hay hoy en el servidor
                 setEstado(nuevo);
                 irA('cotizacion');
                 mostrarAviso(`Respaldo restaurado: ${nuevo.cotizacion?.cliente || 'sin cliente'}.`);
@@ -1384,6 +1493,7 @@ export default function App() {
               // Lo que se acaba de abrir YA está en la nube: no se reescribe (ni se pisa la
               // economía que este rol no ve) hasta que el usuario edite algo.
               fijarFirmaComoGuardada({ ...estado, cotizacion: cotAbierta });
+              baseNube.current = comparables(cotAbierta);   // VH-148: desde aquí se edita
               setEstado((e) => ({ ...e, cotizacion: cotAbierta }));
               irA('cotizacion');
               mostrarAviso(`Abierto: ${full.cliente || c.cliente || 'sin cliente'}`);
