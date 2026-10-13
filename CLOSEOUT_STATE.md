@@ -5,7 +5,18 @@
 > cableado vs pendiente. Cero información histórica presentada como estado actual.
 > Última actualización: 2026-10-10 (OPERACIÓN RESCATE · Cotizar, bloques 1-2).
 
-## ESTADO VIGENTE · Parte XI (2026-10-10) — este bloque sustituye a todo lo de abajo como "estado actual"; lo demás es histórico por corrida
+## ⚠️ AVISO 2026-10-13 — ESTA RAMA QUEDÓ SUPERADA; NO DESPLEGAR DESDE AQUÍ
+
+Verificado el 13-oct (git + Supabase): `audit/final-product-completion` se separó de la principal `c3.4-seller-safe` el 8-oct (`5a38d2e`) y **nunca se fusionó**. La principal avanzó 140 commits (RESCATE_NOCTURNO, VH-110…VH-141) y **ya está en producción**; el dato "Prod `5a38d2e` sin promover" de abajo dejó de ser cierto. Edges vivas el 13-oct: `acomodar-espacio-recovery` **v10** (= `c8dd2b3`, byte a byte), `leer-plano` v12, `leer-plano-core` v5, `cotizar-texto` v13, todas desplegadas desde la principal por GitHub Actions. Desplegar las "candidatas v7/v5/v12" de esta rama **retrocedería producción**.
+
+Qué pasó con el trabajo de la Parte XI:
+- **027b / 027c / 027e (solver y huella): portados a la principal** en la rama `rescate/solver-acceso-027b`, PR **#38**. Medido sobre el request real: producción daba PDF 15/22, Dibujo 15/22, m² 22/22 con 2 sillas al muro; con el port PDF 21/22 (credenza demostrada y explicada por la puerta sin confirmar; 22/22 al confirmarla), Dibujo 22/22 PASS, m² 22/22 PASS. Banco 55 casos sin regresiones, suite de la principal 2250/2250, E2E con nube falsa 29/29. Detalle: `RESCATE_SOLVER_ACOMODO.md` en esa rama.
+- **001 / 006b (asientos de la sala): NO se porta.** La principal ya lo resolvió (VH-093 y VH-139, lector v5 con `asientos`).
+- Pendiente: desplegar `acomodar-espacio-recovery` desde el PR #38 (lo ejecuta Rodrigo; el clasificador bloquea a Claude) y el E2E autenticado contra el servidor real.
+
+Todo lo que sigue en este documento es HISTÓRICO de esta rama.
+
+## ESTADO AL 2026-10-10 (histórico) · Parte XI (2026-10-10) — este bloque sustituye a todo lo de abajo como "estado actual"; lo demás es histórico por corrida
 - **CÓDIGO = `806cadb`** (`audit/final-product-completion`). **vitest 2258/2258 (268 archivos)**. Prod `5a38d2e` sin promover. **Edges activas (MCP):** cotizar-texto v12 · acomodar-espacio-recovery v6 (`d430fcb28c86…`) · leer-plano v11 · leer-plano-core v4. **Candidatas NO desplegadas:** acomodar-espacio-recovery **v7** (027b/027c), leer-plano-core **v5** + leer-plano **v12** (001). Sin migraciones/RLS. 33 legacy intactas.
 - **Cerrado en código (FIXED/TESTING, con RED→GREEN):** 027e (`99a1f8d`), 027b + 027c + §7 VONI (`a391fe7`), 001/006b cliente (`806cadb`). Detalle y tabla §12 en `COT_RESCATE_MATRIZ.md` §0.
 - **Resultado local del solver (mismo código que la edge) sobre los payloads reales 15:17Z:** PDF 22/22 PASS q87.6 publicable · Dibujo 22/22 PASS q88.0 · m² 22/22 PASS q92.9 (antes: 15/22 · 15/22 · 22/22 con 2 sillas al muro). Banco congelado: 55 casos, 39 idénticos / 16 mejoras / 0 regresiones; 0 casos con sillas contra muro (antes 16).

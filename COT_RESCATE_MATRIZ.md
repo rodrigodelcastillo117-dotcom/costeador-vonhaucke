@@ -1,6 +1,17 @@
 # OPERACIÓN RESCATE · COTIZAR — Matriz viva de defectos
 
-## 0. ESTADO VIGENTE — Parte XI (2026-10-10, código `806cadb`; este encabezado es el ÚNICO estado actual; las secciones A–D de abajo son HISTÓRICO por corrida y no se reinterpretan)
+## ⚠️ AVISO 2026-10-13 — ESTA RAMA QUEDÓ SUPERADA; NO DESPLEGAR DESDE AQUÍ
+
+Verificado el 13-oct (git + Supabase): `audit/final-product-completion` se separó de la principal `c3.4-seller-safe` el 8-oct (`5a38d2e`) y **nunca se fusionó**. La principal avanzó 140 commits (RESCATE_NOCTURNO, VH-110…VH-141) y **ya está en producción**; el dato "Prod `5a38d2e` sin promover" de abajo dejó de ser cierto. Edges vivas el 13-oct: `acomodar-espacio-recovery` **v10** (= `c8dd2b3`, byte a byte), `leer-plano` v12, `leer-plano-core` v5, `cotizar-texto` v13, todas desplegadas desde la principal por GitHub Actions. Desplegar las "candidatas v7/v5/v12" de esta rama **retrocedería producción**.
+
+Qué pasó con el trabajo de la Parte XI:
+- **027b / 027c / 027e (solver y huella): portados a la principal** en la rama `rescate/solver-acceso-027b`, PR **#38**. Medido sobre el request real: producción daba PDF 15/22, Dibujo 15/22, m² 22/22 con 2 sillas al muro; con el port PDF 21/22 (credenza demostrada y explicada por la puerta sin confirmar; 22/22 al confirmarla), Dibujo 22/22 PASS, m² 22/22 PASS. Banco 55 casos sin regresiones, suite de la principal 2250/2250, E2E con nube falsa 29/29. Detalle: `RESCATE_SOLVER_ACOMODO.md` en esa rama.
+- **001 / 006b (asientos de la sala): NO se porta.** La principal ya lo resolvió (VH-093 y VH-139, lector v5 con `asientos`).
+- Pendiente: desplegar `acomodar-espacio-recovery` desde el PR #38 (lo ejecuta Rodrigo; el clasificador bloquea a Claude) y el E2E autenticado contra el servidor real.
+
+Todo lo que sigue en este documento es HISTÓRICO de esta rama.
+
+## 0. ESTADO AL 2026-10-10 (histórico) — Parte XI (2026-10-10, código `806cadb`; este encabezado es el ÚNICO estado actual; las secciones A–D de abajo son HISTÓRICO por corrida y no se reinterpretan)
 
 **Realidad verificada al cierre:** rama `audit/final-product-completion`, código `806cadb` (sobre `572694d` = inicio Parte XI). vitest **2258/2258 (268 archivos)**. Frontend PROD `5a38d2e` sin promover. Edges activas (verificadas vía MCP `list_edge_functions`): `cotizar-texto` **v12** (= fuente, doble deploy), `acomodar-espacio-recovery` **v6** (sha `d430fcb28c86…`, fuente `595bde1`), `leer-plano` **v11**, `leer-plano-core` **v4**. **Nada desplegado en esta parte**: las fuentes de `acomodar-espacio-recovery` (v7), `leer-plano-core` (v5) y `leer-plano` (v12) son CANDIDATAS. Sin migraciones ni cambios de RLS. Fixtures QA del E2E = cuenta `qa-direccion`; 33 legacy intactas.
 
