@@ -83,7 +83,7 @@ export function fusionarPreguntas(prev, incoming, confKeysSet, norm) {
   return [...byKey.values()];
 }
 
-export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBiblioteca, expedienteInicial, onAgregarInsumo = null }) {
+export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBiblioteca, expedienteInicial, onAgregarInsumo = null, semillaCocrear = null, onVolverCocrear = null }) {
   const insumos = estado.insumos;
   const [paso, setPaso] = useState(0);
   const [analizando, setAnalizando] = useState(false);
@@ -498,6 +498,41 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       if (b64s.length && corrida.current === id) setB((prev) => ({ ...prev, planos: b64s }));
     })();
   }, [expedienteInicial]);
+
+  // COCREAR 10 (D-01): viene de Cocrear con un mueble NUEVO. Se pre-llena lo que Cocrear ya sabe
+  // (nombre, descripción con medidas/materiales/funciones, dificultad) y la imagen de referencia; el
+  // análisis lo dispara la persona (IA con costo) con los MISMOS botones de siempre.
+  useEffect(() => {
+    if (!semillaCocrear) return;
+    const s = semillaCocrear;
+    corrida.current++;
+    setExpId(null); setEtiquetasTxt('cocrear'); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); setRenderHash(null); setRevActual(1);
+    setCanonico(false); setPropuestaDiff(null); setBomDirty(false); setFormulaGuardada(null); setPreguntasIA([]); setPropuestaIA(null); setAnalisis(null); setErrorIA('');
+    setB((prev) => ({ ...prev, nombre: s.nombre || '', descripcionCliente: s.descripcion || '', piezas: 1, componentes: [], planos: [], materiales: [],
+      imagen: s.imagen?.base64 ? `data:${s.imagen.mediaType || 'image/jpeg'};base64,${s.imagen.base64}` : null,
+      dificultad: s.dificultad && s.dificultad !== 'normal' ? s.dificultad : undefined, analysisId: corrida.current }));
+    setPaso(0);
+  }, [semillaCocrear]);
+  const desdeCocrear = !!(semillaCocrear && onVolverCocrear);
+  // Analiza la imagen de referencia que vino de Cocrear (misma ruta que "Subir render o plano").
+  async function analizarReferenciaCocrear() {
+    const img = semillaCocrear?.imagen;
+    let base64 = img?.base64 || null;
+    const mediaType = img?.mediaType || 'image/jpeg';
+    if (!base64 && img?.url) base64 = await urlABase64(img.url);
+    if (!base64) { setErrorIA('No tengo la imagen de referencia en memoria: vuelve a subirla.'); return; }
+    setErrorIA(''); setAnalizando(true);
+    try {
+      const cid = nuevaCorrida();
+      setB((prev) => ({ ...prev, nombre: semillaCocrear.nombre || prev.nombre, descripcionCliente: semillaCocrear.descripcion || prev.descripcionCliente }));
+      await analizarYLlenar(base64, mediaType, `data:${mediaType};base64,${base64}`, cid);
+    } catch (err) { setErrorIA(String(err?.message || err)); } finally { setAnalizando(false); }
+  }
+  function volverACocrear(conDespiece) {
+    if (!onVolverCocrear) return;
+    if (!conDespiece) { onVolverCocrear(null); return; }
+    onVolverCocrear({ componentes: b.componentes, dificultad: b.dificultad ?? null, nombre: b.nombre || semillaCocrear?.nombre || null, analysisId: b.analysisId ?? null });
+  }
 
   // --- despiece ---
   // EDICIÓN MANUAL (Diseño): cambia el BOM canónico de forma explícita. Precedencia
@@ -933,6 +968,18 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         </button>
         {onBiblioteca && <button className="boton" onClick={onBiblioteca}>📚 Biblioteca</button>}
       </div>
+
+      {desdeCocrear && (
+        <div className="tarjeta" data-testid="costear-desde-cocrear" style={{ background: 'var(--panel)', borderLeft: '4px solid var(--rojo,#c93429)' }}>
+          <strong>Viene de Cocrear: {semillaCocrear.nombre}</strong>
+          <div className="ayuda">Nombre, medidas, materiales y funciones ya están en la descripción. Analízalo con Voni{semillaCocrear.imagen ? ' (texto o la imagen de referencia)' : ''}, confirma el despiece y regresa: Cocrear lo costea en el servidor y le pone precio.</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+            {semillaCocrear.imagen && <button className="boton" disabled={analizando} onClick={analizarReferenciaCocrear}>Analizar la imagen de referencia</button>}
+            <button className="boton primario" data-testid="costear-volver-cocrear" disabled={!(b.componentes?.length)} onClick={() => volverACocrear(true)}>Regresar a Cocrear con este despiece ({b.componentes?.length || 0} piezas)</button>
+            <button className="boton fantasma" onClick={() => volverACocrear(false)}>Volver sin despiece</button>
+          </div>
+        </div>
+      )}
 
       {/* PASO 1 — Identidad */}
       {paso === 0 && (

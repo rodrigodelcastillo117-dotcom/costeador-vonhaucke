@@ -23,6 +23,8 @@ import { responder, construirContexto } from '../voni/nucleo.js';
 import { proveedorReal } from '../voni/proveedorReal.js';
 import { recomendar } from '../voni/conocimiento.js';
 import { TOOLS } from '../voni/tools.js';
+import { bajarLineaABom } from './cocrearPuente.js';
+import { INSUMOS_SEMILLA, mapaInsumos } from './insumos.js';
 
 // El spec tal como lo arma CocrearV3 (rev = historia.length, BOM = intent._componentes).
 const specDeEstudio = (intent, historia) => construirProductSpec(
@@ -107,23 +109,34 @@ describe('COCREAR · persistencia del expediente (D-07, D-08 corregidos)', () =>
   });
 });
 
-describe('COCREAR · de concepto a producto (defectos vigentes)', () => {
-  it.fails('D-01 REQUISITO: algún concepto de Cocrear puede bajar a BOM y quedar costeable/cotizable', () => {
-    // Recorre los briefs de ejemplo y los tres conceptos con las MISMAS funciones que usa la UI.
-    // Ninguna operación de CocrearV3 (setDim/setFamilia/setCap/setMaterial/setTone/toggleFeature/
-    // cambioCanonico) escribe intent._componentes: el BOM queda vacío para siempre.
+describe('COCREAR · de concepto a producto (D-01 y D-05 corregidos en COCREAR 10)', () => {
+  // COCREAR 10: corregido. El estudio baja a BOM por el puente (datos/cocrearPuente.js): mueble de línea
+  // escalado (bajarLineaABom) o mueble nuevo vía Costear (semilla → asistente → aplicarRetornoCosteo).
+  // Antes: ninguna operación de CocrearV3 escribía intent._componentes y el BOM quedaba vacío para siempre.
+  it('D-01 REQUISITO: algún concepto de Cocrear puede bajar a BOM y quedar costeable/cotizable', () => {
+    const insumos = mapaInsumos(INSUMOS_SEMILLA);
     const resultados = [];
-    for (const brief of [BRIEF_RECEPCION, BRIEF_HUB]) {
+    for (const brief of [BRIEF_RECEPCION, BRIEF_HUB, 'Mesa de juntas de 1.35 m por 1.20 m de fondo']) {
       for (let i = 0; i < 3; i++) {
         const { intent, historia } = estudioConConcepto(brief, i);
-        const p = cocrearDesdeIntent(intent, { rev: historia.length, componentes: intent._componentes || [] });
-        resultados.push({ bom: p.spec.componentes.length, costo: p.costo.official_cost, lista: p.lineaCotizacion.listaParaCotizar === true });
+        const b = bajarLineaABom(intent, { ruta: 'applt', productoId: intent.familia === FAMILIA.MESA ? 'mesa_juntas' : 'escritorio' }, { insumos });
+        if (!b.ok) continue;
+        const p = cocrearDesdeIntent(b.intent, { insumos, rev: historia.length + 1, componentes: b.intent._componentes });
+        // Cotizable una vez que el SERVIDOR valida la ingeniería de esta revisión.
+        const v = cocrearDesdeIntent(b.intent, { insumos, rev: historia.length + 1, componentes: b.intent._componentes, engineering_validated: true, engineering_validation: { fuente: 'costear-servidor' } });
+        resultados.push({ brief, bom: p.spec.componentes.length, costo: p.costo.official_cost, lista: v.lineaCotizacion.listaParaCotizar === true });
       }
     }
+    // La UI escribe el BOM por el puente y regresa de Costear con él.
     const src = fs.readFileSync('src/componentes/CocrearV3.jsx', 'utf8');
-    const escribeBom = /_componentes\s*:/.test(src) || /\._componentes\s*=/.test(src);
-    expect(escribeBom).toBe(true);
-    expect(resultados.some((r) => r.bom > 0 && r.costo != null)).toBe(true);
+    expect(src).toContain('bajarLineaABom(intent');
+    expect(src).toContain('aplicarRetornoCosteo(s.intent,puente.retorno)');
+    expect(fs.readFileSync('src/componentes/AsistenteEspecial.jsx', 'utf8')).toContain('onVolverCocrear({ componentes: b.componentes');
+    expect(resultados.some((r) => r.bom > 0 && r.costo != null && r.lista)).toBe(true);
+    // Lo que el despiece del padre no trae (iluminación, curva, electrificación…) no se inventa: BOM sí, costo no.
+    const conFunciones = resultados.filter((r) => r.brief !== 'Mesa de juntas de 1.35 m por 1.20 m de fondo');
+    expect(conFunciones.length).toBe(6);
+    expect(conFunciones.every((r) => r.bom > 0 && r.costo == null && !r.lista)).toBe(true);
   });
 
   // COCREAR 10: corregido (`validacionAutorizada`, cocrear.js). La autoridad real es la fila del servidor.

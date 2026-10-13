@@ -159,4 +159,24 @@ export function respuestaCocreacionPorRol(rol, fila, { costeo = {}, decision = {
   return { ...base, costo: tecnico, margen: fila.margen_politica, warnings: fila.warnings };
 }
 
+/**
+ * La fila `validacion_servidor` que devuelve `cocrear_seguro` al reabrir, en la MISMA forma que la
+ * respuesta de la Edge. Sin costo/margen cuando el rol no ve economía (la RPC ya los quitó).
+ */
+export function validacionDesdeFila(fila) {
+  if (!fila || typeof fila !== 'object' || !fila.spec_hash) return null;
+  const num = (x) => (x == null || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));
+  const costo = num(fila.costo_unitario);
+  return {
+    ok: true, accion: ACCION_COCREAR, recuperada: true,
+    estado: fila.estado || null, expediente_id: fila.expediente_id ?? null, expediente_rev: fila.expediente_rev ?? null,
+    analysis_hash: fila.analysis_hash ?? null, spec_hash: fila.spec_hash, visual_hash: fila.visual_hash ?? null, bom_hash: fila.bom_hash ?? null,
+    precioSugerido: num(fila.precio_sugerido), precioPorConfirmar: num(fila.precio_sugerido) == null,
+    ingenieria_validada: fila.ingenieria_validada === true, validada_por: fila.validada_por ?? null, validada_en: fila.validada_en ?? null,
+    validacion: null, formula: fila.formula_version ?? null, dificultad: fila.dificultad ?? null,
+    ...(costo != null ? { costo: { costoUnitario: costo, pendientes: fila.evidencia?.pendientes || [] } } : {}),
+    ...(num(fila.margen_politica) != null ? { margen: num(fila.margen_politica) } : {}),
+  };
+}
+
 export { precioSugeridoCocreado };
