@@ -122,8 +122,9 @@ test.describe('LAB · plano Torre Norte', () => {
     const cotC = await leerCot(page);
     guarda('4-acomodo.json', cotC.acomodo);
     const ver = page.getByTestId('veredicto-acomodo');
-    const veredicto = (await ver.count()) ? { estado: await ver.getAttribute('data-estado'), texto: await ver.innerText() } : null;
-    const diag = await page.getByTestId('diagnostico-acomodo').innerText().catch(() => '');
+    // innerText SIN timeout espera para siempre si el elemento no existe (p. ej. sin diagnóstico cuando todo cupo).
+    const veredicto = (await ver.count()) ? { estado: await ver.getAttribute('data-estado'), texto: await ver.innerText({ timeout: 3000 }).catch(() => '') } : null;
+    const diag = await page.getByTestId('diagnostico-acomodo').innerText({ timeout: 3000 }).catch(() => '');
     guarda('4-veredicto.json', { veredicto, diagnostico: diag, main: await page.locator('main').innerText() });
     await page.screenshot({ path: path.join(SALIDA, '4-acomodo.png'), fullPage: true });
     const planta = page.getByRole('button', { name: /^Planta$/ });
@@ -154,6 +155,7 @@ test.describe('LAB · plano Torre Norte', () => {
       await expect(page.getByRole('button', { name: /Volver a generar|Generar las \d+ áreas|Generar la imagen del área/ })).toBeEnabled({ timeout: 8 * 60 * 1000 }).catch(() => {});
       render.segundos = (Date.now() - tr) / 1000;
       render.imagenes = await page.locator('img[alt*="área"], img[alt*="area"], figure img').count();
+      render.escenasGuardadas = ((await leerCot(page))?.acomodo?.escenas || []).length;
       render.llamadas = (edges['generar-render'] || []).map((e) => e.status);
       const guardar = page.getByRole('button', { name: /Guardar en la propuesta/ });
       if (await guardar.count()) { await guardar.first().click(); render.guardado = true; }
