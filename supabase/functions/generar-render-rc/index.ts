@@ -452,6 +452,7 @@ Deno.serve(async (req) => {
         return json({
           ok: false,
           error: `No se pudo generar una foto con el conteo exacto de muebles (salieron ${Number.isFinite(numConteo) ? numConteo : "?"} de ${conteoEsperado} esperados). Usa el plano, que sí es exacto, o vuelve a intentar.`,
+          code: "RENDER_COUNT_MISMATCH", conteo: Number.isFinite(numConteo) ? numConteo : null, conteoTexto: textoConteo.slice(0, 200), request_id: requestId, referencias: (Array.isArray(imagenes) ? imagenes.filter((im: any) => typeof im === "string" && im).length : 0), con_dibujo: !!imagen,
         }, 200);
       }
       const correccion =
@@ -488,6 +489,7 @@ Deno.serve(async (req) => {
       error:"El render se generó, pero no pasó la verificación de fidelidad. No se guardó como render válido.",
       audit,
       request_id:requestId,
+      referencias: (Array.isArray(imagenes) ? imagenes.filter((im: any) => typeof im === "string" && im).length : 0), con_dibujo: !!imagen,
     }, audit.code==="AUDIT_UNAVAILABLE" ? 503 : 200);
   }
 

@@ -1,0 +1,15 @@
+== analizar-mueble-rc · HTTP 200 · 32s · uso {"input_tokens":22243,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":0},"output_tokens":5123,"output_tokens_details":{"thinking_tokens":0},"service_tier":"standard","inference_geo":"global"} · producto: Credenza Nogal 1800 mm, 3 puertas abatibles, base PTR negra
+  2× Laterales de cuerpo (2) | pedido: MDF 18 mm enchapado nogal natural | insumo: mdf | SUBSTITUTE_SUGGESTED | area 650×450 | hojas 0.18 | media
+  2× Cubierta y fondo inferior (2) | pedido: MDF 18 mm enchapado nogal natural | insumo: mdf | SUBSTITUTE_SUGGESTED | area 1800×450 | hojas 0.55 | media
+  2× Divisiones verticales internas (2) | pedido: MDF 18 mm enchapado nogal natural | insumo: mdf | SUBSTITUTE_SUGGESTED | area 600×430 | hojas 0.1 | baja
+  3× Puertas (3) | pedido: MDF 18 mm enchapado nogal natural | insumo: mdf | SUBSTITUTE_SUGGESTED | area 630×580 | hojas 0.37 | alta
+  1× Chapa nogal natural (caras vistas) | pedido: Chapa de nogal natural | insumo: chapa-madera | SUBSTITUTE_SUGGESTED | area 2440×1220 | hojas 1 | baja
+  3× Entrepanos interiores (3) | pedido: Melamina blanca 16 mm | insumo: melamina-16 | EXACT | area 580×430 | hojas 0.25 | media
+  1× Respaldo | pedido: MDF 9 mm | insumo: - | NOT_AVAILABLE | area 1800×650 | hojas 0.4 | media
+  1× Base PTR 1x1 cal. 14 (marco y patas) | pedido: PTR 1"x1" cal. 14 | insumo: ptr-14 | SUBSTITUTE_SUGGESTED | lineal 5000×0 | hojas 0 | baja
+  1× Pintura electrostatica negra base | pedido: Pintura electrostatica negra | insumo: pintura-polvo-negro-mate-45-hnl40205 | SUBSTITUTE_SUGGESTED | lineal 5000×0 | hojas 0 | baja
+  6× Bisagras (2 por puerta) | pedido: Bisagra | insumo: bisagra | EXACT | pieza 0×0 | hojas 0 | alta
+  3× Jaladeras rectas 300 mm | pedido: Jaladera recta 300 mm | insumo: jaladera | EXACT | pieza 300×0 | hojas 0 | alta
+  4× Niveladores | pedido: Niveladores | insumo: nivelador | EXACT | pieza 0×0 | hojas 0 | media
+  1× Cubrecanto para cantos vistos | pedido: Canto a juego nogal (no especificado) | insumo: tapacanto | SUBSTITUTE_SUGGESTED | lineal 14000×0 | hojas 0 | baja
+  resumen: {"piezas":13,"EXACT":4,"NOT_AVAILABLE":1,"SUBSTITUTE_SUGGESTED":8,"otro":0,"conserva18mm":true,"conservaCal14":true,"menciona_inyeccion":true,"preguntas":6,"validacion":0}

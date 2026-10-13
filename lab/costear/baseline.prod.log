@@ -1,0 +1,16 @@
+(node:23367) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+== analizar-mueble · HTTP 200 · 29s · uso {"input_tokens":21652,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":0},"output_tokens":4124,"output_tokens_details":{"thinking_tokens":0},"service_tier":"standard","inference_geo":"global"} · producto: Credenza 'Nogal' 3 puertas abatibles 1800x450x750 mm
+  4× Laterales y divisiones de cuerpo (MDF 18 mm enchapado nogal) | pedido: MDF 18 mm enchapado nogal natural | insumo: mdf | SUBSTITUTE_SUGGESTED | area 650×450 | hojas 0.45 | media
+  2× Cubierta y fondo inferior (MDF 18 mm enchapado nogal) | pedido: MDF 18 mm enchapado nogal natural | insumo: mdf | SUBSTITUTE_SUGGESTED | area 1800×450 | hojas 0.55 | media
+  3× Puertas abatibles (MDF 18 mm enchapado nogal) | pedido: MDF 18 mm enchapado nogal natural | insumo: mdf | SUBSTITUTE_SUGGESTED | area 630×580 | hojas 0.37 | alta
+  1× Chapa de nogal natural (caras vistas) | pedido: chapa nogal natural | insumo: chapa-madera | EXACT | area 1800×650 | hojas 0.9 | media
+  3× Entrepaños interiores melamina blanca 16 mm | pedido: melamina blanca 16 mm | insumo: melamina-16 | EXACT | area 580×430 | hojas 0.25 | media
+  1× Respaldo MDF 9 mm | pedido: MDF 9 mm | insumo: - | NOT_AVAILABLE | area 1800×650 | hojas 0.4 | media
+  1× Base PTR 1x1 cal. 14 (marco + 4 patas 100 mm + zoclo) | pedido: PTR 1"x1" cal. 14 | insumo: ptr-14 | EXACT | lineal 6000×0 | hojas 0 | media
+  1× Pintura electrostática negra base | pedido: pintura electrostática negra | insumo: pintura-electrostatica | EXACT | area 6000×100 | hojas 0 | media
+  6× Bisagras (2 por puerta) | pedido: bisagra | insumo: bisagra | EXACT | pieza 0×0 | hojas 0 | alta
+  3× Jaladeras rectas 300 mm | pedido: jaladera recta 300 mm | insumo: jaladera | EXACT | pieza 300×0 | hojas 0 | alta
+  4× Niveladores | pedido: niveladores | insumo: nivelador | EXACT | pieza 0×0 | hojas 0 | media
+  1× Canto (tapacanto) para cantos de MDF y melamina | pedido: tapacanto | insumo: tapacanto | EXACT | lineal 16000×0 | hojas 0 | baja
+  resumen: {"piezas":12,"EXACT":8,"NOT_AVAILABLE":1,"SUBSTITUTE_SUGGESTED":3,"otro":0,"conserva18mm":true,"conservaCal14":true,"menciona_inyeccion":false,"preguntas":4,"validacion":0}
