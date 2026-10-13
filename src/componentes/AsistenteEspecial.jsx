@@ -15,6 +15,7 @@ import { comoDataUrl, esURLImagen } from '../datos/renderRespuesta.js';   // VH-
 import { filaSombra } from '../datos/sombraCosteo.js';   // VH-073
 import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { revisarEstructura } from '../datos/revisionEstructural.js';
+import { decidirReemplazo } from '../datos/guardaPropuesta.js';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
 import { mapIaComps as mapIaCompsCompartido } from '../datos/mapIaComps.js';
@@ -699,8 +700,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     setVerificando(true);
     const v2 = await verificarDespiece(catalogoIA(), [base64], v1.propuesta);
     setVerificando(false);
+    // VH-162: la verificación no puede achicar el despiece en silencio (respuesta degenerada o con muchas menos piezas).
+    const dec = v2?.ok ? decidirReemplazo(v1.propuesta, v2.propuesta) : { usar: 'vigente', motivo: '' };
+    if (dec.usar === 'vigente') { const ok = aplicarPropuesta(v1, dataUrl, [base64], true, corridaId); if (dec.motivo) setConfMsg(`⚠ Verificación descartada: ${dec.motivo}`); return ok; }
     // La verificación es SILENCIOSA: las confirmaciones salen de la 1ª pasada (v1), no de v2.
-    const merged = v2?.ok ? { ...v2, propuesta: { ...v2.propuesta, preguntas: (v2.propuesta?.preguntas?.length ? v2.propuesta.preguntas : (v1.propuesta?.preguntas || [])) } } : v2;
+    const merged = { ...v2, propuesta: { ...v2.propuesta, preguntas: (v2.propuesta?.preguntas?.length ? v2.propuesta.preguntas : (v1.propuesta?.preguntas || [])) } };
     return aplicarPropuesta(merged, dataUrl, [base64], true, corridaId);
   }
   // Varias hojas del mismo mueble (plano multipágina). Paso 1 analiza, paso 2 verifica.
@@ -711,7 +715,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     setVerificando(true);
     const v2 = await verificarDespiece(catalogoIA(), imagenes, v1.propuesta);
     setVerificando(false);
-    const merged = v2?.ok ? { ...v2, propuesta: { ...v2.propuesta, preguntas: (v2.propuesta?.preguntas?.length ? v2.propuesta.preguntas : (v1.propuesta?.preguntas || [])) } } : v2;
+    const dec = v2?.ok ? decidirReemplazo(v1.propuesta, v2.propuesta) : { usar: 'vigente', motivo: '' };
+    if (dec.usar === 'vigente') { const ok = aplicarPropuesta(v1, dataUrlPreview, imagenes, true, corridaId); if (dec.motivo) setConfMsg(`⚠ Verificación descartada: ${dec.motivo}`); return ok; }
+    const merged = { ...v2, propuesta: { ...v2.propuesta, preguntas: (v2.propuesta?.preguntas?.length ? v2.propuesta.preguntas : (v1.propuesta?.preguntas || [])) } };
     return aplicarPropuesta(merged, dataUrlPreview, imagenes, true, corridaId);
   }
 
@@ -736,6 +742,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     try {
       const r = await responderDespiece(catalogoIA(), imgs, propuestaIA, respPayload);
       if (!r?.ok) { setConfMsg(r?.error || 'No se pudo recalcular con tus respuestas.'); return; }
+      // VH-162: el recálculo tampoco puede achicar el despiece en silencio; las respuestas quedan guardadas.
+      const decR = decidirReemplazo({ piezas: (b.componentes || []).filter((c) => !c.excluida) }, r.propuesta);
+      if (decR.usar === 'vigente') { setConfMsg(`⚠ No apliqué el recálculo: ${decR.motivo} Tus respuestas no se perdieron; vuelve a intentar.`); return; }
       let quien = null; try { quien = (await sesionActual())?.user?.email || null; } catch (_e) {}
       // Dirección 13-oct: un supuesto de la IA que sólo se CONSERVA (impacto bajo) no es una confirmación
       // de nadie: no se registra en `confirmaciones` ni se presenta como confirmado; sigue preliminar.
