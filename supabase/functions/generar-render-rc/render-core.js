@@ -105,16 +105,16 @@ export function promptAuditoria({ modo = '', cuarto = '', entorno = '', conteoPi
  * @param {number|string|null} [sillas]
  * @returns {string}
  */
-export function preguntaConteoJson(esperados, sillas) {
-  const txt = textoEsperados(esperados);
+export function preguntaConteoJson(_esperados, _sillas) {
+  // SIN el número esperado ni los nombres de catálogo ("12 usuarios"): en la corrida C1 v5 el contador respondió
+  // "12 sillas, como se espera" sobre una imagen con 10. Se le pide ENUMERAR cada objeto y se cuenta la lista.
   return (
-    'You are counting objects in ONE photograph. Count carefully, one by one, including objects partly hidden behind others.\n' +
-    '1) "piso": floor-standing furniture pieces (desks, benches, tables, reception counters, storage units, credenzas, pedestals, privacy screens that stand on the floor). ' +
-    'A long bench of joined desks counts as ONE piece if it is one continuous module. Do NOT count chairs.' +
-    (txt ? ` The room is supposed to contain: ${txt}.` : '') + '\n' +
-    '2) "sillas": every chair or seat of any kind.\n' +
-    (Number(sillas) > 0 ? `(The project expects ${Number(sillas)} chairs; report what you SEE, not that number.)\n` : '') +
-    'Answer ONLY with JSON: {"piso": <integer>, "sillas": <integer>, "notas": "<one short sentence>"}'
+    'You are auditing ONE photograph. Do not assume any expected quantity; report only what is visible.\n' +
+    'List EVERY chair or seat you can see, one entry per chair, including chairs partly hidden behind others, ' +
+    'with its location ("left", "right", "front", "back", "head") and its order from nearest to farthest.\n' +
+    'Then list every floor-standing furniture piece (desk/bench module, table, reception counter, storage unit, pedestal, credenza, floor screen). ' +
+    'A continuous bench of joined desks is ONE piece. Chairs are NOT floor pieces.\n' +
+    'Answer ONLY with JSON: {"sillas_lista":[{"lado":"left","orden":1}], "piso_lista":[{"tipo":"bench"}], "notas":"<one short sentence>"}'
   );
 }
 
@@ -125,7 +125,9 @@ export function preguntaConteoJson(esperados, sillas) {
  */
 export function evaluarConteo(resp, esperado = {}) {
   const ent = (v) => (Number.isInteger(Number(v)) && v !== null && v !== '' ? Number(v) : null);
-  const piso = resp ? ent(resp.piso) : null, sil = resp ? ent(resp.sillas) : null;
+  // Preferir la ENUMERACIÓN (sillas_lista / piso_lista); el número suelto sólo si no hay lista.
+  const piso = resp ? (Array.isArray(resp.piso_lista) ? resp.piso_lista.length : ent(resp.piso)) : null;
+  const sil = resp ? (Array.isArray(resp.sillas_lista) ? resp.sillas_lista.length : ent(resp.sillas)) : null;
   const eP = n(esperado.piso) > 0 ? n(esperado.piso) : null, eS = esperado.sillas != null && n(esperado.sillas, -1) >= 0 ? n(esperado.sillas) : null;
   if (piso === null && sil === null) return { ok: false, sinRespuesta: true, piso: null, sillas: null, diferencias: [] };
   const diferencias = [];

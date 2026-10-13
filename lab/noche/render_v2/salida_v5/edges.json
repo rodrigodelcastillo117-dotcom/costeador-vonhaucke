@@ -1,0 +1,154 @@
+[
+  {
+    "fn": "generar-render-rc",
+    "status": 200,
+    "ok": true,
+    "code": null,
+    "error": null,
+    "audit": {
+      "pass": true,
+      "geometry_match": "PASS",
+      "layout_match": "PASS",
+      "environment_match": "PASS",
+      "extra_objects": "PASS",
+      "natural_camera": "PASS",
+      "reasons": [
+        "The 12-person workstation layout and chair count match the reference specifications accurately.",
+        "Chair geometry closely follows Product Reference 1, and the glass divider partition is correctly featured."
+      ],
+      "confidence": 0.8,
+      "fidelidad_producto": "CON_REFERENCIAS",
+      "contador": "OK",
+      "conteo": {
+        "ok": true,
+        "sinRespuesta": false,
+        "piso": 1,
+        "sillas": 12,
+        "diferencias": [],
+        "intento": 1,
+        "notas": "Se observa un módulo de trabajo continuo para 12 usuarios con sus 12 sillas correspondientes."
+      },
+      "geometria_producto": "PASS"
+    },
+    "referencias": 1,
+    "con_dibujo": true,
+    "conteo": null,
+    "conteoTexto": null,
+    "model": "gemini-3-pro-image",
+    "bytes": 2311457
+  },
+  {
+    "fn": "generar-render-rc",
+    "status": 200,
+    "ok": true,
+    "code": null,
+    "error": null,
+    "audit": {
+      "pass": true,
+      "geometry_match": "PASS",
+      "layout_match": "PASS",
+      "environment_match": "PASS",
+      "extra_objects": "PASS",
+      "natural_camera": "PASS",
+      "reasons": [
+        "Desk geometry and mesh office chair closely match reference specifications.",
+        "Item counts and general layout align with reference diagram.",
+        "Room environment reads clearly as a private office from a natural perspective."
+      ],
+      "confidence": 0.7,
+      "fidelidad_producto": "CON_REFERENCIAS",
+      "contador": "OK",
+      "conteo": {
+        "ok": true,
+        "sinRespuesta": false,
+        "piso": 1,
+        "sillas": 1,
+        "diferencias": [],
+        "intento": 1,
+        "notas": "Se observa un módulo de escritorio con panel frontal y una silla ergonómica de oficina."
+      },
+      "geometria_producto": "PASS"
+    },
+    "referencias": 1,
+    "con_dibujo": true,
+    "conteo": null,
+    "conteoTexto": null,
+    "model": "gemini-3-pro-image",
+    "bytes": 2122835
+  },
+  {
+    "fn": "generar-render-rc",
+    "status": 200,
+    "ok": true,
+    "code": null,
+    "error": null,
+    "audit": {
+      "pass": true,
+      "geometry_match": "PASS",
+      "layout_match": "PASS",
+      "environment_match": "PASS",
+      "extra_objects": "PASS",
+      "natural_camera": "PASS",
+      "reasons": [
+        "Furniture count and models match reference specifications and diagram layout precisely."
+      ],
+      "confidence": 0.7,
+      "fidelidad_producto": "CON_REFERENCIAS",
+      "contador": "OK",
+      "conteo": {
+        "ok": true,
+        "sinRespuesta": false,
+        "piso": 1,
+        "sillas": 8,
+        "diferencias": [],
+        "intento": 1,
+        "notas": "Se observa una mesa de juntas central con ocho sillas a su alrededor."
+      },
+      "geometria_producto": "PASS"
+    },
+    "referencias": 1,
+    "con_dibujo": true,
+    "conteo": null,
+    "conteoTexto": null,
+    "model": "gemini-3-pro-image",
+    "bytes": 2395241
+  },
+  {
+    "fn": "generar-render-rc",
+    "status": 200,
+    "ok": true,
+    "code": null,
+    "error": null,
+    "audit": {
+      "pass": true,
+      "geometry_match": "PASS",
+      "layout_match": "PASS",
+      "environment_match": "PASS",
+      "extra_objects": "PASS",
+      "natural_camera": "PASS",
+      "reasons": [
+        "Single reception module matches diagram placement and proportions.",
+        "Reception environment matches intended room type without extra furniture."
+      ],
+      "confidence": 0.75,
+      "fidelidad_producto": "SIN_REFERENCIAS",
+      "contador": "OK",
+      "conteo": {
+        "ok": true,
+        "sinRespuesta": false,
+        "piso": 1,
+        "sillas": 0,
+        "diferencias": [],
+        "intento": 1,
+        "notas": "Se observa únicamente un módulo de recepción en el espacio."
+      },
+      "geometria_producto": "NO_VERIFICABLE"
+    },
+    "referencias": 0,
+    "con_dibujo": true,
+    "conteo": null,
+    "conteoTexto": null,
+    "model": "gemini-3-pro-image",
+    "bytes": 2580552
+  }
+]

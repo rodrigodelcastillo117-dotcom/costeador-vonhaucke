@@ -39,7 +39,11 @@ describe('VH-121 · render-core', () => {
 describe('VH-161 · contador con modelo de visión', () => {
   it('cuenta sillas además de muebles de piso y detecta 10 de 12', async () => {
     const { evaluarConteo, preguntaConteoJson } = await import('./render-core.js');
-    expect(preguntaConteoJson([{ nombre: 'Módulo operativo 12u', cantidad: 1 }], 12)).toMatch(/"sillas"/);
+    const q = preguntaConteoJson([{ nombre: 'Módulo operativo App LT 12 usuarios', cantidad: 1 }], 12);
+    expect(q).toMatch(/sillas_lista/);
+    expect(q).not.toMatch(/12/);                       // sin anclaje: ni la cifra esperada ni los nombres de catálogo
+    expect(evaluarConteo({ sillas_lista: Array.from({ length: 10 }, (_, i) => ({ lado: i < 5 ? 'left' : 'right', orden: i % 5 + 1 })), piso_lista: [{ tipo: 'bench' }] }, { piso: 1, sillas: 12 }))
+      .toMatchObject({ ok: false, sillas: 10, diferencias: ['sillas: 10 de 12'] });
     expect(evaluarConteo({ piso: 1, sillas: 10 }, { piso: 1, sillas: 12 })).toMatchObject({ ok: false, diferencias: ['sillas: 10 de 12'] });
     expect(evaluarConteo({ piso: 1, sillas: 12 }, { piso: 1, sillas: 12 }).ok).toBe(true);
     expect(evaluarConteo({ piso: 2, sillas: 8 }, { piso: 1, sillas: 8 }).diferencias).toEqual(['muebles de piso: 2 de 1']);
