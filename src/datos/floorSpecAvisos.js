@@ -20,6 +20,7 @@ const campo = (w) => (w?.field ? ` [${w.field}]` : '');
 // Avisos (REVIEW_REQUIRED): la lectura se puede usar, pero la persona debe saberlo.
 const TEXTO_AVISO = {
   NO_DIMENSION_AUTHORITY: () => 'El plano no trae cotas: las medidas son estimadas y requieren una referencia real antes de liberar.',
+  MULTI_LEVEL_DOCUMENT: (i) => `El documento trae ${(i?.niveles || []).length || 'varios'} niveles (${(i?.niveles || []).join(' · ')}): se usa el primero; los demás se cotizan como otro proyecto.`,
   ASSUMED_CRITICAL_GEOMETRY: () => 'La envolvente (ancho × largo total) la SUPUSO el modelo, no la midió: confírmala antes de usar la lectura.',
   UNKNOWN_GEOMETRY_PROVENANCE: () => 'No quedó claro si la envolvente se midió o se supuso.',
   ASSUMED_ZONE_GEOMETRY: (w) => `La forma del cuarto${zona(w)} se basa en un supuesto del modelo, no en el plano.`,
