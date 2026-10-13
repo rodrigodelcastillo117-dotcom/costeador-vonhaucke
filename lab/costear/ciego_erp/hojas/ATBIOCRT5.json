@@ -1,0 +1,65 @@
+{
+ "texto": "Biombo divisor de 1400 x 400 x 32 mm modelo apps lt con soportes; en cristal transparente 6 mm templado",
+ "producto": "BIOMBO DIVISOR DE 1400 X 400 X 32 mm MODELO APPS LT CON SOPORTES; EN CRISTAL TRANSPARENTE 6 mm TEMPLADO -- ATBIOCRT5",
+ "clave_erp": "ATBIOCRT5",
+ "proposito": "Prueba ciega: sólo la descripción comercial; el BOM del cotizador Intelisis queda fuera de la app.",
+ "respuestas": [],
+ "esperado": [],
+ "extrasPermitidos": "torniller|rondana|pija|tuerca|cintur|tornillo|consumible|soldadura|empaque",
+ "erp_referencia": {
+  "familias": [
+   {
+    "clave": "cristal",
+    "familia": "cristal",
+    "sub": null,
+    "erp_cantidad": 1,
+    "erp_unidad": "pieza",
+    "erp_articulos": [
+     "MDCRCR01030102"
+    ],
+    "erp_importe": 567.5
+   },
+   {
+    "clave": "soporte",
+    "familia": "soporte",
+    "sub": null,
+    "erp_cantidad": 2,
+    "erp_unidad": "pieza",
+    "erp_articulos": [
+     "MLEXSO310000V9"
+    ],
+    "erp_importe": 232.84
+   },
+   {
+    "clave": "herraje",
+    "familia": "herraje",
+    "sub": null,
+    "erp_cantidad": 4,
+    "erp_unidad": "pieza",
+    "erp_articulos": [
+     "MVLUPI03472101"
+    ],
+    "erp_importe": 0.84
+   }
+  ],
+  "mp": 801.15,
+  "mo": 19.17,
+  "gif": 65.86,
+  "total_fabricacion": 886.18,
+  "horas": {
+   "pm": null,
+   "pintura": 0,
+   "acabados": 0.3402,
+   "carpinteria": null,
+   "entregas": null
+  },
+  "fuente": {
+   "fileId": "1SxlWw0LItf_MZV62RsnaFzu4bKL4u_LD",
+   "archivo": "ATBIOCRT5.pdf",
+   "fecha_reporte": "12/08/2026 04:46:41 p. m.",
+   "tipo": "REPORTE DEL COTIZADOR DE PRECIOS (Intelisis)",
+   "carpeta_drive": "presupuestos cotizador vonhaucke (140tw99N0F8pfW6sCnMxx4TE66iTmsdLL)",
+   "leido": "2026-10-13, solo lectura"
+  }
+ }
+}

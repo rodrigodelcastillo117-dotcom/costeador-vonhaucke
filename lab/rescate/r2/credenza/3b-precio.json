@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$7,359.43",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 2 decisión(es) pendiente(s): Respaldo MDF 9 mm no esta en catalogo, ¿como se costea? · ¿Las puertas llevan chapa por ambas caras?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $4,510.34 · Mano de obra $712.27 · Fábrica $2,136.81",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

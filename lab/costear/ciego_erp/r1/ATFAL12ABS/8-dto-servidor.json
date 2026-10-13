@@ -1,0 +1,375 @@
+{
+  "req": {
+    "cantidad": 1,
+    "pieza": {
+      "componentes": [
+        {
+          "insumoId": "melamina-19",
+          "nombre": "Panel frontal faldón melamina",
+          "cantidad": 1,
+          "largoMM": 800,
+          "anchoMM": 379,
+          "piezas": 1,
+          "material_solicitado": "Melamina 19 mm con canto ABS (color no especificado)",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "lamina-20",
+          "nombre": "Charola metálica portacables (lámina doblada)",
+          "cantidad": 1,
+          "piezas": 1,
+          "material_solicitado": "Charola metálica lámina de acero (calibre no especificado)",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Canto ABS perimetral del panel",
+          "cantidad": 2.36,
+          "piezas": 1,
+          "material_solicitado": "Canto ABS a juego con melamina",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "",
+          "nombre": "Escuadras de fijación a cubierta",
+          "cantidad": 2,
+          "piezas": 1,
+          "material_solicitado": "Escuadra metálica de fijación",
+          "material_match": "CANDIDATE_REQUIRES_CONFIRMATION",
+          "pendiente": true
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornillería de ensamble",
+          "cantidad": 1,
+          "piezas": 1,
+          "material_solicitado": "Tornillería de ensamble",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "pintura-polvo-negro-mate-8-vitracoat",
+          "nombre": "Acabado pintura en polvo charola metálica",
+          "cantidad": 1,
+          "piezas": 1,
+          "material_solicitado": "Pintura en polvo (color no especificado)",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        }
+      ]
+    }
+  },
+  "res": {
+    "ok": true,
+    "estado": "incompleto",
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 455.02,
+      "materialTotal": 260.33,
+      "manoObra": 48.67,
+      "indirectosFabrica": 146.01,
+      "desperdicio": 10.67,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-19",
+          "nombre": "Melamina BLANCA / EcoLegno 19 mm",
+          "seccion": "cubiertas",
+          "costo": 60.44,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "lamina-20",
+          "nombre": "Lamina de acero cal. 20",
+          "seccion": "metal",
+          "costo": 26.75,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "costo": 7.46,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "costo": 45,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "pintura-polvo-negro-mate-8-vitracoat",
+          "nombre": "Pintura en polvo, Negro Mate 8 Vitracoat",
+          "seccion": "acabados",
+          "costo": 120.68,
+          "certificable": true,
+          "evidencia": "aprobado"
+        }
+      ],
+      "componentesIgnorados": [
+        "Escuadras de fijación a cubierta"
+      ]
+    },
+    "evidencia": {
+      "usados": 5,
+      "certificados": 2,
+      "noCertificados": 3
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 94.65582044444444,
+      "materialIndirecto": 165.677966,
+      "materialTotal": 260.33378644444446,
+      "desperdicio": 10.672659358714792,
+      "manoObra": 48.67146626666667,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 51.41941196868397,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 309.0052527111111,
+      "indirectosFabrica": 146.0143988,
+      "gastosOperacion": 0,
+      "costoFabricacion": 455.0196515111111,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 455.0196515111111,
+      "costoLoteConMerma": 455.0196515111111,
+      "costoUnitario": 455.0196515111111,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-19",
+          "nombre": "Melamina BLANCA / EcoLegno 19 mm",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Panel frontal faldón melamina"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": true,
+            "certificable": false,
+            "hojas": 1,
+            "piezas_solicitadas": 1,
+            "piezas_colocadas": 1,
+            "placements": [
+              {
+                "id": "Panel frontal faldón melamina#1",
+                "nombre": "Panel frontal faldón melamina",
+                "x": 10,
+                "y": 10,
+                "w": 379,
+                "h": 800,
+                "rot": 90,
+                "hoja": 1
+              }
+            ],
+            "remanentes": [
+              {
+                "hoja": 1,
+                "x": 393,
+                "y": 10,
+                "w": 2037,
+                "h": 1200,
+                "area_mm2": 2444400
+              },
+              {
+                "hoja": 1,
+                "x": 10,
+                "y": 814,
+                "w": 2420,
+                "h": 396,
+                "area_mm2": 958320
+              }
+            ],
+            "issues": [],
+            "area_piezas_mm2": 303200,
+            "area_comprada_mm2": 2976800,
+            "desperdicio_mm2": 2673600,
+            "eficiencia_pct": 10.440771349862258,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.3032,
+          "comprado": 0.3307555555555555,
+          "unidades": 0.1111111111111111,
+          "costo": 60.44444444444444,
+          "desperdicio": 5.035683358714792,
+          "pct": 8.331093791991384,
+          "precio": 544,
+          "noCabe": false,
+          "fraccion": true
+        },
+        {
+          "insumoId": "lamina-20",
+          "nombre": "Lamina de acero cal. 20",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "lamina",
+            "corto": "lamina",
+            "medida": 21.3,
+            "nombre": "lamina 1.22 x 2.44"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Charola metálica portacables (lámina doblada)"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "metal",
+          "metodoConsumo": "APROVECHAMIENTO_GENERICO",
+          "usaAprovechamientoGenerico": true,
+          "neto": 1,
+          "comprado": 1.25,
+          "unidades": 0.058685446009389665,
+          "costo": 26.749999999999996,
+          "desperdicio": 5.35,
+          "pct": 20,
+          "precio": 455.82,
+          "noCabe": false,
+          "fraccion": true
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "rollo",
+            "corto": "rollo",
+            "medida": 50,
+            "nombre": "rollo de 50 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Canto ABS perimetral del panel"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 2.36,
+          "comprado": 2.4544,
+          "unidades": null,
+          "costo": 7.4613760000000005,
+          "desperdicio": 0.2869760000000008,
+          "pct": 3.846153846153857,
+          "precio": 3.04,
+          "noCabe": false
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "juego",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Tornillería de ensamble"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 1,
+          "unidades": null,
+          "costo": 45,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 45,
+          "noCabe": false
+        },
+        {
+          "insumoId": "pintura-polvo-negro-mate-8-vitracoat",
+          "nombre": "Pintura en polvo, Negro Mate 8 Vitracoat",
+          "seccion": "acabados",
+          "clase": "indirecta",
+          "unidad": "kg",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Acabado pintura en polvo charola metálica"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 1,
+          "unidades": null,
+          "costo": 120.677966,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 120.677966,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [
+        "Escuadras de fijación a cubierta"
+      ],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Canto ABS perimetral del panel",
+        "Tornillería de ensamble",
+        "Acabado pintura en polvo charola metálica"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "incompleto",
+      "pendientes": [
+        "Escuadras de fijación a cubierta"
+      ],
+      "costoOficial": null
+    },
+    "versionMotor": "2026-10-13",
+    "versionConfig": "cfglu0aa4",
+    "versionCatalogo": "cat-ap1793-cfg11p589k",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T20:13:13.425Z",
+    "catalogoFuente": "catalogo",
+    "warnings": [
+      "1 pieza(s) sin material/precio usable: Escuadras de fijación a cubierta"
+    ]
+  }
+}

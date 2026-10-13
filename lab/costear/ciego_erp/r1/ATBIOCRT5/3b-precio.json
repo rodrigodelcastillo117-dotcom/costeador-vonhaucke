@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$1,622.74",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 8 decisión(es) pendiente(s): ¿Cuántos biombos se van a fabricar? · ¿Qué tipo de soporte se usa? · ¿Cuántos soportes por biombo? · ¿Acabado de los soportes metálicos? · ¿Acabado de canto del cristal? · ¿El cristal lleva barrenos para los soportes? · ¿Lleva perfil de aluminio continuo en el canto inferior? · ¿Se confirma cristal 6 mm o se requiere 9/10 mm por rigidez en 1.4 m?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $1,264.12 · Mano de obra $85.24 · Fábrica $273.37",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

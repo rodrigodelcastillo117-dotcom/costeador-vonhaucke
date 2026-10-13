@@ -1,0 +1,57 @@
+{
+  "producto": "OMEGA PARA CUBIERTA DE 850 X 100 X 17 mm MODELO APPS LT CON TORNILLERIA; METALICA -- ATOM3",
+  "resumen": {
+    "esperados": 0,
+    "pass": 0,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 2,
+    "renglonesBom": 3,
+    "veredicto": "FAIL"
+  },
+  "filas": [],
+  "sobran": [
+    {
+      "nombre": "Perfil omega lámina doblada 850 × 100 × 17 mm",
+      "insumoId": "lamina-18",
+      "permitido": false
+    },
+    {
+      "nombre": "Pintura en polvo negro mate (acabado del omega)",
+      "insumoId": "pintura-polvo-negro",
+      "permitido": false
+    },
+    {
+      "nombre": "Juego de tornillería de fijación omega-cubierta",
+      "insumoId": "tornilleria",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Qué calibre de lámina lleva el omega?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántas omegas se requieren en total?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Acabado del omega?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántos barrenos de fijación lleva cada omega?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Tipo de tornillería de fijación a la cubierta?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "Los 850 × 100 × 17 mm, ¿son medidas del perfil terminado (largo × ancho de ala × altura) o de la cubierta?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "producto": "CONDUCTO FALDON PARA ESCRITORIO DE 800 X 379 X 177 mm MODELO APPS LT CON MELAMINA CANTO ABS; METALICO -- ATFAL12ABS",
+  "resumen": {
+    "esperados": 0,
+    "pass": 0,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 5,
+    "renglonesBom": 6,
+    "veredicto": "FAIL"
+  },
+  "filas": [],
+  "sobran": [
+    {
+      "nombre": "Panel frontal faldón melamina",
+      "insumoId": "melamina-19",
+      "permitido": false
+    },
+    {
+      "nombre": "Charola metálica portacables (lámina doblada)",
+      "insumoId": "lamina-20",
+      "permitido": false
+    },
+    {
+      "nombre": "Canto ABS perimetral del panel",
+      "insumoId": "tapacanto",
+      "permitido": false
+    },
+    {
+      "nombre": "Escuadras de fijación a cubierta",
+      "insumoId": "",
+      "permitido": false
+    },
+    {
+      "nombre": "Tornillería de ensamble",
+      "insumoId": "tornilleria",
+      "permitido": true
+    },
+    {
+      "nombre": "Acabado pintura en polvo charola metálica",
+      "insumoId": "pintura-polvo-negro-mate-8-vitracoat",
+      "permitido": false
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿El faldón es mixto (melamina + charola metálica) o sólo una de las dos versiones?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Color/decorativo de la melamina?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Espesor de la melamina?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Calibre de la lámina de la charola metálica?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Color de pintura en polvo de la parte metálica?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántas piezas se cotizan?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Incluye módulo eléctrico/contactos dentro del faldón?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Lleva tapa registrable/abatible para acceso a cables?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

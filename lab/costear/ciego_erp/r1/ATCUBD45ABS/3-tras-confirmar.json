@@ -1,0 +1,42 @@
+{
+  "confirmacion": {
+    "ofrecida": true,
+    "texto": "Confirmar los 2 propuestos",
+    "diferencias": "2 difieren de lo pedido y se confirman uno por uno: Canto ABS perimetral de cubierta, Tornillería de fijación cubierta-estructura. ",
+    "diferenciasAceptadas": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta rectangular App LT 1500 × 1200 mm",
+      "material": "Melamina ABS 28 mm (cubierta APP LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Canto ABS perimetral de cubierta",
+      "material": "Tapacanto ABS 3 mm",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («canto espesor especificado asume cubierta») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tapa registrable metálica + herraje (App LT)",
+      "material": "Tapa registrable metalica + herraje (App LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Tornillería de fijación cubierta-estructura",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («ensamble») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

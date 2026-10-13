@@ -1,0 +1,44 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Cubierta de trabajo App LT 1800 × 1200 × 28 mm en melamina con cantos ABS y dos tapas registrables metálicas","tipo":"mesa","piezas":[{"nombre":"Cubierta rectangular App LT 1800 × 1200 × 28 mm","insumoId":"melamina-28","material_solicitado":"Melamina 28 mm (color 
+
+[lab-costear] analizar-mueble 200 en 31 s · piezas 3 · lote 1
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":2296.6,"materialTotal":1435.38,"manoObra":215.31,"indirectosFabrica":645.92,"desperdicio":370.31,"detalleInsumos":[{"insumoId":"melamina-28","nombre":"Melamina ABS 28 mm (cubierta APP LT)","seccion":"
+
+[lab-costear] BOM inicial {"piezas":3,"pendientes":["Tapa registrable metálica App LT ('puerta metálica')"],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"Las 'dos puertas metálicas' son:","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿El alcance incluye estructura/patas o sólo la cubierta?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"Color/decorativo de la melamina 28 mm:","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"Espesor del canto ABS:","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Se incluye módulo eléctrico/contactos bajo las tapas?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"Cantidad de pasacables adicionales:","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":2296.6,"materialTotal":1435.38,"manoObra":215.31,"indirectosFabrica":645.92,"desperdicio":370.31,"detalleInsumos":[{"insumoId":"melamina-28","nombre":"Melamina ABS 28 mm (cubierta APP LT)","seccion":"
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 1 propuestos","diferencias":"1 difieren de lo pedido y se confirman uno por uno: Canto ABS 3 mm perímetro de cubierta. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$2,296.60","Por confirmar"],"margen":null,"estado":"Costo preliminar — 6 decisión(es) pendiente(s): Las 'dos puertas metálicas' son: · ¿El alcance incluye estructura/patas o sólo la cubierta? · Color/decorativo de la melamina 28 mm: · Espesor del canto ABS: · ¿Se incluye módulo eléctrico/contactos bajo las tapas? · Cantidad de pasacables adicionales:. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $1,435.38 · Mano de obra $215.31 · Fábrica $645.92","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":2296.6,"costoSrv":2296.6,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":2554.97,"materialTotal":1435.38,"manoObra":279.9,"indirectosFabrica":839.7,"desperdicio":370.31,"detalleInsumos":[{"insumoId":"melamina-28","nombre":"Melamina ABS 28 mm (cubierta APP LT)","seccion":"c
+
+[lab-costear] dificultad {"costoNormal":2296.6,"marcado":"true","costoDificil":2554.97,"reqDificultad":"dificil","costoSrvDificil":2554.97,"sube":true,"paridad":true,"costoDeVueltaNormal":2296.6,"regresaIgual":true}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":2296.6,"materialTotal":1435.38,"manoObra":215.31,"indirectosFabrica":645.92,"desperdicio":370.31,"detalleInsumos":[{"insumoId":"melamina-28","nombre":"Melamina ABS 28 mm (cubierta APP LT)","seccion":"
+
+[lab-costear] expedientes POST 201 [{"id":97}]
+
+[lab-costear] guardado {"status":201,"id":97,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":2296.6,"materialTotal":1435.38,"manoObra":215.31,"indirectosFabrica":645.92,"desperdicio":370.31,"detalleInsumos":[{"insumoId":"melamina-28","nombre":"Melamina ABS 28 mm (cubierta APP LT)","seccion":"
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":0,"pass":0,"fail":0,"riesgo":0,"sobrantesNoPermitidos":3,"renglonesBom":3,"veredicto":"FAIL"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB ciego ATCUBD46ABS 1013-2006 BORRADOR mesa cubierta de mesa/escritorio App LT con tapas registrables Melamina de 28 mm","piezas":3,"mismoBom":true,"costoAntes":"$2,296.60","costoDespues":"$2,296.60","mismoCosto":true,"resultado":{"precios":["$2,296.60","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $1,435.38 · Mano de obra $215.31 · Fábrica $645.92","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.3m)

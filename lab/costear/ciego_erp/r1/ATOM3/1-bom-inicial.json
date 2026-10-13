@@ -1,0 +1,59 @@
+{
+  "piezas": [
+    {
+      "nombre": "Perfil omega lámina doblada 850 × 100 × 17 mm",
+      "material": "Lamina de acero cal. 18",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Pintura en polvo negro mate (acabado del omega)",
+      "material": "Pintura en polvo negro mate 8 (Vitracoat)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («acabado especificado asume») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Juego de tornillería de fijación omega-cubierta",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («incluida segun solicitud cliente») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  },
+  "analizar": {
+    "status": 200,
+    "piezas": 3,
+    "producto": "Omega (refuerzo metálico) para cubierta App LT 850 × 100 × 17 mm",
+    "uso": {
+      "input_tokens": 22007,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 2807,
+      "output_tokens_details": {
+        "thinking_tokens": 275
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    }
+  },
+  "tiempos": {
+    "analizarSeg": 40.127,
+    "bomVisibleSeg": 40.231
+  },
+  "lote": 1,
+  "entrada": "texto"
+}

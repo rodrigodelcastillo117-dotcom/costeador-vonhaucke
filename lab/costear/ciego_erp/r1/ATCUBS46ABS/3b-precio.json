@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$1,366.31",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 7 decisión(es) pendiente(s): ¿Qué espesor lleva la cubierta de melamina? · ¿Qué color/decorativo de melamina? · ¿El alcance incluye estructura/patas o sólo la cubierta? · ¿Cuántas tapas registrables lleva la cubierta? · ¿Se incluye módulo eléctrico (contactos/USB) bajo la tapa registrable? · ¿Cuántas cubiertas se cotizan? · ¿Lleva pasacables/grommet adicional a la tapa registrable?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $848.32 · Mano de obra $129.50 · Fábrica $388.49",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

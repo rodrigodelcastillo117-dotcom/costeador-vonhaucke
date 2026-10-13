@@ -1,0 +1,50 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATCUBS45ABS 1013-2009 BORRADOR mesa cubierta de trabajo rectangular modelo App LT con tapa registrable Melamina de 28 mm",
+    "piezas": 4,
+    "mismoBom": true,
+    "costoAntes": "$2,136.96",
+    "costoDespues": "$2,136.96",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$2,136.96",
+        "Pendiente"
+      ],
+      "margen": null,
+      "estado": "Costo INCOMPLETO — faltan por costear 1 partida(s): Maquinado de calado para tapa registrable (operación CNC). Asígnales material en el despiece (arriba) o márcalas como excluidas. Hasta entonces no hay costo total ni precio.",
+      "linea": "Material $1,335.60 · Mano de obra $200.34 · Fábrica $601.02",
+      "pendiente": true,
+      "porConfirmar": false
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta melamina 28 mm 1500×600",
+      "material": "Melamina ABS 28 mm (cubierta APP LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Canto ABS perimetral 2-3 mm",
+      "material": "Tapacanto ABS 3 mm",
+      "alertas": [
+        "⚠ Costo pendiente — confirma material (crítico: Solicitado 28 mm → candidato 3 mm). Usar Tapacanto ABS 3 mm (confirmar)"
+      ]
+    },
+    {
+      "nombre": "Tapa registrable metálica + herraje (App LT)",
+      "material": "Tapa registrable metalica + herraje (App LT)",
+      "alertas": [
+        "⚠ Costo pendiente — falta confirmar material."
+      ]
+    },
+    {
+      "nombre": "Maquinado de calado para tapa registrable (operación CNC)",
+      "material": "— ¿de qué es? —",
+      "alertas": [
+        "⚠ Costo pendiente — falta confirmar material."
+      ]
+    }
+  ]
+}

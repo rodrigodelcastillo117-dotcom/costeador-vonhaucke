@@ -1,0 +1,42 @@
+{
+  "confirmacion": {
+    "ofrecida": true,
+    "texto": "Confirmar los 2 propuestos",
+    "diferencias": "1 difieren de lo pedido y se confirman uno por uno: Tornillería y hules de montaje. ",
+    "diferenciasAceptadas": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Panel de cristal templado claro 6 mm",
+      "material": "Cristal templado claro 6 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Soporte/clamp metálico de sujeción a cubierta (APPS LT)",
+      "material": "Pintura en polvo, Ivory",
+      "alertas": []
+    },
+    {
+      "nombre": "Perfil de aluminio remate/portacristal",
+      "material": "— ¿de qué es? —",
+      "alertas": [
+        "⚠ Varios materiales posibles — elige de cuál es."
+      ]
+    },
+    {
+      "nombre": "Tornillería y hules de montaje",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («empaqu hule montaje cristal») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

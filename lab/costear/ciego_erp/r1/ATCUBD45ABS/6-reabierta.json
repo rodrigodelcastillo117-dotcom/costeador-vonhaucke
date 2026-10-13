@@ -1,0 +1,48 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATCUBD45ABS 1013-2005 BORRADOR mesa cubierta de trabajo App LT para banca doble (bench 2 puestos) Melamina de 28 mm",
+    "piezas": 4,
+    "mismoBom": true,
+    "costoAntes": "$2,434.60",
+    "costoDespues": "$2,434.60",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$2,434.60",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $1,516.00 · Mano de obra $229.65 · Fábrica $688.95",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta rectangular App LT 1500 × 1200 mm",
+      "material": "Melamina ABS 28 mm (cubierta APP LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Canto ABS perimetral de cubierta",
+      "material": "Tapacanto ABS 3 mm",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («canto espesor especificado asume cubierta») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tapa registrable metálica + herraje (App LT)",
+      "material": "Tapa registrable metalica + herraje (App LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Tornillería de fijación cubierta-estructura",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («ensamble») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

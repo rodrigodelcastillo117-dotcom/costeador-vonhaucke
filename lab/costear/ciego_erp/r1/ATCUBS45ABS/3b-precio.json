@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$2,136.96",
+      "Pendiente"
+    ],
+    "margen": null,
+    "estado": "Costo INCOMPLETO — faltan por costear 1 partida(s): Maquinado de calado para tapa registrable (operación CNC). Asígnales material en el despiece (arriba) o márcalas como excluidas. Hasta entonces no hay costo total ni precio.",
+    "linea": "Material $1,335.60 · Mano de obra $200.34 · Fábrica $601.02",
+    "pendiente": true,
+    "porConfirmar": false
+  },
+  "piezas": []
+}

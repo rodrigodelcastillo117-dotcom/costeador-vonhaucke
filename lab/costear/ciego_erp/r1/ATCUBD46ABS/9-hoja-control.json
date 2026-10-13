@@ -1,0 +1,57 @@
+{
+  "producto": "CUBIERTA RECTANGULAR DE 1800 X 1200 X 28MM MODELO APPS LT CON DOS PUERTAS METALICAS; EN MELAMINA CON CANTOS ABS -- ATCUBD46ABS",
+  "resumen": {
+    "esperados": 0,
+    "pass": 0,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 3,
+    "renglonesBom": 3,
+    "veredicto": "FAIL"
+  },
+  "filas": [],
+  "sobran": [
+    {
+      "nombre": "Cubierta rectangular App LT 1800 × 1200 × 28 mm",
+      "insumoId": "melamina-28",
+      "permitido": false
+    },
+    {
+      "nombre": "Canto ABS 3 mm perímetro de cubierta",
+      "insumoId": "tapacanto-3mm",
+      "permitido": false
+    },
+    {
+      "nombre": "Tapa registrable metálica App LT ('puerta metálica')",
+      "insumoId": "",
+      "permitido": false
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "Las 'dos puertas metálicas' son:",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿El alcance incluye estructura/patas o sólo la cubierta?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "Color/decorativo de la melamina 28 mm:",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "Espesor del canto ABS:",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Se incluye módulo eléctrico/contactos bajo las tapas?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "Cantidad de pasacables adicionales:",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

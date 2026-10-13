@@ -1,0 +1,75 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATFAL150ABS 1013-2013 BORRADOR otro conducto/faldón portacables para escritorio sistema App LT Melamina con canto ABS",
+    "piezas": 9,
+    "mismoBom": true,
+    "costoAntes": "$1,016.40",
+    "costoDespues": "$1,016.40",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$1,016.40",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $591.00 · Mano de obra $106.35 · Fábrica $319.05",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Panel frontal de faldón melamina",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Panel posterior / tapa de registro melamina",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapas laterales / costados melamina",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Charola/base metálica portacables cal. 20",
+      "material": "Lamina de acero cal. 20",
+      "alertas": []
+    },
+    {
+      "nombre": "Pintura en polvo negro mate para charola metálica",
+      "material": "Pintura en polvo, Negro Mate 8 Vitracoat",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («electrostatica») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Canto ABS 22 mm perimetral",
+      "material": "Perfil de canto ABS 22 mm Walnut",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («melamina color definir») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Perfil de canto aluminio App LT (remate)",
+      "material": "Perfil de canto aluminio (App LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Tornillería y escuadras de fijación a cubierta",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («herraje fijacion») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Tornillo nivelador 3/8 plataforma 1 1/2\" cromado",
+      "alertas": []
+    }
+  ]
+}

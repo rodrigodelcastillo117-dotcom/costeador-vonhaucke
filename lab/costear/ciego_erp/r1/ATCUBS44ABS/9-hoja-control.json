@@ -1,0 +1,53 @@
+{
+  "producto": "CUBIERTA RECTANGULAR DE 1200 X 600 X 28 mm MODELO APPS LT CON TAPA REGISTRABLE METALICA; EN MELAMINA CON CANTOS ABS -- ATCUBS44ABS",
+  "resumen": {
+    "esperados": 0,
+    "pass": 0,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 3,
+    "renglonesBom": 3,
+    "veredicto": "FAIL"
+  },
+  "filas": [],
+  "sobran": [
+    {
+      "nombre": "Cubierta melamina 28 mm 1200 × 600",
+      "insumoId": "melamina-28",
+      "permitido": false
+    },
+    {
+      "nombre": "Canto ABS perímetro cubierta",
+      "insumoId": "canto-abs-32",
+      "permitido": false
+    },
+    {
+      "nombre": "Tapa registrable metálica + herraje App LT",
+      "insumoId": "tapa-registrable-applt",
+      "permitido": false
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Color/decorativo de la melamina 28 mm?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántas tapas registrables lleva la cubierta?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Se cotiza solo la cubierta o incluye estructura/patas?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Lleva pasacables/grommet adicional además de la tapa?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántas cubiertas iguales se requieren?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

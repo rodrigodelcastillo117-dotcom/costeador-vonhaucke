@@ -1,0 +1,44 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Conducto faldón para escritorio App LT, 900 × 379 × 177 mm","tipo":"otro","piezas":[{"nombre":"Panel frontal de faldón melamina","insumoId":"melamina-16","material_solicitado":"Melamina 16 mm (color por definir) con canto ABS","material_match":"SUBSTITUTE_SUGGESTE
+
+[lab-costear] analizar-mueble 200 en 42 s · piezas 8 · lote 1
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1016.4,"materialTotal":591,"manoObra":106.35,"indirectosFabrica":319.05,"desperdicio":51.9,"detalleInsumos":[{"insumoId":"melamina-16","nombre":"Melamina BLANCA 16 mm","seccion":"cubiertas","costo":92
+
+[lab-costear] BOM inicial {"piezas":9,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Qué color/decorado de melamina lleva el faldón?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Espesor de la melamina?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Calibre de la lámina de la charola metálica?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Color de pintura en polvo del elemento metálico?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Lleva tapa registrable metálica para acceso al cableado?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿El conducto es cerrado por ambas caras o abierto hacia atrás?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Incluye módulo eléctrico/contactos dentro del faldón?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuántas piezas se fabricarán?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 6 propuestos","diferencias":"3 difieren de lo pedido y se confirman uno por uno: Pintura en polvo negro mate para charola metálica, Canto ABS 22 mm perimetral, Tornillería y escuadras de fijación a cubierta. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1016.4,"materialTotal":591,"manoObra":106.35,"indirectosFabrica":319.05,"desperdicio":51.9,"detalleInsumos":[{"insumoId":"melamina-16","nombre":"Melamina BLANCA 16 mm","seccion":"cubiertas","costo":92
+
+[lab-costear] precio {"precios":["$1,016.40","Por confirmar"],"margen":null,"estado":"Costo preliminar — 8 decisión(es) pendiente(s): ¿Qué color/decorado de melamina lleva el faldón? · ¿Espesor de la melamina? · ¿Calibre de la lámina de la charola metálica? · ¿Color de pintura en polvo del elemento metálico? · ¿Lleva tapa registrable metálica para acceso al cableado? · ¿El conducto es cerrado por ambas caras o abierto hacia atrás? · ¿Incluye módulo eléctrico/contactos dentro del faldón? · ¿Cuántas piezas se fabricarán?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $591.00 · Mano de obra $106.35 · Fábrica $319.05","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":1016.4,"costoSrv":1016.4,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1144.02,"materialTotal":591,"manoObra":138.26,"indirectosFabrica":414.77,"desperdicio":51.9,"detalleInsumos":[{"insumoId":"melamina-16","nombre":"Melamina BLANCA 16 mm","seccion":"cubiertas","costo":9
+
+[lab-costear] dificultad {"costoNormal":1016.4,"marcado":"true","costoDificil":1144.02,"reqDificultad":"dificil","costoSrvDificil":1144.02,"sube":true,"paridad":true,"costoDeVueltaNormal":1016.4,"regresaIgual":true}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1016.4,"materialTotal":591,"manoObra":106.35,"indirectosFabrica":319.05,"desperdicio":51.9,"detalleInsumos":[{"insumoId":"melamina-16","nombre":"Melamina BLANCA 16 mm","seccion":"cubiertas","costo":92
+
+[lab-costear] expedientes POST 201 [{"id":106}]
+
+[lab-costear] guardado {"status":201,"id":106,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1016.4,"materialTotal":591,"manoObra":106.35,"indirectosFabrica":319.05,"desperdicio":51.9,"detalleInsumos":[{"insumoId":"melamina-16","nombre":"Melamina BLANCA 16 mm","seccion":"cubiertas","costo":92
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":0,"pass":0,"fail":0,"riesgo":0,"sobrantesNoPermitidos":8,"renglonesBom":9,"veredicto":"FAIL"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB ciego ATFAL150ABS 1013-2013 BORRADOR otro conducto/faldón portacables para escritorio sistema App LT Melamina con canto ABS","piezas":9,"mismoBom":true,"costoAntes":"$1,016.40","costoDespues":"$1,016.40","mismoCosto":true,"resultado":{"precios":["$1,016.40","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $591.00 · Mano de obra $106.35 · Fábrica $319.05","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.5m)

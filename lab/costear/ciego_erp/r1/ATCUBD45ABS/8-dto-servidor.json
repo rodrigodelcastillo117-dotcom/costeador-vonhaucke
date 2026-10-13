@@ -1,0 +1,289 @@
+{
+  "req": {
+    "cantidad": 1,
+    "pieza": {
+      "componentes": [
+        {
+          "insumoId": "melamina-28",
+          "nombre": "Cubierta rectangular App LT 1500 × 1200 mm",
+          "cantidad": 1,
+          "largoMM": 1500,
+          "anchoMM": 1200,
+          "piezas": 1,
+          "material_solicitado": "Melamina 28 mm (cubierta App LT), color no especificado",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "tapacanto-3mm",
+          "nombre": "Canto ABS perimetral de cubierta",
+          "cantidad": 5.4,
+          "piezas": 1,
+          "material_solicitado": "Canto ABS (espesor no especificado, se asume 3 mm por cubierta 28 mm)",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "tapa-registrable-applt",
+          "nombre": "Tapa registrable metálica + herraje (App LT)",
+          "cantidad": 2,
+          "piezas": 1,
+          "material_solicitado": "Tapa registrable metálica App LT",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornillería de fijación cubierta-estructura",
+          "cantidad": 1,
+          "piezas": 1,
+          "material_solicitado": "Tornillería de ensamble",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        }
+      ]
+    }
+  },
+  "res": {
+    "ok": true,
+    "estado": "incompleto",
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 2434.6,
+      "materialTotal": 1516,
+      "manoObra": 229.65,
+      "indirectosFabrica": 688.95,
+      "desperdicio": 531.45,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-28",
+          "nombre": "Melamina ABS 28 mm (cubierta APP LT)",
+          "seccion": "cubiertas",
+          "costo": 1335.6,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "tapacanto-3mm",
+          "nombre": "Tapacanto ABS 3 mm",
+          "seccion": "cubiertas",
+          "costo": 89.8,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "tapa-registrable-applt",
+          "nombre": "Tapa registrable metalica + herraje (App LT)",
+          "seccion": "cubiertas",
+          "costo": 45.6,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "costo": 45,
+          "certificable": true,
+          "evidencia": "aprobado"
+        }
+      ],
+      "componentesIgnorados": []
+    },
+    "evidencia": {
+      "usados": 4,
+      "certificados": 2,
+      "noCertificados": 2
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 1470.9998399999997,
+      "materialIndirecto": 45,
+      "materialTotal": 1515.9998399999997,
+      "desperdicio": 531.448357602795,
+      "manoObra": 229.64997599999998,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 15.611828754515706,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 1745.6498159999996,
+      "indirectosFabrica": 688.949928,
+      "gastosOperacion": 0,
+      "costoFabricacion": 2434.5997439999996,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 2434.5997439999996,
+      "costoLoteConMerma": 2434.5997439999996,
+      "costoUnitario": 2434.5997439999996,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-28",
+          "nombre": "Melamina ABS 28 mm (cubierta APP LT)",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Cubierta rectangular App LT 1500 × 1200 mm"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": false,
+            "certificable": false,
+            "hojas": 0,
+            "piezas_solicitadas": 1,
+            "piezas_colocadas": 0,
+            "placements": [],
+            "remanentes": [],
+            "issues": [
+              {
+                "code": "PIEZA_NO_CABE",
+                "id": "Cubierta rectangular App LT 1500 × 1200 mm#1",
+                "w": 1500,
+                "h": 1200
+              }
+            ],
+            "area_piezas_mm2": 0,
+            "area_comprada_mm2": 0,
+            "desperdicio_mm2": 0,
+            "eficiencia_pct": 0,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1.7999999999999998,
+          "comprado": 2.9768,
+          "unidades": 1,
+          "costo": 1335.6,
+          "desperdicio": 527.994517602795,
+          "pct": 39.532383767804355,
+          "precio": 1335.6,
+          "noCabe": false,
+          "fraccion": true
+        },
+        {
+          "insumoId": "tapacanto-3mm",
+          "nombre": "Tapacanto ABS 3 mm",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "rollo",
+            "corto": "rollo",
+            "medida": 50,
+            "nombre": "rollo de 50 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Canto ABS perimetral de cubierta"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 5.4,
+          "comprado": 5.6160000000000005,
+          "unidades": null,
+          "costo": 89.79984,
+          "desperdicio": 3.453840000000003,
+          "pct": 3.8461538461538494,
+          "precio": 15.99,
+          "noCabe": false
+        },
+        {
+          "insumoId": "tapa-registrable-applt",
+          "nombre": "Tapa registrable metalica + herraje (App LT)",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Tapa registrable metálica + herraje (App LT)"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 2,
+          "comprado": 2,
+          "unidades": null,
+          "costo": 45.6,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 22.8,
+          "noCabe": false
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "juego",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Tornillería de fijación cubierta-estructura"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 1,
+          "unidades": null,
+          "costo": 45,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 45,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Canto ABS perimetral de cubierta",
+        "Tornillería de fijación cubierta-estructura"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "completo",
+      "pendientes": [],
+      "costoOficial": 2434.5997439999996
+    },
+    "versionMotor": "2026-10-13",
+    "versionConfig": "cfg1r33lco",
+    "versionCatalogo": "cat-ap1793-cfgf6q4e3",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T20:06:29.394Z",
+    "catalogoFuente": "catalogo",
+    "warnings": []
+  }
+}

@@ -1,0 +1,44 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Biombo divisor APPS LT 1400 × 400 mm en cristal templado 6 mm con soportes","tipo":"mampara","piezas":[{"nombre":"Panel de cristal templado claro 6 mm","insumoId":"cristal-templado-6","material_solicitado":"Cristal transparente templado 6 mm","material_match":"EXA
+
+[lab-costear] analizar-mueble 200 en 34 s · piezas 4 · lote 1
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1622.74,"materialTotal":1264.12,"manoObra":85.24,"indirectosFabrica":273.37,"desperdicio":0,"detalleInsumos":[{"insumoId":"cristal-templado-6","nombre":"Cristal templado claro 6 mm","seccion":"mampara
+
+[lab-costear] BOM inicial {"piezas":4,"pendientes":["Perfil de aluminio remate/portacristal"],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Cuántos biombos se van a fabricar?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Qué tipo de soporte se usa?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuántos soportes por biombo?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Acabado de los soportes metálicos?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Acabado de canto del cristal?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿El cristal lleva barrenos para los soportes?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Lleva perfil de aluminio continuo en el canto inferior?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Se confirma cristal 6 mm o se requiere 9/10 mm por rigidez en 1.4 m?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1622.74,"materialTotal":1264.12,"manoObra":85.24,"indirectosFabrica":273.37,"desperdicio":0,"detalleInsumos":[{"insumoId":"cristal-templado-6","nombre":"Cristal templado claro 6 mm","seccion":"mampara
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 2 propuestos","diferencias":"1 difieren de lo pedido y se confirman uno por uno: Tornillería y hules de montaje. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$1,622.74","Por confirmar"],"margen":null,"estado":"Costo preliminar — 8 decisión(es) pendiente(s): ¿Cuántos biombos se van a fabricar? · ¿Qué tipo de soporte se usa? · ¿Cuántos soportes por biombo? · ¿Acabado de los soportes metálicos? · ¿Acabado de canto del cristal? · ¿El cristal lleva barrenos para los soportes? · ¿Lleva perfil de aluminio continuo en el canto inferior? · ¿Se confirma cristal 6 mm o se requiere 9/10 mm por rigidez en 1.4 m?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $1,264.12 · Mano de obra $85.24 · Fábrica $273.37","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":1622.74,"costoSrv":1622.74,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1717.09,"materialTotal":1264.12,"manoObra":110.82,"indirectosFabrica":342.15,"desperdicio":0,"detalleInsumos":[{"insumoId":"cristal-templado-6","nombre":"Cristal templado claro 6 mm","seccion":"mampar
+
+[lab-costear] dificultad {"costoNormal":1622.74,"marcado":"true","costoDificil":1717.09,"reqDificultad":"dificil","costoSrvDificil":1717.09,"sube":true,"paridad":true,"costoDeVueltaNormal":1622.74,"regresaIgual":true}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1622.74,"materialTotal":1264.12,"manoObra":85.24,"indirectosFabrica":273.37,"desperdicio":0,"detalleInsumos":[{"insumoId":"cristal-templado-6","nombre":"Cristal templado claro 6 mm","seccion":"mampara
+
+[lab-costear] expedientes POST 201 [{"id":92}]
+
+[lab-costear] guardado {"status":201,"id":92,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1622.74,"materialTotal":1264.12,"manoObra":85.24,"indirectosFabrica":273.37,"desperdicio":0,"detalleInsumos":[{"insumoId":"cristal-templado-6","nombre":"Cristal templado claro 6 mm","seccion":"mampara
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":0,"pass":0,"fail":0,"riesgo":0,"sobrantesNoPermitidos":3,"renglonesBom":4,"veredicto":"FAIL"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB ciego ATBIOCRT5 1013-2002 BORRADOR mampara biombo divisor de escritorio (mampara de cristal) línea APPS LT Cristal templado transparente 6 mm","piezas":4,"mismoBom":true,"costoAntes":"$1,622.74","costoDespues":"$1,622.74","mismoCosto":true,"resultado":{"precios":["$1,622.74","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $1,264.12 · Mano de obra $85.24 · Fábrica $273.37","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.4m)

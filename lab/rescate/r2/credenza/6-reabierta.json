@@ -1,0 +1,135 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB dif credenza 1013-2013 BORRADOR guarda credenza 3 puertas Madera enchapada nogal natural",
+    "piezas": 21,
+    "mismoBom": true,
+    "costoAntes": "$7,359.43",
+    "costoDespues": "$7,359.43",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$7,359.43",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $4,510.34 · Mano de obra $712.27 · Fábrica $2,136.81",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta superior",
+      "material": "MDF 19 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Piso inferior",
+      "material": "MDF 19 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Laterales",
+      "material": "MDF 19 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Divisiones verticales",
+      "material": "MDF 19 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Puertas abatibles",
+      "material": "MDF 19 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Chapa nogal cubierta superior",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": []
+    },
+    {
+      "nombre": "Chapa nogal laterales exteriores",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": []
+    },
+    {
+      "nombre": "Chapa nogal frentes de puerta",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": []
+    },
+    {
+      "nombre": "Pegado de chapa",
+      "material": "Pegado de chapa (operación)",
+      "alertas": []
+    },
+    {
+      "nombre": "Entrepaños",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Respaldo",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Canto perimetral",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "⚠ Costo pendiente — falta confirmar material."
+      ]
+    },
+    {
+      "nombre": "Base PTR 1x1 cal.14 largueros",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Base PTR travesaños",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Patas PTR",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Pintura electrostatica negra base",
+      "material": "Pintura electrostatica",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Bisagras",
+      "material": "Bisagra",
+      "alertas": []
+    },
+    {
+      "nombre": "Jaladeras recta 300 mm",
+      "material": "Jaladera",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («recta 300») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Tornilleria",
+      "material": "Tornilleria",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto (cantos visibles)",
+      "material": "Tapacanto PVC",
+      "alertas": []
+    }
+  ]
+}

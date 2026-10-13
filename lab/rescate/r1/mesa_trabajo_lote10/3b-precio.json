@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$1,875.23",
+      "$3,125.38"
+    ],
+    "margen": "Precio de lista (40% margen · política vigente (1 pieza))",
+    "estado": "Costo preliminar — 2 decisión(es) pendiente(s): ¿Cuántas mesas se fabricarán? · ¿El faldón lleva pestañas dobladas para fijación?. No es obligatorio contestarlas; el costo ya se puede emitir como preliminar.",
+    "linea": "Material $11,037.83 · Mano de obra $1,928.61 · Fábrica $5,785.83",
+    "pendiente": false,
+    "porConfirmar": false
+  },
+  "piezas": []
+}

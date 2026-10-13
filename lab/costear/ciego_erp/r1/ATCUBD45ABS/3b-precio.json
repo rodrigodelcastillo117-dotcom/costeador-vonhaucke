@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$2,434.60",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 7 decisión(es) pendiente(s): ¿Qué color/acabado de melamina lleva la cubierta? · ¿Espesor de la cubierta? · ¿Espesor del canto ABS? · ¿El alcance incluye estructura/patas de la banca o sólo la cubierta? · ¿Se incluye módulo eléctrico (contactos/USB) bajo las tapas registrables? · ¿Cuántas cubiertas iguales se requieren? · ¿Se requieren pasacables/grommets adicionales?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $1,516.00 · Mano de obra $229.65 · Fábrica $688.95",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

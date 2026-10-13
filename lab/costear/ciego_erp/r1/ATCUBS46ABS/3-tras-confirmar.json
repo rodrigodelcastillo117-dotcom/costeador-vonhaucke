@@ -1,0 +1,42 @@
+{
+  "confirmacion": {
+    "ofrecida": true,
+    "texto": "Confirmar los 2 propuestos",
+    "diferencias": "2 difieren de lo pedido y se confirman uno por uno: Canto ABS perimetral cubierta, Tornillería de fijación cubierta a estructura. ",
+    "diferenciasAceptadas": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta rectangular 1800 × 600 mm",
+      "material": "Melamina ABS 28 mm (cubierta APP LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Canto ABS perimetral cubierta",
+      "material": "Perfil de canto ABS 32 mm Walnut",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («perimetro cubierta espesor acorde tablero») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tapa registrable metálica + herraje (App LT)",
+      "material": "Tapa registrable metalica + herraje (App LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Tornillería de fijación cubierta a estructura",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («ensamble») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$455.02",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 8 decisión(es) pendiente(s): ¿El faldón es mixto (melamina + charola metálica) o sólo una de las dos versiones? · ¿Color/decorativo de la melamina? · ¿Espesor de la melamina? · ¿Calibre de la lámina de la charola metálica? · ¿Color de pintura en polvo de la parte metálica? · ¿Cuántas piezas se cotizan? · ¿Incluye módulo eléctrico/contactos dentro del faldón? · ¿Lleva tapa registrable/abatible para acceso a cables?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $260.33 · Mano de obra $48.67 · Fábrica $146.01",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

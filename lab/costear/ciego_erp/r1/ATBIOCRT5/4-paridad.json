@@ -1,0 +1,176 @@
+{
+  "paridad": {
+    "costoCliente": 1622.74,
+    "costoSrv": 1622.74,
+    "estadoSrv": "incompleto",
+    "iguales": true,
+    "llamadasSrv": 2
+  },
+  "servidor": {
+    "ok": true,
+    "estado": "incompleto",
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 1622.74,
+      "materialTotal": 1264.12,
+      "manoObra": 85.24,
+      "indirectosFabrica": 273.37,
+      "desperdicio": 0,
+      "detalleInsumos": [
+        {
+          "insumoId": "cristal-templado-6",
+          "nombre": "Cristal templado claro 6 mm",
+          "seccion": "mamparas",
+          "costo": 882,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "pintura-polvo-ivory",
+          "nombre": "Pintura en polvo, Ivory",
+          "seccion": "acabados",
+          "costo": 337.12,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "costo": 45,
+          "certificable": true,
+          "evidencia": "aprobado"
+        }
+      ],
+      "componentesIgnorados": []
+    },
+    "evidencia": {
+      "usados": 3,
+      "certificados": 2,
+      "noCertificados": 1
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 0,
+      "materialIndirecto": 1264.12,
+      "materialTotal": 1264.12,
+      "desperdicio": 0,
+      "manoObra": 85.244,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 0,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 1349.3639999999998,
+      "indirectosFabrica": 273.372,
+      "gastosOperacion": 0,
+      "costoFabricacion": 1622.7359999999999,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 1622.7359999999999,
+      "costoLoteConMerma": 1622.7359999999999,
+      "costoUnitario": 1622.7359999999999,
+      "detalleInsumos": [
+        {
+          "insumoId": "cristal-templado-6",
+          "nombre": "Cristal templado claro 6 mm",
+          "seccion": "mamparas",
+          "clase": "indirecta",
+          "unidad": "m2",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Panel de cristal templado claro 6 mm"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cristal",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.5599999999999999,
+          "comprado": 0.5599999999999999,
+          "unidades": null,
+          "costo": 881.9999999999999,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 1575,
+          "noCabe": false
+        },
+        {
+          "insumoId": "pintura-polvo-ivory",
+          "nombre": "Pintura en polvo, Ivory",
+          "seccion": "acabados",
+          "clase": "indirecta",
+          "unidad": "kg",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Soporte/clamp metálico de sujeción a cubierta (APPS LT)"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 2,
+          "comprado": 2,
+          "unidades": null,
+          "costo": 337.12,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 168.56,
+          "noCabe": false
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "juego",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Tornillería y hules de montaje"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 1,
+          "unidades": null,
+          "costo": 45,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 45,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Perfil de aluminio remate/portacristal",
+        "Tornillería y hules de montaje"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "completo",
+      "pendientes": [],
+      "costoOficial": 1622.7359999999999
+    },
+    "versionMotor": "2026-10-13",
+    "versionConfig": "cfg1nzwcam",
+    "versionCatalogo": "cat-ap1793-cfg19jylpg",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T20:03:30.488Z",
+    "catalogoFuente": "catalogo",
+    "warnings": []
+  }
+}

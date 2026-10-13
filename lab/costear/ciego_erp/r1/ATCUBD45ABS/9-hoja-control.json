@@ -1,0 +1,66 @@
+{
+  "producto": "CUBIERTA RECTANGULAR DE 1500 X 1200 mm MODELO APPS LT PARA BANCA DOBLE, CON DOS TAPAS REGISTRABLE METALICA; EN MELAMINA CON CANTOS ABS -- ATCUBD45ABS",
+  "resumen": {
+    "esperados": 0,
+    "pass": 0,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 3,
+    "renglonesBom": 4,
+    "veredicto": "FAIL"
+  },
+  "filas": [],
+  "sobran": [
+    {
+      "nombre": "Cubierta rectangular App LT 1500 × 1200 mm",
+      "insumoId": "melamina-28",
+      "permitido": false
+    },
+    {
+      "nombre": "Canto ABS perimetral de cubierta",
+      "insumoId": "tapacanto-3mm",
+      "permitido": false
+    },
+    {
+      "nombre": "Tapa registrable metálica + herraje (App LT)",
+      "insumoId": "tapa-registrable-applt",
+      "permitido": false
+    },
+    {
+      "nombre": "Tornillería de fijación cubierta-estructura",
+      "insumoId": "tornilleria",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Qué color/acabado de melamina lleva la cubierta?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Espesor de la cubierta?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Espesor del canto ABS?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿El alcance incluye estructura/patas de la banca o sólo la cubierta?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Se incluye módulo eléctrico (contactos/USB) bajo las tapas registrables?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántas cubiertas iguales se requieren?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Se requieren pasacables/grommets adicionales?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

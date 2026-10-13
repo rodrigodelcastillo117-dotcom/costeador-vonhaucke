@@ -1,0 +1,48 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATCUBS46ABS 1013-2010 BORRADOR mesa cubierta de trabajo rectangular para banca sencilla (sistema App LT) Melamina (color por definir)",
+    "piezas": 4,
+    "mismoBom": true,
+    "costoAntes": "$1,366.31",
+    "costoDespues": "$1,366.31",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$1,366.31",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $848.32 · Mano de obra $129.50 · Fábrica $388.49",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta rectangular 1800 × 600 mm",
+      "material": "Melamina ABS 28 mm (cubierta APP LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Canto ABS perimetral cubierta",
+      "material": "Perfil de canto ABS 32 mm Walnut",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («perimetro cubierta espesor acorde tablero») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tapa registrable metálica + herraje (App LT)",
+      "material": "Tapa registrable metalica + herraje (App LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Tornillería de fijación cubierta a estructura",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («ensamble») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

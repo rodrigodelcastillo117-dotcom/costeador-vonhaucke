@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$705.98",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 5 decisión(es) pendiente(s): ¿Color/decorativo de la melamina 28 mm? · ¿Cuántas tapas registrables lleva la cubierta? · ¿Se cotiza solo la cubierta o incluye estructura/patas? · ¿Lleva pasacables/grommet adicional además de la tapa? · ¿Cuántas cubiertas iguales se requieren?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $441.24 · Mano de obra $66.19 · Fábrica $198.56",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

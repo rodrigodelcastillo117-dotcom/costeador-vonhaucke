@@ -1,0 +1,41 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATCUBS44ABS 1013-2007 BORRADOR mesa cubierta de escritorio/mesa App LT con registro eléctrico Melamina de 28 mm",
+    "piezas": 3,
+    "mismoBom": true,
+    "costoAntes": "$705.98",
+    "costoDespues": "$705.98",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$705.98",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $441.24 · Mano de obra $66.19 · Fábrica $198.56",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta melamina 28 mm 1200 × 600",
+      "material": "Melamina ABS 28 mm (cubierta APP LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Canto ABS perímetro cubierta",
+      "material": "Perfil de canto ABS 32 mm Walnut",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («espesor ancho color») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tapa registrable metálica + herraje App LT",
+      "material": "Tapa registrable metalica + herraje (App LT)",
+      "alertas": []
+    }
+  ]
+}

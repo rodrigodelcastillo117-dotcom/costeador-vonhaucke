@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$3,724.61",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 2 decisión(es) pendiente(s): ¿Paneles y faldón en mismo Gris Humo que cubierta? · ¿Cuántos escritorios?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $2,308.96 · Mano de obra $353.91 · Fábrica $1,061.74",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

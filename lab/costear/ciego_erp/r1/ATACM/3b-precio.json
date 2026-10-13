@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$341.83",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 6 decisión(es) pendiente(s): ¿Calibre de la lámina del conducto? · ¿Color/acabado de pintura en polvo? · ¿Cuántas piezas se fabricarán? · ¿La tapa es desmontable atornillada o abatible con herraje? · ¿Incluye accesorios eléctricos (contactos, chicote, acometida) o sólo el ducto? · ¿Requiere perforaciones/ranuras CNC para paso de cable o fijación especial?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $189.91 · Mano de obra $37.98 · Fábrica $113.94",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

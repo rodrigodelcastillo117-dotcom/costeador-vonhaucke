@@ -1,0 +1,91 @@
+{
+ "texto": "Conducto faldon para escritorio de 800 x 379 x 177 mm modelo apps lt con melamina canto abs; metalico",
+ "producto": "CONDUCTO FALDON PARA ESCRITORIO DE 800 X 379 X 177 mm MODELO APPS LT CON MELAMINA CANTO ABS; METALICO -- ATFAL12ABS",
+ "clave_erp": "ATFAL12ABS",
+ "proposito": "Prueba ciega: sólo la descripción comercial; el BOM del cotizador Intelisis queda fuera de la app.",
+ "respuestas": [],
+ "esperado": [],
+ "extrasPermitidos": "torniller|rondana|pija|tuerca|cintur|tornillo|consumible|soldadura|empaque",
+ "erp_referencia": {
+  "familias": [
+   {
+    "clave": "herraje",
+    "familia": "herraje",
+    "sub": null,
+    "erp_cantidad": 17,
+    "erp_unidad": "pieza",
+    "erp_articulos": [
+     "MTLECI00B20035",
+     "MVLUPI06650053",
+     "MVLURO26522901",
+     "MVLUTO14538604",
+     "MVLUTU22520002"
+    ],
+    "erp_importe": 121.7
+   },
+   {
+    "clave": "tablero-16",
+    "familia": "tablero",
+    "sub": "16",
+    "erp_cantidad": 0.111,
+    "erp_unidad": "hoja",
+    "erp_articulos": [
+     "MVLMAG01280500"
+    ],
+    "erp_importe": 67.93
+   },
+   {
+    "clave": "canto-22",
+    "familia": "canto",
+    "sub": "22",
+    "erp_cantidad": 2.484,
+    "erp_unidad": "m",
+    "erp_articulos": [
+     "MVLPPC00491505"
+    ],
+    "erp_importe": 32.89
+   },
+   {
+    "clave": "pintura",
+    "familia": "pintura",
+    "sub": null,
+    "erp_cantidad": 0.069,
+    "erp_unidad": "kg",
+    "erp_articulos": [
+     "MVLQPP00000000"
+    ],
+    "erp_importe": 11.76
+   },
+   {
+    "clave": "lamina-20",
+    "familia": "lamina",
+    "sub": "20",
+    "erp_cantidad": 0.115,
+    "erp_unidad": "hoja",
+    "erp_articulos": [
+     "MVLSLA05260502"
+    ],
+    "erp_importe": 50.0
+   }
+  ],
+  "mp": 284.28,
+  "mo": 28.43,
+  "gif": 102.69,
+  "total_fabricacion": 415.39,
+  "horas": {
+   "pm": 0.1198,
+   "pintura": 0.0033,
+   "acabados": 0.064,
+   "carpinteria": 0.295,
+   "entregas": null
+  },
+  "fuente": {
+   "fileId": "1IRmxaHsfq36zAB2GQpS0ryFk4K3Vehej",
+   "archivo": "ATFAL12ABS.pdf",
+   "fecha_reporte": "12/08/2026 04:57:00 p. m.",
+   "tipo": "REPORTE DEL COTIZADOR DE PRECIOS (Intelisis)",
+   "carpeta_drive": "presupuestos cotizador vonhaucke (140tw99N0F8pfW6sCnMxx4TE66iTmsdLL)",
+   "leido": "2026-10-13, solo lectura"
+  }
+ }
+}

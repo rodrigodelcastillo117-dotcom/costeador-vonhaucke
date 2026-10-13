@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$169.29",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 5 decisión(es) pendiente(s): ¿Calibre de la lámina de la omega? · ¿Cuántas omegas se requieren? · ¿Acabado/color de la omega? · ¿Lleva barrenos/ranuras de fijación punzonados? · ¿Tipo de tornillería incluida?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $94.05 · Mano de obra $18.81 · Fábrica $56.43",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

@@ -1,0 +1,100 @@
+{
+ "texto": "Pata tipo \"u\" de 600 x 720 mm modelo apps lt; metalica",
+ "producto": "PATA TIPO \"U\" DE 600 X 720 mm MODELO APPS LT; METALICA -- ATPU2M",
+ "clave_erp": "ATPU2M",
+ "proposito": "Prueba ciega: sólo la descripción comercial; el BOM del cotizador Intelisis queda fuera de la app.",
+ "respuestas": [],
+ "esperado": [],
+ "extrasPermitidos": "torniller|rondana|pija|tuerca|cintur|tornillo|consumible|soldadura|empaque",
+ "erp_referencia": {
+  "familias": [
+   {
+    "clave": "herraje",
+    "familia": "herraje",
+    "sub": null,
+    "erp_cantidad": 18,
+    "erp_unidad": "pieza",
+    "erp_articulos": [
+     "MVLUPI06650053",
+     "MVLURO26522902",
+     "MVLUTU22540002"
+    ],
+    "erp_importe": 6.46
+   },
+   {
+    "clave": "nivelador",
+    "familia": "nivelador",
+    "sub": null,
+    "erp_cantidad": 2,
+    "erp_unidad": "pieza",
+    "erp_articulos": [
+     "MVLUTO15188109"
+    ],
+    "erp_importe": 35.46
+   },
+   {
+    "clave": "pintura",
+    "familia": "pintura",
+    "sub": null,
+    "erp_cantidad": 0.08,
+    "erp_unidad": "kg",
+    "erp_articulos": [
+     "MVLQPP00000000"
+    ],
+    "erp_importe": 13.64
+   },
+   {
+    "clave": "lamina-10",
+    "familia": "lamina",
+    "sub": "10",
+    "erp_cantidad": 0.035,
+    "erp_unidad": "hoja",
+    "erp_articulos": [
+     "MLESLA05261100"
+    ],
+    "erp_importe": 79.46
+   },
+   {
+    "clave": "lamina-14",
+    "familia": "lamina",
+    "sub": "14",
+    "erp_cantidad": 0.003,
+    "erp_unidad": "hoja",
+    "erp_articulos": [
+     "MVLSLA05260202"
+    ],
+    "erp_importe": 2.45
+   },
+   {
+    "clave": "tubular",
+    "familia": "tubular",
+    "sub": null,
+    "erp_cantidad": 0.361,
+    "erp_unidad": "pieza",
+    "erp_articulos": [
+     "MVLSTU03310401"
+    ],
+    "erp_importe": 138.36
+   }
+  ],
+  "mp": 275.83,
+  "mo": 97.94,
+  "gif": 369.59,
+  "total_fabricacion": 743.36,
+  "horas": {
+   "pm": 1.4078,
+   "pintura": 0.0066,
+   "acabados": 0.1434,
+   "carpinteria": null,
+   "entregas": null
+  },
+  "fuente": {
+   "fileId": "1g6i4e7Og5BYFR3WhZupdOoR-d4vVT8AG",
+   "archivo": "ATPU2M.pdf",
+   "fecha_reporte": "12/08/2026 04:22:55 p. m.",
+   "tipo": "REPORTE DEL COTIZADOR DE PRECIOS (Intelisis)",
+   "carpeta_drive": "presupuestos cotizador vonhaucke (140tw99N0F8pfW6sCnMxx4TE66iTmsdLL)",
+   "leido": "2026-10-13, solo lectura"
+  }
+ }
+}

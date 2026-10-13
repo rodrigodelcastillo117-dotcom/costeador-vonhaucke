@@ -1,0 +1,23 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Omega metálica de refuerzo para cubierta App LT 1150 × 100 × 17 mm","tipo":"otro","piezas":[{"nombre":"Omega (perfil lámina doblada) 1150 × 100 × 17 mm","insumoId":"lamina-18","material_solicitado":"Lámina de acero rolada en frío, calibre no especificado (perfil o
+
+[lab-costear] analizar-mueble 200 en 34 s · piezas 3 · lote 1
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":169.29,"materialTotal":94.05,"manoObra":18.81,"indirectosFabrica":56.43,"desperdicio":7.55,"detalleInsumos":[{"insumoId":"lamina-18","nombre":"Lamina de acero cal. 18","seccion":"metal","costo":37.73,
+
+[lab-costear] BOM inicial {"piezas":3,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Calibre de la lámina de la omega?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuántas omegas se requieren?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Acabado/color de la omega?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Lleva barrenos/ranuras de fijación punzonados?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Tipo de tornillería incluida?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":169.29,"materialTotal":94.05,"manoObra":18.81,"indirectosFabrica":56.43,"desperdicio":7.55,"detalleInsumos":[{"insumoId":"lamina-18","nombre":"Lamina de acero cal. 18","seccion":"metal","costo":37.73,
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 1 propuestos","diferencias":"2 difieren de lo pedido y se confirman uno por uno: Pintura en polvo negro mate (acabado de la omega), Tornillería de fijación omega-cubierta. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$169.29","Por confirmar"],"margen":null,"estado":"Costo preliminar — 5 decisión(es) pendiente(s): ¿Calibre de la lámina de la omega? · ¿Cuántas omegas se requieren? · ¿Acabado/color de la omega? · ¿Lleva barrenos/ranuras de fijación punzonados? · ¿Tipo de tornillería incluida?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $94.05 · Mano de obra $18.81 · Fábrica $56.43","pendiente":false,"porConfirmar":true}
+

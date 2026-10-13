@@ -1,0 +1,111 @@
+{
+ "texto": "Cubierta rectangular de 1200 x 600 x 28 mm modelo apps lt con tapa registrable metalica; en melamina con cantos abs",
+ "producto": "CUBIERTA RECTANGULAR DE 1200 X 600 X 28 mm MODELO APPS LT CON TAPA REGISTRABLE METALICA; EN MELAMINA CON CANTOS ABS -- ATCUBS44ABS",
+ "clave_erp": "ATCUBS44ABS",
+ "proposito": "Prueba ciega: sólo la descripción comercial; el BOM del cotizador Intelisis queda fuera de la app.",
+ "respuestas": [],
+ "esperado": [],
+ "extrasPermitidos": "torniller|rondana|pija|tuerca|cintur|tornillo|consumible|soldadura|empaque",
+ "erp_referencia": {
+  "familias": [
+   {
+    "clave": "herraje",
+    "familia": "herraje",
+    "sub": null,
+    "erp_cantidad": 10,
+    "erp_unidad": "pieza",
+    "erp_articulos": [
+     "MVLUPI10350002",
+     "MVLURO26522902",
+     "MVLUTO35644402"
+    ],
+    "erp_importe": 3.5
+   },
+   {
+    "clave": "pintura",
+    "familia": "pintura",
+    "sub": null,
+    "erp_cantidad": 0.014,
+    "erp_unidad": "kg",
+    "erp_articulos": [
+     "MVLQPP00000000"
+    ],
+    "erp_importe": 2.39
+   },
+   {
+    "clave": "canto-32",
+    "familia": "canto",
+    "sub": "32",
+    "erp_cantidad": 3.984,
+    "erp_unidad": "m",
+    "erp_articulos": [
+     "MVLPPC00501505"
+    ],
+    "erp_importe": 63.7
+   },
+   {
+    "clave": "chapacinta",
+    "familia": "chapacinta",
+    "sub": null,
+    "erp_cantidad": 1.186,
+    "erp_unidad": "m",
+    "erp_articulos": [
+     "MVLMCC06060000"
+    ],
+    "erp_importe": 5.79
+   },
+   {
+    "clave": "tablero-28",
+    "familia": "tablero",
+    "sub": "28",
+    "erp_cantidad": 0.25,
+    "erp_unidad": "hoja",
+    "erp_articulos": [
+     "MVLMAG01280800"
+    ],
+    "erp_importe": 256.73
+   },
+   {
+    "clave": "lamina-18",
+    "familia": "lamina",
+    "sub": "18",
+    "erp_cantidad": 0.002,
+    "erp_unidad": "hoja",
+    "erp_articulos": [
+     "MVLSLA05260402"
+    ],
+    "erp_importe": 1.14
+   },
+   {
+    "clave": "lamina-20",
+    "familia": "lamina",
+    "sub": "20",
+    "erp_cantidad": 0.021,
+    "erp_unidad": "hoja",
+    "erp_articulos": [
+     "MVLSLA05260502"
+    ],
+    "erp_importe": 9.13
+   }
+  ],
+  "mp": 342.38,
+  "mo": 65.8,
+  "gif": 236.77,
+  "total_fabricacion": 644.95,
+  "horas": {
+   "pm": 0.254,
+   "pintura": 0.0055,
+   "acabados": 0.044,
+   "carpinteria": 0.8324,
+   "entregas": null
+  },
+  "fuente": {
+   "fileId": "1LCHTzDbfsillcdlDWLQaVvXd8U1Iv0OB",
+   "archivo": "ATCUBS44ABS.pdf",
+   "fecha_reporte": "12/08/2026 04:33:40 p. m.",
+   "tipo": "REPORTE DEL COTIZADOR DE PRECIOS (Intelisis)",
+   "carpeta_drive": "presupuestos cotizador vonhaucke (140tw99N0F8pfW6sCnMxx4TE66iTmsdLL)",
+   "leido": "2026-10-13, solo lectura"
+  }
+ }
+}

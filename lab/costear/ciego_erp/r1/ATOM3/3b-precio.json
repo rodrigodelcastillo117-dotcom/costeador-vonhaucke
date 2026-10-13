@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$143.39",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 6 decisión(es) pendiente(s): ¿Qué calibre de lámina lleva el omega? · ¿Cuántas omegas se requieren en total? · ¿Acabado del omega? · ¿Cuántos barrenos de fijación lleva cada omega? · ¿Tipo de tornillería de fijación a la cubierta? · Los 850 × 100 × 17 mm, ¿son medidas del perfil terminado (largo × ancho de ala × altura) o de la cubierta?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $79.66 · Mano de obra $15.93 · Fábrica $47.80",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

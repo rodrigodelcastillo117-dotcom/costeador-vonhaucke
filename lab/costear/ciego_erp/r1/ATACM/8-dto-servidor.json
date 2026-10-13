@@ -1,0 +1,217 @@
+{
+  "req": {
+    "cantidad": 1,
+    "pieza": {
+      "componentes": [
+        {
+          "insumoId": "lamina-20",
+          "nombre": "Cuerpo del conducto en lámina doblada (desarrollo ~590 × 649 mm)",
+          "cantidad": 2.8,
+          "piezas": 1,
+          "material_solicitado": "Lámina de acero metálica (calibre no especificado; se asume cal. 20)",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "lamina-20",
+          "nombre": "Tapa registrable / cubierta del conducto 220 × 649 mm",
+          "cantidad": 1.1,
+          "piezas": 1,
+          "material_solicitado": "Lámina de acero metálica cal. 20 (supuesto)",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "pintura-polvo",
+          "nombre": "Pintura en polvo (acabado exterior e interior)",
+          "cantidad": 0.35,
+          "piezas": 1,
+          "material_solicitado": "Acabado pintura electrostática en polvo (color no especificado)",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Juego de tornillería de fijación y ensamble",
+          "cantidad": 1,
+          "piezas": 1,
+          "material_solicitado": "Tornillería (indicada explícitamente por el cliente)",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        }
+      ]
+    }
+  },
+  "res": {
+    "ok": true,
+    "estado": "incompleto",
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 341.83,
+      "materialTotal": 189.91,
+      "manoObra": 37.98,
+      "indirectosFabrica": 113.94,
+      "desperdicio": 20.86,
+      "detalleInsumos": [
+        {
+          "insumoId": "lamina-20",
+          "nombre": "Lamina de acero cal. 20",
+          "seccion": "metal",
+          "costo": 104.32,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "pintura-polvo",
+          "nombre": "Pintura en polvo A101 basic white",
+          "seccion": "acabados",
+          "costo": 40.58,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "costo": 45,
+          "certificable": true,
+          "evidencia": "aprobado"
+        }
+      ],
+      "componentesIgnorados": []
+    },
+    "evidencia": {
+      "usados": 3,
+      "certificados": 2,
+      "noCertificados": 1
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 104.32499999999997,
+      "materialIndirecto": 85.58217554999999,
+      "materialTotal": 189.90717554999998,
+      "desperdicio": 20.86499999999998,
+      "manoObra": 37.98143510999999,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 36.40683930984903,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 227.88861065999998,
+      "indirectosFabrica": 113.94430532999999,
+      "gastosOperacion": 0,
+      "costoFabricacion": 341.83291598999995,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 341.83291598999995,
+      "costoLoteConMerma": 341.83291598999995,
+      "costoUnitario": 341.83291598999995,
+      "detalleInsumos": [
+        {
+          "insumoId": "lamina-20",
+          "nombre": "Lamina de acero cal. 20",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "lamina",
+            "corto": "lamina",
+            "medida": 21.3,
+            "nombre": "lamina 1.22 x 2.44"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Cuerpo del conducto en lámina doblada (desarrollo ~590 × 649 mm)",
+            "Tapa registrable / cubierta del conducto 220 × 649 mm"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "metal",
+          "metodoConsumo": "APROVECHAMIENTO_GENERICO",
+          "usaAprovechamientoGenerico": true,
+          "neto": 3.9,
+          "comprado": 4.874999999999999,
+          "unidades": 0.22887323943661966,
+          "costo": 104.32499999999997,
+          "desperdicio": 20.86499999999998,
+          "pct": 19.999999999999986,
+          "precio": 455.82,
+          "noCabe": false,
+          "fraccion": true
+        },
+        {
+          "insumoId": "pintura-polvo",
+          "nombre": "Pintura en polvo A101 basic white",
+          "seccion": "acabados",
+          "clase": "indirecta",
+          "unidad": "kg",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Pintura en polvo (acabado exterior e interior)"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.35,
+          "comprado": 0.35,
+          "unidades": null,
+          "costo": 40.582175549999995,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 115.949073,
+          "noCabe": false
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "juego",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Juego de tornillería de fijación y ensamble"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 1,
+          "unidades": null,
+          "costo": 45,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 45,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Pintura en polvo (acabado exterior e interior)",
+        "Juego de tornillería de fijación y ensamble"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "completo",
+      "pendientes": [],
+      "costoOficial": 341.83291598999995
+    },
+    "versionMotor": "2026-10-13",
+    "versionConfig": "cfg1nzwcam",
+    "versionCatalogo": "cat-ap1793-cfgu92dnr",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T20:02:30.769Z",
+    "catalogoFuente": "catalogo",
+    "warnings": []
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "confirmacion": {
+    "ofrecida": true,
+    "texto": "Confirmar los 6 propuestos",
+    "diferencias": "2 difieren de lo pedido y se confirman uno por uno: Tapacanto PVC 2 mm gris (cantos visibles), Tornillería/minifix. ",
+    "diferenciasAceptadas": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta principal",
+      "material": "Melamina 19 mm, Gris Humo LM",
+      "alertas": []
+    },
+    {
+      "nombre": "Cubierta retorno",
+      "material": "Melamina 19 mm, Gris Humo LM",
+      "alertas": []
+    },
+    {
+      "nombre": "Panel lateral (pata panel) 731x700",
+      "material": "Melamina 19 mm, Gris Humo LM",
+      "alertas": []
+    },
+    {
+      "nombre": "Panel lateral retorno 731x500",
+      "material": "Melamina 19 mm, Gris Humo LM",
+      "alertas": []
+    },
+    {
+      "nombre": "Faldón",
+      "material": "Melamina 19 mm, Gris Humo LM",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto PVC 2 mm gris (cantos visibles)",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Cajonera móvil 3 gavetas",
+      "material": "Cajonera movil",
+      "alertas": [
+        "⚠ Costo pendiente — falta confirmar material."
+      ]
+    },
+    {
+      "nombre": "Tornillería/minifix",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («ensamble») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

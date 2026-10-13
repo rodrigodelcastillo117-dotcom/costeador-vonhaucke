@@ -1,0 +1,517 @@
+{
+  "req": {
+    "cantidad": 1,
+    "pieza": {
+      "componentes": [
+        {
+          "insumoId": "melamina-16",
+          "nombre": "Panel frontal de faldón melamina",
+          "cantidad": 1,
+          "largoMM": 900,
+          "anchoMM": 177,
+          "piezas": 1,
+          "material_solicitado": "Melamina 16 mm (color por definir) con canto ABS",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "melamina-16",
+          "nombre": "Panel posterior / tapa de registro melamina",
+          "cantidad": 1,
+          "largoMM": 900,
+          "anchoMM": 177,
+          "piezas": 1,
+          "material_solicitado": "Melamina 16 mm con canto ABS",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "melamina-16",
+          "nombre": "Tapas laterales / costados melamina",
+          "cantidad": 1,
+          "largoMM": 379,
+          "anchoMM": 177,
+          "piezas": 2,
+          "material_solicitado": "Melamina 16 mm con canto ABS",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "lamina-20",
+          "nombre": "Charola/base metálica portacables cal. 20",
+          "cantidad": 4.2,
+          "piezas": 1,
+          "material_solicitado": "Lámina de acero cal. 20 doblada, acabado pintura en polvo",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "pintura-polvo-negro-mate-8-vitracoat",
+          "nombre": "Pintura en polvo negro mate para charola metálica",
+          "cantidad": 0.25,
+          "piezas": 1,
+          "material_solicitado": "Pintura electrostática negro mate",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "canto-abs-22",
+          "nombre": "Canto ABS 22 mm perimetral",
+          "cantidad": 5.42,
+          "piezas": 1,
+          "material_solicitado": "Canto ABS a juego con melamina (color por definir)",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "perfil-canto-applt",
+          "nombre": "Perfil de canto aluminio App LT (remate)",
+          "cantidad": 1.8,
+          "piezas": 1,
+          "material_solicitado": "Perfil de canto aluminio sistema App LT",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornillería y escuadras de fijación a cubierta",
+          "cantidad": 1,
+          "piezas": 1,
+          "material_solicitado": "Tornillería / herraje de fijación",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "nivelador-plataforma",
+          "nombre": "Niveladores",
+          "cantidad": 4,
+          "piezas": 1,
+          "material_solicitado": "Nivelador",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        }
+      ]
+    }
+  },
+  "res": {
+    "ok": true,
+    "estado": "incompleto",
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 1016.4,
+      "materialTotal": 591,
+      "manoObra": 106.35,
+      "indirectosFabrica": 319.05,
+      "desperdicio": 51.9,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-16",
+          "nombre": "Melamina BLANCA 16 mm",
+          "seccion": "cubiertas",
+          "costo": 92.31,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "lamina-20",
+          "nombre": "Lamina de acero cal. 20",
+          "seccion": "metal",
+          "costo": 112.35,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "pintura-polvo-negro-mate-8-vitracoat",
+          "nombre": "Pintura en polvo, Negro Mate 8 Vitracoat",
+          "seccion": "acabados",
+          "costo": 30.17,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "canto-abs-22",
+          "nombre": "Perfil de canto ABS 22 mm Walnut",
+          "seccion": "cubiertas",
+          "costo": 116.34,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "perfil-canto-applt",
+          "nombre": "Perfil de canto aluminio (App LT)",
+          "seccion": "cubiertas",
+          "costo": 28.3,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "costo": 45,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "nivelador-plataforma",
+          "nombre": "Tornillo nivelador 3/8 plataforma 1 1/2\" cromado",
+          "seccion": "herrajes",
+          "costo": 166.52,
+          "certificable": true,
+          "evidencia": "aprobado"
+        }
+      ],
+      "componentesIgnorados": []
+    },
+    "evidencia": {
+      "usados": 7,
+      "certificados": 3,
+      "noCertificados": 4
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 349.3058843076923,
+      "materialIndirecto": 241.6894915,
+      "materialTotal": 590.9953758076923,
+      "desperdicio": 51.89688248022656,
+      "manoObra": 106.35128094615384,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 30.446461317689234,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 697.3466567538461,
+      "indirectosFabrica": 319.05384283846155,
+      "gastosOperacion": 0,
+      "costoFabricacion": 1016.4004995923076,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 1016.4004995923076,
+      "costoLoteConMerma": 1016.4004995923076,
+      "costoUnitario": 1016.4004995923076,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-16",
+          "nombre": "Melamina BLANCA 16 mm",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Panel frontal de faldón melamina",
+            "Panel posterior / tapa de registro melamina",
+            "Tapas laterales / costados melamina"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": true,
+            "certificable": false,
+            "hojas": 1,
+            "piezas_solicitadas": 4,
+            "piezas_colocadas": 4,
+            "placements": [
+              {
+                "id": "Panel frontal de faldón melamina#1",
+                "nombre": "Panel frontal de faldón melamina",
+                "x": 10,
+                "y": 10,
+                "w": 177,
+                "h": 900,
+                "rot": 90,
+                "hoja": 1
+              },
+              {
+                "id": "Panel posterior / tapa de registro melamina#1",
+                "nombre": "Panel posterior / tapa de registro melamina",
+                "x": 10,
+                "y": 914,
+                "w": 900,
+                "h": 177,
+                "rot": 0,
+                "hoja": 1
+              },
+              {
+                "id": "Tapas laterales / costados melamina#1",
+                "nombre": "Tapas laterales / costados melamina",
+                "x": 191,
+                "y": 10,
+                "w": 177,
+                "h": 379,
+                "rot": 90,
+                "hoja": 1
+              },
+              {
+                "id": "Tapas laterales / costados melamina#2",
+                "nombre": "Tapas laterales / costados melamina",
+                "x": 191,
+                "y": 393,
+                "w": 177,
+                "h": 379,
+                "rot": 90,
+                "hoja": 1
+              }
+            ],
+            "remanentes": [
+              {
+                "hoja": 1,
+                "x": 372,
+                "y": 10,
+                "w": 2058,
+                "h": 904,
+                "area_mm2": 1860432
+              },
+              {
+                "hoja": 1,
+                "x": 914,
+                "y": 10,
+                "w": 1516,
+                "h": 1200,
+                "area_mm2": 1819200
+              },
+              {
+                "hoja": 1,
+                "x": 191,
+                "y": 776,
+                "w": 2239,
+                "h": 138,
+                "area_mm2": 308982
+              },
+              {
+                "hoja": 1,
+                "x": 10,
+                "y": 1095,
+                "w": 2420,
+                "h": 115,
+                "area_mm2": 278300
+              }
+            ],
+            "issues": [],
+            "area_piezas_mm2": 452766,
+            "area_comprada_mm2": 2976800,
+            "desperdicio_mm2": 2524034,
+            "eficiencia_pct": 15.591115702479339,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.452766,
+          "comprado": 0.610625641025641,
+          "unidades": 0.20512820512820512,
+          "costo": 92.3076923076923,
+          "desperdicio": 23.863490480226567,
+          "pct": 25.852114686912113,
+          "precio": 450,
+          "noCabe": false,
+          "fraccion": true
+        },
+        {
+          "insumoId": "lamina-20",
+          "nombre": "Lamina de acero cal. 20",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "lamina",
+            "corto": "lamina",
+            "medida": 21.3,
+            "nombre": "lamina 1.22 x 2.44"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Charola/base metálica portacables cal. 20"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "metal",
+          "metodoConsumo": "APROVECHAMIENTO_GENERICO",
+          "usaAprovechamientoGenerico": true,
+          "neto": 4.2,
+          "comprado": 5.25,
+          "unidades": 0.2464788732394366,
+          "costo": 112.35,
+          "desperdicio": 22.469999999999995,
+          "pct": 19.999999999999996,
+          "precio": 455.82,
+          "noCabe": false,
+          "fraccion": true
+        },
+        {
+          "insumoId": "pintura-polvo-negro-mate-8-vitracoat",
+          "nombre": "Pintura en polvo, Negro Mate 8 Vitracoat",
+          "seccion": "acabados",
+          "clase": "indirecta",
+          "unidad": "kg",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Pintura en polvo negro mate para charola metálica"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.25,
+          "comprado": 0.25,
+          "unidades": null,
+          "costo": 30.1694915,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 120.677966,
+          "noCabe": false
+        },
+        {
+          "insumoId": "canto-abs-22",
+          "nombre": "Perfil de canto ABS 22 mm Walnut",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "rollo",
+            "corto": "rollo",
+            "medida": 100,
+            "nombre": "rollo de 100 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Canto ABS 22 mm perimetral"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 5.42,
+          "comprado": 5.6368,
+          "unidades": null,
+          "costo": 116.343552,
+          "desperdicio": 4.474752000000002,
+          "pct": 3.8461538461538476,
+          "precio": 20.64,
+          "noCabe": false
+        },
+        {
+          "insumoId": "perfil-canto-applt",
+          "nombre": "Perfil de canto aluminio (App LT)",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "rollo",
+            "corto": "rollo",
+            "medida": 100,
+            "nombre": "rollo de 100 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Perfil de canto aluminio App LT (remate)"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1.8,
+          "comprado": 1.872,
+          "unidades": null,
+          "costo": 28.30464,
+          "desperdicio": 1.088640000000001,
+          "pct": 3.8461538461538494,
+          "precio": 15.12,
+          "noCabe": false
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "juego",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Tornillería y escuadras de fijación a cubierta"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 1,
+          "unidades": null,
+          "costo": 45,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 45,
+          "noCabe": false
+        },
+        {
+          "insumoId": "nivelador-plataforma",
+          "nombre": "Tornillo nivelador 3/8 plataforma 1 1/2\" cromado",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Niveladores"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 4,
+          "comprado": 4,
+          "unidades": null,
+          "costo": 166.52,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 41.63,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Pintura en polvo negro mate para charola metálica",
+        "Canto ABS 22 mm perimetral",
+        "Tornillería y escuadras de fijación a cubierta"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "completo",
+      "pendientes": [],
+      "costoOficial": 1016.4004995923076
+    },
+    "versionMotor": "2026-10-13",
+    "versionConfig": "cfglu0aa4",
+    "versionCatalogo": "cat-ap1793-cfg14i3zwt",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T20:14:45.809Z",
+    "catalogoFuente": "catalogo",
+    "warnings": []
+  }
+}

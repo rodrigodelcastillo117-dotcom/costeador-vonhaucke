@@ -1,0 +1,43 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATOM3 1013-2014 BORRADOR otro componente estructural: perfil omega de refuerzo bajo cubierta (sistema App LT) Acero en lámina doblada",
+    "piezas": 3,
+    "mismoBom": true,
+    "costoAntes": "$143.39",
+    "costoDespues": "$143.39",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$143.39",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $79.66 · Mano de obra $15.93 · Fábrica $47.80",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Perfil omega lámina doblada 850 × 100 × 17 mm",
+      "material": "Lamina de acero cal. 18",
+      "alertas": []
+    },
+    {
+      "nombre": "Pintura en polvo negro mate (acabado del omega)",
+      "material": "Pintura en polvo negro mate 8 (Vitracoat)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («acabado especificado asume») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Juego de tornillería de fijación omega-cubierta",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («incluida segun solicitud cliente») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

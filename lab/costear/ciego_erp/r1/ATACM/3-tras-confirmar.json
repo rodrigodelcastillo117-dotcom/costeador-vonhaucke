@@ -1,0 +1,42 @@
+{
+  "confirmacion": {
+    "ofrecida": true,
+    "texto": "Confirmar los 2 propuestos",
+    "diferencias": "2 difieren de lo pedido y se confirman uno por uno: Pintura en polvo (acabado exterior e interior), Juego de tornillería de fijación y ensamble.",
+    "diferenciasAceptadas": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cuerpo del conducto en lámina doblada (desarrollo ~590 × 649 mm)",
+      "material": "Lamina de acero cal. 20",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapa registrable / cubierta del conducto 220 × 649 mm",
+      "material": "Lamina de acero cal. 20",
+      "alertas": []
+    },
+    {
+      "nombre": "Pintura en polvo (acabado exterior e interior)",
+      "material": "Pintura en polvo A101 basic white",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («acabado electrostatica color especificado») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Juego de tornillería de fijación y ensamble",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («indicada explicitamente cliente») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

@@ -1,0 +1,425 @@
+{
+  "paridad": {
+    "costoCliente": 2205.19,
+    "costoSrv": 2205.19,
+    "estadoSrv": "preliminar",
+    "iguales": true,
+    "llamadasSrv": 2
+  },
+  "servidor": {
+    "ok": true,
+    "estado": "preliminar",
+    "piezas": 1,
+    "precioVenta": 3675.31,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 2205.19,
+      "materialTotal": 1287.09,
+      "manoObra": 229.52,
+      "indirectosFabrica": 688.57,
+      "desperdicio": 550.32,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-19",
+          "nombre": "Melamina BLANCA / EcoLegno 19 mm",
+          "seccion": "cubiertas",
+          "costo": 544,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "costo": 13.91,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "ptr",
+          "nombre": "Tubo / PTR 1\"x2\" cal. 16",
+          "seccion": "metal",
+          "costo": 458.28,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "lamina-18",
+          "nombre": "Lamina de acero cal. 18",
+          "seccion": "metal",
+          "costo": 85.73,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "pintura-polvo-blanco-ral-9016-009-13120",
+          "nombre": "Pintura en polvo, Blanco RAL 9016 009/13120",
+          "seccion": "acabados",
+          "costo": 56.25,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "costo": 70.92,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "soldadura",
+          "nombre": "Soldadura",
+          "seccion": "metal",
+          "costo": 13,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "costo": 45,
+          "certificable": true,
+          "evidencia": "aprobado"
+        }
+      ],
+      "componentesIgnorados": []
+    },
+    "evidencia": {
+      "usados": 8,
+      "certificados": 3,
+      "noCertificados": 5
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 1114.92204,
+      "materialIndirecto": 172.17271375,
+      "materialTotal": 1287.0947537499999,
+      "desperdicio": 550.3225778231658,
+      "manoObra": 229.52339874999998,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 20.586497576996504,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 1516.6181525,
+      "indirectosFabrica": 688.5701962499999,
+      "gastosOperacion": 0,
+      "costoFabricacion": 2205.18834875,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 2205.18834875,
+      "costoLoteConMerma": 2205.18834875,
+      "costoUnitario": 2205.18834875,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-19",
+          "nombre": "Melamina BLANCA / EcoLegno 19 mm",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Cubierta"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": true,
+            "certificable": false,
+            "hojas": 1,
+            "piezas_solicitadas": 1,
+            "piezas_colocadas": 1,
+            "placements": [
+              {
+                "id": "Cubierta#1",
+                "nombre": "Cubierta",
+                "x": 10,
+                "y": 10,
+                "w": 1500,
+                "h": 700,
+                "rot": 0,
+                "hoja": 1
+              }
+            ],
+            "remanentes": [
+              {
+                "hoja": 1,
+                "x": 10,
+                "y": 714,
+                "w": 2420,
+                "h": 496,
+                "area_mm2": 1200320
+              },
+              {
+                "hoja": 1,
+                "x": 1514,
+                "y": 10,
+                "w": 916,
+                "h": 1200,
+                "area_mm2": 1099200
+              }
+            ],
+            "issues": [],
+            "area_piezas_mm2": 1050000,
+            "area_comprada_mm2": 2976800,
+            "desperdicio_mm2": 1926800,
+            "eficiencia_pct": 36.15702479338843,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1.0499999999999998,
+          "comprado": 2.9768,
+          "unidades": 1,
+          "costo": 544,
+          "desperdicio": 352.11609782316583,
+          "pct": 64.72722386455254,
+          "precio": 544,
+          "noCabe": false,
+          "fraccion": true
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "rollo",
+            "corto": "rollo",
+            "medida": 50,
+            "nombre": "rollo de 50 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Tapacanto perimetral cubierta"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 4.4,
+          "comprado": 4.5760000000000005,
+          "unidades": null,
+          "costo": 13.911040000000002,
+          "desperdicio": 0.5350400000000005,
+          "pct": 3.8461538461538494,
+          "precio": 3.04,
+          "noCabe": false
+        },
+        {
+          "insumoId": "ptr",
+          "nombre": "Tubo / PTR 1\"x2\" cal. 16",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "tramo",
+            "corto": "tramo",
+            "medida": 6,
+            "nombre": "tramo de 6 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Patas PTR",
+            "Largueros PTR",
+            "Travesaños PTR"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": {
+            "disponible": false,
+            "issues": [
+              "SIN_PIEZAS_LINEALES"
+            ],
+            "advisory": true
+          },
+          "tipoAlbaAplicado": "metal",
+          "metodoConsumo": "FORMATO_COMPLETO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 6.824000000000001,
+          "comprado": 12,
+          "unidades": 2,
+          "costo": 458.28,
+          "desperdicio": 197.67143999999996,
+          "pct": 43.133333333333326,
+          "precio": 38.19,
+          "noCabe": false
+        },
+        {
+          "insumoId": "lamina-18",
+          "nombre": "Lamina de acero cal. 18",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "lamina",
+            "corto": "lamina",
+            "medida": 28.4,
+            "nombre": "lamina 1.22 x 2.44"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Faldón frontal"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "metal",
+          "metodoConsumo": "FRACCION_DIRECTA_RAFA",
+          "usaAprovechamientoGenerico": false,
+          "neto": 4.26,
+          "comprado": 4.26,
+          "unidades": 0.15,
+          "costo": 85.731,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 571.54,
+          "noCabe": false,
+          "fraccion": true
+        },
+        {
+          "insumoId": "pintura-polvo-blanco-ral-9016-009-13120",
+          "nombre": "Pintura en polvo, Blanco RAL 9016 009/13120",
+          "seccion": "acabados",
+          "clase": "indirecta",
+          "unidad": "kg",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Pintura en polvo blanco RAL 9016"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.235,
+          "comprado": 0.235,
+          "unidades": null,
+          "costo": 56.25271375,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 239.37325,
+          "noCabe": false
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Niveladores"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 4,
+          "comprado": 4,
+          "unidades": null,
+          "costo": 70.92,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 17.73,
+          "noCabe": false
+        },
+        {
+          "insumoId": "soldadura",
+          "nombre": "Soldadura",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "kg",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Soldadura estructura"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.2,
+          "comprado": 0.2,
+          "unidades": null,
+          "costo": 13,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 65,
+          "noCabe": false
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "juego",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Tornillería fijación cubierta"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 1,
+          "unidades": null,
+          "costo": 45,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 45,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [],
+      "tarifasFaltantes": [],
+      "estadoCosto": "completo",
+      "pendientes": [],
+      "costoOficial": 2205.18834875
+    },
+    "versionMotor": "2026-10-13",
+    "versionConfig": "cfg1r33lco",
+    "versionCatalogo": "cat-ap1793-cfgyud7mk",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T20:11:07.241Z",
+    "catalogoFuente": "catalogo",
+    "warnings": [
+      "Costo preliminar — 5 de 8 insumo(s) sin precio certificado.",
+      "4 insumo(s) requieren validación de Compras."
+    ]
+  }
+}

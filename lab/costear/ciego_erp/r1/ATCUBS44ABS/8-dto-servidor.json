@@ -1,0 +1,268 @@
+{
+  "req": {
+    "cantidad": 1,
+    "pieza": {
+      "componentes": [
+        {
+          "insumoId": "melamina-28",
+          "nombre": "Cubierta melamina 28 mm 1200 × 600",
+          "cantidad": 1,
+          "largoMM": 1200,
+          "anchoMM": 600,
+          "piezas": 1,
+          "material_solicitado": "Melamina 28 mm (modelo App LT), color no especificado",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "canto-abs-32",
+          "nombre": "Canto ABS perímetro cubierta",
+          "cantidad": 3.6,
+          "piezas": 1,
+          "material_solicitado": "Canto ABS para espesor 28 mm (ancho 32 mm), color a juego",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "tapa-registrable-applt",
+          "nombre": "Tapa registrable metálica + herraje App LT",
+          "cantidad": 1,
+          "piezas": 1,
+          "material_solicitado": "Tapa registrable metálica App LT",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        }
+      ]
+    }
+  },
+  "res": {
+    "ok": true,
+    "estado": "incompleto",
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 705.98,
+      "materialTotal": 441.24,
+      "manoObra": 66.19,
+      "indirectosFabrica": 198.56,
+      "desperdicio": 14.11,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-28",
+          "nombre": "Melamina ABS 28 mm (cubierta APP LT)",
+          "seccion": "cubiertas",
+          "costo": 333.9,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "canto-abs-32",
+          "nombre": "Perfil de canto ABS 32 mm Walnut",
+          "seccion": "cubiertas",
+          "costo": 84.54,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "tapa-registrable-applt",
+          "nombre": "Tapa registrable metalica + herraje (App LT)",
+          "seccion": "cubiertas",
+          "costo": 22.8,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        }
+      ],
+      "componentesIgnorados": []
+    },
+    "evidencia": {
+      "usados": 3,
+      "certificados": 1,
+      "noCertificados": 2
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 441.23951999999997,
+      "materialIndirecto": 0,
+      "materialTotal": 441.23951999999997,
+      "desperdicio": 14.109327041117982,
+      "manoObra": 66.18592799999999,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 15,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 507.42544799999996,
+      "indirectosFabrica": 198.55778399999997,
+      "gastosOperacion": 0,
+      "costoFabricacion": 705.9832319999999,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 705.9832319999999,
+      "costoLoteConMerma": 705.9832319999999,
+      "costoUnitario": 705.9832319999999,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-28",
+          "nombre": "Melamina ABS 28 mm (cubierta APP LT)",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Cubierta melamina 28 mm 1200 × 600"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": true,
+            "certificable": false,
+            "hojas": 1,
+            "piezas_solicitadas": 1,
+            "piezas_colocadas": 1,
+            "placements": [
+              {
+                "id": "Cubierta melamina 28 mm 1200 × 600#1",
+                "nombre": "Cubierta melamina 28 mm 1200 × 600",
+                "x": 10,
+                "y": 10,
+                "w": 1200,
+                "h": 600,
+                "rot": 0,
+                "hoja": 1
+              }
+            ],
+            "remanentes": [
+              {
+                "hoja": 1,
+                "x": 1214,
+                "y": 10,
+                "w": 1216,
+                "h": 1200,
+                "area_mm2": 1459200
+              },
+              {
+                "hoja": 1,
+                "x": 10,
+                "y": 614,
+                "w": 2420,
+                "h": 596,
+                "area_mm2": 1442320
+              }
+            ],
+            "issues": [],
+            "area_piezas_mm2": 720000,
+            "area_comprada_mm2": 2976800,
+            "desperdicio_mm2": 2256800,
+            "eficiencia_pct": 24.793388429752067,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.72,
+          "comprado": 0.7442,
+          "unidades": 0.25,
+          "costo": 333.9,
+          "desperdicio": 10.85780704111798,
+          "pct": 3.2518140284869657,
+          "precio": 1335.6,
+          "noCabe": false,
+          "fraccion": true
+        },
+        {
+          "insumoId": "canto-abs-32",
+          "nombre": "Perfil de canto ABS 32 mm Walnut",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "rollo",
+            "corto": "rollo",
+            "medida": 100,
+            "nombre": "rollo de 100 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Canto ABS perímetro cubierta"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 3.6,
+          "comprado": 3.744,
+          "unidades": null,
+          "costo": 84.53952,
+          "desperdicio": 3.251520000000003,
+          "pct": 3.8461538461538494,
+          "precio": 22.58,
+          "noCabe": false
+        },
+        {
+          "insumoId": "tapa-registrable-applt",
+          "nombre": "Tapa registrable metalica + herraje (App LT)",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Tapa registrable metálica + herraje App LT"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 1,
+          "unidades": null,
+          "costo": 22.8,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 22.8,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Canto ABS perímetro cubierta"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "completo",
+      "pendientes": [],
+      "costoOficial": 705.9832319999999
+    },
+    "versionMotor": "2026-10-13",
+    "versionConfig": "cfg1r33lco",
+    "versionCatalogo": "cat-ap1793-cfg1lh0sez",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T20:09:00.568Z",
+    "catalogoFuente": "catalogo",
+    "warnings": []
+  }
+}

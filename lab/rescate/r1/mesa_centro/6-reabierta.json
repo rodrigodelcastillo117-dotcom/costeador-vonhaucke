@@ -1,0 +1,61 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB dif mesa_centro 1013-2006 BORRADOR mesita mesa de centro Cristal templado 9 mm canto pulido",
+    "piezas": 7,
+    "mismoBom": true,
+    "costoAntes": "$2,934.73",
+    "costoDespues": "$2,934.73",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$2,934.73",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $1,967.97 · Mano de obra $237.59 · Fábrica $729.18",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta cristal templado 9 mm canto pulido",
+      "material": "Cristal templado 9 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Marco rectangular tubular 900x500",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": []
+    },
+    {
+      "nombre": "Poste vertical tubular 392",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": []
+    },
+    {
+      "nombre": "Acabado cromado base (EcoCrom)",
+      "material": "EcoCrom",
+      "alertas": []
+    },
+    {
+      "nombre": "Soldadura base",
+      "material": "Soldadura",
+      "alertas": []
+    },
+    {
+      "nombre": "Topes/ventosas cristal y regatones",
+      "material": "— ¿de qué es? —",
+      "alertas": [
+        "⚠ Varios materiales posibles — elige de cuál es."
+      ]
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    }
+  ]
+}

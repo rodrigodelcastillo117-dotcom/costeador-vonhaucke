@@ -1,0 +1,108 @@
+{
+  "piezas": [
+    {
+      "nombre": "Cubierta",
+      "material": "Melamina BLANCA / EcoLegno 19 mm",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Tapacanto perimetral cubierta",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Pata PTR",
+      "material": "Tubo / PTR 1\"x2\" cal. 16",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Larguero PTR",
+      "material": "Tubo / PTR 1\"x2\" cal. 16",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Travesaño PTR",
+      "material": "Tubo / PTR 1\"x2\" cal. 16",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Faldón lámina",
+      "material": "Lamina de acero cal. 18",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Pintura en polvo blanco RAL 9016",
+      "material": "Pintura en polvo, Blanco RAL 9016 009/13120",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Nivelador",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Soldadura estructura",
+      "material": "Soldadura",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Tornillería fijación cubierta",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  },
+  "analizar": {
+    "status": 200,
+    "piezas": 10,
+    "producto": "Mesa de trabajo 1500 x 700 x 750 mm",
+    "uso": {
+      "input_tokens": 22958,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 2731,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    }
+  },
+  "tiempos": {
+    "analizarSeg": 22.556,
+    "bomVisibleSeg": 48.79
+  },
+  "lote": 10,
+  "entrada": "imagen"
+}

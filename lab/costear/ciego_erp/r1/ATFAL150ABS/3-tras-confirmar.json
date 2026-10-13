@@ -1,0 +1,69 @@
+{
+  "confirmacion": {
+    "ofrecida": true,
+    "texto": "Confirmar los 6 propuestos",
+    "diferencias": "3 difieren de lo pedido y se confirman uno por uno: Pintura en polvo negro mate para charola metálica, Canto ABS 22 mm perimetral, Tornillería y escuadras de fijación a cubierta. ",
+    "diferenciasAceptadas": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Panel frontal de faldón melamina",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Panel posterior / tapa de registro melamina",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapas laterales / costados melamina",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Charola/base metálica portacables cal. 20",
+      "material": "Lamina de acero cal. 20",
+      "alertas": []
+    },
+    {
+      "nombre": "Pintura en polvo negro mate para charola metálica",
+      "material": "Pintura en polvo, Negro Mate 8 Vitracoat",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («electrostatica») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Canto ABS 22 mm perimetral",
+      "material": "Perfil de canto ABS 22 mm Walnut",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («melamina color definir») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Perfil de canto aluminio App LT (remate)",
+      "material": "Perfil de canto aluminio (App LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Tornillería y escuadras de fijación a cubierta",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («herraje fijacion») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Tornillo nivelador 3/8 plataforma 1 1/2\" cromado",
+      "alertas": []
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

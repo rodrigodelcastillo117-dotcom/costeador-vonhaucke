@@ -1,0 +1,969 @@
+{
+  "paridad": {
+    "costoCliente": 7285.2,
+    "costoSrv": 7285.2,
+    "estadoSrv": "incompleto",
+    "iguales": true,
+    "llamadasSrv": 3
+  },
+  "servidor": {
+    "ok": true,
+    "estado": "incompleto",
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 7285.2,
+      "materialTotal": 4468.13,
+      "manoObra": 704.27,
+      "indirectosFabrica": 2112.8,
+      "desperdicio": 709.39,
+      "detalleInsumos": [
+        {
+          "insumoId": "erp-mdf19",
+          "nombre": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+          "seccion": "cubiertas",
+          "costo": 790.24,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "melamina-16",
+          "nombre": "Melamina BLANCA 16 mm",
+          "seccion": "cubiertas",
+          "costo": 285,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "erp-mdf8",
+          "nombre": "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\"",
+          "seccion": "cubiertas",
+          "costo": 88.8,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "chapa-madera",
+          "nombre": "Chapa de madera (sabana natural)",
+          "seccion": "cubiertas",
+          "costo": 720,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "pegado-chapa",
+          "nombre": "Pegado de chapa (operación)",
+          "seccion": "cubiertas",
+          "costo": 1800,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "ptr-14",
+          "nombre": "Tubo / PTR cal. 14",
+          "seccion": "metal",
+          "costo": 270.78,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "pintura-electrostatica",
+          "nombre": "Pintura electrostatica",
+          "seccion": "acabados",
+          "costo": 53.5,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "soldadura",
+          "nombre": "Soldadura",
+          "seccion": "metal",
+          "costo": 13,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "costo": 70.92,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "bisagra",
+          "nombre": "Bisagra",
+          "seccion": "herrajes",
+          "costo": 114,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "jaladera",
+          "nombre": "Jaladera",
+          "seccion": "herrajes",
+          "costo": 113.7,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "costo": 45,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "costo": 103.19,
+          "certificable": false,
+          "evidencia": "propuesto"
+        }
+      ],
+      "componentesIgnorados": [
+        "Canto visible"
+      ]
+    },
+    "evidencia": {
+      "usados": 13,
+      "certificados": 4,
+      "noCertificados": 9
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 4124.514624,
+      "materialIndirecto": 343.62,
+      "materialTotal": 4468.134624,
+      "desperdicio": 709.3877191088416,
+      "manoObra": 704.2651936,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 17.075104777225782,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 5172.3998176000005,
+      "indirectosFabrica": 2112.7955808,
+      "gastosOperacion": 0,
+      "costoFabricacion": 7285.195398400001,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 7285.195398400001,
+      "costoLoteConMerma": 7285.195398400001,
+      "costoUnitario": 7285.195398400001,
+      "detalleInsumos": [
+        {
+          "insumoId": "erp-mdf19",
+          "nombre": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Cubierta superior",
+            "Piso inferior",
+            "Laterales exteriores",
+            "Puertas abatibles"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": true,
+            "certificable": false,
+            "hojas": 2,
+            "piezas_solicitadas": 7,
+            "piezas_colocadas": 7,
+            "placements": [
+              {
+                "id": "Cubierta superior#1",
+                "nombre": "Cubierta superior",
+                "x": 10,
+                "y": 10,
+                "w": 1800,
+                "h": 450,
+                "rot": 0,
+                "hoja": 1
+              },
+              {
+                "id": "Piso inferior#1",
+                "nombre": "Piso inferior",
+                "x": 10,
+                "y": 464,
+                "w": 1764,
+                "h": 450,
+                "rot": 0,
+                "hoja": 1
+              },
+              {
+                "id": "Puertas abatibles#1",
+                "nombre": "Puertas abatibles",
+                "x": 1778,
+                "y": 464,
+                "w": 630,
+                "h": 580,
+                "rot": 0,
+                "hoja": 1
+              },
+              {
+                "id": "Puertas abatibles#2",
+                "nombre": "Puertas abatibles",
+                "x": 10,
+                "y": 10,
+                "w": 580,
+                "h": 630,
+                "rot": 90,
+                "hoja": 2
+              },
+              {
+                "id": "Puertas abatibles#3",
+                "nombre": "Puertas abatibles",
+                "x": 594,
+                "y": 10,
+                "w": 580,
+                "h": 630,
+                "rot": 90,
+                "hoja": 2
+              },
+              {
+                "id": "Laterales exteriores#1",
+                "nombre": "Laterales exteriores",
+                "x": 10,
+                "y": 644,
+                "w": 650,
+                "h": 450,
+                "rot": 0,
+                "hoja": 2
+              },
+              {
+                "id": "Laterales exteriores#2",
+                "nombre": "Laterales exteriores",
+                "x": 664,
+                "y": 644,
+                "w": 650,
+                "h": 450,
+                "rot": 0,
+                "hoja": 2
+              }
+            ],
+            "remanentes": [
+              {
+                "hoja": 2,
+                "x": 1318,
+                "y": 10,
+                "w": 1112,
+                "h": 1200,
+                "area_mm2": 1334400
+              },
+              {
+                "hoja": 2,
+                "x": 1178,
+                "y": 10,
+                "w": 1252,
+                "h": 634,
+                "area_mm2": 793768
+              },
+              {
+                "hoja": 1,
+                "x": 10,
+                "y": 918,
+                "w": 1768,
+                "h": 292,
+                "area_mm2": 516256
+              },
+              {
+                "hoja": 1,
+                "x": 10,
+                "y": 1048,
+                "w": 2420,
+                "h": 162,
+                "area_mm2": 392040
+              },
+              {
+                "hoja": 1,
+                "x": 1814,
+                "y": 10,
+                "w": 616,
+                "h": 454,
+                "area_mm2": 279664
+              },
+              {
+                "hoja": 2,
+                "x": 10,
+                "y": 1098,
+                "w": 2420,
+                "h": 112,
+                "area_mm2": 271040
+              }
+            ],
+            "issues": [],
+            "area_piezas_mm2": 3285000,
+            "area_comprada_mm2": 5953600,
+            "desperdicio_mm2": 2668600,
+            "eficiencia_pct": 56.5599173553719,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 3.285,
+          "comprado": 5.457466666666666,
+          "unidades": 1.8333333333333333,
+          "costo": 790.24,
+          "desperdicio": 314.5727062617575,
+          "pct": 39.80723656885978,
+          "precio": 431.04,
+          "noCabe": false,
+          "fraccion": true,
+          "reglaProduccion": "produccion-rogelio-2026-10",
+          "piezasRegla": [
+            {
+              "pieza": "Cubierta superior",
+              "largoMM": 1800,
+              "anchoMM": 450,
+              "hojasPorPieza": 0.5
+            },
+            {
+              "pieza": "Piso inferior",
+              "largoMM": 1764,
+              "anchoMM": 450,
+              "hojasPorPieza": 0.5
+            }
+          ]
+        },
+        {
+          "insumoId": "melamina-16",
+          "nombre": "Melamina BLANCA 16 mm",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Divisiones verticales interiores",
+            "Entrepaños"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": true,
+            "certificable": false,
+            "hojas": 1,
+            "piezas_solicitadas": 5,
+            "piezas_colocadas": 5,
+            "placements": [
+              {
+                "id": "Divisiones verticales interiores#1",
+                "nombre": "Divisiones verticales interiores",
+                "x": 10,
+                "y": 10,
+                "w": 441,
+                "h": 614,
+                "rot": 90,
+                "hoja": 1
+              },
+              {
+                "id": "Divisiones verticales interiores#2",
+                "nombre": "Divisiones verticales interiores",
+                "x": 10,
+                "y": 628,
+                "w": 614,
+                "h": 441,
+                "rot": 0,
+                "hoja": 1
+              },
+              {
+                "id": "Entrepaños#1",
+                "nombre": "Entrepaños",
+                "x": 455,
+                "y": 10,
+                "w": 420,
+                "h": 576,
+                "rot": 90,
+                "hoja": 1
+              },
+              {
+                "id": "Entrepaños#2",
+                "nombre": "Entrepaños",
+                "x": 628,
+                "y": 590,
+                "w": 420,
+                "h": 576,
+                "rot": 90,
+                "hoja": 1
+              },
+              {
+                "id": "Entrepaños#3",
+                "nombre": "Entrepaños",
+                "x": 879,
+                "y": 10,
+                "w": 420,
+                "h": 576,
+                "rot": 90,
+                "hoja": 1
+              }
+            ],
+            "remanentes": [
+              {
+                "hoja": 1,
+                "x": 1303,
+                "y": 10,
+                "w": 1127,
+                "h": 1200,
+                "area_mm2": 1352400
+              },
+              {
+                "hoja": 1,
+                "x": 1052,
+                "y": 590,
+                "w": 1378,
+                "h": 620,
+                "area_mm2": 854360
+              },
+              {
+                "hoja": 1,
+                "x": 10,
+                "y": 1073,
+                "w": 618,
+                "h": 137,
+                "area_mm2": 84666
+              }
+            ],
+            "issues": [],
+            "area_piezas_mm2": 1267308,
+            "area_comprada_mm2": 2976800,
+            "desperdicio_mm2": 1709492,
+            "eficiencia_pct": 43.640082644628094,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1.2673079999999999,
+          "comprado": 1.8853066666666665,
+          "unidades": 0.6333333333333333,
+          "costo": 285,
+          "desperdicio": 93.42226552002148,
+          "pct": 32.77974228772684,
+          "precio": 450,
+          "noCabe": false,
+          "fraccion": true
+        },
+        {
+          "insumoId": "erp-mdf8",
+          "nombre": "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\"",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Respaldo"
+          ],
+          "optimizacionCorte": {
+            "disponible": false,
+            "issues": [
+              "SIN_PIEZAS_RECTANGULARES"
+            ]
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "FRACCION_DIRECTA_RAFA",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1.101416,
+          "comprado": 1.101416,
+          "unidades": 0.37,
+          "costo": 88.8,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 240,
+          "noCabe": false,
+          "fraccion": true
+        },
+        {
+          "insumoId": "chapa-madera",
+          "nombre": "Chapa de madera (sabana natural)",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": true,
+          "nombresComponentes": [
+            "Chapa nogal cubierta (cara superior)",
+            "Chapa nogal laterales exteriores",
+            "Chapa nogal frentes puerta"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": true,
+            "certificable": false,
+            "hojas": 2,
+            "piezas_solicitadas": 6,
+            "piezas_colocadas": 6,
+            "placements": [
+              {
+                "id": "Chapa nogal cubierta (cara superior)#1",
+                "nombre": "Chapa nogal cubierta (cara superior)",
+                "x": 10,
+                "y": 10,
+                "w": 1800,
+                "h": 450,
+                "rot": 0,
+                "hoja": 1
+              },
+              {
+                "id": "Chapa nogal frentes puerta#1",
+                "nombre": "Chapa nogal frentes puerta",
+                "x": 10,
+                "y": 464,
+                "w": 630,
+                "h": 580,
+                "rot": 0,
+                "hoja": 1
+              },
+              {
+                "id": "Chapa nogal frentes puerta#2",
+                "nombre": "Chapa nogal frentes puerta",
+                "x": 644,
+                "y": 464,
+                "w": 630,
+                "h": 580,
+                "rot": 0,
+                "hoja": 1
+              },
+              {
+                "id": "Chapa nogal frentes puerta#3",
+                "nombre": "Chapa nogal frentes puerta",
+                "x": 1278,
+                "y": 464,
+                "w": 630,
+                "h": 580,
+                "rot": 0,
+                "hoja": 1
+              },
+              {
+                "id": "Chapa nogal laterales exteriores#1",
+                "nombre": "Chapa nogal laterales exteriores",
+                "x": 10,
+                "y": 10,
+                "w": 650,
+                "h": 450,
+                "rot": 0,
+                "hoja": 2
+              },
+              {
+                "id": "Chapa nogal laterales exteriores#2",
+                "nombre": "Chapa nogal laterales exteriores",
+                "x": 10,
+                "y": 464,
+                "w": 650,
+                "h": 450,
+                "rot": 0,
+                "hoja": 2
+              }
+            ],
+            "remanentes": [
+              {
+                "hoja": 2,
+                "x": 664,
+                "y": 10,
+                "w": 1766,
+                "h": 1200,
+                "area_mm2": 2119200
+              },
+              {
+                "hoja": 2,
+                "x": 10,
+                "y": 918,
+                "w": 2420,
+                "h": 292,
+                "area_mm2": 706640
+              },
+              {
+                "hoja": 1,
+                "x": 1912,
+                "y": 10,
+                "w": 518,
+                "h": 1200,
+                "area_mm2": 621600
+              },
+              {
+                "hoja": 1,
+                "x": 10,
+                "y": 1048,
+                "w": 2420,
+                "h": 162,
+                "area_mm2": 392040
+              },
+              {
+                "hoja": 1,
+                "x": 1814,
+                "y": 10,
+                "w": 616,
+                "h": 454,
+                "area_mm2": 279664
+              }
+            ],
+            "issues": [],
+            "area_piezas_mm2": 2491200,
+            "area_comprada_mm2": 5953600,
+            "desperdicio_mm2": 3462400,
+            "eficiencia_pct": 42.892561983471076,
+            "parametros": {
+              "veta": true,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 2.4912,
+          "comprado": 3.9690666666666665,
+          "unidades": 1.3333333333333333,
+          "costo": 720,
+          "desperdicio": 268.0892233270626,
+          "pct": 37.23461435098091,
+          "precio": 540,
+          "noCabe": false,
+          "fraccion": true,
+          "reglaProduccion": "produccion-rogelio-2026-10",
+          "piezasRegla": [
+            {
+              "pieza": "Chapa nogal cubierta (cara superior)",
+              "largoMM": 1800,
+              "anchoMM": 450,
+              "hojasPorPieza": 0.5
+            }
+          ]
+        },
+        {
+          "insumoId": "pegado-chapa",
+          "nombre": "Pegado de chapa (operación)",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "op",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Pegado de chapa"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 6,
+          "comprado": 6,
+          "unidades": null,
+          "costo": 1800,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 300,
+          "noCabe": false
+        },
+        {
+          "insumoId": "ptr-14",
+          "nombre": "Tubo / PTR cal. 14",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "tramo",
+            "corto": "tramo",
+            "medida": 6,
+            "nombre": "tramo de 6 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Base PTR largueros",
+            "Base PTR travesaños",
+            "Patas PTR"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": {
+            "disponible": false,
+            "issues": [
+              "SIN_PIEZAS_LINEALES"
+            ],
+            "advisory": true
+          },
+          "tipoAlbaAplicado": "metal",
+          "metodoConsumo": "FORMATO_COMPLETO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 5.3500000000000005,
+          "comprado": 6,
+          "unidades": 1,
+          "costo": 270.78000000000003,
+          "desperdicio": 29.334499999999977,
+          "pct": 10.833333333333323,
+          "precio": 45.13,
+          "noCabe": false
+        },
+        {
+          "insumoId": "pintura-electrostatica",
+          "nombre": "Pintura electrostatica",
+          "seccion": "acabados",
+          "clase": "directa",
+          "unidad": "m2",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Pintura electrostática negra base"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.535,
+          "comprado": 0.535,
+          "unidades": null,
+          "costo": 53.5,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 100,
+          "noCabe": false
+        },
+        {
+          "insumoId": "soldadura",
+          "nombre": "Soldadura",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "kg",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Soldadura base"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.2,
+          "comprado": 0.2,
+          "unidades": null,
+          "costo": 13,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 65,
+          "noCabe": false
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Niveladores"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 4,
+          "comprado": 4,
+          "unidades": null,
+          "costo": 70.92,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 17.73,
+          "noCabe": false
+        },
+        {
+          "insumoId": "bisagra",
+          "nombre": "Bisagra",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Bisagras"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 6,
+          "comprado": 6,
+          "unidades": null,
+          "costo": 114,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 19,
+          "noCabe": false
+        },
+        {
+          "insumoId": "jaladera",
+          "nombre": "Jaladera",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Jaladera recta 300 mm"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 3,
+          "comprado": 3,
+          "unidades": null,
+          "costo": 113.69999999999999,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 37.9,
+          "noCabe": false
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "juego",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Tornillería"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 1,
+          "unidades": null,
+          "costo": 45,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 45,
+          "noCabe": false
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "rollo",
+            "corto": "rollo",
+            "medida": 50,
+            "nombre": "rollo de 50 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Tapacanto (cantos visibles)"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 32.64,
+          "comprado": 33.9456,
+          "unidades": null,
+          "costo": 103.194624,
+          "desperdicio": 3.969023999999995,
+          "pct": 3.8461538461538414,
+          "precio": 3.04,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [
+        "Canto visible"
+      ],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Pintura electrostática negra base",
+        "Jaladera recta 300 mm"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "incompleto",
+      "pendientes": [
+        "Canto visible"
+      ],
+      "costoOficial": null
+    },
+    "versionMotor": "2026-10-13",
+    "versionConfig": "cfg1nzwcam",
+    "versionCatalogo": "cat-ap1793-cfgphwtb2",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T20:00:42.737Z",
+    "catalogoFuente": "catalogo",
+    "warnings": [
+      "1 pieza(s) sin material/precio usable: Canto visible"
+    ]
+  }
+}

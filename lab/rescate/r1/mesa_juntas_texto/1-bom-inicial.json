@@ -1,0 +1,88 @@
+{
+  "piezas": [
+    {
+      "nombre": "Cubierta 2400×1200",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": [
+        "⚠ Medida de HOJA, no de pieza (2400×1200 mm): pon el largo×ancho de la pieza real; la hoja la calcula el motor.",
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Tapacanto PVC 2 mm Walnut perímetro cubierta",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Panel lateral de base 722×1000",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Faldón central 2000×300",
+      "material": "Melamina 19 mm, Walnut",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Nivelador",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («roscado») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Caja de conexiones eléctricas central",
+      "material": "Caja electrica generica (contactos+USB)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («conexion centro cubierta») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tornillería y herraje de ensamble",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («minifix tarugo escuadra ensamble») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  },
+  "analizar": {
+    "status": 200,
+    "piezas": 8,
+    "producto": "Mesa de juntas rectangular 2400×1200×750 mm, melamina Walnut",
+    "uso": {
+      "input_tokens": 22170,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 4076,
+      "output_tokens_details": {
+        "thinking_tokens": 265
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    }
+  },
+  "tiempos": {
+    "analizarSeg": 44.172,
+    "bomVisibleSeg": 44.333
+  },
+  "lote": 1,
+  "entrada": "texto"
+}

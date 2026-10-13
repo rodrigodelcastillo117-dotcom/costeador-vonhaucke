@@ -1,0 +1,44 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Omega (refuerzo metálico) para cubierta App LT 850 × 100 × 17 mm","tipo":"otro","piezas":[{"nombre":"Perfil omega lámina doblada 850 × 100 × 17 mm","insumoId":"lamina-18","material_solicitado":"Perfil omega metálico (lámina de acero doblada), 850 × 100 × 17 mm, mo
+
+[lab-costear] analizar-mueble 200 en 40 s · piezas 3 · lote 1
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":143.39,"materialTotal":79.66,"manoObra":15.93,"indirectosFabrica":47.8,"desperdicio":6.54,"detalleInsumos":[{"insumoId":"lamina-18","nombre":"Lamina de acero cal. 18","seccion":"metal","costo":32.7,"c
+
+[lab-costear] BOM inicial {"piezas":3,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Qué calibre de lámina lleva el omega?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuántas omegas se requieren en total?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Acabado del omega?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuántos barrenos de fijación lleva cada omega?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Tipo de tornillería de fijación a la cubierta?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"Los 850 × 100 × 17 mm, ¿son medidas del perfil terminado (largo × ancho de ala × altura) o de la cubierta?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":143.39,"materialTotal":79.66,"manoObra":15.93,"indirectosFabrica":47.8,"desperdicio":6.54,"detalleInsumos":[{"insumoId":"lamina-18","nombre":"Lamina de acero cal. 18","seccion":"metal","costo":32.7,"c
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 1 propuestos","diferencias":"2 difieren de lo pedido y se confirman uno por uno: Pintura en polvo negro mate (acabado del omega), Juego de tornillería de fijación omega-cubierta. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$143.39","Por confirmar"],"margen":null,"estado":"Costo preliminar — 6 decisión(es) pendiente(s): ¿Qué calibre de lámina lleva el omega? · ¿Cuántas omegas se requieren en total? · ¿Acabado del omega? · ¿Cuántos barrenos de fijación lleva cada omega? · ¿Tipo de tornillería de fijación a la cubierta? · Los 850 × 100 × 17 mm, ¿son medidas del perfil terminado (largo × ancho de ala × altura) o de la cubierta?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $79.66 · Mano de obra $15.93 · Fábrica $47.80","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":143.39,"costoSrv":143.39,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":162.51,"materialTotal":79.66,"manoObra":20.71,"indirectosFabrica":62.14,"desperdicio":6.54,"detalleInsumos":[{"insumoId":"lamina-18","nombre":"Lamina de acero cal. 18","seccion":"metal","costo":32.7,"
+
+[lab-costear] dificultad {"costoNormal":143.39,"marcado":"true","costoDificil":162.51,"reqDificultad":"dificil","costoSrvDificil":162.51,"sube":true,"paridad":true,"costoDeVueltaNormal":143.39,"regresaIgual":true}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":143.39,"materialTotal":79.66,"manoObra":15.93,"indirectosFabrica":47.8,"desperdicio":6.54,"detalleInsumos":[{"insumoId":"lamina-18","nombre":"Lamina de acero cal. 18","seccion":"metal","costo":32.7,"c
+
+[lab-costear] expedientes POST 201 [{"id":108}]
+
+[lab-costear] guardado {"status":201,"id":108,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":143.39,"materialTotal":79.66,"manoObra":15.93,"indirectosFabrica":47.8,"desperdicio":6.54,"detalleInsumos":[{"insumoId":"lamina-18","nombre":"Lamina de acero cal. 18","seccion":"metal","costo":32.7,"c
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":0,"pass":0,"fail":0,"riesgo":0,"sobrantesNoPermitidos":2,"renglonesBom":3,"veredicto":"FAIL"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB ciego ATOM3 1013-2014 BORRADOR otro componente estructural: perfil omega de refuerzo bajo cubierta (sistema App LT) Acero en lámina doblada","piezas":3,"mismoBom":true,"costoAntes":"$143.39","costoDespues":"$143.39","mismoCosto":true,"resultado":{"precios":["$143.39","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $79.66 · Mano de obra $15.93 · Fábrica $47.80","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.5m)

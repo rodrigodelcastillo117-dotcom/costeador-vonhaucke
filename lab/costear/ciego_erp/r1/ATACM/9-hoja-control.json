@@ -1,0 +1,62 @@
+{
+  "producto": "CONDUCTO ACOMETIDA DE 220 X 649 X 75 MM MODELO APPS LT CON TORNILLERIA; METALICO -- ATACM",
+  "resumen": {
+    "esperados": 0,
+    "pass": 0,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 3,
+    "renglonesBom": 4,
+    "veredicto": "FAIL"
+  },
+  "filas": [],
+  "sobran": [
+    {
+      "nombre": "Cuerpo del conducto en lámina doblada (desarrollo ~590 × 649 mm)",
+      "insumoId": "lamina-20",
+      "permitido": false
+    },
+    {
+      "nombre": "Tapa registrable / cubierta del conducto 220 × 649 mm",
+      "insumoId": "lamina-20",
+      "permitido": false
+    },
+    {
+      "nombre": "Pintura en polvo (acabado exterior e interior)",
+      "insumoId": "pintura-polvo",
+      "permitido": false
+    },
+    {
+      "nombre": "Juego de tornillería de fijación y ensamble",
+      "insumoId": "tornilleria",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Calibre de la lámina del conducto?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Color/acabado de pintura en polvo?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántas piezas se fabricarán?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿La tapa es desmontable atornillada o abatible con herraje?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Incluye accesorios eléctricos (contactos, chicote, acometida) o sólo el ducto?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Requiere perforaciones/ranuras CNC para paso de cable o fijación especial?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

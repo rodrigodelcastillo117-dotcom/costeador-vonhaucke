@@ -1,0 +1,37 @@
+{
+  "confirmacion": {
+    "ofrecida": true,
+    "texto": "Confirmar los 1 propuestos",
+    "diferencias": "2 difieren de lo pedido y se confirman uno por uno: Pintura en polvo negro mate (acabado del omega), Juego de tornillería de fijación omega-cubierta. ",
+    "diferenciasAceptadas": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Perfil omega lámina doblada 850 × 100 × 17 mm",
+      "material": "Lamina de acero cal. 18",
+      "alertas": []
+    },
+    {
+      "nombre": "Pintura en polvo negro mate (acabado del omega)",
+      "material": "Pintura en polvo negro mate 8 (Vitracoat)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («acabado especificado asume») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Juego de tornillería de fijación omega-cubierta",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («incluida segun solicitud cliente») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

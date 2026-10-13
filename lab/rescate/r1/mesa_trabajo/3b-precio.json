@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$2,205.19",
+      "$3,675.31"
+    ],
+    "margen": "Precio de lista (40% margen · política vigente (1 pieza))",
+    "estado": "Costo preliminar — 2 decisión(es) pendiente(s): ¿Cuántas mesas se fabricarán? · ¿Estructura soldada o desarmable (knock-down)?. No es obligatorio contestarlas; el costo ya se puede emitir como preliminar.",
+    "linea": "Material $1,287.09 · Mano de obra $229.52 · Fábrica $688.57",
+    "pendiente": false,
+    "porConfirmar": false
+  },
+  "piezas": []
+}

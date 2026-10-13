@@ -1,0 +1,48 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Credenza Nogal 3 puertas 1800x450x750","tipo":"guarda","piezas":[{"nombre":"Cubierta superior","insumoId":"mdf","material_solicitado":"MDF 18 mm enchapado nogal natural","material_match":"SUBSTITUTE_SUGGESTED","forma":"area","largoMM":1800,"anchoMM":450,"cantidad"
+
+[lab-costear] analizar-mueble 200 en 40 s · piezas 21 · lote 1
+
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Credenza Nogal 1800x450x750 con 3 puertas y base PTR","tipo":"guarda","piezas":[{"nombre":"Cubierta superior","insumoId":"mdf","material_solicitado":"MDF 18 mm enchapado nogal natural","material_match":"SUBSTITUTE_SUGGESTED","forma":"area","largoMM":1800,"anchoMM"
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":7160.6,"materialTotal":4390.26,"manoObra":692.58,"indirectosFabrica":2077.75,"desperdicio":713.74,"detalleInsumos":[{"insumoId":"mdf","nombre":"MDF 19 mm","seccion":"cubiertas","costo":801.17,"certifi
+
+[lab-costear] BOM inicial {"piezas":22,"pendientes":["Respaldo","Canto visible"],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":7285.2,"materialTotal":4468.13,"manoObra":704.27,"indirectosFabrica":2112.8,"desperdicio":709.39,"detalleInsumos":[{"insumoId":"erp-mdf19","nombre":"MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\
+
+[lab-costear] tras ERP {"erp":{"intentado":true,"pieza":"Respaldo","resultados":6,"elegido":"MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\" · hoja · ERP $240.00 / hoja · certificado · 2026-06-01 Usar"},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Respaldo MDF 9 mm (sin catálogo) se sustituye por melamina 9 mm?","elegido":"(sin responder: ya resuelta con ERP)"},{"pregunta":"¿Puertas enchapadas en nogal por ambas caras?","elegido":"(sin responder: ninguna opción coincide con el plano)","opciones":["Solo exterior","Ambas caras"],"evidencia":"plano: 3 PUERTAS ABATIBLES"},{"pregunta":"Tipo de canto en exteriores","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":7285.2,"materialTotal":4468.13,"manoObra":704.27,"indirectosFabrica":2112.8,"desperdicio":709.39,"detalleInsumos":[{"insumoId":"erp-mdf19","nombre":"MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 18 propuestos","diferencias":"2 difieren de lo pedido y se confirman uno por uno: Pintura electrostática negra base, Jaladera recta 300 mm. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$7,285.20","Por confirmar"],"margen":null,"estado":"Costo preliminar — 3 decisión(es) pendiente(s): ¿Respaldo MDF 9 mm (sin catálogo) se sustituye por melamina 9 mm? · ¿Puertas enchapadas en nogal por ambas caras? · Tipo de canto en exteriores. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $4,468.13 · Mano de obra $704.27 · Fábrica $2,112.80","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":7285.2,"costoSrv":7285.2,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":3}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":8130.31,"materialTotal":4468.13,"manoObra":915.54,"indirectosFabrica":2746.63,"desperdicio":709.39,"detalleInsumos":[{"insumoId":"erp-mdf19","nombre":"MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\
+
+[lab-costear] dificultad {"costoNormal":7285.2,"marcado":"true","costoDificil":8130.31,"reqDificultad":"dificil","costoSrvDificil":8130.31,"sube":true,"paridad":true,"costoDeVueltaNormal":7285.2,"regresaIgual":true}
+
+[lab-costear] expedientes POST 201 [{"id":89}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":7285.2,"materialTotal":4468.13,"manoObra":704.27,"indirectosFabrica":2112.8,"desperdicio":709.39,"detalleInsumos":[{"insumoId":"erp-mdf19","nombre":"MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\
+
+[lab-costear] guardado {"status":201,"id":89,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":7285.2,"materialTotal":4468.13,"manoObra":704.27,"indirectosFabrica":2112.8,"desperdicio":709.39,"detalleInsumos":[{"insumoId":"erp-mdf19","nombre":"MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":12,"pass":12,"fail":0,"riesgo":0,"sobrantesNoPermitidos":0,"renglonesBom":22,"veredicto":"PASS"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB dif credenza 1013-1958 BORRADOR guarda credenza 3 puertas Madera MDF con chapa de nogal natural","piezas":22,"mismoBom":true,"costoAntes":"$7,285.20","costoDespues":"$7,285.20","mismoCosto":true,"resultado":{"precios":["$7,285.20","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $4,468.13 · Mano de obra $704.27 · Fábrica $2,112.80","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (2.4m)

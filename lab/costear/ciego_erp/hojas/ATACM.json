@@ -1,0 +1,77 @@
+{
+ "texto": "Conducto acometida de 220 x 649 x 75 mm modelo apps lt con tornilleria; metalico",
+ "producto": "CONDUCTO ACOMETIDA DE 220 X 649 X 75 MM MODELO APPS LT CON TORNILLERIA; METALICO -- ATACM",
+ "clave_erp": "ATACM",
+ "proposito": "Prueba ciega: sólo la descripción comercial; el BOM del cotizador Intelisis queda fuera de la app.",
+ "respuestas": [],
+ "esperado": [],
+ "extrasPermitidos": "torniller|rondana|pija|tuerca|cintur|tornillo|consumible|soldadura|empaque",
+ "erp_referencia": {
+  "familias": [
+   {
+    "clave": "herraje",
+    "familia": "herraje",
+    "sub": null,
+    "erp_cantidad": 4,
+    "erp_unidad": "pieza",
+    "erp_articulos": [
+     "MLEUTO12170002",
+     "MVLURO26543002"
+    ],
+    "erp_importe": 7.48
+   },
+   {
+    "clave": "pintura",
+    "familia": "pintura",
+    "sub": null,
+    "erp_cantidad": 0.082,
+    "erp_unidad": "kg",
+    "erp_articulos": [
+     "MVLQPP00000000"
+    ],
+    "erp_importe": 13.98
+   },
+   {
+    "clave": "lamina-14",
+    "familia": "lamina",
+    "sub": "14",
+    "erp_cantidad": 0.006,
+    "erp_unidad": "hoja",
+    "erp_articulos": [
+     "MVLSLA05260202"
+    ],
+    "erp_importe": 4.9
+   },
+   {
+    "clave": "lamina-20",
+    "familia": "lamina",
+    "sub": "20",
+    "erp_cantidad": 0.132,
+    "erp_unidad": "hoja",
+    "erp_articulos": [
+     "MVLSLA05260502"
+    ],
+    "erp_importe": 57.39
+   }
+  ],
+  "mp": 83.73,
+  "mo": 41.92,
+  "gif": 159.45,
+  "total_fabricacion": 285.11,
+  "horas": {
+   "pm": 0.5152,
+   "pintura": 0.0099,
+   "acabados": 0.108,
+   "carpinteria": null,
+   "entregas": null
+  },
+  "fuente": {
+   "fileId": "1PcNaAwOPv2OvRMav_0yIDOtKxIgDf9-k",
+   "archivo": "ATACM.pdf",
+   "fecha_reporte": "12/08/2026 04:32:08 p. m.",
+   "tipo": "REPORTE DEL COTIZADOR DE PRECIOS (Intelisis)",
+   "carpeta_drive": "presupuestos cotizador vonhaucke (140tw99N0F8pfW6sCnMxx4TE66iTmsdLL)",
+   "leido": "2026-10-13, solo lectura"
+  }
+ }
+}

@@ -1,0 +1,111 @@
+{
+ "texto": "Cubierta rectangular de 1500 x 1200 mm modelo apps lt para banca doble, con dos tapas registrable metalica; en melamina con cantos abs",
+ "producto": "CUBIERTA RECTANGULAR DE 1500 X 1200 mm MODELO APPS LT PARA BANCA DOBLE, CON DOS TAPAS REGISTRABLE METALICA; EN MELAMINA CON CANTOS ABS -- ATCUBD45ABS",
+ "clave_erp": "ATCUBD45ABS",
+ "proposito": "Prueba ciega: sólo la descripción comercial; el BOM del cotizador Intelisis queda fuera de la app.",
+ "respuestas": [],
+ "esperado": [],
+ "extrasPermitidos": "torniller|rondana|pija|tuerca|cintur|tornillo|consumible|soldadura|empaque",
+ "erp_referencia": {
+  "familias": [
+   {
+    "clave": "herraje",
+    "familia": "herraje",
+    "sub": null,
+    "erp_cantidad": 20,
+    "erp_unidad": "pieza",
+    "erp_articulos": [
+     "MVLUPI10350002",
+     "MVLURO26522902",
+     "MVLUTO35644402"
+    ],
+    "erp_importe": 7.0
+   },
+   {
+    "clave": "chapacinta",
+    "familia": "chapacinta",
+    "sub": null,
+    "erp_cantidad": 2.372,
+    "erp_unidad": "m",
+    "erp_articulos": [
+     "MVLMCC06060000"
+    ],
+    "erp_importe": 11.58
+   },
+   {
+    "clave": "canto-32",
+    "familia": "canto",
+    "sub": "32",
+    "erp_cantidad": 5.784,
+    "erp_unidad": "m",
+    "erp_articulos": [
+     "MVLPPC00501505"
+    ],
+    "erp_importe": 92.49
+   },
+   {
+    "clave": "tablero-28",
+    "familia": "tablero",
+    "sub": "28",
+    "erp_cantidad": 1,
+    "erp_unidad": "hoja",
+    "erp_articulos": [
+     "MVLMAG01280800"
+    ],
+    "erp_importe": 1026.9
+   },
+   {
+    "clave": "pintura",
+    "familia": "pintura",
+    "sub": null,
+    "erp_cantidad": 0.028,
+    "erp_unidad": "kg",
+    "erp_articulos": [
+     "MVLQPP00000000"
+    ],
+    "erp_importe": 4.77
+   },
+   {
+    "clave": "lamina-18",
+    "familia": "lamina",
+    "sub": "18",
+    "erp_cantidad": 0.004,
+    "erp_unidad": "hoja",
+    "erp_articulos": [
+     "MVLSLA05260402"
+    ],
+    "erp_importe": 2.29
+   },
+   {
+    "clave": "lamina-20",
+    "familia": "lamina",
+    "sub": "20",
+    "erp_cantidad": 0.042,
+    "erp_unidad": "hoja",
+    "erp_articulos": [
+     "MVLSLA05260502"
+    ],
+    "erp_importe": 18.26
+   }
+  ],
+  "mp": 1163.28,
+  "mo": 121.8,
+  "gif": 439.28,
+  "total_fabricacion": 1724.36,
+  "horas": {
+   "pm": 0.508,
+   "pintura": 0.011,
+   "acabados": 0.088,
+   "carpinteria": 1.4852,
+   "entregas": null
+  },
+  "fuente": {
+   "fileId": "1tqroLYTJyLKp4nXgRBLbR7h077c3IFSv",
+   "archivo": "ATCUBD45ABS.pdf",
+   "fecha_reporte": "12/08/2026 04:38:31 p. m.",
+   "tipo": "REPORTE DEL COTIZADOR DE PRECIOS (Intelisis)",
+   "carpeta_drive": "presupuestos cotizador vonhaucke (140tw99N0F8pfW6sCnMxx4TE66iTmsdLL)",
+   "leido": "2026-10-13, solo lectura"
+  }
+ }
+}

@@ -1,0 +1,65 @@
+{
+ "texto": "Omega para cubierta de 850 x 100 x 17 mm modelo apps lt con tornilleria; metalica",
+ "producto": "OMEGA PARA CUBIERTA DE 850 X 100 X 17 mm MODELO APPS LT CON TORNILLERIA; METALICA -- ATOM3",
+ "clave_erp": "ATOM3",
+ "proposito": "Prueba ciega: sólo la descripción comercial; el BOM del cotizador Intelisis queda fuera de la app.",
+ "respuestas": [],
+ "esperado": [],
+ "extrasPermitidos": "torniller|rondana|pija|tuerca|cintur|tornillo|consumible|soldadura|empaque",
+ "erp_referencia": {
+  "familias": [
+   {
+    "clave": "herraje",
+    "familia": "herraje",
+    "sub": null,
+    "erp_cantidad": 8,
+    "erp_unidad": "pieza",
+    "erp_articulos": [
+     "MVLUPI06650053"
+    ],
+    "erp_importe": 4.24
+   },
+   {
+    "clave": "pintura",
+    "familia": "pintura",
+    "sub": null,
+    "erp_cantidad": 0.026,
+    "erp_unidad": "kg",
+    "erp_articulos": [
+     "MVLQPP00000000"
+    ],
+    "erp_importe": 4.43
+   },
+   {
+    "clave": "lamina-14",
+    "familia": "lamina",
+    "sub": "14",
+    "erp_cantidad": 0.042,
+    "erp_unidad": "hoja",
+    "erp_articulos": [
+     "MVLSLA05260202"
+    ],
+    "erp_importe": 34.29
+   }
+  ],
+  "mp": 42.97,
+  "mo": 12.28,
+  "gif": 46.03,
+  "total_fabricacion": 101.27,
+  "horas": {
+   "pm": 0.1116,
+   "pintura": 0.0033,
+   "acabados": 0.072,
+   "carpinteria": null,
+   "entregas": null
+  },
+  "fuente": {
+   "fileId": "1LokRjURdZe7UABVA5c07qcPgh4k-TVzi",
+   "archivo": "ATOM3.pdf",
+   "fecha_reporte": "12/08/2026 04:59:54 p. m.",
+   "tipo": "REPORTE DEL COTIZADOR DE PRECIOS (Intelisis)",
+   "carpeta_drive": "presupuestos cotizador vonhaucke (140tw99N0F8pfW6sCnMxx4TE66iTmsdLL)",
+   "leido": "2026-10-13, solo lectura"
+  }
+ }
+}

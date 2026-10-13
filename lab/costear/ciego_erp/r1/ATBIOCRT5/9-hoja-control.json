@@ -1,0 +1,70 @@
+{
+  "producto": "BIOMBO DIVISOR DE 1400 X 400 X 32 mm MODELO APPS LT CON SOPORTES; EN CRISTAL TRANSPARENTE 6 mm TEMPLADO -- ATBIOCRT5",
+  "resumen": {
+    "esperados": 0,
+    "pass": 0,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 3,
+    "renglonesBom": 4,
+    "veredicto": "FAIL"
+  },
+  "filas": [],
+  "sobran": [
+    {
+      "nombre": "Panel de cristal templado claro 6 mm",
+      "insumoId": "cristal-templado-6",
+      "permitido": false
+    },
+    {
+      "nombre": "Soporte/clamp metálico de sujeción a cubierta (APPS LT)",
+      "insumoId": "pintura-polvo-ivory",
+      "permitido": false
+    },
+    {
+      "nombre": "Perfil de aluminio remate/portacristal",
+      "insumoId": "",
+      "permitido": false
+    },
+    {
+      "nombre": "Tornillería y hules de montaje",
+      "insumoId": "tornilleria",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Cuántos biombos se van a fabricar?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Qué tipo de soporte se usa?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántos soportes por biombo?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Acabado de los soportes metálicos?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Acabado de canto del cristal?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿El cristal lleva barrenos para los soportes?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Lleva perfil de aluminio continuo en el canto inferior?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Se confirma cristal 6 mm o se requiere 9/10 mm por rigidez en 1.4 m?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

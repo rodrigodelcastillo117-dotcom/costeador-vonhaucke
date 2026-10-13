@@ -1,0 +1,44 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Mesa de juntas rectangular 2400×1200×750 mm, melamina Walnut","tipo":"mesa","piezas":[{"nombre":"Cubierta 2400×1200","insumoId":"melamina-28-walnut","material_solicitado":"Melamina 28 mm acabado Walnut","material_match":"EXACT","forma":"area","largoMM":2400,"ancho
+
+[lab-costear] analizar-mueble 200 en 44 s · piezas 8 · lote 1
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":5072.85,"materialTotal":3375.08,"manoObra":421.2,"indirectosFabrica":1276.57,"desperdicio":488.34,"detalleInsumos":[{"insumoId":"melamina-28-walnut","nombre":"Melamina 28 mm, Walnut","seccion":"cubier
+
+[lab-costear] BOM inicial {"piezas":7,"pendientes":["Cubierta 2400×1200"],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Qué modelo de caja de conexiones se usará?","elegido":"(sin responder: ninguna opción coincide con el plano)","opciones":["Caja genérica contactos+USB","Byrne Phase 2","Byrne Node","Por definir"],"evidencia":"texto: Una caja de conexiones eléctricas"},{"pregunta":"La cubierta de 2400×1200 excede la hoja estándar 1.22×2.44 m. ¿Se acepta junta/unión o se compra hoja de formato especial?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Qué cantos llevan tapacanto además del perímetro de la cubierta?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuántos pasacables/calados adicionales lleva la cubierta?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿La mesa se entrega armada o desarmable (knock-down)?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuántas mesas se fabricarán?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":5072.85,"materialTotal":3375.08,"manoObra":421.2,"indirectosFabrica":1276.57,"desperdicio":488.34,"detalleInsumos":[{"insumoId":"melamina-28-walnut","nombre":"Melamina 28 mm, Walnut","seccion":"cubier
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 3 propuestos","diferencias":"4 difieren de lo pedido y se confirman uno por uno: Tapacanto PVC 2 mm Walnut perímetro cubierta, Nivelador, Caja de conexiones eléctricas central, Tornillería y herraje de ensamble. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$5,072.85","Por confirmar"],"margen":null,"estado":"Costo preliminar — 6 decisión(es) pendiente(s): ¿Qué modelo de caja de conexiones se usará? · La cubierta de 2400×1200 excede la hoja estándar 1.22×2.44 m. ¿Se acepta junta/unión o se compra hoja de formato especial? · ¿Qué cantos llevan tapacanto además del perímetro de la cubierta? · ¿Cuántos pasacables/calados adicionales lleva la cubierta? · ¿La mesa se entrega armada o desarmable (knock-down)? · ¿Cuántas mesas se fabricarán?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $3,375.08 · Mano de obra $421.20 · Fábrica $1,276.57","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":5072.85,"costoSrv":5072.85,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":5572.44,"materialTotal":3375.08,"manoObra":547.56,"indirectosFabrica":1649.81,"desperdicio":488.34,"detalleInsumos":[{"insumoId":"melamina-28-walnut","nombre":"Melamina 28 mm, Walnut","seccion":"cubie
+
+[lab-costear] dificultad {"costoNormal":5072.85,"marcado":"true","costoDificil":5572.44,"reqDificultad":"dificil","costoSrvDificil":5572.44,"sube":true,"paridad":true,"costoDeVueltaNormal":5072.85,"regresaIgual":true}
+
+[lab-costear] expedientes POST 201 [{"id":100}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":5072.85,"materialTotal":3375.08,"manoObra":421.2,"indirectosFabrica":1276.57,"desperdicio":488.34,"detalleInsumos":[{"insumoId":"melamina-28-walnut","nombre":"Melamina 28 mm, Walnut","seccion":"cubier
+
+[lab-costear] guardado {"status":201,"id":100,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":5072.85,"materialTotal":3375.08,"manoObra":421.2,"indirectosFabrica":1276.57,"desperdicio":488.34,"detalleInsumos":[{"insumoId":"melamina-28-walnut","nombre":"Melamina 28 mm, Walnut","seccion":"cubier
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":6,"pass":6,"fail":0,"riesgo":0,"sobrantesNoPermitidos":0,"renglonesBom":7,"veredicto":"PASS"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB dif mesa_juntas_texto 1013-2008 BORRADOR mesa mesa de juntas rectangular con base de paneles y energía central Melamina acabado nogal (Walnut) de 28 y 19 mm","piezas":7,"mismoBom":true,"costoAntes":"$5,072.85","costoDespues":"$5,072.85","mismoCosto":true,"resultado":{"precios":["$5,072.85","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $3,375.08 · Mano de obra $421.20 · Fábrica $1,276.57","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.6m)

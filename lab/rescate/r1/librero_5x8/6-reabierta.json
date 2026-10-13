@@ -1,0 +1,67 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB dif librero_5x8 1013-2005 BORRADOR guarda librero abierto Tablero melamina nogal 28 mm",
+    "piezas": 7,
+    "mismoBom": true,
+    "costoAntes": "$3,159.92",
+    "costoDespues": "$3,159.92",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$3,159.92",
+        "Pendiente"
+      ],
+      "margen": null,
+      "estado": "Costo INCOMPLETO — faltan por costear 1 partida(s): Lateral (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada). Asígnales material en el despiece (arriba) o márcalas como excluidas. Hasta entonces no hay costo total ni precio.",
+      "linea": "Material $1,960.46 · Mano de obra $299.86 · Fábrica $899.59",
+      "pendiente": true,
+      "porConfirmar": false
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Lateral",
+      "material": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT",
+      "alertas": []
+    },
+    {
+      "nombre": "Piso y techo",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Solicitado hoja 5×8 → candidato hoja 4×8 Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Entrepaño fijo",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Solicitado hoja 5×8 → candidato hoja 4×8 Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Respaldo",
+      "material": "Melamina 16 mm, Walnut",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto PVC 2 mm Walnut cantos frontales",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Nivelador",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Tornillería ensamble y respaldo",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («ensamble») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

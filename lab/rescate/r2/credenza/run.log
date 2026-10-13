@@ -1,0 +1,48 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Credenza Nogal 3 puertas 1800x450x750","tipo":"guarda","piezas":[{"nombre":"Cubierta superior","insumoId":"mdf","material_solicitado":"MDF 18 mm enchapado nogal natural","material_match":"SUBSTITUTE_SUGGESTED","forma":"area","largoMM":1800,"anchoMM":450,"cantidad"
+
+[lab-costear] analizar-mueble 200 en 33 s · piezas 18 · lote 1
+
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Credenza Nogal 3 puertas 1800x450x750","tipo":"guarda","piezas":[{"nombre":"Cubierta superior","insumoId":"mdf","material_solicitado":"MDF 18 mm enchapado nogal natural","material_match":"SUBSTITUTE_SUGGESTED","forma":"area","largoMM":1800,"anchoMM":450,"cantidad"
+
+[lab-costear] BOM inicial {"piezas":21,"pendientes":["Respaldo","Canto perimetral"],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":7213.51,"materialTotal":4419.14,"manoObra":698.59,"indirectosFabrica":2095.77,"desperdicio":745.37,"detalleInsumos":[{"insumoId":"mdf","nombre":"MDF 19 mm","seccion":"cubiertas","costo":946.83,"certif
+
+[lab-costear] tras ERP {"erp":{"intentado":true,"pieza":"Respaldo","resultados":6,"elegido":"MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\" · hoja · ERP $240.00 / hoja · certificado · 2026-06-01 Usar"},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"Respaldo MDF 9 mm no esta en catalogo, ¿como se costea?","elegido":"(sin responder: ya resuelta con ERP)"},{"pregunta":"¿Las puertas llevan chapa por ambas caras?","elegido":"(sin responder: ninguna opción coincide con el plano)","opciones":["Solo exterior","Ambas caras"],"evidencia":"plano: 3 PUERTAS ABATIBLES"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":7359.43,"materialTotal":4510.34,"manoObra":712.27,"indirectosFabrica":2136.81,"desperdicio":745.37,"detalleInsumos":[{"insumoId":"mdf","nombre":"MDF 19 mm","seccion":"cubiertas","costo":946.83,"certif
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 17 propuestos","diferencias":"2 difieren de lo pedido y se confirman uno por uno: Pintura electrostatica negra base, Jaladeras recta 300 mm. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":7359.43,"materialTotal":4510.34,"manoObra":712.27,"indirectosFabrica":2136.81,"desperdicio":745.37,"detalleInsumos":[{"insumoId":"mdf","nombre":"MDF 19 mm","seccion":"cubiertas","costo":946.83,"certif
+
+[lab-costear] precio {"precios":["$7,359.43","Por confirmar"],"margen":null,"estado":"Costo preliminar — 2 decisión(es) pendiente(s): Respaldo MDF 9 mm no esta en catalogo, ¿como se costea? · ¿Las puertas llevan chapa por ambas caras?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $4,510.34 · Mano de obra $712.27 · Fábrica $2,136.81","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":7359.43,"costoSrv":7359.43,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":3}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":8214.16,"materialTotal":4510.34,"manoObra":925.95,"indirectosFabrica":2777.86,"desperdicio":745.37,"detalleInsumos":[{"insumoId":"mdf","nombre":"MDF 19 mm","seccion":"cubiertas","costo":946.83,"certif
+
+[lab-costear] dificultad {"costoNormal":7359.43,"marcado":"true","costoDificil":8214.16,"reqDificultad":"dificil","costoSrvDificil":8214.16,"sube":true,"paridad":true,"costoDeVueltaNormal":7359.43,"regresaIgual":true}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":7359.43,"materialTotal":4510.34,"manoObra":712.27,"indirectosFabrica":2136.81,"desperdicio":745.37,"detalleInsumos":[{"insumoId":"mdf","nombre":"MDF 19 mm","seccion":"cubiertas","costo":946.83,"certif
+
+[lab-costear] expedientes POST 201 [{"id":107}]
+
+[lab-costear] guardado {"status":201,"id":107,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":7359.43,"materialTotal":4510.34,"manoObra":712.27,"indirectosFabrica":2136.81,"desperdicio":745.37,"detalleInsumos":[{"insumoId":"mdf","nombre":"MDF 19 mm","seccion":"cubiertas","costo":946.83,"certif
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":12,"pass":10,"fail":1,"riesgo":1,"sobrantesNoPermitidos":0,"renglonesBom":21,"veredicto":"FAIL"} ["FAIL divisiones: material fuera de la familia esperada (^melamina-16): Divisiones verticales [mdf]","RIESGO base_ptr_m: 4.8 m, esperado 4.9–6 m (inferido: el plano no lo acota)"]
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB dif credenza 1013-2013 BORRADOR guarda credenza 3 puertas Madera enchapada nogal natural","piezas":21,"mismoBom":true,"costoAntes":"$7,359.43","costoDespues":"$7,359.43","mismoCosto":true,"resultado":{"precios":["$7,359.43","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $4,510.34 · Mano de obra $712.27 · Fábrica $2,136.81","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (2.4m)

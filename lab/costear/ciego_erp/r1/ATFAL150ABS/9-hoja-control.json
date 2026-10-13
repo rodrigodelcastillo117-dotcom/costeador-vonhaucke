@@ -1,0 +1,95 @@
+{
+  "producto": "CONDUCTO FALDON PARA ESCRITORIO DE 900 X 379 X 177 mm MODELO APPS LT CON MELAMINA CANTO ABS; METALICO -- ATFAL150ABS",
+  "resumen": {
+    "esperados": 0,
+    "pass": 0,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 8,
+    "renglonesBom": 9,
+    "veredicto": "FAIL"
+  },
+  "filas": [],
+  "sobran": [
+    {
+      "nombre": "Panel frontal de faldón melamina",
+      "insumoId": "melamina-16",
+      "permitido": false
+    },
+    {
+      "nombre": "Panel posterior / tapa de registro melamina",
+      "insumoId": "melamina-16",
+      "permitido": false
+    },
+    {
+      "nombre": "Tapas laterales / costados melamina",
+      "insumoId": "melamina-16",
+      "permitido": false
+    },
+    {
+      "nombre": "Charola/base metálica portacables cal. 20",
+      "insumoId": "lamina-20",
+      "permitido": false
+    },
+    {
+      "nombre": "Pintura en polvo negro mate para charola metálica",
+      "insumoId": "pintura-polvo-negro-mate-8-vitracoat",
+      "permitido": false
+    },
+    {
+      "nombre": "Canto ABS 22 mm perimetral",
+      "insumoId": "canto-abs-22",
+      "permitido": false
+    },
+    {
+      "nombre": "Perfil de canto aluminio App LT (remate)",
+      "insumoId": "perfil-canto-applt",
+      "permitido": false
+    },
+    {
+      "nombre": "Tornillería y escuadras de fijación a cubierta",
+      "insumoId": "tornilleria",
+      "permitido": true
+    },
+    {
+      "nombre": "Niveladores",
+      "insumoId": "nivelador-plataforma",
+      "permitido": false
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Qué color/decorado de melamina lleva el faldón?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Espesor de la melamina?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Calibre de la lámina de la charola metálica?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Color de pintura en polvo del elemento metálico?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Lleva tapa registrable metálica para acceso al cableado?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿El conducto es cerrado por ambas caras o abierto hacia atrás?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Incluye módulo eléctrico/contactos dentro del faldón?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántas piezas se fabricarán?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

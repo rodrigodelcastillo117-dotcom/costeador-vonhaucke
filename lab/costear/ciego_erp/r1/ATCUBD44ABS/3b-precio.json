@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$1,222.44",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 6 decisión(es) pendiente(s): ¿Qué color/acabado de melamina 28 mm lleva la cubierta? · ¿El alcance incluye estructura/patas de la banca doble o sólo la cubierta? · ¿Ancho del canto ABS? · ¿Se incluye módulo eléctrico (Byrne/contactos) bajo las tapas registrables? · ¿Cuántas cubiertas se requieren? · ¿Lleva pasacables/grommets adicionales?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $758.40 · Mano de obra $116.01 · Fábrica $348.03",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

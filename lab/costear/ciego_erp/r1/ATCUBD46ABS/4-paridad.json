@@ -1,0 +1,203 @@
+{
+  "paridad": {
+    "costoCliente": 2296.6,
+    "costoSrv": 2296.6,
+    "estadoSrv": "incompleto",
+    "iguales": true,
+    "llamadasSrv": 2
+  },
+  "servidor": {
+    "ok": true,
+    "estado": "incompleto",
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 2296.6,
+      "materialTotal": 1435.38,
+      "manoObra": 215.31,
+      "indirectosFabrica": 645.92,
+      "desperdicio": 370.31,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-28",
+          "nombre": "Melamina ABS 28 mm (cubierta APP LT)",
+          "seccion": "cubiertas",
+          "costo": 1335.6,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "tapacanto-3mm",
+          "nombre": "Tapacanto ABS 3 mm",
+          "seccion": "cubiertas",
+          "costo": 99.78,
+          "certificable": false,
+          "evidencia": "propuesto"
+        }
+      ],
+      "componentesIgnorados": [
+        "Tapa registrable metálica App LT ('puerta metálica')"
+      ]
+    },
+    "evidencia": {
+      "usados": 2,
+      "certificados": 1,
+      "noCertificados": 1
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 1435.3775999999998,
+      "materialIndirecto": 0,
+      "materialTotal": 1435.3775999999998,
+      "desperdicio": 370.31102112335384,
+      "manoObra": 215.30664,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 15.000000000000002,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 1650.6842399999998,
+      "indirectosFabrica": 645.9199199999999,
+      "gastosOperacion": 0,
+      "costoFabricacion": 2296.60416,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 2296.60416,
+      "costoLoteConMerma": 2296.60416,
+      "costoUnitario": 2296.60416,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-28",
+          "nombre": "Melamina ABS 28 mm (cubierta APP LT)",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Cubierta rectangular App LT 1800 × 1200 × 28 mm"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": false,
+            "certificable": false,
+            "hojas": 0,
+            "piezas_solicitadas": 1,
+            "piezas_colocadas": 0,
+            "placements": [],
+            "remanentes": [],
+            "issues": [
+              {
+                "code": "PIEZA_NO_CABE",
+                "id": "Cubierta rectangular App LT 1800 × 1200 × 28 mm#1",
+                "w": 1800,
+                "h": 1200
+              }
+            ],
+            "area_piezas_mm2": 0,
+            "area_comprada_mm2": 0,
+            "desperdicio_mm2": 0,
+            "eficiencia_pct": 0,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 2.16,
+          "comprado": 2.9768,
+          "unidades": 1,
+          "costo": 1335.6,
+          "desperdicio": 366.47342112335383,
+          "pct": 27.438860521365214,
+          "precio": 1335.6,
+          "noCabe": false,
+          "fraccion": true,
+          "reglaProduccion": "produccion-rogelio-2026-10",
+          "piezasRegla": [
+            {
+              "pieza": "Cubierta rectangular App LT 1800 × 1200 × 28 mm",
+              "largoMM": 1800,
+              "anchoMM": 1200,
+              "hojasPorPieza": 1
+            }
+          ]
+        },
+        {
+          "insumoId": "tapacanto-3mm",
+          "nombre": "Tapacanto ABS 3 mm",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "rollo",
+            "corto": "rollo",
+            "medida": 50,
+            "nombre": "rollo de 50 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Canto ABS 3 mm perímetro de cubierta"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 6,
+          "comprado": 6.24,
+          "unidades": null,
+          "costo": 99.7776,
+          "desperdicio": 3.8376000000000037,
+          "pct": 3.8461538461538494,
+          "precio": 15.99,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [
+        "Tapa registrable metálica App LT ('puerta metálica')"
+      ],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Canto ABS 3 mm perímetro de cubierta"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "incompleto",
+      "pendientes": [
+        "Tapa registrable metálica App LT ('puerta metálica')"
+      ],
+      "costoOficial": null
+    },
+    "versionMotor": "2026-10-13",
+    "versionConfig": "cfg1r33lco",
+    "versionCatalogo": "cat-ap1793-cfgod08zl",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T20:07:24.112Z",
+    "catalogoFuente": "catalogo",
+    "warnings": [
+      "1 pieza(s) sin material/precio usable: Tapa registrable metálica App LT ('puerta metálica')"
+    ]
+  }
+}

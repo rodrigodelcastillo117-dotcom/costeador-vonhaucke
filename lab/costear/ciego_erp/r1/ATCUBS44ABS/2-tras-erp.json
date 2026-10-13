@@ -1,0 +1,36 @@
+{
+  "erp": {
+    "intentado": false
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta melamina 28 mm 1200 × 600",
+      "material": "Melamina ABS 28 mm (cubierta APP LT)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Canto ABS perímetro cubierta",
+      "material": "Perfil de canto ABS 32 mm Walnut",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («espesor ancho color») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tapa registrable metálica + herraje App LT",
+      "material": "Tapa registrable metalica + herraje (App LT)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

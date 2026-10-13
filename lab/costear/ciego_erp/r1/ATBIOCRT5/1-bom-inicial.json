@@ -1,0 +1,66 @@
+{
+  "piezas": [
+    {
+      "nombre": "Panel de cristal templado claro 6 mm",
+      "material": "Cristal templado claro 6 mm",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Soporte/clamp metálico de sujeción a cubierta (APPS LT)",
+      "material": "Pintura en polvo, Ivory",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: estándar de casa"
+      ]
+    },
+    {
+      "nombre": "Perfil de aluminio remate/portacristal",
+      "material": "— ¿de qué es? —",
+      "alertas": [
+        "⚠ Varios materiales posibles — elige de cuál es."
+      ]
+    },
+    {
+      "nombre": "Tornillería y hules de montaje",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («empaqu hule montaje cristal») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  },
+  "analizar": {
+    "status": 200,
+    "piezas": 4,
+    "producto": "Biombo divisor APPS LT 1400 × 400 mm en cristal templado 6 mm con soportes",
+    "uso": {
+      "input_tokens": 22016,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 2996,
+      "output_tokens_details": {
+        "thinking_tokens": 101
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    }
+  },
+  "tiempos": {
+    "analizarSeg": 33.896,
+    "bomVisibleSeg": 33.952
+  },
+  "lote": 1,
+  "entrada": "texto"
+}

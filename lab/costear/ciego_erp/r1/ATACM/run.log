@@ -1,0 +1,44 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Conducto de acometida eléctrica metálico modelo App LT 220 × 649 × 75 mm","tipo":"otro","piezas":[{"nombre":"Cuerpo del conducto en lámina doblada (desarrollo ~590 × 649 mm)","insumoId":"lamina-20","material_solicitado":"Lámina de acero metálica (calibre no especi
+
+[lab-costear] analizar-mueble 200 en 36 s · piezas 4 · lote 1
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":341.83,"materialTotal":189.91,"manoObra":37.98,"indirectosFabrica":113.94,"desperdicio":20.86,"detalleInsumos":[{"insumoId":"lamina-20","nombre":"Lamina de acero cal. 20","seccion":"metal","costo":104
+
+[lab-costear] BOM inicial {"piezas":4,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Calibre de la lámina del conducto?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Color/acabado de pintura en polvo?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuántas piezas se fabricarán?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿La tapa es desmontable atornillada o abatible con herraje?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Incluye accesorios eléctricos (contactos, chicote, acometida) o sólo el ducto?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Requiere perforaciones/ranuras CNC para paso de cable o fijación especial?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":341.83,"materialTotal":189.91,"manoObra":37.98,"indirectosFabrica":113.94,"desperdicio":20.86,"detalleInsumos":[{"insumoId":"lamina-20","nombre":"Lamina de acero cal. 20","seccion":"metal","costo":104
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 2 propuestos","diferencias":"2 difieren de lo pedido y se confirman uno por uno: Pintura en polvo (acabado exterior e interior), Juego de tornillería de fijación y ensamble.","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$341.83","Por confirmar"],"margen":null,"estado":"Costo preliminar — 6 decisión(es) pendiente(s): ¿Calibre de la lámina del conducto? · ¿Color/acabado de pintura en polvo? · ¿Cuántas piezas se fabricarán? · ¿La tapa es desmontable atornillada o abatible con herraje? · ¿Incluye accesorios eléctricos (contactos, chicote, acometida) o sólo el ducto? · ¿Requiere perforaciones/ranuras CNC para paso de cable o fijación especial?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $189.91 · Mano de obra $37.98 · Fábrica $113.94","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":341.83,"costoSrv":341.83,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":387.41,"materialTotal":189.91,"manoObra":49.38,"indirectosFabrica":148.13,"desperdicio":20.86,"detalleInsumos":[{"insumoId":"lamina-20","nombre":"Lamina de acero cal. 20","seccion":"metal","costo":104
+
+[lab-costear] dificultad {"costoNormal":341.83,"marcado":"true","costoDificil":387.41,"reqDificultad":"dificil","costoSrvDificil":387.41,"sube":true,"paridad":true,"costoDeVueltaNormal":341.83,"regresaIgual":true}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":341.83,"materialTotal":189.91,"manoObra":37.98,"indirectosFabrica":113.94,"desperdicio":20.86,"detalleInsumos":[{"insumoId":"lamina-20","nombre":"Lamina de acero cal. 20","seccion":"metal","costo":104
+
+[lab-costear] expedientes POST 201 [{"id":90}]
+
+[lab-costear] guardado {"status":201,"id":90,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":341.83,"materialTotal":189.91,"manoObra":37.98,"indirectosFabrica":113.94,"desperdicio":20.86,"detalleInsumos":[{"insumoId":"lamina-20","nombre":"Lamina de acero cal. 20","seccion":"metal","costo":104
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":0,"pass":0,"fail":0,"riesgo":0,"sobrantesNoPermitidos":3,"renglonesBom":4,"veredicto":"FAIL"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB ciego ATACM 1013-2001 BORRADOR otro conducto/ducto vertical de acometida eléctrica metálico (accesorio de estación de trabajo App LT) Lámina de acero doblada","piezas":4,"mismoBom":true,"costoAntes":"$341.83","costoDespues":"$341.83","mismoCosto":true,"resultado":{"precios":["$341.83","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $189.91 · Mano de obra $37.98 · Fábrica $113.94","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.4m)

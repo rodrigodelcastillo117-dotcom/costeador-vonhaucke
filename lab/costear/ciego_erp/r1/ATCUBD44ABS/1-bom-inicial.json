@@ -1,0 +1,66 @@
+{
+  "piezas": [
+    {
+      "nombre": "Cubierta melamina 28 mm 1200x1200",
+      "material": "Melamina ABS 28 mm (cubierta APP LT)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Canto ABS perimetral cubierta",
+      "material": "Perfil de canto ABS 32 mm Walnut",
+      "alertas": [
+        "⚠ Costo pendiente — confirma material (crítico: Solicitado 28 mm → candidato 32 mm). Usar Perfil de canto ABS 32 mm Walnut (confirmar)"
+      ]
+    },
+    {
+      "nombre": "Tapa registrable metálica + herraje (App LT)",
+      "material": "Tapa registrable metalica + herraje (App LT)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Tornillería de fijación cubierta a estructura",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («ensamble») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  },
+  "analizar": {
+    "status": 200,
+    "piezas": 4,
+    "producto": "Cubierta cuadrada 1200x1200 mm App LT para banca doble, con 2 tapas registrables",
+    "uso": {
+      "input_tokens": 22026,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 2443,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    }
+  },
+  "tiempos": {
+    "analizarSeg": 26.887,
+    "bomVisibleSeg": 26.936
+  },
+  "lote": 1,
+  "entrada": "texto"
+}

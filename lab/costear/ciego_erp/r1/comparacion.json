@@ -1,0 +1,869 @@
+[
+ {
+  "clave": "ATACM",
+  "texto": "Conducto acometida de 220 x 649 x 75 mm modelo apps lt con tornilleria; metalico",
+  "corrio": true,
+  "erp_mp": 83.73,
+  "erp_total": 285.11,
+  "familias": [
+   {
+    "familia": "herraje",
+    "estado": "OK",
+    "erp": {
+     "cant": "4 pieza",
+     "subs": [],
+     "importe": 7.48
+    },
+    "app": {
+     "renglones": [
+      "Juego de tornillería de fijación y ensamble [tornilleria]"
+     ],
+     "subs": [],
+     "costo": 45
+    }
+   },
+   {
+    "familia": "lamina",
+    "estado": "OK",
+    "erp": {
+     "cant": "0.006 hoja (14) + 0.132 hoja (20)",
+     "subs": [
+      "14",
+      "20"
+     ],
+     "importe": 62.29
+    },
+    "app": {
+     "renglones": [
+      "Cuerpo del conducto en lámina doblada (desarrollo ~590 × 649 mm) [lamina-20]",
+      "Tapa registrable / cubierta del conducto 220 × 649 mm [lamina-20]"
+     ],
+     "subs": [
+      "20"
+     ],
+     "costo": 104.32
+    }
+   },
+   {
+    "familia": "pintura",
+    "estado": "OK",
+    "erp": {
+     "cant": "0.082 kg",
+     "subs": [],
+     "importe": 13.98
+    },
+    "app": {
+     "renglones": [
+      "Pintura en polvo (acabado exterior e interior) [pintura-polvo]"
+     ],
+     "subs": [],
+     "costo": 40.58
+    }
+   }
+  ],
+  "estado_servidor": "incompleto",
+  "piezas_ia": 4,
+  "sin_material": [],
+  "app_mp": 189.91,
+  "app_mo": 37.98,
+  "app_gi": 113.94,
+  "app_total": 341.83,
+  "dif_mp_pct": 126.81,
+  "dif_total_pct": 19.89,
+  "faltan": [],
+  "sobran": [],
+  "espec": []
+ },
+ {
+  "clave": "ATBIOCRT5",
+  "texto": "Biombo divisor de 1400 x 400 x 32 mm modelo apps lt con soportes; en cristal transparente 6 mm templado",
+  "corrio": true,
+  "erp_mp": 801.15,
+  "erp_total": 886.18,
+  "familias": [
+   {
+    "familia": "cristal",
+    "estado": "OK",
+    "erp": {
+     "cant": "1 pieza",
+     "subs": [],
+     "importe": 567.5
+    },
+    "app": {
+     "renglones": [
+      "Panel de cristal templado claro 6 mm [cristal-templado-6]",
+      "Perfil de aluminio remate/portacristal [SIN MATERIAL]"
+     ],
+     "subs": [],
+     "costo": 882
+    }
+   },
+   {
+    "familia": "herraje",
+    "estado": "OK",
+    "erp": {
+     "cant": "4 pieza",
+     "subs": [],
+     "importe": 0.84
+    },
+    "app": {
+     "renglones": [
+      "Tornillería y hules de montaje [tornilleria]"
+     ],
+     "subs": [],
+     "costo": 45
+    }
+   },
+   {
+    "familia": "pintura",
+    "estado": "SOBRA",
+    "erp": null,
+    "app": {
+     "renglones": [
+      "Soporte/clamp metálico de sujeción a cubierta (APPS LT) [pintura-polvo-ivory]"
+     ],
+     "subs": [],
+     "costo": 337.12
+    }
+   },
+   {
+    "familia": "soporte",
+    "estado": "FALTA",
+    "erp": {
+     "cant": "2 pieza",
+     "subs": [],
+     "importe": 232.84
+    },
+    "app": null
+   }
+  ],
+  "estado_servidor": "incompleto",
+  "piezas_ia": 4,
+  "sin_material": [
+   "Perfil de aluminio remate/portacristal"
+  ],
+  "app_mp": 1264.12,
+  "app_mo": 85.24,
+  "app_gi": 273.37,
+  "app_total": 1622.74,
+  "dif_mp_pct": 57.79,
+  "dif_total_pct": 83.12,
+  "faltan": [
+   "soporte"
+  ],
+  "sobran": [
+   "pintura"
+  ],
+  "espec": []
+ },
+ {
+  "clave": "ATCUBD44ABS",
+  "texto": "Cubierta cuadrada de 1200 x 1200 mm modelo apps lt para banca doble, con dos tapas registrable metalica; en melamina con cantos abs",
+  "corrio": true,
+  "erp_mp": 640.24,
+  "erp_total": 1182.08,
+  "familias": [
+   {
+    "familia": "canto",
+    "estado": "OK",
+    "erp": {
+     "cant": "5.184 m (32)",
+     "subs": [
+      "32"
+     ],
+     "importe": 82.89
+    },
+    "app": {
+     "renglones": [
+      "Canto ABS perimetral cubierta [SIN MATERIAL]"
+     ],
+     "subs": [],
+     "costo": 0
+    }
+   },
+   {
+    "familia": "chapacinta",
+    "estado": "FALTA",
+    "erp": {
+     "cant": "2.372 m",
+     "subs": [],
+     "importe": 11.58
+    },
+    "app": null
+   },
+   {
+    "familia": "herraje",
+    "estado": "OK",
+    "erp": {
+     "cant": "20 pieza",
+     "subs": [],
+     "importe": 7
+    },
+    "app": {
+     "renglones": [
+      "Tapa registrable metálica + herraje (App LT) [tapa-registrable-applt]",
+      "Tornillería de fijación cubierta a estructura [tornilleria]"
+     ],
+     "subs": [],
+     "costo": 90.6
+    }
+   },
+   {
+    "familia": "lamina",
+    "estado": "FALTA",
+    "erp": {
+     "cant": "0.004 hoja (18) + 0.042 hoja (20)",
+     "subs": [
+      "18",
+      "20"
+     ],
+     "importe": 20.55
+    },
+    "app": null
+   },
+   {
+    "familia": "pintura",
+    "estado": "FALTA",
+    "erp": {
+     "cant": "0.028 kg",
+     "subs": [],
+     "importe": 4.77
+    },
+    "app": null
+   },
+   {
+    "familia": "tablero",
+    "estado": "OK",
+    "erp": {
+     "cant": "0.5 hoja (28)",
+     "subs": [
+      "28"
+     ],
+     "importe": 513.45
+    },
+    "app": {
+     "renglones": [
+      "Cubierta melamina 28 mm 1200x1200 [melamina-28]"
+     ],
+     "subs": [
+      "28"
+     ],
+     "costo": 667.8
+    }
+   }
+  ],
+  "estado_servidor": "incompleto",
+  "piezas_ia": 4,
+  "sin_material": [
+   "Canto ABS perimetral cubierta"
+  ],
+  "app_mp": 773.58,
+  "app_mo": 118.29,
+  "app_gi": 354.86,
+  "app_total": 1246.72,
+  "dif_mp_pct": 20.83,
+  "dif_total_pct": 5.47,
+  "faltan": [
+   "chapacinta",
+   "lamina",
+   "pintura"
+  ],
+  "sobran": [],
+  "espec": []
+ },
+ {
+  "clave": "ATCUBD45ABS",
+  "texto": "Cubierta rectangular de 1500 x 1200 mm modelo apps lt para banca doble, con dos tapas registrable metalica; en melamina con cantos abs",
+  "corrio": true,
+  "erp_mp": 1163.28,
+  "erp_total": 1724.36,
+  "familias": [
+   {
+    "familia": "canto",
+    "estado": "OK",
+    "erp": {
+     "cant": "5.784 m (32)",
+     "subs": [
+      "32"
+     ],
+     "importe": 92.49
+    },
+    "app": {
+     "renglones": [
+      "Canto ABS perimetral de cubierta [tapacanto-3mm]"
+     ],
+     "subs": [],
+     "costo": 89.8
+    }
+   },
+   {
+    "familia": "chapacinta",
+    "estado": "FALTA",
+    "erp": {
+     "cant": "2.372 m",
+     "subs": [],
+     "importe": 11.58
+    },
+    "app": null
+   },
+   {
+    "familia": "herraje",
+    "estado": "OK",
+    "erp": {
+     "cant": "20 pieza",
+     "subs": [],
+     "importe": 7
+    },
+    "app": {
+     "renglones": [
+      "Tapa registrable metálica + herraje (App LT) [tapa-registrable-applt]",
+      "Tornillería de fijación cubierta-estructura [tornilleria]"
+     ],
+     "subs": [],
+     "costo": 90.6
+    }
+   },
+   {
+    "familia": "lamina",
+    "estado": "FALTA",
+    "erp": {
+     "cant": "0.004 hoja (18) + 0.042 hoja (20)",
+     "subs": [
+      "18",
+      "20"
+     ],
+     "importe": 20.55
+    },
+    "app": null
+   },
+   {
+    "familia": "pintura",
+    "estado": "FALTA",
+    "erp": {
+     "cant": "0.028 kg",
+     "subs": [],
+     "importe": 4.77
+    },
+    "app": null
+   },
+   {
+    "familia": "tablero",
+    "estado": "OK",
+    "erp": {
+     "cant": "1 hoja (28)",
+     "subs": [
+      "28"
+     ],
+     "importe": 1026.9
+    },
+    "app": {
+     "renglones": [
+      "Cubierta rectangular App LT 1500 × 1200 mm [melamina-28]"
+     ],
+     "subs": [
+      "28"
+     ],
+     "costo": 1335.6
+    }
+   }
+  ],
+  "estado_servidor": "incompleto",
+  "piezas_ia": 4,
+  "sin_material": [],
+  "app_mp": 1516,
+  "app_mo": 229.65,
+  "app_gi": 688.95,
+  "app_total": 2434.6,
+  "dif_mp_pct": 30.32,
+  "dif_total_pct": 41.19,
+  "faltan": [
+   "chapacinta",
+   "lamina",
+   "pintura"
+  ],
+  "sobran": [],
+  "espec": []
+ },
+ {
+  "clave": "ATCUBD46ABS",
+  "texto": "Cubierta rectangular de 1800 x 1200 x 28mm modelo apps lt con dos puertas metalicas; en melamina con cantos abs",
+  "corrio": true,
+  "erp_mp": 1172.88,
+  "erp_total": 1675.21,
+  "familias": [
+   {
+    "familia": "canto",
+    "estado": "OK",
+    "erp": {
+     "cant": "6.384 m (32)",
+     "subs": [
+      "32"
+     ],
+     "importe": 102.08
+    },
+    "app": {
+     "renglones": [
+      "Canto ABS 3 mm perímetro de cubierta [tapacanto-3mm]"
+     ],
+     "subs": [],
+     "costo": 99.78
+    }
+   },
+   {
+    "familia": "chapacinta",
+    "estado": "FALTA",
+    "erp": {
+     "cant": "2.372 m",
+     "subs": [],
+     "importe": 11.58
+    },
+    "app": null
+   },
+   {
+    "familia": "herraje",
+    "estado": "FALTA",
+    "erp": {
+     "cant": "20 pieza",
+     "subs": [],
+     "importe": 7
+    },
+    "app": null
+   },
+   {
+    "familia": "lamina",
+    "estado": "FALTA",
+    "erp": {
+     "cant": "0.004 hoja (18) + 0.042 hoja (20)",
+     "subs": [
+      "18",
+      "20"
+     ],
+     "importe": 20.55
+    },
+    "app": null
+   },
+   {
+    "familia": "otro",
+    "estado": "SOBRA",
+    "erp": null,
+    "app": {
+     "renglones": [
+      "Tapa registrable metálica App LT ('puerta metálica') [SIN MATERIAL]"
+     ],
+     "subs": [],
+     "costo": 0
+    }
+   },
+   {
+    "familia": "pintura",
+    "estado": "FALTA",
+    "erp": {
+     "cant": "0.028 kg",
+     "subs": [],
+     "importe": 4.77
+    },
+    "app": null
+   },
+   {
+    "familia": "tablero",
+    "estado": "OK",
+    "erp": {
+     "cant": "1 hoja (28)",
+     "subs": [
+      "28"
+     ],
+     "importe": 1026.9
+    },
+    "app": {
+     "renglones": [
+      "Cubierta rectangular App LT 1800 × 1200 × 28 mm [melamina-28]"
+     ],
+     "subs": [
+      "28"
+     ],
+     "costo": 1335.6
+    }
+   }
+  ],
+  "estado_servidor": "incompleto",
+  "piezas_ia": 3,
+  "sin_material": [
+   "Tapa registrable metálica App LT ('puerta metálica')"
+  ],
+  "app_mp": 1435.38,
+  "app_mo": 215.31,
+  "app_gi": 645.92,
+  "app_total": 2296.6,
+  "dif_mp_pct": 22.38,
+  "dif_total_pct": 37.09,
+  "faltan": [
+   "chapacinta",
+   "herraje",
+   "lamina",
+   "pintura"
+  ],
+  "sobran": [
+   "otro"
+  ],
+  "espec": []
+ },
+ {
+  "clave": "ATCUBS44ABS",
+  "texto": "Cubierta rectangular de 1200 x 600 x 28 mm modelo apps lt con tapa registrable metalica; en melamina con cantos abs",
+  "corrio": true,
+  "erp_mp": 342.38,
+  "erp_total": 644.95,
+  "familias": [
+   {
+    "familia": "canto",
+    "estado": "OK",
+    "erp": {
+     "cant": "3.984 m (32)",
+     "subs": [
+      "32"
+     ],
+     "importe": 63.7
+    },
+    "app": {
+     "renglones": [
+      "Canto ABS perímetro cubierta [canto-abs-32]"
+     ],
+     "subs": [],
+     "costo": 84.54
+    }
+   },
+   {
+    "familia": "chapacinta",
+    "estado": "FALTA",
+    "erp": {
+     "cant": "1.186 m",
+     "subs": [],
+     "importe": 5.79
+    },
+    "app": null
+   },
+   {
+    "familia": "herraje",
+    "estado": "OK",
+    "erp": {
+     "cant": "10 pieza",
+     "subs": [],
+     "importe": 3.5
+    },
+    "app": {
+     "renglones": [
+      "Tapa registrable metálica + herraje App LT [tapa-registrable-applt]"
+     ],
+     "subs": [],
+     "costo": 22.8
+    }
+   },
+   {
+    "familia": "lamina",
+    "estado": "FALTA",
+    "erp": {
+     "cant": "0.002 hoja (18) + 0.021 hoja (20)",
+     "subs": [
+      "18",
+      "20"
+     ],
+     "importe": 10.27
+    },
+    "app": null
+   },
+   {
+    "familia": "pintura",
+    "estado": "FALTA",
+    "erp": {
+     "cant": "0.014 kg",
+     "subs": [],
+     "importe": 2.39
+    },
+    "app": null
+   },
+   {
+    "familia": "tablero",
+    "estado": "OK",
+    "erp": {
+     "cant": "0.25 hoja (28)",
+     "subs": [
+      "28"
+     ],
+     "importe": 256.73
+    },
+    "app": {
+     "renglones": [
+      "Cubierta melamina 28 mm 1200 × 600 [melamina-28]"
+     ],
+     "subs": [
+      "28"
+     ],
+     "costo": 333.9
+    }
+   }
+  ],
+  "estado_servidor": "incompleto",
+  "piezas_ia": 3,
+  "sin_material": [],
+  "app_mp": 441.24,
+  "app_mo": 66.19,
+  "app_gi": 198.56,
+  "app_total": 705.98,
+  "dif_mp_pct": 28.87,
+  "dif_total_pct": 9.46,
+  "faltan": [
+   "chapacinta",
+   "lamina",
+   "pintura"
+  ],
+  "sobran": [],
+  "espec": []
+ },
+ {
+  "clave": "ATCUBS45ABS",
+  "texto": "Cubierta rectangular de 1500 x 600 x 28 mm modelo apps lt con puerta metalica; en melamina con cantos abs",
+  "corrio": true,
+  "erp_mp": 608.7,
+  "erp_total": 936.64,
+  "familias": [
+   {
+    "familia": "canto",
+    "estado": "OK",
+    "erp": {
+     "cant": "4.584 m (32)",
+     "subs": [
+      "32"
+     ],
+     "importe": 73.3
+    },
+    "app": {
+     "renglones": [
+      "Canto ABS perimetral 2-3 mm [SIN MATERIAL]"
+     ],
+     "subs": [],
+     "costo": 0
+    }
+   },
+   {
+    "familia": "chapacinta",
+    "estado": "FALTA",
+    "erp": {
+     "cant": "1.186 m",
+     "subs": [],
+     "importe": 5.79
+    },
+    "app": null
+   },
+   {
+    "familia": "herraje",
+    "estado": "FALTA",
+    "erp": {
+     "cant": "10 pieza",
+     "subs": [],
+     "importe": 3.5
+    },
+    "app": null
+   },
+   {
+    "familia": "lamina",
+    "estado": "FALTA",
+    "erp": {
+     "cant": "0.002 hoja (18) + 0.021 hoja (20)",
+     "subs": [
+      "18",
+      "20"
+     ],
+     "importe": 10.27
+    },
+    "app": null
+   },
+   {
+    "familia": "otro",
+    "estado": "SOBRA",
+    "erp": null,
+    "app": {
+     "renglones": [
+      "Tapa registrable metálica + herraje (App LT) [SIN MATERIAL]",
+      "Maquinado de calado para tapa registrable (operación CNC) [SIN MATERIAL]"
+     ],
+     "subs": [],
+     "costo": 0
+    }
+   },
+   {
+    "familia": "pintura",
+    "estado": "FALTA",
+    "erp": {
+     "cant": "0.014 kg",
+     "subs": [],
+     "importe": 2.39
+    },
+    "app": null
+   },
+   {
+    "familia": "tablero",
+    "estado": "OK",
+    "erp": {
+     "cant": "0.5 hoja (28)",
+     "subs": [
+      "28"
+     ],
+     "importe": 513.45
+    },
+    "app": {
+     "renglones": [
+      "Cubierta melamina 28 mm 1500×600 [melamina-28]"
+     ],
+     "subs": [
+      "28"
+     ],
+     "costo": 1335.6
+    }
+   }
+  ],
+  "estado_servidor": "incompleto",
+  "piezas_ia": 4,
+  "sin_material": [
+   "Canto ABS perimetral 2-3 mm",
+   "Tapa registrable metálica + herraje (App LT)",
+   "Maquinado de calado para tapa registrable (operación CNC)"
+  ],
+  "app_mp": 1348.88,
+  "app_mo": 202.33,
+  "app_gi": 607,
+  "app_total": 2158.21,
+  "dif_mp_pct": 121.6,
+  "dif_total_pct": 130.42,
+  "faltan": [
+   "chapacinta",
+   "herraje",
+   "lamina",
+   "pintura"
+  ],
+  "sobran": [
+   "otro"
+  ],
+  "espec": []
+ },
+ {
+  "clave": "ATCUBS46ABS",
+  "texto": "Cubierta rectangular de 1800 x 600 mm modelo apps lt para banca sencilla, con tapa registrable metalica; en melamina con cantos abs",
+  "corrio": true,
+  "erp_mp": 618.29,
+  "erp_total": 716.62,
+  "familias": [
+   {
+    "familia": "canto",
+    "estado": "OK",
+    "erp": {
+     "cant": "5.184 m (32)",
+     "subs": [
+      "32"
+     ],
+     "importe": 82.89
+    },
+    "app": {
+     "renglones": [
+      "Canto ABS perimetral cubierta [canto-abs-32]"
+     ],
+     "subs": [],
+     "costo": 112.72
+    }
+   },
+   {
+    "familia": "chapacinta",
+    "estado": "FALTA",
+    "erp": {
+     "cant": "1.186 m",
+     "subs": [],
+     "importe": 5.79
+    },
+    "app": null
+   },
+   {
+    "familia": "herraje",
+    "estado": "OK",
+    "erp": {
+     "cant": "10 pieza",
+     "subs": [],
+     "importe": 3.5
+    },
+    "app": {
+     "renglones": [
+      "Tapa registrable metálica + herraje (App LT) [tapa-registrable-applt]",
+      "Tornillería de fijación cubierta a estructura [tornilleria]"
+     ],
+     "subs": [],
+     "costo": 67.8
+    }
+   },
+   {
+    "familia": "lamina",
+    "estado": "FALTA",
+    "erp": {
+     "cant": "0.002 hoja (18) + 0.021 hoja (20)",
+     "subs": [
+      "18",
+      "20"
+     ],
+     "importe": 10.27
+    },
+    "app": null
+   },
+   {
+    "familia": "pintura",
+    "estado": "FALTA",
+    "erp": {
+     "cant": "0.014 kg",
+     "subs": [],
+     "importe": 2.39
+    },
+    "app": null
+   },
+   {
+    "familia": "tablero",
+    "estado": "OK",
+    "erp": {
+     "cant": "0.5 hoja (28)",
+     "subs": [
+      "28"
+     ],
+     "importe": 513.45
+    },
+    "app": {
+     "renglones": [
+      "Cubierta rectangular 1800 × 600 mm [melamina-28]"
+     ],
+     "subs": [
+      "28"
+     ],
+     "costo": 667.8
+    }
+   }
+  ],
+  "estado_servidor": "incompleto",
+  "piezas_ia": 4,
+  "sin_material": [],
+  "app_mp": 848.32,
+  "app_mo": 129.5,
+  "app_gi": 388.49,
+  "app_total": 1366.31,
+  "dif_mp_pct": 37.2,
+  "dif_total_pct": 90.66,
+  "faltan": [
+   "chapacinta",
+   "lamina",
+   "pintura"
+  ],
+  "sobran": [],
+  "espec": []
+ },
+ {
+  "clave": "ATFAL12ABS",
+  "texto": "Conducto faldon para escritorio de 800 x 379 x 177 mm modelo apps lt con melamina canto abs; metalico",
+  "corrio": false,
+  "erp_mp": 284.28,
+  "erp_total": 415.39,
+  "error": "sin DTO"
+ }
+]

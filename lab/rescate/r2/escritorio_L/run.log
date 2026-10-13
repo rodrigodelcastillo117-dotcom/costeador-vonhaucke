@@ -1,0 +1,27 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Escritorio en L 1600x700 con retorno 800x500, melamina 19 mm Gris Humo","tipo":"escritorio","piezas":[{"nombre":"Cubierta principal","insumoId":"melamina-19-gris-humo-lm","material_solicitado":"Melamina 19 mm Gris Humo","material_match":"EXACT","forma":"area","lar
+
+[lab-costear] analizar-mueble 200 en 20 s · piezas 9 · lote 1
+
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Escritorio en L con cubierta de melamina 19 mm Gris Humo, patas panel y cajonera móvil","tipo":"escritorio","piezas":[{"nombre":"Cubierta principal","insumoId":"melamina-19-gris-humo-lm","material_solicitado":"Melamina 19 mm Gris Humo","material_match":"EXACT","fo
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":3724.61,"materialTotal":2308.96,"manoObra":353.91,"indirectosFabrica":1061.74,"desperdicio":1091.71,"detalleInsumos":[{"insumoId":"melamina-19-gris-humo-lm","nombre":"Melamina 19 mm, Gris Humo LM","se
+
+[lab-costear] BOM inicial {"piezas":9,"pendientes":["Cajonera móvil 3 gavetas"],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Paneles y faldón en Gris Humo igual que la cubierta?","elegido":"(sin responder: ninguna opción coincide con el plano)","opciones":["Sí","Otro color"],"evidencia":"plano: 3 PANELES LATERALES (2 DE 731 × 700 Y 1 DE 731 × 500)"},{"pregunta":"¿Cuántos escritorios?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":3724.61,"materialTotal":2308.96,"manoObra":353.91,"indirectosFabrica":1061.74,"desperdicio":1091.71,"detalleInsumos":[{"insumoId":"melamina-19-gris-humo-lm","nombre":"Melamina 19 mm, Gris Humo LM","se
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 6 propuestos","diferencias":"2 difieren de lo pedido y se confirman uno por uno: Tapacanto PVC 2 mm gris (cantos visibles), Tornillería/minifix. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$3,724.61","Por confirmar"],"margen":null,"estado":"Costo preliminar — 2 decisión(es) pendiente(s): ¿Paneles y faldón en Gris Humo igual que la cubierta? · ¿Cuántos escritorios?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $2,308.96 · Mano de obra $353.91 · Fábrica $1,061.74","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":3724.61,"costoSrv":3724.61,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+

@@ -1,0 +1,62 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATFAL12ABS 1013-2011 BORRADOR otro conducto faldón portacables para escritorio modelo App LT Melamina con canto de ABS",
+    "piezas": 6,
+    "mismoBom": true,
+    "costoAntes": "$455.02",
+    "costoDespues": "$455.02",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$455.02",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $260.33 · Mano de obra $48.67 · Fábrica $146.01",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Panel frontal faldón melamina",
+      "material": "Melamina BLANCA / EcoLegno 19 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Charola metálica portacables (lámina doblada)",
+      "material": "Lamina de acero cal. 20",
+      "alertas": []
+    },
+    {
+      "nombre": "Canto ABS perimetral del panel",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («canto ab melamina») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Escuadras de fijación a cubierta",
+      "material": "Escuadra",
+      "alertas": [
+        "⚠ Costo pendiente — falta confirmar material."
+      ]
+    },
+    {
+      "nombre": "Tornillería de ensamble",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («ensamble») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Acabado pintura en polvo charola metálica",
+      "material": "Pintura en polvo, Negro Mate 8 Vitracoat",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («color especificado») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

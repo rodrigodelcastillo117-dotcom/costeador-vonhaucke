@@ -1,0 +1,36 @@
+{
+  "erp": {
+    "intentado": false
+  },
+  "piezas": [
+    {
+      "nombre": "Omega (perfil lámina doblada) 1150 × 100 × 17 mm",
+      "material": "Lamina de acero cal. 18",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Pintura en polvo negro mate (acabado de la omega)",
+      "material": "Pintura en polvo negro mate 8 (Vitracoat)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («acabado especificado asume electrostatica estandar app») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tornillería de fijación omega-cubierta",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («explicita texto») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

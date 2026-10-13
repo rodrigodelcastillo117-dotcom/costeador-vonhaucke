@@ -1,0 +1,108 @@
+{
+  "producto": "Mesa de trabajo 1500 × 700 × 750 · LOTE DE 10 piezas",
+  "resumen": {
+    "esperados": 6,
+    "pass": 6,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 0,
+    "renglonesBom": 10,
+    "veredicto": "PASS"
+  },
+  "filas": [
+    {
+      "clave": "cubierta",
+      "renglones": 1,
+      "materiales": [
+        "melamina-19"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "piezas": 1
+    },
+    {
+      "clave": "tapacanto_m",
+      "renglones": 1,
+      "materiales": [
+        "tapacanto"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "metros": 4.4
+    },
+    {
+      "clave": "estructura_ptr_m",
+      "renglones": 3,
+      "materiales": [
+        "ptr"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "metros": 6.824
+    },
+    {
+      "clave": "faldon",
+      "renglones": 1,
+      "materiales": [
+        "lamina-18"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "piezas": 1
+    },
+    {
+      "clave": "pintura_ral9016",
+      "renglones": 1,
+      "materiales": [
+        "pintura-polvo-blanco-ral-9016-009-13120"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: PINTURA EN POLVO BLANCO RAL 9016 (existe EXACTO en el catálogo curado)",
+      "inferido": false
+    },
+    {
+      "clave": "niveladores",
+      "renglones": 1,
+      "materiales": [
+        "nivelador"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "cantidad": 4
+    }
+  ],
+  "sobran": [
+    {
+      "nombre": "Soldadura estructura",
+      "insumoId": "soldadura",
+      "permitido": true
+    },
+    {
+      "nombre": "Tornillería fijación cubierta",
+      "insumoId": "tornilleria",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "preliminar",
+  "respuestas": [
+    {
+      "pregunta": "¿Cuántas mesas se fabricarán?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿El faldón lleva pestañas dobladas para fijación?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

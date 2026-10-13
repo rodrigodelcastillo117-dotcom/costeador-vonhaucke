@@ -1,0 +1,48 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATCUBD44ABS 1013-2004 BORRADOR mesa cubierta de trabajo cuadrada para banca doble (línea App LT) Melamina 28 mm",
+    "piezas": 4,
+    "mismoBom": true,
+    "costoAntes": "$1,222.44",
+    "costoDespues": "$1,222.44",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$1,222.44",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $758.40 · Mano de obra $116.01 · Fábrica $348.03",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta melamina 28 mm 1200x1200",
+      "material": "Melamina ABS 28 mm (cubierta APP LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Canto ABS perimetral cubierta",
+      "material": "Perfil de canto ABS 32 mm Walnut",
+      "alertas": [
+        "⚠ Costo pendiente — confirma material (crítico: Solicitado 28 mm → candidato 32 mm). Usar Perfil de canto ABS 32 mm Walnut (confirmar)"
+      ]
+    },
+    {
+      "nombre": "Tapa registrable metálica + herraje (App LT)",
+      "material": "Tapa registrable metalica + herraje (App LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Tornillería de fijación cubierta a estructura",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («ensamble») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}
