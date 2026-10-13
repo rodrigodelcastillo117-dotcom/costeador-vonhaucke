@@ -19,7 +19,7 @@ producción `ccf76f8` (registro 1295; interrumpida por error del operador antes 
 | Puertas | 8 vanos distintos: D01–D07 con barrido (confianza media) · D08 1.80 m sin barrido → pendiente | 7 + 1 doble |
 | Columnas P1/P2 | **no leídas** (0 obstáculos tipo columna) | 2 columnas, no muebles |
 | Ambas láminas = mismo piso | sí: no duplicó áreas ni m² | prueba 1 de la hoja |
-| Tiempo | 37–40 s (edge `leer-plano`) | — |
+| Tiempo | 52–53 s de principio a fin (edge `leer-plano` + validación) | — |
 | Servidor | `REVIEW_REQUIRED` por la puerta sin barrido | — |
 
 **VH-136 (FIXED en rama):** la compuerta decía "confirma bisagra y sentido antes de aprobar el acomodo" y no había dónde.
