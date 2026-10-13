@@ -9,4 +9,4 @@ No reproduce VH-181/182 (actúan al mapear la respuesta de la IA, que el laborat
 Cambios: ATCUBS45ABS material $1,335.60 → $667.80 (1500×600 = ½ hoja, como Intelisis); ATFAL150ABS −$28.31;
 credenza −$103.19 (canto duplicado integrado); escritorio L +$150.75 (pieza de 1500 de lado mayor ahora cobra ½ hoja
 por la regla de Producción, antes ⅓ por rejilla). El resto no cambia: su diferencia contra el ERP no viene del despiece.
-Script: `replay2.test.js` (RAIZ, CASOS, SALIDA por variables de entorno).
+Script: `replay2.harness.js` (copiarlo como `src/zz_replay.test.js` para correrlo; fuera de la suite a propósito) (RAIZ, CASOS, SALIDA por variables de entorno).
