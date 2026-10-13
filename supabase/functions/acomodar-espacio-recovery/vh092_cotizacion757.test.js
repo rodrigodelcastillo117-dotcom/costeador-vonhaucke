@@ -288,10 +288,26 @@ describeSem('VH-119b · credenza detrás del ejecutivo en el privado de 4.0 × 3
     expectSem(r.layoutSpec.validation.issues.filter((i) => i.severity === 'fail')).toEqual([]);
     expectSem(r.seleccion.ganador_eval.hardOk).toBe(true);
   });
-  itSem('con el archivero de 0.90 además: 5 de 6, el archivero se reporta como no cupo (pasillo de 1 m), nunca encimado', () => {
+  // COT-P1-027c (2026-10-13): esta prueba documentaba un LÍMITE del solver, no una imposibilidad física
+  // ("5 de 6, el archivero no cabe por el pasillo de 1 m"). El metro se exigía también ENTRE la credenza y
+  // el archivero puestos lado a lado, donde nadie camina. El validador duro siempre aceptó dos muebles
+  // adosados (hueco 0); ahora el solver también: los dos guardados comparten muro, con el respaldo a la
+  // pared y el frente libre hacia el cuarto, y el metro frente al escritorio se conserva.
+  itSem('con el archivero de 0.90 además: 6 de 6 — credenza y archivero adosados sobre el mismo muro, frentes libres, nada encimado', () => {
     const r = construirSem(ceo, [...base, { id: 'p-6-1', nombre: 'Modulor Archivero horizontal 0.90', w: 749, d: 900, tipo: 'archivo', relation_role: 'SUPPORT_STORAGE', functional_group_id: 'fg:libre:general', zone_id: 'OFICINA CEO' }]);
-    expectSem(r.plan.colocacion).toHaveLength(5);
-    expectSem((r.no_cupieron || []).map((u) => u.anchorId)).toEqual(['p-6-1']);
-    expectSem(r.layoutSpec.status).not.toBe('PASS');
+    expectSem(r.plan.colocacion).toHaveLength(6);
+    expectSem(r.no_cupieron || []).toEqual([]);
+    expectSem(r.layoutSpec.validation.issues.filter((i) => i.severity === 'fail')).toEqual([]);
+    expectSem(r.seleccion.ganador_eval.hardOk).toBe(true);
+    const by = Object.fromEntries(r.plan.colocacion.map((c) => [c.id, c]));
+    const pz = Object.fromEntries(r.plan.piezas.map((p) => [p.id, p]));
+    const rect = (id) => { const c = by[id], p = pz[id], g = c.rot === 90; return { x: c.x, y: c.y, w: g ? p.d : p.w, d: g ? p.w : p.d }; };
+    const cred = rect('p-3-1'), arch = rect('p-6-1'), desk = rect('p-2-1');
+    const encima = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.d && a.y + a.d > b.y;
+    expectSem(encima(cred, arch)).toBe(false);
+    // respaldo al muro derecho (x + w = 4000) y frente hacia el escritorio, a ≥ 1 m de él
+    for (const g of [cred, arch]) { expectSem(g.x + g.w).toBe(4000); expectSem(g.x - (desk.x + desk.w)).toBeGreaterThanOrEqual(1000); }
+    expectSem(by['p-3-1'].topology).toBe('STORAGE');
+    expectSem(by['p-8-1'].side).toBe('BACK');   // el ejecutivo sigue detrás de su escritorio
   });
 });
