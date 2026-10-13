@@ -208,3 +208,23 @@ describe('VH-164b · perímetro de tubo redondo', () => {
     expect(perimetroPerfilMM('PTR 3" x 1 1/2" cal. 14').mm).toBeCloseTo(2 * (3 + 1.5) * 25.4, 3);
   });
 });
+
+describe('VH-165 · la soldadura no es un perfil de acero', () => {
+  it('familia propia: no se auto-asigna al PTR ni suma área al acabado', () => {
+    expect(familiaDeMaterial('soldadura para tubo')).toBe('soldadura');
+    expect(familiaDeMaterial('Soldadura base tubular')).toBe('soldadura');
+    const c = aplicarPoliticaMaterial({ nombre: 'Soldadura base tubular', insumoId: 'soldadura', material_solicitado: 'soldadura para tubo', material_match: 'EXACT', forma: 'pieza', cantidad: 1 }, (id) => insumos[id], catalogo);
+    expect(c.insumoId || '').not.toMatch(/^ptr|^tub/);
+    expect(c.candidate_insumo_id || '').not.toMatch(/^ptr|^tub/);
+  });
+  it('mesa de centro V4: EcoCrom = 0.43 m² aunque la IA traiga la soldadura', () => {
+    const r = conAcompanantes(mapIaComps({ piezas: [
+      { nombre: 'Marcos (tubo redondo 3/4)', insumoId: 'tubular-redondo-34', material_solicitado: 'tubular redondo 3/4 cal. 18', material_match: 'EXACT', forma: 'lineal', largoMM: 5600, cantidad: 1 },
+      { nombre: 'Postes verticales de base', insumoId: 'tubular-redondo-34', material_solicitado: 'tubular redondo 3/4 cal. 18', material_match: 'EXACT', forma: 'lineal', largoMM: 1568, cantidad: 1 },
+      { nombre: 'Acabado cromado de base (EcoCrom)', insumoId: 'ecocrom', material_solicitado: 'cromado (EcoCrom) en base tubular', material_match: 'EXACT', forma: 'area', largoMM: 1000, anchoMM: 0, cantidad: 1 },
+      { nombre: 'Soldadura base tubular', insumoId: 'soldadura', material_solicitado: 'soldadura para tubo', material_match: 'EXACT', forma: 'pieza', cantidad: 1 },
+    ] }, insumos), insumos);
+    expect(r.find((c) => /cromado/i.test(c.nombre)).cantidad).toBeCloseTo(0.43, 2);
+    expect(r.find((c) => /soldadura/i.test(c.nombre)).insumoId || '').not.toMatch(/^ptr|^tub/);
+  });
+});

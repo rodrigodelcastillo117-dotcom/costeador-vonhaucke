@@ -200,6 +200,10 @@ const FAMILIAS = [
   ['electrico',         /contacto|multicontacto|caja\s+el[eé]ctrica|\busb\b|byrne/i],
   ['adhesivo',          /adhesivo|pegamento|resistol|silic[oó]n/i],
   ['tornilleria',       /tornill|\bpija|taquete|rondana|tuerca/i],
+  // VH-165 (2026-10-13, mesa de centro V4): "soldadura para tubo" caía en metal_lamina por "tubo" y se
+  // auto-asignaba al PTR cal. 14 ($270.78 como si fuera 1 m de tubo, y sumaba área al cromado). La
+  // soldadura es un consumible: sin insumo propio queda pendiente, nunca se costea como perfil.
+  ['soldadura',         /soldadura|soldar|electrodo|micro\s*alambre|\bmig\b|\btig\b/i],
   ['cristal',           /cristal|vidrio|templado|glass/i],
   ['marmol_piedra',     /m[aá]rmol|marble|granito|cuarzo|quartz|piedra|onix|[oó]nix/i],
   ['acero_inoxidable',  /inoxidable|inox\b|stainless|304|316/i],
