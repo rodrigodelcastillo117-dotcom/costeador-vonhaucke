@@ -7,3 +7,35 @@ Running 1 test using 1 worker
 
 [lab-costear] analizar-mueble 429 en 1 s · piezas undefined · lote 1
 
+  1) [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('.pieza').first()
+    Expected: visible
+    Timeout: 150000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" locator('.pieza').first() with timeout 150000ms
+      - waiting for locator('.pieza').first()
+
+
+      75 |   const tiempos = { analizarSeg: (Date.now() - t0) / 1000 };
+      76 |   console.log('[lab-costear] analizar-mueble', an.status(), 'en', tiempos.analizarSeg.toFixed(0), 's · piezas', anBody?.propuesta?.piezas?.length, '· lote', LOTE);
+    > 77 |   await expect(page.locator('.pieza').first()).toBeVisible({ timeout: 150000 });   // análisis + verificación pueden sumar >60 s
+         |                                                ^
+      78 |   tiempos.bomVisibleSeg = (Date.now() - t0) / 1000;
+      79 |   await page.waitForTimeout(5000);   // verificación / amarre ERP automático
+      80 |   const piezas1 = await leerPiezas(page); const res1 = await leerResultado(page);
+        at /home/user/costeador-vonhaucke/e2e/labCostear.e2e.js:77:48
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/labCostear.e2e.js-COSTEAR--dd0a4--sombra-→-guardar-→-reabrir-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/labCostear.e2e.js-COSTEAR--dd0a4--sombra-→-guardar-→-reabrir-chromium/error-context.md
+
+
+  1 failed
+    [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir 
