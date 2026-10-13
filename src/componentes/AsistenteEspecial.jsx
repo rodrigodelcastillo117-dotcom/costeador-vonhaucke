@@ -607,7 +607,10 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           if (act.length !== amarrados.length) return prev;
           // VH-149: sólo campos de material, sobre piezas que siguen sin material (no pisa ediciones hechas mientras llegaba).
           const fus = fusionarAmarreEnBom(act, amarrados);
-          return { ...prev, componentes: fus };
+          // VH-174 (mesa de juntas por texto): un renglón que la IA nombró "Canto de paneles…" SIN material no era
+          // tapacanto para las reglas de casa; el amarre lo volvía tapacanto DESPUÉS y quedaba contado dos veces
+          // (27.24 m). Las reglas de casa son idempotentes: se re-aplican sobre lo amarrado.
+          return { ...prev, componentes: conAcompanantes(fus, insumos) };
         });
         setConfMsg(`Catálogo de Compras: ${lista.length} material(es) amarrado(s) con precio real, por confirmar: ${lista.map((x) => x.insumoNombre).slice(0, 5).join(', ')}${lista.length > 5 ? '…' : ''}.`);
       })
@@ -618,7 +621,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     proponerGemelosErp(comps, { insumos, buscar: buscarInsumosMotor, agregarInsumo: onAgregarInsumo || (() => {}) })
       .then(({ comps: conGemelos, propuestos }) => {
         if (!propuestos.length || !aceptaCorrida(corridaId, corrida.current)) return;
-        setB((prev) => ({ ...prev, componentes: fusionarGemelosEnBom(Array.isArray(prev.componentes) ? prev.componentes : [], conGemelos) }));
+        setB((prev) => ({ ...prev, componentes: conAcompanantes(fusionarGemelosEnBom(Array.isArray(prev.componentes) ? prev.componentes : [], conGemelos), insumos) }));
         setConfMsg((m) => `${m ? m + ' ' : ''}Compras tiene el mismo material con precio certificado para ${propuestos.length} pieza(s): ${propuestos.map((x) => `${x.nombre} → ${x.insumoNombre}`).slice(0, 4).join('; ')}${propuestos.length > 4 ? '…' : ''}. Propuesto por confirmar.`);
       })
       .catch(() => {});

@@ -326,3 +326,22 @@ describe('VH-170 · tapacanto duplicado: idempotente entre pasadas', () => {
     expect(r2.filter((c) => c.insumoId === 'tapacanto' && !c.excluida)).toHaveLength(1);
   });
 });
+
+describe('VH-174 · las reglas de casa se re-aplican después del amarre ERP (idempotentes)', () => {
+  it('un renglón "Canto de paneles…" sin material que luego se amarra a tapacanto queda excluido; dos pasadas no cambian nada', () => {
+    const base = [
+      { nombre: 'Cubierta 2400×1200', insumoId: 'melamina-28-walnut', cantidad: 1, piezas: 1, largoMM: 2400, anchoMM: 1200 },
+      { nombre: 'Panel lateral base 722×1000', insumoId: 'melamina-28-walnut', cantidad: 1, piezas: 2, largoMM: 1000, anchoMM: 722 },
+      { nombre: 'Faldón central 2000×300', insumoId: 'melamina-19-walnut', cantidad: 1, piezas: 1, largoMM: 2000, anchoMM: 300 },
+      { nombre: 'Tapacanto PVC 2 mm Walnut perímetro cubierta', insumoId: 'tapacanto', cantidad: 7.2 },
+      { nombre: 'Canto de paneles de base (laterales y faldón)', insumoId: '', material_solicitado: 'canto de paneles', cantidad: 12 },
+    ];
+    const r1 = conAcompanantes(base, insumos);
+    expect(r1.find((c) => /Canto de paneles/.test(c.nombre)).excluida).toBeFalsy();   // aún no es tapacanto
+    const amarrado = r1.map((c) => (/Canto de paneles/.test(c.nombre) ? { ...c, insumoId: 'tapacanto' } : c));
+    const r2 = conAcompanantes(amarrado, insumos);
+    expect(r2.find((c) => /Canto de paneles/.test(c.nombre)).excluida).toBe(true);
+    expect(r2.filter((c) => c.insumoId === 'tapacanto' && !c.excluida).map((c) => c.cantidad)).toEqual([15.24]);
+    expect(conAcompanantes(r2, insumos)).toEqual(r2);   // idempotente
+  });
+});
