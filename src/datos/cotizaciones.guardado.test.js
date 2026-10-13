@@ -138,7 +138,9 @@ describe('guardarCotizacion por RPCs seguros', () => {
   });
 
   it('clasificarErrorGuardado cubre los mensajes del servidor', () => {
-    expect(clasificarErrorGuardado(new Error('no autorizado'))).toBe('sin-acceso');
+    // Área J · R-07: 'no autorizado' es la SESIÓN (JWT sin correo / fuera de permitidos), no una fila ajena:
+    // clasificarlo 'sin-acceso' soltaba el id en silencio y duplicaba la cotización al volver a entrar.
+    expect(clasificarErrorGuardado(new Error('no autorizado'))).toBe('sesion');
     expect(clasificarErrorGuardado({ message: 'rol sin permiso' })).toBe('sin-acceso');
     expect(clasificarErrorGuardado('propietario protegido')).toBe('sin-acceso');
     expect(clasificarErrorGuardado(null)).toBe('desconocido');

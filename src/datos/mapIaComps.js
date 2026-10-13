@@ -22,10 +22,19 @@ export function espejoP012(comp) {
     _match: { ...(comp._match || {}), clase: MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED, autollenado: true, autocosteable: true, candidate_insumo_id: comp.insumoId, motivo } };
 }
 
+// Área J · R-03: ¿la propuesta trae piezas que se puedan usar? Una respuesta `ok:true` con `piezas`
+// vacías, en texto o con renglones que no son objeto NO debe reemplazar el despiece de la persona.
+export function propuestaConPiezas(p) {
+  return Array.isArray(p?.piezas) && p.piezas.some((z) => z && typeof z === 'object' && !Array.isArray(z));
+}
+
 export function mapIaComps(p, insumos = {}) {
   const resolver = (id) => insumos[id];
   const catalogo = Object.values(insumos || {});
-  return (p?.piezas || []).map((z) => {
+  // R-03: `piezas` que no es lista (la IA la mandó como texto) o renglones que no son objeto se ignoran
+  // en vez de reventar con "….map is not a function".
+  const piezas = Array.isArray(p?.piezas) ? p.piezas.filter((z) => z && typeof z === 'object' && !Array.isArray(z)) : [];
+  return piezas.map((z) => {
     const base = espejoP012(aplicarPoliticaMaterial({ ...z, material_solicitado: z.material_solicitado || z.nombre }, resolver, catalogo));
     base.forma = z.forma || (z.largoMM && z.anchoMM ? 'area' : 'pieza');
     // LINEALES (VH-160): la IA manda el largo de UNA pieza en largoMM y el número de piezas en cantidad

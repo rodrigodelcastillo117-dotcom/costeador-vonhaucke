@@ -9,6 +9,7 @@ import { validarIntentCosteo, intentDesdePieza } from './datos/validarIntentCost
 import { renderParaPartida } from './datos/renderPartida.js';
 import { imagenAStorage, rutaImagen } from './datos/imagenStorage.js';
 import { createClient } from '@supabase/supabase-js';
+import { mensajeErrorEdge } from './datos/erroresEdge.js';
 
 const URL = 'https://mtuvnbgljwbsaizjjgzs.supabase.co';
 const LLAVE = 'sb_publishable_lDPhCTatyJ2cap3FNEGs7A_uPapgg6y';
@@ -222,7 +223,7 @@ export async function analizarRender(catalogo, image, mediaType) {
   });
   if (error) {
     // El cuerpo de error de la función suele venir en error.context
-    let msg = error.message || 'No se pudo analizar la imagen.';
+    let msg = mensajeErrorEdge(error, 'No se pudo analizar la imagen.');
     try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
     return { ok: false, error: msg };
   }
@@ -236,7 +237,7 @@ export async function analizarRenderImagenes(catalogo, imagenes) {
     body: { catalogo, imagenes },
   });
   if (error) {
-    let msg = error.message || 'No se pudo analizar el plano.';
+    let msg = mensajeErrorEdge(error, 'No se pudo analizar el plano.');
     try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
     return { ok: false, error: msg };
   }
@@ -287,7 +288,7 @@ export async function analizarTexto(catalogo, descripcion) {
     body: { catalogo, descripcion },
   });
   if (error) {
-    let msg = error.message || 'No se pudo interpretar la descripción.';
+    let msg = mensajeErrorEdge(error, 'No se pudo interpretar la descripción.');
     try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
     return { ok: false, error: msg };
   }
@@ -318,7 +319,7 @@ export async function responderDespiece(catalogo, imagenes, propuesta, respuesta
       body: { catalogo, imagenes, revisar: propuesta, respuestas },
     });
     if (error || !data?.ok) {
-      let msg = error?.message; try { const j = await error?.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
+      let msg = error ? mensajeErrorEdge(error, 'No se pudo aplicar las respuestas.') : undefined; try { const j = await error?.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
       return { ok: false, error: msg || data?.error || 'No se pudo aplicar las respuestas.' };
     }
     return { ...data, verificado: true };
@@ -342,7 +343,7 @@ export async function cotizarTexto(texto, catalogo) {
     body: { texto, catalogo },
   });
   if (error) {
-    let msg = error.message || 'No se pudo interpretar el texto.';
+    let msg = mensajeErrorEdge(error, 'No se pudo interpretar el texto.');
     try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
     return { ok: false, error: msg };
   }
@@ -358,7 +359,7 @@ export async function acomodarEspacio(areas, piezas) {
     body: { areas, piezas },
   });
   if (error) {
-    let msg = error.message || 'No se pudo acomodar el espacio.';
+    let msg = mensajeErrorEdge(error, 'No se pudo acomodar el espacio.');
     try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
     return { ok: false, error: msg };
   }
@@ -390,7 +391,7 @@ export async function leerPlano(image, mediaType, refMM) {
   if (error) {
     // VH-064: en un 422 FLOOR_SPEC_INVALID el servidor manda `floorSpec.validation.issues`
     // (qué no cuadró, con números) y `request_id`. Antes sólo sobrevivía la frase genérica.
-    let msg = error.message || 'No se pudo leer el plano.';
+    let msg = mensajeErrorEdge(error, 'No se pudo leer el plano.');
     let extra = {};
     try {
       const j = await error.context?.json?.();
@@ -412,7 +413,7 @@ export async function analizarNegocio(senales, alcance = 'cotizacion') {
     body: { senales, alcance },
   });
   if (error) {
-    let msg = error.message || 'No se pudo conectar con Voni.';
+    let msg = mensajeErrorEdge(error, 'No se pudo conectar con Voni.');
     try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
     return { ok: false, error: msg };
   }
@@ -425,7 +426,7 @@ export async function generarRender(descripcion, extra = {}) {
     body: { descripcion, ...extra },
   });
   if (error) {
-    let msg = error.message || 'No se pudo generar el render.';
+    let msg = mensajeErrorEdge(error, 'No se pudo generar el render.');
     let extraErr = {};
     try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; if (j) extraErr = { code: j.code, request_id: j.request_id, audit: j.audit }; } catch (e) {}
     return leerRespuestaRender({ ok: false, error: msg, ...extraErr });
@@ -485,7 +486,7 @@ export async function costearServidor(pieza, cantidad = 1) {
     body: v.intent,
   });
   if (error) {
-    let msg = error.message || 'No se pudo costear en el servidor.';
+    let msg = mensajeErrorEdge(error, 'No se pudo costear en el servidor.');
     let status = error.context?.status;
     try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
     return { ok: false, error: msg, status };

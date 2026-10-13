@@ -82,7 +82,10 @@ export default function CotizadorIA({
     try {
       const r = await cotizarTexto(t, catalogo);
       if (!r || !r.ok) { setError(r?.error || 'No se pudo interpretar. Vuelve a intentar.'); return; }
-      const items = r.propuesta?.items || [];
+      // Área J · R-03: si la IA manda `items`/`banco` que no son lista (forma inválida), no se itera
+      // basura (un texto se recorría letra por letra): se trata como "nada que agregar" y se dice.
+      const items = Array.isArray(r.propuesta?.items) ? r.propuesta.items.filter((x) => x && typeof x === 'object') : [];
+      const bancoIA = Array.isArray(r.propuesta?.banco) ? r.propuesta.banco.filter((x) => x && typeof x === 'object') : [];
 
       // Se cuestan aquí y los que SÍ se pudieron costear entran directo al
       // proyecto. La nota y la confianza de la IA viajan con la partida para
@@ -120,7 +123,7 @@ export default function CotizadorIA({
       // PIEZAS DEL BANCO DE PRECIOS (sillería, complementos). No se cuestan: su
       // precio viene de un presupuesto CERRADO, que manda sobre cualquier
       // modelo. Antes Voni ni las veía y contestaba que no había sillas.
-      for (const b of r.propuesta?.banco || []) {
+      for (const b of bancoIA) {
         const pieza = BANCO.find((x) => x.id === b.id);
         if (!pieza) { sinCostear.push(b.etiqueta || b.id); continue; }
         const cantidad = Math.max(1, Math.round(Number(b.cantidad) || 1));
@@ -156,7 +159,7 @@ export default function CotizadorIA({
       // construye del contrato REAL de cotizar-texto y se persiste SIEMPRE en una
       // interpretación válida (aunque 0 partidas se costeen) REEMPLAZANDO la versión
       // anterior (no se queda pegado el brief viejo).
-      const programaBrief = briefDePropuesta({ items, banco: r.propuesta?.banco || [], textoOriginal: t });
+      const programaBrief = briefDePropuesta({ items, banco: bancoIA, textoOriginal: t });
       if (costados.length) {
         const nuevoLote = `ia-${Date.now()}`;
         onAgregarItems(costados, { lote: nuevoLote, reemplaza: lote.current, programaBrief });
@@ -169,8 +172,8 @@ export default function CotizadorIA({
       setResultado({
         agregados: costados.length,
         resumen: limpiarResumen(r.propuesta?.resumen),
-        preguntas: r.propuesta?.preguntas || [],
-        noEncontrado: r.propuesta?.noEncontrado || [],
+        preguntas: Array.isArray(r.propuesta?.preguntas) ? r.propuesta.preguntas.filter(Boolean).map(String) : [],
+        noEncontrado: Array.isArray(r.propuesta?.noEncontrado) ? r.propuesta.noEncontrado.filter(Boolean).map(String) : [],
         sinCostear,
         sinPrecio,
         especiales,

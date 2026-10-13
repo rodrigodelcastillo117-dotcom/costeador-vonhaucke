@@ -219,8 +219,13 @@ export function clasificarErrorGuardado(e) {
   const m = String(e?.message || e?.error?.message || e || '').toLowerCase();
   if (!m) return 'desconocido';
   if (m.includes('idempotency key reused')) return 'clave-reusada';
+  // Área J · R-07: la SESIÓN ya no sirve (JWT vencido → PostgREST 401 PGRST301/PGRST302; JWT sin correo o
+  // persona fuera de `permitidos` → la RPC levanta 'no autorizado'). NO es "fila ajena": antes caía en
+  // 'sin-acceso' → el cliente soltaba el id EN SILENCIO y, al volver a entrar, creaba una SEGUNDA cotización.
+  const code = String(e?.code || '').toUpperCase();
+  if (code === 'PGRST301' || code === 'PGRST302' || code === 'PGRST303' || m.includes('no autorizado') || /\bjwt\b/.test(m)) return 'sesion';
   if (m.includes('no existe')) return 'no-existe';
-  if (m.includes('sin acceso') || m.includes('propietario') || m.includes('no autorizado') || m.includes('rol sin permiso')) return 'sin-acceso';
+  if (m.includes('sin acceso') || m.includes('propietario') || m.includes('rol sin permiso')) return 'sin-acceso';
   if (m.includes('no editable')) return 'no-editable';
   // VH-173: el servidor RESPONDIÓ y rechazó (SQLSTATE de Postgres, p.ej. P0001 'acomodo invalido'): no es la red.
   // Antes caía en 'desconocido' y la app decía "Sin conexión" aunque la nube estuviera arriba.
@@ -239,7 +244,24 @@ export function clasificarErrorGuardado(e) {
  * Nunca lanza: si la nube falla, el vendedor sigue cotizando y se reintenta al
  * siguiente cambio.
  */
-export async function guardarCotizacion(estado, usuario, id = null, { claveCreacion = null, actualizadoEsperado = undefined } = {}) {
+// Área J · R-04: la creación que SALIÓ con una clave y cuya respuesta no llegó (localStorage de esta
+// computadora; sobrevive recargas). Una sola a la vez: la cotización viva tiene una sola clave de creación.
+export const CLAVE_CREACION_PENDIENTE = 'costeador-vonhaucke-creacion-pendiente';
+const almacenPorOmision = () => { try { return typeof localStorage !== 'undefined' ? localStorage : null; } catch { return null; } };
+export function leerCreacionPendiente(storage, clave) {
+  try {
+    const j = JSON.parse(storage?.getItem(CLAVE_CREACION_PENDIENTE) || 'null');
+    return j && j.clave === clave && j.payload && j.payload._idempotency_key === clave ? j.payload : null;
+  } catch { return null; }
+}
+function recordarCreacionPendiente(storage, payload) {
+  try { storage?.setItem(CLAVE_CREACION_PENDIENTE, JSON.stringify({ clave: payload._idempotency_key, payload })); } catch { /* sin espacio: comportamiento previo */ }
+}
+function olvidarCreacionPendiente(storage) {
+  try { storage?.removeItem(CLAVE_CREACION_PENDIENTE); } catch { /* nada */ }
+}
+
+export async function guardarCotizacion(estado, usuario, id = null, { claveCreacion = null, actualizadoEsperado = undefined, storage = almacenPorOmision() } = {}) {
   const fila = paraGuardar(estado, usuario);
   // Sin nada dentro no se guarda: no queremos el archivo lleno de borradores
   // vacíos de cada vez que alguien abre la pantalla.
@@ -270,14 +292,40 @@ export async function guardarCotizacion(estado, usuario, id = null, { claveCreac
       // la RPC de producción no la devuelve → null → el siguiente guardado va sin control).
       return { id: data?.id ?? id, guardado: true, actualizado: typeof data?.actualizado === 'string' ? data.actualizado : null };
     }
-    const payload = claveCreacion && CLAVE_CREACION_RE.test(claveCreacion)
-      ? { ...patch, _idempotency_key: claveCreacion }
-      : patch;
+    const conClave = !!(claveCreacion && CLAVE_CREACION_RE.test(claveCreacion));
+    const payload = conClave ? { ...patch, _idempotency_key: claveCreacion } : patch;
+    // Área J · R-04: si con ESTA clave ya salió una creación cuya respuesta nunca llegó (corte tras el commit,
+    // timeout), el servidor pudo haber creado la fila. Mandar la misma clave con OTRO contenido da
+    // 'idempotency key reused…' y rotar la clave crea una SEGUNDA cotización. Se reenvía primero EXACTAMENTE lo
+    // que salió (idempotente: devuelve la fila si existe, o la crea) y luego se actualiza con lo de hoy.
+    const pendiente = conClave ? leerCreacionPendiente(storage, claveCreacion) : null;
+    if (pendiente && JSON.stringify(pendiente) !== JSON.stringify(payload)) {
+      const previo = await nube.rpc('crear_cotizacion_segura', { p_payload: pendiente });
+      if (previo.error) {
+        const tipo = clasificarErrorGuardado(previo.error);
+        if (tipo === 'clave-reusada') olvidarCreacionPendiente(storage);   // no es lo que salió: ya no sirve
+        return { id: null, guardado: false, motivo: tipo, rotarClave: tipo === 'clave-reusada', ...(tipo === 'rechazado' ? { detalle: String(previo.error?.message || '').slice(0, 200) } : {}) };
+      }
+      const idPrevio = previo.data?.id ?? null;
+      if (!idPrevio) return { id: null, guardado: false, motivo: 'desconocido' };
+      // La fila existe (recuperada o recién creada con lo de entonces): ahora se escribe lo de hoy. La creación
+      // pendiente se olvida SÓLO cuando esto se confirma; si falla, el siguiente intento repite los dos pasos
+      // (el primero es idempotente), nunca nace otra fila.
+      const upd = await nube.rpc('actualizar_cotizacion_segura', { p_cotizacion_id: idPrevio, p_patch: patch });
+      if (upd.error) return { id: null, guardado: false, motivo: clasificarErrorGuardado(upd.error) };
+      olvidarCreacionPendiente(storage);
+      return { id: upd.data?.id ?? idPrevio, guardado: true, actualizado: typeof upd.data?.actualizado === 'string' ? upd.data.actualizado : null, recuperoCreacion: true };
+    }
+    if (conClave && !pendiente) recordarCreacionPendiente(storage, payload);
     const { data, error } = await nube.rpc('crear_cotizacion_segura', { p_payload: payload });
     if (error) {
       const tipo = clasificarErrorGuardado(error);
+      // Si el servidor RESPONDIÓ con un rechazo, nada se creó con este contenido → no hay creación pendiente.
+      // Un fallo de red (postgrest-js lo DEVUELVE sin código → 'desconocido') la conserva: pudo haberse creado.
+      if (conClave && tipo !== 'desconocido') olvidarCreacionPendiente(storage);
       return { id: null, guardado: false, motivo: tipo, rotarClave: tipo === 'clave-reusada', ...(tipo === 'rechazado' ? { detalle: String(error?.message || '').slice(0, 200) } : {}) };
     }
+    if (data?.id) olvidarCreacionPendiente(storage);
     return { id: data?.id ?? null, guardado: !!data?.id, actualizado: typeof data?.actualizado === 'string' ? data.actualizado : null };
   } catch (e) {
     return { id, guardado: false, motivo: 'red' };

@@ -22,7 +22,7 @@ import { pesos2, pct, pct1, colorMerma } from '../util.js';
 import AnalisisEstructural from './AnalisisEstructural.jsx';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
-import { mapIaComps as mapIaCompsCompartido } from '../datos/mapIaComps.js';
+import { mapIaComps as mapIaCompsCompartido, propuestaConPiezas } from '../datos/mapIaComps.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, alertaMaterial } from '../datos/materialMatch.js';
 import BuscadorInsumo from './BuscadorInsumo.jsx';
 import { renderSpecFromGraph } from '../datos/renderSpec.js';
@@ -147,6 +147,12 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
       const res = await analizarTexto(catalogo, desc);
       if (!res?.ok) { setErrIA(res?.error || 'No se pudo interpretar la descripción.'); return; }
       const p = res.propuesta || {};
+      // Área J · R-03: una respuesta "ok" sin piezas utilizables (vacía, en texto, mal formada) NO
+      // reemplaza el despiece de la persona por uno vacío o basura: se dice y no se toca nada.
+      if (!propuestaConPiezas(p)) {
+        setErrIA('Voni no devolvió piezas que se puedan usar (respuesta vacía o mal formada). Tu despiece no se cambió; vuelve a intentar o captúralo a mano.');
+        return;
+      }
       const compsIA = conAcompanantes(mapIaComps(p), insumos);
       set({ nombre: costeo.nombre || p.producto || '', descripcionCliente: p.descripcionCliente || desc, componentes: compsIA });
       // Regla de casa (12-oct): pendientes → catálogo de Compras (ERP), provisional por confirmar.
@@ -157,7 +163,11 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
       // VH-066: si el catálogo central no estuvo, la edge lo dice (`catalogoFuente`);
       // el Asistente especial ya avisaba (#8) y esta pantalla se lo callaba.
       setCatalogoFuente(res.catalogoFuente || null);
-    } catch (err) { setErrIA(String(err?.message || err)); }
+    } catch (err) {
+      // R-02: nunca la jerga del navegador ("… is not a function") en pantalla; el detalle va a la consola.
+      console.error('[Costeador] analizarDescripcion:', err);
+      setErrIA('No se pudo interpretar la descripción (respuesta inesperada de la IA). Tu despiece no se cambió; vuelve a intentar.');
+    }
     finally { setAnalizandoIA(false); }
   }
   // Tipo para la "Vista del mueble": si Voni ya entendió el producto, usa ESE

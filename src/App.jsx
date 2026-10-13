@@ -76,6 +76,8 @@ import { crearPartida } from './datos/partida.js';
 import { normalizarRol, veCostosCosteo } from './datos/roles.js';
 import { guardarRevision, snapshotEmitido } from './datos/revisiones.js';
 import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
+import { leerBorradorCosteo, guardarBorradorCosteo, borrarBorradorCosteo } from './datos/borradorCosteo.js';
+import { crearSeguroDobleClic, firmaAgregado } from './datos/dobleClic.js';
 import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, costearServidor, evaluarEmision, solicitarAprobacionSnapshot } from './nube.js';
 import { calcular, modeloParaPieza, pendientesDeCosteo } from './motor/calculo.js';
 import { calcularCosteoVivo } from './motor/costeoVivo.js';
@@ -211,7 +213,11 @@ export default function App() {
   const [inicioQ, setInicioQ] = useState('');
   const [inicioGrupo, setInicioGrupo] = useState(null);
   const [nav, setNav] = useState([]);                     // historial para "Atrás"
-  const [costeo, setCosteo] = useState(costeoEnBlanco);
+  // Área J · R-05: el despiece del Costeo manual sobrevive una recarga/cierre (borrador en ESTA computadora,
+  // datos/borradorCosteo.js). Antes vivía sólo en memoria y se perdía en silencio.
+  const borradorCosteo = useRef(undefined);
+  if (borradorCosteo.current === undefined) borradorCosteo.current = (() => { try { return leerBorradorCosteo(localStorage); } catch { return null; } })();
+  const [costeo, setCosteo] = useState(() => (borradorCosteo.current ? { ...costeoEnBlanco(), ...borradorCosteo.current.costeo } : costeoEnBlanco()));
   const [aviso, setAviso] = useState(''); // toast "¡Listo!"
   const [voniPaso, setVoniPaso] = useState(1); // paso actual del asistente Voni (persiste al navegar)
 
@@ -323,6 +329,21 @@ export default function App() {
 
   // ---- Sesion / acceso (control de quien entra) ----
   const [sesion, setSesion] = useState(undefined); // undefined=revisando, null=sin sesion, obj=adentro
+  // Área J · R-05: cada cambio del costeo manual queda en esta computadora (sólo con sesión; al salir se borra).
+  useEffect(() => {
+    if (!sesion) return;
+    guardarBorradorCosteo(localStorage, costeo);
+  }, [costeo, sesion]);
+  // …y al volver a la pantalla tras una recarga se DICE que se recuperó (una vez).
+  const avisoBorradorCosteo = useRef(false);
+  useEffect(() => {
+    if (pestania !== 'costeador' || !borradorCosteo.current || avisoBorradorCosteo.current) return;
+    avisoBorradorCosteo.current = true;
+    const h = new Date(borradorCosteo.current.guardado);
+    const hora = Number.isNaN(h.getTime()) ? '' : ` (de las ${h.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })})`;
+    mostrarAviso(`Recuperé el costeo que tenías a medias${hora}: estaba guardado en esta computadora.`, 7000);
+  }, [pestania]);
+
   const [permiso, setPermiso] = useState(undefined); // undefined=revisando, null=sin acceso, 'error'=no se pudo consultar, {rol,nombre}
   const [errorEntrar, setErrorEntrar] = useState('');
   const [recuperando, setRecuperando] = useState(false); // llegó por el enlace de recuperación
@@ -457,6 +478,10 @@ export default function App() {
   // Al resolver, fijar el id cambia `estado.cotizacion` y el autosave vuelve a correr
   // con lo más reciente, así que nada se queda sin guardar.
   const creandoEnVuelo = useRef(false);
+  // Área J · R-01: cuántos guardados de la cotización van en vuelo → la cabecera dice "Guardando…" (antes, con la
+  // red lenta, decía "En línea" durante 10 s aunque el cambio todavía no llegaba a la nube).
+  const guardadosEnVuelo = useRef(0);
+  const [guardandoNube, setGuardandoNube] = useState(false);
   const avisoNubeCaida = useRef(false);
 
   // VH-148 · CONTROL OPTIMISTA (detrás de bandera: VITE_CONTROL_OPTIMISTA=1 o
@@ -527,6 +552,7 @@ export default function App() {
       creandoEnVuelo.current = true;
     }
     let r;
+    guardadosEnVuelo.current += 1; setGuardandoNube(true);
     try {
       // VH-148: la versión desde la que se edita (o la fresca, al volver a aplicar). Sólo viaja con la
       // bandera prendida y una versión conocida; si no, la llamada es la de siempre (dos argumentos).
@@ -537,6 +563,8 @@ export default function App() {
       });
     } finally {
       creandoEnVuelo.current = false;
+      guardadosEnVuelo.current = Math.max(0, guardadosEnVuelo.current - 1);
+      if (!guardadosEnVuelo.current) setGuardandoNube(false);
     }
     // Se empezó de cero mientras guardaba: NADA de lo guardado vale para la cotización viva.
     if (epocaCot.current !== epoca) return { id: null, guardado: false, motivo: 'epoca' };
@@ -551,7 +579,15 @@ export default function App() {
     // y se avisa UNA vez por racha; al volver, el punto regresa a "En línea".
     // VH-173: la nube respondió pero RECHAZÓ la cotización. No es "sin conexión": se dice el motivo y que el trabajo
     // sigue sólo en esta computadora (no se reintenta en silencio como si fuera la red).
-    if (r.motivo === 'rechazado') {
+    // Área J · R-07: la sesión ya no sirve. No es la red ni una fila ajena: se dice, se conserva el id y lo local,
+    // y al volver a entrar el siguiente guardado va a LA MISMA cotización.
+    if (r.motivo === 'sesion') {
+      setNubeEstado('rechazado');
+      if (!avisoNubeCaida.current) {
+        avisoNubeCaida.current = true;
+        mostrarAviso('Tu sesión expiró o ya no es válida: la cotización NO se guardó en la nube. Sigue en esta computadora; sal y vuelve a entrar para guardarla.', 12000);
+      }
+    } else if (r.motivo === 'rechazado') {
       setNubeEstado('rechazado');
       if (!avisoNubeCaida.current) {
         avisoNubeCaida.current = true;
@@ -798,6 +834,7 @@ export default function App() {
   }
   async function hacerLogout() {
     await salir();
+    borrarBorradorCosteo(localStorage);   // R-05: el borrador técnico no se queda en una computadora sin sesión
     setPestania('inicio');
     // Al salir se borra de esta computadora todo lo de Direccion.
     setEstado((e) => limpiarSensibles(e));
@@ -805,6 +842,17 @@ export default function App() {
 
   // ---- Nube (datos compartidos) ----
   const [nubeEstado, setNubeEstado] = useState('conectando'); // conectando | conectado | sin-conexion | rechazado (VH-173)
+  // Área J · R-09: al VOLVER la red se reintenta el guardado solo (evento 'online' y, mientras siga "Sin conexión",
+  // cada 30 s). Antes la cotización se quedaba sólo en esta computadora hasta que la persona editara otra cosa.
+  const guardarEnNubeRef = useRef(null);
+  guardarEnNubeRef.current = guardarEnNube;
+  useEffect(() => {
+    if (nubeEstado !== 'sin-conexion' || !sesion?.user?.email) return;
+    const reintentar = () => { guardarEnNubeRef.current?.(); };
+    window.addEventListener('online', reintentar);
+    const t = setInterval(reintentar, 30000);
+    return () => { window.removeEventListener('online', reintentar); clearInterval(t); };
+  }, [nubeEstado, sesion]);
   const aplicandoRemoto = useRef(false);   // true = el cambio vino de la nube, no re-subir
   const ultimoCompartido = useRef('');     // JSON de lo ultimo compartido, para no reescribir igual
   const timerNube = useRef(null);
@@ -1078,9 +1126,15 @@ export default function App() {
     };
   }
 
+  // Área J · R-06: un doble clic en "Agregar" no mete dos partidas idénticas (datos/dobleClic.js).
+  const seguroAgregar = useRef(null);
+  if (!seguroAgregar.current) seguroAgregar.current = crearSeguroDobleClic();
+  const agregadoRepetido = (partidas) => seguroAgregar.current(firmaAgregado(partidas));
+
   // Asistente y costeador de línea sencillo: una partida.
   function agregarDesdeAsistente(costeo, cantidad, precio, margen) {
     const p = partidaDeCosteo(costeo, cantidad, precio, margen);
+    if (agregadoRepetido([p])) return;
     sumarPartidas([p]);
     mostrarAviso(`Agregado: ${p.nombre}`);
   }
@@ -1101,6 +1155,7 @@ export default function App() {
       costoDerivado: veCostos,
       precioUnitario: precioDeLista(a.lista),
     }, { veCostos, origen: 'addon' }));
+    if (agregadoRepetido([base, ...extras])) return;
     sumarPartidas([base, ...extras]);
     mostrarAviso(extras.length ? `Agregado: ${base.nombre} + ${extras.length} accesorio(s)` : `Agregado: ${base.nombre}`);
   }
@@ -1297,6 +1352,7 @@ export default function App() {
       cantidad, costoUnitario: costoDeBanco(item), costoDerivado: true, precioUnitario: item.precio,
       margen: margenDeBanco(item), deBanco: true, precioReal: true,
     }, { veCostos, origen: 'banco' });
+    if (agregadoRepetido([partida])) return;
     setEstado((e) => ({
       ...e,
       cotizacion: { ...e.cotizacion, partidas: [...(e.cotizacion.partidas || []), partida] },
@@ -1318,6 +1374,7 @@ export default function App() {
       producto_id: r.producto_id ?? null, producto_version_id: r.producto_version_id ?? null,
       lista_precio_item_id: r.lista_precio_item_id ?? null, source_type: r.source_type ?? null, source_ref: r.source_ref ?? null,
     }, { veCostos, origen: 'linea' });
+    if (agregadoRepetido([partida])) return;
     setEstado((e) => ({
       ...e,
       cotizacion: { ...e.cotizacion, partidas: [...(e.cotizacion.partidas || []), partida] },
@@ -1375,9 +1432,9 @@ export default function App() {
                 Mi cotización <span className="btn-cot-n">{nPartidas}</span>
               </button>
             )}
-            <span className="conexion" data-testid="nube-estado" data-estado={nubeEstado} title={nubeEstado === 'conectado' ? 'Conectado: los cambios se comparten' : nubeEstado === 'sin-conexion' ? 'Sin conexión: se guarda en esta computadora' : nubeEstado === 'rechazado' ? 'La nube rechazó el último guardado: el trabajo está sólo en esta computadora' : 'Conectando…'}>
+            <span className="conexion" data-testid="nube-estado" data-estado={nubeEstado} data-guardando={guardandoNube ? '1' : '0'} title={guardandoNube ? 'Guardando en la nube… (lo tuyo ya está en esta computadora)' : nubeEstado === 'conectado' ? 'Conectado: los cambios se comparten' : nubeEstado === 'sin-conexion' ? 'Sin conexión: se guarda en esta computadora' : nubeEstado === 'rechazado' ? 'La nube rechazó el último guardado: el trabajo está sólo en esta computadora' : 'Conectando…'}>
               <span className="punto" style={{ background: nubeEstado === 'conectado' ? '#3fbf8f' : nubeEstado === 'sin-conexion' ? '#B8912F' : nubeEstado === 'rechazado' ? '#B42318' : '#8a8480' }} />
-              <span className="conexion-txt">{nubeEstado === 'conectado' ? 'En línea' : nubeEstado === 'sin-conexion' ? 'Sin conexión' : nubeEstado === 'rechazado' ? 'No guardada' : '...'}</span>
+              <span className="conexion-txt">{guardandoNube ? 'Guardando…' : nubeEstado === 'conectado' ? 'En línea' : nubeEstado === 'sin-conexion' ? 'Sin conexión' : nubeEstado === 'rechazado' ? 'No guardada' : '...'}</span>
             </span>
             {/* Cuenta: lo que no es trabajo (guía, usuarios, contraseña) va en un menú;
                 Salir se queda a la vista. */}
