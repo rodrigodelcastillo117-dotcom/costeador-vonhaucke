@@ -1,6 +1,43 @@
 import { describe, it, expect } from 'vitest';
-import { armadoBancaDobleAppLT } from './appltArmado.js';
+import { armadoBancaDobleAppLT, topologiaBancaAppLT, islasAppLT } from './appltArmado.js';
 import { APPLT_DATOS } from './appltDatos.js';
+
+// ACOMODO 10 · VH-A10-07: la topología de cada banca que acomoda Cotizar, según la guía (c = usuarios / 2 en doble,
+// cubiertas de 1200/1500/1800, 1 acometida ATACM por isla). Antes el acomodo sentaba lo que viniera (7 usuarios =
+// 4 + 3) sin decir que esa banca no existe en la guía.
+describe('VH-A10-07 · topología de banca APP LT en el acomodo', () => {
+  it('módulos del catálogo: 8u 4800 = 4 cubiertas de 1200; 6u 4500 = 3 de 1500; 1u 1500×600 sencilla', () => {
+    expect(topologiaBancaAppLT({ w: 4800, d: 1200, usuarios: 8 })).toMatchObject({ tipo: 'doble', cubiertas: 4, largoCubiertaMM: 1200, acometidas: 1, dentroDeGuia: true });
+    expect(topologiaBancaAppLT({ w: 4500, d: 1200, usuarios: 6 })).toMatchObject({ tipo: 'doble', cubiertas: 3, largoCubiertaMM: 1500, dentroDeGuia: true });
+    expect(topologiaBancaAppLT({ w: 1500, d: 600, usuarios: 1 })).toMatchObject({ tipo: 'sencilla', cubiertas: 1, largoCubiertaMM: 1500, dentroDeGuia: true });
+  });
+  it('fuera de guía, con el motivo: usuarios impares en doble, cubierta de 1050, fondo raro', () => {
+    const impar = topologiaBancaAppLT({ w: 6000, d: 1200, usuarios: 7 });
+    expect(impar.dentroDeGuia).toBe(false); expect(impar.pendientes.join(' ')).toMatch(/par|2 usuarios por cubierta/);
+    const l1050 = topologiaBancaAppLT({ w: 4200, d: 1200, usuarios: 8 });
+    expect(l1050.dentroDeGuia).toBe(false); expect(l1050.pendientes.join(' ')).toMatch(/1200, 1500 y 1800/);
+    expect(topologiaBancaAppLT({ w: 4800, d: 900, usuarios: 8 }).dentroDeGuia).toBe(false);
+    expect(topologiaBancaAppLT({ w: 4800, d: 1200, usuarios: null }).dentroDeGuia).toBe(false);
+  });
+  it('islas del acomodo: cada banca APP LT es una isla con su acometida; las de otra línea no se juzgan', () => {
+    const piezas = [
+      { id: 'a', nombre: 'Módulo operativo App LT 8 usuarios (biombo cristal)', relation_role: 'ANCHOR_WORKSTATION', w: 4800, d: 1200, user_capacity: 8 },
+      { id: 'b', nombre: 'Módulo operativo App LT 8 usuarios (biombo cristal)', relation_role: 'ANCHOR_WORKSTATION', w: 4800, d: 1200, user_capacity: 8 },
+      { id: 'c', nombre: 'Estación Cirque 4 puestos', relation_role: 'ANCHOR_WORKSTATION', w: 3000, d: 1400, user_capacity: 4 },
+      { id: 's', nombre: 'Silla operativa WIN', relation_role: 'WORK_SEAT' },
+    ];
+    const r = islasAppLT(piezas, [{ id: 'a' }, { id: 'b' }, { id: 'c' }]);
+    expect(r.islas.map((i) => i.id)).toEqual(['a', 'b']);
+    expect(r.acometidas).toBe(2);
+    expect(r.fueraDeGuia).toEqual([]);
+    // "Sólo 2 acometidas si los 8 usuarios están en dos islas separadas de 4" (Dirección): dos bancas de 4 → 2.
+    const dos = islasAppLT([
+      { id: 'x', nombre: 'Módulo operativo App LT 4 usuarios', relation_role: 'ANCHOR_WORKSTATION', w: 3000, d: 1200, user_capacity: 4 },
+      { id: 'y', nombre: 'Módulo operativo App LT 4 usuarios', relation_role: 'ANCHOR_WORKSTATION', w: 3000, d: 1200, user_capacity: 4 },
+    ], []);
+    expect(dos.acometidas).toBe(2);
+  });
+});
 
 describe('APP LT · banca doble según la guía ESP-DCC-IDP-003', () => {
   it('6U de 1200 = EXACTAMENTE el pedido real 38247 (TATO63612AB001) y su lista $12,380', () => {

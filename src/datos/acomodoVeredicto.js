@@ -124,7 +124,7 @@ export function notasCapacidad(layoutSpec) {
   return uniq(out);
 }
 
-export function explicarAcomodo({ plan = null, evaluacion = null, programaListo = true, motivoPrograma = '', referencias = [], preliminar = false, nombresSinColocar = [] } = {}) {
+export function explicarAcomodo({ plan = null, evaluacion = null, programaListo = true, motivoPrograma = '', referencias = [], preliminar = false, nombresSinColocar = [], huellasEstandar = 0, bancas = null } = {}) {
   const spec = plan?.layoutSpec || null;
   const statusSrv = String(spec?.status || '').toUpperCase() || null;
   const issues = (evaluacion?.issues || plan?.invariantes?.issues || spec?.validation?.issues || []).filter(Boolean);
@@ -176,11 +176,30 @@ export function explicarAcomodo({ plan = null, evaluacion = null, programaListo 
   // 6 · Evidencia de medidas y productos.
   const nRef = Array.isArray(referencias) ? referencias.length : 0;
   const evOk = nRef === 0 && !preliminar;
+  // VH-A10-06: la sillería del catálogo no trae medida; su huella estándar (600 × 600) se DICE supuesta. No cambia
+  // el estado del bloque (contrato VH-092), sólo deja de ser silenciosa.
+  const nEst = Number(huellasEstandar) || 0;
+  const notaEstandar = nEst > 0 ? `${nEst} silla(s) con huella estándar 600 × 600, supuesta: el catálogo no trae su medida` : '';
   bloques.push({ clave: 'evidencia', titulo: 'Evidencia de medidas', ok: evOk,
-    texto: evOk ? 'medidas y productos con identidad de catálogo' : uniq([
+    texto: uniq([
+      evOk ? 'medidas y productos con identidad de catálogo' : '',
       nRef ? `${nRef} mueble(s) sin identidad de catálogo ni precio` : '',
       preliminar ? 'medidas supuestas por tipo o productos sin precio autorizado' : '',
+      notaEstandar,
     ]).join(' · ') });
+  // 6b · VH-A10-07: bancas APP LT según la guía (islas, acometidas; fuera de guía → consultar con Diseño). Sólo
+  // aparece si el acomodo tiene bancas APP LT.
+  const islas = Array.isArray(bancas?.islas) ? bancas.islas : [];
+  if (plan && islas.length) {
+    const fuera = Array.isArray(bancas.fueraDeGuia) ? bancas.fueraDeGuia : [];
+    const usuarios = islas.filter((i) => i.dentroDeGuia).map((i) => i.usuarios);
+    const largos = uniq(islas.filter((i) => i.dentroDeGuia).map((i) => `${(i.largoCubiertaMM / 1000).toFixed(2)} m`));
+    const nAc = Number(bancas.acometidas) || 0;
+    bloques.push({ clave: 'bancas', titulo: 'Bancas APP LT (guía)', ok: fuera.length === 0,
+      texto: fuera.length
+        ? uniq(fuera.map((f) => `«${f.nombre}»: ${(f.pendientes || []).join(' ')} Consultar con Diseño.`)).join(' · ')
+        : `${islas.length} isla${islas.length === 1 ? '' : 's'} (${usuarios.join(' + ')} usuarios; cubiertas de ${largos.join(', ')}) · ${nAc} acometida${nAc === 1 ? '' : 's'} ATACM, 1 por isla` });
+  }
   // 7 · Resultado publicable.
   const todoOk = bloques.every((b) => b.ok === true);
   const publicable = !!plan && todoOk && renderReady && (statusSrv === 'PASS' || statusAgg === 'PASS' || (!statusSrv && !statusAgg));

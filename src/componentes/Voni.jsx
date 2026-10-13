@@ -15,6 +15,7 @@ import EmpezarEspacio from './EmpezarEspacio.jsx';
 import ConfirmarLectura from './ConfirmarLectura.jsx';
 import { leerPlanoDeArchivo } from '../datos/leerPlanoArchivo.js';
 import { areasCanonicas, bloqueGeometria } from '../datos/floorPlan.js';
+import { areasDelNivelUsado } from '../datos/planoLeido.js';
 import { proponerProgramaDelPlano, aplicarPrograma, claveRecomendacion } from '../datos/programaRealDelPlano.js';
 import { reconciliarNuevasConPrograma } from '../datos/reconciliarPartidas.js';
 import { requirementsDeBrief } from '../datos/programaBrief.js';
@@ -160,7 +161,7 @@ export default function Voni({
     const problemas = (r.resumen?.problemas || []).filter((t) => !(puertasConfirmadas && /puerta/i.test(t)));
     // L1: documento con varias plantas → se usa la primera (las áreas de otros niveles no se mezclan en la misma planta).
     const niveles = Array.isArray(r.resumen?.niveles) ? r.resumen.niveles : [];
-    const areasUsadas = niveles.length > 1 ? r.areas.filter((a) => !a.nivel || a.nivel === niveles[0]) : r.areas;
+    const areasUsadas = areasDelNivelUsado(r.areas, niveles);
     const confirmada = { en: new Date().toISOString(), nivel: r.resumen?.nivel || null, m2: r.resumen?.m2 ?? null,
       cuartos: areasUsadas.length, cotas: r.resumen?.cotas ?? null, problemas,
       ...(niveles.length > 1 ? { nivelUsado: niveles[0], nivelesDocumento: niveles } : {}),

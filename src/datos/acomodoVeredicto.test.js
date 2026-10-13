@@ -109,3 +109,40 @@ dCap('VH-120 · notasCapacidad', () => {
     eCap(notasCapacidad({ validation: {} })).toEqual([]);
   });
 });
+
+// ACOMODO 10 · VH-A10-06: la sillería del catálogo NO trae medida; el acomodo la dibuja con la huella estándar
+// 600 × 600. Eso no vuelve PRELIMINAR el acomodo (contrato VH-092), pero tampoco se calla: el bloque de evidencia
+// dice cuántas piezas usan esa huella y que es supuesta.
+describe('VH-A10-06/07 · evidencia de medidas y bancas APP LT en el veredicto', () => {
+  const plan = { layoutSpec: { status: 'PASS', validation: { issues: [], render_ready: true, semantic_gate: { sem_status: 'PASS', semantic_pass: true } } }, render_ready: true };
+  it('con sillas de huella estándar: el bloque de evidencia lo dice y sigue en verde', () => {
+    const v = explicarAcomodo({ plan, evaluacion: { status: 'PASS', issues: [], unplaced: [] }, huellasEstandar: 21 });
+    const ev = v.bloques.find((b) => b.clave === 'evidencia');
+    expect(ev.ok).toBe(true);
+    expect(ev.texto).toMatch(/21 silla\(s\) con huella estándar 600 × 600/);
+    expect(ev.texto).toMatch(/supuesta/);
+    expect(v.estado).toBe('PASS');
+  });
+  // VH-A10-07: bloque de bancas APP LT (islas, acometidas, guía).
+  it('bancas dentro de guía: islas y acometidas en el veredicto, sin bloquear', () => {
+    const bancas = { islas: [{ id: 'a', nombre: 'Módulo operativo App LT 8 usuarios', usuarios: 8, cubiertas: 4, largoCubiertaMM: 1200, dentroDeGuia: true, pendientes: [] }], acometidas: 1, fueraDeGuia: [] };
+    const v = explicarAcomodo({ plan, evaluacion: { status: 'PASS', issues: [], unplaced: [] }, bancas });
+    const b = v.bloques.find((x) => x.clave === 'bancas');
+    expect(b.ok).toBe(true);
+    expect(b.texto).toMatch(/1 isla/); expect(b.texto).toMatch(/1 acometida ATACM/);
+    expect(v.estado).toBe('PASS');
+  });
+  it('banca fuera de guía: no se publica y se dice por qué', () => {
+    const bancas = { islas: [{ id: 'a', nombre: 'Banca doble 7 usuarios', usuarios: 7, dentroDeGuia: false, pendientes: ['7 usuarios en banca doble no está en la guía (2 usuarios por cubierta: debe ser par).'] }], acometidas: 0, fueraDeGuia: [{ id: 'a', nombre: 'Banca doble 7 usuarios', pendientes: ['7 usuarios en banca doble no está en la guía (2 usuarios por cubierta: debe ser par).'] }] };
+    const v = explicarAcomodo({ plan, evaluacion: { status: 'PASS', issues: [], unplaced: [] }, bancas });
+    const b = v.bloques.find((x) => x.clave === 'bancas');
+    expect(b.ok).toBe(false);
+    expect(b.texto).toMatch(/Banca doble 7 usuarios/); expect(b.texto).toMatch(/Diseño/);
+    expect(v.estado).toBe('REVISION');
+    expect(v.bloques.find((x) => x.clave === 'publicable').ok).toBe(false);
+  });
+  it('sin sillas estándar el texto no cambia', () => {
+    const v = explicarAcomodo({ plan, evaluacion: { status: 'PASS', issues: [], unplaced: [] } });
+    expect(v.bloques.find((b) => b.clave === 'evidencia').texto).toBe('medidas y productos con identidad de catálogo');
+  });
+});

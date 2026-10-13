@@ -90,8 +90,20 @@ export function layoutDoubleFace(aw, ad, n) {
 
 // --- MEETING_TABLE: topología canónica = 2 lados largos + 2 cabeceras. ----------
 // Para cap 10 → 4+4+1+1. Ancla centrada en (SEAT,SEAT). Kit (w+2SEAT)×(d+2SEAT).
-export function layoutMeeting(aw, ad, n) {
-  const nHeads = n >= 4 ? 2 : 0;
+// ACOMODO 10 · VH-A10-03: la topología CANÓNICA (P0.2c, regla curada: lados largos + 2 cabeceras) se queda.
+// Se agrega la variante SÓLO LADOS LARGOS (`soloLadosLargos`), que el solver prueba DESPUÉS de la canónica y
+// sólo si ésta no deja a todas las sillas con su acceso: cada lado largo recibe una silla cada PITCH_JUNTAS
+// (650 mm, la separación de siempre del solver). Es lo que dibujan los planos del laboratorio (C3 "3 arriba
+// + 3 abajo", C2 "3+3", C5 "6+6"): en C5 la cabecera de la Eclipse quedaba frente a la puerta con 100 mm.
+export const PITCH_JUNTAS = 650;
+export const VARIANTE_LADOS_LARGOS = 'LADOS_LARGOS';
+const sillasPorLadoLargo = (aw) => Math.max(1, Math.floor(num(aw) / PITCH_JUNTAS));
+/** ¿Existe la variante sólo-lados-largos y es distinta de la canónica? (n con cabeceras que caben en los lados) */
+export function admiteLadosLargos(aw, n) {
+  return n >= 4 && n <= 2 * sillasPorLadoLargo(aw);
+}
+export function layoutMeeting(aw, ad, n, { soloLadosLargos = false } = {}) {
+  const nHeads = n >= 4 && !(soloLadosLargos && admiteLadosLargos(aw, n)) ? 2 : 0;
   const nLong = n - nHeads;
   const nA = Math.ceil(nLong / 2), nB = nLong - nA;
   const seats = [];
@@ -129,10 +141,10 @@ export function layoutDesk(aw, ad, n, roles = null) {
 
 // Selecciona el layout de asientos según la topología del perfil. `roles`: relation_role de las
 // sillas en orden (sólo lo usa DESK para distinguir ejecutivo de visitas).
-export function layoutDeTopologia(topology, aw, ad, n, roles = null) {
+export function layoutDeTopologia(topology, aw, ad, n, roles = null, opciones = {}) {
   switch (topology) {
     case 'DOUBLE_FACE': return layoutDoubleFace(aw, ad, n);
-    case 'MEETING_TABLE': return layoutMeeting(aw, ad, n);
+    case 'MEETING_TABLE': return layoutMeeting(aw, ad, n, { soloLadosLargos: opciones.variante === VARIANTE_LADOS_LARGOS });
     case 'DESK': return layoutDesk(aw, ad, n, roles);
     case 'SINGLE_FACE':
     case 'RECEPTION':

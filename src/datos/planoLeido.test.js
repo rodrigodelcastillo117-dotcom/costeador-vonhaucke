@@ -287,6 +287,46 @@ describe('L1 · columnas y niveles de la lectura', () => {
     expect(r.areas.map((a) => a.nivel)).toEqual(['NIVEL 1', 'NIVEL 2']);
     expect(resumenLectura(L).niveles).toEqual(['NIVEL 1', 'NIVEL 2']);
   });
+  // ACOMODO 10 · VH-A10-01 (lab C4 "dos niveles"): las dos plantas vienen dibujadas en el MISMO sistema de
+  // coordenadas (una por hoja). El anidamiento, las columnas y las puertas se calculaban contra TODOS los cuartos
+  // del documento: la DIRECCIÓN del nivel 2 quedaba como "cuarto" (obstáculo de 6 × 5 m) dentro de la SALA DE
+  // JUNTAS del nivel 1, la columna del nivel 2 caía en la RECEPCIÓN y las puertas de la hoja 2 en cuartos de la 1.
+  it('VH-A10-01: cuartos de niveles distintos no se anidan ni se reparten columnas o puertas', () => {
+    const L = { envolvente: { ancho: 16000, largo: 10000 }, tieneCotas: true,
+      areas: [
+        rect('SALA DE JUNTAS', 8000, 0, 8000, 5000, { nivel: 'NIVEL 1', pagina: 1 }),
+        rect('OPERATIVA 2', 0, 0, 10000, 10000, { nivel: 'NIVEL 2', pagina: 2 }),
+        rect('DIRECCIÓN', 10000, 0, 6000, 5000, { nivel: 'NIVEL 2', pagina: 2 }),
+      ],
+      columnas: [{ x: 12000, y: 2000, lado: 500, clave: 'P1', nivel: 'NIVEL 2', pagina: 2 }],
+      puertas: [{ x: 10000, y: 2600, ancho: 1150, tieneBarrido: true, bisagraX: 10000, bisagraY: 2030, anguloCerradaDeg: 90, sentido: 'antihorario', barridoDeg: 90, pagina: 2 }] };
+    const r = areasDeLectura(L);
+    const junta = r.areas.find((a) => a.nombre === 'SALA DE JUNTAS');
+    const dir = r.areas.find((a) => a.nombre === 'DIRECCIÓN');
+    expect(junta.obstaculos).toBeUndefined();          // ni "cuarto" del nivel 2, ni su columna, ni su puerta
+    expect(junta.contiene).toBeUndefined();
+    expect(junta.puertas).toBeUndefined();
+    expect(dir.dentroDe).toBeUndefined();
+    // Dentro de su propio nivel todo sigue igual: la columna y la puerta son de DIRECCIÓN.
+    expect((dir.obstaculos || []).some((o) => o.tipo === 'columna' && o.clave === 'P1')).toBe(true);
+    expect(dir.puertas).toHaveLength(1);
+    // Encimarse con un cuarto de OTRO nivel no es un problema de lectura.
+    expect(revisarAreas(L).some((t) => /se enciman/.test(t))).toBe(false);
+  });
+  it('VH-A10-01: en un mismo nivel el anidamiento y las columnas no cambian', () => {
+    const L = { envolvente: { ancho: 20000, largo: 12000 }, tieneCotas: true, puertas: [],
+      areas: [rect('OPERATIVA', 0, 0, 11000, 7000, { nivel: 'NIVEL 1' }), rect('ISLA', 1000, 1000, 4000, 3000, { dentroDe: 'OPERATIVA', nivel: 'NIVEL 1' })],
+      columnas: [{ x: 2000, y: 2000, lado: 400, clave: 'P2', nivel: 'NIVEL 1' }] };
+    const r = areasDeLectura(L);
+    expect(r.areas.find((a) => a.nombre === 'ISLA').dentroDe).toBe('OPERATIVA');
+    expect(r.areas.find((a) => a.nombre === 'OPERATIVA').obstaculos.some((o) => o.tipo === 'cuarto')).toBe(true);
+    expect(r.areas.find((a) => a.nombre === 'ISLA').obstaculos.some((o) => o.clave === 'P2')).toBe(true);
+  });
+  it('VH-A10-01: la suma de m² contra el contorno se mide por nivel', () => {
+    const L = { envolvente: { ancho: 16000, largo: 10000 }, tieneCotas: true, puertas: [], columnas: [],
+      areas: [rect('N1', 0, 0, 16000, 10000, { nivel: 'NIVEL 1' }), rect('N2', 0, 0, 16000, 10000, { nivel: 'NIVEL 2' })] };
+    expect(revisarAreas(L).some((t) => /suman/.test(t))).toBe(false);
+  });
   it('sin columnas ni niveles nada cambia (lectura vieja)', () => {
     const L = { envolvente: { ancho: 20000, largo: 12000 }, tieneCotas: true, areas: [rect('OPERATIVA', 0, 0, 11000, 7000)], puertas: [] };
     const r = areasDeLectura(L);

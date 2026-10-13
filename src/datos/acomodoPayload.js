@@ -129,6 +129,9 @@ export function construirPayloadAcomodo({ partidas = [], areasM = [], piezasExtr
     descartadosSugeridos,
     referencias,                             // VH-092: piezas sin identidad ni precio (UNRESOLVED_PRODUCT): bloquean VALIDADO
     preliminar,                              // VH-092: alguna pieza no CONFIRMADA o con huella INFERIDA
+    // VH-A10-06: cuántas piezas usan la huella estándar de silla (supuesta) y cuántas la medida de la ficha del catálogo.
+    huellasEstandar: piezasLimpias.filter((pz) => pz.huella_fuente === 'ESTANDAR').length,
+    huellasCatalogo: piezasLimpias.filter((pz) => pz.huella_fuente === 'CATALOGO').length,
     resumenElegibilidad: {
       confirmadas: piezasLimpias.filter((pz) => pz.elegibilidad === 'CONFIRMADO').length,
       preliminares: piezasLimpias.filter((pz) => pz.elegibilidad === 'PRELIMINAR').length,

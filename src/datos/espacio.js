@@ -131,10 +131,22 @@ const TOPE_PARTIDA = 300;
 //   A 'CONFIRMADO'  identidad de catálogo válida + precio/snapshot → mobiliario cotizado.
 //   B 'PRELIMINAR'  identidad válida sin precio autorizado (programa en borrador).
 //   C 'REFERENCIA'  sin identidad verificable → NO entra al solver (UNRESOLVED_PRODUCT).
-//  Y la PROCEDENCIA de la huella: SPATIAL_SPEC > PARTIDA (w/d) > NOMBRE (medidas en el
-//  texto) > INFERIDA (huella por tipo). Un acomodo con huellas INFERIDAS es PRELIMINAR.
+//  Y la PROCEDENCIA de la huella: SPATIAL_SPEC > PARTIDA (w/d) > CATALOGO (ficha del banco, VH-A10-06) >
+//  NOMBRE (medidas en el texto) > INFERIDA (huella por tipo). Un acomodo con huellas INFERIDAS es PRELIMINAR.
+//  La silla sin medida de catálogo usa la ESTANDAR (600 × 600), que se dice supuesta pero no es PRELIMINAR.
 // ---------------------------------------------------------------------------
 const BANCO_IDS = new Set(BANCO.map((b) => b.id));
+const BANCO_POR_ID = new Map(BANCO.map((b) => [String(b.id), b]));
+// VH-A10-06: ficha del catálogo de la partida (por su id de banco), para tomar su medida REAL cuando la partida no
+// trae ancho × fondo. Sólo ids exactos: nunca se busca "algo parecido" por nombre.
+export function fichaDeCatalogo(pt = {}) {
+  for (const k of [pt.piezaId, pt.bancoId, pt.source_ref]) {
+    const b = k != null ? BANCO_POR_ID.get(String(k)) : null;
+    if (b) return b;
+  }
+  return null;
+}
+const esGuardaDeCatalogo = (ficha) => /guarda|archivo/i.test(String(ficha?.categoria || ''));
 export function identidadDePartida(pt = {}) {
   if (pt.productoId || pt.producto_id || pt.producto_version_id || pt.lista_precio_item_id) return true;
   const b = pt.bancoId || pt.piezaId;
@@ -167,7 +179,17 @@ export function expandirPiezas(partidas, tope = 600) {
     if (esAncla(relInferida) && (tipo === 'mampara' || tipo === 'mueble')) {
       tipo = ({ ANCHOR_WORKSTATION: 'escritorio', ANCHOR_DESK: 'escritorio', ANCHOR_MEETING: 'juntas', ANCHOR_RECEPTION: 'recepcion' })[relInferida] || tipo;
     }
+    const ficha = fichaDeCatalogo(pt);
+    if (tipo === 'mueble' && esGuardaDeCatalogo(ficha)) tipo = 'guarda';
     let w = pt.w, d = pt.d;
+    // VH-A10-06 (P0-05): precedencia de la huella SPATIAL_SPEC > PARTIDA > CATALOGO (ficha del banco) > NOMBRE >
+    // INFERIDA. Antes la ficha no se consultaba: una partida del banco con el nombre editado caía a la huella por
+    // tipo (1.50 × 0.75 m para un bench de 4.50 × 1.20). En una guarda la ficha trae el alto (900 × 1570 × 450):
+    // la huella es frente × fondo.
+    if (tipo !== 'asiento' && (!w || !d) && ficha?.medidas) {
+      const m = dimensionesEnNombre(ficha.medidas, esGuardaDeCatalogo(ficha) ? 'guarda' : tipo);
+      if (m) { w = w || m.w; d = d || m.d; if (huellaFuente === 'INFERIDA') huellaFuente = 'CATALOGO'; }
+    }
     if (tipo !== 'asiento' && (!w || !d)) {
       const explicitas = dimensionesEnNombre(pt.nombre, tipo);
       if (explicitas) { w = w || explicitas.w; d = d || explicitas.d; if (huellaFuente === 'INFERIDA') huellaFuente = 'NOMBRE'; }
@@ -194,6 +216,8 @@ export function expandirPiezas(partidas, tope = 600) {
         nombre: pt.nombre,
         w, d, tipo,
         ruta: pt.ruta || null,
+        // VH-A10-07: la línea viaja para juzgar la banca contra su guía (APP LT); no entra al program_hash.
+        ...(pt.linea ? { linea: pt.linea } : {}),
         productoId: pt.productoId || pt.producto_id || null,
         producto_version_id: productoVersionId,
         // VH-092: grupo por DESTINO cuando la partida no trae grupo (las sillas sueltas de

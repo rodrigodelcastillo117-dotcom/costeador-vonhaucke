@@ -9,8 +9,8 @@
 //      inyectado y su texto corresponde EXACTAMENTE a la transformación aplicada:
 //        · "quitar N piezas"      → quita exactamente esas piezas.
 //        · "mover a otra área"    → reasigna el grupo a una SEGUNDA área real.
-//        · "mesa más chica"       → reduce SÓLO esa mesa.
-//        · "estación de N puestos"→ reduce SÓLO esa estación.
+//        · "menos sillas"         → la MISMA mesa con menos sillas, en pares (VH-A10-05).
+//        · "banca de N usuarios"  → menos cubiertas de la MISMA medida de guía (VH-A10-05).
 //      Sólo se muestra la opción si la simulación DEMUESTRA mejora, y el texto dice
 //      el resultado verificado ("caben las 10 sillas" / "caben 8 de 10"). Si ninguna
 //      opción mejora: `sin_opcion` lo dice claramente. Nunca agranda áreas ni borra
@@ -241,37 +241,51 @@ export function mensajeVendedor(areas = [], piezas = [], sol = {}, opts = {}) {
     break;
   }
 
-  // B · mesa más chica (sólo la mesa de juntas que falló más grande).
+  // B · VH-A10-05: MENOS PERSONAS EN LA MISMA MESA (la mesa de juntas que falló más grande). Antes se "verificaba"
+  // una mesa de 0.6 × su largo (Eclipse 4.80 → 2.88 m) que no existe en el catálogo y se le proponía al vendedor.
+  // Ahora la mesa es la misma (medida real) y sólo baja el número de sillas, en pares (la gente se sienta
+  // enfrentada). Se prueban de más a menos y se queda la mayor que la simulación demuestre.
   const mesaFallo = unplaced.map((u) => byId.get(String(u.anchorId))).filter((a) => a && a.relation_role === 'ANCHOR_MEETING').sort((x, y) => num(y.w) - num(x.w))[0];
   if (mesaFallo) {
-    const nuevoW = Math.max(1200, Math.round(num(mesaFallo.w) * 0.6));
-    const capN = Math.max(2, Math.floor(num(mesaFallo.user_capacity || 2) / 2));
     const grupo = mesaFallo.functional_group_id;
-    const sillas = piezas.filter((p) => p.functional_group_id === grupo && esSilla(p.relation_role));
-    const quitar = new Set(sillas.slice(capN).map((p) => String(p.id)));
-    candidatas.push({
-      id: 'mesa_mas_chica', grupo,
-      base: `Cambiar la mesa de ${(num(mesaFallo.w) / 1000).toFixed(2)} m por una de ${(nuevoW / 1000).toFixed(2)} m`,
-      aplicar: (as, ps) => ({ areas: as, piezas: ps.map((p) => (String(p.id) === String(mesaFallo.id) ? { ...p, w: nuevoW, user_capacity: capN } : p)).filter((p) => !quitar.has(String(p.id))) }),
-    });
+    const sillasMesa = piezas.filter((p) => p.functional_group_id === grupo && esSilla(p.relation_role));
+    const n0 = sillasMesa.length;
+    for (let capN = n0 - (n0 % 2 === 0 ? 2 : 1); capN >= 2; capN -= 2) {
+      const quitar = new Set(sillasMesa.slice(capN).map((p) => String(p.id)));
+      candidatas.push({
+        id: `mesa_menos_sillas_${capN}`, grupo, capN, cap0: n0,
+        base: `Dejar ${capN} sillas (de ${n0}) en la mesa de ${(num(mesaFallo.w) / 1000).toFixed(2)} m`,
+        aplicar: (as, ps) => ({ areas: as, piezas: ps.filter((p) => !quitar.has(String(p.id))) }),
+      });
+    }
   }
 
-  // C · estación con menos puestos (la workstation que falló más grande). Prueba el
-  // mayor capN que SÍ quepa (verificado por simulación más abajo).
+  // C · VH-A10-05: BANCA CON MENOS CUBIERTAS DE LA MISMA MEDIDA (la estación que falló más grande). Antes era
+  // N × 1500 mm con cualquier N (impares incluidos): medidas y bancas fuera de la guía APP LT ESP-DCC-IDP-003.
+  // Ahora: banca doble (fondo 1200) = 2 usuarios por cubierta, así que N es par; sencilla (fondo 600) = 1 por
+  // cubierta. El largo de cubierta se DEDUCE del propio módulo (largo ÷ cubiertas) y sólo si es de guía
+  // (1200/1500/1800); si no, no se propone nada (no se inventa otra medida).
   const wsFallo = unplaced.map((u) => byId.get(String(u.anchorId))).filter((a) => a && a.relation_role === 'ANCHOR_WORKSTATION').sort((x, y) => num(y.w) - num(x.w))[0];
   if (wsFallo) {
     const grupo = wsFallo.functional_group_id;
-    const cap0 = Math.max(1, Math.round(num(wsFallo.user_capacity) || Math.round(num(wsFallo.w) / 1500)));
+    const cap0 = Math.max(1, Math.round(num(wsFallo.user_capacity)));
+    const doble = num(wsFallo.d) === 1200;
+    const porCubierta = doble ? 2 : (num(wsFallo.d) === 600 ? 1 : 0);
+    const cubiertas0 = porCubierta ? cap0 / porCubierta : 0;
+    const largoCubierta = Number.isInteger(cubiertas0) && cubiertas0 > 0 ? num(wsFallo.w) / cubiertas0 : 0;
     const sillas = piezas.filter((p) => p.functional_group_id === grupo && esSilla(p.relation_role));
     const gavetas = piezas.filter((p) => p.functional_group_id === grupo && esGaveta(p.relation_role));
-    for (let capN = cap0 - 1; capN >= 1; capN--) {
-      const w1 = capN * 1500;
-      const quitar = new Set([...sillas.slice(capN), ...gavetas.slice(capN)].map((p) => String(p.id)));
-      candidatas.push({
-        id: `estacion_${capN}`, grupo, capN, cap0,
-        base: `Usar una estación de ${plural(capN, 'puesto')} en lugar de ${cap0}`,
-        aplicar: (as, ps) => ({ areas: as, piezas: ps.map((p) => (String(p.id) === String(wsFallo.id) ? { ...p, w: w1, user_capacity: capN } : p)).filter((p) => !quitar.has(String(p.id))) }),
-      });
+    if ([1200, 1500, 1800].includes(largoCubierta)) {
+      for (let c1 = cubiertas0 - 1; c1 >= 1; c1--) {
+        const capN = c1 * porCubierta;
+        const w1 = c1 * largoCubierta;
+        const quitar = new Set([...sillas.slice(capN), ...gavetas.slice(capN)].map((p) => String(p.id)));
+        candidatas.push({
+          id: `estacion_${capN}`, grupo, capN, cap0,
+          base: `Usar una banca ${doble ? 'doble ' : ''}de ${capN} usuarios en lugar de ${cap0} (${c1} cubierta${c1 === 1 ? '' : 's'} de ${(largoCubierta / 1000).toFixed(2)} m, ${(w1 / 1000).toFixed(2)} m de largo)`,
+          aplicar: (as, ps) => ({ areas: as, piezas: ps.map((p) => (String(p.id) === String(wsFallo.id) ? { ...p, w: w1, user_capacity: capN } : p)).filter((p) => !quitar.has(String(p.id))) }),
+        });
+      }
     }
   }
 
@@ -302,9 +316,22 @@ export function mensajeVendedor(areas = [], piezas = [], sol = {}, opts = {}) {
   // contrato. Una por id de grupo/tipo; máximo 3.
   const opciones = [];
   const vistos = new Set();
+  // VH-A10-05: poda barata. Una candidata que reduce UN grupo (menos sillas, banca más corta) se simula primero
+  // con ese grupo SOLO en su cuarto; si ni así cabe completo, con los demás muebles tampoco: no se gasta la
+  // simulación completa (con 12 sillas eran 5 simulaciones de todo el proyecto por cada acomodo).
+  const cabeAislado = (cand, t) => {
+    if (!resolver || !cand.grupo || !(cand.id.startsWith('mesa_menos_sillas_') || cand.id.startsWith('estacion_'))) return true;
+    const grupo = t.piezas.filter((p) => p.functional_group_id === cand.grupo);
+    const anc = grupo.find((p) => esAncla(p.relation_role)); if (!anc) return true;
+    const ar = areas[areaIdxDe(anc, areas)]; if (!ar) return true;
+    const s1 = sim([ar], grupo);
+    const r1 = colocDe(grupo, s1);
+    return !!r1 && r1.no.size === 0 && verdictOk(s1);
+  };
   for (const cand of candidatas) {
     if (opciones.length >= 3) break;
     const t = cand.aplicar(areas, piezas);
+    if (!cabeAislado(cand, t)) continue;
     const s2 = sim(t.areas, t.piezas);
     const r2 = colocDe(t.piezas, s2);
     const ok2 = verdictOk(s2);
@@ -317,12 +344,12 @@ export function mensajeVendedor(areas = [], piezas = [], sol = {}, opts = {}) {
       const grupoCompleto = r2 ? grupoIds.length > 0 && grupoIds.every((id) => !r2.no.has(id)) : false;
       if (grupoCompleto && ok2) {
         if (cand.id === 'mover_zona') texto = `${cand.base}: ahí caben sus ${grupoIds.length} piezas con acceso correcto.`;
-        else if (cand.id === 'mesa_mas_chica') texto = `${cand.base}: cabe con sus sillas y acceso correcto.`;
+        else if (cand.id.startsWith('mesa_menos_sillas_')) texto = `${cand.base}: caben con su acceso correcto.`;
         else texto = `${cand.base}: cabe completa y funcional (${cand.capN} de ${cand.cap0}).`;
       }
     }
     if (!texto) continue;
-    const clave = cand.id.startsWith('estacion_') ? `estacion:${cand.grupo}` : `${cand.id}:${cand.grupo || ''}`;
+    const clave = cand.id.startsWith('estacion_') ? `estacion:${cand.grupo}` : cand.id.startsWith('mesa_menos_sillas_') ? `mesa:${cand.grupo}` : `${cand.id}:${cand.grupo || ''}`;
     if (vistos.has(clave)) continue;
     vistos.add(clave);
     opciones.push({ id: cand.id, texto, aplicar: cand.aplicar });
