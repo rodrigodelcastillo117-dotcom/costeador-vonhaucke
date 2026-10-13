@@ -28,7 +28,6 @@ import { validarIntentCosteo } from "../../../src/datos/validarIntentCosteo.js";
 // contra el catálogo autoritativo con la MISMA lógica determinista compartida (sin duplicar).
 // P0.9: la confirmación técnica de material (USER_CONFIRMED) la autoriza el SERVIDOR por rol.
 import { reconciliarMaterialServidor, puedeConfirmarMaterial, estadoConTopeLegacy } from "../../../src/datos/materialMatch.js";
-import { revisarEstructura } from "../../../src/datos/revisionEstructural.js";
 // COCREAR 10 (D-02/D-03): costeo y validación de ingeniería de una CO-CREACIÓN guardada. El navegador
 // sólo manda { accion:"cocrear", expediente_id, validar_ingenieria?, visual_hash? }; el BOM se lee del
 // expediente (service role) y la fila resultante la lee registrar_producto_desde_expediente.
@@ -200,7 +199,7 @@ async function costearConMotor(svc: any, pieza: any, n: number, puedeConfirmar: 
     fuenteCosto: catalogoFuente,
     calculadoEn: new Date().toISOString(),
   };
-  return { r, emision, estado, warnings, usados, evMap, noCertificados, faltan, meta, catalogoFuente, parametros, insumos, datos };
+  return { r, emision, estado, aprobacionHumana, warnings, usados, evMap, noCertificados, faltan, meta, catalogoFuente, parametros, insumos, datos };
 }
 
 Deno.serve(async (req) => {
@@ -303,7 +302,7 @@ Deno.serve(async (req) => {
 
   const k = await costearConMotor(svc, pieza, n, puedeConfirmar);
   if (k.respuesta) return k.respuesta;
-  const { r, estado, warnings, usados, evMap, noCertificados, faltan, meta, catalogoFuente, parametros } = k;
+  const { r, estado, aprobacionHumana, warnings, usados, evMap, noCertificados, faltan, meta, catalogoFuente, parametros } = k;
 
   // Precio: SIEMPRE con el margen OBJETIVO del servidor (config/params), NUNCA del
   // body — el DTO ya rechazó cualquier `margen` del cliente. Modelo 'clásico' (Alba)
