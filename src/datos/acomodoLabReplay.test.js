@@ -41,10 +41,10 @@ describe('Laboratorio COTIZAR · el replay reconstruye la corrida real', () => {
 // Estado medido del acomodo por plano. Cada corrección de ACOMODO_10 mueve esta tabla con su prueba.
 const ESPERADO = {
   C1_recto: { veredicto: 'PASS', colocadas: 25, total: 25 },
-  C2_curvo: { veredicto: 'PARCIAL', colocadas: 28, total: 41 },
-  C3_sin_cotas: { veredicto: 'PARCIAL', colocadas: 19, total: 21 },
+  C2_curvo: { veredicto: 'PARCIAL', colocadas: 29, total: 41 },         // VH-A10-02: la mesa de consejo entra; sus 12 sillas no (sala circular de 5 m)
+  C3_sin_cotas: { veredicto: 'PARCIAL', colocadas: 20, total: 21 },     // VH-A10-02: el módulo directivo de PRIVADO B entra; su silla no
   C4_dos_niveles: { veredicto: 'PASS', colocadas: 19, total: 19 },        // VH-A10-01 (antes PARCIAL 10/19)
-  C5_ele: { veredicto: 'REVISION', colocadas: 38, total: 38 },
+  C5_ele: { veredicto: 'REVISION', colocadas: 38, total: 38 },          // VH-A10-02: ninguna silla contra la columna; queda la cabecera de consejo a 100 mm
   C6_inyeccion: { veredicto: 'PASS', colocadas: 25, total: 25 },
 };
 
