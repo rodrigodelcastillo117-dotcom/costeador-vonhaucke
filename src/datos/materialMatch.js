@@ -199,7 +199,8 @@ const FAMILIAS = [
   ['iluminacion',       /\bled\b|luminaria|iluminaci[oó]n|tira\s*led/i],
   ['electrico',         /contacto|multicontacto|caja\s+el[eé]ctrica|\busb\b|byrne/i],
   ['adhesivo',          /adhesivo|pegamento|resistol|silic[oó]n/i],
-  ['tornilleria',       /tornill|\bpija|taquete|rondana|tuerca/i],
+  // VH-176: «atornillada/atornillado» describe cómo se fija una pieza, no es tornillería (\b antes de tornill).
+  ['tornilleria',       /\btornill|\bpija|taquete|rondana|tuerca/i],
   // VH-165 (2026-10-13, mesa de centro V4): "soldadura para tubo" caía en metal_lamina por "tubo" y se
   // auto-asignaba al PTR cal. 14 ($270.78 como si fuera 1 m de tubo, y sumaba área al cromado). La
   // soldadura es un consumible: sin insumo propio queda pendiente, nunca se costea como perfil.
@@ -228,10 +229,33 @@ const FAMILIAS = [
 export function familiaDeMaterial(texto) {
   const t = String(texto || '').trim();
   if (!t) return '';
+  let primera = '';
   for (const [fam, re] of FAMILIAS) {
-    if (re.test(t)) return fam;
+    if (re.test(t)) { primera = fam; break; }
   }
-  return '';
+  // VH-176 (librero 5×8, Operación 10/10): "Melamina 16 mm Walnut, una pieza atornillada" se auto-asignaba a
+  // TORNILLERÍA porque los herrajes/consumibles van antes en la tabla (para que "jaladera de acero" sea
+  // herraje). Lo mismo con "MDF lacado" (→ pintura), "Melamina con jaladera" (→ jaladera) o "cristal con
+  // bisagra". Regla: si el texto NOMBRA PRIMERO un material base (tablero, metal, cristal, piedra…) y el
+  // accesorio aparece después como complemento, manda el material base. Si el texto empieza por el
+  // accesorio ("Jaladera de acero", "Pintura electrostática para acero", "Tapacanto PVC") no cambia nada.
+  if (primera && FAMILIAS_HERRAJE.has(primera)) {
+    const posAcc = posicionFamilia(t, primera);
+    let mejor = null;
+    for (const [fam, re] of FAMILIAS) {
+      if (FAMILIAS_HERRAJE.has(fam) || fam === 'equipo_externo' || fam === 'acabado_metal' || fam === 'soldadura') continue;
+      const m = re.exec(t);
+      if (m && m.index < posAcc && (!mejor || m.index < mejor.pos)) mejor = { fam, pos: m.index };
+    }
+    if (mejor) return mejor.fam;
+  }
+  return primera;
+}
+
+function posicionFamilia(t, fam) {
+  const par = FAMILIAS.find(([f]) => f === fam);
+  const m = par ? par[1].exec(t) : null;
+  return m ? m.index : Infinity;
 }
 
 function espesoresMM(texto='') {
