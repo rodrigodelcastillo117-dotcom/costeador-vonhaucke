@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$4,641.83",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 1 decisión(es) pendiente(s): ¿Como se resuelve el respaldo MDF 9 mm (no esta en catalogo)?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $2,785.03 · Mano de obra $464.20 · Fábrica $1,392.60",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}
