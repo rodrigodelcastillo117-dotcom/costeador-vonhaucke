@@ -1,0 +1,160 @@
+{
+ "ATACM": {
+  "material": 190.3,
+  "costo": 342.54,
+  "renglones": 4,
+  "sinMaterial": []
+ },
+ "ATBIOCRT5": {
+  "material": 1264.12,
+  "costo": 1622.74,
+  "renglones": 4,
+  "sinMaterial": [
+   "Perfil de aluminio remate/portacristal"
+  ]
+ },
+ "ATCUBD44ABS": {
+  "material": 758.4,
+  "costo": 1222.44,
+  "renglones": 4,
+  "sinMaterial": [
+   "Canto ABS perimetral cubierta"
+  ]
+ },
+ "ATCUBD45ABS": {
+  "material": 1516,
+  "costo": 2434.6,
+  "renglones": 4,
+  "sinMaterial": []
+ },
+ "ATCUBD46ABS": {
+  "material": 1435.38,
+  "costo": 2296.6,
+  "renglones": 3,
+  "sinMaterial": [
+   "Tapa registrable metálica App LT ('puerta metálica')"
+  ]
+ },
+ "ATCUBS44ABS": {
+  "material": 441.24,
+  "costo": 705.98,
+  "renglones": 3,
+  "sinMaterial": []
+ },
+ "ATCUBS45ABS": {
+  "material": 1335.6,
+  "costo": 2136.96,
+  "renglones": 4,
+  "sinMaterial": [
+   "Canto ABS perimetral 2-3 mm",
+   "Tapa registrable metálica + herraje (App LT)",
+   "Maquinado de calado para tapa registrable (operación CNC)"
+  ]
+ },
+ "ATCUBS46ABS": {
+  "material": 848.32,
+  "costo": 1366.31,
+  "renglones": 4,
+  "sinMaterial": []
+ },
+ "ATFAL12ABS": {
+  "material": 260.34,
+  "costo": 455.02,
+  "renglones": 6,
+  "sinMaterial": [
+   "Escuadras de fijación a cubierta"
+  ]
+ },
+ "ATFAL150ABS": {
+  "material": 591,
+  "costo": 1016.4,
+  "renglones": 9,
+  "sinMaterial": []
+ },
+ "ATOM3": {
+  "material": 79.66,
+  "costo": 143.39,
+  "renglones": 3,
+  "sinMaterial": []
+ },
+ "ATOM4": {
+  "material": 94.05,
+  "costo": 169.29,
+  "renglones": 3,
+  "sinMaterial": []
+ },
+ "ATPU2M": {
+  "material": 379.73,
+  "costo": 683.52,
+  "renglones": 5,
+  "sinMaterial": []
+ },
+ "ATPU3M": {
+  "material": 430.98,
+  "costo": 775.76,
+  "renglones": 7,
+  "sinMaterial": []
+ },
+ "ATPU75M": {
+  "material": 465.53,
+  "costo": 837.96,
+  "renglones": 7,
+  "sinMaterial": []
+ },
+ "hoja_credenza": {
+  "material": 3589.09,
+  "costo": 5878.73,
+  "renglones": 22,
+  "sinMaterial": [
+   "Canto visible"
+  ]
+ },
+ "hoja_escritorio_L": {
+  "material": 2308.96,
+  "costo": 3724.61,
+  "renglones": 9,
+  "sinMaterial": [
+   "Cajonera móvil 3 gavetas"
+  ]
+ },
+ "hoja_gabinete_alto": {
+  "material": 2764.15,
+  "costo": 4491.38,
+  "renglones": 11,
+  "sinMaterial": [
+   "Respaldo"
+  ]
+ },
+ "hoja_librero_5x8": {
+  "material": 1960.46,
+  "costo": 3159.92,
+  "renglones": 7,
+  "sinMaterial": []
+ },
+ "hoja_mesa_centro": {
+  "material": 1967.97,
+  "costo": 2934.73,
+  "renglones": 7,
+  "sinMaterial": [
+   "Topes/ventosas cristal y regatones"
+  ]
+ },
+ "hoja_mesa_juntas_texto": {
+  "material": 3375.08,
+  "costo": 5072.85,
+  "renglones": 7,
+  "sinMaterial": []
+ },
+ "hoja_mesa_trabajo": {
+  "material": 1287.09,
+  "costo": 2205.19,
+  "renglones": 10,
+  "sinMaterial": []
+ },
+ "hoja_mesa_trabajo_lote10": {
+  "material": 11037.82,
+  "costo": 1875.23,
+  "renglones": 10,
+  "sinMaterial": []
+ }
+}
