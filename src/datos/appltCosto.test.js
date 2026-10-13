@@ -85,3 +85,22 @@ describe('APP LT · margen contra el piso de 25 %', () => {
     expect(pisoPorMargen(costo, 25)).toBe(15429.67);
   });
 });
+
+describe('APP LT · indirectos contados una sola vez (Dirección: la tarifa real los cobra 2 o 3 veces)', () => {
+  it('÷2: indirectos $2,823.11 → costo $8,749.14 (margen a lista 29.3 %)', () => {
+    const r = costoOficialModuloAppLT('A118B770C770', undefined, { vecesContado: 2 });
+    expect(r.indirectos).toBe(2823.11);
+    expect(r.total).toBe(8749.14);
+    expect((12380 - r.total) / 12380).toBeCloseTo(0.2933, 3);
+  });
+  it('÷3: indirectos $1,882.07 → costo $7,808.10 (margen a lista 36.9 %)', () => {
+    const r = costoOficialModuloAppLT('A118B770C770', undefined, { vecesContado: 3 });
+    expect(r.indirectos).toBe(1882.07);
+    expect(r.total).toBe(7808.10);
+  });
+  it('la mano de obra y el material no cambian; un factor < 1 se rechaza', () => {
+    const a = costoOficialModuloAppLT(), b = costoOficialModuloAppLT('A118B770C770', undefined, { vecesContado: 3 });
+    expect(b.manoObra).toBe(a.manoObra); expect(b.materiaPrima).toBe(a.materiaPrima);
+    expect(() => costoOficialModuloAppLT('A118B770C770', undefined, { vecesContado: 0.5 })).toThrow();
+  });
+});

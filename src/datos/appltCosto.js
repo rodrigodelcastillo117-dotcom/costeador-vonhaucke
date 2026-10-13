@@ -59,7 +59,11 @@ export function precioMaterial(mat, opcion, datos = APPLT_DATOS) {
  * @returns {{ total:number|null, materiaPrima:number, manoObra:number, indirectos:number, porArea:object,
  *             materiales:Array, pendientes:string[], completo:boolean }}
  */
-export function costoOficialModuloAppLT(opcion = 'A118B770C770', datos = APPLT_DATOS) {
+// Dirección (2026-10-13): la tarifa "real" de indirectos de PPyPTiempo cobra el gasto de planta 2 o 3 veces
+// (cada área carga el gasto de toda la planta sobre sus propias horas). `vecesContado` lo divide para contarlo
+// UNA vez. Por omisión 1 (sin corregir) hasta que Dirección confirme el factor o dé gasto y horas por área.
+export function costoOficialModuloAppLT(opcion = 'A118B770C770', datos = APPLT_DATOS, { vecesContado = 1 } = {}) {
+  if (!(vecesContado >= 1)) throw new Error('vecesContado debe ser >= 1');
   const materiales = datos.materialesPorModulo.map((m) => {
     const p = precioMaterial(m, opcion, datos);
     return { ...m, ...p, importe: p.precio == null ? null : r2(m.cantidad * p.precio) };
@@ -71,13 +75,14 @@ export function costoOficialModuloAppLT(opcion = 'A118B770C770', datos = APPLT_D
   let manoObra = 0, indirectos = 0;
   for (const [area, t] of Object.entries(TARIFA_REAL_APPLT)) {
     const horas = h[area] || 0;
-    porArea[area] = { horas, mo: r2(horas * t.mo), ind: r2(horas * t.ind), total: r2(horas * (t.mo + t.ind)) };
-    manoObra += horas * t.mo; indirectos += horas * t.ind;
+    const ind = t.ind / vecesContado;
+    porArea[area] = { horas, mo: r2(horas * t.mo), ind: r2(horas * ind), total: r2(horas * (t.mo + ind)) };
+    manoObra += horas * t.mo; indirectos += horas * ind;
   }
   if (h.entregas > 0) pendientes.push(`Entregas: ${h.entregas} h estándar sin tarifa en ningún libro (no se cobran)`);
   manoObra = r2(manoObra); indirectos = r2(indirectos);
   const completo = materiales.every((m) => m.importe != null);
-  return { opcion, total: completo ? r2(materiaPrima + manoObra + indirectos) : null, materiaPrima, manoObra, indirectos, porArea, materiales, pendientes, completo };
+  return { opcion, vecesContado, total: completo ? r2(materiaPrima + manoObra + indirectos) : null, materiaPrima, manoObra, indirectos, porArea, materiales, pendientes, completo };
 }
 
 /** Costo ERP estándar de entrada de producto terminado (lo que registró el ERP) por módulo. */
