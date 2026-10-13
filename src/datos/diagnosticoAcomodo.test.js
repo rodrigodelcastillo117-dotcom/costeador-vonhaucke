@@ -87,3 +87,21 @@ describe('VH-094 · la banca 6000×1200 llega con su huella real hasta la pieza 
     expect(pz.huella_fuente).toBe('PARTIDA');
   });
 });
+
+// ACOMODO 10 · VH-A10-04: cuando el mueble SÍ cupo pero sus sillas no (NO_SPACE_PARA_SILLAS), la pantalla decía
+// "No conserva el pasillo de 1.00 m". Lo que falta es el lugar de la SILLA con su holgura (lab C3: la silla
+// directiva de PRIVADO B; C2: las 12 sillas de la mesa de consejo en la sala circular).
+describe('VH-A10-04 · sillas sin lugar junto a un mueble que sí cupo', () => {
+  const piezasK = [
+    { id: 'dir', nombre: 'Módulo directivo App LT', relation_role: 'ANCHOR_DESK', zone_id: 'PRIVADO B', w: 1800, d: 2400, huella_fuente: 'PARTIDA' },
+    { id: 'alpha', nombre: 'Silla directiva ALPHA', relation_role: 'EXECUTIVE_SEAT', anchor_instance_id: 'dir', zone_id: 'PRIVADO B', w: 600, d: 600, huella_fuente: 'ESTANDAR' },
+  ];
+  const planK = { colocacion: [{ id: 'dir', area: 0, x: 0, y: 1000 }], no_cupieron: [{ anchorId: 'dir', piezas: ['alpha'], invariante: 'NO_SPACE_PARA_SILLAS' }] };
+  it('código propio, no el del pasillo de 1 m, y la acción habla de la silla y su holgura', () => {
+    const [f] = diagnosticoNoColocadas({ piezas: piezasK, plan: planK });
+    expect(f.id).toBe('alpha');
+    expect(f.codigo).toBe('SEAT_NO_ACCESS');
+    expect(f.accion).not.toMatch(/pasillo de 1\.00 m/);
+    expect(f.accion).toMatch(/600 mm/);
+  });
+});

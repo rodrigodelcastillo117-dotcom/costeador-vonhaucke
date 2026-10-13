@@ -6,7 +6,7 @@
 //
 //  Códigos: DUPLICATED_REQUIREMENT · MISSING_ANCHOR · UNKNOWN_FOOTPRINT ·
 //  UNRESOLVED_PRODUCT · NO_SPACE · COLLISION · CLEARANCE · BLOCKED_DOOR ·
-//  INCOMPATIBLE_ZONE · DEPENDENCY_MISMATCH · SIN_DIAGNOSTICO (el servidor no dijo).
+//  INCOMPATIBLE_ZONE · DEPENDENCY_MISMATCH · SEAT_NO_ACCESS · SIN_DIAGNOSTICO (el servidor no dijo).
 // ============================================================================
 const ACCION = {
   DUPLICATED_REQUIREMENT: 'Hay dos muebles para el mismo requerimiento: conserva uno o marca "mantener ambos".',
@@ -19,11 +19,14 @@ const ACCION = {
   BLOCKED_DOOR: 'Bloquearía una puerta: cambia la posición o la zona.',
   INCOMPATIBLE_ZONE: 'La zona no es del tipo que admite este mueble: asígnale su zona (privado, juntas, operativa, recepción).',
   DEPENDENCY_MISMATCH: 'Su mueble receptor no quedó colocado: resuelve primero el ancla.',
+  // VH-A10-04: el mueble SÍ cupo; lo que no cupo es la silla con sus 600 mm para retirarla (muro, columna o la
+  // zona libre de una puerta). Antes se decía "pasillo de 1.00 m", que no es la causa.
+  SEAT_NO_ACCESS: 'Su mueble sí cupo, pero esta silla no tiene lugar con 600 mm detrás para retirarla (muro, columna o zona libre de una puerta): mueve el mueble a mano, usa uno más chico o quita sillas.',
   SIN_DIAGNOSTICO: 'El servidor no explicó esta pieza: vuelve a acomodar; si persiste, repórtalo con el id.',
 };
 const DEL_SERVIDOR = {
   NO_SPACE: 'NO_SPACE', OUT_OF_BOUNDS: 'NO_SPACE', OUT_OF_POLYGON: 'NO_SPACE', OBSTACLE: 'COLLISION', OVERLAP: 'COLLISION',
-  AISLE: 'CLEARANCE', NO_SPACE_PARA_SILLAS: 'CLEARANCE', DOOR: 'BLOCKED_DOOR', NO_ZONE: 'INCOMPATIBLE_ZONE',
+  AISLE: 'CLEARANCE', NO_SPACE_PARA_SILLAS: 'SEAT_NO_ACCESS', DOOR: 'BLOCKED_DOOR', NO_ZONE: 'INCOMPATIBLE_ZONE',
   ZONE_MISMATCH: 'INCOMPATIBLE_ZONE', DEPENDENT_UNASSIGNED: 'MISSING_ANCHOR', ANCHOR_UNPLACED: 'DEPENDENCY_MISMATCH',
 };
 const esAncla = (r) => typeof r === 'string' && r.startsWith('ANCHOR_');
