@@ -44,7 +44,7 @@ const ESPERADO = {
   C2_curvo: { veredicto: 'PARCIAL', colocadas: 29, total: 41 },         // VH-A10-02: la mesa de consejo entra; sus 12 sillas no (sala circular de 5 m)
   C3_sin_cotas: { veredicto: 'PARCIAL', colocadas: 20, total: 21 },     // VH-A10-02: el módulo directivo de PRIVADO B entra; su silla no
   C4_dos_niveles: { veredicto: 'PASS', colocadas: 19, total: 19 },        // VH-A10-01 (antes PARCIAL 10/19)
-  C5_ele: { veredicto: 'REVISION', colocadas: 38, total: 38 },          // VH-A10-02: ninguna silla contra la columna; queda la cabecera de consejo a 100 mm
+  C5_ele: { veredicto: 'PASS', colocadas: 38, total: 38 },              // VH-A10-02 (columna) + VH-A10-03 (consejo 6+6): antes REVISION
   C6_inyeccion: { veredicto: 'PASS', colocadas: 25, total: 25 },
 };
 

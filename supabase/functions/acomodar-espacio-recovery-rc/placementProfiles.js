@@ -90,8 +90,15 @@ export function layoutDoubleFace(aw, ad, n) {
 
 // --- MEETING_TABLE: topología canónica = 2 lados largos + 2 cabeceras. ----------
 // Para cap 10 → 4+4+1+1. Ancla centrada en (SEAT,SEAT). Kit (w+2SEAT)×(d+2SEAT).
+// ACOMODO 10 · VH-A10-03: las cabeceras sólo cuando los lados largos NO alcanzan. Cada lado largo recibe
+// una silla cada PITCH_JUNTAS (650 mm, la separación de siempre del solver); si ahí caben todas, no se
+// sienta a nadie en la cabecera. Es lo que dibujan los planos del laboratorio (C3 "3 arriba + 3 abajo",
+// C2 "3+3", C5 "6+6"): antes la Eclipse de 12 salía 5+5+2 y la cabecera quedaba frente a la puerta con
+// 100 mm de acceso. 8 en 2.40 m (3 por lado) sigue siendo 3+3+1+1.
+export const PITCH_JUNTAS = 650;
 export function layoutMeeting(aw, ad, n) {
-  const nHeads = n >= 4 ? 2 : 0;
+  const porLado = Math.max(1, Math.floor(num(aw) / PITCH_JUNTAS));
+  const nHeads = n >= 4 && n > 2 * porLado ? 2 : 0;
   const nLong = n - nHeads;
   const nA = Math.ceil(nLong / 2), nB = nLong - nA;
   const seats = [];

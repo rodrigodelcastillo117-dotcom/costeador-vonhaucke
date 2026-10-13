@@ -17,14 +17,14 @@
 //  Todo en mm. Puro (Deno + node). Reusa helpers vendorizados de ./spatial-core.js.
 // ============================================================================
 import { rectsSeSolapan, rectDentroPoligono, bloqueaPuertaEspacial } from './spatial-core.js';
-import { perfilDeAncla, layoutDeTopologia, rotarFacing, PROFILE_VERSION, ACCESO_EJECUTIVO } from './placementProfiles.js';
+import { perfilDeAncla, layoutDeTopologia, rotarFacing, PROFILE_VERSION, ACCESO_EJECUTIVO, PITCH_JUNTAS } from './placementProfiles.js';
 import { juzgarSemantico } from './semanticPlacementJudge.js';
 import { validarColocacion } from './acomodo-core.js';
 import { juzgarCalidad, calidadAceptable } from './qualityJudge.js';
 import { evaluarRecovery } from './recovery-core.js';
 
 export const SEAT = 600;      // huella de silla (mm)
-export const PITCH = 650;     // separación entre sillas alrededor de mesa
+export const PITCH = PITCH_JUNTAS;   // separación entre sillas alrededor de mesa (650 mm; una sola fuente)
 export const AISLE = 1000;    // pasillo mínimo ENTRE kits
 export const GRID = 100;      // malla de candidatos
 export const VISITAS_POR_ESCRITORIO = 2;   // sillas de visita que recibe un escritorio privado además de su ejecutivo
