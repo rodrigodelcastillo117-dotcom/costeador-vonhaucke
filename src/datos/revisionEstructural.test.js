@@ -68,3 +68,14 @@ describe('revisarEstructura — razona el conjunto, no piezas sueltas', () => {
     expect(r.observaciones.length).toBeGreaterThan(0);
   });
 });
+
+describe('VH-163 · mueble de piso sin soporte', () => {
+  it('mesa de centro con sólo la cubierta de cristal → bloqueo; con base tubular → sin bloqueo; cubierta de reposición sola → sin bloqueo', async () => {
+    const { revisarEstructura } = await import('./revisionEstructural.js');
+    const bloq = (r) => r.observaciones.filter((o) => o.nivel === 'blocker').map((o) => o.regla);
+    expect(bloq(revisarEstructura({ componentes: [{ nombre: 'Cubierta cristal templado 9 mm', insumoId: 'cristal-templado' }], descripcion: 'mesa de centro · Mesa de centro con cubierta de cristal y base tubular cromada' }))).toEqual(['sin_soporte']);
+    expect(bloq(revisarEstructura({ componentes: [{ nombre: 'Cubierta cristal templado 9 mm' }, { nombre: 'Base tubular redondo 3/4"' }], descripcion: 'mesa de centro' }))).toEqual([]);
+    expect(bloq(revisarEstructura({ componentes: [{ nombre: 'Cubierta melamina 1500×700' }], descripcion: 'cubierta de reposición' }))).toEqual(['sin_soporte'].filter(() => false));
+    expect(bloq(revisarEstructura({ componentes: [{ nombre: 'Cubierta superior' }, { nombre: 'Laterales' }], descripcion: 'credenza' }))).toEqual([]);
+  });
+});

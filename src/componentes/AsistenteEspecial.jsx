@@ -166,8 +166,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // avisa de relaciones que no cuadran (gaveta sin cuerpo, faldón vertical, asientos
   // sin estructura…). Propone/detecta; NO cambia costo ni medidas.
   const revisionEstructural = useMemo(
-    () => revisarEstructura({ componentes: b.componentes, descripcion: b.descripcionCliente, insumos }),
-    [b.componentes, b.descripcionCliente, insumos],
+    () => revisarEstructura({ componentes: b.componentes, descripcion: [b.descripcionCliente, b.tipoMueble].filter(Boolean).join(' · '), insumos }),
+    [b.componentes, b.descripcionCliente, b.tipoMueble, insumos],
   );
   // ESTRUCTURA QUE ENTENDIÓ VONI: el grafo construido desde la SEMÁNTICA del intérprete
   // canónico (analizar-mueble: design_intent + semantic_role/relaciones). Es el mueble
@@ -263,7 +263,10 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const costoIncompleto = piezasSinMaterial.length > 0;
   // FAIL-CLOSED (audit 2026-10-01): si el costo está incompleto NO es emitible —
   // su total es apenas un SUBTOTAL CONOCIDO, no se le pone precio ni se aprueba.
-  const emision = costeoEmitible(resultado);
+  // VH-163: un BLOQUEO estructural (p.ej. cubierta sin soporte) también impide dar el costo por bueno.
+  const bloqueosEstructura = revisionEstructural.observaciones.filter((o) => o.nivel === 'blocker');
+  const emision0 = costeoEmitible(resultado);
+  const emision = bloqueosEstructura.length ? { ...emision0, emitible: false, pendientes: [...(emision0.pendientes || []), ...bloqueosEstructura.map((o) => `Estructura: ${o.mensaje}`)] } : emision0;
   const emitible = emision.emitible;
   // VH-151: piezas cuyo largo×ancho es el tamaño de la HOJA comercial (o excede el formato): la IA confundió hoja con pieza.
   const piezasTamanoHoja = useMemo(() => piezasConTamanoDeHoja(b.componentes, insumos), [b.componentes, insumos]);
@@ -616,7 +619,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     const paginas = Array.isArray(planos) && planos.length ? planos : (dataUrl ? [String(dataUrl).split(',')[1]] : []);
     // Un ANÁLISIS NUEVO (subiste otro plano) nombra el producto desde el plano, para que el nombre
     // NO se quede pegado de un producto anterior. Una re-corrida con respuestas conserva el nombre.
-    setB((prev) => ({ ...prev, nombre: nuevoAnalisis ? (p.producto || prev.nombre || '') : (prev.nombre || p.producto || ''), componentes: nuevoAnalisis ? comps : conservarMaterialesConfirmados(prev.componentes, comps) /* VH-150: lo elegido a mano sobrevive al recálculo */, imagen: dataUrl || null, planos: paginas, descripcionCliente: p.descripcionCliente || '', materiales: Array.isArray(p.materiales) ? p.materiales : [], analysisId: corrida.current }));
+    setB((prev) => ({ ...prev, tipoMueble: [p.design_intent?.product_type, p.producto, p.tipo].filter((x) => x && x !== 'unknown').join(' · ') || prev.tipoMueble || '', nombre: nuevoAnalisis ? (p.producto || prev.nombre || '') : (prev.nombre || p.producto || ''), componentes: nuevoAnalisis ? comps : conservarMaterialesConfirmados(prev.componentes, comps) /* VH-150: lo elegido a mano sobrevive al recálculo */, imagen: dataUrl || null, planos: paginas, descripcionCliente: p.descripcionCliente || '', materiales: Array.isArray(p.materiales) ? p.materiales : [], analysisId: corrida.current }));
     if (!etiquetasTxt.trim()) setEtiquetasTxt([p.tipo, p.design_intent?.product_type, ...((Array.isArray(p.materiales) ? p.materiales : []).slice(0, 3))].filter(Boolean).map((x) => String(x).trim()).filter((x, i, a) => x && a.indexOf(x) === i).join(', '));
     setAnalisis({
       descripcionCliente: p.descripcionCliente || '',

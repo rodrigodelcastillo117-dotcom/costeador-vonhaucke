@@ -2,6 +2,7 @@
 //  COSTEADOR - la pantalla principal de trabajo (master 7.2)
 //  Dos columnas en >=1000px; una sola abajo, con barra fija que muestra el costo.
 // ============================================================================
+import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { fuenteDeInsumo } from '../datos/senales.js';
 import { useMemo, useState, useEffect } from 'react';
 import { sugerenciaLote, sugerenciaMedida, costoNetoComponente, netoComponente, costeoEmitible, PARAMETROS_DEFAULT, SIN_MO_SECCIONES, precioUsable } from '../motor/calculo.js';
@@ -90,7 +91,13 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   const bajoMinimo = margen < estado.parametros.margenMinimo;
   // FAIL-CLOSED (audit 2026-10-01): con partidas sin costear no hay precio ni se
   // puede emitir a la cotización. Solo se muestra el subtotal conocido.
-  const emisionC = costeoEmitible(resultado);
+  // VH-163: los BLOQUEOS estructurales (cubierta sin soporte, etc.) también impiden agregar a la cotización.
+  const bloqueosEstructuraC = useMemo(
+    () => revisarEstructura({ componentes: costeo.componentes || [], descripcion: [costeo.descripcionCliente, costeo.tipoMueble].filter(Boolean).join(' · ') }).observaciones.filter((o) => o.nivel === 'blocker'),
+    [costeo.componentes, costeo.descripcionCliente, costeo.tipoMueble],
+  );
+  const emisionC0 = costeoEmitible(resultado);
+  const emisionC = bloqueosEstructuraC.length ? { ...emisionC0, emitible: false, pendientes: [...(emisionC0.pendientes || []), ...bloqueosEstructuraC.map((o) => `Estructura: ${o.mensaje}`)] } : emisionC0;
   const pendientesC = emisionC.pendientes || [];
   const incompletoC = !emisionC.emitible;
   const inteligenciaIndustrial = useMemo(

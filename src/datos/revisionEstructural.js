@@ -47,7 +47,7 @@ function tipoIntencion(desc = '') {
   const t = String(desc).toLowerCase();
   if (/\b(banca|sillas?|butaca|espera|plazas?|asientos?|seating|lounge)\b/.test(t)) return 'asientos';
   if (/\b(credenza|gabinete|archivero|caj[oó]n|librero|alacena)\b/.test(t)) return 'gabinete';
-  if (/\b(escritorio|mesa|mostrador|recepci[oó]n|cubierta)\b/.test(t)) return 'superficie';
+  if (/\b(escritorio|mesa|mostrador|recepci[oó]n|cubierta|table|desk)\b/.test(t)) return 'superficie';
   return null;
 }
 
@@ -112,6 +112,18 @@ export function revisarEstructura({ componentes = [], descripcion = '', insumos 
   if (intencion === 'asientos' && hay('cubierta') && nAsiento === 0 && nRespaldo === 0) {
     obs.push({ nivel: 'warning',
       mensaje: 'La descripción habla de asientos, pero el despiece parece una superficie (cubierta) sin asientos/respaldos. Revisa si es el mueble correcto.' });
+  }
+
+  // 9) VH-163 · MUEBLE DE PISO SIN SOPORTE (bloqueo). Corrida V3 de la mesa de centro: la IA devolvió sólo la
+  //    cubierta de cristal (confianza "alta", sin verificación) y el costo de $870 se transfirió a Cotizar sin la base
+  //    tubular ni el cromado. Una cubierta no se sostiene sola: si el mueble es una mesa/escritorio/credenza/gabinete y
+  //    no hay patas, base, estructura ni laterales, el despiece está INCOMPLETO y no se da el costo por bueno.
+  //    (Una cubierta de reposición sola es legítima: por eso sólo aplica cuando la intención es el mueble completo.)
+  const muebleCompleto = /\b(mesa|escritorio|mostrador|recepci[oó]n|credenza|gabinete|archivero|librero|alacena|table|desk)\b/i.test(descripcion)
+    && !/reposici[oó]n|refacci[oó]n|repuesto|s[oó]lo (la )?cubierta|cubierta suelta/i.test(descripcion);
+  if (muebleCompleto && hay('cubierta') && !hay('pata') && !hay('lateral')) {
+    obs.push({ nivel: 'blocker', regla: 'sin_soporte',
+      mensaje: 'El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.' });
   }
 
   // ---- REGLAS DE CASA (2026-10-12) · consistencia de materiales. Deterministas; avisan, no cambian solas.
