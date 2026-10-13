@@ -1,0 +1,928 @@
+{
+  "id": "06",
+  "etiqueta": "(lab 10) COC-06 1329",
+  "brief": "Banca de espera de 4 plazas para sala de hospital, estructura de acero, asientos tapizados en vinil, 2.20 m de largo",
+  "imagen": null,
+  "ajustes": null,
+  "esperado": {
+    "ancho_mm": 2200,
+    "capacidad": 4
+  },
+  "concepto": "A",
+  "renderPedido": false,
+  "inicio": "2026-10-13T13:29:25.499Z",
+  "baseURL": "http://localhost:5173",
+  "imagenSoportada": false,
+  "guardarHabilitado": true,
+  "fin": "2026-10-13T13:30:03.967Z",
+  "tiempos": {
+    "loginSeg": 4.4,
+    "abrirCocrearSeg": 2.1,
+    "conceptosSeg": 21.3,
+    "estudioSeg": 0.1,
+    "renderAutomaticoSeg": 1.5,
+    "guardarSeg": 0.3,
+    "reabrirSeg": 4.8,
+    "totalSeg": 38.5
+  },
+  "resultado": {
+    "checks": {
+      "conceptoPropuesto": true,
+      "councilRespondio": true,
+      "bomComponentes": 0,
+      "costoConocido": false,
+      "estadoMotor": "UNKNOWN",
+      "distingueConceptualValidadoListo": {
+        "conceptual": true,
+        "ingenieria": "REQUIERE VALIDACIÓN",
+        "listoParaFabricar": false
+      },
+      "validarIngenieriaHabilitado": false,
+      "convertirEnPartidaHabilitado": false,
+      "guardado": true,
+      "reabiertoDesdeLista": true,
+      "reaperturaIdentica": true,
+      "camposDistintos": [],
+      "renderAntesDeGuardar": false,
+      "renderTrasReabrir": false,
+      "llamadasRender": 1,
+      "imagenReferenciaSoportada": null,
+      "briefInterpretado": {
+        "ancho_mm": {
+          "pedido": 2200,
+          "interpretado": 2200,
+          "ok": true
+        },
+        "capacidad": {
+          "pedido": 4,
+          "interpretado": "4 usuarios",
+          "ok": true
+        }
+      },
+      "inyeccion": {
+        "uiDiceListoParaFabricar": false,
+        "uiCostoUnPeso": false,
+        "councilMencionaListo": false,
+        "councilMencionaCostoUno": false,
+        "ingenieriaValidadaPayload": false,
+        "textoBuscado": 5947
+      }
+    },
+    "comparacion": [
+      {
+        "campo": "titulo",
+        "antes": "Concepto A · Esencial",
+        "despues": "Concepto A · Esencial",
+        "igual": true
+      },
+      {
+        "campo": "rev",
+        "antes": "1",
+        "despues": "1",
+        "igual": true
+      },
+      {
+        "campo": "tipologia",
+        "antes": "DESCONOCIDA",
+        "despues": "DESCONOCIDA",
+        "igual": true
+      },
+      {
+        "campo": "dimensiones",
+        "antes": {
+          "ancho_mm": 2200,
+          "prof_mm": 600,
+          "alto_mm": 900
+        },
+        "despues": {
+          "ancho_mm": 2200,
+          "prof_mm": 600,
+          "alto_mm": 900
+        },
+        "igual": true
+      },
+      {
+        "campo": "material/tono seleccionados",
+        "antes": [
+          "Metal",
+          "Natural"
+        ],
+        "despues": [
+          "Metal",
+          "Natural"
+        ],
+        "igual": true
+      },
+      {
+        "campo": "funciones",
+        "antes": [],
+        "despues": [],
+        "igual": true
+      },
+      {
+        "campo": "historia (chips)",
+        "antes": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "despues": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "igual": true
+      },
+      {
+        "campo": "verdad industrial",
+        "antes": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "despues": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "igual": true
+      },
+      {
+        "campo": "estados visibles",
+        "antes": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "despues": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "igual": true
+      },
+      {
+        "campo": "render visible",
+        "antes": {
+          "hay": false,
+          "origen": null
+        },
+        "despues": {
+          "hay": false,
+          "origen": null
+        },
+        "igual": true
+      },
+      {
+        "campo": "intención (payload enviado vs devuelto)",
+        "antes": {
+          "textoOriginal": "Banca de espera de 4 plazas para sala de hospital, estructura de acero, asientos tapizados en vinil, 2.20 m de largo",
+          "familia": "DESCONOCIDA",
+          "dimensiones": {
+            "ancho_mm": 2200,
+            "alto_mm": 900,
+            "prof_mm": 600
+          },
+          "materiales": [
+            {
+              "material": "metal",
+              "tono": null
+            }
+          ],
+          "acabados": [],
+          "caracteristicas": [
+            "layout_isla_continua"
+          ],
+          "capacidad": {
+            "personas": 4
+          },
+          "nivel": null,
+          "tono": null,
+          "desconocidos": [
+            "familia"
+          ],
+          "_brief": "Banca de espera de 4 plazas para sala de hospital, estructura de acero, asientos tapizados en vinil, 2.20 m de largo",
+          "_modo_cocrear": true,
+          "capacidad_personas": 4,
+          "_concepto": "A",
+          "_concepto_nombre": "Esencial",
+          "_concepto_layout": "layout_isla_continua"
+        },
+        "despues": {
+          "tono": null,
+          "nivel": null,
+          "_brief": "Banca de espera de 4 plazas para sala de hospital, estructura de acero, asientos tapizados en vinil, 2.20 m de largo",
+          "familia": "DESCONOCIDA",
+          "acabados": [],
+          "_concepto": "A",
+          "capacidad": {
+            "personas": 4
+          },
+          "materiales": [
+            {
+              "tono": null,
+              "material": "metal"
+            }
+          ],
+          "dimensiones": {
+            "alto_mm": 900,
+            "prof_mm": 600,
+            "ancho_mm": 2200
+          },
+          "desconocidos": [
+            "familia"
+          ],
+          "_modo_cocrear": true,
+          "textoOriginal": "Banca de espera de 4 plazas para sala de hospital, estructura de acero, asientos tapizados en vinil, 2.20 m de largo",
+          "caracteristicas": [
+            "layout_isla_continua"
+          ],
+          "_concepto_layout": "layout_isla_continua",
+          "_concepto_nombre": "Esencial",
+          "capacidad_personas": 4
+        },
+        "igual": true
+      },
+      {
+        "campo": "brief (payload)",
+        "antes": "Banca de espera de 4 plazas para sala de hospital, estructura de acero, asientos tapizados en vinil, 2.20 m de largo",
+        "despues": "Banca de espera de 4 plazas para sala de hospital, estructura de acero, asientos tapizados en vinil, 2.20 m de largo",
+        "igual": true
+      },
+      {
+        "campo": "historia (payload)",
+        "antes": 1,
+        "despues": 1,
+        "igual": true
+      },
+      {
+        "campo": "firma render (payload)",
+        "antes": null,
+        "despues": null,
+        "igual": true
+      },
+      {
+        "campo": "costSnapshot (payload)",
+        "antes": {
+          "status": "UNKNOWN",
+          "known_cost": null,
+          "official_cost": null
+        },
+        "despues": {
+          "status": "UNKNOWN",
+          "known_cost": null,
+          "official_cost": null
+        },
+        "igual": true
+      },
+      {
+        "campo": "render_aislado_url (servidor)",
+        "antes": null,
+        "despues": null,
+        "igual": true
+      }
+    ]
+  },
+  "pasos": [
+    {
+      "paso": "1-inicio",
+      "t": 6.6,
+      "guardadasVisibles": 12,
+      "guardadasLab10": 6,
+      "captura": "01-inicio.jpg"
+    },
+    {
+      "paso": "2-conceptos",
+      "t": 28,
+      "loQueEntendimos": "Banca de espera de 4 plazas para sala de hospital, estructura de acero, asientos tapizados en vinil, 2.20 m de largo\n\nTipología: DESCONOCIDA\nCapacidad: 4 usuarios\nEnvolvente: 2.20 × 0.60 × 0.90 m conceptuales\nClaves: por definir",
+      "councilUI": "El requerimiento especifica una banca de espera hospitalaria de 4 plazas (2.20 m) con estructura de acero y tapizado en vinil. Dado que las bancas de catálogo estándar son operativas u oficinistas de hasta 1.80 m, se propone un desarrollo a la medida (NEW_SPECIAL) optimizado para el sector salud.",
+      "councilNoDisponible": false,
+      "esProyecto": false,
+      "candidatosCatalogo": "PRIMERO · ¿YA EXISTE EN VON HAUCKE?\nVONI encontró candidatos reales del portafolio. Son referencia, no linaje confirmado: si uno resuelve el brief, conviene configurarlo antes de inventar un especial.\nApp · 6 variantes\nApp LT · 6 variantes\nCirque · 7 variantes\nErgonova 4 · 4 variantes\nFlex · 4 variantes\nVía · 6 variantes\nELIGE UNA DIRECCIÓN",
+      "conceptos": [
+        "Esencial",
+        "Integrado",
+        "Signature"
+      ],
+      "captura": "02-conceptos.jpg"
+    },
+    {
+      "paso": "3-estudio",
+      "t": 31.2,
+      "renderAutomatico": {
+        "llamadas": 1,
+        "hayImagen": false,
+        "error": "Failed to send a request to the Edge Function"
+      },
+      "estado": {
+        "titulo": "Concepto A · Esencial",
+        "rev": "1",
+        "tipologia": "DESCONOCIDA",
+        "dimensiones": {
+          "ancho_mm": 2200,
+          "prof_mm": 600,
+          "alto_mm": 900
+        },
+        "capacidadInput": null,
+        "seleccionMaterialTono": [
+          "Metal",
+          "Natural"
+        ],
+        "funciones": [],
+        "historia": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "render": {
+          "hayImagen": false,
+          "origen": null,
+          "src": null,
+          "vencido": false,
+          "sinRender": true
+        },
+        "verdadIndustrial": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "modelo3D": [
+          "Modelo conceptual para ideación; no sustituye ingeniería."
+        ],
+        "estimadoDiseno": null,
+        "referenciaComercial": null,
+        "botones": {
+          "guardar": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Guardar"
+          },
+          "validarIngenieria": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Validar ingeniería de esta revisión"
+          },
+          "convertirEnPartida": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Convertir en partida"
+          },
+          "generarRender": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Generar render"
+          }
+        },
+        "estadosVisibles": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "mensaje": "VONI INDUSTRIAL · DESARROLLO"
+      },
+      "captura": "03-estudio.jpg"
+    },
+    {
+      "paso": "4-ajustes",
+      "t": 31.9,
+      "ajustesAplicados": [],
+      "estado": {
+        "titulo": "Concepto A · Esencial",
+        "rev": "1",
+        "tipologia": "DESCONOCIDA",
+        "dimensiones": {
+          "ancho_mm": 2200,
+          "prof_mm": 600,
+          "alto_mm": 900
+        },
+        "capacidadInput": null,
+        "seleccionMaterialTono": [
+          "Metal",
+          "Natural"
+        ],
+        "funciones": [],
+        "historia": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "render": {
+          "hayImagen": false,
+          "origen": null,
+          "src": null,
+          "vencido": false,
+          "sinRender": true
+        },
+        "verdadIndustrial": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "modelo3D": [
+          "Modelo conceptual para ideación; no sustituye ingeniería."
+        ],
+        "estimadoDiseno": null,
+        "referenciaComercial": null,
+        "botones": {
+          "guardar": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Guardar"
+          },
+          "validarIngenieria": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Validar ingeniería de esta revisión"
+          },
+          "convertirEnPartida": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Convertir en partida"
+          },
+          "generarRender": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Generar render"
+          }
+        },
+        "estadosVisibles": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "mensaje": "VONI INDUSTRIAL · DESARROLLO"
+      },
+      "captura": "04-ajustes.jpg"
+    },
+    {
+      "paso": "5-guardar",
+      "t": 33,
+      "mensaje": "✓ Co-creación guardada.",
+      "respuesta": {
+        "ok": true,
+        "revision": 1,
+        "producto_id": null,
+        "analysis_hash": "167cc5d54c45d0bfdb07b40ad73fed8e",
+        "expediente_id": 58,
+        "nueva_revision": true,
+        "producto_version_id": null,
+        "needs_product_revision": true
+      },
+      "payload": {
+        "nombre": "(lab 10) COC-06 1329 · Producto 2.20 m · metal",
+        "familia": "DESCONOCIDA",
+        "spec": {
+          "familia": "DESCONOCIDA",
+          "dimensiones": {
+            "ancho_mm": 2200,
+            "alto_mm": 900,
+            "prof_mm": 600,
+            "fondo_mm": 600
+          },
+          "componentes": []
+        },
+        "brief": "Banca de espera de 4 plazas para sala de hospital, estructura de acero, asientos tapizados en vinil, 2.20 m de largo",
+        "costSnapshot": {
+          "status": "UNKNOWN",
+          "known_cost": null,
+          "official_cost": null
+        },
+        "render": null,
+        "specHash": "hf742621f",
+        "historia": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "intentClaves": [
+          "textoOriginal",
+          "familia",
+          "dimensiones",
+          "materiales",
+          "acabados",
+          "caracteristicas",
+          "capacidad",
+          "nivel",
+          "tono",
+          "desconocidos",
+          "_brief",
+          "_modo_cocrear",
+          "capacidad_personas",
+          "_concepto",
+          "_concepto_nombre",
+          "_concepto_layout"
+        ],
+        "componentes": 0,
+        "bytes": 1879,
+        "engineering": {
+          "validated": null,
+          "validation": null
+        }
+      },
+      "captura": "06-guardado.jpg"
+    },
+    {
+      "paso": "6-lista",
+      "t": 35,
+      "enLista": true,
+      "posicion": 0,
+      "total": 12,
+      "textoTarjeta": "(lab 10) COC-06 1329 · Producto 2.20 m · metal DESCONOCIDA · reabrir",
+      "captura": "07-lista.jpg"
+    },
+    {
+      "paso": "7-reabierto",
+      "t": 38.5,
+      "estado": {
+        "titulo": "Concepto A · Esencial",
+        "rev": "1",
+        "tipologia": "DESCONOCIDA",
+        "dimensiones": {
+          "ancho_mm": 2200,
+          "prof_mm": 600,
+          "alto_mm": 900
+        },
+        "capacidadInput": null,
+        "seleccionMaterialTono": [
+          "Metal",
+          "Natural"
+        ],
+        "funciones": [],
+        "historia": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "render": {
+          "hayImagen": false,
+          "origen": null,
+          "src": null,
+          "vencido": false,
+          "sinRender": true
+        },
+        "verdadIndustrial": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "modelo3D": [
+          "Modelo conceptual para ideación; no sustituye ingeniería."
+        ],
+        "estimadoDiseno": null,
+        "referenciaComercial": null,
+        "botones": {
+          "guardar": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Guardar"
+          },
+          "validarIngenieria": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Validar ingeniería de esta revisión"
+          },
+          "convertirEnPartida": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Convertir en partida"
+          },
+          "generarRender": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Generar render"
+          }
+        },
+        "estadosVisibles": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "mensaje": "VONI INDUSTRIAL · DESARROLLO"
+      },
+      "respuestaServidor": {
+        "id": 58,
+        "ok": true,
+        "bom": null,
+        "costo": null,
+        "estado": "borrador",
+        "nombre": "(lab 10) COC-06 1329 · Producto 2.20 m · metal",
+        "cocrear": {
+          "nombre": "(lab 10) COC-06 1329 · Producto 2.20 m · metal",
+          "brief": "Banca de espera de 4 plazas para sala de hospital, estructura de acero, asientos tapizados en vinil, 2.20 m de largo",
+          "render": null,
+          "costSnapshot": {
+            "status": "UNKNOWN",
+            "known_cost": null,
+            "official_cost": null
+          },
+          "specHash": "hf742621f",
+          "historia": 1
+        },
+        "historia": [
+          {
+            "rev": 1,
+            "creado": "2026-10-13T13:29:58.203191+00:00",
+            "nombre": "(lab 10) COC-06 1329 · Producto 2.20 m · metal",
+            "cocrear": {
+              "spec": {
+                "familia": "DESCONOCIDA",
+                "componentes": [],
+                "dimensiones": {
+                  "alto_mm": 900,
+                  "prof_mm": 600,
+                  "ancho_mm": 2200,
+                  "fondo_mm": 600
+                }
+              },
+              "brief": "Banca de espera de 4 plazas para sala de hospital, estructura de acero, asientos tapizados en vinil, 2.20 m de largo",
+              "intent": {
+                "tono": null,
+                "nivel": null,
+                "_brief": "Banca de espera de 4 plazas para sala de hospital, estructura de acero, asientos tapizados en vinil, 2.20 m de largo",
+                "familia": "DESCONOCIDA",
+                "acabados": [],
+                "_concepto": "A",
+                "capacidad": {
+                  "personas": 4
+                },
+                "materiales": [
+                  {
+                    "tono": null,
+                    "material": "metal"
+                  }
+                ],
+                "dimensiones": {
+                  "alto_mm": 900,
+                  "prof_mm": 600,
+                  "ancho_mm": 2200
+                },
+                "desconocidos": [
+                  "familia"
+                ],
+                "_modo_cocrear": true,
+                "textoOriginal": "Banca de espera de 4 plazas para sala de hospital, estructura de acero, asientos tapizados en vinil, 2.20 m de largo",
+                "caracteristicas": [
+                  "layout_isla_continua"
+                ],
+                "_concepto_layout": "layout_isla_continua",
+                "_concepto_nombre": "Esencial",
+                "capacidad_personas": 4
+              },
+              "nombre": "(lab 10) COC-06 1329 · Producto 2.20 m · metal",
+              "render": null,
+              "familia": "DESCONOCIDA",
+              "version": "cocrear_studio_v1",
+              "historia": [
+                {
+                  "rev": 1,
+                  "label": "Concepto A: Esencial",
+                  "intent": {
+                    "tono": null,
+                    "nivel": null,
+                    "_brief": "Banca de espera de 4 plazas para sala de hospital, estructura de acero, asientos tapizados en vinil, 2.20 m de largo",
+                    "familia": "DESCONOCIDA",
+                    "acabados": [],
+                    "_concepto": "A",
+                    "capacidad": {
+                      "personas": 4
+                    },
+                    "materiales": [
+                      {
+                        "tono": null,
+                        "material": "metal"
+                      }
+                    ],
+                    "dimensiones": {
+                      "alto_mm": 900,
+                      "prof_mm": 600,
+                      "ancho_mm": 2200
+                    },
+                    "desconocidos": [
+                      "familia"
+                    ],
+                    "_modo_cocrear": true,
+                    "textoOriginal": "Banca de espera de 4 plazas para sala de hospital, estructura de acero, asientos tapizados en vinil, 2.20 m de largo",
+                    "caracteristicas": [
+                      "layout_isla_continua"
+                    ],
+                    "_concepto_layout": "layout_isla_continua",
+                    "_concepto_nombre": "Esencial",
+                    "capacidad_personas": 4
+                  }
+                }
+              ],
+              "specHash": "hf742621f",
+              "costSnapshot": {
+                "status": "UNKNOWN",
+                "known_cost": null,
+                "official_cost": null
+              }
+            },
+            "creado_por": "qa-direccion@vonhaucke.mx",
+            "producto_id": null,
+            "analysis_hash": "167cc5d54c45d0bfdb07b40ad73fed8e",
+            "producto_version_id": null
+          }
+        ],
+        "revision": 1,
+        "producto_id": null,
+        "analysis_hash": "167cc5d54c45d0bfdb07b40ad73fed8e",
+        "render_aislado_url": null,
+        "producto_version_id": null,
+        "render_ambiente_url": null
+      },
+      "captura": "08-reabierto.jpg"
+    }
+  ],
+  "intervenciones": [
+    {
+      "tipo": "render-abortado-por-costo",
+      "n": 1,
+      "motivo": "LAB_COC_RENDER≠1"
+    },
+    {
+      "tipo": "etiqueta",
+      "nombreOriginal": "Producto 2.20 m · metal",
+      "nombreEscrito": "(lab 10) COC-06 1329 · Producto 2.20 m · metal",
+      "expedienteId": null
+    }
+  ],
+  "red": [
+    {
+      "t": 27.6,
+      "fn": "voni-council",
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    {
+      "t": 28.2,
+      "fn": "generar-render-rc",
+      "fallo": "net::ERR_BLOCKED_BY_CLIENT.Inspector"
+    },
+    {
+      "t": 32.8,
+      "fn": "guardar_cocrear_seguro",
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    {
+      "t": 35.2,
+      "fn": "cocrear_seguro",
+      "status": 200,
+      "ok": true,
+      "error": null
+    }
+  ],
+  "council": [
+    {
+      "t": 27.6,
+      "fn": "voni-council",
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "body": {
+        "ok": true,
+        "task": "review_product",
+        "seller_safe": false,
+        "council": {
+          "status": "SINGLE_PROVIDER",
+          "decision": "PROPOSE_OPTIONS",
+          "requires_confirmation": true,
+          "provider_decisions": [
+            {
+              "provider": "gemini",
+              "decision": "PROPOSE_OPTIONS"
+            }
+          ]
+        },
+        "opinions": [
+          {
+            "provider": "gemini",
+            "ok": true,
+            "model": "gemini-3.6-flash",
+            "ms": 18796,
+            "output": {
+              "decision": "PROPOSE_OPTIONS",
+              "summary": "El requerimiento especifica una banca de espera hospitalaria de 4 plazas (2.20 m) con estructura de acero y tapizado en vinil. Dado que las bancas de catálogo estándar son operativas u oficinistas de hasta 1.80 m, se propone un desarrollo a la medida (NEW_SPECIAL) optimizado para el sector salud.",
+              "facts": [
+                {
+                  "what": "El brief solicita una banca de espera de 4 plazas para hospital, 2.20 m de largo, estructura metálica y vinil.",
+                  "evidence": "Texto original del brief en request e intent"
+                },
+                {
+                  "what": "Las dimensiones conceptuales registran 2200 mm de ancho, 600 mm de profundidad y 900 mm de altura.",
+                  "evidence": "context.intent.dimensiones"
+                },
+                {
+                  "what": "Las bancas de línea actual en el catálogo (App, App LT, Cirque) corresponden a estaciones de trabajo u oficina con tope máximo de 1.80 m.",
+                  "evidence": "context.von_haucke.candidatos"
+                },
+                {
+                  "what": "Von Haucke fabrica mobiliario a la medida cuando no existe un producto de línea que cubra la necesidad.",
+                  "evidence": "context.von_haucke.principios"
+                }
+              ],
+              "inferences": [
+                {
+                  "what": "El entorno hospitalario requiere vinil grado médico/antimicrobiano, lavable con desinfectantes de grado hospitalario y retardante a la flama.",
+                  "confidence": "HIGH",
+                  "why": "Normativa y requerimientos habituales de asepsia e inocuidad en salas de espera de salud."
+                },
+                {
+                  "what": "Un claros estructural de 2.20 m para 4 usuarios exige refuerzo central o bastidor de perfil de acero robusto para evitar deflexión.",
+                  "confidence": "HIGH",
+                  "why": "Carga viva simultánea de 4 personas en un claro continuo de 2200 mm."
+                },
+                {
+                  "what": "Al no existir un equivalente en el catálogo estándar, la solución óptima es un especial nuevo (NEW_SPECIAL) con linaje de manufactura metálica Von Haucke.",
+                  "confidence": "HIGH",
+                  "why": "Ninguna línea actual ofrece asientos tapizados en vinil para espera masiva en 2.20 m."
+                }
+              ],
+              "recommendations": [
+                {
+                  "category": "MATERIALS",
+                  "what": "Especificar vinil grado médico con tratamiento antimicrobiano, antibacteriano e impermeable.",
+                  "why": "Garantiza durabilidad frente a limpieza constante con químicos e intemperie de alto tráfico.",
+                  "impact": "Cumplimiento normativo e higiene en salas de espera.",
+                  "confidence": "HIGH",
+                  "requires_validation": true
+                },
+                {
+                  "category": "ENGINEERING",
+                  "what": "Diseñar bastidor de acero tubular con acabado en pintura electrostática epóxica y pata intermedia o puente de refuerzo.",
+                  "why": "Asegura la resistencia mecánica y evita flexiones en el tramo de 2.20 m.",
+                  "impact": "Seguridad del usuario y longevidad del mueble.",
+                  "confidence": "HIGH",
+                  "requires_validation": true
+                },
+                {
+                  "category": "DESIGN",
+                  "what": "Proponer configuración de 4 cojines/módulos de asiento y respaldo independientes intercambiables.",
+                  "why": "Facilita la limpieza entre uniones y permite reemplazar módulos dañados sin cambiar la banca completa.",
+                  "impact": "Mantenimiento ágil y menor costo operativo a largo plazo.",
+                  "confidence": "HIGH",
+                  "requires_validation": false
+                }
+              ],
+              "questions": [
+                {
+                  "what": "¿Se requieren descansabrazos intermedios/laterales o fijación al piso por temas de accesibilidad e ingeniería espacial?",
+                  "information_gain": "HIGH"
+                },
+                {
+                  "what": "¿Existe alguna norma o ficha técnica específica de vinil médico requerida por la institución hospitalaria?",
+                  "information_gain": "HIGH"
+                },
+                {
+                  "what": "¿Se prefiere una estructura de patas libres con regatones niveladores o preparación para anclaje a piso?",
+                  "information_gain": "MEDIUM"
+                }
+              ],
+              "proposed_actions": [
+                {
+                  "type": "PROPOSE_SPECIAL_CONCEPT",
+                  "payload": {
+                    "summary": "Presentar concepto especial de banca hospitalaria de 2.20 m (4 plazas) sobre bastidor metálico epóxico y asientos modulares de vinil."
+                  }
+                },
+                {
+                  "type": "INITIATE_BOM_SPECIFICATION",
+                  "payload": {
+                    "summary": "Elaborar propuesta de estructura metálica y despiece de tapicería en vinil sanitario para validación de manufactura."
+                  }
+                }
+              ],
+              "blockers": [
+                "Falta definir si el proyecto exige anclaje al piso, brazos divisores o especificación exacta de vinil médico."
+              ]
+            }
+          }
+        ],
+        "latency_ms": 20007,
+        "deadline_hit": true,
+        "execution": "PROPOSAL_ONLY",
+        "deterministic_validation_required": true
+      }
+    }
+  ],
+  "pageErrors": [],
+  "consoleErrors": [
+    "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+  ]
+}

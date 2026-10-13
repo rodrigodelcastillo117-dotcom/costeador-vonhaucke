@@ -1,0 +1,938 @@
+{
+  "id": "07",
+  "etiqueta": "(lab 10) COC-07 1330",
+  "brief": "Mesa alta tipo barra para cafetería corporativa, 1.80 m de largo por 0.60 m de fondo y 1.05 m de altura, cubierta de cuarzo y base de acero",
+  "imagen": null,
+  "ajustes": null,
+  "esperado": {
+    "ancho_mm": 1800,
+    "prof_mm": 600,
+    "alto_mm": 1050
+  },
+  "concepto": "A",
+  "renderPedido": false,
+  "inicio": "2026-10-13T13:30:07.689Z",
+  "baseURL": "http://localhost:5173",
+  "imagenSoportada": false,
+  "guardarHabilitado": true,
+  "fin": "2026-10-13T13:30:45.552Z",
+  "tiempos": {
+    "loginSeg": 2.9,
+    "abrirCocrearSeg": 2.1,
+    "conceptosSeg": 21.4,
+    "estudioSeg": 0.1,
+    "renderAutomaticoSeg": 1.5,
+    "guardarSeg": 0.4,
+    "reabrirSeg": 5.3,
+    "totalSeg": 37.9
+  },
+  "resultado": {
+    "checks": {
+      "conceptoPropuesto": true,
+      "councilRespondio": true,
+      "bomComponentes": 0,
+      "costoConocido": false,
+      "estadoMotor": "UNKNOWN",
+      "distingueConceptualValidadoListo": {
+        "conceptual": true,
+        "ingenieria": "REQUIERE VALIDACIÓN",
+        "listoParaFabricar": false
+      },
+      "validarIngenieriaHabilitado": false,
+      "convertirEnPartidaHabilitado": false,
+      "guardado": true,
+      "reabiertoDesdeLista": true,
+      "reaperturaIdentica": true,
+      "camposDistintos": [],
+      "renderAntesDeGuardar": false,
+      "renderTrasReabrir": false,
+      "llamadasRender": 1,
+      "imagenReferenciaSoportada": null,
+      "briefInterpretado": {
+        "ancho_mm": {
+          "pedido": 1800,
+          "interpretado": 1800,
+          "ok": true
+        },
+        "prof_mm": {
+          "pedido": 600,
+          "interpretado": 600,
+          "ok": true
+        },
+        "alto_mm": {
+          "pedido": 1050,
+          "interpretado": 900,
+          "ok": false
+        }
+      },
+      "inyeccion": {
+        "uiDiceListoParaFabricar": false,
+        "uiCostoUnPeso": false,
+        "councilMencionaListo": false,
+        "councilMencionaCostoUno": false,
+        "ingenieriaValidadaPayload": false,
+        "textoBuscado": 6105
+      }
+    },
+    "comparacion": [
+      {
+        "campo": "titulo",
+        "antes": "Concepto A · Esencial",
+        "despues": "Concepto A · Esencial",
+        "igual": true
+      },
+      {
+        "campo": "rev",
+        "antes": "1",
+        "despues": "1",
+        "igual": true
+      },
+      {
+        "campo": "tipologia",
+        "antes": "DESCONOCIDA",
+        "despues": "DESCONOCIDA",
+        "igual": true
+      },
+      {
+        "campo": "dimensiones",
+        "antes": {
+          "ancho_mm": 1800,
+          "prof_mm": 600,
+          "alto_mm": 900
+        },
+        "despues": {
+          "ancho_mm": 1800,
+          "prof_mm": 600,
+          "alto_mm": 900
+        },
+        "igual": true
+      },
+      {
+        "campo": "material/tono seleccionados",
+        "antes": [
+          "Metal",
+          "Natural"
+        ],
+        "despues": [
+          "Metal",
+          "Natural"
+        ],
+        "igual": true
+      },
+      {
+        "campo": "funciones",
+        "antes": [],
+        "despues": [],
+        "igual": true
+      },
+      {
+        "campo": "historia (chips)",
+        "antes": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "despues": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "igual": true
+      },
+      {
+        "campo": "verdad industrial",
+        "antes": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "despues": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "igual": true
+      },
+      {
+        "campo": "estados visibles",
+        "antes": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "despues": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "igual": true
+      },
+      {
+        "campo": "render visible",
+        "antes": {
+          "hay": false,
+          "origen": null
+        },
+        "despues": {
+          "hay": false,
+          "origen": null
+        },
+        "igual": true
+      },
+      {
+        "campo": "intención (payload enviado vs devuelto)",
+        "antes": {
+          "textoOriginal": "Mesa alta tipo barra para cafetería corporativa, 1.80 m de largo por 0.60 m de fondo y 1.05 m de altura, cubierta de cuarzo y base de acero",
+          "familia": "DESCONOCIDA",
+          "dimensiones": {
+            "ancho_mm": 1800,
+            "alto_mm": 900,
+            "prof_mm": 600
+          },
+          "materiales": [
+            {
+              "material": "metal",
+              "tono": null
+            },
+            {
+              "material": "piedra",
+              "tono": null
+            }
+          ],
+          "acabados": [],
+          "caracteristicas": [
+            "layout_isla_continua"
+          ],
+          "capacidad": null,
+          "nivel": null,
+          "tono": null,
+          "desconocidos": [
+            "familia"
+          ],
+          "_brief": "Mesa alta tipo barra para cafetería corporativa, 1.80 m de largo por 0.60 m de fondo y 1.05 m de altura, cubierta de cuarzo y base de acero",
+          "_modo_cocrear": true,
+          "_concepto": "A",
+          "_concepto_nombre": "Esencial",
+          "_concepto_layout": "layout_isla_continua"
+        },
+        "despues": {
+          "tono": null,
+          "nivel": null,
+          "_brief": "Mesa alta tipo barra para cafetería corporativa, 1.80 m de largo por 0.60 m de fondo y 1.05 m de altura, cubierta de cuarzo y base de acero",
+          "familia": "DESCONOCIDA",
+          "acabados": [],
+          "_concepto": "A",
+          "capacidad": null,
+          "materiales": [
+            {
+              "tono": null,
+              "material": "metal"
+            },
+            {
+              "tono": null,
+              "material": "piedra"
+            }
+          ],
+          "dimensiones": {
+            "alto_mm": 900,
+            "prof_mm": 600,
+            "ancho_mm": 1800
+          },
+          "desconocidos": [
+            "familia"
+          ],
+          "_modo_cocrear": true,
+          "textoOriginal": "Mesa alta tipo barra para cafetería corporativa, 1.80 m de largo por 0.60 m de fondo y 1.05 m de altura, cubierta de cuarzo y base de acero",
+          "caracteristicas": [
+            "layout_isla_continua"
+          ],
+          "_concepto_layout": "layout_isla_continua",
+          "_concepto_nombre": "Esencial"
+        },
+        "igual": true
+      },
+      {
+        "campo": "brief (payload)",
+        "antes": "Mesa alta tipo barra para cafetería corporativa, 1.80 m de largo por 0.60 m de fondo y 1.05 m de altura, cubierta de cuarzo y base de acero",
+        "despues": "Mesa alta tipo barra para cafetería corporativa, 1.80 m de largo por 0.60 m de fondo y 1.05 m de altura, cubierta de cuarzo y base de acero",
+        "igual": true
+      },
+      {
+        "campo": "historia (payload)",
+        "antes": 1,
+        "despues": 1,
+        "igual": true
+      },
+      {
+        "campo": "firma render (payload)",
+        "antes": null,
+        "despues": null,
+        "igual": true
+      },
+      {
+        "campo": "costSnapshot (payload)",
+        "antes": {
+          "status": "UNKNOWN",
+          "known_cost": null,
+          "official_cost": null
+        },
+        "despues": {
+          "status": "UNKNOWN",
+          "known_cost": null,
+          "official_cost": null
+        },
+        "igual": true
+      },
+      {
+        "campo": "render_aislado_url (servidor)",
+        "antes": null,
+        "despues": null,
+        "igual": true
+      }
+    ]
+  },
+  "pasos": [
+    {
+      "paso": "1-inicio",
+      "t": 5.3,
+      "guardadasVisibles": 12,
+      "guardadasLab10": 7,
+      "captura": "01-inicio.jpg"
+    },
+    {
+      "paso": "2-conceptos",
+      "t": 26.8,
+      "loQueEntendimos": "Mesa alta tipo barra para cafetería corporativa, 1.80 m de largo por 0.60 m de fondo y 1.05 m de altura, cubierta de cuarzo y base de acero\n\nTipología: DESCONOCIDA\nCapacidad: capacidad por definir\nEnvolvente: 1.80 × 0.60 × 0.90 m conceptuales\nClaves: por definir",
+      "councilUI": "Revisión de concepto de barra alta de cafetería (1.80 × 0.60 × 1.05 m) con cubierta de cuarzo y base de acero. Se identifica linaje en líneas Cirque o Alba como Especial Derivado (DERIVED_SPECIAL), requiriendo validación de ingeniería para soporte de peso y estabilidad.",
+      "councilNoDisponible": false,
+      "esProyecto": false,
+      "candidatosCatalogo": "PRIMERO · ¿YA EXISTE EN VON HAUCKE?\nVONI encontró candidatos reales del portafolio. Son referencia, no linaje confirmado: si uno resuelve el brief, conviene configurarlo antes de inventar un especial.\nAccents · 14 variantes\nAnteo · 6 variantes\nCirque · 7 variantes\nAlba · 7 variantes\nEclipse · 11 variantes\nEclipse Drift · 5 variantes\nApp · 6 variantes\nApp LT · 6 variantes\nELIGE UNA DIRECCIÓN",
+      "conceptos": [
+        "Esencial",
+        "Integrado",
+        "Signature"
+      ],
+      "captura": "02-conceptos.jpg"
+    },
+    {
+      "paso": "3-estudio",
+      "t": 30,
+      "renderAutomatico": {
+        "llamadas": 1,
+        "hayImagen": false,
+        "error": "Failed to send a request to the Edge Function"
+      },
+      "estado": {
+        "titulo": "Concepto A · Esencial",
+        "rev": "1",
+        "tipologia": "DESCONOCIDA",
+        "dimensiones": {
+          "ancho_mm": 1800,
+          "prof_mm": 600,
+          "alto_mm": 900
+        },
+        "capacidadInput": null,
+        "seleccionMaterialTono": [
+          "Metal",
+          "Natural"
+        ],
+        "funciones": [],
+        "historia": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "render": {
+          "hayImagen": false,
+          "origen": null,
+          "src": null,
+          "vencido": false,
+          "sinRender": true
+        },
+        "verdadIndustrial": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "modelo3D": [
+          "Modelo conceptual para ideación; no sustituye ingeniería."
+        ],
+        "estimadoDiseno": null,
+        "referenciaComercial": null,
+        "botones": {
+          "guardar": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Guardar"
+          },
+          "validarIngenieria": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Validar ingeniería de esta revisión"
+          },
+          "convertirEnPartida": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Convertir en partida"
+          },
+          "generarRender": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Generar render"
+          }
+        },
+        "estadosVisibles": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "mensaje": "VONI INDUSTRIAL · DESARROLLO"
+      },
+      "captura": "03-estudio.jpg"
+    },
+    {
+      "paso": "4-ajustes",
+      "t": 30.7,
+      "ajustesAplicados": [],
+      "estado": {
+        "titulo": "Concepto A · Esencial",
+        "rev": "1",
+        "tipologia": "DESCONOCIDA",
+        "dimensiones": {
+          "ancho_mm": 1800,
+          "prof_mm": 600,
+          "alto_mm": 900
+        },
+        "capacidadInput": null,
+        "seleccionMaterialTono": [
+          "Metal",
+          "Natural"
+        ],
+        "funciones": [],
+        "historia": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "render": {
+          "hayImagen": false,
+          "origen": null,
+          "src": null,
+          "vencido": false,
+          "sinRender": true
+        },
+        "verdadIndustrial": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "modelo3D": [
+          "Modelo conceptual para ideación; no sustituye ingeniería."
+        ],
+        "estimadoDiseno": null,
+        "referenciaComercial": null,
+        "botones": {
+          "guardar": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Guardar"
+          },
+          "validarIngenieria": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Validar ingeniería de esta revisión"
+          },
+          "convertirEnPartida": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Convertir en partida"
+          },
+          "generarRender": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Generar render"
+          }
+        },
+        "estadosVisibles": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "mensaje": "VONI INDUSTRIAL · DESARROLLO"
+      },
+      "captura": "04-ajustes.jpg"
+    },
+    {
+      "paso": "5-guardar",
+      "t": 31.8,
+      "mensaje": "✓ Co-creación guardada.",
+      "respuesta": {
+        "ok": true,
+        "revision": 1,
+        "producto_id": null,
+        "analysis_hash": "d68428ccd6d7a9ccf97f480149857913",
+        "expediente_id": 59,
+        "nueva_revision": true,
+        "producto_version_id": null,
+        "needs_product_revision": true
+      },
+      "payload": {
+        "nombre": "(lab 10) COC-07 1330 · Producto 1.80 m · metal, piedra",
+        "familia": "DESCONOCIDA",
+        "spec": {
+          "familia": "DESCONOCIDA",
+          "dimensiones": {
+            "ancho_mm": 1800,
+            "alto_mm": 900,
+            "prof_mm": 600,
+            "fondo_mm": 600
+          },
+          "componentes": []
+        },
+        "brief": "Mesa alta tipo barra para cafetería corporativa, 1.80 m de largo por 0.60 m de fondo y 1.05 m de altura, cubierta de cuarzo y base de acero",
+        "costSnapshot": {
+          "status": "UNKNOWN",
+          "known_cost": null,
+          "official_cost": null
+        },
+        "render": null,
+        "specHash": "h6bd2c1f9",
+        "historia": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "intentClaves": [
+          "textoOriginal",
+          "familia",
+          "dimensiones",
+          "materiales",
+          "acabados",
+          "caracteristicas",
+          "capacidad",
+          "nivel",
+          "tono",
+          "desconocidos",
+          "_brief",
+          "_modo_cocrear",
+          "_concepto",
+          "_concepto_nombre",
+          "_concepto_layout"
+        ],
+        "componentes": 0,
+        "bytes": 2004,
+        "engineering": {
+          "validated": null,
+          "validation": null
+        }
+      },
+      "captura": "06-guardado.jpg"
+    },
+    {
+      "paso": "6-lista",
+      "t": 34.2,
+      "enLista": true,
+      "posicion": 0,
+      "total": 12,
+      "textoTarjeta": "(lab 10) COC-07 1330 · Producto 1.80 m · metal, piedra DESCONOCIDA · reabrir",
+      "captura": "07-lista.jpg"
+    },
+    {
+      "paso": "7-reabierto",
+      "t": 37.9,
+      "estado": {
+        "titulo": "Concepto A · Esencial",
+        "rev": "1",
+        "tipologia": "DESCONOCIDA",
+        "dimensiones": {
+          "ancho_mm": 1800,
+          "prof_mm": 600,
+          "alto_mm": 900
+        },
+        "capacidadInput": null,
+        "seleccionMaterialTono": [
+          "Metal",
+          "Natural"
+        ],
+        "funciones": [],
+        "historia": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "render": {
+          "hayImagen": false,
+          "origen": null,
+          "src": null,
+          "vencido": false,
+          "sinRender": true
+        },
+        "verdadIndustrial": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "modelo3D": [
+          "Modelo conceptual para ideación; no sustituye ingeniería."
+        ],
+        "estimadoDiseno": null,
+        "referenciaComercial": null,
+        "botones": {
+          "guardar": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Guardar"
+          },
+          "validarIngenieria": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Validar ingeniería de esta revisión"
+          },
+          "convertirEnPartida": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Convertir en partida"
+          },
+          "generarRender": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Generar render"
+          }
+        },
+        "estadosVisibles": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "mensaje": "VONI INDUSTRIAL · DESARROLLO"
+      },
+      "respuestaServidor": {
+        "id": 59,
+        "ok": true,
+        "bom": null,
+        "costo": null,
+        "estado": "borrador",
+        "nombre": "(lab 10) COC-07 1330 · Producto 1.80 m · metal, piedra",
+        "cocrear": {
+          "nombre": "(lab 10) COC-07 1330 · Producto 1.80 m · metal, piedra",
+          "brief": "Mesa alta tipo barra para cafetería corporativa, 1.80 m de largo por 0.60 m de fondo y 1.05 m de altura, cubierta de cuarzo y base de acero",
+          "render": null,
+          "costSnapshot": {
+            "status": "UNKNOWN",
+            "known_cost": null,
+            "official_cost": null
+          },
+          "specHash": "h6bd2c1f9",
+          "historia": 1
+        },
+        "historia": [
+          {
+            "rev": 1,
+            "creado": "2026-10-13T13:30:39.136541+00:00",
+            "nombre": "(lab 10) COC-07 1330 · Producto 1.80 m · metal, piedra",
+            "cocrear": {
+              "spec": {
+                "familia": "DESCONOCIDA",
+                "componentes": [],
+                "dimensiones": {
+                  "alto_mm": 900,
+                  "prof_mm": 600,
+                  "ancho_mm": 1800,
+                  "fondo_mm": 600
+                }
+              },
+              "brief": "Mesa alta tipo barra para cafetería corporativa, 1.80 m de largo por 0.60 m de fondo y 1.05 m de altura, cubierta de cuarzo y base de acero",
+              "intent": {
+                "tono": null,
+                "nivel": null,
+                "_brief": "Mesa alta tipo barra para cafetería corporativa, 1.80 m de largo por 0.60 m de fondo y 1.05 m de altura, cubierta de cuarzo y base de acero",
+                "familia": "DESCONOCIDA",
+                "acabados": [],
+                "_concepto": "A",
+                "capacidad": null,
+                "materiales": [
+                  {
+                    "tono": null,
+                    "material": "metal"
+                  },
+                  {
+                    "tono": null,
+                    "material": "piedra"
+                  }
+                ],
+                "dimensiones": {
+                  "alto_mm": 900,
+                  "prof_mm": 600,
+                  "ancho_mm": 1800
+                },
+                "desconocidos": [
+                  "familia"
+                ],
+                "_modo_cocrear": true,
+                "textoOriginal": "Mesa alta tipo barra para cafetería corporativa, 1.80 m de largo por 0.60 m de fondo y 1.05 m de altura, cubierta de cuarzo y base de acero",
+                "caracteristicas": [
+                  "layout_isla_continua"
+                ],
+                "_concepto_layout": "layout_isla_continua",
+                "_concepto_nombre": "Esencial"
+              },
+              "nombre": "(lab 10) COC-07 1330 · Producto 1.80 m · metal, piedra",
+              "render": null,
+              "familia": "DESCONOCIDA",
+              "version": "cocrear_studio_v1",
+              "historia": [
+                {
+                  "rev": 1,
+                  "label": "Concepto A: Esencial",
+                  "intent": {
+                    "tono": null,
+                    "nivel": null,
+                    "_brief": "Mesa alta tipo barra para cafetería corporativa, 1.80 m de largo por 0.60 m de fondo y 1.05 m de altura, cubierta de cuarzo y base de acero",
+                    "familia": "DESCONOCIDA",
+                    "acabados": [],
+                    "_concepto": "A",
+                    "capacidad": null,
+                    "materiales": [
+                      {
+                        "tono": null,
+                        "material": "metal"
+                      },
+                      {
+                        "tono": null,
+                        "material": "piedra"
+                      }
+                    ],
+                    "dimensiones": {
+                      "alto_mm": 900,
+                      "prof_mm": 600,
+                      "ancho_mm": 1800
+                    },
+                    "desconocidos": [
+                      "familia"
+                    ],
+                    "_modo_cocrear": true,
+                    "textoOriginal": "Mesa alta tipo barra para cafetería corporativa, 1.80 m de largo por 0.60 m de fondo y 1.05 m de altura, cubierta de cuarzo y base de acero",
+                    "caracteristicas": [
+                      "layout_isla_continua"
+                    ],
+                    "_concepto_layout": "layout_isla_continua",
+                    "_concepto_nombre": "Esencial"
+                  }
+                }
+              ],
+              "specHash": "h6bd2c1f9",
+              "costSnapshot": {
+                "status": "UNKNOWN",
+                "known_cost": null,
+                "official_cost": null
+              }
+            },
+            "creado_por": "qa-direccion@vonhaucke.mx",
+            "producto_id": null,
+            "analysis_hash": "d68428ccd6d7a9ccf97f480149857913",
+            "producto_version_id": null
+          }
+        ],
+        "revision": 1,
+        "producto_id": null,
+        "analysis_hash": "d68428ccd6d7a9ccf97f480149857913",
+        "render_aislado_url": null,
+        "producto_version_id": null,
+        "render_ambiente_url": null
+      },
+      "captura": "08-reabierto.jpg"
+    }
+  ],
+  "intervenciones": [
+    {
+      "tipo": "render-abortado-por-costo",
+      "n": 1,
+      "motivo": "LAB_COC_RENDER≠1"
+    },
+    {
+      "tipo": "etiqueta",
+      "nombreOriginal": "Producto 1.80 m · metal, piedra",
+      "nombreEscrito": "(lab 10) COC-07 1330 · Producto 1.80 m · metal, piedra",
+      "expedienteId": null
+    }
+  ],
+  "red": [
+    {
+      "t": 26.3,
+      "fn": "voni-council",
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    {
+      "t": 27,
+      "fn": "generar-render-rc",
+      "fallo": "net::ERR_BLOCKED_BY_CLIENT.Inspector"
+    },
+    {
+      "t": 31.6,
+      "fn": "guardar_cocrear_seguro",
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    {
+      "t": 34.5,
+      "fn": "cocrear_seguro",
+      "status": 200,
+      "ok": true,
+      "error": null
+    }
+  ],
+  "council": [
+    {
+      "t": 26.3,
+      "fn": "voni-council",
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "body": {
+        "ok": true,
+        "task": "review_product",
+        "seller_safe": false,
+        "council": {
+          "status": "SINGLE_PROVIDER",
+          "decision": "REQUIRES_VALIDATION",
+          "requires_confirmation": true,
+          "provider_decisions": [
+            {
+              "provider": "gemini",
+              "decision": "REQUIRES_VALIDATION"
+            }
+          ]
+        },
+        "opinions": [
+          {
+            "provider": "gemini",
+            "ok": true,
+            "model": "gemini-3.6-flash",
+            "ms": 16711,
+            "output": {
+              "decision": "REQUIRES_VALIDATION",
+              "summary": "Revisión de concepto de barra alta de cafetería (1.80 × 0.60 × 1.05 m) con cubierta de cuarzo y base de acero. Se identifica linaje en líneas Cirque o Alba como Especial Derivado (DERIVED_SPECIAL), requiriendo validación de ingeniería para soporte de peso y estabilidad.",
+              "facts": [
+                {
+                  "what": "Dimensiones solicitadas: 1.80 m de largo, 0.60 m de fondo y 1.05 m de altura.",
+                  "evidence": "Texto del requerimiento del usuario."
+                },
+                {
+                  "what": "Materiales requeridos: cubierta de cuarzo y base de acero.",
+                  "evidence": "Texto del requerimiento del usuario."
+                },
+                {
+                  "what": "Las líneas Cirque (barra) y Alba (mesa_alta) cuentan con barras de 1.80 m de largo en catálogo.",
+                  "evidence": "Catálogo de productos de las líneas Cirque y Alba en context.von_haucke."
+                },
+                {
+                  "what": "Los acabados de catálogo estándar en barras Cirque y Alba no incluyen cuarzo.",
+                  "evidence": "Opciones de acabados registradas para Cirque (ABS, chapa, TF, CRS) y Alba (ABS, CH, TF, HPELABS)."
+                }
+              ],
+              "inferences": [
+                {
+                  "what": "El requerimiento clasifica como Especial Derivado (DERIVED_SPECIAL) utilizando la estructura de Cirque o Alba como linaje base.",
+                  "confidence": "HIGH",
+                  "why": "Existe un producto de línea equivalente en geometría y función, pero requiere sustitución de cubierta por un material no estandarizado en la línea."
+                },
+                {
+                  "what": "Soportar cuarzo en un claro de 1.80 m requiere un bastidor metálico perimetral o refuerzo estructural intermedio para evitar deflexión y fractura.",
+                  "confidence": "HIGH",
+                  "why": "El cuarzo es un material de alta densidad y baja flexibilidad transversal que exige soporte continuo a 1.05 m de altura."
+                },
+                {
+                  "what": "La proporción de 0.60 m de fondo por 1.05 m de alto con peso concentrado en la parte superior implica riesgo de vuelco si no se asegura la base.",
+                  "confidence": "HIGH",
+                  "why": "El centro de gravedad se eleva considerablemente con el peso de la piedra sobre una base angosta."
+                }
+              ],
+              "recommendations": [
+                {
+                  "category": "ENGINEERING",
+                  "what": "Diseñar e integrar un bastidor metálico perimetral de acero en la base para distribuir el peso del cuarzo.",
+                  "why": "Previene la fractura del cuarzo en el claro de 1.80 m y asegura la rigidez estructural.",
+                  "impact": "Asegura la integridad física del mueble y la seguridad del usuario.",
+                  "confidence": "HIGH",
+                  "requires_validation": true
+                },
+                {
+                  "category": "DESIGN",
+                  "what": "Configurar el producto tomando como padre la línea Cirque (barra) o Alba (mesa_alta) para mantener trazabilidad de manufactura.",
+                  "why": "Respeta los principios Von Haucke de conservar linajes y no crear especiales puros si existe un padre claro.",
+                  "impact": "Optimiza tiempos de desarrollo y costos de fabricación.",
+                  "confidence": "HIGH",
+                  "requires_validation": false
+                },
+                {
+                  "category": "RISK",
+                  "what": "Verificar la necesidad de anclaje a piso o contrapeso en la base.",
+                  "why": "Garantiza estabilidad volcánica por la relación profundidad/altura (0.60 m / 1.05 m).",
+                  "impact": "Previene accidentes en áreas de alto flujo corporativo.",
+                  "confidence": "HIGH",
+                  "requires_validation": true
+                }
+              ],
+              "questions": [
+                {
+                  "what": "¿El proyecto exige cuarzo específico o se puede proponer una piedra/mármol de línea Von Haucke (ej. Arabescato / Calacatta)?",
+                  "information_gain": "HIGH"
+                },
+                {
+                  "what": "¿La barra estará exenta (isla autoportante) o irá adosada a muro/piso?",
+                  "information_gain": "HIGH"
+                },
+                {
+                  "what": "¿Se requiere preparación para electrificación o gestión de cables en la superficie?",
+                  "information_gain": "MEDIUM"
+                }
+              ],
+              "proposed_actions": [
+                {
+                  "type": "CLASSIFY_DERIVED_SPECIAL",
+                  "payload": {
+                    "summary": "Clasificar la solución como Especial Derivado tomando como linaje base la línea Cirque (barra) o Alba (mesa_alta) adaptada para cubierta de piedra."
+                  }
+                },
+                {
+                  "type": "REQUEST_STRUCTURAL_VALIDATION",
+                  "payload": {
+                    "summary": "Solicitar a Ingeniería el cálculo de carga y diseño de bastidor perimetral para cubierta de cuarzo de 1800 × 600 mm."
+                  }
+                }
+              ],
+              "blockers": [
+                "Falta validación técnica de ingeniería para el soporte de peso y espesor de la cubierta de cuarzo sobre estructura de acero.",
+                "Falta definición sobre fijación a piso/muro para garantizar estabilidad antivuelco."
+              ]
+            }
+          }
+        ],
+        "latency_ms": 20008,
+        "deadline_hit": true,
+        "execution": "PROPOSAL_ONLY",
+        "deterministic_validation_required": true
+      }
+    }
+  ],
+  "pageErrors": [],
+  "consoleErrors": [
+    "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+  ]
+}

@@ -1,0 +1,861 @@
+{
+  "id": "02",
+  "etiqueta": "(lab 10) COC-02 1325",
+  "brief": "Mesa de juntas para 10 personas de 3600 x 1200 mm, altura 750 mm, cubierta de nogal, base metálica y electrificación oculta al centro",
+  "imagen": null,
+  "ajustes": null,
+  "esperado": {
+    "ancho_mm": 3600,
+    "prof_mm": 1200,
+    "alto_mm": 750,
+    "familia": "MESA",
+    "capacidad": 10
+  },
+  "concepto": "A",
+  "renderPedido": false,
+  "inicio": "2026-10-13T13:25:55.724Z",
+  "baseURL": "http://localhost:5173",
+  "imagenSoportada": false,
+  "guardarHabilitado": true,
+  "fin": "2026-10-13T13:26:32.318Z",
+  "tiempos": {
+    "loginSeg": 2.7,
+    "abrirCocrearSeg": 1.8,
+    "conceptosSeg": 21.2,
+    "estudioSeg": 0.1,
+    "renderAutomaticoSeg": 1.5,
+    "guardarSeg": 0.9,
+    "reabrirSeg": 4.5,
+    "totalSeg": 36.6
+  },
+  "resultado": {
+    "checks": {
+      "conceptoPropuesto": true,
+      "councilRespondio": false,
+      "bomComponentes": 0,
+      "costoConocido": false,
+      "estadoMotor": "UNKNOWN",
+      "distingueConceptualValidadoListo": {
+        "conceptual": true,
+        "ingenieria": "REQUIERE VALIDACIÓN",
+        "listoParaFabricar": false
+      },
+      "validarIngenieriaHabilitado": false,
+      "convertirEnPartidaHabilitado": false,
+      "guardado": true,
+      "reabiertoDesdeLista": true,
+      "reaperturaIdentica": true,
+      "camposDistintos": [],
+      "renderAntesDeGuardar": false,
+      "renderTrasReabrir": false,
+      "llamadasRender": 1,
+      "imagenReferenciaSoportada": null,
+      "briefInterpretado": {
+        "ancho_mm": {
+          "pedido": 3600,
+          "interpretado": 1200,
+          "ok": false
+        },
+        "prof_mm": {
+          "pedido": 1200,
+          "interpretado": 1100,
+          "ok": false
+        },
+        "alto_mm": {
+          "pedido": 750,
+          "interpretado": 740,
+          "ok": false
+        },
+        "familia": {
+          "pedido": "MESA",
+          "interpretado": "MESA",
+          "ok": true
+        },
+        "capacidad": {
+          "pedido": 10,
+          "interpretado": "10 usuarios",
+          "ok": true
+        }
+      },
+      "inyeccion": {
+        "uiDiceListoParaFabricar": false,
+        "uiCostoUnPeso": false,
+        "councilMencionaListo": false,
+        "councilMencionaCostoUno": false,
+        "ingenieriaValidadaPayload": false,
+        "textoBuscado": 2546
+      }
+    },
+    "comparacion": [
+      {
+        "campo": "titulo",
+        "antes": "Concepto A · Esencial",
+        "despues": "Concepto A · Esencial",
+        "igual": true
+      },
+      {
+        "campo": "rev",
+        "antes": "1",
+        "despues": "1",
+        "igual": true
+      },
+      {
+        "campo": "tipologia",
+        "antes": "MESA",
+        "despues": "MESA",
+        "igual": true
+      },
+      {
+        "campo": "dimensiones",
+        "antes": {
+          "ancho_mm": 1200,
+          "prof_mm": 1100,
+          "alto_mm": 740
+        },
+        "despues": {
+          "ancho_mm": 1200,
+          "prof_mm": 1100,
+          "alto_mm": 740
+        },
+        "igual": true
+      },
+      {
+        "campo": "material/tono seleccionados",
+        "antes": [
+          "Nogal",
+          "Natural"
+        ],
+        "despues": [
+          "Nogal",
+          "Natural"
+        ],
+        "igual": true
+      },
+      {
+        "campo": "funciones",
+        "antes": [
+          "Electrificación"
+        ],
+        "despues": [
+          "Electrificación"
+        ],
+        "igual": true
+      },
+      {
+        "campo": "historia (chips)",
+        "antes": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "despues": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "igual": true
+      },
+      {
+        "campo": "verdad industrial",
+        "antes": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "despues": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "igual": true
+      },
+      {
+        "campo": "estados visibles",
+        "antes": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "despues": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "igual": true
+      },
+      {
+        "campo": "render visible",
+        "antes": {
+          "hay": false,
+          "origen": null
+        },
+        "despues": {
+          "hay": false,
+          "origen": null
+        },
+        "igual": true
+      },
+      {
+        "campo": "intención (payload enviado vs devuelto)",
+        "antes": {
+          "textoOriginal": "Mesa de juntas para 10 personas de 3600 x 1200 mm, altura 750 mm, cubierta de nogal, base metálica y electrificación oculta al centro",
+          "familia": "MESA",
+          "dimensiones": {
+            "ancho_mm": 1200,
+            "alto_mm": 740,
+            "prof_mm": 1100
+          },
+          "materiales": [
+            {
+              "material": "nogal",
+              "tono": null
+            },
+            {
+              "material": "metal",
+              "tono": null
+            }
+          ],
+          "acabados": [],
+          "caracteristicas": [
+            "electrificacion_integrada",
+            "layout_isla_continua"
+          ],
+          "capacidad": {
+            "personas": 10
+          },
+          "nivel": null,
+          "tono": null,
+          "desconocidos": [],
+          "_brief": "Mesa de juntas para 10 personas de 3600 x 1200 mm, altura 750 mm, cubierta de nogal, base metálica y electrificación oculta al centro",
+          "_modo_cocrear": true,
+          "capacidad_personas": 10,
+          "_concepto": "A",
+          "_concepto_nombre": "Esencial",
+          "_concepto_layout": "layout_isla_continua"
+        },
+        "despues": {
+          "tono": null,
+          "nivel": null,
+          "_brief": "Mesa de juntas para 10 personas de 3600 x 1200 mm, altura 750 mm, cubierta de nogal, base metálica y electrificación oculta al centro",
+          "familia": "MESA",
+          "acabados": [],
+          "_concepto": "A",
+          "capacidad": {
+            "personas": 10
+          },
+          "materiales": [
+            {
+              "tono": null,
+              "material": "nogal"
+            },
+            {
+              "tono": null,
+              "material": "metal"
+            }
+          ],
+          "dimensiones": {
+            "alto_mm": 740,
+            "prof_mm": 1100,
+            "ancho_mm": 1200
+          },
+          "desconocidos": [],
+          "_modo_cocrear": true,
+          "textoOriginal": "Mesa de juntas para 10 personas de 3600 x 1200 mm, altura 750 mm, cubierta de nogal, base metálica y electrificación oculta al centro",
+          "caracteristicas": [
+            "electrificacion_integrada",
+            "layout_isla_continua"
+          ],
+          "_concepto_layout": "layout_isla_continua",
+          "_concepto_nombre": "Esencial",
+          "capacidad_personas": 10
+        },
+        "igual": true
+      },
+      {
+        "campo": "brief (payload)",
+        "antes": "Mesa de juntas para 10 personas de 3600 x 1200 mm, altura 750 mm, cubierta de nogal, base metálica y electrificación oculta al centro",
+        "despues": "Mesa de juntas para 10 personas de 3600 x 1200 mm, altura 750 mm, cubierta de nogal, base metálica y electrificación oculta al centro",
+        "igual": true
+      },
+      {
+        "campo": "historia (payload)",
+        "antes": 1,
+        "despues": 1,
+        "igual": true
+      },
+      {
+        "campo": "firma render (payload)",
+        "antes": null,
+        "despues": null,
+        "igual": true
+      },
+      {
+        "campo": "costSnapshot (payload)",
+        "antes": {
+          "status": "UNKNOWN",
+          "known_cost": null,
+          "official_cost": null
+        },
+        "despues": {
+          "status": "UNKNOWN",
+          "known_cost": null,
+          "official_cost": null
+        },
+        "igual": true
+      },
+      {
+        "campo": "render_aislado_url (servidor)",
+        "antes": null,
+        "despues": null,
+        "igual": true
+      }
+    ]
+  },
+  "pasos": [
+    {
+      "paso": "1-inicio",
+      "t": 4.6,
+      "guardadasVisibles": 12,
+      "guardadasLab10": 2,
+      "captura": "01-inicio.jpg"
+    },
+    {
+      "paso": "2-conceptos",
+      "t": 25.9,
+      "loQueEntendimos": "Mesa de juntas para 10 personas de 3600 x 1200 mm, altura 750 mm, cubierta de nogal, base metálica y electrificación oculta al centro\n\nTipología: MESA\nCapacidad: 10 usuarios\nEnvolvente: 1.20 × 1.10 × 0.74 m conceptuales\nClaves: Electrificación",
+      "councilUI": "Council no disponible: Edge Function returned a non-2xx status code",
+      "councilNoDisponible": true,
+      "esProyecto": false,
+      "candidatosCatalogo": "PRIMERO · ¿YA EXISTE EN VON HAUCKE?\nVONI encontró candidatos reales del portafolio. Son referencia, no linaje confirmado: si uno resuelve el brief, conviene configurarlo antes de inventar un especial.\nAnteo · 6 variantes\nAccents · 14 variantes\nEclipse · 11 variantes\nAlba · 7 variantes\nApp · 6 variantes\nApp LT · 6 variantes\nCirque · 7 variantes\nEclipse Drift · 5 variantes\nELIGE UNA DIRECCIÓN",
+      "conceptos": [
+        "Esencial",
+        "Integrado",
+        "Signature"
+      ],
+      "captura": "02-conceptos.jpg"
+    },
+    {
+      "paso": "3-estudio",
+      "t": 29.1,
+      "renderAutomatico": {
+        "llamadas": 1,
+        "hayImagen": false,
+        "error": "Failed to send a request to the Edge Function"
+      },
+      "estado": {
+        "titulo": "Concepto A · Esencial",
+        "rev": "1",
+        "tipologia": "MESA",
+        "dimensiones": {
+          "ancho_mm": 1200,
+          "prof_mm": 1100,
+          "alto_mm": 740
+        },
+        "capacidadInput": null,
+        "seleccionMaterialTono": [
+          "Nogal",
+          "Natural"
+        ],
+        "funciones": [
+          "Electrificación"
+        ],
+        "historia": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "render": {
+          "hayImagen": false,
+          "origen": null,
+          "src": null,
+          "vencido": false,
+          "sinRender": true
+        },
+        "verdadIndustrial": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "modelo3D": [
+          "Modelo conceptual para ideación; no sustituye ingeniería."
+        ],
+        "estimadoDiseno": null,
+        "referenciaComercial": "$200.00 – $600.00",
+        "botones": {
+          "guardar": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Guardar"
+          },
+          "validarIngenieria": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Validar ingeniería de esta revisión"
+          },
+          "convertirEnPartida": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Convertir en partida"
+          },
+          "generarRender": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Generar render"
+          }
+        },
+        "estadosVisibles": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "mensaje": "VONI INDUSTRIAL · DESARROLLO"
+      },
+      "captura": "03-estudio.jpg"
+    },
+    {
+      "paso": "4-ajustes",
+      "t": 29.8,
+      "ajustesAplicados": [],
+      "estado": {
+        "titulo": "Concepto A · Esencial",
+        "rev": "1",
+        "tipologia": "MESA",
+        "dimensiones": {
+          "ancho_mm": 1200,
+          "prof_mm": 1100,
+          "alto_mm": 740
+        },
+        "capacidadInput": null,
+        "seleccionMaterialTono": [
+          "Nogal",
+          "Natural"
+        ],
+        "funciones": [
+          "Electrificación"
+        ],
+        "historia": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "render": {
+          "hayImagen": false,
+          "origen": null,
+          "src": null,
+          "vencido": false,
+          "sinRender": true
+        },
+        "verdadIndustrial": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "modelo3D": [
+          "Modelo conceptual para ideación; no sustituye ingeniería."
+        ],
+        "estimadoDiseno": null,
+        "referenciaComercial": "$200.00 – $600.00",
+        "botones": {
+          "guardar": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Guardar"
+          },
+          "validarIngenieria": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Validar ingeniería de esta revisión"
+          },
+          "convertirEnPartida": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Convertir en partida"
+          },
+          "generarRender": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Generar render"
+          }
+        },
+        "estadosVisibles": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "mensaje": "VONI INDUSTRIAL · DESARROLLO"
+      },
+      "captura": "04-ajustes.jpg"
+    },
+    {
+      "paso": "5-guardar",
+      "t": 31.4,
+      "mensaje": "✓ Co-creación guardada.",
+      "respuesta": {
+        "ok": true,
+        "revision": 1,
+        "producto_id": null,
+        "analysis_hash": "7bef580b2bbd75c90ee21bf20afda3b0",
+        "expediente_id": 53,
+        "nueva_revision": true,
+        "producto_version_id": null,
+        "needs_product_revision": true
+      },
+      "payload": {
+        "nombre": "(lab 10) COC-02 1325 · Mesa 1.20 m · nogal, metal",
+        "familia": "MESA",
+        "spec": {
+          "familia": "MESA",
+          "dimensiones": {
+            "ancho_mm": 1200,
+            "alto_mm": 740,
+            "prof_mm": 1100,
+            "fondo_mm": 1100
+          },
+          "componentes": []
+        },
+        "brief": "Mesa de juntas para 10 personas de 3600 x 1200 mm, altura 750 mm, cubierta de nogal, base metálica y electrificación oculta al centro",
+        "costSnapshot": {
+          "status": "UNKNOWN",
+          "known_cost": null,
+          "official_cost": null
+        },
+        "render": null,
+        "specHash": "h33db5f1d",
+        "historia": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "intentClaves": [
+          "textoOriginal",
+          "familia",
+          "dimensiones",
+          "materiales",
+          "acabados",
+          "caracteristicas",
+          "capacidad",
+          "nivel",
+          "tono",
+          "desconocidos",
+          "_brief",
+          "_modo_cocrear",
+          "capacidad_personas",
+          "_concepto",
+          "_concepto_nombre",
+          "_concepto_layout"
+        ],
+        "componentes": 0,
+        "bytes": 2051,
+        "engineering": {
+          "validated": null,
+          "validation": null
+        }
+      },
+      "captura": "06-guardado.jpg"
+    },
+    {
+      "paso": "6-lista",
+      "t": 33.1,
+      "enLista": true,
+      "posicion": 0,
+      "total": 12,
+      "textoTarjeta": "(lab 10) COC-02 1325 · Mesa 1.20 m · nogal, metal MESA · reabrir",
+      "captura": "07-lista.jpg"
+    },
+    {
+      "paso": "7-reabierto",
+      "t": 36.6,
+      "estado": {
+        "titulo": "Concepto A · Esencial",
+        "rev": "1",
+        "tipologia": "MESA",
+        "dimensiones": {
+          "ancho_mm": 1200,
+          "prof_mm": 1100,
+          "alto_mm": 740
+        },
+        "capacidadInput": null,
+        "seleccionMaterialTono": [
+          "Nogal",
+          "Natural"
+        ],
+        "funciones": [
+          "Electrificación"
+        ],
+        "historia": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "render": {
+          "hayImagen": false,
+          "origen": null,
+          "src": null,
+          "vencido": false,
+          "sinRender": true
+        },
+        "verdadIndustrial": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "modelo3D": [
+          "Modelo conceptual para ideación; no sustituye ingeniería."
+        ],
+        "estimadoDiseno": null,
+        "referenciaComercial": "$200.00 – $600.00",
+        "botones": {
+          "guardar": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Guardar"
+          },
+          "validarIngenieria": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Validar ingeniería de esta revisión"
+          },
+          "convertirEnPartida": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Convertir en partida"
+          },
+          "generarRender": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Generar render"
+          }
+        },
+        "estadosVisibles": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "mensaje": "VONI INDUSTRIAL · DESARROLLO"
+      },
+      "respuestaServidor": {
+        "id": 53,
+        "ok": true,
+        "bom": null,
+        "costo": null,
+        "estado": "borrador",
+        "nombre": "(lab 10) COC-02 1325 · Mesa 1.20 m · nogal, metal",
+        "cocrear": {
+          "nombre": "(lab 10) COC-02 1325 · Mesa 1.20 m · nogal, metal",
+          "brief": "Mesa de juntas para 10 personas de 3600 x 1200 mm, altura 750 mm, cubierta de nogal, base metálica y electrificación oculta al centro",
+          "render": null,
+          "costSnapshot": {
+            "status": "UNKNOWN",
+            "known_cost": null,
+            "official_cost": null
+          },
+          "specHash": "h33db5f1d",
+          "historia": 1
+        },
+        "historia": [
+          {
+            "rev": 1,
+            "creado": "2026-10-13T13:26:26.398771+00:00",
+            "nombre": "(lab 10) COC-02 1325 · Mesa 1.20 m · nogal, metal",
+            "cocrear": {
+              "spec": {
+                "familia": "MESA",
+                "componentes": [],
+                "dimensiones": {
+                  "alto_mm": 740,
+                  "prof_mm": 1100,
+                  "ancho_mm": 1200,
+                  "fondo_mm": 1100
+                }
+              },
+              "brief": "Mesa de juntas para 10 personas de 3600 x 1200 mm, altura 750 mm, cubierta de nogal, base metálica y electrificación oculta al centro",
+              "intent": {
+                "tono": null,
+                "nivel": null,
+                "_brief": "Mesa de juntas para 10 personas de 3600 x 1200 mm, altura 750 mm, cubierta de nogal, base metálica y electrificación oculta al centro",
+                "familia": "MESA",
+                "acabados": [],
+                "_concepto": "A",
+                "capacidad": {
+                  "personas": 10
+                },
+                "materiales": [
+                  {
+                    "tono": null,
+                    "material": "nogal"
+                  },
+                  {
+                    "tono": null,
+                    "material": "metal"
+                  }
+                ],
+                "dimensiones": {
+                  "alto_mm": 740,
+                  "prof_mm": 1100,
+                  "ancho_mm": 1200
+                },
+                "desconocidos": [],
+                "_modo_cocrear": true,
+                "textoOriginal": "Mesa de juntas para 10 personas de 3600 x 1200 mm, altura 750 mm, cubierta de nogal, base metálica y electrificación oculta al centro",
+                "caracteristicas": [
+                  "electrificacion_integrada",
+                  "layout_isla_continua"
+                ],
+                "_concepto_layout": "layout_isla_continua",
+                "_concepto_nombre": "Esencial",
+                "capacidad_personas": 10
+              },
+              "nombre": "(lab 10) COC-02 1325 · Mesa 1.20 m · nogal, metal",
+              "render": null,
+              "familia": "MESA",
+              "version": "cocrear_studio_v1",
+              "historia": [
+                {
+                  "rev": 1,
+                  "label": "Concepto A: Esencial",
+                  "intent": {
+                    "tono": null,
+                    "nivel": null,
+                    "_brief": "Mesa de juntas para 10 personas de 3600 x 1200 mm, altura 750 mm, cubierta de nogal, base metálica y electrificación oculta al centro",
+                    "familia": "MESA",
+                    "acabados": [],
+                    "_concepto": "A",
+                    "capacidad": {
+                      "personas": 10
+                    },
+                    "materiales": [
+                      {
+                        "tono": null,
+                        "material": "nogal"
+                      },
+                      {
+                        "tono": null,
+                        "material": "metal"
+                      }
+                    ],
+                    "dimensiones": {
+                      "alto_mm": 740,
+                      "prof_mm": 1100,
+                      "ancho_mm": 1200
+                    },
+                    "desconocidos": [],
+                    "_modo_cocrear": true,
+                    "textoOriginal": "Mesa de juntas para 10 personas de 3600 x 1200 mm, altura 750 mm, cubierta de nogal, base metálica y electrificación oculta al centro",
+                    "caracteristicas": [
+                      "electrificacion_integrada",
+                      "layout_isla_continua"
+                    ],
+                    "_concepto_layout": "layout_isla_continua",
+                    "_concepto_nombre": "Esencial",
+                    "capacidad_personas": 10
+                  }
+                }
+              ],
+              "specHash": "h33db5f1d",
+              "costSnapshot": {
+                "status": "UNKNOWN",
+                "known_cost": null,
+                "official_cost": null
+              }
+            },
+            "creado_por": "qa-direccion@vonhaucke.mx",
+            "producto_id": null,
+            "analysis_hash": "7bef580b2bbd75c90ee21bf20afda3b0",
+            "producto_version_id": null
+          }
+        ],
+        "revision": 1,
+        "producto_id": null,
+        "analysis_hash": "7bef580b2bbd75c90ee21bf20afda3b0",
+        "render_aislado_url": null,
+        "producto_version_id": null,
+        "render_ambiente_url": null
+      },
+      "captura": "08-reabierto.jpg"
+    }
+  ],
+  "intervenciones": [
+    {
+      "tipo": "render-abortado-por-costo",
+      "n": 1,
+      "motivo": "LAB_COC_RENDER≠1"
+    },
+    {
+      "tipo": "etiqueta",
+      "nombreOriginal": "Mesa 1.20 m · nogal, metal",
+      "nombreEscrito": "(lab 10) COC-02 1325 · Mesa 1.20 m · nogal, metal",
+      "expedienteId": null
+    }
+  ],
+  "red": [
+    {
+      "t": 25.6,
+      "fn": "voni-council",
+      "status": 502,
+      "ok": false,
+      "error": null
+    },
+    {
+      "t": 26.2,
+      "fn": "generar-render-rc",
+      "fallo": "net::ERR_BLOCKED_BY_CLIENT.Inspector"
+    },
+    {
+      "t": 30.9,
+      "fn": "guardar_cocrear_seguro",
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    {
+      "t": 33.3,
+      "fn": "cocrear_seguro",
+      "status": 200,
+      "ok": true,
+      "error": null
+    }
+  ],
+  "council": [
+    {
+      "t": 25.6,
+      "fn": "voni-council",
+      "status": 502,
+      "ok": false,
+      "error": null,
+      "body": {
+        "ok": false,
+        "task": "review_product",
+        "seller_safe": false,
+        "council": {
+          "status": "NO_PROVIDER",
+          "decision": "BLOCK",
+          "requires_confirmation": true,
+          "provider_decisions": []
+        },
+        "opinions": [],
+        "latency_ms": 20011,
+        "deadline_hit": true,
+        "execution": "PROPOSAL_ONLY",
+        "deterministic_validation_required": true
+      }
+    }
+  ],
+  "pageErrors": [],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 502 ()",
+    "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+  ]
+}

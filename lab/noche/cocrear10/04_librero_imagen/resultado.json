@@ -1,0 +1,1028 @@
+{
+  "id": "04",
+  "etiqueta": "(lab 10) COC-04 1327",
+  "brief": "Librero como el de la imagen de referencia: 5 columnas por 8 niveles, melamina color roble, sin puertas",
+  "imagen": "lab/costear/librero_5x8.png",
+  "ajustes": null,
+  "esperado": {
+    "familia": "GUARDADO"
+  },
+  "concepto": "A",
+  "renderPedido": true,
+  "inicio": "2026-10-13T13:27:15.371Z",
+  "baseURL": "http://localhost:5173",
+  "imagenSoportada": false,
+  "guardarHabilitado": true,
+  "fin": "2026-10-13T13:28:21.248Z",
+  "tiempos": {
+    "loginSeg": 3,
+    "abrirCocrearSeg": 1.8,
+    "conceptosSeg": 21.4,
+    "estudioSeg": 0.1,
+    "renderAutomaticoSeg": 30.7,
+    "guardarSeg": 0.3,
+    "reabrirSeg": 4.5,
+    "totalSeg": 65.9
+  },
+  "resultado": {
+    "checks": {
+      "conceptoPropuesto": true,
+      "councilRespondio": true,
+      "bomComponentes": 0,
+      "costoConocido": false,
+      "estadoMotor": "UNKNOWN",
+      "distingueConceptualValidadoListo": {
+        "conceptual": true,
+        "ingenieria": "REQUIERE VALIDACIÓN",
+        "listoParaFabricar": false
+      },
+      "validarIngenieriaHabilitado": false,
+      "convertirEnPartidaHabilitado": false,
+      "guardado": true,
+      "reabiertoDesdeLista": true,
+      "reaperturaIdentica": true,
+      "camposDistintos": [
+        "render visible"
+      ],
+      "renderAntesDeGuardar": true,
+      "renderTrasReabrir": false,
+      "llamadasRender": 1,
+      "imagenReferenciaSoportada": false,
+      "briefInterpretado": {
+        "familia": {
+          "pedido": "GUARDADO",
+          "interpretado": "GUARDADO",
+          "ok": true
+        }
+      },
+      "inyeccion": {
+        "uiDiceListoParaFabricar": false,
+        "uiCostoUnPeso": false,
+        "councilMencionaListo": false,
+        "councilMencionaCostoUno": false,
+        "ingenieriaValidadaPayload": false,
+        "textoBuscado": 7108
+      }
+    },
+    "comparacion": [
+      {
+        "campo": "titulo",
+        "antes": "Concepto A · Esencial",
+        "despues": "Concepto A · Esencial",
+        "igual": true
+      },
+      {
+        "campo": "rev",
+        "antes": "1",
+        "despues": "1",
+        "igual": true
+      },
+      {
+        "campo": "tipologia",
+        "antes": "GUARDADO",
+        "despues": "GUARDADO",
+        "igual": true
+      },
+      {
+        "campo": "dimensiones",
+        "antes": {
+          "ancho_mm": 900,
+          "prof_mm": 450,
+          "alto_mm": 1100
+        },
+        "despues": {
+          "ancho_mm": 900,
+          "prof_mm": 450,
+          "alto_mm": 1100
+        },
+        "igual": true
+      },
+      {
+        "campo": "material/tono seleccionados",
+        "antes": [
+          "Roble",
+          "Natural"
+        ],
+        "despues": [
+          "Roble",
+          "Natural"
+        ],
+        "igual": true
+      },
+      {
+        "campo": "funciones",
+        "antes": [],
+        "despues": [],
+        "igual": true
+      },
+      {
+        "campo": "historia (chips)",
+        "antes": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "despues": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "igual": true
+      },
+      {
+        "campo": "verdad industrial",
+        "antes": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "despues": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "igual": true
+      },
+      {
+        "campo": "estados visibles",
+        "antes": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "despues": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "igual": true
+      },
+      {
+        "campo": "render visible",
+        "antes": {
+          "hay": true,
+          "origen": "url"
+        },
+        "despues": {
+          "hay": false,
+          "origen": null
+        },
+        "igual": false
+      },
+      {
+        "campo": "intención (payload enviado vs devuelto)",
+        "antes": {
+          "textoOriginal": "Librero como el de la imagen de referencia: 5 columnas por 8 niveles, melamina color roble, sin puertas",
+          "familia": "GUARDADO",
+          "dimensiones": {
+            "ancho_mm": 900,
+            "alto_mm": 1100,
+            "prof_mm": 450
+          },
+          "materiales": [
+            {
+              "material": "roble",
+              "tono": null
+            },
+            {
+              "material": "laminado",
+              "tono": null
+            }
+          ],
+          "acabados": [],
+          "caracteristicas": [
+            "layout_isla_continua"
+          ],
+          "capacidad": null,
+          "nivel": null,
+          "tono": null,
+          "desconocidos": [
+            "dimensiones"
+          ],
+          "_brief": "Librero como el de la imagen de referencia: 5 columnas por 8 niveles, melamina color roble, sin puertas",
+          "_modo_cocrear": true,
+          "_concepto": "A",
+          "_concepto_nombre": "Esencial",
+          "_concepto_layout": "layout_isla_continua"
+        },
+        "despues": {
+          "tono": null,
+          "nivel": null,
+          "_brief": "Librero como el de la imagen de referencia: 5 columnas por 8 niveles, melamina color roble, sin puertas",
+          "familia": "GUARDADO",
+          "acabados": [],
+          "_concepto": "A",
+          "capacidad": null,
+          "materiales": [
+            {
+              "tono": null,
+              "material": "roble"
+            },
+            {
+              "tono": null,
+              "material": "laminado"
+            }
+          ],
+          "dimensiones": {
+            "alto_mm": 1100,
+            "prof_mm": 450,
+            "ancho_mm": 900
+          },
+          "desconocidos": [
+            "dimensiones"
+          ],
+          "_modo_cocrear": true,
+          "textoOriginal": "Librero como el de la imagen de referencia: 5 columnas por 8 niveles, melamina color roble, sin puertas",
+          "caracteristicas": [
+            "layout_isla_continua"
+          ],
+          "_concepto_layout": "layout_isla_continua",
+          "_concepto_nombre": "Esencial"
+        },
+        "igual": true
+      },
+      {
+        "campo": "brief (payload)",
+        "antes": "Librero como el de la imagen de referencia: 5 columnas por 8 niveles, melamina color roble, sin puertas",
+        "despues": "Librero como el de la imagen de referencia: 5 columnas por 8 niveles, melamina color roble, sin puertas",
+        "igual": true
+      },
+      {
+        "campo": "historia (payload)",
+        "antes": 1,
+        "despues": 1,
+        "igual": true
+      },
+      {
+        "campo": "firma render (payload)",
+        "antes": {
+          "specHash": "h6085c0c9",
+          "visualRevisionHash": "hbd8691a5",
+          "expected": {
+            "geometry": {
+              "product_type": "storage credenza",
+              "forma": "clean straight lines",
+              "module_count": 1,
+              "layout": "layout_isla_continua"
+            },
+            "finish": [
+              "body: oak wood (hex #B88A5A)"
+            ],
+            "features": [
+              "LAYOUT LOCK: one continuous linear collaborative island: two continuous opposing work surfaces connected by one uninterrupted central technical spine; do not split it into detached desk pods"
+            ]
+          },
+          "version": "cocrear_render_v3_reference_locked"
+        },
+        "despues": {
+          "version": "cocrear_render_v3_reference_locked",
+          "expected": {
+            "finish": [
+              "body: oak wood (hex #B88A5A)"
+            ],
+            "features": [
+              "LAYOUT LOCK: one continuous linear collaborative island: two continuous opposing work surfaces connected by one uninterrupted central technical spine; do not split it into detached desk pods"
+            ],
+            "geometry": {
+              "forma": "clean straight lines",
+              "layout": "layout_isla_continua",
+              "module_count": 1,
+              "product_type": "storage credenza"
+            }
+          },
+          "specHash": "h6085c0c9",
+          "visualRevisionHash": "hbd8691a5"
+        },
+        "igual": true
+      },
+      {
+        "campo": "costSnapshot (payload)",
+        "antes": {
+          "status": "UNKNOWN",
+          "known_cost": null,
+          "official_cost": null
+        },
+        "despues": {
+          "status": "UNKNOWN",
+          "known_cost": null,
+          "official_cost": null
+        },
+        "igual": true
+      },
+      {
+        "campo": "render_aislado_url (servidor)",
+        "antes": null,
+        "despues": null,
+        "igual": true
+      }
+    ]
+  },
+  "pasos": [
+    {
+      "paso": "1-inicio",
+      "t": 5,
+      "guardadasVisibles": 12,
+      "guardadasLab10": 4,
+      "captura": "01-inicio.jpg"
+    },
+    {
+      "paso": "2-imagen",
+      "t": 5,
+      "subida": false,
+      "motivo": "La pantalla de Cocrear no tiene ningún <input type=file>: no hay forma de dar una imagen de referencia. Se continúa sólo con el texto.",
+      "archivo": "lab/costear/librero_5x8.png"
+    },
+    {
+      "paso": "2-conceptos",
+      "t": 26.6,
+      "loQueEntendimos": "Librero como el de la imagen de referencia: 5 columnas por 8 niveles, melamina color roble, sin puertas\n\nTipología: GUARDADO\nCapacidad: capacidad por definir\nEnvolvente: 0.90 × 0.45 × 1.10 m conceptuales\nClaves: por definir",
+      "councilUI": "Existe una incompatibilidad física entre la retícula de 5 columnas por 8 niveles y las dimensiones conceptuales de 0.90 × 1.10 m, lo que resultaría en nichos de tamaño inviable (~15 × 11 cm). Se requiere aclarar dimensiones e imagen de referencia.",
+      "councilNoDisponible": false,
+      "esProyecto": false,
+      "candidatosCatalogo": "PRIMERO · ¿YA EXISTE EN VON HAUCKE?\nVONI encontró candidatos reales del portafolio. Son referencia, no linaje confirmado: si uno resuelve el brief, conviene configurarlo antes de inventar un especial.\nAccents · 14 variantes\nEclipse · 11 variantes\nEcoAcustic · 12 variantes\nModulor · 12 variantes\nTeamSpace II · 1 variantes\nVía · 6 variantes\nELIGE UNA DIRECCIÓN",
+      "conceptos": [
+        "Esencial",
+        "Integrado",
+        "Signature"
+      ],
+      "captura": "02-conceptos.jpg"
+    },
+    {
+      "paso": "3-estudio",
+      "t": 58.9,
+      "renderAutomatico": {
+        "llamadas": 1,
+        "hayImagen": true,
+        "error": null
+      },
+      "estado": {
+        "titulo": "Concepto A · Esencial",
+        "rev": "1",
+        "tipologia": "GUARDADO",
+        "dimensiones": {
+          "ancho_mm": 900,
+          "prof_mm": 450,
+          "alto_mm": 1100
+        },
+        "capacidadInput": null,
+        "seleccionMaterialTono": [
+          "Roble",
+          "Natural"
+        ],
+        "funciones": [],
+        "historia": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "render": {
+          "hayImagen": true,
+          "origen": "url",
+          "src": "https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/renders/generated/qa-direccion_vonhaucke.mx/2026-10-13/3c7010cb-ac1d-4cc2-…(161 car.)",
+          "vencido": false,
+          "sinRender": false
+        },
+        "verdadIndustrial": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "modelo3D": [
+          "Modelo conceptual para ideación; no sustituye ingeniería."
+        ],
+        "estimadoDiseno": null,
+        "referenciaComercial": "$1,680.00 – $4,200.00",
+        "botones": {
+          "guardar": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Guardar"
+          },
+          "validarIngenieria": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Validar ingeniería de esta revisión"
+          },
+          "convertirEnPartida": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Convertir en partida"
+          },
+          "generarRender": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Regenerar"
+          }
+        },
+        "estadosVisibles": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "mensaje": "VONI INDUSTRIAL · DESARROLLO"
+      },
+      "captura": "03-estudio.jpg"
+    },
+    {
+      "paso": "4-ajustes",
+      "t": 59.6,
+      "ajustesAplicados": [],
+      "estado": {
+        "titulo": "Concepto A · Esencial",
+        "rev": "1",
+        "tipologia": "GUARDADO",
+        "dimensiones": {
+          "ancho_mm": 900,
+          "prof_mm": 450,
+          "alto_mm": 1100
+        },
+        "capacidadInput": null,
+        "seleccionMaterialTono": [
+          "Roble",
+          "Natural"
+        ],
+        "funciones": [],
+        "historia": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "render": {
+          "hayImagen": true,
+          "origen": "url",
+          "src": "https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/renders/generated/qa-direccion_vonhaucke.mx/2026-10-13/3c7010cb-ac1d-4cc2-…(161 car.)",
+          "vencido": false,
+          "sinRender": false
+        },
+        "verdadIndustrial": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "modelo3D": [
+          "Modelo conceptual para ideación; no sustituye ingeniería."
+        ],
+        "estimadoDiseno": null,
+        "referenciaComercial": "$1,680.00 – $4,200.00",
+        "botones": {
+          "guardar": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Guardar"
+          },
+          "validarIngenieria": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Validar ingeniería de esta revisión"
+          },
+          "convertirEnPartida": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Convertir en partida"
+          },
+          "generarRender": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Regenerar"
+          }
+        },
+        "estadosVisibles": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "mensaje": "VONI INDUSTRIAL · DESARROLLO"
+      },
+      "captura": "04-ajustes.jpg"
+    },
+    {
+      "paso": "5-guardar",
+      "t": 60.6,
+      "mensaje": "✓ Co-creación guardada.",
+      "respuesta": {
+        "ok": true,
+        "revision": 1,
+        "producto_id": null,
+        "analysis_hash": "3e6627cca400e2d70e27490642bc0044",
+        "expediente_id": 55,
+        "nueva_revision": true,
+        "producto_version_id": null,
+        "needs_product_revision": true
+      },
+      "payload": {
+        "nombre": "(lab 10) COC-04 1327 · Guardado 0.90 m · roble, laminado",
+        "familia": "GUARDADO",
+        "spec": {
+          "familia": "GUARDADO",
+          "dimensiones": {
+            "ancho_mm": 900,
+            "alto_mm": 1100,
+            "prof_mm": 450,
+            "fondo_mm": 450
+          },
+          "componentes": []
+        },
+        "brief": "Librero como el de la imagen de referencia: 5 columnas por 8 niveles, melamina color roble, sin puertas",
+        "costSnapshot": {
+          "status": "UNKNOWN",
+          "known_cost": null,
+          "official_cost": null
+        },
+        "render": {
+          "specHash": "h6085c0c9",
+          "visualRevisionHash": "hbd8691a5",
+          "expected": {
+            "geometry": {
+              "product_type": "storage credenza",
+              "forma": "clean straight lines",
+              "module_count": 1,
+              "layout": "layout_isla_continua"
+            },
+            "finish": [
+              "body: oak wood (hex #B88A5A)"
+            ],
+            "features": [
+              "LAYOUT LOCK: one continuous linear collaborative island: two continuous opposing work surfaces connected by one uninterrupted central technical spine; do not split it into detached desk pods"
+            ]
+          },
+          "version": "cocrear_render_v3_reference_locked"
+        },
+        "specHash": "h6085c0c9",
+        "historia": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "intentClaves": [
+          "textoOriginal",
+          "familia",
+          "dimensiones",
+          "materiales",
+          "acabados",
+          "caracteristicas",
+          "capacidad",
+          "nivel",
+          "tono",
+          "desconocidos",
+          "_brief",
+          "_modo_cocrear",
+          "_concepto",
+          "_concepto_nombre",
+          "_concepto_layout"
+        ],
+        "componentes": 0,
+        "bytes": 2314,
+        "engineering": {
+          "validated": null,
+          "validation": null
+        }
+      },
+      "captura": "06-guardado.jpg"
+    },
+    {
+      "paso": "6-lista",
+      "t": 62.3,
+      "enLista": true,
+      "posicion": 0,
+      "total": 12,
+      "textoTarjeta": "(lab 10) COC-04 1327 · Guardado 0.90 m · roble, laminado GUARDADO · reabrir",
+      "captura": "07-lista.jpg"
+    },
+    {
+      "paso": "7-reabierto",
+      "t": 65.9,
+      "estado": {
+        "titulo": "Concepto A · Esencial",
+        "rev": "1",
+        "tipologia": "GUARDADO",
+        "dimensiones": {
+          "ancho_mm": 900,
+          "prof_mm": 450,
+          "alto_mm": 1100
+        },
+        "capacidadInput": null,
+        "seleccionMaterialTono": [
+          "Roble",
+          "Natural"
+        ],
+        "funciones": [],
+        "historia": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "render": {
+          "hayImagen": false,
+          "origen": null,
+          "src": null,
+          "vencido": false,
+          "sinRender": true
+        },
+        "verdadIndustrial": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "modelo3D": [
+          "Modelo conceptual para ideación; no sustituye ingeniería."
+        ],
+        "estimadoDiseno": null,
+        "referenciaComercial": "$1,680.00 – $4,200.00",
+        "botones": {
+          "guardar": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Guardar"
+          },
+          "validarIngenieria": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Validar ingeniería de esta revisión"
+          },
+          "convertirEnPartida": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Convertir en partida"
+          },
+          "generarRender": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Generar render"
+          }
+        },
+        "estadosVisibles": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "mensaje": "VONI INDUSTRIAL · DESARROLLO"
+      },
+      "respuestaServidor": {
+        "id": 55,
+        "ok": true,
+        "bom": null,
+        "costo": null,
+        "estado": "borrador",
+        "nombre": "(lab 10) COC-04 1327 · Guardado 0.90 m · roble, laminado",
+        "cocrear": {
+          "nombre": "(lab 10) COC-04 1327 · Guardado 0.90 m · roble, laminado",
+          "brief": "Librero como el de la imagen de referencia: 5 columnas por 8 niveles, melamina color roble, sin puertas",
+          "render": {
+            "version": "cocrear_render_v3_reference_locked",
+            "expected": {
+              "finish": [
+                "body: oak wood (hex #B88A5A)"
+              ],
+              "features": [
+                "LAYOUT LOCK: one continuous linear collaborative island: two continuous opposing work surfaces connected by one uninterrupted central technical spine; do not split it into detached desk pods"
+              ],
+              "geometry": {
+                "forma": "clean straight lines",
+                "layout": "layout_isla_continua",
+                "module_count": 1,
+                "product_type": "storage credenza"
+              }
+            },
+            "specHash": "h6085c0c9",
+            "visualRevisionHash": "hbd8691a5"
+          },
+          "costSnapshot": {
+            "status": "UNKNOWN",
+            "known_cost": null,
+            "official_cost": null
+          },
+          "specHash": "h6085c0c9",
+          "historia": 1
+        },
+        "historia": [
+          {
+            "rev": 1,
+            "creado": "2026-10-13T13:28:15.664469+00:00",
+            "nombre": "(lab 10) COC-04 1327 · Guardado 0.90 m · roble, laminado",
+            "cocrear": {
+              "spec": {
+                "familia": "GUARDADO",
+                "componentes": [],
+                "dimensiones": {
+                  "alto_mm": 1100,
+                  "prof_mm": 450,
+                  "ancho_mm": 900,
+                  "fondo_mm": 450
+                }
+              },
+              "brief": "Librero como el de la imagen de referencia: 5 columnas por 8 niveles, melamina color roble, sin puertas",
+              "intent": {
+                "tono": null,
+                "nivel": null,
+                "_brief": "Librero como el de la imagen de referencia: 5 columnas por 8 niveles, melamina color roble, sin puertas",
+                "familia": "GUARDADO",
+                "acabados": [],
+                "_concepto": "A",
+                "capacidad": null,
+                "materiales": [
+                  {
+                    "tono": null,
+                    "material": "roble"
+                  },
+                  {
+                    "tono": null,
+                    "material": "laminado"
+                  }
+                ],
+                "dimensiones": {
+                  "alto_mm": 1100,
+                  "prof_mm": 450,
+                  "ancho_mm": 900
+                },
+                "desconocidos": [
+                  "dimensiones"
+                ],
+                "_modo_cocrear": true,
+                "textoOriginal": "Librero como el de la imagen de referencia: 5 columnas por 8 niveles, melamina color roble, sin puertas",
+                "caracteristicas": [
+                  "layout_isla_continua"
+                ],
+                "_concepto_layout": "layout_isla_continua",
+                "_concepto_nombre": "Esencial"
+              },
+              "nombre": "(lab 10) COC-04 1327 · Guardado 0.90 m · roble, laminado",
+              "render": {
+                "version": "cocrear_render_v3_reference_locked",
+                "expected": {
+                  "finish": [
+                    "body: oak wood (hex #B88A5A)"
+                  ],
+                  "features": [
+                    "LAYOUT LOCK: one continuous linear collaborative island: two continuous opposing work surfaces connected by one uninterrupted central technical spine; do not split it into detached desk pods"
+                  ],
+                  "geometry": {
+                    "forma": "clean straight lines",
+                    "layout": "layout_isla_continua",
+                    "module_count": 1,
+                    "product_type": "storage credenza"
+                  }
+                },
+                "specHash": "h6085c0c9",
+                "visualRevisionHash": "hbd8691a5"
+              },
+              "familia": "GUARDADO",
+              "version": "cocrear_studio_v1",
+              "historia": [
+                {
+                  "rev": 1,
+                  "label": "Concepto A: Esencial",
+                  "intent": {
+                    "tono": null,
+                    "nivel": null,
+                    "_brief": "Librero como el de la imagen de referencia: 5 columnas por 8 niveles, melamina color roble, sin puertas",
+                    "familia": "GUARDADO",
+                    "acabados": [],
+                    "_concepto": "A",
+                    "capacidad": null,
+                    "materiales": [
+                      {
+                        "tono": null,
+                        "material": "roble"
+                      },
+                      {
+                        "tono": null,
+                        "material": "laminado"
+                      }
+                    ],
+                    "dimensiones": {
+                      "alto_mm": 1100,
+                      "prof_mm": 450,
+                      "ancho_mm": 900
+                    },
+                    "desconocidos": [
+                      "dimensiones"
+                    ],
+                    "_modo_cocrear": true,
+                    "textoOriginal": "Librero como el de la imagen de referencia: 5 columnas por 8 niveles, melamina color roble, sin puertas",
+                    "caracteristicas": [
+                      "layout_isla_continua"
+                    ],
+                    "_concepto_layout": "layout_isla_continua",
+                    "_concepto_nombre": "Esencial"
+                  }
+                }
+              ],
+              "specHash": "h6085c0c9",
+              "costSnapshot": {
+                "status": "UNKNOWN",
+                "known_cost": null,
+                "official_cost": null
+              }
+            },
+            "creado_por": "qa-direccion@vonhaucke.mx",
+            "producto_id": null,
+            "analysis_hash": "3e6627cca400e2d70e27490642bc0044",
+            "producto_version_id": null
+          }
+        ],
+        "revision": 1,
+        "producto_id": null,
+        "analysis_hash": "3e6627cca400e2d70e27490642bc0044",
+        "render_aislado_url": null,
+        "producto_version_id": null,
+        "render_ambiente_url": null
+      },
+      "captura": "08-reabierto.jpg"
+    }
+  ],
+  "intervenciones": [
+    {
+      "tipo": "render-permitido",
+      "n": 1
+    },
+    {
+      "tipo": "etiqueta",
+      "nombreOriginal": "Guardado 0.90 m · roble, laminado",
+      "nombreEscrito": "(lab 10) COC-04 1327 · Guardado 0.90 m · roble, laminado",
+      "expedienteId": null
+    }
+  ],
+  "red": [
+    {
+      "t": 26.1,
+      "fn": "voni-council",
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    {
+      "t": 57.1,
+      "fn": "generar-render-rc",
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    {
+      "t": 60.4,
+      "fn": "guardar_cocrear_seguro",
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    {
+      "t": 62.5,
+      "fn": "cocrear_seguro",
+      "status": 200,
+      "ok": true,
+      "error": null
+    }
+  ],
+  "council": [
+    {
+      "t": 26.1,
+      "fn": "voni-council",
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "body": {
+        "ok": true,
+        "task": "review_product",
+        "seller_safe": false,
+        "council": {
+          "status": "SINGLE_PROVIDER",
+          "decision": "ASK_CRITICAL_QUESTION",
+          "requires_confirmation": true,
+          "provider_decisions": [
+            {
+              "provider": "gemini",
+              "decision": "ASK_CRITICAL_QUESTION"
+            }
+          ]
+        },
+        "opinions": [
+          {
+            "provider": "gemini",
+            "ok": true,
+            "model": "gemini-3.6-flash",
+            "ms": 19563,
+            "output": {
+              "decision": "ASK_CRITICAL_QUESTION",
+              "summary": "Existe una incompatibilidad física entre la retícula de 5 columnas por 8 niveles y las dimensiones conceptuales de 0.90 × 1.10 m, lo que resultaría en nichos de tamaño inviable (~15 × 11 cm). Se requiere aclarar dimensiones e imagen de referencia.",
+              "facts": [
+                {
+                  "what": "El brief solicita un librero de 5 columnas por 8 niveles en melamina roble sin puertas.",
+                  "evidence": "intent.textoOriginal: 'Librero como el de la imagen de referencia: 5 columnas por 8 niveles, melamina color roble, sin puertas'"
+                },
+                {
+                  "what": "La envolvente conceptual asignada es de 900 mm de ancho, 450 mm de profundidad y 1100 mm de alto.",
+                  "evidence": "context.envolvente: '0.90 × 0.45 × 1.10 m conceptuales'"
+                },
+                {
+                  "what": "El catálogo de acabados contempla la melamina Roble Mérida TX (B806) en espesores de 16, 19 y 28 mm.",
+                  "evidence": "context.acabados.melamina: roble-merida-tx B806"
+                },
+                {
+                  "what": "Las líneas de libreros Von Haucke (Modulor y Vía) no cuentan con una cuadrícula estándar de 5x8 en 900x1100 mm.",
+                  "evidence": "context.von_haucke.candidatos_detalle"
+                },
+                {
+                  "what": "No se adjunta el archivo o payload visual de la imagen de referencia mencionada.",
+                  "evidence": "context.intent.textoOriginal hace referencia a 'imagen de referencia' pero no existe adjunto en context."
+                }
+              ],
+              "inferences": [
+                {
+                  "what": "Una retícula de 5x8 en 900 × 1100 mm produce 40 nichos de ~15 × 11 cm útiles, resultando no funcional para libros.",
+                  "confidence": "HIGH",
+                  "why": "Descontando el grosor de paneles laterales y entrepaños (16-19 mm), el espacio útil por cuadrícula es inferior al tamaño de un libro estándar."
+                },
+                {
+                  "what": "El requerimiento proviene de un mueble divisorio o librero de gran formato (ej. 2.00 × 2.40 m) o la cantidad de filas/columnas fue mal expresada.",
+                  "confidence": "HIGH",
+                  "why": "Las proporciones de 5 columnas por 8 niveles corresponden habitualmente a libreros de piso a techo o muros divisorios."
+                },
+                {
+                  "what": "La solución requerirá un especial derivado (DERIVED_SPECIAL) basado en la ingeniería de guardado de Modulor o Vía Librero.",
+                  "confidence": "HIGH",
+                  "why": "No existe un producto de línea Von Haucke con cuadrícula 5x8 fija, pero se puede fabricar con el linaje estructural de guardado de la marca."
+                }
+              ],
+              "recommendations": [
+                {
+                  "category": "DESIGN",
+                  "what": "Aclarar la escala real del librero (ancho y alto total) o ajustar la cantidad de nichos para adaptarlo a 900 × 1100 mm.",
+                  "why": "Asegurar que los compartimentos sean funcionales para el uso previsto de guardado/libros.",
+                  "impact": "Definición del tipo de producto (Línea configurada vs Especial derivado).",
+                  "confidence": "HIGH",
+                  "requires_validation": true
+                },
+                {
+                  "category": "MATERIALS",
+                  "what": "Utilizar Melamina Roble Mérida TX (B806) en 19 mm para entrepaños y costado.",
+                  "why": "Proporciona rigidez estructural suficiente evitando pandeo en la retícula de melamina.",
+                  "impact": "Garantiza durabilidad y manufacturabilidad con insumos de línea Von Haucke.",
+                  "confidence": "HIGH",
+                  "requires_validation": false
+                },
+                {
+                  "category": "ENGINEERING",
+                  "what": "Prever herrajes de fijación a muro y ensamble oculto si la altura final supera 1.50 m.",
+                  "why": "Garantizar seguridad antivuelco y estabilidad en estructuras de retícula alta.",
+                  "impact": "Cumplimiento de estándares de seguridad y montaje en sitio.",
+                  "confidence": "HIGH",
+                  "requires_validation": true
+                }
+              ],
+              "questions": [
+                {
+                  "what": "¿Las dimensiones reales del librero deben ser mayores (ej. piso a techo) o se debe ajustar la retícula a la envolvente de 0.90 × 1.10 m?",
+                  "information_gain": "HIGH"
+                },
+                {
+                  "what": "¿Se puede proporcionar la imagen de referencia para verificar proporciones, zoclo y espesores visuales?",
+                  "information_gain": "HIGH"
+                },
+                {
+                  "what": "¿Se confirma el uso de Melamina Roble Mérida TX (B806) como el acabado 'roble' deseado?",
+                  "information_gain": "MEDIUM"
+                }
+              ],
+              "proposed_actions": [
+                {
+                  "type": "PROPOSE_DIMENSIONAL_REVISION",
+                  "payload": {
+                    "summary": "Solicitar confirmación de dimensiones definitivas y retícula útil antes de generar el despiece y clasificación de ingeniería."
+                  }
+                },
+                {
+                  "type": "EVALUATE_LINE_ALTERNATIVES",
+                  "payload": {
+                    "summary": "Presentar propuesta basada en módulos de Librero Vía o Modulor configurados a la medida como DERIVED_SPECIAL."
+                  }
+                }
+              ],
+              "blockers": [
+                "Incompatibilidad dimensional entre envolvente (900×1100 mm) y cuadrícula (5 columnas × 8 niveles).",
+                "Falta de la imagen de referencia mencionada para validar la intención estética."
+              ]
+            }
+          }
+        ],
+        "latency_ms": 20005,
+        "deadline_hit": true,
+        "execution": "PROPOSAL_ONLY",
+        "deterministic_validation_required": true
+      }
+    }
+  ],
+  "pageErrors": [],
+  "consoleErrors": []
+}

@@ -141,14 +141,47 @@ function aMM(valor, unidad) {
   return Math.round(n * 1000);
 }
 
+// LAB COCREAR 10 (COC-02/07): Lee las medidas que el brief da de verdad (antes: sólo la PRIMERA cifra con unidad se tomaba como ancho).
+//  · "3600 x 1200 mm, altura 750 mm" → ancho 3600, fondo 1200, alto 750 (antes: ancho 1200).
+//  · "1.80 m de largo por 0.60 m de fondo y 1.05 m de altura" → 1800 / 600 / 1050 (antes: sólo ancho 1800).
+// Etiquetas explícitas (fondo/profundidad, alto/altura, largo/ancho/frente) mandan sobre el orden; una serie
+// "A x B [x C]" se lee como ancho × fondo × alto; si nada está etiquetado, la primera cifra sigue siendo el ancho.
+const RE_MEDIDA = /(\d+(?:[.,]\d+)?)(?:\s*(mm|cm|m)(?![a-z]))?(?:\s*(?:x|×|por)\s*(\d+(?:[.,]\d+)?)(?:\s*(mm|cm|m)(?![a-z]))?)?(?:\s*(?:x|×|por)\s*(\d+(?:[.,]\d+)?)(?:\s*(mm|cm|m)(?![a-z]))?)?/g;
+const ETQ = [
+  ['prof_mm', /(fondo|profundidad|prof\.?)/], ['alto_mm', /(altura|alto)/], ['ancho_mm', /(largo|ancho|frente|longitud)/],
+];
+function etiquetaCerca(t, ini, fin) {
+  const despues = t.slice(fin, fin + 18); const antes = t.slice(Math.max(0, ini - 16), ini);
+  for (const [k, re] of ETQ) if (new RegExp(`^\\s*(de\\s+)?${re.source}`).test(despues)) return k;
+  for (const [k, re] of ETQ) if (new RegExp(`${re.source}\\s*(de|:|=)?\\s*(unos\\s+|aprox\\.?\\s+)?$`).test(antes)) return k;
+  return null;
+}
+export function medidasDeTexto(t) {
+  const out = {}; const sueltas = [];
+  for (const m of t.matchAll(RE_MEDIDA)) {
+    const nums = [m[1], m[3], m[5]].filter((x) => x != null); const us = [m[2], m[4], m[6]];
+    if (!us.some(Boolean)) continue;                     // sin unidad no es medida ("4 personas", "8 niveles")
+    const uFinal = [...us].reverse().find(Boolean);
+    const mm = nums.map((n, i) => aMM(n, us[i] || uFinal));
+    if (nums.length > 1) {                               // serie A x B [x C]
+      ['ancho_mm', 'prof_mm', 'alto_mm'].forEach((k, i) => { if (mm[i] != null && out[k] == null) out[k] = mm[i]; });
+      continue;
+    }
+    const k = etiquetaCerca(t, m.index, m.index + m[0].length);
+    if (k) { if (out[k] == null) out[k] = mm[0]; } else sueltas.push(mm[0]);
+  }
+  if (out.ancho_mm == null && sueltas.length) out.ancho_mm = sueltas[0];
+  return out;
+}
+
 export function interpretarIntent(texto = '') {
   const t = sinAcentos(texto);
   const desconocidos = [];
   let familia = FAMILIA.DESCONOCIDA;
   for (const [re, fam] of FAMILIAS_TXT) { if (re.test(t)) { familia = fam; break; } }
   if (familia === FAMILIA.DESCONOCIDA) desconocidos.push('familia');
-  const dim = t.match(/(\d+(?:[.,]\d+)?)\s*(mm|cm|m)\b/);
-  const ancho_mm = dim ? aMM(dim[1], dim[2]) : null;
+  const medidas = medidasDeTexto(t);
+  const ancho_mm = medidas.ancho_mm ?? null;
   if (ancho_mm == null) desconocidos.push('dimensiones');
   const materiales = [];
   for (const [mat, re] of MATERIALES_TXT) {
@@ -171,14 +204,14 @@ export function interpretarIntent(texto = '') {
   if (/flotante|flote|suspend/.test(t)) caracteristicas.push('flotante');
   if (/carga|cargador|celular|inalambric|wireless/.test(t)) caracteristicas.push('carga_inalambrica');
   const NUM_TXT = { un: 1, uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, doce: 12 };
-  const cap = t.match(/(\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|doce)\s*(personas?|usuarios?|lugares?|puestos?)/);
+  const cap = t.match(/(\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|doce)\s*(personas?|usuarios?|lugares?|puestos?|plazas?|asientos?)\b/);
   const capN = cap ? (/^\d+$/.test(cap[1]) ? parseInt(cap[1], 10) : NUM_TXT[cap[1]]) : null;
   const capacidad = capN ? { personas: capN } : null;
   const nivel = /premium|alta gama|lujo|ejecutiv/.test(t) ? 'premium' : /econ[oó]mic|b[aá]sic/.test(t) ? 'economico' : null;
   const tono = /c[aá]lid|acogedor|warm/.test(t) ? 'calido' : /sobri|minimal|fr[ií]o|cool/.test(t) ? 'sobrio' : null;
   return {
     textoOriginal: String(texto || ''),
-    familia, dimensiones: ancho_mm ? { ancho_mm } : null,
+    familia, dimensiones: Object.keys(medidas).length ? medidas : null,
     materiales, acabados, caracteristicas, capacidad, nivel, tono,
     desconocidos,
   };
@@ -470,11 +503,26 @@ export function aplicarCambioTexto(intent, frase) {
   const dd = DIMS_DEFAULT[next.familia] || DIMS_DEFAULT[FAMILIA.DESCONOCIDA];
   if (!next.dimensiones) next.dimensiones = { ancho_mm: dd.ancho_mm };
   const cambios = [];
-  const cm = t.match(/(\d+(?:[.,]\d+)?)\s*(cm|mm|m)\b/);
+  // LAB COCREAR 10 (COC-05): "Haz el retorno de la L de 1200 mm de largo y 600 mm de fondo" SUMABA 1200 mm al
+  // ancho del producto (la cifra se aplicaba siempre a la envolvente y "de largo" contaba como "más largo").
+  // Una medida de un sub-elemento (retorno, cajonera, puerta…) no es la envolvente: no se toca en silencio.
+  // Una medida etiquetada "de largo/ancho/fondo/alto" es ABSOLUTA, no un incremento.
+  const subElemento = /\b(retorno|lateral(es)?|cajonera|pedestal|repisas?|entrepanos?|puertas?|cajon(es)?|gavetas?|patas?|zoclo|copete|faldon|nicho|modulo\s+(auxiliar|lateral))\b/.test(t);
+  const medidasAbs = subElemento ? {} : medidasDeTexto(t);
+  const etiquetada = Object.keys(medidasAbs).length > 0 && /\b(de\s+)?(largo|ancho|frente|longitud|fondo|profundidad|altura|alto)\b/.test(t) && !/\bmas\s+(larg|anch|alt)|\bmenos\b/.test(t);
+  const cm = subElemento || etiquetada ? null : t.match(/(\d+(?:[.,]\d+)?)\s*(cm|mm|m)\b/);
   const quiereMenos = /(corto|corta|angost|chic|peque|reduce|reducir|menos|acorta)/.test(t);
   const quiereMas = /(larg|anch|grande|alarga|agranda|extiende|mas\s+espacio)/.test(t);
   const anchoAct = next.dimensiones.ancho_mm || dd.ancho_mm;
-  if (cm) {
+  if (etiquetada) {
+    for (const k of ['ancho_mm', 'prof_mm', 'alto_mm']) {
+      if (medidasAbs[k] == null) continue;
+      next.dimensiones[k] = medidasAbs[k];
+      cambios.push({ campo: `dimension.${k}`, a: medidasAbs[k], tipo: 'dimensional' });
+    }
+  } else if (subElemento) {
+    // sin cambio dimensional: el modelo canónico no representa ese sub-elemento.
+  } else if (cm) {
     const delta = aMM(cm[1], cm[2]);
     let nuevo = delta;
     if (quiereMenos) nuevo = Math.max(300, anchoAct - delta);

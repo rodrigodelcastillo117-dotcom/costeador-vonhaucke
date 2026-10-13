@@ -1,0 +1,1337 @@
+{
+  "id": "05",
+  "etiqueta": "(lab 10) COC-05 1328",
+  "brief": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+  "imagen": null,
+  "ajustes": {
+    "dimensiones": {
+      "ancho_mm": 2000,
+      "prof_mm": 1700,
+      "alto_mm": 760
+    },
+    "material": "Nogal",
+    "tono": "Oscuro",
+    "funciones": [
+      "Cajones",
+      "Electrificación"
+    ],
+    "voni": "Haz el retorno de la L de 1200 mm de largo y 600 mm de fondo, del lado derecho"
+  },
+  "esperado": {
+    "ancho_mm": 1800,
+    "prof_mm": 1600,
+    "familia": "ESCRITORIO"
+  },
+  "concepto": "A",
+  "renderPedido": false,
+  "inicio": "2026-10-13T13:28:24.277Z",
+  "baseURL": "http://localhost:5173",
+  "imagenSoportada": false,
+  "guardarHabilitado": true,
+  "fin": "2026-10-13T13:29:21.198Z",
+  "tiempos": {
+    "loginSeg": 3,
+    "abrirCocrearSeg": 1.7,
+    "conceptosSeg": 24.9,
+    "estudioSeg": 0.1,
+    "renderAutomaticoSeg": 1.5,
+    "ajustesSeg": 16.7,
+    "guardarSeg": 0.4,
+    "reabrirSeg": 4.6,
+    "totalSeg": 56.9
+  },
+  "resultado": {
+    "checks": {
+      "conceptoPropuesto": true,
+      "councilRespondio": true,
+      "bomComponentes": 0,
+      "costoConocido": false,
+      "estadoMotor": "UNKNOWN",
+      "distingueConceptualValidadoListo": {
+        "conceptual": true,
+        "ingenieria": "REQUIERE VALIDACIÓN",
+        "listoParaFabricar": false
+      },
+      "validarIngenieriaHabilitado": false,
+      "convertirEnPartidaHabilitado": false,
+      "guardado": true,
+      "reabiertoDesdeLista": true,
+      "reaperturaIdentica": true,
+      "camposDistintos": [],
+      "renderAntesDeGuardar": false,
+      "renderTrasReabrir": false,
+      "llamadasRender": 1,
+      "imagenReferenciaSoportada": null,
+      "briefInterpretado": {
+        "ancho_mm": {
+          "pedido": 1800,
+          "interpretado": 1800,
+          "ok": true
+        },
+        "prof_mm": {
+          "pedido": 1600,
+          "interpretado": 700,
+          "ok": false
+        },
+        "familia": {
+          "pedido": "ESCRITORIO",
+          "interpretado": "ESCRITORIO",
+          "ok": true
+        }
+      },
+      "ajustesConservados": {
+        "ancho_mm": {
+          "pedido": 2000,
+          "reabierto": 3200,
+          "ok": false
+        },
+        "prof_mm": {
+          "pedido": 1700,
+          "reabierto": 1700,
+          "ok": true
+        },
+        "alto_mm": {
+          "pedido": 760,
+          "reabierto": 760,
+          "ok": true
+        }
+      },
+      "inyeccion": {
+        "uiDiceListoParaFabricar": false,
+        "uiCostoUnPeso": false,
+        "councilMencionaListo": false,
+        "councilMencionaCostoUno": false,
+        "ingenieriaValidadaPayload": false,
+        "textoBuscado": 9184
+      }
+    },
+    "comparacion": [
+      {
+        "campo": "titulo",
+        "antes": "Concepto A · Esencial",
+        "despues": "Concepto A · Esencial",
+        "igual": true
+      },
+      {
+        "campo": "rev",
+        "antes": "7",
+        "despues": "7",
+        "igual": true
+      },
+      {
+        "campo": "tipologia",
+        "antes": "ESCRITORIO",
+        "despues": "ESCRITORIO",
+        "igual": true
+      },
+      {
+        "campo": "dimensiones",
+        "antes": {
+          "ancho_mm": 3200,
+          "prof_mm": 1700,
+          "alto_mm": 760
+        },
+        "despues": {
+          "ancho_mm": 3200,
+          "prof_mm": 1700,
+          "alto_mm": 760
+        },
+        "igual": true
+      },
+      {
+        "campo": "material/tono seleccionados",
+        "antes": [
+          "Nogal",
+          "Oscuro"
+        ],
+        "despues": [
+          "Nogal",
+          "Oscuro"
+        ],
+        "igual": true
+      },
+      {
+        "campo": "funciones",
+        "antes": [
+          "Electrificación",
+          "Cajones"
+        ],
+        "despues": [
+          "Electrificación",
+          "Cajones"
+        ],
+        "igual": true
+      },
+      {
+        "campo": "historia (chips)",
+        "antes": [
+          "R1 · Concepto A: Esencial",
+          "R2 · ancho_mm: 2000 mm",
+          "R3 · prof_mm: 1700 mm",
+          "R4 · alto_mm: 760 mm",
+          "R5 · Material: Nogal",
+          "R6 · Tono: oscuro",
+          "R7 · VONI: Haz el retorno de la L de 1200 mm de largo y 600 mm de fon"
+        ],
+        "despues": [
+          "R1 · Concepto A: Esencial",
+          "R2 · ancho_mm: 2000 mm",
+          "R3 · prof_mm: 1700 mm",
+          "R4 · alto_mm: 760 mm",
+          "R5 · Material: Nogal",
+          "R6 · Tono: oscuro",
+          "R7 · VONI: Haz el retorno de la L de 1200 mm de largo y 600 mm de fon"
+        ],
+        "igual": true
+      },
+      {
+        "campo": "verdad industrial",
+        "antes": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "despues": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "igual": true
+      },
+      {
+        "campo": "estados visibles",
+        "antes": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "despues": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "igual": true
+      },
+      {
+        "campo": "render visible",
+        "antes": {
+          "hay": false,
+          "origen": null
+        },
+        "despues": {
+          "hay": false,
+          "origen": null
+        },
+        "igual": true
+      },
+      {
+        "campo": "intención (payload enviado vs devuelto)",
+        "antes": {
+          "textoOriginal": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+          "familia": "ESCRITORIO",
+          "dimensiones": {
+            "ancho_mm": 3200,
+            "alto_mm": 760,
+            "prof_mm": 1700
+          },
+          "materiales": [
+            {
+              "material": "nogal",
+              "tono": "oscuro"
+            }
+          ],
+          "acabados": [],
+          "caracteristicas": [
+            "cajones",
+            "electrificacion_integrada",
+            "layout_isla_continua"
+          ],
+          "capacidad": null,
+          "nivel": null,
+          "tono": null,
+          "desconocidos": [],
+          "_brief": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+          "_modo_cocrear": true,
+          "_concepto": "A",
+          "_concepto_nombre": "Esencial",
+          "_concepto_layout": "layout_isla_continua",
+          "_engineering_validated": false,
+          "_engineering_validation": null
+        },
+        "despues": {
+          "tono": null,
+          "nivel": null,
+          "_brief": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+          "familia": "ESCRITORIO",
+          "acabados": [],
+          "_concepto": "A",
+          "capacidad": null,
+          "materiales": [
+            {
+              "tono": "oscuro",
+              "material": "nogal"
+            }
+          ],
+          "dimensiones": {
+            "alto_mm": 760,
+            "prof_mm": 1700,
+            "ancho_mm": 3200
+          },
+          "desconocidos": [],
+          "_modo_cocrear": true,
+          "textoOriginal": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+          "caracteristicas": [
+            "cajones",
+            "electrificacion_integrada",
+            "layout_isla_continua"
+          ],
+          "_concepto_layout": "layout_isla_continua",
+          "_concepto_nombre": "Esencial",
+          "_engineering_validated": false,
+          "_engineering_validation": null
+        },
+        "igual": true
+      },
+      {
+        "campo": "brief (payload)",
+        "antes": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+        "despues": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+        "igual": true
+      },
+      {
+        "campo": "historia (payload)",
+        "antes": 7,
+        "despues": 7,
+        "igual": true
+      },
+      {
+        "campo": "firma render (payload)",
+        "antes": null,
+        "despues": null,
+        "igual": true
+      },
+      {
+        "campo": "costSnapshot (payload)",
+        "antes": {
+          "status": "UNKNOWN",
+          "known_cost": null,
+          "official_cost": null
+        },
+        "despues": {
+          "status": "UNKNOWN",
+          "known_cost": null,
+          "official_cost": null
+        },
+        "igual": true
+      },
+      {
+        "campo": "render_aislado_url (servidor)",
+        "antes": null,
+        "despues": null,
+        "igual": true
+      }
+    ]
+  },
+  "pasos": [
+    {
+      "paso": "1-inicio",
+      "t": 4.8,
+      "guardadasVisibles": 12,
+      "guardadasLab10": 5,
+      "captura": "01-inicio.jpg"
+    },
+    {
+      "paso": "2-conceptos",
+      "t": 29.8,
+      "loQueEntendimos": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables\n\nTipología: ESCRITORIO\nCapacidad: capacidad por definir\nEnvolvente: 1.80 × 0.70 × 0.75 m conceptuales\nClaves: Cajones · Electrificación",
+      "councilUI": "Propuesta de co-creación para escritorio gerencial/directivo en L de 1.80 m x 1.60 m con cajonera y pasacables, evaluando la configuración sobre las líneas Eclipse Drift (Gama 9) y Alba (Gama 6).",
+      "councilNoDisponible": false,
+      "esProyecto": false,
+      "candidatosCatalogo": "PRIMERO · ¿YA EXISTE EN VON HAUCKE?\nVONI encontró candidatos reales del portafolio. Son referencia, no linaje confirmado: si uno resuelve el brief, conviene configurarlo antes de inventar un especial.\nAccents · 14 variantes\nAlba · 7 variantes\nAnteo · 6 variantes\nApp · 6 variantes\nApp LT · 6 variantes\nCirque · 7 variantes\nEclipse · 11 variantes\nEclipse Drift · 5 variantes\nELIGE UNA DIRECCIÓN",
+      "conceptos": [
+        "Esencial",
+        "Integrado",
+        "Signature"
+      ],
+      "captura": "02-conceptos.jpg"
+    },
+    {
+      "paso": "3-estudio",
+      "t": 33,
+      "renderAutomatico": {
+        "llamadas": 1,
+        "hayImagen": false,
+        "error": "Failed to send a request to the Edge Function"
+      },
+      "estado": {
+        "titulo": "Concepto A · Esencial",
+        "rev": "1",
+        "tipologia": "ESCRITORIO",
+        "dimensiones": {
+          "ancho_mm": 1800,
+          "prof_mm": 700,
+          "alto_mm": 750
+        },
+        "capacidadInput": null,
+        "seleccionMaterialTono": [
+          "Laminado",
+          "Natural"
+        ],
+        "funciones": [
+          "Electrificación",
+          "Cajones"
+        ],
+        "historia": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "render": {
+          "hayImagen": false,
+          "origen": null,
+          "src": null,
+          "vencido": false,
+          "sinRender": true
+        },
+        "verdadIndustrial": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "modelo3D": [
+          "Modelo conceptual para ideación; no sustituye ingeniería."
+        ],
+        "estimadoDiseno": null,
+        "referenciaComercial": "$720.00 – $870.00",
+        "botones": {
+          "guardar": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Guardar"
+          },
+          "validarIngenieria": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Validar ingeniería de esta revisión"
+          },
+          "convertirEnPartida": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Convertir en partida"
+          },
+          "generarRender": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Generar render"
+          }
+        },
+        "estadosVisibles": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "mensaje": "VONI INDUSTRIAL · DESARROLLO"
+      },
+      "captura": "03-estudio.jpg"
+    },
+    {
+      "paso": "4-ajustes",
+      "t": 50.4,
+      "ajustesAplicados": [
+        {
+          "ancho_mm": 2000,
+          "leido": 2000
+        },
+        {
+          "prof_mm": 1700,
+          "leido": 1700
+        },
+        {
+          "alto_mm": 760,
+          "leido": 760
+        },
+        {
+          "material": "Nogal",
+          "ok": true
+        },
+        {
+          "tono": "Oscuro",
+          "ok": true
+        },
+        {
+          "funcion": "Cajones",
+          "ok": false,
+          "motivo": "función no ofrecida o ya activa"
+        },
+        {
+          "funcion": "Electrificación",
+          "ok": false,
+          "motivo": "función no ofrecida o ya activa"
+        },
+        {
+          "voni": "Haz el retorno de la L de 1200 mm de largo y 600 mm de fondo, del lado derecho",
+          "seg": 15.6,
+          "respuestaUI": "✓ Cambio aplicado a la revisión canónica. Se actualiza la especificación para ajustar el retorno del escritorio en L a 1200 mm de largo por 600 mm de fondo en el lado derecho. El render anterior quedó vencido; regénéralo para ver exactamente esta revisión.",
+          "councilLlamado": true
+        }
+      ],
+      "estado": {
+        "titulo": "Concepto A · Esencial",
+        "rev": "7",
+        "tipologia": "ESCRITORIO",
+        "dimensiones": {
+          "ancho_mm": 3200,
+          "prof_mm": 1700,
+          "alto_mm": 760
+        },
+        "capacidadInput": null,
+        "seleccionMaterialTono": [
+          "Nogal",
+          "Oscuro"
+        ],
+        "funciones": [
+          "Electrificación",
+          "Cajones"
+        ],
+        "historia": [
+          "R1 · Concepto A: Esencial",
+          "R2 · ancho_mm: 2000 mm",
+          "R3 · prof_mm: 1700 mm",
+          "R4 · alto_mm: 760 mm",
+          "R5 · Material: Nogal",
+          "R6 · Tono: oscuro",
+          "R7 · VONI: Haz el retorno de la L de 1200 mm de largo y 600 mm de fon"
+        ],
+        "render": {
+          "hayImagen": false,
+          "origen": null,
+          "src": null,
+          "vencido": false,
+          "sinRender": true
+        },
+        "verdadIndustrial": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "modelo3D": [
+          "Modelo conceptual para ideación; no sustituye ingeniería."
+        ],
+        "estimadoDiseno": null,
+        "referenciaComercial": "$720.00 – $870.00",
+        "botones": {
+          "guardar": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Guardar"
+          },
+          "validarIngenieria": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Validar ingeniería de esta revisión"
+          },
+          "convertirEnPartida": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Convertir en partida"
+          },
+          "generarRender": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Generar render"
+          }
+        },
+        "estadosVisibles": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "mensaje": "✓ Cambio aplicado a la revisión canónica. Se actualiza la especificación para ajustar el retorno del escritorio en L a 1200 mm de largo por 600 mm de fondo en el lado derecho. El render anterior quedó vencido; regénéralo para ver exactamente esta revisión."
+      },
+      "captura": "04-ajustes.jpg"
+    },
+    {
+      "paso": "5-guardar",
+      "t": 51.4,
+      "mensaje": "✓ Co-creación guardada.",
+      "respuesta": {
+        "ok": true,
+        "revision": 1,
+        "producto_id": null,
+        "analysis_hash": "4a08be85b88ec008cb21dccdc02392ab",
+        "expediente_id": 56,
+        "nueva_revision": true,
+        "producto_version_id": null,
+        "needs_product_revision": true
+      },
+      "payload": {
+        "nombre": "(lab 10) COC-05 1328 · Escritorio 3.20 m · nogal oscuro",
+        "familia": "ESCRITORIO",
+        "spec": {
+          "familia": "ESCRITORIO",
+          "dimensiones": {
+            "ancho_mm": 3200,
+            "alto_mm": 760,
+            "prof_mm": 1700,
+            "fondo_mm": 1700
+          },
+          "componentes": []
+        },
+        "brief": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+        "costSnapshot": {
+          "status": "UNKNOWN",
+          "known_cost": null,
+          "official_cost": null
+        },
+        "render": null,
+        "specHash": "h6cea34f1",
+        "historia": [
+          "R1 · Concepto A: Esencial",
+          "R2 · ancho_mm: 2000 mm",
+          "R3 · prof_mm: 1700 mm",
+          "R4 · alto_mm: 760 mm",
+          "R5 · Material: Nogal",
+          "R6 · Tono: oscuro",
+          "R7 · VONI: Haz el retorno de la L de 1200 mm de largo y 600 mm de fon"
+        ],
+        "intentClaves": [
+          "textoOriginal",
+          "familia",
+          "dimensiones",
+          "materiales",
+          "acabados",
+          "caracteristicas",
+          "capacidad",
+          "nivel",
+          "tono",
+          "desconocidos",
+          "_brief",
+          "_modo_cocrear",
+          "_concepto",
+          "_concepto_nombre",
+          "_concepto_layout",
+          "_engineering_validated",
+          "_engineering_validation"
+        ],
+        "componentes": 0,
+        "bytes": 5784,
+        "engineering": {
+          "validated": false,
+          "validation": null
+        }
+      },
+      "captura": "06-guardado.jpg"
+    },
+    {
+      "paso": "6-lista",
+      "t": 53.2,
+      "enLista": true,
+      "posicion": 0,
+      "total": 12,
+      "textoTarjeta": "(lab 10) COC-05 1328 · Escritorio 3.20 m · nogal oscuro ESCRITORIO · reabrir",
+      "captura": "07-lista.jpg"
+    },
+    {
+      "paso": "7-reabierto",
+      "t": 56.9,
+      "estado": {
+        "titulo": "Concepto A · Esencial",
+        "rev": "7",
+        "tipologia": "ESCRITORIO",
+        "dimensiones": {
+          "ancho_mm": 3200,
+          "prof_mm": 1700,
+          "alto_mm": 760
+        },
+        "capacidadInput": null,
+        "seleccionMaterialTono": [
+          "Nogal",
+          "Oscuro"
+        ],
+        "funciones": [
+          "Electrificación",
+          "Cajones"
+        ],
+        "historia": [
+          "R1 · Concepto A: Esencial",
+          "R2 · ancho_mm: 2000 mm",
+          "R3 · prof_mm: 1700 mm",
+          "R4 · alto_mm: 760 mm",
+          "R5 · Material: Nogal",
+          "R6 · Tono: oscuro",
+          "R7 · VONI: Haz el retorno de la L de 1200 mm de largo y 600 mm de fon"
+        ],
+        "render": {
+          "hayImagen": false,
+          "origen": null,
+          "src": null,
+          "vencido": false,
+          "sinRender": true
+        },
+        "verdadIndustrial": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "modelo3D": [
+          "Modelo conceptual para ideación; no sustituye ingeniería."
+        ],
+        "estimadoDiseno": null,
+        "referenciaComercial": "$720.00 – $870.00",
+        "botones": {
+          "guardar": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Guardar"
+          },
+          "validarIngenieria": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Validar ingeniería de esta revisión"
+          },
+          "convertirEnPartida": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Convertir en partida"
+          },
+          "generarRender": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Generar render"
+          }
+        },
+        "estadosVisibles": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "mensaje": "VONI INDUSTRIAL · DESARROLLO"
+      },
+      "respuestaServidor": {
+        "id": 56,
+        "ok": true,
+        "bom": null,
+        "costo": null,
+        "estado": "borrador",
+        "nombre": "(lab 10) COC-05 1328 · Escritorio 3.20 m · nogal oscuro",
+        "cocrear": {
+          "nombre": "(lab 10) COC-05 1328 · Escritorio 3.20 m · nogal oscuro",
+          "brief": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+          "render": null,
+          "costSnapshot": {
+            "status": "UNKNOWN",
+            "known_cost": null,
+            "official_cost": null
+          },
+          "specHash": "h6cea34f1",
+          "historia": 7
+        },
+        "historia": [
+          {
+            "rev": 1,
+            "creado": "2026-10-13T13:29:15.381439+00:00",
+            "nombre": "(lab 10) COC-05 1328 · Escritorio 3.20 m · nogal oscuro",
+            "cocrear": {
+              "spec": {
+                "familia": "ESCRITORIO",
+                "componentes": [],
+                "dimensiones": {
+                  "alto_mm": 760,
+                  "prof_mm": 1700,
+                  "ancho_mm": 3200,
+                  "fondo_mm": 1700
+                }
+              },
+              "brief": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+              "intent": {
+                "tono": null,
+                "nivel": null,
+                "_brief": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+                "familia": "ESCRITORIO",
+                "acabados": [],
+                "_concepto": "A",
+                "capacidad": null,
+                "materiales": [
+                  {
+                    "tono": "oscuro",
+                    "material": "nogal"
+                  }
+                ],
+                "dimensiones": {
+                  "alto_mm": 760,
+                  "prof_mm": 1700,
+                  "ancho_mm": 3200
+                },
+                "desconocidos": [],
+                "_modo_cocrear": true,
+                "textoOriginal": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+                "caracteristicas": [
+                  "cajones",
+                  "electrificacion_integrada",
+                  "layout_isla_continua"
+                ],
+                "_concepto_layout": "layout_isla_continua",
+                "_concepto_nombre": "Esencial",
+                "_engineering_validated": false,
+                "_engineering_validation": null
+              },
+              "nombre": "(lab 10) COC-05 1328 · Escritorio 3.20 m · nogal oscuro",
+              "render": null,
+              "familia": "ESCRITORIO",
+              "version": "cocrear_studio_v1",
+              "historia": [
+                {
+                  "rev": 1,
+                  "label": "Concepto A: Esencial",
+                  "intent": {
+                    "tono": null,
+                    "nivel": null,
+                    "_brief": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+                    "familia": "ESCRITORIO",
+                    "acabados": [],
+                    "_concepto": "A",
+                    "capacidad": null,
+                    "materiales": [],
+                    "dimensiones": {
+                      "alto_mm": 750,
+                      "prof_mm": 700,
+                      "ancho_mm": 1800
+                    },
+                    "desconocidos": [],
+                    "_modo_cocrear": true,
+                    "textoOriginal": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+                    "caracteristicas": [
+                      "cajones",
+                      "electrificacion_integrada",
+                      "layout_isla_continua"
+                    ],
+                    "_concepto_layout": "layout_isla_continua",
+                    "_concepto_nombre": "Esencial"
+                  }
+                },
+                {
+                  "rev": 2,
+                  "label": "ancho_mm: 2000 mm",
+                  "intent": {
+                    "tono": null,
+                    "nivel": null,
+                    "_brief": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+                    "familia": "ESCRITORIO",
+                    "acabados": [],
+                    "_concepto": "A",
+                    "capacidad": null,
+                    "materiales": [],
+                    "dimensiones": {
+                      "alto_mm": 750,
+                      "prof_mm": 700,
+                      "ancho_mm": 2000
+                    },
+                    "desconocidos": [],
+                    "_modo_cocrear": true,
+                    "textoOriginal": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+                    "caracteristicas": [
+                      "cajones",
+                      "electrificacion_integrada",
+                      "layout_isla_continua"
+                    ],
+                    "_concepto_layout": "layout_isla_continua",
+                    "_concepto_nombre": "Esencial",
+                    "_engineering_validated": false,
+                    "_engineering_validation": null
+                  }
+                },
+                {
+                  "rev": 3,
+                  "label": "prof_mm: 1700 mm",
+                  "intent": {
+                    "tono": null,
+                    "nivel": null,
+                    "_brief": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+                    "familia": "ESCRITORIO",
+                    "acabados": [],
+                    "_concepto": "A",
+                    "capacidad": null,
+                    "materiales": [],
+                    "dimensiones": {
+                      "alto_mm": 750,
+                      "prof_mm": 1700,
+                      "ancho_mm": 2000
+                    },
+                    "desconocidos": [],
+                    "_modo_cocrear": true,
+                    "textoOriginal": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+                    "caracteristicas": [
+                      "cajones",
+                      "electrificacion_integrada",
+                      "layout_isla_continua"
+                    ],
+                    "_concepto_layout": "layout_isla_continua",
+                    "_concepto_nombre": "Esencial",
+                    "_engineering_validated": false,
+                    "_engineering_validation": null
+                  }
+                },
+                {
+                  "rev": 4,
+                  "label": "alto_mm: 760 mm",
+                  "intent": {
+                    "tono": null,
+                    "nivel": null,
+                    "_brief": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+                    "familia": "ESCRITORIO",
+                    "acabados": [],
+                    "_concepto": "A",
+                    "capacidad": null,
+                    "materiales": [],
+                    "dimensiones": {
+                      "alto_mm": 760,
+                      "prof_mm": 1700,
+                      "ancho_mm": 2000
+                    },
+                    "desconocidos": [],
+                    "_modo_cocrear": true,
+                    "textoOriginal": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+                    "caracteristicas": [
+                      "cajones",
+                      "electrificacion_integrada",
+                      "layout_isla_continua"
+                    ],
+                    "_concepto_layout": "layout_isla_continua",
+                    "_concepto_nombre": "Esencial",
+                    "_engineering_validated": false,
+                    "_engineering_validation": null
+                  }
+                },
+                {
+                  "rev": 5,
+                  "label": "Material: Nogal",
+                  "intent": {
+                    "tono": null,
+                    "nivel": null,
+                    "_brief": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+                    "familia": "ESCRITORIO",
+                    "acabados": [],
+                    "_concepto": "A",
+                    "capacidad": null,
+                    "materiales": [
+                      {
+                        "tono": null,
+                        "material": "nogal"
+                      }
+                    ],
+                    "dimensiones": {
+                      "alto_mm": 760,
+                      "prof_mm": 1700,
+                      "ancho_mm": 2000
+                    },
+                    "desconocidos": [],
+                    "_modo_cocrear": true,
+                    "textoOriginal": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+                    "caracteristicas": [
+                      "cajones",
+                      "electrificacion_integrada",
+                      "layout_isla_continua"
+                    ],
+                    "_concepto_layout": "layout_isla_continua",
+                    "_concepto_nombre": "Esencial",
+                    "_engineering_validated": false,
+                    "_engineering_validation": null
+                  }
+                },
+                {
+                  "rev": 6,
+                  "label": "Tono: oscuro",
+                  "intent": {
+                    "tono": null,
+                    "nivel": null,
+                    "_brief": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+                    "familia": "ESCRITORIO",
+                    "acabados": [],
+                    "_concepto": "A",
+                    "capacidad": null,
+                    "materiales": [
+                      {
+                        "tono": "oscuro",
+                        "material": "nogal"
+                      }
+                    ],
+                    "dimensiones": {
+                      "alto_mm": 760,
+                      "prof_mm": 1700,
+                      "ancho_mm": 2000
+                    },
+                    "desconocidos": [],
+                    "_modo_cocrear": true,
+                    "textoOriginal": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+                    "caracteristicas": [
+                      "cajones",
+                      "electrificacion_integrada",
+                      "layout_isla_continua"
+                    ],
+                    "_concepto_layout": "layout_isla_continua",
+                    "_concepto_nombre": "Esencial",
+                    "_engineering_validated": false,
+                    "_engineering_validation": null
+                  }
+                },
+                {
+                  "rev": 7,
+                  "label": "VONI: Haz el retorno de la L de 1200 mm de largo y 600 mm de fon",
+                  "intent": {
+                    "tono": null,
+                    "nivel": null,
+                    "_brief": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+                    "familia": "ESCRITORIO",
+                    "acabados": [],
+                    "_concepto": "A",
+                    "capacidad": null,
+                    "materiales": [
+                      {
+                        "tono": "oscuro",
+                        "material": "nogal"
+                      }
+                    ],
+                    "dimensiones": {
+                      "alto_mm": 760,
+                      "prof_mm": 1700,
+                      "ancho_mm": 3200
+                    },
+                    "desconocidos": [],
+                    "_modo_cocrear": true,
+                    "textoOriginal": "Escritorio en L para director, 1.80 m por 1.60 m, con cajonera y pasacables",
+                    "caracteristicas": [
+                      "cajones",
+                      "electrificacion_integrada",
+                      "layout_isla_continua"
+                    ],
+                    "_concepto_layout": "layout_isla_continua",
+                    "_concepto_nombre": "Esencial",
+                    "_engineering_validated": false,
+                    "_engineering_validation": null
+                  }
+                }
+              ],
+              "specHash": "h6cea34f1",
+              "costSnapshot": {
+                "status": "UNKNOWN",
+                "known_cost": null,
+                "official_cost": null
+              }
+            },
+            "creado_por": "qa-direccion@vonhaucke.mx",
+            "producto_id": null,
+            "analysis_hash": "4a08be85b88ec008cb21dccdc02392ab",
+            "producto_version_id": null
+          }
+        ],
+        "revision": 1,
+        "producto_id": null,
+        "analysis_hash": "4a08be85b88ec008cb21dccdc02392ab",
+        "render_aislado_url": null,
+        "producto_version_id": null,
+        "render_ambiente_url": null
+      },
+      "captura": "08-reabierto.jpg"
+    }
+  ],
+  "intervenciones": [
+    {
+      "tipo": "render-abortado-por-costo",
+      "n": 1,
+      "motivo": "LAB_COC_RENDER≠1"
+    },
+    {
+      "tipo": "etiqueta",
+      "nombreOriginal": "Escritorio 3.20 m · nogal oscuro",
+      "nombreEscrito": "(lab 10) COC-05 1328 · Escritorio 3.20 m · nogal oscuro",
+      "expedienteId": null
+    }
+  ],
+  "red": [
+    {
+      "t": 29.4,
+      "fn": "voni-council",
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    {
+      "t": 30,
+      "fn": "generar-render-rc",
+      "fallo": "net::ERR_BLOCKED_BY_CLIENT.Inspector"
+    },
+    {
+      "t": 49,
+      "fn": "voni-council",
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    {
+      "t": 51.3,
+      "fn": "guardar_cocrear_seguro",
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    {
+      "t": 53.5,
+      "fn": "cocrear_seguro",
+      "status": 200,
+      "ok": true,
+      "error": null
+    }
+  ],
+  "council": [
+    {
+      "t": 29.4,
+      "fn": "voni-council",
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "body": {
+        "ok": true,
+        "task": "review_product",
+        "seller_safe": false,
+        "council": {
+          "status": "SINGLE_PROVIDER",
+          "decision": "PROPOSE_OPTIONS",
+          "requires_confirmation": true,
+          "provider_decisions": [
+            {
+              "provider": "gemini",
+              "decision": "PROPOSE_OPTIONS"
+            }
+          ]
+        },
+        "opinions": [
+          {
+            "provider": "gemini",
+            "ok": true,
+            "model": "gemini-3.6-flash",
+            "ms": 15366,
+            "output": {
+              "decision": "PROPOSE_OPTIONS",
+              "summary": "Propuesta de co-creación para escritorio gerencial/directivo en L de 1.80 m x 1.60 m con cajonera y pasacables, evaluando la configuración sobre las líneas Eclipse Drift (Gama 9) y Alba (Gama 6).",
+              "facts": [
+                {
+                  "what": "El requerimiento solicita un escritorio en L para director de 1.80 m x 1.60 m con cajonera y pasacables.",
+                  "evidence": "Texto original del brief y campo necesidad en el contexto."
+                },
+                {
+                  "what": "El catálogo provisto incluye las líneas directivas/ejecutivas Eclipse Drift (Gama 9) y Alba (Gama 6) con opciones de cajonera y electrificación.",
+                  "evidence": "Rutas 'drift' y 'alba' en context.von_haucke.candidatos."
+                },
+                {
+                  "what": "La línea Eclipse Drift ofrece escritorios de 1800 mm x 750 mm / 900 mm con credenza/cajonera integrada.",
+                  "evidence": "Producto escritorio en candidatos de Eclipse Drift."
+                }
+              ],
+              "inferences": [
+                {
+                  "what": "La dimensión de 1.60 m corresponde al desarrollo total de la L (profundidad de cubierta principal + retorno lateral/cajonera).",
+                  "confidence": "HIGH",
+                  "why": "Un mueble en L estándar para dirección suma la profundidad del escritorio principal (~0.70-0.75 m) con el largo del retorno/credenza (~0.90 m)."
+                },
+                {
+                  "what": "Eclipse Drift o Alba responden mejor al perfil directivo en comparación con líneas operativas como App LT.",
+                  "confidence": "HIGH",
+                  "why": "Eclipse Drift (Gama 9) y Alba (Gama 6) cuentan con acabados premium y soluciones de credenza/cajonera ejecutiva integradas."
+                }
+              ],
+              "recommendations": [
+                {
+                  "category": "DESIGN",
+                  "what": "Configurar el conjunto directivo usando la línea Eclipse Drift como primera opción o Alba como alternativa metálica ejecutiva.",
+                  "why": "Cumplen con el linaje directivo, acabados ejecutivos y estructura de cajonera con electrificación de catálogo.",
+                  "impact": "Evita generar un especial sin necesidad y mantiene la calidad institucional de la marca.",
+                  "confidence": "HIGH",
+                  "requires_validation": false
+                },
+                {
+                  "category": "ENGINEERING",
+                  "what": "Definir la trayectoria del pasacables/electrificación desde la cubierta principal hacia la cajonera/credenza de apoyo.",
+                  "why": "Asegura la trazabilidad y la ocultación limpia del cableado.",
+                  "impact": "Garantiza seguridad eléctrica y estética directiva impecable.",
+                  "confidence": "HIGH",
+                  "requires_validation": true
+                },
+                {
+                  "category": "SPACE",
+                  "what": "Verificar la orientación de la L (mano derecha o izquierda) en el plano del espacio directivo.",
+                  "why": "Afecta la ergonomía de acceso y la relación con visitas o muros del privado.",
+                  "impact": "Previene errores de instalación en sitio.",
+                  "confidence": "HIGH",
+                  "requires_validation": true
+                }
+              ],
+              "questions": [
+                {
+                  "what": "¿Prefiere la estética en madera/chapa/Cleaf de la línea Eclipse Drift (Gama 9) o la estructura metálica ejecutiva de la línea Alba (Gama 6)?",
+                  "information_gain": "HIGH"
+                },
+                {
+                  "what": "¿La cajonera/retorno debe ir del lado derecho o del lado izquierdo?",
+                  "information_gain": "HIGH"
+                },
+                {
+                  "what": "¿Requiere pasacables tipo ojal/grommet simple o caja de conectividad electrificada completa (contactos + voz/datos)?",
+                  "information_gain": "MEDIUM"
+                }
+              ],
+              "proposed_actions": [
+                {
+                  "type": "PROPOSE_LINE_CONFIGURATIONS",
+                  "payload": {
+                    "summary": "Presentar opción A basada en Eclipse Drift (Escritorio gerencial 1800x750 mm con credenza/cajonera de apoyo) y opción B basada en Alba (Escritorio 1800 mm con cajonera auxiliar y ducto pasacables)."
+                  }
+                }
+              ],
+              "blockers": []
+            }
+          }
+        ],
+        "latency_ms": 20010,
+        "deadline_hit": true,
+        "execution": "PROPOSAL_ONLY",
+        "deterministic_validation_required": true
+      }
+    },
+    {
+      "t": 49,
+      "fn": "voni-council",
+      "status": 200,
+      "ok": true,
+      "error": null,
+      "body": {
+        "ok": true,
+        "task": "interpret_change",
+        "seller_safe": false,
+        "council": {
+          "status": "SINGLE_PROVIDER",
+          "decision": "APPLY_EXPLICIT_CHANGE",
+          "requires_confirmation": true,
+          "provider_decisions": [
+            {
+              "provider": "gemini",
+              "decision": "APPLY_EXPLICIT_CHANGE"
+            }
+          ]
+        },
+        "opinions": [
+          {
+            "provider": "gemini",
+            "ok": true,
+            "model": "gemini-3.6-flash",
+            "ms": 13794,
+            "output": {
+              "decision": "APPLY_EXPLICIT_CHANGE",
+              "summary": "Se actualiza la especificación para ajustar el retorno del escritorio en L a 1200 mm de largo por 600 mm de fondo en el lado derecho.",
+              "facts": [
+                {
+                  "what": "Solicitud explícita de modificación de retorno en L.",
+                  "evidence": "Texto original del usuario: 'Haz el retorno de la L de 1200 mm de largo y 600 mm de fondo, del lado derecho'."
+                },
+                {
+                  "what": "Dimensiones y orientación solicitadas.",
+                  "evidence": "Largo de lateral: 1200 mm, fondo: 600 mm, lado: derecho."
+                },
+                {
+                  "what": "Estado de la especificación técnica actual.",
+                  "evidence": "Spec ps_84186c9d rev 7, familia ESCRITORIO, clasificado como NEW_SPECIAL."
+                }
+              ],
+              "inferences": [
+                {
+                  "what": "El cambio a retorno derecho modifica la distribución espacial del escritorio y la ubicación de apoyos/cajonera.",
+                  "confidence": "HIGH",
+                  "why": "Definir mano derecha asigna la posición del módulo lateral y la dirección del flujo de electrificación."
+                },
+                {
+                  "what": "La dimensión de 1200 x 600 mm es una medida modular compatible con los estándares de línea de Von Haucke.",
+                  "confidence": "HIGH",
+                  "why": "Líneas como App y Feather manejan cubiertas laterales en 1200 mm de largo y 600 mm de fondo."
+                }
+              ],
+              "recommendations": [
+                {
+                  "category": "DESIGN",
+                  "what": "Actualizar la geometría del modelo conceptual y el layout visual con retorno a la derecha de 1200 x 600 mm.",
+                  "why": "Asegura coherencia entre la solicitud de dirección y la representación visual.",
+                  "impact": "Claridad en el trazado de espacio y distribución de componentes.",
+                  "confidence": "HIGH",
+                  "requires_validation": false
+                },
+                {
+                  "category": "ENGINEERING",
+                  "what": "Validar el herraje de unión entre cubierta principal y lateral, así como el soporte del retorno con la cajonera.",
+                  "why": "Es necesario garantizar rigidez estructural y correcta nivelación del conjunto.",
+                  "impact": "Estabilidad mecánica y seguridad del mueble.",
+                  "confidence": "HIGH",
+                  "requires_validation": true
+                }
+              ],
+              "questions": [
+                {
+                  "what": "¿La cajonera irá ubicada como soporte estructural debajo del retorno derecho o se colocará de forma exenta?",
+                  "information_gain": "HIGH"
+                },
+                {
+                  "what": "¿El pasacables/acometida eléctrica requiere integración directa en la cubierta del retorno además de la principal?",
+                  "information_gain": "MEDIUM"
+                }
+              ],
+              "proposed_actions": [
+                {
+                  "type": "UPDATE_SPEC",
+                  "payload": {
+                    "summary": "Actualizar el especificación ps_84186c9d configurando el retorno en L a 1200 mm de largo, 600 mm de fondo y mano derecha."
+                  }
+                }
+              ],
+              "blockers": []
+            }
+          },
+          {
+            "provider": "anthropic",
+            "ok": false,
+            "model": "claude-opus-5",
+            "ms": 14006,
+            "error": "The signal has been aborted"
+          }
+        ],
+        "latency_ms": 14006,
+        "deadline_hit": false,
+        "execution": "PROPOSAL_ONLY",
+        "deterministic_validation_required": true
+      }
+    }
+  ],
+  "pageErrors": [],
+  "consoleErrors": [
+    "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+  ]
+}

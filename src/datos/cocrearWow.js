@@ -3,7 +3,8 @@ import { interpretarIntent, DIMS_DEFAULT, FAMILIA } from './cocrear.js';
 const normal = (s='') => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const nPersonas = (s) => {
   const x = normal(s);
-  const m = x.match(/(?:para\s*)?(\d{1,2})\s*(?:lugares|personas|usuarios|puestos|estaciones)/) || x.match(/(\d{1,2})\s*(?:pax|p)/);
+  // LAB COCREAR 10: "4 puertas" y "1 peso" se leían como capacidad ("4 p…" ≈ "4 pax"); "plazas"/"asientos" no se leían.
+  const m = x.match(/(?:para\s*)?(\d{1,2})\s*(?:lugares|personas|usuarios|puestos|estaciones|plazas|asientos)\b/) || x.match(/(\d{1,2})\s*(?:pax|p)\b/);
   return m ? Math.max(1, Math.min(24, Number(m[1]))) : null;
 };
 
@@ -62,7 +63,8 @@ export function prepararIntentCocrear(brief, base = null) {
   if (/divisor|privacidad|separador|panel/.test(x)) features.add('divisores');
   if (/acustic|sonido|ruido/.test(x)) features.add('acustica');
   if (/ilumin|led|luz integrada/.test(x)) features.add('iluminacion_integrada');
-  if (/ruedas|movil|movible/.test(x)) features.add('ruedas');
+  // LAB COCREAR 10 (COC-03): "accesible para silla de ruedas" agregaba RUEDAS (rodajas) a una recepción.
+  if (/ruedas|movil|movible/.test(x.replace(/sillas?\s+de\s+ruedas/g, ''))) features.add('ruedas');
 
   if (/acero/.test(x)) {
     const mats = [...(it.materiales || [])];

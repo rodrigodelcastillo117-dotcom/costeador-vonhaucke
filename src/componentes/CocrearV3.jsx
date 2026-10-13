@@ -273,7 +273,9 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
      lenses:['portafolio Von Haucke','diseño','fabricación','uso']
    });setAnalisis(r||{});
    const txt=councilText(r)||'VONI revisó la modificación.';
-   setMensaje(cambio.aplico?`✓ Cambio aplicado a la revisión canónica. ${txt} El render anterior quedó vencido; regénéralo para ver exactamente esta revisión.`:txt);
+   // LAB COCREAR 10 (COC-05): sin cambio determinista, el texto del Council ("Se actualiza la especificación…")
+   // se leía como si el modelo hubiera cambiado. Se dice explícitamente que la revisión canónica NO cambió.
+   setMensaje(cambio.aplico?`✓ Cambio aplicado a la revisión canónica. ${txt} El render anterior quedó vencido; regénéralo para ver exactamente esta revisión.`:`Sin cambio en el modelo canónico (Rev ${historia.length||1} sigue igual): la instrucción no se pudo aplicar de forma determinista. Opinión de VONI Council, no aplicada: ${txt}`);
    setNl('');
   }catch(e){setMensaje(cambio.aplico?`✓ Cambio aplicado al modelo. Council no pudo responder: ${String(e?.message||e)}`:`VONI no pudo responder: ${String(e?.message||e)}`)}
   setPensando(false)

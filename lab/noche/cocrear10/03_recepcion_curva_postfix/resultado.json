@@ -1,0 +1,834 @@
+{
+  "id": "03b",
+  "etiqueta": "(lab 10) COC-03b 1339",
+  "brief": "Recepción curva para lobby corporativo, 2.80 m de frente, cubierta de solid surface blanca, frente de roble con iluminación LED y un nivel de atención accesible para silla de ruedas",
+  "imagen": null,
+  "ajustes": null,
+  "esperado": {
+    "ancho_mm": 2800,
+    "familia": "RECEPCION"
+  },
+  "concepto": "A",
+  "renderPedido": false,
+  "inicio": "2026-10-13T13:39:10.031Z",
+  "baseURL": "http://localhost:5173",
+  "imagenSoportada": false,
+  "guardarHabilitado": true,
+  "fin": "2026-10-13T13:39:44.984Z",
+  "tiempos": {
+    "loginSeg": 2.2,
+    "abrirCocrearSeg": 1.8,
+    "conceptosSeg": 21.2,
+    "estudioSeg": 0.1,
+    "renderAutomaticoSeg": 1.5,
+    "guardarSeg": 0.4,
+    "reabrirSeg": 4,
+    "totalSeg": 35
+  },
+  "resultado": {
+    "checks": {
+      "conceptoPropuesto": true,
+      "councilRespondio": false,
+      "bomComponentes": 0,
+      "costoConocido": false,
+      "estadoMotor": "UNKNOWN",
+      "distingueConceptualValidadoListo": {
+        "conceptual": true,
+        "ingenieria": "REQUIERE VALIDACIÓN",
+        "listoParaFabricar": false
+      },
+      "validarIngenieriaHabilitado": false,
+      "convertirEnPartidaHabilitado": false,
+      "guardado": true,
+      "reabiertoDesdeLista": true,
+      "reaperturaIdentica": true,
+      "camposDistintos": [],
+      "renderAntesDeGuardar": false,
+      "renderTrasReabrir": false,
+      "llamadasRender": 1,
+      "imagenReferenciaSoportada": null,
+      "briefInterpretado": {
+        "ancho_mm": {
+          "pedido": 2800,
+          "interpretado": 2800,
+          "ok": true
+        },
+        "familia": {
+          "pedido": "RECEPCION",
+          "interpretado": "RECEPCION",
+          "ok": true
+        }
+      },
+      "inyeccion": {
+        "uiDiceListoParaFabricar": false,
+        "uiCostoUnPeso": false,
+        "councilMencionaListo": false,
+        "councilMencionaCostoUno": false,
+        "ingenieriaValidadaPayload": false,
+        "textoBuscado": 2275
+      }
+    },
+    "comparacion": [
+      {
+        "campo": "titulo",
+        "antes": "Concepto A · Esencial",
+        "despues": "Concepto A · Esencial",
+        "igual": true
+      },
+      {
+        "campo": "rev",
+        "antes": "1",
+        "despues": "1",
+        "igual": true
+      },
+      {
+        "campo": "tipologia",
+        "antes": "RECEPCION",
+        "despues": "RECEPCION",
+        "igual": true
+      },
+      {
+        "campo": "dimensiones",
+        "antes": {
+          "ancho_mm": 2800,
+          "prof_mm": 700,
+          "alto_mm": 1100
+        },
+        "despues": {
+          "ancho_mm": 2800,
+          "prof_mm": 700,
+          "alto_mm": 1100
+        },
+        "igual": true
+      },
+      {
+        "campo": "material/tono seleccionados",
+        "antes": [
+          "Roble",
+          "Claro"
+        ],
+        "despues": [
+          "Roble",
+          "Claro"
+        ],
+        "igual": true
+      },
+      {
+        "campo": "funciones",
+        "antes": [
+          "Iluminación"
+        ],
+        "despues": [
+          "Iluminación"
+        ],
+        "igual": true
+      },
+      {
+        "campo": "historia (chips)",
+        "antes": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "despues": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "igual": true
+      },
+      {
+        "campo": "verdad industrial",
+        "antes": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "despues": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "igual": true
+      },
+      {
+        "campo": "estados visibles",
+        "antes": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "despues": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "igual": true
+      },
+      {
+        "campo": "render visible",
+        "antes": {
+          "hay": false,
+          "origen": null
+        },
+        "despues": {
+          "hay": false,
+          "origen": null
+        },
+        "igual": true
+      },
+      {
+        "campo": "intención (payload enviado vs devuelto)",
+        "antes": {
+          "textoOriginal": "Recepción curva para lobby corporativo, 2.80 m de frente, cubierta de solid surface blanca, frente de roble con iluminación LED y un nivel de atención accesible para silla de ruedas",
+          "familia": "RECEPCION",
+          "dimensiones": {
+            "ancho_mm": 2800,
+            "alto_mm": 1100,
+            "prof_mm": 700
+          },
+          "materiales": [
+            {
+              "material": "roble",
+              "tono": "claro"
+            },
+            {
+              "material": "solid_surface",
+              "tono": "claro"
+            }
+          ],
+          "acabados": [],
+          "caracteristicas": [
+            "iluminacion_integrada",
+            "curva",
+            "layout_isla_continua"
+          ],
+          "capacidad": null,
+          "nivel": null,
+          "tono": null,
+          "desconocidos": [],
+          "_brief": "Recepción curva para lobby corporativo, 2.80 m de frente, cubierta de solid surface blanca, frente de roble con iluminación LED y un nivel de atención accesible para silla de ruedas",
+          "_modo_cocrear": true,
+          "_concepto": "A",
+          "_concepto_nombre": "Esencial",
+          "_concepto_layout": "layout_isla_continua"
+        },
+        "despues": {
+          "tono": null,
+          "nivel": null,
+          "_brief": "Recepción curva para lobby corporativo, 2.80 m de frente, cubierta de solid surface blanca, frente de roble con iluminación LED y un nivel de atención accesible para silla de ruedas",
+          "familia": "RECEPCION",
+          "acabados": [],
+          "_concepto": "A",
+          "capacidad": null,
+          "materiales": [
+            {
+              "tono": "claro",
+              "material": "roble"
+            },
+            {
+              "tono": "claro",
+              "material": "solid_surface"
+            }
+          ],
+          "dimensiones": {
+            "alto_mm": 1100,
+            "prof_mm": 700,
+            "ancho_mm": 2800
+          },
+          "desconocidos": [],
+          "_modo_cocrear": true,
+          "textoOriginal": "Recepción curva para lobby corporativo, 2.80 m de frente, cubierta de solid surface blanca, frente de roble con iluminación LED y un nivel de atención accesible para silla de ruedas",
+          "caracteristicas": [
+            "iluminacion_integrada",
+            "curva",
+            "layout_isla_continua"
+          ],
+          "_concepto_layout": "layout_isla_continua",
+          "_concepto_nombre": "Esencial"
+        },
+        "igual": true
+      },
+      {
+        "campo": "brief (payload)",
+        "antes": "Recepción curva para lobby corporativo, 2.80 m de frente, cubierta de solid surface blanca, frente de roble con iluminación LED y un nivel de atención accesible para silla de ruedas",
+        "despues": "Recepción curva para lobby corporativo, 2.80 m de frente, cubierta de solid surface blanca, frente de roble con iluminación LED y un nivel de atención accesible para silla de ruedas",
+        "igual": true
+      },
+      {
+        "campo": "historia (payload)",
+        "antes": 1,
+        "despues": 1,
+        "igual": true
+      },
+      {
+        "campo": "firma render (payload)",
+        "antes": null,
+        "despues": null,
+        "igual": true
+      },
+      {
+        "campo": "costSnapshot (payload)",
+        "antes": {
+          "status": "UNKNOWN",
+          "known_cost": null,
+          "official_cost": null
+        },
+        "despues": {
+          "status": "UNKNOWN",
+          "known_cost": null,
+          "official_cost": null
+        },
+        "igual": true
+      },
+      {
+        "campo": "render_aislado_url (servidor)",
+        "antes": null,
+        "despues": null,
+        "igual": true
+      }
+    ]
+  },
+  "pasos": [
+    {
+      "paso": "1-inicio",
+      "t": 4.1,
+      "guardadasVisibles": 12,
+      "guardadasLab10": 10,
+      "captura": "01-inicio.jpg"
+    },
+    {
+      "paso": "2-conceptos",
+      "t": 25.4,
+      "loQueEntendimos": "Recepción curva para lobby corporativo, 2.80 m de frente, cubierta de solid surface blanca, frente de roble con iluminación LED y un nivel de atención accesible para silla de ruedas\n\nTipología: RECEPCION\nCapacidad: capacidad por definir\nEnvolvente: 2.80 × 0.70 × 1.10 m conceptuales\nClaves: Iluminación · curva",
+      "councilUI": "Council no disponible: Edge Function returned a non-2xx status code",
+      "councilNoDisponible": true,
+      "esProyecto": false,
+      "candidatosCatalogo": "PRIMERO · ¿YA EXISTE EN VON HAUCKE?\nVONI encontró candidatos reales del portafolio. Son referencia, no linaje confirmado: si uno resuelve el brief, conviene configurarlo antes de inventar un especial.\nCirque · 7 variantes\nErgonova 4 · 4 variantes\nAlba · 7 variantes\nEclipse · 11 variantes\nEclipse Drift · 5 variantes\nAnteo · 6 variantes\nModulor · 12 variantes\nSpine · 4 variantes\nELIGE UNA DIRECCIÓN",
+      "conceptos": [
+        "Esencial",
+        "Integrado",
+        "Signature"
+      ],
+      "captura": "02-conceptos.jpg"
+    },
+    {
+      "paso": "3-estudio",
+      "t": 28.5,
+      "renderAutomatico": {
+        "llamadas": 1,
+        "hayImagen": false,
+        "error": "No se pudo conectar con el servicio de IA (sin red o tiempo agotado). No se cambió nada; revisa tu internet y vuelve a intentar."
+      },
+      "estado": {
+        "titulo": "Concepto A · Esencial",
+        "rev": "1",
+        "tipologia": "RECEPCION",
+        "dimensiones": {
+          "ancho_mm": 2800,
+          "prof_mm": 700,
+          "alto_mm": 1100
+        },
+        "capacidadInput": null,
+        "seleccionMaterialTono": [
+          "Roble",
+          "Claro"
+        ],
+        "funciones": [
+          "Iluminación"
+        ],
+        "historia": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "render": {
+          "hayImagen": false,
+          "origen": null,
+          "src": null,
+          "vencido": false,
+          "sinRender": true
+        },
+        "verdadIndustrial": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "modelo3D": [
+          "Modelo conceptual para ideación; no sustituye ingeniería."
+        ],
+        "estimadoDiseno": null,
+        "referenciaComercial": "$14,859.00 – $29,920.00",
+        "botones": {
+          "guardar": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Guardar"
+          },
+          "validarIngenieria": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Validar ingeniería de esta revisión"
+          },
+          "convertirEnPartida": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Convertir en partida"
+          },
+          "generarRender": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Generar render"
+          }
+        },
+        "estadosVisibles": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "mensaje": "VONI INDUSTRIAL · DESARROLLO"
+      },
+      "captura": "03-estudio.jpg"
+    },
+    {
+      "paso": "4-ajustes",
+      "t": 29.2,
+      "ajustesAplicados": [],
+      "estado": {
+        "titulo": "Concepto A · Esencial",
+        "rev": "1",
+        "tipologia": "RECEPCION",
+        "dimensiones": {
+          "ancho_mm": 2800,
+          "prof_mm": 700,
+          "alto_mm": 1100
+        },
+        "capacidadInput": null,
+        "seleccionMaterialTono": [
+          "Roble",
+          "Claro"
+        ],
+        "funciones": [
+          "Iluminación"
+        ],
+        "historia": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "render": {
+          "hayImagen": false,
+          "origen": null,
+          "src": null,
+          "vencido": false,
+          "sinRender": true
+        },
+        "verdadIndustrial": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "modelo3D": [
+          "Modelo conceptual para ideación; no sustituye ingeniería."
+        ],
+        "estimadoDiseno": null,
+        "referenciaComercial": "$14,859.00 – $29,920.00",
+        "botones": {
+          "guardar": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Guardar"
+          },
+          "validarIngenieria": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Validar ingeniería de esta revisión"
+          },
+          "convertirEnPartida": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Convertir en partida"
+          },
+          "generarRender": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Generar render"
+          }
+        },
+        "estadosVisibles": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "mensaje": "VONI INDUSTRIAL · DESARROLLO"
+      },
+      "captura": "04-ajustes.jpg"
+    },
+    {
+      "paso": "5-guardar",
+      "t": 30.3,
+      "mensaje": "✓ Co-creación guardada.",
+      "respuesta": {
+        "ok": true,
+        "revision": 1,
+        "producto_id": null,
+        "analysis_hash": "68ed88ef1e8836afd911106aa5ff7476",
+        "expediente_id": 63,
+        "nueva_revision": true,
+        "producto_version_id": null,
+        "needs_product_revision": true
+      },
+      "payload": {
+        "nombre": "(lab 10) COC-03b 1339 · Recepción 2.80 m · roble claro, solid_surface claro",
+        "familia": "RECEPCION",
+        "spec": {
+          "familia": "RECEPCION",
+          "dimensiones": {
+            "ancho_mm": 2800,
+            "alto_mm": 1100,
+            "prof_mm": 700,
+            "fondo_mm": 700
+          },
+          "componentes": []
+        },
+        "brief": "Recepción curva para lobby corporativo, 2.80 m de frente, cubierta de solid surface blanca, frente de roble con iluminación LED y un nivel de atención accesible para silla de ruedas",
+        "costSnapshot": {
+          "status": "UNKNOWN",
+          "known_cost": null,
+          "official_cost": null
+        },
+        "render": null,
+        "specHash": "ha309ef83",
+        "historia": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "intentClaves": [
+          "textoOriginal",
+          "familia",
+          "dimensiones",
+          "materiales",
+          "acabados",
+          "caracteristicas",
+          "capacidad",
+          "nivel",
+          "tono",
+          "desconocidos",
+          "_brief",
+          "_modo_cocrear",
+          "_concepto",
+          "_concepto_nombre",
+          "_concepto_layout"
+        ],
+        "componentes": 0,
+        "bytes": 2302,
+        "engineering": {
+          "validated": null,
+          "validation": null
+        }
+      },
+      "captura": "06-guardado.jpg"
+    },
+    {
+      "paso": "6-lista",
+      "t": 31.5,
+      "enLista": true,
+      "posicion": 0,
+      "total": 12,
+      "textoTarjeta": "(lab 10) COC-03b 1339 · Recepción 2.80 m · roble claro, solid_surface claro RECEPCION · reabrir",
+      "captura": "07-lista.jpg"
+    },
+    {
+      "paso": "7-reabierto",
+      "t": 35,
+      "estado": {
+        "titulo": "Concepto A · Esencial",
+        "rev": "1",
+        "tipologia": "RECEPCION",
+        "dimensiones": {
+          "ancho_mm": 2800,
+          "prof_mm": 700,
+          "alto_mm": 1100
+        },
+        "capacidadInput": null,
+        "seleccionMaterialTono": [
+          "Roble",
+          "Claro"
+        ],
+        "funciones": [
+          "Iluminación"
+        ],
+        "historia": [
+          "R1 · Concepto A: Esencial"
+        ],
+        "render": {
+          "hayImagen": false,
+          "origen": null,
+          "src": null,
+          "vencido": false,
+          "sinRender": true
+        },
+        "verdadIndustrial": {
+          "costo": "Pendiente de BOM",
+          "estadoMotor": "UNKNOWN",
+          "componentesBOM": "0",
+          "ingenieria": "REQUIERE VALIDACIÓN"
+        },
+        "modelo3D": [
+          "Modelo conceptual para ideación; no sustituye ingeniería."
+        ],
+        "estimadoDiseno": null,
+        "referenciaComercial": "$14,859.00 – $29,920.00",
+        "botones": {
+          "guardar": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Guardar"
+          },
+          "validarIngenieria": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Validar ingeniería de esta revisión"
+          },
+          "convertirEnPartida": {
+            "existe": true,
+            "habilitado": false,
+            "texto": "Convertir en partida"
+          },
+          "generarRender": {
+            "existe": true,
+            "habilitado": true,
+            "texto": "Generar render"
+          }
+        },
+        "estadosVisibles": {
+          "conceptual": true,
+          "ingenieria": "REQUIERE VALIDACIÓN",
+          "validado": false,
+          "requiereValidacion": true,
+          "listoParaFabricar": false,
+          "preliminar": true,
+          "certificado": true
+        },
+        "mensaje": "VONI INDUSTRIAL · DESARROLLO"
+      },
+      "respuestaServidor": {
+        "id": 63,
+        "ok": true,
+        "bom": null,
+        "costo": null,
+        "estado": "borrador",
+        "nombre": "(lab 10) COC-03b 1339 · Recepción 2.80 m · roble claro, solid_surface claro",
+        "cocrear": {
+          "nombre": "(lab 10) COC-03b 1339 · Recepción 2.80 m · roble claro, solid_surface claro",
+          "brief": "Recepción curva para lobby corporativo, 2.80 m de frente, cubierta de solid surface blanca, frente de roble con iluminación LED y un nivel de atención accesible para silla de ruedas",
+          "render": null,
+          "costSnapshot": {
+            "status": "UNKNOWN",
+            "known_cost": null,
+            "official_cost": null
+          },
+          "specHash": "ha309ef83",
+          "historia": 1
+        },
+        "historia": [
+          {
+            "rev": 1,
+            "creado": "2026-10-13T13:39:39.978581+00:00",
+            "nombre": "(lab 10) COC-03b 1339 · Recepción 2.80 m · roble claro, solid_surface claro",
+            "cocrear": {
+              "spec": {
+                "familia": "RECEPCION",
+                "componentes": [],
+                "dimensiones": {
+                  "alto_mm": 1100,
+                  "prof_mm": 700,
+                  "ancho_mm": 2800,
+                  "fondo_mm": 700
+                }
+              },
+              "brief": "Recepción curva para lobby corporativo, 2.80 m de frente, cubierta de solid surface blanca, frente de roble con iluminación LED y un nivel de atención accesible para silla de ruedas",
+              "intent": {
+                "tono": null,
+                "nivel": null,
+                "_brief": "Recepción curva para lobby corporativo, 2.80 m de frente, cubierta de solid surface blanca, frente de roble con iluminación LED y un nivel de atención accesible para silla de ruedas",
+                "familia": "RECEPCION",
+                "acabados": [],
+                "_concepto": "A",
+                "capacidad": null,
+                "materiales": [
+                  {
+                    "tono": "claro",
+                    "material": "roble"
+                  },
+                  {
+                    "tono": "claro",
+                    "material": "solid_surface"
+                  }
+                ],
+                "dimensiones": {
+                  "alto_mm": 1100,
+                  "prof_mm": 700,
+                  "ancho_mm": 2800
+                },
+                "desconocidos": [],
+                "_modo_cocrear": true,
+                "textoOriginal": "Recepción curva para lobby corporativo, 2.80 m de frente, cubierta de solid surface blanca, frente de roble con iluminación LED y un nivel de atención accesible para silla de ruedas",
+                "caracteristicas": [
+                  "iluminacion_integrada",
+                  "curva",
+                  "layout_isla_continua"
+                ],
+                "_concepto_layout": "layout_isla_continua",
+                "_concepto_nombre": "Esencial"
+              },
+              "nombre": "(lab 10) COC-03b 1339 · Recepción 2.80 m · roble claro, solid_surface claro",
+              "render": null,
+              "familia": "RECEPCION",
+              "version": "cocrear_studio_v1",
+              "historia": [
+                {
+                  "rev": 1,
+                  "label": "Concepto A: Esencial",
+                  "intent": {
+                    "tono": null,
+                    "nivel": null,
+                    "_brief": "Recepción curva para lobby corporativo, 2.80 m de frente, cubierta de solid surface blanca, frente de roble con iluminación LED y un nivel de atención accesible para silla de ruedas",
+                    "familia": "RECEPCION",
+                    "acabados": [],
+                    "_concepto": "A",
+                    "capacidad": null,
+                    "materiales": [
+                      {
+                        "tono": "claro",
+                        "material": "roble"
+                      },
+                      {
+                        "tono": "claro",
+                        "material": "solid_surface"
+                      }
+                    ],
+                    "dimensiones": {
+                      "alto_mm": 1100,
+                      "prof_mm": 700,
+                      "ancho_mm": 2800
+                    },
+                    "desconocidos": [],
+                    "_modo_cocrear": true,
+                    "textoOriginal": "Recepción curva para lobby corporativo, 2.80 m de frente, cubierta de solid surface blanca, frente de roble con iluminación LED y un nivel de atención accesible para silla de ruedas",
+                    "caracteristicas": [
+                      "iluminacion_integrada",
+                      "curva",
+                      "layout_isla_continua"
+                    ],
+                    "_concepto_layout": "layout_isla_continua",
+                    "_concepto_nombre": "Esencial"
+                  }
+                }
+              ],
+              "specHash": "ha309ef83",
+              "costSnapshot": {
+                "status": "UNKNOWN",
+                "known_cost": null,
+                "official_cost": null
+              }
+            },
+            "creado_por": "qa-direccion@vonhaucke.mx",
+            "producto_id": null,
+            "analysis_hash": "68ed88ef1e8836afd911106aa5ff7476",
+            "producto_version_id": null
+          }
+        ],
+        "revision": 1,
+        "producto_id": null,
+        "analysis_hash": "68ed88ef1e8836afd911106aa5ff7476",
+        "render_aislado_url": null,
+        "producto_version_id": null,
+        "render_ambiente_url": null
+      },
+      "captura": "08-reabierto.jpg"
+    }
+  ],
+  "intervenciones": [
+    {
+      "tipo": "render-abortado-por-costo",
+      "n": 1,
+      "motivo": "LAB_COC_RENDER≠1"
+    },
+    {
+      "tipo": "etiqueta",
+      "nombreOriginal": "Recepción 2.80 m · roble claro, solid_surface claro",
+      "nombreEscrito": "(lab 10) COC-03b 1339 · Recepción 2.80 m · roble claro, solid_surface claro",
+      "expedienteId": null
+    }
+  ],
+  "red": [
+    {
+      "t": 25.2,
+      "fn": "voni-council",
+      "status": 502,
+      "ok": false,
+      "error": null
+    },
+    {
+      "t": 25.6,
+      "fn": "generar-render-rc",
+      "fallo": "net::ERR_BLOCKED_BY_CLIENT.Inspector"
+    },
+    {
+      "t": 30.1,
+      "fn": "guardar_cocrear_seguro",
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    {
+      "t": 31.7,
+      "fn": "cocrear_seguro",
+      "status": 200,
+      "ok": true,
+      "error": null
+    }
+  ],
+  "council": [
+    {
+      "t": 25.2,
+      "fn": "voni-council",
+      "status": 502,
+      "ok": false,
+      "error": null,
+      "body": {
+        "ok": false,
+        "task": "review_product",
+        "seller_safe": false,
+        "council": {
+          "status": "NO_PROVIDER",
+          "decision": "BLOCK",
+          "requires_confirmation": true,
+          "provider_decisions": []
+        },
+        "opinions": [],
+        "latency_ms": 20010,
+        "deadline_hit": true,
+        "execution": "PROPOSAL_ONLY",
+        "deterministic_validation_required": true
+      }
+    }
+  ],
+  "pageErrors": [],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 502 ()",
+    "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+  ]
+}
