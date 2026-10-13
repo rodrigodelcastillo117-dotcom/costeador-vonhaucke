@@ -8,6 +8,16 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import { patchMedidas, piezasDeExpediente } from '../datos/medidasMaterial.js';
 import { precioDesdeCosto, margenObjetivoDe } from '../datos/precio.js';
 import { calcular, netoComponente, modeloParaPieza, costeoEmitible, bomHash, diffBOM, aplicarDiffBOM, MOTOR_VERSION, FORMULA_ALBA_V1, formulaDePieza } from '../motor/calculo.js';
+import { DIFICULTAD, factorDificultad } from '../motor/dificultad.js';
+
+// Niveles de dificultad con ejemplos REALES (piezas APP LT medidas contra horas estándar del ERP).
+const NIVELES_DIFICULTAD = [
+  ['muy_facil', 'Muy fácil', 'Mucho material y poco trabajo: cubiertas grandes, faldones (p.ej. ATCUBD46, ATFAL150).'],
+  ['facil', 'Fácil', 'Piezas planas sencillas con material de valor: cubierta 1500, omega larga (ATCUBD45, ATOM4).'],
+  ['normal', 'Normal', 'La fórmula de siempre. Cubierta 1200, omega ATOM3, módulo APP LT completo.'],
+  ['dificil', 'Difícil', 'Estructura soldada con muchos cortes: patas U (ATPU2M/3M/75M).'],
+  ['muy_dificil', 'Muy difícil', 'Mucho trabajo sobre poco material: acometidas, cajas, piezas con muchos dobleces (ATACM).'],
+];
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos2 } from '../util.js';
 import { dinero, aCentavosEnteros } from '../motor/dinero.js';
@@ -202,7 +212,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     // un tapacanto duplicado). La sombra compara COSTO: corre aunque el precio esté pendiente.
     if (!(b.componentes?.length) || !(resultado.costoUnitario > 0)) return;
     const pieza = b; // costear-servidor recibe sólo intención técnica (VH-036); el servidor es dueño de modelo/config/dinero
-    const h = hashInput({ c: b.componentes, n: b.piezas, m: margenEfectivo });
+    const h = hashInput({ c: b.componentes, n: b.piezas, m: margenEfectivo, d: b.dificultad ?? null });
     if (sombraRef.current === h) return; // ya comparado este input
     const t = setTimeout(async () => {
       sombraRef.current = h;
@@ -468,7 +478,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         // catálogo + mismo motor ⇒ mismo costo a centavos. Guardamos todo lo que define
         // esa identidad para poder reconstruir/verificar cualquier revisión.
         // VH-171: el lote es parte del costeo (costo unitario de 10 ≠ de 1): se guarda para reabrir igual.
-        costo: { costoUnitario: dinero(resultado.costoUnitario), piezas: Math.max(1, Number(b.piezas) || 1), subtotalConocido: dinero(emision.subtotalConocido), costoTotal: emitibleGuardar ? dinero(resultado.costoUnitario) : null, materialTotal: dinero(resultado.materialTotal), manoObra: dinero(resultado.manoObra), indirectosFabrica: dinero(resultado.indirectosFabrica), precio: emitibleGuardar ? dinero(precio) : null, margen: margenEfectivo, estado_costo: estadoCostoGuardar, validado_servidor: emitibleGuardar && estadoGuardar === 'aprobado' ? (validacionSrv?.bomHash === bomHash(b.componentes)) : false, pendientes: emision.pendientes, bom_hash: bomHash(b.componentes), analysis_id: b.analysisId ?? null, version_motor: MOTOR_VERSION, formula_version: formulaDePieza(b), version_catalogo: (validacionSrv?.bomHash === bomHash(b.componentes) ? validacionSrv?.versionCatalogo : null) ?? null, fuente_costo: (validacionSrv?.bomHash === bomHash(b.componentes) ? validacionSrv?.fuenteCosto : null) ?? 'sin-validacion-servidor', factorDirecta: b.factorDirecta ?? null, factorIndirecta: b.factorIndirecta ?? null, render_hash: renderHash === renderFirmaActual ? renderHash : null, fecha: new Date().toISOString() },
+        costo: { costoUnitario: dinero(resultado.costoUnitario), piezas: Math.max(1, Number(b.piezas) || 1), subtotalConocido: dinero(emision.subtotalConocido), costoTotal: emitibleGuardar ? dinero(resultado.costoUnitario) : null, materialTotal: dinero(resultado.materialTotal), manoObra: dinero(resultado.manoObra), indirectosFabrica: dinero(resultado.indirectosFabrica), precio: emitibleGuardar ? dinero(precio) : null, margen: margenEfectivo, estado_costo: estadoCostoGuardar, validado_servidor: emitibleGuardar && estadoGuardar === 'aprobado' ? (validacionSrv?.bomHash === bomHash(b.componentes)) : false, pendientes: emision.pendientes, bom_hash: bomHash(b.componentes), analysis_id: b.analysisId ?? null, version_motor: MOTOR_VERSION, formula_version: formulaDePieza(b), version_catalogo: (validacionSrv?.bomHash === bomHash(b.componentes) ? validacionSrv?.versionCatalogo : null) ?? null, fuente_costo: (validacionSrv?.bomHash === bomHash(b.componentes) ? validacionSrv?.fuenteCosto : null) ?? 'sin-validacion-servidor', factorDirecta: b.factorDirecta ?? null, factorIndirecta: b.factorIndirecta ?? null, dificultad: b.dificultad ?? null, render_hash: renderHash === renderFirmaActual ? renderHash : null, fecha: new Date().toISOString() },
         confirmaciones: Object.entries(confirmadas).map(([question_key, v]) => ({ question_key, pregunta: v.pregunta, respuesta: v.respuesta })),
         plano_urls: planoUrls.length ? planoUrls : (expId ? undefined : []),
         render_aislado_url: soloHttp(renders.aislado), render_ambiente_url: soloHttp(renders.ambiente),
@@ -504,7 +514,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     const factorDirectaHist = esAlbaGuardada ? undefined : (c.factorDirecta ?? 55);
     const factorIndirectaHist = esAlbaGuardada ? undefined : (c.factorIndirecta ?? 12);
     setFormulaGuardada(c.formula_version || formulaDePieza({ factorDirecta: factorDirectaHist, factorIndirecta: factorIndirectaHist }));
-    setB((prev) => ({ ...prev, nombre: e.nombre || '', componentes: Array.isArray(e.bom) ? e.bom : [], piezas: piezasDeExpediente(e), margen: e.costo?.margen ?? null, descripcionCliente: e.descripcion || '', materiales: Array.isArray(e.materiales) ? e.materiales : [], planos: [], imagen: null, factorDirecta: factorDirectaHist, factorIndirecta: factorIndirectaHist, analysisId: id }));
+    setB((prev) => ({ ...prev, nombre: e.nombre || '', componentes: Array.isArray(e.bom) ? e.bom : [], piezas: piezasDeExpediente(e), margen: e.costo?.margen ?? null, descripcionCliente: e.descripcion || '', materiales: Array.isArray(e.materiales) ? e.materiales : [], planos: [], imagen: null, factorDirecta: factorDirectaHist, factorIndirecta: factorIndirectaHist, dificultad: esAlbaGuardada && c.dificultad != null ? c.dificultad : undefined, analysisId: id }));
     setExpId(e.id); setRevActual(e.revision || 1); setEtiquetasTxt((e.etiquetas || []).join(', ')); setEstadoExp(e.estado || 'borrador');
     setConfirmadas(Object.fromEntries((e.confirmaciones || []).map((c) => [c.question_key || ('k_' + kpreg(c.pregunta).replace(/\s+/g, '_')), { pregunta: c.pregunta, respuesta: c.respuesta }])));
     setRenders({ aislado: e.render_aislado_url || null, ambiente: e.render_ambiente_url || null });
@@ -1278,16 +1288,32 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         </div>
       )}
 
-      {/* PASO 3 — Mano de obra (fórmula ALBA V1). Ya NO se elige "dificultad": la
-          mano de obra y los indirectos salen del TIPO de material de cada partida
-          (método Von Haucke, calibrado al centavo contra las T.D.C. reales). */}
+      {/* PASO 3 — Mano de obra (fórmula ALBA V1 × DIFICULTAD). El % sale del TIPO de material de cada
+          partida; la dificultad lo sube o lo baja (Dirección 2026-10-13: "más difícil sube, más fácil baja",
+          y que el % y las horas den lo mismo). Niveles calibrados contra horas estándar reales. */}
       {paso === 2 && (
         <div>
           <div className="pregunta">Mano de obra e indirectos</div>
-          <div className="pregunta-sub">Se calculan solos con la fórmula <strong>Alba V1</strong> (el método oficial de Von Haucke): un % de mano de obra por tipo de material e indirectos sobre eso. No hay que elegir dificultad.</div>
+          <div className="pregunta-sub">Se calculan solos con la fórmula <strong>Alba V1</strong> (el método oficial de Von Haucke): un % de mano de obra por tipo de material e indirectos sobre eso, ajustado por la <strong>dificultad</strong> del mueble.</div>
+          <div role="radiogroup" aria-label="Dificultad de fabricación" data-testid="costear-dificultad" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+            {NIVELES_DIFICULTAD.map(([k, etq, ej]) => {
+              const activo = (b.dificultad ?? 'normal') === k;
+              return (
+                <button key={k} type="button" role="radio" aria-checked={activo} title={ej}
+                  className={`boton${activo ? ' primario' : ''}`} data-testid={`dificultad-${k}`}
+                  onClick={() => set({ dificultad: k === 'normal' ? undefined : k })}>
+                  {etq} <span className="gris">×{DIFICULTAD[k]}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="ayuda columna-texto" style={{ marginTop: 6 }}>
+            {(NIVELES_DIFICULTAD.find(([k]) => k === (b.dificultad ?? 'normal')) || [])[2]}
+          </div>
           <div className="ayuda columna-texto" style={{ marginTop: 10 }}>
             Cubiertas 15% MO · metal/madera/general 20% MO (indirectos ×3) · cristal y compra-venta 1% MO (indirectos 5%).
-            Verificado contra las hojas de costo reales de Alba (Alpura, bench) al centavo.
+            Verificado contra las hojas de costo reales de Alba (Alpura, bench) al centavo. La dificultad multiplica la
+            mano de obra (y con ella los indirectos); Normal = la fórmula de siempre.
           </div>
           <div className="ayuda columna-texto" style={{ marginTop: 8 }}>Para costos con horas exactas por proceso, usa el Costeador detallado.</div>
         </div>
@@ -1357,7 +1383,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
           </div>
           {/* Método de costeo — discreto. Alba V1 para producto nuevo; histórico legacy al reabrir. */}
           <div className="ayuda columna-texto" style={{ textAlign: 'left', marginTop: 2, opacity: 0.8 }}>
-            Método de costeo: <strong>{formulaActual === FORMULA_ALBA_V1 ? 'Alba V1' : esHistoricoLegacy ? 'Legacy 55 (histórico)' : formulaActual}</strong>
+            Método de costeo: <strong>{formulaActual === FORMULA_ALBA_V1 ? `Alba V1${b.dificultad && b.dificultad !== 'normal' ? ` · dificultad ×${factorDificultad(b.dificultad)}` : ''}` : esHistoricoLegacy ? 'Legacy 55 (histórico)' : formulaActual}</strong>
           </div>
           {esHistoricoLegacy && (
             <div className="alerta" style={{ marginTop: 8, textAlign: 'left', border: '1px solid #8a6d00', borderRadius: 8, padding: 10 }}>

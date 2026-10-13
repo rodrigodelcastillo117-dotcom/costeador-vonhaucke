@@ -6,6 +6,7 @@
 //  por pruebas (calculo.test.js).
 // ============================================================================
 import { costoAlba, tipoAlba } from './formulaAlba.js';
+import { costoAlbaDificultad } from './dificultad.js';
 import { optimizarCorte2D, optimizarCorte1D } from './optimizacionCorte.js';
 import { requiereConfirmacion } from '../datos/materialMatch.js';
 import { hojasPorPiezaProduccion, esPinturaPolvo, kgPinturaPorArea, REGLAS_MERMA_PRODUCCION } from './politicaMerma.js';
@@ -554,7 +555,7 @@ function tarifasFaltantesIntelisis(horas, par) {
 //  ya trae su seccion/nombre, que es lo que tipoAlba() necesita para
 //  clasificar cubierta/metal/cristal/general.
 // -----------------------------------------------------------------------------
-function manoObraGiAlba(detalleInsumos) {
+function manoObraGiAlba(detalleInsumos, dificultad = 1) {
   let mo = 0;
   let gi = 0;
   for (const d of detalleInsumos) {
@@ -564,7 +565,7 @@ function manoObraGiAlba(detalleInsumos) {
     const tipo = SIN_MO_SECCIONES.has(d.seccion)
       ? 'compraventa'
       : tipoAlba({ seccion: d.seccion, nombre: d.nombre });
-    const r = costoAlba(d.costo, tipo);
+    const r = costoAlbaDificultad(d.costo, tipo, dificultad);
     mo += r.mo;
     gi += r.gi;
   }
@@ -735,7 +736,7 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
   if (modo === 'horas') {
     manoObra = manoObraPorHoras(pieza.horas, n, par);
   } else if (usaFormulaAlba) {
-    const alba = manoObraGiAlba(detalleInsumos);
+    const alba = manoObraGiAlba(detalleInsumos, pieza.dificultad);
     manoObra = alba.mo;
     giAlba = alba.gi;
   } else {

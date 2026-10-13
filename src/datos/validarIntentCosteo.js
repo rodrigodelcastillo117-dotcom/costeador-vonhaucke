@@ -149,6 +149,14 @@ export function validarIntentCosteo(body) {
     compsLimpios.push(limpio);
   });
 
+  // DIFICULTAD (técnica, no económica): nivel conocido o multiplicador 0.25–3. Otro valor ⇒ 400.
+  let dificultadOk = null;
+  if (pieza.dificultad != null) {
+    const NIVELES = ['muy_facil', 'facil', 'normal', 'dificil', 'muy_dificil'];
+    if (typeof pieza.dificultad === 'string' && NIVELES.includes(pieza.dificultad)) dificultadOk = pieza.dificultad;
+    else if (finito(pieza.dificultad) && pieza.dificultad >= 0.25 && pieza.dificultad <= 3) dificultadOk = pieza.dificultad;
+    else issues.push({ field: 'pieza.dificultad', msg: 'dificultad: muy_facil|facil|normal|dificil|muy_dificil o un número entre 0.25 y 3.' });
+  }
   // horas técnicas (opcional): por centro, finitas ≥ 0.
   let horas;
   if (pieza.horas != null) {
@@ -169,7 +177,7 @@ export function validarIntentCosteo(body) {
     ...(body.version != null ? { version: body.version } : {}),
     ...(body.contexto != null ? { contexto: body.contexto } : {}),
     cantidad,
-    pieza: { componentes: compsLimpios, ...(horas ? { horas } : {}) },
+    pieza: { componentes: compsLimpios, ...(horas ? { horas } : {}), ...(dificultadOk != null ? { dificultad: dificultadOk } : {}) },
   };
   return { ok: true, intent };
 }
@@ -191,5 +199,5 @@ export function intentDesdePieza(pieza, cantidad = 1) {
     ? Object.fromEntries(Object.entries(pieza.horas).filter(([, h]) => Number.isFinite(h) && h >= 0))
     : undefined;
   const n = Math.max(1, Math.round(Number(cantidad) || 1));
-  return { cantidad: n, pieza: { componentes: limpios, ...(horas && Object.keys(horas).length ? { horas } : {}) } };
+  return { cantidad: n, pieza: { componentes: limpios, ...(horas && Object.keys(horas).length ? { horas } : {}), ...(pieza?.dificultad != null ? { dificultad: pieza.dificultad } : {}) } };
 }
