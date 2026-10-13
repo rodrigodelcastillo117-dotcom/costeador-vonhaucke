@@ -232,4 +232,112 @@ Desde el punto de vista de seguridad está **bien** que `authenticated` no tenga
 
 Ejecutar: `npx vitest run supabase/tests/seguridadGateEmisionSnapshot.test.js`.
 
-No escribí migraciones `PROPUESTA_seg_*`: las correcciones de SEG-01 dependen de definir qué campos del snapshot son libres (decisión de producto), y las demás son REVOKE o ajustes de política descritos arriba.
+No escribí migraciones `PROPUESTA_seg_*`: las correcciones de SEG-01 dependen de definir qué campos del snapshot son libres (decisión de producto), y las demás son REVOKE o ajustes de política descritos arriba. *(Actualización 2026-10-13: SEG-01 ya tiene propuesta, ver §6.)*
+
+---
+
+## 6. Propuesta SEG-01
+
+**Archivo:** `supabase/migrations/PROPUESTA_seg01_emision_snapshot_fiel.sql`. **No está aplicado**: el prefijo `PROPUESTA_` evita que `db push` lo tome. Antes de escribirlo verifiqué con un SELECT de catálogo que producción no ha cambiado: `private_api.evaluar_emision_cotizacion` sigue en `9c660b09…` y `emitir_revision_v2` en `fb26c9d5…`.
+
+### Qué cambia
+
+Sólo cambia **una función existente**, `private_api.evaluar_emision_cotizacion(bigint, jsonb)`. Conserva la misma firma, `STABLE SECURITY DEFINER`, `search_path=public`, dueño y grants. Es el cuerpo de producción byte a byte con tres inserciones:
+
+1. Tras el chequeo de identidad, por cada renglón, se compara el renglón del snapshot con la fila guardada. Si difieren en algo que no sea libre, el motivo es `linea_N_no_corresponde_a_lo_costeado` y el estado es `BLOCKED`.
+2. La comparación pasa por `private_api.partida_cotejable_emision(p)`, que calcula `jsonb_strip_nulls(jsonb_sin_economia(p)) - claves_libres`. La economía se ignora en ambos lados, porque el costo siempre sale de la fila o del ProductVersion. Un `null` cuenta igual que una clave ausente.
+3. El `BLOCKED` añade `discrepancias: {"linea_N": [campos]}`. Sólo trae **nombres** de claves no económicas, nunca valores, así que no le filtra economía al vendedor.
+
+Agrega tres ayudas `IMMUTABLE` en `private_api`: `claves_libres_emision_partida`, `partida_cotejable_emision` y `campos_partida_no_corresponden`. Les revoqué EXECUTE a `public`, `anon` y `authenticated`.
+
+No toca `emitir_revision_v2`, `emitir_revision`, `asignar_folio_oficial`, `hash_revision`, `requiere_aprobacion_snapshot`, `verificar_aprobacion`, `cotizacion_emitible` ni los wrappers. `emitir_revision_v2` ya pasa por el gate y lanza `raise` antes de insertar la revisión `generado_v2`. Sin esa revisión, `asignar_folio_oficial` no da folio.
+
+**Claves libres** (lo único que el renglón del snapshot puede traer distinto de la fila): `precioUnitario`, `precio_unitario`, `descuento`, `descuento_solicitado`, `importe` y `cambios_rechazados`. Esta última es una anotación del servidor que agrega VH-035c. Las cinco comerciales ya las valida el gate o `emitir_revision_v2` contra el costo de la fila o el precio autorizado.
+
+Todo lo demás tiene que coincidir: `nombre`, `medidas`, `material`, `config`, `w`, `d`, `cantidad`, `producto_id`, `producto_version_id`, `piezaId`, `nota`, `render`, catálogo, procedencia y autoridad. Usé lista blanca y no negra para que una clave nueva del contrato de partida quede protegida por omisión.
+
+**Evidencia de la lista** (código del cliente):
+- `src/App.jsx`: `verificarEmision`, `onEmitida` y `solicitarAprobacion` llaman primero a `guardarEnNube()` y después mandan `snapshotEmitido(estado)`, que es `paraGuardar(estado)`, el mismo objeto que se acaba de guardar.
+- Al abrir una cotización, las partidas son las de la fila (`aplicarFilaServidor`). En el flujo legítimo, el snapshot **es** la fila.
+- En `Cotizacion.jsx` el vendedor edita la cantidad, quita renglones, el render y el descuento **global** (`totales`, fuera de partidas).
+- En `EditarPartida.jsx` cambia medidas, acabado, color, opciones y cantidad. Eso **recostea** el renglón y se guarda, así que no es un cambio comercial.
+- Lo que el servidor cambia al guardar sin que el cliente lo recargue:
+  - el strip de `trg_strip_seller_economics` y `cost_status`: son economía y se ignoran;
+  - `pin_product_versions`: un snapshot sin versión ya era `BLOCKED`;
+  - con VH-035c, la procedencia en `null` y `cambios_rechazados`: cubiertos por `strip_nulls` y por la lista de claves libres.
+
+### Decisión: comparar en el gate, no reconstruir el snapshot en `emitir_revision_v2`
+
+Evalué la alternativa de que el servidor arme las partidas desde la fila y la descarté por cuatro razones:
+
+- **Rompe VH-042.** El PDF se dibuja con el mismo snapshot que se conserva.
+- **Rompe VH-055.** La aprobación de Dirección se firma sobre `hash_revision` del snapshot del cliente. Si el servidor reconstruye, cambia el hash y ninguna aprobación vigente vuelve a casar.
+- **Sólo cubriría `emitir_revision_v2`.** El gate que ve el vendedor, `cotizacion_emitible` y la solicitud de aprobación seguirían evaluando un snapshot falso.
+- **Más superficie y cambios de cliente.** Comparar en el gate cierra todas las vías en un solo punto y deja intacto el snapshot legítimo (mismo hash, mismo PDF).
+
+### Cantidad y reglas de lote
+
+Si el snapshot trae una cantidad distinta de la fila, el gate devuelve `BLOCKED` (`discrepancias ['cantidad']`). El motor calcula `costoUnitario = costoLote / n`, así que el costo de 1 pieza no sirve para 20.
+
+La cantidad se cambia **guardando**:
+- En producción, el guardado del vendedor despoja el costo y el gate devuelve `ECONOMICS_INCOMPLETE` (`linea_N_costo_desconocido`); hay que recostear.
+- Con VH-035c y la marca de lote (`costo_por_lote` / `costoLote`), la partida queda STALE y el gate devuelve `linea_N_recosteo_pendiente_lote_cambiado`.
+- Cuando Dirección recostea, el mismo snapshot fiel ya se emite.
+
+### Orden de aplicación con las otras propuestas: **cualquier orden**
+
+- VH-035c redefine el **wrapper** `public.evaluar_emision_cotizacion`, que suma los motivos STALE, y el núcleo de guardado. No toca `private_api.evaluar_emision_cotizacion`.
+- VH-148 no toca el gate.
+- Probé en PGlite tres órdenes: SEG01→vh035c→vh148, vh035c→vh148→SEG01 y vh148→SEG01→vh035c. En los tres se cumplen los cuatro casos y el rollback.
+
+### Reversión
+
+El bloque comentado al final del archivo va entre `-- >>> ROLLBACK SEG-01 INICIO` y `-- <<< ROLLBACK SEG-01 FIN`. Hace dos cosas: reinstala el cuerpo de producción copiado byte a byte del fixture (la prueba verifica md5 `9c660b09…`) y borra las tres ayudas. No hay datos que revertir. No toca el wrapper de VH-035c, que sigue funcionando (probado).
+
+La propuesta tiene una precondición: aborta si el gate de producción ya no es el de md5 `9c660b09…` y todavía no trae la corrección (drift). Re-aplicarla es idempotente.
+
+### Pruebas
+
+`supabase/tests/seguridadGateEmisionSnapshot.test.js`: las 5 pruebas de producción quedan **sin cambios**, incluidos los `it.fails` SEG-01 y SEG-06, que siguen describiendo producción sin la propuesta. Agregué dos bloques:
+
+**`PROPUESTA SEG-01`** (producción + propuesta, 14 casos):
+- **Estructura:** sólo cambia el gate; las otras 5 funciones conservan su md5. Las ayudas no son ejecutables por roles del cliente. Re-aplicar es idempotente.
+- **(1) Caso SEG-01** (nogal 300×120 ×20): `BLOCKED`, `discrepancias {linea_1: [cantidad, material, medidas, nombre]}` sin cifras. `emitir_revision_v2` lanza `raise`, hay 0 revisiones y `asignar_folio_oficial` se niega, así que `folio_oficial` queda en null. Sigue `BLOCKED` aunque Dirección haya aprobado ese hash.
+- **(1b) Un solo campo distinto** bloquea por separado: descripción, medidas, material, `config` anidado, `producto_id`/`producto_version_id` y nota.
+- **(2) Caso legítimo:** mismo renglón, precio 9 500 (36.8 % ≥ 30 %). Da `ALLOWED`, crea la revisión 1 y re-emitir idéntico no duplica. Se asigna el folio `VH-AAAA-NNNNN` y la revisión conserva la melamina.
+- **(2b) Sin falsos positivos:**
+  - el snapshot de Dirección con economía sigue `ALLOWED`;
+  - las claves en `null` y `cambios_rechazados` no cuentan;
+  - un costo inventado en el snapshot se ignora (`APPROVAL_REQUIRED`);
+  - `cotizacion_emitible` sigue `ALLOWED`.
+- **(3) Margen bajo** (8 000, 25 %): `APPROVAL_REQUIRED`. Con la aprobación de Dirección sobre ese hash pasa a `ALLOWED` y se emite.
+- **(4) Cantidad:**
+  - una cantidad 20 sin guardar da `BLOCKED` (`['cantidad']`);
+  - guardada por el vendedor da `ECONOMICS_INCOMPLETE` (`linea_1_costo_desconocido`);
+  - recosteada por Dirección (5 200) da `ALLOWED` y se emite.
+- **(5) Renglones de más:** siguen `BLOCKED`.
+- **Rollback:** el md5 vuelve al de producción, las ayudas desaparecen y el defecto reaparece (prueba de que el rollback es real).
+
+**`COMPOSICIÓN SEG-01 × VH-035c × VH-148`** (3 órdenes × 6 casos):
+- estructura;
+- (1)+(2);
+- (3);
+- (4) lote: STALE `recosteo_pendiente_lote_cambiado` y el snapshot viejo da `BLOCKED`;
+- `it.fails` **RIESGO**, ver abajo;
+- rollback de SEG-01 con VH-035c presente y re-aplicación.
+
+Ejecutar: `npx vitest run supabase/tests/seguridadGateEmisionSnapshot.test.js supabase/tests/composicionVh035cVh148.test.js supabase/tests/preservaEconomiaIntegral.test.js`. Resultado del 2026-10-13: **3 archivos, 90 pruebas en verde** (37 + 21 + 32).
+
+### Riesgos y pendientes
+
+1. **El riesgo de composición con VH-035c reabre SEG-01 por el guardado** (vigente en VH-035c, no en producción hoy).
+   - El problema: VH-035c vuelve a pegar el costo de Dirección si el vendedor **guarda** otro `nombre`, otras `medidas` u otras dimensiones, porque esas claves están fuera de su huella de material (§5.1 de VH035C_INTEGRAL). Después, el snapshot coincide con la fila y el gate lo deja pasar.
+   - La prueba `it.fails` lo demuestra en los tres órdenes: con `it` normal falla con `expected 'ALLOWED' not to be 'ALLOWED'`.
+   - **Antes de aplicar VH-035c** hay que ampliar su criterio de STALE a todo lo no comercial: la misma proyección que `partida_cotejable_emision`, con `cantidad` sujeta a las reglas de lote. Hoy en producción el guardado del vendedor despoja el costo, así que falla cerrado.
+2. **Cantidad sin marca de lote con VH-035c.** El costo unitario se conserva aunque cambie la cantidad (VH035C §5.6). Para que el costo de lote no se herede, el cliente de Dirección tiene que escribir `costo_por_lote:true`. Esto no depende de SEG-01.
+3. **Texto en la interfaz.** `src/datos/emisionUX.js#textoRazonEmision` no conoce `no_corresponde_a_lo_costeado` y lo muestra con el texto genérico. Sugerencia: agregarlo al patrón de `identidad_no_coincide` ("cambió desde lo guardado; guarda de nuevo").
+4. **Más bloqueos en clientes viejos.** Una pestaña que emite sin haber guardado antes (cliente viejo o caché) ahora queda `BLOCKED` donde antes pasaba. Es el comportamiento buscado: el cliente actual siempre guarda primero.
+5. **Lo que no se compara.** `acomodo`, `folio`, `cliente` y `totales` del snapshot siguen sin compararse con la fila. Los totales se validan por suma en `emitir_revision_v2`, y el descuento global por `requiere_aprobacion_snapshot`. No están en el alcance de SEG-01.
+6. **SEG-06 sigue vigente.** Si el vendedor pide el folio, la fila pierde el costo, y re-emitir después da `ECONOMICS_INCOMPLETE`. La prueba (2) re-emite antes de pedir el folio por eso.
+7. **Fuera del alcance del harness.** `cotizacion_emitible` se cargó del baseline: su md5 en producción es `a92a5f82…` y el del baseline no está verificado. Las líneas canónicas (`resolver_precio_autorizado`) no se ejercitan en el harness de SEG-01. La comparación de `producto_id`/`producto_version_id` sí está probada.
+

@@ -41,6 +41,8 @@ export function textoRazonEmision(code) {
   if (/sin_product_version_id/.test(k)) return `${L}vuelve a agregarla desde su ficha (falta versión de producto).`;
   if (/product_version_no_corresponde/.test(k)) return `${L}la versión de producto no corresponde; re-agrégala.`;
   if (/precio_bajo_costo|margen_bajo/.test(k)) return `${L}requiere aprobación de Dirección.`;
+  // SEG-01 (propuesta): el renglón que se quiere emitir no es el que se costeó (nombre, medidas, material, cantidad…).
+  if (/no_corresponde_a_lo_costeado/.test(k)) return `${L}no corresponde a lo que se costeó (cambió el mueble, sus medidas, su material o su cantidad). Guarda la cotización y, si cambió el mueble, pide que Dirección lo recostee.`;
   if (/identidad_no_coincide|sin_correspondencia/.test(k)) return `${L}cambió desde lo guardado; guarda de nuevo.`;
   if (/cantidad_invalida/.test(k)) return `${L}falta una cantidad válida.`;
   if (/precio_invalido/.test(k)) return `${L}falta un precio válido.`;

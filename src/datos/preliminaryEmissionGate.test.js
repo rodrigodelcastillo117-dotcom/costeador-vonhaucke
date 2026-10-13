@@ -30,3 +30,12 @@ describe('VH-035c · bloqueo por recosteo pendiente con texto para la persona', 
     for (const c of ['linea_1_recosteo_pendiente_producto_cambiado', 'linea_4_recosteo_pendiente_recosteo']) expect(textoRazonEmision(c)).not.toMatch(/recosteo_pendiente|_/);
   });
 });
+
+describe('SEG-01 · renglón que no corresponde a lo costeado, dicho para la persona', () => {
+  it('no muestra el código crudo y dice qué hacer', () => {
+    const t = textoRazonEmision('linea_1_no_corresponde_a_lo_costeado');
+    expect(t).toMatch(/^Línea 1: no corresponde a lo que se costeó/);
+    expect(t).toMatch(/Dirección lo recostee/);
+    expect(t).not.toMatch(/no_corresponde/);
+  });
+});
