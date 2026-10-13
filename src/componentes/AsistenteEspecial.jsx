@@ -259,7 +259,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const emision = (bloqueosEstructura.length || bloqueosLectura.length) ? { ...emision0, emitible: false, pendientes: [...(emision0.pendientes || []), ...bloqueosEstructura.map((o) => `Estructura: ${o.mensaje}`), ...bloqueosLectura] } : emision0;
   const emitible = emision.emitible;
   // Estado para la persona en TRES niveles (validado / preliminar / bloqueado) con sus motivos: misma regla que se guarda.
-  const estadoCosto3 = clasificarCosto({ emision, servidor: validacionSrv && validacionSrv.bomHash === bomHash(b.componentes)
+  const estadoCosto3 = clasificarCosto({ emision, componentes: b.componentes, servidor: validacionSrv && validacionSrv.bomHash === bomHash(b.componentes)
     ? { estado: validacionSrv.estado, aprobacionHumana: validacionSrv.aprobacionHumana, bomVigente: true } : null });
   // VH-151: piezas cuyo largo×ancho es el tamaño de la HOJA comercial (o excede el formato): la IA confundió hoja con pieza.
   const piezasTamanoHoja = useMemo(() => piezasConTamanoDeHoja(b.componentes, insumos), [b.componentes, insumos]);

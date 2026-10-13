@@ -98,8 +98,10 @@ describe('1. Compra por formato completo', () => {
     expect(comprar(melamina, 3.22, 1).unidades).toBe(2);
     expect(comprar(melamina, 3.22, 1).comprado).toBeCloseTo(5.9536, 4);
   });
-  it('PTR en tramos de 6 m', () => {
-    expect(comprar(ptr, 6.02, 1).unidades).toBe(2);
+  it('PTR: D2 (Dirección 2026-10-13) — se costea la FRACCIÓN de tramo con su merma de corte, no tramos enteros', () => {
+    const r = comprar(ptr, 6.02, 1);
+    expect(r.reglaTramo).toBe('FRACCION_D2');
+    expect(r.unidades).toBeCloseTo((6.02 * (1 + (ptr.mermaCorte || 0) / 100)) / 6, 9);   // antes: 2 tramos enteros
   });
 });
 

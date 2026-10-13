@@ -11,32 +11,34 @@
 //  su explicación (igual que los golden de Alba/Alpura).
 //  2026-10-13 (VH-183): la regla de tablero de Producción es inclusiva en 1.50 m, como cobra Intelisis; se movieron 4
 //  escritorios con piezas de exactamente 1500 mm (comentario en cada fila).
+//  2026-10-13 (D2, firmado por Dirección): el tubular de acero se costea por fracción de tramo + merma de corte, como
+//  Intelisis; bajan las 10 familias con PTR. El perfil de aluminio sigue por tramo entero (no está en la firma).
 // ============================================================================
 import { describe, it, expect, beforeAll } from 'vitest';
 
 // [ruta, producto, costoUnitario, precioUnitario]
 const MATRIZ = [
-  ['applt', 'escritorio', 2974.27, 6424.43],   // VH-183: cubierta 1500×600 = ½ hoja (antes 1 hoja por la rejilla)
-  ['app', 'escritorio', 3271.70, 7066.88],     // VH-183: cubierta 1500×600 = ½ hoja
+  ['applt', 'escritorio', 2962.06, 6398.05],   // D2: PTR por fracción de tramo · VH-183: cubierta 1500×600 = ½ hoja (antes 1 hoja por la rejilla)
+  ['app', 'escritorio', 3258.27, 7037.86],   // D2: PTR por fracción de tramo · VH-183: cubierta 1500×600 = ½ hoja
   ['via', 'escritorio', 2949.51, 5899.01],
-  ['rio', 'bench_recto_sencillo', 2933.35, 5866.70],
-  ['feather', 'escritorio', 3039.21, 6078.42], // VH-183: cubierta 1500×600 = ½ hoja
-  ['cirque', 'escritorio', 5840.78, 11681.57],
+  ['rio', 'bench_recto_sencillo', 2579.91, 5159.82],   // D2: PTR por fracción de tramo
+  ['feather', 'escritorio', 2615.35, 5230.70],   // D2: PTR por fracción de tramo · VH-183: cubierta 1500×600 = ½ hoja
+  ['cirque', 'escritorio', 5303.47, 10606.94],   // D2: PTR por fracción de tramo
   ['spine', 'ducto', 1356.79, 2713.57],
-  ['ergo4', 'banca_sencilla', 5244.35, 10488.71],
+  ['ergo4', 'banca_sencilla', 5170.95, 10341.90],   // D2: PTR por fracción de tramo
   ['alba', 'escritorio', 4297.82, 8595.64],
   ['eclipse', 'escritorio', 12580.56, 27220.00],
-  ['drift', 'escritorio', 3172.15, 6344.30],
+  ['drift', 'escritorio', 2916.21, 5832.41],   // D2: PTR por fracción de tramo
   ['luna', 'escritorio', 8809.16, 17618.33],   // VH-183: faldón 1500×320 = ½ hoja por regla (antes ⅓ por rejilla)
-  ['flex', 'escritorio', 2824.12, 5648.25],
-  ['anteo', 'escritorio', 31605.94, 63211.88],
+  ['flex', 'escritorio', 2678.55, 5357.09],   // D2: PTR por fracción de tramo
+  ['anteo', 'escritorio', 30748.75, 61497.51],   // D2: PTR por fracción de tramo
   ['mox', 'rodante', 1486.11, 3210.00],
   ['modulor', 'gaveta', 1365.38, 2730.75],
   ['tetris', 'sofa', 3305.56, 5250.00],
   ['arlequin', 'pouf', 652.63, 1305.26],
   ['pac', 'sillon', 2253.44, 4506.89],
   ['worklounge', 'tank', 1999.17, 3998.34],
-  ['pebble', 'mesa', 938.54, 1877.08],
+  ['pebble', 'mesa', 738.96, 1477.91],   // D2: PTR por fracción de tramo
   ['accents', 'acrilico', 309.36, 618.72],
   ['teamspace2', 'soporte', 1553.70, 3107.40],
   ['privacy4', 'muro', 3627.41, 7254.83],

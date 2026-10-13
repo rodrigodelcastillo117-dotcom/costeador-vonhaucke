@@ -20,7 +20,7 @@ import { hojasPorPiezaProduccion, esPinturaPolvo, kgPinturaPorArea, REGLAS_MERMA
 // 2026-10-13 (RC, sin desplegar; requiere autorización de Dirección): la rejilla de corte usa las medidas del
 // FORMATO DEL INSUMO cuando las trae (5×8 = 2440×1525, lámina 3×10 = 3048×914) en vez de las globales 2440×1220.
 // Para todo insumo 4×8 el resultado es idéntico. Ver docs/auditoria/MOTOR_FORMATO_REJILLA.md.
-export const MOTOR_VERSION = '2026-10-13b';
+export const MOTOR_VERSION = '2026-10-13c';
 
 // Parámetros de corte con las medidas del formato del insumo (si las declara). Sin medidas → globales (4×8).
 export function parametrosDeFormato(par, insumo) {
@@ -162,6 +162,12 @@ export function calcularCostoHora(p = PARAMETROS_DEFAULT) {
 //       corte y redondea a formato entero (no hay medio tablero ni medio tramo).
 //       Materiales de inventario: el sobrante se guarda, no se tira -> no redondea.
 // -----------------------------------------------------------------------------
+// D2 aplica al TUBULAR DE ACERO (PTR / tubo / tubular), que es lo que firmó Dirección con evidencia Intelisis. Otros
+// materiales por tramo (p. ej. perfil de aluminio) siguen por tramo entero hasta que se decidan.
+export function esTubularD2(insumo) {
+  return insumo?.formato?.tipo === 'tramo' && /\b(ptr|tubo|tubular)\b|^ptr/i.test(`${insumo.id || ''} ${insumo.nombre || ''}`) && !/alumin/i.test(`${insumo.id || ''} ${insumo.nombre || ''}`);
+}
+
 export function comprar(insumo, cantidadNetaUnitaria, piezas) {
   const neto = cantidadNetaUnitaria * piezas;
   const conCorte = neto * (1 + (insumo.mermaCorte || 0) / 100);
@@ -191,7 +197,10 @@ export function comprar(insumo, cantidadNetaUnitaria, piezas) {
     };
   }
 
-  // No se venden fracciones de tablero ni de tramo
+  // D2: el tramo se costea por fracción + merma de corte (ver comprarInsumo). No se venden fracciones de tablero.
+  if (esTubularD2(insumo)) {
+    return { neto, comprado: conCorte, unidades: conCorte / insumo.formato.medida, formato: insumo.formato, merma: conCorte - neto, pct: conCorte > 0 ? ((conCorte - neto) / conCorte) * 100 : 0, reglaTramo: 'FRACCION_D2' };
+  }
   const unidades = Math.ceil(conCorte / insumo.formato.medida - 1e-9);
   const comprado = unidades * insumo.formato.medida;
   return {
@@ -495,6 +504,17 @@ function comprarInsumo(insumo, comps, n, par) {
     });
   }
 
+  // D2 (firmado por Dirección 2026-10-13): el TUBULAR (formato tramo) se costea por la FRACCIÓN consumida + la merma de
+  // corte documentada del insumo (mermaCorte), como el cotizador Intelisis (ATPU2M: 0.361 de la pieza de 6 m). El tramo
+  // de 6 m es la unidad de COMPRA, no de costo. Antes: tramo entero por mueble (+140 a +177 % en una pata U).
+  if (esTubularD2(insumo)) {
+    return conHojas({
+      neto, comprado: conCorte, unidades: conCorte / insumo.formato.medida, formato: insumo.formato, costo: conCorte * precio,
+      desperdicio: (conCorte - neto) * precio,
+      pct: conCorte > 0 ? ((conCorte - neto) / conCorte) * 100 : 0,
+      precio, noCabe: false, reglaTramo: 'FRACCION_D2',
+    });
+  }
   const porArea = Math.ceil(conCorte / insumo.formato.medida - 1e-9);
   const unidades = Math.max(tablerosRejilla, porArea);
   const comprado = unidades * insumo.formato.medida;

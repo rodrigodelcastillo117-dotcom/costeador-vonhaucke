@@ -144,7 +144,8 @@ async function costearConMotor(svc: any, pieza: any, n: number, puedeConfirmar: 
     versionCatalogo = `cat-ap${nAprob ?? ""}-${hashConfig(usados)}`;
   } catch (_e) { /* catalogo_vigente puede no existir aún: no bloquea el costeo legado */ }
 
-  const noCertificados = usados.filter((id) => !evMap[id] || !evMap[id].certificable);
+  // D3 (Dirección 2026-10-13): el juego genérico de tornillería es un supuesto, nunca precio certificable.
+  const noCertificados = usados.filter((id) => !evMap[id] || !evMap[id].certificable || id === "tornilleria");
   // Entrega A (Dirección 2026-10-13): "validado" exige que cada precio certificable tenga aprobación HUMANA. Las
   // aprobaciones hechas por la cuenta de prueba (qa-*) o por procesos (reconciliacion) no cuentan. Sólo lectura.
   let aprobacionHumana = false;

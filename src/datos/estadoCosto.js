@@ -18,7 +18,11 @@ export const ETIQUETA_ESTADO = Object.freeze({ validado: 'COSTO VALIDADO', preli
  *   servidor: última validación de costear-servidor para ESTE BOM (null si no hay o es de otro BOM).
  * @returns {{ estado: 'validado'|'preliminar'|'bloqueado', etiqueta: string, motivos: string[] }}
  */
-export function clasificarCosto({ emision = {}, servidor = null } = {}) {
+// D3 (firmado por Dirección 2026-10-13): la tornillería sale del BOM (artículos con cantidad) o de la tabla de uniones de
+// Producción. El "juego" genérico de $45 (insumo `tornilleria`) es un SUPUESTO: nunca deja el costo como validado.
+export const TORNILLERIA_GENERICA = 'tornilleria';
+
+export function clasificarCosto({ emision = {}, servidor = null, componentes = [] } = {}) {
   const b = emision.bloqueos || {};
   const pend = Array.isArray(emision.pendientes) ? emision.pendientes : [];
   const duros = [
@@ -31,6 +35,8 @@ export function clasificarCosto({ emision = {}, servidor = null } = {}) {
   if (duros.length) return { estado: ESTADO_COSTO.BLOQUEADO, etiqueta: ETIQUETA_ESTADO.bloqueado, motivos: duros };
   const supuestos = [];
   const porConfirmar = b.materiales_por_confirmar || [];
+  if ((componentes || []).some((c) => c && !c.excluida && c.insumoId === TORNILLERIA_GENERICA))
+    supuestos.push('Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3).');
   if (porConfirmar.length) supuestos.push(`${porConfirmar.length} material(es) propuestos sin confirmar: ${porConfirmar.slice(0, 4).join(', ')}${porConfirmar.length > 4 ? '…' : ''}`);
   if (!servidor || servidor.bomVigente === false) supuestos.push('El servidor aún no validó este despiece.');
   else if (servidor.estado !== 'certificado') supuestos.push(`El servidor lo calcula como "${servidor.estado || 'sin estado'}": hay precios sin certificar.`);

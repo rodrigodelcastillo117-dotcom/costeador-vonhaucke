@@ -28,4 +28,9 @@ describe('estado del costo en tres niveles', () => {
   it('VALIDADO sólo con todo confirmado + servidor certificado + aprobación humana', () => {
     expect(clasificarCosto({ emision: em(), servidor: SRV_OK })).toEqual({ estado: 'validado', etiqueta: 'COSTO VALIDADO', motivos: [] });
   });
+  it('D3: el juego genérico de tornillería deja el costo PRELIMINAR aunque todo lo demás esté validado', () => {
+    const r = clasificarCosto({ emision: em(), servidor: SRV_OK, componentes: [{ nombre: 'Tornillería', insumoId: 'tornilleria' }] });
+    expect(r.estado).toBe('preliminar'); expect(r.motivos.join(' ')).toMatch(/D3/);
+    expect(clasificarCosto({ emision: em(), servidor: SRV_OK, componentes: [{ nombre: 'Pija 10x15', insumoId: 'erp-pi1015g' }] }).estado).toBe('validado');
+  });
 });
