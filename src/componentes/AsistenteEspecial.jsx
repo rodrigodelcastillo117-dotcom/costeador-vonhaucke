@@ -27,6 +27,7 @@ import { filaSombra } from '../datos/sombraCosteo.js';   // VH-073
 import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { decidirReemplazo } from '../datos/guardaPropuesta.js';
+import { evaluarLectura, elegirLectura } from '../datos/lecturaIncompleta.js';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
 import { mapIaComps as mapIaCompsCompartido } from '../datos/mapIaComps.js';
@@ -122,6 +123,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const [paso, setPaso] = useState(0);
   const [analizando, setAnalizando] = useState(false);
   const [verificando, setVerificando] = useState(false); // 2ª pasada: la IA critica su propio despiece
+  // VH-178: lectura de la IA incoherente con el propio mueble ({ motivos, reintento, revisada }); bloquea emitir hasta revisar.
+  const [lecturaIA, setLecturaIA] = useState(null);
   const [errorIA, setErrorIA] = useState('');
   const [catalogoFuente, setCatalogoFuente] = useState(null); // 'canonico' | 'cliente-fallback' (#8: aviso si el catálogo central no estuvo)
   const [preguntasIA, setPreguntasIA] = useState([]);
@@ -280,7 +283,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // VH-163: un BLOQUEO estructural (p.ej. cubierta sin soporte) también impide dar el costo por bueno.
   const bloqueosEstructura = revisionEstructural.observaciones.filter((o) => o.nivel === 'blocker');
   const emision0 = costeoEmitible(resultado);
-  const emision = bloqueosEstructura.length ? { ...emision0, emitible: false, pendientes: [...(emision0.pendientes || []), ...bloqueosEstructura.map((o) => `Estructura: ${o.mensaje}`)] } : emision0;
+  // VH-178: una lectura de la IA marcada incompleta (y no revisada por una persona) tampoco deja dar el costo por bueno.
+  const bloqueosLectura = lecturaIA && !lecturaIA.revisada ? lecturaIA.motivos.map((m) => `Lectura de la IA incompleta: ${m}`) : [];
+  const emision = (bloqueosEstructura.length || bloqueosLectura.length) ? { ...emision0, emitible: false, pendientes: [...(emision0.pendientes || []), ...bloqueosEstructura.map((o) => `Estructura: ${o.mensaje}`), ...bloqueosLectura] } : emision0;
   const emitible = emision.emitible;
   // VH-151: piezas cuyo largo×ancho es el tamaño de la HOJA comercial (o excede el formato): la IA confundió hoja con pieza.
   const piezasTamanoHoja = useMemo(() => piezasConTamanoDeHoja(b.componentes, insumos), [b.componentes, insumos]);
@@ -478,7 +483,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         // catálogo + mismo motor ⇒ mismo costo a centavos. Guardamos todo lo que define
         // esa identidad para poder reconstruir/verificar cualquier revisión.
         // VH-171: el lote es parte del costeo (costo unitario de 10 ≠ de 1): se guarda para reabrir igual.
-        costo: { costoUnitario: dinero(resultado.costoUnitario), piezas: Math.max(1, Number(b.piezas) || 1), subtotalConocido: dinero(emision.subtotalConocido), costoTotal: emitibleGuardar ? dinero(resultado.costoUnitario) : null, materialTotal: dinero(resultado.materialTotal), manoObra: dinero(resultado.manoObra), indirectosFabrica: dinero(resultado.indirectosFabrica), precio: emitibleGuardar ? dinero(precio) : null, margen: margenEfectivo, estado_costo: estadoCostoGuardar, validado_servidor: emitibleGuardar && estadoGuardar === 'aprobado' ? (validacionSrv?.bomHash === bomHash(b.componentes)) : false, pendientes: emision.pendientes, bom_hash: bomHash(b.componentes), analysis_id: b.analysisId ?? null, version_motor: MOTOR_VERSION, formula_version: formulaDePieza(b), version_catalogo: (validacionSrv?.bomHash === bomHash(b.componentes) ? validacionSrv?.versionCatalogo : null) ?? null, fuente_costo: (validacionSrv?.bomHash === bomHash(b.componentes) ? validacionSrv?.fuenteCosto : null) ?? 'sin-validacion-servidor', factorDirecta: b.factorDirecta ?? null, factorIndirecta: b.factorIndirecta ?? null, dificultad: b.dificultad ?? null, render_hash: renderHash === renderFirmaActual ? renderHash : null, fecha: new Date().toISOString() },
+        costo: { costoUnitario: dinero(resultado.costoUnitario), piezas: Math.max(1, Number(b.piezas) || 1), subtotalConocido: dinero(emision.subtotalConocido), costoTotal: emitibleGuardar ? dinero(resultado.costoUnitario) : null, materialTotal: dinero(resultado.materialTotal), manoObra: dinero(resultado.manoObra), indirectosFabrica: dinero(resultado.indirectosFabrica), precio: emitibleGuardar ? dinero(precio) : null, margen: margenEfectivo, estado_costo: estadoCostoGuardar, validado_servidor: emitibleGuardar && estadoGuardar === 'aprobado' ? (validacionSrv?.bomHash === bomHash(b.componentes)) : false, pendientes: emision.pendientes, bom_hash: bomHash(b.componentes), analysis_id: b.analysisId ?? null, version_motor: MOTOR_VERSION, formula_version: formulaDePieza(b), version_catalogo: (validacionSrv?.bomHash === bomHash(b.componentes) ? validacionSrv?.versionCatalogo : null) ?? null, fuente_costo: (validacionSrv?.bomHash === bomHash(b.componentes) ? validacionSrv?.fuenteCosto : null) ?? 'sin-validacion-servidor', factorDirecta: b.factorDirecta ?? null, factorIndirecta: b.factorIndirecta ?? null, dificultad: b.dificultad ?? null, lectura_ia: lecturaIA ?? null, render_hash: renderHash === renderFirmaActual ? renderHash : null, fecha: new Date().toISOString() },
         confirmaciones: Object.entries(confirmadas).map(([question_key, v]) => ({ question_key, pregunta: v.pregunta, respuesta: v.respuesta })),
         plano_urls: planoUrls.length ? planoUrls : (expId ? undefined : []),
         render_aislado_url: soloHttp(renders.aislado), render_ambiente_url: soloHttp(renders.ambiente),
@@ -515,6 +520,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     const factorIndirectaHist = esAlbaGuardada ? undefined : (c.factorIndirecta ?? 12);
     setFormulaGuardada(c.formula_version || formulaDePieza({ factorDirecta: factorDirectaHist, factorIndirecta: factorIndirectaHist }));
     setB((prev) => ({ ...prev, nombre: e.nombre || '', componentes: Array.isArray(e.bom) ? e.bom : [], piezas: piezasDeExpediente(e), margen: e.costo?.margen ?? null, descripcionCliente: e.descripcion || '', materiales: Array.isArray(e.materiales) ? e.materiales : [], planos: [], imagen: null, factorDirecta: factorDirectaHist, factorIndirecta: factorIndirectaHist, dificultad: esAlbaGuardada && c.dificultad != null ? c.dificultad : undefined, analysisId: id }));
+    setLecturaIA(c.lectura_ia && Array.isArray(c.lectura_ia.motivos) ? c.lectura_ia : null);
     setExpId(e.id); setRevActual(e.revision || 1); setEtiquetasTxt((e.etiquetas || []).join(', ')); setEstadoExp(e.estado || 'borrador');
     setConfirmadas(Object.fromEntries((e.confirmaciones || []).map((c) => [c.question_key || ('k_' + kpreg(c.pregunta).replace(/\s+/g, '_')), { pregunta: c.pregunta, respuesta: c.respuesta }])));
     setRenders({ aislado: e.render_aislado_url || null, ambiente: e.render_ambiente_url || null });
@@ -679,6 +685,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     setAnalisis(null); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg('');
     setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); setRenderHash(null); setRevActual(1); // nuevo producto = nuevo expediente
     setCanonico(false); setPropuestaDiff(null); setBomDirty(false); setFormulaGuardada(null); // producto nuevo = sin BOM canónico, vive en Alba
+    setLecturaIA(null);
     setB((prev) => ({ ...prev, nombre: '', componentes: [], imagen: null, planos: [], descripcionCliente: '', materiales: [], analysisId: id }));
     return id;
   }
@@ -687,13 +694,26 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // intérprete canónico (analizar-mueble, modo texto). Pre-llena el BOM y trae la
   // estructura (design_intent + roles) para "Estructura propuesta". El motor costea;
   // la IA no inventa precio.
+  // VH-178: si la lectura sale incoherente con el propio mueble, se REINTENTA una vez y se queda la más coherente.
+  // Si las dos salen mal, entra marcada (no emitible hasta que una persona revise el despiece).
+  async function conReintento(v1, reanalizar, ctx = {}) {
+    if (!v1?.ok || !evaluarLectura(v1.propuesta, ctx).incompleta) { setLecturaIA(null); return v1; }
+    setVerificando(true);
+    let v2 = null;
+    try { v2 = await reanalizar(); } catch (_e) { v2 = null; } finally { setVerificando(false); }
+    const { res, evaluacion, reintento } = elegirLectura(v1, v2, ctx);
+    setLecturaIA(evaluacion.incompleta ? { motivos: evaluacion.motivos, reintento, revisada: false } : null);
+    return res;
+  }
+
   async function analizarDescripcion() {
     const desc = (b.descripcionCliente || '').trim();
     if (desc.length < 8) { setErrorIA('Escribe una descripción un poco más completa (material, partes, uso) para que Voni la entienda.'); return; }
     const id = nuevaCorrida();          // arranca corrida limpia (la descripción viaja aparte)
     setErrorIA(''); setAnalizando(true);
     try {
-      const res = await analizarTexto(catalogoIA(), desc);
+      const res = await conReintento(await analizarTexto(catalogoIA(), desc), () => analizarTexto(catalogoIA(), desc), { texto: desc });
+      if (!aceptaCorrida(id, corrida.current)) return;
       const ok = aplicarPropuesta(res, null, [], true, id);   // mapea piezas, guarda propuesta (con design_intent), va a paso 1
       // Si falló, no pierdas lo que el usuario escribió (nuevaCorrida lo había limpiado).
       if (!ok && aceptaCorrida(id, corrida.current)) setB((prev) => ({ ...prev, descripcionCliente: desc }));
@@ -717,7 +737,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   // Una imagen (render/hoja). Paso 1: analiza. Paso 2 (solo imágenes, no PDF crudo):
   // la IA verifica su propio despiece contra las cotas. Devuelve true si ok.
   async function analizarYLlenar(base64, mediaType, dataUrl, corridaId) {
-    const v1 = await analizarRender(catalogoIA(), base64, mediaType);
+    const v1 = await conReintento(await analizarRender(catalogoIA(), base64, mediaType), () => analizarRender(catalogoIA(), base64, mediaType));
     if (!v1?.ok || mediaType === 'application/pdf' || !requiereVerificacionVisual(v1.propuesta, 1))
       return aplicarPropuesta(v1, dataUrl, [base64], true, corridaId);
     setVerificando(true);
@@ -732,7 +752,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   }
   // Varias hojas del mismo mueble (plano multipágina). Paso 1 analiza, paso 2 verifica.
   async function analizarImagenes(imagenes, dataUrlPreview, corridaId) {
-    const v1 = await analizarRenderImagenes(catalogoIA(), imagenes);
+    const v1 = await conReintento(await analizarRenderImagenes(catalogoIA(), imagenes), () => analizarRenderImagenes(catalogoIA(), imagenes));
     if (!v1?.ok || !requiereVerificacionVisual(v1.propuesta, imagenes.length))
       return aplicarPropuesta(v1, dataUrlPreview, imagenes, true, corridaId);
     setVerificando(true);
@@ -1193,6 +1213,17 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                 {analisis.confianzaGeneral === 'baja' && (
                   <div className="ia-nota-conf">La imagen no trae escala, así que las medidas son <strong>estimadas</strong>. Dame <strong>una medida real</strong> (p. ej. el largo total) y la precisión sube a alta.</div>
                 )}
+                {lecturaIA && (
+                  <div className="ia-nota-conf" data-testid="lectura-incompleta" role="alert" style={{ borderLeft: '4px solid var(--rojo,#E5484D)', paddingLeft: 8, marginTop: 8 }}>
+                    {lecturaIA.revisada
+                      ? <span>Despiece revisado por una persona después de una lectura incompleta de la IA ({lecturaIA.motivos.join('; ')}).</span>
+                      : <>
+                          <strong>Lectura incompleta de la IA{lecturaIA.reintento ? ' (también al reintentar)' : ''}:</strong> {lecturaIA.motivos.join('; ')}.
+                          {' '}El costo no se puede dar por bueno: completa o corrige el despiece, o vuelve a analizar.
+                          <div style={{ marginTop: 6 }}><button type="button" className="boton" data-testid="lectura-revisada" onClick={() => setLecturaIA((x) => (x ? { ...x, revisada: true } : x))}>Ya revisé el despiece</button></div>
+                        </>}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1511,7 +1542,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       ) : (
         <div className="fila-botones">
           <button className="boton primario grande" onClick={() => onVerDetalle(b)}>Ver detalle completo (Alba V1)</button>
-          <button className="boton grande" onClick={() => { setB({ nombre: '', piezas: 1, componentes: [], modoManoObra: 'porcentaje', margen: null }); setPaso(0); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({}); setConfirmadas({}); setConfMsg(''); setAnalisis(null); setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); setRenderHash(null); setRevActual(1); setCanonico(false); setPropuestaDiff(null); setBomDirty(false); setFormulaGuardada(null); corrida.current++; }}>Empezar otro</button>
+          <button className="boton grande" onClick={() => { setB({ nombre: '', piezas: 1, componentes: [], modoManoObra: 'porcentaje', margen: null }); setPaso(0); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({}); setConfirmadas({}); setConfMsg(''); setAnalisis(null); setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); setRenderHash(null); setRevActual(1); setCanonico(false); setPropuestaDiff(null); setBomDirty(false); setFormulaGuardada(null); setLecturaIA(null); corrida.current++; }}>Empezar otro</button>
         </div>
       )}
     </div>

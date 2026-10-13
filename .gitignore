@@ -35,3 +35,6 @@ scratchpad/*
 .env*
 pw.prod.tmp*.config.mjs
 test-results-prod/
+
+# Copias de trabajo de agentes (git worktree) de Claude Code: nunca se versionan
+.claude/worktrees/
