@@ -14,42 +14,42 @@
   },
   "piezas": [
     {
-      "nombre": "Laterales exteriores (MDF 18 mm enchapado nogal)",
+      "nombre": "Laterales del cuerpo (MDF 18 mm)",
       "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
       "alertas": [
         "🟡 IA · POR CONFIRMAR: Solicitado 18 mm → candidato 19 mm"
       ]
     },
     {
-      "nombre": "Cubierta y fondo (MDF 18 mm enchapado nogal)",
+      "nombre": "Cubierta y fondo del cuerpo (MDF 18 mm)",
       "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
       "alertas": [
         "🟡 IA · POR CONFIRMAR: Solicitado 18 mm → candidato 19 mm"
       ]
     },
     {
-      "nombre": "Puertas abatibles (MDF 18 mm enchapado nogal)",
+      "nombre": "Puertas abatibles (MDF 18 mm)",
       "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
       "alertas": [
         "🟡 IA · POR CONFIRMAR: Solicitado 18 mm → candidato 19 mm"
       ]
     },
     {
-      "nombre": "Chapa nogal natural, caras exteriores laterales",
+      "nombre": "Chapa nogal natural, laterales exteriores",
       "material": "Chapa de madera (sabana natural)",
       "alertas": [
         "🟡 IA · POR CONFIRMAR"
       ]
     },
     {
-      "nombre": "Chapa nogal, frentes de puerta",
+      "nombre": "Chapa nogal natural, frentes de puerta",
       "material": "Chapa de madera (sabana natural)",
       "alertas": [
         "🟡 IA · POR CONFIRMAR"
       ]
     },
     {
-      "nombre": "Chapa nogal, cubierta superior",
+      "nombre": "Chapa nogal natural, cubierta superior",
       "material": "Chapa de madera (sabana natural)",
       "alertas": [
         "🟡 IA · POR CONFIRMAR"
@@ -63,26 +63,26 @@
       ]
     },
     {
-      "nombre": "Divisores verticales interiores (melamina blanca 16 mm)",
-      "material": "Melamina BLANCA 16 mm",
-      "alertas": [
-        "🟡 IA · POR CONFIRMAR"
-      ]
-    },
-    {
       "nombre": "Respaldo MDF 9 mm",
       "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\"",
       "alertas": []
     },
     {
-      "nombre": "Base PTR 1x1 cal. 14, largueros longitudinales",
+      "nombre": "Zoclo PTR 1x1 cal.14 frontal y trasero",
       "material": "Tubo / PTR cal. 14",
       "alertas": [
         "🟡 IA · POR CONFIRMAR"
       ]
     },
     {
-      "nombre": "Travesaños y patas PTR 1x1 cal. 14",
+      "nombre": "Travesaños laterales PTR 1x1",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Patas PTR 100 mm",
       "material": "Tubo / PTR cal. 14",
       "alertas": [
         "🟡 IA · POR CONFIRMAR"
@@ -90,9 +90,9 @@
     },
     {
       "nombre": "Pintura electrostática negra base",
-      "material": "Pintura electrostatica",
+      "material": "Pintura en polvo negro mate 8 (Vitracoat)",
       "alertas": [
-        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+        "🟡 IA · POR CONFIRMAR: Variante pedida («electrostatica negra») no está en el nombre del catálogo Acepto esta diferencia"
       ]
     },
     {
@@ -117,15 +117,8 @@
       ]
     },
     {
-      "nombre": "Pegado de chapa",
-      "material": "Pegado de chapa (operación)",
-      "alertas": [
-        "🟡 IA · POR CONFIRMAR"
-      ]
-    },
-    {
       "nombre": "Tapacanto",
-      "material": "Tapacanto PVC",
+      "material": "Tapacanto ABS 3 mm",
       "alertas": [
         "🟡 IA · POR CONFIRMAR"
       ]

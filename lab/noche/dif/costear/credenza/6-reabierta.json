@@ -1,0 +1,108 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB dif credenza 1013-1614 BORRADOR guarda credenza 3 puertas Enchapado nogal natural",
+    "piezas": 16,
+    "mismoBom": true,
+    "costoAntes": "$4,737.73",
+    "costoDespues": "$4,737.73",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$4,737.73",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $2,888.96 · Mano de obra $462.19 · Fábrica $1,386.58",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Laterales del cuerpo (MDF 19 mm)",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Cubierta y fondo del cuerpo (MDF 19 mm)",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Puertas abatibles (MDF 19 mm)",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Chapa nogal natural, laterales exteriores",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": []
+    },
+    {
+      "nombre": "Chapa nogal natural, frentes de puerta",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": []
+    },
+    {
+      "nombre": "Chapa nogal natural, cubierta superior",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": []
+    },
+    {
+      "nombre": "Entrepaño interior (melamina blanca 16 mm)",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Respaldo MDF 9 mm",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Zoclo PTR 1x1 cal.14 frontal y trasero",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Travesaños laterales PTR 1x1",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Patas PTR 100 mm",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Pintura electrostática negra base",
+      "material": "Pintura en polvo negro mate 8 (Vitracoat)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («electrostatica negra») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Bisagras",
+      "material": "Bisagra",
+      "alertas": []
+    },
+    {
+      "nombre": "Jaladeras rectas 300 mm",
+      "material": "Jaladera",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («recta 300») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto frentes y cantos visibles",
+      "material": "Tapacanto ABS 3 mm",
+      "alertas": []
+    }
+  ]
+}

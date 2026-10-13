@@ -2,8 +2,3 @@
 Running 1 test using 1 worker
 
 [1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
-[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
-[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Escritorio en L con retorno, patas panel y cajonera móvil","tipo":"escritorio","piezas":[{"nombre":"Cubierta principal","insumoId":"melamina-19-gris-humo-lm","material_solicitado":"melamina 19 mm gris humo","material_match":"EXACT","forma":"area","largoMM":1600,"a
-
-[lab-costear] analizar-mueble 200 en 8 s · piezas 1 · lote 1
-

@@ -1,12 +1,12 @@
 {
   "resultado": {
     "precios": [
-      "$5,086.28",
+      "$4,737.73",
       "Por confirmar"
     ],
     "margen": null,
-    "estado": "Costo preliminar — 2 decisión(es) pendiente(s): MDF 9 mm no existe en catalogo. ¿Como lo costeamos? · ¿Especie de chapa?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
-    "linea": "Material $3,097.62 · Mano de obra $497.16 · Fábrica $1,491.49",
+    "estado": "Costo preliminar — 2 decisión(es) pendiente(s): ¿El cuerpo es un solo hueco o tiene divisiones verticales (3 modulos)? · ¿Chapa de nogal natural genérica o Walnut Burl del catálogo?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $2,888.96 · Mano de obra $462.19 · Fábrica $1,386.58",
     "pendiente": false,
     "porConfirmar": true
   },

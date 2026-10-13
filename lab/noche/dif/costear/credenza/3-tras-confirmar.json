@@ -1,44 +1,38 @@
 {
   "confirmacion": {
     "ofrecida": true,
-    "texto": "Confirmar los 12 propuestos",
-    "diferencias": "5 difieren de lo pedido y se confirman uno por uno: Laterales exteriores (MDF 19 mm), Cubierta y fondo (MDF 19 mm), Puertas abatibles (MDF 19 mm), Pintura electrostática negra base, Jaladeras rectas 300 mm.",
+    "texto": "Confirmar los 13 propuestos",
+    "diferencias": "2 difieren de lo pedido y se confirman uno por uno: Pintura electrostática negra base, Jaladeras rectas 300 mm.",
     "diferenciasAceptadas": 0
   },
   "piezas": [
     {
-      "nombre": "Laterales exteriores (MDF 19 mm)",
+      "nombre": "Laterales del cuerpo (MDF 19 mm)",
       "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
-      "alertas": [
-        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
-      ]
+      "alertas": []
     },
     {
-      "nombre": "Cubierta y fondo (MDF 19 mm)",
+      "nombre": "Cubierta y fondo del cuerpo (MDF 19 mm)",
       "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
-      "alertas": [
-        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
-      ]
+      "alertas": []
     },
     {
       "nombre": "Puertas abatibles (MDF 19 mm)",
       "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
-      "alertas": [
-        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
-      ]
+      "alertas": []
     },
     {
-      "nombre": "Chapa nogal natural, caras exteriores laterales",
+      "nombre": "Chapa nogal natural, laterales exteriores",
       "material": "Chapa de madera (sabana natural)",
       "alertas": []
     },
     {
-      "nombre": "Chapa nogal, frentes de puerta",
+      "nombre": "Chapa nogal natural, frentes de puerta",
       "material": "Chapa de madera (sabana natural)",
       "alertas": []
     },
     {
-      "nombre": "Chapa nogal, cubierta superior",
+      "nombre": "Chapa nogal natural, cubierta superior",
       "material": "Chapa de madera (sabana natural)",
       "alertas": []
     },
@@ -48,35 +42,30 @@
       "alertas": []
     },
     {
-      "nombre": "Divisores verticales interiores (melamina blanca 16 mm)",
-      "material": "Melamina BLANCA 16 mm",
-      "alertas": []
-    },
-    {
       "nombre": "Respaldo MDF 9 mm",
       "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\"",
       "alertas": []
     },
     {
-      "nombre": "Base PTR 1x1 cal. 14, largueros longitudinales",
+      "nombre": "Zoclo PTR 1x1 cal.14 frontal y trasero",
       "material": "Tubo / PTR cal. 14",
       "alertas": []
     },
     {
-      "nombre": "Travesaños y patas PTR 1x1 cal. 14",
+      "nombre": "Travesaños laterales PTR 1x1",
       "material": "Tubo / PTR cal. 14",
       "alertas": []
     },
     {
-      "nombre": "Patas PTR 1x1 cal. 14",
+      "nombre": "Patas PTR 100 mm",
       "material": "Tubo / PTR cal. 14",
       "alertas": []
     },
     {
       "nombre": "Pintura electrostática negra base",
-      "material": "Pintura electrostatica",
+      "material": "Pintura en polvo negro mate 8 (Vitracoat)",
       "alertas": [
-        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+        "🟡 IA · POR CONFIRMAR: Variante pedida («electrostatica negra») no está en el nombre del catálogo Acepto esta diferencia"
       ]
     },
     {
@@ -97,13 +86,8 @@
       "alertas": []
     },
     {
-      "nombre": "Pegado de chapa",
-      "material": "Pegado de chapa (operación)",
-      "alertas": []
-    },
-    {
-      "nombre": "Tapacanto",
-      "material": "Tapacanto PVC",
+      "nombre": "Tapacanto frentes y cantos visibles",
+      "material": "Tapacanto ABS 3 mm",
       "alertas": []
     }
   ],

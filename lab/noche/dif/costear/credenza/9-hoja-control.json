@@ -1,0 +1,204 @@
+{
+  "producto": "Credenza nogal 1800 × 450 × 750 (cuerpo 650 sobre base PTR de 100)",
+  "resumen": {
+    "esperados": 12,
+    "pass": 8,
+    "fail": 3,
+    "riesgo": 1,
+    "sobrantesNoPermitidos": 0,
+    "renglonesBom": 16,
+    "veredicto": "FAIL"
+  },
+  "filas": [
+    {
+      "clave": "laterales",
+      "renglones": 1,
+      "materiales": [
+        "erp-mdf19"
+      ],
+      "estado": "FAIL",
+      "motivos": [
+        "medida distinta (esperado 650×450 ±40): 550×450"
+      ],
+      "evidencia": null,
+      "inferido": false,
+      "piezas": 2
+    },
+    {
+      "clave": "cubierta_y_piso",
+      "renglones": 1,
+      "materiales": [
+        "erp-mdf19"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "piezas": 2
+    },
+    {
+      "clave": "puertas",
+      "renglones": 1,
+      "materiales": [
+        "erp-mdf19"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "piezas": 3
+    },
+    {
+      "clave": "chapa_nogal_m2",
+      "renglones": 3,
+      "materiales": [
+        "chapa-madera"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "caras exteriores: 2 laterales 650×450 + 3 puertas 630×580 + cubierta 1800×450",
+      "inferido": false,
+      "areaM2": 2.401
+    },
+    {
+      "clave": "entrepanos",
+      "renglones": 1,
+      "materiales": [
+        "melamina-16"
+      ],
+      "estado": "FAIL",
+      "motivos": [
+        "faltan piezas: 1, el plano dice 3",
+        "medida distinta (esperado 577×430 ±50): 1762×430"
+      ],
+      "evidencia": null,
+      "inferido": false,
+      "piezas": 1
+    },
+    {
+      "clave": "divisiones",
+      "renglones": 0,
+      "materiales": [],
+      "estado": "RIESGO",
+      "motivos": [
+        "omitido: ningún renglón del BOM corresponde (inferido: el plano no lo acota)"
+      ],
+      "evidencia": "no dibujadas: \"1 ENTREPAÑO POR MÓDULO\" con 3 puertas implica 3 módulos → 2 divisiones",
+      "inferido": true
+    },
+    {
+      "clave": "respaldo",
+      "renglones": 1,
+      "materiales": [
+        "erp-mdf8"
+      ],
+      "estado": "FAIL",
+      "motivos": [
+        "medida distinta (esperado 1800×650 ±60): 1800×550"
+      ],
+      "evidencia": null,
+      "inferido": false,
+      "piezas": 1
+    },
+    {
+      "clave": "base_ptr_m",
+      "renglones": 3,
+      "materiales": [
+        "ptr-14"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "no acotado: marco 2×(1800+450) + 4 patas de 100 + 2 travesaños ≈ 5.72 m (puede venir en varios renglones: patas, marco, travesaños)",
+      "inferido": true,
+      "metros": 4.9
+    },
+    {
+      "clave": "pintura",
+      "renglones": 1,
+      "materiales": [
+        "pintura-polvo-negro"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false
+    },
+    {
+      "clave": "bisagras",
+      "renglones": 1,
+      "materiales": [
+        "bisagra"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "cantidad": 6
+    },
+    {
+      "clave": "jaladeras",
+      "renglones": 1,
+      "materiales": [
+        "jaladera"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "cantidad": 3
+    },
+    {
+      "clave": "niveladores",
+      "renglones": 1,
+      "materiales": [
+        "nivelador"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "cantidad": 4
+    }
+  ],
+  "sobran": [
+    {
+      "nombre": "Tapacanto frentes y cantos visibles",
+      "insumoId": "tapacanto-3mm",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿El cuerpo es un solo hueco o tiene divisiones verticales (3 modulos)?",
+      "elegido": "(sin responder: ninguna opción coincide con el plano)",
+      "opciones": [
+        "Un solo hueco",
+        "3 modulos"
+      ],
+      "evidencia": "3 puertas = 3 módulos → 2 divisiones"
+    },
+    {
+      "pregunta": "¿Se acepta MDF 19 mm en lugar de 18 mm?",
+      "elegido": "Si",
+      "opciones": [
+        "Si",
+        "No"
+      ],
+      "evidencia": "regla de casa aprobada 2026-10-08: 18 ↔ 19 mm"
+    },
+    {
+      "pregunta": "¿Cómo se surte el MDF 9 mm del respaldo?",
+      "elegido": "(sin responder: ya resuelta con ERP)"
+    },
+    {
+      "pregunta": "¿Cuántas patas lleva la base?",
+      "elegido": "4",
+      "evidencia": "plano: 2 patas en frontal × 2 en lateral"
+    },
+    {
+      "pregunta": "¿Chapa de nogal natural genérica o Walnut Burl del catálogo?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}
