@@ -353,7 +353,7 @@ export async function cotizarTexto(texto, catalogo) {
 export async function acomodarEspacio(areas, piezas) {
   // Recovery lane: preview usa el solver nuevo en una Edge paralela para no
   // tocar producción hasta certificar el flujo real completo.
-  const { data, error } = await nube.functions.invoke('acomodar-espacio-recovery', {
+  const { data, error } = await nube.functions.invoke(FN_ACOMODAR, {
     body: { areas, piezas },
   });
   if (error) {
@@ -372,6 +372,7 @@ const envFn = (k, def) => (typeof import.meta !== 'undefined' && import.meta.env
 const FN_ANALIZAR = envFn('VITE_ANALIZAR_MUEBLE_FN', 'analizar-mueble');
 const FN_COTIZAR_TEXTO = envFn('VITE_COTIZAR_TEXTO_FN', 'cotizar-texto');
 const FN_GENERAR_RENDER = envFn('VITE_GENERAR_RENDER_FN', 'generar-render');
+const FN_ACOMODAR = envFn('VITE_ACOMODAR_FN', 'acomodar-espacio-recovery');   // RC: acomodar-espacio-recovery-rc sólo para medir
 export async function leerPlano(image, mediaType, refMM) {
   const { data, error } = await nube.functions.invoke(FN_LEER_PLANO, {
     body: { image, mediaType, refMM },
