@@ -101,6 +101,8 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   const nB = await bloques.count();
   for (let i = 0; i < nB; i++) {
     const bq = bloques.nth(i); const pregunta = (await bq.locator('div[style*="font-weight: 600"]').first().innerText().catch(() => '')).trim();
+    // La pieza que ya se resolvió a mano con el ERP (respaldo 9 mm) no se vuelve a decidir aquí: la IA no ve el ERP.
+    if (erp.elegido && /respaldo|9 mm/i.test(pregunta)) { respuestas.push({ pregunta, elegido: '(sin responder: ya resuelta con ERP)' }); continue; }
     const chips = bq.locator('button.chip');
     const num = bq.locator('input[type=number]');
     if (await chips.count()) {
@@ -113,7 +115,12 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
     }
   }
   const aplicar = page.getByRole('button', { name: /Aplicar respuestas y recalcular/ });
-  if (respuestas.length && (await aplicar.count())) { await aplicar.click(); await page.waitForTimeout(6000); }
+  if (respuestas.some((r) => !/sin responder/.test(String(r.elegido))) && (await aplicar.count())) {
+    // Aplicar manda las respuestas a la IA (responderDespiece): otra llamada a analizar-mueble, 20–60 s.
+    const esperaRe = page.waitForResponse((r) => r.url().includes('/functions/v1/analizar-mueble'), { timeout: 180000 }).catch(() => null);
+    await aplicar.click(); const re = await esperaRe; console.log('[lab-costear] recalculo', re ? re.status() : 'sin respuesta');
+    await page.waitForTimeout(5000);
+  }
   console.log('[lab-costear] respuestas', JSON.stringify(respuestas));
 
   // 3) Confirmación humana (QA = Dirección) de los materiales propuestos por regla, si la app lo ofrece.
@@ -127,7 +134,8 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
 
   // 3b) Paso Precio (la pantalla va por pasos: 0 describir · 1 despiece/materiales · 3 precio + biblioteca).
   const verPrecio = page.getByRole('button', { name: /Ver precio|Siguiente/ }).first();
-  if (await verPrecio.count()) { await verPrecio.click(); await page.waitForTimeout(1500); }
+  await expect(verPrecio).toBeVisible({ timeout: 60000 });
+  await verPrecio.click(); await page.waitForTimeout(1500);
   await expect(page.locator('.precio-enorme').first()).toBeVisible({ timeout: 20000 });
   const res3b = await leerResultado(page); const piezas3b = await leerPiezas(page);
   guarda('3b-precio.json', { resultado: res3b, piezas: piezas3b });
