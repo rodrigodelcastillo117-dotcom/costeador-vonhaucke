@@ -1,0 +1,63 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB dif mesa_centro 1013-1622 BORRADOR mesita mesa de centro de cristal con base tubular Cristal templado 9 mm",
+    "piezas": 7,
+    "mismoBom": true,
+    "costoAntes": "$2,826.91",
+    "costoDespues": "$2,826.91",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$2,826.91",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $1,908.07 · Mano de obra $225.61 · Fábrica $693.24",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta cristal templado 9 mm canto pulido",
+      "material": "Cristal templado 9 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Marcos rectangulares de base 900 x 500 (tubo redondo 3/4 cal. 18)",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": []
+    },
+    {
+      "nombre": "Postes verticales de 392 mm",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": []
+    },
+    {
+      "nombre": "Soldadura de base tubular",
+      "material": "Soldadura",
+      "alertas": []
+    },
+    {
+      "nombre": "Acabado cromado de la base (EcoCrom)",
+      "material": "EcoCrom",
+      "alertas": []
+    },
+    {
+      "nombre": "Niveladores / regatones de piso",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («regaton piso») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Separadores/topes de silicon para cristal",
+      "material": "Silicon",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («top cristal») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}
