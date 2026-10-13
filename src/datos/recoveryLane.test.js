@@ -6,8 +6,13 @@ describe('recovery lane · solver aislado',()=>{
     const s=fs.readFileSync('src/nube.js','utf8');
     const i=s.indexOf('export async function acomodarEspacio');
     const b=s.slice(i,i+700);
-    expect(b).toContain("invoke('acomodar-espacio-recovery'");
+    // La función invocada es FN_ACOMODAR, cuyo valor por omisión es el carril de recuperación y cuyo
+    // override sólo puede ser una copia '-rc' del mismo carril (si no, se ignora).
+    expect(b).toContain('invoke(FN_ACOMODAR');
     expect(b).not.toContain("invoke('acomodar-espacio',");
+    expect(s).toContain("envFn('VITE_ACOMODAR_FN', 'acomodar-espacio-recovery')");
+    expect(s).toContain("v.startsWith('acomodar-espacio-recovery') ? v : 'acomodar-espacio-recovery'");
+    expect(s).not.toMatch(/invoke\('acomodar-espacio'[,)]/);
   });
 
   it('la UI no dice que ya acomodó antes de validar',()=>{

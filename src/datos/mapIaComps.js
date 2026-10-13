@@ -8,13 +8,25 @@
 //    quedaba corta. En LÁMINA irregular la fracción directa de la IA sigue mandando (Rafa §1).
 //  · Piezas LINEALES: `cantidad` son metros; `forma` viaja para las reglas de casa.
 // ============================================================================
-import { aplicarPoliticaMaterial } from './materialMatch.js';
+import { aplicarPoliticaMaterial, MATCH } from './materialMatch.js';
+
+// ESPEJO DE P0.12 (VH-157): el servidor (costear-servidor, origenSpecConfiable=false) degrada todo
+// EXACT que viene de una spec del cliente sin confirmación humana a "por confirmar" y NO emite.
+// El navegador debe decir lo MISMO: si aquí quedara EXACT/emitible, el precio en pantalla y el del
+// servidor divergen (el cliente mostraba $4,410.57 emitible y el servidor 'incompleto'). Un EXACT
+// que la IA eligió del catálogo curado es una propuesta hasta que una persona lo confirme.
+export function espejoP012(comp) {
+  if (!comp || comp.material_match !== MATCH.EXACT || comp.material_confirmado === true) return comp;
+  const motivo = 'Coincidencia exacta PROPUESTA por la IA (sin confirmación humana). Requiere confirmación antes de emitir; el servidor aplica la misma regla.';
+  return { ...comp, material_match: MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED,
+    _match: { ...(comp._match || {}), clase: MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED, autollenado: true, autocosteable: true, candidate_insumo_id: comp.insumoId, motivo } };
+}
 
 export function mapIaComps(p, insumos = {}) {
   const resolver = (id) => insumos[id];
   const catalogo = Object.values(insumos || {});
   return (p?.piezas || []).map((z) => {
-    const base = aplicarPoliticaMaterial({ ...z, material_solicitado: z.material_solicitado || z.nombre }, resolver, catalogo);
+    const base = espejoP012(aplicarPoliticaMaterial({ ...z, material_solicitado: z.material_solicitado || z.nombre }, resolver, catalogo));
     base.forma = z.forma || (z.largoMM && z.anchoMM ? 'area' : 'pieza');
     if (base.forma === 'area') {
       base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
