@@ -173,6 +173,8 @@ test.describe('Cocrear 10 · de la idea al precio, con el servidor como dueño d
     await expect(page.getByText('VALIDADA', { exact: true })).toBeVisible({ timeout: 15000 });
     await expect(page.getByTestId('cocrear-estado-servidor')).toHaveText('preliminar');
     await expect(page.getByTestId('cocrear-precio')).toHaveText(money);
+    // El precio de lista del mueble de catálogo del que parte no se toca; si el especial queda por debajo, se avisa.
+    await expect(page.getByText(/Precio de lista de Mesa de juntas APP LT 1\.20 × 1\.20/)).toContainText(/queda por DEBAJO/);
     await captura(page, '1-diseno-validada');
     expect(srv.filas.at(-1).ingenieria_validada).toBe(true);
     expect(srv.filas.at(-1).validada_por).toBe('diseno@vh.mx');

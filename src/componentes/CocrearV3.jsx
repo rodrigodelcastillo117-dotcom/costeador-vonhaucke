@@ -9,6 +9,7 @@ import {estimadoDisenoCocrear} from '../datos/estimadoDiseno.js';
 import {listarCocreaciones,guardarCocrearSeguro,cargarCocrearSeguro,registrarProductoDesdeExpediente,subirRenderCanonico,voniCouncil,generarRender,buscarProductosMaestroTexto,costearCocreacionServidor,imagenCocrearAStorage} from '../nube.js';
 // COCREAR 10 (D-01): puente Cocrear → Costeo (mueble de línea escalado o mueble nuevo vía Costear).
 import {lineasEscalables,bajarLineaABom,reescalarSiAplica,sincronizarFuncionesPendientes,semillaCostearDesdeCocrear,aplicarRetornoCosteo,despieceVigente} from '../datos/cocrearPuente.js';
+import {costearConfig} from '../datos/lineas.js';
 // COCREAR 10 (D-02/D-03): la verdad de dinero y de ingeniería es la del servidor.
 import {validacionDesdeFila} from '../datos/cocrearServidor.js';
 // N-04: el MISMO flujo de carga de imagen que Costear.
@@ -480,6 +481,20 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
  const precioServidor=servidorVigente&&Number(servidor?.precioSugerido)>0?Number(servidor.precioSugerido):null;
   const listaParaCotizar=pipeline?.lineaCotizacion?.listaParaCotizar===true;
   const bloqueosCocrear=pipeline?.blockers||[];
+ // Referencia comercial: el precio de LISTA del mueble de catálogo del que parte el cambio de medidas
+ // (no se toca; sólo se compara). Al vendedor sólo se le muestra si es un artículo real del catálogo.
+ const referenciaPadre=useMemo(()=>{
+  const pz=intent?._puente;
+  if(pz?.tipo!=='linea_escalada'||!pz.base)return null;
+  try{
+   const r=costearConfig(estado,pz.ruta,pz.producto,{largoMM:pz.base.ancho_mm,fondoMM:pz.base.prof_mm,diametroMM:pz.base.ancho_mm},1);
+   const precio=Number(r?.precioUnitario);
+   if(!(precio>0)||(!veCostos&&!r?.precioReal))return null;
+   return {precio,nombre:pz.padre,real:!!r?.precioReal};
+  }catch{return null}
+ },[intent?._puente,estado,veCostos]);
+ const precioComparable=precioServidor??precioLocal?.precio??null;
+ const debajoDelPadre=!!(referenciaPadre&&precioComparable!=null&&precioComparable<referenciaPadre.precio);
  const MOTIVO_REGISTRO={
    costo_servidor_pendiente:'el servidor todavía no costeó esta revisión guardada',
    expediente_incompleto_no_publicable:'el costo del servidor está incompleto',
@@ -583,6 +598,7 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
        {(intent?._puente?.trazas||[]).slice(0,5).map((t,i)=><div key={i} className="c3-small" style={{marginTop:3}}>↔ {t.pieza}: {t.de} → {t.a} <span style={{color:'#7f8993'}}>({t.regla})</span></div>)}
        {(intent?._puente?.avisos||[]).map((a,i)=><div key={'a'+i} style={{marginTop:4,fontSize:10,color:'#e0b478'}}>⚠ {a}</div>)}
        {piezasPendientes.map((c,i)=><div key={'p'+i} style={{marginTop:4,fontSize:10,color:'#ff9b91'}}>✕ {c.nombre}: sin material, el costo queda incompleto (no se inventa).</div>)}
+       {referenciaPadre&&<div style={{marginTop:6,fontSize:10,color:debajoDelPadre?'#ffb4aa':'#bdd7c5'}}>{debajoDelPadre?'⚠ ':''}Precio de lista de {referenciaPadre.nombre}{referenciaPadre.real?' (catálogo)':' (modelo de la línea)'}: <b>{money(referenciaPadre.precio)}</b>.{debajoDelPadre?' El precio sugerido del especial queda por DEBAJO: revisa la dificultad o que Dirección decida el precio (no se ajusta solo).':' Referencia: no se toca.'}</div>}
        {!despiece3DCompleto&&<div className="c3-small" style={{marginTop:4}}>Despiece 3D parcial: hay piezas sin largo × ancho × espesor (PTR por metro, herrajes). Es informativo; la validación la hace el servidor.</div>}
        <div style={{display:'flex',gap:6,marginTop:8,flexWrap:'wrap'}}><Btn ghost onClick={quitarBom}>Quitar BOM</Btn>{veCostos&&onPasarACostear&&<Btn ghost onClick={pasarACostear}>Afinar en Costear</Btn>}</div>
       </div>
