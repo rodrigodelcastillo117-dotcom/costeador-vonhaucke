@@ -7,7 +7,7 @@ import fs from 'node:fs'; import path from 'node:path';
 // LAB_HOJA = hoja de control (lab/costear/hojas_control/*.json): fixture, respuestas CON EVIDENCIA del plano, pieza ERP a
 // mano y BOM esperado. Con hoja, el laboratorio sólo contesta lo que el plano demuestra; lo demás queda por confirmar.
 const HOJA = process.env.LAB_HOJA ? JSON.parse(fs.readFileSync(process.env.LAB_HOJA, 'utf8')) : null;
-const EMAIL = process.env.TEST_EMAIL; const PASS = process.env.TEST_PASSWORD; const IMG = process.env.LAB_COSTEAR_IMG || (HOJA && HOJA.fixture);
+const EMAIL = process.env.TEST_EMAIL; const PASS = process.env.TEST_PASSWORD; const IMG = process.env.LAB_COSTEAR_IMG || (HOJA && (HOJA.fixture || (HOJA.texto ? 'texto' : null)));
 const SALIDA = process.env.LAB_OUT || 'test-results-prod/lab-costear';
 const NOMBRE = process.env.LAB_COSTEAR_NOMBRE || `Credenza Nogal (lab P0-C ${new Date().toISOString().slice(0, 16)})`;
 const ERP_BUSCAR = process.env.LAB_ERP_BUSCAR || (HOJA ? HOJA.erp?.buscar : null) || 'MDF NATURAL 9 mm';
@@ -60,16 +60,25 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   await page.getByTestId('home-costear').click();
   await expect(page.getByTestId('costear-archivo')).toBeAttached({ timeout: 15000 });
 
-  // 1) Imagen → Voni (analizar-mueble). La subida dispara el análisis.
+  // 0) Lote (hoja.piezas): "¿Cuántas piezas iguales?" antes de analizar, como lo haría la persona.
+  const LOTE = Math.max(1, Number(HOJA?.piezas) || 1);
+  for (let i = 1; i < LOTE; i++) await page.getByRole('button', { name: 'mas' }).click();
+  // 1) Imagen/PDF → Voni (analizar-mueble). La subida dispara el análisis. Con hoja.texto (sin archivo) se
+  //    describe el mueble y se pulsa "Analizar con Voni" (flujo de texto, misma Edge).
   const esperaAn = page.waitForResponse((r) => r.url().includes('/functions/v1/analizar-mueble'), { timeout: 180000 });
   const t0 = Date.now();
-  await page.getByTestId('costear-archivo').setInputFiles(IMG);
+  if (HOJA?.texto) {
+    await page.locator('#costear-descripcion').fill(HOJA.texto);
+    await page.getByRole('button', { name: /Analizar con Voni/ }).click();
+  } else await page.getByTestId('costear-archivo').setInputFiles(IMG);
   const an = await esperaAn; const anBody = await an.json().catch(() => null);
-  console.log('[lab-costear] analizar-mueble', an.status(), 'en', ((Date.now() - t0) / 1000).toFixed(0), 's · piezas', anBody?.propuesta?.piezas?.length);
+  const tiempos = { analizarSeg: (Date.now() - t0) / 1000 };
+  console.log('[lab-costear] analizar-mueble', an.status(), 'en', tiempos.analizarSeg.toFixed(0), 's · piezas', anBody?.propuesta?.piezas?.length, '· lote', LOTE);
   await expect(page.locator('.pieza').first()).toBeVisible({ timeout: 150000 });   // análisis + verificación pueden sumar >60 s
+  tiempos.bomVisibleSeg = (Date.now() - t0) / 1000;
   await page.waitForTimeout(5000);   // verificación / amarre ERP automático
   const piezas1 = await leerPiezas(page); const res1 = await leerResultado(page);
-  guarda('1-bom-inicial.json', { piezas: piezas1, resultado: res1, analizar: { status: an.status(), piezas: anBody?.propuesta?.piezas?.length, producto: anBody?.propuesta?.producto, uso: anBody?.uso } });
+  guarda('1-bom-inicial.json', { piezas: piezas1, resultado: res1, analizar: { status: an.status(), piezas: anBody?.propuesta?.piezas?.length, producto: anBody?.propuesta?.producto, uso: anBody?.uso }, tiempos, lote: LOTE, entrada: HOJA?.texto ? 'texto' : (/\.pdf$/i.test(String(IMG)) ? 'pdf' : 'imagen') });
   await page.screenshot({ path: path.join(SALIDA, '1-bom-inicial.png'), fullPage: true });
   console.log('[lab-costear] BOM inicial', JSON.stringify({ piezas: piezas1.length, pendientes: piezas1.filter((p) => p.alertas.some((a) => /⚠ /.test(a))).map((p) => p.nombre), resultado: res1 }));
 

@@ -1,0 +1,40 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Escritorio en L con retorno, melamina 19 mm Gris Humo","tipo":"escritorio","piezas":[{"nombre":"Cubierta principal","insumoId":"melamina-19-gris-humo-lm","material_solicitado":"Melamina 19 mm Gris Humo","material_match":"EXACT","forma":"area","largoMM":1600,"ancho
+
+[lab-costear] analizar-mueble 200 en 19 s · piezas 7 · lote 1
+
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Escritorio en L con cajonera móvil","tipo":"escritorio","piezas":[{"nombre":"Cubierta principal","insumoId":"melamina-19-gris-humo-lm","material_solicitado":"melamina 19 mm gris humo","material_match":"EXACT","forma":"area","largoMM":1600,"anchoMM":700,"cantidad":
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":4302.37,"materialTotal":2680.11,"manoObra":405.56,"indirectosFabrica":1216.69,"desperdicio":1495.32,"detalleInsumos":[{"insumoId":"melamina-19-gris-humo-lm","nombre":"Melamina 19 mm, Gris Humo LM","se
+
+[lab-costear] BOM inicial {"piezas":9,"pendientes":["Cajonera móvil 3 gavetas (comprada)"],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Confirmas tapacanto PVC 2 mm del color gris humo (igual a la melamina)?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Quién suministra la cajonera móvil?","elegido":"(sin responder: ninguna opción coincide con el plano)","opciones":["Von Haucke","Cliente","Por definir"],"evidencia":"plano: CAJONERA MÓVIL 3 GAVETAS (COMPRADA, 1 PIEZA)"},{"pregunta":"¿Cómo se une el retorno con la cubierta principal?","elegido":"(sin responder: ninguna opción coincide con el plano)","opciones":["Escuadras","Tornillería oculta","Herraje de unión"],"evidencia":"plano: RETORNO 800 × 500"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":4302.37,"materialTotal":2680.11,"manoObra":405.56,"indirectosFabrica":1216.69,"desperdicio":1495.32,"detalleInsumos":[{"insumoId":"melamina-19-gris-humo-lm","nombre":"Melamina 19 mm, Gris Humo LM","se
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 7 propuestos","diferencias":"1 difieren de lo pedido y se confirman uno por uno: Tapacanto PVC 2 mm gris, cantos visibles. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$4,302.37","Por confirmar"],"margen":null,"estado":"Costo preliminar — 3 decisión(es) pendiente(s): ¿Confirmas tapacanto PVC 2 mm del color gris humo (igual a la melamina)? · ¿Quién suministra la cajonera móvil? · ¿Cómo se une el retorno con la cubierta principal?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $2,680.11 · Mano de obra $405.56 · Fábrica $1,216.69","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":4302.37,"costoSrv":4302.37,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] expedientes POST 201 [{"id":41}]
+
+[lab-costear] guardado {"status":201,"id":41,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":4302.37,"materialTotal":2680.11,"manoObra":405.56,"indirectosFabrica":1216.69,"desperdicio":1495.32,"detalleInsumos":[{"insumoId":"melamina-19-gris-humo-lm","nombre":"Melamina 19 mm, Gris Humo LM","se
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":6,"pass":5,"fail":1,"riesgo":0,"sobrantesNoPermitidos":1,"renglonesBom":9,"veredicto":"FAIL"} ["FAIL cajonera: material fuera de la familia esperada (^cajonera-movil$): Cajonera móvil 3 gavetas (comprada) [vacío]"]
+
+[lab-costear] reabierta {"tarjeta":"sin render p10_escritorio_L BORRADOR escritorio escritorio en L con cajonera móvil Melamina gris humo 19 mm","piezas":9,"mismoBom":true,"costoAntes":"$4,302.37","costoDespues":"$4,302.37","mismoCosto":true,"resultado":{"precios":["$4,302.37","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $2,680.11 · Mano de obra $405.56 · Fábrica $1,216.69","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.4m)

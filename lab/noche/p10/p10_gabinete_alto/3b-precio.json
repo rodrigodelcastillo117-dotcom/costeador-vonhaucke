@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$4,410.38",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 4 decisión(es) pendiente(s): El catalogo no tiene MDF 6 mm. ¿Como se cotiza el respaldo? · ¿Hay tapacanto PVC 2 mm Soft Grey disponible o se usa el generico? · ¿La bisagra del catalogo es de cierre suave? · ¿Material del zoclo?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $2,719.15 · Mano de obra $422.81 · Fábrica $1,268.42",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$4,302.37",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 3 decisión(es) pendiente(s): ¿Confirmas tapacanto PVC 2 mm del color gris humo (igual a la melamina)? · ¿Quién suministra la cajonera móvil? · ¿Cómo se une el retorno con la cubierta principal?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $2,680.11 · Mano de obra $405.56 · Fábrica $1,216.69",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

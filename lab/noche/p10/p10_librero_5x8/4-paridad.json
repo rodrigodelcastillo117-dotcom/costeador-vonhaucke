@@ -1,0 +1,497 @@
+{
+  "paridad": {
+    "costoCliente": 7345.38,
+    "costoSrv": 7345.38,
+    "estadoSrv": "incompleto",
+    "iguales": true,
+    "llamadasSrv": 3
+  },
+  "servidor": {
+    "ok": true,
+    "estado": "incompleto",
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 7345.38,
+      "materialTotal": 4576.37,
+      "manoObra": 692.25,
+      "indirectosFabrica": 2076.76,
+      "desperdicio": 1309.95,
+      "detalleInsumos": [
+        {
+          "insumoId": "erp-ame28152-b709",
+          "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT",
+          "seccion": "cubiertas",
+          "costo": 1924.2,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "melamina-28-walnut",
+          "nombre": "Melamina 28 mm, Walnut",
+          "seccion": "cubiertas",
+          "costo": 1876.2,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "melamina-16-walnut",
+          "nombre": "Melamina 16 mm, Walnut",
+          "seccion": "cubiertas",
+          "costo": 608.76,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "costo": 51.29,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "costo": 70.92,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "costo": 45,
+          "certificable": true,
+          "evidencia": "aprobado"
+        }
+      ],
+      "componentesIgnorados": []
+    },
+    "evidencia": {
+      "usados": 6,
+      "certificados": 3,
+      "noCertificados": 3
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 4460.4537984,
+      "materialIndirecto": 115.92,
+      "materialTotal": 4576.3737984,
+      "desperdicio": 1309.951876293039,
+      "manoObra": 692.2520697599999,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 15.519767742204083,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 5268.62586816,
+      "indirectosFabrica": 2076.75620928,
+      "gastosOperacion": 0,
+      "costoFabricacion": 7345.38207744,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 7345.38207744,
+      "costoLoteConMerma": 7345.38207744,
+      "costoUnitario": 7345.38207744,
+      "detalleInsumos": [
+        {
+          "insumoId": "erp-ame28152-b709",
+          "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Laterales"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 1,
+          "unidades": null,
+          "costo": 1924.2,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 1924.2,
+          "noCabe": false
+        },
+        {
+          "insumoId": "melamina-28-walnut",
+          "nombre": "Melamina 28 mm, Walnut",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Piso y techo",
+            "Entrepaños fijos",
+            "Zoclo (regla de casa)"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": true,
+            "certificable": false,
+            "hojas": 2,
+            "piezas_solicitadas": 7,
+            "piezas_colocadas": 7,
+            "placements": [
+              {
+                "id": "Piso y techo#1",
+                "nombre": "Piso y techo",
+                "x": 10,
+                "y": 10,
+                "w": 350,
+                "h": 844,
+                "rot": 90,
+                "hoja": 1
+              },
+              {
+                "id": "Piso y techo#2",
+                "nombre": "Piso y techo",
+                "x": 364,
+                "y": 10,
+                "w": 350,
+                "h": 844,
+                "rot": 90,
+                "hoja": 1
+              },
+              {
+                "id": "Entrepaños fijos#1",
+                "nombre": "Entrepaños fijos",
+                "x": 10,
+                "y": 858,
+                "w": 844,
+                "h": 330,
+                "rot": 0,
+                "hoja": 1
+              },
+              {
+                "id": "Entrepaños fijos#2",
+                "nombre": "Entrepaños fijos",
+                "x": 718,
+                "y": 10,
+                "w": 330,
+                "h": 844,
+                "rot": 90,
+                "hoja": 1
+              },
+              {
+                "id": "Entrepaños fijos#3",
+                "nombre": "Entrepaños fijos",
+                "x": 858,
+                "y": 858,
+                "w": 844,
+                "h": 330,
+                "rot": 0,
+                "hoja": 1
+              },
+              {
+                "id": "Entrepaños fijos#4",
+                "nombre": "Entrepaños fijos",
+                "x": 1052,
+                "y": 10,
+                "w": 330,
+                "h": 844,
+                "rot": 90,
+                "hoja": 1
+              },
+              {
+                "id": "Zoclo (regla de casa)#1",
+                "nombre": "Zoclo (regla de casa)",
+                "x": 10,
+                "y": 10,
+                "w": 1800,
+                "h": 100,
+                "rot": 0,
+                "hoja": 2
+              }
+            ],
+            "remanentes": [
+              {
+                "hoja": 2,
+                "x": 10,
+                "y": 114,
+                "w": 2420,
+                "h": 1096,
+                "area_mm2": 2652320
+              },
+              {
+                "hoja": 1,
+                "x": 1386,
+                "y": 10,
+                "w": 1044,
+                "h": 848,
+                "area_mm2": 885312
+              },
+              {
+                "hoja": 1,
+                "x": 1706,
+                "y": 10,
+                "w": 724,
+                "h": 1200,
+                "area_mm2": 868800
+              },
+              {
+                "hoja": 2,
+                "x": 1814,
+                "y": 10,
+                "w": 616,
+                "h": 1200,
+                "area_mm2": 739200
+              }
+            ],
+            "issues": [],
+            "area_piezas_mm2": 1884880,
+            "area_comprada_mm2": 5953600,
+            "desperdicio_mm2": 4068720,
+            "eficiencia_pct": 32.45316804407714,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1.8848799999999999,
+          "comprado": 4.181695238095237,
+          "unidades": 1.4047619047619047,
+          "costo": 1876.1999999999998,
+          "desperdicio": 1030.5114324106419,
+          "pct": 54.92545743580867,
+          "precio": 1335.6,
+          "noCabe": false,
+          "fraccion": true,
+          "reglaProduccion": "produccion-rogelio-2026-10",
+          "piezasRegla": [
+            {
+              "pieza": "Zoclo (regla de casa)",
+              "largoMM": 1800,
+              "anchoMM": 100,
+              "hojasPorPieza": 0.5
+            }
+          ]
+        },
+        {
+          "insumoId": "melamina-16-walnut",
+          "nombre": "Melamina 16 mm, Walnut",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Respaldo"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": true,
+            "certificable": false,
+            "hojas": 1,
+            "piezas_solicitadas": 1,
+            "piezas_colocadas": 1,
+            "placements": [
+              {
+                "id": "Respaldo#1",
+                "nombre": "Respaldo",
+                "x": 10,
+                "y": 10,
+                "w": 1800,
+                "h": 900,
+                "rot": 0,
+                "hoja": 1
+              }
+            ],
+            "remanentes": [
+              {
+                "hoja": 1,
+                "x": 1814,
+                "y": 10,
+                "w": 616,
+                "h": 1200,
+                "area_mm2": 739200
+              },
+              {
+                "hoja": 1,
+                "x": 10,
+                "y": 914,
+                "w": 2420,
+                "h": 296,
+                "area_mm2": 716320
+              }
+            ],
+            "issues": [],
+            "area_piezas_mm2": 1620000,
+            "area_comprada_mm2": 2976800,
+            "desperdicio_mm2": 1356800,
+            "eficiencia_pct": 55.78512396694215,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1.62,
+          "comprado": 2.9768,
+          "unidades": 1,
+          "costo": 608.76,
+          "desperdicio": 277.4676054823972,
+          "pct": 45.579145391023914,
+          "precio": 608.76,
+          "noCabe": false,
+          "fraccion": true,
+          "reglaProduccion": "produccion-rogelio-2026-10",
+          "piezasRegla": [
+            {
+              "pieza": "Respaldo",
+              "largoMM": 1800,
+              "anchoMM": 900,
+              "hojasPorPieza": 1
+            }
+          ]
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "rollo",
+            "corto": "rollo",
+            "medida": 50,
+            "nombre": "rollo de 50 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Tapacanto PVC 2 mm Walnut, cantos frontales de laterales",
+            "Tapacanto PVC 2 mm Walnut, frente piso/techo/entrepaños"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 16.224,
+          "comprado": 16.87296,
+          "unidades": null,
+          "costo": 51.2937984,
+          "desperdicio": 1.9728383999999966,
+          "pct": 3.8461538461538396,
+          "precio": 3.04,
+          "noCabe": false
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Niveladores"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 4,
+          "comprado": 4,
+          "unidades": null,
+          "costo": 70.92,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 17.73,
+          "noCabe": false
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "juego",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Tornillería de ensamble y respaldo"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 1,
+          "unidades": null,
+          "costo": 45,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 45,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Tapacanto PVC 2 mm Walnut, cantos frontales de laterales",
+        "Tapacanto PVC 2 mm Walnut, frente piso/techo/entrepaños"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "completo",
+      "pendientes": [],
+      "costoOficial": 7345.38207744
+    },
+    "versionMotor": "2026-10-13",
+    "versionConfig": "cfg1r33lco",
+    "versionCatalogo": "cat-ap1793-cfggkmfdc",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T12:49:47.987Z",
+    "catalogoFuente": "catalogo",
+    "warnings": []
+  }
+}

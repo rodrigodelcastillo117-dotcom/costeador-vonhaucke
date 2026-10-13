@@ -1,0 +1,159 @@
+{
+  "producto": "Gabinete alto 2 puertas 800 × 450 × 2000, melamina 19 mm Soft Grey (entrada PDF)",
+  "resumen": {
+    "esperados": 10,
+    "pass": 10,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 0,
+    "renglonesBom": 10,
+    "veredicto": "PASS"
+  },
+  "filas": [
+    {
+      "clave": "laterales",
+      "renglones": 1,
+      "materiales": [
+        "melamina-19-soft-grey"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: 2 LATERALES 2000 × 450",
+      "inferido": false,
+      "piezas": 2
+    },
+    {
+      "clave": "techo_piso",
+      "renglones": 1,
+      "materiales": [
+        "melamina-19-soft-grey"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: TECHO Y PISO 762 × 450 (2)",
+      "inferido": false,
+      "piezas": 2
+    },
+    {
+      "clave": "entrepanos",
+      "renglones": 1,
+      "materiales": [
+        "melamina-19-soft-grey"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: 4 ENTREPAÑOS AJUSTABLES 760 × 430",
+      "inferido": false,
+      "piezas": 4
+    },
+    {
+      "clave": "puertas",
+      "renglones": 1,
+      "materiales": [
+        "melamina-19-soft-grey"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: 2 PUERTAS 397 × 1896",
+      "inferido": false,
+      "piezas": 2
+    },
+    {
+      "clave": "zoclo",
+      "renglones": 1,
+      "materiales": [
+        "melamina-19-soft-grey"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: ZOCLO FRONTAL 762 × 100",
+      "inferido": false,
+      "piezas": 1
+    },
+    {
+      "clave": "respaldo_sin_material",
+      "renglones": 1,
+      "materiales": [
+        ""
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: RESPALDO MDF 6 mm 1980 × 780. No hay MDF 6 mm en el catálogo (sólo perfocel 5.5 mm): lo correcto es dejarlo sin material con su motivo.",
+      "inferido": false,
+      "piezas": 1
+    },
+    {
+      "clave": "bisagras",
+      "renglones": 1,
+      "materiales": [
+        "bisagra"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: 8 BISAGRAS CIERRE SUAVE (4 POR PUERTA)",
+      "inferido": false,
+      "cantidad": 8
+    },
+    {
+      "clave": "jaladeras",
+      "renglones": 1,
+      "materiales": [
+        "jaladera"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: 2 JALADERAS 160 mm",
+      "inferido": false,
+      "cantidad": 2
+    },
+    {
+      "clave": "niveladores",
+      "renglones": 1,
+      "materiales": [
+        "nivelador"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: 4 NIVELADORES",
+      "inferido": false,
+      "cantidad": 4
+    },
+    {
+      "clave": "tapacanto",
+      "renglones": 1,
+      "materiales": [
+        "tapacanto"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: TAPACANTO EN CANTOS VISIBLES Y PERÍMETRO DE PUERTAS",
+      "inferido": false
+    }
+  ],
+  "sobran": [],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "El catalogo no tiene MDF 6 mm. ¿Como se cotiza el respaldo?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Hay tapacanto PVC 2 mm Soft Grey disponible o se usa el generico?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿La bisagra del catalogo es de cierre suave?",
+      "elegido": "(sin responder: ninguna opción coincide con el plano)",
+      "opciones": [
+        "Si",
+        "No, cotizar aparte",
+        "Por definir"
+      ],
+      "evidencia": "plano: 8 BISAGRAS CIERRE SUAVE (4 POR PUERTA)"
+    },
+    {
+      "pregunta": "¿Material del zoclo?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

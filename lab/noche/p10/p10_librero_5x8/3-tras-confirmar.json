@@ -1,0 +1,67 @@
+{
+  "confirmacion": {
+    "ofrecida": true,
+    "texto": "Confirmar los 6 propuestos",
+    "diferencias": "2 difieren de lo pedido y se confirman uno por uno: Tapacanto PVC 2 mm Walnut, cantos frontales de laterales, Tapacanto PVC 2 mm Walnut, frente piso/techo/entrepaños. ",
+    "diferenciasAceptadas": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Laterales",
+      "material": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT",
+      "alertas": []
+    },
+    {
+      "nombre": "Piso y techo",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": []
+    },
+    {
+      "nombre": "Entrepaños fijos",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": []
+    },
+    {
+      "nombre": "Respaldo",
+      "material": "Melamina 16 mm, Walnut",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto PVC 2 mm Walnut, cantos frontales de laterales",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tapacanto PVC 2 mm Walnut, frente piso/techo/entrepaños",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Tornillería de ensamble y respaldo",
+      "material": "Tornilleria",
+      "alertas": []
+    },
+    {
+      "nombre": "Zoclo (regla de casa)",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": []
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

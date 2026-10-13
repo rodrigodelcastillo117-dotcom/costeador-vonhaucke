@@ -1,0 +1,33 @@
+=== librero_5x8
+exit 0
+[lab-costear] respuestas [{"pregunta":"¿Confirmas tapacanto PVC 2 mm color Walnut?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuántos libreros se fabrican?","elegido":"(sin responder: el plano no lo dice)"}]
+[lab-costear] precio {"precios":["$7,345.38","Por confirmar"],"margen":null,"estado":"Costo preliminar — 2 decisión(es) pendiente(s): ¿Confirmas tapacanto PVC 2 mm color Walnut? · ¿Cuántos libreros se fabrican?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $4,576.37 · Mano de obra $692.25 · Fábrica $2,076.76","pendiente":false,"porConfirmar":true}
+[lab-costear] paridad {"costoCliente":7345.38,"costoSrv":7345.38,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":3}
+[lab-costear] guardado {"status":201,"id":40,"mensaje":"Guardado en la biblioteca"}
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+[lab-costear] hoja de control {"esperados":6,"pass":2,"fail":4,"riesgo":0,"sobrantesNoPermitidos":1,"renglonesBom":9,"veredicto":"FAIL"} ["FAIL laterales: medida distinta (esperado 1800×350 ±20): undefined×undefined","FAIL piso_techo: material fuera de la familia esperada (^erp-ame28152-b709$): Piso y techo [melamina-28-walnut]","FAIL entrepanos: material fuera de la familia esperada (^erp-ame28152-b709$): Entrepaños fijos [melamina-28-walnut]","FAIL tapacanto_m: 16.224 m, esperado 8.2–9.1 m · duplicado: 2 renglones"]
+[lab-costear] reabierta {"tarjeta":"sin render p10_librero_5x8 BORRADOR guarda librero abierto de 5 niveles Aglomerado melamina Walnut 28 mm","piezas":9,"mismoBom":true,"costoAntes":"$7,345.38","costoDespues":"$7,345.38","mismoCosto":true,"resultado":{"precios":["$7,345.38","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $4,576.37 · Mano de obra $692.25 · Fábrica $2,076.76","pendiente":false,"porConfirmar":true},"pageErrors":0}
+  1 passed (1.5m)
+edges: rc=2 prod=0 costeo_rc=4 costeo_prod=0
+=== escritorio_L
+exit 0
+[lab-costear] respuestas [{"pregunta":"¿Confirmas tapacanto PVC 2 mm del color gris humo (igual a la melamina)?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Quién suministra la cajonera móvil?","elegido":"(sin responder: ninguna opción coincide con el plano)","opciones":["Von Haucke","Cliente","Por definir"],"evidencia":"plano: CAJONERA MÓVIL 3 GAVETAS (COMPRADA, 1 PIEZA)"},{"pregunta":"¿Cómo se une el retorno con la cubierta principal?","elegido":"(sin responder: ninguna opción coincide con el plano)","opciones":["Escuadras","Tornillería oculta","Herraje de unión"],"evidencia":"plano: RETORNO 800 × 500"}]
+[lab-costear] precio {"precios":["$4,302.37","Por confirmar"],"margen":null,"estado":"Costo preliminar — 3 decisión(es) pendiente(s): ¿Confirmas tapacanto PVC 2 mm del color gris humo (igual a la melamina)? · ¿Quién suministra la cajonera móvil? · ¿Cómo se une el retorno con la cubierta principal?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $2,680.11 · Mano de obra $405.56 · Fábrica $1,216.69","pendiente":false,"porConfirmar":true}
+[lab-costear] paridad {"costoCliente":4302.37,"costoSrv":4302.37,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+[lab-costear] guardado {"status":201,"id":41,"mensaje":"Guardado en la biblioteca"}
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+[lab-costear] hoja de control {"esperados":6,"pass":5,"fail":1,"riesgo":0,"sobrantesNoPermitidos":1,"renglonesBom":9,"veredicto":"FAIL"} ["FAIL cajonera: material fuera de la familia esperada (^cajonera-movil$): Cajonera móvil 3 gavetas (comprada) [vacío]"]
+[lab-costear] reabierta {"tarjeta":"sin render p10_escritorio_L BORRADOR escritorio escritorio en L con cajonera móvil Melamina gris humo 19 mm","piezas":9,"mismoBom":true,"costoAntes":"$4,302.37","costoDespues":"$4,302.37","mismoCosto":true,"resultado":{"precios":["$4,302.37","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $2,680.11 · Mano de obra $405.56 · Fábrica $1,216.69","pendiente":false,"porConfirmar":true},"pageErrors":0}
+  1 passed (1.4m)
+edges: rc=2 prod=0 costeo_rc=3 costeo_prod=0
+=== gabinete_alto
+exit 0
+[lab-costear] respuestas [{"pregunta":"El catalogo no tiene MDF 6 mm. ¿Como se cotiza el respaldo?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Hay tapacanto PVC 2 mm Soft Grey disponible o se usa el generico?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿La bisagra del catalogo es de cierre suave?","elegido":"(sin responder: ninguna opción coincide con el plano)","opciones":["Si","No, cotizar aparte","Por definir"],"evidencia":"plano: 8 BISAGRAS CIERRE SUAVE (4 POR PUERTA)"},{"pregunta":"¿Material del zoclo?","elegido":"(sin responder: el plano no lo dice)"}]
+[lab-costear] precio {"precios":["$4,410.38","Por confirmar"],"margen":null,"estado":"Costo preliminar — 4 decisión(es) pendiente(s): El catalogo no tiene MDF 6 mm. ¿Como se cotiza el respaldo? · ¿Hay tapacanto PVC 2 mm Soft Grey disponible o se usa el generico? · ¿La bisagra del catalogo es de cierre suave? · ¿Material del zoclo?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $2,719.15 · Mano de obra $422.81 · Fábrica $1,268.42","pendiente":false,"porConfirmar":true}
+[lab-costear] paridad {"costoCliente":4410.38,"costoSrv":4410.38,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+[lab-costear] guardado {"status":201,"id":42,"mensaje":"Guardado en la biblioteca"}
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+[lab-costear] hoja de control {"esperados":10,"pass":10,"fail":0,"riesgo":0,"sobrantesNoPermitidos":0,"renglonesBom":10,"veredicto":"PASS"} []
+[lab-costear] reabierta {"tarjeta":"sin render p10_gabinete_alto BORRADOR guarda gabinete alto 2 puertas Melamina 19 mm gris suave","piezas":10,"mismoBom":true,"costoAntes":"$4,410.38","costoDespues":"$4,410.38","mismoCosto":true,"resultado":{"precios":["$4,410.38","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $2,719.15 · Mano de obra $422.81 · Fábrica $1,268.42","pendiente":false,"porConfirmar":true},"pageErrors":0}
+  1 passed (1.5m)
+edges: rc=2 prod=0 costeo_rc=3 costeo_prod=0

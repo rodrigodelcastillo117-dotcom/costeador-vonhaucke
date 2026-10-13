@@ -1,0 +1,360 @@
+{
+  "paridad": {
+    "costoCliente": 4302.37,
+    "costoSrv": 4302.37,
+    "estadoSrv": "incompleto",
+    "iguales": true,
+    "llamadasSrv": 2
+  },
+  "servidor": {
+    "ok": true,
+    "estado": "incompleto",
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 4302.37,
+      "materialTotal": 2680.11,
+      "manoObra": 405.56,
+      "indirectosFabrica": 1216.69,
+      "desperdicio": 1495.32,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-19-gris-humo-lm",
+          "nombre": "Melamina 19 mm, Gris Humo LM",
+          "seccion": "cubiertas",
+          "costo": 2562.75,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "costo": 46.44,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "costo": 70.92,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        }
+      ],
+      "componentesIgnorados": [
+        "Cajonera móvil 3 gavetas (comprada)"
+      ]
+    },
+    "evidencia": {
+      "usados": 3,
+      "certificados": 1,
+      "noCertificados": 2
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 2609.193904,
+      "materialIndirecto": 70.92,
+      "materialTotal": 2680.1139040000003,
+      "desperdicio": 1495.3193428336467,
+      "manoObra": 405.56308559999997,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 15.543616171195834,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 3085.6769896,
+      "indirectosFabrica": 1216.6892567999998,
+      "gastosOperacion": 0,
+      "costoFabricacion": 4302.3662464,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 4302.3662464,
+      "costoLoteConMerma": 4302.3662464,
+      "costoUnitario": 4302.3662464,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-19-gris-humo-lm",
+          "nombre": "Melamina 19 mm, Gris Humo LM",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Cubierta principal",
+            "Retorno",
+            "Panel lateral 731x700",
+            "Panel lateral 731x500",
+            "Faldón",
+            "Zoclo (regla de casa)"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": true,
+            "certificable": false,
+            "hojas": 2,
+            "piezas_solicitadas": 7,
+            "piezas_colocadas": 7,
+            "placements": [
+              {
+                "id": "Cubierta principal#1",
+                "nombre": "Cubierta principal",
+                "x": 10,
+                "y": 10,
+                "w": 1600,
+                "h": 700,
+                "rot": 0,
+                "hoja": 1
+              },
+              {
+                "id": "Panel lateral 731x700#1",
+                "nombre": "Panel lateral 731x700",
+                "x": 1614,
+                "y": 10,
+                "w": 731,
+                "h": 700,
+                "rot": 0,
+                "hoja": 1
+              },
+              {
+                "id": "Panel lateral 731x700#2",
+                "nombre": "Panel lateral 731x700",
+                "x": 10,
+                "y": 10,
+                "w": 700,
+                "h": 731,
+                "rot": 90,
+                "hoja": 2
+              },
+              {
+                "id": "Faldón#1",
+                "nombre": "Faldón",
+                "x": 10,
+                "y": 745,
+                "w": 1500,
+                "h": 300,
+                "rot": 0,
+                "hoja": 2
+              },
+              {
+                "id": "Retorno#1",
+                "nombre": "Retorno",
+                "x": 1514,
+                "y": 10,
+                "w": 800,
+                "h": 500,
+                "rot": 0,
+                "hoja": 2
+              },
+              {
+                "id": "Panel lateral 731x500#1",
+                "nombre": "Panel lateral 731x500",
+                "x": 714,
+                "y": 10,
+                "w": 500,
+                "h": 731,
+                "rot": 90,
+                "hoja": 2
+              },
+              {
+                "id": "Zoclo (regla de casa)#1",
+                "nombre": "Zoclo (regla de casa)",
+                "x": 10,
+                "y": 1049,
+                "w": 1600,
+                "h": 100,
+                "rot": 0,
+                "hoja": 2
+              }
+            ],
+            "remanentes": [
+              {
+                "hoja": 1,
+                "x": 10,
+                "y": 714,
+                "w": 2420,
+                "h": 496,
+                "area_mm2": 1200320
+              },
+              {
+                "hoja": 2,
+                "x": 1614,
+                "y": 514,
+                "w": 816,
+                "h": 696,
+                "area_mm2": 567936
+              },
+              {
+                "hoja": 2,
+                "x": 1514,
+                "y": 514,
+                "w": 916,
+                "h": 535,
+                "area_mm2": 490060
+              },
+              {
+                "hoja": 2,
+                "x": 1218,
+                "y": 514,
+                "w": 1212,
+                "h": 231,
+                "area_mm2": 279972
+              },
+              {
+                "hoja": 2,
+                "x": 1218,
+                "y": 10,
+                "w": 296,
+                "h": 735,
+                "area_mm2": 217560
+              },
+              {
+                "hoja": 2,
+                "x": 2318,
+                "y": 10,
+                "w": 112,
+                "h": 1200,
+                "area_mm2": 134400
+              }
+            ],
+            "issues": [],
+            "area_piezas_mm2": 3518900,
+            "area_comprada_mm2": 5953600,
+            "desperdicio_mm2": 2434700,
+            "eficiencia_pct": 60.58712121212121,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 3.5189000000000004,
+          "comprado": 8.434266666666666,
+          "unidades": 2.8333333333333335,
+          "costo": 2562.75,
+          "desperdicio": 1493.5330388336467,
+          "pct": 58.27853043931896,
+          "precio": 904.5,
+          "noCabe": false,
+          "fraccion": true,
+          "reglaProduccion": "produccion-rogelio-2026-10",
+          "piezasRegla": [
+            {
+              "pieza": "Cubierta principal",
+              "largoMM": 1600,
+              "anchoMM": 700,
+              "hojasPorPieza": 1
+            },
+            {
+              "pieza": "Zoclo (regla de casa)",
+              "largoMM": 1600,
+              "anchoMM": 100,
+              "hojasPorPieza": 0.5
+            }
+          ]
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "rollo",
+            "corto": "rollo",
+            "medida": 50,
+            "nombre": "rollo de 50 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Tapacanto PVC 2 mm gris, cantos visibles"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 14.69,
+          "comprado": 15.2776,
+          "unidades": null,
+          "costo": 46.443903999999996,
+          "desperdicio": 1.7863040000000003,
+          "pct": 3.846153846153847,
+          "precio": 3.04,
+          "noCabe": false
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Niveladores"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 4,
+          "comprado": 4,
+          "unidades": null,
+          "costo": 70.92,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 17.73,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [
+        "Cajonera móvil 3 gavetas (comprada)"
+      ],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Tapacanto PVC 2 mm gris, cantos visibles"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "incompleto",
+      "pendientes": [
+        "Cajonera móvil 3 gavetas (comprada)"
+      ],
+      "costoOficial": null
+    },
+    "versionMotor": "2026-10-13",
+    "versionConfig": "cfg1r33lco",
+    "versionCatalogo": "cat-ap1793-cfgbob36x",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T12:51:10.382Z",
+    "catalogoFuente": "catalogo",
+    "warnings": [
+      "1 pieza(s) sin material/precio usable: Cajonera móvil 3 gavetas (comprada)"
+    ]
+  }
+}

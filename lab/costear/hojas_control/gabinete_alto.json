@@ -1,0 +1,24 @@
+{
+  "fixture": "lab/costear/gabinete_alto.pdf",
+  "producto": "Gabinete alto 2 puertas 800 × 450 × 2000, melamina 19 mm Soft Grey (entrada PDF)",
+  "proposito": "Entrada por PDF. Adversarial: el respaldo MDF 6 mm NO existe en el catálogo; debe quedar sin material/pendiente, nunca MDF 16 ni perfocel 5.5 en silencio.",
+  "respuestas": [
+    { "patron": "entrepa", "valor": "4", "evidencia": "plano: 4 ENTREPAÑOS AJUSTABLES 760 × 430" },
+    { "patron": "bisagra", "valor": "8", "evidencia": "plano: 8 BISAGRAS CIERRE SUAVE (4 POR PUERTA)" },
+    { "patron": "jaladera", "valor": "2", "evidencia": "plano: 2 JALADERAS 160 mm" },
+    { "patron": "nivelador", "valor": "4", "evidencia": "plano: 4 NIVELADORES" }
+  ],
+  "esperado": [
+    { "clave": "laterales", "patron": "lateral|costado", "ids": "^melamina-19-soft-grey$", "piezas": 2, "dims": [2000, 450], "tol": 20, "evidencia": "plano: 2 LATERALES 2000 × 450" },
+    { "clave": "techo_piso", "patron": "techo|piso|cubierta|base|tapa", "noPatron": "zoclo|respaldo|entrepa", "ids": "^melamina-19-soft-grey$", "piezas": 2, "dims": [762, 450], "tol": 20, "evidencia": "plano: TECHO Y PISO 762 × 450 (2)" },
+    { "clave": "entrepanos", "patron": "entrepa|repisa", "ids": "^melamina-19-soft-grey$", "piezas": 4, "dims": [760, 430], "tol": 20, "evidencia": "plano: 4 ENTREPAÑOS AJUSTABLES 760 × 430" },
+    { "clave": "puertas", "patron": "puerta", "ids": "^melamina-19-soft-grey$", "piezas": 2, "dims": [1896, 397], "tol": 20, "evidencia": "plano: 2 PUERTAS 397 × 1896" },
+    { "clave": "zoclo", "patron": "zoclo|z[oó]calo", "ids": "^melamina-19-soft-grey$", "piezas": 1, "dims": [762, 100], "tol": 20, "evidencia": "plano: ZOCLO FRONTAL 762 × 100" },
+    { "clave": "respaldo_sin_material", "patron": "respaldo|fondo|trasero", "ids": "^$", "piezas": 1, "dims": [1980, 780], "tol": 30, "evidencia": "plano: RESPALDO MDF 6 mm 1980 × 780. No hay MDF 6 mm en el catálogo (sólo perfocel 5.5 mm): lo correcto es dejarlo sin material con su motivo." },
+    { "clave": "bisagras", "patron": "bisagra", "ids": "bisagra|erp-bi", "cantidad": 8, "evidencia": "plano: 8 BISAGRAS CIERRE SUAVE (4 POR PUERTA)" },
+    { "clave": "jaladeras", "patron": "jaladera|tirador", "ids": "jaladera|erp-ja", "cantidad": 2, "evidencia": "plano: 2 JALADERAS 160 mm" },
+    { "clave": "niveladores", "patron": "nivelador", "ids": "nivelador", "cantidad": 4, "evidencia": "plano: 4 NIVELADORES" },
+    { "clave": "tapacanto", "patron": "tapacanto|canto", "ids": "tapacanto", "presente": true, "evidencia": "plano: TAPACANTO EN CANTOS VISIBLES Y PERÍMETRO DE PUERTAS" }
+  ],
+  "extrasPermitidos": "torniller|escuadra|minifix|soporte de entrepa|pern|consumible"
+}

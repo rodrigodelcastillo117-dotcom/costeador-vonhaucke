@@ -1,0 +1,124 @@
+{
+  "producto": "Escritorio en L 1600 × 1500 × 750, melamina 19 mm Gris Humo",
+  "resumen": {
+    "esperados": 6,
+    "pass": 5,
+    "fail": 1,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 1,
+    "renglonesBom": 9,
+    "veredicto": "FAIL"
+  },
+  "filas": [
+    {
+      "clave": "cubierta",
+      "renglones": 1,
+      "materiales": [
+        "melamina-19-gris-humo-lm"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: CUBIERTA PRINCIPAL MELAMINA 19 mm GRIS HUMO 1600 × 700",
+      "inferido": false,
+      "piezas": 1
+    },
+    {
+      "clave": "retorno",
+      "renglones": 1,
+      "materiales": [
+        "melamina-19-gris-humo-lm"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: RETORNO 800 × 500 MISMO MATERIAL",
+      "inferido": false,
+      "piezas": 1
+    },
+    {
+      "clave": "paneles",
+      "renglones": 2,
+      "materiales": [
+        "melamina-19-gris-humo-lm"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: 2 DE 731 × 700 + 1 DE 731 × 500 = 1.389 m²",
+      "inferido": false,
+      "piezas": 3,
+      "areaM2": 1.389
+    },
+    {
+      "clave": "faldon",
+      "renglones": 1,
+      "materiales": [
+        "melamina-19-gris-humo-lm"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: FALDÓN MELAMINA 19 mm 1500 × 300, UNA PIEZA",
+      "inferido": false,
+      "piezas": 1
+    },
+    {
+      "clave": "cajonera",
+      "renglones": 0,
+      "materiales": [],
+      "estado": "FAIL",
+      "motivos": [
+        "material fuera de la familia esperada (^cajonera-movil$): Cajonera móvil 3 gavetas (comprada) [vacío]"
+      ],
+      "evidencia": "plano: CAJONERA MÓVIL 3 GAVETAS (COMPRADA, 1 PIEZA)",
+      "inferido": false
+    },
+    {
+      "clave": "tapacanto",
+      "renglones": 1,
+      "materiales": [
+        "tapacanto"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: TAPACANTO PVC 2 mm GRIS EN CANTOS VISIBLES (metros por regla de casa)",
+      "inferido": false
+    }
+  ],
+  "sobran": [
+    {
+      "nombre": "Zoclo (regla de casa)",
+      "insumoId": "melamina-19-gris-humo-lm",
+      "permitido": false
+    },
+    {
+      "nombre": "Niveladores",
+      "insumoId": "nivelador",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Confirmas tapacanto PVC 2 mm del color gris humo (igual a la melamina)?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Quién suministra la cajonera móvil?",
+      "elegido": "(sin responder: ninguna opción coincide con el plano)",
+      "opciones": [
+        "Von Haucke",
+        "Cliente",
+        "Por definir"
+      ],
+      "evidencia": "plano: CAJONERA MÓVIL 3 GAVETAS (COMPRADA, 1 PIEZA)"
+    },
+    {
+      "pregunta": "¿Cómo se une el retorno con la cubierta principal?",
+      "elegido": "(sin responder: ninguna opción coincide con el plano)",
+      "opciones": [
+        "Escuadras",
+        "Tornillería oculta",
+        "Herraje de unión"
+      ],
+      "evidencia": "plano: RETORNO 800 × 500"
+    }
+  ]
+}

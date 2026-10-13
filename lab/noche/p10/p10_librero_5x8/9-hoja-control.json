@@ -1,0 +1,112 @@
+{
+  "producto": "Librero abierto 900 × 350 × 1800, melamina 28 mm Walnut en HOJA 5 × 8",
+  "resumen": {
+    "esperados": 6,
+    "pass": 2,
+    "fail": 4,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 1,
+    "renglonesBom": 9,
+    "veredicto": "FAIL"
+  },
+  "filas": [
+    {
+      "clave": "laterales",
+      "renglones": 1,
+      "materiales": [
+        "erp-ame28152-b709"
+      ],
+      "estado": "FAIL",
+      "motivos": [
+        "medida distinta (esperado 1800×350 ±20): undefined×undefined"
+      ],
+      "evidencia": "plano: 2 LATERALES 1800 × 350, AGLOMERADO MELAMINA 28 mm WALNUT HOJA 5 × 8 (ERP AME28152 WALNUT es el único 28 mm Walnut 5×8)",
+      "inferido": false,
+      "piezas": 2
+    },
+    {
+      "clave": "piso_techo",
+      "renglones": 0,
+      "materiales": [],
+      "estado": "FAIL",
+      "motivos": [
+        "material fuera de la familia esperada (^erp-ame28152-b709$): Piso y techo [melamina-28-walnut]"
+      ],
+      "evidencia": "plano: PISO Y TECHO 844 × 350 (2)",
+      "inferido": false
+    },
+    {
+      "clave": "entrepanos",
+      "renglones": 0,
+      "materiales": [],
+      "estado": "FAIL",
+      "motivos": [
+        "material fuera de la familia esperada (^erp-ame28152-b709$): Entrepaños fijos [melamina-28-walnut]"
+      ],
+      "evidencia": "plano: 4 ENTREPAÑOS FIJOS 844 × 330",
+      "inferido": false
+    },
+    {
+      "clave": "respaldo",
+      "renglones": 1,
+      "materiales": [
+        "melamina-16-walnut"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: RESPALDO MELAMINA 16 mm WALNUT 1800 × 900, UNA PIEZA (el plano no fija formato del respaldo)",
+      "inferido": false,
+      "piezas": 1
+    },
+    {
+      "clave": "tapacanto_m",
+      "renglones": 2,
+      "materiales": [
+        "tapacanto"
+      ],
+      "estado": "FAIL",
+      "motivos": [
+        "16.224 m, esperado 8.2–9.1 m",
+        "duplicado: 2 renglones"
+      ],
+      "evidencia": "plano: SÓLO CANTOS FRONTALES → 2 × 1.80 + 2 × 0.844 + 4 × 0.844 = 8.66 m",
+      "inferido": false,
+      "metros": 16.224
+    },
+    {
+      "clave": "niveladores",
+      "renglones": 1,
+      "materiales": [
+        "nivelador"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "plano: 4 NIVELADORES",
+      "inferido": false,
+      "cantidad": 4
+    }
+  ],
+  "sobran": [
+    {
+      "nombre": "Tornillería de ensamble y respaldo",
+      "insumoId": "tornilleria",
+      "permitido": true
+    },
+    {
+      "nombre": "Zoclo (regla de casa)",
+      "insumoId": "melamina-28-walnut",
+      "permitido": false
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Confirmas tapacanto PVC 2 mm color Walnut?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántos libreros se fabrican?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

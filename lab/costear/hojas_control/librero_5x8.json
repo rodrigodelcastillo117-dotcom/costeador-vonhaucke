@@ -1,0 +1,98 @@
+{
+  "fixture": "lab/costear/librero_5x8.png",
+  "producto": "Librero abierto 900 × 350 × 1800, melamina 28 mm Walnut en HOJA 5 × 8",
+  "proposito": "4×8 vs 5×8: el plano pide HOJA 5×8. En producción los 21 tableros ERP 5×8 tienen formato null (vh146 sin aplicar): el costo por área debe quedar PENDIENTE, nunca convertido a mano ni sustituido en silencio por el curado 4×8.",
+  "respuestas": [
+    {
+      "patron": "entrepa",
+      "valor": "4",
+      "evidencia": "plano: 4 ENTREPAÑOS FIJOS 844 × 330"
+    },
+    {
+      "patron": "nivelador",
+      "valor": "4",
+      "evidencia": "plano: 4 NIVELADORES"
+    },
+    {
+      "patron": "formato|hoja|5 ?x ?8|4 ?x ?8",
+      "valor": "5",
+      "evidencia": "plano: HOJA 5 × 8 (1525 × 2440)"
+    }
+  ],
+  "esperado": [
+    {
+      "clave": "laterales",
+      "patron": "lateral|costado",
+      "ids": "^erp-ame28152-b709$",
+      "piezas": 2,
+      "dims": [
+        1800,
+        350
+      ],
+      "tol": 20,
+      "evidencia": "plano: 2 LATERALES 1800 × 350, AGLOMERADO MELAMINA 28 mm WALNUT HOJA 5 × 8 (ERP AME28152 WALNUT es el único 28 mm Walnut 5×8)"
+    },
+    {
+      "clave": "piso_techo",
+      "patron": "piso|techo|cubierta|base|tapa",
+      "noPatron": "respaldo|lateral|entrepa",
+      "ids": "^erp-ame28152-b709$",
+      "piezas": 2,
+      "dims": [
+        844,
+        350
+      ],
+      "tol": 20,
+      "evidencia": "plano: PISO Y TECHO 844 × 350 (2)"
+    },
+    {
+      "clave": "entrepanos",
+      "patron": "entrepa|repisa",
+      "ids": "^erp-ame28152-b709$",
+      "piezas": 4,
+      "dims": [
+        844,
+        330
+      ],
+      "tol": 20,
+      "evidencia": "plano: 4 ENTREPAÑOS FIJOS 844 × 330"
+    },
+    {
+      "clave": "respaldo",
+      "patron": "respaldo|fondo|trasero",
+      "ids": "^(melamina-16-walnut|mdf-16-walnut|erp-ame1658-b709)$",
+      "piezas": 1,
+      "dims": [
+        1800,
+        900
+      ],
+      "tol": 30,
+      "evidencia": "plano: RESPALDO MELAMINA 16 mm WALNUT 1800 × 900, UNA PIEZA (el plano no fija formato del respaldo)"
+    },
+    {
+      "clave": "tapacanto_m",
+      "patron": "tapacanto|canto",
+      "ids": "tapacanto",
+      "metros": [
+        8.2,
+        9.1
+      ],
+      "evidencia": "plano: SÓLO CANTOS FRONTALES → 2 × 1.80 + 2 × 0.844 + 4 × 0.844 = 8.66 m"
+    },
+    {
+      "clave": "niveladores",
+      "patron": "nivelador",
+      "ids": "nivelador",
+      "cantidad": 4,
+      "evidencia": "plano: 4 NIVELADORES"
+    }
+  ],
+  "economia": "BLOCKED esperado: erp-ame28152-b709 es precio por hoja sin formato en producción → el motor debe marcarlo pendiente (P0-02).",
+  "extrasPermitidos": "torniller|escuadra|minifix|tapon|consumible",
+  "erp": {
+    "pieza": "lateral|costado",
+    "buscar": "AME28152 WALNUT",
+    "patron": "5 X 8.*28 mm.*WALNUT",
+    "evidencia": "plano: AGLOMERADO MELAMINA 28 mm WALNUT HOJA 5 × 8 — la persona elige el artículo ERP exacto"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "texto": "Mesa de juntas rectangular de 2400 × 1200 × 750 mm. Cubierta de melamina 28 mm acabado Walnut, una sola pieza de 2400 × 1200, con tapacanto PVC 2 mm Walnut en todo el perímetro (7.2 m). Base: dos paneles laterales de melamina 28 mm Walnut de 722 de alto × 1000 de ancho, y un faldón central de melamina 19 mm Walnut de 2000 × 300. Cuatro niveladores. Una caja de conexiones eléctricas al centro de la cubierta.",
+  "producto": "Mesa de juntas 2400 × 1200 × 750 descrita sólo con texto",
+  "proposito": "Entrada por TEXTO: todas las medidas y materiales vienen en la descripción; no hay imagen.",
+  "respuestas": [
+    { "patron": "panel|pata|lateral|base", "valor": "2", "evidencia": "texto: dos paneles laterales de 722 × 1000" },
+    { "patron": "nivelador", "valor": "4", "evidencia": "texto: Cuatro niveladores" },
+    { "patron": "caja|el[eé]ctric|conexi", "valor": "1", "evidencia": "texto: Una caja de conexiones eléctricas" }
+  ],
+  "esperado": [
+    { "clave": "cubierta", "patron": "cubierta", "ids": "^melamina-28-walnut$", "piezas": 1, "dims": [2400, 1200], "tol": 20, "evidencia": "texto: cubierta melamina 28 mm Walnut 2400 × 1200" },
+    { "clave": "tapacanto_m", "patron": "tapacanto|canto", "ids": "tapacanto", "metros": [7.0, 7.4], "evidencia": "texto: tapacanto en todo el perímetro (7.2 m)" },
+    { "clave": "paneles", "patron": "panel|lateral|pata|base", "noPatron": "fald", "ids": "^melamina-28-walnut$", "piezas": 2, "dims": [1000, 722], "tol": 20, "evidencia": "texto: dos paneles laterales 722 × 1000, melamina 28 mm Walnut" },
+    { "clave": "faldon", "patron": "fald", "ids": "^melamina-19-walnut$", "piezas": 1, "dims": [2000, 300], "tol": 20, "evidencia": "texto: faldón central melamina 19 mm Walnut 2000 × 300" },
+    { "clave": "niveladores", "patron": "nivelador", "ids": "nivelador", "cantidad": 4, "evidencia": "texto: Cuatro niveladores" },
+    { "clave": "caja_electrica", "patron": "caja|el[eé]ctric|conexi|contacto", "ids": "^(erp-be|erp-bem|caja|electr|contacto).*|^$", "cantidad": 1, "evidencia": "texto: Una caja de conexiones eléctricas (si no hay curado, sin material con motivo; nunca otro artículo)" }
+  ],
+  "extrasPermitidos": "torniller|escuadra|minifix|consumible|pasacable"
+}

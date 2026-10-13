@@ -1,0 +1,73 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render p10_librero_5x8 BORRADOR guarda librero abierto de 5 niveles Aglomerado melamina Walnut 28 mm",
+    "piezas": 9,
+    "mismoBom": true,
+    "costoAntes": "$7,345.38",
+    "costoDespues": "$7,345.38",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$7,345.38",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $4,576.37 · Mano de obra $692.25 · Fábrica $2,076.76",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Laterales",
+      "material": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT",
+      "alertas": []
+    },
+    {
+      "nombre": "Piso y techo",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": []
+    },
+    {
+      "nombre": "Entrepaños fijos",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": []
+    },
+    {
+      "nombre": "Respaldo",
+      "material": "Melamina 16 mm, Walnut",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto PVC 2 mm Walnut, cantos frontales de laterales",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tapacanto PVC 2 mm Walnut, frente piso/techo/entrepaños",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Tornillería de ensamble y respaldo",
+      "material": "Tornilleria",
+      "alertas": []
+    },
+    {
+      "nombre": "Zoclo (regla de casa)",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": []
+    }
+  ]
+}

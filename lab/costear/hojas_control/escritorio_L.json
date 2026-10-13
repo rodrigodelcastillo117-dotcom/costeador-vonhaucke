@@ -1,0 +1,85 @@
+{
+  "fixture": "lab/costear/escritorio_L.png",
+  "producto": "Escritorio en L 1600 × 1500 × 750, melamina 19 mm Gris Humo",
+  "respuestas": [
+    {
+      "patron": "panel|pata|lateral",
+      "valor": "3",
+      "evidencia": "plano: 3 PANELES LATERALES (2 DE 731 × 700 Y 1 DE 731 × 500)"
+    },
+    {
+      "patron": "cajonera|gaveta",
+      "valor": "1",
+      "evidencia": "plano: CAJONERA MÓVIL 3 GAVETAS (COMPRADA, 1 PIEZA)"
+    },
+    {
+      "patron": "retorno",
+      "valor": "800",
+      "evidencia": "plano: RETORNO 800 × 500"
+    }
+  ],
+  "esperado": [
+    {
+      "clave": "cubierta",
+      "patron": "cubierta|superficie",
+      "noPatron": "retorno",
+      "ids": "^melamina-19-gris-humo-lm$",
+      "piezas": 1,
+      "dims": [
+        1600,
+        700
+      ],
+      "tol": 20,
+      "evidencia": "plano: CUBIERTA PRINCIPAL MELAMINA 19 mm GRIS HUMO 1600 × 700"
+    },
+    {
+      "clave": "retorno",
+      "patron": "retorno",
+      "ids": "^melamina-19-gris-humo-lm$",
+      "piezas": 1,
+      "dims": [
+        800,
+        500
+      ],
+      "tol": 20,
+      "evidencia": "plano: RETORNO 800 × 500 MISMO MATERIAL"
+    },
+    {
+      "clave": "paneles",
+      "patron": "panel|pata|lateral|costado",
+      "ids": "^melamina-19-gris-humo-lm$",
+      "piezas": 3,
+      "areaM2": 1.389,
+      "tolPct": 6,
+      "evidencia": "plano: 2 DE 731 × 700 + 1 DE 731 × 500 = 1.389 m²"
+    },
+    {
+      "clave": "faldon",
+      "patron": "fald",
+      "ids": "^melamina-19-gris-humo-lm$",
+      "piezas": 1,
+      "dims": [
+        1500,
+        300
+      ],
+      "tol": 20,
+      "evidencia": "plano: FALDÓN MELAMINA 19 mm 1500 × 300, UNA PIEZA"
+    },
+    {
+      "clave": "cajonera",
+      "patron": "cajonera|pedestal",
+      "ids": "^(cajonera-movil)?$",
+      "cantidad": 1,
+      "evidencia": "plano: CAJONERA MÓVIL 3 GAVETAS (COMPRADA). El curado \"Cajonera movil\" no dice cuántas gavetas: lo correcto es proponerla y pedir confirmación (sin material hasta que la persona confirme), o amarrarla si la persona confirma."
+    },
+    {
+      "clave": "tapacanto",
+      "patron": "tapacanto|canto",
+      "ids": "tapacanto",
+      "presente": true,
+      "evidencia": "plano: TAPACANTO PVC 2 mm GRIS EN CANTOS VISIBLES (metros por regla de casa)"
+    }
+  ],
+  "extrasPermitidos": "nivelador|torniller|escuadra|minifix|consumible|pasacable",
+  "notaExtras": "nivelador: regla de casa 3 si los paneles se nombran como patas."
+}
