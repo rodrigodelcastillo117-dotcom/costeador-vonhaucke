@@ -149,7 +149,8 @@ test('puertas sin barrido: panel por puerta, sin índices internos; confirmar de
   await expect(panel).toBeVisible();
   // (una puerta en el borde entre dos cuartos se lista en ambos: por eso ≥ 2)
   await expect(panel).toContainText(/Detecté \d+ puertas cuyo sentido de apertura no puedo confirmar/);
-  expect(await panel.locator('li').count()).toBeGreaterThanOrEqual(2);
+  // VH-136: cada puerta pendiente trae su control para que la persona confirme bisagra y sentido.
+  expect(await panel.getByTestId('puerta-confirmar').count()).toBeGreaterThanOrEqual(2);
   await expect(panel).not.toContainText(/puertas\[/);
   // El aviso del servidor se resume con conteo, no 2 renglones idénticos.
   await expect(gate).not.toContainText(/Una puerta \[puertas\[1\]\]/);

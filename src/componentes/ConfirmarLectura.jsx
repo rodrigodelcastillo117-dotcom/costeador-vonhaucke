@@ -6,12 +6,27 @@
 //  (cuartos, medidas, puestos contados, confianza, problemas, escala) y NADA se usa
 //  hasta que la persona diga "sí, así es" o decida corregir / volver a subir.
 // ============================================================================
+import { useState } from 'react';
+import PuertaConfirmar from './PuertaConfirmar.jsx';
+import { confirmarPuertaEnArea, puertasSinConfirmar } from '../datos/puertasConfirmar.js';
+
 export default function ConfirmarLectura({ lectura, onConfirmar, onCorregir, onCancelar }) {
+  // VH-136: las puertas que la persona confirma aquí (bisagra/sentido/doble) se aplican sobre una
+  // copia de las áreas leídas; "Sí, así es" entrega ESA copia. Nada se usa antes de confirmar.
+  const [areasEditadas, setAreasEditadas] = useState(null);
+  const [confirmadas, setConfirmadas] = useState(0);
   if (!lectura) return null;
-  const { areas = [], resumen = {}, imagen = '', nota = '' } = lectura;
+  const { resumen = {}, imagen = '', nota = '' } = lectura;
+  const areas = areasEditadas || lectura.areas || [];
+  const confirmarPuerta = (areaIdx, idx, d) => {
+    const next = areas.map((a, i) => (i === areaIdx ? confirmarPuertaEnArea(a, idx, d) : a));
+    setAreasEditadas(next); setConfirmadas((n) => n + 1);
+  };
+  const sinConfirmar = puertasSinConfirmar(areas);
   const nivelTxt = { alta: '✓ Lectura confiable', media: '◑ Lectura con dudas', baja: '⚠ Lectura poco confiable', nula: '✗ No reconocí cuartos' }[resumen.nivel] || '';
   const puestos = areas.reduce((s, a) => s + (Number.isFinite(a.puestos) ? a.puestos : 0), 0);
   const puertasPendientes = areas.flatMap((a) => (a.puertasPendientes || []).map((pp) => ({ area: a.nombre || 'Área', x: Number(pp.x) || 0, y: Number(pp.y) || 0, ancho: Number(pp.ancho) || null, motivo: pp.motivo })));
+  const problemasVisibles = confirmadas ? (resumen.problemas || []).filter((t) => !/puerta/i.test(t)) : (resumen.problemas || []);
   const puedeConfirmar = areas.length > 0;
   return (
     <div className="tarjeta" style={{ marginTop: 12 }} data-testid="confirmar-lectura">
@@ -45,29 +60,32 @@ export default function ConfirmarLectura({ lectura, onConfirmar, onCorregir, onC
           </div>
         </div>
       </div>
-      {resumen.problemas?.length > 0 && (
+      {problemasVisibles.length > 0 && (
         <div className="alerta ambar" style={{ marginTop: 8 }} data-testid="lectura-problemas">
-          <span className="texto">Revisa esto: {resumen.problemas.join(' · ')}</span>
+          <span className="texto">Revisa esto: {problemasVisibles.join(' · ')}</span>
         </div>
       )}
       {/* VH-097: puertas cuyo sentido de apertura NO se pudo confirmar, UNA por renglón, con su
           cuarto y posición. Confirmar la lectura NO aprueba el barrido: quedan pendientes y el
           acomodo las trata como vano sin bloquear su barrido hasta que alguien lo confirme. */}
-      {puertasPendientes.length > 0 && (
+      {(puertasPendientes.length > 0 || sinConfirmar.length > 0) && (
         <div className="tarjeta" style={{ marginTop: 8, background: 'var(--panel)' }} data-testid="lectura-puertas-pendientes">
-          <strong>Detecté {puertasPendientes.length} puerta{puertasPendientes.length === 1 ? '' : 's'} cuyo sentido de apertura no puedo confirmar.</strong>
-          <div className="ayuda" style={{ marginTop: 2 }}>Revisa estas ubicaciones antes de validar el acomodo. Al confirmar la lectura, estas puertas siguen PENDIENTES (no se inventa bisagra ni sentido).</div>
-          <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: 13 }}>
-            {puertasPendientes.map((pp, i) => (
-              <li key={i}>{pp.area} · a {pp.x.toFixed(2)} m, {pp.y.toFixed(2)} m del origen del cuarto{pp.ancho ? ` · vano ${pp.ancho.toFixed(2)} m` : ''} · {pp.motivo === 'ANCHO_PUERTA_DESCONOCIDO' ? 'sin ancho verificable' : 'sin bisagra ni sentido'}</li>
+          {sinConfirmar.length > 0 ? (<>
+            <strong>Detecté {sinConfirmar.length} puerta{sinConfirmar.length === 1 ? '' : 's'} cuyo sentido de apertura no puedo confirmar. Dime tú cómo abre{sinConfirmar.length === 1 ? '' : 'n'}.</strong>
+            <div className="ayuda" style={{ marginTop: 2 }}>Si no lo confirmas, la puerta sigue PENDIENTE (no se inventa bisagra ni sentido) y el acomodo queda en revisión. Un acceso ancho suele ser doble: dos hojas que abren al mismo lado.</div>
+            {sinConfirmar.map((q) => (
+              <PuertaConfirmar key={`${q.areaIdx}:${q.idx}`} puerta={q.puerta} area={areas[q.areaIdx]}
+                onConfirmar={(d) => confirmarPuerta(q.areaIdx, q.idx, d)} />
             ))}
-          </ul>
+          </>) : (
+            <strong>✓ {confirmadas} puerta{confirmadas === 1 ? '' : 's'} confirmada{confirmadas === 1 ? '' : 's'} por ti. Se usa{confirmadas === 1 ? '' : 'n'} al confirmar la lectura.</strong>
+          )}
         </div>
       )}
       {!resumen.problemas?.length && nota && <div className="ayuda" style={{ marginTop: 8 }}>{nota}</div>}
       <div className="fila-botones" style={{ gap: 8, marginTop: 12 }}>
         {puedeConfirmar && (
-          <button className="boton primario" style={{ minHeight: 44 }} onClick={onConfirmar} data-testid="lectura-confirmar">
+          <button className="boton primario" style={{ minHeight: 44 }} onClick={() => onConfirmar(areasEditadas ? { ...lectura, areas: areasEditadas } : undefined)} data-testid="lectura-confirmar">
             Sí, así es: usar esta lectura
           </button>
         )}

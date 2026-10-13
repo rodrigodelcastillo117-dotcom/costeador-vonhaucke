@@ -152,10 +152,15 @@ export default function Voni({
     if (!r.areas.length) { if (r.nota) setNotaPlano(r.nota); return; }   // nada reconocido: que lo intente de nuevo
     setLecturaPendiente(r);
   }
-  function confirmarLectura() {
-    const r = lecturaPendiente; if (!r) return;
+  function confirmarLectura(editada) {
+    // VH-136: la compuerta puede entregar las áreas con puertas ya confirmadas por la persona.
+    const r = (editada && Array.isArray(editada.areas)) ? editada : lecturaPendiente; if (!r) return;
+    // Si la persona confirmó las puertas pendientes en la compuerta, los avisos de puerta ya no aplican.
+    const puertasConfirmadas = !!(editada && Array.isArray(editada.areas));
+    const problemas = (r.resumen?.problemas || []).filter((t) => !(puertasConfirmadas && /puerta/i.test(t)));
     const confirmada = { en: new Date().toISOString(), nivel: r.resumen?.nivel || null, m2: r.resumen?.m2 ?? null,
-      cuartos: r.areas.length, cotas: r.resumen?.cotas ?? null, problemas: r.resumen?.problemas || [],
+      cuartos: r.areas.length, cotas: r.resumen?.cotas ?? null, problemas,
+      ...(puertasConfirmadas ? { puertasConfirmadasPorPersona: true } : {}),
       servidor: r.resumen?.servidor || null };   // VH-064: veredicto determinista del servidor
     onGuardarAcomodo?.({ ...bloqueGeometria(r.areas), plan: null, planReal: true, lectura: confirmada });
     setLecturaPendiente(null);

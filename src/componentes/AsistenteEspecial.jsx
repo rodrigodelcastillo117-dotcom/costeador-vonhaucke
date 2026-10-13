@@ -21,7 +21,7 @@ import { mapIaComps as mapIaCompsCompartido } from '../datos/mapIaComps.js';
 import { amarrarPendientesERP } from '../datos/amarreERP.js';
 import { buscarInsumosMotor } from '../nube.js';
 import { resumenMotor } from '../datos/resumenMotor.js';
-import { respuestasPorReglaDeCasa } from '../datos/autoRespuestas.js';
+import { respuestasPorReglaDeCasa, esSupuestoPreliminar } from '../datos/autoRespuestas.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, alertaMaterial } from '../datos/materialMatch.js';
 import BuscadorInsumo from './BuscadorInsumo.jsx';
 import { paginaAImagen } from '../datos/pdfImagen.js';
@@ -717,7 +717,9 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       const r = await responderDespiece(catalogoIA(), imgs, propuestaIA, respPayload);
       if (!r?.ok) { setConfMsg(r?.error || 'No se pudo recalcular con tus respuestas.'); return; }
       let quien = null; try { quien = (await sesionActual())?.user?.email || null; } catch (_e) {}
-      guardarConfirmaciones(traza.map((x) => ({ confirmado_por: quien, producto: b.nombre || null, pregunta: x.pregunta, respuesta: x.respuesta, valor_anterior: x.supuesto || null, afecta: x.afecta, impacto: x.impacto })));
+      // Dirección 13-oct: un supuesto de la IA que sólo se CONSERVA (impacto bajo) no es una confirmación
+      // de nadie: no se registra en `confirmaciones` ni se presenta como confirmado; sigue preliminar.
+      guardarConfirmaciones(traza.filter((x) => !esSupuestoPreliminar(x.respuesta)).map((x) => ({ confirmado_por: quien, producto: b.nombre || null, pregunta: x.pregunta, respuesta: x.respuesta, valor_anterior: x.supuesto || null, afecta: x.afecta, impacto: x.impacto })));
       setConfirmadas(todas); // recordadas por key
       const confKeys = new Set(Object.keys(todas));
       const quedan = (Array.isArray(r.propuesta?.preguntas) ? r.propuesta.preguntas : []).filter((q) => !confKeys.has(normPreg(q).question_key)).length;
