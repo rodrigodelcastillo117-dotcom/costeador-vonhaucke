@@ -22,7 +22,7 @@
     {
       "clave": "cubierta",
       "patron": "cubierta|superficie",
-      "noPatron": "retorno",
+      "noPatron": "retorno|panel|pata|lateral|costado",
       "ids": "^melamina-19-gris-humo-lm$",
       "piezas": 1,
       "dims": [
@@ -42,7 +42,8 @@
         500
       ],
       "tol": 20,
-      "evidencia": "plano: RETORNO 800 × 500 MISMO MATERIAL"
+      "evidencia": "plano: RETORNO 800 × 500 MISMO MATERIAL",
+      "noPatron": "panel|pata|lateral|costado"
     },
     {
       "clave": "paneles",
@@ -81,5 +82,8 @@
     }
   ],
   "extrasPermitidos": "nivelador|torniller|escuadra|minifix|consumible|pasacable",
-  "notaExtras": "nivelador: regla de casa 3 si los paneles se nombran como patas."
+  "notaExtras": "nivelador: regla de casa 3 si los paneles se nombran como patas.",
+  "notas": [
+    "2026-10-13: cubierta/retorno excluyen nombres de panel/pata/lateral. La IA nombró \"Panel lateral (pata panel) cubierta principal\" y la hoja lo contaba como cubierta duplicada (falso FAIL)."
+  ]
 }

@@ -18,3 +18,5 @@ La corrida 1 se cayó por un error del laboratorio (botón "Atrás" de la app); 
 - Lo que se cambió hoy funciona: dificultad y VH-177. Paridad al centavo app = servidor en **7 de 7** hojas con costo, en normal y en difícil. La dificultad sube el costo entre 9 % y 13 %, y regresar a normal devuelve el número exacto.
 - Lo que falla es la **lectura de la IA** (`analizar-mueble`), que no se tocó hoy. Pasan 3 de 8 hojas de control; la misma pieza cambia de corrida a corrida.
 - Lo más grave es VH-178: una propuesta degenerada de la IA se acepta con confianza "alta".
+
+**Corrección 2026-10-13:** escritorio_L era un **falso FAIL** de la hoja de control ("cubierta" coincidía con "Panel lateral … cubierta principal"). Reevaluado con la hoja corregida: PASS 6/6. La lectura IA queda en 4 de 8 hojas PASS, no 3.
