@@ -39,7 +39,9 @@ medida, material, metros, cantidad. Todas las corridas de este bloque usaron Edg
 | 2.4 | Mesa de centro cristal + base tubular cromada: BOM vs plano | **PASS REPRODUCIDO** 3/3 tras VH-164/165 (antes FAIL en V3-3, V3-5 y V4) | `lab/noche/costear_v4/v5_mesa_centro/9-hoja-control.json` |
 | 2.5 | Mesa de centro: paridad, guardar, reabrir | **PASS REPRODUCIDO** $3,040.03 = $3,040.03; idéntico al reabrir | `v5_mesa_centro/4-paridad.json`, `6-reabierta.json` |
 | 2.6 | Mesa de centro: costo firme | **BLOCKED** (precios) | Servidor `incompleto`: cristal `propuesto`, tubular y nivelador `propuesto_validado`. Transferencia bloqueada. |
-| 2.7 | Mesa de trabajo PTR: BOM vs plano | _ver § 2b_ | |
+| 2.7 | Mesa de trabajo PTR + faldón: BOM vs plano | **PASS REPRODUCIDO** 6/6 (V5 y V6, mismo costo en ambas) | `lab/noche/costear_v4/v6_mesa_trabajo/9-hoja-control.json` |
+| 2.7b | Mesa de trabajo: ciclo completo imagen → BOM → costo → paridad → guardar → **transferir a Cotizar** → reabrir | **PASS REPRODUCIDO como PRELIMINAR** | $2,217.79 = $2,217.79; partida en Cotizar con venta $3,696.31 (40 %); reabierta idéntica. En V5 lo bloqueó en falso VH-163b. |
+| 2.7c | Mesa de trabajo: costo **certificado** | **BLOCKED** (precios) | 5 de 7 insumos sin precio certificado (melamina, tapacanto, PTR, lámina `propuesto`; nivelador `propuesto_validado`). |
 | 2.8 | Formato 5×8 y lámina 3×10 en la rejilla de corte | **PASS REPRODUCIDO** en el motor de la rama · **BLOCKED** para producción | `docs/auditoria/MOTOR_FORMATO_REJILLA.md`, `src/motor/formatoRejilla.test.js`. Cambia el costo: requiere desplegar cliente y servidor juntos. |
 | 2.9 | `mermaCorte` no se aplica con `fraccion=true` | **RIESGO** (decisión de Producción) | No es descuido: la rejilla real ya modela corte y orilla. El 6 % semilla no tiene fuente. Ver `MOTOR_FORMATO_REJILLA.md` § 2. |
 | 2.10 | Servidor de costeo de producción desfasado del motor publicado | **FAIL** (producción) · **BLOCKED** (despliegue) | `costear-servidor` v9 (12-oct 12:33 UTC) no tiene `aa8ccae`, `8ab047c`, `61c3637`. En V3 la mesa de trabajo salió `incompleto` sólo por eso. `costear-servidor-rc` sí cuadra al centavo. |
@@ -122,12 +124,38 @@ Conté a mano las imágenes aceptadas, ampliadas.
 
 | Suite | Resultado | Dónde |
 |---|---|---|
-| Vitest completo | 294 archivos / 2,559 pruebas PASS | local, `2088691` |
+| Vitest completo | 294 archivos / 2,559 pruebas PASS (`2088691`); `src/datos` 189/1,599 y `src/componentes` 32/124 PASS tras VH-163b/166 | local |
 | Build de producción | OK, 0 referencias RC | local |
 | E2E persistencia + VH-035c + concurrencia | 15 PASS / 1 FAIL (`persistencia:125`, intencional) | local |
-| CI `verify` | PASS en 662 | GitHub Actions |
-| CI E2E | 58 PASS / 10 SKIP / 3 FAIL en 662 (1 intencional + 2 corregidos en `3fc1352`) | GitHub Actions |
+| CI `verify` | PASS en 662 y 664 | GitHub Actions |
+| CI E2E | 664 (`8b66e8f`): **60 PASS / 10 SKIP / 1 FAIL** = sólo `persistencia:125` (VH-035, intencional). En 662 eran 3 FAIL: los 2 de VH-035c los rompí yo con el texto de `emisionUX` y se corrigieron en `3fc1352`. | GitHub Actions |
 
 ## 9. SHA, decisiones y veredicto
 
-_se completa al cierre._
+**Código evaluado:** `b1648ad` (última corrección) sobre la rama `claude/costing-app-architecture-psf02g`. Esta matriz y la
+evidencia viven en los commits siguientes de la misma rama. Producción sigue en `c8dd2b3`.
+
+### Lo que NO es mío decidir y bloquea el 9.5
+
+1. **Aplicar SQL** `vh035c` y `vh148` (en ese orden o cualquiera: está probado), y `vh147`/`vh146`. Sin esto VH-035 sigue rojo en producción y VH-148 no se puede probar con dos sesiones reales.
+2. **Redesplegar `costear-servidor`** de producción con el motor publicado (hoy desfasado; RC cuadra al centavo).
+3. **Desplegar el motor `2026-10-13`** (rejilla 5×8 y 3×10) en cliente y servidor juntos: cambia costos.
+4. **Certificar precios** de los insumos que usan estas tres familias (melamina 19, tapacanto, PTR, lámina 18, cristal, tubular 3/4", niveladores) y confirmar EcoCrom ($180/m² sin artículo ERP) y la cantidad de soldadura.
+5. **Costo oficial de productos de catálogo** (P0-01): sin eso ninguna propuesta de Cotizar sale de BORRADOR.
+6. Diseño: pintura negra, jaladera 300 mm (298 o 318 mm), tipo de tapacanto de la credenza; merma con `fraccion=true` (Producción).
+7. Re-revisar las 103 aprobaciones ERP hechas con la cuenta QA.
+
+### Calificación honesta (no hay 9.5)
+
+| Área | Nota | Por qué no más |
+|---|---|---|
+| Integridad y concurrencia | 7/10 en RC | Probado en PGlite y E2E con simulador; nada aplicado; dos sesiones reales imposibles sin SQL. |
+| Costear | 7/10 | Tres familias con BOM correcto contra el plano y un ciclo completo, pero hoy encontré y corregí 5 defectos técnicos (dos con dinero) que la paridad al centavo no veía. Ningún costo certificado. |
+| ERP | 6/10 | Reglas estrictas y probadas; los datos de origen (aprobaciones QA, duplicados LEGACY) siguen sin sanear. |
+| Cotizar (acomodo) | 6/10 | C1 válido; C5 falla (fuera de cuarto) y C2 parcial. Lo dice, no lo esconde. |
+| Cotizar (propuesta) | 3/10 | Bloqueada por P0-01; no depende del código. |
+| Renders | 7/10 | Contador ya fiable en 3/3; el generador falla el conteo en el área grande; fidelidad sin referencia no certificable. |
+| Seguridad y UX | 7/10 | Errores visibles y bloqueos honestos; dos de mis propias reglas (VH-163, texto de emisión) generaron un falso bloqueo y un rojo de CI antes de corregirse. |
+
+**Veredicto: NO-GO a producción.** El código de la rama está mejor que el de producción en todo lo medido, pero producción
+no puede recibirlo sin las decisiones 1–3, y el negocio no puede emitir en firme sin 4–5.

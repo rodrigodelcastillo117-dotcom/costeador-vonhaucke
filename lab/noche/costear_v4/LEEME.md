@@ -9,6 +9,7 @@ Todas con `analizar-mueble-rc` y `costear-servidor-rc` (`edges: rc=N prod=0 cost
 | `v4_mesa_trabajo` | `2088691` | — | — | — | la IA devolvió `INVALID_MODEL_SHAPE`; el servidor lo rechazó (guardia VH-162) |
 | `v5_mesa_centro` | `8b66e8f` | 3/3 PASS | $3,040.03 = $3,040.03 | idéntico | servidor `incompleto`: 3 precios sin certificar, niveladores por confirmar |
 | `v5_mesa_trabajo` | `8b66e8f` | 6/6 PASS | $2,217.79 = $2,217.79 (el lector del lab da `null` porque la venta dice "Pendiente") | idéntico | destapó VH-163b (falso "sin soporte" por plurales) y VH-166 (la tarjeta no decía el motivo) |
+| `v6_mesa_trabajo` | `b1648ad` | 6/6 PASS | $2,217.79 = $2,217.79 | idéntico | **ciclo completo**: transferida a Cotizar como PRELIMINAR (venta $3,696.31, 40 %); 5 de 7 precios sin certificar |
 
 Recalcular con la hoja vigente:
 `node lab/costear/verificarHoja.mjs lab/costear/hojas_control/mesa_centro.json lab/noche/costear_v4/v5_mesa_centro/8-dto-servidor.json`

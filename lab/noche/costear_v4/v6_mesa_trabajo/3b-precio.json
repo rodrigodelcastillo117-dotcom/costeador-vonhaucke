@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$2,217.79",
+      "$3,696.31"
+    ],
+    "margen": "Precio de lista (40% margen · política vigente (1 pieza))",
+    "estado": "Costo preliminar — 2 decisión(es) pendiente(s): ¿Cuántas mesas se fabricarán? · ¿Se requiere soldadura continua o por puntos?. No es obligatorio contestarlas; el costo ya se puede emitir como preliminar.",
+    "linea": "Material $1,294.09 · Mano de obra $230.92 · Fábrica $692.77",
+    "pendiente": false,
+    "porConfirmar": false
+  },
+  "piezas": []
+}
