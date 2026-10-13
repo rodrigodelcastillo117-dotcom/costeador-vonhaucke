@@ -1,0 +1,765 @@
+{
+ "meta": {
+  "generado": "2026-10-13",
+  "fuentes": {
+   "GE": "GE_AppLT_2024_08_26.pdf (ESP-DCC-IDP-003 v3, Drive 15Wuj9RjZS4OTEbRa4NHkQNq9qJkODpoF). Texto con read_file_content; dibujos revisados como imagen (pdftoppm) en p. 21-30, 35-38, 41, 44-45 (numeración impresa = página del PDF).",
+   "XL": "Modulos de 6U Y 8U linea APP LT.xlsx (Drive 11cKBPM0tmT171VbgBYueGZaA8bwv71io), Hoja1. Solo trae 2 módulos con horas por área; no trae BOM ni imágenes (revisado el .xlsx completo).",
+   "EJ": "lab/applt/ejemplo01_TATO63612AB001.json (pedido 38247) + lab/applt/coste_applt_20261002.json (ComponentesModulo / Fabricar componentes)"
+  },
+  "convenciones": "c = número de cubiertas de la corrida. Cantidades por módulo. 'visual' = contado en el dibujo de la guía, no escrito como número. 'derivado' = cálculo nuestro, no viene en ninguna fuente. null = la fuente no lo dice."
+ },
+ "reglas_banca_doble": {
+  "fondo_mm": 1200,
+  "medidas_permitidas_por_cubierta_mm": [
+   1200,
+   1500,
+   1800
+  ],
+  "fuente_medidas": "GE p24-25 (claves 4/5/6) y p35 (ATCUBD44/45/46ABS = 1200/1500/1800 x 1200 x 28)",
+  "usuarios_por_cubierta": 2,
+  "formula": [
+   {
+    "clave": "ATCUBD4{4|5|6}ABS",
+    "cantidad": "c",
+    "rol": "cubierta (2 tapas registrables metálicas)",
+    "fuente": "GE p24-25 cuadro 2; p35"
+   },
+   {
+    "clave": "ATPU4M",
+    "cantidad": 2,
+    "rol": "pata U 1200 en los 2 extremos",
+    "nota": "Pata en U para banca doble",
+    "fuente": "GE p24-25 cuadro 4; ejemplo01 = 2"
+   },
+   {
+    "clave": "ATPU75M",
+    "cantidad": "c-1",
+    "rol": "pata U 750 'entre lugares' (intermedias)",
+    "nota": "En 2U (c=1) no hay intermedia",
+    "fuente": "GE p25 cuadro 8; vista inferior p41/p44; ejemplo01 = 2 con c=3"
+   },
+   {
+    "clave": "ATOM3|ATOM4|ATOM5",
+    "cantidad": "2c",
+    "rol": "omega de refuerzo, 2 por cubierta (frente y fondo)",
+    "nota": "La guía rotula 'Omega para banca Sencilla: ATOM3=1.20 ATOM4=1.50 ATOM5=1.80' también en la lámina de banca doble. Cantidad = visual (vistas inferiores).",
+    "fuente": "GE p24-25 cuadro 5; vistas inferiores p26, p28, p41, p44; ejemplo01 = 6 con c=3"
+   },
+   {
+    "clave": "ATRICDB4|ATRICDB5|ATRICDB6",
+    "cantidad": "c",
+    "rol": "riel/ducto pasacables bajo cubierta, 1 por cubierta",
+    "fuente": "GE p24-25 cuadro 3; p38; vista superior p25; ejemplo01 = 3"
+   },
+   {
+    "clave": "QCIPLAUES (ERP: CIEPLA01300778)",
+    "cantidad": "2(c-1)",
+    "rol": "placa unión 200x47 entre cubiertas, 2 por junta",
+    "nota": "Cantidad visual: 2 placas por junta en vistas inferiores. Precio $0 en el pedido 38247.",
+    "fuente": "GE p25 cuadro 7; p38; vistas p41/p44; ejemplo01 = 4 con c=3"
+   },
+   {
+    "clave": "ATACM",
+    "cantidad": 1,
+    "rol": "acometida (ducto vertical)",
+    "nota": "La guía la pone como 'Acometidas Recomendadas' y dibuja 1 por banca (2U, 4U y 6U). En 8U ver ambigüedad en modulos.TATO84812ABY01.",
+    "fuente": "GE p24-25 cuadro 6, p36; ejemplo01 = 1"
+   },
+   {
+    "clave": "ATBIOCRT4/5/6 | ATBIOABS4/5/6",
+    "cantidad": "c (si lleva biombo)",
+    "rol": "biombo divisor central sobre cubierta, 1 por cubierta",
+    "nota": "La guía solo lista cristal transparente 6 mm y melamina 9 mm. ATBIOCRS4 (cristal satinado) y PET no vienen en la guía.",
+    "fuente": "GE p24-25 cuadro 1, p37, p45 (2 biombos de 1400 en 2 cubiertas de 1500); ejemplo01 = 9 ATBIOCRS4 para 3 módulos"
+   }
+  ],
+  "por_medida": {
+   "1200": {
+    "cubierta": "ATCUBD44ABS",
+    "omega": "ATOM3",
+    "omega_len_mm": 800,
+    "riel": "ATRICDB4",
+    "riel_len_mm": 900,
+    "biombo_cristal_transparente": "ATBIOCRT4",
+    "biombo_melamina_9mm": "ATBIOABS4",
+    "biombo_len_mm": 1100,
+    "extension_electrica": "48 in (1219 mm)"
+   },
+   "1500": {
+    "cubierta": "ATCUBD45ABS",
+    "omega": "ATOM4",
+    "omega_len_mm": 1100,
+    "riel": "ATRICDB5",
+    "riel_len_mm": 1200,
+    "biombo_cristal_transparente": "ATBIOCRT5",
+    "biombo_melamina_9mm": "ATBIOABS5",
+    "biombo_len_mm": 1400,
+    "extension_electrica": "52 in (1372 mm)"
+   },
+   "1800": {
+    "cubierta": "ATCUBD46ABS",
+    "omega": "ATOM5",
+    "omega_len_mm": 1400,
+    "riel": "ATRICDB6",
+    "riel_len_mm": 1500,
+    "biombo_cristal_transparente": "ATBIOCRT6",
+    "biombo_melamina_9mm": "ATBIOABS6",
+    "biombo_len_mm": 1700,
+    "extension_electrica": "60 in (1524 mm)"
+   }
+  },
+  "fuente_por_medida": "GE p24-25, p35, p37, p38, p41",
+  "restricciones": [
+   "Solo gavetas rodantes; no gaveta pedestal (GE p24, p25, p27).",
+   "Pata tubular solo cuando lleve gaveta; si no, solo patas marco y acometida cuadrada (GE p28, nota).",
+   "Cualquier configuración fuera de la guía se consulta con Diseño (GE p26-28).",
+   "Componentes App LT no son compatibles con ninguna otra línea (GE p39) — aunque la placa unión es QCIPLAUES 'modelo Cirque' (GE p38)."
+  ]
+ },
+ "reglas_banca_sencilla": {
+  "fondo_mm": 600,
+  "medidas_permitidas_por_cubierta_mm": [
+   1200,
+   1500,
+   1800
+  ],
+  "usuarios_por_cubierta": 1,
+  "formula": [
+   {
+    "clave": "ATCUBS44/45/46ABS (listado p35) o ATCUBS42/52/62ABS (alcance p21-22)",
+    "cantidad": "c",
+    "rol": "cubierta 600 de fondo con 1 tapa metálica",
+    "nota": "CONFLICTO de claves dentro de la guía.",
+    "fuente": "GE p21-22, p35"
+   },
+   {
+    "clave": "ATPU2M",
+    "cantidad": "c+1",
+    "rol": "pata U 600; la guía no distingue extremo/intermedia",
+    "nota": "Cantidad visual (p22: 4 patas para 3 cubiertas).",
+    "fuente": "GE p21-22 cuadro 4, p36"
+   },
+   {
+    "clave": "ATOM3|ATOM4|ATOM5",
+    "cantidad": "c (visual)",
+    "rol": "omega, 1 por cubierta",
+    "nota": "Vista inferior p41 muestra 1 omega por cubierta; no está escrito.",
+    "fuente": "GE p21-22 cuadro 5; p41"
+   },
+   {
+    "clave": "ATRICDS4|ATRICDS5|ATRICDS6",
+    "cantidad": "c",
+    "rol": "riel con ducto y faldón perforado",
+    "fuente": "GE p21-22 cuadro 3; p38"
+   },
+   {
+    "clave": "ATACM",
+    "cantidad": "1 (visual)",
+    "rol": "acometida recomendada",
+    "fuente": "GE p21-22 cuadro 6; p41"
+   },
+   {
+    "clave": "QCIPLAUES",
+    "cantidad": null,
+    "rol": "placa unión",
+    "nota": "No aparece en la banca sencilla.",
+    "fuente": "GE p21-22"
+   },
+   {
+    "clave": "ATBIOCRT4/5/6 | ATBIOABS4/5/6",
+    "cantidad": "c (si lleva biombo)",
+    "rol": "biombo trasero",
+    "fuente": "GE p21-22 cuadro 1"
+   }
+  ],
+  "por_medida": {
+   "1200": {
+    "cubierta_listado_p35": "ATCUBS44ABS",
+    "cubierta_alcance_p21_22": "ATCUBS42ABS",
+    "omega": "ATOM3",
+    "riel": "ATRICDS4",
+    "riel_len_mm": 900,
+    "biombo_cristal_transparente": "ATBIOCRT4",
+    "biombo_melamina_9mm": "ATBIOABS4"
+   },
+   "1500": {
+    "cubierta_listado_p35": "ATCUBS45ABS",
+    "cubierta_alcance_p21_22": "ATCUBS52ABS",
+    "omega": "ATOM4",
+    "riel": "ATRICDS5",
+    "riel_len_mm": 1200,
+    "biombo_cristal_transparente": "ATBIOCRT5",
+    "biombo_melamina_9mm": "ATBIOABS5"
+   },
+   "1800": {
+    "cubierta_listado_p35": "ATCUBS46ABS",
+    "cubierta_alcance_p21_22": "ATCUBS62ABS",
+    "omega": "ATOM5",
+    "riel": "ATRICDS6",
+    "riel_len_mm": 1500,
+    "biombo_cristal_transparente": "ATBIOCRT6",
+    "biombo_melamina_9mm": "ATBIOABS6"
+   }
+  },
+  "restricciones": [
+   "No bancas sencillas con gaveta pedestal, ni en bancas de 1 usuario; solo gavetas rodantes o karts (GE p23)."
+  ]
+ },
+ "mesa_de_juntas_registrable": {
+  "fuente": "GE p29",
+  "componentes": [
+   {
+    "clave": "ATCUBD44/45/46ABS",
+    "cantidad": "c",
+    "rol": "cubiertas 1200 de ancho x 1200/1500/1800 de largo con 2 tapas"
+   },
+   {
+    "clave": "ATPU4M",
+    "cantidad": 2,
+    "rol": "pata U extremos ('banca sencilla con riel sobre puesto' — rótulo literal)"
+   },
+   {
+    "clave": "ATPU75M",
+    "cantidad": "c-1 (visual)",
+    "rol": "pata U entre cubiertas"
+   },
+   {
+    "clave": "ATRICMJ4/5/6",
+    "cantidad": "c",
+    "rol": "riel con ducto para arnés (900/1200/1500)"
+   },
+   {
+    "clave": "ATOM3/4/5",
+    "cantidad": "2c (visual)",
+    "rol": "omega"
+   },
+   {
+    "clave": "ATACM",
+    "cantidad": 1,
+    "rol": "acometida recomendada"
+   },
+   {
+    "clave": "ATUDB",
+    "cantidad": null,
+    "rol": "ducto para cables",
+    "nota": "Cantidad no dibujada con claridad."
+   },
+   {
+    "clave": "QCIPLAUES",
+    "cantidad": "2(c-1) (visual)",
+    "rol": "placa unión"
+   }
+  ]
+ },
+ "mesa_de_juntas_ciega": {
+  "fuente": "GE p30",
+  "componentes": [
+   {
+    "clave": "ATCUMJ44/45/46ABS",
+    "cantidad": "c",
+    "rol": "cubierta 1200 x 1200/1500/1800 sin tapas"
+   },
+   {
+    "clave": "ATOMCU3/4/5",
+    "cantidad": null,
+    "rol": "omega doble (1.20/1.50/1.80)",
+    "nota": "Cantidad no legible en el dibujo."
+   },
+   {
+    "clave": "ATPU4M",
+    "cantidad": 2,
+    "rol": "pata U extremos"
+   },
+   {
+    "clave": "ATPU75M",
+    "cantidad": "c-1 (visual)",
+    "rol": "pata U entre cubiertas"
+   },
+   {
+    "clave": "QCIPLAUES",
+    "cantidad": null,
+    "rol": "placa unión"
+   }
+  ]
+ },
+ "escritorio_omega_faldon": {
+  "fuente": "GE p15 (tabla 'Medidas faldón y cubiertas'), p16 (patas)",
+  "tabla": [
+   {
+    "cubierta": "ATCE42ABS",
+    "omega": "ATOM3",
+    "faldon": "ATFAL12ABS"
+   },
+   {
+    "cubierta": "ATCE52ABS",
+    "omega": "ATOM4",
+    "faldon": "ATFAL150ABS"
+   },
+   {
+    "cubierta": "ATCE62ABS",
+    "omega": "ATOM4",
+    "faldon": "ATFAL18ABS"
+   },
+   {
+    "cubierta": "ATCE72ABS",
+    "omega": "ATOM5",
+    "faldon": "ATFAL21ABS"
+   },
+   {
+    "cubierta": "ATCE82ABS",
+    "omega": "ATOM6",
+    "faldon": "ATFAL24ABS"
+   },
+   {
+    "cubierta": "ATCE43ABS",
+    "omega": "ATOMCU3",
+    "faldon": "ATFAL12ABS"
+   },
+   {
+    "cubierta": "ATCE53ABS",
+    "omega": "ATOMCU4",
+    "faldon": "ATFAL15ABS"
+   },
+   {
+    "cubierta": "ATCE63ABS",
+    "omega": "ATOMCU5",
+    "faldon": "ATFAL18ABS"
+   },
+   {
+    "cubierta": "ATCE73ABS",
+    "omega": "ATOMCU5",
+    "faldon": "ATFAL21ABS"
+   },
+   {
+    "cubierta": "ATCE83ABS",
+    "omega": "ATOMCU6",
+    "faldon": "ATFAL24ABS"
+   }
+  ],
+  "patas": "Cubiertas de .60 → ATPU75M; de .75 → ATPU3M; de 1.20 → ATPU4M; cubierta lateral .60 → ATPU2M (GE p16, p19).",
+  "nota": "En ESCRITORIO 1800x600 la omega es ATOM4; en BANCA 1800 es ATOM5. No es el mismo mapeo."
+ },
+ "catalogo_componentes": {
+  "fuente": "GE p35-38",
+  "patas": {
+   "ATPU2M": "U 600x720x146",
+   "ATPU75M": "U 750x720x146",
+   "ATPU3M": "U 900x720x146",
+   "ATPU4M": "U 1200x720x146 (rotulada 'para mesa de juntas')",
+   "ATPU5M": "U 1500x720x146",
+   "ATPU6M": "U 1800x720x146",
+   "ATPU7M": "U 2100x720x146 (mesa de juntas)"
+  },
+  "acometida": {
+   "ATACM": "ducto acometida 251x75x650 metálico (ERP: 220x649x75)"
+  },
+  "omegas": {
+   "ATOM3": 800,
+   "ATOM4": 1100,
+   "ATOM5": 1400,
+   "ATOM6": 1700,
+   "ATOMCU3": 800,
+   "ATOMCU4": 1100,
+   "ATOMCU5": 1400,
+   "ATOMCU6": 1700,
+   "_nota": "mm de largo. ATOM = 98x14 sencilla; ATOMCU = doble 245 de ancho. ERP describe ATOM3 como 850x100x17."
+  },
+  "rieles": {
+   "ATRICDB4": 900,
+   "ATRICDB5": 1200,
+   "ATRICDB6": 1500,
+   "ATRICDS4": 900,
+   "ATRICDS5": 1200,
+   "ATRICDS6": 1500,
+   "ATRICMJ4": 900,
+   "ATRICMJ5": 1200,
+   "ATRICMJ6": 1500
+  },
+  "placa_union": {
+   "QCIPLAUES": "200x47 mm modelo Cirque, metálica (ERP: artículo CIEPLA01300778, línea CIRQUE)"
+  },
+  "biombos": {
+   "ATBIOCRT4": "cristal transparente 6 mm 1100x400",
+   "ATBIOCRT5": "1400x400",
+   "ATBIOCRT6": "1700x400",
+   "ATBIOABS4": "melamina 9 mm 1100x400",
+   "ATBIOABS5": "1400x400",
+   "ATBIOABS6": "1700x400"
+  },
+  "cubiertas_banca": {
+   "ATCUBS44ABS": "1200x600",
+   "ATCUBS45ABS": "1500x600",
+   "ATCUBS46ABS": "1800x600",
+   "ATCUBD44ABS": "1200x1200",
+   "ATCUBD45ABS": "1500x1200",
+   "ATCUBD46ABS": "1800x1200",
+   "ATCUMJ44ABS": "1200x1200",
+   "ATCUMJ45ABS": "1500x1200",
+   "ATCUMJ46ABS": "1800x1200"
+  },
+  "tornilleria": {
+   "PI1419HG": "pija hex 3/8 con arandela 14x19",
+   "TO38112CNIC": "nivelador 3/8 x 1 1/2",
+   "RO14GA": "rondana 1/4",
+   "TOA381BG": "tornillo (2 por ...)",
+   "_nota": "Todas las patas incluyen tornillería (GE p31)."
+  },
+  "electrico": {
+   "contacto_negro_CD": [
+    "MVLECO0321A353",
+    "MVLECO0921A453",
+    "MVLECO1022A453",
+    "MVLECO1102A453",
+    "MVLECO1222A653",
+    "MVLECO1322A755"
+   ],
+   "contacto_naranja_regulado": [
+    "MVLECO1222A654",
+    "MVLECO1322A756"
+   ],
+   "extension_por_cubierta": {
+    "900/1200": "48 in",
+    "1500": "52 in",
+    "1800": "60 in"
+   },
+   "banca_doble": "lleva conector en 'Y' de retorno eléctrico",
+   "fuente": "GE p40-41"
+  }
+ },
+ "modulos": {
+  "TATO63612AB001": {
+   "clave_comercial": "TATO63612ABS001",
+   "descripcion": "MODULO OPERATIVO APP LT DE 3600 X 1200 MM DE 6 USUARIOS CON CUBIERTAS EN ABS, SIN BIOMBO, ESTRUCTURA Y ACOMETIDA METALICA",
+   "tipo": "banca doble",
+   "usuarios": 6,
+   "medida_cubierta_mm": 1200,
+   "cubiertas": 3,
+   "biombo": null,
+   "componentes": [
+    {
+     "clave": "ATPU4M",
+     "cantidad": 2,
+     "rol": "pata U extremos"
+    },
+    {
+     "clave": "ATPU75M",
+     "cantidad": 2,
+     "rol": "pata U intermedias"
+    },
+    {
+     "clave": "ATOM3",
+     "cantidad": 6,
+     "rol": "omega"
+    },
+    {
+     "clave": "ATCUBD44ABS",
+     "cantidad": 3,
+     "rol": "cubierta"
+    },
+    {
+     "clave": "ATRICDB4",
+     "cantidad": 3,
+     "rol": "riel"
+    },
+    {
+     "clave": "ATACM",
+     "cantidad": 1,
+     "rol": "acometida"
+    },
+    {
+     "clave": "CIEPLA01300778",
+     "cantidad": 4,
+     "rol": "placa unión (= QCIPLAUES)",
+     "nota": "precio $0"
+    }
+   ],
+   "biombo_en_pedido": {
+    "clave": "ATBIOCRS4",
+    "cantidad": 3,
+    "rol": "biombo cristal satinado, partida aparte (tipo Normal, área BIOMBOS)",
+    "nota": "9 para 3 módulos"
+   },
+   "horas_por_modulo": {
+    "pm": 12.776,
+    "pintura": 0.1331,
+    "acabados": 2.002,
+    "carpinteria": 4.2204,
+    "entregas": 1.15
+   },
+   "fuente": "lab/applt/ejemplo01_TATO63612AB001.json (pedido 38247) + lab/applt/coste_applt_20261002.json (ComponentesModulo / Fabricar componentes); horas también en Modulos de 6U Y 8U linea APP LT.xlsx (Drive 11cKBPM0tmT171VbgBYueGZaA8bwv71io), Hoja1",
+   "cumple_regla_guia": true
+  },
+  "TATO84812ABY01": {
+   "descripcion": "MODULO OPERATIVO DE 4800 X 1200 mm, 8 USUARIOS; (DOBLE) MODELO APP LT; CUBIERTAS EN MELAMINA ABS; BIOMBO DIVISOR SOBRE CUBIERTA EN PANEL ACÚSTICO DE PET 9 mm; PATAS TIPO U; CONDUCTO ACOMETIDA, ESTRUCTURA METALICA",
+   "tipo": "banca doble",
+   "usuarios": 8,
+   "medida_cubierta_mm": 1200,
+   "cubiertas": 4,
+   "biombo": "PET 9 mm (clave del biombo no viene)",
+   "horas_por_modulo": {
+    "pm": 16.994,
+    "pintura": 0.1892,
+    "acabados": 2.7862,
+    "carpinteria": 5.6272,
+    "entregas": null
+   },
+   "fuente_horas": "Modulos de 6U Y 8U linea APP LT.xlsx (Drive 11cKBPM0tmT171VbgBYueGZaA8bwv71io), Hoja1",
+   "componentes_segun_regla_guia": [
+    {
+     "clave": "ATPU4M",
+     "cantidad": 2,
+     "rol": "pata U extremos"
+    },
+    {
+     "clave": "ATPU75M",
+     "cantidad": 3,
+     "rol": "pata U intermedias"
+    },
+    {
+     "clave": "ATOM3",
+     "cantidad": 8,
+     "rol": "omega"
+    },
+    {
+     "clave": "ATCUBD44ABS",
+     "cantidad": 4,
+     "rol": "cubierta"
+    },
+    {
+     "clave": "ATRICDB4",
+     "cantidad": 4,
+     "rol": "riel"
+    },
+    {
+     "clave": "QCIPLAUES",
+     "cantidad": 6,
+     "rol": "placa unión"
+    },
+    {
+     "clave": "ATACM",
+     "cantidad": 1,
+     "rol": "acometida"
+    },
+    {
+     "clave": "biombo PET 1100x400",
+     "cantidad": 4,
+     "rol": "biombo",
+     "nota": "clave no conocida"
+    }
+   ],
+   "verificacion_horas_derivado": {
+    "metodo": "Horas por pieza de cada componente (Fabricar componentes, coste_applt) x cantidades de la regla.",
+    "con_regla_guia_1_ATACM": {
+     "pm": 15.9636,
+     "pintura": 0.1694,
+     "acabados": 2.5702,
+     "carpinteria": 5.6272
+    },
+    "residuo_vs_xlsx": {
+     "pm": 1.0304,
+     "pintura": 0.0198,
+     "acabados": 0.216,
+     "carpinteria": 0.0
+    },
+    "lectura": "Carpintería cuadra exacto (4 cubiertas x 1.4068). El residuo es exactamente 2 x ATACM (0.5152 / 0.0099 / 0.108). La única combinación entera que cuadra las 4 áreas (sin biombo) es 2 ATPU4M + 3 ATPU75M + 8 ATOM3 + 4 ATCUBD44ABS + 4 ATRICDB4 + 6 placas + 3 ATACM. Pero el 8U lleva biombo PET y el 6U no: el residuo también podría ser soportería metálica de 4 biombos PET (0.2576 PM c/u). AMBIGUO: confirmar con el BOM real del 8U."
+   }
+  },
+  "banca_doble_2u_guia": {
+   "fuente": "GE p24",
+   "componentes": [
+    {
+     "clave": "ATCUBD4xABS",
+     "cantidad": 1,
+     "rol": "cubierta"
+    },
+    {
+     "clave": "ATPU4M",
+     "cantidad": 2,
+     "rol": "patas"
+    },
+    {
+     "clave": "ATOMx",
+     "cantidad": "2 (visual)",
+     "rol": "omega"
+    },
+    {
+     "clave": "ATRICDBx",
+     "cantidad": 1,
+     "rol": "riel"
+    },
+    {
+     "clave": "ATACM",
+     "cantidad": 1,
+     "rol": "acometida"
+    },
+    {
+     "clave": "biombo",
+     "cantidad": 1,
+     "rol": "opcional"
+    }
+   ]
+  },
+  "banca_doble_4u_guia": {
+   "fuente": "GE p25",
+   "componentes": [
+    {
+     "clave": "ATCUBD4xABS",
+     "cantidad": 2,
+     "rol": "cubierta"
+    },
+    {
+     "clave": "ATPU4M",
+     "cantidad": 2,
+     "rol": "patas extremos"
+    },
+    {
+     "clave": "ATPU75M",
+     "cantidad": 1,
+     "rol": "pata entre lugares"
+    },
+    {
+     "clave": "ATOMx",
+     "cantidad": "4 (visual)",
+     "rol": "omega"
+    },
+    {
+     "clave": "ATRICDBx",
+     "cantidad": 2,
+     "rol": "riel"
+    },
+    {
+     "clave": "QCIPLAUES",
+     "cantidad": "2 (visual)",
+     "rol": "placa unión"
+    },
+    {
+     "clave": "ATACM",
+     "cantidad": 1,
+     "rol": "acometida"
+    },
+    {
+     "clave": "biombo",
+     "cantidad": 2,
+     "rol": "opcional"
+    }
+   ]
+  },
+  "otros_modulos_conocidos_repo": {
+   "nota": "Claves vistas en src/datos/banco.js y preciosVenta.js (presupuestos); sin BOM.",
+   "TATO21512ABCT01": "banca doble 2U 1500x1200, biombo cristal",
+   "TATO63612ABCRT01": "banca doble 6U 3600x1200, biombo cristal transparente (preciosVenta.js lo etiqueta biombo:'pet' — revisar)",
+   "TATO84812ABCT01": "banca doble 8U 4800x1200, biombo cristal",
+   "TATO1126AB0001": "1 usuario 1200x600",
+   "TATO1156AB0001": "1 usuario 1500x600"
+  },
+  "clave_modulo_patron_derivado": "TATO{usuarios}{largo total dm}{fondo dm}AB{biombo}{consecutivo}: 6|36|12, 8|48|12, 2|15|12, 1|12|6, 1|15|6. Sufijo de biombo visto: S/0 = sin biombo, CRT/CT = cristal, Y = PET. Deducido de las claves; NO viene en la guía."
+ },
+ "opciones_acabado": {
+  "fuente": "ejemplo01 (pedido 38247): opción A118B770C770",
+  "letras": {
+   "A": "color de metal (A118 = COLOR METAL CHARCOAL)",
+   "B": "acabado madera / melamina (B770 = LIGHT ASH LP)",
+   "C": "color de plástico / canto ABS (C770 = LIGHT ASH LP)"
+  },
+  "aplica_a": {
+   "ATPU4M": "A",
+   "ATPU75M": "A",
+   "ATOM3": "A",
+   "ATRICDB4": "A",
+   "ATACM": "A",
+   "CIEPLA01300778": "A",
+   "ATCUBD44ABS": "A+B+C (tapas metálicas A, melamina B, canto C)",
+   "ATBIOCRS4": "sin opción",
+   "modulo": "A+B+C"
+  },
+  "guia": "La guía no trae tabla de códigos A/B/C. Solo muestra acabados de biombo de melamina (p32): Antracite Oak Tx 747, Antracite Oak 713, White Ash Tx 746, White Ash Tx 716, Walnut 709, Antracita Light TX 761, Soft Grey 718, Ivory New B751 ('consultar con su asesor'). El catálogo AppLT (Drive 13nYXk7MJZtInQYjwiK0uUftHhqCCZ4Oc) repite los mismos colores, también sin códigos de opción."
+ },
+ "pendiente": [
+  "BOM real de un 8U (TATO84812ABY01): ¿1 o 3 ATACM? ¿qué lleva el biombo PET y cuál es su clave?",
+  "Clave y BOM del biombo PET (ATBIOPET* del generador no está en la guía).",
+  "Confirmar 2 omegas y 2 placas unión por junta en 1500/1800 (la guía lo dibuja, no lo escribe).",
+  "Banca sencilla: conflicto ATCUBS44/45/46 vs ATCUBS42/52/62; placas unión; número de ATACM.",
+  "Patas intermedias en banca sencilla: la guía solo muestra ATPU2M.",
+  "Módulos de 1050 por usuario: no existen en la guía.",
+  "Tabla oficial de códigos de opción A/B/C por acabado."
+ ],
+ "diferencias_generador_src_datos_applt_js": [
+  {
+   "id": 1,
+   "producto": "banca_doble",
+   "generador": "omegaPara(L,1200) -> ATOMCU3/4/5",
+   "correcto": "ATOM3/ATOM4/ATOM5 para 1200/1500/1800",
+   "fuente": "GE p24-25 cuadro 5; ejemplo01 ATOM3"
+  },
+  {
+   "id": 2,
+   "producto": "banca_doble",
+   "generador": "omega x pares",
+   "correcto": "omega x 2*pares",
+   "fuente": "GE vistas inferiores p26,p28,p41,p44; ejemplo01 6 con c=3"
+  },
+  {
+   "id": 3,
+   "producto": "banca_doble",
+   "generador": "ATPU4M x (pares+1)",
+   "correcto": "ATPU4M x 2 + ATPU75M x (pares-1) (claro 750 en el PTR)",
+   "fuente": "GE p25 cuadros 4 y 8; ejemplo01 2+2"
+  },
+  {
+   "id": 4,
+   "producto": "banca_doble",
+   "generador": "sin placa unión",
+   "correcto": "QCIPLAUES (CIEPLA01300778) x 2*(pares-1), lista $0",
+   "fuente": "GE p25 cuadro 7, p41, p44; ejemplo01 4"
+  },
+  {
+   "id": 5,
+   "producto": "banca_doble",
+   "generador": "ATACM fuera del módulo (eléctrico aparte)",
+   "correcto": "ATACM x 1 dentro del módulo ($270); 8U ambiguo (1 o 3)",
+   "fuente": "GE p24-25 cuadro 6; ejemplo01 1; XL horas 8U"
+  },
+  {
+   "id": 6,
+   "producto": "banca_doble/banca_sencilla",
+   "generador": "largo 1050 y usuarios impares",
+   "correcto": "guía solo 1200/1500/1800 y usuarios pares en doble; fuera de guía = consultar Diseño",
+   "fuente": "GE p21-25, p35"
+  },
+  {
+   "id": 7,
+   "producto": "banca_doble/banca_sencilla",
+   "generador": "biombo pet ATBIOPET4/5/6; laterales; divisores",
+   "correcto": "guía solo ATBIOCRT4-6 y ATBIOABS4-6; real usa ATBIOCRS4 (satinado); PET sin clave; laterales/divisores no vienen",
+   "fuente": "GE p37; ejemplo01"
+  },
+  {
+   "id": 8,
+   "producto": "banca_doble",
+   "generador": "horas: ATPU4M por fórmula (otros 1.92/acab 0.15/pint 0.008), ATRICDB4 hRiel (0.165/0.09/0.004), sin ATPU75M/ATACM/placas",
+   "correcto": "ATPU4M 2.1556/0.1896/0.0132; ATRICDB4 0.8432/0.1464/0.0066; ATPU75M 1.5012/0.1498/0.0099; ATACM 0.5152/0.108/0.0099; placa 0.056/0.02/0.0011 (PM/acab/pint por pieza)",
+   "fuente": "coste_applt fabricar_componentes_horas"
+  },
+  {
+   "id": 9,
+   "producto": "banca_sencilla",
+   "generador": "omegaPara(1800,600) -> ATOM4 (1100)",
+   "correcto": "ATOM5 (1400) en banca 1.80; ATOM4 solo en escritorio ATCE62ABS",
+   "fuente": "GE p21-22 cuadro 5; GE p15"
+  },
+  {
+   "id": 10,
+   "producto": "banca_sencilla",
+   "generador": "sin ATACM",
+   "correcto": "ATACM recomendada (1, visual)",
+   "fuente": "GE p21-22 cuadro 6, p41"
+  },
+  {
+   "id": 11,
+   "producto": "mesa_juntas",
+   "generador": "1 cubierta + 2 patas pataPara(largo); sin omegas",
+   "correcto": "c cubiertas 1200 ancho, ATPU4M extremos + ATPU75M entre cubiertas, omegas ATOM3-5 (registrable)/ATOMCU3-5 (ciega), ATRICMJ, ATUDB, QCIPLAUES, ATACM",
+   "fuente": "GE p29-30"
+  }
+ ]
+}
