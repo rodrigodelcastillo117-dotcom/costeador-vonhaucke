@@ -10,6 +10,8 @@ const NOMBRE = process.env.LAB_COSTEAR_NOMBRE || `Credenza Nogal (lab P0-C ${new
 const ERP_BUSCAR = process.env.LAB_ERP_BUSCAR || 'MDF NATURAL 9 mm';
 const ERP_PATRON = new RegExp(process.env.LAB_ERP_PATRON || 'MDF8|ESPESOR 9 mm', 'i');
 const pesosNum = (t) => { const m = String(t || '').replace(/[^0-9.,-]/g, '').replace(/,/g, ''); const n = Number(m); return Number.isFinite(n) ? n : null; };
+const CLAVE = 'costeador-vonhaucke-v1';
+const leerCot = (page) => page.evaluate((k) => { try { return JSON.parse(window.localStorage.getItem(k))?.cotizacion || null; } catch (_e) { return null; } }, CLAVE);
 const guarda = (n, o) => fs.writeFileSync(path.join(SALIDA, n), typeof o === 'string' ? o : JSON.stringify(o, null, 2));
 
 async function leerPiezas(page) {
