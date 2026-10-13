@@ -1,0 +1,65 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render PRUEBA link RC librero 1013-2322 BORRADOR guarda librero abierto Tablero melamina nogal 28 mm",
+    "piezas": 7,
+    "mismoBom": true,
+    "costoAntes": "$1,226.48",
+    "costoDespues": "$1,226.48",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$1,226.48",
+        "Pendiente"
+      ],
+      "margen": null,
+      "estado": "Costo INCOMPLETO — faltan por costear 3 partida(s): Lateral (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada), Piso y techo (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada), Entrepaño fijo (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada). Asígnales material en el despiece (arriba) o márcalas como excluidas. Hasta entonces no hay costo total ni precio.",
+      "estado3": "COSTO BLOQUEADO — Sin material o precio: Lateral (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada) · Sin material o precio: Piso y techo (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada) · Sin material o precio: Entrepaño fijo (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada)",
+      "validadores": [],
+      "linea": "Material $752.06 · Mano de obra $118.60 · Fábrica $355.81",
+      "pendiente": true,
+      "porConfirmar": false
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Lateral",
+      "material": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT",
+      "alertas": []
+    },
+    {
+      "nombre": "Piso y techo",
+      "material": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT",
+      "alertas": []
+    },
+    {
+      "nombre": "Entrepaño fijo",
+      "material": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT",
+      "alertas": []
+    },
+    {
+      "nombre": "Respaldo",
+      "material": "Melamina 16 mm, Walnut",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto PVC 2 mm Walnut cantos frontales",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Nivelador",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Tornilleria ensamble y respaldo",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "resultado": {
+    "precios": [
+      "$1,226.48",
+      "Pendiente"
+    ],
+    "margen": null,
+    "estado": "Costo INCOMPLETO — faltan por costear 3 partida(s): Lateral (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada), Piso y techo (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada), Entrepaño fijo (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada). Asígnales material en el despiece (arriba) o márcalas como excluidas. Hasta entonces no hay costo total ni precio.",
+    "estado3": "COSTO BLOQUEADO — Sin material o precio: Lateral (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada) · Sin material o precio: Piso y techo (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada) · Sin material o precio: Entrepaño fijo (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada)",
+    "validadores": [],
+    "linea": "Material $752.06 · Mano de obra $118.60 · Fábrica $355.81",
+    "pendiente": true,
+    "porConfirmar": false
+  },
+  "piezas": []
+}

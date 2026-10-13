@@ -1,0 +1,367 @@
+{
+  "req": {
+    "cantidad": 1,
+    "pieza": {
+      "componentes": [
+        {
+          "insumoId": "erp-ame28152-b709",
+          "nombre": "Lateral",
+          "cantidad": 1,
+          "largoMM": 1800,
+          "anchoMM": 350,
+          "piezas": 2,
+          "material_solicitado": "Aglomerado melamina dos caras 28 mm acabado Walnut, HOJA 5 × 8 (1525 × 2440)",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "erp-ame28152-b709",
+          "nombre": "Piso y techo",
+          "cantidad": 1,
+          "largoMM": 844,
+          "anchoMM": 350,
+          "piezas": 2,
+          "material_solicitado": "Aglomerado melamina dos caras 28 mm acabado Walnut, HOJA 5 × 8 (1525 × 2440)",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "erp-ame28152-b709",
+          "nombre": "Entrepaño fijo",
+          "cantidad": 1,
+          "largoMM": 844,
+          "anchoMM": 330,
+          "piezas": 4,
+          "material_solicitado": "Aglomerado melamina dos caras 28 mm acabado Walnut, HOJA 5 × 8 (1525 × 2440)",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "melamina-16-walnut",
+          "nombre": "Respaldo",
+          "cantidad": 1,
+          "largoMM": 1800,
+          "anchoMM": 900,
+          "piezas": 1,
+          "material_solicitado": "Melamina 16 mm Walnut, una pieza 1800 × 900",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC 2 mm Walnut cantos frontales",
+          "cantidad": 8.66,
+          "piezas": 1,
+          "material_solicitado": "Tapacanto PVC 2 mm Walnut, sólo cantos frontales",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador",
+          "cantidad": 4,
+          "piezas": 1,
+          "material_solicitado": "Nivelador",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria ensamble y respaldo",
+          "cantidad": 1,
+          "piezas": 1,
+          "material_solicitado": "Tornillería",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        }
+      ]
+    }
+  },
+  "res": {
+    "ok": true,
+    "estado": "incompleto",
+    "aprobacionHumana": false,
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 1226.48,
+      "materialTotal": 752.06,
+      "manoObra": 118.6,
+      "indirectosFabrica": 355.81,
+      "desperdicio": 278.52,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-16-walnut",
+          "nombre": "Melamina 16 mm, Walnut",
+          "seccion": "cubiertas",
+          "costo": 608.76,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "costo": 27.38,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "costo": 70.92,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "costo": 45,
+          "certificable": true,
+          "evidencia": "aprobado"
+        }
+      ],
+      "componentesIgnorados": [
+        "Lateral (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada)",
+        "Piso y techo (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada)",
+        "Entrepaño fijo (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada)"
+      ]
+    },
+    "evidencia": {
+      "usados": 4,
+      "certificados": 1,
+      "noCertificados": 3
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 636.139456,
+      "materialIndirecto": 115.92,
+      "materialTotal": 752.059456,
+      "desperdicio": 278.5206614823972,
+      "manoObra": 118.60491839999999,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 18.64448389128059,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 870.6643743999999,
+      "indirectosFabrica": 355.81475520000004,
+      "gastosOperacion": 0,
+      "costoFabricacion": 1226.4791295999999,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 1226.4791295999999,
+      "costoLoteConMerma": 1226.4791295999999,
+      "costoUnitario": 1226.4791295999999,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-16-walnut",
+          "nombre": "Melamina 16 mm, Walnut",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Respaldo"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": true,
+            "certificable": false,
+            "hojas": 1,
+            "piezas_solicitadas": 1,
+            "piezas_colocadas": 1,
+            "placements": [
+              {
+                "id": "Respaldo#1",
+                "nombre": "Respaldo",
+                "x": 10,
+                "y": 10,
+                "w": 1800,
+                "h": 900,
+                "rot": 0,
+                "hoja": 1
+              }
+            ],
+            "remanentes": [
+              {
+                "hoja": 1,
+                "x": 1814,
+                "y": 10,
+                "w": 616,
+                "h": 1200,
+                "area_mm2": 739200
+              },
+              {
+                "hoja": 1,
+                "x": 10,
+                "y": 914,
+                "w": 2420,
+                "h": 296,
+                "area_mm2": 716320
+              }
+            ],
+            "issues": [],
+            "area_piezas_mm2": 1620000,
+            "area_comprada_mm2": 2976800,
+            "desperdicio_mm2": 1356800,
+            "eficiencia_pct": 55.78512396694215,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1.62,
+          "comprado": 2.9768,
+          "unidades": 1,
+          "costo": 608.76,
+          "desperdicio": 277.4676054823972,
+          "pct": 45.579145391023914,
+          "precio": 608.76,
+          "noCabe": false,
+          "fraccion": true,
+          "reglaProduccion": "produccion-rogelio-2026-10",
+          "piezasRegla": [
+            {
+              "pieza": "Respaldo",
+              "largoMM": 1800,
+              "anchoMM": 900,
+              "hojasPorPieza": 1
+            }
+          ]
+        },
+        {
+          "insumoId": "tapacanto",
+          "nombre": "Tapacanto PVC",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "rollo",
+            "corto": "rollo",
+            "medida": 50,
+            "nombre": "rollo de 50 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Tapacanto PVC 2 mm Walnut cantos frontales"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 8.66,
+          "comprado": 9.006400000000001,
+          "unidades": null,
+          "costo": 27.379456000000005,
+          "desperdicio": 1.0530560000000029,
+          "pct": 3.846153846153856,
+          "precio": 3.04,
+          "noCabe": false
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Nivelador"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 4,
+          "comprado": 4,
+          "unidades": null,
+          "costo": 70.92,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 17.73,
+          "noCabe": false
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "juego",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Tornilleria ensamble y respaldo"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 1,
+          "unidades": null,
+          "costo": 45,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 45,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [
+        "Lateral (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada)",
+        "Piso y techo (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada)",
+        "Entrepaño fijo (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada)"
+      ],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Tapacanto PVC 2 mm Walnut cantos frontales",
+        "Tornilleria ensamble y respaldo"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "incompleto",
+      "pendientes": [
+        "Lateral (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada)",
+        "Piso y techo (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada)",
+        "Entrepaño fijo (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada)"
+      ],
+      "costoOficial": null
+    },
+    "versionMotor": "2026-10-13c",
+    "versionConfig": "cfg1r33lco",
+    "versionCatalogo": "cat-ap1793-cfgjcp7x1",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T23:23:39.560Z",
+    "catalogoFuente": "catalogo",
+    "warnings": [
+      "3 pieza(s) sin material/precio usable: Lateral (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada), Piso y techo (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada), Entrepaño fijo (precio por hoja sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada)"
+    ]
+  }
+}
