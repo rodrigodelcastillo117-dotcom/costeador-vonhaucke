@@ -11,7 +11,8 @@ dos migraciones siguen con prefijo `PROPUESTA_`.
 
 | archivo | qué es | pruebas |
 |---|---|---|
-| `supabase/migrations/PROPUESTA_vh147_elegibilidad_erp.sql` | SQL real: `private_api.ventana_actualidad_meses()`=24; vista `catalogo_vigente` = producción + 5 columnas; `insumo_motor` y `resolver_costo_insumo` con evidencia extendida; rollback comentado al final | `supabase/tests/erpPolitica.test.js` · **17/17** |
+| `supabase/migrations/PROPUESTA_vh147_elegibilidad_erp.sql` | SQL real: política versionada (VH-147b, § 9) `private_api.politica_erp()` = V1 `ERP_ULTIMA_COMPRA_V1` (24 m) + `ventana_actualidad_meses()`; vista `catalogo_vigente` = producción + 9 columnas; `insumo_motor` y `resolver_costo_insumo` con evidencia extendida y versión sellada; libro append-only de evidencias; rollback comentado al final | `supabase/tests/erpPolitica.test.js` · **30/30** (17 originales + 13 de VH-147b/c) |
+| `supabase/migrations/PROPUESTA_vh147c_auditoria_erp_curados.sql` | vista de auditoría `private_api.auditoria_erp_curados` (los 110 ERP en insumos curados) + parte B opcional comentada | mismo archivo de pruebas (4) · análisis en `ERP_110_AUDITORIA.md` |
 | `supabase/migrations/PROPUESTA_vh146_formato_hojas_erp.sql` | SQL real, idempotente, con tabla de respaldo y rollback comentado | `supabase/tests/formatoHojasErp.test.js` · **28/28** |
 | `src/motor/formatoHojaErp.test.js` | efecto del formato en `calcular()` (sin / 4×8 / 5×8 / curados) con cifras | **8/8** |
 | `supabase/tests/fixtures/erpBaseAislada.js` | base PGlite: DDL real de `insumos_catalogo` e `insumo_precios` (con CHECK y columna generada), triggers reales, `aprobar_precio` real, vista de producción, `insumo_motor`/`catalogo_motor` de VH-088 | compartido |
@@ -218,3 +219,55 @@ Todos leen lo que ya trae `insumo_motor` tras VH-147: `insumo.actualizado` (= `v
 5. Aplicar VH-146 (241 filas estimadas; la verificación del SQL imprime el conteo real y las hojas que siguen sin formato para
    Compras) y, aparte, VH-146b ya corregido en el cargador para cargas futuras.
 6. Permisos: verificar `has_schema_privilege('service_role','private_api','USAGE')` en producción antes de aplicar VH-147.
+   **Verificado 2026-10-13 (SELECT): `true`** — el `grant usage` de la propuesta es no-op.
+7. VH-147b (§ 9): ¿la aprobación caduca? En V1 un `aprobado` certifica para siempre aunque la compra envejezca (27 de los 103
+   aprobados del lote A11 salen de la ventana en ≤ 12 meses; el primero el 2026-10-18). Si Dirección quiere caducidad, es
+   una REGLA nueva → migración + `ERP_ULTIMA_COMPRA_V2`, no un cambio de número.
+
+## 9. VH-147b · Política versionada (2026-10-13)
+
+Orden de Dirección: "Completa la política versionada". La política deja de ser un número en el código y pasa a ser un
+dato con versión, sellado en cada evaluación:
+
+| pieza | qué es |
+|---|---|
+| `private_api.politicas_erp` | registro **append-only** (trigger: sin UPDATE/DELETE/TRUNCATE) de versiones `(version, ventana_meses, reglas jsonb, activa_desde, registrada_por, nota)`; `version` con forma `ERP_…_V<n>`; **no retroactivo** (no se registra una versión con activación anterior a la vigente). Semilla idempotente: `ERP_ULTIMA_COMPRA_V1`, 24 meses, reglas en texto. |
+| `private_api.politica_erp()` | versión activa: `{version, ventana_meses, reglas, activa_desde}` (la de `activa_desde` más reciente ≤ `now()`); SECURITY DEFINER, sólo `service_role`. Registro vacío → `NULL` → falla cerrado (nada certifica por actualidad; `sellar_evidencia_erp` se niega). |
+| `private_api.ventana_actualidad_meses()` | misma firma de VH-147; ahora lee la versión activa (pasa de IMMUTABLE a STABLE). |
+| `private_api.registrar_politica_erp(version, ventana, reglas, nota)` | única vía para V2+: Dirección (JWT) o el dueño en migración; rechaza versión repetida. |
+| vista `catalogo_vigente` | + `politica_version`, `precio_id` (fila de `insumo_precios` que ganó el ranking), `ultima_compra` (= `vigente_desde` **sólo si DOCUMENTADO**), `origen_precio` (`source_system` o `contract_status`). La versión se lee una vez por consulta (CTE `pol`). |
+| `insumo_motor.evidencia` / `resolver_costo_insumo` | + `politica_version`, `ultima_compra`, `origen_precio`, `precio_id` (resolver también `ventana_actualidad_meses`; `politica_version` en las ramas CONFIG_LEGADO y DESCONOCIDO). |
+| `private_api.evidencias_certificacion_erp` + `private_api.sellar_evidencia_erp(insumo, contexto)` | libro **append-only**: quien certifica un costo sella `precio_id, precio, estado, última compra, antigüedad, actualidad, validez, certificable, estado_certificacion, motivo, politica_version, ventana_meses, sellado_por, contexto`. Una V2 posterior no lo toca. Sólo `service_role` o Dirección/Diseño. **Pendiente**: que `costear-servidor` lo llame al certificar (no se tocó la función). |
+
+Pruebas nuevas (PGlite, base aislada propia porque una V2 registrada no se puede deshacer): V1 sellada con versión,
+ventana y `precio_id`; Ventas no sella; registro y libro rechazan UPDATE/DELETE/TRUNCATE (no se puede editar la ventana de
+V1); V2 sólo por Dirección, no repetida, no retroactiva, `version` con forma válida; **con V2 = 3 meses el libro V1 queda
+idéntico** (misma fila, `certificable=true`, V1, 24, misma hora) mientras la vista ya dice V2/ANTIGUO/no certificable para el
+mismo precio de 6 meses y una certificación nueva se sella con V2; precios y estados intactos; `insumo_motor` y
+`resolver_costo_insumo` dicen V2; **rollback con V2 registrada**: vista de 17 columnas, funciones fuera, registro y libro
+intactos; **re-aplicar tras rollback no reactiva V1**. Más 4 de la vista de auditoría VH-147c.
+
+Límite honesto: sólo la **ventana** es parámetro de datos. Cambiar una regla (caducidad de aprobaciones, quién gana entre
+aprobado antiguo y documentado reciente — hallazgo L) exige migración nueva **y** versión nueva; `reglas` documenta el
+texto de cada versión pero no ejecuta nada. En LEGACY, `antiguedad_meses/actualidad` se calculan sobre la fecha de carga
+(no es compra); no afecta la certificación porque la validez lo bloquea, y `ultima_compra` sale `NULL` para no confundir.
+
+## 10. Fecha real de última compra vs fecha del registro (orden (c), producción, SELECT 2026-10-13)
+
+| campo en producción | qué es | evidencia |
+|---|---|---|
+| `insumo_precios.vigente_desde` (fila `erp_intelisis`) | **fecha real de última compra** (`fecha_uc` del Excel Intelisis) | 11 074 filas, rango 2009-12-03 … 2026-08-10; `evidencia` repite "ERP última compra AAAA-MM-DD" |
+| `insumo_precios.creado_en` | timestamp de **inserción** del registro (carga A11 02:23 / vh088 03:40 del 2026-10-12) | 1 sola fecha para las 11 074; **0 filas** con `vigente_desde = creado_en::date` |
+| `insumo_precios.approved_at` | hora de la aprobación en lote (2026-10-12 02:23–02:24) | no es compra |
+| `insumo_precios.vigente_desde` (fila LEGACY) | **fecha de carga**, no compra | 256/256 LEGACY con `vigente_desde = creado_en::date` (2026-10-01 … 2026-10-12) |
+| no existe `updated_at`/`actualizado` en `insumo_precios` ni en `insumos_catalogo` | — | `information_schema.columns` |
+
+Lo que recibe el cliente (`buscar_insumos_motor` / `catalogo_motor` → `private_api.insumo_motor`): la propiedad
+**`actualizado` = `catalogo_vigente.vigente_desde`** del precio que ganó el ranking. Para candidatos ERP es la fecha real de
+última compra (muestra: `erp-ame2848-b10` actualizado 2012-11-15 vs registro creado 2026-10-12 03:40; `acrilico-traslucido-3`
+2016-11-09 vs 2026-10-12 02:23; `pintura-polvo-silver-tx` 2026-07-27 vs creado 2026-10-12 02:23, aprobado 02:24). El RPC **no**
+devuelve `creado_en` ni `approved_at`. Cuidado: para insumos curados/LEGACY, `actualizado` es fecha de carga (y en la semilla
+local `src/datos/insumos.js` es `HOY`), así que no sirve para comparar un curado contra un ERP. Con VH-147b aplicada, la
+propiedad inequívoca es **`evidencia.ultima_compra`** (`NULL` cuando no hay compra documentada); mientras no se aplique,
+usar `actualizado` sólo cuando `evidencia.fuente` es la de Compras ERP / el id es `erp-…`.
+

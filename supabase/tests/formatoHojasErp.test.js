@@ -131,7 +131,7 @@ describe('VH-146 · paridad SQL ↔ cargador JS (erpCarga.js)', () => {
       const r = await fila(db2, `select case when $1 ~* $2 then '5x8' when $1 ~* $3 then '4x8' end as fmt`, [nombre, re5, re4]);
       expect(r.fmt ?? null, nombre).toBe(decideJS(nombre));
     }
-  });
+  }, 30_000);   // PGlite con la muestra completa: >5 s cuando otros procesos usan la CPU (no cambia aserciones)
 
   it('el cargador asigna 5×8 a una hoja "1.52 X 2.44" (antes la daba por 4×8: 2.9768 m² en vez de 3.721)', () => {
     const base = { costo_uc: 725.4, unidad: 'hoja', estatus: 'ALTA', fecha_uc: '2026-02-09', opcion: null };

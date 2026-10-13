@@ -1,0 +1,4570 @@
+{
+ "meta": {
+  "generado": "2026-10-13",
+  "proyecto": "mtuvnbgljwbsaizjjgzs (sólo SELECT)",
+  "consulta": "select p.* from insumo_precios p join insumos_catalogo c on c.id = p.insumo_id where p.vigente_hasta is null and p.source_system = 'erp_intelisis' and c.clasificacion in ('nuevo','vigente')",
+  "total": 110,
+  "por_categoria": {
+   "A_APROBADO_EN_VENTANA": 103,
+   "B_PRELIMINAR_FUERA_DE_VENTANA": 7
+  },
+  "nota": "Origen: lote A11 (supabase/datos/2026-10-12_a11_certificacion_erp.sql), ids 370–479. Precios intactos; este archivo es lectura. Análisis: docs/auditoria/ERP_110_AUDITORIA.md",
+  "por_bandera": {
+   "CLASIFICACION_NO_ERP": 110,
+   "PRECIO_LEGACY_ABIERTO": 109,
+   "APROBACION_MASIVA_CUENTA_QA": 103,
+   "OTRO_DATA_TRUTH_ABIERTO": 8,
+   "APROBADO_SALE_DE_VENTANA_LE_12M": 27,
+   "HOJA_SIN_FORMATO": 2,
+   "UNIDAD_ERP_DISTINTA": 3,
+   "ALIAS_REGISTRO_COMPARTIDO": 4
+  },
+  "ventana_meses": 24,
+  "hoy": "2026-10-13",
+  "definiciones": {
+   "A_APROBADO_EN_VENTANA": "estado aprobado (aprobar_precio) y última compra dentro de la ventana de 24 meses: certificable hoy y bajo VH-147",
+   "B_PRELIMINAR_FUERA_DE_VENTANA": "propuesto_validado con última compra > 24 meses: no certificable; PRELIMINAR con fecha visible",
+   "CLASIFICACION_NO_ERP": "insumo curado (clasificacion nuevo/vigente) con precio de origen ERP: todo lo que identifica ERP por clasificacion = erp lo omite",
+   "PRECIO_LEGACY_ABIERTO": "el mismo insumo conserva un precio LEGACY_UNMIGRATED (lista de Compras, referenciada) con vigente_hasta NULL",
+   "OTRO_DATA_TRUTH_ABIERTO": "el mismo insumo tiene además filas DATA_TRUTH_V1 source_system=intelisis (hojas golden Repisa/Alpura/APP LT) en propuesto, abiertas",
+   "ALIAS_REGISTRO_COMPARTIDO": "el mismo registro ERP (artículo|opción) es el precio de dos insumos curados (genérico y variante)",
+   "HOJA_SIN_FORMATO": "unidad de costeo hoja sin atributos.formato (el motor no puede consumir por área)",
+   "UNIDAD_ERP_DISTINTA": "source_unit pieza mapeada a tramo/pza con factor 1 (supuesto 1 pieza ERP = 1 tramo de 6 m)",
+   "APROBADO_SALE_DE_VENTANA_LE_12M": "aprobado cuya última compra cumple 24 meses dentro de los próximos 12 meses; bajo V1 seguirá certificando (la aprobación no caduca)",
+   "APROBACION_MASIVA_CUENTA_QA": "aprobado por qa-direccion@vonhaucke.mx (rol direccion) en lote el 2026-10-12, con base sólo en la fecha de compra"
+  }
+ },
+ "registros": [
+  {
+   "precio_id": 370,
+   "insumo_id": "pintura-polvo-silver",
+   "nombre": "Pintura en polvo, Silver",
+   "clasificacion": "nuevo",
+   "seccion": "acabados",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 345.61485,
+   "source_unit": "kg",
+   "cost_unit": "kg",
+   "unidad_costeo": "kg",
+   "ultima_compra": "2026-07-14",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-07-15",
+   "source_record_id": "MVLQPP00000000|A106",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:23:59.558938+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 233,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 345.61,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 371,
+   "insumo_id": "melamina-28-ivory-vanyla",
+   "nombre": "Melamina 28 mm, Ivory Vanyla",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1269.9,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-07-15",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-07-16",
+   "source_record_id": "MVLMAG01280800|B838",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:00.082885+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 207,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1269.9,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 372,
+   "insumo_id": "melamina-28-black",
+   "nombre": "Melamina 28 mm, Black",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1026.9,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-07-09",
+   "antiguedad_meses": 3,
+   "sale_de_ventana_24m": "2028-07-10",
+   "source_record_id": "MVLMAG01280800|B721",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:00.341521+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 198,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1026.9,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 373,
+   "insumo_id": "melamina-19-cerezo-au",
+   "nombre": "Melamina 19 mm, Cerezo AU",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 677,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-12-18",
+   "antiguedad_meses": 9,
+   "sale_de_ventana_24m": "2027-12-19",
+   "source_record_id": "MVLMAG01280600|B1093",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:00.596809+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 176,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 677,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 374,
+   "insumo_id": "laminado-walnut",
+   "nombre": "Laminado plastico 4x8 Walnut (nogal)",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 684.36,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-05-18",
+   "antiguedad_meses": 4,
+   "sale_de_ventana_24m": "2028-05-19",
+   "source_record_id": "MVLMLP00280000|B709",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:00.819522+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 239,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 641.59,
+     "vigente_desde": "2026-10-01"
+    },
+    {
+     "id": 277,
+     "contract_status": "DATA_TRUTH_V1",
+     "source_system": "intelisis",
+     "estado": "propuesto",
+     "precio": 641.59,
+     "vigente_desde": "2026-02-20"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "OTRO_DATA_TRUTH_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 375,
+   "insumo_id": "melamina-28-antracita-light-tx",
+   "nombre": "Melamina 28 mm, Antracita Light TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1295.1,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-07-07",
+   "antiguedad_meses": 3,
+   "sale_de_ventana_24m": "2028-07-08",
+   "source_record_id": "MVLMAG01280800|B761",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:01.075785+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 195,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1295.1,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 376,
+   "insumo_id": "melamina-16-frosty-white",
+   "nombre": "Melamina 16 mm, Frosty White",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 413,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-03-24",
+   "antiguedad_meses": 6,
+   "sale_de_ventana_24m": "2028-03-25",
+   "source_record_id": "MVLMAG01280500|B744",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:01.324897+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 153,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 413,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 377,
+   "insumo_id": "melamina-19-light-ash-lp",
+   "nombre": "Melamina 19 mm, Light Ash LP",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 644,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-06-24",
+   "antiguedad_meses": 15,
+   "sale_de_ventana_24m": "2027-06-25",
+   "source_record_id": "MVLMAG01280600|B770",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:01.548836+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 184,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 644,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 378,
+   "insumo_id": "melamina-16-nogal-neo-tx",
+   "nombre": "Melamina 16 mm, Nogal Neo TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 665,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-06-04",
+   "antiguedad_meses": 4,
+   "sale_de_ventana_24m": "2028-06-05",
+   "source_record_id": "MVLMAG01280500|B805",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:01.75055+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 161,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 665,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 379,
+   "insumo_id": "melamina-16-antracita-light",
+   "nombre": "Melamina 16 mm, Antracita Light",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 608.76,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-07-30",
+   "antiguedad_meses": 14,
+   "sale_de_ventana_24m": "2027-07-31",
+   "source_record_id": "MVLMAG01280500|B799",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:01.995007+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 143,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 608.76,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 380,
+   "insumo_id": "melamina-16-antracite-oak",
+   "nombre": "Melamina 16 mm, Antracite Oak",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 822.6,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-06-25",
+   "antiguedad_meses": 3,
+   "sale_de_ventana_24m": "2028-06-26",
+   "source_record_id": "MVLMAG01280500|B713",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:02.223601+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 145,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 822.6,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 381,
+   "insumo_id": "pintura-polvo-solar-black-44-80060-de-tiger",
+   "nombre": "Pintura en polvo, Solar Black 44/80060 Tiger",
+   "clasificacion": "nuevo",
+   "seccion": "acabados",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 214.150149,
+   "source_unit": "kg",
+   "cost_unit": "kg",
+   "unidad_costeo": "kg",
+   "ultima_compra": "2025-07-11",
+   "antiguedad_meses": 15,
+   "sale_de_ventana_24m": "2027-07-12",
+   "source_record_id": "MVLQPP00000000|A523",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:02.450882+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 235,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 214.15,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 382,
+   "insumo_id": "melamina-19-fresno-bruma-tx",
+   "nombre": "Melamina 19 mm, Fresno Bruma TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 718,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-06-16",
+   "antiguedad_meses": 3,
+   "sale_de_ventana_24m": "2028-06-17",
+   "source_record_id": "MVLMAG01280600|B807",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:02.683299+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 177,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 718,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 383,
+   "insumo_id": "melamina-28-cerezo-au",
+   "nombre": "Melamina 28 mm, Cerezo AU",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1075,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-01-23",
+   "antiguedad_meses": 8,
+   "sale_de_ventana_24m": "2028-01-24",
+   "source_record_id": "MVLMAG01280800|B1093",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:02.929295+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 199,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1075,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 384,
+   "insumo_id": "pintura-polvo-black-tx",
+   "nombre": "Pintura en polvo, Black TX",
+   "clasificacion": "nuevo",
+   "seccion": "acabados",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 107.976491,
+   "source_unit": "kg",
+   "cost_unit": "kg",
+   "unidad_costeo": "kg",
+   "ultima_compra": "2026-08-04",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-08-05",
+   "source_record_id": "MVLQPP00000000|A112",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:03.147979+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 223,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 107.98,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 385,
+   "insumo_id": "melamina-28-latte-tx",
+   "nombre": "Melamina 28 mm, Latte TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1140,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-07-28",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-07-29",
+   "source_record_id": "MVLMAG01280800|B837",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:03.360368+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 208,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1140,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 386,
+   "insumo_id": "acrilico-cristal-3",
+   "nombre": "Acrilico cristal 3 mm (hoja 4x6)",
+   "clasificacion": "nuevo",
+   "seccion": "mamparas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 900,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-01-13",
+   "antiguedad_meses": 9,
+   "sale_de_ventana_24m": "2028-01-14",
+   "source_record_id": "MLEPAC00711600|",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:03.577683+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 240,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 900,
+     "vigente_desde": "2026-10-01"
+    },
+    {
+     "id": 284,
+     "contract_status": "DATA_TRUTH_V1",
+     "source_system": "intelisis",
+     "estado": "propuesto",
+     "precio": 900,
+     "vigente_desde": "2026-01-13"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "OTRO_DATA_TRUTH_ABIERTO",
+    "HOJA_SIN_FORMATO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 387,
+   "insumo_id": "nivelador-plataforma",
+   "nombre": "Tornillo nivelador 3/8 plataforma 1 1/2\" cromado",
+   "clasificacion": "nuevo",
+   "seccion": "herrajes",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 41.63,
+   "source_unit": "pieza",
+   "cost_unit": "pza",
+   "unidad_costeo": "pza",
+   "ultima_compra": "2026-08-03",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-08-04",
+   "source_record_id": "MVLUTO15181009|",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:03.790843+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 250,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 41.63,
+     "vigente_desde": "2026-10-01"
+    },
+    {
+     "id": 283,
+     "contract_status": "DATA_TRUTH_V1",
+     "source_system": "intelisis",
+     "estado": "propuesto",
+     "precio": 41.63,
+     "vigente_desde": "2026-04-09"
+    },
+    {
+     "id": 289,
+     "contract_status": "DATA_TRUTH_V1",
+     "source_system": "intelisis",
+     "estado": "propuesto",
+     "precio": 17.73,
+     "vigente_desde": "2026-09-11"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "OTRO_DATA_TRUTH_ABIERTO",
+    "UNIDAD_ERP_DISTINTA",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 388,
+   "insumo_id": "melamina-19-gris-humo-lm",
+   "nombre": "Melamina 19 mm, Gris Humo LM",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 904.5,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-02-11",
+   "antiguedad_meses": 20,
+   "sale_de_ventana_24m": "2027-02-12",
+   "source_record_id": "MVLMAG01280600|B1095",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:04.013464+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 179,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 904.5,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 389,
+   "insumo_id": "melamina-16-verde-esmeralda",
+   "nombre": "Melamina 16 mm, Verde Esmeralda",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 788.4,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-09-24",
+   "antiguedad_meses": 12,
+   "sale_de_ventana_24m": "2027-09-25",
+   "source_record_id": "MVLMAG01280500|B840",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:04.233117+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 166,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 788.4,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 390,
+   "insumo_id": "pintura-polvo-warm-grey-tx",
+   "nombre": "Pintura en polvo, Warm Grey TX",
+   "clasificacion": "nuevo",
+   "seccion": "acabados",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 167.844288,
+   "source_unit": "kg",
+   "cost_unit": "kg",
+   "unidad_costeo": "kg",
+   "ultima_compra": "2026-03-18",
+   "antiguedad_meses": 6,
+   "sale_de_ventana_24m": "2028-03-19",
+   "source_record_id": "MVLQPP00000000|A104",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:04.457615+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 236,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 167.84,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 391,
+   "insumo_id": "melamina-28-nogal-neo-tx",
+   "nombre": "Melamina 28 mm, Nogal Neo TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1107,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-06-04",
+   "antiguedad_meses": 4,
+   "sale_de_ventana_24m": "2028-06-05",
+   "source_record_id": "MVLMAG01280800|B805",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:04.686598+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 212,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1107,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 392,
+   "insumo_id": "melamina-12-antracita-light-tx",
+   "nombre": "Melamina 12 mm, Antracita Light TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 739.8,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-06-17",
+   "antiguedad_meses": 15,
+   "sale_de_ventana_24m": "2027-06-18",
+   "source_record_id": "MVLMAG01280400|B761",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:04.908143+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 141,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 739.8,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 393,
+   "insumo_id": "melamina-12-fresno-bruma-tx",
+   "nombre": "Melamina 12 mm, Fresno Bruma TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 575,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-02-09",
+   "antiguedad_meses": 8,
+   "sale_de_ventana_24m": "2028-02-10",
+   "source_record_id": "MVLMAG01280400|B807",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:05.187126+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 142,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 575,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 394,
+   "insumo_id": "pintura-polvo-gris-ral-7036",
+   "nombre": "Pintura en polvo, Gris RAL 7036",
+   "clasificacion": "nuevo",
+   "seccion": "acabados",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 242.962547,
+   "source_unit": "kg",
+   "cost_unit": "kg",
+   "unidad_costeo": "kg",
+   "ultima_compra": "2024-10-17",
+   "antiguedad_meses": 23,
+   "sale_de_ventana_24m": "2026-10-18",
+   "source_record_id": "MVLQPP00000000|A511",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:05.385297+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 227,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 242.96,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 395,
+   "insumo_id": "melamina-16-maple-fire",
+   "nombre": "Melamina 16 mm, Maple Fire",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 740.7,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-10-08",
+   "antiguedad_meses": 12,
+   "sale_de_ventana_24m": "2027-10-09",
+   "source_record_id": "MVLMAG01280500|B1094",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:05.63753+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 159,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 740.7,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 396,
+   "insumo_id": "melamina-28-soft-grey",
+   "nombre": "Melamina 28 mm, Soft Grey",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1269.9,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-07-13",
+   "antiguedad_meses": 3,
+   "sale_de_ventana_24m": "2028-07-14",
+   "source_record_id": "MVLMAG01280800|B718",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:05.855806+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 215,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1269.9,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 397,
+   "insumo_id": "melamina-16-light-ash-lp",
+   "nombre": "Melamina 16 mm, Light Ash LP",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 645,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-09-09",
+   "antiguedad_meses": 13,
+   "sale_de_ventana_24m": "2027-09-10",
+   "source_record_id": "MVLMAG01280500|B770",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:06.09899+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 158,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 645,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 398,
+   "insumo_id": "melamina-19-ivory",
+   "nombre": "Melamina 19 mm, Ivory",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 904.5,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-09-23",
+   "antiguedad_meses": 12,
+   "sale_de_ventana_24m": "2027-09-24",
+   "source_record_id": "MVLMAG01280600|B717",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:06.329751+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 180,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 904.5,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 399,
+   "insumo_id": "melamina-16-antracite-oak-tx",
+   "nombre": "Melamina 16 mm, Antracite Oak TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 694.8,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-06-25",
+   "antiguedad_meses": 3,
+   "sale_de_ventana_24m": "2028-06-26",
+   "source_record_id": "MVLMAG01280500|B747",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:06.55106+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 146,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 694.8,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 400,
+   "insumo_id": "pintura-polvo-blanco-ral-9016-009-13120",
+   "nombre": "Pintura en polvo, Blanco RAL 9016 009/13120",
+   "clasificacion": "nuevo",
+   "seccion": "acabados",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 239.37325,
+   "source_unit": "kg",
+   "cost_unit": "kg",
+   "unidad_costeo": "kg",
+   "ultima_compra": "2026-07-08",
+   "antiguedad_meses": 3,
+   "sale_de_ventana_24m": "2028-07-09",
+   "source_record_id": "MVLQPP00000000|A519",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:06.772601+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 224,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 239.37,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 401,
+   "insumo_id": "melamina-16-white-ash-tx",
+   "nombre": "Melamina 16 mm, White Ash TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 827.82,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-07-07",
+   "antiguedad_meses": 15,
+   "sale_de_ventana_24m": "2027-07-08",
+   "source_record_id": "MVLMAG01280500|B746",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:06.975317+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 169,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 827.82,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 402,
+   "insumo_id": "melamina-16-terracota",
+   "nombre": "Melamina 16 mm, Terracota",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 788.4,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-09-24",
+   "antiguedad_meses": 12,
+   "sale_de_ventana_24m": "2027-09-25",
+   "source_record_id": "MVLMAG01280500|B839",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:07.192342+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 165,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 788.4,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 403,
+   "insumo_id": "pintura-polvo-aluminio-anodizado",
+   "nombre": "Pintura en polvo, Aluminio Anodizado",
+   "clasificacion": "nuevo",
+   "seccion": "acabados",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 261.21188,
+   "source_unit": "kg",
+   "cost_unit": "kg",
+   "unidad_costeo": "kg",
+   "ultima_compra": "2026-02-10",
+   "antiguedad_meses": 8,
+   "sale_de_ventana_24m": "2028-02-11",
+   "source_record_id": "MVLQPP00000000|A108",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:07.411737+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 219,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 261.21,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 404,
+   "insumo_id": "melamina-28-antracite-oak",
+   "nombre": "Melamina 28 mm, Antracite Oak",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1269.9,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-06-25",
+   "antiguedad_meses": 3,
+   "sale_de_ventana_24m": "2028-06-26",
+   "source_record_id": "MVLMAG01280800|B713",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:07.589798+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 196,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1269.9,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 405,
+   "insumo_id": "melamina-19-antracita-light",
+   "nombre": "Melamina 19 mm, Antracita Light",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 904.5,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-08-28",
+   "antiguedad_meses": 13,
+   "sale_de_ventana_24m": "2027-08-29",
+   "source_record_id": "MVLMAG01280600|B799",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:07.779162+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 170,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 904.5,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 406,
+   "insumo_id": "melamina-19-blanco-absoluto",
+   "nombre": "Melamina 19 mm, Blanco Absoluto",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 483,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-04-15",
+   "antiguedad_meses": 5,
+   "sale_de_ventana_24m": "2028-04-16",
+   "source_record_id": "MVLMAG01280600|B809",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:07.971841+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 175,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 483,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 407,
+   "insumo_id": "melamina-16-encino-polar-tx",
+   "nombre": "Melamina 16 mm, Encino Polar TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 685,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-07-28",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-07-29",
+   "source_record_id": "MVLMAG01280500|B1054",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:08.217262+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 151,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 685,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 408,
+   "insumo_id": "pulido-redondo-14",
+   "nombre": "Pulido redondo 1/4\" (tramo 6 m)",
+   "clasificacion": "nuevo",
+   "seccion": "metal",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 30.25,
+   "source_unit": "pieza",
+   "cost_unit": "tramo",
+   "unidad_costeo": "tramo",
+   "ultima_compra": "2025-07-30",
+   "antiguedad_meses": 14,
+   "sale_de_ventana_24m": "2027-07-31",
+   "source_record_id": "MVLSPU02030001|",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:08.475567+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 245,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 30.25,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "UNIDAD_ERP_DISTINTA",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 409,
+   "insumo_id": "melamina-16-blanco-absoluto",
+   "nombre": "Melamina 16 mm, Blanco Absoluto",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 449,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-07-06",
+   "antiguedad_meses": 3,
+   "sale_de_ventana_24m": "2028-07-07",
+   "source_record_id": "MVLMAG01280500|B809",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:08.700252+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 148,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 449,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 410,
+   "insumo_id": "melamina-19-antracite-oak-tx",
+   "nombre": "Melamina 19 mm, Antracite Oak TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 793.8,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-06-25",
+   "antiguedad_meses": 3,
+   "sale_de_ventana_24m": "2028-06-26",
+   "source_record_id": "MVLMAG01280600|B747",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:08.918375+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 173,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 793.8,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 411,
+   "insumo_id": "melamina-16-soft-grey",
+   "nombre": "Melamina 16 mm, Soft Grey",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 774.9,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-06-25",
+   "antiguedad_meses": 3,
+   "sale_de_ventana_24m": "2028-06-26",
+   "source_record_id": "MVLMAG01280500|B718",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:09.176815+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 164,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 774.9,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 412,
+   "insumo_id": "melamina-16-fresno-bruma-tx",
+   "nombre": "Melamina 16 mm, Fresno Bruma TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 646,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-02-09",
+   "antiguedad_meses": 8,
+   "sale_de_ventana_24m": "2028-02-10",
+   "source_record_id": "MVLMAG01280500|B807",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:09.393521+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 152,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 646,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 413,
+   "insumo_id": "melamina-16-durango-tx",
+   "nombre": "Melamina 16 mm, Durango TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 646,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-02-06",
+   "antiguedad_meses": 8,
+   "sale_de_ventana_24m": "2028-02-07",
+   "source_record_id": "MVLMAG01280500|B835",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:09.642308+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 149,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 646,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 414,
+   "insumo_id": "melamina-16-black",
+   "nombre": "Melamina 16 mm, Black",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 576.72,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-09-17",
+   "antiguedad_meses": 12,
+   "sale_de_ventana_24m": "2027-09-18",
+   "source_record_id": "MVLMAG01280500|B721",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:09.974864+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 147,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 576.72,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 415,
+   "insumo_id": "melamina-19-frosty-white",
+   "nombre": "Melamina 19 mm, Frosty White",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 544,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-07-06",
+   "antiguedad_meses": 3,
+   "sale_de_ventana_24m": "2028-07-07",
+   "source_record_id": "MVLMAG01280600|B744",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:10.175458+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 178,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 544,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 416,
+   "insumo_id": "melamina-19-sand",
+   "nombre": "Melamina 19 mm, Sand",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "propuesto_validado",
+   "categoria": "B_PRELIMINAR_FUERA_DE_VENTANA",
+   "precio_mxn": 792,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2024-09-12",
+   "antiguedad_meses": 25,
+   "sale_de_ventana_24m": "2026-09-13",
+   "source_record_id": "MVLMAG01280600|B743",
+   "alias_generico": false,
+   "approved_by": null,
+   "approved_at": null,
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": false,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 187,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 792,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO"
+   ]
+  },
+  {
+   "precio_id": 417,
+   "insumo_id": "lamina-3x10-12",
+   "nombre": "Lamina negra 3x10 cal. 12",
+   "clasificacion": "nuevo",
+   "seccion": "metal",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1336.56,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-07-15",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-07-16",
+   "source_record_id": "MVLSLA05261002|",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:10.387622+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "lamina 3 x 10 ft",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 248,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1116.28,
+     "vigente_desde": "2026-10-01"
+    },
+    {
+     "id": 282,
+     "contract_status": "DATA_TRUTH_V1",
+     "source_system": "intelisis",
+     "estado": "propuesto",
+     "precio": 1116.28,
+     "vigente_desde": "2025-11-20"
+    },
+    {
+     "id": 286,
+     "contract_status": "DATA_TRUTH_V1",
+     "source_system": "intelisis",
+     "estado": "propuesto",
+     "precio": 1336.56,
+     "vigente_desde": "2026-07-15"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "OTRO_DATA_TRUTH_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 418,
+   "insumo_id": "melamina-19-ivory-vanyla",
+   "nombre": "Melamina 19 mm, Ivory Vanyla",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 904.5,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-02-24",
+   "antiguedad_meses": 7,
+   "sale_de_ventana_24m": "2028-02-25",
+   "source_record_id": "MVLMAG01280600|B838",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:10.623861+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 182,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 904.5,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 419,
+   "insumo_id": "melamina-28-ivory",
+   "nombre": "Melamina 28 mm, Ivory",
+   "clasificacion": "vigente",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1122.3,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-04-28",
+   "antiguedad_meses": 5,
+   "sale_de_ventana_24m": "2028-04-29",
+   "source_record_id": "MVLMAG01280800|B717",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:10.830304+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 102,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1122.3,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 420,
+   "insumo_id": "melamina-28-encino-polar-tx",
+   "nombre": "Melamina 28 mm, Encino Polar TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1140,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-08-04",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-08-05",
+   "source_record_id": "MVLMAG01280800|B1054",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:11.05446+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 202,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1140,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 421,
+   "insumo_id": "melamina-19-antracita-light-tx",
+   "nombre": "Melamina 19 mm, Antracita Light TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 793.8,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-07-07",
+   "antiguedad_meses": 3,
+   "sale_de_ventana_24m": "2028-07-08",
+   "source_record_id": "MVLMAG01280600|B761",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:11.299517+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 171,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 793.8,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 422,
+   "insumo_id": "melamina-19-soft-grey",
+   "nombre": "Melamina 19 mm, Soft Grey",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 778.5,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-07-13",
+   "antiguedad_meses": 3,
+   "sale_de_ventana_24m": "2028-07-14",
+   "source_record_id": "MVLMAG01280600|B718",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:11.509576+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 188,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 778.5,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 423,
+   "insumo_id": "melamina-28-sand",
+   "nombre": "Melamina 28 mm, Sand",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "propuesto_validado",
+   "categoria": "B_PRELIMINAR_FUERA_DE_VENTANA",
+   "precio_mxn": 1170.9,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2024-09-23",
+   "antiguedad_meses": 24,
+   "sale_de_ventana_24m": "2026-09-24",
+   "source_record_id": "MVLMAG01280800|B743",
+   "alias_generico": false,
+   "approved_by": null,
+   "approved_at": null,
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": false,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 214,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1170.9,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO"
+   ]
+  },
+  {
+   "precio_id": 424,
+   "insumo_id": "melamina-28-gris-humo-lm",
+   "nombre": "Melamina 28 mm, Gris Humo LM",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "propuesto_validado",
+   "categoria": "B_PRELIMINAR_FUERA_DE_VENTANA",
+   "precio_mxn": 1544.05,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2024-09-10",
+   "antiguedad_meses": 25,
+   "sale_de_ventana_24m": "2026-09-11",
+   "source_record_id": "MVLMAG01280800|B1095",
+   "alias_generico": false,
+   "approved_by": null,
+   "approved_at": null,
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": false,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 205,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1544.05,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO"
+   ]
+  },
+  {
+   "precio_id": 425,
+   "insumo_id": "melamina-28-monarca-tx",
+   "nombre": "Melamina 28 mm, Monarca TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1056,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-08-04",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-08-05",
+   "source_record_id": "MVLMAG01280800|B836",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:11.722366+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 211,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1056,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 426,
+   "insumo_id": "melamina-19-black",
+   "nombre": "Melamina 19 mm, Black",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 639.91,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-07-02",
+   "antiguedad_meses": 3,
+   "sale_de_ventana_24m": "2028-07-03",
+   "source_record_id": "MVLMAG01280600|B721",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:11.964372+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 174,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 639.91,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 427,
+   "insumo_id": "melamina-16-roble-merida-tx",
+   "nombre": "Melamina 16 mm, Roble Merida TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 685,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-08-04",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-08-05",
+   "source_record_id": "MVLMAG01280500|B806",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:12.178576+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 162,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 685,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 428,
+   "insumo_id": "melamina-28-ebano-indi",
+   "nombre": "Melamina 28 mm, Ebano Indi",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1075,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-09-22",
+   "antiguedad_meses": 12,
+   "sale_de_ventana_24m": "2027-09-23",
+   "source_record_id": "MVLMAG01280800|B1096",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:12.433063+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 201,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1075,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 429,
+   "insumo_id": "pintura-polvo-azul-ral-5010-089-41060",
+   "nombre": "Pintura en polvo, Azul RAL 5010-089/41060",
+   "clasificacion": "nuevo",
+   "seccion": "acabados",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 301.303632,
+   "source_unit": "kg",
+   "cost_unit": "kg",
+   "unidad_costeo": "kg",
+   "ultima_compra": "2026-07-31",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-08-01",
+   "source_record_id": "MVLQPP00000000|A506",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:12.619743+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 221,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 301.3,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 430,
+   "insumo_id": "pintura-polvo-basic-white",
+   "nombre": "Pintura en polvo, Basic White",
+   "clasificacion": "nuevo",
+   "seccion": "acabados",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 115.949073,
+   "source_unit": "kg",
+   "cost_unit": "kg",
+   "unidad_costeo": "kg",
+   "ultima_compra": "2026-08-04",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-08-05",
+   "source_record_id": "MVLQPP00000000|A101",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:12.822263+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 222,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 115.95,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA",
+    "ALIAS_REGISTRO_COMPARTIDO"
+   ]
+  },
+  {
+   "precio_id": 431,
+   "insumo_id": "melamina-28-antracita-light",
+   "nombre": "Melamina 28 mm, Antracita Light",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 995.91,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-08-04",
+   "antiguedad_meses": 14,
+   "sale_de_ventana_24m": "2027-08-05",
+   "source_record_id": "MVLMAG01280800|B799",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:13.027205+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 194,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 995.91,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 432,
+   "insumo_id": "melamina-28-frosty-white",
+   "nombre": "Melamina 28 mm, Frosty White",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 842,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-08-04",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-08-05",
+   "source_record_id": "MVLMAG01280800|B744",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:13.229853+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 204,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 842,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 433,
+   "insumo_id": "melamina-28-verde-esmeralda",
+   "nombre": "Melamina 28 mm, Verde Esmeralda",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1332.9,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-12-04",
+   "antiguedad_meses": 10,
+   "sale_de_ventana_24m": "2027-12-05",
+   "source_record_id": "MVLMAG01280800|B840",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:13.419506+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 216,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1332.9,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 434,
+   "insumo_id": "melamina-28-blanco-absoluto",
+   "nombre": "Melamina 28 mm, Blanco Absoluto",
+   "clasificacion": "vigente",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 826,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-08-04",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-08-05",
+   "source_record_id": "MVLMAG01280800|B809",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:13.663949+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 101,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 826,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 435,
+   "insumo_id": "pintura-polvo-charcoal",
+   "nombre": "Pintura en polvo, Charcoal",
+   "clasificacion": "nuevo",
+   "seccion": "acabados",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 170.47305,
+   "source_unit": "kg",
+   "cost_unit": "kg",
+   "unidad_costeo": "kg",
+   "ultima_compra": "2026-08-07",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-08-08",
+   "source_record_id": "MVLQPP00000000|A118",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:13.897749+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 225,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 170.47,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 436,
+   "insumo_id": "melamina-28-light-ash-lp",
+   "nombre": "Melamina 28 mm, Light Ash LP",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1075,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-01-21",
+   "antiguedad_meses": 8,
+   "sale_de_ventana_24m": "2028-01-22",
+   "source_record_id": "MVLMAG01280800|B770",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:14.089119+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 209,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1075,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 437,
+   "insumo_id": "melamina-16-ivory-vanyla",
+   "nombre": "Melamina 16 mm, Ivory Vanyla",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 774.9,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-04-29",
+   "antiguedad_meses": 5,
+   "sale_de_ventana_24m": "2028-04-30",
+   "source_record_id": "MVLMAG01280500|B838",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:14.298987+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 156,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 774.9,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 438,
+   "insumo_id": "melamina-28-maple-fire",
+   "nombre": "Melamina 28 mm, Maple Fire",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1253.7,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-01-30",
+   "antiguedad_meses": 8,
+   "sale_de_ventana_24m": "2028-01-31",
+   "source_record_id": "MVLMAG01280800|B1094",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:14.502779+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 210,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1253.7,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 439,
+   "insumo_id": "melamina-28-fresno-bruma-tx",
+   "nombre": "Melamina 28 mm, Fresno Bruma TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1075,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-01-22",
+   "antiguedad_meses": 8,
+   "sale_de_ventana_24m": "2028-01-23",
+   "source_record_id": "MVLMAG01280800|B807",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:14.700127+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 203,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1075,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 440,
+   "insumo_id": "melamina-16-walnut",
+   "nombre": "Melamina 16 mm, Walnut",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 608.76,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-07-30",
+   "antiguedad_meses": 14,
+   "sale_de_ventana_24m": "2027-07-31",
+   "source_record_id": "MVLMAG01280500|B709",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:14.892048+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 167,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 608.76,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 441,
+   "insumo_id": "melamina-16-antracita-light-tx",
+   "nombre": "Melamina 16 mm, Antracita Light TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 694.8,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-07-07",
+   "antiguedad_meses": 3,
+   "sale_de_ventana_24m": "2028-07-08",
+   "source_record_id": "MVLMAG01280500|B761",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:15.103892+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 144,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 694.8,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 442,
+   "insumo_id": "acrilico-traslucido-3",
+   "nombre": "Acrilico traslucido 3 mm (hoja 4x8)",
+   "clasificacion": "nuevo",
+   "seccion": "mamparas",
+   "estado": "propuesto_validado",
+   "categoria": "B_PRELIMINAR_FUERA_DE_VENTANA",
+   "precio_mxn": 964,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2016-11-09",
+   "antiguedad_meses": 119,
+   "sale_de_ventana_24m": "2018-11-10",
+   "source_record_id": "MLEPAT00641600|",
+   "alias_generico": false,
+   "approved_by": null,
+   "approved_at": null,
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": false,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 241,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 964,
+     "vigente_desde": "2026-10-01"
+    },
+    {
+     "id": 285,
+     "contract_status": "DATA_TRUTH_V1",
+     "source_system": "intelisis",
+     "estado": "propuesto",
+     "precio": 964,
+     "vigente_desde": "2016-11-09"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "OTRO_DATA_TRUTH_ABIERTO",
+    "HOJA_SIN_FORMATO"
+   ]
+  },
+  {
+   "precio_id": 443,
+   "insumo_id": "melamina-28-antracite-oak-tx",
+   "nombre": "Melamina 28 mm, Antracite Oak TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1295.1,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-06-26",
+   "antiguedad_meses": 3,
+   "sale_de_ventana_24m": "2028-06-27",
+   "source_record_id": "MVLMAG01280800|B747",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:15.283648+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 197,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1295.1,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 444,
+   "insumo_id": "pintura-polvo-gris-unido-axalta",
+   "nombre": "Pintura en polvo, Gris Unido Axalta",
+   "clasificacion": "nuevo",
+   "seccion": "acabados",
+   "estado": "propuesto_validado",
+   "categoria": "B_PRELIMINAR_FUERA_DE_VENTANA",
+   "precio_mxn": 171.1,
+   "source_unit": "kg",
+   "cost_unit": "kg",
+   "unidad_costeo": "kg",
+   "ultima_compra": "2024-10-09",
+   "antiguedad_meses": 24,
+   "sale_de_ventana_24m": "2026-10-10",
+   "source_record_id": "MVLQPP00000000|A547",
+   "alias_generico": false,
+   "approved_by": null,
+   "approved_at": null,
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": false,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 228,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 171.1,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO"
+   ]
+  },
+  {
+   "precio_id": 445,
+   "insumo_id": "melamina-19-ivory-new",
+   "nombre": "Melamina 19 mm, Ivory New",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 904.5,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-01-07",
+   "antiguedad_meses": 21,
+   "sale_de_ventana_24m": "2027-01-08",
+   "source_record_id": "MVLMAG01280600|B751",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:15.483827+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 181,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 904.5,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 446,
+   "insumo_id": "melamina-16-sand",
+   "nombre": "Melamina 16 mm, Sand",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "propuesto_validado",
+   "categoria": "B_PRELIMINAR_FUERA_DE_VENTANA",
+   "precio_mxn": 690.3,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2024-09-12",
+   "antiguedad_meses": 25,
+   "sale_de_ventana_24m": "2026-09-13",
+   "source_record_id": "MVLMAG01280500|B743",
+   "alias_generico": false,
+   "approved_by": null,
+   "approved_at": null,
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": false,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 163,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 690.3,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO"
+   ]
+  },
+  {
+   "precio_id": 447,
+   "insumo_id": "pintura-polvo-antracita-tx",
+   "nombre": "Pintura en polvo, Antracita TX",
+   "clasificacion": "nuevo",
+   "seccion": "acabados",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 231.898146,
+   "source_unit": "kg",
+   "cost_unit": "kg",
+   "unidad_costeo": "kg",
+   "ultima_compra": "2026-08-04",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-08-05",
+   "source_record_id": "MVLQPP00000000|A105",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:15.687533+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 220,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 231.9,
+     "vigente_desde": "2026-10-01"
+    },
+    {
+     "id": 274,
+     "contract_status": "DATA_TRUTH_V1",
+     "source_system": "intelisis",
+     "estado": "propuesto",
+     "precio": 238.07,
+     "vigente_desde": "2026-04-08"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "OTRO_DATA_TRUTH_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 448,
+   "insumo_id": "melamina-16-white-ash",
+   "nombre": "Melamina 16 mm, White Ash",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 681.13,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-07-21",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-07-22",
+   "source_record_id": "MVLMAG01280500|B716",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:15.903821+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 168,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 681.13,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 449,
+   "insumo_id": "pintura-polvo-negro-mate-45-hnl40205",
+   "nombre": "Pintura en polvo, Negro Mate 45 HNL40205",
+   "clasificacion": "nuevo",
+   "seccion": "acabados",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 59.367352,
+   "source_unit": "kg",
+   "cost_unit": "kg",
+   "unidad_costeo": "kg",
+   "ultima_compra": "2025-06-16",
+   "antiguedad_meses": 15,
+   "sale_de_ventana_24m": "2027-06-17",
+   "source_record_id": "MVLQPP00000000|A542",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:16.142482+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 230,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 59.37,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 450,
+   "insumo_id": "melamina-28-white-ash-tx",
+   "nombre": "Melamina 28 mm, White Ash TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1399.5,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-01-28",
+   "antiguedad_meses": 8,
+   "sale_de_ventana_24m": "2028-01-29",
+   "source_record_id": "MVLMAG01280800|B746",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:16.341579+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 218,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1399.5,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 451,
+   "insumo_id": "melamina-19-verde-esmeralda",
+   "nombre": "Melamina 19 mm, Verde Esmeralda",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 904.5,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-12-09",
+   "antiguedad_meses": 10,
+   "sale_de_ventana_24m": "2027-12-10",
+   "source_record_id": "MVLMAG01280600|B840",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:16.538391+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 189,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 904.5,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 452,
+   "insumo_id": "tubular-redondo-34",
+   "nombre": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+   "clasificacion": "nuevo",
+   "seccion": "metal",
+   "estado": "propuesto_validado",
+   "categoria": "B_PRELIMINAR_FUERA_DE_VENTANA",
+   "precio_mxn": 138.4,
+   "source_unit": "pieza",
+   "cost_unit": "tramo",
+   "unidad_costeo": "tramo",
+   "ultima_compra": "2021-10-13",
+   "antiguedad_meses": 60,
+   "sale_de_ventana_24m": "2023-10-14",
+   "source_record_id": "MVLSTU02060401|",
+   "alias_generico": false,
+   "approved_by": null,
+   "approved_at": null,
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": false,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 244,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 138.4,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "UNIDAD_ERP_DISTINTA"
+   ]
+  },
+  {
+   "precio_id": 453,
+   "insumo_id": "melamina-16-ivory",
+   "nombre": "Melamina 16 mm, Ivory",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 695.7,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-02-20",
+   "antiguedad_meses": 7,
+   "sale_de_ventana_24m": "2028-02-21",
+   "source_record_id": "MVLMAG01280500|B717",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:16.736749+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 154,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 695.7,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 454,
+   "insumo_id": "melamina-16-ivory-new",
+   "nombre": "Melamina 16 mm, Ivory New",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 788.4,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-04-07",
+   "antiguedad_meses": 18,
+   "sale_de_ventana_24m": "2027-04-08",
+   "source_record_id": "MVLMAG01280500|B751",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:16.946292+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 155,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 788.4,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 455,
+   "insumo_id": "melamina-19-walnut",
+   "nombre": "Melamina 19 mm, Walnut",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 671.95,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-07-30",
+   "antiguedad_meses": 14,
+   "sale_de_ventana_24m": "2027-07-31",
+   "source_record_id": "MVLMAG01280600|B709",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:17.15335+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 190,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 671.95,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 456,
+   "insumo_id": "melamina-28-white-ash",
+   "nombre": "Melamina 28 mm, White Ash",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1269.9,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-08-07",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-08-08",
+   "source_record_id": "MVLMAG01280800|B716",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:17.377322+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 217,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1269.9,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 457,
+   "insumo_id": "melamina-28-roble-merida-tx",
+   "nombre": "Melamina 28 mm, Roble Merida TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1140,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-08-04",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-08-05",
+   "source_record_id": "MVLMAG01280800|B806",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:17.609368+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 213,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1140,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 458,
+   "insumo_id": "melamina-19-white-ash",
+   "nombre": "Melamina 19 mm, White Ash",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 778.5,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-07-02",
+   "antiguedad_meses": 3,
+   "sale_de_ventana_24m": "2028-07-03",
+   "source_record_id": "MVLMAG01280600|B716",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:17.807247+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 192,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 778.5,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 459,
+   "insumo_id": "melamina-19-wengue",
+   "nombre": "Melamina 19 mm, Wengue",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 660,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-07-23",
+   "antiguedad_meses": 14,
+   "sale_de_ventana_24m": "2027-07-24",
+   "source_record_id": "MVLMAG01280600|B712",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:18.004721+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 191,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 660,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 460,
+   "insumo_id": "melamina-19-roble-merida-tx",
+   "nombre": "Melamina 19 mm, Roble Merida TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 718,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-08-04",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-08-05",
+   "source_record_id": "MVLMAG01280600|B806",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:18.221747+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 186,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 718,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 461,
+   "insumo_id": "pintura-polvo-negro-mate-8-vitracoat",
+   "nombre": "Pintura en polvo, Negro Mate 8 Vitracoat",
+   "clasificacion": "nuevo",
+   "seccion": "acabados",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 120.677966,
+   "source_unit": "kg",
+   "cost_unit": "kg",
+   "unidad_costeo": "kg",
+   "ultima_compra": "2025-12-10",
+   "antiguedad_meses": 10,
+   "sale_de_ventana_24m": "2027-12-11",
+   "source_record_id": "MVLQPP00000000|A550",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:18.428164+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 231,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 120.68,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 462,
+   "insumo_id": "melamina-16-ebano-indi",
+   "nombre": "Melamina 16 mm, Ebano Indi",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 646,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-09-22",
+   "antiguedad_meses": 12,
+   "sale_de_ventana_24m": "2027-09-23",
+   "source_record_id": "MVLMAG01280500|B1096",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:18.649719+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 150,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 646,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 463,
+   "insumo_id": "melamina-19-white-ash-tx",
+   "nombre": "Melamina 19 mm, White Ash TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 949.72,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-01-28",
+   "antiguedad_meses": 8,
+   "sale_de_ventana_24m": "2028-01-29",
+   "source_record_id": "MVLMAG01280600|B746",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:18.861892+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 193,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 949.72,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 464,
+   "insumo_id": "melamina-16-monarca-tx",
+   "nombre": "Melamina 16 mm, Monarca TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 685,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-06-16",
+   "antiguedad_meses": 3,
+   "sale_de_ventana_24m": "2028-06-17",
+   "source_record_id": "MVLMAG01280500|B836",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:19.078154+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 160,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 685,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 465,
+   "insumo_id": "pintura-polvo-pintura-hibrida-pantone-228-c-60-de-brillo",
+   "nombre": "Pintura en polvo, Hibrida Pantone 228-C 60% brillo",
+   "clasificacion": "nuevo",
+   "seccion": "acabados",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 260.2769,
+   "source_unit": "kg",
+   "cost_unit": "kg",
+   "unidad_costeo": "kg",
+   "ultima_compra": "2025-04-25",
+   "antiguedad_meses": 17,
+   "sale_de_ventana_24m": "2027-04-26",
+   "source_record_id": "MVLQPP00000000|A56",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:19.324888+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 232,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 260.28,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 466,
+   "insumo_id": "pintura-polvo-gris-light-gray",
+   "nombre": "Pintura en polvo, Gris Light Gray",
+   "clasificacion": "nuevo",
+   "seccion": "acabados",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 276.29394,
+   "source_unit": "kg",
+   "cost_unit": "kg",
+   "unidad_costeo": "kg",
+   "ultima_compra": "2025-04-25",
+   "antiguedad_meses": 17,
+   "sale_de_ventana_24m": "2027-04-26",
+   "source_record_id": "MVLQPP00000000|A55",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:19.601875+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 226,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 276.29,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 467,
+   "insumo_id": "melamina-28-ivory-new",
+   "nombre": "Melamina 28 mm, Ivory New",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1332.9,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2025-04-11",
+   "antiguedad_meses": 18,
+   "sale_de_ventana_24m": "2027-04-12",
+   "source_record_id": "MVLMAG01280800|B751",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:19.828542+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 206,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1332.9,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBADO_SALE_DE_VENTANA_LE_12M",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 468,
+   "insumo_id": "melamina-28-durango-tx",
+   "nombre": "Melamina 28 mm, Durango TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1107,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-05-07",
+   "antiguedad_meses": 5,
+   "sale_de_ventana_24m": "2028-05-08",
+   "source_record_id": "MVLMAG01280800|B835",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:20.174881+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 200,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1107,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 469,
+   "insumo_id": "melamina-19-monarca-tx",
+   "nombre": "Melamina 19 mm, Monarca TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 665,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-08-10",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-08-11",
+   "source_record_id": "MVLMAG01280600|B836",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:20.435894+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 185,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 665,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 470,
+   "insumo_id": "melamina-28-walnut",
+   "nombre": "Melamina 28 mm, Walnut",
+   "clasificacion": "vigente",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1335.6,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-08-07",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-08-08",
+   "source_record_id": "MVLMAG01280800|B709",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:20.651249+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 103,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1335.6,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA",
+    "ALIAS_REGISTRO_COMPARTIDO"
+   ]
+  },
+  {
+   "precio_id": 471,
+   "insumo_id": "melamina-19-latte-tx",
+   "nombre": "Melamina 19 mm, Latte TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 718,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-07-28",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-07-29",
+   "source_record_id": "MVLMAG01280600|B837",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:20.92927+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 183,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 718,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 472,
+   "insumo_id": "lamina-3x10-14",
+   "nombre": "Lamina negra 3x10 cal. 14",
+   "clasificacion": "nuevo",
+   "seccion": "metal",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 816.48,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-01-26",
+   "antiguedad_meses": 8,
+   "sale_de_ventana_24m": "2028-01-27",
+   "source_record_id": "MVLSLA05260202|",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:21.176533+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "lamina 3 x 10 ft",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 247,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 849.5,
+     "vigente_desde": "2026-10-01"
+    },
+    {
+     "id": 273,
+     "contract_status": "DATA_TRUTH_V1",
+     "source_system": "intelisis",
+     "estado": "propuesto",
+     "precio": 849.5,
+     "vigente_desde": "2026-01-26"
+    },
+    {
+     "id": 281,
+     "contract_status": "DATA_TRUTH_V1",
+     "source_system": "intelisis",
+     "estado": "propuesto",
+     "precio": 849.5,
+     "vigente_desde": "2026-01-26"
+    },
+    {
+     "id": 287,
+     "contract_status": "DATA_TRUTH_V1",
+     "source_system": "intelisis",
+     "estado": "propuesto",
+     "precio": 816.48,
+     "vigente_desde": "2026-01-26"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "OTRO_DATA_TRUTH_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 473,
+   "insumo_id": "melamina-16-latte-tx",
+   "nombre": "Melamina 16 mm, Latte TX",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 685,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-07-22",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-07-23",
+   "source_record_id": "MVLMAG01280500|B837",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:21.466052+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 157,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 685,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 474,
+   "insumo_id": "pintura-polvo-ivory",
+   "nombre": "Pintura en polvo, Ivory",
+   "clasificacion": "nuevo",
+   "seccion": "acabados",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 168.56,
+   "source_unit": "kg",
+   "cost_unit": "kg",
+   "unidad_costeo": "kg",
+   "ultima_compra": "2026-02-13",
+   "antiguedad_meses": 8,
+   "sale_de_ventana_24m": "2028-02-14",
+   "source_record_id": "MVLQPP00000000|A102",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:21.674785+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 229,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 168.56,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 475,
+   "insumo_id": "lamina-3x10-20",
+   "nombre": "Lamina negra 3x10 cal. 20",
+   "clasificacion": "nuevo",
+   "seccion": "metal",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 428.65,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-08-05",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-08-06",
+   "source_record_id": "MVLSLA05260502|",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:21.880961+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "lamina 3 x 10 ft",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 246,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 449.06,
+     "vigente_desde": "2026-10-01"
+    },
+    {
+     "id": 280,
+     "contract_status": "DATA_TRUTH_V1",
+     "source_system": "intelisis",
+     "estado": "propuesto",
+     "precio": 449.06,
+     "vigente_desde": "2025-12-09"
+    },
+    {
+     "id": 288,
+     "contract_status": "DATA_TRUTH_V1",
+     "source_system": "intelisis",
+     "estado": "propuesto",
+     "precio": 441.72,
+     "vigente_desde": "2026-09-09"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "OTRO_DATA_TRUTH_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 476,
+   "insumo_id": "pintura-polvo-silver-tx",
+   "nombre": "Pintura en polvo, Silver TX",
+   "clasificacion": "nuevo",
+   "seccion": "acabados",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 227.37477,
+   "source_unit": "kg",
+   "cost_unit": "kg",
+   "unidad_costeo": "kg",
+   "ultima_compra": "2026-07-27",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-07-28",
+   "source_record_id": "MVLQPP00000000|A107",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:22.106909+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 234,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 227.37,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 477,
+   "insumo_id": "melamina-19-antracite-oak",
+   "nombre": "Melamina 19 mm, Antracite Oak",
+   "clasificacion": "nuevo",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 936,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-06-30",
+   "antiguedad_meses": 3,
+   "sale_de_ventana_24m": "2028-07-01",
+   "source_record_id": "MVLMAG01280600|B713",
+   "alias_generico": false,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:22.314207+00:00",
+   "registro_creado_en": "2026-10-12T02:23:15.213605+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 172,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 936,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA"
+   ]
+  },
+  {
+   "precio_id": 478,
+   "insumo_id": "melamina-28",
+   "nombre": "Melamina ABS 28 mm (cubierta APP LT)",
+   "clasificacion": "vigente",
+   "seccion": "cubiertas",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 1335.6,
+   "source_unit": "hoja",
+   "cost_unit": "hoja",
+   "unidad_costeo": "hoja",
+   "ultima_compra": "2026-08-07",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-08-08",
+   "source_record_id": "MVLMAG01280800|B709",
+   "alias_generico": true,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:22.531639+00:00",
+   "registro_creado_en": "2026-10-12T02:23:23.09864+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": "tablero 1.22 x 2.44",
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [
+    {
+     "id": 47,
+     "contract_status": "LEGACY_UNMIGRATED",
+     "source_system": null,
+     "estado": "propuesto_validado",
+     "precio": 1335.6,
+     "vigente_desde": "2026-10-01"
+    }
+   ],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "PRECIO_LEGACY_ABIERTO",
+    "APROBACION_MASIVA_CUENTA_QA",
+    "ALIAS_REGISTRO_COMPARTIDO"
+   ]
+  },
+  {
+   "precio_id": 479,
+   "insumo_id": "pintura-polvo",
+   "nombre": "Pintura en polvo A101 basic white",
+   "clasificacion": "vigente",
+   "seccion": "acabados",
+   "estado": "aprobado",
+   "categoria": "A_APROBADO_EN_VENTANA",
+   "precio_mxn": 115.949073,
+   "source_unit": "kg",
+   "cost_unit": "kg",
+   "unidad_costeo": "kg",
+   "ultima_compra": "2026-08-04",
+   "antiguedad_meses": 2,
+   "sale_de_ventana_24m": "2028-08-05",
+   "source_record_id": "MVLQPP00000000|A101",
+   "alias_generico": true,
+   "approved_by": "qa-direccion@vonhaucke.mx",
+   "approved_at": "2026-10-12T02:24:22.757129+00:00",
+   "registro_creado_en": "2026-10-12T02:23:23.09864+00:00",
+   "creado_por": "a11-erp-2026-10-12",
+   "formato": null,
+   "vista_certificable_hoy": true,
+   "vista_gana_este_precio": true,
+   "otros_precios_abiertos": [],
+   "banderas": [
+    "CLASIFICACION_NO_ERP",
+    "APROBACION_MASIVA_CUENTA_QA",
+    "ALIAS_REGISTRO_COMPARTIDO"
+   ]
+  }
+ ]
+}
