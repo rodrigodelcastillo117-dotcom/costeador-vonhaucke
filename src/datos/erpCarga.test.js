@@ -56,3 +56,23 @@ describe('erpCarga · del reporte a catálogo + precios', () => {
     expect(UNIDAD_ERP['hoja']).toBe('hoja');
   });
 });
+
+describe('formato de hoja por nombre (VH-146)', () => {
+  it("reconoce \"HOJA 4' X 8'\" (comilla de pie) y 5 x 8 como tableros con fracción", async () => {
+    const { prepararCargaErp } = await import('./erpCarga.js');
+    const base = { costo_uc: 725.4, unidad: 'hoja', estatus: 'ALTA', fecha_uc: '2021-11-17', opcion: null };
+    const { catalogo } = prepararCargaErp([
+      { ...base, articulo: 'MVLMMD18011702', clave: 'MDF18H', desc: "MDF CON UNA CARA EN MELAMINA DURABLE BLANCO HOJA 4' X 8' ESPESOR 18 mm" },
+      { ...base, articulo: 'MVLMAG01320800', clave: 'AME28152', desc: 'AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm' },
+      { ...base, articulo: 'MVLMAG01280600', clave: 'AME1948', desc: 'AGLOMERADO MELAMINA DOS CARAS HOJA 4 X 8 ESPESOR 19 mm' },
+      { ...base, articulo: 'X48', clave: 'X48', desc: 'ACRILICO VERDE UNA CARA SATINADA DE 2400 X 1200 mm ESPESOR 3 mm' },
+    ], { documento: 't' });
+    const f = (clave) => catalogo.find((c) => c.atributos.erp.clave === clave).atributos;
+    expect(f('MDF18H').formato).toMatchObject({ tipo: 'tablero', largoMM: 2440, anchoMM: 1220 });
+    expect(f('MDF18H').fraccion).toBe(true);
+    expect(f('AME28152').formato).toMatchObject({ tipo: 'tablero', largoMM: 2440, anchoMM: 1525 });
+    expect(f('AME1948').formato.medida).toBeCloseTo(2.9768, 3);
+    // 2400 x 1200 no es 4x8 literal ni 1.22/2.44: sigue sin formato (honesto; se decide con Compras)
+    expect(f('X48').formato).toBeNull();
+  });
+});

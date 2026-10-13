@@ -8,6 +8,10 @@ import { familiaDeMaterial } from './materialMatch.js';
 
 export const DOC_ERP_PREFIJO = 'ERP Intelisis · ';
 const TABLERO = { tipo: 'tablero', nombre: 'tablero 1.22 x 2.44', corto: 'tablero', medida: 2.9768, largoMM: 2440, anchoMM: 1220 };
+// VH-146: hoja 5 x 8 ft (1.525 x 2.44 m) = 3.721 m². Antes sólo se reconocía 4 x 8 y sin la comilla de pie ("4' X 8'").
+const TABLERO5X8 = { tipo: 'tablero', nombre: 'tablero 1.52 x 2.44', corto: 'tablero 5x8', medida: 3.721, largoMM: 2440, anchoMM: 1525 };
+export const RE_HOJA_4X8 = /(?:^|[^0-9])4\s*'?\s*x\s*'?\s*8(?![0-9])|1\.?22\b|2\.?44\b/;
+export const RE_HOJA_5X8 = /(?:^|[^0-9])5\s*'?\s*x\s*'?\s*8(?![0-9])|1\.?52(?:5)?\b/;
 const TRAMO6 = { tipo: 'tramo', nombre: 'tramo de 6 m', corto: 'tramo', medida: 6 };
 export const UNIDAD_ERP = { pieza: 'pza', pza: 'pza', hoja: 'hoja', m: 'm', mt: 'm', mts: 'm', jgo: 'juego', juego: 'juego', kg: 'kg', lt: 'lt', l: 'lt', m2: 'm2', 'm²': 'm2', caja: 'caja', 'dm²': 'dm2', dm2: 'dm2', rollo: 'rollo', 'ud./serv.': 'servicio', servicio: 'servicio', ft: 'ft', yd: 'yd', lb: 'lb', par: 'par' };
 export const MESES_CERTIFICABLE = 24;
@@ -74,7 +78,8 @@ export function prepararCargaErp(registros, { documento, hoy = new Date() } = {}
     if (!activo) resumen.bloqueados++;
     const d = nombre.toLowerCase();
     let formato = null, fraccion = false, mermaCorte = 0;
-    if (unidad === 'hoja' && ['melamina', 'mdf', 'laminado_hpl', 'chapa_madera'].includes(fam) && /4\s*x\s*8|1\.?22|2\.?44/.test(d)) { formato = TABLERO; fraccion = true; mermaCorte = 6; }
+    if (unidad === 'hoja' && ['melamina', 'mdf', 'laminado_hpl', 'chapa_madera', 'acrilico'].includes(fam) && RE_HOJA_4X8.test(d)) { formato = TABLERO; fraccion = true; mermaCorte = 6; }
+    else if (unidad === 'hoja' && ['melamina', 'mdf', 'laminado_hpl', 'chapa_madera', 'acrilico'].includes(fam) && RE_HOJA_5X8.test(d)) { formato = TABLERO5X8; fraccion = true; mermaCorte = 6; }
     else if (unidad === 'hoja' && fam === 'metal_lamina') { mermaCorte = 8; }
     else if (unidad === 'm' && seccion === 'metal' && /\bptr\b|tubular|\btubo\b|perfil|[aá]ngulo|solera|redondo|cuadrado/.test(d)) { formato = TRAMO6; mermaCorte = 5; }
     const clase = (seccion === 'herrajes' || seccion === 'electrico') ? 'indirecta' : 'directa';
