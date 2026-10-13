@@ -1,0 +1,95 @@
+{
+  "id": 1372,
+  "antes": [
+    [
+      "Módulo operativo App LT 12 usuarios (biombo cristal)",
+      1
+    ],
+    [
+      "Módulo directivo App LT",
+      1
+    ],
+    [
+      "Mesa de juntas App LT",
+      1
+    ],
+    [
+      "Módulo recepción 2 usuarios",
+      1
+    ],
+    [
+      "Silla operativa WIN",
+      12
+    ],
+    [
+      "Silla directiva ALPHA",
+      1
+    ],
+    [
+      "Silla CONCERTO (visita 4 pts)",
+      8
+    ]
+  ],
+  "trasA": [
+    [
+      "Módulo operativo App LT 12 usuarios (biombo cristal)",
+      2
+    ],
+    [
+      "Módulo directivo App LT",
+      1
+    ],
+    [
+      "Mesa de juntas App LT",
+      1
+    ],
+    [
+      "Módulo recepción 2 usuarios",
+      1
+    ],
+    [
+      "Silla operativa WIN",
+      12
+    ],
+    [
+      "Silla directiva ALPHA",
+      1
+    ],
+    [
+      "Silla CONCERTO (visita 4 pts)",
+      8
+    ]
+  ],
+  "trasB": [
+    [
+      "Módulo operativo App LT 12 usuarios (biombo cristal)",
+      1
+    ],
+    [
+      "Módulo directivo App LT",
+      2
+    ],
+    [
+      "Mesa de juntas App LT",
+      1
+    ],
+    [
+      "Módulo recepción 2 usuarios",
+      1
+    ],
+    [
+      "Silla operativa WIN",
+      12
+    ],
+    [
+      "Silla directiva ALPHA",
+      1
+    ],
+    [
+      "Silla CONCERTO (visita 4 pts)",
+      8
+    ]
+  ],
+  "cambioAConservado": false,
+  "veredicto": "ÚLTIMO ESCRIBE GANA: B borró el cambio de A sin aviso (VH-148)"
+}

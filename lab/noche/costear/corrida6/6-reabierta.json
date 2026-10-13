@@ -1,0 +1,94 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render Credenza Nogal (lab P0-C 2026-10-13T05:52) BORRADOR guarda credenza 3 puertas Madera enchapada nogal",
+    "piezas": 14,
+    "mismoBom": true,
+    "costoAntes": "$4,605.73",
+    "costoDespues": "$4,605.73",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$4,605.73",
+        "Pendiente"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $2,801.41 · Mano de obra $451.08 · Fábrica $1,353.24",
+      "pendiente": true,
+      "porConfirmar": false
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Laterales cuerpo MDF 19 mm",
+      "material": "MDF 19 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Cubierta y fondo MDF 19 mm",
+      "material": "MDF 19 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Chapa de madera nogal (cuerpo y puertas)",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": []
+    },
+    {
+      "nombre": "Puertas abatibles MDF 19 mm",
+      "material": "MDF 19 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Entrepaño interior melamina blanca 16 mm",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Divisiones verticales interiores melamina blanca 16 mm",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Respaldo MDF 9 mm",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Base PTR 1x1 cal. 14 con zócalo",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Pintura electrostática negra base PTR",
+      "material": "Pintura electrostatica",
+      "alertas": []
+    },
+    {
+      "nombre": "Bisagras",
+      "material": "Bisagra",
+      "alertas": []
+    },
+    {
+      "nombre": "Jaladeras rectas 300 mm",
+      "material": "Jaladera",
+      "alertas": []
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Chapa de canto nogal",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto (cantos visibles)",
+      "material": "Tapacanto PVC",
+      "alertas": []
+    }
+  ]
+}

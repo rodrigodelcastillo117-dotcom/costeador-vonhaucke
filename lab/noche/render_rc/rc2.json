@@ -1,0 +1,30 @@
+{
+  "cliente": "Torre Norte (lab P1)",
+  "boton": "Generar las 5 áreas",
+  "segundos": 272,
+  "fn": [
+    "generar-render-rc"
+  ],
+  "llamadas": 5,
+  "validas": 4,
+  "fallas": [
+    "RENDER_QA_FAILED"
+  ],
+  "referencias": [
+    1,
+    1,
+    1,
+    2,
+    0
+  ],
+  "con_dibujo": [
+    true,
+    true,
+    true,
+    true,
+    true
+  ],
+  "imagenes": 4,
+  "escenasGuardadas": 0,
+  "pageErrors": 0
+}
