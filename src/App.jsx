@@ -29,6 +29,7 @@ const CosteadorLinea = lazy(() => import('./componentes/CosteadorLinea.jsx'));
 import { aplicarPrograma, partidaComercialDesdeConfirmado } from './datos/programaRealDelPlano.js';
 import { reconciliarNuevasConPrograma } from './datos/reconciliarPartidas.js';
 import { fusionarAcomodo } from './datos/acomodoEstado.js';
+import { aplicarCompartido } from './datos/aplicarCompartido.js';
 import { APPLT_PRODUCTOS, generarAppLT } from './datos/applt.js';
 import { APP_PRODUCTOS, generarApp } from './datos/app.js';
 import { ECLIPSE_PRODUCTOS, generarEclipse } from './datos/eclipse.js';
@@ -165,21 +166,7 @@ function firma(c) {
 }
 const firmaDir = (d) => JSON.stringify([d.nomina, d.finanzas]);
 
-// Mezcla lo compartido (de la nube) sobre el estado local. Los parametros se
-// FUNDEN (para no borrar la nomina que Direccion tenga desbloqueada en memoria);
-// los precios, recetas y el bloque cifrado se reemplazan.
-function aplicarCompartido(estado, datos) {
-  const nuevo = { ...estado };
-  if (datos.insumos) nuevo.insumos = datos.insumos;
-  // VH-088: de dónde salieron los insumos ('catalogo' = catálogo certificado vía config_para_rol;
-  // 'config-fallback' = foto de config). Precios.jsx lo usa para no dejar editar lo que no manda.
-  if (datos.insumosFuente) nuevo.insumosFuente = datos.insumosFuente;
-  if (datos.piezas) nuevo.piezas = datos.piezas;
-  // Los parametros se FUNDEN: lo compartido no debe borrar la nomina que
-  // Direccion ya tenga cargada desde su boveda.
-  if (datos.parametros) nuevo.parametros = { ...estado.parametros, ...datos.parametros };
-  return nuevo;
-}
+// aplicarCompartido vive en datos/aplicarCompartido.js (VH-145: conserva los insumos ERP elegidos a mano).
 
 // Borra de este navegador todo lo que solo Direccion debe tener. Se usa al
 // salir y al entrar con un rol que no es direccion: si la nomina quedo
