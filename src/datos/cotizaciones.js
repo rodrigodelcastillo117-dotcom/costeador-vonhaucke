@@ -24,6 +24,7 @@ import { totalesCotizacion } from './totales.js';
 import { MOTOR_VERSION } from '../motor/calculo.js';
 import { dinero } from '../motor/dinero.js';
 import { claveCreacionNueva, CLAVE_CREACION_RE } from '../util.js';
+import { esConflictoGuardado, actualizadoDeError } from './conflictoGuardado.js';
 
 // ---------------------------------------------------------------------------
 //  HUELLA DE LA MATERIA PRIMA
@@ -206,6 +207,9 @@ export function patchParaServidor(fila) {
 
 // Clasifica el error del servidor para que el llamador decida sin leer texto suelto.
 export function clasificarErrorGuardado(e) {
+  // VH-148: conflicto de versión (SQLSTATE 40001 / 'CONFLICTO_VERSION'). Se revisa ANTES del texto:
+  // su mensaje también dice "cambió en el servidor" y no debe caer en 'desconocido' (= "sin conexión").
+  if (esConflictoGuardado(e)) return 'conflicto';
   const m = String(e?.message || e?.error?.message || e || '').toLowerCase();
   if (!m) return 'desconocido';
   if (m.includes('idempotency key reused')) return 'clave-reusada';
@@ -226,7 +230,7 @@ export function clasificarErrorGuardado(e) {
  * Nunca lanza: si la nube falla, el vendedor sigue cotizando y se reintenta al
  * siguiente cambio.
  */
-export async function guardarCotizacion(estado, usuario, id = null, { claveCreacion = null } = {}) {
+export async function guardarCotizacion(estado, usuario, id = null, { claveCreacion = null, actualizadoEsperado = undefined } = {}) {
   const fila = paraGuardar(estado, usuario);
   // Sin nada dentro no se guarda: no queremos el archivo lleno de borradores
   // vacíos de cada vez que alguien abre la pantalla.
@@ -234,16 +238,28 @@ export async function guardarCotizacion(estado, usuario, id = null, { claveCreac
   const patch = patchParaServidor(fila);
   try {
     if (id) {
-      const { data, error } = await nube.rpc('actualizar_cotizacion_segura', { p_cotizacion_id: id, p_patch: patch });
+      // VH-148 · control optimista. `actualizadoEsperado` es la versión (cadena ISO TAL CUAL, de
+      // cotizacion_segura o del último guardado) desde la que la persona edita. Sólo viaja cuando
+      // viene (bandera prendida Y versión conocida): así PostgREST escoge la sobrecarga de tres
+      // argumentos sólo si existe en la base y el cliente nuevo sigue funcionando contra la RPC de
+      // dos argumentos de producción. Ver src/datos/conflictoGuardado.js.
+      const args = { p_cotizacion_id: id, p_patch: patch };
+      if (actualizadoEsperado !== undefined && actualizadoEsperado !== null) args.p_actualizado_esperado = actualizadoEsperado;
+      const { data, error } = await nube.rpc('actualizar_cotizacion_segura', args);
       if (error) {
         const tipo = clasificarErrorGuardado(error);
         // Fila ajena o borrada: NO seguir pegándole; la próxima vez se crea una nueva.
         if (tipo === 'no-existe' || tipo === 'sin-acceso') return { id: null, guardado: false, motivo: tipo, soltarId: true };
+        // Otra persona guardó antes (SQLSTATE 40001): NO se reintenta ni se fusiona aquí. Se devuelve
+        // la versión del servidor para que la app enseñe el conflicto y la persona decida.
+        if (tipo === 'conflicto') return { id, guardado: false, motivo: tipo, actualizadoServidor: actualizadoDeError(error) };
         // Emitida: no se toca (el flujo correcto es una revisión). Se conserva el id
         // para NO duplicar.
         return { id, guardado: false, motivo: tipo };
       }
-      return { id: data?.id ?? id, guardado: true };
+      // `actualizado` = la versión que el servidor acaba de escribir (sólo con la migración VH-148;
+      // la RPC de producción no la devuelve → null → el siguiente guardado va sin control).
+      return { id: data?.id ?? id, guardado: true, actualizado: typeof data?.actualizado === 'string' ? data.actualizado : null };
     }
     const payload = claveCreacion && CLAVE_CREACION_RE.test(claveCreacion)
       ? { ...patch, _idempotency_key: claveCreacion }
@@ -253,7 +269,7 @@ export async function guardarCotizacion(estado, usuario, id = null, { claveCreac
       const tipo = clasificarErrorGuardado(error);
       return { id: null, guardado: false, motivo: tipo, rotarClave: tipo === 'clave-reusada' };
     }
-    return { id: data?.id ?? null, guardado: !!data?.id };
+    return { id: data?.id ?? null, guardado: !!data?.id, actualizado: typeof data?.actualizado === 'string' ? data.actualizado : null };
   } catch (e) {
     return { id, guardado: false, motivo: 'red' };
   }

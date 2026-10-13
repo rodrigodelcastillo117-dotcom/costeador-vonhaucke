@@ -13,6 +13,13 @@
 //     simula en cambio la migración 20261010170000 (NO aplicada en producción): strippea lo que
 //     entra y RE-PEGA la economía vieja. Ambas semánticas están probadas contra PostgreSQL real
 //     en supabase/tests/preservaEconomia.test.js; ver docs/auditoria/VH035_SQL_VS_MOCK.md.
+//   - VH-148 (control optimista, PROPUESTA_vh148_control_optimista_cotizacion.sql, probada contra
+//     PostgreSQL real en supabase/tests/controlOptimista.test.js): `cotizacion_segura` devuelve
+//     `actualizado`; `actualizar_cotizacion_segura` honra `p_actualizado_esperado` si viene en el body
+//     (si difiere del `actualizado` de la fila → error PostgREST con code '40001', mensaje
+//     'CONFLICTO_VERSION … (<ISO>)', details 'actualizado=<ISO>', y NADA cambia). Sin el parámetro la
+//     semántica es la de siempre (firma de dos argumentos). `f.conflictos` cuenta los rechazos y
+//     `f.esperados` guarda qué versión mandó cada intento (undefined = llamada vieja).
 //  Vive en el proceso de Playwright, así que SOBREVIVE recargas y pestañas: es la
 //  "base de datos" del escenario. Nada toca producción.
 // ============================================================================
@@ -139,13 +146,16 @@ export function evaluarEmision(fila, snap, aprobaciones = []) {
 }
 
 // `preservaEconomia` (default false = producción hoy): true = semántica de la migración 20261010170000.
-export function crearNubeFalsa({ usuarios, preservaEconomia = false }) {
+// `rpcVieja` (default false = con PROPUESTA_vh148): true = producción SIN la migración VH-148 (cotizacion_segura
+// no devuelve `actualizado` y la sobrecarga de tres argumentos no existe → PostgREST 404 PGRST202).
+export function crearNubeFalsa({ usuarios, preservaEconomia = false, rpcVieja = false }) {
   const permitidos = new Map(Object.entries(usuarios));   // email → rol
   const f = {
     filas: new Map(),            // id → fila cotizaciones
     idempotencia: new Map(),     // `${email}|${key}` → { id, hash }
     siguienteId: 100,
     creates: 0, updates: 0, llamadas: [],
+    conflictos: 0, esperados: [],   // VH-148: rechazos 40001 y qué p_actualizado_esperado mandó cada intento (undefined = llamada vieja)
     revisiones: [],              // cotizaciones_revisiones (lo que emitir_revision conservó)
     aprobaciones: [],            // tabla aprobaciones (solicitar_aprobacion_snapshot / resolver_aprobacion)
     // Dirección resuelve (misma regla que private_api.resolver_aprobacion: sólo PENDIENTE).
@@ -169,10 +179,22 @@ export function crearNubeFalsa({ usuarios, preservaEconomia = false }) {
     const c = f.filas.get(Number(id));
     if (!c) return { ok: false, motivo: 'no_existe' };
     if (!(c.usuario === email || editaConfig(email))) return { ok: false, motivo: 'sin_acceso' };
-    const payload = { ok: true, id: c.id, folio: c.folio ?? null, folio_oficial: c.folio_oficial ?? null, cliente: c.cliente ?? null, estado: c.estado, total: c.total ?? 0, piezas: c.piezas ?? 0, activa: c.activa, cliente_id: null, contacto_id: null, proyecto_id: null, partidas: c.partidas || [], totales: c.totales ?? null, acomodo: c.acomodo ?? null, creado: c.creado };
+    // VH-148: `actualizado` viaja a todo rol (no es economía), igual que en la migración.
+    const payload = { ok: true, id: c.id, folio: c.folio ?? null, folio_oficial: c.folio_oficial ?? null, cliente: c.cliente ?? null, estado: c.estado, total: c.total ?? 0, piezas: c.piezas ?? 0, activa: c.activa, cliente_id: null, contacto_id: null, proyecto_id: null, partidas: c.partidas || [], totales: c.totales ?? null, acomodo: c.acomodo ?? null, creado: c.creado, ...(rpcVieja ? {} : { actualizado: c.actualizado }) };
     return veEconomia(email) ? payload : sinEconomia(payload);
   };
   const err = (route, message, status = 400) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify({ code: 'P0001', message, details: null, hint: null }) });
+  // VH-148: el error de conflicto como lo entrega PostgREST (code = SQLSTATE, details = DETAIL, hint = HINT).
+  // El cliente decide por `code`/mensaje, no por el status HTTP (PostgREST reporta la clase 40 como 500;
+  // aquí se usa 409 por legibilidad en los reportes: ambas rutas las cubre el cliente).
+  const errConflicto = (route, actualizado) => route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({
+    code: '40001',
+    message: `CONFLICTO_VERSION: la cotización cambió en el servidor (${actualizado}). Recarga antes de guardar.`,
+    details: `actualizado=${actualizado}`,
+    hint: 'Vuelve a cargar la cotización (cotizacion_segura) y decide: ver la versión del servidor o volver a aplicar tus cambios con el actualizado nuevo.',
+  }) });
+  // timestamptz: dos cadenas ISO son la misma versión si representan el mismo instante.
+  const mismaVersion = (a, b) => a === b || (Date.parse(a) === Date.parse(b) && !Number.isNaN(Date.parse(a)));
   const json = (route, body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 
   async function manejar(route) {
@@ -314,9 +336,17 @@ export function crearNubeFalsa({ usuarios, preservaEconomia = false }) {
       if (fn === 'actualizar_cotizacion_segura') {
         const c = f.filas.get(Number(body.p_cotizacion_id));
         const patch = body.p_patch || {};
+        // VH-148: PostgREST escoge la sobrecarga por los nombres del body. Sin la migración (rpcVieja)
+        // la de tres argumentos no existe.
+        const conVersion = 'p_actualizado_esperado' in body;
+        f.esperados.push(conVersion ? body.p_actualizado_esperado : undefined);
+        if (rpcVieja && conVersion) return json(route, { code: 'PGRST202', message: 'Could not find the function public.actualizar_cotizacion_segura(p_actualizado_esperado, p_cotizacion_id, p_patch) in the schema cache', details: null, hint: null }, 404);
         if (!c) return err(route, 'cotizacion no existe');
         if (!(c.usuario === email || editaConfig(email))) return err(route, 'sin acceso');
         if ((c.estado || 'borrador') !== 'borrador') return err(route, `cotizacion no editable en estado ${c.estado}`);
+        // VH-148: mismo lugar que en la migración (tras existencia/acceso/estado, antes de validar el patch).
+        // NULL explícito = sin control. Si la versión no es la de la fila → 40001 y NADA cambia.
+        if (conVersion && body.p_actualizado_esperado != null && !mismaVersion(c.actualizado, body.p_actualizado_esperado)) { f.conflictos += 1; return errConflicto(route, c.actualizado); }
         if ('estado' in patch && patch.estado !== 'borrador') return err(route, 'estado protegido; use el flujo de emision');
         let partidas = 'partidas' in patch ? patch.partidas : c.partidas;
         if (!Array.isArray(partidas)) return err(route, 'partidas debe ser arreglo');

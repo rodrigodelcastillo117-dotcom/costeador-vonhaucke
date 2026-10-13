@@ -63,6 +63,8 @@ const Reglas = lazy(() => import('./componentes/Reglas.jsx'));
 import { cargarReglas } from './datos/reglas.js';
 import { cargarAprendizajes } from './datos/aprendizaje.js';
 import { guardarCotizacion, cargarCotizacionCompleta, paraGuardar, firmaGuardado, claveCreacionNueva } from './datos/cotizaciones.js';
+import { controlOptimistaActivo, esperadoParaGuardar, conflictoDesdeResultado, claveRespaldoConflicto, respaldoConflicto, aplicarFilaServidor } from './datos/conflictoGuardado.js';
+import ConflictoGuardado from './componentes/ConflictoGuardado.jsx';
 import { aplicarRespaldo } from './datos/respaldo.js';
 import { crearPartida } from './datos/partida.js';
 import { normalizarRol, veCostosCosteo } from './datos/roles.js';
@@ -223,6 +225,7 @@ export default function App() {
     epocaCot.current += 1;        // invalida cualquier guardado en vuelo
     idCotizacion.current = null;
     ultimaFirmaNube.current = '';
+    fijarConflicto(null);         // VH-148: la cotización nueva no arrastra el conflicto de la anterior
     setEstado((e) => ({
       ...e,
       cotizacion: {
@@ -230,6 +233,7 @@ export default function App() {
         // Bloque 1: el id de la nube vive en el estado (persiste al recargar). Una
         // cotización nueva = sin id y con clave de creación propia (idempotencia).
         id: null, claveCreacion: claveCreacionNueva(),
+        actualizado: null,        // VH-148: sin versión conocida hasta que el servidor la devuelva
         // No arrastrar el descuento/ajustes del cliente anterior a la nueva.
         descuentoPct: 0, contingenciaPct: 0, maniobrasPct: 0, fletePct: 0,
       },
@@ -448,10 +452,28 @@ export default function App() {
   const creandoEnVuelo = useRef(false);
   const avisoNubeCaida = useRef(false);
 
+  // VH-148 · CONTROL OPTIMISTA (detrás de bandera: VITE_CONTROL_OPTIMISTA=1 o
+  // localStorage['vh:controlOptimista']='1'). La versión conocida de la cotización abierta vive en
+  // `estado.cotizacion.actualizado` (la fija cotizacion_segura al abrir y cada guardado confirmado;
+  // persiste con el estado, así que sobrevive recargas). Se manda TAL CUAL como
+  // `p_actualizado_esperado`; si el servidor responde 40001 (otra persona guardó antes) NO se
+  // reintenta ni se fusiona: lo local queda intacto, se enseña el aviso (ConflictoGuardado) y el
+  // autosave queda EN PAUSA hasta que la persona escoja "Ver la versión del servidor" o "Volver a
+  // aplicar mis cambios". El ref es espejo del estado para los closures del autosave (setTimeout).
+  const controlOptimista = useMemo(() => controlOptimistaActivo(), []);
+  const [conflicto, setConflicto] = useState(null);
+  const conflictoRef = useRef(null);
+  const [resolviendoConflicto, setResolviendoConflicto] = useState(false);
+  const fijarConflicto = (c) => { conflictoRef.current = c; setConflicto(c); };
+
   // ÚNICA PUERTA de guardado a la nube (autosave, verificar emisión, emitir).
   // Devuelve el resultado de guardarCotizacion y mantiene id/clave/firma coherentes.
-  async function guardarEnNube() {
+  // `reaplicar` (VH-148): la persona pidió volver a aplicar lo suyo encima de la versión del
+  // servidor; `esperado` es esa versión fresca (del error 40001 o de recargar la fila).
+  async function guardarEnNube({ reaplicar = false, esperado = undefined } = {}) {
     if (!sesion?.user?.email) return { id: idCotizacion.current, guardado: false, motivo: 'sin-sesion' };
+    // Con un conflicto sin resolver nada se guarda solo (ni autosave ni emisión): la decisión es de la persona.
+    if (conflictoRef.current && !reaplicar) return { id: idCotizacion.current, guardado: false, motivo: 'conflicto-pendiente' };
     const epoca = epocaCot.current;
     const fila = paraGuardar(estado, sesion.user.email);
     if (!fila.partidas.length) return { id: idCotizacion.current, guardado: false, motivo: 'vacia' };
@@ -470,12 +492,24 @@ export default function App() {
     }
     let r;
     try {
-      r = await guardarCotizacion(estado, sesion.user.email, idCotizacion.current, { claveCreacion: clave });
+      // VH-148: la versión desde la que se edita (o la fresca, al volver a aplicar). Sólo viaja con la
+      // bandera prendida y una versión conocida; si no, la llamada es la de siempre (dos argumentos).
+      const version = reaplicar ? esperado : estado.cotizacion?.actualizado;
+      r = await guardarCotizacion(estado, sesion.user.email, idCotizacion.current, {
+        claveCreacion: clave,
+        actualizadoEsperado: esperadoParaGuardar(version, controlOptimista),
+      });
     } finally {
       creandoEnVuelo.current = false;
     }
     // Se empezó de cero mientras guardaba: NADA de lo guardado vale para la cotización viva.
     if (epocaCot.current !== epoca) return { id: null, guardado: false, motivo: 'epoca' };
+    // VH-148: otra persona guardó antes. Lo local NO se toca; se enseña el aviso y se pausa el autosave.
+    if (r.motivo === 'conflicto') {
+      fijarConflicto(conflictoDesdeResultado(r));
+      setNubeEstado('conectado');   // la nube respondió: no es un problema de red
+      return r;
+    }
     // AVISO CLARO cuando la nube no recibe la cotización (antes fallaba en silencio y el
     // vendedor creía que estaba guardado). El punto del encabezado pasa a "Sin conexión"
     // y se avisa UNA vez por racha; al volver, el punto regresa a "En línea".
@@ -492,20 +526,64 @@ export default function App() {
     }
     if (r.guardado && r.id) {
       ultimaFirmaNube.current = firma;
-      if (idCotizacion.current !== r.id) {
+      if (reaplicar) fijarConflicto(null);   // VH-148: lo local ya quedó encima de la versión del servidor
+      // VH-148: la versión que el servidor acaba de escribir (null con la RPC vieja → sin control
+      // en el siguiente guardado). Se escribe SIEMPRE para no arrastrar una versión rancia.
+      const actualizado = r.actualizado ?? null;
+      if (idCotizacion.current !== r.id || (estado.cotizacion?.actualizado ?? null) !== actualizado) {
         idCotizacion.current = r.id;
-        setEstado((e) => ({ ...e, cotizacion: { ...e.cotizacion, id: r.id } }));
+        setEstado((e) => ({ ...e, cotizacion: { ...e.cotizacion, id: r.id, actualizado } }));
       }
     } else if (r.soltarId) {
       // La fila es de otro usuario o ya no existe (p. ej. otro vendedor usó este
       // navegador): se olvida el id y la siguiente escritura crea una propia.
       idCotizacion.current = null;
       ultimaFirmaNube.current = '';
-      setEstado((e) => ({ ...e, cotizacion: { ...e.cotizacion, id: null, claveCreacion: claveCreacionNueva() } }));
+      setEstado((e) => ({ ...e, cotizacion: { ...e.cotizacion, id: null, claveCreacion: claveCreacionNueva(), actualizado: null } }));
     } else if (r.rotarClave) {
       setEstado((e) => ({ ...e, cotizacion: { ...e.cotizacion, claveCreacion: claveCreacionNueva() } }));
     }
     return r;
+  }
+
+  // VH-148 · las DOS salidas explícitas del conflicto. Ninguna fusiona nada.
+  // 1) Ver la versión del servidor: primero se respalda lo local en esta computadora
+  //    (localStorage `costeador-vonhaucke-conflicto-<id>`), luego se carga la fila del servidor.
+  async function verVersionDelServidor() {
+    const c = conflictoRef.current;
+    if (!c) return;
+    const id = idCotizacion.current ?? estado.cotizacion?.id ?? null;
+    setResolviendoConflicto(true);
+    try {
+      try { localStorage.setItem(claveRespaldoConflicto(id), JSON.stringify(respaldoConflicto(estado, c))); }
+      catch (e) { console.error('[VH-148] no se pudo respaldar lo local antes de cargar el servidor:', e); }
+      const full = id != null ? await cargarCotizacionCompleta(id) : null;
+      if (!full) { mostrarAviso('No se pudo leer la versión del servidor. Tus cambios siguen en esta computadora; intenta de nuevo.', 7000); return; }
+      epocaCot.current += 1;   // invalida guardados en vuelo de lo local
+      const cot = aplicarFilaServidor(estado.cotizacion, full);
+      fijarFirmaComoGuardada({ ...estado, cotizacion: cot });   // lo que llega YA está en la nube: no se reescribe
+      setEstado((e) => ({ ...e, cotizacion: cot }));
+      fijarConflicto(null);
+      mostrarAviso('Se cargó la versión del servidor. Tus cambios quedaron respaldados en esta computadora.', 7000);
+    } finally {
+      setResolviendoConflicto(false);
+    }
+  }
+  // 2) Volver a aplicar mis cambios: UN clic explícito re-guarda lo local con la versión fresca del
+  //    servidor. Si alguien volvió a guardar en medio, el aviso reaparece con la hora nueva (sin bucle).
+  async function reaplicarMisCambios() {
+    const c = conflictoRef.current;
+    if (!c) return;
+    setResolviendoConflicto(true);
+    try {
+      let esperado = c.actualizadoServidor;
+      if (!esperado && idCotizacion.current) esperado = (await cargarCotizacionCompleta(idCotizacion.current))?.actualizado ?? null;
+      const r = await guardarEnNube({ reaplicar: true, esperado });
+      if (r.guardado) mostrarAviso('Listo: tus cambios quedaron guardados encima de la versión del servidor.', 5000);
+      else if (r.motivo !== 'conflicto') mostrarAviso(`No se pudo volver a guardar (${r.motivo || 'sin detalle'}). Tus cambios siguen en esta computadora.`, 7000);
+    } finally {
+      setResolviendoConflicto(false);
+    }
   }
 
   // Cambió la persona (salir / entrar otro correo): lo "ya guardado" era de la sesión
@@ -1208,6 +1286,9 @@ export default function App() {
       </header>
 
       <main>
+        {/* VH-148: otra persona guardó antes; lo local sigue aquí y la persona decide. Visible en
+            cualquier pantalla porque el autosave está en pausa mientras no se resuelva. */}
+        <ConflictoGuardado conflicto={conflicto} ocupado={resolviendoConflicto} onVerServidor={verVersionDelServidor} onReaplicar={reaplicarMisCambios} />
         {/* Red de seguridad: un error de render ya no deja la app en blanco. */}
         <SinPantallaBlanca resetKey={pestania} onInicio={irInicio}>
         <Suspense fallback={(
@@ -1285,9 +1366,12 @@ export default function App() {
               const full = (await cargarCotizacionCompleta(c.id)) || c;
               epocaCot.current += 1;          // invalida guardados en vuelo de la anterior
               idCotizacion.current = c.id;   // seguir editando ESE, no crear otro
+              fijarConflicto(null);           // VH-148: se abre otra cotización; el conflicto anterior ya no aplica
               const cotAbierta = {
                 ...estado.cotizacion,
                 id: c.id, claveCreacion: claveCreacionNueva(),
+                // VH-148: la versión desde la que se edita (cadena tal cual; null con la RPC vieja).
+                actualizado: typeof full.actualizado === 'string' ? full.actualizado : null,
                 cliente: full.cliente || '', folio: full.folio || '',
                 partidas: full.partidas || [], acomodo: full.acomodo || null,
                 descuentoPct: full.totales?.descuentoPct ?? estado.cotizacion.descuentoPct,
