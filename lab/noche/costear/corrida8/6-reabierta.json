@@ -1,0 +1,94 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render Credenza Nogal (lab P0-C 2026-10-13T06:00) BORRADOR guarda credenza 3 puertas Madera enchapada en nogal natural",
+    "piezas": 14,
+    "mismoBom": true,
+    "costoAntes": "$4,686.51",
+    "costoDespues": "$4,686.51",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$4,686.51",
+        "Pendiente"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $2,852.27 · Mano de obra $458.56 · Fábrica $1,375.68",
+      "pendiente": true,
+      "porConfirmar": false
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Laterales",
+      "material": "MDF 19 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Cubierta y fondo",
+      "material": "MDF 19 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Puertas abatibles",
+      "material": "MDF 19 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Chapa de madera nogal (caras vistas)",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": []
+    },
+    {
+      "nombre": "Pegado de chapa",
+      "material": "Pegado de chapa (operación)",
+      "alertas": []
+    },
+    {
+      "nombre": "Entrepaño interior (1 por módulo)",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Divisiones verticales interiores",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Respaldo MDF 9 mm",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Base PTR 1x1 cal.14 con zócalo",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Pintura electrostática negra base",
+      "material": "Pintura electrostatica",
+      "alertas": []
+    },
+    {
+      "nombre": "Bisagras",
+      "material": "Bisagra",
+      "alertas": []
+    },
+    {
+      "nombre": "Jaladeras rectas 300 mm",
+      "material": "Jaladera",
+      "alertas": []
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto",
+      "material": "Tapacanto PVC",
+      "alertas": []
+    }
+  ]
+}

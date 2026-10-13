@@ -35,9 +35,9 @@ Checkpoints por commit pequeño; este archivo se actualiza al cerrar cada bloque
 | Fase 0 preservar | **HECHO** (este archivo) | — |
 | P0-A VH-035 integridad económica | **HECHO (RC)**: 24 casos PGlite con SQL real (23 ✓ + 1 rojo a propósito: la migración pendiente RECICLA costo viejo al cambiar de producto); PROPUESTA vh035b sin reciclar 7/7; mock = producción → `persistencia.e2e.js` rojo por la causa real; migración NO aplicada | `supabase/migrations/20261010170000_actualizar_cotizacion_preserva_economia.sql`, `supabase/tests/preservaEconomia.test.js` (PGlite; fixture `private_api_baseline_20261010.sql` — hay que compararla con los cuerpos de producción de HOY) |
 | P0-B ERP → motor | **HECHO (RC)**: traza completa, paridad 15/15 a centavos, política con conteos, 2 PROPUESTAS sin aplicar; 4 defectos de cliente corregidos (VH-143/144/145/146) | `docs/auditoria/ERP_PRECIOS_ELEGIBILIDAD.md`, `lab/erp/`, `supabase/migrations/PROPUESTA_vh146_*`, `PROPUESTA_vh147_*` |
-| P0-C COSTEAR real | en curso (lab `e2e/labCostear.e2e.js`, 6ª corrida; 2 defectos corregidos: mensaje contradictorio, amarre tardío pisaba ediciones) | — |
+| P0-C COSTEAR real | **PARTIAL**: ciclo mecánico cerrado ×3 (exp. 16/17/18), VH-149/150 + mensaje corregidos; costo no certificado: chapa emitida como hoja entera (no cabe en formato), cantidades de la IA varían (VH-151), paridad servidor sólo sobre BOM incompleto | `lab/noche/costear/`, `e2e/labCostear.e2e.js` |
 | P0-D COTIZAR real | **HECHO**: Torre Norte reg. 1336 (39/39 PASS, PDF $405,915.44, reabierto) y C1 desde cero reg. 1372 (7/7 áreas, puerta confirmada, 7 partidas, acomodo 25 NEEDS_REVIEW, PDF borrador $266,315.24, reabierto 0 errores). Renders aparte: prod 1/5 y 0/4; RC v2 4/5 | `scratchpad` → `docs/auditoria/NOCHE_2026-10-13_INFORME.md` |
-| P1 concurrencia / tests falsos | parcial: Cocrear/render E2E ya fallan cuando deben; PROPUESTA vh148 control optimista; retención QA medida (1 279 cotizaciones QA, 69 MB tabla, 161 MB BD, nada borrado); `labConcurrencia.e2e.js` por correr | — |
+| P1 concurrencia / tests falsos | **HECHO (parcial por diseño)**: VH-148 reproducido en UI (último escribe gana) + PROPUESTA; Cocrear/render E2E fallan cuando deben; retención QA medida, nada borrado | `lab/noche/concurrencia/resumen.json` |
 
 ## 3. Bloqueados que necesitan a Dirección
 
@@ -61,4 +61,14 @@ Checkpoints por commit pequeño; este archivo se actualiza al cerrar cada bloque
 | `8871b54` | `supabase/tests/fixtures/private_api_prod_20261013.sql` |
 | `0e76cb6` | `docs/auditoria/ERP_PRECIOS_ELEGIBILIDAD.md`, `lab/erp/verificar_rpc.mjs`, 2 PROPUESTAS |
 
-PR borrador: https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/pull/37 (sólo para CI; no mergear).
+| `0e76cb6`… | P0-B informe, lab/erp, PROPUESTAS vh146/vh147 |
+| `44c5b87` | P1 Cocrear/render E2E honestos |
+| `1ac732b` | PROPUESTA vh148 control optimista |
+| `2d20985` | mensaje contradictorio en Costear |
+| `b09e443` VH-149 | `amarreERP.js` fusionarAmarreEnBom + test |
+| `6b2d3ac`, `61e71ef` | VH-035 24 casos PGlite, PROPUESTA vh035b, doc SQL vs mock; nubeFalsa = producción |
+| `8f6b36f` VH-150 | `datos/conservarConfirmados.js` + test; AsistenteEspecial |
+| `669c901` | STALE como it.fails |
+| labs | `e2e/labCostear.e2e.js`, `e2e/labConcurrencia.e2e.js`, `e2e/labRender.e2e.js`; evidencia en `lab/noche/` |
+
+PR borrador: https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/pull/37 (sólo para CI; no mergear). Informe final: `docs/auditoria/NOCHE_2026-10-13_INFORME.md`.

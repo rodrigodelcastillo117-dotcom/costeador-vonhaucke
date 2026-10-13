@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$4,497.20",
+      "Pendiente"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 2 decisión(es) pendiente(s): ¿Cuántos entrepaños hay en total? · ¿Cuál es el desarrollo total del PTR en metros?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $2,733.95 · Mano de obra $440.81 · Fábrica $1,322.44",
+    "pendiente": true,
+    "porConfirmar": false
+  },
+  "piezas": []
+}

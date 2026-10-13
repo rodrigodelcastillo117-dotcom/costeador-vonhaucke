@@ -1,0 +1,95 @@
+{
+  "erp": {
+    "intentado": true,
+    "pieza": "Respaldo MDF 9 mm",
+    "resultados": [
+      "MDF MELAMINA UNA CARA HOJA 4' X 8' ESPESOR 25 mm Y UNA AL NATURAL - \"MDF25M1\" · ACABADO MADERA GRIS HUMO LM · hoja · ERP\n$1,226.70 / hoja · certificado · 2026-07-03\nUsar",
+      "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\" · hoja · ERP\n$431.04 / hoja · certificado · 2026-06-01\nUsar",
+      "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\" · hoja · ERP\n$240.00 / hoja · certificado · 2026-06-01\nUsar",
+      "MDF NATURAL HOJA 4' X 10' ESPESOR 9 mm CON CERTIFICADO - \"MDF4109CC\" · hoja · ERP\n$651.00 / hoja · propuesto_validado · 2021-11-01\nUsar",
+      "MDF NATURAL HOJA 4' X 10' ESPESOR 19 mm - \"MDFN41019\" · hoja · ERP\n$710.00 / hoja · propuesto_validado · 2019-03-04\nUsar",
+      "MDF NATURAL HOJA 6 X 8 ESPESOR 19 mm - \"\"MDF1968\"\"\" · hoja · ERP\n$623.90 / hoja · propuesto_validado · 2016-06-30\nUsar"
+    ],
+    "elegido": "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\" · hoja · ERP $240.00 / hoja · certificado · 2026-06-01 Usar"
+  },
+  "piezas": [
+    {
+      "nombre": "Laterales (2)",
+      "material": "— ¿de qué es? —",
+      "alertas": [
+        "⚠ Varios materiales posibles — elige de cuál es."
+      ]
+    },
+    {
+      "nombre": "Cubierta y fondo (2)",
+      "material": "— ¿de qué es? —",
+      "alertas": [
+        "⚠ Varios materiales posibles — elige de cuál es."
+      ]
+    },
+    {
+      "nombre": "Puertas abatibles",
+      "material": "— ¿de qué es? —",
+      "alertas": [
+        "⚠ Varios materiales posibles — elige de cuál es."
+      ]
+    },
+    {
+      "nombre": "Entrepano interior (1 por modulo)",
+      "material": "Melamina 16 mm, Frosty White",
+      "alertas": []
+    },
+    {
+      "nombre": "Divisiones verticales interiores",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Respaldo MDF 9 mm",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Base PTR 1x1 cal.14 con zocalo",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Pintura electrostatica negra base",
+      "material": "Pintura electrostatica",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado"
+      ]
+    },
+    {
+      "nombre": "Bisagras",
+      "material": "Bisagra",
+      "alertas": []
+    },
+    {
+      "nombre": "Jaladeras rectas 300 mm",
+      "material": "Jaladera",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («recta 300») no está en el nombre del catálogo"
+      ]
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto para chapa/melamina",
+      "material": "Tapacanto PVC",
+      "alertas": []
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

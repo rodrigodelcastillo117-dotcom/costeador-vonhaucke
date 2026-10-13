@@ -1,0 +1,99 @@
+{
+  "erp": {
+    "intentado": true,
+    "pieza": "Respaldo",
+    "resultados": [
+      "MDF MELAMINA UNA CARA HOJA 4' X 8' ESPESOR 25 mm Y UNA AL NATURAL - \"MDF25M1\" · ACABADO MADERA GRIS HUMO LM · hoja · ERP\n$1,226.70 / hoja · certificado · 2026-07-03\nUsar",
+      "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\" · hoja · ERP\n$431.04 / hoja · certificado · 2026-06-01\nUsar",
+      "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\" · hoja · ERP\n$240.00 / hoja · certificado · 2026-06-01\nUsar",
+      "MDF NATURAL HOJA 4' X 10' ESPESOR 9 mm CON CERTIFICADO - \"MDF4109CC\" · hoja · ERP\n$651.00 / hoja · propuesto_validado · 2021-11-01\nUsar",
+      "MDF NATURAL HOJA 4' X 10' ESPESOR 19 mm - \"MDFN41019\" · hoja · ERP\n$710.00 / hoja · propuesto_validado · 2019-03-04\nUsar",
+      "MDF NATURAL HOJA 6 X 8 ESPESOR 19 mm - \"\"MDF1968\"\"\" · hoja · ERP\n$623.90 / hoja · propuesto_validado · 2016-06-30\nUsar"
+    ],
+    "elegido": "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\" · hoja · ERP $240.00 / hoja · certificado · 2026-06-01 Usar"
+  },
+  "piezas": [
+    {
+      "nombre": "Laterales del cuerpo",
+      "material": "— ¿de qué es? —",
+      "alertas": [
+        "⚠ Varios materiales posibles — elige de cuál es."
+      ]
+    },
+    {
+      "nombre": "Cubierta y fondo del cuerpo",
+      "material": "— ¿de qué es? —",
+      "alertas": [
+        "⚠ Varios materiales posibles — elige de cuál es."
+      ]
+    },
+    {
+      "nombre": "Entrepaño interior",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Puertas abatibles",
+      "material": "— ¿de qué es? —",
+      "alertas": [
+        "⚠ Varios materiales posibles — elige de cuál es."
+      ]
+    },
+    {
+      "nombre": "Respaldo",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Base PTR 1x1 cal.14 (marco y zoclo)",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Pintura electrostática negra base PTR",
+      "material": "Pintura electrostatica",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado"
+      ]
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Bisagras",
+      "material": "Bisagra",
+      "alertas": []
+    },
+    {
+      "nombre": "Jaladeras rectas 300 mm",
+      "material": "Jaladera",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («recta 300») no está en el nombre del catálogo"
+      ]
+    },
+    {
+      "nombre": "Canto de tablero",
+      "material": "Tapacanto ABS 3 mm",
+      "alertas": [
+        "⚠ Costo pendiente — falta confirmar material."
+      ]
+    },
+    {
+      "nombre": "Tapacanto (cantos visibles)",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: estándar de casa"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

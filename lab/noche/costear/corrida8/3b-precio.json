@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$4,686.51",
+      "Pendiente"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 1 decisión(es) pendiente(s): ¿Respaldo MDF 9 mm se sustituye con?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $2,852.27 · Mano de obra $458.56 · Fábrica $1,375.68",
+    "pendiente": true,
+    "porConfirmar": false
+  },
+  "piezas": []
+}
