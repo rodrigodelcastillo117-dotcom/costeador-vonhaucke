@@ -1,0 +1,61 @@
+name: Laboratorio de planos
+
+# Bloque M: corre el corpus sintético contra el lector (producción o RC) y falla si baja un número duro.
+# Manual (Actions → Run workflow) o cada noche. Usa la cuenta QA (secrets TEST_EMAIL/TEST_PASSWORD).
+on:
+  workflow_dispatch:
+    inputs:
+      funcion:
+        description: 'Edge del lector a medir'
+        required: true
+        default: 'leer-plano'
+  schedule:
+    - cron: '17 9 * * 1-5'
+
+concurrency:
+  group: lab-planos
+  cancel-in-progress: false
+
+jobs:
+  medir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
+      TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+      LEER_FN: ${{ github.event.inputs.funcion || 'leer-plano' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verificar cuenta QA
+        shell: bash
+        run: |
+          if [[ -z "$TEST_EMAIL" || -z "$TEST_PASSWORD" ]]; then echo "::error::Faltan TEST_EMAIL/TEST_PASSWORD"; exit 1; fi
+      - name: Generar corpus
+        shell: bash
+        run: |
+          pip install -q matplotlib
+          cd lab/planos && python3 gen_corpus.py
+      - name: Medir
+        shell: bash
+        run: |
+          cd lab/planos && CORPUS_DIR=. node medir.mjs | tee medir.log
+          echo "## Lector: $LEER_FN" >> "$GITHUB_STEP_SUMMARY"
+          sed -n '/^| plano/,$p' medir.log >> "$GITHUB_STEP_SUMMARY"
+      - name: Gate
+        shell: bash
+        run: cd lab/planos && node gate.mjs "tabla.$LEER_FN.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lab-planos-${{ github.run_id }}
+          path: |
+            lab/planos/*/lectura.*.json
+            lab/planos/tabla.*.json
+            lab/planos/medir.log
+          retention-days: 14
