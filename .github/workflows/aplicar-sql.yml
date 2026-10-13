@@ -1,0 +1,73 @@
+name: Aplicar SQL a Supabase
+
+# Aplica UN archivo SQL del repo, byte a byte, por la API de administración de Supabase (sin retranscribirlo).
+# Requiere el secret SUPABASE_ACCESS_TOKEN y escribir exactamente APLICAR en `confirmar`.
+# Sólo acepta archivos bajo supabase/migrations/. Registra la ejecución en supabase_migrations.schema_migrations.
+on:
+  workflow_dispatch:
+    inputs:
+      archivo:
+        description: 'Ruta del archivo (supabase/migrations/…sql)'
+        required: true
+      version:
+        description: 'Versión para el historial (YYYYMMDDHHMMSS)'
+        required: true
+      nombre:
+        description: 'Nombre para el historial (snake_case)'
+        required: true
+      confirmar:
+        description: 'Escribe APLICAR para confirmar'
+        required: true
+      ref_proyecto:
+        description: 'Project ref de Supabase'
+        required: true
+        default: 'mtuvnbgljwbsaizjjgzs'
+
+concurrency:
+  group: aplicar-sql
+  cancel-in-progress: false
+
+jobs:
+  aplicar:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      ARCHIVO: ${{ github.event.inputs.archivo }}
+      VERSION: ${{ github.event.inputs.version }}
+      NOMBRE: ${{ github.event.inputs.nombre }}
+      REF: ${{ github.event.inputs.ref_proyecto }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validar entrada
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${{ github.event.inputs.confirmar }}" == "APLICAR" ]] || { echo "::error::Falta confirmar con APLICAR"; exit 1; }
+          [[ -n "$SUPABASE_ACCESS_TOKEN" ]] || { echo "::error::Falta SUPABASE_ACCESS_TOKEN"; exit 1; }
+          [[ "$ARCHIVO" =~ ^supabase/migrations/[A-Za-z0-9_.-]+\.sql$ ]] || { echo "::error::Archivo fuera de supabase/migrations"; exit 1; }
+          [[ -f "$ARCHIVO" ]] || { echo "::error::No existe $ARCHIVO"; exit 1; }
+          [[ "$VERSION" =~ ^[0-9]{14}$ ]] || { echo "::error::Versión inválida"; exit 1; }
+          [[ "$NOMBRE" =~ ^[a-z0-9_]+$ ]] || { echo "::error::Nombre inválido"; exit 1; }
+          echo "sha256: $(sha256sum "$ARCHIVO" | cut -d' ' -f1)  líneas: $(wc -l < "$ARCHIVO")"
+      - name: Aplicar
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -Rs '{query: .}' "$ARCHIVO" > cuerpo.json
+          code=$(curl -sS -o respuesta.json -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'Content-Type: application/json' \
+            "https://api.supabase.com/v1/projects/$REF/database/query" --data @cuerpo.json)
+          echo "HTTP $code"; head -c 4000 respuesta.json; echo
+          [[ "$code" =~ ^2 ]] || { echo "::error::La base rechazó el SQL (HTTP $code)"; exit 1; }
+      - name: Registrar en el historial de migraciones
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha=$(sha256sum "$ARCHIVO" | cut -d' ' -f1)
+          q="insert into supabase_migrations.schema_migrations(version, name, statements) values ('$VERSION', '$NOMBRE', array['-- aplicado por workflow aplicar-sql desde $ARCHIVO @ ${GITHUB_SHA::7} sha256:$sha']) on conflict (version) do nothing;"
+          jq -n --arg q "$q" '{query: $q}' > reg.json
+          code=$(curl -sS -o reg_resp.json -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'Content-Type: application/json' \
+            "https://api.supabase.com/v1/projects/$REF/database/query" --data @reg.json)
+          echo "HTTP $code"; cat reg_resp.json; echo
+          echo "- \`$ARCHIVO\` aplicado como \`$VERSION $NOMBRE\` desde \`${GITHUB_SHA::7}\` (sha256 $sha)" >> "$GITHUB_STEP_SUMMARY"

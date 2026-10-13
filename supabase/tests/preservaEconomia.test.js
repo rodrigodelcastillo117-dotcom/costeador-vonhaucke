@@ -260,7 +260,7 @@ describe('VH-035 · DESPUÉS (migración 20261010170000): la economía de Direcc
   let db;
   beforeAll(async () => {
     db = await baseAislada();
-    await db.exec(leer('supabase/migrations/20261010170000_actualizar_cotizacion_preserva_economia.sql'));
+    await db.exec(leer('supabase/migrations/PROPUESTA_vh035a_actualizar_cotizacion_preserva_economia.sql'));
   }, 60_000);
   afterAll(async () => { await db?.close(); });
 
