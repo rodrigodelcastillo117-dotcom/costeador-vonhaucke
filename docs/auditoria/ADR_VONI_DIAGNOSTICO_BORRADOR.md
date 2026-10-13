@@ -333,3 +333,24 @@ La clasificación es mía y por juicio; está hecha sobre la causa del defecto, 
 7. **Comportamiento en ejecución de dos lecturas de código:** que en modo texto "Aplicar respuestas" no llegue a la IA (`AsistenteEspecial.jsx:784`), y el riesgo de duplicados al regresar de Costear a Cocrear sin `_regla`/`_auto`.
 8. **El A/B es una muestra chica** (55 renglones, 8 hojas, una corrida por modelo) y la corrió el mismo equipo (`AUDITORIA_EXTERNA_LEEME_20261013.md:84`).
 9. **No hay medición de variabilidad entre corridas** con el mismo plano (VH-151 dice "la IA aún varía el número de piezas entre corridas"; VH-178: 10 piezas en una corrida y 1 en otra). Sin esa medición, no se puede estimar qué ganaría un patrón de varios agentes con votación frente a uno solo.
+
+---
+
+# DECISIÓN (Dirección, 2026-10-13)
+
+**GO condicionado a la arquitectura B:** VONI como interfaz única, especialidades = herramientas que envuelven módulos
+existentes, motores deterministas con la autoridad. **NO-GO** a cinco agentes autónomos.
+
+Razón con datos: de 68 defectos reales clasificados arriba, sólo ~22 % (lectura visual + orquestación) son atacables con
+más IA; el 78 % es código determinista, datos o flujo. La mayor mejora medida (39/55 → 52/55 renglones) vino de cambiar
+el modelo de lectura, no de agregar agentes. El costo nunca lo calcula una IA.
+
+## Implementado en RC (Entrega 1: Ingeniería + Costos)
+| Especialidad | Envuelve | Nuevo |
+|---|---|---|
+| Ingeniería | `analizar-mueble-rc`, `lecturaIncompleta.js`, `revisionEstructural.js` | validadores mínimos (medida imposible, material/función, duplicado, cantidad incompatible/imposible, geometría no verificable); procedencia por pieza (OBSERVADO/INFERIDO/SUPUESTO/DESCONOCIDO) con evidencia; confirmación en bloque excluye lo no observado; bloqueos no-humanos también en el servidor |
+| Costos | `mapIaComps`, `materialMatch`, amarre ERP, `calculo.js` + `formulaAlba.js`, `costear-servidor-rc` | estado en tres niveles VALIDADO/PRELIMINAR/BLOQUEADO con motivos (`estadoCosto.js`); `aprobacionHumana` del servidor (las aprobaciones de la cuenta de prueba no validan) |
+| Contrato | `src/voni/especialidades.js` | banderas `VITE_VONI_<ESPECIALIDAD>`; resultados PASS / NEEDS_CONFIRMATION / BLOCKED / ERROR |
+
+Arquitecto, Comercial y Creador: banderas apagadas; Entregas 2 y 3. Council: apagado hasta un A/B que demuestre beneficio
+frente a "reintento con el mismo modelo".
